@@ -97,20 +97,16 @@ static void check_route_set(belle_sip_list_t *rs){
 	}
 }
 
-static int belle_sip_dialog_init_as_uas(belle_sip_dialog_t *obj, belle_sip_request_t *req, belle_sip_response_t *resp){
+static int belle_sip_dialog_init_as_uas(belle_sip_dialog_t *obj, belle_sip_request_t *req){
 	const belle_sip_list_t *elem;
 	belle_sip_header_contact_t *ct=belle_sip_message_get_header_by_type(req,belle_sip_header_contact_t);
 	belle_sip_header_cseq_t *cseq=belle_sip_message_get_header_by_type(req,belle_sip_header_cseq_t);
-	belle_sip_header_to_t *to=belle_sip_message_get_header_by_type(resp,belle_sip_header_to_t);
 	belle_sip_header_via_t *via=belle_sip_message_get_header_by_type(req,belle_sip_header_via_t);
 	belle_sip_uri_t *requri=belle_sip_request_get_uri(req);
+	belle_sip_header_to_t *to=belle_sip_message_get_header_by_type(req,belle_sip_header_to_t);
 
 	if (!ct){
 		belle_sip_error("No contact in request.");
-		return -1;
-	}
-	if (!to){
-		belle_sip_error("No to in response.");
 		return -1;
 	}
 	if (!cseq){
@@ -121,6 +117,11 @@ static int belle_sip_dialog_init_as_uas(belle_sip_dialog_t *obj, belle_sip_reque
 		belle_sip_error("No via in request.");
 		return -1;
 	}
+	if (!to){
+		belle_sip_error("No to in request.");
+		return -1;
+	}
+
 	if (strcasecmp(belle_sip_header_via_get_protocol(via),"TLS")==0
 	    && belle_sip_uri_is_secure(requri)){
 		obj->is_secure=TRUE;
@@ -142,10 +143,10 @@ static int belle_sip_dialog_init_as_uas(belle_sip_dialog_t *obj, belle_sip_reque
 	if (strcmp(belle_sip_request_get_method(req),"INVITE")==0){
 		obj->remote_invite_cseq = belle_sip_header_cseq_get_seq_number(cseq);
 	}
-	/*call id already set */
+
 	/*remote party already set */
 	obj->local_party=(belle_sip_header_address_t*)belle_sip_object_ref(to);
-
+	
 	return 0;
 }
 
@@ -155,16 +156,14 @@ static void set_last_out_invite(belle_sip_dialog_t *obj, belle_sip_request_t *re
 	obj->last_out_invite=(belle_sip_request_t*)belle_sip_object_ref(req);
 }
 
-static int belle_sip_dialog_init_as_uac(belle_sip_dialog_t *obj, belle_sip_request_t *req, belle_sip_response_t *resp){
-	const belle_sip_list_t *elem;
-	belle_sip_header_contact_t *ct=belle_sip_message_get_header_by_type(resp,belle_sip_header_contact_t);
+static int belle_sip_dialog_init_as_uac(belle_sip_dialog_t *obj, belle_sip_request_t *req){
 	belle_sip_header_cseq_t *cseq=belle_sip_message_get_header_by_type(req,belle_sip_header_cseq_t);
-	belle_sip_header_to_t *to=belle_sip_message_get_header_by_type(resp,belle_sip_header_to_t);
+	belle_sip_header_to_t *to=belle_sip_message_get_header_by_type(req,belle_sip_header_to_t);
 	belle_sip_header_via_t *via=belle_sip_message_get_header_by_type(req,belle_sip_header_via_t);
 	belle_sip_uri_t *requri=belle_sip_request_get_uri(req);
 
 	if (!to){
-		belle_sip_error("No to in response.");
+		belle_sip_error("No to in request.");
 		return -1;
 	}
 	if (!cseq){
@@ -176,27 +175,12 @@ static int belle_sip_dialog_init_as_uac(belle_sip_dialog_t *obj, belle_sip_reque
 		return -1;
 	}
 
-	if (strcasecmp(belle_sip_header_via_get_protocol(via),"TLS")==0
+	if (belle_sip_header_via_get_protocol(via) /*might be null at dialog creation (uac case)*/
+		&& strcasecmp(belle_sip_header_via_get_protocol(via),"TLS")==0
 	    && belle_sip_uri_is_secure(requri)){
 		obj->is_secure=TRUE;
 	}
-	/**12.1.2
-	 *  The route set MUST be set to the list of URIs in the Record-Route
-   	 *header field from the response, taken in reverse order and preserving
-   	 *all URI parameters.  If no Record-Route header field is present in
-   	 *the response, the route set MUST be set to the empty set.
-   	 **/
-	obj->route_set=belle_sip_list_free_with_data(obj->route_set,belle_sip_object_unref);
-	for(elem=belle_sip_message_get_headers((belle_sip_message_t*)resp,BELLE_SIP_RECORD_ROUTE);elem!=NULL;elem=elem->next){
-		obj->route_set=belle_sip_list_prepend(obj->route_set,belle_sip_object_ref(belle_sip_header_route_create(
-		                                     (belle_sip_header_address_t*)elem->data)));
-	}
-
-	check_route_set(obj->route_set);
-	/*contact might be provided later*/
-	if (ct)
-		obj->remote_target=(belle_sip_header_address_t*)belle_sip_object_ref(ct);
-
+	
 	obj->local_cseq=belle_sip_header_cseq_get_seq_number(cseq);
 	/*call id is already set */
 	/*local_tag is already set*/
@@ -205,6 +189,7 @@ static int belle_sip_dialog_init_as_uac(belle_sip_dialog_t *obj, belle_sip_reque
 	if (strcmp(belle_sip_request_get_method(req),"INVITE")==0){
 		set_last_out_invite(obj,req);
 	}
+	
 	return 0;
 }
 
@@ -282,25 +267,45 @@ int belle_sip_dialog_establish_full(belle_sip_dialog_t *obj, belle_sip_request_t
 
 int belle_sip_dialog_establish(belle_sip_dialog_t *obj, belle_sip_request_t *req, belle_sip_response_t *resp){
 	belle_sip_header_to_t *to=belle_sip_message_get_header_by_type(resp,belle_sip_header_to_t);
-	belle_sip_header_call_id_t *call_id=belle_sip_message_get_header_by_type(req,belle_sip_header_call_id_t);
-	int err;
+	belle_sip_header_via_t *via=belle_sip_message_get_header_by_type(req,belle_sip_header_via_t);
+	belle_sip_uri_t *requri=belle_sip_request_get_uri(req);
 
 	if (obj->state != BELLE_SIP_DIALOG_NULL) {
 		belle_sip_error("Dialog [%p] already established.",obj);
 		return -1;
 	}
-	if (!call_id){
-		belle_sip_error("No call-id in response.");
+	if (!to){
+		belle_sip_error("No to in response.");
 		return -1;
 	}
-	obj->call_id=(belle_sip_header_call_id_t*)belle_sip_object_ref(call_id);
-
-	if (obj->is_server)
-		err= belle_sip_dialog_init_as_uas(obj,req,resp);
-	else
-		err= belle_sip_dialog_init_as_uac(obj,req,resp);
 	
-	if (err) return err;
+	if (!obj->is_server) {
+		belle_sip_header_contact_t *ct=belle_sip_message_get_header_by_type(resp,belle_sip_header_contact_t);
+		const belle_sip_list_t* elem;
+		/*contact might be provided later*/
+		if (ct)
+			obj->remote_target=(belle_sip_header_address_t*)belle_sip_object_ref(ct);
+
+		/**12.1.2
+		 *  The route set MUST be set to the list of URIs in the Record-Route
+		 *header field from the response, taken in reverse order and preserving
+		 *all URI parameters.  If no Record-Route header field is present in
+		 *the response, the route set MUST be set to the empty set.
+		 **/
+		obj->route_set=belle_sip_list_free_with_data(obj->route_set,belle_sip_object_unref);
+		for(elem=belle_sip_message_get_headers((belle_sip_message_t*)resp,BELLE_SIP_RECORD_ROUTE);elem!=NULL;elem=elem->next){
+			obj->route_set=belle_sip_list_prepend(obj->route_set,belle_sip_object_ref(belle_sip_header_route_create(
+																													(belle_sip_header_address_t*)elem->data)));
+		}
+		
+		check_route_set(obj->route_set);
+		/*via might be unknown at dialog creation*/
+		if (strcasecmp(belle_sip_header_via_get_protocol(via),"TLS")==0
+			&& belle_sip_uri_is_secure(requri)){
+			obj->is_secure=TRUE;
+		}
+
+	}
 
 	set_to_tag(obj,to);
 
@@ -459,6 +464,11 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 			}
 			break;
 		case BELLE_SIP_DIALOG_CONFIRMED:
+			if (code==481 && (is_invite || is_subscribe)) {
+				/*Dialog is terminated in such case*/
+				delete_dialog=TRUE;
+				break;
+			}
 			/*refreshing target is also true in case of subscribe*/
 			if ((is_invite || is_subscribe) && (code>=200 && code<300)) {
 				/*refresh the remote_target*/
@@ -537,6 +547,7 @@ belle_sip_dialog_t *belle_sip_dialog_new(belle_sip_transaction_t *t){
 	const char *from_tag;
 	belle_sip_header_to_t *to;
 	const char *to_tag=NULL;
+	belle_sip_header_call_id_t *call_id=belle_sip_message_get_header_by_type(t->request,belle_sip_header_call_id_t);
 
 	from=belle_sip_message_get_header_by_type(t->request,belle_sip_header_from_t);
 	if (from==NULL){
@@ -560,7 +571,11 @@ belle_sip_dialog_t *belle_sip_dialog_new(belle_sip_transaction_t *t){
 			" to create a dialog on such a transaction.");
 		return NULL;
 	}
-	
+	if (!call_id){
+		belle_sip_error("No call-id in response.");
+		return NULL;
+	}
+
 	if (t->last_response) {
 		to=belle_sip_message_get_header_by_type(t->last_response,belle_sip_header_to_t);
 		if (to==NULL){
@@ -573,12 +588,17 @@ belle_sip_dialog_t *belle_sip_dialog_new(belle_sip_transaction_t *t){
 	obj->terminate_on_bye=1;
 	obj->provider=t->provider;
 	obj->pending_trans_checking_enabled=1;
+	obj->call_id=(belle_sip_header_call_id_t*)belle_sip_object_ref(call_id);
+	
+	belle_sip_object_ref(t);
+	obj->last_transaction=t;
 	
 	if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(t,belle_sip_server_transaction_t)){
 		obj->remote_tag=belle_sip_strdup(from_tag);
-		obj->local_tag=to_tag?belle_sip_strdup(to_tag):NULL; /*might be null at dialog creation*/
+		obj->local_tag=belle_sip_strdup(BELLE_SIP_SERVER_TRANSACTION(t)->to_tag);
 		obj->remote_party=(belle_sip_header_address_t*)belle_sip_object_ref(from);
 		obj->is_server=TRUE;
+		belle_sip_dialog_init_as_uas(obj,belle_sip_transaction_get_request(t));
 	}else{
 		const belle_sip_list_t *predefined_routes=NULL;
 		obj->local_tag=belle_sip_strdup(from_tag);
@@ -589,7 +609,10 @@ belle_sip_dialog_t *belle_sip_dialog_new(belle_sip_transaction_t *t){
 			predefined_routes!=NULL;predefined_routes=predefined_routes->next){
 			obj->route_set=belle_sip_list_append(obj->route_set,belle_sip_object_ref(predefined_routes->data));
 		}
+		belle_sip_dialog_init_as_uac(obj,belle_sip_transaction_get_request(t));
 	}
+	
+
 	belle_sip_message("New %s dialog [%p] , local tag [%s], remote tag [%s]"
 			,obj->is_server?"server":"client"
 			,obj
@@ -644,18 +667,28 @@ belle_sip_request_t *belle_sip_dialog_create_ack(belle_sip_dialog_t *obj, unsign
 
 static belle_sip_request_t *create_request(belle_sip_dialog_t *obj, const char *method, int full){
 	belle_sip_request_t *req;
+	char* from_tag=NULL, *to_tag=NULL;
 	
 	if (!obj->remote_target){
 		belle_sip_error("dialog [%p]: no remote_target set, unable to create request.", obj);
 		return NULL;
 	}
 	
+	if (!belle_sip_parameters_has_parameter(BELLE_SIP_PARAMETERS(obj->local_party), "tag")) {
+		/*special case for dialog created by server transaction*/
+		from_tag = obj->local_tag;
+	}
+	if (!belle_sip_parameters_has_parameter(BELLE_SIP_PARAMETERS(obj->remote_party), "tag")) {
+		/*special case for dialog created by server transaction*/
+		to_tag = obj->remote_tag;
+	}
+
 	req=belle_sip_request_create(belle_sip_header_address_get_uri(obj->remote_target),
 	                                                method,
 	                                                obj->call_id,
 	                                                belle_sip_header_cseq_create(obj->local_cseq,method),
-	                                                belle_sip_header_from_create(obj->local_party,NULL),
-	                                                belle_sip_header_to_create(obj->remote_party,NULL),
+	                                                belle_sip_header_from_create(obj->local_party,from_tag),
+	                                                belle_sip_header_to_create(obj->remote_party,to_tag),
 	                                                belle_sip_header_via_new(),
 	                                                0);
 	
@@ -672,7 +705,11 @@ static belle_sip_request_t *create_request(belle_sip_dialog_t *obj, const char *
 }
 
 static int dialog_can_create_request(belle_sip_dialog_t *obj, const char *method){
-	if (obj->state != BELLE_SIP_DIALOG_CONFIRMED && obj->state != BELLE_SIP_DIALOG_EARLY) {
+	if (obj->state != BELLE_SIP_DIALOG_CONFIRMED && obj->state != BELLE_SIP_DIALOG_EARLY
+		&& (strcmp("NOTIFY", method) != 0
+			|| !obj->is_server
+			|| !obj->last_transaction
+			|| strcmp("SUBSCRIBE", belle_sip_transaction_get_method(obj->last_transaction)) !=0)) {
 		belle_sip_error("belle_sip_dialog_create_request(): cannot create [%s] request from dialog [%p] in state [%s]",method,obj,belle_sip_dialog_state_to_string(obj->state));
 		return FALSE;
 	}
@@ -710,7 +747,7 @@ belle_sip_request_t *belle_sip_dialog_create_request(belle_sip_dialog_t *obj, co
 			&& obj->last_transaction
 			&& belle_sip_transaction_state_is_transient(belle_sip_transaction_get_state(obj->last_transaction))){
 
-		if (obj->state != BELLE_SIP_DIALOG_EARLY && strcmp(method,"UPDATE")!=0) {
+		if (obj->state != BELLE_SIP_DIALOG_EARLY && strcmp(method,"UPDATE")!=0 && strcmp(method,"NOTIFY")!=0) {
 			belle_sip_error("belle_sip_dialog_create_request(): cannot create [%s] request from dialog [%p] while pending [%s] transaction in state [%s]",method,obj,belle_sip_transaction_get_method(obj->last_transaction), belle_sip_transaction_state_to_string(belle_sip_transaction_get_state(obj->last_transaction)));
 			return NULL;
 		} /*else UPDATE transaction can be send in // */
@@ -897,7 +934,7 @@ int belle_sip_dialog_match(belle_sip_dialog_t *obj, belle_sip_message_t *msg, in
 
 int _belle_sip_dialog_match(belle_sip_dialog_t *obj, const char *call_id, const char *local_tag, const char *remote_tag){
 	const char *dcid;
-	if (obj->state==BELLE_SIP_DIALOG_NULL) belle_sip_fatal("_belle_sip_dialog_match() must not be used for dialog in null state.");
+	/*Dialog created by notify matching subscription are still in NULL state if (obj->state==BELLE_SIP_DIALOG_NULL) belle_sip_fatal("_belle_sip_dialog_match() must not be used for dialog in null state.");*/
 	dcid=belle_sip_header_call_id_get_call_id(obj->call_id);
 	return strcmp(dcid,call_id)==0
 		&& strcmp(obj->local_tag,local_tag)==0 
@@ -975,9 +1012,6 @@ If an initial SUBSCRIBE is sent on a pre-existing dialog, a matching
    200-class response or successful NOTIFY request merely creates a new
    subscription associated with that dialog.
    */
-
-
-
 
 int belle_sip_dialog_is_authorized_transaction(const belle_sip_dialog_t *dialog,const char* method) {
 	if (belle_sip_dialog_request_pending(dialog)){

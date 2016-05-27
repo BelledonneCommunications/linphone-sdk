@@ -278,6 +278,8 @@ int dns_v_api(void) {
 #define DNS_EALREADY	WSAEALREADY
 #define DNS_EAGAIN	EAGAIN
 #define DNS_ETIMEDOUT	WSAETIMEDOUT
+#define DNS_ECONNREFUSED	WSAECONNREFUSED
+#define DNS_ENETUNREACH WSAENETUNREACH
 
 #define dns_syerr()	((int)GetLastError())
 #define dns_soerr()	((int)WSAGetLastError())
@@ -291,6 +293,8 @@ int dns_v_api(void) {
 #define DNS_EALREADY	EALREADY
 #define DNS_EAGAIN	EAGAIN
 #define DNS_ETIMEDOUT	ETIMEDOUT
+#define DNS_ECONNREFUSED	ECONNREFUSED
+#define DNS_ENETUNREACH ENETUNREACH
 
 #define dns_syerr()	errno
 #define dns_soerr()	errno
@@ -5595,6 +5599,10 @@ static int dns_socket(struct sockaddr *local, int type, int *error_) {
 			goto soerr;
 	}
 #endif
+	if (local->sa_family == AF_INET6){
+		int value=0;
+		setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, (const char*)&value, sizeof(value));
+	}
 
 	if (local->sa_family != AF_INET && local->sa_family != AF_INET6)
 		return fd;
@@ -5746,7 +5754,6 @@ static void dns_so_destroy(struct dns_socket *);
 static struct dns_socket *dns_so_init(struct dns_socket *so, const struct sockaddr *local, int type, const struct dns_options *opts, int *error) {
 	static struct dns_socket so_initializer;
 	static DNSBool initialized = 0;
-	int value=0;
 	
 	if (!initialized) {
 		memset(&so_initializer, 0, sizeof so_initializer);
@@ -5769,8 +5776,7 @@ static struct dns_socket *dns_so_init(struct dns_socket *so, const struct sockad
 
 	if (-1 == (so->udp = dns_socket((struct sockaddr *)&so->local, SOCK_DGRAM, error)))
 		goto error;
-	value=0;
-	setsockopt(so->udp, IPPROTO_IPV6, IPV6_V6ONLY, (const char*)&value, sizeof(value));
+	
 	dns_k_permutor_init(&so->qids, 1, 65535);
 
 	return so;
@@ -7026,8 +7032,11 @@ exec:
 		if (dns_so_elapsed(&R->so) >= (time_t)R->resconf->options.timeout)
 			goto(R->sp, DNS_R_FOREACH_A);
 
-		if ((error = dns_so_check(&R->so)))
-			goto error;
+		if ((error = dns_so_check(&R->so))){
+			if (error == DNS_ENETUNREACH || error == DNS_ECONNREFUSED){
+				goto(R->sp, DNS_R_FOREACH_A);
+			}else goto error;
+		}
 
 		free(F->answer);
 

@@ -318,6 +318,10 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 			}else belle_sip_warning("Receiving 423 but no min-expires header.");
 			break;
 		}
+		case 481: {
+			/* will trigger dialog terminated, so nothing to do here*/
+			return;
+		}
 		case 491: {
 			if (refresher->target_expires>0) {
 				retry_later_on_io_error(refresher);
@@ -449,7 +453,10 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher
 				belle_sip_message("Refresher [%p] new publish is delayed to end of ongoing transaction"	,refresher);
 				refresher->publish_pending = TRUE;
 				return 0;
-			} else {
+			} else if (strcmp(belle_sip_request_get_method(old_request),"SUBSCRIBE")==0)  {
+				belle_sip_message("Cannot refresh now, there is a pending request for refresher [%p].",refresher);
+				return -1;
+			}else {
 				request=belle_sip_request_clone_with_body(belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(refresher->transaction)));
 				cseq=belle_sip_message_get_header_by_type(request,belle_sip_header_cseq_t);
 				belle_sip_header_cseq_set_seq_number(cseq,belle_sip_header_cseq_get_seq_number(cseq)+1);
@@ -552,8 +559,7 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher
 
 	client_transaction = belle_sip_provider_create_client_transaction(prov,request);
 	client_transaction->base.is_internal=1;
-	belle_sip_transaction_set_application_data(BELLE_SIP_TRANSACTION(client_transaction),refresher);
-
+	
 	if (request ==  refresher->first_acknoleged_request) { /*request is now ref by transaction so no need to keepo it*/
 		belle_sip_object_unref(refresher->first_acknoleged_request);
 		refresher->first_acknoleged_request = NULL;
@@ -687,8 +693,13 @@ static int set_expires_from_trans(belle_sip_refresher_t* refresher) {
 			belle_sip_message("Neither Expires header nor corresponding Contact header found, checking from original request");
 			refresher->obtained_expires=refresher->target_expires;
 		}else if (refresher->target_expires>0 && refresher->obtained_expires==0){
+			const char* reason = response ? belle_sip_response_get_reason_phrase(response) : NULL;
 			/*check this case because otherwise we are going to loop fast in sending refresh requests.*/
-			belle_sip_warning("Server replied with 0 expires, what does that mean?");
+			/*"Test account created" is a special reason given by testers when we create temporary account.
+			Since this is a bit of hack, we can ignore logging in that case*/
+			if (reason && strcmp(reason, "Test account created") != 0) {
+				belle_sip_warning("Server replied with 0 expires, what does that mean?");
+			}
 			/*suppose it's a server bug and assume our target_expires is understood.*/
 			refresher->obtained_expires=refresher->target_expires;
 		}

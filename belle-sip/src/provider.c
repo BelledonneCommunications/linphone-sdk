@@ -101,6 +101,23 @@ static void channel_state_changed(belle_sip_channel_listener_t *obj, belle_sip_c
 	}
 }
 
+static int notify_client_transaction_match(const void *transaction, const void *notify){
+	belle_sip_client_transaction_t *tr=(belle_sip_client_transaction_t*)transaction;
+	belle_sip_request_t *notify_req=(belle_sip_request_t*)notify;
+	return !belle_sip_client_transaction_is_notify_matching_pending_subscribe(tr,notify_req);
+}
+
+belle_sip_client_transaction_t * belle_sip_provider_find_matching_pending_subscribe_client_transaction_from_notify_req(belle_sip_provider_t *prov, belle_sip_request_t *req) {
+	belle_sip_list_t* elem;
+	if (strcmp("NOTIFY",belle_sip_request_get_method(req)) != 0) {
+		belle_sip_error("belle_sip_provider_find_matching_pending_subscribe_client_transaction_from_notify_req requires a NOTIFY request, not a [%s], on prov [%p]"
+						,belle_sip_request_get_method(req)
+						,prov);
+	}
+	elem=belle_sip_list_find_custom(prov->client_transactions,notify_client_transaction_match,req);
+	return elem?BELLE_SIP_CLIENT_TRANSACTION(elem->data):NULL;
+}
+
 static void belle_sip_provider_dispatch_request(belle_sip_provider_t* prov, belle_sip_request_t *req){
 	belle_sip_server_transaction_t *t;
 	belle_sip_request_event_t ev;
@@ -128,11 +145,18 @@ static void belle_sip_provider_dispatch_request(belle_sip_provider_t* prov, bell
 					belle_sip_response_create_from_request(req,491));
 				return;
 			}
+		} else if (strcmp("NOTIFY",method) == 0) {
+			/*search for matching subscribe*/
+			belle_sip_client_transaction_t *sub = belle_sip_provider_find_matching_pending_subscribe_client_transaction_from_notify_req(prov,req);
+			if (sub) {
+				belle_sip_message("Found matching subscribe for NOTIFY [%p], creating dialog",req);
+				ev.dialog=belle_sip_provider_create_dialog_internal(prov,BELLE_SIP_TRANSACTION(sub),FALSE);
+			}
 		}
 	
-		if (prov->unconditional_answer_enabled && strcmp("ACK",method)!=0) { /*always answer 480 in this case*/
+		if (prov->unconditional_answer_enabled && strcmp("ACK",method)!=0) { /*always answer predefined value (I.E 480 by default)*/
 			belle_sip_server_transaction_t *tr=belle_sip_provider_create_server_transaction(prov,req);
-			belle_sip_server_transaction_send_response(tr,belle_sip_response_create_from_request(req,480));
+			belle_sip_server_transaction_send_response(tr,belle_sip_response_create_from_request(req,prov->unconditional_answer));
 			return;
 		} else {
 			ev.source=(belle_sip_object_t*)prov;
@@ -472,6 +496,7 @@ belle_sip_provider_t *belle_sip_provider_new(belle_sip_stack_t *s, belle_sip_lis
 	belle_sip_provider_t *p=belle_sip_object_new(belle_sip_provider_t);
 	p->stack=s;
 	p->rport_enabled=1;
+	p->unconditional_answer = 480;
 	if (lp) belle_sip_provider_add_listening_point(p,lp);
 	return p;
 }
@@ -1235,5 +1260,7 @@ int belle_sip_provider_nat_helper_enabled(const belle_sip_provider_t *prov){
 }
 void belle_sip_provider_enable_unconditional_answer(belle_sip_provider_t *prov, int enable) {
 	prov->unconditional_answer_enabled=enable;
-
+}
+void belle_sip_provider_set_unconditional_answer(belle_sip_provider_t *prov, unsigned short code) {
+	prov->unconditional_answer=code;
 }

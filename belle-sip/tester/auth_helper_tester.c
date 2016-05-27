@@ -88,7 +88,7 @@ static void test_generate_and_parse_certificates(void) {
 
 	/* create 2 certificates in the temporary certificate directory (TODO : set the directory in a absolute path?? where?)*/
 	ret = belle_sip_generate_self_signed_certificate(belle_sip_certificate_temporary_dir, "test_certificate1", &certificate, &key);
-	if (ret == BCTOOLBOX_ERROR_UNAVAILABLE_FUNCTION) {
+	if (ret == BCTBX_ERROR_UNAVAILABLE_FUNCTION) {
 		belle_sip_warning("Test skipped, self signed certificate generation not available.");
 		return;
 	}
@@ -161,7 +161,7 @@ static void test_certificate_fingerprint(void) {
 	belle_sip_certificates_chain_t *cert;
 
 	/* check underlying bctoolbox function availability */
-	if (bctoolbox_x509_certificate_get_fingerprint(NULL, NULL, 0, 0) == BCTOOLBOX_ERROR_UNAVAILABLE_FUNCTION) {
+	if (bctbx_x509_certificate_get_fingerprint(NULL, NULL, 0, 0) == BCTBX_ERROR_UNAVAILABLE_FUNCTION) {
 		belle_sip_warning("Test skipped, certificate fingerprint generation not available.");
 		return;
 	}

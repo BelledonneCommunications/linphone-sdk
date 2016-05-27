@@ -18,42 +18,37 @@
 
 #ifndef BELLE_SIP_LIST_H_
 #define BELLE_SIP_LIST_H_
-BELLE_SIP_BEGIN_DECLS
-struct _belle_sip_list {
-	struct _belle_sip_list *next;
-	struct _belle_sip_list *prev;
-	void *data;
-};
-typedef struct _belle_sip_list belle_sip_list_t;
 
-BELLESIP_EXPORT belle_sip_list_t * belle_sip_list_append(belle_sip_list_t * elem, void * data);
-BELLESIP_EXPORT belle_sip_list_t * belle_sip_list_prepend(belle_sip_list_t * elem, void * data);
-BELLESIP_EXPORT belle_sip_list_t*  belle_sip_list_prepend_link(belle_sip_list_t* elem, belle_sip_list_t *new_elem);
-BELLESIP_EXPORT belle_sip_list_t * belle_sip_list_last_elem(const belle_sip_list_t *l);
-BELLESIP_EXPORT belle_sip_list_t * belle_sip_list_free(belle_sip_list_t * elem);
-BELLESIP_EXPORT belle_sip_list_t * belle_sip_list_concat(belle_sip_list_t * first, belle_sip_list_t * second);
-BELLESIP_EXPORT belle_sip_list_t * belle_sip_list_remove(belle_sip_list_t * first, void *data);
-BELLESIP_EXPORT belle_sip_list_t * belle_sip_list_pop_front(belle_sip_list_t *list, void **front_data);
-BELLESIP_EXPORT int belle_sip_list_size(const belle_sip_list_t * first);
-BELLESIP_EXPORT void belle_sip_list_for_each(const belle_sip_list_t * list, void (*func)(void *));
-BELLESIP_EXPORT void belle_sip_list_for_each2(const belle_sip_list_t * list, void (*func)(void *, void *), void *user_data);
-BELLESIP_EXPORT belle_sip_list_t * belle_sip_list_remove_link(belle_sip_list_t * list, belle_sip_list_t * elem);
-BELLESIP_EXPORT belle_sip_list_t * belle_sip_list_delete_link(belle_sip_list_t * list, belle_sip_list_t * elem);
-BELLESIP_EXPORT belle_sip_list_t * belle_sip_list_find(belle_sip_list_t * list, void *data);
-BELLESIP_EXPORT belle_sip_list_t * belle_sip_list_free(belle_sip_list_t *list);
-/*frees list elements and associated data, using the supplied function pointer*/
-BELLESIP_EXPORT belle_sip_list_t * belle_sip_list_free_with_data(belle_sip_list_t *list, void (*freefunc)(void*));
+#include "bctoolbox/list.h"
 
-typedef  int (*belle_sip_compare_func)(const void *, const void*);
-BELLESIP_EXPORT belle_sip_list_t * belle_sip_list_find_custom(const belle_sip_list_t * list, belle_sip_compare_func cmp, const void *user_data);
-BELLESIP_EXPORT void * belle_sip_list_nth_data(const belle_sip_list_t * list, int index);
-BELLESIP_EXPORT int belle_sip_list_position(const belle_sip_list_t * list, belle_sip_list_t * elem);
-BELLESIP_EXPORT int belle_sip_list_index(const belle_sip_list_t * list, void *data);
-BELLESIP_EXPORT belle_sip_list_t * belle_sip_list_insert_sorted(belle_sip_list_t * list, void *data, belle_sip_compare_func cmp);
-BELLESIP_EXPORT belle_sip_list_t * belle_sip_list_insert(belle_sip_list_t * list, belle_sip_list_t * before, void *data);
-BELLESIP_EXPORT belle_sip_list_t * belle_sip_list_copy(const belle_sip_list_t * list);
-/*copy list elements and associated data, using the supplied function pointer*/
-BELLESIP_EXPORT belle_sip_list_t* belle_sip_list_copy_with_data(const belle_sip_list_t* list, void* (*copyfunc)(void*));
+typedef struct _bctbx_list belle_sip_list_t;
 
-BELLE_SIP_END_DECLS
+#define belle_sip_list_new bctbx_list_new
+#define belle_sip_list_append bctbx_list_append
+#define belle_sip_list_prepend  bctbx_list_prepend
+#define belle_sip_list_prepend_link bctbx_list_prepend_link
+#define belle_sip_list_last_elem bctbx_list_last_elem
+#define belle_sip_list_free bctbx_list_free
+#define belle_sip_list_concat bctbx_list_concat
+#define belle_sip_list_remove bctbx_list_remove
+#define belle_sip_list_pop_front bctbx_list_pop_front
+#define belle_sip_list_size bctbx_list_size
+#define belle_sip_list_for_each bctbx_list_for_each
+#define belle_sip_list_for_each2 bctbx_list_for_each2
+#define belle_sip_list_remove_link bctbx_list_remove_link
+#define belle_sip_list_delete_link bctbx_list_delete_link
+#define belle_sip_list_find bctbx_list_find
+#define belle_sip_list_free bctbx_list_free
+#define belle_sip_list_free_with_data bctbx_list_free_with_data
+
+#define  belle_sip_compare_func bctbx_compare_func
+#define belle_sip_list_find_custom bctbx_list_find_custom
+#define belle_sip_list_nth_data bctbx_list_nth_data
+#define belle_sip_list_position bctbx_list_position
+#define belle_sip_list_index bctbx_list_index
+#define belle_sip_list_insert_sorted bctbx_list_insert_sorted
+#define belle_sip_list_insert bctbx_list_insert
+#define belle_sip_list_copy bctbx_list_copy
+#define belle_sip_list_copy_with_data bctbx_list_copy_with_data
+
 #endif /* BELLE_SIP_LIST_H_ */

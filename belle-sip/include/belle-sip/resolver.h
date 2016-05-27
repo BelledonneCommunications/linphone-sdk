@@ -51,9 +51,6 @@ BELLESIP_EXPORT unsigned short belle_sip_dns_srv_get_weight(const belle_sip_dns_
 
 BELLESIP_EXPORT unsigned short belle_sip_dns_srv_get_port(const belle_sip_dns_srv_t *obj);
 
-BELLESIP_EXPORT int belle_sip_addrinfo_to_ip(const struct addrinfo *ai, char *ip, size_t ip_size, int *port);
-BELLESIP_EXPORT struct addrinfo * belle_sip_ip_address_to_addrinfo(int family, const char *ipaddress, int port);
-
 
 /**
  * Asynchronously performs DNS SRV followed A/AAAA query. Automatically fallbacks to A/AAAA if SRV isn't found.

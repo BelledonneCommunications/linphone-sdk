@@ -37,7 +37,7 @@ static belle_sip_object_pool_t *pool;
 static int leaked_objects_count;
 
 static int _belle_sip_tester_ipv6_available(void){
-	struct addrinfo *ai=belle_sip_ip_address_to_addrinfo(AF_INET6,"2a01:e00::2",53);
+	struct addrinfo *ai=bctbx_ip_address_to_addrinfo(AF_INET6,SOCK_STREAM,"2a01:e00::2",53);
 	if (ai){
 		struct sockaddr_storage ss;
 		struct addrinfo src;
@@ -47,8 +47,8 @@ static int _belle_sip_tester_ipv6_available(void){
 		belle_sip_get_src_addr_for(ai->ai_addr,ai->ai_addrlen,(struct sockaddr*) &ss,&slen,4444);
 		src.ai_addr=(struct sockaddr*) &ss;
 		src.ai_addrlen=slen;
-		belle_sip_addrinfo_to_ip(&src,localip, sizeof(localip),&port);
-		belle_sip_freeaddrinfo(ai);
+		bctbx_addrinfo_to_ip_address(&src,localip, sizeof(localip),&port);
+		bctbx_freeaddrinfo(ai);
 		return strcmp(localip,"::1")!=0;
 	}
 	return FALSE;
@@ -82,7 +82,7 @@ static void log_handler(int lev, const char *fmt, va_list args) {
 	va_end(cap);
 #endif
 	if (log_file){
-		belle_sip_logv(lev, fmt, args);
+		belle_sip_logv(BELLE_SIP_LOG_DOMAIN,lev, fmt, args);
 	}
 }
 
@@ -209,8 +209,10 @@ int main (int argc, char *argv[]) {
 	for(i=1;i<argc;++i){
 		if (strcmp(argv[i],"--verbose")==0){
 			belle_sip_set_log_level(BELLE_SIP_LOG_DEBUG);
+			bctbx_set_log_level(BCTBX_LOG_DOMAIN,BCTBX_LOG_DEBUG);
 		} else if (strcmp(argv[i],"--silent")==0){
 			belle_sip_set_log_level(BELLE_SIP_LOG_FATAL);
+			bctbx_set_log_level(BCTBX_LOG_DOMAIN,BCTBX_LOG_FATAL);
 		} else if (strcmp(argv[i],"--log-file")==0){
 			CHECK_ARG("--log-file", ++i, argc);
 			if (belle_sip_tester_set_log_file(argv[i]) < 0) return -2;

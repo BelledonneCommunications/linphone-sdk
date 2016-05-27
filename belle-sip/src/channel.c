@@ -111,7 +111,7 @@ static size_t belle_sip_channel_input_stream_get_buff_length(belle_sip_channel_i
 
 static void belle_sip_channel_destroy(belle_sip_channel_t *obj){
 	belle_sip_channel_input_stream_reset(&obj->input_stream);
-	if (obj->peer_list) belle_sip_freeaddrinfo(obj->peer_list);
+	if (obj->peer_list) bctbx_freeaddrinfo(obj->peer_list);
 	if (obj->peer_cname) belle_sip_free(obj->peer_cname);
 	belle_sip_free(obj->peer_name);
 	if (obj->local_ip) belle_sip_free(obj->local_ip);
@@ -648,7 +648,7 @@ static int belle_sip_channel_process_read_data(belle_sip_channel_t *obj){
 		/*first null terminate the read buff*/
 		*obj->input_stream.write_ptr='\0';
 		if (num>20 || obj->input_stream.state != WAITING_MESSAGE_START ) /*to avoid tracing server based keep alives*/ {
-			char *logbuf = make_logbuf(obj, BELLE_SIP_LOG_MESSAGE,begin,num);
+			char *logbuf = make_logbuf(obj, BELLE_SIP_LOG_MESSAGE ,begin,num);
 			if (logbuf) {
 				belle_sip_message("channel [%p]: received [%i] new bytes from [%s://%s:%i]:\n%s",
 						obj,
@@ -751,8 +751,8 @@ void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_stack_t *stack,c
 	obj->simulated_recv_return=1;/*not set*/
 	if (peername){
 		/*check if we are given a real dns name or just an ip address*/
-		struct addrinfo *ai=belle_sip_ip_address_to_addrinfo(AF_UNSPEC,peername,peer_port);
-		if (ai) belle_sip_freeaddrinfo(ai);
+		struct addrinfo *ai=bctbx_ip_address_to_addrinfo(AF_UNSPEC,SOCK_STREAM,peername,peer_port);
+		if (ai) bctbx_freeaddrinfo(ai);
 		else obj->has_name=TRUE;
 	}
 	belle_sip_channel_input_stream_reset(&obj->input_stream);
@@ -769,9 +769,9 @@ void belle_sip_channel_init_with_addr(belle_sip_channel_t *obj, belle_sip_stack_
 	ai.ai_family=peer_addr->sa_family;
 	ai.ai_addr=(struct sockaddr*)peer_addr;
 	ai.ai_addrlen=addrlen;
-	belle_sip_addrinfo_to_ip(&ai,remoteip,sizeof(remoteip),&peer_port);
+	bctbx_addrinfo_to_ip_address(&ai,remoteip,sizeof(remoteip),&peer_port);
 	belle_sip_channel_init(obj,stack,bindip,localport,NULL,remoteip,peer_port);
-	obj->peer_list=obj->current_peer=belle_sip_ip_address_to_addrinfo(ai.ai_family, obj->peer_name,obj->peer_port);
+	obj->peer_list=obj->current_peer=bctbx_ip_address_to_addrinfo(ai.ai_family, ai.ai_socktype, obj->peer_name,obj->peer_port);
 	obj->ai_family=ai.ai_family;
 }
 
@@ -888,6 +888,7 @@ int belle_sip_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen){
 void belle_sip_channel_close(belle_sip_channel_t *obj){
 	if (BELLE_SIP_OBJECT_VPTR(obj,belle_sip_channel_t)->close)
 		BELLE_SIP_OBJECT_VPTR(obj,belle_sip_channel_t)->close(obj); /*udp channel doesn't have close function*/
+	/*removing the source (our base class) will decrement the ref count, this why this code needs to be protected by ref/unref.*/
 	belle_sip_main_loop_remove_source(obj->stack->ml,(belle_sip_source_t*)obj);
 	belle_sip_source_uninit((belle_sip_source_t*)obj);
 }
@@ -937,14 +938,25 @@ static void channel_end_recv_background_task(belle_sip_channel_t *obj){
 }
 
 static void channel_invoke_state_listener(belle_sip_channel_t *obj){
-	if (obj->state==BELLE_SIP_CHANNEL_DISCONNECTED || obj->state==BELLE_SIP_CHANNEL_ERROR){
+	int close = FALSE;
+	switch(obj->state){
+		case BELLE_SIP_CHANNEL_DISCONNECTED:
+		case BELLE_SIP_CHANNEL_ERROR:
 		/*the background tasks must be released "after" notifying the app of the disconnected or error state
-		 By "after" it is means not before the main loop iteration that will notify the app*/
+		 By "after" it is means not before the main loop iteration that will notify the app.
+		 This is the reason why these calls are done here rather than in the channel_set_state() function.*/
 		channel_end_send_background_task(obj);
 		channel_end_recv_background_task(obj);
-		belle_sip_channel_close(obj);
+		close = TRUE;
+		break;
+		default:
+		break;
 	}
+	/*Channel listeners may drop the last reference of the channel, so protect by ref/unref until we finish.*/
+	belle_sip_object_ref(obj);
 	BELLE_SIP_CHANNEL_INVOKE_STATE_LISTENERS(obj,obj->state);
+	if (close) belle_sip_channel_close(obj);
+	belle_sip_object_unref(obj);
 }
 
 static void channel_invoke_state_listener_defered(belle_sip_channel_t *obj){
@@ -1415,7 +1427,7 @@ void belle_sip_channel_connect(belle_sip_channel_t *obj){
 	int port=obj->peer_port;
 
 	channel_set_state(obj,BELLE_SIP_CHANNEL_CONNECTING);
-	belle_sip_addrinfo_to_ip(obj->current_peer,ip,sizeof(ip),&port);
+	bctbx_addrinfo_to_ip_address(obj->current_peer,ip,sizeof(ip),&port);
 	/* update peer_port as it may have been overriden by SRV resolution*/
 	if (port!=obj->peer_port){
 		/*the SRV resolution provided a port number that must be used*/
@@ -1504,10 +1516,10 @@ belle_sip_channel_t *belle_sip_channel_find_from_list(belle_sip_list_t *l, int a
 	hints.ai_socktype=SOCK_STREAM; // needed on some platforms that return an error otherwise (QNX)
 	if (ai_family==AF_INET6) hints.ai_flags|=AI_V4MAPPED|AI_ALL;
 	snprintf(portstr,sizeof(portstr),"%i",hop->port);
-	belle_sip_getaddrinfo(hop->host,portstr,&hints,&res);
+	bctbx_getaddrinfo(hop->host,portstr,&hints,&res);
 
 	chan=belle_sip_channel_find_from_list_with_addrinfo(l,hop,res);
-	if (res) belle_sip_freeaddrinfo(res);
+	if (res) bctbx_freeaddrinfo(res);
 	return chan;
 }
 

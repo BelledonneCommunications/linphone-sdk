@@ -29,6 +29,7 @@
 #include "bctoolbox/map.h"
 
 #include "port.h"
+#include <bctoolbox/port.h>
 
 #ifdef HAVE_CONFIG_H
 
@@ -244,7 +245,7 @@ struct belle_sip_source{
 	unsigned char expired;
 	unsigned char oneshot;
 	unsigned char notify_required; /*for testing purpose, use to ask for being scheduled*/
-	bctoolbox_iterator_t *it; /*for fast removal*/
+	bctbx_iterator_t *it; /*for fast removal*/
 	belle_sip_main_loop_t *ml; 
 };
 
@@ -286,7 +287,7 @@ struct belle_sip_dict {
 #define MAX(a,b)	((a)>(b) ? (a) : (b))
 
 
-BELLESIP_INTERNAL_EXPORT char * belle_sip_concat (const char *str, ...);
+#define belle_sip_concat bctbx_concat
 
 
 /*parameters accessors*/
@@ -558,6 +559,7 @@ struct belle_sip_provider{
 	unsigned char rport_enabled; /*0 if rport should not be set in via header*/
 	unsigned char nat_helper;
 	unsigned char unconditional_answer_enabled;
+	unsigned short unconditional_answer;
 };
 
 BELLESIP_INTERNAL_EXPORT belle_sip_provider_t *belle_sip_provider_new(belle_sip_stack_t *s, belle_sip_listening_point_t *lp);
@@ -568,6 +570,7 @@ void belle_sip_provider_add_server_transaction(belle_sip_provider_t *prov, belle
 BELLESIP_INTERNAL_EXPORT belle_sip_server_transaction_t * belle_sip_provider_find_matching_server_transaction(belle_sip_provider_t *prov,belle_sip_request_t *req);
 void belle_sip_provider_remove_server_transaction(belle_sip_provider_t *prov, belle_sip_server_transaction_t *t);
 void belle_sip_provider_set_transaction_terminated(belle_sip_provider_t *p, belle_sip_transaction_t *t);
+void *belle_sip_transaction_get_application_data_internal(const belle_sip_transaction_t *t);
 belle_sip_channel_t * belle_sip_provider_get_channel(belle_sip_provider_t *p, const belle_sip_hop_t *hop);
 void belle_sip_provider_add_dialog(belle_sip_provider_t *prov, belle_sip_dialog_t *dialog);
 void belle_sip_provider_remove_dialog(belle_sip_provider_t *prov, belle_sip_dialog_t *dialog);
@@ -676,6 +679,9 @@ static BELLESIP_INLINE void belle_sip_transaction_start_timer(belle_sip_transact
 static BELLESIP_INLINE void belle_sip_transaction_stop_timer(belle_sip_transaction_t *obj, belle_sip_source_t *timer){
 	belle_sip_main_loop_remove_source(obj->provider->stack->ml,timer);
 }
+
+int belle_sip_client_transaction_is_notify_matching_pending_subscribe(belle_sip_client_transaction_t *trans
+																	  , belle_sip_request_t *notify);
 
 void belle_sip_transaction_notify_timeout(belle_sip_transaction_t *t);
 
@@ -829,6 +835,7 @@ belle_sip_dialog_t *belle_sip_dialog_new(belle_sip_transaction_t *t);
 belle_sip_dialog_t * belle_sip_provider_create_dialog_internal(belle_sip_provider_t *prov, belle_sip_transaction_t *t,unsigned int check_last_resp);
 int belle_sip_dialog_is_authorized_transaction(const belle_sip_dialog_t *dialog,const char* method) ;
 /*returns 1 if message belongs to the dialog, 0 otherwise */
+int belle_sip_dialog_is_null_dialog_with_matching_subscribe(belle_sip_dialog_t *obj, const char *call_id, const char *local_tag, belle_sip_request_t *notify);
 int _belle_sip_dialog_match(belle_sip_dialog_t *obj, const char *call_id, const char *local_tag, const char *remote_tag);
 int belle_sip_dialog_match(belle_sip_dialog_t *obj, belle_sip_message_t *msg, int as_uas);
 int belle_sip_dialog_update(belle_sip_dialog_t *obj,belle_sip_transaction_t* transaction, int as_uas);

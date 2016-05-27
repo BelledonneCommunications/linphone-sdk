@@ -301,7 +301,7 @@ int belle_sip_uri_equals(const belle_sip_uri_t* uri_a,const belle_sip_uri_t* uri
 */
 	if (uri_a->user && uri_b->user) {
 		if (IS_EQUAL(uri_a->user,uri_b->user)) return 0;
-	} else if (uri_a->user != uri_a->user) {
+	} else if (uri_a->user != uri_b->user) {
 		return 0;
 	}
 /*

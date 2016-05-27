@@ -85,6 +85,14 @@ BELLESIP_EXPORT void belle_sip_provider_set_recv_error(belle_sip_provider_t *pro
 BELLESIP_EXPORT void belle_sip_provider_enable_unconditional_answer(belle_sip_provider_t *prov, int enable);
 
 /**
+ * Can be used to choose unconditionally answer to incoming sip messages.
+ * use belle_sip_provider_enable_unconditional_answer to enable/disable
+ * @param prov
+ * @param code 0 to sip response code
+ **/
+BELLESIP_EXPORT void belle_sip_provider_set_unconditional_answer(belle_sip_provider_t *prov, unsigned short code);
+
+/**
  * Provides access to a specific dialog
  * @param prov object
  * @param call_if of the dialog

@@ -201,8 +201,8 @@ static void server_process_request_event(void *obj, const belle_sip_request_even
 				belle_sip_header_www_authenticate_add_qop(www_authenticate,"auth");
 				if (endpoint->nonce_count>=MAX_NC_COUNT) {
 					belle_sip_header_www_authenticate_set_stale(www_authenticate,1);
-					endpoint->nonce_count=1;
 				}
+				endpoint->nonce_count=1;
 			}
 		}
 	}
@@ -593,10 +593,27 @@ static void subscribe_base(int with_resource_lists) {
 
 	/*make sure dialog has changed*/
 	BC_ASSERT_PTR_NOT_EQUAL(client_dialog, belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(belle_sip_refresher_get_transaction(refresher))));
-	/*unsubscribe twice to make sure refresh operation can be safely cascaded*/
-	belle_sip_refresher_refresh(refresher,0);
-	belle_sip_refresher_refresh(refresher,0);
 
+	
+	belle_sip_message("simulating dialog terminated server side and recovery");
+	
+	client_dialog = belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(belle_sip_refresher_get_transaction(refresher)));
+	
+	belle_sip_provider_enable_unconditional_answer(server->provider,TRUE);
+	belle_sip_provider_set_unconditional_answer(server->provider,481);
+	belle_sip_refresher_refresh(refresher, 10);
+	
+	BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.fourHundredEightyOne,2,4000));
+	belle_sip_provider_enable_unconditional_answer(server->provider,FALSE);
+
+	BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.refreshOk,5,4000));
+	BC_ASSERT_EQUAL(client->stat.dialogTerminated, 0, int, "%i");
+	
+	/*make sure dialog has changed*/
+	BC_ASSERT_PTR_NOT_EQUAL(client_dialog, belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(belle_sip_refresher_get_transaction(refresher))));
+
+	belle_sip_refresher_refresh(refresher, 0);
+	belle_sip_refresher_refresh(refresher, 0);
 
 	belle_sip_refresher_stop(refresher);
 	BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&server->stat.dialogTerminated,1,4000));
@@ -606,6 +623,7 @@ static void subscribe_base(int with_resource_lists) {
 		BC_ASSERT_EQUAL(server->number_of_body_found, (server->auth == none ?1:2), int, "%i");
 	}
 
+	
 	destroy_endpoint(client);
 	destroy_endpoint(server);
 }
