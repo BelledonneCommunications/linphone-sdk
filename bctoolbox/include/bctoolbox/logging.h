@@ -95,7 +95,7 @@ static BCTBX_INLINE void CHECK_FORMAT_ARGS(1,2) bctbx_debug(const char *fmt,...)
 {
   va_list args;
   va_start (args, fmt);
-  bctbx_logv(BCTBX_LOG_DOMAIN, BCTBX_DEBUG, fmt, args);
+  bctbx_logv(BCTBX_LOG_DOMAIN, BCTBX_LOG_DEBUG, fmt, args);
   va_end (args);
 }
 #else
