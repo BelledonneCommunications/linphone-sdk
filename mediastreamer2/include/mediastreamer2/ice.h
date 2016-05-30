@@ -145,8 +145,15 @@ typedef struct _IceStunServerRequest {
 	MSStunAddress peer_address;
 	uint16_t channel_number;
 	uint16_t stun_method;
+	bool_t gathering;
 	bool_t responded;
+	bool_t to_remove;
 } IceStunServerRequest;
+
+typedef struct _IceStunRequestRoundTripTime {
+	int nb_responses;
+	int sum;
+} IceStunRequestRoundTripTime;
 
 /**
  * Structure representing an ICE transport address.
@@ -247,6 +254,7 @@ typedef struct _IceCheckList {
 	bool_t nomination_delay_running;	/**< Boolean value telling whether the nomination process has been delayed or not */
 	MSTimeSpec gathering_start_time;	/**< Time when the gathering process was started */
 	MSTimeSpec nomination_delay_start_time;	/**< Time when the nomination process has been delayed */
+	IceStunRequestRoundTripTime rtt;
 } IceCheckList;
 
 
