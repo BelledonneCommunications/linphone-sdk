@@ -166,7 +166,7 @@ void bctbx_qnx_log_handler(const char *domain, BctbxLogLevel lev, const char *fm
 #include <iostream>
 #include <sstream>
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__QNX__)
 #include <syslog.h>
 #endif
 

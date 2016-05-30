@@ -419,6 +419,19 @@ BCTBX_PUBLIC bool_t bctbx_is_multicast_addr(const struct sockaddr *addr);
 #define IN6_IS_ADDR_MULTICAST(i)	(((uint8_t *) (i))[0] == 0xff)
 #endif
 
+#if defined(_WIN32) || defined(__QNX__)
+/* Mingw32 does not define AI_V4MAPPED, however it is supported starting from Windows Vista. QNX also does not define AI_V4MAPPED. */
+#	ifndef AI_V4MAPPED
+#	define AI_V4MAPPED 0x00000800
+#	endif
+#	ifndef AI_ALL
+#	define AI_ALL 0x00000100
+#	endif
+#	ifndef IPV6_V6ONLY
+#	define IPV6_V6ONLY 27
+#	endif
+#endif
+
 #endif
 
 
