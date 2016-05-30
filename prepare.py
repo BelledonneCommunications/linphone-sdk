@@ -164,6 +164,7 @@ class Preparator:
         basicConfig(format="%(levelname)s: %(message)s", level=INFO)
         self.targets = targets
         self.additional_args = []
+        self.missing_dependencies = {}
         self.veryclean = False
         self.show_gpl_disclaimer = False
 
@@ -191,7 +192,8 @@ class Preparator:
     def check_is_installed(self, binary, prog='it', warn=True):
         if not find_executable(binary):
             if warn:
-                error("Could not find {}. Please install {}.".format(binary, prog))
+                self.missing_dependencies[binary] = prog
+                #error("Could not find {}. Please install {}.".format(binary, prog))
             return False
         return True
 
@@ -210,6 +212,10 @@ class Preparator:
             ret = 1
 
         return ret
+
+    def show_missing_dependencies(self):
+        if self.missing_dependencies:
+            error("The following binaries are missing: {}. Please install them.".format(' '.join(self.missing_dependencies.keys())))
 
     def gpl_disclaimer(self):
         if not self.show_gpl_disclaimer:
@@ -351,12 +357,30 @@ class Preparator:
         return 0
 
     def prepare(self):
+        ret = 0
         for target_name in self.args.target:
             ret = self.target_prepare(self.targets[target_name])
             if ret != 0:
-                return ret
+                break
+        if ret != 0:
+            if ret == 51:
+                if os.path.isfile('Makefile'):
+                    Popen("make help-prepare-options".split(" "))
+                ret = 0
+            return ret
+        # Only generated makefile if we are using Ninja or Makefile
+        if self.generator().endswith('Ninja'):
+            if not self.check_is_installed("ninja", "it"):
+                return 1
+            self.generate_makefile('ninja -C')
+            info("You can now run 'make' to build.")
+        elif self.generator().endswith("Unix Makefiles"):
+            self.generate_makefile('$(MAKE) -C')
+            info("You can now run 'make' to build.")
+        else:
+            warning("Not generating meta-makefile for generator {}.".format(self.generator()))
         self.gpl_disclaimer()
-        return 0
+        return ret
 
     def run(self):
         if self.args.clean:
