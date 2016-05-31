@@ -1,0 +1,3 @@
+belr-0.1.0 -- May xxth, 2016
+        * Fix issue with non-ascii characters in inputs.
+	* Add CMake scripts.

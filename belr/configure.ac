@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([belr], [0.0.1], [simon.morlat@linphone.org])
+AC_INIT([belr], [0.1.0], [simon.morlat@linphone.org])
 AC_CONFIG_SRCDIR([src/])
 AC_CONFIG_HEADERS([config.h])
 
