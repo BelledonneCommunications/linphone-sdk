@@ -1,5 +1,5 @@
 ############################################################################
-# config-python.cmake
+# additional_steps.cmake
 # Copyright (C) 2016  Belledonne Communications, Grenoble France
 #
 ############################################################################
