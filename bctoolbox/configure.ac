@@ -179,6 +179,24 @@ if test "$mbedtls_found" = "false" ; then
 	LIBS=$LIBS_save
 fi
 
+dnl add thread flags
+case $host in
+	i386-apple*|armv6-apple*|armv7-apple*|armv7s-apple*|aarch64-apple*|arm64-apple*|*-darwin.ios)
+		ios_found=yes
+	;;
+	x86_64-apple*|i686-apple*)
+		macosx_found=yes
+	;;
+	*nto-qnx*)
+	;;
+	*)
+		CFLAGS="$CFLAGS -pthread -D_REENTRANT"
+		CXXFLAGS="$CFLAGS -pthread -D_REENTRANT"
+		LIBS="$LIBS -pthread -lpthread"
+	;;
+esac
+
+
 AC_SUBST(MBEDTLS_CFLAGS)
 AC_SUBST(MBEDTLS_LIBS)
 AC_SUBST(POLARSSL_CFLAGS)
