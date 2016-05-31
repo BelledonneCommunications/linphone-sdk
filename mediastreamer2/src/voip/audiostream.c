@@ -86,13 +86,6 @@ static void audio_stream_free(AudioStream *stream) {
 	if (stream->outbound_mixer) ms_filter_destroy(stream->outbound_mixer);
 	if (stream->recorder_file) ms_free(stream->recorder_file);
 	if (stream->rtp_io_session) rtp_session_destroy(stream->rtp_io_session);
-	
-	if (stream->ms.sessions.zrtp_context != NULL) {
-		ms_zrtp_set_stream_sessions(stream->ms.sessions.zrtp_context, NULL);
-	}
-	if (stream->ms.sessions.dtls_context != NULL) {
-		ms_dtls_srtp_set_stream_sessions(stream->ms.sessions.dtls_context, NULL);
-	}
 
 	ms_free(stream);
 }
@@ -1451,18 +1444,11 @@ AudioStream *audio_stream_new_with_sessions(MSFactory *factory, const MSMediaStr
 	};
 
 	stream->ms.type = MSAudio;
-	stream->ms.sessions = *sessions;
-	media_stream_init(&stream->ms,factory);
+	media_stream_init(&stream->ms,factory, sessions);
 	
 	ms_factory_enable_statistics(factory, TRUE);
 	ms_factory_reset_statistics(factory);
 
-	if (sessions->zrtp_context != NULL) {
-		ms_zrtp_set_stream_sessions(sessions->zrtp_context, &(stream->ms.sessions));
-	}
-	if (sessions->dtls_context != NULL) {
-		ms_dtls_srtp_set_stream_sessions(sessions->dtls_context, &(stream->ms.sessions));
-	}
 	rtp_session_resync(stream->ms.sessions.rtp_session);
 	/*some filters are created right now to allow configuration by the application before start() */
 	stream->ms.rtpsend=ms_factory_create_filter(factory, MS_RTP_SEND_ID);

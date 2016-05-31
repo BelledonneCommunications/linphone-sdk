@@ -296,13 +296,8 @@ VideoStream *video_stream_new_with_sessions(MSFactory* factory, const MSMediaStr
 	stream->ms.type = MSVideo;
 	stream->ms.sessions=*sessions;
 
-	media_stream_init(&stream->ms, factory);
-	if (sessions->zrtp_context != NULL) {
-		ms_zrtp_set_stream_sessions(sessions->zrtp_context, &(stream->ms.sessions));
-	}
-	if (sessions->dtls_context != NULL) {
-		ms_dtls_srtp_set_stream_sessions(sessions->dtls_context, &(stream->ms.sessions));
-	}
+	media_stream_init(&stream->ms, factory, sessions);
+	
 	rtp_session_resync(stream->ms.sessions.rtp_session);
 	stream->ms.qi=ms_quality_indicator_new(stream->ms.sessions.rtp_session);
 	ms_quality_indicator_set_label(stream->ms.qi,"video");
