@@ -1,3 +1,11 @@
+belle-sip-1.5.0 -- May XX, 2016
+	* move general purpose and encryption related functions to bctoolbox, which becomes a mandatory dependency.
+	* mbedTLS support through bctoolbox
+	* SUBSCRIBE/NOTIFY dialog improvements: can be created upon reception of NOTIFY (as requested by RFC),
+	  automatic deletion when dialog expires.
+	* fix: retransmit 200Ok of a reINVITE (was formely only done for initial INVITE)
+	* add support for zlib in body handling
+
 belle-sip-1.4.2 -- November 2nd, 2015
 	* Support of Accept, Content-Disposition and Supported headers
 	* Bug fixes
