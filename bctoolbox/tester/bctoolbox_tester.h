@@ -18,15 +18,16 @@
 
 #ifndef _BCTOOLBOX_TESTER_H
 #define _BCTOOLBOX_TESTER_H
+
 #include "bctoolbox/logging.h"
 #include "bctoolbox/tester.h"
 
 #ifdef __cplusplus
 
-#define SLOGD BCTOOLBOX_SLOGD("bctoolbox-tester")
-#define SLOGI BCTOOLBOX_SLOGI("bctoolbox-tester")
-#define SLOGW BCTOOLBOX_SLOGW("bctoolbox-tester")
-#define SLOGE BCTOOLBOX_SLOGE("bctoolbox-tester")
+#define SLOGD BCTBX_SLOGD("bctoolbox-tester")
+#define SLOGI BCTBX_SLOGI("bctoolbox-tester")
+#define SLOGW BCTBX_SLOGW("bctoolbox-tester")
+#define SLOGE BCTBX_SLOGE("bctoolbox-tester")
 
 extern "C" {
 #endif

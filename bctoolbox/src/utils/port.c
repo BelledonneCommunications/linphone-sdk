@@ -187,9 +187,9 @@ int __bctbx_thread_create(bctbx_thread_t *thread, pthread_attr_t *attr, void * (
 	pthread_attr_init(&my_attr);
 	if (attr)
 		my_attr = *attr;
-#ifdef BCTOOLBOX_DEFAULT_THREAD_STACK_SIZE
-	if (BCTOOLBOX_DEFAULT_THREAD_STACK_SIZE!=0)
-		pthread_attr_setstacksize(&my_attr, BCTOOLBOX_DEFAULT_THREAD_STACK_SIZE);
+#ifdef BCTBX_DEFAULT_THREAD_STACK_SIZE
+	if (BCTBX_DEFAULT_THREAD_STACK_SIZE!=0)
+		pthread_attr_setstacksize(&my_attr, BCTBX_DEFAULT_THREAD_STACK_SIZE);
 #endif
 	return pthread_create(thread, &my_attr, routine, arg);
 }
@@ -203,7 +203,7 @@ unsigned long __bctbx_thread_self(void) {
 
 int __bctbx_WIN_mutex_init(bctbx_mutex_t *mutex, void *attr)
 {
-#ifdef BCTOOLBOX_WINDOWS_DESKTOP
+#ifdef BCTBX_WINDOWS_DESKTOP
 	*mutex=CreateMutex(NULL, FALSE, NULL);
 #else
 	InitializeSRWLock(mutex);
@@ -213,7 +213,7 @@ int __bctbx_WIN_mutex_init(bctbx_mutex_t *mutex, void *attr)
 
 int __bctbx_WIN_mutex_lock(bctbx_mutex_t * hMutex)
 {
-#ifdef BCTOOLBOX_WINDOWS_DESKTOP
+#ifdef BCTBX_WINDOWS_DESKTOP
 	WaitForSingleObject(*hMutex, INFINITE); /* == WAIT_TIMEOUT; */
 #else
 	AcquireSRWLockExclusive(hMutex);
@@ -223,7 +223,7 @@ int __bctbx_WIN_mutex_lock(bctbx_mutex_t * hMutex)
 
 int __bctbx_WIN_mutex_unlock(bctbx_mutex_t * hMutex)
 {
-#ifdef BCTOOLBOX_WINDOWS_DESKTOP
+#ifdef BCTBX_WINDOWS_DESKTOP
 	ReleaseMutex(*hMutex);
 #else
 	ReleaseSRWLockExclusive(hMutex);
@@ -233,7 +233,7 @@ int __bctbx_WIN_mutex_unlock(bctbx_mutex_t * hMutex)
 
 int __bctbx_WIN_mutex_destroy(bctbx_mutex_t * hMutex)
 {
-#ifdef BCTOOLBOX_WINDOWS_DESKTOP
+#ifdef BCTBX_WINDOWS_DESKTOP
 	CloseHandle(*hMutex);
 #endif
 	return 0;
@@ -281,7 +281,7 @@ unsigned long __bctbx_WIN_thread_self(void) {
 
 int __bctbx_WIN_cond_init(bctbx_cond_t *cond, void *attr)
 {
-#ifdef BCTOOLBOX_WINDOWS_DESKTOP
+#ifdef BCTBX_WINDOWS_DESKTOP
 	*cond=CreateEvent(NULL, FALSE, FALSE, NULL);
 #else
 	InitializeConditionVariable(cond);
@@ -291,7 +291,7 @@ int __bctbx_WIN_cond_init(bctbx_cond_t *cond, void *attr)
 
 int __bctbx_WIN_cond_wait(bctbx_cond_t* hCond, bctbx_mutex_t * hMutex)
 {
-#ifdef BCTOOLBOX_WINDOWS_DESKTOP
+#ifdef BCTBX_WINDOWS_DESKTOP
 	//gulp: this is not very atomic ! bug here ?
 	__bctbx_WIN_mutex_unlock(hMutex);
 	WaitForSingleObject(*hCond, INFINITE);
@@ -304,7 +304,7 @@ int __bctbx_WIN_cond_wait(bctbx_cond_t* hCond, bctbx_mutex_t * hMutex)
 
 int __bctbx_WIN_cond_signal(bctbx_cond_t * hCond)
 {
-#ifdef BCTOOLBOX_WINDOWS_DESKTOP
+#ifdef BCTBX_WINDOWS_DESKTOP
 	SetEvent(*hCond);
 #else
 	WakeConditionVariable(hCond);
@@ -320,7 +320,7 @@ int __bctbx_WIN_cond_broadcast(bctbx_cond_t * hCond)
 
 int __bctbx_WIN_cond_destroy(bctbx_cond_t * hCond)
 {
-#ifdef BCTOOLBOX_WINDOWS_DESKTOP
+#ifdef BCTBX_WINDOWS_DESKTOP
 	CloseHandle(*hCond);
 #endif
 	return 0;
@@ -526,7 +526,7 @@ static HANDLE event=NULL;
 
 /* portable named pipes */
 bctbx_pipe_t bctbx_server_pipe_create(const char *name){
-#ifdef BCTOOLBOX_WINDOWS_DESKTOP
+#ifdef BCTBX_WINDOWS_DESKTOP
 	bctbx_pipe_t h;
 	char *pipename=make_pipe_name(name);
 	h=CreateNamedPipe(pipename,PIPE_ACCESS_DUPLEX|FILE_FLAG_OVERLAPPED,PIPE_TYPE_MESSAGE|PIPE_WAIT,1,
@@ -549,7 +549,7 @@ even if nobody connects to the pipe.
 bctbx_server_pipe_close() makes this function to exit.
 */
 bctbx_pipe_t bctbx_server_pipe_accept_client(bctbx_pipe_t server){
-#ifdef BCTOOLBOX_WINDOWS_DESKTOP
+#ifdef BCTBX_WINDOWS_DESKTOP
 	OVERLAPPED ol;
 	DWORD undef;
 	HANDLE handles[2];
@@ -572,7 +572,7 @@ bctbx_pipe_t bctbx_server_pipe_accept_client(bctbx_pipe_t server){
 }
 
 int bctbx_server_pipe_close_client(bctbx_pipe_t server){
-#ifdef BCTOOLBOX_WINDOWS_DESKTOP
+#ifdef BCTBX_WINDOWS_DESKTOP
 	return DisconnectNamedPipe(server)==TRUE ? 0 : -1;
 #else
 	bctbx_error("%s not supported!", __FUNCTION__);
@@ -581,7 +581,7 @@ int bctbx_server_pipe_close_client(bctbx_pipe_t server){
 }
 
 int bctbx_server_pipe_close(bctbx_pipe_t spipe){
-#ifdef BCTOOLBOX_WINDOWS_DESKTOP
+#ifdef BCTBX_WINDOWS_DESKTOP
 	SetEvent(event);
 	//CancelIoEx(spipe,NULL); /*vista only*/
 	return CloseHandle(spipe);
@@ -592,7 +592,7 @@ int bctbx_server_pipe_close(bctbx_pipe_t spipe){
 }
 
 bctbx_pipe_t bctbx_client_pipe_connect(const char *name){
-#ifdef BCTOOLBOX_WINDOWS_DESKTOP
+#ifdef BCTBX_WINDOWS_DESKTOP
 	char *pipename=make_pipe_name(name);
 	bctbx_pipe_t hpipe = CreateFile(
 		 pipename,   // pipe name
@@ -641,7 +641,7 @@ typedef struct MapInfo{
 static bctbx_list_t *maplist=NULL;
 
 void *bctbx_shm_open(unsigned int keyid, int size, int create){
-#ifdef BCTOOLBOX_WINDOWS_DESKTOP
+#ifdef BCTBX_WINDOWS_DESKTOP
 	HANDLE h;
 	char name[64];
 	void *buf;
@@ -687,7 +687,7 @@ void *bctbx_shm_open(unsigned int keyid, int size, int create){
 }
 
 void bctbx_shm_close(void *mem){
-#ifdef BCTOOLBOX_WINDOWS_DESKTOP
+#ifdef BCTBX_WINDOWS_DESKTOP
 	bctbx_list_t *elem;
 	for(elem=maplist;elem;elem=bctbx_list_next(elem)){
 		MapInfo *i=(MapInfo*)bctbx_list_get_data(elem);
@@ -716,7 +716,7 @@ void bctbx_shm_close(void *mem){
 
 void _bctbx_get_cur_time(bctoolboxTimeSpec *ret, bool_t realtime){
 #if defined(_WIN32_WCE) || defined(WIN32)
-#ifdef BCTOOLBOX_WINDOWS_DESKTOP
+#ifdef BCTBX_WINDOWS_DESKTOP
 	DWORD timemillis;
 #	if defined(_WIN32_WCE)
 	timemillis=GetTickCount();
@@ -764,7 +764,7 @@ uint64_t bctbx_get_cur_time_ms(void) {
 
 void bctbx_sleep_ms(int ms){
 #ifdef _WIN32
-#ifdef BCTOOLBOX_WINDOWS_DESKTOP
+#ifdef BCTBX_WINDOWS_DESKTOP
 	Sleep(ms);
 #else
 	HANDLE sleepEvent = CreateEventEx(NULL, NULL, CREATE_EVENT_MANUAL_RESET, EVENT_ALL_ACCESS);

@@ -22,9 +22,9 @@
 #include <bctoolbox/port.h>
 
 #if defined(_MSC_VER)
-#define BCTOOLBOX_PUBLIC	__declspec(dllexport)
+#define BCTBX_PUBLIC	__declspec(dllexport)
 #else
-#define BCTOOLBOX_PUBLIC
+#define BCTBX_PUBLIC
 #endif
 
 #ifndef TRUE
@@ -90,45 +90,45 @@ fprintf(stderr, "Missing argument for \"%s\"\n", argument);   \
 return -1;                                                    \
 }                                                             \
 
-BCTOOLBOX_PUBLIC void bc_tester_init(void (*ftester_printf)(int level, const char *fmt, va_list args)
+BCTBX_PUBLIC void bc_tester_init(void (*ftester_printf)(int level, const char *fmt, va_list args)
 									, int verbosity_info, int verbosity_error, const char* expected_res);
-BCTOOLBOX_PUBLIC void bc_tester_helper(const char *name, const char* additionnal_helper);
-BCTOOLBOX_PUBLIC int bc_tester_parse_args(int argc, char** argv, int argid);
-BCTOOLBOX_PUBLIC int bc_tester_start(const char* prog_name);
-BCTOOLBOX_PUBLIC void bc_tester_add_suite(test_suite_t *suite);
-BCTOOLBOX_PUBLIC void bc_tester_uninit(void);
-BCTOOLBOX_PUBLIC void bc_tester_printf(int level, const char *fmt, ...);
-BCTOOLBOX_PUBLIC const char * bc_tester_get_resource_dir_prefix(void);
-BCTOOLBOX_PUBLIC void bc_tester_set_resource_dir_prefix(const char *name);
-BCTOOLBOX_PUBLIC const char * bc_tester_get_writable_dir_prefix(void);
-BCTOOLBOX_PUBLIC void bc_tester_set_writable_dir_prefix(const char *name);
+BCTBX_PUBLIC void bc_tester_helper(const char *name, const char* additionnal_helper);
+BCTBX_PUBLIC int bc_tester_parse_args(int argc, char** argv, int argid);
+BCTBX_PUBLIC int bc_tester_start(const char* prog_name);
+BCTBX_PUBLIC void bc_tester_add_suite(test_suite_t *suite);
+BCTBX_PUBLIC void bc_tester_uninit(void);
+BCTBX_PUBLIC void bc_tester_printf(int level, const char *fmt, ...);
+BCTBX_PUBLIC const char * bc_tester_get_resource_dir_prefix(void);
+BCTBX_PUBLIC void bc_tester_set_resource_dir_prefix(const char *name);
+BCTBX_PUBLIC const char * bc_tester_get_writable_dir_prefix(void);
+BCTBX_PUBLIC void bc_tester_set_writable_dir_prefix(const char *name);
 
-BCTOOLBOX_PUBLIC int bc_tester_nb_suites(void);
-BCTOOLBOX_PUBLIC int bc_tester_nb_tests(const char* name);
-BCTOOLBOX_PUBLIC void bc_tester_list_suites(void);
-BCTOOLBOX_PUBLIC void bc_tester_list_tests(const char *suite_name);
-BCTOOLBOX_PUBLIC const char * bc_tester_suite_name(int suite_index);
-BCTOOLBOX_PUBLIC const char * bc_tester_test_name(const char *suite_name, int test_index);
-BCTOOLBOX_PUBLIC int bc_tester_run_suite(test_suite_t *suite, const char *tag_name);
-BCTOOLBOX_PUBLIC int bc_tester_run_tests(const char *suite_name, const char *test_name, const char *tag_name);
-BCTOOLBOX_PUBLIC int bc_tester_suite_index(const char *suite_name);
-BCTOOLBOX_PUBLIC const char * bc_tester_current_suite_name(void);
-BCTOOLBOX_PUBLIC const char * bc_tester_current_test_name(void);
-BCTOOLBOX_PUBLIC const char ** bc_tester_current_test_tags(void);
+BCTBX_PUBLIC int bc_tester_nb_suites(void);
+BCTBX_PUBLIC int bc_tester_nb_tests(const char* name);
+BCTBX_PUBLIC void bc_tester_list_suites(void);
+BCTBX_PUBLIC void bc_tester_list_tests(const char *suite_name);
+BCTBX_PUBLIC const char * bc_tester_suite_name(int suite_index);
+BCTBX_PUBLIC const char * bc_tester_test_name(const char *suite_name, int test_index);
+BCTBX_PUBLIC int bc_tester_run_suite(test_suite_t *suite, const char *tag_name);
+BCTBX_PUBLIC int bc_tester_run_tests(const char *suite_name, const char *test_name, const char *tag_name);
+BCTBX_PUBLIC int bc_tester_suite_index(const char *suite_name);
+BCTBX_PUBLIC const char * bc_tester_current_suite_name(void);
+BCTBX_PUBLIC const char * bc_tester_current_test_name(void);
+BCTBX_PUBLIC const char ** bc_tester_current_test_tags(void);
 
-BCTOOLBOX_PUBLIC char* bc_sprintfva(const char* format, va_list args);
-BCTOOLBOX_PUBLIC char* bc_sprintf(const char* format, ...);
-BCTOOLBOX_PUBLIC void bc_free(void *ptr);
+BCTBX_PUBLIC char* bc_sprintfva(const char* format, va_list args);
+BCTBX_PUBLIC char* bc_sprintf(const char* format, ...);
+BCTBX_PUBLIC void bc_free(void *ptr);
 
-BCTOOLBOX_PUBLIC unsigned int bc_get_number_of_failures(void);
-BCTOOLBOX_PUBLIC void bc_set_trace_handler(void(*handler)(int, const char*, va_list));
+BCTBX_PUBLIC unsigned int bc_get_number_of_failures(void);
+BCTBX_PUBLIC void bc_set_trace_handler(void(*handler)(int, const char*, va_list));
 /**
  * Get full path to the given resource
  *
  * @param name relative resource path
  * @return path to the resource. Must be freed by caller.
 */
-BCTOOLBOX_PUBLIC char * bc_tester_res(const char *name);
+BCTBX_PUBLIC char * bc_tester_res(const char *name);
 
 /**
 * Get full path to the given writable_file
@@ -136,7 +136,7 @@ BCTOOLBOX_PUBLIC char * bc_tester_res(const char *name);
 * @param name relative writable file path
 * @return path to the writable file. Must be freed by caller.
 */
-BCTOOLBOX_PUBLIC char * bc_tester_file(const char *name);
+BCTBX_PUBLIC char * bc_tester_file(const char *name);
 
 
 /*Redefine the CU_... macros WITHOUT final ';' semicolon, to allow IF conditions and smarter error message */
@@ -153,7 +153,7 @@ extern int CU_assertImplementation(int bValue,
 *
 * @return 1 if assert was true, 0 otherwise
 */
-BCTOOLBOX_PUBLIC int bc_assert(const char* file, int line, int predicate, const char* format);
+BCTBX_PUBLIC int bc_assert(const char* file, int line, int predicate, const char* format);
 
 #define _BC_ASSERT_PRED(name, pred, actual, expected, type, ...) \
 	do { \
