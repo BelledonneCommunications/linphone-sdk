@@ -162,9 +162,10 @@ class TargetListAction(argparse.Action):
 
 class Preparator:
 
-    def __init__(self, targets={}, default_targets=[]):
+    def __init__(self, targets={}, default_targets=[], virtual_targets={}):
         basicConfig(format="%(levelname)s: %(message)s", level=INFO)
         self.targets = targets
+        self.virtual_targets = virtual_targets
         self.additional_args = []
         self.missing_dependencies = {}
         self.veryclean = False
@@ -185,13 +186,25 @@ class Preparator:
         if not default_targets:
             default_targets = list(self.targets.keys())
         if len(self.targets) > 1:
-            self.argparser.add_argument('target', nargs='*', action=TargetListAction, default=default_targets, targets=self.targets.keys(),
-                help="The target(s) to build for (default is '{0}'). Space separated targets in list: {1}.".format(' '.join(default_targets), ', '.join([repr(target) for target in targets.keys()])))
+            self.argparser.add_argument('target', nargs='*', action=TargetListAction, default=default_targets, targets=self.available_targets(),
+                help="The target(s) to build for (default is '{0}'). Space separated targets in list: {1}.".format(' '.join(default_targets), ', '.join(self.available_targets())))
+
+    def available_targets(self):
+        targets = [target for target in self.targets.keys()]
+	targets += [target for target in self.virtual_targets.keys()]
+        return targets
 
     def parse_args(self):
         self.args, self.user_additional_args = self.argparser.parse_known_args()
         if platform.system() == 'Windows':
             self.args.ccache = False
+        new_targets = []
+        for target_name in self.args.target:
+            if target_name in self.virtual_targets.keys():
+                new_targets += self.virtual_targets[target_name]
+            else:
+                new_targets += [target_name]
+        self.args.target = list(set(new_targets))
 
     def check_is_installed(self, binary, prog='it', warn=True):
         if not find_executable(binary):
