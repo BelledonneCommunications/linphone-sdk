@@ -188,6 +188,8 @@ class Preparator:
 
     def parse_args(self):
         self.args, self.user_additional_args = self.argparser.parse_known_args()
+        if platform.system() == 'Windows':
+            self.args.ccache = False
 
     def check_is_installed(self, binary, prog='it', warn=True):
         if not find_executable(binary):
