@@ -20,10 +20,12 @@
 #
 ############################################################################
 
-set(EP_v4l_URL "https://linuxtv.org/downloads/v4l-utils/v4l-utils-1.0.0.tar.bz2")
-set(EP_v4l_URL_HASH "MD5=2127f2d06be9162b0d346f7037a9e852")
+set(EP_v4l_GIT_REPOSITORY "git://linuxtv.org/v4l-utils.git" CACHE STRING "v4l repository URL")
+set(EP_v4l_GIT_TAG_LATEST "master" CACHE STRING "v4l tag to use when compiling latest version")
+set(EP_v4l_GIT_TAG "v4l-utils-1.0.0" CACHE STRING "v4l tag to use")
 set(EP_v4l_MAY_BE_FOUND_ON_SYSTEM TRUE)
 set(EP_v4l_IGNORE_WARNINGS TRUE)
+set(EP_v4l_EXTERNAL_SOURCE_PATHS "externals/v4l-utils")
 
 set(EP_v4l_BUILD_METHOD "autotools")
 set(EP_v4l_CROSS_COMPILATION_OPTIONS
