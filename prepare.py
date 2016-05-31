@@ -191,7 +191,7 @@ class Preparator:
 
     def available_targets(self):
         targets = [target for target in self.targets.keys()]
-	targets += [target for target in self.virtual_targets.keys()]
+        targets += [target for target in self.virtual_targets.keys()]
         return targets
 
     def parse_args(self):
@@ -340,14 +340,6 @@ class Preparator:
                     target=target.name, bad_build_platform=platform.system(), good_build_platforms=', '.join(target.required_build_platforms)))
                 return 52
 
-        if os.path.isdir(target.abs_cmake_dir):
-            if self.args.force is False:
-                print("Working directory {} already exists. Please remove it (option -c) before re-executing prepare.py "
-                    "to avoid conflicts between executions, or force execution (option -f) if you are aware of consequences.".format(target.cmake_dir))
-                return 51
-        else:
-            os.makedirs(target.abs_cmake_dir)
-
         self.prepare_tunnel()
 
         # Append user_additional_args to additional_args so that the user's option take the priority
@@ -356,6 +348,14 @@ class Preparator:
         if self.args.list_features:
             self.list_features(self.args, additional_args)
             sys.exit(0)
+
+        if os.path.isdir(target.abs_cmake_dir):
+            if self.args.force is False:
+                print("Working directory {} already exists. Please remove it (option -c) before re-executing prepare.py "
+                    "to avoid conflicts between executions, or force execution (option -f) if you are aware of consequences.".format(target.cmake_dir))
+                return 51
+        else:
+            os.makedirs(target.abs_cmake_dir)
 
         p = Popen(target.cmake_command(build_type, self.args, additional_args), cwd=target.abs_cmake_dir, shell=False)
         p.communicate()
