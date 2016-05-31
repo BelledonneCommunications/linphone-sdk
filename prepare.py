@@ -67,6 +67,8 @@ class Target:
 
     def cmake_command(self, build_type, args, additional_args, verbose=True):
         current_path = os.path.dirname(os.path.realpath(__file__))
+        if args.generator is not None:
+            self.generator = args.generator # The user defined generator takes the precedence over the default target one
         cmd = ['cmake', current_path]
         if self.generator is not None:
             cmd += ['-G', self.generator]
@@ -175,7 +177,7 @@ class Preparator:
         self.argparser.add_argument('-d', '--debug', help="Prepare a debug build, eg. add debug symbols and use no optimizations.", action='store_true')
         self.argparser.add_argument('-dv', '--debug-verbose', help="Activate ms_debug logs.", action='store_true')
         self.argparser.add_argument('-f', '--force', help="Force preparation, even if working directory already exist.", action='store_true')
-        self.argparser.add_argument('-G', '--generator', help="CMake build system generator (default: let CMake choose, use cmake -h to get the complete list).", default="Unix Makefiles", dest='generator')
+        self.argparser.add_argument('-G', '--generator', help="CMake build system generator (default: let CMake choose, use cmake -h to get the complete list).", default=None, dest='generator')
         self.argparser.add_argument('-g', '--group', help="Group Linphone related builders.", action='store_true')
         self.argparser.add_argument('-L', '--list-cmake-variables', help="List non-advanced CMake cache variables.", action='store_true', dest='list_cmake_variables')
         self.argparser.add_argument('-lf', '--list-features', help="List optional features and their default values.", action='store_true', dest='list_features')
@@ -346,10 +348,13 @@ class Preparator:
         p.communicate()
 
         if target.generator is None:
-            if self.args.generator is None:
-                target.generator = "Unix Makefiles" # TODO: In this case we should get the default generator used by CMake
-            else:
-                target.generator = self.args.generator
+            # No generator has been specified, find the one CMake has used
+            cmakecache = os.path.join(target.abs_work_dir, 'cmake', 'CMakeCache.txt')
+            generator_regex = re.compile("CMAKE_GENERATOR:(.*)=(.*)", flags=re.MULTILINE)
+            content = open(cmakecache).read()
+            match = generator_regex.search(content)
+            if match:
+                target.generator = match.group(2)
 
         return p.returncode
 
