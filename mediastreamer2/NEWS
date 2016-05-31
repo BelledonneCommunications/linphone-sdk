@@ -1,6 +1,7 @@
 mediastreamer2-2.13.0: May xx, 2016
 	* Add support of H264 hardware codec on Apple's platforms
-	* MSFactory use : using one MSfactory per LinphoneCore instance .
+	* MSFactory usage : using one MSfactory per LinphoneCore instance, 
+		deprecate all "static" methods, now grouped around the MSFactory object.
 	* Adding BroadVoice16 audio codec support.
 	* Fix option to really disable libv4l2 when asked
 
