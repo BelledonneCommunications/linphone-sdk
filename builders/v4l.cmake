@@ -27,7 +27,7 @@ set(EP_v4l_MAY_BE_FOUND_ON_SYSTEM TRUE)
 set(EP_v4l_IGNORE_WARNINGS TRUE)
 set(EP_v4l_EXTERNAL_SOURCE_PATHS "externals/v4l-utils")
 
-set(EP_v4l_BUILD_METHOD "autotools")
+set(EP_v4l_BUILD_METHOD "autoreconf")
 set(EP_v4l_CROSS_COMPILATION_OPTIONS
 	"--prefix=${CMAKE_INSTALL_PREFIX}"
 	"--host=${LINPHONE_BUILDER_HOST}"
