@@ -34,7 +34,7 @@ endif()
 
 set(EP_ms2_DEPENDENCIES EP_ortp EP_bctoolbox)
 if(ANDROID)
-	list(APPEND EP_ms2_DEPENDENCIES EP_androidcpufeatures)
+	list(APPEND EP_ms2_DEPENDENCIES EP_androidcpufeatures EP_androidsupport)
 endif()
 if(MSVC)
 	set(EP_ms2_EXTRA_LDFLAGS "/SAFESEH:NO")

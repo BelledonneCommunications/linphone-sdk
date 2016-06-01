@@ -139,10 +139,12 @@ else()
 endif()
 
 set(CMAKE_SYSROOT "${ANDROID_NDK_PATH}/platforms/android-${CMAKE_ANDROID_API}/arch-${ARCHITECTURE}")
+set(ANDROID_SUPPORT "${ANDROID_NDK_PATH}/sources/android/support")
+set(ANDROID_SUPPORT_INCLUDE_DIRS "${ANDROID_SUPPORT}/include")
 
 message(STATUS "Using sysroot path: ${CMAKE_SYSROOT}")
 
-set(CMAKE_FIND_ROOT_PATH "${CMAKE_SYSROOT}" "${CMAKE_INSTALL_PREFIX}")
+set(CMAKE_FIND_ROOT_PATH "${CMAKE_SYSROOT}" "${CMAKE_INSTALL_PREFIX}" "${ANDROID_SUPPORT}")
 
 # search for programs in the build host directories
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
@@ -159,7 +161,7 @@ elseif(EXISTS "${ANDROID_NDK_PATH}/sources/cpufeatures/cpu-features.c")
 else()
 	message(FATAL_ERROR "Cannot find cpu-features.c")
 endif()
-include_directories(SYSTEM ${ANDROID_CPU_FEATURES_INCLUDE_DIRS} ${ANDROID_STL_INCLUDE_DIRS})
+include_directories(SYSTEM ${ANDROID_CPU_FEATURES_INCLUDE_DIRS} ${ANDROID_STL_INCLUDE_DIRS} ${ANDROID_SUPPORT_INCLUDE_DIRS})
 add_definitions("-DANDROID")
 if(GCC_LIBRARY_PATH)
 	#link_directories("${GCC_LIBRARY_PATH}")
