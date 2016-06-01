@@ -45,18 +45,11 @@ TextStream *text_stream_new_with_sessions(MSFactory *factory, const MSMediaStrea
 	stream->pt_t140 = 0;
 
 	stream->ms.type = MSText;
-	stream->ms.sessions = *sessions;
-	media_stream_init(&stream->ms, factory);
+	media_stream_init(&stream->ms, factory, sessions);
 
 	ms_factory_enable_statistics(factory, TRUE);
 	ms_factory_reset_statistics(factory);
 
-	if (sessions->zrtp_context != NULL) {
-		ms_zrtp_set_stream_sessions(sessions->zrtp_context, &(stream->ms.sessions));
-	}
-	if (sessions->dtls_context != NULL) {
-		ms_dtls_srtp_set_stream_sessions(sessions->dtls_context, &(stream->ms.sessions));
-	}
 	rtp_session_resync(stream->ms.sessions.rtp_session);
 	/*some filters are created right now to allow configuration by the application before start() */
 	stream->ms.rtpsend = ms_factory_create_filter(factory, MS_RTP_SEND_ID);

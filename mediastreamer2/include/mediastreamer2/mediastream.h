@@ -142,7 +142,7 @@ struct _MediaStream {
 	MSFactory *factory;
 };
 
-MS2_PUBLIC void media_stream_init(MediaStream *stream, MSFactory *factory);
+MS2_PUBLIC void media_stream_init(MediaStream *stream, MSFactory *factory, const MSMediaStreamSessions *sessions);
 
 
 /**

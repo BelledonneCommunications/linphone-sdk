@@ -21,7 +21,7 @@
 ############################################################################
 
 execute_process(
-	COMMAND "${XXD_PROGRAM}" "-i" "${SOURCE_FILE}"
+	COMMAND "${PYTHON_EXECUTABLE}" "${INPUT_DIR}/../tools/xxd.py" "-i" "${SOURCE_FILE}"
 	OUTPUT_FILE "${OUTPUT_DIR}/${SOURCE_FILE}.tmp"
 	WORKING_DIRECTORY ${INPUT_DIR}
 )

@@ -131,7 +131,7 @@ public class Version {
 		return (!isX86() && !isArmv5() && hasNeon()) || isX86();
 	}
 	public static boolean isVideoCapable() {
-		return !Version.sdkStrictlyBelow(5) && Version.hasFastCpu() && Hacks.hasCamera();
+		return !Version.sdkStrictlyBelow(5) && Version.hasFastCpu();
 	}
 	public static boolean isHDVideoCapable() {
 		int availableCores = Runtime.getRuntime().availableProcessors();

@@ -29,7 +29,6 @@ Compilation and installation
 * Required dependencies:
 	- oRTP
 	- libspeex and libspeexdsp
-	- vim
 	- bctoolbox
 * Optional dependencies (for video to be enabled, see --enable-video):
 	- libavcodec

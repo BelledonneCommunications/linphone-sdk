@@ -101,11 +101,21 @@ MSTickerPrio __ms_get_default_prio(bool_t is_video) {
 	}
 }
 
-void media_stream_init(MediaStream *stream, MSFactory *factory) {
+void media_stream_init(MediaStream *stream, MSFactory *factory, const MSMediaStreamSessions *sessions) {
+	stream->sessions = *sessions;
+	
 	stream->evd = ortp_ev_dispatcher_new(stream->sessions.rtp_session);
 	stream->evq = ortp_ev_queue_new();
 	stream->factory = factory; /*the factory is used later to instanciate everything in mediastreamer2.*/
 	rtp_session_register_event_queue(stream->sessions.rtp_session, stream->evq);
+	
+	/*we give to the zrtp and dtls sessions a backpointer to all the stream sessions*/
+	if (sessions->zrtp_context != NULL) {
+		ms_zrtp_set_stream_sessions(sessions->zrtp_context, &stream->sessions);
+	}
+	if (sessions->dtls_context != NULL) {
+		ms_dtls_srtp_set_stream_sessions(sessions->dtls_context, &stream->sessions);
+	}
 }
 
 RtpSession * ms_create_duplex_rtp_session(const char* local_ip, int loc_rtp_port, int loc_rtcp_port, int mtu) {
@@ -171,6 +181,13 @@ void ms_media_stream_sessions_uninit(MSMediaStreamSessions *sessions){
 }
 
 void media_stream_free(MediaStream *stream) {
+	if (stream->sessions.zrtp_context != NULL) {
+		ms_zrtp_set_stream_sessions(stream->sessions.zrtp_context, NULL);
+	}
+	if (stream->sessions.dtls_context != NULL) {
+		ms_dtls_srtp_set_stream_sessions(stream->sessions.dtls_context, NULL);
+	}
+	
 	if (stream->sessions.rtp_session != NULL) rtp_session_unregister_event_queue(stream->sessions.rtp_session, stream->evq);
 	if (stream->evq != NULL) ortp_ev_queue_destroy(stream->evq);
 	if (stream->evd != NULL) ortp_ev_dispatcher_destroy(stream->evd);
