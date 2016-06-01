@@ -270,6 +270,10 @@ class Preparator:
     def generator(self):
         return self.first_target().generator
 
+    def get_additional_args(self):
+        # Append user_additional_args to additional_args so that the user's option take the priority
+        return self.additional_args + self.user_additional_args
+
     def list_features_with_args(self, args, additional_args):
         tmpdir = tempfile.mkdtemp(prefix="linphone-prepare")
         tmptarget = self.first_target()
@@ -332,35 +336,23 @@ class Preparator:
             target.clean()
 
     def target_prepare(self, target):
-        if type(self.args.debug) is str:
-            build_type = self.args.debug
-        else:
-            build_type = 'Debug' if self.args.debug else 'Release'
-
         if target.required_build_platforms is not None:
             if not platform.system() in target.required_build_platforms:
                 print("Cannot build target '{target}' on '{bad_build_platform}' build platform. Build it on one of {good_build_platforms}.".format(
                     target=target.name, bad_build_platform=platform.system(), good_build_platforms=', '.join(target.required_build_platforms)))
                 return 52
 
-        self.prepare_tunnel()
-
-        # Append user_additional_args to additional_args so that the user's option take the priority
-        additional_args = self.additional_args + self.user_additional_args
-
-        if self.args.list_features:
-            self.list_features(self.args, additional_args)
-            sys.exit(0)
-
-        if os.path.isdir(target.abs_cmake_dir):
-            if self.args.force is False:
-                print("Working directory {} already exists. Please remove it (option -c) before re-executing prepare.py "
-                    "to avoid conflicts between executions, or force execution (option -f) if you are aware of consequences.".format(target.cmake_dir))
-                return 51
+        if type(self.args.debug) is str:
+            build_type = self.args.debug
         else:
+            build_type = 'Debug' if self.args.debug else 'Release'
+
+        if not os.path.isdir(target.abs_cmake_dir):
             os.makedirs(target.abs_cmake_dir)
 
-        p = Popen(target.cmake_command(build_type, self.args, additional_args), cwd=target.abs_cmake_dir, shell=False)
+        self.prepare_tunnel()
+
+        p = Popen(target.cmake_command(build_type, self.args, self.get_additional_args()), cwd=target.abs_cmake_dir, shell=False)
         p.communicate()
 
         if target.generator is None:
@@ -381,6 +373,18 @@ class Preparator:
 
     def prepare(self):
         ret = 0
+
+        if self.args.list_features:
+            self.list_features(self.args, self.get_additional_args())
+            sys.exit(0)
+
+        if self.args.force is False:
+            for target_name, target in self.targets.items():
+                if os.path.isdir(target.abs_cmake_dir):
+                    print("Working directory {} already exists. Please remove it (option -c) before re-executing prepare.py "
+                        "to avoid conflicts between executions, or force execution (option -f) if you are aware of consequences.".format(target.cmake_dir))
+                    return 51
+
         for target_name in self.args.target:
             ret = self.target_prepare(self.targets[target_name])
             if ret != 0:
