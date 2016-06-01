@@ -1076,11 +1076,13 @@ belle_sip_resolver_context_t * belle_sip_stack_resolve_a(belle_sip_stack_t *stac
 
 belle_sip_resolver_context_t * belle_sip_stack_resolve_srv(belle_sip_stack_t *stack, const char *service, const char *transport, const char *name, belle_sip_resolver_srv_callback_t cb, void *data) {
 	belle_sip_simple_resolver_context_t *ctx = belle_sip_object_new(belle_sip_simple_resolver_context_t);
+	char *srv_prefix = srv_prefix_from_service_and_transport(service, transport);
 	belle_sip_resolver_context_init((belle_sip_resolver_context_t*)ctx,stack);
 	ctx->srv_cb_data = data;
 	ctx->srv_cb = cb;
-	ctx->name = belle_sip_concat(srv_prefix_from_service_and_transport(service, transport), name, NULL);
+	ctx->name = belle_sip_concat(srv_prefix, name, NULL);
 	ctx->type = DNS_T_SRV;
+	belle_sip_free(srv_prefix);
 	return (belle_sip_resolver_context_t*)resolver_start_query(ctx);
 }
 
