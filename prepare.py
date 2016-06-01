@@ -367,8 +367,8 @@ class Preparator:
         return p.returncode
 
     def clean(self):
-        for target_name in self.args.target:
-            self.target_clean(self.targets[target_name])
+        for target_name, target in self.targets.items():
+            self.target_clean(target)
         return 0
 
     def prepare(self):
