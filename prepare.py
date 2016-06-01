@@ -382,13 +382,15 @@ class Preparator:
             for target_name, target in self.targets.items():
                 if os.path.isdir(target.abs_cmake_dir):
                     print("Working directory {} already exists. Please remove it (option -c) before re-executing prepare.py "
-                        "to avoid conflicts between executions, or force execution (option -f) if you are aware of consequences.".format(target.cmake_dir))
-                    return 51
+                          "to avoid conflicts between executions, or force execution (option -f) if you are aware of consequences.".format(target.cmake_dir))
+                    ret = 51
+                    break
 
-        for target_name in self.args.target:
-            ret = self.target_prepare(self.targets[target_name])
-            if ret != 0:
-                break
+        if ret == 0:
+            for target_name in self.args.target:
+                ret = self.target_prepare(self.targets[target_name])
+                if ret != 0:
+                    break
         if ret != 0:
             if ret == 51:
                 if os.path.isfile('Makefile'):
