@@ -538,6 +538,7 @@ bool_t ice_check_list_default_local_candidate(const IceCheckList *cl, IceCandida
 	if (rtcp_candidate != NULL) {
 		componentID = 2;
 		elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_default_local_candidate, &componentID);
+		if (elem == NULL) return FALSE;
 		*rtcp_candidate = (IceCandidate *)elem->data;
 	}
 
@@ -1823,9 +1824,14 @@ static MSStunAddress ice_transport_address_to_stun_address(IceTransportAddress *
 }
 
 static void ice_transport_address_to_printable_ip_address(const IceTransportAddress *taddr, char *printable_ip, size_t printable_ip_size) {
-	struct addrinfo *ai = bctbx_ip_address_to_addrinfo(taddr->family, SOCK_DGRAM, taddr->ip, taddr->port);
-	bctbx_addrinfo_to_printable_ip_address(ai, printable_ip, printable_ip_size);
-	bctbx_freeaddrinfo(ai);
+	struct addrinfo *ai;
+	if (taddr == NULL) {
+		*printable_ip = '\0';
+	} else {
+		ai = bctbx_ip_address_to_addrinfo(taddr->family, SOCK_DGRAM, taddr->ip, taddr->port);
+		bctbx_addrinfo_to_printable_ip_address(ai, printable_ip, printable_ip_size);
+		bctbx_freeaddrinfo(ai);
+	}
 }
 
 static int ice_find_candidate_from_foundation(const IceCandidate *candidate, const char *foundation)
