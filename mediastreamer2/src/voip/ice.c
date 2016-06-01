@@ -1067,14 +1067,12 @@ void ice_session_enable_forced_relay(IceSession *session, bool_t enable)
 	session->forced_relay = enable;
 }
 
-static void ice_check_list_create_turn_contexts(IceCheckList *cl)
-{
+static void ice_check_list_create_turn_contexts(IceCheckList *cl) {
 	cl->rtp_turn_context = ms_turn_context_new(MS_TURN_CONTEXT_TYPE_RTP, cl->rtp_session);
 	cl->rtcp_turn_context = ms_turn_context_new(MS_TURN_CONTEXT_TYPE_RTCP, cl->rtp_session);
 }
 
-void ice_session_enable_turn(IceSession *session, bool_t enable)
-{
+void ice_session_enable_turn(IceSession *session, bool_t enable) {
 	int i;
 	session->turn_enabled = enable;
 	for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
@@ -1222,6 +1220,7 @@ static void ice_stun_server_request_transaction_free(IceStunServerRequestTransac
 
 static void ice_stun_server_request_free(IceStunServerRequest *request) {
 	ms_list_for_each(request->transactions, (void (*)(void*))ice_stun_server_request_transaction_free);
+	ms_list_free(request->transactions);
 	if (request->source_ai != NULL) bctbx_freeaddrinfo(request->source_ai);
 	ms_free(request);
 }
@@ -1239,8 +1238,8 @@ static int ice_send_message_to_socket(const RtpTransport * rtpt, char* buf, size
 static int ice_send_message_to_stun_addr(const RtpTransport * rtpt, char* buff, size_t len, MSStunAddress *source, MSStunAddress *dest) {
 	struct sockaddr_storage source_addr;
 	struct sockaddr_storage dest_addr;
-	socklen_t source_addrlen = 0;
-	socklen_t dest_addrlen = 0;
+	socklen_t source_addrlen = sizeof(source_addr);
+	socklen_t dest_addrlen = sizeof(dest_addr);
 	ms_stun_address_to_sockaddr(source, (struct sockaddr *)&source_addr, &source_addrlen);
 	ms_stun_address_to_sockaddr(dest, (struct sockaddr *)&dest_addr, &dest_addrlen);
 	return ice_send_message_to_socket(rtpt, buff, len, (struct sockaddr*)&source_addr, source_addrlen, (struct sockaddr *)&dest_addr, dest_addrlen);
@@ -1328,6 +1327,7 @@ static IceStunServerRequestTransaction * ice_send_turn_server_create_permission_
 	stun_message_fill_authentication_from_turn_context(msg, request->turn_context);
 	request->stun_method = ms_stun_message_get_method(msg);
 	transaction = ice_send_stun_request(request->rtptp, request->source_ai->ai_addr, request->source_ai->ai_addrlen, server, addrlen, msg, "TURN create permission request");
+	ms_stun_message_destroy(msg);
 	return transaction;
 }
 
@@ -1337,6 +1337,7 @@ static IceStunServerRequestTransaction * ice_send_turn_server_channel_bind_reque
 	stun_message_fill_authentication_from_turn_context(msg, request->turn_context);
 	request->stun_method = ms_stun_message_get_method(msg);
 	transaction = ice_send_stun_request(request->rtptp, request->source_ai->ai_addr, request->source_ai->ai_addrlen, server, addrlen, msg, "TURN channel bind request");
+	ms_stun_message_destroy(msg);
 	return transaction;
 }
 
@@ -1482,7 +1483,7 @@ static void ice_send_binding_request(IceCheckList *cl, IceCandidatePair *pair, c
 		}
 	}
 	if (buf != NULL) ms_free(buf);
-	ms_free(msg);
+	ms_stun_message_destroy(msg);
 }
 
 static int ice_get_componentID_from_rtp_session(const OrtpEventData *evt_data)
@@ -1551,9 +1552,9 @@ static void ice_send_binding_response(IceCheckList *cl, const RtpSession *rtp_se
 	int len;
 	RtpTransport *rtptp = NULL;
 	struct sockaddr_storage dest_addr;
-	socklen_t dest_addrlen = 0;
+	socklen_t dest_addrlen = sizeof(dest_addr);
 	struct sockaddr_storage source_addr;
-	socklen_t source_addrlen = 0;
+	socklen_t source_addrlen = sizeof(source_addr);
 	char dest_addr_str[256];
 	char source_addr_str[256];
 	char tr_id_str[25];
@@ -1601,7 +1602,7 @@ static void ice_send_binding_response(IceCheckList *cl, const RtpSession *rtp_se
 		ice_send_message_to_socket(rtptp, buf, len, (struct sockaddr *)&source_addr, source_addrlen, (struct sockaddr *)&dest_addr, dest_addrlen);
 	}
 	if (buf != NULL) ms_free(buf);
-	ms_free(response);
+	ms_stun_message_destroy(response);
 }
 
 static void ice_send_error_response(const RtpSession *rtp_session, const OrtpEventData *evt_data, const MSStunMessage *msg, const MSStunAddress *dest, uint16_t error_num, const char *error_msg)
@@ -1611,9 +1612,9 @@ static void ice_send_error_response(const RtpSession *rtp_session, const OrtpEve
 	int len;
 	RtpTransport* rtptp;
 	struct sockaddr_storage dest_addr;
-	socklen_t dest_addrlen = 0;
+	socklen_t dest_addrlen = sizeof(dest_addr);
 	struct sockaddr_storage source_addr;
-	socklen_t source_addrlen = 0;
+	socklen_t source_addrlen = sizeof(source_addr);
 	char dest_addr_str[256];
 	char source_addr_str[256];
 	char tr_id_str[25];
@@ -1744,10 +1745,12 @@ static int ice_check_received_binding_request_integrity(const IceCheckList *cl, 
 {
 	char *hmac;
 	mblk_t *mp = evt_data->packet;
+	int ret = 0;
 
 	/* Check the message integrity: first remove length of fingerprint... */
 	char *lenpos = (char *)mp->b_rptr + sizeof(uint16_t);
 	uint16_t newlen = htons(ms_stun_message_get_length(msg) - 8);
+
 	memcpy(lenpos, &newlen, sizeof(uint16_t));
 	hmac = ms_stun_calculate_integrity_short_term((char *)mp->b_rptr, (size_t)(mp->b_wptr - mp->b_rptr - 24 - 8), ice_check_list_local_pwd(cl));
 	/* ... and then restore the length with fingerprint. */
@@ -1759,10 +1762,11 @@ static int ice_check_received_binding_request_integrity(const IceCheckList *cl, 
 			ms_message("ice: skipping message integrity check for cl [%p]",cl);
 		} else {
 			ice_send_error_response(rtp_session, evt_data, msg, remote_addr, MS_STUN_ERROR_CODE_UNAUTHORIZED, "Wrong MESSAGE-INTEGRITY attribute");
-			return -1;
+			ret = -1;
 		}
 	}
-	return 0;
+	ms_free(hmac);
+	return ret;
 }
 
 static int ice_check_received_binding_request_username(const IceCheckList *cl, const RtpSession *rtp_session, const OrtpEventData *evt_data, const MSStunMessage *msg, const MSStunAddress *remote_addr)
@@ -1809,7 +1813,7 @@ static void ice_fill_transport_address_from_sockaddr(IceTransportAddress *taddr,
 
 static void ice_fill_transport_address_from_stun_address(IceTransportAddress *taddr, const MSStunAddress *stun_addr) {
 	struct sockaddr_storage addr;
-	socklen_t addrlen = 0;
+	socklen_t addrlen = sizeof(addr);
 	ms_stun_address_to_sockaddr(stun_addr, (struct sockaddr *)&addr, &addrlen);
 	ice_fill_transport_address_from_sockaddr(taddr, (struct sockaddr *)&addr, addrlen);
 }
@@ -1821,6 +1825,7 @@ static MSStunAddress ice_transport_address_to_stun_address(IceTransportAddress *
 static void ice_transport_address_to_printable_ip_address(const IceTransportAddress *taddr, char *printable_ip, size_t printable_ip_size) {
 	struct addrinfo *ai = bctbx_ip_address_to_addrinfo(taddr->family, SOCK_DGRAM, taddr->ip, taddr->port);
 	bctbx_addrinfo_to_printable_ip_address(ai, printable_ip, printable_ip_size);
+	bctbx_freeaddrinfo(ai);
 }
 
 static int ice_find_candidate_from_foundation(const IceCandidate *candidate, const char *foundation)
@@ -2481,7 +2486,15 @@ static int ice_compare_stun_server_requests_to_remove(IceStunServerRequest *requ
 }
 
 static void ice_check_list_remove_stun_server_request(IceCheckList *cl, UInt96 *tr_id) {
-	cl->stun_server_requests = ms_list_remove_custom(cl->stun_server_requests, (MSCompareFunc)ice_find_stun_server_request_transaction, tr_id);
+	MSList *elem = cl->stun_server_requests;
+	while (elem != NULL) {
+		elem = ms_list_find_custom(cl->stun_server_requests, (MSCompareFunc)ice_find_stun_server_request_transaction, tr_id);
+		if (elem != NULL) {
+			IceStunServerRequest *request = (IceStunServerRequest *)elem->data;
+			ice_stun_server_request_free(request);
+			cl->stun_server_requests = ms_list_remove_link(cl->stun_server_requests, elem);
+		}
+	}
 }
 
 static IceStunServerRequest * ice_check_list_get_stun_server_request(IceCheckList *cl, UInt96 *tr_id) {
@@ -2570,7 +2583,7 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, const Ort
 		ms_warning("ice: STUN message type not handled");
 	}
 
-	ms_free(msg);
+	ms_stun_message_destroy(msg);
 }
 
 
@@ -3609,7 +3622,15 @@ static int ice_find_gathering_stun_server_request(const IceStunServerRequest *re
 }
 
 static void ice_remove_gathering_stun_server_requests(IceCheckList *cl) {
-	cl->stun_server_requests = ms_list_remove_custom(cl->stun_server_requests, (MSCompareFunc)ice_find_gathering_stun_server_request, NULL);
+	MSList *elem = cl->stun_server_requests;
+	while (elem != NULL) {
+		elem = ms_list_find_custom(cl->stun_server_requests, (MSCompareFunc)ice_find_gathering_stun_server_request, NULL);
+		if (elem != NULL) {
+			IceStunServerRequest *request = (IceStunServerRequest *)elem->data;
+			ice_stun_server_request_free(request);
+			cl->stun_server_requests = ms_list_remove_link(cl->stun_server_requests, elem);
+		}
+	}
 }
 
 static void ice_check_list_stop_gathering(IceCheckList *cl) {

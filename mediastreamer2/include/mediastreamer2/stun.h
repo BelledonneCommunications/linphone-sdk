@@ -186,6 +186,7 @@ typedef enum {
 
 typedef struct {
 	RtpSession *rtp_session;
+	RtpTransport *endpoint;
 	char *realm;
 	char *nonce;
 	char *username;

@@ -657,17 +657,21 @@ static void alsa_card_detect(MSSndCardManager *m){
 	if (snd_device_name_hint(-1, "pcm", &hints)==0){
 		for(i=0; hints[i]!=NULL; ++i){
 			char *hint = snd_device_name_get_hint(hints[i],"NAME");
-			char *device_name = strsep(&hint, ":");
-			if (device_name){
-				char *card_hint = strsep(&hint, ",");
-				if (card_hint){
-					if (strcmp(strsep(&card_hint, "="), "CARD")==0){
-						char *card_name = card_hint;
-						card_names[hint_device_count] = card_name;
-						device_names[hint_device_count] = device_name;
-						hint_device_count++;
+			char *hint_ptr = hint;
+			if (hint != NULL) {
+				char *device_name = strsep(&hint, ":");
+				if (device_name){
+					char *card_hint = strsep(&hint, ",");
+					if (card_hint){
+						if (strcmp(strsep(&card_hint, "="), "CARD")==0){
+							char *card_name = card_hint;
+							card_names[hint_device_count] = card_name;
+							device_names[hint_device_count] = device_name;
+							hint_device_count++;
+						}
 					}
 				}
+				free(hint_ptr);
 			}
 		}
 		snd_device_name_free_hint(hints);

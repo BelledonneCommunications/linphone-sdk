@@ -554,6 +554,8 @@ void ms_stun_address_to_sockaddr(const MSStunAddress *stun_addr, struct sockaddr
 		addr_in6->sin6_port = htons(stun_addr->ip.v6.port);
 		memcpy(addr_in6->sin6_addr.s6_addr, &stun_addr->ip.v6.addr, sizeof(UInt128));
 		*addrlen = sizeof(struct sockaddr_in6);
+	} else {
+		memset(addr, 0, *addrlen);
 	}
 }
 
@@ -566,6 +568,8 @@ void ms_sockaddr_to_stun_address(const struct sockaddr *addr, MSStunAddress *stu
 		stun_addr->family = MS_STUN_ADDR_FAMILY_IPV6;
 		stun_addr->ip.v6.port = ntohs(((const struct sockaddr_in6 *)addr)->sin6_port);
 		memcpy(&stun_addr->ip.v6.addr, ((const struct sockaddr_in6 *)addr)->sin6_addr.s6_addr, sizeof(UInt128));
+	} else {
+		memset(stun_addr, 0, sizeof(MSStunAddress));
 	}
 }
 
@@ -573,19 +577,20 @@ MSStunAddress ms_ip_address_to_stun_address(int ai_family, int socktype, const c
 	MSStunAddress stun_addr = { 0 };
 	struct addrinfo *res = bctbx_ip_address_to_addrinfo(ai_family, socktype, hostname, port);
 	ms_sockaddr_to_stun_address(res->ai_addr, &stun_addr);
+	bctbx_freeaddrinfo(res);
 	return stun_addr;
 }
 
 void ms_stun_address_to_ip_address(const MSStunAddress *stun_address, char *ip, size_t ip_size, int *port) {
 	struct sockaddr_storage addr;
-	socklen_t addrlen = 0;
+	socklen_t addrlen = sizeof(addr);
 	ms_stun_address_to_sockaddr(stun_address, (struct sockaddr *)&addr, &addrlen);
 	bctbx_sockaddr_to_ip_address((struct sockaddr *)&addr, addrlen, ip, ip_size, port);
 }
 
 void ms_stun_address_to_printable_ip_address(const MSStunAddress *stun_address, char *printable_ip, size_t printable_ip_size) {
 	struct sockaddr_storage addr;
-	socklen_t addrlen = 0;
+	socklen_t addrlen = sizeof(addr);
 	ms_stun_address_to_sockaddr(stun_address, (struct sockaddr *)&addr, &addrlen);
 	bctbx_sockaddr_to_printable_ip_address((struct sockaddr *)&addr, addrlen, printable_ip, printable_ip_size);
 }
@@ -890,9 +895,12 @@ void ms_stun_message_destroy(MSStunMessage *msg) {
 		memset(msg->password, '\0', strlen(msg->password));
 		ms_free(msg->password);
 	}
+	if (msg->ha1) ms_free(msg->ha1);
 	if (msg->realm) ms_free(msg->realm);
+	if (msg->nonce) ms_free(msg->nonce);
 	if (msg->message_integrity) ms_free(msg->message_integrity);
 	if (msg->software) ms_free(msg->software);
+	if (msg->error_code.reason) ms_free(msg->error_code.reason);
 	if (msg->data) ms_free(msg->data);
 	ms_free(msg);
 }
@@ -1277,6 +1285,15 @@ MSTurnContext * ms_turn_context_new(MSTurnContextType type, RtpSession *rtp_sess
 }
 
 void ms_turn_context_destroy(MSTurnContext *context) {
+	if (context->realm != NULL) ms_free(context->realm);
+	if (context->nonce != NULL) ms_free(context->nonce);
+	if (context->username != NULL) ms_free(context->username);
+	if (context->password != NULL) {
+		memset(context->password, '\0', strlen(context->password));
+		ms_free(context->password);
+	}
+	if (context->ha1 != NULL) ms_free(context->ha1);
+	if (context->endpoint != NULL) context->endpoint->data = NULL;
 	ms_free(context);
 }
 
@@ -1361,7 +1378,7 @@ static int ms_turn_rtp_endpoint_recvfrom(RtpTransport *rtptp, mblk_t *msg, int f
 	MSTurnContext *context = (MSTurnContext *)rtptp->data;
 	int msgsize = 0;
 
-	if (context->rtp_session != NULL) {
+	if ((context != NULL) && (context->rtp_session != NULL)) {
 		msgsize = rtp_session_recvfrom(context->rtp_session, context->type == MS_TURN_CONTEXT_TYPE_RTP, msg, flags, from, fromlen);
 		if ((msgsize >= RTP_FIXED_HEADER_SIZE) && (rtp_get_version(msg) != 2)) {
 			/* This is not a RTP packet, try to see if it is a TURN ChannelData message */
@@ -1386,7 +1403,7 @@ static int ms_turn_rtp_endpoint_recvfrom(RtpTransport *rtptp, mblk_t *msg, int f
 							if (stun_addr != NULL) {
 								struct sockaddr_storage relay_ss;
 								struct sockaddr *relay_sa = (struct sockaddr *)&relay_ss;
-								socklen_t relay_sa_len = 0;
+								socklen_t relay_sa_len = sizeof(relay_ss);
 								// TODO: check if permissions have been set for the source address
 								/* Copy the data of the TURN data indication in the mblk_t so that it contains the unpacked data */
 								msgsize = ms_stun_message_get_data_length(stun_msg);
@@ -1421,7 +1438,7 @@ static int ms_turn_rtp_endpoint_recvfrom(RtpTransport *rtptp, mblk_t *msg, int f
 static bool_t ms_turn_rtp_endpoint_send_via_turn_server(MSTurnContext *context, const struct sockaddr *from, socklen_t fromlen) {
 	struct sockaddr_storage relay_ss;
 	struct sockaddr *relay_sa = (struct sockaddr *)&relay_ss;
-	socklen_t relay_sa_len = 0;
+	socklen_t relay_sa_len = sizeof(relay_ss);
 
 	ms_stun_address_to_sockaddr(&context->relay_addr, relay_sa, &relay_sa_len);
 	if (relay_sa->sa_family != from->sa_family) return FALSE;
@@ -1441,13 +1458,14 @@ static int ms_turn_rtp_endpoint_sendto(RtpTransport *rtptp, mblk_t *msg, int fla
 	MSStunMessage *stun_msg = NULL;
 	bool_t rtp_packet = FALSE;
 	int ret = 0;
+	mblk_t *new_msg = NULL;
 
-	if (context->rtp_session != NULL) {
+	if ((context != NULL) && (context->rtp_session != NULL)) {
 		if ((msgdsize(msg) >= RTP_FIXED_HEADER_SIZE) && (rtp_get_version(msg) == 2)) rtp_packet = TRUE;
 		if ((rtp_packet && context->force_rtp_sending_via_relay) || ms_turn_rtp_endpoint_send_via_turn_server(context, (struct sockaddr *)&msg->net_addr, msg->net_addrlen)) {
 			if (ms_turn_context_get_state(context) >= MS_TURN_CONTEXT_STATE_CHANNEL_BOUND) {
 				/* Use a TURN ChannelData message */
-				mblk_t *new_msg = allocb(4, 0);
+				new_msg = allocb(4, 0);
 				*((uint16_t *)new_msg->b_wptr) = htons(ms_turn_context_get_channel_number(context));
 				new_msg->b_wptr += 2;
 				*((uint16_t *)new_msg->b_wptr) = htons(msgdsize(msg));
@@ -1482,12 +1500,16 @@ static int ms_turn_rtp_endpoint_sendto(RtpTransport *rtptp, mblk_t *msg, int fla
 		ret = rtp_session_sendto(context->rtp_session, context->type == MS_TURN_CONTEXT_TYPE_RTP, msg, flags, to, tolen);
 	}
 	if (stun_msg != NULL) ms_stun_message_destroy(stun_msg);
+	if (new_msg != NULL) {
+		new_msg->b_cont = NULL;
+		freemsg(new_msg);
+	}
 	return ret;
 }
 
 static void ms_turn_rtp_endpoint_close(RtpTransport *rtptp) {
 	MSTurnContext *context = (MSTurnContext *)rtptp->data;
-	context->rtp_session = NULL;
+	if (context != NULL) context->rtp_session = NULL;
 }
 
 static void ms_turn_rtp_endpoint_destroy(RtpTransport *rtptp) {
@@ -1502,5 +1524,6 @@ RtpTransport * ms_turn_context_create_endpoint(MSTurnContext *context) {
 	rtptp->t_close = ms_turn_rtp_endpoint_close;
 	rtptp->t_destroy = ms_turn_rtp_endpoint_destroy;
 	rtptp->data = context;
+	context->endpoint = rtptp;
 	return rtptp;
 }
