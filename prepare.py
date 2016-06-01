@@ -158,7 +158,9 @@ class TargetListAction(argparse.Action):
                     raise argparse.ArgumentError(self, message)
             setattr(namespace, self.dest, values)
 
-
+class ToggleAction(argparse.Action):
+    def __call__(self, parser, ns, values, option):
+        setattr(ns, self.dest, option[2:4] != 'no')
 
 class Preparator:
 
@@ -182,7 +184,8 @@ class Preparator:
         self.argparser.add_argument('-g', '--group', help="Group Linphone related builders.", action='store_true')
         self.argparser.add_argument('-L', '--list-cmake-variables', help="List non-advanced CMake cache variables.", action='store_true', dest='list_cmake_variables')
         self.argparser.add_argument('-lf', '--list-features', help="List optional features and their default values.", action='store_true', dest='list_features')
-        self.argparser.add_argument('-t', '--tunnel', help="Enable Tunnel.", action='store_true')
+        self.argparser.add_argument('--tunnel', '--no-tunnel', help="Enable/Disable Tunnel.", action=ToggleAction, nargs=0)
+
         if not default_targets:
             default_targets = list(self.targets.keys())
         if len(self.targets) > 1:
