@@ -21,7 +21,7 @@
 ############################################################################
 
 cmake_minimum_required(VERSION 3.0)
-project(msamr VERSION 1.0.2 LANGUAGES C)
+project(msamr VERSION 1.1.2 LANGUAGES C)
 
 
 set(PACKAGE "${PROJECT_NAME}")
