@@ -56,7 +56,6 @@ ms2_add_option("Non free codecs" "Allow inclusion of non-free codecs in the buil
 #security options
 ms2_add_option("SRTP" "SRTP media encryption support." "${DEFAULT_VALUE_ENABLE_SRTP}")
 ms2_add_dependent_option("ZRTP" "ZRTP media encryption support." "${DEFAULT_VALUE_ENABLE_ZRTP}" "ENABLE_SRTP" OFF)
-ms2_add_dependent_option("DTLS" "DTLS media encryption support." "${DEFAULT_VALUE_ENABLE_DTLS}" "ENABLE_SRTP" OFF)
 
 #audio options and codecs
 ms2_add_option("WebRTC AEC" "WebRTC echo canceller support." "${DEFAULT_VALUE_ENABLE_WEBRTC_AEC}")

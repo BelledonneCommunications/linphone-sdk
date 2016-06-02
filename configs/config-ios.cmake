@@ -21,7 +21,6 @@
 ############################################################################
 
 # Define default values for the linphone builder options
-set(DEFAULT_VALUE_ENABLE_DTLS ON)
 set(DEFAULT_VALUE_ENABLE_FFMPEG ON)
 set(DEFAULT_VALUE_ENABLE_GPL_THIRD_PARTIES ON)
 set(DEFAULT_VALUE_ENABLE_GSM ON)
