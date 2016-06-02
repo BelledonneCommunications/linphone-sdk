@@ -576,8 +576,6 @@ macro(linphone_builder_add_external_project PROJNAME)
 			configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/mingw_configure.bat.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_configure.bat)
 			configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/mingw_build.bat.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_build.bat)
 			configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/mingw_install.bat.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_install.bat)
-			# Build in source with MinGW as build out-of-source does not work
-			set(ep_build "${ep_source}")
 			if(ep_autogen_command)
 				set(ep_autogen_redirect_to_file ${ep_redirect_to_file})
 			endif()
