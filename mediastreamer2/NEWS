@@ -1,4 +1,4 @@
-mediastreamer2-2.13.0: May xx, 2016
+mediastreamer2-2.13.0: June 2nd, 2016
 	* Add support of H264 hardware codec on Apple's platforms
 	* MSFactory usage : using one MSfactory per LinphoneCore instance, 
 		deprecate all "static" methods, now grouped around the MSFactory object.
