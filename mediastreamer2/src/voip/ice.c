@@ -1063,9 +1063,12 @@ int ice_session_gathering_duration(IceSession *session)
 		+ ((session->gathering_end_ts.tv_nsec - session->gathering_start_ts.tv_nsec) / 1000000.0));
 }
 
-void ice_session_enable_forced_relay(IceSession *session, bool_t enable)
-{
+void ice_session_enable_forced_relay(IceSession *session, bool_t enable) {
 	session->forced_relay = enable;
+}
+
+void ice_session_enable_short_turn_refresh(IceSession *session, bool_t enable) {
+	session->short_turn_refresh = enable;
 }
 
 static void ice_check_list_create_turn_contexts(IceCheckList *cl) {
@@ -2203,6 +2206,7 @@ static void ice_schedule_turn_allocation_refresh(IceCheckList *cl, int component
 	RtpTransport *rtptp = NULL;
 	const OrtpStream *stream = NULL;
 	struct sockaddr *sa;
+	uint32_t ms = (uint32_t)((lifetime * .9f) * 1000); /* 90% of the lifetime */
 
 	turn_context = ice_get_turn_context_from_check_list_componentID(cl, componentID);
 	ice_get_transport_from_rtp_session_and_componentID(cl->rtp_session, componentID, &rtptp);
@@ -2210,7 +2214,8 @@ static void ice_schedule_turn_allocation_refresh(IceCheckList *cl, int component
 	sa = (struct sockaddr *)&stream->loc_addr;
 	bctbx_sockaddr_to_ip_address(sa, stream->loc_addrlen, source_addr_str, sizeof(source_addr_str), &source_port);
 	request = ice_stun_server_request_new(cl, turn_context, rtptp, sa->sa_family, source_addr_str, source_port, MS_TURN_METHOD_REFRESH);
-	request->next_transmission_time = ice_add_ms(ice_current_time(), (uint32_t)((lifetime * .9f) * 1000));
+	if (cl->session->short_turn_refresh == TRUE) ms = 5000; /* 5 seconds */
+	request->next_transmission_time = ice_add_ms(ice_current_time(), ms);
 	ice_check_list_add_stun_server_request(cl, request);
 }
 
@@ -2222,6 +2227,7 @@ static void ice_schedule_turn_permission_refresh(IceCheckList *cl, int component
 	RtpTransport *rtptp = NULL;
 	const OrtpStream *stream = NULL;
 	struct sockaddr *sa;
+	uint32_t ms = 240000; /* 4 minutes */
 
 	turn_context = ice_get_turn_context_from_check_list_componentID(cl, componentID);
 	ice_get_transport_from_rtp_session_and_componentID(cl->rtp_session, componentID, &rtptp);
@@ -2230,7 +2236,8 @@ static void ice_schedule_turn_permission_refresh(IceCheckList *cl, int component
 	bctbx_sockaddr_to_ip_address(sa, stream->loc_addrlen, source_addr_str, sizeof(source_addr_str), &source_port);
 	request = ice_stun_server_request_new(cl, turn_context, rtptp, sa->sa_family, source_addr_str, source_port, MS_TURN_METHOD_CREATE_PERMISSION);
 	request->peer_address = peer_address;
-	request->next_transmission_time = ice_add_ms(ice_current_time(), 240000); /* 4 minutes */
+	if (cl->session->short_turn_refresh == TRUE) ms = 5000; /* 5 seconds */
+	request->next_transmission_time = ice_add_ms(ice_current_time(), ms);
 	ice_check_list_add_stun_server_request(cl, request);
 }
 
@@ -2242,6 +2249,7 @@ static void ice_schedule_turn_channel_bind_refresh(IceCheckList *cl, int compone
 	RtpTransport *rtptp = NULL;
 	const OrtpStream *stream = NULL;
 	struct sockaddr *sa;
+	uint32_t ms = 540000; /* 9 minutes */
 
 	turn_context = ice_get_turn_context_from_check_list_componentID(cl, componentID);
 	ice_get_transport_from_rtp_session_and_componentID(cl->rtp_session, componentID, &rtptp);
@@ -2251,7 +2259,8 @@ static void ice_schedule_turn_channel_bind_refresh(IceCheckList *cl, int compone
 	request = ice_stun_server_request_new(cl, turn_context, rtptp, sa->sa_family, source_addr_str, source_port, MS_TURN_METHOD_CHANNEL_BIND);
 	request->channel_number = channel_number;
 	request->peer_address = peer_address;
-	request->next_transmission_time = ice_add_ms(ice_current_time(), 540000); /* 9 minutes */
+	if (cl->session->short_turn_refresh == TRUE) ms = 5000; /* 5 seconds */
+	request->next_transmission_time = ice_add_ms(ice_current_time(), ms);
 	ice_check_list_add_stun_server_request(cl, request);
 }
 
@@ -2289,6 +2298,7 @@ static bool_t ice_handle_received_turn_allocate_success_response(IceCheckList *c
 						ms_message("ice: Add candidate obtained by STUN/TURN: %s:srflx", srflx_addr_str);
 						ms_stun_address_to_ip_address(&relay_addr, relay_addr_str, sizeof(relay_addr_str), &relay_port);
 						if (cl->session->turn_enabled) {
+							request->turn_context->stats.nb_successful_allocate++;
 							ice_schedule_turn_allocation_refresh(cl, componentID, ms_stun_message_get_lifetime(msg));
 						}
 						if (relay_port != 0) {
@@ -2349,6 +2359,7 @@ static void ice_handle_received_turn_refresh_success_response(IceCheckList *cl, 
 		ms_turn_context_set_state(context, MS_TURN_CONTEXT_STATE_IDLE);
 	} else {
 		ice_schedule_turn_allocation_refresh(cl, componentID, ms_stun_message_get_lifetime(msg));
+		context->stats.nb_successful_refresh++;
 	}
 }
 

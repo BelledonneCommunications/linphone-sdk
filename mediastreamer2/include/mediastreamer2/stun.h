@@ -185,6 +185,17 @@ typedef enum {
 } MSTurnContextType;
 
 typedef struct {
+	uint32_t nb_send_indication;
+	uint32_t nb_data_indication;
+	uint32_t nb_received_channel_msg;
+	uint32_t nb_sent_channel_msg;
+	uint16_t nb_successful_allocate;
+	uint16_t nb_successful_refresh;
+	uint16_t nb_successful_create_permission;
+	uint16_t nb_successful_channel_bind;
+} MSTurnContextStatistics;
+
+typedef struct {
 	RtpSession *rtp_session;
 	RtpTransport *endpoint;
 	MSList *allowed_peer_addresses;
@@ -201,10 +212,7 @@ typedef struct {
 	struct sockaddr *turn_server_addr;
 	socklen_t turn_server_addrlen;
 	bool_t force_rtp_sending_via_relay;
-	uint32_t stats_nb_send_indication;
-	uint32_t stats_nb_data_indication;
-	uint32_t stats_nb_received_channel_msg;
-	uint32_t stats_nb_sent_channel_msg;
+	MSTurnContextStatistics stats;
 } MSTurnContext;
 
 

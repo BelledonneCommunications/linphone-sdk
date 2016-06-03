@@ -1319,6 +1319,8 @@ MSTurnContextState ms_turn_context_get_state(const MSTurnContext *context) {
 
 void ms_turn_context_set_state(MSTurnContext *context, MSTurnContextState state) {
 	context->state = state;
+	if (state == MS_TURN_CONTEXT_STATE_ALLOCATION_CREATED) context->stats.nb_successful_allocate++;
+	else if (state == MS_TURN_CONTEXT_STATE_CHANNEL_BOUND) context->stats.nb_successful_channel_bind++;
 }
 
 const char * ms_turn_context_get_realm(const MSTurnContext *context) {
@@ -1400,6 +1402,7 @@ void ms_turn_context_allow_peer_address(MSTurnContext *context, const MSStunAddr
 		MSStunAddress *new_peer = ms_malloc(sizeof(MSStunAddress));
 		memcpy(new_peer, peer_address, sizeof(MSStunAddress));
 		context->allowed_peer_addresses = ms_list_append(context->allowed_peer_addresses, new_peer);
+		context->stats.nb_successful_create_permission++;
 	}
 }
 
@@ -1416,7 +1419,7 @@ static int ms_turn_rtp_endpoint_recvfrom(RtpTransport *rtptp, mblk_t *msg, int f
 				uint16_t datasize = ntohs(*(((uint16_t *)msg->b_rptr) + 1));
 				if ((channel == ms_turn_context_get_channel_number(context)) && (msgsize >= (datasize + 4))) {
 					msg->b_rptr += 4; /* Unpack the TURN ChannelData message */
-					context->stats_nb_received_channel_msg++;
+					context->stats.nb_received_channel_msg++;
 				}
 			} else {
 				/* This is not a RTP packet and not a TURN ChannelData message, try to see if it is a STUN one */
@@ -1454,7 +1457,7 @@ static int ms_turn_rtp_endpoint_recvfrom(RtpTransport *rtptp, mblk_t *msg, int f
 									}
 									/* Overwrite the source address of the packet so that it uses the peer address instead of the TURN server one */
 									ms_stun_address_to_sockaddr(stun_addr, from, fromlen);
-									if (msgsize > 0) context->stats_nb_data_indication++;
+									if (msgsize > 0) context->stats.nb_data_indication++;
 								}
 							}
 						}
@@ -1505,7 +1508,7 @@ static int ms_turn_rtp_endpoint_sendto(RtpTransport *rtptp, mblk_t *msg, int fla
 				mblk_meta_copy(msg, new_msg);
 				concatb(new_msg, msg);
 				msg = new_msg;
-				context->stats_nb_sent_channel_msg++;
+				context->stats.nb_sent_channel_msg++;
 			} else {
 				/* Use a TURN send indication to encapsulate the data to be sent */
 				MSStunAddress stun_addr;
@@ -1524,7 +1527,7 @@ static int ms_turn_rtp_endpoint_sendto(RtpTransport *rtptp, mblk_t *msg, int fla
 				len = ms_stun_message_encode(stun_msg, &buf);
 				msgappend(msg, buf, len, FALSE);
 				ms_free(buf);
-				context->stats_nb_send_indication++;
+				context->stats.nb_send_indication++;
 			}
 			to = (const struct sockaddr *)context->turn_server_addr;
 			tolen = context->turn_server_addrlen;

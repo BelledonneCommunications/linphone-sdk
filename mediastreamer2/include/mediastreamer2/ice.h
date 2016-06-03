@@ -127,6 +127,7 @@ typedef struct _IceSession {
 	uint8_t keepalive_timeout;	/**< Configuration parameter to define the timeout between each keepalive packets (default is 15s) */
 	bool_t forced_relay;	/**< Force use of relay by modifying the local and reflexive candidates */
 	bool_t turn_enabled;	/**< TURN protocol enabled */
+	bool_t short_turn_refresh;	/**< Short TURN refresh for tests */
 } IceSession;
 
 typedef struct _IceStunServerRequestTransaction {
@@ -519,6 +520,14 @@ MS2_PUBLIC int ice_session_gathering_duration(IceSession *session);
  * @param enable A boolean value telling whether to force relay or not.
  */
 MS2_PUBLIC void ice_session_enable_forced_relay(IceSession *session, bool_t enable);
+
+/**
+ * Enable short TURN refresh for tests.
+ * This changes the delay to send allocation refresh, create permission, and channel bind requests.
+ * @param session A pointer to a session
+ * @param enable A boolean value telling whether to use short turn refresh.
+ */
+MS2_PUBLIC void ice_session_enable_short_turn_refresh(IceSession *session, bool_t enable);
 
 /**
  * Enable TURN protol.
