@@ -574,8 +574,9 @@ void ms_sockaddr_to_stun_address(const struct sockaddr *addr, MSStunAddress *stu
 }
 
 MSStunAddress ms_ip_address_to_stun_address(int ai_family, int socktype, const char *hostname, int port) {
-	MSStunAddress stun_addr = { 0 };
+	MSStunAddress stun_addr;
 	struct addrinfo *res = bctbx_ip_address_to_addrinfo(ai_family, socktype, hostname, port);
+	memset(&stun_addr, 0, sizeof(stun_addr));
 	ms_sockaddr_to_stun_address(res->ai_addr, &stun_addr);
 	bctbx_freeaddrinfo(res);
 	return stun_addr;
@@ -721,7 +722,7 @@ MSStunMessage * ms_stun_message_create_from_buffer_parsing(const uint8_t *buf, s
 		size_t padding;
 		uint16_t type;
 		uint16_t length;
-	
+
 		decode_attribute_header(&decoder, &type, &length);
 		if (length > decoder.remaining) {
 			ms_error("STUN attribute larger than message (attribute type: 0x%4x)", type);
