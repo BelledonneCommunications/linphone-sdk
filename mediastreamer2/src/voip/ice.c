@@ -1226,17 +1226,17 @@ static void ice_stun_server_request_free(IceStunServerRequest *request) {
 	ms_free(request);
 }
 
-static int ice_send_message_to_socket(const RtpTransport * rtpt, char* buf, size_t len, const struct sockaddr *from, socklen_t fromlen, const struct sockaddr *to, socklen_t tolen) {
+static int ice_send_message_to_socket(RtpTransport * rtptp, char* buf, size_t len, const struct sockaddr *from, socklen_t fromlen, const struct sockaddr *to, socklen_t tolen) {
 	mblk_t *m = rtp_session_create_packet_raw((const uint8_t *)buf, len);
 	int err;
 	memcpy(&m->net_addr, from, fromlen);
 	m->net_addrlen = fromlen;
-	err = meta_rtp_transport_modifier_inject_packet_to_send_to(rtpt, NULL, m, 0, to, tolen);
+	err = meta_rtp_transport_modifier_inject_packet_to_send_to(rtptp, NULL, m, 0, to, tolen);
 	freemsg(m);
 	return err;
 }
 
-static int ice_send_message_to_stun_addr(const RtpTransport * rtpt, char* buff, size_t len, MSStunAddress *source, MSStunAddress *dest) {
+static int ice_send_message_to_stun_addr(RtpTransport * rtpt, char* buff, size_t len, MSStunAddress *source, MSStunAddress *dest) {
 	struct sockaddr_storage source_addr;
 	struct sockaddr_storage dest_addr;
 	socklen_t source_addrlen = sizeof(source_addr);
