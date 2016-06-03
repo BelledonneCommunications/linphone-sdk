@@ -62,7 +62,7 @@ int main(int argc, char *argv[]){
 	}
 	stack=belle_sip_stack_new(NULL);
 	printf("Trying to resolve domain '%s', with transport hint '%s'\n",domain,transport);
-	belle_sip_stack_resolve(stack,transport,domain,5060,AF_INET6,resolver_callback,NULL);
+	belle_sip_stack_resolve(stack,"sip", transport,domain,5060,AF_INET6,resolver_callback,NULL);
 	belle_sip_stack_main(stack);
 	belle_sip_object_unref(stack);
 	return 0;
