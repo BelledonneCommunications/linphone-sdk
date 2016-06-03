@@ -2535,7 +2535,7 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, const Ort
 
 	if (cl->session == NULL) return;
 
-	msg = ms_stun_message_create_from_buffer_parsing(mp->b_rptr, (int)(mp->b_wptr - mp->b_rptr));
+	msg = ms_stun_message_create_from_buffer_parsing(mp->b_rptr, (ssize_t)(mp->b_wptr - mp->b_rptr));
 	if (msg == NULL) {
 		ms_warning("ice: Received invalid STUN packet");
 		return;

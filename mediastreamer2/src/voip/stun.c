@@ -60,8 +60,8 @@ typedef struct {
 	char *buffer;
 	char *ptr;
 	char *lenptr;
-	size_t cursize;
-	size_t remaining;
+	ssize_t cursize;
+	ssize_t remaining;
 } StunMessageEncoder;
 
 
@@ -310,13 +310,13 @@ static void encode_data(StunMessageEncoder *encoder, uint8_t *data, uint16_t dat
 typedef struct {
 	const uint8_t *buffer;
 	const uint8_t *ptr;
-	size_t size;
-	size_t remaining;
+	ssize_t size;
+	ssize_t remaining;
 	bool_t error;
 } StunMessageDecoder;
 
 
-static void stun_message_decoder_init(StunMessageDecoder *decoder, const uint8_t *buf, size_t bufsize) {
+static void stun_message_decoder_init(StunMessageDecoder *decoder, const uint8_t *buf, ssize_t bufsize) {
 	decoder->buffer = decoder->ptr = buf;
 	decoder->size = decoder->remaining = bufsize;
 	decoder->error = FALSE;
@@ -699,7 +699,7 @@ MSStunMessage * ms_stun_message_create(uint16_t type, uint16_t method) {
 	return msg;
 }
 
-MSStunMessage * ms_stun_message_create_from_buffer_parsing(const uint8_t *buf, size_t bufsize) {
+MSStunMessage * ms_stun_message_create_from_buffer_parsing(const uint8_t *buf, ssize_t bufsize) {
 	StunMessageDecoder decoder;
 	MSStunMessage *msg = NULL;
 

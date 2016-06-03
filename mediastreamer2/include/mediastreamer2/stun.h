@@ -228,7 +228,7 @@ MS2_PUBLIC char * ms_stun_calculate_integrity_long_term_from_ha1(const char *buf
 MS2_PUBLIC uint32_t ms_stun_calculate_fingerprint(const char *buf, size_t bufsize);
 
 MS2_PUBLIC MSStunMessage * ms_stun_message_create(uint16_t type, uint16_t method);
-MS2_PUBLIC MSStunMessage * ms_stun_message_create_from_buffer_parsing(const uint8_t *buf, size_t bufsize);
+MS2_PUBLIC MSStunMessage * ms_stun_message_create_from_buffer_parsing(const uint8_t *buf, ssize_t bufsize);
 MS2_PUBLIC MSStunMessage * ms_stun_binding_request_create(void);
 MS2_PUBLIC MSStunMessage * ms_stun_binding_success_response_create(void);
 MS2_PUBLIC MSStunMessage * ms_stun_binding_error_response_create(void);
