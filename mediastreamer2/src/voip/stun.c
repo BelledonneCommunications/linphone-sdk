@@ -523,6 +523,14 @@ static uint8_t * decode_data(StunMessageDecoder *decoder, uint16_t length) {
 }
 
 
+static void ms_stun_address_set_port(MSStunAddress *addr, uint16_t port) {
+	if (addr->family == MS_STUN_ADDR_FAMILY_IPV4) {
+		addr->ip.v4.port = port;
+	} else if (addr->family == MS_STUN_ADDR_FAMILY_IPV6) {
+		addr->ip.v6.port = port;
+	}
+}
+
 bool_t ms_compare_stun_addresses(const MSStunAddress *a1, const MSStunAddress *a2) {
 	if (a1->family != a2->family) return TRUE;
 	if (a1->family == MS_STUN_ADDR_FAMILY_IPV4) {
@@ -1295,6 +1303,8 @@ void ms_turn_context_destroy(MSTurnContext *context) {
 	}
 	if (context->ha1 != NULL) ms_free(context->ha1);
 	if (context->endpoint != NULL) context->endpoint->data = NULL;
+	ms_list_for_each(context->allowed_peer_addresses, (MSIterateFunc)ms_free);
+	ms_list_free(context->allowed_peer_addresses);
 	ms_free(context);
 }
 
@@ -1375,6 +1385,24 @@ void ms_turn_context_set_force_rtp_sending_via_relay(MSTurnContext *context, boo
 	context->force_rtp_sending_via_relay = force;
 }
 
+bool_t ms_turn_context_peer_address_allowed(const MSTurnContext *context, const MSStunAddress *peer_address) {
+	MSList *elem = context->allowed_peer_addresses;
+	while (elem != NULL) {
+		MSStunAddress *allowed_peer = (MSStunAddress *)elem->data;
+		if (ms_compare_stun_addresses(allowed_peer, peer_address) == FALSE) return TRUE;
+		elem = elem->next;
+	}
+	return FALSE;
+}
+
+void ms_turn_context_allow_peer_address(MSTurnContext *context, const MSStunAddress *peer_address) {
+	if (!ms_turn_context_peer_address_allowed(context, peer_address)) {
+		MSStunAddress *new_peer = ms_malloc(sizeof(MSStunAddress));
+		memcpy(new_peer, peer_address, sizeof(MSStunAddress));
+		context->allowed_peer_addresses = ms_list_append(context->allowed_peer_addresses, new_peer);
+	}
+}
+
 static int ms_turn_rtp_endpoint_recvfrom(RtpTransport *rtptp, mblk_t *msg, int flags, struct sockaddr *from, socklen_t *fromlen) {
 	MSTurnContext *context = (MSTurnContext *)rtptp->data;
 	int msgsize = 0;
@@ -1402,29 +1430,32 @@ static int ms_turn_rtp_endpoint_recvfrom(RtpTransport *rtptp, mblk_t *msg, int f
 							/* This is TURN data indication */
 							const MSStunAddress *stun_addr = ms_stun_message_get_xor_peer_address(stun_msg);
 							if (stun_addr != NULL) {
-								struct sockaddr_storage relay_ss;
-								struct sockaddr *relay_sa = (struct sockaddr *)&relay_ss;
-								socklen_t relay_sa_len = sizeof(relay_ss);
-								// TODO: check if permissions have been set for the source address
-								/* Copy the data of the TURN data indication in the mblk_t so that it contains the unpacked data */
-								msgsize = ms_stun_message_get_data_length(stun_msg);
-								memcpy(msg->b_rptr, ms_stun_message_get_data(stun_msg), msgsize);
-								/* Overwrite the ortp_recv_addr of the mblk_t so that ICE source address is correct */
-								ms_stun_address_to_sockaddr(&context->relay_addr, relay_sa, &relay_sa_len);
-								msg->recv_addr.family = relay_sa->sa_family;
-								if (relay_sa->sa_family == AF_INET) {
-									msg->recv_addr.addr.ipi_addr = ((struct sockaddr_in *)relay_sa)->sin_addr;
-									msg->recv_addr.port = ((struct sockaddr_in *)relay_sa)->sin_port;
-								} else if (relay_sa->sa_family == AF_INET6) {
-									memcpy(&msg->recv_addr.addr.ipi6_addr, &((struct sockaddr_in6 *)relay_sa)->sin6_addr, sizeof(struct in6_addr));
-									msg->recv_addr.port = ((struct sockaddr_in6 *)relay_sa)->sin6_port;
-								} else {
-									ms_warning("turn: Unknown address family in relay_addr");
-									msgsize = 0;
+								MSStunAddress permission_addr = *stun_addr;
+								ms_stun_address_set_port(&permission_addr, 0);
+								if (ms_turn_context_peer_address_allowed(context, &permission_addr) == TRUE) {
+									struct sockaddr_storage relay_ss;
+									struct sockaddr *relay_sa = (struct sockaddr *)&relay_ss;
+									socklen_t relay_sa_len = sizeof(relay_ss);
+									/* Copy the data of the TURN data indication in the mblk_t so that it contains the unpacked data */
+									msgsize = ms_stun_message_get_data_length(stun_msg);
+									memcpy(msg->b_rptr, ms_stun_message_get_data(stun_msg), msgsize);
+									/* Overwrite the ortp_recv_addr of the mblk_t so that ICE source address is correct */
+									ms_stun_address_to_sockaddr(&context->relay_addr, relay_sa, &relay_sa_len);
+									msg->recv_addr.family = relay_sa->sa_family;
+									if (relay_sa->sa_family == AF_INET) {
+										msg->recv_addr.addr.ipi_addr = ((struct sockaddr_in *)relay_sa)->sin_addr;
+										msg->recv_addr.port = ((struct sockaddr_in *)relay_sa)->sin_port;
+									} else if (relay_sa->sa_family == AF_INET6) {
+										memcpy(&msg->recv_addr.addr.ipi6_addr, &((struct sockaddr_in6 *)relay_sa)->sin6_addr, sizeof(struct in6_addr));
+										msg->recv_addr.port = ((struct sockaddr_in6 *)relay_sa)->sin6_port;
+									} else {
+										ms_warning("turn: Unknown address family in relay_addr");
+										msgsize = 0;
+									}
+									/* Overwrite the source address of the packet so that it uses the peer address instead of the TURN server one */
+									ms_stun_address_to_sockaddr(stun_addr, from, fromlen);
+									if (msgsize > 0) context->stats_nb_data_indication++;
 								}
-								/* Overwrite the source address of the packet so that it uses the peer address instead of the TURN server one */
-								ms_stun_address_to_sockaddr(stun_addr, from, fromlen);
-								if (msgsize > 0) context->stats_nb_data_indication++;
 							}
 						}
 						ms_stun_message_destroy(stun_msg);

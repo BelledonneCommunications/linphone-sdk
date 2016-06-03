@@ -2190,6 +2190,11 @@ static int ice_find_non_responded_gathering_stun_server_request(const IceStunSer
 	return (request->gathering == FALSE) || (request->responded == TRUE);
 }
 
+static void ice_allow_turn_peer_address(IceCheckList *cl, int componentID, MSStunAddress *peer_address) {
+	MSTurnContext *turn_context = ice_get_turn_context_from_check_list_componentID(cl, componentID);
+	ms_turn_context_allow_peer_address(turn_context, peer_address);
+}
+
 static void ice_schedule_turn_allocation_refresh(IceCheckList *cl, int componentID, uint32_t lifetime) {
 	char source_addr_str[64];
 	int source_port = 0;
@@ -2329,6 +2334,7 @@ static void ice_handle_received_create_permission_success_response(IceCheckList 
 	if (request != NULL) {
 		MSStunAddress peer_address = request->peer_address;
 		ice_check_list_remove_stun_server_request(cl, &tr_id);
+		ice_allow_turn_peer_address(cl, componentID, &peer_address);
 		ice_schedule_turn_permission_refresh(cl, componentID, peer_address);
 	}
 }

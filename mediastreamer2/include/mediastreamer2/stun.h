@@ -187,6 +187,7 @@ typedef enum {
 typedef struct {
 	RtpSession *rtp_session;
 	RtpTransport *endpoint;
+	MSList *allowed_peer_addresses;
 	char *realm;
 	char *nonce;
 	char *username;
@@ -328,6 +329,8 @@ MS2_PUBLIC uint16_t ms_turn_context_get_channel_number(const MSTurnContext *cont
 MS2_PUBLIC void ms_turn_context_set_channel_number(MSTurnContext *context, uint16_t channel_number);
 MS2_PUBLIC void ms_turn_context_set_allocated_relay_addr(MSTurnContext *context, MSStunAddress relay_addr);
 MS2_PUBLIC void ms_turn_context_set_force_rtp_sending_via_relay(MSTurnContext *context, bool_t force);
+MS2_PUBLIC bool_t ms_turn_context_peer_address_allowed(const MSTurnContext *context, const MSStunAddress *peer_address);
+MS2_PUBLIC void ms_turn_context_allow_peer_address(MSTurnContext *context, const MSStunAddress *peer_address);
 MS2_PUBLIC RtpTransport * ms_turn_context_create_endpoint(MSTurnContext *context);
 
 #ifdef __cplusplus
