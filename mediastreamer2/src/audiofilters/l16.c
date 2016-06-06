@@ -162,7 +162,7 @@ MSFilterDesc ms_l16_enc_desc={
 	"MSL16Enc",
 	"L16 dummy encoder",
 	MS_FILTER_ENCODER,
-	"l16",
+	"L16",
 	1,
 	1,
 	enc_init,
@@ -180,7 +180,7 @@ MSFilterDesc ms_l16_enc_desc={
 	.name		= "MSL16Enc",
 	.text		= "L16 dummy encoder",
 	.category	= MS_FILTER_ENCODER,
-	.enc_fmt	= "l16",
+	.enc_fmt	= "L16",
 	.ninputs	= 1,
 	.noutputs	= 1,
 	.init		= enc_init,
@@ -192,11 +192,21 @@ MSFilterDesc ms_l16_enc_desc={
 #endif
 
 
+typedef struct _DecState {
+	int rate;
+	int nchannels;
+}DecState;
+
 
 static void dec_init(MSFilter *f){
+	DecState *s = ms_new0(DecState,1);
+	s->rate = 8000;
+	s->nchannels = 1;
+	f->data = s;
 };
 
 static void dec_uninit(MSFilter *f){
+	ms_free(f->data);
 };
 
 static void dec_process(MSFilter *f)
@@ -209,21 +219,39 @@ static void dec_process(MSFilter *f)
 	}
 };
 
-static int dec_get_sr(MSFilter *f, void *arg){
+static int dec_set_sr(MSFilter *f, void *arg){
+	DecState *s = (DecState*)f->data;
 	int *sample_rate = (int *)arg;
-	*sample_rate = 8000;
+	s->rate = *sample_rate;
+	return 0;
+}
+
+static int dec_get_sr(MSFilter *f, void *arg){
+	DecState *s = (DecState*)f->data;
+	int *sample_rate = (int *)arg;
+	*sample_rate = s->rate;
 	return 0;
 }
 
 static int dec_get_nchannels(MSFilter *f, void *arg){
+	DecState *s = (DecState*)f->data;
 	int *nchannels = (int *)arg;
-	*nchannels = 1;
+	*nchannels = s->nchannels;
+	return 0;
+}
+
+static int dec_set_nchannels(MSFilter *f, void *arg){
+	DecState *s = (DecState*)f->data;
+	int *nchannels = (int *)arg;
+	s->nchannels = *nchannels;
 	return 0;
 }
 
 static MSFilterMethod dec_methods[]={
+	{	MS_FILTER_SET_SAMPLE_RATE	,	dec_set_sr	},
 	{	MS_FILTER_GET_SAMPLE_RATE	,	dec_get_sr	},
 	{	MS_FILTER_GET_NCHANNELS		,	dec_get_nchannels},
+	{	MS_FILTER_SET_NCHANNELS		,	dec_set_nchannels},
 	{	0				,	NULL		}
 };
 
@@ -234,7 +262,7 @@ MSFilterDesc ms_l16_dec_desc={
 	"MSL16Dec",
 	"L16 dummy decoder",
 	MS_FILTER_DECODER,
-	"l16",
+	"L16",
 	1,
 	1,
 	dec_init,
@@ -252,7 +280,7 @@ MSFilterDesc ms_l16_dec_desc={
 	.name		= "MSL16Dec",
 	.text		= "L16 dummy decoder",
 	.category	= MS_FILTER_DECODER,
-	.enc_fmt	= "l16",
+	.enc_fmt	= "L16",
 	.ninputs	= 1,
 	.noutputs	= 1,
 	.init		= dec_init,
