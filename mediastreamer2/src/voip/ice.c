@@ -558,7 +558,11 @@ bool_t ice_check_list_selected_valid_local_candidate(const IceCheckList *cl, Ice
 		*rtp_candidate = valid_pair->valid->local;
 	}
 	if (rtcp_candidate != NULL) {
-		componentID = 2;
+		if (rtp_session_rtcp_mux_enabled(cl->rtp_session)) {
+			componentID = 1;
+		} else {
+			componentID = 2;
+		}
 		elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_selected_valid_pair_from_componentID, &componentID);
 		if (elem == NULL) return FALSE;
 		valid_pair = (IceValidCandidatePair *)elem->data;
@@ -2891,14 +2895,9 @@ int ice_session_nb_losing_pairs(const IceSession *session)
 	return nb_losing_pairs;
 }
 
-void ice_check_list_unselect_valid_pair(IceValidCandidatePair *valid_pair)
-{
-	valid_pair->selected = FALSE;
-}
-
 void ice_check_list_unselect_valid_pairs(IceCheckList *cl)
 {
-	ms_list_for_each(cl->valid_list, (void (*)(void *))ice_check_list_unselect_valid_pair);
+	ms_list_for_each(cl->valid_list, (void (*)(void *))ice_unselect_valid_pair);
 }
 
 
