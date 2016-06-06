@@ -51,7 +51,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define read _read
 #define write _write
 #define close _close
-#define lseek _lseek
+#define lseek64 _lseeki64
+#define fstat64 _fstat64
 
 #endif /*!_WIN32*/
 
@@ -80,7 +81,7 @@ struct bctbx_vfs_file_t {
 	 * them useful*/
 	void* pUserData; 				/*Developpers can store private data under this pointer */
 	int fd;                         /* File descriptor */
-	off_t offset;					/*File offset used by lseek*/
+	off64_t offset;					/*File offset used by lseek64*/
 };
 
 
@@ -88,11 +89,11 @@ struct bctbx_vfs_file_t {
  */
 struct bctbx_io_methods_t {
 	int (*pFuncClose)(bctbx_vfs_file_t *pFile);
-	int (*pFuncRead)(bctbx_vfs_file_t *pFile, void* buf, int count, uint64_t offset);
-	int (*pFuncWrite)(bctbx_vfs_file_t *pFile ,const void* buf, int count, uint64_t offset );
-	int (*pFuncFileSize)(bctbx_vfs_file_t *pFile);
-	int (*pFuncGetLineFromFd)(bctbx_vfs_file_t *pFile , char* s, int count);
-	int (*pFuncSeek)(bctbx_vfs_file_t *pFile, uint64_t offset, int whence);
+	ssize_t (*pFuncRead)(bctbx_vfs_file_t *pFile, void* buf, size_t count, off64_t offset);
+	ssize_t (*pFuncWrite)(bctbx_vfs_file_t *pFile, const void* buf, size_t count, off64_t offset);
+	int64_t (*pFuncFileSize)(bctbx_vfs_file_t *pFile);
+	int (*pFuncGetLineFromFd)(bctbx_vfs_file_t *pFile, char* s, int count);
+	off64_t (*pFuncSeek)(bctbx_vfs_file_t *pFile, off64_t offset, int whence);
 };
 
 
@@ -102,9 +103,7 @@ struct bctbx_io_methods_t {
 typedef struct bctbx_vfs_t bctbx_vfs_t;
 struct bctbx_vfs_t {
 	const char *vfsName;       /* Virtual file system name */
-	int (*pFuncOpen)(bctbx_vfs_t* pVfs, bctbx_vfs_file_t *pFile, const char *fName,  const int openFlags);
-
-	
+	int (*pFuncOpen)(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName, const int openFlags);
 };
 
 
@@ -124,7 +123,7 @@ BCTBX_PUBLIC bctbx_vfs_t *bc_create_vfs(void);
  * @param  offset Where to start reading in the file (in bytes).
  * @return        Number of bytes read on success, BCTBX_VFS_ERROR otherwise. 
  */
-BCTBX_PUBLIC int bctbx_file_read(bctbx_vfs_file_t* pFile, void *buf, int count, uint64_t offset);
+BCTBX_PUBLIC ssize_t bctbx_file_read(bctbx_vfs_file_t *pFile, void *buf, size_t count, off64_t offset);
 
 /**
  * Close the file from its descriptor pointed by thw bctbx_vfs_file_t handle. 
@@ -132,7 +131,7 @@ BCTBX_PUBLIC int bctbx_file_read(bctbx_vfs_file_t* pFile, void *buf, int count, 
  * @return      	return value from the pFuncClose VFS Close function on success, 
  *                  BCTBX_VFS_ERROR otherwise. 
  */
-BCTBX_PUBLIC int bctbx_file_close(bctbx_vfs_file_t* pFile);
+BCTBX_PUBLIC int bctbx_file_close(bctbx_vfs_file_t *pFile);
 
 /**
  * Allocates a bctbx_vfs_file_t file handle pointer. Opens the file fName
@@ -142,7 +141,7 @@ BCTBX_PUBLIC int bctbx_file_close(bctbx_vfs_file_t* pFile);
  * @param  mode  File access mode (char*).
  * @return  pointer to  bctbx_vfs_file_t on success, NULL otherwise.      
  */
-BCTBX_PUBLIC bctbx_vfs_file_t* bctbx_file_open(bctbx_vfs_t* pVfs, const char *fName, const char* mode);
+BCTBX_PUBLIC bctbx_vfs_file_t* bctbx_file_open(bctbx_vfs_t *pVfs, const char *fName, const char *mode);
 
 
 /**
@@ -153,7 +152,7 @@ BCTBX_PUBLIC bctbx_vfs_file_t* bctbx_file_open(bctbx_vfs_t* pVfs, const char *fN
  * @param  openFlags  	File access flags(integer).
  * @return  pointer to  bctbx_vfs_file_t on success, NULL otherwise.      
  */
-BCTBX_PUBLIC bctbx_vfs_file_t* bctbx_file_open2(bctbx_vfs_t* pVfs, const char *fName, const int openFlags);
+BCTBX_PUBLIC bctbx_vfs_file_t* bctbx_file_open2(bctbx_vfs_t *pVfs, const char *fName, const int openFlags);
 
 
 /**
@@ -161,7 +160,7 @@ BCTBX_PUBLIC bctbx_vfs_file_t* bctbx_file_open2(bctbx_vfs_t* pVfs, const char *f
  * @param  pFile  bctbx_vfs_file_t File handle pointer.
  * @return       BCTBX_VFS_ERROR if an error occured, file size otherwise. 
  */
-BCTBX_PUBLIC uint64_t bctbx_file_size(bctbx_vfs_file_t *pFile);
+BCTBX_PUBLIC int64_t bctbx_file_size(bctbx_vfs_file_t *pFile);
 
 /**
  * Write count bytes contained in buf to a file associated with pFile at the position
@@ -172,7 +171,7 @@ BCTBX_PUBLIC uint64_t bctbx_file_size(bctbx_vfs_file_t *pFile);
  * @param  offset 	Position in the file where to start writing. 
  * @return        	Number of bytes written on success, BCTBX_VFS_ERROR if an error occurred.
  */
-BCTBX_PUBLIC int bctbx_file_write(bctbx_vfs_file_t* pFile, const void *buf, int count, uint64_t offset);
+BCTBX_PUBLIC ssize_t bctbx_file_write(bctbx_vfs_file_t *pFile, const void *buf, size_t count, off64_t offset);
 
 /**
  * Writes to file. 
@@ -181,7 +180,7 @@ BCTBX_PUBLIC int bctbx_file_write(bctbx_vfs_file_t* pFile, const void *buf, int 
  * @param  fmt    format argument, similar to that of printf
  * @return        Number of bytes written if success, BCTBX_VFS_ERROR otherwise.
  */
-BCTBX_PUBLIC int bctbx_file_fprintf(bctbx_vfs_file_t* pFile, uint64_t offset, const char* fmt, ...);
+BCTBX_PUBLIC ssize_t bctbx_file_fprintf(bctbx_vfs_file_t *pFile, off64_t offset, const char *fmt, ...);
 
 /**
  * Wrapper to pFuncGetNxtLine. Returns a line with at most maxlen characters 
@@ -191,7 +190,7 @@ BCTBX_PUBLIC int bctbx_file_fprintf(bctbx_vfs_file_t* pFile, uint64_t offset, co
  * @param  maxlen Number of characters to read to find a line in the file. 
  * @return        BCTBX_VFS_ERROR if an error occurred, size of line read otherwise. 
  */
-BCTBX_PUBLIC int bctbx_file_get_nxtline(bctbx_vfs_file_t* pFile, char*s, int maxlen);
+BCTBX_PUBLIC int bctbx_file_get_nxtline(bctbx_vfs_file_t *pFile, char *s, int maxlen);
 
 /**
  * Wrapper to pFuncSeek VFS method call. Set the position to offset in the file.
@@ -200,7 +199,7 @@ BCTBX_PUBLIC int bctbx_file_get_nxtline(bctbx_vfs_file_t* pFile, char*s, int max
  * @param  whence Either SEEK_SET, SEEK_CUR,SEEK_END 
  * @return        BCTBX_VFS_ERROR on error, offset otherwise. 
  */
-BCTBX_PUBLIC int bctbx_file_seek(bctbx_vfs_file_t *pFile, uint64_t offset, int whence);
+BCTBX_PUBLIC off64_t bctbx_file_seek(bctbx_vfs_file_t *pFile, off64_t offset, int whence);
 
 
 /**

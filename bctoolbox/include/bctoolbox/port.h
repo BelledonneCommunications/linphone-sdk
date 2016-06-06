@@ -145,16 +145,15 @@ unsigned long __bctbx_thread_self(void);
 #endif
 #endif
 
-#ifdef _MSC_VER
-#ifdef BCTBX_STATIC
-#define BCTBX_PUBLIC
-#else
+#if defined(_WIN32) || defined(_WIN32_WCE)
 #ifdef BCTBX_EXPORTS
 #define BCTBX_PUBLIC	__declspec(dllexport)
+#define BCTBX_VAR_PUBLIC    extern __declspec(dllexport)
 #else
 #define BCTBX_PUBLIC	__declspec(dllimport)
+#define BCTBX_VAR_PUBLIC    __declspec(dllimport)
 #endif
-#endif
+
 #pragma push_macro("_WINSOCKAPI_")
 #ifndef _WINSOCKAPI_
 #define _WINSOCKAPI_
@@ -169,10 +168,13 @@ typedef  unsigned int uint32_t;
 typedef  int int32_t;
 typedef  unsigned char uint8_t;
 typedef __int16 int16_t;
+typedef long ssize_t;
+typedef __int64 off64_t;
 #else
 #include <stdint.h> /*provided by mingw32*/
 #include <io.h>
 #define BCTBX_PUBLIC
+#define BCTBX_VAR_PUBLIC extern
 BCTBX_PUBLIC char* strtok_r(char *str, const char *delim, char **nextp);
 #endif
 
@@ -258,13 +260,25 @@ const char * bctbx_strerror(DWORD value);
 
 BCTBX_PUBLIC const char *__bctbx_getWinSocketError(int error);
 
-#define getSocketError(error)  __bctbx_getWinSocketError(error)
+#ifndef getSocketErrorCode
 #define getSocketErrorCode()   WSAGetLastError()
-#define getSocketError()       getWinSocketError(WSAGetLastError())
+#endif
+#ifndef getSocketError
+#define getSocketError()       __bctbx_getWinSocketError(WSAGetLastError())
+#endif
 
+#ifndef snprintf
 #define snprintf _snprintf
+#endif
+#ifndef strcasecmp
 #define strcasecmp _stricmp
+#endif
+#ifndef strncasecmp
 #define strncasecmp _strnicmp
+#endif
+#ifndef strdup
+#define strdup _strdup
+#endif
 
 #ifndef F_OK
 #define F_OK 00 /* Visual Studio does not define F_OK */
@@ -404,16 +418,6 @@ BCTBX_PUBLIC bool_t bctbx_is_multicast_addr(const struct sockaddr *addr);
 
 #endif
 
-
-#if (defined(_WIN32) || defined(_WIN32_WCE)) && !defined(BCTBX_STATIC)
-#ifdef BCTBX_EXPORTS
-   #define BCTBX_VAR_PUBLIC    extern __declspec(dllexport)
-#else
-   #define BCTBX_VAR_PUBLIC    __declspec(dllimport)
-#endif
-#else
-   #define BCTBX_VAR_PUBLIC    extern
-#endif
 
 #ifndef IN6_IS_ADDR_MULTICAST
 #define IN6_IS_ADDR_MULTICAST(i)	(((uint8_t *) (i))[0] == 0xff)

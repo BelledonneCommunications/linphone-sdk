@@ -396,7 +396,7 @@ const char *__bctbx_getWinSocketError(int error)
 
 #ifdef _WORKAROUND_MINGW32_BUGS
 char * WSAAPI gai_strerror(int errnum){
-	 return (char*)getWinSocketError(errnum);
+	 return (char*)__bctbx_getWinSocketError(errnum);
 }
 #endif
 

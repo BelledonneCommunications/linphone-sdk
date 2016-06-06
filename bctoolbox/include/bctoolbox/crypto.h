@@ -19,23 +19,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef BCTBX_CRYPTO_H
 #define BCTBX_CRYPTO_H
 
-#include <stdint.h>
+#include <bctoolbox/port.h>
 
-#if defined(_MSC_VER)
-#define BCTBX_PUBLIC	__declspec(dllexport)
-#else
-#define BCTBX_PUBLIC
-#endif
-
-#ifdef _WIN32
-#ifndef snprintf
-#define snprintf _snprintf
-#define strcasecmp _stricmp
-#endif
-#ifndef strdup
-#define strdup _strdup
-#endif
-#endif
 
 /* DHM settings defines */
 #define BCTBX_DHM_UNSET	0
