@@ -263,11 +263,6 @@ void belle_sip_source_set_notify(belle_sip_source_t *s, belle_sip_source_func_t 
 #define belle_sip_new(type) (type*)belle_sip_malloc(sizeof(type))
 #define belle_sip_new0(type) (type*)belle_sip_malloc0(sizeof(type))
 
-#define belle_list_next(elem) ((elem)->next)
-belle_sip_list_t *belle_sip_list_new(void *data);
-belle_sip_list_t*  belle_sip_list_append_link(belle_sip_list_t* elem,belle_sip_list_t *new_elem);
-belle_sip_list_t *belle_sip_list_delete_custom(belle_sip_list_t *list, belle_sip_compare_func compare_func, const void *user_data);
-belle_sip_list_t*  _belle_sip_list_remove(belle_sip_list_t* first, void *data, int warn_if_not_found);
 
 #define belle_sip_list_next(elem) ((elem)->next)
 
