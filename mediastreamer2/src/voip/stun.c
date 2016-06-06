@@ -585,8 +585,10 @@ MSStunAddress ms_ip_address_to_stun_address(int ai_family, int socktype, const c
 	MSStunAddress stun_addr;
 	struct addrinfo *res = bctbx_ip_address_to_addrinfo(ai_family, socktype, hostname, port);
 	memset(&stun_addr, 0, sizeof(stun_addr));
-	ms_sockaddr_to_stun_address(res->ai_addr, &stun_addr);
-	bctbx_freeaddrinfo(res);
+	if (res){
+		ms_sockaddr_to_stun_address(res->ai_addr, &stun_addr);
+		bctbx_freeaddrinfo(res);
+	}
 	return stun_addr;
 }
 

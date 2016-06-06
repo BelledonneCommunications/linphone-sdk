@@ -2300,18 +2300,21 @@ static bool_t ice_handle_received_turn_allocate_success_response(IceCheckList *c
 						candidate = ice_add_local_candidate(cl, "srflx", ms_stun_family_to_af(srflx_addr.family), srflx_addr_str, srflx_port, componentID, candidate);
 						ms_stun_address_to_printable_ip_address(&srflx_addr, srflx_addr_str, sizeof(srflx_addr_str));
 						ms_message("ice: Add candidate obtained by STUN/TURN: %s:srflx", srflx_addr_str);
-						ms_stun_address_to_ip_address(&relay_addr, relay_addr_str, sizeof(relay_addr_str), &relay_port);
+						
 						if (cl->session->turn_enabled) {
 							request->turn_context->stats.nb_successful_allocate++;
 							ice_schedule_turn_allocation_refresh(cl, componentID, ms_stun_message_get_lifetime(msg));
 						}
-						if (relay_port != 0) {
-							if (cl->session->turn_enabled) {
-								ms_turn_context_set_allocated_relay_addr(request->turn_context, relay_addr);
+						if (relay_addr.family != 0){
+							ms_stun_address_to_ip_address(&relay_addr, relay_addr_str, sizeof(relay_addr_str), &relay_port);
+							if (relay_port != 0) {
+								if (cl->session->turn_enabled) {
+									ms_turn_context_set_allocated_relay_addr(request->turn_context, relay_addr);
+								}
+								ice_add_local_candidate(cl, "relay", ms_stun_family_to_af(relay_addr.family), relay_addr_str, relay_port, componentID, NULL);
+								ms_stun_address_to_printable_ip_address(&relay_addr, relay_addr_str, sizeof(relay_addr_str));
+								ms_message("ice: Add candidate obtained by STUN/TURN: %s:relay", relay_addr_str);
 							}
-							ice_add_local_candidate(cl, "relay", ms_stun_family_to_af(relay_addr.family), relay_addr_str, relay_port, componentID, NULL);
-							ms_stun_address_to_printable_ip_address(&relay_addr, relay_addr_str, sizeof(relay_addr_str));
-							ms_message("ice: Add candidate obtained by STUN/TURN: %s:relay", relay_addr_str);
 						}
 					}
 				}
