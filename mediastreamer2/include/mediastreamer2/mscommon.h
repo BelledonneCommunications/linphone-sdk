@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef mscommon_h
 #define mscommon_h
 
+#include <bctoolbox/port.h>
 #include <ortp/logging.h>
 #include <ortp/port.h>
 #include <ortp/str_utils.h>
