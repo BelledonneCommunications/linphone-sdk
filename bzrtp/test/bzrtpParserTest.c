@@ -26,18 +26,18 @@
 #include <errno.h>
 #include "CUnit/Basic.h"
 
-#ifndef _WIN32
-#include <time.h>
-#else
-#include <windows.h>
-#endif
-
 #include "bzrtp/bzrtp.h"
 #include "typedef.h"
 #include "packetParser.h"
 #include "cryptoUtils.h"
 #include "zidCache.h"
 #include "testUtils.h"
+
+#ifndef _WIN32
+#include <time.h>
+#else
+#include <windows.h>
+#endif
 
 
 /**
