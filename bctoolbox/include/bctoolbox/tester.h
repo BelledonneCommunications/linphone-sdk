@@ -21,33 +21,11 @@
 
 #include <bctoolbox/port.h>
 
-#if defined(_MSC_VER)
-#define BCTBX_PUBLIC	__declspec(dllexport)
-#else
-#define BCTBX_PUBLIC
-#endif
-
-#ifndef TRUE
-	#define TRUE 1
-#endif
-#ifndef FALSE
-	#define FALSE 0
-#endif
-
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
 #include <math.h>
 
-#ifdef _WIN32
-#ifndef snprintf
-#define snprintf _snprintf
-#define strcasecmp _stricmp
-#endif
-#ifndef strdup
-#define strdup _strdup
-#endif
-#endif
 
 typedef void (*test_function_t)(void);
 /** Function used in all suites - it is invoked before all and each tests and also after each and all tests
