@@ -139,12 +139,17 @@ unsigned long __bctbx_thread_self(void);
 #endif
 
 #if defined(_WIN32) || defined(_WIN32_WCE)
+#ifdef BCTBX_STATIC
+#define BCTBX_PUBLIC
+#define BCTBX_VAR_PUBLIC
+#else
 #ifdef BCTBX_EXPORTS
 #define BCTBX_PUBLIC	__declspec(dllexport)
 #define BCTBX_VAR_PUBLIC    extern __declspec(dllexport)
 #else
 #define BCTBX_PUBLIC	__declspec(dllimport)
 #define BCTBX_VAR_PUBLIC    __declspec(dllimport)
+#endif
 #endif
 
 #pragma push_macro("_WINSOCKAPI_")
