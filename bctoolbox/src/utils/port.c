@@ -1032,7 +1032,25 @@ void bctbx_freeaddrinfo(struct addrinfo *res){
 #else
 
 int bctbx_getaddrinfo(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo **res){
-	return getaddrinfo(node, service, hints, res);
+	struct addrinfo *tmp_res;
+	int result = getaddrinfo(node, service, hints, &tmp_res);
+#if __APPLE__
+	if (tmp_res && tmp_res->ai_family == AF_INET6) {
+		struct sockaddr_in6* sockaddr = (struct sockaddr_in6*)tmp_res->ai_addr;
+		if (sockaddr->sin6_port == 0 && service) {
+			int possible_port = atoi(service);
+			if (possible_port > 0 && possible_port <= 65535) {
+				bctbx_warning("Apple bug, fixing port to [%i]",possible_port);
+				sockaddr->sin6_port = htons(possible_port);
+			}
+			
+		}
+		
+	}
+#endif
+	*res=tmp_res;
+	return result;
+
 }
 
 void bctbx_freeaddrinfo(struct addrinfo *res){
@@ -1116,7 +1134,17 @@ struct addrinfo * bctbx_name_to_addrinfo(int family, int socktype, const char *n
 }
 
 struct addrinfo * bctbx_ip_address_to_addrinfo(int family, int socktype, const char *name, int port){
-	return _bctbx_name_to_addrinfo(family, socktype, name, port, TRUE);
+	struct addrinfo * res = _bctbx_name_to_addrinfo(family, socktype, name, port, TRUE);
+#if __APPLE__
+	/*required for nat64 on apple platform*/
+	if (res) {
+		/*fine, we are sure that name was an ip address, give a chance to get its nat64 form*/
+		bctbx_freeaddrinfo(res);
+		res = bctbx_name_to_addrinfo(family, SOCK_STREAM, name, port);
+	}
+#endif
+	return res;
+
 }
 char * bctbx_concat (const char *str, ...) {
 	va_list ap;
