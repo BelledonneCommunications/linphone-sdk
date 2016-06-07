@@ -51,8 +51,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define read _read
 #define write _write
 #define close _close
-#define lseek64 _lseeki64
-#define fstat64 _fstat64
+#define lseek _lseek
+#define fstat _fstat
 
 #endif /*!_WIN32*/
 
@@ -81,7 +81,7 @@ struct bctbx_vfs_file_t {
 	 * them useful*/
 	void* pUserData; 				/*Developpers can store private data under this pointer */
 	int fd;                         /* File descriptor */
-	off64_t offset;					/*File offset used by lseek64*/
+	off_t offset;					/*File offset used by lseek*/
 };
 
 
@@ -89,11 +89,11 @@ struct bctbx_vfs_file_t {
  */
 struct bctbx_io_methods_t {
 	int (*pFuncClose)(bctbx_vfs_file_t *pFile);
-	ssize_t (*pFuncRead)(bctbx_vfs_file_t *pFile, void* buf, size_t count, off64_t offset);
-	ssize_t (*pFuncWrite)(bctbx_vfs_file_t *pFile, const void* buf, size_t count, off64_t offset);
+	ssize_t (*pFuncRead)(bctbx_vfs_file_t *pFile, void* buf, size_t count, off_t offset);
+	ssize_t (*pFuncWrite)(bctbx_vfs_file_t *pFile, const void* buf, size_t count, off_t offset);
 	int64_t (*pFuncFileSize)(bctbx_vfs_file_t *pFile);
 	int (*pFuncGetLineFromFd)(bctbx_vfs_file_t *pFile, char* s, int count);
-	off64_t (*pFuncSeek)(bctbx_vfs_file_t *pFile, off64_t offset, int whence);
+	off_t (*pFuncSeek)(bctbx_vfs_file_t *pFile, off_t offset, int whence);
 };
 
 
@@ -123,7 +123,7 @@ BCTBX_PUBLIC bctbx_vfs_t *bc_create_vfs(void);
  * @param  offset Where to start reading in the file (in bytes).
  * @return        Number of bytes read on success, BCTBX_VFS_ERROR otherwise. 
  */
-BCTBX_PUBLIC ssize_t bctbx_file_read(bctbx_vfs_file_t *pFile, void *buf, size_t count, off64_t offset);
+BCTBX_PUBLIC ssize_t bctbx_file_read(bctbx_vfs_file_t *pFile, void *buf, size_t count, off_t offset);
 
 /**
  * Close the file from its descriptor pointed by thw bctbx_vfs_file_t handle. 
@@ -171,7 +171,7 @@ BCTBX_PUBLIC int64_t bctbx_file_size(bctbx_vfs_file_t *pFile);
  * @param  offset 	Position in the file where to start writing. 
  * @return        	Number of bytes written on success, BCTBX_VFS_ERROR if an error occurred.
  */
-BCTBX_PUBLIC ssize_t bctbx_file_write(bctbx_vfs_file_t *pFile, const void *buf, size_t count, off64_t offset);
+BCTBX_PUBLIC ssize_t bctbx_file_write(bctbx_vfs_file_t *pFile, const void *buf, size_t count, off_t offset);
 
 /**
  * Writes to file. 
@@ -180,7 +180,7 @@ BCTBX_PUBLIC ssize_t bctbx_file_write(bctbx_vfs_file_t *pFile, const void *buf, 
  * @param  fmt    format argument, similar to that of printf
  * @return        Number of bytes written if success, BCTBX_VFS_ERROR otherwise.
  */
-BCTBX_PUBLIC ssize_t bctbx_file_fprintf(bctbx_vfs_file_t *pFile, off64_t offset, const char *fmt, ...);
+BCTBX_PUBLIC ssize_t bctbx_file_fprintf(bctbx_vfs_file_t *pFile, off_t offset, const char *fmt, ...);
 
 /**
  * Wrapper to pFuncGetNxtLine. Returns a line with at most maxlen characters 
@@ -199,7 +199,7 @@ BCTBX_PUBLIC int bctbx_file_get_nxtline(bctbx_vfs_file_t *pFile, char *s, int ma
  * @param  whence Either SEEK_SET, SEEK_CUR,SEEK_END 
  * @return        BCTBX_VFS_ERROR on error, offset otherwise. 
  */
-BCTBX_PUBLIC off64_t bctbx_file_seek(bctbx_vfs_file_t *pFile, off64_t offset, int whence);
+BCTBX_PUBLIC off_t bctbx_file_seek(bctbx_vfs_file_t *pFile, off_t offset, int whence);
 
 
 /**

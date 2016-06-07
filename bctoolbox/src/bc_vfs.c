@@ -73,10 +73,10 @@ static int bcClose(bctbx_vfs_file_t *pFile) {
  * @param  whence Either SEEK_SET, SEEK_CUR,SEEK_END .
  * @return   offset bytes from the beginning of the file, BCTBX_VFS_ERROR otherwise
  */
-static off64_t bcSeek(bctbx_vfs_file_t *pFile, off64_t offset, int whence) {
-	off64_t ofst;
+static off_t bcSeek(bctbx_vfs_file_t *pFile, off_t offset, int whence) {
+	off_t ofst;
 	if (pFile) {
-		ofst = lseek64(pFile->fd, offset, whence);
+		ofst = lseek(pFile->fd, offset, whence);
 		if (ofst < 0) return -errno;
 		return ofst;
 	}
@@ -94,7 +94,7 @@ static off64_t bcSeek(bctbx_vfs_file_t *pFile, off64_t offset, int whence) {
  * @return -errno if erroneous read, number of bytes read (count) on success, 
  *                if the error was something else BCTBX_VFS_ERROR otherwise
  */
-static ssize_t bcRead(bctbx_vfs_file_t *pFile, void *buf, size_t count, off64_t offset) {
+static ssize_t bcRead(bctbx_vfs_file_t *pFile, void *buf, size_t count, off_t offset) {
 	ssize_t nRead;                      /* Return value from read() */
 	if (pFile) {
 		if (bctbx_file_seek(pFile, offset, SEEK_SET) == BCTBX_VFS_OK) {
@@ -119,7 +119,7 @@ static ssize_t bcRead(bctbx_vfs_file_t *pFile, void *buf, size_t count, off64_t 
  * @param  offset  File offset where to write to
  * @return         number of bytes written (can be 0), negative value errno if an error occurred.
  */
-static ssize_t bcWrite(bctbx_vfs_file_t *p, const void *buf, size_t count, off64_t offset) {
+static ssize_t bcWrite(bctbx_vfs_file_t *p, const void *buf, size_t count, off_t offset) {
 	size_t nWrite = 0;                 /* Return value from write() */
 
 	if (p) {
@@ -142,12 +142,8 @@ static ssize_t bcWrite(bctbx_vfs_file_t *p, const void *buf, size_t count, off64
  */
 static int64_t bcFileSize(bctbx_vfs_file_t *pFile) {
 	int rc;                         /* Return code from fstat() call */
-#ifdef _WIN32
-	struct _stat64 sStat;              /* Output of fstat() call */
-#else
-	struct stat64 sStat;              /* Output of fstat() call */
-#endif
-	rc = fstat64(pFile->fd, &sStat);
+	struct stat sStat;              /* Output of fstat() call */
+	rc = fstat(pFile->fd, &sStat);
 	if (rc != 0) {
 		return -errno;
 	}
@@ -167,7 +163,8 @@ static int64_t bcFileSize(bctbx_vfs_file_t *pFile) {
  * @return         size of line read, 0 if empty
  */
 static int bcGetLine(bctbx_vfs_file_t *pFile, char *s, int max_len) {
-	int ret, sizeofline, isEof;
+	int64_t ret;
+	int sizeofline, isEof;
 	char *pNextLine = NULL;
 
 	if (pFile->fd == -1) {
@@ -249,7 +246,7 @@ static int bcOpen(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName,
 	return BCTBX_VFS_OK;
 }
 
-ssize_t bctbx_file_write(bctbx_vfs_file_t* pFile, const void *buf, size_t count, off64_t offset) {
+ssize_t bctbx_file_write(bctbx_vfs_file_t* pFile, const void *buf, size_t count, off_t offset) {
 	ssize_t ret;
 
 	if (pFile != NULL) {
@@ -306,7 +303,7 @@ bctbx_vfs_file_t* bctbx_file_open2(bctbx_vfs_t *pVfs, const char *fName, const i
 	return NULL;
 }
 
-ssize_t bctbx_file_read(bctbx_vfs_file_t *pFile, void *buf, size_t count, off64_t offset) {
+ssize_t bctbx_file_read(bctbx_vfs_file_t *pFile, void *buf, size_t count, off_t offset) {
 	int ret = BCTBX_VFS_ERROR;
 	if (pFile) {
 		ret = pFile->pMethods->pFuncRead(pFile, buf, count, offset);
@@ -345,7 +342,7 @@ int64_t bctbx_file_size(bctbx_vfs_file_t *pFile) {
  }
 
 
-ssize_t bctbx_file_fprintf(bctbx_vfs_file_t *pFile, off64_t offset, const char *fmt, ...) {
+ssize_t bctbx_file_fprintf(bctbx_vfs_file_t *pFile, off_t offset, const char *fmt, ...) {
 	char *ret = NULL;
 	va_list args;
 	ssize_t r = BCTBX_VFS_ERROR;
@@ -365,8 +362,8 @@ ssize_t bctbx_file_fprintf(bctbx_vfs_file_t *pFile, off64_t offset, const char *
 	return r;
 }
 
-off64_t bctbx_file_seek(bctbx_vfs_file_t *pFile, off64_t offset, int whence) {
-	off64_t ret = BCTBX_VFS_ERROR;
+off_t bctbx_file_seek(bctbx_vfs_file_t *pFile, off_t offset, int whence) {
+	off_t ret = BCTBX_VFS_ERROR;
 
 	if (pFile) {
 		ret = pFile->pMethods->pFuncSeek(pFile, offset, whence);

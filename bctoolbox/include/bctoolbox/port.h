@@ -169,7 +169,6 @@ typedef  int int32_t;
 typedef  unsigned char uint8_t;
 typedef __int16 int16_t;
 typedef long ssize_t;
-typedef __int64 off64_t;
 #else
 #include <stdint.h> /*provided by mingw32*/
 #include <io.h>
