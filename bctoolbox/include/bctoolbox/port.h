@@ -52,13 +52,6 @@
 #include <sys/time.h>
 #include <netdb.h>
 
-#ifndef MIN
-#define MIN(a,b) (((a)>(b)) ? (b) : (a))
-#endif
-#ifndef MAX
-#define MAX(a,b) (((a)>(b)) ? (a) : (b))
-#endif
-
 
 typedef int bctbx_socket_t;
 typedef pthread_t bctbx_thread_t;
@@ -305,6 +298,13 @@ typedef unsigned char bool_t;
 #undef FALSE
 #define TRUE 1
 #define FALSE 0
+
+#ifndef MIN
+#define MIN(a,b) (((a)>(b)) ? (b) : (a))
+#endif
+#ifndef MAX
+#define MAX(a,b) (((a)>(b)) ? (a) : (b))
+#endif
 
 typedef struct bctoolboxTimeSpec{
 	int64_t tv_sec;
