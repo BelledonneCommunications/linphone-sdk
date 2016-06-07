@@ -1032,15 +1032,14 @@ void bctbx_freeaddrinfo(struct addrinfo *res){
 #else
 
 int bctbx_getaddrinfo(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo **res){
-	struct addrinfo *tmp_res;
-	int result = getaddrinfo(node, service, hints, &tmp_res);
+	int result = getaddrinfo(node, service, hints, res);
 #if __APPLE__
-	if (tmp_res && tmp_res->ai_family == AF_INET6) {
-		struct sockaddr_in6* sockaddr = (struct sockaddr_in6*)tmp_res->ai_addr;
+	if (*res && (*res)->ai_family == AF_INET6) {
+		struct sockaddr_in6* sockaddr = (struct sockaddr_in6*)(*res)->ai_addr;
 		if (sockaddr->sin6_port == 0 && service) {
 			int possible_port = atoi(service);
 			if (possible_port > 0 && possible_port <= 65535) {
-				bctbx_warning("Apple bug, fixing port to [%i]",possible_port);
+				bctbx_message("Apple nat64 getaddrinfo bug, fixing port to [%i]",possible_port);
 				sockaddr->sin6_port = htons(possible_port);
 			}
 			
@@ -1048,7 +1047,6 @@ int bctbx_getaddrinfo(const char *node, const char *service, const struct addrin
 		
 	}
 #endif
-	*res=tmp_res;
 	return result;
 
 }
