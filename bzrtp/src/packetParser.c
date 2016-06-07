@@ -196,9 +196,6 @@ bzrtpPacket_t *bzrtp_packetCheck(const uint8_t * input, uint16_t inputLength, ui
 }
 
 
-#define MIN(a, b) (((a) < (b)) ? (a) : (b))
-
-
 /* Call this function after the packetCheck one, to actually parse the packet : create and fill the messageData structure */
 int bzrtp_packetParser(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, const uint8_t * input, uint16_t inputLength, bzrtpPacket_t *zrtpPacket) {
 
