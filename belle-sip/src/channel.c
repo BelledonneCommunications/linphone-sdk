@@ -791,7 +791,7 @@ int belle_sip_channel_matches(const belle_sip_channel_t *obj, const belle_sip_ho
 		return 1;
 	}
 	if (addr && obj->current_peer)
-		return addr->ai_addrlen==obj->current_peer->ai_addrlen && memcmp(addr->ai_addr,obj->current_peer->ai_addr,addr->ai_addrlen)==0;
+		return bctbx_sockaddr_equals(addr->ai_addr,obj->current_peer->ai_addr);
 	return 0;
 }
 
@@ -1474,18 +1474,8 @@ belle_sip_channel_t *belle_sip_channel_find_from_list_with_addrinfo(belle_sip_li
 
 /* search a matching channel from a list according to supplied hop. The ai_family tells which address family is supported by the list of channels*/
 belle_sip_channel_t *belle_sip_channel_find_from_list(belle_sip_list_t *l, int ai_family, const belle_sip_hop_t *hop){
-	struct addrinfo *res=NULL;
-	struct addrinfo hints={0};
-	char portstr[20];
-	belle_sip_channel_t *chan;
-
-	hints.ai_family=ai_family;
-	hints.ai_flags=AI_NUMERICHOST|AI_NUMERICSERV;
-	hints.ai_socktype=SOCK_STREAM; // needed on some platforms that return an error otherwise (QNX)
-	if (ai_family==AF_INET6) hints.ai_flags|=AI_V4MAPPED|AI_ALL;
-	snprintf(portstr,sizeof(portstr),"%i",hop->port);
-	bctbx_getaddrinfo(hop->host,portstr,&hints,&res);
-
+	belle_sip_channel_t *chan=NULL;
+	struct addrinfo *res = bctbx_ip_address_to_addrinfo(ai_family,SOCK_STREAM/*needed on some platforms that return an error otherwise (QNX)*/,hop->host,hop->port);
 	chan=belle_sip_channel_find_from_list_with_addrinfo(l,hop,res);
 	if (res) bctbx_freeaddrinfo(res);
 	return chan;
