@@ -1191,3 +1191,28 @@ char * bctbx_concat (const char *str, ...) {
 	
 	return result;
 }
+/*
+ return true if both, family, port and addr are equals
+ */
+bool_t  bctbx_sockaddr_equals(const struct sockaddr * sa, const struct sockaddr * sb) {
+	
+	if (sa->sa_family != sb->sa_family)
+		return FALSE;
+	
+	if (sa->sa_family == AF_INET) {
+		if ((((struct sockaddr_in*)sa)->sin_addr.s_addr != ((struct sockaddr_in*)sb)->sin_addr.s_addr
+			 || ((struct sockaddr_in*)sa)->sin_port != ((struct sockaddr_in*)sb)->sin_port))
+			return FALSE;
+	} else if (sa->sa_family == AF_INET6) {
+		if (memcmp(&((struct sockaddr_in6*)sa)->sin6_addr
+				   , &((struct sockaddr_in6*)sb)->sin6_addr
+				   , sizeof(struct in6_addr)) !=0
+			|| ((struct sockaddr_in6*)sa)->sin6_port != ((struct sockaddr_in6*)sb)->sin6_port)
+			return FALSE;
+	} else {
+		bctbx_warning ("Cannot compare family type [%d]", sa->sa_family);
+		return FALSE;
+	}
+	return TRUE;
+	
+}

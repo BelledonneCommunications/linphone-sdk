@@ -382,6 +382,8 @@ BCTBX_PUBLIC struct addrinfo * bctbx_ip_address_to_addrinfo(int family, int sock
 **/
 BCTBX_PUBLIC struct addrinfo * bctbx_name_to_addrinfo(int family, int socktype, const char *name, int port);
 
+/*return TRUE if both families, ports and addresses are equals*/
+BCTBX_PUBLIC bool_t bctbx_sockaddr_equals(const struct sockaddr * sa, const struct sockaddr * sb) ;
 
 /* portable named pipes  and shared memory*/
 #if !defined(_WIN32_WCE)
