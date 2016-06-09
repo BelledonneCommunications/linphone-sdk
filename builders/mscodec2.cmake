@@ -22,7 +22,6 @@
 
 set(EP_mscodec2_GIT_REPOSITORY "git://git.linphone.org/mscodec2.git" CACHE STRING "mscodec2 repository URL")
 set(EP_mscodec2_GIT_TAG_LATEST "master" CACHE STRING "mscodec2 tag to use when compiling latest version")
-set(EP_mscodec2_GIT_TAG "1.0.2" CACHE STRING "mscodec2 tag to use")
 set(EP_mscodec2_EXTERNAL_SOURCE_PATHS "mscodec2")
 set(EP_mscodec2_GROUPABLE YES)
 
