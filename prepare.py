@@ -114,6 +114,11 @@ class Target:
     def clean(self):
         if os.path.isdir(self.abs_work_dir):
             shutil.rmtree(self.abs_work_dir, ignore_errors=False, onerror=self.handle_remove_read_only)
+        # special hack for vpx: we have switched from inside sources build to outside, so we must clean the folder properly
+        vpx_dir = self.external_source_path + "/externals/libvpx/"
+        if os.path.isfile(vpx_dir + "/Makefile"):
+            info("Cleaning vpx source directory since we are now building it from outside directory...")
+            Popen("make distclean".split(" "), cwd=vpx_dir).wait()
 
     def veryclean(self):
         self.clean()
@@ -394,7 +399,7 @@ class Preparator:
         if ret != 0:
             if ret == 51:
                 if os.path.isfile('Makefile'):
-                    Popen("make help-prepare-options".split(" "))
+                    Popen("make help-prepare-options".split(" ")).wait()
                 ret = 0
             return ret
         # Only generated makefile if we are using Ninja or Makefile
