@@ -24,9 +24,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <stdarg.h>
 #include <errno.h>
 
-#if _WIN32
-#include <io.h>
-#endif
 
 
 /**
@@ -213,7 +210,7 @@ static int bcGetLine(bctbx_vfs_file_t *pFile, char *s, int max_len) {
  * @return flags (integer).	 
  */
 static int set_flags(const char* mode) {
-	int flags;                 /* flags to pass to open() call */
+	int flags = 0 ;                 /* flags to pass to open() call */
 	if (strcmp(mode, "r") == 0) {
   		flags =  O_RDONLY;
 	} else if ((strcmp(mode, "r+") == 0) || (strcmp(mode, "w+") == 0)) {
@@ -241,7 +238,7 @@ static int bcOpen(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName,
 		return BCTBX_VFS_ERROR;
 	}
 #if _WIN32
-	openFlags | = O_BINARY;
+	openFlags |= O_BINARY;
 #endif
 	
 	pFile->fd = open(fName, openFlags, S_IRUSR | S_IWUSR);
