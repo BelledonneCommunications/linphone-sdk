@@ -81,6 +81,9 @@ struct bctbx_vfs_file_t {
 	 * them useful*/
 	void* pUserData; 				/*Developpers can store private data under this pointer */
 	int fd;                         /* File descriptor */
+#if _WIN32
+	HANDLE h;
+#endif
 	off_t offset;					/*File offset used by lseek*/
 };
 

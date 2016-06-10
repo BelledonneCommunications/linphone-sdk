@@ -24,6 +24,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <stdarg.h>
 #include <errno.h>
 
+#if _WIN32
+#include <io.h>
+#endif
+
 
 /**
  * Opens the file with filename fName, associate it to the file handle pointed
@@ -236,11 +240,17 @@ static int bcOpen(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName,
 	if (pFile == NULL || fName == NULL) {
 		return BCTBX_VFS_ERROR;
 	}
-
+#if _WIN32
+	openFlags | = O_BINARY;
+#endif
+	
 	pFile->fd = open(fName, openFlags, S_IRUSR | S_IWUSR);
 	if (pFile->fd == -1) {
 		return -errno;
 	}
+#if _WIN32
+	pFile->h = _get_osfhandle(pFile->fd);
+#endif
 
 	pFile->pMethods = &bcio;
 	return BCTBX_VFS_OK;
