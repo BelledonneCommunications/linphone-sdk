@@ -172,6 +172,12 @@ typedef enum _MSRecorderState MSRecorderState;
 #define MS_RECORDER_NEEDS_FIR \
 	MS_FILTER_EVENT_NO_ARG(MSFilterRecorderInterface,0)
 
+#define MS_RECORDER_SET_MAX_SIZE \
+	MS_FILTER_METHOD(MSFilterRecorderInterface,6,int)
+
+#define MS_RECORDER_MAX_SIZE_REACHED \
+	MS_FILTER_EVENT_NO_ARG(MSFilterRecorderInterface,1)
+
 
 /** Interface definitions for echo cancellers */
 

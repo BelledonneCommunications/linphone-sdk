@@ -26,12 +26,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
 static int rec_close(MSFilter *f, void *arg);
+static void write_wav_header(int fd, int rate, int nchannels, int size);
 
 typedef struct RecState{
 	int fd;
 	int rate;
 	int nchannels;
 	int size;
+	int max_size;
 	char *mime;
 	bool_t swap;
 	MSRecorderState state;
@@ -43,6 +45,7 @@ static void rec_init(MSFilter *f){
 	s->rate=8000;
 	s->nchannels = 1;
 	s->size=0;
+	s->max_size=0;
 	s->state=MSRecorderClosed;
 	s->mime = "pcm";
 	s->swap = FALSE;
@@ -69,6 +72,11 @@ static void rec_process(MSFilter *f){
 		if (s->state==MSRecorderRunning){
 			while(it!=NULL){
 				int len=(int)(it->b_wptr-it->b_rptr);
+				int max_size_reached = 0;
+				if (s->max_size!=0 && s->size+len > s->max_size) {
+					len = s->max_size - s->size;
+					max_size_reached = 1;
+				}
 				if (s->swap) swap_bytes(it->b_wptr,len);
 				if ((err=write(s->fd,it->b_rptr,len))!=len){
 					if (err<0)
@@ -76,6 +84,16 @@ static void rec_process(MSFilter *f){
 				}
 				it=it->b_cont;
 				s->size+=len;
+				if (max_size_reached) {
+					ms_warning("MSFileRec: Maximum size (%d) has been reached. closing file.",s->max_size);
+					s->state=MSRecorderClosed;
+					if (s->fd!=-1){
+						write_wav_header(s->fd, s->rate, s->nchannels, s->size);
+						close(s->fd);
+						s->fd=-1;
+					}
+					ms_filter_notify_no_arg(f,MS_RECORDER_MAX_SIZE_REACHED);
+				}
 			}
 		}
 		ms_mutex_unlock(&f->lock);
@@ -247,6 +265,12 @@ static int rec_set_fmtp(MSFilter *f, void *arg){
 	return 0;
 }
 
+static int rec_set_max_size(MSFilter *f, void *arg) {
+	RecState *d=(RecState*)f->data;
+	d->max_size = *((int *) arg);
+	return 0;
+}
+
 static MSFilterMethod rec_methods[]={
 	{	MS_FILTER_SET_SAMPLE_RATE,	rec_set_sr	},
 	{	MS_FILTER_SET_NCHANNELS	,	rec_set_nchannels	},
@@ -263,6 +287,7 @@ static MSFilterMethod rec_methods[]={
 	{	MS_RECORDER_GET_STATE	,	rec_get_state	},
 	{ 	MS_FILTER_GET_OUTPUT_FMT, 	rec_get_fmtp },
 	{ 	MS_FILTER_SET_OUTPUT_FMT, 	rec_set_fmtp },
+	{	MS_RECORDER_SET_MAX_SIZE,	rec_set_max_size },
 	{	0			,	NULL		}
 };
 
