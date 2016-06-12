@@ -21,7 +21,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "msopenh264enc.h"
 #include "mediastreamer2/msticker.h"
 #include "wels/codec_app_def.h"
-
+#include "wels/codec_ver.h"
 
 //static const int RC_MARGIN = 10000; // bits per sec
 #if MSOPENH264_DEBUG
@@ -112,7 +112,7 @@ void MSOpenH264Encoder::initialize()
 			params.bEnableFrameSkip = true;
 			params.bPrefixNalAddingCtrl = false;
 			params.uiMaxNalSize = ms_factory_get_payload_max_size(mFilter->factory);
-			params.iMultipleThreadIdc =ms_factory_get_cpu_count(mFilter->factory);
+			params.iMultipleThreadIdc = ms_factory_get_cpu_count(mFilter->factory);
 			params.bEnableDenoise = false;
 			params.bEnableBackgroundDetection = true;
 			params.bEnableAdaptiveQuant = false;
@@ -126,6 +126,7 @@ void MSOpenH264Encoder::initialize()
 			params.sSpatialLayers[0].fFrameRate = mVConf.fps;
 			params.sSpatialLayers[0].iSpatialBitrate = targetBitrate;
 			params.sSpatialLayers[0].iMaxSpatialBitrate = maxBitrate;
+
 #if (OPENH264_MAJOR == 1) && (OPENH264_MINOR >=6)
 			params.sSpatialLayers[0].sSliceArgument.uiSliceMode = SM_SIZELIMITED_SLICE;
 			params.sSpatialLayers[0].sSliceArgument.uiSliceSizeConstraint = ms_factory_get_payload_max_size(mFilter->factory);
@@ -133,7 +134,7 @@ void MSOpenH264Encoder::initialize()
 			params.sSpatialLayers[0].sSliceCfg.uiSliceMode = SM_DYN_SLICE;
 			params.sSpatialLayers[0].sSliceCfg.sSliceArgument.uiSliceSizeConstraint = ms_factory_get_payload_max_size(mFilter->factory);
 #endif
-
+			//params.sSpatialLayers[0].sSliceCfg.uiSliceMode = SM_AUTO_SLICE;
 			ret = mEncoder->InitializeExt(&params);
 			if (ret != 0) {
 				ms_error("OpenH264 encoder: Failed to initialize: %d", ret);
@@ -165,7 +166,7 @@ void MSOpenH264Encoder::feed()
 	long long int ts = mFilter->ticker->time * 90LL;
 
 
-	while ((im = ms_queue_get(mFilter->inputs[0])) != NULL) {
+	if ((im = ms_queue_peek_last(mFilter->inputs[0])) != NULL) {
 		MSPicture pic;
 		if (ms_yuv_buf_init_from_mblk(&pic, im) == 0) {
 			bool generateKeyFrame = false;
@@ -179,7 +180,7 @@ void MSOpenH264Encoder::feed()
 				srcPic.iStride[i] = pic.strides[i];
 				srcPic.pData[i] = pic.planes[i];
 			}
-			srcPic.uiTimeStamp = ts;
+			srcPic.uiTimeStamp = mFilter->ticker->time;
 			if (!mAVPFEnabled && ms_video_starter_need_i_frame(&mVideoStarter, mFilter->ticker->time)) {
 				generateKeyFrame = true;
 			}
@@ -203,14 +204,14 @@ void MSOpenH264Encoder::feed()
 						ms_video_starter_first_frame(&mVideoStarter, mFilter->ticker->time);
 					}
 					fillNalusQueue(sFbi, &nalus);
-					rfc3984_pack(mPacker, &nalus, mFilter->outputs[0], sFbi.uiTimeStamp);
+					rfc3984_pack(mPacker, &nalus, mFilter->outputs[0], ts);
 				}
 			} else {
 				ms_error("OpenH264 encoder: Frame encoding failed: %d", ret);
 			}
 		}
-		freemsg(im);
 	}
+	ms_queue_flush(mFilter->inputs[0]);
 }
 
 void MSOpenH264Encoder::uninitialize()
@@ -368,4 +369,10 @@ void MSOpenH264Encoder::applyBitrate()
 	if (ret != 0) {
 		ms_error("OpenH264 encoder: Failed setting maximum bitrate: %d", ret);
 	}
+	float frameRate = mVConf.fps;
+	ret = mEncoder->SetOption(ENCODER_OPTION_FRAME_RATE, &frameRate);
+	if (ret != 0) {
+		ms_error("OpenH264 encoder: failed setting frame rate %d", ret);
+	}
+	ms_message("OpenH264 encoder applyBitrate done");
 }
