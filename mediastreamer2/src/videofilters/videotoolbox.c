@@ -582,8 +582,8 @@ static bool_t h264_dec_init_decoder(VTH264DecCtx *ctx) {
 static void h264_dec_uninit_decoder(VTH264DecCtx *ctx) {
 	ms_message("VideoToolboxDecoder: uninitializing decoder");
 	VTDecompressionSessionInvalidate(ctx->session);
-	CFRelease(ctx->session);
-	CFRelease(ctx->format_desc);
+	if(ctx->session) CFRelease(ctx->session);
+	if(ctx->format_desc) CFRelease(ctx->format_desc);
 	ctx->session = NULL;
 	ctx->format_desc = NULL;
 }
