@@ -20,6 +20,8 @@
 #
 ############################################################################
 
+string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
+
 if(ENABLE_STATIC)
 	set(MS2_LIBS_FOR_TOOLS mediastreamer_voip-static mediastreamer_base-static)
 else()
@@ -35,12 +37,18 @@ foreach(simple_executable ${simple_executables})
 	apply_compile_flags(${simple_executable}_SOURCE_FILES "CPP" "C")
 	add_executable(${simple_executable} ${simple_executable}.c)
 	target_link_libraries(${simple_executable} ${MS2_LIBS_FOR_TOOLS})
+	if(LINK_FLAGS_STR)
+		set_target_properties(${simple_executable} PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
+	endif()
 endforeach()
 
 set(ECHO_SOURCE_FILES echo.c)
 apply_compile_flags(ECHO_SOURCE_FILES "CPP" "C")
 add_executable(ms-echo ${ECHO_SOURCE_FILES}) # Do not name the target "echo" to avoid conflict with the shell echo command
 target_link_libraries(ms-echo ${MS2_LIBS_FOR_TOOLS})
+if(LINK_FLAGS_STR)
+	set_target_properties(ms-echo PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
+endif()
 
 if(PCAP_FOUND)
 	set(PCAP_PLAYBACK_SOURCE_FILES pcap_playback.c common.c)
@@ -48,6 +56,9 @@ if(PCAP_FOUND)
 	add_executable(pcap_playback ${PCAP_PLAYBACK_SOURCE_FILES})
 	target_link_libraries(pcap_playback ${MS2_LIBS_FOR_TOOLS} ${PCAP_LIBRARIES})
 	target_include_directories(pcap_playback PUBLIC ${PCAP_INCLUDE_DIRS})
+	if(LINK_FLAGS_STR)
+		set_target_properties(pcap_playback PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
+	endif()
 endif()
 
 set(MEDIASTREAM_SOURCE_FILES_C mediastream.c common.c)
@@ -59,7 +70,6 @@ apply_compile_flags(MEDIASTREAM_SOURCE_FILES_C "CPP" "C")
 apply_compile_flags(MEDIASTREAM_SOURCE_FILES_OBJC "CPP" "OBJC")
 add_executable(mediastream ${MEDIASTREAM_SOURCE_FILES_C} ${MEDIASTREAM_SOURCE_FILES_OBJC})
 target_link_libraries(mediastream ${MS2_LIBS_FOR_TOOLS})
-string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
 if(LINK_FLAGS_STR)
 	set_target_properties(mediastream PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 endif()
@@ -69,6 +79,9 @@ if(ENABLE_VIDEO)
 	apply_compile_flags(MKVSTREAM_SOURCE_FILES "CPP" "C")
 	add_executable(mkvstream ${MKVSTREAM_SOURCE_FILES})
 	target_link_libraries(mkvstream ${MS2_LIBS_FOR_TOOLS})
+	if(LINK_FLAGS_STR)
+		set_target_properties(mkvstream PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
+	endif()
 
 	install(TARGETS mediastream mkvstream
 		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
