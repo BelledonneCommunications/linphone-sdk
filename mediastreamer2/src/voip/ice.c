@@ -598,7 +598,7 @@ bool_t ice_check_list_selected_valid_remote_candidate(const IceCheckList *cl, co
 	if (rtp_addr != NULL) *rtp_addr = candidate->taddr.ip;
 	if (rtp_port != NULL) *rtp_port = candidate->taddr.port;
 
-	
+
 	if (!rtp_session_rtcp_mux_enabled(cl->rtp_session)) {
 		componentID = 2;
 		rtcp_elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_selected_valid_pair_from_componentID, &componentID);
@@ -1122,7 +1122,7 @@ static IceTransaction * ice_find_transaction(const IceCheckList *cl, const IceCa
  * STUN PACKETS HANDLING                                                      *
  *****************************************************************************/
 
-static int ice_send_message_to_socket(const RtpTransport * rtpt,char* buf,size_t len, const struct sockaddr *to, socklen_t tolen) {
+static int ice_send_message_to_socket(RtpTransport * rtpt,char* buf,size_t len, const struct sockaddr *to, socklen_t tolen) {
 	mblk_t *m = rtp_session_create_packet_raw((const uint8_t *)buf, len);
 	int err = meta_rtp_transport_modifier_inject_packet_to_send_to(rtpt
 														, NULL
@@ -1134,7 +1134,7 @@ static int ice_send_message_to_socket(const RtpTransport * rtpt,char* buf,size_t
 	return err;
 }
 
-static int ice_send_message_to_stun_addr(const RtpTransport * rtpt,char* buff,size_t len, StunAddress4 *dest) {
+static int ice_send_message_to_stun_addr(RtpTransport * rtpt,char* buff,size_t len, StunAddress4 *dest) {
 	struct sockaddr_in dest_addr;
 	memset(&dest_addr, 0, sizeof(dest_addr));
 	dest_addr.sin_addr.s_addr = htonl(dest->addr);
@@ -2999,7 +2999,7 @@ static void ice_notify_session_processing_finished(IceCheckList *cl, RtpSession 
 		cl->session->event_time = ice_add_ms(ice_current_time(), 1000);
 		cl->session->event_value = ORTP_EVENT_ICE_SESSION_PROCESSING_FINISHED;
 		cl->session->send_event = TRUE;
-		
+
 	}
 }
 
@@ -3425,9 +3425,9 @@ void ice_check_list_remove_rtcp_candidates(IceCheckList *cl)
 {
 	MSList *elem;
 	uint16_t rtcp_componentID = ICE_RTCP_COMPONENT_ID;
-	
+
 	ice_remove_componentID(&cl->local_componentIDs, rtcp_componentID);
-	
+
 	while ((elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_candidate_with_componentID, &rtcp_componentID)) != NULL) {
 		IceCandidate *candidate = (IceCandidate *)elem->data;
 		cl->local_candidates = ms_list_remove(cl->local_candidates, candidate);
