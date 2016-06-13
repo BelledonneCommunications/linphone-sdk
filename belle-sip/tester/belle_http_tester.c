@@ -358,5 +358,5 @@ test_t http_tests[] = {
 	{ "http GET with long user body", http_get_long_user_body}
 };
 
-test_suite_t http_test_suite = {"http", http_before_all, http_after_all, NULL,
+test_suite_t http_test_suite = {"HTTP stack", http_before_all, http_after_all, NULL,
 								NULL, sizeof(http_tests) / sizeof(http_tests[0]), http_tests};
