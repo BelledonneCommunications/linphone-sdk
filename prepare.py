@@ -214,7 +214,7 @@ class Preparator:
                 new_targets += [target_name]
         self.args.target = list(set(new_targets))
 
-    def check_is_installed(self, binary, prog='it', warn=True):
+    def check_is_installed(self, binary, prog=None, warn=True):
         if not find_executable(binary):
             if warn:
                 self.missing_dependencies[binary] = prog
