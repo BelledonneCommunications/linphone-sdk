@@ -249,7 +249,7 @@ struct belle_sip_main_loop{
 	belle_sip_object_pool_t *pool;
 	int nsources;
 	int run;
-	int in_iterate;
+	int in_loop;
 };
 
 void belle_sip_main_loop_remove_source(belle_sip_main_loop_t *ml, belle_sip_source_t *source){
@@ -360,7 +360,7 @@ void belle_sip_main_loop_cancel_source(belle_sip_main_loop_t *ml, unsigned long 
 	belle_sip_source_cancel(s);
 }
 
-void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
+static void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	size_t pfd_size = ml->nsources * sizeof(belle_sip_pollfd_t);
 	belle_sip_pollfd_t *pfd=(belle_sip_pollfd_t*)belle_sip_malloc0(pfd_size);
 	int i=0;
@@ -373,12 +373,6 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	belle_sip_list_t *to_be_notified=NULL;
 	int can_clean=belle_sip_object_pool_cleanable(ml->pool); /*iterate might not be called by the thread that created the main loop*/ 
 	belle_sip_object_pool_t *tmp_pool=NULL;
-	
-	if (ml->in_iterate){
-		belle_sip_warning("belle_sip_main_loop_iterate([%p]): reentrancy detected, doing nothing.",ml);
-		return;
-	}
-	ml->in_iterate=TRUE;
 	
 	if (!can_clean){
 		/*Push a temporary pool for the time of the iterate loop*/
@@ -479,16 +473,19 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	else if (tmp_pool) belle_sip_object_unref(tmp_pool);
 end:
 	belle_sip_free(pfd);
-	
-	ml->in_iterate=FALSE;
 }
 
 void belle_sip_main_loop_run(belle_sip_main_loop_t *ml){
-	ml->run=1;
+	if (ml->in_loop){
+		belle_sip_warning("belle_sip_main_loop_run(): reentrancy detected, doing nothing");
+		return;
+	}
+	ml->run = TRUE;
+	ml->in_loop = TRUE;
 	while(ml->run){
 		belle_sip_main_loop_iterate(ml);
-		if (ml->in_iterate) break;
 	}
+	ml->in_loop = FALSE;
 }
 
 int belle_sip_main_loop_quit(belle_sip_main_loop_t *ml){
