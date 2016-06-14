@@ -115,10 +115,10 @@ class Target:
         if os.path.isdir(self.abs_work_dir):
             shutil.rmtree(self.abs_work_dir, ignore_errors=False, onerror=self.handle_remove_read_only)
         # special hack for vpx: we have switched from inside sources build to outside, so we must clean the folder properly
-        vpx_dir = self.external_source_path + "/externals/libvpx/"
-        if os.path.isfile(vpx_dir + "/Makefile"):
+        vpx_dir = os.path.join(self.external_source_path, "externals", "libvpx")
+        if os.path.isfile(os.path.join(vpx_dir, "Makefile")):
             info("Cleaning vpx source directory since we are now building it from outside directory...")
-            Popen("make distclean".split(" "), cwd=vpx_dir).wait()
+            Popen("git clean -xfd".split(" "), cwd=vpx_dir).wait()
 
     def veryclean(self):
         self.clean()
