@@ -118,7 +118,7 @@ shared_ptr<BelCardList> BelCardParser::parse(const string &input) {
 
 shared_ptr<BelCardList> BelCardParser::parseFile(const string &filename) {
 	ifstream istr;
-	istr.open(filename.c_str(), ifstream::binary);
+	istr.open(filename.c_str(), ifstream::in | ifstream::binary);
 	
 	if (!istr.is_open() || istr.fail()) {
 		bctbx_error("[belcard] Couldn't open file %s", filename.c_str());
@@ -128,6 +128,7 @@ shared_ptr<BelCardList> BelCardParser::parseFile(const string &filename) {
 	stringstream vcardStream;
 	vcardStream << istr.rdbuf();
 	string vcard = vcardStream.str();
+	istr.close();
 	
 	string vcards = belcard_unfold(vcard);
 	shared_ptr<BelCardGeneric> ret = _parse(vcards, "vcard-list");
