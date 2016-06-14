@@ -157,8 +157,11 @@ add_definitions("-DHAVE_CONFIG_H")
 
 set(STRICT_OPTIONS_CPP )
 set(STRICT_OPTIONS_C )
-if(NOT MSVC)
-
+if(MSVC)
+	if(ENABLE_STRICT)
+		list(APPEND STRICT_OPTIONS_CPP "/WX")
+	endif()
+else()
 	list(APPEND STRICT_OPTIONS_CPP "-Wall" "-Wuninitialized")
 	if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
 		list(APPEND STRICT_OPTIONS_CPP "-Wno-error=unknown-warning-option" "-Qunused-arguments" "-Wno-tautological-compare" "-Wno-builtin-requires-header" "-Wno-unused-function" "-Wno-gnu-designator" "-Wno-array-bounds")
