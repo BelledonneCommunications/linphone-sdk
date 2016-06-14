@@ -763,23 +763,25 @@ static int belle_sip_ssl_verify(void *data , bctbx_x509_certificate_t *cert , in
 static int belle_sip_tls_channel_load_root_ca(belle_sip_tls_channel_t *obj, const char *path){
 	struct stat statbuf;
 	if (stat(path,&statbuf)==0){
+		int error;
 		if (obj->root_ca) {
 			bctbx_x509_certificate_free(obj->root_ca);
 		}
 		obj->root_ca = bctbx_x509_certificate_new();
 
 		if (statbuf.st_mode & S_IFDIR){
-			if (bctbx_x509_certificate_parse_path(obj->root_ca,path)<0){
-				belle_sip_error("Failed to load root ca from directory %s",path);
-				return -1;
-			}
+			error = bctbx_x509_certificate_parse_path(obj->root_ca,path);
 		}else{
-			if (bctbx_x509_certificate_parse_file(obj->root_ca,path)<0){
-				belle_sip_error("Failed to load root ca from file %s",path);
-				return -1;
-			}
+			error = bctbx_x509_certificate_parse_file(obj->root_ca,path);
 		}
-		return 0;
+		if (error<0){
+			char errorstr[512];
+			bctbx_strerror(error, errorstr, sizeof(errorstr));
+			belle_sip_error("Failed to load root ca from %s: %s",path,errorstr);
+			return -1;
+		} else {
+			return 0;
+		}
 	}
 	belle_sip_error("Could not load root ca from %s: %s",path,strerror(errno));
 	return -1;
