@@ -400,7 +400,7 @@ static int check_body(belle_sip_channel_t *obj){
 }
 
 static int acquire_body_simple(belle_sip_channel_t *obj, int end_of_stream){
-	int content_length=obj->input_stream.content_length;
+	size_t content_length=obj->input_stream.content_length;
 	size_t to_read=obj->input_stream.write_ptr-obj->input_stream.read_ptr;
 	belle_sip_message_t *msg=obj->input_stream.msg;
 	belle_sip_body_handler_t *bh=belle_sip_message_get_body_handler(msg);

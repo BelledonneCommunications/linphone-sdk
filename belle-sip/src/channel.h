@@ -76,7 +76,7 @@ typedef struct belle_sip_channel_input_stream{
 	char* read_ptr;
 	char* write_ptr;
 	belle_sip_message_t *msg;
-	int content_length;
+	size_t content_length;
 	int chuncked_mode;
 	int chunk_size;
 	int chunk_read_size;
