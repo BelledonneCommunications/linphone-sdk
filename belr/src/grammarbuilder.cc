@@ -326,7 +326,7 @@ shared_ptr<Grammar> ABNFGrammarBuilder::createFromAbnf(const string &abnf, const
 	
 	shared_ptr<ABNFBuilder> builder = mParser.parseInput("rulelist",abnf,&parsed);
 	if (parsed<(size_t)abnf.size()){
-		bctbx_error("[belr] Only %i bytes parsed over a total of %i.", parsed, abnf.size());
+		bctbx_error("[belr] Only %llu bytes parsed over a total of %llu.", (unsigned long long)parsed, (unsigned long long) abnf.size());
 		return NULL;
 	}
 	shared_ptr<Grammar> retGram;
