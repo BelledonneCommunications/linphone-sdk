@@ -59,6 +59,13 @@ endif()
 # find_package should be invoked here to check for libraries - however do NOT
 # call include_directories here (see below)
 
+if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
+	set(BcToolbox_FIND_COMPONENTS tester)
+	include("${EP_bctoolbox_CONFIG_DIR}/BcToolboxConfig.cmake")
+else()
+	find_package(BcToolbox 0.0.3 REQUIRED)
+endif()
+
 if(UNIX AND NOT APPLE)
 	include(CheckIncludeFiles)
 	check_include_files(libudev.h HAVE_LIBUDEV_H)
@@ -67,6 +74,7 @@ endif()
 include_directories(
 	include/
 	src/
+	${BCTOOLBOX_INCLUDE_DIRS}
 	${CMAKE_CURRENT_BINARY_DIR}
 )
 if(MSVC)

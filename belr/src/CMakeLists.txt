@@ -42,7 +42,7 @@ else()
 	set_target_properties(belr PROPERTIES VERSION ${BELR_SO_VERSION})
 endif()
 
-target_link_libraries(belr)
+target_link_libraries(belr ${BCTOOLBOX_LIBRARIES})
 
 install(TARGETS belr EXPORT ${EXPORT_TARGETS_NAME}Targets
 	RUNTIME DESTINATION bin

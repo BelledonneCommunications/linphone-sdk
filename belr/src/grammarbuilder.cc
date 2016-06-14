@@ -3,6 +3,8 @@
 #include "belr/grammarbuilder.hh"
 #include "belr/parser-impl.cc"
 
+#include "bctoolbox/logging.h"
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -113,7 +115,7 @@ shared_ptr< Recognizer > ABNFElement::buildRecognizer(const shared_ptr< Grammar 
 		else 
 			return Utils::literal(mCharVal);
 	}
-	cerr<<"ABNFElement::buildRecognizer is empty, should not happen!"<<endl;
+	bctbx_error("[belr] ABNFElement::buildRecognizer is empty, should not happen!");
 	abort();
 	return NULL;
 }
@@ -140,7 +142,7 @@ void ABNFElement::setCharVal(const string& charval){
 
 void ABNFElement::setProseVal(const string& prose){
 	if (!prose.empty()){
-		cerr<<"prose-val is not supported."<<endl;
+		bctbx_error("[belr] prose-val is not supported.");
 		abort();
 	}
 }
@@ -189,7 +191,7 @@ shared_ptr<ABNFConcatenation> ABNFConcatenation::create(){
 
 shared_ptr<Recognizer> ABNFConcatenation::buildRecognizer(const shared_ptr<Grammar> &grammar){
 	if (mRepetitions.size()==0){
-		cerr<<"No repetitions set !"<<endl;
+		bctbx_error("[belr] No repetitions set !");
 		abort();
 	}
 	if (mRepetitions.size()==1){
@@ -239,8 +241,7 @@ shared_ptr<ABNFRule> ABNFRule::create(){
 }
 
 void ABNFRule::setName(const string& name){
-	if (!mName.empty())
-		cerr<<"Rule "<<this<<" is renamed !!!!!"<<endl;
+	if (!mName.empty()) bctbx_error("[belr] Rule %s is renamed !!!!!", name.c_str());
 	//cout<<"Rule "<<this<<" is named "<<name<<endl;
 	mName=name;
 }
@@ -325,20 +326,20 @@ shared_ptr<Grammar> ABNFGrammarBuilder::createFromAbnf(const string &abnf, const
 	
 	shared_ptr<ABNFBuilder> builder = mParser.parseInput("rulelist",abnf,&parsed);
 	if (parsed<(size_t)abnf.size()){
-		cerr<<"ERROR: only "<<parsed<<" bytes parsed over a total of "<< abnf.size() <<endl;
+		bctbx_error("[belr] Only %i bytes parsed over a total of %i.", parsed, abnf.size());
 		return NULL;
 	}
 	shared_ptr<Grammar> retGram;
 	if (gram==NULL) retGram=make_shared<Grammar>(abnf);
 	else retGram=gram;
 	builder->buildRecognizer(retGram);
-	cout<<"Succesfully created grammar with "<<retGram->getNumRules()<<" rules."<<endl;
+	bctbx_message("[belr] Succesfully created grammar with %i rules.", retGram->getNumRules());
 	if (retGram->isComplete()){
-		cout<<"Grammar is complete."<<endl;
+		bctbx_message("[belr] Grammar is complete.");
 		retGram->optimize();
-		cout<<"Grammar has been optimized."<<endl;
+		bctbx_message("[belr] Grammar has been optimized.");
 	}else{
-		cout<<"WARNING: grammar is not complete."<<endl;
+		bctbx_warning("[belr] Grammar is not complete.");
 	}
 	return gram;
 }
@@ -346,7 +347,7 @@ shared_ptr<Grammar> ABNFGrammarBuilder::createFromAbnf(const string &abnf, const
 shared_ptr<Grammar> ABNFGrammarBuilder::createFromAbnfFile(const string &path, const shared_ptr<Grammar> &gram){
 	ifstream istr(path);
 	if (!istr.is_open()){
-		cerr<<"Could not open "<<path<<endl;
+		bctbx_error("[belr] Could not open %s", path.c_str());
 		return NULL;
 	}
 	stringstream sstr;
