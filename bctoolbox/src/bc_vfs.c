@@ -199,7 +199,7 @@ static int bcGetLine(bctbx_vfs_file_t *pFile, char *s, int max_len) {
 			pFile->offset += sizeofline;
 		} else {
 			/*did not find end of line char, is EOF?*/
-			sizeofline = ret;
+			sizeofline = (int)ret;
 			pFile->offset += sizeofline;
 			s[ret] = '\0';
 		}
@@ -250,9 +250,6 @@ static int bcOpen(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName,
 	if (pFile->fd == -1) {
 		return -errno;
 	}
-#if _WIN32
-	pFile->h = _get_osfhandle(pFile->fd);
-#endif
 
 	pFile->pMethods = &bcio;
 	return BCTBX_VFS_OK;

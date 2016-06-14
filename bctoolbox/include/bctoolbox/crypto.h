@@ -669,7 +669,7 @@ BCTBX_PUBLIC int32_t bctbx_aes_gcm_decrypt_and_auth(const uint8_t *key, size_t k
 BCTBX_PUBLIC bctbx_aes_gcm_context_t *bctbx_aes_gcm_context_new(const uint8_t *key, size_t keyLength,
 		const uint8_t *authenticatedData, size_t authenticatedDataLength,
 		const uint8_t *initializationVector, size_t initializationVectorLength,
-		const uint8_t mode);
+		uint8_t mode);
 
 /**
  * @Brief AES-GCM encrypt or decrypt a chunk of data

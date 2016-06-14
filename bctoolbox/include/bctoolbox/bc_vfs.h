@@ -52,7 +52,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define write _write
 #define close _close
 #define lseek _lseek
-#define fstat _fstat
 
 #endif /*!_WIN32*/
 
@@ -81,9 +80,6 @@ struct bctbx_vfs_file_t {
 	 * them useful*/
 	void* pUserData; 				/*Developpers can store private data under this pointer */
 	int fd;                         /* File descriptor */
-#if _WIN32
-	HANDLE h;
-#endif
 	off_t offset;					/*File offset used by lseek*/
 };
 

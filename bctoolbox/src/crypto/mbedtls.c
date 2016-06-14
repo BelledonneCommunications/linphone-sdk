@@ -453,7 +453,7 @@ int32_t bctbx_x509_certificate_get_fingerprint(const bctbx_x509_certificate_t *c
 	}
 
 	if (hash_length>0) {
-		int i;
+		size_t i;
 		int fingerprint_index = strlen(hash_alg_string);
 		char prefix=' ';
 
@@ -1234,7 +1234,7 @@ int32_t bctbx_ssl_config_set_own_cert(bctbx_ssl_config_t *ssl_config, bctbx_x509
 /** DTLS SRTP functions **/
 #ifdef HAVE_DTLS_SRTP
 int32_t bctbx_ssl_config_set_dtls_srtp_protection_profiles(bctbx_ssl_config_t *ssl_config, const bctbx_dtls_srtp_profile_t *profiles, size_t profiles_number) {
-	int i;
+	size_t i;
 	enum mbedtls_DTLS_SRTP_protection_profiles dtls_srtp_mbedtls_profiles[4];
 
 	if (ssl_config == NULL) {
