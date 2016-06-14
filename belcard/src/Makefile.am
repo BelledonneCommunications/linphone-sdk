@@ -20,4 +20,4 @@ libbelcard_la_SOURCES=belcard_parser.cpp \
 
 AM_CPPFLAGS=-I$(top_srcdir)/include
 
-libbelcard_la_LIBADD=$(BELR_LIBS)
+libbelcard_la_LIBADD=$(BELR_LIBS) $(BCTOOLBOX_LIBS)

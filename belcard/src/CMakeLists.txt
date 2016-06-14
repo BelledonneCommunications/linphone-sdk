@@ -54,7 +54,7 @@ else()
 	set_target_properties(belcard PROPERTIES VERSION ${BELCARD_SO_VERSION})
 endif()
 
-target_link_libraries(belcard ${BELR_LIBRARIES})
+target_link_libraries(belcard ${BELR_LIBRARIES} ${BCTOOLBOX_LIBRARIES})
 
 install(TARGETS belcard EXPORT ${EXPORT_TARGETS_NAME}Targets
 	RUNTIME DESTINATION bin

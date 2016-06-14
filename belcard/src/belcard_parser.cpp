@@ -20,6 +20,8 @@
 #include "belcard/belcard.hpp"
 #include "belcard/belcard_utils.hpp"
 
+#include "bctoolbox/logging.h"
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -95,7 +97,7 @@ shared_ptr<BelCardGeneric> BelCardParser::_parse(const string &input, const stri
 	size_t parsedSize = 0;
 	shared_ptr<BelCardGeneric> ret = parser.parseInput(rule, input, &parsedSize);
 	if (parsedSize < input.size()){
-		cerr << "[belcard] Parsing ended prematuraly at pos " << parsedSize << endl;
+		bctbx_error("[belcard] Parsing ended prematuraly at pos %llu", (unsigned long long)parsedSize);
 	}
 	return ret;
 }
@@ -116,10 +118,10 @@ shared_ptr<BelCardList> BelCardParser::parse(const string &input) {
 
 shared_ptr<BelCardList> BelCardParser::parseFile(const string &filename) {
 	ifstream istr;
-	istr.open(filename, ifstream::binary);
+	istr.open(filename.c_str(), ifstream::binary);
 	
 	if (!istr.is_open() || istr.fail()) {
-		cerr << "[belcard] Couldn't open file " << filename << endl;
+		bctbx_error("[belcard] Couldn't open file %s", filename.c_str());
 		return NULL;
 	}
 	

@@ -30,6 +30,20 @@ dnl # Check for BcToolbox
 dnl ##################################################
 
 dnl check bctoolbox
+PKG_CHECK_MODULES(BCTOOLBOX, [bctoolbox],[libbctoolbox_found=yes],foo=bar)
+if test "$libbctoolbox_found" != "yes" ; then
+        dnl Check the lib presence in case the PKG-CONFIG version is not found
+        AC_LANG_CPLUSPLUS
+        AC_CHECK_LIB(bctoolbox, main, [BCTOOLBOX_LIBS+=" -lbctoolbox"; libbctoolbox_found=yes], [foo=bar])
+        AC_LANG_C
+fi
+if test "$libbctoolbox_found" != "yes" ; then
+        AC_MSG_ERROR([libbctoolbox not found. Install it and try again])
+fi
+
+AC_SUBST(BCTOOLBOX_LIBS)
+
+dnl check bctoolbox-tester
 PKG_CHECK_MODULES(BCTOOLBOXTESTER, [bctoolbox-tester],[libbctoolbox_tester_found=yes],foo=bar)
 if test "$libbctoolbox_tester_found" != "yes" ; then
         dnl Check the lib presence in case the PKG-CONFIG version is not found
