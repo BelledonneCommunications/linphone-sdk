@@ -167,6 +167,8 @@ static int bcGetLine(bctbx_vfs_file_t *pFile, char *s, int max_len) {
 	int64_t ret;
 	int sizeofline, isEof;
 	char *pNextLine = NULL;
+	char *pNextLineR = NULL;
+	char *pNextLineN = NULL;
 
 	if (pFile->fd == -1) {
 		return BCTBX_VFS_ERROR;
@@ -182,8 +184,11 @@ static int bcGetLine(bctbx_vfs_file_t *pFile, char *s, int max_len) {
 	/* Read returns 0 if end of file is found */
 	ret = bctbx_file_read(pFile, s, max_len - 1, pFile->offset);
 	if (ret > 0) {
-		pNextLine = strchr(s, '\r');
-		if (pNextLine == NULL) pNextLine = strchr(s, '\n');
+		pNextLineR = strchr(s, '\r');
+		pNextLineN = strchr(s, '\n');
+		if ((pNextLineR != NULL) && (pNextLineN != NULL)) pNextLine = MIN(pNextLineR, pNextLineN);
+		else if (pNextLineR != NULL) pNextLine = pNextLineR;
+		else if (pNextLineN != NULL) pNextLine = pNextLineN;
 		if (pNextLine) {
 			/* Got a line! */
 			*pNextLine = '\0';
