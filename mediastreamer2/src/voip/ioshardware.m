@@ -37,14 +37,17 @@
 }
 
 // see http://theiphonewiki.com/wiki/Models , these come from our experience
-NSString* hdCapableDevices[] = {@"iPhone5", @"iPhone6", @"iPad3", @"iPad4", @"iPod5", @"x86_64", @"i386"};
+NSString* notHDCapableFamilies[] = {
+	@"iPod1", @"iPod2", @"iPod3", @"iPod4",
+	@"iPhone1", @"iPhone2", @"iPhone3", @"iPhone4",
+	@"iPad1", @"iPad2" };
 
 + (BOOL) isHDVideoCapableDevice:(NSString*)device {
-    for (int i = 0; i<sizeof(hdCapableDevices)/sizeof(NSString*); i++) {
-        if ( [device hasPrefix:hdCapableDevices[i]] )
-            return TRUE;
-    }
-    return FALSE;
+	for (int i = 0; i<sizeof(notHDCapableFamilies)/sizeof(NSString*); i++) {
+		if ( [device hasPrefix:notHDCapableFamilies[i]] )
+			return FALSE;
+	}
+	return YES;
 }
 
 
