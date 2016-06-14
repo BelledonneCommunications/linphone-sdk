@@ -551,7 +551,7 @@ char* belle_sip_object_to_string(void* _obj) {
 	}else{
 		char buff[BELLE_SIP_MAX_TO_STRING_SIZE];
 		size_t offset=0;
-		belle_sip_error_code error = belle_sip_object_marshal(obj,buff,sizeof(buff),&offset);
+		belle_sip_error_code error = belle_sip_object_marshal(obj,buff,sizeof(buff)-1,&offset);
 		if (error==BELLE_SIP_BUFFER_OVERFLOW){
 			belle_sip_message("belle_sip_object_to_string(): temporary buffer is too short while doing to_string() for %s, retrying", obj->vptr->type_name);
 			return belle_sip_object_to_alloc_string(obj,get_hint_size(2*offset));
