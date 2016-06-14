@@ -155,6 +155,9 @@ if(BELLE_SIP_SOURCE_FILES_CXX)
 	set_source_files_properties(${BELLE_SIP_SOURCE_FILES_CXX} PROPERTIES LANGUAGE CXX)
 	apply_compile_flags(BELLE_SIP_SOURCE_FILES_CXX "CPP" "CXX")
 endif()
+if(MSVC)
+	set_source_files_properties(dns.c PROPERTIES COMPILE_FLAGS "/wd4267") # Disable "possible loss of data" warnings
+endif()
 
 string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
 if(ENABLE_STATIC)
