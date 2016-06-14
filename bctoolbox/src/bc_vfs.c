@@ -36,7 +36,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  * @param  openFlags    Flags to use when opening the file.
  * @return         		BCTBX_VFS_ERROR if an error occurs, BCTBX_VFS_OK otherwise.
  */
-static  int bcOpen(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName, const int openFlags);
+static  int bcOpen(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName, int openFlags);
 
 
 static bctbx_vfs_t bcVfs = {
@@ -238,7 +238,7 @@ static const  bctbx_io_methods_t bcio = {
 
 
 
-static int bcOpen(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName, const int openFlags) {
+static int bcOpen(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName, int openFlags) {
 	if (pFile == NULL || fName == NULL) {
 		return BCTBX_VFS_ERROR;
 	}

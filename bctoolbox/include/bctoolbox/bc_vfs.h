@@ -106,7 +106,7 @@ struct bctbx_io_methods_t {
 typedef struct bctbx_vfs_t bctbx_vfs_t;
 struct bctbx_vfs_t {
 	const char *vfsName;       /* Virtual file system name */
-	int (*pFuncOpen)(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName, const int openFlags);
+	int (*pFuncOpen)(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName, int openFlags);
 };
 
 
