@@ -20,11 +20,13 @@
 #
 ############################################################################
 
-set(BCTOOLBOX_C_SOURCE_FILES)
-set(BCTOOLBOX_CPP_SOURCE_FILES)
-
-list(APPEND BCTOOLBOX_C_SOURCE_FILES bc_vfs.c utils/port.c logging/logging.c containers/list.c)
-list(APPEND BCTOOLBOX_CPP_SOURCE_FILES containers/map.cc)
+set(BCTOOLBOX_C_SOURCE_FILES
+	bc_vfs.c
+	containers/list.c
+	logging/logging.c
+	utils/port.c
+)
+set(BCTOOLBOX_CXX_SOURCE_FILES containers/map.cc)
 
 if(MBEDTLS_FOUND)
 	list(APPEND BCTOOLBOX_C_SOURCE_FILES crypto/mbedtls.c)
@@ -37,23 +39,31 @@ if(POLARSSL_FOUND)
 	endif()
 endif()
 if(CUNIT_FOUND)
-	set(BCTOOLBOX_TESTER_SOURCE_FILES tester.c)
+	set(BCTOOLBOX_C_TESTER_SOURCE_FILES tester.c)
 endif()
 
-set(BCTOOLBOX_SOURCE_FILES ${BCTOOLBOX_C_SOURCE_FILES} ${BCTOOLBOX_CPP_SOURCE_FILES})
+set(BCTOOLBOX_SOURCE_FILES ${BCTOOLBOX_C_SOURCE_FILES} ${BCTOOLBOX_CXX_SOURCE_FILES})
+set(BCTOOLBOX_TESTER_SOURCE_FILES ${BCTOOLBOX_C_TESTER_SOURCE_FILES})
 
+if(STRICT_OPTIONS_CPP)
+	set_source_files_properties(
+		${BCTOOLBOX_C_SOURCE_FILES}
+		${BCTOOLBOX_CXX_SOURCE_FILES}
+		${BCTOOLBOX_C_TESTER_SOURCE_FILES}
+		PROPERTIES COMPILE_FLAGS "${STRICT_OPTIONS_CPP}"
+	)
+endif()
 if(STRICT_OPTIONS_C)
 	set_source_files_properties(
 		${BCTOOLBOX_C_SOURCE_FILES}
-		${BCTOOLBOX_TESTER_SOURCE_FILES}
+		${BCTOOLBOX_C_TESTER_SOURCE_FILES}
 		PROPERTIES COMPILE_FLAGS "${STRICT_OPTIONS_C}"
 	)
 endif()
-if(STRICT_OPTIONS_CPP)
+if(STRICT_OPTIONS_CXX)
 	set_source_files_properties(
-		${BCTOOLBOX_CPP_SOURCE_FILES}
-		PROPERTIES COMPILE_FLAGS "${STRICT_OPTIONS_CPP}"
-	)
+		${BCTOOLBOX_CXX_SOURCE_FILES}
+		PROPERTIES COMPILE_FLAGS "${STRICT_OPTIONS_CXX}")
 endif()
 
 if(ENABLE_STATIC)
@@ -63,15 +73,16 @@ if(ENABLE_STATIC)
 		target_compile_definitions(bctoolbox-static PUBLIC "-DBCTBX_STATIC")
 	endif()
 	set_target_properties(bctoolbox-static PROPERTIES OUTPUT_NAME bctoolbox)
+	if(HAVE_LIBRT)
+		target_link_libraries(bctoolbox-static rt)
+	endif()
 	if(CUNIT_FOUND)
 		add_library(bctoolbox-tester-static STATIC ${BCTOOLBOX_TESTER_SOURCE_FILES})
 		set_target_properties(bctoolbox-tester-static PROPERTIES OUTPUT_NAME bctoolbox-tester)
+		target_link_libraries(bctoolbox-tester-static bctoolbox-static)
 		if(WIN32)
 			target_compile_definitions(bctoolbox-tester-static PUBLIC "-DBCTBX_STATIC")
 		endif()
-	endif()
-	if(HAVE_LIBRT)
-		target_link_libraries(bctoolbox-static rt)
 	endif()
 endif()
 if(ENABLE_SHARED)
@@ -96,9 +107,13 @@ if(ENABLE_SHARED)
 			)
 		endif()
 	endif()
+	if(HAVE_LIBRT)
+		target_link_libraries(bctoolbox rt)
+	endif()
 	if(CUNIT_FOUND)
 		add_library(bctoolbox-tester SHARED ${BCTOOLBOX_TESTER_SOURCE_FILES})
 		set_target_properties(bctoolbox-tester PROPERTIES LINKER_LANGUAGE "CXX")
+		target_link_libraries(bctoolbox-tester bctoolbox)
 		if(WIN32)
 			target_compile_definitions(bctoolbox-tester PRIVATE "-DBCTBX_EXPORTS")
 		endif()
@@ -116,9 +131,6 @@ if(ENABLE_SHARED)
 				)
 			endif()
 		endif()
-	endif()
-	if(HAVE_LIBRT)
-		target_link_libraries(bctoolbox rt)
 	endif()
 endif()
 
