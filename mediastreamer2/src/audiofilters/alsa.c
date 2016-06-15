@@ -665,8 +665,8 @@ static void alsa_card_detect(MSSndCardManager *m){
 					if (card_hint){
 						if (strcmp(strsep(&card_hint, "="), "CARD")==0){
 							char *card_name = card_hint;
-							card_names[hint_device_count] = card_name;
-							device_names[hint_device_count] = device_name;
+							card_names[hint_device_count] = ms_strdup(card_name);
+							device_names[hint_device_count] = ms_strdup(device_name);
 							hint_device_count++;
 						}
 					}
@@ -730,7 +730,11 @@ static void alsa_card_detect(MSSndCardManager *m){
 
 	atexit((void(*)(void))snd_config_update_free_global);
 
-	for (i=0; i<device_count; i++) ms_free(plug_names[i]);
+	for (i=0; i<device_count; i++) {
+		ms_free(plug_names[i]);
+		ms_free(device_names[i]);
+		ms_free(card_names[i]);
+	}
 }
 
 MSSndCardDesc alsa_card_desc={
