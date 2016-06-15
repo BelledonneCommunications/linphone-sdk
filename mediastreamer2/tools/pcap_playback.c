@@ -229,7 +229,7 @@ static void setup_media_streams(MediastreamDatas *args)
 #endif
 	args->profile = rtp_profile_clone_full(&av_profile);
 
-	factory = ms_factory_new();
+	factory = ms_factory_new_with_voip();
 	ms_factory_enable_statistics(factory, TRUE);
 	ms_factory_reset_statistics(factory);
 
