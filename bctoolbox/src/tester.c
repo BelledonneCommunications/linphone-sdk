@@ -394,7 +394,7 @@ int bc_tester_run_tests(const char *suite_name, const char *test_name, const cha
 #if !defined(BC_TESTER_WINDOWS_PHONE) && !defined(BC_TESTER_WINDOWS_UNIVERSAL) && !defined(__QNX__) && !defined(ANDROID) && !defined(IOS)
 static int file_exists(const char* root_path) {
 	char * res_path = bc_sprintf("%s/%s", root_path, expected_res);
-	int err = access(res_path, F_OK);
+	int err = bctbx_file_exist(res_path);
 	free(res_path);
 	return err == 0;
 }
