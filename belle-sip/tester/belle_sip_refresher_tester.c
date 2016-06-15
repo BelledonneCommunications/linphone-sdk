@@ -445,8 +445,8 @@ static void refresher_base_with_body(endpoint_t* client
 		begin = belle_sip_time_ms();
 		BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.refreshOk,client->register_count+(client->early_refresher?1:0),client->register_count*1000 + 1000));
 		end = belle_sip_time_ms();
-		BC_ASSERT_GREATER(end-begin,client->register_count*1000*.9,long,"%ld"); /*because refresh is at 90% of expire*/
-		BC_ASSERT_LOWER_STRICT(end-begin,(client->register_count*1000 + 2000),long,"%ld");
+		BC_ASSERT_GREATER((long double)(end-begin),client->register_count*1000*.9,long double,"%Lf"); /*because refresh is at 90% of expire*/
+		BC_ASSERT_LOWER_STRICT(end-begin,(client->register_count*1000 + 2000),uint64_t,"%llu");
 		/*unregister twice to make sure refresh operation can be safely cascaded*/
 		belle_sip_refresher_refresh(refresher,0);
 		belle_sip_refresher_refresh(refresher,0);
@@ -578,8 +578,8 @@ static void subscribe_base(int with_resource_lists) {
 	begin = belle_sip_time_ms();
 	BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.refreshOk,3,4000));
 	end = belle_sip_time_ms();
-	BC_ASSERT_GREATER(end-begin,3000*.9,long,"%ld");
-	BC_ASSERT_LOWER_STRICT(end-begin,5000,long,"%ld");
+	BC_ASSERT_GREATER((long double)(end-begin),3000*.9,long double,"%Lf");
+	BC_ASSERT_LOWER_STRICT(end-begin,5000,uint64_t,"%llu");
 
 	belle_sip_message("simulating dialog error and recovery");
 	belle_sip_stack_set_send_error(client->stack, 1500);

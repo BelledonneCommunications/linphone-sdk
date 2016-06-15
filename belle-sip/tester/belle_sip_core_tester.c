@@ -177,7 +177,7 @@ static void test_dictionary(void)
 	BC_ASSERT_STRING_EQUAL( (const char*)belle_sip_dict_get_string(obj, "unexistent", "toto"),"toto");
 
 	belle_sip_dict_set_int64(obj, "test_i64", i64);
-	BC_ASSERT_EQUAL(belle_sip_dict_get_int64(obj,"test_i64",-1),i64, int, "%d");
+	BC_ASSERT_EQUAL(belle_sip_dict_get_int64(obj,"test_i64",-1),i64, int64_t, "%lld");
 
 	belle_sip_dict_clear(obj);
 	// test_str shouldn't exist anymore
