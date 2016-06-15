@@ -25,7 +25,7 @@ struct EncState {
 	int ptime;
 	int rate;
 	int nchannels;
-	int nbytes;
+	size_t nbytes;
 	MSBufferizer *bufferizer;
 };
 

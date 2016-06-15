@@ -486,7 +486,7 @@ static void multicast_video_stream(void) {
 
 		video_stream_get_local_rtp_stats(marielle->vs, &marielle->stats.rtp);
 		video_stream_get_local_rtp_stats(margaux->vs, &marielle->stats.rtp);
-		BC_ASSERT_EQUAL(margaux->stats.rtp.sent,marielle->stats.rtp.recv,int,"%d");
+		BC_ASSERT_EQUAL(margaux->stats.rtp.sent,marielle->stats.rtp.recv,unsigned long long,"%llu");
 
 		uninit_video_streams(marielle, margaux);
 	} else {
@@ -609,8 +609,8 @@ static void avpf_rpsi_count(void) {
 		wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms,  &dummy, 1, delay, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats);
 		BC_ASSERT_EQUAL(marielle->stats.number_of_sent_RPSI,4,int,"%d");
 		BC_ASSERT_EQUAL(margaux->stats.number_of_sent_RPSI,4,int,"%d");
-		BC_ASSERT_LOWER(fabs(video_stream_get_received_framerate(marielle->vs)-margaux->vconf->fps), 2.f, float, "%f");
-		BC_ASSERT_LOWER(fabs(video_stream_get_received_framerate(margaux->vs)-marielle->vconf->fps), 2.f, float, "%f");
+		BC_ASSERT_LOWER((float)fabs(video_stream_get_received_framerate(marielle->vs)-margaux->vconf->fps), 2.f, float, "%f");
+		BC_ASSERT_LOWER((float)fabs(video_stream_get_received_framerate(margaux->vs)-marielle->vconf->fps), 2.f, float, "%f");
 		uninit_video_streams(marielle, margaux);
 	} else {
 		ms_error("VP8 codec is not supported!");

@@ -84,7 +84,7 @@ int ms_bits_reader_ue(MSBitsReader *reader, unsigned int* ret, const char* symbo
 		unsigned int value;
 		if (ms_bits_reader_n_bits(reader, leading_zeros_cnt, &trail, 0) != 0)
 			return -1;
-		value = pow(2, leading_zeros_cnt) - 1 + trail;
+		value = (unsigned int)pow(2, leading_zeros_cnt) - 1 + trail;
 		if (symbol_name)
 			ms_debug(".%s (ue) : 0x%x | %u", symbol_name, value, value);
 		if (ret)
@@ -103,7 +103,7 @@ int ms_bits_reader_se(MSBitsReader *reader, int* ret, const char* symbol_name) {
 		return -1;
 
 	sign = (code_num % 2) ? 1 : -1;
-	value = sign * ceil(code_num / 2.0f);
+	value = (int)(sign * ceil(code_num / 2.0f));
 	if (symbol_name)
 		ms_debug(".%s (se) : 0x%x | %d [%x", symbol_name, value, value, code_num);
 	if (ret)
@@ -131,7 +131,7 @@ int ms_bits_writer_n_bits(MSBitsWriter *writer, int count, unsigned int value, c
 	}
 
 	/* resize if necessary */
-	if (writer->bit_index + count > writer->buf_size * 8) {
+	if ((size_t)(writer->bit_index + count) > writer->buf_size * 8) {
 		int old_size = writer->buf_size;
 		writer->buf_size = MAX(2 * (writer->buf_size + 1), writer->buf_size + count / 8);
 		writer->buffer = (uint8_t*) realloc(writer->buffer, writer->buf_size);

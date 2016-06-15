@@ -286,7 +286,9 @@ void deinterlace_down_scale_neon(const uint8_t* ysrc, const uint8_t* cbcrsrc, ui
 MS2_PUBLIC mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(MSYuvBufAllocator *allocator, const uint8_t* y, const uint8_t * cbcr, int rotation, int w, int h, int y_byte_per_row,int cbcr_byte_per_row, bool_t uFirstvSecond, bool_t down_scale);
 
 static MS2_INLINE MSVideoSize ms_video_size_make(int width, int height){
-	MSVideoSize vsize={width,height};
+	MSVideoSize vsize;
+	vsize.width = width;
+	vsize.height = height;
 	return vsize;
 }
 
@@ -367,28 +369,28 @@ MS2_PUBLIC mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation(MSYuvBufAllocato
 /*** Encoder Helpers ***/
 /* Frame rate controller */
 struct _MSFrameRateController {
-	unsigned int start_time;
+	uint64_t start_time;
 	int th_frame_count;
 	float fps;
 };
 typedef struct _MSFrameRateController MSFrameRateController;
 MS2_PUBLIC void ms_video_init_framerate_controller(MSFrameRateController* ctrl, float fps);
-MS2_PUBLIC bool_t ms_video_capture_new_frame(MSFrameRateController* ctrl, uint32_t current_time);
+MS2_PUBLIC bool_t ms_video_capture_new_frame(MSFrameRateController* ctrl, uint64_t current_time);
 
 /* Average FPS calculator */
 struct _MSAverageFPS {
-	unsigned int last_frame_time, last_print_time;
+	uint64_t last_frame_time, last_print_time;
 	float mean_inter_frame;
 	const char* context;
 };
 typedef struct _MSAverageFPS MSAverageFPS;
 MS2_PUBLIC void ms_average_fps_init(MSAverageFPS* afps, const char* context);
-MS2_PUBLIC bool_t ms_average_fps_update(MSAverageFPS* afps, uint32_t current_time);
+MS2_PUBLIC bool_t ms_average_fps_update(MSAverageFPS* afps, uint64_t current_time);
 MS2_PUBLIC float ms_average_fps_get(const MSAverageFPS* afps);
 
 /*deprecated: for compatibility with plugin*/
 MS2_PUBLIC void ms_video_init_average_fps(MSAverageFPS* afps, const char* ctx);
-MS2_PUBLIC bool_t ms_video_update_average_fps(MSAverageFPS* afps, uint32_t current_time);
+MS2_PUBLIC bool_t ms_video_update_average_fps(MSAverageFPS* afps, uint64_t current_time);
 
 
 /**

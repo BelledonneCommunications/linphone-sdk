@@ -136,8 +136,8 @@ MSList * ms_list_remove_custom(MSList *first, MSCompareFunc compare_func, const 
 	return first;
 }
 
-int ms_list_size(const MSList *first){
-	int n=0;
+size_t ms_list_size(const MSList *first){
+	size_t n=0;
 	while(first!=NULL){
 		++n;
 		first=first->next;
@@ -431,7 +431,7 @@ struct _MSConcealerContext {
 	int64_t sample_time;
 	int64_t plc_start_time;
 	unsigned long total_number_for_plc;
-	unsigned int max_plc_time;
+	uint32_t max_plc_time;
 };
 
 /*** plc context begin***/
@@ -439,7 +439,7 @@ unsigned long ms_concealer_context_get_total_number_of_plc(MSConcealerContext* o
 	return obj->total_number_for_plc;
 }
 
-MSConcealerContext* ms_concealer_context_new(unsigned int max_plc_time){
+MSConcealerContext* ms_concealer_context_new(uint32_t max_plc_time){
 	MSConcealerContext *obj=(MSConcealerContext *) ms_new0(MSConcealerContext,1);
 	obj->sample_time=-1;
 	obj->plc_start_time=-1;
@@ -452,29 +452,28 @@ void ms_concealer_context_destroy(MSConcealerContext* context) {
 	ms_free(context);
 }
 
-int ms_concealer_inc_sample_time(MSConcealerContext* obj, uint64_t current_time, int time_increment, int got_packet){
-	int plc_duration=0;
+uint32_t ms_concealer_inc_sample_time(MSConcealerContext* obj, uint64_t current_time, uint32_t time_increment, bool_t got_packet){
+	uint32_t plc_duration=0;
 	if (obj->sample_time==-1){
 		obj->sample_time=(int64_t)current_time;
 	}
 	obj->sample_time+=time_increment;
 	if (obj->plc_start_time!=-1 && got_packet){
-		plc_duration=(int)(current_time-obj->plc_start_time);
+		plc_duration=(uint32_t)(current_time-obj->plc_start_time);
 		obj->plc_start_time=-1;
 		if (plc_duration>obj->max_plc_time) plc_duration=obj->max_plc_time;
 	}
 	return plc_duration;
 }
 
-unsigned int ms_concealer_context_is_concealement_required(MSConcealerContext* obj,uint64_t current_time) {
-
+unsigned int ms_concealer_context_is_concealement_required(MSConcealerContext* obj, uint64_t current_time) {
 	if(obj->sample_time == -1) return 0; /*no valid value*/
 
-	if (obj->sample_time <= current_time){
-		int plc_duration;
+	if ((uint64_t)obj->sample_time <= current_time){
+		uint32_t plc_duration;
 		if (obj->plc_start_time==-1)
 			obj->plc_start_time=obj->sample_time;
-		plc_duration=current_time-obj->plc_start_time;
+		plc_duration=(uint32_t)(current_time-(uint64_t)obj->plc_start_time);
 		if (plc_duration<obj->max_plc_time) {
 			obj->total_number_for_plc++;
 			return 1;
@@ -513,14 +512,14 @@ void ms_concealer_ts_context_destroy(MSConcealerTsContext* context) {
 	ms_free(context);
 }
 
-int ms_concealer_ts_context_inc_sample_ts(MSConcealerTsContext* obj, uint64_t current_ts, int ts_increment, int got_packet){
-	int plc_duration=0;
+uint32_t ms_concealer_ts_context_inc_sample_ts(MSConcealerTsContext* obj, uint64_t current_ts, uint32_t ts_increment, bool_t got_packet){
+	uint32_t plc_duration=0;
 	if (obj->sample_ts==-1){
 		obj->sample_ts=(int64_t)current_ts;
 	}
 	obj->sample_ts+=ts_increment;
 	if (obj->plc_start_ts!=-1 && got_packet){
-		plc_duration=current_ts-obj->plc_start_ts;
+		plc_duration=(uint32_t)(current_ts-(uint64_t)obj->plc_start_ts);
 		obj->plc_start_ts=-1;
 		if (plc_duration>obj->max_plc_ts) plc_duration=obj->max_plc_ts;
 	}
@@ -530,11 +529,11 @@ int ms_concealer_ts_context_inc_sample_ts(MSConcealerTsContext* obj, uint64_t cu
 unsigned int ms_concealer_ts_context_is_concealement_required(MSConcealerTsContext* obj, uint64_t current_ts) {
 	if(obj->sample_ts == -1) return 0; /*no valid value*/
 
-	if (obj->sample_ts < current_ts){
-		int plc_duration;
+	if ((uint64_t)obj->sample_ts < current_ts){
+		uint32_t plc_duration;
 		if (obj->plc_start_ts==-1)
 			obj->plc_start_ts=obj->sample_ts;
-		plc_duration=current_ts-obj->plc_start_ts;
+		plc_duration=(uint32_t)(current_ts-(uint64_t)obj->plc_start_ts);
 		if (plc_duration<obj->plc_start_ts) {
 			obj->total_number_for_plc++;
 			return 1;

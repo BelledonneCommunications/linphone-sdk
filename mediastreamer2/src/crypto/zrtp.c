@@ -344,7 +344,7 @@ static int ms_zrtp_addExportedKeysInZidCache(void *zidCacheData, void *clientDat
 
 	if (zidCache->peerURI) {
 		/* Write the peer sip URI in cache */
-		bzrtp_addCustomDataInCache(zrtpContext, peerZid, (uint8_t *)"uri", 3, (uint8_t *)(zidCache->peerURI), strlen(zidCache->peerURI), 0, BZRTP_CUSTOMCACHE_PLAINDATA, BZRTP_CACHE_LOADFILE|BZRTP_CACHE_DONTWRITEFILE);
+		bzrtp_addCustomDataInCache(zrtpContext, peerZid, (uint8_t *)"uri", 3, (uint8_t *)(zidCache->peerURI), (uint16_t)strlen(zidCache->peerURI), 0, BZRTP_CUSTOMCACHE_PLAINDATA, BZRTP_CACHE_LOADFILE|BZRTP_CACHE_DONTWRITEFILE);
 	}
 
 	/* Derive the master keys and session Id 32 bytes each */

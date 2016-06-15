@@ -220,7 +220,7 @@ MS2_PUBLIC MSList * ms_list_remove_custom(MSList *list, MSCompareFunc compare_fu
  * @param list List to measure
  * @return Size of list
 **/
-MS2_PUBLIC int ms_list_size(const MSList *list);
+MS2_PUBLIC size_t ms_list_size(const MSList *list);
 
 /** Invoke function on each element of the list
  * @param list List object

@@ -139,7 +139,7 @@ MS2_PUBLIC void ms_bufferizer_put(MSBufferizer *obj, mblk_t *m);
 MS2_PUBLIC void ms_bufferizer_put_from_queue(MSBufferizer *obj, MSQueue *q);
 
 /*read bytes from bufferizer object*/
-MS2_PUBLIC int ms_bufferizer_read(MSBufferizer *obj, uint8_t *data, int datalen);
+MS2_PUBLIC size_t ms_bufferizer_read(MSBufferizer *obj, uint8_t *data, size_t datalen);
 
 /*obtain current meta-information of the last read bytes (if any) and copy them into 'm'*/
 MS2_PUBLIC void ms_bufferizer_fill_current_metas(MSBufferizer *obj, mblk_t *m);

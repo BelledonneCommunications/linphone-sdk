@@ -515,7 +515,7 @@ static void check_frame_partitions_have_start(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpF
 	Vp8RtpFmtPacket *packet;
 	Vp8RtpFmtPartition *partition;
 	int i;
-	int j;
+	size_t j;
 
 	if (frame->unnumbered_partitions == TRUE) return;
 

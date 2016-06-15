@@ -233,7 +233,7 @@ static void ms_opus_enc_process(MSFilter *f) {
 	}
 
 	ms_bufferizer_put_from_queue(d->bufferizer, f->inputs[0]);
-	while (ms_bufferizer_get_avail(d->bufferizer) >= (d->channels * packet_size * SIGNAL_SAMPLE_SIZE)) {
+	while (ms_bufferizer_get_avail(d->bufferizer) >= (size_t)(d->channels * packet_size * SIGNAL_SAMPLE_SIZE)) {
 		opus_int32 ret = 0;
 
 		if (frame_count == 1) { /* One Opus frame, not using the repacketizer */

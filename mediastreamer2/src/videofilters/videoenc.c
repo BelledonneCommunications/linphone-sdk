@@ -171,7 +171,7 @@ static bool_t parse_video_fmtp(const char *fmtp, float *fps, MSVideoSize *vsize)
 		}
 		divider=atoi(equal+1);
 		if (divider!=0){
-			float newfps=29.97/divider;
+			float newfps=29.97f/divider;
 			if (*fps>newfps) *fps=newfps;
 		}else{
 			ms_warning("Could not find video fps");
@@ -276,11 +276,11 @@ static void prepare(EncState *s){
 	 bitrate peaks especially on low bandwidth, we make a correction on the
 	 codec's target bitrate.
 	*/
-	c->bit_rate=(float)s->vconf.required_bitrate*0.92;
+	c->bit_rate=(int)((float)s->vconf.required_bitrate*0.92f);
 	if (c->bit_rate>RATE_CONTROL_MARGIN){
 		 c->bit_rate -= RATE_CONTROL_MARGIN;
 	}
-	c->bit_rate_tolerance=s->vconf.fps>1?(float)c->bit_rate/(s->vconf.fps-1):c->bit_rate;
+	c->bit_rate_tolerance=s->vconf.fps>1.0f?(int)((float)c->bit_rate/(s->vconf.fps-1.0f)):c->bit_rate;
 
 	/* ffmpeg vbv rate control consumes too much cpu above a certain target bitrate.
 	We don't use it above max_br_vbv */
@@ -631,7 +631,7 @@ static void mjpeg_fragment_and_send(MSFilter *f,EncState *s,mblk_t *frame, uint3
 	if (q >= 128) {
 		qtblhdr.mbz = 0;
 		qtblhdr.precision = 0; /* This code uses 8 bit tables only */
-		qtblhdr.length = htons(msgdsize(lqt)+msgdsize(cqt));  /* 2 64-byte tables */
+		qtblhdr.length = htons((uint16_t)(msgdsize(lqt)+msgdsize(cqt)));  /* 2 64-byte tables */
 	}
 
 	while (bytes_left > 0) {
@@ -745,7 +745,7 @@ static mblk_t *skip_jpeg_headers(mblk_t *full_frame, mblk_t **lqt, mblk_t **cqt)
 static void split_and_send(MSFilter *f, EncState *s, mblk_t *frame, bool_t is_iframe){
 	uint8_t *lastpsc;
 	uint8_t *psc;
-	uint32_t timestamp=f->ticker->time*90LL;
+	uint32_t timestamp=(uint32_t)(f->ticker->time*90LL);
 
 	if (s->codec==CODEC_ID_MPEG4
 #if HAVE_AVCODEC_SNOW

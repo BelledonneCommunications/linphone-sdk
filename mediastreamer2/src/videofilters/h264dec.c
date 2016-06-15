@@ -147,7 +147,7 @@ static mblk_t *get_as_yuvmsg(MSFilter *f, DecData *s, AVFrame *orig){
 		ms_error("%s: error in sws_scale().",f->desc->name);
 	}
 #if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(50,43,0) // backward compatibility with Debian Squeeze (6.0)
-	mblk_set_timestamp_info(yuv_msg, orig->pkt_pts);
+	mblk_set_timestamp_info(yuv_msg, (uint32_t)orig->pkt_pts);
 #endif
 	return yuv_msg;
 }

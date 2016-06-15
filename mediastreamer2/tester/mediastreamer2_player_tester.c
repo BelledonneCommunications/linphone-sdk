@@ -105,9 +105,9 @@ static void play_file(const char *filepath, bool_t unsupported_format, bool_t se
 	}
 
 	if(seeking_test) {
-		timeout = (duration - seek_time) * (1 + timeout_prec);
+		timeout = (int)((duration - seek_time) * (1.0 + timeout_prec));
 	} else {
-		timeout = duration * (1 + timeout_prec);
+		timeout = (int)(duration * (1.0 + timeout_prec));
 	}
 
 	succeed = ms_media_player_start(file_player);

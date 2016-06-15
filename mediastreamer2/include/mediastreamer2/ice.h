@@ -113,7 +113,7 @@ typedef struct _IceSession {
 	IceRole role;	/**< Role played by the agent for this session */
 	IceSessionState state;	/**< State of the session */
 	uint64_t tie_breaker;	/**< Random number used to resolve role conflicts (see paragraph 5.2 of the RFC 5245) */
-	uint32_t ta;	/**< Duration of timer for sending connectivity checks in ms */
+	int32_t ta;	/**< Duration of timer for sending connectivity checks in ms */
 	int event_value;	/** Value of the event to send */
 	MSTimeSpec event_time;	/**< Time when an event must be sent */
 	struct sockaddr_storage ss;	/**< STUN server address to use for the candidates gathering process */
@@ -188,7 +188,7 @@ typedef struct _IceCandidatePair {
 	IceCandidatePairState state;	/**< State of the candidate pair */
 	uint64_t priority;	/**< Priority of the candidate pair */
 	MSTimeSpec transmission_time;	/**< Time when the connectivity check for the candidate pair has been sent */
-	uint32_t rto;	/**< Duration of the retransmit timer for the connectivity check sent for the candidate pair in ms */
+	int32_t rto;	/**< Duration of the retransmit timer for the connectivity check sent for the candidate pair in ms */
 	uint8_t retransmissions;	/**< Number of retransmissions for the connectivity check sent for the candidate pair */
 	IceRole role;	/**< Role of the agent when the connectivity check has been sent for the candidate pair */
 	bool_t is_default;	/**< Boolean value telling whether this candidate pair is a default candidate pair or not */

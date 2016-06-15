@@ -34,6 +34,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #pragma GCC diagnostic ignored "-Wunused-function"
 #endif
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4244)
+#endif
+
 
 #include <ortp/port.h>
 
@@ -148,4 +153,9 @@ void av_frame_unref (AVFrame *frame);
 
 
 #endif /*iHAVE_LIBAVCODEC_AVCODEC_H*/
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
 #endif /* FFMPEG_PRIV_H */

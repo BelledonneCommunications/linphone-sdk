@@ -678,7 +678,7 @@ the method index (_cnt_) and the argument size */
 #define MS_FILTER_GET_LATENCY	MS_FILTER_BASE_METHOD(11,int)
 
 typedef struct _MSPinFormat{
-	int pin;
+	uint16_t pin;
 	const MSFmtDescriptor *fmt;
 }MSPinFormat;
 

@@ -806,7 +806,7 @@ void ms_video_init_framerate_controller(MSFrameRateController* ctrl, float fps) 
 	ctrl->fps = fps;
 }
 
-bool_t ms_video_capture_new_frame(MSFrameRateController* ctrl, uint32_t current_time) {
+bool_t ms_video_capture_new_frame(MSFrameRateController* ctrl, uint64_t current_time) {
 	int cur_frame;
 	float elapsed;
 
@@ -842,7 +842,7 @@ void ms_video_init_average_fps(MSAverageFPS* afps, const char* ctx){
 	ms_average_fps_init(afps,ctx);
 }
 
-bool_t ms_average_fps_update(MSAverageFPS* afps, uint32_t current_time) {
+bool_t ms_average_fps_update(MSAverageFPS* afps, uint64_t current_time) {
 	if (afps->last_frame_time!=-1){
 		float frame_interval=(float)(current_time - afps->last_frame_time)/1000.0f;
 		if (afps->mean_inter_frame==0){
@@ -864,7 +864,7 @@ bool_t ms_average_fps_update(MSAverageFPS* afps, uint32_t current_time) {
 }
 
 /*compatibility, deprecated*/
-bool_t ms_video_update_average_fps(MSAverageFPS* afps, uint32_t current_time){
+bool_t ms_video_update_average_fps(MSAverageFPS* afps, uint64_t current_time){
 	return ms_average_fps_update(afps,current_time);
 }
 

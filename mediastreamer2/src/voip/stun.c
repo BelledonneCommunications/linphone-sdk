@@ -60,8 +60,8 @@ typedef struct {
 	char *buffer;
 	char *ptr;
 	char *lenptr;
-	ssize_t cursize;
-	ssize_t remaining;
+	size_t cursize;
+	size_t remaining;
 } StunMessageEncoder;
 
 
@@ -184,7 +184,7 @@ static void encode_string(StunMessageEncoder *encoder, uint16_t type, const char
 	}
 	padding = 4 - (len % 4);
 	encode16(encoder, type);
-	encode16(encoder, len);
+	encode16(encoder, (uint16_t)len);
 	encode(encoder, data, len);
 	if (padding < 4) {
 		size_t i;
@@ -197,7 +197,7 @@ static void encode_error_code(StunMessageEncoder *encoder, uint16_t number, cons
 	size_t padding = 4 - (reason_len % 4);
 	if (reason != NULL) reason_len = strlen(reason);
 	encode16(encoder, MS_STUN_ATTR_ERROR_CODE);
-	encode16(encoder, 4 + reason_len);
+	encode16(encoder, 4 + (uint16_t)reason_len);
 	encode16(encoder, 0);
 	encode8(encoder, number / 100);
 	encode8(encoder, number - ((number / 100) * 100));
@@ -622,7 +622,7 @@ char * ms_stun_calculate_integrity_long_term_from_ha1(const char *buf, size_t bu
 	memset(ha1, 0, sizeof(ha1));
 	for (i = 0, j = 0; (i < strlen(ha1_text)) && (j < sizeof(ha1)); i += 2, j++) {
 		char buf[5] = { '0', 'x', ha1_text[i], ha1_text[i + 1], '\0' };
-		ha1[j] = strtol(buf, NULL, 0);
+		ha1[j] = (unsigned char)strtol(buf, NULL, 0);
 	}
 	/* SHA1 output length is 20 bytes, get them all */
 	bctbx_hmacSha1(ha1, sizeof(ha1), (const unsigned char *)buf, bufsize, 20, (unsigned char *)hmac);
@@ -919,7 +919,7 @@ void ms_stun_message_destroy(MSStunMessage *msg) {
 size_t ms_stun_message_encode(const MSStunMessage *msg, char **buf) {
 	StunMessageEncoder encoder;
 	const MSStunAddress *stun_addr;
-	uint16_t message_length;
+	size_t message_length;
 
 	stun_message_encoder_init(&encoder);
 	encode_message_header(&encoder, msg->type, msg->method, &msg->tr_id);
@@ -1505,7 +1505,7 @@ static int ms_turn_rtp_endpoint_sendto(RtpTransport *rtptp, mblk_t *msg, int fla
 				new_msg = allocb(4, 0);
 				*((uint16_t *)new_msg->b_wptr) = htons(ms_turn_context_get_channel_number(context));
 				new_msg->b_wptr += 2;
-				*((uint16_t *)new_msg->b_wptr) = htons(msgdsize(msg));
+				*((uint16_t *)new_msg->b_wptr) = htons((uint16_t)msgdsize(msg));
 				new_msg->b_wptr += 2;
 				mblk_meta_copy(msg, new_msg);
 				concatb(new_msg, msg);

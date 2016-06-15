@@ -77,17 +77,17 @@ void ms_bufferizer_put_from_queue(MSBufferizer *obj, MSQueue *q){
 	}
 }
 
-int ms_bufferizer_read(MSBufferizer *obj, uint8_t *data, int datalen){
+size_t ms_bufferizer_read(MSBufferizer *obj, uint8_t *data, size_t datalen){
 	if (obj->size>=datalen){
 		/*we can return something */
-		int sz=0;
-		int cplen;
+		size_t sz=0;
+		size_t cplen;
 		mblk_t *m=peekq(&obj->q);
 		
 		/* first store current meta information in the _q_stopper field the queue, just to reuse space*/
 		mblk_meta_copy(m, &obj->q._q_stopper);
 		while(sz<datalen){
-			cplen=MIN((int)(m->b_wptr-m->b_rptr),datalen-sz);
+			cplen=MIN((size_t)(m->b_wptr-m->b_rptr),datalen-sz);
 			if (data) memcpy(data+sz,m->b_rptr,cplen);
 			sz+=cplen;
 			m->b_rptr+=cplen;

@@ -55,7 +55,7 @@ static void  push_nalu(const uint8_t *begin, const uint8_t *end, MSQueue *nalus)
 }
 
 void ms_h264_bitstream_to_nalus(const uint8_t *bitstream, size_t size, MSQueue *nalus){
-    int i;
+    size_t i;
     const uint8_t *p,*begin=NULL;
     int zeroes=0;
     

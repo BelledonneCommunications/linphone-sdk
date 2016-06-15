@@ -154,7 +154,8 @@ static void basic_text_stream(void) {
 	text_stream_tester_t* marielle = text_stream_tester_new();
 	text_stream_tester_t* margaux = text_stream_tester_new();
 	const char* helloworld = "Hello World !";
-	int i = 0, strcmpresult = -2;
+	size_t i = 0;
+	int strcmpresult = -2;
 
 	init_text_streams(marielle, margaux, FALSE, FALSE, NULL, T140_PAYLOAD_TYPE /* ignored */);
 
@@ -177,7 +178,8 @@ static void basic_text_stream2(void) {
 	text_stream_tester_t* marielle = text_stream_tester_new();
 	text_stream_tester_t* margaux = text_stream_tester_new();
 	const char* helloworld = "Hello World !";
-	int i = 0, strcmpresult = -2;
+	size_t i = 0;
+	int strcmpresult = -2;
 	int dummy = 0;
 
 	init_text_streams(marielle, margaux, FALSE, FALSE, NULL, T140_PAYLOAD_TYPE /* ignored */);
@@ -202,7 +204,8 @@ static void copy_paste_text_longer_than_rtt_buffer(void) {
 	text_stream_tester_t* marielle = text_stream_tester_new();
 	text_stream_tester_t* margaux = text_stream_tester_new();
 	const char* helloworld = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus imperdiet ultricies condimentum. Pellentesque tellus massa, maximus id dignissim vel, aliquam eget sapien. Suspendisse convallis est ut cursus suscipit. Duis in massa dui. Vivamus lobortis maximus nisi, eget interdum ante faucibus ac. Donec varius lorem id arcu facilisis, et dignissim magna molestie. Nunc lobortis feugiat dapibus. Nam tempus auctor dignissim. Sed pellentesque urna vitae quam mattis, in dictum justo tristique. Nullam vehicula enim eu lacus sollicitudin aliquet. Nunc eget arcu id odio viverra ultrices. Ut sit amet urna id libero posuere viverra dapibus sed nunc. Nulla eget vehicula magna, ut pulvinar ex. Nulla tincidunt justo at ipsum pretium, quis tempus arcu semper. Pellentesque non commodo neque. Maecenas consequat dapibus justo vel ornare. Suspendisse varius diam ac tincidunt fermentum. Etiam orci neque, malesuada sit amet purus vehicula, vestibulum scelerisque lectus. Proin volutpat venenatis enim a sollicitudin. Praesent posuere.";
-	int i = 0, strcmpresult = -2;
+	size_t i = 0;
+	int strcmpresult = -2;
 
 	init_text_streams(marielle, margaux, FALSE, FALSE, NULL, T140_PAYLOAD_TYPE /* ignored */);
 
@@ -226,7 +229,8 @@ static void srtp_protected_text_stream(void) {
 	text_stream_tester_t* marielle = text_stream_tester_new();
 	text_stream_tester_t* margaux = text_stream_tester_new();
 	const char* helloworld = "Hello World !";
-	int i = 0, strcmpresult = -2;
+	size_t i = 0;
+	int strcmpresult = -2;
 	int dummy = 0;
 
 	init_text_streams(marielle, margaux, FALSE, FALSE, NULL, T140_PAYLOAD_TYPE /* ignored */);

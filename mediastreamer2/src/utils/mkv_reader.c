@@ -17,12 +17,12 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#include "mkv_reader.h"
-
 #define bool_t mkv_bool_t
 #include <matroska/matroska.h>
 #include <matroska/matroska_sem.h>
 #undef bool_t
+
+#include "mkv_reader.h"
 
 extern const nodemeta LangStr_Class[];
 extern const nodemeta UrlPart_Class[];
@@ -219,7 +219,7 @@ int mkv_reader_seek(MKVReader *reader, int pos_ms) {
 		for(track_position=EBML_MasterFindChild((ebml_master *)cue_point, &MATROSKA_ContextCueTrackPositions);
 			track_position!=NULL;
 			track_position = EBML_MasterFindNextElt((ebml_master *)cue_point, track_position, FALSE, FALSE)) {
-			int track_num = EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild((ebml_master *)track_position, &MATROSKA_ContextCueTrack));
+			int track_num = (int)EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild((ebml_master *)track_position, &MATROSKA_ContextCueTrack));
 			MKVTrackReader *t_reader = NULL;
 			for(it = reader->readers; it != NULL; it=it->next) {
 				t_reader = (MKVTrackReader *)it->data;
@@ -290,15 +290,15 @@ void mkv_track_reader_next_block(MKVTrackReader *reader, MKVBlock **block, bool_
 	if(EBML_ElementIsType(reader->current_frame_elt, &MATROSKA_ContextBlockGroup)) {
 		ebml_element *codec_state_elt = EBML_MasterFindChild(reader->current_frame_elt, &MATROSKA_ContextCodecState);
 		if(codec_state_elt) {
-			(*block)->codec_state_size = EBML_ElementDataSize(codec_state_elt, FALSE);
+			(*block)->codec_state_size = (size_t)EBML_ElementDataSize(codec_state_elt, FALSE);
 			(*block)->codec_state_data = ms_new0(uint8_t, (*block)->codec_state_size);
 			memcpy((*block)->codec_state_data, EBML_BinaryGetData((ebml_binary *)codec_state_elt), (*block)->codec_state_size);
 		}
 	}
-	(*block)->keyframe = MATROSKA_BlockKeyframe(block_elt);
-	(*block)->track_num = MATROSKA_BlockTrackNum(block_elt);
+	(*block)->keyframe = (bool_t)MATROSKA_BlockKeyframe(block_elt);
+	(*block)->track_num = (uint8_t)MATROSKA_BlockTrackNum(block_elt);
 	MATROSKA_BlockGetFrame(block_elt, 0, &m_frame, TRUE);
-	(*block)->timestamp = MATROSKA_BlockTimecode(block_elt) / 1000000LL;
+	(*block)->timestamp = (uint32_t)(MATROSKA_BlockTimecode(block_elt) / 1000000LL);
 	(*block)->data_length = m_frame.Size;
 	(*block)->data = ms_new0(uint8_t, m_frame.Size);
 	memcpy((*block)->data, m_frame.Data, m_frame.Size);
@@ -385,7 +385,7 @@ static int _parse_headers(MKVReader *obj) {
 		ms_error("MKVParser: not a matroska file");
 		goto fail;
 	}
-	doc_type_version = EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)level0, &EBML_ContextDocTypeVersion));
+	doc_type_version = (int)EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)level0, &EBML_ContextDocTypeVersion));
 	NodeDelete((node *)level0);
 
 	level0 = EBML_FindNextElement(obj->file, &pctx, &upper_level, FALSE);
@@ -522,9 +522,9 @@ static int _parse_tracks(MSList **tracks_out, ebml_element *tracks_elt) {
 
 static void _parse_track(MKVTrack **track_out, ebml_element *track_elt) {
 	tchar_t codec_id[MAX_MKV_STRING_LENGTH];
-	int track_type;
+	uint8_t track_type;
 	ebml_element *codec_private_elt;
-	track_type = EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild(track_elt, &MATROSKA_ContextTrackType));
+	track_type = (uint8_t)EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild(track_elt, &MATROSKA_ContextTrackType));
 	if(track_type == TRACK_TYPE_VIDEO) {
 		*track_out = (MKVTrack *)ms_new0(MKVVideoTrack, 1);
 		_parse_video_track_info((MKVVideoTrack *)*track_out, EBML_MasterFindChild(track_elt, &MATROSKA_ContextVideo));
@@ -535,15 +535,15 @@ static void _parse_track(MKVTrack **track_out, ebml_element *track_elt) {
 		*track_out = NULL;
 		return;
 	}
-	(*track_out)->num = EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild(track_elt, &MATROSKA_ContextTrackNumber));
+	(*track_out)->num = (uint8_t)EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild(track_elt, &MATROSKA_ContextTrackNumber));
 	(*track_out)->UID = EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild(track_elt, &MATROSKA_ContextTrackUID));
 	(*track_out)->type = track_type;
-	(*track_out)->enabled = EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)track_elt, &MATROSKA_ContextFlagEnabled));
-	(*track_out)->def = EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)track_elt, &MATROSKA_ContextFlagDefault));
-	(*track_out)->forced = EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)track_elt, &MATROSKA_ContextFlagForced));
-	(*track_out)->lacing = EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)track_elt, &MATROSKA_ContextFlagLacing));
-	(*track_out)->min_cache = EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)track_elt, &MATROSKA_ContextMinCache));
-	(*track_out)->max_block_addition_id = EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)track_elt, &MATROSKA_ContextMaxBlockAdditionID));
+	(*track_out)->enabled = EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)track_elt, &MATROSKA_ContextFlagEnabled)) == 0 ? FALSE : TRUE;
+	(*track_out)->def = EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)track_elt, &MATROSKA_ContextFlagDefault)) == 0 ? FALSE : TRUE;
+	(*track_out)->forced = EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)track_elt, &MATROSKA_ContextFlagForced)) == 0 ? FALSE : TRUE;
+	(*track_out)->lacing = EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)track_elt, &MATROSKA_ContextFlagLacing)) == 0 ? FALSE : TRUE;
+	(*track_out)->min_cache = (int)EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)track_elt, &MATROSKA_ContextMinCache));
+	(*track_out)->max_block_addition_id = (int)EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)track_elt, &MATROSKA_ContextMaxBlockAdditionID));
 	memset(codec_id, 0, sizeof(codec_id));
 	EBML_StringGet((ebml_string *)EBML_MasterFindChild(track_elt, &MATROSKA_ContextCodecID), codec_id, MAX_MKV_STRING_LENGTH);
 #ifdef UNICODE
@@ -557,19 +557,19 @@ static void _parse_track(MKVTrack **track_out, ebml_element *track_elt) {
 #endif
 	codec_private_elt = EBML_MasterFindChild(track_elt, &MATROSKA_ContextCodecPrivate);
 	if(codec_private_elt) {
-		size_t data_size = EBML_ElementDataSize(codec_private_elt, FALSE);
+		size_t data_size = (size_t)EBML_ElementDataSize(codec_private_elt, FALSE);
 		(*track_out)->codec_private = ms_new0(uint8_t, data_size);
 		memcpy((*track_out)->codec_private, EBML_BinaryGetData((ebml_binary *)codec_private_elt), data_size);
 	}
-	(*track_out)->seek_preroll = EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)track_elt, &MATROSKA_ContextSeekPreRoll));
+	(*track_out)->seek_preroll = (int)EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)track_elt, &MATROSKA_ContextSeekPreRoll));
 }
 
 static void _parse_video_track_info(MKVVideoTrack *video_info_out, ebml_element *video_info_elt) {
 	ebml_element *elt;
 	if(video_info_elt==NULL) return;
-	video_info_out->interlaced = EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)video_info_elt, &MATROSKA_ContextFlagInterlaced));
-	video_info_out->width = EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild(video_info_elt, &MATROSKA_ContextPixelWidth));
-	video_info_out->height = EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild(video_info_elt, &MATROSKA_ContextPixelHeight));
+	video_info_out->interlaced = EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)video_info_elt, &MATROSKA_ContextFlagInterlaced)) == 0 ? FALSE : TRUE;
+	video_info_out->width = (int)EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild(video_info_elt, &MATROSKA_ContextPixelWidth));
+	video_info_out->height = (int)EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild(video_info_elt, &MATROSKA_ContextPixelHeight));
 	elt = EBML_MasterFindChild(video_info_elt, &MATROSKA_ContextFrameRate);
 	video_info_out->frame_rate = elt ? EBML_FloatValue((ebml_float *)elt) : 0.0;
 }
@@ -577,7 +577,7 @@ static void _parse_video_track_info(MKVVideoTrack *video_info_out, ebml_element 
 static void _parse_audio_track_info(MKVAudioTrack *audio_info_out, ebml_element *audio_info_elt) {
 	if(audio_info_elt==NULL) return;
 	audio_info_out->sampling_freq = (int)EBML_FloatValue((ebml_float *)EBML_MasterGetChild((ebml_master *)audio_info_elt, &MATROSKA_ContextSamplingFrequency));
-	audio_info_out->channels = EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)audio_info_elt, &MATROSKA_ContextChannels));
+	audio_info_out->channels = (uint8_t)EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)audio_info_elt, &MATROSKA_ContextChannels));
 }
 
 static void _mkv_track_free(MKVTrack *obj) {

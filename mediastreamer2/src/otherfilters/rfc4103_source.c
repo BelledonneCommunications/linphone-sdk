@@ -191,7 +191,7 @@ static void ms_rtt_4103_source_preprocess(MSFilter *f) {
 
 static void ms_rtt_4103_source_process(MSFilter *f) {
 	RealTimeTextSourceData *s = (RealTimeTextSourceData *)f->data;
-	uint32_t timestamp = f->ticker->time;
+	uint32_t timestamp = (uint32_t)f->ticker->time;
 	mblk_t *m;
 	
 	ms_filter_lock(f);

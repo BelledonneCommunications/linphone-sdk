@@ -33,7 +33,7 @@
 /* length in ms of the incoming signal used to adjust energy of PLC generated signal */
 #define ENERGY_ADJUSTMENT_WINDOW 10
 
-#define ENERGY_ATTENUATION 0.85
+#define ENERGY_ATTENUATION 0.85f
 
 typedef struct {
 	unsigned char *continuity_buffer; /**< buffer used to store a small set of future samples */
@@ -51,9 +51,9 @@ typedef struct {
 
 plc_context_t *generic_plc_create_context(int sample_rate);
 void generic_plc_destroy_context(plc_context_t *context);
-void generic_plc_transition_mix(int16_t *inout_buffer, int16_t *continuity_buffer, size_t fading_sample_nbr);
+void generic_plc_transition_mix(int16_t *inout_buffer, int16_t *continuity_buffer, uint16_t fading_sample_nbr);
 void generic_plc_fftbf(plc_context_t *context, int16_t *input_buffer, int16_t *output_buffer, size_t input_buffer_len);
-void generic_plc_generate_samples(plc_context_t *context, int16_t *data, size_t sample_nbr);
+void generic_plc_generate_samples(plc_context_t *context, int16_t *data, uint16_t sample_nbr);
 void generic_plc_update_plc_buffer(plc_context_t *context, unsigned char *data, size_t data_len);
 void generic_plc_update_continuity_buffer(plc_context_t *context, unsigned char *data, size_t data_len);
 

@@ -17,6 +17,11 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
+#define bool_t matroska_bool_t
+#include <matroska/matroska.h>
+#include <matroska/matroska_sem.h>
+#undef bool_t
+
 #define bool_t ms_bool_t
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msvideo.h"
@@ -26,11 +31,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/formats.h"
 #include "vp8rtpfmt.h"
 #include "mkv_reader.h"
-#undef bool_t
-
-#define bool_t matroska_bool_t
-#include <matroska/matroska.h>
-#include <matroska/matroska_sem.h>
 #undef bool_t
 
 #define bool_t ambigous use ms_bool_t or matroska_bool_t
@@ -123,8 +123,8 @@ static void H264Private_serialize(const H264Private *obj, uint8_t **data, size_t
 	uint8_t *result = NULL;
 	int i;
 
-	nbSPS = ms_list_size(obj->sps_list);
-	nbPPS = ms_list_size(obj->pps_list);
+	nbSPS = (uint8_t)ms_list_size(obj->sps_list);
+	nbPPS = (uint8_t)ms_list_size(obj->pps_list);
 
 	*size = 7;
 	*size += (nbSPS + nbPPS) * 2;
@@ -149,7 +149,7 @@ static void H264Private_serialize(const H264Private *obj, uint8_t **data, size_t
 	for(it = obj->sps_list; it != NULL; it = it->next) {
 		mblk_t *buff = (mblk_t *)(it->data);
 		size_t buff_size = msgdsize(buff);
-		uint16_t buff_size_be = htons(buff_size);
+		uint16_t buff_size_be = htons((uint16_t)buff_size);
 		memcpy(&result[i], &buff_size_be, sizeof(buff_size_be));
 		i += sizeof(buff_size_be);
 		memcpy(&result[i], buff->b_rptr, buff_size);
@@ -162,7 +162,7 @@ static void H264Private_serialize(const H264Private *obj, uint8_t **data, size_t
 	for(it = obj->pps_list; it != NULL; it = it->next) {
 		mblk_t *buff = (mblk_t *)(it->data);
 		int buff_size = msgdsize(buff);
-		uint16_t buff_size_be = htons(buff_size);
+		uint16_t buff_size_be = htons((uint16_t)buff_size);
 		memcpy(&result[i], &buff_size_be, sizeof(buff_size_be));
 		i += sizeof(buff_size_be);
 		memcpy(&result[i], buff->b_rptr, buff_size);
@@ -312,7 +312,7 @@ static void nalus_to_frame(mblk_t *buffer, mblk_t **frame, MSList **spsList, MSL
 	}
 
 	if(*frame != NULL) {
-		msgpullup(*frame, -1);
+		msgpullup(*frame, (size_t)-1);
 		mblk_set_timestamp_info(*frame, timecode);
 	}
 }
@@ -559,7 +559,7 @@ typedef struct {
 
 static void wav_private_set(WavPrivate *data, const MSFmtDescriptor *obj) {
 	uint16_t bitsPerSample = 8;
-	uint16_t nbBlockAlign = (bitsPerSample * obj->nchannels) / 8;
+	uint16_t nbBlockAlign = (uint16_t)((bitsPerSample * obj->nchannels) / 8);
 	uint32_t bitrate = bitsPerSample * obj->nchannels * obj->rate;
 
 	data->wFormatTag = le_uint16((uint16_t)7);
@@ -657,7 +657,7 @@ static void opus_codec_private_init(OpusCodecPrivate *obj) {
 }
 
 static void opus_codec_private_set(OpusCodecPrivate *obj, int nChannels, int inputSampleRate) {
-	obj->channelCount = nChannels;
+	obj->channelCount = (uint8_t)nChannels;
 	obj->inputSampleRate = le_uint32((uint32_t)inputSampleRate);
 }
 
@@ -938,7 +938,7 @@ static void matroska_uninit(Matroska *obj) {
 static int ebml_reading_profile(ebml_master *head) {
 	tchar_t docType[9];
 	int profile;
-	int docTypeReadVersion;
+	int64_t docTypeReadVersion;
 	tchar_t *matroska_doc_type =
 #ifdef UNICODE
 		L"matroska";
@@ -1255,7 +1255,7 @@ int matroska_block_get_track_num(const Matroska *obj) {
 }
 
 static int ebml_element_cmp_position(const void *a, const void *b) {
-	return EBML_ElementPosition((ebml_element *)a) - EBML_ElementPosition((ebml_element *)b);
+	return (int)(EBML_ElementPosition((ebml_element *)a) - EBML_ElementPosition((ebml_element *)b));
 }
 
 static void ebml_master_sort(ebml_master *master_elt) {
@@ -1282,7 +1282,7 @@ static int ebml_master_fill_blanks(stream *output, ebml_master *master) {
 	for(elt1 = EBML_MasterChildren(master), elt2 = EBML_MasterNext(elt1); elt2 != NULL; elt1 = EBML_MasterNext(elt1), elt2 = EBML_MasterNext(elt2)) {
 		filepos_t elt1_end_pos = EBML_ElementPositionEnd(elt1);
 		filepos_t elt2_pos = EBML_ElementPosition(elt2);
-		int interval = elt2_pos - elt1_end_pos;
+		int interval = (int)(elt2_pos - elt1_end_pos);
 		if(interval < 0) {
 			return -1; // Elements are neither contigus or distinct.
 		} else if(interval == 0) {
@@ -1345,7 +1345,7 @@ static int matroska_get_codec_private(const Matroska *obj, int trackNum, const u
 	if(codecPrivate == NULL)
 		return -2;
 
-	*length = EBML_ElementDataSize((ebml_element *)codecPrivate, FALSE);
+	*length = (size_t)EBML_ElementDataSize((ebml_element *)codecPrivate, FALSE);
 	*data =  EBML_BinaryGetData(codecPrivate);
 	if(*data == NULL)
 		return -3;
@@ -1551,7 +1551,7 @@ timecode_t matroska_get_current_cluster_timestamp(const Matroska *obj) {
 	return (timecode_t)EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild(obj->cluster, &MATROSKA_ContextTimecode));
 }
 
-static matroska_block *matroska_write_block(Matroska *obj, const matroska_frame *m_frame, int trackNum, ms_bool_t isKeyFrame, ms_bool_t isVisible, const uint8_t *codecPrivateData, size_t codecPrivateDataSize) {
+static matroska_block *matroska_write_block(Matroska *obj, const matroska_frame *m_frame, uint16_t trackNum, ms_bool_t isKeyFrame, ms_bool_t isVisible, const uint8_t *codecPrivateData, size_t codecPrivateDataSize) {
 	matroska_block *block = NULL;
 	ebml_master *blockGroup = NULL;
 	timecode_t clusterTimecode;
@@ -1589,12 +1589,12 @@ static matroska_block *matroska_write_block(Matroska *obj, const matroska_frame 
  * Muxer                                                                                     *
  *********************************************************************************************/
 typedef struct {
-	int nqueues;
+	uint16_t nqueues;
 	MSQueue *queues;
 } Muxer;
 
-static void muxer_init(Muxer *obj, int ninputs) {
-	int i;
+static void muxer_init(Muxer *obj, uint16_t ninputs) {
+	uint16_t i;
 	obj->nqueues = ninputs;
 	obj->queues = (MSQueue *)ms_new0(MSQueue, ninputs);
 	for(i = 0; i < ninputs; i++) {
@@ -1603,7 +1603,7 @@ static void muxer_init(Muxer *obj, int ninputs) {
 }
 
 static void muxer_empty_internal_queues(Muxer *obj) {
-	int i;
+	uint16_t i;
 	for(i = 0; i < obj->nqueues; i++) {
 		ms_queue_flush(&obj->queues[i]);
 	}
@@ -1614,12 +1614,12 @@ static void muxer_uninit(Muxer *obj) {
 	ms_free(obj->queues);
 }
 
-static void muxer_put_buffer(Muxer *obj, mblk_t *buffer, int pin) {
+static void muxer_put_buffer(Muxer *obj, mblk_t *buffer, uint16_t pin) {
 	ms_queue_put(&obj->queues[pin], buffer);
 }
 
-static mblk_t *muxer_get_buffer(Muxer *obj, int *pin) {
-	int i;
+static mblk_t *muxer_get_buffer(Muxer *obj, uint16_t *pin) {
+	uint16_t i;
 	MSQueue *minQueue = NULL;
 
 	for(i = 0; i < obj->nqueues; i++) {
@@ -1638,7 +1638,7 @@ static mblk_t *muxer_get_buffer(Muxer *obj, int *pin) {
 	if(minQueue == NULL) {
 		return NULL;
 	} else {
-		*pin = (minQueue - obj->queues);
+		*pin = (uint16_t)(minQueue - obj->queues);
 		return ms_queue_get(minQueue);
 	}
 }
@@ -1696,7 +1696,7 @@ static void time_corrector_proceed(TimeCorrector *obj, mblk_t *buffer, int pin) 
 		obj->offsetList[pin] = origin - mblk_get_timestamp_info(buffer);
 		obj->offsetIsSet[pin] = TRUE;
 	}
-	mblk_set_timestamp_info(buffer, mblk_get_timestamp_info(buffer) + obj->offsetList[pin]);
+	mblk_set_timestamp_info(buffer, mblk_get_timestamp_info(buffer) + (uint32_t)obj->offsetList[pin]);
 }
 
 /*********************************************************************************************
@@ -1731,7 +1731,7 @@ static uint32_t time_loop_canceler_apply(TimeLoopCanceler *obj, uint32_t timesta
 		}
 	}
 	obj->prevTimestamp = timestamp;
-	return (uint64_t)timestamp + (uint64_t)0x00000000ffffffff * (uint64_t)obj->module - (uint64_t)obj->offset;
+	return (uint32_t)((uint64_t)timestamp + (uint64_t)0x00000000ffffffff * (uint64_t)obj->module - (uint64_t)obj->offset);
 }
 
 /*********************************************************************************************
@@ -1763,7 +1763,7 @@ static void recorder_init(MSFilter *f) {
 	obj->state = MSRecorderClosed;
 	obj->needKeyFrame = TRUE;
 
-	muxer_init(&obj->muxer, f->desc->ninputs);
+	muxer_init(&obj->muxer, (uint16_t)f->desc->ninputs);
 
 	obj->inputDescsList = (const MSFmtDescriptor **)ms_new0(const MSFmtDescriptor *, f->desc->ninputs);
 	obj->modulesList = (Module **)ms_new0(Module *, f->desc->ninputs);
@@ -1791,7 +1791,7 @@ static void recorder_uninit(MSFilter *f) {
 	time_corrector_uninit(&obj->timeCorrector);
 	ms_free(obj->timeLoopCancelers);
 	ms_free(obj->modulesList);
-	ms_free(obj->inputDescsList);
+	ms_free((void *)obj->inputDescsList);
 	ms_free(obj);
 	ms_message("MKVRecorder: destroyed");
 }
@@ -1810,7 +1810,7 @@ static void recorder_postprocess(MSFilter *f) {
 	ms_filter_unlock(f);
 }
 
-static matroska_block *write_frame(MKVRecorder *obj, mblk_t *buffer, int pin) {
+static matroska_block *write_frame(MKVRecorder *obj, mblk_t *buffer, uint16_t pin) {
 	ms_bool_t isKeyFrame;
 	ms_bool_t isVisible;
 	uint8_t *codecPrivateData = NULL;
@@ -1974,7 +1974,7 @@ fail:
 
 static void recorder_process(MSFilter *f) {
 	MKVRecorder *obj = f->data;
-	int i;
+	uint16_t i;
 
 	ms_filter_lock(f);
 	if(obj->state != MSRecorderRunning) {
@@ -1984,7 +1984,7 @@ static void recorder_process(MSFilter *f) {
 			}
 		}
 	} else {
-		int pin;
+		uint16_t pin;
 		mblk_t *buffer = NULL;
 		for(i = 0; i < f->desc->ninputs; i++) {
 			if(f->inputs[i] != NULL && obj->inputDescsList[i] == NULL) {
@@ -2088,7 +2088,7 @@ static int recorder_close(MSFilter *f, void *arg) {
 		matroska_go_to_segment_info_begin(&obj->file);
 	}
 	obj->duration++;
-	matroska_set_segment_info(&obj->file, "libmediastreamer2", "libmediastreamer2", obj->duration);
+	matroska_set_segment_info(&obj->file, "libmediastreamer2", "libmediastreamer2", (double)obj->duration);
 	matroska_write_segment_info(&obj->file);
 	matroska_write_tracks(&obj->file);
 	matroska_go_to_segment_begin(&obj->file);
@@ -2232,8 +2232,8 @@ MS_FILTER_DESC_EXPORT(ms_mkv_recorder_desc)
  *********************************************************************************************/
 typedef struct {
 	MSList *queue;
-	int32_t min_timestamp;
-	int32_t dts; // Decoding timestamp
+	int64_t min_timestamp;
+	int64_t dts; // Decoding timestamp
 } MKVBlockQueue;
 
 static MKVBlockQueue *mkv_block_queue_new(void) {
@@ -2254,8 +2254,8 @@ static void mkv_block_queue_free(MKVBlockQueue *obj) {
 
 static void mkv_block_queue_push(MKVBlockQueue *obj, MKVBlock *block) {
 	obj->queue = ms_list_append(obj->queue, block);
-	if(obj->min_timestamp < 0 || block->timestamp < obj->min_timestamp) {
-		obj->min_timestamp = block->timestamp;
+	if(obj->min_timestamp < 0 || (int64_t)block->timestamp < obj->min_timestamp) {
+		obj->min_timestamp = (int64_t)block->timestamp;
 	}
 }
 
@@ -2280,15 +2280,15 @@ typedef struct {
 	MKVTrackReader *track_reader;
 	MKVBlockQueue *queue;
 	MKVBlock *waiting_block;
-	int32_t prev_timestamp;
-	int32_t prev_min_ts;
+	uint32_t prev_timestamp;
+	int64_t prev_min_ts;
 } MKVBlockGroupMaker;
 
 static MKVBlockGroupMaker *mkv_block_group_maker_new(MKVTrackReader *t_reader) {
 	MKVBlockGroupMaker *obj = (MKVBlockGroupMaker *)ms_new0(MKVBlockGroupMaker, 1);
 	obj->track_reader = t_reader;
 	obj->queue = mkv_block_queue_new();
-	obj->prev_timestamp = -1;
+	obj->prev_timestamp = 0;
 	obj->prev_min_ts = 0;
 	return obj;
 }
@@ -2297,7 +2297,7 @@ static void mkv_block_group_maker_reset(MKVBlockGroupMaker *obj) {
 	mkv_block_queue_flush(obj->queue);
 	if(obj->waiting_block) mkv_block_free(obj->waiting_block);
 	obj->waiting_block = NULL;
-	obj->prev_timestamp = -1;
+	obj->prev_timestamp = 0;
 	obj->prev_min_ts = 0;
 }
 
@@ -2357,8 +2357,10 @@ static MKVTrackPlayer *mkv_track_player_new(MSFactory *factory, MKVReader *reade
 	obj->track = track;
 	if(track->type == MKV_TRACK_TYPE_VIDEO) {
 		MKVVideoTrack *v_track = (MKVVideoTrack *)track;
-		MSVideoSize vsize = {v_track->width, v_track->height};
-		obj->output_pin_desc = ms_factory_get_video_format(factory, codec_name, vsize, v_track->frame_rate,NULL);
+		MSVideoSize vsize;
+		vsize.width = v_track->width;
+		vsize.height = v_track->height;
+		obj->output_pin_desc = ms_factory_get_video_format(factory, codec_name, vsize, (float)v_track->frame_rate, NULL);
 
 	} else if(track->type == MKV_TRACK_TYPE_AUDIO) {
 		MKVAudioTrack *a_track = (MKVAudioTrack *)track;
@@ -2683,7 +2685,7 @@ static int player_get_current_position(MSFilter *f, void *arg) {
 		ms_error("MKVPlayer: cannot get current duration. No file is open");
 		goto fail;
 	}
-	*(int *)arg = obj->time;
+	*(int64_t *)arg = (int64_t)obj->time;
 	ms_filter_unlock(f);
 	return 0;
 

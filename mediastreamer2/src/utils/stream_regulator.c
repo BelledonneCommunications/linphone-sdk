@@ -21,7 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 struct _MSStreamRegulator {
 	MSTicker *ticker;
-	int clock_rate;
+	int64_t clock_rate;
 	int64_t t_origin;
 	bool_t origin_set;
 	MSQueue queue;
@@ -53,7 +53,7 @@ mblk_t *ms_stream_regulator_get(MSStreamRegulator *obj) {
 		return pkt;
 	} else {
 		mblk_t *pkt = ms_queue_peek_first(&obj->queue);
-		int64_t timestamp = (int64_t)(mblk_get_timestamp_info(pkt)) * 1000LL / obj->clock_rate;
+		uint64_t timestamp = (uint64_t)(mblk_get_timestamp_info(pkt)) * 1000LL / obj->clock_rate;
 		if(timestamp <= obj->ticker->time - obj->t_origin) {
 			return ms_queue_get(&obj->queue);
 		} else {

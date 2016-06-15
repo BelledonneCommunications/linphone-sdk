@@ -486,7 +486,7 @@ static void volume_process(MSFilter *f){
 	 */
 	if (v->agc_enabled || v->peer!=NULL){
 		mblk_t *om;
-		int nbytes=v->nsamples*2;
+		size_t nbytes=(size_t)(v->nsamples*2);
 		ms_bufferizer_put_from_queue(v->buffer,f->inputs[0]);
 		while(ms_bufferizer_get_avail(v->buffer)>=nbytes){
 			om=allocb(nbytes,0);

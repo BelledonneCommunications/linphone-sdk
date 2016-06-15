@@ -52,7 +52,7 @@ plc_context_t *generic_plc_create_context(int sample_rate) {
 
 	/* initialise hamming window : h(t) = 0.75 - 0.25*cos(2pi*t/T) */
 	for(i=0; i<sample_rate*PLC_BUFFER_LEN; i++) {
-		context->hamming_window[i] = 0.75 - 0.25*cos( 2*PI*i/(sample_rate*PLC_BUFFER_LEN));
+		context->hamming_window[i] = (float)(0.75 - 0.25*cos( 2*PI*i/(sample_rate*PLC_BUFFER_LEN)));
 	}
 
 	return context;
@@ -75,7 +75,7 @@ void generic_plc_fftbf(plc_context_t *context, int16_t *input_buffer, int16_t *o
 	ms_word16_t *freq_domain_buffer = ms_malloc0(input_buffer_len*sizeof(ms_word16_t));
 	ms_word16_t *freq_domain_buffer_double = ms_malloc0(2*input_buffer_len*sizeof(ms_word16_t));
 	ms_word16_t *time_domain_buffer_double = ms_malloc0(2*input_buffer_len*sizeof(ms_word16_t));
-	int i;
+	size_t i;
 
 	/* convert to ms_word16_t the input buffer */
 	for (i=0; i<input_buffer_len; i++) {
@@ -106,8 +106,8 @@ void generic_plc_fftbf(plc_context_t *context, int16_t *input_buffer, int16_t *o
 	ms_free(time_domain_buffer_double);
 }
 
-void generic_plc_generate_samples(plc_context_t *context, int16_t *data, size_t sample_nbr) {
-	size_t continuity_buffer_sample_nbr = context->sample_rate*TRANSITION_DELAY/1000;
+void generic_plc_generate_samples(plc_context_t *context, int16_t *data, uint16_t sample_nbr) {
+	uint16_t continuity_buffer_sample_nbr = context->sample_rate*TRANSITION_DELAY/1000;
 
 	/* shall we just set everything to 0 */
 	if (context->plc_samples_used>=MAX_PLC_LEN*context->sample_rate/1000) {
@@ -209,8 +209,8 @@ void generic_plc_update_continuity_buffer(plc_context_t *context, unsigned char 
 
 
 /** Transition mix function, mix last received data with local generated one for smooth transition */
-void generic_plc_transition_mix(int16_t *inout_buffer, int16_t *continuity_buffer, size_t fading_sample_nbr) {
-	int i;
+void generic_plc_transition_mix(int16_t *inout_buffer, int16_t *continuity_buffer, uint16_t fading_sample_nbr) {
+	uint16_t i;
 	for (i=0; i<fading_sample_nbr; i++) {
 		float progress = ((float) i)/fading_sample_nbr;
 		inout_buffer[i] = (int16_t)((float)continuity_buffer[i]*(1-progress) + (float)inout_buffer[i]*progress);

@@ -35,7 +35,7 @@ typedef struct _MSConcealerContext MSConcealerContext;
  * Creates a new concealer object.
  * @param max_plc_count the number of consecutive milliseconds of PLC allowed.
 **/
-MS2_PUBLIC MSConcealerContext* ms_concealer_context_new(unsigned int max_plc_count);
+MS2_PUBLIC MSConcealerContext* ms_concealer_context_new(uint32_t max_plc_count);
 /**
  * Destroys a concealer object.
 **/
@@ -46,7 +46,7 @@ MS2_PUBLIC void ms_concealer_context_destroy(MSConcealerContext* context);
  * @param obj the concealer object
  * @param current_time the current time in milliseconds, as pointed by f->ticker->time .
 **/
-MS2_PUBLIC unsigned int ms_concealer_context_is_concealement_required(MSConcealerContext* obj,uint64_t current_time);
+MS2_PUBLIC unsigned int ms_concealer_context_is_concealement_required(MSConcealerContext* obj, uint64_t current_time);
 
 /**
  * Call this function whenever you decoded a packet, for true or in PLC mode, to inform the concealer
@@ -54,10 +54,10 @@ MS2_PUBLIC unsigned int ms_concealer_context_is_concealement_required(MSConceale
  * @param obj the concealer object
  * @param current_time the current time in milliseconds, as pointed by f->ticker->time.
  * @param time_increment the number of milliseconds of audio decoded.
- * @param got_packet set to 1 if a real frame was decoded, 0 if it was a PLC frame.
+ * @param got_packet set to TRUE if a real frame was decoded, FALSE if it was a PLC frame.
  * @return if a PLC period terminates, returns the duration of this PLC period in milliseconds, 0 otherwise.
 **/
-MS2_PUBLIC int ms_concealer_inc_sample_time(MSConcealerContext* obj, uint64_t current_time, int time_increment, int got_packet);
+MS2_PUBLIC uint32_t ms_concealer_inc_sample_time(MSConcealerContext* obj, uint64_t current_time, uint32_t time_increment, bool_t got_packet);
 
 
 MS2_PUBLIC unsigned long ms_concealer_context_get_total_number_of_plc(MSConcealerContext* obj);
@@ -91,10 +91,10 @@ MS2_PUBLIC unsigned int ms_concealer_ts_context_is_concealement_required(MSConce
  * @param obj the concealer object
  * @param current_ts the current time converted in timestamp units, usually (f->ticker->time*clock_rate)/1000
  * @param ts_increment the duration of audio decoded expressed in timestamp units
- * @param got_packet set to 1 if a real frame was decoded, 0 if it was a PLC frame.
+ * @param got_packet set to TRUE if a real frame was decoded, FALSE if it was a PLC frame.
  * @return if a PLC period terminates, returns the duration of this PLC period in timestamp units, 0 otherwise.
 **/
-MS2_PUBLIC int ms_concealer_ts_context_inc_sample_ts(MSConcealerTsContext* obj, uint64_t current_ts, int ts_increment, int got_packet);
+MS2_PUBLIC int ms_concealer_ts_context_inc_sample_ts(MSConcealerTsContext* obj, uint64_t current_ts, uint32_t ts_increment, bool_t got_packet);
 
 
 MS2_PUBLIC unsigned long ms_concealer_ts_context_get_total_number_of_plc(MSConcealerTsContext* obj);

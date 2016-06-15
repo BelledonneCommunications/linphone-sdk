@@ -78,7 +78,7 @@ typedef struct {
 typedef struct {
 	MKVTrack base;
 	int sampling_freq;
-	int channels;
+	uint8_t channels;
 } MKVAudioTrack;
 
 typedef struct _MKVTrackReader MKVTrackReader;

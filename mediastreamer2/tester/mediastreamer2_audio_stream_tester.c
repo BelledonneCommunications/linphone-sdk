@@ -144,7 +144,7 @@ static void basic_audio_stream_base_2(	const char* marielle_local_ip
 	RtpProfile* profile = rtp_profile_new("default profile");
 	char* hello_file = bc_tester_res(HELLO_8K_1S_FILE);
 	char* recorded_file = bc_tester_file(RECORDED_8K_1S_FILE);
-	int marielle_rtp_sent=0;
+	uint64_t marielle_rtp_sent=0;
 
 	rtp_session_set_multicast_loopback(marielle->ms.sessions.rtp_session,TRUE);
 	rtp_session_set_multicast_loopback(margaux->ms.sessions.rtp_session,TRUE);
@@ -197,12 +197,12 @@ static void basic_audio_stream_base_2(	const char* marielle_local_ip
 
 	if (rtp_session_rtcp_enabled(marielle->ms.sessions.rtp_session) && rtp_session_rtcp_enabled(margaux->ms.sessions.rtp_session)) {
 		BC_ASSERT_GREATER_STRICT(rtp_session_get_round_trip_propagation(marielle->ms.sessions.rtp_session),0,float,"%f");
-		BC_ASSERT_GREATER_STRICT(rtp_session_get_stats(marielle->ms.sessions.rtp_session)->recv_rtcp_packets,0,unsigned long,"%lu");
+		BC_ASSERT_GREATER_STRICT(rtp_session_get_stats(marielle->ms.sessions.rtp_session)->recv_rtcp_packets,0,unsigned long long,"%llu");
 	}
 
 	audio_stream_stop(marielle);
 
-	BC_ASSERT_TRUE(wait_for_until(&margaux->ms,NULL,(int*)&margaux_stats.rtp.hw_recv,marielle_rtp_sent*(100-lost_percentage)/100,2500));
+	BC_ASSERT_TRUE(wait_for_until(&margaux->ms,NULL,(int*)&margaux_stats.rtp.hw_recv,(int)((marielle_rtp_sent*(100-lost_percentage))/100),2500));
 
 	audio_stream_stop(margaux);
 
@@ -256,7 +256,7 @@ static void encrypted_audio_stream_base( bool_t change_ssrc,
 	stats_t marielle_stats;
 	stats_t margaux_stats;
 	int dummy=0;
-	int number_of_dropped_packets=0;
+	uint64_t number_of_dropped_packets=0;
 
 	const char *aes_128_bits_send_key = "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj";
 	const char *aes_128_bits_send_key_2 = "eCYF4nYyCvmCpFWjUeDaxI2GWp2BzCRlIPfg52Te";
@@ -332,7 +332,7 @@ static void encrypted_audio_stream_base( bool_t change_ssrc,
 			wait_for_until(&marielle->ms,&margaux->ms,&dummy,1,1000);
 			audio_stream_get_local_rtp_stats(margaux,&margaux_stats.rtp);
 			audio_stream_get_local_rtp_stats(marielle,&marielle_stats.rtp);
-			BC_ASSERT_EQUAL(margaux_stats.rtp.recv,0, int, "%d");
+			BC_ASSERT_EQUAL(margaux_stats.rtp.recv,0, unsigned long long, "%llu");
 			number_of_dropped_packets=marielle_stats.rtp.packet_sent;
 		}
 
@@ -385,7 +385,7 @@ static void encrypted_audio_stream_base( bool_t change_ssrc,
 			/*we can accept one or 2 error in such case*/
 			BC_ASSERT_TRUE((marielle_stats.rtp.packet_sent-margaux_stats.rtp.packet_recv-number_of_dropped_packets)<3);
 		} else
-			BC_ASSERT_EQUAL(marielle_stats.rtp.packet_sent,margaux_stats.rtp.packet_recv+number_of_dropped_packets, int, "%d");
+			BC_ASSERT_EQUAL(marielle_stats.rtp.packet_sent,margaux_stats.rtp.packet_recv+number_of_dropped_packets, unsigned long long, "%llu");
 
 		if (change_ssrc) {
 			audio_stream_stop(marielle);
@@ -417,7 +417,7 @@ static void encrypted_audio_stream_base( bool_t change_ssrc,
 			audio_stream_get_local_rtp_stats(margaux,&margaux_stats.rtp);
 
 			/* No packet loss is assumed */
-			BC_ASSERT_EQUAL(marielle_stats.rtp.sent*2,margaux_stats.rtp.recv, int, "%d");
+			BC_ASSERT_EQUAL(marielle_stats.rtp.sent*2,margaux_stats.rtp.recv, unsigned long long, "%llu");
 
 		}
 
@@ -495,7 +495,7 @@ static void codec_change_for_audio_stream(void) {
 	audio_stream_get_local_rtp_stats(margaux, &margaux_stats.rtp);
 
 	/* No packet loss is assumed */
-	BC_ASSERT_EQUAL(marielle_stats.rtp.sent, margaux_stats.rtp.recv, int, "%d");
+	BC_ASSERT_EQUAL(marielle_stats.rtp.sent, margaux_stats.rtp.recv, unsigned long long, "%llu");
 	marielle_rtp_sent = marielle_stats.rtp.sent;
 
 	audio_stream_stop(marielle);
@@ -516,7 +516,7 @@ static void codec_change_for_audio_stream(void) {
 	audio_stream_get_local_rtp_stats(margaux, &margaux_stats.rtp);
 
 	/* No packet loss is assumed */
-	BC_ASSERT_EQUAL(marielle_stats.rtp.sent + marielle_rtp_sent, margaux_stats.rtp.recv, int, "%d");
+	BC_ASSERT_EQUAL(marielle_stats.rtp.sent + marielle_rtp_sent, margaux_stats.rtp.recv, unsigned long long, "%llu");
 	BC_ASSERT_EQUAL(strcasecmp(margaux->ms.decoder->desc->enc_fmt, "pcma"), 0, int, "%d");
 	audio_stream_stop(marielle);
 	audio_stream_stop(margaux);

@@ -143,7 +143,7 @@ static void enc_process (MSFilter *f){
 	short *buf= NULL;
 	mblk_t *inputMessage = NULL, *outputMessage = NULL;
 	int frame_per_packet=s->ptime/5;
-	int in_rcvd_bytes = 0;
+	size_t in_rcvd_bytes = 0;
 
 	in_rcvd_bytes = SIGNAL_FRAME_SIZE * frame_per_packet;
 	buf=(short*)alloca(in_rcvd_bytes);

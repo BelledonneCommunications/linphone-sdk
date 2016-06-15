@@ -586,13 +586,13 @@ static void winsnd_write_process(MSFilter *f){
 		WAVEHDR *hdr=&d->hdrs_write[outcurbuf];
 		old=(mblk_t*)hdr->dwUser;
 		if (d->nsamples==0){
-			int tmpsize=WINSND_OUT_DELAY*d->wfx.nAvgBytesPerSec;
+			int tmpsize=(int)WINSND_OUT_DELAY*d->wfx.nAvgBytesPerSec;
 			mblk_t *tmp=allocb(tmpsize,0);
 			memset(tmp->b_wptr,0,tmpsize);
 			tmp->b_wptr+=tmpsize;
 			playout_buf(d,hdr,tmp);
 			d->outcurbuf++;
-			d->nsamples+=WINSND_OUT_DELAY*d->wfx.nSamplesPerSec;
+			d->nsamples+=(int)(WINSND_OUT_DELAY*d->wfx.nSamplesPerSec);
 			continue;
 		}
 		m=ms_queue_get(f->inputs[0]);

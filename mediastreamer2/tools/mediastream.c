@@ -168,8 +168,8 @@ void clear_mediastreams(MediastreamDatas* args);
 
 // HELPER METHODS
 void stop_handler(int signum);
-static bool_t parse_addr(const char *addr, char *ip, int len, int *port);
-static bool_t parse_ice_addr(char* addr, char* type, int type_len, char* ip, int ip_len, int* port);
+static bool_t parse_addr(const char *addr, char *ip, size_t len, int *port);
+static bool_t parse_ice_addr(char* addr, char* type, size_t type_len, char* ip, size_t ip_len, int* port);
 static void display_items(void *user_data, uint32_t csrc, rtcp_sdes_type_t t, const char *content, uint8_t content_len);
 static void parse_rtcp(mblk_t *m);
 static void parse_events(RtpSession *session, OrtpEvQueue *q);
@@ -456,10 +456,10 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 			out->use_rc=1;
 		}else if (strcmp(argv[i],"--ng-threshold")==0){
 			i++;
-			out->ng_threshold=atof(argv[i]);
+			out->ng_threshold=(float)atof(argv[i]);
 		}else if (strcmp(argv[i],"--ng-floorgain")==0){
 			i++;
-			out->ng_floorgain=atof(argv[i]);
+			out->ng_floorgain=(float)atof(argv[i]);
 		}else if (strcmp(argv[i],"--two-windows")==0){
 			out->two_windows=TRUE;
 		}else if (strcmp(argv[i],"--infile")==0){
@@ -475,19 +475,19 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 			out->el=TRUE;
 		}else if (strcmp(argv[i],"--el-speed")==0){
 			i++;
-			out->el_speed=atof(argv[i]);
+			out->el_speed=(float)atof(argv[i]);
 		}else if (strcmp(argv[i],"--el-thres")==0){
 			i++;
-			out->el_thres=atof(argv[i]);
+			out->el_thres=(float)atof(argv[i]);
 		}else if (strcmp(argv[i],"--el-force")==0){
 			i++;
-			out->el_force=atof(argv[i]);
+			out->el_force=(float)atof(argv[i]);
 		}else if (strcmp(argv[i],"--el-sustain")==0){
 			i++;
 			out->el_sustain=atoi(argv[i]);
 		}else if (strcmp(argv[i],"--el-transmit-thres")==0){
 			i++;
-			out->el_transmit_thres=atof(argv[i]);
+			out->el_transmit_thres=(float)atof(argv[i]);
 		} else if (strcmp(argv[i],"--zrtp")==0){
 			out->zrtp_secrets=argv[++i];
 		} else if (strcmp(argv[i],"--verbose")==0){
@@ -516,7 +516,7 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 		} else if (strcmp(argv[i],"--netsim-bandwidth")==0){
 			i++;
 			if (i<argc){
-				out->netsim.max_bandwidth=atoi(argv[i]);
+				out->netsim.max_bandwidth=(float)atoi(argv[i]);
 				out->netsim.enabled=TRUE;
 			}else{
 				ms_error("Missing argument for --netsim-bandwidth");
@@ -525,7 +525,7 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 		}else if (strcmp(argv[i],"--netsim-lossrate")==0){
 			i++;
 			if (i<argc){
-				out->netsim.loss_rate=atoi(argv[i]);
+				out->netsim.loss_rate=(float)atoi(argv[i]);
 				if (out->netsim.loss_rate < 0 || out->netsim.loss_rate>100) {
 					ms_error("Loss rate must be between 0 and 100.");
 					return FALSE;
@@ -1238,10 +1238,10 @@ void stop_handler(int signum)
 	}
 }
 
-static bool_t parse_addr(const char *addr, char *ip, int len, int *port)
+static bool_t parse_addr(const char *addr, char *ip, size_t len, int *port)
 {
 	const char *semicolon=NULL;
-	int iplen;
+	size_t iplen;
 	int slen;
 	const char *p;
 
@@ -1272,10 +1272,10 @@ static bool_t parse_addr(const char *addr, char *ip, int len, int *port)
 	return TRUE;
 }
 
-static bool_t parse_ice_addr(char *addr, char *type, int type_len, char *ip, int ip_len, int *port)
+static bool_t parse_ice_addr(char *addr, char *type, size_t type_len, char *ip, size_t ip_len, int *port)
 {
 	char *semicolon=NULL;
-	int slen;
+	size_t slen;
 
 	semicolon=strrchr(addr,':');
 	if (semicolon==NULL) return FALSE;
