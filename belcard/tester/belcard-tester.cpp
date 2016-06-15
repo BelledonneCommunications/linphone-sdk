@@ -17,10 +17,8 @@
 */
 
 #include "belcard-tester.hpp"
+#include <bctoolbox/logging.h>
 
-#define MESSAGE 1<<1
-#define WARNING 1<<2
-#define ERROR 1<<3
 
 int main(int argc, char *argv[]) {
 	int i;
@@ -54,21 +52,21 @@ int main(int argc, char *argv[]) {
 
 static void log_handler(int lev, const char *fmt, va_list args) {
 #ifdef _WIN32
-	vfprintf(lev == ERROR ? stderr : stdout, fmt, args);
-	fprintf(lev == ERROR ? stderr : stdout, "\n");
+	vfprintf(lev == BCTBX_LOG_ERROR ? stderr : stdout, fmt, args);
+	fprintf(lev == BCTBX_LOG_ERROR ? stderr : stdout, "\n");
 #else
 	va_list cap;
 	va_copy(cap,args);
 	/* Otherwise, we must use stdio to avoid log formatting (for autocompletion etc.) */
-	vfprintf(lev == ERROR ? stderr : stdout, fmt, cap);
-	fprintf(lev == ERROR ? stderr : stdout, "\n");
+	vfprintf(lev == BCTBX_LOG_ERROR ? stderr : stdout, fmt, cap);
+	fprintf(lev == BCTBX_LOG_ERROR ? stderr : stdout, "\n");
 	va_end(cap);
 #endif
 }
 
 void belcard_tester_init(void(*ftester_printf)(int level, const char *fmt, va_list args)) {
 	if (ftester_printf == NULL) ftester_printf = log_handler;
-	bc_tester_init(ftester_printf, MESSAGE, ERROR, "vcards");
+	bc_tester_init(ftester_printf, BCTBX_LOG_MESSAGE, BCTBX_LOG_ERROR, "vcards");
 
 	bc_tester_add_suite(&vcard_general_properties_test_suite);
 	bc_tester_add_suite(&vcard_identification_properties_test_suite);
