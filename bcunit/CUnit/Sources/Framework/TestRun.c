@@ -116,7 +116,7 @@ static CU_pFailureRecord f_last_failure = NULL;
 static CU_BOOL f_failure_on_inactive = CU_TRUE;
 
 /** Variable for storage of start time for test run. */
-static clock_t f_start_time;
+static time_t f_start_time;
 
 
 /** Pointer to the function to be called before running a suite. */
