@@ -20,11 +20,25 @@
 #
 ############################################################################
 
-file(GLOB SOURCE_FILES_CXX "belcard-*.cpp")
+set(HEADER_FILES_CXX belcard-tester.hpp)
+set(SOURCE_FILES_CXX
+	belcard-addressing-tester.cpp
+	belcard-calendar-tester.cpp
+	belcard-communication-tester.cpp
+	belcard-explanatory-tester.cpp
+	belcard-general-tester.cpp
+	belcard-geographical-tester.cpp
+	belcard-identification-tester.cpp
+	belcard-organizational-tester.cpp
+	belcard-rfc6474-tester.cpp
+	belcard-security-tester.cpp
+	belcard-tester.cpp
+	belcard-vcard-tester.cpp
+)
 
 apply_compile_flags(SOURCE_FILES_CXX "CPP" "CXX")
 
-add_executable(belcard-tester ${SOURCE_FILES_CXX})
+add_executable(belcard-tester ${SOURCE_FILES_CXX} ${HEADER_FILES_CXX})
 set_target_properties(belcard-tester PROPERTIES LINKER_LANGUAGE CXX)
 target_include_directories(belcard-tester PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIRS})
 target_link_libraries(belcard-tester belcard ${BCTOOLBOX_TESTER_LIBRARIES})
