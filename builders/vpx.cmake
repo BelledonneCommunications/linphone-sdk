@@ -129,7 +129,7 @@ else()
 			set(EP_vpx_TARGET "x86-android-gcc")
 		endif()
 		list(APPEND EP_vpx_CONFIGURE_OPTIONS
-			"--sdk-path=${ANDROID_NDK_PATH}"
+			"--sdk-path=${ANDROID_NDK_PATH}/"
 			"--enable-pic"
 		)
 		set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared" "--enable-pic")
