@@ -31,6 +31,7 @@
 
 #include "belle-sip/belle-sip.h"
 #include "belle-sip/belle-sdp.h"
+#include <bctoolbox/bc_vfs.h>
 
 int main(int argc, char *argv[]){
 	char *str;
