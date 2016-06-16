@@ -34,15 +34,15 @@ MSSndCardManager * ms_snd_card_manager_new(void){
 
 void ms_snd_card_manager_destroy(MSSndCardManager* scm){
 	if (scm!=NULL){
-		MSList *elem;
+		bctbx_list_t *elem;
 		for(elem=scm->descs;elem!=NULL;elem=elem->next){
 			MSSndCardDesc *desc = (MSSndCardDesc*)elem->data;
 			if (desc->unload!=NULL)
 				desc->unload(scm);
 		}
-		ms_list_for_each(scm->cards,(void (*)(void*))ms_snd_card_destroy);
-		ms_list_free(scm->cards);
-		ms_list_free(scm->descs);
+		bctbx_list_for_each(scm->cards,(void (*)(void*))ms_snd_card_destroy);
+		bctbx_list_free(scm->cards);
+		bctbx_list_free(scm->descs);
 	}
 	ms_free(scm);
 	scm=NULL;
@@ -53,7 +53,7 @@ MSFactory * ms_snd_card_get_factory(MSSndCard * c){
 }
 
 MSSndCard * ms_snd_card_manager_get_card(MSSndCardManager *m, const char *id){
-	MSList *elem;
+	bctbx_list_t *elem;
 	for (elem=m->cards;elem!=NULL;elem=elem->next){
 		MSSndCard *card=(MSSndCard*)elem->data;
 		if (id==NULL) return card;
@@ -64,7 +64,7 @@ MSSndCard * ms_snd_card_manager_get_card(MSSndCardManager *m, const char *id){
 }
 
 static MSSndCard *get_card_with_cap(MSSndCardManager *m, const char *id, unsigned int caps){
-	MSList *elem;
+	bctbx_list_t *elem;
 	for (elem=m->cards;elem!=NULL;elem=elem->next){
 		MSSndCard *card=(MSSndCard*)elem->data;
 		if ((id== NULL || strcmp(ms_snd_card_get_string_id(card),id)==0) && (card->capabilities & caps) == caps)	return card;
@@ -101,7 +101,7 @@ MSSndCard * ms_snd_card_manager_get_default_playback_card(MSSndCardManager *m){
 	return get_card_with_cap(m, NULL, MS_SND_CARD_CAP_PLAYBACK);
 }
 
-const MSList * ms_snd_card_manager_get_list(MSSndCardManager *m){
+const bctbx_list_t * ms_snd_card_manager_get_list(MSSndCardManager *m){
 	return m->cards;
 }
 
@@ -119,13 +119,13 @@ static const char *cap_to_string(unsigned int cap){
 void ms_snd_card_manager_add_card(MSSndCardManager *m, MSSndCard *c){
 	ms_snd_card_set_manager(m,c);
 	ms_message("Card '%s' added with capabilities [%s]",ms_snd_card_get_string_id(c), cap_to_string(c->capabilities));
-	m->cards=ms_list_append(m->cards,c);
+	m->cards=bctbx_list_append(m->cards,c);
 }
 
-void ms_snd_card_manager_prepend_cards(MSSndCardManager *m, MSList *l) {
-	MSList *elem;
-	MSList *lcopy = ms_list_copy(l);
-	if (m->cards != NULL) m->cards = ms_list_concat(lcopy, m->cards);
+void ms_snd_card_manager_prepend_cards(MSSndCardManager *m, bctbx_list_t *l) {
+	bctbx_list_t *elem;
+	bctbx_list_t *lcopy = bctbx_list_copy(l);
+	if (m->cards != NULL) m->cards = bctbx_list_concat(lcopy, m->cards);
 	else m->cards = lcopy;
 	for (elem = l; elem != NULL; elem = elem->next) {
 		MSSndCard *card = (MSSndCard *)elem->data;
@@ -140,16 +140,16 @@ static void card_detect(MSSndCardManager *m, MSSndCardDesc *desc){
 }
 
 void ms_snd_card_manager_register_desc(MSSndCardManager *m, MSSndCardDesc *desc){
-	if (ms_list_find(m->descs, desc) == NULL){
-		m->descs=ms_list_append(m->descs,desc);
+	if (bctbx_list_find(m->descs, desc) == NULL){
+		m->descs=bctbx_list_append(m->descs,desc);
 		card_detect(m,desc);
 	}
 }
 
 void ms_snd_card_manager_reload(MSSndCardManager *m){
-	MSList *elem;
-	ms_list_for_each(m->cards,(void (*)(void*))ms_snd_card_destroy);
-	ms_list_free(m->cards);
+	bctbx_list_t *elem;
+	bctbx_list_for_each(m->cards,(void (*)(void*))ms_snd_card_destroy);
+	bctbx_list_free(m->cards);
 	m->cards=NULL;
 	for(elem=m->descs;elem!=NULL;elem=elem->next)
 		card_detect(m,(MSSndCardDesc*)elem->data);

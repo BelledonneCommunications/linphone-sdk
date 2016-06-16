@@ -1305,8 +1305,8 @@ void ms_turn_context_destroy(MSTurnContext *context) {
 	}
 	if (context->ha1 != NULL) ms_free(context->ha1);
 	if (context->endpoint != NULL) context->endpoint->data = NULL;
-	ms_list_for_each(context->allowed_peer_addresses, (MSIterateFunc)ms_free);
-	ms_list_free(context->allowed_peer_addresses);
+	bctbx_list_for_each(context->allowed_peer_addresses, (MSIterateFunc)ms_free);
+	bctbx_list_free(context->allowed_peer_addresses);
 	ms_free(context);
 }
 
@@ -1390,7 +1390,7 @@ void ms_turn_context_set_force_rtp_sending_via_relay(MSTurnContext *context, boo
 }
 
 bool_t ms_turn_context_peer_address_allowed(const MSTurnContext *context, const MSStunAddress *peer_address) {
-	MSList *elem = context->allowed_peer_addresses;
+	bctbx_list_t *elem = context->allowed_peer_addresses;
 	while (elem != NULL) {
 		MSStunAddress *allowed_peer = (MSStunAddress *)elem->data;
 		if (ms_compare_stun_addresses(allowed_peer, peer_address) == FALSE) return TRUE;
@@ -1403,7 +1403,7 @@ void ms_turn_context_allow_peer_address(MSTurnContext *context, const MSStunAddr
 	if (!ms_turn_context_peer_address_allowed(context, peer_address)) {
 		MSStunAddress *new_peer = ms_malloc(sizeof(MSStunAddress));
 		memcpy(new_peer, peer_address, sizeof(MSStunAddress));
-		context->allowed_peer_addresses = ms_list_append(context->allowed_peer_addresses, new_peer);
+		context->allowed_peer_addresses = bctbx_list_append(context->allowed_peer_addresses, new_peer);
 		context->stats.nb_successful_create_permission++;
 	}
 }

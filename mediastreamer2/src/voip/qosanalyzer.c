@@ -378,13 +378,13 @@ static bool_t stateful_analyzer_process_rtcp(MSQosAnalyzer *objbase, mblk_t *rtc
 			obj->latest->loss_percent=loss_rate;
 			obj->latest->rtt=rtp_session_get_round_trip_propagation(obj->session);
 
-			obj->rtcpstatspoint=ms_list_insert_sorted(obj->rtcpstatspoint,
-				obj->latest, (MSCompareFunc)sort_by_bandwidth);
+			obj->rtcpstatspoint=bctbx_list_insert_sorted(obj->rtcpstatspoint,
+				obj->latest, (bctbx_compare_func)sort_by_bandwidth);
 
 			/*if the measure was 0% loss, reset to 0% every measures below it*/
 			if (obj->latest->loss_percent < 1e-5){
-				MSList *it=obj->rtcpstatspoint;
-				MSList *latest_pos=ms_list_find(obj->rtcpstatspoint,obj->latest);
+				bctbx_list_t *it=obj->rtcpstatspoint;
+				bctbx_list_t *latest_pos=bctbx_list_find(obj->rtcpstatspoint,obj->latest);
 				while (it!=latest_pos->next){
 					((rtcpstatspoint_t *)it->data)->loss_percent=0.f;
 					it = it->next;
@@ -393,16 +393,16 @@ static bool_t stateful_analyzer_process_rtcp(MSQosAnalyzer *objbase, mblk_t *rtc
 			ms_message("MSStatefulQosAnalyzer[%p]: one more %d: %f %f",
 				obj, obj->curindex-1, obj->latest->bandwidth, obj->latest->loss_percent);
 
-			if (ms_list_size(obj->rtcpstatspoint) > ESTIM_HISTORY){
-				int prev_size = ms_list_size(obj->rtcpstatspoint);
+			if (bctbx_list_size(obj->rtcpstatspoint) > ESTIM_HISTORY){
+				size_t prev_size = bctbx_list_size(obj->rtcpstatspoint);
 
 				/*clean everything which occurred 60 sec or more ago*/
 				time_t clear_time = ms_time(0) - 60;
-				obj->rtcpstatspoint = ms_list_remove_custom(obj->rtcpstatspoint,
-					(MSCompareFunc)earlier_than, &clear_time);
+				obj->rtcpstatspoint = bctbx_list_remove_custom(obj->rtcpstatspoint,
+					(bctbx_compare_func)earlier_than, &clear_time);
 				ms_message("MSStatefulQosAnalyzer[%p]: reached list maximum capacity "
-					"(count=%d) --> Cleaned list (count=%u)",
-					obj, prev_size,(unsigned int) ms_list_size(obj->rtcpstatspoint));
+					"(count=%u) --> Cleaned list (count=%u)",
+					obj, (unsigned int)prev_size, (unsigned int)bctbx_list_size(obj->rtcpstatspoint));
 			}
 			return TRUE;
 		}
@@ -414,7 +414,7 @@ static double lerp(double inf, double sup, double v){
 	return inf + (sup - inf) * v;
 }
 
-static MSList *find_first_with_loss(MSList *list){
+static bctbx_list_t *find_first_with_loss(bctbx_list_t *list){
 	for(;list!=NULL;list=list->next){
 		if (((rtcpstatspoint_t *)list->data)->loss_percent > 1e-5){
 			return list;
@@ -424,8 +424,8 @@ static MSList *find_first_with_loss(MSList *list){
 }
 
 static void smooth_values(MSStatefulQosAnalyzer *obj){
-	MSList *first_loss = find_first_with_loss(obj->rtcpstatspoint);
-	MSList *it = obj->rtcpstatspoint;
+	bctbx_list_t *first_loss = find_first_with_loss(obj->rtcpstatspoint);
+	bctbx_list_t *it = obj->rtcpstatspoint;
 	rtcpstatspoint_t *curr = (rtcpstatspoint_t *)it->data;
 	double prev_loss = 0.;
 
@@ -460,12 +460,12 @@ static void smooth_values(MSStatefulQosAnalyzer *obj){
 }
 
 static double compute_available_bw(MSStatefulQosAnalyzer *obj){
-	MSList *it;
+	bctbx_list_t *it;
 	double constant_network_loss = 0.;
 	double mean_bw = 0.;
-	MSList *current = obj->rtcpstatspoint;
-	MSList *last = current;
-	int size = ms_list_size(obj->rtcpstatspoint);
+	bctbx_list_t *current = obj->rtcpstatspoint;
+	bctbx_list_t *last = current;
+	int size = bctbx_list_size(obj->rtcpstatspoint);
 	if (current == NULL){
 		ms_message("MSStatefulQosAnalyzer[%p]: no points available for estimation", obj);
 		return -1;
@@ -487,7 +487,7 @@ static double compute_available_bw(MSStatefulQosAnalyzer *obj){
 		rtcpstatspoint_t * point = (rtcpstatspoint_t *)it->data;
 		(void)point;
 		ms_message("MSStatefulQosAnalyzer[%p]:\t\tsorted values %d: %f %f",
-			obj, ms_list_position(obj->rtcpstatspoint, it), point->bandwidth, point->loss_percent);
+			obj, bctbx_list_position(obj->rtcpstatspoint, it), point->bandwidth, point->loss_percent);
 	}
 #endif
 
@@ -497,13 +497,13 @@ static double compute_available_bw(MSStatefulQosAnalyzer *obj){
 		mean_bw = p->bandwidth * ((p->loss_percent>1e-5) ? (100-p->loss_percent)/100.f:2);
 	}else{
 		while (current!=NULL && ((rtcpstatspoint_t*)current->data)->loss_percent<3+constant_network_loss){
-			ms_message("MSStatefulQosAnalyzer[%p]:\t%d is stable", obj, ms_list_position(obj->rtcpstatspoint, current));
+			ms_message("MSStatefulQosAnalyzer[%p]:\t%d is stable", obj, bctbx_list_position(obj->rtcpstatspoint, current));
 
 			/*find the last stable measure point, starting from highest bandwidth*/
 			for (it=last;it!=current;it=it->prev){
 				if (((rtcpstatspoint_t *)it->data)->loss_percent <= 3 + ((rtcpstatspoint_t*)current->data)->loss_percent){
 					ms_message("MSStatefulQosAnalyzer[%p]:\t%d is less than %d",
-						obj, ms_list_position(obj->rtcpstatspoint, it), ms_list_position(obj->rtcpstatspoint, current));
+						obj, bctbx_list_position(obj->rtcpstatspoint, it), bctbx_list_position(obj->rtcpstatspoint, current));
 					current = it;
 					break;
 				}
@@ -529,14 +529,14 @@ static double compute_available_bw(MSStatefulQosAnalyzer *obj){
 
 		ms_message("MSStatefulQosAnalyzer[%p]: [0->%d] last stable is %d(%f;%f)"
 			, obj
-			, ms_list_position(obj->rtcpstatspoint, last)
-			, ms_list_position(obj->rtcpstatspoint, (current ? current->prev : last))
+			, bctbx_list_position(obj->rtcpstatspoint, last)
+			, bctbx_list_position(obj->rtcpstatspoint, (current ? current->prev : last))
 			, ((rtcpstatspoint_t*) (current ? current->prev->data : last->data))->bandwidth
 			, ((rtcpstatspoint_t*) (current ? current->prev->data : last->data))->loss_percent);
 		if (current!=NULL){
 			ms_message("MSStatefulQosAnalyzer[%p]: , first unstable is %d(%f;%f)"
 				, obj
-				, ms_list_position(obj->rtcpstatspoint, current)
+				, bctbx_list_position(obj->rtcpstatspoint, current)
 				, ((rtcpstatspoint_t*) current->data)->bandwidth
 				, ((rtcpstatspoint_t*) current->data)->loss_percent);
 		}
@@ -568,8 +568,8 @@ static void stateful_analyzer_suggest_action(MSQosAnalyzer *objbase, MSRateContr
 	}else {
 		curbw = obj->latest ? obj->latest->bandwidth : 0.;
 		bw = compute_available_bw(obj);
-		greatest_pt = ms_list_size(obj->rtcpstatspoint) ?
-			(rtcpstatspoint_t*)ms_list_nth_data(obj->rtcpstatspoint, ms_list_size(obj->rtcpstatspoint)-1)
+		greatest_pt = bctbx_list_size(obj->rtcpstatspoint) ?
+			(rtcpstatspoint_t*)bctbx_list_nth_data(obj->rtcpstatspoint, bctbx_list_size(obj->rtcpstatspoint)-1)
 			: NULL;
 
 		/*try a burst every 50 seconds (10 RTCP packets)*/
@@ -677,8 +677,8 @@ static void stateful_analyzer_update(MSQosAnalyzer *objbase){
 
 static void stateful_analyzer_uninit(MSQosAnalyzer *objbase){
 	MSStatefulQosAnalyzer *obj=(MSStatefulQosAnalyzer*)objbase;
-	ms_list_for_each(obj->rtcpstatspoint, ms_free);
-	ms_list_free(obj->rtcpstatspoint);
+	bctbx_list_for_each(obj->rtcpstatspoint, ms_free);
+	bctbx_list_free(obj->rtcpstatspoint);
 }
 
 static MSQosAnalyzerDesc stateful_analyzer_desc={

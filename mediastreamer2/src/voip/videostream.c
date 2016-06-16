@@ -775,20 +775,20 @@ static void apply_video_preset(VideoStream *stream, PayloadType *pt) {
 	MSVideoPresetsManager *vpm = ms_factory_get_video_presets_manager(stream->ms.factory);
 	MSVideoPresetConfiguration *vpc = NULL;
 	MSVideoConfiguration *conf = NULL;
-	MSList *codec_tags = NULL;
+	bctbx_list_t *codec_tags = NULL;
 	bool_t hardware_accelerated = FALSE;
 	if (stream->preset != NULL) {
-		codec_tags = ms_list_append(codec_tags, ms_strdup(payload_type_get_mime(pt)));
-		codec_tags = ms_list_append(codec_tags, ms_strdup(stream->ms.encoder->desc->name));
+		codec_tags = bctbx_list_append(codec_tags, ms_strdup(payload_type_get_mime(pt)));
+		codec_tags = bctbx_list_append(codec_tags, ms_strdup(stream->ms.encoder->desc->name));
 		if (ms_filter_has_method(stream->ms.encoder, MS_VIDEO_ENCODER_IS_HARDWARE_ACCELERATED) == TRUE) {
 			ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_IS_HARDWARE_ACCELERATED, &hardware_accelerated);
 		}
 		if (hardware_accelerated == TRUE) {
-			codec_tags = ms_list_append(codec_tags, ms_strdup("hardware"));
+			codec_tags = bctbx_list_append(codec_tags, ms_strdup("hardware"));
 		}
 		vpc = ms_video_presets_manager_find_preset_configuration(vpm, stream->preset, codec_tags);
-		ms_list_for_each(codec_tags, ms_free);
-		ms_list_free(codec_tags);
+		bctbx_list_for_each(codec_tags, ms_free);
+		bctbx_list_free(codec_tags);
 		if (vpc != NULL) {
 			char *conf_tags = ms_video_preset_configuration_get_tags_as_string(vpc);
 			conf = ms_video_preset_configuration_get_video_configuration(vpc);

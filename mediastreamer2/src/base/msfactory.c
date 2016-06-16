@@ -109,12 +109,12 @@ void ms_factory_set_cpu_count(MSFactory *obj, unsigned int c) {
 
 void ms_factory_add_platform_tag(MSFactory *obj, const char *tag) {
 	if ((tag == NULL) || (tag[0] == '\0')) return;
-	if (ms_list_find_custom(obj->platform_tags, (MSCompareFunc)strcasecmp, tag) == NULL) {
-		obj->platform_tags = ms_list_append(obj->platform_tags, ms_strdup(tag));
+	if (bctbx_list_find_custom(obj->platform_tags, (bctbx_compare_func)strcasecmp, tag) == NULL) {
+		obj->platform_tags = bctbx_list_append(obj->platform_tags, ms_strdup(tag));
 	}
 }
 
-MSList * ms_factory_get_platform_tags(MSFactory *obj) {
+bctbx_list_t * ms_factory_get_platform_tags(MSFactory *obj) {
 	return obj->platform_tags;
 }
 
@@ -131,12 +131,12 @@ static int compare_stats_with_name(const MSFilterStats *stat, const char *name){
 }
 
 static MSFilterStats *find_or_create_stats(MSFactory *factory, MSFilterDesc *desc){
-	MSList *elem=ms_list_find_custom(factory->stats_list,(MSCompareFunc)compare_stats_with_name,desc->name);
+	bctbx_list_t *elem=bctbx_list_find_custom(factory->stats_list,(bctbx_compare_func)compare_stats_with_name,desc->name);
 	MSFilterStats *ret=NULL;
 	if (elem==NULL){
 		ret=ms_new0(MSFilterStats,1);
 		ret->name=desc->name;
-		factory->stats_list=ms_list_append(factory->stats_list,ret);
+		factory->stats_list=bctbx_list_append(factory->stats_list,ret);
 	}else ret=(MSFilterStats*)elem->data;
 	return ret;
 }
@@ -235,13 +235,13 @@ void ms_factory_destroy(MSFactory *factory){
 	if (factory->voip_uninit_func) factory->voip_uninit_func(factory);
 	ms_factory_uninit_plugins(factory);
 	if (factory->evq) ms_factory_destroy_event_queue(factory);
-	factory->formats=ms_list_free_with_data(factory->formats,(void(*)(void*))ms_fmt_descriptor_destroy);
-	factory->desc_list=ms_list_free(factory->desc_list);
-	ms_list_for_each(factory->stats_list,ms_free);
-	factory->stats_list=ms_list_free(factory->stats_list);
-	factory->offer_answer_provider_list = ms_list_free(factory->offer_answer_provider_list);
-	ms_list_for_each(factory->platform_tags, ms_free);
-	factory->platform_tags = ms_list_free(factory->platform_tags);
+	factory->formats=bctbx_list_free_with_data(factory->formats,(void(*)(void*))ms_fmt_descriptor_destroy);
+	factory->desc_list=bctbx_list_free(factory->desc_list);
+	bctbx_list_for_each(factory->stats_list,ms_free);
+	factory->stats_list=bctbx_list_free(factory->stats_list);
+	factory->offer_answer_provider_list = bctbx_list_free(factory->offer_answer_provider_list);
+	bctbx_list_for_each(factory->platform_tags, ms_free);
+	factory->platform_tags = bctbx_list_free(factory->platform_tags);
 	if (factory->plugins_dir) ms_free(factory->plugins_dir);
 	ms_free(factory);
 	//if (factory==fallback_factory) fallback_factory=NULL;
@@ -255,7 +255,7 @@ void ms_factory_register_filter(MSFactory* factory, MSFilterDesc* desc ) {
 	desc->flags|=MS_FILTER_IS_ENABLED; /*by default a registered filter is enabled*/
 
 	/*lastly registered encoder/decoders may replace older ones*/
-	factory->desc_list=ms_list_prepend(factory->desc_list,desc);
+	factory->desc_list=bctbx_list_prepend(factory->desc_list,desc);
 }
 
 bool_t ms_factory_codec_supported(MSFactory* factory, const char *mime){
@@ -273,9 +273,9 @@ bool_t ms_factory_codec_supported(MSFactory* factory, const char *mime){
 }
 
 MSFilterDesc * ms_factory_get_encoding_capturer(MSFactory* factory, const char *mime) {
-	MSList *elem;
+	bctbx_list_t *elem;
 
-	for (elem = factory->desc_list; elem != NULL; elem = ms_list_next(elem)) {
+	for (elem = factory->desc_list; elem != NULL; elem = bctbx_list_next(elem)) {
 		MSFilterDesc *desc = (MSFilterDesc *)elem->data;
 		if (desc->category == MS_FILTER_ENCODING_CAPTURER) {
 			char *saveptr=NULL;
@@ -295,9 +295,9 @@ MSFilterDesc * ms_factory_get_encoding_capturer(MSFactory* factory, const char *
 }
 
 MSFilterDesc * ms_factory_get_decoding_renderer(MSFactory* factory, const char *mime) {
-	MSList *elem;
+	bctbx_list_t *elem;
 
-	for (elem = factory->desc_list; elem != NULL; elem = ms_list_next(elem)) {
+	for (elem = factory->desc_list; elem != NULL; elem = bctbx_list_next(elem)) {
 		MSFilterDesc *desc = (MSFilterDesc *)elem->data;
 		if (desc->category == MS_FILTER_DECODER_RENDERER) {
 			char *saveptr=NULL;
@@ -317,8 +317,8 @@ MSFilterDesc * ms_factory_get_decoding_renderer(MSFactory* factory, const char *
 }
 
 MSFilterDesc * ms_factory_get_encoder(MSFactory* factory, const char *mime){
-	MSList *elem;
-	for (elem=factory->desc_list;elem!=NULL;elem=ms_list_next(elem)){
+	bctbx_list_t *elem;
+	for (elem=factory->desc_list;elem!=NULL;elem=bctbx_list_next(elem)){
 		MSFilterDesc *desc=(MSFilterDesc*)elem->data;
 		if ((desc->flags & MS_FILTER_IS_ENABLED)
 			&& (desc->category==MS_FILTER_ENCODER || desc->category==MS_FILTER_ENCODING_CAPTURER)
@@ -330,8 +330,8 @@ MSFilterDesc * ms_factory_get_encoder(MSFactory* factory, const char *mime){
 }
 
 MSFilterDesc * ms_factory_get_decoder(MSFactory* factory, const char *mime){
-	MSList *elem;
-	for (elem=factory->desc_list;elem!=NULL;elem=ms_list_next(elem)){
+	bctbx_list_t *elem;
+	for (elem=factory->desc_list;elem!=NULL;elem=bctbx_list_next(elem)){
 		MSFilterDesc *desc=(MSFilterDesc*)elem->data;
 		if ((desc->flags & MS_FILTER_IS_ENABLED)
 			&& (desc->category==MS_FILTER_DECODER || desc->category==MS_FILTER_DECODER_RENDERER)
@@ -393,8 +393,8 @@ MSFilter *ms_factory_create_filter(MSFactory* factory, MSFilterId id){
 }
 
 MSFilterDesc *ms_factory_lookup_filter_by_name(const MSFactory* factory, const char *filter_name){
-	MSList *elem;
-	for (elem=factory->desc_list;elem!=NULL;elem=ms_list_next(elem)){
+	bctbx_list_t *elem;
+	for (elem=factory->desc_list;elem!=NULL;elem=bctbx_list_next(elem)){
 		MSFilterDesc *desc=(MSFilterDesc*)elem->data;
 		if (strcmp(desc->name,filter_name)==0){
 			return desc;
@@ -404,9 +404,9 @@ MSFilterDesc *ms_factory_lookup_filter_by_name(const MSFactory* factory, const c
 }
 
 MSFilterDesc* ms_factory_lookup_filter_by_id( MSFactory* factory, MSFilterId id){
-	MSList *elem;
+	bctbx_list_t *elem;
 
-	for (elem=factory->desc_list;elem!=NULL;elem=ms_list_next(elem)){
+	for (elem=factory->desc_list;elem!=NULL;elem=bctbx_list_next(elem)){
 		MSFilterDesc *desc=(MSFilterDesc*)elem->data;
 		if (desc->id==id){
 			return desc;
@@ -415,13 +415,13 @@ MSFilterDesc* ms_factory_lookup_filter_by_id( MSFactory* factory, MSFilterId id)
 	return NULL;
 }
 
-MSList *ms_factory_lookup_filter_by_interface(MSFactory* factory, MSFilterInterfaceId id){
-	MSList *ret=NULL;
-	MSList *elem;
+bctbx_list_t *ms_factory_lookup_filter_by_interface(MSFactory* factory, MSFilterInterfaceId id){
+	bctbx_list_t *ret=NULL;
+	bctbx_list_t *elem;
 	for(elem=factory->desc_list;elem!=NULL;elem=elem->next){
 		MSFilterDesc *desc=(MSFilterDesc*)elem->data;
 		if (ms_filter_desc_implements_interface(desc,id))
-			ret=ms_list_append(ret,desc);
+			ret=bctbx_list_append(ret,desc);
 	}
 	return ret;
 }
@@ -436,12 +436,12 @@ void ms_factory_enable_statistics(MSFactory* obj, bool_t enabled){
 	obj->statistics_enabled=enabled;
 }
 
-const MSList * ms_factory_get_statistics(MSFactory* obj){
+const bctbx_list_t * ms_factory_get_statistics(MSFactory* obj){
 	return obj->stats_list;
 }
 
 void ms_factory_reset_statistics(MSFactory *obj){
-	MSList *elem;
+	bctbx_list_t *elem;
 
 	for(elem=obj->stats_list;elem!=NULL;elem=elem->next){
 		MSFilterStats *stats=(MSFilterStats *)elem->data;
@@ -458,12 +458,12 @@ static int usage_compare(const MSFilterStats *s1, const MSFilterStats *s2){
 
 
 void ms_factory_log_statistics(MSFactory *obj){
-	MSList *sorted=NULL;
-	MSList *elem;
+	bctbx_list_t *sorted=NULL;
+	bctbx_list_t *elem;
 	uint64_t total=1;
 	for(elem=obj->stats_list;elem!=NULL;elem=elem->next){
 		MSFilterStats *stats=(MSFilterStats *)elem->data;
-		sorted=ms_list_insert_sorted(sorted,stats,(MSCompareFunc)usage_compare);
+		sorted=bctbx_list_insert_sorted(sorted,stats,(bctbx_compare_func)usage_compare);
 		total+=stats->elapsed;
 	}
 	ms_message("===========================================================");
@@ -477,7 +477,7 @@ void ms_factory_log_statistics(MSFactory *obj){
 		ms_message("%-19s %-9i %-19g %-10g",stats->name,stats->count,tpt,percentage);
 	}
 	ms_message("===========================================================");
-	ms_list_free(sorted);
+	bctbx_list_free(sorted);
 }
 
 #ifndef PLUGINS_EXT
@@ -579,7 +579,7 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 					initroutine(factory);
 					ms_message("Plugin loaded (%s)", szPluginFile);
 					// Add this new loaded plugin to the list (useful for FreeLibrary at the end)
-					factory->ms_plugins_loaded_list=ms_list_append(factory->ms_plugins_loaded_list,os_handle);
+					factory->ms_plugins_loaded_list=bctbx_list_append(factory->ms_plugins_loaded_list,os_handle);
 					num++;
 				}else{
 					ms_warning("Could not locate init routine of plugin %s. Should be %s",
@@ -603,7 +603,7 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 #elif defined(HAVE_DLOPEN)
 	char plugin_name[64];
 	DIR *ds;
-	MSList *loaded_plugins = NULL;
+	bctbx_list_t *loaded_plugins = NULL;
 	struct dirent *de;
 	char *ext;
 	char *fullpath;
@@ -620,8 +620,8 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 			(strstr(de->d_name, "libms") == de->d_name) && ((ext=strstr(de->d_name,PLUGINS_EXT))!=NULL)) {
 			void *handle;
 			snprintf(plugin_name, MIN(sizeof(plugin_name), ext - de->d_name + 1), "%s", de->d_name);
-			if (ms_list_find_custom(loaded_plugins, (MSCompareFunc)strcmp, plugin_name) != NULL) continue;
-			loaded_plugins = ms_list_append(loaded_plugins, ms_strdup(plugin_name));
+			if (bctbx_list_find_custom(loaded_plugins, (bctbx_compare_func)strcmp, plugin_name) != NULL) continue;
+			loaded_plugins = bctbx_list_append(loaded_plugins, ms_strdup(plugin_name));
 			fullpath=ms_strdup_printf("%s/%s",dir,de->d_name);
 			ms_message("Loading plugin %s...",fullpath);
 
@@ -664,8 +664,8 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 			ms_free(fullpath);
 		}
 	}
-	ms_list_for_each(loaded_plugins, ms_free);
-	ms_list_free(loaded_plugins);
+	bctbx_list_for_each(loaded_plugins, ms_free);
+	bctbx_list_free(loaded_plugins);
 	closedir(ds);
 #else
 	ms_warning("no loadable plugin support: plugins cannot be loaded.");
@@ -676,7 +676,7 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 
 void ms_factory_uninit_plugins(MSFactory *factory){
 #if defined(_WIN32)
-	MSList *elem;
+	bctbx_list_t *elem;
 #endif
 
 #if defined(_WIN32)
@@ -686,7 +686,7 @@ void ms_factory_uninit_plugins(MSFactory *factory){
 		FreeLibrary(handle) ;
 	}
 
-	factory->ms_plugins_loaded_list = ms_list_free(factory->ms_plugins_loaded_list);
+	factory->ms_plugins_loaded_list = bctbx_list_free(factory->ms_plugins_loaded_list);
 #endif
 }
 
@@ -794,9 +794,9 @@ static void ms_fmt_descriptor_destroy(MSFmtDescriptor *obj){
 
 const MSFmtDescriptor *ms_factory_get_format(MSFactory *obj, const MSFmtDescriptor *ref){
 	MSFmtDescriptor *ret;
-	MSList *found;
-	if ((found=ms_list_find_custom(obj->formats,(int (*)(const void*, const void*))compare_fmt, ref))==NULL){
-		obj->formats=ms_list_append(obj->formats,ret=ms_fmt_descriptor_new_copy(ref));
+	bctbx_list_t *found;
+	if ((found=bctbx_list_find_custom(obj->formats,(int (*)(const void*, const void*))compare_fmt, ref))==NULL){
+		obj->formats=bctbx_list_append(obj->formats,ret=ms_fmt_descriptor_new_copy(ref));
 	}else{
 		ret=(MSFmtDescriptor *)found->data;
 	}
@@ -847,12 +847,12 @@ bool_t ms_factory_filter_from_name_enabled(const MSFactory *factory, const char 
 
 
 void ms_factory_register_offer_answer_provider(MSFactory *f, MSOfferAnswerProvider *offer_answer_prov){
-	if (ms_list_find(f->offer_answer_provider_list, offer_answer_prov)) return; /*avoid registering several time the same pointer*/
-	f->offer_answer_provider_list = ms_list_prepend(f->offer_answer_provider_list, offer_answer_prov);
+	if (bctbx_list_find(f->offer_answer_provider_list, offer_answer_prov)) return; /*avoid registering several time the same pointer*/
+	f->offer_answer_provider_list = bctbx_list_prepend(f->offer_answer_provider_list, offer_answer_prov);
 }
 
 MSOfferAnswerProvider * ms_factory_get_offer_answer_provider(MSFactory *f, const char *mime_type){
-	const MSList *elem;
+	const bctbx_list_t *elem;
 	for (elem = f->offer_answer_provider_list; elem != NULL; elem = elem->next){
 		MSOfferAnswerProvider *prov = (MSOfferAnswerProvider*) elem->data;
 		if (strcasecmp(mime_type, prov->mime_type) == 0)

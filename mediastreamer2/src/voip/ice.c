@@ -84,7 +84,7 @@ typedef struct _CheckList_Bool {
 
 typedef struct _CheckList_MSListPtr {
 	const IceCheckList *cl;
-	MSList **list;
+	bctbx_list_t **list;
 } CheckList_MSListPtr;
 
 typedef struct _LocalCandidate_RemoteCandidate {
@@ -351,13 +351,13 @@ static void ice_free_valid_pair(IceValidCandidatePair *valid_pair)
 
 static void ice_free_candidate_pair(IceCandidatePair *pair, IceCheckList *cl)
 {
-	MSList *elem;
-	while ((elem = ms_list_find(cl->check_list, pair)) != NULL) {
-		cl->check_list = ms_list_remove(cl->check_list, pair);
+	bctbx_list_t *elem;
+	while ((elem = bctbx_list_find(cl->check_list, pair)) != NULL) {
+		cl->check_list = bctbx_list_remove(cl->check_list, pair);
 	}
-	while ((elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_pair_in_valid_list, pair)) != NULL) {
+	while ((elem = bctbx_list_find_custom(cl->valid_list, (bctbx_compare_func)ice_find_pair_in_valid_list, pair)) != NULL) {
 		ice_free_valid_pair(elem->data);
-		cl->valid_list = ms_list_remove_link(cl->valid_list, elem);
+		cl->valid_list = bctbx_list_remove_link(cl->valid_list, elem);
 	}
 	ms_free(pair);
 }
@@ -378,25 +378,25 @@ void ice_check_list_destroy(IceCheckList *cl)
 	ice_check_list_destroy_turn_contexts(cl);
 	if (cl->remote_ufrag) ms_free(cl->remote_ufrag);
 	if (cl->remote_pwd) ms_free(cl->remote_pwd);
-	ms_list_for_each(cl->stun_server_requests, (void (*)(void*))ice_stun_server_request_free);
-	ms_list_for_each(cl->transaction_list, (void (*)(void*))ice_free_transaction);
-	ms_list_for_each(cl->foundations, (void (*)(void*))ice_free_pair_foundation);
-	ms_list_for_each2(cl->pairs, (void (*)(void*,void*))ice_free_candidate_pair, cl);
-	ms_list_for_each(cl->valid_list, (void (*)(void*))ice_free_valid_pair);
-	ms_list_for_each(cl->remote_candidates, (void (*)(void*))ice_free_candidate);
-	ms_list_for_each(cl->local_candidates, (void (*)(void*))ice_free_candidate);
-	ms_list_free(cl->stun_server_requests);
-	ms_list_free(cl->transaction_list);
-	ms_list_free(cl->foundations);
-	ms_list_free(cl->local_componentIDs);
-	ms_list_free(cl->remote_componentIDs);
-	ms_list_free(cl->valid_list);
-	ms_list_free(cl->check_list);
-	ms_list_free(cl->triggered_checks_queue);
-	ms_list_free(cl->losing_pairs);
-	ms_list_free(cl->pairs);
-	ms_list_free(cl->remote_candidates);
-	ms_list_free(cl->local_candidates);
+	bctbx_list_for_each(cl->stun_server_requests, (void (*)(void*))ice_stun_server_request_free);
+	bctbx_list_for_each(cl->transaction_list, (void (*)(void*))ice_free_transaction);
+	bctbx_list_for_each(cl->foundations, (void (*)(void*))ice_free_pair_foundation);
+	bctbx_list_for_each2(cl->pairs, (void (*)(void*,void*))ice_free_candidate_pair, cl);
+	bctbx_list_for_each(cl->valid_list, (void (*)(void*))ice_free_valid_pair);
+	bctbx_list_for_each(cl->remote_candidates, (void (*)(void*))ice_free_candidate);
+	bctbx_list_for_each(cl->local_candidates, (void (*)(void*))ice_free_candidate);
+	bctbx_list_free(cl->stun_server_requests);
+	bctbx_list_free(cl->transaction_list);
+	bctbx_list_free(cl->foundations);
+	bctbx_list_free(cl->local_componentIDs);
+	bctbx_list_free(cl->remote_componentIDs);
+	bctbx_list_free(cl->valid_list);
+	bctbx_list_free(cl->check_list);
+	bctbx_list_free(cl->triggered_checks_queue);
+	bctbx_list_free(cl->losing_pairs);
+	bctbx_list_free(cl->pairs);
+	bctbx_list_free(cl->remote_candidates);
+	bctbx_list_free(cl->local_candidates);
 	memset(cl, 0, sizeof(IceCheckList));
 	ms_free(cl);
 }
@@ -527,17 +527,17 @@ const char* ice_check_list_get_remote_pwd(const IceCheckList *cl)
 
 bool_t ice_check_list_default_local_candidate(const IceCheckList *cl, IceCandidate **rtp_candidate, IceCandidate **rtcp_candidate) {
 	uint16_t componentID;
-	MSList *elem;
+	bctbx_list_t *elem;
 
 	if (rtp_candidate != NULL) {
 		componentID = 1;
-		elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_default_local_candidate, &componentID);
+		elem = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_find_default_local_candidate, &componentID);
 		if (elem == NULL) return FALSE;
 		*rtp_candidate = (IceCandidate *)elem->data;
 	}
 	if (rtcp_candidate != NULL) {
 		componentID = 2;
-		elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_default_local_candidate, &componentID);
+		elem = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_find_default_local_candidate, &componentID);
 		if (elem == NULL) return FALSE;
 		*rtcp_candidate = (IceCandidate *)elem->data;
 	}
@@ -548,11 +548,11 @@ bool_t ice_check_list_default_local_candidate(const IceCheckList *cl, IceCandida
 bool_t ice_check_list_selected_valid_local_candidate(const IceCheckList *cl, IceCandidate **rtp_candidate, IceCandidate **rtcp_candidate) {
 	IceValidCandidatePair *valid_pair = NULL;
 	uint16_t componentID;
-	MSList *elem;
+	bctbx_list_t *elem;
 
 	if (rtp_candidate != NULL) {
 		componentID = 1;
-		elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_selected_valid_pair_from_componentID, &componentID);
+		elem = bctbx_list_find_custom(cl->valid_list, (bctbx_compare_func)ice_find_selected_valid_pair_from_componentID, &componentID);
 		if (elem == NULL) return FALSE;
 		valid_pair = (IceValidCandidatePair *)elem->data;
 		*rtp_candidate = valid_pair->valid->local;
@@ -563,7 +563,7 @@ bool_t ice_check_list_selected_valid_local_candidate(const IceCheckList *cl, Ice
 		} else {
 			componentID = 2;
 		}
-		elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_selected_valid_pair_from_componentID, &componentID);
+		elem = bctbx_list_find_custom(cl->valid_list, (bctbx_compare_func)ice_find_selected_valid_pair_from_componentID, &componentID);
 		if (elem == NULL) return FALSE;
 		valid_pair = (IceValidCandidatePair *)elem->data;
 		*rtcp_candidate = valid_pair->valid->local;
@@ -575,11 +575,11 @@ bool_t ice_check_list_selected_valid_local_candidate(const IceCheckList *cl, Ice
 bool_t ice_check_list_selected_valid_remote_candidate(const IceCheckList *cl, IceCandidate **rtp_candidate, IceCandidate **rtcp_candidate) {
 	IceValidCandidatePair *valid_pair = NULL;
 	uint16_t componentID;
-	MSList *elem;
+	bctbx_list_t *elem;
 
 	if (rtp_candidate != NULL) {
 		componentID = 1;
-		elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_selected_valid_pair_from_componentID, &componentID);
+		elem = bctbx_list_find_custom(cl->valid_list, (bctbx_compare_func)ice_find_selected_valid_pair_from_componentID, &componentID);
 		if (elem == NULL) return FALSE;
 		valid_pair = (IceValidCandidatePair *)elem->data;
 		*rtp_candidate = valid_pair->valid->remote;
@@ -590,7 +590,7 @@ bool_t ice_check_list_selected_valid_remote_candidate(const IceCheckList *cl, Ic
 		} else {
 			componentID = 2;
 		}
-		elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_selected_valid_pair_from_componentID, &componentID);
+		elem = bctbx_list_find_custom(cl->valid_list, (bctbx_compare_func)ice_find_selected_valid_pair_from_componentID, &componentID);
 		if (elem == NULL) return FALSE;
 		valid_pair = (IceValidCandidatePair *)elem->data;
 		*rtcp_candidate = valid_pair->valid->remote;
@@ -612,10 +612,10 @@ IceCandidateType ice_check_list_selected_valid_candidate_type(const IceCheckList
 {
 	IceCandidatePair *pair = NULL;
 	IceCandidateType type = ICT_RelayedCandidate;
-	MSList *elem;
+	bctbx_list_t *elem;
 	uint16_t componentID = 1;
 
-	elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_selected_valid_pair_from_componentID, &componentID);
+	elem = bctbx_list_find_custom(cl->valid_list, (bctbx_compare_func)ice_find_selected_valid_pair_from_componentID, &componentID);
 	if (elem == NULL) return type;
 	pair = ((IceValidCandidatePair *)elem->data)->valid;
 	if (pair->local->type == ICT_RelayedCandidate) return ICT_RelayedCandidate;
@@ -626,7 +626,7 @@ IceCandidateType ice_check_list_selected_valid_candidate_type(const IceCheckList
 	 * candidates before the signaling layer has communicated the host candidates to the other peer.
 	 */
 	if ((type == ICT_ServerReflexiveCandidate) || (type == ICT_PeerReflexiveCandidate)) {
-		elem = ms_list_find_custom(cl->pairs, (MSCompareFunc)ice_find_host_pair_identical_to_reflexive_pair, pair);
+		elem = bctbx_list_find_custom(cl->pairs, (bctbx_compare_func)ice_find_host_pair_identical_to_reflexive_pair, pair);
 		if (elem != NULL) {
 			type = ((IceCandidatePair *)elem->data)->remote->type;
 		}
@@ -641,7 +641,7 @@ void ice_check_list_check_completed(IceCheckList *cl)
 	if (cl->state != ICL_Completed) {
 		cb.cl = cl;
 		cb.result = TRUE;
-		ms_list_for_each2(cl->local_componentIDs, (void (*)(void*,void*))ice_find_selected_valid_pair_for_componentID, &cb);
+		bctbx_list_for_each2(cl->local_componentIDs, (void (*)(void*,void*))ice_find_selected_valid_pair_for_componentID, &cb);
 		if (cb.result == TRUE) {
 			ice_check_list_set_state(cl, ICL_Completed);
 		}
@@ -650,11 +650,11 @@ void ice_check_list_check_completed(IceCheckList *cl)
 
 static void ice_check_list_queue_triggered_check(IceCheckList *cl, IceCandidatePair *pair)
 {
-	MSList *elem = ms_list_find(cl->triggered_checks_queue, pair);
+	bctbx_list_t *elem = bctbx_list_find(cl->triggered_checks_queue, pair);
 	if (elem != NULL) {
 		/* The pair is already in the triggered checks queue, do not add it again. */
 	} else {
-		cl->triggered_checks_queue = ms_list_append(cl->triggered_checks_queue, pair);
+		cl->triggered_checks_queue = bctbx_list_append(cl->triggered_checks_queue, pair);
 	}
 }
 
@@ -662,11 +662,11 @@ static IceCandidatePair * ice_check_list_pop_triggered_check(IceCheckList *cl)
 {
 	IceCandidatePair *pair;
 
-	if (ms_list_size(cl->triggered_checks_queue) == 0) return NULL;
-	pair = ms_list_nth_data(cl->triggered_checks_queue, 0);
+	if (bctbx_list_size(cl->triggered_checks_queue) == 0) return NULL;
+	pair = bctbx_list_nth_data(cl->triggered_checks_queue, 0);
 	if (pair != NULL) {
 		/* Remove the first element in the triggered checks queue. */
-		cl->triggered_checks_queue = ms_list_remove_link(cl->triggered_checks_queue, cl->triggered_checks_queue);
+		cl->triggered_checks_queue = bctbx_list_remove_link(cl->triggered_checks_queue, cl->triggered_checks_queue);
 	}
 	return pair;
 }
@@ -678,7 +678,7 @@ static int ice_find_non_frozen_pair(const IceCandidatePair *pair, const void *du
 
 static bool_t ice_check_list_is_frozen(const IceCheckList *cl)
 {
-	MSList *elem = ms_list_find_custom(cl->check_list, (MSCompareFunc)ice_find_non_frozen_pair, NULL);
+	bctbx_list_t *elem = bctbx_list_find_custom(cl->check_list, (bctbx_compare_func)ice_find_non_frozen_pair, NULL);
 	return (elem == NULL);
 }
 
@@ -720,7 +720,7 @@ const char * ice_session_remote_pwd(const IceSession *session)
 
 static void ice_check_list_compute_pair_priorities(IceCheckList *cl)
 {
-	ms_list_for_each2(cl->pairs, (void (*)(void*,void*))ice_compute_pair_priority, &cl->session->role);
+	bctbx_list_for_each2(cl->pairs, (void (*)(void*,void*))ice_compute_pair_priority, &cl->session->role);
 }
 
 static void ice_session_compute_pair_priorities(IceSession *session)
@@ -864,7 +864,7 @@ static int ice_find_default_candidate_from_componentID(const IceCandidate *candi
 
 static void ice_find_default_remote_candidate_for_componentID(const uint16_t *componentID, IceCheckList *cl)
 {
-	MSList *elem = ms_list_find_custom(cl->remote_candidates, (MSCompareFunc)ice_find_default_candidate_from_componentID, componentID);
+	bctbx_list_t *elem = bctbx_list_find_custom(cl->remote_candidates, (bctbx_compare_func)ice_find_default_candidate_from_componentID, componentID);
 	if (elem == NULL) {
 		cl->mismatch = TRUE;
 		cl->state = ICL_Failed;
@@ -873,7 +873,7 @@ static void ice_find_default_remote_candidate_for_componentID(const uint16_t *co
 
 static void ice_check_list_check_mismatch(IceCheckList *cl)
 {
-	ms_list_for_each2(cl->remote_componentIDs, (void (*)(void*,void*))ice_find_default_remote_candidate_for_componentID, cl);
+	bctbx_list_for_each2(cl->remote_componentIDs, (void (*)(void*,void*))ice_find_default_remote_candidate_for_componentID, cl);
 }
 
 void ice_session_check_mismatch(IceSession *session)
@@ -913,7 +913,7 @@ static bool_t ice_check_list_gathering_needed(const IceCheckList *cl)
 }
 
 static void ice_check_list_add_stun_server_request(IceCheckList *cl, IceStunServerRequest *request) {
-	cl->stun_server_requests = ms_list_append(cl->stun_server_requests, request);
+	cl->stun_server_requests = bctbx_list_append(cl->stun_server_requests, request);
 }
 
 static void ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *si)
@@ -1106,13 +1106,13 @@ static void ice_transaction_sum_gathering_round_trip_time(const IceStunServerReq
 static void ice_stun_server_check_sum_gathering_round_trip_time(const IceStunServerRequest *request, IceStunRequestRoundTripTime *rtt)
 {
 	if (request->gathering == TRUE) {
-		ms_list_for_each2(request->transactions, (void (*)(void*,void*))ice_transaction_sum_gathering_round_trip_time, rtt);
+		bctbx_list_for_each2(request->transactions, (void (*)(void*,void*))ice_transaction_sum_gathering_round_trip_time, rtt);
 	}
 }
 
 static void ice_check_list_sum_gathering_round_trip_times(IceCheckList *cl)
 {
-	ms_list_for_each2(cl->stun_server_requests, (void (*)(void*,void*))ice_stun_server_check_sum_gathering_round_trip_time, &cl->rtt);
+	bctbx_list_for_each2(cl->stun_server_requests, (void (*)(void*,void*))ice_stun_server_check_sum_gathering_round_trip_time, &cl->rtt);
 }
 
 int ice_session_average_gathering_round_trip_time(IceSession *session)
@@ -1146,13 +1146,13 @@ static void ice_check_list_select_candidates(IceCheckList *cl)
 {
 	IceValidCandidatePair *valid_pair = NULL;
 	uint16_t componentID;
-	MSList *elem;
+	bctbx_list_t *elem;
 
 	if (cl->state != ICL_Completed) return;
 
-	ms_list_for_each(cl->valid_list, (void (*)(void*))ice_unselect_valid_pair);
+	bctbx_list_for_each(cl->valid_list, (void (*)(void*))ice_unselect_valid_pair);
 	for (componentID = 1; componentID <= 2; componentID++) {
-		elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_nominated_valid_pair_from_componentID, &componentID);
+		elem = bctbx_list_find_custom(cl->valid_list, (bctbx_compare_func)ice_find_nominated_valid_pair_from_componentID, &componentID);
 		if (elem == NULL) continue;
 		valid_pair = (IceValidCandidatePair *)elem->data;
 		valid_pair->selected = TRUE;
@@ -1178,7 +1178,7 @@ static IceTransaction * ice_create_transaction(IceCheckList *cl, IceCandidatePai
 	IceTransaction *transaction = ms_new0(IceTransaction, 1);
 	transaction->pair = pair;
 	transaction->transactionID = tr_id;
-	cl->transaction_list = ms_list_prepend(cl->transaction_list, transaction);
+	cl->transaction_list = bctbx_list_prepend(cl->transaction_list, transaction);
 	return transaction;
 }
 
@@ -1189,7 +1189,7 @@ static int ice_find_transaction_from_pair(const IceTransaction *transaction, con
 
 static IceTransaction * ice_find_transaction(const IceCheckList *cl, const IceCandidatePair *pair)
 {
-	MSList *elem = ms_list_find_custom(cl->transaction_list, (MSCompareFunc)ice_find_transaction_from_pair, pair);
+	bctbx_list_t *elem = bctbx_list_find_custom(cl->transaction_list, (bctbx_compare_func)ice_find_transaction_from_pair, pair);
 	if (elem == NULL) return NULL;
 	return (IceTransaction *)elem->data;
 }
@@ -1218,7 +1218,7 @@ static IceStunServerRequest * ice_stun_server_request_new(IceCheckList *cl, MSTu
 
 static void ice_stun_server_request_add_transaction(IceStunServerRequest *request, IceStunServerRequestTransaction *transaction) {
 	if (transaction != NULL) {
-		request->transactions = ms_list_append(request->transactions, transaction);
+		request->transactions = bctbx_list_append(request->transactions, transaction);
 	}
 }
 
@@ -1227,8 +1227,8 @@ static void ice_stun_server_request_transaction_free(IceStunServerRequestTransac
 }
 
 static void ice_stun_server_request_free(IceStunServerRequest *request) {
-	ms_list_for_each(request->transactions, (void (*)(void*))ice_stun_server_request_transaction_free);
-	ms_list_free(request->transactions);
+	bctbx_list_for_each(request->transactions, (void (*)(void*))ice_stun_server_request_transaction_free);
+	bctbx_list_free(request->transactions);
 	if (request->source_ai != NULL) bctbx_freeaddrinfo(request->source_ai);
 	ms_free(request);
 }
@@ -1693,7 +1693,7 @@ static void ice_send_indication(const IceCandidatePair *pair, const RtpSession *
 
 static void ice_send_keepalive_packet_for_componentID(const uint16_t *componentID, const CheckList_RtpSession *cr)
 {
-	MSList *elem = ms_list_find_custom(cr->cl->valid_list, (MSCompareFunc)ice_find_selected_valid_pair_from_componentID, componentID);
+	bctbx_list_t *elem = bctbx_list_find_custom(cr->cl->valid_list, (bctbx_compare_func)ice_find_selected_valid_pair_from_componentID, componentID);
 	if (elem != NULL) {
 		IceValidCandidatePair *valid_pair = (IceValidCandidatePair *)elem->data;
 		ice_send_indication(valid_pair->valid, cr->rtp_session);
@@ -1705,7 +1705,7 @@ static void ice_send_keepalive_packets(IceCheckList *cl, const RtpSession *rtp_s
 	CheckList_RtpSession cr;
 	cr.cl = cl;
 	cr.rtp_session = rtp_session;
-	ms_list_for_each2(cl->local_componentIDs, (void (*)(void*,void*))ice_send_keepalive_packet_for_componentID, &cr);
+	bctbx_list_for_each2(cl->local_componentIDs, (void (*)(void*,void*))ice_send_keepalive_packet_for_componentID, &cr);
 }
 
 static int ice_find_candidate_from_transport_address(const IceCandidate *candidate, const IceTransportAddress *taddr)
@@ -1846,15 +1846,15 @@ static int ice_find_candidate_from_foundation(const IceCandidate *candidate, con
 	return !((strlen(candidate->foundation) == strlen(foundation)) && (strcmp(candidate->foundation, foundation) == 0));
 }
 
-static void ice_generate_arbitrary_foundation(char *foundation, int len, MSList *list)
+static void ice_generate_arbitrary_foundation(char *foundation, int len, bctbx_list_t *list)
 {
 	uint64_t r;
-	MSList *elem;
+	bctbx_list_t *elem;
 
 	do {
 		r = (((uint64_t)ortp_random()) << 32) | (((uint64_t)ortp_random()) & 0xffffffff);
 		snprintf(foundation, len, "%" PRIx64, r);
-		elem = ms_list_find_custom(list, (MSCompareFunc)ice_find_candidate_from_foundation, foundation);
+		elem = bctbx_list_find_custom(list, (bctbx_compare_func)ice_find_candidate_from_foundation, foundation);
 	} while (elem != NULL);
 }
 
@@ -1862,13 +1862,13 @@ static IceCandidate * ice_learn_peer_reflexive_candidate(IceCheckList *cl, const
 {
 	char foundation[32];
 	IceCandidate *candidate = NULL;
-	MSList *elem;
+	bctbx_list_t *elem;
 	int componentID;
 
 	componentID = ice_get_componentID_from_rtp_session(evt_data);
 	if (componentID < 0) return NULL;
 
-	elem = ms_list_find_custom(cl->remote_candidates, (MSCompareFunc)ice_find_candidate_from_transport_address, taddr);
+	elem = bctbx_list_find_custom(cl->remote_candidates, (bctbx_compare_func)ice_find_candidate_from_transport_address, taddr);
 	if (elem == NULL) {
 		ms_message("ice: Learned peer reflexive candidate %s:%d", taddr->ip, taddr->port);
 		/* Add peer reflexive candidate to the remote candidates list. */
@@ -1889,7 +1889,7 @@ static IceCandidatePair * ice_trigger_connectivity_check_on_binding_request(IceC
 {
 	IceTransportAddress local_taddr;
 	LocalCandidate_RemoteCandidate candidates;
-	MSList *elem;
+	bctbx_list_t *elem;
 	IceCandidatePair *pair = NULL;
 	struct sockaddr_storage recv_addr;
 	socklen_t recv_addrlen = 0;
@@ -1897,7 +1897,7 @@ static IceCandidatePair * ice_trigger_connectivity_check_on_binding_request(IceC
 
 	ortp_recvaddr_to_sockaddr(&evt_data->packet->recv_addr, (struct sockaddr *)&recv_addr, &recv_addrlen);
 	ice_fill_transport_address_from_sockaddr(&local_taddr, (struct sockaddr *)&recv_addr, recv_addrlen);
-	elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_candidate_from_transport_address, &local_taddr);
+	elem = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_find_candidate_from_transport_address, &local_taddr);
 	if (elem == NULL) {
 		ice_transport_address_to_printable_ip_address(&local_taddr, addr_str, sizeof(addr_str));
 		ms_error("ice: Local candidate %s not found!", addr_str);
@@ -1907,7 +1907,7 @@ static IceCandidatePair * ice_trigger_connectivity_check_on_binding_request(IceC
 	if (prflx_candidate != NULL) {
 		candidates.remote = prflx_candidate;
 	} else {
-		elem = ms_list_find_custom(cl->remote_candidates, (MSCompareFunc)ice_find_candidate_from_transport_address, remote_taddr);
+		elem = bctbx_list_find_custom(cl->remote_candidates, (bctbx_compare_func)ice_find_candidate_from_transport_address, remote_taddr);
 		if (elem == NULL) {
 			ice_transport_address_to_printable_ip_address(remote_taddr, addr_str, sizeof(addr_str));
 			ms_error("ice: Remote candidate %s not found!", addr_str);
@@ -1915,21 +1915,21 @@ static IceCandidatePair * ice_trigger_connectivity_check_on_binding_request(IceC
 		}
 		candidates.remote = (IceCandidate *)elem->data;
 	}
-	elem = ms_list_find_custom(cl->check_list, (MSCompareFunc)ice_find_pair_from_candidates, &candidates);
+	elem = bctbx_list_find_custom(cl->check_list, (bctbx_compare_func)ice_find_pair_from_candidates, &candidates);
 	if (elem == NULL) {
 		/* The pair is not in the check list yet. */
 		ms_message("ice: Add new candidate pair in the check list");
 		/* Check if the pair is in the list of pairs even if it is not in the check list. */
-		elem = ms_list_find_custom(cl->pairs, (MSCompareFunc)ice_find_pair_from_candidates, &candidates);
+		elem = bctbx_list_find_custom(cl->pairs, (bctbx_compare_func)ice_find_pair_from_candidates, &candidates);
 		if (elem == NULL) {
 			pair = ice_pair_new(cl, candidates.local, candidates.remote);
-			cl->pairs = ms_list_append(cl->pairs, pair);
+			cl->pairs = bctbx_list_append(cl->pairs, pair);
 		} else {
 			pair = (IceCandidatePair *)elem->data;
 		}
-		elem = ms_list_find(cl->check_list, pair);
+		elem = bctbx_list_find(cl->check_list, pair);
 		if (elem == NULL) {
-			cl->check_list = ms_list_insert_sorted(cl->check_list, pair, (MSCompareFunc)ice_compare_pair_priorities);
+			cl->check_list = bctbx_list_insert_sorted(cl->check_list, pair, (bctbx_compare_func)ice_compare_pair_priorities);
 		}
 		/* Set the state of the pair to Waiting and trigger a check. */
 		ice_pair_set_state(pair, ICP_Waiting);
@@ -2057,13 +2057,13 @@ static IceCandidate * ice_discover_peer_reflexive_candidate(IceCheckList *cl, co
 	IceTransportAddress taddr;
 	const MSStunAddress *xor_mapped_address;
 	IceCandidate *candidate = NULL;
-	MSList *elem;
+	bctbx_list_t *elem;
 	char taddr_str[64];
 
 	memset(&taddr, 0, sizeof(taddr));
 	xor_mapped_address = ms_stun_message_get_xor_mapped_address(msg);
 	ice_fill_transport_address_from_stun_address(&taddr, xor_mapped_address);
-	elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_candidate_from_transport_address, &taddr);
+	elem = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_find_candidate_from_transport_address, &taddr);
 	if (elem == NULL) {
 		ice_transport_address_to_printable_ip_address(&taddr, taddr_str, sizeof(taddr_str));
 		ms_message("ice: Discovered peer reflexive candidate %s", taddr_str);
@@ -2092,18 +2092,18 @@ static IceCandidatePair * ice_construct_valid_pair(IceCheckList *cl, RtpSession 
 	LocalCandidate_RemoteCandidate candidates;
 	IceCandidatePair *pair = NULL;
 	IceValidCandidatePair *valid_pair;
-	MSList *elem;
+	bctbx_list_t *elem;
 	OrtpEvent *ev;
 	char local_addr_str[64];
 	char remote_addr_str[64];
 
 	candidates.local = candidate;
 	candidates.remote = succeeded_pair->remote;
-	elem = ms_list_find_custom(cl->check_list, (MSCompareFunc)ice_find_pair_from_candidates, &candidates);
+	elem = bctbx_list_find_custom(cl->check_list, (bctbx_compare_func)ice_find_pair_from_candidates, &candidates);
 	if (elem == NULL) {
 		/* The candidate pair is not a known candidate pair, compute its priority and add it to the valid list. */
 		pair = ice_pair_new(cl, candidates.local, candidates.remote);
-		cl->pairs = ms_list_append(cl->pairs, pair);
+		cl->pairs = bctbx_list_append(cl->pairs, pair);
 	} else {
 		/* The candidate pair is already in the check list, add it to the valid list. */
 		pair = (IceCandidatePair *)elem->data;
@@ -2114,14 +2114,14 @@ static IceCandidatePair * ice_construct_valid_pair(IceCheckList *cl, RtpSession 
 	valid_pair->selected = FALSE;
 	ice_transport_address_to_printable_ip_address(&pair->local->taddr, local_addr_str, sizeof(local_addr_str));
 	ice_transport_address_to_printable_ip_address(&pair->remote->taddr, remote_addr_str, sizeof(remote_addr_str));
-	elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_valid_pair, valid_pair);
+	elem = bctbx_list_find_custom(cl->valid_list, (bctbx_compare_func)ice_find_valid_pair, valid_pair);
 	if (elem == NULL) {
-		cl->valid_list = ms_list_insert_sorted(cl->valid_list, valid_pair, (MSCompareFunc)ice_compare_valid_pair_priorities);
+		cl->valid_list = bctbx_list_insert_sorted(cl->valid_list, valid_pair, (bctbx_compare_func)ice_compare_valid_pair_priorities);
 		ms_message("ice: Added pair %p to the valid list: %s:%s --> %s:%s", pair,
 			local_addr_str, candidate_type_values[pair->local->type], remote_addr_str, candidate_type_values[pair->remote->type]);
-		elem = ms_list_find_custom(cl->losing_pairs, (MSCompareFunc)ice_find_pair_from_candidates, &candidates);
+		elem = bctbx_list_find_custom(cl->losing_pairs, (bctbx_compare_func)ice_find_pair_from_candidates, &candidates);
 		if (elem != NULL) {
-			cl->losing_pairs = ms_list_remove_link(cl->losing_pairs, elem);
+			cl->losing_pairs = bctbx_list_remove_link(cl->losing_pairs, elem);
 			/* Select the losing pair that has just become a valid pair. */
 			valid_pair->selected = TRUE;
 			if (ice_session_nb_losing_pairs(cl->session) == 0) {
@@ -2161,7 +2161,7 @@ static void ice_update_pair_states_on_binding_response(IceCheckList *cl, IceCand
 	ice_pair_set_state(pair, ICP_Succeeded);
 
 	/* Change the state of all Frozen pairs with the same foundation to Waiting. */
-	ms_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_change_state_of_frozen_pairs_to_waiting, pair);
+	bctbx_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_change_state_of_frozen_pairs_to_waiting, pair);
 }
 
 /* Update the nominated flag of a candidate pair according to 7.1.3.2.4. */
@@ -2269,7 +2269,7 @@ static void ice_schedule_turn_channel_bind_refresh(IceCheckList *cl, int compone
 }
 
 static bool_t ice_handle_received_turn_allocate_success_response(IceCheckList *cl, RtpSession *rtp_session, const OrtpEventData *evt_data, const MSStunMessage *msg, const MSStunAddress *remote_addr) {
-	MSList *base_elem;
+	bctbx_list_t *base_elem;
 	IceCandidate *candidate;
 	OrtpEvent *ev;
 	bool_t stun_server_response = FALSE;
@@ -2292,7 +2292,7 @@ static bool_t ice_handle_received_turn_allocate_success_response(IceCheckList *c
 			memset(&srflx_addr, 0, sizeof(srflx_addr));
 			memset(&relay_addr, 0, sizeof(relay_addr));
 			if ((componentID > 0) && (ice_parse_stun_server_response(msg, &srflx_addr, &relay_addr) >= 0)) {
-				base_elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_host_candidate, &componentID);
+				base_elem = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_find_host_candidate, &componentID);
 				if (base_elem != NULL) {
 					candidate = (IceCandidate *)base_elem->data;
 					ms_stun_address_to_ip_address(&srflx_addr, srflx_addr_str, sizeof(srflx_addr_str), &srflx_port);
@@ -2327,7 +2327,7 @@ static bool_t ice_handle_received_turn_allocate_success_response(IceCheckList *c
 			stun_server_response = TRUE;
 		}
 
-		if (ms_list_find_custom(cl->stun_server_requests, (MSCompareFunc)ice_find_non_responded_gathering_stun_server_request, NULL) == NULL) {
+		if (bctbx_list_find_custom(cl->stun_server_requests, (bctbx_compare_func)ice_find_non_responded_gathering_stun_server_request, NULL) == NULL) {
 			ice_check_list_stop_gathering(cl);
 			ms_message("ice: Finished candidates gathering for check list %p", cl);
 			ice_dump_candidates(cl);
@@ -2390,7 +2390,7 @@ static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *r
 	IceCandidatePair *valid_pair;
 	IceCandidate *candidate;
 	IceCandidatePairState succeeded_pair_previous_state;
-	MSList *elem;
+	bctbx_list_t *elem;
 	UInt96 tr_id = ms_stun_message_get_tr_id(msg);
 
 	if (cl->gathering_candidates == TRUE) {
@@ -2398,7 +2398,7 @@ static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *r
 			return;
 	}
 
-	elem = ms_list_find_custom(cl->transaction_list, (MSCompareFunc)ice_find_pair_from_transactionID, &tr_id);
+	elem = bctbx_list_find_custom(cl->transaction_list, (bctbx_compare_func)ice_find_pair_from_transactionID, &tr_id);
 	if (elem == NULL) {
 		/* We received an error response concerning an unknown binding request, ignore it... */
 		char tr_id_str[25];
@@ -2421,13 +2421,13 @@ static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *r
 
 static void ice_handle_stun_server_error_response(IceCheckList *cl, RtpSession *rtp_session, const OrtpEventData *evt_data, const MSStunMessage *msg)
 {
-	MSList *elem;
+	bctbx_list_t *elem;
 	RtpTransport *rtptp = NULL;
 	char *reason = NULL;
 	uint16_t number = ms_stun_message_get_error_code(msg, &reason);
 
 	ice_get_transport_from_rtp_session(rtp_session, evt_data, &rtptp);
-	elem = ms_list_find_custom(cl->stun_server_requests, (MSCompareFunc)ice_find_stun_server_request, rtptp);
+	elem = bctbx_list_find_custom(cl->stun_server_requests, (bctbx_compare_func)ice_find_stun_server_request, rtptp);
 	if (elem != NULL) {
 		IceStunServerRequest *request = (IceStunServerRequest *)elem->data;
 		if ((request != NULL) && (number == 401) && (cl->session->stun_auth_requested_cb != NULL)) {
@@ -2463,7 +2463,7 @@ static void ice_handle_received_error_response(IceCheckList *cl, RtpSession *rtp
 		ice_handle_stun_server_error_response(cl, rtp_session, evt_data, msg);
 	} else {
 		UInt96 tr_id = ms_stun_message_get_tr_id(msg);
-		MSList *elem = ms_list_find_custom(cl->transaction_list, (MSCompareFunc)ice_find_pair_from_transactionID, &tr_id);
+		bctbx_list_t *elem = bctbx_list_find_custom(cl->transaction_list, (bctbx_compare_func)ice_find_pair_from_transactionID, &tr_id);
 		if (elem == NULL) {
 			/* We received an error response concerning an unknown binding request, ignore it... */
 			return;
@@ -2508,7 +2508,7 @@ static void ice_handle_received_error_response(IceCheckList *cl, RtpSession *rtp
 }
 
 static int ice_find_stun_server_request_transaction(IceStunServerRequest *request, UInt96 *tr_id) {
-	return (ms_list_find_custom(request->transactions, (MSCompareFunc)ice_compare_transactionIDs, tr_id) == NULL);
+	return (bctbx_list_find_custom(request->transactions, (bctbx_compare_func)ice_compare_transactionIDs, tr_id) == NULL);
 }
 
 static int ice_compare_stun_server_requests_to_remove(IceStunServerRequest *request) {
@@ -2516,19 +2516,19 @@ static int ice_compare_stun_server_requests_to_remove(IceStunServerRequest *requ
 }
 
 static void ice_check_list_remove_stun_server_request(IceCheckList *cl, UInt96 *tr_id) {
-	MSList *elem = cl->stun_server_requests;
+	bctbx_list_t *elem = cl->stun_server_requests;
 	while (elem != NULL) {
-		elem = ms_list_find_custom(cl->stun_server_requests, (MSCompareFunc)ice_find_stun_server_request_transaction, tr_id);
+		elem = bctbx_list_find_custom(cl->stun_server_requests, (bctbx_compare_func)ice_find_stun_server_request_transaction, tr_id);
 		if (elem != NULL) {
 			IceStunServerRequest *request = (IceStunServerRequest *)elem->data;
 			ice_stun_server_request_free(request);
-			cl->stun_server_requests = ms_list_remove_link(cl->stun_server_requests, elem);
+			cl->stun_server_requests = bctbx_list_remove_link(cl->stun_server_requests, elem);
 		}
 	}
 }
 
 static IceStunServerRequest * ice_check_list_get_stun_server_request(IceCheckList *cl, UInt96 *tr_id) {
-	MSList *elem = ms_list_find_custom(cl->stun_server_requests, (MSCompareFunc)ice_find_stun_server_request_transaction, tr_id);
+	bctbx_list_t *elem = bctbx_list_find_custom(cl->stun_server_requests, (bctbx_compare_func)ice_find_stun_server_request_transaction, tr_id);
 	if (elem == NULL) return NULL;
 	return (IceStunServerRequest *)elem->data;
 }
@@ -2536,10 +2536,10 @@ static IceStunServerRequest * ice_check_list_get_stun_server_request(IceCheckLis
 static void ice_set_transaction_response_time(IceCheckList *cl, UInt96 *tr_id, MSTimeSpec response_time) {
 	IceStunServerRequest *request;
 	IceStunServerRequestTransaction *transaction;
-	MSList *elem = ms_list_find_custom(cl->stun_server_requests, (MSCompareFunc)ice_find_stun_server_request_transaction, tr_id);
+	bctbx_list_t *elem = bctbx_list_find_custom(cl->stun_server_requests, (bctbx_compare_func)ice_find_stun_server_request_transaction, tr_id);
 	if (elem == NULL) return;
 	request = (IceStunServerRequest *)elem->data;
-	elem = ms_list_find_custom(request->transactions, (MSCompareFunc)ice_compare_transactionIDs, tr_id);
+	elem = bctbx_list_find_custom(request->transactions, (bctbx_compare_func)ice_compare_transactionIDs, tr_id);
 	if (elem == NULL) return;
 	transaction = (IceStunServerRequestTransaction *)elem->data;
 	transaction->response_time = response_time;
@@ -2676,24 +2676,24 @@ static int ice_find_componentID(const uint16_t *cid1, const uint16_t *cid2)
 	return !(*cid1 == *cid2);
 }
 
-static void ice_add_componentID(MSList **list, uint16_t *componentID)
+static void ice_add_componentID(bctbx_list_t **list, uint16_t *componentID)
 {
-	MSList *elem = ms_list_find_custom(*list, (MSCompareFunc)ice_find_componentID, componentID);
+	bctbx_list_t *elem = bctbx_list_find_custom(*list, (bctbx_compare_func)ice_find_componentID, componentID);
 	if (elem == NULL) {
-		*list = ms_list_append(*list, componentID);
+		*list = bctbx_list_append(*list, componentID);
 	}
 }
 
-static void ice_remove_componentID(MSList **list, uint16_t componentID){
-	*list = ms_list_remove_custom(*list, (MSCompareFunc)ice_find_componentID, &componentID);
+static void ice_remove_componentID(bctbx_list_t **list, uint16_t componentID){
+	*list = bctbx_list_remove_custom(*list, (bctbx_compare_func)ice_find_componentID, &componentID);
 }
 
 IceCandidate * ice_add_local_candidate(IceCheckList* cl, const char* type, int family, const char* ip, int port, uint16_t componentID, IceCandidate* base)
 {
-	MSList *elem;
+	bctbx_list_t *elem;
 	IceCandidate *candidate;
 
-	if (ms_list_size(cl->local_candidates) >= ICE_MAX_NB_CANDIDATES) {
+	if (bctbx_list_size(cl->local_candidates) >= ICE_MAX_NB_CANDIDATES) {
 		ms_error("ice: Candidate list limited to %d candidates", ICE_MAX_NB_CANDIDATES);
 		return NULL;
 	}
@@ -2702,7 +2702,7 @@ IceCandidate * ice_add_local_candidate(IceCheckList* cl, const char* type, int f
 	if (candidate->base == NULL) candidate->base = base;
 	ice_compute_candidate_priority(candidate);
 
-	elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_compare_candidates, candidate);
+	elem = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_compare_candidates, candidate);
 	if (elem != NULL) {
 		/* This candidate is already in the list, do not add it again. */
 		ms_free(candidate);
@@ -2710,17 +2710,17 @@ IceCandidate * ice_add_local_candidate(IceCheckList* cl, const char* type, int f
 	}
 
 	ice_add_componentID(&cl->local_componentIDs, &candidate->componentID);
-	cl->local_candidates = ms_list_append(cl->local_candidates, candidate);
+	cl->local_candidates = bctbx_list_append(cl->local_candidates, candidate);
 
 	return candidate;
 }
 
 IceCandidate * ice_add_remote_candidate(IceCheckList *cl, const char *type, int family, const char *ip, int port, uint16_t componentID, uint32_t priority, const char * const foundation, bool_t is_default)
 {
-	MSList *elem;
+	bctbx_list_t *elem;
 	IceCandidate *candidate;
 
-	if (ms_list_size(cl->local_candidates) >= ICE_MAX_NB_CANDIDATES) {
+	if (bctbx_list_size(cl->local_candidates) >= ICE_MAX_NB_CANDIDATES) {
 		ms_error("ice: Candidate list limited to %d candidates", ICE_MAX_NB_CANDIDATES);
 		return NULL;
 	}
@@ -2730,7 +2730,7 @@ IceCandidate * ice_add_remote_candidate(IceCheckList *cl, const char *type, int 
 	if (priority == 0) ice_compute_candidate_priority(candidate);
 	else candidate->priority = priority;
 
-	elem = ms_list_find_custom(cl->remote_candidates, (MSCompareFunc)ice_compare_candidates, candidate);
+	elem = bctbx_list_find_custom(cl->remote_candidates, (bctbx_compare_func)ice_compare_candidates, candidate);
 	if (elem != NULL) {
 		/* This candidate is already in the list, do not add it again. */
 		ms_free(candidate);
@@ -2740,9 +2740,9 @@ IceCandidate * ice_add_remote_candidate(IceCheckList *cl, const char *type, int 
 	strncpy(candidate->foundation, foundation, sizeof(candidate->foundation) - 1);
 	candidate->is_default = is_default;
 	ice_add_componentID(&cl->remote_componentIDs, &candidate->componentID);
-	cl->remote_candidates = ms_list_append(cl->remote_candidates, candidate);
+	cl->remote_candidates = bctbx_list_append(cl->remote_candidates, candidate);
 	if (cl->session->turn_enabled) {
-		MSList *elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_host_candidate, &componentID);
+		bctbx_list_t *elem = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_find_host_candidate, &componentID);
 		if (elem != NULL) {
 			IceStunServerRequest *request;
 			IceStunServerRequestTransaction *transaction;
@@ -2791,8 +2791,8 @@ void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, int family, con
 {
 	IceTransportAddress taddr;
 	Type_ComponentID tc;
-	MSList *elem;
-	MSList *srflx_elem = NULL;
+	bctbx_list_t *elem;
+	bctbx_list_t *srflx_elem = NULL;
 	LocalCandidate_RemoteCandidate lr;
 	IceCandidatePair *pair;
 	IceValidCandidatePair *valid_pair;
@@ -2802,15 +2802,15 @@ void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, int family, con
 	snprintf(taddr.ip, sizeof(taddr.ip), "%s", local_addr);
 	taddr.port = local_port;
 	taddr.family = family;
-	elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_candidate_from_transport_address, &taddr);
+	elem = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_find_candidate_from_transport_address, &taddr);
 	if (elem == NULL) {
 		/* Workaround to detect if the local candidate that has not been found has been added by the proxy server.
 		   If that is the case, add it to the local candidates now. */
-		elem = ms_list_find_custom(cl->remote_candidates, (MSCompareFunc)ice_find_candidate_from_ip_address, local_addr);
+		elem = bctbx_list_find_custom(cl->remote_candidates, (bctbx_compare_func)ice_find_candidate_from_ip_address, local_addr);
 		if (elem != NULL) {
 			tc.componentID = componentID;
 			tc.type = ICT_ServerReflexiveCandidate;
-			srflx_elem = ms_list_find_custom(cl->remote_candidates, (MSCompareFunc)ice_find_candidate_from_type_and_componentID, &tc);
+			srflx_elem = bctbx_list_find_custom(cl->remote_candidates, (bctbx_compare_func)ice_find_candidate_from_type_and_componentID, &tc);
 		}
 		ice_transport_address_to_printable_ip_address(&taddr, taddr_str, sizeof(taddr_str));
 		if (srflx_elem != NULL) {
@@ -2828,7 +2828,7 @@ void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, int family, con
 	snprintf(taddr.ip, sizeof(taddr.ip), "%s", remote_addr);
 	taddr.port = remote_port;
 	taddr.family = family;
-	elem = ms_list_find_custom(cl->remote_candidates, (MSCompareFunc)ice_find_candidate_from_transport_address, &taddr);
+	elem = bctbx_list_find_custom(cl->remote_candidates, (bctbx_compare_func)ice_find_candidate_from_transport_address, &taddr);
 	if (elem == NULL) {
 		ice_transport_address_to_printable_ip_address(&taddr, taddr_str, sizeof(taddr_str));
 		ms_warning("ice: Remote candidate %s should have been found", taddr_str);
@@ -2838,28 +2838,28 @@ void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, int family, con
 	if (added_missing_relay_candidate == TRUE) {
 		/* If we just added a missing relay candidate, also add the candidate pair. */
 		pair = ice_pair_new(cl, lr.local, lr.remote);
-		cl->pairs = ms_list_append(cl->pairs, pair);
+		cl->pairs = bctbx_list_append(cl->pairs, pair);
 	}
-	elem = ms_list_find_custom(cl->pairs, (MSCompareFunc)ice_find_pair_from_candidates, &lr);
+	elem = bctbx_list_find_custom(cl->pairs, (bctbx_compare_func)ice_find_pair_from_candidates, &lr);
 	if (elem == NULL) {
 		if (added_missing_relay_candidate == FALSE) {
 			/* Candidate pair has not been created but the candidates exist.
 			It must be that the local candidate is a reflexive or relayed candidate.
 			Therefore create this pair and use it. */
 			pair = ice_pair_new(cl, lr.local, lr.remote);
-			cl->pairs = ms_list_append(cl->pairs, pair);
+			cl->pairs = bctbx_list_append(cl->pairs, pair);
 		} else return;
 	} else {
 		pair = (IceCandidatePair *)elem->data;
 	}
-	elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_pair_in_valid_list, pair);
+	elem = bctbx_list_find_custom(cl->valid_list, (bctbx_compare_func)ice_find_pair_in_valid_list, pair);
 	if (elem == NULL) {
 		LosingRemoteCandidate_InProgress_Failed lif;
 		/* The pair has not been found in the valid list, therefore it is a losing pair. */
 		lif.losing_remote_candidate = pair->remote;
 		lif.failed_candidates = FALSE;
 		lif.in_progress_candidates = FALSE;
-		ms_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_check_if_losing_pair_should_cause_restart, &lif);
+		bctbx_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_check_if_losing_pair_should_cause_restart, &lif);
 		if ((lif.in_progress_candidates == FALSE) && (lif.failed_candidates == TRUE)) {
 			/* A network failure, such as a network partition or serious packet loss has most likely occured, restart ICE after some delay. */
 			ms_warning("ice: ICE restart is needed!");
@@ -2869,9 +2869,9 @@ void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, int family, con
 		} else if (lif.in_progress_candidates == TRUE) {
 			/* Wait for the in progress checks to complete. */
 			ms_message("ice: Added losing pair, wait for InProgress checks to complete");
-			elem = ms_list_find(cl->losing_pairs, pair);
+			elem = bctbx_list_find(cl->losing_pairs, pair);
 			if (elem == NULL) {
-				cl->losing_pairs = ms_list_append(cl->losing_pairs, pair);
+				cl->losing_pairs = bctbx_list_append(cl->losing_pairs, pair);
 			}
 		}
 	} else {
@@ -2884,7 +2884,7 @@ void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, int family, con
 
 static int ice_check_list_nb_losing_pairs(const IceCheckList *cl)
 {
-	return ms_list_size(cl->losing_pairs);
+	return bctbx_list_size(cl->losing_pairs);
 }
 
 int ice_session_nb_losing_pairs(const IceSession *session)
@@ -2900,7 +2900,7 @@ int ice_session_nb_losing_pairs(const IceSession *session)
 
 void ice_check_list_unselect_valid_pairs(IceCheckList *cl)
 {
-	ms_list_for_each(cl->valid_list, (void (*)(void *))ice_unselect_valid_pair);
+	bctbx_list_for_each(cl->valid_list, (void (*)(void *))ice_unselect_valid_pair);
 }
 
 
@@ -2919,7 +2919,7 @@ static int ice_find_candidate_with_same_foundation(const IceCandidate *c1, const
 
 static void ice_compute_candidate_foundation(IceCandidate *candidate, IceCheckList *cl)
 {
-	MSList *l = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_candidate_with_same_foundation, candidate);
+	bctbx_list_t *l = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_find_candidate_with_same_foundation, candidate);
 	if (l != NULL) {
 		/* We found a candidate that should have the same foundation, so copy it from this candidate. */
 		IceCandidate *other_candidate = (IceCandidate *)l->data;
@@ -2938,7 +2938,7 @@ static void ice_compute_candidate_foundation(IceCandidate *candidate, IceCheckLi
 static void ice_check_list_compute_candidates_foundations(IceCheckList *cl)
 {
 	if (cl->state == ICL_Running) {
-		ms_list_for_each2(cl->local_candidates, (void (*)(void*,void*))ice_compute_candidate_foundation, cl);
+		bctbx_list_for_each2(cl->local_candidates, (void (*)(void*,void*))ice_compute_candidate_foundation, cl);
 	}
 }
 
@@ -2964,8 +2964,8 @@ static int ice_find_redundant_candidate(const IceCandidate *c1, const IceCandida
 
 static void ice_check_list_eliminate_redundant_candidates(IceCheckList *cl)
 {
-	MSList *elem;
-	MSList *other_elem;
+	bctbx_list_t *elem;
+	bctbx_list_t *other_elem;
 	IceCandidate *candidate;
 	IceCandidate *other_candidate;
 	bool_t elem_removed;
@@ -2973,18 +2973,18 @@ static void ice_check_list_eliminate_redundant_candidates(IceCheckList *cl)
 	if (cl->state == ICL_Running) {
 		do {
 			elem_removed = FALSE;
-			/* Do not use ms_list_for_each2() here, we may remove list elements. */
+			/* Do not use bctbx_list_for_each2() here, we may remove list elements. */
 			for (elem = cl->local_candidates; elem != NULL; elem = elem->next) {
 				candidate = (IceCandidate *)elem->data;
-				other_elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_redundant_candidate, candidate);
+				other_elem = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_find_redundant_candidate, candidate);
 				if (other_elem != NULL) {
 					other_candidate = (IceCandidate *)other_elem->data;
 					if (other_candidate->priority < candidate->priority) {
 						ice_free_candidate(other_candidate);
-						cl->local_candidates = ms_list_remove_link(cl->local_candidates, other_elem);
+						cl->local_candidates = bctbx_list_remove_link(cl->local_candidates, other_elem);
 					} else {
 						ice_free_candidate(candidate);
-						cl->local_candidates = ms_list_remove_link(cl->local_candidates, elem);
+						cl->local_candidates = bctbx_list_remove_link(cl->local_candidates, elem);
 					}
 					elem_removed = TRUE;
 					break;
@@ -3013,10 +3013,10 @@ static int ice_find_candidate_from_type_and_componentID(const IceCandidate *cand
 	return !((candidate->type == tc->type) && (candidate->componentID == tc->componentID));
 }
 
-static void ice_choose_local_or_remote_default_candidates(IceCheckList *cl, MSList *list)
+static void ice_choose_local_or_remote_default_candidates(IceCheckList *cl, bctbx_list_t *list)
 {
 	Type_ComponentID tc;
-	MSList *l;
+	bctbx_list_t *l;
 	int i,k;
 
 	/* Choose the default candidate for each componentID as defined in 4.1.4. */
@@ -3025,7 +3025,7 @@ static void ice_choose_local_or_remote_default_candidates(IceCheckList *cl, MSLi
 		l = NULL;
 		for(k = 0; k < ICT_CandidateTypeMax && cl->session->default_types[k] != ICT_CandidateInvalid; ++k){
 			tc.type = cl->session->default_types[k];
-			l = ms_list_find_custom(list, (MSCompareFunc)ice_find_candidate_from_type_and_componentID, &tc);
+			l = bctbx_list_find_custom(list, (bctbx_compare_func)ice_find_candidate_from_type_and_componentID, &tc);
 			if (l) break;
 		}
 		if (l != NULL) {
@@ -3081,8 +3081,8 @@ static int ice_compare_pair_priorities(const IceCandidatePair *p1, const IceCand
 /* Form candidate pairs, compute their priorities and sort them by decreasing priorities according to 5.7.1 and 5.7.2. */
 static void ice_form_candidate_pairs(IceCheckList *cl)
 {
-	MSList *local_list = cl->local_candidates;
-	MSList *remote_list;
+	bctbx_list_t *local_list = cl->local_candidates;
+	bctbx_list_t *remote_list;
 	IceCandidatePair *pair;
 	IceCandidate *local_candidate;
 	IceCandidate *remote_candidate;
@@ -3094,11 +3094,11 @@ static void ice_form_candidate_pairs(IceCheckList *cl)
 			remote_candidate = (IceCandidate*)remote_list->data;
 			if (local_candidate->componentID == remote_candidate->componentID) {
 				pair = ice_pair_new(cl, local_candidate, remote_candidate);
-				cl->pairs = ms_list_append(cl->pairs, pair);
+				cl->pairs = bctbx_list_append(cl->pairs, pair);
 			}
-			remote_list = ms_list_next(remote_list);
+			remote_list = bctbx_list_next(remote_list);
 		}
-		local_list = ms_list_next(local_list);
+		local_list = bctbx_list_next(local_list);
 	}
 }
 
@@ -3131,14 +3131,14 @@ static int ice_compare_pairs(const IceCandidatePair *p1, const IceCandidatePair 
 		&& (ice_compare_candidates(p1->remote, p2->remote) == 0));
 }
 
-static int ice_prune_duplicate_pair(IceCandidatePair *pair, MSList **pairs, IceCheckList *cl)
+static int ice_prune_duplicate_pair(IceCandidatePair *pair, bctbx_list_t **pairs, IceCheckList *cl)
 {
-	MSList *other_pair = ms_list_find_custom(*pairs, (MSCompareFunc)ice_compare_pairs, pair);
+	bctbx_list_t *other_pair = bctbx_list_find_custom(*pairs, (bctbx_compare_func)ice_compare_pairs, pair);
 	if (other_pair != NULL) {
 		IceCandidatePair *other_candidate_pair = (IceCandidatePair *)other_pair->data;
 		if (other_candidate_pair->priority > pair->priority) {
 			/* Found duplicate with higher priority so prune current pair. */
-			*pairs = ms_list_remove(*pairs, pair);
+			*pairs = bctbx_list_remove(*pairs, pair);
 			ice_free_candidate_pair(pair, cl);
 			return 1;
 		}
@@ -3148,21 +3148,21 @@ static int ice_prune_duplicate_pair(IceCandidatePair *pair, MSList **pairs, IceC
 
 static void ice_create_check_list(IceCandidatePair *pair, IceCheckList *cl)
 {
-	cl->check_list = ms_list_insert_sorted(cl->check_list, pair, (MSCompareFunc)ice_compare_pair_priorities);
+	cl->check_list = bctbx_list_insert_sorted(cl->check_list, pair, (bctbx_compare_func)ice_compare_pair_priorities);
 }
 
 /* Prune pairs according to 5.7.3. */
 static void ice_prune_candidate_pairs(IceCheckList *cl)
 {
-	MSList *list;
-	MSList *next;
-	MSList *prev;
+	bctbx_list_t *list;
+	bctbx_list_t *next;
+	bctbx_list_t *prev;
 	int nb_pairs;
 	int nb_pairs_to_remove;
 	int i;
 
-	ms_list_for_each(cl->pairs, (void (*)(void*))ice_replace_srflx_by_base_in_pair);
-	/* Do not use ms_list_for_each2() here, because ice_prune_duplicate_pair() can remove list elements. */
+	bctbx_list_for_each(cl->pairs, (void (*)(void*))ice_replace_srflx_by_base_in_pair);
+	/* Do not use bctbx_list_for_each2() here, because ice_prune_duplicate_pair() can remove list elements. */
 	for (list = cl->pairs; list != NULL; list = list->next) {
 		next = list->next;
 		if (ice_prune_duplicate_pair(list->data, &cl->pairs, cl)) {
@@ -3172,21 +3172,21 @@ static void ice_prune_candidate_pairs(IceCheckList *cl)
 	}
 
 	/* Create the check list. */
-	ms_list_free(cl->check_list);
+	bctbx_list_free(cl->check_list);
 	cl->check_list = NULL;
-	ms_list_for_each2(cl->pairs, (void (*)(void*,void*))ice_create_check_list, cl);
+	bctbx_list_for_each2(cl->pairs, (void (*)(void*,void*))ice_create_check_list, cl);
 
 	/* Limit the number of connectivity checks. */
-	nb_pairs = ms_list_size(cl->check_list);
+	nb_pairs = bctbx_list_size(cl->check_list);
 	if (nb_pairs > cl->session->max_connectivity_checks) {
 		nb_pairs_to_remove = nb_pairs - cl->session->max_connectivity_checks;
 		list = cl->check_list;
-		for (i = 0; i < (nb_pairs - 1); i++) list = ms_list_next(list);
+		for (i = 0; i < (nb_pairs - 1); i++) list = bctbx_list_next(list);
 		for (i = 0; i < nb_pairs_to_remove; i++) {
-			cl->pairs = ms_list_remove(cl->pairs, list->data);
+			cl->pairs = bctbx_list_remove(cl->pairs, list->data);
 			ice_free_candidate_pair(list->data, cl);
 			prev = list->prev;
-			cl->check_list = ms_list_remove_link(cl->check_list, list);
+			cl->check_list = bctbx_list_remove_link(cl->check_list, list);
 			list = prev;
 		}
 	}
@@ -3198,21 +3198,21 @@ static int ice_find_pair_foundation(const IcePairFoundation *f1, const IcePairFo
 		&& (strlen(f1->remote) == strlen(f2->remote)) && (strcmp(f1->remote, f2->remote) == 0));
 }
 
-static void ice_generate_pair_foundations_list(const IceCandidatePair *pair, MSList **list)
+static void ice_generate_pair_foundations_list(const IceCandidatePair *pair, bctbx_list_t **list)
 {
 	IcePairFoundation foundation;
 	IcePairFoundation *dyn_foundation;
-	MSList *elem;
+	bctbx_list_t *elem;
 
 	memset(&foundation, 0, sizeof(foundation));
 	strncpy(foundation.local, pair->local->foundation, sizeof(foundation.local) - 1);
 	strncpy(foundation.remote, pair->remote->foundation, sizeof(foundation.remote) - 1);
 
-	elem = ms_list_find_custom(*list, (MSCompareFunc)ice_find_pair_foundation, &foundation);
+	elem = bctbx_list_find_custom(*list, (bctbx_compare_func)ice_find_pair_foundation, &foundation);
 	if (elem == NULL) {
 		dyn_foundation = ms_new0(IcePairFoundation, 1);
 		memcpy(dyn_foundation, &foundation, sizeof(foundation));
-		*list = ms_list_append(*list, dyn_foundation);
+		*list = bctbx_list_append(*list, dyn_foundation);
 	}
 }
 
@@ -3234,7 +3234,7 @@ static void ice_set_lowest_componentid_pair_with_foundation_to_waiting_state(con
 	fc.pair = NULL;
 	fc.componentID = ICE_INVALID_COMPONENTID;
 	fc.priority = 0;
-	ms_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_find_lowest_componentid_pair_with_specified_foundation, &fc);
+	bctbx_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_find_lowest_componentid_pair_with_specified_foundation, &fc);
 	if (fc.pair != NULL) {
 		/* Set the state of the pair to Waiting. */
 		ice_pair_set_state(fc.pair, ICP_Waiting);
@@ -3244,7 +3244,7 @@ static void ice_set_lowest_componentid_pair_with_foundation_to_waiting_state(con
 /* Compute pairs states according to 5.7.4. */
 static void ice_compute_pairs_states(IceCheckList *cl)
 {
-	ms_list_for_each2(cl->foundations, (void (*)(void*,void*))ice_set_lowest_componentid_pair_with_foundation_to_waiting_state, cl);
+	bctbx_list_for_each2(cl->foundations, (void (*)(void*,void*))ice_set_lowest_componentid_pair_with_foundation_to_waiting_state, cl);
 }
 
 static void ice_check_list_pair_candidates(IceCheckList *cl)
@@ -3253,7 +3253,7 @@ static void ice_check_list_pair_candidates(IceCheckList *cl)
 		ice_form_candidate_pairs(cl);
 		ice_prune_candidate_pairs(cl);
 		/* Generate pair foundations list. */
-		ms_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_generate_pair_foundations_list, &cl->foundations);
+		bctbx_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_generate_pair_foundations_list, &cl->foundations);
 	}
 }
 
@@ -3294,7 +3294,7 @@ void ice_session_start_connectivity_checks(IceSession *session)
 static void ice_perform_regular_nomination(IceValidCandidatePair *valid_pair, CheckList_RtpSession *cr)
 {
 	if (valid_pair->generated_from->use_candidate == FALSE) {
-		MSList *elem = ms_list_find_custom(cr->cl->valid_list, (MSCompareFunc)ice_find_use_candidate_valid_pair_from_componentID, &valid_pair->generated_from->local->componentID);
+		bctbx_list_t *elem = bctbx_list_find_custom(cr->cl->valid_list, (bctbx_compare_func)ice_find_use_candidate_valid_pair_from_componentID, &valid_pair->generated_from->local->componentID);
 		if (elem == NULL) {
 			if (valid_pair->valid->remote->type == ICT_RelayedCandidate) {
 				MSTimeSpec curtime = ice_current_time();
@@ -3317,17 +3317,17 @@ static void ice_perform_regular_nomination(IceValidCandidatePair *valid_pair, Ch
 	}
 }
 
-static void ice_remove_waiting_and_frozen_pairs_from_list(MSList **list, uint16_t componentID)
+static void ice_remove_waiting_and_frozen_pairs_from_list(bctbx_list_t **list, uint16_t componentID)
 {
 	IceCandidatePair *pair;
-	MSList *elem;
-	MSList *next;
+	bctbx_list_t *elem;
+	bctbx_list_t *next;
 
 	for (elem = *list; elem != NULL; elem = elem->next) {
 		pair = (IceCandidatePair *)elem->data;
 		if (((pair->state == ICP_Waiting) || (pair->state == ICP_Frozen)) && (pair->local->componentID == componentID)) {
 			next = elem->next;
-			*list = ms_list_remove_link(*list, elem);
+			*list = bctbx_list_remove_link(*list, elem);
 			if (next && next->prev) elem = next->prev;
 			else break;	/* The end of the list has been reached, prevent accessing a wrong list->next */
 		}
@@ -3347,7 +3347,7 @@ static void ice_conclude_waiting_frozen_and_inprogress_pairs(const IceValidCandi
 	if (valid_pair->valid->is_nominated == TRUE) {
 		ice_remove_waiting_and_frozen_pairs_from_list(&cl->check_list, valid_pair->valid->local->componentID);
 		ice_remove_waiting_and_frozen_pairs_from_list(&cl->triggered_checks_queue, valid_pair->valid->local->componentID);
-		ms_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_stop_retransmission_for_in_progress_pair, &valid_pair->valid->local->componentID);
+		bctbx_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_stop_retransmission_for_in_progress_pair, &valid_pair->valid->local->componentID);
 	}
 }
 
@@ -3363,7 +3363,7 @@ static int ice_find_nominated_valid_pair_from_componentID(const IceValidCandidat
 
 static void ice_find_nominated_valid_pair_for_componentID(const uint16_t *componentID, CheckList_Bool *cb)
 {
-	MSList *elem = ms_list_find_custom(cb->cl->valid_list, (MSCompareFunc)ice_find_nominated_valid_pair_from_componentID, componentID);
+	bctbx_list_t *elem = bctbx_list_find_custom(cb->cl->valid_list, (bctbx_compare_func)ice_find_nominated_valid_pair_from_componentID, componentID);
 	if (elem == NULL) {
 		/* This component ID is not present in the valid list. */
 		cb->result = FALSE;
@@ -3377,7 +3377,7 @@ static int ice_find_selected_valid_pair_from_componentID(const IceValidCandidate
 
 static void ice_find_selected_valid_pair_for_componentID(const uint16_t *componentID, CheckList_Bool *cb)
 {
-	MSList *elem = ms_list_find_custom(cb->cl->valid_list, (MSCompareFunc)ice_find_selected_valid_pair_from_componentID, componentID);
+	bctbx_list_t *elem = bctbx_list_find_custom(cb->cl->valid_list, (bctbx_compare_func)ice_find_selected_valid_pair_from_componentID, componentID);
 	if (elem == NULL) {
 		/* This component ID is not present in the valid list. */
 		cb->result = FALSE;
@@ -3386,7 +3386,7 @@ static void ice_find_selected_valid_pair_for_componentID(const uint16_t *compone
 
 static void ice_check_all_pairs_in_failed_or_succeeded_state(const IceCandidatePair *pair, CheckList_Bool *cb)
 {
-	MSList *elem = ms_list_find_custom(cb->cl->check_list, (MSCompareFunc)ice_find_not_failed_or_succeeded_pair, NULL);
+	bctbx_list_t *elem = bctbx_list_find_custom(cb->cl->check_list, (bctbx_compare_func)ice_find_not_failed_or_succeeded_pair, NULL);
 	if (elem != NULL) {
 		cb->result = FALSE;
 	}
@@ -3394,19 +3394,19 @@ static void ice_check_all_pairs_in_failed_or_succeeded_state(const IceCandidateP
 
 static void ice_pair_stop_retransmissions(IceCandidatePair *pair, IceCheckList *cl)
 {
-	MSList *elem;
+	bctbx_list_t *elem;
 	if (pair->state == ICP_InProgress) {
 		ice_pair_set_state(pair, ICP_Failed);
-		elem = ms_list_find(cl->triggered_checks_queue, pair);
+		elem = bctbx_list_find(cl->triggered_checks_queue, pair);
 		if (elem != NULL) {
-			cl->triggered_checks_queue = ms_list_remove_link(cl->triggered_checks_queue, elem);
+			cl->triggered_checks_queue = bctbx_list_remove_link(cl->triggered_checks_queue, elem);
 		}
 	}
 }
 
 static void ice_check_list_stop_retransmissions(IceCheckList *cl)
 {
-	ms_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_pair_stop_retransmissions, cl);
+	bctbx_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_pair_stop_retransmissions, cl);
 }
 
 static IceCheckList * ice_session_find_running_check_list(const IceSession *session)
@@ -3499,14 +3499,14 @@ static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session)
 			/* Perform regular nomination for valid pairs. */
 			cr.cl = cl;
 			cr.rtp_session = rtp_session;
-			ms_list_for_each2(cl->valid_list, (void (*)(void*,void*))ice_perform_regular_nomination, &cr);
+			bctbx_list_for_each2(cl->valid_list, (void (*)(void*,void*))ice_perform_regular_nomination, &cr);
 		}
 
-		ms_list_for_each2(cl->valid_list, (void (*)(void*,void*))ice_conclude_waiting_frozen_and_inprogress_pairs, cl);
+		bctbx_list_for_each2(cl->valid_list, (void (*)(void*,void*))ice_conclude_waiting_frozen_and_inprogress_pairs, cl);
 
 		cb.cl = cl;
 		cb.result = TRUE;
-		ms_list_for_each2(cl->local_componentIDs, (void (*)(void*,void*))ice_find_nominated_valid_pair_for_componentID, &cb);
+		bctbx_list_for_each2(cl->local_componentIDs, (void (*)(void*,void*))ice_find_nominated_valid_pair_for_componentID, &cb);
 		if (cb.result == TRUE) {
 			nb_losing_pairs = ice_check_list_nb_losing_pairs(cl);
 			if ((cl->state != ICL_Completed) && (nb_losing_pairs == 0)) {
@@ -3555,7 +3555,7 @@ static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session)
 		} else {
 			cb.cl = cl;
 			cb.result = TRUE;
-			ms_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_check_all_pairs_in_failed_or_succeeded_state, &cb);
+			bctbx_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_check_all_pairs_in_failed_or_succeeded_state, &cb);
 			if (cb.result == TRUE) {
 				if (cl->state != ICL_Failed) {
 					cl->state = ICL_Failed;
@@ -3583,22 +3583,22 @@ static void ice_check_list_restart(IceCheckList *cl)
 	if (cl->remote_pwd) ms_free(cl->remote_pwd);
 	cl->remote_ufrag = cl->remote_pwd = NULL;
 
-	ms_list_for_each(cl->stun_server_requests, (void (*)(void*))ice_stun_server_request_free);
-	ms_list_for_each(cl->transaction_list, (void (*)(void*))ice_free_transaction);
-	ms_list_for_each(cl->foundations, (void (*)(void*))ice_free_pair_foundation);
-	ms_list_for_each2(cl->pairs, (void (*)(void*,void*))ice_free_candidate_pair, cl);
-	ms_list_for_each(cl->valid_list, (void (*)(void*))ice_free_valid_pair);
-	ms_list_for_each(cl->remote_candidates, (void (*)(void*))ice_free_candidate);
-	ms_list_free(cl->stun_server_requests);
-	ms_list_free(cl->transaction_list);
-	ms_list_free(cl->foundations);
-	ms_list_free(cl->remote_componentIDs);
-	ms_list_free(cl->valid_list);
-	ms_list_free(cl->check_list);
-	ms_list_free(cl->triggered_checks_queue);
-	ms_list_free(cl->losing_pairs);
-	ms_list_free(cl->pairs);
-	ms_list_free(cl->remote_candidates);
+	bctbx_list_for_each(cl->stun_server_requests, (void (*)(void*))ice_stun_server_request_free);
+	bctbx_list_for_each(cl->transaction_list, (void (*)(void*))ice_free_transaction);
+	bctbx_list_for_each(cl->foundations, (void (*)(void*))ice_free_pair_foundation);
+	bctbx_list_for_each2(cl->pairs, (void (*)(void*,void*))ice_free_candidate_pair, cl);
+	bctbx_list_for_each(cl->valid_list, (void (*)(void*))ice_free_valid_pair);
+	bctbx_list_for_each(cl->remote_candidates, (void (*)(void*))ice_free_candidate);
+	bctbx_list_free(cl->stun_server_requests);
+	bctbx_list_free(cl->transaction_list);
+	bctbx_list_free(cl->foundations);
+	bctbx_list_free(cl->remote_componentIDs);
+	bctbx_list_free(cl->valid_list);
+	bctbx_list_free(cl->check_list);
+	bctbx_list_free(cl->triggered_checks_queue);
+	bctbx_list_free(cl->losing_pairs);
+	bctbx_list_free(cl->pairs);
+	bctbx_list_free(cl->remote_candidates);
 	cl->stun_server_requests = cl->foundations = cl->remote_componentIDs = NULL;
 	cl->valid_list = cl->check_list = cl->triggered_checks_queue = cl->losing_pairs = cl->pairs = cl->remote_candidates = cl->transaction_list = NULL;
 	cl->state = ICL_Running;
@@ -3647,13 +3647,13 @@ static int ice_find_gathering_stun_server_request(const IceStunServerRequest *re
 }
 
 static void ice_remove_gathering_stun_server_requests(IceCheckList *cl) {
-	MSList *elem = cl->stun_server_requests;
+	bctbx_list_t *elem = cl->stun_server_requests;
 	while (elem != NULL) {
-		elem = ms_list_find_custom(cl->stun_server_requests, (MSCompareFunc)ice_find_gathering_stun_server_request, NULL);
+		elem = bctbx_list_find_custom(cl->stun_server_requests, (bctbx_compare_func)ice_find_gathering_stun_server_request, NULL);
 		if (elem != NULL) {
 			IceStunServerRequest *request = (IceStunServerRequest *)elem->data;
 			ice_stun_server_request_free(request);
-			cl->stun_server_requests = ms_list_remove_link(cl->stun_server_requests, elem);
+			cl->stun_server_requests = bctbx_list_remove_link(cl->stun_server_requests, elem);
 		}
 	}
 }
@@ -3701,7 +3701,7 @@ static void ice_send_stun_server_requests(IceStunServerRequest *request, IceChec
 	MSTimeSpec curtime = ice_current_time();
 
 	if (ice_compare_time(curtime, request->next_transmission_time) >= 0) {
-		if (ms_list_size(request->transactions) < ICE_MAX_STUN_REQUEST_RETRANSMISSIONS) {
+		if (bctbx_list_size(request->transactions) < ICE_MAX_STUN_REQUEST_RETRANSMISSIONS) {
 			request->next_transmission_time = ice_add_ms(curtime, ICE_DEFAULT_RTO_DURATION);
 			transaction = ice_send_stun_server_request(request, (struct sockaddr *)&cl->session->ss, cl->session->ss_len);
 			if (transaction != NULL) {
@@ -3737,7 +3737,7 @@ static void ice_check_list_retransmit_connectivity_checks(IceCheckList *cl, RtpS
 	params.cl = cl;
 	params.rtp_session = rtp_session;
 	params.time = curtime;
-	ms_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_handle_connectivity_check_retransmission, &params);
+	bctbx_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_handle_connectivity_check_retransmission, &params);
 }
 
 static IceCandidatePair *ice_check_list_send_triggered_check(IceCheckList *cl, RtpSession *rtp_session)
@@ -3754,7 +3754,7 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 {
 	IceCandidatePairState state;
 	IceCandidatePair *pair;
-	MSList *elem;
+	bctbx_list_t *elem;
 	MSTimeSpec curtime;
 	bool_t retransmissions_pending = FALSE;
 
@@ -3767,8 +3767,8 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 	}
 
 	/* Send STUN/TURN server requests (to gather candidates, create/refresh TURN permissions, refresh TURN allocations or bind TURN channels). */
-	ms_list_for_each2(cl->stun_server_requests, (void (*)(void*,void*))ice_send_stun_server_requests, cl);
-	cl->stun_server_requests = ms_list_remove_custom(cl->stun_server_requests, (MSCompareFunc)ice_compare_stun_server_requests_to_remove, NULL);
+	bctbx_list_for_each2(cl->stun_server_requests, (void (*)(void*,void*))ice_send_stun_server_requests, cl);
+	cl->stun_server_requests = bctbx_list_remove_custom(cl->stun_server_requests, (bctbx_compare_func)ice_compare_stun_server_requests_to_remove, NULL);
 
 	/* Send event if needed. */
 	if ((cl->session->send_event == TRUE) && (ice_compare_time(curtime, cl->session->event_time) >= 0)) {
@@ -3815,7 +3815,7 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 			} else {
 				/* Send an ordinary connectivity check for the pair in the Waiting state and with the highest priority if there is one. */
 				state = ICP_Waiting;
-				elem = ms_list_find_custom(cl->check_list, (MSCompareFunc)ice_find_pair_from_state, &state);
+				elem = bctbx_list_find_custom(cl->check_list, (bctbx_compare_func)ice_find_pair_from_state, &state);
 				if (elem != NULL) {
 					pair = (IceCandidatePair *)elem->data;
 					ice_send_binding_request(cl, pair, rtp_session);
@@ -3824,7 +3824,7 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 
 				/* Send an ordinary connectivity check for the pair in the Frozen state and with the highest priority if there is one. */
 				state = ICP_Frozen;
-				elem = ms_list_find_custom(cl->check_list, (MSCompareFunc)ice_find_pair_from_state, &state);
+				elem = bctbx_list_find_custom(cl->check_list, (bctbx_compare_func)ice_find_pair_from_state, &state);
 				if (elem != NULL) {
 					pair = (IceCandidatePair *)elem->data;
 					ice_send_binding_request(cl, pair, rtp_session);
@@ -3832,7 +3832,7 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 				}
 
 				/* Check if there are some retransmissions pending. */
-				ms_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_check_retransmissions_pending, &retransmissions_pending);
+				bctbx_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_check_retransmissions_pending, &retransmissions_pending);
 				if (retransmissions_pending == FALSE) {
 					ms_message("ice: There is no connectivity check left to be sent and no retransmissions pending, concluding checklist [%p]",cl);
 					ice_conclude_processing(cl, rtp_session);
@@ -3909,16 +3909,16 @@ static void ice_set_base_for_srflx_candidate(IceCandidate *candidate, IceCandida
 static void ice_set_base_for_srflx_candidate_with_componentID(uint16_t *componentID, IceCheckList *cl)
 {
 	IceCandidate *base;
-	MSList *elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_host_candidate, componentID);
+	bctbx_list_t *elem = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_find_host_candidate, componentID);
 	if (elem != NULL) {
 		base = (IceCandidate *)elem->data;
-		ms_list_for_each2(cl->local_candidates, (void (*)(void*,void*))ice_set_base_for_srflx_candidate, (void *)base);
+		bctbx_list_for_each2(cl->local_candidates, (void (*)(void*,void*))ice_set_base_for_srflx_candidate, (void *)base);
 	}
 }
 
 static void ice_check_list_set_base_for_srflx_candidates(IceCheckList *cl)
 {
-	ms_list_for_each2(cl->local_componentIDs, (void (*)(void*,void*))ice_set_base_for_srflx_candidate_with_componentID, cl);
+	bctbx_list_for_each2(cl->local_componentIDs, (void (*)(void*,void*))ice_set_base_for_srflx_candidate_with_componentID, cl);
 }
 
 void ice_session_set_base_for_srflx_candidates(IceSession *session)
@@ -3938,20 +3938,20 @@ static int ice_find_candidate_with_componentID(const IceCandidate *candidate, co
 
 void ice_check_list_remove_rtcp_candidates(IceCheckList *cl)
 {
-	MSList *elem;
+	bctbx_list_t *elem;
 	uint16_t rtcp_componentID = ICE_RTCP_COMPONENT_ID;
 	
 	ice_remove_componentID(&cl->local_componentIDs, rtcp_componentID);
 	
-	while ((elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_candidate_with_componentID, &rtcp_componentID)) != NULL) {
+	while ((elem = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_find_candidate_with_componentID, &rtcp_componentID)) != NULL) {
 		IceCandidate *candidate = (IceCandidate *)elem->data;
-		cl->local_candidates = ms_list_remove(cl->local_candidates, candidate);
+		cl->local_candidates = bctbx_list_remove(cl->local_candidates, candidate);
 		ice_free_candidate(candidate);
 	}
 	ice_remove_componentID(&cl->remote_componentIDs, rtcp_componentID);
-	while ((elem = ms_list_find_custom(cl->remote_candidates, (MSCompareFunc)ice_find_candidate_with_componentID, &rtcp_componentID)) != NULL) {
+	while ((elem = bctbx_list_find_custom(cl->remote_candidates, (bctbx_compare_func)ice_find_candidate_with_componentID, &rtcp_componentID)) != NULL) {
 		IceCandidate *candidate = (IceCandidate *)elem->data;
-		cl->remote_candidates = ms_list_remove(cl->remote_candidates, candidate);
+		cl->remote_candidates = bctbx_list_remove(cl->remote_candidates, candidate);
 		ice_free_candidate(candidate);
 	}
 }
@@ -3963,21 +3963,21 @@ void ice_check_list_remove_rtcp_candidates(IceCheckList *cl)
 
 static void ice_get_valid_pair_for_componentID(const uint16_t *componentID, CheckList_MSListPtr *cm)
 {
-	MSList *elem = ms_list_find_custom(cm->cl->valid_list, (MSCompareFunc)ice_find_nominated_valid_pair_from_componentID, componentID);
+	bctbx_list_t *elem = bctbx_list_find_custom(cm->cl->valid_list, (bctbx_compare_func)ice_find_nominated_valid_pair_from_componentID, componentID);
 	if (elem != NULL) {
 		IceValidCandidatePair *valid_pair = (IceValidCandidatePair *)elem->data;
-		*cm->list = ms_list_append(*cm->list, valid_pair->valid);
+		*cm->list = bctbx_list_append(*cm->list, valid_pair->valid);
 	}
 }
 
-static MSList * ice_get_valid_pairs(const IceCheckList *cl)
+static bctbx_list_t * ice_get_valid_pairs(const IceCheckList *cl)
 {
 	CheckList_MSListPtr cm;
-	MSList *valid_pairs = NULL;
+	bctbx_list_t *valid_pairs = NULL;
 
 	cm.cl = cl;
 	cm.list = &valid_pairs;
-	ms_list_for_each2(cl->local_componentIDs, (void (*)(void*,void*))ice_get_valid_pair_for_componentID, &cm);
+	bctbx_list_for_each2(cl->local_componentIDs, (void (*)(void*,void*))ice_get_valid_pair_for_componentID, &cm);
 	return valid_pairs;
 }
 
@@ -3993,11 +3993,11 @@ static void ice_get_remote_transport_addresses_from_valid_pair(const IceCandidat
 void ice_get_remote_transport_addresses_from_valid_pairs(const IceCheckList *cl, IceTransportAddress **rtp_taddr, IceTransportAddress **rtcp_taddr)
 {
 	TransportAddresses taddrs;
-	MSList *ice_pairs = ice_get_valid_pairs(cl);
+	bctbx_list_t *ice_pairs = ice_get_valid_pairs(cl);
 	taddrs.rtp_taddr = rtp_taddr;
 	taddrs.rtcp_taddr = rtcp_taddr;
-	ms_list_for_each2(ice_pairs, (void (*)(void*,void*))ice_get_remote_transport_addresses_from_valid_pair, &taddrs);
-	ms_list_free(ice_pairs);
+	bctbx_list_for_each2(ice_pairs, (void (*)(void*,void*))ice_get_remote_transport_addresses_from_valid_pair, &taddrs);
+	bctbx_list_free(ice_pairs);
 }
 
 static void ice_get_local_transport_address_from_valid_pair(const IceCandidatePair *pair, TransportAddresses *taddrs)
@@ -4012,11 +4012,11 @@ static void ice_get_local_transport_address_from_valid_pair(const IceCandidatePa
 static void ice_get_local_transport_addresses_from_valid_pairs(const IceCheckList *cl, IceTransportAddress **rtp_taddr, IceTransportAddress **rtcp_taddr)
 {
 	TransportAddresses taddrs;
-	MSList *ice_pairs = ice_get_valid_pairs(cl);
+	bctbx_list_t *ice_pairs = ice_get_valid_pairs(cl);
 	taddrs.rtp_taddr = rtp_taddr;
 	taddrs.rtcp_taddr = rtcp_taddr;
-	ms_list_for_each2(ice_pairs, (void (*)(void*,void*))ice_get_local_transport_address_from_valid_pair, &taddrs);
-	ms_list_free(ice_pairs);
+	bctbx_list_for_each2(ice_pairs, (void (*)(void*,void*))ice_get_local_transport_address_from_valid_pair, &taddrs);
+	bctbx_list_free(ice_pairs);
 }
 
 void ice_check_list_print_route(const IceCheckList *cl, const char *message)
@@ -4066,9 +4066,9 @@ void ice_dump_candidates(const IceCheckList* cl)
 {
 	if (cl == NULL) return;
 	ms_message("Local candidates:");
-	ms_list_for_each2(cl->local_candidates, (void (*)(void*,void*))ice_dump_candidate, "\t");
+	bctbx_list_for_each2(cl->local_candidates, (void (*)(void*,void*))ice_dump_candidate, "\t");
 	ms_message("Remote candidates:");
-	ms_list_for_each2(cl->remote_candidates, (void (*)(void*,void*))ice_dump_candidate, "\t");
+	bctbx_list_for_each2(cl->remote_candidates, (void (*)(void*,void*))ice_dump_candidate, "\t");
 }
 
 static void ice_dump_candidate_pair(const IceCandidatePair *pair, int *i)
@@ -4085,7 +4085,7 @@ void ice_dump_candidate_pairs(const IceCheckList* cl)
 	int i = 1;
 	if (cl == NULL) return;
 	ms_message("Candidate pairs:");
-	ms_list_for_each2(cl->pairs, (void (*)(void*,void*))ice_dump_candidate_pair, (void*)&i);
+	bctbx_list_for_each2(cl->pairs, (void (*)(void*,void*))ice_dump_candidate_pair, (void*)&i);
 }
 
 static void ice_dump_candidate_pair_foundation(const IcePairFoundation *foundation)
@@ -4097,7 +4097,7 @@ void ice_dump_candidate_pairs_foundations(const IceCheckList* cl)
 {
 	if (cl == NULL) return;
 	ms_message("Candidate pairs foundations:");
-	ms_list_for_each(cl->foundations, (void (*)(void*))ice_dump_candidate_pair_foundation);
+	bctbx_list_for_each(cl->foundations, (void (*)(void*))ice_dump_candidate_pair_foundation);
 }
 
 static void ice_dump_valid_pair(const IceValidCandidatePair *valid_pair, int *i)
@@ -4115,7 +4115,7 @@ void ice_dump_valid_list(const IceCheckList* cl)
 	int i = 1;
 	if (cl == NULL) return;
 	ms_message("Valid list:");
-	ms_list_for_each2(cl->valid_list, (void (*)(void*,void*))ice_dump_valid_pair, &i);
+	bctbx_list_for_each2(cl->valid_list, (void (*)(void*,void*))ice_dump_valid_pair, &i);
 }
 
 void ice_dump_check_list(const IceCheckList* cl)
@@ -4123,7 +4123,7 @@ void ice_dump_check_list(const IceCheckList* cl)
 	int i = 1;
 	if (cl == NULL) return;
 	ms_message("Check list:");
-	ms_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_dump_candidate_pair, (void*)&i);
+	bctbx_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_dump_candidate_pair, (void*)&i);
 }
 
 void ice_dump_triggered_checks_queue(const IceCheckList* cl)
@@ -4131,7 +4131,7 @@ void ice_dump_triggered_checks_queue(const IceCheckList* cl)
 	int i = 1;
 	if (cl == NULL) return;
 	ms_message("Triggered checks queue:");
-	ms_list_for_each2(cl->triggered_checks_queue, (void (*)(void*,void*))ice_dump_candidate_pair, (void*)&i);
+	bctbx_list_for_each2(cl->triggered_checks_queue, (void (*)(void*,void*))ice_dump_candidate_pair, (void*)&i);
 }
 
 static void ice_dump_componentID(const uint16_t *componentID)
@@ -4143,7 +4143,7 @@ void ice_dump_componentIDs(const IceCheckList* cl)
 {
 	if (cl == NULL) return;
 	ms_message("Component IDs:");
-	ms_list_for_each(cl->local_componentIDs, (void (*)(void*))ice_dump_componentID);
+	bctbx_list_for_each(cl->local_componentIDs, (void (*)(void*))ice_dump_componentID);
 }
 const char* ice_check_list_state_to_string(const IceCheckListState state) {
 	switch (state) {

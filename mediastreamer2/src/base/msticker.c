@@ -118,13 +118,13 @@ void ms_ticker_destroy(MSTicker *ticker){
 }
 
 
-static MSList *get_sources(MSList *filters){
-	MSList *sources=NULL;
+static bctbx_list_t *get_sources(bctbx_list_t *filters){
+	bctbx_list_t *sources=NULL;
 	MSFilter *f;
 	for(;filters!=NULL;filters=filters->next){
 		f=(MSFilter*)filters->data;
 		if (f->desc->ninputs==0){
-			sources=ms_list_append(sources,f);
+			sources=bctbx_list_append(sources,f);
 		}
 	}
 	return sources;
@@ -136,10 +136,10 @@ int ms_ticker_attach(MSTicker *ticker, MSFilter *f){
 
 int ms_ticker_attach_multiple(MSTicker *ticker,MSFilter *f,...)
 {
-	MSList *sources=NULL;
-	MSList *filters=NULL;
-	MSList *it;
-	MSList *total_sources=NULL;
+	bctbx_list_t *sources=NULL;
+	bctbx_list_t *filters=NULL;
+	bctbx_list_t *it;
+	bctbx_list_t *total_sources=NULL;
 	va_list l;
 
 	va_start(l,f);
@@ -150,20 +150,20 @@ int ms_ticker_attach_multiple(MSTicker *ticker,MSFilter *f,...)
 			sources=get_sources(filters);
 			if (sources==NULL){
 				ms_fatal("No sources found around filter %s",f->desc->name);
-				ms_list_free(filters);
+				bctbx_list_free(filters);
 				break;
 			}
 			/*run preprocess on each filter: */
 			for(it=filters;it!=NULL;it=it->next)
 				ms_filter_preprocess((MSFilter*)it->data,ticker);
-			ms_list_free(filters);
-			total_sources=ms_list_concat(total_sources,sources);
+			bctbx_list_free(filters);
+			total_sources=bctbx_list_concat(total_sources,sources);
 		}else ms_message("Filter %s is already being scheduled; nothing to do.",f->desc->name);
 	}while ((f=va_arg(l,MSFilter*))!=NULL);
 	va_end(l);
 	if (total_sources){
 		ms_mutex_lock(&ticker->lock);
-		ticker->execution_list=ms_list_concat(ticker->execution_list,total_sources);
+		ticker->execution_list=bctbx_list_concat(ticker->execution_list,total_sources);
 		ms_mutex_unlock(&ticker->lock);
 	}
 	return 0;
@@ -175,9 +175,9 @@ static void call_postprocess(MSFilter *f){
 }
 
 int ms_ticker_detach(MSTicker *ticker,MSFilter *f){
-	MSList *sources=NULL;
-	MSList *filters=NULL;
-	MSList *it;
+	bctbx_list_t *sources=NULL;
+	bctbx_list_t *filters=NULL;
+	bctbx_list_t *it;
 
 	if (f->ticker==NULL) {
 		ms_message("Filter %s is not scheduled; nothing to do.",f->desc->name);
@@ -190,18 +190,18 @@ int ms_ticker_detach(MSTicker *ticker,MSFilter *f){
 	sources=get_sources(filters);
 	if (sources==NULL){
 		ms_fatal("No sources found around filter %s",f->desc->name);
-		ms_list_free(filters);
+		bctbx_list_free(filters);
 		ms_mutex_unlock(&ticker->lock);
 		return -1;
 	}
 
-	for(it=sources;it!=NULL;it=ms_list_next(it)){
-		ticker->execution_list=ms_list_remove(ticker->execution_list,it->data);
+	for(it=sources;it!=NULL;it=bctbx_list_next(it)){
+		ticker->execution_list=bctbx_list_remove(ticker->execution_list,it->data);
 	}
 	ms_mutex_unlock(&ticker->lock);
-	ms_list_for_each(filters,(void (*)(void*))call_postprocess);
-	ms_list_free(filters);
-	ms_list_free(sources);
+	bctbx_list_for_each(filters,(void (*)(void*))call_postprocess);
+	bctbx_list_free(filters);
+	bctbx_list_free(sources);
 	return 0;
 }
 
@@ -235,7 +235,7 @@ static void call_process(MSFilter *f){
 	}
 }
 
-static void run_graph(MSFilter *f, MSTicker *s, MSList **unschedulable, bool_t force_schedule){
+static void run_graph(MSFilter *f, MSTicker *s, bctbx_list_t **unschedulable, bool_t force_schedule){
 	int i;
 	MSQueue *l;
 	if (f->last_tick!=s->ticks ){
@@ -252,14 +252,14 @@ static void run_graph(MSFilter *f, MSTicker *s, MSList **unschedulable, bool_t f
 			}
 		}else{
 			/* this filter has not all inputs that have been filled by filters before it. */
-			*unschedulable=ms_list_prepend(*unschedulable,f);
+			*unschedulable=bctbx_list_prepend(*unschedulable,f);
 		}
 	}
 }
 
-static void run_graphs(MSTicker *s, MSList *execution_list, bool_t force_schedule){
-	MSList *it;
-	MSList *unschedulable=NULL;
+static void run_graphs(MSTicker *s, bctbx_list_t *execution_list, bool_t force_schedule){
+	bctbx_list_t *it;
+	bctbx_list_t *unschedulable=NULL;
 	for(it=execution_list;it!=NULL;it=it->next){
 		run_graph((MSFilter*)it->data,s,&unschedulable,force_schedule);
 	}
@@ -269,12 +269,12 @@ static void run_graphs(MSTicker *s, MSList *execution_list, bool_t force_schedul
 	/* we just recall run_graphs on them, as if they were source filters */
 	if (unschedulable!=NULL) {
 		run_graphs(s,unschedulable,TRUE);
-		ms_list_free(unschedulable);
+		bctbx_list_free(unschedulable);
 	}
 }
 
 static void run_tasks(MSTicker *ticker){
-	MSList *elem,*prevelem=NULL;
+	bctbx_list_t *elem,*prevelem=NULL;
 	for (elem=ticker->task_list;elem!=NULL;){
 		MSFilterTask *t=(MSFilterTask*)elem->data;
 		ms_filter_task_process(t);
@@ -287,12 +287,12 @@ static void run_tasks(MSTicker *ticker){
 }
 
 static void remove_tasks_for_filter(MSTicker *ticker, MSFilter *f){
-	MSList *elem,*nextelem;
+	bctbx_list_t *elem,*nextelem;
 	for (elem=ticker->task_list;elem!=NULL;elem=nextelem){
 		MSFilterTask *t=(MSFilterTask*)elem->data;
 		nextelem=elem->next;
 		if (t->f==f){
-			ticker->task_list=ms_list_remove_link(ticker->task_list,elem);
+			ticker->task_list=bctbx_list_remove_link(ticker->task_list,elem);
 			ms_free(t);
 		}
 	}
@@ -490,7 +490,7 @@ void ms_ticker_set_tick_func(MSTicker *ticker, MSTickerTickFunc func, void *user
 	ms_message("ms_ticker_set_tick_func: ticker's tick method updated.");
 }
 
-static void print_graph(MSFilter *f, MSTicker *s, MSList **unschedulable, bool_t force_schedule){
+static void print_graph(MSFilter *f, MSTicker *s, bctbx_list_t **unschedulable, bool_t force_schedule){
 	int i;
 	MSQueue *l;
 	if (f->last_tick!=s->ticks ){
@@ -507,14 +507,14 @@ static void print_graph(MSFilter *f, MSTicker *s, MSList **unschedulable, bool_t
 			}
 		}else{
 			/* this filter has not all inputs that have been filled by filters before it. */
-			*unschedulable=ms_list_prepend(*unschedulable,f);
+			*unschedulable=bctbx_list_prepend(*unschedulable,f);
 		}
 	}
 }
 
-static void print_graphs(MSTicker *s, MSList *execution_list, bool_t force_schedule){
-	MSList *it;
-	MSList *unschedulable=NULL;
+static void print_graphs(MSTicker *s, bctbx_list_t *execution_list, bool_t force_schedule){
+	bctbx_list_t *it;
+	bctbx_list_t *unschedulable=NULL;
 	for(it=execution_list;it!=NULL;it=it->next){
 		print_graph((MSFilter*)it->data,s,&unschedulable,force_schedule);
 	}
@@ -524,7 +524,7 @@ static void print_graphs(MSTicker *s, MSList *execution_list, bool_t force_sched
 	/* we just recall run_graphs on them, as if they were source filters */
 	if (unschedulable!=NULL) {
 		print_graphs(s,unschedulable,TRUE);
-		ms_list_free(unschedulable);
+		bctbx_list_free(unschedulable);
 	}
 }
 

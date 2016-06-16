@@ -58,19 +58,19 @@ struct _MKVReader{
 	parsercontext p;
 	stream *file;
 	ebml_element *info_elt;
-	MSList *tracks_elt;
+	bctbx_list_t *tracks_elt;
 	ebml_element *cues;
 	MKVSegmentInfo info;
-	MSList *tracks;
+	bctbx_list_t *tracks;
 	filepos_t first_cluster_pos;
 	filepos_t last_cluster_end;
 	filepos_t first_level1_pos;
-	MSList *readers;
+	bctbx_list_t *readers;
 };
 
 static int _parse_headers(MKVReader *obj);
 static int _parse_segment_info(MKVSegmentInfo *seg_info_out, ebml_element *seg_info_elt);
-static int _parse_tracks(MSList **tracks_out, ebml_element *tracks_elt);
+static int _parse_tracks(bctbx_list_t **tracks_out, ebml_element *tracks_elt);
 static void _parse_track(MKVTrack **track_out, ebml_element *track_elt);
 static void _parse_video_track_info(MKVVideoTrack *video_info_out, ebml_element *video_info_elt);
 static void _parse_audio_track_info(MKVAudioTrack *audio_info_out, ebml_element *audio_info_elt);
@@ -118,7 +118,7 @@ fail:
 #endif
 	if(obj->file) StreamClose(obj->file);
 	if(obj->info_elt) NodeDelete((node *)obj->info_elt);
-	ms_list_free_with_data(obj->tracks_elt, (void(*)(void *))NodeDelete);
+	bctbx_list_free_with_data(obj->tracks_elt, (void(*)(void *))NodeDelete);
 	MATROSKA_Done((nodecontext *)&obj->p);
 	ms_free(obj);
 	return NULL;
@@ -128,10 +128,10 @@ void mkv_reader_close(MKVReader *obj) {
 	if(obj) {
 		StreamClose(obj->file);
 		if(obj->info_elt) NodeDelete((node *)obj->info_elt);
-		ms_list_free_with_data(obj->tracks_elt, (void(*)(void *))NodeDelete);
-		if(obj->tracks) ms_list_free_with_data(obj->tracks, (void(*)(void *))_mkv_track_free);
+		bctbx_list_free_with_data(obj->tracks_elt, (void(*)(void *))NodeDelete);
+		if(obj->tracks) bctbx_list_free_with_data(obj->tracks, (void(*)(void *))_mkv_track_free);
 		if(obj->cues) NodeDelete((node *)obj->cues);
-		ms_list_free_with_data(obj->readers, (void(*)(void *))_mkv_track_reader_destroy);
+		bctbx_list_free_with_data(obj->readers, (void(*)(void *))_mkv_track_reader_destroy);
 		MATROSKA_Done((nodecontext *)&obj->p);
 		ParserContext_Done(&obj->p);
 		ms_free(obj);
@@ -143,7 +143,7 @@ const MKVSegmentInfo *mkv_reader_get_segment_info(const MKVReader *reader) {
 }
 
 const MKVTrack *mkv_reader_get_default_track(MKVReader *r, int track_type) {
-	MSList *it;
+	bctbx_list_t *it;
 	const MKVTrack *track = NULL;
 	for(it=r->tracks; it!=NULL; it=it->next) {
 		track = (MKVTrack *)it->data;
@@ -157,7 +157,7 @@ const MKVTrack *mkv_reader_get_default_track(MKVReader *r, int track_type) {
 }
 
 const MKVTrack *mkv_reader_get_first_track(MKVReader *r, int track_type) {
-	MSList *it;
+	bctbx_list_t *it;
 	const MKVTrack *track = NULL;
 	for(it=r->tracks; it!=NULL; it=it->next) {
 		track = (MKVTrack *)it->data;
@@ -171,7 +171,7 @@ const MKVTrack *mkv_reader_get_first_track(MKVReader *r, int track_type) {
 }
 
 MKVTrackReader *mkv_reader_get_track_reader(MKVReader *reader, int track_num) {
-	MSList *it, *it2;
+	bctbx_list_t *it, *it2;
 	MKVTrack *track;
 	MKVTrackReader *track_reader;
 	int upper_levels = 0;
@@ -192,13 +192,13 @@ MKVTrackReader *mkv_reader_get_track_reader(MKVReader *reader, int track_num) {
 	Stream_Seek(track_reader->file, reader->first_cluster_pos, SEEK_SET);
 	track_reader->current_cluster = EBML_FindNextElement(track_reader->file, &track_reader->parser, &upper_levels, FALSE);
 	EBML_ElementReadData(track_reader->current_cluster, track_reader->file, &track_reader->parser, FALSE, SCOPE_PARTIAL_DATA, FALSE);
-	reader->readers = ms_list_append(reader->readers, track_reader);
+	reader->readers = bctbx_list_append(reader->readers, track_reader);
 	return track_reader;
 }
 
 int mkv_reader_seek(MKVReader *reader, int pos_ms) {
 	ebml_element *cue_point, *next_cue_point;
-	MSList *it;
+	bctbx_list_t *it;
 	if(reader->cues == NULL) {
 		ms_error("MKVReader: unable to seek. No cues table");
 		return -1;
@@ -215,7 +215,7 @@ int mkv_reader_seek(MKVReader *reader, int pos_ms) {
 	if(cue_point) {
 		ebml_element *track_position;
 		filepos_t pos = 0;
-		ms_list_for_each(reader->readers, (MSIterateFunc)_mkv_track_reader_edit_seek);
+		bctbx_list_for_each(reader->readers, (MSIterateFunc)_mkv_track_reader_edit_seek);
 		for(track_position=EBML_MasterFindChild((ebml_master *)cue_point, &MATROSKA_ContextCueTrackPositions);
 			track_position!=NULL;
 			track_position = EBML_MasterFindNextElt((ebml_master *)cue_point, track_position, FALSE, FALSE)) {
@@ -315,7 +315,7 @@ void mkv_track_reader_reset(MKVTrackReader *reader) {
 }
 
 void mkv_track_reader_destroy(MKVTrackReader *reader) {
-	ms_list_remove(reader->root->readers, reader);
+	bctbx_list_remove(reader->root->readers, reader);
 	_mkv_track_reader_destroy(reader);
 }
 
@@ -431,7 +431,7 @@ static int _parse_headers(MKVReader *obj) {
 				goto fail;
 			}
 			for(track=EBML_MasterChildren(level1); track!=NULL; track = EBML_MasterNext(track)) {
-				obj->tracks_elt = ms_list_append(obj->tracks_elt, EBML_ElementCopy(track, NULL));
+				obj->tracks_elt = bctbx_list_append(obj->tracks_elt, EBML_ElementCopy(track, NULL));
 			}
 		} else if(EBML_ElementIsType(level1, &MATROSKA_ContextCluster)) {
 			if(!cluster_found) {
@@ -465,7 +465,7 @@ fail:
 	if(level1) NodeDelete((node *)level1);
 	if(obj->info_elt) NodeDelete((node *)obj->info_elt);
 	obj->info_elt = NULL;
-	if(obj->tracks_elt) obj->tracks_elt = ms_list_free_with_data(obj->tracks_elt, (void(*)(void *))NodeDelete);
+	if(obj->tracks_elt) obj->tracks_elt = bctbx_list_free_with_data(obj->tracks_elt, (void(*)(void *))NodeDelete);
 	if(obj->cues) NodeDelete((node *)obj->cues);
 	obj->cues = NULL;
 	return -1;
@@ -506,7 +506,7 @@ static int _parse_segment_info(MKVSegmentInfo *seg_info_out, ebml_element *seg_i
 	return 0;
 }
 
-static int _parse_tracks(MSList **tracks_out, ebml_element *tracks_elt) {
+static int _parse_tracks(bctbx_list_t **tracks_out, ebml_element *tracks_elt) {
 	ebml_element *elt;
 	if(!EBML_MasterCheckMandatory((ebml_master *)tracks_elt, FALSE)) {
 		ms_error("MKVParser: fail to parse tracks info. Missing elements");
@@ -515,7 +515,7 @@ static int _parse_tracks(MSList **tracks_out, ebml_element *tracks_elt) {
 	for(elt=EBML_MasterChildren(tracks_elt); elt!=NULL; elt=EBML_MasterNext(elt)) {
 		MKVTrack *track;
 		_parse_track(&track, elt);
-		*tracks_out = ms_list_append(*tracks_out, track);
+		*tracks_out = bctbx_list_append(*tracks_out, track);
 	}
 	return 0;
 }

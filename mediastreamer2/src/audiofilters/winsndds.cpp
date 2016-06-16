@@ -939,7 +939,7 @@ static MSSndCard *winsnddscard_new(const char *name, LPGUID lpguid, int in_dev, 
 
 static void add_or_update_card(MSSndCardManager *m, const char *name, LPGUID lpguid, int indev, int outdev, unsigned int capability){
 	MSSndCard *card;
-	const MSList *elem=ms_snd_card_manager_get_list(m);
+	const bctbx_list_t *elem=ms_snd_card_manager_get_list(m);
 	for(;elem!=NULL;elem=elem->next){
 		card=(MSSndCard*)elem->data;
 		if (strcmp(card->desc->driver_type, winsndds_card_desc.driver_type)==0
@@ -1092,7 +1092,7 @@ static void _winsnddscard_detect(MSSndCardManager *m){
 
 static void deactivate_removed_cards(MSSndCardManager *m){
 	MSSndCard *card;
-	const MSList *elem=ms_snd_card_manager_get_list(m);
+	const bctbx_list_t *elem=ms_snd_card_manager_get_list(m);
 	for(;elem!=NULL;elem=elem->next){
 		card=(MSSndCard*)elem->data;
 		if (strcmp(card->desc->driver_type, winsndds_card_desc.driver_type)==0){
@@ -1105,7 +1105,7 @@ static void deactivate_removed_cards(MSSndCardManager *m){
 
 static void mark_as_removed(MSSndCardManager *m){
 	MSSndCard *card;
-	const MSList *elem=ms_snd_card_manager_get_list(m);
+	const bctbx_list_t *elem=ms_snd_card_manager_get_list(m);
 	for(;elem!=NULL;elem=elem->next){
 		card=(MSSndCard*)elem->data;
 		if (strcmp(card->desc->driver_type, winsndds_card_desc.driver_type)==0){
@@ -1424,14 +1424,14 @@ static void winsndds_write_preprocess(MSFilter *f){
 	unsigned char* pDSBuffData;
 	DWORD outputBufferWriteOffsetBytes;
 
-	MSList *filters=NULL;
+	bctbx_list_t *filters=NULL;
 	MSFilter *f_capture_filter=NULL;
 	WinSndDs *d_capture_filter=NULL;
 
 	filters=ms_filter_find_neighbours(f);
 	if (filters!=NULL)
 	{
-		MSList *it;
+		bctbx_list_t *it;
 		/* search for another winsndds filter */
 		for(it=filters;it!=NULL;it=it->next)
 		{
@@ -1444,7 +1444,7 @@ static void winsndds_write_preprocess(MSFilter *f){
 			}
 			f_capture_filter=NULL;
 		}
-		ms_list_free(filters);
+		bctbx_list_free(filters);
 	}
 
 	d->stat_input=0;

@@ -34,9 +34,9 @@ MSWebCamManager * ms_web_cam_manager_new(void){
 
 void ms_web_cam_manager_destroy(MSWebCamManager* scm){
 	if (scm!=NULL){
-		ms_list_for_each(scm->cams,(void (*)(void*))ms_web_cam_destroy);
-		ms_list_free(scm->cams);
-		ms_list_free(scm->descs);
+		bctbx_list_for_each(scm->cams,(void (*)(void*))ms_web_cam_destroy);
+		bctbx_list_free(scm->cams);
+		bctbx_list_free(scm->descs);
 		ms_free(scm);
 	}
 	scm=NULL;
@@ -47,7 +47,7 @@ MSFactory * ms_web_cam_get_factory(MSWebCam *c){
 }
 
 MSWebCam * ms_web_cam_manager_get_cam(MSWebCamManager *m, const char *id){
-	MSList *elem;
+	bctbx_list_t *elem;
 	for (elem=m->cams;elem!=NULL;elem=elem->next){
 		MSWebCam *cam=(MSWebCam*)elem->data;
 		if (id==NULL) return cam;
@@ -66,7 +66,7 @@ MSWebCam * ms_web_cam_manager_get_default_cam(MSWebCamManager *m){
   	return NULL;
 }
 
-const MSList * ms_web_cam_manager_get_list(MSWebCamManager *m){
+const bctbx_list_t * ms_web_cam_manager_get_list(MSWebCamManager *m){
 	if (!m) {
 		return NULL;
 	}
@@ -79,7 +79,7 @@ void ms_web_cam_set_manager(MSWebCamManager*m, MSWebCam *c){
 void ms_web_cam_manager_add_cam(MSWebCamManager *m, MSWebCam *c){
 	ms_web_cam_set_manager(m,c);
 	ms_message("Webcam %s added",ms_web_cam_get_string_id(c));
-	m->cams=ms_list_append(m->cams,c);
+	m->cams=bctbx_list_append(m->cams,c);
 }
 
 
@@ -87,7 +87,7 @@ void ms_web_cam_manager_add_cam(MSWebCamManager *m, MSWebCam *c){
 void ms_web_cam_manager_prepend_cam(MSWebCamManager *m, MSWebCam *c){
 	ms_web_cam_set_manager(m, c);
 	ms_message("Webcam %s prepended",ms_web_cam_get_string_id(c));
-	m->cams=ms_list_prepend(m->cams,c);
+	m->cams=bctbx_list_prepend(m->cams,c);
 }
 
 static void cam_detect(MSWebCamManager *m, MSWebCamDesc *desc){
@@ -96,16 +96,16 @@ static void cam_detect(MSWebCamManager *m, MSWebCamDesc *desc){
 }
 
 void ms_web_cam_manager_register_desc(MSWebCamManager *m, MSWebCamDesc *desc){
-	if (ms_list_find(m->descs, desc) == NULL){
-		m->descs=ms_list_append(m->descs,desc);
+	if (bctbx_list_find(m->descs, desc) == NULL){
+		m->descs=bctbx_list_append(m->descs,desc);
 		cam_detect(m,desc);
 	}
 }
 
 void ms_web_cam_manager_reload(MSWebCamManager *m){
-	MSList *elem;
-	ms_list_for_each(m->cams,(void (*)(void*))ms_web_cam_destroy);
-	ms_list_free(m->cams);
+	bctbx_list_t *elem;
+	bctbx_list_for_each(m->cams,(void (*)(void*))ms_web_cam_destroy);
+	bctbx_list_free(m->cams);
 	m->cams=NULL;
 	for(elem=m->descs;elem!=NULL;elem=elem->next)
 		cam_detect(m,(MSWebCamDesc*)elem->data);

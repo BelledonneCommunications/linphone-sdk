@@ -469,8 +469,8 @@ typedef struct _VTH264DecCtx {
 	MSFilter *f;
 } VTH264DecCtx;
 
-static CMFormatDescriptionRef format_desc_from_sps_pps(const MSList *parameter_sets) {
-	const MSList *it;
+static CMFormatDescriptionRef format_desc_from_sps_pps(const bctbx_list_t *parameter_sets) {
+	const bctbx_list_t *it;
 	const size_t max_ps_count = 20;
 	size_t ps_count;
 	const uint8_t *ps_ptrs[max_ps_count];
@@ -480,7 +480,7 @@ static CMFormatDescriptionRef format_desc_from_sps_pps(const MSList *parameter_s
 	OSStatus status;
 	CMFormatDescriptionRef format_desc;
 
-	ps_count = ms_list_size(parameter_sets);
+	ps_count = bctbx_list_size(parameter_sets);
 	if(ps_count > max_ps_count) {
 		ms_error("VideoToolboxDec: too much SPS/PPS");
 		return NULL;
@@ -612,7 +612,7 @@ static void h264_dec_process(MSFilter *f) {
 	CMSampleTimingInfo timing_info;
 	MSPicture pixbuf_desc;
 	OSStatus status;
-	MSList *parameter_sets = NULL;
+	bctbx_list_t *parameter_sets = NULL;
 	bool_t unpacking_failed;
 	bool_t iframe_received = FALSE;
 
@@ -632,7 +632,7 @@ static void h264_dec_process(MSFilter *f) {
 	while((nalu = ms_queue_get(&q_nalus))) {
 		MSH264NaluType nalu_type = ms_h264_nalu_get_type(nalu);
 		if(nalu_type == MSH264NaluTypeSPS || nalu_type == MSH264NaluTypePPS) {
-			parameter_sets = ms_list_append(parameter_sets, nalu);
+			parameter_sets = bctbx_list_append(parameter_sets, nalu);
 			iframe_received = TRUE;
 		} else if(ctx->format_desc || parameter_sets) {
 			ms_queue_put(&q_nalus2, nalu);
@@ -645,7 +645,7 @@ static void h264_dec_process(MSFilter *f) {
 	
 	if(parameter_sets) {
 		CMFormatDescriptionRef new_format_desc = format_desc_from_sps_pps(parameter_sets);
-		parameter_sets = ms_list_free_with_data(parameter_sets, (void (*)(void *))freemsg);
+		parameter_sets = bctbx_list_free_with_data(parameter_sets, (void (*)(void *))freemsg);
 		if(ctx->format_desc) {
 			CMVideoDimensions last_vsize = CMVideoFormatDescriptionGetDimensions(ctx->format_desc);
 			CMVideoDimensions new_vsize = CMVideoFormatDescriptionGetDimensions(new_format_desc);

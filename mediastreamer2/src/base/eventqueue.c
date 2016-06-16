@@ -229,12 +229,12 @@ static void ms_notify_context_destroy(MSNotifyContext *obj){
 }
 
 void ms_filter_add_notify_callback(MSFilter *f, MSFilterNotifyFunc fn, void *ud, bool_t synchronous){
-	f->notify_callbacks=ms_list_append(f->notify_callbacks,ms_notify_context_new(fn,ud,synchronous));
+	f->notify_callbacks=bctbx_list_append(f->notify_callbacks,ms_notify_context_new(fn,ud,synchronous));
 }
 
 void ms_filter_remove_notify_callback(MSFilter *f, MSFilterNotifyFunc fn, void *ud){
-	MSList *elem;
-	MSList *found=NULL;
+	bctbx_list_t *elem;
+	bctbx_list_t *found=NULL;
 	for(elem=f->notify_callbacks;elem!=NULL;elem=elem->next){
 		MSNotifyContext *ctx=(MSNotifyContext*)elem->data;
 		if (ctx->fn==fn && ctx->ud==ud){
@@ -244,16 +244,16 @@ void ms_filter_remove_notify_callback(MSFilter *f, MSFilterNotifyFunc fn, void *
 	}
 	if (found){
 		ms_notify_context_destroy((MSNotifyContext*)found->data);
-		f->notify_callbacks=ms_list_remove_link(f->notify_callbacks,found);
+		f->notify_callbacks=bctbx_list_remove_link(f->notify_callbacks,found);
 	}else ms_warning("ms_filter_remove_notify_callback(filter=%p): no registered callback with fn=%p and ud=%p",f,fn,ud);
 }
 
 void ms_filter_clear_notify_callback(MSFilter *f){
-	f->notify_callbacks=ms_list_free_with_data(f->notify_callbacks,(void (*)(void*))ms_notify_context_destroy);
+	f->notify_callbacks=bctbx_list_free_with_data(f->notify_callbacks,(void (*)(void*))ms_notify_context_destroy);
 }
 
 static void ms_filter_invoke_callbacks(MSFilter **f, unsigned int id, void *arg, InvocationMode synchronous_mode){
-	MSList *elem;
+	bctbx_list_t *elem;
 	for (elem=(*f)->notify_callbacks;elem!=NULL;elem=elem->next){
 		MSNotifyContext *ctx=(MSNotifyContext*)elem->data;
 		if (synchronous_mode==Both || (synchronous_mode==OnlyAsynchronous && !ctx->synchronous)

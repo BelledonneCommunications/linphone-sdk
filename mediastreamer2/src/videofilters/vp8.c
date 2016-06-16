@@ -477,7 +477,7 @@ static void enc_process(MSFilter *f) {
 		} else {
 			vpx_codec_iter_t iter = NULL;
 			const vpx_codec_cx_pkt_t *pkt;
-			MSList *list = NULL;
+			bctbx_list_t *list = NULL;
 
 			/* Update the frames state. */
 			is_ref_frame=FALSE;
@@ -532,7 +532,7 @@ static void enc_process(MSFilter *f) {
 						packet->pd->pid = 0;
 						mblk_set_marker_info(packet->m, TRUE);
 					}
-					list = ms_list_append(list, packet);
+					list = bctbx_list_append(list, packet);
 				}
 			}
 

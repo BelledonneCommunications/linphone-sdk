@@ -119,6 +119,7 @@ extern "C"{
 
 	typedef struct Vp8RtpFmtPackerCtx {
 		MSQueue *output_queue;
+		MSFactory *factory;
 	} Vp8RtpFmtPackerCtx;
 
 

@@ -166,7 +166,7 @@ SoundDeviceDescription genericSoundDeviceDescriptor={"Generic", "Generic", "Gene
 
 #endif
 
-static MSList *sound_device_descriptions;
+static bctbx_list_t *sound_device_descriptions;
 
 static bool_t sound_device_match(SoundDeviceDescription *d, const char *manufacturer, const char* model, const char *platform){
 	if (strcasecmp(d->manufacturer, manufacturer) == 0 
@@ -181,7 +181,7 @@ static bool_t sound_device_match(SoundDeviceDescription *d, const char *manufact
 }
 
 static SoundDeviceDescription *lookup_sound_device(const char *manufacturer, const char* model, const char *platform) {
-	MSList *list = sound_device_descriptions;
+	bctbx_list_t *list = sound_device_descriptions;
 	SoundDeviceDescription *d;
 	for(; list != NULL; list = list->next) {
 		d = (SoundDeviceDescription*) list->data;
@@ -213,7 +213,7 @@ void ms_sound_device_description_add(const char *manufacturer, const char *model
 	new_sound_device_description->delay = delay;
 	new_sound_device_description->recommended_rate = recommended_rate;
 	
-	sound_device_descriptions = ms_list_append(sound_device_descriptions, new_sound_device_description);
+	sound_device_descriptions = bctbx_list_append(sound_device_descriptions, new_sound_device_description);
 }
 
 #ifndef PROP_VALUE_MAX
@@ -307,7 +307,7 @@ MSDevicesInfo *ms_devices_info_new(void) {
 }
 
 void ms_devices_info_free(MSDevicesInfo *devices_info) {
-	ms_list_free(devices_info->sound_devices_descriptions);
+	bctbx_list_free(devices_info->sound_devices_descriptions);
 	ms_free(devices_info);
 }
 
@@ -320,11 +320,11 @@ void ms_devices_info_add(MSDevicesInfo *devices_info, const char *manufacturer, 
 	new_sound_device_description->delay = delay;
 	new_sound_device_description->recommended_rate = recommended_rate;
 	
-	devices_info->sound_devices_descriptions = ms_list_append(devices_info->sound_devices_descriptions, new_sound_device_description);
+	devices_info->sound_devices_descriptions = bctbx_list_append(devices_info->sound_devices_descriptions, new_sound_device_description);
 }
 
 SoundDeviceDescription* ms_devices_info_lookup_device(MSDevicesInfo *devices_info, const char *manufacturer, const char* model, const char *platform) {
-	MSList *list = devices_info->sound_devices_descriptions;
+	bctbx_list_t *list = devices_info->sound_devices_descriptions;
 	SoundDeviceDescription *d = NULL;
 	
 	while(list) {
@@ -332,7 +332,7 @@ SoundDeviceDescription* ms_devices_info_lookup_device(MSDevicesInfo *devices_inf
 		if (sound_device_match(d, manufacturer, model, platform)) {
 			return d;
 		}
-		list = ms_list_next(list);
+		list = bctbx_list_next(list);
 	}
 	
 	if (platform) {

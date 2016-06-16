@@ -96,7 +96,7 @@ bool_t ms_filter_implements_interface(MSFilter *f, MSFilterInterfaceId id){
 	return ms_filter_desc_implements_interface(f->desc,id);
 }
 
-MSList *ms_filter_lookup_by_interface(MSFilterInterfaceId id){
+bctbx_list_t *ms_filter_lookup_by_interface(MSFilterInterfaceId id){
 	return ms_factory_lookup_filter_by_interface(ms_factory_get_fallback(),id);
 }
 
@@ -262,11 +262,11 @@ void ms_filter_postpone_task(MSFilter *f, MSFilterFunc taskfunc){
 	task=ms_new0(MSFilterTask,1);
 	task->f=f;
 	task->taskfunc=taskfunc;
-	ticker->task_list=ms_list_prepend(ticker->task_list,task);
+	ticker->task_list=bctbx_list_prepend(ticker->task_list,task);
 	f->postponed_task++;
 }
 
-static void find_filters(MSList **filters, MSFilter *f ){
+static void find_filters(bctbx_list_t **filters, MSFilter *f ){
 	int i,found;
 	MSQueue *link;
 	if (f==NULL) ms_fatal("Bad graph.");
@@ -275,7 +275,7 @@ static void find_filters(MSList **filters, MSFilter *f ){
 		return;
 	}
 	f->seen=TRUE;
-	*filters=ms_list_append(*filters,f);
+	*filters=bctbx_list_append(*filters,f);
 	/* go upstream */
 	for(i=0;i<f->desc->ninputs;i++){
 		link=f->inputs[i];
@@ -294,9 +294,9 @@ static void find_filters(MSList **filters, MSFilter *f ){
 	}
 }
 
-MSList * ms_filter_find_neighbours(MSFilter *me){
-	MSList *l=NULL;
-	MSList *it;
+bctbx_list_t * ms_filter_find_neighbours(MSFilter *me){
+	bctbx_list_t *l=NULL;
+	bctbx_list_t *it;
 	find_filters(&l,me);
 	/*reset seen boolean for further lookups to succeed !*/
 	for(it=l;it!=NULL;it=it->next){
@@ -345,7 +345,7 @@ void ms_filter_enable_statistics(bool_t enabled){
 	ms_factory_enable_statistics(ms_factory_get_fallback(),enabled);
 }
 
-const MSList * ms_filter_get_statistics(void){
+const bctbx_list_t * ms_filter_get_statistics(void){
 	return ms_factory_get_statistics(ms_factory_get_fallback());
 }
 

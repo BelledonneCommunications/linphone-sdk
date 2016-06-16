@@ -142,7 +142,7 @@ MSSndCardDesc pulse_card_desc={
 };
 
 void pa_sinklist_cb(pa_context *c, const pa_sink_info *l, int eol, void *userdata) {
-	MSList **pa_devicelist = userdata;
+	bctbx_list_t **pa_devicelist = userdata;
 	pa_device_t *pa_device;
 
 	/* when eol is set to a positive number : end of the list */
@@ -154,13 +154,13 @@ void pa_sinklist_cb(pa_context *c, const pa_sink_info *l, int eol, void *userdat
 	strncpy(pa_device->name, l->name, PA_STRING_SIZE-1);
 	strncpy(pa_device->description, l->description, PA_STRING_SIZE-1);
 
-	*pa_devicelist = ms_list_append(*pa_devicelist, pa_device);
+	*pa_devicelist = bctbx_list_append(*pa_devicelist, pa_device);
 end:
 	pa_threaded_mainloop_signal(the_pa_loop, FALSE);
 }
 
 void pa_sourcelist_cb(pa_context *c, const pa_source_info *l, int eol, void *userdata) {
-	MSList **pa_devicelist = userdata;
+	bctbx_list_t **pa_devicelist = userdata;
 	pa_device_t *pa_device;
 
 	if (eol > 0) {
@@ -175,7 +175,7 @@ void pa_sourcelist_cb(pa_context *c, const pa_source_info *l, int eol, void *use
 	strncpy(pa_device->name, l->name, PA_STRING_SIZE -1);
 	strncpy(pa_device->description, l->description, PA_STRING_SIZE -1);
 
-	*pa_devicelist = ms_list_append(*pa_devicelist, pa_device);
+	*pa_devicelist = bctbx_list_append(*pa_devicelist, pa_device);
 end:
 	pa_threaded_mainloop_signal(the_pa_loop, FALSE);
 }
@@ -227,13 +227,13 @@ int pulse_card_compare(pa_device_t *sink, pa_device_t *source) {
 	return strncmp(sink->description, source->description, 512);
 }
 
-static void pulse_card_merge_lists(pa_device_t *pa_device, MSList **pa_source_list) {
-	MSList *sourceCard = ms_list_find_custom(*pa_source_list, (MSCompareFunc)pulse_card_compare, pa_device); 
+static void pulse_card_merge_lists(pa_device_t *pa_device, bctbx_list_t **pa_source_list) {
+	bctbx_list_t *sourceCard = bctbx_list_find_custom(*pa_source_list, (bctbx_compare_func)pulse_card_compare, pa_device); 
 	if (sourceCard!= NULL) {
 		pa_device_t *sourceCard_data = (pa_device_t *)sourceCard->data;
 		pa_device->bidirectionnal = 1;
 		strncpy(pa_device->source_name,sourceCard_data->name, PA_STRING_SIZE -1);
-		*pa_source_list = ms_list_remove(*pa_source_list, sourceCard->data);
+		*pa_source_list = bctbx_list_remove(*pa_source_list, sourceCard->data);
 		ms_free(sourceCard_data);	
 	}
 }
@@ -246,8 +246,8 @@ static void pulse_card_merge_lists(pa_device_t *pa_device, MSList **pa_source_li
  **/
 static void pulse_card_detect(MSSndCardManager *m){
 	pa_operation *pa_op;
-	MSList *pa_sink_list=NULL;
-	MSList *pa_source_list=NULL;
+	bctbx_list_t *pa_sink_list=NULL;
+	bctbx_list_t *pa_source_list=NULL;
 	
 	/* connect to pulse server */
 	init_pulse_context();
@@ -279,14 +279,14 @@ static void pulse_card_detect(MSSndCardManager *m){
 	pa_threaded_mainloop_unlock(the_pa_loop);
 	
 	/* merge source list into sink list for dual capabilities cards */
-	ms_list_for_each2(pa_sink_list, (MSIterate2Func)pulse_card_merge_lists, &pa_source_list);
+	bctbx_list_for_each2(pa_sink_list, (MSIterate2Func)pulse_card_merge_lists, &pa_source_list);
 
 	/* create sink and souce cards */
-	ms_list_for_each2(pa_sink_list, (MSIterate2Func)pulse_card_sink_create, m);
-	ms_list_for_each2(pa_source_list, (MSIterate2Func)pulse_card_source_create, m);
+	bctbx_list_for_each2(pa_sink_list, (MSIterate2Func)pulse_card_sink_create, m);
+	bctbx_list_for_each2(pa_source_list, (MSIterate2Func)pulse_card_source_create, m);
 
-	ms_list_free_with_data(pa_sink_list, ms_free);
-	ms_list_free_with_data(pa_source_list, ms_free);
+	bctbx_list_free_with_data(pa_sink_list, ms_free);
+	bctbx_list_free_with_data(pa_source_list, ms_free);
 }
 
 typedef enum _StreamType {

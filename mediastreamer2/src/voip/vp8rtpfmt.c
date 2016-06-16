@@ -207,12 +207,12 @@ static int vp8_decode_value(BOOL_DECODER *br, int bits)
 
 static mblk_t * concat_packets_of_partition(Vp8RtpFmtPartition *partition) {
 	Vp8RtpFmtPacket *packet;
-	int nb_packets = ms_list_size(partition->packets_list);
+	int nb_packets = bctbx_list_size(partition->packets_list);
 	int i;
 
 	if (partition->m != NULL) return partition->m;
 	for (i = 0; i < nb_packets; i++) {
-		packet = ms_list_nth_data(partition->packets_list, i);
+		packet = bctbx_list_nth_data(partition->packets_list, i);
 		if (partition->m == NULL) {
 			partition->m = packet->m;
 		} else {
@@ -322,17 +322,17 @@ static bool_t parse_frame_header(Vp8RtpFmtFrame *frame) {
 
 #ifdef VP8RTPFMT_DEBUG
 static uint16_t get_partition_pictureid(Vp8RtpFmtPartition *partition) {
-	Vp8RtpFmtPacket *packet = ms_list_nth_data(partition->packets_list, 0);
+	Vp8RtpFmtPacket *packet = bctbx_list_nth_data(partition->packets_list, 0);
 	return packet->pd->pictureid;
 }
 
 static uint8_t get_partition_id(Vp8RtpFmtPartition *partition) {
-	Vp8RtpFmtPacket *packet = ms_list_nth_data(partition->packets_list, 0);
+	Vp8RtpFmtPacket *packet = bctbx_list_nth_data(partition->packets_list, 0);
 	return packet->pd->pid;
 }
 
 static int is_partition_non_reference(Vp8RtpFmtPartition *partition) {
-	Vp8RtpFmtPacket *packet = ms_list_nth_data(partition->packets_list, 0);
+	Vp8RtpFmtPacket *packet = bctbx_list_nth_data(partition->packets_list, 0);
 	return packet->pd->non_reference_frame;
 }
 
@@ -359,7 +359,7 @@ static void print_packet(void *data) {
 
 static void print_partition(Vp8RtpFmtPartition *partition) {
 	ms_message("\tpartition [%p]:\tpid=%d", partition, get_partition_id(partition));
-	ms_list_for_each(partition->packets_list, print_packet);
+	bctbx_list_for_each(partition->packets_list, print_packet);
 }
 
 static void print_frame(void *data) {
@@ -388,8 +388,8 @@ static void free_partition(void *data) {
 		freemsg(partition->m);
 	}
 	if (partition->packets_list != NULL) {
-		ms_list_for_each(partition->packets_list, free_packet);
-		ms_list_free(partition->packets_list);
+		bctbx_list_for_each(partition->packets_list, free_packet);
+		bctbx_list_free(partition->packets_list);
 	}
 	ms_free(partition);
 }
@@ -469,13 +469,13 @@ static void add_packet_to_frame(Vp8RtpFmtFrame *frame, Vp8RtpFmtPacket *packet) 
 	if (mblk_get_marker_info(packet->m)) {
 		partition->has_marker = TRUE;
 	}
-	partition->packets_list = ms_list_append(partition->packets_list, (void *)packet);
+	partition->packets_list = bctbx_list_append(partition->packets_list, (void *)packet);
 	partition->size += msgdsize(packet->m);
 }
 
-static void generate_frame_partitions_list(Vp8RtpFmtFrame *frame, MSList *packets_list) {
+static void generate_frame_partitions_list(Vp8RtpFmtFrame *frame, bctbx_list_t *packets_list) {
 	Vp8RtpFmtPacket *packet = NULL;
-	MSList *it;
+	bctbx_list_t *it;
 	
 	frame->unnumbered_partitions = TRUE;
 	for (it=packets_list;it!=NULL;it=it->next) {
@@ -522,8 +522,8 @@ static void check_frame_partitions_have_start(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpF
 	for (i = 0; i <= frame->partitions_info.nb_partitions; i++) {
 		partition = frame->partitions[i];
 		if (partition == NULL) continue;
-		for (j = 0; j < ms_list_size(partition->packets_list); j++) {
-			packet = (Vp8RtpFmtPacket *)ms_list_nth_data(partition->packets_list, j);
+		for (j = 0; j < bctbx_list_size(partition->packets_list); j++) {
+			packet = (Vp8RtpFmtPacket *)bctbx_list_nth_data(partition->packets_list, j);
 			if ((j == 0) && !partition->has_start && !packet->cseq_inconsistency) {
 				/**
 				 * We have detected a partition does not start at the beginning of a packet.
@@ -542,9 +542,9 @@ static void check_frame_partitions_have_start(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpF
 	}
 }
 
-static bool_t has_sequence_inconsistency(const MSList *packets){
+static bool_t has_sequence_inconsistency(const bctbx_list_t *packets){
 	Vp8RtpFmtPacket *packet;
-	const MSList *elem;
+	const bctbx_list_t *elem;
 	for(elem=packets;elem!=NULL;elem=elem->next){
 		packet=(Vp8RtpFmtPacket*)elem->data;
 		if (packet->cseq_inconsistency) return TRUE;
@@ -615,32 +615,32 @@ static void notify_frame_error_if_any(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpFmtFrame 
 	}
 }
 
-static void add_frame(Vp8RtpFmtUnpackerCtx *ctx, MSList **packets_list) {
+static void add_frame(Vp8RtpFmtUnpackerCtx *ctx, bctbx_list_t **packets_list) {
 	Vp8RtpFmtFrame *frame;
 
-	if (ms_list_size(*packets_list) > 0) {
+	if (bctbx_list_size(*packets_list) > 0) {
 		frame = ms_new0(Vp8RtpFmtFrame, 1);
 		generate_frame_partitions_list(frame, *packets_list);
 		check_frame_partitions_list(ctx, frame);
 		notify_frame_error_if_any(ctx, frame);
-		ctx->frames_list = ms_list_append(ctx->frames_list, (void *)frame);
+		ctx->frames_list = bctbx_list_append(ctx->frames_list, (void *)frame);
 	}
-	ms_list_free(*packets_list);
+	bctbx_list_free(*packets_list);
 	*packets_list = NULL;
 }
 
-static void generate_frames_list(Vp8RtpFmtUnpackerCtx *ctx, MSList *packets_list) {
+static void generate_frames_list(Vp8RtpFmtUnpackerCtx *ctx, bctbx_list_t *packets_list) {
 	Vp8RtpFmtPacket *packet;
-	MSList *frame_packets_list = NULL;
-	MSList *it;
+	bctbx_list_t *frame_packets_list = NULL;
+	bctbx_list_t *it;
 	uint32_t ts;
 
 	/* If we have some packets from the previous iteration, put them in the frame_packets_list. */
 	for (it=ctx->non_processed_packets_list; it!=NULL; it=it->next) {
 		packet = (Vp8RtpFmtPacket*) it->data;
-		frame_packets_list = ms_list_append(frame_packets_list, packet);
+		frame_packets_list = bctbx_list_append(frame_packets_list, packet);
 	}
-	ms_list_free(ctx->non_processed_packets_list);
+	bctbx_list_free(ctx->non_processed_packets_list);
 	ctx->non_processed_packets_list = NULL;
 
 	/* Process newly received packets. */
@@ -657,7 +657,7 @@ static void generate_frames_list(Vp8RtpFmtUnpackerCtx *ctx, MSList *packets_list
 		ctx->initialized_last_ts = TRUE;
 
 		/* Add the current packet to the current frame. */
-		frame_packets_list = ms_list_append(frame_packets_list, packet);
+		frame_packets_list = bctbx_list_append(frame_packets_list, packet);
 
 		if (mblk_get_marker_info(packet->m)) {
 			/* The current packet is the last of the current frame. */
@@ -723,10 +723,10 @@ static void output_partitions_of_frame(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out, 
 
 static int output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 	Vp8RtpFmtFrame *frame;
-	int nb_frames = ms_list_size(ctx->frames_list);
+	int nb_frames = bctbx_list_size(ctx->frames_list);
 
 	if (nb_frames == 0) return -1;
-	frame = (Vp8RtpFmtFrame *)ms_list_nth_data(ctx->frames_list, 0);
+	frame = (Vp8RtpFmtFrame *)bctbx_list_nth_data(ctx->frames_list, 0);
 	switch (frame->error) {
 		case Vp8RtpFmtOk:
 			if (frame->keyframe == TRUE) {
@@ -810,10 +810,10 @@ static void free_partitions_of_frame(void *data) {
 }
 
 static void clean_frame(Vp8RtpFmtUnpackerCtx *ctx) {
-	if (ms_list_size(ctx->frames_list) > 0) {
-		Vp8RtpFmtFrame *frame = ms_list_nth_data(ctx->frames_list, 0);
+	if (bctbx_list_size(ctx->frames_list) > 0) {
+		Vp8RtpFmtFrame *frame = bctbx_list_nth_data(ctx->frames_list, 0);
 		free_partitions_of_frame(frame);
-		ctx->frames_list = ms_list_remove(ctx->frames_list, frame);
+		ctx->frames_list = bctbx_list_remove(ctx->frames_list, frame);
 		ms_free(frame);
 	}
 }
@@ -907,14 +907,14 @@ void vp8rtpfmt_unpacker_init(Vp8RtpFmtUnpackerCtx *ctx, MSFilter *f, bool_t avpf
 }
 
 void vp8rtpfmt_unpacker_uninit(Vp8RtpFmtUnpackerCtx *ctx) {
-	ms_list_for_each(ctx->frames_list, free_frame);
-	ms_list_free(ctx->frames_list);
-	ms_list_for_each(ctx->non_processed_packets_list, free_packet);
-	ms_list_free(ctx->non_processed_packets_list);
+	bctbx_list_for_each(ctx->frames_list, free_frame);
+	bctbx_list_free(ctx->frames_list);
+	bctbx_list_for_each(ctx->non_processed_packets_list, free_packet);
+	bctbx_list_free(ctx->non_processed_packets_list);
 }
 
 void vp8rtpfmt_unpacker_feed(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *in) {
-	MSList *packets_list = NULL;
+	bctbx_list_t *packets_list = NULL;
 	Vp8RtpFmtPacket *packet;
 	mblk_t *m;
 
@@ -940,23 +940,23 @@ void vp8rtpfmt_unpacker_feed(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *in) {
 				ctx->ref_cseq=cseq;
 			}
 		}
-		packets_list=ms_list_append(packets_list,packet);
+		packets_list=bctbx_list_append(packets_list,packet);
 	}
 	generate_frames_list(ctx, packets_list);
-	ms_list_free(packets_list);
+	bctbx_list_free(packets_list);
 #ifdef VP8RTPFMT_DEBUG
-	ms_list_for_each(ctx->frames_list, print_frame);
+	bctbx_list_for_each(ctx->frames_list, print_frame);
 #endif /* VP8RTPFMT_DEBUG */
 }
 
 int vp8rtpfmt_unpacker_get_frame(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out, Vp8RtpFmtFrameInfo *frame_info) {
 	int ret = output_valid_partitions(ctx, out);
 	if (ret == 0) {
-		Vp8RtpFmtFrame *frame = (Vp8RtpFmtFrame *)ms_list_nth_data(ctx->frames_list, 0);
+		Vp8RtpFmtFrame *frame = (Vp8RtpFmtFrame *)bctbx_list_nth_data(ctx->frames_list, 0);
 		frame_info->pictureid_present = frame->pictureid_present;
 		frame_info->pictureid = frame->pictureid;
 		frame_info->keyframe = frame->keyframe;
-	} else if (ms_list_size(ctx->non_processed_packets_list) >= 0) {
+	} else if (bctbx_list_size(ctx->non_processed_packets_list) >= 0) {
 		ms_debug("VP8 packets are remaining for next iteration of the filter.");
 	}
 	clean_frame(ctx);
@@ -964,10 +964,10 @@ int vp8rtpfmt_unpacker_get_frame(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out, Vp8Rtp
 }
 
 
-static void packer_process_frame_part(void *p, void *c, void *f) {
+static void packer_process_frame_part(void *p, void *c) {
 	Vp8RtpFmtPacket *packet = (Vp8RtpFmtPacket *)p;
 	Vp8RtpFmtPackerCtx *ctx = (Vp8RtpFmtPackerCtx *)c;
-	MSFactory* factory = (MSFactory*) f;
+	MSFactory* factory = ctx->factory;
 	mblk_t *pdm = NULL;
 	mblk_t *dm = NULL;
 	uint8_t *rptr;
@@ -1059,9 +1059,10 @@ void vp8rtpfmt_packer_init(Vp8RtpFmtPackerCtx *ctx) {
 void vp8rtpfmt_packer_uninit(Vp8RtpFmtPackerCtx *ctx) {
 }
 
-void vp8rtpfmt_packer_process(Vp8RtpFmtPackerCtx *ctx, MSList *in, MSQueue *out, MSFactory *f) {
+void vp8rtpfmt_packer_process(Vp8RtpFmtPackerCtx *ctx, bctbx_list_t *in, MSQueue *out, MSFactory *f) {
 	ctx->output_queue = out;
-	ms_list_for_each3(in, packer_process_frame_part, ctx, f);
-	ms_list_for_each(in, free_packet);
-	ms_list_free(in);
+	ctx->factory = f;
+	bctbx_list_for_each2(in, packer_process_frame_part, ctx);
+	bctbx_list_for_each(in, free_packet);
+	bctbx_list_free(in);
 }

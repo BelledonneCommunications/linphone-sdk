@@ -215,14 +215,14 @@ void ms_tester_tone_generation_and_detection_loop(void) {
 	}
 }
 
-bool_t wait_for_list(MSList *mss, int *counter, int value, int timeout_ms) {
+bool_t wait_for_list(bctbx_list_t *mss, int *counter, int value, int timeout_ms) {
 	return wait_for_list_with_parse_events(mss, counter, value, timeout_ms, NULL, NULL);
 }
 
-bool_t wait_for_list_with_parse_events(MSList *mss, int *counter, int value, int timeout_ms, MSList *cbs, MSList *ptrs) {
-	MSList *msi;
-	MSList *cbi;
-	MSList *ptri;
+bool_t wait_for_list_with_parse_events(bctbx_list_t *mss, int *counter, int value, int timeout_ms, bctbx_list_t *cbs, bctbx_list_t *ptrs) {
+	bctbx_list_t *msi;
+	bctbx_list_t *cbi;
+	bctbx_list_t *ptri;
 	int retry = 0;
 
 	while ((*counter < value) && (retry++ < (timeout_ms / 100))) {
@@ -260,29 +260,29 @@ bool_t wait_for_until(MediaStream *ms_1, MediaStream *ms_2, int *counter, int va
 }
 
 bool_t wait_for_until_with_parse_events(MediaStream *ms1, MediaStream *ms2, int *counter, int value, int timeout_ms, ms_tester_iterate_cb cb1, void *ptr1, ms_tester_iterate_cb cb2, void *ptr2) {
-	MSList *mss = NULL;
-	MSList *cbs = NULL;
-	MSList *ptrs = NULL;
+	bctbx_list_t *mss = NULL;
+	bctbx_list_t *cbs = NULL;
+	bctbx_list_t *ptrs = NULL;
 	bool_t result;
 
 	if (ms1) {
-		mss = ms_list_append(mss, ms1);
+		mss = bctbx_list_append(mss, ms1);
 		if (cb1 && ptr1) {
-			cbs = ms_list_append(cbs, cb1);
-			ptrs = ms_list_append(ptrs, ptr1);
+			cbs = bctbx_list_append(cbs, cb1);
+			ptrs = bctbx_list_append(ptrs, ptr1);
 		}
 	}
 	if (ms2) {
-		mss = ms_list_append(mss, ms2);
+		mss = bctbx_list_append(mss, ms2);
 		if (cb2 && ptr2) {
-			cbs = ms_list_append(cbs, cb2);
-			ptrs = ms_list_append(ptrs, ptr2);
+			cbs = bctbx_list_append(cbs, cb2);
+			ptrs = bctbx_list_append(ptrs, ptr2);
 		}
 	}
 	result = wait_for_list_with_parse_events(mss, counter, value, timeout_ms, cbs, ptrs);
-	ms_list_free(mss);
-	ms_list_free(cbs);
-	ms_list_free(ptrs);
+	bctbx_list_free(mss);
+	bctbx_list_free(cbs);
+	bctbx_list_free(ptrs);
 	return result;
 }
 

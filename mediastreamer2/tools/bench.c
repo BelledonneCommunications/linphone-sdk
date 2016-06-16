@@ -62,7 +62,7 @@ struct bench_config {
 	
 	MSFactory *factory;
 	MSTicker *ticker;
-	MSList *tsessions; /* list of struct test_session */
+	bctbx_list_t *tsessions; /* list of struct test_session */
 };
 
 #define NUM_SESSION 50 /* num of session to start per block */
@@ -286,7 +286,7 @@ static int init_bench(struct bench_config *bench)
 				ms_filter_call_method_noarg(ts->frecorder,MS_FILE_REC_START);
 			}
 
-			bench->tsessions = ms_list_append(bench->tsessions, (void*)ts);
+			bench->tsessions = bctbx_list_append(bench->tsessions, (void*)ts);
 			count++;
 		}
 
@@ -295,10 +295,10 @@ static int init_bench(struct bench_config *bench)
 
 static int uninit_bench(struct bench_config *bench)
 {
-	MSList *it;
+	bctbx_list_t *it;
 	for(it=bench->tsessions;it!=NULL;it=bench->tsessions){
 		struct test_session *ts = (struct test_session *)it->data;
-		bench->tsessions = ms_list_remove_link(bench->tsessions, it);
+		bench->tsessions = bctbx_list_remove_link(bench->tsessions, it);
 
 		ms_ticker_detach(bench->ticker,ts->fplayer);
 		ms_ticker_detach(bench->ticker,ts->rtprecv);

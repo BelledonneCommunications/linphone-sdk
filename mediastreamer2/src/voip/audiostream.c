@@ -1073,30 +1073,30 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 			const char *gains;
 			gains = device->hacks->mic_equalizer;
 			if (gains && stream->mic_equalizer) {
-				MSList *gains_list = ms_parse_equalizer_string(gains);
+				bctbx_list_t *gains_list = ms_parse_equalizer_string(gains);
 				if (gains_list) {
-					MSList *it;
+					bctbx_list_t *it;
 					ms_message("Found equalizer configuration for the microphone in the devices table");
 					for (it = gains_list; it; it=it->next) {
 						MSEqualizerGain *g = (MSEqualizerGain *)it->data;
 						ms_message("Read equalizer gains: %f(~%f) --> %f", g->frequency, g->width, g->gain);
 						ms_filter_call_method(stream->mic_equalizer, MS_EQUALIZER_SET_GAIN, g);
 					}
-					ms_list_free_with_data(gains_list, ms_free);
+					bctbx_list_free_with_data(gains_list, ms_free);
 				}
 			}
 			gains = device->hacks->spk_equalizer;
 			if (gains && stream->spk_equalizer) {
-				MSList *gains_list = ms_parse_equalizer_string(gains);
+				bctbx_list_t *gains_list = ms_parse_equalizer_string(gains);
 				if (gains_list) {
-					MSList *it;
+					bctbx_list_t *it;
 					ms_message("Found equalizer configuration for the speakers in the devices table");
 					for (it = gains_list; it; it=it->next) {
 						MSEqualizerGain *g = (MSEqualizerGain *)it->data;
 						ms_message("Read equalizer gains: %f(~%f) --> %f", g->frequency, g->width, g->gain);
 						ms_filter_call_method(stream->spk_equalizer, MS_EQUALIZER_SET_GAIN, g);
 					}
-					ms_list_free_with_data(gains_list, ms_free);
+					bctbx_list_free_with_data(gains_list, ms_free);
 				}
 			}
 		}

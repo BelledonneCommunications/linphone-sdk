@@ -58,103 +58,51 @@ void ms_set_cpu_count(unsigned int c) {
 }
 
 MSList *ms_list_new(void *data){
-	MSList *new_elem=(MSList *)ms_new0(MSList,1);
-	new_elem->data=data;
-	return new_elem;
+	return bctbx_list_new(data);
 }
 
 MSList *ms_list_append_link(MSList *elem, MSList *new_elem){
-	MSList *it=elem;
-	if (elem==NULL) return new_elem;
-	while (it->next!=NULL) it=ms_list_next(it);
-	it->next=new_elem;
-	new_elem->prev=it;
-	return elem;
+	return bctbx_list_append_link(elem, new_elem);
 }
 
 MSList * ms_list_append(MSList *elem, void * data){
-	MSList *new_elem=ms_list_new(data);
-	return ms_list_append_link(elem,new_elem);
+	return bctbx_list_append(elem, data);
 }
 
 MSList * ms_list_prepend(MSList *elem, void *data){
-	MSList *new_elem=ms_list_new(data);
-	if (elem!=NULL) {
-		new_elem->next=elem;
-		elem->prev=new_elem;
-	}
-	return new_elem;
+	return bctbx_list_prepend(elem, data);
 }
 
-
 MSList * ms_list_concat(MSList *first, MSList *second){
-	MSList *it=first;
-	if (it==NULL) return second;
-	while(it->next!=NULL) it=ms_list_next(it);
-	it->next=second;
-	second->prev=it;
-	return first;
+	return bctbx_list_concat(first, second);
 }
 
 MSList * ms_list_free_with_data(MSList *list, void (*freefunc)(void*)){
-	MSList *elem;
-	MSList *tmp;
-
-	for (elem=list;elem!=NULL;){
-		tmp=elem->next;
-		if (freefunc) freefunc(elem->data);
-		ms_free(elem);
-		elem=tmp;
-	}
-	return NULL;
+	return bctbx_list_free_with_data(list, freefunc);
 }
 
 MSList * ms_list_free(MSList *elem){
-	return ms_list_free_with_data(elem,NULL);
+	return bctbx_list_free(elem);
 }
 
 MSList * ms_list_remove(MSList *first, void *data){
-	MSList *it;
-	it=ms_list_find(first,data);
-	if (it) return ms_list_remove_link(first,it);
-	else {
-		ms_warning("ms_list_remove: no element with %p data was in the list", data);
-		return first;
-	}
+	return bctbx_list_remove(first, data);
 }
 
 MSList * ms_list_remove_custom(MSList *first, MSCompareFunc compare_func, const void *user_data) {
-	MSList *cur;
-	MSList *elem = first;
-	while (elem != NULL) {
-		cur = elem;
-		elem = elem->next;
-		if (compare_func(cur->data, user_data) == 0) {
-			first = ms_list_remove(first, cur->data);
-		}
-	}
-	return first;
+	return bctbx_list_remove_custom(first, compare_func, user_data);
 }
 
-size_t ms_list_size(const MSList *first){
-	size_t n=0;
-	while(first!=NULL){
-		++n;
-		first=first->next;
-	}
-	return n;
+int ms_list_size(const MSList *first){
+	return (int)bctbx_list_size(first);
 }
 
 void ms_list_for_each(const MSList *list, void (*func)(void *)){
-	for(;list!=NULL;list=list->next){
-		func(list->data);
-	}
+	bctbx_list_for_each(list, func);
 }
 
 void ms_list_for_each2(const MSList *list, void (*func)(void *, void *y), void *user_data){
-	for(;list!=NULL;list=list->next){
-		func(list->data,user_data);
-	}
+	bctbx_list_for_each2(list, func, user_data);
 }
 
 void ms_list_for_each3(const MSList *list, void (*func)(void *, void *, void*), void *user_data, void* factory){
@@ -164,131 +112,52 @@ void ms_list_for_each3(const MSList *list, void (*func)(void *, void *, void*), 
 }
 
 MSList *ms_list_remove_link(MSList *list, MSList *elem){
-	MSList *ret;
-	if (elem==list){
-		ret=elem->next;
-		elem->prev=NULL;
-		elem->next=NULL;
-		if (ret!=NULL) ret->prev=NULL;
-		ms_free(elem);
-		return ret;
-	}
-	elem->prev->next=elem->next;
-	if (elem->next!=NULL) elem->next->prev=elem->prev;
-	elem->next=NULL;
-	elem->prev=NULL;
-	ms_free(elem);
-	return list;
+	return bctbx_list_remove_link(list, elem);
 }
 
 MSList *ms_list_find(MSList *list, void *data){
-	for(;list!=NULL;list=list->next){
-		if (list->data==data) return list;
-	}
-	return NULL;
+	return bctbx_list_find(list, data);
 }
 
 MSList *ms_list_find_custom(MSList *list, int (*compare_func)(const void *, const void*), const void *user_data){
-	for(;list!=NULL;list=list->next){
-		if (compare_func(list->data,user_data)==0) return list;
-	}
-	return NULL;
+	return bctbx_list_find_custom(list, compare_func, user_data);
 }
 
 void * ms_list_nth_data(const MSList *list, int index){
-	int i;
-	for(i=0;list!=NULL;list=list->next,++i){
-		if (i==index) return list->data;
-	}
-	ms_error("ms_list_nth_data: no such index in list.");
-	return NULL;
+	return bctbx_list_nth_data(list, index);
 }
 
 int ms_list_position(const MSList *list, MSList *elem){
-	int i;
-	for(i=0;list!=NULL;list=list->next,++i){
-		if (elem==list) return i;
-	}
-	ms_error("ms_list_position: no such element in list.");
-	return -1;
+	return bctbx_list_position(list, elem);
 }
 
 int ms_list_index(const MSList *list, void *data){
-	int i;
-	for(i=0;list!=NULL;list=list->next,++i){
-		if (data==list->data) return i;
-	}
-	ms_error("ms_list_index: no such element in list.");
-	return -1;
+	return bctbx_list_index(list, data);
 }
 
 MSList *ms_list_insert_sorted(MSList *list, void *data, int (*compare_func)(const void *, const void*)){
-	MSList *it,*previt=NULL;
-	MSList *nelem;
-	MSList *ret=list;
-	if (list==NULL) return ms_list_append(list,data);
-	else{
-		nelem=ms_list_new(data);
-		for(it=list;it!=NULL;it=it->next){
-			previt=it;
-			if (compare_func(data,it->data)<=0){
-				nelem->prev=it->prev;
-				nelem->next=it;
-				if (it->prev!=NULL)
-					it->prev->next=nelem;
-				else{
-					ret=nelem;
-				}
-				it->prev=nelem;
-				return ret;
-			}
-		}
-		previt->next=nelem;
-		nelem->prev=previt;
-	}
-	return ret;
+	return bctbx_list_insert_sorted(list, data, compare_func);
 }
 
 MSList *ms_list_insert(MSList *list, MSList *before, void *data){
-	MSList *elem;
-	if (list==NULL || before==NULL) return ms_list_append(list,data);
-	for(elem=list;elem!=NULL;elem=ms_list_next(elem)){
-		if (elem==before){
-			if (elem->prev==NULL)
-				return ms_list_prepend(list,data);
-			else{
-				MSList *nelem=ms_list_new(data);
-				nelem->prev=elem->prev;
-				nelem->next=elem;
-				elem->prev->next=nelem;
-				elem->prev=nelem;
-			}
-		}
-	}
-	return list;
+	return bctbx_list_insert(list, before, data);
 }
 
 MSList *ms_list_copy(const MSList *list){
-	MSList *copy=NULL;
-	const MSList *iter;
-	for(iter=list;iter!=NULL;iter=ms_list_next(iter)){
-		copy=ms_list_append(copy,iter->data);
-	}
-	return copy;
+	return bctbx_list_copy(list);
 }
 
 MSList *ms_list_copy_with_data(const MSList *list, void *(*copyfunc)(void *)){
-	MSList *copy=NULL;
-	const MSList *iter;
-	for(iter=list;iter!=NULL;iter=ms_list_next(iter)){
-		copy=ms_list_append(copy,copyfunc(iter->data));
-	}
-	return copy;
+	return bctbx_list_copy_with_data(list, copyfunc);
 }
 
-char * ms_tags_list_as_string(const MSList *list) {
+MSList* ms_list_next(const MSList *list) {
+	return bctbx_list_next(list);
+}
+
+char * ms_tags_list_as_string(const bctbx_list_t *list) {
 	char *tags_str = NULL;
-	const MSList *elem = list;
+	const bctbx_list_t *elem = list;
 	while (elem != NULL) {
 		char *elem_str = (char *)elem->data;
 		if (tags_str == NULL) {
@@ -303,8 +172,8 @@ char * ms_tags_list_as_string(const MSList *list) {
 	return tags_str;
 }
 
-bool_t ms_tags_list_contains_tag(const MSList *list, const char *tag) {
-	const MSList *elem = list;
+bool_t ms_tags_list_contains_tag(const bctbx_list_t *list, const char *tag) {
+	const bctbx_list_t *elem = list;
 	while (elem != NULL) {
 		char *tag_from_list = (char *)elem->data;
 		if (strcasecmp(tag, tag_from_list) == 0)
