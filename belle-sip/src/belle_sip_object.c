@@ -722,8 +722,8 @@ static void cleanup_pool_stack(void *data){
 		 * Instead, we mark them as detached, so that when the thread that will attempt to destroy them will do it,
 		 * we'll accept (since anyway these object pool are no longer needed.
 		 */
-		belle_sip_warning("There were still [%i] object pools for thread [%lu] while the thread exited. ",
-				 belle_sip_list_size(*pool_stack),belle_sip_thread_self_id());
+		belle_sip_warning("There were still [%u] object pools for thread [%lu] while the thread exited. ",
+			(unsigned int)belle_sip_list_size(*pool_stack),belle_sip_thread_self_id());
 		belle_sip_list_free_with_data(*pool_stack,(void (*)(void*)) belle_sip_object_pool_detach_from_thread);
 	}
 	*pool_stack=NULL;
