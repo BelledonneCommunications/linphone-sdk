@@ -401,8 +401,8 @@ static bool_t stateful_analyzer_process_rtcp(MSQosAnalyzer *objbase, mblk_t *rtc
 				obj->rtcpstatspoint = ms_list_remove_custom(obj->rtcpstatspoint,
 					(MSCompareFunc)earlier_than, &clear_time);
 				ms_message("MSStatefulQosAnalyzer[%p]: reached list maximum capacity "
-					"(count=%d) --> Cleaned list (count=%d)",
-					obj, prev_size, ms_list_size(obj->rtcpstatspoint));
+					"(count=%d) --> Cleaned list (count=%u)",
+					obj, prev_size,(unsigned int) ms_list_size(obj->rtcpstatspoint));
 			}
 			return TRUE;
 		}
