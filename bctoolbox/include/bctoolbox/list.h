@@ -31,8 +31,11 @@ typedef struct _bctbx_list {
 	void *data;
 } bctbx_list_t;
 
+typedef  int (*bctbx_compare_func)(const void *, const void*);
+
 BCTBX_PUBLIC bctbx_list_t * bctbx_list_new(void *data);
 BCTBX_PUBLIC bctbx_list_t * bctbx_list_append(bctbx_list_t * elem, void * data);
+BCTBX_PUBLIC bctbx_list_t * bctbx_list_append_link(bctbx_list_t * elem, bctbx_list_t *new_elem);
 BCTBX_PUBLIC bctbx_list_t * bctbx_list_prepend(bctbx_list_t * elem, void * data);
 BCTBX_PUBLIC bctbx_list_t * bctbx_list_prepend_link(bctbx_list_t* elem, bctbx_list_t *new_elem);
 BCTBX_PUBLIC bctbx_list_t * bctbx_list_last_elem(const bctbx_list_t *l);
@@ -40,8 +43,9 @@ BCTBX_PUBLIC bctbx_list_t * bctbx_list_first_elem(const bctbx_list_t *l);
 BCTBX_PUBLIC bctbx_list_t * bctbx_list_free(bctbx_list_t * elem);
 BCTBX_PUBLIC bctbx_list_t * bctbx_list_concat(bctbx_list_t * first, bctbx_list_t * second);
 BCTBX_PUBLIC bctbx_list_t * bctbx_list_remove(bctbx_list_t * first, void *data);
+BCTBX_PUBLIC bctbx_list_t * bctbx_list_remove_custom(bctbx_list_t *first, bctbx_compare_func compare_func, const void *user_data);
 BCTBX_PUBLIC bctbx_list_t * bctbx_list_pop_front(bctbx_list_t *list, void **front_data);
-BCTBX_PUBLIC int bctbx_list_size(const bctbx_list_t * first);
+BCTBX_PUBLIC size_t bctbx_list_size(const bctbx_list_t * first);
 BCTBX_PUBLIC void bctbx_list_for_each(const bctbx_list_t * list, void (*func)(void *));
 BCTBX_PUBLIC void bctbx_list_for_each2(const bctbx_list_t * list, void (*func)(void *, void *), void *user_data);
 BCTBX_PUBLIC bctbx_list_t * bctbx_list_remove_link(bctbx_list_t * list, bctbx_list_t * elem);
@@ -51,7 +55,6 @@ BCTBX_PUBLIC bctbx_list_t * bctbx_list_free(bctbx_list_t *list);
 /*frees list elements and associated data, using the supplied function pointer*/
 BCTBX_PUBLIC bctbx_list_t * bctbx_list_free_with_data(bctbx_list_t *list, void (*freefunc)(void*));
 
-typedef  int (*bctbx_compare_func)(const void *, const void*);
 BCTBX_PUBLIC bctbx_list_t * bctbx_list_find_custom(const bctbx_list_t * list, bctbx_compare_func cmp, const void *user_data);
 BCTBX_PUBLIC void * bctbx_list_nth_data(const bctbx_list_t * list, int index);
 BCTBX_PUBLIC int bctbx_list_position(const bctbx_list_t * list, bctbx_list_t * elem);

@@ -141,8 +141,21 @@ bctbx_list_t*  bctbx_list_remove(bctbx_list_t* first, void *data){
 	return _bctbx_list_remove(first, data, TRUE);
 }
 
-int bctbx_list_size(const bctbx_list_t* first){
-	int n=0;
+bctbx_list_t * bctbx_list_remove_custom(bctbx_list_t *first, bctbx_compare_func compare_func, const void *user_data) {
+	bctbx_list_t *cur;
+	bctbx_list_t *elem = first;
+	while (elem != NULL) {
+		cur = elem;
+		elem = elem->next;
+		if (compare_func(cur->data, user_data) == 0) {
+			first = bctbx_list_remove(first, cur->data);
+		}
+	}
+	return first;
+}
+
+size_t bctbx_list_size(const bctbx_list_t* first){
+	size_t n=0;
 	while(first!=NULL){
 		++n;
 		first=first->next;
