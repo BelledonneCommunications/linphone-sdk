@@ -87,7 +87,7 @@ void CU_automated_enable_junit_xml(CU_BOOL bFlag);
 
 void CU_automated_package_name_set(const char *pName);
 
-const char *CU_automated_package_name_get();
+const char *CU_automated_package_name_get(void);
 
 #ifdef __cplusplus
 }
