@@ -418,7 +418,7 @@ unsigned int belle_sip_header_contact_not_equals(const belle_sip_header_contact_
 void belle_sip_header_contact_set_automatic(belle_sip_header_contact_t *a, int enabled){
 	a->automatic=enabled;
 }
- 
+
 int belle_sip_header_contact_get_automatic(const belle_sip_header_contact_t *a){
 	return a->automatic;
 }
@@ -625,12 +625,12 @@ int belle_sip_header_user_agent_get_products_as_string(const belle_sip_header_us
 	size_t result = 0;
 	belle_sip_error_code error=BELLE_SIP_OK;
 	belle_sip_list_t* list = user_agent->products;
-	
+
 	for(;list!=NULL;list=list->next){
 		error=belle_sip_snprintf(value,value_size,&result,"%s ",(const char *)list->data);
 		if (error!=BELLE_SIP_OK) return -1;
 	}
-	if (result>0) value[result]='\0'; /*remove last space */
+	if (result>0) value[result-1]='\0'; /*remove last space */
 
 	return result-1;
 }
