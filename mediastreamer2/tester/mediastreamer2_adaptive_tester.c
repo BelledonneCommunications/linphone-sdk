@@ -362,7 +362,7 @@ static void packet_duplication(void) {
 	/*in theory, cumulative loss should be the invert of duplicated count, but
 	since cumulative loss is computed only on received RTCP report and duplicated
 	count is updated on each RTP packet received, we cannot accurately compare these values*/
-	BC_ASSERT_LOWER(stats->cum_packet_loss, (int64_t)(-.5*stats->packet_dup_recv), int64_t, "%lld");
+	BC_ASSERT_LOWER(stats->cum_packet_loss, (int64_t)(-.5*stats->packet_dup_recv), long long, "%lld");
 	stop_adaptive_stream(marielle,margaux,TRUE);
 
 	dup_ratio = 1.0f;
@@ -371,7 +371,7 @@ static void packet_duplication(void) {
 	iterate_adaptive_stream(marielle, margaux, 10000, NULL, 0);
 	stats=rtp_session_get_stats(margaux->video_stream->ms.sessions.rtp_session);
 	BC_ASSERT_EQUAL(stats->packet_dup_recv, dup_ratio ? (uint64_t)(stats->packet_recv / (dup_ratio+1)) : 0, unsigned long long, "%llu");
-	BC_ASSERT_LOWER(stats->cum_packet_loss, (int64_t)(-.5*stats->packet_dup_recv), int64_t, "%lld");
+	BC_ASSERT_LOWER(stats->cum_packet_loss, (int64_t)(-.5*stats->packet_dup_recv), long long, "%lld");
 	stop_adaptive_stream(marielle,margaux,TRUE);
 }
 
