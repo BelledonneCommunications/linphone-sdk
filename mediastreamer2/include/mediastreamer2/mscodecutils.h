@@ -94,7 +94,7 @@ MS2_PUBLIC unsigned int ms_concealer_ts_context_is_concealement_required(MSConce
  * @param got_packet set to TRUE if a real frame was decoded, FALSE if it was a PLC frame.
  * @return if a PLC period terminates, returns the duration of this PLC period in timestamp units, 0 otherwise.
 **/
-MS2_PUBLIC int ms_concealer_ts_context_inc_sample_ts(MSConcealerTsContext* obj, uint64_t current_ts, uint32_t ts_increment, bool_t got_packet);
+MS2_PUBLIC uint32_t ms_concealer_ts_context_inc_sample_ts(MSConcealerTsContext* obj, uint64_t current_ts, uint32_t ts_increment, bool_t got_packet);
 
 
 MS2_PUBLIC unsigned long ms_concealer_ts_context_get_total_number_of_plc(MSConcealerTsContext* obj);
