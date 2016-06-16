@@ -276,6 +276,9 @@ BCTBX_PUBLIC const char *__bctbx_getWinSocketError(int error);
 #ifndef strdup
 #define strdup _strdup
 #endif
+#ifndef unlink
+#define unlink _unlink
+#endif
 
 #ifndef F_OK
 #define F_OK 00 /* Visual Studio does not define F_OK */
