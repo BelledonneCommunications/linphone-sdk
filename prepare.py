@@ -175,6 +175,7 @@ class Preparator:
         self.virtual_targets = virtual_targets
         self.additional_args = []
         self.missing_dependencies = {}
+        self.release_with_debug_info = False
         self.veryclean = False
         self.show_gpl_disclaimer = False
 
@@ -286,7 +287,12 @@ class Preparator:
         option_regex = re.compile("ENABLE_(.*):(.*)=(.*)")
         options = {}
         ended = True
-        build_type = 'Debug' if args.debug else 'Release'
+        if args.debug:
+            build_type = 'Debug'
+        elif self.release_with_debug_info:
+            build_type = 'RelWithDebInfo'
+        else:
+            build_type = 'Release'
 
         p = Popen(tmptarget.cmake_command(build_type, args, additional_args, verbose=False), cwd=tmpdir, shell=False, stdout=PIPE, universal_newlines=True)
         p.wait()
@@ -349,8 +355,12 @@ class Preparator:
 
         if type(self.args.debug) is str:
             build_type = self.args.debug
+        elif self.args.debug:
+            build_type = 'Debug'
+        elif self.release_with_debug_info:
+            build_type = 'RelWithDebInfo'
         else:
-            build_type = 'Debug' if self.args.debug else 'Release'
+            build_type = 'Release'
 
         if not os.path.isdir(target.abs_cmake_dir):
             os.makedirs(target.abs_cmake_dir)
