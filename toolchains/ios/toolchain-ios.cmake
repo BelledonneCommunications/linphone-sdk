@@ -88,6 +88,12 @@ set(CMAKE_CROSSCOMPILING TRUE)
 set(CMAKE_SYSTEM_NAME "Darwin")
 set(IOS True)
 
+# The following variables are needed to build correctly with Xcode
+if(CMAKE_GENERATOR STREQUAL "Xcode")
+	set(CMAKE_MACOSX_BUNDLE YES)
+	set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED NO)
+endif()
+
 # Define the compiler
 CMAKE_FORCE_C_COMPILER(${IOS_TOOLCHAIN_CC} Clang)
 CMAKE_FORCE_CXX_COMPILER(${IOS_TOOLCHAIN_CXX} Clang)
