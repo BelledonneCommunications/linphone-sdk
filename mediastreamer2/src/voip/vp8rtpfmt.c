@@ -956,7 +956,7 @@ int vp8rtpfmt_unpacker_get_frame(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out, Vp8Rtp
 		frame_info->pictureid_present = frame->pictureid_present;
 		frame_info->pictureid = frame->pictureid;
 		frame_info->keyframe = frame->keyframe;
-	} else if (bctbx_list_size(ctx->non_processed_packets_list) >= 0) {
+	} else if (bctbx_list_size(ctx->non_processed_packets_list) > 0) {
 		ms_debug("VP8 packets are remaining for next iteration of the filter.");
 	}
 	clean_frame(ctx);
