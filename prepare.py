@@ -270,6 +270,9 @@ class Preparator:
                     "\n***************************************************************************"
                     "\n***************************************************************************")
 
+    def list_feature_target(self):
+        return None
+
     def first_target(self):
         return self.targets[self.args.target[0]]
 
@@ -282,7 +285,9 @@ class Preparator:
 
     def list_features_with_args(self, args, additional_args):
         tmpdir = tempfile.mkdtemp(prefix="linphone-prepare")
-        tmptarget = self.first_target()
+        tmptarget = self.list_feature_target()
+        if tmptarget is None:
+            tmptarget = self.first_target()
         tmptarget.abs_cmake_dir = tmpdir
         option_regex = re.compile("ENABLE_(.*):(.*)=(.*)")
         options = {}
