@@ -109,6 +109,9 @@ linphone_builder_add_cmake_option(ms2 "-DENABLE_DOC=NO")
 linphone_builder_add_cmake_option(ms2 "-DENABLE_UNIT_TESTS=NO")
 set(EP_ms2_LINKING_TYPE "-DENABLE_STATIC=NO" "-DENABLE_SHARED=YES")
 
+# openh264
+set(EP_openh264_LINKING_TYPE "-shared")
+
 # opus
 linphone_builder_add_cmake_option(opus "-DENABLE_FIXED_POINT=YES")
 
