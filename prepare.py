@@ -426,6 +426,9 @@ class Preparator:
         elif self.generator().endswith("Unix Makefiles"):
             self.generate_makefile('$(MAKE) -C')
             info("You can now run 'make' to build.")
+        elif self.generator().endswith("Xcode"):
+            self.generate_makefile('xcodebuild -project', 'Project.xcodeproj')
+            info("You can now run 'make' to build.")
         else:
             warning("Not generating meta-makefile for generator {}.".format(self.generator()))
         self.gpl_disclaimer()
