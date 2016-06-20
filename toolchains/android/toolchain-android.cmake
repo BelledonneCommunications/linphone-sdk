@@ -21,7 +21,7 @@
 ############################################################################
 
 set(CMAKE_ANDROID_API 14)
-set(CMAKE_ANDROID_STL_TYPE c++_shared)
+set(CMAKE_ANDROID_STL_TYPE gnustl_shared)
 
 include(CMakeForceCompiler)
 
@@ -153,7 +153,7 @@ set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
 
-set(ANDROID_STL_INCLUDE_DIRS "${ANDROID_NDK_PATH}/sources/cxx-stl/llvm-libc++/libcxx/include")
+set(ANDROID_STL_INCLUDE_DIRS "${ANDROID_NDK_PATH}/sources/cxx-stl/gnu-libstdc++/${GCC_VERSION}/include" "${ANDROID_NDK_PATH}/sources/cxx-stl/gnu-libstdc++/${GCC_VERSION}/libs/${CMAKE_SYSTEM_PROCESSOR}/include")
 if(EXISTS "${ANDROID_NDK_PATH}/sources/android/cpufeatures/cpu-features.c")
 	set(ANDROID_CPU_FEATURES_INCLUDE_DIRS "${ANDROID_NDK_PATH}/sources/android/cpufeatures")
 elseif(EXISTS "${ANDROID_NDK_PATH}/sources/cpufeatures/cpu-features.c")
@@ -172,6 +172,6 @@ if(GCC_LIBRARY_PATH)
 	set(CMAKE_MODULE_LINKER_FLAGS "-L${GCC_LIBRARY_PATH}" CACHE STRING "linker flags" FORCE)
 	set(CMAKE_SHARED_LINKER_FLAGS "-L${GCC_LIBRARY_PATH}" CACHE STRING "linker flags" FORCE)
 endif()
-link_libraries("${ANDROID_NDK_PATH}/sources/cxx-stl/llvm-libc++/libs/${CMAKE_SYSTEM_PROCESSOR}/libc++_shared.so")
+link_libraries("${ANDROID_NDK_PATH}/sources/cxx-stl/gnu-libstdc++/${GCC_VERSION}/libs/${CMAKE_SYSTEM_PROCESSOR}/libgnustl_shared.so")
 link_libraries("log")
 link_libraries("atomic")

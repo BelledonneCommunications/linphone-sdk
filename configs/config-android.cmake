@@ -132,6 +132,12 @@ set(EP_x264_LINKING_TYPE "--enable-static" "--enable-pic")
 set(EP_x264_INSTALL_TARGET "install-lib-static")
 
 
+# Copy c++ library to install prefix
+file(COPY "${ANDROID_NDK_PATH}/sources/cxx-stl/gnu-libstdc++/${GCC_VERSION}/libs/${CMAKE_SYSTEM_PROCESSOR}/libgnustl_shared.so"
+	DESTINATION "${CMAKE_INSTALL_PREFIX}/lib"
+)
+
+
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 	# GDB server setup
 	linphone_builder_apply_flags()
