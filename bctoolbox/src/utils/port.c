@@ -29,6 +29,12 @@
 #include <process.h>
 #endif
 
+#ifdef _MSC_VER
+#ifndef access
+#define access _access
+#endif
+#endif
+
 #ifdef HAVE_SYS_SHM_H
 #include <sys/shm.h>
 #endif
@@ -126,23 +132,9 @@ int bctbx_socket_close(bctbx_socket_t sock){
 #endif
 }
 
-#if defined (_WIN32_WCE) || defined(_MSC_VER)
-int bctbx_file_exist(const char *pathname) {
-	FILE* fd;
-	if (pathname==NULL) return -1;
-	fd=fopen(pathname,"r");
-	if (fd==NULL) {
-		return -1;
-	} else {
-		fclose(fd);
-		return 0;
-	}
-}
-#else
 int bctbx_file_exist(const char *pathname) {
 	return access(pathname,F_OK);
 }
-#endif /*_WIN32_WCE*/
 
 #if	!defined(_WIN32) && !defined(_WIN32_WCE)
 	/* Use UNIX inet_aton method */
