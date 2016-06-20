@@ -22,7 +22,7 @@
 
 set(EP_tunnel_GIT_REPOSITORY "gitosis@git.linphone.org:tunnel.git" CACHE STRING "tunnel repository URL") # Private repository
 set(EP_tunnel_GIT_TAG_LATEST "master" CACHE STRING "tunnel tag to use when compiling latest version")
-set(EP_tunnel_GIT_TAG "f4ea4c93070b5e4e838aca701a724d0bfbbb6a05" CACHE STRING "tunnel tag to use")
+set(EP_tunnel_GIT_TAG "23027a3765d92b6df42bc69acb0d1ab842f344aa" CACHE STRING "tunnel tag to use")
 set(EP_tunnel_EXTERNAL_SOURCE_PATHS "tunnel")
 set(EP_tunnel_GROUPABLE YES)
 
