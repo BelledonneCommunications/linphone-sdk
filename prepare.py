@@ -24,6 +24,7 @@
 
 import argparse
 import copy
+import imp
 import os
 import platform
 import re
@@ -174,6 +175,7 @@ class Preparator:
         self.targets = targets
         self.virtual_targets = virtual_targets
         self.additional_args = []
+        self.missing_python_dependencies = []
         self.missing_dependencies = {}
         self.release_with_debug_info = False
         self.veryclean = False
@@ -215,6 +217,14 @@ class Preparator:
                 new_targets += [target_name]
         self.args.target = list(set(new_targets))
 
+    def check_python_module_is_present(self, modname):
+        try:
+            imp.find_module(modname)
+            return True
+        except ImportError:
+            self.missing_python_dependencies += [modname]
+            return False
+
     def check_is_installed(self, binary, prog=None, warn=True):
         if not find_executable(binary):
             if warn:
@@ -242,6 +252,11 @@ class Preparator:
     def show_missing_dependencies(self):
         if self.missing_dependencies:
             error("The following binaries are missing: {}. Please install them.".format(' '.join(self.missing_dependencies.keys())))
+
+    def show_missing_python_dependencies(self):
+        if self.missing_python_dependencies:
+            error("The following python modules are missing: {}. Please install them using:\n\tpip install {}".format(
+                ' '.join(self.missing_python_dependencies), ' '.join(self.missing_python_dependencies)))
 
     def gpl_disclaimer(self):
         if not self.show_gpl_disclaimer:
