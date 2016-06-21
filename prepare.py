@@ -248,7 +248,7 @@ class Preparator:
             return False
         return True
 
-    def check_tools(self):
+    def check_environment(self):
         ret = 0
 
         # at least FFmpeg requires no whitespace in sources path...
@@ -263,6 +263,10 @@ class Preparator:
             ret = 1
 
         return ret
+
+    def show_environment_errors(self):
+        self.show_missing_dependencies()
+        self.show_missing_python_dependencies()
 
     def show_missing_dependencies(self):
         if self.missing_dependencies:
