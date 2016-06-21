@@ -200,13 +200,28 @@ class Preparator:
             self.argparser.add_argument('target', nargs='*', action=TargetListAction, default=default_targets, targets=self.available_targets(),
                 help="The target(s) to build for (default is '{0}'). Space separated targets in list: {1}.".format(' '.join(default_targets), ', '.join(self.available_targets())))
 
+        self.argv = sys.argv[1:]
+        self.load_user_config()
+        self.load_project_config()
+
+    def load_config(self, config):
+        if os.path.isfile(config):
+            argv = open(config).read().split()
+            self.argv = argv + self.argv
+
+    def load_project_config(self):
+        self.load_config(os.path.join(os.getcwd(), "prepare.conf"))
+
+    def load_user_config(self):
+        self.load_config(os.path.join(os.getcwd(), "prepare.conf.user"))
+
     def available_targets(self):
         targets = [target for target in self.targets.keys()]
         targets += [target for target in self.virtual_targets.keys()]
         return targets
 
     def parse_args(self):
-        self.args, self.user_additional_args = self.argparser.parse_known_args()
+        self.args, self.user_additional_args = self.argparser.parse_known_args(self.argv)
         if platform.system() == 'Windows':
             self.args.ccache = False
         new_targets = []
