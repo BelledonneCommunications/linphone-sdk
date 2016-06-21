@@ -227,12 +227,12 @@ static void suite_cleanup_failure_message_handler(const CU_pSuite pSuite) {
 #ifdef HAVE_CU_GET_SUITE
 static time_t suite_start_time = 0;
 static void suite_start_message_handler(const CU_pSuite pSuite) {
-	bc_tester_printf(bc_printf_verbosity_info,"Suite [%s] started\n", pSuite->pName);
+	bc_tester_printf(bc_printf_verbosity_info,"Suite [%s] started", pSuite->pName);
 	suite_start_time = time(NULL);
 	bc_current_suite_name = pSuite->pName;
 }
 static void suite_complete_message_handler(const CU_pSuite pSuite, const CU_pFailureRecord pFailure) {
-	bc_tester_printf(bc_printf_verbosity_info, "Suite [%s] ended in %lu sec\n", pSuite->pName,
+	bc_tester_printf(bc_printf_verbosity_info, "Suite [%s] ended in %lu sec", pSuite->pName,
 					 time(NULL) - suite_start_time);
 }
 
@@ -433,19 +433,19 @@ static void detect_res_prefix(const char* prog) {
 		}
 
 		if (bc_tester_resource_dir_prefix != NULL && !file_exists(bc_tester_resource_dir_prefix)) {
-			bc_tester_printf(bc_printf_verbosity_error, "Invalid provided resource directory: could not find expected resources in %s.\n", bc_tester_resource_dir_prefix);
+			bc_tester_printf(bc_printf_verbosity_error, "Invalid provided resource directory: could not find expected resources '%s' in '%s'.", expected_res, bc_tester_resource_dir_prefix);
 			free(bc_tester_resource_dir_prefix);
 			bc_tester_resource_dir_prefix = NULL;
 		}
 
 		if (prefix != NULL) {
 			if (bc_tester_resource_dir_prefix == NULL) {
-				bc_tester_printf(bc_printf_verbosity_error, "Resource directory set to %s\n", prefix);
+				bc_tester_printf(bc_printf_verbosity_error, "Resource directory set to %s", prefix);
 				bc_tester_set_resource_dir_prefix(prefix);
 			}
 
 			if (bc_tester_writable_dir_prefix == NULL) {
-				bc_tester_printf(bc_printf_verbosity_error, "Writable directory set to %s\n", prefix);
+				bc_tester_printf(bc_printf_verbosity_error, "Writable directory set to %s", prefix);
 				bc_tester_set_writable_dir_prefix(prefix);
 			}
 			free(prefix);
@@ -464,11 +464,10 @@ static void detect_res_prefix(const char* prog) {
 	}
 	if (bc_tester_resource_dir_prefix == NULL || writable_file == NULL) {
 		if (bc_tester_resource_dir_prefix == NULL) {
-			bc_tester_printf(bc_printf_verbosity_error, "Failed to detect resources for %s.\n", prog);
-			bc_tester_printf(bc_printf_verbosity_error, "Could not find resource directory in %s! Please try again using option --resource-dir.\n", progpath);
+			bc_tester_printf(bc_printf_verbosity_error, "Could not find resource directory '%s' in '%s'! Please try again using option --resource-dir.", expected_res, progpath);
 		}
 		if (writable_file == NULL) {
-			bc_tester_printf(bc_printf_verbosity_error, "Failed to write file in %s. Please try again using option --writable-dir.\n", bc_tester_writable_dir_prefix);
+			bc_tester_printf(bc_printf_verbosity_error, "Failed to write file in %s. Please try again using option --writable-dir.", bc_tester_writable_dir_prefix);
 		}
 		abort();
 	}
@@ -482,9 +481,12 @@ void bc_tester_init(void (*ftester_printf)(int level, const char *format, va_lis
 	tester_printf_va = ftester_printf;
 	bc_printf_verbosity_error = iverbosity_error;
 	bc_printf_verbosity_info = iverbosity_info;
-	bc_tester_writable_dir_prefix = strdup(".");
-	if (aexpected_res)
+	if (!bc_tester_writable_dir_prefix) {
+		bc_tester_writable_dir_prefix = strdup(".");
+	}
+	if (aexpected_res) {
 		expected_res = strdup(aexpected_res);
+	}
 }
 
 void bc_tester_set_max_vm(long amax_vm_kb) {
@@ -557,12 +559,12 @@ int bc_tester_parse_args(int argc, char **argv, int argid)
 		CHECK_ARG("--writable-dir", ++i, argc);
 		bc_tester_writable_dir_prefix = strdup(argv[i]);
 	} else {
-		bc_tester_printf(bc_printf_verbosity_error, "Unknown option \"%s\"\n", argv[i]);
+		bc_tester_printf(bc_printf_verbosity_error, "Unknown option \"%s\"", argv[i]);
 		return -1;
 	}
 
 	if( xml_enabled && (suite_name || test_name) ){
-		bc_tester_printf(bc_printf_verbosity_error, "Cannot use both XML and specific test suite\n");
+		bc_tester_printf(bc_printf_verbosity_error, "Cannot use both XML and specific test suite");
 		return -1;
 	}
 
@@ -617,9 +619,9 @@ void bc_tester_uninit(void) {
 	if (xml_enabled) {
 		/*create real xml file only if tester did not crash*/
 		char * xml_tmp_file = bc_sprintf("%s.tmp-Results.xml", xml_file);
-		bc_tester_printf(bc_printf_verbosity_info, "Tests ended, renaming temporary result file %s to %s\n", xml_tmp_file, xml_file);
+		bc_tester_printf(bc_printf_verbosity_info, "Tests ended, renaming temporary result file %s to %s", xml_tmp_file, xml_file);
 		if (rename(xml_tmp_file, xml_file) != 0) {
-			bc_tester_printf(bc_printf_verbosity_error, "Failed to rename XML file: %s\n", strerror(errno));
+			bc_tester_printf(bc_printf_verbosity_error, "Failed to rename XML file: %s", strerror(errno));
 		}
 		free(xml_tmp_file);
 	}
@@ -700,7 +702,7 @@ char* bc_sprintfva(const char* format, va_list args) {
 		/* If that worked, return the string. */
 		if (n > -1 && n < size)
 			return p;
-		//bc_tester_printf(bc_printf_verbosity_error, "Reallocing space.\n");
+		//bc_tester_printf(bc_printf_verbosity_error, "Reallocing space.");
 		/* Else try again with more space. */
 		if (n > -1)	/* glibc 2.1 */
 			size = n + 1;	/* precisely what is needed */
