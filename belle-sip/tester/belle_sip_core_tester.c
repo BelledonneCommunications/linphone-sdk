@@ -186,10 +186,134 @@ static void test_dictionary(void)
 	belle_sip_object_unref(obj);
 }
 
+static const char *parts_id[] = {
+	"6h-Yqv3@sip.linphonecyberattack.fr",
+	"Azgwg6Q@sip.linphonecyberattack.fr",
+	"0NKY7am@sip.linphonecyberattack.fr",
+	"p8AxOjL@sip.linphonecyberattack.fr",
+	"HqquRnL@sip.linphonecyberattack.fr",
+	"ftVeEXj@sip.linphonecyberattack.fr",
+	"3OQQ~t4@sip.linphonecyberattack.fr"
+};
+static const char *parts_content[] = {
+	"<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>\n"
+	"<list xmlns=\"urn:ietf:params:xml:ns:rlmi\" fullState=\"false\" uri=\"sip:rls@sip.linphonecyberattack.fr\" version=\"1\">\n"
+	"  <resource uri=\"sip:francois@sip.linphonecyberattack.fr\">\n"
+	"    <instance cid=\"Azgwg6Q@sip.linphonecyberattack.fr\" id=\"1\" state=\"active\"/>\n"
+	"  </resource>\n"
+	"  <resource uri=\"sip:simon@sip.linphonecyberattack.fr\">\n"
+	"    <instance cid=\"0NKY7am@sip.linphonecyberattack.fr\" id=\"1\" state=\"active\"/>\n"
+	"  </resource>\n"
+	"  <resource uri=\"sip:gautier@sip.linphonecyberattack.fr\">\n"
+	"    <instance cid=\"p8AxOjL@sip.linphonecyberattack.fr\" id=\"1\" state=\"active\"/>\n"
+	"  </resource>\n"
+	"  <resource uri=\"sip:margaux@sip.linphonecyberattack.fr\">\n"
+	"    <instance cid=\"HqquRnL@sip.linphonecyberattack.fr\" id=\"1\" state=\"active\"/>\n"
+	"  </resource>\n"
+	"  <resource uri=\"sip:marielle@sip.linphonecyberattack.fr\">\n"
+	"    <instance cid=\"ftVeEXj@sip.linphonecyberattack.fr\" id=\"1\" state=\"active\"/>\n"
+	"  </resource>\n"
+	"  <resource uri=\"sip:sylvain@sip.linphonecyberattack.fr\">\n"
+	"    <instance cid=\"3OQQ~t4@sip.linphonecyberattack.fr\" id=\"1\" state=\"active\"/>\n"
+	"  </resource>\n"
+	"</list>\n",
+	"<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>\n"
+	"<presence xmlns=\"urn:ietf:params:xml:ns:pidf\" entity=\"sip:francois@sip.linphonecyberattack.fr\">\n"
+	"  <tuple id=\"pfaa79\">\n"
+	"    <status>\n"
+	"      <basic>open</basic>\n"
+	"    </status>\n"
+	"    <contact>sip:francois@sip.linphonecyberattack.fr</contact>\n"
+	"    <timestamp>2016-06-13T16:12:48</timestamp>\n"
+	"  </tuple>\n"
+	"</presence>",
+	"<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>\n"
+	"<presence xmlns=\"urn:ietf:params:xml:ns:pidf\" entity=\"sip:simon@sip.linphonecyberattack.fr\">\n"
+	"  <tuple id=\"d-0p-1\">\n"
+	"    <status>\n"
+	"      <basic>open</basic>\n"
+	"    </status>\n"
+	"    <contact>sip:simon@sip.linphonecyberattack.fr</contact>\n"
+	"    <timestamp>2016-06-13T16:12:48</timestamp>\n"
+	"  </tuple>\n"
+	"</presence>",
+	"<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>\n"
+	"<presence xmlns=\"urn:ietf:params:xml:ns:pidf\" entity=\"sip:gautier@sip.linphonecyberattack.fr\">\n"
+	"  <tuple id=\"fz3ywt\">\n"
+	"    <status>\n"
+	"      <basic>open</basic>\n"
+	"    </status>\n"
+	"    <contact>sip:gautier@sip.linphonecyberattack.fr</contact>\n"
+	"    <timestamp>2016-06-13T16:12:48</timestamp>\n"
+	"  </tuple>\n"
+	"</presence>",
+	"<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>\n"
+	"<presence xmlns=\"urn:ietf:params:xml:ns:pidf\" entity=\"sip:margaux@sip.linphonecyberattack.fr\">\n"
+	"  <tuple id=\"_p7ttd\">\n"
+	"    <status>\n"
+	"      <basic>open</basic>\n"
+	"    </status>\n"
+	"    <contact>sip:margaux@sip.linphonecyberattack.fr</contact>\n"
+	"    <timestamp>2016-06-13T16:12:48</timestamp>\n"
+	"  </tuple>\n"
+	"</presence>",
+	"<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>\n"
+	"<presence xmlns=\"urn:ietf:params:xml:ns:pidf\" entity=\"sip:marielle@sip.linphonecyberattack.fr\">\n"
+	"  <tuple id=\"bro6yr\">\n"
+	"    <status>\n"
+	"      <basic>open</basic>\n"
+	"    </status>\n"
+	"    <contact>sip:marielle@sip.linphonecyberattack.fr</contact>\n"
+	"    <timestamp>2016-06-13T16:12:48</timestamp>\n"
+	"  </tuple>\n"
+	"</presence>",
+	"<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>\n"
+	"<presence xmlns=\"urn:ietf:params:xml:ns:pidf\" entity=\"sip:sylvain@sip.linphonecyberattack.fr\">\n"
+	"  <tuple id=\"bhpk9z\">\n"
+	"    <status>\n"
+	"      <basic>open</basic>\n"
+	"    </status>\n"
+	"    <contact>sip:sylvain@sip.linphonecyberattack.fr</contact>\n"
+	"    <timestamp>2016-06-13T16:12:48</timestamp>\n"
+	"  </tuple>\n"
+	"</presence>"
+};
+
+static void test_presence_marshal(void) {
+	char *desc;
+	unsigned int i;
+
+	belle_sip_memory_body_handler_t *mbh;
+	belle_sip_multipart_body_handler_t *mpbh = belle_sip_multipart_body_handler_new(NULL, NULL, NULL, MULTIPART_BOUNDARY);
+	belle_sip_object_ref(mpbh);
+	for (i = 0; i < 7; i++) {
+		belle_sip_header_t *content_transfer_encoding = belle_sip_header_create("Content-Transfer-Encoding", "binary");
+		belle_sip_header_t *content_id = belle_sip_header_create("Content-Id", parts_id[i]);
+		belle_sip_header_t *content_type;
+			if (i == 0) {
+				content_type = BELLE_SIP_HEADER(belle_sip_header_content_type_create("application", "rlmi+xml; charset=\"UTF-8\""));
+			} else {
+				content_type = BELLE_SIP_HEADER(belle_sip_header_content_type_create("application", "pidf+xml; charset=\"UTF-8\""));
+			}
+		mbh = belle_sip_memory_body_handler_new_copy_from_buffer((void *)parts_content[i], strlen(parts_content[i]), NULL, NULL);
+		belle_sip_body_handler_add_header(BELLE_SIP_BODY_HANDLER(mbh), content_transfer_encoding);
+		belle_sip_body_handler_add_header(BELLE_SIP_BODY_HANDLER(mbh), content_id);
+		belle_sip_body_handler_add_header(BELLE_SIP_BODY_HANDLER(mbh), content_type);
+		belle_sip_multipart_body_handler_add_part(mpbh, BELLE_SIP_BODY_HANDLER(mbh));
+	}
+	desc = belle_sip_object_to_string(mpbh);
+	BC_ASSERT_PTR_NOT_NULL(desc);
+	if (desc != NULL) {
+		BC_ASSERT_EQUAL((unsigned int)strlen(desc), 4676, unsigned int, "%u");
+	}
+	belle_sip_object_unref(mpbh);
+}
+
 
 test_t core_tests[] = {
 	{ "Object Data", test_object_data },
-	{ "Dictionary", test_dictionary }
+	{ "Dictionary", test_dictionary },
+	{ "Presence marshal", test_presence_marshal }
 };
 
 test_suite_t core_test_suite = {"Core", NULL, NULL, belle_sip_tester_before_each, belle_sip_tester_after_each,

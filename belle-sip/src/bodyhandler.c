@@ -60,7 +60,7 @@ static belle_sip_error_code belle_sip_body_handler_marshal(belle_sip_body_handle
 		ret = belle_sip_body_handler_send_chunk(obj, NULL, (uint8_t*)buff + *offset, &len);
 		*offset += len;
 	} while ((ret == BELLE_SIP_CONTINUE) && (len > 0));
-	if (ret == BELLE_SIP_CONTINUE) return BELLE_SIP_BUFFER_OVERFLOW;
+	if ((ret == BELLE_SIP_CONTINUE) || (ret == BELLE_SIP_BUFFER_OVERFLOW)) return BELLE_SIP_BUFFER_OVERFLOW;
 	if (ret == BELLE_SIP_STOP) belle_sip_body_handler_end_transfer(obj);
 	return BELLE_SIP_OK;
 }
@@ -138,11 +138,13 @@ void belle_sip_body_handler_recv_chunk(belle_sip_body_handler_t *obj, belle_sip_
 
 int belle_sip_body_handler_send_chunk(belle_sip_body_handler_t *obj, belle_sip_message_t *msg, uint8_t *buf, size_t *size){
 	int ret;
+	size_t to_send = *size;
 	if (obj->expected_size!=0){
-		*size=MIN(*size,obj->expected_size-obj->transfered_size);
+		to_send=MIN(*size,obj->expected_size-obj->transfered_size);
 	}
-	ret=BELLE_SIP_OBJECT_VPTR(obj,belle_sip_body_handler_t)->chunk_send(obj,msg,obj->transfered_size,buf,size);
-	obj->transfered_size+=*size;
+	ret=BELLE_SIP_OBJECT_VPTR(obj,belle_sip_body_handler_t)->chunk_send(obj,msg,obj->transfered_size,buf,&to_send);
+	obj->transfered_size+=to_send;
+	*size=to_send;
 	update_progress(obj,msg);
 	if (obj->expected_size!=0){
 		if (obj->transfered_size==obj->expected_size)
@@ -569,7 +571,6 @@ static void belle_sip_multipart_body_handler_recv_chunk(belle_sip_body_handler_t
 
 static int belle_sip_multipart_body_handler_send_chunk(belle_sip_body_handler_t *obj, belle_sip_message_t *msg, size_t offset,
 							uint8_t *buffer, size_t *size){
-
 	belle_sip_multipart_body_handler_t *obj_multipart=(belle_sip_multipart_body_handler_t*)obj;
 
 	if (obj_multipart->transfer_current_part->data) { /* we have a part, get its content from handler */

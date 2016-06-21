@@ -491,18 +491,19 @@ static belle_sip_error_code checked_marshal(belle_sip_object_vptr_t *vptr, belle
 		if (p[i]=='\0') break;
 	}
 	written=i-initial_offset;
-	if (error==BELLE_SIP_BUFFER_OVERFLOW){
+	if (error==BELLE_SIP_OK){
+		if (written!=(*offset-initial_offset) && written!=(buff_size-initial_offset-1)){ /*this is because snprintf won't allow you to write a non null character at the end of the buffer*/
+			belle_sip_fatal("Object of type %s marshalled %i bytes but said it marshalled %i bytes !",
+				vptr->type_name,(int)written,(int)(*offset-initial_offset));
+		}
+		memcpy(buff+initial_offset,p+initial_offset,*offset-initial_offset);
+	}else if (error==BELLE_SIP_BUFFER_OVERFLOW){
 		belle_sip_error("Object of type %s commited a buffer overflow by marshalling %i bytes",
 			vptr->type_name,(int)(*offset-initial_offset));
-	} else if (error!=BELLE_SIP_OK){
+	}else{
 		belle_sip_error("Object of type %s produced an error during marshalling: %i",
 			vptr->type_name,error);
-	}
-	if (written!=(*offset-initial_offset) && written!=(buff_size-initial_offset-1)){ /*this is because snprintf won't allow you to write a non null character at the end of the buffer*/
-		belle_sip_fatal("Object of type %s marshalled %i bytes but said it marshalled %i bytes !",
-			vptr->type_name,(int)written,(int)(*offset-initial_offset));
-	}
-	memcpy(buff+initial_offset,p+initial_offset,*offset-initial_offset);
+	} 
 	belle_sip_free(p);
 	return error;
 }

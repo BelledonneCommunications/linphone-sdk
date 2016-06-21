@@ -202,7 +202,6 @@ static void on_progress(belle_sip_body_handler_t *bh, belle_sip_message_t *msg, 
 	}else belle_sip_message("%i bytes transfered",(int)offset);
 }
 
-#define MULTIPART_BOUNDARY "---------------------------14737809831466499882746641449"
 #define MULTIPART_BEGIN "somehash.jpg\r\n" \
 			"--" MULTIPART_BOUNDARY "\r\n" \
 			"Content-Disposition: form-data; name=\"userfile\"; filename=\"belle_http_sip_tester.jpg\"\r\n" \
