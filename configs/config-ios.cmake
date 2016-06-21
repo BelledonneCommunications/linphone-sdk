@@ -103,7 +103,7 @@ linphone_builder_add_cmake_option(ms2 "-DENABLE_X11=NO")
 linphone_builder_add_cmake_option(ms2 "-DENABLE_XV=NO")
 linphone_builder_add_cmake_option(ms2 "-DENABLE_TOOLS=NO")
 linphone_builder_add_cmake_option(ms2 "-DENABLE_DOC=NO")
-linphone_builder_add_cmake_option(ms2 "-DENABLE_UNIT_TESTS=NO")
+linphone_builder_add_cmake_option(ms2 "-DENABLE_UNIT_TESTS=YES")
 
 # opus
 linphone_builder_add_cmake_option(opus "-DENABLE_FIXED_POINT=YES")
