@@ -20,6 +20,19 @@
 #
 ############################################################################
 
+if(ENABLE_STATIC)
+	set(MS2_LIBS_FOR_TOOLS mediastreamer_voip-static mediastreamer_base-static)
+	if(XV_FOUND)
+		list(APPEND MS2_LIBS_FOR_TOOLS Xext)
+	endif()
+else()
+	set(MS2_LIBS_FOR_TOOLS mediastreamer_voip mediastreamer_base)
+endif()
+
+set(RESOURCES_FILES
+	sounds
+	scenarios
+)
 set(SOURCE_FILES_C
 	mediastreamer2_adaptive_tester.c
 	mediastreamer2_audio_stream_tester.c
@@ -55,7 +68,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 
 	add_library(mediastreamer2_tester_static STATIC ${SOURCE_FILES_C})
 	target_include_directories(mediastreamer2_tester_static PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIRS})
-	target_link_libraries(mediastreamer2_tester_static mediastreamer_voip mediastreamer_base ${BCTOOLBOX_TESTER_LIBRARIES})
+	target_link_libraries(mediastreamer2_tester_static ${MS2_LIBS_FOR_TOOLS} ${BCTOOLBOX_TESTER_LIBRARIES})
 
 	set(RUNTIME_COMPONENT_SOURCES
 		mediastreamer2_tester_windows.cpp
@@ -83,13 +96,18 @@ if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 	endif()
 
 else()
-
-	add_executable(mediastreamer2_tester ${SOURCE_FILES_C} ${SOURCE_FILES_OBJC})
+	if (IOS)
+		set_source_files_properties(${RESOURCES_FILES} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+		add_executable(mediastreamer2_tester MACOSX_BUNDLE ${RESOURCES_FILES} ${SOURCE_FILES_C} ${SOURCE_FILES_OBJC})
+	else()
+		add_executable(mediastreamer2_tester ${SOURCE_FILES_C} ${SOURCE_FILES_OBJC})
+	endif()
 	target_include_directories(mediastreamer2_tester PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIRS})
-	target_link_libraries(mediastreamer2_tester mediastreamer_voip mediastreamer_base ${BCTOOLBOX_TESTER_LIBRARIES})
+	target_link_libraries(mediastreamer2_tester ${MS2_LIBS_FOR_TOOLS} ${BCTOOLBOX_TESTER_LIBRARIES})
 	string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
 	if(LINK_FLAGS_STR)
 		set_target_properties(mediastreamer2_tester PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
 
 endif()
+
