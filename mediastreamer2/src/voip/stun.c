@@ -1508,7 +1508,7 @@ static int ms_turn_rtp_endpoint_sendto(RtpTransport *rtptp, mblk_t *msg, int fla
 				*((uint16_t *)new_msg->b_wptr) = htons((uint16_t)msgdsize(msg));
 				new_msg->b_wptr += 2;
 				mblk_meta_copy(msg, new_msg);
-				concatb(new_msg, msg);
+				concatb(new_msg, dupmsg(msg));
 				msg = new_msg;
 				context->stats.nb_sent_channel_msg++;
 			} else {
@@ -1538,7 +1538,6 @@ static int ms_turn_rtp_endpoint_sendto(RtpTransport *rtptp, mblk_t *msg, int fla
 	}
 	if (stun_msg != NULL) ms_stun_message_destroy(stun_msg);
 	if (new_msg != NULL) {
-		new_msg->b_cont = NULL;
 		freemsg(new_msg);
 	}
 	return ret;
