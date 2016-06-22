@@ -48,13 +48,10 @@ Compilation and installation
 
    More instructions and advices can be found for the mingw compilation procedure in Linphone's README.mingw.
 
-  * Windows XP and later with Visual Studio 2010
-	1) Make a directory where you have together:
-		oRTP (clone from git://git.linphone.org/ortp.git )
-		mediastreamer2 (clone from git://git.linphone.org/mediastreamer2.git)
-		linphone-deps (directory to be created).
-	2) Download latest linphone-deps-win32 zip from http://download-mirror.savannah.gnu.org/releases/linphone/misc/ and unpack it in the linphone-deps directory.
-	3) open build/win32native/mediastreamer2.sln
+  * For Windows with Visual Studio
+
+   It is recommended to use the linphone-desktop project (git://git.linphone.org/linphone-desktop.git) and follow the README file found there. If you really want to
+   build mediastreamer2 only you can pass the -DLINPHONE_BUILDER_TARGET=ms2 option to the prepare.py script.
 
 Environment variables used by mediastreamer2
 ---------------------------------------------
