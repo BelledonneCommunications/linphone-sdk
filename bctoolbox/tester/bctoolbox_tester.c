@@ -1,5 +1,5 @@
 /*
-	bctoolbox 
+	bctoolbox
 	Copyright (C) 2016  Belledonne Communications SARL
 
 	This program is free software: you can redistribute it and/or modify
@@ -68,7 +68,7 @@ int bctoolbox_tester_set_log_file(const char *filename) {
 }
 
 
-#if !defined(ANDROID) && !defined(TARGET_OS_IPHONE) && !(defined(BCTBX_WINDOWS_PHONE) || defined(BCTBX_WINDOWS_UNIVERSAL))
+#if !defined(ANDROID) && !(defined(BCTBX_WINDOWS_PHONE) || defined(BCTBX_WINDOWS_UNIVERSAL))
 
 static const char* bctoolbox_helper =
 		"\t\t\t--verbose\n"
@@ -78,7 +78,7 @@ static const char* bctoolbox_helper =
 int main (int argc, char *argv[]) {
 	int i;
 	int ret;
-	
+
 	bctoolbox_tester_init(NULL);
 
 
