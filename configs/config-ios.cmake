@@ -63,14 +63,6 @@ endif()
 # Include builders
 include(builders/CMakeLists.txt)
 
-# bctoolbox
-linphone_builder_add_cmake_option(bctoolbox "-DENABLE_TESTS=NO")
-
-# belle-sip
-linphone_builder_add_cmake_option(bellesip "-DENABLE_TESTS=NO")
-
-# bzrtp
-linphone_builder_add_cmake_option(bzrtp "-DENABLE_TESTS=NO")
 linphone_builder_add_cmake_option(bzrtp "-DENABLE_STRICT=NO")
 
 # ffmpeg
@@ -87,7 +79,6 @@ linphone_builder_add_cmake_option(linphone "-DENABLE_TUTORIALS=NO")
 linphone_builder_add_cmake_option(linphone "-DENABLE_UPNP=NO")
 linphone_builder_add_cmake_option(linphone "-DENABLE_MSG_STORAGE=YES")
 linphone_builder_add_cmake_option(linphone "-DENABLE_DOC=NO")
-linphone_builder_add_cmake_option(linphone "-DENABLE_UNIT_TESTS=YES")
 linphone_builder_add_cmake_option(linphone "-DENABLE_NLS=NO")
 
 # mbedtls
@@ -103,7 +94,6 @@ linphone_builder_add_cmake_option(ms2 "-DENABLE_X11=NO")
 linphone_builder_add_cmake_option(ms2 "-DENABLE_XV=NO")
 linphone_builder_add_cmake_option(ms2 "-DENABLE_TOOLS=NO")
 linphone_builder_add_cmake_option(ms2 "-DENABLE_DOC=NO")
-linphone_builder_add_cmake_option(ms2 "-DENABLE_UNIT_TESTS=YES")
 
 # opus
 linphone_builder_add_cmake_option(opus "-DENABLE_FIXED_POINT=YES")
