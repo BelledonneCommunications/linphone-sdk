@@ -20,7 +20,13 @@
 #
 ############################################################################
 
-set(TESTER_SOURCES
+if(ENABLE_STATIC)
+	set(PROJECT_LIBS bellesip-static)
+else()
+	set(PROJECT_LIBS bellesip)
+endif()
+
+set(SOURCE_FILES_C
 	auth_helper_tester.c
 	belle_generic_uri_tester.c
 	belle_http_tester.c
@@ -39,14 +45,19 @@ set(TESTER_SOURCES
 	register_tester.h
 )
 
+set(SOURCE_FILES_OBJC )
+if (IOS)
+	list(APPEND SOURCE_FILES_OBJC belle_sip_tester_ios.m)
+endif()
+
 string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
-apply_compile_flags(TESTER_SOURCES "CPP" "C")
+apply_compile_flags(SOURCE_FILES_C "CPP" "C")
+apply_compile_flags(SOURCE_FILES_OBJC "CPP" "OBJC")
 
 if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
-
-	add_library(belle_sip_tester_static STATIC ${TESTER_SOURCES})
+	add_library(belle_sip_tester_static STATIC ${SOURCE_FILES_C})
 	target_include_directories(belle_sip_tester_static PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIRS})
-	target_link_libraries(belle_sip_tester_static ${BCTOOLBOX_TESTER_LIBRARIES} bellesip)
+	target_link_libraries(belle_sip_tester_static ${BCTOOLBOX_TESTER_LIBRARIES} ${PROJECT_LIBS})
 
 	set(RUNTIME_COMPONENT_SOURCES
 		belle_sip_tester_windows.cpp
@@ -71,35 +82,38 @@ if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 		)
 	endif()
-
 else()
+	set(USE_BUNDLE )
+	if (IOS)
+		set(USE_BUNDLE MACOSX_BUNDLE)
+	endif()
 
-	add_executable(belle_sip_tester ${TESTER_SOURCES})
+	add_executable(belle_sip_tester ${USE_BUNDLE} ${SOURCE_FILES_C} ${SOURCE_FILES_OBJC})
+
 	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 		set_target_properties(belle_sip_tester PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
 	target_include_directories(belle_sip_tester PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIRS})
-	target_link_libraries(belle_sip_tester ${BCTOOLBOX_TESTER_LIBRARIES} bellesip)
+	target_link_libraries(belle_sip_tester ${BCTOOLBOX_TESTER_LIBRARIES} ${PROJECT_LIBS})
 	add_test(NAME belle_sip_tester COMMAND belle_sip_tester --verbose)
 
 
 	set(OBJECT_DESCRIBE_SOURCES describe.c)
-
 	apply_compile_flags(OBJECT_DESCRIBE_SOURCES "CPP" "C")
-	add_executable(belle_sip_object_describe ${OBJECT_DESCRIBE_SOURCES})
+	add_executable(belle_sip_object_describe ${USE_BUNDLE} ${OBJECT_DESCRIBE_SOURCES})
 	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 		set_target_properties(belle_sip_object_describe PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
-	target_link_libraries(belle_sip_object_describe bellesip)
+	target_link_libraries(belle_sip_object_describe ${PROJECT_LIBS})
 
 
 	set(PARSE_SOURCES parse.c)
 
 	apply_compile_flags(PARSE_SOURCES "CPP" "C")
-	add_executable(belle_sip_parse ${PARSE_SOURCES})
+	add_executable(belle_sip_parse ${USE_BUNDLE} ${PARSE_SOURCES})
 	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 		set_target_properties(belle_sip_parse PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
-	target_link_libraries(belle_sip_parse bellesip)
+	target_link_libraries(belle_sip_parse ${PROJECT_LIBS})
 
 endif()
