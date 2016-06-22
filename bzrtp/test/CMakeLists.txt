@@ -20,6 +20,12 @@
 #
 ############################################################################
 
+if(ENABLE_STATIC)
+	set(PROJECT_LIBS bzrtp-static)
+else()
+	set(PROJECT_LIBS bzrtp)
+endif()
+
 set(TEST_SOURCES
 	bzrtpCryptoTest.c
 	bzrtpParserTest.c
@@ -39,7 +45,7 @@ apply_compile_flags(TEST_SOURCES "CPP")
 add_executable(bzrtpTest ${TEST_SOURCES})
 set_target_properties(bzrtpTest PROPERTIES LINK_FLAGS "${LINK_FLAGS}")
 target_include_directories(bzrtpTest PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIR})
-target_link_libraries(bzrtpTest ${BCTOOLBOX_TESTER_LIBRARIES} bzrtp)
+target_link_libraries(bzrtpTest ${BCTOOLBOX_TESTER_LIBRARIES} ${PROJECT_LIBS})
 if(HAVE_SQRT)
 	target_link_libraries(bzrtpTest m)
 endif()
