@@ -101,9 +101,6 @@
 #  else
 #    define CU_EXPORT
 #  endif
-#  ifdef _MSC_VER
-#    define snprintf _snprintf
-#  endif
 #else
 #  define CU_EXPORT
 #endif  /* WIN32 */
@@ -111,6 +108,12 @@
 #include "CUError.h"
 #include "TestDB.h"   /* not needed here - included for user convenience */
 #include "TestRun.h"  /* not needed here - include (after BOOL define) for user convenience */
+
+#ifdef _MSC_VER
+#ifndef snprintf
+#define snprintf _snprintf
+#endif
+#endif
 
 /** Record a pass condition without performing a logical test. */
 #define CU_PASS(msg) \
