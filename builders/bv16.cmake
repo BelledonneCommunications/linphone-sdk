@@ -29,3 +29,6 @@ set(EP_bv16_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
 if(MSVC)
 	set(EP_bv16_EXTRA_LDFLAGS "/SAFESEH:NO")
 endif()
+
+# Levinson method conflicts with AMRWB, so renaming this one
+set(EP_bv16_EXTRA_CFLAGS "-DLevinson=bv16_Levinson")
