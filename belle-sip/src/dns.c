@@ -4125,8 +4125,7 @@ struct dns_hosts *dns_hosts_mortal(struct dns_hosts *hosts) {
 	return hosts;
 } /* dns_hosts_mortal() */
 
-
-static int dns_hosts_add_localhost(struct dns_hosts *hosts) {
+int dns_hosts_add_localhost(struct dns_hosts *hosts) {
 	struct dns_hosts_entry ent;
 	memset(&ent, '\0', sizeof(ent));
 	ent.af = AF_INET;
