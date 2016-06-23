@@ -39,7 +39,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef __APPLE__
+#ifdef TARGET_OS_MAC
 #include <CoreFoundation/CFRunLoop.h>
 #endif
 
@@ -255,7 +255,7 @@ int main(int argc, char * argv[]) {
 static int _main(int argc, char * argv[])
 #endif
 
-#if !__APPLE__ && !ANDROID
+#if !TARGET_OS_MAC && !ANDROID
 int main(int argc, char * argv[])
 #endif
 
