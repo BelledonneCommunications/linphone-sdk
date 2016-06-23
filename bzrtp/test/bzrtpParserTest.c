@@ -24,7 +24,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
-#include "CUnit/Basic.h"
 
 #include "bzrtp/bzrtp.h"
 #include "typedef.h"
@@ -32,6 +31,7 @@
 #include "cryptoUtils.h"
 #include "zidCache.h"
 #include "testUtils.h"
+#include <bctoolbox/tester.h>
 
 #ifndef _WIN32
 #include <time.h>
@@ -178,25 +178,18 @@ void test_parser_param(uint8_t hvi_trick) {
 		retval +=  bzrtp_packetParser((patternZRTPMetaData[i][2]==0x87654321)?context12345678:context87654321, (patternZRTPMetaData[i][2]==0x87654321)?context12345678->channelContext[0]:context87654321->channelContext[0], patternZRTPPackets[i], patternZRTPMetaData[i][0], zrtpPacket);
 
 		if (hvi_trick==0) {
-			CU_ASSERT_EQUAL_FATAL(retval,0);
+			BC_ASSERT_EQUAL(retval, 0, int, "%d");
+			if (retval != 0) goto error;
 		} else { /* when hvi trick is enable, the DH2 parsing shall fail and return BZRTP_PARSER_ERROR_UNMATCHINGHVI */
 			if (zrtpPacket->messageType==MSGTYPE_DHPART2) {
-				CU_ASSERT_EQUAL_FATAL(retval, BZRTP_PARSER_ERROR_UNMATCHINGHVI);
-				/* We shall then anyway skip the end of the test */
-				/* reset pointers to selfHello packet in order to avoid double free */
-				context87654321->channelContext[0]->selfPackets[HELLO_MESSAGE_STORE_ID] = NULL;
-				context12345678->channelContext[0]->selfPackets[HELLO_MESSAGE_STORE_ID] = NULL;
-
-				bzrtp_destroyBzrtpContext(context87654321, 0x87654321);
-				bzrtp_destroyBzrtpContext(context12345678, 0x12345678);
-
-				return;
-
+				BC_ASSERT_EQUAL(retval, BZRTP_PARSER_ERROR_UNMATCHINGHVI, int, "%d");
+				goto error;
 			} else {
-				CU_ASSERT_EQUAL_FATAL(retval,0);
+				BC_ASSERT_EQUAL(retval, 0, int, "%d");
+				if (retval != 0) goto error;
 			}
 		}
-			bzrtp_message("parsing Ret val is %x index is %d\n", retval, i);
+		bzrtp_message("parsing Ret val is %x index is %d\n", retval, i);
 
 		/* We must store some packets in the context if we want to be able to parse further packets */
 		/* Check also the zrtp hello hash */
@@ -210,7 +203,8 @@ void test_parser_param(uint8_t hvi_trick) {
 
 				/* Set the correct one */
 				retval = bzrtp_setPeerHelloHash(context87654321, 0x87654321, (uint8_t *)patternZRTPHelloHash12345678, strlen((const char *)patternZRTPHelloHash12345678));
-				CU_ASSERT_EQUAL_FATAL(retval,0);
+				BC_ASSERT_EQUAL(retval, 0, int, "%d");
+				if (retval != 0) goto error;
 			}
 			freePacketFlag = 0;
 		}
@@ -242,9 +236,9 @@ void test_parser_param(uint8_t hvi_trick) {
 
 		/* check they are the same */
 		if (zrtpPacket->packetString != NULL) {
-			CU_ASSERT_TRUE(memcmp(zrtpPacket->packetString, patternZRTPPackets[i], patternZRTPMetaData[i][0]) == 0);
+			BC_ASSERT_TRUE(memcmp(zrtpPacket->packetString, patternZRTPPackets[i], patternZRTPMetaData[i][0]) == 0);
 		} else {
-			CU_FAIL("Unable to build packet");
+			BC_FAIL("Unable to build packet");
 		}
 
 		if (freePacketFlag == 1) {
@@ -264,14 +258,13 @@ void test_parser_param(uint8_t hvi_trick) {
 
 	}
 
+error:
 	/* reset pointers to selfHello packet in order to avoid double free */
 	context87654321->channelContext[0]->selfPackets[HELLO_MESSAGE_STORE_ID] = NULL;
 	context12345678->channelContext[0]->selfPackets[HELLO_MESSAGE_STORE_ID] = NULL;
 
-
 	bzrtp_destroyBzrtpContext(context87654321, 0x87654321);
 	bzrtp_destroyBzrtpContext(context12345678, 0x12345678);
-
 }
 
 void test_parser(void) {
@@ -867,9 +860,9 @@ void test_parserComplete() {
 	secretLength = bob_DHPart2FromAlice->messageLength-84; /* length of generated secret is the same than public value */
 	if (memcmp(contextBob->DHMContext->key, contextAlice->DHMContext->key, secretLength)==0) {
 		bzrtp_message("Secret Key correctly exchanged \n");
-		CU_PASS("Secret Key exchange OK");
+		BC_PASS("Secret Key exchange OK");
 	} else {
-		CU_FAIL("Secret Key exchange failed");
+		BC_FAIL("Secret Key exchange failed");
 		bzrtp_message("ERROR : secretKey exchange failed!!\n");
 	}
 
@@ -902,10 +895,10 @@ void test_parserComplete() {
 	contextBob->channelContext[0]->hashFunction(dataToHash, totalHashDataLength, 32, bob_totalHash);
 	if (memcmp(bob_totalHash, alice_totalHash, 32) == 0) {
 		bzrtp_message("Got the same total hash\n");
-		CU_PASS("Total Hash match");
+		BC_PASS("Total Hash match");
 	} else {
 		bzrtp_message("AARGG!! total hash mismatch");
-		CU_FAIL("Total Hash mismatch");
+		BC_FAIL("Total Hash mismatch");
 	}
 
 	/* now compute s0 and KDF_context as in rfc section 4.4.1.4
@@ -1104,10 +1097,10 @@ void test_parserComplete() {
 	/* DEBUG compare s0 */
 	if (memcmp(contextBob->channelContext[0]->s0, contextAlice->channelContext[0]->s0, 32)==0) {
 		bzrtp_message("Got the same s0\n");
-		CU_PASS("s0 match");
+		BC_PASS("s0 match");
 	} else {
 		bzrtp_message("ERROR s0 differs\n");
-		CU_PASS("s0 mismatch");
+		BC_PASS("s0 mismatch");
 	}
 
 	/* now compute the ZRTPSession key : section 4.5.2
@@ -1133,10 +1126,10 @@ void test_parserComplete() {
 	/* DEBUG compare ZRTPSess Key */
 	if (memcmp(contextBob->ZRTPSess, contextAlice->ZRTPSess, 32)==0) {
 		bzrtp_message("Got the same ZRTPSess\n");
-		CU_PASS("ZRTPSess match");
+		BC_PASS("ZRTPSess match");
 	} else {
 		bzrtp_message("ERROR ZRTPSess differs\n");
-		CU_PASS("ZRTPSess mismatch");
+		BC_PASS("ZRTPSess mismatch");
 	}
 
 
@@ -1158,10 +1151,10 @@ void test_parserComplete() {
 	/* DEBUG compare sasHash */
 	if (memcmp(alice_sasHash, bob_sasHash, 32)==0) {
 		bzrtp_message("Got the same SAS Hash\n");
-		CU_PASS("SAS Hash match");
+		BC_PASS("SAS Hash match");
 	} else {
 		bzrtp_message("ERROR SAS Hash differs\n");
-		CU_PASS("SAS Hash mismatch");
+		BC_PASS("SAS Hash mismatch");
 	}
 
 	/* display SAS (we shall not do this now but after the confirm message exchanges) */
@@ -1202,10 +1195,10 @@ void test_parserComplete() {
 	/* DEBUG compare keys */
 	if ((memcmp(contextAlice->channelContext[0]->mackeyi, contextBob->channelContext[0]->mackeyi, contextAlice->channelContext[0]->hashLength)==0) && (memcmp(contextAlice->channelContext[0]->mackeyr, contextBob->channelContext[0]->mackeyr, contextAlice->channelContext[0]->hashLength)==0) && (memcmp(contextAlice->channelContext[0]->zrtpkeyi, contextBob->channelContext[0]->zrtpkeyi, contextAlice->channelContext[0]->cipherKeyLength)==0) && (memcmp(contextAlice->channelContext[0]->zrtpkeyr, contextBob->channelContext[0]->zrtpkeyr, contextAlice->channelContext[0]->cipherKeyLength)==0)) {
 		bzrtp_message("Got the same keys\n");
-		CU_PASS("keys match");
+		BC_PASS("keys match");
 	} else {
 		bzrtp_message("ERROR keys differ\n");
-		CU_PASS("Keys mismatch");
+		BC_PASS("Keys mismatch");
 	}
 
 	/* now Bob build the CONFIRM1 packet and send it to Alice */
@@ -1439,10 +1432,10 @@ void test_parserComplete() {
 	contextBob->channelContext[1]->hashFunction(dataToHash, totalHashDataLength, 32, bob_totalHash);
 	if (memcmp(bob_totalHash, alice_totalHash, 32) == 0) {
 		bzrtp_message("Got the same total hash\n");
-		CU_PASS("Total Hash match");
+		BC_PASS("Total Hash match");
 	} else {
 		bzrtp_message("AARGG!! total hash mismatch");
-		CU_FAIL("Total Hash mismatch");
+		BC_FAIL("Total Hash mismatch");
 	}
 
 	free(dataToHash);
@@ -1463,10 +1456,10 @@ void test_parserComplete() {
 
 	if (memcmp(contextBob->channelContext[1]->KDFContext, contextAlice->channelContext[1]->KDFContext, 56) == 0) {
 		bzrtp_message("Got the same total KDF Context\n");
-		CU_PASS("KDFContext match");
+		BC_PASS("KDFContext match");
 	} else {
 		bzrtp_message("AARGG!! KDF Context mismatch");
-		CU_FAIL("KDF Context mismatch");
+		BC_FAIL("KDF Context mismatch");
 	}
 
 	/* compute s0 as in rfc section 4.4.3.2  s0 = KDF(ZRTPSess, "ZRTP MSK", KDF_Context, negotiated hash length) */
@@ -1488,10 +1481,10 @@ void test_parserComplete() {
 
 	if (memcmp(contextBob->channelContext[1]->s0, contextAlice->channelContext[1]->s0, contextAlice->channelContext[1]->hashLength) == 0) {
 		bzrtp_message("Got the same s0\n");
-		CU_PASS("s0 match");
+		BC_PASS("s0 match");
 	} else {
 		bzrtp_message("AARGG!! s0 mismatch");
-		CU_FAIL("s0 mismatch");
+		BC_FAIL("s0 mismatch");
 	}
 
 
@@ -1521,10 +1514,10 @@ void test_parserComplete() {
 	/* DEBUG compare keys */
 	if ((memcmp(contextAlice->channelContext[1]->mackeyi, contextBob->channelContext[1]->mackeyi, contextAlice->channelContext[1]->hashLength)==0) && (memcmp(contextAlice->channelContext[1]->mackeyr, contextBob->channelContext[1]->mackeyr, contextAlice->channelContext[1]->hashLength)==0) && (memcmp(contextAlice->channelContext[1]->zrtpkeyi, contextBob->channelContext[1]->zrtpkeyi, contextAlice->channelContext[1]->cipherKeyLength)==0) && (memcmp(contextAlice->channelContext[1]->zrtpkeyr, contextBob->channelContext[1]->zrtpkeyr, contextAlice->channelContext[1]->cipherKeyLength)==0)) {
 		bzrtp_message("Got the same keys\n");
-		CU_PASS("keys match");
+		BC_PASS("keys match");
 	} else {
 		bzrtp_message("ERROR keys differ\n");
-		CU_PASS("Keys mismatch");
+		BC_PASS("Keys mismatch");
 	}
 
 	/* now Alice build a confirm1 packet */
@@ -1770,12 +1763,12 @@ void test_stateMachine() {
 
 	/* compare SAS and check we are in secure mode */
 	if ((contextAlice->isSecure == 1) && (contextBob->isSecure == 1)) { /* don't compare sas if we're not secure at we may not have it */
-		CU_ASSERT_TRUE((memcmp(contextAlice->channelContext[0]->srtpSecrets.sas, contextBob->channelContext[0]->srtpSecrets.sas, 4) == 0));
+		BC_ASSERT_TRUE((memcmp(contextAlice->channelContext[0]->srtpSecrets.sas, contextBob->channelContext[0]->srtpSecrets.sas, 4) == 0));
 		/* call the set verified Sas function */
 		bzrtp_SASVerified(contextAlice);
 		bzrtp_SASVerified(contextBob);
 	} else {
-		CU_FAIL("Unable to reach secure state");
+		BC_FAIL("Unable to reach secure state");
 	}
 
 	/*** Send alice a ping message from Bob ***/
@@ -1885,7 +1878,7 @@ void test_stateMachine() {
 	}
 
 
-	CU_ASSERT_TRUE((memcmp(contextAlice->channelContext[1]->srtpSecrets.selfSrtpKey, contextBob->channelContext[1]->srtpSecrets.peerSrtpKey, 16) == 0) && (contextAlice->isSecure == 1) && (contextBob->isSecure == 1));
+	BC_ASSERT_TRUE((memcmp(contextAlice->channelContext[1]->srtpSecrets.selfSrtpKey, contextBob->channelContext[1]->srtpSecrets.peerSrtpKey, 16) == 0) && (contextAlice->isSecure == 1) && (contextBob->isSecure == 1));
 
 	dumpContext("\nAlice", contextAlice);
 	dumpContext("\nBob", contextBob);
@@ -1916,29 +1909,29 @@ void test_zrtphash(void) {
 
 	/* parse the hello packet */
 	zrtpPacket = bzrtp_packetCheck(HelloPacketZrtpHash, sizeof(HelloPacketZrtpHash), 0, &retval);
-	CU_ASSERT_EQUAL(retval, 0);
+	BC_ASSERT_EQUAL(retval, 0, int, "%d");
 	retval = bzrtp_packetParser(context12345678, context12345678->channelContext[0], HelloPacketZrtpHash, sizeof(HelloPacketZrtpHash), zrtpPacket);
-	CU_ASSERT_EQUAL(retval, 0);
+	BC_ASSERT_EQUAL(retval, 0, int, "%d");
 	/* store it in the peer hello hash structure so we can check it against the zrtp-hash */
 	context12345678->channelContext[0]->peerPackets[HELLO_MESSAGE_STORE_ID] = zrtpPacket;
 
 	retval = bzrtp_setPeerHelloHash(context12345678, 0x12345678, (uint8_t *)ZRTPHASHPATTERN, strlen((const char *)ZRTPHASHPATTERN));
-	CU_ASSERT_EQUAL(retval, 0);
+	BC_ASSERT_EQUAL(retval, 0, int, "%d");
 
 	/* set a wrong hello hash, this will also reset the session */
 	retval = bzrtp_setPeerHelloHash(context12345678, 0x12345678, (uint8_t *)ZRTPHASHPATTERN_WRONG, strlen((const char *)ZRTPHASHPATTERN));
-	CU_ASSERT_EQUAL(retval, BZRTP_ERROR_HELLOHASH_MISMATCH);
-	CU_ASSERT_TRUE(context12345678->channelContext[0]->peerPackets[HELLO_MESSAGE_STORE_ID]==NULL); /* session must have been reset, peer packets are cancelled */
+	BC_ASSERT_EQUAL(retval, BZRTP_ERROR_HELLOHASH_MISMATCH, int, "%d");
+	BC_ASSERT_TRUE(context12345678->channelContext[0]->peerPackets[HELLO_MESSAGE_STORE_ID]==NULL); /* session must have been reset, peer packets are cancelled */
 
 	/* Parse again the hello packet, the peer hello hash is still in the context and incorrect, so good packet must be rejected */
 	zrtpPacket = bzrtp_packetCheck(HelloPacketZrtpHash, sizeof(HelloPacketZrtpHash), 0, &retval);
-	CU_ASSERT_EQUAL(retval, 0);
+	BC_ASSERT_EQUAL(retval, 0, int, "%d");
 	retval = bzrtp_packetParser(context12345678, context12345678->channelContext[0], HelloPacketZrtpHash, sizeof(HelloPacketZrtpHash), zrtpPacket);
-	CU_ASSERT_EQUAL(retval, BZRTP_ERROR_HELLOHASH_MISMATCH);
+	BC_ASSERT_EQUAL(retval, BZRTP_ERROR_HELLOHASH_MISMATCH, int, "%d");
 
 	/* set the correct peer hello hash(no packet in context so it just store it)  and try again to parse the correct packet */
 	retval = bzrtp_setPeerHelloHash(context12345678, 0x12345678, (uint8_t *)ZRTPHASHPATTERN, strlen((const char *)ZRTPHASHPATTERN));
-	CU_ASSERT_EQUAL(retval, 0);
+	BC_ASSERT_EQUAL(retval, 0, int, "%d");
 	retval = bzrtp_packetParser(context12345678, context12345678->channelContext[0], HelloPacketZrtpHash, sizeof(HelloPacketZrtpHash), zrtpPacket);
-	CU_ASSERT_EQUAL(retval, 0);
+	BC_ASSERT_EQUAL(retval, 0, int, "%d");
 }

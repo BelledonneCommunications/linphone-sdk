@@ -31,11 +31,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include "CUnit/Basic.h"
 
 #include "bzrtp/bzrtp.h"
 #include "cryptoUtils.h"
 #include "testUtils.h"
+#include <bctoolbox/tester.h>
 
 /**
  *
@@ -87,7 +87,7 @@ void test_zrtpKDF(void) {
 			(void (*)(uint8_t *, uint8_t, uint8_t *, uint32_t, uint8_t, uint8_t *))bctbx_hmacSha256,
 			output);
 
-		CU_ASSERT_TRUE(memcmp(output, patternKDFOutput[i], patternKDFHmacLength[i]) == 0);
+		BC_ASSERT_TRUE(memcmp(output, patternKDFOutput[i], patternKDFHmacLength[i]) == 0);
 	}
 
 }
@@ -112,7 +112,7 @@ uint32_t patternCRCoutput[CRC_TEST_NUMBER] = {0x5065ab04, 0x9c9edccd, 0xda5c92ea
 void test_CRC32(void) {
 	int i;
 	for (i=0; i<CRC_TEST_NUMBER; i++) {
-		CU_ASSERT_TRUE(bzrtp_CRC32(patterCRCinput[i], patternCRCLength[i]) == patternCRCoutput[i]);
+		BC_ASSERT_TRUE(bzrtp_CRC32(patterCRCinput[i], patternCRCLength[i]) == patternCRCoutput[i]);
 	}
 }
 
@@ -184,7 +184,7 @@ static int testAlgoType(uint8_t algoType, uint8_t *packetTypes, uint8_t packetTy
 		setHelloMessageAlgo(helloMessage, algoType, packetTypes, packetTypesCount);
 	}
 
-	CU_ASSERT_FALSE(crypoAlgoAgreement(zrtpContext, zrtpContext->channelContext[0], helloPacket->messageData));
+	BC_ASSERT_FALSE(crypoAlgoAgreement(zrtpContext, zrtpContext->channelContext[0], helloPacket->messageData));
 	retval = compareAllAlgoTypesWithExpectedChangedOnly(zrtpContext->channelContext[0], algoType, expectedType);
 
 	bzrtp_freeZrtpPacket(helloPacket);
@@ -296,39 +296,39 @@ void test_algoAgreement(void) {
 	struct st_algo_type *cipher_type;
 
 	/* check defaults */
-	CU_ASSERT_TRUE(testAlgoTypeWithPacket(ZRTP_UNSET_ALGO, NULL, 0, ZRTP_KEYAGREEMENT_DH3k));
+	BC_ASSERT_TRUE(testAlgoTypeWithPacket(ZRTP_UNSET_ALGO, NULL, 0, ZRTP_KEYAGREEMENT_DH3k));
 
 	/* key agreement type */
 	agreement_type_with_packet = &agreement_types_with_packet[0];
 	while (agreement_type_with_packet->typesCount > 0) {
-		CU_ASSERT_TRUE(testAlgoTypeWithPacket(ZRTP_KEYAGREEMENT_TYPE, agreement_type_with_packet->types, agreement_type_with_packet->typesCount, agreement_type_with_packet->expectedType));
+		BC_ASSERT_TRUE(testAlgoTypeWithPacket(ZRTP_KEYAGREEMENT_TYPE, agreement_type_with_packet->types, agreement_type_with_packet->typesCount, agreement_type_with_packet->expectedType));
 		agreement_type_with_packet++;
 	}
 	agreement_type_with_context = &agreement_types_with_context[0];
 	while (agreement_type_with_context->typesCount > 0) {
-		CU_ASSERT_TRUE(testAlgoTypeWithContext(ZRTP_KEYAGREEMENT_TYPE, agreement_type_with_context->types, agreement_type_with_context->typesCount, agreement_type_with_context->expectedType));
+		BC_ASSERT_TRUE(testAlgoTypeWithContext(ZRTP_KEYAGREEMENT_TYPE, agreement_type_with_context->types, agreement_type_with_context->typesCount, agreement_type_with_context->expectedType));
 		agreement_type_with_context++;
 	}
 	agreement_type = &agreement_types[0];
 	while (agreement_type->packetTypesCount > 0) {
-		CU_ASSERT_TRUE(testAlgoType(ZRTP_KEYAGREEMENT_TYPE, agreement_type->packetTypes, agreement_type->packetTypesCount, agreement_type->contextTypes, agreement_type->contextTypesCount, agreement_type->expectedType));
+		BC_ASSERT_TRUE(testAlgoType(ZRTP_KEYAGREEMENT_TYPE, agreement_type->packetTypes, agreement_type->packetTypesCount, agreement_type->contextTypes, agreement_type->contextTypesCount, agreement_type->expectedType));
 		agreement_type++;
 	}
 
 	/* cipher type */
 	cipher_type_with_packet = &cipher_types_with_packet[0];
 	while (cipher_type_with_packet->typesCount > 0) {
-		CU_ASSERT_TRUE(testAlgoTypeWithPacket(ZRTP_CIPHERBLOCK_TYPE, cipher_type_with_packet->types, cipher_type_with_packet->typesCount, cipher_type_with_packet->expectedType));
+		BC_ASSERT_TRUE(testAlgoTypeWithPacket(ZRTP_CIPHERBLOCK_TYPE, cipher_type_with_packet->types, cipher_type_with_packet->typesCount, cipher_type_with_packet->expectedType));
 		cipher_type_with_packet++;
 	}
 	cipher_type_with_context = &cipher_types_with_context[0];
 	while (cipher_type_with_context->typesCount > 0) {
-		CU_ASSERT_TRUE(testAlgoTypeWithContext(ZRTP_CIPHERBLOCK_TYPE, cipher_type_with_context->types, cipher_type_with_context->typesCount, cipher_type_with_context->expectedType));
+		BC_ASSERT_TRUE(testAlgoTypeWithContext(ZRTP_CIPHERBLOCK_TYPE, cipher_type_with_context->types, cipher_type_with_context->typesCount, cipher_type_with_context->expectedType));
 		cipher_type_with_context++;
 	}
 	cipher_type = &cipher_types[0];
 	while (cipher_type->packetTypesCount > 0) {
-		CU_ASSERT_TRUE(testAlgoType(ZRTP_CIPHERBLOCK_TYPE, cipher_type->packetTypes, cipher_type->packetTypesCount, cipher_type->contextTypes, cipher_type->contextTypesCount, cipher_type->expectedType));
+		BC_ASSERT_TRUE(testAlgoType(ZRTP_CIPHERBLOCK_TYPE, cipher_type->packetTypes, cipher_type->packetTypesCount, cipher_type->contextTypes, cipher_type->contextTypesCount, cipher_type->expectedType));
 		cipher_type++;
 	}
 }
@@ -413,14 +413,14 @@ void test_algoSetterGetter(void) {
 	/* key agreement type */
 	agreement_type = &agreement_types[0];
 	while (agreement_type->contextTypesCount > 0) {
-		CU_ASSERT_TRUE(testAlgoSetterGetter(ZRTP_KEYAGREEMENT_TYPE, agreement_type->contextTypes, agreement_type->contextTypesCount, agreement_type->expectedTypes, agreement_type->expectedTypesCount));
+		BC_ASSERT_TRUE(testAlgoSetterGetter(ZRTP_KEYAGREEMENT_TYPE, agreement_type->contextTypes, agreement_type->contextTypesCount, agreement_type->expectedTypes, agreement_type->expectedTypesCount));
 		agreement_type++;
 	}
 
 	/* cipher type */
 	cipher_type = &cipher_types[0];
 	while (cipher_type->contextTypesCount > 0) {
-		CU_ASSERT_TRUE(testAlgoSetterGetter(ZRTP_CIPHERBLOCK_TYPE, cipher_type->contextTypes, cipher_type->contextTypesCount, cipher_type->expectedTypes, cipher_type->expectedTypesCount));
+		BC_ASSERT_TRUE(testAlgoSetterGetter(ZRTP_CIPHERBLOCK_TYPE, cipher_type->contextTypes, cipher_type->contextTypesCount, cipher_type->expectedTypes, cipher_type->expectedTypesCount));
 		cipher_type++;
 	}
 }
@@ -477,7 +477,7 @@ void test_addMandatoryCryptoTypesIfNeeded(void) {
 
 	crypto_type = &crypto_types[0];
 	while (crypto_type->algoTypesCount > 0) {
-		CU_ASSERT_TRUE(testAddMandatoryCryptoTypesIfNeeded(crypto_type->algoType, crypto_type->algoTypes, crypto_type->algoTypesCount, crypto_type->expectedTypes, crypto_type->expectedTypesCount));
+		BC_ASSERT_TRUE(testAddMandatoryCryptoTypesIfNeeded(crypto_type->algoType, crypto_type->algoTypes, crypto_type->algoTypesCount, crypto_type->expectedTypes, crypto_type->expectedTypesCount));
 		crypto_type++;
 	}
 }

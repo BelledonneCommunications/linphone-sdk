@@ -21,79 +21,91 @@
  */
 
 #include <stdio.h>
-#include "CUnit/Basic.h"
 #include "bzrtpCryptoTest.h"
 #include "bzrtpParserTest.h"
 #include "typedef.h"
 #include "testUtils.h"
+#include <bctoolbox/logging.h>
+#include <bctoolbox/tester.h>
 
 #ifdef HAVE_LIBXML2
 #include <libxml/parser.h>
 #endif
-	
 
-int main(int argc, char *argv[] ) {
-	int i, fails_count=0;
-	CU_pSuite cryptoUtilsTestSuite, parserTestSuite;
 
-	CU_pSuite *suites[] = {
-		&cryptoUtilsTestSuite,
-		&parserTestSuite,
-		NULL
-	};
+test_t crypto_utils_tests[] = {
+	{ "zrtpKDF", test_zrtpKDF },
+	{ "CRC32", test_CRC32 },
+	{ "algo agreement", test_algoAgreement },
+	{ "context algo setter and getter", test_algoSetterGetter },
+	{ "adding mandatory crypto algorithms if needed", test_addMandatoryCryptoTypesIfNeeded }
+};
 
-	if (argc>1) {
-		if (argv[1][0] == '-') {
-			if (strcmp(argv[1], "-verbose") == 0) {
-				verbose = 1;
-			} else {
-				printf ("Usage:\n %s [-verbose] to enable extensive logging\n", argv[0]);
-				return 1;
-			}
-		} else {
-			printf ("Usage:\n %s [-verbose] to enable extensive logging\n", argv[0]);
-			return 1;
-		}
-	}
+test_suite_t crypto_utils_test_suite = {
+	"Crypto Utils",
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	sizeof(crypto_utils_tests) / sizeof(crypto_utils_tests[0]),
+	crypto_utils_tests
+};
+
+test_t packet_parser_tests[] = {
+	{ "Parse", test_parser },
+	{ "Parse hvi check fail", test_parser_hvi },
+	{ "Parse Exchange", test_parserComplete },
+	{ "State machine", test_stateMachine },
+	{ "ZRTP-hash", test_zrtphash }
+};
+
+test_suite_t packet_parser_test_suite = {
+	"Packet Parser",
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	sizeof(packet_parser_tests) / sizeof(packet_parser_tests[0]),
+	packet_parser_tests
+};
+
+void bzrtp_tester_init(void) {
 #ifdef HAVE_LIBXML2
 	xmlInitParser();
 #endif
-	
-	/* initialize the CUnit test registry */
-	if (CUE_SUCCESS != CU_initialize_registry()) {
-		return CU_get_error();
-	}
+	bc_tester_init(NULL, BCTBX_LOG_MESSAGE, BCTBX_LOG_ERROR, NULL);
 
-	/* Add the cryptoUtils suite to the registry */
-	cryptoUtilsTestSuite = CU_add_suite("Bzrtp Crypto Utils", NULL, NULL);
-	CU_add_test(cryptoUtilsTestSuite, "zrtpKDF", test_zrtpKDF);
-	CU_add_test(cryptoUtilsTestSuite, "CRC32", test_CRC32);
-	CU_add_test(cryptoUtilsTestSuite, "algo agreement", test_algoAgreement);
-	CU_add_test(cryptoUtilsTestSuite, "context algo setter and getter", test_algoSetterGetter);
-	CU_add_test(cryptoUtilsTestSuite, "adding mandatory crypto algorithms if needed", test_addMandatoryCryptoTypesIfNeeded);
+	bc_tester_add_suite(&crypto_utils_test_suite);
+	bc_tester_add_suite(&packet_parser_test_suite);
+}
 
-	/* Add the parser suite to the registry */
-	parserTestSuite = CU_add_suite("Bzrtp ZRTP Packet Parser", NULL, NULL);
-	CU_add_test(parserTestSuite, "Parse", test_parser);
-	CU_add_test(parserTestSuite, "Parse hvi check fail", test_parser_hvi);
-	CU_add_test(parserTestSuite, "Parse Exchange", test_parserComplete);
-	CU_add_test(parserTestSuite, "State machine", test_stateMachine);
-	CU_add_test(parserTestSuite, "ZRTP-hash", test_zrtphash);
-
-	/* Run all suites */
-	for(i=0; suites[i]; i++){
-		CU_basic_run_suite(*suites[i]);
-		fails_count += CU_get_number_of_tests_failed();
-	}
-	
-	/* cleanup the CUnit registry */
-	CU_cleanup_registry();
-
+void bzrtp_tester_uninit(void) {
+	bc_tester_uninit();
 #ifdef HAVE_LIBXML2
 	/* cleanup libxml2 */
 	xmlCleanupParser();
 #endif
+}
 
-	return (fails_count == 0 ? 0 : 1);
+int main(int argc, char *argv[]) {
+	int i;
+	int ret;
+
+	bzrtp_tester_init();
+
+	for (i = 1; i < argc; ++i) {
+		int ret = bc_tester_parse_args(argc, argv, i);
+		if (ret > 0) {
+			i += ret - 1;
+			continue;
+		} else if (ret < 0) {
+			bc_tester_helper(argv[0], "");
+		}
+		return ret;
+	}
+
+	ret = bc_tester_start(argv[0]);
+	bzrtp_tester_uninit();
+	return ret;
 }
 
