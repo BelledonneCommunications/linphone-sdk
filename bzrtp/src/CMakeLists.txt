@@ -48,7 +48,7 @@ endif()
 if(ENABLE_SHARED)
 	add_library(bzrtp SHARED ${SOURCE_FILES})
 	set_target_properties(bzrtp PROPERTIES VERSION 0)
-	target_link_libraries(bzrtp ${LIBS})
+	target_link_libraries(bzrtp PRIVATE ${LIBS})
 	if(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
 			install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/bzrtp.pdb
