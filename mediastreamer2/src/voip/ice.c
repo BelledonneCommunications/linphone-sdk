@@ -3457,7 +3457,7 @@ static void ice_notify_session_processing_finished(IceCheckList *cl, RtpSession 
 		cl->session->event_time = ice_add_ms(ice_current_time(), 1000);
 		cl->session->event_value = ORTP_EVENT_ICE_SESSION_PROCESSING_FINISHED;
 		cl->session->send_event = TRUE;
-		
+
 	}
 }
 
@@ -3940,9 +3940,9 @@ void ice_check_list_remove_rtcp_candidates(IceCheckList *cl)
 {
 	bctbx_list_t *elem;
 	uint16_t rtcp_componentID = ICE_RTCP_COMPONENT_ID;
-	
+
 	ice_remove_componentID(&cl->local_componentIDs, rtcp_componentID);
-	
+
 	while ((elem = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_find_candidate_with_componentID, &rtcp_componentID)) != NULL) {
 		IceCandidate *candidate = (IceCandidate *)elem->data;
 		cl->local_candidates = bctbx_list_remove(cl->local_candidates, candidate);
