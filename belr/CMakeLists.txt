@@ -29,6 +29,10 @@ set(BELR_MICRO_VERSION "0")
 set(BELR_VERSION "${BELR_MAJOR_VERSION}.${BELR_MINOR_VERSION}.${BELR_MICRO_VERSION}")
 set(BELR_SO_VERSION "1")
 
+option(ENABLE_SHARED "Build shared library." ON)
+option(ENABLE_STATIC "Build static library." ON)
+
+
 macro(apply_compile_flags SOURCE_FILES)
 	if(${SOURCE_FILES})
 		set(options "")
