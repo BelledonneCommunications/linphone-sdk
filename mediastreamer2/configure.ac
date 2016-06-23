@@ -1281,7 +1281,6 @@ AC_CONFIG_FILES(
 	include/mediastreamer2/Makefile
 	src/Makefile
 	tools/Makefile
-	build/Makefile
 	mediastreamer.pc
 	mediastreamer2.spec
 	help/Makefile
