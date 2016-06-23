@@ -207,6 +207,7 @@ class Preparator:
     def load_config(self, config):
         if os.path.isfile(config):
             argv = open(config).read().split()
+            info("Loaded '{}' configuration: {}".format(config, argv))
             self.argv = argv + self.argv
 
     def load_project_config(self):
