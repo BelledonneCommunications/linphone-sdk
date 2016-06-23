@@ -30,6 +30,8 @@ set(BELCARD_MICRO_VERSION "1")
 set(BELCARD_VERSION "${BELCARD_MAJOR_VERSION}.${BELCARD_MINOR_VERSION}.${BELCARD_MICRO_VERSION}")
 set(BELCARD_SO_VERSION "1")
 
+option(ENABLE_SHARED "Build shared library." ON)
+option(ENABLE_STATIC "Build static library." ON)
 option(ENABLE_UNIT_TESTS "Enable compilation of unit tests." YES)
 
 macro(apply_compile_flags SOURCE_FILES)
