@@ -312,6 +312,8 @@ int dns_v_api(void) {
 #define DNS_EALREADY	WSAEALREADY
 #define DNS_EAGAIN	EAGAIN
 #define DNS_ETIMEDOUT	WSAETIMEDOUT
+#define DNS_ECONNREFUSED	WSAECONNREFUSED
+#define DNS_ENETUNREACH WSAENETUNREACH
 
 #define dns_syerr()	((int)GetLastError())
 #define dns_soerr()	((int)WSAGetLastError())
@@ -325,6 +327,8 @@ int dns_v_api(void) {
 #define DNS_EALREADY	EALREADY
 #define DNS_EAGAIN	EAGAIN
 #define DNS_ETIMEDOUT	ETIMEDOUT
+#define DNS_ECONNREFUSED	ECONNREFUSED
+#define DNS_ENETUNREACH ENETUNREACH
 
 #define dns_syerr()	errno
 #define dns_soerr()	errno
@@ -6535,7 +6539,17 @@ int dns_so_submit(struct dns_socket *so, struct dns_packet *Q, struct sockaddr *
 	if ((error = dns_so_newanswer(so, (Q->memo.opt.maxudp)? Q->memo.opt.maxudp : DNS_SO_MINBUF)))
 		goto syerr;
 
-	memcpy(&so->remote, host, dns_sa_len(host));
+	if (so->local.ss_family==AF_INET6 && host->sa_family==AF_INET){
+		socklen_t addrlen = sizeof(so->remote);
+		uint32_t *addr=(uint32_t*)dns_sa_addr(AF_INET6,&so->remote, &addrlen);
+		/* add v4mapping*/
+		so->remote.ss_family=AF_INET6;
+		addr[0]=0;
+		addr[1]=0;
+		addr[2]=ntohl(0xffff);
+		addr[3]=((struct sockaddr_in*)host)->sin_addr.s_addr;
+		*dns_sa_port(AF_INET6,&so->remote)=((struct sockaddr_in*)host)->sin_port;
+	}else memcpy(&so->remote, host, dns_sa_len(host));
 
 	so->query	= Q;
 	so->qout	= 0;
@@ -7574,8 +7588,8 @@ exec:
 
 		dgoto(R->sp, DNS_R_FOREACH_NS);
 	case DNS_R_FOREACH_A: {
-		struct dns_a a;
-		struct sockaddr_in sin;
+		struct sockaddr_storage saddr={0};
+		socklen_t saddr_len = sizeof(saddr);
 
 		/*
 		 * NOTE: Iterator initialized in DNS_R_FOREACH_NS because
@@ -7586,7 +7600,7 @@ exec:
 			goto error;
 
 		F->hints_j.name		= u.ns.host;
-		F->hints_j.type		= DNS_T_A;
+		F->hints_j.type		= DNS_T_ALL;
 		F->hints_j.section	= DNS_S_ALL & ~DNS_S_QD;
 
 		if (!dns_rr_grep(&rr, 1, &F->hints_j, F->hints, &error)) {
@@ -7596,24 +7610,27 @@ exec:
 			dgoto(R->sp, DNS_R_FOREACH_NS);
 		}
 
-		if ((error = dns_a_parse(&a, &rr, F->hints)))
-			goto error;
-
-		sin.sin_family	= AF_INET;
-		sin.sin_addr	= a.addr;
-		if (R->sp == 0)
-			sin.sin_port = dns_hints_port(R->hints, AF_INET, &sin.sin_addr);
-		else
-			sin.sin_port = htons(53);
+		saddr.ss_family	= rr.type==DNS_T_AAAA ? AF_INET6 : AF_INET;
+		if (saddr.ss_family==AF_INET){
+			if ((error = dns_a_parse((struct dns_a *)dns_sa_addr(saddr.ss_family, &saddr, &saddr_len), &rr, F->hints)))
+				goto error;
+		}else{
+			if ((error = dns_aaaa_parse((struct dns_aaaa *)dns_sa_addr(saddr.ss_family, &saddr, &saddr_len), &rr, F->hints)))
+				goto error;
+		}
+		
+		*dns_sa_port(saddr.ss_family, &saddr) = (R->sp == 0) ? dns_hints_port(R->hints, saddr.ss_family, (struct sockaddr *)&saddr) : htons(53);
 
 		if (DNS_DEBUG) {
 			char addr[INET_ADDRSTRLEN + 1];
-			dns_a_print(addr, sizeof addr, &a);
+			if (saddr.ss_family==AF_INET)
+				dns_a_print(addr, sizeof addr, (struct dns_a *)dns_sa_addr(saddr.ss_family, &saddr, &saddr_len));
+			else dns_aaaa_print(addr, sizeof addr, (struct dns_aaaa *)dns_sa_addr(saddr.ss_family, &saddr, &saddr_len));
 			dns_header(F->query)->qid = dns_so_mkqid(&R->so);
 			DNS_SHOW(F->query, "ASKING: %s/%s @ DEPTH: %u)", u.ns.host, addr, R->sp);
 		}
 
-		if ((error = dns_so_submit(&R->so, F->query, (struct sockaddr *)&sin)))
+		if ((error = dns_so_submit(&R->so, F->query, (struct sockaddr *)&saddr)))
 			goto error;
 
 		F->state++;
@@ -7622,9 +7639,11 @@ exec:
 		if (dns_so_elapsed(&R->so) >= dns_resconf_timeout(R->resconf))
 			dgoto(R->sp, DNS_R_FOREACH_A);
 
-		if ((error = dns_so_check(&R->so)))
-			goto error;
-
+		if ((error = dns_so_check(&R->so)) != 0){
+			if (error == DNS_ENETUNREACH || error == DNS_ECONNREFUSED){
+				dgoto(R->sp, DNS_R_FOREACH_A);
+			}else goto error;
+		}
 		if (!dns_p_setptr(&F->answer, dns_so_fetch(&R->so, &error)))
 			goto error;
 
