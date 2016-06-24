@@ -111,7 +111,6 @@ build/android/voipdescs.h \
 build/git-pre-commit-hook \
 build/iphone/basedescs.h \
 build/iphone/voipdescs.h \
-build/winmob/echo/echo.vcproj \
 build/wp8 \
 java/.classpath \
 java/.project \
