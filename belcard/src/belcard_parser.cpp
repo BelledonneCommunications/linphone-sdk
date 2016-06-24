@@ -126,7 +126,9 @@ shared_ptr<BelCardList> BelCardParser::parseFile(const string &filename) {
 	}
 	
 	stringstream vcardStream;
-	vcardStream << istr.rdbuf();
+	// The following line has been replaced by the copy() because this was crashing with the gnustl library on Android.
+	//vcardStream << istr.rdbuf(); 
+	copy(istreambuf_iterator<char>(istr), istreambuf_iterator<char>(), ostreambuf_iterator<char>(vcardStream));
 	string vcard = vcardStream.str();
 	istr.close();
 	
