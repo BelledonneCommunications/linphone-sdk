@@ -18,19 +18,12 @@ AC_ARG_ENABLE(strict,
 [wall_werror=$enableval],
 [wall_werror=yes]
 )
-# configure option to disable the tests
-PKG_CHECK_MODULES(CUNIT, cunit, [found_cunit=yes],[found_cunit=no])
-if test "$found_cunit" = "no" ; then
-	AC_CHECK_HEADERS(CUnit/CUnit.h,
-		[
-			AC_CHECK_LIB(cunit,CU_add_suite,[
-				found_cunit=yes
-				CUNIT_LIBS+=" -lcunit"
-			])
-			
-		])
-fi
 
+# configure option to disable the tests
+PKG_CHECK_MODULES(BCTOOLBOXTESTER, bctoolbox-tester, [found_pkg_config_bctoolboxtester=yes],[found_pkg_config_bctoolboxtester=no])
+if test "$found_pkg_config_bctoolboxtester" = "no" ; then
+	AC_MSG_WARN([Could not find bctoolbox-tester wrapper, tests are not compiled.])
+fi
 
 dnl check bctoolbox
 PKG_CHECK_MODULES(BCTOOLBOX, [bctoolbox] ,[bctoolbox_found=yes] ,foo=bar)
@@ -46,16 +39,6 @@ else
 	AC_DEFINE(HAVE_LIBXML2,1,[defined when libxml2 is available])
 fi
 
-if test "$found_cunit" = "no" ; then
-	AC_MSG_WARN([Could not find cunit framework, tests are not compiled.])
-else 
-	AC_CHECK_LIB(cunit,CU_get_suite,[
-					AC_DEFINE(HAVE_CU_GET_SUITE,1,[defined when CU_get_suite is available])
-					],[foo=bar],[$CUNIT_LIBS])
-	AC_CHECK_LIB(cunit,CU_curses_run_tests,[
-					AC_DEFINE(HAVE_CU_CURSES,1,[defined when CU_curses_run_tests is available])
-					],[foo=bar],[$CUNIT_LIBS])
-fi
 AC_ARG_ENABLE(tests,
         [AS_HELP_STRING([--disable-tests], [Disable compilation of tests])],
         [case "${enableval}" in
@@ -65,7 +48,7 @@ AC_ARG_ENABLE(tests,
         esac],
         [tests_enabled=yes]
 )
-AM_CONDITIONAL(ENABLE_TESTS, test x$tests_enabled = xyes && test x$found_cunit = xyes)
+AM_CONDITIONAL(ENABLE_TESTS, test x$tests_enabled = xyes && test x$found_pkg_config_bctoolboxtester = xyes)
 
 CFLAGS="$CFLAGS -Wall"
 
