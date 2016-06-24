@@ -1,11 +1,11 @@
- mediastreamer2 (2.13.0) unstable; urgency=low
+mediastreamer2 (2.13.0) unstable; urgency=low
   * Add support of H264 hardware codec on Apple's platforms
   * MSFactory usage : using one MSfactory per LinphoneCore instance, 
     deprecate all "static" methods, now grouped around the MSFactory object.
   * Adding BroadVoice16 audio codec support.
   * Fix option to really disable libv4l2 when asked
 
--- Belledonne Communications <info@belledonne-communications.com>  Thu, 2 June 2016 13:50:07 +0200
+ -- Belledonne Communications <info@belledonne-communications.com>  Thu, 2 June 2016 13:50:07 +0200
 
 mediastreamer2 (2.12.1) unstable; urgency=low
 
