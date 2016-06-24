@@ -144,9 +144,9 @@ include(CMakePackageConfigHelpers)
 export(EXPORT ${EXPORT_TARGETS_NAME}Targets
 	FILE "${CMAKE_CURRENT_BINARY_DIR}/BelcardTargets.cmake"
 )
-configure_file(cmake/BelcardConfig.cmake
-        "${CMAKE_CURRENT_BINARY_DIR}/BelcardConfig.cmake"
-        COPYONLY
+configure_file(cmake/BelcardConfig.cmake.in
+	"${CMAKE_CURRENT_BINARY_DIR}/BelcardConfig.cmake"
+	@ONLY
 )
 set(ConfigPackageLocation share/Belcard/cmake)
 install(EXPORT ${EXPORT_TARGETS_NAME}Targets
@@ -154,6 +154,6 @@ install(EXPORT ${EXPORT_TARGETS_NAME}Targets
 	DESTINATION ${ConfigPackageLocation}
 )
 install(FILES
-        "${CMAKE_CURRENT_BINARY_DIR}/BelcardConfig.cmake"
-        DESTINATION ${ConfigPackageLocation}
+	"${CMAKE_CURRENT_BINARY_DIR}/BelcardConfig.cmake"
+	DESTINATION ${ConfigPackageLocation}
 )

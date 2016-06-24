@@ -20,6 +20,12 @@
 #
 ############################################################################
 
+if(ENABLE_SHARED)
+	set(BELCARD_LIBRARIES_FOR_TESTER belcard)
+else()
+	set(BELCARD_LIBRARIES_FOR_TESTER belcard-static)
+endif()
+
 set(HEADER_FILES_CXX belcard-tester.hpp)
 set(SOURCE_FILES_CXX
 	belcard-addressing-tester.cpp
@@ -41,7 +47,7 @@ apply_compile_flags(SOURCE_FILES_CXX "CPP" "CXX")
 add_executable(belcard-tester ${SOURCE_FILES_CXX} ${HEADER_FILES_CXX})
 set_target_properties(belcard-tester PROPERTIES LINKER_LANGUAGE CXX)
 target_include_directories(belcard-tester PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIRS})
-target_link_libraries(belcard-tester belcard ${BCTOOLBOX_TESTER_LIBRARIES})
+target_link_libraries(belcard-tester ${BELCARD_LIBRARIES_FOR_TESTER} ${BCTOOLBOX_TESTER_LIBRARIES})
 
 if(APPLE)
 	set_target_properties(belcard-tester PROPERTIES LINK_FLAGS "-stdlib=libc++")

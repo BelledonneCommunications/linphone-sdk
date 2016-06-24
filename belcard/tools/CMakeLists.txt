@@ -20,12 +20,18 @@
 #
 ############################################################################
 
+if(ENABLE_SHARED)
+	set(BELCARD_LIBRARIES_FOR_TOOLS belcard)
+else()
+	set(BELCARD_LIBRARIES_FOR_TOOLS belcard-static)
+endif()
+
 foreach(EXECTUABLE belcard-folder belcard-unfolder belcard-parser)
 	set(SOURCE_FILES_CXX ${EXECTUABLE}.cpp)
 	apply_compile_flags(SOURCE_FILES_CXX "CPP" "CXX")
 	add_executable(${EXECTUABLE} ${SOURCE_FILES_CXX})
 	set_target_properties(${EXECTUABLE} PROPERTIES LINKER_LANGUAGE CXX)
-	target_link_libraries(${EXECTUABLE} belcard)
+	target_link_libraries(${EXECTUABLE} ${BELCARD_LIBRARIES_FOR_TOOLS})
 	if(APPLE)
 		set_target_properties(${EXECTUABLE} PROPERTIES LINK_FLAGS "-stdlib=libc++")
 	endif()
