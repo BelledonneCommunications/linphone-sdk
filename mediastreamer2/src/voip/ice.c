@@ -916,13 +916,14 @@ static void ice_check_list_add_stun_server_request(IceCheckList *cl, IceStunServ
 	cl->stun_server_requests = bctbx_list_append(cl->stun_server_requests, request);
 }
 
-static void ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *si)
+static bool_t ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *si)
 {
 	IceStunServerRequest *request;
 	RtpTransport *rtptp=NULL;
 	MSTimeSpec curtime = ice_current_time();
 	char source_addr_str[64];
 	int source_port = 0;
+	bool_t gathering_in_progress = FALSE;
 
 	if ((cl->rtp_session != NULL) && (cl->gathering_candidates == FALSE) && (cl->state != ICL_Completed) && (ice_check_list_candidates_gathered(cl) == FALSE)) {
 		cl->gathering_candidates = TRUE;
@@ -949,6 +950,7 @@ static void ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *si
 				request->next_transmission_time = ice_add_ms(curtime, 2 * si->index * ICE_DEFAULT_TA_DURATION);
 			}
 			ice_check_list_add_stun_server_request(cl, request);
+			gathering_in_progress = TRUE;
 		} else {
 			ms_error("ice: no rtp socket found for session [%p]",cl->rtp_session);
 		}
@@ -970,6 +972,7 @@ static void ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *si
 			if (cl->session->turn_enabled) {
 				ms_turn_context_set_state(cl->rtcp_turn_context, MS_TURN_CONTEXT_STATE_CREATING_ALLOCATION);
 			}
+			gathering_in_progress = TRUE;
 		}else {
 			ms_message("ice: no rtcp socket found for session [%p]",cl->rtp_session);
 		}
@@ -977,6 +980,8 @@ static void ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *si
 	} else {
 		ms_message("ice: candidate gathering skipped for rtp session [%p] with check list [%p] in state [%s]",cl->rtp_session,cl,ice_check_list_state_to_string(cl->state));
 	}
+
+	return gathering_in_progress;
 }
 
 static void ice_check_list_deallocate_turn_candidate(IceCheckList *cl, MSTurnContext *turn_context, RtpTransport *rtptp, OrtpStream *stream) {
@@ -1035,11 +1040,12 @@ static IceCheckList * ice_session_first_check_list(const IceSession *session) {
 	return NULL;
 }
 
-void ice_session_gather_candidates(IceSession *session, const struct sockaddr* ss, socklen_t ss_len)
+bool_t ice_session_gather_candidates(IceSession *session, const struct sockaddr* ss, socklen_t ss_len)
 {
 	Session_Index si;
 	OrtpEvent *ev;
 	int i;
+	bool_t gathering_in_progress = FALSE;
 
 	memcpy(&session->ss,ss,ss_len);
 	session->ss_len = ss_len;
@@ -1048,8 +1054,10 @@ void ice_session_gather_candidates(IceSession *session, const struct sockaddr* s
 	ms_get_cur_time(&session->gathering_start_ts);
 	if (ice_session_gathering_needed(session) == TRUE) {
 		for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
-			if (session->streams[i] != NULL)
-				ice_check_list_gather_candidates(session->streams[i], &si);
+			if (session->streams[i] != NULL) {
+				bool_t cl_gathering_in_progress = ice_check_list_gather_candidates(session->streams[i], &si);
+				if (cl_gathering_in_progress == TRUE) gathering_in_progress = TRUE;
+			}
 		}
 	} else {
 		/* Notify end of gathering since it has already been done. */
@@ -1058,6 +1066,8 @@ void ice_session_gather_candidates(IceSession *session, const struct sockaddr* s
 		session->gathering_end_ts = session->gathering_start_ts;
 		rtp_session_dispatch_event(ice_session_first_check_list(session)->rtp_session, ev);
 	}
+
+	return gathering_in_progress;
 }
 
 int ice_session_gathering_duration(IceSession *session)
