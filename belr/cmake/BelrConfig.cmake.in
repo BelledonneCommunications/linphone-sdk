@@ -37,5 +37,11 @@ if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
 else()
 	set(BELR_INCLUDE_DIRS "${BELR_CMAKE_DIR}/../../../include")
 endif()
-set(BELR_LIBRARIES belr)
+
+if(@ENABLE_SHARED@)
+	set(BELR_LIBRARIES belr)
+else()
+	set(BELR_LIBRARIES belr-static)
+endif()
+
 set(BELR_FOUND 1)

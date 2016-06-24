@@ -20,12 +20,18 @@
 #
 ############################################################################
 
+if(ENABLE_SHARED)
+	set(BELR_LIBRARIES_FOR_TOOLS belr)
+else()
+	set(BELR_LIBRARIES_FOR_TOOLS belr-static)
+endif()
+
 foreach(EXECTUABLE belr-parse belr-demo)
 	set(SOURCE_FILES_CXX ${EXECTUABLE}.cc)
 	apply_compile_flags(SOURCE_FILES_CXX "CPP" "CXX")
 	add_executable(${EXECTUABLE} ${SOURCE_FILES_CXX})
 	set_target_properties(${EXECTUABLE} PROPERTIES LINKER_LANGUAGE CXX)
-	target_link_libraries(${EXECTUABLE} belr)
+	target_link_libraries(${EXECTUABLE} ${BELR_LIBRARIES_FOR_TOOLS})
 	if(APPLE)
 		set_target_properties(${EXECTUABLE} PROPERTIES LINK_FLAGS "-stdlib=libc++")
 	endif()
