@@ -339,7 +339,8 @@ MSFilterDesc ms_bv16_dec_desc={
 	dec_process,
 	dec_postprocess,
 	dec_uninit,
-	dec_methods
+	dec_methods,
+	MS_FILTER_IS_PUMP
 };
 
 #else
@@ -357,7 +358,8 @@ MSFilterDesc ms_bv16_dec_desc={
 	.process=dec_process,
 	.postprocess =dec_postprocess,
 	.uninit=dec_uninit,
-	.methods=dec_methods
+	.methods=dec_methods,
+	.flags = MS_FILTER_IS_PUMP
 };
 
 #endif
