@@ -105,6 +105,7 @@ set(EP_flexisip_FORCE_AUTOTOOLS True)
 # we can override the bctoolbox build method before including builders because it doesn't define it.
 set(EP_bctoolbox_BUILD_METHOD "rpm")
 linphone_builder_add_cmake_option(bctoolbox "-DENABLE_TESTS=NO")
+linphone_builder_add_cmake_option(bctoolbox "-DENABLE_TESTS_COMPONENT=NO")
 
 # Include builders
 include(builders/CMakeLists.txt)
