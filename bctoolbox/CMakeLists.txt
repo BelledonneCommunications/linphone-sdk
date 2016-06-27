@@ -107,6 +107,7 @@ if(ENABLE_TESTS_COMPONENT)
 		set(TESTER_REQUIRES_PRIVATE "cunit")
 	else()
 		message(WARNING "Could not find the cunit library!")
+		set(ENABLE_TESTS_COMPONENT OFF CACHE BOOL "Enable compilation of tests helper library" FORCE)
 	endif()
 endif()
 
