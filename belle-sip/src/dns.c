@@ -6249,6 +6249,11 @@ static int dns_socket(struct sockaddr *local, int type, int *error_) {
 #endif
 	if (-1 == (fd = socket(local->sa_family, type|flags, 0)))
 		goto soerr;
+	
+	if (local->sa_family == AF_INET6){
+		int value=0;
+		setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, (const char*)&value, sizeof(value));
+	}
 
 #if defined F_SETFD && !HAVE_SOCK_CLOEXEC
 	if (-1 == fcntl(fd, F_SETFD, 1))
