@@ -41,6 +41,12 @@
 #define _NETBSD_SOURCE
 #endif
 
+#ifdef _MSC_VER
+#define DNS_INLINE __inline
+#else
+#define DNS_INLINE inline
+#endif
+
 #include <limits.h>		/* INT_MAX */
 #include <stddef.h>		/* offsetof() */
 /*#ifdef _WIN32
@@ -412,12 +418,12 @@ const char *dns_strerror(int error) {
 #endif
 #endif
 
-static inline unsigned dns_atomic_fetch_add(dns_atomic_t *i) {
+static DNS_INLINE unsigned dns_atomic_fetch_add(dns_atomic_t *i) {
 	return DNS_ATOMIC_FETCH_ADD(i);
 } /* dns_atomic_fetch_add() */
 
 
-static inline unsigned dns_atomic_fetch_sub(dns_atomic_t *i) {
+static DNS_INLINE unsigned dns_atomic_fetch_sub(dns_atomic_t *i) {
 	return DNS_ATOMIC_FETCH_SUB(i);
 } /* dns_atomic_fetch_sub() */
 
@@ -546,7 +552,7 @@ struct dns_k_permutor {
 }; /* struct dns_k_permutor */
 
 
-static inline unsigned dns_k_permutor_powof(unsigned n) {
+static DNS_INLINE unsigned dns_k_permutor_powof(unsigned n) {
 	unsigned m, i = 0;
 
 	for (m = 1; m < n; m <<= 1, i++)
@@ -1049,19 +1055,19 @@ static char *dns_strsep(char **sp, const char *delim) {
 #endif
 
 
-static inline _Bool dns_isalpha(unsigned char c) {
+static DNS_INLINE _Bool dns_isalpha(unsigned char c) {
 	return isalpha(c);
 } /* dns_isalpha() */
 
-static inline _Bool dns_isdigit(unsigned char c) {
+static DNS_INLINE _Bool dns_isdigit(unsigned char c) {
 	return isdigit(c);
 } /* dns_isdigit() */
 
-static inline _Bool dns_isalnum(unsigned char c) {
+static DNS_INLINE _Bool dns_isalnum(unsigned char c) {
 	return isalnum(c);
 } /* dns_isalnum() */
 
-static inline _Bool dns_isspace(unsigned char c) {
+static DNS_INLINE _Bool dns_isspace(unsigned char c) {
 	return isspace(c);
 } /* dns_isspace() */
 
@@ -1244,13 +1250,13 @@ struct dns_buf {
 	size_t overflow;
 }; /* struct dns_buf */
 
-static inline size_t
+static DNS_INLINE size_t
 dns_b_tell(struct dns_buf *b)
 {
 	return b->p - b->base;
 }
 
-static inline dns_error_t
+static DNS_INLINE dns_error_t
 dns_b_setoverflow(struct dns_buf *b, size_t n, dns_error_t error)
 {
 	b->overflow += n;
@@ -1288,13 +1294,13 @@ dns_b_pputc(struct dns_buf *b, unsigned char uc, size_t p)
 	return 0;
 }
 
-static inline dns_error_t
+static DNS_INLINE dns_error_t
 dns_b_put16(struct dns_buf *b, uint16_t u)
 {
 	return dns_b_putc(b, u >> 8), dns_b_putc(b, u >> 0);
 }
 
-static inline dns_error_t
+static DNS_INLINE dns_error_t
 dns_b_pput16(struct dns_buf *b, uint16_t u, size_t p)
 {
 	if (dns_b_pputc(b, u >> 8, p) || dns_b_pputc(b, u >> 0, p + 1))
@@ -1303,7 +1309,7 @@ dns_b_pput16(struct dns_buf *b, uint16_t u, size_t p)
 	return 0;
 }
 
-DNS_NOTUSED static inline dns_error_t
+DNS_NOTUSED static DNS_INLINE dns_error_t
 dns_b_put32(struct dns_buf *b, uint32_t u)
 {
 	return dns_b_putc(b, u >> 24), dns_b_putc(b, u >> 16),
@@ -1330,7 +1336,7 @@ dns_b_puts(struct dns_buf *b, const void *src)
 	return dns_b_put(b, src, strlen(src));
 }
 
-DNS_NOTUSED static inline dns_error_t
+DNS_NOTUSED static DNS_INLINE dns_error_t
 dns_b_fmtju(struct dns_buf *b, const uintmax_t u, const unsigned width)
 {
 	size_t digits, padding, overflow;
@@ -1379,7 +1385,7 @@ dns_b_popc(struct dns_buf *b)
 		b->p--;
 }
 
-static inline const char *
+static DNS_INLINE const char *
 dns_b_tolstring(struct dns_buf *b, size_t *n)
 {
 	if (b->p < b->pe) {
@@ -1402,14 +1408,14 @@ dns_b_tolstring(struct dns_buf *b, size_t *n)
 	}
 }
 
-static inline const char *
+static DNS_INLINE const char *
 dns_b_tostring(struct dns_buf *b)
 {
 	size_t n;
 	return dns_b_tolstring(b, &n);
 }
 
-static inline size_t
+static DNS_INLINE size_t
 dns_b_strlen(struct dns_buf *b)
 {
 	size_t n;
@@ -1417,7 +1423,7 @@ dns_b_strlen(struct dns_buf *b)
 	return n;
 }
 
-static inline size_t
+static DNS_INLINE size_t
 dns_b_strllen(struct dns_buf *b)
 {
 	size_t n = dns_b_strlen(b);
@@ -1432,7 +1438,7 @@ dns_b_from(const struct dns_buf *b, const void *src, size_t n)
 	return b;
 }
 
-static inline int
+static DNS_INLINE int
 dns_b_getc(const struct dns_buf *_b, const int eof)
 {
 	struct dns_buf *b = (struct dns_buf *)_b;
@@ -1443,7 +1449,7 @@ dns_b_getc(const struct dns_buf *_b, const int eof)
 	return *b->p++;
 }
 
-static inline intmax_t
+static DNS_INLINE intmax_t
 dns_b_get16(const struct dns_buf *b, const intmax_t eof)
 {
 	intmax_t n;
@@ -1454,7 +1460,7 @@ dns_b_get16(const struct dns_buf *b, const intmax_t eof)
 	return (!b->overflow)? n : eof;
 }
 
-DNS_NOTUSED static inline intmax_t
+DNS_NOTUSED static DNS_INLINE intmax_t
 dns_b_get32(const struct dns_buf *b, const intmax_t eof)
 {
 	intmax_t n;
@@ -1465,7 +1471,7 @@ dns_b_get32(const struct dns_buf *b, const intmax_t eof)
 	return (!b->overflow)? n : eof;
 }
 
-static inline dns_error_t
+static DNS_INLINE dns_error_t
 dns_b_move(struct dns_buf *dst, const struct dns_buf *_src, size_t n)
 {
 	struct dns_buf *src = (struct dns_buf *)_src;
@@ -5367,7 +5373,7 @@ struct dns_nssconf_source {
 
 typedef unsigned dns_nssconf_i;
 
-static inline int dns_nssconf_peek(const struct dns_resolv_conf *resconf, dns_nssconf_i state) {
+static DNS_INLINE int dns_nssconf_peek(const struct dns_resolv_conf *resconf, dns_nssconf_i state) {
 	return (state < lengthof(resconf->lookup) && resconf->lookup[state])? resconf->lookup[state] : 0;
 } /* dns_nssconf_peek() */
 
