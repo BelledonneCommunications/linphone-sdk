@@ -20,10 +20,36 @@
 #
 ############################################################################
 
-set(RESOURCES_FILES
+set(SOUND_FILES
+	sounds/arpeggio_8000_mono.wav
+	sounds/bird_44100_stereo.wav
+	sounds/chimes_48000_stereo.wav
+	sounds/hello8000.wav
+	sounds/hello8000-1s.wav
+	sounds/hello16000.wav
+	sounds/hello16000-1s.wav
+	sounds/hello_opus.mka
+	sounds/hello_pcmu.mka
+	sounds/laserrocket_16000_mono.wav
+	sounds/nylon_48000_mono.wav
+	sounds/owl_44100_mono.wav
+	sounds/piano_8000_stereo.wav
+	sounds/punch_16000_stereo.wav
+	sounds/recorded_hello16000-1s.wav
+	sounds/sintel_trailer_opus_h264.mkv
+	sounds/sintel_trailer_opus_vp8.mkv
+	sounds/sintel_trailer_pcmu_h264.mkv
+)
+
+set(SCENARIO_FILES
+	scenarios/h264_missing_pps_in_second_i_frame.pcap
+)
+
+set(IOS_RESOURCES_FILES
 	sounds
 	scenarios
 )
+
 set(SOURCE_FILES_C
 	mediastreamer2_adaptive_tester.c
 	mediastreamer2_audio_stream_tester.c
@@ -87,9 +113,9 @@ if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 	endif()
 
 else()
-	if (IOS)
-		set_source_files_properties(${RESOURCES_FILES} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
-		add_executable(mediastreamer2_tester MACOSX_BUNDLE ${RESOURCES_FILES} ${SOURCE_FILES_C} ${SOURCE_FILES_OBJC})
+	if(IOS)
+		set_source_files_properties(${IOS_RESOURCES_FILES} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+		add_executable(mediastreamer2_tester MACOSX_BUNDLE ${IOS_RESOURCES_FILES} ${SOURCE_FILES_C} ${SOURCE_FILES_OBJC})
 	else()
 		add_executable(mediastreamer2_tester ${SOURCE_FILES_C} ${SOURCE_FILES_OBJC})
 	endif()
@@ -98,6 +124,17 @@ else()
 	string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
 	if(LINK_FLAGS_STR)
 		set_target_properties(mediastreamer2_tester PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
+	endif()
+
+	install(TARGETS mediastreamer2_tester
+		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+	)
+	if(NOT IOS)
+		install(FILES ${SOUND_FILES} DESTINATION "${CMAKE_INSTALL_DATADIR}/mediastreamer2_tester/sounds")
+		install(FILES ${SCENARIO_FILES} DESTINATION "${CMAKE_INSTALL_DATADIR}/mediastreamer2_tester/scenarios")
 	endif()
 
 endif()
