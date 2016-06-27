@@ -152,6 +152,11 @@ if (ENABLE_SOCI)
 	list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--enable-soci")
 endif()
 
+if (ENABLE_SNMP)
+	set(EP_flexisip_RPMBUILD_OPTIONS "${EP_flexisip_RPMBUILD_OPTIONS} --with snmp")
+	list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--enable-snmp")
+endif()
+
 if(ENABLE_BC_ODBC)
 	set(EP_unixodbc_BUILD_METHOD       "rpm")
 	set(EP_myodbc_BUILD_METHOD         "rpm")
