@@ -97,7 +97,7 @@ else()
 		target_link_libraries(belle_sip_tester "Ws2_32")
 	endif()
 	target_include_directories(belle_sip_tester PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIRS})
-	target_link_libraries(belle_sip_tester ${BCTOOLBOX_LIBRARIES} ${BCTOOLBOX_TESTER_LIBRARIES} ${PROJECT_LIBS})
+	target_link_libraries(belle_sip_tester ${BCTOOLBOX_LIBRARIES} ${PROJECT_LIBS})
 	add_test(NAME belle_sip_tester COMMAND belle_sip_tester --verbose)
 
 
@@ -107,7 +107,7 @@ else()
 	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 		set_target_properties(belle_sip_object_describe PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
-	target_link_libraries(belle_sip_object_describe ${BCTOOLBOX_LIBRARIES} ${PROJECT_LIBS})
+	target_link_libraries(belle_sip_object_describe ${BCTOOLBOX_CORE_LIBRARIES} ${PROJECT_LIBS})
 
 
 	set(PARSE_SOURCES parse.c)
@@ -117,6 +117,6 @@ else()
 	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 		set_target_properties(belle_sip_parse PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
-	target_link_libraries(belle_sip_parse ${BCTOOLBOX_LIBRARIES} ${PROJECT_LIBS})
+	target_link_libraries(belle_sip_parse ${BCTOOLBOX_CORE_LIBRARIES} ${PROJECT_LIBS})
 
 endif()
