@@ -117,12 +117,14 @@ linphone_builder_add_cmake_option(ortp "-DENABLE_DOC=NO")
 set(EP_ortp_LINKING_TYPE "-DENABLE_STATIC=NO" "-DENABLE_SHARED=YES")
 
 # polarssl
-set(EP_polarssl_LINKING_TYPE "-DUSE_SHARED_POLARSSL_LIBRARY=0")
+set(EP_polarssl_LINKING_TYPE "-DUSE_SHARED_POLARSSL_LIBRARY=NO")
 
 # speex
 linphone_builder_add_cmake_option(speex "-DENABLE_FLOAT_API=NO")
 linphone_builder_add_cmake_option(speex "-DENABLE_FIXED_POINT=YES")
-linphone_builder_add_cmake_option(speex "-DENABLE_ARM_NEON_INTRINSICS=1")
+if(CMAKE_SYSTEM_PROCESSOR STREQUAL "armeabi-v7a")
+	linphone_builder_add_cmake_option(speex "-DENABLE_ARM_NEON_INTRINSICS=YES")
+endif()
 
 # vpx
 set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared")
