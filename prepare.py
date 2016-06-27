@@ -249,7 +249,7 @@ class Preparator:
             return False
         return True
 
-    def check_environment(self):
+    def check_environment(self, submodule_directory_to_check=None):
         ret = 0
 
         # at least FFmpeg requires no whitespace in sources path...
@@ -259,7 +259,9 @@ class Preparator:
 
         ret |= not self.check_is_installed('cmake')
 
-        if not os.path.isdir("submodules/linphone/mediastreamer2/src") or not os.path.isdir("submodules/linphone/oRTP/src"):
+        if submodule_directory_to_check is None:
+            submodule_directory_to_check = "submodules/linphone/mediastreamer2/src"
+        if not os.path.isdir(submodule_directory_to_check):
             error("Missing some git submodules. Did you run:\n\tgit submodule update --init --recursive")
             ret = 1
 
