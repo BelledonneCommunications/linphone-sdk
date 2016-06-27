@@ -402,25 +402,41 @@ static int file_exists(const char* root_path) {
 
 static void detect_res_prefix(const char* prog) {
 	char* progpath = NULL;
+	char* progname = NULL;
 	FILE* writable_file = NULL;
 
 
 	if (prog != NULL) {
+		char *ptr;
 		progpath = strdup(prog);
 		if (strchr(prog, '/') != NULL) {
 			progpath[strrchr(prog, '/') - prog + 1] = '\0';
 		} else if (strchr(prog, '\\') != NULL) {
 			progpath[strrchr(prog, '\\') - prog + 1] = '\0';
 		}
+		ptr = strrchr(prog, '/');
+		if (ptr == NULL) {
+			ptr = strrchr(prog, '\\');
+		}
+		if (ptr != NULL) {
+			progname = strdup(ptr + 1);
+		}
 	}
 #if !defined(BC_TESTER_WINDOWS_PHONE) && !defined(BC_TESTER_WINDOWS_UNIVERSAL) && !defined(__QNX__) && !defined(ANDROID) && !defined(IOS)
 	{
 		char* prefix = NULL;
+		char *installed_resources_path = NULL;
+
+		if ((progname != NULL) && (progpath != NULL)) {
+			installed_resources_path = bc_sprintf("%s../share/%s", progpath, progname);
+		}
 
 		if (file_exists(".")) {
 			prefix = strdup(".");
 		} else if (file_exists("..")) {
 			prefix = strdup("..");
+		} else if ((installed_resources_path != NULL) && file_exists(installed_resources_path)) {
+			prefix = strdup(installed_resources_path);
 		} else if (progpath) {
 			//for autotools, binary is in .libs/ subdirectory
 			char * progpath2 = bc_sprintf("%s/../", progpath);
@@ -431,6 +447,7 @@ static void detect_res_prefix(const char* prog) {
 			}
 			free(progpath2);
 		}
+		if (installed_resources_path != NULL) free(installed_resources_path);
 
 		if (bc_tester_resource_dir_prefix != NULL && !file_exists(bc_tester_resource_dir_prefix)) {
 			bc_tester_printf(bc_printf_verbosity_error, "Invalid provided resource directory: could not find expected resources '%s' in '%s'.", expected_res, bc_tester_resource_dir_prefix);
