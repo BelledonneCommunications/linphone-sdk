@@ -41,12 +41,10 @@ namespace belcard {
 		ABNFGrammarBuilder _grammar_builder;
 		shared_ptr<Grammar> _grammar;
 		
-		BelCardParser();
 		shared_ptr<BelCardGeneric> _parse(const string &input, const string &rule);
 		
 	public:
-		BELCARD_PUBLIC static BelCardParser& getInstance();
-  
+		BelCardParser();
 		BELCARD_PUBLIC ~BelCardParser();
 		
 		BELCARD_PUBLIC shared_ptr<BelCard> parseOne(const string &input);
