@@ -57,7 +57,7 @@ if(ENABLE_STATIC)
 	set_target_properties(mswasapi-static PROPERTIES OUTPUT_NAME mswasapi)
 	target_link_libraries(mswasapi-static ${LIBS})
 	install(TARGETS mswasapi-static
-		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}/mediastreamer/plugins
+		ARCHIVE DESTINATION lib/mediastreamer/plugins
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 	)
 endif()
