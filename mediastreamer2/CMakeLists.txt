@@ -88,7 +88,9 @@ cmake_dependent_option(ENABLE_ARTSC "Enable artsc (KDE<4) sound input/output." N
 cmake_dependent_option(ENABLE_MACSND "Enable MAC OS X Audio Units sound support." ${ENABLE_MACSND_DEFAULT_VALUE} "ENABLE_SOUND;APPLE" NO)
 cmake_dependent_option(ENABLE_MACAQSND "Enable native MAC OS X Audio Queue sound support." ${ENABLE_MACAQSND_DEFAULT_VALUE} "ENABLE_SOUND;APPLE" NO)
 cmake_dependent_option(ENABLE_QSA "Enable QSA (QNX Sound Architecture) support." NO "ENABLE_SOUND" NO)
-cmake_dependent_option(ENABLE_OSS "Enable OSS support." YES "ENABLE_SOUND;LINUX_OR_BSD" NO)
+# OSS is mostly deprecated in 2016, so it should not be built by default (it won't work anyway). Let user defines it
+# itself only if he REALLY needs it.
+cmake_dependent_option(ENABLE_OSS "Enable OSS support." NO "ENABLE_SOUND;LINUX_OR_BSD" NO)
 cmake_dependent_option(ENABLE_PORTAUDIO "Enable portaudio native support." NO "ENABLE_SOUND" NO)
 cmake_dependent_option(ENABLE_PULSEAUDIO "Enable pulseaudio support." YES "ENABLE_SOUND" NO)
 option(ENABLE_GSM "Build mediastreamer2 with the GSM codec." YES)

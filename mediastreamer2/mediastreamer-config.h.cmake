@@ -33,8 +33,6 @@
 
 #cmakedefine MS_FIXED_POINT
 #define HAVE_NON_FREE_CODECS ${HAVE_NON_FREE_CODECS}
-#cmakedefine HAVE_CU_GET_SUITE 1
-#cmakedefine HAVE_CU_CURSES 1
 
 #cmakedefine HAVE_SRTP
 #cmakedefine HAVE_ZRTP
@@ -69,3 +67,5 @@
 #cmakedefine HAVE_PCAP 1
 #cmakedefine HAVE_MATROSKA 1
 #cmakedefine HAVE_VPX 1
+
+#cmakedefine HAVE_SYS_SOUNDCARD_H 1
