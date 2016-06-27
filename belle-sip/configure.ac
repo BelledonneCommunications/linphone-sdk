@@ -41,7 +41,7 @@ case $INSTALL in
 		INSTALL="$INSTALL -C"
 	;;
 esac
-dnl AC_PROG_CC_C99
+AC_PROG_CC_C99
 LT_INIT(win32-dll)
 
 case "$target" in
