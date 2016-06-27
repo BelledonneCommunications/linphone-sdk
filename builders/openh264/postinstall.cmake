@@ -30,10 +30,14 @@ endif()
 
 file(GLOB OPENH264_LIBS "${INSTALL_PREFIX}/lib/libopenh264.*.dylib")
 foreach(OPENH264_LIB IN LISTS ${OPENH264_LIBS})
-	string(REGEX REPLACE ".+/(libopenh264\..\.dylib)$" 
+	string(REGEX REPLACE ".+/(libopenh264\..\.dylib)$"
 		"@rpath/\1"
 		OPENH264_LIB_ID
 		${OPENH264_LIB}
 	)
 	execute_process(COMMAND install_name_tool -id ${OPENH264_LIB_ID} ${OPENH264_LIB})
 endforeach()
+
+if(EXISTS ${INSTALL_PREFIX}/lib/libopenh264.a AND TOOLCHAIN_RANLIB)
+	execute_process(COMMAND "${TOOLCHAIN_RANLIB}" "${INSTALL_PREFIX}/lib/libopenh264.a")
+endif()

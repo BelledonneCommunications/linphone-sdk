@@ -129,7 +129,7 @@ else()
 				"--disable-iconv"
 				"--disable-mmx"
 				"--enable-cross-compile"
-				"--cross-prefix=${ANDROID_TOOLCHAIN_PATH}/"
+				"--cross-prefix=${TOOLCHAIN_PATH}/"
 				"--sysroot=${CMAKE_SYSROOT}"
 			)
 			set(EP_ffmpeg_TARGET_OS "linux")
