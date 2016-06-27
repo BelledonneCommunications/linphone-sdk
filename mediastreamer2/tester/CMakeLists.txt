@@ -35,7 +35,6 @@ set(SOUND_FILES
 	sounds/owl_44100_mono.wav
 	sounds/piano_8000_stereo.wav
 	sounds/punch_16000_stereo.wav
-	sounds/recorded_hello16000-1s.wav
 	sounds/sintel_trailer_opus_h264.mkv
 	sounds/sintel_trailer_opus_vp8.mkv
 	sounds/sintel_trailer_pcmu_h264.mkv
