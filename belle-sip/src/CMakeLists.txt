@@ -158,6 +158,10 @@ endif()
 if(MSVC)
 	get_source_file_property(DNS_C_COMPILE_FLAGS dns.c COMPILE_FLAGS)
 	set(DNS_C_COMPILE_FLAGS "${DNS_C_COMPILE_FLAGS} /wd4267") # Disable "possible loss of data" warnings
+	set(DNS_C_COMPILE_FLAGS "${DNS_C_COMPILE_FLAGS} /wd4804") # Disable "unsafe use of type 'bool' in operation" warnings
+	set(DNS_C_COMPILE_FLAGS "${DNS_C_COMPILE_FLAGS} /wd4244") # Disable "conversion from 'intmax_t' to 'int', possible loss of data" warnings
+	set(DNS_C_COMPILE_FLAGS "${DNS_C_COMPILE_FLAGS} /wd4305") # Disable "'initializing': truncation from 'unsigned int' to 'UCHAR'" warnings
+	set(DNS_C_COMPILE_FLAGS "${DNS_C_COMPILE_FLAGS} /wd4018") # Disable "signed/unsigned mismatch" warnings
 	set_source_files_properties(dns.c PROPERTIES COMPILE_FLAGS "${DNS_C_COMPILE_FLAGS}")
 endif()
 

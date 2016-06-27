@@ -43,15 +43,18 @@
 
 #include <limits.h>		/* INT_MAX */
 #include <stddef.h>		/* offsetof() */
-#ifdef _WIN32
+/*#ifdef _WIN32
+#define uint16_t unsigned short
 #define uint32_t unsigned int
-#else
+#else*/
 #include <stdint.h>		/* uint32_t */
-#endif
+//#endif
 #include <stdlib.h>		/* malloc(3) realloc(3) free(3) rand(3) random(3) arc4random(3) */
 #include <stdio.h>		/* FILE fopen(3) fclose(3) getc(3) rewind(3) */
 #include <string.h>		/* memcpy(3) strlen(3) memmove(3) memchr(3) memcmp(3) strchr(3) strsep(3) strcspn(3) */
+#ifndef _WIN32
 #include <strings.h>		/* strcasecmp(3) strncasecmp(3) */
+#endif
 #include <ctype.h>		/* isspace(3) isdigit(3) */
 #include <time.h>		/* time_t time(2) difftime(3) */
 #include <signal.h>		/* SIGPIPE sigemptyset(3) sigaddset(3) sigpending(2) sigprocmask(2) pthread_sigmask(3) sigtimedwait(2) */
