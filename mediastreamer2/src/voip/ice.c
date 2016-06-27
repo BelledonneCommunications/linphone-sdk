@@ -278,7 +278,7 @@ static void ice_check_list_init(IceCheckList *cl)
 	cl->gathering_candidates = FALSE;
 	cl->gathering_finished = FALSE;
 	cl->nomination_delay_running = FALSE;
-	memset(&cl->ta_time, 0, sizeof(cl->ta_time));
+	cl->ta_time = ice_current_time();
 	memset(&cl->keepalive_time, 0, sizeof(cl->keepalive_time));
 	memset(&cl->gathering_start_time, 0, sizeof(cl->gathering_start_time));
 	memset(&cl->nomination_delay_start_time, 0, sizeof(cl->nomination_delay_start_time));
@@ -3616,7 +3616,7 @@ static void ice_check_list_restart(IceCheckList *cl)
 	cl->gathering_candidates = FALSE;
 	cl->gathering_finished = FALSE;
 	cl->nomination_delay_running = FALSE;
-	memset(&cl->ta_time, 0, sizeof(cl->ta_time));
+	cl->ta_time = ice_current_time();
 	memset(&cl->keepalive_time, 0, sizeof(cl->keepalive_time));
 	memset(&cl->gathering_start_time, 0, sizeof(cl->gathering_start_time));
 	memset(&cl->nomination_delay_start_time, 0, sizeof(cl->nomination_delay_start_time));
