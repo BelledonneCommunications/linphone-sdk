@@ -84,6 +84,7 @@ linphone_builder_add_cmake_option(ms2 "-DENABLE_XV=NO")
 linphone_builder_add_cmake_option(ms2 "-DENABLE_MKV=YES")
 linphone_builder_add_cmake_option(ms2 "-DENABLE_QNX=YES")
 linphone_builder_add_cmake_option(ms2 "-DENABLE_V4L=NO")
+linphone_builder_add_cmake_option(ms2 "-DENABLE_TOOLS=NO")
 linphone_builder_add_cmake_option(ms2 "-DENABLE_UNIT_TESTS=NO")
 
 # vpx
