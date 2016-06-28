@@ -8007,11 +8007,15 @@ int dns_res_check(struct dns_resolver *R) {
 struct dns_packet *dns_res_fetch(struct dns_resolver *R, int *error) {
 	struct dns_packet *P = NULL;
 
-	if (R->stack[0].state != DNS_R_DONE)
-		return *error = DNS_EUNKNOWN, NULL;
+	if (R->stack[0].state != DNS_R_DONE) {
+		*error = DNS_EUNKNOWN;
+		return NULL;
+	}
 
-	if (!dns_p_movptr(&P, &R->stack[0].answer))
-		return *error = DNS_EFETCHED, NULL;
+	if (!dns_p_movptr(&P, &R->stack[0].answer)) {
+		*error = DNS_EFETCHED;
+		return NULL;
+	}
 
 	return P;
 } /* dns_res_fetch() */

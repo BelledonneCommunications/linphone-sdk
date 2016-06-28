@@ -20,6 +20,16 @@
 #
 ############################################################################
 
+function(require_c99 target)
+	message("CMAKE_C_COMPILER_ID: ${CMAKE_C_COMPILER_ID}")
+	if(CMAKE_C_COMPILER_ID STREQUAL "QCC")
+		target_compile_options(${target} PRIVATE "-std=gnu99")
+	else()
+		set_property(TARGET ${target} PROPERTY C_STANDARD 99)
+		set_property(TARGET ${target} PROPERTY C_STANDARD_REQUIRED TRUE)
+	endif()
+endfunction()
+
 set(INCLUDES ${ANTLR3C_INCLUDE_DIRS})
 set(LIBS ${ANTLR3C_LIBRARIES})
 
@@ -175,8 +185,7 @@ if(ENABLE_STATIC)
 	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 		set_target_properties(bellesip-static PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
-	set_property(TARGET bellesip-static PROPERTY C_STANDARD 99)
-	set_property(TARGET bellesip-static PROPERTY C_STANDARD_REQUIRED TRUE)
+	require_c99(bellesip-static)
 	install(TARGETS bellesip-static EXPORT ${EXPORT_TARGETS_NAME}Targets
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
@@ -191,8 +200,7 @@ if(ENABLE_SHARED)
 	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 		set_target_properties(bellesip PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
-	set_property(TARGET bellesip PROPERTY C_STANDARD 99)
-	set_property(TARGET bellesip PROPERTY C_STANDARD_REQUIRED TRUE)
+	require_c99(bellesip)
 	if(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
 			install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/bellesip.pdb
