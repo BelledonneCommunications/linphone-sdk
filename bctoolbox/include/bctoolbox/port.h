@@ -385,7 +385,16 @@ BCTBX_PUBLIC struct addrinfo * bctbx_ip_address_to_addrinfo(int family, int sock
 **/
 BCTBX_PUBLIC struct addrinfo * bctbx_name_to_addrinfo(int family, int socktype, const char *name, int port);
 
-/*return TRUE if both families, ports and addresses are equals*/
+/**
+ * This function will transform a V4 to V6 mapped address to a pure V4 and write it into result, or will just copy it otherwise.
+ * The memory for v6 and result may be the same, in which case processing is done in place or no copy is done.
+ * The pointer to result must have sufficient storage, typically a struct sockaddr_storage.
+**/ 
+BCTBX_PUBLIC void bctbx_sockaddr_remove_v4_mapping(const struct sockaddr *v6, struct sockaddr *result, socklen_t *result_len);
+
+/**
+ * Return TRUE if both families, ports and addresses are equals
+ */
 BCTBX_PUBLIC bool_t bctbx_sockaddr_equals(const struct sockaddr * sa, const struct sockaddr * sb) ;
 
 /* portable named pipes  and shared memory*/

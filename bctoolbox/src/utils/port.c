@@ -1136,7 +1136,32 @@ struct addrinfo * bctbx_ip_address_to_addrinfo(int family, int socktype, const c
 	return res;
 
 }
-char * bctbx_concat (const char *str, ...) {
+
+#ifndef IN6_GET_ADDR_V4MAPPED
+#define IN6_GET_ADDR_V4MAPPED(sin6_addr)	*(unsigned int*)((unsigned char*)(sin6_addr)+12)
+#endif
+
+void bctbx_sockaddr_remove_v4_mapping(const struct sockaddr *v6, struct sockaddr *result, socklen_t *result_len) {
+	if (v6->sa_family == AF_INET6) {
+		struct sockaddr_in6 *in6 = (struct sockaddr_in6 *)v6;
+
+		if (IN6_IS_ADDR_V4MAPPED(&in6->sin6_addr)) {
+			struct sockaddr_in *in = (struct sockaddr_in *)result;
+			result->sa_family = AF_INET;
+			in->sin_addr.s_addr = IN6_GET_ADDR_V4MAPPED(&in6->sin6_addr);
+			in->sin_port = in6->sin6_port;
+			*result_len = sizeof(struct sockaddr_in);
+		} else {
+			if (v6 != result) memcpy(result, v6, sizeof(struct sockaddr_in6));
+			*result_len = sizeof(struct sockaddr_in6);
+		}
+	} else {
+		*result_len = sizeof(struct sockaddr_in);
+		if (v6 != result) memcpy(result, v6, sizeof(struct sockaddr_in));
+	}
+}
+
+char * bctbx_concat(const char *str, ...) {
 	va_list ap;
 	size_t allocated = 100;
 	char *result = (char *) malloc (allocated);
@@ -1183,10 +1208,8 @@ char * bctbx_concat (const char *str, ...) {
 	
 	return result;
 }
-/*
- return true if both, family, port and addr are equals
- */
-bool_t  bctbx_sockaddr_equals(const struct sockaddr * sa, const struct sockaddr * sb) {
+
+bool_t bctbx_sockaddr_equals(const struct sockaddr * sa, const struct sockaddr * sb) {
 	
 	if (sa->sa_family != sb->sa_family)
 		return FALSE;
