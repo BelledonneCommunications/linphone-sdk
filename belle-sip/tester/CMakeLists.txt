@@ -99,6 +99,14 @@ else()
 	target_include_directories(belle_sip_tester PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIRS})
 	target_link_libraries(belle_sip_tester ${BCTOOLBOX_LIBRARIES} ${PROJECT_LIBS})
 	add_test(NAME belle_sip_tester COMMAND belle_sip_tester --verbose)
+	if(NOT IOS)
+		install(TARGETS belle_sip_tester
+			RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+			LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+			ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+		)
+	endif()
 
 
 	set(OBJECT_DESCRIBE_SOURCES describe.c)
