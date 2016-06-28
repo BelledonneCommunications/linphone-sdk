@@ -129,6 +129,7 @@ if(ENABLE_AUTOMATED)
 	list(APPEND SOURCE_FILES ${AUTOMATED_SOURCE_FILES})
 	source_group(automated FILES ${AUTOMATED_SOURCE_FILES})
 	set(AUTOMATED_SYMBOLS "
+	CU_automated_enable_junit_xml
 	CU_automated_run_tests
 	CU_list_tests_to_file
 	CU_set_output_filename
