@@ -99,12 +99,6 @@ BELLESIP_EXPORT void belle_sip_resolver_context_cancel(belle_sip_resolver_contex
 **/
 BELLESIP_EXPORT void belle_sip_get_src_addr_for(const struct sockaddr *dest, socklen_t destlen, struct sockaddr *src, socklen_t *srclen, int local_port);
 
-/**
- * This function will transform a V4 to V6 mapped address to a pure V4 and write it into result, or will just copy it otherwise.
- * The memory for v6 and result may be the same, in which case processing is done in place or no copy is done.
- * The pointer to result must have sufficient storage, typically a struct sockaddr_storage.
-**/ 
-BELLESIP_EXPORT void belle_sip_address_remove_v4_mapping(const struct sockaddr *v6, struct sockaddr *result, socklen_t *result_len);
 
 BELLE_SIP_END_DECLS
 

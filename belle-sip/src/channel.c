@@ -147,7 +147,7 @@ static void fix_incoming_via(belle_sip_request_t *msg, const struct addrinfo* or
 		belle_sip_warning("cannot fix via for message [%p], probably a test",msg);
 		return;
 	}
-	belle_sip_address_remove_v4_mapping(origin->ai_addr, (struct sockaddr*)&saddr, &slen);
+	bctbx_sockaddr_remove_v4_mapping(origin->ai_addr, (struct sockaddr*)&saddr, &slen);
 	err=getnameinfo((struct sockaddr*)&saddr,slen,received,sizeof(received),
 	                rport,sizeof(rport),NI_NUMERICHOST|NI_NUMERICSERV);
 	if (err!=0){
@@ -1346,7 +1346,7 @@ void belle_sip_channel_set_ready(belle_sip_channel_t *obj, const struct sockaddr
 		socklen_t slen2=sizeof(saddr);
 		int err;
 
-		belle_sip_address_remove_v4_mapping(addr,(struct sockaddr*) &saddr,&slen2);
+		bctbx_sockaddr_remove_v4_mapping(addr,(struct sockaddr*) &saddr,&slen2);
 
 		err=getnameinfo((struct sockaddr*)&saddr,slen2,name,sizeof(name),serv,sizeof(serv),NI_NUMERICHOST|NI_NUMERICSERV);
 		if (err!=0){
