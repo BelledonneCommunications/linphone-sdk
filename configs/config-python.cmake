@@ -73,6 +73,9 @@ endif()
 include(builders/CMakeLists.txt)
 
 
+# bctoolbox
+linphone_builder_add_cmake_option(linphone "-DENABLE_TESTS_COMPONENT=NO")
+
 # ffmpeg
 set(EP_ffmpeg_LINKING_TYPE "--disable-static" "--enable-shared")
 
