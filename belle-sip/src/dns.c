@@ -97,6 +97,9 @@
 #include <resolv.h>
 #endif
 
+#ifdef ANDROID
+#include <sys/system_properties.h>
+#endif
 
 /*
  * C O M P I L E R  V E R S I O N  &  F E A T U R E  D E T E C T I O N
