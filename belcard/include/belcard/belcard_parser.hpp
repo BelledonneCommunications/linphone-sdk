@@ -44,7 +44,7 @@ namespace belcard {
 		shared_ptr<BelCardGeneric> _parse(const string &input, const string &rule);
 		
 	public:
-		BelCardParser();
+		BELCARD_PUBLIC BelCardParser();
 		BELCARD_PUBLIC ~BelCardParser();
 		
 		BELCARD_PUBLIC shared_ptr<BelCard> parseOne(const string &input);
