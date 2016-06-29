@@ -82,6 +82,7 @@ libmediastreamer_base_la_SOURCES=	base/mscommon.c \
 					base/msvideopresets.c \
 					base/mswebcam.c \
 					base/mtu.c \
+					base/msasync.c \
 					otherfilters/void.c \
 					otherfilters/itc.c
 libmediastreamer_voip_la_SOURCES=
@@ -151,6 +152,8 @@ libmediastreamer_voip_la_SOURCES+=	audiofilters/alaw.c \
 					audiofilters/msgenericplc.c \
 					audiofilters/msfileplayer.c \
 					audiofilters/msfilerec.c \
+					audiofilters/asyncrw.c \
+					audiofilters/asyncrw.h \
 					audiofilters/waveheader.h \
 					audiofilters/flowcontrol.c \
 					audiofilters/msvaddtx.c

@@ -1,6 +1,6 @@
 /*
 mediastreamer2 library - modular sound and video processing and streaming
-Copyright (C) 2006  Simon MORLAT (simon.morlat@linphone.org)
+Copyright (C) 2006  Belledonne Communications SARL
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License

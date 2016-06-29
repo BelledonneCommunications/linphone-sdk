@@ -47,6 +47,7 @@ set(BASE_SOURCE_FILES_C
 	base/msvideopresets.c
 	base/mswebcam.c
 	base/mtu.c
+	base/msasync.c
 	otherfilters/itc.c
 	otherfilters/join.c
 	otherfilters/tee.c
@@ -143,6 +144,8 @@ set(VOIP_SOURCE_FILES_C
 	audiofilters/l16.c
 	audiofilters/msfileplayer.c
 	audiofilters/msfilerec.c
+	audiofilters/asyncrw.c
+	audiofilters/asyncrw.h
 	audiofilters/msg722.c
 	audiofilters/msvaddtx.c
 	audiofilters/msvolume.c
