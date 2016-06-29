@@ -106,7 +106,7 @@ if(WIN32)
 	add_list_file(zlib)
 endif()
 if(ENABLE_UNIT_TESTS)
-	add_list_file(cunit)
+	add_list_file(bcunit)
 endif()
 if(ENABLE_VCARD)
 	add_list_file(vcard)
@@ -185,7 +185,7 @@ if(WIN32)
 		PATTERN "man" EXCLUDE
 		PATTERN "manifest" EXCLUDE
 		PATTERN "share/aclocal" EXCLUDE
-		PATTERN "share/CUnit" EXCLUDE
+		PATTERN "share/BCUnit" EXCLUDE
 		PATTERN "share/glib-2.0" EXCLUDE
 		PATTERN "share/gtk-2.0" EXCLUDE
 		PATTERN "share/gtk-doc" EXCLUDE

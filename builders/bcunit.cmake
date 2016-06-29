@@ -1,5 +1,5 @@
 ############################################################################
-# cunit.cmake
+# bcunit.cmake
 # Copyright (C) 2014  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -20,16 +20,16 @@
 #
 ############################################################################
 
-set(EP_cunit_GIT_REPOSITORY "git://git.linphone.org/cunit.git" CACHE STRING "cunit repository URL")
-set(EP_cunit_GIT_TAG_LATEST "linphone" CACHE STRING "cunit tag to use when compiling latest version")
-set(EP_cunit_GIT_TAG "0a0a9c60f5a1b899ae26b705fa5224ef25377982" CACHE STRING "cunit tag to use")
-set(EP_cunit_EXTERNAL_SOURCE_PATHS "cunit" "externals/cunit")
-set(EP_cunit_MAY_BE_FOUND_ON_SYSTEM TRUE)
-set(EP_cunit_IGNORE_WARNINGS TRUE)
+set(EP_bcunit_GIT_REPOSITORY "git://git.linphone.org/bcunit.git" CACHE STRING "bcunit repository URL")
+set(EP_bcunit_GIT_TAG_LATEST "linphone" CACHE STRING "bcunit tag to use when compiling latest version")
+set(EP_bcunit_GIT_TAG "0a0a9c60f5a1b899ae26b705fa5224ef25377982" CACHE STRING "bcunit tag to use")
+set(EP_bcunit_EXTERNAL_SOURCE_PATHS "bcunit" "externals/bcunit")
+set(EP_bcunit_MAY_BE_FOUND_ON_SYSTEM TRUE)
+set(EP_bcunit_IGNORE_WARNINGS TRUE)
 
-set(EP_cunit_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
+set(EP_bcunit_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
 if(MSVC)
-	set(EP_cunit_EXTRA_LDFLAGS "/SAFESEH:NO")
+	set(EP_bcunit_EXTRA_LDFLAGS "/SAFESEH:NO")
 endif()
 
-set(EP_cunit_CMAKE_OPTIONS "-DENABLE_AUTOMATED=YES" "-DENABLE_CONSOLE=NO")
+set(EP_bcunit_CMAKE_OPTIONS "-DENABLE_AUTOMATED=YES" "-DENABLE_CONSOLE=NO")
