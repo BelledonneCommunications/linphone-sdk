@@ -55,7 +55,7 @@
   <ItemDefinitionGroup>
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(GeneratedFilesDir);$(IntDir);$(ProjectDir)..\..\..\..\include;$(ProjectDir)..\..\..\..\src;$(ProjectDir)..\..\..\..\tester;$(ProjectDir)..\..\..\..\..\cunit\build\wp8\cunit\$(Platform)\$(Configuration);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(GeneratedFilesDir);$(IntDir);$(ProjectDir)..\..\..\..\include;$(ProjectDir)..\..\..\..\src;$(ProjectDir)..\..\..\..\tester;$(ProjectDir)..\..\..\..\..\bcunit\build\wp8\bcunit\$(Platform)\$(Configuration);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WINDOWS;_WINRT_DLL;_CRT_SECURE_NO_WARNINGS;HAVE_CU_GET_SUITE;PACKAGE_VERSION=$(BELLESIP_PACKAGE_VERSION);%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -116,7 +116,7 @@
     <ClCompile Include="..\..\..\..\tester\belle_sip_tester.c" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\..\cunit\build\wp8\cunit\cunit.vcxproj">
+    <ProjectReference Include="..\..\..\..\..\bcunit\build\wp8\bcunit\bcunit.vcxproj">
       <Project>{902daf1d-ebf1-4d03-b598-143500a50ab4}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\belle-sip\belle-sip.vcxproj">

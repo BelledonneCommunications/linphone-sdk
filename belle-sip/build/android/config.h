@@ -4,8 +4,8 @@
 /* Define to 1 if you have the <antlr3.h> header file. */
 #define HAVE_ANTLR3_H 1
 
-/* Define to 1 if you have the <CUnit/CUnit.h> header file. */
-/* #undef HAVE_CUNIT_CUNIT_H */
+/* Define to 1 if you have the <BCUnit/BCUnit.h> header file. */
+/* #undef HAVE_BCUNIT_BCUNIT_H */
 
 /* defined when CU_curses_run_tests is available */
 /* #undef HAVE_CU_CURSES */

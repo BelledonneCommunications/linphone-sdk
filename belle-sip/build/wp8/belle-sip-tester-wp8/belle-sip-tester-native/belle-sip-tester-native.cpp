@@ -2,7 +2,7 @@
 
 #include "belle-sip-tester-native.h"
 #include "belle-sip/belle-sip.h"
-#include "cunit/Util.h"
+#include "bcunit/Util.h"
 
 using namespace belle_sip_tester_native;
 using namespace Platform;

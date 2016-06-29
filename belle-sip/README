@@ -24,13 +24,13 @@ Commercial licensing can be purchased for that purpose from [Belledonne Communic
 * antlr3-3.4
 * bctoolbox (see below)
 * C++ compiler (for instance g++ or clang++)
-* (optional) CUnit
+* (optional) BCUnit
 
 #### Under Debian/Ubuntu
 
         apt-get install libtool intltool pkg-config libantlr3c-dev antlr3 g++ make
         #and for optional dependencies
-        apt-get install libcunit1-dev libpolarssl-dev
+        apt-get install libbcunit1-dev libpolarssl-dev
 
 #### Under MacOS X using HomeBrew
 
@@ -41,12 +41,12 @@ Commercial licensing can be purchased for that purpose from [Belledonne Communic
 
  The procedure is tested for Visual Studio Express 2012.
 
- * Compile and install libantlr3c, CUnit with ./configure && make && make install
+ * Compile and install libantlr3c, BCUnit with ./configure && make && make install
  * get antlr3 from linphone's git server (see above). This version contains up to date visual studio project and solution files.
- * get CUnit from linphone's git server (see above). This version contains up to date visual studio project and solution files.
- * put belle-sip next to antlr3 and to cunit (in the same directory).
+ * get BCUnit from linphone's git server (see above). This version contains up to date visual studio project and solution files.
+ * put belle-sip next to antlr3 and to bcunit (in the same directory).
  * open belle-sip/build/windows/belle-sip-tester/belle-sip-tester.sln or belle-sip/build/windows/belle-sip/belle-sip.sln
- * Build the solution (antlr3 and cunit are built automatically)
+ * Build the solution (antlr3 and bcunit are built automatically)
 
 #### Building bctoolbox
 
@@ -66,7 +66,7 @@ git://git.linphone.org/bctoolbox.git
   Or get the source code from linphone's git (linphone branch):
 
         git clone -b linphone git://git.linphone.org/antlr3.git
-        git clone -b linphone git://git.linphone.org/cunit.git
+        git clone -b linphone git://git.linphone.org/bcunit.git
 
 
 

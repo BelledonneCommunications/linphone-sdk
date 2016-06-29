@@ -11,7 +11,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "belle-sip-tester-native", "
 		{4C225A82-800B-427B-BA7B-61686A9B347F} = {4C225A82-800B-427B-BA7B-61686A9B347F}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "cunit", "..\..\..\..\cunit\build\wp8\cunit\cunit.vcxproj", "{902DAF1D-EBF1-4D03-B598-143500A50AB4}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bcunit", "..\..\..\..\bcunit\build\wp8\bcunit\bcunit.vcxproj", "{902DAF1D-EBF1-4D03-B598-143500A50AB4}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libantlr3c", "..\..\..\..\antlr3\runtime\C\build\wp8\libantlr3c\libantlr3c.vcxproj", "{8FA74260-151B-429B-83EF-3CF3EAC8CFD9}"
 EndProject
