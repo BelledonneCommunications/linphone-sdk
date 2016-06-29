@@ -29,40 +29,46 @@
 include(CheckIncludeFile)
 include(CheckLibraryExists)
 
-set(_CUNIT_ROOT_PATHS
-	${CMAKE_INSTALL_PREFIX}
-)
+set(CUNIT_REQUIRED_VARS CUNIT_INCLUDE_DIRS HAVE_CUNIT_CUNIT_H CUNIT_LIBRARIES)
 
 find_path(CUNIT_INCLUDE_DIRS
 	NAMES CUnit/CUnit.h
-	HINTS _CUNIT_ROOT_PATHS
 	PATH_SUFFIXES include
 )
 
 if(CUNIT_INCLUDE_DIRS)
 	set(HAVE_CUNIT_CUNIT_H 1)
+endif()
+
+if(HAVE_CUNIT_CUNIT_H)
 	file(STRINGS "${CUNIT_INCLUDE_DIRS}/CUnit/CUnit.h" CUNIT_VERSION_STR
-		REGEX "^#define[\t ]+CU_VERSION[\t ]+\"(.+)\"$")
-	string(REGEX REPLACE "^.*CU_VERSION[\t ]+\"(.+)\"$" "\\1" CUNIT_VERSION "${CUNIT_VERSION_STR}")
+		REGEX "^#define[\t ]+CU_VERSION[\t ]+\"([0-9.]+).*\"$")
+	string(REGEX REPLACE "^.*CU_VERSION[\t ]+\"([0-9.]+).*\"$" "\\1" CUNIT_VERSION "${CUNIT_VERSION_STR}")
+	if(CUNIT_VERSION VERSION_LESS "3.1")
+		# Version too low to activate automated junit output
+		set(HAVE_CU_FIXED_JUNIT FALSE)
+	else()
+		set(HAVE_CU_FIXED_JUNIT TRUE)
+		list(APPEND CUNIT_REQUIRED_VARS HAVE_CU_FIXED_JUNIT)
+	endif()
 endif()
 
 find_library(CUNIT_LIBRARIES
 	NAMES cunit
-	HINTS ${_CUNIT_ROOT_PATHS}
 	PATH_SUFFIXES bin lib
 )
 
 include(FindPackageHandleStandardArgs)
+include(FindPackageMessage)
 
-if (CUNIT_VERSION)
-	find_package_handle_standard_args(CUnit
-		REQUIRED_VARS CUNIT_INCLUDE_DIRS CUNIT_LIBRARIES
-		VERSION_VAR CUNIT_VERSION
-		)
-else()
-	find_package_handle_standard_args(CUnit
-		REQUIRED_VARS CUNIT_INCLUDE_DIRS CUNIT_LIBRARIES
-		)
+find_package_handle_standard_args(CUnit
+	REQUIRED_VARS ${CUNIT_REQUIRED_VARS}
+)
+
+if(HAVE_CUNIT_CUNIT_H)
+	find_package_message(CUnit "Found fixed junit: ${HAVE_CU_FIXED_JUNIT}" "")
 endif()
 
-mark_as_advanced(CUNIT_INCLUDE_DIRS CUNIT_LIBRARIES)
+mark_as_advanced(${CUNIT_REQUIRED_VARS})
+
+unset(CUNIT_REQUIRED_VARS)

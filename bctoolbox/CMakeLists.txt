@@ -94,9 +94,8 @@ if(POLARSSL_FOUND)
 endif()
 
 if(ENABLE_TESTS_COMPONENT)
-	find_package(CUnit 3.0.1) # we need cunit 3.0.1 for automated junit output
+	find_package(CUnit)
 	if(CUNIT_FOUND)
-		set(HAVE_CU_FIXED_JUNIT 1)
 		cmake_push_check_state(RESET)
 		list(APPEND CMAKE_REQUIRED_INCLUDES ${CUNIT_INCLUDE_DIRS})
 		list(APPEND CMAKE_REQUIRED_LIBRARIES ${CUNIT_LIBRARIES})
@@ -104,18 +103,10 @@ if(ENABLE_TESTS_COMPONENT)
 		check_symbol_exists("CU_curses_run_tests" "CUnit/CUnit.h" HAVE_CU_CURSES)
 		check_symbol_exists("CU_set_trace_handler" "CUnit/Util.h" HAVE_CU_SET_TRACE_HANDLER)
 		cmake_pop_check_state()
-
 		set(TESTER_REQUIRES_PRIVATE "cunit")
 	else()
-		# if we found Cunit but with improper version, do not enable HAVE_CU_FIXED_JUNIT and search again for CUnit
-		if (CUNIT_LIBRARIES)
-			find_package(CUnit)
-		endif()
-
-		if (NOT CUNIT_FOUND)
-			message(WARNING "Could not find the Cunit library, disable tests.")
-			set(ENABLE_TESTS_COMPONENT OFF CACHE BOOL "Enable compilation of tests helper library" FORCE)
-		endif()
+		message(WARNING "Could not find the Cunit library, disable tests.")
+		set(ENABLE_TESTS_COMPONENT OFF CACHE BOOL "Enable compilation of tests helper library" FORCE)
 	endif()
 endif()
 

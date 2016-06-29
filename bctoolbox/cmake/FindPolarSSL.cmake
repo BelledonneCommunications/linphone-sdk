@@ -31,13 +31,8 @@ include(CheckIncludeFile)
 include(CheckCSourceCompiles)
 include(CheckSymbolExists)
 
-set(_POLARSSL_ROOT_PATHS
-	${CMAKE_INSTALL_PREFIX}
-)
-
 find_path(POLARSSL_INCLUDE_DIRS
 	NAMES polarssl/ssl.h
-	HINTS _POLARSSL_ROOT_PATHS
 	PATH_SUFFIXES include
 )
 if(POLARSSL_INCLUDE_DIRS)
@@ -46,7 +41,6 @@ endif()
 
 find_library(POLARSSL_LIBRARIES
 	NAMES polarssl mbedtls
-	HINTS _POLARSSL_ROOT_PATHS
 	PATH_SUFFIXES bin lib
 )
 
