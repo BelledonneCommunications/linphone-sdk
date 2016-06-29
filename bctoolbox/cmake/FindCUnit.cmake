@@ -44,7 +44,7 @@ if(HAVE_CUNIT_CUNIT_H)
 	file(STRINGS "${CUNIT_INCLUDE_DIRS}/CUnit/CUnit.h" CUNIT_VERSION_STR
 		REGEX "^#define[\t ]+CU_VERSION[\t ]+\"([0-9.]+).*\"$")
 	string(REGEX REPLACE "^.*CU_VERSION[\t ]+\"([0-9.]+).*\"$" "\\1" CUNIT_VERSION "${CUNIT_VERSION_STR}")
-	if(CUNIT_VERSION VERSION_LESS "3.1")
+	if(CUNIT_VERSION VERSION_LESS "3.0")
 		# Version too low to activate automated junit output
 		set(HAVE_CU_FIXED_JUNIT FALSE)
 	else()
