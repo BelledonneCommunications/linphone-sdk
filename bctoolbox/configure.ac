@@ -145,7 +145,7 @@ CPPFLAGS="$CPPFLAGS $MBEDTLS_CFLAGS"
 LIBS="$LIBS $MBEDTLS_LIBS"
 
 AC_CHECK_HEADER(mbedtls/ssl.h, [
-	AC_CHECK_LIB(mbedtls, mbedtls_pk_parse_key, [mbedtls_found=true; MBEDTLS_LIBS="$MBEDTLS_LIBS -lmbedtls"], [mbedtls_found=false]) ],
+	AC_CHECK_LIB(mbedtls, mbedtls_pk_parse_key, [mbedtls_found=true; MBEDTLS_LIBS="$MBEDTLS_LIBS -lmbedtls -lmbedcrypto"], [mbedtls_found=false], [-lmbedcrypto]) ],
 	[mbedtls_found=false]
 )
 
@@ -203,8 +203,9 @@ AC_SUBST(POLARSSL_CFLAGS)
 AC_SUBST(POLARSSL_LIBS)
 
 
-AM_CONDITIONAL(ENABLE_POLARSSL12, test "$polarssl_post_12_found" != "true")
+AM_CONDITIONAL(ENABLE_POLARSSL12, test "$polarssl_post_12_found" = "false")
 AM_CONDITIONAL(ENABLE_POLARSSL, test "$polarssl_post_12_found" = "true")
+AM_CONDITIONAL(ENABLE_MBEDTLS, test "$mbedtls_found" = "true")
 
 
 dnl substitute variables used by .pc files
