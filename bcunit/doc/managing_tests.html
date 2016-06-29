@@ -1,13 +1,13 @@
 <HTML>
 <HEAD>
-  <TITLE>CUnit - Managing Tests & Suites</TITLE>
-  <LINK REL=StyleSheet HREF="CUnit_doc.css" TYPE="text/css" TITLE="CUnit Basic Style" />
+  <TITLE>BCUnit - Managing Tests & Suites</TITLE>
+  <LINK REL=StyleSheet HREF="BCUnit_doc.css" TYPE="text/css" TITLE="BCUnit Basic Style" />
 </HEAD>
 <BODY>
 <DIV CLASS="NAVHEADER" >
 <TABLE SUMMARY="Header navigation table" WIDTH="100%" BORDER="0" CELLPADDING="0" CELLSPACING="0">
   <TR>
-    <TH COLSPAN="3" ALIGN="center"><H3>CUnit Progammers Guide</H3></TH>
+    <TH COLSPAN="3" ALIGN="center"><H3>BCUnit Progammers Guide</H3></TH>
   </TR>
   <TR>
     <TD WIDTH="10%" ALIGN="left" VALIGN="bottom"><A HREF="test_registry.html" ACCESSKEY="P" >Prev</A></TD>
@@ -19,13 +19,13 @@
 
 <H2>4. Managing Tests & Suites</H2>
 
-In order for a test to be run by CUnit, it must be added to a test
+In order for a test to be run by BCUnit, it must be added to a test
 collection (suite) which is registered with the 
 <A HREF="test_registry.html">test registry</A>.
 
 <H3 ID="synopsis">4.1. Synopsis</H3>
-#include &lt;<A HREF="headers/TestDB.h">CUnit/TestDB.h</A>&gt;
-(included automatically by &lt;<A HREF="headers/CUnit.h">CUnit/CUnit.h</A>&gt;)
+#include &lt;<A HREF="headers/TestDB.h">BCUnit/TestDB.h</A>&gt;
+(included automatically by &lt;<A HREF="headers/BCUnit.h">BCUnit/BCUnit.h</A>&gt;)
 <P />
 <PRE>
   typedef struct <B CLASS="cite">CU_Suite</B>
@@ -192,12 +192,12 @@ value should be checked by the user to verify success.</P>
 </P>
 <P CLASS="indent5">For large test structures with many tests and suites,
 managing test/suite associations and registration is tedious and error-prone.
-CUnit provides a special registration system to help manage suites and tests.
+BCUnit provides a special registration system to help manage suites and tests.
 Its primary benefit is to centralize the registration of suites and associated
 tests, and to minimize the amount of error checking code the user needs to write.
 <BR /><BR />
 Test cases are first grouped into arrays of <CITE>CU_TestInfo</CITE> instances
-(defined in &lt;<A HREF="headers/TestDB.h">CUnit/TestDB.h</A>&gt;):</P>
+(defined in &lt;<A HREF="headers/TestDB.h">BCUnit/TestDB.h</A>&gt;):</P>
 <PRE CLASS="indent10">
 CU_TestInfo test_array1[] = {
   { "testname1", test_func1 },
@@ -215,7 +215,7 @@ with a single test suite.
 <BR /><BR />
 Suite information is then defined in one or more arrays of 
 <CITE>CU_SuiteInfo</CITE> instances (defined in 
-&lt;<A HREF="headers/TestDB.h">CUnit/TestDB.h</A>&gt;):</P>
+&lt;<A HREF="headers/TestDB.h">BCUnit/TestDB.h</A>&gt;):</P>
 <PRE CLASS="indent10">
 CU_SuiteInfo suites[] = {
   { "suitename1", suite1_init-func, suite1_cleanup_func, test_array1 },
@@ -332,7 +332,7 @@ be found.  The position is a 1-based index in the range
 This may be helpful when suites having duplicate names are registered, in which case
 lookup by name can only retrieve the 1st suite having that name.  The second 2 functions
 help the client identify the position of a registered suite.  These return 0 if the suite 
-cannot be found.  In addition, all these functions set the CUnit error state to
+cannot be found.  In addition, all these functions set the BCUnit error state to
 <CODE>CUE_NOREGISTRY</CODE> if the registry is not <A HREF="test_registry.html#init">
 initialized</A>.  As appropriate, <CODE>CUE_NO_SUITENAME</CODE> is set if <CODE>strName</CODE>
 is <CODE>NULL</CODE>, and <CODE>CUE_NOSUITE</CODE> is set if <CODE>pSuite</CODE>
@@ -350,7 +350,7 @@ test cannot found.  The position is a 1-based index in the range [1 .. pSuite->u
 This may be helpful when tests having duplicate names are registered, in which case
 lookup by name can only retrieve the 1st test having that name.  The second 2 functions
 help the client identify the position of a test in a suite.  These return 0 if the test  
-cannot be found.  In addition, all these functions set the CUnit error state to
+cannot be found.  In addition, all these functions set the BCUnit error state to
 <CODE>CUE_NOREGISTRY</CODE> if the registry is not <A HREF="test_registry.html#init">
 initialized</A>, and to <CODE>CUE_NOSUITE</CODE> if <CODE>pSuite</CODE> is <CODE>NULL</CODE>.
 As appropriate, <CODE>CUE_NO_TESTNAME</CODE> is set if <CODE>strName</CODE> is 
@@ -360,10 +360,10 @@ As appropriate, <CODE>CUE_NO_TESTNAME</CODE> is set if <CODE>strName</CODE> is
 <H3 ID="deprecated">4.8. Deprecated v1 Data Types & Functions</H3>
 The following data types and functions are deprecated as of version 2.
 To use these deprecated names, user code must be compiled with
-<CITE>USE_DEPRECATED_CUNIT_NAMES</CITE> defined.
+<CITE>USE_DEPRECATED_BCUNIT_NAMES</CITE> defined.
 <P />
-<B>#include&nbsp;&lt;<A HREF="headers/TestDB.h">CUnit/TestDB.h</A>&gt;</B>
-(included automatically by <A HREF="headers/CUnit.h">CUnit/CUnit.h</A>&gt;).
+<B>#include&nbsp;&lt;<A HREF="headers/TestDB.h">BCUnit/TestDB.h</A>&gt;</B>
+(included automatically by <A HREF="headers/BCUnit.h">BCUnit/BCUnit.h</A>&gt;).
 <P />
 <TABLE CELLPADDING=5 BORDER=2>
   <TR VALIGN="top">

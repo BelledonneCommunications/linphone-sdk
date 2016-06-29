@@ -1,6 +1,6 @@
-Longer term CUnit upgrade ideas:
+Longer term BCUnit upgrade ideas:
 
-1. Internationalize CUnit.
+1. Internationalize BCUnit.
 
 2. Signal handling based exception catching for some invalid memory access by
    the group or test case in which case the test case/group execution should be

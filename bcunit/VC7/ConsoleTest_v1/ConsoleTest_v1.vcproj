@@ -19,8 +19,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..\Examples;..\..\CUnit\Headers"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;USE_DEPRECATED_CUNIT_NAMES"
+				AdditionalIncludeDirectories="..\..\Examples;..\..\BCUnit\Headers"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;USE_DEPRECATED_BCUNIT_NAMES"
 				MinimalRebuild="TRUE"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="5"
@@ -33,10 +33,10 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="libcunit.lib"
+				AdditionalDependencies="libbcunit.lib"
 				OutputFile="$(OutDir)/ConsoleTest_v1.exe"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="..\libcunit\Debug"
+				AdditionalLibraryDirectories="..\libbcunit\Debug"
 				GenerateDebugInformation="TRUE"
 				ProgramDatabaseFile="$(OutDir)/ConsoleTest_v1.pdb"
 				SubSystem="1"
@@ -70,8 +70,8 @@
 			CharacterSet="2">
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="..\..\CUnit\Headers"
-				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;USE_DEPRECATED_CUNIT_NAMES"
+				AdditionalIncludeDirectories="..\..\BCUnit\Headers"
+				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;USE_DEPRECATED_BCUNIT_NAMES"
 				RuntimeLibrary="4"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -81,10 +81,10 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="libcunit.lib"
+				AdditionalDependencies="libbcunit.lib"
 				OutputFile="$(OutDir)/ConsoleTest_v1.exe"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="..\libcunit\Release"
+				AdditionalLibraryDirectories="..\libbcunit\Release"
 				GenerateDebugInformation="TRUE"
 				SubSystem="1"
 				OptimizeReferences="2"

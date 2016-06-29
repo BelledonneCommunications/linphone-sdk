@@ -1,10 +1,10 @@
 dnl Applied patch to handle AC_ARG_ENABLE targets (Patch 1250604) - Provided by Andrew Kephart <andrew.kephart@alereon.com
 
-AC_INIT(CUnit, 3.0-1)
-AM_INIT_AUTOMAKE(CUnit, 3.0-1)
+AC_INIT(BCUnit, 3.0-1)
+AM_INIT_AUTOMAKE(BCUnit, 3.0-1)
 
 dnl Package version information
-PACKAGE=CUnit
+PACKAGE=BCUnit
 VERSION_MAJOR=3
 VERSION_MINOR=0
 VERSION=${VERSION_MAJOR}.${VERSION_MINOR}
@@ -26,8 +26,8 @@ LIBTOOL_SUFFIX=${LIBTOOL_SUFFIX1}.${LIBTOOL_AGE}.${LIBTOOL_REVISION}
 
 TOPDIR=`pwd`
 
-CFLAGS="$CFLAGS -DRELEASE=@RELEASE@ -Wall -W -pedantic -Wshadow -ansi -I${PWD}/CUnit/Headers -std=c99"
-LDFLAGS="$LDFLAGS -L${PWD}/CUnit/Sources"
+CFLAGS="$CFLAGS -DRELEASE=@RELEASE@ -Wall -W -pedantic -Wshadow -ansi -I${PWD}/BCUnit/Headers -std=c99"
+LDFLAGS="$LDFLAGS -L${PWD}/BCUnit/Sources"
 
 AC_ARG_ENABLE(debug,
   [AS_HELP_STRING([--enable-debug],[enable debugging [default=no]])],
@@ -45,7 +45,7 @@ fi
 
 
 AC_ARG_ENABLE(automated,
-  [AS_HELP_STRING([--enable-automated],[compile CUnit automated interface [default=yes]])],
+  [AS_HELP_STRING([--enable-automated],[compile BCUnit automated interface [default=yes]])],
   [cu_do_automated=$enableval],
   [cu_do_automated="yes"])
 if test x"$cu_do_automated" = xyes ; then
@@ -59,7 +59,7 @@ AM_CONDITIONAL(ENABLE_AUTOMATED, test x"$cu_do_automated" = xyes)
 
 
 AC_ARG_ENABLE(basic,
-  [AS_HELP_STRING([--enable-basic],[compile CUnit basic interface [default=yes]])],
+  [AS_HELP_STRING([--enable-basic],[compile BCUnit basic interface [default=yes]])],
   [cu_do_basic=$enableval],
   [cu_do_basic="yes"])
 if test x"$cu_do_basic" = xyes ; then
@@ -73,7 +73,7 @@ AM_CONDITIONAL(ENABLE_BASIC, test x"$cu_do_basic" = xyes)
 
 
 AC_ARG_ENABLE(console,
-  [AS_HELP_STRING([--enable-console],[compile CUnit console interface [default=yes]])],
+  [AS_HELP_STRING([--enable-console],[compile BCUnit console interface [default=yes]])],
   [cu_do_console=$enableval],
   [cu_do_console="yes"])
 if test x"$cu_do_console" = xyes ; then
@@ -87,7 +87,7 @@ AM_CONDITIONAL(ENABLE_CONSOLE, test x"$cu_do_console" = xyes)
 
 
 AC_ARG_ENABLE(curses,
-  [AS_HELP_STRING([--enable-curses],[compile CUnit curses interface [default=no]])],
+  [AS_HELP_STRING([--enable-curses],[compile BCUnit curses interface [default=no]])],
   [cu_do_curses=$enableval],
   [cu_do_curses="no"])
 if test x"$cu_do_curses" = xyes ; then
@@ -99,7 +99,7 @@ fi
 
 
 AC_ARG_ENABLE(examples,
-  [AS_HELP_STRING([--enable-examples],[compile CUnit example programs [default=no]])],
+  [AS_HELP_STRING([--enable-examples],[compile BCUnit example programs [default=no]])],
   [cu_do_examples=$enableval],
   [cu_do_examples="no"])
 if test x"$cu_do_examples" = xyes ; then
@@ -113,7 +113,7 @@ AM_CONDITIONAL(ENABLE_EXAMPLES, test x"$cu_do_examples" = xyes)
 
 
 AC_ARG_ENABLE(test,
-  [AS_HELP_STRING([--enable-test],[compile CUnit internal test program [default=no]])],
+  [AS_HELP_STRING([--enable-test],[compile BCUnit internal test program [default=no]])],
   [cu_do_test=$enableval],
   [cu_do_test="no"])
 if test x"$cu_do_test" = xyes ; then
@@ -127,7 +127,7 @@ AM_CONDITIONAL(ENABLE_TEST, test x"$cu_do_test" = xyes)
 
 
 AC_ARG_ENABLE(memtrace,
-  [AS_HELP_STRING([--enable-memtrace],[enable CUnit internal memory tracking [default=no]])],
+  [AS_HELP_STRING([--enable-memtrace],[enable BCUnit internal memory tracking [default=no]])],
   [cu_do_memtrace=$enableval],
   [cu_do_memtrace="no"])
 if  test x"$cu_do_memtrace" = xyes ; then
@@ -146,7 +146,7 @@ AC_ARG_ENABLE(deprecated,
   [cu_do_deprecated="no"])
 if test x"$cu_do_deprecated" = xyes ; then
 	echo "++++++++++ Enabling use of deprecated v1.1 names"
-	CFLAGS="$CFLAGS -DUSE_DEPRECATED_CUNIT_NAMES"
+	CFLAGS="$CFLAGS -DUSE_DEPRECATED_BCUNIT_NAMES"
 	ENABLE_DEPRECATED="TRUE"
 else
 	echo "---------- Disabling use of deprecated v1.1 names"
@@ -240,18 +240,18 @@ AC_CONFIG_FILES([Jamrules:Jamrules.in])
 
 dnl Configure Makefile set.
 AC_CONFIG_FILES( Makefile
-		CUnit.spec
-		cunit.pc
-		CUnit/Makefile
-		CUnit/Headers/Makefile
-		CUnit/Headers/CUnit.h
-		CUnit/Sources/Makefile
-		CUnit/Sources/Framework/Makefile
-		CUnit/Sources/Automated/Makefile
-		CUnit/Sources/Basic/Makefile
-		CUnit/Sources/Console/Makefile
-		CUnit/Sources/Curses/Makefile
-		CUnit/Sources/Test/Makefile
+		BCUnit.spec
+		bcunit.pc
+		BCUnit/Makefile
+		BCUnit/Headers/Makefile
+		BCUnit/Headers/BCUnit.h
+		BCUnit/Sources/Makefile
+		BCUnit/Sources/Framework/Makefile
+		BCUnit/Sources/Automated/Makefile
+		BCUnit/Sources/Basic/Makefile
+		BCUnit/Sources/Console/Makefile
+		BCUnit/Sources/Curses/Makefile
+		BCUnit/Sources/Test/Makefile
 		doc/Makefile
 		doc/headers/Makefile
 		Examples/Makefile

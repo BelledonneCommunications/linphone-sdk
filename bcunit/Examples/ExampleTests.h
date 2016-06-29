@@ -1,5 +1,5 @@
 /*
- *  CUnit - A Unit testing framework library for C.
+ *  BCUnit - A Unit testing framework library for C.
  *  Copyright (C) 2001  Anil Kumar
  *  Copyright (C) 2004  Anil Kumar, Jerry St.Clair
  *
@@ -18,8 +18,8 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef CUNIT_EXAMPLETESTS_H_SEEN
-#define CUNIT_EXAMPLETESTS_H_SEEN
+#ifndef BCUNIT_EXAMPLETESTS_H_SEEN
+#define BCUNIT_EXAMPLETESTS_H_SEEN
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,5 +32,5 @@ void print_example_results(void);
 }
 #endif
 
-#endif  /* CUNIT_EXAMPLETESTS_H_SEEN */
+#endif  /* BCUNIT_EXAMPLETESTS_H_SEEN */
 

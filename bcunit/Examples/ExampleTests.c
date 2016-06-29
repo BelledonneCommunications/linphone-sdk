@@ -1,5 +1,5 @@
 /*
- *  CUnit - A Unit testing framework library for C.
+ *  BCUnit - A Unit testing framework library for C.
  *  Copyright (C) 2001        Anil Kumar
  *  Copyright (C) 2004, 2005  Anil Kumar, Jerry St.Clair
  *
@@ -23,7 +23,7 @@
 #include <string.h>
 #include <assert.h>
 
-#include "CUnit.h"
+#include "BCUnit.h"
 #include "ExampleTests.h"
 
 /* WARNING - MAINTENANCE NIGHTMARE AHEAD
@@ -54,7 +54,7 @@ static void testFailure1(void) { CU_ASSERT(0); }
 static void testFailure2(void) { CU_ASSERT(0); }
 static void testFailure3(void) { CU_ASSERT(0); }
 
-/* Test functions for CUnit assertions */
+/* Test functions for BCUnit assertions */
 static void testSimpleAssert(void)
 {
   CU_ASSERT(1);

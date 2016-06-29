@@ -1,13 +1,13 @@
 <HTML>
 <HEAD>
-  <TITLE>CUnit - Error Handling</TITLE>
-  <LINK REL=StyleSheet HREF="CUnit_doc.css" TYPE="text/css" TITLE="CUnit Basic Style" />
+  <TITLE>BCUnit - Error Handling</TITLE>
+  <LINK REL=StyleSheet HREF="BCUnit_doc.css" TYPE="text/css" TITLE="BCUnit Basic Style" />
 </HEAD>
 <BODY>
 <DIV CLASS="NAVHEADER" >
 <TABLE SUMMARY="Header navigation table" WIDTH="100%" BORDER="0" CELLPADDING="0" CELLSPACING="0">
   <TR>
-    <TH COLSPAN="3" ALIGN="center"><H3>CUnit Progammers Guide</H3></TH>
+    <TH COLSPAN="3" ALIGN="center"><H3>BCUnit Progammers Guide</H3></TH>
   </TR>
   <TR>
     <TD WIDTH="10%" ALIGN="left" VALIGN="bottom"><A HREF="running_tests.html" ACCESSKEY="P" >Prev</A></TD>
@@ -20,8 +20,8 @@
 <H2>6. Error Handling</H2>
 
 <H3 ID="synopsis">6.1. Synopsis</H3>
-#include &lt;<A HREF="headers/CUError.h">CUnit/CUError.h</A>&gt;
-(included automatically by &lt;<A HREF="headers/CUnit.h">CUnit/CUnit.h</A>&gt;)
+#include &lt;<A HREF="headers/CUError.h">BCUnit/CUError.h</A>&gt;
+(included automatically by &lt;<A HREF="headers/BCUnit.h">BCUnit/BCUnit.h</A>&gt;)
 <PRE>
   typedef enum <A HREF="#errorcodes">CU_ErrorCode</A>
   CU_ErrorCode   <A HREF="#geterror">CU_get_error</A>(void);
@@ -33,8 +33,8 @@
 </PRE>
 <P />
 
-<H3 ID="errorhandling">6.2. CUnit Error Handling</H3>
-Most CUnit functions set an error code indicating the framework
+<H3 ID="errorhandling">6.2. BCUnit Error Handling</H3>
+Most BCUnit functions set an error code indicating the framework
 error status.  Some functions return the code, while others just
 set the code and return some other value.  Two functions are
 provided for examining the framework error status:
@@ -45,7 +45,7 @@ provided for examining the framework error status:
 The first returns the error code itself, while the second returns a
 message describing the error status.  The error code is an
 <CODE>enum</CODE> of type <CITE>CU_ErrorCode</CITE> defined in
-&lt;<A HREF="headers/CUError.h">CUnit/CUError.h</A>&gt;.
+&lt;<A HREF="headers/CUError.h">BCUnit/CUError.h</A>&gt;.
 The following error code values are defined:
 <P CLASS="indent5">
 <TABLE CELLPADDING=2>
@@ -146,7 +146,7 @@ following functions are provided:
   <CITE ID="getaction">CU_ErrorAction <B>CU_get_error_action</B>(void)</CITE>
 </P>
 The error action code is an <CODE>enum</CODE> of type <CITE>CU_ErrorAction</CITE>
-defined in &lt;<A HREF="headers/CUError.h">CUnit/CUError.h</A>&gt;.
+defined in &lt;<A HREF="headers/CUError.h">BCUnit/CUError.h</A>&gt;.
 The following error action codes are defined:
 <P CLASS="indent5">
 <TABLE CELLPADDING=2>
@@ -171,7 +171,7 @@ The following error action codes are defined:
 <H3 ID="deprecated">6.4. Deprecated v1 Variables & Functions</H3>
 The following variables and functions are deprecated as of version 2.
 To use these deprecated names, user code must be compiled with
-<CITE>USE_DEPRECATED_CUNIT_NAMES</CITE> defined.
+<CITE>USE_DEPRECATED_BCUNIT_NAMES</CITE> defined.
 <P />
 <TABLE CELLPADDING=5 BORDER=2>
   <TR VALIGN="top">

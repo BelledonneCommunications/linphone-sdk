@@ -19,7 +19,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..\Examples;..\..\CUnit\Headers"
+				AdditionalIncludeDirectories="..\..\Examples;..\..\BCUnit\Headers"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
 				MinimalRebuild="TRUE"
 				BasicRuntimeChecks="3"
@@ -33,10 +33,10 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="libcunit.lib"
+				AdditionalDependencies="libbcunit.lib"
 				OutputFile="$(OutDir)/BasicTest.exe"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="..\libcunit\Debug"
+				AdditionalLibraryDirectories="..\libbcunit\Debug"
 				GenerateDebugInformation="TRUE"
 				ProgramDatabaseFile="$(OutDir)/BasicTest.pdb"
 				SubSystem="1"
@@ -70,7 +70,7 @@
 			CharacterSet="2">
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="..\..\Examples;..\..\CUnit\Headers"
+				AdditionalIncludeDirectories="..\..\Examples;..\..\BCUnit\Headers"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
 				RuntimeLibrary="4"
 				UsePrecompiledHeader="0"
@@ -81,10 +81,10 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="libcunit.lib"
+				AdditionalDependencies="libbcunit.lib"
 				OutputFile="$(OutDir)/BasicTest.exe"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="..\libcunit\Release"
+				AdditionalLibraryDirectories="..\libbcunit\Release"
 				GenerateDebugInformation="TRUE"
 				SubSystem="1"
 				OptimizeReferences="2"

@@ -1,5 +1,5 @@
 #
-# Jamrules file to build CUnit - Root Directory
+# Jamrules file to build BCUnit - Root Directory
 # (see http://www.freetype.org/jam/index.html)
 #
 # Copyright (C) 2004-2006  Jerry St.Clair
@@ -72,7 +72,7 @@ if $(OS) = LINUX || $(UNIX)
 
   # Recognize deprecated version 1.1 function names and build V1.1 examples
   if @ENABLE_DEPRECATED@ = TRUE
-    { USE_DEPRECATED_NAMES = -DUSE_DEPRECATED_CUNIT_NAMES ; }
+    { USE_DEPRECATED_NAMES = -DUSE_DEPRECATED_BCUNIT_NAMES ; }
 }
 
 # On other platforms, comment out the option to disable it
@@ -87,7 +87,7 @@ else
   VERSION_MINOR = 1 ;
 
   # Set the root of install path
-  prefix = c:\\dev\\CUnit_install ;
+  prefix = c:\\dev\\BCUnit_install ;
 
   # Comment to not include interface in library
   BUILD_AUTOMATED = 1 ; 
@@ -102,10 +102,10 @@ else
   # Comment to not build test program
   BUILD_TEST = 1 ; 
   
-  # Comment to not build CUnit shared library
+  # Comment to not build BCUnit shared library
   BUILD_SHARED_LIB = 1 ; 
 
-  # Comment to not build CUnit static library
+  # Comment to not build BCUnit static library
   BUILD_STATIC_LIB = 1 ; 
   
   # Comment to compile with debugging & assertions enabled
@@ -116,31 +116,31 @@ else
 
   # Uncomment to recognize deprecated version 1.1 function names
   # and build V1.1 examples
-  #USE_DEPRECATED_NAMES = -DUSE_DEPRECATED_CUNIT_NAMES ;
+  #USE_DEPRECATED_NAMES = -DUSE_DEPRECATED_BCUNIT_NAMES ;
 }
 
 #---------------------------------------------------------------------------
 # Options from here on should not require routine tweaking
 
-PACKAGE = CUnit ;
+PACKAGE = BCUnit ;
 
 # Install locations - comment out to not install that class of file
 INSTALL_BIN_DIR   = $(prefix)$(SLASH)bin ;
 INSTALL_LIB_DIR   = $(prefix)$(SLASH)lib ;
-INSTALL_INC_DIR   = $(prefix)$(SLASH)include$(SLASH)CUnit ;
-INSTALL_DOC_DIR   = $(prefix)$(SLASH)doc$(SLASH)CUnit ;
+INSTALL_INC_DIR   = $(prefix)$(SLASH)include$(SLASH)BCUnit ;
+INSTALL_DOC_DIR   = $(prefix)$(SLASH)doc$(SLASH)BCUnit ;
 INSTALL_MAN_DIR   = $(prefix)$(SLASH)man ;
-INSTALL_SHARE_DIR = $(prefix)$(SLASH)share$(SLASH)CUnit ;
-#INSTALL_EXAM_DIR  = $(prefix)$(SLASH)share$(SLASH)CUnit$(SLASH)Examples ;
-#INSTALL_TEST_DIR  = $(prefix)$(SLASH)share$(SLASH)CUnit$(SLASH)Test ;
+INSTALL_SHARE_DIR = $(prefix)$(SLASH)share$(SLASH)BCUnit ;
+#INSTALL_EXAM_DIR  = $(prefix)$(SLASH)share$(SLASH)BCUnit$(SLASH)Examples ;
+#INSTALL_TEST_DIR  = $(prefix)$(SLASH)share$(SLASH)BCUnit$(SLASH)Test ;
 
 # Build directory - - will be qualified for compiler & build type
 BUILD_DIR_ROOT = $(TOP) ;
 
 EXAMPLES_DIR   = $(TOP)$(SLASH)Examples ;
 
-CUNIT_HDR_DIR  = $(TOP)$(SLASH)CUnit$(SLASH)Headers ;
-CUNIT_LIB_NAME = libcunit ;
+BCUNIT_HDR_DIR  = $(TOP)$(SLASH)BCUnit$(SLASH)Headers ;
+BCUNIT_LIB_NAME = libbcunit ;
 
 # Comment for normal jam deletion of object files after building targets
 KEEPOBJS = true ;
@@ -165,7 +165,7 @@ if $(NT)
 
   # Windows-specific defines
   CCFLAGS = -DWIN32 -D_LIB -D_MBCS -D_DELAYTEST ;
-  CUNIT_WIN_DIR = $(TOP)$(SLASH)CUnit$(SLASH)Sources$(SLASH)Win ;
+  BCUNIT_WIN_DIR = $(TOP)$(SLASH)BCUnit$(SLASH)Sources$(SLASH)Win ;
 
   if $(BCCROOT) || ( $(TOOLSET) = BORLANDC )
   {
@@ -269,7 +269,7 @@ C++FLAGS += $(CCFLAGS) ;
 BUILD_DIR = $(BUILD_DIR_ROOT)$(BUILD_SUBDIR) ;
 
 #----------------------------------------------------------------------
-# CUnit-specific rules & actions
+# BCUnit-specific rules & actions
 #----------------------------------------------------------------------
 # If anyone can figure out a better way, good for you
 # (and let me (jds) know)!  Here's the problem...
@@ -284,7 +284,7 @@ BUILD_DIR = $(BUILD_DIR_ROOT)$(BUILD_SUBDIR) ;
 # use grist so Jam knows the difference, but the standard
 # <$(SOURCE_GRIST)> works in most cases.
 #
-rule DoInstallCUnitFile
+rule DoInstallBCUnitFile
 {
     local i t ;
 
@@ -312,15 +312,15 @@ rule DoInstallCUnitFile
     }
 }
 
-rule InstallCUnitBin
+rule InstallBCUnitBin
 {
-    DoInstallCUnitFile $(<) : $(>) ;
+    DoInstallBCUnitFile $(<) : $(>) ;
     MODE on $(>:D=$(<)) = $(EXEMODE) ;
 }
 
-rule InstallCUnitFile
+rule InstallBCUnitFile
 {
-    DoInstallCUnitFile $(<) : $(>) ;
+    DoInstallBCUnitFile $(<) : $(>) ;
     MODE on $(>:D=$(<)) = $(FILEMODE) ;
 }
 

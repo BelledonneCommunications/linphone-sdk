@@ -21,7 +21,7 @@
 ############################################################################
 
 add_executable(BasicTest BasicTest.c)
-target_link_libraries(BasicTest cunit cunitexamples)
+target_link_libraries(BasicTest bcunit bcunitexamples)
 
-install(TARGETS BasicTest DESTINATION share/CUnit/Examples/Basic)
-install(FILES README DESTINATION share/CUnit/Examples/Basic)
+install(TARGETS BasicTest DESTINATION share/BCUnit/Examples/Basic)
+install(FILES README DESTINATION share/BCUnit/Examples/Basic)

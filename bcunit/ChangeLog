@@ -55,7 +55,7 @@
   	new selections for the Basic and Console also.
 
 * Sun May 08 2005 Jerry St.Clair <jds2@users.sourceforge.net>
-  - Added 'CU_' prefix to BOOL, TRUE, FALSE in Headers/CUnit.h.
+  - Added 'CU_' prefix to BOOL, TRUE, FALSE in Headers/BCUnit.h.
   - Added jam system option to build dll's on Windows.
 
 * Sun May 01 2005 Jerry St.Clair <jds2@users.sourceforge.net>
@@ -67,18 +67,18 @@
   - Streamlined jam build system.
   - jam now builds in compiler- and debug-specific subdirectories.
   - Bug fixes:
-    - minor errors in doc/managing_tests.html. (cunit-Bugs-1161520)
+    - minor errors in doc/managing_tests.html. (bcunit-Bugs-1161520)
     - fixed CU_ADD_TEST() macro definition in TestDB.h.
-      (cunit-Bugs-1161527)
+      (bcunit-Bugs-1161527)
     - changed header Curses.h to CUCurses.h to avoid conflict
-      with system curses.h on Windows.  (cunit-Bugs-1185382)
+      with system curses.h on Windows.  (bcunit-Bugs-1185382)
     - removed const qualifier from CU_get_failure_list() and
-      and CU_get_run_summary() return values. (cunit-Bugs-1106644)
+      and CU_get_run_summary() return values. (bcunit-Bugs-1106644)
 
 * Sun Jan 08 2005 Jerry St.Clair <jds2@users.sourceforge.net>
   - Bug fix: failures reported incorrectly in Basic interface
     from basic.c::basic_test_complete_message_handler()
-    (bug report cunit-Bugs-1093861).
+    (bug report bcunit-Bugs-1093861).
 
 * Sat Oct 02 2004 Jerry St.Clair <jds2@users.sourceforge.net>
   - Bug fix: update pReg after registry intialization in
@@ -102,14 +102,14 @@
     so this dependence is no longer needed).
   - Provided functions to turn on & off memory allocation in MyMem.c
     for use in internal testing.
-  - Initial implementation of internal CUnit testing.
+  - Initial implementation of internal BCUnit testing.
   - Implement modified registration system (based on Cheung/Aurema code).
 
 * Wed Sep 01 2004 Jerry St.Clair <jds2@users.sourceforge.net>
   - Implemented setjmp/longjmp mechanism for aborting test runs.
   - Add assertion to CU_assertImplementation() to trap calls
     outside a registered test function during a test run.
-  - Added CU_PASS and CU_FAIL to assertions in CUnit.h.
+  - Added CU_PASS and CU_FAIL to assertions in BCUnit.h.
 
 * Sat Aug 28 2004 Jerry St.Clair <jds2@users.sourceforge.net>
   - Html documentation implemented.
@@ -120,7 +120,7 @@
     containing the following changes.
 
   Wed 18-Aug-2004 Jerry St.Clair <jds2@users.sourceforge.net>
-    - Updated manpages, consolidating all docs in CUnit.3.
+    - Updated manpages, consolidating all docs in BCUnit.3.
     - Jamfiles now only install lib, headers, man, and docs.
     - Initial shot at having configure generate custom Jamrules
       from Jamrules.in.
@@ -155,7 +155,7 @@
       to allow users & other modules to generate a test list file.
       Consolidated automated_list_all_tests() and
       automated_list_group_tests() into this new function.
-    - Changed default output file root to "CUnitTest" and name endings
+    - Changed default output file root to "BCUnitTest" and name endings
       for xml files to "-Listing.xml" and "-Results.xml".  This makes
       the names more generic and descriptive.
     - CU_automated_run_tests no longer automatically generates a
@@ -163,8 +163,8 @@
       when needed.
     - Added assertion to protect against file writes when the
       file pointer is NULL.
-    - xml bug fixes based on xml validation report (</CUNIT_RESULT_LISTING>
-      must come before <CUNIT_RUN_SUMMARY> in Automated.c; wrong
+    - xml bug fixes based on xml validation report (</BCUNIT_RESULT_LISTING>
+      must come before <BCUNIT_RUN_SUMMARY> in Automated.c; wrong
       top element in document type declaration, incorrect element
       ordering in <MD_SUMMARY> in MyMem.c).
 
@@ -192,7 +192,7 @@
       now set the registry (if it is different from the active one) and
       restore it after the tests are complete.
     - Added functions for creating and destroying a test registry independent
-      of the CUnit internal system.  Convenience, mostly for testing.
+      of the BCUnit internal system.  Convenience, mostly for testing.
     - Added assertions preventing modification of the test registry during a test run.
     - Moved add_failure prototype to TestRun.h since implemented in TestRun.c.
     - Changed 'Errno.h' to 'CUError.h' to avoid confusion with standard header.

@@ -21,7 +21,7 @@
 ############################################################################
 
 add_executable(CursesTest CursesTest.c)
-target_link_libraries(CursesTest cunit cunitexamples)
+target_link_libraries(CursesTest bcunit bcunitexamples)
 
-install(TARGETS CursesTest DESTINATION share/CUnit/Examples/Curses)
-install(FILES README DESTINATION share/CUnit/Examples/Curses)
+install(TARGETS CursesTest DESTINATION share/BCUnit/Examples/Curses)
+install(FILES README DESTINATION share/BCUnit/Examples/Curses)

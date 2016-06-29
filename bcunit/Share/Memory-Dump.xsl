@@ -6,7 +6,7 @@
 	<xsl:template match="MEMORY_DUMP_REPORT">
 		<html>
 			<head>
-				<title> CUnit Memory Debugger Dumper - All Allocation/Deallocation Report. </title>
+				<title> BCUnit Memory Debugger Dumper - All Allocation/Deallocation Report. </title>
 			</head>
 
 			<body bgcolor="e0e0f0">
@@ -18,8 +18,8 @@
 	<xsl:template match="MD_HEADER">
 		<div align="center">
 			<h3>
-				<b> CUnit - A Unit testing framework for C. </b> <br/>
-				<a href="http://cunit.sourceforge.net/"> http://cunit.sourceforge.net/ </a>
+				<b> BCUnit - A Unit testing framework for C. </b> <br/>
+				<a href="https://github.com/BelledonneCommunications/bcunit/"> https://github.com/BelledonneCommunications/bcunit/ </a>
 			</h3>
 		</div>
 	</xsl:template>
@@ -27,7 +27,7 @@
 	<xsl:template match="MD_RUN_LISTING">
 		<div align="center">
 			<h2>
-				CUnit Memory Debugger Report <br/>
+				BCUnit Memory Debugger Report <br/>
 				Memory Allocation/Deallocation Records
 			</h2>
 			<hr align="center" width="100%" color="maroon" />

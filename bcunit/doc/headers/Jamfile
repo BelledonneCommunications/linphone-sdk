@@ -1,5 +1,5 @@
 #
-# Jamfile to build CUnit - doc Directory
+# Jamfile to build BCUnit - doc Directory
 # (see http://www.freetype.org/jam/index.html)
 #
 # Copyright (C) 2004-2006  Jerry St.Clair
@@ -22,16 +22,16 @@
 SubDir TOP doc headers ;
 
 SEARCH_SOURCE += 
-  $(TOP)$(SLASH)CUnit$(SLASH)Headers
-  $(TOP)$(SLASH)CUnit$(SLASH)Sources$(SLASH)Win ;
+  $(TOP)$(SLASH)BCUnit$(SLASH)Headers
+  $(TOP)$(SLASH)BCUnit$(SLASH)Sources$(SLASH)Win ;
 
 CU_HEADERS =
   Automated.h 
   Basic.h 
   Console.h
   CUError.h
-  CUnit.h
-  CUnit_intl.h
+  BCUnit.h
+  BCUnit_intl.h
   CUCurses.h
   MyMem.h
   TestDB.h
@@ -41,7 +41,7 @@ CU_HEADERS =
 
 if $(INSTALL_DOC_DIR)
 {
-  InstallCUnitFile $(INSTALL_DOC_DIR)$(SLASH)headers : $(CU_HEADERS) ;
+  InstallBCUnitFile $(INSTALL_DOC_DIR)$(SLASH)headers : $(CU_HEADERS) ;
 }
 
 

@@ -1,6 +1,11 @@
+# What is BCUnit?
+
+This is BCUnit, a fork of the defunct project CUnit (see below), with several fixes and patches applied.
+
+# What is CUnit?
 
 			CUnit : A Unit Testing Framework
-			  http://cunit.sourceforge.net
+			  https://github.com/BelledonneCommunications/bcunit
 
 CUnit is a Unit testing framework for C.
 
@@ -10,9 +15,9 @@ the framework, some of which are platform dependent (e.g. curses on
 *nix).  Building other interfaces should be straightforward with
 the facilities provided in the framework.
 
-CUnit is built as either a static or shared library which provides 
-framework support when linked into user testing code.  The framework 
-complies with the conventional structure of test cases bundled into 
+CUnit is built as either a static or shared library which provides
+framework support when linked into user testing code.  The framework
+complies with the conventional structure of test cases bundled into
 suites which are registered with the framework for running.  See the
 documentation for more about the structure and use of the framework.
 
@@ -75,8 +80,8 @@ All Platforms:
   building of the library, examples, and tests.  The jam build system was
   implemented using ftjam 2.3.2 (http://www.freetype.org/jam/index.html).
   It may work under the original Perforce jam implementation, but has not
-  been tested.  It has been tested under gcc on Linux, and Borland C++ 5.5, 
-  VC7, MinGW 3.2.3, and Open Watcom 1.3 on Windows.  Due to the nature of 
+  been tested.  It has been tested under gcc on Linux, and Borland C++ 5.5,
+  VC7, MinGW 3.2.3, and Open Watcom 1.3 on Windows.  Due to the nature of
   jam, the build system should be readily extensible to other platforms.
 
   The jam file set supports both standard and custom symbolic build
@@ -84,21 +89,21 @@ All Platforms:
   customized Jambase file is provided which sorts out some of the
   rough edges for MinGW and Watcom on Windows.  It may not be necessary
   when using gcc, Borland, or VC, but it won't hurt either.
-  
+
   The files generated during the build are placed in a subdirectory
   given by <CONFIG>/<PLATFORM>, where:
-  
+
     <CONFIG> = Debug or Release
     <PLATFORM> = bcc, mingw, msvc, watcom, linux
-    
-  This allows easy switching between compilers without overlap of the output 
+
+  This allows easy switching between compilers without overlap of the output
   files.  The <CONFIG> is determined by whether NODEBUG is defined in your
   Jamrules file.  <PLATFORM> is set automatically in Jamrules.
 
   To build using jam:
 
     1. Set the working directory to the top of the source tree
-    
+
     2. Generate Jamrules
        a. On Linux, run autoconf & configure
        b. On Windows, copy Jamrules.in to Jamrules

@@ -42,7 +42,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\Examples;..\CUnit\Headers"
+				AdditionalIncludeDirectories="..\Examples;..\BCUnit\Headers"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
 				MinimalRebuild="true"
 				ExceptionHandling="0"
@@ -67,7 +67,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="libcunit.lib"
+				AdditionalDependencies="libbcunit.lib"
 				OutputFile="$(OutDir)/ConsoleTest.exe"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="$(ConfigurationName)"
@@ -125,7 +125,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="..\Examples;..\CUnit\Headers"
+				AdditionalIncludeDirectories="..\Examples;..\BCUnit\Headers"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
 				ExceptionHandling="1"
 				RuntimeLibrary="0"
@@ -148,7 +148,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="libcunit.lib"
+				AdditionalDependencies="libbcunit.lib"
 				OutputFile="$(OutDir)/ConsoleTest.exe"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="$(ConfigurationName)"
@@ -208,7 +208,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\Examples;..\CUnit\Headers"
+				AdditionalIncludeDirectories="..\Examples;..\BCUnit\Headers"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
 				MinimalRebuild="true"
 				ExceptionHandling="0"
@@ -233,7 +233,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="libcunit_dll.lib"
+				AdditionalDependencies="libbcunit_dll.lib"
 				OutputFile="$(OutDir)/ConsoleTest.exe"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="$(ConfigurationName)"
@@ -291,7 +291,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="..\Examples;..\CUnit\Headers"
+				AdditionalIncludeDirectories="..\Examples;..\BCUnit\Headers"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
 				ExceptionHandling="0"
 				RuntimeLibrary="2"
@@ -314,7 +314,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="libcunit_dll.lib"
+				AdditionalDependencies="libbcunit_dll.lib"
 				OutputFile="$(OutDir)/ConsoleTest.exe"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="$(ConfigurationName)"
@@ -374,7 +374,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\Examples;..\CUnit\Headers"
+				AdditionalIncludeDirectories="..\Examples;..\BCUnit\Headers"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;MEMTRACE"
 				MinimalRebuild="true"
 				ExceptionHandling="0"
@@ -399,7 +399,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="libcunit.lib"
+				AdditionalDependencies="libbcunit.lib"
 				OutputFile="$(OutDir)/ConsoleTest.exe"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="$(ConfigurationName)"

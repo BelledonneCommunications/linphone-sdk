@@ -23,7 +23,7 @@ EXAMPLE_DIRS += $(BASIC_EXAMPLE_DIRS) $(CONSOLE_EXAMPLE_DIRS) $(CURSES_EXAMPLE_D
 SUBDIRS = ${EXAMPLE_DIRS}
 
 if ENABLE_EXAMPLES
-noinst_LIBRARIES = libcunitexamples.a
-libcunitexamples_a_SOURCES = ExampleTests.c
+noinst_LIBRARIES = libbcunitexamples.a
+libbcunitexamples_a_SOURCES = ExampleTests.c
 endif
 

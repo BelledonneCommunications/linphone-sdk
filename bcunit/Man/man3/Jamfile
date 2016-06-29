@@ -1,5 +1,5 @@
 #
-# Jamfile to build CUnit - man/man3 Directory
+# Jamfile to build BCUnit - man/man3 Directory
 # (see http://www.freetype.org/jam/index.html)
 #
 # Copyright (C) 2004-2006  Jerry St.Clair
@@ -23,6 +23,6 @@ SubDir TOP Man man3 ;
 
 if $(INSTALL_MAN_DIR)
 {
-  InstallMan $(INSTALL_MAN_DIR) : CUnit.3 ;
+  InstallMan $(INSTALL_MAN_DIR) : BCUnit.3 ;
 }
 

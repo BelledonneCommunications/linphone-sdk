@@ -3,7 +3,7 @@
 docdir = $(prefix)/doc/@PACKAGE@
 
 doc_DATA = \
-	CUnit_doc.css \
+	BCUnit_doc.css \
 	error_handling.html \
 	fdl.html \
 	index.html \

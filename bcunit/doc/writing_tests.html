@@ -1,13 +1,13 @@
 <HTML>
 <HEAD>
-  <TITLE>CUnit - Writing CUnit Test Cases</TITLE>
-  <LINK REL=StyleSheet HREF="CUnit_doc.css" TYPE="text/css" TITLE="CUnit Basic Style" />
+  <TITLE>BCUnit - Writing BCUnit Test Cases</TITLE>
+  <LINK REL=StyleSheet HREF="BCUnit_doc.css" TYPE="text/css" TITLE="BCUnit Basic Style" />
 </HEAD>
 <BODY>
 <DIV CLASS="NAVHEADER" >
 <TABLE SUMMARY="Header navigation table" WIDTH="100%" BORDER="0" CELLPADDING="0" CELLSPACING="0">
   <TR>
-    <TH COLSPAN="3" ALIGN="center"><H3>CUnit Progammers Guide</H3></TH>
+    <TH COLSPAN="3" ALIGN="center"><H3>BCUnit Progammers Guide</H3></TH>
   </TR>
   <TR>
     <TD WIDTH="10%" ALIGN="left" VALIGN="bottom"><A HREF="introduction.html" ACCESSKEY="P" >Prev</A></TD>
@@ -17,14 +17,14 @@
 </TABLE>
 <HR ALIGN="LEFT" WIDTH="100%">
 
-<H2>2. Writing CUnit Test Cases</H2>
+<H2>2. Writing BCUnit Test Cases</H2>
 
 <H3 ID="tests">2.1. Test Functions</H3>
-A CUnit &quot;test&quot; is a C function having the signature:<BR /><BR />
+A BCUnit &quot;test&quot; is a C function having the signature:<BR /><BR />
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<B><I>void test_func(void)</I></B>
 <P />
 There are no restrictions on the content of a test function, except
-that it should not modify the CUnit framework (e.g. add suites or tests,
+that it should not modify the BCUnit framework (e.g. add suites or tests,
 modify the test registry, or initiate a test run).  A test function may
 call other functions (which also may not modify the framework).
 Registering a test will cause its function to be run when the
@@ -45,8 +45,8 @@ integers might look like:
       CU_ASSERT(maxi(2,2) == 2);
     }
 </CODE></PRE>
-<H3 ID="assertions">2.2. CUnit Assertions</H3>
-CUnit provides a set of assertions for testing logical conditions.  The
+<H3 ID="assertions">2.2. BCUnit Assertions</H3>
+BCUnit provides a set of assertions for testing logical conditions.  The
 success or failure of these assertions is tracked by the framework,
 and can be viewed when a test run is complete.  
 <P />
@@ -79,14 +79,14 @@ of control or other conditions not requiring a logical test:
     }
 </CODE></PRE>
 <P />
-Other functions called by a registered test function may use the CUnit
+Other functions called by a registered test function may use the BCUnit
 assertions freely.  These assertions will be counted for the calling
 function.  They may also use FATAL versions of assertions - failure
 will abort the original test function and its entire call chain.
 <P />
-The assertions defined by CUnit are:
+The assertions defined by BCUnit are:
 <P />
-<B>#include&nbsp;&lt;<A HREF="headers/CUnit.h">CUnit/CUnit.h</A>&gt;</B>
+<B>#include&nbsp;&lt;<A HREF="headers/BCUnit.h">BCUnit/BCUnit.h</A>&gt;</B>
 <P />
 <TABLE CELLPADDING=5 BORDER=2>
   <TR VALIGN="top">
@@ -257,11 +257,11 @@ The assertions defined by CUnit are:
 <P />
 <H3 ID="deprecated">2.3. Depecated v1 Assertions</H3>
 The following assertions are deprecated as of version 2.  To use these assertions,
-user code must be compiled with <CITE>USE_DEPRECATED_CUNIT_NAMES</CITE> defined.
+user code must be compiled with <CITE>USE_DEPRECATED_BCUNIT_NAMES</CITE> defined.
 Note that they behave the same as in version 1 (issue a 'return' statement
 upon failure).
 <P />
-<B>#include&nbsp;&lt;<A HREF="headers/CUnit.h">CUnit/CUnit.h</A>&gt;</B>
+<B>#include&nbsp;&lt;<A HREF="headers/BCUnit.h">BCUnit/BCUnit.h</A>&gt;</B>
 <P />
 <TABLE CELLPADDING=5 BORDER=2>
   <TR VALIGN="top">

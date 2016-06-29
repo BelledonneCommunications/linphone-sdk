@@ -1,13 +1,13 @@
 <HTML>
 <HEAD>
-  <TITLE>CUnit - Running Tests</TITLE>
-  <LINK REL=StyleSheet HREF="CUnit_doc.css" TYPE="text/css" TITLE="CUnit Basic Style" />
+  <TITLE>BCUnit - Running Tests</TITLE>
+  <LINK REL=StyleSheet HREF="BCUnit_doc.css" TYPE="text/css" TITLE="BCUnit Basic Style" />
 </HEAD>
 <BODY>
 <DIV CLASS="NAVHEADER" >
 <TABLE SUMMARY="Header navigation table" WIDTH="100%" BORDER="0" CELLPADDING="0" CELLSPACING="0">
   <TR>
-    <TH COLSPAN="3" ALIGN="center"><H3>CUnit Progammers Guide</H3></TH>
+    <TH COLSPAN="3" ALIGN="center"><H3>BCUnit Progammers Guide</H3></TH>
   </TR>
   <TR>
     <TD WIDTH="10%" ALIGN="left" VALIGN="bottom"><A HREF="managing_tests.html" ACCESSKEY="P" >Prev</A></TD>
@@ -20,7 +20,7 @@
 <H2>5. Running Tests</H2>
 
 <H3 ID="synopsis">5.1. Synopsis</H3>
-#include &lt;<A HREF="headers/Automated.h">CUnit/Automated.h</A>&gt;
+#include &lt;<A HREF="headers/Automated.h">BCUnit/Automated.h</A>&gt;
 <PRE>
   void         <A HREF="#automated">CU_automated_run_tests</A>(void)
   CU_ErrorCode <A HREF="#automated">CU_list_tests_to_file</A>(void)
@@ -28,7 +28,7 @@
 </PRE>
 <P />
 
-#include &lt;<A HREF="headers/basic.h">CUnit/Basic.h</A>&gt;
+#include &lt;<A HREF="headers/basic.h">BCUnit/Basic.h</A>&gt;
 <PRE>
   typedef enum    <A HREF="#basic">CU_BasicRunMode</A>
   CU_ErrorCode    <A HREF="#basic">CU_basic_run_tests</A>(void)
@@ -40,20 +40,20 @@
 </PRE>
 <P />
 
-#include &lt;<A HREF="headers/Console.h">CUnit/Console.h</A>&gt;
+#include &lt;<A HREF="headers/Console.h">BCUnit/Console.h</A>&gt;
 <PRE>
   void <A HREF="#console">CU_console_run_tests</A>(void)
 </PRE>
 <P />
 
-#include &lt;<A HREF="headers/CUCurses.h">CUnit/CUCurses.h</A>&gt;
+#include &lt;<A HREF="headers/CUCurses.h">BCUnit/CUCurses.h</A>&gt;
 <PRE>
   void <A HREF="#curses">CU_curses_run_tests</A>(void)
 </PRE>
 
 <P />
-#include &lt;<A HREF="headers/TestRun.h">CUnit/TestRun.h</A>&gt;
-(included automatically by &lt;<A HREF="headers/CUnit.h">CUnit/CUnit.h</A>&gt;)
+#include &lt;<A HREF="headers/TestRun.h">BCUnit/TestRun.h</A>&gt;
+(included automatically by &lt;<A HREF="headers/BCUnit.h">BCUnit/BCUnit.h</A>&gt;)
 <PRE>
   unsigned int <A HREF="#results">CU_get_number_of_suites_run</A>(void)
   unsigned int <A HREF="#results">CU_get_number_of_suites_failed</A>(void)
@@ -77,8 +77,8 @@
 </PRE>
 <P />
 
-<H3 ID="overview">5.2. Running Tests in CUnit</H3>
-CUnit supports running all tests in all registered suites, but individual tests
+<H3 ID="overview">5.2. Running Tests in BCUnit</H3>
+BCUnit supports running all tests in all registered suites, but individual tests
 or suites can also be run.  During each run, the framework keeps track of the 
 number of suites, tests, and assertions run, passed, and failed.  Note that the
 previous results are cleared each time a test run is initiated (even if it fails).
@@ -87,12 +87,12 @@ if the client wishes to exclude them from a particular test run.  However, it is
 a <A HREF="error_handling.html#errorhandling">framework error</A> to deactivate a 
 suite or test and then explicitly request that it be run.
 <P />
-While CUnit provides primitive functions for running suites and tests, most
+While BCUnit provides primitive functions for running suites and tests, most
 users will want to use one of the simplified user interfaces.  These
 interfaces handle the details of interaction with the framework and provide
 output of test details and results for the user.
 <P />
-The following interfaces are included in the CUnit library:
+The following interfaces are included in the BCUnit library:
 <P CLASS="indent5">
 <TABLE CELLPADDING=3 BORDER=1>
   <TR>
@@ -124,7 +124,7 @@ The following interfaces are included in the CUnit library:
 </P>
 If these interfaces are not sufficient, clients can also use
 the primitive framework API defined in
-&lt;<A HREF="headers/TestRun.h">CUnit/TestRun.h</A>&gt;.  See the source
+&lt;<A HREF="headers/TestRun.h">BCUnit/TestRun.h</A>&gt;.  See the source
 code for the various interfaces for examples of how to interact with
 the primitive API directly.
 
@@ -139,11 +139,11 @@ The following functions comprise the automated interface API:
 <P CLASS="indent5">Runs all tests in all registered (and active) suites.  Test results 
 are output to a file named <I>ROOT-Results.xml</I>.  The filename <I>ROOT</I> can
 be set using <A HREF="#auto-setroot">CU_set_output_filename()</A>, or else the default
-<I>CUnitAutomated-Results.xml</I> is used.  Note that if a distict filename <I>ROOT</I>
+<I>BCUnitAutomated-Results.xml</I> is used.  Note that if a distict filename <I>ROOT</I>
 is not set before each run, the results file will be overwritten.
 <BR /><BR />
 The results file is supported by both a document type definition
-file (<I>CUnit-Run.dtd</I>) and XSL stylesheet (<I>CUnit-Run.xsl</I>).
+file (<I>BCUnit-Run.dtd</I>) and XSL stylesheet (<I>BCUnit-Run.xsl</I>).
 These are provided in the <I>Share</I> subdirectory of the source and installation
 trees.</P>
 
@@ -151,11 +151,11 @@ trees.</P>
 <P CLASS="indent5">Lists the registered suites and associated tests to file.
 The listing file is named <I>ROOT-Listing.xml</I>. The filename <I>ROOT</I>
 can be set using <A HREF="#auto-setroot">CU_set_output_filename()</A>, or else the default
-<I>CUnitAutomated</I> is used.  Note that if a distict filename <I>ROOT</I>
+<I>BCUnitAutomated</I> is used.  Note that if a distict filename <I>ROOT</I>
 is not set before each run, the listing file will be overwritten.
 <BR /><BR />
 The listing file is supported by both a document type definition
-file (<I>CUnit-List.dtd</I>) and XSL stylesheet (<I>CUnit-List.xsl</I>).
+file (<I>BCUnit-List.dtd</I>) and XSL stylesheet (<I>BCUnit-List.xsl</I>).
 These are provided in the <I>Share</I> subdirectory of the source and installation
 trees.
 <BR /><BR />
@@ -172,7 +172,7 @@ listing when one is desired.</P>
 The basic interface is also non-interactive, with results output to stdout. This
 interface supports running individual suites or tests, and allows client code to
 control the type of output displayed during each run.  This interface provides the
-most flexibility to clients desiring simplified access to the CUnit API.
+most flexibility to clients desiring simplified access to the BCUnit API.
 <P />
 The following public functions are provided:
 
@@ -296,8 +296,8 @@ respectively.</P>
 <P ID="results-getsummary" CLASS="indent2"><CITE>const CU_pRunSummary <B>CU_get_run_summary</B>(void)</CITE></P>
 <P CLASS="indent5">Retrieves all test result counts at once.  The return value is
 a pointer to a saved structure containing the counts.  This data type is defined in
-&lt;<A HREF="headers/TestRun.h">CUnit/TestRun.h</A>&gt; (included automatically by
-&lt;<A HREF="headers/CUnit.h">CUnit/CUnit.h</A>&gt;):
+&lt;<A HREF="headers/TestRun.h">BCUnit/TestRun.h</A>&gt; (included automatically by
+&lt;<A HREF="headers/BCUnit.h">BCUnit/BCUnit.h</A>&gt;):
 </P>
 <PRE CLASS="indent10">
 typedef struct CU_RunSummary
@@ -322,8 +322,8 @@ pointer may be invalidated once another test run is initiated.</I>
 <P ID="results-getfailures" CLASS="indent2"><CITE>const CU_pFailureRecord <B>CU_get_failure_list</B>(void)</CITE></P>
 <P CLASS="indent5">Retrieves a linked list recording any failures occurring during the
 last test run (<CODE>NULL</CODE> for no failures).  The data type of the return value
-is declared in &lt;<A HREF="headers/TestRun.h">CUnit/TestRun.h</A>&gt; (included
-automatically by &lt;<A HREF="headers/CUnit.h">CUnit/CUnit.h</A>&gt;).  Each failure
+is declared in &lt;<A HREF="headers/TestRun.h">BCUnit/TestRun.h</A>&gt; (included
+automatically by &lt;<A HREF="headers/BCUnit.h">BCUnit/BCUnit.h</A>&gt;).  Each failure
 record contains information about the location and nature of the failure:
 </P>
 <PRE CLASS="indent10">
@@ -358,7 +358,7 @@ initialization and cleanup failures are included.</P>
 <H3 ID="deprecated">5.9. Deprecated v1 Data Types & Functions</H3>
 The following data types and functions are deprecated as of version 2.
 To use these deprecated names, user code must be compiled with
-<CITE>USE_DEPRECATED_CUNIT_NAMES</CITE> defined.
+<CITE>USE_DEPRECATED_BCUNIT_NAMES</CITE> defined.
 <P />
 <TABLE CELLPADDING=5 BORDER=2>
   <TR VALIGN="top">

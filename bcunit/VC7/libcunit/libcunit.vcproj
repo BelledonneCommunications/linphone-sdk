@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="7.10"
-	Name="libcunit"
+	Name="libbcunit"
 	ProjectGUID="{E88E5D8B-FAA8-41FA-B0A5-77C924300C0E}"
-	RootNamespace="libcunit"
+	RootNamespace="libbcunit"
 	Keyword="Win32Proj">
 	<Platforms>
 		<Platform
@@ -20,7 +20,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..\CUnit\Headers"
+				AdditionalIncludeDirectories="..\..\BCUnit\Headers"
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB"
 				MinimalRebuild="TRUE"
 				ExceptionHandling="FALSE"
@@ -36,7 +36,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLibrarianTool"
-				OutputFile="$(OutDir)/libcunit.lib"/>
+				OutputFile="$(OutDir)/libbcunit.lib"/>
 			<Tool
 				Name="VCMIDLTool"/>
 			<Tool
@@ -64,7 +64,7 @@
 			CharacterSet="2">
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="..\..\CUnit\Headers"
+				AdditionalIncludeDirectories="..\..\BCUnit\Headers"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB"
 				RuntimeLibrary="4"
 				UsePrecompiledHeader="0"
@@ -75,7 +75,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLibrarianTool"
-				OutputFile="$(OutDir)/libcunit.lib"/>
+				OutputFile="$(OutDir)/libbcunit.lib"/>
 			<Tool
 				Name="VCMIDLTool"/>
 			<Tool
@@ -104,19 +104,19 @@
 			Filter="cpp;c;cxx;def;odl;idl;hpj;bat;asm;asmx"
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}">
 			<File
-				RelativePath="..\..\CUnit\Sources\Automated\Automated.c">
+				RelativePath="..\..\BCUnit\Sources\Automated\Automated.c">
 			</File>
 			<File
-				RelativePath="..\..\CUnit\Sources\Basic\Basic.c">
+				RelativePath="..\..\BCUnit\Sources\Basic\Basic.c">
 			</File>
 			<File
-				RelativePath="..\..\CUnit\Sources\Console\Console.c">
+				RelativePath="..\..\BCUnit\Sources\Console\Console.c">
 			</File>
 			<File
-				RelativePath="..\..\CUnit\Sources\Framework\CUError.c">
+				RelativePath="..\..\BCUnit\Sources\Framework\CUError.c">
 			</File>
 			<File
-				RelativePath="..\..\CUnit\Sources\Curses\Curses.c">
+				RelativePath="..\..\BCUnit\Sources\Curses\Curses.c">
 				<FileConfiguration
 					Name="Debug|Win32"
 					ExcludedFromBuild="TRUE">
@@ -131,16 +131,16 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="..\..\CUnit\Sources\Framework\MyMem.c">
+				RelativePath="..\..\BCUnit\Sources\Framework\MyMem.c">
 			</File>
 			<File
-				RelativePath="..\..\CUnit\Sources\Framework\TestDB.c">
+				RelativePath="..\..\BCUnit\Sources\Framework\TestDB.c">
 			</File>
 			<File
-				RelativePath="..\..\CUnit\Sources\Framework\TestRun.c">
+				RelativePath="..\..\BCUnit\Sources\Framework\TestRun.c">
 			</File>
 			<File
-				RelativePath="..\..\CUnit\Sources\Framework\Util.c">
+				RelativePath="..\..\BCUnit\Sources\Framework\Util.c">
 			</File>
 		</Filter>
 		<Filter
@@ -148,34 +148,34 @@
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}">
 			<File
-				RelativePath="..\..\CUnit\Headers\Automated.h">
+				RelativePath="..\..\BCUnit\Headers\Automated.h">
 			</File>
 			<File
-				RelativePath="..\..\CUnit\Headers\Basic.h">
+				RelativePath="..\..\BCUnit\Headers\Basic.h">
 			</File>
 			<File
-				RelativePath="..\..\CUnit\Headers\Console.h">
+				RelativePath="..\..\BCUnit\Headers\Console.h">
 			</File>
 			<File
-				RelativePath="..\..\CUnit\Headers\CUError.h">
+				RelativePath="..\..\BCUnit\Headers\CUError.h">
 			</File>
 			<File
-				RelativePath="..\..\CUnit\Headers\CUnit.h">
+				RelativePath="..\..\BCUnit\Headers\BCUnit.h">
 			</File>
 			<File
-				RelativePath="..\..\CUnit\Headers\CUCurses.h">   
+				RelativePath="..\..\BCUnit\Headers\CUCurses.h">   
 			</File>
 			<File
-				RelativePath="..\..\CUnit\Headers\MyMem.h">
+				RelativePath="..\..\BCUnit\Headers\MyMem.h">
 			</File>
 			<File
-				RelativePath="..\..\CUnit\Headers\TestDB.h">
+				RelativePath="..\..\BCUnit\Headers\TestDB.h">
 			</File>
 			<File
-				RelativePath="..\..\CUnit\Headers\TestRun.h">
+				RelativePath="..\..\BCUnit\Headers\TestRun.h">
 			</File>
 			<File
-				RelativePath="..\..\CUnit\Headers\Util.h">
+				RelativePath="..\..\BCUnit\Headers\Util.h">
 			</File>
 		</Filter>
 		<Filter

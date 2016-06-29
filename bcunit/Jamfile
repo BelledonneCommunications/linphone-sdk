@@ -1,5 +1,5 @@
 #
-# Jamfile to build CUnit - Root Directory
+# Jamfile to build BCUnit - Root Directory
 # (see http://www.freetype.org/jam/index.html)
 #
 # Copyright (C) 2004-2006  Jerry St.Clair
@@ -21,7 +21,7 @@
 
 SubDir TOP ;
 
-SubInclude TOP CUnit ;
+SubInclude TOP BCUnit ;
 SubInclude TOP Examples ;
 SubInclude TOP Man ;
 SubInclude TOP Share ;

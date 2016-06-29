@@ -7,8 +7,8 @@ INCLUDE_FILES = \
 	Basic.h \
 	Console.h \
 	CUError.h \
-	CUnit.h \
-	CUnit_intl.h \
+	BCUnit.h \
+	BCUnit_intl.h \
 	CUCurses.h \
 	MyMem.h \
 	TestDB.h \
@@ -22,6 +22,6 @@ CLEANFILES = $(INCLUDE_FILES)
 $(INCLUDE_FILES) : copy_headers
 
 copy_headers:
-	cp -f $(top_srcdir)/CUnit/Headers/*.h .
-	cp -f $(top_srcdir)/CUnit/Sources/Win/Win.h .
+	cp -f $(top_srcdir)/BCUnit/Headers/*.h .
+	cp -f $(top_srcdir)/BCUnit/Sources/Win/Win.h .
 

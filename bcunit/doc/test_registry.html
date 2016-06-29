@@ -1,13 +1,13 @@
 <HTML>
 <HEAD>
-  <TITLE>CUnit - The Test Registry</TITLE>
-  <LINK REL=StyleSheet HREF="CUnit_doc.css" TYPE="text/css" TITLE="CUnit Basic Style" />
+  <TITLE>BCUnit - The Test Registry</TITLE>
+  <LINK REL=StyleSheet HREF="BCUnit_doc.css" TYPE="text/css" TITLE="BCUnit Basic Style" />
 </HEAD>
 <BODY>
 <DIV CLASS="NAVHEADER" >
 <TABLE SUMMARY="Header navigation table" WIDTH="100%" BORDER="0" CELLPADDING="0" CELLSPACING="0">
   <TR>
-    <TH COLSPAN="3" ALIGN="center"><H3>CUnit Progammers Guide</H3></TH>
+    <TH COLSPAN="3" ALIGN="center"><H3>BCUnit Progammers Guide</H3></TH>
   </TR>
   <TR>
     <TD WIDTH="10%" ALIGN="left" VALIGN="bottom"><A HREF="writing_tests.html" ACCESSKEY="P" >Prev</A></TD>
@@ -20,8 +20,8 @@
 <H2>3. The Test Registry</H2>
 
 <H3 ID="synopsis">3.1. Synopsis</H3>
-#include &lt;<A HREF="headers/TestDB.h">CUnit/TestDB.h</A>&gt;
-(included automatically by &lt;<A HREF="headers/CUnit.h">CUnit/CUnit.h</A>&gt;)
+#include &lt;<A HREF="headers/TestDB.h">BCUnit/TestDB.h</A>&gt;
+(included automatically by &lt;<A HREF="headers/BCUnit.h">BCUnit/BCUnit.h</A>&gt;)
 <P />
 <PRE>
   typedef struct <A HREF="#CU_TestRegistry">CU_TestRegistry</A>
@@ -44,12 +44,12 @@
 
 <H3 ID="struct">3.2. Internal Structure</H3>
 The test registry is the repository for suites and associated tests.
-CUnit maintains an active test registry which is updated when the user
+BCUnit maintains an active test registry which is updated when the user
 adds a suite or test.  The suites in this active registry are the ones
 run when the user chooses to run all tests.
 <P />
-The CUnit test registry is a data structure <CITE>CU_TestRegistry</CITE>
-declared in <A HREF="headers/TestDB.h">&lt;CUnit/TestDB.h&gt;</A>.  It
+The BCUnit test registry is a data structure <CITE>CU_TestRegistry</CITE>
+declared in <A HREF="headers/TestDB.h">&lt;BCUnit/TestDB.h&gt;</A>.  It
 includes fields for the total numbers of suites and tests stored in the
 registry, as well as a pointer to the head of the linked list of
 registered suites.
@@ -70,9 +70,9 @@ manipulate the registry when necessary.
 
 <H3 ID="init">3.3. Initialization</H3>
 <P CLASS="indent2"><CITE>CU_ErrorCode <B>CU_initialize_registry</B>(void)</CITE></P>
-<P CLASS="indent5">The active CUnit test registry must be initialized
+<P CLASS="indent5">The active BCUnit test registry must be initialized
 before use.  The user should call <CITE>CU_initialize_registry()</CITE>
-before calling any other CUnit functions.  Failure to do so will
+before calling any other BCUnit functions.  Failure to do so will
 likely result in a crash.  If this function is called more than once,
 any existing registry will be cleaned up (i.e. destroyed!) before 
 creating the new registry.  This function may not be called during a
@@ -102,7 +102,7 @@ multiple files that need to make sure the registry is ready for test registratio
 <P CLASS="indent2"><CITE>void <B>CU_cleanup_registry</B>(void)</CITE></P>
 <P CLASS="indent5">When testing is complete, the user should call this
 function to clean up and release memory used by the framework.  This
-should be the last CUnit function called (except for restoring the
+should be the last BCUnit function called (except for restoring the
 test registry using <A HREF="#init">CU_initialize_registry()</A> or
 <A HREF="#setreg">CU_set_registry()</A>).
 <BR /><BR />
@@ -116,7 +116,7 @@ test run (i.e. from a test function or suite initialization/cleanup
 function).
 <BR /><BR />
 Calling <CITE>CU_cleanup_registry()</CITE> will only affect the internal
-<A HREF="#CU_TestRegistry">CU_TestRegistry</A> maintained by the CUnit
+<A HREF="#CU_TestRegistry">CU_TestRegistry</A> maintained by the BCUnit
 framework.  Destruction of any other test registries owned by the user
 are the responsibility of the user.  This can be done explictly by
 calling <A HREF="#destroy">CU_destroy_existing_registry()</A>, or
@@ -174,10 +174,10 @@ set to <code>NULL</code> upon return.
 <H3 ID="deprecated">3.6. Deprecated v1 Data Types & Functions</H3>
 The following data types and functions are deprecated as of version 2.
 To use these deprecated names, user code must be compiled with
-<CITE>USE_DEPRECATED_CUNIT_NAMES</CITE> defined.
+<CITE>USE_DEPRECATED_BCUNIT_NAMES</CITE> defined.
 <P />
-<B>#include&nbsp;&lt;<A HREF="headers/TestDB.h">CUnit/TestDB.h</A>&gt;</B>
-(included automatically by <A HREF="headers/CUnit.h">CUnit/CUnit.h</A>&gt;).
+<B>#include&nbsp;&lt;<A HREF="headers/TestDB.h">BCUnit/TestDB.h</A>&gt;</B>
+(included automatically by <A HREF="headers/BCUnit.h">BCUnit/BCUnit.h</A>&gt;).
 <P />
 <TABLE CELLPADDING=5 BORDER=2>
   <TR VALIGN="top">

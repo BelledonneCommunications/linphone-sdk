@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-add_library(cunitexamples STATIC ExampleTests.c)
+add_library(bcunitexamples STATIC ExampleTests.c)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 

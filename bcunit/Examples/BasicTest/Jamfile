@@ -1,5 +1,5 @@
 #
-# Jamfile to build CUnit - Examples/BasicTest
+# Jamfile to build BCUnit - Examples/BasicTest
 # (see http://www.freetype.org/jam/index.html)
 #
 # Copyright (C) 2004-2006  Jerry St.Clair
@@ -23,14 +23,14 @@ SubDir TOP Examples BasicTest ;
 
 if $(BUILD_EXAMPLES) && $(BUILD_BASIC)
 {
-  SubDirHdrs $(CUNIT_HDR_DIR) $(EXAMPLES_DIR) ;
+  SubDirHdrs $(BCUNIT_HDR_DIR) $(EXAMPLES_DIR) ;
 
   # set location for target, source, and temporary files
   LOCATE_TARGET = $(BUILD_DIR)$(SLASH)Examples$(SLASH)BasicTest ;
   SEARCH_SOURCE += $(EXAMPLES_DIR) ;
 
   Main BasicTest : BasicTest.c ExampleTests.c ;
-  LinkLibraries BasicTest$(SUFEXE) : $(CUNIT_LIB_NAME)$(SUFLIB) ;
+  LinkLibraries BasicTest$(SUFEXE) : $(BCUNIT_LIB_NAME)$(SUFLIB) ;
   LINKLIBS on BasicTest$(SUFEXE) += $(SYS_LIBS) ;
   
   if $(NT) && ($(BCCROOT) || ($(TOOLSET) = BORLANDC))
@@ -43,7 +43,7 @@ if $(BUILD_EXAMPLES) && $(BUILD_BASIC)
 
   if $(INSTALL_EXAM_DIR)
   {
-    InstallCUnitBin $(INSTALL_EXAM_DIR)$(SLASH)Basic : BasicTest$(SUFEXE) ;
-    InstallCUnitFile $(INSTALL_EXAM_DIR)$(SLASH)Basic : README ;
+    InstallBCUnitBin $(INSTALL_EXAM_DIR)$(SLASH)Basic : BasicTest$(SUFEXE) ;
+    InstallBCUnitFile $(INSTALL_EXAM_DIR)$(SLASH)Basic : README ;
   }
 }

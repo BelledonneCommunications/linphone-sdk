@@ -41,8 +41,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\Examples;..\CUnit\Headers"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;USE_DEPRECATED_CUNIT_NAMES"
+				AdditionalIncludeDirectories="..\Examples;..\BCUnit\Headers"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;USE_DEPRECATED_BCUNIT_NAMES"
 				MinimalRebuild="true"
 				ExceptionHandling="0"
 				BasicRuntimeChecks="3"
@@ -65,7 +65,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="libcunit.lib"
+				AdditionalDependencies="libbcunit.lib"
 				OutputFile="$(OutDir)/ConsoleTest_v1.exe"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="$(ConfigurationName)"
@@ -124,8 +124,8 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="..\CUnit\Headers"
-				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;USE_DEPRECATED_CUNIT_NAMES"
+				AdditionalIncludeDirectories="..\BCUnit\Headers"
+				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;USE_DEPRECATED_BCUNIT_NAMES"
 				ExceptionHandling="1"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="0"
@@ -146,7 +146,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="libcunit.lib"
+				AdditionalDependencies="libbcunit.lib"
 				OutputFile="$(OutDir)/ConsoleTest_v1.exe"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="$(ConfigurationName)"
@@ -207,8 +207,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\Examples;..\CUnit\Headers"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;USE_DEPRECATED_CUNIT_NAMES"
+				AdditionalIncludeDirectories="..\Examples;..\BCUnit\Headers"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;USE_DEPRECATED_BCUNIT_NAMES"
 				MinimalRebuild="true"
 				ExceptionHandling="0"
 				BasicRuntimeChecks="3"
@@ -231,7 +231,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="libcunit_dll.lib"
+				AdditionalDependencies="libbcunit_dll.lib"
 				OutputFile="$(OutDir)/ConsoleTest_v1.exe"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="$(ConfigurationName)"
@@ -290,8 +290,8 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="..\CUnit\Headers"
-				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;USE_DEPRECATED_CUNIT_NAMES"
+				AdditionalIncludeDirectories="..\BCUnit\Headers"
+				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;USE_DEPRECATED_BCUNIT_NAMES"
 				ExceptionHandling="0"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
@@ -312,7 +312,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="libcunit_dll.lib"
+				AdditionalDependencies="libbcunit_dll.lib"
 				OutputFile="$(OutDir)/ConsoleTest_v1.exe"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="$(ConfigurationName)"
@@ -373,8 +373,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\Examples;..\CUnit\Headers"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;USE_DEPRECATED_CUNIT_NAMES;MEMTRACE"
+				AdditionalIncludeDirectories="..\Examples;..\BCUnit\Headers"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;USE_DEPRECATED_BCUNIT_NAMES;MEMTRACE"
 				MinimalRebuild="true"
 				ExceptionHandling="0"
 				BasicRuntimeChecks="3"
@@ -397,7 +397,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="libcunit.lib"
+				AdditionalDependencies="libbcunit.lib"
 				OutputFile="$(OutDir)/ConsoleTest_v1.exe"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="$(ConfigurationName)"

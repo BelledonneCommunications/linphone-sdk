@@ -21,15 +21,15 @@
 ############################################################################
 
 set(SHARE_FILES
-	CUnit-List.dtd
-	CUnit-List.xsl
-	CUnit-Run.dtd
-	CUnit-Run.xsl
+	BCUnit-List.dtd
+	BCUnit-List.xsl
+	BCUnit-Run.dtd
+	BCUnit-Run.xsl
 	Memory-Dump.dtd
 	Memory-Dump.xsl
 )
 
 install(FILES ${SHARE_FILES}
-	DESTINATION share/CUnit
+	DESTINATION share/BCUnit
 	PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
 )

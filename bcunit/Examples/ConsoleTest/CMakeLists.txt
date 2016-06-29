@@ -21,7 +21,7 @@
 ############################################################################
 
 add_executable(ConsoleTest ConsoleTest.c)
-target_link_libraries(ConsoleTest cunit cunitexamples)
+target_link_libraries(ConsoleTest bcunit bcunitexamples)
 
-install(TARGETS ConsoleTest DESTINATION share/CUnit/Examples/Console)
-install(FILES README DESTINATION share/CUnit/Examples/Console)
+install(TARGETS ConsoleTest DESTINATION share/BCUnit/Examples/Console)
+install(FILES README DESTINATION share/BCUnit/Examples/Console)

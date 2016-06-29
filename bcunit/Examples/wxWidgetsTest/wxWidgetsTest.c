@@ -1,5 +1,5 @@
 /*
- *  CUnit - A Unit testing framework library for C.
+ *  BCUnit - A Unit testing framework library for C.
  *  Copyright (C) 2006  Jerry St.Clair
  *
  *  This library is free software; you can redistribute it and/or

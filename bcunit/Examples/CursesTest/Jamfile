@@ -1,5 +1,5 @@
 #
-# Jamfile to build CUnit - Examples/CursesTest
+# Jamfile to build BCUnit - Examples/CursesTest
 # (see http://www.freetype.org/jam/index.html)
 #
 # Copyright (C) 2004-2006  Jerry St.Clair
@@ -23,14 +23,14 @@ SubDir TOP Examples CursesTest ;
 
 if $(BUILD_EXAMPLES) && $(BUILD_CURSES)
 {
-  SubDirHdrs $(CUNIT_HDR_DIR) $(CUNIT_WIN_DIR) ;
+  SubDirHdrs $(BCUNIT_HDR_DIR) $(BCUNIT_WIN_DIR) ;
 
   # set location for temporary files
   LOCATE_TARGET = $(BUILD_DIR)$(SLASH)Examples$(SLASH)CursesTest ;
   SEARCH_SOURCE += $(EXAMPLES_DIR) ;
 
   Main CursesTest : CursesTest.c ExampleTests.c ;
-  LinkLibraries CursesTest$(SUFEXE) : $(CUNIT_LIB_NAME)$(SUFLIB) ;
+  LinkLibraries CursesTest$(SUFEXE) : $(BCUNIT_LIB_NAME)$(SUFLIB) ;
   LINKLIBS on CursesTest$(SUFEXE) += $(SYS_LIBS) ;
   
   MakeLocate CursesTest$(SUFEXE) : $(BUILD_DIR) ;
@@ -39,7 +39,7 @@ if $(BUILD_EXAMPLES) && $(BUILD_CURSES)
   if $(USE_DEPRECATED_NAMES)
   {
     Main CursesTest_v1 : CursesTest_v1.c ;
-    LinkLibraries CursesTest_v1$(SUFEXE) : $(CUNIT_LIB_NAME)$(SUFLIB) ;
+    LinkLibraries CursesTest_v1$(SUFEXE) : $(BCUNIT_LIB_NAME)$(SUFLIB) ;
     LINKLIBS on CursesTest_v1$(SUFEXE) += $(SYS_LIBS) ;
     MakeLocate CursesTest_v1$(SUFEXE) : $(BUILD_DIR) ;
 
@@ -50,15 +50,15 @@ if $(BUILD_EXAMPLES) && $(BUILD_CURSES)
   {
     # need to fix Borland to include library location
     LINKFLAGS on CursesTest$(SUFEXE) += -L$(STDLIBPATH) -tW ;
-    if $(USE_DEPRECATED_NAMES)InstallCunitFile 
+    if $(USE_DEPRECATED_NAMES)InstallBCunitFile 
       { LINKFLAGS on CursesTest_v1$(SUFEXE) += -L$(STDLIBPATH) -tW ; }
   }
 
   if $(INSTALL_EXAM_DIR)
   {
-    InstallCUnitBin $(INSTALL_EXAM_DIR)$(SLASH)Curses : CursesTest$(SUFEXE) ;
-    InstallCUnitFile $(INSTALL_EXAM_DIR)$(SLASH)Curses : README ;
+    InstallBCUnitBin $(INSTALL_EXAM_DIR)$(SLASH)Curses : CursesTest$(SUFEXE) ;
+    InstallBCUnitFile $(INSTALL_EXAM_DIR)$(SLASH)Curses : README ;
     if $(USE_DEPRECATED_NAMES)
-      { InstallCUnitBin $(INSTALL_EXAM_DIR)$(SLASH)Curses : CursesTest_v1$(SUFEXE) ; }
+      { InstallBCUnitBin $(INSTALL_EXAM_DIR)$(SLASH)Curses : CursesTest_v1$(SUFEXE) ; }
   }
 }

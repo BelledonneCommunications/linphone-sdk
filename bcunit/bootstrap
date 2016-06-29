@@ -4,7 +4,7 @@ if [ $# -gt 0 ]; then
 fi
 
 if [ "$INSTALL_HOME"X == "X" ]; then
-	INSTALL_HOME=$HOME/CUnitHome
+	INSTALL_HOME=$HOME/BCUnitHome
 fi
 
 libtoolize --force --copy && \

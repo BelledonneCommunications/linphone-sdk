@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-install(FILES man3/CUnit.3
+install(FILES man3/BCUnit.3
 	DESTINATION share/man/man3
 	PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
 )

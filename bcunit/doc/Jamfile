@@ -1,5 +1,5 @@
 #
-# Jamfile to build CUnit - doc Directory
+# Jamfile to build BCUnit - doc Directory
 # (see http://www.freetype.org/jam/index.html)
 #
 # Copyright (C) 2004-2006  Jerry St.Clair
@@ -23,7 +23,7 @@ SubDir TOP doc ;
 
 if $(INSTALL_DOC_DIR)
 {
-  InstallFile $(INSTALL_DOC_DIR) : CUnit_doc.css ;
+  InstallFile $(INSTALL_DOC_DIR) : BCUnit_doc.css ;
   InstallFile $(INSTALL_DOC_DIR) : error_handling.html ;
   InstallFile $(INSTALL_DOC_DIR) : fdl.html ;
   InstallFile $(INSTALL_DOC_DIR) : index.html ;

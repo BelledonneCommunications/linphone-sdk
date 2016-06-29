@@ -1,5 +1,5 @@
 #
-# Jamfile to build CUnit - share Directory
+# Jamfile to build BCUnit - share Directory
 # (see http://www.freetype.org/jam/index.html)
 #
 # Copyright (C) 2004-2006  Jerry St.Clair
@@ -23,10 +23,10 @@ SubDir TOP Share ;
 
 if $(INSTALL_SHARE_DIR)
 {
-  InstallFile $(INSTALL_SHARE_DIR) : CUnit-List.dtd ;
-  InstallFile $(INSTALL_SHARE_DIR) : CUnit-List.xsl ;
-  InstallFile $(INSTALL_SHARE_DIR) : CUnit-Run.dtd ;
-  InstallFile $(INSTALL_SHARE_DIR) : CUnit-Run.xsl ;
+  InstallFile $(INSTALL_SHARE_DIR) : BCUnit-List.dtd ;
+  InstallFile $(INSTALL_SHARE_DIR) : BCUnit-List.xsl ;
+  InstallFile $(INSTALL_SHARE_DIR) : BCUnit-Run.dtd ;
+  InstallFile $(INSTALL_SHARE_DIR) : BCUnit-Run.xsl ;
   InstallFile $(INSTALL_SHARE_DIR) : Memory-Dump.dtd ;
   InstallFile $(INSTALL_SHARE_DIR) : Memory-Dump.xsl ;
 }

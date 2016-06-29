@@ -41,7 +41,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\Examples;..\CUnit\Headers"
+				AdditionalIncludeDirectories="..\Examples;..\BCUnit\Headers"
 				PreprocessorDefinitions="WIN32;_DEBUG;__WXMSW__;__WXDEBUG__;_WINDOWS"
 				MinimalRebuild="true"
 				ExceptionHandling="1"
@@ -66,7 +66,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="libcunit.lib wxmsw26d_adv.lib wxmsw26d_core.lib wxbase26d.lib wxtiffd.lib wxjpegd.lib wxpngd.lib wxzlibd.lib wxregexd.lib wxexpatd.lib winmm.lib comctl32.lib rpcrt4.lib wsock32.lib odbc32.lib"
+				AdditionalDependencies="libbcunit.lib wxmsw26d_adv.lib wxmsw26d_core.lib wxbase26d.lib wxtiffd.lib wxjpegd.lib wxpngd.lib wxzlibd.lib wxregexd.lib wxexpatd.lib winmm.lib comctl32.lib rpcrt4.lib wsock32.lib odbc32.lib"
 				OutputFile="$(OutDir)/wxWidgetsTest.exe"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="$(ConfigurationName);C:\tools\wxWidgets-2.6.3\lib\vc_lib"
@@ -126,7 +126,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="..\Examples;..\CUnit\Headers"
+				AdditionalIncludeDirectories="..\Examples;..\BCUnit\Headers"
 				PreprocessorDefinitions="WIN32;NDEBUG;__WXMSW__;_WINDOWS"
 				ExceptionHandling="1"
 				RuntimeLibrary="0"
@@ -149,7 +149,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="libcunit.lib wxmsw26_adv.lib wxmsw26_core.lib wxbase26.lib wxtiff.lib wxjpeg.lib wxpng.lib wxzlib.lib wxregex.lib wxexpat.lib winmm.lib comctl32.lib rpcrt4.lib wsock32.lib odbc32.lib"
+				AdditionalDependencies="libbcunit.lib wxmsw26_adv.lib wxmsw26_core.lib wxbase26.lib wxtiff.lib wxjpeg.lib wxpng.lib wxzlib.lib wxregex.lib wxexpat.lib winmm.lib comctl32.lib rpcrt4.lib wsock32.lib odbc32.lib"
 				OutputFile="$(OutDir)/wxWidgetsTest.exe"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="$(ConfigurationName);C:\tools\wxWidgets-2.6.3\lib\vc_lib"
@@ -212,7 +212,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\Examples;..\CUnit\Headers"
+				AdditionalIncludeDirectories="..\Examples;..\BCUnit\Headers"
 				PreprocessorDefinitions="WIN32;_DEBUG;__WXMSW__;__WXDEBUG__;_WINDOWS"
 				MinimalRebuild="true"
 				ExceptionHandling="1"
@@ -237,7 +237,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="libcunit_dll.lib wxmsw26d_adv.lib wxmsw26d_core.lib wxbase26d.lib wxtiffd.lib wxjpegd.lib wxpngd.lib wxzlibd.lib wxregexd.lib wxexpatd.lib winmm.lib comctl32.lib rpcrt4.lib wsock32.lib odbc32.lib"
+				AdditionalDependencies="libbcunit_dll.lib wxmsw26d_adv.lib wxmsw26d_core.lib wxbase26d.lib wxtiffd.lib wxjpegd.lib wxpngd.lib wxzlibd.lib wxregexd.lib wxexpatd.lib winmm.lib comctl32.lib rpcrt4.lib wsock32.lib odbc32.lib"
 				OutputFile="$(OutDir)/wxWidgetsTest.exe"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="$(ConfigurationName);C:\tools\wxWidgets-2.6.3\lib\vc_lib"
@@ -297,7 +297,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="..\Examples;..\CUnit\Headers"
+				AdditionalIncludeDirectories="..\Examples;..\BCUnit\Headers"
 				PreprocessorDefinitions="WIN32;NDEBUG;__WXMSW__;_WINDOWS"
 				ExceptionHandling="1"
 				RuntimeLibrary="0"
@@ -320,7 +320,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="libcunit_dll.lib wxmsw26_adv.lib wxmsw26_core.lib wxbase26.lib wxtiff.lib wxjpeg.lib wxpng.lib wxzlib.lib wxregex.lib wxexpat.lib winmm.lib comctl32.lib rpcrt4.lib wsock32.lib odbc32.lib"
+				AdditionalDependencies="libbcunit_dll.lib wxmsw26_adv.lib wxmsw26_core.lib wxbase26.lib wxtiff.lib wxjpeg.lib wxpng.lib wxzlib.lib wxregex.lib wxexpat.lib winmm.lib comctl32.lib rpcrt4.lib wsock32.lib odbc32.lib"
 				OutputFile="$(OutDir)/wxWidgetsTest.exe"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="$(ConfigurationName);C:\tools\wxWidgets-2.6.3\lib\vc_lib"
@@ -383,7 +383,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\Examples;..\CUnit\Headers"
+				AdditionalIncludeDirectories="..\Examples;..\BCUnit\Headers"
 				PreprocessorDefinitions="WIN32;_DEBUG;MEMTRACE;__WXMSW__;__WXDEBUG__;_WINDOWS"
 				MinimalRebuild="true"
 				ExceptionHandling="1"
@@ -408,7 +408,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="libcunit.lib wxmsw26d_adv.lib wxmsw26d_core.lib wxbase26d.lib wxtiffd.lib wxjpegd.lib wxpngd.lib wxzlibd.lib wxregexd.lib wxexpatd.lib winmm.lib comctl32.lib rpcrt4.lib wsock32.lib odbc32.lib"
+				AdditionalDependencies="libbcunit.lib wxmsw26d_adv.lib wxmsw26d_core.lib wxbase26d.lib wxtiffd.lib wxjpegd.lib wxpngd.lib wxzlibd.lib wxregexd.lib wxexpatd.lib winmm.lib comctl32.lib rpcrt4.lib wsock32.lib odbc32.lib"
 				OutputFile="$(OutDir)/wxWidgetsTest.exe"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="$(ConfigurationName);C:\tools\wxWidgets-2.6.3\lib\vc_lib"
@@ -497,7 +497,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="..\CUnit\Sources\wxWidget\wxWidget.cpp"
+				RelativePath="..\BCUnit\Sources\wxWidget\wxWidget.cpp"
 				>
 				<FileConfiguration
 					Name="Debug - Static Lib|Win32"
@@ -568,7 +568,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\CUnit\Headers\wxWidget.h"
+				RelativePath="..\BCUnit\Headers\wxWidget.h"
 				>
 			</File>
 		</Filter>

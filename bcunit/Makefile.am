@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-COMPILE_DIRS = CUnit doc Man Share
+COMPILE_DIRS = BCUnit doc Man Share
 
 if ENABLE_EXAMPLES
 EXAMPLE_COMPILE_DIR = Examples
@@ -41,12 +41,12 @@ RPM_I686=./RPMS/i686/@PACKAGE@-@VERSION@-@RELEASE@.i686.rpm
 RPM_K6=./RPMS/athlon/@PACKAGE@-@VERSION@-@RELEASE@.k6.rpm
 RPM_SRC=./SRPMS/@PACKAGE@-@VERSION@-@RELEASE@.src.rpm
 
-EXTRA_DIST=cunit.pc.in
-EXTRA_REMOVE=CUnit-Memory-Dump.lst ${SOURCE_TAR_FILE} ${SOURCE_ZIP_FILE} ${SOURCE_GZIP_FILE} \
+EXTRA_DIST=bcunit.pc.in
+EXTRA_REMOVE=BCUnit-Memory-Dump.lst ${SOURCE_TAR_FILE} ${SOURCE_ZIP_FILE} ${SOURCE_GZIP_FILE} \
 	*.rpm *.o *.ncb *.plg *.opt *.clw *.ilk *.exe *.pdb *.lib
 
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = cunit.pc
+pkgconfig_DATA = bcunit.pc
 
 RPMDIRS=BUILD SOURCES RPMS RPMS/i386 SRPMS SPECS
 

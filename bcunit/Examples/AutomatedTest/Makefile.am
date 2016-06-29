@@ -8,7 +8,7 @@ if ENABLE_AUTOMATED
 example_PROGRAMS = AutomatedTest
 
 AutomatedTest_SOURCES = AutomatedTest.c
-AutomatedTest_LDADD = -lcunit -lcunitexamples
+AutomatedTest_LDADD = -lbcunit -lbcunitexamples
 AutomatedTest_LDFLAGS = -L.. -lm
 INCLUDES = -I..
 

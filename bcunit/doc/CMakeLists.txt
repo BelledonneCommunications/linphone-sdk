@@ -21,7 +21,7 @@
 ############################################################################
 
 set(DOC_FILES
-	CUnit_doc.css
+	BCUnit_doc.css
 	error_handling.html
 	fdl.html
 	index.html
@@ -33,15 +33,15 @@ set(DOC_FILES
 )
 
 install(FILES ${DOC_FILES}
-	DESTINATION doc/CUnit
+	DESTINATION doc/BCUnit
 	PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
 )
 
 
-file(GLOB HEADER_FILES "../CUnit/Headers/*.h")
-list(APPEND HEADER_FILES "../CUnit/Sources/Win/Win.h")
+file(GLOB HEADER_FILES "../BCUnit/Headers/*.h")
+list(APPEND HEADER_FILES "../BCUnit/Sources/Win/Win.h")
 
 install(FILES ${HEADER_FILES}
-	DESTINATION doc/CUnit/headers
+	DESTINATION doc/BCUnit/headers
 	PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
 )

@@ -21,7 +21,7 @@
 ############################################################################
 
 add_executable(AutomatedTest AutomatedTest.c)
-target_link_libraries(AutomatedTest cunit cunitexamples)
+target_link_libraries(AutomatedTest bcunit bcunitexamples)
 
-install(TARGETS AutomatedTest DESTINATION share/CUnit/Examples/Automated)
-install(FILES README DESTINATION share/CUnit/Examples/Automated)
+install(TARGETS AutomatedTest DESTINATION share/BCUnit/Examples/Automated)
+install(FILES README DESTINATION share/BCUnit/Examples/Automated)

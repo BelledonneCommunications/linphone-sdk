@@ -1,5 +1,5 @@
 #
-# Jamfile to build CUnit - Examples/WinTest
+# Jamfile to build BCUnit - Examples/WinTest
 # (see http://www.freetype.org/jam/index.html)
 #
 # Copyright (C) 2004-2006  Jerry St.Clair
@@ -23,18 +23,18 @@ SubDir TOP Examples WinTest ;
 
 if $(BUILD_EXAMPLES) && $(BUILD_WINDOWS)
 {
-  SubDirHdrs $(CUNIT_HDR_DIR) $(CUNIT_WIN_DIR) ;
+  SubDirHdrs $(BCUNIT_HDR_DIR) $(BCUNIT_WIN_DIR) ;
 
   # set location for temporary files
   LOCATE_TARGET = $(BUILD_DIR)$(SLASH)Examples$(SLASH)WinTest ;
 
   Main WinTest : StdAfx.cpp WinTest.cpp ;
-  LinkLibraries WinTest$(SUFEXE) : $(CUNIT_LIB_NAME)$(SUFLIB) ;
+  LinkLibraries WinTest$(SUFEXE) : $(BCUNIT_LIB_NAME)$(SUFLIB) ;
 
   if $(USE_DEPRECATED_NAMES)
   {
     Main WinTest_v1 : StdAfx.cpp WinTest_v1.cpp ;
-    LinkLibraries WinTest_v1$(SUFEXE) : $(CUNIT_LIB_NAME)$(SUFLIB) ;
+    LinkLibraries WinTest_v1$(SUFEXE) : $(BCUNIT_LIB_NAME)$(SUFLIB) ;
 
     ObjectC++Flags WinTest_v1.cpp : $(CCFLAGS) $(USE_DEPRECATED_NAMES) ;
   }

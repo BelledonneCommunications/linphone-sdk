@@ -1,5 +1,5 @@
 #
-# Jamfile to build CUnit - Examples/ConsoleTest
+# Jamfile to build BCUnit - Examples/ConsoleTest
 # (see http://www.freetype.org/jam/index.html)
 #
 # Copyright (C) 2004-2006  Jerry St.Clair
@@ -23,20 +23,20 @@ SubDir TOP Examples ConsoleTest ;
 
 if $(BUILD_EXAMPLES) && $(BUILD_CONSOLE)
 {
-  SubDirHdrs $(CUNIT_HDR_DIR) $(EXAMPLES_DIR) ;
+  SubDirHdrs $(BCUNIT_HDR_DIR) $(EXAMPLES_DIR) ;
 
   # set location for target, source, and temporary files
   LOCATE_TARGET = $(BUILD_DIR)$(SLASH)Examples$(SLASH)ConsoleTest ;
   SEARCH_SOURCE += $(EXAMPLES_DIR) ;
 
   Main ConsoleTest : ConsoleTest.c ExampleTests.c ;
-  LinkLibraries ConsoleTest$(SUFEXE) : $(CUNIT_LIB_NAME)$(SUFLIB) ;
+  LinkLibraries ConsoleTest$(SUFEXE) : $(BCUNIT_LIB_NAME)$(SUFLIB) ;
   LINKLIBS on ConsoleTest$(SUFEXE) += $(SYS_LIBS) ;
 
   if $(USE_DEPRECATED_NAMES)
   {
     Main ConsoleTest_v1 : ConsoleTest_v1.c ;
-    LinkLibraries ConsoleTest_v1$(SUFEXE) : $(CUNIT_LIB_NAME)$(SUFLIB) ;
+    LinkLibraries ConsoleTest_v1$(SUFEXE) : $(BCUNIT_LIB_NAME)$(SUFLIB) ;
     LINKLIBS on ConsoleTest_v1$(SUFEXE) += $(SYS_LIBS) ;
 
     ObjectCcFlags ConsoleTest_v1.c : $(USE_DEPRECATED_NAMES) ;
@@ -56,9 +56,9 @@ if $(BUILD_EXAMPLES) && $(BUILD_CONSOLE)
 
   if $(INSTALL_EXAM_DIR)
   {
-    InstallCUnitBin $(INSTALL_EXAM_DIR)$(SLASH)Console : ConsoleTest$(SUFEXE) ;
-    InstallCUnitFile $(INSTALL_EXAM_DIR)$(SLASH)Console : README ;
+    InstallBCUnitBin $(INSTALL_EXAM_DIR)$(SLASH)Console : ConsoleTest$(SUFEXE) ;
+    InstallBCUnitFile $(INSTALL_EXAM_DIR)$(SLASH)Console : README ;
     if $(USE_DEPRECATED_NAMES)
-      { InstallCUnitBin $(INSTALL_EXAM_DIR)$(SLASH)Console : ConsoleTest_v1$(SUFEXE) ; }
+      { InstallBCUnitBin $(INSTALL_EXAM_DIR)$(SLASH)Console : ConsoleTest_v1$(SUFEXE) ; }
   }
 }
