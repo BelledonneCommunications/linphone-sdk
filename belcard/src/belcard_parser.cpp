@@ -117,19 +117,18 @@ shared_ptr<BelCardList> BelCardParser::parse(const string &input) {
 }
 
 shared_ptr<BelCardList> BelCardParser::parseFile(const string &filename) {
-	ifstream istr;
-	istr.open(filename.c_str(), ifstream::in | ifstream::binary);
+	ifstream istr(filename.c_str(), ifstream::in | ifstream::binary);
 	
-	if (!istr.is_open() || istr.fail()) {
+	if (!istr || !istr.is_open() || istr.fail()) {
 		bctbx_error("[belcard] Couldn't open file %s", filename.c_str());
 		return NULL;
 	}
 	
-	stringstream vcardStream;
-	// The following line has been replaced by the copy() because this was crashing with the gnustl library on Android.
-	//vcardStream << istr.rdbuf(); 
-	copy(istreambuf_iterator<char>(istr), istreambuf_iterator<char>(), ostreambuf_iterator<char>(vcardStream));
-	string vcard = vcardStream.str();
+	string vcard;
+	istr.seekg(0, ios::end);
+	vcard.resize(istr.tellg());
+	istr.seekg(0, ios::beg);
+	istr.read(&vcard[0], vcard.size());
 	istr.close();
 	
 	string vcards = belcard_unfold(vcard);
