@@ -38,8 +38,7 @@ using namespace::belr;
 namespace belcard {
 	class BelCardParser {
 	private:
-		ABNFGrammarBuilder _grammar_builder;
-		shared_ptr<Grammar> _grammar;
+		Parser<shared_ptr<BelCardGeneric>> *_parser;
 		
 		shared_ptr<BelCardGeneric> _parse(const string &input, const string &rule);
 		
