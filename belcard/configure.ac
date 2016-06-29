@@ -76,24 +76,24 @@ fi
 AC_SUBST(BELR_LIBS)
 
 dnl ##################################################
-dnl # Check for CUnit
+dnl # Check for BCUnit
 dnl ##################################################
 
-PKG_CHECK_MODULES(CUNIT, cunit, [found_cunit=yes],[found_cunit=no])
+PKG_CHECK_MODULES(BCUNIT, bcunit, [found_bcunit=yes],[found_bcunit=no])
 
-if test "$found_cunit" = "no" ; then
-	AC_CHECK_HEADERS(CUnit/CUnit.h,
+if test "$found_bcunit" = "no" ; then
+	AC_CHECK_HEADERS(BCUnit/BCUnit.h,
 		[
-			AC_CHECK_LIB(cunit,CU_add_suite,[
-				found_cunit=yes
-				CUNIT_LIBS+=" -lcunit"
+			AC_CHECK_LIB(bcunit,CU_add_suite,[
+				found_bcunit=yes
+				BCUNIT_LIBS+=" -lbcunit"
 			])
 		])
 fi
 case "$target_os" in
 	*darwin*)
 		#hack for macport
-		CUNIT_LIBS+=" -lncurses"
+		BCUNIT_LIBS+=" -lncurses"
 	;;
 	*mingw*)
 		CPPFLAGS="$CPPFLAGS -D_WIN32_WINNT=0x0501"
@@ -102,18 +102,18 @@ case "$target_os" in
 	;;
 esac
 
-if test "$found_cunit" = "no" ; then
-	AC_MSG_WARN([Could not find cunit framework, tests are not compiled.])
+if test "$found_bcunit" = "no" ; then
+	AC_MSG_WARN([Could not find bcunit framework, tests are not compiled.])
 else
-	AC_CHECK_LIB(cunit,CU_get_suite,[
+	AC_CHECK_LIB(bcunit,CU_get_suite,[
 					AC_DEFINE(HAVE_CU_GET_SUITE,1,[defined when CU_get_suite is available])
-					],[foo=bar],[$CUNIT_LIBS])
-	AC_CHECK_LIB(cunit,CU_curses_run_tests,[
+					],[foo=bar],[$BCUNIT_LIBS])
+	AC_CHECK_LIB(bcunit,CU_curses_run_tests,[
 					AC_DEFINE(HAVE_CU_CURSES,1,[defined when CU_curses_run_tests is available])
-					],[foo=bar],[$CUNIT_LIBS])
+					],[foo=bar],[$BCUNIT_LIBS])
 fi
 
-AM_CONDITIONAL(BUILD_TESTS,test x$found_cunit = xyes)
+AM_CONDITIONAL(BUILD_TESTS,test x$found_bcunit = xyes)
 
 # Checks for header files.
 
