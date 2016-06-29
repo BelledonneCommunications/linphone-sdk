@@ -858,6 +858,9 @@ static CU_ErrorCode run_single_suite(CU_pSuite pSuite, CU_pRunSummary pRunSummar
   f_pCurTest = NULL;
   f_pCurSuite = pSuite;
 
+  pSuite->uiNumberOfTestsFailed = 0;
+  pSuite->uiNumberOfTestsSuccess = 0;
+
   /* run handler for suite start, if any */
   if (NULL != f_pSuiteStartMessageHandler) {
 	(*f_pSuiteStartMessageHandler)(pSuite);

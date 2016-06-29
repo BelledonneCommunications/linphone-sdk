@@ -223,8 +223,6 @@ static void automated_run_all_tests(CU_pTestRegistry pRegistry)
  */
 static CU_ErrorCode initialize_result_file(const char* szFilename)
 {
-  CU_pRunSummary pRunSummary = CU_get_run_summary();
-
   CU_set_error(CUE_SUCCESS);
 
   if ((NULL == szFilename) || (strlen(szFilename) == 0)) {
@@ -239,9 +237,7 @@ static CU_ErrorCode initialize_result_file(const char* szFilename)
     if (bJUnitXmlOutput == CU_TRUE) {
       fprintf(f_pTestResultFile,
               "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-              "<testsuites errors=\"0\" failures=\"%d\" tests=\"%d\" name=\"\"> \n",
-              pRunSummary->nTestsFailed,
-              pRunSummary->nTestsRun);
+              "<testsuites> \n");
     } else {
       fprintf(f_pTestResultFile,
               "<?xml version=\"1.0\" ?> \n"
@@ -300,7 +296,7 @@ static void automated_test_start_message_handler(const CU_pTest pTest, const CU_
 
     if (bJUnitXmlOutput == CU_TRUE) {
       fprintf(f_pTestResultFile,
-              "  <testsuite errors=\"%d\" failures=\"%d\" tests=\"%d\" name=\"%s\"> \n",
+              "  <testsuite errors=\"%u\" failures=\"%u\" tests=\"%u\" name=\"%s\"> \n",
               0 , /* Errors */
               pSuite->uiNumberOfTestsFailed, /* Failures */
               pSuite->uiNumberOfTests, /* Tests */
@@ -405,7 +401,7 @@ static void automated_test_complete_message_handler(const CU_pTest pTest,
       if (bJUnitXmlOutput == CU_TRUE) {
         fprintf(f_pTestResultFile, "                     Condition: %s\n", szTemp);
         fprintf(f_pTestResultFile, "                     File     : %s\n", (NULL != pTempFailure->strFileName) ? pTempFailure->strFileName : "");
-        fprintf(f_pTestResultFile, "                     Line     : %d\n", pTempFailure->uiLineNumber);
+        fprintf(f_pTestResultFile, "                     Line     : %u\n", pTempFailure->uiLineNumber);
       } else {
         fprintf(f_pTestResultFile,
               "        <CUNIT_RUN_TEST_RECORD> \n"
