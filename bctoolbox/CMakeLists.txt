@@ -94,22 +94,15 @@ if(POLARSSL_FOUND)
 endif()
 
 if(ENABLE_TESTS_COMPONENT)
-	find_package(CUnit 3.0.1) # we need cunit 3.0-1 for automated junit output
-	if(CUNIT_FOUND)
-		cmake_push_check_state(RESET)
-		list(APPEND CMAKE_REQUIRED_INCLUDES ${CUNIT_INCLUDE_DIRS})
-		list(APPEND CMAKE_REQUIRED_LIBRARIES ${CUNIT_LIBRARIES})
-		check_symbol_exists("CU_get_suite" "CUnit/CUnit.h" HAVE_CU_GET_SUITE)
-		check_symbol_exists("CU_curses_run_tests" "CUnit/CUnit.h" HAVE_CU_CURSES)
-		check_symbol_exists("CU_set_trace_handler" "CUnit/Util.h" HAVE_CU_SET_TRACE_HANDLER)
-		cmake_pop_check_state()
-
-		set(TESTER_REQUIRES_PRIVATE "cunit")
-	else()
-		# if we found did not found Cunit or improper version, just lamentably fail
-		# there are too much issue with using an old version...
-		message(FATAL_WARNING "Could not find the Cunit library with proper version. Consider turning tests component OFF with -DENABLE_TESTS_COMPONENT=OFF")
-	endif()
+	find_package(CUnit 3.0 REQUIRED)
+	cmake_push_check_state(RESET)
+	list(APPEND CMAKE_REQUIRED_INCLUDES ${CUNIT_INCLUDE_DIRS})
+	list(APPEND CMAKE_REQUIRED_LIBRARIES ${CUNIT_LIBRARIES})
+	check_symbol_exists("CU_get_suite" "CUnit/CUnit.h" HAVE_CU_GET_SUITE)
+	check_symbol_exists("CU_curses_run_tests" "CUnit/CUnit.h" HAVE_CU_CURSES)
+	check_symbol_exists("CU_set_trace_handler" "CUnit/Util.h" HAVE_CU_SET_TRACE_HANDLER)
+	cmake_pop_check_state()
+	set(TESTER_REQUIRES_PRIVATE "cunit")
 endif()
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bctoolbox.pc.in ${CMAKE_CURRENT_BINARY_DIR}/bctoolbox.pc)

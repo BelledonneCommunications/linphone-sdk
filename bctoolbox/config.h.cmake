@@ -25,6 +25,5 @@
 #cmakedefine HAVE_CU_GET_SUITE 1
 #cmakedefine HAVE_CU_CURSES 1
 #cmakedefine HAVE_CU_SET_TRACE_HANDLER 1
-#cmakedefine HAVE_CU_FIXED_JUNIT 1
 
 #cmakedefine HAVE_LIBRT 1

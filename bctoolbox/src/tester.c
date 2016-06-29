@@ -601,9 +601,7 @@ int bc_tester_start(const char* prog_name) {
 	if( xml_enabled ){
 		char * xml_tmp_file = bc_sprintf("%s.tmp", xml_file);
 		CU_set_output_filename(xml_tmp_file);
-#ifdef HAVE_CU_FIXED_JUNIT
 		CU_automated_enable_junit_xml(TRUE); /* this requires 3.0.1 because previous versions crash automated.c */
-#endif
 		free(xml_tmp_file);
 	}
 
