@@ -163,7 +163,7 @@ public:
 	**/
 	BELR_PUBLIC Grammar(const string &name);
 	
-	virtual ~Grammar() { }
+	~Grammar();
 	
 	/**
 	 * Include another grammar into this grammar.
@@ -229,6 +229,7 @@ private:
 	void assignRule(const string &name, const shared_ptr<Recognizer> &rule);
 	void _extendRule(const string &name, const shared_ptr<Recognizer> &rule);
 	map<string,shared_ptr<Recognizer>> mRules;
+	list<shared_ptr<RecognizerPointer>> mRecognizerPointers;
 	string mName;
 };
 

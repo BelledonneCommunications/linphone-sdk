@@ -381,6 +381,12 @@ Grammar::Grammar(const string& name) : mName(name){
 
 }
 
+Grammar::~Grammar() {
+	for(auto it = mRecognizerPointers.begin(); it != mRecognizerPointers.end(); ++it) {
+		shared_ptr<RecognizerPointer> pointer = dynamic_pointer_cast<RecognizerPointer>(*it);
+		pointer->setPointed(NULL);
+	}
+}
 
 void Grammar::assignRule(const string &argname, const shared_ptr<Recognizer> &rule){
 	string name=tolower(argname);
@@ -440,10 +446,12 @@ shared_ptr<Recognizer> Grammar::getRule(const string &argname){
 		}
 		return ret;
 	}else{/*the rule doesn't exist yet: return a pointer*/
-		ret=make_shared<RecognizerPointer>();
+		shared_ptr<RecognizerPointer> recognizerPointer = make_shared<RecognizerPointer>();
+		ret=recognizerPointer;
 		string name=tolower(argname);
 		ret->setName(string("@")+name);
 		mRules[name]=ret;
+		mRecognizerPointers.push_back(recognizerPointer);
 	}
 	return ret;
 }
