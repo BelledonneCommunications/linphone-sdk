@@ -81,9 +81,9 @@ AC_ARG_WITH( polarssl,
       [  --with-polarssl      Set prefix where polarssl can be found (ex:/usr or /usr/local)[default=PREFIX] ],
       [ polarssl_prefix=${withval}],[ polarssl_prefix=${prefix} ])
 
-AC_ARG_WITH( cunit,
-      [  --with-cunit      Set prefix where cunit can be found (ex:/usr or /usr/local)[default=PREFIX] ],
-      [ cunit_prefix=${withval}],[ cunit_prefix=${prefix} ])
+AC_ARG_WITH( bcunit,
+      [  --with-bcunit      Set prefix where bcunit can be found (ex:/usr or /usr/local)[default=PREFIX] ],
+      [ bcunit_prefix=${withval}],[ bcunit_prefix=${prefix} ])
 
 
 if test "$mbedtls_prefix" = "NONE" ; then
@@ -94,8 +94,8 @@ if test "$polarssl_prefix" = "NONE" ; then
 	polarssl_prefix=/usr/local
 fi
 
-if test "$cunit_prefix" = "NONE" ; then
-	cunit_prefix=/usr/local
+if test "$bcunit_prefix" = "NONE" ; then
+	bcunit_prefix=/usr/local
 fi
 
 
@@ -104,40 +104,40 @@ if test "$mbedtls_prefix" != "/usr" ; then
 	MBEDTLS_LIBS="-L${mbedtls_prefix}/lib"
 fi
 
-if test "$cunit_prefix" != "/usr" ; then
-	CUNIT_CFLAGS="-I${cunit_prefix}"
-	CUNIT_LIBS="-L${cunit_prefix}/lib"
+if test "$bcunit_prefix" != "/usr" ; then
+	BCUNIT_CFLAGS="-I${bcunit_prefix}"
+	BCUNIT_LIBS="-L${bcunit_prefix}/lib"
 fi
 
 
 CPPFLAGS_save=$CPPFLAGS
 LIBS_save=$LIBS
-CPPFLAGS="$CPPFLAGS $CUNIT_CFLAGS"
-LIBS="$LIBS $CUNIT_LIBS"
+CPPFLAGS="$CPPFLAGS $BCUNIT_CFLAGS"
+LIBS="$LIBS $BCUNIT_LIBS"
 
-AC_CHECK_HEADER(CUnit/CUnit.h, [
-	AC_CHECK_LIB(cunit, CU_get_error, [CUNIT_LIBS="CUNIT_LIBS -lcunit"; cunit_found=true],
-	[cunit_found=false]) ],
-	[cunit_found=false]
+AC_CHECK_HEADER(BCUnit/BCUnit.h, [
+	AC_CHECK_LIB(bcunit, CU_get_error, [BCUNIT_LIBS="BCUNIT_LIBS -lbcunit"; bcunit_found=true],
+	[bcunit_found=false]) ],
+	[bcunit_found=false]
 )
 
-if test "$cunit_found" != "true" ; then
-	AC_MSG_ERROR("CUnit not found")
+if test "$bcunit_found" != "true" ; then
+	AC_MSG_ERROR("BCUnit not found")
 else
 
-	AC_CHECK_LIB(cunit, CU_get_suite,
+	AC_CHECK_LIB(bcunit, CU_get_suite,
 		[ AC_DEFINE(HAVE_CU_GET_SUITE, 1, [Defined when CU_get_suite is available])]
 	)
-	AC_CHECK_LIB(cunit, CU_set_trace_handler,
+	AC_CHECK_LIB(bcunit, CU_set_trace_handler,
 		[ AC_DEFINE(HAVE_CU_SET_TRACE_HANDLER, 1, [Defined when CU_set_trace_handler is available])]
 	)
-	AC_CHECK_HEADERS(CUnit/CUCurses.h)
+	AC_CHECK_HEADERS(BCUnit/CUCurses.h)
 fi
 
 CPPFLAGS=$CPPFLAGS_save
 LIBS=$LIBS_save
-AC_SUBST(CUNIT_CFLAGS)
-AC_SUBST(CUNIT_LIBS)
+AC_SUBST(BCUNIT_CFLAGS)
+AC_SUBST(BCUNIT_LIBS)
 
 CPPFLAGS_save=$CPPFLAGS
 LIBS_save=$LIBS

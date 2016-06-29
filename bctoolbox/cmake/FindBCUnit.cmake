@@ -1,5 +1,5 @@
 ############################################################################
-# FindCUnit.txt
+# FindBCUnit.txt
 # Copyright (C) 2015  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -20,49 +20,49 @@
 #
 ############################################################################
 #
-# - Find the CUnit include file and library
+# - Find the BCUnit include file and library
 #
-#  CUNIT_FOUND - system has CUnit
-#  CUNIT_INCLUDE_DIRS - the CUnit include directory
-#  CUNIT_LIBRARIES - The libraries needed to use CUnit
+#  BCUNIT_FOUND - system has BCUnit
+#  BCUNIT_INCLUDE_DIRS - the BCUnit include directory
+#  BCUNIT_LIBRARIES - The libraries needed to use BCUnit
 
 include(CheckIncludeFile)
 include(CheckLibraryExists)
 
-find_path(CUNIT_INCLUDE_DIRS
-	NAMES CUnit/CUnit.h
+find_path(BCUNIT_INCLUDE_DIRS
+	NAMES BCUnit/BCUnit.h
 	PATH_SUFFIXES include
 )
 
-if(CUNIT_INCLUDE_DIRS)
-	set(HAVE_CUNIT_CUNIT_H 1)
+if(BCUNIT_INCLUDE_DIRS)
+	set(HAVE_BCUNIT_BCUNIT_H 1)
 endif()
 
-if(HAVE_CUNIT_CUNIT_H)
-	if(CUnit_FIND_VERSION)
-		list(APPEND CUNIT_REQUIRED_VARS CUNIT_VERSION)
-		file(STRINGS "${CUNIT_INCLUDE_DIRS}/CUnit/CUnit.h" CUNIT_VERSION_STR
+if(HAVE_BCUNIT_BCUNIT_H)
+	if(BCUnit_FIND_VERSION)
+		list(APPEND BCUNIT_REQUIRED_VARS BCUNIT_VERSION)
+		file(STRINGS "${BCUNIT_INCLUDE_DIRS}/BCUnit/BCUnit.h" BCUNIT_VERSION_STR
 			REGEX "^#define[\t ]+CU_VERSION[\t ]+\"([0-9.]+).*\"$")
-		string(REGEX REPLACE "^.*CU_VERSION[\t ]+\"([0-9.]+).*\"$" "\\1" CUNIT_VERSION "${CUNIT_VERSION_STR}")
+		string(REGEX REPLACE "^.*CU_VERSION[\t ]+\"([0-9.]+).*\"$" "\\1" BCUNIT_VERSION "${BCUNIT_VERSION_STR}")
 	endif()
 endif()
 
-find_library(CUNIT_LIBRARIES
-	NAMES cunit
+find_library(BCUNIT_LIBRARIES
+	NAMES bcunit
 	PATH_SUFFIXES bin lib
 )
 
 include(FindPackageHandleStandardArgs)
 
-if(CUnit_FIND_VERSION)
-	set(CHECK_VERSION_ARGS VERSION_VAR CUNIT_VERSION)
+if(BCUnit_FIND_VERSION)
+	set(CHECK_VERSION_ARGS VERSION_VAR BCUNIT_VERSION)
 endif()
 
-find_package_handle_standard_args(CUnit
-	REQUIRED_VARS CUNIT_INCLUDE_DIRS CUNIT_LIBRARIES
+find_package_handle_standard_args(BCUnit
+	REQUIRED_VARS BCUNIT_INCLUDE_DIRS BCUNIT_LIBRARIES
 	${CHECK_VERSION_ARGS}
 )
 
-mark_as_advanced(CUNIT_INCLUDE_DIRS CUNIT_LIBRARIES)
+mark_as_advanced(BCUNIT_INCLUDE_DIRS BCUNIT_LIBRARIES)
 
 unset(CHECK_VERSION_ARGS)

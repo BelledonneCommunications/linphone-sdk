@@ -30,11 +30,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <unistd.h>
 #endif
 
-#ifndef IN_CUNIT_SOURCES
-#include <CUnit/Basic.h>
-#include <CUnit/Automated.h>
-#include <CUnit/MyMem.h>
-#include <CUnit/Util.h>
+#ifndef IN_BCUNIT_SOURCES
+#include <BCUnit/Basic.h>
+#include <BCUnit/Automated.h>
+#include <BCUnit/MyMem.h>
+#include <BCUnit/Util.h>
 #else
 #include "Basic.h"
 #include "Automated.h"
@@ -65,7 +65,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define F_OK 00 /* Visual Studio does not define F_OK */
 #endif
 
-#ifdef HAVE_CUNIT_CUCURSES_H
+#ifdef HAVE_BCUNIT_CUCURSES_H
 #define HAVE_CU_CURSES 1
 #endif
 
@@ -83,11 +83,11 @@ static test_suite_t **test_suite = NULL;
 static int nb_test_suites = 0;
 
 #ifdef HAVE_CU_CURSES
-#include "CUnit/CUCurses.h"
+#include "BCUnit/CUCurses.h"
 static unsigned char curses = 0;
 #endif
 
-char* xml_file = "CUnitAutomated-Results.xml";
+char* xml_file = "BCUnitAutomated-Results.xml";
 int   xml_enabled = 0;
 char * suite_name = NULL;
 char * test_name = NULL;
@@ -247,7 +247,7 @@ static void test_start_message_handler(const CU_pTest pTest, const CU_pSuite pSu
 	bc_current_test_name = pTest->pName;
 }
 
-/*derivated from cunit*/
+/*derivated from bcunit*/
 static void test_complete_message_handler(const CU_pTest pTest, const CU_pSuite pSuite,
 										  const CU_pFailureRecord pFailureList) {
 	int i;
@@ -310,7 +310,7 @@ static void test_complete_message_handler(const CU_pTest pTest, const CU_pSuite 
 int bc_tester_run_tests(const char *suite_name, const char *test_name, const char *tag_name) {
 	int i;
 
-	/* initialize the CUnit test registry */
+	/* initialize the BCUnit test registry */
 	if (CUE_SUCCESS != CU_initialize_registry())
 		return CU_get_error();
 
@@ -371,13 +371,13 @@ int bc_tester_run_tests(const char *suite_name, const char *test_name, const cha
 		{
 #ifdef HAVE_CU_CURSES
 			if (curses) {
-			/* Run tests using the CUnit curses interface */
+			/* Run tests using the BCUnit curses interface */
 				CU_curses_run_tests();
 			}
 			else
 #endif
 			{
-				/* Run all tests using the CUnit Basic interface */
+				/* Run all tests using the BCUnit Basic interface */
 				CU_run_all_tests();
 			}
 		}

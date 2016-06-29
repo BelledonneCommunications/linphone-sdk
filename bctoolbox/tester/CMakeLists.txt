@@ -26,7 +26,7 @@ else()
 	set(PROJECT_LIBS bctoolbox bctoolbox-tester)
 endif()
 
-if(CUNIT_FOUND)
+if(BCUNIT_FOUND)
 	set(TESTER_SOURCES
 		bctoolbox_tester.c
 		bctoolbox_tester.h
