@@ -48,7 +48,7 @@
   <ItemDefinitionGroup>
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(GeneratedFilesDir);$(IntDir);$(ProjectDir)..\..\..\include;$(ProjectDir)..\..\..\src;$(ProjectDir)..\..\..\src\voip;$(ProjectDir)..\..\..\tester;$(ProjectDir)..\..\..\..\ortp\include;$(ProjectDir)..\..\..\..\..\cunit\build\wp8\cunit\$(Platform)\$(Configuration);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(GeneratedFilesDir);$(IntDir);$(ProjectDir)..\..\..\include;$(ProjectDir)..\..\..\src;$(ProjectDir)..\..\..\src\voip;$(ProjectDir)..\..\..\tester;$(ProjectDir)..\..\..\..\ortp\include;$(ProjectDir)..\..\..\..\..\bcunit\build\wp8\bcunit\$(Platform)\$(Configuration);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WINDOWS;_WINRT_DLL;_CRT_SECURE_NO_WARNINGS;HAVE_CU_GET_SUITE;VIDEO_ENABLED;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -116,7 +116,7 @@
     <ProjectReference Include="..\..\..\..\..\bcg729\build\wp8\bcg729\bcg729.vcxproj">
       <Project>{1db09afe-fc9b-472e-a746-0e33f8ef8883}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\..\..\cunit\build\wp8\cunit\cunit.vcxproj">
+    <ProjectReference Include="..\..\..\..\..\bcunit\build\wp8\bcunit\bcunit.vcxproj">
       <Project>{902daf1d-ebf1-4d03-b598-143500a50ab4}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\..\..\..\msamr\build\wp8\msamr\msamr.vcxproj">

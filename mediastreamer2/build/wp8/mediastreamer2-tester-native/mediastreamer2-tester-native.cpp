@@ -2,7 +2,7 @@
 
 #include "mediastreamer2-tester-native.h"
 #include "ortp/logging.h"
-#include "cunit/Util.h"
+#include "bcunit/Util.h"
 
 using namespace Windows::Phone::Media::Devices;
 using namespace Windows::Phone::Networking::Voip;
@@ -28,7 +28,7 @@ static void nativeOutputTraceHandler(OutputTraceLevel lev, const char *fmt, va_l
 	}
 }
 
-static void CUnitNativeOutputTraceHandler(int lev, const char *fmt, va_list args)
+static void BCUnitNativeOutputTraceHandler(int lev, const char *fmt, va_list args)
 {
 	nativeOutputTraceHandler(Raw, fmt, args);
 }
@@ -79,7 +79,7 @@ void Mediastreamer2TesterNative::run(Platform::String^ suiteName, Platform::Stri
 		ortp_set_log_level_mask(ORTP_ERROR|ORTP_FATAL);
 	}
 	ortp_set_log_handler(Mediastreamer2NativeOutputTraceHandler);
-	CU_set_trace_handler(CUnitNativeOutputTraceHandler);
+	CU_set_trace_handler(BCUnitNativeOutputTraceHandler);
 
 	// Need to create a dummy VoipPhoneCall to be able to capture audio!
 	Platform::String^ str = "Mediastreamer2";

@@ -20,7 +20,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mediastreamer2-tester-nativ
 		{1DB09AFE-FC9B-472E-A746-0E33F8EF8883} = {1DB09AFE-FC9B-472E-A746-0E33F8EF8883}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "cunit", "..\..\..\..\..\cunit\build\wp8\cunit\cunit.vcxproj", "{902DAF1D-EBF1-4D03-B598-143500A50AB4}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bcunit", "..\..\..\..\..\bcunit\build\wp8\bcunit\bcunit.vcxproj", "{902DAF1D-EBF1-4D03-B598-143500A50AB4}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mediastreamer2", "..\mediastreamer2\mediastreamer2.vcxproj", "{027BAD0E-9179-48C1-9733-7AA7E2C2EC70}"
 	ProjectSection(ProjectDependencies) = postProject
