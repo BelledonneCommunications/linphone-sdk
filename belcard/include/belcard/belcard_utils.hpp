@@ -37,7 +37,8 @@
 
 using namespace::std;
 
-BELCARD_PUBLIC string belcard_fold(string input);
-BELCARD_PUBLIC string belcard_unfold(string input);
+BELCARD_PUBLIC string belcard_fold(const string &input);
+BELCARD_PUBLIC string belcard_unfold(const string &input);
+BELCARD_PUBLIC string belcard_read_file(const string &filename);
 
 #endif

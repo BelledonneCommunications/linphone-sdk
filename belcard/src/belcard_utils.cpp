@@ -17,20 +17,26 @@
 */
 
 #include "belcard/belcard_utils.hpp"
+#include "bctoolbox/logging.h"
+
 #include <string.h>
+#include <iostream>
+#include <fstream>
+#include <sstream>
 
 using namespace::std;
 
-string belcard_fold(string input) {
+string belcard_fold(const string &input) {
+	string output = input;
 	size_t crlf = 0;
 	size_t next_crlf = 0;
 	const char *endline = "\r\n";
 	
 	while (next_crlf != string::npos) {
-		next_crlf = input.find(endline, crlf);
+		next_crlf = output.find(endline, crlf);
 		if (next_crlf != string::npos) {
 			if (next_crlf - crlf > 75) {
-				input.insert(crlf + 74, "\r\n ");
+				output.insert(crlf + 74, "\r\n ");
 				crlf += 76;
 			} else {
 				crlf = next_crlf + 2;
@@ -38,27 +44,46 @@ string belcard_fold(string input) {
 		}
 	}
 	
-	return input;
+	return output;
 }
 
-string belcard_unfold(string input) {
+string belcard_unfold(const string &input) {
+	string output = input;
 	const char *endline = "\r\n";
-	size_t crlf = input.find(endline);
+	size_t crlf = output.find(endline);
 	
 	if (crlf == string::npos) {
 		endline = "\n";
-		crlf = input.find(endline);
+		crlf = output.find(endline);
 	}
 	
 	while (crlf != string::npos) {
-		if (isspace(input[crlf + strlen(endline)])) {
-			input.erase(crlf, strlen(endline) + 1);
+		if (isspace(output[crlf + strlen(endline)])) {
+			output.erase(crlf, strlen(endline) + 1);
 		} else {
 			crlf += strlen(endline);
 		}
 		
-		crlf = input.find(endline, crlf);
+		crlf = output.find(endline, crlf);
 	}
 	
-	return input;
+	return output;
+}
+
+string belcard_read_file(const string &filename) {
+	const char *fName = filename.c_str();
+	ifstream istr(fName, ifstream::in | ifstream::binary);
+	
+	if (!istr || !istr.is_open() || istr.fail()) {
+		bctbx_error("[belcard] Couldn't open file %s", fName);
+		return NULL;
+	}
+	
+	string vcard;
+	istr.seekg(0, ios::end);
+	vcard.resize(istr.tellg());
+	istr.seekg(0, ios::beg);
+	istr.read(&vcard[0], vcard.size());
+	istr.close();
+	return vcard;
 }
