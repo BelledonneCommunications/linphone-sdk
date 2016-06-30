@@ -31,7 +31,7 @@ using namespace::std;
 using namespace::belcard;
 
 static string openFile(const char *name) {
-	ifstream istr(bc_tester_file(name));
+	ifstream istr(bc_tester_res(name));
 	if (!istr.is_open()) {
 		BC_FAIL(name);
 	}
