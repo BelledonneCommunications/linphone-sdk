@@ -48,15 +48,16 @@ option(ENABLE_TEST "Compile BCUnit internal test program" OFF)
 option(ENABLE_MEMTRACE "Enable BCUnit internal memory tracking" OFF)
 option(ENABLE_DEPRECATED "Enable use of deprecated v1.1 names" OFF)
 
+include(GNUInstallDirs)
+
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 
 
-set(prefix ${CMAKE_INSTALL_PREFIX})
-set(exec_prefix ${prefix}/bin)
-set(libdir ${prefix}/lib)
-set(includedir ${prefix}/include)
+set(exec_prefix ${CMAKE_INSTALL_BINDIR})
+set(libdir ${CMAKE_INSTALL_LIBDIR})
+set(includedir ${CMAKE_INSTALL_INCLUDEDIR})
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bcunit.pc.in ${CMAKE_CURRENT_BINARY_DIR}/bcunit.pc)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/bcunit.pc DESTINATION lib/pkgconfig)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/bcunit.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 
 
 if(MSVC)
