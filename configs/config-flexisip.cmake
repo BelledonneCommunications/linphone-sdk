@@ -70,7 +70,7 @@ endif()
 message("cmake install rpath: ${CMAKE_INSTALL_RPATH}")
 
 # bctoolbox
-linphone_builder_add_cmake_option(linphone "-DENABLE_TESTS_COMPONENT=NO")
+linphone_builder_add_cmake_option(bctoolbox "-DENABLE_TESTS_COMPONENT=NO")
 
 # Include builders
 include(builders/CMakeLists.txt)
