@@ -26,6 +26,13 @@ else()
 	set(BELCARD_LIBRARIES_FOR_TESTER belcard-static)
 endif()
 
+set(VCARD_FILES
+	vcards/foldtest.vcf
+	vcards/unfoldtest.vcf
+	vcards/vcard.vcf
+	vcards/vcards.vcf
+)
+
 set(HEADER_FILES_CXX belcard-tester.hpp)
 set(SOURCE_FILES_CXX
 	belcard-addressing-tester.cpp
@@ -44,11 +51,20 @@ set(SOURCE_FILES_CXX
 
 apply_compile_flags(SOURCE_FILES_CXX "CPP" "CXX")
 
-add_executable(belcard-tester ${SOURCE_FILES_CXX} ${HEADER_FILES_CXX})
-set_target_properties(belcard-tester PROPERTIES LINKER_LANGUAGE CXX)
-target_include_directories(belcard-tester PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIRS})
-target_link_libraries(belcard-tester ${BELCARD_LIBRARIES_FOR_TESTER} ${BCTOOLBOX_TESTER_LIBRARIES})
+add_executable(belcard_tester ${SOURCE_FILES_CXX} ${HEADER_FILES_CXX})
+set_target_properties(belcard_tester PROPERTIES LINKER_LANGUAGE CXX)
+target_include_directories(belcard_tester PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIRS})
+target_link_libraries(belcard_tester ${BELCARD_LIBRARIES_FOR_TESTER} ${BCTOOLBOX_TESTER_LIBRARIES})
 
 if(APPLE)
-	set_target_properties(belcard-tester PROPERTIES LINK_FLAGS "-stdlib=libc++")
+	set_target_properties(belcard_tester PROPERTIES LINK_FLAGS "-stdlib=libc++")
 endif()
+
+install(TARGETS belcard_tester
+	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+)
+
+install(FILES ${VCARD_FILES} DESTINATION "${CMAKE_INSTALL_DATADIR}/belcard_tester/vcards")

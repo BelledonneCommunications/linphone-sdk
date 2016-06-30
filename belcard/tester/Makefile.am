@@ -1,4 +1,4 @@
-EXTRA_DIST=vcards/vcard.vcf vcards/unfoldtest.vcf vcards/foldtest.vcf
+EXTRA_DIST=vcards/vcard.vcf vcards/vcards.vcf vcards/unfoldtest.vcf vcards/foldtest.vcf
 
 if BUILD_TESTS
 
