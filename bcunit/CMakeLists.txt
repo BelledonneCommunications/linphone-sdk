@@ -22,12 +22,16 @@
 
 cmake_minimum_required(VERSION 2.8.12)
 set(CMAKE_MACOSX_RPATH ON) # Before cmake 3.0.0, MACOSX_RPATH was not set to ON by default - however this is no good reason to not enable it by default
-project(BCUNIT C)
+project(BCunit C)
 
 set(PACKAGE "BCUnit")
 set(PACKAGE_NAME "${PACKAGE}")
-set(VERSION "3.0")
-set(RELEASE "1")
+set(PROJECT_VERSION_MAJOR 3)
+set(PROJECT_VERSION_MINOR 0)
+set(PROJECT_VERSION_PATCH 1)
+set(PROJECT_VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}")
+set(VERSION "${PROJECT_VERSION}")
+set(RELEASE "${PROJECT_VERSION_PATCH}")
 set(PACKAGE_VERSION "${VERSION}-${RELEASE}")
 set(PACKAGE_STRING "${PACKAGE_NAME} ${PACKAGE_VERSION}")
 set(PACKAGE_BUGREPORT "")
@@ -75,6 +79,8 @@ if(ENABLE_CURSES)
 		set(ENABLE_CURSES 0)
 	endif()
 endif()
+
+add_subdirectory(build)
 
 include_directories(
 	BCUnit/Headers
