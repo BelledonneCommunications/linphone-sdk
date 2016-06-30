@@ -163,7 +163,7 @@ public:
 	**/
 	BELR_PUBLIC Grammar(const string &name);
 	
-	~Grammar();
+	BELR_PUBLIC ~Grammar();
 	
 	/**
 	 * Include another grammar into this grammar.
