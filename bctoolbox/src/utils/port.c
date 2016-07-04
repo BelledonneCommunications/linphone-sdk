@@ -904,6 +904,76 @@ bool_t bctbx_is_multicast_addr(const struct sockaddr *addr) {
 	
 }
 
+#ifdef _WIN32
+
+int bctbx_bind(bctbx_socket_t socket, const struct sockaddr *address, socklen_t address_len) {
+	return bind(socket, address, (int)address_len);
+}
+
+int bctbx_connect(bctbx_socket_t socket, const struct sockaddr *address, socklen_t address_len) {
+	return connect(socket, address, (int)address_len);
+}
+
+ssize_t bctbx_send(bctbx_socket_t socket, const void *buffer, size_t length, int flags) {
+	return send(socket, (const char *)buffer, (int)length, flags);
+}
+
+ssize_t bctbx_sendto(bctbx_socket_t socket, const void *message, size_t length, int flags, const struct sockaddr *dest_addr, socklen_t dest_len) {
+	return sendto(socket, (const char *)message, (int)length, flags, dest_addr, (int)dest_len);
+}
+
+ssize_t bctbx_recv(bctbx_socket_t socket, void *buffer, size_t length, int flags) {
+	return recv(socket, (char *)buffer, (int)length, flags);
+}
+
+ssize_t bctbx_recvfrom(bctbx_socket_t socket, void *buffer, size_t length, int flags, struct sockaddr *address, socklen_t *address_len) {
+	return recvfrom(socket, (char *)buffer, (int)length, flags, address, (int *)address_len);
+}
+
+ssize_t bctbx_read(int fd, void *buf, size_t nbytes) {
+	return (ssize_t)_read(fd, buf, (unsigned int)nbytes);
+}
+
+ssize_t bctbx_write(int fd, const void *buf, size_t nbytes) {
+	return (ssize_t)_write(fd, buf, (unsigned int)nbytes);
+}
+
+#else
+
+int bctbx_bind(bctbx_socket_t socket, const struct sockaddr *address, socklen_t address_len) {
+	return bind(socket, address, address_len);
+}
+
+int bctbx_connect(bctbx_socket_t socket, const struct sockaddr *address, socklen_t address_len) {
+	return connect(socket, address, address_len);
+}
+
+ssize_t bctbx_send(bctbx_socket_t socket, const void *buffer, size_t length, int flags) {
+	return send(socket, buffer, length, flags);
+}
+
+ssize_t bctbx_sendto(bctbx_socket_t socket, const void *message, size_t length, int flags, const struct sockaddr *dest_addr, socklen_t dest_len) {
+	return sendto(socket, message, length, flags, dest_addr, dest_len);
+}
+
+ssize_t bctbx_recv(bctbx_socket_t socket, void *buffer, size_t length, int flags) {
+	return recv(socket, buffer, length, flags);
+}
+
+ssize_t bctbx_recvfrom(bctbx_socket_t socket, void *buffer, size_t length, int flags, struct sockaddr *address, socklen_t *address_len) {
+	return recvfrom(socket, buffer, length, flags, address, address_len);
+}
+
+ssize_t bctbx_read(int fd, void *buf, size_t nbytes) {
+	return read(fd, buf, nbytes);
+}
+
+ssize_t bctbx_write(int fd, const void *buf, size_t nbytes) {
+	return write(fd, buf, nbytes);
+}
+
+#endif
+
 
 #if defined(ANDROID) || defined(_WIN32)
 
@@ -1056,7 +1126,7 @@ static void _bctbx_addrinfo_to_ip_address_error(int err, char *ip, size_t ip_siz
 
 int bctbx_addrinfo_to_ip_address(const struct addrinfo *ai, char *ip, size_t ip_size, int *port){
 	char serv[16];
-	int err=getnameinfo(ai->ai_addr,ai->ai_addrlen,ip,ip_size,serv,sizeof(serv),NI_NUMERICHOST|NI_NUMERICSERV);
+	int err=getnameinfo(ai->ai_addr,(socklen_t)ai->ai_addrlen,ip,(socklen_t)ip_size,serv,(socklen_t)sizeof(serv),NI_NUMERICHOST|NI_NUMERICSERV);
 	if (err!=0) _bctbx_addrinfo_to_ip_address_error(err, ip, ip_size);
 	if (port) *port=atoi(serv);
 	return 0;
@@ -1065,7 +1135,7 @@ int bctbx_addrinfo_to_ip_address(const struct addrinfo *ai, char *ip, size_t ip_
 int bctbx_addrinfo_to_printable_ip_address(const struct addrinfo *ai, char *printable_ip, size_t printable_ip_size) {
 	char ip[64];
 	char serv[16];
-	int err = getnameinfo(ai->ai_addr, ai->ai_addrlen, ip, sizeof(ip), serv, sizeof(serv), NI_NUMERICHOST | NI_NUMERICSERV);
+	int err = getnameinfo(ai->ai_addr, (socklen_t)ai->ai_addrlen, ip, sizeof(ip), serv, sizeof(serv), NI_NUMERICHOST | NI_NUMERICSERV);
 	if (err != 0) _bctbx_addrinfo_to_ip_address_error(err, ip, sizeof(ip));
 	if (ai->ai_family == AF_INET)
 		snprintf(printable_ip, printable_ip_size, "%s:%s", ip, serv);

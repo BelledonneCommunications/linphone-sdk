@@ -214,7 +214,7 @@ int32_t bctbx_x509_certificate_parse(bctbx_x509_certificate_t *cert, const char 
 
 int32_t bctbx_x509_certificate_get_der_length(bctbx_x509_certificate_t *cert) {
 	if (cert!=NULL) {
-		return ((mbedtls_x509_crt *)cert)->raw.len;
+		return (int32_t)((mbedtls_x509_crt *)cert)->raw.len;
 	}
 	return 0;
 }
@@ -454,7 +454,7 @@ int32_t bctbx_x509_certificate_get_fingerprint(const bctbx_x509_certificate_t *c
 
 	if (hash_length>0) {
 		size_t i;
-		int fingerprint_index = strlen(hash_alg_string);
+		size_t fingerprint_index = strlen(hash_alg_string);
 		char prefix=' ';
 
 		fingerprint_size=fingerprint_index+3*hash_length+1;
@@ -1419,7 +1419,7 @@ int32_t bctbx_aes_gcm_encrypt_and_tag(const uint8_t *key, size_t keyLength,
 	int ret;
 
 	mbedtls_gcm_init(&gcmContext);
-	ret = mbedtls_gcm_setkey(&gcmContext, MBEDTLS_CIPHER_ID_AES, key, keyLength*8);
+	ret = mbedtls_gcm_setkey(&gcmContext, MBEDTLS_CIPHER_ID_AES, key, (unsigned int)keyLength*8);
 	if (ret != 0) return ret;
 
 	ret = mbedtls_gcm_crypt_and_tag(&gcmContext, MBEDTLS_GCM_ENCRYPT, plainTextLength, initializationVector, initializationVectorLength, authenticatedData, authenticatedDataLength, plainText, output, tagLength, tag);
@@ -1455,7 +1455,7 @@ int32_t bctbx_aes_gcm_decrypt_and_auth(const uint8_t *key, size_t keyLength,
 	int ret;
 
 	mbedtls_gcm_init(&gcmContext);
-	ret = mbedtls_gcm_setkey(&gcmContext, MBEDTLS_CIPHER_ID_AES, key, keyLength*8);
+	ret = mbedtls_gcm_setkey(&gcmContext, MBEDTLS_CIPHER_ID_AES, key, (unsigned int)keyLength*8);
 	if (ret != 0) return ret;
 
 	ret = mbedtls_gcm_auth_decrypt(&gcmContext, cipherTextLength, initializationVector, initializationVectorLength, authenticatedData, authenticatedDataLength, tag, tagLength, cipherText, output);
@@ -1501,7 +1501,7 @@ bctbx_aes_gcm_context_t *bctbx_aes_gcm_context_new(const uint8_t *key, size_t ke
 
 	ctx = bctbx_malloc0(sizeof(mbedtls_gcm_context));
 	mbedtls_gcm_init(ctx);
-	ret = mbedtls_gcm_setkey(ctx, MBEDTLS_CIPHER_ID_AES, key, keyLength*8);
+	ret = mbedtls_gcm_setkey(ctx, MBEDTLS_CIPHER_ID_AES, key, (unsigned int)keyLength*8);
 	if (ret != 0) {
 		bctbx_free(ctx);
 		return NULL;

@@ -99,7 +99,7 @@ static ssize_t bcRead(bctbx_vfs_file_t *pFile, void *buf, size_t count, off_t of
 	ssize_t nRead;                      /* Return value from read() */
 	if (pFile) {
 		if (bctbx_file_seek(pFile, offset, SEEK_SET) == BCTBX_VFS_OK) {
-			nRead = read(pFile->fd, buf, count);
+			nRead = bctbx_read(pFile->fd, buf, count);
 			/* Error while reading */
 			if (nRead < 0) {
 				if (errno) return -errno;
@@ -121,11 +121,11 @@ static ssize_t bcRead(bctbx_vfs_file_t *pFile, void *buf, size_t count, off_t of
  * @return         number of bytes written (can be 0), negative value errno if an error occurred.
  */
 static ssize_t bcWrite(bctbx_vfs_file_t *p, const void *buf, size_t count, off_t offset) {
-	size_t nWrite = 0;                 /* Return value from write() */
+	ssize_t nWrite = 0;                 /* Return value from write() */
 
 	if (p) {
 		if ((bctbx_file_seek(p, offset, SEEK_SET)) == BCTBX_VFS_OK) {
-			nWrite = write(p->fd, buf, count);
+			nWrite = bctbx_write(p->fd, buf, count);
 			if (nWrite > 0) return nWrite;
 			else if (nWrite <= 0) {
 				if (errno) return -errno;
@@ -192,7 +192,7 @@ static int bcGetLine(bctbx_vfs_file_t *pFile, char *s, int max_len) {
 		if (pNextLine) {
 			/* Got a line! */
 			*pNextLine = '\0';
-			sizeofline = pNextLine - s + 1;
+			sizeofline = (int)(pNextLine - s + 1);
 			if (pNextLine[1] == '\n') sizeofline += 1; /*take into account the \r\n" case*/
 
 			/* offset to next beginning of line*/
