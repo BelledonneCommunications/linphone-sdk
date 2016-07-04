@@ -35,7 +35,7 @@ static void belle_sip_udp_listening_point_uninit(belle_sip_udp_listening_point_t
 
 static belle_sip_channel_t *udp_create_channel(belle_sip_listening_point_t *lp, const belle_sip_hop_t *hop){
 	belle_sip_channel_t *chan=belle_sip_channel_new_udp(lp->stack
-														,((belle_sip_udp_listening_point_t*)lp)->sock
+														,(int)((belle_sip_udp_listening_point_t*)lp)->sock
 														,belle_sip_uri_get_host(lp->listening_uri)
 														,belle_sip_uri_get_port(lp->listening_uri)
 														,hop->host
@@ -94,7 +94,7 @@ static belle_sip_socket_t create_udp_socket(const char *addr, int *port, int *fa
 		belle_sip_socket_enable_dual_stack(sock);
 	}
 	
-	err=bind(sock,res->ai_addr,res->ai_addrlen);
+	err=bctbx_bind(sock,res->ai_addr,(socklen_t)res->ai_addrlen);
 	if (err==-1){
 		belle_sip_error("udp bind() failed for %s port %i: %s",addr,*port,belle_sip_get_socket_error_string());
 		close_socket(sock);
@@ -171,7 +171,7 @@ static int on_udp_data(belle_sip_udp_listening_point_t *lp, unsigned int events)
 			if (chan==NULL){
 				/*TODO: should rather create the channel with real local ip and port and not just 0.0.0.0"*/
 				chan=belle_sip_channel_new_udp_with_addr(lp->base.stack
-														,lp->sock
+														,(int)lp->sock
 														,belle_sip_uri_get_host(lp->base.listening_uri)
 														,belle_sip_uri_get_port(lp->base.listening_uri)
 														,&ai);

@@ -69,7 +69,7 @@ void belle_sip_object_enable_leak_detector(int enable){
 }
 
 int belle_sip_object_get_object_count(void){
-	return belle_sip_list_size(all_objects);
+	return (int)belle_sip_list_size(all_objects);
 }
 
 void belle_sip_object_flush_active_objects(void){
@@ -555,10 +555,10 @@ char* belle_sip_object_to_string(void* _obj) {
 		belle_sip_error_code error = belle_sip_object_marshal(obj,buff,sizeof(buff)-1,&offset);
 		if (error==BELLE_SIP_BUFFER_OVERFLOW){
 			belle_sip_message("belle_sip_object_to_string(): temporary buffer is too short while doing to_string() for %s, retrying", obj->vptr->type_name);
-			return belle_sip_object_to_alloc_string(obj,get_hint_size(2*offset));
+			return belle_sip_object_to_alloc_string(obj,get_hint_size(2*(int)offset));
 		}
 		buff[offset]='\0';
-		obj->vptr->tostring_bufsize_hint=get_hint_size(2*offset);
+		obj->vptr->tostring_bufsize_hint=get_hint_size(2*(int)offset);
 		return belle_sip_strdup(buff);
 	}
 }

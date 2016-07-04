@@ -296,7 +296,7 @@ static int bits_reader_read(bits_reader_t *reader, int count, unsigned int *ret)
 	unsigned int tmp;
 	size_t byte_index=reader->bit_index/8;
 	size_t bit_index=reader->bit_index % 8;
-	int shift=32-bit_index-count;
+	int shift=32-(int)bit_index-count;
 
 	if (count>=24){
 		belle_sip_error("This bit reader cannot read more than 24 bits at once.");
@@ -355,7 +355,7 @@ void belle_sip_util_copy_headers(belle_sip_message_t *orig, belle_sip_message_t 
 	}
 }
 
-int belle_sip_get_char (const char*a,int n,char*out) {
+size_t belle_sip_get_char (const char*a,size_t n,char*out) {
 	if (*a=='%' && n>2) {
 		unsigned int tmp;
 		sscanf(a+1,"%02x",&tmp);
@@ -369,8 +369,8 @@ int belle_sip_get_char (const char*a,int n,char*out) {
 
 char* belle_sip_to_unescaped_string(const char* buff) {
 	char *output_buff=belle_sip_malloc(strlen(buff)+1);
-	unsigned int i;
-	unsigned int out_buff_index=0;
+	size_t i;
+	size_t out_buff_index=0;
 
 	for(i=0; buff[i]!='\0'; out_buff_index++) {
 		i+=belle_sip_get_char(buff+i,3,output_buff+out_buff_index);

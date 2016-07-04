@@ -21,7 +21,6 @@
 ############################################################################
 
 function(require_c99 target)
-	message("CMAKE_C_COMPILER_ID: ${CMAKE_C_COMPILER_ID}")
 	if(CMAKE_C_COMPILER_ID STREQUAL "QCC")
 		target_compile_options(${target} PRIVATE "-std=gnu99")
 	else()
@@ -174,6 +173,12 @@ if(MSVC)
 	set(DNS_C_COMPILE_FLAGS "${DNS_C_COMPILE_FLAGS} /wd4305") # Disable "'initializing': truncation from 'unsigned int' to 'UCHAR'" warnings
 	set(DNS_C_COMPILE_FLAGS "${DNS_C_COMPILE_FLAGS} /wd4018") # Disable "signed/unsigned mismatch" warnings
 	set_source_files_properties(dns.c PROPERTIES COMPILE_FLAGS "${DNS_C_COMPILE_FLAGS}")
+	get_source_file_property(SDP_PARSER_COMPILE_FLAGS grammars/belle_sdpParser.c COMPILE_FLAGS)
+	set(SDP_PARSER_COMPILE_FLAGS "${SDP_PARSER_COMPILE_FLAGS} /wd4267") # Disable "possible loss of data" warnings
+	set_source_files_properties(grammars/belle_sdpParser.c PROPERTIES COMPILE_FLAGS "${SDP_PARSER_COMPILE_FLAGS}")
+	get_source_file_property(SIP_MESSAGE_PARSER_COMPILE_FLAGS grammars/belle_sip_messageParser.c COMPILE_FLAGS)
+	set(SIP_MESSAGE_PARSER_COMPILE_FLAGS "${SIP_MESSAGE_PARSER_COMPILE_FLAGS} /wd4267") # Disable "possible loss of data" warnings
+	set_source_files_properties(grammars/belle_sip_messageParser.c PROPERTIES COMPILE_FLAGS "${SIP_MESSAGE_PARSER_COMPILE_FLAGS}")
 endif()
 
 string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")

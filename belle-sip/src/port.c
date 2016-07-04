@@ -128,7 +128,7 @@ const char *belle_sip_get_socket_error_string_from_code(int code){
 	static CHAR msgBuf[256];
 #ifdef _UNICODE
 	static WCHAR wMsgBuf[256];
-	int ret;
+	size_t ret;
 	FormatMessageW(
 			FORMAT_MESSAGE_FROM_SYSTEM |
 			FORMAT_MESSAGE_IGNORE_INSERTS,

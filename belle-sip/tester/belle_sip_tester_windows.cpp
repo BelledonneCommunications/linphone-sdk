@@ -46,7 +46,7 @@ static void nativeOutputTraceHandler(int lev, const char *fmt, va_list args)
 	}
 }
 
-static void belleSipNativeOutputTraceHandler(belle_sip_log_level lev, const char *fmt, va_list args)
+static void belleSipNativeOutputTraceHandler(const char *domain, BctbxLogLevel lev, const char *fmt, va_list args)
 {
 	nativeOutputTraceHandler((int)lev, fmt, args);
 }

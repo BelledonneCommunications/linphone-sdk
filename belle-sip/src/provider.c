@@ -284,29 +284,29 @@ static void compute_hash_from_invariants(belle_sip_message_t *msg, char *branchi
 
 	belle_sip_md5_init(&ctx);
 	if (initial)
-		belle_sip_md5_append(&ctx,(uint8_t*)initial,strlen(initial));
+		belle_sip_md5_append(&ctx,(uint8_t*)initial,(int)strlen(initial));
 	if (requri){
 		size_t offset=0;
 		belle_sip_object_marshal((belle_sip_object_t*)requri,tmp,sizeof(tmp)-1,&offset);
-		belle_sip_md5_append(&ctx,(uint8_t*)tmp,strlen(tmp));
+		belle_sip_md5_append(&ctx,(uint8_t*)tmp,(int)strlen(tmp));
 	}
 	if (from_tag)
-		belle_sip_md5_append(&ctx,(uint8_t*)from_tag,strlen(from_tag));
+		belle_sip_md5_append(&ctx,(uint8_t*)from_tag,(int)strlen(from_tag));
 	if (to_tag)
-		belle_sip_md5_append(&ctx,(uint8_t*)to_tag,strlen(to_tag));
-	belle_sip_md5_append(&ctx,(uint8_t*)callid,strlen(callid));
+		belle_sip_md5_append(&ctx,(uint8_t*)to_tag,(int)strlen(to_tag));
+	belle_sip_md5_append(&ctx,(uint8_t*)callid,(int)strlen(callid));
 	belle_sip_md5_append(&ctx,(uint8_t*)&cseq,sizeof(cseq));
 	if (is_request){
 		if (prev_via){
 			size_t offset=0;
 			belle_sip_object_marshal((belle_sip_object_t*)prev_via,tmp,sizeof(tmp)-1,&offset);
-			belle_sip_md5_append(&ctx,(uint8_t*)tmp,offset);
+			belle_sip_md5_append(&ctx,(uint8_t*)tmp,(int)offset);
 		}
 	}else{
 		if (via){
 			size_t offset=0;
 			belle_sip_object_marshal((belle_sip_object_t*)via,tmp,sizeof(tmp)-1,&offset);
-			belle_sip_md5_append(&ctx,(uint8_t*)tmp,offset);
+			belle_sip_md5_append(&ctx,(uint8_t*)tmp,(int)offset);
 		}
 	}
 	belle_sip_md5_finish(&ctx,digest);
@@ -336,15 +336,15 @@ static char *compute_rfc2543_branch(belle_sip_request_t *req, char *branchid, si
 
 	belle_sip_md5_init(&ctx);
 
-	belle_sip_md5_append(&ctx,(uint8_t*)from_str,strlen(from_str));
-	belle_sip_md5_append(&ctx,(uint8_t*)to_str,strlen(to_str));
-	belle_sip_md5_append(&ctx,(uint8_t*)callid,strlen(callid));
+	belle_sip_md5_append(&ctx,(uint8_t*)from_str,(int)strlen(from_str));
+	belle_sip_md5_append(&ctx,(uint8_t*)to_str,(int)strlen(to_str));
+	belle_sip_md5_append(&ctx,(uint8_t*)callid,(int)strlen(callid));
 	belle_sip_md5_append(&ctx,(uint8_t*)&cseq,sizeof(cseq));
 	belle_sip_free(from_str);
 	belle_sip_free(to_str);
 
 	if (v_branch)
-		belle_sip_md5_append(&ctx,(uint8_t*)v_branch,strlen(v_branch));
+		belle_sip_md5_append(&ctx,(uint8_t*)v_branch,(int)strlen(v_branch));
 
 	belle_sip_md5_finish(&ctx,digest);
 	belle_sip_octets_to_text(digest,sizeof(digest),branchid,branchid_size);

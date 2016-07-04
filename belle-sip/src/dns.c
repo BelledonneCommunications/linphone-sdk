@@ -4875,6 +4875,23 @@ int dns_resconf_loadpath(struct dns_resolv_conf *resconf, const char *path) {
 	return error;
 } /* dns_resconf_loadpath() */
 
+#ifdef USE_FIXED_NAMESERVERS
+int dns_resconf_load_fixed_nameservers(struct dns_resolv_conf *resconf) {
+	const char * const nameservers[] = {
+		"8.8.8.8",
+		"8.8.4.4"
+	};
+	int i;
+	int error = 0;
+
+	for (i = 0; !error && (i < lengthof(nameservers)); i++) {
+		error = dns_resconf_pton(&resconf->nameserver[i], nameservers[i]);
+	}
+
+	return error;
+}
+#endif /* USE_FIXED_NAMESERVERS */
+
 #ifdef USE_STRUCT_RES_STATE_NAMESERVERS
 int dns_resconf_load_struct_res_state_nameservers(struct dns_resolv_conf *resconf) {
 	int i;
