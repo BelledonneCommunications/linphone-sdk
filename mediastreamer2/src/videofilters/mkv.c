@@ -121,7 +121,7 @@ static void H264Private_serialize(const H264Private *obj, uint8_t **data, size_t
 	uint8_t nbSPS, nbPPS;
 	bctbx_list_t *it = NULL;
 	uint8_t *result = NULL;
-	int i;
+	size_t i;
 
 	nbSPS = (uint8_t)bctbx_list_size(obj->sps_list);
 	nbPPS = (uint8_t)bctbx_list_size(obj->pps_list);
@@ -161,7 +161,7 @@ static void H264Private_serialize(const H264Private *obj, uint8_t **data, size_t
 
 	for(it = obj->pps_list; it != NULL; it = it->next) {
 		mblk_t *buff = (mblk_t *)(it->data);
-		int buff_size = msgdsize(buff);
+		size_t buff_size = msgdsize(buff);
 		uint16_t buff_size_be = htons((uint16_t)buff_size);
 		memcpy(&result[i], &buff_size_be, sizeof(buff_size_be));
 		i += sizeof(buff_size_be);
@@ -291,7 +291,7 @@ static void nalus_to_frame(mblk_t *buffer, mblk_t **frame, bctbx_list_t **spsLis
 
 			default:
 			{
-				uint32_t bufferSize = htonl(msgdsize(buff));
+				uint32_t bufferSize = htonl((uint32_t)msgdsize(buff));
 				mblk_t *size = allocb(4, 0);
 
 				if(type == 5) {
@@ -1088,7 +1088,7 @@ static int matroska_open_file(Matroska *obj, const char *path, MatroskaOpenMode 
 
 	switch(mode) {
 		case MKV_OPEN_CREATE:
-			if((obj->output = StreamOpen(obj->p, path, SFLAG_WRONLY | SFLAG_CREATE)) == NULL) {
+			if((obj->output = StreamOpen(obj->p, (tchar_t *)path, SFLAG_WRONLY | SFLAG_CREATE)) == NULL) {
 				err = -2;
 				break;
 			}
@@ -1098,7 +1098,7 @@ static int matroska_open_file(Matroska *obj, const char *path, MatroskaOpenMode 
 			break;
 
 		case MKV_OPEN_APPEND:
-			if((obj->output = StreamOpen(obj->p, path, SFLAG_REOPEN)) == NULL) {
+			if((obj->output = StreamOpen(obj->p, (tchar_t *)path, SFLAG_REOPEN)) == NULL) {
 				err = -2;
 				break;
 			}
@@ -1117,7 +1117,7 @@ static int matroska_open_file(Matroska *obj, const char *path, MatroskaOpenMode 
 			break;
 
 		case MKV_OPEN_RO:
-			if((obj->output = StreamOpen(obj->p, path, SFLAG_RDONLY)) == NULL) {
+			if((obj->output = StreamOpen(obj->p, (tchar_t *)path, SFLAG_RDONLY)) == NULL) {
 				err = -2;
 				break;
 			}
@@ -1822,7 +1822,7 @@ static matroska_block *write_frame(MKVRecorder *obj, mblk_t *buffer, uint16_t pi
 	frame = module_process(obj->modulesList[pin], buffer, &isKeyFrame, &isVisible, &codecPrivateData, &codecPrivateSize);
 
 	m_frame.Timecode = ((int64_t)mblk_get_timestamp_info(frame)) * 1000000LL;
-	m_frame.Size = msgdsize(frame);
+	m_frame.Size = (uint32_t)msgdsize(frame);
 	m_frame.Data = frame->b_rptr;
 
 	if(matroska_clusters_count(&obj->file) == 0) {

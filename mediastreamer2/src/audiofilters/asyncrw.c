@@ -20,7 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msasync.h"
 #include "asyncrw.h"
 #include "mediastreamer2/msqueue.h"
-
+#include <bctoolbox/bc_vfs.h>
 
 
 struct _MSAsyncReader{
@@ -29,7 +29,7 @@ struct _MSAsyncReader{
 	MSBufferizer buf;
 	int fd;
 	int ntasks_pending;
-	int blocksize;
+	size_t blocksize;
 	off_t seekoff;
 	int moving;
 	bool_t eof;
@@ -59,14 +59,14 @@ void ms_async_reader_destroy(MSAsyncReader *obj){
 static void async_reader_fill(void *data){
 	MSAsyncReader *obj = (MSAsyncReader*) data;
 	mblk_t *m = allocb(obj->blocksize, 0);
-	int err = read(obj->fd, m->b_wptr, obj->blocksize);
+	int err = (int)bctbx_read(obj->fd, m->b_wptr, obj->blocksize);
 	ms_mutex_lock(&obj->mutex);
 	if (err >= 0){
 		if (err > 0){
 			m->b_wptr += err;
 			ms_bufferizer_put(&obj->buf, m);
 		}else freemsg(m);
-		if (err < obj->blocksize){
+		if ((size_t)err < obj->blocksize){
 			obj->eof = TRUE;
 		}
 	}else if (err == -1){
@@ -79,26 +79,27 @@ static void async_reader_fill(void *data){
 
 int ms_async_reader_read(MSAsyncReader *obj, uint8_t *buf, size_t size){
 	int err;
+	size_t ret;
 	
 	ms_mutex_lock(&obj->mutex);
 	if (obj->moving){
 		err = -EWOULDBLOCK;
 		goto end;
 	}
-	err = ms_bufferizer_get_avail(&obj->buf);
-	if (err < size && obj->ntasks_pending){
+	ret = ms_bufferizer_get_avail(&obj->buf);
+	if (ret < size && obj->ntasks_pending){
 		err = -EWOULDBLOCK;
 		goto end;
 	}
 	/*eventually ask to fill the bufferizer*/
 	if (obj->ntasks_pending == 0){
-		if (err < obj->blocksize){
+		if (ret < obj->blocksize){
 			obj->ntasks_pending++;
 			ms_worker_thread_add_task(obj->wth, async_reader_fill, obj);
 		}
 	}
 	/*and finally return the datas*/
-	err = ms_bufferizer_read(&obj->buf, buf, size);
+	err = (int)ms_bufferizer_read(&obj->buf, buf, size);
 end:
 	ms_mutex_unlock(&obj->mutex);
 	return err;
@@ -132,7 +133,7 @@ struct _MSAsyncWriter{
 	MSBufferizer buf;
 	uint8_t *wbuf;
 	int fd;
-	int blocksize;
+	size_t blocksize;
 };
 
 MSAsyncWriter *ms_async_writer_new(int fd){
@@ -164,7 +165,7 @@ static void async_writer_write(void *data){
 	}
 	ms_mutex_unlock(&obj->mutex);
 	if (ok){
-		if (write(obj->fd, obj->wbuf, size) == -1){
+		if (bctbx_write(obj->fd, obj->wbuf, size) == -1){
 			ms_error("async_writer_write(): %s", strerror(errno));
 		}
 	}

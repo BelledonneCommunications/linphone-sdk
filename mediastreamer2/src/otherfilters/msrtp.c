@@ -64,7 +64,7 @@ static void send_stun_packet(SenderData *d, bool_t enable_rtp, bool_t enable_rtc
 	mblk_t *mp;
 	RtpSession *s = d->session;
 	char *buf = NULL;
-	int len;
+	size_t len;
 
 	if (!d->stun_enabled) return;
 	if (ms_is_multicast_addr((const struct sockaddr *)&s->rtcp.gs.loc_addr)) {

@@ -357,7 +357,7 @@ static uint64_t decode64(StunMessageDecoder *decoder) {
 static const void * decode(StunMessageDecoder *decoder, size_t len) {
 	const void *value = decoder->ptr;
 	decoder->ptr += len;
-	decoder->remaining -= len;
+	decoder->remaining -= (ssize_t)len;
 	if (decoder->remaining < 0) decoder->error = TRUE;
 	return value;
 }
@@ -1515,7 +1515,7 @@ static int ms_turn_rtp_endpoint_sendto(RtpTransport *rtptp, mblk_t *msg, int fla
 				/* Use a TURN send indication to encapsulate the data to be sent */
 				MSStunAddress stun_addr;
 				char *buf = NULL;
-				int len;
+				size_t len;
 				uint8_t *data;
 				uint16_t datalen;
 				msgpullup(msg, -1);

@@ -1267,7 +1267,7 @@ static IceStunServerRequestTransaction * ice_send_stun_request(RtpTransport *rtp
 {
 	IceStunServerRequestTransaction *transaction = NULL;
 	char *buf = NULL;
-	int len;
+	size_t len;
 	char source_addr_str[64];
 	char dest_addr_str[64];
 	char tr_id_str[25];
@@ -1291,7 +1291,7 @@ static IceStunServerRequestTransaction * ice_send_stun_server_binding_request(Ic
 {
 	IceStunServerRequestTransaction *transaction = NULL;
 	MSStunMessage *msg = ms_stun_binding_request_create();
-	transaction = ice_send_stun_request(request->rtptp, request->source_ai->ai_addr, request->source_ai->ai_addrlen, server, addrlen, msg, "STUN binding request");
+	transaction = ice_send_stun_request(request->rtptp, request->source_ai->ai_addr, (socklen_t)request->source_ai->ai_addrlen, server, addrlen, msg, "STUN binding request");
 	ms_stun_message_destroy(msg);
 	return transaction;
 }
@@ -1322,7 +1322,7 @@ static IceStunServerRequestTransaction * ice_send_turn_server_allocate_request(I
 	MSStunMessage *msg = ms_turn_allocate_request_create();
 	stun_message_fill_authentication_from_turn_context(msg, request->turn_context);
 	request->stun_method = ms_stun_message_get_method(msg);
-	transaction = ice_send_stun_request(request->rtptp, request->source_ai->ai_addr, request->source_ai->ai_addrlen, server, addrlen, msg, "TURN allocate request");
+	transaction = ice_send_stun_request(request->rtptp, request->source_ai->ai_addr, (socklen_t)request->source_ai->ai_addrlen, server, addrlen, msg, "TURN allocate request");
 	ms_stun_message_destroy(msg);
 	return transaction;
 }
@@ -1333,7 +1333,7 @@ static IceStunServerRequestTransaction * ice_send_turn_server_refresh_request(Ic
 		MSStunMessage *msg = ms_turn_refresh_request_create(ms_turn_context_get_lifetime(request->turn_context));
 		stun_message_fill_authentication_from_turn_context(msg, request->turn_context);
 		request->stun_method = ms_stun_message_get_method(msg);
-		transaction = ice_send_stun_request(request->rtptp, request->source_ai->ai_addr, request->source_ai->ai_addrlen, server, addrlen, msg, "TURN refresh request");
+		transaction = ice_send_stun_request(request->rtptp, request->source_ai->ai_addr, (socklen_t)request->source_ai->ai_addrlen, server, addrlen, msg, "TURN refresh request");
 		ms_stun_message_destroy(msg);
 	}
 	return transaction;
@@ -1344,7 +1344,7 @@ static IceStunServerRequestTransaction * ice_send_turn_server_create_permission_
 	MSStunMessage *msg = ms_turn_create_permission_request_create(request->peer_address);
 	stun_message_fill_authentication_from_turn_context(msg, request->turn_context);
 	request->stun_method = ms_stun_message_get_method(msg);
-	transaction = ice_send_stun_request(request->rtptp, request->source_ai->ai_addr, request->source_ai->ai_addrlen, server, addrlen, msg, "TURN create permission request");
+	transaction = ice_send_stun_request(request->rtptp, request->source_ai->ai_addr, (socklen_t)request->source_ai->ai_addrlen, server, addrlen, msg, "TURN create permission request");
 	ms_stun_message_destroy(msg);
 	return transaction;
 }
@@ -1354,7 +1354,7 @@ static IceStunServerRequestTransaction * ice_send_turn_server_channel_bind_reque
 	MSStunMessage *msg = ms_turn_channel_bind_request_create(request->peer_address, request->channel_number);
 	stun_message_fill_authentication_from_turn_context(msg, request->turn_context);
 	request->stun_method = ms_stun_message_get_method(msg);
-	transaction = ice_send_stun_request(request->rtptp, request->source_ai->ai_addr, request->source_ai->ai_addrlen, server, addrlen, msg, "TURN channel bind request");
+	transaction = ice_send_stun_request(request->rtptp, request->source_ai->ai_addr, (socklen_t)request->source_ai->ai_addrlen, server, addrlen, msg, "TURN channel bind request");
 	ms_stun_message_destroy(msg);
 	return transaction;
 }
@@ -1392,7 +1392,7 @@ static void ice_send_binding_request(IceCheckList *cl, IceCandidatePair *pair, c
 	char *username;
 	IceTransaction *transaction;
 	char *buf = NULL;
-	int len;
+	size_t len;
 	RtpTransport *rtptp;
 	char local_addr_str[64];
 	char remote_addr_str[64];
@@ -1567,7 +1567,7 @@ static void ice_send_binding_response(IceCheckList *cl, const RtpSession *rtp_se
 	MSStunMessage *response;
 	char *buf = NULL;
 	char *username;
-	int len;
+	size_t len;
 	RtpTransport *rtptp = NULL;
 	struct sockaddr_storage dest_addr;
 	socklen_t dest_addrlen = sizeof(dest_addr);
@@ -1627,7 +1627,7 @@ static void ice_send_error_response(const RtpSession *rtp_session, const OrtpEve
 {
 	MSStunMessage *response;
 	char *buf = NULL;
-	int len;
+	size_t len;
 	RtpTransport* rtptp;
 	struct sockaddr_storage dest_addr;
 	socklen_t dest_addrlen = sizeof(dest_addr);
@@ -1671,7 +1671,7 @@ static void ice_send_indication(const IceCandidatePair *pair, const RtpSession *
 	MSStunAddress source;
 	MSStunAddress dest;
 	char *buf = NULL;
-	int len;
+	size_t len;
 	RtpTransport *rtptp;
 	char local_addr_str[64];
 	char remote_addr_str[64];
@@ -2894,7 +2894,7 @@ void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, int family, con
 
 static int ice_check_list_nb_losing_pairs(const IceCheckList *cl)
 {
-	return bctbx_list_size(cl->losing_pairs);
+	return (int)bctbx_list_size(cl->losing_pairs);
 }
 
 int ice_session_nb_losing_pairs(const IceSession *session)
@@ -3187,7 +3187,7 @@ static void ice_prune_candidate_pairs(IceCheckList *cl)
 	bctbx_list_for_each2(cl->pairs, (void (*)(void*,void*))ice_create_check_list, cl);
 
 	/* Limit the number of connectivity checks. */
-	nb_pairs = bctbx_list_size(cl->check_list);
+	nb_pairs = (int)bctbx_list_size(cl->check_list);
 	if (nb_pairs > cl->session->max_connectivity_checks) {
 		nb_pairs_to_remove = nb_pairs - cl->session->max_connectivity_checks;
 		list = cl->check_list;

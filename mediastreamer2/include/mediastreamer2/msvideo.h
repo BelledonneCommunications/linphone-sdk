@@ -276,7 +276,7 @@ MS2_PUBLIC void ms_yuv_buf_allocator_free(MSYuvBufAllocator *obj);
 MS2_PUBLIC void ms_rgb_to_yuv(const uint8_t rgb[3], uint8_t yuv[3]);
 
 
-#if defined(__arm__) || defined(__arm64__)
+#ifdef MS_HAS_ARM
 MS2_PUBLIC void rotate_plane_neon_clockwise(int wDest, int hDest, int full_width, const uint8_t* src, uint8_t* dst);
 MS2_PUBLIC void rotate_plane_neon_anticlockwise(int wDest, int hDest, int full_width, const uint8_t* src, uint8_t* dst);
 MS2_PUBLIC void deinterlace_and_rotate_180_neon(const uint8_t* ysrc, const uint8_t* cbcrsrc, uint8_t* ydst, uint8_t* udst, uint8_t* vdst, int w, int h, int y_byte_per_row,int cbcr_byte_per_row);

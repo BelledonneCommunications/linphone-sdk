@@ -603,7 +603,7 @@ static void mjpeg_fragment_and_send(MSFilter *f,EncState *s,mblk_t *frame, uint3
 	struct jpeghdr jpghdr;
 	struct jpeghdr_rst rsthdr;
 	struct jpeghdr_qtable qtblhdr;
-	int bytes_left = msgdsize(frame);
+	int bytes_left = (int)msgdsize(frame);
 	int data_len;
 
 	mblk_t *packet;

@@ -429,7 +429,7 @@ static int ms_dtls_srtp_rtp_DTLSread (void *ctx, unsigned char *buf, size_t len)
 		ms_free(context->rtp_incoming_buffer);
 		context->rtp_incoming_buffer = next_packet;
 
-		return dataLength;
+		return (int)dataLength;
 	}
 }
 
@@ -447,7 +447,7 @@ static int ms_dtls_srtp_rtcp_DTLSread (void *ctx, unsigned char *buf, size_t len
 		ms_free(context->rtcp_incoming_buffer);
 		context->rtcp_incoming_buffer = next_packet;
 
-		return dataLength;
+		return (int)dataLength;
 	}
 }
 
@@ -472,12 +472,12 @@ static int ms_dtls_srtp_rtp_process_on_receive(struct _RtpTransportModifier *t, 
 
 	/* check if we have an on-going handshake */
 	if (ctx->rtp_channel_status == DTLS_STATUS_CONTEXT_NOT_READY) {
-		return msgLength;
+		return (int)msgLength;
 	}
 
 	// check incoming message length
 	if (msgLength<RTP_FIXED_HEADER_SIZE) {
-		return msgLength;
+		return (int)msgLength;
 	}
 
 	/* check if it is a DTLS packet and process it */
@@ -540,7 +540,7 @@ static int ms_dtls_srtp_rtp_process_on_receive(struct _RtpTransportModifier *t, 
 		}
 		return 0;
 	}
-	return msgLength;
+	return (int)msgLength;
 }
 
 static int ms_dtls_srtp_rtcp_process_on_receive(struct _RtpTransportModifier *t, mblk_t *msg)  {
@@ -551,12 +551,12 @@ static int ms_dtls_srtp_rtcp_process_on_receive(struct _RtpTransportModifier *t,
 
 	// check incoming message length
 	if (msgLength<RTP_FIXED_HEADER_SIZE) {
-		return msgLength;
+		return (int)msgLength;
 	}
 
 	/* check if we have an on-going handshake */
 	if (ctx->rtp_channel_status == DTLS_STATUS_CONTEXT_NOT_READY) {
-		return msgLength;
+		return (int)msgLength;
 	}
 
 	/* check if it is a DTLS packet and process it */
@@ -620,14 +620,14 @@ static int ms_dtls_srtp_rtcp_process_on_receive(struct _RtpTransportModifier *t,
 
 		return 0;
 	} 
-	return msgdsize(msg);
+	return (int)msgdsize(msg);
 }
 
 static int ms_dtls_srtp_rtp_process_on_send(struct _RtpTransportModifier *t, mblk_t *msg){
-	return msgdsize(msg);
+	return (int)msgdsize(msg);
 }
 static int ms_dtls_srtp_rtcp_process_on_send(struct _RtpTransportModifier *t, mblk_t *msg)  {
-	return msgdsize(msg);
+	return (int)msgdsize(msg);
 }
 
 /**************************************/

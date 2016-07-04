@@ -465,7 +465,7 @@ static double compute_available_bw(MSStatefulQosAnalyzer *obj){
 	double mean_bw = 0.;
 	bctbx_list_t *current = obj->rtcpstatspoint;
 	bctbx_list_t *last = current;
-	int size = bctbx_list_size(obj->rtcpstatspoint);
+	size_t size = bctbx_list_size(obj->rtcpstatspoint);
 	if (current == NULL){
 		ms_message("MSStatefulQosAnalyzer[%p]: no points available for estimation", obj);
 		return -1;
@@ -569,7 +569,7 @@ static void stateful_analyzer_suggest_action(MSQosAnalyzer *objbase, MSRateContr
 		curbw = obj->latest ? obj->latest->bandwidth : 0.;
 		bw = compute_available_bw(obj);
 		greatest_pt = bctbx_list_size(obj->rtcpstatspoint) ?
-			(rtcpstatspoint_t*)bctbx_list_nth_data(obj->rtcpstatspoint, bctbx_list_size(obj->rtcpstatspoint)-1)
+			(rtcpstatspoint_t*)bctbx_list_nth_data(obj->rtcpstatspoint, (int)bctbx_list_size(obj->rtcpstatspoint)-1)
 			: NULL;
 
 		/*try a burst every 50 seconds (10 RTCP packets)*/

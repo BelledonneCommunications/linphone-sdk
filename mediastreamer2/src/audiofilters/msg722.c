@@ -238,7 +238,7 @@ static void dec_process(MSFilter *f) {
 		om=allocb(msg_size*4,0);
 		mblk_meta_copy(im, om);
 
-		if ((declen = g722_decode(s->dec_state,(int16_t *)om->b_wptr, im->b_rptr, msg_size))<0) {
+		if ((declen = g722_decode(s->dec_state,(int16_t *)om->b_wptr, im->b_rptr, (int)msg_size))<0) {
 			ms_warning("g722_decode error!");
 			freemsg(om);
 		} else {
@@ -282,7 +282,7 @@ static void dec_process(MSFilter *f) {
 		om = allocb(buff_size, 0);
 
 		mblk_set_plc_flag(om, 1);
-		generic_plc_generate_samples(s->plc_context, (int16_t *)om->b_wptr, buff_size/sizeof(int16_t));
+		generic_plc_generate_samples(s->plc_context, (int16_t *)om->b_wptr, (uint16_t)(buff_size/sizeof(int16_t)));
 		/* store the generated samples into plc_buffer */
 		generic_plc_update_plc_buffer(s->plc_context, om->b_wptr, buff_size);
 

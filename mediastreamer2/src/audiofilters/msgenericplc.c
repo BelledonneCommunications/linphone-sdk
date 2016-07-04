@@ -137,7 +137,7 @@ static void generic_plc_process(MSFilter *f) {
 			mblk_set_cng_flag(m, 1);
 		}else{ /* plc */
 			mblk_set_plc_flag(m, 1);
-			generic_plc_generate_samples(plc_context, (int16_t *)m->b_wptr, buff_size/sizeof(int16_t));
+			generic_plc_generate_samples(plc_context, (int16_t *)m->b_wptr, (uint16_t)(buff_size/sizeof(int16_t)));
 			/* store the generated samples into plc_buffer */
 			generic_plc_update_plc_buffer(plc_context, m->b_wptr, buff_size);
 			//memset(m->b_wptr, 0, buff_size);

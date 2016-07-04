@@ -164,7 +164,7 @@ static void basic_text_stream(void) {
 		text_stream_putchar32(margaux->ts, (uint32_t)c);
 	}
 
-	BC_ASSERT_TRUE(wait_for_until(&marielle->ts->ms, &margaux->ts->ms, &marielle->stats.number_of_received_char, strlen(helloworld), 5000));
+	BC_ASSERT_TRUE(wait_for_until(&marielle->ts->ms, &margaux->ts->ms, &marielle->stats.number_of_received_char, (int)strlen(helloworld), 5000));
 	ms_message("Received message is: %s", marielle->stats.received_chars);
 	strcmpresult = strcmp(marielle->stats.received_chars, helloworld);
 	BC_ASSERT_EQUAL(strcmpresult, 0, int, "%d");
@@ -190,7 +190,7 @@ static void basic_text_stream2(void) {
 		wait_for_until(&marielle->ts->ms, &margaux->ts->ms, &dummy, 1, 500);
 	}
 
-	BC_ASSERT_TRUE(wait_for_until(&marielle->ts->ms, &margaux->ts->ms, &marielle->stats.number_of_received_char, strlen(helloworld), 1000));
+	BC_ASSERT_TRUE(wait_for_until(&marielle->ts->ms, &margaux->ts->ms, &marielle->stats.number_of_received_char, (int)strlen(helloworld), 1000));
 	ms_message("Received message is: %s", marielle->stats.received_chars);
 	strcmpresult = strcmp(marielle->stats.received_chars, helloworld);
 	BC_ASSERT_EQUAL(strcmpresult, 0, int, "%d");
@@ -214,7 +214,7 @@ static void copy_paste_text_longer_than_rtt_buffer(void) {
 		text_stream_putchar32(margaux->ts, (uint32_t)c);
 	}
 
-	BC_ASSERT_FALSE(wait_for_until(&marielle->ts->ms, &margaux->ts->ms, &marielle->stats.number_of_received_char, strlen(helloworld), 5000));
+	BC_ASSERT_FALSE(wait_for_until(&marielle->ts->ms, &margaux->ts->ms, &marielle->stats.number_of_received_char, (int)strlen(helloworld), 5000));
 	ms_message("Received message is: %s", marielle->stats.received_chars);
 	strcmpresult = strcmp(marielle->stats.received_chars, helloworld);
 	BC_ASSERT_LOWER(strcmpresult, 0, int, "%d");
@@ -252,7 +252,7 @@ static void srtp_protected_text_stream(void) {
 		wait_for_until(&marielle->ts->ms, &margaux->ts->ms, &dummy, 1, 500);
 	}
 
-	BC_ASSERT_TRUE(wait_for_until(&marielle->ts->ms, &margaux->ts->ms, &marielle->stats.number_of_received_char, strlen(helloworld), 1000));
+	BC_ASSERT_TRUE(wait_for_until(&marielle->ts->ms, &margaux->ts->ms, &marielle->stats.number_of_received_char, (int)strlen(helloworld), 1000));
 	ms_message("Received message is: %s", marielle->stats.received_chars);
 	strcmpresult = strcmp(marielle->stats.received_chars, helloworld);
 	BC_ASSERT_EQUAL(strcmpresult, 0, int, "%d");

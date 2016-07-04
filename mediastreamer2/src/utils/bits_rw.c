@@ -33,7 +33,7 @@ int ms_bits_reader_n_bits(MSBitsReader *reader, int count, unsigned int *ret, co
 	unsigned int tmp;
 	size_t byte_index=reader->bit_index/8;
 	size_t bit_index=reader->bit_index % 8;
-	int shift=32-bit_index-count;
+	int shift=(int)(32-bit_index-count);
 
 	if (count>=24){
 		ms_error("This bit reader cannot read more than 24 bits at once.");
@@ -132,7 +132,7 @@ int ms_bits_writer_n_bits(MSBitsWriter *writer, int count, unsigned int value, c
 
 	/* resize if necessary */
 	if ((size_t)(writer->bit_index + count) > writer->buf_size * 8) {
-		int old_size = writer->buf_size;
+		size_t old_size = writer->buf_size;
 		writer->buf_size = MAX(2 * (writer->buf_size + 1), writer->buf_size + count / 8);
 		writer->buffer = (uint8_t*) realloc(writer->buffer, writer->buf_size);
 		memset(&writer->buffer[old_size], 0, writer->buf_size - old_size);

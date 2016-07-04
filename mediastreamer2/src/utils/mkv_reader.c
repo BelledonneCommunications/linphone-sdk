@@ -82,7 +82,7 @@ static void _mkv_track_reader_edit_seek(MKVTrackReader *obj);
 MKVReader *mkv_reader_open(const char *filename) {
 	MKVReader *obj = (MKVReader *)ms_new0(MKVReader, 1);
 	tchar_t *fname = NULL;
-	int err;
+	err_t err;
 
 	ParserContext_Init(&obj->p, NULL, NULL, NULL);
 	_load_modules((nodemodule *)&obj->p);
@@ -94,7 +94,7 @@ MKVReader *mkv_reader_open(const char *filename) {
 #ifdef UNICODE
 	fname = ms_malloc0((strlen(filename) + 1) * sizeof(tchar_t));
 #ifdef _WIN32
-	MultiByteToWideChar(CP_UTF8, 0, filename, -1, fname, strlen(filename));
+	MultiByteToWideChar(CP_UTF8, 0, filename, -1, fname, (int)strlen(filename));
 #else
 	mbstowcs(fname, filename, strlen(filename));
 #endif
@@ -344,7 +344,7 @@ static int _parse_headers(MKVReader *obj) {
 	ebml_parser_context pctx, seg_pctx;
 	tchar_t doc_type[9];
 	int doc_type_version;
-	int err;
+	err_t err;
 	int upper_level = 0;
 	bool_t cluster_found = FALSE;
 	bool_t level1_found = FALSE;

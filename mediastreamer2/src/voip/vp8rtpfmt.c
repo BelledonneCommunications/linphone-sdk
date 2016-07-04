@@ -207,7 +207,7 @@ static int vp8_decode_value(BOOL_DECODER *br, int bits)
 
 static mblk_t * concat_packets_of_partition(Vp8RtpFmtPartition *partition) {
 	Vp8RtpFmtPacket *packet;
-	int nb_packets = bctbx_list_size(partition->packets_list);
+	int nb_packets = (int)bctbx_list_size(partition->packets_list);
 	int i;
 
 	if (partition->m != NULL) return partition->m;
@@ -515,14 +515,14 @@ static void check_frame_partitions_have_start(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpF
 	Vp8RtpFmtPacket *packet;
 	Vp8RtpFmtPartition *partition;
 	int i;
-	size_t j;
+	int j;
 
 	if (frame->unnumbered_partitions == TRUE) return;
 
 	for (i = 0; i <= frame->partitions_info.nb_partitions; i++) {
 		partition = frame->partitions[i];
 		if (partition == NULL) continue;
-		for (j = 0; j < bctbx_list_size(partition->packets_list); j++) {
+		for (j = 0; j < (int)bctbx_list_size(partition->packets_list); j++) {
 			packet = (Vp8RtpFmtPacket *)bctbx_list_nth_data(partition->packets_list, j);
 			if ((j == 0) && !partition->has_start && !packet->cseq_inconsistency) {
 				/**
@@ -723,7 +723,7 @@ static void output_partitions_of_frame(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out, 
 
 static int output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 	Vp8RtpFmtFrame *frame;
-	int nb_frames = bctbx_list_size(ctx->frames_list);
+	size_t nb_frames = bctbx_list_size(ctx->frames_list);
 
 	if (nb_frames == 0) return -1;
 	frame = (Vp8RtpFmtFrame *)bctbx_list_nth_data(ctx->frames_list, 0);

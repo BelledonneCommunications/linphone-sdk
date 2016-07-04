@@ -122,7 +122,9 @@ static int dec_add_fmtp(MSFilter *f, void *data){
 	char config[512];
 	if (fmtp_get_value(fmtp,"config",config,sizeof(config))){
 		/*convert hexa decimal config string into a bitstream */
-		int i,j,max=strlen(config);
+		size_t i;
+		int j;
+		size_t max = strlen(config);
 		char octet[3];
 		octet[2]=0;
 		for(i=0,j=0;i<max;i+=2,++j){

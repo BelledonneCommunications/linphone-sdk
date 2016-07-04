@@ -84,7 +84,7 @@ void ms_worker_thread_add_task(MSWorkerThread *obj, MSTaskFunc func, void *data)
 	MSTask *task = ms_task_new(func, data);
 	ms_mutex_lock(&obj->mutex);
 	obj->tasks = bctbx_list_append(obj->tasks, task);
-	if (obj->inwait) pthread_cond_signal(&obj->cond);
+	if (obj->inwait) ms_cond_signal(&obj->cond);
 	ms_mutex_unlock(&obj->mutex);
 }
 
@@ -92,7 +92,7 @@ void ms_worker_thread_destroy(MSWorkerThread *obj, bool_t finish_tasks){
 	ms_mutex_lock(&obj->mutex);
 	obj->finish_tasks = finish_tasks;
 	obj->running = FALSE;
-	if (obj->inwait) pthread_cond_signal(&obj->cond);
+	if (obj->inwait) ms_cond_signal(&obj->cond);
 	ms_mutex_unlock(&obj->mutex);
 	ms_thread_join(obj->thread, NULL);
 	if (obj->tasks){

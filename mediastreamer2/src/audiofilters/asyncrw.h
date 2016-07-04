@@ -20,6 +20,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef asyncrw_h
 #define asyncrw_h
 
+#ifndef _WIN32_CE
+#include <sys/types.h>
+#endif
+
 typedef struct _MSAsyncReader MSAsyncReader;
 typedef struct _MSAsyncWriter MSAsyncWriter;
 

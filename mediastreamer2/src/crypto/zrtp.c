@@ -300,7 +300,7 @@ static int ms_zrtp_loadCache(void *zidCacheData, uint8_t** output, uint32_t *out
 		return -1;
 	}
 	*output=(uint8_t*)ms_load_file_content(CACHEFD, &nbytes);
-	*outputSize = nbytes+1;
+	*outputSize = (uint32_t)(nbytes+1);
 	*cb=ms_free;
 	fclose(CACHEFD);
 	return *outputSize;
@@ -319,7 +319,7 @@ static int ms_zrtp_writeCache(void *zidCacheData, const uint8_t* input, uint32_t
 	char *filename = userData->zidFilename;
 
 	FILE *CACHEFD = fopen(filename, "w+");
-	int retval = fwrite(input, 1, inputSize, CACHEFD);
+	int retval = (int)fwrite(input, 1, inputSize, CACHEFD);
 	fclose(CACHEFD);
 	return retval;
 
@@ -368,10 +368,10 @@ static int ms_zrtp_addExportedKeysInZidCache(void *zidCacheData, void *clientDat
 /**** Transport Modifier Sender/Receiver functions  ****/
 
 static int ms_zrtp_rtp_process_on_send(struct _RtpTransportModifier *t, mblk_t *msg){
-	return msgdsize(msg);
+	return (int)msgdsize(msg);
 }
 static int ms_zrtp_rtcp_process_on_send(struct _RtpTransportModifier *t, mblk_t *msg)  {
-	return msgdsize(msg);
+	return (int)msgdsize(msg);
 }
 
 static int ms_zrtp_rtp_process_on_receive(struct _RtpTransportModifier *t, mblk_t *msg){
@@ -381,7 +381,7 @@ static int ms_zrtp_rtp_process_on_receive(struct _RtpTransportModifier *t, mblk_
 	bzrtpContext_t *zrtpContext = userData->zrtpContext;
 	uint8_t* rtp;
 	int rtpVersion;
-	int msgLength = msgdsize(msg);
+	int msgLength = (int)msgdsize(msg);
 
 	// send a timer tick to the zrtp engine
 	bzrtp_iterate(zrtpContext, userData->self_ssrc, get_timeval_in_millis());
@@ -415,7 +415,7 @@ static int ms_zrtp_rtp_process_on_receive(struct _RtpTransportModifier *t, mblk_
 
 /* Nothing to do on rtcp packets, just return packet length */
 static int ms_zrtp_rtcp_process_on_receive(struct _RtpTransportModifier *t, mblk_t *msg)  {
-	return msgdsize(msg);
+	return (int)msgdsize(msg);
 }
 
 

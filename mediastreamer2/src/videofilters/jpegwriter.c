@@ -119,7 +119,7 @@ static void jpg_process(MSFilter *f){
 		mblk_t *m=ms_queue_peek_last(f->inputs[0]);
 		if (ms_yuv_buf_init_from_mblk(&yuvbuf,m)==0){
 			int error,got_pict;
-			int comp_buf_sz=msgdsize(m);
+			size_t comp_buf_sz=msgdsize(m);
 			uint8_t *comp_buf=(uint8_t*)ms_malloc0(comp_buf_sz);
 			mblk_t *jpegm;
 			struct SwsContext *sws_ctx;
@@ -165,7 +165,7 @@ static void jpg_process(MSFilter *f){
 			av_frame_unref(s->pict);
 			avpicture_fill((AVPicture*)s->pict,(uint8_t*)jpegm->b_rptr,avctx->pix_fmt,avctx->width,avctx->height);
 			packet.data=comp_buf;
-			packet.size=comp_buf_sz;
+			packet.size=(int)comp_buf_sz;
 			error=avcodec_encode_video2(avctx, &packet, s->pict, &got_pict);
 			if (error<0){
 				ms_error("Could not encode jpeg picture.");

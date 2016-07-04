@@ -99,7 +99,7 @@ static void insert_lost_char(uint8_t *p){
 }
 
 static int read_t140_data(RealTimeTextSinkData *stream, uint8_t *data, int readsize) {
-	int buf_size = (int)TS_INBUF_SIZE - stream->inbufsize;
+	int buf_size = (int)TS_INBUF_SIZE - (int)stream->inbufsize;
 	if (readsize < 0) {
 		ms_warning("corrupt packet (readsize<0)");
 		return -1;
@@ -193,7 +193,7 @@ static void process_red_packet(RealTimeTextSinkData *stream, mblk_t *packet) {
 	for (pos = 0; pos < (redgen - redneeded) * 4; pos += 4) {
 		readstart += (((uint32_t)payload[pos + 2] << 8) | (uint32_t)payload[pos + 3]) & 0x3FF;
 	}
-	if (read_t140_data(stream, &payload[readstart], payloadsize - readstart)) {
+	if (read_t140_data(stream, &payload[readstart], (int)payloadsize - readstart)) {
 		ms_debug("error reading");
 		return; /* return without updating seqno */
 	}

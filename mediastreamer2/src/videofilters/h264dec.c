@@ -213,15 +213,15 @@ static int nalusToFrame(DecData *d, MSQueue *naluq, bool_t *new_sps_pps){
 	end=d->bitstream+d->bitstream_size;
 	while((im=ms_queue_get(naluq))!=NULL){
 		src=im->b_rptr;
-		nal_len=im->b_wptr-src;
+		nal_len=(int)(im->b_wptr-src);
 		if (dst+nal_len+100>end){
-			int pos=dst-d->bitstream;
+			int pos=(int)(dst-d->bitstream);
 			enlarge_bitstream(d, d->bitstream_size+nal_len+100);
 			dst=d->bitstream+pos;
 			end=d->bitstream+d->bitstream_size;
 		}
 		if (src[0]==0 && src[1]==0 && src[2]==0 && src[3]==1){
-			int size=im->b_wptr-src;
+			int size=(int)(im->b_wptr-src);
 			/*workaround for stupid RTP H264 sender that includes nal markers */
 			memcpy(dst,src,size);
 			dst+=size;
@@ -256,7 +256,7 @@ static int nalusToFrame(DecData *d, MSQueue *naluq, bool_t *new_sps_pps){
 		}
 		freemsg(im);
 	}
-	return dst-d->bitstream;
+	return (int)(dst-d->bitstream);
 }
 
 static void dec_process(MSFilter *f){
@@ -306,7 +306,7 @@ static void dec_process(MSFilter *f){
 				av_frame_unref(d->orig);
 				av_init_packet(&pkt);
 				pkt.data = p;
-				pkt.size = end-p;
+				pkt.size = (int)(end-p);
 #if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(50,43,0) // backward compatibility with Debian Squeeze (6.0)
 				pkt.pts = frame_ts;
 #endif
