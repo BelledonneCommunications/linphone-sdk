@@ -34,6 +34,7 @@ apply_compile_flags(BELR_SOURCE_FILES_CXX "CPP" "CXX")
 
 if(ENABLE_STATIC)
 	add_library(belr-static STATIC ${BELR_HEADER_FILES} ${BELR_SOURCE_FILES_C} ${BELR_SOURCE_FILES_CXX})
+	set_target_properties(belr-static PROPERTIES OUTPUT_NAME belr)
 	target_link_libraries(belr-static ${BCTOOLBOX_CORE_LIBRARIES})
 endif()
 if(ENABLE_SHARED)
