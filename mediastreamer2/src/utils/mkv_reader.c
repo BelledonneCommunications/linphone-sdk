@@ -88,7 +88,7 @@ MKVReader *mkv_reader_open(const char *filename) {
 	_load_modules((nodemodule *)&obj->p);
 	err = MATROSKA_Init((nodecontext *)&obj->p);
 	if(err != ERR_NONE) {
-		ms_error("Parser opening failed. Could not initialize Matroska parser. err=%d", err);
+		ms_error("Parser opening failed. Could not initialize Matroska parser. err=%d", (int)err);
 		goto fail;
 	}
 #ifdef UNICODE
@@ -372,7 +372,7 @@ static int _parse_headers(MKVReader *obj) {
 	}
 	err = EBML_ElementReadData(level0, obj->file, &pctx, FALSE, SCOPE_ALL_DATA, FALSE);
 	if(err != ERR_NONE) {
-		ms_error("MKVParser: could not parse EBML header. err=%d", err);
+		ms_error("MKVParser: could not parse EBML header. err=%d", (int)err);
 		goto fail;
 	}
 	if(!EBML_MasterCheckMandatory((ebml_master *)level0, FALSE)) {
