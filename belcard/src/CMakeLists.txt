@@ -46,6 +46,7 @@ apply_compile_flags(BELCARD_SOURCE_FILES_CXX "CPP" "CXX")
 
 if(ENABLE_STATIC)
 	add_library(belcard-static STATIC ${BELCARD_HEADER_FILES} ${BELCARD_SOURCE_FILES_C} ${BELCARD_SOURCE_FILES_CXX})
+	set_target_properties(belcard-static PROPERTIES OUTPUT_NAME belcard)
 	target_link_libraries(belcard-static ${BELR_LIBRARIES} ${BCTOOLBOX_CORE_LIBRARIES})
 endif()
 if(ENABLE_SHARED)
