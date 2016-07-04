@@ -350,7 +350,7 @@ BCTBX_PUBLIC char *bctbx_strdup_vprintf(const char *fmt, va_list ap);
 BCTBX_PUBLIC char *bctbx_strcat_printf(char *dst, const char *fmt,...);
 BCTBX_PUBLIC char *bctbx_strcat_vprintf(char *dst, const char *fmt, va_list ap);
 BCTBX_PUBLIC char *bctbx_concat (const char *str, ...) ;
-	
+
 BCTBX_PUBLIC int bctbx_file_exist(const char *pathname);
 
 BCTBX_PUBLIC void bctbx_get_cur_time(bctoolboxTimeSpec *ret);
@@ -381,14 +381,14 @@ BCTBX_PUBLIC int bctbx_sockaddr_to_printable_ip_address(struct sockaddr *sa, soc
 
 /**
  * Convert a numeric ip address and port into an addrinfo, whose family will be as specified in the first argument.
- * If AF_INET6 is requested, the returned addrinfo will always be an IPv6 address, possibly V4MAPPED if the 
+ * If AF_INET6 is requested, the returned addrinfo will always be an IPv6 address, possibly V4MAPPED if the
  * ip address was a v4 address.
  * Passing AF_UNSPEC to this function leads to unspecified results.
 **/
 BCTBX_PUBLIC struct addrinfo * bctbx_ip_address_to_addrinfo(int family, int socktype, const char *ipaddress, int port);
 /**
  * Convert a name or ip address and port into an addrinfo, whose family will be as specified in the first argument.
- * If AF_INET6 is requested, the returned addrinfo will always be an IPv6 address, possibly a V4MAPPED if the 
+ * If AF_INET6 is requested, the returned addrinfo will always be an IPv6 address, possibly a V4MAPPED if the
  * ip address was a v4 address.
  * Passing AF_UNSPEC to this function leads to unspecified results.
 **/
@@ -398,7 +398,7 @@ BCTBX_PUBLIC struct addrinfo * bctbx_name_to_addrinfo(int family, int socktype, 
  * This function will transform a V4 to V6 mapped address to a pure V4 and write it into result, or will just copy it otherwise.
  * The memory for v6 and result may be the same, in which case processing is done in place or no copy is done.
  * The pointer to result must have sufficient storage, typically a struct sockaddr_storage.
-**/ 
+**/
 BCTBX_PUBLIC void bctbx_sockaddr_remove_v4_mapping(const struct sockaddr *v6, struct sockaddr *result, socklen_t *result_len);
 
 /**
@@ -436,8 +436,8 @@ BCTBX_PUBLIC void *bctbx_shm_open(unsigned int keyid, int size, int create);
 BCTBX_PUBLIC void bctbx_shm_close(void *memory);
 
 BCTBX_PUBLIC bool_t bctbx_is_multicast_addr(const struct sockaddr *addr);
-	
-	
+
+
 #endif
 
 #ifdef __cplusplus
@@ -465,4 +465,10 @@ BCTBX_PUBLIC bool_t bctbx_is_multicast_addr(const struct sockaddr *addr);
 
 #endif
 
-
+#if defined(_WIN32) || defined(__QNX__)
+  #define FORMAT_SIZE_T    "%Iu"
+#elif __APPLE__
+  #define FORMAT_SIZE_T    "%u"
+#else
+  #define FORMAT_SIZE_T    "%zu"
+#endif
