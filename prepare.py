@@ -466,6 +466,8 @@ class Preparator:
         elif self.generator().endswith("Xcode"):
             self.generate_makefile('xcodebuild -project', 'Project.xcodeproj')
             info("You can now run 'make' to build.")
+        elif self.generator().startswith("Visual Studio"):
+            self.generate_vs_solution()
         else:
             warning("Not generating meta-makefile for generator {}.".format(self.generator()))
         self.gpl_disclaimer()
@@ -478,6 +480,9 @@ class Preparator:
             return self.prepare()
 
     def generate_makefile(self, generator, project_file=''):
+        pass
+
+    def generate_vs_solution(self):
         pass
 
     def prepare_tunnel(self):
