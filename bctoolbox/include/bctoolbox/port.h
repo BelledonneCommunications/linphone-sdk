@@ -362,6 +362,15 @@ BCTBX_PUBLIC int bctbx_timespec_compare(const bctoolboxTimeSpec *s1, const bctoo
 BCTBX_PUBLIC unsigned int bctbx_random(void);
 
 
+BCTBX_PUBLIC int bctbx_bind(bctbx_socket_t socket, const struct sockaddr *address, socklen_t address_len);
+BCTBX_PUBLIC int bctbx_connect(bctbx_socket_t socket, const struct sockaddr *address, socklen_t address_len);
+BCTBX_PUBLIC ssize_t bctbx_send(bctbx_socket_t socket, const void *buffer, size_t length, int flags);
+BCTBX_PUBLIC ssize_t bctbx_sendto(bctbx_socket_t socket, const void *message, size_t length, int flags, const struct sockaddr *dest_addr,	socklen_t dest_len);
+BCTBX_PUBLIC ssize_t bctbx_recv(bctbx_socket_t socket, void *buffer, size_t length, int flags);
+BCTBX_PUBLIC ssize_t bctbx_recvfrom(bctbx_socket_t socket, void *buffer, size_t length, int flags, struct sockaddr *address, socklen_t *address_len);
+BCTBX_PUBLIC ssize_t bctbx_read(int fd, void *buf, size_t nbytes);
+BCTBX_PUBLIC ssize_t bctbx_write(int fd, const void *buf, size_t nbytes);
+
 /* Portable and bug-less getaddrinfo */
 BCTBX_PUBLIC int bctbx_getaddrinfo(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo **res);
 BCTBX_PUBLIC void bctbx_freeaddrinfo(struct addrinfo *res);
