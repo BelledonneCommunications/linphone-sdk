@@ -34,6 +34,8 @@
 
 #include "hardware_echo_canceller.h"
 
+#define USE_HARDWARE_RATE 1
+
 static const float sndwrite_flush_threshold=0.020;	//ms
 static const float sndread_flush_threshold=0.020; //ms
 static void sound_read_setup(MSFilter *f);
