@@ -249,8 +249,7 @@ int MSWASAPIWriter::feed(MSFilter *f)
 
 	if (isStarted()) {
 		while ((im = ms_queue_get(f->inputs[0])) != NULL) {
-			msBufferSizeAvailable = msgdsize(im);
-			if (msBufferSizeAvailable < 0) msBufferSizeAvailable = 0;
+			msBufferSizeAvailable = (int)msgdsize(im);
 			msNumFramesAvailable = msBufferSizeAvailable / bytesPerFrame;
 			if (msNumFramesAvailable > 0) {
 				// Calculate the number of frames to pass to the Audio Render Client

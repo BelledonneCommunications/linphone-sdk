@@ -26,6 +26,23 @@ project(MSWASAPI CXX)
 
 option(ENABLE_SHARED "Build shared library." YES)
 option(ENABLE_STATIC "Build static library." YES)
+option(ENABLE_STRICT "Build with strict compile options." YES)
+
+
+macro(apply_compile_flags SOURCE_FILES)
+	if(${SOURCE_FILES})
+		set(options "")
+		foreach(a ${ARGV})
+			if(STRICT_OPTIONS_${a})
+				string(REPLACE ";" " " options_${a} "${STRICT_OPTIONS_${a}}")
+				set(options "${options} ${options_${a}}")
+			endif()
+		endforeach()
+		if(options)
+			set_source_files_properties(${${SOURCE_FILES}} PROPERTIES COMPILE_FLAGS "${options}")
+		endif()
+	endif()
+endmacro()
 
 
 if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
@@ -39,6 +56,11 @@ include_directories(
 	${MEDIASTREAMER2_INCLUDE_DIRS}
 )
 
+set(STRICT_OPTIONS_CPP )
+if(ENABLE_STRICT)
+	list(APPEND STRICT_OPTIONS_CPP "/WX")
+endif()
+
 set(SOURCE_FILES
 	mswasapi.cpp
 	mswasapi.h
@@ -47,6 +69,7 @@ set(SOURCE_FILES
 	mswasapi_writer.cpp
 	mswasapi_writer.h
 )
+apply_compile_flags(SOURCE_FILES "CPP")
 set(LIBS ${MEDIASTREAMER2_LIBRARIES} ${BCTOOLBOX_CORE_LIBRARIES} ws2_32)
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsPhone")
 	list(APPEND LIBS phoneaudioses)
