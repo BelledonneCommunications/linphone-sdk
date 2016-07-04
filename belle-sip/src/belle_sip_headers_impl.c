@@ -978,7 +978,7 @@ static void belle_sip_header_content_length_clone(belle_sip_header_content_lengt
 belle_sip_error_code belle_sip_header_content_length_marshal(belle_sip_header_content_length_t* content_length, char* buff, size_t buff_size, size_t *offset) {
 	belle_sip_error_code error=belle_sip_header_marshal(BELLE_SIP_HEADER(content_length), buff, buff_size, offset);
 	if (error!=BELLE_SIP_OK) return error;
-	error=belle_sip_snprintf(buff,buff_size,offset,"%i",content_length->content_length);
+	error=belle_sip_snprintf(buff,buff_size,offset,FORMAT_SIZE_T,content_length->content_length);
 	if (error!=BELLE_SIP_OK) return error;
 	return error;
 }
