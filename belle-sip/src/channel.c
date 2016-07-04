@@ -1124,22 +1124,22 @@ static void check_content_length(belle_sip_message_t *msg, size_t body_len){
 	size_t value=ctlen ? belle_sip_header_content_length_get_content_length(ctlen) : 0;
 	if (body_len){
 		if (ctlen==NULL){
-			belle_sip_message("message [%p] has body of size [%u] but no Content-Length, adding it.",msg,(unsigned int)body_len);
+			belle_sip_message("message [%p] has body of size ["FORMAT_SIZE_T"] but no Content-Length, adding it.",msg,body_len);
 			belle_sip_message_add_header(msg,
 				(belle_sip_header_t*)belle_sip_header_content_length_create(body_len)
 			);
 		}else{
 			if (value!=body_len){
-				belle_sip_warning("message [%p] has Content-Length [%u] and body size [%u] which are inconsistent, fixing it.",
-					msg, value, (unsigned int)body_len);
+				belle_sip_warning("message [%p] has Content-Length ["FORMAT_SIZE_T"] and body size ["FORMAT_SIZE_T"] which are inconsistent, fixing it.",
+					msg, value, body_len);
 				belle_sip_header_content_length_set_content_length(ctlen,body_len);
 			}
 		}
 	}else{
 		/*no body, or undetermined size body*/
 		if (ctlen && value!=0){
-			belle_sip_error("message [%p] has Content-Length [%u], but without body or body with undetermined size. Fix your app.",
-				msg,(unsigned int)value);
+			belle_sip_error("message [%p] has Content-Length ["FORMAT_SIZE_T"], but without body or body with undetermined size. Fix your app.",
+				msg,value);
 		}
 	}
 }
