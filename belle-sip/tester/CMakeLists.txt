@@ -57,7 +57,7 @@ apply_compile_flags(SOURCE_FILES_OBJC "CPP" "OBJC")
 if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 	add_library(belle_sip_tester_static STATIC ${SOURCE_FILES_C})
 	target_include_directories(belle_sip_tester_static PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIRS})
-	target_link_libraries(belle_sip_tester_static ${BCTOOLBOX_TESTER_LIBRARIES} ${PROJECT_LIBS})
+	target_link_libraries(belle_sip_tester_static ${BCTOOLBOX_LIBRARIES} ${PROJECT_LIBS})
 
 	set(RUNTIME_COMPONENT_SOURCES
 		belle_sip_tester_windows.cpp

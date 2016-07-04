@@ -331,7 +331,7 @@ static void srv_query(void) {
 	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
 	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
 	BC_ASSERT_PTR_NOT_NULL(client->srv_list);
-	BC_ASSERT_NOT_EQUAL(belle_sip_list_size(client->srv_list), 0,int,"%d");
+	BC_ASSERT_NOT_EQUAL((unsigned int)belle_sip_list_size(client->srv_list), 0,unsigned int,"%u");
 	if (client->srv_list && (belle_sip_list_size(client->srv_list) > 0)) {
 		belle_sip_dns_srv_t *result_srv = belle_sip_list_nth_data(client->srv_list, 0);
 		BC_ASSERT_EQUAL(belle_sip_dns_srv_get_port(result_srv), SIP_PORT, int, "%d");

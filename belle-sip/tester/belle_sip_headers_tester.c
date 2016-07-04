@@ -132,7 +132,7 @@ static void test_from_header(void) {
 	BC_ASSERT_FALSE(belle_sip_parameters_has_parameter(BELLE_SIP_PARAMETERS(L_uri),"maddr"));
 	BC_ASSERT_FALSE(belle_sip_parameters_has_parameter(BELLE_SIP_PARAMETERS(L_uri),"transport"));
 	BC_ASSERT_FALSE(belle_sip_uri_get_port(L_uri)>0);
-	BC_ASSERT_EQUAL(belle_sip_list_size(belle_sip_uri_get_header_names(L_uri)),0,int,"%d");
+	BC_ASSERT_EQUAL((unsigned int)belle_sip_list_size(belle_sip_uri_get_header_names(L_uri)),0,unsigned int,"%u");
 
 	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "titi.com");
 	BC_ASSERT_STRING_EQUAL(belle_sip_header_from_get_tag(L_from),"12345-abc");
@@ -218,7 +218,7 @@ static void test_to_header(void) {
 	BC_ASSERT_FALSE(belle_sip_parameters_has_parameter(BELLE_SIP_PARAMETERS(L_uri),"maddr"));
 	BC_ASSERT_FALSE(belle_sip_parameters_has_parameter(BELLE_SIP_PARAMETERS(L_uri),"transport"));
 	BC_ASSERT_FALSE(belle_sip_uri_get_port(L_uri)>0);
-	BC_ASSERT_EQUAL(belle_sip_list_size(belle_sip_uri_get_header_names(L_uri)),0,int,"%d");
+	BC_ASSERT_EQUAL((unsigned int)belle_sip_list_size(belle_sip_uri_get_header_names(L_uri)),0,unsigned int,"%u");
 
 	if (!BC_ASSERT_PTR_NOT_NULL(L_uri)) return;
 	BC_ASSERT_STRING_EQUAL(belle_sip_header_address_get_displayname(BELLE_SIP_HEADER_ADDRESS(L_to)), "super man");
@@ -477,7 +477,7 @@ static void test_content_length_header(void) {
 	L_content_length = BELLE_SIP_HEADER_CONTENT_LENGTH(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
 	belle_sip_free(l_raw_header);
-	BC_ASSERT_EQUAL(belle_sip_header_content_length_get_content_length(L_content_length), 3495,int,"%d");
+	BC_ASSERT_EQUAL((unsigned int)belle_sip_header_content_length_get_content_length(L_content_length), 3495, unsigned int, "%u");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_content_length));
 	BC_ASSERT_PTR_NULL(belle_sip_header_content_length_parse("nimportequoi"));
 }

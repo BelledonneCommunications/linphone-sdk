@@ -364,10 +364,10 @@ static void split_request_url(belle_http_request_t *req){
 }
 
 static void fix_request(belle_http_request_t *req){
-	unsigned int size=belle_sip_message_get_body_size((belle_sip_message_t*)req);
+	size_t size=belle_sip_message_get_body_size((belle_sip_message_t*)req);
 	belle_sip_header_content_length_t *ctlen=belle_sip_message_get_header_by_type(req, belle_sip_header_content_length_t);
 	if (size>0 && !ctlen){
-		belle_sip_message_add_header((belle_sip_message_t*)req,(belle_sip_header_t*)belle_sip_header_content_length_create((int)size));
+		belle_sip_message_add_header((belle_sip_message_t*)req,(belle_sip_header_t*)belle_sip_header_content_length_create(size));
 	}
 }
 

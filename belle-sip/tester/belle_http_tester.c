@@ -215,7 +215,7 @@ static int on_send_body(belle_sip_user_body_handler_t *bh, belle_sip_message_t *
 	size_t end_of_img=sizeof(MULTIPART_BEGIN)+image_size;
 	if (offset==0){
 		size_t partlen=sizeof(MULTIPART_BEGIN);
-		BC_ASSERT_LOWER_STRICT(partlen,*size,int,"%d");
+		BC_ASSERT_LOWER_STRICT((unsigned int)partlen,(unsigned int)*size,unsigned int,"%u");
 		memcpy(buffer,MULTIPART_BEGIN,partlen);
 		*size=partlen;
 	}else if (offset<end_of_img){
@@ -318,7 +318,7 @@ static void http_get_long_user_body(void){
 	BC_ASSERT_PTR_NOT_NULL(resp);
 	if (resp){
 		bh=belle_sip_message_get_body_handler((belle_sip_message_t*)resp);
-		BC_ASSERT_GREATER_STRICT(belle_sip_body_handler_get_size(bh),0,size_t,"%lu");
+		BC_ASSERT_GREATER_STRICT((unsigned int)belle_sip_body_handler_get_size(bh),0,unsigned int,"%u");
 	}
 	belle_sip_object_unref(req);
 	belle_sip_object_unref(l);

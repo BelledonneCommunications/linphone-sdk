@@ -555,13 +555,13 @@ size_t belle_sip_message_get_body_size(const belle_sip_message_t *msg){
 	return belle_sip_body_handler_get_size(msg->body_handler);
 }
 
-void belle_sip_message_set_body(belle_sip_message_t *msg, const char* body, unsigned int size) {
+void belle_sip_message_set_body(belle_sip_message_t *msg, const char* body, size_t size) {
 	belle_sip_body_handler_t *bh=NULL;
 	if (body && size) bh=(belle_sip_body_handler_t*)belle_sip_memory_body_handler_new_copy_from_buffer(body,size,NULL,NULL);
 	belle_sip_message_set_body_handler(msg,bh);
 }
 
-void belle_sip_message_assign_body(belle_sip_message_t *msg, char* body, unsigned int size) {
+void belle_sip_message_assign_body(belle_sip_message_t *msg, char* body, size_t size) {
 	belle_sip_body_handler_t *bh=(belle_sip_body_handler_t*)belle_sip_memory_body_handler_new_from_buffer(body,size,NULL,NULL);
 	belle_sip_message_set_body_handler(msg,bh);
 }
