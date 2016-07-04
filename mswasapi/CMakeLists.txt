@@ -47,7 +47,7 @@ set(SOURCE_FILES
 	mswasapi_writer.cpp
 	mswasapi_writer.h
 )
-set(LIBS ${MEDIASTREAMER2_LIBRARIES} ws2_32)
+set(LIBS ${MEDIASTREAMER2_LIBRARIES} ${BCTOOLBOX_CORE_LIBRARIES} ws2_32)
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsPhone")
 	list(APPEND LIBS phoneaudioses)
 endif()

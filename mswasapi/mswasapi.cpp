@@ -377,7 +377,7 @@ public:
 		}
 	}
 	~MSWASAPIDeviceEnumerator() {
-		ms_list_free(_l);
+		bctbx_list_free(_l);
 		if (_DetectEvent != INVALID_HANDLE_VALUE) {
 			CloseHandle(_DetectEvent);
 			_DetectEvent = INVALID_HANDLE_VALUE;
@@ -398,7 +398,7 @@ public:
 
 	void AddOrUpdateCard(String^ DeviceId, String^ DeviceName, DeviceClass dc) {
 		char *name;
-		const MSList *elem = _l;
+		const bctbx_list_t *elem = _l;
 		size_t inputlen;
 		size_t returnlen;
 		uint8_t capabilities = 0;
@@ -434,7 +434,7 @@ public:
 		}
 
 		/* Add a new card. */
-		_l = ms_list_append(_l, NewCard(DeviceId, name, capabilities));
+		_l = bctbx_list_append(_l, NewCard(DeviceId, name, capabilities));
 		ms_free(name);
 	}
 
@@ -480,10 +480,10 @@ public:
 		Detect(DeviceClass::AudioRender);
 	}
 
-	MSList *GetList() { return _l; }
+	bctbx_list_t *GetList() { return _l; }
 
 private:
-	MSList *_l;
+	bctbx_list_t *_l;
 	DeviceClass _dc;
 	HANDLE _DetectEvent;
 };
@@ -501,9 +501,9 @@ static MSSndCard *ms_wasapi_snd_card_new(LPWSTR id, const char *name, uint8_t ca
 	return card;
 }
 
-static void add_or_update_card(MSSndCardManager *m, MSList **l, LPWSTR id, LPWSTR wname, EDataFlow data_flow) {
+static void add_or_update_card(MSSndCardManager *m, bctbx_list_t **l, LPWSTR id, LPWSTR wname, EDataFlow data_flow) {
 	MSSndCard *card;
-	const MSList *elem = *l;
+	const bctbx_list_t *elem = *l;
 	uint8_t capabilities = 0;
 	char *name;
 	size_t inputlen;
@@ -542,11 +542,11 @@ static void add_or_update_card(MSSndCardManager *m, MSList **l, LPWSTR id, LPWST
 	}
 
 	/* Add a new card. */
-	*l = ms_list_append(*l, ms_wasapi_snd_card_new(id, name, capabilities));
+	*l = bctbx_list_append(*l, ms_wasapi_snd_card_new(id, name, capabilities));
 	ms_free(name);
 }
 
-static void add_endpoint(MSSndCardManager *m, EDataFlow data_flow, MSList **l, IMMDevice *pEndpoint) {
+static void add_endpoint(MSSndCardManager *m, EDataFlow data_flow, bctbx_list_t **l, IMMDevice *pEndpoint) {
 	IPropertyStore *pProps = NULL;
 	LPWSTR pwszID = NULL;
 	HRESULT result = pEndpoint->GetId(&pwszID);
@@ -567,7 +567,7 @@ error:
 	SAFE_RELEASE(pProps);
 }
 
-static void ms_wasapi_snd_card_detect_with_data_flow(MSSndCardManager *m, EDataFlow data_flow, MSList **l) {
+static void ms_wasapi_snd_card_detect_with_data_flow(MSSndCardManager *m, EDataFlow data_flow, bctbx_list_t **l) {
 	IMMDeviceEnumerator *pEnumerator = NULL;
 	IMMDeviceCollection *pCollection = NULL;
 	IMMDevice *pEndpoint = NULL;
@@ -612,11 +612,11 @@ static void ms_wasapi_snd_card_detect(MSSndCardManager *m) {
 	ms_snd_card_manager_prepend_cards(m, enumerator->GetList());
 	delete enumerator;
 #else
-	MSList *l = NULL;
+	bctbx_list_t *l = NULL;
 	ms_wasapi_snd_card_detect_with_data_flow(m, eCapture, &l);
 	ms_wasapi_snd_card_detect_with_data_flow(m, eRender, &l);
 	ms_snd_card_manager_prepend_cards(m, l);
-	ms_list_free(l);
+	bctbx_list_free(l);
 #endif
 }
 
