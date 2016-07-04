@@ -81,7 +81,7 @@ string belcard_read_file(const string &filename) {
 	
 	string vcard;
 	istr.seekg(0, ios::end);
-	vcard.resize(istr.tellg());
+	vcard.resize((size_t)istr.tellg());
 	istr.seekg(0, ios::beg);
 	istr.read(&vcard[0], vcard.size());
 	istr.close();
