@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mediastreamer2/msfilerec.h"
 #include "waveheader.h"
+#include "asyncrw.h"
 
 
 static int rec_close(MSFilter *f, void *arg);
@@ -35,8 +36,9 @@ typedef struct RecState{
 	int size;
 	int max_size;
 	char *mime;
-	bool_t swap;
+	MSAsyncWriter *writer;
 	MSRecorderState state;
+	bool_t swap;
 } RecState;
 
 static void rec_init(MSFilter *f){
@@ -52,6 +54,8 @@ static void rec_init(MSFilter *f){
 	f->data=s;
 }
 
+static void _rec_close(RecState *s);
+
 static void swap_bytes(unsigned char *bytes, int len){
 	int i;
 	unsigned char tmp;
@@ -65,40 +69,28 @@ static void swap_bytes(unsigned char *bytes, int len){
 static void rec_process(MSFilter *f){
 	RecState *s=(RecState*)f->data;
 	mblk_t *m;
-	int err;
+	
+	ms_mutex_lock(&f->lock);
 	while((m=ms_queue_get(f->inputs[0]))!=NULL){
-		mblk_t *it=m;
-		ms_mutex_lock(&f->lock);
+		
 		if (s->state==MSRecorderRunning){
-			while(it!=NULL){
-				int len=(int)(it->b_wptr-it->b_rptr);
-				int max_size_reached = 0;
-				if (s->max_size!=0 && s->size+len > s->max_size) {
-					len = s->max_size - s->size;
-					max_size_reached = 1;
-				}
-				if (s->swap) swap_bytes(it->b_wptr,len);
-				if ((err=write(s->fd,it->b_rptr,len))!=len){
-					if (err<0)
-						ms_warning("MSFileRec: fail to write %i bytes: %s",len,strerror(errno));
-				}
-				it=it->b_cont;
-				s->size+=len;
-				if (max_size_reached) {
-					ms_warning("MSFileRec: Maximum size (%d) has been reached. closing file.",s->max_size);
-					s->state=MSRecorderClosed;
-					if (s->fd!=-1){
-						write_wav_header(s->fd, s->rate, s->nchannels, s->size);
-						close(s->fd);
-						s->fd=-1;
-					}
-					ms_filter_notify_no_arg(f,MS_RECORDER_MAX_SIZE_REACHED);
-				}
+			int len=(int)(m->b_wptr-m->b_rptr);
+			int max_size_reached = 0;
+			if (s->max_size!=0 && s->size+len > s->max_size) {
+				len = s->max_size - s->size;
+				max_size_reached = 1;
 			}
-		}
-		ms_mutex_unlock(&f->lock);
-		freemsg(m);
+			if (s->swap) swap_bytes(m->b_wptr,len);
+			ms_async_reader_write(s->writer,m);
+			s->size+=len;
+			if (max_size_reached) {
+				ms_warning("MSFileRec: Maximum size (%d) has been reached. closing file.",s->max_size);
+				_rec_close(s);
+				ms_filter_notify_no_arg(f,MS_RECORDER_MAX_SIZE_REACHED);
+			}
+		}else freemsg(m);
 	}
+	ms_mutex_unlock(&f->lock);
 }
 
 static int rec_get_length(const char *file, int *length){
@@ -145,6 +137,7 @@ static int rec_open(MSFilter *f, void *arg){
 		}else ms_error("fstat() failed: %s",strerror(errno));
 	}
 	ms_message("MSFileRec: recording into %s",filename);
+	s->writer = ms_async_writer_new(s->fd);
 	ms_mutex_lock(&f->lock);
 	s->state=MSRecorderPaused;
 	ms_mutex_unlock(&f->lock);
@@ -194,15 +187,21 @@ static void write_wav_header(int fd, int rate, int nchannels, int size){
 	}
 }
 
-static int rec_close(MSFilter *f, void *arg){
-	RecState *s=(RecState*)f->data;
-	ms_mutex_lock(&f->lock);
+static void _rec_close(RecState *s){
 	s->state=MSRecorderClosed;
 	if (s->fd!=-1){
+		ms_async_writer_destroy(s->writer);
+		s->writer = NULL;
 		write_wav_header(s->fd, s->rate, s->nchannels, s->size);
 		close(s->fd);
 		s->fd=-1;
 	}
+}
+
+static int rec_close(MSFilter *f, void *arg){
+	RecState *s=(RecState*)f->data;
+	ms_mutex_lock(&f->lock);
+	_rec_close(s);
 	ms_mutex_unlock(&f->lock);
 	return 0;
 }

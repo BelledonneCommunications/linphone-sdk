@@ -35,6 +35,8 @@ struct _MSAsyncReader{
 	bool_t eof;
 };
 
+static void async_reader_fill(void *data);
+
 MSAsyncReader *ms_async_reader_new(int fd){
 	MSAsyncReader *obj = ms_new0(MSAsyncReader,1);
 	ms_mutex_init(&obj->mutex, NULL);
@@ -46,6 +48,9 @@ MSAsyncReader *ms_async_reader_new(int fd){
 #else
 	obj->blocksize = 4096;
 #endif
+	/*immediately start filling the reader */
+	obj->ntasks_pending++;
+	ms_worker_thread_add_task(obj->wth, async_reader_fill, obj);
 	return obj;
 }
 
@@ -59,6 +64,7 @@ void ms_async_reader_destroy(MSAsyncReader *obj){
 static void async_reader_fill(void *data){
 	MSAsyncReader *obj = (MSAsyncReader*) data;
 	mblk_t *m = allocb(obj->blocksize, 0);
+	
 	int err = (int)bctbx_read(obj->fd, m->b_wptr, obj->blocksize);
 	ms_mutex_lock(&obj->mutex);
 	if (err >= 0){
@@ -79,27 +85,27 @@ static void async_reader_fill(void *data){
 
 int ms_async_reader_read(MSAsyncReader *obj, uint8_t *buf, size_t size){
 	int err;
-	size_t ret;
+	size_t avail;
 	
 	ms_mutex_lock(&obj->mutex);
 	if (obj->moving){
 		err = -EWOULDBLOCK;
 		goto end;
 	}
-	ret = ms_bufferizer_get_avail(&obj->buf);
-	if (ret < size && obj->ntasks_pending){
+	avail = ms_bufferizer_get_avail(&obj->buf);
+	if (avail < size && obj->ntasks_pending){
 		err = -EWOULDBLOCK;
 		goto end;
 	}
 	/*eventually ask to fill the bufferizer*/
 	if (obj->ntasks_pending == 0){
-		if (ret < obj->blocksize){
+		if (avail < obj->blocksize){
 			obj->ntasks_pending++;
 			ms_worker_thread_add_task(obj->wth, async_reader_fill, obj);
 		}
 	}
 	/*and finally return the datas*/
-	err = (int)ms_bufferizer_read(&obj->buf, buf, size);
+	err = (int)ms_bufferizer_read(&obj->buf, buf, MIN(size, avail));
 end:
 	ms_mutex_unlock(&obj->mutex);
 	return err;
@@ -111,7 +117,6 @@ static void async_reader_seek(void *data){
 	if (lseek(obj->fd, obj->seekoff, SEEK_SET) == -1){
 		ms_error("async_reader_seek() seek failed : %s", strerror(errno));
 	}
-	obj->ntasks_pending--;
 	obj->moving--;
 	ms_bufferizer_flush(&obj->buf);
 	ms_mutex_unlock(&obj->mutex);

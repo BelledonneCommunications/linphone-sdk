@@ -89,6 +89,7 @@ typedef struct _MediastreamIceCandidate {
 } MediastreamIceCandidate;
 
 typedef struct _MediastreamDatas {
+	MSFactory *factory;
 	int localport,remoteport,payload;
 	char ip[64];
 	char *fmtp;
@@ -689,7 +690,7 @@ void setup_media_streams(MediastreamDatas* args) {
 		ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 	}
 
-	factory = ms_factory_new_with_voip();
+	args->factory = factory = ms_factory_new_with_voip();
 
 #if TARGET_OS_IPHONE || defined(ANDROID)
 #if TARGET_OS_IPHONE || (defined(HAVE_X264) && defined(VIDEO_ENABLED))
@@ -1117,7 +1118,7 @@ void clear_mediastreams(MediastreamDatas* args) {
 	if (args->logfile)
 		fclose(args->logfile);
 
-	ms_factory_destroy(args->video->ms.factory);
+	ms_factory_destroy(args->factory);
 }
 
 // ANDROID JNI WRAPPER

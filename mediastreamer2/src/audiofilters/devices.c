@@ -58,7 +58,7 @@ static SoundDeviceDescription devices[]={
 	{	"LGE",					"LS670",				"",				0,	170 },
 	{	"LGE",					"Nexus 5",				"msm8974",		0,	0 , 16000 },
 	{	"LGE", 					"LG-H815",				"msm8992",	DEVICE_HAS_BUILTIN_AEC, 0 },
-	
+	{	"LGE", 					"LG-H735", 				"msm8916"	DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0, 16000},
 	{	"motorola",				"DROID RAZR",			"",				0,	400 },
 	{	"motorola",				"MB860",				"",				0,	200 },
 	{	"motorola",				"XT907",				"",				0,	500 },

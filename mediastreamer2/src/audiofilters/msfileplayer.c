@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msfileplayer.h"
 #include "waveheader.h"
 #include "mediastreamer2/msticker.h"
+#include "asyncrw.h"
 
 #ifdef HAVE_PCAP
 #include <pcap/pcap.h>
@@ -39,6 +40,7 @@ static int player_close(MSFilter *f, void *arg);
 
 struct _PlayerData{
 	int fd;
+	MSAsyncReader *reader;
 	MSPlayerState state;
 	int rate;
 	int nchannels;
@@ -49,6 +51,7 @@ struct _PlayerData{
 	int samplesize;
 	char *mime;
 	uint32_t ts;
+	int async_read_too_late;
 	bool_t swap;
 	bool_t is_raw;
 #ifdef HAVE_PCAP
@@ -190,6 +193,7 @@ static int player_open(MSFilter *f, void *arg){
 	d->state=MSPlayerPaused;
 	d->fd=fd;
 	d->ts=0;
+	d->async_read_too_late = 0;
 #ifdef HAVE_PCAP
 	d->pcap = NULL;
 	d->pcap_started = FALSE;
@@ -207,6 +211,7 @@ static int player_open(MSFilter *f, void *arg){
 	if (read_wav_header(d)!=0 && strstr(file,".wav")){
 		ms_warning("File %s has .wav extension but wav header could be found.",file);
 	}
+	d->reader = ms_async_reader_new(d->fd);
 	ms_filter_notify_no_arg(f,MS_FILTER_OUTPUT_FMT_CHANGED);
 	ms_message("MSFilePlayer[%p]: %s opened: rate=%i,channel=%i",f,file,d->rate,d->nchannels);
 	return 0;
@@ -224,7 +229,7 @@ static int player_stop(MSFilter *f, void *arg){
 	ms_filter_lock(f);
 	if (d->state!=MSPlayerClosed){
 		d->state=MSPlayerPaused;
-		lseek(d->fd,d->hsize,SEEK_SET);
+		if (d->reader) ms_async_reader_seek(d->reader, d->hsize);
 	}
 	ms_filter_unlock(f);
 	return 0;
@@ -246,9 +251,16 @@ static int player_close(MSFilter *f, void *arg){
 #ifdef HAVE_PCAP
 	if (d->pcap) pcap_close(d->pcap);
 #endif
+	if (d->reader){
+		ms_async_reader_destroy(d->reader);
+		d->reader = NULL;
+	}
 	if (d->fd!=-1)	close(d->fd);
 	d->fd=-1;
 	d->state=MSPlayerClosed;
+	if (d->async_read_too_late > 0){
+		ms_warning("MSFilePlayer[%p] had %i late read events.", f, d->async_read_too_late);
+	}
 	return 0;
 }
 
@@ -365,10 +377,10 @@ static void player_process(MSFilter *f){
 				memset(om->b_wptr,0,bytes);
 				d->pause_time-=f->ticker->interval;
 			}else{
-				err=read(d->fd,om->b_wptr,bytes);
-				if (d->swap) swap_bytes(om->b_wptr,bytes);
+				err = ms_async_reader_read(d->reader, om->b_wptr, bytes);
 			}
 			if (err>=0){
+				if (d->swap) swap_bytes(om->b_wptr,bytes);
 				if (err!=0){
 					if (err<bytes)
 						memset(om->b_wptr+err,0,bytes-err);
@@ -378,8 +390,7 @@ static void player_process(MSFilter *f){
 					ms_queue_put(f->outputs[0],om);
 				}else freemsg(om);
 				if (err<bytes){
-					
-					lseek(d->fd,d->hsize,SEEK_SET);
+					ms_async_reader_seek(d->reader, d->hsize);
 
 					/* special value for playing file only once */
 					if (d->loop_after<0){
@@ -392,7 +403,9 @@ static void player_process(MSFilter *f){
 					ms_filter_notify_no_arg(f,MS_FILE_PLAYER_EOF);
 				}
 			}else{
-				ms_warning("Fail to read %i bytes: %s",bytes,strerror(errno));
+				if (err != -EWOULDBLOCK) ms_warning("MSFilePlayer[%p]: fail to read %i bytes.",f, bytes);
+				else d->async_read_too_late++;
+				freemsg(om);
 			}
 		}
 	}

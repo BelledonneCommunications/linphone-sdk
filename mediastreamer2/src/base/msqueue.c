@@ -78,7 +78,7 @@ void ms_bufferizer_put_from_queue(MSBufferizer *obj, MSQueue *q){
 }
 
 size_t ms_bufferizer_read(MSBufferizer *obj, uint8_t *data, size_t datalen){
-	if (obj->size>=datalen){
+	if (obj->size>=datalen && datalen > 0){
 		/*we can return something */
 		size_t sz=0;
 		size_t cplen;
