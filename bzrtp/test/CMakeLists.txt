@@ -44,6 +44,7 @@ apply_compile_flags(TEST_SOURCES "CPP")
 
 add_executable(bzrtpTest ${TEST_SOURCES})
 set_target_properties(bzrtpTest PROPERTIES LINK_FLAGS "${LINK_FLAGS}")
+set_target_properties(bzrtpTest PROPERTIES LINKER_LANGUAGE CXX)
 target_include_directories(bzrtpTest PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIR})
 target_link_libraries(bzrtpTest ${BCTOOLBOX_LIBRARIES} ${PROJECT_LIBS})
 if(HAVE_SQRT)
