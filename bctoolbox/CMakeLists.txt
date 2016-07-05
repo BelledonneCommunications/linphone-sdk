@@ -38,6 +38,7 @@ set(PROJECT_VERSION_MINOR ${BCTOOLBOX_VERSION_MINOR})
 set(PROJECT_VERSION_PATCH ${BCTOOLBOX_VERSION_PATCH})
 set(PROJECT_VERSION "${BCTOOLBOX_VERSION}")
 
+
 option(ENABLE_SHARED "Build shared library." ON)
 option(ENABLE_STATIC "Build static library." ON)
 option(ENABLE_POLARSSL "Enable polarssl support" ON)
@@ -45,6 +46,23 @@ option(ENABLE_MBEDTLS "Enable mabedtls support" ON)
 option(ENABLE_STRICT "Pass strict flags to the compiler" ON)
 option(ENABLE_TESTS_COMPONENT "Enable compilation of tests helper library" ON)
 option(ENABLE_TESTS "Enable compilation of tests" ON)
+
+
+macro(apply_compile_flags SOURCE_FILES)
+	if(${SOURCE_FILES})
+		set(options "")
+		foreach(a ${ARGV})
+			if(STRICT_OPTIONS_${a})
+				string(REPLACE ";" " " options_${a} "${STRICT_OPTIONS_${a}}")
+				set(options "${options} ${options_${a}}")
+			endif()
+		endforeach()
+		if(options)
+			set_source_files_properties(${${SOURCE_FILES}} PROPERTIES COMPILE_FLAGS "${options}")
+		endif()
+	endif()
+endmacro()
+
 
 include(CheckLibraryExists)
 include(CheckSymbolExists)
