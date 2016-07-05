@@ -468,7 +468,7 @@ BCTBX_PUBLIC bool_t bctbx_is_multicast_addr(const struct sockaddr *addr);
 #if defined(_WIN32) || defined(__QNX__)
   #define FORMAT_SIZE_T    "%Iu"
 #elif __APPLE__
-  #define FORMAT_SIZE_T    "%u"
+  #define FORMAT_SIZE_T    "%lu"
 #else
   #define FORMAT_SIZE_T    "%zu"
 #endif
