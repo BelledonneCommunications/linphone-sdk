@@ -492,6 +492,9 @@ static void detect_res_prefix(const char* prog) {
 	if (progpath != NULL) {
 		free(progpath);
 	}
+	if(progname) {
+		free(progname);
+	}
 }
 
 void bc_tester_init(void (*ftester_printf)(int level, const char *format, va_list args), int iverbosity_info, int iverbosity_error, const char* aexpected_res) {
