@@ -55,15 +55,6 @@ if(UNIX AND NOT APPLE)
 	set(LINUX_OR_BSD 1)
 endif()
 
-if(ENABLE_STATIC)
-	set(MS2_LIBS_FOR_TOOLS mediastreamer_voip-static mediastreamer_base-static)
-	if(XV_FOUND)
-		list(APPEND MS2_LIBS_FOR_TOOLS Xext)
-	endif()
-else()
-	set(MS2_LIBS_FOR_TOOLS mediastreamer_voip mediastreamer_base)
-endif()
-
 include(CMakeDependentOption)
 
 option(ENABLE_SHARED "Build shared library." YES)

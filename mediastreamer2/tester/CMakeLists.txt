@@ -20,6 +20,16 @@
 #
 ############################################################################
 
+if(ENABLE_SHARED)
+	set(MS2_LIBS_FOR_TESTER mediastreamer_voip mediastreamer_base)
+else()
+	set(MS2_LIBS_FOR_TESTER mediastreamer_voip-static mediastreamer_base-static)
+	if(XV_FOUND)
+		list(APPEND MS2_LIBS_FOR_TESTER Xext)
+	endif()
+endif()
+
+
 set(SOUND_FILES
 	sounds/arpeggio_8000_mono.wav
 	sounds/bird_44100_stereo.wav
@@ -84,7 +94,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 
 	add_library(mediastreamer2_tester_static STATIC ${SOURCE_FILES_C})
 	target_include_directories(mediastreamer2_tester_static PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIRS})
-	target_link_libraries(mediastreamer2_tester_static ${MS2_LIBS_FOR_TOOLS} ${BCTOOLBOX_TESTER_LIBRARIES})
+	target_link_libraries(mediastreamer2_tester_static ${MS2_LIBS_FOR_TESTER} ${BCTOOLBOX_TESTER_LIBRARIES})
 
 	set(RUNTIME_COMPONENT_SOURCES
 		mediastreamer2_tester_windows.cpp
@@ -119,7 +129,7 @@ else()
 		add_executable(mediastreamer2_tester ${SOURCE_FILES_C} ${SOURCE_FILES_OBJC})
 	endif()
 	target_include_directories(mediastreamer2_tester PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIRS})
-	target_link_libraries(mediastreamer2_tester ${MS2_LIBS_FOR_TOOLS} ${BCTOOLBOX_TESTER_LIBRARIES})
+	target_link_libraries(mediastreamer2_tester ${MS2_LIBS_FOR_TESTER} ${BCTOOLBOX_TESTER_LIBRARIES})
 	string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
 	if(LINK_FLAGS_STR)
 		set_target_properties(mediastreamer2_tester PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
