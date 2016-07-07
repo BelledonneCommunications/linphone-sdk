@@ -40,7 +40,6 @@ set(DEFAULT_VALUE_ENABLE_ZRTP ON)
 set(DEFAULT_VALUE_CMAKE_LINKING_TYPE "-DENABLE_STATIC=NO")
 
 # Global configuration
-set(LINPHONE_BUILDER_HOST "")
 if(APPLE)
 	if(NOT CMAKE_OSX_DEPLOYMENT_TARGET) #is it still useful?
 		#without instruction chose to target lower version between current machine and current used SDK
@@ -74,10 +73,12 @@ if(WIN32)
 endif()
 
 # Adjust PKG_CONFIG_PATH to include install directory
-if(UNIX)
-	set(LINPHONE_BUILDER_PKG_CONFIG_PATH "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig/:$ENV{PKG_CONFIG_PATH}:/usr/lib/pkgconfig/:/usr/lib/x86_64-linux-gnu/pkgconfig/:/usr/share/pkgconfig/:/usr/local/lib/pkgconfig/:/opt/local/lib/pkgconfig/")
-else() # Windows
-	set(LINPHONE_BUILDER_PKG_CONFIG_PATH "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig/")
+if(NOT LINPHONE_BUILDER_PKG_CONFIG_PATH)
+	if(UNIX)
+		set(LINPHONE_BUILDER_PKG_CONFIG_PATH "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig/:$ENV{PKG_CONFIG_PATH}:/usr/lib/pkgconfig/:/usr/lib/x86_64-linux-gnu/pkgconfig/:/usr/share/pkgconfig/:/usr/local/lib/pkgconfig/:/opt/local/lib/pkgconfig/")
+	else() # Windows
+		set(LINPHONE_BUILDER_PKG_CONFIG_PATH "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig/")
+	endif()
 endif()
 
 
