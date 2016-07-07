@@ -138,21 +138,6 @@ class Target:
         else:
             raise
 
-    def build_instructions(self, debug=False):
-        if self.generator is not None and self.generator.startswith('Visual Studio'):
-            config = "Release"
-            if debug:
-                config = "Debug"
-            return "Open the \"{cmake_dir}/Project.sln\" Visual Studio solution and build with the \"{config}\" configuration".format(cmake_dir=self.cmake_dir, config=config)
-        else:
-            if self.generator in [None, "Unix Makefiles"]:
-                builder = "make"
-            elif self.generator == "Ninja":
-                builder = "ninja"
-            else:
-                return "Unknown generator. Files have been generated in {cmake_dir}".format(cmake_dir=self.cmake_dir)
-            return "Run the following command to build:\n\t{builder} -C {cmake_dir}".format(builder=builder, cmake_dir=self.cmake_dir)
-
 
 
 class TargetListAction(argparse.Action):
