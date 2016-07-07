@@ -29,13 +29,8 @@
 include(CheckSymbolExists)
 include(CMakePushCheckState)
 
-set(_ALSA_ROOT_PATHS
-	${CMAKE_INSTALL_PREFIX}
-)
-
 find_path(ALSA_INCLUDE_DIRS
 	NAMES alsa/asoundlib.h
-	HINTS _ALSA_ROOT_PATHS
 	PATH_SUFFIXES include
 )
 if(ALSA_INCLUDE_DIRS)
@@ -44,8 +39,7 @@ endif()
 
 find_library(ALSA_LIBRARIES
 	NAMES asound
-	HINTS _ALSA_ROOT_PATHS
-	PATH_SUFFIXES bin lib
+	PATH_SUFFIXES lib
 )
 
 if(ALSA_LIBRARIES)

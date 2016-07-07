@@ -26,13 +26,8 @@
 #  X11_INCLUDE_DIRS - the X11 include directory
 #  X11_LIBRARIES - The libraries needed to use X11
 
-set(_X11_ROOT_PATHS
-	${CMAKE_INSTALL_PREFIX}
-)
-
 find_path(X11_INCLUDE_DIRS
 	NAMES X11/Xlib.h
-	HINTS _X11_ROOT_PATHS
 	PATH_SUFFIXES include
 )
 if(X11_INCLUDE_DIRS)
@@ -41,8 +36,7 @@ endif()
 
 find_library(X11_LIBRARIES
 	NAMES X11
-	HINTS _X11_ROOT_PATHS
-	PATH_SUFFIXES bin lib
+	PATH_SUFFIXES lib
 )
 
 include(FindPackageHandleStandardArgs)
