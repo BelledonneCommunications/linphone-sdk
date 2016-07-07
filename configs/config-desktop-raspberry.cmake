@@ -64,3 +64,6 @@ set(EP_vpx_CROSS_COMPILATION_OPTIONS
 	"--target=armv6-linux-gcc"
 )
 
+# Add config step for packaging
+set(LINPHONE_BUILDER_ADDITIONAL_CONFIG_STEPS "${CMAKE_CURRENT_LIST_DIR}/desktop-raspberry/additional_steps.cmake")
+

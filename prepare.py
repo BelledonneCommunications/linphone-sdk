@@ -50,6 +50,7 @@ class Target:
         self.toolchain_file = None
         self.required_build_platforms = None
         self.additional_args = []
+        self.packaging_args = None
         self.work_dir = work_dir + '/' + self.name
         self.abs_work_dir = os.getcwd() + '/' + self.work_dir
         self.cmake_dir = self.work_dir + '/cmake'
@@ -98,6 +99,10 @@ class Target:
             cmd += ['-DENABLE_DEBUG_LOGS=YES']
         if args.list_cmake_variables:
             cmd += ['-L']
+        if args.package:
+            cmd += ["-DENABLE_PACKAGING=YES"]
+            if self.packaging_args is not None:
+                cmd += self.packaging_args
         for arg in self.additional_args:
             cmd += [arg]
         for arg in additional_args:
