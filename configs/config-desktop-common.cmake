@@ -20,6 +20,8 @@
 #
 ############################################################################
 
+set(DEFAULT_VALUE_CMAKE_LINKING_TYPE "-DENABLE_SHARED=YES" "-DENABLE_STATIC=NO")
+
 # Global configuration
 if(APPLE)
 	if(NOT CMAKE_OSX_DEPLOYMENT_TARGET) #is it still useful?
