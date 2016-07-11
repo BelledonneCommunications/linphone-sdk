@@ -1170,6 +1170,9 @@ MS2_PUBLIC VideoPreview * video_preview_new(MSFactory *factory);
 MS2_PUBLIC void video_preview_start(VideoPreview *stream, MSWebCam *device);
 MS2_PUBLIC MSVideoSize video_preview_get_current_size(VideoPreview *stream);
 MS2_PUBLIC void video_preview_stop(VideoPreview *stream);
+MS2_PUBLIC void video_preview_change_camera(VideoPreview *stream, MSWebCam *cam);
+MS2_PUBLIC void video_preview_update_video_params(VideoPreview *stream);
+
 
 /**
  * Stops the video preview graph but keep the source filter for reuse.

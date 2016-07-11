@@ -1539,20 +1539,13 @@ MSVideoSize video_preview_get_current_size(VideoPreview *stream){
 	return ret;
 }
 
-void video_preview_start(VideoPreview *stream, MSWebCam *device) {
+static void configure_video_preview_source(VideoPreview *stream) {
 	MSPixFmt format;
+	MSVideoSize vsize = stream->sent_vsize;
 	float fps;
-	int mirroring = 1;
-	int corner = -1;
-	MSVideoSize disp_size = stream->sent_vsize;
-	MSVideoSize vsize = disp_size;
-	const char *displaytype = stream->display_name;
-	MSConnectionHelper ch;
 
 	if (stream->fps != 0) fps = stream->fps;
 	else fps = (float)29.97;
-
-	stream->source = ms_web_cam_create_reader(device);
 
 	/* Transmit orientation to source filter. */
 	if (ms_filter_has_method(stream->source, MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION))
@@ -1562,25 +1555,38 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device) {
 		ms_filter_call_method(stream->source, MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION, &stream->device_orientation);
 	}
 
-	/* configure the filters */
 	ms_filter_call_method(stream->source, MS_FILTER_SET_VIDEO_SIZE, &vsize);
 	if (ms_filter_get_id(stream->source) != MS_STATIC_IMAGE_ID) {
 		ms_filter_call_method(stream->source, MS_FILTER_SET_FPS, &fps);
 	}
-	ms_filter_call_method(stream->source, MS_FILTER_GET_PIX_FMT, &format);
 	ms_filter_call_method(stream->source, MS_FILTER_GET_VIDEO_SIZE, &vsize);
+	ms_filter_call_method(stream->source, MS_FILTER_GET_PIX_FMT, &format);
+
 	if (format == MS_MJPEG) {
 		stream->pixconv = ms_factory_create_filter(stream->ms.factory, MS_MJPEG_DEC_ID);
-		if (stream->pixconv == NULL){
+		if (stream->pixconv == NULL) {
 			ms_error("Could not create mjpeg decoder, check your build options.");
 		}
-	} else {
+	}
+	else {
 		stream->pixconv = ms_factory_create_filter(stream->ms.factory, MS_PIX_CONV_ID);
 		ms_filter_call_method(stream->pixconv, MS_FILTER_SET_PIX_FMT, &format);
 		ms_filter_call_method(stream->pixconv, MS_FILTER_SET_VIDEO_SIZE, &vsize);
 	}
+}
 
-	format = MS_YUV420P;
+void video_preview_start(VideoPreview *stream, MSWebCam *device) {
+	MSPixFmt format = MS_YUV420P; /* Display format */
+	int mirroring = 1;
+	int corner = -1;
+	MSVideoSize disp_size = stream->sent_vsize;
+	const char *displaytype = stream->display_name;
+	MSConnectionHelper ch;
+
+	stream->source = ms_web_cam_create_reader(device);
+
+	/* configure the filters */
+	configure_video_preview_source(stream);
 
 	if (displaytype) {
 		stream->output2=ms_factory_create_filter_from_name(stream->ms.factory, displaytype);
@@ -1660,6 +1666,91 @@ void video_preview_stop(VideoPreview *stream){
 
 MSFilter* video_preview_stop_reuse_source(VideoPreview *stream){
 	return _video_preview_stop(stream, TRUE);
+}
+
+static MSFilter* _video_preview_change_camera(VideoPreview *stream, MSWebCam *cam, MSFilter* new_source, bool_t keep_old_source) {
+	MSFilter *cur_filter;
+	MSFilter* old_source = NULL;
+	bool_t new_src_different = (new_source && new_source != stream->source);
+	bool_t change_source = (cam != stream->cam || new_src_different);
+	MSVideoSize disp_size = stream->sent_vsize;
+
+	if (stream->ms.sessions.ticker && stream->source) {
+		ms_ticker_detach(stream->ms.sessions.ticker, stream->source);
+		/*unlink source filters and subsequent post processing filters */
+		if (stream->pixconv) {
+			ms_filter_unlink(stream->source, 0, stream->pixconv, 0);
+			cur_filter = stream->pixconv;
+		} else {
+			cur_filter = stream->source;
+		}
+		if (stream->tee) {
+			ms_filter_unlink(cur_filter, 0, stream->tee, 0);
+			if (stream->output2) {
+				ms_filter_unlink(stream->tee, 1, stream->output2, 0);
+			}
+			if (stream->local_jpegwriter) {
+				ms_filter_unlink(stream->tee, 2, stream->local_jpegwriter, 0);
+			}
+		} else {
+			ms_filter_unlink(cur_filter, 0, stream->output2, 0);
+		}
+
+		/*destroy the filters */
+		if (change_source) {
+			if (!keep_old_source) {
+				ms_filter_destroy(stream->source);
+			}
+			else {
+				old_source = stream->source;
+			}
+		}
+
+		if (stream->pixconv) {
+			ms_filter_destroy(stream->pixconv);
+		}
+
+		/*re create new ones and configure them*/
+		if (change_source) {
+			stream->source = new_source ? new_source : ms_web_cam_create_reader(cam);
+			stream->cam = cam;
+			stream->player_active = FALSE;
+		}
+
+		configure_video_preview_source(stream);
+		ms_filter_call_method(stream->output2, MS_FILTER_SET_VIDEO_SIZE, &disp_size);
+
+		if (stream->pixconv) {
+			ms_filter_link(stream->source, 0, stream->pixconv, 0);
+			cur_filter = stream->pixconv;
+		} else {
+			cur_filter = stream->source;
+		}
+		if (stream->tee) {
+			ms_filter_link(cur_filter, 0, stream->tee, 0);
+			if (stream->output2) {
+				ms_filter_link(stream->tee, 1, stream->output2, 0);
+			}
+			if (stream->local_jpegwriter) {
+				ms_filter_link(stream->tee, 2, stream->local_jpegwriter, 0);
+			}
+		}
+		else {
+			ms_filter_link(cur_filter, 0, stream->output2, 0);
+		}
+
+		ms_ticker_attach(stream->ms.sessions.ticker, stream->source);
+	}
+	return old_source;
+}
+
+void video_preview_change_camera(VideoPreview *stream, MSWebCam *cam) {
+	_video_preview_change_camera(stream, cam, NULL, FALSE);
+}
+
+void video_preview_update_video_params(VideoPreview *stream) {
+	/* Calling video_preview_change_camera() does the job of unplumbing/replumbing and configuring the new graph */
+	video_preview_change_camera(stream, stream->cam);
 }
 
 
