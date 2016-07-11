@@ -296,9 +296,8 @@ static void automated_test_start_message_handler(const CU_pTest pTest, const CU_
 
     if (bJUnitXmlOutput == CU_TRUE) {
       fprintf(f_pTestResultFile,
-              "  <testsuite errors=\"%u\" failures=\"%u\" tests=\"%u\" name=\"%s\"> \n",
+              "  <testsuite errors=\"%u\" tests=\"%u\" name=\"%s\"> \n",
               0 , /* Errors */
-              pSuite->uiNumberOfTestsFailed, /* Failures */
               pSuite->uiNumberOfTests, /* Tests */
               (NULL != szTempName) ? szTempName : ""); /* Name */
     } else {
