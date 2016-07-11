@@ -466,6 +466,8 @@ typedef struct _VTH264DecCtx {
 	MSAverageFPS fps;
 	bool_t first_image;
 	bool_t enable_avpf;
+	bool_t freeze_on_error_enabled;
+	bool_t freezed;
 	MSFilter *f;
 } VTH264DecCtx;
 
@@ -596,6 +598,8 @@ static void h264_dec_init(MSFilter *f) {
 	ctx->vsize = MS_VIDEO_SIZE_UNKNOWN;
 	ms_average_fps_init(&ctx->fps, "VideoToolboxDecoder: decoding at %ffps");
 	ctx->first_image = TRUE;
+	ctx->freeze_on_error_enabled = TRUE;
+	ctx->freezed = FALSE;
 	ctx->f = f;
 	f->data = ctx;
 }
@@ -626,6 +630,10 @@ static void h264_dec_process(MSFilter *f) {
 	}
 	if (unpacking_failed) {
 		ms_warning("VideoToolboxDecoder: error while unpacking RTP packets");
+		if(ctx->freeze_on_error_enabled) {
+			ctx->freezed = TRUE;
+			goto fail;
+		}
 	}
 
 	// Pull SPSs and PPSs out and put them into the filter context if necessary
@@ -634,6 +642,7 @@ static void h264_dec_process(MSFilter *f) {
 		if(nalu_type == MSH264NaluTypeSPS || nalu_type == MSH264NaluTypePPS) {
 			parameter_sets = bctbx_list_append(parameter_sets, nalu);
 			iframe_received = TRUE;
+			ctx->freezed = FALSE;
 		} else if(ctx->format_desc || parameter_sets) {
 			ms_queue_put(&q_nalus2, nalu);
 		} else {
@@ -642,6 +651,7 @@ static void h264_dec_process(MSFilter *f) {
 	}
 	
 	if(iframe_received) ms_message("VideoToolboxDecoder: I-frame received");
+	if(ctx->freezed) goto put_frames_out;
 	
 	if(parameter_sets) {
 		CMFormatDescriptionRef new_format_desc = format_desc_from_sps_pps(parameter_sets);
@@ -662,7 +672,7 @@ static void h264_dec_process(MSFilter *f) {
 
 	/* Stops proccessing if no IDR has been received yet */
 	if(ctx->format_desc == NULL) {
-		ms_warning("VideoToolboxDecoder: no IDR packet has been received yet");
+		ms_warning("VideoToolboxDecoder: no I-frame has been received yet");
 		goto fail;
 	}
 
