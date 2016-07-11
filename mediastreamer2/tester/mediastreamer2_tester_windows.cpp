@@ -208,7 +208,7 @@ void NativeTester::uninitVideo()
 	wcstombs(cst, wst.c_str(), sizeof(cst))
 
 
-void NativeTester::startVideoStream(Platform::String^ videoSwapChainPanelName, Platform::String^ previewSwapChainPanelName, Platform::String^ camera, Platform::String^ codec, Platform::String^ videoSize, unsigned int frameRate, unsigned int bitRate)
+void NativeTester::startVideoStream(Platform::String^ videoSwapChainPanelName, Platform::String^ previewSwapChainPanelName, Platform::String^ camera, Platform::String^ codec, Platform::String^ videoSize, unsigned int frameRate, unsigned int bitRate, Platform::Boolean usePreviewStream)
 {
 	ms_factory_enable_statistics(_factory, TRUE);
 	ms_factory_reset_statistics(_factory);
@@ -244,24 +244,37 @@ void NativeTester::startVideoStream(Platform::String^ videoSwapChainPanelName, P
 	}
 	PayloadType *pt = rtp_profile_get_payload(&av_profile, payload);
 	pt->normal_bitrate = bitRate * 1000;
-	_videoStream = video_stream_new(_factory, 20000, 0, FALSE);
-	RefToPtrProxy<Platform::String^> *nativeWindowId = new RefToPtrProxy<Platform::String^>(videoSwapChainPanelName);
-	video_stream_set_native_window_id(_videoStream, nativeWindowId);
-	RefToPtrProxy<Platform::String^> *nativePreviewWindowId = new RefToPtrProxy<Platform::String^>(previewSwapChainPanelName);
-	video_stream_set_native_preview_window_id(_videoStream, nativePreviewWindowId);
-	video_stream_use_preview_video_window(_videoStream, TRUE);
-	video_stream_set_display_filter_name(_videoStream, "MSWinRTDis");
-	video_stream_use_video_preset(_videoStream, "custom");
-	video_stream_set_sent_video_size(_videoStream, vsize);
-	video_stream_set_fps(_videoStream, (float)frameRate);
-	video_stream_set_device_rotation(_videoStream, _deviceRotation);
-	video_stream_start(_videoStream, &av_profile, "127.0.0.1", 20000, NULL, 0, payload, 0, cam);
+	if (usePreviewStream) {
+		_usePreviewStream = usePreviewStream;
+		_videoStream = video_preview_new(_factory);
+		RefToPtrProxy<Platform::String^> *nativeWindowId = new RefToPtrProxy<Platform::String^>(videoSwapChainPanelName);
+		video_preview_set_native_window_id(_videoStream, nativeWindowId);
+		video_preview_set_display_filter_name(_videoStream, "MSWinRTDis");
+		video_preview_set_size(_videoStream, vsize);
+		video_preview_set_fps(_videoStream, (float)frameRate);
+		video_preview_set_device_rotation(_videoStream, _deviceRotation);
+		video_preview_start(_videoStream, cam);
+	} else {
+		_videoStream = video_stream_new(_factory, 20000, 0, FALSE);
+		RefToPtrProxy<Platform::String^> *nativeWindowId = new RefToPtrProxy<Platform::String^>(videoSwapChainPanelName);
+		video_stream_set_native_window_id(_videoStream, nativeWindowId);
+		RefToPtrProxy<Platform::String^> *nativePreviewWindowId = new RefToPtrProxy<Platform::String^>(previewSwapChainPanelName);
+		video_stream_set_native_preview_window_id(_videoStream, nativePreviewWindowId);
+		video_stream_use_preview_video_window(_videoStream, TRUE);
+		video_stream_set_display_filter_name(_videoStream, "MSWinRTDis");
+		video_stream_use_video_preset(_videoStream, "custom");
+		video_stream_set_sent_video_size(_videoStream, vsize);
+		video_stream_set_fps(_videoStream, (float)frameRate);
+		video_stream_set_device_rotation(_videoStream, _deviceRotation);
+		video_stream_start(_videoStream, &av_profile, "127.0.0.1", 20000, NULL, 0, payload, 0, cam);
+	}
 }
 
 void NativeTester::stopVideoStream()
 {
 	ms_factory_log_statistics(_factory);
-	video_stream_stop(_videoStream);
+	if (_usePreviewStream) video_preview_stop(_videoStream);
+	else video_stream_stop(_videoStream);
 	_videoStream = NULL;
 }
 
@@ -272,15 +285,21 @@ void NativeTester::changeCamera(Platform::String^ camera)
 	MSWebCamManager *manager = ms_factory_get_web_cam_manager(_factory);
 	PLATFORM_STRING_TO_C_STRING(camera);
 	MSWebCam *cam = ms_web_cam_manager_get_cam(manager, cst);
-	video_stream_change_camera(_videoStream, cam);
+	if (_usePreviewStream) video_preview_change_camera(_videoStream, cam);
+	else video_stream_change_camera(_videoStream, cam);
 }
 
 void NativeTester::setOrientation(int degrees)
 {
 	_deviceRotation = degrees;
 	if (_videoStream != NULL) {
-		video_stream_set_device_rotation(_videoStream, _deviceRotation);
-		video_stream_update_video_params(_videoStream);
+		if (_usePreviewStream) {
+			video_preview_set_device_rotation(_videoStream, _deviceRotation);
+			video_preview_update_video_params(_videoStream);
+		} else {
+			video_stream_set_device_rotation(_videoStream, _deviceRotation);
+			video_stream_update_video_params(_videoStream);
+		}
 	}
 }
 

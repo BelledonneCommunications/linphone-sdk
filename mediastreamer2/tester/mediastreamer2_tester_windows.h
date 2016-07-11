@@ -28,7 +28,7 @@ namespace BelledonneCommunications
 				void runAllToXml();
 				void initVideo();
 				void uninitVideo();
-				void startVideoStream(Platform::String^ videoSwapChainPanelName, Platform::String^ previewSwapChainPanelName, Platform::String^ camera, Platform::String^ codec, Platform::String^ videoSize, unsigned int frameRate, unsigned int bitRate);
+				void startVideoStream(Platform::String^ videoSwapChainPanelName, Platform::String^ previewSwapChainPanelName, Platform::String^ camera, Platform::String^ codec, Platform::String^ videoSize, unsigned int frameRate, unsigned int bitRate, Platform::Boolean usePreviewStream);
 				void stopVideoStream();
 				int getOrientation() { return _deviceRotation; }
 				void setOrientation(int degrees);
@@ -57,6 +57,7 @@ namespace BelledonneCommunications
 				MSFactory *_factory;
 				VideoStream *_videoStream;
 				int _deviceRotation;
+				Platform::Boolean _usePreviewStream;
 			};
 		}
 	}
