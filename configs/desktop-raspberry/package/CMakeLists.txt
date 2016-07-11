@@ -66,7 +66,7 @@ file(REMOVE ${FILES_TO_DELETE})
 
 # Generate the tarball containing the output of the build
 add_custom_target(create_tar ALL COMMAND
-	${CMAKE_COMMAND} -E tar "cvjf" "linphone-raspberry-${LINPHONE_GIT_REVISION}.tar.bz2" "${LINPHONE_SDK_TMP}"
+	${CMAKE_COMMAND} -E tar "cvjf" "linphone-raspberry-pi${RASPBERRY_VERSION}-${LINPHONE_GIT_REVISION}.tar.bz2" "${LINPHONE_SDK_TMP}"
 )
 
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/linphone-raspberry-${LINPHONE_GIT_REVISION}.tar.bz2" DESTINATION .)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/linphone-raspberry-pi${RASPBERRY_VERSION}-${LINPHONE_GIT_REVISION}.tar.bz2" DESTINATION .)

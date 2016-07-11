@@ -20,6 +20,16 @@
 #
 ############################################################################
 
+if("$ENV{RASPBERRY_VERSION}" STREQUAL "")
+	set(RASPBERRY_VERSION 1)
+else()
+	if($ENV{RASPBERRY_VERSION} VERSION_GREATER 3)
+		set(RASPBERRY_VERSION 3)
+	else()
+		set(RASPBERRY_VERSION $ENV{RASPBERRY_VERSION})
+	endif()
+endif()
+
 if("$ENV{RASPBIAN_ROOTFS}" STREQUAL "")
 	message(FATAL_ERROR "Define the RASPBIAN_ROOTFS environment variable to point to the raspbian rootfs.")
 else()
@@ -42,11 +52,25 @@ set(CMAKE_SYSROOT "${SYSROOT_PATH}")
 
 # Define name of the target system
 set(CMAKE_SYSTEM_NAME "Linux")
-set(CMAKE_SYSTEM_PROCESSOR "arm")
+if(RASPBERRY_VERSION VERSION_GREATER 1)
+	set(CMAKE_SYSTEM_PROCESSOR "armv7")
+else()
+	set(CMAKE_SYSTEM_PROCESSOR "arm")
+endif()
 
 # Define the compiler
 set(CMAKE_C_COMPILER ${TOOLCHAIN_CC})
 set(CMAKE_CXX_COMPILER ${TOOLCHAIN_CXX})
+if(RASPBERRY_VERSION VERSION_GREATER 2)
+	set(CMAKE_C_FLAGS "-mcpu=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard" CACHE STRING "Flags for Raspberry PI 3")
+	set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS}" CACHE STRING "Flags for Raspberry PI 3")
+elseif(RASPBERRY_VERSION VERSION_GREATER 1)
+	set(CMAKE_C_FLAGS "-mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard" CACHE STRING "Flags for Raspberry PI 2")
+	set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS}" CACHE STRING "Flags for Raspberry PI 2")
+else()
+	set(CMAKE_C_FLAGS "-mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=hard" CACHE STRING "Flags for Raspberry PI 1 B+")
+	set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS}" CACHE STRING "Flags for Raspberry PI 1 B+")
+endif()
 
 set(CMAKE_FIND_ROOT_PATH "${CMAKE_INSTALL_PREFIX}" "${CMAKE_SYSROOT}")
 

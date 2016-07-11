@@ -38,6 +38,8 @@ set(DEFAULT_VALUE_ENABLE_VPX ON)
 set(DEFAULT_VALUE_ENABLE_WASAPI OFF)
 set(DEFAULT_VALUE_ENABLE_ZRTP ON)
 
+message(STATUS "Buiding for Raspberry PI ${RASPBERRY_VERSION}")
+
 get_filename_component(COMPILER_NAME ${CMAKE_C_COMPILER} NAME)
 string(REGEX REPLACE "-gcc$" "" LINPHONE_BUILDER_HOST ${COMPILER_NAME})
 unset(COMPILER_NAME)
@@ -58,11 +60,25 @@ set(EP_ffmpeg_CROSS_COMPILATION_OPTIONS
 # opus
 linphone_builder_add_cmake_option(opus "-DENABLE_FIXED_POINT=YES")
 
+# speex
+linphone_builder_add_cmake_option(speex "-DENABLE_FLOAT_API=NO")
+linphone_builder_add_cmake_option(speex "-DENABLE_FIXED_POINT=YES")
+if(CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7")
+	linphone_builder_add_cmake_option(speex "-DENABLE_ARM_NEON_INTRINSICS=YES")
+endif()
+
 # vpx
-set(EP_vpx_CROSS_COMPILATION_OPTIONS
-	"--prefix=${CMAKE_INSTALL_PREFIX}"
-	"--target=armv6-linux-gcc"
-)
+if(CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7")
+	set(EP_vpx_CROSS_COMPILATION_OPTIONS
+		"--prefix=${CMAKE_INSTALL_PREFIX}"
+		"--target=armv7-linux-gcc"
+	)
+else()
+	set(EP_vpx_CROSS_COMPILATION_OPTIONS
+		"--prefix=${CMAKE_INSTALL_PREFIX}"
+		"--target=armv6-linux-gcc"
+	)
+endif()
 
 # Add config step for packaging
 set(LINPHONE_BUILDER_ADDITIONAL_CONFIG_STEPS "${CMAKE_CURRENT_LIST_DIR}/desktop-raspberry/additional_steps.cmake")
