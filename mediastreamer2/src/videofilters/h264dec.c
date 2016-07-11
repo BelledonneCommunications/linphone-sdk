@@ -24,6 +24,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msticker.h"
 #include "stream_regulator.h"
 
+#if __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 #include "ffmpeg-priv.h"
 
 #include "ortp/b64.h"
@@ -454,3 +459,7 @@ void __register_ffmpeg_h264_decoder_if_possible(MSFactory *obj) {
 		ms_factory_register_filter(obj, &ms_h264_dec_desc);
 	}
 }
+
+#if __clang__
+#pragma clang diagnostic pop
+#endif

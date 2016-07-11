@@ -29,6 +29,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/mswebcam.h"
 
 
+#if __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 #ifndef NO_FFMPEG
 #include "ffmpeg-priv.h"
 #else
@@ -538,3 +543,7 @@ void ms_static_image_set_default_image(const char *path){
 const char *ms_static_image_get_default_image(){
 	return def_image;
 }
+
+#if __clang__
+#pragma clang diagnostic pop
+#endif

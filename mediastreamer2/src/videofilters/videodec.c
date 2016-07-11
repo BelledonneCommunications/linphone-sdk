@@ -21,6 +21,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer-config.h"
 #endif
 
+#if __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 #include "ffmpeg-priv.h"
 
 #include "mediastreamer2/msfilter.h"
@@ -968,3 +973,7 @@ MS_FILTER_DESC_EXPORT(ms_snow_dec_desc)
 MS_FILTER_DESC_EXPORT(ms_jpeg_dec_desc)
 /* decode JPEG image with jpeg headers */
 MS_FILTER_DESC_EXPORT(ms_mjpeg_dec_desc)
+
+#if __clang__
+#pragma clang diagnostic pop
+#endif
