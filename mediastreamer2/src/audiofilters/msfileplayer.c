@@ -403,7 +403,7 @@ static void player_process(MSFilter *f){
 					ms_filter_notify_no_arg(f,MS_FILE_PLAYER_EOF);
 				}
 			}else{
-				if (err != -EWOULDBLOCK) ms_warning("MSFilePlayer[%p]: fail to read %i bytes.",f, bytes);
+				if (err != -BCTBX_EWOULDBLOCK) ms_warning("MSFilePlayer[%p]: fail to read %i bytes.",f, bytes);
 				else d->async_read_too_late++;
 				freemsg(om);
 			}

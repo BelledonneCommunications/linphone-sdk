@@ -89,12 +89,12 @@ int ms_async_reader_read(MSAsyncReader *obj, uint8_t *buf, size_t size){
 	
 	ms_mutex_lock(&obj->mutex);
 	if (obj->moving){
-		err = -EWOULDBLOCK;
+		err = -BCTBX_EWOULDBLOCK;
 		goto end;
 	}
 	avail = ms_bufferizer_get_avail(&obj->buf);
 	if (avail < size && obj->ntasks_pending){
-		err = -EWOULDBLOCK;
+		err = -BCTBX_EWOULDBLOCK;
 		goto end;
 	}
 	/*eventually ask to fill the bufferizer*/
