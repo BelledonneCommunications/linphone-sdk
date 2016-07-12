@@ -99,7 +99,7 @@ class Target:
             cmd += ['-DENABLE_DEBUG_LOGS=YES']
         if args.list_cmake_variables:
             cmd += ['-L']
-        if args.package:
+        if 'package' in vars(args) and args.package:
             cmd += ["-DENABLE_PACKAGING=YES"]
             if self.packaging_args is not None:
                 cmd += self.packaging_args
