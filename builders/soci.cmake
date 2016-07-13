@@ -21,6 +21,8 @@
 ############################################################################
 
 set(soci_filename "soci-3.2.3.tar.gz")
+set(EP_soci_URL "${CMAKE_CURRENT_SOURCE_DIR}/builders/soci/${soci_filename}")
+set(EP_soci_URL_HASH "SHA1=5e527cf5c1740198fa706fc8821af45b34867ee1")
 
 set(EP_soci_BUILD_METHOD "rpm")
 set(EP_soci_SPEC_FILE "soci.spec" )
@@ -29,7 +31,7 @@ set(EP_soci_RPMBUILD_OPTIONS "--without postgresql --without sqlite3 --without o
 
 #create source dir and copy the tar.gz inside
 set(EP_soci_PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "make_directory" "${LINPHONE_BUILDER_WORK_DIR}/rpmbuild/SOURCES/")
-set(EP_soci_PATCH_COMMAND ${EP_soci_PATCH_COMMAND} "COMMAND" "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/soci/${soci_filename}" "${LINPHONE_BUILDER_WORK_DIR}/rpmbuild/SOURCES/")
+set(EP_soci_PATCH_COMMAND ${EP_soci_PATCH_COMMAND} "COMMAND" "${CMAKE_COMMAND}" "-E" "copy" "${LINPHONE_BUILDER_WORK_DIR}/Download/EP_soci/${soci_filename}" "${LINPHONE_BUILDER_WORK_DIR}/rpmbuild/SOURCES/")
 set(EP_soci_PATCH_COMMAND ${EP_soci_PATCH_COMMAND} "COMMAND" "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/soci/soci_libdir.patch" "${LINPHONE_BUILDER_WORK_DIR}/rpmbuild/SOURCES/")
 set(EP_soci_PATCH_COMMAND ${EP_soci_PATCH_COMMAND} "COMMAND" "${CMAKE_COMMAND}" "-E" "copy" ${EP_soci_CONFIG_H_FILE} "<BINARY_DIR>")
 
