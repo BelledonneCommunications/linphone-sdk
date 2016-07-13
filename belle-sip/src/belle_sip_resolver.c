@@ -447,6 +447,7 @@ static int resolver_process_data(belle_sip_simple_resolver_context_t *ctx, unsig
 	int error;
 	unsigned char simulated_timeout=0;
 	int timeout=belle_sip_stack_get_dns_timeout(ctx->base.stack);
+	unsigned char search_enabled = belle_sip_stack_dns_search_enabled(ctx->base.stack);
 
 	/*Setting timeout to 0 can be used to simulate DNS timeout*/
 	if ((revents!=0) && timeout==0){
@@ -459,6 +460,7 @@ static int resolver_process_data(belle_sip_simple_resolver_context_t *ctx, unsig
 		notify_results(ctx);
 		return BELLE_SIP_STOP;
 	}
+	dns_res_enable_search(ctx->R, search_enabled);
 	/*belle_sip_message("resolver_process_data(): revents=%i",revents);*/
 	error = dns_res_check(ctx->R);
 	if (!error) {

@@ -7047,6 +7047,8 @@ struct dns_resolver {
 		struct dns_rr_i hints_i, hints_j;
 		struct dns_rr hints_ns, ans_cname;
 	} stack[DNS_R_MAXDEPTH];
+
+	unsigned char search_enabled;
 }; /* struct dns_resolver */
 
 
@@ -7726,7 +7728,10 @@ exec:
 			if (!R->nodata)
 				dns_p_movptr(&R->nodata, &F->answer);
 
-			dgoto(R->sp, DNS_R_SEARCH);
+			if (R->search_enabled)
+				dgoto(R->sp, DNS_R_SEARCH);
+			else
+				dgoto(R->sp, DNS_R_FINISH);
 		}
 
 		dns_rr_foreach(&rr, F->answer, .section = DNS_S_NS, .type = DNS_T_NS) {
@@ -8095,6 +8100,10 @@ void dns_res_sethints(struct dns_resolver *res, struct dns_hints *hints) {
 	dns_hints_close(res->hints);
 	res->hints = hints;
 } /* dns_res_sethints() */
+
+void dns_res_enable_search(struct dns_resolver *res, unsigned char enable) {
+	res->search_enabled = enable;
+}
 
 
 /*
