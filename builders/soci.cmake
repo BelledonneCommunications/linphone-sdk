@@ -22,7 +22,7 @@
 
 set(soci_filename "soci-3.2.3.tar.gz")
 set(EP_soci_URL "http://downloads.sourceforge.net/soci/${soci_filename}")
-set(EP_soci_URL_HASH "SHA1=ea60df615387f47bdfdfe4da48f6567c4ec60f74")
+set(EP_soci_URL_HASH "SHA1=5e527cf5c1740198fa706fc8821af45b34867ee1")
 
 set(EP_soci_BUILD_METHOD "rpm")
 set(EP_soci_SPEC_FILE "soci.spec" )
