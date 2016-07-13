@@ -525,7 +525,7 @@ struct belle_sip_stack{
 	char *http_proxy_passwd; /*for future use*/
 
 	unsigned char dns_srv_enabled;
-
+	unsigned char dns_search_enabled;
 };
 
 belle_sip_hop_t* belle_sip_hop_new(const char* transport, const char *cname, const char* host,int port);

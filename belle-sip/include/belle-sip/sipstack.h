@@ -61,6 +61,10 @@ BELLESIP_EXPORT unsigned char belle_sip_stack_dns_srv_enabled(const belle_sip_st
 
 BELLESIP_EXPORT void belle_sip_stack_enable_dns_srv(belle_sip_stack_t *stack, unsigned char enable);
 
+BELLESIP_EXPORT unsigned char belle_sip_stack_dns_search_enabled(const belle_sip_stack_t *stack);
+
+BELLESIP_EXPORT void belle_sip_stack_enable_dns_search(belle_sip_stack_t *stack, unsigned char enable);
+
 /**
  * Override system's DNS servers used for DNS resolving by app-supplied list of dns servers.
  * @param stack the stack
