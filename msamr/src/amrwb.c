@@ -29,13 +29,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ms_bufferizer_fill_current_metas(b,m)
 #endif
 
-#if defined(ANDROID)
-#include <amrwb/dec_if.h>
-#include <enc_if.h>
-#else
 #include <opencore-amrwb/dec_if.h>
 #include <vo-amrwbenc/enc_if.h>
-#endif
 
 #ifdef _MSC_VER
 #include <stdint.h>
