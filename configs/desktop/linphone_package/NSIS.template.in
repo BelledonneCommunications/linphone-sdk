@@ -905,7 +905,7 @@ SectionEnd
 Function .onInit
   FindWindow $0 "" "Linphone"
   StrCmp $0 0 notRunning
-  MessageBox MB_OK|MB_ICONEXCLAMATION "@CPACK_NSIS_PACKAGE_NAME@ is running. Please close it first and restart the installation." /SD IDOK
+  MessageBox MB_OK|MB_ICONEXCLAMATION "Linphone is running. Please close it first and restart the installation." /SD IDOK
   Abort
 
 notRunning:
@@ -914,7 +914,7 @@ notRunning:
   StrCmp $0 "" inst
 
   MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION \
-  "@CPACK_NSIS_PACKAGE_NAME@ is already installed. $\n$\nDo you want to continue and uninstall the old version before installing the new one?" \
+  "Linphone is already installed. $\n$\nDo you want to continue and uninstall the old version before installing the new one?" \
   IDOK uninst
   Abort
 
