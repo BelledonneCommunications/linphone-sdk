@@ -306,13 +306,15 @@ if(WIN32)
 	file(TO_NATIVE_PATH "${CMAKE_CURRENT_BINARY_DIR}" DOS_STYLE_BINARY_DIR)
 	string(REPLACE "\\" "\\\\" ESCAPED_DOS_STYLE_BINARY_DIR "${DOS_STYLE_BINARY_DIR}")
 
+	configure_file("${CMAKE_CURRENT_SOURCE_DIR}/uninstall.nsi" "${CMAKE_CURRENT_BINARY_DIR}/uninstall.nsi" COPYONLY)
+	set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "!include \\\"${ESCAPED_DOS_STYLE_BINARY_DIR}\\\\uninstall.nsi\\\"")
 	if(ENABLE_OPENH264)
 		# Add NSI instructions to download the openh264 codec from Cisco's servers whether msopenh264 has been installed
 		configure_file("${CMAKE_CURRENT_SOURCE_DIR}/openh264-install.nsi.in" "${CMAKE_CURRENT_BINARY_DIR}/openh264-install.nsi" @ONLY)
 		set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "!include \\\"${ESCAPED_DOS_STYLE_BINARY_DIR}\\\\openh264-install.nsi\\\"")
 
 		# Add NSI instructions to delete the openh264 codecs while uninstalling Linphone
-		set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "!include \\\"${ESCAPED_DOS_STYLE_SOURCE_DIR}\\\\openh264-uninstall.nsi\\\"")
+		set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "${CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS}\n!include \\\"${ESCAPED_DOS_STYLE_SOURCE_DIR}\\\\openh264-uninstall.nsi\\\"")
 	endif()
 
 	# Sign the installer
