@@ -290,6 +290,8 @@ if(WIN32)
 endif()
 
 if(WIN32)
+	# Use template from the current source directory to force uninstallation and ensure that linphone is not running before installation
+	set(CPACK_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 	set(CPACK_GENERATOR "NSIS")
 	set(CPACK_PACKAGE_ICON "${CMAKE_CURRENT_SOURCE_DIR}\\\\linphone-banner.bmp")
 	set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${LINPHONE_GIT_REVISION}-win32")
@@ -298,8 +300,6 @@ if(WIN32)
 	set(CPACK_NSIS_DISPLAY_NAME "Linphone")
 	set(CPACK_NSIS_PACKAGE_NAME "Linphone ${LINPHONE_MAJOR_VERSION}.${LINPHONE_MINOR_VERSION}.${LINPHONE_MICRO_VERSION}")
 	set(CPACK_NSIS_URL_INFO_ABOUT "http://www.linphone.org/")
-	set(CPACK_NSIS_MUI_FINISHPAGE_RUN "linphone")
-	set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL "ON")
 
 	file(TO_NATIVE_PATH "${CMAKE_CURRENT_SOURCE_DIR}" DOS_STYLE_SOURCE_DIR)
 	string(REPLACE "\\" "\\\\" ESCAPED_DOS_STYLE_SOURCE_DIR "${DOS_STYLE_SOURCE_DIR}")
