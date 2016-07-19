@@ -21,10 +21,10 @@
 ############################################################################
 
 set(BCTOOLBOX_C_SOURCE_FILES
-	bc_vfs.c
 	containers/list.c
 	logging/logging.c
 	utils/port.c
+	vfs.c
 )
 set(BCTOOLBOX_CXX_SOURCE_FILES containers/map.cc)
 

@@ -20,12 +20,19 @@
 #
 ############################################################################
 
-file(GLOB HEADER_FILES "bctoolbox/*.h")
-if (NOT ENABLE_TESTS_COMPONENT)
-	list(REMOVE_ITEM HEADER_FILES bctoolbox/tester.h)
+set(BCTOOLBOX_HEADER_FILES
+	bctoolbox/crypto.h
+	bctoolbox/list.h
+	bctoolbox/logging.h
+	bctoolbox/map.h
+	bctoolbox/port.h
+	bctoolbox/vfs.h
+)
+if(ENABLE_TESTS_COMPONENT)
+	list(APPEND BCTOOLBOX_HEADER_FILES bctoolbox/tester.h)
 endif()
 
-install(FILES ${HEADER_FILES}
+install(FILES ${BCTOOLBOX_HEADER_FILES}
 	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/bctoolbox
 	PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
 )
