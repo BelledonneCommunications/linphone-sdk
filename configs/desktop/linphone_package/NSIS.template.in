@@ -903,7 +903,7 @@ SectionEnd
 ; "Program Files" for AllUsers, "My Documents" for JustMe...
 
 Function .onInit
-  FindWindow $0 "" "Linphone"
+  FindWindow $0 "gdkWindowToplevel" "Linphone"
   StrCmp $0 0 notRunning
   MessageBox MB_OK|MB_ICONEXCLAMATION "Linphone is running. Please close it first and restart the installation." /SD IDOK
   Abort
