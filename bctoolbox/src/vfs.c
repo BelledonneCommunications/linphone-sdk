@@ -44,7 +44,7 @@ static bctbx_vfs_t bcVfs = {
 	bcOpen,						/*xOpen */
 };
 
-/* Pointer to deault VFS initialized to standard VFS implemeented here.*/
+/* Pointer to default VFS initialized to standard VFS implemented here.*/
 static bctbx_vfs_t *pDefaultVfs = &bcVfs;
 
 
@@ -296,6 +296,7 @@ bctbx_vfs_file_t* bctbx_file_open(bctbx_vfs_t *pVfs, const char *fName, const ch
 		if (ret == BCTBX_VFS_OK) return p_ret;
 	}
 
+	if (p_ret) bctbx_free(p_ret);
 	return NULL;
 }
 
@@ -309,6 +310,7 @@ bctbx_vfs_file_t* bctbx_file_open2(bctbx_vfs_t *pVfs, const char *fName, const i
 		if (ret == BCTBX_VFS_OK) return p_ret;
 	}
 
+	if (p_ret) bctbx_free(p_ret);
 	return NULL;
 }
 
@@ -330,15 +332,15 @@ ssize_t bctbx_file_read(bctbx_vfs_file_t *pFile, void *buf, size_t count, off_t 
 
 int bctbx_file_close(bctbx_vfs_file_t *pFile) {
 	int ret = BCTBX_VFS_ERROR;
- 	if (pFile) {
- 		ret = pFile->pMethods->pFuncClose(pFile);
- 		if (ret != 0) {
+	if (pFile) {
+		ret = pFile->pMethods->pFuncClose(pFile);
+		if (ret != 0) {
 			bctbx_error("bctbx_file_close: Error %s freeing file handle anyway", strerror(-(ret)));
 		}
- 	}
+	}
 	bctbx_free(pFile);
- 	return ret;
- }
+	return ret;
+}
 
 
 int64_t bctbx_file_size(bctbx_vfs_file_t *pFile) {
@@ -347,8 +349,8 @@ int64_t bctbx_file_size(bctbx_vfs_file_t *pFile) {
 		ret = pFile->pMethods->pFuncFileSize(pFile);
 		if (ret < 0) bctbx_error("bctbx_file_size: Error file size %s", strerror((int)-(ret)));
 	} 
- 	return ret;
- }
+	return ret;
+}
 
 
 ssize_t bctbx_file_fprintf(bctbx_vfs_file_t *pFile, off_t offset, const char *fmt, ...) {
@@ -402,3 +404,4 @@ bctbx_vfs_t* bctbx_vfs_get_default(void) {
 bctbx_vfs_t* bctbx_vfs_get_standard(void) {
 	return &bcVfs;
 }
+
