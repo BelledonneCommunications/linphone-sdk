@@ -1,5 +1,5 @@
 /*
-bc_vfs.c
+vfs.c
 Copyright (C) 2016 Belledonne Communications SARL
 
 This program is free software; you can redistribute it and/or
@@ -17,7 +17,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#include "bctoolbox/bc_vfs.h"
+#include "bctoolbox/vfs.h"
 #include "bctoolbox/port.h"
 #include "bctoolbox/logging.h"
 #include <sys/types.h>

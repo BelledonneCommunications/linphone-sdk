@@ -1,5 +1,5 @@
 /*
-bc_vfs.h
+vfs.h
 Copyright (C) 2016 Belledonne Communications SARL
 
 This program is free software; you can redistribute it and/or
@@ -17,8 +17,9 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#ifndef bc_vfs_h
-#define bc_vfs_h
+#ifndef BCTBX_VFS_H
+#define BCTBX_VFS_H
+
 #include <fcntl.h>
 
 #include <bctoolbox/port.h>
@@ -203,7 +204,7 @@ BCTBX_PUBLIC off_t bctbx_file_seek(bctbx_vfs_file_t *pFile, off_t offset, int wh
 
 /**
  * Set default VFS pointer pDefault to my_vfs.
- * By default, the global pointer is seet to use VFS implemnted in bc_vfs.c 
+ * By default, the global pointer is set to use VFS implemnted in vfs.c 
  * @param my_vfs Pointer to a bctbx_vfs_t structure. 
  */
 BCTBX_PUBLIC void bctbx_vfs_set_default(bctbx_vfs_t *my_vfs);
@@ -228,6 +229,5 @@ BCTBX_PUBLIC bctbx_vfs_t* bctbx_vfs_get_standard(void);
 #endif
 
 
-#endif
-
+#endif /* BCTBX_VFS_H */
 
