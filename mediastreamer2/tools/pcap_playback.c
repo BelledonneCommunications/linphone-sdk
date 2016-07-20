@@ -62,12 +62,13 @@ typedef struct _MediastreamDatas {
 	MSFilter *read;
 	MSFilter *write;
 	MSFilter *decoder;
+	MSFilter *resampler;
 	MSTicker *ticker;
 } MediastreamDatas;
 
 // MAIN METHODS
 /* init default arguments */
-static MediastreamDatas *init_default_args();
+static MediastreamDatas *init_default_args(void);
 /* parse args */
 static bool_t parse_args(int argc, char **argv, MediastreamDatas *out);
 /* setup streams */
@@ -111,7 +112,7 @@ int main(int argc, char *argv[])
 }
 
 
-static MediastreamDatas *init_default_args()
+static MediastreamDatas *init_default_args(void)
 {
 	MediastreamDatas *args = (MediastreamDatas *) ms_malloc0(sizeof(MediastreamDatas));
 
@@ -135,7 +136,6 @@ static bool_t parse_args(int argc, char **argv, MediastreamDatas *out)
 	int i;
 
 	if (argc < 2) {
-		printf("%s", usage);
 		return FALSE;
 	}
 
@@ -160,7 +160,6 @@ static bool_t parse_args(int argc, char **argv, MediastreamDatas *out)
 		} else if (strcmp(argv[i], "--verbose") == 0) {
 			out->is_verbose = TRUE;
 		} else if (strcmp(argv[i], "--help") == 0) {
-			printf("%s", usage);
 			return FALSE;
 		}else if (strcmp(argv[i],"--avpf")==0){
 			out->avpf=TRUE;
@@ -199,9 +198,42 @@ static void video_decoder_callback(void *user_data, MSFilter *f, unsigned int ev
 		break;
 	}
 }
+
 static 	MSFactory *factory;
-static void setup_media_streams(MediastreamDatas *args)
-{
+
+static void configure_resampler(MSFilter *resampler,MSFilter *from, MSFilter *to) {
+	int from_rate = 0, to_rate = 0;
+	int from_channels = 0, to_channels = 0;
+
+	ms_filter_call_method(from, MS_FILTER_GET_SAMPLE_RATE, &from_rate);
+	ms_filter_call_method(to, MS_FILTER_GET_SAMPLE_RATE, &to_rate);
+	ms_filter_call_method(from, MS_FILTER_GET_NCHANNELS, &from_channels);
+	ms_filter_call_method(to, MS_FILTER_GET_NCHANNELS, &to_channels);
+	if (from_channels == 0) {
+		from_channels = 1;
+		ms_error("Filter %s does not implement the MS_FILTER_GET_NCHANNELS method", from->desc->name);
+	}
+	if (to_channels == 0) {
+		to_channels = 1;
+		ms_error("Filter %s does not implement the MS_FILTER_GET_NCHANNELS method", to->desc->name);
+	}
+	if (from_rate == 0) {
+		ms_error("Filter %s does not implement the MS_FILTER_GET_SAMPLE_RATE method", from->desc->name);
+		from_rate = 8000;
+	}
+	if (to_rate == 0) {
+		ms_error("Filter %s does not implement the MS_FILTER_GET_SAMPLE_RATE method", to->desc->name);
+		to_rate = 8000;
+	}
+	ms_filter_call_method(resampler, MS_FILTER_SET_SAMPLE_RATE, &from_rate);
+	ms_filter_call_method(resampler, MS_FILTER_SET_OUTPUT_SAMPLE_RATE, &to_rate);
+	ms_filter_call_method(resampler, MS_FILTER_SET_NCHANNELS, &from_channels);
+	ms_filter_call_method(resampler, MS_FILTER_SET_OUTPUT_NCHANNELS, &to_channels);
+	ms_message("configuring %s:%p-->%s:%p from rate [%i] to rate [%i] and from channel [%i] to channel [%i]",
+		from->desc->name, from, to->desc->name, to, from_rate, to_rate, from_channels, to_channels);
+}
+
+static void setup_media_streams(MediastreamDatas *args) {
 	MSConnectionHelper h;
 	MSTickerParams params = {0};
 
@@ -314,6 +346,7 @@ static void setup_media_streams(MediastreamDatas *args)
 		}
 		args->read = ms_factory_create_filter(factory, MS_FILE_PLAYER_ID);
 		args->decoder = ms_factory_create_decoder(factory, args->pt->mime_type);
+		args->resampler = ms_factory_create_filter(factory, MS_RESAMPLE_ID);
 		ms_filter_call_method_noarg(args->read, MS_FILE_PLAYER_CLOSE);
 		ms_filter_call_method(args->read, MS_FILE_PLAYER_OPEN, args->infile);
 		ms_filter_call_method_noarg(args->read, MS_FILE_PLAYER_START);
@@ -322,6 +355,9 @@ static void setup_media_streams(MediastreamDatas *args)
 		ms_filter_call_method(args->decoder, MS_FILTER_SET_NCHANNELS, &args->pt->channels);
 		ms_filter_call_method(args->write, MS_FILTER_SET_SAMPLE_RATE, &args->pt->clock_rate);
 		ms_filter_call_method(args->write, MS_FILTER_SET_NCHANNELS, &args->pt->channels);
+
+		/* Configure the resampler */
+		configure_resampler(args->resampler, args->decoder, args->write);
 
 		if (ms_filter_get_id(args->write) == MS_FILE_REC_ID) {
 			ms_filter_call_method_noarg(args->write, MS_FILE_REC_START);
@@ -333,6 +369,7 @@ static void setup_media_streams(MediastreamDatas *args)
 		ms_connection_helper_start(&h);
 		ms_connection_helper_link(&h, args->read, -1, 0);
 		ms_connection_helper_link(&h, args->decoder, 0, 0);
+		ms_connection_helper_link(&h, args->resampler, 0, 0);
 		ms_connection_helper_link(&h, args->write, 0, -1);
 		ms_ticker_attach(args->ticker, args->read);
 	}
