@@ -193,7 +193,10 @@ void generic_plc_update_plc_buffer(plc_context_t *context, unsigned char *data, 
 
 void generic_plc_update_continuity_buffer(plc_context_t *context, unsigned char *data, size_t data_len) {
 	size_t transitionBufferSize = context->sample_rate*sizeof(int16_t)*TRANSITION_DELAY/1000;
-	unsigned char *buffer=ms_malloc(transitionBufferSize);
+	unsigned char *buffer;
+
+	if (transitionBufferSize > data_len) transitionBufferSize = data_len;
+	buffer=ms_malloc(transitionBufferSize);
 
 	/* get the last TRANSITION_DELAY ms in a temp buffer */
 	memcpy(buffer, data+data_len-transitionBufferSize, transitionBufferSize);
