@@ -47,41 +47,42 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MS_TURN_METHOD_CHANNEL_BIND      0x009
 
 
-#define MS_STUN_ATTR_MAPPED_ADDRESS      0x0001
-#define MS_STUN_ATTR_RESPONSE_ADDRESS    0x0002 /* Deprecated, now reserved */
-#define MS_STUN_ATTR_CHANGE_REQUEST      0x0003 /* Deprecated, now reserved */
-#define MS_STUN_ATTR_SOURCE_ADDRESS      0x0004 /* Deprecated, now reserved */
-#define MS_STUN_ATTR_CHANGED_ADDRESS     0x0005 /* Deprecated, now reserved */
-#define MS_STUN_ATTR_USERNAME            0x0006
-#define MS_STUN_ATTR_PASSWORD            0x0007 /* Deprecated, now reserved */
-#define MS_STUN_ATTR_MESSAGE_INTEGRITY   0x0008
-#define MS_STUN_ATTR_ERROR_CODE          0x0009
-#define MS_STUN_ATTR_UNKNOWN_ATTRIBUTES  0x000A
-#define MS_STUN_ATTR_REFLECTED_FROM      0x000B
-#define MS_STUN_ATTR_REALM               0x0014
-#define MS_STUN_ATTR_NONCE               0x0015
-#define MS_STUN_ATTR_XOR_MAPPED_ADDRESS  0x0020
+#define MS_STUN_ATTR_MAPPED_ADDRESS           0x0001
+#define MS_STUN_ATTR_RESPONSE_ADDRESS         0x0002 /* Deprecated, now reserved */
+#define MS_STUN_ATTR_CHANGE_REQUEST           0x0003 /* Deprecated, now reserved */
+#define MS_STUN_ATTR_SOURCE_ADDRESS           0x0004 /* Deprecated, now reserved */
+#define MS_STUN_ATTR_CHANGED_ADDRESS          0x0005 /* Deprecated, now reserved */
+#define MS_STUN_ATTR_USERNAME                 0x0006
+#define MS_STUN_ATTR_PASSWORD                 0x0007 /* Deprecated, now reserved */
+#define MS_STUN_ATTR_MESSAGE_INTEGRITY        0x0008
+#define MS_STUN_ATTR_ERROR_CODE               0x0009
+#define MS_STUN_ATTR_UNKNOWN_ATTRIBUTES       0x000A
+#define MS_STUN_ATTR_REFLECTED_FROM           0x000B
+#define MS_STUN_ATTR_REALM                    0x0014
+#define MS_STUN_ATTR_NONCE                    0x0015
+#define MS_STUN_ATTR_XOR_MAPPED_ADDRESS       0x0020
 
-#define MS_STUN_ATTR_SOFTWARE            0x8022
-#define MS_STUN_ATTR_ALTERNATE_SERVER    0x8023
-#define MS_STUN_ATTR_FINGERPRINT         0x8028
+#define MS_STUN_ATTR_SOFTWARE                 0x8022
+#define MS_STUN_ATTR_ALTERNATE_SERVER         0x8023
+#define MS_STUN_ATTR_FINGERPRINT              0x8028
 
-#define MS_TURN_ATTR_CHANNEL_NUMBER      0x000C
-#define MS_TURN_ATTR_LIFETIME            0x000D
-#define MS_TURN_ATTR_BANDWIDTH           0x0010 /* Deprecated, now reserved */
-#define MS_TURN_ATTR_XOR_PEER_ADDRESS    0x0012
-#define MS_TURN_ATTR_DATA                0x0013
-#define MS_TURN_ATTR_XOR_RELAYED_ADDRESS 0x0016
-#define MS_TURN_ATTR_EVEN_PORT           0x0018
-#define MS_TURN_ATTR_REQUESTED_TRANSPORT 0x0019
-#define MS_TURN_ATTR_DONT_FRAGMENT       0x001A
-#define MS_TURN_ATTR_TIMER_VAL           0x0021 /* Deprecated, now reserved */
-#define MS_TURN_ATTR_RESERVATION_TOKEN   0x0022
+#define MS_TURN_ATTR_CHANNEL_NUMBER           0x000C
+#define MS_TURN_ATTR_LIFETIME                 0x000D
+#define MS_TURN_ATTR_BANDWIDTH                0x0010 /* Deprecated, now reserved */
+#define MS_TURN_ATTR_XOR_PEER_ADDRESS         0x0012
+#define MS_TURN_ATTR_DATA                     0x0013
+#define MS_TURN_ATTR_XOR_RELAYED_ADDRESS      0x0016
+#define MS_TURN_ATTR_REQUESTED_ADDRESS_FAMILY 0x0017
+#define MS_TURN_ATTR_EVEN_PORT                0x0018
+#define MS_TURN_ATTR_REQUESTED_TRANSPORT      0x0019
+#define MS_TURN_ATTR_DONT_FRAGMENT            0x001A
+#define MS_TURN_ATTR_TIMER_VAL                0x0021 /* Deprecated, now reserved */
+#define MS_TURN_ATTR_RESERVATION_TOKEN        0x0022
 
-#define MS_ICE_ATTR_PRIORITY             0x0024
-#define MS_ICE_ATTR_USE_CANDIDATE        0x0025
-#define MS_ICE_ATTR_ICE_CONTROLLED       0x8029
-#define MS_ICE_ATTR_ICE_CONTROLLING      0x802A
+#define MS_ICE_ATTR_PRIORITY                  0x0024
+#define MS_ICE_ATTR_USE_CANDIDATE             0x0025
+#define MS_ICE_ATTR_ICE_CONTROLLED            0x8029
+#define MS_ICE_ATTR_ICE_CONTROLLING           0x802A
 
 
 #define MS_STUN_ERROR_CODE_TRY_ALTERNATE                  300
@@ -151,6 +152,7 @@ typedef struct {
 	uint16_t channel_number;
 	uint16_t data_length;
 	uint8_t requested_transport;
+	uint8_t requested_address_family;
 	bool_t include_username_attribute;
 	bool_t has_error_code;
 	bool_t has_message_integrity;
@@ -167,6 +169,7 @@ typedef struct {
 	bool_t has_lifetime;
 	bool_t has_channel_number;
 	bool_t has_requested_transport;
+	bool_t has_requested_address_family;
 } MSStunMessage;
 
 typedef enum {
@@ -306,6 +309,9 @@ MS2_PUBLIC MSStunMessage * ms_turn_send_indication_create(MSStunAddress peer_add
 MS2_PUBLIC MSStunMessage * ms_turn_channel_bind_request_create(MSStunAddress peer_address, uint16_t channel_number);
 MS2_PUBLIC bool_t ms_stun_message_has_requested_transport(const MSStunMessage *msg);
 MS2_PUBLIC uint8_t ms_stun_message_get_requested_transport(const MSStunMessage *msg);
+MS2_PUBLIC bool_t ms_stun_message_has_requested_address_family(const MSStunMessage *msg);
+MS2_PUBLIC uint8_t ms_stun_message_get_requested_address_family(const MSStunMessage *msg);
+MS2_PUBLIC void ms_stun_message_set_requested_address_family(MSStunMessage *msg, uint8_t family);
 MS2_PUBLIC bool_t ms_stun_message_has_lifetime(const MSStunMessage *msg);
 MS2_PUBLIC uint32_t ms_stun_message_get_lifetime(const MSStunMessage *msg);
 MS2_PUBLIC void ms_stun_message_set_lifetime(MSStunMessage *msg, uint32_t lifetime);

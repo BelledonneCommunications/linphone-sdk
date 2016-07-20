@@ -146,6 +146,7 @@ typedef struct _IceStunServerRequest {
 	MSStunAddress peer_address;
 	uint16_t channel_number;
 	uint16_t stun_method;
+	uint8_t requested_address_family;
 	bool_t gathering;
 	bool_t responded;
 	bool_t to_remove;

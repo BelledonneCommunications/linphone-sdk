@@ -282,6 +282,14 @@ static void encode_requested_transport(StunMessageEncoder *encoder, uint8_t requ
 	encode16(encoder, 0);
 }
 
+static void encode_requested_address_family(StunMessageEncoder *encoder, uint8_t family) {
+	encode16(encoder, MS_TURN_ATTR_REQUESTED_ADDRESS_FAMILY);
+	encode16(encoder, 4);
+	encode8(encoder, family);
+	encode8(encoder, 0);
+	encode16(encoder, 0);
+}
+
 static void encode_lifetime(StunMessageEncoder *encoder, uint32_t lifetime) {
 	encode16(encoder, MS_TURN_ATTR_LIFETIME);
 	encode16(encoder, 4);
@@ -389,7 +397,7 @@ static MSStunAddress decode_addr(StunMessageDecoder *decoder, uint16_t length) {
 	MSStunAddress stun_addr;
 
 	memset(&stun_addr, 0, sizeof(stun_addr));
-	if (length != 8) {
+	if ((length != 8) && (length != 20)) {
 		ms_warning("STUN address attribute with wrong length");
 		decoder->error = TRUE;
 		goto error;
@@ -595,6 +603,7 @@ MSStunAddress ms_ip_address_to_stun_address(int ai_family, int socktype, const c
 void ms_stun_address_to_ip_address(const MSStunAddress *stun_address, char *ip, size_t ip_size, int *port) {
 	struct sockaddr_storage addr;
 	socklen_t addrlen = sizeof(addr);
+	memset(&addr, 0, addrlen);
 	ms_stun_address_to_sockaddr(stun_address, (struct sockaddr *)&addr, &addrlen);
 	bctbx_sockaddr_to_ip_address((struct sockaddr *)&addr, addrlen, ip, ip_size, port);
 }
@@ -602,6 +611,7 @@ void ms_stun_address_to_ip_address(const MSStunAddress *stun_address, char *ip, 
 void ms_stun_address_to_printable_ip_address(const MSStunAddress *stun_address, char *printable_ip, size_t printable_ip_size) {
 	struct sockaddr_storage addr;
 	socklen_t addrlen = sizeof(addr);
+	memset(&addr, 0, addrlen);
 	ms_stun_address_to_sockaddr(stun_address, (struct sockaddr *)&addr, &addrlen);
 	bctbx_sockaddr_to_printable_ip_address((struct sockaddr *)&addr, addrlen, printable_ip, printable_ip_size);
 }
@@ -943,6 +953,7 @@ size_t ms_stun_message_encode(const MSStunMessage *msg, char **buf) {
 	stun_addr = ms_stun_message_get_xor_relayed_address(msg);
 	if (stun_addr != NULL) encode_xor_addr(&encoder, MS_TURN_ATTR_XOR_RELAYED_ADDRESS, stun_addr, &msg->tr_id);
 	if (ms_stun_message_has_requested_transport(msg)) encode_requested_transport(&encoder, ms_stun_message_get_requested_transport(msg));
+	if (ms_stun_message_has_requested_address_family(msg)) encode_requested_address_family(&encoder, ms_stun_message_get_requested_address_family(msg));
 	if (ms_stun_message_has_lifetime(msg)) encode_lifetime(&encoder, ms_stun_message_get_lifetime(msg));
 	if (ms_stun_message_has_channel_number(msg)) encode_channel_number(&encoder, ms_stun_message_get_channel_number(msg));
 	if ((ms_stun_message_get_data(msg) != NULL) && (ms_stun_message_get_data_length(msg) > 0))
@@ -1243,6 +1254,19 @@ uint8_t ms_stun_message_get_requested_transport(const MSStunMessage *msg) {
 	return msg->requested_transport;
 }
 
+bool_t ms_stun_message_has_requested_address_family(const MSStunMessage *msg) {
+	return msg->has_requested_address_family;
+}
+
+uint8_t ms_stun_message_get_requested_address_family(const MSStunMessage *msg) {
+	return msg->requested_address_family;
+}
+
+void ms_stun_message_set_requested_address_family(MSStunMessage *msg, uint8_t family) {
+	msg->requested_address_family = family;
+	msg->has_requested_address_family = TRUE;
+}
+
 bool_t ms_stun_message_has_lifetime(const MSStunMessage *msg) {
 	return msg->has_lifetime;
 }
@@ -1441,6 +1465,7 @@ static int ms_turn_rtp_endpoint_recvfrom(RtpTransport *rtptp, mblk_t *msg, int f
 									struct sockaddr_storage relay_ss;
 									struct sockaddr *relay_sa = (struct sockaddr *)&relay_ss;
 									socklen_t relay_sa_len = sizeof(relay_ss);
+									memset(relay_sa, 0, relay_sa_len);
 									/* Copy the data of the TURN data indication in the mblk_t so that it contains the unpacked data */
 									msgsize = ms_stun_message_get_data_length(stun_msg);
 									memcpy(msg->b_rptr, ms_stun_message_get_data(stun_msg), msgsize);
@@ -1477,6 +1502,7 @@ static bool_t ms_turn_rtp_endpoint_send_via_turn_server(MSTurnContext *context, 
 	struct sockaddr *relay_sa = (struct sockaddr *)&relay_ss;
 	socklen_t relay_sa_len = sizeof(relay_ss);
 
+	memset(relay_sa, 0, relay_sa_len);
 	ms_stun_address_to_sockaddr(&context->relay_addr, relay_sa, &relay_sa_len);
 	if (relay_sa->sa_family != from->sa_family) return FALSE;
 	if (relay_sa->sa_family == AF_INET) {

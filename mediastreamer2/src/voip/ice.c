@@ -113,6 +113,11 @@ typedef struct _LosingRemoteCandidate_InProgress_Failed {
 	bool_t failed_candidates;
 } LosingRemoteCandidate_InProgress_Failed;
 
+typedef struct _ComponentID_Family {
+	uint16_t componentID;
+	int family;
+} ComponentID_Family;
+
 
 static MSTimeSpec ice_current_time(void);
 static MSTimeSpec ice_add_ms(MSTimeSpec orig, uint32_t ms);
@@ -129,7 +134,7 @@ static int ice_compare_transport_addresses(const IceTransportAddress *ta1, const
 static int ice_compare_pair_priorities(const IceCandidatePair *p1, const IceCandidatePair *p2);
 static int ice_compare_pairs(const IceCandidatePair *p1, const IceCandidatePair *p2);
 static int ice_compare_candidates(const IceCandidate *c1, const IceCandidate *c2);
-static int ice_find_host_candidate(const IceCandidate *candidate, const uint16_t *componentID);
+static int ice_find_host_candidate(const IceCandidate *candidate, const ComponentID_Family *cf);
 static int ice_find_candidate_from_type_and_componentID(const IceCandidate *candidate, const Type_ComponentID *tc);
 static int ice_find_use_candidate_valid_pair_from_componentID(const IceValidCandidatePair* valid_pair, const uint16_t* componentID);
 static int ice_find_nominated_valid_pair_from_componentID(const IceValidCandidatePair* valid_pair, const uint16_t* componentID);
@@ -969,9 +974,7 @@ static bool_t ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *
 			request->gathering = TRUE;
 			request->next_transmission_time = ice_add_ms(curtime, 2 * si->index * ICE_DEFAULT_TA_DURATION + ICE_DEFAULT_TA_DURATION);
 			ice_check_list_add_stun_server_request(cl, request);
-			if (cl->session->turn_enabled) {
-				ms_turn_context_set_state(cl->rtcp_turn_context, MS_TURN_CONTEXT_STATE_CREATING_ALLOCATION);
-			}
+			if (cl->session->turn_enabled) ms_turn_context_set_state(cl->rtcp_turn_context, MS_TURN_CONTEXT_STATE_CREATING_ALLOCATION);
 			gathering_in_progress = TRUE;
 		}else {
 			ms_message("ice: no rtcp socket found for session [%p]",cl->rtp_session);
@@ -1258,6 +1261,8 @@ static int ice_send_message_to_stun_addr(RtpTransport * rtpt, char* buff, size_t
 	struct sockaddr_storage dest_addr;
 	socklen_t source_addrlen = sizeof(source_addr);
 	socklen_t dest_addrlen = sizeof(dest_addr);
+	memset(&source_addr, 0, source_addrlen);
+	memset(&dest_addr, 0, dest_addrlen);
 	ms_stun_address_to_sockaddr(source, (struct sockaddr *)&source_addr, &source_addrlen);
 	ms_stun_address_to_sockaddr(dest, (struct sockaddr *)&dest_addr, &dest_addrlen);
 	return ice_send_message_to_socket(rtpt, buff, len, (struct sockaddr*)&source_addr, source_addrlen, (struct sockaddr *)&dest_addr, dest_addrlen);
@@ -1271,15 +1276,19 @@ static IceStunServerRequestTransaction * ice_send_stun_request(RtpTransport *rtp
 	char source_addr_str[64];
 	char dest_addr_str[64];
 	char tr_id_str[25];
+	struct sockaddr_storage server_addr;
+	socklen_t server_addrlen = sizeof(server_addr);
 
 	len = ms_stun_message_encode(msg, &buf);
 	if (len > 0) {
 		transaction = ice_stun_server_request_transaction_new(ms_stun_message_get_tr_id(msg));
 		transactionID2string(&transaction->transactionID, tr_id_str);
+		memset(&server_addr, 0, server_addrlen);
+		bctbx_sockaddr_ipv6_to_ipv4(server, (struct sockaddr *)&server_addr, &server_addrlen);
 		bctbx_sockaddr_to_printable_ip_address((struct sockaddr *)source, sourcelen, source_addr_str, sizeof(source_addr_str));
-		bctbx_sockaddr_to_printable_ip_address((struct sockaddr *)server, addrlen, dest_addr_str, sizeof(dest_addr_str));
+		bctbx_sockaddr_to_printable_ip_address((struct sockaddr *)&server_addr, server_addrlen, dest_addr_str, sizeof(dest_addr_str));
 		ms_message("ice: Send %s: %s --> %s [%s]", request_type, source_addr_str, dest_addr_str, tr_id_str);
-		ice_send_message_to_socket(rtptp, buf, len, source, sourcelen, server, addrlen);
+		ice_send_message_to_socket(rtptp, buf, len, source, sourcelen, (struct sockaddr *)&server_addr, server_addrlen);
 	} else {
 		ms_error("ice: encoding %s [%s] failed", request_type, tr_id_str);
 	}
@@ -1322,6 +1331,7 @@ static IceStunServerRequestTransaction * ice_send_turn_server_allocate_request(I
 	MSStunMessage *msg = ms_turn_allocate_request_create();
 	stun_message_fill_authentication_from_turn_context(msg, request->turn_context);
 	request->stun_method = ms_stun_message_get_method(msg);
+	if (request->requested_address_family != 0) ms_stun_message_set_requested_address_family(msg, request->requested_address_family);
 	transaction = ice_send_stun_request(request->rtptp, request->source_ai->ai_addr, (socklen_t)request->source_ai->ai_addrlen, server, addrlen, msg, "TURN allocate request");
 	ms_stun_message_destroy(msg);
 	return transaction;
@@ -1581,8 +1591,8 @@ static void ice_send_binding_response(IceCheckList *cl, const RtpSession *rtp_se
 	ice_get_transport_from_rtp_session(rtp_session, evt_data, &rtptp);
 	if (!rtptp) return;
 
-	memset(&dest_addr, 0, sizeof(dest_addr));
-	memset(&source_addr, 0, sizeof(source_addr));
+	memset(&dest_addr, 0, dest_addrlen);
+	memset(&source_addr, 0, source_addrlen);
 
 	/* Create the binding response, copying the transaction ID from the request. */
 	tr_id = ms_stun_message_get_tr_id(msg);
@@ -1615,6 +1625,7 @@ static void ice_send_binding_response(IceCheckList *cl, const RtpSession *rtp_se
 		ms_stun_address_to_sockaddr(dest, (struct sockaddr*)&dest_addr, &dest_addrlen);
 		bctbx_sockaddr_to_printable_ip_address((struct sockaddr *)&dest_addr, dest_addrlen, dest_addr_str, sizeof(dest_addr_str));
 		ortp_recvaddr_to_sockaddr(&evt_data->packet->recv_addr, (struct sockaddr *)&source_addr, &source_addrlen);
+		bctbx_sockaddr_ipv6_to_ipv4((struct sockaddr *)&source_addr, (struct sockaddr *)&source_addr, &source_addrlen);
 		bctbx_sockaddr_to_printable_ip_address((struct sockaddr *)&source_addr, source_addrlen, source_addr_str, sizeof(source_addr_str));
 		ms_message("ice: Send binding response: %s --> %s [%s]", source_addr_str, dest_addr_str, tr_id_str);
 		ice_send_message_to_socket(rtptp, buf, len, (struct sockaddr *)&source_addr, source_addrlen, (struct sockaddr *)&dest_addr, dest_addrlen);
@@ -1640,8 +1651,8 @@ static void ice_send_error_response(const RtpSession *rtp_session, const OrtpEve
 
 	if (socket < 0) return;
 
-	memset(&dest_addr, 0, sizeof(dest_addr));
-	memset(&source_addr, 0, sizeof(source_addr));
+	memset(&dest_addr, 0, dest_addrlen);
+	memset(&source_addr, 0, source_addrlen);
 	ice_get_transport_from_rtp_session(rtp_session, evt_data, &rtptp);
 	if (!rtptp) return;
 
@@ -1657,6 +1668,7 @@ static void ice_send_error_response(const RtpSession *rtp_session, const OrtpEve
 		ms_stun_address_to_sockaddr(dest, (struct sockaddr *)&dest_addr, &dest_addrlen);
 		bctbx_sockaddr_to_printable_ip_address((struct sockaddr *)&dest_addr, dest_addrlen, dest_addr_str, sizeof(dest_addr_str));
 		ortp_recvaddr_to_sockaddr(&evt_data->packet->recv_addr, (struct sockaddr *)&source_addr, &source_addrlen);
+		bctbx_sockaddr_ipv6_to_ipv4((struct sockaddr *)&source_addr, (struct sockaddr *)&source_addr, &source_addrlen);
 		bctbx_sockaddr_to_printable_ip_address((struct sockaddr *)&source_addr, source_addrlen, source_addr_str, sizeof(source_addr_str));
 		ms_message("ice: Send error response: %s --> %s [%s]", source_addr_str, dest_addr_str, tr_id_str);
 		ice_send_message_to_socket(rtptp, buf, len, (struct sockaddr *)&source_addr, source_addrlen, (struct sockaddr *)&dest_addr, dest_addrlen);
@@ -1832,6 +1844,7 @@ static void ice_fill_transport_address_from_sockaddr(IceTransportAddress *taddr,
 static void ice_fill_transport_address_from_stun_address(IceTransportAddress *taddr, const MSStunAddress *stun_addr) {
 	struct sockaddr_storage addr;
 	socklen_t addrlen = sizeof(addr);
+	memset(&addr, 0, addrlen);
 	ms_stun_address_to_sockaddr(stun_addr, (struct sockaddr *)&addr, &addrlen);
 	ice_fill_transport_address_from_sockaddr(taddr, (struct sockaddr *)&addr, addrlen);
 }
@@ -1902,10 +1915,12 @@ static IceCandidatePair * ice_trigger_connectivity_check_on_binding_request(IceC
 	bctbx_list_t *elem;
 	IceCandidatePair *pair = NULL;
 	struct sockaddr_storage recv_addr;
-	socklen_t recv_addrlen = 0;
+	socklen_t recv_addrlen = sizeof(recv_addr);
 	char addr_str[64];
 
+	memset(&recv_addr, 0, recv_addrlen);
 	ortp_recvaddr_to_sockaddr(&evt_data->packet->recv_addr, (struct sockaddr *)&recv_addr, &recv_addrlen);
+	bctbx_sockaddr_ipv6_to_ipv4((struct sockaddr *)&recv_addr, (struct sockaddr *)&recv_addr, &recv_addrlen);
 	ice_fill_transport_address_from_sockaddr(&local_taddr, (struct sockaddr *)&recv_addr, recv_addrlen);
 	elem = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_find_candidate_from_transport_address, &local_taddr);
 	if (elem == NULL) {
@@ -1984,8 +1999,7 @@ static void ice_update_nominated_flag_on_binding_request(const IceCheckList *cl,
 	}
 }
 
-static void ice_handle_received_binding_request(IceCheckList *cl, RtpSession *rtp_session, const OrtpEventData *evt_data, const MSStunMessage *msg, const MSStunAddress *remote_addr)
-{
+static void ice_handle_received_binding_request(IceCheckList *cl, RtpSession *rtp_session, const OrtpEventData *evt_data, const MSStunMessage *msg, const MSStunAddress *remote_addr) {
 	IceTransportAddress taddr;
 	IceCandidate *prflx_candidate;
 	IceCandidatePair *pair;
@@ -2023,16 +2037,18 @@ static int ice_find_pair_from_transactionID(const IceTransaction *transaction, c
 	return memcmp(&transaction->transactionID, transactionID, sizeof(transaction->transactionID));
 }
 
-static int ice_check_received_binding_response_addresses(const RtpSession *rtp_session, const OrtpEventData *evt_data, IceCandidatePair *pair, const MSStunAddress *remote_addr) {
+static int ice_check_received_binding_response_addresses(const RtpSession *rtp_session, const OrtpEventData *evt_data, IceCandidatePair *pair, MSStunAddress *remote_addr) {
 	struct sockaddr_storage recv_addr;
-	socklen_t recv_addrlen = 0;
+	socklen_t recv_addrlen = sizeof(recv_addr);
 	MSStunAddress recv_stun_addr;
 	MSStunAddress pair_remote_stun_addr;
 	MSStunAddress pair_local_stun_addr;
 
 	pair_remote_stun_addr = ms_ip_address_to_stun_address(pair->remote->taddr.family, SOCK_DGRAM, pair->remote->taddr.ip, pair->remote->taddr.port);
 	pair_local_stun_addr = ms_ip_address_to_stun_address(pair->local->taddr.family, SOCK_DGRAM, pair->local->taddr.ip, pair->local->taddr.port);
+	memset(&recv_addr, 0, recv_addrlen);
 	ortp_recvaddr_to_sockaddr(&evt_data->packet->recv_addr, (struct sockaddr *)&recv_addr, &recv_addrlen);
+	bctbx_sockaddr_ipv6_to_ipv4((struct sockaddr *)&recv_addr, (struct sockaddr *)&recv_addr, &recv_addrlen);
 	ms_sockaddr_to_stun_address((struct sockaddr *)&recv_addr, &recv_stun_addr);
 	if (ms_compare_stun_addresses(remote_addr, &pair_remote_stun_addr)
 		|| ms_compare_stun_addresses(&recv_stun_addr, &pair_local_stun_addr)) {
@@ -2283,7 +2299,8 @@ static bool_t ice_handle_received_turn_allocate_success_response(IceCheckList *c
 	IceCandidate *candidate;
 	OrtpEvent *ev;
 	bool_t stun_server_response = FALSE;
-	const struct sockaddr *servaddr = (const struct sockaddr *)&cl->session->ss;
+	struct sockaddr *servaddr = (struct sockaddr *)&cl->session->ss;
+	socklen_t servaddrlen = 0;
 	UInt96 tr_id = ms_stun_message_get_tr_id(msg);
 	MSStunAddress serv_stun_addr;
 	MSStunAddress srflx_addr;
@@ -2294,6 +2311,7 @@ static bool_t ice_handle_received_turn_allocate_success_response(IceCheckList *c
 	int relay_port = 0;
 	int componentID;
 
+	bctbx_sockaddr_ipv6_to_ipv4(servaddr, servaddr, &servaddrlen);
 	ms_sockaddr_to_stun_address(servaddr, &serv_stun_addr);
 	if (!ms_compare_stun_addresses(remote_addr, &serv_stun_addr)) {
 		IceStunServerRequest * request = ice_check_list_get_stun_server_request(cl, &tr_id);
@@ -2302,7 +2320,9 @@ static bool_t ice_handle_received_turn_allocate_success_response(IceCheckList *c
 			memset(&srflx_addr, 0, sizeof(srflx_addr));
 			memset(&relay_addr, 0, sizeof(relay_addr));
 			if ((componentID > 0) && (ice_parse_stun_server_response(msg, &srflx_addr, &relay_addr) >= 0)) {
-				base_elem = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_find_host_candidate, &componentID);
+				ComponentID_Family cf = { componentID, AF_INET };
+				if (srflx_addr.family == MS_STUN_ADDR_FAMILY_IPV6) cf.family = AF_INET6;
+				base_elem = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_find_host_candidate, &cf);
 				if (base_elem != NULL) {
 					candidate = (IceCandidate *)base_elem->data;
 					ms_stun_address_to_ip_address(&srflx_addr, srflx_addr_str, sizeof(srflx_addr_str), &srflx_port);
@@ -2394,7 +2414,7 @@ static void ice_handle_received_turn_channel_bind_success_response(IceCheckList 
 	}
 }
 
-static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *rtp_session, const OrtpEventData *evt_data, const MSStunMessage *msg, const MSStunAddress *remote_addr)
+static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *rtp_session, const OrtpEventData *evt_data, const MSStunMessage *msg, MSStunAddress *remote_addr)
 {
 	IceCandidatePair *succeeded_pair;
 	IceCandidatePair *valid_pair;
@@ -2559,8 +2579,8 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, const Ort
 {
 	MSStunMessage *msg;
 	MSStunAddress source_stun_addr;
-	struct sockaddr_storage recv_addr = { 0 };
-	socklen_t recv_addrlen = 0;
+	struct sockaddr_storage recv_addr;
+	socklen_t recv_addrlen = sizeof(recv_addr);
 	char source_addr_str[64];
 	char recv_addr_str[64];
 	mblk_t *mp = evt_data->packet;
@@ -2577,8 +2597,11 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, const Ort
 
 	tr_id = ms_stun_message_get_tr_id(msg);
 	transactionID2string(&tr_id, tr_id_str);
+	memset(&recv_addr, 0, recv_addrlen);
 	ortp_recvaddr_to_sockaddr(&evt_data->packet->recv_addr, (struct sockaddr *)&recv_addr, &recv_addrlen);
+	bctbx_sockaddr_ipv6_to_ipv4((struct sockaddr *)&recv_addr, (struct sockaddr *)&recv_addr, &recv_addrlen);
 	bctbx_sockaddr_to_printable_ip_address((struct sockaddr *)&recv_addr, recv_addrlen, recv_addr_str, sizeof(recv_addr_str));
+	bctbx_sockaddr_ipv6_to_ipv4((struct sockaddr *)&evt_data->source_addr, (struct sockaddr *)&evt_data->source_addr, &recv_addrlen);
 	ms_sockaddr_to_stun_address((struct sockaddr *)&evt_data->source_addr, &source_stun_addr);
 	ms_stun_address_to_printable_ip_address(&source_stun_addr, source_addr_str, sizeof(source_addr_str));
 
@@ -2752,7 +2775,8 @@ IceCandidate * ice_add_remote_candidate(IceCheckList *cl, const char *type, int 
 	ice_add_componentID(&cl->remote_componentIDs, &candidate->componentID);
 	cl->remote_candidates = bctbx_list_append(cl->remote_candidates, candidate);
 	if (cl->session->turn_enabled) {
-		bctbx_list_t *elem = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_find_host_candidate, &componentID);
+		ComponentID_Family cf = { componentID, family };
+		bctbx_list_t *elem = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_find_host_candidate, &cf);
 		if (elem != NULL) {
 			IceStunServerRequest *request;
 			IceStunServerRequestTransaction *transaction;
@@ -3102,7 +3126,7 @@ static void ice_form_candidate_pairs(IceCheckList *cl)
 		while (remote_list != NULL) {
 			local_candidate = (IceCandidate*)local_list->data;
 			remote_candidate = (IceCandidate*)remote_list->data;
-			if (local_candidate->componentID == remote_candidate->componentID) {
+			if ((local_candidate->componentID == remote_candidate->componentID) && (local_candidate->taddr.family == remote_candidate->taddr.family)) {
 				pair = ice_pair_new(cl, local_candidate, remote_candidate);
 				cl->pairs = bctbx_list_append(cl->pairs, pair);
 			}
@@ -3467,7 +3491,6 @@ static void ice_notify_session_processing_finished(IceCheckList *cl, RtpSession 
 		cl->session->event_time = ice_add_ms(ice_current_time(), 1000);
 		cl->session->event_value = ORTP_EVENT_ICE_SESSION_PROCESSING_FINISHED;
 		cl->session->send_event = TRUE;
-
 	}
 }
 
@@ -3710,7 +3733,7 @@ static void ice_send_stun_server_requests(IceStunServerRequest *request, IceChec
 	IceStunServerRequestTransaction *transaction = NULL;
 	MSTimeSpec curtime = ice_current_time();
 
-	if (ice_compare_time(curtime, request->next_transmission_time) >= 0) {
+	if ((request->responded == FALSE) && (ice_compare_time(curtime, request->next_transmission_time) >= 0)) {
 		if (bctbx_list_size(request->transactions) < ICE_MAX_STUN_REQUEST_RETRANSMISSIONS) {
 			request->next_transmission_time = ice_add_ms(curtime, ICE_DEFAULT_RTO_DURATION);
 			transaction = ice_send_stun_server_request(request, (struct sockaddr *)&cl->session->ss, cl->session->ss_len);
@@ -3904,9 +3927,8 @@ static void ice_set_credentials(char **ufrag, char **pwd, const char *ufrag_str,
 	(*pwd)[len_pwd] = '\0';
 }
 
-static int ice_find_host_candidate(const IceCandidate *candidate, const uint16_t *componentID)
-{
-	if ((candidate->type == ICT_HostCandidate) && (candidate->componentID == *componentID)) return 0;
+static int ice_find_host_candidate(const IceCandidate *candidate, const ComponentID_Family *cf) {
+	if ((candidate->type == ICT_HostCandidate) && (candidate->componentID == cf->componentID) && (candidate->taddr.family == cf->family)) return 0;
 	else return 1;
 }
 
@@ -3919,7 +3941,8 @@ static void ice_set_base_for_srflx_candidate(IceCandidate *candidate, IceCandida
 static void ice_set_base_for_srflx_candidate_with_componentID(uint16_t *componentID, IceCheckList *cl)
 {
 	IceCandidate *base;
-	bctbx_list_t *elem = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_find_host_candidate, componentID);
+	ComponentID_Family cf = { *componentID, AF_INET };
+	bctbx_list_t *elem = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_find_host_candidate, &cf);
 	if (elem != NULL) {
 		base = (IceCandidate *)elem->data;
 		bctbx_list_for_each2(cl->local_candidates, (void (*)(void*,void*))ice_set_base_for_srflx_candidate, (void *)base);
