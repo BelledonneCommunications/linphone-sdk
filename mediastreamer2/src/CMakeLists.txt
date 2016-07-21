@@ -620,6 +620,9 @@ if(FFMPEG_FOUND AND NOT WIN32)
 	set_source_files_properties(
 		videofilters/jpegwriter.c
 		videofilters/videoenc.c
+		videofilters/videodec.c
+		videofilters/nowebcam.c
+		videofilters/h264dec.c
 		PROPERTIES COMPILE_FLAGS "-Wno-error=deprecated-declarations"
 	)
 endif()
