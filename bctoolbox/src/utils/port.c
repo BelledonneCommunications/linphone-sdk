@@ -1231,6 +1231,30 @@ void bctbx_sockaddr_remove_v4_mapping(const struct sockaddr *v6, struct sockaddr
 	}
 }
 
+void bctbx_sockaddr_remove_nat64_mapping(const struct sockaddr *v6, struct sockaddr *result, socklen_t *result_len) {
+	if (v6->sa_family == AF_INET6) {
+		struct sockaddr_in6 *in6 = (struct sockaddr_in6 *)v6;
+
+		if ((in6->sin6_addr.s6_addr32[0] == htonl(0x0064)) && (in6->sin6_addr.s6_addr32[1] == htonl(0xff9b))) {
+			struct sockaddr_in *in = (struct sockaddr_in *)result;
+			result->sa_family = AF_INET;
+			in->sin_addr.s_addr = IN6_GET_ADDR_V4MAPPED(&in6->sin6_addr);
+			in->sin_port = in6->sin6_port;
+			*result_len = sizeof(struct sockaddr_in);
+		}
+	} else {
+		*result_len = sizeof(struct sockaddr_in);
+		if (v6 != result) memcpy(result, v6, sizeof(struct sockaddr_in));
+	}
+}
+
+void bctbx_sockaddr_ipv6_to_ipv4(const struct sockaddr *v6, struct sockaddr *result, socklen_t *result_len) {
+	bctbx_sockaddr_remove_v4_mapping(v6, result, result_len);
+	if (result->sa_family == AF_INET6) {
+		bctbx_sockaddr_remove_nat64_mapping(v6, result, result_len);
+	}
+}
+
 char * bctbx_concat(const char *str, ...) {
 	va_list ap;
 	size_t allocated = 100;
