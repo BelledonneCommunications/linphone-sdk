@@ -43,9 +43,6 @@ if(ENABLE_UNIT_TESTS AND LINPHONE_BUILDER_BUILD_DEPENDENCIES)
 	list(APPEND EP_bctoolbox_DEPENDENCIES EP_bcunit)
 endif()
 
-if(MSVC)
-	set(EP_bctoolbox_EXTRA_LDFLAGS "/SAFESEH:NO")
-endif()
 # TODO: Activate strict compilation options on IOS
 if(IOS)
 	list(APPEND EP_bctoolbox_CMAKE_OPTIONS "-DENABLE_STRICT=NO")

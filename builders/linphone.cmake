@@ -35,9 +35,6 @@ if(LINPHONE_BUILDER_BUILD_DEPENDENCIES AND NOT APPLE)
 		list(APPEND EP_linphone_DEPENDENCIES EP_zlib)
 	endif()
 endif()
-if(MSVC)
-	set(EP_linphone_EXTRA_LDFLAGS "/SAFESEH:NO")
-endif()
 
 set(EP_linphone_CMAKE_OPTIONS
 	"-DENABLE_GTK_UI=${ENABLE_GTK_UI}"

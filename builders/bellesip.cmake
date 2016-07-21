@@ -38,10 +38,6 @@ if(LINPHONE_BUILDER_BUILD_DEPENDENCIES)
 	endif()
 endif()
 
-if(MSVC)
-	set(EP_bellesip_EXTRA_LDFLAGS "/SAFESEH:NO")
-endif()
-
 set(EP_bellesip_CMAKE_OPTIONS "-DENABLE_RTP_MAP_ALWAYS_IN_SDP=${ENABLE_RTP_MAP_ALWAYS_IN_SDP}")
 
 # TODO: Activate strict compilation options on IOS
