@@ -1235,7 +1235,12 @@ void bctbx_sockaddr_remove_nat64_mapping(const struct sockaddr *v6, struct socka
 	if (v6->sa_family == AF_INET6) {
 		struct sockaddr_in6 *in6 = (struct sockaddr_in6 *)v6;
 
+#ifdef _MSC_VER
+		if ((((in6->sin6_addr.u.Word[0] << 16) & in6->sin6_addr.u.Word[1]) == htonl(0x0064))
+			&& (((in6->sin6_addr.u.Word[2] << 16) & in6->sin6_addr.u.Word[3]) == htonl(0xff9b))) {
+#else
 		if ((in6->sin6_addr.s6_addr32[0] == htonl(0x0064)) && (in6->sin6_addr.s6_addr32[1] == htonl(0xff9b))) {
+#endif
 			struct sockaddr_in *in = (struct sockaddr_in *)result;
 			result->sa_family = AF_INET;
 			in->sin_addr.s_addr = IN6_GET_ADDR_V4MAPPED(&in6->sin6_addr);
