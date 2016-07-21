@@ -406,6 +406,21 @@ BCTBX_PUBLIC struct addrinfo * bctbx_name_to_addrinfo(int family, int socktype, 
 BCTBX_PUBLIC void bctbx_sockaddr_remove_v4_mapping(const struct sockaddr *v6, struct sockaddr *result, socklen_t *result_len);
 
 /**
+ * This function will transform a V6 NAT64 mapped address to a pure V4 and write it into result, or will just copy it otherwise.
+ * The memory for v6 and result may be the same, in which case processing is done in place or no copy is done.
+ * The pointer to result must have sufficient storage, typically a struct sockaddr_storage.
+**/
+BCTBX_PUBLIC void bctbx_sockaddr_remove_nat64_mapping(const struct sockaddr *v6, struct sockaddr *result, socklen_t *result_len);
+
+/**
+ * This function will transform any V6 address that can be converted to a V4 address (V4 mapped or NAT64) to a pure V4
+ * and write it into result, or will just copy it otherwise.
+ * The memory for v6 and result may be the same, in which case processing is done in place or no copy is done.
+ * The pointer to result must have sufficient storage, typically a struct sockaddr_storage.
+**/
+BCTBX_PUBLIC void bctbx_sockaddr_ipv6_to_ipv4(const struct sockaddr *v6, struct sockaddr *result, socklen_t *result_len);
+
+/**
  * Return TRUE if both families, ports and addresses are equals
  */
 BCTBX_PUBLIC bool_t bctbx_sockaddr_equals(const struct sockaddr * sa, const struct sockaddr * sb) ;
