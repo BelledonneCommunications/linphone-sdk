@@ -444,7 +444,14 @@ endif()
 
 
 if(ENABLE_VIDEO AND ANDROID AND CMAKE_SYSTEM_PROCESSOR STREQUAL "armeabi-v7a")
-	set_source_files_properties(voip/msvideo_neon.c voip/scaler.c PROPERTIES COMPILE_FLAGS "-mfpu=neon")
+	set(NEON_SOURCE_FILES
+		voip/msvideo_neon.c
+		voip/scaler.c
+	)
+	foreach(file ${NEON_SOURCE_FILES})
+		get_source_file_property(NEON_COMPILE_FLAGS ${file} COMPILE_FLAGS)
+		set_source_files_properties(${file} PROPERTIES COMPILE_FLAGS "${NEON_COMPILE_FLAGS} -mfpu=neon")
+	endforeach()
 endif()
 
 
@@ -617,14 +624,17 @@ if(ENABLE_SHARED)
 endif()
 
 if(FFMPEG_FOUND AND NOT WIN32)
-	set_source_files_properties(
+	set(NO_DEPRECATED_DECLARATIONS_SOURCE_FILES
 		videofilters/jpegwriter.c
 		videofilters/videoenc.c
 		videofilters/videodec.c
 		videofilters/nowebcam.c
 		videofilters/h264dec.c
-		PROPERTIES COMPILE_FLAGS "-Wno-error=deprecated-declarations"
 	)
+	foreach(file ${NO_DEPRECATED_DECLARATIONS_SOURCE_FILES})
+		get_source_file_property(NO_DEPRECATED_DECLARATIONS_COMPILE_FLAGS ${file} COMPILE_FLAGS)
+		set_source_files_properties(${file} PROPERTIES COMPILE_FLAGS "${NO_DEPRECATED_DECLARATIONS_COMPILE_FLAGS} -Wno-error=deprecated-declarations")
+	endforeach()
 endif()
 
 if(ENABLE_VIDEO)
