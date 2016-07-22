@@ -34,6 +34,7 @@ import subprocess
 import sys
 import tempfile
 from distutils.spawn import find_executable
+from distutils.version import LooseVersion
 from logging import error, warning, info, INFO, basicConfig
 from subprocess import Popen, PIPE
 
@@ -167,9 +168,11 @@ class Preparator:
         self.additional_args = []
         self.missing_python_dependencies = []
         self.missing_dependencies = {}
+        self.wrong_cmake_version = False
         self.release_with_debug_info = False
         self.veryclean = False
         self.show_gpl_disclaimer = False
+        self.min_cmake_version = None
 
         self.argparser = argparse.ArgumentParser(description="Prepare build of Linphone and its dependencies.")
         self.argparser.add_argument('-c', '--clean', help="Clean a previous build instead of preparing a build.", action='store_true')
@@ -239,6 +242,18 @@ class Preparator:
             return False
         return True
 
+    def check_cmake_version(self):
+        cmake = find_executable('cmake')
+        p = Popen([cmake, '--version'], shell=False, stdout=PIPE, universal_newlines=True)
+        p.wait()
+        if p.returncode != 0:
+            self.wrong_cmake_version = True
+        else:
+            cmake_version = p.stdout.readlines()[0].split()[-1]
+            if LooseVersion(cmake_version) < LooseVersion(self.min_cmake_version):
+                self.wrong_cmake_version = True
+        return not self.wrong_cmake_version
+
     def check_environment(self, submodule_directory_to_check=None):
         ret = 0
 
@@ -248,6 +263,8 @@ class Preparator:
             ret = 1
 
         ret |= not self.check_is_installed('cmake')
+        if not ret and self.min_cmake_version is not None:
+            ret |= not self.check_cmake_version()
 
         if submodule_directory_to_check is None:
             submodule_directory_to_check = "submodules/linphone/mediastreamer2/src"
@@ -258,8 +275,13 @@ class Preparator:
         return ret
 
     def show_environment_errors(self):
+        self.show_wrong_cmake_version()
         self.show_missing_dependencies()
         self.show_missing_python_dependencies()
+
+    def show_wrong_cmake_version(self):
+        if self.wrong_cmake_version:
+            error("You need at leat CMake version {}.".format(self.min_cmake_version))
 
     def show_missing_dependencies(self):
         if self.missing_dependencies:
