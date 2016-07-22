@@ -90,6 +90,7 @@ endif()
 # ms2
 if(WIN32)
 	linphone_builder_add_cmake_option(ms2 "-DENABLE_RELATIVE_PREFIX=YES")
+	linphone_builder_add_extra_ldflags(ms2 "/SAFESEH:NO")
 else()
 	linphone_builder_add_cmake_option(ms2 "-DENABLE_RELATIVE_PREFIX=${ENABLE_RELATIVE_PREFIX}")
 endif()

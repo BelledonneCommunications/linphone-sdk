@@ -899,3 +899,11 @@ macro(linphone_builder_add_cmake_option BUILDER_NAME OPTION)
 	endif()
 	list(APPEND EP_${BUILDER_NAME}_CMAKE_OPTIONS ${OPTION})
 endmacro()
+
+macro(linphone_builder_add_extra_cflags BUILDER_NAME CFLAGS)
+	set(EP_${BUILDER_NAME}_EXTRA_CFLAGS "${EP_${BUILDER_NAME}_EXTRA_CFLAGS} ${CFLAGS}")
+endmacro()
+
+macro(linphone_builder_add_extra_ldflags BUILDER_NAME LDFLAGS)
+	set(EP_${BUILDER_NAME}_EXTRA_LDFLAGS "${EP_${BUILDER_NAME}_EXTRA_LDFLAGS} ${LDFLAGS}")
+endmacro()
