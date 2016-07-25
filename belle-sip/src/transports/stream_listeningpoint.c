@@ -23,7 +23,7 @@ static int on_new_connection(void *userdata, unsigned int events);
 
 void belle_sip_stream_listening_point_destroy_server_socket(belle_sip_stream_listening_point_t *lp){
 	if (lp->server_sock!=(belle_sip_socket_t)-1){
-		close_socket(lp->server_sock);
+		belle_sip_close_socket(lp->server_sock);
 		lp->server_sock=-1;
 	}
 	if (lp->source){
@@ -102,7 +102,7 @@ static belle_sip_socket_t create_server_socket(const char *addr, int * port, int
 	err=bind(sock,res->ai_addr,res->ai_addrlen);
 	if (err==-1){
 		belle_sip_error("TCP bind() failed for %s port %i: %s",addr,*port,belle_sip_get_socket_error_string());
-		close_socket(sock);
+		belle_sip_close_socket(sock);
 		freeaddrinfo(res);
 		return -1;
 	}
@@ -124,7 +124,7 @@ static belle_sip_socket_t create_server_socket(const char *addr, int * port, int
 	err=listen(sock,64);
 	if (err==-1){
 		belle_sip_error("TCP listen() failed for %s port %i: %s",addr,*port,belle_sip_get_socket_error_string());
-		close_socket(sock);
+		belle_sip_close_socket(sock);
 		return -1;
 	}
 	return sock;

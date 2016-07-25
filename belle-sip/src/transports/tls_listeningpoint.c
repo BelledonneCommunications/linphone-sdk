@@ -61,7 +61,7 @@ static int on_new_connection(void *userdata, unsigned int revents){
 		return BELLE_SIP_STOP;
 	}
 	belle_sip_message("New connection arriving on TLS, not handled !");
-	close_socket(child);
+	belle_sip_close_socket(child);
 	return BELLE_SIP_CONTINUE;
 }
 #endif /* ENABLE_SERVER_SOCKETS */

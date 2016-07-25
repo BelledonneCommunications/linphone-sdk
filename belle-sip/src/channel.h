@@ -90,7 +90,8 @@ struct belle_sip_channel{
 	belle_sip_stack_t *stack;
 	belle_sip_listening_point_t *lp; /*the listening point that owns this channel*/
 	belle_sip_channel_state_t state;
-	belle_sip_list_t *listeners;
+	belle_sip_list_t *state_listeners;
+	belle_sip_list_t *full_listeners;
 	int ai_family;
 	char *peer_cname;
 	char *peer_name;

@@ -76,33 +76,40 @@
 #include "clock_gettime.h"
 
 static mach_timebase_info_data_t __clock_gettime_inf;
+static clock_serv_t    belle_sip_calandar_clk;
+static clock_serv_t    belle_sip_system_clk;
+static int belle_sip_clock_serv_ready=FALSE;
 
 int clock_gettime(clockid_t clk_id, struct timespec *tp) {
 	kern_return_t   ret;
-	clock_serv_t    clk;
-	clock_id_t clk_serv_id;
+	clock_serv_t clk_serv;
 	mach_timespec_t tm;
-	
 	uint64_t start, end, delta, nano;
-	
-	
 	int retval = -1;
+	
+	if (!belle_sip_clock_serv_ready) { /*host_get_clock_service is pretty slow*/
+		if (KERN_SUCCESS != host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &belle_sip_calandar_clk)
+			|| KERN_SUCCESS != host_get_clock_service(mach_host_self(), SYSTEM_CLOCK, &belle_sip_system_clk) ) {
+			return -1;
+		} else {
+			belle_sip_clock_serv_ready=TRUE;
+		}
+	}
+
 	switch (clk_id) {
 		case CLOCK_REALTIME:
 		case CLOCK_MONOTONIC:
-			clk_serv_id = clk_id == CLOCK_REALTIME ? CALENDAR_CLOCK : SYSTEM_CLOCK;
-			if (KERN_SUCCESS == (ret = host_get_clock_service(mach_host_self(), clk_serv_id, &clk))) {
-				if (KERN_SUCCESS == (ret = clock_get_time(clk, &tm))) {
-					tp->tv_sec  = tm.tv_sec;
-					tp->tv_nsec = tm.tv_nsec;
-					retval = 0;
-				}
+			clk_serv = (clk_id == CLOCK_REALTIME) ? belle_sip_calandar_clk : belle_sip_system_clk;
+			if (KERN_SUCCESS == (ret = clock_get_time(clk_serv, &tm))) {
+				tp->tv_sec  = tm.tv_sec;
+				tp->tv_nsec = tm.tv_nsec;
+				retval = 0;
 			}
 			if (KERN_SUCCESS != ret) {
 				errno = EINVAL;
 				retval = -1;
 			}
-		break;
+			break;
 		case CLOCK_PROCESS_CPUTIME_ID:
 		case CLOCK_THREAD_CPUTIME_ID:
 			start = mach_absolute_time();
@@ -112,15 +119,15 @@ int clock_gettime(clockid_t clk_id, struct timespec *tp) {
 				sched_yield();
 			}
 			end = mach_absolute_time();
-			delta = end - start;	
+			delta = end - start;
 			if (0 == __clock_gettime_inf.denom) {
 				mach_timebase_info(&__clock_gettime_inf);
 			}
 			nano = delta * __clock_gettime_inf.numer / __clock_gettime_inf.denom;
-			tp->tv_sec = nano * 1e-9;  
+			tp->tv_sec = nano * 1e-9;
 			tp->tv_nsec = nano - (tp->tv_sec * 1e9);
 			retval = 0;
-		break;
+			break;
 		default:
 			errno = EINVAL;
 			retval = -1;

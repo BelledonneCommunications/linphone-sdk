@@ -26,7 +26,7 @@ struct belle_sip_udp_listening_point{
 
 
 static void belle_sip_udp_listening_point_uninit(belle_sip_udp_listening_point_t *lp){
-	if (lp->sock!=-1) close_socket(lp->sock);
+	if (lp->sock!=-1) belle_sip_close_socket(lp->sock);
 	if (lp->source) {
 		belle_sip_main_loop_remove_source(lp->base.stack->ml,lp->source);
 		belle_sip_object_unref(lp->source);
@@ -97,7 +97,7 @@ static belle_sip_socket_t create_udp_socket(const char *addr, int *port, int *fa
 	err=bind(sock,res->ai_addr,res->ai_addrlen);
 	if (err==-1){
 		belle_sip_error("udp bind() failed for %s port %i: %s",addr,*port,belle_sip_get_socket_error_string());
-		close_socket(sock);
+		belle_sip_close_socket(sock);
 		freeaddrinfo(res);
 		return -1;
 	}

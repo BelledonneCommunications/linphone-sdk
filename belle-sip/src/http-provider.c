@@ -298,7 +298,8 @@ int belle_http_channel_is_busy(belle_sip_channel_t *obj) {
 	if (obj->incoming_messages != NULL || obj->outgoing_messages != NULL) {
 		return 1;
 	}
-	for (it = obj->listeners; it != NULL; it = it->next) {
+	/*fixme, a litle bit intrusive*/
+	for (it = obj->full_listeners; it != NULL; it = it->next) {
 		if (BELLE_SIP_IS_INSTANCE_OF(it->data, belle_http_channel_context_t)) {
 			belle_http_channel_context_t *obj = it->data;
 			return obj->pending_requests != NULL;
