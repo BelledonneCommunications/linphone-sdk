@@ -31,7 +31,11 @@ typedef struct _bctbx_list {
 	void *data;
 } bctbx_list_t;
 
-typedef  int (*bctbx_compare_func)(const void *, const void*);
+typedef int (*bctbx_compare_func)(const void *, const void*);
+typedef void (*bctbx_list_iterate_func)(void *);
+typedef void (*bctbx_list_iterate2_func)(void *, void *);
+typedef void (*bctbx_list_free_func)(void *);
+typedef void* (*bctbx_list_copy_func)(void *);
 
 BCTBX_PUBLIC bctbx_list_t * bctbx_list_new(void *data);
 BCTBX_PUBLIC bctbx_list_t * bctbx_list_append(bctbx_list_t * elem, void * data);
@@ -46,14 +50,14 @@ BCTBX_PUBLIC bctbx_list_t * bctbx_list_remove(bctbx_list_t * first, void *data);
 BCTBX_PUBLIC bctbx_list_t * bctbx_list_remove_custom(bctbx_list_t *first, bctbx_compare_func compare_func, const void *user_data);
 BCTBX_PUBLIC bctbx_list_t * bctbx_list_pop_front(bctbx_list_t *list, void **front_data);
 BCTBX_PUBLIC size_t bctbx_list_size(const bctbx_list_t * first);
-BCTBX_PUBLIC void bctbx_list_for_each(const bctbx_list_t * list, void (*func)(void *));
-BCTBX_PUBLIC void bctbx_list_for_each2(const bctbx_list_t * list, void (*func)(void *, void *), void *user_data);
+BCTBX_PUBLIC void bctbx_list_for_each(const bctbx_list_t * list, bctbx_list_iterate_func func);
+BCTBX_PUBLIC void bctbx_list_for_each2(const bctbx_list_t * list, bctbx_list_iterate2_func func, void *user_data);
 BCTBX_PUBLIC bctbx_list_t * bctbx_list_remove_link(bctbx_list_t * list, bctbx_list_t * elem);
 BCTBX_PUBLIC bctbx_list_t * bctbx_list_delete_link(bctbx_list_t * list, bctbx_list_t * elem);
 BCTBX_PUBLIC bctbx_list_t * bctbx_list_find(bctbx_list_t * list, void *data);
 BCTBX_PUBLIC bctbx_list_t * bctbx_list_free(bctbx_list_t *list);
 /*frees list elements and associated data, using the supplied function pointer*/
-BCTBX_PUBLIC bctbx_list_t * bctbx_list_free_with_data(bctbx_list_t *list, void (*freefunc)(void*));
+BCTBX_PUBLIC bctbx_list_t * bctbx_list_free_with_data(bctbx_list_t *list, bctbx_list_free_func freefunc);
 
 BCTBX_PUBLIC bctbx_list_t * bctbx_list_find_custom(const bctbx_list_t * list, bctbx_compare_func cmp, const void *user_data);
 BCTBX_PUBLIC void * bctbx_list_nth_data(const bctbx_list_t * list, int index);
@@ -63,7 +67,7 @@ BCTBX_PUBLIC bctbx_list_t * bctbx_list_insert_sorted(bctbx_list_t * list, void *
 BCTBX_PUBLIC bctbx_list_t * bctbx_list_insert(bctbx_list_t * list, bctbx_list_t * before, void *data);
 BCTBX_PUBLIC bctbx_list_t * bctbx_list_copy(const bctbx_list_t * list);
 /*copy list elements and associated data, using the supplied function pointer*/
-BCTBX_PUBLIC bctbx_list_t* bctbx_list_copy_with_data(const bctbx_list_t* list, void* (*copyfunc)(void*));
+BCTBX_PUBLIC bctbx_list_t* bctbx_list_copy_with_data(const bctbx_list_t* list, bctbx_list_copy_func copyfunc);
 
 BCTBX_PUBLIC bctbx_list_t* bctbx_list_next(const bctbx_list_t *elem);
 BCTBX_PUBLIC void* bctbx_list_get_data(const bctbx_list_t *elem);

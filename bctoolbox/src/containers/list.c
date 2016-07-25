@@ -111,7 +111,7 @@ bctbx_list_t*  bctbx_list_free(bctbx_list_t* list){
 	return NULL;
 }
 
-bctbx_list_t * bctbx_list_free_with_data(bctbx_list_t *list, void (*freefunc)(void*)){
+bctbx_list_t * bctbx_list_free_with_data(bctbx_list_t *list, bctbx_list_free_func freefunc){
 	bctbx_list_t* elem = list;
 	bctbx_list_t* tmp;
 	if (list==NULL) return NULL;
@@ -163,13 +163,13 @@ size_t bctbx_list_size(const bctbx_list_t* first){
 	return n;
 }
 
-void bctbx_list_for_each(const bctbx_list_t* list, void (*func)(void *)){
+void bctbx_list_for_each(const bctbx_list_t* list, bctbx_list_iterate_func func){
 	for(;list!=NULL;list=list->next){
 		func(list->data);
 	}
 }
 
-void bctbx_list_for_each2(const bctbx_list_t* list, void (*func)(void *, void *), void *user_data){
+void bctbx_list_for_each2(const bctbx_list_t* list, bctbx_list_iterate2_func func, void *user_data){
 	for(;list!=NULL;list=list->next){
 		func(list->data,user_data);
 	}
@@ -258,7 +258,7 @@ int bctbx_list_index(const bctbx_list_t* list, void *data){
 	return -1;
 }
 
-bctbx_list_t* bctbx_list_insert_sorted(bctbx_list_t* list, void *data, int (*compare_func)(const void *, const void*)){
+bctbx_list_t* bctbx_list_insert_sorted(bctbx_list_t* list, void *data, bctbx_compare_func compare_func){
 	bctbx_list_t* it,*previt=NULL;
 	bctbx_list_t* nelem;
 	bctbx_list_t* ret=list;
@@ -313,7 +313,7 @@ bctbx_list_t* bctbx_list_copy(const bctbx_list_t* list){
 	return copy;
 }
 
-bctbx_list_t* bctbx_list_copy_with_data(const bctbx_list_t* list, void* (*copyfunc)(void*)){
+bctbx_list_t* bctbx_list_copy_with_data(const bctbx_list_t* list, bctbx_list_copy_func copyfunc){
 	bctbx_list_t* copy=NULL;
 	const bctbx_list_t* iter;
 	for(iter=list;iter!=NULL;iter=bctbx_list_next(iter)){
