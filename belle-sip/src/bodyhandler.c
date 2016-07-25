@@ -251,11 +251,11 @@ void belle_sip_memory_body_handler_apply_encoding(belle_sip_memory_body_handler_
 		strm.opaque = Z_NULL;
 		ret = deflateInit(&strm, Z_DEFAULT_COMPRESSION);
 		if (ret != Z_OK) return;
-		strm.avail_in = initial_size;
+		strm.avail_in = (uInt)initial_size;
 		strm.next_in = obj->buffer;
 		do {
 			if (avail_out < BELLE_SIP_MEMORY_BODY_HANDLER_ZLIB_INITIAL_SIZE) {
-				unsigned int cursize = outbuf_ptr - outbuf;
+				unsigned int cursize = (unsigned int)(outbuf_ptr - outbuf);
 				outbuf_size *= 2;
 				outbuf = belle_sip_realloc(outbuf, outbuf_size);
 				outbuf_ptr = outbuf + cursize;
@@ -264,7 +264,7 @@ void belle_sip_memory_body_handler_apply_encoding(belle_sip_memory_body_handler_
 			strm.next_out = outbuf_ptr;
 			deflate(&strm, Z_FINISH);
 			outbuf_ptr += avail_out - strm.avail_out;
-			avail_out = outbuf_size - (outbuf_ptr - outbuf);
+			avail_out = outbuf_size - (unsigned int)(outbuf_ptr - outbuf);
 		} while (strm.avail_out == 0);
 		deflateEnd(&strm);
 		final_size = outbuf_ptr - outbuf;
@@ -301,11 +301,11 @@ int belle_sip_memory_body_handler_unapply_encoding(belle_sip_memory_body_handler
 		strm.next_in = Z_NULL;
 		ret = inflateInit(&strm);
 		if (ret != Z_OK) return -1;
-		strm.avail_in = initial_size;
+		strm.avail_in = (uInt)initial_size;
 		strm.next_in = obj->buffer;
 		do {
 			if (avail_out < BELLE_SIP_MEMORY_BODY_HANDLER_ZLIB_INITIAL_SIZE) {
-				unsigned int cursize = outbuf_ptr - outbuf;
+				unsigned int cursize = (unsigned int)(outbuf_ptr - outbuf);
 				outbuf_size *= 2;
 				outbuf = belle_sip_realloc(outbuf, outbuf_size);
 				outbuf_ptr = outbuf + cursize;
@@ -323,7 +323,7 @@ int belle_sip_memory_body_handler_unapply_encoding(belle_sip_memory_body_handler
 					return -1;
 			}
 			outbuf_ptr += avail_out - strm.avail_out;
-			avail_out = outbuf_size - (outbuf_ptr - outbuf);
+			avail_out = outbuf_size - (unsigned int)(outbuf_ptr - outbuf);
 		} while (ret != Z_STREAM_END);
 		inflateEnd(&strm);
 		final_size = outbuf_ptr - outbuf;
@@ -451,7 +451,7 @@ static void belle_sip_file_body_handler_clone(belle_sip_file_body_handler_t *obj
 
 static void belle_sip_file_body_handler_recv_chunk(belle_sip_body_handler_t *base, belle_sip_message_t *msg, size_t offset, const uint8_t *buf, size_t size) {
 	FILE *f;
-	int ret;
+	size_t ret;
 	belle_sip_file_body_handler_t *obj = (belle_sip_file_body_handler_t *)base;
 	if (obj->filepath == NULL) return;
 	f = fopen(obj->filepath, "ab");
@@ -466,23 +466,24 @@ static void belle_sip_file_body_handler_recv_chunk(belle_sip_body_handler_t *bas
 
 static int belle_sip_file_body_handler_send_chunk(belle_sip_body_handler_t *base, belle_sip_message_t *msg, size_t offset, uint8_t *buf, size_t *size) {
 	FILE *f;
-	int ret;
+	int int_ret;
+	size_t size_t_ret;
 	belle_sip_file_body_handler_t *obj = (belle_sip_file_body_handler_t *)base;
 	size_t to_send = MIN(*size, obj->base.expected_size - offset);
 	if (obj->filepath == NULL) return BELLE_SIP_STOP;
 	f = fopen(obj->filepath, "rb");
 	if (f == NULL) return BELLE_SIP_STOP;
-	ret = fseek(f, offset, SEEK_SET);
-	if (ret < 0) {
+	int_ret = fseek(f, (long)offset, SEEK_SET);
+	if (int_ret < 0) {
 		fclose(f);
 		return BELLE_SIP_STOP;
 	}
-	ret = fread(buf, 1, to_send, f);
-	if (ret < 0) {
+	size_t_ret = fread(buf, 1, to_send, f);
+	if (size_t_ret < 0) {
 		fclose(f);
 		return BELLE_SIP_STOP;
 	}
-	*size = ret;
+	*size = size_t_ret;
 	fclose(f);
 	return (((obj->base.expected_size - offset) == *size) || (*size == 0)) ? BELLE_SIP_STOP : BELLE_SIP_CONTINUE;
 }

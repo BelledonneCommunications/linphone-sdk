@@ -215,7 +215,7 @@ static void testRegisterRaw(void) {
 	size_t size=0;
 	size_t raw_message_size= strlen(raw_message);
 	belle_sip_message_t* message = belle_sip_message_parse_raw(raw_message,raw_message_size,&size);
-	BC_ASSERT_EQUAL(raw_message_size,size+9,int,"%d");
+	BC_ASSERT_EQUAL((unsigned int)raw_message_size,(unsigned int)size+9,unsigned int,"%u");
 	request = BELLE_SIP_REQUEST(message);
 	BC_ASSERT_STRING_EQUAL(belle_sip_request_get_method(request),"REGISTER");
 	BC_ASSERT_PTR_NOT_NULL(belle_sip_request_get_uri(request));
@@ -1003,8 +1003,8 @@ void testGetBody(void) {
 
 	ctlt = belle_sip_message_get_header_by_type(message,belle_sip_header_content_length_t);
 	BC_ASSERT_PTR_NOT_NULL(ctlt);
-	BC_ASSERT_EQUAL(belle_sip_header_content_length_get_content_length(ctlt),strlen(belle_sip_message_get_body(message)),int,"%d");
-	BC_ASSERT_EQUAL(belle_sip_header_content_length_get_content_length(ctlt),belle_sip_message_get_body_size(message),int,"%d");
+	BC_ASSERT_EQUAL((unsigned int)belle_sip_header_content_length_get_content_length(ctlt),(unsigned int)strlen(belle_sip_message_get_body(message)),unsigned int,"%u");
+	BC_ASSERT_EQUAL((unsigned int)belle_sip_header_content_length_get_content_length(ctlt),(unsigned int)belle_sip_message_get_body_size(message),unsigned int,"%u");
 	belle_sip_object_unref(channel);
 	belle_sip_object_unref(stack);
 }

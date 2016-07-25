@@ -120,6 +120,7 @@ belle_sip_stack_t * belle_sip_stack_new(const char *properties){
 	stack->transport_timeout=63000;
 	stack->dns_timeout=15000;
 	stack->dns_srv_enabled=TRUE;
+	stack->dns_search_enabled=TRUE;
 	stack->inactive_transport_timeout=3600; /*one hour*/
 	return stack;
 }
@@ -159,6 +160,14 @@ unsigned char belle_sip_stack_dns_srv_enabled(const belle_sip_stack_t *stack) {
 
 void belle_sip_stack_enable_dns_srv(belle_sip_stack_t *stack, unsigned char enable) {
 	stack->dns_srv_enabled = enable;
+}
+
+unsigned char belle_sip_stack_dns_search_enabled(const belle_sip_stack_t *stack) {
+	return stack->dns_search_enabled;
+}
+
+void belle_sip_stack_enable_dns_search(belle_sip_stack_t *stack, unsigned char enable) {
+	stack->dns_search_enabled = enable;
 }
 
 belle_sip_listening_point_t *belle_sip_stack_create_listening_point(belle_sip_stack_t *s, const char *ipaddress, int port, const char *transport){

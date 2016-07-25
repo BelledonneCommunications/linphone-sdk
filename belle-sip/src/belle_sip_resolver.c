@@ -447,6 +447,7 @@ static int resolver_process_data(belle_sip_simple_resolver_context_t *ctx, unsig
 	int error;
 	unsigned char simulated_timeout=0;
 	int timeout=belle_sip_stack_get_dns_timeout(ctx->base.stack);
+	unsigned char search_enabled = belle_sip_stack_dns_search_enabled(ctx->base.stack);
 
 	/*Setting timeout to 0 can be used to simulate DNS timeout*/
 	if ((revents!=0) && timeout==0){
@@ -459,6 +460,7 @@ static int resolver_process_data(belle_sip_simple_resolver_context_t *ctx, unsig
 		notify_results(ctx);
 		return BELLE_SIP_STOP;
 	}
+	dns_res_enable_search(ctx->R, search_enabled);
 	/*belle_sip_message("resolver_process_data(): revents=%i",revents);*/
 	error = dns_res_check(ctx->R);
 	if (!error) {
@@ -552,7 +554,7 @@ static void * _resolver_getaddrinfo_thread(void *ptr) {
 		belle_sip_error("getaddrinfo DNS resolution of %s failed: %s", ctx->name, gai_strerror(err));
 	} else if (!ctx->getaddrinfo_cancelled) {
 		do {
-			append_dns_result(ctx, &ctx->getaddrinfo_ai_list, res->ai_addr, res->ai_addrlen);
+			append_dns_result(ctx, &ctx->getaddrinfo_ai_list, res->ai_addr, (socklen_t)res->ai_addrlen);
 			res = res->ai_next;
 		} while (res != NULL);
 	}
@@ -1096,7 +1098,7 @@ It works on all platform except for windows using ipv6 sockets. TODO: find a wor
 */
 void belle_sip_get_src_addr_for(const struct sockaddr *dest, socklen_t destlen, struct sockaddr *src, socklen_t *srclen, int local_port){
 	int af_type=dest->sa_family;
-	int sock=socket(af_type,SOCK_DGRAM,IPPROTO_UDP);
+	int sock=(int)socket(af_type,SOCK_DGRAM,IPPROTO_UDP);
 	
 	belle_sip_message("belle_sip_get_src_addr_for(): af_inet6=%i",af_type==AF_INET6);
 	if (sock==(belle_sip_socket_t)-1){
@@ -1136,7 +1138,7 @@ fail:
 		struct addrinfo *res = bctbx_ip_address_to_addrinfo(af_type, SOCK_STREAM, af_type == AF_INET ? "127.0.0.1" : "::1", local_port);
 		if (res != NULL) {
 			memcpy(src,res->ai_addr,MIN((size_t)*srclen,res->ai_addrlen));
-			*srclen=res->ai_addrlen;
+			*srclen=(socklen_t)res->ai_addrlen;
 			bctbx_freeaddrinfo(res);
 		} else {
 			if (af_type == AF_INET) belle_sip_fatal("belle_sip_get_src_addr_for(): belle_sip_ip_address_to_addrinfo() failed");

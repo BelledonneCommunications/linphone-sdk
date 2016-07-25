@@ -74,8 +74,23 @@
 #endif
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#ifndef USE_FIXED_NAMESERVERS
 #include <IPHlpApi.h>
 #pragma comment(lib, "IPHLPAPI.lib")
+#endif
+
+#if defined(__MINGW32__) || !defined(WINAPI_FAMILY_PARTITION) || !defined(WINAPI_PARTITION_DESKTOP)
+#define BELLE_SIP_WINDOWS_DESKTOP 1
+#elif defined(WINAPI_FAMILY_PARTITION)
+#if defined(WINAPI_PARTITION_DESKTOP) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#define BELLE_SIP_WINDOWS_DESKTOP 1
+#elif defined(WINAPI_PARTITION_PHONE_APP) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_PHONE_APP)
+#define BELLE_SIP_WINDOWS_PHONE 1
+#elif defined(WINAPI_PARTITION_APP) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP)
+#define BELLE_SIP_WINDOWS_UNIVERSAL 1
+#endif
+#endif
+
 #else
 #include <sys/types.h>		/* FD_SETSIZE socklen_t */
 #include <sys/select.h>		/* FD_ZERO FD_SET fd_set select(2) */
@@ -4141,7 +4156,8 @@ struct dns_hosts *dns_hosts_mortal(struct dns_hosts *hosts) {
 	return hosts;
 } /* dns_hosts_mortal() */
 
-int dns_hosts_add_localhost(struct dns_hosts *hosts) {
+#if defined(BELLE_SIP_WINDOWS_PHONE) || defined(BELLE_SIP_WINDOWS_UNIVERSAL)
+static int dns_hosts_add_localhost(struct dns_hosts *hosts) {
 	struct dns_hosts_entry ent;
 	memset(&ent, '\0', sizeof(ent));
 	ent.af = AF_INET;
@@ -4155,6 +4171,7 @@ int dns_hosts_add_localhost(struct dns_hosts *hosts) {
 	dns_hosts_insert(hosts, ent.af, &ent.addr, ent.host, 1);
 	return 0;
 }
+#endif
 
 struct dns_hosts *dns_hosts_local(int *error_) {
 	struct dns_hosts *hosts;
@@ -4164,7 +4181,7 @@ struct dns_hosts *dns_hosts_local(int *error_) {
 		goto error;
 
 #ifdef _WIN32
-#ifdef WINAPI_FAMILY_PHONE_APP
+#if defined(BELLE_SIP_WINDOWS_PHONE) || defined(BELLE_SIP_WINDOWS_UNIVERSAL)
 	if ((error = dns_hosts_add_localhost(hosts)))
 #else
 	if ((error = dns_hosts_loadpath(hosts, "C:/Windows/System32/drivers/etc/hosts")))
@@ -4875,6 +4892,23 @@ int dns_resconf_loadpath(struct dns_resolv_conf *resconf, const char *path) {
 	return error;
 } /* dns_resconf_loadpath() */
 
+#ifdef USE_FIXED_NAMESERVERS
+int dns_resconf_load_fixed_nameservers(struct dns_resolv_conf *resconf) {
+	const char * const nameservers[] = {
+		"8.8.8.8",
+		"8.8.4.4"
+	};
+	int i;
+	int error = 0;
+
+	for (i = 0; !error && (i < lengthof(nameservers)); i++) {
+		error = dns_resconf_pton(&resconf->nameserver[i], nameservers[i]);
+	}
+
+	return error;
+}
+#endif /* USE_FIXED_NAMESERVERS */
+
 #ifdef USE_STRUCT_RES_STATE_NAMESERVERS
 int dns_resconf_load_struct_res_state_nameservers(struct dns_resolv_conf *resconf) {
 	int i;
@@ -4888,20 +4922,8 @@ int dns_resconf_load_struct_res_state_nameservers(struct dns_resolv_conf *rescon
 }
 #endif /* USE_STRUCT_RES_STATE_NAMESERVERS */
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(USE_FIXED_NAMESERVERS)
 int dns_resconf_loadwin(struct dns_resolv_conf *resconf) {
-#if WINAPI_FAMILY_APP
-	const char * const nameservers[] = {
-		"8.8.8.8",
-		"8.8.4.4"
-	};
-	int i;
-	int error = 0;
-	for (i = 0; !error && (i < lengthof(nameservers)); i++) {
-		error = dns_resconf_pton(&resconf->nameserver[i], nameservers[i]);
-	}
-	return error;
-#else
 	FIXED_INFO *pFixedInfo;
 	ULONG ulOutBufLen;
 	DWORD dwRetVal;
@@ -4934,7 +4956,6 @@ int dns_resconf_loadwin(struct dns_resolv_conf *resconf) {
 	}
 	free(pFixedInfo);
 	return 0;
-#endif
 }
 #endif /* dns_resconf_loadwin() */
 
@@ -7030,6 +7051,8 @@ struct dns_resolver {
 		struct dns_rr_i hints_i, hints_j;
 		struct dns_rr hints_ns, ans_cname;
 	} stack[DNS_R_MAXDEPTH];
+
+	unsigned char search_enabled;
 }; /* struct dns_resolver */
 
 
@@ -7709,7 +7732,10 @@ exec:
 			if (!R->nodata)
 				dns_p_movptr(&R->nodata, &F->answer);
 
-			dgoto(R->sp, DNS_R_SEARCH);
+			if (R->search_enabled)
+				dgoto(R->sp, DNS_R_SEARCH);
+			else
+				dgoto(R->sp, DNS_R_FINISH);
 		}
 
 		dns_rr_foreach(&rr, F->answer, .section = DNS_S_NS, .type = DNS_T_NS) {
@@ -8078,6 +8104,10 @@ void dns_res_sethints(struct dns_resolver *res, struct dns_hints *hints) {
 	dns_hints_close(res->hints);
 	res->hints = hints;
 } /* dns_res_sethints() */
+
+void dns_res_enable_search(struct dns_resolver *res, unsigned char enable) {
+	res->search_enabled = enable;
+}
 
 
 /*

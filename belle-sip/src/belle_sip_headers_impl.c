@@ -632,7 +632,7 @@ int belle_sip_header_user_agent_get_products_as_string(const belle_sip_header_us
 	}
 	if (result>0) value[result-1]='\0'; /*remove last space */
 
-	return result-1;
+	return (int)result-1;
 }
 
 /**************************
@@ -964,7 +964,7 @@ BELLE_SIP_PARSE(header_service_route)
 */
 struct _belle_sip_header_content_length  {
 	belle_sip_header_t header;
-	unsigned int content_length;
+	size_t content_length;
 };
 
 static void belle_sip_header_content_length_destroy(belle_sip_header_content_length_t* content_length) {
@@ -978,15 +978,15 @@ static void belle_sip_header_content_length_clone(belle_sip_header_content_lengt
 belle_sip_error_code belle_sip_header_content_length_marshal(belle_sip_header_content_length_t* content_length, char* buff, size_t buff_size, size_t *offset) {
 	belle_sip_error_code error=belle_sip_header_marshal(BELLE_SIP_HEADER(content_length), buff, buff_size, offset);
 	if (error!=BELLE_SIP_OK) return error;
-	error=belle_sip_snprintf(buff,buff_size,offset,"%i",content_length->content_length);
+	error=belle_sip_snprintf(buff,buff_size,offset,FORMAT_SIZE_T,content_length->content_length);
 	if (error!=BELLE_SIP_OK) return error;
 	return error;
 }
 
 BELLE_SIP_NEW_HEADER(header_content_length,header,BELLE_SIP_CONTENT_LENGTH)
 BELLE_SIP_PARSE(header_content_length)
-GET_SET_INT(belle_sip_header_content_length,content_length,unsigned int)
-belle_sip_header_content_length_t* belle_sip_header_content_length_create (int content_length)  {
+GET_SET_INT(belle_sip_header_content_length,content_length,size_t)
+belle_sip_header_content_length_t* belle_sip_header_content_length_create (size_t content_length)  {
 	belle_sip_header_content_length_t* obj;
 	obj = belle_sip_header_content_length_new();
 	belle_sip_header_content_length_set_content_length(obj,content_length);

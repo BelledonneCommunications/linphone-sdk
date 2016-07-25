@@ -84,7 +84,7 @@ static belle_sip_list_t * for_each_weak_unref_free(belle_sip_list_t *l, belle_si
 static void belle_sip_channel_input_stream_rewind(belle_sip_channel_input_stream_t* input_stream){
 	int remaining;
 
-	remaining=input_stream->write_ptr-input_stream->read_ptr;
+	remaining=(int)(input_stream->write_ptr-input_stream->read_ptr);
 	if (remaining>0){
 		/* copy remaning bytes at top of buffer*/
 		memmove(input_stream->buff,input_stream->read_ptr,remaining);
@@ -222,7 +222,7 @@ static int get_message_start_pos(char *buff, size_t bufflen) {
 	char method[17]={0};
 	char saved_char1;
 	char sip_version[10]={0};
-	int saved_char1_index;
+	size_t saved_char1_index;
 
 	for(i=0; i<(int)bufflen-12;i++) { /*9=strlen( SIP/2.0\r\n)*/
 		switch (buff[i]) { /*to avoid this character to be ignored by scanf*/
@@ -480,7 +480,7 @@ static int acquire_chuncked_body(belle_sip_channel_t *obj){
 				return BELLE_SIP_STOP;
 			}
 		}
-		readsize=MIN(st->write_ptr-st->read_ptr,st->chunk_size-st->chunk_read_size);
+		readsize=MIN((int)(st->write_ptr-st->read_ptr),st->chunk_size-st->chunk_read_size);
 		if (readsize>0){
 			feed_body(obj,readsize);
 			st->chunk_read_size+=readsize;
@@ -529,7 +529,7 @@ void belle_sip_channel_parse_stream(belle_sip_channel_t *obj, int end_of_stream)
 	size_t read_size=0;
 	int num;
 
-	while ((num=(obj->input_stream.write_ptr-obj->input_stream.read_ptr))>0){
+	while ((num=(int)(obj->input_stream.write_ptr-obj->input_stream.read_ptr))>0){
 
 		if (obj->input_stream.state == WAITING_MESSAGE_START) {
 			int i;
@@ -569,7 +569,7 @@ void belle_sip_channel_parse_stream(belle_sip_channel_t *obj, int end_of_stream)
 				char tmp;
 				/*end of message found*/
 				end_of_message+=4;/*add \r\n\r\n*/
-				bytes_to_parse=end_of_message-obj->input_stream.read_ptr;
+				bytes_to_parse=(int)(end_of_message-obj->input_stream.read_ptr);
 				tmp=*end_of_message;
 				*end_of_message='\0';/*this is in order for the following log to print the message only to its end.*/
 				/*belle_sip_message("channel [%p] read message of [%i] bytes:\n%.40s...",obj, bytes_to_parse, obj->input_stream.read_ptr);*/
@@ -1065,7 +1065,7 @@ static size_t find_non_printable(const char *buffer, size_t size){
 static char *make_logbuf(belle_sip_channel_t *obj, belle_sip_log_level level, const char *buffer, size_t size){
 	char *logbuf;
 	char truncate_msg[128]={0};
-	int limit=7000; /*big message when many ice candidates*/
+	size_t limit=7000; /*big message when many ice candidates*/
 
 	if (!belle_sip_log_level_enabled(level)){
 		return NULL;
@@ -1073,7 +1073,7 @@ static char *make_logbuf(belle_sip_channel_t *obj, belle_sip_log_level level, co
 	if (obj->stop_logging_buffer == 1) {
 		return NULL;
 	}
-	limit=find_non_printable(buffer,MIN((int)size,limit));
+	limit=find_non_printable(buffer,MIN(size,limit));
 	if (limit != size) {
 		belle_sip_message("channel [%p]: found binary data in buffer, will stop logging it now.", obj);
 		obj->stop_logging_buffer = 1;
@@ -1081,7 +1081,7 @@ static char *make_logbuf(belle_sip_channel_t *obj, belle_sip_log_level level, co
 			snprintf(truncate_msg,sizeof(truncate_msg)-1,"... (binary data)");
 		} else {
 			size=limit;
-			snprintf(truncate_msg,sizeof(truncate_msg)-1,"... (first %i bytes shown)",limit);
+			snprintf(truncate_msg,sizeof(truncate_msg)-1,"... (first %u bytes shown)",(unsigned int)limit);
 		}
 	}
 
@@ -1108,7 +1108,7 @@ static int send_buffer(belle_sip_channel_t *obj, const char *buffer, size_t size
 		/*for testing purpose only */
 		ret=obj->stack->send_error;
 	} else {
-		ret=size; /*to silently discard message*/
+		ret=(int)size; /*to silently discard message*/
 	}
 
 	if (ret<0){
@@ -1153,24 +1153,24 @@ static int send_buffer(belle_sip_channel_t *obj, const char *buffer, size_t size
 
 static void check_content_length(belle_sip_message_t *msg, size_t body_len){
 	belle_sip_header_content_length_t *ctlen=belle_sip_message_get_header_by_type(msg,belle_sip_header_content_length_t);
-	unsigned int value=ctlen ? belle_sip_header_content_length_get_content_length(ctlen) : 0;
+	size_t value=ctlen ? belle_sip_header_content_length_get_content_length(ctlen) : 0;
 	if (body_len){
 		if (ctlen==NULL){
-			belle_sip_message("message [%p] has body of size [%i] but no Content-Length, adding it.",msg,(int)body_len);
+			belle_sip_message("message [%p] has body of size ["FORMAT_SIZE_T"] but no Content-Length, adding it.",msg,body_len);
 			belle_sip_message_add_header(msg,
-				(belle_sip_header_t*)belle_sip_header_content_length_create((int)body_len)
+				(belle_sip_header_t*)belle_sip_header_content_length_create(body_len)
 			);
 		}else{
-			if (value!=(unsigned int)body_len){
-				belle_sip_warning("message [%p] has Content-Length [%u] and body size [%i] which are inconsistent, fixing it.",
-					msg, value, (int)body_len);
-				belle_sip_header_content_length_set_content_length(ctlen,(int)body_len);
+			if (value!=body_len){
+				belle_sip_warning("message [%p] has Content-Length ["FORMAT_SIZE_T"] and body size ["FORMAT_SIZE_T"] which are inconsistent, fixing it.",
+					msg, value, body_len);
+				belle_sip_header_content_length_set_content_length(ctlen,body_len);
 			}
 		}
 	}else{
 		/*no body, or undetermined size body*/
 		if (ctlen && value!=0){
-			belle_sip_error("message [%p] has Content-Length [%u], but without body or body with undetermined size. Fix your app.",
+			belle_sip_error("message [%p] has Content-Length ["FORMAT_SIZE_T"], but without body or body with undetermined size. Fix your app.",
 				msg,value);
 		}
 	}

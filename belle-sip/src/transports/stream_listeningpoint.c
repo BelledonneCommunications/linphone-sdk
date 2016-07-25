@@ -99,7 +99,7 @@ static belle_sip_socket_t create_server_socket(const char *addr, int * port, int
 		belle_sip_socket_enable_dual_stack(sock);
 	}
 	
-	err=bind(sock,res->ai_addr,res->ai_addrlen);
+	err=bctbx_bind(sock,res->ai_addr,(socklen_t)res->ai_addrlen);
 	if (err==-1){
 		belle_sip_error("TCP bind() failed for %s port %i: %s",addr,*port,belle_sip_get_socket_error_string());
 		belle_sip_close_socket(sock);

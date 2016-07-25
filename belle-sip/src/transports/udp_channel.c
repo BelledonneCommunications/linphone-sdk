@@ -38,7 +38,7 @@ static int udp_channel_send(belle_sip_channel_t *obj, const void *buf, size_t bu
 	int err;
 	belle_sip_socket_t sock=belle_sip_source_get_socket((belle_sip_source_t*)chan);
 	
-	err=sendto(sock,buf,buflen,0,obj->current_peer->ai_addr,obj->current_peer->ai_addrlen);
+	err=(int)bctbx_sendto(sock,buf,buflen,0,obj->current_peer->ai_addr,(socklen_t)obj->current_peer->ai_addrlen);
 	if (err==-1){
 		belle_sip_error("channel [%p]: could not send UDP packet because [%s]",obj,belle_sip_get_socket_error_string());
 		return -errno;
@@ -53,7 +53,7 @@ static int udp_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen){
 	socklen_t addrlen=sizeof(addr);
 	belle_sip_socket_t sock=belle_sip_source_get_socket((belle_sip_source_t*)chan);
 	
-	err=recvfrom(sock,buf,buflen,0,(struct sockaddr*)&addr,&addrlen);
+	err=(int)bctbx_recvfrom(sock,buf,buflen,0,(struct sockaddr*)&addr,&addrlen);
 
 	if (err==-1 && get_socket_error()!=BELLESIP_EWOULDBLOCK){
 		belle_sip_error("Could not receive UDP packet: %s",belle_sip_get_socket_error_string());
@@ -66,7 +66,7 @@ int udp_channel_connect(belle_sip_channel_t *obj, const struct addrinfo *ai){
 	struct sockaddr_storage laddr={0};
 	socklen_t lslen=sizeof(laddr);
 	if (obj->local_ip==NULL){
-		belle_sip_get_src_addr_for(ai->ai_addr,ai->ai_addrlen,(struct sockaddr*)&laddr,&lslen,obj->local_port);
+		belle_sip_get_src_addr_for(ai->ai_addr,(socklen_t)ai->ai_addrlen,(struct sockaddr*)&laddr,&lslen,obj->local_port);
 	}
 	belle_sip_channel_set_ready(obj,(struct sockaddr*)&laddr,lslen);
 	return 0;
@@ -101,7 +101,7 @@ belle_sip_channel_t * belle_sip_channel_new_udp(belle_sip_stack_t *stack, int so
 belle_sip_channel_t * belle_sip_channel_new_udp_with_addr(belle_sip_stack_t *stack, int sock, const char *bindip, int localport, const struct addrinfo *peer){
 	belle_sip_udp_channel_t *obj=belle_sip_object_new(belle_sip_udp_channel_t);
 
-	belle_sip_channel_init_with_addr((belle_sip_channel_t*)obj, stack, bindip, localport, peer->ai_addr, peer->ai_addrlen);
+	belle_sip_channel_init_with_addr((belle_sip_channel_t*)obj, stack, bindip, localport, peer->ai_addr, (socklen_t)peer->ai_addrlen);
 	obj->base.local_port=localport;
 	belle_sip_channel_set_socket((belle_sip_channel_t*)obj,sock,NULL);
 	/*this lookups the local address*/

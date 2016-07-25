@@ -48,8 +48,8 @@
 #endif
 
 
-#define BELLE_SIP_POINTER_TO_INT(p)	((int)(long)(p))
-#define BELLE_SIP_INT_TO_POINTER(i)	((void*)(long)(i))
+#define BELLE_SIP_POINTER_TO_INT(p)	((int)(intptr_t)(p))
+#define BELLE_SIP_INT_TO_POINTER(i)	((void*)(intptr_t)(i))
 
 #endif
 

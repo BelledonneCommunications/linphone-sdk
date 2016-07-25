@@ -44,7 +44,7 @@ static int _belle_sip_tester_ipv6_available(void){
 		socklen_t slen=sizeof(ss);
 		char localip[128];
 		int port=0;
-		belle_sip_get_src_addr_for(ai->ai_addr,ai->ai_addrlen,(struct sockaddr*) &ss,&slen,4444);
+		belle_sip_get_src_addr_for(ai->ai_addr,(socklen_t)ai->ai_addrlen,(struct sockaddr*) &ss,&slen,4444);
 		src.ai_addr=(struct sockaddr*) &ss;
 		src.ai_addrlen=slen;
 		bctbx_addrinfo_to_ip_address(&src,localip, sizeof(localip),&port);

@@ -817,7 +817,7 @@ belle_sip_request_t *belle_sip_dialog_create_queued_request_from(belle_sip_dialo
 }
 
 void belle_sip_dialog_delete(belle_sip_dialog_t *obj){
-	int dropped_transactions;
+	size_t dropped_transactions;
 	
 	if (obj->expiration_timer){
 		belle_sip_main_loop_remove_source(obj->provider->stack->ml, obj->expiration_timer);
@@ -828,7 +828,7 @@ void belle_sip_dialog_delete(belle_sip_dialog_t *obj){
 	belle_sip_dialog_stop_200Ok_retrans(obj); /*if any*/
 	set_state(obj,BELLE_SIP_DIALOG_TERMINATED);
 	dropped_transactions=belle_sip_list_size(obj->queued_ct);
-	if (dropped_transactions>0) belle_sip_warning("dialog [%p]: leaves %i queued transaction aborted.",obj,dropped_transactions);
+	if (dropped_transactions>0) belle_sip_warning("dialog [%p]: leaves %u queued transaction aborted.",obj,(unsigned int)dropped_transactions);
 	belle_sip_list_for_each(obj->queued_ct,(void(*)(void*))belle_sip_transaction_terminate);
 	obj->queued_ct=belle_sip_list_free_with_data(obj->queued_ct,belle_sip_object_unref);
 	belle_sip_provider_remove_dialog(obj->provider,obj);

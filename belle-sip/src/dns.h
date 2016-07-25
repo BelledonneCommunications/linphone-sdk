@@ -948,6 +948,10 @@ DNS_PUBLIC int dns_resconf_loadfile(struct dns_resolv_conf *, FILE *);
 
 DNS_PUBLIC int dns_resconf_loadpath(struct dns_resolv_conf *, const char *);
 
+#ifdef USE_FIXED_NAMESERVERS
+int dns_resconf_load_fixed_nameservers(struct dns_resolv_conf *resconf);
+#endif /* USE_FIXED_NAMESERVERS */
+
 #ifdef USE_STRUCT_RES_STATE_NAMESERVERS
 int dns_resconf_load_struct_res_state_nameservers(struct dns_resolv_conf *resconf);
 #endif /* USE_STRUCT_RES_STATE_NAMESERVERS */
@@ -1195,6 +1199,8 @@ DNS_PUBLIC struct dns_packet *dns_res_query(struct dns_resolver *, const char *,
 DNS_PUBLIC const struct dns_stat *dns_res_stat(struct dns_resolver *);
 
 DNS_PUBLIC void dns_res_sethints(struct dns_resolver *, struct dns_hints *);
+
+DNS_PUBLIC void dns_res_enable_search(struct dns_resolver *, unsigned char enable);
 
 
 /*

@@ -82,10 +82,10 @@ void belle_sip_listening_point_remove_channel(belle_sip_listening_point_t *lp, b
 
 
 void belle_sip_listening_point_clean_channels(belle_sip_listening_point_t *lp){
-	int existing_channels;
+	int existing_channels = belle_sip_listening_point_get_channel_count(lp);
 	belle_sip_list_t* iterator;
 	
-	if ((existing_channels=belle_sip_list_size(lp->channels)) > 0) {
+	if (existing_channels > 0) {
 		belle_sip_message("Listening point destroying [%i] channels",existing_channels);
 	}
 	for (iterator=lp->channels;iterator!=NULL;iterator=iterator->next) {
@@ -96,7 +96,7 @@ void belle_sip_listening_point_clean_channels(belle_sip_listening_point_t *lp){
 }
 
 int belle_sip_listening_point_get_channel_count(const belle_sip_listening_point_t *lp){
-	return belle_sip_list_size(lp->channels);
+	return (int)belle_sip_list_size(lp->channels);
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_listening_point_t);
@@ -144,12 +144,12 @@ belle_sip_channel_t *belle_sip_listening_point_get_channel(belle_sip_listening_p
 static int send_keep_alive(belle_sip_channel_t* obj) {
 	/*keep alive*/
 	const char* crlfcrlf = "\r\n\r\n";
-	int size=strlen(crlfcrlf);
+	size_t size=strlen(crlfcrlf);
 	int err=belle_sip_channel_send(obj,crlfcrlf,size);
 	
 	if (err<=0 && !belle_sip_error_code_is_would_block(-err) && err!=-EINTR){
-		belle_sip_error("channel [%p]: could not send [%i] bytes of keep alive from [%s://%s:%i]  to [%s:%i]"	,obj
-			,size
+		belle_sip_error("channel [%p]: could not send [%u] bytes of keep alive from [%s://%s:%i]  to [%s:%i]"	,obj
+			,(unsigned int)size
 			,belle_sip_channel_get_transport_name(obj)
 			,obj->local_ip
 			,obj->local_port
