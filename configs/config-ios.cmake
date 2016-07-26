@@ -21,7 +21,6 @@
 ############################################################################
 
 # Define default values for the linphone builder options
-set(DEFAULT_VALUE_ENABLE_DTLS ON)
 set(DEFAULT_VALUE_ENABLE_FFMPEG ON)
 set(DEFAULT_VALUE_ENABLE_GPL_THIRD_PARTIES ON)
 set(DEFAULT_VALUE_ENABLE_GSM ON)
@@ -34,6 +33,7 @@ set(DEFAULT_VALUE_ENABLE_SILK ON)
 set(DEFAULT_VALUE_ENABLE_SPEEX ON)
 set(DEFAULT_VALUE_ENABLE_SRTP ON)
 set(DEFAULT_VALUE_ENABLE_UNIT_TESTS ON)
+set(DEFAULT_VALUE_ENABLE_VCARD ON)
 set(DEFAULT_VALUE_ENABLE_VIDEO ON)
 set(DEFAULT_VALUE_ENABLE_VPX ON)
 set(DEFAULT_VALUE_ENABLE_ZRTP ON)
@@ -64,14 +64,6 @@ endif()
 # Include builders
 include(builders/CMakeLists.txt)
 
-# bctoolbox
-linphone_builder_add_cmake_option(bctoolbox "-DENABLE_TESTS=NO")
-
-# belle-sip
-linphone_builder_add_cmake_option(bellesip "-DENABLE_TESTS=NO")
-
-# bzrtp
-linphone_builder_add_cmake_option(bzrtp "-DENABLE_TESTS=NO")
 linphone_builder_add_cmake_option(bzrtp "-DENABLE_STRICT=NO")
 
 # ffmpeg
@@ -80,14 +72,12 @@ set(EP_ffmpeg_LINKING_TYPE "--enable-static" "--disable-shared" "--enable-pic")
 # linphone
 linphone_builder_add_cmake_option(linphone "-DENABLE_RELATIVE_PREFIX=YES")
 linphone_builder_add_cmake_option(linphone "-DENABLE_CONSOLE_UI=NO")
-linphone_builder_add_cmake_option(linphone "-DENABLE_GTK_UI=NO")
+linphone_builder_add_cmake_option(linphone "-DENABLE_DAEMON=NO")
 linphone_builder_add_cmake_option(linphone "-DENABLE_NOTIFY=NO")
-linphone_builder_add_cmake_option(linphone "-DENABLE_TOOLS=NO")
 linphone_builder_add_cmake_option(linphone "-DENABLE_TUTORIALS=NO")
 linphone_builder_add_cmake_option(linphone "-DENABLE_UPNP=NO")
 linphone_builder_add_cmake_option(linphone "-DENABLE_MSG_STORAGE=YES")
 linphone_builder_add_cmake_option(linphone "-DENABLE_DOC=NO")
-linphone_builder_add_cmake_option(linphone "-DENABLE_UNIT_TESTS=YES")
 linphone_builder_add_cmake_option(linphone "-DENABLE_NLS=NO")
 
 # mbedtls
@@ -101,9 +91,7 @@ linphone_builder_add_cmake_option(ms2 "-DENABLE_OSS=NO")
 linphone_builder_add_cmake_option(ms2 "-DENABLE_GLX=NO")
 linphone_builder_add_cmake_option(ms2 "-DENABLE_X11=NO")
 linphone_builder_add_cmake_option(ms2 "-DENABLE_XV=NO")
-linphone_builder_add_cmake_option(ms2 "-DENABLE_TOOLS=NO")
 linphone_builder_add_cmake_option(ms2 "-DENABLE_DOC=NO")
-linphone_builder_add_cmake_option(ms2 "-DENABLE_UNIT_TESTS=NO")
 
 # opus
 linphone_builder_add_cmake_option(opus "-DENABLE_FIXED_POINT=YES")

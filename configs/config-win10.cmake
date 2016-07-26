@@ -21,7 +21,6 @@
 ############################################################################
 
 # Define default values for the linphone builder options
-set(DEFAULT_VALUE_ENABLE_DTLS ON)
 set(DEFAULT_VALUE_ENABLE_FFMPEG ON)
 set(DEFAULT_VALUE_ENABLE_GPL_THIRD_PARTIES ON)
 set(DEFAULT_VALUE_ENABLE_GSM ON)
@@ -55,7 +54,7 @@ include(builders/CMakeLists.txt)
 # linphone
 linphone_builder_add_cmake_option(linphone "-DENABLE_RELATIVE_PREFIX=YES")
 linphone_builder_add_cmake_option(linphone "-DENABLE_CONSOLE_UI=NO")
-linphone_builder_add_cmake_option(linphone "-DENABLE_GTK_UI=NO")
+linphone_builder_add_cmake_option(linphone "-DENABLE_DAEMON=NO")
 linphone_builder_add_cmake_option(linphone "-DENABLE_NOTIFY=NO")
 linphone_builder_add_cmake_option(linphone "-DENABLE_TOOLS=NO")
 linphone_builder_add_cmake_option(linphone "-DENABLE_TUTORIALS=NO")

@@ -32,15 +32,12 @@ if(LINPHONE_BUILDER_BUILD_DEPENDENCIES AND NOT APPLE)
 	# Do not build xml2 on Apple systems (Mac OS X and iOS), it is provided by the system
 	list(APPEND EP_bzrtp_DEPENDENCIES EP_xml2)
 endif()
-if(MSVC)
-	set(EP_bzrtp_EXTRA_LDFLAGS "/SAFESEH:NO")
-endif()
 if(MINGW)
 	set(EP_bzrtp_EXTRA_CPPFLAGS "-D__USE_MINGW_ANSI_STDIO")
 endif()
 
 set(EP_bzrtp_CMAKE_OPTIONS "-DENABLE_TESTS=${ENABLE_UNIT_TESTS}")
 if(ENABLE_UNIT_TESTS AND LINPHONE_BUILDER_BUILD_DEPENDENCIES)
-	list(APPEND EP_bzrtp_DEPENDENCIES EP_cunit)
+	list(APPEND EP_bzrtp_DEPENDENCIES EP_bcunit)
 endif()
 

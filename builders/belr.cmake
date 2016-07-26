@@ -31,12 +31,9 @@ if(EP_belr_FORCE_AUTOTOOLS)
 else()
 	set(EP_belr_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
 endif()
-if(MSVC)
-	set(EP_belr_EXTRA_LDFLAGS "/SAFESEH:NO")
-endif()
+set(EP_belr_DEPENDENCIES EP_bctoolbox)
 
 # TODO: Activate strict compilation options on IOS
 if(IOS)
 	list(APPEND EP_belr_CMAKE_OPTIONS "-DENABLE_STRICT=NO")
 endif()
-

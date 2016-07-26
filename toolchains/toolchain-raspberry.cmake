@@ -20,40 +20,64 @@
 #
 ############################################################################
 
+if("$ENV{RASPBERRY_VERSION}" STREQUAL "")
+	set(RASPBERRY_VERSION 1)
+else()
+	if($ENV{RASPBERRY_VERSION} VERSION_GREATER 3)
+		set(RASPBERRY_VERSION 3)
+	else()
+		set(RASPBERRY_VERSION $ENV{RASPBERRY_VERSION})
+	endif()
+endif()
+
 if("$ENV{RASPBIAN_ROOTFS}" STREQUAL "")
 	message(FATAL_ERROR "Define the RASPBIAN_ROOTFS environment variable to point to the raspbian rootfs.")
 else()
 	set(SYSROOT_PATH "$ENV{RASPBIAN_ROOTFS}")
 endif()
-set(RASPBERRY_TOOLCHAIN_HOST "arm-linux-gnueabihf")
+set(TOOLCHAIN_HOST "arm-linux-gnueabihf")
 
 message(STATUS "Using sysroot path: ${SYSROOT_PATH}")
 
-set(RASPBERRY_TOOLCHAIN_CC "${RASPBERRY_TOOLCHAIN_HOST}-gcc")
-set(RASPBERRY_TOOLCHAIN_CXX "${RASPBERRY_TOOLCHAIN_HOST}-g++")
-set(RASPBERRY_TOOLCHAIN_LD "${RASPBERRY_TOOLCHAIN_HOST}-ld")
-set(RASPBERRY_TOOLCHAIN_AR "${RASPBERRY_TOOLCHAIN_HOST}-ar")
-set(RASPBERRY_TOOLCHAIN_RANLIB "${RASPBERRY_TOOLCHAIN_HOST}-ranlib")
-set(RASPBERRY_TOOLCHAIN_STRIP "${RASPBERRY_TOOLCHAIN_HOST}-strip")
-set(RASPBERRY_TOOLCHAIN_NM "${RASPBERRY_TOOLCHAIN_HOST}-nm")
-
-
-include(CMakeForceCompiler)
+set(TOOLCHAIN_CC "${TOOLCHAIN_HOST}-gcc")
+set(TOOLCHAIN_CXX "${TOOLCHAIN_HOST}-g++")
+set(TOOLCHAIN_LD "${TOOLCHAIN_HOST}-ld")
+set(TOOLCHAIN_AR "${TOOLCHAIN_HOST}-ar")
+set(TOOLCHAIN_RANLIB "${TOOLCHAIN_HOST}-ranlib")
+set(TOOLCHAIN_STRIP "${TOOLCHAIN_HOST}-strip")
+set(TOOLCHAIN_NM "${TOOLCHAIN_HOST}-nm")
 
 set(CMAKE_CROSSCOMPILING TRUE)
+set(CMAKE_SYSROOT "${SYSROOT_PATH}")
 
 # Define name of the target system
 set(CMAKE_SYSTEM_NAME "Linux")
-set(CMAKE_SYSTEM_PROCESSOR "arm")
+if(RASPBERRY_VERSION VERSION_GREATER 1)
+	set(CMAKE_SYSTEM_PROCESSOR "armv7")
+else()
+	set(CMAKE_SYSTEM_PROCESSOR "arm")
+endif()
 
 # Define the compiler
-CMAKE_FORCE_C_COMPILER(${RASPBERRY_TOOLCHAIN_CC} GNU)
-CMAKE_FORCE_CXX_COMPILER(${RASPBERRY_TOOLCHAIN_CXX} GNU)
+set(CMAKE_C_COMPILER ${TOOLCHAIN_CC})
+set(CMAKE_CXX_COMPILER ${TOOLCHAIN_CXX})
+if(RASPBERRY_VERSION VERSION_GREATER 2)
+	set(CMAKE_C_FLAGS "-mcpu=cortex-a53 -mfpu=vfp -mfloat-abi=hard" CACHE STRING "Flags for Raspberry PI 3")
+	set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS}" CACHE STRING "Flags for Raspberry PI 3")
+elseif(RASPBERRY_VERSION VERSION_GREATER 1)
+	set(CMAKE_C_FLAGS "-mcpu=cortex-a7 -mfpu=vfp -mfloat-abi=hard" CACHE STRING "Flags for Raspberry PI 2")
+	set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS}" CACHE STRING "Flags for Raspberry PI 2")
+else()
+	set(CMAKE_C_FLAGS "-mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=hard" CACHE STRING "Flags for Raspberry PI 1 B+")
+	set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS}" CACHE STRING "Flags for Raspberry PI 1 B+")
+endif()
 
-set(CMAKE_FIND_ROOT_PATH ${SYSROOT_PATH} ${CMAKE_INSTALL_PREFIX})
+set(CMAKE_FIND_ROOT_PATH "${CMAKE_INSTALL_PREFIX}" "${CMAKE_SYSROOT}")
 
 # search for programs in the build host directories
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 # for libraries and headers in the target directories
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
+

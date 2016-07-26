@@ -1,6 +1,6 @@
 ############################################################################
-# cunit.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# additional_steps.cmake
+# Copyright (C) 2016  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,16 +20,26 @@
 #
 ############################################################################
 
-set(EP_cunit_GIT_REPOSITORY "git://git.linphone.org/cunit.git" CACHE STRING "cunit repository URL")
-set(EP_cunit_GIT_TAG_LATEST "linphone" CACHE STRING "cunit tag to use when compiling latest version")
-set(EP_cunit_GIT_TAG "0a0a9c60f5a1b899ae26b705fa5224ef25377982" CACHE STRING "cunit tag to use")
-set(EP_cunit_EXTERNAL_SOURCE_PATHS "cunit" "externals/cunit")
-set(EP_cunit_MAY_BE_FOUND_ON_SYSTEM TRUE)
-set(EP_cunit_IGNORE_WARNINGS TRUE)
+# Packaging
+if(ENABLE_PACKAGING)
+	get_cmake_property(_varnames VARIABLES)
+	set(ENABLE_VARIABLES )
+	foreach(_varname ${_varnames})
+		if(_varname MATCHES "^ENABLE_.*")
+			list(APPEND ENABLE_VARIABLES -D${_varname}=${${_varname}})
+	    endif()
+	endforeach()
 
-set(EP_cunit_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
-if(MSVC)
-	set(EP_cunit_EXTRA_LDFLAGS "/SAFESEH:NO")
+	linphone_builder_apply_flags()
+	linphone_builder_set_ep_directories(package)
+	linphone_builder_expand_external_project_vars()
+	ExternalProject_Add(TARGET_linphone_package
+		DEPENDS TARGET_linphone_builder
+		TMP_DIR ${ep_tmp}
+		BINARY_DIR ${ep_build}
+		SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/package"
+		DOWNLOAD_COMMAND ""
+		CMAKE_GENERATOR ${CMAKE_GENERATOR}
+		CMAKE_ARGS ${LINPHONE_BUILDER_EP_ARGS} -DLINPHONE_OUTPUT_DIR=${CMAKE_INSTALL_PREFIX} -DLINPHONE_SOURCE_DIR=${EP_linphone_SOURCE_DIR} ${ENABLE_VARIABLES} -DRASPBERRY_VERSION=${RASPBERRY_VERSION}
+	)
 endif()
-
-set(EP_cunit_CMAKE_OPTIONS "-DENABLE_AUTOMATED=YES" "-DENABLE_CONSOLE=NO")

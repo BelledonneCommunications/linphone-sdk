@@ -24,6 +24,7 @@
 
 import argparse
 import copy
+import imp
 import os
 import platform
 import re
@@ -33,6 +34,7 @@ import subprocess
 import sys
 import tempfile
 from distutils.spawn import find_executable
+from distutils.version import LooseVersion
 from logging import error, warning, info, INFO, basicConfig
 from subprocess import Popen, PIPE
 
@@ -49,6 +51,7 @@ class Target:
         self.toolchain_file = None
         self.required_build_platforms = None
         self.additional_args = []
+        self.packaging_args = None
         self.work_dir = work_dir + '/' + self.name
         self.abs_work_dir = os.getcwd() + '/' + self.work_dir
         self.cmake_dir = self.work_dir + '/cmake'
@@ -97,6 +100,10 @@ class Target:
             cmd += ['-DENABLE_DEBUG_LOGS=YES']
         if args.list_cmake_variables:
             cmd += ['-L']
+        if 'package' in vars(args) and args.package:
+            cmd += ["-DENABLE_PACKAGING=YES"]
+            if self.packaging_args is not None:
+                cmd += self.packaging_args
         for arg in self.additional_args:
             cmd += [arg]
         for arg in additional_args:
@@ -114,6 +121,11 @@ class Target:
     def clean(self):
         if os.path.isdir(self.abs_work_dir):
             shutil.rmtree(self.abs_work_dir, ignore_errors=False, onerror=self.handle_remove_read_only)
+        # special hack for vpx: we have switched from inside sources build to outside, so we must clean the folder properly
+        vpx_dir = os.path.join(self.external_source_path, "externals", "libvpx")
+        if os.path.isfile(os.path.join(vpx_dir, "Makefile")):
+            info("Cleaning vpx source directory since we are now building it from outside directory...")
+            Popen("git clean -xfd".split(" "), cwd=vpx_dir).wait()
 
     def veryclean(self):
         self.clean()
@@ -126,21 +138,6 @@ class Target:
             func(path)
         else:
             raise
-
-    def build_instructions(self, debug=False):
-        if self.generator is not None and self.generator.startswith('Visual Studio'):
-            config = "Release"
-            if debug:
-                config = "Debug"
-            return "Open the \"{cmake_dir}/Project.sln\" Visual Studio solution and build with the \"{config}\" configuration".format(cmake_dir=self.cmake_dir, config=config)
-        else:
-            if self.generator in [None, "Unix Makefiles"]:
-                builder = "make"
-            elif self.generator == "Ninja":
-                builder = "ninja"
-            else:
-                return "Unknown generator. Files have been generated in {cmake_dir}".format(cmake_dir=self.cmake_dir)
-            return "Run the following command to build:\n\t{builder} -C {cmake_dir}".format(builder=builder, cmake_dir=self.cmake_dir)
 
 
 
@@ -169,9 +166,13 @@ class Preparator:
         self.targets = targets
         self.virtual_targets = virtual_targets
         self.additional_args = []
+        self.missing_python_dependencies = []
         self.missing_dependencies = {}
+        self.wrong_cmake_version = False
+        self.release_with_debug_info = False
         self.veryclean = False
         self.show_gpl_disclaimer = False
+        self.min_cmake_version = None
 
         self.argparser = argparse.ArgumentParser(description="Prepare build of Linphone and its dependencies.")
         self.argparser.add_argument('-c', '--clean', help="Clean a previous build instead of preparing a build.", action='store_true')
@@ -192,13 +193,29 @@ class Preparator:
             self.argparser.add_argument('target', nargs='*', action=TargetListAction, default=default_targets, targets=self.available_targets(),
                 help="The target(s) to build for (default is '{0}'). Space separated targets in list: {1}.".format(' '.join(default_targets), ', '.join(self.available_targets())))
 
+        self.argv = sys.argv[1:]
+        self.load_user_config()
+        self.load_project_config()
+
+    def load_config(self, config):
+        if os.path.isfile(config):
+            argv = open(config).read().split()
+            info("Loaded '{}' configuration: {}".format(config, argv))
+            self.argv = argv + self.argv
+
+    def load_project_config(self):
+        self.load_config(os.path.join(os.getcwd(), "prepare.conf"))
+
+    def load_user_config(self):
+        self.load_config(os.path.join(os.getcwd(), "prepare.conf.user"))
+
     def available_targets(self):
         targets = [target for target in self.targets.keys()]
         targets += [target for target in self.virtual_targets.keys()]
         return targets
 
     def parse_args(self):
-        self.args, self.user_additional_args = self.argparser.parse_known_args()
+        self.args, self.user_additional_args = self.argparser.parse_known_args(self.argv)
         if platform.system() == 'Windows':
             self.args.ccache = False
         new_targets = []
@@ -209,7 +226,15 @@ class Preparator:
                 new_targets += [target_name]
         self.args.target = list(set(new_targets))
 
-    def check_is_installed(self, binary, prog='it', warn=True):
+    def check_python_module_is_present(self, modname):
+        try:
+            imp.find_module(modname)
+            return True
+        except ImportError:
+            self.missing_python_dependencies += [modname]
+            return False
+
+    def check_is_installed(self, binary, prog=None, warn=True):
         if not find_executable(binary):
             if warn:
                 self.missing_dependencies[binary] = prog
@@ -217,7 +242,19 @@ class Preparator:
             return False
         return True
 
-    def check_tools(self):
+    def check_cmake_version(self):
+        cmake = find_executable('cmake')
+        p = Popen([cmake, '--version'], shell=False, stdout=PIPE, universal_newlines=True)
+        p.wait()
+        if p.returncode != 0:
+            self.wrong_cmake_version = True
+        else:
+            cmake_version = p.stdout.readlines()[0].split()[-1]
+            if LooseVersion(cmake_version) < LooseVersion(self.min_cmake_version):
+                self.wrong_cmake_version = True
+        return not self.wrong_cmake_version
+
+    def check_environment(self, submodule_directory_to_check=None):
         ret = 0
 
         # at least FFmpeg requires no whitespace in sources path...
@@ -226,16 +263,34 @@ class Preparator:
             ret = 1
 
         ret |= not self.check_is_installed('cmake')
+        if not ret and self.min_cmake_version is not None:
+            ret |= not self.check_cmake_version()
 
-        if not os.path.isdir("submodules/linphone/mediastreamer2/src") or not os.path.isdir("submodules/linphone/oRTP/src"):
+        if submodule_directory_to_check is None:
+            submodule_directory_to_check = "submodules/linphone/mediastreamer2/src"
+        if not os.path.isdir(submodule_directory_to_check):
             error("Missing some git submodules. Did you run:\n\tgit submodule update --init --recursive")
             ret = 1
 
         return ret
 
+    def show_environment_errors(self):
+        self.show_wrong_cmake_version()
+        self.show_missing_dependencies()
+        self.show_missing_python_dependencies()
+
+    def show_wrong_cmake_version(self):
+        if self.wrong_cmake_version:
+            error("You need at leat CMake version {}.".format(self.min_cmake_version))
+
     def show_missing_dependencies(self):
         if self.missing_dependencies:
             error("The following binaries are missing: {}. Please install them.".format(' '.join(self.missing_dependencies.keys())))
+
+    def show_missing_python_dependencies(self):
+        if self.missing_python_dependencies:
+            error("The following python modules are missing: {}. Please install them using:\n\tpip install {}".format(
+                ' '.join(self.missing_python_dependencies), ' '.join(self.missing_python_dependencies)))
 
     def gpl_disclaimer(self):
         if not self.show_gpl_disclaimer:
@@ -264,6 +319,9 @@ class Preparator:
                     "\n***************************************************************************"
                     "\n***************************************************************************")
 
+    def list_feature_target(self):
+        return None
+
     def first_target(self):
         return self.targets[self.args.target[0]]
 
@@ -276,12 +334,19 @@ class Preparator:
 
     def list_features_with_args(self, args, additional_args):
         tmpdir = tempfile.mkdtemp(prefix="linphone-prepare")
-        tmptarget = self.first_target()
+        tmptarget = self.list_feature_target()
+        if tmptarget is None:
+            tmptarget = self.first_target()
         tmptarget.abs_cmake_dir = tmpdir
         option_regex = re.compile("ENABLE_(.*):(.*)=(.*)")
         options = {}
         ended = True
-        build_type = 'Debug' if args.debug else 'Release'
+        if args.debug:
+            build_type = 'Debug'
+        elif self.release_with_debug_info:
+            build_type = 'RelWithDebInfo'
+        else:
+            build_type = 'Release'
 
         p = Popen(tmptarget.cmake_command(build_type, args, additional_args, verbose=False), cwd=tmpdir, shell=False, stdout=PIPE, universal_newlines=True)
         p.wait()
@@ -344,8 +409,12 @@ class Preparator:
 
         if type(self.args.debug) is str:
             build_type = self.args.debug
+        elif self.args.debug:
+            build_type = 'Debug'
+        elif self.release_with_debug_info:
+            build_type = 'RelWithDebInfo'
         else:
-            build_type = 'Debug' if self.args.debug else 'Release'
+            build_type = 'Release'
 
         if not os.path.isdir(target.abs_cmake_dir):
             os.makedirs(target.abs_cmake_dir)
@@ -394,7 +463,7 @@ class Preparator:
         if ret != 0:
             if ret == 51:
                 if os.path.isfile('Makefile'):
-                    Popen("make help-prepare-options".split(" "))
+                    Popen("make help-prepare-options".split(" ")).wait()
                 ret = 0
             return ret
         # Only generated makefile if we are using Ninja or Makefile
@@ -406,6 +475,11 @@ class Preparator:
         elif self.generator().endswith("Unix Makefiles"):
             self.generate_makefile('$(MAKE) -C')
             info("You can now run 'make' to build.")
+        elif self.generator().endswith("Xcode"):
+            self.generate_makefile('xcodebuild -project', 'Project.xcodeproj')
+            info("You can now run 'make' to build.")
+        elif self.generator().startswith("Visual Studio"):
+            self.generate_vs_solution()
         else:
             warning("Not generating meta-makefile for generator {}.".format(self.generator()))
         self.gpl_disclaimer()
@@ -416,6 +490,12 @@ class Preparator:
             return self.clean()
         else:
             return self.prepare()
+
+    def generate_makefile(self, generator, project_file=''):
+        pass
+
+    def generate_vs_solution(self):
+        pass
 
     def prepare_tunnel(self):
         if self.args.tunnel:

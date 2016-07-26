@@ -1,6 +1,6 @@
 ############################################################################
-# config-python-raspberry.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# config-desktop-raspberry.cmake
+# Copyright (C) 2016  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,17 +20,33 @@
 #
 ############################################################################
 
+# Define default values for the linphone builder options
+set(DEFAULT_VALUE_ENABLE_BV16 ON)
+set(DEFAULT_VALUE_ENABLE_FFMPEG ON)
+set(DEFAULT_VALUE_ENABLE_GPL_THIRD_PARTIES ON)
+set(DEFAULT_VALUE_ENABLE_GSM ON)
+set(DEFAULT_VALUE_ENABLE_GTK_UI OFF)
+set(DEFAULT_VALUE_ENABLE_MBEDTLS ON)
+set(DEFAULT_VALUE_ENABLE_MKV ON)
+set(DEFAULT_VALUE_ENABLE_OPUS ON)
+set(DEFAULT_VALUE_ENABLE_SPEEX ON)
+set(DEFAULT_VALUE_ENABLE_SRTP ON)
+set(DEFAULT_VALUE_ENABLE_UNIT_TESTS ON)
+set(DEFAULT_VALUE_ENABLE_VCARD ON)
+set(DEFAULT_VALUE_ENABLE_VIDEO ON)
+set(DEFAULT_VALUE_ENABLE_VPX ON)
+set(DEFAULT_VALUE_ENABLE_WASAPI OFF)
+set(DEFAULT_VALUE_ENABLE_ZRTP ON)
+
 message(STATUS "Buiding for Raspberry PI ${RASPBERRY_VERSION}")
 
 get_filename_component(COMPILER_NAME ${CMAKE_C_COMPILER} NAME)
 string(REGEX REPLACE "-gcc$" "" LINPHONE_BUILDER_HOST ${COMPILER_NAME})
 unset(COMPILER_NAME)
 
-set(PACKAGE_NAME "linphone4raspberry")
+set(LINPHONE_BUILDER_PKG_CONFIG_PATH "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig/:${SYSROOT_PATH}/usr/lib/pkgconfig")
 
-include("configs/config-python.cmake")
-
-set(DEFAULT_VALUE_ENABLE_WASAPI OFF)
+include("configs/config-desktop-common.cmake")
 
 # ffmpeg
 set(EP_ffmpeg_CROSS_COMPILATION_OPTIONS
@@ -63,4 +79,7 @@ else()
 		"--target=armv6-linux-gcc"
 	)
 endif()
+
+# Add config step for packaging
+set(LINPHONE_BUILDER_ADDITIONAL_CONFIG_STEPS "${CMAKE_CURRENT_LIST_DIR}/desktop-raspberry/additional_steps.cmake")
 

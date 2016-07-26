@@ -3,10 +3,10 @@
 <xsl:output method="xml" indent="yes" />
 <xsl:template match="/">
    <testsuites>
-      <xsl:for-each select="//CUNIT_RUN_SUITE_SUCCESS">
+      <xsl:for-each select="//BCUNIT_RUN_SUITE_SUCCESS">
           <xsl:variable name="suiteName" select="normalize-space(SUITE_NAME/text())"/>
-	      <xsl:variable name="numberOfTests" select="count(CUNIT_RUN_TEST_RECORD/CUNIT_RUN_TEST_SUCCESS)"/>
-	      <xsl:variable name="numberOfFailures" select="count(CUNIT_RUN_TEST_RECORD/CUNIT_RUN_TEST_FAILURE)"/>
+	      <xsl:variable name="numberOfTests" select="count(BCUNIT_RUN_TEST_RECORD/BCUNIT_RUN_TEST_SUCCESS)"/>
+	      <xsl:variable name="numberOfFailures" select="count(BCUNIT_RUN_TEST_RECORD/BCUNIT_RUN_TEST_FAILURE)"/>
       <testsuite
       	name="{$suiteName}"
       	tests="{$numberOfTests}"
@@ -15,13 +15,13 @@
 		errors="0"
 		skipped="0">
 		
-			<xsl:for-each select="CUNIT_RUN_TEST_RECORD/CUNIT_RUN_TEST_SUCCESS">
+			<xsl:for-each select="BCUNIT_RUN_TEST_RECORD/BCUNIT_RUN_TEST_SUCCESS">
 				<xsl:variable name="testname" select="normalize-space(TEST_NAME/text())"></xsl:variable>
 				<testcase classname="{$suiteName}" name="{$testname}" time="0.0">
 				</testcase>
 			</xsl:for-each>
 			
-			<xsl:for-each select="CUNIT_RUN_TEST_RECORD/CUNIT_RUN_TEST_FAILURE">
+			<xsl:for-each select="BCUNIT_RUN_TEST_RECORD/BCUNIT_RUN_TEST_FAILURE">
 				<xsl:variable name="testname" select="normalize-space(TEST_NAME/text())"></xsl:variable>
 				<testcase classname="{$suiteName}" name="{$testname}" time="0.0">
 					<failure>

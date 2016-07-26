@@ -56,7 +56,6 @@ ms2_add_option("Non free codecs" "Allow inclusion of non-free codecs in the buil
 #security options
 ms2_add_option("SRTP" "SRTP media encryption support." "${DEFAULT_VALUE_ENABLE_SRTP}")
 ms2_add_dependent_option("ZRTP" "ZRTP media encryption support." "${DEFAULT_VALUE_ENABLE_ZRTP}" "ENABLE_SRTP" OFF)
-ms2_add_dependent_option("DTLS" "DTLS media encryption support." "${DEFAULT_VALUE_ENABLE_DTLS}" "ENABLE_SRTP" OFF)
 
 #audio options and codecs
 ms2_add_option("WebRTC AEC" "WebRTC echo canceller support." "${DEFAULT_VALUE_ENABLE_WEBRTC_AEC}")
@@ -69,6 +68,7 @@ endif()
 ms2_add_option("Codec2" "Codec2 audio encoding/decoding support." "${DEFAULT_VALUE_ENABLE_CODEC2}")
 ms2_add_strict_dependent_option("G729" "G.729 audio encoding/decoding support (require license)." OFF ON OFF "ENABLE_NON_FREE_CODECS" "non free codecs option not enabled (ENABLE_NON_FREE_CODECS).")
 ms2_add_strict_dependent_option("G729B CNG" "G.729 annex B confort noise generation (require license)." OFF ON OFF "ENABLE_NON_FREE_CODECS" "non free codecs option not enabled (ENABLE_NON_FREE_CODECS).")
+ms2_add_option("G726" "G.726 audio encoding/decoding support." "${DEFAULT_VALUE_ENABLE_G726}")
 ms2_add_option("GSM"  "GSM audio encoding/decoding support." "${DEFAULT_VALUE_ENABLE_GSM}")
 ms2_add_option("iLBC"  "iLBC audio encoding/decoding support." "${DEFAULT_VALUE_ENABLE_ILBC}")
 ms2_add_option("ISAC"  "ISAC audio encoding/decoding support." "${DEFAULT_VALUE_ENABLE_ISAC}")

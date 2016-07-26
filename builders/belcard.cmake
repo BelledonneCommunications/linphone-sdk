@@ -32,9 +32,6 @@ if(EP_belcard_FORCE_AUTOTOOLS)
 else()
 	set(EP_belcard_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
 endif()
-if(MSVC)
-	set(EP_belcard_EXTRA_LDFLAGS "/SAFESEH:NO")
-endif()
 
 # TODO: Activate strict compilation options on IOS
 if(IOS)

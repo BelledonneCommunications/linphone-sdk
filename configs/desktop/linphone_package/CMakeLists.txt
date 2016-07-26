@@ -106,7 +106,7 @@ if(WIN32)
 	add_list_file(zlib)
 endif()
 if(ENABLE_UNIT_TESTS)
-	add_list_file(cunit)
+	add_list_file(bcunit)
 endif()
 if(ENABLE_VCARD)
 	add_list_file(vcard)
@@ -185,7 +185,7 @@ if(WIN32)
 		PATTERN "man" EXCLUDE
 		PATTERN "manifest" EXCLUDE
 		PATTERN "share/aclocal" EXCLUDE
-		PATTERN "share/CUnit" EXCLUDE
+		PATTERN "share/BCUnit" EXCLUDE
 		PATTERN "share/glib-2.0" EXCLUDE
 		PATTERN "share/gtk-2.0" EXCLUDE
 		PATTERN "share/gtk-doc" EXCLUDE
@@ -253,12 +253,19 @@ if(MSVC)
 	)
 	string(REGEX REPLACE "Visual Studio ([0-9]+).*" "\\1" MSVC_VERSION "${CMAKE_GENERATOR}")
 	find_file(MSVCP_LIB "msvcp${MSVC_VERSION}0.dll" PATHS "C:/Windows/System32")
-	find_file(MSVCR_LIB "msvcr${MSVC_VERSION}0.dll" PATHS "C:/Windows/System32")
-	install(FILES ${MSVCP_LIB} ${MSVCR_LIB} DESTINATION "bin")
+	# Starting with Visual Studio 2015 (MSVC_VERSION==14) the msvcr dll has been renamed to vcruntime
+	find_file(VCRUNTIME_LIB "vcruntime${MSVC_VERSION}0.dll" PATHS "C:/Windows/System32")
+	if(NOT VCRUNTIME_LIB)
+		find_file(VCRUNTIME_LIB "msvcr${MSVC_VERSION}0.dll" PATHS "C:/Windows/System32")
+	endif()
+	install(FILES ${MSVCP_LIB} ${VCRUNTIME_LIB} DESTINATION "bin")
 	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 		find_file(MSVCPD_LIB "msvcp${MSVC_VERSION}0d.dll" PATHS "C:/Windows/System32")
-		find_file(MSVCRD_LIB "msvcr${MSVC_VERSION}0d.dll" PATHS "C:/Windows/System32")
-		install(FILES ${MSVCPD_LIB} ${MSVCRD_LIB} DESTINATION "bin")
+		find_file(VCRUNTIMED_LIB "vcruntime${MSVC_VERSION}0d.dll" PATHS "C:/Windows/System32")
+		if(NOT VCRUNTIMED_LIB)
+			find_file(VCRUNTIMED_LIB "msvcr${MSVC_VERSION}0d.dll" PATHS "C:/Windows/System32")
+		endif()
+		install(FILES ${MSVCPD_LIB} ${VCRUNTIMED_LIB} DESTINATION "bin")
 	endif()
 endif()
 
@@ -283,6 +290,8 @@ if(WIN32)
 endif()
 
 if(WIN32)
+	# Use template from the current source directory to force uninstallation and ensure that linphone is not running before installation
+	set(CPACK_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 	set(CPACK_GENERATOR "NSIS")
 	set(CPACK_PACKAGE_ICON "${CMAKE_CURRENT_SOURCE_DIR}\\\\linphone-banner.bmp")
 	set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${LINPHONE_GIT_REVISION}-win32")
@@ -291,21 +300,21 @@ if(WIN32)
 	set(CPACK_NSIS_DISPLAY_NAME "Linphone")
 	set(CPACK_NSIS_PACKAGE_NAME "Linphone ${LINPHONE_MAJOR_VERSION}.${LINPHONE_MINOR_VERSION}.${LINPHONE_MICRO_VERSION}")
 	set(CPACK_NSIS_URL_INFO_ABOUT "http://www.linphone.org/")
-	set(CPACK_NSIS_MUI_FINISHPAGE_RUN "linphone")
-	set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL "ON")
 
 	file(TO_NATIVE_PATH "${CMAKE_CURRENT_SOURCE_DIR}" DOS_STYLE_SOURCE_DIR)
 	string(REPLACE "\\" "\\\\" ESCAPED_DOS_STYLE_SOURCE_DIR "${DOS_STYLE_SOURCE_DIR}")
 	file(TO_NATIVE_PATH "${CMAKE_CURRENT_BINARY_DIR}" DOS_STYLE_BINARY_DIR)
 	string(REPLACE "\\" "\\\\" ESCAPED_DOS_STYLE_BINARY_DIR "${DOS_STYLE_BINARY_DIR}")
 
+	configure_file("${CMAKE_CURRENT_SOURCE_DIR}/uninstall.nsi" "${CMAKE_CURRENT_BINARY_DIR}/uninstall.nsi" COPYONLY)
+	set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "!include \\\"${ESCAPED_DOS_STYLE_BINARY_DIR}\\\\uninstall.nsi\\\"")
 	if(ENABLE_OPENH264)
 		# Add NSI instructions to download the openh264 codec from Cisco's servers whether msopenh264 has been installed
 		configure_file("${CMAKE_CURRENT_SOURCE_DIR}/openh264-install.nsi.in" "${CMAKE_CURRENT_BINARY_DIR}/openh264-install.nsi" @ONLY)
 		set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "!include \\\"${ESCAPED_DOS_STYLE_BINARY_DIR}\\\\openh264-install.nsi\\\"")
 
 		# Add NSI instructions to delete the openh264 codecs while uninstalling Linphone
-		set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "!include \\\"${ESCAPED_DOS_STYLE_SOURCE_DIR}\\\\openh264-uninstall.nsi\\\"")
+		set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "${CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS}\n!include \\\"${ESCAPED_DOS_STYLE_SOURCE_DIR}\\\\openh264-uninstall.nsi\\\"")
 	endif()
 
 	# Sign the installer
