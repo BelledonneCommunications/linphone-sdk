@@ -1,5 +1,5 @@
 ############################################################################
-# androidsupport.cmake
+# CMakeLists.txt
 # Copyright (C) 2016  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -20,4 +20,17 @@
 #
 ############################################################################
 
-set(EP_androidsupport_EXTERNAL_SOURCE_PATHS "cmake-builder/builders/androidsupport")
+cmake_minimum_required(VERSION 3.0)
+project(androidcpufeatures LANGUAGES C)
+
+include(GNUInstallDirs)
+
+
+add_library(cpufeatures STATIC "${ANDROID_CPU_FEATURES_INCLUDE_DIRS}/cpu-features.c")
+
+install(TARGETS cpufeatures
+	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+)
