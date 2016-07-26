@@ -333,7 +333,9 @@ static void belle_sip_refresher_listener (belle_sip_refresher_t* refresher
 	}
 	if (endpoint->stat.refreshKo==1 && endpoint->transiant_network_failure) {
 		belle_sip_stack_set_send_error(endpoint->stack,0);
-	} else 	if (endpoint->stat.refreshOk==1 && endpoint->transiant_network_failure) {
+	} else 	if (endpoint->stat.refreshOk==1
+				&& endpoint->stat.refreshKo==0
+				&& endpoint->transiant_network_failure) {
 		/*generate a network failure*/
 		belle_sip_refresher_set_retry_after(endpoint->refresher,100);
 		belle_sip_stack_set_send_error(endpoint->stack,-1);
