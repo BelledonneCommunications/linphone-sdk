@@ -23,6 +23,7 @@
 set(CMAKE_SYSTEM_PROCESSOR "aarch64")
 set(LINPHONE_BUILDER_OSX_ARCHITECTURES "arm64")
 set(COMPILER_PREFIX "arm64-apple-darwin")
+set(CLANG_TARGET "arm64-apple-darwin")
 set(PLATFORM "OS")
 include("${CMAKE_CURRENT_LIST_DIR}/ios/toolchain-ios.cmake")
 
