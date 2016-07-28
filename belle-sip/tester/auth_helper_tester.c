@@ -93,8 +93,10 @@ static void test_generate_and_parse_certificates(void) {
 		return;
 	}
 	BC_ASSERT_EQUAL(0, ret, int, "%d");
-	belle_sip_object_unref(certificate);
-	belle_sip_object_unref(key);
+	if (ret == 0) {
+		belle_sip_object_unref(certificate);
+		belle_sip_object_unref(key);
+	}
 	ret = belle_sip_generate_self_signed_certificate(belle_sip_certificate_temporary_dir, "test_certificate2", &certificate, &key);
 	BC_ASSERT_EQUAL(0, ret, int, "%d");
 
