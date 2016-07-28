@@ -60,9 +60,6 @@ linphone_builder_add_cmake_option(linphone "-DENABLE_TOOLS=NO")
 linphone_builder_add_cmake_option(linphone "-DENABLE_TUTORIALS=NO")
 linphone_builder_add_cmake_option(linphone "-DENABLE_UPNP=NO")
 
-# mbedtls
-set(EP_mbedtls_EXTRA_CFLAGS "${EP_mbedtls_EXTRA_CFLAGS} -DMBEDTLS_NO_PLATFORM_ENTROPY")
-
 # ms2
 linphone_builder_add_cmake_option(ms2 "-DENABLE_RELATIVE_PREFIX=YES")
 linphone_builder_add_cmake_option(ms2 "-DENABLE_TOOLS=NO")
