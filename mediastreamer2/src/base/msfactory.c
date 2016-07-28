@@ -227,27 +227,6 @@ MSFactory *ms_factory_new(void){
 }
 
 
-/**
- * Destroy the factory.
- * This should be done after destroying all objects created by the factory.
-**/
-void ms_factory_destroy(MSFactory *factory){
-	if (factory->voip_uninit_func) factory->voip_uninit_func(factory);
-	ms_factory_uninit_plugins(factory);
-	if (factory->evq) ms_factory_destroy_event_queue(factory);
-	factory->formats=bctbx_list_free_with_data(factory->formats,(void(*)(void*))ms_fmt_descriptor_destroy);
-	factory->desc_list=bctbx_list_free(factory->desc_list);
-	bctbx_list_for_each(factory->stats_list,ms_free);
-	factory->stats_list=bctbx_list_free(factory->stats_list);
-	factory->offer_answer_provider_list = bctbx_list_free(factory->offer_answer_provider_list);
-	bctbx_list_for_each(factory->platform_tags, ms_free);
-	factory->platform_tags = bctbx_list_free(factory->platform_tags);
-	if (factory->plugins_dir) ms_free(factory->plugins_dir);
-	ms_free(factory);
-	//if (factory==fallback_factory) fallback_factory=NULL;
-}
-
-
 void ms_factory_register_filter(MSFactory* factory, MSFilterDesc* desc ) {
 	if (desc->id==MS_FILTER_NOT_SET_ID){
 		ms_fatal("MSFilterId for %s not set !",desc->name);
@@ -933,6 +912,27 @@ JNIEXPORT jboolean JNICALL Java_org_linphone_mediastream_MediastreamerAndroidCon
 #else
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
+
+/**
+* Destroy the factory.
+* This should be done after destroying all objects created by the factory.
+**/
+void ms_factory_destroy(MSFactory *factory) {
+	if (factory->voip_uninit_func) factory->voip_uninit_func(factory);
+	ms_factory_uninit_plugins(factory);
+	if (factory->evq) ms_factory_destroy_event_queue(factory);
+	factory->formats = bctbx_list_free_with_data(factory->formats, (void(*)(void*))ms_fmt_descriptor_destroy);
+	factory->desc_list = bctbx_list_free(factory->desc_list);
+	bctbx_list_for_each(factory->stats_list, ms_free);
+	factory->stats_list = bctbx_list_free(factory->stats_list);
+	factory->offer_answer_provider_list = bctbx_list_free(factory->offer_answer_provider_list);
+	bctbx_list_for_each(factory->platform_tags, ms_free);
+	factory->platform_tags = bctbx_list_free(factory->platform_tags);
+	if (factory->plugins_dir) ms_free(factory->plugins_dir);
+	ms_free(factory);
+	if (factory == fallback_factory) fallback_factory = NULL;
+}
+
 
 MSFactory *ms_factory_create_fallback(void){
 	if (fallback_factory==NULL){
