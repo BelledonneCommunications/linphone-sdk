@@ -330,7 +330,7 @@ void belle_sip_main_loop_add_source(belle_sip_main_loop_t *ml, belle_sip_source_
 
 	}
 	source->cancelled=FALSE;
-	if (source->fd != -1 ) {
+	if (source->fd != (belle_sip_fd_t)-1 ) {
 		belle_sip_object_ref(source);
 		ml->fd_sources=belle_sip_list_prepend_link(ml->fd_sources,&source->node);
 	}
