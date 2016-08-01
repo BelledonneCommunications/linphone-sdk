@@ -149,11 +149,20 @@ class TargetListAction(argparse.Action):
 
     def __call__(self, parser, namespace, values, option_string=None):
         if values:
+            filtered_values = []
+            additional_cmake_options = []
             for value in values:
-                if value not in self.targets:
+                if value.startswith('-D'):
+                    additional_cmake_options += [value]
+                elif value not in self.targets:
                     message = ("invalid platform: {0!r} (choose from {1})".format(value, ', '.join([repr(target) for target in self.targets])))
                     raise argparse.ArgumentError(self, message)
-            setattr(namespace, self.dest, values)
+                else:
+                    filtered_values += [value]
+            if filtered_values:
+                setattr(namespace, self.dest, filtered_values)
+            if additional_cmake_options:
+                setattr(namespace, 'additional_cmake_options', additional_cmake_options)
 
 class ToggleAction(argparse.Action):
     def __call__(self, parser, ns, values, option):
@@ -218,6 +227,8 @@ class Preparator:
         self.args, self.user_additional_args = self.argparser.parse_known_args(self.argv)
         if platform.system() == 'Windows':
             self.args.ccache = False
+        if hasattr(self.args, 'additional_cmake_options'):
+            self.user_additional_args += self.args.additional_cmake_options
         new_targets = []
         for target_name in self.args.target:
             if target_name in self.virtual_targets.keys():
