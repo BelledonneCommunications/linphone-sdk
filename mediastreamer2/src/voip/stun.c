@@ -595,6 +595,7 @@ MSStunAddress ms_ip_address_to_stun_address(int ai_family, int socktype, const c
 void ms_stun_address_to_ip_address(const MSStunAddress *stun_address, char *ip, size_t ip_size, int *port) {
 	struct sockaddr_storage addr;
 	socklen_t addrlen = sizeof(addr);
+	memset(&addr, 0, addrlen);
 	ms_stun_address_to_sockaddr(stun_address, (struct sockaddr *)&addr, &addrlen);
 	bctbx_sockaddr_to_ip_address((struct sockaddr *)&addr, addrlen, ip, ip_size, port);
 }
@@ -602,6 +603,7 @@ void ms_stun_address_to_ip_address(const MSStunAddress *stun_address, char *ip, 
 void ms_stun_address_to_printable_ip_address(const MSStunAddress *stun_address, char *printable_ip, size_t printable_ip_size) {
 	struct sockaddr_storage addr;
 	socklen_t addrlen = sizeof(addr);
+	memset(&addr, 0, addrlen);
 	ms_stun_address_to_sockaddr(stun_address, (struct sockaddr *)&addr, &addrlen);
 	bctbx_sockaddr_to_printable_ip_address((struct sockaddr *)&addr, addrlen, printable_ip, printable_ip_size);
 }
@@ -1441,6 +1443,7 @@ static int ms_turn_rtp_endpoint_recvfrom(RtpTransport *rtptp, mblk_t *msg, int f
 									struct sockaddr_storage relay_ss;
 									struct sockaddr *relay_sa = (struct sockaddr *)&relay_ss;
 									socklen_t relay_sa_len = sizeof(relay_ss);
+									memset(&relay_ss, 0, relay_sa_len);
 									/* Copy the data of the TURN data indication in the mblk_t so that it contains the unpacked data */
 									msgsize = ms_stun_message_get_data_length(stun_msg);
 									memcpy(msg->b_rptr, ms_stun_message_get_data(stun_msg), msgsize);
@@ -1477,6 +1480,7 @@ static bool_t ms_turn_rtp_endpoint_send_via_turn_server(MSTurnContext *context, 
 	struct sockaddr *relay_sa = (struct sockaddr *)&relay_ss;
 	socklen_t relay_sa_len = sizeof(relay_ss);
 
+	memset(&relay_ss, 0, relay_sa_len);
 	ms_stun_address_to_sockaddr(&context->relay_addr, relay_sa, &relay_sa_len);
 	if (relay_sa->sa_family != from->sa_family) return FALSE;
 	if (relay_sa->sa_family == AF_INET) {
