@@ -23,6 +23,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 static MSFactory* _factory = NULL;
 
+typedef enum {
+	PLAYER_TEST_NONE = 0,
+	PLAYER_TEST_UNSUPPORTED_FORMAT = 1,
+	PLAYER_TEST_SEEKING = 2,
+	PLAYER_TEST_PLAY_TWICE = 4,
+	PALYER_TEST_LOOP = 8
+} PlayerTestFlags;
+
 static int tester_before_all(void) {
 	_factory = ms_factory_new_with_voip();
 	return 0;
@@ -63,7 +71,7 @@ static void wait_for_eof(Eof *obj, int refresh_time_ms, int timeout_ms) {
 	ms_mutex_unlock(&obj->mutex);
 }
 
-static void play_file(const char *filepath, bool_t unsupported_format, bool_t seeking_test, bool_t play_twice) {
+static void play_file(const char *filepath, PlayerTestFlags flags) {
 	bool_t succeed;
 	Eof eof;
 	MSMediaPlayer *file_player = NULL;
@@ -84,7 +92,7 @@ static void play_file(const char *filepath, bool_t unsupported_format, bool_t se
 	ms_media_player_set_eof_callback(file_player, eof_callback, &eof);
 
 	succeed = ms_media_player_open(file_player, filepath);
-	if(unsupported_format) {
+	if(flags & PLAYER_TEST_UNSUPPORTED_FORMAT) {
 		BC_ASSERT_FALSE(succeed);
 		BC_ASSERT_EQUAL(ms_media_player_get_state(file_player), MSPlayerClosed, int, "%d");
 	} else {
@@ -104,7 +112,7 @@ static void play_file(const char *filepath, bool_t unsupported_format, bool_t se
 		BC_ASSERT_TRUE(duration >= 0);
 	}
 
-	if(seeking_test) {
+	if(flags & PLAYER_TEST_SEEKING) {
 		timeout = (int)((duration - seek_time) * (1.0 + timeout_prec));
 	} else {
 		timeout = (int)(duration * (1.0 + timeout_prec));
@@ -114,7 +122,7 @@ static void play_file(const char *filepath, bool_t unsupported_format, bool_t se
 	BC_ASSERT_TRUE(succeed);
 	BC_ASSERT_EQUAL(ms_media_player_get_state(file_player), MSPlayerPlaying, int, "%d");
 
-	if(seeking_test) {
+	if(flags & PLAYER_TEST_SEEKING) {
 		BC_ASSERT_TRUE(ms_media_player_seek(file_player, seek_time));
 	}
 
@@ -125,7 +133,7 @@ static void play_file(const char *filepath, bool_t unsupported_format, bool_t se
 	ms_media_player_close(file_player);
 	BC_ASSERT_EQUAL(ms_media_player_get_state(file_player), MSPlayerClosed, int, "%d");
 
-	if(play_twice) {
+	if(flags & PLAYER_TEST_PLAY_TWICE) {
 		eof_init(&eof);
 		BC_ASSERT_TRUE(ms_media_player_open(file_player, filepath));
 		BC_ASSERT_TRUE(ms_media_player_start(file_player));
@@ -136,46 +144,53 @@ static void play_file(const char *filepath, bool_t unsupported_format, bool_t se
 	ms_media_player_free(file_player);
 }
 
-static void play_root_file(const char *filepath, bool_t unsupported_format, bool_t seeking_test, bool_t play_twice){
+static void play_root_file(const char *filepath, PlayerTestFlags flags){
 	char* file = bc_tester_res(filepath);
-	play_file(file, unsupported_format, seeking_test, play_twice);
+	play_file(file, flags);
 	free(file);
 }
 
 static void play_hello_8000_wav(void) {
-	play_root_file("sounds/hello8000.wav", FALSE, FALSE, FALSE);
+	play_root_file("sounds/hello8000.wav", PLAYER_TEST_NONE);
 }
 
 static void play_hello_16000_wav(void) {
-	play_root_file("sounds/hello16000.wav", FALSE, FALSE, FALSE);
+	play_root_file("sounds/hello16000.wav", PLAYER_TEST_NONE);
 }
 
 static void play_hello_pcmu_mka(void) {
-	play_root_file("sounds/hello_pcmu.mka", !ms_media_player_matroska_supported(), FALSE, FALSE);
+	PlayerTestFlags flags = ms_media_player_matroska_supported() ? PLAYER_TEST_NONE : PLAYER_TEST_UNSUPPORTED_FORMAT;
+	play_root_file("sounds/hello_pcmu.mka", flags);
 }
 
 static void play_hello_opus_mka(void) {
-	play_root_file("sounds/hello_opus.mka", !ms_media_player_matroska_supported(), FALSE, FALSE);
+	PlayerTestFlags flags = ms_media_player_matroska_supported() ? PLAYER_TEST_NONE : PLAYER_TEST_UNSUPPORTED_FORMAT;
+	play_root_file("sounds/hello_opus.mka", flags);
 }
 
 static void play_sintel_trailer_pcmu_h264_mkv(void) {
-	play_root_file("sounds/sintel_trailer_pcmu_h264.mkv", !ms_media_player_matroska_supported(), FALSE, FALSE);
+	PlayerTestFlags flags = ms_media_player_matroska_supported() ? PLAYER_TEST_NONE : PLAYER_TEST_UNSUPPORTED_FORMAT;
+	play_root_file("sounds/sintel_trailer_pcmu_h264.mkv", flags);
 }
 
 static void play_sintel_trailer_opus_h264_mkv(void) {
-	play_root_file("sounds/sintel_trailer_opus_h264.mkv", !ms_media_player_matroska_supported(), FALSE, FALSE);
+	PlayerTestFlags flags = ms_media_player_matroska_supported() ? PLAYER_TEST_NONE : PLAYER_TEST_UNSUPPORTED_FORMAT;
+	play_root_file("sounds/sintel_trailer_opus_h264.mkv", flags);
 }
 
 static void play_sintel_trailer_opus_vp8_mkv(void) {
-	play_root_file("sounds/sintel_trailer_opus_vp8.mkv", !ms_media_player_matroska_supported(), FALSE, FALSE);
+	PlayerTestFlags flags = ms_media_player_matroska_supported() ? PLAYER_TEST_NONE : PLAYER_TEST_UNSUPPORTED_FORMAT;
+	play_root_file("sounds/sintel_trailer_opus_vp8.mkv", flags);
 }
 
 static void seeking_test(void) {
-	play_root_file("sounds/sintel_trailer_opus_h264.mkv", !ms_media_player_matroska_supported(), TRUE, FALSE);
+	PlayerTestFlags flags = ms_media_player_matroska_supported() ? PLAYER_TEST_NONE : PLAYER_TEST_UNSUPPORTED_FORMAT;
+	play_root_file("sounds/sintel_trailer_opus_h264.mkv", flags | PLAYER_TEST_SEEKING);
 }
 
 static void playing_twice_test(void) {
-	play_root_file("./sounds/sintel_trailer_opus_h264.mkv", !ms_media_player_matroska_supported(), FALSE, TRUE);
+	PlayerTestFlags flags = ms_media_player_matroska_supported() ? PLAYER_TEST_NONE : PLAYER_TEST_UNSUPPORTED_FORMAT;
+	play_root_file("./sounds/sintel_trailer_opus_h264.mkv", flags | PLAYER_TEST_PLAY_TWICE);
 }
 
 static test_t tests[] = {
