@@ -41,7 +41,7 @@ Compilation and installation
 	- libsrtp
 
   * For Linux, MacOS or mingw
-
+   $> ./autogen.sh
    $> ./configure
    $> make
    $> su -c 'make install'
