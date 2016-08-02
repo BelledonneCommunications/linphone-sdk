@@ -1247,10 +1247,17 @@ static void ice_stun_server_request_free(IceStunServerRequest *request) {
 }
 
 static int ice_send_message_to_socket(RtpTransport * rtptp, char* buf, size_t len, const struct sockaddr *from, socklen_t fromlen, const struct sockaddr *to, socklen_t tolen) {
+	struct sockaddr_storage v4mappedto;
+	socklen_t v4mappedtolen = sizeof(v4mappedto);
 	mblk_t *m = rtp_session_create_packet_raw((const uint8_t *)buf, len);
 	int err;
 	memcpy(&m->net_addr, from, fromlen);
 	m->net_addrlen = fromlen;
+	if ((rtptp->session->rtp.gs.sockfamily == AF_INET6) && (to->sa_family == AF_INET)) {
+		bctbx_sockaddr_ipv4_to_ipv6(to, (struct sockaddr *)&v4mappedto, &v4mappedtolen);
+		to = (const struct sockaddr *)&v4mappedto;
+		tolen = v4mappedtolen;
+	}
 	err = meta_rtp_transport_modifier_inject_packet_to_send_to(rtptp, NULL, m, 0, to, tolen);
 	freemsg(m);
 	return err;
