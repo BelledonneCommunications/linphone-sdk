@@ -147,7 +147,7 @@ static void play_file(const char *filepath, PlayerTestFlags flags) {
 static void play_root_file(const char *filepath, PlayerTestFlags flags){
 	char* file = bc_tester_res(filepath);
 	play_file(file, flags);
-	free(file);
+	bc_free(file);
 }
 
 static void play_hello_8000_wav(void) {
