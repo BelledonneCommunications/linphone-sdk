@@ -245,7 +245,7 @@ class Preparator:
             self.missing_python_dependencies += [modname]
             return False
 
-    def check_is_installed(self, binary, prog=None, warn=True):
+    def check_is_installed(self, binary, prog, warn=True):
         if not find_executable(binary):
             if warn:
                 self.missing_dependencies[binary] = prog
@@ -273,7 +273,7 @@ class Preparator:
             error("Invalid location: path should not contain any spaces.")
             ret = 1
 
-        ret |= not self.check_is_installed('cmake')
+        ret |= not self.check_is_installed('cmake', 'cmake')
         if not ret and self.min_cmake_version is not None:
             ret |= not self.check_cmake_version()
 
@@ -479,7 +479,7 @@ class Preparator:
             return ret
         # Only generated makefile if we are using Ninja or Makefile
         if self.generator().endswith('Ninja'):
-            if not self.check_is_installed("ninja", "it"):
+            if not self.check_is_installed("ninja", "ninja"):
                 return 1
             self.generate_makefile('ninja -C')
             info("You can now run 'make' to build.")
