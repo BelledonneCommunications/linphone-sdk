@@ -195,17 +195,17 @@ static void play_sintel_trailer_opus_vp8_mkv(void) {
 
 static void seeking_test(void) {
 	PlayerTestFlags flags = ms_media_player_matroska_supported() ? PLAYER_TEST_NONE : PLAYER_TEST_UNSUPPORTED_FORMAT;
-	play_root_file("sounds/sintel_trailer_opus_h264.mkv", flags | PLAYER_TEST_SEEKING);
+	play_root_file("sounds/sintel_trailer_opus_vp8.mkv", flags | PLAYER_TEST_SEEKING);
 }
 
 static void playing_twice_test(void) {
 	PlayerTestFlags flags = ms_media_player_matroska_supported() ? PLAYER_TEST_NONE : PLAYER_TEST_UNSUPPORTED_FORMAT;
-	play_root_file("sounds/sintel_trailer_opus_h264.mkv", flags | PLAYER_TEST_PLAY_TWICE);
+	play_root_file("sounds/sintel_trailer_opus_vp8.mkv", flags | PLAYER_TEST_PLAY_TWICE);
 }
 
 static void loop_test(void) {
 	PlayerTestFlags flags = ms_media_player_matroska_supported() ? PLAYER_TEST_NONE : PLAYER_TEST_UNSUPPORTED_FORMAT;
-	play_root_file("sounds/sintel_trailer_opus_h264.mkv", flags | PLAYER_TEST_LOOP);
+	play_root_file("sounds/sintel_trailer_opus_vp8.mkv", flags | PLAYER_TEST_LOOP);
 }
 
 static test_t tests[] = {
