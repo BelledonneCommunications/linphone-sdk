@@ -975,20 +975,7 @@ ssize_t bctbx_write(int fd, const void *buf, size_t nbytes) {
 #endif
 
 
-#if defined(ANDROID) || defined(_WIN32)
-
-/*
- * SHAME !!! bionic's getaddrinfo does not implement the AI_V4MAPPED flag !
- * It is declared in header file but rejected by the implementation.
- * The code below is to emulate a _compliant_ getaddrinfo for android.
-**/
-
-/**
- * SHAME AGAIN !!! Win32's implementation of getaddrinfo is bogus !
- * it is not able to return an IPv6 addrinfo from an IPv4 address when AI_V4MAPPED is set !
-**/
-
-struct addrinfo *_bctbx_alloc_addrinfo(int ai_family, int socktype, int proto){
+static struct addrinfo *_bctbx_alloc_addrinfo(int ai_family, int socktype, int proto){
 	struct addrinfo *ai=(struct addrinfo*)bctbx_malloc0(sizeof(struct addrinfo));
 	ai->ai_family=ai_family;
 	ai->ai_socktype=socktype;
@@ -998,7 +985,7 @@ struct addrinfo *_bctbx_alloc_addrinfo(int ai_family, int socktype, int proto){
 	return ai;
 }
 
-struct addrinfo *convert_to_v4mapped(const struct addrinfo *ai){
+static struct addrinfo *convert_to_v4mapped(const struct addrinfo *ai){
 	struct addrinfo *res=NULL;
 	const struct addrinfo *it;
 	struct addrinfo *v4m=NULL;
@@ -1025,6 +1012,19 @@ struct addrinfo *convert_to_v4mapped(const struct addrinfo *ai){
 	}
 	return res;
 }
+
+#if defined(ANDROID) || defined(_WIN32)
+
+/*
+ * SHAME !!! bionic's getaddrinfo does not implement the AI_V4MAPPED flag !
+ * It is declared in header file but rejected by the implementation.
+ * The code below is to emulate a _compliant_ getaddrinfo for android.
+**/
+
+/**
+ * SHAME AGAIN !!! Win32's implementation of getaddrinfo is bogus !
+ * it is not able to return an IPv6 addrinfo from an IPv4 address when AI_V4MAPPED is set !
+**/
 
 struct addrinfo *addrinfo_concat(struct addrinfo *a1, struct addrinfo *a2){
 	struct addrinfo *it;
@@ -1259,6 +1259,20 @@ void bctbx_sockaddr_ipv6_to_ipv4(const struct sockaddr *v6, struct sockaddr *res
 	bctbx_sockaddr_remove_v4_mapping(v6, result, result_len);
 	if (result->sa_family == AF_INET6) {
 		bctbx_sockaddr_remove_nat64_mapping(v6, result, result_len);
+	}
+}
+
+void bctbx_sockaddr_ipv4_to_ipv6(const struct sockaddr *v4, struct sockaddr *result, socklen_t *result_len) {
+	if (v4->sa_family == AF_INET) {
+		struct addrinfo *v4m;
+		struct addrinfo ai = { 0 };
+		struct sockaddr_in6 *v6 = (struct sockaddr_in6 *)result;
+		ai.ai_addr = (struct sockaddr *)v4;
+		ai.ai_addrlen = sizeof(struct sockaddr_in);
+		ai.ai_family = v4->sa_family;
+		v4m = convert_to_v4mapped(&ai);
+		*result_len = sizeof(struct sockaddr_in6);
+		memcpy(v6, v4m->ai_addr, *result_len);
 	}
 }
 
