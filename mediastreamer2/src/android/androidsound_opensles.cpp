@@ -544,12 +544,12 @@ static void android_snd_read_postprocess(MSFilter *obj) {
 	}
 
 	if (ictx->recorderObject != NULL)
-        {
-                (*ictx->recorderObject)->Destroy(ictx->recorderObject);
-                ictx->recorderObject = NULL;
-                ictx->recorderRecord = NULL;
-                ictx->recorderBufferQueue = NULL;
-        }
+	{
+			(*ictx->recorderObject)->Destroy(ictx->recorderObject);
+			ictx->recorderObject = NULL;
+			ictx->recorderRecord = NULL;
+			ictx->recorderBufferQueue = NULL;
+	}
 }
 
 static void android_snd_read_uninit(MSFilter *obj) {
@@ -784,11 +784,13 @@ static void opensles_player_callback(SLAndroidSimpleBufferQueueItf bq, void* con
 	} else {
 		/* we have an underrun (no more samples to deliver to the callback). We need to reset minBufferFilling*/
 		octx->minBufferFilling = -1;
+		/*provide soundcard with a silence buffer*/
+		bytes = ask;
+		memset(octx->playBuffer[octx->currentBuffer], 0, bytes);
 	}
 	ms_mutex_unlock(&octx->mutex);
 	octx->nbufs++;
 
-	if (bytes == 0) bytes = ask;
  	result = (*octx->playerBufferQueue)->Enqueue(octx->playerBufferQueue, octx->playBuffer[octx->currentBuffer], bytes);
 	if (result != SL_RESULT_SUCCESS) {
 		/*ms_error("OpenSLES Error %u while adding buffer to output queue", result);*/
