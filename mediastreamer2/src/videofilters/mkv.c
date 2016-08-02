@@ -2528,7 +2528,7 @@ static void player_process(MSFilter *f) {
 	obj->time += f->ticker->interval;
 
 	if(obj->position_changed) {
-		if(f->outputs[0]) {
+		if(f->outputs[0] && strcasecmp(obj->players[0]->output_pin_desc->encoding, "h264") == 0) {
 			// Send an empty buffer to notify the video decoder that it should reset itself
 			ms_queue_put(f->outputs[0], allocb(0, 0));
 		}
