@@ -50,6 +50,7 @@ struct _MSMediaPlayer {
 	MSTicker *ticker;
 	MSFileFormat format;
 	bool_t is_open;
+	int loop_interval;
 	char *filename;
 	MSMediaPlayerEofCallback eof_cb;
 	void *user_data_cb;
@@ -94,6 +95,7 @@ MSMediaPlayer *ms_media_player_new(MSFactory* factory, MSSndCard *snd_card, cons
 		obj->window_id = window_id;
 	}
 	obj->factory = factory;
+	obj->loop_interval = -1;
 	return obj;
 }
 
@@ -165,6 +167,7 @@ bool_t ms_media_player_open(MSMediaPlayer *obj, const char *filepath) {
 		return FALSE;
 	}
 	ms_filter_add_notify_callback(obj->player, _eof_filter_notify_cb, obj, TRUE);
+	ms_filter_call_method(obj->player, MS_PLAYER_SET_LOOP, &obj->loop_interval);
 	ms_ticker_attach(obj->ticker, obj->player);
 	obj->is_open = TRUE;
 	obj->filename = ms_strdup(filepath);
@@ -257,6 +260,13 @@ void ms_media_player_set_eof_callback(MSMediaPlayer *obj, MSMediaPlayerEofCallba
 	obj->eof_cb = cb;
 	obj->user_data_cb = user_data;
 	ms_mutex_unlock(&obj->cb_access);
+}
+
+void ms_media_player_set_loop(MSMediaPlayer *obj, int loop_interval_ms) {
+	obj->loop_interval = loop_interval_ms;
+	if(obj->is_open) {
+		ms_filter_call_method(obj->player, MS_PLAYER_SET_LOOP, &obj->loop_interval);
+	}
 }
 
 bool_t ms_media_player_matroska_supported(void) {

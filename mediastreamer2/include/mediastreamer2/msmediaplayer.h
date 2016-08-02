@@ -76,6 +76,16 @@ MS2_PUBLIC void * ms_media_player_get_window_id(const MSMediaPlayer *obj);
 MS2_PUBLIC void ms_media_player_set_eof_callback(MSMediaPlayer *obj, MSMediaPlayerEofCallback cb, void *user_data);
 
 /**
+ * Require the player for playing the file again when the end is reached. Then,
+ * the player loops indefinitely until ms_media_player_stop() is called. That function
+ * can be called while the player is running.
+ * @param obj The MSMediaPlayer instance
+ * @param loop_interval_ms Time interval beetween two plays. If a negative value is
+ * set, the player does not loop.
+ */
+MS2_PUBLIC void ms_media_player_set_loop(MSMediaPlayer *obj, int loop_interval_ms);
+
+/**
  * Open a media file
  * @param obj The player
  * @param filepath Path of the file to open
