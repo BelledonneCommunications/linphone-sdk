@@ -28,7 +28,7 @@ typedef enum {
 	PLAYER_TEST_UNSUPPORTED_FORMAT = 1,
 	PLAYER_TEST_SEEKING = 2,
 	PLAYER_TEST_PLAY_TWICE = 4,
-	PALYER_TEST_LOOP = 8
+	PLAYER_TEST_LOOP = 8
 } PlayerTestFlags;
 
 static int tester_before_all(void) {
@@ -42,30 +42,29 @@ static int tester_after_all(void) {
 }
 
 typedef struct _Eof {
-	bool_t eof;
-	int time_ms;
+	int neof;
 	ms_mutex_t mutex;
 } Eof;
 
 static void eof_init(Eof *obj) {
-	obj->eof = FALSE;
-	obj->time_ms = 0;
+	obj->neof = 0;
 	ms_mutex_init(&obj->mutex, NULL);
 }
 
 static void eof_callback(void *user_data) {
 	Eof *obj = (Eof *)user_data;
 	ms_mutex_lock(&obj->mutex);
-	obj->eof = TRUE;
+	obj->neof++;
 	ms_mutex_unlock(&obj->mutex);
 }
 
-static void wait_for_eof(Eof *obj, int refresh_time_ms, int timeout_ms) {
+static void wait_for_neof(Eof *obj, int neof, int refresh_time_ms, int timeout_ms) {
+	int time_ms = 0;
 	ms_mutex_lock(&obj->mutex);
-	while(obj->time_ms < timeout_ms && !obj->eof) {
+	while(time_ms < timeout_ms && obj->neof < neof) {
 		ms_mutex_unlock(&obj->mutex);
 		ms_usleep(refresh_time_ms * 1000);
-		obj->time_ms += refresh_time_ms;
+		time_ms += refresh_time_ms;
 		ms_mutex_lock(&obj->mutex);
 	}
 	ms_mutex_unlock(&obj->mutex);
@@ -113,10 +112,16 @@ static void play_file(const char *filepath, PlayerTestFlags flags) {
 	}
 
 	if(flags & PLAYER_TEST_SEEKING) {
-		timeout = (int)((duration - seek_time) * (1.0 + timeout_prec));
+		timeout = duration - seek_time;
 	} else {
-		timeout = (int)(duration * (1.0 + timeout_prec));
+		timeout = duration;
 	}
+	if(flags & PLAYER_TEST_LOOP) {
+		int interval_time = 2000;
+		ms_media_player_set_loop(file_player, interval_time);
+		timeout += (duration + interval_time);
+	}
+	timeout = timeout * (1.0 + timeout_prec);
 
 	succeed = ms_media_player_start(file_player);
 	BC_ASSERT_TRUE(succeed);
@@ -127,8 +132,13 @@ static void play_file(const char *filepath, PlayerTestFlags flags) {
 	}
 
 	if(succeed) {
-		wait_for_eof(&eof, 100, timeout);
-		BC_ASSERT_TRUE(eof.eof);
+		if(flags & PLAYER_TEST_LOOP) {
+			wait_for_neof(&eof, 2, 100, timeout);
+			BC_ASSERT_EQUAL(eof.neof, 2, int, "%d");
+		} else {
+			wait_for_neof(&eof, 1, 100, timeout);
+			BC_ASSERT_EQUAL(eof.neof, 1, int, "%d");
+		}
 	}
 	ms_media_player_close(file_player);
 	BC_ASSERT_EQUAL(ms_media_player_get_state(file_player), MSPlayerClosed, int, "%d");
@@ -137,9 +147,9 @@ static void play_file(const char *filepath, PlayerTestFlags flags) {
 		eof_init(&eof);
 		BC_ASSERT_TRUE(ms_media_player_open(file_player, filepath));
 		BC_ASSERT_TRUE(ms_media_player_start(file_player));
-		wait_for_eof(&eof, 100, timeout);
+		wait_for_neof(&eof, 1, 100, timeout);
 		ms_media_player_close(file_player);
-		BC_ASSERT_TRUE(eof.eof);
+		BC_ASSERT_EQUAL(eof.neof, 1, int, "%d");
 	}
 	ms_media_player_free(file_player);
 }
@@ -190,7 +200,12 @@ static void seeking_test(void) {
 
 static void playing_twice_test(void) {
 	PlayerTestFlags flags = ms_media_player_matroska_supported() ? PLAYER_TEST_NONE : PLAYER_TEST_UNSUPPORTED_FORMAT;
-	play_root_file("./sounds/sintel_trailer_opus_h264.mkv", flags | PLAYER_TEST_PLAY_TWICE);
+	play_root_file("sounds/sintel_trailer_opus_h264.mkv", flags | PLAYER_TEST_PLAY_TWICE);
+}
+
+static void loop_test(void) {
+	PlayerTestFlags flags = ms_media_player_matroska_supported() ? PLAYER_TEST_NONE : PLAYER_TEST_UNSUPPORTED_FORMAT;
+	play_root_file("sounds/sintel_trailer_opus_h264.mkv", flags | PLAYER_TEST_LOOP);
 }
 
 static test_t tests[] = {
@@ -202,7 +217,8 @@ static test_t tests[] = {
 	{	"Play sintel_trailer_opus_h264.mkv"  ,	play_sintel_trailer_opus_h264_mkv  },
 	{	"Play sintel_trailer_opus_vp8.mkv"   ,	play_sintel_trailer_opus_vp8_mkv   },
 	{	"Seeking"                            ,	seeking_test                       },
-	{	"Playing twice"                      ,	playing_twice_test                 }
+	{	"Playing twice"                      ,	playing_twice_test                 },
+	{	"Loop test"                          ,	loop_test                          }
 };
 
 test_suite_t player_test_suite = {
