@@ -1346,3 +1346,92 @@ bool_t bctbx_sockaddr_equals(const struct sockaddr * sa, const struct sockaddr *
 	return TRUE;
 	
 }
+
+static const char *ai_family_to_string(int af) {
+	switch(af) {
+		case AF_INET: return "AF_INET";
+		case AF_INET6: return "AF_INET6";
+		case AF_UNSPEC: return "AF_UNSPEC";
+		default: return "invalid address family";
+	}
+}
+
+static int get_local_ip_for_with_connect(int type, const char *dest, int port, char *result, size_t result_len) {
+	int err, tmp;
+	struct addrinfo hints;
+	struct addrinfo *res = NULL;
+	struct sockaddr_storage addr;
+	struct sockaddr *p_addr = (struct sockaddr *)&addr;
+	bctbx_socket_t sock;
+	socklen_t s;
+	char port_str[6] = { 0 };
+
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family = type;
+	hints.ai_socktype = SOCK_DGRAM;
+	/*hints.ai_flags = AI_NUMERICHOST | AI_CANONNAME;*/
+	snprintf(port_str, sizeof(port_str), "%i", port);
+	err = getaddrinfo(dest, port_str, &hints, &res);
+	if (err != 0) {
+		bctbx_error("getaddrinfo() error for %s: %s",dest, gai_strerror(err));
+		return -1;
+	}
+	if (res == NULL) {
+		bctbx_error("bug: getaddrinfo returned nothing.");
+		return -1;
+	}
+	sock = socket(res->ai_family, SOCK_DGRAM, 0);
+	if (sock == (bctbx_socket_t)-1) {
+		bctbx_error("get_local_ip_for_with_connect() could not create [%s] socket: %s", ai_family_to_string(res->ai_family), getSocketError());
+		return -1;
+	}
+	tmp = 1;
+	err = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (SOCKET_OPTION_VALUE)&tmp, sizeof(int));
+	if (err == -1) bctbx_warning("Error in setsockopt: %s", strerror(errno));
+	err = connect(sock, res->ai_addr, (int)res->ai_addrlen);
+	if (err == -1) {
+		/* The network isn't reachable */
+		if (getSocketErrorCode() != ENETUNREACH) bctbx_error("Error in connect: %s", strerror(errno));
+		freeaddrinfo(res);
+		bctbx_socket_close(sock);
+		return -1;
+	}
+	freeaddrinfo(res);
+	res = NULL;
+	s = sizeof(addr);
+	err = getsockname(sock, (struct sockaddr *)&addr, &s);
+	if (err != 0) {
+		bctbx_error("Error in getsockname: %s", strerror(errno));
+		bctbx_socket_close(sock);
+		return -1;
+	}
+	if (p_addr->sa_family == AF_INET) {
+		struct sockaddr_in *p_sin = (struct sockaddr_in *)p_addr;
+		if (p_sin->sin_addr.s_addr == 0) {
+			bctbx_socket_close(sock);
+			return -1;
+		}
+	}
+	err = getnameinfo((struct sockaddr *)&addr, s, result, result_len, NULL, 0, NI_NUMERICHOST);
+	if (err != 0) bctbx_error("getnameinfo error: %s", strerror(errno));
+	/* Avoid ipv6 link-local addresses */
+	if ((p_addr->sa_family == AF_INET6) && (strchr(result, '%') != NULL)) {
+		strcpy(result, "::1");
+		bctbx_socket_close(sock);
+		return -1;
+	}
+	bctbx_socket_close(sock);
+	return 0;
+}
+
+int bctbx_get_local_ip_for(int type, const char *dest, int port, char *result, size_t result_len) {
+	int err;
+	strncpy(result, (type == AF_INET) ? "127.0.0.1" : "::1", result_len);
+
+	if (dest == NULL) {
+		if (type == AF_INET) dest="87.98.157.38"; /* A public IP address */
+		else dest = "2a00:1450:8002::68";
+	}
+	if (port == 0) port = 5060;
+	return get_local_ip_for_with_connect(type, dest, port, result, result_len);
+}
