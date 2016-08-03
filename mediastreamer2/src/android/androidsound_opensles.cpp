@@ -176,7 +176,7 @@ struct OpenSLESOutputContext {
 
 struct OpenSLESInputContext {
 	OpenSLESInputContext() {
-		streamType = SL_ANDROID_RECORDING_PRESET_VOICE_RECOGNITION;
+		streamType = SL_ANDROID_RECORDING_PRESET_VOICE_COMMUNICATION;
 		inBufSize = DeviceFavoriteBufferSize;
 		qinit(&q);
 		ms_mutex_init(&mutex,NULL);
