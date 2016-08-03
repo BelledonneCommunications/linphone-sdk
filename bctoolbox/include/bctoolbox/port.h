@@ -431,6 +431,17 @@ BCTBX_PUBLIC void bctbx_sockaddr_ipv4_to_ipv6(const struct sockaddr *v4, struct 
  */
 BCTBX_PUBLIC bool_t bctbx_sockaddr_equals(const struct sockaddr * sa, const struct sockaddr * sb) ;
 
+/**
+ * Get the local IP address that is used to send data to a specific destination.
+ * @param[in] type The address family of the socket to use.
+ * @param[in] dest The destination address.
+ * @param[in] port The destination port.
+ * @param[out] result The local IP address that is used to send data to the destination.
+ * @param[in] result_len The size of the result buffer.
+ * @return 0 on success, a negative value on error.
+**/
+BCTBX_PUBLIC int bctbx_get_local_ip_for(int type, const char *dest, int port, char *result, size_t result_len);
+
 /* portable named pipes  and shared memory*/
 #if !defined(_WIN32_WCE)
 #ifdef _WIN32
