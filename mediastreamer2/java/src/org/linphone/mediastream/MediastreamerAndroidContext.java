@@ -68,7 +68,7 @@ public class MediastreamerAndroidContext {
 		boolean hasProFeature = mContext.getPackageManager().hasSystemFeature(PackageManager.FEATURE_AUDIO_PRO);
 		Log.i("[Device] hasLowLatencyFeature: " + hasLowLatencyFeature + ", hasProFeature: " + hasProFeature);
 
-		int bufferSize = 64;
+		int bufferSize = 256;
 		int sampleRate = 44100;
 		MediastreamerAndroidContext mac = getInstance();
 		// When using the OpenSLES sound card, the system is capable of giving us the best values to use for the buffer size and the sample rate
