@@ -88,6 +88,7 @@ static SoundDeviceDescription devices[]={
 	{	"samsung",				"SPH-L710",				"",				DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC,	0 }, /* Galaxy S3*/
 	{	"samsung",				"SPH-D710",				"",				DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC,	0 }, /* Galaxy S3*/
 	{	"samsung",				"SGH-T999",				"",				DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC,	0 },  /*Galaxy S3*/
+	{	"samsung",				"GT-I9305",				"",				DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_UNSTANDARD_LIBMEDIA | DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0 }, /*Galaxy S3*/
 	{	"samsung",				"SAMSUNG-SGH-I337",		"",				DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC,	0 }, /* Galaxy S4 ? */
 	{	"samsung",				"GT-I9195",				"",				DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC,	0 }, /* Galaxy S4 mini*/
 	{	"samsung",				"GT-N7000",				"",				DEVICE_HAS_BUILTIN_AEC,	0 },  /*Galaxy Note*/
