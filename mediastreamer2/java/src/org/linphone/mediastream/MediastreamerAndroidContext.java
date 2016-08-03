@@ -20,6 +20,7 @@ package org.linphone.mediastream;
 
 import android.annotation.TargetApi;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.media.AudioManager;
 import android.os.Build;
 
@@ -60,8 +61,13 @@ public class MediastreamerAndroidContext {
 	public static void setContext(Object c) {
 		if (c == null)
 			return;
-
+			
 		mContext = (Context)c;
+
+		boolean hasLowLatencyFeature = mContext.getPackageManager().hasSystemFeature(PackageManager.FEATURE_AUDIO_LOW_LATENCY);
+		boolean hasProFeature = mContext.getPackageManager().hasSystemFeature(PackageManager.FEATURE_AUDIO_PRO);
+		Log.i("[Device] hasLowLatencyFeature: " + hasLowLatencyFeature + ", hasProFeature: " + hasProFeature);
+
 		int bufferSize = 64;
 		int sampleRate = 44100;
 		MediastreamerAndroidContext mac = getInstance();
@@ -73,7 +79,7 @@ public class MediastreamerAndroidContext {
 			bufferSize = parseInt(bufferProperty, bufferSize);
 			String sampleRateProperty = audiomanager.getProperty(AudioManager.PROPERTY_OUTPUT_SAMPLE_RATE);
 			sampleRate = parseInt(sampleRateProperty, sampleRate);
-			Log.i("Setting buffer size to " + bufferSize + " and sample rate to " + sampleRate + " for OpenSLES MS sound card.");
+			Log.i("[Device] Output frames per buffer: " + bufferSize + ", output sample rates: " + sampleRate + " for OpenSLES MS sound card.");
 			mac.setDeviceFavoriteSampleRate(sampleRate);
 			mac.setDeviceFavoriteBufferSize(bufferSize);
 		} else {

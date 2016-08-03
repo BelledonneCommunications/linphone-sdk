@@ -93,7 +93,7 @@ static const int flowControlIntervalMs = 1000;
 static const int flowControlThresholdMs = 40;
 
 static int DeviceFavoriteSampleRate = 44100;
-static int DeviceFavoriteBufferSize = 64;
+static int DeviceFavoriteBufferSize = 256;
 
 #ifdef __cplusplus
 extern "C" {
@@ -176,7 +176,7 @@ struct OpenSLESOutputContext {
 
 struct OpenSLESInputContext {
 	OpenSLESInputContext() {
-		streamType = SL_ANDROID_RECORDING_PRESET_VOICE_COMMUNICATION;
+		streamType = SL_ANDROID_RECORDING_PRESET_VOICE_RECOGNITION;
 		inBufSize = DeviceFavoriteBufferSize;
 		qinit(&q);
 		ms_mutex_init(&mutex,NULL);
@@ -635,35 +635,28 @@ static MSFilter *android_snd_card_create_reader(MSSndCard *card) {
 
 static SLresult opensles_mixer_init(OpenSLESOutputContext *octx) {
 	SLresult result;
-
-        const SLuint32 nbInterface = 0;
-        const SLInterfaceID ids[] = {};
-        const SLboolean req[] = {};
-        result = (*octx->opensles_context->engineEngine)->CreateOutputMix(
-                octx->opensles_context->engineEngine,
-                &(octx->outputMixObject),
-                nbInterface,
-                ids,
-                req);
-        if (result != SL_RESULT_SUCCESS) {
+	const SLuint32 nbInterface = 0;
+	const SLInterfaceID ids[] = {};
+	const SLboolean req[] = {};
+	result = (*octx->opensles_context->engineEngine)->CreateOutputMix(octx->opensles_context->engineEngine, &(octx->outputMixObject), nbInterface, ids, req);
+	if (result != SL_RESULT_SUCCESS) {
 		ms_error("OpenSLES Error %u while creating output mixer", result);
 		return result;
 	}
 
-        result = (*octx->outputMixObject)->Realize(octx->outputMixObject, SL_BOOLEAN_FALSE);
-        if (result != SL_RESULT_SUCCESS) {
-        	ms_error("OpenSLES Error %u while realizing output mixer", result);
+	result = (*octx->outputMixObject)->Realize(octx->outputMixObject, SL_BOOLEAN_FALSE);
+	if (result != SL_RESULT_SUCCESS) {
+		ms_error("OpenSLES Error %u while realizing output mixer", result);
 		return result;
-        }
+	}
 
-        return result;
+	return result;
 }
 
 static SLresult opensles_sink_init(OpenSLESOutputContext *octx) {
 	SLresult result;
 	SLuint32 sample_rate = convertSamplerate(octx->opensles_context->samplerate);
 	SLuint32 channels = (SLuint32) octx->opensles_context->nchannels;
-
 	SLDataFormat_PCM format_pcm;
 
 	format_pcm.formatType = SL_DATAFORMAT_PCM;
@@ -700,34 +693,26 @@ static SLresult opensles_sink_init(OpenSLESOutputContext *octx) {
 		NULL
 	};
 
-	const SLuint32 nbInterface = 3;
-	const SLInterfaceID ids[] = { SLW_IID_VOLUME, SLW_IID_ANDROIDSIMPLEBUFFERQUEUE, SLW_IID_ANDROIDCONFIGURATION };
-	const SLboolean req[] = { SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE };
-	result = (*octx->opensles_context->engineEngine)->CreateAudioPlayer(
-	octx->opensles_context->engineEngine,
-		&(octx->playerObject),
-		&audio_src,
-		&audio_sink,
-		nbInterface,
-		ids,
-		req
-	);
+	const SLuint32 nbInterface = 2;
+	const SLInterfaceID ids[] = { SLW_IID_VOLUME, SLW_IID_ANDROIDSIMPLEBUFFERQUEUE };
+	const SLboolean req[] = { SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE };
+	result = (*octx->opensles_context->engineEngine)->CreateAudioPlayer(octx->opensles_context->engineEngine, &(octx->playerObject), &audio_src, &audio_sink, nbInterface, ids, req);
 	if (result != SL_RESULT_SUCCESS) {
 		ms_error("OpenSLES Error %u while creating ouput audio player", result);
 		return result;
 	}
 
-	result = (*octx->playerObject)->GetInterface(octx->playerObject, SLW_IID_ANDROIDCONFIGURATION, &octx->playerConfig);
+	/*result = (*octx->playerObject)->GetInterface(octx->playerObject, SLW_IID_ANDROIDCONFIGURATION, &octx->playerConfig);
 	if (result != SL_RESULT_SUCCESS) {
 		ms_error("OpenSLES Error %u while getting android configuration interface", result);
 		return result;
-	}
+	}*/
 
-	result = (*octx->playerConfig)->SetConfiguration(octx->playerConfig, SL_ANDROID_KEY_STREAM_TYPE, &octx->streamType, sizeof(SLint32));
+	/*result = (*octx->playerConfig)->SetConfiguration(octx->playerConfig, SL_ANDROID_KEY_STREAM_TYPE, &octx->streamType, sizeof(SLint32));
 	if (result != SL_RESULT_SUCCESS) {
 		ms_error("OpenSLES Error %u while setting stream type configuration", result);
 		return result;
-	}
+	}*/
 
 	result = (*octx->playerObject)->Realize(octx->playerObject, SL_BOOLEAN_FALSE);
 	if (result != SL_RESULT_SUCCESS) {
@@ -897,10 +882,23 @@ static int android_snd_write_get_nchannels(MSFilter *obj, void *data) {
 
 static void android_snd_write_preprocess(MSFilter *obj) {
 	OpenSLESOutputContext *octx = (OpenSLESOutputContext*)obj->data;
-
-	opensles_mixer_init(octx);
-	opensles_sink_init(octx);
-	opensles_player_callback_init(octx);
+	SLresult result;
+	
+	result = opensles_mixer_init(octx);
+	if (result != SL_RESULT_SUCCESS) {
+		ms_error("Couldn't init OpenSLES mixer");
+		return;
+	}
+	result = opensles_sink_init(octx);
+	if (result != SL_RESULT_SUCCESS) {
+		ms_error("Couldn't init OpenSLES sink");
+		return;
+	}
+	result = opensles_player_callback_init(octx);
+	if (result != SL_RESULT_SUCCESS) {
+		ms_error("Couldn't init OpenSLES player");
+		return;
+	}
 
 	octx->flowControlStart = obj->ticker->time;
 	octx->minBufferFilling = -1;
@@ -946,18 +944,16 @@ static void android_snd_write_postprocess(MSFilter *obj) {
 		ms_error("OpenSLES Error %u while clearing player buffer queue", result);
 	}
 
-	if (octx->playerObject != NULL)
-	{
+	if (octx->playerObject != NULL) {
 		(*octx->playerObject)->Destroy(octx->playerObject);
 		octx->playerObject = NULL;
 		octx->playerPlay = NULL;
 		octx->playerBufferQueue = NULL;
 	}
 
-	if (octx->outputMixObject != NULL)
-	{
-			(*octx->outputMixObject)->Destroy(octx->outputMixObject);
-			octx->outputMixObject = NULL;
+	if (octx->outputMixObject != NULL) {
+		(*octx->outputMixObject)->Destroy(octx->outputMixObject);
+		octx->outputMixObject = NULL;
 	}
 }
 
