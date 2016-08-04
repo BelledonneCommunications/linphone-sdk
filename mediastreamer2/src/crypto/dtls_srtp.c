@@ -104,8 +104,8 @@ void ms_dtls_srtp_bctbx_context_free(DtlsBcToolBoxContext *ctx) {
 		bctbx_rng_context_free(ctx->rng);
 		bctbx_signing_key_free(ctx->pkey);
 		bctbx_x509_certificate_free(ctx->crt);
-		bctbx_ssl_config_free(ctx->ssl_config);
 		bctbx_ssl_context_free(ctx->ssl);
+		bctbx_ssl_config_free(ctx->ssl_config);
 		ms_mutex_destroy(&(ctx->ssl_context_mutex));
 
 		ms_free(ctx);
