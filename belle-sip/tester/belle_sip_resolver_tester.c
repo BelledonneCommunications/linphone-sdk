@@ -471,6 +471,37 @@ static void dns_fallback(void) {
 	destroy_endpoint(client);
 }
 
+static void dns_fallback_because_of_scope_link_ipv6(void) {
+	struct addrinfo *ai;
+	int timeout;
+	endpoint_t *client = create_endpoint();
+	const char *nameservers[]={
+		"fe80::fdc5:99ef:ac05:5c55%enp0s25", /* Scope link IPv6 name server that will not respond */
+		"8.8.8.8", /* public nameserver, should work*/
+		NULL
+	};
+
+	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
+	timeout = belle_sip_stack_get_dns_timeout(client->stack);
+	set_custom_resolv_conf(client->stack,nameservers);
+	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV4_SIP_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);
+	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
+	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
+	BC_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
+	if (client->ai_list) {
+		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->ai_list->ai_addr;
+		int ntohsi = (int)ntohs(sock_in->sin_port);
+		BC_ASSERT_EQUAL(ntohsi, SIP_PORT, int, "%d");
+		ai = bctbx_ip_address_to_addrinfo(AF_INET, SOCK_STREAM, IPV4_SIP_IP, SIP_PORT);
+		if (ai) {
+			BC_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr, int, "%d");
+			bctbx_freeaddrinfo(ai);
+		}
+	}
+
+	destroy_endpoint(client);
+}
+
 static void ipv6_dns_server(void) {
 	struct addrinfo *ai;
 	int timeout;
@@ -559,6 +590,7 @@ test_t resolver_tests[] = {
 	{ "Local SRV+A query", local_full_query },
 	{ "No query needed", no_query_needed },
 	{ "DNS fallback", dns_fallback },
+	{ "DNS fallback because of scope link IPv6", dns_fallback_because_of_scope_link_ipv6 },
 	{ "IPv6 DNS server", ipv6_dns_server },
 	{ "IPv4 and v6 DNS servers", ipv4_and_ipv6_dns_server }
 };

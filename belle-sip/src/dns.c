@@ -116,6 +116,8 @@
 #include <sys/system_properties.h>
 #endif
 
+#include <bctoolbox/port.h>
+
 /*
  * C O M P I L E R  V E R S I O N  &  F E A T U R E  D E T E C T I O N
  *
@@ -4639,7 +4641,8 @@ static enum dns_resconf_keyword dns_resconf_keyword(const char *word) {
 int dns_resconf_pton(struct sockaddr_storage *ss, const char *src) {
 	struct { char buf[128], *p; } addr = { "", addr.buf };
 	unsigned short port = 0;
-	int ch, af = AF_INET, error;
+	struct addrinfo *ai;
+	int ch, af = AF_INET;
 
 	while ((ch = *src++)) {
 		switch (ch) {
@@ -4671,13 +4674,11 @@ int dns_resconf_pton(struct sockaddr_storage *ss, const char *src) {
 	} /* while() */
 inet:
 
-	if ((error = dns_pton(af, addr.buf, dns_sa_addr(af, ss, NULL))))
-		return error;
-
 	port = (!port)? 53 : port;
-	*dns_sa_port(af, ss) = htons(port);
-	dns_sa_family(ss) = af;
-
+	ai = bctbx_ip_address_to_addrinfo(af, SOCK_DGRAM, addr.buf, port);
+	if (ai == NULL) return dns_soerr();
+	memcpy(ss, ai->ai_addr, ai->ai_addrlen);
+	bctbx_freeaddrinfo(ai);
 	return 0;
 } /* dns_resconf_pton() */
 
@@ -6087,12 +6088,11 @@ error:
 } /* dns_hints_query() */
 
 
-/** ugly hack to support specifying ports other than 53 in resolv.conf. */
-static unsigned short dns_hints_port(struct dns_hints *hints, int af, void *addr) {
+/**
+ * Fill a whole sockaddr from the the nameservers' sockaddr contained in the hints. This is needed for scope link IPv6 nameservers.
+**/
+static void dns_fill_sockaddr_from_hints(struct dns_hints *hints, int af, struct sockaddr *addr) {
 	struct dns_hints_soa *soa;
-	void *addrsoa;
-	socklen_t addrlen;
-	unsigned short port;
 	unsigned i;
 
 	for (soa = hints->head; soa; soa = soa->next) {
@@ -6100,20 +6100,19 @@ static unsigned short dns_hints_port(struct dns_hints *hints, int af, void *addr
 			if (af != soa->addrs[i].ss.ss_family)
 				continue;
 
-			if (!(addrsoa = dns_sa_addr(af, &soa->addrs[i].ss, &addrlen)))
+			if ((af == AF_INET)
+				&& (memcmp(&((struct sockaddr_in *)&soa->addrs[i].ss)->sin_addr, &((struct sockaddr_in *)addr)->sin_addr, sizeof(struct in_addr))))
 				continue;
 
-			if (memcmp(addr, addrsoa, addrlen))
+			if ((af == AF_INET6)
+				&& (memcmp(&((struct sockaddr_in6 *)&soa->addrs[i].ss)->sin6_addr, &((struct sockaddr_in6 *)addr)->sin6_addr, sizeof(struct in6_addr))))
 				continue;
 
-			port = *dns_sa_port(af, &soa->addrs[i].ss);
-
-			return (port)? port : htons(53);
+			memcpy(addr, &soa->addrs[i].ss, dns_af_len(af));
+			return;
 		}
 	}
-
-	return htons(53);
-} /* dns_hints_port() */
+}
 
 
 int dns_hints_dump(struct dns_hints *hints, FILE *fp) {
@@ -6734,6 +6733,7 @@ static int dns_so_tcp_recv(struct dns_socket *so) {
 
 
 int dns_so_check(struct dns_socket *so) {
+	struct sockaddr_storage reset_ss;
 	int error;
 	long n;
 
@@ -6742,6 +6742,8 @@ retry:
 	case DNS_SO_UDP_INIT:
 		so->state++;
 	case DNS_SO_UDP_CONN:
+		memset(&reset_ss, 0, sizeof(reset_ss));
+		connect(so->udp, (struct sockaddr *)&reset_ss, sizeof(reset_ss)); // Reset the previous connection
 		if (0 != connect(so->udp, (struct sockaddr *)&so->remote, dns_sa_len(&so->remote)))
 			goto soerr;
 
@@ -7658,8 +7660,9 @@ exec:
 			if ((error = dns_aaaa_parse((struct dns_aaaa *)dns_sa_addr(saddr.ss_family, &saddr, &saddr_len), &rr, F->hints)))
 				goto error;
 		}
-		
-		*dns_sa_port(saddr.ss_family, &saddr) = (R->sp == 0) ? dns_hints_port(R->hints, saddr.ss_family, (struct sockaddr *)&saddr) : htons(53);
+
+		if (R->sp == 0) dns_fill_sockaddr_from_hints(R->hints, saddr.ss_family, (struct sockaddr *)&saddr);
+		else *dns_sa_port(saddr.ss_family, &saddr) = htons(53);
 
 		if (DNS_DEBUG) {
 			char addr[INET_ADDRSTRLEN + 1];
