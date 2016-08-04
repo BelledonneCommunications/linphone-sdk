@@ -216,8 +216,6 @@ void ms_factory_init(MSFactory *obj){
 	tags = ms_factory_get_platform_tags_as_string(obj);
 	ms_message("ms_factory_init() done: platform_tags=%s", tags);
 	ms_free(tags);
-	
-	obj->devices_info = ms_devices_info_new();
 }
 
 
@@ -931,7 +929,6 @@ void ms_factory_destroy(MSFactory *factory) {
 	bctbx_list_for_each(factory->platform_tags, ms_free);
 	factory->platform_tags = bctbx_list_free(factory->platform_tags);
 	if (factory->plugins_dir) ms_free(factory->plugins_dir);
-	if (factory->devices_info) ms_devices_info_free(factory->devices_info);
 	ms_free(factory);
 	if (factory == fallback_factory) fallback_factory = NULL;
 }

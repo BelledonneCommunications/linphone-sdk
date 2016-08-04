@@ -261,6 +261,7 @@ void ms_factory_init_voip(MSFactory *obj){
 	if (obj->voip_initd) return;
 
 	ms_srtp_init();
+	obj->devices_info = ms_devices_info_new();
 
 	/* register builtin VoIP MSFilter's */
 	for (i=0;ms_voip_filter_descs[i]!=NULL;i++){
@@ -304,8 +305,6 @@ void ms_factory_init_voip(MSFactory *obj){
 		register_video_preset_high_fps(vpm);
 	}
 #endif
-
-	obj->devices_info = ms_devices_info_new();
 
 #if defined(ANDROID) && defined (VIDEO_ENABLED)
 	{

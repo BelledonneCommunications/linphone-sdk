@@ -52,7 +52,6 @@ set(BASE_SOURCE_FILES_C
 	otherfilters/join.c
 	otherfilters/tee.c
 	otherfilters/void.c
-	audiofilters/devices.c
 )
 if(ANDROID)
 	list(APPEND BASE_SOURCE_FILES_C utils/msjava.c)
@@ -133,6 +132,7 @@ set(VOIP_SOURCE_FILES_C
 	audiofilters/alaw.c
 	audiofilters/audiomixer.c
 	audiofilters/chanadapt.c
+	audiofilters/devices.c
 	audiofilters/dtmfgen.c
 	audiofilters/equalizer.c
 	audiofilters/flowcontrol.c

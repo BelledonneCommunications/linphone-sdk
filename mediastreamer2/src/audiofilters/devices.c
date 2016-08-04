@@ -239,7 +239,7 @@ MSDevicesInfo *ms_devices_info_new(void) {
 }
 
 void ms_devices_info_free(MSDevicesInfo *devices_info) {
-	bctbx_list_free(devices_info->sound_devices_descriptions);
+	if (devices_info->sound_devices_descriptions) bctbx_list_free(devices_info->sound_devices_descriptions);
 	ms_free(devices_info);
 }
 
