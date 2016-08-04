@@ -1066,7 +1066,9 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 #ifdef ANDROID
 	{
 		/*configure equalizer if needed*/
-		SoundDeviceDescription *device = sound_device_description_get();
+		MSDevicesInfo *devices = ms_factory_get_devices_info(stream->ms.factory);
+		SoundDeviceDescription *device = ms_devices_info_get_sound_device_description(devices);
+		
 		audio_stream_set_mic_gain_db(stream, 0);
 		audio_stream_set_spk_gain_db(stream, 0);
 		if (device && device->hacks) {
@@ -1771,7 +1773,8 @@ int audio_stream_send_dtmf(AudioStream *stream, char dtmf)
 static void audio_stream_set_rtp_output_gain_db(AudioStream *stream, float gain_db) {
 	float gain = gain_db;
 #ifdef ANDROID
-	SoundDeviceDescription *device = sound_device_description_get();
+	MSDevicesInfo *devices = ms_factory_get_devices_info(stream->ms.factory);
+	SoundDeviceDescription *device = ms_devices_info_get_sound_device_description(devices);
 	if (device && device->hacks) {
 		gain += device->hacks->mic_gain;
 		ms_message("Applying %f db to mic gain based on parameter and audio hack value in device table", gain);
@@ -1797,7 +1800,8 @@ void audio_stream_mute_rtp(AudioStream *stream, bool_t val)
 void audio_stream_set_spk_gain_db(AudioStream *stream, float gain_db) {
 	float gain = gain_db;
 #ifdef ANDROID
-	SoundDeviceDescription *device = sound_device_description_get();
+	MSDevicesInfo *devices = ms_factory_get_devices_info(stream->ms.factory);
+	SoundDeviceDescription *device = ms_devices_info_get_sound_device_description(devices);
 	if (device && device->hacks) {
 		gain += device->hacks->spk_gain;
 		ms_message("Applying %f dB to speaker gain based on parameter and audio hack value in device table", gain);

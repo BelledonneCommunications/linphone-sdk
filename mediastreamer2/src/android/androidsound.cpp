@@ -231,15 +231,17 @@ static int get_sdk_version(){
 	return sdk_version;
 }
 
-static void android_snd_card_detect(MSSndCardManager *m){
-	bool audio_record_loaded=false;
-	bool audio_track_loaded=false;
-	bool audio_system_loaded=false;
-	bool string8_loaded=false;
-	bool refbase_loaded=false;
-	SoundDeviceDescription *d;
+static void android_snd_card_detect(MSSndCardManager *m) {
+	bool audio_record_loaded = false;
+	bool audio_track_loaded = false;
+	bool audio_system_loaded = false;
+	bool string8_loaded = false;
+	bool refbase_loaded = false;
+	
+	SoundDeviceDescription *d = NULL;
+	MSDevicesInfo *devices = NULL;
 
-	if (get_sdk_version()>19){
+	if (get_sdk_version() > 19) {
 		/*it is actually working well on android 5 on Nexus 4 but crashes on Samsung S5, due to, maybe
 		 * calling convention of C++ method being different. Arguments received by AudioTrack constructor do not match the arguments
 		 * sent by the caller (TransferType maps to uid argument!).
@@ -251,25 +253,26 @@ static void android_snd_card_detect(MSSndCardManager *m){
 	
 	/* libmedia and libutils static variable may survive to Linphone restarts
 	 It is then necessary to perform the *::init() calls even if the libmedia and libutils are there.*/
-	if (!libmedia)
-		libmedia=Library::load("/system/lib/libmedia.so");
-	if (!libutils)
-		libutils=Library::load("/system/lib/libutils.so");
+	if (!libmedia) libmedia=Library::load("/system/lib/libmedia.so");
+	if (!libutils) libutils=Library::load("/system/lib/libutils.so");
 	
-	if (libmedia && libutils){
+	if (libmedia && libutils) {
 		/*perform initializations in order rather than in a if statement so that all missing symbols are shown in logs*/
-		string8_loaded=String8Impl::init(libutils);
-		refbase_loaded=RefBaseImpl::init(libutils);
-		audio_record_loaded=AudioRecordImpl::init(libmedia);
-		audio_track_loaded=AudioTrackImpl::init(libmedia);
-		audio_system_loaded=AudioSystemImpl::init(libmedia);
+		string8_loaded = String8Impl::init(libutils);
+		refbase_loaded = RefBaseImpl::init(libutils);
+		audio_record_loaded = AudioRecordImpl::init(libmedia);
+		audio_track_loaded = AudioTrackImpl::init(libmedia);
+		audio_system_loaded = AudioSystemImpl::init(libmedia);
 	}
-	d=sound_device_description_get();
-	if (audio_record_loaded && audio_track_loaded && audio_system_loaded && string8_loaded && refbase_loaded && !(d->flags & DEVICE_HAS_UNSTANDARD_LIBMEDIA)){
+	
+	devices = ms_factory_get_devices_info(m->factory);
+	d = ms_devices_info_get_sound_device_description(devices);
+	
+	if (audio_record_loaded && audio_track_loaded && audio_system_loaded && string8_loaded && refbase_loaded && !(d->flags & DEVICE_HAS_UNSTANDARD_LIBMEDIA)) {
 		ms_message("Native android sound support available.");
-		MSSndCard *card=android_snd_card_new(d);
-		ms_snd_card_set_manager(m,card);
-		ms_snd_card_manager_add_card(m,card);
+		MSSndCard* card = android_snd_card_new(d);
+		ms_snd_card_set_manager(m, card);
+		ms_snd_card_manager_add_card(m, card);
 		return;
 	}
 	ms_message("Native android sound support is NOT available.");

@@ -149,12 +149,15 @@ MSSndCard *msandroid_sound_duplicate(MSSndCard *obj){
 	return card;
 }
 
-MSSndCard *msandroid_sound_card_new(){
-	SoundDeviceDescription *d;
-	MSSndCard *card=ms_snd_card_new(&msandroid_sound_card_desc);
-	card->name=ms_strdup("Android Sound card");
+MSSndCard *msandroid_sound_card_new(MSSndCardManager *m) {
+	SoundDeviceDescription *d = NULL;
+	MSDevicesInfo *devices = NULL;
+	MSSndCard *card = ms_snd_card_new(&msandroid_sound_card_desc);
+	card->name = ms_strdup("Android Sound card");
 
-	d = sound_device_description_get();
+	devices = ms_factory_get_devices_info(m->factory);
+	d = ms_devices_info_get_sound_device_description(devices);
+	
 	if (d->flags & DEVICE_HAS_BUILTIN_AEC) {
 		card->capabilities |= MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER;
 	}
@@ -162,10 +165,10 @@ MSSndCard *msandroid_sound_card_new(){
 	return card;
 }
 
-void msandroid_sound_detect(MSSndCardManager *m){
+void msandroid_sound_detect(MSSndCardManager *m) {
 	ms_debug("msandroid_sound_detect");
-	MSSndCard *card=msandroid_sound_card_new();
-	ms_snd_card_manager_add_card(m,card);
+	MSSndCard *card = msandroid_sound_card_new(m);
+	ms_snd_card_manager_add_card(m, card);
 }
 
 

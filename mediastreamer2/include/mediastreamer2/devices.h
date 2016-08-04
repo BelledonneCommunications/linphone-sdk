@@ -64,11 +64,6 @@ typedef struct MSDevicesInfo MSDevicesInfo;
 extern "C"{
 #endif
 
-/*obtain information regarding sound system of current device*/
-SoundDeviceDescription * sound_device_description_get(void);
-
-extern SoundDeviceDescription genericSoundDeviceDescriptor;
-
 MSDevicesInfo *ms_devices_info_new(void);
 
 void ms_devices_info_free(MSDevicesInfo *devices_info);

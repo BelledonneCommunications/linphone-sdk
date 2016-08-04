@@ -111,7 +111,7 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerAndroidContext
 
 using namespace fake_opensles;
 
-static MSSndCard *android_snd_card_new(void);
+static MSSndCard *android_snd_card_new(MSSndCardManager *m);
 static MSFilter *ms_android_snd_read_new(MSFactory *factory);
 static MSFilter *ms_android_snd_write_new(MSFactory* factory);
 
@@ -251,7 +251,7 @@ static void android_snd_card_detect(MSSndCardManager *m) {
 	
 	if (initOpenSLES() == 0) { // Try to dlopen libOpenSLES
 		ms_message("libOpenSLES correctly loaded, creating OpenSLES MS soundcard");
-		MSSndCard *card = android_snd_card_new();
+		MSSndCard *card = android_snd_card_new(m);
 		ms_snd_card_manager_add_card(m, card);
 	} else {
 		ms_warning("Failed to dlopen libOpenSLES, OpenSLES MS soundcard unavailable");
@@ -1000,27 +1000,31 @@ MSSndCardDesc android_native_snd_opensles_card_desc = {
 	android_native_snd_card_uninit
 };
 
-static MSSndCard* android_snd_card_new(void) {
-	MSSndCard* obj;
-	SoundDeviceDescription *d;
+static MSSndCard* android_snd_card_new(MSSndCardManager *m) {
+	MSSndCard* card = NULL;
+	SoundDeviceDescription *d = NULL;
+	MSDevicesInfo *devices = NULL;
 	
-	obj = ms_snd_card_new(&android_native_snd_opensles_card_desc);
-	obj->name = ms_strdup("android sound card");
-	d = sound_device_description_get();
+	card = ms_snd_card_new(&android_native_snd_opensles_card_desc);
+	card->name = ms_strdup("android sound card");
+	
+	devices = ms_factory_get_devices_info(m->factory);
+	d = ms_devices_info_get_sound_device_description(devices);
+	
 	OpenSLESContext *context = opensles_context_init();
 	if (d->flags & DEVICE_HAS_BUILTIN_OPENSLES_AEC) {
-		obj->capabilities |= MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER;
+		card->capabilities |= MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER;
 		context->builtin_aec = true;
 	} else if (d->flags & DEVICE_HAS_BUILTIN_AEC) {
 		ms_warning("Removing MS_SND_CARD_CAP_CAPTURE flag from soundcard to use HAEC Java capture soundcard");
-		obj->capabilities = MS_SND_CARD_CAP_PLAYBACK;
+		card->capabilities = MS_SND_CARD_CAP_PLAYBACK;
 	}
-	obj->latency = d->delay;
-	obj->data = context;
+	card->latency = d->delay;
+	card->data = context;
 	if (d->recommended_rate){
 		context->samplerate = d->recommended_rate;
 	}
-	return obj;
+	return card;
 }
 
 
