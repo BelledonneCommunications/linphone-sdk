@@ -75,6 +75,7 @@ typedef pthread_cond_t bctbx_cond_t;
 #define BCTBX_INLINE			inline
 #define BCTBX_EWOULDBLOCK EWOULDBLOCK
 #define BCTBX_EINPROGRESS EINPROGRESS
+#define BCTBX_ENETUNREACH ENETUNREACH
 
 #ifdef __cplusplus
 extern "C"
@@ -232,6 +233,7 @@ BCTBX_PUBLIC int __bctbx_WIN_inet_aton (const char * cp, struct in_addr * addr);
 #define BCTBX_INLINE			__inline
 #define BCTBX_EWOULDBLOCK WSAEWOULDBLOCK
 #define BCTBX_EINPROGRESS WSAEINPROGRESS
+#define BCTBX_ENETUNREACH WSAENETUNREACH
 
 #if defined(_WIN32_WCE)
 

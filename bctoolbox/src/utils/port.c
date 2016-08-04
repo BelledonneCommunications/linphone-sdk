@@ -1391,7 +1391,7 @@ static int get_local_ip_for_with_connect(int type, const char *dest, int port, c
 	err = connect(sock, res->ai_addr, (int)res->ai_addrlen);
 	if (err == -1) {
 		/* The network isn't reachable */
-		if (getSocketErrorCode() != ENETUNREACH) bctbx_error("Error in connect: %s", strerror(errno));
+		if (getSocketErrorCode() != BCTBX_ENETUNREACH) bctbx_error("Error in connect: %s", strerror(errno));
 		freeaddrinfo(res);
 		bctbx_socket_close(sock);
 		return -1;
