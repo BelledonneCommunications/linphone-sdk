@@ -121,7 +121,7 @@ static void play_file(const char *filepath, PlayerTestFlags flags) {
 		ms_media_player_set_loop(file_player, interval_time);
 		timeout += (duration + interval_time);
 	}
-	timeout = timeout * (1.0 + timeout_prec);
+	timeout = (int)(timeout * (1.0 + timeout_prec));
 
 	succeed = ms_media_player_start(file_player);
 	BC_ASSERT_TRUE(succeed);
