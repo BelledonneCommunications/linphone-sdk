@@ -1071,24 +1071,33 @@ static ms_bool_t matroska_load_file(Matroska *obj) {
 
 static int matroska_open_file(Matroska *obj, const char *path, MatroskaOpenMode mode) {
 	int err = 0;
+	tchar_t *tpath;
 
 #ifdef _MSC_VER
 	wchar_t wpath[MAX_PATH + 1];
+#ifndef UNICODE
 	char mbpath[MAX_PATH + 1];
+#endif
 	if(MultiByteToWideChar(CP_UTF8, 0, path, -1, wpath, MAX_PATH + 1) == 0) {
 		ms_error("Could not convert %s into UTF-16", path);
 		return -1;
 	}
+#ifdef UNICODE
+	tpath = (tchar_t *)wpath;
+#else
 	if(WideCharToMultiByte(CP_ACP, 0, wpath, -1, mbpath, MAX_PATH + 1, NULL, NULL) == 0) {
 		ms_error("Could not convert %s from UTF-16 to ACP", path);
 		return -1;
 	}
-	path = mbpath;
+	tpath = (tchar_t *)mbpath;
+#endif
+#else
+	tpath = (tchar_t *)path;
 #endif
 
 	switch(mode) {
 		case MKV_OPEN_CREATE:
-			if((obj->output = StreamOpen(obj->p, (tchar_t *)path, SFLAG_WRONLY | SFLAG_CREATE)) == NULL) {
+			if((obj->output = StreamOpen(obj->p, tpath, SFLAG_WRONLY | SFLAG_CREATE)) == NULL) {
 				err = -2;
 				break;
 			}
@@ -1098,7 +1107,7 @@ static int matroska_open_file(Matroska *obj, const char *path, MatroskaOpenMode 
 			break;
 
 		case MKV_OPEN_APPEND:
-			if((obj->output = StreamOpen(obj->p, (tchar_t *)path, SFLAG_REOPEN)) == NULL) {
+			if((obj->output = StreamOpen(obj->p, tpath, SFLAG_REOPEN)) == NULL) {
 				err = -2;
 				break;
 			}
@@ -1117,7 +1126,7 @@ static int matroska_open_file(Matroska *obj, const char *path, MatroskaOpenMode 
 			break;
 
 		case MKV_OPEN_RO:
-			if((obj->output = StreamOpen(obj->p, (tchar_t *)path, SFLAG_RDONLY)) == NULL) {
+			if((obj->output = StreamOpen(obj->p, tpath, SFLAG_RDONLY)) == NULL) {
 				err = -2;
 				break;
 			}
