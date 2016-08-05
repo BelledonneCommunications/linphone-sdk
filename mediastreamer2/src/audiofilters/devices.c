@@ -182,30 +182,6 @@ static bool_t sound_device_match(SoundDeviceDescription *d, const char *manufact
 	return FALSE;
 }
 
-static SoundDeviceDescription *lookup_sound_device(const char *manufacturer, const char* model, const char *platform) {
-	bctbx_list_t *list = sound_device_descriptions;
-	SoundDeviceDescription *d;
-	for(; list != NULL; list = list->next) {
-		d = (SoundDeviceDescription*) list->data;
-		if (sound_device_match(d, manufacturer, model, platform)){
-			return d;
-		}
-	}
-	
-	d = &devices[0];
-	while (d->manufacturer != NULL) {
-		if (sound_device_match(d, manufacturer, model, platform)){
-			return d;
-		}
-		d++;
-	}
-	if (platform){
-		/*retry without platform*/
-		return lookup_sound_device(manufacturer, model, NULL);
-	}
-	return NULL;
-}
-
 void ms_sound_device_description_add(const char *manufacturer, const char *model, const char *platform, unsigned int flags, int delay, int recommended_rate) {
 	SoundDeviceDescription *new_sound_device_description = ms_new0(SoundDeviceDescription, 1);
 	new_sound_device_description->manufacturer = ms_strdup(manufacturer);
