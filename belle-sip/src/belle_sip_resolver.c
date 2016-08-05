@@ -712,6 +712,7 @@ static void belle_sip_simple_resolver_context_destroy(belle_sip_simple_resolver_
 	if (ctx->getaddrinfo_thread != 0) {
 		belle_sip_thread_join(ctx->getaddrinfo_thread, NULL);
 	}
+	if (ctx->getaddrinfo_source) belle_sip_object_unref(ctx->getaddrinfo_source);
 #ifdef _WIN32
 	if (ctx->ctlevent != (belle_sip_fd_t)-1)
 		CloseHandle(ctx->ctlevent);
