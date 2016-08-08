@@ -21,7 +21,8 @@
 ############################################################################
 
 cmake_minimum_required(VERSION 3.0)
-project(bzrtp VERSION 1.0.3 LANGUAGES C CXX)
+
+project(bzrtp VERSION 1.0.4 LANGUAGES C CXX)
 
 
 option(ENABLE_SHARED "Build shared library." YES)
