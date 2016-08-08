@@ -365,24 +365,8 @@ int bctbx_gettimeofday (struct timeval *tv, void* tz)
 
 const char *__bctbx_getWinSocketError(int error)
 {
-	static char buf[80];
-
-	switch (error)
-	{
-		case WSANOTINITIALISED: return "Windows sockets not initialized : call WSAStartup";
-		case WSAEADDRINUSE:		return "Local Address already in use";
-		case WSAEADDRNOTAVAIL:	return "The specified address is not a valid address for this machine";
-		case WSAEINVAL:			return "The socket is already bound to an address.";
-		case WSAENOBUFS:		return "Not enough buffers available, too many connections.";
-		case WSAENOTSOCK:		return "The descriptor is not a socket.";
-		case WSAECONNRESET:		return "Connection reset by peer";
-
-		default :
-			sprintf(buf, "Error code : %d", error);
-			return buf;
-		break;
-	}
-
+	static char buf[256];
+	FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), buf, sizeof(buf), NULL);
 	return buf;
 }
 
@@ -1412,7 +1396,7 @@ static int get_local_ip_for_with_connect(int type, const char *dest, int port, c
 			return -1;
 		}
 	}
-	err = getnameinfo((struct sockaddr *)&addr, s, result, result_len, NULL, 0, NI_NUMERICHOST);
+	err = getnameinfo((struct sockaddr *)&addr, s, result, (socklen_t)result_len, NULL, 0, NI_NUMERICHOST);
 	if (err != 0) bctbx_error("getnameinfo error: %s", strerror(errno));
 	/* Avoid ipv6 link-local addresses */
 	if ((p_addr->sa_family == AF_INET6) && (strchr(result, '%') != NULL)) {
@@ -1425,7 +1409,6 @@ static int get_local_ip_for_with_connect(int type, const char *dest, int port, c
 }
 
 int bctbx_get_local_ip_for(int type, const char *dest, int port, char *result, size_t result_len) {
-	int err;
 	strncpy(result, (type == AF_INET) ? "127.0.0.1" : "::1", result_len);
 
 	if (dest == NULL) {
