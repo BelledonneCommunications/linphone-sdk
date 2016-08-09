@@ -1033,19 +1033,19 @@ int bctbx_getaddrinfo(const char *node, const char *service, const struct addrin
 		if (hints) memcpy(&lhints,hints,sizeof(lhints));
 		
 		lhints.ai_flags &= ~(AI_ALL | AI_V4MAPPED); /*remove the unsupported flags*/
-		if (hints->ai_flags & AI_ALL){
-			lhints.ai_family=AF_INET6;
-			err=getaddrinfo(node, service, &lhints, &res6);
+		lhints.ai_family = AF_INET6;
+		err = getaddrinfo(node, service, &lhints, &res6);
+		if (hints->ai_flags & AI_ALL) {
+			lhints.ai_family=AF_INET;
+			err=getaddrinfo(node, service, &lhints, &res4);
+			if (err==0){
+				struct addrinfo *v4m=convert_to_v4mapped(res4);
+				freeaddrinfo(res4);
+				res4=v4m;
+			}
+			*res=addrinfo_concat(res6,res4);
+			if (*res) err=0;
 		}
-		lhints.ai_family=AF_INET;
-		err=getaddrinfo(node, service, &lhints, &res4);
-		if (err==0){
-			struct addrinfo *v4m=convert_to_v4mapped(res4);
-			freeaddrinfo(res4);
-			res4=v4m;
-		}
-		*res=addrinfo_concat(res6,res4);
-		if (*res) err=0;
 		return err;
 	}
 	return getaddrinfo(node, service, hints, res);
@@ -1160,8 +1160,9 @@ static struct addrinfo * _bctbx_name_to_addrinfo(int family, int socktype, const
 	if (numeric_only) hints.ai_flags=AI_NUMERICSERV|AI_NUMERICHOST;
 	hints.ai_socktype=socktype;
 	
-	if (family==AF_INET6 && strchr(ipaddress,':')==NULL) {
-		hints.ai_flags|=AI_V4MAPPED;
+	if (family == AF_INET6) {
+		hints.ai_flags |= AI_V4MAPPED;
+		hints.ai_flags |= AI_ALL;
 	}
 	err=bctbx_getaddrinfo(ipaddress,serv,&hints,&res);
 
