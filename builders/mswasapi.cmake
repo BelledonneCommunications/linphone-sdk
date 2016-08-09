@@ -22,7 +22,7 @@
 
 set(EP_mswasapi_GIT_REPOSITORY "git://git.linphone.org/mswasapi.git" CACHE STRING "mswasapi repository URL")
 set(EP_mswasapi_GIT_TAG_LATEST "master" CACHE STRING "mswasapi tag to use when compiling latest version")
-set(EP_mswasapi_GIT_TAG "1.0.0" CACHE STRING "mswasapi tag to use")
+set(EP_mswasapi_GIT_TAG "1.1.0" CACHE STRING "mswasapi tag to use")
 set(EP_mswasapi_EXTERNAL_SOURCE_PATHS "mswasapi")
 set(EP_mswasapi_GROUPABLE YES)
 

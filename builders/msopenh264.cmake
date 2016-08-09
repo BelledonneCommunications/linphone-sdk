@@ -22,7 +22,7 @@
 
 set(EP_msopenh264_GIT_REPOSITORY "git://git.linphone.org/msopenh264.git" CACHE STRING "msopenh264 repository URL")
 set(EP_msopenh264_GIT_TAG_LATEST "master" CACHE STRING "msopenh264 tag to use when compiling latest version")
-set(EP_msopenh264_GIT_TAG "1.1.1" CACHE STRING "msopenh264 tag to use")
+set(EP_msopenh264_GIT_TAG "1.1.2" CACHE STRING "msopenh264 tag to use")
 set(EP_msopenh264_EXTERNAL_SOURCE_PATHS "msopenh264")
 set(EP_msopenh264_GROUPABLE YES)
 
