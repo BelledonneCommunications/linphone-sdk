@@ -85,6 +85,7 @@ tools/Makefile
 include/Makefile
 include/belr/Makefile
 belr.pc
+cmake/BelrConfig.cmake
 )
 
 AC_OUTPUT
