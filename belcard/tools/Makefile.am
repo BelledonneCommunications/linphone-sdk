@@ -9,4 +9,5 @@ belcard_unfolder_LDADD=$(top_builddir)/src/libbelcard.la -lbelr
 belcard_parser_SOURCES=belcard-parser.cpp
 belcard_parser_LDADD=$(top_builddir)/src/libbelcard.la -lbelr
 
+AM_CXXFLAGS=$(BELR_CFLAGS)
 AM_CPPFLAGS=-I$(top_srcdir)/include

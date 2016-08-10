@@ -91,7 +91,8 @@ fi
 if test "$libbelr_found" != "yes" ; then
 	AC_MSG_ERROR([libbelr not found. Install it and try again])
 fi
-	
+
+AC_SUBST(BELR_CFLAGS)
 AC_SUBST(BELR_LIBS)
 
 dnl ##################################################

@@ -18,6 +18,9 @@ libbelcard_la_SOURCES=belcard_parser.cpp \
 			vcard_grammar.cpp \
 			belcard_utils.cpp
 
+libbelcard_la_CFLAGS=$(BELR_CFLAGS)
+libbelcard_la_CXXFLAGS=$(BELR_CFLAGS)
+
 AM_CPPFLAGS=-I$(top_srcdir)/include
 
 libbelcard_la_LIBADD=$(BELR_LIBS) $(BCTOOLBOX_LIBS)

@@ -15,11 +15,14 @@ belcard_tester_SOURCES=belcard-tester.cpp belcard-tester.hpp \
 			belcard-calendar-tester.cpp \
 			belcard-rfc6474-tester.cpp \
 			belcard-vcard-tester.cpp
-belcard_tester_LDADD=$(top_builddir)/src/libbelcard.la -lbelr $(BCUNIT_LIBS) -lbctoolbox-tester
+			
+belcard_tester_LDADD=$(top_builddir)/src/libbelcard.la $(BELR_LIBS) $(BCUNIT_LIBS) -lbctoolbox-tester
 
 belcard_tester_CFLAGS=\
 	-DBC_CONFIG_FILE=\"config.h\" \
 	$(BCUNIT_CFLAGS)
+	
+belcard_tester_CXXFLAGS=$(BELR_CFLAGS)
 
 belcard_tester_AM_CPPFLAGS=-I$(top_srcdir)/include \
 			-I$(top_srcdir)/tester \
