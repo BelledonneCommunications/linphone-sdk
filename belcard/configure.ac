@@ -128,6 +128,7 @@ tester/Makefile
 tools/Makefile
 include/Makefile
 include/belcard/Makefile
+cmake/BelcardConfig.cmake
 )
 
 AC_OUTPUT
