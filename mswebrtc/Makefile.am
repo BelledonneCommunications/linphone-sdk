@@ -4,6 +4,7 @@ webrtc_DIR=$(top_srcdir)/webrtc
 
 ISAC_FLAVOUR ?= fix # use 'main' or 'fix'
 ISAC_SRC_DIR = $(top_srcdir)/webrtc/webrtc/modules/audio_coding/codecs/isac/$(ISAC_FLAVOUR)
+ILBC_SRC_DIR = $(top_srcdir)/webrtc/webrtc/modules/audio_coding/codecs/ilbc
 AEC_SRC_DIR = $(top_srcdir)/webrtc/webrtc/modules/audio_processing/aecm
 WEBRTC_COMMON_DIR = $(top_srcdir)/webrtc/webrtc/common_audio
 WEBRTC_COMMON_SP_DIR = $(WEBRTC_COMMON_DIR)/signal_processing
@@ -64,19 +65,22 @@ ISAC_BASE_SRCS = $(ISAC_SRC_DIR)/source/fft.c \
 # some files are implementation specific
 
 if ISAC_FLAVOUR_MAIN
-
-# floating point implementation
-ISAC_BASE_SRCS += $(ISAC_SRC_DIR)/source/initialize.c \
-	$(ISAC_SRC_DIR)/source/crc.c \
-	$(ISAC_SRC_DIR)/source/encode_lpc_swb.c \
-	$(ISAC_SRC_DIR)/source/filter_functions.c \
-	$(ISAC_SRC_DIR)/source/isac.c \
-	$(ISAC_SRC_DIR)/source/lpc_analysis.c \
-	$(ISAC_SRC_DIR)/source/lpc_gain_swb_tables.c \
-	$(ISAC_SRC_DIR)/source/lpc_shape_swb12_tables.c \
-	$(ISAC_SRC_DIR)/source/lpc_shape_swb16_tables.c \
-	$(ISAC_SRC_DIR)/util/utility.c
-
+#
+## floating point implementation
+# August 16th, 2016 : disabling support of floating point
+# because of compilation issues
+#TODO: Fix floating point build
+#ISAC_BASE_SRCS += $(ISAC_SRC_DIR)/source/initialize.c \
+#	$(ISAC_SRC_DIR)/source/crc.c \
+#	$(ISAC_SRC_DIR)/source/encode_lpc_swb.c \
+#	$(ISAC_SRC_DIR)/source/filter_functions.c \
+#	$(ISAC_SRC_DIR)/source/isac.c \
+#	$(ISAC_SRC_DIR)/source/lpc_analysis.c \
+#	$(ISAC_SRC_DIR)/source/lpc_gain_swb_tables.c \
+#	$(ISAC_SRC_DIR)/source/lpc_shape_swb12_tables.c \
+#	$(ISAC_SRC_DIR)/source/lpc_shape_swb16_tables.c \
+#	$(ISAC_SRC_DIR)/util/utility.c
+#
 else
 
 # fixed point implementation
@@ -105,12 +109,87 @@ AEC_BASE_SRCS = \
 
 AEC_BASE_SRCS += $(AEC_SRC_DIR)/aecm_core_c.c
 
+ILBC_BASE_SRCS = \
+ilbc.c
+		$(ILBC_SRC_DIR)/abs_quant.c
+		$(ILBC_SRC_DIR)/abs_quant_loop.c
+		$(ILBC_SRC_DIR)/augmented_cb_corr.c
+		$(ILBC_SRC_DIR)/bw_expand.c
+		$(ILBC_SRC_DIR)/cb_construct.c
+		$(ILBC_SRC_DIR)/cb_mem_energy_augmentation.c
+		$(ILBC_SRC_DIR)/cb_mem_energy.c
+		$(ILBC_SRC_DIR)/cb_mem_energy_calc.c
+		$(ILBC_SRC_DIR)/cb_search.c
+		$(ILBC_SRC_DIR)/cb_search_core.c
+		$(ILBC_SRC_DIR)/cb_update_best_index.c
+		$(ILBC_SRC_DIR)/chebyshev.c
+		$(ILBC_SRC_DIR)/comp_corr.c
+		$(ILBC_SRC_DIR)/constants.c
+		$(ILBC_SRC_DIR)/create_augmented_vec.c
+		$(ILBC_SRC_DIR)/decode.c
+		$(ILBC_SRC_DIR)/decode_residual.c
+		$(ILBC_SRC_DIR)/decoder_interpolate_lsf.c
+		$(ILBC_SRC_DIR)/do_plc.c
+		$(ILBC_SRC_DIR)/encode.c
+		$(ILBC_SRC_DIR)/energy_inverse.c
+		$(ILBC_SRC_DIR)/enhancer.c
+		$(ILBC_SRC_DIR)/enhancer_interface.c
+		$(ILBC_SRC_DIR)/enh_upsample.c
+		$(ILBC_SRC_DIR)/filtered_cb_vecs.c
+		$(ILBC_SRC_DIR)/frame_classify.c
+		$(ILBC_SRC_DIR)/gain_dequant.c
+		$(ILBC_SRC_DIR)/gain_quant.c
+		$(ILBC_SRC_DIR)/get_cd_vec.c
+		$(ILBC_SRC_DIR)/get_lsp_poly.c
+		$(ILBC_SRC_DIR)/get_sync_seq.c
+		$(ILBC_SRC_DIR)/hp_input.c
+		$(ILBC_SRC_DIR)/hp_output.c
+		$(ILBC_SRC_DIR)/ilbc.c
+		$(ILBC_SRC_DIR)/index_conv_dec.c
+		$(ILBC_SRC_DIR)/index_conv_enc.c
+		$(ILBC_SRC_DIR)/init_decode.c
+		$(ILBC_SRC_DIR)/init_encode.c
+		$(ILBC_SRC_DIR)/interpolate.c
+		$(ILBC_SRC_DIR)/interpolate_samples.c
+		$(ILBC_SRC_DIR)/lpc_encode.c
+		$(ILBC_SRC_DIR)/lsf_check.c
+		$(ILBC_SRC_DIR)/lsf_interpolate_to_poly_dec.c
+		$(ILBC_SRC_DIR)/lsf_interpolate_to_poly_enc.c
+		$(ILBC_SRC_DIR)/lsf_to_lsp.c
+		$(ILBC_SRC_DIR)/lsf_to_poly.c
+		$(ILBC_SRC_DIR)/lsp_to_lsf.c
+		$(ILBC_SRC_DIR)/my_corr.c
+		$(ILBC_SRC_DIR)/nearest_neighbor.c
+		$(ILBC_SRC_DIR)/pack_bits.c
+		$(ILBC_SRC_DIR)/poly_to_lsf.c
+		$(ILBC_SRC_DIR)/poly_to_lsp.c
+		$(ILBC_SRC_DIR)/refiner.c
+		$(ILBC_SRC_DIR)/simple_interpolate_lsf.c
+		$(ILBC_SRC_DIR)/simple_lpc_analysis.c
+		$(ILBC_SRC_DIR)/simple_lsf_dequant.c
+		$(ILBC_SRC_DIR)/simple_lsf_quant.c
+		$(ILBC_SRC_DIR)/smooth.c
+		$(ILBC_SRC_DIR)/smooth_out_data.c
+		$(ILBC_SRC_DIR)/sort_sq.c
+		$(ILBC_SRC_DIR)/split_vq.c
+		$(ILBC_SRC_DIR)/state_construct.c
+		$(ILBC_SRC_DIR)/state_search.c
+		$(ILBC_SRC_DIR)/swap_bytes.c
+		$(ILBC_SRC_DIR)/unpack_bits.c
+		$(ILBC_SRC_DIR)/vq3.c
+		$(ILBC_SRC_DIR)/vq4.c
+		$(ILBC_SRC_DIR)/window32_w32.c
+		$(ILBC_SRC_DIR)/xcorr_coef.c
+
 libmswebrtc_la_SOURCES= mswebrtc.c $(WEBRTC_COMMON_SRCS)
 if BUILD_ISAC
 libmswebrtc_la_SOURCES+= $(ISAC_BASE_SRCS) isac_dec.c isac_enc.c
 endif
 if BUILD_AEC
 libmswebrtc_la_SOURCES+= $(AEC_BASE_SRCS) aec.c
+endif
+if BUILD_ILBC
+libmswebrtc_la_SOURCES+= $(ILBC_BASE_SRCS) ilbc.c
 endif
 
 
@@ -136,6 +215,11 @@ webrtc_CFLAGS += \
 	-I$(top_srcdir)/webrtc/common_audio/signal_processing/include \
 	-I$(top_srcdir)/webrtc/modules/audio_processing/utility \
 	-I$(top_srcdir)/webrtc/system_wrappers/interface
+endif
+
+if BUILD_ILBC
+webrtc_CFLAGS += \
+	-I$(ILBC_SRC_DIR)/include 
 endif
 
 webrtc_CFLAGS += -DWEBRTC_POSIX=1
