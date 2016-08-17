@@ -2,18 +2,19 @@ EXTRA_DIST=autogen.sh mswebrtc.iss.in CMakeLists.txt config.h.cmake
 webrtc_VERSION = 1.0.0
 webrtc_DIR=$(top_srcdir)/webrtc
 
-ISAC_FLAVOUR ?= fix # use 'main' or 'fix'
-ISAC_SRC_DIR = $(top_srcdir)/webrtc/webrtc/modules/audio_coding/codecs/isac/$(ISAC_FLAVOUR)
-ILBC_SRC_DIR = $(top_srcdir)/webrtc/webrtc/modules/audio_coding/codecs/ilbc
-AEC_SRC_DIR = $(top_srcdir)/webrtc/webrtc/modules/audio_processing/aecm
-WEBRTC_COMMON_DIR = $(top_srcdir)/webrtc/webrtc/common_audio
-WEBRTC_COMMON_SP_DIR = $(WEBRTC_COMMON_DIR)/signal_processing
+# use 'main' or 'fix'
+ISAC_FLAVOUR = fix
+ISAC_SRC_DIR = webrtc/webrtc/modules/audio_coding/codecs/isac/$(ISAC_FLAVOUR)
+ILBC_SRC_DIR = webrtc/webrtc/modules/audio_coding/codecs/ilbc
+AEC_SRC_DIR = webrtc/webrtc/modules/audio_processing/aecm
+WEBRTC_COMMON_DIR = webrtc/webrtc/common_audio
+WEBRTC_COMMON_SP_DIR = webrtc/webrtc/common_audio/signal_processing
 
 pluginsdir = $(libdir)/mediastreamer/plugins
 
 plugins_LTLIBRARIES=libmswebrtc.la
 
-WEBRTC_COMMON_SRCS = \ 
+WEBRTC_COMMON_SRCS = \
 $(WEBRTC_COMMON_SP_DIR)/auto_correlation.c          $(WEBRTC_COMMON_SP_DIR)/levinson_durbin.c \
 $(WEBRTC_COMMON_SP_DIR)/auto_corr_to_refl_coef.c    $(WEBRTC_COMMON_SP_DIR)/lpc_to_refl_coef.c \
 $(WEBRTC_COMMON_SP_DIR)/complex_bit_reverse.c       $(WEBRTC_COMMON_SP_DIR)/min_max_operations.c \
@@ -180,15 +181,24 @@ ILBC_BASE_SRCS = \
 	$(ILBC_SRC_DIR)/window32_w32.c \
 	$(ILBC_SRC_DIR)/xcorr_coef.c 
 
-libmswebrtc_la_SOURCES= mswebrtc.c $(WEBRTC_COMMON_SRCS)
+libmswebrtc_la_SOURCES= mswebrtc.c $(top_srcdir)/$(WEBRTC_COMMON_SRCS)\
+	$(top_srcdir)/webrtc/webrtc/common_audio/signal_processing/include/signal_processing_library.h \
+	$(top_srcdir)/webrtc/webrtc/common_audio/signal_processing/include/spl_inl.h
 if BUILD_ISAC
-libmswebrtc_la_SOURCES+= $(ISAC_BASE_SRCS) isac_dec.c isac_enc.c
+libmswebrtc_la_SOURCES+= $(top_srcdir)/$(ISAC_BASE_SRCS) isac_dec.c isac_enc.c \
+	$(top_srcdir)/isac_constants.h \
+	$(top_srcdir)/$(ISAC_SRC_DIR)/include/isacfix.h \
+	$(top_srcdir)/webrtc/webrtc/modules/audio_coding/codecs/isac/bandwidth_info.h \
+	$(top_srcdir)/webrtc/webrtc/typedefs.h
+#$(ISAC_SRC_DIR)/../bandwith_info.h
 endif
 if BUILD_AEC
-libmswebrtc_la_SOURCES+= $(AEC_BASE_SRCS) aec.c
+libmswebrtc_la_SOURCES+= $(top_srcdir)/$(AEC_BASE_SRCS) aec.c \
+	$(top_srcdir)/$(AEC_SRC_DIR)/include/echo_control_mobile.h
 endif
 if BUILD_ILBC
-libmswebrtc_la_SOURCES+= $(ILBC_BASE_SRCS)
+libmswebrtc_la_SOURCES+= ilbc.c $(top_srcdir)/$(ILBC_BASE_SRCS)\
+	$(top_srcdir)/$(ILBC_SRC_DIR)/include/ilbc.h 
 endif
 
 
@@ -200,17 +210,17 @@ libmswebrtc_la_LDFLAGS=-module -no-undefined
 
 webrtc_CFLAGS = \
 	-I$(webrtc_DIR) \
-	-I$(WEBRTC_COMMON_SP_DIR)/include
+	-I$(top_srcdir)/$(WEBRTC_COMMON_SP_DIR)/include
 if BUILD_ISAC
 webrtc_CFLAGS += \
-	-I$(ISAC_SRC_DIR)/source \
-	-I$(ISAC_SRC_DIR)/util \
-	-I$(ISAC_SRC_DIR)/interface \
-	-I$(ISAC_SRC_DIR)/include
+	-I$(top_srcdir)/$(ISAC_SRC_DIR)/source \
+	-I$(top_srcdir)/$(ISAC_SRC_DIR)/util \
+	-I$(top_srcdir)/$(ISAC_SRC_DIR)/interface \
+	-I$(top_srcdir)/$(ISAC_SRC_DIR)/include
 endif
 if BUILD_AEC
 webrtc_CFLAGS += \
-	-I$(AEC_SRC_DIR)/include \
+	-I$(top_srcdir)/$(AEC_SRC_DIR)/include \
 	-I$(top_srcdir)/webrtc/common_audio/signal_processing/include \
 	-I$(top_srcdir)/webrtc/modules/audio_processing/utility \
 	-I$(top_srcdir)/webrtc/system_wrappers/interface
@@ -218,7 +228,7 @@ endif
 
 if BUILD_ILBC
 webrtc_CFLAGS += \
-	-I$(ILBC_SRC_DIR)/include 
+	-I$(top_srcdir)/$(ILBC_SRC_DIR)/include 
 endif
 
 webrtc_CFLAGS += -DWEBRTC_POSIX=1

@@ -10,7 +10,7 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_CANONICAL_TARGET
 AC_CANONICAL_SYSTEM
 
-AM_INIT_AUTOMAKE([tar-ustar --warnings=no-portability])
+AM_INIT_AUTOMAKE([tar-ustar --warnings=no-portability subdir-objects])
 
 AC_CONFIG_HEADERS(config.h)
 
