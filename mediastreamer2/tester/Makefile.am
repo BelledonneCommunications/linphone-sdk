@@ -56,7 +56,7 @@ endif
 
 
 AM_LDFLAGS=-no-undefined -export-dynamic
-AM_LDFLAGS+=-Wl,-rpath -Wl,$(libdir)
+#AM_LDFLAGS+=-Wl,-rpath -Wl,$(libdir)
 
 AM_CFLAGS=$(STRICT_OPTIONS) $(STRICT_OPTIONS_CC) $(ORTP_CFLAGS) $(BCTOOLBOXTESTER_CFLAGS)
 
