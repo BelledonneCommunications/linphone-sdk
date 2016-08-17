@@ -188,7 +188,7 @@ if BUILD_AEC
 libmswebrtc_la_SOURCES+= $(AEC_BASE_SRCS) aec.c
 endif
 if BUILD_ILBC
-libmswebrtc_la_SOURCES+= $(ILBC_BASE_SRCS) ilbc.c
+libmswebrtc_la_SOURCES+= $(ILBC_BASE_SRCS)
 endif
 
 
