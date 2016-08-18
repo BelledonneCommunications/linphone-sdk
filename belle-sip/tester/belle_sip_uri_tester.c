@@ -351,6 +351,14 @@ static void test_uri_equals(void) {
 	BC_ASSERT_FALSE(belle_sip_uri_equals(a,b));
 	belle_sip_object_unref(a);
 	belle_sip_object_unref(b);
+	
+	a = belle_sip_uri_parse("sip:bob@biloxi.com");
+	if (!BC_ASSERT_PTR_NOT_NULL(a)) return;
+	b = belle_sip_uri_parse("sip:boba@biloxi.com");
+	if (!BC_ASSERT_PTR_NOT_NULL(b)) return;
+	BC_ASSERT_FALSE(belle_sip_uri_equals(a,b));
+	belle_sip_object_unref(a);
+	belle_sip_object_unref(b);
 
 	/*	   sip:carol@chicago.com                    (different header component)
 	   sip:carol@chicago.com?Subject=next%20meeting

@@ -1594,7 +1594,7 @@ static void escaped_to_ascii(const char*a,char*b,size_t n) {
 	size_t index_a=0,index_b=0;
 
 	while (a[index_a]!='\0'&& index_a<n)
-		index_a+=belle_sip_get_char(a+index_a,n-index_a,b+index_b++);
+		index_a+=belle_sip_get_char(a+index_a,b+index_b++);
 }
 
 #define REPLACES_PREF_OFFSET (strlen(BELLE_SIP_REPLACES)+2)

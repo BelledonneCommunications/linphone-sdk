@@ -240,37 +240,39 @@ void belle_sip_uri_headers_clean(belle_sip_uri_t* uri) {
 }
 
 
-static int uri_strncmp_common(const char*a,const char*b,size_t n,int case_sensitive) {
-	int result=0;
+static int uri_strcmp(const char*a,const char*b,int case_sensitive) {
+	int result = 0;
 	size_t index_a=0,index_b=0;
 	char char_a,char_b;
+	
+	if (a == NULL && b == NULL) {
+		goto end;
+	}
+	if ((a != NULL && b == NULL) || (a == NULL && b != NULL)){
+		result = 1;
+		goto end;
+	}
 
-	while (a[index_a]!='\0'&&b[index_b]!='\0'&&index_a<n&&index_b<n) {
-		index_a+=belle_sip_get_char(a+index_a,n-index_a,&char_a);
-		index_b+=belle_sip_get_char(b+index_b,n-index_b,&char_b);
+	do {
+		index_a+=belle_sip_get_char(a+index_a,&char_a);
+		index_b+=belle_sip_get_char(b+index_b,&char_b);
 		if (!case_sensitive && char_a<0x7B && char_a>0x60) char_a-=0x20;
 		if (!case_sensitive && char_b<0x7B && char_b>0x60) char_b-=0x20;
-		result+=(char_a!=char_b);
-	}
+		result=(char_a!=char_b);
+		if (result) break;
+		if (char_a == '\0' || char_b == '\0') break;
+	}while(1);
+end:
 	return result;
 }
-static int uri_strncmp(const char*a,const char*b,size_t n) {
-	return uri_strncmp_common(a,b,n,1);
-}
-static int uri_strncasecmp(const char*a,const char*b,size_t n) {
-	return uri_strncmp_common(a,b,n,0);
-}
-#define IS_EQUAL(a,b) uri_strncmp(a,b,MIN(strlen(a),strlen(b)))!=0
 
-#define IS_EQUAL_CASE(a,b) uri_strncasecmp(a,b,MIN(strlen(a),strlen(b)))!=0
+#define IS_EQUAL(a,b) (uri_strcmp(a,b,TRUE)==0)
+
+#define IS_EQUAL_CASE(a,b) (uri_strcmp(a,b,FALSE)==0)
 #define PARAM_CASE_CMP(uri_a,uri_b,param) \
 		a_param=belle_sip_parameters_get_case_parameter((belle_sip_parameters_t*) uri_a,param); \
 		b_param=belle_sip_parameters_get_case_parameter((belle_sip_parameters_t*) uri_b,param);\
-		if (a_param && b_param) { \
-			if (IS_EQUAL_CASE(a_param,b_param)) return 0; \
-		} else if (a_param != b_param) {\
-			return 0;\
-		}
+		if (!IS_EQUAL_CASE(a_param,b_param)) return 0;
 
 /*
  * RFC 3261            SIP: Session Initiation Protocol           June 2002
@@ -299,11 +301,8 @@ int belle_sip_uri_equals(const belle_sip_uri_t* uri_a,const belle_sip_uri_t* uri
          components of the URI is case-insensitive unless explicitly
          defined otherwise.
 */
-	if (uri_a->user && uri_b->user) {
-		if (IS_EQUAL(uri_a->user,uri_b->user)) return 0;
-	} else if (uri_a->user != uri_b->user) {
-		return 0;
-	}
+	if (!IS_EQUAL(uri_a->user,uri_b->user)) return 0;
+	
 /*
       o  The ordering of parameters and header fields is not significant
          in comparing SIP and SIPS URIs.
@@ -317,12 +316,10 @@ int belle_sip_uri_equals(const belle_sip_uri_t* uri_a,const belle_sip_uri_t* uri
       o  For two URIs to be equal, the user, password, host, and port
          components must match.
 */
-		if (!uri_a->host || !uri_b->host) {
-			return 0;
-		} else if  (IS_EQUAL_CASE(uri_a->host,uri_b->host)) {
-			return 0;
-		}
-		if (uri_a->port !=uri_b->port) return 0;
+	if (!IS_EQUAL_CASE(uri_a->host,uri_b->host)) {
+		return 0;
+	}
+	if (uri_a->port != uri_b->port) return 0;
 /*
          A URI omitting the user component will not match a URI that
          includes one.  A URI omitting the password component will not
@@ -352,19 +349,18 @@ int belle_sip_uri_equals(const belle_sip_uri_t* uri_a,const belle_sip_uri_t* uri
            -  A URI that includes an maddr parameter will not match a URI
             that contains no maddr parameter.
  * */
-		PARAM_CASE_CMP(uri_a,uri_b,"transport")
-		PARAM_CASE_CMP(uri_a,uri_b,"user")
-		PARAM_CASE_CMP(uri_a,uri_b,"ttl")
-		PARAM_CASE_CMP(uri_a,uri_b,"method")
-		PARAM_CASE_CMP(uri_a,uri_b,"maddr")
+	PARAM_CASE_CMP(uri_a,uri_b,"transport")
+	PARAM_CASE_CMP(uri_a,uri_b,"user")
+	PARAM_CASE_CMP(uri_a,uri_b,"ttl")
+	PARAM_CASE_CMP(uri_a,uri_b,"method")
+	PARAM_CASE_CMP(uri_a,uri_b,"maddr")
 
 
-		for(params=belle_sip_parameters_get_parameters((belle_sip_parameters_t*) uri_a);params!=NULL;params=params->next) {
-			if ((b_param=belle_sip_parameters_get_parameter((belle_sip_parameters_t*) uri_b,(const char*)params->data)) !=NULL) {
-				if (IS_EQUAL_CASE(b_param,(const char*)params->data)) return 0;
-			}
-
+	for(params=belle_sip_parameters_get_parameters((belle_sip_parameters_t*) uri_a);params!=NULL;params=params->next) {
+		if ((b_param=belle_sip_parameters_get_parameter((belle_sip_parameters_t*) uri_b,(const char*)params->data)) != NULL) {
+			if (!IS_EQUAL_CASE(b_param,(const char*)params->data)) return 0;
 		}
+	}
 
  /*
 
