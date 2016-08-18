@@ -1,5 +1,7 @@
 mediastreamer2 (2.14.0) unstable; urgency=low
   * bug fixes
+  
+ -- Belledonne Communications <info@belledonne-communications.com>  Thu, 17 August 2016 16:50:07 +0200 
 
 mediastreamer2 (2.13.0) unstable; urgency=low
   * Add support of H264 hardware codec on Apple's platforms
