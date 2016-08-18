@@ -355,8 +355,12 @@ void belle_sip_util_copy_headers(belle_sip_message_t *orig, belle_sip_message_t 
 	}
 }
 
-size_t belle_sip_get_char (const char*a,size_t n,char*out) {
-	if (*a=='%' && n>2) {
+static int is_escaped_char(const char *a){
+	return a[0] == '%' && a[1] != '\0' && a[2] != '\0';
+}
+
+size_t belle_sip_get_char (const char*a, char*out) {
+	if (is_escaped_char(a)) {
 		unsigned int tmp;
 		sscanf(a+1,"%02x",&tmp);
 		*out=(char)tmp;
@@ -373,7 +377,7 @@ char* belle_sip_to_unescaped_string(const char* buff) {
 	size_t out_buff_index=0;
 
 	for(i=0; buff[i]!='\0'; out_buff_index++) {
-		i+=belle_sip_get_char(buff+i,3,output_buff+out_buff_index);
+		i+=belle_sip_get_char(buff+i,output_buff+out_buff_index);
 	}
 	output_buff[out_buff_index]='\0';
 	return output_buff;
