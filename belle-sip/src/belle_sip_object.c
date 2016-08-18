@@ -498,8 +498,12 @@ static belle_sip_error_code checked_marshal(belle_sip_object_vptr_t *vptr, belle
 		}
 		memcpy(buff+initial_offset,p+initial_offset,*offset-initial_offset);
 	}else if (error==BELLE_SIP_BUFFER_OVERFLOW){
-		belle_sip_error("Object of type %s commited a buffer overflow by marshalling %i bytes",
-			vptr->type_name,(int)(*offset-initial_offset));
+		/* Case where the object aborted the marshalling because of not enough room.
+		 * Should this happen, it is not allowed to write past buffer end anyway */
+		if (written > buff_size){
+			belle_sip_fatal("Object of type %s commited a buffer overflow by marshalling %i bytes",
+				vptr->type_name,(int)(*offset-initial_offset));
+		}
 	}else{
 		belle_sip_error("Object of type %s produced an error during marshalling: %i",
 			vptr->type_name,error);
