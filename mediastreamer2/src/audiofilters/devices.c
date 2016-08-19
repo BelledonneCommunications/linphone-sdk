@@ -64,7 +64,7 @@ static SoundDeviceDescription devices[]={
 	{	"motorola",				"XT907",				"",				0,	500 },
 	{	"motorola",				"DROIX X2",				"",				0,	320 },
 	{	"motorola",				"MotoG3",				"msm8916",		DEVICE_HAS_BUILTIN_AEC_CRAPPY,	100 }, /*The MotoG3 audio capture hangs for several seconds when switching to speaker mode*/
-
+    {   "motorola",             "Nexus 6",              "msm8084",      DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0}, /* Nexus 6*/
 	{	"samsung",				"GT-S5360",				"bcm21553",		0,	250 }, /*<Galaxy Y*/
 	{	"samsung",				"GT-S5360L",			"",				0,	250 }, /*<Galaxy Y*/
 	{	"samsung",				"GT-S6102",				"",				DEVICE_HAS_BUILTIN_AEC,	0 }, /*<Galaxy Y duo*/
@@ -91,6 +91,7 @@ static SoundDeviceDescription devices[]={
 	{	"samsung",				"GT-I9305",				"",				DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_UNSTANDARD_LIBMEDIA | DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0 }, /*Galaxy S3*/
 	{	"samsung",				"SAMSUNG-SGH-I337",		"",				DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC,	0 }, /* Galaxy S4 ? */
 	{	"samsung",				"GT-I9195",				"",				DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC,	0 }, /* Galaxy S4 mini*/
+	{   "samsung",              "SM-G920F",             "exynos5",      DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0 }, /* Galaxy S6*/
 	{	"samsung",				"GT-N7000",				"",				DEVICE_HAS_BUILTIN_AEC,	0 },  /*Galaxy Note*/
 	{	"samsung",				"GT-N7100",				"exynos4",		DEVICE_HAS_BUILTIN_AEC, 0 }, /*Galaxy Note 2  */
 	{	"samsung",				"GT-N7105",				"",				DEVICE_HAS_BUILTIN_AEC|DEVICE_HAS_UNSTANDARD_LIBMEDIA,	0 },  /*Galaxy Note 2 t0lte*/
@@ -303,7 +304,6 @@ SoundDeviceDescription* ms_devices_info_get_sound_device_description(MSDevicesIn
 		ms_message("Found information for [%s/%s/%s] from internal table", manufacturer, model, platform);
 		exact_match = TRUE;
 	}
-	
 	if (declares_builtin_aec) {
 		if (exact_match && (d->flags & DEVICE_HAS_BUILTIN_AEC_CRAPPY)) {
 			ms_warning("This device declares a builtin AEC but according to internal tables it is known to be misfunctionning, so trusting tables.");

@@ -31,4 +31,8 @@ public class Factory{
 	public boolean filterFromNameEnabled(String name){
 		return filterFromNameEnabled(mNativePtr, name);
 	}
+	private native void setDeviceInfo(long nativePtr, String manufacturer, String model, String platform, int flags, int delay, int recommended_rate);
+	public void setDeviceInfo(String manufacturer, String model, String platform, int flags, int delay, int recommended_rate) {
+		setDeviceInfo(mNativePtr, manufacturer, model, platform, flags, delay, recommended_rate);
+	}
 };
