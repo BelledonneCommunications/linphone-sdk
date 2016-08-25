@@ -32,7 +32,7 @@ static pthread_key_t jnienv_key;
  * (see LinphoneCoreFactory.setLogHandler() ).
 **/
 void _android_key_cleanup(void *data){
-	JNIEnv* env=(JNIEnv*)pthread_getspecific(jnienv_key);
+	JNIEnv *env = (JNIEnv*) data;
 
 	if (env != NULL) {
 		ms_message("Thread end, detaching jvm from current thread");
