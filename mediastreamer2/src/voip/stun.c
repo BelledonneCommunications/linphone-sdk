@@ -1466,6 +1466,7 @@ static int ms_turn_rtp_endpoint_recvfrom(RtpTransport *rtptp, mblk_t *msg, int f
 									struct sockaddr *relay_sa = (struct sockaddr *)&relay_ss;
 									socklen_t relay_sa_len = sizeof(relay_ss);
 									memset(relay_sa, 0, relay_sa_len);
+									memset(&relay_ss, 0, relay_sa_len);
 									/* Copy the data of the TURN data indication in the mblk_t so that it contains the unpacked data */
 									msgsize = ms_stun_message_get_data_length(stun_msg);
 									memcpy(msg->b_rptr, ms_stun_message_get_data(stun_msg), msgsize);
@@ -1503,6 +1504,7 @@ static bool_t ms_turn_rtp_endpoint_send_via_turn_server(MSTurnContext *context, 
 	socklen_t relay_sa_len = sizeof(relay_ss);
 
 	memset(relay_sa, 0, relay_sa_len);
+	memset(&relay_ss, 0, relay_sa_len);
 	ms_stun_address_to_sockaddr(&context->relay_addr, relay_sa, &relay_sa_len);
 	if (relay_sa->sa_family != from->sa_family) return FALSE;
 	if (relay_sa->sa_family == AF_INET) {
