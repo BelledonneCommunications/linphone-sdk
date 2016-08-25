@@ -32,10 +32,18 @@ It is part of the public API to allow external H264 plugins use this api.
 extern "C"{
 #endif
 
+typedef enum{
+	Rfc3984FrameAvailable = 1,
+	Rfc3984FrameCorrupted = 1<<1,
+	Rfc3984IsKeyFrame = 1<<2
+}Rfc3984Status;
+	
 typedef struct Rfc3984Context{
 	MSQueue q;
 	mblk_t *m;
 	int maxsz;
+	unsigned int status; /*bitmask of Rfc3984Status values*/
+	mblk_t *sps, *pps;
 	uint32_t last_ts;
 	uint16_t ref_cseq;
 	uint8_t mode;
@@ -56,12 +64,25 @@ MS2_PUBLIC void rfc3984_enable_stap_a(Rfc3984Context *ctx, bool_t yesno);
 /*process NALUs and pack them into rtp payloads */
 MS2_PUBLIC void rfc3984_pack(Rfc3984Context *ctx, MSQueue *naluq, MSQueue *rtpq, uint32_t ts);
 
+
+MS2_PUBLIC void rfc3984_unpack_out_of_band_sps_pps(Rfc3984Context *ctx, mblk_t *sps, mblk_t *pps);
 /**
  * Process incoming rtp data and output NALUs, whenever possible.
  * @return 0 if everything was ok, -1 on error (inconsistencies in sequence numbers for example).
  * @note the naluq output argument may be filled with incomplete data even if return value was -1.
+ * @deprecated use rfc3984_unpack2
 **/
-MS2_PUBLIC int rfc3984_unpack(Rfc3984Context *ctx, mblk_t *im, MSQueue *naluq);
+MS2_DEPRECATED MS2_PUBLIC int rfc3984_unpack(Rfc3984Context *ctx, mblk_t *im, MSQueue *naluq);
+
+/**
+ * Process incoming rtp data and output NALUs, whenever possible.
+ * @param ctx the Rfc3984Context object
+ * @param im a new H264 packet to process
+ * @param naluq a MSQueue into which a frame ready to be decoded will be output, in the form of a sequence of NAL units.
+ * @return a bitmask of Rfc3984Status values.
+ * The return value is a bitmask of the #Rfc3984Status enum.
+**/
+MS2_PUBLIC unsigned int rfc3984_unpack2(Rfc3984Context *ctx, mblk_t *im, MSQueue *naluq);
 
 void rfc3984_uninit(Rfc3984Context *ctx);
 

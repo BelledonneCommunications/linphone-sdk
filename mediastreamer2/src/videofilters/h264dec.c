@@ -269,6 +269,7 @@ static void dec_process(MSFilter *f){
 	mblk_t *im, *om;
 	MSQueue nalus;
 	bool_t requestPLI = FALSE;
+	unsigned int ret = 0;
 
 	ms_queue_init(&nalus);
 	while((im=ms_queue_get(f->inputs[0]))!=NULL){
@@ -283,15 +284,13 @@ static void dec_process(MSFilter *f){
 		}
 		/*push the sps/pps given in sprop-parameter-sets if any*/
 		if (d->packet_num==0 && d->sps && d->pps){
-			mblk_set_timestamp_info(d->sps,mblk_get_timestamp_info(im));
-			mblk_set_timestamp_info(d->pps,mblk_get_timestamp_info(im));
-			rfc3984_unpack(&d->unpacker,d->sps,&nalus);
-			rfc3984_unpack(&d->unpacker,d->pps,&nalus);
+			rfc3984_unpack_out_of_band_sps_pps(&d->unpacker, d->sps, d->pps);
 			d->sps=NULL;
 			d->pps=NULL;
 		}
-		requestPLI |= (rfc3984_unpack(&d->unpacker,im,&nalus) != -0);
-		if (!ms_queue_empty(&nalus)){
+		ret = rfc3984_unpack2(&d->unpacker,im,&nalus);
+		
+		if (ret & Rfc3984FrameAvailable){
 			int size;
 			uint8_t *p,*end;
 			bool_t need_reinit=FALSE;
@@ -327,6 +326,7 @@ static void dec_process(MSFilter *f){
 				}
 				p+=len;
 			}
+			if (ret & Rfc3984FrameCorrupted) requestPLI = TRUE;
 		}
 		d->packet_num++;
 	}

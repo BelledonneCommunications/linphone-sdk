@@ -20,6 +20,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "mediastreamer2/rfc3984.h"
 #include "mediastreamer2/msfilter.h"
+#include "h264utils.h"
+
 
 #define TYPE_FU_A 28    /*fragmented unit 0x1C*/
 #define TYPE_STAP_A 24  /*single time aggregation packet  0x18*/
@@ -53,6 +55,7 @@ void rfc3984_init(Rfc3984Context *ctx){
 	ctx->m=NULL;
 	ctx->maxsz=MS_DEFAULT_MAX_PAYLOAD_SIZE;
 	ctx->mode=0;
+	ctx->status = 0;
 	ctx->last_ts=0x943FEA43;/*some random value*/
 	ctx->stap_a_allowed=TRUE;
 }
@@ -243,27 +246,76 @@ static mblk_t * aggregate_fua(Rfc3984Context *ctx, mblk_t *im){
 	return om;
 }
 
-/*process incoming rtp data and output NALUs, whenever possible*/
+void rfc3984_unpack_out_of_band_sps_pps(Rfc3984Context *ctx, mblk_t *sps, mblk_t *pps){
+	if (ctx->sps){
+		freemsg(ctx->sps);
+	}
+	if (ctx->pps){
+		freemsg(ctx->pps);
+	}
+	ctx->sps = sps;
+	ctx->pps = pps;
+}
+
 int rfc3984_unpack(Rfc3984Context *ctx, mblk_t *im, MSQueue *out){
+	if (rfc3984_unpack2(ctx, im, out) & Rfc3984FrameCorrupted) return -1;
+	return 0;
+}
+
+
+static unsigned int output_frame(Rfc3984Context * ctx, MSQueue *out, unsigned int flags){
+	unsigned int res = ctx->status;
+	
+	if (!ms_queue_empty(out)){
+		ms_warning("rfc3984_unpack: output_frame invoked several times in a row, this should not happen");
+	}
+	res |= flags;
+	if ((res & Rfc3984IsKeyFrame) && ctx->sps && ctx->pps){
+		/*prepend out of band provided sps and pps*/
+		ms_queue_put(out, ctx->sps);
+		ctx->sps = NULL;
+		ms_queue_put(out, ctx->pps);
+		ctx->pps = NULL;
+	}
+	
+	while(!ms_queue_empty(&ctx->q)){
+		ms_queue_put(out,ms_queue_get(&ctx->q));
+	}
+	
+	ctx->status = 0;
+	return res;
+}
+
+static void store_nal(Rfc3984Context *ctx, mblk_t *nal){
+	uint8_t type=nal_header_get_type(nal->b_rptr);
+	if (ms_queue_empty(&ctx->q) && (ctx->status & Rfc3984FrameCorrupted)
+		&& (type == MSH264NaluTypeSPS || type == MSH264NaluTypePPS || type == MSH264NaluTypeIDR)){
+		ms_message("Previous discontinuity ignored since we are restarting with a keyframe.");
+		ctx->status &= ~Rfc3984FrameCorrupted;
+		ctx->status |= Rfc3984IsKeyFrame;
+	}
+	
+	ms_queue_put(&ctx->q,nal);
+	if (type == MSH264NaluTypeIDR){
+		ctx->status |= Rfc3984IsKeyFrame;
+	}
+}
+
+unsigned int rfc3984_unpack2(Rfc3984Context *ctx, mblk_t *im, MSQueue *out){
 	uint8_t type=nal_header_get_type(im->b_rptr);
 	uint8_t *p;
 	int marker = mblk_get_marker_info(im);
 	uint32_t ts=mblk_get_timestamp_info(im);
 	uint16_t cseq=mblk_get_cseq(im);
-	int res = 0;
+	unsigned int ret = 0;
 
 	if (ctx->last_ts!=ts){
-		/*a new frame is arriving, in case the marker bit was not set in previous frame, output it now*/
-		/* unless this is a FU-A (workarond some other apps bugs)*/
+		/*a new frame is arriving, in case the marker bit was not set in previous frame, output it now,
+		 unless it is a FU-A packet (workaround for buggy implementations)*/
 		ctx->last_ts=ts;
-		if (ctx->m==NULL){
-			bool_t out_without_marker = FALSE;
-			while(!ms_queue_empty(&ctx->q)){
-				ms_queue_put(out,ms_queue_get(&ctx->q));
-				out_without_marker = TRUE;
-				res = -1;
-			}
-			if (out_without_marker) ms_warning("Incomplete H264 frame (missing marker bit)");
+		if (ctx->m==NULL && !ms_queue_empty(&ctx->q)){
+			ret = output_frame(ctx, out, Rfc3984FrameAvailable | Rfc3984FrameCorrupted);
+			ms_warning("Incomplete H264 frame (missing marker bit)");
 		}
 	}
 
@@ -277,7 +329,7 @@ int rfc3984_unpack(Rfc3984Context *ctx, mblk_t *im, MSQueue *out){
 		if (ctx->ref_cseq != cseq) {
 			ms_message("sequence inconsistency detected (diff=%i)",(int)(cseq - ctx->ref_cseq));
 			ctx->ref_cseq = cseq;
-			res = -1;
+			ctx->status |= Rfc3984FrameCorrupted;
 		}
 	}
 
@@ -302,13 +354,13 @@ int rfc3984_unpack(Rfc3984Context *ctx, mblk_t *im, MSQueue *out){
 				freemsg(nal);
 				break;
 			}
-			ms_queue_put(&ctx->q,nal);
+			store_nal(ctx, nal);
 		}
 		freemsg(im);
 	}else if (type==TYPE_FU_A){
 		mblk_t *o=aggregate_fua(ctx,im);
 		ms_debug("Receiving FU-A");
-		if (o) ms_queue_put(&ctx->q,o);
+		if (o) store_nal(ctx, o);
 	}else{
 		if (ctx->m){
 			/*discontinued FU-A, purge it*/
@@ -317,19 +369,16 @@ int rfc3984_unpack(Rfc3984Context *ctx, mblk_t *im, MSQueue *out){
 		}
 		/*single nal unit*/
 		ms_debug("Receiving single NAL");
-		ms_queue_put(&ctx->q,im);
+		store_nal(ctx, im);
 	}
 
 	if (marker){
 		ctx->last_ts=ts;
 		ms_debug("Marker bit set");
-		/*end of frame, output everything*/
-		while(!ms_queue_empty(&ctx->q)){
-			ms_queue_put(out,ms_queue_get(&ctx->q));
-		}
+		ret = output_frame(ctx, out, Rfc3984FrameAvailable);
 	}
 
-	return res;
+	return ret;
 }
 
 
