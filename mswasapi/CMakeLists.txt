@@ -24,6 +24,12 @@ cmake_minimum_required(VERSION 3.0)
 project(MSWASAPI CXX)
 
 
+set(MSWASAPI_MAJOR_VERSION "1")
+set(MSWASAPI_MINOR_VERSION "1")
+set(MSWASAPI_MICRO_VERSION "0")
+set(MSWASAPI_VERSION "${MSWASAPI_MAJOR_VERSION}.${MSWASAPI_MINOR_VERSION}.${MSWASAPI_MICRO_VERSION}")
+set(MSWASAPI_SO_VERSION "0")
+
 option(ENABLE_SHARED "Build shared library." YES)
 option(ENABLE_STATIC "Build static library." YES)
 option(ENABLE_STRICT "Build with strict compile options." YES)
