@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT([msopenh264],[1.1.2])
+AC_INIT([msopenh264],[1.2.0])
 
 AC_CANONICAL_SYSTEM
 
@@ -74,7 +74,7 @@ if test $GCC = yes ; then
 	LDFLAGS="$LDFLAGS -pthread"
 fi
 
-PKG_CHECK_MODULES(MEDIASTREAMER, mediastreamer >= 2.7.0)
+PKG_CHECK_MODULES(MEDIASTREAMER, mediastreamer >= 2.14.0)
 
 found_openh264=no
 AC_ARG_WITH(openh264,
