@@ -1,7 +1,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_INIT([mswebrtc],[1.0.0])
+AC_INIT([mswebrtc],[1.1.0])
 AC_PREREQ(2.63)
 
 AC_CONFIG_AUX_DIR([build-aux])
@@ -10,7 +10,7 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_CANONICAL_TARGET
 AC_CANONICAL_SYSTEM
 
-AM_INIT_AUTOMAKE([tar-ustar --warnings=no-portability])
+AM_INIT_AUTOMAKE([tar-ustar --warnings=no-portability subdir-objects])
 
 AC_CONFIG_HEADERS(config.h)
 
@@ -99,10 +99,23 @@ if test x${build_aec} = xtrue; then
 	AC_DEFINE(BUILD_AEC, 1, [Defined AEC support is built])
 fi
 
-if test "${build_isac}${build_aec}" = "falsefalse"; then
-	AC_MSG_ERROR([You need to enable at least one feature of WebRTC.])
+AC_ARG_ENABLE(ilbc,
+	[AS_HELP_STRING([--disable-ilbc], [Turn off WebRTC ILBC codec filter support (default=no)])],
+	[case "${enableval}" in
+		yes)	build_ilbc=true ;;
+		no)	build_ilbc=false ;;
+		*)	AC_MSG_ERROR(bad value ${enableval} for --disable-ilbc) ;;
+	esac],
+	[build_ilbc=true]
+)
+AM_CONDITIONAL(BUILD_ILBC, test x$build_ilbc = xtrue)
+if test x${build_ilbc} = xtrue; then
+	AC_DEFINE(BUILD_ILBC, 1, [Defined ILBC support is built])
 fi
 
+if test "${build_isac}${build_aec}${build_ilbc}" = "falsefalsefalse"; then
+	AC_MSG_ERROR([You need to enable at least one feature of WebRTC.])
+fi
 
 AC_CONFIG_COMMANDS([libtool-hacking],[
 if test "$mingw_found" = "yes" ; then
@@ -126,3 +139,4 @@ AC_OUTPUT
 echo "Summary of build options:"
 printf "* %-30s %s\n" "iSAC" $build_isac
 printf "* %-30s %s\n" "AEC" $build_aec
+printf "* %-30s %s\n" "ILBC" $build_ilbc

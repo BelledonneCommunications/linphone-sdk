@@ -1,4 +1,5 @@
-mswebrtc-1.0.0 -- June xx, 2016
-	* iLBC codec
+mswebrtc-1.0.0 -- August 17th, 2016
+	* Adding iLBC build support for autotools.
+	* iLBC codec.
 	* MSFactory - changing init to use MSFactory.
 
