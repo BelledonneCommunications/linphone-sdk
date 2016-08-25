@@ -23,13 +23,12 @@ static JNIEnv *get_jni_env(void);
 static void jni_key_cleanup(void *data);
 
 void belle_sip_wake_lock_init(JNIEnv *env, jobject pm) {
-	if(ctx.jvm == NULL) {
+	if (ctx.jvm == NULL) {
 		jclass powerManagerClass;
 		jclass wakeLockClass;
 		jfieldID fieldID;
 
 		(*env)->GetJavaVM(env, &ctx.jvm);
-		ctx.powerManager = (*env)->NewGlobalRef(env, pm);
 		pthread_key_create(&ctx.jniEnvKey, jni_key_cleanup);
 
 		powerManagerClass = (*env)->FindClass(env, "android/os/PowerManager");
@@ -44,6 +43,9 @@ void belle_sip_wake_lock_init(JNIEnv *env, jobject pm) {
 		belle_sip_message("bellesip_wake_lock_init(): initialization succeed");
 	} else {
 		belle_sip_warning("bellesip_wake_lock_init(): the wakelock system has already been initialized");
+	}
+	if (ctx.powerManager == NULL) {
+		ctx.powerManager = (*env)->NewGlobalRef(env, pm);
 	}
 }
 
@@ -61,10 +63,10 @@ void belle_sip_wake_lock_uninit(JNIEnv *env) {
  * @param data Unused.
  */
 static void jni_key_cleanup(void *data) {
-	JNIEnv *env = pthread_getspecific(ctx.jniEnvKey);
+	JNIEnv *env = (JNIEnv*) data;
 	belle_sip_message("Thread end. Cleanup wake lock jni environment");
-	if(env != NULL) {
-		if(ctx.jvm != NULL) {
+	if (env != NULL) {
+		if (ctx.jvm != NULL) {
 			(*ctx.jvm)->DetachCurrentThread(ctx.jvm);
 			pthread_setspecific(ctx.jniEnvKey, NULL);
 		} else {
