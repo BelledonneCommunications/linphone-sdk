@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT([msopenh264],[1.1.1])
+AC_INIT([msopenh264],[1.1.2])
 
 AC_CANONICAL_SYSTEM
 
