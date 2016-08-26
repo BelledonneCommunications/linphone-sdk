@@ -1,4 +1,4 @@
-belle-sip-1.5.0 -- May XX, 2016
+belle-sip-1.5.0 -- August 8th, 2016
 	* move general purpose and encryption related functions to bctoolbox, which becomes a mandatory dependency.
 	* mbedTLS support through bctoolbox
 	* SUBSCRIBE/NOTIFY dialog improvements: can be created upon reception of NOTIFY (as requested by RFC),
