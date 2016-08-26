@@ -1,4 +1,4 @@
-May 2016:
+bctoolbox-0.2.0 -- August 8th, 2016
 	* Creating a Virtual File System bctbx_vfs allowing direct file access and I/Os.
 	* integrate OS abstraction layer, list API, logging API from oRTP
 	* integrate getaddrinfo() abstraction api, in order to provide consistent getaddrinfo() support on all platforms.
