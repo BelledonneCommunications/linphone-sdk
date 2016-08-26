@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.63])
-AC_INIT([belcard], [0.0.1], [sylvain.berfini@belledonne-communications.com])
+AC_INIT([belcard], [1.0.0], [sylvain.berfini@belledonne-communications.com])
 
 BELCARD_SO_CURRENT=0 dnl increment this number when you add/change/remove an interface
 BELCARD_SO_REVISION=0 dnl increment this number when you change source code, without changing interfaces; set to 0 when incrementing CURRENT
