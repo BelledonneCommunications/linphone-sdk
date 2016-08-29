@@ -30,3 +30,6 @@ option(ENABLE_PACKAGING "Enable packaging" "${DEFAULT_VALUE_ENABLE_PACKAGING}")
 
 option(ENABLE_DOC "Enable documentation generation with Doxygen." YES)
 add_feature_info("Documentation" ENABLE_DOC "Enable documentation generation with Doxygen.")
+
+option(ENABLE_TOOLS "Enable tools binary compilation." YES)
+add_feature_info("Tools" ENABLE_DOC "Enable tools binary compilation.")

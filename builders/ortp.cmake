@@ -36,6 +36,7 @@ set(EP_ortp_DEPENDENCIES EP_bctoolbox)
 set(EP_ortp_SPEC_FILE "ortp.spec")
 
 set(EP_ortp_CMAKE_OPTIONS "-DENABLE_DOC=${ENABLE_DOC}")
+list(APPEND EP_ortp_CMAKE_OPTIONS "-DENABLE_TOOLS=${ENABLE_TOOLS}")
 
 # TODO: Activate strict compilation options on IOS
 if(IOS)
