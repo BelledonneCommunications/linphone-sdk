@@ -38,7 +38,7 @@ endif()
 
 if(GIT_DESCRIBE)
 	if(NOT GIT_TAG STREQUAL MEDIASTREAMER_VERSION)
-		message(FATAL_ERROR "MEDIASTREAMER_VERSION and git tag differ. Please put them identical")
+		message(FATAL_ERROR "MEDIASTREAMER_VERSION (${MEDIASTREAMER_VERSION}) and git tag (${GIT_TAG}) differ. Please put them identical")
 	endif()
 	set(GIT_VERSION "${GIT_DESCRIBE}")
 elseif(GIT_REVISION)
