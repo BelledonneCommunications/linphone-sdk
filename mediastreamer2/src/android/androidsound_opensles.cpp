@@ -248,11 +248,16 @@ static SLuint32 convertSamplerate(int samplerate)
 }
 
 static void android_snd_card_detect(MSSndCardManager *m) {
-	
+	SoundDeviceDescription* d = NULL;
+	MSDevicesInfo *devices = NULL;
 	if (initOpenSLES() == 0) { // Try to dlopen libOpenSLES
 		ms_message("libOpenSLES correctly loaded, creating OpenSLES MS soundcard");
-		MSSndCard *card = android_snd_card_new(m);
-		ms_snd_card_manager_add_card(m, card);
+		devices = ms_factory_get_devices_info(m->factory);
+		d = ms_devices_info_get_sound_device_description(devices);
+		if (d->flags & DEVICE_HAS_CRAPPY_OPENSLES)
+            return;
+        MSSndCard *card = android_snd_card_new(m);
+        ms_snd_card_manager_add_card(m, card);
 	} else {
 		ms_warning("Failed to dlopen libOpenSLES, OpenSLES MS soundcard unavailable");
 	}
@@ -693,26 +698,26 @@ static SLresult opensles_sink_init(OpenSLESOutputContext *octx) {
 		NULL
 	};
 
-	const SLuint32 nbInterface = 2;
-	const SLInterfaceID ids[] = { SLW_IID_VOLUME, SLW_IID_ANDROIDSIMPLEBUFFERQUEUE };
-	const SLboolean req[] = { SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE };
+	const SLuint32 nbInterface = 3;
+	const SLInterfaceID ids[] = { SLW_IID_VOLUME, SLW_IID_ANDROIDSIMPLEBUFFERQUEUE, SLW_IID_ANDROIDCONFIGURATION};
+	const SLboolean req[] = { SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE};
 	result = (*octx->opensles_context->engineEngine)->CreateAudioPlayer(octx->opensles_context->engineEngine, &(octx->playerObject), &audio_src, &audio_sink, nbInterface, ids, req);
 	if (result != SL_RESULT_SUCCESS) {
 		ms_error("OpenSLES Error %u while creating ouput audio player", result);
 		return result;
 	}
 
-	/*result = (*octx->playerObject)->GetInterface(octx->playerObject, SLW_IID_ANDROIDCONFIGURATION, &octx->playerConfig);
+	result = (*octx->playerObject)->GetInterface(octx->playerObject, SLW_IID_ANDROIDCONFIGURATION, &octx->playerConfig);
 	if (result != SL_RESULT_SUCCESS) {
 		ms_error("OpenSLES Error %u while getting android configuration interface", result);
 		return result;
-	}*/
+	}
 
-	/*result = (*octx->playerConfig)->SetConfiguration(octx->playerConfig, SL_ANDROID_KEY_STREAM_TYPE, &octx->streamType, sizeof(SLint32));
+	result = (*octx->playerConfig)->SetConfiguration(octx->playerConfig, SL_ANDROID_KEY_STREAM_TYPE, &octx->streamType, sizeof(SLint32));
 	if (result != SL_RESULT_SUCCESS) {
 		ms_error("OpenSLES Error %u while setting stream type configuration", result);
 		return result;
-	}*/
+	}
 
 	result = (*octx->playerObject)->Realize(octx->playerObject, SL_BOOLEAN_FALSE);
 	if (result != SL_RESULT_SUCCESS) {
