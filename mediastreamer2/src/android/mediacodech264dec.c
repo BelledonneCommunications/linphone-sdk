@@ -242,15 +242,12 @@ static void dec_process(MSFilter *f){
 
 	while((im=ms_queue_get(f->inputs[0]))!=NULL){
 		if (d->packet_num==0 && d->sps && d->pps){
-			mblk_set_timestamp_info(d->sps,mblk_get_timestamp_info(im));
-			mblk_set_timestamp_info(d->pps,mblk_get_timestamp_info(im));
-			rfc3984_unpack(&d->unpacker, d->sps, &nalus);
-            rfc3984_unpack(&d->unpacker, d->pps, &nalus);
+			rfc3984_unpack_out_of_band_sps_pps(&d->unpacker, d->sps, d->pps);
 			d->sps=NULL;
 			d->pps=NULL;
 		}
 
-		if(rfc3984_unpack(&d->unpacker,im,&nalus) <0){
+		if(rfc3984_unpack2(&d->unpacker,im,&nalus) & Rfc3984FrameCorrupted){
 			request_pli=TRUE;
 		}
 		if (!ms_queue_empty(&nalus)){
