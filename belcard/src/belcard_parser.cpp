@@ -19,6 +19,7 @@
 #include "belcard/belcard_parser.hpp"
 #include "belcard/belcard.hpp"
 #include "belcard/belcard_utils.hpp"
+#include <belr/parser-impl.cc>
 
 #include "bctoolbox/logging.h"
 

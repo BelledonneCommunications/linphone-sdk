@@ -18,6 +18,7 @@
 
 #include "belcard/belcard.hpp"
 #include "belcard/belcard_utils.hpp"
+#include <belr/parser-impl.cc>
 
 using namespace::std;
 using namespace::belr;
