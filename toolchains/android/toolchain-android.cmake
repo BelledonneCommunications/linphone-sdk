@@ -183,6 +183,12 @@ set(GNUSTL_PATH "${ANDROID_NDK_PATH}/sources/cxx-stl/gnu-libstdc++/${GCC_VERSION
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L${GNUSTL_PATH}" CACHE STRING "linker flags" FORCE)
 set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -L${GNUSTL_PATH}" CACHE STRING "linker flags" FORCE)
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -L${GNUSTL_PATH}" CACHE STRING "linker flags" FORCE)
+
+set(CMAKE_CXX_FLAGS_RELEASE             "-Os -DNDEBUG")
+set(CMAKE_C_FLAGS_RELEASE               "-Os -DNDEBUG")
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO      "-Os -g -DNDEBUG")
+set(CMAKE_C_FLAGS_RELWITHDEBINFO        "-Os -g -DNDEBUG")
+
 link_libraries("${GNUSTL_PATH}/libgnustl_shared.so")
 link_libraries("log")
 link_libraries("atomic")
