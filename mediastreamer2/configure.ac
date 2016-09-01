@@ -992,17 +992,6 @@ if test x$enable_pcap == xyes ; then
 fi
 
 
-AC_ARG_ENABLE(tests,
-	[AS_HELP_STRING([--enable-tests], [Enable compilation of tests (default=yes)])],
-	[case "${enableval}" in
-		yes)	tests=yes ;;
-		no)	tests=no  ;;
-		*)	AC_MSG_ERROR(bad value ${enableval} for --enable-tests) ;;
-	esac],
-	[tests=yes]
-)
-AM_CONDITIONAL(ENABLE_TESTS, test x$tests = xyes)
-
 
 dnl ##################################################
 dnl # Check for bctoolbox-tester
@@ -1022,8 +1011,17 @@ if test "$found_pkg_config_bctoolboxtester" = "no" ; then
 	AC_MSG_WARN([Could not find bctoolbox-tester wrapper, tests are not compiled.])
 fi
 
-AM_CONDITIONAL(BUILD_TESTS,test x$found_pkg_config_bctoolboxtester = xyes)
 
+AC_ARG_ENABLE(tests,
+	[AS_HELP_STRING([--enable-tests], [Enable compilation of tests (default=yes)])],
+	[case "${enableval}" in
+		yes)	tests=true ;;
+		no)		tests=false  ;;
+		*)	AC_MSG_ERROR(bad value ${enableval} for --enable-tests) ;;
+	esac],
+	[tests=yes]
+)
+AM_CONDITIONAL(BUILD_TESTS, [test x$tests = xtrue && test x$found_pkg_config_bctoolboxtester = xyes])
 
 dnl check for libsrtp support (secure rtp)
 AC_ARG_WITH(srtp,

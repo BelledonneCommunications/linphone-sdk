@@ -1,4 +1,4 @@
-if ENABLE_TESTS
+if BUILD_TOOLS
 if !BUILD_IOS
 
 noinst_PROGRAMS=mtudiscover tones
