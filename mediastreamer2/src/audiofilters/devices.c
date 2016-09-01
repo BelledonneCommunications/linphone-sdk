@@ -92,8 +92,9 @@ static SoundDeviceDescription devices[]={
 	{	"samsung",				"GT-I9305",				"",				DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_UNSTANDARD_LIBMEDIA | DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0 }, /*Galaxy S3*/
 	{	"samsung",				"SAMSUNG-SGH-I337",		"",				DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC,	0 }, /* Galaxy S4 ? */
 	{	"samsung",				"GT-I9195",				"",				DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC,	0 }, /* Galaxy S4 mini*/
-	{   "samsung",              "SM-G920F",             "exynos5",      DEVICE_HAS_CRAPPY_OPENSLES, 0 }, /* Galaxy S6*/
-	{   "samsung",              "SM-G930F",             "exynos5",      DEVICE_HAS_CRAPPY_OPENSLES, 0 }, /* Galaxy S7*/
+	{   "samsung",              "SM-G900F",             "msm8974",      DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0 }, /* Galaxy S5 */
+	{   "samsung",              "SM-G920F",             "exynos5",      DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0 }, /* Galaxy S6*/
+	{   "samsung",              "SM-G930F",             "exynos5",      DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0 }, /* Galaxy S7*/
 	{	"samsung",				"GT-N7000",				"",				DEVICE_HAS_BUILTIN_AEC,	0 },  /*Galaxy Note*/
 	{	"samsung",				"GT-N7100",				"exynos4",		DEVICE_HAS_BUILTIN_AEC, 0 }, /*Galaxy Note 2  */
 	{	"samsung",				"GT-N7105",				"",				DEVICE_HAS_BUILTIN_AEC|DEVICE_HAS_UNSTANDARD_LIBMEDIA,	0 },  /*Galaxy Note 2 t0lte*/
