@@ -24,7 +24,7 @@
 #include "config.h"
 #endif
 
-#ifndef HAVE_LIBRT
+#ifndef HAVE_CLOCK_GETTIME
 typedef enum {
 	CLOCK_REALTIME,
 	CLOCK_MONOTONIC,

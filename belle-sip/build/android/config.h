@@ -26,7 +26,7 @@
 #define HAVE_LIBDL 1
 
 /* Define to 1 if you have the `rt' library (-lrt). */
-/* #undef HAVE_LIBRT */
+/* #undef HAVE_CLOCK_GETTIME */
 
 #define HAVE_ZLIB 1
 

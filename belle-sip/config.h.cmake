@@ -30,7 +30,7 @@
 #cmakedefine VERSION "@VERSION@"
 
 #cmakedefine HAVE_LIBDL
-#cmakedefine HAVE_LIBRT
+#cmakedefine HAVE_CLOCK_GETTIME
 
 #cmakedefine HAVE_RESINIT
 

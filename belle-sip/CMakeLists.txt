@@ -79,8 +79,11 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 check_library_exists("dl" "dlopen" "" HAVE_LIBDL)
 
 check_library_exists(rt "clock_gettime" "" HAVE_LIBRT)
-if (NOT HAVE_LIBRT)
-	check_library_exists(c "clock_gettime" "" HAVE_LIBRT)
+if (HAVE_LIBRT)
+	set(HAVE_CLOCK_GETTIME 1)
+else()
+	#might be defined in libc library as well
+	check_library_exists(c "clock_gettime" "" HAVE_CLOCK_GETTIME)
 endif()
 
 cmake_push_check_state(RESET)
