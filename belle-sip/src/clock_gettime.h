@@ -21,14 +21,14 @@
 #define CLOCK_GETTIME_H_
 #ifdef __APPLE__
 typedef enum {
-	CLOCK_REALTIME,
-	CLOCK_MONOTONIC,
-	CLOCK_PROCESS_CPUTIME_ID,
-	CLOCK_THREAD_CPUTIME_ID
-} clockid_t;
+	BC_CLOCK_REALTIME,
+	BC_CLOCK_MONOTONIC,
+	BC_CLOCK_PROCESS_CPUTIME_ID,
+	BC_CLOCK_THREAD_CPUTIME_ID
+} bc_clockid_t;
 
 
-int clock_gettime(clockid_t clk_id, struct timespec *tp) ;
+int bc_clock_gettime(bc_clockid_t clk_id, struct timespec *tp) ;
 #endif
 
 #endif /* CLOCK_GETTIME_H_ */
