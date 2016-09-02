@@ -19,7 +19,12 @@
 
 #ifndef CLOCK_GETTIME_H_
 #define CLOCK_GETTIME_H_
-#ifdef __APPLE__
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#ifndef HAVE_LIBRT
 typedef enum {
 	CLOCK_REALTIME,
 	CLOCK_MONOTONIC,

@@ -77,7 +77,11 @@ endif()
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 check_library_exists("dl" "dlopen" "" HAVE_LIBDL)
-check_library_exists("rt" "clock_gettime" "" HAVE_LIBRT)
+
+check_library_exists(rt "clock_gettime" "" HAVE_LIBRT)
+if (NOT HAVE_LIBRT)
+	check_library_exists(c "clock_gettime" "" HAVE_LIBRT)
+endif()
 
 cmake_push_check_state(RESET)
 check_symbol_exists("res_ndestroy" "resolv.h" HAVE_RES_NDESTROY)
