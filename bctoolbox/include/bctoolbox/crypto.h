@@ -452,6 +452,8 @@ BCTBX_PUBLIC void bctbx_ssl_set_io_callbacks(bctbx_ssl_context_t *ssl_ctx, void 
 		int(*callback_send_function)(void *, const unsigned char *, size_t), /* callbacks args are: callback data, data buffer to be send, size of data buffer */
 		int(*callback_recv_function)(void *, unsigned char *, size_t)); /* args: callback data, data buffer to be read, size of data buffer */
 BCTBX_PUBLIC const bctbx_x509_certificate_t *bctbx_ssl_get_peer_certificate(bctbx_ssl_context_t *ssl_ctx);
+BCTBX_PUBLIC const char *bctbx_ssl_get_ciphersuite(bctbx_ssl_context_t *ssl_ctx);
+BCTBX_PUBLIC const char *bctbx_ssl_get_version(bctbx_ssl_context_t *ssl_ctx);
 
 BCTBX_PUBLIC bctbx_ssl_config_t *bctbx_ssl_config_new(void);
 BCTBX_PUBLIC int32_t bctbx_ssl_config_set_crypto_library_config(bctbx_ssl_config_t *ssl_config, void *internal_config);

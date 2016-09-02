@@ -796,6 +796,14 @@ const bctbx_x509_certificate_t *bctbx_ssl_get_peer_certificate(bctbx_ssl_context
 	return (const bctbx_x509_certificate_t *)ssl_get_peer_cert(&(ssl_ctx->ssl_ctx));
 }
 
+const char *bctbx_ssl_get_ciphersuite(bctbx_ssl_context_t *ssl_ctx){
+	return ssl_get_ciphersuite_name(&(ssl_ctx->ssl_ctx));
+}
+
+const char *bctbx_ssl_version(bctbx_ssl_context_t *ssl_ctx){
+	return ssl_get_version(&(ssl_ctx->ssl_ctx));
+}
+
 /** DTLS SRTP functions **/
 #ifdef HAVE_DTLS_SRTP
 uint8_t bctbx_dtls_srtp_supported(void) {
