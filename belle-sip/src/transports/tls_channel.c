@@ -502,7 +502,8 @@ static int tls_process_handshake(belle_sip_channel_t *obj){
 	belle_sip_tls_channel_t* channel=(belle_sip_tls_channel_t*)obj;
 	int err=bctbx_ssl_handshake(channel->sslctx);
 	if (err==0){
-		belle_sip_message("Channel [%p]: SSL handshake finished.",obj);
+		belle_sip_message("Channel [%p]: SSL handshake finished, SSL version is [%s], selected ciphersuite is [%s]",obj,
+				  bctbx_ssl_get_version(channel->sslctx), bctbx_ssl_get_ciphersuite(channel->sslctx));
 		belle_sip_source_set_timeout((belle_sip_source_t*)obj,-1);
 		belle_sip_channel_set_ready(obj,(struct sockaddr*)&channel->ss,channel->socklen);
 	}else if (err==BCTBX_ERROR_NET_WANT_READ || err==BCTBX_ERROR_NET_WANT_WRITE){
