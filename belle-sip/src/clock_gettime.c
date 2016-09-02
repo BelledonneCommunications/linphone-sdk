@@ -80,7 +80,7 @@ static clock_serv_t    belle_sip_calandar_clk;
 static clock_serv_t    belle_sip_system_clk;
 static int belle_sip_clock_serv_ready=FALSE;
 
-int bc_clock_gettime(bc_clockid_t clk_id, struct timespec *tp) {
+int clock_gettime(clockid_t clk_id, struct timespec *tp) {
 	kern_return_t   ret;
 	clock_serv_t clk_serv;
 	mach_timespec_t tm;
@@ -97,9 +97,9 @@ int bc_clock_gettime(bc_clockid_t clk_id, struct timespec *tp) {
 	}
 
 	switch (clk_id) {
-		case BC_CLOCK_REALTIME:
-		case BC_CLOCK_MONOTONIC:
-			clk_serv = (clk_id == BC_CLOCK_REALTIME) ? belle_sip_calandar_clk : belle_sip_system_clk;
+		case CLOCK_REALTIME:
+		case CLOCK_MONOTONIC:
+			clk_serv = (clk_id == CLOCK_REALTIME) ? belle_sip_calandar_clk : belle_sip_system_clk;
 			if (KERN_SUCCESS == (ret = clock_get_time(clk_serv, &tm))) {
 				tp->tv_sec  = tm.tv_sec;
 				tp->tv_nsec = tm.tv_nsec;
@@ -110,10 +110,10 @@ int bc_clock_gettime(bc_clockid_t clk_id, struct timespec *tp) {
 				retval = -1;
 			}
 			break;
-		case BC_CLOCK_PROCESS_CPUTIME_ID:
-		case BC_CLOCK_THREAD_CPUTIME_ID:
+		case CLOCK_PROCESS_CPUTIME_ID:
+		case CLOCK_THREAD_CPUTIME_ID:
 			start = mach_absolute_time();
-			if (clk_id == BC_CLOCK_PROCESS_CPUTIME_ID) {
+			if (clk_id == CLOCK_PROCESS_CPUTIME_ID) {
 				getpid();
 			} else {
 				sched_yield();

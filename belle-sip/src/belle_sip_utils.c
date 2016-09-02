@@ -117,9 +117,6 @@ static int find_best_clock_id (void) {
 }
 uint64_t belle_sip_time_ms(void){
 	struct timespec ts;
-	#ifdef __APPLE__
-	#define clock_gettime bc_clock_gettime
-	#endif
 	if (clock_gettime(find_best_clock_id(),&ts)==-1){
 		belle_sip_error("clock_gettime() error for clock_id=%i: %s",find_best_clock_id(),strerror(errno));
 		return 0;
