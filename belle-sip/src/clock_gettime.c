@@ -59,7 +59,9 @@
  *
  */
 
-#ifndef HAVE_LIBRT
+#include "clock_gettime.h"
+
+#ifndef HAVE_CLOCK_GETTIME
 
 #pragma weak clock_gettime
 
@@ -71,8 +73,6 @@
 #include <errno.h>
 #include <unistd.h>
 #include <sched.h>
-
-#include "clock_gettime.h"
 
 static mach_timebase_info_data_t __clock_gettime_inf;
 static clock_serv_t    belle_sip_calandar_clk;
