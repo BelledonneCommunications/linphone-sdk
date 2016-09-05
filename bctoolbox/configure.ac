@@ -72,26 +72,38 @@ AC_SUBST(STRICT_OPTIONS)
 # Checks for libraries.
 
 # Checks for header files.
+dnl check for argument supplied. If value is yes, no arg was supplied so set path to default value.
 AC_ARG_WITH( mbedtls,
       [  --with-mbedtls      Set prefix where mbedtls can be found (ex:/usr or /usr/local)[default=PREFIX] ],
-      [ mbedtls_prefix=${withval}],[ mbedtls_prefix=${prefix} ])
+      [case "${withval}" in
+		yes)	mbedtls_prefix="/usr" ;;
+		*)		mbedtls_prefix=${withval} ;;
+	esac],
+	[ mbedtls_prefix=${prefix} ])
 
 
 AC_ARG_WITH( polarssl,
       [  --with-polarssl      Set prefix where polarssl can be found (ex:/usr or /usr/local)[default=PREFIX] ],
-      [ polarssl_prefix=${withval}],[ polarssl_prefix=${prefix} ])
+      [case "${withval}" in
+		yes)	polarssl_prefix="/usr" ;;
+		*)		polarssl_prefix=${withval} ;;
+	esac],
+	[ polarssl_prefix=${prefix} ])
 
 AC_ARG_WITH( bcunit,
       [  --with-bcunit      Set prefix where bcunit can be found (ex:/usr or /usr/local)[default=PREFIX] ],
-      [ bcunit_prefix=${withval}],[ bcunit_prefix=${prefix} ])
-
+      [case "${withval}" in
+		yes)	bcunit_prefix="/usr/local" ;;
+		*)		bcunit_prefix=${withval} ;;
+	esac],
+	[ bcunit_prefix=${prefix} ])
 
 if test "$mbedtls_prefix" = "NONE" ; then
-	mbedtls_prefix=/usr/local
+	mbedtls_prefix=/usr
 fi
 
 if test "$polarssl_prefix" = "NONE" ; then
-	polarssl_prefix=/usr/local
+	polarssl_prefix=/usr
 fi
 
 if test "$bcunit_prefix" = "NONE" ; then
@@ -104,7 +116,7 @@ if test "$mbedtls_prefix" != "/usr" ; then
 	MBEDTLS_LIBS="-L${mbedtls_prefix}/lib"
 fi
 
-if test "$bcunit_prefix" != "/usr" ; then
+if test "$bcunit_prefix" != "/usr/local" ; then
 	BCUNIT_CFLAGS="-I${bcunit_prefix}"
 	BCUNIT_LIBS="-L${bcunit_prefix}/lib"
 fi
@@ -227,6 +239,8 @@ AC_SUBST(CMAKE_INSTALL_FULL_LIBDIR)
 AC_SUBST(CMAKE_INSTALL_FULL_INCLUDEDIR)
 AC_SUBST(TESTER_REQUIRES_PRIVATE)
 
+LIBS_PRIVATE="$LIBS_PRIVATE $MBEDTLS_LIBS $POLARSSL_LIBS"
+AC_SUBST(LIBS_PRIVATE)
 
 AC_CONFIG_FILES(
 [
