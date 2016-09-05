@@ -642,6 +642,13 @@ build_matroska=yes
 if test x"$ebmldir" != xno ; then
 	MS_CHECK_DEP([ebml library],[EBML],[${ebmldir}/include],
 		[${ebmldir}/lib],[ebml/ebml.h],[ebml2],[EBML_ElementRender])
+
+	if test "$EBML_found" = "no" ; then
+		no_ebml=true
+		dnl check without ebml lib, directly in matroska2 (cmake build doesn't create libebml)
+		MS_CHECK_DEP([ebml library],[EBML],[${ebmldir}/include],
+			[${ebmldir}/lib],[ebml/ebml.h],[matroska2],[EBML_ElementRender])
+	fi
 	if test "$EBML_found" = "no" ; then
 		build_matroska=no
 		if test "$matroska" = "true" ; then
@@ -653,8 +660,14 @@ else
 fi
 
 if test x"$matroskadir" != xno ; then
-	MS_CHECK_DEP([matroska library],[MATROSKA],[${matroskadir}/include],
+
+	if test "$no_ebml" = "true" ; then
+		MS_CHECK_DEP([matroska library],[MATROSKA],[${matroskadir}/include],
+		[${matroskadir}/lib],[matroska/matroska.h],[matroska2],[MATROSKA_BlockReleaseData])
+	else
+		MS_CHECK_DEP([matroska library],[MATROSKA],[${matroskadir}/include],
 		[${matroskadir}/lib],[matroska/matroska.h],[matroska2],[MATROSKA_BlockReleaseData],[-lebml2])
+	fi
 	if test "$MATROSKA_found" = "trueno" ; then
 		build_matroska=no
 		if test "$matroska" = "true" ; then
