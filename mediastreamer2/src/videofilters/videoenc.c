@@ -36,6 +36,17 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "rfc2429.h"
 
+
+#if LIBAVCODEC_VERSION_MAJOR >= 57
+
+#ifdef _MSC_VER
+#pragma warning(disable : 4996)
+#else
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
+#endif
+
 #define RATE_CONTROL_MARGIN 15000 /*bits/second*/
 
 #define MS_VIDEOENC_CONF(required_bitrate, bitrate_limit, resolution, fps, cpu, qminvalue) \

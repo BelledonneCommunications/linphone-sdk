@@ -40,6 +40,16 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define FF_INPUT_BUFFER_PADDING_SIZE 32
 #endif
 
+#if LIBAVCODEC_VERSION_MAJOR >= 57
+
+#ifdef _MSC_VER
+#pragma warning(disable : 4996)
+#else
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
+#endif
+
 #if TARGET_OS_IPHONE
 #include <CoreGraphics/CGDataProvider.h>
 #include <CoreGraphics/CGImage.h>

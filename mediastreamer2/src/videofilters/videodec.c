@@ -33,6 +33,16 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mediastreamer2/msticker.h"
 #include "rfc2429.h"
 
+#if LIBAVCODEC_VERSION_MAJOR >= 57
+
+#ifdef _MSC_VER
+#pragma warning(disable : 4996)
+#else
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
+#endif
+
 
 extern void ms_ffmpeg_check_init(void);
 
@@ -698,10 +708,13 @@ static void dec_process_frame(MSFilter *f, mblk_t *inm){
 			s->input=NULL;
 			while ( (remain=frame->b_wptr-frame->b_rptr)> 0) {
 				AVPacket pkt;
+				
 				av_init_packet(&pkt);
 				pkt.data = frame->b_rptr;
 				pkt.size = remain;
+
 				len=avcodec_decode_video2(&s->av_context, s->orig, &got_picture,&pkt);
+
 				if (len<=0) {
 					ms_warning("ms_AVdecoder_process: error %i.",len);
 					ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_DECODING_ERRORS);

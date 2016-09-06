@@ -31,6 +31,16 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "ffmpeg-priv.h"
 
+#if LIBAVCODEC_VERSION_MAJOR >= 57
+
+#ifdef _MSC_VER
+#pragma warning(disable : 4996)
+#else
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
+#endif
+
 #include "ortp/b64.h"
 
 
