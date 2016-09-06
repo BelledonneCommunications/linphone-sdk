@@ -269,16 +269,13 @@ int *dns_debug_p(void) {
 
 #if DNS_DEBUG
 
-#undef DNS_DEBUG
-#define DNS_DEBUG dns_debug
-
 #define DNS_SAY_(fmt, ...) \
 	do { if (DNS_DEBUG > 0) fprintf(stderr, fmt "%.1s", __func__, __LINE__, __VA_ARGS__); } while (0)
 #define DNS_SAY(...) DNS_SAY_("@@ (%s:%d) " __VA_ARGS__, "\n")
 #define DNS_HAI DNS_SAY("HAI")
 
 #define DNS_SHOW_(P, fmt, ...)	do {					\
-	if (DNS_DEBUG > 1) {						\
+	if (DNS_DEBUG >= 1) {						\
 	fprintf(stderr, "@@ BEGIN * * * * * * * * * * * *\n");		\
 	fprintf(stderr, "@@ " fmt "%.0s\n", __VA_ARGS__);		\
 	dns_p_dump((P), stderr);					\
@@ -5556,7 +5553,7 @@ size_t dns_resconf_search(void *dst, size_t lim, const void *qname, size_t qlen,
 
 		/* FALL THROUGH */
 	case 1:
-		if (srchi < lengthof(resconf->search) && resconf->search[srchi][0]) {
+		if (srchi < lengthof(resconf->search) && resconf->search[srchi][0] && strcmp(resconf->search[srchi], ".")) {
 			len = dns_d_anchor(dst, lim, qname, qlen);
 			len += dns_strlcpy((char *)dst + DNS_PP_MIN(len, lim), resconf->search[srchi], lim - DNS_PP_MIN(len, lim));
 
