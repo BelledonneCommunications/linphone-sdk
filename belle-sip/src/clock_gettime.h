@@ -25,6 +25,17 @@
 #endif
 
 #ifndef HAVE_CLOCK_GETTIME
+
+#include <sys/time.h>
+#include <sys/resource.h>
+#include <mach/mach.h>
+#include <mach/clock.h>
+#include <mach/mach_time.h>
+#include <errno.h>
+#include <unistd.h>
+#include <sched.h>
+
+
 typedef enum {
 	CLOCK_REALTIME,
 	CLOCK_MONOTONIC,

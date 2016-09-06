@@ -65,15 +65,6 @@
 
 #pragma weak clock_gettime
 
-#include <sys/time.h>
-#include <sys/resource.h>
-#include <mach/mach.h>
-#include <mach/clock.h>
-#include <mach/mach_time.h>
-#include <errno.h>
-#include <unistd.h>
-#include <sched.h>
-
 static mach_timebase_info_data_t __clock_gettime_inf;
 static clock_serv_t    belle_sip_calandar_clk;
 static clock_serv_t    belle_sip_system_clk;
