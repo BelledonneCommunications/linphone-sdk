@@ -103,9 +103,14 @@ BELLESIP_EXPORT const belle_sip_list_t* belle_sip_refresher_get_auth_events(cons
 BELLESIP_EXPORT void belle_sip_refresher_enable_manual_mode(belle_sip_refresher_t *refresher, int enabled);
 
 /**
- * Retrieve last know public ip:port contact used.
+ * Retrieve current local address used by the underlying refresher's channel.
 **/
-BELLESIP_EXPORT char* belle_sip_refresher_get_public_uri(belle_sip_refresher_t* refresher);
+BELLESIP_EXPORT const char * belle_sip_refresher_get_local_address(belle_sip_refresher_t* refresher, int *port);
+
+/**
+ * Retrieve current public address used by the underlying refresher's channel.
+**/
+BELLESIP_EXPORT const char * belle_sip_refresher_get_public_address(belle_sip_refresher_t* refresher, int *port);
 /**
  * Retrieve last know contact header if known. Only available after a successful registration.
 **/

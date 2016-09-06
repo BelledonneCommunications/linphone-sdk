@@ -167,11 +167,11 @@ int belle_sip_channel_is_reliable(const belle_sip_channel_t *obj);
 
 const char * belle_sip_channel_get_transport_name(const belle_sip_channel_t *obj);
 const char * belle_sip_channel_get_transport_name_lower_case(const belle_sip_channel_t *obj);
-char *belle_sip_channel_get_public_ip_port(belle_sip_channel_t *obj);
 
 const struct addrinfo * belle_sip_channel_get_peer(belle_sip_channel_t *obj);
 
 const char *belle_sip_channel_get_local_address(belle_sip_channel_t *obj, int *port);
+const char *belle_sip_channel_get_public_address(belle_sip_channel_t *obj, int *port);
 
 /*
  * Returns a sip-uri suitable for using in record-route.

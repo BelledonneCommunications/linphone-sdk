@@ -24,6 +24,12 @@
 #include "config.h"
 #endif
 
+#ifdef HAVE_LIBRT /*configure defines HAVE_LIBRT with AC_CHECK_LIB*/
+#	ifndef HAVE_CLOCK_GETTIME
+#	define HAVE_CLOCK_GETTIME 1
+#endif
+#endif
+
 #ifndef HAVE_CLOCK_GETTIME
 
 #include <sys/time.h>

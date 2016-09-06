@@ -820,9 +820,18 @@ void belle_sip_refresher_enable_manual_mode(belle_sip_refresher_t *refresher, in
 	refresher->manual=enabled;
 }
 
-char *belle_sip_refresher_get_public_uri(belle_sip_refresher_t* refresher)  {
-	return belle_sip_channel_get_public_ip_port(refresher->transaction->base.channel);
+const char * belle_sip_refresher_get_local_address(belle_sip_refresher_t* refresher, int *port){
+	belle_sip_channel_t *chan = refresher->transaction->base.channel;
+	if (chan) return belle_sip_channel_get_local_address(chan, port);
+	return NULL;
 }
+
+const char * belle_sip_refresher_get_public_address(belle_sip_refresher_t* refresher, int *port){
+	belle_sip_channel_t *chan = refresher->transaction->base.channel;
+	if (chan) return belle_sip_channel_get_public_address(chan, port);
+	return NULL;
+}
+
 static void set_or_update_dialog(belle_sip_refresher_t* refresher, belle_sip_dialog_t* dialog) {
 	if (refresher->dialog!=dialog){
 		belle_sip_message("refresher [%p] : set_or_update_dialog() current=[%p] new=[%p]",refresher,refresher->dialog,dialog);

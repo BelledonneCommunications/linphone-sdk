@@ -253,13 +253,6 @@ static int get_message_start_pos(char *buff, size_t bufflen) {
 	return -1;
 }
 
-char *belle_sip_channel_get_public_ip_port(belle_sip_channel_t *obj){
-	if (obj->public_ip){
-		return belle_sip_strdup_printf("%s:%d", obj->public_ip, obj->public_port);
-	}
-	return NULL;
-}
-
 void belle_sip_channel_set_public_ip_port(belle_sip_channel_t *obj, const char *public_ip, int port){
 	if (obj->public_ip){
 		int ip_changed=0;
@@ -833,6 +826,12 @@ int belle_sip_channel_matches(const belle_sip_channel_t *obj, const belle_sip_ho
 const char *belle_sip_channel_get_local_address(belle_sip_channel_t *obj, int *port){
 	if (port) *port=obj->local_port;
 	return obj->local_ip;
+}
+
+const char *belle_sip_channel_get_public_address(belle_sip_channel_t *obj, int *port){
+	const char *ret = obj->public_ip ? obj->public_ip : obj->local_ip;
+	if (*port) *port= obj->public_port;
+	return ret;
 }
 
 belle_sip_uri_t *belle_sip_channel_create_routable_uri(belle_sip_channel_t *chan) {
