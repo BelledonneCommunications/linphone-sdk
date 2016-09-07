@@ -561,7 +561,7 @@ const char *bctbx_ssl_get_ciphersuite(bctbx_ssl_context_t *ssl_ctx){
 	return ssl_get_ciphersuite_name(&(ssl_ctx->ssl_ctx));
 }
 
-const char *bctbx_ssl_version(bctbx_ssl_context_t *ssl_ctx){
+const char *bctbx_ssl_get_version(bctbx_ssl_context_t *ssl_ctx){
 	return ssl_get_version(&(ssl_ctx->ssl_ctx));
 }
 
