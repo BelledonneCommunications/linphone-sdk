@@ -96,7 +96,7 @@ static SoundDeviceDescription devices[]={
 	{   "samsung",              "SM-G920F",             "exynos5",      DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0 }, /* Galaxy S6*/
 	{   "samsung",              "SM-G930F",             "exynos5",      DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0 }, /* Galaxy S7*/
 	{	"samsung",				"GT-N7000",				"",				DEVICE_HAS_BUILTIN_AEC,	0 },  /*Galaxy Note*/
-	{	"samsung",				"GT-N7100",				"exynos4",		DEVICE_HAS_BUILTIN_AEC, 0 }, /*Galaxy Note 2  */
+	{	"samsung",				"GT-N7100",				"exynos4",		DEVICE_HAS_BUILTIN_AEC|DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 }, /*Galaxy Note 2  */
 	{	"samsung",				"GT-N7105",				"",				DEVICE_HAS_BUILTIN_AEC|DEVICE_HAS_UNSTANDARD_LIBMEDIA,	0 },  /*Galaxy Note 2 t0lte*/
 	{	"samsung",				"SGH-T889",				"",				DEVICE_HAS_BUILTIN_AEC|DEVICE_HAS_UNSTANDARD_LIBMEDIA,	0 },  /*Galaxy Note 2 t0lte*/
 	{	"samsung",				"SGH-I317",				"",				DEVICE_HAS_BUILTIN_AEC|DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 }, /*Galaxy Note 2 t0lte*/
@@ -113,6 +113,8 @@ static SoundDeviceDescription devices[]={
 	{	"samsung",				"GT-I8190",				"montblanc",	DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC,	0, 16000 },  /*Galaxy S3 mini*/
 	{	"samsung",				"SM-T230",				"mrvl",			DEVICE_HAS_BUILTIN_AEC_CRAPPY, 200, 0},			/*Galaxy Tab 4 wifi*/
 	{	"samsung",				"GT-S7580",				"hawaii",		DEVICE_HAS_CRAPPY_OPENGL | DEVICE_HAS_BUILTIN_AEC, 0},
+	{	"samsung",				"SHV-E210S",			"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA | DEVICE_HAS_BUILTIN_AEC, 0 },
+	{	"samsung",				"SHV-E210L",			"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA | DEVICE_HAS_BUILTIN_AEC, 0 },
 	
 	{	"Sony Ericsson",		"ST15a",				"",				0, 	150 },
 	{	"Sony Ericsson",		"S51SE",				"",				0,	150 },
@@ -145,6 +147,12 @@ static SoundDeviceDescription devices[]={
 	{	"Hewlett-Packard",		"Slate 21 Pro",			"tegra4", 		DEVICE_HAS_UNSTANDARD_LIBMEDIA, 250  },
 	{	"LENOVO",				"Lenovo S60-a",			"msm8916",		0,	0 ,	44100},
 	{	"blackberry",			"STV100-4",				"msm8992",		DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0 , 48000},
+	
+	{	"vodafone",				"985N",					"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	
+	{	"HUAWEI",				"P7-L10",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"HUAWEI",				"P7-L11",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+
 	{	NULL, 					NULL, 					NULL,			0, 	0,	0}
 };
 
