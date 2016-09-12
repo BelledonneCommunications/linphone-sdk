@@ -1097,11 +1097,11 @@ void belle_sip_resolver_context_cancel(belle_sip_resolver_context_t *obj){
 This function does the connect() method to get local ip address suitable to reach a given destination.
 It works on all platform except for windows using ipv6 sockets. TODO: find a workaround for win32+ipv6 socket
 */
-void belle_sip_get_src_addr_for(const struct sockaddr *dest, socklen_t destlen, struct sockaddr *src, socklen_t *srclen, int local_port){
+int belle_sip_get_src_addr_for(const struct sockaddr *dest, socklen_t destlen, struct sockaddr *src, socklen_t *srclen, int local_port){
 	int af_type=dest->sa_family;
 	int sock=(int)socket(af_type,SOCK_DGRAM,IPPROTO_UDP);
+	int ret = 0;
 	
-	belle_sip_message("belle_sip_get_src_addr_for(): af_inet6=%i",af_type==AF_INET6);
 	if (sock==(belle_sip_socket_t)-1){
 		if (af_type == AF_INET){
 			belle_sip_fatal("Could not create socket: %s",belle_sip_get_socket_error_string());
@@ -1110,17 +1110,19 @@ void belle_sip_get_src_addr_for(const struct sockaddr *dest, socklen_t destlen, 
 	}
 	
 	if (af_type==AF_INET6 && (IN6_IS_ADDR_V4MAPPED(&((struct sockaddr_in6*)dest)->sin6_addr))){
-		/*this is actually required only for windows, who is enable to provide an ipv4 mapped local address if the remote is ipv4 mapped,
+		/*this is actually required only for windows, who is unable to provide an ipv4 mapped local address if the remote is ipv4 mapped,
 		and unable to provide a correct local address if the remote address is true ipv6 address when in dual stack mode*/
 		belle_sip_socket_enable_dual_stack(sock);
 	}
 	
 	if (connect(sock,dest,destlen)==-1){
 		belle_sip_error("belle_sip_get_src_addr_for: connect() failed: %s",belle_sip_get_socket_error_string());
+		ret = -get_socket_error();
 		goto fail;
 	}
 	if (getsockname(sock,src,srclen)==-1){
 		belle_sip_error("belle_sip_get_src_addr_for: getsockname() failed: %s",belle_sip_get_socket_error_string());
+		ret = -get_socket_error();
 		goto fail;
 	}
 	
@@ -1133,7 +1135,7 @@ void belle_sip_get_src_addr_for(const struct sockaddr *dest, socklen_t destlen, 
 	}
 	
 	belle_sip_close_socket(sock);
-	return;
+	return ret;
 fail:
 	{
 		struct addrinfo *res = bctbx_ip_address_to_addrinfo(af_type, SOCK_STREAM, af_type == AF_INET ? "127.0.0.1" : "::1", local_port);
@@ -1146,4 +1148,5 @@ fail:
 		}
 	}
 	if (sock!=(belle_sip_socket_t)-1) belle_sip_close_socket(sock);
+	return ret;
 }

@@ -96,8 +96,10 @@ BELLESIP_EXPORT void belle_sip_resolver_context_cancel(belle_sip_resolver_contex
 /**
  * Lookups the source address from local interface that can be used to connect to a destination address.
  * local_port is only used to be assigned into the result source address.
+ * This function always puts something in src and srclen (the loopback address) even if anything fails.
+ * The return code is 0 if successful, or -errno if an error was encoutered. Typical error is -ENETUNREACH when IPv6 network is not reachable. 
 **/
-BELLESIP_EXPORT void belle_sip_get_src_addr_for(const struct sockaddr *dest, socklen_t destlen, struct sockaddr *src, socklen_t *srclen, int local_port);
+BELLESIP_EXPORT int belle_sip_get_src_addr_for(const struct sockaddr *dest, socklen_t destlen, struct sockaddr *src, socklen_t *srclen, int local_port);
 
 
 BELLE_SIP_END_DECLS
