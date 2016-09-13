@@ -112,10 +112,17 @@ static int find_best_clock_id (void) {
 	 * The only reason for seeing the register is if the network address has changed, in which case it will trigger a shutdown of all sockets.
 	 * As a result, we fallback to CLOCK_REALTIME until the OS correctly implement CLOCK_MONOTONIC according to POSIX specifications
 	 */
+#ifdef __APPLE__
+	#define CLOCK_REALTIME BC_CLOCK_REALTIME
+#endif
 	return CLOCK_REALTIME;
 #endif
 }
 uint64_t belle_sip_time_ms(void){
+#ifdef __APPLE__
+#define clock_gettime bc_clock_gettime
+#endif
+
 	struct timespec ts;
 	if (clock_gettime(find_best_clock_id(),&ts)==-1){
 		belle_sip_error("clock_gettime() error for clock_id=%i: %s",find_best_clock_id(),strerror(errno));

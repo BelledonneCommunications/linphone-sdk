@@ -62,8 +62,6 @@
 
 #ifdef __APPLE__
 
-#pragma weak clock_gettime
-
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <mach/mach.h>
