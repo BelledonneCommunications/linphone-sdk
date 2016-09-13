@@ -195,6 +195,9 @@ set(VOIP_SOURCE_FILES_ASM )
 if(ENABLE_ALSA)
 	list(APPEND VOIP_SOURCE_FILES_C audiofilters/alsa.c)
 endif()
+if(ANDROID)
+	list(APPEND VOIP_SOURCE_FILES_CXX voip/msvoip_jni.cc)
+endif()
 if(ENABLE_ANDROIDSND)
 	list(APPEND VOIP_SOURCE_FILES_CXX
 		android/androidsound.cpp

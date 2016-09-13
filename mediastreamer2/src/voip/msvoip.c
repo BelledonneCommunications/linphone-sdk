@@ -207,21 +207,6 @@ extern MSWebCamDesc static_image_desc;
 extern MSWebCamDesc ms_mire_webcam_desc;
 #ifdef ANDROID
 extern MSWebCamDesc ms_android_video_capture_desc;
-
-JNIEXPORT void JNICALL Java_org_linphone_mediastream_Factory_setDeviceInfo(JNIEnv* env, jobject obj,
-    jlong factoryPtr, jstring jmanufacturer, jstring jmodel, jstring jplatform, jint flags, jint delay, jint recommended_rate) {
-    const char *manufacturer = (*env)->GetStringUTFChars(env, jmanufacturer, NULL);
-    const char *model = (*env)->GetStringUTFChars(env, jmodel, NULL);
-    const char *platform = (*env)->GetStringUTFChars(env, jplatform, NULL);
-
-    ms_message("Device infos: [%s,%s,%s], Flags: %d, Delay: %d, Rate: %d",manufacturer,model,platform,flags,delay,recommended_rate);
-    ms_devices_info_add(((MSFactory *) factoryPtr)->devices_info, manufacturer, model, platform, flags, delay, recommended_rate);
-
-    (*env)->ReleaseStringUTFChars(env, jmanufacturer, manufacturer);
-    (*env)->ReleaseStringUTFChars(env, jmodel, model);
-    (*env)->ReleaseStringUTFChars(env, jplatform, platform);
-}
-
 #endif
 
 #if TARGET_OS_IPHONE && !TARGET_IPHONE_SIMULATOR
