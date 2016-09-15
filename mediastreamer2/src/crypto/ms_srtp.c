@@ -483,7 +483,7 @@ int ms_media_stream_sessions_set_encryption_mandatory(MSMediaStreamSessions *ses
 	check_and_create_srtp_context(sessions);
 	if (yesno) {
 		if ((err = ms_media_stream_sessions_fill_srtp_context_all_stream(sessions))) {
-			return err;;
+			return err;
 		}
 	}
 	sessions->srtp_context->send_rtp_context.mandatory_enabled=yesno;
