@@ -61,6 +61,9 @@ if(NOT ${XCODE_VERSION} VERSION_LESS 7)
 	endif()
 endif()
 
+set(LINPHONE_BUILDER_CXXFLAGS "-stdlib=libc++")
+set(LINPHONE_BUILDER_LDFLAGS "-stdlib=libc++")
+
 # Include builders
 include(builders/CMakeLists.txt)
 
