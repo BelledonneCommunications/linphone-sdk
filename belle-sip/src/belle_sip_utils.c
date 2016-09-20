@@ -113,6 +113,9 @@ static int find_best_clock_id (void) {
 	 * As a result, we fallback to CLOCK_REALTIME until the OS correctly implement CLOCK_MONOTONIC according to POSIX specifications
 	 */
 #ifdef __APPLE__
+	#ifdef CLOCK_REALTIME
+		#undef CLOCK_REALTIME
+	#endif
 	#define CLOCK_REALTIME BC_CLOCK_REALTIME
 #endif
 	return CLOCK_REALTIME;

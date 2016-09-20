@@ -7683,7 +7683,10 @@ exec:
 			dgoto(R->sp, DNS_R_FOREACH_A);
 
 		if ((error = dns_so_check(&R->so)) != 0){
-			if (error == DNS_ENETUNREACH || error == DNS_ECONNREFUSED || error == EINVAL){
+			if (error == DNS_ENETUNREACH
+				|| error == DNS_ECONNREFUSED
+				|| error == EINVAL
+				|| error == EHOSTUNREACH) { /* maybe even more case*/
 				dgoto(R->sp, DNS_R_FOREACH_A);
 			}else goto error;
 		}
