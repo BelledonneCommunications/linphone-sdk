@@ -409,6 +409,23 @@ static int belle_sip_dialog_should_terminate_by_notify(belle_sip_dialog_t *obj, 
 	return should_terminate;
 }
 
+static void belle_sip_dialog_update_remote_target(belle_sip_dialog_t *obj, belle_sip_header_contact_t *ct) {
+	int remote_target_changed = FALSE;
+	if (obj->remote_target) {
+		belle_sip_uri_t *remote_target_uri = belle_sip_header_address_get_uri(obj->remote_target);
+		belle_sip_uri_t *ct_uri = belle_sip_header_address_get_uri((belle_sip_header_address_t *)ct);
+		remote_target_changed = !belle_sip_uri_equals(remote_target_uri, ct_uri);
+		belle_sip_object_unref(obj->remote_target);
+	}
+	obj->remote_target=(belle_sip_header_address_t*)belle_sip_object_ref(ct);
+	if (remote_target_changed) {
+		belle_sip_message("Dialog [%p]: remote target changed", obj);
+		if (obj->last_out_ack) {
+			belle_sip_request_set_uri(BELLE_SIP_REQUEST(obj->last_out_ack), belle_sip_header_address_get_uri(obj->remote_target));
+		}
+	}
+}
+
 /*
  * return 0 if message should be delivered to the next listener, otherwise, its a retransmision, just keep it
  * */
@@ -510,8 +527,7 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 					ct=belle_sip_message_get_header_by_type(resp,belle_sip_header_contact_t);
 				}
 				if (ct){
-					belle_sip_object_unref(obj->remote_target);
-					obj->remote_target=(belle_sip_header_address_t*)belle_sip_object_ref(ct);
+					belle_sip_dialog_update_remote_target(obj, ct);
 				}
 				
 			}
@@ -1085,7 +1101,7 @@ void belle_sip_dialog_queue_client_transaction(belle_sip_dialog_t *dialog, belle
 static void _belle_sip_dialog_process_queue(belle_sip_dialog_t* dialog){
 	belle_sip_client_transaction_t *tr=NULL;
 	
-	if (dialog->state==BELLE_SIP_DIALOG_TERMINATED || belle_sip_dialog_request_pending(dialog) || dialog->needs_ack) goto end;
+	if (dialog->state==BELLE_SIP_DIALOG_TERMINATED || belle_sip_dialog_request_pending(dialog)) goto end;
 	
 	dialog->queued_ct=belle_sip_list_pop_front(dialog->queued_ct,(void**)&tr);
 	if (tr){

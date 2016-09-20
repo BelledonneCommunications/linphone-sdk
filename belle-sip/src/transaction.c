@@ -78,6 +78,11 @@ static void notify_timeout(belle_sip_transaction_t *t){
 	BELLE_SIP_PROVIDER_INVOKE_LISTENERS_FOR_TRANSACTION(t,process_timeout,&ev);
 }
 
+static int server_transaction_on_call_repair_timer(belle_sip_transaction_t *t) {
+	belle_sip_server_transaction_send_response(BELLE_SIP_SERVER_TRANSACTION(t), belle_sip_response_create_from_request(t->request, 503));
+	return BELLE_SIP_STOP;
+}
+
 static void on_channel_state_changed(belle_sip_channel_listener_t *l, belle_sip_channel_t *chan, belle_sip_channel_state_t state){
 	belle_sip_transaction_t *t=(belle_sip_transaction_t*)l;
 	belle_sip_io_error_event_t ev;
@@ -109,8 +114,18 @@ static void on_channel_state_changed(belle_sip_channel_listener_t *l, belle_sip_
 			if (t->timed_out)
 				notify_timeout((belle_sip_transaction_t*)t);
 
-			belle_sip_transaction_terminate(t);
-			belle_sip_object_unref(t);
+			if (t->dialog && (belle_sip_dialog_get_state(t->dialog) == BELLE_SIP_DIALOG_EARLY)) {
+				if (!t->timed_out && BELLE_SIP_OBJECT_IS_INSTANCE_OF(t, belle_sip_server_transaction_t)) {
+					const belle_sip_timer_config_t *cfg = belle_sip_transaction_get_timer_config(t);
+					t->call_repair_timer = belle_sip_timeout_source_new((belle_sip_source_func_t)server_transaction_on_call_repair_timer, t, 32 * cfg->T1);
+					belle_sip_transaction_start_timer(t, t->call_repair_timer);
+				}
+			} else {
+				belle_sip_transaction_terminate(t);
+				belle_sip_object_unref(t);
+			}
+			belle_sip_object_unref(((belle_sip_transaction_t*)t)->channel);
+			((belle_sip_transaction_t*)t)->channel = NULL;
 		break;
 		default:
 			/*ignored*/
@@ -187,6 +202,11 @@ void belle_sip_transaction_terminate(belle_sip_transaction_t *t){
 									,t);
 		BELLE_SIP_OBJECT_VPTR(t,belle_sip_transaction_t)->on_terminate(t);
 		belle_sip_provider_set_transaction_terminated(t->provider,t);
+	}
+	if (t->call_repair_timer) {
+		belle_sip_transaction_stop_timer(t, t->call_repair_timer);
+		belle_sip_object_unref(t->call_repair_timer);
+		t->call_repair_timer = NULL;
 	}
 }
 
@@ -272,7 +292,7 @@ void belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *
 	int status_code;
 
 	belle_sip_object_ref(resp);
-	if (!base->last_response){
+	if (!base->last_response || !base->channel){
 		belle_sip_hop_t* hop=belle_sip_response_get_return_hop(resp);
 		base->channel=belle_sip_provider_get_channel(base->provider,hop);
 		belle_sip_object_unref(hop);

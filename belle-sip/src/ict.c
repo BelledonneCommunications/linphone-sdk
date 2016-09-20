@@ -78,6 +78,7 @@ static belle_sip_request_t *make_ack(belle_sip_ict_t *obj, belle_sip_response_t 
 	return obj->ack;
 }
 
+/* Timer D: Wait time for response retransmits */
 static int ict_on_timer_D(belle_sip_ict_t *obj){
 	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
 	if (base->state==BELLE_SIP_TRANSACTION_COMPLETED){
@@ -86,6 +87,7 @@ static int ict_on_timer_D(belle_sip_ict_t *obj){
 	return BELLE_SIP_STOP;
 }
 
+/* Timer M: Wait time for retransmission of 2xx to INVITE or additional 2xx from other branches of a forked INVITE */
 static int ict_on_timer_M(belle_sip_ict_t *obj){
 	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
 	if (base->state==BELLE_SIP_TRANSACTION_ACCEPTED){
@@ -134,6 +136,7 @@ static void ict_on_response(belle_sip_ict_t *obj, belle_sip_response_t *resp){
 	}
 }
 
+/* Timer A: INVITE request retransmit interval, for UDP only */
 static int ict_on_timer_A(belle_sip_ict_t *obj){
 	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
 
@@ -153,6 +156,7 @@ static int ict_on_timer_A(belle_sip_ict_t *obj){
 	return BELLE_SIP_CONTINUE;
 }
 
+/* Timer B: INVITE transaction timeout timer */
 static int ict_on_timer_B(belle_sip_ict_t *obj){
 	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
 	switch (base->state){
