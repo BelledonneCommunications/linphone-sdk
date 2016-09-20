@@ -239,6 +239,15 @@ BELLESIP_EXPORT belle_tls_crypto_config_t *belle_tls_crypto_config_new(void);
 BELLESIP_EXPORT int belle_tls_crypto_config_set_root_ca(belle_tls_crypto_config_t *obj, const char *path);
 
 /**
+ * Set the content of the trusted certificate chain
+ * @param[in/out]	obj		The crypto configuration object to set
+ * @param[in]		data	The content to the trusted certificate chain data(NULL terminated string)
+ *
+ * @return 0 on success
+ */
+BELLESIP_EXPORT int belle_tls_crypto_config_set_root_ca_data(belle_tls_crypto_config_t *obj, const char *data);
+
+/**
  * Set the exception flags to manage exception overriding during peer certificate verification
  * @param[in/out]	obj		The crypto configuration object to set
  * @param[in]		flags	Flags value to set:

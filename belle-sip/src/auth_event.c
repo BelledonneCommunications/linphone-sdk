@@ -85,7 +85,7 @@ belle_tls_verify_policy_t *belle_tls_verify_policy_new(){
 	return (belle_tls_verify_policy_t *)belle_tls_crypto_config_new();
 }
 
-int belle_tls_verify_policy_set_root_ca(belle_tls_verify_policy_t *obj, const char *path){
+int belle_tls_verify_policy_set_root_ca(belle_tls_verify_policy_t *obj, const char *path) {
 	return belle_tls_crypto_config_set_root_ca(obj, path);
 }
 
@@ -98,8 +98,9 @@ unsigned int belle_tls_verify_policy_get_exceptions(const belle_tls_verify_polic
 }
 /* end of deprecated on 2016/02/02 */
 
-static void crypto_config_uninit(belle_tls_crypto_config_t *obj){
+static void crypto_config_uninit(belle_tls_crypto_config_t *obj) {
 	if (obj->root_ca) belle_sip_free(obj->root_ca);
+	if (obj->root_ca_data) belle_sip_free(obj->root_ca_data);
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_tls_crypto_config_t);
@@ -123,15 +124,33 @@ belle_tls_crypto_config_t *belle_tls_crypto_config_new(void){
 }
 
 int belle_tls_crypto_config_set_root_ca(belle_tls_crypto_config_t *obj, const char *path){
-	if (obj->root_ca){
+	if (obj->root_ca) {
 		belle_sip_free(obj->root_ca);
-		obj->root_ca=NULL;
+		obj->root_ca = NULL;
 	}
-	if (path){
-		obj->root_ca=belle_sip_strdup(path);
-		belle_sip_message("Root ca path set to %s",obj->root_ca);
+	if (path) {
+		obj->root_ca = belle_sip_strdup(path);
+		belle_sip_message("Root ca path set to %s", obj->root_ca);
 	} else {
 		belle_sip_message("Root ca path disabled");
+	}
+	return 0;
+}
+
+int belle_tls_crypto_config_set_root_ca_data(belle_tls_crypto_config_t *obj, const char *data) {
+	if (obj->root_ca) {
+		belle_sip_free(obj->root_ca);
+		obj->root_ca = NULL;
+	}
+	if (obj->root_ca_data) {
+		belle_sip_free(obj->root_ca_data);
+		obj->root_ca_data = NULL;
+	}
+	if (data) {
+		obj->root_ca_data = belle_sip_strdup(data);
+		belle_sip_message("Root ca data set to %s", obj->root_ca_data);
+	} else {
+		belle_sip_message("Root ca data disabled");
 	}
 	return 0;
 }

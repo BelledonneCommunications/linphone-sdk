@@ -788,6 +788,26 @@ static int belle_sip_tls_channel_load_root_ca(belle_sip_tls_channel_t *obj, cons
 	return -1;
 }
 
+static int belle_sip_tls_channel_load_root_ca_from_buffer(belle_sip_tls_channel_t *obj, const char *data) {
+	int err = 0;
+	if (data != NULL) {
+		if (obj->root_ca) {
+			bctbx_x509_certificate_free(obj->root_ca);
+		}
+		obj->root_ca = bctbx_x509_certificate_new();
+		//certificate data must to contain in size the NULL character
+		err = bctbx_x509_certificate_parse(obj->root_ca, data, strlen(data) + 1);
+		if (err) {
+			belle_sip_error("Failed to load root ca from string data: 0x%x", err);
+			return -1;
+		}
+		belle_sip_message("Root ca loaded from string data");
+		return 0;
+	}
+	belle_sip_error("Could not load root ca from null string");
+	return -1;
+}
+
 belle_sip_channel_t * belle_sip_channel_new_tls(belle_sip_stack_t *stack, belle_tls_crypto_config_t *crypto_config, const char *bindip, int localport, const char *peer_cname, const char *dest, int port) {
 	belle_sip_tls_channel_t *obj=belle_sip_object_new(belle_sip_tls_channel_t);
 	belle_sip_stream_channel_t* super=(belle_sip_stream_channel_t*)obj;
@@ -814,8 +834,10 @@ belle_sip_channel_t * belle_sip_channel_new_tls(belle_sip_stack_t *stack, belle_
 
 	bctbx_ssl_config_set_rng(obj->sslcfg, random_generator, NULL);
 	bctbx_ssl_set_io_callbacks(obj->sslctx, obj, tls_callback_write, tls_callback_read);
-	if (crypto_config->root_ca && belle_sip_tls_channel_load_root_ca(obj,crypto_config->root_ca)==0){
-		bctbx_ssl_config_set_ca_chain(obj->sslcfg, obj->root_ca, super->base.peer_cname ? super->base.peer_cname : super->base.peer_name );
+	if (crypto_config->root_ca_data && belle_sip_tls_channel_load_root_ca_from_buffer(obj, crypto_config->root_ca_data) == 0) {
+		bctbx_ssl_config_set_ca_chain(obj->sslcfg, obj->root_ca, super->base.peer_cname ? super->base.peer_cname : super->base.peer_name);
+	} else if (crypto_config->root_ca && belle_sip_tls_channel_load_root_ca(obj, crypto_config->root_ca) == 0) {
+		bctbx_ssl_config_set_ca_chain(obj->sslcfg, obj->root_ca, super->base.peer_cname ? super->base.peer_cname : super->base.peer_name);
 	}
 	bctbx_ssl_config_set_callback_verify(obj->sslcfg, belle_sip_ssl_verify, crypto_config);
 	bctbx_ssl_config_set_callback_cli_cert(obj->sslcfg, belle_sip_client_certificate_request_callback, obj);

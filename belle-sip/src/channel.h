@@ -225,6 +225,7 @@ belle_sip_channel_t *belle_sip_channel_find_from_list(belle_sip_list_t *l, int a
 struct belle_tls_crypto_config{
 	belle_sip_object_t base;
 	char *root_ca; /**< path to the trusted certificate chain used when verifiying peer certificate */
+	char *root_ca_data; /**< content of the trusted certificate chain used when verifiying peer certificate */
 	int exception_flags; /**< override some exception raised during certificate verification, can be:
 						   BELLE_TLS_VERIFY_NONE do not override any exception
 						   BELLE_TLS_VERIFY_CN_MISMATCH ignore Common Name mismatch exception
