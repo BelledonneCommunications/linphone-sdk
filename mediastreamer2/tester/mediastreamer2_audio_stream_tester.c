@@ -281,6 +281,7 @@ static void encrypted_audio_stream_base( bool_t change_ssrc,
 			break;
 		case MS_AES_256_SHA1_32:
 		case MS_AES_256_SHA1_80:
+		case MS_AES_CM_256_SHA1_80:
 			send_key = aes_256_bits_send_key;
 			send_key_2 = aes_256_bits_send_key_2;
 			recv_key = aes_256_bits_recv_key;

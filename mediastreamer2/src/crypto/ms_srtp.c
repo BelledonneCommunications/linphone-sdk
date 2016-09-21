@@ -274,9 +274,10 @@ static int ms_set_srtp_crypto_policy(MSCryptoSuite suite, crypto_policy_t *polic
 		case MS_AES_128_SHA1_80: /*default mode*/
 			crypto_policy_set_aes_cm_128_hmac_sha1_80(policy);
 			break;
-		case MS_AES_256_SHA1_80:
-			crypto_policy_set_aes_cm_256_hmac_sha1_80(policy);
-			break;
+		case MS_AES_256_SHA1_80: // For backward compatibility
+		case MS_AES_CM_256_SHA1_80:
+		    crypto_policy_set_aes_cm_256_hmac_sha1_80(policy);
+            break;
 		case MS_AES_256_SHA1_32:
 			crypto_policy_set_aes_cm_256_hmac_sha1_32(policy);
 			break;
