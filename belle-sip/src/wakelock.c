@@ -70,7 +70,7 @@ static void jni_key_cleanup(void *data) {
 			(*ctx.jvm)->DetachCurrentThread(ctx.jvm);
 			pthread_setspecific(ctx.jniEnvKey, NULL);
 		} else {
-			belle_sip_fatal("Wake lock cleanup. No JVM found");
+			belle_sip_error("Wake lock cleanup. No JVM found");
 		}
 	}
 }
