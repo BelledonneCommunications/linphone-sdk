@@ -340,6 +340,7 @@ int dns_v_api(void) {
 #define DNS_ETIMEDOUT	WSAETIMEDOUT
 #define DNS_ECONNREFUSED	WSAECONNREFUSED
 #define DNS_ENETUNREACH WSAENETUNREACH
+#define DNS_EHOSTUNREACH WSAEHOSTUNREACH
 
 #define dns_syerr()	((int)GetLastError())
 #define dns_soerr()	((int)WSAGetLastError())
@@ -355,6 +356,7 @@ int dns_v_api(void) {
 #define DNS_ETIMEDOUT	ETIMEDOUT
 #define DNS_ECONNREFUSED	ECONNREFUSED
 #define DNS_ENETUNREACH ENETUNREACH
+#define DNS_EHOSTUNREACH EHOSTUNREACH
 
 #define dns_syerr()	errno
 #define dns_soerr()	errno
@@ -7686,7 +7688,7 @@ exec:
 			if (error == DNS_ENETUNREACH
 				|| error == DNS_ECONNREFUSED
 				|| error == EINVAL
-				|| error == EHOSTUNREACH) { /* maybe even more case*/
+				|| error == DNS_EHOSTUNREACH) { /* maybe even more case*/
 				dgoto(R->sp, DNS_R_FOREACH_A);
 			}else goto error;
 		}
