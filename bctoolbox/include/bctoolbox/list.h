@@ -52,8 +52,16 @@ BCTBX_PUBLIC bctbx_list_t * bctbx_list_pop_front(bctbx_list_t *list, void **fron
 BCTBX_PUBLIC size_t bctbx_list_size(const bctbx_list_t * first);
 BCTBX_PUBLIC void bctbx_list_for_each(const bctbx_list_t * list, bctbx_list_iterate_func func);
 BCTBX_PUBLIC void bctbx_list_for_each2(const bctbx_list_t * list, bctbx_list_iterate2_func func, void *user_data);
-BCTBX_PUBLIC bctbx_list_t * bctbx_list_remove_link(bctbx_list_t * list, bctbx_list_t * elem);
-BCTBX_PUBLIC bctbx_list_t * bctbx_list_delete_link(bctbx_list_t * list, bctbx_list_t * elem);
+/**
+ * Removes the element pointed by elem from the list. The element itself is not freed, allowing 
+ * to be chained in another list for example.
+ * Use bctbx_list_erase_link() if you simply want to delete an element of a list.
+**/
+BCTBX_PUBLIC bctbx_list_t * bctbx_list_unlink(bctbx_list_t * list, bctbx_list_t * elem);
+/**
+ * Delete the element pointed by 'elem' from the list.
+**/
+BCTBX_PUBLIC bctbx_list_t * bctbx_list_erase_link(bctbx_list_t * list, bctbx_list_t * elem);
 BCTBX_PUBLIC bctbx_list_t * bctbx_list_find(bctbx_list_t * list, void *data);
 BCTBX_PUBLIC bctbx_list_t * bctbx_list_free(bctbx_list_t *list);
 /*frees list elements and associated data, using the supplied function pointer*/

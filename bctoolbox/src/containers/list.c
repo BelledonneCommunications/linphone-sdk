@@ -130,7 +130,7 @@ bctbx_list_t * bctbx_list_free_with_data(bctbx_list_t *list, bctbx_list_free_fun
 bctbx_list_t*  _bctbx_list_remove(bctbx_list_t* first, void *data, int warn_if_not_found){
 	bctbx_list_t* it;
 	it=bctbx_list_find(first,data);
-	if (it) return bctbx_list_delete_link(first,it);
+	if (it) return bctbx_list_erase_link(first,it);
 	else if (warn_if_not_found){
 		bctbx_warning("bctbx_list_remove: no element with %p data was in the list", data);
 	}
@@ -182,12 +182,12 @@ bctbx_list_t * bctbx_list_pop_front(bctbx_list_t *list, void **front_data){
 		return NULL;
 	}
 	*front_data=front_elem->data;
-	list=bctbx_list_remove_link(list,front_elem);
+	list=bctbx_list_unlink(list,front_elem);
 	bctbx_free(front_elem);
 	return list;
 }
 
-bctbx_list_t* bctbx_list_remove_link(bctbx_list_t* list, bctbx_list_t* elem){
+bctbx_list_t* bctbx_list_unlink(bctbx_list_t* list, bctbx_list_t* elem){
 	bctbx_list_t* ret;
 	if (elem==list){
 		ret=elem->next;
@@ -203,8 +203,8 @@ bctbx_list_t* bctbx_list_remove_link(bctbx_list_t* list, bctbx_list_t* elem){
 	return list;
 }
 
-bctbx_list_t * bctbx_list_delete_link(bctbx_list_t* list, bctbx_list_t* elem){
-	bctbx_list_t *ret=bctbx_list_remove_link(list,elem);
+bctbx_list_t * bctbx_list_erase_link(bctbx_list_t* list, bctbx_list_t* elem){
+	bctbx_list_t *ret=bctbx_list_unlink(list,elem);
 	bctbx_free(elem);
 	return ret;
 }
@@ -226,7 +226,7 @@ bctbx_list_t* bctbx_list_find_custom(const bctbx_list_t* list, bctbx_compare_fun
 bctbx_list_t *bctbx_list_delete_custom(bctbx_list_t *list, bctbx_compare_func compare_func, const void *user_data){
 	bctbx_list_t *elem=bctbx_list_find_custom(list,compare_func,user_data);
 	if (elem!=NULL){
-		list=bctbx_list_delete_link(list,elem);
+		list=bctbx_list_erase_link(list,elem);
 	}
 	return list;
 }
