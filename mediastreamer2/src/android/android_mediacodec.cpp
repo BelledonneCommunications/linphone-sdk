@@ -489,6 +489,7 @@ AMediaFormat* AMediaCodec_getOutputFormat(AMediaCodec *codec){
 	}
 	env->DeleteLocalRef(mediaCodecClass);
 	format->jformat = env->NewGlobalRef(jformat);
+	env->DeleteLocalRef(jformat);
 	return format;
 }
 
