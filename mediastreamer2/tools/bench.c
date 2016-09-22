@@ -298,7 +298,7 @@ static int uninit_bench(struct bench_config *bench)
 	bctbx_list_t *it;
 	for(it=bench->tsessions;it!=NULL;it=bench->tsessions){
 		struct test_session *ts = (struct test_session *)it->data;
-		bench->tsessions = bctbx_list_remove_link(bench->tsessions, it);
+		bench->tsessions = bctbx_list_erase_link(bench->tsessions, it);
 
 		ms_ticker_detach(bench->ticker,ts->fplayer);
 		ms_ticker_detach(bench->ticker,ts->rtprecv);

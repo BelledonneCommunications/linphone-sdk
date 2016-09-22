@@ -244,7 +244,7 @@ void ms_filter_remove_notify_callback(MSFilter *f, MSFilterNotifyFunc fn, void *
 	}
 	if (found){
 		ms_notify_context_destroy((MSNotifyContext*)found->data);
-		f->notify_callbacks=bctbx_list_remove_link(f->notify_callbacks,found);
+		f->notify_callbacks=bctbx_list_erase_link(f->notify_callbacks,found);
 	}else ms_warning("ms_filter_remove_notify_callback(filter=%p): no registered callback with fn=%p and ud=%p",f,fn,ud);
 }
 

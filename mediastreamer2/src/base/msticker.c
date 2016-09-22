@@ -292,7 +292,7 @@ static void remove_tasks_for_filter(MSTicker *ticker, MSFilter *f){
 		MSFilterTask *t=(MSFilterTask*)elem->data;
 		nextelem=elem->next;
 		if (t->f==f){
-			ticker->task_list=bctbx_list_remove_link(ticker->task_list,elem);
+			ticker->task_list=bctbx_list_erase_link(ticker->task_list,elem);
 			ms_free(t);
 		}
 	}

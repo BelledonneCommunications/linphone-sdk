@@ -112,7 +112,7 @@ void ms_list_for_each3(const MSList *list, void (*func)(void *, void *, void*), 
 }
 
 MSList *ms_list_remove_link(MSList *list, MSList *elem){
-	return bctbx_list_remove_link(list, elem);
+	return bctbx_list_unlink(list, elem);
 }
 
 MSList *ms_list_find(MSList *list, void *data){

@@ -362,7 +362,7 @@ static void ice_free_candidate_pair(IceCandidatePair *pair, IceCheckList *cl)
 	}
 	while ((elem = bctbx_list_find_custom(cl->valid_list, (bctbx_compare_func)ice_find_pair_in_valid_list, pair)) != NULL) {
 		ice_free_valid_pair(elem->data);
-		cl->valid_list = bctbx_list_remove_link(cl->valid_list, elem);
+		cl->valid_list = bctbx_list_erase_link(cl->valid_list, elem);
 	}
 	ms_free(pair);
 }
@@ -671,7 +671,7 @@ static IceCandidatePair * ice_check_list_pop_triggered_check(IceCheckList *cl)
 	pair = bctbx_list_nth_data(cl->triggered_checks_queue, 0);
 	if (pair != NULL) {
 		/* Remove the first element in the triggered checks queue. */
-		cl->triggered_checks_queue = bctbx_list_remove_link(cl->triggered_checks_queue, cl->triggered_checks_queue);
+		cl->triggered_checks_queue = bctbx_list_erase_link(cl->triggered_checks_queue, cl->triggered_checks_queue);
 	}
 	return pair;
 }
@@ -2172,7 +2172,7 @@ static IceCandidatePair * ice_construct_valid_pair(IceCheckList *cl, RtpSession 
 			local_addr_str, candidate_type_values[pair->local->type], remote_addr_str, candidate_type_values[pair->remote->type]);
 		elem = bctbx_list_find_custom(cl->losing_pairs, (bctbx_compare_func)ice_find_pair_from_candidates, &candidates);
 		if (elem != NULL) {
-			cl->losing_pairs = bctbx_list_remove_link(cl->losing_pairs, elem);
+			cl->losing_pairs = bctbx_list_erase_link(cl->losing_pairs, elem);
 			/* Select the losing pair that has just become a valid pair. */
 			valid_pair->selected = TRUE;
 			if (ice_session_nb_losing_pairs(cl->session) == 0) {
@@ -2584,7 +2584,7 @@ static void ice_check_list_remove_stun_server_request(IceCheckList *cl, UInt96 *
 		if (elem != NULL) {
 			IceStunServerRequest *request = (IceStunServerRequest *)elem->data;
 			ice_stun_server_request_free(request);
-			cl->stun_server_requests = bctbx_list_remove_link(cl->stun_server_requests, elem);
+			cl->stun_server_requests = bctbx_list_erase_link(cl->stun_server_requests, elem);
 		}
 	}
 }
@@ -3051,10 +3051,10 @@ static void ice_check_list_eliminate_redundant_candidates(IceCheckList *cl)
 					other_candidate = (IceCandidate *)other_elem->data;
 					if (other_candidate->priority < candidate->priority) {
 						ice_free_candidate(other_candidate);
-						cl->local_candidates = bctbx_list_remove_link(cl->local_candidates, other_elem);
+						cl->local_candidates = bctbx_list_erase_link(cl->local_candidates, other_elem);
 					} else {
 						ice_free_candidate(candidate);
-						cl->local_candidates = bctbx_list_remove_link(cl->local_candidates, elem);
+						cl->local_candidates = bctbx_list_erase_link(cl->local_candidates, elem);
 					}
 					elem_removed = TRUE;
 					break;
@@ -3256,7 +3256,7 @@ static void ice_prune_candidate_pairs(IceCheckList *cl)
 			cl->pairs = bctbx_list_remove(cl->pairs, list->data);
 			ice_free_candidate_pair(list->data, cl);
 			prev = list->prev;
-			cl->check_list = bctbx_list_remove_link(cl->check_list, list);
+			cl->check_list = bctbx_list_erase_link(cl->check_list, list);
 			list = prev;
 		}
 	}
@@ -3397,7 +3397,7 @@ static void ice_remove_waiting_and_frozen_pairs_from_list(bctbx_list_t **list, u
 		pair = (IceCandidatePair *)elem->data;
 		if (((pair->state == ICP_Waiting) || (pair->state == ICP_Frozen)) && (pair->local->componentID == componentID)) {
 			next = elem->next;
-			*list = bctbx_list_remove_link(*list, elem);
+			*list = bctbx_list_erase_link(*list, elem);
 			if (next && next->prev) elem = next->prev;
 			else break;	/* The end of the list has been reached, prevent accessing a wrong list->next */
 		}
@@ -3469,7 +3469,7 @@ static void ice_pair_stop_retransmissions(IceCandidatePair *pair, IceCheckList *
 		ice_pair_set_state(pair, ICP_Failed);
 		elem = bctbx_list_find(cl->triggered_checks_queue, pair);
 		if (elem != NULL) {
-			cl->triggered_checks_queue = bctbx_list_remove_link(cl->triggered_checks_queue, elem);
+			cl->triggered_checks_queue = bctbx_list_erase_link(cl->triggered_checks_queue, elem);
 		}
 	}
 }
@@ -3722,7 +3722,7 @@ static void ice_remove_gathering_stun_server_requests(IceCheckList *cl) {
 		if (elem != NULL) {
 			IceStunServerRequest *request = (IceStunServerRequest *)elem->data;
 			ice_stun_server_request_free(request);
-			cl->stun_server_requests = bctbx_list_remove_link(cl->stun_server_requests, elem);
+			cl->stun_server_requests = bctbx_list_erase_link(cl->stun_server_requests, elem);
 		}
 	}
 }

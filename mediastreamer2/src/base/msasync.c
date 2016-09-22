@@ -56,7 +56,7 @@ static void *ms_worker_thread_run(void *d){
 		if (obj->tasks){
 			MSTask *t = (MSTask*)obj->tasks->data;
 			/*pop first element*/
-			obj->tasks = bctbx_list_delete_link(obj->tasks, obj->tasks);
+			obj->tasks = bctbx_list_erase_link(obj->tasks, obj->tasks);
 			
 			ms_mutex_unlock(&obj->mutex);
 			ms_task_execute(t, obj->running || obj->finish_tasks);
