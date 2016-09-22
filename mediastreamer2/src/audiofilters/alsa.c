@@ -730,7 +730,7 @@ static void alsa_card_detect(MSSndCardManager *m){
 
 	atexit((void(*)(void))snd_config_update_free_global);
 
-	for (i=0; i<device_count; i++) {
+	for (i=0; i<hint_device_count; i++) {
 		ms_free(plug_names[i]);
 		ms_free(device_names[i]);
 		ms_free(card_names[i]);
