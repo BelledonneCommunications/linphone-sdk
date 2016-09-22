@@ -35,13 +35,13 @@ typedef struct _bctbx_list belle_sip_list_t;
 #define belle_sip_list_size bctbx_list_size
 #define belle_sip_list_for_each bctbx_list_for_each
 #define belle_sip_list_for_each2 bctbx_list_for_each2
-#define belle_sip_list_remove_link bctbx_list_remove_link
-#define belle_sip_list_delete_link bctbx_list_delete_link
+#define belle_sip_list_remove_link bctbx_list_unlink
+#define belle_sip_list_delete_link bctbx_list_erase_link
 #define belle_sip_list_find bctbx_list_find
 #define belle_sip_list_free bctbx_list_free
 #define belle_sip_list_free_with_data bctbx_list_free_with_data
 
-#define  belle_sip_compare_func bctbx_compare_func
+#define belle_sip_compare_func bctbx_compare_func
 #define belle_sip_list_find_custom bctbx_list_find_custom
 #define belle_sip_list_nth_data bctbx_list_nth_data
 #define belle_sip_list_position bctbx_list_position
