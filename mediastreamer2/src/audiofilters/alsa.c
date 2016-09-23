@@ -648,12 +648,13 @@ static void alsa_card_detect(MSSndCardManager *m){
 	bool_t found_duplicate;
 	const int MAX_NUM_DEVICE_ID = 100;
 	const int MAX_PLUG_NAME_CHARS = 50;
-	char *plug_names[MAX_NUM_DEVICE_ID]; 
+	char *plug_names[MAX_NUM_DEVICE_ID];
 	char *card_names[MAX_NUM_DEVICE_ID], *device_names[MAX_NUM_DEVICE_ID];
 	char *unique_card_names[MAX_NUM_DEVICE_ID], *unique_device_names[MAX_NUM_DEVICE_ID];
 
-	/* Get list of devices from alsa device hints */
+	memset(plug_names, 0, sizeof(plug_names));
 
+	/* Get list of devices from alsa device hints */
 	if (snd_device_name_hint(-1, "pcm", &hints)==0){
 		for(i=0; hints[i]!=NULL; ++i){
 			char *hint = snd_device_name_get_hint(hints[i],"NAME");
@@ -731,7 +732,7 @@ static void alsa_card_detect(MSSndCardManager *m){
 	atexit((void(*)(void))snd_config_update_free_global);
 
 	for (i=0; i<hint_device_count; i++) {
-		ms_free(plug_names[i]);
+		if (plug_names[i]) ms_free(plug_names[i]);
 		ms_free(device_names[i]);
 		ms_free(card_names[i]);
 	}
