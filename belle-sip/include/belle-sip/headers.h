@@ -239,6 +239,29 @@ BELLESIP_EXPORT belle_sip_header_contact_t* belle_sip_header_contact_create (con
 #define BELLE_SIP_TO "To"
 
 /******************************
+ * Diversion header object inherent from header_address
+ *
+ ******************************/
+ typedef struct _belle_sip_header_diversion belle_sip_header_diversion_t;
+
+ BELLESIP_EXPORT belle_sip_header_diversion_t* belle_sip_header_diversion_new();
+
+ BELLESIP_EXPORT belle_sip_header_diversion_t* belle_sip_header_diversion_parse(const char* diversion) ;
+
+ BELLESIP_EXPORT belle_sip_header_diversion_t* belle_sip_header_diversion_create(const belle_sip_header_address_t *address, const char *tag);
+
+ BELLESIP_EXPORT belle_sip_header_diversion_t* belle_sip_header_diversion_create2(const char *address, const char *tag);
+
+ BELLESIP_EXPORT void belle_sip_header_diversion_set_tag(belle_sip_header_diversion_t* diversion, const char* tag);
+
+ BELLESIP_EXPORT const char* belle_sip_header_diversion_get_tag(const belle_sip_header_diversion_t* from);
+
+ BELLESIP_EXPORT void belle_sip_header_diversion_set_random_tag(belle_sip_header_diversion_t *obj);
+
+#define BELLE_SIP_HEADER_DIVERSION(t) BELLE_SIP_CAST(t,belle_sip_header_diversion_t)
+#define BELLE_SIP_DIVERSION "Diversion"
+
+/******************************
  * Via header object inherent from header_address
  *
  ******************************/

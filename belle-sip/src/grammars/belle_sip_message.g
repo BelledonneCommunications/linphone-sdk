@@ -183,6 +183,7 @@ message_header [belle_sip_message_t* message]
 //                |  supported
 //                |  timestamp*/
 //                |  header_to  {belle_sip_message_add_header(message,BELLE_SIP_HEADER($header_to.ret));}/*
+//                |  header_diversion  {belle_sip_message_add_header(message,BELLE_SIP_HEADER($header_diversion.ret));}/*
 //                |  unsupported
 //                |  user_agent*/
 //                |  header_via  {belle_sip_message_add_header(message,BELLE_SIP_HEADER($header_via.ret));}/*
@@ -1215,6 +1216,24 @@ to_spec
                ( SEMI lws? to_param lws?)*;
 to_param  
   :   /*tag_param |*/ generic_param [BELLE_SIP_PARAMETERS($header_to::current)];
+
+diversion_token: {IS_HEADER_NAMED(Diversion,d)}? token;
+header_diversion returns [belle_sip_header_diversion_t* ret=NULL]
+scope { belle_sip_header_diversion_t* current; }
+@init { $header_diversion::current = belle_sip_header_diversion_new(); $ret = $header_diversion::current;}
+
+  :   diversion_token /*'Diversion' ( 'Diversion' | 'd' )*/ sp_tab_colon diversion_spec;
+catch [ANTLR3_RECOGNITION_EXCEPTION]
+{
+   belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+   belle_sip_object_unref($header_diversion::current);
+   $ret=NULL;
+}
+diversion_spec
+  :   ( name_addr_with_generic_uri[BELLE_SIP_HEADER_ADDRESS($header_diversion::current)] | paramless_addr_spec_with_generic_uri[BELLE_SIP_HEADER_ADDRESS($header_diversion::current)] )
+               ( SEMI lws? diversion_param lws?)*;
+diversion_param
+  :   /*tag_param |*/ generic_param [BELLE_SIP_PARAMETERS($header_diversion::current)];
 
 refer_to_token:  {IS_TOKEN(Refer-To)}? token;
 header_refer_to  returns [belle_sip_header_refer_to_t* ret=NULL]   

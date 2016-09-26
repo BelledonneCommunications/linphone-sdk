@@ -65,6 +65,7 @@ BELLE_SIP_DECLARE_TYPES_BEGIN(belle_sip,1)
 	BELLE_SIP_TYPE_ID(belle_sip_header_from_t),
 	BELLE_SIP_TYPE_ID(belle_sip_header_to_t),
 	BELLE_SIP_TYPE_ID(belle_sip_header_via_t),
+	BELLE_SIP_TYPE_ID(belle_sip_header_diversion_t),
 	BELLE_SIP_TYPE_ID(belle_sip_uri_t),
 	BELLE_SIP_TYPE_ID(belle_sip_message_t),
 	BELLE_SIP_TYPE_ID(belle_sip_request_t),

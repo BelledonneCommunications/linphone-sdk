@@ -140,6 +140,7 @@ BELLE_SIP_DECLARE_VPTR(belle_sip_header_contact_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_from_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_to_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_via_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_header_diversion_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_uri_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_message_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_request_t);

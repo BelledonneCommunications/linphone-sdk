@@ -49,6 +49,8 @@ static struct header_name_func_pair  header_table[] = {
 	,{PROTO_SIP, 			BELLE_SIP_FROM,					(header_parse_func)belle_sip_header_from_parse}
 	,{PROTO_SIP, 			"t",							(header_parse_func)belle_sip_header_to_parse}
 	,{PROTO_SIP, 			BELLE_SIP_TO,					(header_parse_func)belle_sip_header_to_parse}
+	,{PROTO_SIP, 			"d",							(header_parse_func)belle_sip_header_diversion_parse}
+	,{PROTO_SIP, 			BELLE_SIP_DIVERSION,			(header_parse_func)belle_sip_header_diversion_parse}
 	,{PROTO_SIP, 			"i",							(header_parse_func)belle_sip_header_call_id_parse}
 	,{PROTO_SIP, 			BELLE_SIP_CALL_ID,				(header_parse_func)belle_sip_header_call_id_parse}
 	,{PROTO_SIP, 			"l",							(header_parse_func)belle_sip_header_content_length_parse}
@@ -566,6 +568,71 @@ void belle_sip_header_to_set_tag(belle_sip_header_to_t *obj, const char *tag){
 
 const char *belle_sip_header_to_get_tag(const belle_sip_header_to_t *obj){
 	return belle_sip_header_to_get_raw_tag(obj);
+}
+
+/**************************
+* Diversion header object inherits from header_address
+****************************
+*/
+struct _belle_sip_header_diversion  {
+	belle_sip_header_address_t address;
+};
+
+static void belle_sip_header_diversion_destroy(belle_sip_header_diversion_t* diversion) {
+}
+
+void belle_sip_header_diversion_clone(belle_sip_header_diversion_t *contact, const belle_sip_header_diversion_t *orig){
+}
+
+belle_sip_error_code belle_sip_header_diversion_marshal(belle_sip_header_diversion_t* diversion, char* buff, size_t buff_size, size_t *offset) {
+	BELLE_SIP_FROM_LIKE_MARSHAL(diversion,FALSE)
+}
+
+BELLE_SIP_NEW_HEADER(header_diversion,header_address,BELLE_SIP_DIVERSION)
+BELLE_SIP_PARSE(header_diversion)
+GET_SET_STRING_PARAM2(belle_sip_header_diversion,tag,raw_tag);
+
+belle_sip_header_diversion_t* belle_sip_header_diversion_create2(const char *uri, const char *tag){
+	belle_sip_header_address_t* address = belle_sip_header_address_parse(uri);
+	if (address) {
+		belle_sip_header_diversion_t* diversion = belle_sip_header_diversion_create(address,tag);
+		belle_sip_object_unref(address);
+		return diversion;
+	} else
+		return NULL;
+}
+belle_sip_header_diversion_t* belle_sip_header_diversion_create(const belle_sip_header_address_t* address, const char *tag) {
+	belle_sip_header_diversion_t* header= belle_sip_header_diversion_new();
+	belle_sip_uri_t* uri;
+	_belle_sip_object_copy((belle_sip_object_t*)header,(belle_sip_object_t*)address);
+	/*clear unwanted uri components*/
+	if ((uri=belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(header)))) {
+		belle_sip_parameters_t* params=BELLE_SIP_PARAMETERS(uri);
+		belle_sip_parameters_remove_parameter(params,"lr");
+		belle_sip_parameters_remove_parameter(params,"ttl");
+		belle_sip_parameters_remove_parameter(params,"method");
+		belle_sip_parameters_remove_parameter(params,"maddr");
+		belle_sip_parameters_remove_parameter(params,"transport");
+		belle_sip_uri_set_port(uri,0);
+		belle_sip_uri_headers_clean(uri);
+	}
+	belle_sip_header_set_name(BELLE_SIP_HEADER(header),BELLE_SIP_DIVERSION); /*restaure header name*/
+	if (tag) belle_sip_header_diversion_set_tag(header,tag);
+	return header;
+}
+void belle_sip_header_diversion_set_random_tag(belle_sip_header_diversion_t *obj){
+	char tmp[8];
+	/*not less than 32bit */
+	belle_sip_header_diversion_set_tag(obj,belle_sip_random_token(tmp,sizeof(tmp)));
+}
+
+void belle_sip_header_diversion_set_tag(belle_sip_header_diversion_t *obj, const char *tag){
+	if (tag==BELLE_SIP_RANDOM_TAG) belle_sip_header_diversion_set_random_tag(obj);
+	else belle_sip_header_diversion_set_raw_tag(obj,tag);
+}
+
+const char *belle_sip_header_diversion_get_tag(const belle_sip_header_diversion_t *obj){
+	return belle_sip_header_diversion_get_raw_tag(obj);
 }
 
 
