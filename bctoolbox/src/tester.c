@@ -123,7 +123,8 @@ int bc_tester_run_suite(test_suite_t *suite, const char *tag_name) {
 			}
 		}
 		if (nb_tests_for_tag > 0) {
-			pSuite = CU_add_suite(suite->name, suite->before_all, suite->after_all);
+			pSuite = CU_add_suite_with_setup_and_teardown(suite->name, suite->before_all, suite->after_all,
+												suite->before_each, suite->after_each);
 			for (i = 0; i < suite->nb_tests; i++) {
 				for (j = 0; j < (sizeof(suite->tests[i].tags) / sizeof(suite->tests[i].tags[0])); j++) {
 					if ((suite->tests[i].tags[j] != NULL) && (strcasecmp(tag_name, suite->tests[i].tags[j]) == 0)) {
@@ -135,7 +136,8 @@ int bc_tester_run_suite(test_suite_t *suite, const char *tag_name) {
 			}
 		}
 	} else {
-		pSuite = CU_add_suite(suite->name, suite->before_all, suite->after_all);
+		pSuite = CU_add_suite_with_setup_and_teardown(suite->name, suite->before_all, suite->after_all,
+												suite->before_each, suite->after_each);
 		for (i = 0; i < suite->nb_tests; i++) {
 			if (NULL == CU_add_test(pSuite, suite->tests[i].name, suite->tests[i].func)) {
 				return CU_get_error();
@@ -238,10 +240,6 @@ static void suite_complete_message_handler(const CU_pSuite pSuite, const CU_pFai
 
 static uint64_t test_start_time = 0;
 static void test_start_message_handler(const CU_pTest pTest, const CU_pSuite pSuite) {
-	int suite_index = bc_tester_suite_index(pSuite->pName);
-	if (test_suite[suite_index]->before_each) {
-		test_suite[suite_index]->before_each();
-	}
 	bc_tester_printf(bc_printf_verbosity_info,"Suite [%s] Test [%s] started", pSuite->pName,pTest->pName);
 	test_start_time = bctbx_get_cur_time_ms();
 	bc_current_test_name = pTest->pName;
@@ -273,13 +271,6 @@ static void test_complete_message_handler(const CU_pTest pTest, const CU_pSuite 
 	bc_tester_printf(bc_printf_verbosity_info,"%s", result);
 	free(result);
 
-	if (test_suite[suite_index]->after_each) {
-		int err = test_suite[suite_index]->after_each();
-		//if test passed but not after_each, count it as failure
-		if (err && !pFailure) {
-			CU_get_run_summary()->nTestsFailed++;
-		}
-	}
 	//insert empty line
 	bc_tester_printf(bc_printf_verbosity_info,"");
 
