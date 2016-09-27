@@ -150,7 +150,11 @@ static void encode_message_header(StunMessageEncoder *encoder, uint16_t type, ui
 
 static void encode_addr(StunMessageEncoder *encoder, uint16_t type, const MSStunAddress *addr) {
 	encode16(encoder, type);
-	encode16(encoder, 8);
+	if (addr->family == MS_STUN_ADDR_FAMILY_IPV6) {
+		encode16(encoder, 20);
+	} else {
+		encode16(encoder, 8);
+	}
 	encode8(encoder, 0);
 	encode8(encoder, addr->family);
 	if (addr->family == MS_STUN_ADDR_FAMILY_IPV6) {
