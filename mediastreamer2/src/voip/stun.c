@@ -1543,6 +1543,8 @@ static int ms_turn_rtp_endpoint_sendto(RtpTransport *rtptp, mblk_t *msg, int fla
 				context->stats.nb_sent_channel_msg++;
 			} else {
 				/* Use a TURN send indication to encapsulate the data to be sent */
+				struct sockaddr_storage realto;
+				socklen_t realtolen = sizeof(realto);
 				MSStunAddress stun_addr;
 				char *buf = NULL;
 				size_t len;
@@ -1550,7 +1552,8 @@ static int ms_turn_rtp_endpoint_sendto(RtpTransport *rtptp, mblk_t *msg, int fla
 				uint16_t datalen;
 				msgpullup(msg, -1);
 				datalen = (uint16_t)(msg->b_wptr - msg->b_rptr);
-				ms_sockaddr_to_stun_address(to, &stun_addr);
+				bctbx_sockaddr_ipv6_to_ipv4(to, (struct sockaddr *)&realto, &realtolen);
+				ms_sockaddr_to_stun_address((struct sockaddr *)&realto, &stun_addr);
 				stun_msg = ms_turn_send_indication_create(stun_addr);
 				data = ms_malloc(datalen);
 				memcpy(data, msg->b_rptr, datalen);
