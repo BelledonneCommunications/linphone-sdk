@@ -2065,7 +2065,6 @@ static int ice_check_received_binding_response_addresses(const RtpSession *rtp_s
 	MSStunAddress pair_remote_stun_addr;
 	MSStunAddress pair_local_stun_addr;
 
-	memset(&recv_addr, 0, recv_addrlen);
 	pair_remote_stun_addr = ms_ip_address_to_stun_address(pair->remote->taddr.family, SOCK_DGRAM, pair->remote->taddr.ip, pair->remote->taddr.port);
 	pair_local_stun_addr = ms_ip_address_to_stun_address(pair->local->taddr.family, SOCK_DGRAM, pair->local->taddr.ip, pair->local->taddr.port);
 	memset(&recv_addr, 0, recv_addrlen);
@@ -2627,7 +2626,6 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, const Ort
 		return;
 	}
 
-	memset(&recv_addr, 0, recv_addrlen);
 	memset(source_addr_str, 0, sizeof(source_addr_str));
 	memset(recv_addr_str, 0, sizeof(recv_addr_str));
 	tr_id = ms_stun_message_get_tr_id(msg);
