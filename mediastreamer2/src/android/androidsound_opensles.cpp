@@ -501,8 +501,16 @@ static void android_snd_read_preprocess(MSFilter *obj) {
 	OpenSLESInputContext *ictx = (OpenSLESInputContext*) obj->data;
 	ictx->mFilter = obj;
 	ictx->read_samples = 0;
-	opensles_recorder_init(ictx);
-	opensles_recorder_callback_init(ictx);
+
+	if (SL_RESULT_SUCCESS != opensles_recorder_init(ictx)) {
+	    ms_error("Problem when initialization of opensles recorder");
+	    return;
+	}
+	if (SL_RESULT_SUCCESS != opensles_recorder_callback_init(ictx)) {
+	    ms_error("Problem when initialization of opensles recorder callback");
+	    return;
+	}
+
 	if (ictx->opensles_context->builtin_aec) { 
 		//android_snd_read_activate_hardware_aec(obj);
 	}
@@ -538,22 +546,25 @@ static void android_snd_read_postprocess(MSFilter *obj) {
 		ictx->aec = NULL;
 	}
 
-	result = (*ictx->recorderRecord)->SetRecordState(ictx->recorderRecord, SL_RECORDSTATE_STOPPED);
-	if (SL_RESULT_SUCCESS != result) {
-		ms_error("OpenSLES Error %u while stopping the audio recorder", result);
-	}
+    if (ictx->recorderRecord != NULL) {
+        result = (*ictx->recorderRecord)->SetRecordState(ictx->recorderRecord, SL_RECORDSTATE_STOPPED);
+        if (SL_RESULT_SUCCESS != result) {
+            ms_error("OpenSLES Error %u while stopping the audio recorder", result);
+        }
+    }
 
-	result = (*ictx->recorderBufferQueue)->Clear(ictx->recorderBufferQueue);
-	if (SL_RESULT_SUCCESS != result) {
-		ms_error("OpenSLES Error %u while clearing the audio recorder buffer queue", result);
-	}
+    if (ictx->recorderBufferQueue != NULL) {
+        result = (*ictx->recorderBufferQueue)->Clear(ictx->recorderBufferQueue);
+        if (SL_RESULT_SUCCESS != result) {
+            ms_error("OpenSLES Error %u while clearing the audio recorder buffer queue", result);
+        }
+    }
 
-	if (ictx->recorderObject != NULL)
-	{
-			(*ictx->recorderObject)->Destroy(ictx->recorderObject);
-			ictx->recorderObject = NULL;
-			ictx->recorderRecord = NULL;
-			ictx->recorderBufferQueue = NULL;
+	if (ictx->recorderObject != NULL) {
+		(*ictx->recorderObject)->Destroy(ictx->recorderObject);
+		ictx->recorderObject = NULL;
+		ictx->recorderRecord = NULL;
+		ictx->recorderBufferQueue = NULL;
 	}
 }
 
