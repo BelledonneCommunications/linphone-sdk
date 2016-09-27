@@ -1128,7 +1128,7 @@ int bctbx_addrinfo_to_printable_ip_address(const struct addrinfo *ai, char *prin
 	return 0;
 }
 
-int bctbx_sockaddr_to_ip_address(struct sockaddr *sa, socklen_t salen, char *ip, size_t ip_size, int *port) {
+int bctbx_sockaddr_to_ip_address(const struct sockaddr *sa, socklen_t salen, char *ip, size_t ip_size, int *port) {
 	struct addrinfo ai = { 0 };
 	ai.ai_addr = sa;
 	ai.ai_addrlen = salen;
