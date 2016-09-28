@@ -165,7 +165,7 @@ static int64_t bcFileSize(bctbx_vfs_file_t *pFile) {
  */
 static int bcGetLine(bctbx_vfs_file_t *pFile, char *s, int max_len) {
 	int64_t ret;
-	int sizeofline, isEof;
+	int sizeofline;
 	char *pNextLine = NULL;
 	char *pNextLineR = NULL;
 	char *pNextLineN = NULL;
@@ -178,7 +178,6 @@ static int bcGetLine(bctbx_vfs_file_t *pFile, char *s, int max_len) {
 	}
 
 	sizeofline = 0;
-	isEof = 0;
 	s[max_len-1] = '\0';
 
 	/* Read returns 0 if end of file is found */

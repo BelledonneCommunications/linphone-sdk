@@ -249,7 +249,6 @@ static void test_start_message_handler(const CU_pTest pTest, const CU_pSuite pSu
 static void test_complete_message_handler(const CU_pTest pTest, const CU_pSuite pSuite,
 										  const CU_pFailureRecord pFailureList) {
 	int i;
-	int suite_index = bc_tester_suite_index(pSuite->pName);
 	CU_pFailureRecord pFailure = pFailureList;
 	char *buffer = NULL;
 	char* result = bc_sprintf("Suite [%s] Test [%s] %s in %.3f secs", pSuite->pName, pTest->pName,
