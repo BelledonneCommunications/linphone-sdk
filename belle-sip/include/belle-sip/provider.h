@@ -96,12 +96,12 @@ BELLESIP_EXPORT void belle_sip_provider_set_unconditional_answer(belle_sip_provi
  * Provides access to a specific dialog
  * @param prov object
  * @param call_if of the dialog
- * @param from_tag of the dialog
- * @param to_tag of the dialog
+ * @param local_tag of the dialog
+ * @param remote_tag of the dialog
  * @returns dialog corresponding to this parameter or NULL if not found
  *
  **/
-BELLESIP_EXPORT belle_sip_dialog_t* belle_sip_provider_find_dialog(const belle_sip_provider_t *prov, const char* call_id,const char* from_tag,const char* to_tag);
+BELLESIP_EXPORT belle_sip_dialog_t* belle_sip_provider_find_dialog(const belle_sip_provider_t *prov, const char* call_id,const char* local_tag,const char* remote_tag);
 
 /**
  * Enable rport in via header. Enabled by default

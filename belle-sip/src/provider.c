@@ -631,41 +631,34 @@ belle_sip_dialog_t * belle_sip_provider_create_dialog_internal(belle_sip_provide
 	return dialog;
 }
 
-/*find a dialog given the call id, from-tag and to-tag*/
-belle_sip_dialog_t* belle_sip_provider_find_dialog(const belle_sip_provider_t *prov, const char* call_id, const char* from_tag, const char* to_tag) {
+/*find a dialog given the call id, local-tag and to-tag*/
+belle_sip_dialog_t* belle_sip_provider_find_dialog(const belle_sip_provider_t *prov, const char* call_id, const char* local_tag, const char* remote_tag) {
 	belle_sip_list_t* iterator;
-
-	if (call_id == NULL || from_tag == NULL || to_tag == NULL) {
+	belle_sip_dialog_t*returned_dialog=NULL;
+	
+	if (call_id == NULL || local_tag == NULL || remote_tag == NULL) {
 		return NULL;
 	}
 	
 	for(iterator=prov->dialogs;iterator!=NULL;iterator=iterator->next) {
 		belle_sip_dialog_t* dialog=(belle_sip_dialog_t*)iterator->data;
-		if (belle_sip_dialog_get_state(dialog) != BELLE_SIP_DIALOG_NULL && strcmp(belle_sip_header_call_id_get_call_id(belle_sip_dialog_get_call_id(dialog)),call_id)==0) {
-			const char* target_from;
-			const char* target_to;
-			if (belle_sip_dialog_is_server(dialog)) {
-				target_to=belle_sip_dialog_get_local_tag(dialog);
-				target_from=belle_sip_dialog_get_remote_tag(dialog);
-			} else {
-				target_from=belle_sip_dialog_get_local_tag(dialog);
-				target_to=belle_sip_dialog_get_remote_tag(dialog);
-			}
-			if (strcmp(from_tag,target_from)==0 && strcmp(to_tag,target_to)==0) {
-				return dialog;
-			}
+		dialog=(belle_sip_dialog_t*)iterator->data;
+		/*ignore dialog in state BELLE_SIP_DIALOG_NULL, is it really the correct things to do*/
+		if (belle_sip_dialog_get_state(dialog) != BELLE_SIP_DIALOG_NULL && _belle_sip_dialog_match(dialog,call_id,local_tag,remote_tag)) {
+			if (!returned_dialog)
+				returned_dialog=dialog;
+			else
+				belle_sip_fatal("More than 1 dialog is matching, check your app");
 		}
 	}
-	return NULL;
+	return returned_dialog;
 }
 
 /*finds an existing dialog for an outgoing or incoming message */
 belle_sip_dialog_t *belle_sip_provider_find_dialog_from_message(belle_sip_provider_t *prov, belle_sip_message_t *msg, int as_uas){
-	belle_sip_dialog_t *returned_dialog=NULL,*dialog;
 	belle_sip_header_call_id_t *call_id;
 	belle_sip_header_from_t *from;
 	belle_sip_header_to_t *to;
-	belle_sip_list_t *elem;
 	const char *from_tag;
 	const char *to_tag;
 	const char *call_id_value;
@@ -692,18 +685,7 @@ belle_sip_dialog_t *belle_sip_provider_find_dialog_from_message(belle_sip_provid
 	call_id_value=belle_sip_header_call_id_get_call_id(call_id);
 	local_tag=as_uas ? to_tag : from_tag;
 	remote_tag=as_uas ? from_tag : to_tag;
-
-	for (elem=prov->dialogs;elem!=NULL;elem=elem->next){
-		dialog=(belle_sip_dialog_t*)elem->data;
-		/*ignore dialog in state BELLE_SIP_DIALOG_NULL, is it really the correct things to do*/
-		if (belle_sip_dialog_get_state(dialog) != BELLE_SIP_DIALOG_NULL && _belle_sip_dialog_match(dialog,call_id_value,local_tag,remote_tag)) {
-			if (!returned_dialog)
-				returned_dialog=dialog;
-			else
-				belle_sip_fatal("More than 1 dialog is matching, check your app");
-		}
-	}
-	return returned_dialog;
+	return belle_sip_provider_find_dialog(prov,call_id_value,local_tag,remote_tag);
 }
 
 void belle_sip_provider_add_dialog(belle_sip_provider_t *prov, belle_sip_dialog_t *dialog){
