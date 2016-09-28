@@ -520,6 +520,17 @@ static void android_snd_read_process(MSFilter *obj) {
 	OpenSLESInputContext *ictx = (OpenSLESInputContext*) obj->data;
 	mblk_t *m;
 
+	if (obj->ticker->time % 1000 == 0) {
+	    if (ictx->recorderBufferQueue == NULL) {
+	        ms_message("Trying to init opensles recorder on process");
+	        if (SL_RESULT_SUCCESS != opensles_recorder_init(ictx)) {
+                ms_error("Problem when initialization of opensles recorder");
+            } else if (SL_RESULT_SUCCESS != opensles_recorder_callback_init(ictx)) {
+            	ms_error("Problem when initialization of opensles recorder callback");
+            }
+	    }
+	}
+
 	ms_mutex_lock(&ictx->mutex);
 	while ((m = getq(&ictx->q)) != NULL) {
 		ms_queue_put(obj->outputs[0], m);
