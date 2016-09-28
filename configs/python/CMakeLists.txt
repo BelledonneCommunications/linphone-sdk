@@ -129,7 +129,7 @@ endif()
 
 add_library(pylinphone MODULE "${SOURCE_FILENAME}")
 if(UNIX)
-	target_compile_options(pylinphone PRIVATE "-Werror")
+	target_compile_options(pylinphone PRIVATE "-Werror" "-Wno-deprecated-declarations")
 endif()
 if(ENABLE_OPENH264)
 	find_library(MSOPENH264_LIBRARY msopenh264 HINTS "${CMAKE_INSTALL_PREFIX}/lib/mediastreamer/plugins")
