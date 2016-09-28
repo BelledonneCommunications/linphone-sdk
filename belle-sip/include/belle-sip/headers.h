@@ -244,7 +244,7 @@ BELLESIP_EXPORT belle_sip_header_contact_t* belle_sip_header_contact_create (con
  ******************************/
  typedef struct _belle_sip_header_diversion belle_sip_header_diversion_t;
 
- BELLESIP_EXPORT belle_sip_header_diversion_t* belle_sip_header_diversion_new();
+ BELLESIP_EXPORT belle_sip_header_diversion_t* belle_sip_header_diversion_new(void);
 
  BELLESIP_EXPORT belle_sip_header_diversion_t* belle_sip_header_diversion_parse(const char* diversion) ;
 

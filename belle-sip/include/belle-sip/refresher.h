@@ -30,11 +30,12 @@ typedef struct belle_sip_refresher belle_sip_refresher_t;
  * @param user_pointer user pointer
  * @param status_code status code for the last refresh action
  * @param reason_phrase
+ * @param will_retry a boolean indicating wether the refresher is going to retry the request automatically.
  * */
 typedef void (*belle_sip_refresher_listener_t) (belle_sip_refresher_t* refresher
-												,void* user_pointer
-												,unsigned int status_code
-												,const char* reason_phrase);
+								,void* user_pointer
+								,unsigned int status_code
+								,const char* reason_phrase, int will_retry);
 
 /**
  * add a refresher listener

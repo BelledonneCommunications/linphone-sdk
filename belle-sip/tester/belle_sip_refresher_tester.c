@@ -317,7 +317,7 @@ static void client_process_auth_requested(void *obj, belle_sip_auth_event_t *eve
 static void belle_sip_refresher_listener (belle_sip_refresher_t* refresher
 		,void* user_pointer
 		,unsigned int status_code
-		,const char* reason_phrase) {
+		,const char* reason_phrase, int will_retry) {
 	endpoint_t* endpoint = (endpoint_t*)user_pointer;
 	BELLESIP_UNUSED(refresher);
 	belle_sip_message("belle_sip_refresher_listener [%i] reason [%s]",status_code,reason_phrase);

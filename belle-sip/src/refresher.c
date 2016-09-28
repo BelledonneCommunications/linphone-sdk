@@ -107,7 +107,7 @@ static void process_dialog_terminated(belle_sip_listener_t *user_ctx, const bell
 	if (refresher->state == started) {
 		belle_sip_warning("Refresher [%p] still started but receiving unexpected dialog deleted event on [%p], retrying",refresher,dialog);
 		retry_later_on_io_error(refresher);
-		if (refresher->listener) refresher->listener(refresher,refresher->user_data,481, "dialod terminated");
+		if (refresher->listener) refresher->listener(refresher,refresher->user_data,481, "dialod terminated", TRUE);
 	}
 }
 
@@ -131,7 +131,7 @@ static void process_io_error(belle_sip_listener_t *user_ctx, const belle_sip_io_
 			return; /*not for me or no longuer involved because expire=0*/
 		}
 		if (refresher->state==started) retry_later_on_io_error(refresher);
-		if (refresher->listener) refresher->listener(refresher,refresher->user_data,503, "io error");
+		if (refresher->listener) refresher->listener(refresher,refresher->user_data,503, "io error", refresher->state == started);
 
 		return;
 	} else if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(belle_sip_io_error_event_get_source(event),belle_sip_provider_t)) {
@@ -146,7 +146,7 @@ static void process_io_error(belle_sip_listener_t *user_ctx, const belle_sip_io_
 								,refresher->transaction->base.channel
 								,belle_sip_channel_state_to_string(belle_sip_channel_get_state(refresher->transaction->base.channel)));
 			if (refresher->state==started) retry_later_on_io_error(refresher);
-			if (refresher->listener) refresher->listener(refresher,refresher->user_data,503, "io error");
+			if (refresher->listener) refresher->listener(refresher,refresher->user_data,503, "io error", refresher->state == started);
 			refresher->on_io_error=1;
 		}
 		return;
@@ -206,6 +206,7 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 	int response_code = belle_sip_response_get_status_code(response);
 	belle_sip_refresher_t* refresher=(belle_sip_refresher_t*)user_ctx;
 	belle_sip_header_contact_t *contact;
+	int will_retry = TRUE; /*most error codes are retryable*/
 
 
 	if (refresher && (client_transaction !=refresher->transaction))
@@ -291,6 +292,7 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 		case 403:
 			/*In case of 403, we will retry later, just in case*/
 			if (refresher->target_expires>0) retry_later(refresher);
+			else will_retry = FALSE;
 			break;
 		case 412:
 			if (strcmp(belle_sip_request_get_method(request),"PUBLISH")==0) {
@@ -298,9 +300,12 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 				if (refresher->target_expires>0) {
 					retry_later_on_io_error(refresher);
 					return; /*do not notify this kind of error*/
+				}else{
+					will_retry = FALSE;
 				}
 			} else {
 				if (refresher->target_expires>0) retry_later(refresher);
+				else will_retry = FALSE;
 			}
 			break;
 		case 423:{
@@ -316,6 +321,7 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 					}
 				}
 			}else belle_sip_warning("Receiving 423 but no min-expires header.");
+			will_retry = FALSE;
 			break;
 		}
 		case 481: {
@@ -328,18 +334,21 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 				return; /*do not notify this kind of error*/
 			}
 		}
+		/*intentionally no break*/
 		case 505:
 		case 501:
 			/*irrecoverable errors, probably no need to retry later*/
+			will_retry = FALSE;
 			break;
 
 		default:
 			/*for all other errors, retry later*/
 			if (refresher->target_expires>0) retry_later(refresher);
+			else will_retry = FALSE;
 			break;
 		}
 	}
-	if (refresher->listener) refresher->listener(refresher,refresher->user_data,response_code, belle_sip_response_get_reason_phrase(response));
+	if (refresher->listener) refresher->listener(refresher,refresher->user_data,response_code, belle_sip_response_get_reason_phrase(response), will_retry);
 
 }
 
@@ -354,7 +363,7 @@ static void process_timeout(belle_sip_listener_t *user_ctx, const belle_sip_time
 		/*retry in 2 seconds but not immediately to let the current transaction be cleaned*/
 		schedule_timer_at(refresher,2000,RETRY);
 	}
-	if (refresher->listener) refresher->listener(refresher,refresher->user_data,408, "timeout");
+	if (refresher->listener) refresher->listener(refresher,refresher->user_data,408, "timeout", refresher->state==started);
 }
 
 static void process_transaction_terminated(belle_sip_listener_t *user_ctx, const belle_sip_transaction_terminated_event_t *event) {
@@ -597,7 +606,7 @@ static int timer_cb(void *user_data, unsigned int events) {
 	if (refresher->timer_purpose==NORMAL_REFRESH && refresher->manual) {
 		belle_sip_message("Refresher [%p] is in manual mode, skipping refresh.",refresher);
 		/*call listener with special code 0 to indicate request is about to expire*/
-		if (refresher->listener) refresher->listener(refresher,refresher->user_data,0, "about to expire");
+		if (refresher->listener) refresher->listener(refresher,refresher->user_data,0, "about to expire", FALSE);
 		return BELLE_SIP_STOP;
 	}
 
