@@ -705,7 +705,7 @@ static int ms_dtls_srtp_initialise_bctbx_dtls_context(DtlsBcToolBoxContext *dtls
 	bctbx_ssl_config_set_authmode(dtlsContext->ssl_config, BCTBX_SSL_VERIFY_OPTIONAL);
 	bctbx_ssl_config_set_own_cert( dtlsContext->ssl_config, dtlsContext->crt, dtlsContext->pkey );
 	/* This is useless as peer would certainly be a self signed certificate and we won't verify it but avoid runtime warnings */
-	bctbx_ssl_config_set_ca_chain(dtlsContext->ssl_config, dtlsContext->crt, NULL);
+	bctbx_ssl_config_set_ca_chain(dtlsContext->ssl_config, dtlsContext->crt);
 
 	/* we are not ready yet to actually start the ssl context, this will be done by calling bctbx_ssl_setup when stream starts */
 	return 0;

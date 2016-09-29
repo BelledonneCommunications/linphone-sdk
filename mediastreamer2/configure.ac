@@ -1116,7 +1116,7 @@ fi
 
 
 dnl check bctoolbox library
-PKG_CHECK_MODULES(BCTOOLBOX, bctoolbox >= 0.0.0, found_bctoolbox=true, found_bctoolbox=false)
+PKG_CHECK_MODULES(BCTOOLBOX, bctoolbox >= 0.4.0, found_bctoolbox=true, found_bctoolbox=false)
 if test "$found_bctoolbox" = "true" ; then
 	LIBS="$LIBS $BCTOOLBOX_LIBS"
 	CFLAGS="$CFLAGS $BCTOOLBOX_CFLAGS"
