@@ -582,7 +582,8 @@ static int tls_process_data(belle_sip_channel_t *obj,unsigned int revents){
 				belle_sip_message("Channel [%p]: Connected at TCP level, now doing http proxy connect",obj);
 				if (tls_process_http_connect(channel)) goto process_error;
 			} else {
-				belle_sip_message("Channel [%p]: Connected at TCP level, now doing TLS handshake",obj);
+				belle_sip_message("Channel [%p]: Connected at TCP level, now doing TLS handshake with cname=%s",obj, 
+						  obj->peer_cname ? obj->peer_cname : obj->peer_name);
 				if (tls_process_handshake(obj)==-1) goto process_error;
 			}
 		} else if (obj->stack->http_proxy_host && !channel->http_proxy_connected) {
@@ -679,10 +680,10 @@ static int random_generator(void *ctx, unsigned char *ptr, size_t size){
 int belle_sip_tls_set_verify_error_cb(void * callback) {
 
 	if (callback) {
-        tls_verify_cb_error_cb = (verify_cb_error_cb_t)callback;
+		tls_verify_cb_error_cb = (verify_cb_error_cb_t)callback;
 		belle_sip_message("belle_sip_tls_set_verify_error_cb: callback set");
 	} else {
-        tls_verify_cb_error_cb = NULL;
+		tls_verify_cb_error_cb = NULL;
 		belle_sip_message("belle_sip_tls_set_verify_error_cb: callback cleared");
 	}
 	return 0;
@@ -746,10 +747,12 @@ static int belle_sip_ssl_verify(void *data , bctbx_x509_certificate_t *cert , in
 	belle_sip_message("Found certificate depth=[%i], flags=[%s]:\n%s", depth, flags_str, tmp);
 
 	if (crypto_config->exception_flags==BELLE_TLS_VERIFY_ANY_REASON){
+		belle_sip_warning("Certificate verification bypassed (requested by application).");
 		/* verify context ask to ignore any exception: reset all flags */
 		bctbx_x509_certificate_unset_flag(flags, BCTBX_CERTIFICATE_VERIFY_ALL_FLAGS);
 	}else if (crypto_config->exception_flags & BELLE_TLS_VERIFY_CN_MISMATCH){
 		/* verify context ask to ignore CN mismatch exception : reset this flag */
+		belle_sip_warning("Allowing CN-mistmatch exception.");
 		bctbx_x509_certificate_unset_flag(flags, BCTBX_CERTIFICATE_VERIFY_BADCERT_CN_MISMATCH);
 	}
 
@@ -834,10 +837,9 @@ belle_sip_channel_t * belle_sip_channel_new_tls(belle_sip_stack_t *stack, belle_
 
 	bctbx_ssl_config_set_rng(obj->sslcfg, random_generator, NULL);
 	bctbx_ssl_set_io_callbacks(obj->sslctx, obj, tls_callback_write, tls_callback_read);
-	if (crypto_config->root_ca_data && belle_sip_tls_channel_load_root_ca_from_buffer(obj, crypto_config->root_ca_data) == 0) {
-		bctbx_ssl_config_set_ca_chain(obj->sslcfg, obj->root_ca, super->base.peer_cname ? super->base.peer_cname : super->base.peer_name);
-	} else if (crypto_config->root_ca && belle_sip_tls_channel_load_root_ca(obj, crypto_config->root_ca) == 0) {
-		bctbx_ssl_config_set_ca_chain(obj->sslcfg, obj->root_ca, super->base.peer_cname ? super->base.peer_cname : super->base.peer_name);
+	if ((crypto_config->root_ca_data && belle_sip_tls_channel_load_root_ca_from_buffer(obj, crypto_config->root_ca_data) == 0)
+		||  (crypto_config->root_ca && belle_sip_tls_channel_load_root_ca(obj, crypto_config->root_ca) == 0)){
+		bctbx_ssl_config_set_ca_chain(obj->sslcfg, obj->root_ca);
 	}
 	bctbx_ssl_config_set_callback_verify(obj->sslcfg, belle_sip_ssl_verify, crypto_config);
 	bctbx_ssl_config_set_callback_cli_cert(obj->sslcfg, belle_sip_client_certificate_request_callback, obj);
@@ -845,6 +847,7 @@ belle_sip_channel_t * belle_sip_channel_new_tls(belle_sip_stack_t *stack, belle_
 	obj->crypto_config=(belle_tls_crypto_config_t*)belle_sip_object_ref(crypto_config);
 
 	bctbx_ssl_context_setup(obj->sslctx, obj->sslcfg);
+	bctbx_ssl_set_hostname(obj->sslctx, super->base.peer_cname ? super->base.peer_cname : super->base.peer_name);
 	return (belle_sip_channel_t*)obj;
 }
 

@@ -31,6 +31,7 @@ const char *no_server_running_here="sip:test.linphone.org:3;transport=tcp";
 const char *no_response_here="sip:78.220.48.77:3;transport=%s";
 const char *test_domain_tls_to_tcp="sip:sip2.linphone.org:5060;transport=tls";
 const char *test_http_proxy_addr="sip.linphone.org";
+const char *test_with_wrong_cname="sips:rototo.com;maddr=91.121.209.194";
 int test_http_proxy_port = 3128 ;
 
 static int is_register_ok;
@@ -167,6 +168,52 @@ const char* belle_sip_tester_private_key =
 const char* belle_sip_tester_private_key_passwd="secret";
 
 
+const char *belle_sip_tester_root_ca = 
+"-----BEGIN CERTIFICATE-----\n"
+"MIIDRjCCAq+gAwIBAgIJAJ3nFcA7qFrOMA0GCSqGSIb3DQEBBQUAMIG7MQswCQYD\n"
+"VQQGEwJGUjETMBEGA1UECAwKU29tZS1TdGF0ZTERMA8GA1UEBwwIR3Jlbm9ibGUx\n"
+"IjAgBgNVBAoMGUJlbGxlZG9ubmUgQ29tbXVuaWNhdGlvbnMxDDAKBgNVBAsMA0xB\n"
+"QjEWMBQGA1UEAwwNSmVoYW4gTW9ubmllcjE6MDgGCSqGSIb3DQEJARYramVoYW4u\n"
+"bW9ubmllckBiZWxsZWRvbm5lLWNvbW11bmljYXRpb25zLmNvbTAeFw0xMzA0MzAx\n"
+"MzMwMThaFw0yMzA0MjgxMzMwMThaMIG7MQswCQYDVQQGEwJGUjETMBEGA1UECAwK\n"
+"U29tZS1TdGF0ZTERMA8GA1UEBwwIR3Jlbm9ibGUxIjAgBgNVBAoMGUJlbGxlZG9u\n"
+"bmUgQ29tbXVuaWNhdGlvbnMxDDAKBgNVBAsMA0xBQjEWMBQGA1UEAwwNSmVoYW4g\n"
+"TW9ubmllcjE6MDgGCSqGSIb3DQEJARYramVoYW4ubW9ubmllckBiZWxsZWRvbm5l\n"
+"LWNvbW11bmljYXRpb25zLmNvbTCBnzANBgkqhkiG9w0BAQEFAAOBjQAwgYkCgYEA\n"
+"z5F8mMh3SUr6NUd7tq2uW2Kdn22Zn3kNpLYb78AQK4IoQMOLGXbBdyoXvz1fublg\n"
+"bxtLYsiGhICd7Ul9zLGc3edn85LbD3Skb7ERx6MakRnYep3FzagZJhn14QEaZCx6\n"
+"3Qs0Ir4rSP7hmlpYt8VO/zqqNR3tsA59O0D9c7bpQ7UCAwEAAaNQME4wHQYDVR0O\n"
+"BBYEFAZfXccWr2L4LW5xA4ig1h0rBH+6MB8GA1UdIwQYMBaAFAZfXccWr2L4LW5x\n"
+"A4ig1h0rBH+6MAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEFBQADgYEAKvmt2m1o\n"
+"axGKc0DjiJPypU/NsAf4Yu0nOnY8pHqJJCB0AWVoAPM7vGYPWpeH7LSdGZLuT9eK\n"
+"FUWGJhPnkrnklmBdVB0l7qXYjR5uf766HDkoDxuLhNifow3IYvsS+L2Y6puRQb9w\n"
+"HLMDE29mBDl0WyoX3h0yR0EiAO15V9A7I10=\n"
+"-----END CERTIFICATE-----\n"
+"\n"
+"AddTrust External Root used for *.linphone.org\n"
+"======================\n"
+"-----BEGIN CERTIFICATE-----\n"
+"MIIENjCCAx6gAwIBAgIBATANBgkqhkiG9w0BAQUFADBvMQswCQYDVQQGEwJTRTEUMBIGA1UEChML\n"
+"QWRkVHJ1c3QgQUIxJjAkBgNVBAsTHUFkZFRydXN0IEV4dGVybmFsIFRUUCBOZXR3b3JrMSIwIAYD\n"
+"VQQDExlBZGRUcnVzdCBFeHRlcm5hbCBDQSBSb290MB4XDTAwMDUzMDEwNDgzOFoXDTIwMDUzMDEw\n"
+"NDgzOFowbzELMAkGA1UEBhMCU0UxFDASBgNVBAoTC0FkZFRydXN0IEFCMSYwJAYDVQQLEx1BZGRU\n"
+"cnVzdCBFeHRlcm5hbCBUVFAgTmV0d29yazEiMCAGA1UEAxMZQWRkVHJ1c3QgRXh0ZXJuYWwgQ0Eg\n"
+"Um9vdDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALf3GjPm8gAELTngTlvtH7xsD821\n"
+"+iO2zt6bETOXpClMfZOfvUq8k+0DGuOPz+VtUFrWlymUWoCwSXrbLpX9uMq/NzgtHj6RQa1wVsfw\n"
+"Tz/oMp50ysiQVOnGXw94nZpAPA6sYapeFI+eh6FqUNzXmk6vBbOmcZSccbNQYArHE504B4YCqOmo\n"
+"aSYYkKtMsE8jqzpPhNjfzp/haW+710LXa0Tkx63ubUFfclpxCDezeWWkWaCUN/cALw3CknLa0Dhy\n"
+"2xSoRcRdKn23tNbE7qzNE0S3ySvdQwAl+mG5aWpYIxG3pzOPVnVZ9c0p10a3CitlttNCbxWyuHv7\n"
+"7+ldU9U0WicCAwEAAaOB3DCB2TAdBgNVHQ4EFgQUrb2YejS0Jvf6xCZU7wO94CTLVBowCwYDVR0P\n"
+"BAQDAgEGMA8GA1UdEwEB/wQFMAMBAf8wgZkGA1UdIwSBkTCBjoAUrb2YejS0Jvf6xCZU7wO94CTL\n"
+"VBqhc6RxMG8xCzAJBgNVBAYTAlNFMRQwEgYDVQQKEwtBZGRUcnVzdCBBQjEmMCQGA1UECxMdQWRk\n"
+"VHJ1c3QgRXh0ZXJuYWwgVFRQIE5ldHdvcmsxIjAgBgNVBAMTGUFkZFRydXN0IEV4dGVybmFsIENB\n"
+"IFJvb3SCAQEwDQYJKoZIhvcNAQEFBQADggEBALCb4IUlwtYj4g+WBpKdQZic2YR5gdkeWxQHIzZl\n"
+"j7DYd7usQWxHYINRsPkyPef89iYTx4AWpb9a/IfPeHmJIZriTAcKhjW88t5RxNKWt9x+Tu5w/Rw5\n"
+"6wwCURQtjr0W4MHfRnXnJK3s9EK0hZNwEGe6nQY1ShjTK3rMUUKhemPR5ruhxSvCNr4TDea9Y355\n"
+"e6cJDUCrat2PisP29owaQgVR1EX1n6diIWgVIEM8med8vSTYqZEXc4g/VhsxOBi0cQ+azcgOno4u\n"
+"G+GMmIPLHzHxREzGBHNJdmAPx/i9F4BrLunMTA5amnkPIAou1Z5jJh5VkpTYghdae9C8x49OhgQ=\n"
+"-----END CERTIFICATE-----\n";
+
 static void process_auth_requested(void *user_ctx, belle_sip_auth_event_t *event){
 	BELLESIP_UNUSED(user_ctx);
 	if (belle_sip_auth_event_get_mode(event) == BELLE_SIP_AUTH_MODE_HTTP_DIGEST) {
@@ -201,11 +248,8 @@ int register_before_all(void) {
 	lp=belle_sip_stack_create_listening_point(stack,"0.0.0.0",7061,"TLS");
 	if (lp) {
 		belle_tls_crypto_config_t *crypto_config=belle_tls_crypto_config_new();
-		/* since test.linphone.org does not have proper certificates, don't verify anything*/
-		belle_tls_crypto_config_set_verify_exceptions(crypto_config, BELLE_TLS_VERIFY_ANY_REASON);
-		if (belle_sip_tester_get_root_ca_path() != NULL) {
-			belle_tls_crypto_config_set_root_ca(crypto_config,belle_sip_tester_get_root_ca_path());
-		}
+	
+		belle_tls_crypto_config_set_root_ca_data(crypto_config, belle_sip_tester_root_ca);
 		belle_sip_tls_listening_point_set_crypto_config(BELLE_SIP_TLS_LISTENING_POINT(lp), crypto_config);
 		belle_sip_provider_add_listening_point(prov,lp);
 		belle_sip_object_unref(crypto_config);
@@ -422,6 +466,13 @@ static void stateful_register_tls(void){
 	register_test("tls",1);
 }
 
+static void stateful_register_tls_with_wrong_cname(void){
+	belle_sip_request_t *req;
+	
+	req = try_register_user_at_domain(stack, prov, "tls", 1, "tester",test_domain, test_with_wrong_cname, 0);
+	if (req) belle_sip_object_unref(req);
+}
+
 static void stateful_register_tls_with_http_proxy(void) {
 	belle_sip_tls_listening_point_t * lp = (belle_sip_tls_listening_point_t*)belle_sip_provider_get_listening_point(prov, "tls");
 	if (!lp) {
@@ -611,12 +662,23 @@ static void register_dns_srv_tcp(void){
 	if (req) belle_sip_object_unref(req);
 }
 
+static void enable_cn_mismatch(int enable){
+	belle_sip_listening_point_t *lp =  belle_sip_provider_get_listening_point(prov, "TLS");
+	belle_sip_provider_clean_channels(prov);
+	if (lp) {
+		belle_tls_crypto_config_t *cfg = belle_sip_tls_listening_point_get_crypto_config(BELLE_SIP_TLS_LISTENING_POINT(lp));
+		belle_tls_crypto_config_set_verify_exceptions(cfg, enable ? BELLE_TLS_VERIFY_CN_MISMATCH : 0);
+	}
+}
+
 static void register_dns_srv_tls(void){
 	belle_sip_request_t *req;
 	io_error_count=0;
+	enable_cn_mismatch(TRUE);
 	req=try_register_user_at_domain(stack, prov, "TLS",1,"tester",client_auth_domain,"sip:linphone.net;transport=tls",1);
 	BC_ASSERT_EQUAL(io_error_count, 0, int, "%d");
 	if (req) belle_sip_object_unref(req);
+	enable_cn_mismatch(FALSE);
 }
 
 static void register_dns_srv_tls_with_http_proxy(void){
@@ -627,7 +689,7 @@ static void register_dns_srv_tls_with_http_proxy(void){
 		return;
 	}
 	io_error_count=0;
-	belle_sip_provider_clean_channels(prov);
+	enable_cn_mismatch(TRUE);
 	belle_sip_stack_set_http_proxy_host(stack, test_http_proxy_addr);
 	belle_sip_stack_set_http_proxy_port(stack, test_http_proxy_port);
 	req=try_register_user_at_domain(stack, prov, "TLS",1,"tester",client_auth_domain,"sip:linphone.net;transport=tls",1);
@@ -635,6 +697,7 @@ static void register_dns_srv_tls_with_http_proxy(void){
 	belle_sip_stack_set_http_proxy_port(stack, 0);
 	BC_ASSERT_EQUAL(io_error_count, 0, int, "%d");
 	if (req) belle_sip_object_unref(req);
+	enable_cn_mismatch(FALSE);
 }
 
 static void register_dns_load_balancing(void) {
@@ -775,6 +838,7 @@ test_t register_tests[] = {
 	{ "Stateful UDP with outbound proxy", stateful_register_udp_with_outbound_proxy },
 	{ "Stateful TCP", stateful_register_tcp },
 	{ "Stateful TLS", stateful_register_tls },
+	{ "Stateful TLS with wrong cname", stateful_register_tls_with_wrong_cname},
 	{ "Stateful TLS with http proxy", stateful_register_tls_with_http_proxy },
 	{ "Stateful TLS with wrong http proxy", stateful_register_tls_with_wrong_http_proxy },
 	{ "Stateless UDP", stateless_register_udp },

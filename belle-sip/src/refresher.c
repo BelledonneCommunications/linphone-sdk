@@ -342,8 +342,8 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 			break;
 
 		default:
-			/*for all other errors, retry later*/
-			if (refresher->target_expires>0) retry_later(refresher);
+			/*for all other errors <600, retry later*/
+			if (response_code < 600 && refresher->target_expires>0) retry_later(refresher);
 			else will_retry = FALSE;
 			break;
 		}

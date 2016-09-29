@@ -98,6 +98,10 @@ int belle_sip_tls_listening_point_set_crypto_config(belle_sip_tls_listening_poin
 	return 0;
 }
 
+belle_tls_crypto_config_t *belle_sip_tls_listening_point_get_crypto_config(belle_sip_tls_listening_point_t *s){
+	return s->crypto_config;
+}
+
 int belle_sip_tls_listening_point_available(void){
 	return TRUE;
 }

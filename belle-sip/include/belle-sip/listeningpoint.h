@@ -66,7 +66,7 @@ BELLESIP_DEPRECATED BELLESIP_EXPORT int belle_sip_tls_listening_point_set_root_c
 BELLESIP_DEPRECATED BELLESIP_EXPORT int belle_sip_tls_listening_point_set_verify_exceptions(belle_sip_tls_listening_point_t *s, int flags);
 BELLESIP_DEPRECATED BELLESIP_EXPORT int belle_sip_tls_listening_point_set_verify_policy(belle_sip_tls_listening_point_t *s, belle_tls_verify_policy_t *pol);
 BELLESIP_EXPORT int belle_sip_tls_listening_point_set_crypto_config(belle_sip_tls_listening_point_t *s, belle_tls_crypto_config_t *crypto_config);
-
+BELLESIP_EXPORT belle_tls_crypto_config_t *belle_sip_tls_listening_point_get_crypto_config(belle_sip_tls_listening_point_t *s);
 BELLESIP_EXPORT belle_sip_listening_point_t * belle_sip_tunnel_listening_point_new(belle_sip_stack_t *s, void *tunnelclient);
 
 
