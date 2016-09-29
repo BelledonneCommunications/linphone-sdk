@@ -103,12 +103,13 @@ static void process_dialog_terminated(belle_sip_listener_t *user_ctx, const bell
 
 	if (refresher && refresher->transaction && dialog != belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(refresher->transaction)))
 		return; /*not for me*/
-
+/*
 	if (refresher->state == started) {
 		belle_sip_warning("Refresher [%p] still started but receiving unexpected dialog deleted event on [%p], retrying",refresher,dialog);
 		retry_later_on_io_error(refresher);
 		if (refresher->listener) refresher->listener(refresher,refresher->user_data,481, "dialod terminated", TRUE);
 	}
+*/
 }
 
 static void process_io_error(belle_sip_listener_t *user_ctx, const belle_sip_io_error_event_t *event){
@@ -324,10 +325,6 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 			will_retry = FALSE;
 			break;
 		}
-		case 481: {
-			/* will trigger dialog terminated, so nothing to do here*/
-			return;
-		}
 		case 491: {
 			if (refresher->target_expires>0) {
 				retry_later_on_io_error(refresher);
@@ -340,7 +337,12 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 			/*irrecoverable errors, probably no need to retry later*/
 			will_retry = FALSE;
 			break;
-
+		case 503:
+			if (refresher->target_expires>0) {
+				if (refresher->dialog) retry_later_on_io_error(refresher);
+				else retry_later(refresher);
+			}else will_retry = FALSE;
+			break;
 		default:
 			/*for all other errors <600, retry later*/
 			if (response_code < 600 && refresher->target_expires>0) retry_later(refresher);

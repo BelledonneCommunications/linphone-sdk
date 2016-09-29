@@ -790,12 +790,17 @@ BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 belle_sip_nist_t * belle_sip_nist_new(belle_sip_provider_t *prov, belle_sip_request_t *req);
 
 
+typedef enum belle_sip_dialog_type{
+	BELLE_SIP_DIALOG_INVITE,
+	BELLE_SIP_DIALOG_SUBSCRIBE_NOTIFY
+}belle_sip_dialog_type_t;
 /*
  * Dialogs
  */
 struct belle_sip_dialog{
 	belle_sip_object_t base;
 	void *appdata;
+	belle_sip_dialog_type_t type;
 	belle_sip_provider_t *provider;
 	belle_sip_request_t *last_out_invite;
 	belle_sip_request_t *last_out_ack; /*so that it can be retransmitted when needed*/

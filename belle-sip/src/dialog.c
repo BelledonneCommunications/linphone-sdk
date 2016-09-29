@@ -382,6 +382,33 @@ static void belle_sip_dialog_stop_200Ok_retrans(belle_sip_dialog_t *obj){
 	}
 }
 
+/* returns true if the dialog is terminated by the NOTIFY request or response*/
+static int belle_sip_dialog_should_terminate_by_notify(belle_sip_dialog_t *obj, belle_sip_transaction_t* transaction, int as_uas){
+	int should_terminate = FALSE;
+	
+	if (obj->type == BELLE_SIP_DIALOG_SUBSCRIBE_NOTIFY) {
+		belle_sip_request_t *req=belle_sip_transaction_get_request(transaction);
+		belle_sip_response_t *resp=belle_sip_transaction_get_response(transaction);
+		belle_sip_header_subscription_state_t* subscription_state_header=belle_sip_message_get_header_by_type(req,belle_sip_header_subscription_state_t);
+		int code = resp ? belle_sip_response_get_status_code(resp) : 0;
+	
+		if (!subscription_state_header || strcasecmp(BELLE_SIP_SUBSCRIPTION_STATE_TERMINATED,belle_sip_header_subscription_state_get_state(subscription_state_header)) ==0) {
+			if (as_uas){
+				/*terminate the dialog when the application replies the 200 Ok*/
+				if (code == 200){
+					should_terminate = TRUE;
+				}
+			}else{
+				/*terminate the dialog when we receive the 200OK or the transaction terminates by timeout*/
+				if (code == 200 || belle_sip_transaction_get_state(transaction) == BELLE_SIP_TRANSACTION_TERMINATED){
+					should_terminate = TRUE;
+				}
+			}
+		}
+	}
+	return should_terminate;
+}
+
 /*
  * return 0 if message should be delivered to the next listener, otherwise, its a retransmision, just keep it
  * */
@@ -394,6 +421,7 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 	int ret = 0;
 	int is_invite = strcmp(belle_sip_request_get_method(req),"INVITE")==0;
 	int is_subscribe = strcmp(belle_sip_request_get_method(req),"SUBSCRIBE")==0;
+	int is_notify = strcmp(belle_sip_request_get_method(req),"NOTIFY")==0;
 
 	belle_sip_message("Dialog [%p]: now updated by transaction [%p].",obj, transaction);
 	
@@ -525,7 +553,14 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 				if (belle_sip_dialog_schedule_expiration(obj, (belle_sip_message_t*)req) == BELLE_SIP_STOP
 					&& (code>=200 || (code==0 && belle_sip_transaction_get_state(transaction)==BELLE_SIP_TRANSACTION_TERMINATED))){
 					delete_dialog = TRUE;
+				}else if (!as_uas){
+					if (code >= 300 || (code==0 && belle_sip_transaction_get_state(transaction)==BELLE_SIP_TRANSACTION_TERMINATED)){
+						/*case of a SUBSCRIBE refresh that is rejected or unanswered*/
+						delete_dialog = TRUE;
+					}
 				}
+			}else if (is_notify){
+				delete_dialog = belle_sip_dialog_should_terminate_by_notify(obj, transaction, as_uas);
 			}
 		break;
 		case BELLE_SIP_DIALOG_TERMINATED:
@@ -589,6 +624,14 @@ belle_sip_dialog_t *belle_sip_dialog_new(belle_sip_transaction_t *t){
 	obj->provider=t->provider;
 	obj->pending_trans_checking_enabled=1;
 	obj->call_id=(belle_sip_header_call_id_t*)belle_sip_object_ref(call_id);
+	
+	if (strcmp(belle_sip_request_get_method(t->request),"INVITE") == 0){
+		obj->type = BELLE_SIP_DIALOG_INVITE;
+	}else if (strcmp(belle_sip_request_get_method(t->request),"SUBSCRIBE") == 0){
+		obj->type = BELLE_SIP_DIALOG_SUBSCRIBE_NOTIFY;
+	}else{
+		belle_sip_error("belle_sip_dialog_new(): unsupported request [%s] for creating a dialog.", belle_sip_request_get_method(t->request));
+	}
 	
 	belle_sip_object_ref(t);
 	obj->last_transaction=t;
