@@ -942,6 +942,10 @@ const char *bctbx_ssl_get_version(bctbx_ssl_context_t *ssl_ctx){
 	return mbedtls_ssl_get_version(&(ssl_ctx->ssl_ctx));
 }
 
+int32_t bctbx_ssl_set_hostname(bctbx_ssl_context_t *ssl_ctx, const char *hostname){
+	return mbedtls_ssl_set_hostname(&(ssl_ctx->ssl_ctx), hostname);
+}
+
 /** DTLS SRTP functions **/
 #ifdef HAVE_DTLS_SRTP
 uint8_t bctbx_dtls_srtp_supported(void) {
@@ -1221,7 +1225,7 @@ int32_t bctbx_ssl_config_set_callback_cli_cert(bctbx_ssl_config_t *ssl_config, i
 	return 0;
 }
 
-int32_t bctbx_ssl_config_set_ca_chain(bctbx_ssl_config_t *ssl_config, bctbx_x509_certificate_t *ca_chain, char *peer_cn) {
+int32_t bctbx_ssl_config_set_ca_chain(bctbx_ssl_config_t *ssl_config, bctbx_x509_certificate_t *ca_chain) {
 	if (ssl_config == NULL) {
 		return BCTBX_ERROR_INVALID_SSL_CONFIG;
 	}
