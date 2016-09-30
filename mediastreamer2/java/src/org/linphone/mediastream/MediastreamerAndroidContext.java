@@ -96,7 +96,7 @@ public class MediastreamerAndroidContext {
 	 * Specifies if a filter is enabled or not.
 	 * @param name   A name for the filter. refer to ms2 internals to get list of filters
 	 * @param enable, true/false
-	 * @throw MediastreamException if filter name is unknown
+	 * @throws MediastreamException if filter name is unknown
 	 * @deprecated
 	 * */
 	public static void enableFilterFromName(String name,boolean enable) throws MediastreamException {
