@@ -1005,6 +1005,7 @@ static void ice_check_list_deallocate_turn_candidate(IceCheckList *cl, MSTurnCon
 			transaction = ice_send_stun_server_request(request, (struct sockaddr *)&cl->session->ss, cl->session->ss_len);
 			if (transaction != NULL) ice_stun_server_request_transaction_free(transaction);
 			ice_stun_server_request_free(request);
+			meta_rtp_transport_set_endpoint(rtptp,NULL); /*endpoint is later freed*/
 		} else {
 			ms_error("ice: no rtp socket found for session [%p]", cl->rtp_session);
 		}
