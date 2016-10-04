@@ -111,10 +111,11 @@ static void h264_enc_output_cb(VTH264EncCtx *ctx, void *sourceFrameRefCon, OSSta
 static void h264_enc_configure(VTH264EncCtx *ctx) {
 	OSStatus err;
 	const char *error_msg = "Could not initialize the VideoToolbox compresson session";
-	int max_payload_size = ms_factory_get_payload_max_size(ctx->f->factory);
+	int max_payload_size = ms_factory_get_payload_max_size(ctx->f->factory)-1;
 	CFNumberRef value;
 	CFMutableDictionaryRef pixbuf_attr = CFDictionaryCreateMutable(NULL, 0, NULL, NULL);
 	int pixel_type = kCVPixelFormatType_420YpCbCr8Planar;
+	int delay_count = 0;
 
 	value = CFNumberCreate(NULL, kCFNumberIntType, &pixel_type);
 	CFDictionarySetValue(pixbuf_attr, kCVPixelBufferPixelFormatTypeKey, value);
@@ -133,6 +134,15 @@ static void h264_enc_configure(VTH264EncCtx *ctx) {
 	VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_AverageBitRate, value);
 	value = CFNumberCreate(NULL, kCFNumberFloatType, &ctx->conf.fps);
 	VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_ExpectedFrameRate, value);
+	
+	value = CFNumberCreate(NULL, kCFNumberIntType, &delay_count);
+	if (VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_MaxFrameDelayCount, value) != 0){
+		ms_error("Could not set kVTCompressionPropertyKey_MaxFrameDelayCount");
+	}
+	value = CFNumberCreate(NULL, kCFNumberIntType, &max_payload_size);
+	if (VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_MaxH264SliceBytes, value) != 0){
+		ms_error("Could not set kVTCompressionPropertyKey_MaxH264SliceBytes");
+	}
 
 	if((err = VTCompressionSessionPrepareToEncodeFrames(ctx->session)) != 0) {
 		ms_error("Could not prepare the VideoToolbox compression session: error code %d", (int)err);
@@ -141,7 +151,7 @@ static void h264_enc_configure(VTH264EncCtx *ctx) {
 
 	rfc3984_init(&ctx->packer_ctx);
 	rfc3984_set_mode(&ctx->packer_ctx, 1);
-	ctx->packer_ctx.maxsz = max_payload_size;
+	ctx->packer_ctx.maxsz = max_payload_size + 1;
 	ctx->is_configured = TRUE;
 	return;
 
