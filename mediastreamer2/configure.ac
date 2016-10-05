@@ -1032,7 +1032,7 @@ AC_ARG_ENABLE(tests,
 		no)		tests=false  ;;
 		*)	AC_MSG_ERROR(bad value ${enableval} for --enable-tests) ;;
 	esac],
-	[tests=yes]
+	[tests=true]
 )
 AM_CONDITIONAL(BUILD_TESTS, [test x$tests = xtrue && test x$found_pkg_config_bctoolboxtester = xyes])
 
