@@ -112,12 +112,12 @@ fi
 
 
 if test "$mbedtls_prefix" != "/usr" ; then
-	MBEDTLS_CFLAGS="-I${mbedtls_prefix}"
+	MBEDTLS_CFLAGS="-I${mbedtls_prefix}/include"
 	MBEDTLS_LIBS="-L${mbedtls_prefix}/lib"
 fi
 
 if test "$bcunit_prefix" != "/usr/local" ; then
-	BCUNIT_CFLAGS="-I${bcunit_prefix}"
+	BCUNIT_CFLAGS="-I${bcunit_prefix}/include"
 	BCUNIT_LIBS="-L${bcunit_prefix}/lib"
 fi
 
@@ -128,7 +128,7 @@ CPPFLAGS="$CPPFLAGS $BCUNIT_CFLAGS"
 LIBS="$LIBS $BCUNIT_LIBS"
 
 AC_CHECK_HEADER(BCUnit/BCUnit.h, [
-	AC_CHECK_LIB(bcunit, CU_get_error, [BCUNIT_LIBS="BCUNIT_LIBS -lbcunit"; bcunit_found=true],
+	AC_CHECK_LIB(bcunit, CU_get_error, [BCUNIT_LIBS="$BCUNIT_LIBS -lbcunit"; bcunit_found=true],
 	[bcunit_found=false]) ],
 	[bcunit_found=false]
 )
@@ -157,7 +157,7 @@ CPPFLAGS="$CPPFLAGS $MBEDTLS_CFLAGS"
 LIBS="$LIBS $MBEDTLS_LIBS"
 
 AC_CHECK_HEADER(mbedtls/ssl.h, [
-	AC_CHECK_LIB(mbedtls, mbedtls_pk_parse_key, [mbedtls_found=true; MBEDTLS_LIBS="$MBEDTLS_LIBS -lmbedtls -lmbedcrypto"], [mbedtls_found=false], [-lmbedcrypto]) ],
+	AC_CHECK_LIB(mbedtls, mbedtls_pk_parse_key, [mbedtls_found=true; MBEDTLS_LIBS="$MBEDTLS_LIBS -lmbedtls -lmbedcrypto -lmbedx509"], [mbedtls_found=false], [-lmbedcrypto]) ],
 	[mbedtls_found=false]
 )
 
