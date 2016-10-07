@@ -120,6 +120,8 @@ BELLESIP_EXPORT int belle_sip_dialog_request_pending(const belle_sip_dialog_t *d
 BELLESIP_EXPORT int belle_sip_dialog_pending_trans_checking_enabled( const belle_sip_dialog_t *dialog) ;
 BELLESIP_EXPORT int belle_sip_dialog_enable_pending_trans_checking(belle_sip_dialog_t *dialog, int value) ;
 
+BELLESIP_EXPORT int belle_sip_dialog_expired(const belle_sip_dialog_t *dialog);
+
 BELLE_SIP_END_DECLS
 
 #endif

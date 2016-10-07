@@ -584,11 +584,12 @@ static void subscribe_base(int with_resource_lists) {
 	BC_ASSERT_LOWER_STRICT(end-begin,5000,unsigned long long,"%llu");
 
 	belle_sip_message("simulating dialog error and recovery");
-	belle_sip_stack_set_send_error(client->stack, 1500);
+	belle_sip_stack_set_send_error(client->stack, 1);
 	BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.fourHundredEightyOne,1,4000));
-
+	/*let the transaction timeout*/
+	wait_for(server->stack,client->stack, &dummy, 1, 32000);
 	belle_sip_stack_set_send_error(client->stack, 0);
-	wait_for(server->stack,client->stack, &dummy, 1, 1000);
+	
 
 	BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.refreshOk,4,4000));
 	BC_ASSERT_EQUAL(client->stat.dialogTerminated, 0, int, "%i");
@@ -618,7 +619,8 @@ static void subscribe_base(int with_resource_lists) {
 	belle_sip_refresher_refresh(refresher, 0);
 
 	belle_sip_refresher_stop(refresher);
-	BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&server->stat.dialogTerminated,1,4000));
+	BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&server->stat.dialogTerminated,3,4000));
+	
 	belle_sip_object_unref(refresher);
 
 	if (with_resource_lists) {
@@ -869,7 +871,7 @@ test_t refresher_tests[] = {
 	{ "REGISTER Expires in Contact digest auth", register_expires_in_contact_header_digest_auth },
 	{ "REGISTER with failure", register_with_failure },
 	{ "REGISTER with early refresher",register_early_refresher},
-	TEST_ONE_TAG("SUBSCRIBE", subscribe_test, "LeaksMemory"),
+	TEST_NO_TAG("SUBSCRIBE", subscribe_test),
 	TEST_ONE_TAG("SUBSCRIBE of list" , subscribe_list_test, "LeaksMemory"),
 	{ "PUBLISH", simple_publish },
 	{ "PUBLISH with early refresher", simple_publish_with_early_refresher },

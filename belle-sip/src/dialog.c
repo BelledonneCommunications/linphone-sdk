@@ -193,11 +193,15 @@ static int belle_sip_dialog_init_as_uac(belle_sip_dialog_t *obj, belle_sip_reque
 	return 0;
 }
 
-static int belle_sip_dialog_expired(belle_sip_dialog_t *dialog){
+static int belle_sip_dialog_on_expired(belle_sip_dialog_t *dialog){
 	belle_sip_message("Dialog [%p] expired", dialog);
 	dialog->is_expired = TRUE;
 	belle_sip_dialog_delete(dialog);
 	return BELLE_SIP_STOP;
+}
+
+int belle_sip_dialog_expired(const belle_sip_dialog_t *dialog){
+	return dialog->is_expired;
 }
 
 /*returns BELLE_SIP_STOP if the dialog is to be terminated, BELLE_SIP_CONTINUE otherwise*/
@@ -215,7 +219,7 @@ static int belle_sip_dialog_schedule_expiration(belle_sip_dialog_t *dialog, bell
 	belle_sip_message("belle_sip_dialog_schedule_expiration() dialog=%p expires_value=%i", dialog, expires_value);
 	if (expires_value == 0) return BELLE_SIP_STOP;
 	dialog->expiration_timer = belle_sip_main_loop_create_timeout(dialog->provider->stack->ml, 
-					(belle_sip_source_func_t) belle_sip_dialog_expired,
+					(belle_sip_source_func_t) belle_sip_dialog_on_expired,
 					dialog,
 					expires_value * 1000,
 					"Dialog expiration");
