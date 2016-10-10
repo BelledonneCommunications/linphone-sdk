@@ -65,7 +65,7 @@ static SoundDeviceDescription devices[]={
 	{	"motorola",				"XT907",				"",				0,	500 },
 	{	"motorola",				"DROIX X2",				"",				0,	320 },
 	{	"motorola",				"MotoG3",				"msm8916",		DEVICE_HAS_BUILTIN_AEC_CRAPPY,	100 }, /*The MotoG3 audio capture hangs for several seconds when switching to speaker mode*/
-    {   "motorola",             "Nexus 6",              "msm8084",      DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0}, /* Nexus 6*/
+	{   "motorola",             "Nexus 6",              "msm8084",      DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0}, /* Nexus 6*/
 	{	"samsung",				"GT-S5360",				"bcm21553",		0,	250 }, /*<Galaxy Y*/
 	{	"samsung",				"GT-S5360L",			"",				0,	250 }, /*<Galaxy Y*/
 	{	"samsung",				"GT-S6102",				"",				DEVICE_HAS_BUILTIN_AEC,	0 }, /*<Galaxy Y duo*/
@@ -148,10 +148,10 @@ static SoundDeviceDescription devices[]={
 	{	"LENOVO",				"Lenovo S60-a",			"msm8916",		0,	0 ,	44100},
 	{	"blackberry",			"STV100-4",				"msm8992",		DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0 , 48000},
 	
-	{	"vodafone",				"985N",					"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"Vodafone",				"Vodafone 985N",					"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
 	
-	{	"HUAWEI",				"P7-L10",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
-	{	"HUAWEI",				"P7-L11",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"HUAWEI",				"HUAWEI P7-L10",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"HUAWEI",				"HUAWEI P7-L11",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
 
 	{	NULL, 					NULL, 					NULL,			0, 	0,	0}
 };

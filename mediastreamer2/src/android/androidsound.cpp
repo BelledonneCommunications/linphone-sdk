@@ -251,6 +251,13 @@ static void android_snd_card_detect(MSSndCardManager *m) {
 		return;
 	}
 	
+	devices = ms_factory_get_devices_info(m->factory);
+	d = ms_devices_info_get_sound_device_description(devices);
+	if (d->flags & DEVICE_HAS_UNSTANDARD_LIBMEDIA){
+		ms_message("Native android sound support is blacklisted for this device.");
+		return;
+	}
+	
 	/* libmedia and libutils static variable may survive to Linphone restarts
 	 It is then necessary to perform the *::init() calls even if the libmedia and libutils are there.*/
 	if (!libmedia) libmedia=Library::load("/system/lib/libmedia.so");
@@ -265,10 +272,9 @@ static void android_snd_card_detect(MSSndCardManager *m) {
 		audio_system_loaded = AudioSystemImpl::init(libmedia);
 	}
 	
-	devices = ms_factory_get_devices_info(m->factory);
-	d = ms_devices_info_get_sound_device_description(devices);
 	
-	if (audio_record_loaded && audio_track_loaded && audio_system_loaded && string8_loaded && refbase_loaded && !(d->flags & DEVICE_HAS_UNSTANDARD_LIBMEDIA)) {
+	
+	if (audio_record_loaded && audio_track_loaded && audio_system_loaded && string8_loaded && refbase_loaded) {
 		ms_message("Native android sound support available.");
 		MSSndCard* card = android_snd_card_new(d);
 		ms_snd_card_set_manager(m, card);
