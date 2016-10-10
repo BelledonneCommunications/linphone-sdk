@@ -872,7 +872,7 @@ test_t refresher_tests[] = {
 	{ "REGISTER with failure", register_with_failure },
 	{ "REGISTER with early refresher",register_early_refresher},
 	TEST_NO_TAG("SUBSCRIBE", subscribe_test),
-	TEST_ONE_TAG("SUBSCRIBE of list" , subscribe_list_test, "LeaksMemory"),
+	TEST_NO_TAG("SUBSCRIBE of list" , subscribe_list_test),
 	{ "PUBLISH", simple_publish },
 	{ "PUBLISH with early refresher", simple_publish_with_early_refresher },
 	{ "REGISTER with unrecognizable Contact", register_with_unrecognizable_contact },
