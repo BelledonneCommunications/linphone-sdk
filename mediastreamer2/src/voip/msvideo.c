@@ -156,27 +156,61 @@ mblk_t* ms_yuv_buf_alloc_from_buffer(int w, int h, mblk_t* buffer) {
 	return msg;
 }
 
-static void plane_copy(const uint8_t *src_plane, int src_stride,
-	uint8_t *dst_plane, int dst_stride, MSVideoSize roi){
-	int i;
-	if ((roi.width == src_stride) && (roi.width == dst_stride)) {
-		memcpy(dst_plane, src_plane, roi.width * roi.height);
-		return;
+static void row_copy(const uint8_t *src, uint8_t *dst, size_t width, size_t src_pix_stride, size_t dst_pix_stride) {
+	if(src_pix_stride == 1 && dst_pix_stride == 1) {
+		memcpy(dst, src, width);
+	} else {
+		const uint8_t *r_ptr = src;
+		uint8_t *w_ptr = dst;
+		const uint8_t *src_end = src + width * src_pix_stride;
+		const uint8_t *dst_end = dst + width * dst_pix_stride;
+		while(r_ptr < src_end && w_ptr < dst_end) {
+			*w_ptr = *r_ptr;
+			r_ptr += src_pix_stride;
+			w_ptr += dst_pix_stride;
+		}
 	}
-	for(i=0;i<roi.height;++i){
-		memcpy(dst_plane,src_plane,roi.width);
-		src_plane+=src_stride;
-		dst_plane+=dst_stride;
+}
+
+static void plane_copy(const uint8_t *src_plane, size_t src_row_stride, size_t src_pix_stride, const MSRect *src_roi,
+	uint8_t *dst_plane, size_t dst_row_stride, size_t dst_pix_stride, const MSRect *dst_roi) {
+	
+	const uint8_t *r_ptr = src_plane + (src_roi->y * src_row_stride + src_roi->x * src_pix_stride);
+	uint8_t *w_ptr = dst_plane + (dst_roi->y * dst_row_stride + dst_roi->x * dst_pix_stride);
+	int i;
+	for(i=0; i<src_roi->h; i++) {
+		row_copy(r_ptr, w_ptr, src_roi->w, src_pix_stride, dst_pix_stride);
+		r_ptr += src_row_stride;
+		w_ptr += dst_row_stride;
 	}
 }
 
 void ms_yuv_buf_copy(uint8_t *src_planes[], const int src_strides[],
-		uint8_t *dst_planes[], const int dst_strides[], MSVideoSize roi){
-	plane_copy(src_planes[0],src_strides[0],dst_planes[0],dst_strides[0],roi);
-	roi.width=roi.width/2;
-	roi.height=roi.height/2;
-	plane_copy(src_planes[1],src_strides[1],dst_planes[1],dst_strides[1],roi);
-	plane_copy(src_planes[2],src_strides[2],dst_planes[2],dst_strides[2],roi);
+		uint8_t *dst_planes[], const int dst_strides[], MSVideoSize roi) {
+	MSRect roi_rect = {0, 0, roi.width, roi.height};
+	plane_copy(src_planes[0], src_strides[0], 1, &roi_rect, dst_planes[0], dst_strides[0], 1, &roi_rect);
+	roi_rect.w /= 2;
+	roi_rect.h /= 2;
+	plane_copy(src_planes[1], src_strides[1], 1, &roi_rect, dst_planes[1], dst_strides[1], 1, &roi_rect);
+	plane_copy(src_planes[2], src_strides[2], 1, &roi_rect, dst_planes[2], dst_strides[2], 1, &roi_rect);
+}
+
+void ms_yuv_buf_copy_with_pix_strides(uint8_t *src_planes[], const int src_row_strides[], const int src_pix_strides[], MSRect src_roi,
+		uint8_t *dst_planes[], const int dst_row_strides[], const int dst_pix_strides[], MSRect dst_roi) {
+	plane_copy(src_planes[0], src_row_strides[0], src_pix_strides[0], &src_roi, dst_planes[0], dst_row_strides[0], dst_pix_strides[0], &dst_roi);
+	
+	src_roi.x /= 2;
+	src_roi.y /= 2;
+	src_roi.w /= 2;
+	src_roi.h /= 2;
+	
+	dst_roi.x /= 2;
+	dst_roi.y /= 2;
+	dst_roi.w /= 2;
+	dst_roi.h /= 2;
+	
+	plane_copy(src_planes[1], src_row_strides[1], src_pix_strides[1], &src_roi, dst_planes[1], dst_row_strides[1], dst_pix_strides[1], &dst_roi);
+	plane_copy(src_planes[2], src_row_strides[2], src_pix_strides[2], &src_roi, dst_planes[2], dst_row_strides[2], dst_pix_strides[2], &dst_roi);
 }
 
 MSYuvBufAllocator *ms_yuv_buf_allocator_new(void) {

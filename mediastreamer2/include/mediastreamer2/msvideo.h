@@ -262,6 +262,8 @@ The returned mblk_t points to the external buffer, which is not copied, nor ref'
 MS2_PUBLIC mblk_t * ms_yuv_buf_alloc_from_buffer(int w, int h, mblk_t* buffer);
 MS2_PUBLIC void ms_yuv_buf_copy(uint8_t *src_planes[], const int src_strides[],
 		uint8_t *dst_planes[], const int dst_strides[], MSVideoSize roi);
+MS2_PUBLIC void ms_yuv_buf_copy_with_pix_strides(uint8_t *src_planes[], const int src_row_strides[], const int src_pix_strides[], MSRect src_roi,
+		uint8_t *dst_planes[], const int dst_row_strides[], const int dst_pix_strides[], MSRect dst_roi);
 MS2_PUBLIC void ms_yuv_buf_mirror(YuvBuf *buf);
 MS2_PUBLIC void ms_yuv_buf_mirrors(YuvBuf *buf,const MSMirrorType type);
 MS2_PUBLIC void rgb24_mirror(uint8_t *buf, int w, int h, int linesize);

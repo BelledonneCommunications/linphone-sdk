@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mediastreamer2/msvideo.h"
 #include "mediastreamer2/msticker.h"
 #include "mediastreamer2/mscodecutils.h"
+#include "mediastreamer2/msjava.h"
 #include "android_mediacodec.h"
 #include "h264utils.h"
 
@@ -111,29 +112,36 @@ static void enc_preprocess(MSFilter* f) {
 	AMediaFormat_setInt32(format, "bitrate", d->vconf.required_bitrate);
 	AMediaFormat_setInt32(format, "frame-rate", d->vconf.fps);
 	AMediaFormat_setInt32(format, "bitrate-mode",1);
+	AMediaFormat_setInt32(format, "level", 1); // Ask for baseline AVC profile
 	
-	if(status != 0){
-		d->isYUV = FALSE;
-		AMediaFormat_setInt32(format, "color-format", 21); /*the semi-planar YUV*/
-		status = AMediaCodec_configure(d->codec, format, NULL, NULL, AMEDIACODEC_CONFIGURE_FLAG_ENCODE);
-	}
-	
-	if(status != 0){
-		d->isYUV = TRUE;
-		AMediaFormat_setInt32(format, "color-format", 19); /*basic YUV420P*/
-		status = AMediaCodec_configure(d->codec, format, NULL, NULL, AMEDIACODEC_CONFIGURE_FLAG_ENCODE);
-	}
-	
-	if(status != 0){
-		d->isYUV = TRUE;
-		AMediaFormat_setInt32(format, "color-format", 0x7f420888); /*the new "flexible YUV", appeared in API23*/
-		status = AMediaCodec_configure(d->codec, format, NULL, NULL, AMEDIACODEC_CONFIGURE_FLAG_ENCODE);
+	if(AMediaImage_isAvailable()) {
+		if(status != 0){
+			AMediaFormat_setInt32(format, "color-format", 0x7f420888); /*the new "flexible YUV", appeared in API23*/
+			status = AMediaCodec_configure(d->codec, format, NULL, NULL, AMEDIACODEC_CONFIGURE_FLAG_ENCODE);
+		}
+	} else {
+		if(status != 0){
+			d->isYUV = FALSE;
+			AMediaFormat_setInt32(format, "color-format", 21); /*the semi-planar YUV*/
+			status = AMediaCodec_configure(d->codec, format, NULL, NULL, AMEDIACODEC_CONFIGURE_FLAG_ENCODE);
+		}
+		if(status != 0){
+			d->isYUV = TRUE;
+			AMediaFormat_setInt32(format, "color-format", 19); /*basic YUV420P*/
+			status = AMediaCodec_configure(d->codec, format, NULL, NULL, AMEDIACODEC_CONFIGURE_FLAG_ENCODE);
+		}
 	}
 	
 	if (status != 0){
 		ms_error("MSMediaCodecH264Enc: Could not configure encoder.");
 		AMediaCodec_delete(d->codec);
 		d->codec = NULL;
+	} else {
+		int32_t color_format;
+		if(!AMediaFormat_getInt32(format, "color-format", &color_format)) {
+			color_format = -1;
+		}
+		ms_message("MSMediaCodecH264Enc: encoder successfully configured. color-format=%d", color_format);
 	}
 	
 	if (d->codec){
@@ -141,6 +149,8 @@ static void enc_preprocess(MSFilter* f) {
 			ms_error("MSMediaCodecH264Enc: Could not start encoder.");
 			AMediaCodec_delete(d->codec);
 			d->codec = NULL;
+		} else {
+			ms_message("MSMediaCodecH264Enc: encoder successfully started");
 		}
 	}
 	AMediaFormat_delete(format);
@@ -181,7 +191,6 @@ static void enc_process(MSFilter *f){
 	while((im=ms_queue_get(f->inputs[0]))!=NULL){
 		if (ms_yuv_buf_init_from_mblk(&pic,im)==0){
 			AMediaCodecBufferInfo info;
-			uint8_t *buf=NULL;
 			size_t bufsize;
 			ssize_t ibufidx, obufidx;
 			bool have_seen_sps_pps;
@@ -194,26 +203,42 @@ static void enc_process(MSFilter *f){
 
 			ibufidx = AMediaCodec_dequeueInputBuffer(d->codec, TIMEOUT_US);
 			if (ibufidx >= 0) {
-				buf = AMediaCodec_getInputBuffer(d->codec, ibufidx, &bufsize);
-				if(buf != NULL){
-					if(d->isYUV){
-						int ysize = pic.w * pic.h;
-						int usize = ysize / 4;
-						memcpy(buf, pic.planes[0], ysize);
-						memcpy(buf + ysize, pic.planes[1], usize);
-						memcpy(buf + ysize+usize, pic.planes[2], usize);
-					} else {
-						int i;
-						size_t size=(size_t) pic.w * pic.h;
-						uint8_t *dst = pic.planes[0];
-						memcpy(buf,dst,size);
-
-						for (i = 0; i < pic.w/2*pic.h/2; i++){
-							buf[size+2*i]=pic.planes[1][i];
-							buf[size+2*i+1]=pic.planes[2][i];
+				if(AMediaImage_isAvailable()) {
+					AMediaImage image;
+					if(AMediaCodec_getInputImage(d->codec, ibufidx, &image)) {
+						if(image.format == 35 /* YUV_420_888 */) {
+							MSRect src_roi = {0, 0, pic.w, pic.h};
+							int src_pix_strides[4] = {1, 1, 1, 1};
+							ms_yuv_buf_copy_with_pix_strides(pic.planes, pic.strides, src_pix_strides, src_roi, image.buffers, image.row_strides, image.pixel_strides, image.crop_rect);
+							AMediaImage_close(&image);
+							AMediaCodec_queueInputBuffer(d->codec, ibufidx, 0, (size_t)image.width*image.height*3/2, f->ticker->time*1000, 0); 
+						} else {
+							ms_error("%s: encoder require non YUV420 format", f->desc->name);
+							AMediaImage_close(&image);
 						}
 					}
-					AMediaCodec_queueInputBuffer(d->codec, ibufidx, 0, (size_t)(pic.w * pic.h)*3/2, f->ticker->time*1000,0);
+				} else {
+					uint8_t *buf = AMediaCodec_getInputBuffer(d->codec, ibufidx, &bufsize);
+					if(buf != NULL){
+						if(d->isYUV){
+							int ysize = pic.w * pic.h;
+							int usize = ysize / 4;
+							memcpy(buf, pic.planes[0], ysize);
+							memcpy(buf + ysize, pic.planes[1], usize);
+							memcpy(buf + ysize+usize, pic.planes[2], usize);
+						} else {
+							int i;
+							size_t size=(size_t) pic.w * pic.h;
+							uint8_t *dst = pic.planes[0];
+							memcpy(buf,dst,size);
+
+							for (i = 0; i < pic.w/2*pic.h/2; i++){
+								buf[size+2*i]=pic.planes[1][i];
+								buf[size+2*i+1]=pic.planes[2][i];
+							}
+						}
+						AMediaCodec_queueInputBuffer(d->codec, ibufidx, 0, (size_t)(pic.w * pic.h)*3/2, f->ticker->time*1000,0);
+					}
 				}
 			}else if (ibufidx == AMEDIA_ERROR_UNKNOWN){
 				ms_error("MSMediaCodecH264Enc: AMediaCodec_dequeueInputBuffer() had an exception");
@@ -221,7 +246,7 @@ static void enc_process(MSFilter *f){
 
 			have_seen_sps_pps = FALSE; /*this checks whether at a single timestamp point we dequeued SPS PPS before IDR*/
 			while((obufidx = AMediaCodec_dequeueOutputBuffer(d->codec, &info, TIMEOUT_US)) >= 0) {
-				buf = AMediaCodec_getOutputBuffer(d->codec, obufidx, &bufsize);
+				uint8_t *buf = AMediaCodec_getOutputBuffer(d->codec, obufidx, &bufsize);
 				if (buf){
 					mblk_t *m;
 					ms_h264_bitstream_to_nalus(buf, info.size, &nalus);

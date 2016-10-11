@@ -78,6 +78,20 @@ JNIEnv *ms_get_jni_env(void){
 
 #ifdef ANDROID
 
+int ms_get_android_sdk_version(void) {
+	static int sdk_version = 0;
+	if (sdk_version==0){
+		/* Get Android SDK version. */
+		JNIEnv *env = ms_get_jni_env();
+		jclass version_class = (*env)->FindClass(env, "android/os/Build$VERSION");
+		jfieldID fid = (*env)->GetStaticFieldID(env, version_class, "SDK_INT", "I");
+		sdk_version = (*env)->GetStaticIntField(env, version_class, fid);
+		ms_message("SDK version [%i] detected", sdk_version);
+		(*env)->DeleteLocalRef(env, version_class);
+	}
+	return sdk_version;
+}
+
 JNIEXPORT void JNICALL Java_org_linphone_mediastream_Log_d(JNIEnv* env, jobject thiz, jstring jmsg) {
 	const char* msg = jmsg ? (*env)->GetStringUTFChars(env, jmsg, NULL) : NULL;
 	ms_debug("%s", msg);

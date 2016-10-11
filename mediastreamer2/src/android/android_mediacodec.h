@@ -17,13 +17,31 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 #include "mediastreamer2/mscommon.h"
+#include "mediastreamer2/msvideo.h"
 #include <media/NdkMediaCodec.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+typedef struct {
+	int format;
+	int width;
+	int height;
+	MSRect crop_rect;
+	uint64_t timestamp;
+	int nplanes;
+	int row_strides[4];
+	int pixel_strides[4];
+	uint8_t *buffers[4];
+	void *priv_ptr;
+} AMediaImage;
+
 void AMediaCodec_setParams(AMediaCodec *codec, const char *params);
+bool AMediaCodec_getInputImage(AMediaCodec *codec, int index, AMediaImage *image);
+bool AMediaCodec_getOutputImage(AMediaCodec *codec, int index, AMediaImage *image);
+void AMediaImage_close(AMediaImage *image);
+bool_t AMediaImage_isAvailable(void);
 
 #ifdef __cplusplus
 } // extern "C"

@@ -21,6 +21,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mediastreamer2/rfc3984.h"
 #include "mediastreamer2/msvideo.h"
 #include "mediastreamer2/msticker.h"
+#include "android_mediacodec.h"
 
 #include <jni.h>
 #include <media/NdkMediaCodec.h>
@@ -69,6 +70,7 @@ static void dec_init(MSFilter *f){
 	//Size mandatory for decoder configuration
 	AMediaFormat_setInt32(format,"width",1920);
 	AMediaFormat_setInt32(format,"height",1080);
+	if(AMediaImage_isAvailable()) AMediaFormat_setInt32(format, "color-format", 0x7f420888);
 
 	AMediaCodec_configure(codec, format, NULL, NULL, 0);
     AMediaCodec_start(codec);
@@ -314,17 +316,29 @@ static void dec_process(MSFilter *f){
 
 		if(buf != NULL && d->sps && d->pps){ /*some decoders output garbage while no sps or pps have been received yet !*/
 			if(width != 0 && height != 0 ){
-				if(color == 19) {
-					//YUV
-					int ysize = width*height;
-					int usize = ysize/4;
-					om = ms_yuv_buf_allocator_get(d->buf_allocator,&pic,width,height);
-					memcpy(pic.planes[0],buf,ysize);
-					memcpy(pic.planes[1],buf+ysize,usize);
-					memcpy(pic.planes[2],buf+ysize+usize,usize);
+				if(AMediaImage_isAvailable()) {
+					AMediaImage image;
+					int dst_pix_strides[4] = {1, 1, 1, 1};
+					MSRect dst_roi = {0, 0, pic.w, pic.h};
+					if(AMediaCodec_getOutputImage(d->codec, oBufidx, &image)) {
+						om = ms_yuv_buf_allocator_get(d->buf_allocator, &pic, width, height);
+						ms_yuv_buf_copy_with_pix_strides(image.buffers, image.row_strides, image.pixel_strides, image.crop_rect,
+														 pic.planes, pic.strides, dst_pix_strides, dst_roi);
+						AMediaImage_close(&image);
+					}
 				} else {
-					uint8_t* cbcr_src = (uint8_t*) (buf + width * height);
-					om = copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(d->buf_allocator, buf, cbcr_src, 0, width, height, width, width, TRUE, FALSE);
+					if(color == 19) {
+						//YUV
+						int ysize = width*height;
+						int usize = ysize/4;
+						om = ms_yuv_buf_allocator_get(d->buf_allocator,&pic,width,height);
+						memcpy(pic.planes[0],buf,ysize);
+						memcpy(pic.planes[1],buf+ysize,usize);
+						memcpy(pic.planes[2],buf+ysize+usize,usize);
+					} else {
+						uint8_t* cbcr_src = (uint8_t*) (buf + width * height);
+						om = copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(d->buf_allocator, buf, cbcr_src, 0, width, height, width, width, TRUE, FALSE);
+					}
 				}
 
 				if (!d->first_image_decoded) {

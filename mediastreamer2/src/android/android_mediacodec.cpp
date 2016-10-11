@@ -565,6 +565,166 @@ void AMediaCodec_setParams(AMediaCodec *codec, const char *params){
 	env->DeleteLocalRef(mediaCodecClass);
 }
 
+static bool _loadClass(JNIEnv *env, const char *className, jclass *_class) {
+	*_class = env->FindClass(className);
+	if(handle_java_exception() == -1 || *_class == NULL) {
+		ms_error("Could not load Java class [%s]", className);
+		return false;
+	}
+	return true;
+}
+
+static bool _getMethodID(JNIEnv *env, jclass _class, const char *name, const char *sig, jmethodID *method) {
+	*method = env->GetMethodID(_class, name, sig);
+	if(handle_java_exception() == -1 || *method == NULL) {
+		ms_error("Could not get method %s[%s]", name, sig);
+		return false;
+	}
+	return true;
+}
+
+static bool _getFieldID(JNIEnv *env, jclass _class, const char *name, const char *sig, jfieldID *field) {
+	*field = env->GetFieldID(_class, name, sig);
+	if(handle_java_exception() == -1 || *field == NULL) {
+		ms_error("Could not get field %s[%s]", name, sig);
+		return false;
+	}
+	return true;
+}
+
+static bool _getImage(JNIEnv *env, AMediaCodec *codec, const char *methodName, int index, AMediaImage *image) {
+	jclass mediaCodecClass = NULL, imageClass = NULL, planeClass = NULL, rectClass = NULL;
+	jobject jimage = NULL, jrect = NULL;
+	jobjectArray jplanes = NULL;
+	jmethodID getOutputImageMethod;
+	jmethodID getFormatMethod, getWidthMethod, getHeightMethod, getTimestrampMethod, getPlanesMethod, getCropRectMethod;
+	jmethodID getPixelStrideMethod, getRowStrideMethod, getBufferMethod;
+	jfieldID bottomField, leftField, rightField, topField;
+	bool success = true;
+	int bottom, left, right, top;
+	
+	success = success && _loadClass(env, "android/media/MediaCodec", &mediaCodecClass);
+	success = success && _loadClass(env, "android/media/Image", &imageClass);
+	success = success && _loadClass(env, "android/media/Image$Plane", &planeClass);
+	success = success && _loadClass(env, "android/graphics/Rect", &rectClass);
+	if(!success) {
+		ms_error("%s(): one class could not be found", __FUNCTION__);
+		goto end;
+	}
+	
+	success = success && _getMethodID(env, mediaCodecClass, methodName, "(I)Landroid/media/Image;", &getOutputImageMethod);
+	success = success && _getMethodID(env, imageClass, "getFormat", "()I", &getFormatMethod);
+	success = success && _getMethodID(env, imageClass, "getWidth", "()I", &getWidthMethod);
+	success = success && _getMethodID(env, imageClass, "getHeight", "()I", &getHeightMethod);
+	success = success && _getMethodID(env, imageClass, "getTimestamp", "()J", &getTimestrampMethod);
+	success = success && _getMethodID(env, imageClass, "getPlanes", "()[Landroid/media/Image$Plane;", &getPlanesMethod);
+	success = success && _getMethodID(env, imageClass, "getCropRect", "()Landroid/graphics/Rect;", &getCropRectMethod);
+	success = success && _getMethodID(env, planeClass, "getPixelStride", "()I", &getPixelStrideMethod);
+	success = success && _getMethodID(env, planeClass, "getRowStride", "()I", &getRowStrideMethod);
+	success = success && _getMethodID(env, planeClass, "getBuffer", "()Ljava/nio/ByteBuffer;", &getBufferMethod);
+	success = success && _getFieldID(env, rectClass, "bottom", "I", &bottomField);
+	success = success && _getFieldID(env, rectClass, "left", "I", &leftField);
+	success = success && _getFieldID(env, rectClass, "right", "I", &rightField);
+	success = success && _getFieldID(env, rectClass, "top", "I", &topField);
+	if(!success) {
+		ms_error("%s(): one method or field could not be found", __FUNCTION__);
+		goto end;
+	}
+	
+	jimage = env->CallObjectMethod(codec->jcodec, getOutputImageMethod, index);
+	if(handle_java_exception() == -1 || jimage == NULL) {
+		ms_error("%s(): could not get the output image with index [%d]", __FUNCTION__, index);
+		success = false;
+		goto end;
+	}
+	
+	image->format = env->CallIntMethod(jimage, getFormatMethod);
+	image->width = env->CallIntMethod(jimage, getWidthMethod);
+	image->height = env->CallIntMethod(jimage, getHeightMethod);
+	image->timestamp = env->CallLongMethod(jimage, getTimestrampMethod);
+	
+	jrect = env->CallObjectMethod(jimage, getCropRectMethod);
+	if(jrect == NULL) {
+		ms_error("%s: could not get crop rectangle", __FUNCTION__);
+		goto end;
+	}
+	bottom = env->GetIntField(jrect, bottomField);
+	left = env->GetIntField(jrect, leftField);
+	right = env->GetIntField(jrect, rightField);
+	top = env->GetIntField(jrect, topField);
+	image->crop_rect.x = left;
+	image->crop_rect.y = top;
+	image->crop_rect.w = right - left;
+	image->crop_rect.h = bottom - top;
+	
+	jplanes = reinterpret_cast<jobjectArray>(env->CallObjectMethod(jimage, getPlanesMethod));
+	image->nplanes = env->GetArrayLength(jplanes);
+	for(int i=0; i<image->nplanes; i++) {
+		jobject jplane = env->GetObjectArrayElement(jplanes, i);
+		image->pixel_strides[i] = env->CallIntMethod(jplane, getPixelStrideMethod);
+		if(env->ExceptionCheck()) {
+			image->pixel_strides[i] = -1;
+			env->ExceptionClear();
+		}
+		image->row_strides[i] = env->CallIntMethod(jplane, getRowStrideMethod);
+		if(env->ExceptionCheck()) {
+			image->row_strides[i] = -1;
+			env->ExceptionClear();
+		}
+		jobject jbuffer = env->CallObjectMethod(jplane, getBufferMethod);
+		image->buffers[i] = (uint8_t *)env->GetDirectBufferAddress(jbuffer);
+		env->DeleteLocalRef(jbuffer);
+		env->DeleteLocalRef(jplane);
+	}
+	
+	image->priv_ptr = env->NewGlobalRef(jimage);
+	
+end:
+	if(mediaCodecClass) env->DeleteLocalRef(mediaCodecClass);
+	if(imageClass) env->DeleteLocalRef(imageClass);
+	if(planeClass) env->DeleteLocalRef(planeClass);
+	if(rectClass) env->DeleteLocalRef(rectClass);
+	if(jimage) env->DeleteLocalRef(jimage);
+	if(jplanes) env->DeleteLocalRef(jplanes);
+	if(jrect) env->DeleteLocalRef(jrect);
+	return success;
+}
+
+bool AMediaCodec_getInputImage(AMediaCodec * codec, int index, AMediaImage *image) {
+	JNIEnv *env = ms_get_jni_env();
+	return _getImage(env, codec, "getInputImage", index, image);
+}
+
+bool AMediaCodec_getOutputImage(AMediaCodec *codec, int index, AMediaImage *image) {
+	JNIEnv *env = ms_get_jni_env();
+	return _getImage(env, codec, "getOutputImage", index, image);
+}
+
+void AMediaImage_close(AMediaImage *image) {
+	jclass imageClass = NULL;
+	jmethodID close;
+	bool_t success = TRUE;
+	
+	JNIEnv *env = ms_get_jni_env();
+	jobject jimage = (jobject)image->priv_ptr;
+	
+	success = success && _loadClass(env, "android/media/Image", &imageClass);
+	success = success && _getMethodID(env, imageClass, "close", "()V", &close);
+	if(!success) {
+		ms_error("%s: could not load some class or method ID", __FUNCTION__);
+	}
+	if(imageClass) {
+		env->CallVoidMethod(jimage, close);
+		env->DeleteLocalRef(imageClass);
+	}
+	env->DeleteGlobalRef(jimage);
+	image->priv_ptr = NULL;
+}
+
+bool_t AMediaImage_isAvailable(void) {
+	return ms_get_android_sdk_version() >= 21;
+}
+
 
 ////////////////////////////////////////////////////
 //                                                //
@@ -600,6 +760,7 @@ AMediaFormat *AMediaFormat_new(){
 	}
 
 	format->jformat = env->NewGlobalRef(jformat);
+	env->DeleteLocalRef(jformat);
 	env->DeleteLocalRef(mediaFormatClass);
 	return format;
 }

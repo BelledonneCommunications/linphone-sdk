@@ -27,6 +27,20 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mediastreamer2_tester.h"
 #include "mediastreamer2_tester_private.h"
 
+#ifdef VIDEO_ENABLED
+typedef enum {
+	YUV420Planar,
+	YUV420SemiPlanar
+} VideoFormat;
+
+typedef enum {
+	PixTypeInvalid,
+	PixTypeY,
+	PixTypeU,
+	PixTypeV
+} PixType;
+#endif
+
 static int tester_before_all(void) {
 /*	ms_init();
 	ms_filter_enable_statistics(TRUE);
@@ -61,6 +75,155 @@ static void filter_register_tester(void) {
 	
 }
 #ifdef VIDEO_ENABLED
+static uint8_t pix_value(PixType type, size_t idx) {
+	uint8_t idx_code = idx % 32;
+	uint8_t type_code;
+	switch(type) {
+		case PixTypeY:
+			type_code = 0x01 << 6;
+			break;
+		case PixTypeU:
+			type_code = 0x02 << 6;
+			break;
+		case PixTypeV:
+			type_code = 0x03 << 6;
+			break;
+		default:
+			return 0;
+	}
+	return type_code | idx_code;
+}
+
+static bool_t pix_is_valid(PixType type, size_t idx, uint8_t value) {
+	uint8_t idx_code = idx % 32;
+	uint8_t type_code;
+	switch(type) {
+		case PixTypeY:
+			type_code = 0x01 << 6;
+			break;
+		case PixTypeU:
+			type_code = 0x02 << 6;
+			break;
+		case PixTypeV:
+			type_code = 0x03 << 6;
+			break;
+		default:
+			break;
+	}
+	return (idx_code == (value & 0x3f)) && (type_code == (value & 0xc0));
+}
+
+static uint8_t *make_plane(PixType type, const MSVideoSize *buffer_size, const MSRect *roi) {
+	size_t buflen = buffer_size->width * buffer_size->height;
+	uint8_t *buffer = ms_new0(uint8_t, buflen);
+	uint8_t *wptr = buffer + (roi->y * buffer_size->width + roi->x);
+	int i = 0, l, c;
+	
+	for(l=0; l<roi->h; l++) {
+		for(c=0; c<roi->w; c++) {
+			*wptr = pix_value(type, i);
+			wptr++;
+			i++;
+		}
+		wptr += (buffer_size->width - roi->w);
+	}
+	return buffer;
+}
+
+static bool_t check_plane(PixType type, const MSVideoSize *buffer_size, const MSRect *roi, const uint8_t *buffer) {
+	const uint8_t *rptr = buffer + (roi->y * buffer_size->width + roi->x);
+	int i = 0, l, c;
+	
+	for(l=0; l<roi->h; l++) {
+		for(c=0; c<roi->w; c++) {
+			if(!pix_is_valid(type, i, *rptr))
+				return FALSE;
+			rptr++;
+			i++;
+		}
+		rptr += (buffer_size->width - roi->w);
+	}
+	return TRUE;
+}
+
+static uint8_t *make_interleave_plane(PixType type1, PixType type2, const MSVideoSize *buffer_size, const MSRect *roi) {
+	size_t buflen = buffer_size->width * buffer_size->height * 2;
+	uint8_t *buffer = ms_new0(uint8_t, buflen);
+	uint8_t *wptr = buffer + ((roi->y * buffer_size->width + roi->x)*2);
+	int i = 0, l, c;
+	
+	for(l=0; l<roi->h; l++) {
+		for(c=0; c<roi->w; c++) {
+			*wptr = pix_value(type1, i);
+			*(wptr+1) = pix_value(type2, i);
+			wptr+=2;
+			i++;
+		}
+		wptr += ((buffer_size->width-roi->w)*2);
+	}
+	return buffer;
+}
+
+static bool_t check_interleave_plane(PixType type1, PixType type2, const MSVideoSize *buffer_size, const MSRect *roi, const uint8_t *buffer) {
+	const uint8_t *rptr = buffer + ((roi->y * buffer_size->width + roi->x)*2);
+	int i = 0, l, c;
+	
+	for(l=0; l<roi->h; l++) {
+		for(c=0; c<roi->w; c++) {
+			if(!pix_is_valid(type1, i, *rptr)) return FALSE;
+			if(!pix_is_valid(type2, i, *(rptr+1))) return FALSE;
+			rptr+=2;
+			i++;
+		}
+		rptr += ((buffer_size->width-roi->w)*2);
+	}
+	return TRUE;
+}
+
+static uint8_t *generate_picture(const MSVideoSize *buffer_size, const MSRect *roi, bool_t semi_planar) {
+	MSVideoSize u_buf_size = { buffer_size->width/2, buffer_size->height/2 };
+	MSRect u_roi = { roi->x/2, roi->y/2, roi->w/2, roi->h/2 };
+	size_t planelen = buffer_size->width * buffer_size->height;
+	size_t buflen = (planelen*3)/2;
+	uint8_t *buffer = ms_new0(uint8_t, buflen);
+	uint8_t *y_plane = make_plane(PixTypeY, buffer_size, roi);
+	uint8_t *wptr;
+	
+	wptr = buffer;
+	memcpy(wptr, y_plane, planelen), wptr+=planelen;
+	ms_free(y_plane);
+	
+	if(!semi_planar) {
+		uint8_t *u_plane = make_plane(PixTypeU, &u_buf_size, &u_roi);
+		uint8_t *v_plane = make_plane(PixTypeV, &u_buf_size, &u_roi);
+		memcpy(wptr, u_plane, planelen/4), wptr+=planelen/4;
+		memcpy(wptr, v_plane, planelen/4);
+		ms_free(u_plane);
+		ms_free(v_plane);
+	} else {
+		uint8_t *interleave_plane = make_interleave_plane(PixTypeU, PixTypeV, &u_buf_size, &u_roi);
+		memcpy(wptr, interleave_plane, planelen/2);
+		ms_free(interleave_plane);
+	}
+	return buffer;
+}
+
+static bool_t check_picture(const MSVideoSize *buffer_size, const MSRect *roi, bool_t semi_planar, const uint8_t *buffer) {
+	MSVideoSize u_buf_size = { buffer_size->width/2, buffer_size->height/2 };
+	MSRect u_roi = { roi->x/2, roi->y/2, roi->w/2, roi->h/2 };
+	
+	if(!check_plane(PixTypeY, buffer_size, roi, buffer)) return FALSE;
+	buffer += (buffer_size->width * buffer_size->height);
+	if(!semi_planar) {
+		if(!check_plane(PixTypeU, &u_buf_size, &u_roi, buffer)) return FALSE;
+		buffer += ((buffer_size->width * buffer_size->height)/4);
+		if(!check_plane(PixTypeV, &u_buf_size, &u_roi, buffer)) return FALSE;
+	} else {
+		if(!check_interleave_plane(PixTypeU, PixTypeV, &u_buf_size, &u_roi, buffer)) return FALSE;
+	}
+	return TRUE;
+}
+
 static void test_video_processing_base (bool_t downscaling,bool_t rotate_clock_wise,bool_t flip) {
 	MSVideoSize src_size = { MS_VIDEO_SIZE_VGA_W, MS_VIDEO_SIZE_VGA_H };
 	MSVideoSize dest_size = src_size;
@@ -224,6 +387,114 @@ static void test_copy_ycbcrbiplanar_to_true_yuv_with_rotation_180_with_downscali
 	test_video_processing_base(TRUE,FALSE,TRUE);
 }
 
+static void test_yuv_buf_copy_with_pix_strides_base(const MSVideoSize *size, bool_t src_is_semiplanar, bool_t dst_is_semiplanar, bool_t test_sliding) {
+	const int rpadding = 16, bpadding = 16;
+	MSVideoSize buffer_size = { size->width+rpadding, size->height+bpadding };
+	MSRect roi1 = { 0, 0, size->width, size->height };
+	MSRect roi2 = roi1;
+	uint8_t *buf1 = generate_picture(&buffer_size, &roi1, src_is_semiplanar);
+	uint8_t *buf2 = ms_new0(uint8_t, buffer_size.width * buffer_size.height * 3 / 2);
+	uint8_t *src_planes[3], *dst_planes[3];
+	int src_row_strides[3], dst_row_strides[3];
+	int src_pix_strides[3], dst_pix_strides[3];
+	
+	if(test_sliding) {
+		roi2.x = rpadding;
+		roi2.y = bpadding;
+	}
+	
+	if(!src_is_semiplanar) {
+		src_planes[0] = buf1;
+		src_planes[1] = src_planes[0] + (buffer_size.width*buffer_size.height);
+		src_planes[2] = src_planes[1] + (buffer_size.width*buffer_size.height)/4;
+		src_row_strides[0] = buffer_size.width;
+		src_row_strides[1] = buffer_size.width/2;
+		src_row_strides[2] = buffer_size.width/2;
+		src_pix_strides[0] = 1;
+		src_pix_strides[1] = 1;
+		src_pix_strides[2] = 1;
+	} else {
+		src_planes[0] = buf1;
+		src_planes[1] = src_planes[0] + (buffer_size.width*buffer_size.height);
+		src_planes[2] = src_planes[1] + 1;
+		src_row_strides[0] = buffer_size.width;
+		src_row_strides[1] = buffer_size.width;
+		src_row_strides[2] = buffer_size.width;
+		src_pix_strides[0] = 1;
+		src_pix_strides[1] = 2;
+		src_pix_strides[2] = 2;
+	}
+	
+	if(!dst_is_semiplanar) {
+		dst_planes[0] = buf2;
+		dst_planes[1] = dst_planes[0] + (buffer_size.width*buffer_size.height);
+		dst_planes[2] = dst_planes[1] + (buffer_size.width*buffer_size.height)/4;
+		dst_row_strides[0] = buffer_size.width;
+		dst_row_strides[1] = buffer_size.width/2;
+		dst_row_strides[2] = buffer_size.width/2;
+		dst_pix_strides[0] = 1;
+		dst_pix_strides[1] = 1;
+		dst_pix_strides[2] = 1;
+	} else {
+		dst_planes[0] = buf2;
+		dst_planes[1] = dst_planes[0] + (buffer_size.width*buffer_size.height);
+		dst_planes[2] = dst_planes[1] + 1;
+		dst_row_strides[0] = buffer_size.width;
+		dst_row_strides[1] = buffer_size.width;
+		dst_row_strides[2] = buffer_size.width;
+		dst_pix_strides[0] = 1;
+		dst_pix_strides[1] = 2;
+		dst_pix_strides[2] = 2;
+	}
+	
+	BC_ASSERT(check_picture(&buffer_size, &roi1, src_is_semiplanar, buf1));
+	ms_yuv_buf_copy_with_pix_strides(src_planes, src_row_strides, src_pix_strides, roi1, dst_planes, dst_row_strides, dst_pix_strides, roi2);
+	BC_ASSERT(check_picture(&buffer_size, &roi2, dst_is_semiplanar, buf2));
+	
+	ms_free(buf1);
+	ms_free(buf2);
+}
+
+void test_yuv_copy_with_pix_strides_planar_to_planar(void) {
+	MSVideoSize size = MS_VIDEO_SIZE_VGA;
+	test_yuv_buf_copy_with_pix_strides_base(&size, FALSE, FALSE, FALSE);
+}
+
+void test_yuv_copy_with_pix_strides_planar_to_semi_planar(void) {
+	MSVideoSize size = MS_VIDEO_SIZE_VGA;
+	test_yuv_buf_copy_with_pix_strides_base(&size, FALSE, TRUE, FALSE);
+}
+
+void test_yuv_copy_with_pix_strides_semi_planar_to_planar(void) {
+	MSVideoSize size = MS_VIDEO_SIZE_VGA;
+	test_yuv_buf_copy_with_pix_strides_base(&size, TRUE, FALSE, FALSE);
+}
+
+void test_yuv_copy_with_pix_strides_semi_planar_to_semi_planar(void) {
+	MSVideoSize size = MS_VIDEO_SIZE_VGA;
+	test_yuv_buf_copy_with_pix_strides_base(&size, TRUE, TRUE, FALSE);
+}
+
+void test_yuv_copy_with_pix_strides_planar_to_planar_with_sliding(void) {
+	MSVideoSize size = MS_VIDEO_SIZE_VGA;
+	test_yuv_buf_copy_with_pix_strides_base(&size, FALSE, FALSE, TRUE);
+}
+
+void test_yuv_copy_with_pix_strides_planar_to_semi_planar_with_sliding(void) {
+	MSVideoSize size = MS_VIDEO_SIZE_VGA;
+	test_yuv_buf_copy_with_pix_strides_base(&size, FALSE, TRUE, TRUE);
+}
+
+void test_yuv_copy_with_pix_strides_semi_planar_to_planar_with_sliding(void) {
+	MSVideoSize size = MS_VIDEO_SIZE_VGA;
+	test_yuv_buf_copy_with_pix_strides_base(&size, TRUE, FALSE, TRUE);
+}
+
+void test_yuv_copy_with_pix_strides_semi_planar_to_semi_planar_with_sliding(void) {
+	MSVideoSize size = MS_VIDEO_SIZE_VGA;
+	test_yuv_buf_copy_with_pix_strides_base(&size, TRUE, TRUE, TRUE);
+}
+
 #endif
 
 static void test_is_multicast(void) {
@@ -284,7 +555,15 @@ static test_t tests[] = {
 	 { "Copy ycbcrbiplanar to true yuv with rotation clock wise",test_copy_ycbcrbiplanar_to_true_yuv_with_rotation_clock_wise},
 	 { "Copy ycbcrbiplanar to true yuv with rotation clock wise with downscaling",test_copy_ycbcrbiplanar_to_true_yuv_with_rotation_clock_wise_with_downscaling},
 	 { "Copy ycbcrbiplanar to true yuv with rotation 180", test_copy_ycbcrbiplanar_to_true_yuv_with_rotation_180},
-	 { "Copy ycbcrbiplanar to true yuv with rotation 180 with downscaling", test_copy_ycbcrbiplanar_to_true_yuv_with_rotation_180_with_downscaling}
+	 { "Copy ycbcrbiplanar to true yuv with rotation 180 with downscaling", test_copy_ycbcrbiplanar_to_true_yuv_with_rotation_180_with_downscaling},
+	 { "Copy yuv buffer with pixel strides: planar to planar",test_yuv_copy_with_pix_strides_planar_to_planar},
+	 { "Copy yuv buffer with pixel strides: planar to semi-planar",test_yuv_copy_with_pix_strides_planar_to_semi_planar},
+	 { "Copy yuv buffer with pixel strides: semi-planar to planar",test_yuv_copy_with_pix_strides_semi_planar_to_planar},
+	 { "Copy yuv buffer with pixel strides: semi-planar to semi-planar",test_yuv_copy_with_pix_strides_semi_planar_to_semi_planar},
+	 { "Copy yuv buffer with pixel strides: planar to planar with sliding",test_yuv_copy_with_pix_strides_planar_to_planar_with_sliding},
+	 { "Copy yuv buffer with pixel strides: planar to semi-planar with sliding",test_yuv_copy_with_pix_strides_planar_to_semi_planar_with_sliding},
+	 { "Copy yuv buffer with pixel strides: semi-planar to planar with sliding",test_yuv_copy_with_pix_strides_semi_planar_to_planar_with_sliding},
+	 { "Copy yuv buffer with pixel strides: semi-planar to semi-planar with sliding",test_yuv_copy_with_pix_strides_semi_planar_to_semi_planar_with_sliding}
 #endif
 };
 
