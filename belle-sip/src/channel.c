@@ -1075,26 +1075,25 @@ static char *make_logbuf(belle_sip_channel_t *obj, belle_sip_log_level level, co
 	if (obj->stop_logging_buffer == 1) {
 		return NULL;
 	}
-	limit=find_non_printable(buffer,MIN(size,limit));
-	if (limit != size) {
+	size = MIN(size,limit);
+	limit=find_non_printable(buffer, size);
+	if (limit < size) {
 		belle_sip_message("channel [%p]: found binary data in buffer, will stop logging it now.", obj);
 		obj->stop_logging_buffer = 1;
-		if (limit==0){
+		if (limit == 0){
 			snprintf(truncate_msg,sizeof(truncate_msg)-1,"... (binary data)");
 		} else {
-			size=limit;
 			snprintf(truncate_msg,sizeof(truncate_msg)-1,"... (first %u bytes shown)",(unsigned int)limit);
 		}
 	}
+	size = limit;
 
-	if (truncate_msg[0]!=0){
-		size+=sizeof(truncate_msg);
-	}
+	size += strlen(truncate_msg);
 
 	logbuf=belle_sip_malloc(size+1);
-	strncpy(logbuf,buffer,limit);
+	strncpy(logbuf, buffer, size);
 	if (truncate_msg[0]!=0){
-		strncpy(logbuf+limit,truncate_msg,sizeof(truncate_msg));
+		strcpy(logbuf+limit,truncate_msg);
 	}
 	logbuf[size]='\0';
 	return logbuf;

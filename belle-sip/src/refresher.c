@@ -103,13 +103,16 @@ static void process_dialog_terminated(belle_sip_listener_t *user_ctx, const bell
 
 	if (refresher && refresher->transaction && dialog != belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(refresher->transaction)))
 		return; /*not for me*/
-/*
-	if (refresher->state == started) {
-		belle_sip_warning("Refresher [%p] still started but receiving unexpected dialog deleted event on [%p], retrying",refresher,dialog);
-		retry_later_on_io_error(refresher);
+
+	if (belle_sip_dialog_expired(dialog) && refresher->state == started) {
+		/* We notify the app that the dialog is expired due to failure to refresh the subscription on time.
+		 * However the transaction to renew the dialog is either pending or already failed, and has scheduled a retry already,
+		 * so there is no need to reschedule a retry here.*/
+		belle_sip_warning("Refresher [%p] still started but expired, retrying",refresher);
 		if (refresher->listener) refresher->listener(refresher,refresher->user_data,481, "dialod terminated", TRUE);
+		
 	}
-*/
+
 }
 
 static void process_io_error(belle_sip_listener_t *user_ctx, const belle_sip_io_error_event_t *event){
@@ -337,6 +340,7 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 			/*irrecoverable errors, probably no need to retry later*/
 			will_retry = FALSE;
 			break;
+		case 481:
 		case 503:
 			if (refresher->target_expires>0) {
 				if (refresher->dialog) retry_later_on_io_error(refresher);
