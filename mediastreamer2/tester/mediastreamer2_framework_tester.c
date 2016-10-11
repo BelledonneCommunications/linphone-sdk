@@ -96,7 +96,7 @@ static uint8_t pix_value(PixType type, size_t idx) {
 
 static bool_t pix_is_valid(PixType type, size_t idx, uint8_t value) {
 	uint8_t idx_code = idx % 32;
-	uint8_t type_code;
+	uint8_t type_code = 0;
 	switch(type) {
 		case PixTypeY:
 			type_code = 0x01 << 6;
