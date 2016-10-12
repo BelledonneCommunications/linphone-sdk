@@ -51,7 +51,6 @@ find %{buildroot} -name '*.a' -delete -print
 %doc COPYING
 %{_bindir}/hiredis-test
 %{_libdir}/libhiredis.so.0.13
-%{_libdir}/libhiredis.so
 %{_libdir}/pkgconfig/hiredis.pc
 
 %files devel
