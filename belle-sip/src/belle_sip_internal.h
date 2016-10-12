@@ -844,6 +844,8 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj,belle_sip_transaction_t* tra
 void belle_sip_dialog_check_ack_sent(belle_sip_dialog_t*obj);
 int belle_sip_dialog_handle_ack(belle_sip_dialog_t *obj, belle_sip_request_t *ack);
 void belle_sip_dialog_queue_client_transaction(belle_sip_dialog_t *dialog, belle_sip_client_transaction_t *tr);
+void belle_sip_dialog_stop_200Ok_retrans(belle_sip_dialog_t *obj);
+
 
 /*
  belle_sip_response_t

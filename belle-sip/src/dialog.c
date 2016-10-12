@@ -19,7 +19,6 @@
 #include "belle_sip_internal.h"
 
 static void belle_sip_dialog_init_200Ok_retrans(belle_sip_dialog_t *obj, belle_sip_response_t *resp);
-static void belle_sip_dialog_stop_200Ok_retrans(belle_sip_dialog_t *obj);
 static int belle_sip_dialog_handle_200Ok(belle_sip_dialog_t *obj, belle_sip_response_t *msg);
 static void belle_sip_dialog_process_queue(belle_sip_dialog_t* dialog);
 static belle_sip_request_t *create_request(belle_sip_dialog_t *obj, const char *method, int full);
@@ -368,7 +367,7 @@ static void belle_sip_dialog_init_200Ok_retrans(belle_sip_dialog_t *obj, belle_s
 	obj->last_200Ok=(belle_sip_response_t*)belle_sip_object_ref(resp);
 }
 
-static void belle_sip_dialog_stop_200Ok_retrans(belle_sip_dialog_t *obj){
+void belle_sip_dialog_stop_200Ok_retrans(belle_sip_dialog_t *obj){
 	belle_sip_main_loop_t *ml=obj->provider->stack->ml;
 	if (obj->timer_200Ok){
 		belle_sip_main_loop_remove_source(ml,obj->timer_200Ok);

@@ -132,6 +132,13 @@ static void belle_sip_provider_dispatch_request(belle_sip_provider_t* prov, bell
 		/* Should we limit to ACK ?  */
 		/*Search for a dialog if exist */
 
+		if (strcmp("CANCEL",method) == 0) {
+			/* Call leg does not exist */
+			belle_sip_server_transaction_t *tr = belle_sip_provider_create_server_transaction(prov, req);
+			belle_sip_server_transaction_send_response(tr, belle_sip_response_create_from_request(req, 481));
+			return;
+		}
+
 		ev.dialog=belle_sip_provider_find_dialog_from_message(prov,(belle_sip_message_t*)req,1/*request=uas*/);
 		if (ev.dialog){
 			if (strcmp("ACK",method)==0){
@@ -139,6 +146,8 @@ static void belle_sip_provider_dispatch_request(belle_sip_provider_t* prov, bell
 					/*absorbed ACK retransmission, ignore */
 					return;
 				}
+			}else if ((strcmp("INVITE",method)==0)&&(ev.dialog->needs_ack)){
+				belle_sip_dialog_stop_200Ok_retrans(ev.dialog);
 			}else if (!belle_sip_dialog_is_authorized_transaction(ev.dialog,method)){
 				belle_sip_server_transaction_t *tr=belle_sip_provider_create_server_transaction(prov,req);
 				belle_sip_server_transaction_send_response(tr,
