@@ -179,7 +179,7 @@ static void ms_opus_enc_process(MSFilter *f) {
 	int max_frame_byte_size, ptime = 20;
 	int frame_count = 0, frame_size = 0;
 	opus_int32 total_length = 0;
-	uint8_t *repacketizer_frame_buffer[MAX_INPUT_FRAMES];
+	uint8_t *repacketizer_frame_buffer[MAX_INPUT_FRAMES] = {NULL};
 	int i;
 	ms_filter_lock(f);
 	ptime = d->ptime;
@@ -227,9 +227,6 @@ static void ms_opus_enc_process(MSFilter *f) {
 		if (d->pcmbuffer) ms_free(d->pcmbuffer);
 		d->pcmbuffer = ms_malloc(pcm_buffer_size);
 		d->pcmbufsize = pcm_buffer_size;
-	}
-	for (i=0; i<MAX_INPUT_FRAMES; i++) {
-		repacketizer_frame_buffer[i]=NULL;
 	}
 
 	ms_bufferizer_put_from_queue(d->bufferizer, f->inputs[0]);
@@ -292,11 +289,6 @@ static void ms_opus_enc_process(MSFilter *f) {
 				om->b_wptr += ret;
 			}
 			opus_repacketizer_destroy(repacketizer);
-			for (i=0; i<frame_count; i++) {
-				if (repacketizer_frame_buffer[i] != NULL) {
-					ms_free(repacketizer_frame_buffer[i]);
-				}
-			}
 		}
 
 		if(om) { /* we have an encoded output message */
@@ -305,6 +297,12 @@ static void ms_opus_enc_process(MSFilter *f) {
 			ms_queue_put(f->outputs[0], om);
 			d->ts += packet_size*48000/d->samplerate; /* RFC payload RTP opus 03 - section 4: RTP timestamp multiplier : WARNING works only with sr at 48000 */
 			total_length = 0;
+		}
+	}
+	
+	for (i=0; i<frame_count; i++) {
+		if (repacketizer_frame_buffer[i] != NULL) {
+			ms_free(repacketizer_frame_buffer[i]);
 		}
 	}
 
