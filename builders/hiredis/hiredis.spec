@@ -11,7 +11,7 @@
 
 
 Name:           %{finalpkg_name}
-Version:        0.11.0
+Version:        0.13.3
 Release:        3%{?dist}
 Summary:        Minimalistic C client library for Redis
 License:        BSD
@@ -39,7 +39,6 @@ make %{?_smp_mflags} OPTIMIZATION="%{optflags}"
 make install PREFIX=%{buildroot}%{_prefix} INSTALL_LIBRARY_PATH=%{buildroot}%{_libdir}
 
 mkdir -p %{buildroot}%{_bindir}
-cp hiredis-example %{buildroot}%{_bindir}
 cp hiredis-test    %{buildroot}%{_bindir}
 
 find %{buildroot} -name '*.a' -delete -print
@@ -50,10 +49,10 @@ find %{buildroot} -name '*.a' -delete -print
 
 %files
 %doc COPYING
-%{_bindir}/hiredis-example
 %{_bindir}/hiredis-test
-%{_libdir}/libhiredis.so.0.10
-%{_libdir}/libhiredis.so.0
+%{_libdir}/libhiredis.so.0.13
+%{_libdir}/libhiredis.so
+%{_libdir}/pkgconfig/hiredis.pc
 
 %files devel
 %doc README.md
@@ -61,6 +60,9 @@ find %{buildroot} -name '*.a' -delete -print
 %{_libdir}/libhiredis.so
 
 %changelog
+* Wed Sep 16 2015 Sylvain Berfini <sylvain.berfini@belledonne-communications.com> - 0.13.3-1
+- Version bump from 0.11.0 to 0.13.3
+
 * Sat Aug 03 2013 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0.11.0-3
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_20_Mass_Rebuild
 
@@ -96,6 +98,3 @@ find %{buildroot} -name '*.a' -delete -print
 - Updated to upstream gitdf203bc328.
 - Added TODO to the files.
 - Updated to use libhiredis.so.0, libhiredis.so.0.10.
-
-* Tue Apr 29 2011 Shakthi Kannan <shakthimaan [AT] fedoraproject dot org> 0.9.2-1
-- First release.
