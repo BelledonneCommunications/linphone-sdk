@@ -19,8 +19,11 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 ############################################################################
-
-set(DEFAULT_VALUE_CMAKE_LINKING_TYPE "-DENABLE_SHARED=YES" "-DENABLE_STATIC=NO")
+if (ENABLE_STATIC_ONLY)
+	set(DEFAULT_VALUE_CMAKE_LINKING_TYPE "-DENABLE_SHARED=NO" "-DENABLE_STATIC=YES")
+else()
+	set(DEFAULT_VALUE_CMAKE_LINKING_TYPE "-DENABLE_SHARED=YES" "-DENABLE_STATIC=NO")
+endif()
 
 # Global configuration
 if(APPLE)
@@ -102,8 +105,19 @@ if(NOT WIN32)
 	set(EP_opencoreamr_EXTRA_LDFLAGS "${EP_opencoreamr_EXTRA_LDFLAGS} -fPIC")
 endif()
 
-# openh264
-set(EP_openh264_LINKING_TYPE "-shared")
+if (ENABLE_STATIC_ONLY)
+	# ffmpeg
+	set(EP_ffmpeg_LINKING_TYPE "--enable-static" "--disable-shared" "--enable-pic")
+
+	# mbedtls
+	set(EP_mbedtls_LINKING_TYPE "-DUSE_STATIC_MBEDTLS_LIBRARY=YES" "-DUSE_SHARED_MBEDTLS_LIBRARY=NO")
+
+	# polarssl
+	set(EP_polarssl_LINKING_TYPE "-DUSE_SHARED_POLARSSL_LIBRARY=0")
+else()
+	# openh264
+	set(EP_openh264_LINKING_TYPE "-shared")
+endif()
 
 # voamrwbenc
 if(NOT WIN32)
