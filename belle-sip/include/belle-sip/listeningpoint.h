@@ -22,6 +22,11 @@
 
 BELLE_SIP_BEGIN_DECLS
 
+/*This is passed as port information to listening point URIs and means that it shall use a random port.*/
+#define BELLE_SIP_LISTENING_POINT_RANDOM_PORT (-1)
+/*This is passed as port information to listening point URIs and means that it shall not bind.*/
+#define BELLE_SIP_LISTENING_POINT_DONT_BIND (-2)
+
 BELLESIP_EXPORT const char *belle_sip_listening_point_get_ip_address(const belle_sip_listening_point_t *lp);
 BELLESIP_EXPORT int belle_sip_listening_point_get_port(const belle_sip_listening_point_t *lp);
 BELLESIP_EXPORT const char *belle_sip_listening_point_get_transport(const belle_sip_listening_point_t *lp);
