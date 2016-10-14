@@ -120,7 +120,6 @@ static void belle_sip_channel_destroy(belle_sip_channel_t *obj){
 
 	if (obj->resolver_ctx != NULL) {
 		belle_sip_resolver_context_cancel(obj->resolver_ctx);
-		belle_sip_object_unref(obj->resolver_ctx);
 	}
 	if (obj->inactivity_timer){
 		belle_sip_main_loop_remove_source(obj->stack->ml,obj->inactivity_timer);
@@ -1418,9 +1417,6 @@ void belle_sip_channel_resolve(belle_sip_channel_t *obj){
 	else
 		obj->resolver_ctx=belle_sip_stack_resolve_a(obj->stack, obj->peer_name, obj->peer_port, obj->ai_family, channel_res_done, obj);
 	if (obj->resolver_ctx){
-		char *name = belle_sip_strdup_printf("Channel resolver for %s", obj->peer_name);
-		belle_sip_object_set_name((belle_sip_object_t*)obj->resolver_ctx, name);
-		belle_sip_free(name);
 		belle_sip_object_ref(obj->resolver_ctx);
 	}
 	return ;
