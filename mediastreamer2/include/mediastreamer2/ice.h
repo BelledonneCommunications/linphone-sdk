@@ -753,7 +753,7 @@ MS2_PUBLIC IceCandidate * ice_add_remote_candidate(IceCheckList *cl, const char 
  *
  * This function is to be called when a RE-INVITE with an SDP containing a remote-candidates attribute is received.
  */
-MS2_PUBLIC void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, int family, const char *local_addr, int local_port, const char *remote_addr, int remote_port);
+MS2_PUBLIC void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, int local_family, const char *local_addr, int local_port, int remote_family, const char *remote_addr, int remote_port);
 
 /**
  * Get the number of losing candidate pairs for an ICE session.

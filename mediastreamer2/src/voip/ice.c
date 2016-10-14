@@ -2858,7 +2858,7 @@ static void ice_check_if_losing_pair_should_cause_restart(const IceCandidatePair
 	}
 }
 
-void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, int family, const char *local_addr, int local_port, const char *remote_addr, int remote_port)
+void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, int local_family, const char *local_addr, int local_port, int remote_family, const char *remote_addr, int remote_port)
 {
 	IceTransportAddress taddr;
 	Type_ComponentID tc;
@@ -2873,7 +2873,7 @@ void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, int family, con
 	memset(taddr_str, 0, sizeof(taddr_str));
 	snprintf(taddr.ip, sizeof(taddr.ip), "%s", local_addr);
 	taddr.port = local_port;
-	taddr.family = family;
+	taddr.family = local_family;
 	elem = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_find_candidate_from_transport_address, &taddr);
 	if (elem == NULL) {
 		/* Workaround to detect if the local candidate that has not been found has been added by the proxy server.
@@ -2888,7 +2888,7 @@ void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, int family, con
 		if (srflx_elem != NULL) {
 			ms_message("ice: Add missing local candidate %s:relay", taddr_str);
 			added_missing_relay_candidate = TRUE;
-			lr.local = ice_add_local_candidate(cl, "relay", family, local_addr, local_port, componentID, srflx_elem->data);
+			lr.local = ice_add_local_candidate(cl, "relay", local_family, local_addr, local_port, componentID, srflx_elem->data);
 			ice_compute_candidate_foundation(lr.local, cl);
 		} else {
 			ms_warning("ice: Local candidate %s should have been found", taddr_str);
@@ -2899,7 +2899,7 @@ void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, int family, con
 	}
 	snprintf(taddr.ip, sizeof(taddr.ip), "%s", remote_addr);
 	taddr.port = remote_port;
-	taddr.family = family;
+	taddr.family = remote_family;
 	elem = bctbx_list_find_custom(cl->remote_candidates, (bctbx_compare_func)ice_find_candidate_from_transport_address, &taddr);
 	if (elem == NULL) {
 		ice_transport_address_to_printable_ip_address(&taddr, taddr_str, sizeof(taddr_str));
