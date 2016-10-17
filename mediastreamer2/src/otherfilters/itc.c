@@ -56,19 +56,22 @@ static void shared_state_release(SharedState *s){
 
 static void itc_assign(MSFilter *f, SharedState *s, bool_t is_source){
 	SharedState *current;
+	current = itc_get_shared_state(f);
+	
 	if (s){
 		ms_mutex_lock(&s->mutex);
 		if (is_source) s->source = f;
 		s->refcnt++;
 		ms_mutex_unlock(&s->mutex);
 	}
-	current = itc_get_shared_state(f);
 	f->data = s;
 	if (current){
-		ms_mutex_lock(&current->mutex);
-		if (current->source == f)
-			current->source = NULL;
-		ms_mutex_unlock(&current->mutex);
+		if (current != s){
+			ms_mutex_lock(&current->mutex);
+			if (current->source == f)
+				current->source = NULL;
+			ms_mutex_unlock(&current->mutex);
+		}
 		shared_state_release(current);
 	}
 }
@@ -217,7 +220,7 @@ static void itc_sink_process(MSFilter *f){
 	
 	ms_mutex_lock(&s->mutex);
 	while((im=ms_queue_get(f->inputs[0]))!=NULL){
-		if (s->source==NULL){
+		if (s->source == NULL){
 			freemsg(im);
 		}else{
 			ms_queue_put(&s->q, im);
