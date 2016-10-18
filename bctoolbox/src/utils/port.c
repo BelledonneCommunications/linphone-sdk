@@ -671,7 +671,7 @@ void bctbx_shm_close(void *mem){
 			CloseHandle(i->h);
 			UnmapViewOfFile(mem);
 			bctbx_free(i);
-			maplist=bctbx_list_remove_link(maplist,elem);
+			maplist=bctbx_list_erase_link(maplist,elem);
 			return;
 		}
 	}
