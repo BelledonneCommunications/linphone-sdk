@@ -33,6 +33,7 @@ set(FRAMEWORK_SOURCE_FILES
 )
 set(FRAMEWORK_SYMBOLS "
 	CU_add_suite
+	CU_add_suite_with_setup_and_teardown
 	CU_add_test
 	CU_assertImplementation
 	CU_cleanup_registry
