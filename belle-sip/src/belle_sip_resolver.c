@@ -969,6 +969,7 @@ belle_sip_resolver_context_t * belle_sip_stack_resolve(belle_sip_stack_t *stack,
 		ctx->cb_data = data;
 		ctx->name = belle_sip_strdup(name);
 		ctx->port=port;
+		belle_sip_object_set_name((belle_sip_object_t*)ctx, ctx->name);
 		if (family == 0) family = AF_UNSPEC;
 		ctx->family = family;
 		/*take a ref for the entire duration of the DNS procedure, it will be released when it is finished*/
@@ -998,6 +999,8 @@ static belle_sip_resolver_context_t * belle_sip_stack_resolve_single(belle_sip_s
 	ctx->name = belle_sip_strdup(name);
 	ctx->port = port;
 	ctx->flags = flags;
+	belle_sip_object_set_name((belle_sip_object_t*)ctx, ctx->name);
+	
 	if (family == 0) family = AF_UNSPEC;
 	ctx->family = family;
 	ctx->type = (ctx->family == AF_INET6) ? DNS_T_AAAA : DNS_T_A;
@@ -1041,6 +1044,7 @@ static belle_sip_resolver_context_t * belle_sip_stack_resolve_dual(belle_sip_sta
 	ctx->cb_data = data;
 	ctx->cb = cb;
 	ctx->name = belle_sip_strdup(name);
+	belle_sip_object_set_name((belle_sip_object_t*)ctx, ctx->name);
 	/*take a ref for the entire duration of the DNS procedure, it will be released when it is finished*/
 	belle_sip_object_ref(ctx);
 	ctx->a_ctx=belle_sip_stack_resolve_single(stack,name,port,AF_INET, AI_V4MAPPED, on_ipv4_results,ctx);
@@ -1085,6 +1089,7 @@ belle_sip_resolver_context_t * belle_sip_stack_resolve_srv(belle_sip_stack_t *st
 	ctx->srv_cb = cb;
 	ctx->name = belle_sip_concat(srv_prefix, name, NULL);
 	ctx->type = DNS_T_SRV;
+	belle_sip_object_set_name((belle_sip_object_t*)ctx, ctx->name);
 	belle_sip_free(srv_prefix);
 	return (belle_sip_resolver_context_t*)resolver_start_query(ctx);
 }

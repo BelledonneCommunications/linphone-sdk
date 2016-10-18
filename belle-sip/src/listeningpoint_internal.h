@@ -69,22 +69,18 @@ typedef struct belle_sip_stream_listening_point belle_sip_stream_listening_point
 
 struct belle_sip_stream_listening_point{
 	belle_sip_listening_point_t base;
-#ifdef ENABLE_SERVER_SOCKETS
 	belle_sip_socket_t server_sock;
 	belle_sip_source_t *source;
-#endif /* ENABLE_SERVER_SOCKETS */
 };
 
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_stream_listening_point_t,belle_sip_listening_point_t)
 BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 
-#ifdef ENABLE_SERVER_SOCKETS
+
 void belle_sip_stream_listening_point_setup_server_socket(belle_sip_stream_listening_point_t *obj, belle_sip_source_func_t on_new_connection_cb );
 void belle_sip_stream_listening_point_destroy_server_socket(belle_sip_stream_listening_point_t *lp);
 void belle_sip_stream_listening_point_init(belle_sip_stream_listening_point_t *obj, belle_sip_stack_t *s, const char *ipaddress, int port, belle_sip_source_func_t on_new_connection_cb );
-#else
-void belle_sip_stream_listening_point_init(belle_sip_stream_listening_point_t *obj, belle_sip_stack_t *s, const char *ipaddress, int port );
-#endif /* ENABLE_SERVER_SOCKETS */
+
 belle_sip_listening_point_t * belle_sip_stream_listening_point_new(belle_sip_stack_t *s, const char *ipaddress, int port);
 
 /*tls*/
