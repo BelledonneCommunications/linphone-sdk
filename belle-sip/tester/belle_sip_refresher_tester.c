@@ -517,6 +517,7 @@ static void subscribe_base(int with_resource_lists) {
 	belle_sip_refresher_t* refresher;
 	belle_sip_header_contact_t* contact=belle_sip_header_contact_new();
 	belle_sip_dialog_t * client_dialog;
+	char *call_id = NULL;
 	int dummy = 0;
 	uint64_t begin;
 	uint64_t end;
@@ -572,6 +573,8 @@ static void subscribe_base(int with_resource_lists) {
 	BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.twoHundredOk,1,1000));
 	 /*maybe dialog should be automatically created*/
 	BC_ASSERT_PTR_NOT_NULL(client_dialog = belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(trans)));
+	call_id = belle_sip_strdup(belle_sip_header_call_id_get_call_id(belle_sip_dialog_get_call_id(client_dialog)));
+	belle_sip_object_ref(client_dialog);
 
 	refresher = belle_sip_client_transaction_create_refresher(trans);
 	belle_sip_object_unref(trans);
@@ -596,11 +599,15 @@ static void subscribe_base(int with_resource_lists) {
 
 	/*make sure dialog has changed*/
 	BC_ASSERT_PTR_NOT_EQUAL(client_dialog, belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(belle_sip_refresher_get_transaction(refresher))));
-
+	BC_ASSERT_STRING_NOT_EQUAL(call_id, belle_sip_header_call_id_get_call_id(belle_sip_dialog_get_call_id(belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(belle_sip_refresher_get_transaction(refresher))))));
+	belle_sip_free(call_id);
+	belle_sip_object_unref(client_dialog);
 	
 	belle_sip_message("simulating dialog terminated server side and recovery");
 	
 	client_dialog = belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(belle_sip_refresher_get_transaction(refresher)));
+	call_id = belle_sip_strdup(belle_sip_header_call_id_get_call_id(belle_sip_dialog_get_call_id(client_dialog)));
+	belle_sip_object_ref(client_dialog);
 	
 	belle_sip_provider_enable_unconditional_answer(server->provider,TRUE);
 	belle_sip_provider_set_unconditional_answer(server->provider,481);
@@ -614,7 +621,9 @@ static void subscribe_base(int with_resource_lists) {
 	
 	/*make sure dialog has changed*/
 	BC_ASSERT_PTR_NOT_EQUAL(client_dialog, belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(belle_sip_refresher_get_transaction(refresher))));
-
+	BC_ASSERT_STRING_NOT_EQUAL(call_id, belle_sip_header_call_id_get_call_id(belle_sip_dialog_get_call_id(belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(belle_sip_refresher_get_transaction(refresher))))));
+	belle_sip_free(call_id);
+	belle_sip_object_unref(client_dialog);
 	belle_sip_refresher_refresh(refresher, 0);
 	belle_sip_refresher_refresh(refresher, 0);
 

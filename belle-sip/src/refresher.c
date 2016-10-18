@@ -524,15 +524,13 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher
 			}
 			case BELLE_SIP_DIALOG_TERMINATED: {
 				if (refresher->first_acknoleged_request) {
-					char tmp[11];
 					belle_sip_message("Dialog [%p] is in state terminated, recreating a new one for refresher [%p]",dialog,refresher);
 					request = refresher->first_acknoleged_request;
 					belle_sip_header_cseq_set_seq_number(belle_sip_message_get_header_by_type(request,belle_sip_header_cseq_t)
 														 ,20);
 					belle_sip_parameters_remove_parameter(BELLE_SIP_PARAMETERS(belle_sip_message_get_header_by_type(request,belle_sip_header_to_t)),"tag");
 
-					belle_sip_header_call_id_set_call_id(	  belle_sip_message_get_header_by_type(request,belle_sip_header_call_id_t)
-															, belle_sip_random_token(tmp,sizeof(tmp)));
+					belle_sip_message_set_header((belle_sip_message_t*)request, (belle_sip_header_t*)belle_sip_provider_create_call_id(prov));
 					break;
 				} /*else nop, error case*/
 

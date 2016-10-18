@@ -53,18 +53,29 @@ int main(int argc, char *argv[]){
 	belle_http_request_t *req;
 	belle_generic_uri_t *uri;
 	belle_http_request_listener_callbacks_t cbs={0};
+	const char *ca_path = NULL;
+	belle_tls_crypto_config_t *cfg;
+	int i;
 	
 	if (argc<2){
-		fprintf(stderr,"Usage:\n%s <http uri> [--debug]\n",argv[0]);
+		fprintf(stderr,"Usage:\n%s <http uri> [--ca-path <path> ] [--debug]\n",argv[0]);
 		return -1;
 	}
-	if (argc==3){
-		if (strcmp(argv[2],"--debug")==0){
+	for (i = 2; i < argc; ++i){
+		if (strcmp(argv[i], "--ca-path") == 0){
+			i++;
+			ca_path = argv[i];
+		}else if (strcmp(argv[i], "--debug")==0){
 			belle_sip_set_log_level(BELLE_SIP_LOG_DEBUG);
 		}
 	}
 	stack=belle_sip_stack_new(NULL);
-	prov=belle_sip_stack_create_http_provider(stack,"0.0.0.0");
+	prov=belle_sip_stack_create_http_provider(stack,"::0");
+	if (ca_path){
+		cfg = belle_tls_crypto_config_new();
+		belle_tls_crypto_config_set_root_ca(cfg, ca_path);
+		belle_http_provider_set_tls_crypto_config(prov, cfg);
+	}
 	uri=belle_generic_uri_parse(argv[1]);
 	if (!uri){
 		fprintf(stderr,"Bad uri %s\n",argv[1]);
