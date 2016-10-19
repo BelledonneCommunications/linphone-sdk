@@ -146,7 +146,7 @@ typedef  struct  au_card {
 
 typedef  struct au_filter_base {
 	au_card_t* card;
-
+	int muted;
 }au_filter_base_t;
 
 struct au_filter_read_data{
@@ -784,6 +784,11 @@ static void au_write_process(MSFilter *f){
 		//make sure audio unit is started
 		start_audio_unit((au_filter_base_t*)d,f->ticker->time);
 	}
+
+	if (d->base.muted){
+		ms_queue_flush(f->inputs[0]);
+		return;
+	}
 	while((m=ms_queue_get(f->inputs[0]))!=NULL){
 		ms_mutex_lock(&d->mutex);
 		ms_bufferizer_put(d->bufferizer,m);
@@ -822,11 +827,18 @@ static int get_nchannels(MSFilter *f, void *data) {
 	return 0;
 }
 
+static int set_muted(MSFilter *f, void *data){
+	au_filter_base_t *d=(au_filter_base_t*)f->data;
+	d->muted = *(int*)data;
+	return 0;
+}
+
 static MSFilterMethod au_methods[]={
 	{	MS_FILTER_SET_SAMPLE_RATE	, set_rate	},
 	{	MS_FILTER_GET_SAMPLE_RATE	, get_rate	},
 	{	MS_FILTER_SET_NCHANNELS		, set_nchannels	},
 	{	MS_FILTER_GET_NCHANNELS		, get_nchannels	},
+	{	MS_AUDIO_PLAYBACK_MUTE, 	, set_muted	},
 	{	0				, NULL		}
 };
 

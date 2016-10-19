@@ -304,6 +304,8 @@ typedef enum _MSAudioRoute MSAudioRoute;
 	MS_FILTER_METHOD(MSFilterAudioPlaybackInterface, 1, float)
 #define MS_AUDIO_PLAYBACK_SET_ROUTE \
 	MS_FILTER_METHOD(MSFilterAudioPlaybackInterface, 2, MSAudioRoute)
+#define MS_AUDIO_PLAYBACK_MUTE \
+	MS_FILTER_METHOD(MSFilterAudioPlaybackInterface, 3, int)
 
 /** Interface definitions for audio encoder */
 #define MS_AUDIO_ENCODER_SET_PTIME \

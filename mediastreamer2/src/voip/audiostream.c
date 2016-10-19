@@ -224,7 +224,9 @@ static void stop_preload_graph(AudioStream *stream){
 		ms_filter_destroy(stream->ms.voidsink);
 		stream->ms.voidsink=NULL;
 	}else if (stream->soundwrite) {
+		int muted = 0;
 		ms_filter_unlink(stream->dummy,0,stream->soundwrite,0);
+		ms_filter_call_method(stream->soundwrite, MS_AUDIO_PLAYBACK_MUTE, &muted);
 	}
 	ms_filter_destroy(stream->dummy);
 	stream->dummy=NULL;
@@ -244,9 +246,11 @@ void audio_stream_prepare_sound(AudioStream *stream, MSSndCard *playcard, MSSndC
 
 	if (captcard && playcard){
 #ifdef __ios
+		int muted = 1;
 		stream->soundread=ms_snd_card_create_reader(captcard);
 		stream->soundwrite=ms_snd_card_create_writer(playcard);
 		ms_filter_link(stream->dummy,0,stream->soundwrite,0);
+		ms_filter_call_method(stream->soundwrite, MS_AUDIO_PLAYBACK_MUTE, &muted);
 #else
 		stream->ms.voidsink=ms_factory_create_filter(stream->ms.factory,  MS_VOID_SINK_ID);
 		ms_filter_link(stream->dummy,0,stream->ms.voidsink,0);
