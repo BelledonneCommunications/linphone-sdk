@@ -61,6 +61,11 @@ static void belle_sip_transaction_init(belle_sip_transaction_t *t, belle_sip_pro
 }
 
 static void transaction_destroy(belle_sip_transaction_t *t){
+	if (t->call_repair_timer) {
+		belle_sip_transaction_stop_timer(t, t->call_repair_timer);
+		belle_sip_object_unref(t->call_repair_timer);
+		t->call_repair_timer = NULL;
+	}
 	if (t->request) belle_sip_object_unref(t->request);
 	if (t->last_response) belle_sip_object_unref(t->last_response);
 	if (t->channel) belle_sip_object_unref(t->channel);
@@ -78,9 +83,21 @@ static void notify_timeout(belle_sip_transaction_t *t){
 	BELLE_SIP_PROVIDER_INVOKE_LISTENERS_FOR_TRANSACTION(t,process_timeout,&ev);
 }
 
+static int server_transaction_on_call_repair_timer(belle_sip_transaction_t *t) {
+	belle_sip_server_transaction_send_response(BELLE_SIP_SERVER_TRANSACTION(t), belle_sip_response_create_from_request(t->request, 503));
+	return BELLE_SIP_STOP;
+}
+
+static int client_transaction_on_call_repair_timer(belle_sip_transaction_t *t) {
+	belle_sip_transaction_terminate(t);
+	belle_sip_object_unref(t);
+	return BELLE_SIP_STOP;
+}
+
 static void on_channel_state_changed(belle_sip_channel_listener_t *l, belle_sip_channel_t *chan, belle_sip_channel_state_t state){
 	belle_sip_transaction_t *t=(belle_sip_transaction_t*)l;
 	belle_sip_io_error_event_t ev;
+	const belle_sip_timer_config_t *timercfg;
 	belle_sip_transaction_state_t tr_state=belle_sip_transaction_get_state((belle_sip_transaction_t*)t);
 
 	belle_sip_message("transaction [%p] channel state changed to [%s]"
@@ -106,11 +123,30 @@ static void on_channel_state_changed(belle_sip_channel_listener_t *l, belle_sip_
 				&& tr_state!=BELLE_SIP_TRANSACTION_TERMINATED) {
 				BELLE_SIP_PROVIDER_INVOKE_LISTENERS_FOR_TRANSACTION(((belle_sip_transaction_t*)t),process_io_error,&ev);
 			}
-			if (t->timed_out)
+			if (t->timed_out) {
 				notify_timeout((belle_sip_transaction_t*)t);
+			} else {
+				if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(t, belle_sip_ist_t) || BELLE_SIP_OBJECT_IS_INSTANCE_OF(t, belle_sip_ict_t)) {
+					timercfg = belle_sip_transaction_get_timer_config(t);
+					if (t->call_repair_timer) {
+						belle_sip_transaction_stop_timer(t, t->call_repair_timer);
+						belle_sip_object_unref(t->call_repair_timer);
+					}
+				}
+			}
 
-			belle_sip_transaction_terminate(t);
+			if (!t->timed_out && BELLE_SIP_OBJECT_IS_INSTANCE_OF(t, belle_sip_ist_t)) {
+				t->call_repair_timer = belle_sip_timeout_source_new((belle_sip_source_func_t)server_transaction_on_call_repair_timer, t, 32 * timercfg->T1);
+				belle_sip_transaction_start_timer(t, t->call_repair_timer);
+			} else if (!t->timed_out && BELLE_SIP_OBJECT_IS_INSTANCE_OF(t, belle_sip_ict_t)) {
+				t->call_repair_timer = belle_sip_timeout_source_new((belle_sip_source_func_t)client_transaction_on_call_repair_timer, t, 32 * timercfg->T1);
+				belle_sip_transaction_start_timer(t, t->call_repair_timer);
+			} else {
+				belle_sip_transaction_terminate(t);
+			}
 			belle_sip_object_unref(t);
+			belle_sip_object_unref(((belle_sip_transaction_t*)t)->channel);
+			((belle_sip_transaction_t*)t)->channel = NULL;
 		break;
 		default:
 			/*ignored*/
@@ -187,6 +223,11 @@ void belle_sip_transaction_terminate(belle_sip_transaction_t *t){
 									,t);
 		BELLE_SIP_OBJECT_VPTR(t,belle_sip_transaction_t)->on_terminate(t);
 		belle_sip_provider_set_transaction_terminated(t->provider,t);
+	}
+	if (t->call_repair_timer) {
+		belle_sip_transaction_stop_timer(t, t->call_repair_timer);
+		belle_sip_object_unref(t->call_repair_timer);
+		t->call_repair_timer = NULL;
 	}
 }
 
@@ -272,7 +313,7 @@ void belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *
 	int status_code;
 
 	belle_sip_object_ref(resp);
-	if (!base->last_response){
+	if (!base->last_response || !base->channel){
 		belle_sip_hop_t* hop=belle_sip_response_get_return_hop(resp);
 		base->channel=belle_sip_provider_get_channel(base->provider,hop);
 		belle_sip_object_unref(hop);
@@ -353,8 +394,8 @@ belle_sip_request_t * belle_sip_client_transaction_create_cancel(belle_sip_clien
 		belle_sip_error("belle_sip_client_transaction_create_cancel() cannot be used for ACK or non-INVITE transactions.");
 		return NULL;
 	}
-	if (t->base.state!=BELLE_SIP_TRANSACTION_PROCEEDING){
-		belle_sip_error("belle_sip_client_transaction_create_cancel() can only be used in state BELLE_SIP_TRANSACTION_PROCEEDING"
+	if ((t->base.state != BELLE_SIP_TRANSACTION_PROCEEDING) && (t->base.state != BELLE_SIP_TRANSACTION_CALLING)) {
+		belle_sip_error("belle_sip_client_transaction_create_cancel() can only be used in state PROCEEDING or CALLING"
 		               " but current transaction state is %s",belle_sip_transaction_state_to_string(t->base.state));
 		return NULL;
 	}

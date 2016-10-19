@@ -51,6 +51,7 @@ static void ist_destroy(belle_sip_ist_t *obj){
 	ist_on_terminate(obj);
 }
 
+/* Timer G: INVITE response retransmit interval */
 static int ist_on_timer_G(belle_sip_ist_t *obj){
 	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
 	if (base->state==BELLE_SIP_TRANSACTION_COMPLETED){
@@ -64,21 +65,24 @@ static int ist_on_timer_G(belle_sip_ist_t *obj){
 	return BELLE_SIP_STOP;
 }
 
+/* Timer H: Wait time for ACK receipt */
 static int ist_on_timer_H(belle_sip_ist_t *obj){
 	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
 	if (base->state==BELLE_SIP_TRANSACTION_COMPLETED){
 		belle_sip_transaction_terminate(base);
-		/*FIXME: no ACK was received, should report the faillure */
+		/*FIXME: no ACK was received, should report the failure */
 	}
 	return BELLE_SIP_STOP;
 }
 
+/* Timer I: Wait time for ACK retransmits */
 static int ist_on_timer_I(belle_sip_ist_t *obj){
 	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
 	belle_sip_transaction_terminate(base);
 	return BELLE_SIP_STOP;
 }
 
+/* Timer L: Wait time for accepted INVITE request retransmits */
 static int ist_on_timer_L(belle_sip_ist_t *obj){
 	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
 	belle_sip_transaction_terminate(base);
