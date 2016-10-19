@@ -128,15 +128,12 @@ case "$target_os" in
 esac
 
 if test "$strict" = "true"; then
-	STRICT_OPTIONS="$STRICT_OPTIONS -Werror -Wextra -Wno-unused-parameter -Wno-error=unknown-pragmas -Wuninitialized -Wno-error=strict-prototypes"
+	STRICT_OPTIONS="$STRICT_OPTIONS -Werror -Wextra -Wno-unused-parameter -Wno-error=unknown-pragmas -Wuninitialized -Wno-error=strict-prototypes -Wno-missing-field-initializers"
 fi
 
 dnl because of antlr3 we must accept a few warnings...
 dnl more portable for the moment
-       LESS_STRICT_OPTIONS=
-dnl       LESS_STRICT_OPTIONS="$STRICT_OPTIONS -Wno-error=unused-function \
-dnl        -Wno-error=uninitialized -Wno-error=unused-variable \
-dnl        -Wno-error=unused-but-set-variable "
+LESS_STRICT_OPTIONS="-Wno-error=sign-compare"
 
 AC_SUBST(STRICT_OPTIONS)
 AC_SUBST(STRICT_OPTIONS_CC)

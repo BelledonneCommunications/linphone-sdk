@@ -97,7 +97,7 @@ static int client_transaction_on_call_repair_timer(belle_sip_transaction_t *t) {
 static void on_channel_state_changed(belle_sip_channel_listener_t *l, belle_sip_channel_t *chan, belle_sip_channel_state_t state){
 	belle_sip_transaction_t *t=(belle_sip_transaction_t*)l;
 	belle_sip_io_error_event_t ev;
-	const belle_sip_timer_config_t *timercfg;
+	const belle_sip_timer_config_t *timercfg = NULL;
 	belle_sip_transaction_state_t tr_state=belle_sip_transaction_get_state((belle_sip_transaction_t*)t);
 
 	belle_sip_message("transaction [%p] channel state changed to [%s]"

@@ -1,7 +1,7 @@
 
 noinst_LTLIBRARIES=libbellesip_generated.la
 
-libbellesip_generated_la_CFLAGS=$(LIBBELLESIP_CFLAGS)  $(ANTLR_CFLAGS) $(STRICT_OPTIONS) $(STRICT_OPTIONS_CC)
+libbellesip_generated_la_CFLAGS=$(LIBBELLESIP_CFLAGS)  $(ANTLR_CFLAGS) $(STRICT_OPTIONS) $(STRICT_OPTIONS_CC) $(LESS_STRICT_OPTIONS)
 
 
 nodist_libbellesip_generated_la_SOURCES= \
