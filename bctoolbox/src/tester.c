@@ -113,7 +113,7 @@ int bc_tester_run_suite(test_suite_t *suite, const char *tag_name) {
 	CU_pSuite pSuite;
 
 	if (tag_name != NULL) {
-		int j;
+		size_t j;
 		int nb_tests_for_tag = 0;
 		for (i = 0; i < suite->nb_tests; i++) {
 			for (j = 0; j < (sizeof(suite->tests[i].tags) / sizeof(suite->tests[i].tags[0])); j++) {
