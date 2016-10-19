@@ -148,7 +148,14 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_channel_t)
 		(belle_sip_object_destroy_t)belle_sip_channel_destroy,
 		NULL, /*clone*/
 		NULL, /*marshal*/
-	}
+		BELLE_SIP_DEFAULT_BUFSIZE_HINT
+	},
+	NULL, /* transport */
+	0, /* reliable */
+	NULL, /* connect */
+	NULL, /* channel_send */
+	NULL, /* channel_recv */
+	NULL /* close */
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
 static void fix_incoming_via(belle_sip_request_t *msg, const struct addrinfo* origin){
@@ -994,7 +1001,7 @@ static void belle_sip_channel_handle_error(belle_sip_channel_t *obj){
 
 int belle_sip_channel_notify_timeout(belle_sip_channel_t *obj){
 	const int too_long=60;
-	if (belle_sip_time_ms() - obj->last_recv_time>=(too_long * 1000)){
+	if ((int)(belle_sip_time_ms() - obj->last_recv_time) >= (too_long * 1000)){
 		belle_sip_message("A timeout related to this channel occured and no message received during last %i seconds. This channel is suspect, moving to error state",too_long);
 		channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
 		return TRUE;

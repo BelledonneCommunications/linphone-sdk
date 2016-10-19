@@ -311,9 +311,9 @@ static void test_presence_marshal(void) {
 
 
 test_t core_tests[] = {
-	{ "Object Data", test_object_data },
-	{ "Dictionary", test_dictionary },
-	{ "Presence marshal", test_presence_marshal }
+	TEST_NO_TAG("Object Data", test_object_data),
+	TEST_NO_TAG("Dictionary", test_dictionary),
+	TEST_NO_TAG("Presence marshal", test_presence_marshal)
 };
 
 test_suite_t core_test_suite = {"Core", NULL, NULL, belle_sip_tester_before_each, belle_sip_tester_after_each,

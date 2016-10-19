@@ -213,7 +213,8 @@ belle_sip_object_vptr_t belle_sip_object_t_vptr={
 	NULL,
 	_belle_sip_object_uninit,
 	_belle_sip_object_clone,
-	_belle_object_marshal
+	_belle_object_marshal,
+	BELLE_SIP_DEFAULT_BUFSIZE_HINT
 };
 
 belle_sip_object_vptr_t *belle_sip_object_t_vptr_get(void){

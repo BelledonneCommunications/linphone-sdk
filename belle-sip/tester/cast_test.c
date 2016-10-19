@@ -54,7 +54,7 @@ static void cast_test(void){
 
 
 test_t cast_tests[] = {
-	{ "Casting requests and responses", cast_test }
+	TEST_NO_TAG("Casting requests and responses", cast_test)
 };
 
 test_suite_t cast_test_suite = {"Object inheritance", NULL, NULL, NULL, NULL,

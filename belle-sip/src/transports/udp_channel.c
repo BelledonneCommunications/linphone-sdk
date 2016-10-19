@@ -87,14 +87,15 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_udp_channel_t)
 			BELLE_SIP_VPTR_INIT(belle_sip_udp_channel_t,belle_sip_channel_t,FALSE),
 			(belle_sip_object_destroy_t)udp_channel_uninit,
 			NULL,
-			NULL
+			NULL,
+			BELLE_SIP_DEFAULT_BUFSIZE_HINT
 		},
 		"UDP",
 		0, /*is_reliable*/
 		udp_channel_connect,
 		udp_channel_send,
-		udp_channel_recv
-		/*no close method*/
+		udp_channel_recv,
+		NULL /*no close method*/
 	}
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 

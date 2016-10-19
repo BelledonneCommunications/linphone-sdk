@@ -584,7 +584,8 @@ static void check_mime_param (belle_sdp_mime_parameter_t* mime_param
 	if (type) BC_ASSERT_STRING_EQUAL(belle_sdp_mime_parameter_get_type(mime_param),type);
 	if (parameters) BC_ASSERT_STRING_EQUAL(belle_sdp_mime_parameter_get_parameters(mime_param),parameters);
 }
-int static compare_attribute(belle_sdp_attribute_t* attr, const char* value) {
+
+static int compare_attribute(belle_sdp_attribute_t* attr, const char* value) {
 	return strcasecmp(belle_sdp_attribute_get_name(attr),"rtpmap")==0
 			|| strcasecmp(belle_sdp_attribute_get_value(attr),value)==0;
 }
@@ -682,25 +683,25 @@ static void test_mime_parameter(void) {
 
 
 test_t sdp_tests[] = {
-	{ "a= (attribute)", test_attribute },
-	{ "a= (attribute) 2", test_attribute_2 },
-	{ "a=rtcp-fb", test_rtcp_fb_attribute },
-	{ "a=rtcp-xr", test_rtcp_xr_attribute },
-	{ "b= (bandwidth)", test_bandwidth },
-	{ "o= (IPv4 origin)", test_origin },
-	{ "o= (malformed origin)", test_malformed_origin },
-	{ "c= (IPv4 connection)", test_connection },
-	{ "c= (IPv6 connection)", test_connection_6 },
-	{ "c= (multicast)", test_connection_multicast},
-	{ "e= (email)", test_email },
-	{ "i= (info)", test_info },
-	{ "m= (media)", test_media },
-	{ "mime parameter", test_mime_parameter },
-	{ "Media description", test_media_description },
-	{ "Simple session description", test_simple_session_description },
-	{ "Session description", test_session_description },
-	{ "Session description for fax", test_image_mline },
-	{ "Marshal buffer overflow", test_overflow }
+	TEST_NO_TAG("a= (attribute)", test_attribute),
+	TEST_NO_TAG("a= (attribute) 2", test_attribute_2),
+	TEST_NO_TAG("a=rtcp-fb", test_rtcp_fb_attribute),
+	TEST_NO_TAG("a=rtcp-xr", test_rtcp_xr_attribute),
+	TEST_NO_TAG("b= (bandwidth)", test_bandwidth),
+	TEST_NO_TAG("o= (IPv4 origin)", test_origin),
+	TEST_NO_TAG("o= (malformed origin)", test_malformed_origin),
+	TEST_NO_TAG("c= (IPv4 connection)", test_connection),
+	TEST_NO_TAG("c= (IPv6 connection)", test_connection_6),
+	TEST_NO_TAG("c= (multicast)", test_connection_multicast),
+	TEST_NO_TAG("e= (email)", test_email),
+	TEST_NO_TAG("i= (info)", test_info),
+	TEST_NO_TAG("m= (media)", test_media),
+	TEST_NO_TAG("mime parameter", test_mime_parameter),
+	TEST_NO_TAG("Media description", test_media_description),
+	TEST_NO_TAG("Simple session description", test_simple_session_description),
+	TEST_NO_TAG("Session description", test_session_description),
+	TEST_NO_TAG("Session description for fax", test_image_mline),
+	TEST_NO_TAG("Marshal buffer overflow", test_overflow)
 };
 
 test_suite_t sdp_test_suite = {"SDP", NULL, NULL, belle_sip_tester_before_each, belle_sip_tester_after_each,

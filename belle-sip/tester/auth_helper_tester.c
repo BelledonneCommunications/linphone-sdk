@@ -194,11 +194,11 @@ static void test_certificate_fingerprint(void) {
 }
 
 test_t authentication_helper_tests[] = {
-	{ "Proxy-Authenticate", test_proxy_authentication },
-	{ "WWW-Authenticate", test_authentication },
-	{ "WWW-Authenticate (with qop)", test_authentication_qop_auth },
-	{ "generate and parse self signed certificates", test_generate_and_parse_certificates},
-	{ "generate certificate fingerprint", test_certificate_fingerprint}
+	TEST_NO_TAG("Proxy-Authenticate", test_proxy_authentication),
+	TEST_NO_TAG("WWW-Authenticate", test_authentication),
+	TEST_NO_TAG("WWW-Authenticate (with qop)", test_authentication_qop_auth),
+	TEST_NO_TAG("generate and parse self signed certificates", test_generate_and_parse_certificates),
+	TEST_NO_TAG("generate certificate fingerprint", test_certificate_fingerprint)
 };
 
 test_suite_t authentication_helper_test_suite = {

@@ -173,7 +173,8 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_ist_t)
 				BELLE_SIP_VPTR_INIT(belle_sip_ist_t,belle_sip_server_transaction_t,TRUE),
 				(belle_sip_object_destroy_t)ist_destroy,
 				NULL,
-				NULL
+				NULL,
+				BELLE_SIP_DEFAULT_BUFSIZE_HINT
 			},
 			(void (*)(belle_sip_transaction_t *))ist_on_terminate
 		},

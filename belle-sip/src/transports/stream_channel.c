@@ -154,7 +154,8 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_stream_channel_t)
 			BELLE_SIP_VPTR_INIT(belle_sip_stream_channel_t,belle_sip_channel_t,FALSE),
 			(belle_sip_object_destroy_t)stream_channel_uninit,
 			NULL,
-			NULL
+			NULL,
+			BELLE_SIP_DEFAULT_BUFSIZE_HINT
 		},
 		"TCP",
 		1, /*is_reliable*/

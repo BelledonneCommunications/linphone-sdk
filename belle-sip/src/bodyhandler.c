@@ -73,6 +73,7 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_body_handler_t)
 		(belle_sip_object_destroy_t) belle_sip_body_handler_destroy,
 		(belle_sip_object_clone_t) belle_sip_body_handler_clone,
 		(belle_sip_object_marshal_t) belle_sip_body_handler_marshal,
+		BELLE_SIP_DEFAULT_BUFSIZE_HINT
 	},
 	NULL, /* begin_transfer */
 	NULL, /* end_transfer */
@@ -212,7 +213,8 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_memory_body_handler_t)
 			BELLE_SIP_VPTR_INIT(belle_sip_memory_body_handler_t,belle_sip_body_handler_t,TRUE),
 			(belle_sip_object_destroy_t) belle_sip_memory_body_handler_destroy,
 			(belle_sip_object_clone_t)belle_sip_memory_body_handler_clone,
-			NULL
+			NULL,
+			BELLE_SIP_DEFAULT_BUFSIZE_HINT
 		},
 		NULL,
 		NULL,
@@ -408,7 +410,8 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_user_body_handler_t)
 			BELLE_SIP_VPTR_INIT(belle_sip_user_body_handler_t,belle_sip_body_handler_t,TRUE),
 			(belle_sip_object_destroy_t) NULL,
 			(belle_sip_object_clone_t)belle_sip_user_body_handler_clone,
-			NULL
+			NULL,
+			BELLE_SIP_DEFAULT_BUFSIZE_HINT
 		},
 		NULL,
 		NULL,
@@ -479,10 +482,6 @@ static int belle_sip_file_body_handler_send_chunk(belle_sip_body_handler_t *base
 		return BELLE_SIP_STOP;
 	}
 	size_t_ret = fread(buf, 1, to_send, f);
-	if (size_t_ret < 0) {
-		fclose(f);
-		return BELLE_SIP_STOP;
-	}
 	*size = size_t_ret;
 	fclose(f);
 	return (((obj->base.expected_size - offset) == *size) || (*size == 0)) ? BELLE_SIP_STOP : BELLE_SIP_CONTINUE;
@@ -495,7 +494,8 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_file_body_handler_t)
 			BELLE_SIP_VPTR_INIT(belle_sip_file_body_handler_t,belle_sip_body_handler_t,TRUE),
 			(belle_sip_object_destroy_t) belle_sip_file_body_handler_destroy,
 			(belle_sip_object_clone_t)belle_sip_file_body_handler_clone,
-			NULL
+			NULL,
+			BELLE_SIP_DEFAULT_BUFSIZE_HINT
 		},
 		NULL,
 		NULL,
@@ -639,7 +639,8 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_multipart_body_handler_t)
 			BELLE_SIP_VPTR_INIT(belle_sip_multipart_body_handler_t,belle_sip_body_handler_t,TRUE),
 			(belle_sip_object_destroy_t) belle_sip_multipart_body_handler_destroy,
 			(belle_sip_object_clone_t)belle_sip_multipart_body_handler_clone,
-			NULL
+			NULL,
+			BELLE_SIP_DEFAULT_BUFSIZE_HINT
 		},
 		belle_sip_multipart_body_handler_begin_transfer,
 		belle_sip_multipart_body_handler_end_transfer,

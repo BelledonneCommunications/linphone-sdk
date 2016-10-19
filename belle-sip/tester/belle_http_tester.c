@@ -345,16 +345,16 @@ static void one_https_get_with_proxy(void){
 
 
 test_t http_tests[] = {
-	{ "One http GET", one_http_get },
-	{ "http GET of empty body", http_get_empty_body },
-	{ "One https GET", one_https_get },
-	{ "One https GET with http proxy", one_https_get_with_proxy },
-	{ "http request with io error", http_get_io_error },
-	{ "https GET with long body", https_get_long_body },
-	{ "https digest GET", https_digest_get },/*, FIXME, need a server for testing
-	{ "https with client certificate", https_client_cert_connection }*/
-	{ "https POST with long body", https_post_long_body },
-	{ "http GET with long user body", http_get_long_user_body}
+	TEST_NO_TAG("One http GET", one_http_get),
+	TEST_NO_TAG("http GET of empty body", http_get_empty_body),
+	TEST_NO_TAG("One https GET", one_https_get),
+	TEST_NO_TAG("One https GET with http proxy", one_https_get_with_proxy),
+	TEST_NO_TAG("http request with io error", http_get_io_error),
+	TEST_NO_TAG("https GET with long body", https_get_long_body),
+	TEST_NO_TAG("https digest GET", https_digest_get),/*, FIXME, need a server for testing
+	TEST_NO_TAG("https with client certificate", https_client_cert_connection),*/
+	TEST_NO_TAG("https POST with long body", https_post_long_body),
+	TEST_NO_TAG("http GET with long user body", http_get_long_user_body)
 };
 
 test_suite_t http_test_suite = {"HTTP stack", http_before_all, http_after_all, NULL,

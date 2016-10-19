@@ -50,7 +50,8 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_udp_listening_point_t)
 			BELLE_SIP_VPTR_INIT(belle_sip_udp_listening_point_t, belle_sip_listening_point_t,TRUE),
 			(belle_sip_object_destroy_t)belle_sip_udp_listening_point_uninit,
 			NULL,
-			NULL
+			NULL,
+			BELLE_SIP_DEFAULT_BUFSIZE_HINT
 		},
 		"UDP",
 		udp_create_channel

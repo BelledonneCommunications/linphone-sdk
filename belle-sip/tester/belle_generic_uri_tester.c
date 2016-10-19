@@ -133,10 +133,10 @@ static void test_absolute_uri(void) {
 }
 
 static test_t tests[] = {
-	{ "Simple uri", test_basic_uri },
-	{ "Complex uri", test_complex_uri },
-	{ "File path", test_file_path },
-	{ "Absolute uri", test_absolute_uri }
+	TEST_NO_TAG("Simple uri", test_basic_uri),
+	TEST_NO_TAG("Complex uri", test_complex_uri),
+	TEST_NO_TAG("File path", test_file_path),
+	TEST_NO_TAG("Absolute uri", test_absolute_uri)
 };
 
 test_suite_t generic_uri_test_suite = {"Generic uri", NULL, NULL, belle_sip_tester_before_each,

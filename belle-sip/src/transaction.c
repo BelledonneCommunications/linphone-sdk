@@ -156,8 +156,10 @@ static void on_channel_state_changed(belle_sip_channel_listener_t *l, belle_sip_
 
 BELLE_SIP_IMPLEMENT_INTERFACE_BEGIN(belle_sip_transaction_t,belle_sip_channel_listener_t)
 on_channel_state_changed,
-NULL,
-NULL
+NULL, /* on_message_headers */
+NULL, /* on_message */
+NULL, /* on_sending */
+NULL /* on_auth_requested */
 BELLE_SIP_IMPLEMENT_INTERFACE_END
 
 BELLE_SIP_DECLARE_IMPLEMENTED_INTERFACES_1(belle_sip_transaction_t, belle_sip_channel_listener_t);
@@ -168,6 +170,7 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_transaction_t)
 		(belle_sip_object_destroy_t) transaction_destroy,
 		NULL,/*no clone*/
 		NULL,/*no marshal*/
+		BELLE_SIP_DEFAULT_BUFSIZE_HINT
 	},
 	NULL /*on_terminate*/
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
@@ -287,10 +290,13 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_server_transaction_t)
 			BELLE_SIP_VPTR_INIT(belle_sip_server_transaction_t,belle_sip_transaction_t,FALSE),
 			(belle_sip_object_destroy_t) server_transaction_destroy,
 			NULL,
-			NULL
+			NULL,
+			BELLE_SIP_DEFAULT_BUFSIZE_HINT
 		},
 		NULL
-	}
+	},
+	NULL, /* send_new_response */
+	NULL /* on_request_retransmission */
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
 void belle_sip_server_transaction_init(belle_sip_server_transaction_t *t, belle_sip_provider_t *prov,belle_sip_request_t *req){
@@ -596,7 +602,8 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_client_transaction_t)
 			BELLE_SIP_VPTR_INIT(belle_sip_client_transaction_t,belle_sip_transaction_t,FALSE),
 			(belle_sip_object_destroy_t)client_transaction_destroy,
 			NULL,
-			NULL
+			NULL,
+			BELLE_SIP_DEFAULT_BUFSIZE_HINT
 		},
 		NULL
 	},

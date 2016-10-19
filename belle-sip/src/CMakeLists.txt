@@ -185,6 +185,10 @@ if(MSVC)
 	get_source_file_property(SIP_MESSAGE_PARSER_COMPILE_FLAGS grammars/belle_sip_messageParser.c COMPILE_FLAGS)
 	set(SIP_MESSAGE_PARSER_COMPILE_FLAGS "${SIP_MESSAGE_PARSER_COMPILE_FLAGS} /wd4267") # Disable "possible loss of data" warnings
 	set_source_files_properties(grammars/belle_sip_messageParser.c PROPERTIES COMPILE_FLAGS "${SIP_MESSAGE_PARSER_COMPILE_FLAGS}")
+else()
+	get_source_file_property(SIP_MESSAGE_PARSER_COMPILE_FLAGS grammars/belle_sip_messageParser.c COMPILE_FLAGS)
+	set(SIP_MESSAGE_PARSER_COMPILE_FLAGS "${SIP_MESSAGE_PARSER_COMPILE_FLAGS} -Wno-sign-compare")
+	set_source_files_properties(grammars/belle_sip_messageParser.c PROPERTIES COMPILE_FLAGS "${SIP_MESSAGE_PARSER_COMPILE_FLAGS}")
 endif()
 
 string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")

@@ -27,6 +27,8 @@
  * typedefs, macros and functions for object definition and manipulation.
  */
 
+#define BELLE_SIP_DEFAULT_BUFSIZE_HINT 0
+
 #define BELLE_SIP_TYPE_ID(_type) _type##_id
 
 typedef unsigned int belle_sip_type_id_t;
@@ -78,7 +80,8 @@ typedef unsigned int belle_sip_type_id_t;
 		BELLE_SIP_VPTR_INIT(object_type,parent_type,unowned), \
 		(belle_sip_object_destroy_t)destroy,	\
 		(belle_sip_object_clone_t)clone,	\
-		(belle_sip_object_marshal_t)marshal\
+		(belle_sip_object_marshal_t)marshal,\
+		BELLE_SIP_DEFAULT_BUFSIZE_HINT\
 		}; \
 		BELLE_SIP_OBJECT_VPTR_TYPE(object_type) * BELLE_SIP_OBJECT_GET_VPTR_FUNC(object_type)(void){\
 			return &BELLE_SIP_OBJECT_VPTR_NAME(object_type); \

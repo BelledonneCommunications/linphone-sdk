@@ -105,7 +105,8 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_listening_point_t)
 		BELLE_SIP_VPTR_INIT(belle_sip_listening_point_t, belle_sip_object_t,FALSE),
 		(belle_sip_object_destroy_t)belle_sip_listening_point_uninit,
 		NULL,
-		NULL
+		NULL,
+		BELLE_SIP_DEFAULT_BUFSIZE_HINT
 	},
 	NULL,
 	NULL
@@ -210,7 +211,7 @@ void belle_sip_listening_point_set_keep_alive(belle_sip_listening_point_t *lp,in
 }
 
 int belle_sip_listening_point_get_keep_alive(const belle_sip_listening_point_t *lp) {
-	return lp->keep_alive_timer?belle_sip_source_get_timeout(lp->keep_alive_timer):-1;
+	return lp->keep_alive_timer?(int)belle_sip_source_get_timeout(lp->keep_alive_timer):-1;
 }
 
 void belle_sip_listening_point_set_channel_listener(belle_sip_listening_point_t *lp,belle_sip_channel_listener_t* channel_listener) {

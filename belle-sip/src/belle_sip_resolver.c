@@ -253,7 +253,7 @@ static struct dns_resolv_conf *resconf(belle_sip_simple_resolver_context_t *ctx)
 		char ip[64];
 		char serv[10];
 		int using_ipv6=FALSE;
-		int i;
+		size_t i;
 		
 		belle_sip_message("Resolver is using DNS server(s):");
 		for(i=0;i<sizeof(ctx->resconf->nameserver)/sizeof(ctx->resconf->nameserver[0]);++i){
@@ -455,7 +455,7 @@ static int resolver_process_data(belle_sip_simple_resolver_context_t *ctx, unsig
 		simulated_timeout=1;
 	}
 	
-	if (simulated_timeout || ((revents & BELLE_SIP_EVENT_TIMEOUT) && (belle_sip_time_ms()-ctx->start_time>=timeout))) {
+	if (simulated_timeout || ((revents & BELLE_SIP_EVENT_TIMEOUT) && ((int)(belle_sip_time_ms()-ctx->start_time)>=timeout))) {
 		belle_sip_error("%s timed-out", __FUNCTION__);
 		notify_results(ctx);
 		return BELLE_SIP_STOP;
@@ -813,7 +813,8 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_resolver_context_t)
 		BELLE_SIP_VPTR_INIT(belle_sip_resolver_context_t,belle_sip_source_t,TRUE),
 		(belle_sip_object_destroy_t) NULL,
 		NULL,
-		NULL
+		NULL,
+		BELLE_SIP_DEFAULT_BUFSIZE_HINT
 	},
 	NULL
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
@@ -826,7 +827,8 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_simple_resolver_context_t)
 			BELLE_SIP_VPTR_INIT(belle_sip_simple_resolver_context_t,belle_sip_resolver_context_t,TRUE),
 			(belle_sip_object_destroy_t) belle_sip_simple_resolver_context_destroy,
 			NULL,
-			NULL
+			NULL,
+			BELLE_SIP_DEFAULT_BUFSIZE_HINT
 		},
 		simple_resolver_cancel
 	}
@@ -839,7 +841,8 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_dual_resolver_context_t)
 			BELLE_SIP_VPTR_INIT(belle_sip_dual_resolver_context_t,belle_sip_resolver_context_t,TRUE),
 			(belle_sip_object_destroy_t) belle_sip_dual_resolver_context_destroy,
 			NULL,
-			NULL
+			NULL,
+			BELLE_SIP_DEFAULT_BUFSIZE_HINT
 		},
 		dual_resolver_cancel
 	}
@@ -852,7 +855,8 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_combined_resolver_context_t)
 			BELLE_SIP_VPTR_INIT(belle_sip_combined_resolver_context_t,belle_sip_resolver_context_t,TRUE),
 			(belle_sip_object_destroy_t) belle_sip_combined_resolver_context_destroy,
 			NULL,
-			NULL
+			NULL,
+			BELLE_SIP_DEFAULT_BUFSIZE_HINT
 		},
 		combined_resolver_cancel
 	}
