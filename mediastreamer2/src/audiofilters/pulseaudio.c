@@ -307,7 +307,7 @@ typedef struct _Stream{
 	uint64_t last_flowcontrol_op;
 	int underflow_notifs;
 	int overflow_notifs;
-	int min_buffer_size;
+	size_t min_buffer_size;
 }Stream;
 
 static void stream_disconnect(Stream *s);
@@ -363,14 +363,14 @@ static size_t stream_play(Stream *s, size_t nbytes) {
 	avail = ms_bufferizer_get_avail(&s->bufferizer);
 	if (avail > 0) {
 		uint8_t *data;
-		int buffer_size;
+		size_t buffer_size;
 		if (nbytes > avail)
 			nbytes = avail;
 		data = ms_new(uint8_t, nbytes);
 		ms_mutex_lock(&s->mutex);
 		ms_bufferizer_read(&s->bufferizer, data, nbytes);
 		buffer_size = ms_bufferizer_get_avail(&s->bufferizer);
-		if(s->min_buffer_size == -1 || buffer_size < s->min_buffer_size) {
+		if(s->min_buffer_size == (size_t)-1 || buffer_size < s->min_buffer_size) {
 			s->min_buffer_size = buffer_size;
 		}
 		ms_mutex_unlock(&s->mutex);
@@ -409,7 +409,7 @@ static bool_t stream_connect(Stream *s) {
 	pa_buffer_attr attr;
 	pa_cvolume volume, *volume_ptr = NULL;
 	
-	s->min_buffer_size = -1;
+	s->min_buffer_size = (size_t)-1;
 	
 	attr.maxlength = -1;
 	attr.fragsize = pa_usec_to_bytes(targeted_latency * 1000, &s->sampleSpec);
@@ -751,14 +751,14 @@ static void pulse_write_process(MSFilter *f){
 		
 		if (s->last_flowcontrol_op == (uint64_t)-1) {
 			s->last_flowcontrol_op = f->ticker->time;
-		} else if(f->ticker->time - s->last_flowcontrol_op >= flow_control_op_interval) {
+		} else if((int)(f->ticker->time - s->last_flowcontrol_op) >= flow_control_op_interval) {
 			size_t threshold_bytes = pa_usec_to_bytes(flow_control_threshold * 1000, &s->sampleSpec);
 			ms_mutex_lock(&s->mutex);
 			if(s->min_buffer_size >= threshold_bytes) {
 				size_t nbytes_to_drop = s->min_buffer_size - threshold_bytes/4;
 				ms_warning("pulseaudio: too much data waiting in the writing buffer. Droping %i bytes", (int)nbytes_to_drop);
 				ms_bufferizer_skip_bytes(&s->bufferizer, nbytes_to_drop);
-				s->min_buffer_size = -1;
+				s->min_buffer_size = (size_t)-1;
 			}
 			ms_mutex_unlock(&s->mutex);
 			s->last_flowcontrol_op = f->ticker->time;

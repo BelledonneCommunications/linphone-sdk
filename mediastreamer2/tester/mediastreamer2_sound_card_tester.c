@@ -537,19 +537,19 @@ static void soundread_filerec_fileplay_soundwrite(void) {
 
 
 test_t sound_card_tests[] = {
-	{ "dtmfgen-soundwrite", dtmfgen_soundwrite },
-	{ "fileplay-soundwrite-48000-stereo", fileplay_soundwrite_48000_stereo },
-	{ "fileplay-soundwrite-44100-stereo", fileplay_soundwrite_44100_stereo },
-	{ "fileplay-soundwrite-16000-stereo", fileplay_soundwrite_16000_stereo },
-	{ "fileplay-soundwrite-8000-stereo", fileplay_soundwrite_8000_stereo },
-	{ "fileplay-soundwrite-48000-mono", fileplay_soundwrite_48000_mono },
-	{ "fileplay-soundwrite-44100-mono", fileplay_soundwrite_44100_mono },
-	{ "fileplay-soundwrite-16000-mono", fileplay_soundwrite_16000_mono },
-	{ "fileplay-soundwrite-8000-mono", fileplay_soundwrite_8000_mono },
-	{ "soundread-soundwrite", soundread_soundwrite },
-	{ "soundread-speexenc-speexdec-soundwrite", soundread_speexenc_speexdec_soundwrite },
-	{ "soundread-filerec-fileplay-soundwrite", soundread_filerec_fileplay_soundwrite },
-	{ "fileplay-bv16enc-bv16dec-soundwrite", fileplay_bv16enc_bv16dec_soundwrite}
+	TEST_NO_TAG("dtmfgen-soundwrite", dtmfgen_soundwrite),
+	TEST_NO_TAG("fileplay-soundwrite-48000-stereo", fileplay_soundwrite_48000_stereo),
+	TEST_NO_TAG("fileplay-soundwrite-44100-stereo", fileplay_soundwrite_44100_stereo),
+	TEST_NO_TAG("fileplay-soundwrite-16000-stereo", fileplay_soundwrite_16000_stereo),
+	TEST_NO_TAG("fileplay-soundwrite-8000-stereo", fileplay_soundwrite_8000_stereo),
+	TEST_NO_TAG("fileplay-soundwrite-48000-mono", fileplay_soundwrite_48000_mono),
+	TEST_NO_TAG("fileplay-soundwrite-44100-mono", fileplay_soundwrite_44100_mono),
+	TEST_NO_TAG("fileplay-soundwrite-16000-mono", fileplay_soundwrite_16000_mono),
+	TEST_NO_TAG("fileplay-soundwrite-8000-mono", fileplay_soundwrite_8000_mono),
+	TEST_NO_TAG("soundread-soundwrite", soundread_soundwrite),
+	TEST_NO_TAG("soundread-speexenc-speexdec-soundwrite", soundread_speexenc_speexdec_soundwrite),
+	TEST_NO_TAG("soundread-filerec-fileplay-soundwrite", soundread_filerec_fileplay_soundwrite),
+	TEST_NO_TAG("fileplay-bv16enc-bv16dec-soundwrite", fileplay_bv16enc_bv16dec_soundwrite)
 };
 
 test_suite_t sound_card_test_suite = {

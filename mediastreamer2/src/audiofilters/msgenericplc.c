@@ -42,7 +42,7 @@ typedef struct {
 } generic_plc_struct;
 
 
-const static unsigned int MAX_PLC_COUNT = UINT32_MAX;
+static const unsigned int MAX_PLC_COUNT = UINT32_MAX;
 
 static void generic_plc_init(MSFilter *f) {
 	generic_plc_struct *mgps = (generic_plc_struct*) ms_new0(generic_plc_struct, 1);

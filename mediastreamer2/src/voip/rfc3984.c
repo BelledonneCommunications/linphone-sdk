@@ -164,8 +164,9 @@ static void rfc3984_pack_mode_1(Rfc3984Context *ctx, MSQueue *naluq, MSQueue *rt
 					/*send prevm packet: either single nal or STAP-A*/
 					if (prevm->b_cont!=NULL){
 						ms_debug("Sending STAP-A");
-					}else
+					}else {
 						ms_debug("Sending previous msg as single NAL");
+					}
 					send_packet(ctx, rtpq,ts,prevm,FALSE);
 					prevm=NULL;
 					prevsz=0;

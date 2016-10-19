@@ -53,7 +53,7 @@ static void ulaw_enc_process(MSFilter *obj){
 	MSBufferizer *bz=dt->bz;
 	uint8_t buffer[2240];
 	int frame_per_packet=2;
-	int size_of_pcm=320;
+	size_t size_of_pcm=320;
 	mblk_t *m;
 	
 	if (dt->ptime>=10){
@@ -73,7 +73,7 @@ static void ulaw_enc_process(MSFilter *obj){
 
 	while (ms_bufferizer_read(bz,buffer,size_of_pcm)==size_of_pcm){
 		mblk_t *o=allocb(size_of_pcm/2,0);
-		int i;
+		size_t i;
 		for (i=0;i<size_of_pcm/2;i++){
 			*o->b_wptr=Snack_Lin2Mulaw(((int16_t*)buffer)[i]);
 			o->b_wptr++;

@@ -598,7 +598,7 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 #endif
 			(strstr(de->d_name, "libms") == de->d_name) && ((ext=strstr(de->d_name,PLUGINS_EXT))!=NULL)) {
 			void *handle;
-			snprintf(plugin_name, MIN(sizeof(plugin_name), ext - de->d_name + 1), "%s", de->d_name);
+			snprintf(plugin_name, MIN(sizeof(plugin_name), (size_t)(ext - de->d_name + 1)), "%s", de->d_name);
 			if (bctbx_list_find_custom(loaded_plugins, (bctbx_compare_func)strcmp, plugin_name) != NULL) continue;
 			loaded_plugins = bctbx_list_append(loaded_plugins, ms_strdup(plugin_name));
 			fullpath=ms_strdup_printf("%s/%s",dir,de->d_name);

@@ -1669,8 +1669,6 @@ static void ice_send_error_response(const RtpSession *rtp_session, const OrtpEve
 	char tr_id_str[25];
 	UInt96 tr_id;
 
-	if (socket < 0) return;
-
 	memset(&dest_addr, 0, dest_addrlen);
 	memset(&source_addr, 0, source_addrlen);
 	ice_get_transport_from_rtp_session(rtp_session, evt_data, &rtptp);

@@ -175,9 +175,10 @@ static float volume_agc_process(Volume *v, mblk_t *om) {
 	// target is: 1
 	float gain_reduct = (agc_threshold + v->level_pk) / 1;
 	/* actual gain ramp timing the same as with echo limiter process */
-	if (!(++counter % 20))
+	if (!(++counter % 20)) {
 		ms_debug("_level=%f, gain reduction=%f, gain=%f, ng_gain=%f %f %f",
 				v->level_pk, gain_reduct, v->gain, v->ng_gain, v->ng_threshold, v->static_gain);
+	}
 	return gain_reduct;
 }
 
@@ -230,9 +231,10 @@ static float volume_echo_avoider_process(Volume *v, mblk_t *om) {
 			v->fast_upramp=TRUE;
 		}
 	}
-	if (!(++counter % 20))
+	if (!(++counter % 20)) {
 		ms_debug("volume_echo_avoider_process(): mic_en=%f, peer_e=%f, target_g=%f, gain=%f, spk_peak=%f",
 		             v->energy, peer_e, v->target_gain, v->gain, v->lt_speaker_en);
+	}
 	return v->target_gain;
 }
 
@@ -253,9 +255,10 @@ static void volume_noise_gate_process(Volume *v , float energy, mblk_t *om){
 	/* simple averaging computation is adequate here: fast rise, relatively slower decrease */
 	/* of gain - ears impression */
 	v->ng_gain = v->ng_gain*0.75f + tgain*0.25f;
-	if (!(++counter % 10))
+	if (!(++counter % 10)) {
 		ms_debug("%d: nglevel=%f, energy=%f, tgain=%f, ng_gain=%f",
 				          (v->peer!=NULL)?1:0, energy, v->energy, tgain, v->ng_gain);
+	}
 }
 
 static int volume_set_db_gain(MSFilter *f, void *gain){

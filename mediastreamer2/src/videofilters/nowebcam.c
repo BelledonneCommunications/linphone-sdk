@@ -404,7 +404,7 @@ void static_image_preprocess(MSFilter *f){
 
 void static_image_process(MSFilter *f){
 	SIData *d=(SIData*)f->data;
-	int frame_interval=(int)(1000/d->fps);
+	uint64_t frame_interval=(uint64_t)(1000/d->fps);
 	/*output a frame whenever needed, i.e. respect the FPS parameter */
 	if ((f->ticker->time - d->lasttime>frame_interval) || d->lasttime==0){
 		ms_mutex_lock(&f->lock);
@@ -510,7 +510,8 @@ MSFilterDesc ms_static_image_desc={
 	static_image_process,
 	static_image_postprocess,
 	static_image_uninit,
-	static_image_methods
+	static_image_methods,
+	0
 };
 
 MS_FILTER_DESC_EXPORT(ms_static_image_desc)
@@ -534,6 +535,7 @@ MSWebCamDesc static_image_desc={
 	&static_image_detect,
 	&static_image_cam_init,
 	&static_image_create_reader,
+	NULL,
 	NULL
 };
 

@@ -257,7 +257,7 @@ static void speex_ec_process(MSFilter *f){
 	
 	ref=(uint8_t*)alloca(nbytes);
 	echo=(uint8_t*)alloca(nbytes);
-	while (ms_bufferizer_read(&s->echo,echo,nbytes)==nbytes){
+	while ((int)ms_bufferizer_read(&s->echo,echo,nbytes)==nbytes){
 		mblk_t *oecho=allocb(nbytes,0);
 		int avail;
 		int avail_samples;

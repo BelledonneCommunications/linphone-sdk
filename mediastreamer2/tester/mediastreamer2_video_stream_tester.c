@@ -686,7 +686,7 @@ static void video_stream_first_iframe_lost_h264(void) {
 	video_stream_first_iframe_lost_base(H264_PAYLOAD_TYPE);
 }
 
-static void video_stream_first_iframe_lost_all_h264_codec_combinatiions(void) {
+static void video_stream_first_iframe_lost_all_h264_codec_combinations(void) {
 	codecs_manager_test_all_combinations(_h264_codecs_manager, video_stream_first_iframe_lost_h264);
 }
 
@@ -902,23 +902,23 @@ static void video_configuration_stream_all_h264_codec_combinations(void) {
 }
 
 static test_t tests[] = {
-	{ "Basic video stream VP8"                   , basic_video_stream_vp8                                          },
-	{ "Basic video stream H264"                  , basic_video_stream_all_h264_codec_combinations                  },
-	{ "Multicast video stream"                   , multicast_video_stream                                          },
-	{ "Basic one-way video stream"               , basic_one_way_video_stream                                      },
-	{ "Codec change for video stream"            , codec_change_for_video_stream                                   },
-	{ "AVPF video stream VP8"                    , avpf_video_stream_vp8                                           },
-	{ "AVPF video stream H264"                   , avpf_video_stream_all_h264_codec_combinations                   },
-	{ "AVPF high-loss video stream VP8"          , avpf_high_loss_video_stream_vp8                                 },
-	{ "AVPF high-loss video stream H264"         , avpf_high_loss_video_stream_all_h264_codec_conbinations         },
-	{ "AVPF very high-loss video stream VP8"     , avpf_very_high_loss_video_stream_vp8                            },
-	{ "AVPF video stream first iframe lost VP8"  , avpf_video_stream_first_iframe_lost_vp8                         },
-	{ "AVPF video stream first iframe lost H264" , avpf_video_stream_first_iframe_lost_all_h264_codec_combinations },
-	{ "AVP video stream first iframe lost VP8"   , video_stream_first_iframe_lost_vp8                              },
-	{ "AVP video stream first iframe lost H264"  , video_stream_first_iframe_lost_all_h264_codec_combinatiions     },
-	{ "Video configuration VP8"                  , video_configuration_stream_vp8                                  },
-	{ "Video configuration H264"                 , video_configuration_stream_all_h264_codec_combinations          },
-	{ "AVPF RPSI count"                          , avpf_rpsi_count                                                 }
+	TEST_NO_TAG("Basic video stream VP8"                   , basic_video_stream_vp8),
+	TEST_NO_TAG("Basic video stream H264"                  , basic_video_stream_all_h264_codec_combinations),
+	TEST_NO_TAG("Multicast video stream"                   , multicast_video_stream),
+	TEST_NO_TAG("Basic one-way video stream"               , basic_one_way_video_stream),
+	TEST_NO_TAG("Codec change for video stream"            , codec_change_for_video_stream),
+	TEST_NO_TAG("AVPF video stream VP8"                    , avpf_video_stream_vp8),
+	TEST_NO_TAG("AVPF video stream H264"                   , avpf_video_stream_all_h264_codec_combinations),
+	TEST_NO_TAG("AVPF high-loss video stream VP8"          , avpf_high_loss_video_stream_vp8),
+	TEST_NO_TAG("AVPF high-loss video stream H264"         , avpf_high_loss_video_stream_all_h264_codec_conbinations),
+	TEST_NO_TAG("AVPF very high-loss video stream VP8"     , avpf_very_high_loss_video_stream_vp8),
+	TEST_NO_TAG("AVPF video stream first iframe lost VP8"  , avpf_video_stream_first_iframe_lost_vp8),
+	TEST_NO_TAG("AVPF video stream first iframe lost H264" , avpf_video_stream_first_iframe_lost_all_h264_codec_combinations),
+	TEST_NO_TAG("AVP video stream first iframe lost VP8"   , video_stream_first_iframe_lost_vp8),
+	TEST_NO_TAG("AVP video stream first iframe lost H264"  , video_stream_first_iframe_lost_all_h264_codec_combinations),
+	TEST_NO_TAG("Video configuration VP8"                  , video_configuration_stream_vp8),
+	TEST_NO_TAG("Video configuration H264"                 , video_configuration_stream_all_h264_codec_combinations),
+	TEST_NO_TAG("AVPF RPSI count"                          , avpf_rpsi_count)
 };
 
 test_suite_t video_stream_test_suite = {

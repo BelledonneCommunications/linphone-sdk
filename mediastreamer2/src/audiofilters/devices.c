@@ -173,10 +173,10 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerAndroidContext
 #else
 
 static SoundDeviceDescription devices[]={
-	{	NULL, NULL, NULL, 0, 0, 0}
+	{ NULL, NULL, NULL, 0, 0, 0, NULL }
 };
 
-SoundDeviceDescription genericSoundDeviceDescriptor={"Generic", "Generic", "Generic", 0, 0, 0};
+SoundDeviceDescription genericSoundDeviceDescriptor={"Generic", "Generic", "Generic", 0, 0, 0, NULL};
 
 #endif
 

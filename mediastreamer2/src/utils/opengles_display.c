@@ -541,8 +541,8 @@ static bool_t update_textures_with_yuv(struct opengles_display* gldisp, enum Ima
 	aligned_yuv_h = align_on_power_of_2(yuvbuf.h);
 
 	/* check if we need to adjust texture sizes */
-	if (aligned_yuv_w != gldisp->allocatedTexturesSize[type].width ||
-		aligned_yuv_h != gldisp->allocatedTexturesSize[type].height) {
+	if (aligned_yuv_w != (unsigned int)gldisp->allocatedTexturesSize[type].width ||
+		aligned_yuv_h != (unsigned int)gldisp->allocatedTexturesSize[type].height) {
 		allocate_gl_textures(gldisp, aligned_yuv_w, aligned_yuv_h, type);
 	}
 	gldisp->uvx[type] = yuvbuf.w / (float)(gldisp->allocatedTexturesSize[type].width+1);

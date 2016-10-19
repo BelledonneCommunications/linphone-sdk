@@ -142,7 +142,8 @@ MSFilterDesc ms_mire_desc={
 	mire_process,
 	mire_postprocess,
 	mire_uninit,
-	mire_methods
+	mire_methods,
+	0
 };
 
 MS_FILTER_DESC_EXPORT(ms_mire_desc)
@@ -162,6 +163,7 @@ MSWebCamDesc ms_mire_webcam_desc={
 	&mire_detect,
 	&mire_cam_init,
 	&mire_create_reader,
+	NULL,
 	NULL
 };
 

@@ -93,7 +93,7 @@ static void enc_process(MSFilter *f)
 	int nbytes;
 	uint8_t *buf;
 	int frame_per_packet=1;
-	int chunksize;
+	size_t chunksize;
 	
 	if(s->ptime>=10)
 		frame_per_packet = s->ptime/10;

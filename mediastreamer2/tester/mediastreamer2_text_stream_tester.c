@@ -119,7 +119,7 @@ static void real_time_text_character_received(void *userdata, struct _MSFilter *
 		if (tst->stats.q != NULL) {
 			RealtimeTextReceivedCharacter *data = (RealtimeTextReceivedCharacter *)arg;
 			ms_message("Received RTT char: %lu, %c", (unsigned long)data->character, (char)data->character);
-			if (tst->stats.number_of_received_char < sizeof(tst->stats.received_chars)-1){
+			if (tst->stats.number_of_received_char < (int)sizeof(tst->stats.received_chars)-1){
 				tst->stats.received_chars[tst->stats.number_of_received_char++] = (char)data->character;
 			}else{
 				ms_fatal("tst->stats.received_chars buffer overflow (number_of_received_char=%i)",
@@ -264,11 +264,11 @@ static void srtp_protected_text_stream(void) {
 #endif
 
 static test_t tests[] = {
-	{ "Basic text stream: copy paste short text", basic_text_stream },
-	{ "Basic text stream: slow typing", basic_text_stream2 },
-	{ "copy paste text longer than buffer size", copy_paste_text_longer_than_rtt_buffer },
+	TEST_NO_TAG("Basic text stream: copy paste short text", basic_text_stream),
+	TEST_NO_TAG("Basic text stream: slow typing", basic_text_stream2),
+	TEST_NO_TAG("copy paste text longer than buffer size", copy_paste_text_longer_than_rtt_buffer),
 #ifdef HAVE_SRTP
-	{ "slow typing with SRTP", srtp_protected_text_stream },
+	TEST_NO_TAG("slow typing with SRTP", srtp_protected_text_stream),
 #endif
 };
 

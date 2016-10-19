@@ -264,7 +264,8 @@ MSFilterDesc ms_rtt_4103_source_desc = {
 	ms_rtt_4103_source_process,
 	ms_rtt_4103_source_postprocess,
 	ms_rtt_4103_source_uninit,
-	ms_rtt_4103_source_methods
+	ms_rtt_4103_source_methods,
+	0
 };
 
 MS_FILTER_DESC_EXPORT(ms_rtt_4103_source_desc)

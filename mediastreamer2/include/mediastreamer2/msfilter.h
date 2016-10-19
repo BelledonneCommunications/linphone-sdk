@@ -61,7 +61,7 @@ typedef int (*MSFilterMethodFunc)(struct _MSFilter *f, void *arg);
 typedef void (*MSFilterNotifyFunc)(void *userdata, struct _MSFilter *f, unsigned int id, void *arg);
 
 struct _MSFilterMethod{
-	int id;
+	unsigned int id;
 	MSFilterMethodFunc method;
 };
 

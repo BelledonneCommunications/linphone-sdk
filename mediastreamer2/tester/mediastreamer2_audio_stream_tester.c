@@ -665,19 +665,19 @@ static void symetric_rtp_with_wrong_rtcp_port(void)  {
 
 
 static test_t tests[] = {
-	{ "Basic audio stream", basic_audio_stream },
-	{ "Multicast audio stream", multicast_audio_stream },
-	{ "Encrypted audio stream", encrypted_audio_stream },
-	{ "Encrypted audio stream with 2 srtp context", encrypted_audio_stream_with_2_srtp_stream },
-	{ "Encrypted audio stream with 2 srtp context, recv first", encrypted_audio_stream_with_2_srtp_stream_recv_first },
-	{ "Encrypted audio stream with ssrc changes", encrypted_audio_stream_with_ssrc_change },
-	{ "Encrypted audio stream with key change", encrypted_audio_stream_with_key_change },
-	{ "Encrypted audio stream, encryption mandatory", encrypted_audio_stream_encryption_mandatory },
-	{ "Encrypted audio stream with key change + encryption mandatory", encrypted_audio_stream_with_key_change_encryption_mandatory},
-	{ "Codec change for audio stream", codec_change_for_audio_stream },
-	{ "TMMBR feedback for audio stream", tmmbr_feedback_for_audio_stream },
-	{ "Symetric rtp with wrong address", symetric_rtp_with_wrong_addr },
-	{ "Symetric rtp with wrong rtcp port", symetric_rtp_with_wrong_rtcp_port },
+	TEST_NO_TAG("Basic audio stream", basic_audio_stream),
+	TEST_NO_TAG("Multicast audio stream", multicast_audio_stream),
+	TEST_NO_TAG("Encrypted audio stream", encrypted_audio_stream),
+	TEST_NO_TAG("Encrypted audio stream with 2 srtp context", encrypted_audio_stream_with_2_srtp_stream),
+	TEST_NO_TAG("Encrypted audio stream with 2 srtp context, recv first", encrypted_audio_stream_with_2_srtp_stream_recv_first),
+	TEST_NO_TAG("Encrypted audio stream with ssrc changes", encrypted_audio_stream_with_ssrc_change),
+	TEST_NO_TAG("Encrypted audio stream with key change", encrypted_audio_stream_with_key_change),
+	TEST_NO_TAG("Encrypted audio stream, encryption mandatory", encrypted_audio_stream_encryption_mandatory),
+	TEST_NO_TAG("Encrypted audio stream with key change + encryption mandatory", encrypted_audio_stream_with_key_change_encryption_mandatory),
+	TEST_NO_TAG("Codec change for audio stream", codec_change_for_audio_stream),
+	TEST_NO_TAG("TMMBR feedback for audio stream", tmmbr_feedback_for_audio_stream),
+	TEST_NO_TAG("Symetric rtp with wrong address", symetric_rtp_with_wrong_addr),
+	TEST_NO_TAG("Symetric rtp with wrong rtcp port", symetric_rtp_with_wrong_rtcp_port),
 };
 
 test_suite_t audio_stream_test_suite = {

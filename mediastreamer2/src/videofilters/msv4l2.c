@@ -118,7 +118,7 @@ static bool_t v4lv2_try_format( int fd, struct v4l2_format *fmt, int fmtid){
 		ms_message("VIDIOC_TRY_FMT: %s",strerror(errno));
 		return FALSE;
 	}
-	if(fmt->fmt.pix.pixelformat != fmtid) {
+	if((int)fmt->fmt.pix.pixelformat != fmtid) {
 		ms_message("VIDIOC_TRY_FMT: got different format");
 		return FALSE;
 	}
@@ -240,7 +240,7 @@ static const V4L2FormatDescription* query_format_description_for_size(int fd, MS
 
 		while (v4l2_ioctl(fd, VIDIOC_ENUM_FMT, &fmt) >= 0) {
 			for (i=0; i<POSSIBLE_FORMATS_COUNT; i++) {
-				if (fmt.pixelformat == formats[i].pixel_format) {
+				if ((int)fmt.pixelformat == formats[i].pixel_format) {
 #ifdef VIDIOC_ENUM_FRAMEINTERVALS
 					formats[i].max_fps = query_max_fps_for_format_resolution(fd, fmt.pixelformat, vsize);
 #endif
@@ -482,7 +482,7 @@ static int msv4l2_do_mmap(V4l2State *s){
 		return -1;
 	}
 
-	for (i=0; i<req.count; ++i) {
+	for (i=0; i<(int)req.count; ++i) {
 		struct v4l2_buffer buf;
 		mblk_t *msg;
 		void *start;
@@ -565,7 +565,7 @@ static mblk_t *v4l2_dequeue_ready_buffer(V4l2State *s, int poll_timeout_ms){
 			/*decrement ref count of dequeued buffer */
 			ret=s->frames[buf.index];
 			dec_ref(ret);
-			if (buf.index >= s->frame_max){
+			if ((int)buf.index >= s->frame_max){
 				ms_error("buf.index>=s->max_frames !");
 				return NULL;
 			}
@@ -585,7 +585,7 @@ static mblk_t *v4l2_dequeue_ready_buffer(V4l2State *s, int poll_timeout_ms){
 
 static mblk_t * v4lv2_grab_image(V4l2State *s, int poll_timeout_ms){
 	struct v4l2_buffer buf;
-	unsigned int k;
+	int k;
 	bool_t no_slot_available = TRUE;
 	mblk_t *ret=NULL;
 
@@ -869,6 +869,7 @@ MSWebCamDesc v4l2_card_desc={
 	&msv4l2_detect,
 	&msv4l2_cam_init,
 	&msv4l2_create_reader,
+	NULL,
 	NULL
 };
 

@@ -663,7 +663,7 @@ static bool_t receiver_check_payload_type(MSFilter *f, ReceiverData *d, mblk_t *
 		uint8_t *data=NULL;
 		int datasize=rtp_get_payload(m, &data);
 		if (data){
-			if (datasize<= sizeof(cngdata.data)){
+			if (datasize<= (int)sizeof(cngdata.data)){
 				memcpy(cngdata.data, data, datasize);
 				cngdata.datasize=datasize;
 				ms_filter_notify(f, MS_RTP_RECV_GENERIC_CN_RECEIVED, &cngdata);

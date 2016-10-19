@@ -209,16 +209,16 @@ static void loop_test(void) {
 }
 
 static test_t tests[] = {
-	{	"Play hello8000.wav"                 ,	play_hello_8000_wav                },
-	{	"Play hello16000.wav"                ,	play_hello_16000_wav               },
-	{	"Play hello_pcmu.mka"                ,	play_hello_pcmu_mka                },
-	{	"Play hello_opus.mka"                ,	play_hello_opus_mka                },
-	{	"Play sintel_trailer_pcmu_h264.mkv"  ,	play_sintel_trailer_pcmu_h264_mkv  },
-	{	"Play sintel_trailer_opus_h264.mkv"  ,	play_sintel_trailer_opus_h264_mkv  },
-	{	"Play sintel_trailer_opus_vp8.mkv"   ,	play_sintel_trailer_opus_vp8_mkv   },
-	{	"Seeking"                            ,	seeking_test                       },
-	{	"Playing twice"                      ,	playing_twice_test                 },
-	{	"Loop test"                          ,	loop_test                          }
+	TEST_NO_TAG("Play hello8000.wav"                 , play_hello_8000_wav),
+	TEST_NO_TAG("Play hello16000.wav"                , play_hello_16000_wav),
+	TEST_NO_TAG("Play hello_pcmu.mka"                , play_hello_pcmu_mka),
+	TEST_NO_TAG("Play hello_opus.mka"                , play_hello_opus_mka),
+	TEST_NO_TAG("Play sintel_trailer_pcmu_h264.mkv"  , play_sintel_trailer_pcmu_h264_mkv),
+	TEST_NO_TAG("Play sintel_trailer_opus_h264.mkv"  , play_sintel_trailer_opus_h264_mkv),
+	TEST_NO_TAG("Play sintel_trailer_opus_vp8.mkv"   , play_sintel_trailer_opus_vp8_mkv),
+	TEST_NO_TAG("Seeking"                            , seeking_test),
+	TEST_NO_TAG("Playing twice"                      , playing_twice_test),
+	TEST_NO_TAG("Loop test"                          , loop_test)
 };
 
 test_suite_t player_test_suite = {

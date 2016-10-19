@@ -405,15 +405,15 @@ static void dtmfgen_filerec_fileplay_tonedet(void) {
 
 
 test_t basic_audio_tests[] = {
-	{ "dtmfgen-tonedet", dtmfgen_tonedet },
-	{ "dtmfgen-enc-dec-tonedet-bv16", dtmfgen_enc_dec_tonedet_bv16 },
-	{ "dtmfgen-enc-dec-tonedet-pcmu", dtmfgen_enc_dec_tonedet_pcmu },
-	{ "dtmfgen-enc-dec-tonedet-isac", dtmfgen_enc_dec_tonedet_isac },
+	TEST_NO_TAG("dtmfgen-tonedet", dtmfgen_tonedet),
+	TEST_NO_TAG("dtmfgen-enc-dec-tonedet-bv16", dtmfgen_enc_dec_tonedet_bv16),
+	TEST_NO_TAG("dtmfgen-enc-dec-tonedet-pcmu", dtmfgen_enc_dec_tonedet_pcmu),
+	TEST_NO_TAG("dtmfgen-enc-dec-tonedet-isac", dtmfgen_enc_dec_tonedet_isac),
 #if HAVE_OPUS
-	{ "dtmfgen-enc-dec-tonedet-opus", dtmfgen_enc_dec_tonedet_opus },
+	TEST_NO_TAG("dtmfgen-enc-dec-tonedet-opus", dtmfgen_enc_dec_tonedet_opus),
 #endif
-	{ "dtmfgen-enc-rtp-dec-tonedet", dtmfgen_enc_rtp_dec_tonedet },
-	{ "dtmfgen-filerec-fileplay-tonedet", dtmfgen_filerec_fileplay_tonedet }
+	TEST_NO_TAG("dtmfgen-enc-rtp-dec-tonedet", dtmfgen_enc_rtp_dec_tonedet),
+	TEST_NO_TAG("dtmfgen-filerec-fileplay-tonedet", dtmfgen_filerec_fileplay_tonedet)
 };
 
 test_suite_t basic_audio_test_suite = {

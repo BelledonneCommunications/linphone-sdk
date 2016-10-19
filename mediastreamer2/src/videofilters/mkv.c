@@ -1885,7 +1885,7 @@ fail:
 }
 
 static void recorder_request_fir(MSFilter *f, MKVRecorder *obj) {
-	if(obj->lastFirTime == -1 || obj->lastFirTime + 2000 < f->ticker->time) {
+	if(obj->lastFirTime == (uint64_t)-1 || obj->lastFirTime + 2000 < f->ticker->time) {
 		obj->lastFirTime = f->ticker->time;
 		ms_filter_notify_no_arg(f, MS_RECORDER_NEEDS_FIR);
 	}
@@ -2130,7 +2130,7 @@ static int recorder_set_input_fmt(MSFilter *f, void *arg) {
 	const MSPinFormat *pinFmt = (const MSPinFormat *)arg;
 
 	ms_filter_lock(f);
-	if(pinFmt->pin < 0 || pinFmt->pin >= f->desc->ninputs) {
+	if(pinFmt->pin >= f->desc->ninputs) {
 		ms_error("MKVRecorder: could not set pin #%d. Invalid pin number", pinFmt->pin);
 		goto fail;
 	}
@@ -2637,7 +2637,7 @@ static int player_get_output_fmt(MSFilter *f, void *arg) {
 		ms_error("MKVPlayer: cannot get pin format when player is closed");
 		goto fail;
 	}
-	if(pinFmt->pin < 0 || pinFmt->pin >= f->desc->noutputs) {
+	if(pinFmt->pin >= f->desc->noutputs) {
 		ms_error("MKVPlayer: pin #%d does not exist", pinFmt->pin);
 		goto fail;
 	}

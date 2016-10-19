@@ -860,7 +860,7 @@ typedef struct DecState {
 	uint64_t last_error_reported_time;
 	mblk_t *yuv_msg;
 	MSPicture outbuf;
-	int yuv_width, yuv_height;
+	unsigned int yuv_width, yuv_height;
 	MSQueue q;
 	MSAverageFPS fps;
 	bool_t first_image_decoded;

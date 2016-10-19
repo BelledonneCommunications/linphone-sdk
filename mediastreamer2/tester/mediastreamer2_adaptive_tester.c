@@ -557,22 +557,22 @@ static void adaptive_vp8_lossy_congestion() {
 
 
 static test_t tests[] = {
-	{ "Packet duplication", packet_duplication},
-	{ "Upload bandwidth computation", upload_bandwidth_computation },
-	{ "Loss rate estimation", loss_rate_estimation },
-	{ "Loss rate estimationBV16", loss_rate_estimation_bv16 },
+	TEST_NO_TAG("Packet duplication", packet_duplication),
+	TEST_NO_TAG("Upload bandwidth computation", upload_bandwidth_computation),
+	TEST_NO_TAG("Loss rate estimation", loss_rate_estimation),
+	TEST_NO_TAG("Loss rate estimationBV16", loss_rate_estimation_bv16),
 
-	{ "Upload bitrate [pcma] - 3g", upload_bitrate_pcma_3g },
-	{ "Upload bitrate [speex] - low", upload_bitrate_speex_low },
-	{ "Upload bitrate [speex] - 3g", upload_bitrate_speex_3g },
-	{ "Upload bitrate [opus] - edge", upload_bitrate_opus_edge },
-	{ "Upload bitrate [opus] - 3g", upload_bitrate_opus_3g },
+	TEST_NO_TAG("Upload bitrate [pcma] - 3g", upload_bitrate_pcma_3g),
+	TEST_NO_TAG("Upload bitrate [speex] - low", upload_bitrate_speex_low),
+	TEST_NO_TAG("Upload bitrate [speex] - 3g", upload_bitrate_speex_3g),
+	TEST_NO_TAG("Upload bitrate [opus] - edge", upload_bitrate_opus_edge),
+	TEST_NO_TAG("Upload bitrate [opus] - 3g", upload_bitrate_opus_3g),
 
 #if VIDEO_ENABLED && 0
-	{ "Network detection [VP8] - ideal", adaptive_vp8_ideal },
-	{ "Network detection [VP8] - lossy", adaptive_vp8_lossy },
-	{ "Network detection [VP8] - congested", adaptive_vp8_congestion },
-	{ "Network detection [VP8] - lossy congested", adaptive_vp8_lossy_congestion },
+	TEST_NO_TAG("Network detection [VP8] - ideal", adaptive_vp8_ideal),
+	TEST_NO_TAG("Network detection [VP8] - lossy", adaptive_vp8_lossy),
+	TEST_NO_TAG("Network detection [VP8] - congested", adaptive_vp8_congestion),
+	TEST_NO_TAG("Network detection [VP8] - lossy congested", adaptive_vp8_lossy_congestion),
 #endif
 };
 

@@ -862,8 +862,8 @@ bool_t ms_video_capture_new_frame(MSFrameRateController* ctrl, uint64_t current_
 }
 
 void ms_average_fps_init(MSAverageFPS* afps, const char* ctx) {
-	afps->last_frame_time = -1;
-	afps->last_print_time = -1;
+	afps->last_frame_time = (uint64_t)-1;
+	afps->last_print_time = (uint64_t)-1;
 	afps->mean_inter_frame = 0;
 	afps->context = ctx;
 	if (!ctx || strstr(ctx, "%f") == 0) {
@@ -877,7 +877,7 @@ void ms_video_init_average_fps(MSAverageFPS* afps, const char* ctx){
 }
 
 bool_t ms_average_fps_update(MSAverageFPS* afps, uint64_t current_time) {
-	if (afps->last_frame_time!=-1){
+	if (afps->last_frame_time!=(uint64_t)-1){
 		float frame_interval=(float)(current_time - afps->last_frame_time)/1000.0f;
 		if (afps->mean_inter_frame==0){
 			afps->mean_inter_frame=frame_interval;

@@ -70,16 +70,26 @@ struct bench_config {
 
 struct bench_config cfg[] = {
 	{	NUM_SESSION,NUM_SESSION_RECORD,
-		8000,"127.0.0.1",9000,8,8000,20,"test1.wav",NULL,NULL	},
-	{	NUM_SESSION,NUM_SESSION_RECORD,
-		9000,"127.0.0.1",8000,8,8000,20,"test1.wav",NULL,NULL	},
+		8000,"127.0.0.1",9000,
+		8,8000,20,"test1.wav",
+		NULL,NULL,NULL	},
 
 	{	NUM_SESSION,NUM_SESSION_RECORD,
-		10000,"127.0.0.1",11000,8,8000,20,"test1.wav",NULL,NULL	},
-	{	NUM_SESSION,NUM_SESSION_RECORD,
-		11000,"127.0.0.1",10000,8,8000,20,"test1.wav",NULL,NULL	},
+		9000,"127.0.0.1",8000,
+		8,8000,20,"test1.wav",
+		NULL,NULL,NULL	},
 
-	{	0,0,0,"",0,0,0,0,NULL,NULL,NULL	},
+	{	NUM_SESSION,NUM_SESSION_RECORD,
+		10000,"127.0.0.1",11000,
+		8,8000,20,"test1.wav",
+		NULL,NULL,NULL	},
+
+	{	NUM_SESSION,NUM_SESSION_RECORD,
+		11000,"127.0.0.1",10000,
+		8,8000,20,"test1.wav",
+		NULL,NULL,NULL	},
+
+	{	0,0,0,"",0,0,0,0,NULL,NULL,NULL,NULL	},
 };
 
 static RtpSession *create_duplex_rtpsession(int locport){

@@ -161,7 +161,7 @@ static int _process_on_receive(RtpSession* session,MSSrtpStreamContext *ctx, mbl
 			return err;
 	}else{
 		rtcp_common_header_t *rtcp=(rtcp_common_header_t*)m->b_rptr;
-		if (err<(sizeof(rtcp_common_header_t)+4) || rtcp->version!=2 )
+		if (err<(int)(sizeof(rtcp_common_header_t)+4) || rtcp->version!=2 )
 			return err;
 	}
 
@@ -301,7 +301,7 @@ static int ms_add_srtp_stream(srtp_t srtp, MSCryptoSuite suite, uint32_t ssrc, c
 			return -1;
 		}
 		/* check if key length match given policy */
-		if (key_length != policy.rtp.cipher_key_len) {
+		if ((int)key_length != policy.rtp.cipher_key_len) {
 			ms_error("Key size (%i) doesn't match the selected srtp profile (required %d)", (int)key_length, policy.rtp.cipher_key_len);	
 			return -1;
 		}
@@ -309,7 +309,7 @@ static int ms_add_srtp_stream(srtp_t srtp, MSCryptoSuite suite, uint32_t ssrc, c
 		if (ms_set_srtp_crypto_policy(suite, &policy.rtcp) != 0) {
 			return -1;
 		}
-		if (key_length != policy.rtcp.cipher_key_len) {
+		if ((int)key_length != policy.rtcp.cipher_key_len) {
 			ms_error("Key size (%i) doesn't match the selected srtp profile (required %d)", (int)key_length, policy.rtcp.cipher_key_len);	
 			return -1;
 		}

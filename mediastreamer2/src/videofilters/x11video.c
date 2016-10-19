@@ -170,7 +170,7 @@ static void x11video_prepare(MSFilter *f){
 	unsigned int nadaptors;
 	int i;
 	XvAdaptorInfo *xai=NULL;
-	XvPortID port=-1;
+	XvPortID port=(XvPortID)-1;
 	int imgfmt_id=0;
 	XShmSegmentInfo *shminfo=&s->shminfo;
 	XWindowAttributes wa = {0};
@@ -204,7 +204,7 @@ static void x11video_prepare(MSFilter *f){
 	s->fbuf.w=s->vsize.width;
 	s->fbuf.h=s->vsize.height;
 
-	s->port=-1;
+	s->port=(XvPortID)-1;
 	if (XvQueryExtension(s->display, &n, &n, &n, &n, &n)!=0){
 		ms_error("Fail to query xv extension");
 		return;
@@ -221,7 +221,7 @@ static void x11video_prepare(MSFilter *f){
 		return;
 	}
 
-	for (n=0;n<nadaptors && port==-1;++n){
+	for (n=0;n<nadaptors && port==(XvPortID)-1;++n){
 		XvAdaptorInfo *ai=&xai[n];
 		XvImageFormatValues *imgfmt;
 		int nimgfmt=0;
@@ -235,13 +235,13 @@ static void x11video_prepare(MSFilter *f){
 			ms_message("type=%s/%s id=%s",
 			           imgfmt[i].type == XvYUV ? "YUV" : "RGB",
 			            imgfmt[i].format==XvPlanar ? "Planar" : "Packed",fcc);
-			if (port==-1 && imgfmt[i].format==XvPlanar && strcasecmp(fcc,"YV12")==0){
-				int k;
+			if (port==(XvPortID)-1 && imgfmt[i].format==XvPlanar && strcasecmp(fcc,"YV12")==0){
+				unsigned int k;
 				/*we found a format interesting to us*/
 				for(k=0;k<ai->num_ports;++k){
 					if (XvGrabPort(s->display,ai->base_id+k,CurrentTime)==0){
 						ms_message("Grabbed port %i",(int)ai->base_id+k);
-						port=ai->base_id+k;
+						port=(XvPortID)(ai->base_id+k);
 						imgfmt_id=imgfmt[i].id;
 						break;
 					}
@@ -251,7 +251,7 @@ static void x11video_prepare(MSFilter *f){
 		if (imgfmt) XFree(imgfmt);
 	}
 	XvFreeAdaptorInfo(xai);
-	if (port==-1){
+	if (port==(XvPortID)-1){
 		ms_error("Could not find suitable format or Xv port to work with.");
 		return;
 	}
@@ -312,10 +312,10 @@ static void x11video_prepare(MSFilter *f){
 
 static void x11video_unprepare(MSFilter *f){
 	X11Video *s=(X11Video*)f->data;
-	if (s->port!=-1){
+	if (s->port!=(XvPortID)-1){
 		XvStopVideo(s->display,s->port, s->window_id);
 		XvUngrabPort(s->display,s->port,CurrentTime);
-		s->port=-1;
+		s->port=(XvPortID)-1;
 	}
 	if (s->shminfo.shmaddr!=NULL){
 		XShmDetach(s->display,&s->shminfo);

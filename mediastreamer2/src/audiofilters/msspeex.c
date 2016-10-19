@@ -258,7 +258,7 @@ static void enc_process(MSFilter *f){
 	while((im=ms_queue_get(f->inputs[0]))!=NULL){
 		ms_bufferizer_put(s->bufferizer,im);
 	}
-	while(ms_bufferizer_read(s->bufferizer,buf,nbytes*frame_per_packet)==nbytes*frame_per_packet){
+	while(ms_bufferizer_read(s->bufferizer,buf,nbytes*frame_per_packet)==(size_t)(nbytes*frame_per_packet)){
 		mblk_t *om=allocb(nbytes*frame_per_packet,0);//too large...
 		int k;
 		SpeexBits bits;

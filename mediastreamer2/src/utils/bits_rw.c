@@ -57,8 +57,9 @@ int ms_bits_reader_n_bits(MSBitsReader *reader, int count, unsigned int *ret, co
 	tmp=tmp & ((1<<count)-1);
 	reader->bit_index+=count;
 
-	if (symbol_name)
+	if (symbol_name) {
 		ms_debug(".%s (u(%d)) : 0x%x | %u", symbol_name, count, tmp, tmp);
+	}
 	if (ret)
 		*ret=tmp;
 	return 0;
@@ -76,8 +77,9 @@ int ms_bits_reader_ue(MSBitsReader *reader, unsigned int* ret, const char* symbo
 	} while (r == 0);
 
 	if (leading_zeros_cnt == 0) {
-		if (symbol_name)
+		if (symbol_name) {
 			ms_debug(".%s (ue) : 0x%x", symbol_name, 0);
+		}
 		if (ret)
 			*ret = 0;
 	} else {
@@ -85,8 +87,9 @@ int ms_bits_reader_ue(MSBitsReader *reader, unsigned int* ret, const char* symbo
 		if (ms_bits_reader_n_bits(reader, leading_zeros_cnt, &trail, 0) != 0)
 			return -1;
 		value = (unsigned int)pow(2, leading_zeros_cnt) - 1 + trail;
-		if (symbol_name)
+		if (symbol_name) {
 			ms_debug(".%s (ue) : 0x%x | %u", symbol_name, value, value);
+		}
 		if (ret)
 			*ret = value;
 	}
@@ -104,8 +107,9 @@ int ms_bits_reader_se(MSBitsReader *reader, int* ret, const char* symbol_name) {
 
 	sign = (code_num % 2) ? 1 : -1;
 	value = (int)(sign * ceil(code_num / 2.0f));
-	if (symbol_name)
+	if (symbol_name) {
 		ms_debug(".%s (se) : 0x%x | %d [%x", symbol_name, value, value, code_num);
+	}
 	if (ret)
 		*ret = value;
 	return 0;

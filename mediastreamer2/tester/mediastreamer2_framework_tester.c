@@ -546,24 +546,24 @@ static void test_filterdesc_enable_disable(void) {
 	test_filterdesc_enable_disable_base("pcma", "MSAlawEnc", TRUE);
 }
 static test_t tests[] = {
-	 { "Multiple ms_voip_init", filter_register_tester },
-	 { "Is multicast", test_is_multicast},
-	 { "FilterDesc enabling/disabling", test_filterdesc_enable_disable},
+	 TEST_NO_TAG("Multiple ms_voip_init", filter_register_tester),
+	 TEST_NO_TAG("Is multicast", test_is_multicast),
+	 TEST_NO_TAG("FilterDesc enabling/disabling", test_filterdesc_enable_disable),
 #ifdef VIDEO_ENABLED
-	 { "Video processing function", test_video_processing},
-	 { "Copy ycbcrbiplanar to true yuv with downscaling", test_copy_ycbcrbiplanar_to_true_yuv_with_downscaling},
-	 { "Copy ycbcrbiplanar to true yuv with rotation clock wise",test_copy_ycbcrbiplanar_to_true_yuv_with_rotation_clock_wise},
-	 { "Copy ycbcrbiplanar to true yuv with rotation clock wise with downscaling",test_copy_ycbcrbiplanar_to_true_yuv_with_rotation_clock_wise_with_downscaling},
-	 { "Copy ycbcrbiplanar to true yuv with rotation 180", test_copy_ycbcrbiplanar_to_true_yuv_with_rotation_180},
-	 { "Copy ycbcrbiplanar to true yuv with rotation 180 with downscaling", test_copy_ycbcrbiplanar_to_true_yuv_with_rotation_180_with_downscaling},
-	 { "Copy yuv buffer with pixel strides: planar to planar",test_yuv_copy_with_pix_strides_planar_to_planar},
-	 { "Copy yuv buffer with pixel strides: planar to semi-planar",test_yuv_copy_with_pix_strides_planar_to_semi_planar},
-	 { "Copy yuv buffer with pixel strides: semi-planar to planar",test_yuv_copy_with_pix_strides_semi_planar_to_planar},
-	 { "Copy yuv buffer with pixel strides: semi-planar to semi-planar",test_yuv_copy_with_pix_strides_semi_planar_to_semi_planar},
-	 { "Copy yuv buffer with pixel strides: planar to planar with sliding",test_yuv_copy_with_pix_strides_planar_to_planar_with_sliding},
-	 { "Copy yuv buffer with pixel strides: planar to semi-planar with sliding",test_yuv_copy_with_pix_strides_planar_to_semi_planar_with_sliding},
-	 { "Copy yuv buffer with pixel strides: semi-planar to planar with sliding",test_yuv_copy_with_pix_strides_semi_planar_to_planar_with_sliding},
-	 { "Copy yuv buffer with pixel strides: semi-planar to semi-planar with sliding",test_yuv_copy_with_pix_strides_semi_planar_to_semi_planar_with_sliding}
+	 TEST_NO_TAG("Video processing function", test_video_processing),
+	 TEST_NO_TAG("Copy ycbcrbiplanar to true yuv with downscaling", test_copy_ycbcrbiplanar_to_true_yuv_with_downscaling),
+	 TEST_NO_TAG("Copy ycbcrbiplanar to true yuv with rotation clock wise",test_copy_ycbcrbiplanar_to_true_yuv_with_rotation_clock_wise),
+	 TEST_NO_TAG("Copy ycbcrbiplanar to true yuv with rotation clock wise with downscaling",test_copy_ycbcrbiplanar_to_true_yuv_with_rotation_clock_wise_with_downscaling),
+	 TEST_NO_TAG("Copy ycbcrbiplanar to true yuv with rotation 180", test_copy_ycbcrbiplanar_to_true_yuv_with_rotation_180),
+	 TEST_NO_TAG("Copy ycbcrbiplanar to true yuv with rotation 180 with downscaling", test_copy_ycbcrbiplanar_to_true_yuv_with_rotation_180_with_downscaling),
+	 TEST_NO_TAG("Copy yuv buffer with pixel strides: planar to planar",test_yuv_copy_with_pix_strides_planar_to_planar),
+	 TEST_NO_TAG("Copy yuv buffer with pixel strides: planar to semi-planar",test_yuv_copy_with_pix_strides_planar_to_semi_planar),
+	 TEST_NO_TAG("Copy yuv buffer with pixel strides: semi-planar to planar",test_yuv_copy_with_pix_strides_semi_planar_to_planar),
+	 TEST_NO_TAG("Copy yuv buffer with pixel strides: semi-planar to semi-planar",test_yuv_copy_with_pix_strides_semi_planar_to_semi_planar),
+	 TEST_NO_TAG("Copy yuv buffer with pixel strides: planar to planar with sliding",test_yuv_copy_with_pix_strides_planar_to_planar_with_sliding),
+	 TEST_NO_TAG("Copy yuv buffer with pixel strides: planar to semi-planar with sliding",test_yuv_copy_with_pix_strides_planar_to_semi_planar_with_sliding),
+	 TEST_NO_TAG("Copy yuv buffer with pixel strides: semi-planar to planar with sliding",test_yuv_copy_with_pix_strides_semi_planar_to_planar_with_sliding),
+	 TEST_NO_TAG("Copy yuv buffer with pixel strides: semi-planar to semi-planar with sliding",test_yuv_copy_with_pix_strides_semi_planar_to_semi_planar_with_sliding)
 #endif
 };
 

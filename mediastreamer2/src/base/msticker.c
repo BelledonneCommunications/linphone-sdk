@@ -206,7 +206,7 @@ int ms_ticker_detach(MSTicker *ticker,MSFilter *f){
 }
 
 
-static bool_t filter_can_process(MSFilter *f, int tick){
+static bool_t filter_can_process(MSFilter *f, uint32_t tick){
 	/* look if filters before this one have run */
 	int i;
 	MSQueue *l;
