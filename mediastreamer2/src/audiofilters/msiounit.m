@@ -838,7 +838,7 @@ static MSFilterMethod au_methods[]={
 	{	MS_FILTER_GET_SAMPLE_RATE	, get_rate	},
 	{	MS_FILTER_SET_NCHANNELS		, set_nchannels	},
 	{	MS_FILTER_GET_NCHANNELS		, get_nchannels	},
-	{	MS_AUDIO_PLAYBACK_MUTE, 	, set_muted	},
+	{	MS_AUDIO_PLAYBACK_MUTE	 	, set_muted	},
 	{	0				, NULL		}
 };
 
@@ -964,10 +964,3 @@ static MSFilter *ms_au_write_new(MSSndCard *mscard){
 
 MS_FILTER_DESC_EXPORT(au_read_desc)
 MS_FILTER_DESC_EXPORT(au_write_desc)
-
-void ms_au_register_card() {
-	/**
-	 * register audio unit plugin should be move to linphone code
-	 */
-	ms_snd_card_manager_register_desc(ms_snd_card_manager_get(),&au_card_desc);
-}
