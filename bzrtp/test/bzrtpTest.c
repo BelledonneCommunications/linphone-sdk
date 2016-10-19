@@ -34,11 +34,11 @@
 
 
 test_t crypto_utils_tests[] = {
-	{ "zrtpKDF", test_zrtpKDF },
-	{ "CRC32", test_CRC32 },
-	{ "algo agreement", test_algoAgreement },
-	{ "context algo setter and getter", test_algoSetterGetter },
-	{ "adding mandatory crypto algorithms if needed", test_addMandatoryCryptoTypesIfNeeded }
+	TEST_NO_TAG("zrtpKDF", test_zrtpKDF),
+	TEST_NO_TAG("CRC32", test_CRC32),
+	TEST_NO_TAG("algo agreement", test_algoAgreement),
+	TEST_NO_TAG("context algo setter and getter", test_algoSetterGetter),
+	TEST_NO_TAG("adding mandatory crypto algorithms if needed", test_addMandatoryCryptoTypesIfNeeded)
 };
 
 test_suite_t crypto_utils_test_suite = {
@@ -52,11 +52,11 @@ test_suite_t crypto_utils_test_suite = {
 };
 
 test_t packet_parser_tests[] = {
-	{ "Parse", test_parser },
-	{ "Parse hvi check fail", test_parser_hvi },
-	{ "Parse Exchange", test_parserComplete },
-	{ "State machine", test_stateMachine },
-	{ "ZRTP-hash", test_zrtphash }
+	TEST_NO_TAG("Parse", test_parser),
+	TEST_NO_TAG("Parse hvi check fail", test_parser_hvi),
+	TEST_NO_TAG("Parse Exchange", test_parserComplete),
+	TEST_NO_TAG("State machine", test_stateMachine),
+	TEST_NO_TAG("ZRTP-hash", test_zrtphash)
 };
 
 test_suite_t packet_parser_test_suite = {

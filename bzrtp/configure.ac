@@ -59,7 +59,7 @@ case $CC in
 esac
 
 if test $GCC = yes && test $wall_werror = yes;  then
-	CFLAGS="$CFLAGS -Werror "
+	CFLAGS="$CFLAGS -Werror -Wextra -Wno-unused-parameter "
 fi
 
 # Create the following files from their .in counterparts

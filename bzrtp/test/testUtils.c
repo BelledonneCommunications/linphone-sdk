@@ -41,7 +41,7 @@ void bzrtp_message(const char *fmt, ...) {
 
 void printHex(char *title, uint8_t *data, uint32_t length) {
 	if (verbose) {
-		int i;
+		uint32_t i;
 		printf ("%s : ", title);
 		for (i=0; i<length; i++) {
 			printf ("0x%02x, ", data[i]);

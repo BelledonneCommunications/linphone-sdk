@@ -689,7 +689,7 @@ void bzrtp_setSupportedCryptoTypes(bzrtpContext_t *zrtpContext, uint8_t algoType
  * @return 	0 on success, errorcode otherwise
  */
 int bzrtp_setPeerHelloHash(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8_t *peerHelloHashHexString, size_t peerHelloHashHexStringLength) {
-	int i=0;
+	size_t i=0;
 	uint8_t *hexHashString = NULL;
 	size_t hexHashStringLength = peerHelloHashHexStringLength;
 	/* get channel context */
