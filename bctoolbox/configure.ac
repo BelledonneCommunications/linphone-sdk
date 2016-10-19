@@ -64,7 +64,7 @@ AC_ARG_ENABLE(strict,
 STRICT_OPTIONS="-Wall"
 
 if test "$strict" = "true" ; then
-	STRICT_OPTIONS="$STRICT_OPTIONS -Werror"
+	STRICT_OPTIONS="$STRICT_OPTIONS -Werror -Wextra -Wno-unused-parameter"
 fi
 AC_SUBST(STRICT_OPTIONS)
 

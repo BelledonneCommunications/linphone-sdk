@@ -69,7 +69,7 @@ typedef struct _bctbx_pair_ullong_t bctbx_pair_ullong_t; /*inherite from bctbx_p
 BCTBX_PUBLIC bctbx_pair_ullong_t * bctbx_pair_ullong_new(unsigned long long key,void *value);
 
 BCTBX_PUBLIC void* bctbx_pair_get_second(const bctbx_pair_t * pair);
-BCTBX_PUBLIC const unsigned long long bctbx_pair_ullong_get_first(const bctbx_pair_ullong_t * pair);
+BCTBX_PUBLIC unsigned long long bctbx_pair_ullong_get_first(const bctbx_pair_ullong_t * pair);
 BCTBX_PUBLIC void bctbx_pair_delete(bctbx_pair_t * pair);
 
 

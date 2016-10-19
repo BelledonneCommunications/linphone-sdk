@@ -71,7 +71,7 @@ extern "C" bctbx_iterator_t *bctbx_map_erase(bctbx_map_t *map,bctbx_iterator_t *
 extern "C" bctbx_iterator_t *bctbx_map_begin(const bctbx_map_t *map) {
 	return (bctbx_iterator_t *) new mmap_ullong_t::iterator(((mmap_ullong_t *)map)->begin());
 }
-extern "C"  bctbx_iterator_t * bctbx_map_end(const bctbx_map_t *map) {
+extern "C" bctbx_iterator_t * bctbx_map_end(const bctbx_map_t *map) {
 	return (bctbx_iterator_t *) new mmap_ullong_t::iterator(((mmap_ullong_t *)map)->end());
 }
 /*iterator*/
@@ -82,7 +82,7 @@ extern "C" bctbx_iterator_t *bctbx_iterator_get_next(bctbx_iterator_t *it) {
 	((mmap_ullong_t::iterator*)it)->operator++();
 	return it;
 }
-extern "C"  bctbx_iterator_t *bctbx_iterator_get_next_and_delete(bctbx_iterator_t *it) {
+extern "C" bctbx_iterator_t *bctbx_iterator_get_next_and_delete(bctbx_iterator_t *it) {
 	bctbx_iterator_t * next = bctbx_iterator_get_next(it);
 	bctbx_iterator_delete(it);
 	return next;
@@ -99,7 +99,7 @@ extern "C" bctbx_pair_ullong_t * bctbx_pair_ullong_new(unsigned long long key,vo
 	return (bctbx_pair_ullong_t *) new pair_ullong_t(key,value);
 	
 }
-extern "C" const unsigned long long bctbx_pair_ullong_get_first(const bctbx_pair_ullong_t  * pair) {
+extern "C" unsigned long long bctbx_pair_ullong_get_first(const bctbx_pair_ullong_t  * pair) {
 	return ((pair_ullong_t*)pair)->first;
 }
 extern "C" void* bctbx_pair_get_second(const bctbx_pair_t * pair) {
