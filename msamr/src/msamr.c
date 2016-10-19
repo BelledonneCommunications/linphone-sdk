@@ -75,7 +75,7 @@ static PayloadType * amr_match(MSOfferAnswerContext *ctx, const MSList *local_pa
 }
 
 static MSOfferAnswerContext *amr_offer_answer_create_context(void){
-	static MSOfferAnswerContext amr_oa = {amr_match, NULL};
+	static MSOfferAnswerContext amr_oa = {amr_match, NULL, NULL};
 	return &amr_oa;
 }
 

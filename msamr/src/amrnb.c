@@ -74,7 +74,7 @@ static void dec_init(MSFilter *f) {
 #define toc_get_index(toc)	((toc>>3) & 0xf)
 
 static int toc_list_check(uint8_t *tl, size_t buflen) {
-	int s = 1;
+	size_t s = 1;
 	while (toc_get_f(*tl)) {
 		tl++;
 		s++;
@@ -82,7 +82,7 @@ static int toc_list_check(uint8_t *tl, size_t buflen) {
 			return -1;
 		}
 	}
-	return s;
+	return (int)s;
 }
 
 static void dec_process(MSFilter *f) {
@@ -216,7 +216,7 @@ static void enc_process(MSFilter *f) {
 	uint8_t tmp[OUT_MAX_SIZE];
 	int16_t *samples;
 	uint8_t *tocs;
-	int offset;
+	unsigned int offset;
 
 	samples = (int16_t *)malloc(buff_size);
 	while ((im = ms_queue_get(f->inputs[0])) != NULL) {
@@ -267,7 +267,7 @@ static int enc_set_br(MSFilter *obj, void *arg) {
 	int i;
 
 	ms_message("Setting maxbitrate=%i to AMR-NB encoder.", cbr);
-	for (i = 0; i < sizeof (amr_frame_rates) / sizeof (amr_frame_rates[0]); i++) {
+	for (i = 0; i < (int)(sizeof (amr_frame_rates) / sizeof (amr_frame_rates[0])); i++) {
 		if (amr_frame_rates[i] > cbr) {
 			break;
 		}

@@ -49,7 +49,7 @@ AC_HELP_STRING([--enable-strict],[Enable error on compilation warning [default=y
 CFLAGS="$CFLAGS -Wall"
 
 if test "$GCC" = "yes" && test "$wall_werror" = "yes" ; then
-	CFLAGS="$CFLAGS -Werror"
+	CFLAGS="$CFLAGS -Werror -Wextra -Wno-unused-parameter"
 fi
 
 # check for libraries that have pkg-config files installed

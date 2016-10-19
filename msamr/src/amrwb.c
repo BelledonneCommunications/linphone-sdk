@@ -62,7 +62,7 @@ static void enc_process(MSFilter *obj) {
 	uint8_t tmp[OUT_MAX_SIZE];
 	int16_t *buff;
 	uint8_t *tocs;
-	int offset;
+	unsigned int offset;
 
 	buff = (int16_t *)malloc(buff_size);
 	while ((im = ms_queue_get(obj->inputs[0])) != NULL) {
@@ -125,7 +125,7 @@ static int enc_set_br(MSFilter *obj, void *arg) {
 	int i;
 
 	ms_message("Setting maxbitrate=%i to AMR-WB encoder.", cbr);
-	for (i = 0; i < sizeof (amr_frame_rates) / sizeof (amr_frame_rates[0]); i++) {
+	for (i = 0; i < (int)(sizeof (amr_frame_rates) / sizeof (amr_frame_rates[0])); i++) {
 		if (amr_frame_rates[i] > cbr) {
 			break;
 		}
@@ -161,7 +161,6 @@ static int enc_add_fmtp(MSFilter *obj, void *arg) {
 	}
 	if (fmtp_get_value(fmtp, "mode", buf, sizeof (buf))) {
 		s->mode = atoi(buf);
-		if (s->mode < 0) s->mode = 0;
 		if (s->mode > 8) s->mode = 8;
 		ms_message("AMR-WB: got mode=%i", s->mode);
 	}
@@ -260,7 +259,7 @@ typedef struct DecState {
 #define toc_get_index(toc) ((toc>>3) & 0xf)
 
 static int toc_list_check(uint8_t *tl, size_t buflen) {
-	int s = 1;
+	size_t s = 1;
 	while (toc_get_f(*tl)) {
 		tl++;
 		s++;
@@ -268,7 +267,7 @@ static int toc_list_check(uint8_t *tl, size_t buflen) {
 			return -1;
 		}
 	}
-	return s;
+	return (int)s;
 }
 
 static void decode(MSFilter *obj, mblk_t *im) {
