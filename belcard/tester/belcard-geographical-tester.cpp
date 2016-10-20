@@ -31,8 +31,8 @@ static void geo_property(void) {
 }
 
 static test_t tests[] = {
-	{ "TZ", tz_property },
-	{ "Geo", geo_property },
+	TEST_NO_TAG("TZ", tz_property),
+	TEST_NO_TAG("Geo", geo_property),
 };
 
 test_suite_t vcard_geographical_properties_test_suite = {

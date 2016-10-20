@@ -42,10 +42,10 @@ static void lang_property(void) {
 }
 
 static test_t tests[] = {
-	{ "Tel", tel_property },
-	{ "Email", email_property },
-	{ "IMPP", impp_property },
-	{ "Language", lang_property },
+	TEST_NO_TAG("Tel", tel_property),
+	TEST_NO_TAG("Email", email_property),
+	TEST_NO_TAG("IMPP", impp_property),
+	TEST_NO_TAG("Language", lang_property),
 };
 
 test_suite_t vcard_communication_properties_test_suite = {

@@ -42,9 +42,9 @@ static void death_date_property(void) {
 }
 
 static test_t tests[] = {
-	{ "Birth place", birth_place_property },
-	{ "Death place", death_place_property },
-	{ "Death date", death_date_property },
+	TEST_NO_TAG("Birth place", birth_place_property),
+	TEST_NO_TAG("Death place", death_place_property),
+	TEST_NO_TAG("Death date", death_date_property),
 };
 
 test_suite_t vcard_rfc6474_properties_test_suite = {

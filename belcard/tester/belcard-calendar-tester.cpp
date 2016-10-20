@@ -35,9 +35,9 @@ static void caluri_property(void) {
 }
 
 static test_t tests[] = {
-	{ "FBURL", fburl_property },
-	{ "CALADRURI", caladruri_property },
-	{ "CALURI", caluri_property },
+	TEST_NO_TAG("FBURL", fburl_property),
+	TEST_NO_TAG("CALADRURI", caladruri_property),
+	TEST_NO_TAG("CALURI", caluri_property),
 };
 
 test_suite_t vcard_calendar_properties_test_suite = {

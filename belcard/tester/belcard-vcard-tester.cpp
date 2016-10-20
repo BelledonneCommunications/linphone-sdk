@@ -122,12 +122,12 @@ static void property_sort_using_pref_param(void) {
 }
 
 static test_t tests[] = {
-	{ "Folding", folding },
-	{ "Unfolding", unfolding },
-	{ "VCard parsing", vcard_parsing },
-	{ "VCards parsing", vcards_parsing },
-	{ "VCard created from scratch", create_vcard_from_api },
-	{ "Property sort using pref param", property_sort_using_pref_param },
+	TEST_NO_TAG("Folding", folding),
+	TEST_NO_TAG("Unfolding", unfolding),
+	TEST_NO_TAG("VCard parsing", vcard_parsing),
+	TEST_NO_TAG("VCards parsing", vcards_parsing),
+	TEST_NO_TAG("VCard created from scratch", create_vcard_from_api),
+	TEST_NO_TAG("Property sort using pref param", property_sort_using_pref_param),
 };
 
 test_suite_t vcard_test_suite = {

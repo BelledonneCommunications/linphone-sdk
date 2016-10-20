@@ -55,13 +55,13 @@ static void photo_property(void) {
 }
 
 static test_t tests[] = {
-	{ "Full name", fn_property },
-	{ "Name", n_property },
-	{ "Nickname", nickname_property },
-	{ "Birthday", bday_property },
-	{ "Anniversary", anniversary_property },
-	{ "Gender", gender_property },
-	{ "Photo", photo_property },
+	TEST_NO_TAG("Full name", fn_property),
+	TEST_NO_TAG("Name", n_property),
+	TEST_NO_TAG("Nickname", nickname_property),
+	TEST_NO_TAG("Birthday", bday_property),
+	TEST_NO_TAG("Anniversary", anniversary_property),
+	TEST_NO_TAG("Gender", gender_property),
+	TEST_NO_TAG("Photo", photo_property),
 };
 
 test_suite_t vcard_identification_properties_test_suite = {

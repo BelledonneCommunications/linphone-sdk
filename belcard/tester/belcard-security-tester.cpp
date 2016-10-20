@@ -28,7 +28,7 @@ static void key_property(void) {
 }
 
 static test_t tests[] = {
-	{ "Key", key_property },
+	TEST_NO_TAG("Key", key_property),
 };
 
 test_suite_t vcard_security_properties_test_suite = {

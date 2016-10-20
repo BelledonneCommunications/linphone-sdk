@@ -55,14 +55,14 @@ static void url_property(void) {
 }
 
 static test_t tests[] = {
-	{ "CATEGORIES", categories_property },
-	{ "NOTE", note_property },
-	{ "PRODID", prodid_property },
-	{ "REV", rev_property },
-	{ "SOUND", sound_property },
-	{ "UID", uid_property },
-	{ "CLIENTPIDMAP", clientpidmap_property },
-	{ "URL", url_property },
+	TEST_NO_TAG("CATEGORIES", categories_property),
+	TEST_NO_TAG("NOTE", note_property),
+	TEST_NO_TAG("PRODID", prodid_property),
+	TEST_NO_TAG("REV", rev_property),
+	TEST_NO_TAG("SOUND", sound_property),
+	TEST_NO_TAG("UID", uid_property),
+	TEST_NO_TAG("CLIENTPIDMAP", clientpidmap_property),
+	TEST_NO_TAG("URL", url_property),
 };
 
 test_suite_t vcard_explanatory_properties_test_suite = {

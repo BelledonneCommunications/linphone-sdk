@@ -27,7 +27,7 @@ static void adr_property(void) {
 }
 
 static test_t tests[] = {
-	{ "Adr", adr_property },
+	TEST_NO_TAG("Adr", adr_property),
 };
 
 test_suite_t vcard_addressing_properties_test_suite = {

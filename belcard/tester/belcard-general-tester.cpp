@@ -36,9 +36,9 @@ static void xml_property(void) {
 }
 
 static test_t tests[] = {
-	{ "Kind", kind_property },
-	{ "Source", source_property },
-	{ "XML", xml_property },
+	TEST_NO_TAG("Kind", kind_property),
+	TEST_NO_TAG("Source", source_property),
+	TEST_NO_TAG("XML", xml_property),
 };
 
 test_suite_t vcard_general_properties_test_suite = {

@@ -54,12 +54,12 @@ static void related_property(void) {
 }
 
 static test_t tests[] = {
-	{ "TITLE", title_property },
-	{ "ROLE", role_property },
-	{ "LOGO", logo_property },
-	{ "ORG", org_property },
-	{ "MEMBER", member_property },
-	{ "RELATED", related_property },
+	TEST_NO_TAG("TITLE", title_property),
+	TEST_NO_TAG("ROLE", role_property),
+	TEST_NO_TAG("LOGO", logo_property),
+	TEST_NO_TAG("ORG", org_property),
+	TEST_NO_TAG("MEMBER", member_property),
+	TEST_NO_TAG("RELATED", related_property),
 };
 
 test_suite_t vcard_organizational_properties_test_suite = {
