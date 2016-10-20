@@ -163,7 +163,7 @@ static int v4lv2_do_mmap(V4lState *s){
 		return -1;
 	}
 
-	for (i=0; i<req.count; ++i) {
+	for (i=0; i<(int)req.count; ++i) {
 		struct v4l2_buffer buf;
 		mblk_t *msg;
 		void *start;
@@ -221,7 +221,7 @@ static int v4lv2_do_mmap(V4lState *s){
 
 static mblk_t * v4lv2_grab_image(V4lState *s){
 	struct v4l2_buffer buf;
-	unsigned int k;
+	int k;
 	mblk_t *ret=NULL;
 	memset(&buf,0,sizeof(buf));
 
@@ -238,7 +238,7 @@ static mblk_t * v4lv2_grab_image(V4lState *s){
 				ms_warning("VIDIOC_DQBUF failed: %s",strerror(errno));
 			}
 		}else{
-			if (buf.index >= s->frame_max){
+			if ((int)buf.index >= s->frame_max){
 				ms_error("buf.index>=s->max_frames !");
 				return NULL;
 			}
@@ -257,7 +257,7 @@ static mblk_t * v4lv2_grab_image(V4lState *s){
 	still used anywhere in the filter chain */
 	for(k=0;k<s->frame_max;++k){
 		if (s->frames[k]->b_datap->db_ref==1){
-			buf.index=k;
+			buf.index=(unsigned)k;
 			if (-1==ioctl (s->fd, VIDIOC_QBUF, &buf))
 				ms_warning("VIDIOC_QBUF %i failed: %s",k,  strerror(errno));
 			else {
@@ -507,7 +507,7 @@ static bool_t try_size(V4lState *s, MSVideoSize vsize){
 	s->vsize.width=vsize.width;
 	s->vsize.height=vsize.height;
 
-	if (s->vsize.width!=win.width || s->vsize.height!=win.height){
+	if (s->vsize.width!=(int)win.width || s->vsize.height!=(int)win.height){
 		ms_warning("Capture size is not what we expected: asked for %ix%i and get %ix%i",s->vsize.width,s->vsize.height, win.width, win.height);
 	}
 	s->got_vsize.width=win.width;
