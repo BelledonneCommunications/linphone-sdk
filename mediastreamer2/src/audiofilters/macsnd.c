@@ -197,7 +197,7 @@ static MSSndCard *ca_card_new(const char *name, const char * uidname, AudioDevic
 	
 	slen = sizeof(format);
 	d->rate=44100;
-	if (dev != -1) {
+	if (dev != (AudioDeviceID)-1) {
 		AudioObjectPropertyScope theScope = cap & MS_SND_CARD_CAP_CAPTURE ? kAudioDevicePropertyScopeInput :
 		kAudioDevicePropertyScopeOutput;
 		AudioObjectPropertyAddress theAddress = { kAudioDevicePropertyStreamFormat,
@@ -448,7 +448,7 @@ static int audio_unit_open(AUCommon *d, bool_t is_read){
 	
 	// Get Default Input audio unit
 	desc.componentType = kAudioUnitType_Output;
-	desc.componentSubType = d->dev!=-1?kAudioUnitSubType_HALOutput:kAudioUnitSubType_DefaultOutput;
+	desc.componentSubType = d->dev!=(AudioDeviceID)-1?kAudioUnitSubType_HALOutput:kAudioUnitSubType_DefaultOutput;
 	desc.componentManufacturer = kAudioUnitManufacturer_Apple;
 	desc.componentFlags = 0;
 	desc.componentFlagsMask = 0;
@@ -474,7 +474,7 @@ static int audio_unit_open(AUCommon *d, bool_t is_read){
 	}
 	
 	param = is_read;
-	if (d->dev!=-1) {
+	if (d->dev!=(AudioDeviceID)-1) {
 		CHECK_AURESULT(AudioUnitSetProperty(d->au,
 					  kAudioOutputUnitProperty_EnableIO,
 					  kAudioUnitScope_Input,

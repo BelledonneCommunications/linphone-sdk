@@ -63,7 +63,7 @@ static void h264_enc_output_cb(VTH264EncCtx *ctx, void *sourceFrameRefCon, OSSta
 	size_t read_size, frame_size;
 	bool_t is_keyframe = FALSE;
 	mblk_t *nalu;
-	int i;
+	size_t i;
 
 	if(sampleBuffer == NULL || status != noErr) {
 		ms_error("VideoToolbox: could not encode frame: error %d", (int)status);
