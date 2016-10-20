@@ -88,14 +88,14 @@ static void capture_queue_cleanup(void* p) {
 		ms_error("Error locking base address: %i", status);
 		return;
 	}
-	int p;
+	size_t p;
 	for (p=0; p < numberOfPlanes; p++) {
 		size_t fullrow_width = CVPixelBufferGetBytesPerRowOfPlane(frame, p);
 		size_t plane_width = CVPixelBufferGetWidthOfPlane(frame, p);
 		size_t plane_height = CVPixelBufferGetHeightOfPlane(frame, p);
 		uint8_t *dst_plane = pict.planes[p];
 		uint8_t *src_plane = CVPixelBufferGetBaseAddressOfPlane(frame, p);
-		int l;
+		size_t l;
 		
 		for (l=0; l<plane_height; l++) {
 			memcpy(dst_plane, src_plane, plane_width);
@@ -237,8 +237,8 @@ static void capture_queue_cleanup(void* p) {
 
 
 
-- (const NSString *) videoSizeToPreset:(MSVideoSize)size {
-	const NSString *preset;
+- (NSString *) videoSizeToPreset:(MSVideoSize)size {
+	NSString *preset;
 	
 	if (size.height*size.width >=MS_VIDEO_SIZE_720P_H*MS_VIDEO_SIZE_720P_W) {
 		preset = AVCaptureSessionPreset1280x720;
@@ -497,8 +497,8 @@ static void ms_v4m_detect(MSWebCamManager *obj) {
 	for(i = 0 ; i < [array count]; i++) {
 		AVCaptureDevice * device = [array objectAtIndex:i];
 		MSWebCam *cam = ms_web_cam_new(&ms_v4m_cam_desc);
-		//cam->name = ms_strdup([[device localizedName] UTF8String]);
-		cam->name = ms_strdup([[device modelID] UTF8String]);
+		cam->name = ms_strdup([[device localizedName] UTF8String]);
+		//cam->name = ms_strdup([[device modelID] UTF8String]);
 		cam->data = ms_strdup([[device uniqueID] UTF8String]);
 		ms_web_cam_manager_add_cam(obj,cam);
 	}
