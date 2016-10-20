@@ -32,6 +32,7 @@ set(BELCARD_SO_VERSION "1")
 
 option(ENABLE_SHARED "Build shared library." ON)
 option(ENABLE_STATIC "Build static library." ON)
+option(ENABLE_STRICT "Build with strict compile options." YES)
 option(ENABLE_UNIT_TESTS "Enable compilation of unit tests." YES)
 
 macro(apply_compile_flags SOURCE_FILES)
