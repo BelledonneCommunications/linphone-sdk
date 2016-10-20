@@ -32,7 +32,7 @@ AM_SILENT_RULES(yes)
 # Checks for programs.
 AC_PROG_CXX
 
-CXXFLAGS="$CXXFLAGS -std=c++11 -Wall -Werror -Wextra"
+CXXFLAGS="$CXXFLAGS -std=c++11 -Wall -Werror -Wextra -Wno-unused-parameter"
 
 # Checks for libraries.
 dnl ##################################################
