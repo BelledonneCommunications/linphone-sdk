@@ -213,6 +213,11 @@ int belle_sip_transaction_state_is_transient(const belle_sip_transaction_state_t
 }
 
 void belle_sip_transaction_terminate(belle_sip_transaction_t *t){
+	if (t->call_repair_timer) {
+		belle_sip_transaction_stop_timer(t, t->call_repair_timer);
+		belle_sip_object_unref(t->call_repair_timer);
+		t->call_repair_timer = NULL;
+	}
 	if (belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(t))!=BELLE_SIP_TRANSACTION_TERMINATED) {
 		int is_client=BELLE_SIP_OBJECT_IS_INSTANCE_OF(t,belle_sip_client_transaction_t);
 		belle_sip_transaction_set_state(t,BELLE_SIP_TRANSACTION_TERMINATED);
@@ -226,11 +231,6 @@ void belle_sip_transaction_terminate(belle_sip_transaction_t *t){
 									,t);
 		BELLE_SIP_OBJECT_VPTR(t,belle_sip_transaction_t)->on_terminate(t);
 		belle_sip_provider_set_transaction_terminated(t->provider,t);
-	}
-	if (t->call_repair_timer) {
-		belle_sip_transaction_stop_timer(t, t->call_repair_timer);
-		belle_sip_object_unref(t->call_repair_timer);
-		t->call_repair_timer = NULL;
 	}
 }
 
