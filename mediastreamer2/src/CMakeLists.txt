@@ -309,16 +309,8 @@ if(ENABLE_VIDEO)
 		else()
 			list(APPEND VOIP_SOURCE_FILES_OBJC
 				videofilters/msosxdisplay.m
+				videofilters/avfound-capture.m
 			)
-			find_path(QTKIT_FOUND HINTS ${CMAKE_OSX_SYSROOT}/System/Library/Frameworks NAMES QTKit/QTKit.h NO_CMAKE_SYSTEM_PATH) 
-			if (QTKIT_FOUND) 
-				list(APPEND VOIP_SOURCE_FILES_OBJC
-					videofilters/qtcapture.m
-				)
-				add_definitions(-DHAVE_QTKIT)
-			else()
-				message("QTKIT not found, disabling old fashion capture")
-			endif()
 			
 			list(APPEND VOIP_SOURCE_FILES_C
 				utils/opengles_display.c

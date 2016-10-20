@@ -135,6 +135,18 @@ static void h264_enc_configure(VTH264EncCtx *ctx) {
 	value = CFNumberCreate(NULL, kCFNumberFloatType, &ctx->conf.fps);
 	VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_ExpectedFrameRate, value);
 	
+	int bytes_per_seconds = ctx->conf.required_bitrate/8 * 2; /*allow to have 2 times the average bitrate in one second*/
+	CFNumberRef bytes = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &bytes_per_seconds);
+	int dur= 1;
+	CFNumberRef duration = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &dur);
+	CFMutableArrayRef data_rate_limits = CFArrayCreateMutable(kCFAllocatorDefault, 2, &kCFTypeArrayCallBacks);
+	CFArrayAppendValue(data_rate_limits, bytes);
+	CFArrayAppendValue(data_rate_limits, duration);
+	VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_DataRateLimits, data_rate_limits);
+	CFRelease(bytes);
+	CFRelease(duration);
+	CFRelease(data_rate_limits);
+	
 	value = CFNumberCreate(NULL, kCFNumberIntType, &delay_count);
 	if (VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_MaxFrameDelayCount, value) != 0){
 		ms_error("Could not set kVTCompressionPropertyKey_MaxFrameDelayCount");
