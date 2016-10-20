@@ -31,6 +31,7 @@ set(BELR_SO_VERSION "1")
 
 option(ENABLE_SHARED "Build shared library." ON)
 option(ENABLE_STATIC "Build static library." ON)
+option(ENABLE_STRICT "Build with strict compile options." YES)
 
 
 macro(apply_compile_flags SOURCE_FILES)
