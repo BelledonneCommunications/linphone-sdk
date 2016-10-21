@@ -90,7 +90,6 @@ static int server_transaction_on_call_repair_timer(belle_sip_transaction_t *t) {
 
 static int client_transaction_on_call_repair_timer(belle_sip_transaction_t *t) {
 	belle_sip_transaction_terminate(t);
-	belle_sip_object_unref(t);
 	return BELLE_SIP_STOP;
 }
 
@@ -144,9 +143,10 @@ static void on_channel_state_changed(belle_sip_channel_listener_t *l, belle_sip_
 			} else {
 				belle_sip_transaction_terminate(t);
 			}
-			belle_sip_object_unref(t);
 			belle_sip_object_unref(((belle_sip_transaction_t*)t)->channel);
 			((belle_sip_transaction_t*)t)->channel = NULL;
+			belle_sip_object_unref(t);
+			
 		break;
 		default:
 			/*ignored*/
