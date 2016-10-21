@@ -1253,10 +1253,12 @@ static void ice_stun_server_request_free(IceStunServerRequest *request) {
 static int ice_send_message_to_socket(RtpTransport * rtptp, char* buf, size_t len, const struct sockaddr *from, socklen_t fromlen, const struct sockaddr *to, socklen_t tolen) {
 	mblk_t *m = rtp_session_create_packet_raw((const uint8_t *)buf, len);
 	int err;
+	struct addrinfo *v6ai = NULL;
+	
 	memcpy(&m->net_addr, from, fromlen);
 	m->net_addrlen = fromlen;
 	if ((rtptp->session->rtp.gs.sockfamily == AF_INET6) && (to->sa_family == AF_INET)) {
-		struct addrinfo *v6ai;
+		
 		char to_addr_str[64];
 		int to_port = 0;
 		memset(to_addr_str, 0, sizeof(to_addr_str));
@@ -1267,6 +1269,7 @@ static int ice_send_message_to_socket(RtpTransport * rtptp, char* buf, size_t le
 	}
 	err = meta_rtp_transport_modifier_inject_packet_to_send_to(rtptp, NULL, m, 0, to, tolen);
 	freemsg(m);
+	if (v6ai) bctbx_freeaddrinfo(v6ai);
 	return err;
 }
 
