@@ -398,12 +398,11 @@ static MSFilterMethod  mediacodec_h264_enc_methods[]={
 	{ 0,                                       NULL                       }
 };
 
-#ifndef _MSC_VER
 
 MSFilterDesc ms_mediacodec_h264_enc_desc={
 	.id=MS_MEDIACODEC_H264_ENC_ID,
 	.name="MSMediaCodecH264Enc",
-	.text="A H264 encoder based on android project.",
+	.text="A H264 encoder based on MediaCodec API.",
 	.category=MS_FILTER_ENCODER,
 	.enc_fmt="H264",
 	.ninputs=1,
@@ -417,26 +416,5 @@ MSFilterDesc ms_mediacodec_h264_enc_desc={
 	.flags=MS_FILTER_IS_PUMP
 };
 
-#else
-
-
-MSFilterDesc ms_mediacodec_h264_enc_desc={
-	MS_MEDIACODEC_H264_ENC_ID,
-	"MSMediaCodecH264Enc",
-	"A H264 encoder based on android project.",
-	MS_FILTER_ENCODER,
-	"H264",
-	1,
-	1,
-	enc_init,
-	enc_preprocess,
-	enc_process,
-	enc_postprocess,
-	enc_uninit,
-	mediacodec_h264_enc_methods,
-	MS_FILTER_IS_PUMP
-};
-
-#endif
 
 MS_FILTER_DESC_EXPORT(ms_mediacodec_h264_enc_desc)

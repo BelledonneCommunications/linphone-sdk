@@ -430,7 +430,6 @@ static MSFilterMethod  mediacodec_h264_dec_methods[]={
 	{	0                                                  ,	NULL              }
 };
 
-#ifndef _MSC_VER
 
 MSFilterDesc ms_mediacodec_h264_dec_desc={
 	.id=MS_MEDIACODEC_H264_DEC_ID,
@@ -448,26 +447,5 @@ MSFilterDesc ms_mediacodec_h264_dec_desc={
 	.methods=mediacodec_h264_dec_methods,
 	.flags=MS_FILTER_IS_PUMP
 };
-
-#else
-
-MSFilterDesc ms_mediacodec_h264_dec_desc={
-	MS_MEDIACODEC_H264_DEC_ID,
-	"MSMediaCodecH264Dec",
-	"A H264 decoder based on MediaCodec API.",
-	MS_FILTER_DECODER,
-	"H264",
-	1,
-	1,
-	dec_init,
-	dec_preprocess,
-	dec_process,
-	dec_postprocess,
-	dec_uninit,
-	mediacodec_h264_dec_methods,
-	MS_FILTER_IS_PUMP
-};
-
-#endif
 
 MS_FILTER_DESC_EXPORT(ms_mediacodec_h264_dec_desc)
