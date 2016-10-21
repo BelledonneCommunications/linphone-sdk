@@ -588,7 +588,12 @@ static void test_register_channel_inactive(void){
 		BC_ASSERT_EQUAL(belle_sip_listening_point_get_channel_count(lp),0,int,"%d");
 		register_test("tcp",1);
 		BC_ASSERT_EQUAL(belle_sip_listening_point_get_channel_count(lp),1,int,"%d");
-		belle_sip_stack_sleep(stack,5000);
+		belle_sip_stack_sleep(stack, 3000);
+		BC_ASSERT_EQUAL(belle_sip_listening_point_get_channel_count(lp),1,int,"%d");
+		register_test("tcp",1);
+		belle_sip_stack_sleep(stack, 3000);
+		BC_ASSERT_EQUAL(belle_sip_listening_point_get_channel_count(lp),1,int,"%d");
+		belle_sip_stack_sleep(stack,3000);
 		BC_ASSERT_EQUAL(belle_sip_listening_point_get_channel_count(lp),0,int,"%d");
 		belle_sip_stack_set_inactive_transport_timeout(stack,3600);
 	}
