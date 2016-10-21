@@ -130,14 +130,15 @@ static void on_channel_state_changed(belle_sip_channel_listener_t *l, belle_sip_
 					if (t->call_repair_timer) {
 						belle_sip_transaction_stop_timer(t, t->call_repair_timer);
 						belle_sip_object_unref(t->call_repair_timer);
+						t->call_repair_timer = NULL;
 					}
 				}
 			}
 
-			if (!t->timed_out && BELLE_SIP_OBJECT_IS_INSTANCE_OF(t, belle_sip_ist_t)) {
+			if (!t->timed_out && belle_sip_transaction_state_is_transient(t->state) && BELLE_SIP_OBJECT_IS_INSTANCE_OF(t, belle_sip_ist_t)) {
 				t->call_repair_timer = belle_sip_timeout_source_new((belle_sip_source_func_t)server_transaction_on_call_repair_timer, t, 32 * timercfg->T1);
 				belle_sip_transaction_start_timer(t, t->call_repair_timer);
-			} else if (!t->timed_out && BELLE_SIP_OBJECT_IS_INSTANCE_OF(t, belle_sip_ict_t)) {
+			} else if (!t->timed_out && belle_sip_transaction_state_is_transient(t->state) && BELLE_SIP_OBJECT_IS_INSTANCE_OF(t, belle_sip_ict_t)) {
 				t->call_repair_timer = belle_sip_timeout_source_new((belle_sip_source_func_t)client_transaction_on_call_repair_timer, t, 32 * timercfg->T1);
 				belle_sip_transaction_start_timer(t, t->call_repair_timer);
 			} else {
