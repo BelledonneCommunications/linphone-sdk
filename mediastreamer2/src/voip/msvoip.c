@@ -263,11 +263,6 @@ void ms_factory_init_voip(MSFactory *obj){
 	ms_srtp_init();
 	obj->devices_info = ms_devices_info_new();
 
-	/* register builtin VoIP MSFilter's */
-	for (i=0;ms_voip_filter_descs[i]!=NULL;i++){
-		ms_factory_register_filter(obj,ms_voip_filter_descs[i]);
-	}
-
 #if defined(VIDEO_ENABLED) && defined(MS2_FILTERS) && !defined(NO_FFMPEG) && defined(HAVE_LIBAVCODEC_AVCODEC_H)
 	ms_ffmpeg_check_init();
 	__register_ffmpeg_encoders_if_possible(obj);
@@ -277,6 +272,11 @@ void ms_factory_init_voip(MSFactory *obj){
 #if defined(__APPLE__) && defined(VIDEO_ENABLED)
 	_register_videotoolbox_if_supported(obj);
 #endif
+	
+	/* register builtin VoIP MSFilter's */
+	for (i=0;ms_voip_filter_descs[i]!=NULL;i++){
+		ms_factory_register_filter(obj,ms_voip_filter_descs[i]);
+	}
 
 	cm=ms_snd_card_manager_new();
 	ms_message("Registering all soundcard handlers");

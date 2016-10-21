@@ -435,7 +435,7 @@ static MSFilterMethod  mediacodec_h264_dec_methods[]={
 MSFilterDesc ms_mediacodec_h264_dec_desc={
 	.id=MS_MEDIACODEC_H264_DEC_ID,
 	.name="MSMediaCodecH264Dec",
-	.text="A H264 decoder based on android project.",
+	.text="A H264 decoder based on MediaCodec API.",
 	.category=MS_FILTER_DECODER,
 	.enc_fmt="H264",
 	.ninputs=1,
@@ -454,7 +454,7 @@ MSFilterDesc ms_mediacodec_h264_dec_desc={
 MSFilterDesc ms_mediacodec_h264_dec_desc={
 	MS_MEDIACODEC_H264_DEC_ID,
 	"MSMediaCodecH264Dec",
-	"A H264 decoder based on android project.",
+	"A H264 decoder based on MediaCodec API.",
 	MS_FILTER_DECODER,
 	"H264",
 	1,
