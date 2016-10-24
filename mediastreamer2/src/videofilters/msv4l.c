@@ -245,7 +245,7 @@ static mblk_t * v4lv2_grab_image(V4lState *s){
 			s->queued--;
 			/*decrement ref count of dequeued buffer */
 			ret=s->frames[buf.index];
-			ret->b_datap->db_ref--;
+			dblk_unref(ret->b_datap);
 			if (buf.bytesused<=30){
 				ms_warning("Ignoring empty buffer...");
 				return NULL;
@@ -256,13 +256,13 @@ static mblk_t * v4lv2_grab_image(V4lState *s){
 	/*queue buffers whose ref count has dropped to 1, because they are not
 	still used anywhere in the filter chain */
 	for(k=0;k<s->frame_max;++k){
-		if (s->frames[k]->b_datap->db_ref==1){
+		if (dblk_ref_value(s->frames[k]->b_datap)==1){
 			buf.index=(unsigned)k;
 			if (-1==ioctl (s->fd, VIDIOC_QBUF, &buf))
 				ms_warning("VIDIOC_QBUF %i failed: %s",k,  strerror(errno));
 			else {
 				/*increment ref count of queued buffer*/
-				s->frames[k]->b_datap->db_ref++;
+				dblk_ref(s->frames[k]->b_datap);
 				s->queued++;
 			}
 		}
@@ -747,7 +747,7 @@ static mblk_t * v4l_make_mire(V4lState *s){
 	int red,green=0,blue=0;
 	if (s->mire==NULL){
 		s->mire=allocb(s->vsize.width*s->vsize.height*3,0);
-		s->mire->b_wptr=s->mire->b_datap->db_lim;
+		s->mire->b_wptr=dblk_lim(s->mire->b_datap);
 	}
 	data=s->mire->b_rptr;
 	for (i=0;i<s->vsize.height;++i){
@@ -836,8 +836,8 @@ static void v4l_do_munmap(V4lState *s){
 	for(i=0;i<s->frame_max;++i){
 		if (s->v4lv2){
 			mblk_t *msg=s->frames[i];
-			int len=msg->b_datap->db_lim-msg->b_datap->db_base;
-			if (munmap(msg->b_datap->db_base,len)<0){
+			int len=dblk_lim(msg->b_datap)-dblk_base(msg->b_datap);
+			if (munmap(dblk_base(msg->b_datap),len)<0){
 				ms_warning("MSV4l: Fail to unmap: %s",strerror(errno));
 			}
 		}

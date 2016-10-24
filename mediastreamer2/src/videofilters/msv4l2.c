@@ -55,15 +55,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 static void inc_ref(mblk_t*m){
-	m->b_datap->db_ref++;
+	dblk_ref(m->b_datap);
 	if (m->b_cont)
 		inc_ref(m->b_cont);
 }
 
 static void dec_ref(mblk_t *m){
-	m->b_datap->db_ref--;
 	if (m->b_cont)
 		dec_ref(m->b_cont);
+	dblk_unref(m->b_datap);
 }
 
 typedef struct V4l2State{
@@ -597,7 +597,7 @@ static mblk_t * v4lv2_grab_image(V4l2State *s, int poll_timeout_ms){
 	/*queue buffers whose ref count is 1, because they are not
 	 used anywhere in the filter chain */
 	for(k=0;k<s->frame_max;++k){
-		if (s->frames[k]->b_datap->db_ref==1){
+		if (dblk_ref_value(s->frames[k]->b_datap)==1){
 			no_slot_available = FALSE;
 			buf.index=k;
 			if (-1==v4l2_ioctl (s->fd, VIDIOC_QBUF, &buf))
@@ -629,8 +629,8 @@ static void msv4l2_do_munmap(V4l2State *s){
 
 	for(i=0;i<s->frame_max;++i){
 		mblk_t *msg=s->frames[i]->b_cont;
-		int len=msg->b_datap->db_lim-msg->b_datap->db_base;
-		if (v4l2_munmap(msg->b_datap->db_base,len)<0){
+		int len=dblk_lim(msg->b_datap)-dblk_base(msg->b_datap);
+		if (v4l2_munmap(dblk_base(msg->b_datap),len)<0){
 			ms_warning("MSV4l2: Fail to unmap: %s",strerror(errno));
 		}
 		freemsg(s->frames[i]);

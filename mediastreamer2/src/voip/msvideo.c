@@ -78,7 +78,7 @@ int ms_yuv_buf_init_from_mblk(YuvBuf *buf, mblk_t *m){
 	int w,h;
 
 	// read header
-	mblk_video_header* hdr = (mblk_video_header*)m->b_datap->db_base;
+	mblk_video_header* hdr = (mblk_video_header*)dblk_base(m->b_datap);
 	w = hdr->w;
 	h = hdr->h;
 
@@ -238,7 +238,7 @@ void ms_yuv_buf_allocator_free(MSYuvBufAllocator *obj) {
 	mblk_t *m;
 	int possibly_leaked = 0;
 	for(m = qbegin(&obj->q); !qend(&obj->q,m); m = qnext(&obj->q, m)){
-		if (m->b_datap->db_ref > 1) possibly_leaked++;
+		if (dblk_ref_value(m->b_datap) > 1) possibly_leaked++;
 	}
 	msgb_allocator_uninit(obj);
 	ms_free(obj);

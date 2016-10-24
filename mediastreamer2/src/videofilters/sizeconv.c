@@ -78,7 +78,7 @@ static void size_conv_postprocess(MSFilter *f){
 
 static mblk_t *size_conv_alloc_mblk(SizeConvState *s){
 	if (s->om!=NULL){
-		int ref=s->om->b_datap->db_ref;
+		int ref=dblk_ref_value(s->om->b_datap);
 		if (ref==1){
 			return dupmsg(s->om);
 		}else{

@@ -807,7 +807,7 @@ static void process_frame(MSFilter *f, mblk_t *inm){
 	AVCodecContext *c=&s->av_context;
 	int error,got_packet;
 	mblk_t *comp_buf=s->comp_buf;
-	int comp_buf_sz=comp_buf->b_datap->db_lim-comp_buf->b_datap->db_base;
+	int comp_buf_sz=dblk_lim(comp_buf->b_datap)-dblk_base(comp_buf->b_datap);
 	YuvBuf yuv;
 	struct AVPacket packet;
 	memset(&packet, 0, sizeof(packet));
@@ -828,7 +828,7 @@ static void process_frame(MSFilter *f, mblk_t *inm){
 		s->pict->pict_type=FF_I_TYPE;
 		s->req_vfu=FALSE;
 	}
-	comp_buf->b_rptr=comp_buf->b_wptr=comp_buf->b_datap->db_base;
+	comp_buf->b_rptr=comp_buf->b_wptr=dblk_base(comp_buf->b_datap);
 #if HAVE_AVCODEC_SNOW
 	if (s->codec==CODEC_ID_SNOW){
 		//prepend picture size

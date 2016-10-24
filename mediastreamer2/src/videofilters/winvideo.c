@@ -521,7 +521,7 @@ static void v4w_process(MSFilter * obj){
 					MSVideoSize roi;
 					if (s->reverted==NULL){
 						s->reverted=allocb(om->b_wptr-om->b_rptr,0);
-						s->reverted->b_wptr=s->reverted->b_datap->db_lim;
+						s->reverted->b_wptr=dblk_lim(s->reverted->b_datap);
 					}
 					roi=s->vsize;
 					rgb24_copy_revert(s->reverted->b_rptr,roi.width*3,
