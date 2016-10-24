@@ -416,5 +416,3 @@ MSFilterDesc ms_mediacodec_h264_enc_desc={
 	.flags=MS_FILTER_IS_PUMP
 };
 
-
-MS_FILTER_DESC_EXPORT(ms_mediacodec_h264_enc_desc)
