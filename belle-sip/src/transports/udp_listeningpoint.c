@@ -26,11 +26,12 @@ struct belle_sip_udp_listening_point{
 
 
 static void belle_sip_udp_listening_point_uninit(belle_sip_udp_listening_point_t *lp){
-	if (lp->sock!=-1) belle_sip_close_socket(lp->sock);
 	if (lp->source) {
 		belle_sip_main_loop_remove_source(lp->base.stack->ml,lp->source);
 		belle_sip_object_unref(lp->source);
+		lp->source = NULL;
 	}
+	if (lp->sock!=-1) belle_sip_close_socket(lp->sock);
 }
 
 static belle_sip_channel_t *udp_create_channel(belle_sip_listening_point_t *lp, const belle_sip_hop_t *hop){
