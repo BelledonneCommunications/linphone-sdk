@@ -576,7 +576,10 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 				}else if (!as_uas){
 					if (code >= 300 || (code==0 && belle_sip_transaction_get_state(transaction)==BELLE_SIP_TRANSACTION_TERMINATED)){
 						/*case of a SUBSCRIBE refresh that is rejected or unanswered*/
-						delete_dialog = TRUE;
+						if (code != 491){
+							/*request pending is not fatal for the dialog*/
+							delete_dialog = TRUE;
+						}
 					}
 				}
 			}else if (is_notify){

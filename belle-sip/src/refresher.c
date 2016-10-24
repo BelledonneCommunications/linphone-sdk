@@ -330,7 +330,8 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 		}
 		case 491: {
 			if (refresher->target_expires>0) {
-				retry_later_on_io_error(refresher);
+				int delay = belle_sip_random() % 10000; /*schedule a retry between 0 and 10 seconds*/
+				schedule_timer_at(refresher, delay, RETRY);
 				return; /*do not notify this kind of error*/
 			}
 		}
