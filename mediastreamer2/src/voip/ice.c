@@ -928,7 +928,6 @@ static bool_t ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *
 	MSTimeSpec curtime = ice_current_time();
 	char source_addr_str[64];
 	int source_port = 0;
-	bool_t gathering_in_progress = FALSE;
 
 	if ((cl->rtp_session != NULL) && (cl->gathering_candidates == FALSE) && (cl->state != ICL_Completed) && (ice_check_list_candidates_gathered(cl) == FALSE)) {
 		cl->gathering_candidates = TRUE;
@@ -956,7 +955,6 @@ static bool_t ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *
 				request->next_transmission_time = ice_add_ms(curtime, 2 * si->index * ICE_DEFAULT_TA_DURATION);
 			}
 			ice_check_list_add_stun_server_request(cl, request);
-			gathering_in_progress = TRUE;
 		} else {
 			ms_error("ice: no rtp socket found for session [%p]",cl->rtp_session);
 		}
@@ -977,16 +975,17 @@ static bool_t ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *
 			request->next_transmission_time = ice_add_ms(curtime, 2 * si->index * ICE_DEFAULT_TA_DURATION + ICE_DEFAULT_TA_DURATION);
 			ice_check_list_add_stun_server_request(cl, request);
 			if (cl->session->turn_enabled) ms_turn_context_set_state(cl->rtcp_turn_context, MS_TURN_CONTEXT_STATE_CREATING_ALLOCATION);
-			gathering_in_progress = TRUE;
 		}else {
 			ms_message("ice: no rtcp socket found for session [%p]",cl->rtp_session);
 		}
 		si->index++;
 	} else {
-		ms_message("ice: candidate gathering skipped for rtp session [%p] with check list [%p] in state [%s]",cl->rtp_session,cl,ice_check_list_state_to_string(cl->state));
+		if (cl->gathering_candidates == FALSE) {
+			ms_message("ice: candidate gathering skipped for rtp session [%p] with check list [%p] in state [%s]",cl->rtp_session,cl,ice_check_list_state_to_string(cl->state));
+		}
 	}
 
-	return gathering_in_progress;
+	return cl->gathering_candidates;
 }
 
 static void ice_check_list_deallocate_turn_candidate(IceCheckList *cl, MSTurnContext *turn_context, RtpTransport *rtptp, OrtpStream *stream) {
