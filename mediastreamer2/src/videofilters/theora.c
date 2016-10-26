@@ -260,7 +260,7 @@ static void packetize_and_send(MSFilter *f, EncState *s, mblk_t *om, uint32_t ti
 	int npackets=0;
 	static const int ident=0xdede;
 	while(om!=NULL){
-		if (om->b_wptr-om->b_rptr>=s->mtu){
+		if ((unsigned int)(om->b_wptr-om->b_rptr)>=s->mtu){
 			packet=dupb(om);
 			packet->b_wptr=packet->b_rptr+s->mtu;
 			om->b_rptr=packet->b_wptr;
