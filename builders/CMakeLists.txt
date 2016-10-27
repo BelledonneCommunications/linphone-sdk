@@ -279,4 +279,10 @@ else()
 		linphone_builder_add_builder_to_target(TARGET_flexisip flexisip)
 	endif()
 
+	if(LINPHONE_BUILDER_EXTERNAL_BUILDERS_PATH)
+		message(STATUS "Including external builders from ${LINPHONE_BUILDER_EXTERNAL_BUILDERS_PATH}")
+		set(LINPHONE_BUILDER_INCLUDING_BUILDERS_FROM_EXTERNAL_BUILDERS_PATH TRUE)
+		include(${LINPHONE_BUILDER_EXTERNAL_BUILDERS_PATH}/CMakeLists.txt)
+	endif()
+
 endif()

@@ -38,6 +38,7 @@ set(LINPHONE_BUILDER_EXTERNAL_SOURCE_PATH "" CACHE STRING "External path to sour
 set(LINPHONE_BUILDER_DUMMY_LIBRARIES "" CACHE STRING "Dummy libraries to be generated.")
 option(LINPHONE_BUILDER_USE_SYSTEM_DEPENDENCIES "Use system dependencies." NO)
 option(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS "Group external source path builders in a single external project." NO)
+set(LINPHONE_BUILDER_EXTERNAL_BUILDERS_PATH "" CACHE STRING "Path to external builders.")
 
 
 # Include macros definition to be used by builders
