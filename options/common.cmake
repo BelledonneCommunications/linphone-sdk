@@ -20,37 +20,6 @@
 #
 ############################################################################
 
-# Helper macros to help define options
-
-# This macro can be used to add an option. Give it option name and description,
-# default value and optionally dependent predicate and value
-macro(add_dependent_option NAME DESCRIPTION DEFAULT_VALUE CONDITION CONDITION_VALUE)
-	string(TOUPPER ${NAME} UPPERCASE_NAME)
-	string(REGEX REPLACE  " " "_" UPPERCASE_NAME ${UPPERCASE_NAME})
-	string(REGEX REPLACE  "\\+" "P" UPPERCASE_NAME ${UPPERCASE_NAME})
-	cmake_dependent_option(ENABLE_${UPPERCASE_NAME} "${DESCRIPTION}" "${DEFAULT_VALUE}" "${CONDITION}" "${CONDITION_VALUE}")
-	add_feature_info("${NAME}" "ENABLE_${UPPERCASE_NAME}" "${DESCRIPTION}")
-endmacro()
-
-macro(add_strict_dependent_option NAME DESCRIPTION DEFAULT_VALUE CONDITION CONDITION_VALUE STRICT_CONDITION ERROR_MSG)
-	add_dependent_option("${NAME}" "${DESCRIPTION}" "${DEFAULT_VALUE}" "${CONDITION}" "${CONDITION_VALUE}")
-	string(TOUPPER ${NAME} UPPERCASE_NAME)
-	string(REGEX REPLACE  " " "_" UPPERCASE_NAME ${UPPERCASE_NAME})
-	string(REGEX REPLACE  "\\+" "P" UPPERCASE_NAME ${UPPERCASE_NAME})
-	if(${ENABLE_${UPPERCASE_NAME}} AND NOT ${STRICT_CONDITION})
-		message(FATAL_ERROR "Trying to enable ${NAME} but ${ERROR_MSG}")
-	endif()
-endmacro()
-
-macro(add_option NAME DESCRIPTION DEFAULT_VALUE)
-	string(TOUPPER ${NAME} UPPERCASE_NAME)
-	string(REGEX REPLACE  " " "_" UPPERCASE_NAME ${UPPERCASE_NAME})
-	string(REGEX REPLACE  "\\+" "P" UPPERCASE_NAME ${UPPERCASE_NAME})
-	option(ENABLE_${UPPERCASE_NAME} "Enable ${NAME}: ${DESCRIPTION}" "${DEFAULT_VALUE}")
-	add_feature_info("${NAME}" "ENABLE_${UPPERCASE_NAME}" "${DESCRIPTION}")
-endmacro()
-
-
 # Common build options
 
 option(ENABLE_UNIT_TESTS "Enable unit tests support with BCUnit library." "${DEFAULT_VALUE_ENABLE_UNIT_TESTS}")

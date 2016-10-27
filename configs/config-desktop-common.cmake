@@ -19,7 +19,14 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 ############################################################################
-if (ENABLE_STATIC_ONLY)
+
+# Define options that are specific to the desktop config
+
+linphone_builder_add_option("Theora" "Theora video encoding/decoding support." "${DEFAULT_VALUE_ENABLE_THEORA}")
+linphone_builder_add_option("Static only" "Enable compilation of libraries in static mode." "${DEFAULT_VALUE_ENABLE_STATIC_ONLY}")
+
+
+if(ENABLE_STATIC_ONLY)
 	set(DEFAULT_VALUE_CMAKE_LINKING_TYPE "-DENABLE_SHARED=NO" "-DENABLE_STATIC=YES")
 else()
 	set(DEFAULT_VALUE_CMAKE_LINKING_TYPE "-DENABLE_SHARED=YES" "-DENABLE_STATIC=NO")
@@ -83,13 +90,6 @@ endif()
 # Include builders
 include(builders/CMakeLists.txt)
 
-
-# Define options that are specific to the desktop config
-
-add_option("Theora" "Theora video encoding/decoding support." "${DEFAULT_VALUE_ENABLE_THEORA}")
-
-
-
 # linphone
 if(WIN32)
 	linphone_builder_add_cmake_option(linphone "-DENABLE_RELATIVE_PREFIX=YES")
@@ -113,7 +113,7 @@ if(NOT WIN32)
 	set(EP_opencoreamr_EXTRA_LDFLAGS "${EP_opencoreamr_EXTRA_LDFLAGS} -fPIC")
 endif()
 
-if (ENABLE_STATIC_ONLY)
+if(ENABLE_STATIC_ONLY)
 	# ffmpeg
 	set(EP_ffmpeg_LINKING_TYPE "--enable-static" "--disable-shared" "--enable-pic")
 
