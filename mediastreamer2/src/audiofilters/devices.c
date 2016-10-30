@@ -115,6 +115,7 @@ static SoundDeviceDescription devices[]={
 	{	"samsung",				"GT-S7580",				"hawaii",		DEVICE_HAS_CRAPPY_OPENGL | DEVICE_HAS_BUILTIN_AEC, 0},
 	{	"samsung",				"SHV-E210S",			"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA | DEVICE_HAS_BUILTIN_AEC, 0 },
 	{	"samsung",				"SHV-E210L",			"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA | DEVICE_HAS_BUILTIN_AEC, 0 },
+	{	"samsung",				"SHV-E220S",			"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA | DEVICE_HAS_BUILTIN_AEC, 0 },
 	
 	{	"Sony Ericsson",		"ST15a",				"",				0, 	150 },
 	{	"Sony Ericsson",		"S51SE",				"",				0,	150 },
