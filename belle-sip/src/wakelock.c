@@ -114,13 +114,16 @@ unsigned long wake_lock_acquire(const char *tag) {
 				belle_sip_message("bellesip_wake_lock_acquire(): Android wake lock acquired [ref=%p]", (void *)lock);
 				return (unsigned long)lock;
 			} else {
-				belle_sip_message("wake_lock_acquire(): wake lock creation failed");
+				belle_sip_message("bellesip_wake_lock_acquire(): wake lock creation failed");
 			}
 		} else {
 			belle_sip_error("bellesip_wake_lock_acquire(): cannot attach current thread to the JVM");
 		}
 	} else {
-		belle_sip_error("bellesip_wake_lock_acquire(): cannot acquire wake lock. No JVM found");
+		if (ctx.jvm == NULL)
+			belle_sip_error("bellesip_wake_lock_acquire(): cannot acquire wake lock. No JVM found");
+		else
+			belle_sip_error("bellesip_wake_lock_acquire(): cannot acquire wake lock. No PowerManager found");
 	}
 	return 0;
 }
@@ -133,13 +136,16 @@ void wake_lock_release(unsigned long id) {
 			JNIEnv *env;
 			if((env = get_jni_env())) {
 				(*env)->CallVoidMethod(env, lock, ctx.releaseID);
-				belle_sip_message("wake_lock_release(): Android wake lock released [ref=%p]", (void *)lock);
+				belle_sip_message("bellesip_wake_lock_release(): Android wake lock released [ref=%p]", (void *)lock);
 				(*env)->DeleteGlobalRef(env, lock);
 			} else {
 				belle_sip_error("bellesip_wake_lock_release(): cannot attach current thread to the JVM");
 			}
 		}
 	} else {
-		belle_sip_error("wake_lock_release(): cannot release wake lock. No JVM found");
+		if(ctx.jvm == NULL)
+			belle_sip_error("bellesip_wake_lock_release(): cannot release wake lock. No JVM found");
+		else
+			belle_sip_error("bellesip_wake_lock_release(): cannot release wake lock. No PowerManager found");
 	}
 }
