@@ -545,31 +545,25 @@ static void android_snd_read_postprocess(MSFilter *obj) {
 	SLresult result;
 	OpenSLESInputContext *ictx = (OpenSLESInputContext*)obj->data;
 
-	ms_ticker_set_time_func(obj->ticker, NULL, NULL);
-	ms_mutex_lock(&ictx->mutex);
-	ms_ticker_synchronizer_destroy(ictx->mTickerSynchronizer);
-	ictx->mTickerSynchronizer = NULL;
-	ms_mutex_unlock(&ictx->mutex);
-
 	if (ictx->aec) {
 		JNIEnv *env = ms_get_jni_env();
 		env->DeleteGlobalRef(ictx->aec);
 		ictx->aec = NULL;
 	}
 
-    if (ictx->recorderRecord != NULL) {
-        result = (*ictx->recorderRecord)->SetRecordState(ictx->recorderRecord, SL_RECORDSTATE_STOPPED);
-        if (SL_RESULT_SUCCESS != result) {
-            ms_error("OpenSLES Error %u while stopping the audio recorder", result);
-        }
-    }
+	if (ictx->recorderRecord != NULL) {
+		result = (*ictx->recorderRecord)->SetRecordState(ictx->recorderRecord, SL_RECORDSTATE_STOPPED);
+		if (SL_RESULT_SUCCESS != result) {
+			ms_error("OpenSLES Error %u while stopping the audio recorder", result);
+		}
+	}
 
-    if (ictx->recorderBufferQueue != NULL) {
-        result = (*ictx->recorderBufferQueue)->Clear(ictx->recorderBufferQueue);
-        if (SL_RESULT_SUCCESS != result) {
-            ms_error("OpenSLES Error %u while clearing the audio recorder buffer queue", result);
-        }
-    }
+	if (ictx->recorderBufferQueue != NULL) {
+		result = (*ictx->recorderBufferQueue)->Clear(ictx->recorderBufferQueue);
+		if (SL_RESULT_SUCCESS != result) {
+			ms_error("OpenSLES Error %u while clearing the audio recorder buffer queue", result);
+		}
+	}
 
 	if (ictx->recorderObject != NULL) {
 		(*ictx->recorderObject)->Destroy(ictx->recorderObject);
@@ -577,6 +571,12 @@ static void android_snd_read_postprocess(MSFilter *obj) {
 		ictx->recorderRecord = NULL;
 		ictx->recorderBufferQueue = NULL;
 	}
+	
+	ms_ticker_set_time_func(obj->ticker, NULL, NULL);
+	ms_mutex_lock(&ictx->mutex);
+	ms_ticker_synchronizer_destroy(ictx->mTickerSynchronizer);
+	ictx->mTickerSynchronizer = NULL;
+	ms_mutex_unlock(&ictx->mutex);
 }
 
 static void android_snd_read_uninit(MSFilter *obj) {
