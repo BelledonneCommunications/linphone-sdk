@@ -63,8 +63,7 @@ static void equalizer_rate_update( EqualizerState* s, int rate ){
 	} else {
 		nFFT = 512;
 	}
-	ms_message("Equalizer rate: %d, selecting %d steps for FFT", rate, nFFT);
-
+	
 	s->rate=rate;
 	s->nfft=nFFT;
 	if (s->fft_cpx != NULL) ms_free(s->fft_cpx);
@@ -219,6 +218,9 @@ static void norm_and_apodize(ms_word16_t *s, int len){
 
 static void equalizer_state_compute_impulse_response(EqualizerState *s){
 	void *fft_handle=ms_fft_init(s->nfft);
+	
+	ms_message("Equalizer rate: %d, selecting %d steps for FFT", s->rate, s->nfft);
+
 	ms_message("Spectral domain:");
 	dump_table(s->fft_cpx,s->nfft);
 	ms_ifft(fft_handle,s->fft_cpx,s->fir);
