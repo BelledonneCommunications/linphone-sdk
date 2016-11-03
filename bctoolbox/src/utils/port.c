@@ -1235,6 +1235,7 @@ void bctbx_sockaddr_ipv4_to_ipv6(const struct sockaddr *v4, struct sockaddr *res
 		v4m = convert_to_v4mapped(&ai);
 		*result_len = sizeof(struct sockaddr_in6);
 		memcpy(v6, v4m->ai_addr, *result_len);
+		bctbx_freeaddrinfo(v4m);
 	}
 }
 
