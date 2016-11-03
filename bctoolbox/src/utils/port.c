@@ -958,14 +958,16 @@ ssize_t bctbx_write(int fd, const void *buf, size_t nbytes) {
 
 #endif
 
+static char allocated_by_bctbx_magic[10] = "bctbx";
 
 static struct addrinfo *_bctbx_alloc_addrinfo(int ai_family, int socktype, int proto){
-	struct addrinfo *ai=(struct addrinfo*)bctbx_malloc0(sizeof(struct addrinfo));
+	struct addrinfo *ai=(struct addrinfo*)bctbx_malloc0(sizeof(struct addrinfo) + sizeof(struct sockaddr_storage));
 	ai->ai_family=ai_family;
 	ai->ai_socktype=socktype;
 	ai->ai_protocol=proto;
 	ai->ai_addrlen=AF_INET6 ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in);
-	ai->ai_addr=(struct sockaddr *) bctbx_malloc0(ai->ai_addrlen);
+	ai->ai_addr=(struct sockaddr*)(((unsigned char*)ai) + sizeof(struct addrinfo));
+	ai->ai_canonname = allocated_by_bctbx_magic; /*this is the way we will recognize our own allocated addrinfo structures in bctbx_freeaddrinfo()*/
 	return ai;
 }
 
@@ -1051,29 +1053,7 @@ int bctbx_getaddrinfo(const char *node, const char *service, const struct addrin
 	return getaddrinfo(node, service, hints, res);
 }
 
-void _bctbx_freeaddrinfo(struct addrinfo *res){
-	struct addrinfo *it,*next_it;
-	for(it=res;it!=NULL;it=next_it){
-		next_it=it->ai_next;
-		bctbx_free(it->ai_addr);
-		bctbx_free(it);
-	}
-}
 
-void bctbx_freeaddrinfo(struct addrinfo *res){
-	struct addrinfo *it,*previt=NULL;
-	struct addrinfo *allocated_by_bctbx=NULL;
-	for(it=res;it!=NULL;it=it->ai_next){
-		if (it->ai_flags & AI_V4MAPPED){
-			allocated_by_bctbx=it;
-			if (previt) previt->ai_next=NULL;
-			break;
-		}
-		previt=it;
-	}
-	if (res!=allocated_by_bctbx) freeaddrinfo(res);
-	if (allocated_by_bctbx) _bctbx_freeaddrinfo(allocated_by_bctbx);
-}
 
 #else
 
@@ -1095,10 +1075,6 @@ int bctbx_getaddrinfo(const char *node, const char *service, const struct addrin
 #endif
 	return result;
 
-}
-
-void bctbx_freeaddrinfo(struct addrinfo *res){
-	freeaddrinfo(res);
 }
 
 #endif
@@ -1420,3 +1396,28 @@ int bctbx_get_local_ip_for(int type, const char *dest, int port, char *result, s
 	if (port == 0) port = 5060;
 	return get_local_ip_for_with_connect(type, dest, port, result, result_len);
 }
+
+void _bctbx_freeaddrinfo(struct addrinfo *res){
+	struct addrinfo *it,*next_it;
+	for(it=res;it!=NULL;it=next_it){
+		next_it=it->ai_next;
+		bctbx_free(it);
+	}
+}
+
+void bctbx_freeaddrinfo(struct addrinfo *res){
+	struct addrinfo *it,*previt=NULL;
+	struct addrinfo *allocated_by_bctbx=NULL;
+	
+	for(it=res;it!=NULL;it=it->ai_next){
+		if (it->ai_canonname ==  allocated_by_bctbx_magic){
+			allocated_by_bctbx=it;
+			if (previt) previt->ai_next=NULL;
+			break;
+		}
+		previt=it;
+	}
+	if (res!=allocated_by_bctbx) freeaddrinfo(res);
+	if (allocated_by_bctbx) _bctbx_freeaddrinfo(allocated_by_bctbx);
+}
+
