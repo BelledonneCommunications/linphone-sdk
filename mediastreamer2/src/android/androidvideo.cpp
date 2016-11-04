@@ -221,7 +221,7 @@ static int video_set_native_preview_window(MSFilter *f, void *arg) {
 	
 	ms_mutex_lock(&d->mutex);
 
-	jobject w = *((jobject*)arg);
+	jobject w = (jobject)*((unsigned long*)arg);
 
 	if (w == d->previewWindow) {
 		ms_mutex_unlock(&d->mutex);
@@ -266,7 +266,7 @@ static int video_set_native_preview_window(MSFilter *f, void *arg) {
 
 static int video_get_native_preview_window(MSFilter *f, void *arg) {
 	AndroidReaderContext* d = (AndroidReaderContext*) f->data;
-	arg = &d->previewWindow;
+	*((unsigned long *)arg) = (unsigned long)d->previewWindow;
 	return 0;
 }
 
