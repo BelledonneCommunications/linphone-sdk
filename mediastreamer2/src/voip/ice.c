@@ -3406,20 +3406,21 @@ static void ice_remove_waiting_and_frozen_pairs_from_list(bctbx_list_t **list, u
 	}
 }
 
-static void ice_stop_retransmission_for_in_progress_pair(IceCandidatePair *pair, const uint16_t *componentID)
-{
-	if ((pair->state == ICP_InProgress) && (pair->local->componentID == *componentID)) {
-		/* Set the retransmission number to the max to stop retransmissions for this pair. */
-		pair->retransmissions = ICE_MAX_RETRANSMISSIONS;
-	}
-}
-
 static void ice_conclude_waiting_frozen_and_inprogress_pairs(const IceValidCandidatePair *valid_pair, IceCheckList *cl)
 {
 	if (valid_pair->valid->is_nominated == TRUE) {
+		bctbx_list_t *elem;
 		ice_remove_waiting_and_frozen_pairs_from_list(&cl->check_list, valid_pair->valid->local->componentID);
 		ice_remove_waiting_and_frozen_pairs_from_list(&cl->triggered_checks_queue, valid_pair->valid->local->componentID);
-		bctbx_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_stop_retransmission_for_in_progress_pair, &valid_pair->valid->local->componentID);
+		
+		for (elem = cl->check_list ; elem != NULL; elem = elem->next){
+			IceCandidatePair *pair = (IceCandidatePair*) elem->data;
+			if ((pair->state == ICP_InProgress) && (pair->local->componentID == valid_pair->valid->local->componentID)
+				&& pair->priority < valid_pair->valid->priority){
+				/* Set the retransmission number to the max to stop retransmissions for this pair. */
+				pair->retransmissions = ICE_MAX_RETRANSMISSIONS;
+			}
+		}
 	}
 }
 
@@ -3589,7 +3590,8 @@ static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session)
 				ice_dump_valid_list(cl);
 				/* Initialise keepalive time. */
 				cl->keepalive_time = ice_current_time();
-				ice_check_list_stop_retransmissions(cl);
+				/*don't stop retransmissions for the controlled side, so that we get a chance to complete the pairs that the remote has selected.*/
+				if (cl->session->role == IR_Controlling) ice_check_list_stop_retransmissions(cl);
 				result = ice_check_list_selected_valid_remote_candidate(cl, &rtp_remote_candidate, &rtcp_remote_candidate);
 				if (result == TRUE) {
 					rtp_session_set_remote_addr_full(rtp_session, rtp_remote_candidate->taddr.ip, rtp_remote_candidate->taddr.port, rtcp_remote_candidate->taddr.ip, rtcp_remote_candidate->taddr.port);
