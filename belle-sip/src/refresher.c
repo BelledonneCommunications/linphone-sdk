@@ -69,7 +69,8 @@ static void cancel_retry(belle_sip_refresher_t* refresher) {
 	}
 }
 static void schedule_timer_at(belle_sip_refresher_t* refresher,int delay, timer_purpose_t purpose) {
-	belle_sip_message("Refresher: scheduling next timer in %i ms",delay);
+	belle_sip_message("Refresher[%p]: scheduling next timer in %i ms for purpose [%s]",refresher, delay,
+		purpose == NORMAL_REFRESH ? "normal refresh" : "retry");
 	refresher->timer_purpose=purpose;
 	/*cancel timer if any*/
 	cancel_retry(refresher);
@@ -266,7 +267,7 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 			}
 		}
 		else belle_sip_message("Refresher [%p] not scheduling next refresh, because it was stopped",refresher);
-	}else{/*special error cases*/
+	}else if (response_code >= 300) {/*special error cases*/
 		switch (response_code) {
 		case 301:
 		case 302:
