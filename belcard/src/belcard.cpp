@@ -74,9 +74,10 @@ BelCard::BelCard() : BelCardGeneric() {
 bool comparePropertiesUsingPrefParam(const shared_ptr<BelCardProperty>& prop1, const shared_ptr<BelCardProperty>& prop2) {
 	shared_ptr<BelCardPrefParam> pref1 = prop1->getPrefParam();
 	shared_ptr<BelCardPrefParam> pref2 = prop2->getPrefParam();
-	if (pref2 == NULL) {
+	if ((pref1 == nullptr) && (pref2 == nullptr)) return false;
+	if (pref2 == nullptr) {
 		return true;
-	} else if (pref1 == NULL) {
+	} else if (pref1 == nullptr) {
 		return false;
 	} else {
 		return pref1->getValue() < pref2->getValue();
