@@ -61,6 +61,7 @@ static void belle_sip_dns_srv_destroy(belle_sip_dns_srv_t *obj){
 	}
 	if (obj->a_resolver){
 		belle_sip_resolver_context_cancel(obj->a_resolver);
+		belle_sip_object_unref(obj->a_resolver);
 		obj->a_resolver=NULL;
 	}
 	if (obj->a_results){
@@ -101,8 +102,9 @@ BELLE_SIP_INSTANCIATE_VPTR(belle_sip_dns_srv_t, belle_sip_object_t,belle_sip_dns
 struct belle_sip_resolver_context{
 	belle_sip_source_t source;
 	belle_sip_stack_t *stack;
-	uint8_t done;
-	uint8_t pad[3];
+	uint8_t notified;
+	uint8_t cancelled;
+	uint8_t pad[2];
 };
 
 struct belle_sip_simple_resolver_context{
@@ -122,7 +124,6 @@ struct belle_sip_simple_resolver_context{
 	int family;
 	int flags;
 	uint64_t start_time;
-	unsigned char results_notified;
 #ifdef USE_GETADDRINFO_FALLBACK
 	struct addrinfo *getaddrinfo_ai_list;
 	belle_sip_source_t *getaddrinfo_source;
@@ -159,8 +160,6 @@ struct belle_sip_dual_resolver_context{
 	belle_sip_resolver_context_t *aaaa_ctx;
 	struct addrinfo *a_results;
 	struct addrinfo *aaaa_results;
-	unsigned char a_done;
-	unsigned char aaaa_done;
 };
 
 void belle_sip_resolver_context_init(belle_sip_resolver_context_t *obj, belle_sip_stack_t *stack){
@@ -408,22 +407,56 @@ static belle_sip_list_t *srv_select_by_weight(belle_sip_list_t *srv_list){
 	return srv_list;/*no weight election was necessary, return original list*/
 }
 
-static void notify_results(belle_sip_simple_resolver_context_t *ctx){
-	ctx->base.done=TRUE;
-	if (!ctx->results_notified) {
-		if ((ctx->type == DNS_T_A) || (ctx->type == DNS_T_AAAA)) {
-			struct addrinfo **ai_list = &ctx->ai_list;
+static uint8_t belle_sip_resolver_context_notified(belle_sip_resolver_context_t *obj) {
+	return obj->notified;
+}
+
+static void simple_resolver_context_notify(belle_sip_resolver_context_t *obj) {
+	belle_sip_simple_resolver_context_t *ctx = BELLE_SIP_SIMPLE_RESOLVER_CONTEXT(obj);
+	if ((ctx->type == DNS_T_A) || (ctx->type == DNS_T_AAAA)) {
+		struct addrinfo **ai_list = &ctx->ai_list;
 #if USE_GETADDRINFO_FALLBACK
-			if (ctx->getaddrinfo_ai_list != NULL) ai_list = &ctx->getaddrinfo_ai_list;
+		if (ctx->getaddrinfo_ai_list != NULL) ai_list = &ctx->getaddrinfo_ai_list;
 #endif
-			ctx->cb(ctx->cb_data, ctx->name, *ai_list);
-			*ai_list = NULL;
-			ctx->results_notified = TRUE;
-		} else if (ctx->type == DNS_T_SRV) {
-			ctx->srv_list = srv_select_by_weight(ctx->srv_list);
-			ctx->srv_cb(ctx->srv_cb_data, ctx->name, ctx->srv_list);
-		}
+		ctx->cb(ctx->cb_data, ctx->name, *ai_list);
+		*ai_list = NULL;
+	} else if (ctx->type == DNS_T_SRV) {
+		ctx->srv_list = srv_select_by_weight(ctx->srv_list);
+		ctx->srv_cb(ctx->srv_cb_data, ctx->name, ctx->srv_list);
 	}
+}
+
+static void dual_resolver_context_notify(belle_sip_resolver_context_t *obj) {
+	belle_sip_dual_resolver_context_t *ctx = BELLE_SIP_DUAL_RESOLVER_CONTEXT(obj);
+	if (belle_sip_resolver_context_notified(BELLE_SIP_RESOLVER_CONTEXT(ctx->a_ctx)) && belle_sip_resolver_context_notified(BELLE_SIP_RESOLVER_CONTEXT(ctx->aaaa_ctx))) {
+		struct addrinfo *results = ctx->aaaa_results;
+		results = ai_list_append(results, ctx->a_results);
+		ctx->a_results = NULL;
+		ctx->aaaa_results = NULL;
+		ctx->cb(ctx->cb_data, ctx->name, results);
+	} else {
+		obj->notified = FALSE; /* Revert the notification of the dual resolver because in fact it has not finished yet */
+	}
+}
+
+static void combined_resolver_context_cleanup(belle_sip_combined_resolver_context_t *ctx) {
+	if (ctx->srv_ctx) {
+		belle_sip_object_unref(ctx->srv_ctx);
+		ctx->srv_ctx = NULL;
+	}
+	if (ctx->a_fallback_ctx) {
+		belle_sip_object_unref(ctx->a_fallback_ctx);
+		ctx->a_fallback_ctx = NULL;
+	}
+	belle_sip_list_free_with_data(ctx->srv_results, belle_sip_object_unref);
+	ctx->srv_results = NULL;
+}
+
+static void combined_resolver_context_notify(belle_sip_resolver_context_t *obj) {
+	belle_sip_combined_resolver_context_t *ctx = BELLE_SIP_COMBINED_RESOLVER_CONTEXT(obj);
+	ctx->cb(ctx->cb_data, ctx->name, ctx->final_results);
+	ctx->final_results = NULL;
+	combined_resolver_context_cleanup(ctx);
 }
 
 static void append_dns_result(belle_sip_simple_resolver_context_t *ctx, struct addrinfo **ai_list, struct sockaddr *addr, socklen_t addrlen){
@@ -457,7 +490,7 @@ static int resolver_process_data(belle_sip_simple_resolver_context_t *ctx, unsig
 	
 	if (simulated_timeout || ((revents & BELLE_SIP_EVENT_TIMEOUT) && ((int)(belle_sip_time_ms()-ctx->start_time)>=timeout))) {
 		belle_sip_error("%s timed-out", __FUNCTION__);
-		notify_results(ctx);
+		belle_sip_resolver_context_notify(BELLE_SIP_RESOLVER_CONTEXT(ctx));
 		return BELLE_SIP_STOP;
 	}
 	dns_res_enable_search(ctx->R, search_enabled);
@@ -508,7 +541,7 @@ static int resolver_process_data(belle_sip_simple_resolver_context_t *ctx, unsig
 #ifdef USE_GETADDRINFO_FALLBACK
 		ctx->getaddrinfo_cancelled = TRUE;
 #endif
-		notify_results(ctx);
+		belle_sip_resolver_context_notify(BELLE_SIP_RESOLVER_CONTEXT(ctx));
 		return BELLE_SIP_STOP;
 	}
 	if (error != DNS_EAGAIN) {
@@ -521,7 +554,7 @@ static int resolver_process_data(belle_sip_simple_resolver_context_t *ctx, unsig
 			return BELLE_SIP_CONTINUE;
 		}
 #else
-		notify_results(ctx);
+		belle_sip_resolver_context_notify(BELLE_SIP_RESOLVER_CONTEXT(ctx));
 		return BELLE_SIP_STOP;
 #endif
 	} else {
@@ -572,7 +605,7 @@ static void * _resolver_getaddrinfo_thread(void *ptr) {
 
 static int _resolver_getaddrinfo_callback(belle_sip_simple_resolver_context_t *ctx, unsigned int revents) {
 	if (!ctx->getaddrinfo_cancelled) {
-		notify_results(ctx);
+		belle_sip_resolver_context_notify(ctx);
 	}
 	belle_sip_object_unref(ctx);
 	return BELLE_SIP_STOP;
@@ -668,24 +701,22 @@ static int _resolver_start_query(belle_sip_simple_resolver_context_t *ctx) {
 	} else {
 		error=_resolver_send_query(ctx);
 	}
-	if (error==0 && !ctx->base.done) belle_sip_main_loop_add_source(ctx->base.stack->ml,(belle_sip_source_t*)ctx);
+	if (error==0 && !ctx->base.notified) belle_sip_main_loop_add_source(ctx->base.stack->ml,(belle_sip_source_t*)ctx);
 	return error;
 }
 
-static belle_sip_simple_resolver_context_t * resolver_start_query(belle_sip_simple_resolver_context_t *ctx){
-	int error=_resolver_start_query(ctx);
-	if (error==0){
-		if (!ctx->base.done){
-			/* the resolution could not be done synchronously, return the context*/
+static belle_sip_simple_resolver_context_t * resolver_start_query(belle_sip_simple_resolver_context_t *ctx) {
+	int error = _resolver_start_query(ctx);
+	if (error == 0) {
+		if (!ctx->base.notified) {
+			/* The resolution could not be done synchronously, return the context */
 			return ctx;
 		}
-		/*else resolution could be done synchronously*/
-	}else{
-		/*An error occured. We must notify the app.*/
-		notify_results(ctx);
+		/* Otherwise, resolution could be done synchronously */
+	} else {
+		/* An error occured. We must notify the app. */
+		belle_sip_resolver_context_notify(BELLE_SIP_RESOLVER_CONTEXT(ctx));
 	}
-	/*If it is failed or result could be found immediately, the context is now useless, we don't have to return it.*/
-	belle_sip_object_unref(ctx);
 	return NULL;
 }
 
@@ -773,38 +804,39 @@ static void belle_sip_dual_resolver_context_destroy(belle_sip_dual_resolver_cont
 	}
 }
 
-static void simple_resolver_cancel(belle_sip_resolver_context_t *obj){
-	belle_sip_main_loop_remove_source(obj->stack->ml,(belle_sip_source_t*)obj);
-	belle_sip_object_unref(obj);
+static void simple_resolver_context_cancel(belle_sip_resolver_context_t *obj) {
+	belle_sip_main_loop_remove_source(obj->stack->ml, (belle_sip_source_t *)obj);
 }
 
-static void combined_resolver_cancel(belle_sip_resolver_context_t *p){
-	belle_sip_combined_resolver_context_t *obj=(belle_sip_combined_resolver_context_t*)p;
-	
-	if (obj->srv_ctx){
-		belle_sip_resolver_context_cancel(obj->srv_ctx);
-		obj->srv_ctx=NULL;
+static void combined_resolver_context_cancel(belle_sip_resolver_context_t *obj) {
+	belle_sip_combined_resolver_context_t *ctx = BELLE_SIP_COMBINED_RESOLVER_CONTEXT(obj);
+	if (ctx->srv_ctx) {
+		belle_sip_resolver_context_cancel(ctx->srv_ctx);
+		belle_sip_object_unref(ctx->srv_ctx);
+		ctx->srv_ctx = NULL;
 	}
-	if (obj->a_fallback_ctx){
-		belle_sip_resolver_context_cancel(obj->a_fallback_ctx);
-		obj->a_fallback_ctx=NULL;
+	if (ctx->a_fallback_ctx) {
+		belle_sip_resolver_context_cancel(ctx->a_fallback_ctx);
+		belle_sip_object_unref(ctx->a_fallback_ctx);
+		ctx->a_fallback_ctx = NULL;
 	}
-	belle_sip_list_free_with_data(obj->srv_results,belle_sip_object_unref);
-	obj->srv_results=NULL;
-	belle_sip_object_unref(obj);
+	combined_resolver_context_cleanup(ctx);
 }
 
-static void dual_resolver_cancel(belle_sip_resolver_context_t *p){
-	belle_sip_dual_resolver_context_t *obj=(belle_sip_dual_resolver_context_t*)p;
-	if (obj->a_ctx){
-		belle_sip_resolver_context_cancel(obj->a_ctx);
-		obj->a_ctx=NULL;
+static void dual_resolver_context_cancel(belle_sip_resolver_context_t *obj) {
+	belle_sip_dual_resolver_context_t *ctx= BELLE_SIP_DUAL_RESOLVER_CONTEXT(obj);
+	if (ctx->a_ctx) {
+		belle_sip_resolver_context_cancel(ctx->a_ctx);
+		belle_sip_object_unref(ctx->a_ctx);
+		ctx->a_ctx = NULL;
 	}
-	if (obj->aaaa_ctx){
-		belle_sip_resolver_context_cancel(obj->aaaa_ctx);
-		obj->aaaa_ctx=NULL;
+	if (ctx->aaaa_ctx) {
+		belle_sip_resolver_context_cancel(ctx->aaaa_ctx);
+		belle_sip_object_unref(ctx->aaaa_ctx);
+		ctx->aaaa_ctx = NULL;
 	}
-	belle_sip_object_unref(p);
+	/* The generic cancel unrefs one time, but we need to unref a second time here since we took two refs when creating the dual resolver context. */
+	belle_sip_object_unref(obj);
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_resolver_context_t);
@@ -830,7 +862,8 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_simple_resolver_context_t)
 			NULL,
 			BELLE_SIP_DEFAULT_BUFSIZE_HINT
 		},
-		simple_resolver_cancel
+		simple_resolver_context_cancel,
+		simple_resolver_context_notify
 	}
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
@@ -844,7 +877,8 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_dual_resolver_context_t)
 			NULL,
 			BELLE_SIP_DEFAULT_BUFSIZE_HINT
 		},
-		dual_resolver_cancel
+		dual_resolver_context_cancel,
+		dual_resolver_context_notify
 	}
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
@@ -858,7 +892,8 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_combined_resolver_context_t)
 			NULL,
 			BELLE_SIP_DEFAULT_BUFSIZE_HINT
 		},
-		combined_resolver_cancel
+		combined_resolver_context_cancel,
+		combined_resolver_context_notify
 	}
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
@@ -874,18 +909,10 @@ static char * srv_prefix_from_service_and_transport(const char *service, const c
 	return belle_sip_strdup_printf("_%s._udp.", service);
 }
 
-static void combined_notify_results(belle_sip_combined_resolver_context_t *obj){
-	obj->base.done=TRUE;
-	obj->cb(obj->cb_data,obj->name,obj->final_results);
-	obj->final_results=NULL;
-	/*clean everything (cancel() does it very well)*/
-	combined_resolver_cancel((belle_sip_resolver_context_t*)obj);
-}
-
 static void process_a_fallback_result(void *data, const char *name, struct addrinfo *ai_list){
 	belle_sip_combined_resolver_context_t *ctx=(belle_sip_combined_resolver_context_t *)data;
 	ctx->final_results=ai_list;
-	combined_notify_results(ctx);
+	belle_sip_resolver_context_notify(BELLE_SIP_RESOLVER_CONTEXT(ctx));
 }
 
 static void combined_resolver_context_check_finished(belle_sip_combined_resolver_context_t *obj){
@@ -910,7 +937,7 @@ static void combined_resolver_context_check_finished(belle_sip_combined_resolver
 		belle_sip_list_free_with_data(obj->srv_results,belle_sip_object_unref);
 		obj->srv_results=NULL;
 		obj->final_results=final;
-		combined_notify_results(obj);
+		belle_sip_resolver_context_notify(BELLE_SIP_RESOLVER_CONTEXT(obj));
 	}
 }
 
@@ -926,7 +953,7 @@ static void srv_resolve_a(belle_sip_combined_resolver_context_t *obj, belle_sip_
 	belle_sip_message("Starting A/AAAA query for srv result [%s]",srv->target);
 	srv->root_resolver=obj;
 	/* take a ref of the srv object because the A resolution may terminate synchronously and destroy the srv
-	 object before to store the returned value of belle_sip_stack_resole_a(). That would lead to an invalid write */
+	 object before to store the returned value of belle_sip_stack_resolve_a(). That would lead to an invalid write */
 	belle_sip_object_ref(srv);
 	srv->a_resolver=belle_sip_stack_resolve_a(obj->base.stack,srv->target,srv->port,obj->family,process_a_from_srv,srv);
 	if (srv->a_resolver){
@@ -976,11 +1003,11 @@ belle_sip_resolver_context_t * belle_sip_stack_resolve(belle_sip_stack_t *stack,
 		belle_sip_object_set_name((belle_sip_object_t*)ctx, ctx->name);
 		if (family == 0) family = AF_UNSPEC;
 		ctx->family = family;
-		/*take a ref for the entire duration of the DNS procedure, it will be released when it is finished*/
+		/* Take a ref for the entire duration of the DNS procedure, it will be released when it is finished */
 		belle_sip_object_ref(ctx);
 		ctx->srv_ctx=belle_sip_stack_resolve_srv(stack,service,transport,name,process_srv_results,ctx);
 		if (ctx->srv_ctx) belle_sip_object_ref(ctx->srv_ctx);
-		if (ctx->base.done){
+		if (ctx->base.notified) {
 			belle_sip_object_unref(ctx);
 			return NULL;
 		}
@@ -997,14 +1024,14 @@ static belle_sip_resolver_context_t * belle_sip_stack_resolve_single(belle_sip_s
 	/* Then perform asynchronous DNS A or AAAA query */
 	belle_sip_simple_resolver_context_t *ctx = belle_sip_object_new(belle_sip_simple_resolver_context_t);
 	belle_sip_resolver_context_init((belle_sip_resolver_context_t*)ctx,stack);
-	
 	ctx->cb_data = data;
 	ctx->cb = cb;
 	ctx->name = belle_sip_strdup(name);
 	ctx->port = port;
 	ctx->flags = flags;
 	belle_sip_object_set_name((belle_sip_object_t*)ctx, ctx->name);
-	
+	/* Take a ref for the entire duration of the DNS procedure, it will be released when it is finished */
+	belle_sip_object_ref(ctx);
 	if (family == 0) family = AF_UNSPEC;
 	ctx->family = family;
 	ctx->type = (ctx->family == AF_INET6) ? DNS_T_AAAA : DNS_T_A;
@@ -1014,30 +1041,16 @@ static belle_sip_resolver_context_t * belle_sip_stack_resolve_single(belle_sip_s
 	return (belle_sip_resolver_context_t*)resolver_start_query(ctx);
 }
 
-static void notify_dual_results(belle_sip_dual_resolver_context_t *ctx){
-	if (ctx->a_done && ctx->aaaa_done){
-		struct addrinfo *results=ctx->aaaa_results;
-		results=ai_list_append(results,ctx->a_results);
-		ctx->a_results=NULL;
-		ctx->aaaa_results=NULL;
-		ctx->base.done=TRUE;
-		ctx->cb(ctx->cb_data,ctx->name,results);
-		belle_sip_object_unref(ctx);
-	}
+static void on_ipv4_results(void *data, const char *name, struct addrinfo *ai_list) {
+	belle_sip_dual_resolver_context_t *ctx = BELLE_SIP_DUAL_RESOLVER_CONTEXT(data);
+	ctx->a_results = ai_list;
+	belle_sip_resolver_context_notify(BELLE_SIP_RESOLVER_CONTEXT(ctx));
 }
 
-static void on_ipv4_results(void *data, const char *name, struct addrinfo *ai_list){
-	belle_sip_dual_resolver_context_t *ctx=(belle_sip_dual_resolver_context_t *)data;
-	ctx->a_done=TRUE;
-	ctx->a_results=ai_list;
-	notify_dual_results(ctx);
-}
-
-static void on_ipv6_results(void *data, const char *name, struct addrinfo *ai_list){
-	belle_sip_dual_resolver_context_t *ctx=(belle_sip_dual_resolver_context_t *)data;
-	ctx->aaaa_done=TRUE;
-	ctx->aaaa_results=ai_list;
-	notify_dual_results(ctx);
+static void on_ipv6_results(void *data, const char *name, struct addrinfo *ai_list) {
+	belle_sip_dual_resolver_context_t *ctx = BELLE_SIP_DUAL_RESOLVER_CONTEXT(data);
+	ctx->aaaa_results = ai_list;
+	belle_sip_resolver_context_notify(BELLE_SIP_RESOLVER_CONTEXT(ctx));
 }
 
 static belle_sip_resolver_context_t * belle_sip_stack_resolve_dual(belle_sip_stack_t *stack, const char *name, int port, belle_sip_resolver_callback_t cb , void *data){
@@ -1049,17 +1062,19 @@ static belle_sip_resolver_context_t * belle_sip_stack_resolve_dual(belle_sip_sta
 	ctx->cb = cb;
 	ctx->name = belle_sip_strdup(name);
 	belle_sip_object_set_name((belle_sip_object_t*)ctx, ctx->name);
-	/*take a ref for the entire duration of the DNS procedure, it will be released when it is finished*/
+	/* Take a ref for the entire duration of the DNS procedure, it will be released when it is finished */
 	belle_sip_object_ref(ctx);
 	ctx->a_ctx=belle_sip_stack_resolve_single(stack,name,port,AF_INET, AI_V4MAPPED, on_ipv4_results,ctx);
 	if (ctx->a_ctx) belle_sip_object_ref(ctx->a_ctx);
+	/* Take a ref for the entire duration of the DNS procedure, it will be released when it is finished */
+	belle_sip_object_ref(ctx);
 	ctx->aaaa_ctx=belle_sip_stack_resolve_single(stack, name, port, AF_INET6, 0, on_ipv6_results, ctx);
 	if (ctx->aaaa_ctx) belle_sip_object_ref(ctx->aaaa_ctx);
-	if (ctx->base.done){
-		/*all results were found synchronously*/
+	if (ctx->base.notified){
+		/* All results were found synchronously */
 		belle_sip_object_unref(ctx);
-		ctx=NULL;
-	}else belle_sip_object_unref(ctx);
+		ctx = NULL;
+	} else belle_sip_object_unref(ctx);
 	return BELLE_SIP_RESOLVER_CONTEXT(ctx);
 }
 
@@ -1094,12 +1109,32 @@ belle_sip_resolver_context_t * belle_sip_stack_resolve_srv(belle_sip_stack_t *st
 	ctx->name = belle_sip_concat(srv_prefix, name, NULL);
 	ctx->type = DNS_T_SRV;
 	belle_sip_object_set_name((belle_sip_object_t*)ctx, ctx->name);
+	/* Take a ref for the entire duration of the DNS procedure, it will be released when it is finished */
+	belle_sip_object_ref(ctx);
 	belle_sip_free(srv_prefix);
 	return (belle_sip_resolver_context_t*)resolver_start_query(ctx);
 }
 
-void belle_sip_resolver_context_cancel(belle_sip_resolver_context_t *obj){
-	BELLE_SIP_OBJECT_VPTR(obj,belle_sip_resolver_context_t)->cancel(obj);
+static uint8_t belle_sip_resolver_context_can_be_cancelled(belle_sip_resolver_context_t *obj) {
+	return ((obj->cancelled == TRUE) || (obj->notified == TRUE)) ? FALSE : TRUE;
+}
+
+#define belle_sip_resolver_context_can_be_notified(obj) belle_sip_resolver_context_can_be_cancelled(obj)
+
+void belle_sip_resolver_context_cancel(belle_sip_resolver_context_t *obj) {
+	if (belle_sip_resolver_context_can_be_cancelled(obj)) {
+		obj->cancelled = TRUE;
+		BELLE_SIP_OBJECT_VPTR(obj, belle_sip_resolver_context_t)->cancel(obj);
+		belle_sip_object_unref(obj);
+	}
+}
+
+void belle_sip_resolver_context_notify(belle_sip_resolver_context_t *obj) {
+	if (belle_sip_resolver_context_can_be_notified(obj)) {
+		obj->notified = TRUE;
+		BELLE_SIP_OBJECT_VPTR(obj, belle_sip_resolver_context_t)->notify(obj);
+		belle_sip_object_unref(obj);
+	}
 }
 
 /*

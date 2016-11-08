@@ -214,6 +214,7 @@ BELLE_SIP_DECLARE_VPTR(belle_sip_header_accept_t);
 
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_resolver_context_t,belle_sip_source_t)
 	void (*cancel)(belle_sip_resolver_context_t *);
+	void (*notify)(belle_sip_resolver_context_t *);
 BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_simple_resolver_context_t,belle_sip_resolver_context_t)
@@ -224,6 +225,8 @@ BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_dual_resolver_context_t,belle_sip_resolver_context_t)
 BELLE_SIP_DECLARE_CUSTOM_VPTR_END
+
+void belle_sip_resolver_context_notify(belle_sip_resolver_context_t *ctx);
 
 struct belle_sip_source{
 	belle_sip_object_t base;

@@ -120,6 +120,7 @@ static void belle_sip_channel_destroy(belle_sip_channel_t *obj){
 
 	if (obj->resolver_ctx != NULL) {
 		belle_sip_resolver_context_cancel(obj->resolver_ctx);
+		belle_sip_object_unref(obj->resolver_ctx);
 	}
 	if (obj->inactivity_timer){
 		belle_sip_main_loop_remove_source(obj->stack->ml,obj->inactivity_timer);
