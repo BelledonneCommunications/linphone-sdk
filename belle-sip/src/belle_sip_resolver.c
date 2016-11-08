@@ -428,15 +428,11 @@ static void simple_resolver_context_notify(belle_sip_resolver_context_t *obj) {
 
 static void dual_resolver_context_notify(belle_sip_resolver_context_t *obj) {
 	belle_sip_dual_resolver_context_t *ctx = BELLE_SIP_DUAL_RESOLVER_CONTEXT(obj);
-	if (belle_sip_resolver_context_notified(BELLE_SIP_RESOLVER_CONTEXT(ctx->a_ctx)) && belle_sip_resolver_context_notified(BELLE_SIP_RESOLVER_CONTEXT(ctx->aaaa_ctx))) {
-		struct addrinfo *results = ctx->aaaa_results;
-		results = ai_list_append(results, ctx->a_results);
-		ctx->a_results = NULL;
-		ctx->aaaa_results = NULL;
-		ctx->cb(ctx->cb_data, ctx->name, results);
-	} else {
-		obj->notified = FALSE; /* Revert the notification of the dual resolver because in fact it has not finished yet */
-	}
+	struct addrinfo *results = ctx->aaaa_results;
+	results = ai_list_append(results, ctx->a_results);
+	ctx->a_results = NULL;
+	ctx->aaaa_results = NULL;
+	ctx->cb(ctx->cb_data, ctx->name, results);
 }
 
 static void combined_resolver_context_cleanup(belle_sip_combined_resolver_context_t *ctx) {
@@ -835,8 +831,6 @@ static void dual_resolver_context_cancel(belle_sip_resolver_context_t *obj) {
 		belle_sip_object_unref(ctx->aaaa_ctx);
 		ctx->aaaa_ctx = NULL;
 	}
-	/* The generic cancel unrefs one time, but we need to unref a second time here since we took two refs when creating the dual resolver context. */
-	belle_sip_object_unref(obj);
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_resolver_context_t);
@@ -1041,16 +1035,22 @@ static belle_sip_resolver_context_t * belle_sip_stack_resolve_single(belle_sip_s
 	return (belle_sip_resolver_context_t*)resolver_start_query(ctx);
 }
 
+static void dual_resolver_context_check_finished(belle_sip_dual_resolver_context_t *ctx) {
+	if (belle_sip_resolver_context_notified(BELLE_SIP_RESOLVER_CONTEXT(ctx->a_ctx)) && belle_sip_resolver_context_notified(BELLE_SIP_RESOLVER_CONTEXT(ctx->aaaa_ctx))) {
+		belle_sip_resolver_context_notify(BELLE_SIP_RESOLVER_CONTEXT(ctx));
+	}
+}
+
 static void on_ipv4_results(void *data, const char *name, struct addrinfo *ai_list) {
 	belle_sip_dual_resolver_context_t *ctx = BELLE_SIP_DUAL_RESOLVER_CONTEXT(data);
 	ctx->a_results = ai_list;
-	belle_sip_resolver_context_notify(BELLE_SIP_RESOLVER_CONTEXT(ctx));
+	dual_resolver_context_check_finished(ctx);
 }
 
 static void on_ipv6_results(void *data, const char *name, struct addrinfo *ai_list) {
 	belle_sip_dual_resolver_context_t *ctx = BELLE_SIP_DUAL_RESOLVER_CONTEXT(data);
 	ctx->aaaa_results = ai_list;
-	belle_sip_resolver_context_notify(BELLE_SIP_RESOLVER_CONTEXT(ctx));
+	dual_resolver_context_check_finished(ctx);
 }
 
 static belle_sip_resolver_context_t * belle_sip_stack_resolve_dual(belle_sip_stack_t *stack, const char *name, int port, belle_sip_resolver_callback_t cb , void *data){
@@ -1066,8 +1066,6 @@ static belle_sip_resolver_context_t * belle_sip_stack_resolve_dual(belle_sip_sta
 	belle_sip_object_ref(ctx);
 	ctx->a_ctx=belle_sip_stack_resolve_single(stack,name,port,AF_INET, AI_V4MAPPED, on_ipv4_results,ctx);
 	if (ctx->a_ctx) belle_sip_object_ref(ctx->a_ctx);
-	/* Take a ref for the entire duration of the DNS procedure, it will be released when it is finished */
-	belle_sip_object_ref(ctx);
 	ctx->aaaa_ctx=belle_sip_stack_resolve_single(stack, name, port, AF_INET6, 0, on_ipv6_results, ctx);
 	if (ctx->aaaa_ctx) belle_sip_object_ref(ctx->aaaa_ctx);
 	if (ctx->base.notified){
