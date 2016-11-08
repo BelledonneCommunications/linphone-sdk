@@ -130,10 +130,12 @@ static void h264_enc_configure(VTH264EncCtx *ctx) {
 
 	VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_ProfileLevel, kVTProfileLevel_H264_Baseline_AutoLevel);
 	VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_AllowFrameReordering, kCFBooleanFalse);
-	value = CFNumberCreate(NULL, kCFNumberIntType, &ctx->conf.required_bitrate);
+	value = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &ctx->conf.required_bitrate);
 	VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_AverageBitRate, value);
-	value = CFNumberCreate(NULL, kCFNumberFloatType, &ctx->conf.fps);
+	CFRelease(value);
+	value = CFNumberCreate(kCFAllocatorDefault, kCFNumberFloatType, &ctx->conf.fps);
 	VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_ExpectedFrameRate, value);
+	CFRelease(value);
 	
 	int bytes_per_seconds = ctx->conf.required_bitrate/8 * 2; /*allow to have 2 times the average bitrate in one second*/
 	CFNumberRef bytes = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &bytes_per_seconds);
@@ -142,19 +144,23 @@ static void h264_enc_configure(VTH264EncCtx *ctx) {
 	CFMutableArrayRef data_rate_limits = CFArrayCreateMutable(kCFAllocatorDefault, 2, &kCFTypeArrayCallBacks);
 	CFArrayAppendValue(data_rate_limits, bytes);
 	CFArrayAppendValue(data_rate_limits, duration);
-	VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_DataRateLimits, data_rate_limits);
+	if ((err = VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_DataRateLimits, data_rate_limits)) != 0){
+		ms_error("Could not set kVTCompressionPropertyKey_DataRateLimits, err=%i",(int)err);
+	}
 	CFRelease(bytes);
 	CFRelease(duration);
 	CFRelease(data_rate_limits);
 	
-	value = CFNumberCreate(NULL, kCFNumberIntType, &delay_count);
-	if (VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_MaxFrameDelayCount, value) != 0){
-		ms_error("Could not set kVTCompressionPropertyKey_MaxFrameDelayCount");
+	value = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &delay_count);
+	if ((err = VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_MaxFrameDelayCount, value)) != 0){
+		ms_error("Could not set kVTCompressionPropertyKey_MaxFrameDelayCount, err=%i",(int) err);
 	}
-	value = CFNumberCreate(NULL, kCFNumberIntType, &max_payload_size);
-	if (VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_MaxH264SliceBytes, value) != 0){
-		ms_error("Could not set kVTCompressionPropertyKey_MaxH264SliceBytes");
+	CFRelease(value);
+	value = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &max_payload_size);
+	if ((err = VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_MaxH264SliceBytes, value)) != 0){
+		ms_error("Could not set kVTCompressionPropertyKey_MaxH264SliceBytes, err=%i",(int)err);
 	}
+	CFRelease(value);
 
 	if((err = VTCompressionSessionPrepareToEncodeFrames(ctx->session)) != 0) {
 		ms_error("Could not prepare the VideoToolbox compression session: error code %d", (int)err);
