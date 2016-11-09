@@ -1035,8 +1035,16 @@ static belle_sip_resolver_context_t * belle_sip_stack_resolve_single(belle_sip_s
 	return (belle_sip_resolver_context_t*)resolver_start_query(ctx);
 }
 
+static uint8_t belle_sip_resolver_context_can_be_cancelled(belle_sip_resolver_context_t *obj) {
+	return ((obj->cancelled == TRUE) || (obj->notified == TRUE)) ? FALSE : TRUE;
+}
+
+#define belle_sip_resolver_context_can_be_notified(obj) belle_sip_resolver_context_can_be_cancelled(obj)
+
 static void dual_resolver_context_check_finished(belle_sip_dual_resolver_context_t *ctx) {
-	if (belle_sip_resolver_context_notified(BELLE_SIP_RESOLVER_CONTEXT(ctx->a_ctx)) && belle_sip_resolver_context_notified(BELLE_SIP_RESOLVER_CONTEXT(ctx->aaaa_ctx))) {
+	if (belle_sip_resolver_context_can_be_notified(BELLE_SIP_RESOLVER_CONTEXT(ctx))
+		&& (ctx->a_ctx != NULL) && belle_sip_resolver_context_notified(BELLE_SIP_RESOLVER_CONTEXT(ctx->a_ctx))
+		&& (ctx->aaaa_ctx != NULL) && belle_sip_resolver_context_notified(BELLE_SIP_RESOLVER_CONTEXT(ctx->aaaa_ctx))) {
 		belle_sip_resolver_context_notify(BELLE_SIP_RESOLVER_CONTEXT(ctx));
 	}
 }
@@ -1112,12 +1120,6 @@ belle_sip_resolver_context_t * belle_sip_stack_resolve_srv(belle_sip_stack_t *st
 	belle_sip_free(srv_prefix);
 	return (belle_sip_resolver_context_t*)resolver_start_query(ctx);
 }
-
-static uint8_t belle_sip_resolver_context_can_be_cancelled(belle_sip_resolver_context_t *obj) {
-	return ((obj->cancelled == TRUE) || (obj->notified == TRUE)) ? FALSE : TRUE;
-}
-
-#define belle_sip_resolver_context_can_be_notified(obj) belle_sip_resolver_context_can_be_cancelled(obj)
 
 void belle_sip_resolver_context_cancel(belle_sip_resolver_context_t *obj) {
 	if (belle_sip_resolver_context_can_be_cancelled(obj)) {
