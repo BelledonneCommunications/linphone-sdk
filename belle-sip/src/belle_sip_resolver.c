@@ -600,7 +600,7 @@ static void * _resolver_getaddrinfo_thread(void *ptr) {
 
 static int _resolver_getaddrinfo_callback(belle_sip_simple_resolver_context_t *ctx, unsigned int revents) {
 	if (!ctx->getaddrinfo_cancelled) {
-		belle_sip_resolver_context_notify(ctx);
+		belle_sip_resolver_context_notify(BELLE_SIP_RESOLVER_CONTEXT(ctx));
 	}
 	belle_sip_object_unref(ctx);
 	return BELLE_SIP_STOP;
