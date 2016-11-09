@@ -160,6 +160,9 @@ struct belle_sip_dual_resolver_context{
 	belle_sip_resolver_context_t *aaaa_ctx;
 	struct addrinfo *a_results;
 	struct addrinfo *aaaa_results;
+	uint8_t a_notified;
+	uint8_t aaaa_notified;
+	uint8_t pad[2];
 };
 
 void belle_sip_resolver_context_init(belle_sip_resolver_context_t *obj, belle_sip_stack_t *stack){
@@ -405,10 +408,6 @@ static belle_sip_list_t *srv_select_by_weight(belle_sip_list_t *srv_list){
 		return result;
 	}
 	return srv_list;/*no weight election was necessary, return original list*/
-}
-
-static uint8_t belle_sip_resolver_context_notified(belle_sip_resolver_context_t *obj) {
-	return obj->notified;
 }
 
 static void simple_resolver_context_notify(belle_sip_resolver_context_t *obj) {
@@ -1042,9 +1041,7 @@ static uint8_t belle_sip_resolver_context_can_be_cancelled(belle_sip_resolver_co
 #define belle_sip_resolver_context_can_be_notified(obj) belle_sip_resolver_context_can_be_cancelled(obj)
 
 static void dual_resolver_context_check_finished(belle_sip_dual_resolver_context_t *ctx) {
-	if (belle_sip_resolver_context_can_be_notified(BELLE_SIP_RESOLVER_CONTEXT(ctx))
-		&& (ctx->a_ctx != NULL) && belle_sip_resolver_context_notified(BELLE_SIP_RESOLVER_CONTEXT(ctx->a_ctx))
-		&& (ctx->aaaa_ctx != NULL) && belle_sip_resolver_context_notified(BELLE_SIP_RESOLVER_CONTEXT(ctx->aaaa_ctx))) {
+	if (belle_sip_resolver_context_can_be_notified(BELLE_SIP_RESOLVER_CONTEXT(ctx)) && (ctx->a_notified == TRUE) && (ctx->aaaa_notified == TRUE)) {
 		belle_sip_resolver_context_notify(BELLE_SIP_RESOLVER_CONTEXT(ctx));
 	}
 }
@@ -1052,12 +1049,14 @@ static void dual_resolver_context_check_finished(belle_sip_dual_resolver_context
 static void on_ipv4_results(void *data, const char *name, struct addrinfo *ai_list) {
 	belle_sip_dual_resolver_context_t *ctx = BELLE_SIP_DUAL_RESOLVER_CONTEXT(data);
 	ctx->a_results = ai_list;
+	ctx->a_notified = TRUE;
 	dual_resolver_context_check_finished(ctx);
 }
 
 static void on_ipv6_results(void *data, const char *name, struct addrinfo *ai_list) {
 	belle_sip_dual_resolver_context_t *ctx = BELLE_SIP_DUAL_RESOLVER_CONTEXT(data);
 	ctx->aaaa_results = ai_list;
+	ctx->aaaa_notified = TRUE;
 	dual_resolver_context_check_finished(ctx);
 }
 
