@@ -19,7 +19,7 @@
 
 #include "opengles_display.h"
 #include "mediastreamer2/mscommon.h"
-#include "shaders.h"
+#include "shaderUtil.h"
 
 #ifdef __cplusplus
 extern "C"{
@@ -425,10 +425,9 @@ static bool_t load_shaders(GLuint* program, GLint* uniforms) {
 	(void)yuv2rgb_fs_len;
 
 	*program = glCreateProgram();
-
-	if (!compileShader(&vertShader, GL_VERTEX_SHADER, (const char*)yuv2rgb_vs))
+	if (!glueCompileShader(GL_VERTEX_SHADER, 1, (const char*)yuv2rgb_vs, &vertShader))
 		return FALSE;
-	if (!compileShader(&fragShader, GL_FRAGMENT_SHADER, (const char*)yuv2rgb_fs))
+	if (!glueCompileShader(GL_FRAGMENT_SHADER, 1, (const char*)yuv2rgb_fs, &fragShader))
 		return FALSE;
 
 	GL_OPERATION(glAttachShader(*program, vertShader))
@@ -437,7 +436,7 @@ static bool_t load_shaders(GLuint* program, GLint* uniforms) {
 	GL_OPERATION(glBindAttribLocation(*program, ATTRIB_VERTEX, "position"))
 	GL_OPERATION(glBindAttribLocation(*program, ATTRIB_UV, "uv"))
 
-	if (!linkProgram(*program))
+	if (!glueLinkProgram(*program))
 		return FALSE;
 
 	uniforms[UNIFORM_PROJ_MATRIX] = glGetUniformLocation(*program, "proj_matrix");

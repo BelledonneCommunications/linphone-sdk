@@ -297,8 +297,8 @@ if(ENABLE_VIDEO)
 			list(APPEND VOIP_SOURCE_FILES_C
 				utils/opengles_display.c
 				utils/opengles_display.h
-				utils/shaders.c
-				utils/shaders.h
+				utils/shaderUtil.c
+				utils/shaderUtil.h
 				voip/scaler.c
 			)
 			list(APPEND VOIP_SOURCE_FILES_OBJC
@@ -315,8 +315,8 @@ if(ENABLE_VIDEO)
 			list(APPEND VOIP_SOURCE_FILES_C
 				utils/opengles_display.c
 				utils/opengles_display.h
-				utils/shaders.c
-				utils/shaders.h
+				utils/shaderUtil.c
+				utils/shaderUtil.h
 			)
 		endif()
 	endif()
@@ -331,8 +331,8 @@ if(ENABLE_VIDEO)
 			android/android-opengl-display.c
 			utils/opengles_display.c
 			utils/opengles_display.h
-			utils/shaders.c
-			utils/shaders.h
+			utils/shaderUtil.c
+			utils/shaderUtil.h
 			voip/scaler.c
 		)
 		if(CMAKE_SYSTEM_PROCESSOR STREQUAL "armeabi-v7a")
@@ -366,7 +366,7 @@ if(ENABLE_VIDEO)
 	if(GLX_FOUND)
 		list(APPEND VOIP_SOURCE_FILES_C
 			utils/opengles_display.c
-			utils/shaders.c
+			utils/shaderUtil.c
 			videofilters/glxvideo.c
 		)
 	endif()
