@@ -80,7 +80,7 @@ static void ulaw_enc_process(MSFilter *obj){
 		}
 		mblk_set_timestamp_info(o,dt->ts);
 		ms_bufferizer_fill_current_metas(bz, o);
-		dt->ts+=size_of_pcm/2;
+		dt->ts+=(uint32_t)(size_of_pcm/2);
 		ms_queue_put(obj->outputs[0],o);
 	}
 }

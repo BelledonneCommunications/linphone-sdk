@@ -1264,7 +1264,7 @@ static int ice_send_message_to_socket(RtpTransport * rtptp, char* buf, size_t le
 		bctbx_sockaddr_to_ip_address(to, tolen, to_addr_str, sizeof(to_addr_str), &to_port);
 		v6ai = bctbx_ip_address_to_addrinfo(AF_INET6, SOCK_DGRAM, to_addr_str, to_port);
 		to = v6ai->ai_addr;
-		tolen = v6ai->ai_addrlen;
+		tolen = (socklen_t)v6ai->ai_addrlen;
 	}
 	err = meta_rtp_transport_modifier_inject_packet_to_send_to(rtptp, NULL, m, 0, to, tolen);
 	freemsg(m);
