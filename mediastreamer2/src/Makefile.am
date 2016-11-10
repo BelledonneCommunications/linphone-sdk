@@ -223,6 +223,8 @@ libmediastreamer_voip_la_LIBTOOLFLAGS= --tag=CC
 
 if BUILD_VIDEO
 
+GLDISPLAY_FILES = utils/shaderUtil.c utils/shaderUtil.h utils/debug.h utils/opengles_display.c utils/opengles_display.h
+
 if BUILD_MACOSX
 libmediastreamer_voip_la_SOURCES+=	videofilters/videotoolbox.c
 
@@ -230,8 +232,7 @@ noinst_LTLIBRARIES=libqtcapture_cocoa.la
 libqtcapture_cocoa_la_LIBTOOLFLAGS= --tag=CC
 libqtcapture_cocoa_la_SOURCES = videofilters/qtcapture.m \
 					videofilters/msosxdisplay.m \
-					utils/shaders.c utils/shaders.h \
-					utils/opengles_display.c utils/opengles_display.h
+					$(GLDISPLAY_FILES)
 
 libmediastreamer_voip_la_LIBADD+=libqtcapture_cocoa.la
 nodist_libmediastreamer_voip_la_SOURCES = yuv2rgb.fs.h yuv2rgb.fs.h
@@ -281,7 +282,7 @@ libmediastreamer_voip_la_SOURCES+=	videofilters/x11video.c
 endif
 
 if BUILD_X11_GL
-libmediastreamer_voip_la_SOURCES+=	videofilters/glxvideo.c utils/opengles_display.c utils/shaders.c
+libmediastreamer_voip_la_SOURCES+=	videofilters/glxvideo.c $(GLDISPLAY_FILES)
 endif
 
 libmediastreamer_voip_la_SOURCES+=	voip/rfc2429.h \
