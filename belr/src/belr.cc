@@ -485,7 +485,7 @@ void Grammar::optimize(){
 
 
 int Grammar::getNumRules() const{
-	return mRules.size();
+	return (int)mRules.size();
 }
 
 
