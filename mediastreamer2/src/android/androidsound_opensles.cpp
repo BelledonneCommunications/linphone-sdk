@@ -107,7 +107,7 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerAndroidContext
 }
 #ifdef __cplusplus
 }
-#endif 
+#endif
 
 using namespace fake_opensles;
 
@@ -183,7 +183,11 @@ struct OpenSLESInputContext {
 		mTickerSynchronizer = NULL;
 		aec = NULL;
 		mAvSkew = 0;
-		
+		recorderObject = NULL;
+		recorderRecord = NULL;
+		recorderBufferQueue = NULL;
+		recorderConfig = NULL;
+
 		currentBuffer = 0;
 		recBuffer[0] = (uint8_t *) calloc(inBufSize, sizeof(uint8_t));
 		recBuffer[1] = (uint8_t *) calloc(inBufSize, sizeof(uint8_t));
@@ -292,7 +296,7 @@ static OpenSLESContext* opensles_context_init() {
 	OpenSLESContext* ctx = new OpenSLESContext();
 	opensles_engine_init(ctx);
 	return ctx;
-} 
+}
 
 static void android_native_snd_card_init(MSSndCard *card) {
 
@@ -511,7 +515,7 @@ static void android_snd_read_preprocess(MSFilter *obj) {
 	    return;
 	}
 
-	if (ictx->opensles_context->builtin_aec) { 
+	if (ictx->opensles_context->builtin_aec) {
 		//android_snd_read_activate_hardware_aec(obj);
 	}
 }
@@ -538,7 +542,7 @@ static void android_snd_read_process(MSFilter *obj) {
 	ms_mutex_unlock(&ictx->mutex);
 	if (obj->ticker->time % 5000 == 0)
 			ms_message("sound/wall clock skew is average=%g ms", ictx->mAvSkew);
-	
+
 }
 
 static void android_snd_read_postprocess(MSFilter *obj) {
@@ -571,7 +575,7 @@ static void android_snd_read_postprocess(MSFilter *obj) {
 		ictx->recorderRecord = NULL;
 		ictx->recorderBufferQueue = NULL;
 	}
-	
+
 	ms_ticker_set_time_func(obj->ticker, NULL, NULL);
 	ms_mutex_lock(&ictx->mutex);
 	ms_ticker_synchronizer_destroy(ictx->mTickerSynchronizer);
@@ -701,7 +705,7 @@ static SLresult opensles_sink_init(OpenSLESOutputContext *octx) {
 	}
 
 	SLDataLocator_AndroidSimpleBufferQueue loc_bufq = {
-		SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, 
+		SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE,
 		2
 	};
 
@@ -910,7 +914,7 @@ static int android_snd_write_get_nchannels(MSFilter *obj, void *data) {
 static void android_snd_write_preprocess(MSFilter *obj) {
 	OpenSLESOutputContext *octx = (OpenSLESOutputContext*)obj->data;
 	SLresult result;
-	
+
 	result = opensles_mixer_init(octx);
 	if (result != SL_RESULT_SUCCESS) {
 		ms_error("Couldn't init OpenSLES mixer");
@@ -947,7 +951,7 @@ static void android_snd_write_process(MSFilter *obj) {
 		//ms_message("OpenSLES Time to flow control: minBufferFilling=%i, threshold=%i", octx->minBufferFilling, threshold);
 		if (octx->minBufferFilling > threshold) {
 			int drop = octx->minBufferFilling - (threshold/4); //keep a bit in order not to risk an underrun in the next period.
-			ms_warning("OpenSLES Too many samples waiting in sound writer (minBufferFilling=%i ms, threshold=%i ms), dropping %i ms", 
+			ms_warning("OpenSLES Too many samples waiting in sound writer (minBufferFilling=%i ms, threshold=%i ms), dropping %i ms",
 					   bytes_to_ms(octx, octx->minBufferFilling), bytes_to_ms(octx, threshold), bytes_to_ms(octx, drop));
 			ms_bufferizer_skip_bytes(&octx->buffer, drop);
 		}
@@ -960,7 +964,7 @@ static void android_snd_write_process(MSFilter *obj) {
 static void android_snd_write_postprocess(MSFilter *obj) {
 	SLresult result;
 	OpenSLESOutputContext *octx = (OpenSLESOutputContext*)obj->data;
-	
+
 	result = (*octx->playerPlay)->SetPlayState(octx->playerPlay, SL_PLAYSTATE_STOPPED);
 	if (result != SL_RESULT_SUCCESS) {
 		ms_error("OpenSLES Error %u while stopping player", result);
@@ -1031,13 +1035,13 @@ static MSSndCard* android_snd_card_new(MSSndCardManager *m) {
 	MSSndCard* card = NULL;
 	SoundDeviceDescription *d = NULL;
 	MSDevicesInfo *devices = NULL;
-	
+
 	card = ms_snd_card_new(&android_native_snd_opensles_card_desc);
 	card->name = ms_strdup("android sound card");
-	
+
 	devices = ms_factory_get_devices_info(m->factory);
 	d = ms_devices_info_get_sound_device_description(devices);
-	
+
 	OpenSLESContext *context = opensles_context_init();
 	if (d->flags & DEVICE_HAS_BUILTIN_OPENSLES_AEC) {
 		card->capabilities |= MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER;
@@ -1053,5 +1057,3 @@ static MSSndCard* android_snd_card_new(MSSndCardManager *m) {
 	}
 	return card;
 }
-
-
