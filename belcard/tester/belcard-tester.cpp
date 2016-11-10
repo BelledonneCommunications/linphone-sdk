@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
 	belcard_tester_init(NULL);
 
 	if (strstr(argv[0], ".libs")) {
-		int prefix_length = strstr(argv[0], ".libs") - argv[0] + 1;
+		int prefix_length = (int)(strstr(argv[0], ".libs") - argv[0]) + 1;
 		char prefix[200];
 		sprintf(prefix, "%s%.*s", argv[0][0] == '/' ? "" : "./", prefix_length, argv[0]);
 		bc_tester_set_resource_dir_prefix(prefix);

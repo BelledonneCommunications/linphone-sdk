@@ -75,7 +75,7 @@ static void vcards_parsing(void) {
 	BelCardParser *parser = new BelCardParser();
 	shared_ptr<BelCardList> belCards = parser->parse(vcards);
 	if (!BC_ASSERT_TRUE(belCards!=NULL)) return;
-	BC_ASSERT_EQUAL(belCards->getCards().size(), 2, unsigned, "%u");
+	BC_ASSERT_EQUAL((unsigned int)belCards->getCards().size(), 2, unsigned int, "%u");
 
 	string vcards2 = belCards->toString();
 	BC_ASSERT_EQUAL(vcards2.compare(vcards), 0, int, "%d");
@@ -116,7 +116,7 @@ static void property_sort_using_pref_param(void) {
 	belCard->addImpp(impp2);
 
 	const list<shared_ptr<BelCardImpp>> imppList = belCard->getImpp();
-	BC_ASSERT_EQUAL(imppList.size(), 2, unsigned, "%u");
+	BC_ASSERT_EQUAL((unsigned int)imppList.size(), 2, unsigned int, "%u");
 	BC_ASSERT_TRUE(imppList.front() == impp2);
 	BC_ASSERT_TRUE(imppList.back() == impp1);
 }
