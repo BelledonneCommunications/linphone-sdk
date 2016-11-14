@@ -244,7 +244,7 @@ void belle_sip_message_remove_last(belle_sip_message_t *msg, const char *header_
 void belle_sip_message_remove_header(belle_sip_message_t *msg, const char *header_name){
 	headers_container_t* headers_container = belle_sip_headers_container_get(msg,header_name);
 	if (headers_container){
-		belle_sip_list_remove(msg->header_list,headers_container);
+		msg->header_list = belle_sip_list_remove(msg->header_list,headers_container);
 		belle_sip_headers_container_delete(headers_container);
 	}
 }
@@ -256,7 +256,7 @@ void belle_sip_message_remove_header_from_ptr(belle_sip_message_t *msg, belle_si
 		belle_sip_object_unref(header);
 		headers_container->header_list=belle_sip_list_delete_link(headers_container->header_list,it);
 		if (belle_sip_list_size(headers_container->header_list) == 0) {
-			belle_sip_list_remove(msg->header_list,headers_container);
+			msg->header_list = belle_sip_list_remove(msg->header_list,headers_container);
 			belle_sip_headers_container_delete(headers_container);
 		}
 	}
