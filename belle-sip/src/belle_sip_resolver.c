@@ -701,10 +701,15 @@ static int _resolver_start_query(belle_sip_simple_resolver_context_t *ctx) {
 }
 
 static belle_sip_simple_resolver_context_t * resolver_start_query(belle_sip_simple_resolver_context_t *ctx) {
-	int error = _resolver_start_query(ctx);
+	int error;
+
+	/* Take a ref for this part of code because _resolver_start_query() can notify the results and free the ctx if this is not the case. */
+	belle_sip_object_ref(ctx);
+	error = _resolver_start_query(ctx);
 	if (error == 0) {
 		if (!ctx->base.notified) {
 			/* The resolution could not be done synchronously, return the context */
+			belle_sip_object_unref(ctx);
 			return ctx;
 		}
 		/* Otherwise, resolution could be done synchronously */
@@ -712,6 +717,7 @@ static belle_sip_simple_resolver_context_t * resolver_start_query(belle_sip_simp
 		/* An error occured. We must notify the app. */
 		belle_sip_resolver_context_notify(BELLE_SIP_RESOLVER_CONTEXT(ctx));
 	}
+	belle_sip_object_unref(ctx);
 	return NULL;
 }
 
