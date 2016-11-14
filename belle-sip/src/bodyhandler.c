@@ -17,6 +17,8 @@
 */
 
 #include "belle_sip_internal.h"
+#include "bctoolbox/bc_vfs.h"
+
 #ifdef HAVE_ZLIB
 #include "zlib.h"
 #endif
@@ -442,48 +444,72 @@ belle_sip_user_body_handler_t *belle_sip_user_body_handler_new(
 struct belle_sip_file_body_handler{
 	belle_sip_body_handler_t base;
 	char *filepath;
+	bctbx_vfs_file_t *file;
 };
 
 static void belle_sip_file_body_handler_destroy(belle_sip_file_body_handler_t *obj) {
 	if (obj->filepath) belle_sip_free(obj->filepath);
+	if (obj->file) {
+		ssize_t ret;
+		ret = bctbx_file_close(obj->file);
+		if (ret == BCTBX_VFS_ERROR) {
+			bctbx_error("Can't close file %s", obj->filepath);
+		}
+		obj->file = NULL;
+	}
 }
 
 static void belle_sip_file_body_handler_clone(belle_sip_file_body_handler_t *obj, const belle_sip_file_body_handler_t *orig) {
 	obj->filepath = belle_sip_strdup(orig->filepath);
+	obj->file = orig->file;
+}
+
+static void belle_sip_file_body_handler_begin_transfer(belle_sip_body_handler_t *base) {
+	belle_sip_file_body_handler_t *obj = (belle_sip_file_body_handler_t *)base;
+	bctbx_vfs_t *vfs = bctbx_vfs_get_default();
+	
+	if (obj->filepath == NULL) return;
+	obj->file = bctbx_file_open(vfs, obj->filepath, "r+");
+	if (!obj->file) {
+		bctbx_error("Can't open file %s", obj->filepath);
+	}
+}
+
+static void belle_sip_file_body_handler_end_transfer(belle_sip_body_handler_t *base) {
+	belle_sip_file_body_handler_t *obj = (belle_sip_file_body_handler_t *)base;
+	if (obj->file) {
+		ssize_t ret;
+		ret = bctbx_file_close(obj->file);
+		if (ret == BCTBX_VFS_ERROR) {
+			bctbx_error("Can't close file %s", obj->filepath);
+		}
+		obj->file = NULL;
+	}
 }
 
 static void belle_sip_file_body_handler_recv_chunk(belle_sip_body_handler_t *base, belle_sip_message_t *msg, size_t offset, const uint8_t *buf, size_t size) {
-	FILE *f;
-	size_t ret;
 	belle_sip_file_body_handler_t *obj = (belle_sip_file_body_handler_t *)base;
-	if (obj->filepath == NULL) return;
-	f = fopen(obj->filepath, "ab");
-	if (f == NULL) return;
-	ret = fwrite(buf, 1, size, f);
-	if (ret != size) {
-		fclose(f);
-		return;
+	ssize_t ret;
+	
+	if (obj->file == NULL) return;
+	ret = bctbx_file_write(obj->file, buf, size, offset);
+	if (ret == BCTBX_VFS_ERROR) {
+		bctbx_error("File body handler recv write error at offset %lu", offset);
 	}
-	fclose(f);
 }
 
 static int belle_sip_file_body_handler_send_chunk(belle_sip_body_handler_t *base, belle_sip_message_t *msg, size_t offset, uint8_t *buf, size_t *size) {
-	FILE *f;
-	int int_ret;
-	size_t size_t_ret;
 	belle_sip_file_body_handler_t *obj = (belle_sip_file_body_handler_t *)base;
+	ssize_t size_t_ret;
 	size_t to_send = MIN(*size, obj->base.expected_size - offset);
-	if (obj->filepath == NULL) return BELLE_SIP_STOP;
-	f = fopen(obj->filepath, "rb");
-	if (f == NULL) return BELLE_SIP_STOP;
-	int_ret = fseek(f, (long)offset, SEEK_SET);
-	if (int_ret < 0) {
-		fclose(f);
+	
+	if (obj->file == NULL) return BELLE_SIP_STOP;
+	size_t_ret = bctbx_file_read(obj->file, buf, to_send, offset);
+	if (size_t_ret == BCTBX_VFS_ERROR) {
+		bctbx_error("file body handler send read error at offset %lu", offset);
 		return BELLE_SIP_STOP;
 	}
-	size_t_ret = fread(buf, 1, to_send, f);
-	*size = size_t_ret;
-	fclose(f);
+	*size = (size_t)size_t_ret;
 	return (((obj->base.expected_size - offset) == *size) || (*size == 0)) ? BELLE_SIP_STOP : BELLE_SIP_CONTINUE;
 }
 
@@ -497,8 +523,8 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_file_body_handler_t)
 			NULL,
 			BELLE_SIP_DEFAULT_BUFSIZE_HINT
 		},
-		NULL,
-		NULL,
+		belle_sip_file_body_handler_begin_transfer,
+		belle_sip_file_body_handler_end_transfer,
 		belle_sip_file_body_handler_recv_chunk,
 		belle_sip_file_body_handler_send_chunk
 	}
