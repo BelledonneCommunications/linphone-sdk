@@ -17,7 +17,7 @@
 */
 
 #include "belle_sip_internal.h"
-#include "bctoolbox/bc_vfs.h"
+#include "bctoolbox/vfs.h"
 
 #ifdef HAVE_ZLIB
 #include "zlib.h"
