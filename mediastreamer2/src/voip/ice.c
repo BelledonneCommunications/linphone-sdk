@@ -54,6 +54,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define ICE_MAX_STUN_REQUEST_RETRANSMISSIONS	7
 
 
+typedef struct _TransportAddress_ComponentID {
+	const IceTransportAddress *ta;
+	uint16_t componentID;
+} TransportAddress_ComponentID;
+
 typedef struct _Type_ComponentID {
 	IceCandidateType type;
 	uint16_t componentID;
@@ -1759,6 +1764,10 @@ static int ice_find_candidate_from_transport_address(const IceCandidate *candida
 	return ice_compare_transport_addresses(&candidate->taddr, taddr);
 }
 
+static int ice_find_candidate_from_transport_address_and_componentID(const IceCandidate *candidate, const TransportAddress_ComponentID *taci) {
+	return !((candidate->componentID == taci->componentID) && (ice_compare_transport_addresses(&candidate->taddr, taci->ta) == 0));
+}
+
 static int ice_find_candidate_from_ip_address(const IceCandidate *candidate, const char *ipaddr)
 {
 	return strcmp(candidate->taddr.ip, ipaddr);
@@ -1911,13 +1920,16 @@ static IceCandidate * ice_learn_peer_reflexive_candidate(IceCheckList *cl, const
 	IceCandidate *candidate = NULL;
 	bctbx_list_t *elem;
 	int componentID;
+	TransportAddress_ComponentID taci;
 
 	componentID = ice_get_componentID_from_rtp_session(evt_data);
 	if (componentID < 0) return NULL;
 
-	elem = bctbx_list_find_custom(cl->remote_candidates, (bctbx_compare_func)ice_find_candidate_from_transport_address, taddr);
+	taci.ta = taddr;
+	taci.componentID = componentID;
+	elem = bctbx_list_find_custom(cl->remote_candidates, (bctbx_compare_func)ice_find_candidate_from_transport_address_and_componentID, &taci);
 	if (elem == NULL) {
-		ms_message("ice: Learned peer reflexive candidate %s:%d", taddr->ip, taddr->port);
+		ms_message("ice: Learned peer reflexive candidate %s:%d for componentID %d", taddr->ip, taddr->port, componentID);
 		/* Add peer reflexive candidate to the remote candidates list. */
 		memset(foundation, '\0', sizeof(foundation));
 		ice_generate_arbitrary_foundation(foundation, sizeof(foundation), cl->remote_candidates);
@@ -1957,7 +1969,10 @@ static IceCandidatePair * ice_trigger_connectivity_check_on_binding_request(IceC
 	if (prflx_candidate != NULL) {
 		candidates.remote = prflx_candidate;
 	} else {
-		elem = bctbx_list_find_custom(cl->remote_candidates, (bctbx_compare_func)ice_find_candidate_from_transport_address, remote_taddr);
+		TransportAddress_ComponentID taci;
+		taci.componentID = candidates.local->componentID;
+		taci.ta = remote_taddr;
+		elem = bctbx_list_find_custom(cl->remote_candidates, (bctbx_compare_func)ice_find_candidate_from_transport_address_and_componentID, &taci);
 		if (elem == NULL) {
 			ice_transport_address_to_printable_ip_address(remote_taddr, addr_str, sizeof(addr_str));
 			ms_error("ice: Remote candidate %s not found!", addr_str);
@@ -2861,6 +2876,7 @@ static void ice_check_if_losing_pair_should_cause_restart(const IceCandidatePair
 void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, int local_family, const char *local_addr, int local_port, int remote_family, const char *remote_addr, int remote_port)
 {
 	IceTransportAddress taddr;
+	TransportAddress_ComponentID taci;
 	Type_ComponentID tc;
 	bctbx_list_t *elem;
 	bctbx_list_t *srflx_elem = NULL;
@@ -2900,7 +2916,9 @@ void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, int local_famil
 	snprintf(taddr.ip, sizeof(taddr.ip), "%s", remote_addr);
 	taddr.port = remote_port;
 	taddr.family = remote_family;
-	elem = bctbx_list_find_custom(cl->remote_candidates, (bctbx_compare_func)ice_find_candidate_from_transport_address, &taddr);
+	taci.componentID = lr.local->componentID;
+	taci.ta = &taddr;
+	elem = bctbx_list_find_custom(cl->remote_candidates, (bctbx_compare_func)ice_find_candidate_from_transport_address_and_componentID, &taci);
 	if (elem == NULL) {
 		ice_transport_address_to_printable_ip_address(&taddr, taddr_str, sizeof(taddr_str));
 		ms_warning("ice: Remote candidate %s should have been found", taddr_str);
