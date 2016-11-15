@@ -380,9 +380,23 @@ belle_sip_memory_body_handler_t *belle_sip_memory_body_handler_new_copy_from_buf
 
 struct belle_sip_user_body_handler{
 	belle_sip_body_handler_t base;
+	belle_sip_user_body_handler_start_callback_t start_cb;
 	belle_sip_user_body_handler_recv_callback_t recv_cb;
 	belle_sip_user_body_handler_send_callback_t send_cb;
+	belle_sip_user_body_handler_stop_callback_t stop_cb;
 };
+
+static void belle_sip_user_body_handler_begin_transfer(belle_sip_body_handler_t *base) {
+	belle_sip_user_body_handler_t *obj = (belle_sip_user_body_handler_t *)base;
+	if (obj->start_cb)
+		obj->start_cb((belle_sip_user_body_handler_t*)base, base->user_data);
+}
+
+static void belle_sip_user_body_handler_end_transfer(belle_sip_body_handler_t *base) {
+	belle_sip_user_body_handler_t *obj = (belle_sip_user_body_handler_t *)base;
+	if (obj->stop_cb)
+		obj->stop_cb((belle_sip_user_body_handler_t*)base, base->user_data);
+}
 
 static void belle_sip_user_body_handler_recv_chunk(belle_sip_body_handler_t *base, belle_sip_message_t *msg, size_t offset, uint8_t *buf, size_t size){
 	belle_sip_user_body_handler_t *obj=(belle_sip_user_body_handler_t*)base;
@@ -401,8 +415,10 @@ static int belle_sip_user_body_handler_send_chunk(belle_sip_body_handler_t *base
 }
 
 static void belle_sip_user_body_handler_clone(belle_sip_user_body_handler_t *obj, const belle_sip_user_body_handler_t *orig){
+	obj->start_cb=orig->start_cb;
 	obj->recv_cb=orig->recv_cb;
 	obj->send_cb=orig->send_cb;
+	obj->stop_cb=orig->stop_cb;
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_user_body_handler_t);
@@ -415,8 +431,8 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_user_body_handler_t)
 			NULL,
 			BELLE_SIP_DEFAULT_BUFSIZE_HINT
 		},
-		NULL,
-		NULL,
+		belle_sip_user_body_handler_begin_transfer,
+		belle_sip_user_body_handler_end_transfer,
 		belle_sip_user_body_handler_recv_chunk,
 		belle_sip_user_body_handler_send_chunk
 	}
@@ -425,14 +441,18 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 belle_sip_user_body_handler_t *belle_sip_user_body_handler_new(
 	size_t total_size,
 	belle_sip_body_handler_progress_callback_t progress_cb,
+	belle_sip_user_body_handler_start_callback_t start_cb,
 	belle_sip_user_body_handler_recv_callback_t recv_cb,
 	belle_sip_user_body_handler_send_callback_t send_cb,
+	belle_sip_user_body_handler_stop_callback_t stop_cb,
 	void *data){
 	belle_sip_user_body_handler_t * obj=belle_sip_object_new(belle_sip_user_body_handler_t);
 	belle_sip_body_handler_init((belle_sip_body_handler_t*)obj,progress_cb,data);
 	obj->base.expected_size=total_size;
+	obj->start_cb=start_cb;
 	obj->recv_cb=recv_cb;
 	obj->send_cb=send_cb;
+	obj->stop_cb=stop_cb;
 	return obj;
 }
 
@@ -482,10 +502,19 @@ static void belle_sip_file_body_handler_begin_transfer(belle_sip_body_handler_t 
 	if (!obj->file) {
 		bctbx_error("Can't open file %s", obj->filepath);
 	}
+	
+	if (obj->user_bh && obj->user_bh->start_cb) {
+		obj->user_bh->start_cb((belle_sip_user_body_handler_t*)&(obj->user_bh->base), obj->user_bh->base.user_data);
+	}
 }
 
 static void belle_sip_file_body_handler_end_transfer(belle_sip_body_handler_t *base) {
 	belle_sip_file_body_handler_t *obj = (belle_sip_file_body_handler_t *)base;
+	
+	if (obj->user_bh && obj->user_bh->stop_cb) {
+		obj->user_bh->stop_cb((belle_sip_user_body_handler_t*)&(obj->user_bh->base), obj->user_bh->base.user_data);
+	}
+	
 	if (obj->file) {
 		ssize_t ret;
 		ret = bctbx_file_close(obj->file);
