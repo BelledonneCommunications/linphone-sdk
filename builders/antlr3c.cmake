@@ -20,13 +20,11 @@
 #
 ############################################################################
 
-set(EP_antlr3c_GIT_REPOSITORY "git://git.linphone.org/antlr3.git" CACHE STRING "antlr3c repository URL")
-set(EP_antlr3c_GIT_TAG_LATEST "linphone" CACHE STRING "antlr3c tag to use when compiling latest version")
-set(EP_antlr3c_GIT_TAG "52075ffb35975c6901e924b4a763b6fb23abd623" CACHE STRING "antlr3c tag to use")
-set(EP_antlr3c_EXTERNAL_SOURCE_PATHS "antlr3c" "antlr3" "externals/antlr3")
-set(EP_antlr3c_MAY_BE_FOUND_ON_SYSTEM TRUE)
-set(EP_antlr3c_IGNORE_WARNINGS TRUE)
+lcb_git_repository("git://git.linphone.org/antlr3.git")
+lcb_git_tag_latest("linphone")
+lcb_git_tag("52075ffb35975c6901e924b4a763b6fb23abd623")
+lcb_external_source_paths("antlr3c" "antlr3" "externals/antlr3")
+lcb_may_be_found_on_system(YES)
+lcb_ignore_warnings(YES)
 
-set(EP_antlr3c_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
-
-set(EP_antlr3c_CMAKE_OPTIONS "-DENABLE_DEBUGGER=NO")
+lcb_cmake_options("-DENABLE_DEBUGGER=NO")

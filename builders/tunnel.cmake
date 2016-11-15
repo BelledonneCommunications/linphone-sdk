@@ -20,16 +20,14 @@
 #
 ############################################################################
 
-set(EP_tunnel_GIT_REPOSITORY "gitosis@git.linphone.org:tunnel.git" CACHE STRING "tunnel repository URL") # Private repository
-set(EP_tunnel_GIT_TAG_LATEST "master" CACHE STRING "tunnel tag to use when compiling latest version")
-set(EP_tunnel_GIT_TAG "6670f3448bbf7260ea0681745db0397d70bd503c" CACHE STRING "tunnel tag to use")
-set(EP_tunnel_EXTERNAL_SOURCE_PATHS "tunnel")
-set(EP_tunnel_GROUPABLE YES)
+lcb_git_repository("gitosis@git.linphone.org:tunnel.git")
+lcb_git_tag_latest("master")
+lcb_git_tag("6670f3448bbf7260ea0681745db0397d70bd503c")
+lcb_external_source_paths("tunnel")
+lcb_groupable(YES)
 
-set(EP_tunnel_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
-set(EP_tunnel_DEPENDENCIES )
 if(LINPHONE_BUILDER_BUILD_DEPENDENCIES)
-	list(APPEND EP_tunnel_DEPENDENCIES EP_bctoolbox)
+	lcb_dependencies("bctoolbox")
 endif()
 
-set(EP_tunnel_CMAKE_OPTIONS "-DENABLE_SERVERS=NO")
+lcb_cmake_options("-DENABLE_SERVERS=NO")

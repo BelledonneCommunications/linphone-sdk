@@ -46,45 +46,45 @@ set(LINPHONE_BUILDER_PKG_CONFIG_LIBDIR ${CMAKE_INSTALL_PREFIX}/lib/pkgconfig)	# 
 include(builders/CMakeLists.txt)
 
 # bctoolbox
-linphone_builder_add_cmake_option(bctoolbox "-DENABLE_TESTS=NO")
+lcb_builder_cmake_options(bctoolbox "-DENABLE_TESTS=NO")
 
 # belle-sip
 set(EP_bellesip_EXTRA_CFLAGS "-DUSE_STRUCT_RES_STATE_NAMESERVERS ${EP_bellesip_EXTRA_CFLAGS}")
-linphone_builder_add_cmake_option(bellesip "-DENABLE_TESTS=NO")
+lcb_builder_cmake_options(bellesip "-DENABLE_TESTS=NO")
 
 # bzrtp
-linphone_builder_add_cmake_option(bzrtp "-DENABLE_TESTS=NO")
+lcb_builder_cmake_options(bzrtp "-DENABLE_TESTS=NO")
 
 # linphone
-linphone_builder_add_cmake_option(linphone "-DENABLE_RELATIVE_PREFIX=YES")
-linphone_builder_add_cmake_option(linphone "-DENABLE_CONSOLE_UI=NO")
-linphone_builder_add_cmake_option(linphone "-DENABLE_DAEMON=NO")
-linphone_builder_add_cmake_option(linphone "-DENABLE_NOTIFY=NO")
-linphone_builder_add_cmake_option(linphone "-DENABLE_TOOLS=NO")
-linphone_builder_add_cmake_option(linphone "-DENABLE_TUTORIALS=NO")
-linphone_builder_add_cmake_option(linphone "-DENABLE_UNIT_TESTS=NO")
-linphone_builder_add_cmake_option(linphone "-DENABLE_UPNP=NO")
-linphone_builder_add_cmake_option(linphone "-DENABLE_MSG_STORAGE=YES")
-linphone_builder_add_cmake_option(linphone "-DENABLE_NLS=NO")
-linphone_builder_add_cmake_option(linphone "-DENABLE_CALL_LOGS_STORAGE=YES")
+lcb_builder_cmake_options(linphone "-DENABLE_RELATIVE_PREFIX=YES")
+lcb_builder_cmake_options(linphone "-DENABLE_CONSOLE_UI=NO")
+lcb_builder_cmake_options(linphone "-DENABLE_DAEMON=NO")
+lcb_builder_cmake_options(linphone "-DENABLE_NOTIFY=NO")
+lcb_builder_cmake_options(linphone "-DENABLE_TOOLS=NO")
+lcb_builder_cmake_options(linphone "-DENABLE_TUTORIALS=NO")
+lcb_builder_cmake_options(linphone "-DENABLE_UNIT_TESTS=NO")
+lcb_builder_cmake_options(linphone "-DENABLE_UPNP=NO")
+lcb_builder_cmake_options(linphone "-DENABLE_MSG_STORAGE=YES")
+lcb_builder_cmake_options(linphone "-DENABLE_NLS=NO")
+lcb_builder_cmake_options(linphone "-DENABLE_CALL_LOGS_STORAGE=YES")
 
 # mbedtls
 set(EP_mbedtls_LINKING_TYPE "-DUSE_STATIC_MBEDTLS_LIBRARY=YES" "-DUSE_SHARED_MBEDTLS_LIBRARY=NO")
 
 # mediastreamer2
-linphone_builder_add_cmake_option(ms2 "-DENABLE_RELATIVE_PREFIX=YES")
-linphone_builder_add_cmake_option(ms2 "-DENABLE_QSA=YES")
-linphone_builder_add_cmake_option(ms2 "-DENABLE_ALSA=NO")
-linphone_builder_add_cmake_option(ms2 "-DENABLE_PULSEAUDIO=NO")
-linphone_builder_add_cmake_option(ms2 "-DENABLE_OSS=NO")
-linphone_builder_add_cmake_option(ms2 "-DENABLE_GLX=NO")
-linphone_builder_add_cmake_option(ms2 "-DENABLE_X11=NO")
-linphone_builder_add_cmake_option(ms2 "-DENABLE_XV=NO")
-linphone_builder_add_cmake_option(ms2 "-DENABLE_MKV=YES")
-linphone_builder_add_cmake_option(ms2 "-DENABLE_QNX=YES")
-linphone_builder_add_cmake_option(ms2 "-DENABLE_V4L=NO")
-linphone_builder_add_cmake_option(ms2 "-DENABLE_TOOLS=NO")
-linphone_builder_add_cmake_option(ms2 "-DENABLE_UNIT_TESTS=NO")
+lcb_builder_cmake_options(ms2 "-DENABLE_RELATIVE_PREFIX=YES")
+lcb_builder_cmake_options(ms2 "-DENABLE_QSA=YES")
+lcb_builder_cmake_options(ms2 "-DENABLE_ALSA=NO")
+lcb_builder_cmake_options(ms2 "-DENABLE_PULSEAUDIO=NO")
+lcb_builder_cmake_options(ms2 "-DENABLE_OSS=NO")
+lcb_builder_cmake_options(ms2 "-DENABLE_GLX=NO")
+lcb_builder_cmake_options(ms2 "-DENABLE_X11=NO")
+lcb_builder_cmake_options(ms2 "-DENABLE_XV=NO")
+lcb_builder_cmake_options(ms2 "-DENABLE_MKV=YES")
+lcb_builder_cmake_options(ms2 "-DENABLE_QNX=YES")
+lcb_builder_cmake_options(ms2 "-DENABLE_V4L=NO")
+lcb_builder_cmake_options(ms2 "-DENABLE_TOOLS=NO")
+lcb_builder_cmake_options(ms2 "-DENABLE_UNIT_TESTS=NO")
 
 # vpx
 set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared")

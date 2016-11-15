@@ -28,4 +28,4 @@ if (NOT ${XCODE_VERSION} VERSION_LESS 7)
 endif()
 
 # speex
-linphone_builder_add_cmake_option(speex "-DENABLE_ARM_NEON_INTRINSICS=1")
+lcb_builder_cmake_options(speex "-DENABLE_ARM_NEON_INTRINSICS=1")

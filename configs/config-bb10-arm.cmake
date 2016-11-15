@@ -30,9 +30,9 @@ set(LINPHONE_BUILDER_CFLAGS "${LINPHONE_BUILDER_CFLAGS} -march=armv7-a -mfpu=neo
 
 
 # speex
-linphone_builder_add_cmake_option(speex "-DENABLE_FLOAT_API=0")
-linphone_builder_add_cmake_option(speex "-DENABLE_FIXED_POINT=1")
-linphone_builder_add_cmake_option(speex "-DENABLE_ARM_NEON_INTRINSICS=1")
+lcb_builder_cmake_options(speex "-DENABLE_FLOAT_API=0")
+lcb_builder_cmake_options(speex "-DENABLE_FIXED_POINT=1")
+lcb_builder_cmake_options(speex "-DENABLE_ARM_NEON_INTRINSICS=1")
 
 # opus
 list(APPEND EP_opus_CONFIGURE_OPTIONS "--enable-fixed-point")

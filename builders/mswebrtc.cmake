@@ -20,16 +20,16 @@
 #
 ############################################################################
 
-set(EP_mswebrtc_GIT_REPOSITORY "git://git.linphone.org/mswebrtc.git" CACHE STRING "mswebrtc repository URL")
-set(EP_mswebrtc_GIT_TAG_LATEST "master" CACHE STRING "mswebrtc tag to use when compiling latest version")
-set(EP_mswebrtc_GIT_TAG "88c0fa6ae7ea35fa25eac5ce4b50898e85443ff0" CACHE STRING "mswebrtc tag to use")
-set(EP_mswebrtc_EXTERNAL_SOURCE_PATHS "mswebrtc")
-set(EP_mswebrtc_GROUPABLE YES)
+lcb_git_repository("git://git.linphone.org/mswebrtc.git")
+lcb_git_tag_latest("master")
+lcb_git_tag("88c0fa6ae7ea35fa25eac5ce4b50898e85443ff0")
+lcb_external_source_paths("mswebrtc")
+lcb_groupable(YES)
+lcb_plugin(YES)
 
-set(EP_mswebrtc_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_PLUGIN_LINKING_TYPE})
-set(EP_mswebrtc_DEPENDENCIES EP_ms2)
+lcb_dependencies("ms2")
 
-set(EP_mswebrtc_CMAKE_OPTIONS
+lcb_cmake_options(
 	"-DENABLE_ISAC=${ENABLE_ISAC}"
 	"-DENABLE_ILBC=${ENABLE_ILBC}"
 	"-DENABLE_AECM=${ENABLE_WEBRTC_AEC}"

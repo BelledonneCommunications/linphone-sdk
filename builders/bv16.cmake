@@ -20,9 +20,7 @@
 #
 ############################################################################
 
-set(EP_bv16_GIT_REPOSITORY "git://git.linphone.org/bv16-floatingpoint.git" CACHE STRING "bv16 repository URL")
-set(EP_bv16_GIT_TAG_LATEST "linphone" CACHE STRING "bv16 tag to use when compiling latest version")
-set(EP_bv16_GIT_TAG "6899f2759c7b19d5402335d3a937c53020abfeca" CACHE STRING "bv16 tag to use")
-set(EP_bv16_EXTERNAL_SOURCE_PATHS "externals/bv16-floatingpoint")
-
-set(EP_bv16_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
+lcb_git_repository("git://git.linphone.org/bv16-floatingpoint.git")
+lcb_git_tag_latest("linphone")
+lcb_git_tag("6899f2759c7b19d5402335d3a937c53020abfeca")
+lcb_external_source_paths("externals/bv16-floatingpoint")

@@ -20,12 +20,13 @@
 #
 ############################################################################
 
-set(EP_bcunit_GIT_REPOSITORY "git://git.linphone.org/bcunit.git" CACHE STRING "bcunit repository URL")
-set(EP_bcunit_GIT_TAG_LATEST "linphone" CACHE STRING "bcunit tag to use when compiling latest version")
-set(EP_bcunit_GIT_TAG "0a0a9c60f5a1b899ae26b705fa5224ef25377982" CACHE STRING "bcunit tag to use")
-set(EP_bcunit_EXTERNAL_SOURCE_PATHS "bcunit")
-set(EP_bcunit_IGNORE_WARNINGS TRUE)
+lcb_git_repository("git://git.linphone.org/bcunit.git")
+lcb_git_tag_latest("linphone")
+lcb_git_tag("0a0a9c60f5a1b899ae26b705fa5224ef25377982")
+lcb_external_source_paths("bcunit")
+lcb_ignore_warnings(YES)
 
-set(EP_bcunit_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
-
-set(EP_bcunit_CMAKE_OPTIONS "-DENABLE_AUTOMATED=YES" "-DENABLE_CONSOLE=NO")
+lcb_cmake_options(
+	"-DENABLE_AUTOMATED=YES"
+	"-DENABLE_CONSOLE=NO"
+)

@@ -20,20 +20,15 @@
 #
 ############################################################################
 
-set(EP_belr_GIT_REPOSITORY "git://git.linphone.org/belr.git" CACHE STRING "belr repository URL")
-set(EP_belr_GIT_TAG_LATEST "master" CACHE STRING "belr tag to use when compiling latest version")
-set(EP_belr_EXTERNAL_SOURCE_PATHS "belr")
-set(EP_belr_GROUPABLE YES)
+lcb_git_repository("git://git.linphone.org/belr.git")
+lcb_git_tag_latest("master")
+lcb_git_tag("master")
+lcb_external_source_paths("belr")
+lcb_groupable(YES)
 
-if(EP_belr_FORCE_AUTOTOOLS)
-	set(EP_belr_LINKING_TYPE "--enable-static")
-	set(EP_belr_USE_AUTOGEN True)
-else()
-	set(EP_belr_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
-endif()
-set(EP_belr_DEPENDENCIES EP_bctoolbox)
+lcb_dependencies("bctoolbox")
 
 # TODO: Activate strict compilation options on IOS
 if(IOS)
-	list(APPEND EP_belr_CMAKE_OPTIONS "-DENABLE_STRICT=NO")
+	lcb_cmake_options("-DENABLE_STRICT=NO")
 endif()

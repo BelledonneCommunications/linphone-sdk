@@ -1,5 +1,5 @@
 ############################################################################
-# belle-sip.cmake
+# bellesip.cmake
 # Copyright (C) 2014  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -20,36 +20,35 @@
 #
 ############################################################################
 
-set(EP_bellesip_GIT_REPOSITORY "git://git.linphone.org/belle-sip.git" CACHE STRING "bellesip repository URL")
-set(EP_bellesip_GIT_TAG_LATEST "master" CACHE STRING "bellesip tag to use when compiling latest version")
-set(EP_bellesip_GIT_TAG "1.5.3" CACHE STRING "bellesip tag to use")
-set(EP_bellesip_EXTERNAL_SOURCE_PATHS "belle-sip")
-set(EP_bellesip_GROUPABLE YES)
+lcb_git_repository("git://git.linphone.org/belle-sip.git")
+lcb_git_tag_latest("master")
+lcb_git_tag("1.5.3")
+lcb_external_source_paths("belle-sip")
+lcb_groupable(YES)
+lcb_spec_file("belle-sip.spec")
+lcb_rpmbuild_name("belle-sip")
 
-set(EP_bellesip_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
-set(EP_bellesip_DEPENDENCIES EP_bctoolbox)
+lcb_dependencies("bctoolbox")
+if(ENABLE_TUNNEL)
+	lcb_dependencies("tunnel")
+endif()
 
 if(LINPHONE_BUILDER_BUILD_DEPENDENCIES)
 	if(NOT DISABLE_BC_ANTLR)
-		list(APPEND EP_bellesip_DEPENDENCIES EP_antlr3c)
+		lcb_dependencies("antlr3c")
 	endif()
 	if (NOT QNX)
-		list(APPEND EP_bellesip_DEPENDENCIES EP_zlib)
+		lcb_dependencies("zlib")
 	endif()
 endif()
 
-set(EP_bellesip_CMAKE_OPTIONS "-DENABLE_RTP_MAP_ALWAYS_IN_SDP=${ENABLE_RTP_MAP_ALWAYS_IN_SDP}")
+lcb_cmake_options(
+	"-DENABLE_RTP_MAP_ALWAYS_IN_SDP=${ENABLE_RTP_MAP_ALWAYS_IN_SDP}"
+	"-DENABLE_TUNNEL=${ENABLE_TUNNEL}"
+	"-DENABLE_TESTS=${ENABLE_UNIT_TESTS}"
+)
 
 # TODO: Activate strict compilation options on IOS
 if(IOS)
-	list(APPEND EP_bellesip_CMAKE_OPTIONS "-DENABLE_STRICT=NO")
+	lcb_cmake_options("-DENABLE_STRICT=NO")
 endif()
-
-list(APPEND EP_bellesip_CMAKE_OPTIONS "-DENABLE_TUNNEL=${ENABLE_TUNNEL}")
-if(ENABLE_TUNNEL)
-	list(APPEND EP_bellesip_DEPENDENCIES EP_tunnel)
-endif()
-list(APPEND EP_bellesip_CMAKE_OPTIONS "-DENABLE_TESTS=${ENABLE_UNIT_TESTS}")
-
-set(EP_bellesip_SPEC_FILE "belle-sip.spec")
-set(EP_bellesip_RPMBUILD_NAME "belle-sip")

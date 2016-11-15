@@ -93,19 +93,18 @@ else() # Windows
 endif()
 
 # needed *before* the include
-set(EP_ortp_FORCE_AUTOTOOLS True)
-linphone_builder_add_cmake_option(ms2 "-DENABLE_TESTS=NO")
-set(EP_ms2_USE_AUTOGEN True)
-set(EP_ms2_FORCE_AUTOTOOLS True)
-set(EP_ms2_CONFIGURE_OPTIONS "--disable-video")
+lcb_builder_linking_type(ortp "--enable-static")
+lcb_builder_use_autogen(ortp YES)
+lcb_builder_use_autogen(ms2 YES)
+lcb_builder_configure_options(ms2 "--disable-video")
 #required to use autotools
-set(EP_bellesip_USE_AUTOGEN True)
-set(EP_flexisip_FORCE_AUTOTOOLS True)
+lcb_builder_use_autogen(bellesip YES)
+set(EP_flexisip_FORCE_AUTOTOOLS TRUE)
 
 # we can override the bctoolbox build method before including builders because it doesn't define it.
 set(EP_bctoolbox_BUILD_METHOD "rpm")
-linphone_builder_add_cmake_option(bctoolbox "-DENABLE_TESTS=NO")
-linphone_builder_add_cmake_option(bctoolbox "-DENABLE_TESTS_COMPONENT=NO")
+lcb_builder_cmake_options(bctoolbox "-DENABLE_TESTS=NO")
+lcb_builder_cmake_options(bctoolbox "-DENABLE_TESTS_COMPONENT=NO")
 
 # Include builders
 include(builders/CMakeLists.txt)

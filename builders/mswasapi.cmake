@@ -20,11 +20,11 @@
 #
 ############################################################################
 
-set(EP_mswasapi_GIT_REPOSITORY "git://git.linphone.org/mswasapi.git" CACHE STRING "mswasapi repository URL")
-set(EP_mswasapi_GIT_TAG_LATEST "master" CACHE STRING "mswasapi tag to use when compiling latest version")
-set(EP_mswasapi_GIT_TAG "1.1.0" CACHE STRING "mswasapi tag to use")
-set(EP_mswasapi_EXTERNAL_SOURCE_PATHS "mswasapi")
-set(EP_mswasapi_GROUPABLE YES)
+lcb_git_repository("git://git.linphone.org/mswasapi.git")
+lcb_git_tag_latest("master")
+lcb_git_tag("1.1.0")
+lcb_external_source_paths("mswasapi")
+lcb_groupable(YES)
+lcb_plugin(YES)
 
-set(EP_mswasapi_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_PLUGIN_LINKING_TYPE})
-set(EP_mswasapi_DEPENDENCIES EP_ms2)
+lcb_dependencies("ms2")

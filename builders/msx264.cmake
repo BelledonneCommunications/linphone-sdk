@@ -20,11 +20,11 @@
 #
 ############################################################################
 
-set(EP_msx264_GIT_REPOSITORY "git://git.linphone.org/msx264.git" CACHE STRING "msx264 repository URL")
-set(EP_msx264_GIT_TAG_LATEST "master" CACHE STRING "msx264 tag to use when compiling latest version")
-set(EP_msx264_GIT_TAG "3a9b5a9ff79ea45b9f8f03d03d4a4a9213dc2c5d" CACHE STRING "msx264 tag to use")
-set(EP_msx264_EXTERNAL_SOURCE_PATHS "msx264")
-set(EP_msx264_GROUPABLE YES)
+lcb_git_repository("git://git.linphone.org/msx264.git")
+lcb_git_tag_latest("master")
+lcb_git_tag("3a9b5a9ff79ea45b9f8f03d03d4a4a9213dc2c5d")
+lcb_external_source_paths("msx264")
+lcb_groupable(YES)
+lcb_plugin(YES)
 
-set(EP_msx264_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_PLUGIN_LINKING_TYPE})
-set(EP_msx264_DEPENDENCIES EP_ms2 EP_x264)
+lcb_dependencies("ms2" "x264")

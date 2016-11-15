@@ -19,9 +19,10 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 ############################################################################
-set(EP_codec2_GIT_REPOSITORY "git://git.linphone.org/codec2.git" CACHE STRING " codec2 mirror repository URL")
-set(EP_codec2_GIT_TAG_LATEST "linphone" CACHE STRING "codec2 tag to use when compiling latest version")
 
-set(EP_codec2_CMAKE_OPTIONS "-DBUILD_SHARED_LIBS=NO")
-set(EP_codec2_EXTRA_CFLAGS "-include ${CMAKE_CURRENT_LIST_DIR}/codec2/codec2_prefixed_symbols.h")
-set(EP_codec2_EXTERNAL_SOURCE_PATHS "externals/codec2")
+lcb_git_repository("git://git.linphone.org/codec2.git")
+lcb_git_tag_latest("linphone")
+lcb_external_source_paths("externals/codec2")
+
+lcb_cmake_options("-DBUILD_SHARED_LIBS=NO")
+lcb_extra_cflags("-include ${CMAKE_CURRENT_LIST_DIR}/codec2/codec2_prefixed_symbols.h")

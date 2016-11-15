@@ -20,11 +20,11 @@
 #
 ############################################################################
 
-set(EP_mswinrtvid_GIT_REPOSITORY "git://git.linphone.org/mswinrtid.git" CACHE STRING "mswinrtvid repository URL")
-set(EP_mswinrtvid_GIT_TAG_LATEST "master" CACHE STRING "mswinrtvid tag to use when compiling latest version")
-set(EP_mswinrtvid_GIT_TAG "b067bca955dc170b54fffe019a6a7ce86c781c8a" CACHE STRING "mswinrtvid tag to use")
-set(EP_mswinrtvid_EXTERNAL_SOURCE_PATHS "mswinrtvid")
-set(EP_mswinrtvid_GROUPABLE YES)
+lcb_git_repository("git://git.linphone.org/mswinrtid.git")
+lcb_git_tag_latest("master")
+lcb_git_tag("b067bca955dc170b54fffe019a6a7ce86c781c8a")
+lcb_external_source_paths("mswinrtvid")
+lcb_groupable(YES)
+lcb_plugin(YES)
 
-set(EP_mswinrtvid_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_PLUGIN_LINKING_TYPE})
-set(EP_mswinrtvid_DEPENDENCIES EP_ms2)
+lcb_dependencies("ms2")

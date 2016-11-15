@@ -42,13 +42,13 @@ set(EP_ffmpeg_CROSS_COMPILATION_OPTIONS
 )
 
 # opus
-linphone_builder_add_cmake_option(opus "-DENABLE_FIXED_POINT=YES")
+lcb_builder_cmake_options(opus "-DENABLE_FIXED_POINT=YES")
 
 # speex
-linphone_builder_add_cmake_option(speex "-DENABLE_FLOAT_API=NO")
-linphone_builder_add_cmake_option(speex "-DENABLE_FIXED_POINT=YES")
+lcb_builder_cmake_options(speex "-DENABLE_FLOAT_API=NO")
+lcb_builder_cmake_options(speex "-DENABLE_FIXED_POINT=YES")
 if(CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7")
-	linphone_builder_add_cmake_option(speex "-DENABLE_ARM_NEON_INTRINSICS=YES")
+	lcb_builder_cmake_options(speex "-DENABLE_ARM_NEON_INTRINSICS=YES")
 endif()
 
 # vpx

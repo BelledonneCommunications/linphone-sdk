@@ -20,12 +20,14 @@
 #
 ############################################################################
 
-set(EP_speex_GIT_REPOSITORY "git://git.linphone.org/speex.git" CACHE STRING "speex repository URL")
-set(EP_speex_GIT_TAG_LATEST "linphone" CACHE STRING "speex tag to use when compiling latest version")
-set(EP_speex_GIT_TAG "fc1dd43c3c9d244bca1c300e408ce0373dbd5ed8" CACHE STRING "speex tag to use")
-set(EP_speex_EXTERNAL_SOURCE_PATHS "speex" "externals/speex")
-set(EP_speex_MAY_BE_FOUND_ON_SYSTEM TRUE)
-set(EP_speex_IGNORE_WARNINGS TRUE)
+lcb_git_repository("git://git.linphone.org/speex.git")
+lcb_git_tag_latest("linphone")
+lcb_git_tag("fc1dd43c3c9d244bca1c300e408ce0373dbd5ed8")
+lcb_external_source_paths("speex" "externals/speex")
+lcb_may_be_found_on_system(YES)
+lcb_ignore_warnings(YES)
 
-set(EP_speex_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
-set(EP_speex_CMAKE_OPTIONS "-DENABLE_SPEEX_DSP=YES" "-DENABLE_SPEEX_CODEC=${ENABLE_SPEEX}")
+lcb_cmake_options(
+	"-DENABLE_SPEEX_DSP=YES"
+	"-DENABLE_SPEEX_CODEC=${ENABLE_SPEEX}"
+)

@@ -20,15 +20,15 @@
 #
 ############################################################################
 
-set(EP_mbedtls_GIT_REPOSITORY "git://git.linphone.org/mbedtls.git" CACHE STRING "mbedtls repository URL")
-set(EP_mbedtls_GIT_TAG_LATEST "linphone" CACHE STRING "mbedtls tag to use when compiling latest version")
-set(EP_mbedtls_GIT_TAG "3b88f2749d59e5346de08e121fba1d797c55ddaa" CACHE STRING "mbedtls tag to use")
-set(EP_mbedtls_EXTERNAL_SOURCE_PATHS "mbedtls" "externals/mbedtls")
-set(EP_mbedtls_MAY_BE_FOUND_ON_SYSTEM TRUE)
-set(EP_mbedtls_IGNORE_WARNINGS TRUE)
+lcb_git_repository("git://git.linphone.org/mbedtls.git")
+lcb_git_tag_latest("linphone")
+lcb_git_tag("3b88f2749d59e5346de08e121fba1d797c55ddaa")
+lcb_external_source_paths("mbedtls" "externals/mbedtls")
+lcb_may_be_found_on_system(YES)
+lcb_ignore_warnings(YES)
 
-set(EP_mbedtls_LINKING_TYPE "-DUSE_STATIC_MBEDTLS_LIBRARY=NO" "-DUSE_SHARED_MBEDTLS_LIBRARY=YES")
-set(EP_mbedtls_CMAKE_OPTIONS "-DENABLE_PROGRAMS=NO" "-DENABLE_TESTING=NO")
+lcb_linking_type("-DUSE_STATIC_MBEDTLS_LIBRARY=NO" "-DUSE_SHARED_MBEDTLS_LIBRARY=YES")
+lcb_cmake_options("-DENABLE_PROGRAMS=NO" "-DENABLE_TESTING=NO")
 if(MSVC)
-	set(EP_mbedtls_EXTRA_CFLAGS "-DMBEDTLS_PLATFORM_SNPRINTF_MACRO=_snprintf -DMBEDTLS_EXPORTS")
+	lcb_extra_cflags("-DMBEDTLS_PLATFORM_SNPRINTF_MACRO=_snprintf -DMBEDTLS_EXPORTS")
 endif()

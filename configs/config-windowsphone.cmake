@@ -41,19 +41,19 @@ include(builders/CMakeLists.txt)
 
 
 # linphone
-linphone_builder_add_cmake_option(linphone "-DENABLE_RELATIVE_PREFIX=YES")
-linphone_builder_add_cmake_option(linphone "-DENABLE_CONSOLE_UI=NO")
-linphone_builder_add_cmake_option(linphone "-DENABLE_DAEMON=NO")
-linphone_builder_add_cmake_option(linphone "-DENABLE_NOTIFY=NO")
-linphone_builder_add_cmake_option(linphone "-DENABLE_TOOLS=NO")
-linphone_builder_add_cmake_option(linphone "-DENABLE_TUTORIALS=NO")
-linphone_builder_add_cmake_option(linphone "-DENABLE_UNIT_TESTS=NO")
-linphone_builder_add_cmake_option(linphone "-DENABLE_UPNP=NO")
+lcb_builder_cmake_options(linphone "-DENABLE_RELATIVE_PREFIX=YES")
+lcb_builder_cmake_options(linphone "-DENABLE_CONSOLE_UI=NO")
+lcb_builder_cmake_options(linphone "-DENABLE_DAEMON=NO")
+lcb_builder_cmake_options(linphone "-DENABLE_NOTIFY=NO")
+lcb_builder_cmake_options(linphone "-DENABLE_TOOLS=NO")
+lcb_builder_cmake_options(linphone "-DENABLE_TUTORIALS=NO")
+lcb_builder_cmake_options(linphone "-DENABLE_UNIT_TESTS=NO")
+lcb_builder_cmake_options(linphone "-DENABLE_UPNP=NO")
 
 # ms2
-linphone_builder_add_cmake_option(ms2 "-DENABLE_RELATIVE_PREFIX=YES")
-linphone_builder_add_cmake_option(ms2 "-DENABLE_UNIT_TESTS=NO")
-linphone_builder_add_cmake_option(ms2 "-DENABLE_TOOLS=NO")
+lcb_builder_cmake_options(ms2 "-DENABLE_RELATIVE_PREFIX=YES")
+lcb_builder_cmake_options(ms2 "-DENABLE_UNIT_TESTS=NO")
+lcb_builder_cmake_options(ms2 "-DENABLE_TOOLS=NO")
 
 # vpx
 set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared" "--enable-pic")

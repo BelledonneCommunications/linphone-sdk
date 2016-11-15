@@ -20,14 +20,16 @@
 #
 ############################################################################
 
-set(EP_sqlite3_URL "http://www.sqlite.org/2014/sqlite-amalgamation-3080702.zip")
-set(EP_sqlite3_URL_HASH "MD5=10587262e4381358b707df75392c895f")
-set(EP_sqlite3_EXTERNAL_SOURCE_PATHS "externals/sqlite3")
-set(EP_sqlite3_MAY_BE_FOUND_ON_SYSTEM TRUE)
-set(EP_sqlite3_IGNORE_WARNINGS TRUE)
+lcb_url("http://www.sqlite.org/2014/sqlite-amalgamation-3080702.zip")
+lcb_url_hash("MD5=10587262e4381358b707df75392c895f")
+lcb_external_source_paths("externals/sqlite3")
+lcb_may_be_found_on_system(YES)
+lcb_ignore_warnings(YES)
 
-set(EP_sqlite3_PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/sqlite3/CMakeLists.txt" "<SOURCE_DIR>")
+lcb_patch_command("${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/sqlite3/CMakeLists.txt" "<SOURCE_DIR>")
 if(WIN32)
-	list(APPEND EP_sqlite3_PATCH_COMMAND "COMMAND" "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/sqlite3/sqlite3.def" "<SOURCE_DIR>")
+	lcb_patch_command(
+		"COMMAND"
+		"${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/sqlite3/sqlite3.def" "<SOURCE_DIR>"
+	)
 endif()
-set(EP_sqlite3_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})

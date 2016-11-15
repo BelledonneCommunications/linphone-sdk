@@ -20,11 +20,9 @@
 #
 ############################################################################
 
-set(EP_srtp_GIT_REPOSITORY "git://git.linphone.org/srtp.git" CACHE STRING "srtp repository URL")
-set(EP_srtp_GIT_TAG_LATEST "master" CACHE STRING "srtp tag to use when compiling latest version")
-set(EP_srtp_GIT_TAG "befc23777e07efba36ffd7bda73f22c92d4e2475" CACHE STRING "srtp tag to use")
-set(EP_srtp_EXTERNAL_SOURCE_PATHS "srtp" "externals/srtp")
-set(EP_srtp_MAY_BE_FOUND_ON_SYSTEM TRUE)
-set(EP_srtp_IGNORE_WARNINGS TRUE)
-
-set(EP_srtp_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
+lcb_git_repository("git://git.linphone.org/srtp.git")
+lcb_git_tag_latest("master")
+lcb_git_tag("befc23777e07efba36ffd7bda73f22c92d4e2475")
+lcb_external_source_paths("srtp" "externals/srtp")
+lcb_may_be_found_on_system(YES)
+lcb_ignore_warnings(YES)

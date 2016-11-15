@@ -1,5 +1,5 @@
 ############################################################################
-# belle-sip.cmake
+# bctoolbox.cmake
 # Copyright (C) 2014  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -20,39 +20,35 @@
 #
 ############################################################################
 
-set(EP_bctoolbox_GIT_REPOSITORY "git://git.linphone.org/bctoolbox.git" CACHE STRING "bctoolbox repository URL")
-set(EP_bctoolbox_GIT_TAG_LATEST "master" CACHE STRING "bctoolbox tag to use when compiling latest version")
-set(EP_bctoolbox_GIT_TAG "master" CACHE STRING "bctoolbox tag to use")
-set(EP_bctoolbox_EXTERNAL_SOURCE_PATHS "bctoolbox")
-set(EP_bctoolbox_GROUPABLE YES)
+lcb_git_repository("git://git.linphone.org/bctoolbox.git")
+lcb_git_tag_latest("master")
+lcb_git_tag("master")
+lcb_external_source_paths("bctoolbox")
+lcb_groupable(YES)
+lcb_spec_file("bctoolbox.spec")
 
-set(EP_bctoolbox_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
-set(EP_bctoolbox_DEPENDENCIES )
 if(LINPHONE_BUILDER_BUILD_DEPENDENCIES)
 	if(ENABLE_MBEDTLS)
-		list(APPEND EP_bctoolbox_DEPENDENCIES EP_mbedtls)
+		lcb_dependencies("mbedtls")
 	elseif(ENABLE_POLARSSL)
-		list(APPEND EP_bctoolbox_DEPENDENCIES EP_polarssl)
+		lcb_dependencies("polarssl")
+	endif()
+	if(ENABLE_UNIT_TESTS)
+		lcb_dependencies("bcunit")
 	endif()
 endif()
-list(APPEND EP_bctoolbox_CMAKE_OPTIONS
+
+lcb_cmake_options(
 	"-DENABLE_TESTS=${ENABLE_UNIT_TESTS}"
 	"-DENABLE_TESTS_COMPONENT=${ENABLE_UNIT_TESTS}"
 )
-if(ENABLE_UNIT_TESTS AND LINPHONE_BUILDER_BUILD_DEPENDENCIES)
-	list(APPEND EP_bctoolbox_DEPENDENCIES EP_bcunit)
-endif()
 
 # TODO: Activate strict compilation options on IOS
 if(IOS)
-	list(APPEND EP_bctoolbox_CMAKE_OPTIONS "-DENABLE_STRICT=NO")
+	lcb_cmake_options("-DENABLE_STRICT=NO")
 endif()
 
 if(EP_bctoolbox_BUILD_METHOD STREQUAL "rpm")
-	set(EP_bctoolbox_SPEC_FILE "bctoolbox.spec")
 	set(EP_bctoolbox_CONFIGURE_COMMAND_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/builders/bctoolbox/configure.sh.rpm.cmake)
 	set(EP_bctoolbox_BUILD_COMMAND_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/builders/bctoolbox/build.sh.rpm.cmake)
 endif()
-
-#
-#set(EP_bctoolbox_RPMBUILD_NAME "belle-sip")

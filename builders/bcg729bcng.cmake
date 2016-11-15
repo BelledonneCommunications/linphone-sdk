@@ -1,5 +1,5 @@
 ############################################################################
-# bcg729.cmake
+# bcg729bcng.cmake
 # Copyright (C) 2014  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -20,11 +20,10 @@
 #
 ############################################################################
 
-set(EP_bcg729bcng_GIT_REPOSITORY "git://git.linphone.org/bcg729.git" CACHE STRING "bcg729 repository URL")
-set(EP_bcg729bcng_GIT_TAG_LATEST "master" CACHE STRING "bcg729 tag to use when compiling latest version")
-set(EP_bcg729bcng_GIT_TAG "1.0.2" CACHE STRING "bcg729 tag to use")
-set(EP_bcg729bcng_EXTERNAL_SOURCE_PATHS "bcg729")
-set(EP_bcg729bcng_GROUPABLE YES)
+lcb_git_repository("git://git.linphone.org/bcg729.git")
+lcb_git_tag_latest("master")
+lcb_git_tag("1.0.2")
+lcb_external_source_paths("bcg729")
+lcb_groupable(YES)
 
-set(EP_bcg729bcng_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_PLUGIN_LINKING_TYPE})
-set(EP_bcg729bcng_CMAKE_OPTIONS "-DENABLE_MSPLUGIN=NO")
+lcb_cmake_options("-DENABLE_MSPLUGIN=NO")

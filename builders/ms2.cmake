@@ -20,96 +20,91 @@
 #
 ############################################################################
 
-set(EP_ms2_GIT_REPOSITORY "git://git.linphone.org/mediastreamer2.git" CACHE STRING "ms2 repository URL")
-set(EP_ms2_GIT_TAG_LATEST "master" CACHE STRING "ms2 tag to use when compiling latest version")
-set(EP_ms2_GIT_TAG "2.14.0" CACHE STRING "ms2 tag to use")
-set(EP_ms2_EXTERNAL_SOURCE_PATHS "mediastreamer2" "linphone/mediastreamer2")
-set(EP_ms2_GROUPABLE YES)
+lcb_git_repository("git://git.linphone.org/mediastreamer2.git")
+lcb_git_tag_latest("master")
+lcb_git_tag("2.14.0")
+lcb_external_source_paths("mediastreamer2" "linphone/mediastreamer2")
+lcb_groupable(YES)
+lcb_spec_file("mediastreamer2.spec")
+lcb_rpmbuild_name("mediastreamer")
 
-if(EP_ms2_FORCE_AUTOTOOLS)
-        set(EP_ms2_USE_AUTOGEN True)
-else()
-	set(EP_ms2_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
-endif()
-
-set(EP_ms2_DEPENDENCIES EP_ortp EP_bctoolbox)
+lcb_dependencies("ortp" "bctoolbox")
 if(ANDROID)
-	list(APPEND EP_ms2_DEPENDENCIES EP_androidcpufeatures EP_androidsupport)
+	lcb_dependencies("androidcpufeatures" "androidsupport")
 endif()
 
-set(EP_ms2_CMAKE_OPTIONS
+lcb_cmake_options(
 	"-DENABLE_NON_FREE_CODECS=${ENABLE_NON_FREE_CODECS}"
 	"-DENABLE_UNIT_TESTS=${ENABLE_UNIT_TESTS}"
 	"-DENABLE_DEBUG_LOGS=${ENABLE_DEBUG_LOGS}"
 	"-DENABLE_PCAP=${ENABLE_PCAP}"
+	"-DENABLE_DOC=${ENABLE_DOC}"
+	"-DENABLE_TOOLS=${ENABLE_TOOLS}"
 )
+
+lcb_cmake_options(
+	"-DENABLE_G726=${ENABLE_G726}"
+	"-DENABLE_GSM=${ENABLE_GSM}"
+	"-DENABLE_OPUS=${ENABLE_OPUS}"
+	"-DENABLE_SPEEX_CODEC=${ENABLE_SPEEX}"
+	"-DENABLE_BV16=${ENABLE_BV16}"
+	"-DENABLE_G729B_CNG=${ENABLE_G729B_CNG}"
+)
+if(ENABLE_GSM AND LINPHONE_BUILDER_BUILD_DEPENDENCIES)
+	lcb_dependencies("gsm")
+endif()
+if(ENABLE_OPUS AND LINPHONE_BUILDER_BUILD_DEPENDENCIES)
+	lcb_dependencies("opus")
+endif()
+if(ENABLE_SPEEX AND LINPHONE_BUILDER_BUILD_DEPENDENCIES)
+	lcb_dependencies("speex")
+endif()
+if(ENABLE_BV16 AND LINPHONE_BUILDER_BUILD_DEPENDENCIES)
+	lcb_dependencies("bv16")
+endif()
+if(ENABLE_G729B_CNG)
+	lcb_dependencies("bcg729bcng")
+endif()
+
+lcb_cmake_options("-DENABLE_VIDEO=${ENABLE_VIDEO}")
+if(ENABLE_VIDEO)
+	lcb_cmake_options(
+		"-DENABLE_FFMPEG=${ENABLE_FFMPEG}"
+		"-DENABLE_VPX=${ENABLE_VPX}"
+	)
+	if(ENABLE_FFMPEG AND LINPHONE_BUILDER_BUILD_DEPENDENCIES)
+		if(ANDROID)
+			lcb_dependencies("ffmpegandroid")
+		else()
+			lcb_dependencies("ffmpeg")
+		endif()
+	endif()
+	if(ENABLE_VPX AND LINPHONE_BUILDER_BUILD_DEPENDENCIES)
+		lcb_dependencies("vpx")
+	endif()
+endif()
+
+lcb_cmake_options("-DENABLE_MKV=${ENABLE_MKV}")
+if(ENABLE_MKV)
+	lcb_dependencies("matroska2")
+endif()
+
+lcb_cmake_options(
+	"-DENABLE_SRTP=${ENABLE_SRTP}"
+	"-DENABLE_ZRTP=${ENABLE_ZRTP}"
+)
+if(ENABLE_SRTP AND LINPHONE_BUILDER_BUILD_DEPENDENCIES)
+	lcb_dependencies("srtp")
+endif()
+if(ENABLE_ZRTP)
+	lcb_dependencies("bzrtp")
+endif()
+
+if(ENABLE_V4L AND LINPHONE_BUILDER_BUILD_DEPENDENCIES)
+	lcb_dependencies("v4l")
+endif()
 
 # TODO: Activate strict compilation options on IOS
 if(IOS)
-	list(APPEND EP_ms2_CMAKE_OPTIONS "-DENABLE_STRICT=NO")
+	lcb_cmake_options("-DENABLE_STRICT=NO")
 endif()
-
-list(APPEND EP_ms2_CMAKE_OPTIONS "-DENABLE_G726=${ENABLE_G726}")
-list(APPEND EP_ms2_CMAKE_OPTIONS "-DENABLE_GSM=${ENABLE_GSM}")
-if(ENABLE_GSM AND LINPHONE_BUILDER_BUILD_DEPENDENCIES)
-	list(APPEND EP_ms2_DEPENDENCIES EP_gsm)
-endif()
-list(APPEND EP_ms2_CMAKE_OPTIONS "-DENABLE_OPUS=${ENABLE_OPUS}")
-if(ENABLE_OPUS AND LINPHONE_BUILDER_BUILD_DEPENDENCIES)
-	list(APPEND EP_ms2_DEPENDENCIES EP_opus)
-endif()
-list(APPEND EP_ms2_CMAKE_OPTIONS "-DENABLE_SPEEX_CODEC=${ENABLE_SPEEX}")
-if(ENABLE_SPEEX AND LINPHONE_BUILDER_BUILD_DEPENDENCIES)
-	list(APPEND EP_ms2_DEPENDENCIES EP_speex)
-endif()
-list(APPEND EP_ms2_CMAKE_OPTIONS "-DENABLE_BV16=${ENABLE_BV16}")
-if(ENABLE_BV16 AND LINPHONE_BUILDER_BUILD_DEPENDENCIES)
-	list(APPEND EP_ms2_DEPENDENCIES EP_bv16)
-endif()
-
-list(APPEND EP_ms2_CMAKE_OPTIONS "-DENABLE_VIDEO=${ENABLE_VIDEO}")
-if(ENABLE_VIDEO)
-	list(APPEND EP_ms2_CMAKE_OPTIONS "-DENABLE_FFMPEG=${ENABLE_FFMPEG}")
-	if(ENABLE_FFMPEG AND LINPHONE_BUILDER_BUILD_DEPENDENCIES)
-		if(ANDROID)
-			list(APPEND EP_ms2_DEPENDENCIES EP_ffmpegandroid)
-		else()
-			list(APPEND EP_ms2_DEPENDENCIES EP_ffmpeg)
-		endif()
-	endif()
-	list(APPEND EP_ms2_CMAKE_OPTIONS "-DENABLE_VPX=${ENABLE_VPX}")
-	if(ENABLE_VPX AND LINPHONE_BUILDER_BUILD_DEPENDENCIES)
-		list(APPEND EP_ms2_DEPENDENCIES EP_vpx)
-	endif()
-endif()
-
-list(APPEND EP_ms2_CMAKE_OPTIONS "-DENABLE_MKV=${ENABLE_MKV}")
-if(ENABLE_MKV)
-	list(APPEND EP_ms2_DEPENDENCIES EP_matroska2)
-endif()
-
-list(APPEND EP_ms2_CMAKE_OPTIONS "-DENABLE_SRTP=${ENABLE_SRTP}")
-if(ENABLE_SRTP AND LINPHONE_BUILDER_BUILD_DEPENDENCIES)
-	list(APPEND EP_ms2_DEPENDENCIES EP_srtp)
-endif()
-list(APPEND EP_ms2_CMAKE_OPTIONS "-DENABLE_ZRTP=${ENABLE_ZRTP}")
-if(ENABLE_ZRTP)
-	list(APPEND EP_ms2_DEPENDENCIES EP_bzrtp)
-endif()
-if(ENABLE_DOC)
-	list(APPEND EP_ms2_CMAKE_OPTIONS "-DENABLE_DOC=YES")
-else()
-	list(APPEND EP_ms2_CMAKE_OPTIONS "-DENABLE_DOC=NO")
-endif()
-list(APPEND EP_ms2_CMAKE_OPTIONS "-DENABLE_TOOLS=${ENABLE_TOOLS}")
-
-if(ENABLE_V4L AND LINPHONE_BUILDER_BUILD_DEPENDENCIES)
-	list(APPEND EP_ms2_DEPENDENCIES EP_v4l)
-endif()
-list(APPEND EP_ms2_CMAKE_OPTIONS "-DENABLE_G729B_CNG=${ENABLE_G729B_CNG}")
-if(ENABLE_G729B_CNG)
-	list(APPEND EP_ms2_DEPENDENCIES EP_bcg729bcng)
-endif()
-
-set(EP_ms2_SPEC_FILE "mediastreamer2.spec")
-set(EP_ms2_RPMBUILD_NAME "mediastreamer")

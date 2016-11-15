@@ -20,23 +20,28 @@
 #
 ############################################################################
 
-set(EP_linphone_GIT_REPOSITORY "git://git.linphone.org/linphone.git" CACHE STRING "linphone repository URL")
-set(EP_linphone_GIT_TAG_LATEST "master" CACHE STRING "linphone tag to use when compiling latest version")
-set(EP_linphone_GIT_TAG "3.10.0" CACHE STRING "linphone tag to use")
-set(EP_linphone_EXTERNAL_SOURCE_PATHS "linphone")
-set(EP_linphone_GROUPABLE YES)
+lcb_git_repository("git://git.linphone.org/linphone.git")
+lcb_git_tag_latest("master")
+lcb_git_tag("3.10.0")
+lcb_external_source_paths("linphone")
+lcb_groupable(YES)
 
-set(EP_linphone_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
-set(EP_linphone_DEPENDENCIES EP_bctoolbox EP_bellesip EP_ortp EP_ms2)
+lcb_dependencies("bctoolbox" "bellesip" "ortp" "ms2")
 if(LINPHONE_BUILDER_BUILD_DEPENDENCIES AND NOT APPLE)
 	# Do not build sqlite3, xml2 and zlib on Apple systems (Mac OS X and iOS), they are provided by the system
-	list(APPEND EP_linphone_DEPENDENCIES EP_sqlite3 EP_xml2)
+	lcb_dependencies("sqlite3" "xml2")
 	if (NOT QNX)
-		list(APPEND EP_linphone_DEPENDENCIES EP_zlib)
+		lcb_dependencies("zlib")
 	endif()
 endif()
+if(ENABLE_TUNNEL)
+	lcb_dependencies("tunnel")
+endif()
+if(ENABLE_VCARD)
+	lcb_dependencies("belcard")
+endif()
 
-set(EP_linphone_CMAKE_OPTIONS
+lcb_cmake_options(
 	"-DENABLE_GTK_UI=${ENABLE_GTK_UI}"
 	"-DENABLE_VIDEO=${ENABLE_VIDEO}"
 	"-DENABLE_DEBUG_LOGS=${ENABLE_DEBUG_LOGS}"
@@ -44,21 +49,14 @@ set(EP_linphone_CMAKE_OPTIONS
 	"-DENABLE_TOOLS=${ENABLE_TOOLS}"
 	"-DENABLE_NLS=${ENABLE_NLS}"
 	"-DENABLE_LIME=YES"
+	"-DENABLE_UNIT_TESTS=${ENABLE_UNIT_TESTS}"
+	"-DENABLE_POLARSSL=${ENABLE_POLARSSL}"
+	"-DENABLE_MBEDTLS=${ENABLE_MBEDTLS}"
+	"-DENABLE_TUNNEL=${ENABLE_TUNNEL}"
+	"-DENABLE_VCARD=${ENABLE_VCARD}"
 )
 
 # TODO: Activate strict compilation options on IOS
 if(IOS)
-	list(APPEND EP_linphone_CMAKE_OPTIONS "-DENABLE_STRICT=NO")
+	lcb_cmake_options("-DENABLE_STRICT=NO")
 endif()
-
-list(APPEND EP_linphone_CMAKE_OPTIONS "-DENABLE_TUNNEL=${ENABLE_TUNNEL}")
-if(ENABLE_TUNNEL)
-	list(APPEND EP_linphone_DEPENDENCIES EP_tunnel)
-endif()
-list(APPEND EP_linphone_CMAKE_OPTIONS "-DENABLE_VCARD=${ENABLE_VCARD}")
-if(ENABLE_VCARD)
-	list(APPEND EP_linphone_DEPENDENCIES EP_belcard)
-endif()
-list(APPEND EP_linphone_CMAKE_OPTIONS "-DENABLE_UNIT_TESTS=${ENABLE_UNIT_TESTS}")
-list(APPEND EP_linphone_CMAKE_OPTIONS "-DENABLE_POLARSSL=${ENABLE_POLARSSL}")
-list(APPEND EP_linphone_CMAKE_OPTIONS "-DENABLE_MBEDTLS=${ENABLE_MBEDTLS}")

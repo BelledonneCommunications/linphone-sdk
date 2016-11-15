@@ -92,49 +92,49 @@ include(builders/CMakeLists.txt)
 
 # linphone
 if(WIN32)
-	linphone_builder_add_cmake_option(linphone "-DENABLE_RELATIVE_PREFIX=YES")
+	lcb_builder_cmake_options(linphone "-DENABLE_RELATIVE_PREFIX=YES")
 else()
-	linphone_builder_add_cmake_option(linphone "-DENABLE_RELATIVE_PREFIX=${ENABLE_RELATIVE_PREFIX}")
+	lcb_builder_cmake_options(linphone "-DENABLE_RELATIVE_PREFIX=${ENABLE_RELATIVE_PREFIX}")
 endif()
 
 # ms2
 if(WIN32)
-	linphone_builder_add_cmake_option(ms2 "-DENABLE_RELATIVE_PREFIX=YES")
-	linphone_builder_add_extra_ldflags(ms2 "/SAFESEH:NO")
+	lcb_builder_cmake_options(ms2 "-DENABLE_RELATIVE_PREFIX=YES")
+	lcb_builder_extra_ldflags(ms2 "/SAFESEH:NO")
 else()
-	linphone_builder_add_cmake_option(ms2 "-DENABLE_THEORA=${ENABLE_THEORA}")
-	linphone_builder_add_cmake_option(ms2 "-DENABLE_RELATIVE_PREFIX=${ENABLE_RELATIVE_PREFIX}")
+	lcb_builder_cmake_options(ms2 "-DENABLE_THEORA=${ENABLE_THEORA}")
+	lcb_builder_cmake_options(ms2 "-DENABLE_RELATIVE_PREFIX=${ENABLE_RELATIVE_PREFIX}")
 endif()
 
 # opencoreamr
 if(NOT WIN32)
-	set(EP_opencoreamr_EXTRA_CFLAGS "${EP_opencoreamr_EXTRA_CFLAGS} -fPIC")
-	set(EP_opencoreamr_EXTRA_CXXFLAGS "${EP_opencoreamr_EXTRA_CXXFLAGS} -fPIC")
-	set(EP_opencoreamr_EXTRA_LDFLAGS "${EP_opencoreamr_EXTRA_LDFLAGS} -fPIC")
+	lcb_builder_extra_cflags(opencoreamr "-fPIC")
+	lcb_builder_extra_cxxflags(opencoreamr "-fPIC")
+	lcb_builder_extra_ldflags(opencoreamr "-fPIC")
 endif()
 
 if(ENABLE_STATIC_ONLY)
 	# ffmpeg
-	set(EP_ffmpeg_LINKING_TYPE "--enable-static" "--disable-shared" "--enable-pic")
+	lcb_builder_linking_type(ffmpeg "--enable-static" "--disable-shared" "--enable-pic")
 
 	# mbedtls
-	set(EP_mbedtls_LINKING_TYPE "-DUSE_STATIC_MBEDTLS_LIBRARY=YES" "-DUSE_SHARED_MBEDTLS_LIBRARY=NO")
+	lcb_builder_linking_type(mbedtls "-DUSE_STATIC_MBEDTLS_LIBRARY=YES" "-DUSE_SHARED_MBEDTLS_LIBRARY=NO")
 
 	# polarssl
-	set(EP_polarssl_LINKING_TYPE "-DUSE_SHARED_POLARSSL_LIBRARY=0")
+	lcb_builder_linking_type(polarssl "-DUSE_SHARED_POLARSSL_LIBRARY=0")
 else()
 	# openh264
-	set(EP_openh264_LINKING_TYPE "-shared")
+	lcb_builder_linking_type(openh264 "-shared")
 endif()
 
 # voamrwbenc
 if(NOT WIN32)
-	set(EP_voamrwbenc_EXTRA_CFLAGS "${EP_voamrwbenc_EXTRA_CFLAGS} -fPIC")
-	set(EP_voamrwbenc_EXTRA_CXXFLAGS "${EP_voamrwbenc_EXTRA_CXXFLAGS} -fPIC")
-	set(EP_voamrwbenc_EXTRA_LDFLAGS "${EP_voamrwbenc_EXTRA_LDFLAGS} -fPIC")
+	lcb_builder_extra_cflags(voamrwbenc "-fPIC")
+	lcb_builder_extra_cxxflags(voamrwbenc "-fPIC")
+	lcb_builder_extra_ldflags(voamrwbenc "-fPIC")
 endif()
 
 # vpx
 if(WIN32)
-	set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared" "--enable-pic")
+	lcb_linking_type(vpx "--enable-static" "--disable-shared" "--enable-pic")
 endif()

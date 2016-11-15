@@ -50,7 +50,7 @@ set(LINPHONE_BUILDER_PKG_CONFIG_PATH "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig/:${S
 include("configs/config-desktop-common.cmake")
 
 # ffmpeg
-set(EP_ffmpeg_CROSS_COMPILATION_OPTIONS
+lcb_builder_cross_compilation_options(ffmpeg
 	"--prefix=${CMAKE_INSTALL_PREFIX}"
 	"--enable-cross-compile"
 	"--cross-prefix=arm-linux-gnueabihf-"
@@ -59,23 +59,25 @@ set(EP_ffmpeg_CROSS_COMPILATION_OPTIONS
 )
 
 # opus
-linphone_builder_add_cmake_option(opus "-DENABLE_FIXED_POINT=YES")
+lcb_builder_cmake_options(opus "-DENABLE_FIXED_POINT=YES")
 
 # speex
-linphone_builder_add_cmake_option(speex "-DENABLE_FLOAT_API=NO")
-linphone_builder_add_cmake_option(speex "-DENABLE_FIXED_POINT=YES")
+lcb_builder_cmake_options(speex
+	"-DENABLE_FLOAT_API=NO"
+	"-DENABLE_FIXED_POINT=YES"
+)
 if(CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7")
-	linphone_builder_add_cmake_option(speex "-DENABLE_ARM_NEON_INTRINSICS=YES")
+	lcb_builder_cmake_options(speex "-DENABLE_ARM_NEON_INTRINSICS=YES")
 endif()
 
 # vpx
 if(CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7")
-	set(EP_vpx_CROSS_COMPILATION_OPTIONS
+	lcb_builder_cross_compilation_options(vpx
 		"--prefix=${CMAKE_INSTALL_PREFIX}"
 		"--target=armv7-linux-gcc"
 	)
 else()
-	set(EP_vpx_CROSS_COMPILATION_OPTIONS
+	lcb_builder_cross_compilation_options(vpx
 		"--prefix=${CMAKE_INSTALL_PREFIX}"
 		"--target=armv6-linux-gcc"
 	)
@@ -83,4 +85,3 @@ endif()
 
 # Add config step for packaging
 set(LINPHONE_BUILDER_ADDITIONAL_CONFIG_STEPS "${CMAKE_CURRENT_LIST_DIR}/desktop-raspberry/additional_steps.cmake")
-

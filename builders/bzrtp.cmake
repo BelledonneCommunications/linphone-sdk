@@ -20,24 +20,24 @@
 #
 ############################################################################
 
-set(EP_bzrtp_GIT_REPOSITORY "git://git.linphone.org/bzrtp.git" CACHE STRING "bzrtp repository URL")
-set(EP_bzrtp_GIT_TAG_LATEST "master" CACHE STRING "bzrtp tag to use when compiling latest version")
-set(EP_bzrtp_GIT_TAG "1.0.4" CACHE STRING "bzrtp tag to use")
-set(EP_bzrtp_EXTERNAL_SOURCE_PATHS "bzrtp")
-set(EP_bzrtp_GROUPABLE YES)
+lcb_git_repository("git://git.linphone.org/bzrtp.git")
+lcb_git_tag_latest("master")
+lcb_git_tag("1.0.4")
+lcb_external_source_paths("bzrtp")
+lcb_groupable(YES)
 
-set(EP_bzrtp_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
-set(EP_bzrtp_DEPENDENCIES EP_bctoolbox)
-if(LINPHONE_BUILDER_BUILD_DEPENDENCIES AND NOT APPLE)
-	# Do not build xml2 on Apple systems (Mac OS X and iOS), it is provided by the system
-	list(APPEND EP_bzrtp_DEPENDENCIES EP_xml2)
+lcb_dependencies("bctoolbox")
+if(LINPHONE_BUILDER_BUILD_DEPENDENCIES)
+	if(NOT APPLE)
+		# Do not build xml2 on Apple systems (Mac OS X and iOS), it is provided by the system
+		lcb_dependencies("xml2")
+	endif()
+	if(ENABLE_UNIT_TESTS)
+		lcb_dependencies("bcunit")
+	endif()
 endif()
 if(MINGW)
-	set(EP_bzrtp_EXTRA_CPPFLAGS "-D__USE_MINGW_ANSI_STDIO")
+	lcb_extra_cppflags("-D__USE_MINGW_ANSI_STDIO")
 endif()
 
-set(EP_bzrtp_CMAKE_OPTIONS "-DENABLE_TESTS=${ENABLE_UNIT_TESTS}")
-if(ENABLE_UNIT_TESTS AND LINPHONE_BUILDER_BUILD_DEPENDENCIES)
-	list(APPEND EP_bzrtp_DEPENDENCIES EP_bcunit)
-endif()
-
+lcb_cmake_options("-DENABLE_TESTS=${ENABLE_UNIT_TESTS}")

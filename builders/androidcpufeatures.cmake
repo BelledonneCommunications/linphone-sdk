@@ -20,4 +20,4 @@
 #
 ############################################################################
 
-set(EP_androidcpufeatures_EXTERNAL_SOURCE_PATHS "cmake-builder/builders/androidcpufeatures")
+lcb_external_source_paths("cmake-builder/builders/androidcpufeatures")

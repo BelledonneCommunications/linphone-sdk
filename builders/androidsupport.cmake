@@ -20,4 +20,4 @@
 #
 ############################################################################
 
-set(EP_androidsupport_EXTERNAL_SOURCE_PATHS "cmake-builder/builders/androidsupport")
+lcb_external_source_paths("cmake-builder/builders/androidsupport")

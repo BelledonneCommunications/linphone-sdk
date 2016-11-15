@@ -20,10 +20,11 @@
 #
 ############################################################################
 
-set(EP_mscodec2_GIT_REPOSITORY "git://git.linphone.org/mscodec2.git" CACHE STRING "mscodec2 repository URL")
-set(EP_mscodec2_GIT_TAG_LATEST "master" CACHE STRING "mscodec2 tag to use when compiling latest version")
-set(EP_mscodec2_EXTERNAL_SOURCE_PATHS "mscodec2")
-set(EP_mscodec2_GROUPABLE YES)
+lcb_git_repository("git://git.linphone.org/mscodec2.git")
+lcb_git_tag_latest("master")
+lcb_git_tag("master")
+lcb_external_source_paths("mscodec2")
+lcb_groupable(YES)
+lcb_plugin(YES)
 
-set(EP_mscodec2_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_PLUGIN_LINKING_TYPE})
-set(EP_mscodec2_DEPENDENCIES EP_ms2 EP_codec2)
+lcb_dependencies("ms2" "codec2")

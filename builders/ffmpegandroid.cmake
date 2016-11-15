@@ -20,5 +20,5 @@
 #
 ############################################################################
 
-set(EP_ffmpegandroid_EXTERNAL_SOURCE_PATHS "externals/build/ffmpeg")
-set(EP_ffmpegandroid_DEPENDENCIES EP_ffmpeg)
+lcb_external_source_paths("externals/build/ffmpeg")
+lcb_dependencies("ffmpeg")

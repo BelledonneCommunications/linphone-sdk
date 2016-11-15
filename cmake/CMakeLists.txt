@@ -239,6 +239,7 @@ macro(linphone_builder_include_builder BUILDER)
 	list(FIND LINPHONE_BUILDER_INCLUDED_BUILDERS ${BUILDER} _already_included)
 	if(_already_included EQUAL -1)
 		message(STATUS "Including builder ${BUILDER}")
+		set(LINPHONE_BUILDER_CURRENT_BUILDER "${BUILDER}")
 		if(LINPHONE_BUILDER_INCLUDING_BUILDERS_FROM_EXTERNAL_BUILDERS_PATH)
 			include(${LINPHONE_BUILDER_EXTERNAL_BUILDERS_PATH}/${BUILDER}.cmake)
 			list(INSERT LINPHONE_BUILDER_INCLUDED_BUILDERS 0 ${BUILDER})
@@ -399,7 +400,7 @@ macro(linphone_builder_set_ep_directories PROJNAME)
 	else()
 		set(ep_source "${ep_base}/Source/EP_${PROJNAME}")
 	endif()
-	if(EP_${PROJNAME}_BUILD_IN_SOURCE)
+	if(EP_${PROJNAME}_BUILD_IN_SOURCE_TREE)
 		set(ep_build "${ep_source}")
 	else()
 		set(ep_build "${ep_base}/Build/${PROJNAME}")
@@ -700,6 +701,13 @@ macro(linphone_builder_add_external_project PROJNAME)
 		)
 	else()
 		# Use CMake build method
+		if(NOT EP_${PROJNAME}_LINKING_TYPE) # Apply default CMake linking type if not set explicitely
+			if(EP_${PROJNAME}_PLUGIN)
+				set(EP_${PROJNAME}_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_PLUGIN_LINKING_TYPE})
+			else()
+				set(EP_${PROJNAME}_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
+			endif()
+		endif()
 		set(BUILD_COMMANDS
 			CMAKE_ARGS ${EP_${PROJNAME}_CMAKE_OPTIONS} ${EP_${PROJNAME}_LINKING_TYPE}
 			CMAKE_CACHE_ARGS ${LINPHONE_BUILDER_EP_ARGS}
@@ -919,32 +927,328 @@ macro(linphone_builder_add_dummy_libraries_generation)
 	endif()
 endmacro()
 
-macro(linphone_builder_add_cmake_option BUILDER_NAME OPTION)
-	string(REGEX MATCH "^-D(.+)=(.*)$" _match "${OPTION}")
-	if(_match)
-		set(_varname ${CMAKE_MATCH_1})
-		foreach(_option ${EP_${BUILDER_NAME}_CMAKE_OPTIONS})
-			string(REGEX MATCH "^-D${_varname}=(.*)$" _match2 "${_option}")
-			if(_match2)
-				list(REMOVE_ITEM EP_${BUILDER_NAME}_CMAKE_OPTIONS ${_option})
-			endif()
-		endforeach()
-	endif()
-	list(APPEND EP_${BUILDER_NAME}_CMAKE_OPTIONS ${OPTION})
+macro(lcb_builder_cmake_options BUILDER)
+	set(_args "${ARGN}")
+	foreach(_arg IN LISTS _args)
+		string(REGEX MATCH "^-D(.+)=(.*)$" _match "${_arg}")
+		if(_match)
+			set(_varname ${CMAKE_MATCH_1})
+			foreach(_option ${EP_${BUILDER}_CMAKE_OPTIONS})
+				string(REGEX MATCH "^-D${_varname}=(.*)$" _match2 "${_option}")
+				if(_match2)
+					list(REMOVE_ITEM EP_${BUILDER}_CMAKE_OPTIONS ${_option})
+				endif()
+			endforeach()
+		endif()
+		list(APPEND EP_${BUILDER}_CMAKE_OPTIONS ${_arg})
+	endforeach()
 endmacro()
 
-macro(linphone_builder_add_extra_cflags BUILDER_NAME CFLAGS)
-	set(EP_${BUILDER_NAME}_EXTRA_CFLAGS "${EP_${BUILDER_NAME}_EXTRA_CFLAGS} ${CFLAGS}")
+macro(lcb_cmake_options)
+	lcb_builder_cmake_options("${LINPHONE_BUILDER_CURRENT_BUILDER}" ${ARGN})
 endmacro()
 
-macro(linphone_builder_add_extra_ldflags BUILDER_NAME LDFLAGS)
-	set(EP_${BUILDER_NAME}_EXTRA_LDFLAGS "${EP_${BUILDER_NAME}_EXTRA_LDFLAGS} ${LDFLAGS}")
+macro(lcb_builder_configure_options BUILDER)
+	set(_args "${ARGN}")
+	foreach(_option IN LISTS _args)
+		list(APPEND EP_${BUILDER}_CONFIGURE_OPTIONS ${_option})
+	endforeach()
 endmacro()
 
-macro(linphone_builder_add_dependency BUILDER_NAME DEPENDENCY_NAME)
-	if(EP_${BUILDER_NAME}_DEPENDENCIES)
-		list(APPEND EP_${BUILDER_NAME}_DEPENDENCIES EP_${DEPENDENCY_NAME})
-	else()
-		set(EP_${BUILDER_NAME}_DEPENDENCIES EP_${DEPENDENCY_NAME})
-	endif()
+macro(lcb_configure_options)
+	lcb_builder_configure_options("${LINPHONE_BUILDER_CURRENT_BUILDER}" ${ARGN})
+endmacro()
+
+macro(lcb_builder_cross_compilation_options BUILDER)
+	unset(EP_${BUILDER}_CROSS_COMPILATION_OPTIONS) # Clear previously set options
+	set(_args "${ARGN}")
+	foreach(_option IN LISTS _args)
+		list(APPEND EP_${BUILDER}_CROSS_COMPILATION_OPTIONS ${_args})
+	endforeach()
+endmacro()
+
+macro(lcb_cross_compilation_options)
+	lcb_builder_cross_compilation_options("${LINPHONE_BUILDER_CURRENT_BUILDER}" ${ARGN})
+endmacro()
+
+macro(lcb_builder_make_options BUILDER)
+	set(_args "${ARGN}")
+	foreach(_option IN LISTS _args)
+		set(EP_${BUILDER}_MAKE_OPTIONS "${EP_${BUILDER}_MAKE_OPTIONS} ${_option}")
+	endforeach()
+endmacro()
+
+macro(lcb_make_options)
+	lcb_builder_make_options("${LINPHONE_BUILDER_CURRENT_BUILDER}" ${ARGN})
+endmacro()
+
+macro(lcb_builder_extra_cflags BUILDER CFLAGS)
+	set(EP_${BUILDER}_EXTRA_CFLAGS "${EP_${BUILDER}_EXTRA_CFLAGS} ${CFLAGS}")
+endmacro()
+
+macro(lcb_extra_cflags CFLAGS)
+	lcb_builder_extra_cflags("${LINPHONE_BUILDER_CURRENT_BUILDER}" "${CFLAGS}")
+endmacro()
+
+macro(lcb_builder_extra_cppflags BUILDER CPPFLAGS)
+	set(EP_${BUILDER}_EXTRA_CPPFLAGS "${EP_${BUILDER}_EXTRA_CPPFLAGS} ${CPPFLAGS}")
+endmacro()
+
+macro(lcb_extra_cppflags CPPFLAGS)
+	lcb_builder_extra_cppflags("${LINPHONE_BUILDER_CURRENT_BUILDER}" "${CPPFLAGS}")
+endmacro()
+
+macro(lcb_builder_extra_cxxflags BUILDER CXXFLAGS)
+	set(EP_${BUILDER}_EXTRA_CXXFLAGS "${EP_${BUILDER}_EXTRA_CXXFLAGS} ${CXXFLAGS}")
+endmacro()
+
+macro(lcb_extra_cxxflags CPPFLAGS)
+	lcb_builder_extra_cxxflags("${LINPHONE_BUILDER_CURRENT_BUILDER}" "${CXXFLAGS}")
+endmacro()
+
+macro(lcb_builder_extra_ldflags BUILDER LDFLAGS)
+	set(EP_${BUILDER}_EXTRA_LDFLAGS "${EP_${BUILDER}_EXTRA_LDFLAGS} ${LDFLAGS}")
+endmacro()
+
+macro(lcb_extra_ldflags LDFLAGS)
+	lcb_builder_extra_ldflags("${LINPHONE_BUILDER_CURRENT_BUILDER}" "${LDFLAGS}")
+endmacro()
+
+macro(lcb_builder_extra_asflags BUILDER ASFLAGS)
+	set(EP_${BUILDER}_EXTRA_ASFLAGS "${EP_${BUILDER}_EXTRA_ASFLAGS} ${ASFLAGS}")
+endmacro()
+
+macro(lcb_extra_asflags ASFLAGS)
+	lcb_builder_extra_asflags("${LINPHONE_BUILDER_CURRENT_BUILDER}" "${ASFLAGS}")
+endmacro()
+
+macro(lcb_builder_dependencies BUILDER)
+	set(_args "${ARGN}")
+	foreach(_dependency IN LISTS _args)
+		list(APPEND EP_${BUILDER}_DEPENDENCIES "EP_${_dependency}")
+	endforeach()
+endmacro()
+
+macro(lcb_dependencies)
+	lcb_builder_dependencies("${LINPHONE_BUILDER_CURRENT_BUILDER}" ${ARGN})
+endmacro()
+
+macro(lcb_builder_git_repository BUILDER GIT_REPOSITORY)
+	set(EP_${BUILDER}_GIT_REPOSITORY "${GIT_REPOSITORY}" CACHE STRING "${GIT_REPOSITORY} repository URL")
+endmacro()
+
+macro(lcb_git_repository GIT_REPOSITORY)
+	lcb_builder_git_repository("${LINPHONE_BUILDER_CURRENT_BUILDER}" "${GIT_REPOSITORY}")
+endmacro()
+
+macro(lcb_builder_git_tag_latest BUILDER GIT_TAG_LATEST)
+	set(EP_${BUILDER}_GIT_TAG_LATEST "${GIT_TAG_LATEST}" CACHE STRING "${BUILDER} tag to use when compiling latest version")
+endmacro()
+
+macro(lcb_git_tag_latest GIT_TAG_LATEST)
+	lcb_builder_git_tag_latest("${LINPHONE_BUILDER_CURRENT_BUILDER}" "${GIT_TAG_LATEST}")
+endmacro()
+
+macro(lcb_builder_git_tag BUILDER GIT_TAG)
+	set(EP_${BUILDER}_GIT_TAG "${GIT_TAG}" CACHE STRING "${BUILDER} tag to use")
+endmacro()
+
+macro(lcb_git_tag GIT_TAG)
+	lcb_builder_git_tag("${LINPHONE_BUILDER_CURRENT_BUILDER}" "${GIT_TAG}")
+endmacro()
+
+macro(lcb_builder_external_source_paths BUILDER)
+	set(EP_${BUILDER}_EXTERNAL_SOURCE_PATHS ${ARGN})
+endmacro()
+
+macro(lcb_external_source_paths)
+	lcb_builder_external_source_paths("${LINPHONE_BUILDER_CURRENT_BUILDER}" ${ARGN})
+endmacro()
+
+macro(lcb_builder_groupable BUILDER BOOL_VALUE)
+	set(EP_${BUILDER}_GROUPABLE ${BOOL_VALUE})
+endmacro()
+
+macro(lcb_groupable BOOL_VALUE)
+	lcb_builder_groupable("${LINPHONE_BUILDER_CURRENT_BUILDER}" ${BOOL_VALUE})
+endmacro()
+
+macro(lcb_builder_spec_file BUILDER SPEC_FILE)
+	set(EP_${BUILDER}_SPEC_FILE "${SPEC_FILE}")
+endmacro()
+
+macro(lcb_spec_file SPEC_FILE)
+	lcb_builder_spec_file("${LINPHONE_BUILDER_CURRENT_BUILDER}" "${SPEC_FILE}")
+endmacro()
+
+macro(lcb_builder_use_autogen BUILDER BOOL_VALUE)
+	set(EP_${BUILDER}_USE_AUTOGEN ${BOOL_VALUE})
+endmacro()
+
+macro(lcb_use_autogen BOOL_VALUE)
+	lcb_builder_use_autogen(${BOOL_VALUE})
+endmacro()
+
+macro(lcb_builder_use_autoreconf BUILDER BOOL_VALUE)
+	set(EP_${BUILDER}_USE_AUTORECONF ${BOOL_VALUE})
+endmacro()
+
+macro(lcb_use_autoreconf BOOL_VALUE)
+	lcb_builder_use_autoreconf("${LINPHONE_BUILDER_CURRENT_BUILDER}" ${BOOL_VALUE})
+endmacro()
+
+macro(lcb_builder_linking_type BUILDER)
+	unset(EP_${BUILDER}_LINKING_TYPE) # Clear previously set linking type
+	set(_args "${ARGN}")
+	foreach(_type IN LISTS _args)
+		list(APPEND EP_${BUILDER}_LINKING_TYPE ${_type})
+	endforeach()
+endmacro()
+
+macro(lcb_linking_type)
+	lcb_builder_linking_type("${LINPHONE_BUILDER_CURRENT_BUILDER}" ${ARGN})
+endmacro()
+
+macro(lcb_builder_ignore_warnings BUILDER BOOL_VALUE)
+	set(EP_${BUILDER}_IGNORE_WARNINGS ${BOOL_VALUE})
+endmacro()
+
+macro(lcb_ignore_warnings BOOL_VALUE)
+	lcb_builder_ignore_warnings("${LINPHONE_BUILDER_CURRENT_BUILDER}" ${BOOL_VALUE})
+endmacro()
+
+macro(lcb_builder_may_be_found_on_system BUILDER BOOL_VALUE)
+	set(EP_${BUILDER}_MAY_BE_FOUND_ON_SYSTEM ${BOOL_VALUE})
+endmacro()
+
+macro(lcb_may_be_found_on_system BOOL_VALUE)
+	lcb_builder_may_be_found_on_system("${LINPHONE_BUILDER_CURRENT_BUILDER}" ${BOOL_VALUE})
+endmacro()
+
+macro(lcb_builder_rpmbuild_name BUILDER RPMBUILD_NAME)
+	set(EP_${BUILDER}_RPMBUILD_NAME "${RPMBUILD_NAME}")
+endmacro()
+
+macro(lcb_rpmbuild_name RPMBUILD_NAME)
+	lcb_builder_rpmbuild_name("${LINPHONE_BUILDER_CURRENT_BUILDER}" "${RPMBUILD_NAME}")
+endmacro()
+
+macro(lcb_plugin BOOL_VALUE)
+	set(EP_${BUILDER}_PLUGIN ${BOOL_VALUE})
+endmacro()
+
+macro(lcb_builder_build_method BUILDER BUILD_METHOD)
+	set(EP_${BUILDER}_BUILD_METHOD "${BUILD_METHOD}")
+endmacro()
+
+macro(lcb_build_method BUILD_METHOD)
+	lcb_builder_build_method("${LINPHONE_BUILDER_CURRENT_BUILDER}" "${BUILD_METHOD}")
+endmacro()
+
+macro(lcb_builder_url BUILDER URL)
+	set(EP_${BUILDER}_URL "${URL}")
+endmacro()
+
+macro(lcb_url URL)
+	lcb_builder_url("${LINPHONE_BUILDER_CURRENT_BUILDER}" "${URL}")
+endmacro()
+
+macro(lcb_builder_url_hash BUILDER URL_HASH)
+	set(EP_${BUILDER}_URL_HASH "${URL_HASH}")
+endmacro()
+
+macro(lcb_url_hash URL_HASH)
+	lcb_builder_url_hash("${LINPHONE_BUILDER_CURRENT_BUILDER}" "${URL_HASH}")
+endmacro()
+
+macro(lcb_builder_patch_command BUILDER)
+	unset(EP_${BUILDER}_PATCH_COMMAND) # Clear previously set command
+	set(_args "${ARGN}")
+	foreach(_arg IN LISTS _args)
+		list(APPEND EP_${BUILDER}_PATCH_COMMAND "${_arg}")
+	endforeach()
+endmacro()
+
+macro(lcb_patch_command)
+	lcb_builder_patch_command("${LINPHONE_BUILDER_CURRENT_BUILDER}" ${ARGN})
+endmacro()
+
+macro(lcb_builder_configure_command_source BUILDER COMMAND_SOURCE)
+	set(EP_${BUILDER}_CONFIGURE_COMMAND_SOURCE "${COMMAND_SOURCE}")
+endmacro()
+
+macro(lcb_configure_command_source COMMAND_SOURCE)
+	lcb_builder_configure_command_source("${LINPHONE_BUILDER_CURRENT_BUILDER}" "${COMMAND_SOURCE}")
+endmacro()
+
+macro(lcb_builder_build_command_source BUILDER COMMAND_SOURCE)
+	set(EP_${BUILDER}_BUILD_COMMAND_SOURCE "${COMMAND_SOURCE}")
+endmacro()
+
+macro(lcb_build_command_source COMMAND_SOURCE)
+	lcb_builder_build_command_source("${LINPHONE_BUILDER_CURRENT_BUILDER}" "${COMMAND_SOURCE}")
+endmacro()
+
+macro(lcb_builder_install_command_source BUILDER COMMAND_SOURCE)
+	set(EP_${BUILDER}_INSTALL_COMMAND_SOURCE "${COMMAND_SOURCE}")
+endmacro()
+
+macro(lcb_install_command_source COMMAND_SOURCE)
+	lcb_builder_install_command_source("${LINPHONE_BUILDER_CURRENT_BUILDER}" "${COMMAND_SOURCE}")
+endmacro()
+
+macro(lcb_builder_additional_options BUILDER ADDITIONAL_OPTIONS)
+	set(EP_${BUILDER}_ADDITIONAL_OPTIONS "${ADDITIONAL_OPTIONS}")
+endmacro()
+
+macro(lcb_additional_options ADDITIONAL_OPTIONS)
+	lcb_builder_additional_options("${LINPHONE_BUILDER_CURRENT_BUILDER}" "${ADDITIONAL_OPTIONS}")
+endmacro()
+
+macro(lcb_builder_build_in_source_tree BUILDER BOOL_VALUE)
+	set(EP_${BUILDER}_BUILD_IN_SOURCE_TREE ${BOOL_VALUE})
+endmacro()
+
+macro(lcb_build_in_source_tree BOOL_VALUE)
+	lcb_builder_build_in_source_tree("${LINPHONE_BUILDER_CURRENT_BUILDER}" ${BOOL_VALUE})
+endmacro()
+
+macro(lcb_builder_configure_env BUILDER CONFIGURE_ENV)
+	set(EP_${BUILDER}_CONFIGURE_ENV "${CONFIGURE_ENV}")
+endmacro()
+
+macro(lcb_configure_env CONFIGURE_ENV)
+	lcb_builder_configure_env("${LINPHONE_BUILDER_CURRENT_BUILDER}" "${CONFIGURE_ENV}")
+endmacro()
+
+macro(lcb_builder_config_h_file BUILDER CONFIG_H_FILE)
+	set(EP_${BUILDER}_CONFIG_H_FILE "${CONFIG_H_FILE}")
+endmacro()
+
+macro(lcb_config_h_file CONFIG_H_FILE)
+	lcb_builder_config_h_file("${LINPHONE_BUILDER_CURRENT_BUILDER}" "${CONFIG_H_FILE}")
+endmacro()
+
+macro(lcb_builder_do_not_use_cmake_flags BUILDER BOOL_VALUE)
+	set(EP_${BUILDER}_DO_NOT_USE_CMAKE_FLAGS ${BOOL_VALUE})
+endmacro()
+
+macro(lcb_do_not_use_cmake_flags BOOL_VALUE)
+	lcb_builder_do_not_use_cmake_flags("${LINPHONE_BUILDER_CURRENT_BUILDER}" ${BOOL_VALUE})
+endmacro()
+
+macro(lcb_builder_install_target BUILDER INSTALL_TARGET)
+	set(EP_${BUILDER}_INSTALL_TARGET "${INSTALL_TARGET}")
+endmacro()
+
+macro(lcb_install_target INSTALL_TARGET)
+	lcb_builder_install_target("${LINPHONE_BUILDER_CURRENT_BUILDER}" "${INSTALL_TARGET}")
+endmacro()
+
+macro(lcb_builder_use_c_compiler_for_assembler BUILDER BOOL_VALUE)
+	set(EP_${BUILDER}_USE_C_COMPILER_FOR_ASSEMBLER ${BOOL_VALUE})
+endmacro()
+
+macro(lcb_use_c_compiler_for_assembler BOOL_VALUE)
+	lcb_builder_use_c_compiler_for_assembler("${LINPHONE_BUILDER_CURRENT_BUILDER}" ${BOOL_VALUE})
 endmacro()

@@ -20,9 +20,9 @@
 #
 ############################################################################
 
-set(EP_zlib_GIT_REPOSITORY "git://git.linphone.org/zlib.git" CACHE STRING "zlib repository URL")
-set(EP_zlib_GIT_TAG_LATEST "master" CACHE STRING "zlib tag to use when compiling latest version")
-set(EP_zlib_GIT_TAG "91eb77a7c5bfe7b4cc6b722aa96548d7143a9936" CACHE STRING "zlib tag to use")
-set(EP_zlib_EXTERNAL_SOURCE_PATHS "externals/zlib")
-set(EP_zlib_MAY_BE_FOUND_ON_SYSTEM TRUE)
-set(EP_zlib_IGNORE_WARNINGS TRUE)
+lcb_git_repository("git://git.linphone.org/zlib.git")
+lcb_git_tag_latest("master")
+lcb_git_tag("91eb77a7c5bfe7b4cc6b722aa96548d7143a9936")
+lcb_external_source_paths("externals/zlib")
+lcb_may_be_found_on_system(YES)
+lcb_ignore_warnings(YES)
