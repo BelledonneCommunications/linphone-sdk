@@ -266,7 +266,7 @@ static void https_post_long_body(void){
 	belle_sip_object_unref(l);
 }
 
-static void on_recv_body(belle_sip_user_body_handler_t *bh, belle_sip_message_t *msg, void *data, size_t offset, const uint8_t *buffer, size_t size){
+static void on_recv_body(belle_sip_user_body_handler_t *bh, belle_sip_message_t *msg, void *data, size_t offset, uint8_t *buffer, size_t size){
 	FILE *file=(FILE*)data;
 	if (file)
 		fwrite(buffer,1,size,file);
