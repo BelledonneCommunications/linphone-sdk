@@ -1,6 +1,6 @@
 ############################################################################
-# msamr.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# CMakeLists.txt
+# Copyright (C) 2016  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,20 +20,11 @@
 #
 ############################################################################
 
-lcb_git_repository("git://git.linphone.org/msamr.git")
-lcb_git_tag_latest("master")
-lcb_git_tag("1.1.2")
-lcb_external_source_paths("msamr")
-lcb_groupable(YES)
-lcb_plugin(YES)
-
-lcb_dependencies("ms2")
-if(ENABLE_AMRWB)
-	lcb_dependencies("voamrwbenc")
-endif()
-lcb_dependencies("opencoreamr")
-
-lcb_cmake_options(
-	"-DENABLE_NARROWBAND=${ENABLE_AMRNB}"
-	"-DENABLE_WIDEBAND=${ENABLE_AMRWB}"
-)
+lcb_define_target("bctoolbox")
+lcb_define_target("bellesip" "bctoolbox")
+lcb_define_target("ortp" "bctoolbox")
+lcb_define_target("ms2" "bctoolbox" "ortp")
+lcb_define_target("ms2plugins" "bctoolbox" "ortp" "ms2")
+lcb_define_target("linphone" "bctoolbox" "bellesip" "ortp" "ms2" "ms2plugins")
+lcb_define_target("odb")
+lcb_define_target("flexisip" "bctoolbox" "ortp")
