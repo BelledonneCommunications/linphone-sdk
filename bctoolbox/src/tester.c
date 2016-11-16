@@ -529,6 +529,7 @@ void bc_tester_helper(const char *name, const char* additionnal_helper) {
 					 "\t\t\t--suite <suite name>\n"
 					 "\t\t\t--test <test name>\n"
 					 "\t\t\t--tag <tag name> (execute all tests with the given tag)\n"
+					 "\t\t\t--all (execute all tests, even the ones with the Skip flag)\n"
 					 "\t\t\t--resource-dir <folder path> (directory where tester resource are located)\n"
 					 "\t\t\t--writable-dir <folder path> (directory where temporary files should be created)\n"
 					 "\t\t\t--xml\n"
