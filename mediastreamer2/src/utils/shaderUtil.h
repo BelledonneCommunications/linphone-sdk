@@ -48,11 +48,11 @@
 #ifndef SHADERUTIL_H
 #define SHADERUTIL_H
 
-#ifdef __ios
+#ifdef __IOS
 #include <OpenGLES/ES2/gl.h>
 #include <OpenGLES/ES2/glext.h>
 #elif defined(__APPLE__)
-#import <OpenGL/OpenGL.h>
+#include <OpenGL/OpenGL.h>
 #include <OpenGL/gl.h>
 #elif defined( ANDROID )
 #include <GLES2/gl2.h>
