@@ -30,7 +30,7 @@ lcb_dependencies("bctoolbox" "bellesip" "ortp" "ms2")
 if(LINPHONE_BUILDER_BUILD_DEPENDENCIES AND NOT APPLE)
 	# Do not build sqlite3, xml2 and zlib on Apple systems (Mac OS X and iOS), they are provided by the system
 	lcb_dependencies("sqlite3" "xml2")
-	if (NOT QNX)
+	if(NOT ANDROID AND NOT QNX)
 		lcb_dependencies("zlib")
 	endif()
 endif()

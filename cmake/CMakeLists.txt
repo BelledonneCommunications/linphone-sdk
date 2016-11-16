@@ -1172,8 +1172,12 @@ macro(lcb_rpmbuild_name RPMBUILD_NAME)
 	lcb_builder_rpmbuild_name("${LINPHONE_BUILDER_CURRENT_BUILDER}" "${RPMBUILD_NAME}")
 endmacro()
 
-macro(lcb_plugin BOOL_VALUE)
+macro(lcb_builder_plugin BUILDER BOOL_VALUE)
 	set(EP_${BUILDER}_PLUGIN ${BOOL_VALUE})
+endmacro()
+
+macro(lcb_plugin BOOL_VALUE)
+	lcb_builder_plugin("${LINPHONE_BUILDER_CURRENT_BUILDER}" ${BOOL_VALUE})
 endmacro()
 
 macro(lcb_builder_build_method BUILDER BUILD_METHOD)
