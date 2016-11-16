@@ -94,6 +94,7 @@ char * test_name = NULL;
 char * tag_name = NULL;
 char * expected_res = NULL;
 static long max_vm_kb = 0;
+int run_skipped_tests = 0;
 
 static void (*tester_printf_va)(int level, const char *format, va_list args)=NULL;
 
@@ -139,8 +140,17 @@ int bc_tester_run_suite(test_suite_t *suite, const char *tag_name) {
 		pSuite = CU_add_suite_with_setup_and_teardown(suite->name, suite->before_all, suite->after_all,
 												suite->before_each, suite->after_each);
 		for (i = 0; i < suite->nb_tests; i++) {
-			if (NULL == CU_add_test(pSuite, suite->tests[i].name, suite->tests[i].func)) {
-				return CU_get_error();
+			size_t j;
+			bool_t skip = FALSE;
+			for (j = 0; j < (sizeof(suite->tests[i].tags) / sizeof(suite->tests[i].tags[0])); j++) {
+				if ((suite->tests[i].tags[j] != NULL) && (strcasecmp("Skip", suite->tests[i].tags[j]) == 0) && (run_skipped_tests == 0)) {
+					skip = TRUE;
+				}
+			}
+			if (!skip) {
+				if (NULL == CU_add_test(pSuite, suite->tests[i].name, suite->tests[i].func)) {
+					return CU_get_error();
+				}
 			}
 		}
 	}
@@ -545,6 +555,8 @@ int bc_tester_parse_args(int argc, char **argv, int argid)
 	} else if (strcmp(argv[i], "--tag") == 0) {
 		CHECK_ARG("--tag", ++i, argc);
 		tag_name = argv[i];
+	} else if (strcmp(argv[i], "--all") == 0) {
+		run_skipped_tests = 1;
 	} else if (strcmp(argv[i],"--list-suites")==0){
 		bc_tester_list_suites();
 		return 0;
