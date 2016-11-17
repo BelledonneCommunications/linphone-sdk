@@ -197,6 +197,7 @@ else()
 endif()
 
 check_library_exists("rt" "clock_gettime" "" HAVE_LIBRT)
+check_library_exists("dl" "dladdr" "" HAVE_LIBDL)
 
 add_subdirectory(include)
 add_subdirectory(src)
