@@ -72,10 +72,10 @@ lcb_builder_cmake_options(bellesip "-DENABLE_TESTS=NO")
 lcb_builder_cmake_options(bzrtp "-DENABLE_TESTS=NO")
 
 # codec2
-set(EP_codec2_EXTRA_CFLAGS "${EP_codec2_EXTRA_CFLAGS} -ffast-math")
+lcb_builder_extra_cflags(codec2 "-ffast-math")
 
 # ffmpeg
-set(EP_ffmpeg_LINKING_TYPE "--enable-static" "--disable-shared" "--enable-pic")
+lcb_builder_linking_type(ffmpeg "--enable-static" "--disable-shared" "--enable-pic")
 
 # linphone
 lcb_builder_cmake_options(linphone "-DENABLE_RELATIVE_PREFIX=YES")
@@ -88,10 +88,10 @@ lcb_builder_cmake_options(linphone "-DENABLE_UPNP=NO")
 lcb_builder_cmake_options(linphone "-DENABLE_MSG_STORAGE=YES")
 lcb_builder_cmake_options(linphone "-DENABLE_DOC=NO")
 lcb_builder_cmake_options(linphone "-DENABLE_UNIT_TESTS=YES")
-set(EP_linphone_LINKING_TYPE "-DENABLE_STATIC=NO" "-DENABLE_SHARED=YES")
+lcb_builder_linking_type(linphone "-DENABLE_STATIC=NO" "-DENABLE_SHARED=YES")
 
 # mbedtls
-set(EP_mbedtls_LINKING_TYPE "-DUSE_STATIC_MBEDTLS_LIBRARY=YES" "-DUSE_SHARED_MBEDTLS_LIBRARY=NO")
+lcb_builder_linking_type(mbedtls "-DUSE_STATIC_MBEDTLS_LIBRARY=YES" "-DUSE_SHARED_MBEDTLS_LIBRARY=NO")
 
 # mediastreamer2
 lcb_builder_cmake_options(ms2 "-DENABLE_RELATIVE_PREFIX=YES")
@@ -106,20 +106,20 @@ lcb_builder_cmake_options(ms2 "-DENABLE_XV=NO")
 lcb_builder_cmake_options(ms2 "-DENABLE_TOOLS=NO")
 lcb_builder_cmake_options(ms2 "-DENABLE_DOC=NO")
 lcb_builder_cmake_options(ms2 "-DENABLE_UNIT_TESTS=NO")
-set(EP_ms2_LINKING_TYPE "-DENABLE_STATIC=NO" "-DENABLE_SHARED=YES")
+lcb_builder_linking_type(ms2 "-DENABLE_STATIC=NO" "-DENABLE_SHARED=YES")
 
 # openh264
-set(EP_openh264_LINKING_TYPE "-shared")
+lcb_builder_linking_type(openh264 "-shared")
 
 # opus
 lcb_builder_cmake_options(opus "-DENABLE_FIXED_POINT=YES")
 
 # ortp
 lcb_builder_cmake_options(ortp "-DENABLE_DOC=NO")
-set(EP_ortp_LINKING_TYPE "-DENABLE_STATIC=NO" "-DENABLE_SHARED=YES")
+lcb_builder_linking_type(ortp "-DENABLE_STATIC=NO" "-DENABLE_SHARED=YES")
 
 # polarssl
-set(EP_polarssl_LINKING_TYPE "-DUSE_SHARED_POLARSSL_LIBRARY=NO")
+lcb_builder_linking_type(polarssl "-DUSE_SHARED_POLARSSL_LIBRARY=NO")
 
 # speex
 lcb_builder_cmake_options(speex "-DENABLE_FLOAT_API=NO")
@@ -129,11 +129,11 @@ if(CMAKE_SYSTEM_PROCESSOR STREQUAL "armeabi-v7a")
 endif()
 
 # vpx
-set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared")
+lcb_builder_linking_type(vpx "--enable-static" "--disable-shared")
 
 # x264
-set(EP_x264_LINKING_TYPE "--enable-static" "--enable-pic")
-set(EP_x264_INSTALL_TARGET "install-lib-static")
+lcb_builder_linking_type(x264 "--enable-static" "--enable-pic")
+lcb_builder_install_target(x264 "install-lib-static")
 
 
 # Copy c++ library to install prefix
