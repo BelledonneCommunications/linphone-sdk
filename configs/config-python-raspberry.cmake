@@ -33,7 +33,7 @@ include("configs/config-python.cmake")
 set(DEFAULT_VALUE_ENABLE_WASAPI OFF)
 
 # ffmpeg
-set(EP_ffmpeg_CROSS_COMPILATION_OPTIONS
+lcb_builder_cross_compilation_options(ffmpeg
 	"--prefix=${CMAKE_INSTALL_PREFIX}"
 	"--enable-cross-compile"
 	"--cross-prefix=arm-linux-gnueabihf-"
@@ -53,12 +53,12 @@ endif()
 
 # vpx
 if(CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7")
-	set(EP_vpx_CROSS_COMPILATION_OPTIONS
+	lcb_builder_cross_compilation_options(vpx
 		"--prefix=${CMAKE_INSTALL_PREFIX}"
 		"--target=armv7-linux-gcc"
 	)
 else()
-	set(EP_vpx_CROSS_COMPILATION_OPTIONS
+	lcb_builder_cross_compilation_options(vpx
 		"--prefix=${CMAKE_INSTALL_PREFIX}"
 		"--target=armv6-linux-gcc"
 	)

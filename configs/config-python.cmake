@@ -77,7 +77,7 @@ include(builders/CMakeLists.txt)
 lcb_builder_cmake_options(bctoolbox "-DENABLE_TESTS_COMPONENT=NO")
 
 # ffmpeg
-set(EP_ffmpeg_LINKING_TYPE "--disable-static" "--enable-shared")
+lcb_builder_linking_type(ffmpeg "--disable-static" "--enable-shared")
 
 # linphone
 lcb_builder_cmake_options(linphone "-DENABLE_RELATIVE_PREFIX=YES")
@@ -90,7 +90,7 @@ lcb_builder_cmake_options(linphone "-DENABLE_UNIT_TESTS=NO")
 lcb_builder_cmake_options(linphone "-DENABLE_UPNP=NO")
 
 # mbedtls
-set(EP_mbedtls_LINKING_TYPE "-DUSE_STATIC_MBEDTLS_LIBRARY=YES" "-DUSE_SHARED_MBEDTLS_LIBRARY=NO")
+lcb_builder_linking_type(mbedtls "-DUSE_STATIC_MBEDTLS_LIBRARY=YES" "-DUSE_SHARED_MBEDTLS_LIBRARY=NO")
 
 # ms2
 lcb_builder_cmake_options(ms2 "-DENABLE_RELATIVE_PREFIX=YES")
@@ -107,13 +107,13 @@ if(UNIX AND NOT APPLE)
 endif()
 
 # polarssl
-set(EP_polarssl_LINKING_TYPE "-DUSE_SHARED_POLARSSL_LIBRARY=NO")
+lcb_builder_linking_type(polarssl "-DUSE_SHARED_POLARSSL_LIBRARY=NO")
 
 # v4l
-set(EP_v4l_LINKING_TYPE "--enable-static" "--disable-shared" "--with-pic")
+lcb_builder_linking_type(v4l "--enable-static" "--disable-shared" "--with-pic")
 
 # vpx
-set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared" "--enable-pic")
+lcb_builder_linking_type(vpx "--enable-static" "--disable-shared" "--enable-pic")
 
 
 # Add config step to build the Python module
