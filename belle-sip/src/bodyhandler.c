@@ -467,7 +467,7 @@ static void belle_sip_file_body_handler_clone(belle_sip_file_body_handler_t *obj
 static void belle_sip_file_body_handler_begin_transfer(belle_sip_body_handler_t *base) {
 	belle_sip_file_body_handler_t *obj = (belle_sip_file_body_handler_t *)base;
 	bctbx_vfs_t *vfs = bctbx_vfs_get_default();
-	
+
 	if (obj->filepath == NULL) return;
 	obj->file = bctbx_file_open(vfs, obj->filepath, "r+");
 	if (!obj->file) {
@@ -490,11 +490,11 @@ static void belle_sip_file_body_handler_end_transfer(belle_sip_body_handler_t *b
 static void belle_sip_file_body_handler_recv_chunk(belle_sip_body_handler_t *base, belle_sip_message_t *msg, size_t offset, const uint8_t *buf, size_t size) {
 	belle_sip_file_body_handler_t *obj = (belle_sip_file_body_handler_t *)base;
 	ssize_t ret;
-	
+
 	if (obj->file == NULL) return;
 	ret = bctbx_file_write(obj->file, buf, size, offset);
 	if (ret == BCTBX_VFS_ERROR) {
-		bctbx_error("File body handler recv write error at offset %lu", offset);
+		bctbx_error("File body handler recv write error at offset %zu", offset);
 	}
 }
 
@@ -502,11 +502,11 @@ static int belle_sip_file_body_handler_send_chunk(belle_sip_body_handler_t *base
 	belle_sip_file_body_handler_t *obj = (belle_sip_file_body_handler_t *)base;
 	ssize_t size_t_ret;
 	size_t to_send = MIN(*size, obj->base.expected_size - offset);
-	
+
 	if (obj->file == NULL) return BELLE_SIP_STOP;
 	size_t_ret = bctbx_file_read(obj->file, buf, to_send, offset);
 	if (size_t_ret == BCTBX_VFS_ERROR) {
-		bctbx_error("file body handler send read error at offset %lu", offset);
+		bctbx_error("file body handler send read error at offset %zu", offset);
 		return BELLE_SIP_STOP;
 	}
 	*size = (size_t)size_t_ret;
