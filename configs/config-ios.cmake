@@ -70,7 +70,7 @@ include(builders/CMakeLists.txt)
 lcb_builder_cmake_options(bzrtp "-DENABLE_STRICT=NO")
 
 # ffmpeg
-set(EP_ffmpeg_LINKING_TYPE "--enable-static" "--disable-shared" "--enable-pic")
+lcb_builder_linking_type(ffmpeg "--enable-static" "--disable-shared" "--enable-pic")
 
 # linphone
 lcb_builder_cmake_options(linphone "-DENABLE_RELATIVE_PREFIX=YES")
@@ -84,7 +84,7 @@ lcb_builder_cmake_options(linphone "-DENABLE_DOC=NO")
 lcb_builder_cmake_options(linphone "-DENABLE_NLS=NO")
 
 # mbedtls
-set(EP_mbedtls_LINKING_TYPE "-DUSE_STATIC_MBEDTLS_LIBRARY=YES" "-DUSE_SHARED_MBEDTLS_LIBRARY=NO")
+lcb_builder_linking_type(mbedtls "-DUSE_STATIC_MBEDTLS_LIBRARY=YES" "-DUSE_SHARED_MBEDTLS_LIBRARY=NO")
 
 # mediastreamer2
 lcb_builder_cmake_options(ms2 "-DENABLE_RELATIVE_PREFIX=YES")
@@ -103,15 +103,15 @@ lcb_builder_cmake_options(opus "-DENABLE_FIXED_POINT=YES")
 lcb_builder_cmake_options(ortp "-DENABLE_DOC=NO")
 
 # polarssl
-set(EP_polarssl_LINKING_TYPE "-DUSE_SHARED_POLARSSL_LIBRARY=0")
+lcb_builder_linking_type(polarssl "-DUSE_SHARED_POLARSSL_LIBRARY=0")
 
 # speex
 lcb_builder_cmake_options(speex "-DENABLE_FLOAT_API=NO")
 lcb_builder_cmake_options(speex "-DENABLE_FIXED_POINT=YES")
 
 # vpx
-set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared")
+lcb_builder_linking_type(vpx "--enable-static" "--disable-shared")
 
 # x264
-set(EP_x264_LINKING_TYPE "--enable-static" "--enable-pic")
-set(EP_x264_INSTALL_TARGET "install-lib-static")
+lcb_builder_linking_type(x264 "--enable-static" "--enable-pic")
+lcb_builder_install_target(x264 "install-lib-static")
