@@ -58,6 +58,11 @@ else()
 	# Include targets definitions
 	include(${CMAKE_CURRENT_LIST_DIR}/../targets/CMakeLists.txt)
 
+	if(LINPHONE_BUILDER_EXTERNAL_BUILDERS_PATH)
+		message(STATUS "Including external builders from ${LINPHONE_BUILDER_EXTERNAL_BUILDERS_PATH}")
+		include(${LINPHONE_BUILDER_EXTERNAL_BUILDERS_PATH}/CMakeLists.txt)
+	endif()
+
 	# Include builder options definitions according to the targets to be built
 	include(${CMAKE_CURRENT_LIST_DIR}/../options/common.cmake)
 	foreach(_target IN LISTS TARGET_${LINPHONE_BUILDER_TARGET}_DEPENDENCIES)
@@ -68,13 +73,6 @@ else()
 
 	# Check for build tools and show an error if one of them is not present
 	include(${CMAKE_CURRENT_LIST_DIR}/../cmake/CheckBuildTools.cmake)
-
-
-	if(LINPHONE_BUILDER_EXTERNAL_BUILDERS_PATH)
-		message(STATUS "Including external builders from ${LINPHONE_BUILDER_EXTERNAL_BUILDERS_PATH}")
-		set(LINPHONE_BUILDER_INCLUDING_BUILDERS_FROM_EXTERNAL_BUILDERS_PATH TRUE)
-		include(${LINPHONE_BUILDER_EXTERNAL_BUILDERS_PATH}/CMakeLists.txt)
-	endif()
 
 	# Check that the chosen target is valid and declare it with its dependencies
 	lcb_check_target()
