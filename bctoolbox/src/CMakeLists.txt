@@ -24,8 +24,12 @@ set(BCTOOLBOX_C_SOURCE_FILES
 	containers/list.c
 	logging/logging.c
 	utils/port.c
+	utils/exception.cc
 	vfs.c
 )
+
+set_source_files_properties(utils/exception.cc PROPERTIES COMPILE_FLAGS -std=c++11)
+
 set(BCTOOLBOX_CXX_SOURCE_FILES containers/map.cc)
 
 if(MBEDTLS_FOUND)
@@ -50,7 +54,7 @@ apply_compile_flags(BCTOOLBOX_C_TESTER_SOURCE_FILES_C "CPP" "C")
 apply_compile_flags(BCTOOLBOX_CXX_SOURCE_FILES_C "CPP" "CXX")
 
 if(ENABLE_STATIC)
-	add_library(bctoolbox-static STATIC ${BCTOOLBOX_SOURCE_FILES})
+	add_library(bctoolbox-static STATIC ${BCTOOLBOX_SOURCE_FILES} ${BCTOOLBOX_HEADER_FILES})
 	target_link_libraries(bctoolbox-static ${CMAKE_THREAD_LIBS_INIT})
 	if(WIN32)
 		target_compile_definitions(bctoolbox-static PUBLIC "-DBCTBX_STATIC")
@@ -69,7 +73,7 @@ if(ENABLE_STATIC)
 	endif()
 endif()
 if(ENABLE_SHARED)
-	add_library(bctoolbox SHARED ${BCTOOLBOX_SOURCE_FILES})
+	add_library(bctoolbox SHARED ${BCTOOLBOX_SOURCE_FILES} ${BCTOOLBOX_HEADER_FILES})
 	target_link_libraries(bctoolbox PRIVATE ${CMAKE_THREAD_LIBS_INIT})
 	if(WIN32)
 		target_link_libraries(bctoolbox PRIVATE "Winmm" "Ws2_32")

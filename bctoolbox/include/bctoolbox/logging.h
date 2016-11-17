@@ -213,25 +213,24 @@ namespace bctoolbox {
 struct pumpstream : public std::ostringstream {
 	const std::string mDomain;
 	const BctbxLogLevel level;
-	pumpstream(std::string domain, BctbxLogLevel l) : mDomain(domain), level(l) {
-	}
+	pumpstream(std::string domain, BctbxLogLevel l) : mDomain(domain), level(l) {}
 	
 	~pumpstream() {
-		bctbx_log(mDomain.c_str(), level, "%s", str().c_str());
+		bctbx_log(mDomain.empty()?NULL:mDomain.c_str(), level, "%s", str().c_str());
 	}
 };
 
-//#if (__GNUC__ == 4 && __GNUC_MINOR__ < 5)
-//template <typename _Tp> inline pumpstream &operator<<(pumpstream &&__os, const _Tp &__x) {
-//	(static_cast<std::ostringstream &>(__os)) << __x;
-//	return __os;
-//}
-//#endif
+#if (__GNUC__ == 4 && __GNUC_MINOR__ < 5)
+template <typename _Tp> inline pumpstream &operator<<(pumpstream &&__os, const _Tp &__x) {
+	(static_cast<std::ostringstream &>(__os)) << __x;
+	return __os;
+}
+#endif
 
 #define BCTBX_SLOG(domain, thelevel) \
 \
 if (bctbx_log_level_enabled((domain), (thelevel))) \
-	pumpstream((domain),(thelevel))
+		pumpstream((domain?domain:""),(thelevel))
 
 #define BCTBX_SLOGD(DOMAIN) BCTBX_SLOG(DOMAIN, BCTBX_LOG_DEBUG)
 #define BCTBX_SLOGI(DOMAIN) BCTBX_SLOG((DOMAIN), (BCTBX_LOG_MESSAGE))

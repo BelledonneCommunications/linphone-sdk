@@ -20,17 +20,24 @@
 #
 ############################################################################
 
-set(BCTOOLBOX_HEADER_FILES
-	bctoolbox/crypto.h
-	bctoolbox/list.h
-	bctoolbox/logging.h
-	bctoolbox/map.h
-	bctoolbox/port.h
-	bctoolbox/vfs.h
+set(HEADER_FILES
+	crypto.h
+	list.h
+	logging.h
+	map.h
+	port.h
+	vfs.h
+	exception.hh
 )
 if(ENABLE_TESTS_COMPONENT)
-	list(APPEND BCTOOLBOX_HEADER_FILES bctoolbox/tester.h)
+	list(APPEND HEADER_FILES tester.h)
 endif()
+
+set(BCTOOLBOX_HEADER_FILES )
+foreach(HEADER_FILE ${HEADER_FILES})
+        list(APPEND BCTOOLBOX_HEADER_FILES "${CMAKE_CURRENT_LIST_DIR}/bctoolbox/${HEADER_FILE}")
+endforeach()
+set(BCTOOLBOX_HEADER_FILES ${BCTOOLBOX_HEADER_FILES} PARENT_SCOPE)
 
 install(FILES ${BCTOOLBOX_HEADER_FILES}
 	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/bctoolbox
