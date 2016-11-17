@@ -21,6 +21,9 @@
 
 #include "bctoolbox/crypto.h"
 
+static int belle_sip_tls_channel_init_bctbx_ssl(belle_sip_tls_channel_t *obj);
+static void belle_sip_tls_channel_deinit_bctbx_ssl(belle_sip_tls_channel_t *obj);
+
 /*****************************************************************************/
 /***               signing key structure and methods                       ***/
 /*****************************************************************************/
@@ -351,10 +354,10 @@ struct belle_sip_tls_channel{
 static void tls_channel_close(belle_sip_tls_channel_t *obj){
 	belle_sip_socket_t sock = belle_sip_source_get_socket((belle_sip_source_t*)obj);
 	if (sock!=-1 && belle_sip_channel_get_state((belle_sip_channel_t*)obj)!=BELLE_SIP_CHANNEL_ERROR) {
-		bctbx_ssl_close_notify(obj->sslctx);
+		if (obj->sslctx) bctbx_ssl_close_notify(obj->sslctx);
 	}
 	stream_channel_close((belle_sip_stream_channel_t*)obj);
-	bctbx_ssl_session_reset(obj->sslctx);
+	belle_sip_tls_channel_deinit_bctbx_ssl(obj);
 	obj->socket_connected=0;
 }
 
@@ -362,15 +365,7 @@ static void tls_channel_uninit(belle_sip_tls_channel_t *obj){
 	belle_sip_socket_t sock = belle_sip_source_get_socket((belle_sip_source_t*)obj);
 	if (sock!=(belle_sip_socket_t)-1)
 		tls_channel_close(obj);
-	if (obj->sslctx) {
-		bctbx_ssl_context_free(obj->sslctx);
-	}
-	if (obj->sslcfg) {
-		bctbx_ssl_config_free(obj->sslcfg);
-	}
-	if (obj->root_ca) {
-		bctbx_x509_certificate_free(obj->root_ca);
-	}
+	belle_sip_tls_channel_deinit_bctbx_ssl(obj);
 
 	if (obj->cur_debug_msg)
 		belle_sip_free(obj->cur_debug_msg);
@@ -407,6 +402,9 @@ static int tls_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen){
 
 static int tls_channel_connect_to(belle_sip_channel_t *obj, const struct addrinfo *ai){
 	int err;
+	
+	if (belle_sip_tls_channel_init_bctbx_ssl((belle_sip_tls_channel_t*)obj)==-1) return -1;
+	
 	err= stream_channel_connect((belle_sip_stream_channel_t*)obj,ai);
 	if (err==0){
 		belle_sip_source_set_notify((belle_sip_source_t *)obj, (belle_sip_source_func_t)tls_process_data);
@@ -812,14 +810,26 @@ static int belle_sip_tls_channel_load_root_ca_from_buffer(belle_sip_tls_channel_
 	return -1;
 }
 
-belle_sip_channel_t * belle_sip_channel_new_tls(belle_sip_stack_t *stack, belle_tls_crypto_config_t *crypto_config, const char *bindip, int localport, const char *peer_cname, const char *dest, int port) {
-	belle_sip_tls_channel_t *obj=belle_sip_object_new(belle_sip_tls_channel_t);
+static void belle_sip_tls_channel_deinit_bctbx_ssl(belle_sip_tls_channel_t *obj){
+	if (obj->sslctx) {
+		bctbx_ssl_context_free(obj->sslctx);
+		obj->sslctx = NULL;
+	}
+	if (obj->sslcfg) {
+		bctbx_ssl_config_free(obj->sslcfg);
+		obj->sslcfg = NULL;
+	}
+	if (obj->root_ca) {
+		bctbx_x509_certificate_free(obj->root_ca);
+		obj->root_ca = NULL;
+	}
+	
+}
+
+static int belle_sip_tls_channel_init_bctbx_ssl(belle_sip_tls_channel_t *obj){
 	belle_sip_stream_channel_t* super=(belle_sip_stream_channel_t*)obj;
-
-	belle_sip_stream_channel_init_client(super
-					,stack
-					,bindip,localport,peer_cname,dest,port);
-
+	belle_tls_crypto_config_t *crypto_config = obj->crypto_config;
+	
 	/* create and initialise ssl context and configuration */
 	obj->sslctx = bctbx_ssl_context_new();
 	obj->sslcfg = bctbx_ssl_config_new();
@@ -831,7 +841,7 @@ belle_sip_channel_t * belle_sip_channel_new_tls(belle_sip_stack_t *stack, belle_
 		if (ret<0) {
 			belle_sip_error("Unable to set external config for SSL context at TLS channel creation ret [-0x%x]", -ret);
 			belle_sip_object_unref(obj);
-			return NULL;
+			return -1;
 		}
 		belle_sip_message("Use externally provided SSL configuration when creating TLS channel [%p]", obj);
 	}
@@ -845,10 +855,20 @@ belle_sip_channel_t * belle_sip_channel_new_tls(belle_sip_stack_t *stack, belle_
 	bctbx_ssl_config_set_callback_verify(obj->sslcfg, belle_sip_ssl_verify, crypto_config);
 	bctbx_ssl_config_set_callback_cli_cert(obj->sslcfg, belle_sip_client_certificate_request_callback, obj);
 
-	obj->crypto_config=(belle_tls_crypto_config_t*)belle_sip_object_ref(crypto_config);
-
 	bctbx_ssl_context_setup(obj->sslctx, obj->sslcfg);
 	bctbx_ssl_set_hostname(obj->sslctx, super->base.peer_cname ? super->base.peer_cname : super->base.peer_name);
+	return 0;
+}
+
+belle_sip_channel_t * belle_sip_channel_new_tls(belle_sip_stack_t *stack, belle_tls_crypto_config_t *crypto_config, const char *bindip, int localport, const char *peer_cname, const char *dest, int port) {
+	belle_sip_tls_channel_t *obj=belle_sip_object_new(belle_sip_tls_channel_t);
+	belle_sip_stream_channel_t* super=(belle_sip_stream_channel_t*)obj;
+
+	belle_sip_stream_channel_init_client(super
+					,stack
+					,bindip,localport,peer_cname,dest,port);
+
+	obj->crypto_config=(belle_tls_crypto_config_t*)belle_sip_object_ref(crypto_config);
 	return (belle_sip_channel_t*)obj;
 }
 
