@@ -24,12 +24,13 @@ set(BCTOOLBOX_C_SOURCE_FILES
 	containers/list.c
 	logging/logging.c
 	utils/port.c
-	utils/exception.cc
 	vfs.c
 )
 
 set_source_files_properties(utils/exception.cc PROPERTIES COMPILE_FLAGS -std=c++11)
-
+if(HAVE_EXECINFO) 
+	set(BCTOOLBOX_CXX_SOURCE_FILES utils/exception.cc)
+endif()
 set(BCTOOLBOX_CXX_SOURCE_FILES containers/map.cc)
 
 if(MBEDTLS_FOUND)
