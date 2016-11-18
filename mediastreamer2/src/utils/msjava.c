@@ -42,7 +42,12 @@ void _android_key_cleanup(void *data){
 }
 #endif
 
-
+void ms_set_jvm_from_env(JNIEnv *env){
+    (*env)->GetJavaVM(env, &ms2_vm);
+#ifndef _WIN32
+	pthread_key_create(&jnienv_key,_android_key_cleanup);
+#endif
+}
 
 void ms_set_jvm(JavaVM *vm){
 	ms2_vm=vm;
