@@ -144,8 +144,11 @@ static void on_channel_state_changed(belle_sip_channel_listener_t *l, belle_sip_
 			} else {
 				belle_sip_transaction_terminate(t);
 			}
-			belle_sip_object_unref(((belle_sip_transaction_t*)t)->channel);
-			((belle_sip_transaction_t*)t)->channel = NULL;
+			if (t->channel){
+				belle_sip_channel_remove_listener(t->channel, l);
+				belle_sip_object_unref(t->channel);
+				t->channel = NULL;
+			}
 			belle_sip_object_unref(t);
 			
 		break;

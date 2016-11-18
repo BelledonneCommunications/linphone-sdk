@@ -567,6 +567,7 @@ static void test_bad_request(void) {
 	belle_sip_listening_point_clean_channels(lp);
 }
 
+
 static void test_register_authenticate(void) {
 	belle_sip_request_t *reg;
 	number_of_challenge=0;
@@ -596,6 +597,44 @@ static void test_register_channel_inactive(void){
 		belle_sip_stack_sleep(stack,3000);
 		BC_ASSERT_EQUAL(belle_sip_listening_point_get_channel_count(lp),0,int,"%d");
 		belle_sip_stack_set_inactive_transport_timeout(stack,3600);
+	}
+}
+
+static void test_channel_moving_to_error_and_cleaned(void){
+	belle_sip_listening_point_t *lp=belle_sip_provider_get_listening_point(prov,"UDP");
+	BC_ASSERT_PTR_NOT_NULL(lp);
+	if (lp) {
+		belle_sip_request_t *req;
+		belle_sip_client_transaction_t *tr;
+		char identity[128];
+		char uri[128];
+		
+		belle_sip_listening_point_clean_channels(lp);
+		BC_ASSERT_EQUAL(belle_sip_listening_point_get_channel_count(lp),0,int,"%d");
+		
+		snprintf(identity,sizeof(identity),"Tester <sip:%s@%s>","bellesip",test_domain);
+		snprintf(uri,sizeof(uri),"sip:%s",test_domain);
+		req = belle_sip_request_create(
+						belle_sip_uri_parse(uri),
+						"REGISTER",
+						belle_sip_provider_create_call_id(prov),
+						belle_sip_header_cseq_create(20,"REGISTER"),
+						belle_sip_header_from_create2(identity,BELLE_SIP_RANDOM_TAG),
+						belle_sip_header_to_create2(identity,NULL),
+						belle_sip_header_via_new(),
+						70);
+		tr = belle_sip_provider_create_client_transaction(prov, req);
+		belle_sip_client_transaction_send_request(tr);
+		belle_sip_object_ref(tr);
+		BC_ASSERT_EQUAL(belle_sip_listening_point_get_channel_count(lp),1,int,"%d");
+		/*calling notify_server_error() will make the channel enter the error state, which is what we want to test*/
+		belle_sip_channel_notify_server_error((belle_sip_channel_t*)lp->channels->data);
+		/*immediately after, we clean the channel from the listening point*/
+		belle_sip_listening_point_clean_channels(lp);
+		/*we just want to verify that it doesn't crash*/
+		belle_sip_stack_sleep(stack, 1000);
+		belle_sip_object_unref(tr);
+		
 	}
 }
 
@@ -853,6 +892,7 @@ test_t register_tests[] = {
 	TEST_NO_TAG("Authenticate", test_register_authenticate),
 	TEST_NO_TAG("TLS client cert authentication", test_register_client_authenticated),
 	TEST_NO_TAG("Channel inactive", test_register_channel_inactive),
+	TEST_NO_TAG("Channel moving to error test and cleaned", test_channel_moving_to_error_and_cleaned),
 	TEST_NO_TAG("TCP connection failure", test_connection_failure),
 	TEST_NO_TAG("TCP connection too long", test_connection_too_long_tcp),
 	TEST_NO_TAG("TLS connection too long", test_connection_too_long_tls),
