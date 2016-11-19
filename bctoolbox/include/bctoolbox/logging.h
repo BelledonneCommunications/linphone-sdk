@@ -208,7 +208,7 @@ namespace bctoolbox {
 	}
 }
 
-#if __cplusplus > 199711L  /*if compiled with C++11 support*/
+
 
 #include <ostream>
 
@@ -222,7 +222,7 @@ struct pumpstream : public std::ostringstream {
 	}
 };
 
-#if (__GNUC__ == 4 && __GNUC_MINOR__ < 5)
+#if (__GNUC__ == 4 && __GNUC_MINOR__ < 5 && __cplusplus > 199711L)
 template <typename _Tp> inline pumpstream &operator<<(pumpstream &&__os, const _Tp &__x) {
 	(static_cast<std::ostringstream &>(__os)) << __x;
 	return __os;
@@ -239,7 +239,6 @@ if (bctbx_log_level_enabled((domain), (thelevel))) \
 #define BCTBX_SLOGW(DOMAIN) BCTBX_SLOG(DOMAIN, BCTBX_LOG_WARNING)
 #define BCTBX_SLOGE(DOMAIN) BCTBX_SLOG(DOMAIN, BCTBX_LOG_ERROR)
 
-#endif  /*c++11*/
 
 #endif
 
