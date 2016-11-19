@@ -166,6 +166,9 @@ AC_CHECK_HEADER(mbedtls/ssl.h, [
 CPPFLAGS=$CPPFLAGS_save
 LIBS=$LIBS_save
 
+AC_CHECK_LIB(dl, dladdr)
+
+
 AM_CONDITIONAL(ENABLE_MBEDTLS, test "$mbdetls_found" = "true")
 
 if test "$mbedtls_found" = "false" ; then

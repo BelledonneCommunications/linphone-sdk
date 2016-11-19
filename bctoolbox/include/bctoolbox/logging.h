@@ -208,12 +208,14 @@ namespace bctoolbox {
 	}
 }
 
+#if __cplusplus > 199711L  /*if compiled with C++11 support*/
+
 #include <ostream>
 
 struct pumpstream : public std::ostringstream {
 	const std::string mDomain;
 	const BctbxLogLevel level;
-	pumpstream(std::string domain, BctbxLogLevel l) : mDomain(domain), level(l) {}
+	pumpstream(const std::string &domain, BctbxLogLevel l) : mDomain(domain), level(l) {}
 	
 	~pumpstream() {
 		bctbx_log(mDomain.empty()?NULL:mDomain.c_str(), level, "%s", str().c_str());
@@ -236,6 +238,8 @@ if (bctbx_log_level_enabled((domain), (thelevel))) \
 #define BCTBX_SLOGI(DOMAIN) BCTBX_SLOG((DOMAIN), (BCTBX_LOG_MESSAGE))
 #define BCTBX_SLOGW(DOMAIN) BCTBX_SLOG(DOMAIN, BCTBX_LOG_WARNING)
 #define BCTBX_SLOGE(DOMAIN) BCTBX_SLOG(DOMAIN, BCTBX_LOG_ERROR)
+
+#endif  /*c++11*/
 
 #endif
 
