@@ -968,13 +968,20 @@ static void channel_invoke_state_listener(belle_sip_channel_t *obj){
 	belle_sip_object_unref(obj);
 }
 
-static void channel_invoke_state_listener_defered(belle_sip_channel_t *obj){
-	channel_invoke_state_listener(obj);
+static void channel_notify_error_to_listeners(belle_sip_channel_t *obj){
+	/* The channel may have been passed to DISCONNECTED state due to _force_close() method.
+	 * Do not notify the error in this case, since the channel is already closed.
+	 */
+	if (obj->state == BELLE_SIP_CHANNEL_ERROR){
+		channel_invoke_state_listener(obj);
+	}
 	belle_sip_object_unref(obj);
 }
 
 static void channel_connect_next(belle_sip_channel_t *obj){
-	belle_sip_channel_connect(obj);
+	if (obj->state == BELLE_SIP_CHANNEL_RETRY){
+		belle_sip_channel_connect(obj);
+	}
 	belle_sip_object_unref(obj);
 }
 
@@ -997,7 +1004,7 @@ static void belle_sip_channel_handle_error(belle_sip_channel_t *obj){
 	* it is safer to invoke the listener outside the current call stack.
 	* Indeed the channel encounters network errors while being called for transmiting by a transaction.
 	*/
-	belle_sip_main_loop_do_later(obj->stack->ml,(belle_sip_callback_t)channel_invoke_state_listener_defered,belle_sip_object_ref(obj));
+	belle_sip_main_loop_do_later(obj->stack->ml,(belle_sip_callback_t)channel_notify_error_to_listeners,belle_sip_object_ref(obj));
 }
 
 int belle_sip_channel_notify_timeout(belle_sip_channel_t *obj){

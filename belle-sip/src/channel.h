@@ -197,7 +197,7 @@ void belle_sip_channel_force_close(belle_sip_channel_t *obj);
 int belle_sip_channel_notify_timeout(belle_sip_channel_t *obj);
 
 /*Used by transaction layer to report a server having internal errors, so that we can retry with another IP (in case of DNS SRV)*/
-void belle_sip_channel_notify_server_error(belle_sip_channel_t *obj);
+BELLESIP_INTERNAL_EXPORT void belle_sip_channel_notify_server_error(belle_sip_channel_t *obj);
 
 BELLE_SIP_END_DECLS
 
