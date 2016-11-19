@@ -32,7 +32,7 @@ if(ENABLE_TESTS_COMPONENT)
 	list(APPEND HEADER_FILES tester.h)
 endif()
 if(HAVE_EXECINFO) 
-	list(APPEND HEADER_FILES exception.h)
+	list(APPEND HEADER_FILES exception.hh)
 endif()
 
 set(BCTOOLBOX_HEADER_FILES )

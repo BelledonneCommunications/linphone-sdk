@@ -53,6 +53,8 @@ else
 	CFLAGS="$CFLAGS -g"
 fi
 
+CXXFLAGS="$CXXFLAGS -std=c++11"
+
 AC_ARG_ENABLE(strict,
 		[  --enable-strict    Turn on strict mode compilation, no warnings allowed (default=yes)],
 		[case "${enableval}" in
@@ -203,7 +205,7 @@ case $host in
 	;;
 	*)
 		CFLAGS="$CFLAGS -pthread -D_REENTRANT"
-		CXXFLAGS="$CFLAGS -pthread -D_REENTRANT"
+		CXXFLAGS="$CXXFLAGS -pthread -D_REENTRANT"
 		LIBS="$LIBS -pthread -lpthread"
 	;;
 esac
