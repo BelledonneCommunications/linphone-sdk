@@ -20,6 +20,10 @@
 #
 ############################################################################
 
+# Define options that are specific to the android config
+lcb_add_dependent_option("Embedded OpenH264" "Embed the openh264 library instead of downloading it from Cisco." "${DEFAULT_VALUE_ENABLE_EMBEDDED_OPENH264}" "ENABLE_OPENH264" OFF)
+
+
 # Define default values for the linphone builder options
 set(DEFAULT_VALUE_ENABLE_FFMPEG ON)
 set(DEFAULT_VALUE_ENABLE_GPL_THIRD_PARTIES ON)
@@ -55,6 +59,7 @@ if(CMAKE_SYSTEM_PROCESSOR STREQUAL "armeabi" AND ENABLE_VIDEO)
 	set(ENABLE_VPX NO CACHE BOOL "" FORCE)
 	set(ENABLE_X264 NO CACHE BOOL "" FORCE)
 endif()
+
 
 
 # Include builders
@@ -109,7 +114,9 @@ lcb_builder_cmake_options(ms2 "-DENABLE_UNIT_TESTS=NO")
 lcb_builder_linking_type(ms2 "-DENABLE_STATIC=NO" "-DENABLE_SHARED=YES")
 
 # openh264
-lcb_builder_linking_type(openh264 "-shared")
+if(NOT ENABLE_EMBEDDED_OPENH264)
+	lcb_builder_linking_type(openh264 "-shared")
+endif()
 
 # opus
 lcb_builder_cmake_options(opus "-DENABLE_FIXED_POINT=YES")

@@ -21,7 +21,6 @@
 ############################################################################
 
 # Define options that are specific to the desktop config
-
 lcb_add_option("Theora" "Theora video encoding/decoding support." "${DEFAULT_VALUE_ENABLE_THEORA}")
 lcb_add_option("Static only" "Enable compilation of libraries in static mode." "${DEFAULT_VALUE_ENABLE_STATIC_ONLY}")
 lcb_add_option("Packaging" "Enable packaging" "${DEFAULT_VALUE_ENABLE_PACKAGING}")
