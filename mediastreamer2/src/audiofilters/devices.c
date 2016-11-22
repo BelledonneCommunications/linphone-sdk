@@ -116,6 +116,11 @@ static SoundDeviceDescription devices[]={
 	{	"samsung",				"SHV-E210S",			"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA | DEVICE_HAS_BUILTIN_AEC, 0 },
 	{	"samsung",				"SHV-E210L",			"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA | DEVICE_HAS_BUILTIN_AEC, 0 },
 	{	"samsung",				"SHV-E220S",			"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA | DEVICE_HAS_BUILTIN_AEC, 0 },
+	{	"samsung",				"SGH-I317",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA | DEVICE_HAS_BUILTIN_AEC, 0 },
+	{	"samsung",				"SHV-E230K",			"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"samsung",				"SM-G530F",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"samsung",				"SM-T315",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	
 	
 	{	"Sony Ericsson",		"ST15a",				"",				0, 	150 },
 	{	"Sony Ericsson",		"S51SE",				"",				0,	150 },
@@ -135,24 +140,31 @@ static SoundDeviceDescription devices[]={
 	{	"Sony",					"SGP511",				"msm8974",		DEVICE_HAS_BUILTIN_AEC_CRAPPY,	130, 0, &SonySGP511Hacks},
 	{ 	"Sony", 				"D6503", 				"msm8974",		DEVICE_HAS_BUILTIN_AEC_CRAPPY,	280},
 	{ 	"Sony", 				"D6603", 				"msm8974",		DEVICE_HAS_BUILTIN_AEC_CRAPPY,	280},
+	{	"Sony",					"D2005",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA,	0},
 	
 	{	"asus",					"Nexus 7",				"", 			0, 170},
 	{	"asus",					"K00E",					"clovertrail", 	0, 200},
 	
 	{	"Amazon",				"KFTT",					"omap4",		DEVICE_USE_ANDROID_MIC,200},
 	{	"LENOVO",				"Lenovo B6000-F",		"",				DEVICE_HAS_BUILTIN_AEC_CRAPPY,300},
+	{	"LENOVO",				"Lenovo S60-a",			"msm8916",		0,	0 ,	44100},
+	{	"LENOVO",				"Lenovo A6000",			"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0},
+	{	"LENOVO",				"Lenovo A616",			"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0},
 	
 	{	"Enspert",				"IGGY",					""		,		0,	320 ,0}, /*Wiko iggy*/
 	{	"Yota Devices Limited", "YD201", 				"msm8974", 		DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0, 48000 }, /* Yotaphone 2 */
 	
 	{	"Hewlett-Packard",		"Slate 21 Pro",			"tegra4", 		DEVICE_HAS_UNSTANDARD_LIBMEDIA, 250  },
-	{	"LENOVO",				"Lenovo S60-a",			"msm8916",		0,	0 ,	44100},
 	{	"blackberry",			"STV100-4",				"msm8992",		DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0 , 48000},
 	
-	{	"Vodafone",				"Vodafone 985N",					"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"Vodafone",				"Vodafone 985N",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"Acer",					"S57",							"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"Alcatel",				"4027D",						"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
 	
 	{	"HUAWEI",				"HUAWEI P7-L10",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
 	{	"HUAWEI",				"HUAWEI P7-L11",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"HUAWEI",				"HUAWEI P7-L12",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"HUAWEI",				"HUAWEI MT7-L09",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
 
 	{	NULL, 					NULL, 					NULL,			0, 	0,	0}
 };
