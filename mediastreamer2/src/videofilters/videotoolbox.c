@@ -107,7 +107,14 @@ static void h264_enc_output_cb(VTH264EncCtx *ctx, void *sourceFrameRefCon, OSSta
 	}
 	ms_mutex_unlock(&ctx->mutex);
 }
+#if 0
+static void print_properties(CFStringRef prop_name, CFDictionaryRef prop_attrs, void *context) {
+	CFShow(prop_name);
+	if (CFDictionaryGetCount(prop_attrs) >0)
+		CFShow(prop_attrs);
 
+}
+#endif
 static void h264_enc_configure(VTH264EncCtx *ctx) {
 	OSStatus err;
 	const char *error_msg = "Could not initialize the VideoToolbox compresson session";
@@ -127,7 +134,18 @@ static void h264_enc_configure(VTH264EncCtx *ctx) {
 		ms_error("%s: error code %d", error_msg, (int)err);
 		goto fail;
 	}
-
+#if 0 /*for debugin purpose*/
+	CFDictionaryRef dict;
+	err = VTSessionCopySupportedPropertyDictionary (ctx->session, &dict);
+	if (err == noErr) {
+		CFDictionaryApplyFunction (dict,
+								   (CFDictionaryApplierFunction) print_properties, ctx);
+		CFRelease (dict);
+		
+	} else {
+		ms_error("Could not get  VTSessionCopySupportedPropertyDictionary, err=%i",(int)err);
+	}
+#endif
 	VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_ProfileLevel, kVTProfileLevel_H264_Baseline_AutoLevel);
 	VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_AllowFrameReordering, kCFBooleanFalse);
 	value = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &ctx->conf.required_bitrate);
