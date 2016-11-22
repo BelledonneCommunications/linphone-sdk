@@ -142,7 +142,7 @@ endif()
 
 # This macro can be used to add an option. Give it option name and description,
 # default value and optionally dependent predicate and value
-macro(linphone_builder_add_dependent_option NAME DESCRIPTION DEFAULT_VALUE CONDITION CONDITION_VALUE)
+macro(lcb_add_dependent_option NAME DESCRIPTION DEFAULT_VALUE CONDITION CONDITION_VALUE)
 	string(TOUPPER ${NAME} UPPERCASE_NAME)
 	string(REGEX REPLACE  " " "_" UPPERCASE_NAME ${UPPERCASE_NAME})
 	string(REGEX REPLACE  "\\+" "P" UPPERCASE_NAME ${UPPERCASE_NAME})
@@ -150,8 +150,8 @@ macro(linphone_builder_add_dependent_option NAME DESCRIPTION DEFAULT_VALUE CONDI
 	add_feature_info("${NAME}" "ENABLE_${UPPERCASE_NAME}" "${DESCRIPTION}")
 endmacro()
 
-macro(linphone_builder_add_strict_dependent_option NAME DESCRIPTION DEFAULT_VALUE CONDITION CONDITION_VALUE STRICT_CONDITION ERROR_MSG)
-	linphone_builder_add_dependent_option("${NAME}" "${DESCRIPTION}" "${DEFAULT_VALUE}" "${CONDITION}" "${CONDITION_VALUE}")
+macro(lcb_add_strict_dependent_option NAME DESCRIPTION DEFAULT_VALUE CONDITION CONDITION_VALUE STRICT_CONDITION ERROR_MSG)
+	lcb_add_dependent_option("${NAME}" "${DESCRIPTION}" "${DEFAULT_VALUE}" "${CONDITION}" "${CONDITION_VALUE}")
 	string(TOUPPER ${NAME} UPPERCASE_NAME)
 	string(REGEX REPLACE  " " "_" UPPERCASE_NAME ${UPPERCASE_NAME})
 	string(REGEX REPLACE  "\\+" "P" UPPERCASE_NAME ${UPPERCASE_NAME})
@@ -160,7 +160,7 @@ macro(linphone_builder_add_strict_dependent_option NAME DESCRIPTION DEFAULT_VALU
 	endif()
 endmacro()
 
-macro(linphone_builder_add_option NAME DESCRIPTION DEFAULT_VALUE)
+macro(lcb_add_option NAME DESCRIPTION DEFAULT_VALUE)
 	string(TOUPPER ${NAME} UPPERCASE_NAME)
 	string(REGEX REPLACE  " " "_" UPPERCASE_NAME ${UPPERCASE_NAME})
 	string(REGEX REPLACE  "\\+" "P" UPPERCASE_NAME ${UPPERCASE_NAME})

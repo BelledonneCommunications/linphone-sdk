@@ -22,7 +22,5 @@
 
 # bctoolbox build options
 
-option(ENABLE_POLARSSL "Enable polarssl support." ${DEFAULT_VALUE_ENABLE_POLARSSL})
-add_feature_info("Polarssl" ENABLE_POLARSSL "Crypto stack implementation based on polarssl")
-option(ENABLE_MBEDTLS "Enable mbedtls support." ${DEFAULT_VALUE_ENABLE_MBEDTLS})
-add_feature_info("Mbedtls" ENABLE_MBEDTLS "Crypto stack implementation based on mbeddtls")
+lcb_add_option("Polarssl" "Crypto stack implementation based on polarssl." "${DEFAULT_VALUE_ENABLE_POLARSSL}")
+lcb_add_option("Mbedtls" "Crypto stack implementation based on mbeddtls." "${DEFAULT_VALUE_ENABLE_MBEDTLS}")

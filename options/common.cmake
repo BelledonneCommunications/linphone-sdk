@@ -22,14 +22,7 @@
 
 # Common build options
 
-option(ENABLE_UNIT_TESTS "Enable unit tests support with BCUnit library." "${DEFAULT_VALUE_ENABLE_UNIT_TESTS}")
-add_feature_info("Unit tests" ENABLE_UNIT_TESTS "Build unit tests programs for belle-sip, mediastreamer2 and linphone.")
-option(ENABLE_DEBUG_LOGS "Enable debug level logs in libinphone and mediastreamer2." NO)
-
-option(ENABLE_PACKAGING "Enable packaging" "${DEFAULT_VALUE_ENABLE_PACKAGING}")
-
-option(ENABLE_DOC "Enable documentation generation with Doxygen." YES)
-add_feature_info("Documentation" ENABLE_DOC "Enable documentation generation with Doxygen.")
-
-option(ENABLE_TOOLS "Enable tools binary compilation." YES)
-add_feature_info("Tools" ENABLE_DOC "Enable tools binary compilation.")
+lcb_add_option("Unit tests" "Enable unit tests support with BCUnit library." "${DEFAULT_VALUE_ENABLE_UNIT_TESTS}")
+lcb_add_option("Debug logs" "Enable debug level logs in libinphone and mediastreamer2." NO)
+lcb_add_option("Doc" "Enable documentation generation with Doxygen." YES)
+lcb_add_option("Tools" "Enable tools binary compilation." YES)
