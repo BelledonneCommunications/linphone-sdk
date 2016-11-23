@@ -52,6 +52,9 @@ static void dec_init(MSFilter *f){
 	AMediaFormat *format;
 	AMediaCodec *codec = AMediaCodec_createDecoderByType("video/avc");
 	DecData *d=ms_new0(DecData,1);
+	
+	ms_message("MSMediaCodecH264Dec initialization");
+	
 	d->codec = codec;
 	d->sps=NULL;
 	d->pps=NULL;
@@ -72,8 +75,12 @@ static void dec_init(MSFilter *f){
 	AMediaFormat_setInt32(format,"height",1080);
 	if(AMediaImage_isAvailable()) AMediaFormat_setInt32(format, "color-format", 0x7f420888);
 
-	AMediaCodec_configure(codec, format, NULL, NULL, 0);
-    AMediaCodec_start(codec);
+	if (AMediaCodec_configure(codec, format, NULL, NULL, 0) != AMEDIA_OK) {
+		ms_error("MSMediaCodecH264Dec: configuration failure");
+	}
+    if (AMediaCodec_start(codec) != AMEDIA_OK) {
+		ms_error("MSMediaCodecH264Dec: starting failure");
+	}
     AMediaFormat_delete(format);
 
 	f->data=d;
