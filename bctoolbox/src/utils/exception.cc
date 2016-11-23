@@ -36,7 +36,6 @@ static void uncaught_handler() {
 	abort();
 }
 
-BctbxException e;
 
 BctbxException::BctbxException(const char *message) : mOffset(1), mSize(0) {
 	mSize = backtrace(mArray, sizeof(mArray) / sizeof(void *));
@@ -93,23 +92,22 @@ void BctbxException::printStackTrace(std::ostream &os) const {
 		char *demangled = NULL;
 		int status = -1;
 		if (dladdr(mArray[i], &info) && info.dli_sname) {
-		demangled = abi::__cxa_demangle(info.dli_sname, NULL, 0, &status);
-		
+			demangled = abi::__cxa_demangle(info.dli_sname, NULL, 0, &status);
 			os << position++ << setw(20) << basename((char*)info.dli_fname) << setw(16) << info.dli_saddr ;
 			os << " ";
 			if (demangled) {
 				os << demangled;
 				free(demangled);
 			}
-			else
+			else{
 				os << info.dli_sname;
-			
+			}
 		} else {
 			os << bt[i];
 		}
 		os << std::endl;
 	}
-	delete (bt);
+	free(bt);
 }
 
 const std::string &BctbxException::str() const {
