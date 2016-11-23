@@ -45,6 +45,7 @@ typedef struct _DecData{
 	bool_t first_buffer_queued;
 	bool_t first_image_decoded;
 	bool_t avpf_enabled;
+	bool_t first_i_frame_queued;
 	
 }DecData;
 
@@ -246,6 +247,7 @@ static void dec_process(MSFilter *f){
 	bool_t request_pli=FALSE;
 	MSQueue nalus;
 	AMediaCodecBufferInfo info;
+	unsigned int unpacking_ret;
 	
 	ms_queue_init(&nalus);
 
@@ -256,10 +258,12 @@ static void dec_process(MSFilter *f){
 			d->pps=NULL;
 		}
 
-		if(rfc3984_unpack2(&d->unpacker,im,&nalus) & Rfc3984FrameCorrupted){
+		unpacking_ret = rfc3984_unpack2(&d->unpacker,im,&nalus);
+		if(unpacking_ret & Rfc3984FrameCorrupted){
+			ms_warning("MSMediaCodecH264Dec: corrupted frame. Skipping it");
 			request_pli=TRUE;
-		}
-		if (!ms_queue_empty(&nalus)){
+			ms_queue_flush(&nalus);
+		} else if (!ms_queue_empty(&nalus) && (d->first_i_frame_queued || (unpacking_ret & Rfc3984IsKeyFrame))) {
 			int size;
 			uint8_t *buf=NULL;
 			ssize_t iBufidx;
@@ -268,6 +272,7 @@ static void dec_process(MSFilter *f){
 
 			if (need_reinit) {
 				//In case of rotation, the decoder needs to flushed in order to restart with the new video size
+				ms_warning("MSMediaCodecH264Dec: video size has changed. Flushing all MediaCodec's buffers");
 				AMediaCodec_flush(d->codec);
 				d->first_buffer_queued = FALSE;
 			}
@@ -289,15 +294,17 @@ static void dec_process(MSFilter *f){
 					memcpy(buf,d->bitstream,(size_t)size);
 					AMediaCodec_queueInputBuffer(d->codec, iBufidx, 0, (size_t)size, (ts.tv_nsec/1000) + 10000LL, 0);
 					d->first_buffer_queued = TRUE;
+					d->first_i_frame_queued = TRUE;
 				}
 			}else if (iBufidx == AMEDIA_ERROR_UNKNOWN){
 				ms_error("MSMediaCodecH264Dec: AMediaCodec_dequeueInputBuffer() had an exception");
 			}
 		}
 		d->packet_num++;
-		if (d->sps && d->pps) request_pli = FALSE;
-		else request_pli = TRUE;
 	}
+	
+	if (d->sps && d->pps) request_pli = FALSE;
+	else request_pli = TRUE;
 	
 	/*secondly try to get decoded frames from the decoder, this is performed every tick*/
 	while (d->first_buffer_queued && (oBufidx = AMediaCodec_dequeueOutputBuffer(d->codec, &info, TIMEOUT_US)) >= 0){
@@ -365,6 +372,7 @@ static void dec_process(MSFilter *f){
 	}
 
 	if (d->avpf_enabled && request_pli) {
+		d->first_i_frame_queued = FALSE;
     	ms_filter_notify_no_arg(f, MS_VIDEO_DECODER_SEND_PLI);
     }
     ms_queue_flush(f->inputs[0]);
