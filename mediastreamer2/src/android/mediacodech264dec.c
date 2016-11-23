@@ -267,6 +267,8 @@ static void dec_process(MSFilter *f){
 			int size;
 			uint8_t *buf=NULL;
 			ssize_t iBufidx;
+			
+			if (unpacking_ret & Rfc3984IsKeyFrame) ms_message("MSMediaCodecH264Dec: I-frame received");
 
 			size=nalusToFrame(d,&nalus,&need_reinit);
 
@@ -292,6 +294,7 @@ static void dec_process(MSFilter *f){
 					struct timespec ts;
 					clock_gettime(CLOCK_MONOTONIC, &ts);
 					memcpy(buf,d->bitstream,(size_t)size);
+					if (!d->first_i_frame_queued) ms_message("MSMediaCodecH264Dec: passing first I-frame to the decoder");
 					AMediaCodec_queueInputBuffer(d->codec, iBufidx, 0, (size_t)size, (ts.tv_nsec/1000) + 10000LL, 0);
 					d->first_buffer_queued = TRUE;
 					d->first_i_frame_queued = TRUE;
@@ -372,7 +375,7 @@ static void dec_process(MSFilter *f){
 	}
 
 	if (d->avpf_enabled && request_pli) {
-		d->first_i_frame_queued = FALSE;
+		//d->first_i_frame_queued = FALSE;
     	ms_filter_notify_no_arg(f, MS_VIDEO_DECODER_SEND_PLI);
     }
     ms_queue_flush(f->inputs[0]);
