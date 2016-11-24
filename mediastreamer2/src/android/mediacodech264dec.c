@@ -46,6 +46,7 @@ typedef struct _DecData{
 	bool_t first_image_decoded;
 	bool_t avpf_enabled;
 	bool_t first_i_frame_queued;
+	bool_t freeze_on_error;
 	
 }DecData;
 
@@ -65,6 +66,7 @@ static void dec_init(MSFilter *f){
 	d->vsize.height=0;
 	d->bitstream_size=65536;
 	d->avpf_enabled=FALSE;
+	d->freeze_on_error = TRUE;
     d->bitstream=ms_malloc0(d->bitstream_size);
 	d->buf_allocator = ms_yuv_buf_allocator_new();
 	ms_average_fps_init(&d->fps, " H264 decoder: FPS: %f");
@@ -268,11 +270,12 @@ static void dec_process(MSFilter *f){
 
 		unpacking_ret = rfc3984_unpack2(&d->unpacker,im,&nalus);
 		if(unpacking_ret & Rfc3984FrameCorrupted){
-			ms_warning("MSMediaCodecH264Dec: corrupted frame. Skipping it");
+			ms_warning("MSMediaCodecH264Dec: corrupted frame");
 			handle_decoding_error(d, FALSE, &request_pli);
-		} else if (!d->first_i_frame_queued && !(unpacking_ret & Rfc3984IsKeyFrame)) {
+		}
+		if (!d->first_i_frame_queued && !(unpacking_ret & Rfc3984IsKeyFrame)) {
 			request_pli = TRUE;
-		} else if (!ms_queue_empty(&nalus)) {
+		} else if (!ms_queue_empty(&nalus) && (!(unpacking_ret & Rfc3984FrameCorrupted) || !d->freeze_on_error)) {
 			int size;
 			uint8_t *buf=NULL;
 			ssize_t iBufidx;
@@ -315,8 +318,6 @@ static void dec_process(MSFilter *f){
 				handle_decoding_error(d, TRUE, &request_pli);
 				break;
 			}
-		} else {
-			ms_error("MSMediaCodecH264Dec: unhandled case");
 		}
 		d->packet_num++;
 	}
