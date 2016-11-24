@@ -453,14 +453,22 @@ static int dec_enable_avpf(MSFilter *f, void *data) {
 	return 0;
 }
 
+static int dec_freeze_on_error(MSFilter *f, void *enable) {
+	DecData *s = (DecData *)f->data;
+	s->freeze_on_error = *(bool_t *)enable;
+	ms_message("MSMediaCodecH264Dec: freeze on error %s", s->freeze_on_error ? "enabled" : "disabled");
+	return 0;
+}
+
 static MSFilterMethod  mediacodec_h264_dec_methods[]={
-	{	MS_FILTER_ADD_FMTP                                 ,	dec_add_fmtp      },
-	{	MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION    ,	reset_first_image },
-	{	MS_FILTER_GET_VIDEO_SIZE                           ,	dec_get_vsize     },
-	{	MS_FILTER_GET_FPS                                  ,	dec_get_fps       },
-	{	MS_FILTER_GET_OUTPUT_FMT                           ,	dec_get_outfmt    },
-	{ 	MS_VIDEO_DECODER_ENABLE_AVPF                       ,	dec_enable_avpf	  },
-	{	0                                                  ,	NULL              }
+	{	MS_FILTER_ADD_FMTP                                 ,	dec_add_fmtp        },
+	{	MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION    ,	reset_first_image   },
+	{	MS_FILTER_GET_VIDEO_SIZE                           ,	dec_get_vsize       },
+	{	MS_FILTER_GET_FPS                                  ,	dec_get_fps         },
+	{	MS_FILTER_GET_OUTPUT_FMT                           ,	dec_get_outfmt      },
+	{ 	MS_VIDEO_DECODER_ENABLE_AVPF                       ,	dec_enable_avpf     },
+	{	MS_VIDEO_DECODER_FREEZE_ON_ERROR                   ,	dec_freeze_on_error },
+	{	0                                                  ,	NULL                }
 };
 
 
