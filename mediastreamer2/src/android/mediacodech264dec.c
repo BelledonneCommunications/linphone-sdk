@@ -237,6 +237,14 @@ static int nalusToFrame(DecData *d, MSQueue *naluq, bool_t *new_sps_pps){
 	return dst-d->bitstream;
 }
 
+static void handle_decoding_error(DecData *d, bool_t request_flushing, bool_t *request_pli) {
+	if (request_flushing) {
+		AMediaCodec_flush(d->codec);
+		d->first_buffer_queued = FALSE;
+	}
+	if (request_pli != NULL) *request_pli = TRUE;
+};
+
 static void dec_process(MSFilter *f){
 	DecData *d=(DecData*)f->data;
 	MSPicture pic = {0};
@@ -261,9 +269,10 @@ static void dec_process(MSFilter *f){
 		unpacking_ret = rfc3984_unpack2(&d->unpacker,im,&nalus);
 		if(unpacking_ret & Rfc3984FrameCorrupted){
 			ms_warning("MSMediaCodecH264Dec: corrupted frame. Skipping it");
-			request_pli=TRUE;
-			ms_queue_flush(&nalus);
-		} else if (!ms_queue_empty(&nalus) && (d->first_i_frame_queued || (unpacking_ret & Rfc3984IsKeyFrame))) {
+			handle_decoding_error(d, FALSE, &request_pli);
+		} else if (!d->first_i_frame_queued && !(unpacking_ret & Rfc3984IsKeyFrame)) {
+			request_pli = TRUE;
+		} else if (!ms_queue_empty(&nalus)) {
 			int size;
 			uint8_t *buf=NULL;
 			ssize_t iBufidx;
@@ -274,7 +283,7 @@ static void dec_process(MSFilter *f){
 
 			if (need_reinit) {
 				//In case of rotation, the decoder needs to flushed in order to restart with the new video size
-				ms_warning("MSMediaCodecH264Dec: video size has changed. Flushing all MediaCodec's buffers");
+				ms_message("MSMediaCodecH264Dec: video size has changed. Flushing all MediaCodec's buffers");
 				AMediaCodec_flush(d->codec);
 				d->first_buffer_queued = FALSE;
 			}
@@ -285,10 +294,12 @@ static void dec_process(MSFilter *f){
 				buf = AMediaCodec_getInputBuffer(d->codec, iBufidx, &bufsize);
 				if(buf == NULL) {
 					ms_error("MSMediaCodecH264Dec: AMediaCodec_getInputBuffer() returned NULL");
+					handle_decoding_error(d, TRUE, &request_pli);
 					break;
 				}
 				if((size_t)size > bufsize) {
 					ms_error("Cannot copy the bitstream into the input buffer size : %i and bufsize %i",size,(int) bufsize);
+					handle_decoding_error(d, TRUE, &request_pli);
 					break;
 				} else {
 					struct timespec ts;
@@ -301,13 +312,14 @@ static void dec_process(MSFilter *f){
 				}
 			}else if (iBufidx == AMEDIA_ERROR_UNKNOWN){
 				ms_error("MSMediaCodecH264Dec: AMediaCodec_dequeueInputBuffer() had an exception");
+				handle_decoding_error(d, TRUE, &request_pli);
+				break;
 			}
+		} else {
+			ms_error("MSMediaCodecH264Dec: unhandled case");
 		}
 		d->packet_num++;
 	}
-	
-	if (d->sps && d->pps) request_pli = FALSE;
-	else request_pli = TRUE;
 	
 	/*secondly try to get decoded frames from the decoder, this is performed every tick*/
 	while (d->first_buffer_queued && (oBufidx = AMediaCodec_dequeueOutputBuffer(d->codec, &info, TIMEOUT_US)) >= 0){
@@ -318,6 +330,7 @@ static void dec_process(MSFilter *f){
 		if(buf == NULL){
 			ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_DECODING_ERRORS);
 			ms_error("MSMediaCodecH264Dec: AMediaCodec_getOutputBuffer() returned NULL");
+			handle_decoding_error(d, FALSE, &request_pli);
 		}
 
 		format = AMediaCodec_getOutputFormat(d->codec);
@@ -360,22 +373,23 @@ static void dec_process(MSFilter *f){
 
 				if (!d->first_image_decoded) {
 					ms_message("First frame decoded %ix%i",width,height);
-					d->first_image_decoded = true;
+					d->first_image_decoded = TRUE;
 					ms_filter_notify_no_arg(f, MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
 				}
 				ms_queue_put(f->outputs[0], om);
 			}else{
 				ms_error("MSMediaCodecH264Dec: width and height are not known !");
+				handle_decoding_error(d, FALSE, &request_pli);
 			}
 		}
 		AMediaCodec_releaseOutputBuffer(d->codec, oBufidx, FALSE);
 	}
 	if (oBufidx == AMEDIA_ERROR_UNKNOWN){
 		ms_error("MSMediaCodecH264Dec: AMediaCodec_dequeueOutputBuffer() had an exception");
+		handle_decoding_error(d, FALSE, &request_pli);
 	}
 
 	if (d->avpf_enabled && request_pli) {
-		//d->first_i_frame_queued = FALSE;
     	ms_filter_notify_no_arg(f, MS_VIDEO_DECODER_SEND_PLI);
     }
     ms_queue_flush(f->inputs[0]);
