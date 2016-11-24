@@ -138,7 +138,7 @@ else()
 			if(CMAKE_SYSTEM_PROCESSOR STREQUAL "armeabi-v7a")
 				lcb_configure_options("--enable-neon" "--cpu=cortex-a8" "--disable-armv5te" "--enable-armv6" "--enable-armv6t2")
 			else()
-				lcb_configure_options("--disable-mmx" "--disable-sse2" "--disable-ssse3")
+				lcb_configure_options("--disable-mmx" "--disable-sse2" "--disable-ssse3" "--disable-asm")
 			endif()
 			if(CMAKE_C_COMPILER_TARGET) # When building with clang
 				lcb_configure_options("--extra-cflags=--target=${CMAKE_C_COMPILER_TARGET} --gcc-toolchain=${EXTERNAL_TOOLCHAIN_PATH}/..")
