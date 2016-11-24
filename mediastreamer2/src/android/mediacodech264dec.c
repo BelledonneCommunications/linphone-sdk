@@ -287,8 +287,8 @@ static void dec_process(MSFilter *f){
 			if (need_reinit) {
 				//In case of rotation, the decoder needs to flushed in order to restart with the new video size
 				ms_message("MSMediaCodecH264Dec: video size has changed. Flushing all MediaCodec's buffers");
-				AMediaCodec_flush(d->codec);
-				d->first_buffer_queued = FALSE;
+// 				AMediaCodec_flush(d->codec);
+// 				d->first_buffer_queued = FALSE;
 			}
 
 			/*First put our H264 bitstream into the decoder*/
