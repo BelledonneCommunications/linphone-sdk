@@ -134,7 +134,7 @@ static void h264_enc_configure(VTH264EncCtx *ctx) {
 		ms_error("%s: error code %d", error_msg, (int)err);
 		goto fail;
 	}
-#if 0 /*for debugin purpose*/
+#if 0 /*for debuging purpose*/
 	CFDictionaryRef dict;
 	err = VTSessionCopySupportedPropertyDictionary (ctx->session, &dict);
 	if (err == noErr) {
@@ -225,7 +225,6 @@ static void h264_enc_process(MSFilter *f) {
 	VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
 	mblk_t *frame;
 	OSStatus err;
-	CMTime p_time = CMTimeMake(f->ticker->time, 1000);
 
 	if(!ctx->is_configured) {
 		ms_queue_flush(f->inputs[0]);
@@ -239,6 +238,7 @@ static void h264_enc_process(MSFilter *f) {
 		int i, pixbuf_fmt = kCVPixelFormatType_420YpCbCr8Planar;
 		CFNumberRef value;
 		CFMutableDictionaryRef pixbuf_attr;
+		CMTime p_time = CMTimeMake(f->ticker->time, 1000);
 
 		ms_yuv_buf_init_from_mblk(&src_yuv_frame, frame);
 
@@ -476,7 +476,9 @@ MSFilterDesc ms_vt_h264_enc = {
 	.process = h264_enc_process,
 	.postprocess = h264_enc_postprocess,
 	.uninit = h264_enc_uninit,
-	.methods = h264_enc_methods
+	.methods = h264_enc_methods,
+	.flags = MS_FILTER_IS_PUMP  /*<PUMP flag is necessary because video toolbox is asynchronous. We may have frames to output while there is no
+					incoming frame to encode*/
 };
 
 
@@ -778,6 +780,8 @@ static void h264_dec_process(MSFilter *f) {
 		}
 		
 	}
+	ms_queue_flush(&q_nalus);
+	ms_queue_flush(&q_nalus2);
 	
 
 	if (need_pli){
@@ -882,7 +886,8 @@ MSFilterDesc ms_vt_h264_dec = {
 	.init = h264_dec_init,
 	.process = h264_dec_process,
 	.uninit = h264_dec_uninit,
-	.methods = h264_dec_methods
+	.methods = h264_dec_methods,
+	.flags = MS_FILTER_IS_PUMP
 };
 
 void _register_videotoolbox_if_supported(MSFactory *factory) {
