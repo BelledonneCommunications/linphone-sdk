@@ -1407,18 +1407,30 @@ void _bctbx_freeaddrinfo(struct addrinfo *res){
 }
 
 void bctbx_freeaddrinfo(struct addrinfo *res){
-	struct addrinfo *it,*previt=NULL;
-	struct addrinfo *allocated_by_bctbx=NULL;
-	
-	for(it=res;it!=NULL;it=it->ai_next){
-		if (it->ai_canonname ==  allocated_by_bctbx_magic){
-			allocated_by_bctbx=it;
-			if (previt) previt->ai_next=NULL;
-			break;
+	struct addrinfo *it;
+	struct addrinfo *previt = NULL;
+	struct addrinfo *beginit = res;
+	bool_t looking_for_allocated_by_bctbx = (res->ai_canonname == allocated_by_bctbx_magic) ? TRUE : FALSE;
+
+	for (it = res; it != NULL; it = it->ai_next) {
+		if ((looking_for_allocated_by_bctbx == TRUE) && (it->ai_canonname != allocated_by_bctbx_magic)) {
+			if (previt) {
+				previt->ai_next = NULL;
+				_bctbx_freeaddrinfo(beginit);
+				looking_for_allocated_by_bctbx = FALSE;
+				beginit = it;
+			}
+		} else if ((looking_for_allocated_by_bctbx == FALSE) && (it->ai_canonname == allocated_by_bctbx_magic)) {
+			if (previt) {
+				previt->ai_next = NULL;
+				freeaddrinfo(beginit);
+				looking_for_allocated_by_bctbx = TRUE;
+				beginit = it;
+			}
 		}
-		previt=it;
+		previt = it;
 	}
-	if (res!=allocated_by_bctbx) freeaddrinfo(res);
-	if (allocated_by_bctbx) _bctbx_freeaddrinfo(allocated_by_bctbx);
+	if (looking_for_allocated_by_bctbx == TRUE) _bctbx_freeaddrinfo(beginit);
+	else freeaddrinfo(beginit);
 }
 
