@@ -23,7 +23,14 @@
 belle_sip_hop_t* belle_sip_hop_new(const char* transport, const char *cname, const char* host,int port) {
 	belle_sip_hop_t* hop = belle_sip_object_new(belle_sip_hop_t);
 	if (transport) hop->transport=belle_sip_strdup(transport);
-	if (host) hop->host=belle_sip_strdup(host);
+	if (host) {
+		if (host[0] == '[' && host[1] != '\0'){ /*IPv6 case */
+			hop->host = belle_sip_strdup(host+1);
+			hop->host[strlen(hop->host)-1] = '\0';
+		}else{
+			hop->host=belle_sip_strdup(host);
+		}
+	}
 	if (cname) hop->cname=belle_sip_strdup(cname);
 	hop->port=port;
 	return hop;

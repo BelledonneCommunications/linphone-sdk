@@ -1009,6 +1009,15 @@ void testGetBody(void) {
 	belle_sip_object_unref(stack);
 }
 
+static void testHop(void){
+	belle_sip_uri_t * uri = belle_sip_uri_parse("sip:sip.linphone.org;maddr=[2001:41d0:8:6e48::]");
+	belle_sip_hop_t *hop = belle_sip_hop_new_from_uri(uri);
+	BC_ASSERT_STRING_EQUAL(hop->host, "2001:41d0:8:6e48::");
+	belle_sip_object_unref(uri);
+	belle_sip_object_unref(hop);
+}
+
+
 /* NOTE - ORDER IS IMPORTANT - MUST TEST fread() AFTER fprintf() */
 test_t message_tests[] = {
 	TEST_NO_TAG("REGISTER", testRegisterMessage),
@@ -1037,7 +1046,8 @@ test_t message_tests[] = {
 	TEST_NO_TAG("HTTP get",testHttpGet),
 	TEST_NO_TAG("HTTP 200 Ok",testHttp200Ok),
 	TEST_NO_TAG("Channel parser for HTTP reponse",channel_parser_http_response),
-	TEST_NO_TAG("Get body size",testGetBody)
+	TEST_NO_TAG("Get body size",testGetBody),
+	TEST_NO_TAG("Create hop from uri", testHop)
 };
 
 test_suite_t message_test_suite = {"Message", NULL, NULL, belle_sip_tester_before_each, belle_sip_tester_after_each,
