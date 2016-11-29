@@ -30,14 +30,14 @@
 
 
 #ifdef ANDROID
-/* 
+/*
  * 1st column: list of triplet frequency, gain, width
  * 2nd column: mic gain in db
 */
 static SoundDeviceAudioHacks SonySGP511Hacks = { "50:0.01:100 600:0.2:100 1350:0.2:100 2000:0.2:100", -4, NULL, 0 };
 
-/* 
- * 1st column: value of ro.product.manufacturer 
+/*
+ * 1st column: value of ro.product.manufacturer
  * 2nd column: value of ro.product.model
  * 3rd column: value of ro.board.platform (and is optional)
  * All these values can be obtained from the device using "adb shell getprop"
@@ -46,7 +46,7 @@ static SoundDeviceDescription devices[]={
 	{	"HTC",					"Nexus One",			"qsd8k",		0,	300 },
 	{	"HTC",					"HTC One X",			"tegra",		0,	150 },	/*has a very good acoustic isolation, which result in calibration saying no echo. */
 										/*/But with speaker mode there is a strong echo if software ec is disabled.*/
-	{	"HTC",					"HTC One SV",			"msm8960",		0,	200 },	
+	{	"HTC",					"HTC One SV",			"msm8960",		0,	200 },
 	{	"HTC",					"HTC Desire",			"",				0,	250 },
 	{	"HTC",					"HTC Sensation Z710e",	"",				0,	200 },
 	{	"HTC",					"HTC Wildfire",			"",				0,	270 },
@@ -120,8 +120,8 @@ static SoundDeviceDescription devices[]={
 	{	"samsung",				"SHV-E230K",			"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
 	{	"samsung",				"SM-G530F",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
 	{	"samsung",				"SM-T315",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
-	
-	
+
+
 	{	"Sony Ericsson",		"ST15a",				"",				0, 	150 },
 	{	"Sony Ericsson",		"S51SE",				"",				0,	150 },
 	{	"Sony Ericsson",		"SK17i",				"",				0,	140 },
@@ -141,30 +141,31 @@ static SoundDeviceDescription devices[]={
 	{ 	"Sony", 				"D6503", 				"msm8974",		DEVICE_HAS_BUILTIN_AEC_CRAPPY,	280},
 	{ 	"Sony", 				"D6603", 				"msm8974",		DEVICE_HAS_BUILTIN_AEC_CRAPPY,	280},
 	{	"Sony",					"D2005",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA,	0},
-	
+
 	{	"asus",					"Nexus 7",				"", 			0, 170},
 	{	"asus",					"K00E",					"clovertrail", 	0, 200},
-	
+
 	{	"Amazon",				"KFTT",					"omap4",		DEVICE_USE_ANDROID_MIC,200},
 	{	"LENOVO",				"Lenovo B6000-F",		"",				DEVICE_HAS_BUILTIN_AEC_CRAPPY,300},
 	{	"LENOVO",				"Lenovo S60-a",			"msm8916",		0,	0 ,	44100},
 	{	"LENOVO",				"Lenovo A6000",			"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0},
 	{	"LENOVO",				"Lenovo A616",			"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0},
-	
+
 	{	"Enspert",				"IGGY",					""		,		0,	320 ,0}, /*Wiko iggy*/
 	{	"Yota Devices Limited", "YD201", 				"msm8974", 		DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0, 48000 }, /* Yotaphone 2 */
-	
+
 	{	"Hewlett-Packard",		"Slate 21 Pro",			"tegra4", 		DEVICE_HAS_UNSTANDARD_LIBMEDIA, 250  },
 	{	"blackberry",			"STV100-4",				"msm8992",		DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0 , 48000},
-	
+
 	{	"Vodafone",				"Vodafone 985N",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
 	{	"Acer",					"S57",							"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
 	{	"Alcatel",				"4027D",						"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
-	
+
 	{	"HUAWEI",				"HUAWEI P7-L10",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
 	{	"HUAWEI",				"HUAWEI P7-L11",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
 	{	"HUAWEI",				"HUAWEI P7-L12",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
 	{	"HUAWEI",				"HUAWEI MT7-L09",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{ "WIKO", 			"HIGHWAY 4G", 				"tegra", 			DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
 
 	{	NULL, 					NULL, 					NULL,			0, 	0,	0}
 };
@@ -175,9 +176,9 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerAndroidContext
 	const char *manufacturer = jmanufacturer ? (*env)->GetStringUTFChars(env, jmanufacturer, NULL) : NULL;
 	const char *model = jmodel ? (*env)->GetStringUTFChars(env, jmodel, NULL) : NULL;
 	const char *platform = jplatform ? (*env)->GetStringUTFChars(env, jplatform, NULL) : NULL;
-	
+
 	ms_sound_device_description_add(manufacturer, model, platform, flags, delay, rate);
-	
+
 	(*env)->ReleaseStringUTFChars(env, jmanufacturer, manufacturer);
 	(*env)->ReleaseStringUTFChars(env, jmodel, model);
 	(*env)->ReleaseStringUTFChars(env, jplatform, platform);
@@ -196,7 +197,7 @@ SoundDeviceDescription genericSoundDeviceDescriptor={"Generic", "Generic", "Gene
 static bctbx_list_t *sound_device_descriptions;
 
 static bool_t sound_device_match(SoundDeviceDescription *d, const char *manufacturer, const char* model, const char *platform){
-	if (strcasecmp(d->manufacturer, manufacturer) == 0 
+	if (strcasecmp(d->manufacturer, manufacturer) == 0
 		&& strcmp(d->model, model) == 0){
 		if (platform){
 			if (d->platform && strcmp(d->platform, platform)==0) {
@@ -215,7 +216,7 @@ void ms_sound_device_description_add(const char *manufacturer, const char *model
 	new_sound_device_description->flags = flags;
 	new_sound_device_description->delay = delay;
 	new_sound_device_description->recommended_rate = recommended_rate;
-	
+
 	sound_device_descriptions = bctbx_list_append(sound_device_descriptions, new_sound_device_description);
 }
 
@@ -229,13 +230,13 @@ void ms_sound_device_description_add(const char *manufacturer, const char *model
 
 MSDevicesInfo *ms_devices_info_new(void) {
 	MSDevicesInfo *devices_info = ms_new0(MSDevicesInfo, 1);
-	
+
 	SoundDeviceDescription *d = &devices[0];
 	while (d->manufacturer != NULL) {
 		ms_devices_info_add(devices_info, d->manufacturer, d->model, d->platform, d->flags, d->delay, d->recommended_rate);
 		d++;
 	}
-	
+
 	return devices_info;
 }
 
@@ -252,14 +253,14 @@ void ms_devices_info_add(MSDevicesInfo *devices_info, const char *manufacturer, 
 	new_sound_device_description->flags = flags;
 	new_sound_device_description->delay = delay;
 	new_sound_device_description->recommended_rate = recommended_rate;
-	
+
 	devices_info->sound_devices_descriptions = bctbx_list_append(devices_info->sound_devices_descriptions, new_sound_device_description);
 }
 
 SoundDeviceDescription* ms_devices_info_lookup_device(MSDevicesInfo *devices_info, const char *manufacturer, const char* model, const char *platform) {
 	bctbx_list_t *list = devices_info->sound_devices_descriptions;
 	SoundDeviceDescription *d = NULL;
-	
+
 	while(list) {
 		d = (SoundDeviceDescription*) list->data;
 		if (sound_device_match(d, manufacturer, model, platform)) {
@@ -267,12 +268,12 @@ SoundDeviceDescription* ms_devices_info_lookup_device(MSDevicesInfo *devices_inf
 		}
 		list = bctbx_list_next(list);
 	}
-	
+
 	if (platform) {
 		/*retry without platform*/
 		return ms_devices_info_lookup_device(devices_info, manufacturer, model, NULL);
 	}
-	
+
 	return NULL;
 }
 
@@ -285,7 +286,7 @@ SoundDeviceDescription* ms_devices_info_get_sound_device_description(MSDevicesIn
 	bool_t declares_builtin_aec = FALSE;
 
 #ifdef ANDROID
-	
+
 	if (__system_property_get("ro.product.manufacturer", manufacturer) <= 0) {
 		ms_warning("Could not get product manufacturer.");
 	}
@@ -295,7 +296,7 @@ SoundDeviceDescription* ms_devices_info_get_sound_device_description(MSDevicesIn
 	if (__system_property_get("ro.board.platform", platform) <= 0) {
 		ms_warning("Could not get board platform.");
 	}
-	
+
 	/* First ask android if the device has an hardware echo canceller (only >=4.2)*/
 	{
 		JNIEnv *env = ms_get_jni_env();
@@ -317,9 +318,9 @@ SoundDeviceDescription* ms_devices_info_get_sound_device_description(MSDevicesIn
 			(*env)->ExceptionClear(env); //very important.
 		}
 	}
-	
+
 #endif
-	
+
 	d = ms_devices_info_lookup_device(devices_info, manufacturer, model, platform);
 	if (!d) {
 		ms_message("No information available for [%s/%s/%s],", manufacturer, model, platform);
