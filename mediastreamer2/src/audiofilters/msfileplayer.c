@@ -324,7 +324,7 @@ static void player_process(MSFilter *f){
 					const u_char *udp_header = ip_header + 20; // sizeof(ipv4_header)
 					const u_char *rtp_header = udp_header + 8; // sizeof(udp_header)
 					const u_char *payload = rtp_header + 12; // sizeof(rtp_header)
-					int headers_size = payload - ethernet_header;
+					size_t headers_size = payload - ethernet_header;
 					// Check headers size and RTP version
 					if ((d->pcap_hdr->caplen >= headers_size) && ((rtp_header[0] >> 6) == 2)) {
 						int bytes = d->pcap_hdr->caplen - headers_size;
