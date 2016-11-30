@@ -35,7 +35,8 @@ extern "C"{
 typedef enum{
 	Rfc3984FrameAvailable = 1,
 	Rfc3984FrameCorrupted = 1<<1,
-	Rfc3984IsKeyFrame = 1<<2
+	Rfc3984IsKeyFrame = 1<<2,
+	Rfc3984NewParameterSet = 1<<3
 }Rfc3984Status;
 	
 typedef struct Rfc3984Context{
@@ -44,6 +45,7 @@ typedef struct Rfc3984Context{
 	int maxsz;
 	unsigned int status; /*bitmask of Rfc3984Status values*/
 	mblk_t *sps, *pps;
+	mblk_t *last_sps, *last_pps;
 	uint32_t last_ts;
 	uint16_t ref_cseq;
 	uint8_t mode;

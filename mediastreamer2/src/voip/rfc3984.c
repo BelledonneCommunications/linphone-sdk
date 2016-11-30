@@ -287,6 +287,23 @@ static unsigned int output_frame(Rfc3984Context * ctx, MSQueue *out, unsigned in
 	return res;
 }
 
+static bool_t update_parameter_set(mblk_t **last_parameter_set, mblk_t *new_parameter_set) {
+	if (*last_parameter_set != NULL) {
+		size_t last_size = (*last_parameter_set)->b_wptr - (*last_parameter_set)->b_rptr;
+		size_t new_size = new_parameter_set->b_wptr - new_parameter_set->b_rptr;
+		if (last_size != new_size || memcmp(*last_parameter_set, new_parameter_set, new_size) == 0) {
+			freemsg(*last_parameter_set);
+			*last_parameter_set = dupmsg(new_parameter_set);
+			return TRUE;
+		} else {
+			return FALSE;
+		}
+	} else {
+		*last_parameter_set = dupmsg(new_parameter_set);
+		return TRUE;
+	}
+}
+
 static void store_nal(Rfc3984Context *ctx, mblk_t *nal){
 	uint8_t type=nal_header_get_type(nal->b_rptr);
 	if (ms_queue_empty(&ctx->q) && (ctx->status & Rfc3984FrameCorrupted)
@@ -295,11 +312,16 @@ static void store_nal(Rfc3984Context *ctx, mblk_t *nal){
 		ctx->status &= ~Rfc3984FrameCorrupted;
 		ctx->status |= Rfc3984IsKeyFrame;
 	}
-	
-	ms_queue_put(&ctx->q,nal);
 	if (type == MSH264NaluTypeIDR){
 		ctx->status |= Rfc3984IsKeyFrame;
 	}
+	if (type == MSH264NaluTypeSPS && update_parameter_set(&ctx->last_sps, nal)) {
+		ctx->status |= Rfc3984NewParameterSet;
+	}
+	if (type == MSH264NaluTypePPS && update_parameter_set(&ctx->last_pps, nal)) {
+		ctx->status |= Rfc3984NewParameterSet;
+	}
+	ms_queue_put(&ctx->q,nal);
 }
 
 unsigned int rfc3984_unpack2(Rfc3984Context *ctx, mblk_t *im, MSQueue *out){
@@ -398,8 +420,12 @@ void rfc3984_pack(Rfc3984Context *ctx, MSQueue *naluq, MSQueue *rtpq, uint32_t t
 
 void rfc3984_uninit(Rfc3984Context *ctx){
 	ms_queue_flush(&ctx->q);
-	if (ctx->m) freemsg(ctx->m);
-	ctx->m=NULL;
+	if (ctx->m != NULL) freemsg(ctx->m);
+	if (ctx->sps != NULL) freemsg(ctx->sps);
+	if (ctx->pps != NULL) freemsg(ctx->pps);
+	ctx->m = NULL;
+	ctx->sps = NULL;
+	ctx->pps = NULL;
 }
 
 void rfc3984_set_mode(Rfc3984Context *ctx, int mode){
