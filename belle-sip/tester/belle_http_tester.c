@@ -244,7 +244,7 @@ static void https_post_long_body(void){
 	if (url_supported(url)==-1) {
 		return;
 	}
-	bh=belle_sip_user_body_handler_new(image_size+sizeof(MULTIPART_BEGIN)+sizeof(MULTIPART_END), on_progress, NULL, on_send_body, NULL);
+	bh=belle_sip_user_body_handler_new(image_size+sizeof(MULTIPART_BEGIN)+sizeof(MULTIPART_END), on_progress, NULL, NULL, on_send_body, NULL, NULL);
 	content_type=belle_sip_strdup_printf("multipart/form-data; boundary=%s",multipart_boudary);
 
 	uri=belle_generic_uri_parse(url);
@@ -266,7 +266,7 @@ static void https_post_long_body(void){
 	belle_sip_object_unref(l);
 }
 
-static void on_recv_body(belle_sip_user_body_handler_t *bh, belle_sip_message_t *msg, void *data, size_t offset, const uint8_t *buffer, size_t size){
+static void on_recv_body(belle_sip_user_body_handler_t *bh, belle_sip_message_t *msg, void *data, size_t offset, uint8_t *buffer, size_t size){
 	FILE *file=(FILE*)data;
 	if (file)
 		fwrite(buffer,1,size,file);
@@ -282,7 +282,7 @@ static void process_response_headers(void *data, const belle_http_response_event
 		FILE *file=belle_sip_object_data_get(BELLE_SIP_OBJECT(event->request),"file");
 		belle_sip_message_set_body_handler(
 			(belle_sip_message_t*)event->response,
-			(belle_sip_body_handler_t*)belle_sip_user_body_handler_new(0,on_progress,on_recv_body,NULL,file)
+			(belle_sip_body_handler_t*)belle_sip_user_body_handler_new(0,on_progress, NULL,on_recv_body,NULL, NULL,file)
 		);
 	}
 }
