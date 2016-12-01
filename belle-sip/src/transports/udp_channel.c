@@ -70,7 +70,8 @@ int udp_channel_connect(belle_sip_channel_t *obj, const struct addrinfo *ai){
 	socklen_t lslen=sizeof(laddr);
 	
 	if (obj->local_ip==NULL){
-		if (belle_sip_get_src_addr_for(ai->ai_addr,(socklen_t)ai->ai_addrlen,(struct sockaddr*)&laddr,&lslen,obj->local_port) == -BCTBX_ENETUNREACH){
+		int err = belle_sip_get_src_addr_for(ai->ai_addr,(socklen_t)ai->ai_addrlen,(struct sockaddr*)&laddr,&lslen,obj->local_port);
+		if (err == -BCTBX_ENETUNREACH || err == -BCTBX_EHOSTUNREACH){
 			return -1;
 		}
 	}
