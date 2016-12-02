@@ -36,7 +36,8 @@ typedef enum{
 	Rfc3984FrameAvailable = 1,
 	Rfc3984FrameCorrupted = 1<<1,
 	Rfc3984IsKeyFrame = 1<<2,
-	Rfc3984NewParameterSet = 1<<3
+	Rfc3984NewSPS = 1<<3,
+	Rfc3984NewPPS = 1<<4
 }Rfc3984Status;
 	
 typedef struct Rfc3984Context{

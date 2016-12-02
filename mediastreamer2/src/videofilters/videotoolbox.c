@@ -503,6 +503,13 @@ static bool_t mblk_equal_to(const mblk_t *msg1, const mblk_t *msg2) {
 	else return -1;
 }
 
+#define VTH264_DEC_NAME "VideoToolboxH264Decoder"
+#define vth264dec_log(level, fmt, ...) ms_##level(VTH264_DEC_NAME ": " fmt, ##__VA_ARGS__)
+#define vth264dec_message(fmt, ...) vth264dec_log(message, fmt, ##__VA_ARGS__)
+#define vth264dec_warning(fmt, ...) vth264dec_log(warning, fmt, ##__VA_ARGS__)
+#define vth264dec_error(fmt, ...) vth264dec_log(error, fmt, ##__VA_ARGS__)
+
+
 typedef struct _VTH264DecCtx {
 	VTDecompressionSessionRef session;
 	CMFormatDescriptionRef format_desc;
@@ -516,46 +523,36 @@ typedef struct _VTH264DecCtx {
 	bool_t enable_avpf;
 	bool_t freeze_on_error_enabled;
 	bool_t freezed;
+	bool_t first_i_frame_received;
 	MSFilter *f;
+	mblk_t *sps;
+	mblk_t *pps;
 } VTH264DecCtx;
 
-static CMFormatDescriptionRef format_desc_from_sps_pps(const bctbx_list_t *parameter_sets) {
-	const bctbx_list_t *it;
-	const size_t max_ps_count = 20;
-	size_t ps_count;
-	const uint8_t *ps_ptrs[max_ps_count];
-	size_t ps_sizes[max_ps_count];
-	int sps_count = 0, pps_count = 0;
-	int i;
+static bool_t format_desc_from_sps_pps(VTH264DecCtx *ctx) {
+	const size_t ps_count = 2;
+	const uint8_t *ps_ptrs[ps_count];
+	size_t ps_sizes[ps_count];
 	OSStatus status;
 	CMFormatDescriptionRef format_desc;
+	CMVideoDimensions vsize;
 
-	ps_count = bctbx_list_size(parameter_sets);
-	if(ps_count > max_ps_count) {
-		ms_error("VideoToolboxDec: too much SPS/PPS");
-		return NULL;
-	}
-	for(it=parameter_sets,i=0; it; it=it->next,i++) {
-		mblk_t *m = (mblk_t *)it->data;
-		ps_ptrs[i] = m->b_rptr;
-		ps_sizes[i] = m->b_wptr - m->b_rptr;
-		if(ms_h264_nalu_get_type(m) == MSH264NaluTypeSPS) sps_count++;
-		else if(ms_h264_nalu_get_type(m) == MSH264NaluTypePPS) pps_count++;
-	}
-	if(sps_count==0) {
-		ms_error("VideoToolboxDec: no SPS");
-		return NULL;
-	}
-	if(pps_count==0) {
-		ms_error("VideoToolboxDec: no PPS");
-		return NULL;
-	}
+	ps_ptrs[0] = ctx->sps->b_rptr;
+	ps_sizes[0] = ctx->sps->b_wptr - ctx->sps->b_rptr;
+	ps_ptrs[1] = ctx->pps->b_rptr;
+	ps_sizes[1] = ctx->pps->b_wptr - ctx->pps->b_rptr;
+
 	status = CMVideoFormatDescriptionCreateFromH264ParameterSets(NULL, ps_count, ps_ptrs, ps_sizes, H264_NALU_HEAD_SIZE, &format_desc);
 	if(status != noErr) {
-		ms_error("VideoToolboxDec: could not find out the input format: %d", (int)status);
-		return NULL;
+		// ms_error("VideoToolboxDec: could not find out the input format: %d", (int)status);
+		vth264dec_error("could not find out the input format: %d", (int)status);
+		return FALSE;
 	}
-	return format_desc;
+	vsize = CMVideoFormatDescriptionGetDimensions(format_desc);
+	ms_message("VideoToolboxDec: new video format %dx%d", (int)vsize.width, (int)vsize.height);
+	if (ctx->format_desc != NULL) CFRelease(ctx->format_desc);
+	ctx->format_desc = format_desc;
+	return TRUE;
 }
 
 static void h264_dec_output_cb(VTH264DecCtx *ctx, void *sourceFrameRefCon,
@@ -629,12 +626,10 @@ static bool_t h264_dec_init_decoder(VTH264DecCtx *ctx) {
 }
 
 static void h264_dec_uninit_decoder(VTH264DecCtx *ctx) {
-	ms_message("VideoToolboxDecoder: uninitializing decoder");
+	vth264dec_message("destroying decoder");
 	VTDecompressionSessionInvalidate(ctx->session);
 	CFRelease(ctx->session);
-	CFRelease(ctx->format_desc);
 	ctx->session = NULL;
-	ctx->format_desc = NULL;
 }
 
 static void h264_dec_init(MSFilter *f) {
@@ -652,143 +647,155 @@ static void h264_dec_init(MSFilter *f) {
 	f->data = ctx;
 }
 
+static void h264_dec_extract_parameter_sets(VTH264DecCtx *ctx, unsigned int unpacker_status, MSQueue *input, MSQueue *output) {
+	mblk_t *nalu;
+	while((nalu = ms_queue_get(input))) {
+		MSH264NaluType nalu_type = ms_h264_nalu_get_type(nalu);
+		switch (nalu_type) {
+		case MSH264NaluTypeSPS:
+			if (unpacker_status & Rfc3984NewSPS) {
+				if (ctx->sps != NULL) freemsg(ctx->sps);
+				ctx->sps = nalu;
+			} else {
+				freemsg(nalu);
+			}
+			break;
+		case MSH264NaluTypePPS:
+			if (unpacker_status & Rfc3984NewPPS) {
+				if (ctx->pps != NULL) freemsg(ctx->pps);
+				ctx->pps = nalu;
+			} else {
+				freemsg(nalu);
+			}
+			break;
+		default:
+			ms_queue_put(output, nalu);
+		}
+	}
+}
+
+static bool_t h264_dec_handle_error(VTH264DecCtx *ctx, bool_t *need_pli) {
+	*need_pli = TRUE;
+	if (ctx->freeze_on_error_enabled) {
+		ms_message("VideoToolboxDec: pausing decoder until next I-frame");
+		ctx->freezed = TRUE;
+		if (ctx->sps != NULL) {
+			freemsg(ctx->sps);
+			ctx->sps = NULL;
+		}
+		if (ctx->pps != NULL) {
+			freemsg(ctx->pps);
+			ctx->pps = NULL;
+		}
+		return TRUE;
+	} else {
+		return FALSE;
+	}
+}
+
 static void h264_dec_process(MSFilter *f) {
 	VTH264DecCtx *ctx = (VTH264DecCtx *)f->data;
 	mblk_t *pkt;
-	mblk_t *nalu;
 	mblk_t *pixbuf;
 	MSQueue q_nalus;
 	MSQueue q_nalus2;
-	CMBlockBufferRef stream = NULL;
-	CMSampleBufferRef sample = NULL;
-	CMSampleTimingInfo timing_info;
 	MSPicture pixbuf_desc;
 	OSStatus status;
-	bctbx_list_t *parameter_sets = NULL;
-	unsigned int res;
-	bool_t iframe_received = FALSE;
 	bool_t need_pli = FALSE;
 
 	ms_queue_init(&q_nalus);
 	ms_queue_init(&q_nalus2);
 
 	while((pkt = ms_queue_get(f->inputs[0]))) {
+		unsigned int unpack_status;
+
 		ms_queue_flush(&q_nalus);
 		ms_queue_flush(&q_nalus2);
-		res = rfc3984_unpack2(&ctx->unpacker, pkt, &q_nalus);
-		
-		if (res & Rfc3984FrameAvailable){
-			if ((res & Rfc3984FrameCorrupted) && ctx->freeze_on_error_enabled ){
-				ms_warning("VideoToolboxDecoder: corrupted frame received, skipping until next key-frame");
-				ctx->freezed = TRUE;
-				continue;
-			}
-			if (ctx->freezed){
-				if (res & Rfc3984IsKeyFrame){
-					ctx->freezed = FALSE; /*let's restart safely with a full i-frame*/
-					ms_message("VideoToolboxDecoder: receiving fresh i-frame to restart");
-				}else{
-					need_pli = TRUE;
-					continue;
-				}
-			}
-			// Pull SPSs and PPSs out and put them into the filter context if necessary
-			iframe_received = FALSE;
-			while((nalu = ms_queue_get(&q_nalus))) {
-				MSH264NaluType nalu_type = ms_h264_nalu_get_type(nalu);
-				if(nalu_type == MSH264NaluTypeSPS || nalu_type == MSH264NaluTypePPS) {
-					parameter_sets = bctbx_list_append(parameter_sets, nalu);
-					iframe_received = TRUE;
-					ctx->freezed = FALSE;
-				} else if(ctx->format_desc || parameter_sets) {
-					ms_queue_put(&q_nalus2, nalu);
-				} else {
-					freemsg(nalu);
-				}
-			}
-			if(iframe_received) ms_message("VideoToolboxDecoder: I-frame received");
-			
-			if(parameter_sets) {
-				CMFormatDescriptionRef new_format_desc = format_desc_from_sps_pps(parameter_sets);
-				parameter_sets = bctbx_list_free_with_data(parameter_sets, (void (*)(void *))freemsg);
-				if(ctx->format_desc) {
-					CMVideoDimensions last_vsize = CMVideoFormatDescriptionGetDimensions(ctx->format_desc);
-					CMVideoDimensions new_vsize = CMVideoFormatDescriptionGetDimensions(new_format_desc);
-					if(last_vsize.width != new_vsize.width || last_vsize.height != new_vsize.height) {
-						ms_message("VideoToolboxDecoder: new encoded video size %dx%d -> %dx%d",
-								   (int)last_vsize.width, (int)last_vsize.height, (int)new_vsize.width, (int)new_vsize.height);
-						h264_dec_uninit_decoder(ctx);
-						ctx->format_desc = new_format_desc;
-					}
-				} else {
-					ctx->format_desc = new_format_desc;
-				}
-			}
-		
-			/* Stops proccessing if no IDR has been received yet */
-			if (ctx->format_desc == NULL) {
-				need_pli = TRUE;
-				ms_warning("VideoToolboxDecoder: no I-frame has been received yet");
-				continue;
-			}
-		
-			/* Initializes the decoder if it has not be done yet or reconfigure it when
-			 the size of the encoded video change */
-			if(ctx->session == NULL) {
-				if(!h264_dec_init_decoder(ctx)) {
-					ms_error("VideoToolboxDecoder: failed to initialize decoder");
-					continue;
-				}
-			}
-		
-			// Pack all nalus in a VTBlockBuffer
-			CMBlockBufferCreateEmpty(NULL, 0, kCMBlockBufferAssureMemoryNowFlag, &stream);
-			while((nalu = ms_queue_get(&q_nalus2))) {
-				CMBlockBufferRef nalu_block;
-				size_t nalu_block_size = msgdsize(nalu) + H264_NALU_HEAD_SIZE;
-				uint32_t nalu_size = htonl(msgdsize(nalu));
-		
-				CMBlockBufferCreateWithMemoryBlock(NULL, NULL, nalu_block_size, NULL, NULL, 0, nalu_block_size, kCMBlockBufferAssureMemoryNowFlag, &nalu_block);
-				CMBlockBufferReplaceDataBytes(&nalu_size, nalu_block, 0, H264_NALU_HEAD_SIZE);
-				CMBlockBufferReplaceDataBytes(nalu->b_rptr, nalu_block, H264_NALU_HEAD_SIZE, msgdsize(nalu));
-				CMBlockBufferAppendBufferReference(stream, nalu_block, 0, nalu_block_size, 0);
-				CFRelease(nalu_block);
-				freemsg(nalu);
-			}
-			if(!CMBlockBufferIsEmpty(stream)) {
-				timing_info.duration = kCMTimeInvalid;
-				timing_info.presentationTimeStamp = CMTimeMake(f->ticker->time, 1000);
-				timing_info.decodeTimeStamp = CMTimeMake(f->ticker->time, 1000);
-				CMSampleBufferCreate(
-					NULL, stream, TRUE, NULL, NULL,
-					ctx->format_desc, 1, 1, &timing_info,
-					0, NULL, &sample);
-		
-				status = VTDecompressionSessionDecodeFrame(ctx->session, sample, 0, NULL, NULL);
-				CFRelease(sample);
-				if(status != noErr) {
-					CFRelease(stream);
-					ms_error("VideoToolboxDecoder: error while passing encoded frames to the decoder: %d", (int)status);
-					if(status == kVTInvalidSessionErr) {
-						h264_dec_uninit_decoder(ctx);
-					}
-					need_pli = TRUE;
-					continue;
-				}
-			}
-			CFRelease(stream);
-		}
-		
-	}
-	ms_queue_flush(&q_nalus);
-	ms_queue_flush(&q_nalus2);
-	
 
-	if (need_pli){
-		if (ctx->enable_avpf) {
-			ms_message("VideoToolboxDecoder: sending PLI");
-			ms_filter_notify_no_arg(f, MS_VIDEO_DECODER_SEND_PLI);
-		}else ms_filter_notify_no_arg(f, MS_VIDEO_DECODER_DECODING_ERRORS);
+		unpack_status = rfc3984_unpack2(&ctx->unpacker, pkt, &q_nalus);
+		
+		if ((unpack_status & Rfc3984FrameAvailable) && (!ctx->freezed || (unpack_status & Rfc3984IsKeyFrame))){
+			if (unpack_status & Rfc3984IsKeyFrame) {
+				ms_message("VideoToolboxDecoder: I-frame received");
+				ctx->first_i_frame_received = TRUE;
+				if (ctx->freezed) {
+					ms_message("VideoToolboxDecoder: resuming decoder");
+					ctx->freezed = FALSE;
+				}
+			}
+			if (unpack_status & Rfc3984FrameCorrupted) {
+				ms_warning("VideoToolboxDecoder: corrupted frame received");
+				if (h264_dec_handle_error(ctx, &need_pli)) break;
+			}
+
+			// Pull SPSs and PPSs out and put them into the filter context if necessary
+			h264_dec_extract_parameter_sets(ctx, unpack_status, &q_nalus, &q_nalus2);
+			
+			// Check whether video format has changed and deinit decoding context if so.
+			if ((unpack_status & (Rfc3984NewSPS | Rfc3984NewPPS)) && (ctx->sps != NULL && ctx->pps != NULL)) {
+				if(format_desc_from_sps_pps(ctx)) {
+					if (ctx->session) h264_dec_uninit_decoder(ctx);
+				} else {
+					if(h264_dec_handle_error(ctx, &need_pli)) break;
+				}
+			}
+
+			if (ctx->format_desc != NULL) {
+				if(ctx->session == NULL) {
+					if(!h264_dec_init_decoder(ctx)) {
+						ms_error("VideoToolboxDecoder: failed to initialize decoder");
+						if(h264_dec_handle_error(ctx, &need_pli)) break;
+					}
+				}
+				if (ctx->session != NULL) {
+					CMBlockBufferRef stream = NULL;
+					mblk_t *nalu = NULL;
+					CMBlockBufferCreateEmpty(NULL, 0, kCMBlockBufferAssureMemoryNowFlag, &stream);
+					while((nalu = ms_queue_get(&q_nalus2))) {
+						CMBlockBufferRef nalu_block;
+						size_t nalu_block_size = msgdsize(nalu) + H264_NALU_HEAD_SIZE;
+						uint32_t nalu_size = htonl(msgdsize(nalu));
+
+						CMBlockBufferCreateWithMemoryBlock(NULL, NULL, nalu_block_size, NULL, NULL, 0, nalu_block_size, kCMBlockBufferAssureMemoryNowFlag, &nalu_block);
+						CMBlockBufferReplaceDataBytes(&nalu_size, nalu_block, 0, H264_NALU_HEAD_SIZE);
+						CMBlockBufferReplaceDataBytes(nalu->b_rptr, nalu_block, H264_NALU_HEAD_SIZE, msgdsize(nalu));
+						CMBlockBufferAppendBufferReference(stream, nalu_block, 0, nalu_block_size, 0);
+						CFRelease(nalu_block);
+						freemsg(nalu);
+					}
+					if(!CMBlockBufferIsEmpty(stream)) {
+						CMSampleBufferRef sample = NULL;
+						CMSampleTimingInfo timing_info;
+						timing_info.duration = kCMTimeInvalid;
+						timing_info.presentationTimeStamp = CMTimeMake(f->ticker->time, 1000);
+						timing_info.decodeTimeStamp = CMTimeMake(f->ticker->time, 1000);
+						CMSampleBufferCreate(
+							NULL, stream, TRUE, NULL, NULL,
+							ctx->format_desc, 1, 1, &timing_info,
+							0, NULL, &sample);
+
+						status = VTDecompressionSessionDecodeFrame(ctx->session, sample, 0, NULL, NULL);
+						CFRelease(sample);
+						if(status != noErr) {
+							CFRelease(stream);
+							ms_error("VideoToolboxDecoder: error while passing encoded frames to the decoder: %d", (int)status);
+							if (status == kVTInvalidSessionErr) {
+								h264_dec_uninit_decoder(ctx);
+							}
+							if (h264_dec_handle_error(ctx, &need_pli)) {
+								CFRelease(stream);
+								break;
+							}
+						}
+					}
+					CFRelease(stream);
+				}
+			} else {
+				vth264dec_warning("no video format (likely missing SPS/PPS). Skipping current NAL unit");
+			}
+		} else if (unpack_status & Rfc3984FrameAvailable) {
+			vth264dec_warning("waiting for an I-frame. Skipping current NAL unit");
+		}
 	}
 
 	// Transfer decoded frames in the output queue
@@ -807,20 +814,38 @@ static void h264_dec_process(MSFilter *f) {
 		}
 		ms_filter_unlock(f);
 		ms_queue_put(f->outputs[0], pixbuf);
+		vth264dec_message("outputing one frame");
 		ms_mutex_lock(&ctx->mutex);
 	}
 	ms_mutex_unlock(&ctx->mutex);
+
+	ms_queue_flush(&q_nalus);
+	ms_queue_flush(&q_nalus2);
+
+	if (need_pli || !ctx->first_i_frame_received) {
+		if (ctx->enable_avpf) {
+			ms_message("VideoToolboxDecoder: sending PLI");
+			ms_filter_notify_no_arg(f, MS_VIDEO_DECODER_SEND_PLI);
+		} else {
+			ms_filter_notify_no_arg(f, MS_VIDEO_DECODER_DECODING_ERRORS);
+		}
+	}
 }
 
 static void h264_dec_uninit(MSFilter *f) {
 	VTH264DecCtx *ctx = (VTH264DecCtx *)f->data;
 
 	rfc3984_uninit(&ctx->unpacker);
-	if(ctx->session) h264_dec_uninit_decoder(ctx);
+	if(ctx->session != NULL) h264_dec_uninit_decoder(ctx);
+	if(ctx->format_desc != NULL) CFRelease(ctx->format_desc);
 	ms_queue_flush(&ctx->queue);
 
 	ms_mutex_destroy(&ctx->mutex);
 	ms_yuv_buf_allocator_free(ctx->pixbuf_allocator);
+
+	if (ctx->sps != NULL) freemsg(ctx->sps);
+	if (ctx->pps != NULL) freemsg(ctx->pps);
+
 	ms_free(f->data);
 }
 
@@ -877,7 +902,7 @@ static MSFilterMethod h264_dec_methods[] = {
 
 MSFilterDesc ms_vt_h264_dec = {
 	.id = MS_VT_H264_DEC_ID,
-	.name = "VideoToolboxH264decoder",
+	.name = VTH264_DEC_NAME,
 	.text = "H264 hardware decoder for iOS and MacOSX",
 	.category = MS_FILTER_DECODER,
 	.enc_fmt = "H264",
