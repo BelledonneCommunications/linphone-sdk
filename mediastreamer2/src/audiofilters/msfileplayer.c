@@ -321,7 +321,7 @@ static void player_process(MSFilter *f){
 					const u_char *ethernet_header = &d->pcap_data[0];
 					//const u_char *ip_header = ethernet_header; //use this line instead of the next one in case of wireshark capture without link layer*/
 					const u_char *ip_header = ethernet_header + 14; // sizeof(ethernet_header)
-					const u_char *udp_header = ip_header + 20; // sizeof(ipv4_header)
+					const u_char *udp_header = (ip_header[0]>>4)==4 ? ip_header+20 : ip_header+40; // sizeof(ipv4_header) or sizeof(ipv6_header)
 					const u_char *rtp_header = udp_header + 8; // sizeof(udp_header)
 					const u_char *payload = rtp_header + 12; // sizeof(rtp_header)
 					size_t headers_size = payload - ethernet_header;
