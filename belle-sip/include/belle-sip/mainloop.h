@@ -91,6 +91,26 @@ BELLESIP_EXPORT belle_sip_source_t* belle_sip_main_loop_create_timeout(belle_sip
 							,const char* timer_name);
 
 /**
+ * Adds a timeout into the main loop
+ * The caller of this function is responsible for freeing (with belle_sip_object_unref()) the returned belle_sip_source_t object when it is no longer
+ * needed.
+ * @param ml
+ * @param func a callback function to be called to notify timeout expiration
+ * @param data a pointer to be passed to the callback
+ * @param timeout_value_ms duration of the timeout.
+ * @param timer_name name of the timer, can be null
+ * @param function called when source is removed, can be null
+ * @returns timeout belle_sip_source_t  with ref count = 1
+ **/
+BELLESIP_EXPORT belle_sip_source_t* belle_sip_main_loop_create_timeout_with_remove_cb (belle_sip_main_loop_t *ml
+																					   , belle_sip_source_func_t func
+																					   , void *data
+																					   , unsigned int timeout_value_ms
+																					   , const char* timer_name
+																					   , belle_sip_source_remove_callback_t remove_func);
+
+
+/**
  * Schedule an arbitrary task at next main loop iteration.
 **/
 BELLESIP_EXPORT void belle_sip_main_loop_do_later(belle_sip_main_loop_t *ml, belle_sip_callback_t func, void *data);

@@ -338,15 +338,27 @@ void belle_sip_main_loop_add_source(belle_sip_main_loop_t *ml, belle_sip_source_
 	ml->nsources++;
 }
 
-belle_sip_source_t* belle_sip_main_loop_create_timeout(belle_sip_main_loop_t *ml
-														, belle_sip_source_func_t func
-														, void *data
-														, unsigned int timeout_value_ms
-														,const char* timer_name) {
+belle_sip_source_t* belle_sip_main_loop_create_timeout_with_remove_cb(  belle_sip_main_loop_t *ml
+																	  , belle_sip_source_func_t func
+																	  , void *data
+																	  , unsigned int timeout_value_ms
+																	  , const char* timer_name
+																	  , belle_sip_source_remove_callback_t remove_func) {
 	belle_sip_source_t * s=belle_sip_timeout_source_new(func,data,timeout_value_ms);
 	belle_sip_object_set_name((belle_sip_object_t*)s,timer_name);
+	if (remove_func) {
+		belle_sip_source_set_remove_cb(s, remove_func);
+	}
 	belle_sip_main_loop_add_source(ml,s);
 	return s;
+}
+belle_sip_source_t* belle_sip_main_loop_create_timeout(belle_sip_main_loop_t *ml
+																	  , belle_sip_source_func_t func
+																	  , void *data
+																	  , unsigned int timeout_value_ms
+																	  ,const char* timer_name) {
+	return belle_sip_main_loop_create_timeout_with_remove_cb(ml, func, data, timeout_value_ms,timer_name,NULL);
+	
 }
 
 unsigned long belle_sip_main_loop_add_timeout(belle_sip_main_loop_t *ml, belle_sip_source_func_t func, void *data, unsigned int timeout_value_ms){
@@ -506,6 +518,8 @@ static void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	}
 
 	/* Step 3: find timeouted sources */
+	
+	bctbx_mutex_lock(&ml->timer_sources_mutex); /*iterator chain might be alterated by element insertion*/
 	it = bctbx_map_begin(ml->timer_sources);
 	end = bctbx_map_end(ml->timer_sources);
 	while (!bctbx_iterator_equals(it,end)) {
@@ -527,6 +541,7 @@ static void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	}
 	bctbx_iterator_delete(it);
 	bctbx_iterator_delete(end);
+	bctbx_mutex_unlock(&ml->timer_sources_mutex);
 	
 	/* Step 4: notify those to be notified */
 	for(elem=to_be_notified;elem!=NULL;){
