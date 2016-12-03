@@ -179,6 +179,8 @@ if test "$mbedtls_found" = "false" ; then
 		POLARSSL_CFLAGS="-I${polarssl_prefix}"
 		POLARSSL_LIBS="-L${polarssl_prefix}/lib"
 	fi
+	CPPFLAGS_save=$CPPFLAGS
+	LIBS_save=$LIBS
 	CPPFLAGS="$CPPFLAGS $POLARSSL_CFLAGS"
 	LIBS="$LIBS $POLARSSL_LIBS"
 
