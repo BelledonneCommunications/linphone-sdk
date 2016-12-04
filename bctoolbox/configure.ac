@@ -230,7 +230,7 @@ AM_CONDITIONAL(ENABLE_MBEDTLS, test "$mbedtls_found" = "true")
 dnl substitute variables used by .pc files
 
 if test "$prefix" = "NONE" ; then
-	install_prefix=/usr
+	install_prefix=/usr/local
 else
 	install_prefix=$prefix
 fi
