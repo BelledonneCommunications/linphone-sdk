@@ -23,8 +23,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mediastreamer2/msticker.h"
 #include "mediastreamer2/msfactory.h"
 
-#define PATH_MAX 4096
-
 static MSFactory *_factory = NULL;
 
 static int tester_before_all(void) {
@@ -57,15 +55,13 @@ static void play_scenario(MSFilterDesc *decoder_desc, const char *pcap_scenario_
 	bool_t eof = FALSE;
 	bool_t first_frame_decoded = FALSE;
 	int sample_rate = 90000;
-	char filename[PATH_MAX];
 	int err;
 	
 	BC_ASSERT_PTR_NOT_NULL(decoder);
 	if(decoder == NULL) goto end;
 	
-	strncpy(filename, pcap_scenario_file, PATH_MAX);
 	ms_filter_call_method(player, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
-	err = ms_filter_call_method(player, MS_PLAYER_OPEN, filename);
+	err = ms_filter_call_method(player, MS_PLAYER_OPEN, (void *)pcap_scenario_file);
 	BC_ASSERT_EQUAL(err, 0, int, "%d");
 	if (err != 0) goto end;
 	
@@ -106,15 +102,21 @@ static void play_scenario_for_all_decoders(const char *mime, const char *pcap_sc
 	}
 }
 
-static void h264_missing_pps_in_second_i_frame(void) {
-	char scenario_pcap_file[PATH_MAX];
-	snprintf(scenario_pcap_file, PATH_MAX, "%s/%s", bc_tester_get_resource_dir_prefix(),
-			 "scenarios/h264_missing_pps_in_second_i_frame.pcap");
-	play_scenario_for_all_decoders("h264", scenario_pcap_file);
+#define scenario_test(scenario_name) \
+static void scenario_name(void) { \
+	char *scenario_pcap_file = ms_strdup_printf("%s/%s", \
+			bc_tester_get_resource_dir_prefix(), \
+			"scenarios/" #scenario_name ".pcap"); \
+	play_scenario_for_all_decoders("h264", scenario_pcap_file); \
+	ms_free(scenario_pcap_file); \
 }
 
+scenario_test(h264_missing_pps_in_second_i_frame)
+scenario_test(h264_one_nalu_per_frame)
+
 static test_t tests[] = {
-	{ "H264: missing PPS in second i-frame scenario" , h264_missing_pps_in_second_i_frame }
+	{ "H264: missing PPS in second i-frame scenario" , h264_missing_pps_in_second_i_frame },
+	{ "H264: one NALu per frame scenario"            , h264_one_nalu_per_frame            }
 };
 
 test_suite_t codec_impl_test_suite = {
