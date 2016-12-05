@@ -296,6 +296,7 @@ int belle_sip_memory_body_handler_unapply_encoding(belle_sip_memory_body_handler
 		unsigned int outbuf_size = avail_out;
 		unsigned char *outbuf = belle_sip_malloc(outbuf_size);
 		unsigned char *outbuf_ptr = outbuf;
+		bool_t outbuf_too_small = FALSE;
 		int ret;
 
 		strm.zalloc = Z_NULL;
@@ -308,20 +309,30 @@ int belle_sip_memory_body_handler_unapply_encoding(belle_sip_memory_body_handler
 		strm.avail_in = (uInt)initial_size;
 		strm.next_in = obj->buffer;
 		do {
-			if (avail_out < BELLE_SIP_MEMORY_BODY_HANDLER_ZLIB_INITIAL_SIZE) {
+			if ((avail_out < BELLE_SIP_MEMORY_BODY_HANDLER_ZLIB_INITIAL_SIZE) || (outbuf_too_small == TRUE)) {
 				unsigned int cursize = (unsigned int)(outbuf_ptr - outbuf);
 				outbuf_size *= 2;
 				outbuf = belle_sip_realloc(outbuf, outbuf_size);
 				outbuf_ptr = outbuf + cursize;
+				avail_out = outbuf_size;
 			}
+			outbuf_too_small = FALSE;
 			strm.avail_out = avail_out;
 			strm.next_out = outbuf_ptr;
 			ret = inflate(&strm, Z_NO_FLUSH);
 			switch (ret) {
+				case Z_OK:
+					// Everything is ok, continue
+					break;
+				case Z_BUF_ERROR:
+					// Ask for more output space
+					outbuf_too_small = TRUE;
+					break;
 				case Z_NEED_DICT:
-					ret = Z_DATA_ERROR;
 				case Z_DATA_ERROR:
+				case Z_STREAM_ERROR:
 				case Z_MEM_ERROR:
+				default:
 					inflateEnd(&strm);
 					belle_sip_free(outbuf);
 					return -1;
