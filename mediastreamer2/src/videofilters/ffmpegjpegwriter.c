@@ -72,7 +72,7 @@ static void close_file(JpegWriter *obj, bool_t doRenaming) {
 	}
 	ms_free(obj->filename);
 	obj->filename = NULL;
-	
+
 	ms_free(obj->tmpFilename);
 	obj->tmpFilename = NULL;
 }

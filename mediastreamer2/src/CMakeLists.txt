@@ -283,6 +283,15 @@ if(ENABLE_VIDEO)
 		voip/videostream.c
 		voip/video_preset_high_fps.c
 	)
+	if(FFMPEG_FOUND AND NOT TURBOJPEG_FOUND)
+		list(APPEND VOIP_SOURCE_FILES_C
+			videofilters/ffmpegnowebcam.c
+		)
+	elseif(TURBOJPEG_FOUND)
+		list(APPEND VOIP_SOURCE_FILES_C
+			videofilters/turbojpegnowebcam.c
+		)
+	endif()
 	if(WIN32 AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone" AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 		add_definitions(-DHAVE_DIRECTSHOW)
 		list(APPEND VOIP_SOURCE_FILES_C
@@ -311,7 +320,7 @@ if(ENABLE_VIDEO)
 				videofilters/msosxdisplay.m
 				videofilters/avfound-capture.m
 			)
-			
+
 			list(APPEND VOIP_SOURCE_FILES_C
 				utils/opengles_display.c
 				utils/opengles_display.h
@@ -358,9 +367,18 @@ if(ENABLE_VIDEO)
 			utils/ffmpeg-priv.h
 			utils/swscale.h
 			videofilters/h264dec.c
-			videofilters/jpegwriter.c
 			videofilters/videodec.c
 			videofilters/videoenc.c
+		)
+		if(NOT TURBOJPEG_FOUND)
+			list(APPEND VOIP_SOURCE_FILES_C
+				videofilters/ffmpegjpegwriter.c
+			)
+		endif()
+	endif()
+	if(TURBOJPEG_FOUND)
+		list(APPEND VOIP_SOURCE_FILES_C
+			videofilters/turbojpegwriter.c
 		)
 	endif()
 	if(GLX_FOUND)
@@ -577,6 +595,9 @@ endif()
 if (CAMAPI_FOUND)
 	list(APPEND VOIP_LIBS ${CAMAPI_LIBRARIES})
 endif()
+if(TURBOJPEG_FOUND)
+	list(APPEND VOIP_LIBS ${TURBOJPEG_LIBRARIES})
+endif()
 if (BCGG729_FOUND)
 	 add_definitions(-DHAVE_G729B=1)
 	list(APPEND VOIP_LIBS ${BCG729_LIBRARIES})
@@ -632,12 +653,17 @@ endif()
 
 if(FFMPEG_FOUND AND NOT WIN32)
 	set(NO_DEPRECATED_DECLARATIONS_SOURCE_FILES
-		videofilters/jpegwriter.c
 		videofilters/videoenc.c
 		videofilters/videodec.c
-		videofilters/nowebcam.c
 		videofilters/h264dec.c
 	)
+	if(NOT TURBOJPEG_FOUND)
+		set(NO_DEPRECATED_DECLARATIONS_SOURCE_FILES
+			${NO_DEPRECATED_DECLARATIONS_SOURCE_FILES}
+			videofilters/ffmpegjpegwriter.c
+			videofilters/nowebcam.c
+		)
+	endif()
 	foreach(file ${NO_DEPRECATED_DECLARATIONS_SOURCE_FILES})
 		get_source_file_property(NO_DEPRECATED_DECLARATIONS_COMPILE_FLAGS ${file} COMPILE_FLAGS)
 		set_source_files_properties(${file} PROPERTIES COMPILE_FLAGS "${NO_DEPRECATED_DECLARATIONS_COMPILE_FLAGS} -Wno-error=deprecated-declarations")

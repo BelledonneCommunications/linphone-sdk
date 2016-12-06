@@ -90,6 +90,7 @@ option(ENABLE_BV16 "Build mediastreamer2 with the BV16 codec." YES)
 option(ENABLE_OPUS "Build mediastreamer2 with the OPUS codec." YES)
 option(ENABLE_SPEEX_CODEC "Build mediastreamer2 with the SPEEX codec." YES)
 option(ENABLE_SPEEX_DSP "Build mediastreamer2 with the SPEEX DSP support." YES)
+option(ENABLE_G729B_CNG "Build mediastremer2 with G729 annex B cng." NO)
 cmake_dependent_option(ENABLE_RESAMPLE "Build mediastreamer2 with the resampling capability." YES "ENABLE_SPEEX_DSP" NO)
 
 option(ENABLE_VIDEO "Build mediastreamer2 with video support." YES)
@@ -104,7 +105,7 @@ cmake_dependent_option(ENABLE_VPX "Build mediastreamer2 with VPX codec." YES "EN
 option(ENABLE_MKV "Enable support of MKV files reading and writing." YES)
 cmake_dependent_option(ENABLE_QNX "Build medistreamer2 with BB10 filters." NO "ENABLE_VIDEO" NO)
 cmake_dependent_option(ENABLE_VT_H264 "Build mediastreamer2 with H264 encoder/decoder based on VirtualToolbox (Apple only)" YES "ENABLE_VIDEO" NO)
-option(ENABLE_G729B_CNG "Build mediastremer2 with G729 annex B cng." NO)
+option(ENABLE_JPEG "Enable JPEG support" YES)
 
 macro(apply_compile_flags SOURCE_FILES)
 	if(${SOURCE_FILES})
@@ -324,6 +325,14 @@ if(ENABLE_G729B_CNG)
 	endif()
 endif()
 
+if(ENABLE_JPEG)
+	find_package(TurboJpeg)
+	if(NOT TURBOJPEG_FOUND)
+		message(WARNING "Could not find libturbo-jpeg, mediastreamer2 will be compiled without LibJpeg-Turbo")
+		set(ENABLE_JPEG OFF CACHE BOOL "Enable JPEG support" FORCE)
+	endif()
+endif()
+
 if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
 	set(BcToolbox_FIND_COMPONENTS tester)
 	include("${EP_bctoolbox_CONFIG_DIR}/BcToolboxConfig.cmake")
@@ -414,6 +423,9 @@ endif()
 if(MSVC_INCLUDE_DIR)
 	include_directories(${MSVC_INCLUDE_DIR})
 endif()
+if(TURBOJPEG_FOUND)
+	include_directories(${TURBOJPEG_INCLUDE_DIRS})
+endif()
 if(ENABLE_ANDROIDSND)
 	include_directories(
 		src/android
@@ -470,6 +482,9 @@ if(SPEEXDSP_FOUND)
 endif()
 if(MATROSKA2_FOUND)
 	set(HAVE_MATROSKA 1)
+endif()
+if(TURBO_JPEG_FOUND)
+	set(HAVE_TURBO_JPEG 1)
 endif()
 if(ENABLE_RELATIVE_PREFIX)
 	if(CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone" OR CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
@@ -593,5 +608,3 @@ install(FILES
 	"${CMAKE_CURRENT_BINARY_DIR}/Mediastreamer2ConfigVersion.cmake"
 	DESTINATION ${CONFIG_PACKAGE_LOCATION}
 )
-
-
