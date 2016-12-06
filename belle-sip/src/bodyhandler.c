@@ -311,10 +311,11 @@ int belle_sip_memory_body_handler_unapply_encoding(belle_sip_memory_body_handler
 		do {
 			if ((avail_out < BELLE_SIP_MEMORY_BODY_HANDLER_ZLIB_INITIAL_SIZE) || (outbuf_too_small == TRUE)) {
 				unsigned int cursize = (unsigned int)(outbuf_ptr - outbuf);
+				unsigned int increase = outbuf_size;
 				outbuf_size *= 2;
 				outbuf = belle_sip_realloc(outbuf, outbuf_size);
 				outbuf_ptr = outbuf + cursize;
-				avail_out = outbuf_size;
+				avail_out += increase;
 			}
 			outbuf_too_small = FALSE;
 			strm.avail_out = avail_out;
@@ -322,6 +323,7 @@ int belle_sip_memory_body_handler_unapply_encoding(belle_sip_memory_body_handler
 			ret = inflate(&strm, Z_NO_FLUSH);
 			switch (ret) {
 				case Z_OK:
+				case Z_STREAM_END:
 					// Everything is ok, continue
 					break;
 				case Z_BUF_ERROR:
