@@ -762,45 +762,48 @@ static void h264_dec_process(MSFilter *f) {
 				if (ctx->session != NULL) {
 					CMBlockBufferRef stream = NULL;
 					mblk_t *nalu = NULL;
-					CMBlockBufferCreateEmpty(NULL, 0, kCMBlockBufferAssureMemoryNowFlag, &stream);
-					while((nalu = ms_queue_get(&q_nalus2))) {
-						CMBlockBufferRef nalu_block;
-						size_t nalu_block_size = msgdsize(nalu) + H264_NALU_HEAD_SIZE;
-						uint32_t nalu_size = htonl(msgdsize(nalu));
+					if (CMBlockBufferCreateEmpty(NULL, 0, kCMBlockBufferAssureMemoryNowFlag, &stream) == kCMBlockBufferNoErr) {
+						while((nalu = ms_queue_get(&q_nalus2))) {
+							CMBlockBufferRef nalu_block;
+							size_t nalu_block_size = msgdsize(nalu) + H264_NALU_HEAD_SIZE;
+							uint32_t nalu_size = htonl(msgdsize(nalu));
 
-						CMBlockBufferCreateWithMemoryBlock(NULL, NULL, nalu_block_size, NULL, NULL, 0, nalu_block_size, kCMBlockBufferAssureMemoryNowFlag, &nalu_block);
-						CMBlockBufferReplaceDataBytes(&nalu_size, nalu_block, 0, H264_NALU_HEAD_SIZE);
-						CMBlockBufferReplaceDataBytes(nalu->b_rptr, nalu_block, H264_NALU_HEAD_SIZE, msgdsize(nalu));
-						CMBlockBufferAppendBufferReference(stream, nalu_block, 0, nalu_block_size, 0);
-						CFRelease(nalu_block);
-						freemsg(nalu);
-					}
-					if(!CMBlockBufferIsEmpty(stream)) {
-						CMSampleBufferRef sample = NULL;
-						CMSampleTimingInfo timing_info;
-						timing_info.duration = kCMTimeInvalid;
-						timing_info.presentationTimeStamp = CMTimeMake(f->ticker->time, 1000);
-						timing_info.decodeTimeStamp = CMTimeMake(f->ticker->time, 1000);
-						CMSampleBufferCreate(
-							NULL, stream, TRUE, NULL, NULL,
-							ctx->format_desc, 1, 1, &timing_info,
-							0, NULL, &sample);
+							CMBlockBufferCreateWithMemoryBlock(NULL, NULL, nalu_block_size, NULL, NULL, 0, nalu_block_size, kCMBlockBufferAssureMemoryNowFlag, &nalu_block);
+							CMBlockBufferReplaceDataBytes(&nalu_size, nalu_block, 0, H264_NALU_HEAD_SIZE);
+							CMBlockBufferReplaceDataBytes(nalu->b_rptr, nalu_block, H264_NALU_HEAD_SIZE, msgdsize(nalu));
+							CMBlockBufferAppendBufferReference(stream, nalu_block, 0, nalu_block_size, 0);
+							CFRelease(nalu_block);
+							freemsg(nalu);
+						}
+						if(!CMBlockBufferIsEmpty(stream)) {
+							CMSampleBufferRef sample = NULL;
+							CMSampleTimingInfo timing_info;
+							timing_info.duration = kCMTimeInvalid;
+							timing_info.presentationTimeStamp = CMTimeMake(f->ticker->time, 1000);
+							timing_info.decodeTimeStamp = CMTimeMake(f->ticker->time, 1000);
+							CMSampleBufferCreate(
+										NULL, stream, TRUE, NULL, NULL,
+										ctx->format_desc, 1, 1, &timing_info,
+										0, NULL, &sample);
 
-						status = VTDecompressionSessionDecodeFrame(ctx->session, sample, 0, NULL, NULL);
-						CFRelease(sample);
-						if(status != noErr) {
-							CFRelease(stream);
-							vth264dec_error("error while passing encoded frames to the decoder: %d", (int)status);
-							if (status == kVTInvalidSessionErr) {
-								h264_dec_uninit_decoder(ctx);
-							}
-							if (h264_dec_handle_error(ctx, &need_pli)) {
+							status = VTDecompressionSessionDecodeFrame(ctx->session, sample, 0, NULL, NULL);
+							CFRelease(sample);
+							if(status != noErr) {
 								CFRelease(stream);
-								break;
+								vth264dec_error("error while passing encoded frames to the decoder: %d", (int)status);
+								if (status == kVTInvalidSessionErr) {
+									h264_dec_uninit_decoder(ctx);
+								}
+								if (h264_dec_handle_error(ctx, &need_pli)) {
+									CFRelease(stream);
+									break;
+								}
 							}
 						}
+						CFRelease(stream);
+					} else {
+						vth264dec_error("failure while creating input buffer for decoder");
 					}
-					CFRelease(stream);
 				}
 			} else {
 				vth264dec_warning("no video format (likely missing SPS/PPS). Skipping current NAL unit");
