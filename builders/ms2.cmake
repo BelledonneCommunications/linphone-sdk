@@ -49,6 +49,7 @@ lcb_cmake_options(
 	"-DENABLE_SPEEX_CODEC=${ENABLE_SPEEX}"
 	"-DENABLE_BV16=${ENABLE_BV16}"
 	"-DENABLE_G729B_CNG=${ENABLE_G729B_CNG}"
+	"-DENABLE_JPEG=${ENABLE_JPEG}"
 )
 if(ENABLE_GSM AND LINPHONE_BUILDER_BUILD_DEPENDENCIES)
 	lcb_dependencies("gsm")
@@ -64,6 +65,9 @@ if(ENABLE_BV16 AND LINPHONE_BUILDER_BUILD_DEPENDENCIES)
 endif()
 if(ENABLE_G729B_CNG)
 	lcb_dependencies("bcg729bcng")
+endif()
+if(ENABLE_JPEG)
+	lcb_dependencies("turbo-jpeg")
 endif()
 
 lcb_cmake_options("-DENABLE_VIDEO=${ENABLE_VIDEO}")
