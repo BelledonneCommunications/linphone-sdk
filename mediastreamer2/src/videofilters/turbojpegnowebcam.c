@@ -41,8 +41,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize) {
 	MSPicture dest;
 	mblk_t *m = NULL;
-	int imgsrch, imgsrcw, imgsrcsubsamp, imgsrccolor;
-	int scaledw, scaledh, sfnum;
+	int imgsrch, imgsrcw, imgsrcsubsamp, imgsrccolor, sfnum, i;
+	int scaledw = 0, scaledh = 0;
 	tjscalingfactor* sf = NULL;
 	tjhandle turbojpegDec = tjInitDecompress();
 
@@ -66,11 +66,16 @@ mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize) {
 	sf = tjGetScalingFactors(&sfnum);
 
 	// Prevision of height and width
-	for(int i = 0; i < sfnum; i++) {
+	for(i = 0; i < sfnum; i++) {
 		scaledw = TJSCALED(imgsrcw, sf[i]);
 		scaledh = TJSCALED(imgsrch, sf[i]);
 		if (scaledw <= reqsize->width && scaledh <= reqsize->height)
 			break;
+	}
+
+	if (scaledw <= 0 && scaledh <= 0) {
+		ms_error("No resolution size found for (%ix%i)", reqsize->width, reqsize->height);
+		goto clean;
 	}
 
 	m = ms_yuv_buf_alloc(&dest, scaledw, scaledh);

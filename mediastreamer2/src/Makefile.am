@@ -270,7 +270,7 @@ libmediastreamer_voip_la_SOURCES+=	videofilters/videoenc.c \
 					utils/ffmpeg-priv.h \
 					utils/ffmpeg-priv.c \
 					videofilters/h264dec.c \
-					videofilters/jpegwriter.c
+					videofilters/ffmpegjpegwriter.c
 endif
 
 if BUILD_SDL
@@ -296,7 +296,7 @@ libmediastreamer_voip_la_SOURCES+=	voip/rfc2429.h \
 					voip/vp8rtpfmt.c \
 					voip/vp8rtpfmt.h \
 					videofilters/mire.c \
-					videofilters/nowebcam.c voip/nowebcam.h \
+					videofilters/ffmpegnowebcam.c voip/nowebcam.h \
 					videofilters/extdisplay.c \
 					utils/bits_rw.c \
 					utils/x11_helper.c \
