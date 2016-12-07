@@ -64,6 +64,24 @@ typedef struct _VTH264EncCtx {
 	MSIFrameRequestsLimiterCtx iframe_limiter;
 } VTH264EncCtx;
 
+static const char *os_status_to_string(OSStatus status) {
+	static char complete_message[1024];
+	const char *message = "";
+
+	switch(status) {
+	case noErr:
+		message = "no error";
+		break;
+	case kVTPropertyNotSupportedErr:
+		message = "property not supported";
+		break;
+	default:
+		break;
+	}
+	snprintf(complete_message, sizeof(complete_message), "%s [osstatus=%d]", message, status);
+	return complete_message;
+}
+
 static void h264_enc_output_cb(VTH264EncCtx *ctx, void *sourceFrameRefCon, OSStatus status, VTEncodeInfoFlags infoFlags, CMSampleBufferRef sampleBuffer) {
 	MSQueue nalu_queue;
 	CMBlockBufferRef block_buffer;
@@ -114,6 +132,7 @@ static void h264_enc_output_cb(VTH264EncCtx *ctx, void *sourceFrameRefCon, OSSta
 	}
 	ms_mutex_unlock(&ctx->mutex);
 }
+
 #if 0
 static void print_properties(CFStringRef prop_name, CFDictionaryRef prop_attrs, void *context) {
 	CFShow(prop_name);
@@ -122,6 +141,7 @@ static void print_properties(CFStringRef prop_name, CFDictionaryRef prop_attrs, 
 
 }
 #endif
+
 static void h264_enc_configure(VTH264EncCtx *ctx) {
 	OSStatus err;
 	const char *error_msg = "Could not initialize the VideoToolbox compresson session";
@@ -138,7 +158,7 @@ static void h264_enc_configure(VTH264EncCtx *ctx) {
 									NULL, pixbuf_attr, NULL, (VTCompressionOutputCallback)h264_enc_output_cb, ctx, &ctx->session);
 	CFRelease(pixbuf_attr);
 	if(err) {
-		vth264enc_error("%s: error code %d", error_msg, (int)err);
+		vth264enc_error("%s: %s", error_msg, os_status_to_string(err));
 		goto fail;
 	}
 #if 0 /*for debuging purpose*/
@@ -150,7 +170,7 @@ static void h264_enc_configure(VTH264EncCtx *ctx) {
 		CFRelease (dict);
 		
 	} else {
-		vth264enc_error("Could not get  VTSessionCopySupportedPropertyDictionary, err=%i",(int)err);
+		vth264enc_error("Could not get  VTSessionCopySupportedPropertyDictionary: %s", os_status_to_string(err));
 	}
 #endif
 	VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_ProfileLevel, kVTProfileLevel_H264_Baseline_AutoLevel);
@@ -159,7 +179,9 @@ static void h264_enc_configure(VTH264EncCtx *ctx) {
 	VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_AverageBitRate, value);
 	CFRelease(value);
 	value = CFNumberCreate(kCFAllocatorDefault, kCFNumberFloatType, &ctx->conf.fps);
-	VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_ExpectedFrameRate, value);
+	if ((err = VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_ExpectedFrameRate, value)) != noErr) {
+		vth264enc_error("could not set kVTCompressionPropertyKey_ExpectedFrameRate: %s", os_status_to_string(err));
+	}
 	CFRelease(value);
 	
 	int bytes_per_seconds = ctx->conf.required_bitrate/8 * 2; /*allow to have 2 times the average bitrate in one second*/
@@ -169,29 +191,48 @@ static void h264_enc_configure(VTH264EncCtx *ctx) {
 	CFMutableArrayRef data_rate_limits = CFArrayCreateMutable(kCFAllocatorDefault, 2, &kCFTypeArrayCallBacks);
 	CFArrayAppendValue(data_rate_limits, bytes);
 	CFArrayAppendValue(data_rate_limits, duration);
-	if ((err = VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_DataRateLimits, data_rate_limits)) != 0){
-		vth264enc_error("could not set kVTCompressionPropertyKey_DataRateLimits, err=%i",(int)err);
+	if ((err = VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_DataRateLimits, data_rate_limits)) != noErr){
+		vth264enc_error("could not set kVTCompressionPropertyKey_DataRateLimits: %s", os_status_to_string(err));
 	}
 	CFRelease(bytes);
 	CFRelease(duration);
 	CFRelease(data_rate_limits);
 	
 	value = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &delay_count);
-	if ((err = VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_MaxFrameDelayCount, value)) != 0){
-		vth264enc_error("could not set kVTCompressionPropertyKey_MaxFrameDelayCount, err=%i",(int) err);
+	if ((err = VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_MaxFrameDelayCount, value)) != noErr){
+		vth264enc_error("could not set kVTCompressionPropertyKey_MaxFrameDelayCount: %s", os_status_to_string(err));
 	}
 	CFRelease(value);
 	value = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &max_payload_size);
-	if ((err = VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_MaxH264SliceBytes, value)) != 0){
-		vth264enc_error("could not set kVTCompressionPropertyKey_MaxH264SliceBytes, err=%i",(int)err);
+	if ((err = VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_MaxH264SliceBytes, value)) != noErr){
+		vth264enc_error("could not set kVTCompressionPropertyKey_MaxH264SliceBytes: %s", os_status_to_string(err));
 	}
 	CFRelease(value);
-
-	if((err = VTCompressionSessionPrepareToEncodeFrames(ctx->session)) != 0) {
-		vth264enc_error("could not prepare the VideoToolbox compression session: error code %d", (int)err);
-		goto fail;
+	if ((err = VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_RealTime, kCFBooleanTrue)) != noErr) {
+		vth264enc_error("could not set kVTCompressionPropertyKey_RealTime: %s", os_status_to_string(err));
 	}
-
+#if !TARGET_OS_IOS
+	if ((err = VTSessionSetProperty(ctx->session, kVTVideoEncoderSpecification_EnableHardwareAcceleratedVideoEncoder, kCFBooleanTrue)) != noErr) {
+		vth264enc_error("could not set kVTVideoEncoderSpecification_EnableHardwareAcceleratedVideoEncoder: %s", os_status_to_string(err));
+	}
+#endif
+	if((err = VTCompressionSessionPrepareToEncodeFrames(ctx->session)) != noErr) {
+		vth264enc_error("could not prepare the VideoToolbox compression session: %s", os_status_to_string(err));
+		goto fail;
+	} else {
+		vth264enc_message("encoder succesfully initialized.");
+#if !TARGET_OS_IOS
+		CFBooleanRef hardware_decoding_enabled = NULL;
+		err = VTSessionCopyProperty(ctx->session, kVTCompressionPropertyKey_UsingHardwareAcceleratedVideoEncoder, kCFAllocatorDefault, &hardware_decoding_enabled);
+		if (err == noErr) {
+			if (CFBooleanGetValue(hardware_decoding_enabled)) vth264enc_message("hardware encoding is enabled");
+			else vth264enc_message("hardware encoding is not enabled");
+		} else if (err == kVTPropertyNotSupportedErr) {
+			vth264enc_warning("could not read kVTCompressionPropertyKey_UsingHardwareAcceleratedVideoEncoder property: %s", os_status_to_string(err));
+		}
+		if (hardware_decoding_enabled != NULL) CFRelease(hardware_decoding_enabled);
+#endif
+	}
 	rfc3984_init(&ctx->packer_ctx);
 	rfc3984_set_mode(&ctx->packer_ctx, 1);
 	ctx->packer_ctx.maxsz = max_payload_size + 1;
@@ -238,7 +279,7 @@ static void h264_enc_process(MSFilter *f) {
 		return;
 	}
 
-	while((frame = ms_queue_get(f->inputs[0]))) {
+	if ((frame = ms_queue_peek_last(f->inputs[0]))) {
 		YuvBuf src_yuv_frame, dst_yuv_frame = {0};
 		CVPixelBufferRef pixbuf;
 		CFMutableDictionaryRef enc_param = NULL;
@@ -264,7 +305,6 @@ static void h264_enc_process(MSFilter *f) {
 		}
 		ms_yuv_buf_copy(src_yuv_frame.planes, src_yuv_frame.strides, dst_yuv_frame.planes, dst_yuv_frame.strides, (MSVideoSize){dst_yuv_frame.w, dst_yuv_frame.h});
 		CVPixelBufferUnlockBaseAddress(pixbuf, 0);
-		freemsg(frame);
 
 		ms_filter_lock(f);
 		if(ctx->fps_changed || ctx->bitrate_changed || ms_iframe_requests_limiter_iframe_requested(&ctx->iframe_limiter, f->ticker->time)) {
@@ -304,8 +344,9 @@ static void h264_enc_process(MSFilter *f) {
 			}
 		}
 
-		if((err = VTCompressionSessionEncodeFrame(ctx->session, pixbuf, p_time, kCMTimeInvalid, enc_param, NULL, NULL)) != noErr) {
-			vth264enc_error("could not pass a pixbuf to the encoder: error code %d", (int)err);
+		CMTime frame_duration = CMTimeMake(1000/ctx->conf.fps, 1000);
+		if((err = VTCompressionSessionEncodeFrame(ctx->session, pixbuf, p_time, frame_duration, enc_param, NULL, NULL)) != noErr) {
+			vth264enc_error("could not pass a pixbuf to the encoder: %s", os_status_to_string(err));
 		}
 		CFRelease(pixbuf);
 
@@ -321,6 +362,8 @@ static void h264_enc_process(MSFilter *f) {
 		ms_mutex_lock(&ctx->mutex);
 	}
 	ms_mutex_unlock(&ctx->mutex);
+
+	ms_queue_flush(f->inputs[0]);
 }
 
 static void h264_enc_postprocess(MSFilter *f) {
