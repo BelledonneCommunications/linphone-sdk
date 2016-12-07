@@ -296,7 +296,7 @@ libmediastreamer_voip_la_SOURCES+=	voip/rfc2429.h \
 					voip/vp8rtpfmt.c \
 					voip/vp8rtpfmt.h \
 					videofilters/mire.c \
-					videofilters/ffmpegnowebcam.c voip/nowebcam.h \
+					videofilters/nowebcam.c videofilters/ffmpegnowebcam.c voip/nowebcam.h \
 					videofilters/extdisplay.c \
 					utils/bits_rw.c \
 					utils/x11_helper.c \
