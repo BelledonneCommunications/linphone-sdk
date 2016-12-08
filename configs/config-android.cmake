@@ -25,7 +25,7 @@ lcb_add_dependent_option("Embedded OpenH264" "Embed the openh264 library instead
 
 
 # Define default values for the linphone builder options
-set(DEFAULT_VALUE_ENABLE_FFMPEG ON)
+set(DEFAULT_VALUE_ENABLE_FFMPEG OFF)
 set(DEFAULT_VALUE_ENABLE_GPL_THIRD_PARTIES ON)
 set(DEFAULT_VALUE_ENABLE_GSM ON)
 set(DEFAULT_VALUE_ENABLE_ILBC ON)
