@@ -142,6 +142,7 @@ typedef  struct  au_card {
 	bool_t audio_session_configured;
 	bool_t read_started;
 	bool_t write_started;
+	bool_t use_shutdowntimer;
 }au_card_t;
 
 typedef  struct au_filter_base {
@@ -245,6 +246,7 @@ static void au_init(MSSndCard *card){
 	d->rate=0; /*not set*/
 	d->nchannels=1;
 	d->ms_snd_card=card;
+	d->use_shutdowntimer=FALSE;
 	card->preferred_sample_rate=44100;
 	card->capabilities|=MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER|MS_SND_CARD_CAP_IS_SLOW;
 	ms_mutex_init(&d->mutex,NULL);
@@ -263,9 +265,21 @@ static void au_uninit(MSSndCard *card){
 
 static void au_usage_hint(MSSndCard *card, bool_t used){
 	au_card_t *d=(au_card_t*)card->data;
-	if (!used && d){
-		cancel_audio_unit_timer(d);
-		stop_audio_unit(d);
+	if (!used &&d){
+		if(d->io_unit) {
+			if (d->shutdown_timer) {
+				cancel_audio_unit_timer(d);
+				stop_audio_unit(d);
+			} else {
+				d->use_shutdowntimer = FALSE;
+			}
+		} else {
+			d->use_shutdowntimer = FALSE;
+		}
+	} else {
+		if(d) {
+			d->use_shutdowntimer = TRUE;
+		}
 	}
 }
 
@@ -484,7 +498,6 @@ static bool_t  start_audio_unit (au_filter_base_t* d,uint64_t time) {
 									  , 0
 									  , &quality
 									  , &qualitySize));
-
 		ms_message("I/O unit latency [%f], quality [%u]",delay,(unsigned)quality);
 		Float32 hwoutputlatency;
 		UInt32 hwoutputlatencySize=sizeof(hwoutputlatency);
@@ -517,7 +530,6 @@ static bool_t  start_audio_unit (au_filter_base_t* d,uint64_t time) {
 			ms_message("AudioUnit could not be started, current hw output latency [%f] input [%f] iobuf[%f] hw sample rate [%f]",hwoutputlatency,hwinputlatency,hwiobuf,hwsamplerate);
 			d->card->last_failed_iounit_start_time=time;
 		} else {
-
 			ms_message("AudioUnit started, current hw output latency [%f] input [%f] iobuf[%f] hw sample rate [%f]",hwoutputlatency,hwinputlatency,hwiobuf,hwsamplerate);
 			d->card->last_failed_iounit_start_time=0;
 		}
@@ -850,7 +862,7 @@ static void shutdown_timer(CFRunLoopTimerRef timer, void *info){
 static void check_unused(au_card_t *card){
 	if (card->read_data==NULL && card->write_data==NULL ){
 
-		if (!card->is_tester && card->shutdown_timer==NULL){
+		if (!card->is_tester && card->shutdown_timer==NULL && card->use_shutdowntimer){
 			/*program the shutdown of the audio unit in a few seconds*/
 			CFRunLoopTimerContext ctx={0};
 			ctx.info=card;
@@ -864,7 +876,7 @@ static void check_unused(au_card_t *card){
 												&ctx
 												);
 			CFRunLoopAddTimer(CFRunLoopGetMain(), card->shutdown_timer,kCFRunLoopCommonModes);
-		} else if( card->is_tester ){
+		} else if( card->is_tester ) {
 			stop_audio_unit(card);
 		}
 	}
