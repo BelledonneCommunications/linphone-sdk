@@ -32,6 +32,29 @@
 #define vth264enc_warning(fmt, ...) vth264enc_log(warning, fmt, ##__VA_ARGS__)
 #define vth264enc_error(fmt, ...) vth264enc_log(error, fmt, ##__VA_ARGS__)
 
+static const char *os_status_to_string(OSStatus status) {
+	static char complete_message[1024];
+	const char *message = "";
+
+	switch(status) {
+	case noErr:
+		message = "no error";
+		break;
+	case kVTPropertyNotSupportedErr:
+		message = "property not supported";
+		break;
+	case kVTVideoDecoderMalfunctionErr:
+		message = "decoder malfunction";
+		break;
+	case kVTInvalidSessionErr:
+		message = "invalid session";
+		break;
+	default:
+		break;
+	}
+	snprintf(complete_message, sizeof(complete_message), "%s [osstatus=%d]", message, status);
+	return complete_message;
+}
 
 const MSVideoConfiguration h264_video_confs[] = {
 	MS_VIDEO_CONF(1536000,  2560000, SXGA_MINUS, 25, 2),
@@ -63,24 +86,6 @@ typedef struct _VTH264EncCtx {
 	bool_t first_frame;
 	MSIFrameRequestsLimiterCtx iframe_limiter;
 } VTH264EncCtx;
-
-static const char *os_status_to_string(OSStatus status) {
-	static char complete_message[1024];
-	const char *message = "";
-
-	switch(status) {
-	case noErr:
-		message = "no error";
-		break;
-	case kVTPropertyNotSupportedErr:
-		message = "property not supported";
-		break;
-	default:
-		break;
-	}
-	snprintf(complete_message, sizeof(complete_message), "%s [osstatus=%d]", message, status);
-	return complete_message;
-}
 
 static void h264_enc_output_cb(VTH264EncCtx *ctx, void *sourceFrameRefCon, OSStatus status, VTEncodeInfoFlags infoFlags, CMSampleBufferRef sampleBuffer) {
 	MSQueue nalu_queue;
@@ -832,8 +837,7 @@ static void h264_dec_process(MSFilter *f) {
 							status = VTDecompressionSessionDecodeFrame(ctx->session, sample, 0, NULL, NULL);
 							CFRelease(sample);
 							if(status != noErr) {
-								CFRelease(stream);
-								vth264dec_error("error while passing encoded frames to the decoder: %d", (int)status);
+								vth264dec_error("error while passing encoded frames to the decoder: %d", os_status_to_string(status));
 								if (status == kVTInvalidSessionErr) {
 									h264_dec_uninit_decoder(ctx);
 								}
