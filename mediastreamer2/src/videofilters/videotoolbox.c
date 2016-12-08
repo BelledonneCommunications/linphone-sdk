@@ -837,7 +837,7 @@ static void h264_dec_process(MSFilter *f) {
 							status = VTDecompressionSessionDecodeFrame(ctx->session, sample, 0, NULL, NULL);
 							CFRelease(sample);
 							if(status != noErr) {
-								vth264dec_error("error while passing encoded frames to the decoder: %d", os_status_to_string(status));
+								vth264dec_error("error while passing encoded frames to the decoder: %s", os_status_to_string(status));
 								if (status == kVTInvalidSessionErr) {
 									h264_dec_uninit_decoder(ctx);
 								}
