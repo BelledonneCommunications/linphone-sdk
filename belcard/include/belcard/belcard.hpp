@@ -33,6 +33,8 @@
 #include "belcard_calendar.hpp"
 #include "belcard_rfc6474.hpp"
 
+#include "bctoolbox/logging.h"
+
 #include <string>
 #include <list>
 
@@ -92,6 +94,15 @@ namespace belcard {
 		list<shared_ptr<BelCardCALURI>> _caluris;
 		list<shared_ptr<BelCardProperty>> _extended_properties;
 		list<shared_ptr<BelCardProperty>> _properties;
+		
+		template<typename T>
+		void set(shared_ptr<T> &p, const shared_ptr<T> &property);
+		
+		template<typename T>
+		void add(list<shared_ptr<T>> &property_list, const shared_ptr<T> &property);
+		
+		template<typename T>
+		void remove(list<shared_ptr<T>> &property_list, const shared_ptr<T> &property);
 		
 	public:
 		BELCARD_PUBLIC static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);

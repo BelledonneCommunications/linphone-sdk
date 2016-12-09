@@ -21,8 +21,6 @@
 #include "belcard/belcard_utils.hpp"
 #include <belr/parser-impl.cc>
 
-#include "bctoolbox/logging.h"
-
 #include <iostream>
 #include <fstream>
 #include <sstream>
