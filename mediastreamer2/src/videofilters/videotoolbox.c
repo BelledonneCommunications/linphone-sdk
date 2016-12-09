@@ -198,12 +198,10 @@ static VTCompressionSessionRef vth264enc_session_create(VTH264EncCtx *ctx) {
 	int pixel_type = kCVPixelFormatType_420YpCbCr8Planar;
 	value = CFNumberCreate(NULL, kCFNumberIntType, &pixel_type);
 	CFDictionarySetValue(pixbuf_attr, kCVPixelBufferPixelFormatTypeKey, value);
-	CFRelease(value);
 
 	CFMutableDictionaryRef session_props = CFDictionaryCreateMutable (kCFAllocatorDefault, 0, NULL, NULL);
 	CFDictionarySetValue(session_props, kVTCompressionPropertyKey_ProfileLevel, kVTProfileLevel_H264_Baseline_AutoLevel);
 	CFDictionarySetValue(session_props, kVTCompressionPropertyKey_AllowFrameReordering, kCFBooleanFalse);
-
 	CFDictionarySetValue(session_props, kVTCompressionPropertyKey_RealTime, kCFBooleanTrue);
 #if !TARGET_OS_IOS
 	CFDictionarySetValue(session_props, kVTVideoEncoderSpecification_EnableHardwareAcceleratedVideoEncoder, kCFBooleanTrue);
