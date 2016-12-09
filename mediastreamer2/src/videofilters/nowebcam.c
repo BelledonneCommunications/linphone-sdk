@@ -156,27 +156,6 @@ static mblk_t *_ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize) {
 #endif
 }
 
-#ifdef MS2_WINDOWS_UNIVERSAL
-typedef mblk_t * (*jpeg2yuv_routine_t)(const char *, MSVideoSize *);
-
-mblk_t * _ms_winrt_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize) {
-	mblk_t *result = NULL;
-	HMODULE h = LoadPackagedLibrary(L"mswinrtjpeg2yuv.dll", 0);
-	if (h == NULL) {
-		ms_error("Cannot load mswinrtjpeg2yuv.dll to convert jpeg file to YUV");
-	} else {
-		jpeg2yuv_routine_t routine = (jpeg2yuv_routine_t)GetProcAddress(h, "winrtjpeg2yuv");
-		if (routine == NULL) {
-			ms_error("Cannot find winrtjpeg2yuv routine in mswinrtjpeg2yuv.dll");
-		}
-		else {
-			result = routine(jpgpath, reqsize);
-		}
-	}
-	return result;
-}
-#endif
-
 static mblk_t * generate_black_yuv_frame(MSVideoSize *reqsize) {
 	MSPicture dest;
 	mblk_t *m = ms_yuv_buf_alloc(&dest, reqsize->width, reqsize->height);
@@ -191,11 +170,7 @@ static mblk_t * generate_black_yuv_frame(MSVideoSize *reqsize) {
 mblk_t *ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize) {
 	mblk_t *m = NULL;
 	if (jpgpath != NULL) {
-#ifdef MS2_WINDOWS_UNIVERSAL
-		m = _ms_winrt_load_jpeg_as_yuv(jpgpath, reqsize);
-#else
 		m = _ms_load_jpeg_as_yuv(jpgpath, reqsize);
-#endif
 	}
 	if (m == NULL) m = generate_black_yuv_frame(reqsize);
 	return m;
