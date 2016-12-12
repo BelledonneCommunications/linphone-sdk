@@ -104,6 +104,47 @@ namespace belcard {
 		template<typename T>
 		void remove(list<shared_ptr<T>> &property_list, const shared_ptr<T> &property);
 		
+		// The following are for belcard use only, they don't do any check on the value
+		void _setKind(const shared_ptr<BelCardKind> &kind);
+		void _setFullName(const shared_ptr<BelCardFullName> &fn);
+		void _setName(const shared_ptr<BelCardName> &n);
+		void _setBirthday(const shared_ptr<BelCardBirthday> &bday);
+		void _setAnniversary(const shared_ptr<BelCardAnniversary> &anniversary);
+		void _setGender(const shared_ptr<BelCardGender> &gender);
+		void _setProductId(const shared_ptr<BelCardProductId> &pid);
+		void _setRevision(const shared_ptr<BelCardRevision> &rev);
+		void _setUniqueId(const shared_ptr<BelCardUniqueId> &uid);
+		void _setBirthPlace(const shared_ptr<BelCardBirthPlace> &place);
+		void _setDeathPlace(const shared_ptr<BelCardDeathPlace> &place);
+		void _setDeathDate(const shared_ptr<BelCardDeathDate> &date);
+		void _addNickname(const shared_ptr<BelCardNickname> &nickname);
+		void _addPhoto(const shared_ptr<BelCardPhoto> &photo);
+		void _addAddress(const shared_ptr<BelCardAddress> &addr);
+		void _addPhoneNumber(const shared_ptr<BelCardPhoneNumber> &tel);
+		void _addEmail(const shared_ptr<BelCardEmail> &email);
+		void _addImpp(const shared_ptr<BelCardImpp> &impp);
+		void _addLang(const shared_ptr<BelCardLang> &lang);
+		void _addSource(const shared_ptr<BelCardSource> &source);
+		void _addXML(const shared_ptr<BelCardXML> &xml);
+		void _addTimezone(const shared_ptr<BelCardTimezone> &tz);
+		void _addGeo(const shared_ptr<BelCardGeo> &geo);
+		void _addTitle(const shared_ptr<BelCardTitle> &title);
+		void _addRole(const shared_ptr<BelCardRole> &role);
+		void _addLogo(const shared_ptr<BelCardLogo> &logo);
+		void _addOrganization(const shared_ptr<BelCardOrganization> &org);
+		void _addMember(const shared_ptr<BelCardMember> &member);
+		void _addRelated(const shared_ptr<BelCardRelated> &related);
+		void _addCategories(const shared_ptr<BelCardCategories> &categories);
+		void _addNote(const shared_ptr<BelCardNote> &note);
+		void _addSound(const shared_ptr<BelCardSound> &sound);
+		void _addClientProductIdMap(const shared_ptr<BelCardClientProductIdMap> &clientpidmap);
+		void _addURL(const shared_ptr<BelCardURL> &url);
+		void _addKey(const shared_ptr<BelCardKey> &key);
+		void _addFBURL(const shared_ptr<BelCardFBURL> &fburl);
+		void _addCALADRURI(const shared_ptr<BelCardCALADRURI> &caladruri);
+		void _addCALURI(const shared_ptr<BelCardCALURI> &caluri);
+		void _addExtendedProperty(const shared_ptr<BelCardProperty> &property);
+		 
 	public:
 		BELCARD_PUBLIC static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		

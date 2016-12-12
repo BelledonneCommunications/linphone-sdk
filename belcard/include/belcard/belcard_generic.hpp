@@ -42,6 +42,11 @@ namespace belcard {
 			return make_shared<T>();
 		}
 		
+		template<typename T>
+		static bool isValid(const shared_ptr<T> &property) {
+			return T::parse(property->toString()) != NULL;
+		}
+		
 		BELCARD_PUBLIC BelCardGeneric() { }
 		BELCARD_PUBLIC virtual ~BelCardGeneric() { } // A virtual destructor enables polymorphism and dynamic casting.
 		
