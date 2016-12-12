@@ -43,7 +43,7 @@ namespace belcard {
 		}
 		
 		template<typename T>
-		static bool isValid(const shared_ptr<T> &property) {
+		BELCARD_PUBLIC static bool isValid(const shared_ptr<T> &property) {
 			return T::parse(property->toString()) != NULL;
 		}
 		

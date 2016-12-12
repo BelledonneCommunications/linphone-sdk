@@ -36,6 +36,18 @@ static void prodid_property(void) {
 
 static void rev_property(void) {
 	test_property<BelCardRevision>("REV:19951031T222710Z\r\n");
+	
+	shared_ptr<BelCard> card = BelCardGeneric::create<BelCard>();
+	shared_ptr<BelCardRevision> rev = BelCardGeneric::create<BelCardRevision>();
+	rev->setValue("AZERTY");
+	BC_ASSERT_FALSE(BelCardGeneric::isValid(rev));
+	card->setRevision(rev);
+	BC_ASSERT_TRUE(card->getRevision() == NULL);
+	
+	rev->setValue("19951031T222710Z");
+	BC_ASSERT_TRUE(BelCardGeneric::isValid(rev));
+	card->setRevision(rev);
+	BC_ASSERT_TRUE(card->getRevision() != NULL);
 }
 
 static void sound_property(void) {

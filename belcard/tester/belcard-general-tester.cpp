@@ -29,6 +29,18 @@ static void kind_property(void) {
 static void source_property(void) {
 	test_property<BelCardSource>("SOURCE:ldap://ldap.example.com/cn=Babs%20Jensen,%20o=Babsco,%20c=US\r\n");
 	test_property<BelCardSource>("SOURCE:http://directory.example.com/addressbooks/jdoe/Jean%20Dupont.vcf\r\n");
+	
+	shared_ptr<BelCard> card = BelCardGeneric::create<BelCard>();
+	shared_ptr<BelCardSource> source = BelCardGeneric::create<BelCardSource>();
+	source->setValue("AZERTY");
+	BC_ASSERT_FALSE(BelCardGeneric::isValid(source));
+	card->addSource(source);
+	BC_ASSERT_TRUE(card->getSource().size() == 0);
+	
+	source->setValue("https://www.linphone.org/");
+	BC_ASSERT_TRUE(BelCardGeneric::isValid(source));
+	card->addSource(source);
+	BC_ASSERT_TRUE(card->getSource().size() == 1);
 }
 
 static void xml_property(void) {

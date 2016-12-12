@@ -182,7 +182,9 @@ void BelCard::_setProductId(const shared_ptr<BelCardProductId> &pid) {
 	set(_pid, pid);
 }
 void BelCard::setProductId(const shared_ptr<BelCardProductId> &pid) {
-	_setProductId(pid);
+	if (BelCardGeneric::isValid(pid)) {
+		_setProductId(pid);
+	}
 }
 const shared_ptr<BelCardProductId> &BelCard::getProductId() const {
 	return _pid;
