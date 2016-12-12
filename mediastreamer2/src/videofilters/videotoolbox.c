@@ -253,16 +253,18 @@ static VTCompressionSessionRef vth264enc_session_create(VTH264EncCtx *ctx) {
 	} else {
 		vth264enc_message("encoder succesfully initialized.");
 #if !TARGET_OS_IOS
-		CFBooleanRef hardware_decoding_enabled = NULL;
-		err = VTSessionCopyProperty(session, kVTCompressionPropertyKey_UsingHardwareAcceleratedVideoEncoder, kCFAllocatorDefault, &hardware_decoding_enabled);
-		if (err == noErr) {
-			if (CFBooleanGetValue(hardware_decoding_enabled)) vth264enc_message("hardware encoding is enabled");
-			else vth264enc_warning("hardware encoding is not enabled");
-		} else if (err == kVTPropertyNotSupportedErr) {
-			vth264enc_warning("could not read kVTCompressionPropertyKey_UsingHardwareAcceleratedVideoEncoder property: %s. "
-							  "Hardware encoding may not be enabled or supported by your hardware", os_status_to_string(err));
+		CFBooleanRef hardware_acceleration_enabled;
+		err = VTSessionCopyProperty(session, kVTCompressionPropertyKey_UsingHardwareAcceleratedVideoEncoder, kCFAllocatorDefault, &hardware_acceleration_enabled);
+		if (err != kVTPropertyNotSupportedErr && err != noErr) {
+			vth264enc_error("could not read kVTCompressionPropertyKey_UsingHardwareAcceleratedVideoEncoder property: %s", os_status_to_string(err));
+		} else {
+			if (hardware_acceleration_enabled != NULL && CFBooleanGetValue(hardware_acceleration_enabled)) {
+				vth264enc_message("hardware acceleration enabled");
+			} else {
+				vth264enc_warning("hardware acceleration not enabled");
+			}
 		}
-		if (hardware_decoding_enabled != NULL) CFRelease(hardware_decoding_enabled);
+		if (hardware_acceleration_enabled != NULL) CFRelease(hardware_acceleration_enabled);
 #endif
 	}
 	return session;
@@ -693,15 +695,18 @@ static bool_t h264_dec_init_decoder(VTH264DecCtx *ctx) {
 		return FALSE;
 	} else {
 #if !TARGET_OS_IPHONE
-		CFBooleanRef hardware_decoding_enabled;
-		status = VTSessionCopyProperty(ctx->session, kVTDecompressionPropertyKey_UsingHardwareAcceleratedVideoDecoder, kCFAllocatorDefault, &hardware_decoding_enabled);
-		if (status != noErr) {
-			vth264dec_warning("could not retrieve kVTDecompressionPropertyKey_UsingHardwareAcceleratedVideoDecoder property: %s. "
-							"Hardware decoding may not be enabled", os_status_to_string(status));
+		CFBooleanRef hardware_acceleration;
+		status = VTSessionCopyProperty(ctx->session, kVTDecompressionPropertyKey_UsingHardwareAcceleratedVideoDecoder, kCFAllocatorDefault, &hardware_acceleration);
+		if (status != noErr && status != kVTPropertyNotSupportedErr) {
+			vth264dec_error("could not read kVTDecompressionPropertyKey_UsingHardwareAcceleratedVideoDecoder property: %s", os_status_to_string(status));
 		} else {
-			vth264dec_message("Hardware decoding is %s.", CFBooleanGetValue(hardware_decoding_enabled) ? "enabled" : "not enabled");
-			CFRelease(hardware_decoding_enabled);
+			if (hardware_acceleration != NULL && CFBooleanGetValue(hardware_acceleration)) {
+				vth264dec_message("hardware acceleration enabled");
+			} else {
+				vth264dec_warning("hardware acceleration not enabled");
+			}
 		}
+		if (hardware_acceleration != NULL) CFRelease(hardware_acceleration);
 #endif
 		return TRUE;
 	}
