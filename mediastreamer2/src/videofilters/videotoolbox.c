@@ -320,7 +320,6 @@ static void vth264enc_process(MSFilter *f) {
 		int i, pixbuf_fmt = kCVPixelFormatType_420YpCbCr8Planar;
 		CFNumberRef value;
 		CFMutableDictionaryRef pixbuf_attr;
-		CMTime p_time = CMTimeMake(f->ticker->time, 1000);
 
 		ms_yuv_buf_init_from_mblk(&src_yuv_frame, frame);
 
@@ -359,8 +358,8 @@ static void vth264enc_process(MSFilter *f) {
 			}
 		}
 
-		CMTime frame_duration = CMTimeMake(1000/ctx->conf.fps, 1000);
-		if((err = VTCompressionSessionEncodeFrame(ctx->session, pixbuf, p_time, frame_duration, ctx->frame_properties, NULL, NULL)) != noErr) {
+		CMTime p_time = CMTimeMake(f->ticker->time, 1000);
+		if((err = VTCompressionSessionEncodeFrame(ctx->session, pixbuf, p_time, kCMTimeInvalid, ctx->frame_properties, NULL, NULL)) != noErr) {
 			vth264enc_error("could not pass a pixbuf to the encoder: %s", os_status_to_string(err));
 		}
 		CFRelease(pixbuf);
@@ -592,7 +591,6 @@ typedef struct _VTH264DecCtx {
 	bool_t enable_avpf;
 	bool_t freeze_on_error_enabled;
 	bool_t freezed;
-	bool_t first_i_frame_received;
 	MSFilter *f;
 	mblk_t *sps;
 	mblk_t *pps;
@@ -639,7 +637,6 @@ static void h264_dec_output_cb(VTH264DecCtx *ctx, void *sourceFrameRefCon,
 		
 		ms_filter_lock(ctx->f);
 		if(ctx->enable_avpf) {
-			vth264dec_error("sending PLI");
 			ms_filter_notify_no_arg(ctx->f, MS_VIDEO_DECODER_SEND_PLI);
 		}else{
 			ms_filter_notify_no_arg(ctx->f, MS_VIDEO_DECODER_DECODING_ERRORS);
@@ -668,29 +665,46 @@ static void h264_dec_output_cb(VTH264DecCtx *ctx, void *sourceFrameRefCon,
 
 static bool_t h264_dec_init_decoder(VTH264DecCtx *ctx) {
 	OSStatus status;
-	CFMutableDictionaryRef pixel_parameters = NULL;
-	CFNumberRef value;
-	const int pixel_format = kCVPixelFormatType_420YpCbCr8Planar;
+	CFNumberRef value = NULL;
 	VTDecompressionOutputCallbackRecord dec_cb = { (VTDecompressionOutputCallback)h264_dec_output_cb, ctx };
 
 	vth264dec_message("creating a decoding session");
-
-	value = CFNumberCreate(NULL, kCFNumberIntType, &pixel_format);
-	pixel_parameters = CFDictionaryCreateMutable(NULL, 0, NULL, NULL);
-	CFDictionaryAddValue(pixel_parameters, kCVPixelBufferPixelFormatTypeKey, value);
 
 	if(ctx->format_desc == NULL) {
 		vth264dec_error("could not create the decoding context: no format description");
 		return FALSE;
 	}
 
-	status = VTDecompressionSessionCreate(NULL, ctx->format_desc, NULL, pixel_parameters, &dec_cb, &ctx->session);
+	CFMutableDictionaryRef decoder_params = CFDictionaryCreateMutable(kCFAllocatorDefault, 0, NULL, NULL);
+#if !TARGET_OS_IPHONE
+	CFDictionaryAddValue(decoder_params, kVTVideoDecoderSpecification_EnableHardwareAcceleratedVideoDecoder, kCFBooleanTrue);
+#endif
+
+	CFMutableDictionaryRef pixel_parameters = CFDictionaryCreateMutable(kCFAllocatorDefault, 0, NULL, NULL);
+	const int pixel_format = kCVPixelFormatType_420YpCbCr8Planar;
+	value = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &pixel_format);
+	CFDictionaryAddValue(pixel_parameters, kCVPixelBufferPixelFormatTypeKey, value);
+
+	status = VTDecompressionSessionCreate(kCFAllocatorDefault, ctx->format_desc, decoder_params, pixel_parameters, &dec_cb, &ctx->session);
 	CFRelease(pixel_parameters);
+	CFRelease(decoder_params);
 	if(status != noErr) {
-		vth264dec_error("could not create the decoding context: error %d", (int)status);
+		vth264dec_error("could not create the decoding context: %s", os_status_to_string(status));
 		return FALSE;
+	} else {
+#if !TARGET_OS_IPHONE
+		CFBooleanRef hardware_decoding_enabled;
+		status = VTSessionCopyProperty(ctx->session, kVTDecompressionPropertyKey_UsingHardwareAcceleratedVideoDecoder, kCFAllocatorDefault, &hardware_decoding_enabled);
+		if (status != noErr) {
+			vth264dec_warning("could not retrieve kVTDecompressionPropertyKey_UsingHardwareAcceleratedVideoDecoder property: %s. "
+							"Hardware decoding may not be enabled", os_status_to_string(status));
+		} else {
+			vth264dec_message("Hardware decoding is %s.", CFBooleanGetValue(hardware_decoding_enabled) ? "enabled" : "not enabled");
+			CFRelease(hardware_decoding_enabled);
+		}
+#endif
+		return TRUE;
 	}
-	return TRUE;
 }
 
 static void h264_dec_uninit_decoder(VTH264DecCtx *ctx) {
@@ -710,7 +724,7 @@ static void h264_dec_init(MSFilter *f) {
 	ms_average_fps_init(&ctx->fps, "VideoToolboxDecoder: decoding at %ffps");
 	ctx->first_image = TRUE;
 	ctx->freeze_on_error_enabled = TRUE;
-	ctx->freezed = FALSE;
+	ctx->freezed = TRUE;
 	ctx->f = f;
 	f->data = ctx;
 }
@@ -783,17 +797,17 @@ static void h264_dec_process(MSFilter *f) {
 		unpack_status = rfc3984_unpack2(&ctx->unpacker, pkt, &q_nalus);
 		
 		if ((unpack_status & Rfc3984FrameAvailable) && (!ctx->freezed || (unpack_status & Rfc3984IsKeyFrame))){
+			if (unpack_status & Rfc3984FrameCorrupted) {
+				vth264dec_warning("corrupted frame received");
+				if (h264_dec_handle_error(ctx, &need_pli)) break;
+			}
 			if (unpack_status & Rfc3984IsKeyFrame) {
 				vth264dec_message("I-frame received");
-				ctx->first_i_frame_received = TRUE;
 				if (ctx->freezed) {
 					vth264dec_message("resuming decoder");
 					ctx->freezed = FALSE;
 				}
-			}
-			if (unpack_status & Rfc3984FrameCorrupted) {
-				vth264dec_warning("corrupted frame received");
-				if (h264_dec_handle_error(ctx, &need_pli)) break;
+				need_pli = FALSE;
 			}
 
 			// Pull SPSs and PPSs out and put them into the filter context if necessary
@@ -862,9 +876,11 @@ static void h264_dec_process(MSFilter *f) {
 				}
 			} else {
 				vth264dec_warning("no video format (likely missing SPS/PPS). Skipping current NAL unit");
+				if (h264_dec_handle_error(ctx, &need_pli)) break;
 			}
 		} else if (unpack_status & Rfc3984FrameAvailable) {
 			vth264dec_warning("waiting for an I-frame. Skipping current NAL unit");
+			need_pli = TRUE;
 		}
 	}
 
@@ -891,9 +907,8 @@ static void h264_dec_process(MSFilter *f) {
 	ms_queue_flush(&q_nalus);
 	ms_queue_flush(&q_nalus2);
 
-	if (need_pli || !ctx->first_i_frame_received) {
+	if (need_pli) {
 		if (ctx->enable_avpf) {
-			vth264dec_message("sending PLI");
 			ms_filter_notify_no_arg(f, MS_VIDEO_DECODER_SEND_PLI);
 		} else {
 			ms_filter_notify_no_arg(f, MS_VIDEO_DECODER_DECODING_ERRORS);
