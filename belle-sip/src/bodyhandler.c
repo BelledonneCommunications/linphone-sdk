@@ -323,6 +323,12 @@ int belle_sip_memory_body_handler_unapply_encoding(belle_sip_memory_body_handler
 			ret = inflate(&strm, Z_NO_FLUSH);
 			switch (ret) {
 				case Z_OK:
+					/* Error handling for truncated input buffer. Z_STREAM_END is not returned but there is no further input content */
+					if (strm.avail_out > 0) {
+						belle_sip_error("%s: truncated compressed body. Cannot uncompress it...", __FUNCTION__);
+						return -1;
+					}
+					break;
 				case Z_STREAM_END:
 					// Everything is ok, continue
 					break;

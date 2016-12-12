@@ -309,11 +309,29 @@ static void test_presence_marshal(void) {
 	belle_sip_object_unref(mpbh);
 }
 
+static void test_compressed_body(void) {
+	belle_sip_memory_body_handler_t *mbh = belle_sip_memory_body_handler_new_copy_from_buffer((void *)parts_content[0], strlen(parts_content[0]), NULL, NULL);
+	belle_sip_memory_body_handler_apply_encoding(mbh, "deflate");
+	BC_ASSERT_EQUAL(belle_sip_memory_body_handler_unapply_encoding(mbh, "deflate"), 0, int, "%i");
+	belle_sip_object_unref(mbh);
+}
+
+static void test_truncated_compressed_body(void) {
+	belle_sip_memory_body_handler_t *mbh = belle_sip_memory_body_handler_new_copy_from_buffer((void *)parts_content[0], strlen(parts_content[0]), NULL, NULL);
+	belle_sip_memory_body_handler_apply_encoding(mbh, "deflate");
+	/* Truncate the body */
+	belle_sip_body_handler_set_size(BELLE_SIP_BODY_HANDLER(mbh), belle_sip_body_handler_get_size(BELLE_SIP_BODY_HANDLER(mbh)) - 5);
+	BC_ASSERT_EQUAL(belle_sip_memory_body_handler_unapply_encoding(mbh, "deflate"), -1, int, "%i");
+	belle_sip_object_unref(mbh);
+}
+
 
 test_t core_tests[] = {
 	TEST_NO_TAG("Object Data", test_object_data),
 	TEST_NO_TAG("Dictionary", test_dictionary),
-	TEST_NO_TAG("Presence marshal", test_presence_marshal)
+	TEST_NO_TAG("Presence marshal", test_presence_marshal),
+	TEST_NO_TAG("Compressed body", test_compressed_body),
+	TEST_NO_TAG("Truncated compressed body", test_truncated_compressed_body)
 };
 
 test_suite_t core_test_suite = {"Core", NULL, NULL, belle_sip_tester_before_each, belle_sip_tester_after_each,
