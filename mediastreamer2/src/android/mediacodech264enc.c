@@ -59,7 +59,11 @@ typedef struct _EncData {
 	MSIFrameRequestsLimiterCtx iframe_limiter;
 	mblk_t *sps, *pps; /*lastly generated SPS, PPS, in case we need to repeat them*/
 	bool_t avpf_enabled;
-	bool isYUV;
+	bool_t isPlanar;
+	bool_t use_media_image;
+	bool_t first_buffer_queued;
+	bool_t codec_started;
+	bool_t codec_lost;
 } EncData;
 
 static void set_mblk(mblk_t **packet, mblk_t *newone) {
@@ -79,7 +83,7 @@ static void enc_init(MSFilter *f) {
 	EncData *d = ms_new0(EncData, 1);
 
 	d->packer = NULL;
-	d->isYUV = TRUE;
+	d->isPlanar = TRUE;
 	d->mode = 1;
 	d->avpf_enabled = FALSE;
 
@@ -87,152 +91,162 @@ static void enc_init(MSFilter *f) {
 	d->vconf_list = mediaCodecH264_conf_list;
 	MS_VIDEO_SIZE_ASSIGN(vsize, CIF);
 	d->vconf = ms_video_find_best_configuration_for_size(d->vconf_list, vsize, ms_factory_get_cpu_count(f->factory));
-
+	d->codec_started = FALSE;
 	f->data = d;
 }
 
+static media_status_t try_color_format(EncData *d, AMediaFormat *format, unsigned value){
+	media_status_t status;
+	AMediaFormat_setInt32(format, "color-format", value);
+	status = AMediaCodec_configure(d->codec, format, NULL, NULL, AMEDIACODEC_CONFIGURE_FLAG_ENCODE);
+	if (status != 0){
+		ms_message("AMediaCodec_configure() failed with error %i for format %u", (int)status, value);
+	}
+	return status;
+}
+
 static void enc_preprocess(MSFilter *f) {
-	AMediaCodec *codec;
 	AMediaFormat *format;
 	media_status_t status = AMEDIA_ERROR_UNSUPPORTED;
 	EncData *d = (EncData *)f->data;
-
+	
+	if (!d->codec){
+		d->codec = AMediaCodec_createEncoderByType("video/avc");
+		if (!d->codec) {
+			ms_error("MSMediaCodecH264Enc: could not create MediaCodec");
+			return;
+		}
+	}
+	d->codec_lost = FALSE;
+	d->codec_started = FALSE;
 	d->packer = rfc3984_new();
 	rfc3984_set_mode(d->packer, d->mode);
 	rfc3984_enable_stap_a(d->packer, FALSE);
 	ms_video_starter_init(&d->starter);
 	ms_iframe_requests_limiter_init(&d->iframe_limiter, 1000);
 
-	codec = AMediaCodec_createEncoderByType("video/avc");
-	d->codec = codec;
-
 	format = AMediaFormat_new();
 	AMediaFormat_setString(format, "mime", "video/avc");
 	AMediaFormat_setInt32(format, "width", d->vconf.vsize.width);
 	AMediaFormat_setInt32(format, "height", d->vconf.vsize.height);
 	AMediaFormat_setInt32(format, "i-frame-interval", 20);
-	AMediaFormat_setInt32(format, "bitrate", d->vconf.required_bitrate);
+	AMediaFormat_setInt32(format, "bitrate", (d->vconf.required_bitrate * 9)/10); /*take a margin*/
 	AMediaFormat_setInt32(format, "frame-rate", d->vconf.fps);
 	AMediaFormat_setInt32(format, "bitrate-mode", 1);
-	AMediaFormat_setInt32(format, "level", 1); // Ask for baseline AVC profile
+	AMediaFormat_setInt32(format, "profile", 1); // AVCProfileBaseline 
+	AMediaFormat_setInt32(format, "level", 1024); // AVCLevel32
 
-	if (AMediaImage_isAvailable()) {
-		if (status != 0) {
-			AMediaFormat_setInt32(format, "color-format", 0x7f420888); /*the new "flexible YUV", appeared in API23*/
-			status = AMediaCodec_configure(d->codec, format, NULL, NULL, AMEDIACODEC_CONFIGURE_FLAG_ENCODE);
-		}
+	if ((d->use_media_image = AMediaImage_isAvailable())) {
+		ms_message("MSMediaCodecH264Enc: AMediaImage is available.");
+		status = try_color_format(d, format, 0x7f420888);/*the new "flexible YUV", appeared in API23*/
 	} else {
-		if (status != 0) {
-			d->isYUV = FALSE;
-			AMediaFormat_setInt32(format, "color-format", 21); /*the semi-planar YUV*/
-			status = AMediaCodec_configure(d->codec, format, NULL, NULL, AMEDIACODEC_CONFIGURE_FLAG_ENCODE);
-		}
-
-		if (status != 0) {
-			d->isYUV = TRUE;
-			AMediaFormat_setInt32(format, "color-format", 19); /*basic YUV420P*/
-			status = AMediaCodec_configure(d->codec, format, NULL, NULL, AMEDIACODEC_CONFIGURE_FLAG_ENCODE);
+		status = try_color_format(d, format, 21);/*the semi-planar YUV*/
+		if (status != 0){
+			status = try_color_format(d, format, 19); /*basic YUV420P*/
+			if (status == 0) d->isPlanar = TRUE;
 		}
 	}
 
 	if (status != 0) {
 		ms_error("MSMediaCodecH264Enc: Could not configure encoder.");
-		AMediaCodec_delete(d->codec);
-		d->codec = NULL;
 	} else {
 		int32_t color_format;
 
 		if (!AMediaFormat_getInt32(format, "color-format", &color_format)) {
 			color_format = -1;
 		}
-
-		ms_message("MSMediaCodecH264Enc: encoder successfully configured. color-format=%d", color_format);
-	}
-
-	if (d->codec) {
+		ms_message("MSMediaCodecH264Enc: encoder successfully configured. size=%ix%i, color-format=%d", 
+				    d->vconf.vsize.width,  d->vconf.vsize.height, color_format);
 		if (AMediaCodec_start(d->codec) != AMEDIA_OK) {
 			ms_error("MSMediaCodecH264Enc: Could not start encoder.");
-			AMediaCodec_delete(d->codec);
-			d->codec = NULL;
 		} else {
 			ms_message("MSMediaCodecH264Enc: encoder successfully started");
+			d->codec_started = TRUE;
 		}
 	}
 
 	AMediaFormat_delete(format);
+	d->first_buffer_queued = FALSE;
 }
 
 static void enc_postprocess(MSFilter *f) {
 	EncData *d = (EncData *)f->data;
-	rfc3984_destroy(d->packer);
+	
+	if (d->packer){
+		rfc3984_destroy(d->packer);
+		d->packer = NULL;
+	}
 
 	if (d->codec) {
-		AMediaCodec_flush(d->codec);
-		AMediaCodec_stop(d->codec);
-		AMediaCodec_delete(d->codec);
+		if (d->codec_started){
+			//AMediaCodec_flush(d->codec);
+			AMediaCodec_stop(d->codec);
+			d->codec_started = FALSE;
+		}
 	}
 
 	set_mblk(&d->sps, NULL);
 	set_mblk(&d->pps, NULL);
-	d->packer = NULL;
 }
 
 static void enc_uninit(MSFilter *f) {
 	EncData *d = (EncData *)f->data;
-
+	if (d->codec){
+		AMediaCodec_delete(d->codec);
+		d->codec = NULL;
+	}
 	ms_free(d);
 }
 
 static void enc_process(MSFilter *f) {
 	EncData *d = (EncData *)f->data;
 	MSPicture pic = {0};
-	MSQueue nalus;
 	mblk_t *im;
 	long long int ts = f->ticker->time * 90LL;
+	ssize_t ibufidx, obufidx;
+	AMediaCodecBufferInfo info;
+	size_t bufsize;
+	bool_t have_seen_sps_pps = FALSE;
 
-	if (d->codec == NULL) {
+	if (!d->codec_started || d->codec_lost) {
 		ms_queue_flush(f->inputs[0]);
 		return;
 	}
 
-	ms_queue_init(&nalus);
-
-	while ((im = ms_queue_get(f->inputs[0])) != NULL) {
+	/*First queue input image*/
+	if ((im = ms_queue_peek_last(f->inputs[0])) != NULL) {
 		if (ms_yuv_buf_init_from_mblk(&pic, im) == 0) {
-			AMediaCodecBufferInfo info;
-			size_t bufsize;
-			ssize_t ibufidx, obufidx;
-			bool have_seen_sps_pps;
-
+			uint8_t *buf;
+			
 			if (ms_iframe_requests_limiter_iframe_requested(&d->iframe_limiter, f->ticker->time) ||
 			        (d->avpf_enabled == FALSE && ms_video_starter_need_i_frame(&d->starter, f->ticker->time))) {
 				/*Force a key-frame*/
 				AMediaCodec_setParams(d->codec, "");
+				ms_iframe_requests_limiter_notify_iframe_sent(&d->iframe_limiter, f->ticker->time);
 			}
 
 			ibufidx = AMediaCodec_dequeueInputBuffer(d->codec, TIMEOUT_US);
 
 			if (ibufidx >= 0) {
-				if (AMediaImage_isAvailable()) {
-					AMediaImage image;
+				buf = AMediaCodec_getInputBuffer(d->codec, ibufidx, &bufsize);
+				if (buf){
+					if (d->use_media_image) {
+						AMediaImage image;
 
-					if (AMediaCodec_getInputImage(d->codec, ibufidx, &image)) {
-						if (image.format == 35 /* YUV_420_888 */) {
-							MSRect src_roi = {0, 0, pic.w, pic.h};
-							int src_pix_strides[4] = {1, 1, 1, 1};
-							ms_yuv_buf_copy_with_pix_strides(pic.planes, pic.strides, src_pix_strides, src_roi, image.buffers, image.row_strides, image.pixel_strides, image.crop_rect);
-							AMediaImage_close(&image);
-							AMediaCodec_queueInputBuffer(d->codec, ibufidx, 0, (size_t)image.width * image.height * 3 / 2, f->ticker->time * 1000, 0);
-						} else {
-							ms_error("%s: encoder require non YUV420 format", f->desc->name);
-							AMediaImage_close(&image);
+						if (AMediaCodec_getInputImage(d->codec, ibufidx, &image)) {
+							if (image.format == 35 /* YUV_420_888 */) {
+								MSRect src_roi = {0, 0, pic.w, pic.h};
+								int src_pix_strides[4] = {1, 1, 1, 1};
+								ms_yuv_buf_copy_with_pix_strides(pic.planes, pic.strides, src_pix_strides, src_roi, image.buffers, image.row_strides, image.pixel_strides, image.crop_rect);
+								bufsize = image.row_strides[0] * image.height * 3 / 2;
+								AMediaImage_close(&image);
+							} else {
+								ms_error("%s: encoder requires non YUV420 format", f->desc->name);
+								AMediaImage_close(&image);
+							}
 						}
-					}
-				} else {
-					uint8_t *buf = AMediaCodec_getInputBuffer(d->codec, ibufidx, &bufsize);
-
-					if (buf != NULL) {
-						if (d->isYUV) {
+					} else {
+						if (d->isPlanar) {
 							int ysize = pic.w * pic.h;
 							int usize = ysize / 4;
 							memcpy(buf, pic.planes[0], ysize);
@@ -249,85 +263,90 @@ static void enc_process(MSFilter *f) {
 								buf[size + 2 * i + 1] = pic.planes[2][i];
 							}
 						}
-
-						AMediaCodec_queueInputBuffer(d->codec, ibufidx, 0, (size_t)(pic.w * pic.h) * 3 / 2, f->ticker->time * 1000, 0);
 					}
+					AMediaCodec_queueInputBuffer(d->codec, ibufidx, 0, bufsize, f->ticker->time * 1000, 0);
+					if (!d->first_buffer_queued){
+						d->first_buffer_queued = TRUE;
+						ms_message("MSMediaCodecH264Enc: first frame to encode queued (size: %ix%i)", pic.w, pic.h);
+					}
+				}else{
+					ms_error("MSMediaCodecH264Enc: obtained InputBuffer, but no address.");
 				}
 			} else if (ibufidx == AMEDIA_ERROR_UNKNOWN) {
 				ms_error("MSMediaCodecH264Enc: AMediaCodec_dequeueInputBuffer() had an exception");
 			}
+		}
+	}
+	ms_queue_flush(f->inputs[0]);
 
-			have_seen_sps_pps = FALSE; /*this checks whether at a single timestamp point we dequeued SPS PPS before IDR*/
+	if (!d->first_buffer_queued)
+		return;
+	
+	/*Second, dequeue possibly pending encoded frames*/
+	while ((obufidx = AMediaCodec_dequeueOutputBuffer(d->codec, &info, TIMEOUT_US)) >= 0) {
+		uint8_t *buf = AMediaCodec_getOutputBuffer(d->codec, obufidx, &bufsize);
+		
+		if (buf) {
+			mblk_t *m;
+			MSQueue nalus;
+					
+			ms_queue_init(&nalus);
+			ms_h264_bitstream_to_nalus(buf, info.size, &nalus);
 
-			while ((obufidx = AMediaCodec_dequeueOutputBuffer(d->codec, &info, TIMEOUT_US)) >= 0) {
-				uint8_t *buf = AMediaCodec_getOutputBuffer(d->codec, obufidx, &bufsize);
+			if (!ms_queue_empty(&nalus)) {
+				m = ms_queue_peek_first(&nalus);
 
-				if (buf) {
-					mblk_t *m;
-					ms_h264_bitstream_to_nalus(buf, info.size, &nalus);
+				switch (ms_h264_nalu_get_type(m)) {
+					case MSH264NaluTypeIDR:
+						if (!have_seen_sps_pps) {
+							ms_message("MSMediaCodecH264Enc: seeing IDR without prior SPS/PPS, so manually adding them.");
 
-					if (!ms_queue_empty(&nalus)) {
-						m = ms_queue_peek_first(&nalus);
-
-						switch (ms_h264_nalu_get_type(m)) {
-							case MSH264NaluTypeIDR:
-								ms_iframe_requests_limiter_notify_iframe_sent(&d->iframe_limiter, f->ticker->time);
-
-								if (!have_seen_sps_pps) {
-									ms_message("MSMediaCodecH264Enc: seeing IDR without prior SPS/PPS, so manually adding them.");
-
-									if (d->sps && d->pps) {
-										ms_queue_insert(&nalus, m, copyb(d->sps));
-										ms_queue_insert(&nalus, m, copyb(d->pps));
-									} else {
-										ms_error("MSMediaCodecH264Enc: SPS or PPS are not known !");
-									}
-								}
-
-								break;
-
-							case MSH264NaluTypeSPS:
-								ms_iframe_requests_limiter_notify_iframe_sent(&d->iframe_limiter, f->ticker->time);
-								ms_message("MSMediaCodecH264Enc: seeing SPS");
-								have_seen_sps_pps = TRUE;
-								set_mblk(&d->sps, m);
-								m = ms_queue_next(&nalus, m);
-
-								if (!ms_queue_end(&nalus, m) && ms_h264_nalu_get_type(m) == MSH264NaluTypePPS) {
-									ms_message("MSMediaCodecH264Enc: seeing PPS");
-									set_mblk(&d->pps, m);
-								}
-
-								break;
-
-							case MSH264NaluTypePPS:
-								ms_warning("MSMediaCodecH264Enc: unexpecting starting PPS");
-								break;
+							if (d->sps && d->pps) {
+								ms_queue_insert(&nalus, m, copyb(d->sps));
+								ms_queue_insert(&nalus, m, copyb(d->pps));
+							} else {
+								ms_error("MSMediaCodecH264Enc: SPS or PPS are not known !");
+							}
 						}
+						break;
 
-						rfc3984_pack(d->packer, &nalus, f->outputs[0], ts);
+					case MSH264NaluTypeSPS:
+						ms_message("MSMediaCodecH264Enc: seeing SPS");
+						have_seen_sps_pps = TRUE;
+						set_mblk(&d->sps, m);
+						m = ms_queue_next(&nalus, m);
 
-						if (d->framenum == 0) {
-							ms_video_starter_first_frame(&d->starter, f->ticker->time);
+						if (!ms_queue_end(&nalus, m) && ms_h264_nalu_get_type(m) == MSH264NaluTypePPS) {
+							ms_message("MSMediaCodecH264Enc: seeing PPS");
+							set_mblk(&d->pps, m);
 						}
+						break;
 
-						d->framenum++;
-					} else {
-						ms_error("MSMediaCodecH264Enc: no NALUs in buffer obtained from MediaCodec");
-					}
+					case MSH264NaluTypePPS:
+						ms_warning("MSMediaCodecH264Enc: unexpecting starting PPS");
+						break;
 				}
 
-				AMediaCodec_releaseOutputBuffer(d->codec, obufidx, FALSE);
-			}
+				rfc3984_pack(d->packer, &nalus, f->outputs[0], ts);
 
-			if (obufidx == AMEDIA_ERROR_UNKNOWN) {
-				ms_error("MSMediaCodecH264Enc: AMediaCodec_dequeueOutputBuffer() had an exception");
+				if (d->framenum == 0) {
+					ms_video_starter_first_frame(&d->starter, f->ticker->time);
+				}
+				d->framenum++;
+			}else{
+				ms_error("MSMediaCodecH264Enc: no NALUs in buffer obtained from MediaCodec");
 			}
+		}else{
+			ms_error("MSMediaCodecH264Enc: AMediaCodec_getOutputBuffer() returned NULL");
 		}
-
-		freemsg(im);
+		AMediaCodec_releaseOutputBuffer(d->codec, obufidx, FALSE);
 	}
 
+	if (obufidx == AMEDIA_ERROR_UNKNOWN) {
+		ms_error("MSMediaCodecH264Enc: AMediaCodec_dequeueOutputBuffer() had an exception, MediaCodec is lost");
+		/* TODO: the MediaCodec is irrecoverabely crazy at this point. We should probably use AMediacCodec_reset() but this method is not wrapped yet.*/
+		d->codec_lost = TRUE;
+	}
 }
 
 static int enc_get_br(MSFilter *f, void *arg) {
@@ -353,9 +372,10 @@ static int enc_set_br(MSFilter *f, void *arg) {
 	EncData *d = (EncData *)f->data;
 	int br = *(int *)arg;
 
-	if (d->codec != NULL) {
+	if (d->codec_started) {
 		/* Encoding is already ongoing, do not change video size, only bitrate. */
 		d->vconf.required_bitrate = br;
+		/* TODO apply the new bitrate request to the running MediaCodec*/
 		enc_set_configuration(f, &d->vconf);
 	} else {
 		MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_bitrate(d->vconf_list, br, ms_factory_get_cpu_count(f->factory));
