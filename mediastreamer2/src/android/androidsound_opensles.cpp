@@ -89,7 +89,7 @@ namespace fake_opensles {
 	}
 }
 
-static const int flowControlIntervalMs = 1000;
+static const int flowControlIntervalMs = 5000;
 static const int flowControlThresholdMs = 40;
 
 static int DeviceFavoriteSampleRate = 44100;
@@ -139,13 +139,13 @@ struct OpenSLESOutputContext {
 		ms_mutex_init(&mutex,NULL);
 
 		currentBuffer = 0;
-		playBuffer[0] = (uint8_t *) calloc(outBufSize, sizeof(uint8_t));
-		playBuffer[1] = (uint8_t *) calloc(outBufSize, sizeof(uint8_t));
+		playBuffer[0] = NULL;
+		playBuffer[1] = NULL;
 	}
 
 	~OpenSLESOutputContext() {
-		free(playBuffer[0]);
-		free(playBuffer[1]);
+		if (playBuffer[0] != NULL) free(playBuffer[0]);
+		if (playBuffer[1] != NULL) free(playBuffer[1]);
 		ms_bufferizer_uninit(&buffer);
 		ms_mutex_destroy(&mutex);
 	}
@@ -189,13 +189,13 @@ struct OpenSLESInputContext {
 		recorderConfig = NULL;
 
 		currentBuffer = 0;
-		recBuffer[0] = (uint8_t *) calloc(inBufSize, sizeof(uint8_t));
-		recBuffer[1] = (uint8_t *) calloc(inBufSize, sizeof(uint8_t));
+		recBuffer[0] = NULL;
+		recBuffer[1] = NULL;
 	}
 
 	~OpenSLESInputContext() {
-		free(recBuffer[0]);
-		free(recBuffer[1]);
+		if (recBuffer[0] != NULL) free(recBuffer[0]);
+		if (recBuffer[1] != NULL) free(recBuffer[1]);
 		flushq(&q,0);
 		ms_mutex_destroy(&mutex);
 	}
@@ -505,6 +505,10 @@ static void android_snd_read_preprocess(MSFilter *obj) {
 	OpenSLESInputContext *ictx = (OpenSLESInputContext*) obj->data;
 	ictx->mFilter = obj;
 	ictx->read_samples = 0;
+
+	ictx->inBufSize = DeviceFavoriteBufferSize * sizeof(int16_t) * ictx->opensles_context->nchannels;
+	ictx->recBuffer[0] = (uint8_t *) calloc(ictx->inBufSize, sizeof(uint8_t));
+	ictx->recBuffer[1] = (uint8_t *) calloc(ictx->inBufSize, sizeof(uint8_t));
 
 	if (SL_RESULT_SUCCESS != opensles_recorder_init(ictx)) {
 	    ms_error("Problem when initialization of opensles recorder");
@@ -914,6 +918,10 @@ static int android_snd_write_get_nchannels(MSFilter *obj, void *data) {
 static void android_snd_write_preprocess(MSFilter *obj) {
 	OpenSLESOutputContext *octx = (OpenSLESOutputContext*)obj->data;
 	SLresult result;
+
+	octx->outBufSize = DeviceFavoriteBufferSize * sizeof(int16_t) * octx->opensles_context->nchannels;
+	octx->playBuffer[0] = (uint8_t *) calloc(octx->outBufSize, sizeof(uint8_t));
+	octx->playBuffer[1] = (uint8_t *) calloc(octx->outBufSize, sizeof(uint8_t));
 
 	result = opensles_mixer_init(octx);
 	if (result != SL_RESULT_SUCCESS) {
