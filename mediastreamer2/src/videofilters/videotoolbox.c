@@ -53,7 +53,7 @@ static const char *os_status_to_string(OSStatus status) {
 		message = "parameter error";
 		break;
 	case kCVReturnAllocationFailed:
-		message = "return allocution failed";
+		message = "return allocation failed";
 		break;
 	default:
 		break;
