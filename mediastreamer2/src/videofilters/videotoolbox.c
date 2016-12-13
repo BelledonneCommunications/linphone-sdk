@@ -52,6 +52,9 @@ static const char *os_status_to_string(OSStatus status) {
 	case kVTParameterErr:
 		message = "parameter error";
 		break;
+	case kCVReturnAllocationFailed:
+		message = "return allocution failed";
+		break;
 	default:
 		break;
 	}
@@ -635,7 +638,7 @@ static void h264_dec_output_cb(VTH264DecCtx *ctx, void *sourceFrameRefCon,
 	size_t i;
 
 	if(status != noErr || imageBuffer == NULL) {
-		vth264dec_error("fail to decode one frame: error %d", (int)status);
+		vth264dec_error("fail to decode one frame: %s", os_status_to_string(status));
 		
 		ms_filter_lock(ctx->f);
 		if(ctx->enable_avpf) {
