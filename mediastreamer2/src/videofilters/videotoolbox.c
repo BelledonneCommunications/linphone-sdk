@@ -301,6 +301,7 @@ static void vth264enc_preprocess(MSFilter *f) {
 
 	rfc3984_init(&ctx->packer_ctx);
 	rfc3984_set_mode(&ctx->packer_ctx, 1);
+	rfc3984_enable_stap_a(&ctx->packer_ctx, FALSE);
 	ctx->packer_ctx.maxsz = ms_factory_get_payload_max_size(f->factory);
 
 	ms_video_starter_init(&ctx->starter);
@@ -346,7 +347,7 @@ static void vth264enc_process(MSFilter *f) {
 
 		ms_filter_lock(f);
 		if(ms_iframe_requests_limiter_iframe_requested(&ctx->iframe_limiter, f->ticker->time)) {
-			vth264enc_message("requesting encoder for I-frame");
+			vth264enc_message("I-frame requested (time=%llu)", f->ticker->time);
 			CFDictionarySetValue(ctx->frame_properties, kVTEncodeFrameOptionKey_ForceKeyFrame, kCFBooleanTrue);
 			ms_iframe_requests_limiter_notify_iframe_sent(&ctx->iframe_limiter, f->ticker->time);
 		} else {
