@@ -210,13 +210,6 @@ static VTCompressionSessionRef vth264enc_session_create(VTH264EncCtx *ctx) {
 	CFDictionarySetValue(session_props, kVTVideoEncoderSpecification_EnableHardwareAcceleratedVideoEncoder, kCFBooleanTrue);
 #endif
 
-#if 0
-	int delay_count = 0;
-	value = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &delay_count);
-	CFDictionarySetValue(session_props, kVTCompressionPropertyKey_MaxFrameDelayCount, value);
-	CFRelease(value);
-#endif
-
 	err = VTCompressionSessionCreate(kCFAllocatorDefault, ctx->conf.vsize.width, ctx->conf.vsize.height, kCMVideoCodecType_H264,
 									session_props, pixbuf_attr, NULL, (VTCompressionOutputCallback)vth264enc_output_cb, ctx, &session);
 	CFRelease(pixbuf_attr);
@@ -246,6 +239,14 @@ static VTCompressionSessionRef vth264enc_session_create(VTH264EncCtx *ctx) {
 	if (err != noErr) {
 		vth264enc_error("could not set kVTCompressionPropertyKey_MaxH264SliceBytes: %s", os_status_to_string(err));
 	}
+
+	int delay_count = 0;
+	value = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &delay_count);
+	err = VTSessionSetProperty(session, kVTCompressionPropertyKey_MaxFrameDelayCount, value);
+	if (err != noErr) {
+		vth264enc_error("could not set kVTCompressionPropertyKey_MaxFrameDelayCount: %s", os_status_to_string(err));
+	}
+	CFRelease(value);
 
 	vth264enc_session_set_fps(session, ctx->conf.fps);
 	vth264enc_session_set_bitrate(session, ctx->conf.required_bitrate);
