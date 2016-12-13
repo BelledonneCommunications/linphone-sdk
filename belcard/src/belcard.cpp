@@ -109,10 +109,12 @@ void BelCard::remove(list<shared_ptr<T>> &property_list, const shared_ptr<T> &pr
 void BelCard::_setKind(const shared_ptr<BelCardKind> &kind) {
 	set(_kind, kind);
 }
-void BelCard::setKind(const shared_ptr<BelCardKind> &kind) {
+bool BelCard::setKind(const shared_ptr<BelCardKind> &kind) {
 	if (BelCardGeneric::isValid(kind)) {
 		_setKind(kind);
+		return true;
 	}
+	return false;
 }
 const shared_ptr<BelCardKind> &BelCard::getKind() const {
 	return _kind;
@@ -121,10 +123,12 @@ const shared_ptr<BelCardKind> &BelCard::getKind() const {
 void BelCard::_setFullName(const shared_ptr<BelCardFullName> &fn) {
 	set(_fn, fn);
 }
-void BelCard::setFullName(const shared_ptr<BelCardFullName> &fn) {
+bool BelCard::setFullName(const shared_ptr<BelCardFullName> &fn) {
 	if (BelCardGeneric::isValid(fn)) {
 		_setFullName(fn);
+		return true;
 	}
+	return false;
 }
 const shared_ptr<BelCardFullName> &BelCard::getFullName() const {
 	return _fn;
@@ -133,10 +137,12 @@ const shared_ptr<BelCardFullName> &BelCard::getFullName() const {
 void BelCard::_setName(const shared_ptr<BelCardName> &n) {
 	set(_n, n);
 }
-void BelCard::setName(const shared_ptr<BelCardName> &n) {
+bool BelCard::setName(const shared_ptr<BelCardName> &n) {
 	if (BelCardGeneric::isValid(n)) {
 		_setName(n);
+		return true;
 	}
+	return false;
 }
 const shared_ptr<BelCardName> &BelCard::getName() const {
 	return _n;
@@ -145,10 +151,12 @@ const shared_ptr<BelCardName> &BelCard::getName() const {
 void BelCard::_setBirthday(const shared_ptr<BelCardBirthday> &bday) {
 	set(_bday, bday);
 }
-void BelCard::setBirthday(const shared_ptr<BelCardBirthday> &bday) {
+bool BelCard::setBirthday(const shared_ptr<BelCardBirthday> &bday) {
 	if (BelCardGeneric::isValid(bday)) {
 		_setBirthday(bday);
+		return true;
 	}
+	return false;
 }
 const shared_ptr<BelCardBirthday> &BelCard::getBirthday() const {
 	return _bday;
@@ -157,10 +165,12 @@ const shared_ptr<BelCardBirthday> &BelCard::getBirthday() const {
 void BelCard::_setAnniversary(const shared_ptr<BelCardAnniversary> &anniversary) {
 	set(_anniversary, anniversary);
 }
-void BelCard::setAnniversary(const shared_ptr<BelCardAnniversary> &anniversary) {
+bool BelCard::setAnniversary(const shared_ptr<BelCardAnniversary> &anniversary) {
 	if (BelCardGeneric::isValid(anniversary)) {
 		_setAnniversary(anniversary);
+		return true;
 	}
+	return false;
 }
 const shared_ptr<BelCardAnniversary> &BelCard::getAnniversary() const {
 	return _anniversary;
@@ -169,10 +179,12 @@ const shared_ptr<BelCardAnniversary> &BelCard::getAnniversary() const {
 void BelCard::_setGender(const shared_ptr<BelCardGender> &gender) {
 	set(_gender, gender);
 }
-void BelCard::setGender(const shared_ptr<BelCardGender> &gender) {
+bool BelCard::setGender(const shared_ptr<BelCardGender> &gender) {
 	if (BelCardGeneric::isValid(gender)) {
 		_setGender(gender);
+		return true;
 	}
+	return false;
 }
 const shared_ptr<BelCardGender> &BelCard::getGender() const {
 	return _gender;
@@ -181,10 +193,12 @@ const shared_ptr<BelCardGender> &BelCard::getGender() const {
 void BelCard::_setProductId(const shared_ptr<BelCardProductId> &pid) {
 	set(_pid, pid);
 }
-void BelCard::setProductId(const shared_ptr<BelCardProductId> &pid) {
+bool BelCard::setProductId(const shared_ptr<BelCardProductId> &pid) {
 	if (BelCardGeneric::isValid(pid)) {
 		_setProductId(pid);
+		return true;
 	}
+	return false;
 }
 const shared_ptr<BelCardProductId> &BelCard::getProductId() const {
 	return _pid;
@@ -193,10 +207,12 @@ const shared_ptr<BelCardProductId> &BelCard::getProductId() const {
 void BelCard::_setRevision(const shared_ptr<BelCardRevision> &rev) {
 	set(_rev, rev);
 }
-void BelCard::setRevision(const shared_ptr<BelCardRevision> &rev) {
+bool BelCard::setRevision(const shared_ptr<BelCardRevision> &rev) {
 	if (BelCardGeneric::isValid(rev)) {
 		_setRevision(rev);
+		return true;
 	}
+	return false;
 }
 const shared_ptr<BelCardRevision> &BelCard::getRevision() const {
 	return _rev;
@@ -205,10 +221,12 @@ const shared_ptr<BelCardRevision> &BelCard::getRevision() const {
 void BelCard::_setUniqueId(const shared_ptr<BelCardUniqueId> &uid) {
 	set(_uid, uid);
 }
-void BelCard::setUniqueId(const shared_ptr<BelCardUniqueId> &uid) {
+bool BelCard::setUniqueId(const shared_ptr<BelCardUniqueId> &uid) {
 	if (BelCardGeneric::isValid(uid)) {
 		_setUniqueId(uid);
+		return true;
 	}
+	return false;
 }
 const shared_ptr<BelCardUniqueId> &BelCard::getUniqueId() const {
 	return _uid;
@@ -217,10 +235,12 @@ const shared_ptr<BelCardUniqueId> &BelCard::getUniqueId() const {
 void BelCard::_setBirthPlace(const shared_ptr<BelCardBirthPlace> &place) {
 	set(_bplace, place);
 }
-void BelCard::setBirthPlace(const shared_ptr<BelCardBirthPlace> &place) {
+bool BelCard::setBirthPlace(const shared_ptr<BelCardBirthPlace> &place) {
 	if (BelCardGeneric::isValid(place)) {
 		_setBirthPlace(place);
+		return true;
 	}
+	return false;
 }
 const shared_ptr<BelCardBirthPlace> &BelCard::getBirthPlace() const {
 	return _bplace;
@@ -229,10 +249,12 @@ const shared_ptr<BelCardBirthPlace> &BelCard::getBirthPlace() const {
 void BelCard::_setDeathPlace(const shared_ptr<BelCardDeathPlace> &place) {
 	set(_dplace, place);
 }
-void BelCard::setDeathPlace(const shared_ptr<BelCardDeathPlace> &place) {
+bool BelCard::setDeathPlace(const shared_ptr<BelCardDeathPlace> &place) {
 	if (BelCardGeneric::isValid(place)) {
 		_setDeathPlace(place);
+		return true;
 	}
+	return false;
 }
 const shared_ptr<BelCardDeathPlace> &BelCard::getDeathPlace() const {
 	return _dplace;
@@ -241,10 +263,12 @@ const shared_ptr<BelCardDeathPlace> &BelCard::getDeathPlace() const {
 void BelCard::_setDeathDate(const shared_ptr<BelCardDeathDate> &date) {
 	set(_ddate, date);
 }
-void BelCard::setDeathDate(const shared_ptr<BelCardDeathDate> &date) {
+bool BelCard::setDeathDate(const shared_ptr<BelCardDeathDate> &date) {
 	if (BelCardGeneric::isValid(date)) {
 		_setDeathDate(date);
+		return true;
 	}
+	return false;
 }
 const shared_ptr<BelCardDeathDate> &BelCard::getDeathDate() const {
 	return _ddate;
@@ -253,10 +277,12 @@ const shared_ptr<BelCardDeathDate> &BelCard::getDeathDate() const {
 void BelCard::_addNickname(const shared_ptr<BelCardNickname> &nickname) {
 	add(_nicknames, nickname);
 }
-void BelCard::addNickname(const shared_ptr<BelCardNickname> &nickname) {
+bool BelCard::addNickname(const shared_ptr<BelCardNickname> &nickname) {
 	if (BelCardGeneric::isValid(nickname)) {
 		_addNickname(nickname);
+		return true;
 	}
+	return false;
 }
 void BelCard::removeNickname(const shared_ptr<BelCardNickname> &nickname) {
 	remove(_nicknames, nickname);
@@ -268,10 +294,12 @@ const list<shared_ptr<BelCardNickname>> &BelCard::getNicknames() const {
 void BelCard::_addPhoto(const shared_ptr<BelCardPhoto> &photo) {
 	add(_photos, photo);
 }
-void BelCard::addPhoto(const shared_ptr<BelCardPhoto> &photo) {
+bool BelCard::addPhoto(const shared_ptr<BelCardPhoto> &photo) {
 	if (BelCardGeneric::isValid(photo)) {
 		_addPhoto(photo);
+		return true;
 	}
+	return false;
 }
 void BelCard::removePhoto(const shared_ptr<BelCardPhoto> &photo) {
 	remove(_photos, photo);
@@ -283,10 +311,12 @@ const list<shared_ptr<BelCardPhoto>> &BelCard::getPhotos() const {
 void BelCard::_addAddress(const shared_ptr<BelCardAddress> &addr) {
 	add(_addr, addr);
 }
-void BelCard::addAddress(const shared_ptr<BelCardAddress> &addr) {
+bool BelCard::addAddress(const shared_ptr<BelCardAddress> &addr) {
 	if (BelCardGeneric::isValid(addr)) {
 		_addAddress(addr);
+		return true;
 	}
+	return false;
 }
 void BelCard::removeAddress(const shared_ptr<BelCardAddress> &addr) {
 	remove(_addr, addr);
@@ -298,10 +328,12 @@ const list<shared_ptr<BelCardAddress>> &BelCard::getAddresses() const {
 void BelCard::_addPhoneNumber(const shared_ptr<BelCardPhoneNumber> &tel) {
 	add(_tel, tel);
 }
-void BelCard::addPhoneNumber(const shared_ptr<BelCardPhoneNumber> &tel) {
+bool BelCard::addPhoneNumber(const shared_ptr<BelCardPhoneNumber> &tel) {
 	if (BelCardGeneric::isValid(tel)) {
 		_addPhoneNumber(tel);
+		return true;
 	}
+	return false;
 }
 void BelCard::removePhoneNumber(const shared_ptr<BelCardPhoneNumber> &tel) {
 	remove(_tel, tel);
@@ -313,10 +345,12 @@ const list<shared_ptr<BelCardPhoneNumber>> &BelCard::getPhoneNumbers() const {
 void BelCard::_addEmail(const shared_ptr<BelCardEmail> &email) {
 	add(_emails, email);
 }
-void BelCard::addEmail(const shared_ptr<BelCardEmail> &email) {
+bool BelCard::addEmail(const shared_ptr<BelCardEmail> &email) {
 	if (BelCardGeneric::isValid(email)) {
 		_addEmail(email);
+		return true;
 	}
+	return false;
 }
 void BelCard::removeEmail(const shared_ptr<BelCardEmail> &email) {
 	remove(_emails, email);
@@ -328,10 +362,12 @@ const list<shared_ptr<BelCardEmail>> &BelCard::getEmails() const {
 void BelCard::_addImpp(const shared_ptr<BelCardImpp> &impp) {
 	add(_impp, impp);
 }
-void BelCard::addImpp(const shared_ptr<BelCardImpp> &impp) {
+bool BelCard::addImpp(const shared_ptr<BelCardImpp> &impp) {
 	if (BelCardGeneric::isValid(impp)) {
 		_addImpp(impp);
+		return true;
 	}
+	return false;
 }
 void BelCard::removeImpp(const shared_ptr<BelCardImpp> &impp) {
 	remove(_impp, impp);
@@ -343,10 +379,12 @@ const list<shared_ptr<BelCardImpp>> &BelCard::getImpp() const {
 void BelCard::_addLang(const shared_ptr<BelCardLang> &lang) {
 	add(_langs, lang);
 }
-void BelCard::addLang(const shared_ptr<BelCardLang> &lang) {
+bool BelCard::addLang(const shared_ptr<BelCardLang> &lang) {
 	if (BelCardGeneric::isValid(lang)) {
 		_addLang(lang);
+		return true;
 	}
+	return false;
 }
 void BelCard::removeLang(const shared_ptr<BelCardLang> &lang) {
 	remove(_langs, lang);
@@ -358,10 +396,12 @@ const list<shared_ptr<BelCardLang>> &BelCard::getLangs() const {
 void BelCard::_addSource(const shared_ptr<BelCardSource> &source) {
 	add(_sources, source);
 }
-void BelCard::addSource(const shared_ptr<BelCardSource> &source) {
+bool BelCard::addSource(const shared_ptr<BelCardSource> &source) {
 	if (BelCardGeneric::isValid(source)) {
 		_addSource(source);
+		return true;
 	}
+	return false;
 }
 void BelCard::removeSource(const shared_ptr<BelCardSource> &source) {
 	remove(_sources, source);
@@ -373,10 +413,12 @@ const list<shared_ptr<BelCardSource>> &BelCard::getSource() const {
 void BelCard::_addXML(const shared_ptr<BelCardXML> &xml) {
 	add(_xml, xml);
 }
-void BelCard::addXML(const shared_ptr<BelCardXML> &xml) {
+bool BelCard::addXML(const shared_ptr<BelCardXML> &xml) {
 	if (BelCardGeneric::isValid(xml)) {
 		_addXML(xml);
+		return true;
 	}
+	return false;
 }
 void BelCard::removeXML(const shared_ptr<BelCardXML> &xml) {
 	remove(_xml, xml);
@@ -388,10 +430,12 @@ const list<shared_ptr<BelCardXML>> &BelCard::getXML() const {
 void BelCard::_addTimezone(const shared_ptr<BelCardTimezone> &tz) {
 	add(_timezones, tz);
 }
-void BelCard::addTimezone(const shared_ptr<BelCardTimezone> &tz) {
+bool BelCard::addTimezone(const shared_ptr<BelCardTimezone> &tz) {
 	if (BelCardGeneric::isValid(tz)) {
 		_addTimezone(tz);
+		return true;
 	}
+	return false;
 }
 void BelCard::removeTimezone(const shared_ptr<BelCardTimezone> &tz) {
 	remove(_timezones, tz);
@@ -403,10 +447,12 @@ const list<shared_ptr<BelCardTimezone>> &BelCard::getTimezones() const {
 void BelCard::_addGeo(const shared_ptr<BelCardGeo> &geo) {
 	add(_geos, geo);
 }
-void BelCard::addGeo(const shared_ptr<BelCardGeo> &geo) {
+bool BelCard::addGeo(const shared_ptr<BelCardGeo> &geo) {
 	if (BelCardGeneric::isValid(geo)) {
 		_addGeo(geo);
+		return true;
 	}
+	return false;
 }
 void BelCard::removeGeo(const shared_ptr<BelCardGeo> &geo) {
 	remove(_geos, geo);
@@ -418,10 +464,12 @@ const list<shared_ptr<BelCardGeo>> &BelCard::getGeos() const {
 void BelCard::_addTitle(const shared_ptr<BelCardTitle> &title) {
 	add(_titles, title);
 }
-void BelCard::addTitle(const shared_ptr<BelCardTitle> &title) {
+bool BelCard::addTitle(const shared_ptr<BelCardTitle> &title) {
 	if (BelCardGeneric::isValid(title)) {
 		_addTitle(title);
+		return true;
 	}
+	return false;
 }
 void BelCard::removeTitle(const shared_ptr<BelCardTitle> &title) {
 	remove(_titles, title);
@@ -433,10 +481,12 @@ const list<shared_ptr<BelCardTitle>> &BelCard::getTitles() const {
 void BelCard::_addRole(const shared_ptr<BelCardRole> &role) {
 	add(_roles, role);
 }
-void BelCard::addRole(const shared_ptr<BelCardRole> &role) {
+bool BelCard::addRole(const shared_ptr<BelCardRole> &role) {
 	if (BelCardGeneric::isValid(role)) {
 		_addRole(role);
+		return true;
 	}
+	return false;
 }
 void BelCard::removeRole(const shared_ptr<BelCardRole> &role) {
 	remove(_roles, role);
@@ -448,10 +498,12 @@ const list<shared_ptr<BelCardRole>> &BelCard::getRoles() const {
 void BelCard::_addLogo(const shared_ptr<BelCardLogo> &logo) {
 	add(_logos, logo);
 }
-void BelCard::addLogo(const shared_ptr<BelCardLogo> &logo) {
+bool BelCard::addLogo(const shared_ptr<BelCardLogo> &logo) {
 	if (BelCardGeneric::isValid(logo)) {
 		_addLogo(logo);
+		return true;
 	}
+	return false;
 }
 void BelCard::removeLogo(const shared_ptr<BelCardLogo> &logo) {
 	remove(_logos, logo);
@@ -463,10 +515,12 @@ const list<shared_ptr<BelCardLogo>> &BelCard::getLogos() const {
 void BelCard::_addOrganization(const shared_ptr<BelCardOrganization> &org) {
 	add(_organizations, org);
 }
-void BelCard::addOrganization(const shared_ptr<BelCardOrganization> &org) {
+bool BelCard::addOrganization(const shared_ptr<BelCardOrganization> &org) {
 	if (BelCardGeneric::isValid(org)) {
 		_addOrganization(org);
+		return true;
 	}
+	return false;
 }
 void BelCard::removeOrganization(const shared_ptr<BelCardOrganization> &org) {
 	remove(_organizations, org);
@@ -478,10 +532,12 @@ const list<shared_ptr<BelCardOrganization>> &BelCard::getOrganizations() const {
 void BelCard::_addMember(const shared_ptr<BelCardMember> &member) {
 	add(_members, member);
 }
-void BelCard::addMember(const shared_ptr<BelCardMember> &member) {
+bool BelCard::addMember(const shared_ptr<BelCardMember> &member) {
 	if (BelCardGeneric::isValid(member)) {
 		_addMember(member);
+		return true;
 	}
+	return false;
 }
 void BelCard::removeMember(const shared_ptr<BelCardMember> &member) {
 	remove(_members, member);
@@ -493,10 +549,12 @@ const list<shared_ptr<BelCardMember>> &BelCard::getMembers() const {
 void BelCard::_addRelated(const shared_ptr<BelCardRelated> &related) {
 	add(_related, related);
 }
-void BelCard::addRelated(const shared_ptr<BelCardRelated> &related) {
+bool BelCard::addRelated(const shared_ptr<BelCardRelated> &related) {
 	if (BelCardGeneric::isValid(related)) {
 		_addRelated(related);
+		return true;
 	}
+	return false;
 }
 void BelCard::removeRelated(const shared_ptr<BelCardRelated> &related) {
 	remove(_related, related);
@@ -508,10 +566,12 @@ const list<shared_ptr<BelCardRelated>> &BelCard::getRelated() const {
 void BelCard::_addCategories(const shared_ptr<BelCardCategories> &categories) {
 	add(_categories, categories);
 }
-void BelCard::addCategories(const shared_ptr<BelCardCategories> &categories) {
+bool BelCard::addCategories(const shared_ptr<BelCardCategories> &categories) {
 	if (BelCardGeneric::isValid(categories)) {
 		_addCategories(categories);
+		return true;
 	}
+	return false;
 }
 void BelCard::removeCategories(const shared_ptr<BelCardCategories> &categories) {
 	remove(_categories, categories);
@@ -523,10 +583,12 @@ const list<shared_ptr<BelCardCategories>> &BelCard::getCategories() const {
 void BelCard::_addNote(const shared_ptr<BelCardNote> &note) {
 	add(_notes, note);
 }
-void BelCard::addNote(const shared_ptr<BelCardNote> &note) {
+bool BelCard::addNote(const shared_ptr<BelCardNote> &note) {
 	if (BelCardGeneric::isValid(note)) {
 		_addNote(note);
+		return true;
 	}
+	return false;
 }
 void BelCard::removeNote(const shared_ptr<BelCardNote> &note) {
 	remove(_notes, note);
@@ -538,10 +600,12 @@ const list<shared_ptr<BelCardNote>> &BelCard::getNotes() const {
 void BelCard::_addSound(const shared_ptr<BelCardSound> &sound) {
 	add(_sounds, sound);
 }
-void BelCard::addSound(const shared_ptr<BelCardSound> &sound) {
+bool BelCard::addSound(const shared_ptr<BelCardSound> &sound) {
 	if (BelCardGeneric::isValid(sound)) {
 		_addSound(sound);
+		return true;
 	}
+	return false;
 }
 void BelCard::removeSound(const shared_ptr<BelCardSound> &sound) {
 	remove(_sounds, sound);
@@ -553,10 +617,12 @@ const list<shared_ptr<BelCardSound>> &BelCard::getSounds() const {
 void BelCard::_addClientProductIdMap(const shared_ptr<BelCardClientProductIdMap> &clientpidmap) {
 	add(_clientpidmaps, clientpidmap);
 }
-void BelCard::addClientProductIdMap(const shared_ptr<BelCardClientProductIdMap> &clientpidmap) {
+bool BelCard::addClientProductIdMap(const shared_ptr<BelCardClientProductIdMap> &clientpidmap) {
 	if (BelCardGeneric::isValid(clientpidmap)) {
 		_addClientProductIdMap(clientpidmap);
+		return true;
 	}
+	return false;
 }
 void BelCard::removeClientProductIdMap(const shared_ptr<BelCardClientProductIdMap> &clientpidmap) {
 	remove(_clientpidmaps, clientpidmap);
@@ -568,10 +634,12 @@ const list<shared_ptr<BelCardClientProductIdMap>> &BelCard::getClientProductIdMa
 void BelCard::_addURL(const shared_ptr<BelCardURL> &url) {
 	add(_urls, url);
 }
-void BelCard::addURL(const shared_ptr<BelCardURL> &url) {
+bool BelCard::addURL(const shared_ptr<BelCardURL> &url) {
 	if (BelCardGeneric::isValid(url)) {
 		_addURL(url);
+		return true;
 	}
+	return false;
 }
 void BelCard::removeURL(const shared_ptr<BelCardURL> &url) {
 	remove(_urls, url);
@@ -583,10 +651,12 @@ const list<shared_ptr<BelCardURL>> &BelCard::getURLs() const {
 void BelCard::_addKey(const shared_ptr<BelCardKey> &key) {
 	add(_keys, key);
 }
-void BelCard::addKey(const shared_ptr<BelCardKey> &key) {
+bool BelCard::addKey(const shared_ptr<BelCardKey> &key) {
 	if (BelCardGeneric::isValid(key)) {
 		_addKey(key);
+		return true;
 	}
+	return false;
 }
 void BelCard::removeKey(const shared_ptr<BelCardKey> &key) {
 	remove(_keys, key);
@@ -598,10 +668,12 @@ const list<shared_ptr<BelCardKey>> &BelCard::getKeys() const {
 void BelCard::_addFBURL(const shared_ptr<BelCardFBURL> &fburl) {
 	add(_fburls, fburl);
 }
-void BelCard::addFBURL(const shared_ptr<BelCardFBURL> &fburl) {
+bool BelCard::addFBURL(const shared_ptr<BelCardFBURL> &fburl) {
 	if (BelCardGeneric::isValid(fburl)) {
 		_addFBURL(fburl);
+		return true;
 	}
+	return false;
 }
 void BelCard::removeFBURL(const shared_ptr<BelCardFBURL> &fburl) {
 	remove(_fburls, fburl);
@@ -613,10 +685,12 @@ const list<shared_ptr<BelCardFBURL>> &BelCard::getFBURLs() const {
 void BelCard::_addCALADRURI(const shared_ptr<BelCardCALADRURI> &caladruri) {
 	add(_caladruris, caladruri);
 }
-void BelCard::addCALADRURI(const shared_ptr<BelCardCALADRURI> &caladruri) {
+bool BelCard::addCALADRURI(const shared_ptr<BelCardCALADRURI> &caladruri) {
 	if (BelCardGeneric::isValid(caladruri)) {
 		_addCALADRURI(caladruri);
+		return true;
 	}
+	return false;
 }
 void BelCard::removeCALADRURI(const shared_ptr<BelCardCALADRURI> &caladruri) {
 	remove(_caladruris, caladruri);
@@ -628,10 +702,12 @@ const list<shared_ptr<BelCardCALADRURI>> &BelCard::getCALADRURIs() const {
 void BelCard::_addCALURI(const shared_ptr<BelCardCALURI> &caluri) {
 	add(_caluris, caluri);
 }
-void BelCard::addCALURI(const shared_ptr<BelCardCALURI> &caluri) {
+bool BelCard::addCALURI(const shared_ptr<BelCardCALURI> &caluri) {
 	if (BelCardGeneric::isValid(caluri)) {
 		_addCALURI(caluri);
+		return true;
 	}
+	return false;
 }
 void BelCard::removeCALURI(const shared_ptr<BelCardCALURI> &caluri) {
 	remove(_caluris, caluri);
@@ -643,10 +719,12 @@ const list<shared_ptr<BelCardCALURI>> &BelCard::getCALURIs() const {
 void BelCard::_addExtendedProperty(const shared_ptr<BelCardProperty> &property) {
 	add(_extended_properties, property);
 }
-void BelCard::addExtendedProperty(const shared_ptr<BelCardProperty> &property) {
+bool BelCard::addExtendedProperty(const shared_ptr<BelCardProperty> &property) {
 	if (BelCardGeneric::isValid(property)) {
 		_addExtendedProperty(property);
+		return true;
 	}
+	return false;
 }
 void BelCard::removeExtendedProperty(const shared_ptr<BelCardProperty> &property) {
 	remove(_extended_properties, property);
