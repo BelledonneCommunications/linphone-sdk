@@ -672,7 +672,6 @@ static void h264_dec_output_cb(VTH264DecCtx *ctx, void *sourceFrameRefCon,
 
 static bool_t h264_dec_init_decoder(VTH264DecCtx *ctx) {
 	OSStatus status;
-	CFNumberRef value = NULL;
 	VTDecompressionOutputCallbackRecord dec_cb = { (VTDecompressionOutputCallback)h264_dec_output_cb, ctx };
 
 	vth264dec_message("creating a decoding session");
@@ -682,15 +681,16 @@ static bool_t h264_dec_init_decoder(VTH264DecCtx *ctx) {
 		return FALSE;
 	}
 
-	CFMutableDictionaryRef decoder_params = CFDictionaryCreateMutable(kCFAllocatorDefault, 0, NULL, NULL);
+	CFMutableDictionaryRef decoder_params = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, NULL, &kCFTypeDictionaryValueCallBacks);
 #if !TARGET_OS_IPHONE
-	CFDictionaryAddValue(decoder_params, kVTVideoDecoderSpecification_EnableHardwareAcceleratedVideoDecoder, kCFBooleanTrue);
+	CFDictionarySetValue(decoder_params, kVTVideoDecoderSpecification_EnableHardwareAcceleratedVideoDecoder, kCFBooleanTrue);
 #endif
 
-	CFMutableDictionaryRef pixel_parameters = CFDictionaryCreateMutable(kCFAllocatorDefault, 0, NULL, NULL);
-	const int pixel_format = kCVPixelFormatType_420YpCbCr8Planar;
-	value = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &pixel_format);
-	CFDictionaryAddValue(pixel_parameters, kCVPixelBufferPixelFormatTypeKey, value);
+	CFMutableDictionaryRef pixel_parameters = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, NULL, &kCFTypeDictionaryValueCallBacks);
+	int format = kCVPixelFormatType_420YpCbCr8Planar;
+	CFNumberRef value = CFNumberCreate(kCFAllocatorDefault, kCFNumberNSIntegerType, &format);
+	CFDictionarySetValue(pixel_parameters, kCVPixelBufferPixelFormatTypeKey, value);
+	CFRelease(value);
 
 	status = VTDecompressionSessionCreate(kCFAllocatorDefault, ctx->format_desc, decoder_params, pixel_parameters, &dec_cb, &ctx->session);
 	CFRelease(pixel_parameters);
