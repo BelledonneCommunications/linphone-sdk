@@ -38,7 +38,7 @@ extern "C" {
 struct AMediaFormat;
 typedef struct AMediaFormat AMediaFormat;
 
-AMediaFormat *AMediaFormat_new();
+AMediaFormat *AMediaFormat_new(void);
 media_status_t AMediaFormat_delete(AMediaFormat*);
 
 /**

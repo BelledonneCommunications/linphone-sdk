@@ -733,7 +733,7 @@ bool_t AMediaImage_isAvailable(void) {
 ////////////////////////////////////////////////////
 
 //STUB
-AMediaFormat *AMediaFormat_new(){
+AMediaFormat *AMediaFormat_new(void){
 	AMediaFormat *format=ms_new0(AMediaFormat,1);
 	JNIEnv *env = ms_get_jni_env();
 	jobject jformat = NULL;

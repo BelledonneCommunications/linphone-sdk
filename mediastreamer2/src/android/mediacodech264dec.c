@@ -307,6 +307,10 @@ static void dec_process(MSFilter *f) {
 	ms_queue_init(&nalus);
 
 	while ((im = ms_queue_get(f->inputs[0])) != NULL) {
+		int size;
+		uint8_t *buf = NULL;
+		ssize_t iBufidx;
+		
 		unpacking_ret = rfc3984_unpack2(&d->unpacker, im, &nalus);
 		
 		if (!(unpacking_ret & Rfc3984FrameAvailable)) continue;
@@ -325,9 +329,6 @@ static void dec_process(MSFilter *f) {
 			ms_queue_flush(&nalus);
 			continue;
 		}
-		int size;
-		uint8_t *buf = NULL;
-		ssize_t iBufidx;
 
 		if (unpacking_ret & Rfc3984IsKeyFrame) ms_message("MSMediaCodecH264Dec: I-frame received");
 
