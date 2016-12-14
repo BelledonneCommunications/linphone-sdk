@@ -92,7 +92,8 @@ typedef struct _MediastreamDatas {
 	MSFactory *factory;
 	int localport,remoteport,payload;
 	char ip[64];
-	char *fmtp;
+	char *send_fmtp;
+	char *recv_fmtp;
 	int jitter;
 	int bitrate;
 	int mtu;
@@ -195,6 +196,7 @@ const char *usage="mediastream --local <port>\n"
 								"[ --el-thres <(float) [0-1]> (Threshold above which the system becomes active) ]\n"
 								"[ --el-transmit-thres <(float) [0-1]> (TO BE DOCUMENTED) ]\n"
 								"[ --fmtp <fmtpline> ]\n"
+								"[ --recv_fmtp <fmtpline passed to decoder> ]\n"
 								"[ --freeze-on-error (for video, stop upon decoding error until next valid frame) ]\n"
 								"[ --height <pixels> ]\n"
 								"[ --ice-local-candidate <ip:port:[host|srflx|prflx|relay]> ]\n"
@@ -292,7 +294,8 @@ MediastreamDatas* init_default_args(void) {
 	args->remoteport=0;
 	args->payload=0;
 	memset(args->ip, 0, sizeof(args->ip));
-	args->fmtp=NULL;
+	args->send_fmtp=NULL;
+	args->recv_fmtp=NULL;
 	args->jitter=50;
 	args->bitrate=0;
 	args->ec=FALSE;
@@ -417,7 +420,10 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 			}
 		}else if (strcmp(argv[i],"--fmtp")==0){
 			i++;
-			out->fmtp=argv[i];
+			out->send_fmtp=argv[i];
+		}else if (strcmp(argv[i],"--recv_fmtp")==0){
+			i++;
+			out->recv_fmtp=argv[i];
 		}else if (strcmp(argv[i],"--jitter")==0){
 			i++;
 			out->jitter=atoi(argv[i]);
@@ -757,7 +763,8 @@ void setup_media_streams(MediastreamDatas* args) {
 	} else {
 		payload_type_unset_flag(args->pt, PAYLOAD_TYPE_RTCP_FEEDBACK_ENABLED);
 	}
-	if (args->fmtp!=NULL) payload_type_set_send_fmtp(args->pt,args->fmtp);
+	if (args->send_fmtp!=NULL) payload_type_set_send_fmtp(args->pt,args->send_fmtp);
+	if (args->recv_fmtp!=NULL) payload_type_set_recv_fmtp(args->pt,args->recv_fmtp);
 	if (args->bitrate>0) args->pt->normal_bitrate=args->bitrate;
 
 	if (args->pt->normal_bitrate==0){

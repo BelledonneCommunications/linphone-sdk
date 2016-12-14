@@ -581,7 +581,7 @@ static void dec_preprocess ( MSFilter *f ) {
 	s->destinationFormat.mBitsPerChannel = 8*sizeof ( SInt16 );
 
 	/* from AAC-ELD, having the same sampling rate, but possibly a different channel configuration */
-	s->sourceFormat.mFormatID         = kAudioFormatMPEG4AAC_ELD; // ELD can handle SBR as well
+	s->sourceFormat.mFormatID         = /*kAudioFormatMPEG4AAC*/ kAudioFormatMPEG4AAC_ELD; // ELD can handle SBR as well
 	s->sourceFormat.mChannelsPerFrame = s->nchannels;
 	s->sourceFormat.mSampleRate       = s->samplingRate;
 
@@ -609,7 +609,21 @@ static void dec_preprocess ( MSFilter *f ) {
 								&dataSize,
 								&maxOutputSizePerPacket );
 	s->maxOutputPacketSize = maxOutputSizePerPacket;
+/* don't know yet how to convert config string in sens of rfc3640 to kAudioConverterDecompressionMagicCookie. hints can be found from https://www.iis.fraunhofer.de/en/ff/amm/prod/kommunikation/komm/aaceld.html application bulletin.
 
+	OSStatus status = AudioConverterSetProperty (  s->audioConverter
+												 , kAudioConverterDecompressionMagicCookie
+												 , s->audioConverterProperty_size
+												 , s->audioConverterProperty);
+	if (status != noErr )	 {
+		ms_error ("Cannot set acc decoder property kAudioConverterDecompressionMagicCookie because [%c%c%c%c]"
+				  ,((char*)&status)[3]
+				  ,((char*)&status)[2]
+				  ,((char*)&status)[1]
+				  ,((char*)&status)[0]);
+		
+	}
+*/
 	/* initialise concealment context */
 	s->concealer = ms_concealer_ts_context_new(UINT32_MAX);
 }
@@ -657,14 +671,13 @@ static void dec_process ( MSFilter *f ) {
 	mblk_t *inputMessage;
 
 	UInt32 numOutputDataPackets;
-
 	while ( ( inputMessage=ms_queue_get ( f->inputs[0] ) ) ) {
-		numOutputDataPackets = 4 /*to support up to 2048 frame*/ *SIGNAL_FRAME_SIZE*s->nchannels / (s->maxOutputPacketSize);
 		/* process the input message */
 		/* parse the haeder to get the number of frames in the message au-headers-length is length of headers in bits, for each frame, 16 bits header */
 		UInt16 frameNumber = ((((UInt16)(inputMessage->b_rptr[0]))<<8) + ((UInt16)(inputMessage->b_rptr[1])))/16;
 		UInt16 headerOffset = 2*frameNumber + 2; /* actual frame start at this offset in input message */
-		mblk_t *outputMessage = allocb ( numOutputDataPackets*s->maxOutputPacketSize, 0 ); /* fixed size output frame, allocate the requested amount in the output message */
+		size_t outputMessageSize = frameNumber*4 /*to support up to 2048 audio samples*/ *SIGNAL_FRAME_SIZE * s->nchannels;
+		mblk_t *outputMessage = allocb ( outputMessageSize, 0 ); /* fixed size output frame, allocate the requested amount in the output message */
 
 		int frameIndex;
 		s->decodeBuffer=inputMessage->b_rptr + headerOffset; /* initialise the read pointer to the beginning of the first frame */
@@ -672,16 +685,18 @@ static void dec_process ( MSFilter *f ) {
 
 			/* get the frame length from the header */
 			UInt16 frameLength = ((((UInt16)(inputMessage->b_rptr[2+2*frameIndex]))<<8) + ((UInt16)(inputMessage->b_rptr[2+2*frameIndex+1])))>>3;
+
 			s->bytesToDecode = frameLength;
 
 			/* Create the output buffer list */
 			AudioBufferList outBufferList;
 			outBufferList.mNumberBuffers = 1;
 			outBufferList.mBuffers[0].mNumberChannels = s->nchannels;
-			outBufferList.mBuffers[0].mDataByteSize   = numOutputDataPackets*s->maxOutputPacketSize;
+			outBufferList.mBuffers[0].mDataByteSize   = outputMessageSize;
 			outBufferList.mBuffers[0].mData           = outputMessage->b_wptr;
 
 			OSStatus status = noErr;
+			numOutputDataPackets=outBufferList.mBuffers[0].mDataByteSize/s->maxOutputPacketSize;
 			AudioStreamPacketDescription outputPacketDesc[numOutputDataPackets];
 			/* Start the decoding process */
 			status = AudioConverterFillComplexBuffer ( s->audioConverter,
@@ -698,7 +713,8 @@ static void dec_process ( MSFilter *f ) {
 						  ,((char*)&status)[0]);
 
 			}
-			outputMessage->b_wptr += numOutputDataPackets*sizeof(SInt16)*s->nchannels; // increment write pointer of output message by the amount of data written by the decoder
+			outputMessage->b_wptr += numOutputDataPackets*s->maxOutputPacketSize; // increment write pointer of output message by the amount of data written by the decoder
+			outputMessageSize = outputMessageSize - numOutputDataPackets*s->maxOutputPacketSize; /*for next frame*/
 			s->decodeBuffer = (UInt8*)s->decodeBuffer + frameLength; /* increase the read pointer to the begining of next frame (if any, otherwise, it won't be used) */
 		}
 		/* insert the output message with all decoded frame in the queue and free the input message */
@@ -764,10 +780,9 @@ static int dec_add_fmtp ( MSFilter *f, void *data ) {
 		int i,j,max=strlen ( config );
 		char octet[3];
 		octet[2]=0;
-		for ( i=0,j=0; i<max; i+=2,++j ) {
+		for ( i=0,j=0; i<max; i+=2,j++ ) {
 			octet[0]=config[i];
 			octet[1]=config[i+1];
-			s->audioConverterProperty[0]=0;
 			s->audioConverterProperty[j]= ( uint8_t ) strtol ( octet,NULL,16 );
 		}
 		s->audioConverterProperty_size=j;
