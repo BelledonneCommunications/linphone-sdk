@@ -1223,7 +1223,6 @@ macro(lcb_url_hash URL_HASH)
 endmacro()
 
 macro(lcb_builder_patch_command BUILDER)
-	unset(EP_${BUILDER}_PATCH_COMMAND) # Clear previously set command
 	set(_args "${ARGN}")
 	foreach(_arg IN LISTS _args)
 		list(APPEND EP_${BUILDER}_PATCH_COMMAND "${_arg}")
