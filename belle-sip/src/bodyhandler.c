@@ -134,7 +134,7 @@ void belle_sip_body_handler_begin_transfer(belle_sip_body_handler_t *obj){
 }
 
 void belle_sip_body_handler_recv_chunk(belle_sip_body_handler_t *obj, belle_sip_message_t *msg, uint8_t *buf, size_t size){
-	BELLE_SIP_OBJECT_VPTR(obj,belle_sip_body_handler_t)->chunk_recv(obj,msg,obj->transfered_size,buf,size);
+	BELLE_SIP_OBJECT_VPTR(obj,belle_sip_body_handler_t)->chunk_recv(obj,msg,(off_t)obj->transfered_size,buf,size);
 	obj->transfered_size+=size;
 	update_progress(obj,msg);
 }
@@ -145,7 +145,7 @@ int belle_sip_body_handler_send_chunk(belle_sip_body_handler_t *obj, belle_sip_m
 	if (obj->expected_size!=0){
 		to_send=MIN(*size,obj->expected_size-obj->transfered_size);
 	}
-	ret=BELLE_SIP_OBJECT_VPTR(obj,belle_sip_body_handler_t)->chunk_send(obj,msg,obj->transfered_size,buf,&to_send);
+	ret=BELLE_SIP_OBJECT_VPTR(obj,belle_sip_body_handler_t)->chunk_send(obj,msg,(off_t)obj->transfered_size,buf,&to_send);
 	obj->transfered_size+=to_send;
 	*size=to_send;
 	update_progress(obj,msg);
@@ -192,14 +192,14 @@ static void belle_sip_memory_body_handler_clone(belle_sip_memory_body_handler_t 
 	obj->encoding_applied = orig->encoding_applied;
 }
 
-static void belle_sip_memory_body_handler_recv_chunk(belle_sip_body_handler_t *base, belle_sip_message_t *msg, size_t offset, uint8_t *buf, size_t size){
+static void belle_sip_memory_body_handler_recv_chunk(belle_sip_body_handler_t *base, belle_sip_message_t *msg, off_t offset, uint8_t *buf, size_t size){
 	belle_sip_memory_body_handler_t *obj=(belle_sip_memory_body_handler_t*)base;
 	obj->buffer=belle_sip_realloc(obj->buffer,offset+size+1);
 	memcpy(obj->buffer+offset,buf,size);
 	obj->buffer[offset+size]='\0';
 }
 
-static int belle_sip_memory_body_handler_send_chunk(belle_sip_body_handler_t *base, belle_sip_message_t *msg, size_t offset, uint8_t *buf, size_t *size){
+static int belle_sip_memory_body_handler_send_chunk(belle_sip_body_handler_t *base, belle_sip_message_t *msg, off_t offset, uint8_t *buf, size_t *size){
 	belle_sip_memory_body_handler_t *obj=(belle_sip_memory_body_handler_t*)base;
 	size_t to_send=MIN(*size,obj->base.expected_size-offset);
 	if (obj->buffer == NULL) return BELLE_SIP_STOP;
@@ -417,14 +417,14 @@ static void belle_sip_user_body_handler_end_transfer(belle_sip_body_handler_t *b
 		obj->stop_cb((belle_sip_user_body_handler_t*)base, base->user_data);
 }
 
-static void belle_sip_user_body_handler_recv_chunk(belle_sip_body_handler_t *base, belle_sip_message_t *msg, size_t offset, uint8_t *buf, size_t size){
+static void belle_sip_user_body_handler_recv_chunk(belle_sip_body_handler_t *base, belle_sip_message_t *msg, off_t offset, uint8_t *buf, size_t size){
 	belle_sip_user_body_handler_t *obj=(belle_sip_user_body_handler_t*)base;
 	if (obj->recv_cb)
 		obj->recv_cb((belle_sip_user_body_handler_t*)base, msg, base->user_data, offset, buf, size);
 	else belle_sip_warning("belle_sip_user_body_handler_t ignoring received chunk.");
 }
 
-static int belle_sip_user_body_handler_send_chunk(belle_sip_body_handler_t *base, belle_sip_message_t *msg, size_t offset, uint8_t *buf, size_t *size){
+static int belle_sip_user_body_handler_send_chunk(belle_sip_body_handler_t *base, belle_sip_message_t *msg, off_t offset, uint8_t *buf, size_t *size){
 	belle_sip_user_body_handler_t *obj=(belle_sip_user_body_handler_t*)base;
 	if (obj->send_cb)
 		return obj->send_cb((belle_sip_user_body_handler_t*)base, msg, base->user_data, offset, buf, size);
@@ -544,7 +544,7 @@ static void belle_sip_file_body_handler_end_transfer(belle_sip_body_handler_t *b
 	}
 }
 
-static void belle_sip_file_body_handler_recv_chunk(belle_sip_body_handler_t *base, belle_sip_message_t *msg, size_t offset, uint8_t *buf, size_t size) {
+static void belle_sip_file_body_handler_recv_chunk(belle_sip_body_handler_t *base, belle_sip_message_t *msg, off_t offset, uint8_t *buf, size_t size) {
 	belle_sip_file_body_handler_t *obj = (belle_sip_file_body_handler_t *)base;
 	ssize_t ret;
 
@@ -560,7 +560,7 @@ static void belle_sip_file_body_handler_recv_chunk(belle_sip_body_handler_t *bas
 	}
 }
 
-static int belle_sip_file_body_handler_send_chunk(belle_sip_body_handler_t *base, belle_sip_message_t *msg, size_t offset, uint8_t *buf, size_t *size) {
+static int belle_sip_file_body_handler_send_chunk(belle_sip_body_handler_t *base, belle_sip_message_t *msg, off_t offset, uint8_t *buf, size_t *size) {
 	belle_sip_file_body_handler_t *obj = (belle_sip_file_body_handler_t *)base;
 	ssize_t size_t_ret;
 	size_t to_send = MIN(*size, obj->base.expected_size - offset);
@@ -662,7 +662,7 @@ static void belle_sip_multipart_body_handler_end_transfer(belle_sip_body_handler
 	obj_multipart->transfer_current_part = NULL;
 }
 
-static void belle_sip_multipart_body_handler_recv_chunk(belle_sip_body_handler_t *obj, belle_sip_message_t *msg, size_t offset,
+static void belle_sip_multipart_body_handler_recv_chunk(belle_sip_body_handler_t *obj, belle_sip_message_t *msg, off_t offset,
 							uint8_t *buffer, size_t size){
 	/* Store the whole buffer, the parts will be split when belle_sip_multipart_body_handler_progress_cb() is called with transfered size equal to expected size. */
 	belle_sip_multipart_body_handler_t *obj_multipart = (belle_sip_multipart_body_handler_t *)obj;
@@ -671,7 +671,7 @@ static void belle_sip_multipart_body_handler_recv_chunk(belle_sip_body_handler_t
 	obj_multipart->buffer[offset + size] = '\0';
 }
 
-static int belle_sip_multipart_body_handler_send_chunk(belle_sip_body_handler_t *obj, belle_sip_message_t *msg, size_t offset,
+static int belle_sip_multipart_body_handler_send_chunk(belle_sip_body_handler_t *obj, belle_sip_message_t *msg, off_t offset,
 							uint8_t *buffer, size_t *size){
 	belle_sip_multipart_body_handler_t *obj_multipart=(belle_sip_multipart_body_handler_t*)obj;
 
