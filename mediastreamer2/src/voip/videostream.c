@@ -231,7 +231,7 @@ void video_stream_iterate(VideoStream *stream){
 
 const char *video_stream_get_default_video_renderer(void){
 #if defined(MS2_WINDOWS_UNIVERSAL)
-	return "MSWinRTDis";
+	return "MSWinRTBackgroundDis";
 #elif defined(MS2_WINDOWS_PHONE)
 	return "MSWP8Dis";
 #elif defined(MS2_WINDOWS_DESKTOP)
