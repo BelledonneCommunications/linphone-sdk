@@ -58,6 +58,8 @@ void rfc3984_init(Rfc3984Context *ctx){
 	ctx->status = 0;
 	ctx->last_ts=0x943FEA43;/*some random value*/
 	ctx->stap_a_allowed=TRUE;
+	ctx->last_sps = NULL;
+	ctx->last_pps = NULL;
 }
 
 void rfc3984_set_max_payload_size(Rfc3984Context *ctx, int size){
@@ -291,7 +293,7 @@ static bool_t update_parameter_set(mblk_t **last_parameter_set, mblk_t *new_para
 	if (*last_parameter_set != NULL) {
 		size_t last_size = (*last_parameter_set)->b_wptr - (*last_parameter_set)->b_rptr;
 		size_t new_size = new_parameter_set->b_wptr - new_parameter_set->b_rptr;
-		if (last_size != new_size || memcmp(*last_parameter_set, new_parameter_set, new_size) != 0) {
+		if (last_size != new_size || memcmp((*last_parameter_set)->b_rptr, new_parameter_set->b_rptr, new_size) != 0) {
 			freemsg(*last_parameter_set);
 			*last_parameter_set = dupmsg(new_parameter_set);
 			return TRUE;
