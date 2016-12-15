@@ -197,15 +197,13 @@ static VTCompressionSessionRef vth264enc_session_create(VTH264EncCtx *ctx) {
 	CFNumberRef value;
 	VTCompressionSessionRef session = NULL;
 
-	CFMutableDictionaryRef pixbuf_attr = CFDictionaryCreateMutable(kCFAllocatorDefault, 0, NULL, NULL);
+	CFMutableDictionaryRef pixbuf_attr = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, NULL, &kCFTypeDictionaryValueCallBacks);
 	int pixel_type = kCVPixelFormatType_420YpCbCr8Planar;
 	value = CFNumberCreate(NULL, kCFNumberIntType, &pixel_type);
 	CFDictionarySetValue(pixbuf_attr, kCVPixelBufferPixelFormatTypeKey, value);
+	CFRelease(value);
 
-	CFMutableDictionaryRef session_props = CFDictionaryCreateMutable (kCFAllocatorDefault, 0, NULL, NULL);
-	CFDictionarySetValue(session_props, kVTCompressionPropertyKey_ProfileLevel, kVTProfileLevel_H264_Baseline_AutoLevel);
-	CFDictionarySetValue(session_props, kVTCompressionPropertyKey_AllowFrameReordering, kCFBooleanFalse);
-	CFDictionarySetValue(session_props, kVTCompressionPropertyKey_RealTime, kCFBooleanTrue);
+	CFMutableDictionaryRef session_props = CFDictionaryCreateMutable (kCFAllocatorDefault, 1, NULL, NULL);
 #if !TARGET_OS_IOS
 	CFDictionarySetValue(session_props, kVTVideoEncoderSpecification_EnableHardwareAcceleratedVideoEncoder, kCFBooleanTrue);
 #endif
@@ -232,21 +230,23 @@ static VTCompressionSessionRef vth264enc_session_create(VTH264EncCtx *ctx) {
 	}
 #endif
 
-	int max_payload_size = ms_factory_get_payload_max_size(ctx->f->factory)-1;
-	value = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &max_payload_size);
-	err = VTSessionSetProperty(session, kVTCompressionPropertyKey_MaxH264SliceBytes, value);
-	CFRelease(value);
+	err = VTSessionSetProperty(session, kVTCompressionPropertyKey_ProfileLevel, kVTProfileLevel_H264_Baseline_AutoLevel);
 	if (err != noErr) {
-		vth264enc_error("could not set kVTCompressionPropertyKey_MaxH264SliceBytes: %s", os_status_to_string(err));
+		vth264enc_error("could not set H264 profile and level: %s", os_status_to_string(err));
+	}
+
+	err = VTSessionSetProperty(session, kVTCompressionPropertyKey_RealTime, kCFBooleanTrue);
+	if (err != noErr) {
+		vth264enc_warning("could not enable real-time mode: %s", os_status_to_string(err));
 	}
 
 	int delay_count = 0;
 	value = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &delay_count);
 	err = VTSessionSetProperty(session, kVTCompressionPropertyKey_MaxFrameDelayCount, value);
-	if (err != noErr) {
-		vth264enc_error("could not set kVTCompressionPropertyKey_MaxFrameDelayCount: %s", os_status_to_string(err));
-	}
 	CFRelease(value);
+	if (err != noErr) {
+		vth264enc_warning("could not set frame delay: %s", os_status_to_string(err));
+	}
 
 	vth264enc_session_set_fps(session, ctx->conf.fps);
 	vth264enc_session_set_bitrate(session, ctx->conf.required_bitrate);
