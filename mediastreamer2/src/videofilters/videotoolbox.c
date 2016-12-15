@@ -739,26 +739,18 @@ static void h264_dec_init(MSFilter *f) {
 	f->data = ctx;
 }
 
-static void h264_dec_extract_parameter_sets(VTH264DecCtx *ctx, unsigned int unpacker_status, MSQueue *input, MSQueue *output) {
+static void h264_dec_extract_parameter_sets(VTH264DecCtx *ctx, MSQueue *input, MSQueue *output) {
 	mblk_t *nalu;
 	while((nalu = ms_queue_get(input))) {
 		MSH264NaluType nalu_type = ms_h264_nalu_get_type(nalu);
 		switch (nalu_type) {
 		case MSH264NaluTypeSPS:
-			if (unpacker_status & Rfc3984NewSPS) {
-				if (ctx->sps != NULL) freemsg(ctx->sps);
-				ctx->sps = nalu;
-			} else {
-				freemsg(nalu);
-			}
+			if (ctx->sps != NULL) freemsg(ctx->sps);
+			ctx->sps = nalu;
 			break;
 		case MSH264NaluTypePPS:
-			if (unpacker_status & Rfc3984NewPPS) {
-				if (ctx->pps != NULL) freemsg(ctx->pps);
-				ctx->pps = nalu;
-			} else {
-				freemsg(nalu);
-			}
+			if (ctx->pps != NULL) freemsg(ctx->pps);
+			ctx->pps = nalu;
 			break;
 		default:
 			ms_queue_put(output, nalu);
@@ -820,16 +812,30 @@ static void h264_dec_process(MSFilter *f) {
 				need_pli = FALSE;
 			}
 
-			// Pull SPSs and PPSs out and put them into the filter context if necessary
-			h264_dec_extract_parameter_sets(ctx, unpack_status, &q_nalus, &q_nalus2);
-			
-			// Check whether video format has changed and deinit decoding context if so.
-			if ((unpack_status & (Rfc3984NewSPS | Rfc3984NewPPS)) && (ctx->sps != NULL && ctx->pps != NULL)) {
-				if(format_desc_from_sps_pps(ctx)) {
-					if (ctx->session) h264_dec_uninit_decoder(ctx);
-				} else {
-					if(h264_dec_handle_error(ctx, &need_pli)) break;
+			/*
+			 * Extract SPSs and PPSs from the frame and use them in order to
+			 * find the video format out.
+			 */
+			h264_dec_extract_parameter_sets(ctx, &q_nalus, &q_nalus2);
+			if (ctx->sps != NULL && ctx->pps != NULL) {
+				if (ctx->format_desc == NULL || (unpack_status & (Rfc3984NewSPS | Rfc3984NewPPS))) {
+					if (unpack_status & Rfc3984NewSPS) vth264dec_message("new SPS");
+					if (unpack_status & Rfc3984NewPPS) vth264dec_message("new PPS");
+					if (format_desc_from_sps_pps(ctx)) {
+						if (ctx->session) {
+							h264_dec_uninit_decoder(ctx);
+						}
+					} else {
+						/* The loop must not be broken here because a few
+						   decoders put their SPSs and PPSs in distinct frames.
+						   Then, next frames must be processed  to have all parameter
+						   sets. */
+						continue;
+					}
 				}
+			} else {
+				/* The loop must not be broken here either for the above reason */
+				continue;
 			}
 
 			if (ctx->format_desc != NULL) {
