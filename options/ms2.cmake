@@ -61,7 +61,7 @@ lcb_add_strict_dependent_option("MPEG4" "MPEG4 video encoding/decoding support (
 lcb_add_strict_dependent_option("OpenH264" "H.264 video encoding/decoding support with the openh264 library (require license)." OFF "ENABLE_VIDEO" OFF "ENABLE_NON_FREE_CODECS" "non free codecs option not enabled (ENABLE_NON_FREE_CODECS).")
 lcb_add_dependent_option("V4L" "V4L camera driver." ON "ENABLE_VIDEO;UNIX;NOT APPLE;NOT QNX;NOT ANDROID" OFF)
 lcb_add_dependent_option("VPX" "VPX (VP8) video encoding/decoding support." "${DEFAULT_VALUE_ENABLE_VPX}" "ENABLE_VIDEO" OFF)
-lcb_add_strict_dependent_option("X264" "H.264 video encoding support with the x264 library (require license)." OFF "ENABLE_VIDEO;ENABLE_GPL_THIRD_PARTIES" OFF "ENABLE_NON_FREE_CODECS" "non free codecs option not enabled (ENABLE_NON_FREE_CODECS).")
+lcb_add_strict_dependent_option("X264" "H.264 video encoding support with the x264 library (require license)." OFF "ENABLE_VIDEO;ENABLE_GPL_THIRD_PARTIES;ENABLE_UNMAINTAINED" OFF "ENABLE_NON_FREE_CODECS" "non free codecs option not enabled (ENABLE_NON_FREE_CODECS).")
 
 # Other options
 lcb_add_option("PCAP" "PCAP support." "${DEFAULT_VALUE_ENABLE_PCAP}")
