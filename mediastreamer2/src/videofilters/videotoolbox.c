@@ -739,7 +739,11 @@ static void h264_dec_init(MSFilter *f) {
 	f->data = ctx;
 }
 
-static void h264_dec_extract_parameter_sets(VTH264DecCtx *ctx, MSQueue *input, MSQueue *output) {
+/*
+ * Remove non-VCL NALu from a nalu stream. SPSs and PPSs are saved in
+ * the decoding context.
+ */
+static void h264_dec_filter_nalu_stream(VTH264DecCtx *ctx, MSQueue *input, MSQueue *output) {
 	mblk_t *nalu;
 	while((nalu = ms_queue_get(input))) {
 		MSH264NaluType nalu_type = ms_h264_nalu_get_type(nalu);
@@ -751,6 +755,9 @@ static void h264_dec_extract_parameter_sets(VTH264DecCtx *ctx, MSQueue *input, M
 		case MSH264NaluTypePPS:
 			if (ctx->pps != NULL) freemsg(ctx->pps);
 			ctx->pps = nalu;
+			break;
+		case MSH264NaluTypeSEI:
+			freemsg(nalu);
 			break;
 		default:
 			ms_queue_put(output, nalu);
@@ -816,7 +823,7 @@ static void h264_dec_process(MSFilter *f) {
 			 * Extract SPSs and PPSs from the frame and use them in order to
 			 * find the video format out.
 			 */
-			h264_dec_extract_parameter_sets(ctx, &q_nalus, &q_nalus2);
+			h264_dec_filter_nalu_stream(ctx, &q_nalus, &q_nalus2);
 			if (ctx->sps != NULL && ctx->pps != NULL) {
 				if (ctx->format_desc == NULL || (unpack_status & (Rfc3984NewSPS | Rfc3984NewPPS))) {
 					if (unpack_status & Rfc3984NewSPS) vth264dec_message("new SPS");

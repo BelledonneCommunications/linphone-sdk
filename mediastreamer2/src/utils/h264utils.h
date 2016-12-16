@@ -27,6 +27,7 @@
  */
 typedef enum {
     MSH264NaluTypeIDR = 5,
+	MSH264NaluTypeSEI = 6,
     MSH264NaluTypeSPS = 7,
     MSH264NaluTypePPS = 8
 } MSH264NaluType;
