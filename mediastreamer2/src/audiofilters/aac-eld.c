@@ -720,7 +720,7 @@ static void dec_process ( MSFilter *f ) {
 		/* insert the output message with all decoded frame in the queue and free the input message */
 		ms_queue_put ( f->outputs[0],outputMessage ); /* insert the decoded message in the output queue for MSFilter */
 		/* signal to concealment context the reception of data */
-		ms_concealer_ts_context_inc_sample_ts(s->concealer,  f->ticker->time*s->samplingRate/1000, frameNumber*SIGNAL_FRAME_SIZE/sizeof(SInt16), 1);
+		ms_concealer_ts_context_inc_sample_ts(s->concealer,  f->ticker->time*s->samplingRate/1000, numOutputDataPackets, 1);
 		freemsg ( inputMessage );
 	}
 
