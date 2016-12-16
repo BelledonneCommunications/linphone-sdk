@@ -55,6 +55,9 @@ static const char *os_status_to_string(OSStatus status) {
 	case kCVReturnAllocationFailed:
 		message = "return allocation failed";
 		break;
+	case kVTVideoDecoderBadDataErr:
+		message = "decoding bad data";
+		break;
 	default:
 		break;
 	}
