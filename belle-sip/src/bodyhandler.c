@@ -556,7 +556,7 @@ static void belle_sip_file_body_handler_recv_chunk(belle_sip_body_handler_t *bas
 	
 	ret = bctbx_file_write(obj->file, buf, size, offset);
 	if (ret == BCTBX_VFS_ERROR) {
-		bctbx_error("File body handler recv write error at offset %zu", offset);
+		bctbx_error("File body handler recv write error at offset %zu", (unsigned long)offset);
 	}
 }
 
@@ -568,7 +568,7 @@ static int belle_sip_file_body_handler_send_chunk(belle_sip_body_handler_t *base
 	if (obj->file == NULL) return BELLE_SIP_STOP;
 	size_t_ret = bctbx_file_read(obj->file, buf, to_send, offset);
 	if (size_t_ret == BCTBX_VFS_ERROR) {
-		bctbx_error("file body handler send read error at offset %zu", offset);
+		bctbx_error("file body handler send read error at offset %zu", (unsigned long)offset);
 		return BELLE_SIP_STOP;
 	}
 	*size = (size_t)size_t_ret;
