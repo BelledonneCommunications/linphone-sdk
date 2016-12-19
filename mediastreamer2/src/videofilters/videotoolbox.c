@@ -592,7 +592,6 @@ typedef struct _VTH264DecCtx {
 	VTDecompressionSessionRef session;
 	CMFormatDescriptionRef format_desc;
 	Rfc3984Context unpacker;
-	ms_mutex_t mutex;
 	MSQueue queue;
 	MSYuvBufAllocator *pixbuf_allocator;
 	MSVideoSize vsize;
@@ -644,14 +643,11 @@ static void h264_dec_output_cb(VTH264DecCtx *ctx, void *sourceFrameRefCon,
 
 	if(status != noErr || imageBuffer == NULL) {
 		vth264dec_error("fail to decode one frame: %s", os_status_to_string(status));
-		
-		ms_filter_lock(ctx->f);
 		if(ctx->enable_avpf) {
 			ms_filter_notify_no_arg(ctx->f, MS_VIDEO_DECODER_SEND_PLI);
 		}else{
 			ms_filter_notify_no_arg(ctx->f, MS_VIDEO_DECODER_DECODING_ERRORS);
 		}
-		ms_filter_unlock(ctx->f);
 		return;
 	}
 
@@ -668,9 +664,9 @@ static void h264_dec_output_cb(VTH264DecCtx *ctx, void *sourceFrameRefCon,
 	ms_yuv_buf_copy(src_planes, src_strides, pixbuf_desc.planes, pixbuf_desc.strides, ctx->vsize);
 	CVPixelBufferUnlockBaseAddress(imageBuffer, kCVPixelBufferLock_ReadOnly);
 
-	ms_mutex_lock(&ctx->mutex);
+	ms_filter_lock(ctx->f);
 	ms_queue_put(&ctx->queue, pixbuf);
-	ms_mutex_unlock(&ctx->mutex);
+	ms_filter_unlock(ctx->f);
 }
 
 static bool_t h264_dec_init_decoder(VTH264DecCtx *ctx) {
@@ -730,7 +726,6 @@ static void h264_dec_uninit_decoder(VTH264DecCtx *ctx) {
 static void h264_dec_init(MSFilter *f) {
 	VTH264DecCtx *ctx = ms_new0(VTH264DecCtx, 1);
 	ms_queue_init(&ctx->queue);
-	ms_mutex_init(&ctx->mutex, NULL);
 	ctx->pixbuf_allocator = ms_yuv_buf_allocator_new();
 	rfc3984_init(&ctx->unpacker);
 	ctx->vsize = MS_VIDEO_SIZE_UNKNOWN;
@@ -911,11 +906,9 @@ static void h264_dec_process(MSFilter *f) {
 	}
 
 	// Transfer decoded frames in the output queue
-	ms_mutex_lock(&ctx->mutex);
+	ms_filter_lock(f);
 	while((pixbuf = ms_queue_get(&ctx->queue))) {
-		ms_mutex_unlock(&ctx->mutex);
 		ms_yuv_buf_init_from_mblk(&pixbuf_desc, pixbuf);
-		ms_filter_lock(f);
 		if(pixbuf_desc.w != ctx->vsize.width || pixbuf_desc.h != ctx->vsize.height) {
 			ctx->vsize = (MSVideoSize){ pixbuf_desc.w , pixbuf_desc.h };
 		}
@@ -924,11 +917,9 @@ static void h264_dec_process(MSFilter *f) {
 			ms_filter_notify_no_arg(f, MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
 			ctx->first_image = FALSE;
 		}
-		ms_filter_unlock(f);
 		ms_queue_put(f->outputs[0], pixbuf);
-		ms_mutex_lock(&ctx->mutex);
 	}
-	ms_mutex_unlock(&ctx->mutex);
+	ms_filter_unlock(f);
 
 	ms_queue_flush(&q_nalus);
 	ms_queue_flush(&q_nalus2);
@@ -950,7 +941,6 @@ static void h264_dec_uninit(MSFilter *f) {
 	if(ctx->format_desc != NULL) CFRelease(ctx->format_desc);
 	ms_queue_flush(&ctx->queue);
 
-	ms_mutex_destroy(&ctx->mutex);
 	ms_yuv_buf_allocator_free(ctx->pixbuf_allocator);
 
 	if (ctx->sps != NULL) freemsg(ctx->sps);
