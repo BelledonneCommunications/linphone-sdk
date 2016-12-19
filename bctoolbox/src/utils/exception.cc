@@ -21,6 +21,7 @@
 #include "bctoolbox/logging.h"
 #include "dlfcn.h"
 #include <cxxabi.h>
+#include <exception>
 #include <iomanip>
 #include <libgen.h>
 
