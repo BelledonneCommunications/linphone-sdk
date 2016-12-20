@@ -109,7 +109,7 @@ static void enc_preprocess(MSFilter *f) {
 	AMediaFormat *format;
 	media_status_t status = AMEDIA_ERROR_UNSUPPORTED;
 	EncData *d = (EncData *)f->data;
-	
+
 	if (!d->codec){
 		d->codec = AMediaCodec_createEncoderByType("video/avc");
 		if (!d->codec) {
@@ -133,7 +133,7 @@ static void enc_preprocess(MSFilter *f) {
 	AMediaFormat_setInt32(format, "bitrate", (d->vconf.required_bitrate * 9)/10); /*take a margin*/
 	AMediaFormat_setInt32(format, "frame-rate", d->vconf.fps);
 	AMediaFormat_setInt32(format, "bitrate-mode", 1);
-	AMediaFormat_setInt32(format, "profile", 1); // AVCProfileBaseline 
+	AMediaFormat_setInt32(format, "profile", 1); // AVCProfileBaseline
 	AMediaFormat_setInt32(format, "level", 1024); // AVCLevel32
 
 	if ((d->use_media_image = AMediaImage_isAvailable())) {
@@ -155,7 +155,7 @@ static void enc_preprocess(MSFilter *f) {
 		if (!AMediaFormat_getInt32(format, "color-format", &color_format)) {
 			color_format = -1;
 		}
-		ms_message("MSMediaCodecH264Enc: encoder successfully configured. size=%ix%i, color-format=%d", 
+		ms_message("MSMediaCodecH264Enc: encoder successfully configured. size=%ix%i, color-format=%d",
 				    d->vconf.vsize.width,  d->vconf.vsize.height, color_format);
 		if (AMediaCodec_start(d->codec) != AMEDIA_OK) {
 			ms_error("MSMediaCodecH264Enc: Could not start encoder.");
@@ -171,7 +171,7 @@ static void enc_preprocess(MSFilter *f) {
 
 static void enc_postprocess(MSFilter *f) {
 	EncData *d = (EncData *)f->data;
-	
+
 	if (d->packer){
 		rfc3984_destroy(d->packer);
 		d->packer = NULL;
@@ -217,7 +217,7 @@ static void enc_process(MSFilter *f) {
 	if ((im = ms_queue_peek_last(f->inputs[0])) != NULL) {
 		if (ms_yuv_buf_init_from_mblk(&pic, im) == 0) {
 			uint8_t *buf;
-			
+
 			if (ms_iframe_requests_limiter_iframe_requested(&d->iframe_limiter, f->ticker->time) ||
 			        (d->avpf_enabled == FALSE && ms_video_starter_need_i_frame(&d->starter, f->ticker->time))) {
 				/*Force a key-frame*/
@@ -281,15 +281,15 @@ static void enc_process(MSFilter *f) {
 
 	if (!d->first_buffer_queued)
 		return;
-	
+
 	/*Second, dequeue possibly pending encoded frames*/
 	while ((obufidx = AMediaCodec_dequeueOutputBuffer(d->codec, &info, TIMEOUT_US)) >= 0) {
 		uint8_t *buf = AMediaCodec_getOutputBuffer(d->codec, obufidx, &bufsize);
-		
+
 		if (buf) {
 			mblk_t *m;
 			MSQueue nalus;
-					
+
 			ms_queue_init(&nalus);
 			ms_h264_bitstream_to_nalus(buf, info.size, &nalus);
 
@@ -324,6 +324,8 @@ static void enc_process(MSFilter *f) {
 
 					case MSH264NaluTypePPS:
 						ms_warning("MSMediaCodecH264Enc: unexpecting starting PPS");
+						break;
+					case MSH264NaluTypeSEI:
 						break;
 				}
 
@@ -467,4 +469,3 @@ MSFilterDesc ms_mediacodec_h264_enc_desc = {
 	.methods = mediacodec_h264_enc_methods,
 	.flags = MS_FILTER_IS_PUMP
 };
-
