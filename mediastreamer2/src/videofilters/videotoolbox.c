@@ -243,6 +243,7 @@ static VTCompressionSessionRef vth264enc_session_create(VTH264EncCtx *ctx) {
 		vth264enc_warning("could not enable real-time mode: %s", os_status_to_string(err));
 	}
 
+#if 0
 	int delay_count = 0;
 	value = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &delay_count);
 	err = VTSessionSetProperty(session, kVTCompressionPropertyKey_MaxFrameDelayCount, value);
@@ -250,6 +251,7 @@ static VTCompressionSessionRef vth264enc_session_create(VTH264EncCtx *ctx) {
 	if (err != noErr) {
 		vth264enc_warning("could not set frame delay: %s", os_status_to_string(err));
 	}
+#endif
 
 	vth264enc_session_set_fps(session, ctx->conf.fps);
 	vth264enc_session_set_bitrate(session, ctx->conf.required_bitrate);
@@ -883,7 +885,7 @@ static void h264_dec_process(MSFilter *f) {
 										ctx->format_desc, 1, 1, &timing_info,
 										0, NULL, &sample);
 
-							status = VTDecompressionSessionDecodeFrame(ctx->session, sample, kVTDecodeFrame_EnableAsynchronousDecompression, NULL, NULL);
+							status = VTDecompressionSessionDecodeFrame(ctx->session, sample, kVTDecodeFrame_EnableAsynchronousDecompression | kVTDecodeFrame_1xRealTimePlayback, NULL, NULL);
 							CFRelease(sample);
 							if(status != noErr) {
 								vth264dec_error("error while passing encoded frames to the decoder: %s", os_status_to_string(status));
