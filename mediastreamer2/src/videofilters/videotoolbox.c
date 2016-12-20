@@ -712,6 +712,12 @@ static bool_t h264_dec_init_decoder(VTH264DecCtx *ctx) {
 		}
 		if (hardware_acceleration != NULL) CFRelease(hardware_acceleration);
 #endif
+
+		status = VTSessionSetProperty(ctx->session, kVTDecompressionPropertyKey_RealTime, kCFBooleanTrue);
+		if (status != noErr) {
+			vth264dec_warning("could not be able to switch to real-time mode: %s", os_status_to_string(status));
+		}
+
 		return TRUE;
 	}
 }
@@ -877,7 +883,7 @@ static void h264_dec_process(MSFilter *f) {
 										ctx->format_desc, 1, 1, &timing_info,
 										0, NULL, &sample);
 
-							status = VTDecompressionSessionDecodeFrame(ctx->session, sample, 0, NULL, NULL);
+							status = VTDecompressionSessionDecodeFrame(ctx->session, sample, kVTDecodeFrame_EnableAsynchronousDecompression, NULL, NULL);
 							CFRelease(sample);
 							if(status != noErr) {
 								vth264dec_error("error while passing encoded frames to the decoder: %s", os_status_to_string(status));

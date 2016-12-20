@@ -177,11 +177,16 @@ static void plane_copy(const uint8_t *src_plane, size_t src_row_stride, size_t s
 	
 	const uint8_t *r_ptr = src_plane + (src_roi->y * src_row_stride + src_roi->x * src_pix_stride);
 	uint8_t *w_ptr = dst_plane + (dst_roi->y * dst_row_stride + dst_roi->x * dst_pix_stride);
-	int i;
-	for(i=0; i<src_roi->h; i++) {
-		row_copy(r_ptr, w_ptr, src_roi->w, src_pix_stride, dst_pix_stride);
-		r_ptr += src_row_stride;
-		w_ptr += dst_row_stride;
+
+	if (src_row_stride == dst_row_stride && src_pix_stride == 1 && dst_pix_stride == 1 && src_roi == dst_roi) {
+		memcpy(w_ptr, r_ptr, dst_row_stride * dst_roi->h);
+	} else {
+		int i;
+		for(i=0; i<src_roi->h; i++) {
+			row_copy(r_ptr, w_ptr, src_roi->w, src_pix_stride, dst_pix_stride);
+			r_ptr += src_row_stride;
+			w_ptr += dst_row_stride;
+		}
 	}
 }
 
