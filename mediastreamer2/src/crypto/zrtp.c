@@ -54,11 +54,6 @@ struct _MSZrtpContext{
 
 /********************/
 /* Helper functions */
-static ORTP_INLINE uint64_t get_timeval_in_millis(void) {
-	struct timeval t;
-	ortp_gettimeofday(&t,NULL);
-	return (1000LL*t.tv_sec)+(t.tv_usec/1000LL);
-}
 
 /* trace functions: bzrtp algo code to string */
 static const char *bzrtp_hash_toString(uint8_t hashAlgo) {
@@ -367,14 +362,21 @@ static int ms_zrtp_addExportedKeysInZidCache(void *zidCacheData, void *clientDat
 /*******************************************************/
 /**** Transport Modifier Sender/Receiver functions  ****/
 
-static int ms_zrtp_rtp_process_on_send(struct _RtpTransportModifier *t, mblk_t *msg){
+static int ms_zrtp_rtp_process_on_send(RtpTransportModifier *t, mblk_t *msg){
 	return (int)msgdsize(msg);
 }
-static int ms_zrtp_rtcp_process_on_send(struct _RtpTransportModifier *t, mblk_t *msg)  {
+static int ms_zrtp_rtcp_process_on_send(RtpTransportModifier *t, mblk_t *msg)  {
 	return (int)msgdsize(msg);
 }
 
-static int ms_zrtp_rtp_process_on_receive(struct _RtpTransportModifier *t, mblk_t *msg){
+static void ms_zrtp_rtp_on_schedule(RtpTransportModifier *t){
+	MSZrtpContext *userData = (MSZrtpContext*) t->data;
+	bzrtpContext_t *zrtpContext = userData->zrtpContext;
+	// send a timer tick to the zrtp engine
+	bzrtp_iterate(zrtpContext, userData->self_ssrc, bctbx_get_cur_time_ms());
+}
+
+static int ms_zrtp_rtp_process_on_receive(RtpTransportModifier *t, mblk_t *msg){
 	uint32_t *magicField;
 
 	MSZrtpContext *userData = (MSZrtpContext*) t->data;
@@ -383,8 +385,7 @@ static int ms_zrtp_rtp_process_on_receive(struct _RtpTransportModifier *t, mblk_
 	int rtpVersion;
 	int msgLength = (int)msgdsize(msg);
 
-	// send a timer tick to the zrtp engine
-	bzrtp_iterate(zrtpContext, userData->self_ssrc, get_timeval_in_millis());
+	
 
 	// check incoming message length
 	if (msgLength<RTP_FIXED_HEADER_SIZE) {
@@ -414,7 +415,7 @@ static int ms_zrtp_rtp_process_on_receive(struct _RtpTransportModifier *t, mblk_
 }
 
 /* Nothing to do on rtcp packets, just return packet length */
-static int ms_zrtp_rtcp_process_on_receive(struct _RtpTransportModifier *t, mblk_t *msg)  {
+static int ms_zrtp_rtcp_process_on_receive(RtpTransportModifier *t, mblk_t *msg)  {
 	return (int)msgdsize(msg);
 }
 
@@ -432,6 +433,7 @@ static int ms_zrtp_transport_modifier_new(MSZrtpContext* ctx, RtpTransportModifi
 		(*rtpt)->t_process_on_send=ms_zrtp_rtp_process_on_send;
 		(*rtpt)->t_process_on_receive=ms_zrtp_rtp_process_on_receive;
 		(*rtpt)->t_destroy=ms_zrtp_transport_modifier_destroy;
+		(*rtpt)->t_process_on_schedule = ms_zrtp_rtp_on_schedule;
 	}
 	if (rtcpt){
 		*rtcpt=ms_new0(RtpTransportModifier,1);
