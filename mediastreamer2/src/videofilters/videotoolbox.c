@@ -588,6 +588,7 @@ static bool_t mblk_equal_to(const mblk_t *msg1, const mblk_t *msg2) {
 #define vth264dec_message(fmt, ...) vth264dec_log(message, fmt, ##__VA_ARGS__)
 #define vth264dec_warning(fmt, ...) vth264dec_log(warning, fmt, ##__VA_ARGS__)
 #define vth264dec_error(fmt, ...) vth264dec_log(error, fmt, ##__VA_ARGS__)
+#define vth264dec_debug(fmt, ...) vth264dec_log(debug, fmt, ##__VA_ARGS__)
 
 
 typedef struct _VTH264DecCtx {
@@ -677,8 +678,7 @@ static bool_t h264_dec_init_decoder(VTH264DecCtx *ctx) {
 
 	vth264dec_message("creating a decoding session");
 
-	if(ctx->format_desc == NULL) {
-		vth264dec_error("could not create the decoding context: no format description");
+	if (!format_desc_from_sps_pps(ctx)) {
 		return FALSE;
 	}
 
@@ -728,7 +728,53 @@ static void h264_dec_uninit_decoder(VTH264DecCtx *ctx) {
 	vth264dec_message("destroying decoder");
 	VTDecompressionSessionInvalidate(ctx->session);
 	CFRelease(ctx->session);
+	CFRelease(ctx->format_desc);
 	ctx->session = NULL;
+	ctx->format_desc = NULL;
+}
+
+static OSStatus h264_dec_decode_frame(VTH264DecCtx *ctx, MSQueue *frame) {
+	CMBlockBufferRef stream = NULL;
+	mblk_t *nalu = NULL;
+	OSStatus status;
+	status = CMBlockBufferCreateEmpty(kCFAllocatorDefault, 0, kCMBlockBufferAssureMemoryNowFlag, &stream);
+	if (status != kCMBlockBufferNoErr) {
+		vth264dec_error("failure while creating input buffer for decoder");
+		return status;
+	}
+	while((nalu = ms_queue_get(frame))) {
+		CMBlockBufferRef nalu_block;
+		size_t nalu_block_size = msgdsize(nalu) + H264_NALU_HEAD_SIZE;
+		uint32_t nalu_size = htonl(msgdsize(nalu));
+
+		CMBlockBufferCreateWithMemoryBlock(NULL, NULL, nalu_block_size, NULL, NULL, 0, nalu_block_size, kCMBlockBufferAssureMemoryNowFlag, &nalu_block);
+		CMBlockBufferReplaceDataBytes(&nalu_size, nalu_block, 0, H264_NALU_HEAD_SIZE);
+		CMBlockBufferReplaceDataBytes(nalu->b_rptr, nalu_block, H264_NALU_HEAD_SIZE, msgdsize(nalu));
+		CMBlockBufferAppendBufferReference(stream, nalu_block, 0, nalu_block_size, 0);
+		CFRelease(nalu_block);
+		freemsg(nalu);
+	}
+	if(!CMBlockBufferIsEmpty(stream)) {
+		CMSampleBufferRef sample = NULL;
+		CMSampleTimingInfo timing_info;
+		timing_info.duration = kCMTimeInvalid;
+		timing_info.presentationTimeStamp = CMTimeMake(ctx->f->ticker->time, 1000);
+		timing_info.decodeTimeStamp = CMTimeMake(ctx->f->ticker->time, 1000);
+		CMSampleBufferCreate(
+					kCFAllocatorDefault, stream, TRUE, NULL, NULL,
+					ctx->format_desc, 1, 1, &timing_info,
+					0, NULL, &sample);
+
+		status = VTDecompressionSessionDecodeFrame(ctx->session, sample, kVTDecodeFrame_EnableAsynchronousDecompression | kVTDecodeFrame_1xRealTimePlayback, NULL, NULL);
+		CFRelease(sample);
+		if(status != noErr) {
+			vth264dec_error("error while passing encoded frames to the decoder: %s", os_status_to_string(status));
+			CFRelease(stream);
+			return status;
+		}
+	}
+	CFRelease(stream);
+	return noErr;
 }
 
 static void h264_dec_init(MSFilter *f) {
@@ -771,24 +817,13 @@ static void h264_dec_filter_nalu_stream(VTH264DecCtx *ctx, MSQueue *input, MSQue
 	}
 }
 
-static bool_t h264_dec_handle_error(VTH264DecCtx *ctx, bool_t *need_pli) {
-	*need_pli = TRUE;
-	if (ctx->freeze_on_error_enabled) {
-		vth264dec_message("pausing decoder until next I-frame");
-		ctx->freezed = TRUE;
-		if (ctx->sps != NULL) {
-			freemsg(ctx->sps);
-			ctx->sps = NULL;
-		}
-		if (ctx->pps != NULL) {
-			freemsg(ctx->pps);
-			ctx->pps = NULL;
-		}
-		return TRUE;
-	} else {
-		return FALSE;
-	}
-}
+#define h264_dec_handle_error(ctx, need_pli) \
+	need_pli = TRUE; \
+	if (ctx->freeze_on_error_enabled) { \
+		vth264dec_message("pausing decoder until next I-frame"); \
+		ctx->freezed = TRUE; \
+		continue; \
+	} \
 
 static void h264_dec_process(MSFilter *f) {
 	VTH264DecCtx *ctx = (VTH264DecCtx *)f->data;
@@ -797,7 +832,6 @@ static void h264_dec_process(MSFilter *f) {
 	MSQueue q_nalus;
 	MSQueue q_nalus2;
 	MSPicture pixbuf_desc;
-	OSStatus status;
 	bool_t need_pli = FALSE;
 
 	ms_queue_init(&q_nalus);
@@ -810,108 +844,40 @@ static void h264_dec_process(MSFilter *f) {
 		ms_queue_flush(&q_nalus2);
 
 		unpack_status = rfc3984_unpack2(&ctx->unpacker, pkt, &q_nalus);
-		
-		if ((unpack_status & Rfc3984FrameAvailable) && (!ctx->freezed || (unpack_status & Rfc3984IsKeyFrame))){
-			if (unpack_status & Rfc3984FrameCorrupted) {
-				vth264dec_warning("corrupted frame received");
-				if (h264_dec_handle_error(ctx, &need_pli)) break;
+		if (!(unpack_status & Rfc3984FrameAvailable)) continue;
+		if (unpack_status & Rfc3984FrameCorrupted) {
+			h264_dec_handle_error(ctx, need_pli);
+		}
+		h264_dec_filter_nalu_stream(ctx, &q_nalus, &q_nalus2);
+		if (unpack_status & (Rfc3984NewSPS | Rfc3984NewPPS) && ctx->sps != NULL && ctx->pps != NULL) {
+			if (ctx->session != NULL) h264_dec_uninit_decoder(ctx);
+			if (!h264_dec_init_decoder(ctx)) {
+				vth264dec_error("decoder creation has failed");
+				h264_dec_handle_error(ctx, need_pli);
 			}
-			if (unpack_status & Rfc3984IsKeyFrame) {
-				vth264dec_message("I-frame received");
-				if (ctx->freezed) {
-					vth264dec_message("resuming decoder");
-					ctx->freezed = FALSE;
+		}
+		if (ctx->session == NULL) {
+			h264_dec_handle_error(ctx, need_pli);
+		}
+		if (unpack_status & Rfc3984IsKeyFrame) {
+			need_pli = FALSE;
+			ctx->freezed = FALSE;
+		}
+
+		if (!ctx->freezed && !ms_queue_empty(&q_nalus2)) {
+			OSStatus status = h264_dec_decode_frame(ctx, &q_nalus2);
+			if (status != noErr) {
+				vth264dec_error("fail to decode one frame: %s", os_status_to_string(status));
+				if (status == kVTInvalidSessionErr) {
+					h264_dec_uninit_decoder(ctx);
 				}
-				need_pli = FALSE;
+				h264_dec_handle_error(ctx, need_pli);
 			}
-
-			/*
-			 * Extract SPSs and PPSs from the frame and use them in order to
-			 * find the video format out.
-			 */
-			h264_dec_filter_nalu_stream(ctx, &q_nalus, &q_nalus2);
-			if (ctx->sps != NULL && ctx->pps != NULL) {
-				if (ctx->format_desc == NULL || (unpack_status & (Rfc3984NewSPS | Rfc3984NewPPS))) {
-					if (unpack_status & Rfc3984NewSPS) vth264dec_message("new SPS");
-					if (unpack_status & Rfc3984NewPPS) vth264dec_message("new PPS");
-					if (format_desc_from_sps_pps(ctx)) {
-						if (ctx->session) {
-							h264_dec_uninit_decoder(ctx);
-						}
-					} else {
-						/* The loop must not be broken here because a few
-						   decoders put their SPSs and PPSs in distinct frames.
-						   Then, next frames must be processed  to have all parameter
-						   sets. */
-						continue;
-					}
-				}
-			} else {
-				/* The loop must not be broken here either for the above reason */
-				continue;
-			}
-
-			if (ctx->format_desc != NULL) {
-				if(ctx->session == NULL) {
-					if(!h264_dec_init_decoder(ctx)) {
-						vth264dec_error("failed to initialize decoder");
-						if(h264_dec_handle_error(ctx, &need_pli)) break;
-					}
-				}
-				if (ctx->session != NULL) {
-					CMBlockBufferRef stream = NULL;
-					mblk_t *nalu = NULL;
-					if (CMBlockBufferCreateEmpty(NULL, 0, kCMBlockBufferAssureMemoryNowFlag, &stream) == kCMBlockBufferNoErr) {
-						while((nalu = ms_queue_get(&q_nalus2))) {
-							CMBlockBufferRef nalu_block;
-							size_t nalu_block_size = msgdsize(nalu) + H264_NALU_HEAD_SIZE;
-							uint32_t nalu_size = htonl(msgdsize(nalu));
-
-							CMBlockBufferCreateWithMemoryBlock(NULL, NULL, nalu_block_size, NULL, NULL, 0, nalu_block_size, kCMBlockBufferAssureMemoryNowFlag, &nalu_block);
-							CMBlockBufferReplaceDataBytes(&nalu_size, nalu_block, 0, H264_NALU_HEAD_SIZE);
-							CMBlockBufferReplaceDataBytes(nalu->b_rptr, nalu_block, H264_NALU_HEAD_SIZE, msgdsize(nalu));
-							CMBlockBufferAppendBufferReference(stream, nalu_block, 0, nalu_block_size, 0);
-							CFRelease(nalu_block);
-							freemsg(nalu);
-						}
-						if(!CMBlockBufferIsEmpty(stream)) {
-							CMSampleBufferRef sample = NULL;
-							CMSampleTimingInfo timing_info;
-							timing_info.duration = kCMTimeInvalid;
-							timing_info.presentationTimeStamp = CMTimeMake(f->ticker->time, 1000);
-							timing_info.decodeTimeStamp = CMTimeMake(f->ticker->time, 1000);
-							CMSampleBufferCreate(
-										NULL, stream, TRUE, NULL, NULL,
-										ctx->format_desc, 1, 1, &timing_info,
-										0, NULL, &sample);
-
-							status = VTDecompressionSessionDecodeFrame(ctx->session, sample, kVTDecodeFrame_EnableAsynchronousDecompression | kVTDecodeFrame_1xRealTimePlayback, NULL, NULL);
-							CFRelease(sample);
-							if(status != noErr) {
-								vth264dec_error("error while passing encoded frames to the decoder: %s", os_status_to_string(status));
-								if (status == kVTInvalidSessionErr) {
-									h264_dec_uninit_decoder(ctx);
-								}
-								if (h264_dec_handle_error(ctx, &need_pli)) {
-									CFRelease(stream);
-									break;
-								}
-							}
-						}
-						CFRelease(stream);
-					} else {
-						vth264dec_error("failure while creating input buffer for decoder");
-					}
-				}
-			} else {
-				vth264dec_warning("no video format (likely missing SPS/PPS). Skipping current NAL unit");
-				if (h264_dec_handle_error(ctx, &need_pli)) break;
-			}
-		} else if (unpack_status & Rfc3984FrameAvailable) {
-			vth264dec_warning("waiting for an I-frame. Skipping current NAL unit");
-			need_pli = TRUE;
 		}
 	}
+
+	ms_queue_flush(&q_nalus);
+	ms_queue_flush(&q_nalus2);
 
 	// Transfer decoded frames in the output queue
 	ms_filter_lock(f);
@@ -928,9 +894,6 @@ static void h264_dec_process(MSFilter *f) {
 		ms_queue_put(f->outputs[0], pixbuf);
 	}
 	ms_filter_unlock(f);
-
-	ms_queue_flush(&q_nalus);
-	ms_queue_flush(&q_nalus2);
 
 	if (need_pli) {
 		if (ctx->enable_avpf) {
