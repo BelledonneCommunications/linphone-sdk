@@ -51,11 +51,36 @@ typedef struct _DecData {
 
 } DecData;
 
-static void dec_init(MSFilter *f) {
+static int dec_init_format(DecData *d) {
 	AMediaFormat *format;
+	media_status_t status = 0;
+
+	format = AMediaFormat_new();
+	AMediaFormat_setString(format, "mime", "video/avc");
+	//Size mandatory for decoder configuration
+	AMediaFormat_setInt32(format, "width", 1920);
+	AMediaFormat_setInt32(format, "height", 1080);
+
+	if ((d->useMediaImage = AMediaImage_isAvailable())) AMediaFormat_setInt32(format, "color-format", 0x7f420888);
+
+	if ((status = AMediaCodec_configure(d->codec, format, NULL, NULL, 0)) != AMEDIA_OK) {
+		ms_error("MSMediaCodecH264Dec: configuration failure: %i", (int)status);
+		goto end;
+	}
+
+	if ((status = AMediaCodec_start(d->codec)) != AMEDIA_OK) {
+		ms_error("MSMediaCodecH264Dec: starting failure: %i", (int)status);
+		goto end;
+	}
+
+end:
+	AMediaFormat_delete(format);
+	return status;
+}
+
+static void dec_init(MSFilter *f) {
 	AMediaCodec *codec = AMediaCodec_createDecoderByType("video/avc");
 	DecData *d = ms_new0(DecData, 1);
-	media_status_t status = 0;
 
 	ms_message("MSMediaCodecH264Dec initialization");
 	f->data = d;
@@ -73,27 +98,7 @@ static void dec_init(MSFilter *f) {
 	d->buf_allocator = ms_yuv_buf_allocator_new();
 	ms_average_fps_init(&d->fps, " H264 decoder: FPS: %f");
 
-	format = AMediaFormat_new();
-	AMediaFormat_setString(format, "mime", "video/avc");
-	//Size mandatory for decoder configuration
-	AMediaFormat_setInt32(format, "width", 1920);
-	AMediaFormat_setInt32(format, "height", 1080);
-
-	if ((d->useMediaImage = AMediaImage_isAvailable())) AMediaFormat_setInt32(format, "color-format", 0x7f420888);
-
-	if ((status = AMediaCodec_configure(codec, format, NULL, NULL, 0)) != AMEDIA_OK) {
-		ms_error("MSMediaCodecH264Dec: configuration failure: %i", (int)status);
-		goto end;
-	}
-
-	if ((status = AMediaCodec_start(codec)) != AMEDIA_OK) {
-		ms_error("MSMediaCodecH264Dec: starting failure: %i", (int)status);
-		goto end;
-	}
-
-end:
-	AMediaFormat_delete(format);
-	if (status != 0){
+	if (dec_init_format(d) != 0) {
 		AMediaCodec_delete(d->codec);
 		d->codec = NULL;
 	}
@@ -272,10 +277,12 @@ static int nalusToFrame(DecData *d, MSQueue *naluq, bool_t *new_sps_pps) {
 	return dst - d->bitstream;
 }
 
-static void handle_decoding_error(DecData *d, bool_t request_flushing, bool_t *request_pli) {
-	if (request_flushing) {
-		AMediaCodec_flush(d->codec);
+static void handle_decoding_error(DecData *d, bool_t request_reset, bool_t *request_pli) {
+	if (request_reset) {
+		AMediaCodec_reset(d->codec);
 		d->first_buffer_queued = FALSE;
+		d->first_i_frame_queued = FALSE;
+		dec_init_format(d);
 	}
 
 	if (request_pli != NULL) *request_pli = TRUE;
@@ -297,22 +304,22 @@ static void dec_process(MSFilter *f) {
 		ms_queue_flush(f->inputs[0]);
 		return;
 	}
-	
+
 	if (d->packet_num == 0 && d->sps && d->pps) {
 			rfc3984_unpack_out_of_band_sps_pps(&d->unpacker, d->sps, d->pps);
 			d->sps = NULL;
 			d->pps = NULL;
 		}
-	
+
 	ms_queue_init(&nalus);
 
 	while ((im = ms_queue_get(f->inputs[0])) != NULL) {
 		int size;
 		uint8_t *buf = NULL;
 		ssize_t iBufidx;
-		
+
 		unpacking_ret = rfc3984_unpack2(&d->unpacker, im, &nalus);
-		
+
 		if (!(unpacking_ret & Rfc3984FrameAvailable)) continue;
 
 		if (unpacking_ret & Rfc3984FrameCorrupted) {
@@ -320,6 +327,7 @@ static void dec_process(MSFilter *f) {
 			request_pli = TRUE;
 			if (d->freeze_on_error){
 				ms_queue_flush(&nalus);
+				d->first_i_frame_queued = FALSE;
 				continue;
 			}
 		}
@@ -550,4 +558,3 @@ MSFilterDesc ms_mediacodec_h264_dec_desc = {
 	.methods = mediacodec_h264_dec_methods,
 	.flags = MS_FILTER_IS_PUMP
 };
-
