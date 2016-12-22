@@ -420,7 +420,7 @@ static OSStatus au_write_cb (
 	}
 	//writing silence;
 	memset(ioData->mBuffers[0].mData, 0,ioData->mBuffers[0].mDataByteSize);
-	ms_debug("nothing to write, pushing silences,  framezize is %lu bytes mDataByteSize %u"
+	ms_debug("nothing to write, pushing silences,  framezize is %u bytes mDataByteSize %u"
 			 ,inNumberFrames*card->bits/8
 			 ,(unsigned int)ioData->mBuffers[0].mDataByteSize);
 	ms_mutex_unlock(&card->mutex);
@@ -762,6 +762,14 @@ static void au_write_preprocess(MSFilter *f){
 	 * Apparently the driver doesn't recover from this situation.
 	 * The workaround is then to request 44100 Hz instead of 48khz.
 	 */
+	if(card->rate == 8000 && (floor(NSFoundationVersionNumber) > NSFoundationVersionNumber_iOS_9_x_Max)) {
+		hwsamplerate=48000;
+		auresult=AudioSessionSetProperty(kAudioSessionProperty_PreferredHardwareSampleRate
+										 , sizeof(hwsamplerate)
+										 , &hwsamplerate);
+		return;
+	}
+
 	if( hwsamplerate != card->rate) {
 		if(card->rate <= 44100 ){
 			hwsamplerate=card->rate;
