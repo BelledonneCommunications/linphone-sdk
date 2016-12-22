@@ -619,9 +619,7 @@ bool AMediaFormat_loadMethodID(AMediaFormat * format) {
 
 	msg = env->NewStringUTF("video/avc");
 	jformat = env->CallStaticObjectMethod(mediaFormatClass, createID, msg, 240, 320);
-	if (jformat) {
-		ms_message("format successfully created.");
-	} else {
+	if (!jformat) {
 		ms_error("Failed to create format !");
 		goto error;
 	}

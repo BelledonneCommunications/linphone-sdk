@@ -326,7 +326,6 @@ static void enc_process(MSFilter *f) {
 						ms_warning("MSMediaCodecH264Enc: unexpecting starting PPS");
 						break;
 					default:
-						ms_warning("MSMediaCodecH264Enc: unknowning case");
 						break;
 				}
 
