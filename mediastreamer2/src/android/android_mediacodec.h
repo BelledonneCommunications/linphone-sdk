@@ -37,6 +37,7 @@ typedef struct {
 	void *priv_ptr;
 } AMediaImage;
 
+void AMediaCodec_reset(AMediaCodec *codec);
 void AMediaCodec_setParams(AMediaCodec *codec, const char *params);
 bool AMediaCodec_getInputImage(AMediaCodec *codec, int index, AMediaImage *image);
 bool AMediaCodec_getOutputImage(AMediaCodec *codec, int index, AMediaImage *image);
@@ -46,4 +47,3 @@ bool_t AMediaImage_isAvailable(void);
 #ifdef __cplusplus
 } // extern "C"
 #endif
-
