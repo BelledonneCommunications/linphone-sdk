@@ -105,26 +105,19 @@ static media_status_t try_color_format(EncData *d, AMediaFormat *format, unsigne
 	return status;
 }
 
-static void enc_preprocess(MSFilter *f) {
-	AMediaFormat *format;
+static int enc_configure(EncData *d){
 	media_status_t status = AMEDIA_ERROR_UNSUPPORTED;
-	EncData *d = (EncData *)f->data;
-
+	AMediaFormat *format;
+	
 	if (!d->codec){
 		d->codec = AMediaCodec_createEncoderByType("video/avc");
 		if (!d->codec) {
 			ms_error("MSMediaCodecH264Enc: could not create MediaCodec");
-			return;
+			return AMEDIA_ERROR_UNKNOWN;
 		}
 	}
 	d->codec_lost = FALSE;
 	d->codec_started = FALSE;
-	d->packer = rfc3984_new();
-	rfc3984_set_mode(d->packer, d->mode);
-	rfc3984_enable_stap_a(d->packer, FALSE);
-	ms_video_starter_init(&d->starter);
-	ms_iframe_requests_limiter_init(&d->iframe_limiter, 1000);
-
 	format = AMediaFormat_new();
 	AMediaFormat_setString(format, "mime", "video/avc");
 	AMediaFormat_setInt32(format, "width", d->vconf.vsize.width);
@@ -157,7 +150,7 @@ static void enc_preprocess(MSFilter *f) {
 		}
 		ms_message("MSMediaCodecH264Enc: encoder successfully configured. size=%ix%i, color-format=%d",
 				    d->vconf.vsize.width,  d->vconf.vsize.height, color_format);
-		if (AMediaCodec_start(d->codec) != AMEDIA_OK) {
+		if ((status = AMediaCodec_start(d->codec)) != AMEDIA_OK) {
 			ms_error("MSMediaCodecH264Enc: Could not start encoder.");
 		} else {
 			ms_message("MSMediaCodecH264Enc: encoder successfully started");
@@ -167,6 +160,21 @@ static void enc_preprocess(MSFilter *f) {
 
 	AMediaFormat_delete(format);
 	d->first_buffer_queued = FALSE;
+	return status;
+}
+
+static void enc_preprocess(MSFilter *f) {
+	EncData *d = (EncData *)f->data;
+
+	enc_configure(d);
+	
+	d->packer = rfc3984_new();
+	rfc3984_set_mode(d->packer, d->mode);
+	rfc3984_enable_stap_a(d->packer, FALSE);
+	ms_video_starter_init(&d->starter);
+	ms_iframe_requests_limiter_init(&d->iframe_limiter, 1000);
+
+	
 }
 
 static void enc_postprocess(MSFilter *f) {
@@ -207,6 +215,15 @@ static void enc_process(MSFilter *f) {
 	AMediaCodecBufferInfo info;
 	size_t bufsize;
 	bool_t have_seen_sps_pps = FALSE;
+	
+	if (d->codec_lost && (f->ticker->time % 5000 == 0)){
+		if (enc_configure(d) != 0){
+			ms_error("MSMediaCodecH264Enc: AMediaCodec_reset() was not sufficient, will recreate the encoder in a moment...");
+			AMediaCodec_delete(d->codec);
+			d->codec = NULL;
+			d->codec_lost = TRUE;
+		}
+	}
 
 	if (!d->codec_started || d->codec_lost) {
 		ms_queue_flush(f->inputs[0]);
@@ -348,6 +365,7 @@ static void enc_process(MSFilter *f) {
 		ms_error("MSMediaCodecH264Enc: AMediaCodec_dequeueOutputBuffer() had an exception, MediaCodec is lost");
 		/* TODO: the MediaCodec is irrecoverabely crazy at this point. We should probably use AMediacCodec_reset() but this method is not wrapped yet.*/
 		d->codec_lost = TRUE;
+		AMediaCodec_reset(d->codec);
 	}
 }
 
