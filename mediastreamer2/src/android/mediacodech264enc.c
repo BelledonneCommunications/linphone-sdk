@@ -78,6 +78,17 @@ static void set_mblk(mblk_t **packet, mblk_t *newone) {
 	*packet = newone;
 }
 
+static int alloc_encoder(EncData *d){
+	if (!d->codec){
+		d->codec = AMediaCodec_createEncoderByType("video/avc");
+		if (!d->codec) {
+			ms_error("MSMediaCodecH264Enc: could not create MediaCodec");
+			return AMEDIA_ERROR_UNKNOWN;
+		}
+	}
+	return 0;
+}
+
 static void enc_init(MSFilter *f) {
 	MSVideoSize vsize;
 	EncData *d = ms_new0(EncData, 1);
@@ -92,6 +103,10 @@ static void enc_init(MSFilter *f) {
 	MS_VIDEO_SIZE_ASSIGN(vsize, CIF);
 	d->vconf = ms_video_find_best_configuration_for_size(d->vconf_list, vsize, ms_factory_get_cpu_count(f->factory));
 	d->codec_started = FALSE;
+	/*we shall allocate the MediaCodec encoder the sooner as possible and before the decoder, because
+	 * on some phones hardware encoder and decoders can't be allocated at the same time.
+	 * */
+	alloc_encoder(d);
 	f->data = d;
 }
 
@@ -109,13 +124,9 @@ static int enc_configure(EncData *d){
 	media_status_t status = AMEDIA_ERROR_UNSUPPORTED;
 	AMediaFormat *format;
 	
-	if (!d->codec){
-		d->codec = AMediaCodec_createEncoderByType("video/avc");
-		if (!d->codec) {
-			ms_error("MSMediaCodecH264Enc: could not create MediaCodec");
-			return AMEDIA_ERROR_UNKNOWN;
-		}
-	}
+	status = alloc_encoder(d);
+	if (status != 0) return status;
+	
 	d->codec_lost = FALSE;
 	d->codec_started = FALSE;
 	format = AMediaFormat_new();
@@ -172,9 +183,7 @@ static void enc_preprocess(MSFilter *f) {
 	rfc3984_set_mode(d->packer, d->mode);
 	rfc3984_enable_stap_a(d->packer, FALSE);
 	ms_video_starter_init(&d->starter);
-	ms_iframe_requests_limiter_init(&d->iframe_limiter, 1000);
-
-	
+	ms_iframe_requests_limiter_init(&d->iframe_limiter, 1000);	
 }
 
 static void enc_postprocess(MSFilter *f) {
@@ -187,8 +196,11 @@ static void enc_postprocess(MSFilter *f) {
 
 	if (d->codec) {
 		if (d->codec_started){
-			//AMediaCodec_flush(d->codec);
+			AMediaCodec_flush(d->codec);
 			AMediaCodec_stop(d->codec);
+			//It is preferable to reset the encoder, otherwise it may not accept a new configuration while returning in preprocess().
+			//This was observed at least on Moto G2, with qualcomm encoder.
+			AMediaCodec_reset(d->codec); 
 			d->codec_started = FALSE;
 		}
 	}
@@ -238,7 +250,8 @@ static void enc_process(MSFilter *f) {
 			if (ms_iframe_requests_limiter_iframe_requested(&d->iframe_limiter, f->ticker->time) ||
 			        (d->avpf_enabled == FALSE && ms_video_starter_need_i_frame(&d->starter, f->ticker->time))) {
 				/*Force a key-frame*/
-				AMediaCodec_setParams(d->codec, "");
+				AMediaCodec_setParams(d->codec, "request-sync");
+				ms_error("MSMediaCodecH264Enc: I-frame requested to MediaCodec");
 				ms_iframe_requests_limiter_notify_iframe_sent(&d->iframe_limiter, f->ticker->time);
 			}
 
@@ -308,7 +321,7 @@ static void enc_process(MSFilter *f) {
 			MSQueue nalus;
 
 			ms_queue_init(&nalus);
-			ms_h264_bitstream_to_nalus(buf, info.size, &nalus);
+			ms_h264_bitstream_to_nalus(buf + info.offset, info.size, &nalus);
 
 			if (!ms_queue_empty(&nalus)) {
 				m = ms_queue_peek_first(&nalus);

@@ -35,9 +35,12 @@ extern "C"{
 typedef enum{
 	Rfc3984FrameAvailable = 1,
 	Rfc3984FrameCorrupted = 1<<1,
-	Rfc3984IsKeyFrame = 1<<2,
+	Rfc3984IsKeyFrame = 1<<2, /*set when a frame has SPS + PPS or IDR (possibly both)*/
 	Rfc3984NewSPS = 1<<3,
-	Rfc3984NewPPS = 1<<4
+	Rfc3984NewPPS = 1<<4,
+	Rfc3984HasSPS = 1<<5,
+	Rfc3984HasPPS = 1<<6,
+	Rfc3984HasIDR = 1<<7,
 }Rfc3984Status;
 	
 typedef struct Rfc3984Context{

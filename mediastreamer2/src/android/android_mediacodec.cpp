@@ -41,8 +41,8 @@ struct AMediaCodec {
 	jmethodID release;
 	jmethodID flush;
 	jmethodID stop;
-	jmethodID getInputBuffers;
-	jmethodID getOutputBuffers;
+	jmethodID getInputBuffer;
+	jmethodID getOutputBuffer;
 	jmethodID dequeueInputBuffer;
 	jmethodID queueInputBuffer;
 	jmethodID dequeueOutputBuffer;
@@ -156,8 +156,8 @@ bool AMediaCodec_loadMethodID(const char *createName, AMediaCodec *codec, const 
 	success &= _getMethodID(env, mediaCodecClass, "release", "()V", &(codec->release));
 	success &= _getMethodID(env, mediaCodecClass, "flush", "()V", &(codec->flush));
 	success &= _getMethodID(env, mediaCodecClass, "stop", "()V", &(codec->stop));
-	success &= _getMethodID(env, mediaCodecClass, "getInputBuffers", "()[Ljava/nio/ByteBuffer;", &(codec->getInputBuffers));
-	success &= _getMethodID(env, mediaCodecClass, "getOutputBuffers","()[Ljava/nio/ByteBuffer;", &(codec->getOutputBuffers));
+	success &= _getMethodID(env, mediaCodecClass, "getInputBuffer", "(I)Ljava/nio/ByteBuffer;", &(codec->getInputBuffer));
+	success &= _getMethodID(env, mediaCodecClass, "getOutputBuffer","(I)Ljava/nio/ByteBuffer;", &(codec->getOutputBuffer));
 	success &= _getMethodID(env, mediaCodecClass, "dequeueInputBuffer", "(J)I", &(codec->dequeueInputBuffer));
 	success &= _getMethodID(env, mediaCodecClass, "queueInputBuffer", "(IIIJI)V", &(codec->queueInputBuffer));
 	success &= _getMethodID(env, mediaCodecClass, "dequeueOutputBuffer", "(Landroid/media/MediaCodec$BufferInfo;J)I", &(codec->dequeueOutputBuffer));
@@ -269,9 +269,8 @@ media_status_t AMediaCodec_flush(AMediaCodec *codec) {
 	JNIEnv *env = ms_get_jni_env();
 
 	env->CallVoidMethod(codec->jcodec, codec->flush);
-	handle_java_exception();
 
-	return AMEDIA_OK;
+	return (handle_java_exception() == -1) ? AMEDIA_ERROR_BASE : AMEDIA_OK;
 }
 
 media_status_t AMediaCodec_stop(AMediaCodec *codec) {
@@ -283,97 +282,39 @@ media_status_t AMediaCodec_stop(AMediaCodec *codec) {
 }
 
 
-//API 21
-/*uint8_t* AMediaCodec_getInputBuffer(AMediaCodec *codec, size_t idx, size_t *out_size){
-	JNIEnv *env = ms_get_jni_env();
-	jobject jbuffer;
-	uint8_t *buf;
-	jclass mediaCodecClass = env->FindClass("android/media/MediaCodec");
-	jmethodID jmethodID = env->GetMethodID(mediaCodecClass,"getInputBuffer","(I)Ljava/nio/ByteBuffer;");
-	if (jmethodID != NULL){
-		jbuffer = env->CallObjectMethod(codec->jcodec,jmethodID,(int)idx);
-		if(jbuffer == NULL){
-			return NULL;
-		}
-		buf = (uint8_t *) env->GetDirectBufferAddress(jbuffer);
-		if (env->ExceptionCheck()) {
-			env->ExceptionDescribe();
-			env->ExceptionClear();
-			ms_error("Exception");
-		}
-	} else {
-		ms_error("getInputBuffer() not found in class mediacodec !");
-		env->ExceptionClear(); //very important.
-		return NULL;
-	}
-	env->DeleteLocalRef(mediaCodecClass);
-	return buf;
-}*/
-
-//API 19
 uint8_t* AMediaCodec_getInputBuffer(AMediaCodec *codec, size_t idx, size_t *out_size) {
 	JNIEnv *env = ms_get_jni_env();
-	jobject object = NULL;
+	jobject jbuf = NULL;
 	uint8_t *buf = NULL;
 
-	object = env->CallObjectMethod(codec->jcodec, codec->getInputBuffers);
-	if(object != NULL){
-		jobjectArray jbuffers = reinterpret_cast<jobjectArray>(object);
-		jobject jbuf = env->GetObjectArrayElement(jbuffers,idx);
+	jbuf = env->CallObjectMethod(codec->jcodec, codec->getInputBuffer, (jint) idx);
+	if(jbuf != NULL){
 		jlong capacity = env->GetDirectBufferCapacity(jbuf);
 		*out_size = (size_t) capacity;
 		buf = (uint8_t *) env->GetDirectBufferAddress(jbuf);
 		env->DeleteLocalRef(jbuf);
-		env->DeleteLocalRef(object);
 	} else {
-			ms_error("getInputBuffers() not found in class mediacodec !");
+			ms_error("getInputBuffer() failed !");
 			env->ExceptionClear();
 	}
 	handle_java_exception();
 	return buf;
 }
 
-/*
-uint8_t* AMediaCodec_getOutputBuffer(AMediaCodec *codec, size_t idx, size_t *out_size){
-	JNIEnv *env = ms_get_jni_env();
-	jobject jbuffer;
-	uint8_t *buf;
-	jclass mediaCodecClass = env->FindClass("android/media/MediaCodec");
-	jmethodID jmethodID = env->GetMethodID(mediaCodecClass,"getOutputBuffer","(I)Ljava/nio/ByteBuffer;");
-	if (jmethodID != NULL){
-		jbuffer = env->CallObjectMethod(codec->jcodec,jmethodID,(int)idx);
-		if(jbuffer == NULL){
-			return NULL;
-		}
-		buf = (uint8_t *) env->GetDirectBufferAddress(jbuffer);
-		if (env->ExceptionCheck()) {
-			env->ExceptionDescribe();
-			env->ExceptionClear();
-			ms_error("Exception");
-		}
-	} else {
-		ms_error("getOutputBuffer() not found in class mediacodec !");
-		env->ExceptionClear(); //very important.
-		return NULL;
-	}
-	env->DeleteLocalRef(mediaCodecClass);
-	return buf;
-}*/
-
 uint8_t* AMediaCodec_getOutputBuffer(AMediaCodec *codec, size_t idx, size_t *out_size) {
 	JNIEnv *env = ms_get_jni_env();
-	jobject object = NULL;
+	jobject jbuf = NULL;
 	uint8_t *buf = NULL;
+	jlong capacity;
 
-	object = env->CallObjectMethod(codec->jcodec, codec->getOutputBuffers);
-	if(object != NULL){
-		jobjectArray jbuffers = reinterpret_cast<jobjectArray>(object);
-		jobject jbuf = env->GetObjectArrayElement(jbuffers, idx);
+	jbuf = env->CallObjectMethod(codec->jcodec, codec->getOutputBuffer, (jint) idx);
+	if (jbuf != NULL){
 		buf = (uint8_t *) env->GetDirectBufferAddress(jbuf);
+		capacity = env->GetDirectBufferCapacity(jbuf);
+		*out_size = (size_t) capacity;
 		env->DeleteLocalRef(jbuf);
-		env->DeleteLocalRef(object);
 	} else {
-			ms_error("getOutputBuffer() not found in class mediacodec !");
+			ms_error("getOutputBuffer() failed !");
 			env->ExceptionClear();
 	}
 	handle_java_exception();
@@ -475,11 +416,11 @@ void AMediaCodec_setParams(AMediaCodec *codec, const char *params) {
 		return;
 	}
 
-  jstring msg = env->NewStringUTF("request-sync");
+	jstring msg = env->NewStringUTF(params);
 	jbundle = env->NewObject(BundleClass, codec->_init_BundleClass);
-  env->CallVoidMethod(jbundle, codec->putIntId, msg, 0);
+	env->CallVoidMethod(jbundle, codec->putIntId, msg, 0);
 	handle_java_exception();
-  env->DeleteLocalRef(msg);
+	env->DeleteLocalRef(msg);
 
 	env->CallVoidMethod(codec->jcodec, codec->setParameters, jbundle);
 	handle_java_exception();

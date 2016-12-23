@@ -281,6 +281,14 @@ static unsigned int output_frame(Rfc3984Context * ctx, MSQueue *out, unsigned in
 		ctx->pps = NULL;
 	}
 	
+	/* Log some bizarre things */
+	if ((res & Rfc3984FrameCorrupted) == 0){
+		if ((res & Rfc3984HasSPS) && (res & Rfc3984HasPPS) && !(res & Rfc3984HasIDR)){
+			/*some decoders may not be happy with this*/
+			ms_warning("rfc3984_unpack: a frame with SPS+PPS but no IDR was output.");
+		}
+	}
+	
 	while(!ms_queue_empty(&ctx->q)){
 		ms_queue_put(out,ms_queue_get(&ctx->q));
 	}
@@ -311,17 +319,22 @@ static void store_nal(Rfc3984Context *ctx, mblk_t *nal){
 	if (ms_queue_empty(&ctx->q) && (ctx->status & Rfc3984FrameCorrupted)
 		&& (type == MSH264NaluTypeSPS || type == MSH264NaluTypePPS || type == MSH264NaluTypeIDR)){
 		ms_message("Previous discontinuity ignored since we are restarting with a keyframe.");
-		ctx->status &= ~Rfc3984FrameCorrupted;
-		ctx->status |= Rfc3984IsKeyFrame;
+		ctx->status = 0;
 	}
 	if (type == MSH264NaluTypeIDR){
+		ctx->status |= Rfc3984HasIDR;
 		ctx->status |= Rfc3984IsKeyFrame;
+	}else if (type == MSH264NaluTypeSPS){
+		ctx->status |= Rfc3984HasSPS;
+		if (update_parameter_set(&ctx->last_sps, nal)) {
+			ctx->status |= Rfc3984NewSPS;
+		}
 	}
-	if (type == MSH264NaluTypeSPS && update_parameter_set(&ctx->last_sps, nal)) {
-		ctx->status |= Rfc3984NewSPS;
-	}
-	if (type == MSH264NaluTypePPS && update_parameter_set(&ctx->last_pps, nal)) {
-		ctx->status |= Rfc3984NewPPS;
+	else if (type == MSH264NaluTypePPS){
+		ctx->status |= Rfc3984HasPPS;
+		if (update_parameter_set(&ctx->last_pps, nal)) {
+			ctx->status |= Rfc3984NewPPS;
+		}
 	}
 	ms_queue_put(&ctx->q,nal);
 }
