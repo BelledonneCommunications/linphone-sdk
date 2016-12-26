@@ -48,6 +48,11 @@ static void process_timeout(void *data, const belle_sip_timeout_event_t *event){
 	belle_sip_main_loop_quit(belle_sip_stack_get_main_loop(stack));
 }
 
+static void usage(const char *argv0){
+	fprintf(stderr,"Usage:\n%s <http uri> [--ca-path <path> ] [--debug] [--no-tls-check]\n",argv0);
+	exit(-1);
+}
+
 int main(int argc, char *argv[]){
 	belle_http_provider_t *prov;
 	belle_http_request_t *req;
@@ -56,10 +61,10 @@ int main(int argc, char *argv[]){
 	const char *ca_path = NULL;
 	belle_tls_crypto_config_t *cfg;
 	int i;
+	int check_tls = 1;
 	
 	if (argc<2){
-		fprintf(stderr,"Usage:\n%s <http uri> [--ca-path <path> ] [--debug]\n",argv[0]);
-		return -1;
+		usage(argv[0]);
 	}
 	for (i = 2; i < argc; ++i){
 		if (strcmp(argv[i], "--ca-path") == 0){
@@ -67,15 +72,21 @@ int main(int argc, char *argv[]){
 			ca_path = argv[i];
 		}else if (strcmp(argv[i], "--debug")==0){
 			belle_sip_set_log_level(BELLE_SIP_LOG_DEBUG);
+		}else if (strcmp(argv[i], "--no-tls-check")==0){
+			check_tls = 0;
+		}else{
+			usage(argv[0]);
 		}
 	}
 	stack=belle_sip_stack_new(NULL);
 	prov=belle_sip_stack_create_http_provider(stack,"::0");
+	cfg = belle_tls_crypto_config_new();
 	if (ca_path){
-		cfg = belle_tls_crypto_config_new();
+		
 		belle_tls_crypto_config_set_root_ca(cfg, ca_path);
-		belle_http_provider_set_tls_crypto_config(prov, cfg);
 	}
+	if (!check_tls) belle_tls_crypto_config_set_verify_exceptions(cfg, BELLE_TLS_VERIFY_ANY_REASON);
+	belle_http_provider_set_tls_crypto_config(prov, cfg);
 	uri=belle_generic_uri_parse(argv[1]);
 	if (!uri){
 		fprintf(stderr,"Bad uri %s\n",argv[1]);
