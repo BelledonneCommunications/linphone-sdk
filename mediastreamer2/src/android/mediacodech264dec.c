@@ -337,13 +337,13 @@ static void dec_process(MSFilter *f) {
 		iBufidx = AMediaCodec_dequeueInputBuffer(d->codec, TIMEOUT_US);
 
 		if (iBufidx >= 0) {
+			struct timespec ts;
 			buf = AMediaCodec_getInputBuffer(d->codec, iBufidx, &bufsize);
 
 			if (buf == NULL) {
 				ms_error("MSMediaCodecH264Dec: AMediaCodec_getInputBuffer() returned NULL");
 				continue;
 			}
-			struct timespec ts;
 			clock_gettime(CLOCK_MONOTONIC, &ts);
 
 			if ((size_t)size > bufsize) {
