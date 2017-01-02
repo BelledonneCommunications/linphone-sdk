@@ -209,7 +209,7 @@ const char * bc_tester_test_name(const char *suite_name, int test_index) {
 	}
 	if (skip) return NULL;
 	
-	return suite[test_index].name;
+	return suite->tests[test_index].name;
 }
 
 int bc_tester_nb_tests(const char *suite_name) {
