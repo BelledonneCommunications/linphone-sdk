@@ -786,6 +786,7 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 	bool_t has_builtin_ec=FALSE;
 	bool_t resampler_missing = FALSE;
 	bool_t skip_encoder_and_decoder = FALSE;
+	uint32_t features = stream->features;
 
 	if (!ms_media_stream_io_is_consistent(io)) return -1;
 
@@ -804,7 +805,7 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 	ms_filter_call_method(stream->ms.rtprecv,MS_RTP_RECV_SET_SESSION,rtps);
 	stream->ms.sessions.rtp_session=rtps;
 
-	if((stream->features & AUDIO_STREAM_FEATURE_DTMF_ECHO) != 0)
+	if((features & AUDIO_STREAM_FEATURE_DTMF_ECHO) != 0)
 		stream->dtmfgen=ms_factory_create_filter(stream->ms.factory, MS_DTMF_GEN_ID);
 	else
 		stream->dtmfgen=NULL;
@@ -847,6 +848,10 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 	} else {
 		stream->soundwrite=ms_factory_create_filter(stream->ms.factory, MS_FILE_REC_ID);
 	}
+	if ((io->input.type == MSResourceRtp) && (io->output.type == MSResourceRtp)) {
+		skip_encoder_and_decoder = TRUE;
+		features = 0;
+	}
 
 	/* creates the couple of encoder/decoder */
 	pt=rtp_profile_get_payload(profile,payload);
@@ -858,7 +863,7 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 	stream->ms.current_pt=pt;
 	tev_pt = get_usable_telephone_event(profile, pt->clock_rate);
 
-	if ((stream->features & AUDIO_STREAM_FEATURE_DTMF) != 0 && (tev_pt == -1)
+	if ((features & AUDIO_STREAM_FEATURE_DTMF) != 0 && (tev_pt == -1)
 		&& ( strcasecmp(pt->mime_type,"pcmu")==0 || strcasecmp(pt->mime_type,"pcma")==0)){
 		/*if no telephone-event payload is usable and pcma or pcmu is used, we will generate
 		  inband dtmf*/
@@ -875,7 +880,7 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		return -1;
 	}
 	
-	if (stream->features == 0) {
+	if (features == 0) {
 		MSPinFormat sndread_format = {0};
 		MSPinFormat rtpsend_format = {0};
 		MSPinFormat rtprecv_format = {0};
@@ -898,11 +903,11 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 	/* be able to use the echo canceller wich may be limited (webrtc aecm max frequency is 16000 Hz) */
 	// First check if we need to use the echo canceller
 	// Overide feature if not requested or done at sound card level
-	if ( ((stream->features & AUDIO_STREAM_FEATURE_EC) && !stream->use_ec) || has_builtin_ec )
-		stream->features &=~AUDIO_STREAM_FEATURE_EC;
+	if ( ((features & AUDIO_STREAM_FEATURE_EC) && !stream->use_ec) || has_builtin_ec )
+		features &=~AUDIO_STREAM_FEATURE_EC;
 
 	/*configure the echo canceller if required */
-	if ((stream->features & AUDIO_STREAM_FEATURE_EC) == 0 && stream->ec != NULL) {
+	if ((features & AUDIO_STREAM_FEATURE_EC) == 0 && stream->ec != NULL) {
 		ms_filter_destroy(stream->ec);
 		stream->ec=NULL;
 	}
@@ -933,7 +938,7 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 	}
 	/*hack for opus, that claims stereo all the time, but we can't support stereo yet*/
 	if (strcasecmp(pt->mime_type,"opus")==0){
-		if ( (stream->features & (~(AUDIO_STREAM_FEATURE_PLC|AUDIO_STREAM_FEATURE_REMOTE_PLAYING)) ) != 0){
+		if ( (features & (~(AUDIO_STREAM_FEATURE_PLC|AUDIO_STREAM_FEATURE_REMOTE_PLAYING)) ) != 0){
 			/*all features except PLC and REMOTE_PLAYING prevent from activating the stereo*/
 			ms_message("opus stereo support is deactivated because of incompatible features targeted for this AudioStream");
 			nchannels=1;
@@ -944,11 +949,11 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 	stream->sample_rate=sample_rate;
 	stream->nchannels=nchannels;
 
-	if ((stream->features & AUDIO_STREAM_FEATURE_VOL_SND) != 0)
+	if ((features & AUDIO_STREAM_FEATURE_VOL_SND) != 0)
 		stream->volsend=ms_factory_create_filter(stream->ms.factory, MS_VOLUME_ID);
 			else
 		stream->volsend=NULL;
-	if ((stream->features & AUDIO_STREAM_FEATURE_VOL_RCV) != 0)
+	if ((features & AUDIO_STREAM_FEATURE_VOL_RCV) != 0)
 		stream->volrecv=ms_factory_create_filter(stream->ms.factory, MS_VOLUME_ID);
 
 	else
@@ -1014,11 +1019,11 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		ms_filter_call_method(stream->ec,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
 	}
 
-	if (stream->features & AUDIO_STREAM_FEATURE_MIXED_RECORDING || stream->features & AUDIO_STREAM_FEATURE_REMOTE_PLAYING){
+	if (features & AUDIO_STREAM_FEATURE_MIXED_RECORDING || features & AUDIO_STREAM_FEATURE_REMOTE_PLAYING){
 		stream->outbound_mixer=ms_factory_create_filter(stream->ms.factory, MS_AUDIO_MIXER_ID);
 	}
 
-	if (stream->features & AUDIO_STREAM_FEATURE_MIXED_RECORDING) setup_recorder(stream,sample_rate,nchannels);
+	if (features & AUDIO_STREAM_FEATURE_MIXED_RECORDING) setup_recorder(stream,sample_rate,nchannels);
 
 	if (!skip_encoder_and_decoder) {
 		/* give the encoder/decoder some parameters*/
@@ -1049,7 +1054,7 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 	}
 
 	/*create the equalizer*/
-	if ((stream->features & AUDIO_STREAM_FEATURE_EQUALIZER) != 0){
+	if ((features & AUDIO_STREAM_FEATURE_EQUALIZER) != 0){
 		stream->mic_equalizer = ms_factory_create_filter(stream->ms.factory, MS_EQUALIZER_ID);
 		stream->spk_equalizer = ms_factory_create_filter(stream->ms.factory, MS_EQUALIZER_ID);
 		if(stream->mic_equalizer) {
@@ -1133,7 +1138,7 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 	}
 
 	/* Create generic PLC if not handled by the decoder directly*/
-	if ((stream->features & AUDIO_STREAM_FEATURE_PLC) != 0) {
+	if ((features & AUDIO_STREAM_FEATURE_PLC) != 0) {
 		int decoder_have_plc = 0;
 		if (ms_filter_has_method(stream->ms.decoder, MS_AUDIO_DECODER_HAVE_PLC)) {
 			if (ms_filter_call_method(stream->ms.decoder, MS_AUDIO_DECODER_HAVE_PLC, &decoder_have_plc) != 0) {
@@ -1164,7 +1169,7 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		stream->plc = NULL;
 	}
 
-	if (stream->features & AUDIO_STREAM_FEATURE_LOCAL_PLAYING){
+	if (features & AUDIO_STREAM_FEATURE_LOCAL_PLAYING){
 		stream->local_mixer=ms_factory_create_filter(stream->ms.factory, MS_AUDIO_MIXER_ID);
 
 	}
