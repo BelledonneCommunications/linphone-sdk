@@ -229,7 +229,9 @@ void bc_tester_list_tests(const char *suite_name) {
 	int j;
 	for( j = 0; j < bc_tester_nb_tests(suite_name); j++) {
 		const char *test_name = bc_tester_test_name(suite_name, j);
-		bc_tester_printf(bc_printf_verbosity_info, "%s", test_name);
+		if (test_name) {
+			bc_tester_printf(bc_printf_verbosity_info, "%s", test_name);
+		}
 	}
 }
 
