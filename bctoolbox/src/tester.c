@@ -193,10 +193,23 @@ int bc_tester_nb_suites(void) {
 }
 
 const char * bc_tester_test_name(const char *suite_name, int test_index) {
+	test_suite_t *suite = NULL;
+	size_t j = 0;
+	bool_t skip = FALSE;
+	
 	int suite_index = bc_tester_suite_index(suite_name);
 	if ((suite_index < 0) || (suite_index >= nb_test_suites)) return NULL;
-	if (test_index >= test_suite[suite_index]->nb_tests) return NULL;
-	return test_suite[suite_index]->tests[test_index].name;
+	suite = test_suite[suite_index];
+	if (test_index >= suite->nb_tests) return NULL;
+	
+	for (j = 0; j < (sizeof(suite->tests[test_index].tags) / sizeof(suite->tests[test_index].tags[0])); j++) {
+		if ((suite->tests[test_index].tags[j] != NULL) && (strcasecmp("Skip", suite->tests[test_index].tags[j]) == 0) && (run_skipped_tests == 0)) {
+			skip = TRUE;
+		}
+	}
+	if (skip) return NULL;
+	
+	return suite[test_index].name;
 }
 
 int bc_tester_nb_tests(const char *suite_name) {
