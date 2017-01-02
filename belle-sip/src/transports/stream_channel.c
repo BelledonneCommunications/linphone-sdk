@@ -54,6 +54,13 @@ int stream_channel_send(belle_sip_stream_channel_t *obj, const void *buf, size_t
 int stream_channel_recv(belle_sip_stream_channel_t *obj, void *buf, size_t buflen){
 	belle_sip_socket_t sock = belle_sip_source_get_socket((belle_sip_source_t*)obj);
 	int err=bctbx_recv(sock,buf,buflen,0);
+
+	if (strcmp(belle_sip_get_socket_error_string(), "Socket is not connected") == 0) { //Do NOT treat it as an error
+		belle_sip_message("Socket is not connected because of IOS10 background policy");
+		obj->base.closed_by_remote = TRUE;
+		return 0;
+	}
+
 	if (err==(belle_sip_socket_t)-1){
 		int errnum=get_socket_error();
 		if (!belle_sip_error_code_is_would_block(errnum)){

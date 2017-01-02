@@ -670,6 +670,7 @@ static int belle_sip_channel_process_read_data(belle_sip_channel_t *obj){
 	} else if (num == 0) {
 		/*before closing the channel, check if there was a pending message to receive, whose body acquisition is to be finished.*/
 		belle_sip_channel_process_stream(obj,TRUE);
+		obj->closed_by_remote = TRUE;
 		channel_set_state(obj,BELLE_SIP_CHANNEL_DISCONNECTED);
 		ret=BELLE_SIP_STOP;
 	} else if (belle_sip_error_code_is_would_block(-num)){

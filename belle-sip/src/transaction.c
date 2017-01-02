@@ -55,7 +55,28 @@ BELLESIP_EXPORT const char *belle_sip_transaction_get_method(const belle_sip_tra
 	return belle_sip_request_get_method(t->request);
 }
 
+static void transaction_end_background_task(belle_sip_transaction_t *obj){
+	if (obj->bg_task_id){
+		belle_sip_message("channel [%p]: ending transaction background task with id=[%lx].",obj,obj->bg_task_id);
+		belle_sip_end_background_task(obj->bg_task_id);
+		obj->bg_task_id=0;
+	}
+}
+
+static void transaction_background_task_ended(belle_sip_transaction_t *obj){
+	belle_sip_warning("channel [%p]: transaction background task has to be ended now, but work isn't finished.",obj);
+	transaction_end_background_task(obj);
+}
+
+static void transaction_begin_background_task(belle_sip_transaction_t *obj){
+	if (obj->bg_task_id==0){
+		obj->bg_task_id=belle_sip_begin_background_task("belle-sip transaction",(void (*)(void*))transaction_background_task_ended, obj);
+		if (obj->bg_task_id) belle_sip_message("channel [%p]: starting transaction background task with id=[%lx].",obj,obj->bg_task_id);
+	}
+}
+
 static void belle_sip_transaction_init(belle_sip_transaction_t *t, belle_sip_provider_t *prov, belle_sip_request_t *req){
+	transaction_begin_background_task(t);
 	t->request=(belle_sip_request_t*)belle_sip_object_ref(req);
 	t->provider=prov;
 }
@@ -217,6 +238,7 @@ int belle_sip_transaction_state_is_transient(const belle_sip_transaction_state_t
 }
 
 void belle_sip_transaction_terminate(belle_sip_transaction_t *t){
+	belle_sip_object_ref(t);
 	if (t->call_repair_timer) {
 		belle_sip_transaction_stop_timer(t, t->call_repair_timer);
 		belle_sip_object_unref(t->call_repair_timer);
@@ -236,6 +258,8 @@ void belle_sip_transaction_terminate(belle_sip_transaction_t *t){
 		BELLE_SIP_OBJECT_VPTR(t,belle_sip_transaction_t)->on_terminate(t);
 		belle_sip_provider_set_transaction_terminated(t->provider,t);
 	}
+	belle_sip_object_unref(t);
+	transaction_end_background_task(t);
 }
 
 belle_sip_request_t *belle_sip_transaction_get_request(const belle_sip_transaction_t *t){

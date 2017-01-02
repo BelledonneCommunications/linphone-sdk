@@ -661,6 +661,7 @@ struct belle_sip_transaction{
 	unsigned char is_internal;
 	unsigned char timed_out;
 	unsigned char sent_by_dialog_queue;
+	unsigned long bg_task_id;
 };
 
 
