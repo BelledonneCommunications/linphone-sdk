@@ -51,15 +51,21 @@ static int udp_channel_send(belle_sip_channel_t *obj, const void *buf, size_t bu
 static int udp_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen){
 	belle_sip_udp_channel_t *chan=(belle_sip_udp_channel_t *)obj;
 	int err;
+	int errnum;
 	struct sockaddr_storage addr;
 	socklen_t addrlen=sizeof(addr);
 	belle_sip_socket_t sock=belle_sip_source_get_socket((belle_sip_source_t*)chan);
 	
 	err=(int)bctbx_recvfrom(sock,buf,buflen,0,(struct sockaddr*)&addr,&addrlen);
-
-	if (err==-1 && get_socket_error()!=BELLESIP_EWOULDBLOCK){
-		belle_sip_error("Could not receive UDP packet: %s",belle_sip_get_socket_error_string());
-		return -errno;
+	errnum = get_socket_error();
+	if (err==-1 && errnum!=BELLESIP_EWOULDBLOCK){
+		if (errnum == BCTBX_ENOTCONN) { //Do NOT treat it as an error
+			belle_sip_message("Socket is not connected because of IOS10 background policy");
+			obj->closed_by_remote = TRUE;
+			return 0;
+		}
+		belle_sip_error("Could not receive UDP packet: %s",belle_sip_get_socket_error_string_from_code(errnum));
+		return -errnum;
 	}
 	return err;
 }
