@@ -209,7 +209,8 @@ if(ENABLE_ANDROIDSND)
 		android/hardware_echo_canceller.cpp
 		android/loader.cpp
 		android/String8.cpp
-		audiofilters/aac-eld-android.cpp
+		#audiofilters/aac-eld-android.cpp
+		#Not working on Android, to be fix
 	)
 endif()
 if(ENABLE_ARTSC)
