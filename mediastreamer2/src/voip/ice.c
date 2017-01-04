@@ -2369,6 +2369,11 @@ static bool_t ice_handle_received_turn_allocate_success_response(IceCheckList *c
 				ComponentID_Family cf = { componentID, AF_INET };
 				if (srflx_addr.family == MS_STUN_ADDR_FAMILY_IPV6) cf.family = AF_INET6;
 				base_elem = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_find_host_candidate, &cf);
+				if ((base_elem == NULL) && (cf.family == AF_INET)) {
+					/* Handle NAT64 case where the local candidate is IPv6 but the reflexive candidate returned by STUN is IPv4. */
+					cf.family = AF_INET6;
+					base_elem = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_find_host_candidate, &cf);
+				}
 				if (base_elem != NULL) {
 					candidate = (IceCandidate *)base_elem->data;
 					memset(srflx_addr_str, 0, sizeof(srflx_addr));
