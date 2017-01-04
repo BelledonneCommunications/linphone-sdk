@@ -438,7 +438,7 @@ static MSVideoSize get_compatible_size(MSVideoSize maxsize, MSVideoSize wished_s
 	return wished_size;
 }
 
-#if !TARGET_IPHONE_SIMULATOR && !defined(__arm__)
+#if !TARGET_IPHONE_SIMULATOR && !defined(MS_HAS_ARM) 
 static MSVideoSize get_with_same_orientation_and_ratio(MSVideoSize size, MSVideoSize refsize){
 	if (ms_video_size_get_orientation(refsize)!=ms_video_size_get_orientation(size)){
 		int tmp;
@@ -501,7 +501,7 @@ static void configure_video_source(VideoStream *stream){
 		vsize=cam_vsize;
 		ms_message("Output video size adjusted to match camera resolution (%ix%i)",vsize.width,vsize.height);
 	} else {
-#if TARGET_IPHONE_SIMULATOR || defined(__arm__) || defined(_M_ARM) || defined(MS2_WINDOWS_UNIVERSAL)
+#if TARGET_IPHONE_SIMULATOR || defined(MS_HAS_ARM) || defined(MS2_WINDOWS_UNIVERSAL)
 		ms_error("Camera is proposing a size bigger than encoder's suggested size (%ix%i > %ix%i) "
 				   "Using the camera size as fallback because cropping or resizing is not implemented for this device.",
 				   cam_vsize.width,cam_vsize.height,vsize.width,vsize.height);
