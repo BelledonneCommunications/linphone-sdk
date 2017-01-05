@@ -1,5 +1,5 @@
 ############################################################################
-# toolchan-android-arm.cmake
+# toolchain-android-arm.cmake
 # Copyright (C) 2016  Belledonne Communications, Grenoble France
 #
 ############################################################################

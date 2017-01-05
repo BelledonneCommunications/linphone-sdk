@@ -1,5 +1,5 @@
 ############################################################################
-# toolchan-android-x86.cmake
+# toolchain-android-x86.cmake
 # Copyright (C) 2016  Belledonne Communications, Grenoble France
 #
 ############################################################################

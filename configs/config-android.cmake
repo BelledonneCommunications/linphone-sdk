@@ -95,7 +95,6 @@ lcb_builder_cmake_options(linphone "-DENABLE_TUTORIALS=NO")
 lcb_builder_cmake_options(linphone "-DENABLE_UPNP=NO")
 lcb_builder_cmake_options(linphone "-DENABLE_MSG_STORAGE=YES")
 lcb_builder_cmake_options(linphone "-DENABLE_DOC=NO")
-lcb_builder_cmake_options(linphone "-DENABLE_UNIT_TESTS=YES")
 lcb_builder_linking_type(linphone "-DENABLE_STATIC=NO" "-DENABLE_SHARED=YES")
 
 # mbedtls
@@ -112,7 +111,6 @@ lcb_builder_cmake_options(ms2 "-DENABLE_V4L=NO")
 lcb_builder_cmake_options(ms2 "-DENABLE_X11=NO")
 lcb_builder_cmake_options(ms2 "-DENABLE_XV=NO")
 lcb_builder_cmake_options(ms2 "-DENABLE_DOC=NO")
-lcb_builder_cmake_options(ms2 "-DENABLE_UNIT_TESTS=NO")
 lcb_builder_linking_type(ms2 "-DENABLE_STATIC=NO" "-DENABLE_SHARED=YES")
 
 # openh264
@@ -133,7 +131,7 @@ lcb_builder_linking_type(polarssl "-DUSE_SHARED_POLARSSL_LIBRARY=NO")
 # speex
 lcb_builder_cmake_options(speex "-DENABLE_FLOAT_API=NO")
 lcb_builder_cmake_options(speex "-DENABLE_FIXED_POINT=YES")
-if(CMAKE_SYSTEM_PROCESSOR STREQUAL "armeabi-v7a")
+if(NDK_ARCHITECTURE STREQUAL "armeabi-v7a")
 	lcb_builder_cmake_options(speex "-DENABLE_ARM_NEON_INTRINSICS=YES")
 endif()
 
@@ -146,7 +144,7 @@ lcb_builder_install_target(x264 "install-lib-static")
 
 
 # Copy c++ library to install prefix
-file(COPY "${ANDROID_NDK_PATH}/sources/cxx-stl/gnu-libstdc++/${GCC_VERSION}/libs/${CMAKE_SYSTEM_PROCESSOR}/libgnustl_shared.so"
+file(COPY "${ANDROID_NDK_PATH}/sources/cxx-stl/gnu-libstdc++/${GCC_VERSION}/libs/${NDK_ARCHITECTURE}/libgnustl_shared.so"
 	DESTINATION "${CMAKE_INSTALL_PREFIX}/lib"
 )
 

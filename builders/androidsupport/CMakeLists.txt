@@ -27,11 +27,15 @@ include(GNUInstallDirs)
 
 
 set(SUPPORT_SOURCES
-	"${ANDROID_SUPPORT}/src/musl-locale/iconv.c"
-	"${ANDROID_SUPPORT}/src/musl-locale/langinfo.c"
-	"${ANDROID_SUPPORT}/src/musl-locale/nl_langinfo_l.c"
 	"${ANDROID_SUPPORT}/src/musl-multibyte/wctomb.c"
 )
+if(NOT CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+	list(APPEND SUPPORT_SOURCES
+		"${ANDROID_SUPPORT}/src/musl-locale/iconv.c"
+		"${ANDROID_SUPPORT}/src/musl-locale/langinfo.c"
+		"${ANDROID_SUPPORT}/src/musl-locale/nl_langinfo_l.c"
+	)
+endif()
 
 add_library(support STATIC ${SUPPORT_SOURCES})
 if(CMAKE_C_COMPILER_ID STREQUAL "GNU")

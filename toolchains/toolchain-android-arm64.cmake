@@ -1,6 +1,6 @@
 ############################################################################
-# toolchain-ios-i386.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# toolchain-android-arm64.cmake
+# Copyright (C) 2017  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,10 +20,34 @@
 #
 ############################################################################
 
-set(CMAKE_SYSTEM_PROCESSOR "i386")
-set(LINPHONE_BUILDER_OSX_ARCHITECTURES "i386")
-set(COMPILER_PREFIX "i386-apple-darwin")
-set(CLANG_TARGET "i386-apple-darwin")
-set(PLATFORM "Simulator")
-include("${CMAKE_CURRENT_LIST_DIR}/ios/toolchain-ios.cmake")
+set(CMAKE_ANDROID_API 21)
+set(CMAKE_SYSTEM_PROCESSOR "aarch64")
+set(ARCHITECTURE "arm64")
+set(NDK_ARCHITECTURE "arm64-v8a")
+set(COMPILER_PREFIX "aarch64-linux-android")
+set(CLANG_TARGET "aarch64-none-linux-android")
+include("${CMAKE_CURRENT_LIST_DIR}/android/toolchain-android.cmake")
+link_libraries("m")
 
+add_compile_options(
+	"-ffunction-sections"
+	"-funwind-tables"
+	"-fstack-protector"
+	"-no-canonical-prefixes"
+	"-fomit-frame-pointer"
+	"-fno-strict-aliasing"
+)
+
+if(NOT CLANG_EXECUTABLE)
+	add_compile_options(
+		"-finline-limit=300"
+	)
+endif()
+
+link_libraries(
+	"-no-canonical-prefixes"
+	"-Wl,--no-undefined"
+	"-Wl,-z,noexecstack"
+	"-Wl,-z,relro"
+	"-Wl,-z,now"
+)

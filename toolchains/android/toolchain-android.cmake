@@ -20,7 +20,9 @@
 #
 ############################################################################
 
-set(CMAKE_ANDROID_API 14)
+if(NOT CMAKE_ANDROID_API)
+	set(CMAKE_ANDROID_API 14)
+endif()
 set(CMAKE_ANDROID_STL_TYPE gnustl_shared)
 
 set(CMAKE_CROSSCOMPILING TRUE)
@@ -59,24 +61,24 @@ if(CLANG_EXECUTABLE)
 
 	get_filename_component(TOOLCHAIN_PATH "${CLANG_EXECUTABLE}" DIRECTORY)
 	set(GCC_VERSION "4.9")
-	if(CMAKE_SYSTEM_PROCESSOR STREQUAL "armeabi-v7a")
+	if(NDK_ARCHITECTURE STREQUAL "armeabi-v7a")
 		set(GCC_LIBRARY_ADDITIONAL_DIR "/armv7-a")
 	endif()
 
 	find_file(GCC_LIBRARY "libgcc.a"
 		PATHS
 		"${ANDROID_NDK_PATH}/toolchains/${COMPILER_PREFIX}-${GCC_VERSION}/prebuilt/linux-x86_64/lib/gcc/${COMPILER_PREFIX}/${GCC_VERSION}${GCC_LIBRARY_ADDITIONAL_DIR}"
-		"${ANDROID_NDK_PATH}/toolchains/${CMAKE_SYSTEM_PROCESSOR}-${GCC_VERSION}/prebuilt/linux-x86_64/lib/gcc/${COMPILER_PREFIX}/${GCC_VERSION}"
+		"${ANDROID_NDK_PATH}/toolchains/${NDK_ARCHITECTURE}-${GCC_VERSION}/prebuilt/linux-x86_64/lib/gcc/${COMPILER_PREFIX}/${GCC_VERSION}"
 		"${ANDROID_NDK_PATH}/toolchains/${COMPILER_PREFIX}-${GCC_VERSION}/prebuilt/linux-x86_64/lib/gcc/${COMPILER_PREFIX}/${GCC_VERSION}.x${GCC_LIBRARY_ADDITIONAL_DIR}"
-		"${ANDROID_NDK_PATH}/toolchains/${CMAKE_SYSTEM_PROCESSOR}-${GCC_VERSION}/prebuilt/linux-x86_64/lib/gcc/${COMPILER_PREFIX}/${GCC_VERSION}.x"
+		"${ANDROID_NDK_PATH}/toolchains/${NDK_ARCHITECTURE}-${GCC_VERSION}/prebuilt/linux-x86_64/lib/gcc/${COMPILER_PREFIX}/${GCC_VERSION}.x"
 		"${ANDROID_NDK_PATH}/toolchains/${COMPILER_PREFIX}-${GCC_VERSION}/prebuilt/darwin-x86_64/lib/gcc/${COMPILER_PREFIX}/${GCC_VERSION}${GCC_LIBRARY_ADDITIONAL_DIR}"
-		"${ANDROID_NDK_PATH}/toolchains/${CMAKE_SYSTEM_PROCESSOR}-${GCC_VERSION}/prebuilt/darwin-x86_64/lib/gcc/${COMPILER_PREFIX}/${GCC_VERSION}"
+		"${ANDROID_NDK_PATH}/toolchains/${NDK_ARCHITECTURE}-${GCC_VERSION}/prebuilt/darwin-x86_64/lib/gcc/${COMPILER_PREFIX}/${GCC_VERSION}"
 		"${ANDROID_NDK_PATH}/toolchains/${COMPILER_PREFIX}-${GCC_VERSION}/prebuilt/darwin-x86_64/lib/gcc/${COMPILER_PREFIX}/${GCC_VERSION}.x${GCC_LIBRARY_ADDITIONAL_DIR}"
-		"${ANDROID_NDK_PATH}/toolchains/${CMAKE_SYSTEM_PROCESSOR}-${GCC_VERSION}/prebuilt/darwin-x86_64/lib/gcc/${COMPILER_PREFIX}/${GCC_VERSION}.x"
+		"${ANDROID_NDK_PATH}/toolchains/${NDK_ARCHITECTURE}-${GCC_VERSION}/prebuilt/darwin-x86_64/lib/gcc/${COMPILER_PREFIX}/${GCC_VERSION}.x"
 		"${ANDROID_NDK_PATH}/toolchains/${COMPILER_PREFIX}-${GCC_VERSION}/prebuilt/linux-x86/lib/gcc/${COMPILER_PREFIX}/${GCC_VERSION}${GCC_LIBRARY_ADDITIONAL_DIR}"
-		"${ANDROID_NDK_PATH}/toolchains/${CMAKE_SYSTEM_PROCESSOR}-${GCC_VERSION}/prebuilt/linux-x86/lib/gcc/${COMPILER_PREFIX}/${GCC_VERSION}"
+		"${ANDROID_NDK_PATH}/toolchains/${NDK_ARCHITECTURE}-${GCC_VERSION}/prebuilt/linux-x86/lib/gcc/${COMPILER_PREFIX}/${GCC_VERSION}"
 		"${ANDROID_NDK_PATH}/toolchains/${COMPILER_PREFIX}-${GCC_VERSION}/prebuilt/linux-x86/lib/gcc/${COMPILER_PREFIX}/${GCC_VERSION}.x${GCC_LIBRARY_ADDITIONAL_DIR}"
-		"${ANDROID_NDK_PATH}/toolchains/${CMAKE_SYSTEM_PROCESSOR}-${GCC_VERSION}/prebuilt/linux-x86/lib/gcc/${COMPILER_PREFIX}/${GCC_VERSION}.x"
+		"${ANDROID_NDK_PATH}/toolchains/${NDK_ARCHITECTURE}-${GCC_VERSION}/prebuilt/linux-x86/lib/gcc/${COMPILER_PREFIX}/${GCC_VERSION}.x"
 		NO_DEFAULT_PATH
 	)
 	if(NOT GCC_LIBRARY)
@@ -87,11 +89,11 @@ if(CLANG_EXECUTABLE)
 	find_file(GCC_EXECUTABLE "${COMPILER_PREFIX}-gcc"
 		PATHS
 		"${ANDROID_NDK_PATH}/toolchains/${COMPILER_PREFIX}-${GCC_VERSION}/prebuilt/linux-x86_64/bin"
-		"${ANDROID_NDK_PATH}/toolchains/${CMAKE_SYSTEM_PROCESSOR}-${GCC_VERSION}/prebuilt/linux-x86_64/bin"
+		"${ANDROID_NDK_PATH}/toolchains/${NDK_ARCHITECTURE}-${GCC_VERSION}/prebuilt/linux-x86_64/bin"
 		"${ANDROID_NDK_PATH}/toolchains/${COMPILER_PREFIX}-${GCC_VERSION}/prebuilt/darwin-x86_64/bin"
-		"${ANDROID_NDK_PATH}/toolchains/${CMAKE_SYSTEM_PROCESSOR}-${GCC_VERSION}/prebuilt/darwin-x86_64/bin"
+		"${ANDROID_NDK_PATH}/toolchains/${NDK_ARCHITECTURE}-${GCC_VERSION}/prebuilt/darwin-x86_64/bin"
 		"${ANDROID_NDK_PATH}/toolchains/${COMPILER_PREFIX}-${GCC_VERSION}/prebuilt/linux-x86/bin"
-		"${ANDROID_NDK_PATH}/toolchains/${CMAKE_SYSTEM_PROCESSOR}-${GCC_VERSION}/prebuilt/linux-x86/bin"
+		"${ANDROID_NDK_PATH}/toolchains/${NDK_ARCHITECTURE}-${GCC_VERSION}/prebuilt/linux-x86/bin"
 		NO_DEFAULT_PATH
 	)
 	if(NOT GCC_EXECUTABLE)
@@ -118,11 +120,11 @@ else()
 	find_file(GCC_EXECUTABLE "${COMPILER_PREFIX}-gcc"
 		PATHS
 		"${ANDROID_NDK_PATH}/toolchains/${COMPILER_PREFIX}-${GCC_VERSION}/prebuilt/linux-x86_64/bin"
-		"${ANDROID_NDK_PATH}/toolchains/${CMAKE_SYSTEM_PROCESSOR}-${GCC_VERSION}/prebuilt/linux-x86_64/bin"
+		"${ANDROID_NDK_PATH}/toolchains/${NDK_ARCHITECTURE}-${GCC_VERSION}/prebuilt/linux-x86_64/bin"
 		"${ANDROID_NDK_PATH}/toolchains/${COMPILER_PREFIX}-${GCC_VERSION}/prebuilt/darwin-x86_64/bin"
-		"${ANDROID_NDK_PATH}/toolchains/${CMAKE_SYSTEM_PROCESSOR}-${GCC_VERSION}/prebuilt/darwin-x86_64/bin"
+		"${ANDROID_NDK_PATH}/toolchains/${NDK_ARCHITECTURE}-${GCC_VERSION}/prebuilt/darwin-x86_64/bin"
 		"${ANDROID_NDK_PATH}/toolchains/${COMPILER_PREFIX}-${GCC_VERSION}/prebuilt/linux-x86/bin"
-		"${ANDROID_NDK_PATH}/toolchains/${CMAKE_SYSTEM_PROCESSOR}-${GCC_VERSION}/prebuilt/linux-x86/bin"
+		"${ANDROID_NDK_PATH}/toolchains/${NDK_ARCHITECTURE}-${GCC_VERSION}/prebuilt/linux-x86/bin"
 		NO_DEFAULT_PATH
 	)
 	if(NOT GCC_EXECUTABLE)
@@ -160,7 +162,7 @@ set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
 
-set(ANDROID_STL_INCLUDE_DIRS "${ANDROID_NDK_PATH}/sources/cxx-stl/gnu-libstdc++/${GCC_VERSION}/include" "${ANDROID_NDK_PATH}/sources/cxx-stl/gnu-libstdc++/${GCC_VERSION}/libs/${CMAKE_SYSTEM_PROCESSOR}/include")
+set(ANDROID_STL_INCLUDE_DIRS "${ANDROID_NDK_PATH}/sources/cxx-stl/gnu-libstdc++/${GCC_VERSION}/include" "${ANDROID_NDK_PATH}/sources/cxx-stl/gnu-libstdc++/${GCC_VERSION}/libs/${NDK_ARCHITECTURE}/include")
 if(EXISTS "${ANDROID_NDK_PATH}/sources/android/cpufeatures/cpu-features.c")
 	set(ANDROID_CPU_FEATURES_INCLUDE_DIRS "${ANDROID_NDK_PATH}/sources/android/cpufeatures")
 elseif(EXISTS "${ANDROID_NDK_PATH}/sources/cpufeatures/cpu-features.c")
@@ -177,7 +179,7 @@ if(GCC_LIBRARY_PATH)
 	set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -L${GCC_LIBRARY_PATH}" CACHE STRING "linker flags" FORCE)
 	set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -L${GCC_LIBRARY_PATH}" CACHE STRING "linker flags" FORCE)
 endif()
-set(GNUSTL_PATH "${ANDROID_NDK_PATH}/sources/cxx-stl/gnu-libstdc++/${GCC_VERSION}/libs/${CMAKE_SYSTEM_PROCESSOR}")
+set(GNUSTL_PATH "${ANDROID_NDK_PATH}/sources/cxx-stl/gnu-libstdc++/${GCC_VERSION}/libs/${NDK_ARCHITECTURE}")
 #link_directories("${GNUSTL_PATH}")
 # link_directories has no effet for external projects so add the gnustl library path to the compiler flags
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L${GNUSTL_PATH}" CACHE STRING "linker flags" FORCE)
