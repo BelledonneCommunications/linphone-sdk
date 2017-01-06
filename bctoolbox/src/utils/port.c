@@ -1350,11 +1350,11 @@ static int get_local_ip_for_with_connect(int type, const char *dest, int port, c
 	}
 	tmp = 1;
 	err = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (SOCKET_OPTION_VALUE)&tmp, sizeof(int));
-	if (err == -1) bctbx_warning("Error in setsockopt: %s", strerror(errno));
+	if (err == -1) bctbx_warning("Error in setsockopt: %s", getSocketError());
 	err = connect(sock, res->ai_addr, (int)res->ai_addrlen);
 	if (err == -1) {
 		/* The network isn't reachable. We don't display the error as it is the case that we want to check in normal operation. */
-		if (getSocketErrorCode() != BCTBX_ENETUNREACH || getSocketErrorCode() != BCTBX_EHOSTUNREACH) bctbx_error("Error in connect: %s", strerror(errno));
+		if (getSocketErrorCode() != BCTBX_ENETUNREACH || getSocketErrorCode() != BCTBX_EHOSTUNREACH) bctbx_error("Error in connect: %s", getSocketError());
 		freeaddrinfo(res);
 		bctbx_socket_close(sock);
 		return -1;
@@ -1364,7 +1364,7 @@ static int get_local_ip_for_with_connect(int type, const char *dest, int port, c
 	s = sizeof(addr);
 	err = getsockname(sock, (struct sockaddr *)&addr, &s);
 	if (err != 0) {
-		bctbx_error("Error in getsockname: %s", strerror(errno));
+		bctbx_error("Error in getsockname: %s", getSocketError());
 		bctbx_socket_close(sock);
 		return -1;
 	}
@@ -1376,7 +1376,7 @@ static int get_local_ip_for_with_connect(int type, const char *dest, int port, c
 		}
 	}
 	err = getnameinfo((struct sockaddr *)&addr, s, result, (socklen_t)result_len, NULL, 0, NI_NUMERICHOST);
-	if (err != 0) bctbx_error("getnameinfo error: %s", strerror(errno));
+	if (err != 0) bctbx_error("getnameinfo error: %s", gai_strerror(err));
 	/* Avoid ipv6 link-local addresses */
 	if ((p_addr->sa_family == AF_INET6) && (strchr(result, '%') != NULL)) {
 		strcpy(result, "::1");
