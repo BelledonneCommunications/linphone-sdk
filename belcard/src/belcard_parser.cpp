@@ -29,6 +29,11 @@ using namespace::std;
 using namespace::belr;
 using namespace::belcard;
 
+shared_ptr<BelCardParser> BelCardParser::getInstance() {
+	static shared_ptr<BelCardParser> parser(new BelCardParser);
+	return parser;
+}
+
 BelCardParser::BelCardParser() {
 	ABNFGrammarBuilder grammar_builder;
 	shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());

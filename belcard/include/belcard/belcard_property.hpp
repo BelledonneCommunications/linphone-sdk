@@ -24,6 +24,7 @@
 
 #include "belcard/belcard_generic.hpp"
 #include "belcard_params.hpp"
+#include "belcard/belcard_parser.hpp"
 
 #include <string>
 #include <list>
@@ -62,15 +63,14 @@ namespace belcard {
 	public:
 		template <typename T>
 		static shared_ptr<T> parseProperty(const string& rule, const string& input) {
-			ABNFGrammarBuilder grammar_builder;
-			shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
-			Parser<shared_ptr<BelCardGeneric>> parser(grammar);
-			BelCardParam::setAllParamsHandlersAndCollectors(&parser);
-			T::setHandlerAndCollectors(&parser);
-			shared_ptr<BelCardGeneric> ret = parser.parseInput(rule, input, NULL);
-			return dynamic_pointer_cast<T>(ret);
+			shared_ptr<BelCardParser> parser = BelCardParser::getInstance();
+			shared_ptr<BelCardGeneric> ret = parser->_parser->parseInput(rule, input, NULL);
+			if (ret) {
+				return dynamic_pointer_cast<T>(ret);
+			}
+			return nullptr;
 		}
-
+		
 		BELCARD_PUBLIC static shared_ptr<BelCardProperty> parse(const string& input);
 		BELCARD_PUBLIC static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		

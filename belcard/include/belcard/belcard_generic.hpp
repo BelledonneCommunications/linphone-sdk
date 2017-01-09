@@ -36,6 +36,7 @@ using namespace::std;
 
 namespace belcard {
 	class BelCardGeneric {
+	friend class BelCardParser;
 	public:
 		template<typename T>
 		static shared_ptr<T> create() {
@@ -44,7 +45,7 @@ namespace belcard {
 		
 		template<typename T>
 		BELCARD_PUBLIC static bool isValid(const shared_ptr<T> &property) {
-			return T::parse(property->toString()) != NULL;
+			return T::parse(property->toString()) != nullptr;
 		}
 		
 		BELCARD_PUBLIC BelCardGeneric() { }

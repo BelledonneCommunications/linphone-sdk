@@ -19,9 +19,6 @@
 #ifndef belcard_parser_hpp
 #define belcard_parser_hpp
 
-#include "belcard.hpp"
-#include "belcard_params.hpp"
-
 #include <belr/grammarbuilder.hh>
 #include <belr/abnf.hh>
 
@@ -36,13 +33,21 @@
 using namespace::belr;
 
 namespace belcard {
+	class BelCardGeneric;
+	class BelCardList;
+	class BelCard;
+	
 	class BelCardParser {
+		
+	friend class BelCardProperty;
 	private:
 		Parser<shared_ptr<BelCardGeneric>> *_parser;
 		
+	protected:
 		shared_ptr<BelCardGeneric> _parse(const string &input, const string &rule);
 		
 	public:
+		BELCARD_PUBLIC static shared_ptr<BelCardParser> getInstance();
 		BELCARD_PUBLIC BelCardParser();
 		BELCARD_PUBLIC ~BelCardParser();
 		
