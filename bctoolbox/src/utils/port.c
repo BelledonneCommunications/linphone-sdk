@@ -1079,6 +1079,24 @@ int bctbx_getaddrinfo(const char *node, const char *service, const struct addrin
 
 #endif
 
+int bctbx_getnameinfo(const struct sockaddr *addr, socklen_t addrlen, char *host, socklen_t hostlen, char *serv, socklen_t servlen, int flags) {
+#if __APPLE__
+	/* What an unpleasant surprise... It appears getnameinfo from Apple is calling inet_ntoa internally that is not thread-safe:
+	 *   https://opensource.apple.com/source/Libc/Libc-583/net/FreeBSD/inet_ntoa.c
+	 *   http://www.educatedguesswork.org/2009/02/well_thats_an_unpleasant_surpr.html
+	 */
+	int i;
+	int err;
+	for (i = 0; i < 50; i++) {
+		err = getnameinfo(addr, addrlen, host, hostlen, serv, servlen, flags);
+		if (!(host && strstr(host, "[inet_ntoa error]"))) return err;
+	}
+	return EAI_AGAIN;
+#else
+	return getnameinfo(addr, addrlen, host, hostlen, serv, servlen, flags);
+#endif
+}
+
 static void _bctbx_addrinfo_to_ip_address_error(int err, char *ip, size_t ip_size) {
 	bctbx_error("getnameinfo() error: %s", gai_strerror(err));
 	strncpy(ip, "<bug!!>", ip_size);
@@ -1086,7 +1104,7 @@ static void _bctbx_addrinfo_to_ip_address_error(int err, char *ip, size_t ip_siz
 
 int bctbx_addrinfo_to_ip_address(const struct addrinfo *ai, char *ip, size_t ip_size, int *port){
 	char serv[16];
-	int err=getnameinfo(ai->ai_addr,(socklen_t)ai->ai_addrlen,ip,(socklen_t)ip_size,serv,(socklen_t)sizeof(serv),NI_NUMERICHOST|NI_NUMERICSERV);
+	int err=bctbx_getnameinfo(ai->ai_addr,(socklen_t)ai->ai_addrlen,ip,(socklen_t)ip_size,serv,(socklen_t)sizeof(serv),NI_NUMERICHOST|NI_NUMERICSERV);
 	if (err!=0) _bctbx_addrinfo_to_ip_address_error(err, ip, ip_size);
 	if (port) *port=atoi(serv);
 	return 0;
@@ -1095,7 +1113,7 @@ int bctbx_addrinfo_to_ip_address(const struct addrinfo *ai, char *ip, size_t ip_
 int bctbx_addrinfo_to_printable_ip_address(const struct addrinfo *ai, char *printable_ip, size_t printable_ip_size) {
 	char ip[64];
 	char serv[16];
-	int err = getnameinfo(ai->ai_addr, (socklen_t)ai->ai_addrlen, ip, sizeof(ip), serv, sizeof(serv), NI_NUMERICHOST | NI_NUMERICSERV);
+	int err = bctbx_getnameinfo(ai->ai_addr, (socklen_t)ai->ai_addrlen, ip, sizeof(ip), serv, sizeof(serv), NI_NUMERICHOST | NI_NUMERICSERV);
 	if (err != 0) _bctbx_addrinfo_to_ip_address_error(err, ip, sizeof(ip));
 	if (ai->ai_family == AF_INET)
 		snprintf(printable_ip, printable_ip_size, "%s:%s", ip, serv);
@@ -1375,7 +1393,7 @@ static int get_local_ip_for_with_connect(int type, const char *dest, int port, c
 			return -1;
 		}
 	}
-	err = getnameinfo((struct sockaddr *)&addr, s, result, (socklen_t)result_len, NULL, 0, NI_NUMERICHOST);
+	err = bctbx_getnameinfo((struct sockaddr *)&addr, s, result, (socklen_t)result_len, NULL, 0, NI_NUMERICHOST);
 	if (err != 0) bctbx_error("getnameinfo error: %s", gai_strerror(err));
 	/* Avoid ipv6 link-local addresses */
 	if ((p_addr->sa_family == AF_INET6) && (strchr(result, '%') != NULL)) {
