@@ -38,6 +38,7 @@ set(DEFAULT_VALUE_ENABLE_VCARD ON)
 set(DEFAULT_VALUE_ENABLE_VIDEO ON)
 set(DEFAULT_VALUE_ENABLE_VPX ON)
 set(DEFAULT_VALUE_ENABLE_ZRTP ON)
+set(DEFAULT_VALUE_ENABLE_TOOLS OFF)
 set(ENABLE_NLS NO CACHE BOOL "" FORCE)
 
 set(DEFAULT_VALUE_CMAKE_LINKING_TYPE "-DENABLE_STATIC=YES" "-DENABLE_SHARED=NO")
@@ -83,6 +84,7 @@ lcb_builder_cmake_options(linphone "-DENABLE_UPNP=NO")
 lcb_builder_cmake_options(linphone "-DENABLE_MSG_STORAGE=YES")
 lcb_builder_cmake_options(linphone "-DENABLE_DOC=NO")
 lcb_builder_cmake_options(linphone "-DENABLE_NLS=NO")
+lcb_builder_cmake_options(linphone "-DENABLE_TOOLS=DEFAULT_VALUE_ENABLE_TOOLS")
 
 # mbedtls
 lcb_builder_linking_type(mbedtls "-DUSE_STATIC_MBEDTLS_LIBRARY=YES" "-DUSE_SHARED_MBEDTLS_LIBRARY=NO")
@@ -96,6 +98,7 @@ lcb_builder_cmake_options(ms2 "-DENABLE_GLX=NO")
 lcb_builder_cmake_options(ms2 "-DENABLE_X11=NO")
 lcb_builder_cmake_options(ms2 "-DENABLE_XV=NO")
 lcb_builder_cmake_options(ms2 "-DENABLE_DOC=NO")
+lcb_builder_cmake_options(ms2 "-DENABLE_TOOLS=DEFAULT_VALUE_ENABLE_TOOLS")
 
 # opus
 lcb_builder_cmake_options(opus "-DENABLE_FIXED_POINT=YES")

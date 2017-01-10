@@ -40,6 +40,7 @@ set(DEFAULT_VALUE_ENABLE_VPX ON)
 set(DEFAULT_VALUE_ENABLE_WASAPI ON)
 set(DEFAULT_VALUE_ENABLE_WEBRTC_AEC ON)
 set(DEFAULT_VALUE_ENABLE_ZRTP ON)
+set(DEFAULT_VALUE_ENABLE_TOOLS OFF)
 set(ENABLE_NLS NO CACHE BOOL "" FORCE)
 
 set(DEFAULT_VALUE_CMAKE_LINKING_TYPE "-DENABLE_STATIC=NO")
@@ -58,13 +59,13 @@ lcb_builder_cmake_options(linphone "-DENABLE_RELATIVE_PREFIX=YES")
 lcb_builder_cmake_options(linphone "-DENABLE_CONSOLE_UI=NO")
 lcb_builder_cmake_options(linphone "-DENABLE_DAEMON=NO")
 lcb_builder_cmake_options(linphone "-DENABLE_NOTIFY=NO")
-lcb_builder_cmake_options(linphone "-DENABLE_TOOLS=NO")
+lcb_builder_cmake_options(linphone "-DENABLE_TOOLS=DEFAULT_VALUE_ENABLE_TOOLS")
 lcb_builder_cmake_options(linphone "-DENABLE_TUTORIALS=NO")
 lcb_builder_cmake_options(linphone "-DENABLE_UPNP=NO")
 
 # ms2
 lcb_builder_cmake_options(ms2 "-DENABLE_RELATIVE_PREFIX=YES")
-lcb_builder_cmake_options(ms2 "-DENABLE_TOOLS=NO")
+lcb_builder_cmake_options(ms2 "-DENABLE_TOOLS=DEFAULT_VALUE_ENABLE_TOOLS")
 
 # opus
 lcb_builder_cmake_options(opus "-DENABLE_ASM=NO")
