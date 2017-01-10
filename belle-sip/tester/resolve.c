@@ -35,7 +35,7 @@ static void resolver_callback(void *data, const char *queried_name, struct addri
 	char port[NI_MAXSERV];
 	
 	for(ai_it=ai_list;ai_it!=NULL;ai_it=ai_it->ai_next){
-		err=getnameinfo(ai_it->ai_addr,ai_list->ai_addrlen,name,sizeof(name),port,sizeof(port),NI_NUMERICSERV|NI_NUMERICHOST);
+		err=bctbx_getnameinfo(ai_it->ai_addr,ai_list->ai_addrlen,name,sizeof(name),port,sizeof(port),NI_NUMERICSERV|NI_NUMERICHOST);
 		if (err!=0){
 			fprintf(stderr,"getnameinfo error: %s",gai_strerror(err));
 		}else{

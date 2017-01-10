@@ -110,7 +110,7 @@ static belle_sip_socket_t create_server_socket(const char *addr, int * port, int
 		socklen_t saddr_len=sizeof(saddr);
 		err=getsockname(sock,(struct sockaddr*)&saddr,&saddr_len);
 		if (err==0){
-			err=getnameinfo((struct sockaddr*)&saddr,saddr_len,NULL,0,portnum,sizeof(portnum),NI_NUMERICSERV|NI_NUMERICHOST);
+			err=bctbx_getnameinfo((struct sockaddr*)&saddr,saddr_len,NULL,0,portnum,sizeof(portnum),NI_NUMERICSERV|NI_NUMERICHOST);
 			if (err==0){
 				*port=atoi(portnum);
 				belle_sip_message("Random TCP port is %i",*port);

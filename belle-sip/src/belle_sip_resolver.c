@@ -261,7 +261,7 @@ static struct dns_resolv_conf *resconf(belle_sip_simple_resolver_context_t *ctx)
 		for(i=0;i<sizeof(ctx->resconf->nameserver)/sizeof(ctx->resconf->nameserver[0]);++i){
 			struct sockaddr *ns_addr=(struct sockaddr*)&ctx->resconf->nameserver[i];
 			if (ns_addr->sa_family==AF_UNSPEC) break;
-			getnameinfo(ns_addr,ns_addr->sa_family==AF_INET6 ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr)
+			bctbx_getnameinfo(ns_addr,ns_addr->sa_family==AF_INET6 ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr)
 					,ip,sizeof(ip),serv,sizeof(serv),NI_NUMERICHOST|NI_NUMERICSERV);
 			belle_sip_message("\t%s",ip);
 			if (ns_addr->sa_family==AF_INET6) using_ipv6=TRUE;
@@ -459,7 +459,7 @@ static void append_dns_result(belle_sip_simple_resolver_context_t *ctx, struct a
 	int gai_err;
 	int family=ctx->family;
 	
-	if ((gai_err=getnameinfo(addr, addrlen, host, sizeof(host), NULL, 0, NI_NUMERICHOST)) != 0){
+	if ((gai_err=bctbx_getnameinfo(addr, addrlen, host, sizeof(host), NULL, 0, NI_NUMERICHOST)) != 0){
 		belle_sip_error("append_dns_result(): getnameinfo() failed: %s",gai_strerror(gai_err));
 		return;
 	}

@@ -172,7 +172,7 @@ static void fix_incoming_via(belle_sip_request_t *msg, const struct addrinfo* or
 		return;
 	}
 	bctbx_sockaddr_remove_v4_mapping(origin->ai_addr, (struct sockaddr*)&saddr, &slen);
-	err=getnameinfo((struct sockaddr*)&saddr,slen,received,sizeof(received),
+	err=bctbx_getnameinfo((struct sockaddr*)&saddr,slen,received,sizeof(received),
 	                rport,sizeof(rport),NI_NUMERICHOST|NI_NUMERICSERV);
 	if (err!=0){
 		belle_sip_error("fix_via: getnameinfo() failed: %s",gai_strerror(errno));
@@ -1396,7 +1396,7 @@ void belle_sip_channel_set_ready(belle_sip_channel_t *obj, const struct sockaddr
 
 		bctbx_sockaddr_remove_v4_mapping(addr,(struct sockaddr*) &saddr,&slen2);
 
-		err=getnameinfo((struct sockaddr*)&saddr,slen2,name,sizeof(name),serv,sizeof(serv),NI_NUMERICHOST|NI_NUMERICSERV);
+		err=bctbx_getnameinfo((struct sockaddr*)&saddr,slen2,name,sizeof(name),serv,sizeof(serv),NI_NUMERICHOST|NI_NUMERICSERV);
 		if (err!=0){
 			belle_sip_error("belle_sip_channel_set_ready(): getnameinfo() failed: %s",gai_strerror(err));
 		}else{
