@@ -63,8 +63,8 @@ if(NOT ${XCODE_VERSION} VERSION_LESS 7)
 	endif()
 endif()
 
-set(LINPHONE_BUILDER_CXXFLAGS "-stdlib=libc++")
-set(LINPHONE_BUILDER_LDFLAGS "-stdlib=libc++")
+set(LINPHONE_BUILDER_CXXFLAGS "${LINPHONE_BUILDER_CXXFLAGS} -stdlib=libc++")
+set(LINPHONE_BUILDER_LDFLAGS "${LINPHONE_BUILDER_LDFLAGS} -stdlib=libc++")
 
 # Include builders
 include(builders/CMakeLists.txt)
@@ -84,7 +84,6 @@ lcb_builder_cmake_options(linphone "-DENABLE_UPNP=NO")
 lcb_builder_cmake_options(linphone "-DENABLE_MSG_STORAGE=YES")
 lcb_builder_cmake_options(linphone "-DENABLE_DOC=NO")
 lcb_builder_cmake_options(linphone "-DENABLE_NLS=NO")
-lcb_builder_cmake_options(linphone "-DENABLE_TOOLS=DEFAULT_VALUE_ENABLE_TOOLS")
 
 # mbedtls
 lcb_builder_linking_type(mbedtls "-DUSE_STATIC_MBEDTLS_LIBRARY=YES" "-DUSE_SHARED_MBEDTLS_LIBRARY=NO")
@@ -98,7 +97,6 @@ lcb_builder_cmake_options(ms2 "-DENABLE_GLX=NO")
 lcb_builder_cmake_options(ms2 "-DENABLE_X11=NO")
 lcb_builder_cmake_options(ms2 "-DENABLE_XV=NO")
 lcb_builder_cmake_options(ms2 "-DENABLE_DOC=NO")
-lcb_builder_cmake_options(ms2 "-DENABLE_TOOLS=DEFAULT_VALUE_ENABLE_TOOLS")
 
 # opus
 lcb_builder_cmake_options(opus "-DENABLE_FIXED_POINT=YES")

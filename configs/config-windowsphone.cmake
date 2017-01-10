@@ -45,7 +45,6 @@ lcb_builder_cmake_options(linphone "-DENABLE_RELATIVE_PREFIX=YES")
 lcb_builder_cmake_options(linphone "-DENABLE_CONSOLE_UI=NO")
 lcb_builder_cmake_options(linphone "-DENABLE_DAEMON=NO")
 lcb_builder_cmake_options(linphone "-DENABLE_NOTIFY=NO")
-lcb_builder_cmake_options(linphone "-DENABLE_TOOLS=DEFAULT_VALUE_ENABLE_TOOLS")
 lcb_builder_cmake_options(linphone "-DENABLE_TUTORIALS=NO")
 lcb_builder_cmake_options(linphone "-DENABLE_UNIT_TESTS=NO")
 lcb_builder_cmake_options(linphone "-DENABLE_UPNP=NO")
@@ -53,7 +52,6 @@ lcb_builder_cmake_options(linphone "-DENABLE_UPNP=NO")
 # ms2
 lcb_builder_cmake_options(ms2 "-DENABLE_RELATIVE_PREFIX=YES")
 lcb_builder_cmake_options(ms2 "-DENABLE_UNIT_TESTS=NO")
-lcb_builder_cmake_options(ms2 "-DENABLE_TOOLS=DEFAULT_VALUE_ENABLE_TOOLS")
 
 # vpx
 set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared" "--enable-pic")
