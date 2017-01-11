@@ -847,9 +847,6 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 	} else {
 		stream->soundwrite=ms_factory_create_filter(stream->ms.factory, MS_FILE_REC_ID);
 	}
-	if ((io->input.type == MSResourceRtp) && (io->output.type == MSResourceRtp)) {
-		skip_encoder_and_decoder = TRUE;
-	}
 
 	/* creates the couple of encoder/decoder */
 	pt=rtp_profile_get_payload(profile,payload);
