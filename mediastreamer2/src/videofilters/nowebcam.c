@@ -283,6 +283,7 @@ int static_image_set_vsize(MSFilter *f, void* data) {
 
 int static_image_get_vsize(MSFilter *f, void* data) {
 	SIData *d = (SIData*)f->data;
+	static_image_preprocess(f);
 	*(MSVideoSize*)data = d->vsize;
 	return 0;
 }
