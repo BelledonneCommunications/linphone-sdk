@@ -212,11 +212,24 @@ static void belle_sip_provider_dispatch_response(belle_sip_provider_t* p, belle_
 		}
 	}
 	}
+	if (t){ /*In some re-connection case, specially over udp, transaction may be found, but without associated channel*/
+		if (t->base.channel == NULL) {
+			belle_sip_channel_t *chan;
+			belle_sip_message("Transaction [%p] does not have any channel associated, searching for a new one",t);
+			chan=belle_sip_provider_get_channel(p,t->next_hop); /*might be faster to get channel directly from upper level*/
+			if (chan){
+				belle_sip_object_ref(chan);
+				belle_sip_channel_add_listener(chan,BELLE_SIP_CHANNEL_LISTENER(t));
+				t->base.channel=chan;
+			}
+		}
+	}
+		
 	/*
-	 * If a transaction is found, pass it to the transaction and let it decide what to do.
+	 * If a transaction is found and have a channel, pass it to the transaction and let it decide what to do.
 	 * Else notifies directly.
 	 */
-	if (t){
+	if (t && t->base.channel){
 		/*since the add_response may indirectly terminate the transaction, we need to guarantee the transaction is not freed
 		 * until full completion*/
 		belle_sip_object_ref(t);
