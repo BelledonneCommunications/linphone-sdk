@@ -258,8 +258,8 @@ void belle_sip_transaction_terminate(belle_sip_transaction_t *t){
 		BELLE_SIP_OBJECT_VPTR(t,belle_sip_transaction_t)->on_terminate(t);
 		belle_sip_provider_set_transaction_terminated(t->provider,t);
 	}
-	belle_sip_object_unref(t);
 	transaction_end_background_task(t);
+	belle_sip_object_unref(t);
 }
 
 belle_sip_request_t *belle_sip_transaction_get_request(const belle_sip_transaction_t *t){
