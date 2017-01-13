@@ -411,7 +411,7 @@ static int check_body(belle_sip_channel_t *obj){
 				belle_sip_message_set_body_handler(msg,(bh=(belle_sip_body_handler_t*)belle_sip_memory_body_handler_new(NULL,NULL)));
 			}
 		}
-		belle_sip_body_handler_begin_transfer(bh);
+		belle_sip_body_handler_begin_recv_transfer(bh);
 	}
 	return expect_body;
 }
@@ -1259,7 +1259,7 @@ static void _send_message(belle_sip_channel_t *obj){
 			size_t max_body_len=sizeof(buffer)-1-len;
 
 			if (body_len>0 && body_len<=max_body_len){ /*if size is known and fits into our buffer, send together with headers*/
-				belle_sip_body_handler_begin_transfer(bh);
+				belle_sip_body_handler_begin_send_transfer(bh);
 				do{
 					max_body_len=sizeof(buffer)-1-len;
 					ret=belle_sip_body_handler_send_chunk(bh,msg,(uint8_t*)buffer+len,&max_body_len);
@@ -1272,7 +1272,7 @@ static void _send_message(belle_sip_channel_t *obj){
 				if (body_len==0){
 					belle_sip_fatal("Sending bodies whose size is not known must be done in chunked mode, which is not supported yet.");
 				}
-				belle_sip_body_handler_begin_transfer(bh);
+				belle_sip_body_handler_begin_send_transfer(bh);
 				obj->out_state=OUTPUT_STREAM_SENDING_BODY;
 			}
 		}
