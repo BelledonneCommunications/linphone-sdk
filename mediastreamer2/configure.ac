@@ -828,7 +828,7 @@ if test "$ortp_enabled" = 'true'; then
 		fi
 	fi
 	if test "$external_ortp" = 'true'; then
-		PKG_CHECK_MODULES(ORTP, ortp >= 0.24.1, ,
+		PKG_CHECK_MODULES(ORTP, ortp >= 1.0.0, ,
 			[ AC_MSG_ERROR([Couldn't find ortp library]) ] )
 	fi
 else
@@ -981,29 +981,32 @@ fi
 AM_CONDITIONAL(BUILD_V4L1, test x$found_v4l1 = xyes )
 AM_CONDITIONAL(BUILD_V4L2, test x$found_v4l2 = xyes )
 
-AC_PATH_PROG(PCAP,pcap-config,false)
-AM_CONDITIONAL(HAVE_PCAP, test $PCAP != false)
 AC_ARG_ENABLE(pcap,
-	[AS_HELP_STRING([--enable-pcap], [Enable pcap library (default=no)])],
+	[AS_HELP_STRING([--enable-pcap], [Enable pcap library (default=auto)])],
 	[case "${enableval}" in
 		yes)	enable_pcap=yes ;;
 		no)	enable_pcap=no ;;
 		*)	AC_MSG_ERROR(bad value ${enableval} for --enable-pcap) ;;
 	esac],
-	[enable_pcap=no]
+	[enable_pcap=auto]
 )
-AM_CONDITIONAL(ENABLE_PCAP, test x$enable_pcap = xyes)
-if test x$enable_pcap == xyes ; then
+
+if test x$enable_pcap != xno ; then
+
+	AC_PATH_PROG(PCAP,pcap-config,false)
 	if test $PCAP != false ; then
 		PCAP_LIBS=`pcap-config --libs`
 		PCAP_CFLAGS=`pcap-config --cflags`
 		AC_SUBST(PCAP_LIBS)
 		AC_SUBST(PCAP_CFLAGS)
 		AC_DEFINE(HAVE_PCAP,1,[whether we compile with libpcap support])
+		enable_pcap=yes
+	else
+		enable_pcap=no
 	fi
-
 fi
 
+AM_CONDITIONAL(ENABLE_PCAP, test x$enable_pcap = xyes)
 
 
 dnl ##################################################
@@ -1307,4 +1310,5 @@ printf "* %-30s %s\n" "Video support"		$video
 printf "* %-30s %s\n" "sRTP encryption"		$have_srtp
 printf "* %-30s %s\n" "zRTP encryption"		$zrtp
 printf "* %-30s %s\n" "Non-free codecs" 	$non_free_codecs
+printf "* %-30s %s\n" "pcap support"	 	$enable_pcap
 

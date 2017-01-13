@@ -215,6 +215,21 @@ void ms_tester_tone_generation_and_detection_loop(void) {
 	}
 }
 
+
+RtpProfile *ms_tester_create_rtp_profile(void) {
+	RtpProfile * profile = rtp_profile_new("Tester profile");
+	rtp_profile_set_payload(profile,PCMU8_PAYLOAD_TYPE,&payload_type_pcmu8000);
+	rtp_profile_set_payload(profile,PCMA8_PAYLOAD_TYPE,&payload_type_pcma8000);
+	rtp_profile_set_payload(profile,H263_PAYLOAD_TYPE,&payload_type_h263);
+	rtp_profile_set_payload(profile,H264_PAYLOAD_TYPE,&payload_type_h264);
+	rtp_profile_set_payload(profile,VP8_PAYLOAD_TYPE,&payload_type_vp8);
+	rtp_profile_set_payload(profile,MP4V_PAYLOAD_TYPE, &payload_type_mp4v);
+	rtp_profile_set_payload(profile,OPUS_PAYLOAD_TYPE,&payload_type_opus);
+	rtp_profile_set_payload(profile,SPEEX_PAYLOAD_TYPE,&payload_type_speex_wb);
+	rtp_profile_set_payload(profile,SILK_PAYLOAD_TYPE,&payload_type_silk_wb);
+	return profile;
+}
+
 bool_t wait_for_list(bctbx_list_t *mss, int *counter, int value, int timeout_ms) {
 	return wait_for_list_with_parse_events(mss, counter, value, timeout_ms, NULL, NULL);
 }

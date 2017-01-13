@@ -45,4 +45,5 @@ src/videofilters/x11video.c
 src/videofilters/msdscap.cc
 src/voip/ice.c
 src/audiofilters/msgenericplc.c
+src/otherfilters/mspcapfileplayer.c
 

@@ -63,6 +63,7 @@ void mediastreamer2_tester_init(void(*ftester_printf)(int level, const char *fmt
 	bc_tester_add_suite(&text_stream_test_suite);
 #ifdef HAVE_PCAP
 	bc_tester_add_suite(&codec_impl_test_suite);
+	bc_tester_add_suite(&jitterbuffer_test_suite);
 #endif
 }
 

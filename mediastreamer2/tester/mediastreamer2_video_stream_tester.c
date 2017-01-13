@@ -33,9 +33,7 @@ static RtpProfile rtp_profile;
 static MSFactory* _factory = NULL;
 static CodecsManager *_h264_codecs_manager = NULL;
 
-#define VP8_PAYLOAD_TYPE   103
-#define H264_PAYLOAD_TYPE  104
-#define MP4V_PAYLOAD_TYPE  105
+
 
 MSWebCam* mediastreamer2_tester_get_mire_webcam(MSWebCamManager *mgr) {
 	MSWebCam *cam;
@@ -51,6 +49,10 @@ MSWebCam* mediastreamer2_tester_get_mire_webcam(MSWebCamManager *mgr) {
 	}
 
 	return cam;
+}
+
+MSWebCam * mediastreamer2_tester_get_mire(MSFactory *factory){
+	return mediastreamer2_tester_get_mire_webcam(ms_factory_get_web_cam_manager(factory));
 }
 
 struct _CodecsManager {

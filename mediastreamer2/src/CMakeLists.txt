@@ -168,6 +168,8 @@ set(VOIP_SOURCE_FILES_C
 	utils/kiss_fft.h
 	utils/kiss_fftr.c
 	utils/kiss_fftr.h
+	utils/pcap_sender.c
+	utils/pcap_sender.h
 	utils/stream_regulator.c
 	voip/audioconference.c
 	voip/audiostream.c
@@ -184,6 +186,7 @@ set(VOIP_SOURCE_FILES_C
 	voip/qualityindicator.c
 	otherfilters/rfc4103_source.c
 	otherfilters/rfc4103_sink.c
+	otherfilters/msudp.c
 	voip/rfc4103_textstream.c
 	voip/ringstream.c
 	voip/stun.c
@@ -426,6 +429,10 @@ if(MATROSKA2_FOUND)
 		voip/rfc2429.h
 		voip/rfc3984.c
 	)
+endif()
+
+if(PCAP_FOUND)
+	list(APPEND VOIP_SOURCE_FILES_C src/otherfilters/mspcapfileplayer.c)
 endif()
 
 set(VOIP_SOURCE_FILES_ALL ${VOIP_SOURCE_FILES_C} ${VOIP_SOURCE_FILES_CXX} ${VOIP_SOURCE_FILES_OBJC})

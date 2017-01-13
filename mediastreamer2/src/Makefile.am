@@ -91,6 +91,10 @@ libmediastreamer_voip_la_SOURCES=
 nodist_EXTRA_libmediastreamer_base_la_SOURCES = dummy.cxx
 
 
+if ENABLE_PCAP
+libmediastreamer_voip_la_SOURCES += otherfilters/mspcapfileplayer.c
+endif
+
 if ORTP_ENABLED
 BUILT_SOURCES+=voipdescs.h
 libmediastreamer_voip_la_SOURCES+=	voip/private.h \
@@ -104,6 +108,7 @@ libmediastreamer_voip_la_SOURCES+=	voip/private.h \
 					voip/msmediaplayer.c \
 					voip/ice.c \
 					otherfilters/msrtp.c \
+					otherfilters/msudp.c \
 					voip/qualityindicator.c \
 					voip/audioconference.c \
 					voip/bitratedriver.c \
@@ -113,7 +118,8 @@ libmediastreamer_voip_la_SOURCES+=	voip/private.h \
 					voip/stun.c \
 					crypto/ms_srtp.c \
 					crypto/dtls_srtp.c \
-					voip/msiframerequestslimiter.c
+					voip/msiframerequestslimiter.c \
+					utils/pcap_sender.c utils/pcap_sender.h
 else
 libmediastreamer_base_la_SOURCES+=	ortp-deps/logging.c \
 					ortp-deps/port.c \

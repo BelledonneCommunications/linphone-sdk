@@ -26,6 +26,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mediastreamer2/msutils.h"
 #include "mediastreamer2/msvaddtx.h"
 
+#include "ortp/utils.h"
+
 #ifdef HAVE_G729B
 #include "bcg729/encoder.h"
 #endif
@@ -40,7 +42,7 @@ typedef struct _VadDtxContext{
 	int silence_mode;/*set to 1 if a silence period is running*/
 #ifndef HAVE_G729B
 	float energy;
-	ortp_extremum max;
+	OrtpExtremum max;
 #else
 	bcg729EncoderChannelContextStruct *encoderChannelContext;
 	MSBufferizer *bufferizer;

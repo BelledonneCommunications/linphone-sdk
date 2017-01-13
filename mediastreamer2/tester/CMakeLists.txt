@@ -51,7 +51,24 @@ set(SOUND_FILES
 )
 
 set(SCENARIO_FILES
+	scenarios/congestion/video-160-120-0f20c60.pcapng
+	scenarios/congestion/audio-80-75-0c60.pcapng
+	scenarios/congestion/audio-80-75-0f35c95f120.pcapng
+	scenarios/congestion/video-160-0-0a5f30.pcapng
+	scenarios/congestion/video-160-90-0a5c30.pcapng
+	scenarios/pcmu_8k_no_jitter.pcap
+	scenarios/rtp-60late-500total.pcapng
+	scenarios/firstvalid.pcapng
+	scenarios/opus-edge-congestion20_60_40.pcapng
+	scenarios/h264_one_nalu_per_frame.pcap
+	scenarios/poor_jitter_quality_22_filter.pcapng
+	scenarios/rtp-120late-1000total.pcapng
+	scenarios/rtp-240late-2000total.pcapng
 	scenarios/h264_missing_pps_in_second_i_frame.pcap
+	scenarios/rtp-534late-24loss-7000total.pcapng
+	scenarios/secondvalid.pcapng
+	scenarios/opus-poor-quality.pcapng
+	scenarios/poor_jitter_quality_22.pcapng
 )
 
 set(IOS_RESOURCES_FILES
@@ -70,6 +87,7 @@ set(SOURCE_FILES_C
 	mediastreamer2_tester.c
 	mediastreamer2_tester_private.c
 	mediastreamer2_text_stream_tester.c
+	mediastreamer2_jitterbuffer_tester.c
 )
 set(SOURCE_FILES_OBJC )
 

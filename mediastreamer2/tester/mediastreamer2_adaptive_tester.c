@@ -31,14 +31,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 static RtpProfile rtp_profile;
 
-#define OPUS_PAYLOAD_TYPE    121
-#define SPEEX_PAYLOAD_TYPE 122
-#define SILK16_PAYLOAD_TYPE  123
-#define PCMA8_PAYLOAD_TYPE 8
-#define BV16_PAYLOAD_TYPE 127
-#define H263_PAYLOAD_TYPE 34
-#define H264_PAYLOAD_TYPE 102
-#define VP8_PAYLOAD_TYPE 103
+
+
 
 #define EDGE_BW 10
 #define THIRDGENERATION_BW 200

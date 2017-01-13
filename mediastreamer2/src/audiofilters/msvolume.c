@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mediastreamer2/msvolume.h"
 #include "mediastreamer2/msticker.h"
 #include "mediastreamer2/msutils.h"
+#include "ortp/utils.h"
 #include <math.h>
 
 #ifdef HAVE_SPEEXDSP
@@ -72,8 +73,8 @@ typedef struct Volume{
 	float ng_floorgain;
 	float ng_gain;
 	MSBufferizer *buffer;
-	ortp_extremum min;
-	ortp_extremum max;
+	OrtpExtremum min;
+	OrtpExtremum max;
 	bool_t agc_enabled;
 	bool_t noise_gate_enabled;
 	bool_t remove_dc;

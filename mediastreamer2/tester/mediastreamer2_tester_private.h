@@ -73,6 +73,22 @@ enum {
 extern unsigned char ms_tester_tone_detected;
 
 
+/*set payload type assignment here*/
+#define PCMU8_PAYLOAD_TYPE 0
+#define PCMA8_PAYLOAD_TYPE 8
+#define H263_PAYLOAD_TYPE 34
+#define VP8_PAYLOAD_TYPE 96
+#define H264_PAYLOAD_TYPE 102
+#define MP4V_PAYLOAD_TYPE 104
+#define OPUS_PAYLOAD_TYPE 121
+#define SPEEX_PAYLOAD_TYPE 122
+#define SPEEX16_PAYLOAD_TYPE 123
+#define SILK_PAYLOAD_TYPE  124
+#define SILK16_PAYLOAD_TYPE  125
+#define BV16_PAYLOAD_TYPE 127
+
+
+
 void ms_tester_create_ticker(void);
 void ms_tester_destroy_ticker(void);
 void ms_tester_create_filter(MSFilter **filter, MSFilterId id, MSFactory *f);
@@ -82,6 +98,7 @@ void ms_tester_destroy_filters(unsigned int filter_mask);
 void ms_tester_tone_generation_loop(void);
 void ms_tester_tone_detection_loop(void);
 void ms_tester_tone_generation_and_detection_loop(void);
+RtpProfile *ms_tester_create_rtp_profile(void);
 
 typedef void (*ms_tester_iterate_cb)(MediaStream *ms, void *user_pointer);
 

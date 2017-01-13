@@ -29,10 +29,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 static RtpProfile rtp_profile;
 static MSFactory *_factory= NULL;
 
-#define OPUS_PAYLOAD_TYPE    121
-#define SPEEX16_PAYLOAD_TYPE 122
-#define SILK16_PAYLOAD_TYPE  123
-#define PCMA8_PAYLOAD_TYPE 8
 
 static int tester_before_all(void) {
 	//ms_init();
@@ -106,7 +102,7 @@ static void event_queue_cb(MediaStream *ms, void *user_pointer) {
 		while ((ev = ortp_ev_queue_get(st->q)) != NULL) {
 			OrtpEventType evt = ortp_event_get_type(ev);
 			OrtpEventData *d = ortp_event_get_data(ev);
-			if (evt == ORTP_EVENT_TMMBR_RECEIVED) {
+			if (evt == ORTP_EVENT_RTCP_PACKET_RECEIVED) {
 				do {
 					if (rtcp_is_RTPFB(d->packet)) {
 						switch (rtcp_RTPFB_get_type(d->packet)) {

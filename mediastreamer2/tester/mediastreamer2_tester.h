@@ -28,12 +28,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mediastreamer-config.h"
 #endif
 
-#include <mediastreamer2/mediastream.h>
-
-#ifdef HAVE_CONFIG_H
-#include "mediastreamer-config.h"
-#endif
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -48,6 +42,7 @@ extern test_suite_t player_test_suite;
 extern test_suite_t text_stream_test_suite;
 #ifdef HAVE_PCAP
 extern test_suite_t codec_impl_test_suite;
+extern test_suite_t jitterbuffer_test_suite;
 #endif
 #ifdef __ARM_NEON__
 extern test_suite_t neon_test_suite;
@@ -58,6 +53,7 @@ extern test_suite_t neon_test_suite;
 #endif
 
 MSWebCam* mediastreamer2_tester_get_mire_webcam(MSWebCamManager *mgr);
+MSWebCam * mediastreamer2_tester_get_mire(MSFactory *factory);
 void mediastreamer2_tester_init(void(*ftester_printf)(int level, const char *fmt, va_list args));
 void mediastreamer2_tester_uninit(void);
 int mediastreamer2_tester_set_log_file(const char *filename);

@@ -73,6 +73,8 @@ set(HEADER_FILES
 	zrtp.h
 	msrtt4103.h
 	msasync.h
+	msudp.h
+	mspcapfileplayer.h
 )
 
 set(MEDIASTREAMER2_HEADER_FILES )

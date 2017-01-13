@@ -18,7 +18,12 @@ mediastreamer2_tester_SOURCES=	\
 	mediastreamer2_text_stream_tester.c \
 	mediastreamer2_framework_tester.c \
 	mediastreamer2_player_tester.c \
-	mediastreamer2_neon_tester.c
+	mediastreamer2_neon_tester.c \
+	mediastreamer2_jitterbuffer_tester.c
+
+if ENABLE_PCAP
+mediastreamer2_tester_SOURCES += mediastreamer2_codec_impl_testers.c
+endif
 
 AM_CPPFLAGS=\
 	-DBC_CONFIG_FILE=\"mediastreamer-config.h\" \

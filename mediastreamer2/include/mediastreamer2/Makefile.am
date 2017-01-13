@@ -52,7 +52,9 @@ mediastreamer2_include_HEADERS=allfilters.h \
 				upnp_igd.h \
 				x11_helper.h \
 				zrtp.h \
-				msasync.h
+				msasync.h \
+				mspcapfileplayer.h \
+				msudp.h
 
 EXTRA_DIST=$(mediastreamer2_include_HEADERS)
 
