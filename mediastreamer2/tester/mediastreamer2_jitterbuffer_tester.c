@@ -35,8 +35,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static RtpProfile *profile;
 static AudioStream *receiver = NULL;
-static OrtpEvQueue *receiver_q = NULL;
+
 #ifdef HAVE_PCAP
+static OrtpEvQueue *receiver_q = NULL;
 #ifdef ENABLE_CONGESTION_TESTS
 static AudioStream *sender = NULL;
 #endif
