@@ -60,6 +60,7 @@ struct _PlayerData{
 	struct timeval pcap_initial_timeval;
 	MSPCAPFilePlayerTimeRef pcap_timeref;
 	MSPCAPFilePlayerLayer pcap_layer;
+	uint32_t ts_offset;
 };
 
 typedef struct _PlayerData PlayerData;
@@ -239,13 +240,9 @@ static void player_process(MSFilter *f){
 							if (d->pcap_layer == MSPCAPFilePlayerLayerRTP) {
 								int headers_size = link_layer_header - rtp_header;
 								int bytes_pcap = d->pcap_hdr->caplen + headers_size;
-								/*uncommented to add some offset to all packets*/
-#if 0
-								if (pcap_seq>3000){
-									ts += 1e6;
-									*((uint32_t*)(rtp_header + 4)) = htonl(ts);
-								}
-#endif
+								
+								*((uint32_t*)(rtp_header + 4)) = htonl(ts + d->ts_offset);
+
 								om = allocb(bytes_pcap, 0);
 								memcpy(om->b_wptr, rtp_header, bytes_pcap);
 								om->b_wptr += bytes_pcap;
@@ -315,12 +312,19 @@ static int player_set_to_port(MSFilter *f, void *arg){
 	return 0;
 }
 
+static int player_set_ts_offset(MSFilter *f, void *arg){
+	PlayerData *d=(PlayerData*)f->data;
+	d->ts_offset = *(uint32_t*)arg;
+	return 0;
+}
+
 static MSFilterMethod player_methods[]={
 	{ MS_FILTER_GET_SAMPLE_RATE, player_get_sr},
 	{ MS_FILTER_SET_SAMPLE_RATE, player_set_sr},
 	{ MS_PCAP_FILE_PLAYER_SET_LAYER, player_set_layer},
 	{ MS_PCAP_FILE_PLAYER_SET_TIMEREF, player_set_timeref},
 	{ MS_PCAP_FILE_PLAYER_SET_TO_PORT, player_set_to_port},
+	{ MS_PCAP_FILE_PLAYER_SET_TS_OFFSET, player_set_ts_offset},
 
 	/* this file player implements the MSFilterPlayerInterface*/
 	{ MS_PLAYER_OPEN , player_open },

@@ -57,7 +57,7 @@ typedef struct _MSPCAPSender {
  * @return the created PCAP sender or NULL if parameters are invalid
  */
 MSPCAPSender* ms_pcap_sendto(MSFactory *factory, const char* filepath, unsigned from_port, const MSIPPort* dest,
-							int sample_rate, MSPCAPFileEnded cb, void* user_data);
+							int sample_rate, uint32_t ts_offset, MSPCAPFileEnded cb, void* user_data);
 
 
 #endif

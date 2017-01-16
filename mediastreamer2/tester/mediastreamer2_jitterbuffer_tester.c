@@ -176,6 +176,17 @@ static void process_queue(OrtpEvQueue *evq) {
 	}
 }
 
+typedef struct _PcapTesterParams{
+	const char *file;
+	OrtpJitterBufferAlgorithm algo; 
+	int congestion_count_expected;
+	int audio_clock_rate;
+	int audio_payload;
+	int video_clock_rate;
+	int video_payload;
+	uint32_t ts_offset;
+}PcapTesterParams;
+
 bool_t has_finished = FALSE;
 
 rtp_stats_t final_audio_rtp_stats, final_video_rtp_stats;
@@ -186,9 +197,9 @@ static OrtpEvQueue * setup_event_queue(MediaStream *ms){
 	return evq;
 }
 
-static void pcap_tester_streams_start(const char* file, OrtpJitterBufferAlgorithm algo, int congestion_count_expected,
-						int audio_file_port, int audio_to_port, int audio_clock_rate, int audio_payload,
-						int video_file_port, int video_to_port, int video_clock_rate, int video_payload) {
+static void pcap_tester_streams_start(const PcapTesterParams *params,
+						int audio_file_port, int audio_to_port,
+						int video_file_port, int video_to_port) {
 	bool_t use_audio = (audio_file_port != -1);
 	bool_t use_video = (video_file_port != -1);
 	MSIPPort audio_dest = { RECEIVER_IP, audio_to_port };
@@ -197,9 +208,10 @@ static void pcap_tester_streams_start(const char* file, OrtpJitterBufferAlgorith
 	has_finished = FALSE;
 	if (use_audio) {
 		receiver = audio_stream_new (_factory, audio_to_port, 0, FALSE);
-		test_setup(audio_payload, algo);
+		test_setup(params->audio_payload, params->algo);
 
 		rtp_session_enable_avpf_feature(receiver->ms.sessions.rtp_session, ORTP_AVPF_FEATURE_TMMBR, TRUE);
+		
 		receiver_q = setup_event_queue(&receiver->ms);
 	}
 	if (use_video) {
@@ -207,6 +219,7 @@ static void pcap_tester_streams_start(const char* file, OrtpJitterBufferAlgorith
 		receiverv = video_stream_new(_factory, video_to_port, 0, FALSE);
 		video_stream_set_direction(receiverv, MediaStreamRecvOnly);
 		rtp_session_enable_avpf_feature(receiverv->ms.sessions.rtp_session, ORTP_AVPF_FEATURE_TMMBR, TRUE);
+		
 
 		BC_ASSERT_EQUAL(video_stream_start(receiverv
 							, profile
@@ -214,11 +227,11 @@ static void pcap_tester_streams_start(const char* file, OrtpJitterBufferAlgorith
 							, 0
 							, 0
 							, 0
-							, video_payload
+							, params->video_payload
 							, 50
 							, mediastreamer2_tester_get_mire(_factory)),0, int, "%i");
 		rtp_session_get_jitter_buffer_params(receiverv->ms.sessions.rtp_session, &video_params);
-		video_params.buffer_algorithm = algo;
+		video_params.buffer_algorithm = params->algo;
 		video_params.refresh_ms = 5000;
 		video_params.max_size = 1000;
 		video_params.min_size = 20;
@@ -227,8 +240,8 @@ static void pcap_tester_streams_start(const char* file, OrtpJitterBufferAlgorith
 		receiverv_q = setup_event_queue(&receiver->ms);
 	}
 
-	if (use_audio) has_finished |= (ms_pcap_sendto(_factory, file, audio_file_port, &audio_dest, audio_clock_rate, end_of_pcap, &has_finished) == NULL);
-	if (use_video) has_finished |= (ms_pcap_sendto(_factory, file, video_file_port, &video_dest, video_clock_rate, end_of_pcap, &has_finished) == NULL);
+	if (use_audio) has_finished |= (ms_pcap_sendto(_factory, params->file, audio_file_port, &audio_dest, params->audio_clock_rate, params->ts_offset, end_of_pcap, &has_finished) == NULL);
+	if (use_video) has_finished |= (ms_pcap_sendto(_factory, params->file, video_file_port, &video_dest, params->video_clock_rate, params->ts_offset, end_of_pcap, &has_finished) == NULL);
 
 	BC_ASSERT_FALSE(has_finished);
 }
@@ -270,22 +283,37 @@ void pcap_tester_stop(const char * file, int audio_clock_rate, int congestion_co
 	}
 }
 
+
+void pcap_tester_audio_with_params(const PcapTesterParams *params){
+	pcap_tester_streams_start(params,
+						0, RECEIVER_RTP_PORT,
+						-1, -1);
+	pcap_tester_iterate_until();
+	pcap_tester_stop(params->file, params->audio_clock_rate, params->congestion_count_expected);
+}
+
 void pcap_tester_audio(const char* file, OrtpJitterBufferAlgorithm algo, int congestion_count_expected
 						, int clock_rate, int payload) {
-
-	pcap_tester_streams_start(file, algo, congestion_count_expected,
-						0, RECEIVER_RTP_PORT, clock_rate, payload,
-						-1, -1, 0, 0);
-	pcap_tester_iterate_until();
-	pcap_tester_stop(file, clock_rate, congestion_count_expected);
+	PcapTesterParams params = {0};
+	params.file = file;
+	params.algo = algo;
+	params.congestion_count_expected = congestion_count_expected;
+	params.audio_clock_rate = clock_rate;
+	params.audio_payload = payload;
+	pcap_tester_audio_with_params(&params);
 }
+
 void pcap_tester_video(const char* file
 						, OrtpJitterBufferAlgorithm algo, int congestion_count_expected
 						, int clock_rate, int payload) {
-
-	pcap_tester_streams_start(file, algo, congestion_count_expected,
-						-1, -1, 0, 0,
-						0, RECEIVER_RTP_PORT, clock_rate, payload);
+	PcapTesterParams params = {0};
+	params.file = file;
+	params.algo = algo;
+	params.congestion_count_expected = congestion_count_expected;
+	params.video_clock_rate = clock_rate;
+	params.video_payload = payload;
+	pcap_tester_streams_start(&params,-1, -1,
+						0, RECEIVER_RTP_PORT);
 	pcap_tester_iterate_until();
 	pcap_tester_stop(file, 0, congestion_count_expected);
 }
@@ -317,6 +345,21 @@ static void burstly_network_basic(void) {
 static void burstly_network_rls(void) {
 	pcap_tester_audio("./scenarios/rtp-534late-24loss-7000total.pcapng", OrtpJitterBufferRecursiveLeastSquare, 0
 				, payload_type_opus.clock_rate, OPUS_PAYLOAD_TYPE);
+	BC_ASSERT_GREATER((int)final_audio_rtp_stats.outoftime, 200, int, "%i");
+	BC_ASSERT_LOWER((int)final_audio_rtp_stats.outoftime, 240, int, "%i");
+	BC_ASSERT_EQUAL((int)final_audio_rtp_stats.discarded, 0, int, "%i");
+	BC_ASSERT_EQUAL((int)final_audio_rtp_stats.packet_recv, 7104, int, "%i");
+}
+
+static void burstly_network_rls_with_ts_offset(void) {
+	PcapTesterParams params = {0};
+	params.file = "./scenarios/rtp-534late-24loss-7000total.pcapng";
+	params.algo = OrtpJitterBufferRecursiveLeastSquare;
+	params.audio_clock_rate = payload_type_opus.clock_rate;
+	params.audio_payload = OPUS_PAYLOAD_TYPE;
+	params.ts_offset = 0x7ffffffc;
+	
+	pcap_tester_audio_with_params(&params);
 	BC_ASSERT_GREATER((int)final_audio_rtp_stats.outoftime, 200, int, "%i");
 	BC_ASSERT_LOWER((int)final_audio_rtp_stats.outoftime, 240, int, "%i");
 	BC_ASSERT_EQUAL((int)final_audio_rtp_stats.discarded, 0, int, "%i");
@@ -497,6 +540,7 @@ static test_t tests[] = {
 	{ "Ideal network rls", ideal_network_rls },
 	{ "Burstly network basic", burstly_network_basic },
 	{ "Burstly network rls", burstly_network_rls },
+	{ "Burstly network rls with offset", burstly_network_rls_with_ts_offset },
 	{ "Chaotic start basic", chaotic_start_basic },
 	{ "Chaotic start rls", chaotic_start_rls },
 #ifdef ENABLE_CONGESTION_TESTS

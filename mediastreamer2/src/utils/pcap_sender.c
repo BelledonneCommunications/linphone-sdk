@@ -48,7 +48,7 @@ static void reader_notify_cb(void *user_data, MSFilter *f, unsigned int event, v
 }
 
 MSPCAPSender* ms_pcap_sendto(MSFactory *factory, const char* filepath, unsigned to_port, const MSIPPort *dest,
-							int sample_rate, MSPCAPFileEnded cb, void* user_data) {
+							int sample_rate, uint32_t ts_offset, MSPCAPFileEnded cb, void* user_data) {
 	MSTickerParams params;
 	MSConnectionHelper h;
 	MSPCAPSender * s;
@@ -82,6 +82,13 @@ MSPCAPSender* ms_pcap_sendto(MSFactory *factory, const char* filepath, unsigned 
 		ms_filter_destroy(udp_sender);
 		return NULL;
 	}
+	if (ms_filter_call_method(file_player, MS_PCAP_FILE_PLAYER_SET_TS_OFFSET, (void*)&ts_offset) != 0) {
+		ms_error("Failed to set ts_offset, aborting");
+		ms_filter_destroy(file_player);
+		ms_filter_destroy(udp_sender);
+		return NULL;
+	}
+	
 
 	s = ms_new0(MSPCAPSender, 1);
 	s->udp_send = udp_sender;
