@@ -30,7 +30,7 @@ Description: linphone web phone's media library
 Package: libmediastreamer-dev
 Section: libdevel
 Architecture: any
-Depends: ${misc:Depends}, libmediastreamer2 (= ${binary:Version}), libasound2-dev [linux-any], libortp9, libortp-dev, libspeex-dev
+Depends: ${misc:Depends}, libmediastreamer2 (= ${binary:Version}), libasound2-dev [linux-any], libortp-dev, libspeex-dev
 Conflicts: libmediastreamer0-dev
 Description: linphone web phone's media library
  Linphone is an audio and video internet phone using the SIP protocol. It 
