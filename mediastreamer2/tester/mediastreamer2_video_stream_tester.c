@@ -520,7 +520,7 @@ static void avpf_video_stream_base(int payload_type) {
 	if (supported) {
 		params.enabled = TRUE;
 		params.loss_rate = 5.;
-        params.RTP_only = TRUE;
+		params.rtp_only = TRUE;
 		init_video_streams(marielle, margaux, TRUE, FALSE, &params,payload_type);
 
         BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_SR, 2, 15000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
