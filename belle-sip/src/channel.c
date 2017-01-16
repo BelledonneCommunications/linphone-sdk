@@ -686,6 +686,7 @@ static int belle_sip_channel_process_read_data(belle_sip_channel_t *obj){
 
 int belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revents){
 	int ret=BELLE_SIP_CONTINUE;
+	belle_sip_object_ref(obj);
 	if (revents & BELLE_SIP_EVENT_READ) {
 		int rret=belle_sip_channel_process_read_data(obj);
 		if (rret==BELLE_SIP_STOP) ret=BELLE_SIP_STOP;
@@ -698,6 +699,7 @@ int belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revents
 			channel_process_queue(obj);
 		}
 	}
+	belle_sip_object_unref(obj);
 	return ret;
 }
 

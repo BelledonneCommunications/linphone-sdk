@@ -185,7 +185,14 @@ belle_sip_uri_t *belle_sip_channel_create_routable_uri(belle_sip_channel_t *chan
 
 void channel_set_state(belle_sip_channel_t *obj, belle_sip_channel_state_t state);
 
-/*just invokes the listeners to process data*/
+/*
+ * Process incoming data and synchronously invoke the listeners if
+ * complete message are received. The invocation of the listeners may
+ * result in the channel being destroyed (ex: calling belle_sip_listening_point_clean_channels() within 
+ * a transaction completed notification).
+ * WARNING: As a result, the caller of this function must be take into account that the channel no longer exists
+ * in return from this function.
+ */
 int belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revents);
 
 /*this function is to be used only in belle_sip_listening_point_clean_channels()*/
