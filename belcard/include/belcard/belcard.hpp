@@ -53,6 +53,7 @@ namespace belcard {
 	class BelCard : public BelCardGeneric {
 	private:
 		std::string _folded_string;
+		bool _skipFieldValidation = false;
 		
 		shared_ptr<BelCardKind> _kind;
 		shared_ptr<BelCardFullName> _fn;
@@ -149,6 +150,8 @@ namespace belcard {
 		BELCARD_PUBLIC static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BELCARD_PUBLIC BelCard();
+		BELCARD_PUBLIC void setSkipFieldValidation(bool skip);
+		BELCARD_PUBLIC bool getSkipFieldValidation();
 		
 		BELCARD_PUBLIC bool setKind(const shared_ptr<BelCardKind> &kind);
 		BELCARD_PUBLIC const shared_ptr<BelCardKind> &getKind() const;

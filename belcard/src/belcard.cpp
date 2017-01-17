@@ -68,7 +68,15 @@ void BelCard::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser
 }
 
 BelCard::BelCard() : BelCardGeneric() {
-	
+
+}
+
+void BelCard::setSkipFieldValidation(bool skip) {
+	_skipFieldValidation = skip;
+}
+
+bool BelCard::getSkipFieldValidation() {
+	return _skipFieldValidation;
 }
 
 bool comparePropertiesUsingPrefParam(const shared_ptr<BelCardProperty>& prop1, const shared_ptr<BelCardProperty>& prop2) {
@@ -110,7 +118,7 @@ void BelCard::_setKind(const shared_ptr<BelCardKind> &kind) {
 	set(_kind, kind);
 }
 bool BelCard::setKind(const shared_ptr<BelCardKind> &kind) {
-	if (BelCardGeneric::isValid(kind)) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(kind)) {
 		_setKind(kind);
 		return true;
 	}
@@ -124,7 +132,7 @@ void BelCard::_setFullName(const shared_ptr<BelCardFullName> &fn) {
 	set(_fn, fn);
 }
 bool BelCard::setFullName(const shared_ptr<BelCardFullName> &fn) {
-	if (BelCardGeneric::isValid(fn)) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(fn)) {
 		_setFullName(fn);
 		return true;
 	}
@@ -138,7 +146,7 @@ void BelCard::_setName(const shared_ptr<BelCardName> &n) {
 	set(_n, n);
 }
 bool BelCard::setName(const shared_ptr<BelCardName> &n) {
-	if (BelCardGeneric::isValid(n)) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(n)) {
 		_setName(n);
 		return true;
 	}
@@ -152,7 +160,7 @@ void BelCard::_setBirthday(const shared_ptr<BelCardBirthday> &bday) {
 	set(_bday, bday);
 }
 bool BelCard::setBirthday(const shared_ptr<BelCardBirthday> &bday) {
-	if (BelCardGeneric::isValid(bday)) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(bday)) {
 		_setBirthday(bday);
 		return true;
 	}
@@ -166,7 +174,7 @@ void BelCard::_setAnniversary(const shared_ptr<BelCardAnniversary> &anniversary)
 	set(_anniversary, anniversary);
 }
 bool BelCard::setAnniversary(const shared_ptr<BelCardAnniversary> &anniversary) {
-	if (BelCardGeneric::isValid(anniversary)) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(anniversary)) {
 		_setAnniversary(anniversary);
 		return true;
 	}
@@ -180,7 +188,7 @@ void BelCard::_setGender(const shared_ptr<BelCardGender> &gender) {
 	set(_gender, gender);
 }
 bool BelCard::setGender(const shared_ptr<BelCardGender> &gender) {
-	if (BelCardGeneric::isValid(gender)) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(gender)) {
 		_setGender(gender);
 		return true;
 	}
@@ -194,7 +202,7 @@ void BelCard::_setProductId(const shared_ptr<BelCardProductId> &pid) {
 	set(_pid, pid);
 }
 bool BelCard::setProductId(const shared_ptr<BelCardProductId> &pid) {
-	if (BelCardGeneric::isValid(pid)) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(pid)) {
 		_setProductId(pid);
 		return true;
 	}
@@ -208,7 +216,7 @@ void BelCard::_setRevision(const shared_ptr<BelCardRevision> &rev) {
 	set(_rev, rev);
 }
 bool BelCard::setRevision(const shared_ptr<BelCardRevision> &rev) {
-	if (BelCardGeneric::isValid(rev)) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(rev)) {
 		_setRevision(rev);
 		return true;
 	}
@@ -222,7 +230,7 @@ void BelCard::_setUniqueId(const shared_ptr<BelCardUniqueId> &uid) {
 	set(_uid, uid);
 }
 bool BelCard::setUniqueId(const shared_ptr<BelCardUniqueId> &uid) {
-	if (BelCardGeneric::isValid(uid)) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(uid)) {
 		_setUniqueId(uid);
 		return true;
 	}
@@ -236,7 +244,7 @@ void BelCard::_setBirthPlace(const shared_ptr<BelCardBirthPlace> &place) {
 	set(_bplace, place);
 }
 bool BelCard::setBirthPlace(const shared_ptr<BelCardBirthPlace> &place) {
-	if (BelCardGeneric::isValid(place)) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(place)) {
 		_setBirthPlace(place);
 		return true;
 	}
@@ -250,7 +258,7 @@ void BelCard::_setDeathPlace(const shared_ptr<BelCardDeathPlace> &place) {
 	set(_dplace, place);
 }
 bool BelCard::setDeathPlace(const shared_ptr<BelCardDeathPlace> &place) {
-	if (BelCardGeneric::isValid(place)) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(place)) {
 		_setDeathPlace(place);
 		return true;
 	}
@@ -264,7 +272,7 @@ void BelCard::_setDeathDate(const shared_ptr<BelCardDeathDate> &date) {
 	set(_ddate, date);
 }
 bool BelCard::setDeathDate(const shared_ptr<BelCardDeathDate> &date) {
-	if (BelCardGeneric::isValid(date)) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(date)) {
 		_setDeathDate(date);
 		return true;
 	}
@@ -278,7 +286,7 @@ void BelCard::_addNickname(const shared_ptr<BelCardNickname> &nickname) {
 	add(_nicknames, nickname);
 }
 bool BelCard::addNickname(const shared_ptr<BelCardNickname> &nickname) {
-	if (BelCardGeneric::isValid(nickname)) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(nickname)) {
 		_addNickname(nickname);
 		return true;
 	}
@@ -295,7 +303,7 @@ void BelCard::_addPhoto(const shared_ptr<BelCardPhoto> &photo) {
 	add(_photos, photo);
 }
 bool BelCard::addPhoto(const shared_ptr<BelCardPhoto> &photo) {
-	if (BelCardGeneric::isValid(photo)) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(photo)) {
 		_addPhoto(photo);
 		return true;
 	}
@@ -312,7 +320,7 @@ void BelCard::_addAddress(const shared_ptr<BelCardAddress> &addr) {
 	add(_addr, addr);
 }
 bool BelCard::addAddress(const shared_ptr<BelCardAddress> &addr) {
-	if (BelCardGeneric::isValid(addr)) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(addr)) {
 		_addAddress(addr);
 		return true;
 	}
@@ -329,7 +337,7 @@ void BelCard::_addPhoneNumber(const shared_ptr<BelCardPhoneNumber> &tel) {
 	add(_tel, tel);
 }
 bool BelCard::addPhoneNumber(const shared_ptr<BelCardPhoneNumber> &tel) {
-	if (BelCardGeneric::isValid(tel)) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(tel)) {
 		_addPhoneNumber(tel);
 		return true;
 	}
@@ -346,7 +354,7 @@ void BelCard::_addEmail(const shared_ptr<BelCardEmail> &email) {
 	add(_emails, email);
 }
 bool BelCard::addEmail(const shared_ptr<BelCardEmail> &email) {
-	if (BelCardGeneric::isValid(email)) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(email)) {
 		_addEmail(email);
 		return true;
 	}
@@ -363,7 +371,7 @@ void BelCard::_addImpp(const shared_ptr<BelCardImpp> &impp) {
 	add(_impp, impp);
 }
 bool BelCard::addImpp(const shared_ptr<BelCardImpp> &impp) {
-	if (BelCardGeneric::isValid(impp)) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(impp)) {
 		_addImpp(impp);
 		return true;
 	}
@@ -380,7 +388,7 @@ void BelCard::_addLang(const shared_ptr<BelCardLang> &lang) {
 	add(_langs, lang);
 }
 bool BelCard::addLang(const shared_ptr<BelCardLang> &lang) {
-	if (BelCardGeneric::isValid(lang)) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(lang)) {
 		_addLang(lang);
 		return true;
 	}
@@ -397,7 +405,7 @@ void BelCard::_addSource(const shared_ptr<BelCardSource> &source) {
 	add(_sources, source);
 }
 bool BelCard::addSource(const shared_ptr<BelCardSource> &source) {
-	if (BelCardGeneric::isValid(source)) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(source)) {
 		_addSource(source);
 		return true;
 	}
@@ -414,7 +422,7 @@ void BelCard::_addXML(const shared_ptr<BelCardXML> &xml) {
 	add(_xml, xml);
 }
 bool BelCard::addXML(const shared_ptr<BelCardXML> &xml) {
-	if (BelCardGeneric::isValid(xml)) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(xml)) {
 		_addXML(xml);
 		return true;
 	}
@@ -431,7 +439,7 @@ void BelCard::_addTimezone(const shared_ptr<BelCardTimezone> &tz) {
 	add(_timezones, tz);
 }
 bool BelCard::addTimezone(const shared_ptr<BelCardTimezone> &tz) {
-	if (BelCardGeneric::isValid(tz)) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(tz)) {
 		_addTimezone(tz);
 		return true;
 	}
@@ -448,7 +456,7 @@ void BelCard::_addGeo(const shared_ptr<BelCardGeo> &geo) {
 	add(_geos, geo);
 }
 bool BelCard::addGeo(const shared_ptr<BelCardGeo> &geo) {
-	if (BelCardGeneric::isValid(geo)) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(geo)) {
 		_addGeo(geo);
 		return true;
 	}
@@ -465,7 +473,7 @@ void BelCard::_addTitle(const shared_ptr<BelCardTitle> &title) {
 	add(_titles, title);
 }
 bool BelCard::addTitle(const shared_ptr<BelCardTitle> &title) {
-	if (BelCardGeneric::isValid(title)) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(title)) {
 		_addTitle(title);
 		return true;
 	}
@@ -482,7 +490,7 @@ void BelCard::_addRole(const shared_ptr<BelCardRole> &role) {
 	add(_roles, role);
 }
 bool BelCard::addRole(const shared_ptr<BelCardRole> &role) {
-	if (BelCardGeneric::isValid(role)) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(role)) {
 		_addRole(role);
 		return true;
 	}
@@ -499,7 +507,7 @@ void BelCard::_addLogo(const shared_ptr<BelCardLogo> &logo) {
 	add(_logos, logo);
 }
 bool BelCard::addLogo(const shared_ptr<BelCardLogo> &logo) {
-	if (BelCardGeneric::isValid(logo)) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(logo)) {
 		_addLogo(logo);
 		return true;
 	}
@@ -516,7 +524,7 @@ void BelCard::_addOrganization(const shared_ptr<BelCardOrganization> &org) {
 	add(_organizations, org);
 }
 bool BelCard::addOrganization(const shared_ptr<BelCardOrganization> &org) {
-	if (BelCardGeneric::isValid(org)) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(org)) {
 		_addOrganization(org);
 		return true;
 	}
@@ -533,7 +541,7 @@ void BelCard::_addMember(const shared_ptr<BelCardMember> &member) {
 	add(_members, member);
 }
 bool BelCard::addMember(const shared_ptr<BelCardMember> &member) {
-	if (BelCardGeneric::isValid(member)) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(member)) {
 		_addMember(member);
 		return true;
 	}
@@ -550,7 +558,7 @@ void BelCard::_addRelated(const shared_ptr<BelCardRelated> &related) {
 	add(_related, related);
 }
 bool BelCard::addRelated(const shared_ptr<BelCardRelated> &related) {
-	if (BelCardGeneric::isValid(related)) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(related)) {
 		_addRelated(related);
 		return true;
 	}
@@ -567,7 +575,7 @@ void BelCard::_addCategories(const shared_ptr<BelCardCategories> &categories) {
 	add(_categories, categories);
 }
 bool BelCard::addCategories(const shared_ptr<BelCardCategories> &categories) {
-	if (BelCardGeneric::isValid(categories)) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(categories)) {
 		_addCategories(categories);
 		return true;
 	}
@@ -584,7 +592,7 @@ void BelCard::_addNote(const shared_ptr<BelCardNote> &note) {
 	add(_notes, note);
 }
 bool BelCard::addNote(const shared_ptr<BelCardNote> &note) {
-	if (BelCardGeneric::isValid(note)) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(note)) {
 		_addNote(note);
 		return true;
 	}
@@ -601,7 +609,7 @@ void BelCard::_addSound(const shared_ptr<BelCardSound> &sound) {
 	add(_sounds, sound);
 }
 bool BelCard::addSound(const shared_ptr<BelCardSound> &sound) {
-	if (BelCardGeneric::isValid(sound)) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(sound)) {
 		_addSound(sound);
 		return true;
 	}
@@ -618,7 +626,7 @@ void BelCard::_addClientProductIdMap(const shared_ptr<BelCardClientProductIdMap>
 	add(_clientpidmaps, clientpidmap);
 }
 bool BelCard::addClientProductIdMap(const shared_ptr<BelCardClientProductIdMap> &clientpidmap) {
-	if (BelCardGeneric::isValid(clientpidmap)) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(clientpidmap)) {
 		_addClientProductIdMap(clientpidmap);
 		return true;
 	}
@@ -635,7 +643,7 @@ void BelCard::_addURL(const shared_ptr<BelCardURL> &url) {
 	add(_urls, url);
 }
 bool BelCard::addURL(const shared_ptr<BelCardURL> &url) {
-	if (BelCardGeneric::isValid(url)) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(url)) {
 		_addURL(url);
 		return true;
 	}
@@ -652,7 +660,7 @@ void BelCard::_addKey(const shared_ptr<BelCardKey> &key) {
 	add(_keys, key);
 }
 bool BelCard::addKey(const shared_ptr<BelCardKey> &key) {
-	if (BelCardGeneric::isValid(key)) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(key)) {
 		_addKey(key);
 		return true;
 	}
@@ -669,7 +677,7 @@ void BelCard::_addFBURL(const shared_ptr<BelCardFBURL> &fburl) {
 	add(_fburls, fburl);
 }
 bool BelCard::addFBURL(const shared_ptr<BelCardFBURL> &fburl) {
-	if (BelCardGeneric::isValid(fburl)) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(fburl)) {
 		_addFBURL(fburl);
 		return true;
 	}
@@ -686,7 +694,7 @@ void BelCard::_addCALADRURI(const shared_ptr<BelCardCALADRURI> &caladruri) {
 	add(_caladruris, caladruri);
 }
 bool BelCard::addCALADRURI(const shared_ptr<BelCardCALADRURI> &caladruri) {
-	if (BelCardGeneric::isValid(caladruri)) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(caladruri)) {
 		_addCALADRURI(caladruri);
 		return true;
 	}
@@ -703,7 +711,7 @@ void BelCard::_addCALURI(const shared_ptr<BelCardCALURI> &caluri) {
 	add(_caluris, caluri);
 }
 bool BelCard::addCALURI(const shared_ptr<BelCardCALURI> &caluri) {
-	if (BelCardGeneric::isValid(caluri)) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(caluri)) {
 		_addCALURI(caluri);
 		return true;
 	}
@@ -720,7 +728,7 @@ void BelCard::_addExtendedProperty(const shared_ptr<BelCardProperty> &property) 
 	add(_extended_properties, property);
 }
 bool BelCard::addExtendedProperty(const shared_ptr<BelCardProperty> &property) {
-	if (BelCardGeneric::isValid(property)) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(property)) {
 		_addExtendedProperty(property);
 		return true;
 	}
