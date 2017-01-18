@@ -637,6 +637,10 @@ belle_sip_file_body_handler_t *belle_sip_file_body_handler_new(const char *filep
 	return obj;
 }
 
+size_t belle_sip_file_body_handler_get_file_size(belle_sip_file_body_handler_t *file_bh) {
+	return file_bh->base.expected_size;
+}
+
 void belle_sip_file_body_handler_set_user_body_handler(belle_sip_file_body_handler_t *file_bh, belle_sip_user_body_handler_t *user_bh) {
 	if (file_bh) {
 		file_bh->user_bh = user_bh;
