@@ -65,13 +65,13 @@ static void sender_process(MSFilter * f)
 		int error;
 		msgpullup(im, -1);
 
-		error = sendto(
+		error = bctbx_sendto(
 			d->sockfd,
 			im->b_rptr,
 			(int) (im->b_wptr - im->b_rptr),
 			0,
 			d->dst_info->ai_addr,
-			d->dst_info->ai_addrlen
+			(socklen_t)d->dst_info->ai_addrlen
 		);
 
 		if (error == -1) {

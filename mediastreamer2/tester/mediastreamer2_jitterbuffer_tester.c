@@ -65,7 +65,7 @@ static void set_random_ports(void){
 int drifting_ticker(void *data, uint64_t virt_ticker_time){
 	ortpTimeSpec ts;
 	ortp_get_cur_time(&ts);
-	return 1 * ((ts.tv_sec * 1000LL) + ((ts.tv_nsec + 500000LL) / 1000000LL));
+	return (int)(1 * ((ts.tv_sec * 1000LL) + ((ts.tv_nsec + 500000LL) / 1000000LL)));
 }
 
 
@@ -104,7 +104,7 @@ void test_setup(int payload, OrtpJitterBufferAlgorithm algo) {
 	JBParameters params;
 
 	/*if record file exists, delete it before starting to rewrite it*/
-	if (access(RECORD_FILE, F_OK) != -1) {
+	if (bctbx_file_exist(RECORD_FILE) != -1) {
 		unlink(RECORD_FILE);
 	}
 
@@ -532,6 +532,11 @@ static void congestion_adaptation_rls(void) {
 	congestion_adaptation(OrtpJitterBufferRecursiveLeastSquare);
 }
 #endif
+
+#else
+
+static void dummy_test(void) {}
+
 #endif
 
 static test_t tests[] = {
@@ -551,6 +556,8 @@ static test_t tests[] = {
 	{ "Congestion adaptation basic", congestion_adaptation_basic },
 	{ "Congestion adaptation rls", congestion_adaptation_rls },
 #endif
+#else
+	{ "Dummy test", dummy_test }
 #endif
 
 };
