@@ -54,6 +54,7 @@ lcb_cmake_options(
 	"-DENABLE_MBEDTLS=${ENABLE_MBEDTLS}"
 	"-DENABLE_TUNNEL=${ENABLE_TUNNEL}"
 	"-DENABLE_VCARD=${ENABLE_VCARD}"
+	"-DCXX_WRAPPER=${ENABLE_CXX_WRAPPER}"
 )
 
 # TODO: Activate strict compilation options on IOS

@@ -23,6 +23,7 @@
 # Linphone build options
 
 lcb_add_option("GTK UI" "Enable the GTK user interface of Linphone." "${DEFAULT_VALUE_ENABLE_GTK_UI}")
+lcb_add_option("CXX_WRAPPER" "Build the C++ wrapper for Liblinphone." "${DEFAULT_VALUE_ENABLE_CXX_WRAPPER}")
 lcb_add_option("NLS" "Enable internationalization of Linphone and Liblinphone." ON)
 lcb_add_option("VCARD" "Enable vCard 4 support in Linphone and Liblinphone." "${DEFAULT_VALUE_ENABLE_VCARD}")
 
