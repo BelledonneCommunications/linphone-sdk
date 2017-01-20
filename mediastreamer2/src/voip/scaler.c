@@ -18,7 +18,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
 #include "mediastreamer2/msvideo.h"
-#ifdef __ARM_NEON__
+#if MS_HAS_ARM_NEON
 #include <arm_neon.h>
 #endif
 
@@ -66,7 +66,7 @@ static void init_premults(void){
 }
 
 
-#if !defined (__ARM_NEON__) 
+#if !MS_HAS_ARM_NEON
 
 static inline void yuv2rgb_4x2(const uint8_t *y1, const uint8_t *y2, const uint8_t *u, const uint8_t *v, int16_t *r1, int16_t *g1, int16_t *b1, int16_t *r2, int16_t *g2, int16_t *b2){
 	int32_t py1[4];
@@ -119,7 +119,7 @@ static inline void yuv2rgb_4x2(const uint8_t *y1, const uint8_t *y2, const uint8
 }
 #endif
 
-#if defined (__ARM_NEON__) 
+#if MS_HAS_ARM_NEON
 static int32_t yuvmax[4]={255<<13,255<<13,255<<13,255<<13};
 
 static inline void yuv2rgb_4x2(const uint8_t *y1, const uint8_t *y2, const uint8_t *u, const uint8_t *v, int16_t *r1, int16_t *g1, int16_t *b1, int16_t *r2, int16_t *g2, int16_t *b2){
@@ -247,7 +247,10 @@ static inline void line_yuv2rgb_2(const uint8_t *src_lines[],  int src_strides[]
 
 /*horizontal scaling of a single line (with 3 color planes)*/
 static inline void line_horizontal_scale(AndroidScalerCtx * ctx, int16_t *src_lines[], int16_t *dst_lines[]){
-#ifndef __ARM_NEON__
+#if MS_HAS_ARM_NEON_32
+	//ms_line_scale_simple_8(ctx->hgrid,src_lines,dst_lines,ctx->dst_w_padded);
+	ms_line_scale_8(ctx->hgrid,(const int16_t * const*)src_lines,dst_lines,ctx->dst_w_padded,ctx->hcoeffs);
+#else
 	int dst_w=ctx->dst_size.width;
 	int x=0;
 	int i,pos;
@@ -260,9 +263,6 @@ static inline void line_horizontal_scale(AndroidScalerCtx * ctx, int16_t *src_li
 		dst_lines[1][i]=src_lines[1][pos];
 		dst_lines[2][i]=src_lines[2][pos];
 	}
-#else
-	//ms_line_scale_simple_8(ctx->hgrid,src_lines,dst_lines,ctx->dst_w_padded);
-	ms_line_scale_8(ctx->hgrid,(const int16_t * const*)src_lines,dst_lines,ctx->dst_w_padded,ctx->hcoeffs);
 #endif
 }
 
@@ -303,7 +303,7 @@ static void img_yuv2rgb_hscale(AndroidScalerCtx * ctx, uint8_t *src[], int src_s
 	}
 }
 
-#ifndef __ARM_NEON__
+#if !MS_HAS_ARM_NEON_32
 
 void ms_line_rgb2rgb565(const int16_t *r, const int16_t *g, const int16_t *b, uint16_t *dst, int width){
 	int i;
@@ -332,10 +332,10 @@ static void img_yuv2rgb565_scale(AndroidScalerCtx *ctx, uint8_t *src[], int src_
 		p_src[0]=ctx->hscaled_img[0]+offset;
 		p_src[1]=ctx->hscaled_img[1]+offset;
 		p_src[2]=ctx->hscaled_img[2]+offset;
-#ifndef __ARM_NEON__
-		ms_line_rgb2rgb565(p_src[0],p_src[1],p_src[2],(uint16_t*)p_dst,ctx->dst_size.width);
-#else
+#if MS_HAS_ARM_NEON_32
 		ms_line_rgb2rgb565_8(p_src[0],p_src[1],p_src[2],(uint16_t*)p_dst,ctx->dst_w_padded);
+#else
+		ms_line_rgb2rgb565(p_src[0],p_src[1],p_src[2],(uint16_t*)p_dst,ctx->dst_size.width);
 #endif
 		y+=ctx->h_inc;
 		p_dst+=dst_strides[0];

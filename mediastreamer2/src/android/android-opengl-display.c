@@ -47,7 +47,7 @@ static void android_display_init(MSFilter *f){
 	if (wc==0){
 		ms_fatal("Could not find org/linphone/mediastream/video/AndroidVideoWindowImpl class !");
 	}
-	ad->set_opengles_display_id=(*jenv)->GetMethodID(jenv,wc,"setOpenGLESDisplay","(I)V");
+	ad->set_opengles_display_id=(*jenv)->GetMethodID(jenv,wc,"setOpenGLESDisplay","(J)V");
 	ad->request_render_id=(*jenv)->GetMethodID(jenv,wc,"requestRender","()V");
 	if (ad->set_opengles_display_id == 0)
 		ms_error("Could not find 'setOpenGLESDisplay' method\n");
@@ -136,10 +136,9 @@ static int android_display_set_window(MSFilter *f, void *arg){
 	}
 	
 	if (window) {
-		unsigned int ptr = (unsigned int)ad->ogl;
 		ad->android_video_window=(*jenv)->NewGlobalRef(jenv, window);
-		ms_message("Sending opengles_display pointer as long: %p -> %u", ad->ogl, ptr);
-		(*jenv)->CallVoidMethod(jenv,window,ad->set_opengles_display_id, ptr);
+		ms_message("Sending opengles_display pointer (%p)", ad->ogl);
+		(*jenv)->CallVoidMethod(jenv,window,ad->set_opengles_display_id, (jlong)ad->ogl);
 	}else ad->android_video_window=NULL;
 	
 	if (old_window)

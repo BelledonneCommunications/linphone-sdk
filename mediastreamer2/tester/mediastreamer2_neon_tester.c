@@ -19,10 +19,11 @@
 
 #include <stdio.h>
 #include <time.h>
+#include <inttypes.h>
 #include "mediastreamer2_tester.h"
 #include <ortp/port.h>
 
-#if defined(__ARM_NEON__) && defined(HAVE_SPEEXDSP)
+#if MS_HAS_ARM_NEON && defined(HAVE_SPEEXDSP)
 #include <arm_neon.h>
 #include <speex/speex.h>
 
@@ -255,7 +256,7 @@ static void inner_product_test(void) {
 	// we expect the result to be very similar and at least 5 times faster with NEON
 	BC_ASSERT(percent_off < 1.0);
 	BC_ASSERT(fast_enough);
-	ms_message("NEON = %llu ms, SOFT: %llu ms", neon_ms, soft_ms);
+	ms_message("NEON = %" PRIu64 " ms, SOFT: %" PRIu64 " ms", neon_ms, soft_ms);
 	if( !fast_enough ) {
 		ms_error("NEON not fast enough it seems");
 	}

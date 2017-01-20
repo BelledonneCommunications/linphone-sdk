@@ -65,10 +65,10 @@ static void enc_init(MSFilter *f){
 	f->data=s;
 
 #ifdef SPEEX_LIB_SET_CPU_FEATURES
-#ifdef __ARM_NEON__
+#if MS_HAS_ARM_NEON
 	#ifdef ANDROID
-	if (android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM
-		&& (android_getCpuFeatures() & ANDROID_CPU_ARM_FEATURE_NEON) != 0) {
+	if (((android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM) && ((android_getCpuFeatures() & ANDROID_CPU_ARM_FEATURE_NEON) != 0))
+		|| (android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM64)) {
 		cpuFeatures = SPEEX_LIB_CPU_FEATURE_NEON;
 	}
 	#else

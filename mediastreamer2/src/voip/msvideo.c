@@ -634,7 +634,7 @@ static MSScalerDesc android_scaler={
 #include "cpu-features.h"
 #endif
 
-#if defined(ANDROID) && defined(MS_HAS_ARM)
+#if defined(ANDROID) && defined(MS_HAS_ARM) && !defined(__aarch64__)
 extern MSScalerDesc ms_android_scaler;
 #endif 
 
@@ -644,7 +644,7 @@ static MSScalerDesc *scaler_impl=NULL;
 MSScalerContext *ms_scaler_create_context(int src_w, int src_h, MSPixFmt src_fmt,
                                           int dst_w, int dst_h, MSPixFmt dst_fmt, int flags){
 	if (!scaler_impl){
-#if defined(ANDROID) && defined(MS_HAS_ARM)
+#if defined(ANDROID) && defined(MS_HAS_ARM) && !defined(__aarch64__)
 		if (android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM && (android_getCpuFeatures() & ANDROID_CPU_ARM_FEATURE_NEON) != 0){
 			scaler_impl = &ms_android_scaler;
 		}
@@ -711,7 +711,7 @@ static void rotate_plane_down_scale_by_2(int wDest, int hDest, int full_width, c
 #ifdef ANDROID
 
 static int hasNeon = -1;
-#elif defined (__ARM_NEON__)
+#elif MS_HAS_ARM_NEON
 static int hasNeon = 1;
 #elif MS_HAS_ARM
 static int hasNeon = 0;
@@ -731,9 +731,10 @@ mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(MSYuvBu
 
 #ifdef ANDROID
 	if (hasNeon == -1) {
-		hasNeon = (android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM && (android_getCpuFeatures() & ANDROID_CPU_ARM_FEATURE_NEON) != 0);
-	#ifdef __arm64__
-		ms_warning("Warning: ARM64 NEON routines for video rotation are not yes implemented for Android: using SOFT version!");
+		hasNeon = (((android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM) && ((android_getCpuFeatures() & ANDROID_CPU_ARM_FEATURE_NEON) != 0))
+			|| (android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM64));
+	#ifdef __aarch64__
+		ms_warning("Warning: ARM64 NEON routines for video rotation are not yet implemented for Android: using SOFT version!");
 	#endif
 	}
 #endif

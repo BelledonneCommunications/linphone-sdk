@@ -170,7 +170,7 @@ public class AndroidVideoWindowImpl {
 		return mBitmap;
 	}
 	 
-	public void setOpenGLESDisplay(int ptr) {
+	public void setOpenGLESDisplay(long ptr) {
 		if (!useGLrendering)
 			Log.e("View class does not match Video display filter used (you must use a GL View)");
 		renderer.setOpenGLESDisplay(ptr);
@@ -199,7 +199,7 @@ public class AndroidVideoWindowImpl {
 	}
 	
     private static class Renderer implements GLSurfaceView.Renderer {
-    	int ptr;
+    	long ptr;
     	boolean initPending;
     	int width, height;
     	
@@ -208,7 +208,7 @@ public class AndroidVideoWindowImpl {
     		initPending = false;
     	}
     	 
-    	public void setOpenGLESDisplay(int ptr) {
+    	public void setOpenGLESDisplay(long ptr) {
     		/* 
     		 * Synchronize this with onDrawFrame:
     		 * - they are called from different threads (Rendering thread and Linphone's one)

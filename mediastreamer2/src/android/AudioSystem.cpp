@@ -255,7 +255,7 @@ void dumpMemory(void *obj, size_t size){
 	size_t i;
 	ms_message("Dumping memory at %p",obj);
 	for (i=0;i<size;i+=sizeof(long)){
-		ms_message("%4i\t%lx",i,*(long*)(((uint8_t*)obj)+i));
+		ms_message("%4i\t%lx",(int)i,*(long*)(((uint8_t*)obj)+i));
 	}
 }
 

@@ -98,6 +98,14 @@ public class Version {
 		}
 		return cpuabis;
 	}
+	private static boolean isArm64() {
+		try {
+			return getCpuAbis().get(0).startsWith("arm64-v8a");
+		} catch (Throwable e) {
+			Log.e(e);
+		}
+		return false;
+	}
 	private static boolean isArmv7() {
 		try {
 			return getCpuAbis().get(0).startsWith("armeabi-v7");
@@ -130,7 +138,7 @@ public class Version {
 		return !isArmv5();
 	}
 	public static boolean hasFastCpuWithAsmOptim() {
-		return (!isX86() && !isArmv5() && hasNeon()) || isX86();
+		return isX86() || isArm64() || (!isArmv5() && hasNeon());
 	}
 	public static boolean isVideoCapable() {
 		return !Version.sdkStrictlyBelow(5) && Version.hasFastCpu();

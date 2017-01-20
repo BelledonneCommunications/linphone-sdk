@@ -64,11 +64,11 @@ static void resample_init(MSFilter *obj){
 	ResampleData* data=resample_data_new();
 #ifdef SPEEX_LIB_SET_CPU_FEATURES
 	#ifdef ANDROID
-	if (android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM
-		&& (android_getCpuFeatures() & ANDROID_CPU_ARM_FEATURE_NEON) != 0) {
+	if (((android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM) && ((android_getCpuFeatures() & ANDROID_CPU_ARM_FEATURE_NEON) != 0))
+		|| (android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM64)) {
 		data->cpuFeatures = SPEEX_LIB_CPU_FEATURE_NEON;
 	}
-	#elif defined(__ARM_NEON__)
+	#elif MS_HAS_ARM_NEON
 	data->cpuFeatures = SPEEX_LIB_CPU_FEATURE_NEON;
 	#endif
 	ms_message("speex_lib_ctl init with neon ? %d", (data->cpuFeatures == SPEEX_LIB_CPU_FEATURE_NEON));
@@ -108,14 +108,14 @@ static int resample_channel_adapt(int in_nchannels, int out_nchannels, mblk_t *i
 static void resample_init_speex(ResampleData *dt){
 	int err=0;
 	int quality=SPEEX_RESAMPLER_QUALITY_VOIP; /*default value is voip*/
-#if defined(__arm__) || defined(_M_ARM) /*on ARM, NEON optimization are mandatory to support this quality, else using basic mode*/
+#if MS_HAS_ARM /*on ARM, NEON optimization are mandatory to support this quality, else using basic mode*/
 #if SPEEX_LIB_SET_CPU_FEATURES
 	if (dt->cpuFeatures != SPEEX_LIB_CPU_FEATURE_NEON)
 		quality=SPEEX_RESAMPLER_QUALITY_MIN;
-#elif !defined(__ARM_NEON__)
+#elif !MS_HAS_ARM_NEON
 	quality=SPEEX_RESAMPLER_QUALITY_MIN;
 #endif /*SPEEX_LIB_SET_CPU_FEATURES*/
-#endif /*defined(__arm__) || defined(_M_ARM)*/
+#endif /*MS_HAS_ARM*/
 	ms_message("Initializing speex resampler in mode [%s] ",(quality==SPEEX_RESAMPLER_QUALITY_VOIP?"voip":"min"));
 	dt->handle=speex_resampler_init(dt->in_nchannels, dt->input_rate, dt->output_rate, quality, &err);
 }

@@ -216,7 +216,7 @@ static int android_display_set_window(MSFilter *f, void *arg){
 
 	ms_filter_lock(f);
 	oldsurf=ad->surf;
-	if (jsurface!=NULL) ad->surf=(Surface*)jenv->GetIntField(jsurface,ad->surface_id);
+	if (jsurface!=NULL) ad->surf=(Surface*)jenv->GetLongField(jsurface,ad->surface_id);
 	else ad->surf=NULL;
 	if (ad->surf)
 		sym_Android_RefBase_incStrong(ad->surf,NULL);

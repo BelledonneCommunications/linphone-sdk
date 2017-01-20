@@ -19,6 +19,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 package org.linphone.mediastream.video.display;
 
 public class OpenGLESDisplay {
-	public static native void init(int ptr, int width, int height);
-    public static native void render(int ptr);
+	public static native void init(long ptr, int width, int height);
+    public static native void render(long ptr);
 }

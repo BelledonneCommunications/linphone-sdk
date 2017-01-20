@@ -44,7 +44,7 @@ extern test_suite_t text_stream_test_suite;
 extern test_suite_t codec_impl_test_suite;
 extern test_suite_t jitterbuffer_test_suite;
 #endif
-#ifdef __ARM_NEON__
+#if MS_HAS_ARM_NEON
 extern test_suite_t neon_test_suite;
 #endif
 
