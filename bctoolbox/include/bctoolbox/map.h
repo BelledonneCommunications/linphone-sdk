@@ -38,6 +38,8 @@ BCTBX_PUBLIC bctbx_map_t *bctbx_mmap_ullong_new(void);
 BCTBX_PUBLIC bctbx_map_t *bctbx_mmap_cchar_new(void);
 BCTBX_PUBLIC void bctbx_mmap_ullong_delete(bctbx_map_t *mmap);
 BCTBX_PUBLIC void bctbx_mmap_cchar_delete(bctbx_map_t *mmap);
+BCTBX_PUBLIC void bctbx_mmap_ullong_delete_with_data(bctbx_map_t *mmap, bctbx_map_free_func freefunc);
+BCTBX_PUBLIC void bctbx_mmap_cchar_delete_with_data(bctbx_map_t *mmap, bctbx_map_free_func freefunc);
 #define bctbx_map_insert bctbx_map_ullong_insert
 BCTBX_PUBLIC void bctbx_map_ullong_insert(bctbx_map_t *map,const bctbx_pair_t *pair);
 BCTBX_PUBLIC void bctbx_map_cchar_insert(bctbx_map_t *map,const bctbx_pair_t *pair);
