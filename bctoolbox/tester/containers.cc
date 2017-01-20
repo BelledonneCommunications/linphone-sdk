@@ -120,7 +120,7 @@ static void multimap_insert_cchar(void) {
 	
 	for(i=0;i<N;i++) {
 		char str[32];
-		std::snprintf(str, sizeof(str), "%ld", N-i-1);
+		snprintf(str, sizeof(str), "%ld", N-i-1);
 		bctbx_pair_t* pair = (bctbx_pair_t*)bctbx_pair_cchar_new((const char *)str, (void*)((long)N-i-1));
 		bctbx_map_cchar_insert(mmap, pair);
 		bctbx_pair_cchar_delete(pair);
@@ -129,7 +129,7 @@ static void multimap_insert_cchar(void) {
 
 	for(i = 0;i < N;i++) {
 		char str[32];
-		std::snprintf(str, sizeof(str), "%ld", i);
+		snprintf(str, sizeof(str), "%ld", i);
 		it = bctbx_map_cchar_find_key(mmap, (const char *)str);
 		BC_ASSERT_EQUAL( (long)bctbx_pair_cchar_get_second(bctbx_iterator_cchar_get_pair(it))
 						, (long)i
@@ -152,7 +152,7 @@ static void multimap_erase_cchar(void) {
 	
 	for(i=0;i<N;i++) {
 		char str[32];
-		std::snprintf(str, sizeof(str),"%ld", i);
+		snprintf(str, sizeof(str),"%ld", i);
 		bctbx_map_cchar_insert_and_delete(mmap, (bctbx_pair_t*)bctbx_pair_cchar_new((const char *)str, (void*)((long)i)));
 	}
 	
@@ -185,7 +185,7 @@ static void multimap_find_custom_cchar(void) {
 	
 	for(i=0;i<N;i++) {
 		char str[32];
-		std::snprintf(str, sizeof(str), "%ld", i);
+		snprintf(str, sizeof(str), "%ld", i);
 		bctbx_pair_t* pair = (bctbx_pair_t*)bctbx_pair_cchar_new((const char *)str, (void*)((long)i));
 		bctbx_map_cchar_insert_and_delete(mmap, pair);
 	}
