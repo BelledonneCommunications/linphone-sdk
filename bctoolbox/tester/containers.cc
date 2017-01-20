@@ -17,6 +17,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <stdio.h>
 #include "bctoolbox_tester.h"
 #include "bctoolbox/map.h"
 #include "bctoolbox/list.h"
