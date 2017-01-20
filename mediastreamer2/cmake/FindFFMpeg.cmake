@@ -53,7 +53,7 @@ endif()
 
 if(ANDROID)
 	find_library(FFMPEG_LIBRARIES
-		NAMES ffmpeg-linphone-${CMAKE_SYSTEM_PROCESSOR}
+		NAMES ffmpeg-linphone-${NDK_ARCHITECTURE}
 	)
 else()
 	find_library(LIBAVCODEC_LIBRARIES
