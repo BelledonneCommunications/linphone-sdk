@@ -47,6 +47,24 @@ extern "C" void bctbx_mmap_ullong_delete(bctbx_map_t *mmap) {
 extern "C" void bctbx_mmap_cchar_delete(bctbx_map_t *mmap) {
 	bctbx_mmap_delete<mmap_cchar_t>(mmap);
 }
+extern "C" void bctbx_mmap_ullong_delete_with_data(bctbx_map_t *mmap, bctbx_map_free_func freefunc) {
+	bctbx_iterator_t *it = bctbx_map_ullong_begin(mmap);
+	while(it) {
+		bctbx_pair_t *pair = bctbx_iterator_ullong_get_pair(it);
+		freefunc(bctbx_pair_ullong_get_second(pair));
+		it = bctbx_iterator_ullong_get_next(it);
+	}
+	bctbx_mmap_ullong_delete(mmap);
+}
+extern "C" void bctbx_mmap_cchar_delete_with_data(bctbx_map_t *mmap, bctbx_map_free_func freefunc) {
+	bctbx_iterator_t *it = bctbx_map_cchar_begin(mmap);
+	while(it) {
+		bctbx_pair_t *pair = bctbx_iterator_cchar_get_pair(it);
+		freefunc(bctbx_pair_cchar_get_second(pair));
+		it = bctbx_iterator_cchar_get_next(it);
+	}
+	bctbx_mmap_cchar_delete(mmap);
+}
 
 template<typename T> bctbx_iterator_t *bctbx_map_insert_base(bctbx_map_t *map,const bctbx_pair_t *pair,bool_t returns_it) {
 	typename T::iterator it;

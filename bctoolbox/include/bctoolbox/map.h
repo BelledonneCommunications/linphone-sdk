@@ -31,6 +31,8 @@ typedef struct _bctbx_iterator_t bctbx_iterator_t;
 
 typedef struct _bctbx_mmap_ullong_t bctbx_mmap_ullong_t;
 typedef struct _bctbx_mmap_cchar_t bctbx_mmap_cchar_t;
+	
+typedef void (*bctbx_map_free_func)(void *);
 /*map*/
 BCTBX_PUBLIC bctbx_map_t *bctbx_mmap_ullong_new(void);
 BCTBX_PUBLIC bctbx_map_t *bctbx_mmap_cchar_new(void);
