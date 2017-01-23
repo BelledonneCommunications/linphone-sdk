@@ -27,6 +27,7 @@ lcb_external_source_paths("belr")
 lcb_groupable(YES)
 
 lcb_dependencies("bctoolbox")
+lcb_cmake_options("-DENABLE_TOOLS=${ENABLE_TOOLS}")
 
 # TODO: Activate strict compilation options on IOS
 if(IOS)
