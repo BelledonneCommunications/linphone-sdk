@@ -144,7 +144,6 @@ void ogl_display_set_size(struct opengles_display* gldisp, int width, int height
 	ms_message("resize opengles_display (%d x %d, gl initialized:%d)", width, height, gldisp->glResourcesInitialized);
 
 	GL_OPERATION(glViewport(0, 0, gldisp->backingWidth, gldisp->backingHeight));
-
 	check_GL_errors("ogl_display_set_size");
 }
 
@@ -305,26 +304,25 @@ static void ogl_display_render_type(struct opengles_display* gldisp, enum ImageT
 
 	// Fill the smallest dimension, then compute the other one using the image ratio
 	if (screenW <= screenH) {
-		float ratio = (gldisp->yuv_size[type].height) / (float)(gldisp->yuv_size[type].width);
+		float ratio = gldisp->yuv_size[type].height / (float)(gldisp->yuv_size[type].width);
 		w = screenW * vpw;
 		h = w * ratio;
 		if (h > screenH) {
-			w *= screenH /(float) h;
+			w *= screenH / (float)h;
 			h = screenH;
 		}
-		x = vpx * gldisp->backingWidth;
-		y = vpy * gldisp->backingHeight;
 	} else {
-		float ratio = gldisp->yuv_size[type].width / (float)gldisp->yuv_size[type].height;
+		float ratio = gldisp->yuv_size[type].width / (float)(gldisp->yuv_size[type].height);
 		h = screenH * vph;
 		w = h * ratio;
 		if (w > screenW) {
 			h *= screenW / (float)w;
 			w = screenW;
 		}
-		x = vpx * screenW;
-		y = vpy * screenH;
 	}
+
+	x = vpx * screenW;
+	y = vpy * screenH;
 
 	squareVertices[0] = (x - w * 0.5) / screenW - 0.;
 	squareVertices[1] = (y - h * 0.5) / screenH - 0.;
@@ -536,6 +534,7 @@ static bool_t update_textures_with_yuv(struct opengles_display* gldisp, enum Ima
 		ms_warning("Incoherent image size: %dx%d\n", yuvbuf.w, yuvbuf.h);
 		return FALSE;
 	}
+
 	aligned_yuv_w = align_on_power_of_2(yuvbuf.w);
 	aligned_yuv_h = align_on_power_of_2(yuvbuf.h);
 
@@ -544,6 +543,7 @@ static bool_t update_textures_with_yuv(struct opengles_display* gldisp, enum Ima
 		aligned_yuv_h != (unsigned int)gldisp->allocatedTexturesSize[type].height) {
 		allocate_gl_textures(gldisp, aligned_yuv_w, aligned_yuv_h, type);
 	}
+
 	gldisp->uvx[type] = yuvbuf.w / (float)(gldisp->allocatedTexturesSize[type].width);
 	gldisp->uvy[type] = yuvbuf.h / (float)(gldisp->allocatedTexturesSize[type].height);
 
