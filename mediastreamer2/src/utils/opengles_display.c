@@ -524,8 +524,16 @@ static unsigned int align_on_power_of_2(unsigned int value) {
 	return 0;
 }
 
+static int pixel_unpack_alignment(uint8_t *ptr, int datasize) {
+	uintptr_t num_ptr = (uintptr_t) ptr;
+	int alignment_ptr = !(num_ptr % 4) ? 4 : !(num_ptr % 2) ? 2 : 1;
+	int alignment_data = !(datasize % 4) ? 4 : !(datasize % 2) ? 2 : 1;
+	return (alignment_ptr <= alignment_data) ? alignment_ptr : alignment_data;
+}
+
 static bool_t update_textures_with_yuv(struct opengles_display* gldisp, enum ImageType type) {
 	unsigned int aligned_yuv_w, aligned_yuv_h;
+	int alignment = 0;
 	MSPicture yuvbuf;
 
 	ms_yuv_buf_init_from_mblk(&yuvbuf, gldisp->yuv[type]);
@@ -547,10 +555,19 @@ static bool_t update_textures_with_yuv(struct opengles_display* gldisp, enum Ima
 	gldisp->uvx[type] = yuvbuf.w / (float)(gldisp->allocatedTexturesSize[type].width);
 	gldisp->uvy[type] = yuvbuf.h / (float)(gldisp->allocatedTexturesSize[type].height);
 
+	/* alignment of pointers and datasize */
+	{
+		int alig_Y = pixel_unpack_alignment(yuvbuf.planes[Y], yuvbuf.w * yuvbuf.h);
+		int alig_U = pixel_unpack_alignment(yuvbuf.planes[U], yuvbuf.w >> 1);
+		int alig_V = pixel_unpack_alignment(yuvbuf.planes[V], yuvbuf.w >> 1);
+		alignment = (alig_U > alig_V)
+		  ? ((alig_V > alig_Y) ? alig_Y : alig_V)
+			:	((alig_U > alig_Y) ? alig_Y : alig_U);
+	}
 	/* upload Y plane */
 	GL_OPERATION(glActiveTexture(GL_TEXTURE0))
 	GL_OPERATION(glBindTexture(GL_TEXTURE_2D, gldisp->textures[gldisp->texture_index][type][Y]))
-	GL_OPERATION(glPixelStorei(GL_UNPACK_ALIGNMENT, 4))
+	GL_OPERATION(glPixelStorei(GL_UNPACK_ALIGNMENT, alignment))
 	GL_OPERATION(glTexSubImage2D(GL_TEXTURE_2D, 0,
 			0, 0, yuvbuf.w, yuvbuf.h,
 			GL_LUMINANCE, GL_UNSIGNED_BYTE, yuvbuf.planes[Y]))
@@ -559,7 +576,7 @@ static bool_t update_textures_with_yuv(struct opengles_display* gldisp, enum Ima
 	/* upload U plane */
 	GL_OPERATION(glActiveTexture(GL_TEXTURE1))
 	GL_OPERATION(glBindTexture(GL_TEXTURE_2D, gldisp->textures[gldisp->texture_index][type][U]))
-	GL_OPERATION(glPixelStorei(GL_UNPACK_ALIGNMENT, 2))
+	GL_OPERATION(glPixelStorei(GL_UNPACK_ALIGNMENT, alignment))
 	GL_OPERATION(glTexSubImage2D(GL_TEXTURE_2D, 0,
 			0, 0, yuvbuf.w >> 1, yuvbuf.h >> 1,
 			GL_LUMINANCE, GL_UNSIGNED_BYTE, yuvbuf.planes[U]))
@@ -568,12 +585,11 @@ static bool_t update_textures_with_yuv(struct opengles_display* gldisp, enum Ima
 	/* upload V plane */
 	GL_OPERATION(glActiveTexture(GL_TEXTURE2))
 	GL_OPERATION(glBindTexture(GL_TEXTURE_2D, gldisp->textures[gldisp->texture_index][type][V]))
-	GL_OPERATION(glPixelStorei(GL_UNPACK_ALIGNMENT, 2))
+	GL_OPERATION(glPixelStorei(GL_UNPACK_ALIGNMENT, alignment))
 	GL_OPERATION(glTexSubImage2D(GL_TEXTURE_2D, 0,
 			0, 0, yuvbuf.w >> 1, yuvbuf.h >> 1,
 			GL_LUMINANCE, GL_UNSIGNED_BYTE, yuvbuf.planes[V]))
 	GL_OPERATION(glUniform1i(gldisp->uniforms[UNIFORM_TEXTURE_V], 2))
-
 	gldisp->yuv_size[type].width = yuvbuf.w;
 	gldisp->yuv_size[type].height = yuvbuf.h;
 
