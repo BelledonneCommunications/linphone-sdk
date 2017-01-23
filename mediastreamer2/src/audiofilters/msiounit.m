@@ -96,7 +96,7 @@ static const char *audio_session_format_error(OSStatus error)
  }
 
 #define check_au_session_result(au,method) \
-if (au!=0) ms_error("AudioSession error for %s: ret=%s (%li) (%s:%d)",method, audio_session_format_error(au), (long)au, __FILE__, __LINE__ )
+if (au!=AVAudioSessionErrorInsufficientPriority && au!=0) ms_error("AudioSession error for %s: ret=%s (%li) (%s:%d)",method, audio_session_format_error(au), (long)au, __FILE__, __LINE__ )
 
 #define check_au_unit_result(au,method) \
 if (au!=0) ms_error("AudioUnit error for %s: ret=%s (%li) (%s:%d)",method, audio_unit_format_error(au), (long)au, __FILE__, __LINE__ )
