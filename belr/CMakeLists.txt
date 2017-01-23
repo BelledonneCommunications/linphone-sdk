@@ -32,6 +32,7 @@ set(BELR_SO_VERSION "1")
 option(ENABLE_SHARED "Build shared library." ON)
 option(ENABLE_STATIC "Build static library." ON)
 option(ENABLE_STRICT "Build with strict compile options." YES)
+option(ENABLE_TOOLS "Turn on or off compilation of tools." YES)
 
 
 macro(apply_compile_flags SOURCE_FILES)
@@ -124,7 +125,9 @@ endif()
 
 add_subdirectory(include)
 add_subdirectory(src)
-add_subdirectory(tools)
+if(ENABLE_TOOLS)
+	add_subdirectory(tools)
+endif()
 
 include(CMakePackageConfigHelpers)
 export(EXPORT ${EXPORT_TARGETS_NAME}Targets
