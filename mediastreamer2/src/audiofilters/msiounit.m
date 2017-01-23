@@ -21,6 +21,7 @@
 #import <AVFoundation/AVAudioSession.h>
 #import <Foundation/NSArray.h>
 #import <Foundation/NSString.h>
+#import <Foundation/NSObjCRuntime.h>
 #include <AudioToolbox/AudioToolbox.h>
 #include "mediastreamer2/mssndcard.h"
 #include "mediastreamer2/msfilter.h"
