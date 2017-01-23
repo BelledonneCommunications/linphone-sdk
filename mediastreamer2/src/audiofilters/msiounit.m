@@ -21,7 +21,6 @@
 #import <AVFoundation/AVAudioSession.h>
 #import <Foundation/NSArray.h>
 #import <Foundation/NSString.h>
-#import <Foundation/NSObjCRuntime.h>
 #include <AudioToolbox/AudioToolbox.h>
 #include "mediastreamer2/mssndcard.h"
 #include "mediastreamer2/msfilter.h"
@@ -763,7 +762,7 @@ static void au_write_preprocess(MSFilter *f){
 	 * Apparently the driver doesn't recover from this situation.
 	 * The workaround is then to request 44100 Hz instead of 48khz.
 	 */
-	if(card->rate == 8000 && (floor(NSFoundationVersionNumber) > NSFoundationVersionNumber_iOS_9_x_Max)) {
+	if(card->rate == 8000 && (floor(NSFoundationVersionNumber) >= NSFoundationVersionNumber_iOS_9_x_Max)) {
 		hwsamplerate=48000;
 		auresult=AudioSessionSetProperty(kAudioSessionProperty_PreferredHardwareSampleRate
 										 , sizeof(hwsamplerate)
