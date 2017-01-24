@@ -76,7 +76,7 @@ string belcard_read_file(const string &filename) {
 	
 	if (!istr || !istr.is_open() || istr.fail()) {
 		bctbx_error("[belcard] Couldn't open file %s", fName);
-		return NULL;
+		return string();
 	}
 	
 	string vcard;
