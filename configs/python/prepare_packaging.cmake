@@ -35,7 +35,10 @@ endif()
 
 set(OUTPUT_DIR "${OUTPUT_DIR}/build_${PACKAGE_TYPE}/linphone")
 file(MAKE_DIRECTORY "${OUTPUT_DIR}/linphone")
-configure_file("${INPUT_DIR}/__init__.py.cmake" "${OUTPUT_DIR}/linphone/__init__.py")
+if(PYTHON_VERSION_MAJOR GREATER 2)
+	set(PACKAGE_PREFIX "linphone.") # Add "linphone." prefix to import statements in __init__.py for Python 3
+endif()
+configure_file("${INPUT_DIR}/__init__.py.cmake" "${OUTPUT_DIR}/linphone/__init__.py" @ONLY)
 file(COPY "${LINPHONE_PYTHON_MODULE}" DESTINATION "${OUTPUT_DIR}/linphone")
 if(UNIX AND NOT APPLE)
 	foreach(reallib ${LINPHONE_DYNAMIC_LIBRARIES_TO_INSTALL})
