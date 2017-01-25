@@ -110,7 +110,7 @@ static int player_open(MSFilter *f, void *arg){
 		player_close(f,NULL);
 	}
 	if ((fd=open(file,O_RDONLY|O_BINARY))==-1){
-		ms_warning("MSFilePlayer[%p]: failed to open %s: %s",f,file,strerror(errno));
+		ms_warning("MSPCAPFilePlayer[%p]: failed to open %s: %s",f,file,strerror(errno));
 		return -1;
 	}
 
@@ -123,14 +123,14 @@ static int player_open(MSFilter *f, void *arg){
 		char err[PCAP_ERRBUF_SIZE];
 		d->pcap = pcap_open_offline(file, err);
 		if (d->pcap == NULL) {
-			ms_error("MSFilePlayer[%p]: failed to open pcap file: %s",f,err);
+			ms_error("MSPCAPFilePlayer[%p]: failed to open pcap file: %s",f,err);
 			d->fd=-1;
 			close(fd);
 			return -1;
 		}
 		d->datalink_size = link_layer_size(pcap_datalink(d->pcap));
 		ms_filter_notify_no_arg(f,MS_FILTER_OUTPUT_FMT_CHANGED);
-		ms_message("MSFilePlayer[%p]: %s opened: rate=%i",f,file,d->rate);
+		ms_message("MSPCAPFilePlayer[%p]: %s opened: rate=%i",f,file,d->rate);
 		return 0;
 	} else {
 		ms_error("Unsupported file extension: %s", file);
@@ -157,7 +157,10 @@ static int player_pause(MSFilter *f, void *arg){
 
 static int player_close(MSFilter *f, void *arg){
 	PlayerData *d=(PlayerData*)f->data;
-	if (d->pcap) pcap_close(d->pcap);
+	if (d->pcap) {
+		pcap_close(d->pcap);
+		d->pcap = NULL;
+	}
 	if (d->fd!=-1)	close(d->fd);
 	d->fd=-1;
 	d->state=MSPlayerClosed;
@@ -196,6 +199,7 @@ static void player_process(MSFilter *f){
 				if (res == -2) {
 					ms_filter_notify_no_arg(f,MS_PLAYER_EOF);
 					ms_filter_notify_no_arg(f, MS_FILE_PLAYER_EOF);
+					d->state = MSPlayerPaused;
 				} else if (res == -1) {
 					ms_error("Error while reading next pcap packet: %s", pcap_geterr(d->pcap));
 				} else if (res > 0) {
@@ -290,7 +294,7 @@ static int player_set_sr(MSFilter *f, void *arg) {
 	PlayerData *d = (PlayerData *)f->data;
 	if (d->is_raw) d->rate = *((int *)arg);
 	else return -1;
-	ms_message("MSFilePlayer[%p]: new rate=%i",f,d->rate);
+	ms_message("MSPCAPFilePlayer[%p]: new rate=%i",f,d->rate);
 	return 0;
 }
 

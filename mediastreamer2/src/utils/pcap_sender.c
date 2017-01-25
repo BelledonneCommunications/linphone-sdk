@@ -27,21 +27,25 @@ static void ms_pcap_stop(MSPCAPSender *s) {
 	MSConnectionHelper h;
 	// notify user callback
 	if (s->pcap_ended_cb != NULL) {
+		ms_message("Notifying user callback");
 		s->pcap_ended_cb(s, s->pcap_ended_user_data);
 	}
 	//then delete and free the graph
+	ms_message("Deleting graph");
 	ms_ticker_detach(s->ticker, s->file_player);
+	ms_connection_helper_start(&h);
 	ms_connection_helper_unlink(&h,s->file_player,-1,0);
 	ms_connection_helper_unlink(&h,s->udp_send,0,-1);
 	ms_filter_destroy(s->file_player);
 	ms_filter_destroy(s->udp_send);
 	ms_ticker_destroy(s->ticker);
 	ms_free(s);
+	ms_message("Done");
 }
 
 static void reader_notify_cb(void *user_data, MSFilter *f, unsigned int event, void *eventdata)
 {
-	if (event == MS_FILE_PLAYER_EOF) {
+	if (event == MS_PLAYER_EOF) {
 		ms_message("Reached end of file, stopping PCAP Sender");
 		ms_pcap_stop((MSPCAPSender*)user_data);
 	}
