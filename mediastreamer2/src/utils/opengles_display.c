@@ -552,8 +552,9 @@ static bool_t update_textures_with_yuv(struct opengles_display* gldisp, enum Ima
 		allocate_gl_textures(gldisp, aligned_yuv_w, aligned_yuv_h, type);
 	}
 
-	gldisp->uvx[type] = yuvbuf.w / (float)(gldisp->allocatedTexturesSize[type].width);
-	gldisp->uvy[type] = yuvbuf.h / (float)(gldisp->allocatedTexturesSize[type].height);
+	/* We must add 2 to width and height due to a precision issue with the division */
+	gldisp->uvx[type] = yuvbuf.w / (float)(gldisp->allocatedTexturesSize[type].width + 2);
+	gldisp->uvy[type] = yuvbuf.h / (float)(gldisp->allocatedTexturesSize[type].height + 2);
 
 	/* alignment of pointers and datasize */
 	{
