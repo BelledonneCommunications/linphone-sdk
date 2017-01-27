@@ -201,8 +201,8 @@ static VTCompressionSessionRef vth264enc_session_create(VTH264EncCtx *ctx) {
 	VTCompressionSessionRef session = NULL;
 
 	CFMutableDictionaryRef pixbuf_attr = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, NULL, &kCFTypeDictionaryValueCallBacks);
-	int pixel_type = kCVPixelFormatType_420YpCbCr8Planar;
-	value = CFNumberCreate(NULL, kCFNumberIntType, &pixel_type);
+	int32_t pixel_type = kCVPixelFormatType_420YpCbCr8Planar;
+	value = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &pixel_type);
 	CFDictionarySetValue(pixbuf_attr, kCVPixelBufferPixelFormatTypeKey, value);
 	CFRelease(value);
 
@@ -212,7 +212,7 @@ static VTCompressionSessionRef vth264enc_session_create(VTH264EncCtx *ctx) {
 #endif
 
 	err = VTCompressionSessionCreate(kCFAllocatorDefault, ctx->conf.vsize.width, ctx->conf.vsize.height, kCMVideoCodecType_H264,
-									session_props, pixbuf_attr, NULL, (VTCompressionOutputCallback)vth264enc_output_cb, ctx, &session);
+									session_props, pixbuf_attr, kCFAllocatorDefault, (VTCompressionOutputCallback)vth264enc_output_cb, ctx, &session);
 	CFRelease(pixbuf_attr);
 	CFRelease(session_props);
 	if(err) {
@@ -264,7 +264,7 @@ static VTCompressionSessionRef vth264enc_session_create(VTH264EncCtx *ctx) {
 #if !TARGET_OS_IOS
 		CFBooleanRef hardware_acceleration_enabled;
 		err = VTSessionCopyProperty(session, kVTCompressionPropertyKey_UsingHardwareAcceleratedVideoEncoder, kCFAllocatorDefault, &hardware_acceleration_enabled);
-		if (err != kVTPropertyNotSupportedErr && err != noErr) {
+		if (err != noErr) {
 			vth264enc_error("could not read kVTCompressionPropertyKey_UsingHardwareAcceleratedVideoEncoder property: %s", os_status_to_string(err));
 		} else {
 			if (hardware_acceleration_enabled != NULL && CFBooleanGetValue(hardware_acceleration_enabled)) {
@@ -682,14 +682,14 @@ static bool_t h264_dec_init_decoder(VTH264DecCtx *ctx) {
 		return FALSE;
 	}
 
-	CFMutableDictionaryRef decoder_params = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, NULL, &kCFTypeDictionaryValueCallBacks);
+	CFMutableDictionaryRef decoder_params = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, NULL, NULL);
 #if !TARGET_OS_IPHONE
 	CFDictionarySetValue(decoder_params, kVTVideoDecoderSpecification_EnableHardwareAcceleratedVideoDecoder, kCFBooleanTrue);
 #endif
 
 	CFMutableDictionaryRef pixel_parameters = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, NULL, &kCFTypeDictionaryValueCallBacks);
-	int format = kCVPixelFormatType_420YpCbCr8Planar;
-	CFNumberRef value = CFNumberCreate(kCFAllocatorDefault, kCFNumberNSIntegerType, &format);
+	int32_t format = kCVPixelFormatType_420YpCbCr8Planar;
+	CFNumberRef value = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &format);
 	CFDictionarySetValue(pixel_parameters, kCVPixelBufferPixelFormatTypeKey, value);
 	CFRelease(value);
 
@@ -703,7 +703,7 @@ static bool_t h264_dec_init_decoder(VTH264DecCtx *ctx) {
 #if !TARGET_OS_IPHONE
 		CFBooleanRef hardware_acceleration;
 		status = VTSessionCopyProperty(ctx->session, kVTDecompressionPropertyKey_UsingHardwareAcceleratedVideoDecoder, kCFAllocatorDefault, &hardware_acceleration);
-		if (status != noErr && status != kVTPropertyNotSupportedErr) {
+		if (status != noErr) {
 			vth264dec_error("could not read kVTDecompressionPropertyKey_UsingHardwareAcceleratedVideoDecoder property: %s", os_status_to_string(status));
 		} else {
 			if (hardware_acceleration != NULL && CFBooleanGetValue(hardware_acceleration)) {
