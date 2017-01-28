@@ -426,7 +426,7 @@ static void chaotic_start_basic(void) {
 	pcap_tester_audio("./scenarios/opus-poor-quality.pcapng", OrtpJitterBufferBasic, -1
 				, payload_type_opus.clock_rate, OPUS_PAYLOAD_TYPE);
 	BC_ASSERT_GREATER((int)final_audio_rtp_stats.outoftime, 200, int, "%i");
-	BC_ASSERT_LOWER((int)final_audio_rtp_stats.outoftime, 240, int, "%i");
+	BC_ASSERT_LOWER((int)final_audio_rtp_stats.outoftime, 250, int, "%i");
 	BC_ASSERT_EQUAL((int)final_audio_rtp_stats.discarded, 0, int, "%i");
 	BC_ASSERT_EQUAL((int)final_audio_rtp_stats.packet_recv, 4228, int, "%i");
 }

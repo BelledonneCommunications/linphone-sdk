@@ -81,6 +81,12 @@ extern void libmswebrtc_init();
 
 static int cond=1;
 
+typedef enum _RcAlgo{
+	RCAlgoNone,
+	RCAlgoSimple,
+	RCAlgoAdvanced,
+	RCAlgoInvalid
+}RcAlgo;
 
 typedef struct _MediastreamIceCandidate {
 	char ip[64];
@@ -98,6 +104,7 @@ typedef struct _MediastreamDatas {
 	int bitrate;
 	int mtu;
 	MSVideoSize vs;
+	RcAlgo rc_algo;
 	bool_t ec;
 	bool_t agc;
 	bool_t eq;
@@ -112,15 +119,13 @@ typedef struct _MediastreamDatas {
 	bool_t use_ng;
 	bool_t two_windows;
 	bool_t el;
-	bool_t use_rc;
-
 	bool_t enable_srtp;
+	
 	bool_t interactive;
 	bool_t enable_avpf;
 	bool_t enable_rtcp;
-
 	bool_t freeze_on_error;
-	bool_t pad[3];
+	
 	float el_speed;
 	float el_thres;
 	float el_force;
@@ -144,6 +149,7 @@ typedef struct _MediastreamDatas {
 	RtpSession *session;
 	OrtpEvQueue *q;
 	RtpProfile *profile;
+	MSBandwidthController *bw_controller;
 
 	IceSession *ice_session;
 	MediastreamIceCandidate ice_local_candidates[MEDIASTREAM_MAX_ICE_CANDIDATES];
@@ -176,6 +182,7 @@ static void display_items(void *user_data, uint32_t csrc, rtcp_sdes_type_t t, co
 static void parse_rtcp(mblk_t *m);
 static void parse_events(RtpSession *session, OrtpEvQueue *q);
 static bool_t parse_window_ids(const char *ids, int* video_id, int* preview_id);
+static RcAlgo parse_rc_algo(const char *algo);
 
 const char *usage="mediastream --local <port>\n"
 								"--remote <ip:port> \n"
@@ -220,7 +227,7 @@ const char *usage="mediastream --local <port>\n"
 								"[ --no-rtcp ]\n"
 								"[ --outfile <output wav file> specify a wav file to write audio into, instead of soundcard ]\n"
 								"[ --playback-card <name> ]\n"
-								"[ --rc (enable adaptive rate control) ]\n"
+								"[ --rc <rate control algorithm> possible values are: none, simple, advanced ]\n"
 								"[ --srtp <local master_key> <remote master_key> (enable srtp, master key is generated if absent from comand line) ]\n"
 								"[ --verbose (most verbose messages) ]\n"
 								"[ --video-display-filter <name> ]\n"
@@ -304,6 +311,7 @@ MediastreamDatas* init_default_args(void) {
 	args->interactive=FALSE;
 	args->is_verbose=FALSE;
 	args->device_rotation=-1;
+	args->rc_algo = RCAlgoNone;
 
 #ifdef VIDEO_ENABLED
 	args->video=NULL;
@@ -322,7 +330,6 @@ MediastreamDatas* init_default_args(void) {
 	args->el_sustain=-1;
 	args->el_transmit_thres=-1;
 	args->ng_floorgain=-1;
-	args->use_rc=FALSE;
 	args->zrtp_secrets=NULL;
 	args->custom_pt=NULL;
 	args->video_window_id = -1;
@@ -460,7 +467,12 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 		}else if (strcmp(argv[i],"--ng")==0){
 			out->use_ng=1;
 		}else if (strcmp(argv[i],"--rc")==0){
-			out->use_rc=1;
+			i++;
+			out->rc_algo = parse_rc_algo(argv[i]);
+			if (out->rc_algo == RCAlgoInvalid){
+				ms_error("Invalid argument for --rc");
+				return FALSE;
+			}
 		}else if (strcmp(argv[i],"--ng-threshold")==0){
 			i++;
 			out->ng_threshold=(float)atof(argv[i]);
@@ -737,6 +749,10 @@ void setup_media_streams(MediastreamDatas* args) {
 #endif
 	args->profile=rtp_profile_clone_full(&av_profile);
 	args->q=ortp_ev_queue_new();
+	
+	if (args->rc_algo == RCAlgoAdvanced){
+		args->bw_controller = ms_bandwidth_controller_new();
+	}
 
 	if (args->mtu) ms_factory_set_mtu(factory, args->mtu);
 	ms_factory_enable_statistics(factory, TRUE);
@@ -802,11 +818,14 @@ void setup_media_streams(MediastreamDatas* args) {
 		MSSndCard *play= args->playback_card==NULL ? ms_snd_card_manager_get_default_capture_card(manager) :
 				get_sound_card(manager,args->playback_card);
 		args->audio=audio_stream_new(factory, args->localport,args->localport+1,ms_is_ipv6(args->ip));
+		if (args->bw_controller){
+			ms_bandwidth_controller_add_stream(args->bw_controller, (MediaStream*)args->audio);
+		}
 		audio_stream_enable_automatic_gain_control(args->audio,args->agc);
 		audio_stream_enable_noise_gate(args->audio,args->use_ng);
 		audio_stream_set_echo_canceller_params(args->audio,args->ec_len_ms,args->ec_delay_ms,args->ec_framesize);
 		audio_stream_enable_echo_limiter(args->audio,args->el);
-		audio_stream_enable_adaptive_bitrate_control(args->audio,args->use_rc);
+		audio_stream_enable_adaptive_bitrate_control(args->audio,args->rc_algo == RCAlgoSimple);
 		if (capt)
 			ms_snd_card_set_preferred_sample_rate(capt,rtp_profile_get_payload(args->profile, args->payload)->clock_rate);
 		if (play)
@@ -910,6 +929,9 @@ void setup_media_streams(MediastreamDatas* args) {
 		}
 		ms_message("Starting video stream.\n");
 		args->video=video_stream_new(factory, args->localport, args->localport+1, ms_is_ipv6(args->ip));
+		if (args->bw_controller){
+			ms_bandwidth_controller_add_stream(args->bw_controller, (MediaStream*)args->video);
+		}
 		if (args->video_display_filter)
 			video_stream_set_display_filter_name(args->video, args->video_display_filter);
 
@@ -929,7 +951,7 @@ void setup_media_streams(MediastreamDatas* args) {
 #endif
 		video_stream_set_event_callback(args->video,video_stream_event_cb, args);
 		video_stream_set_freeze_on_error(args->video,args->freeze_on_error);
-		video_stream_enable_adaptive_bitrate_control(args->video,args->use_rc);
+		video_stream_enable_adaptive_bitrate_control(args->video, args->rc_algo == RCAlgoSimple);
 		if (args->camera)
 			cam=ms_web_cam_manager_get_cam(ms_factory_get_web_cam_manager(factory),args->camera);
 		if (cam==NULL)
@@ -1107,7 +1129,11 @@ void mediastream_run_loop(MediastreamDatas* args) {
 void clear_mediastreams(MediastreamDatas* args) {
 	ms_message("stopping all...\n");
 	ms_message("Average quality indicator: %f",args->audio ? audio_stream_get_average_quality_rating(args->audio) : -1);
-
+	
+	if (args->bw_controller){
+		ms_bandwidth_controller_destroy(args->bw_controller);
+	}
+	
 	if (args->audio) {
 		audio_stream_stop(args->audio);
 	}
@@ -1362,4 +1388,12 @@ static bool_t parse_window_ids(const char *ids, int* video_id, int* preview_id)
 	*preview_id=atoi(semicolon+1);
 	free(copy);
 	return TRUE;
+}
+
+static RcAlgo parse_rc_algo(const char *algo){
+	if (algo == NULL) return RCAlgoInvalid;
+	if (strcasecmp(algo,"simple")==0) return RCAlgoSimple;
+	if (strcasecmp(algo, "advanced")==0) return RCAlgoAdvanced;
+	if (strcasecmp(algo, "none")==0) return RCAlgoNone;
+	return RCAlgoInvalid;
 }

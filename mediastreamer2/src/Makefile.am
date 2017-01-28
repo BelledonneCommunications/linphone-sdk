@@ -114,6 +114,7 @@ libmediastreamer_voip_la_SOURCES+=	voip/private.h \
 					voip/bitratedriver.c \
 					voip/qosanalyzer.c voip/qosanalyzer.h \
 					voip/bitratecontrol.c \
+					voip/bandwidthcontroller.c \
 					crypto/zrtp.c \
 					voip/stun.c \
 					crypto/ms_srtp.c \

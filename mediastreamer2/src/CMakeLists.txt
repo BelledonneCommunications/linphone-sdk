@@ -173,6 +173,7 @@ set(VOIP_SOURCE_FILES_C
 	utils/stream_regulator.c
 	voip/audioconference.c
 	voip/audiostream.c
+	voip/bandwidthcontroller.c
 	voip/bitratecontrol.c
 	voip/bitratedriver.c
 	voip/ice.c

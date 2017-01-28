@@ -28,11 +28,44 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 extern "C" {
 #endif
 
+struct _MediaStream;
+
+typedef struct _MSBandwidthControllerStats{
+	float estimated_download_bandwidth; /*in bits/seconds*/
+	float controlled_stream_bandwidth;
+	bool_t in_congestion;
+}MSBandwidthControllerStats;
+
+struct _MSBandwidthController{
+	bctbx_list_t *streams; /*list of MediaStream objects*/
+	struct _MediaStream *controlled_stream; /*the most bandwidth consuming stream, which is the one flow controlled*/
+	MSBandwidthControllerStats stats;
+};
+/**
+ * The MSBandwidthController is a object managing several streams (audio, video) and monitoring congestion of inbound streams.
+ * If a congestion is detected, it will send RTCP TMMBR packet to the remote sender in order to stop the congestion and adapt
+ * the incoming bitrate of received streams to the available bandwidth.
+ * It superseeds the MSBitrateController, MSQosAnalyzer, MSBitrateDriver objects, which were using different but less robust techniques
+ * to detect congestion and adapt bandwidth usage.
+**/
+typedef struct _MSBandwidthController MSBandwidthController;
+
+
+MS2_PUBLIC MSBandwidthController *ms_bandwidth_controller_new(void);
+
+MS2_PUBLIC void ms_bandwidth_controller_add_stream(MSBandwidthController *obj, struct _MediaStream *stream);
+
+MS2_PUBLIC void ms_bandwidth_controller_remove_stream(MSBandwidthController *obj, struct _MediaStream *stream);
+
+MS2_PUBLIC const MSBandwidthControllerStats * ms_bandwidth_controller_get_stats(MSBandwidthController *obj);
+
+MS2_PUBLIC void ms_bandwidth_controller_destroy(MSBandwidthController *obj);
+	
 
 /**
- * Audio Bitrate controller object
+ * Audio Bitrate controller object.
+ * @deprecated
 **/
-
 typedef struct _MSAudioBitrateController MSAudioBitrateController;
 
 enum _MSRateControlActionType{
@@ -58,9 +91,10 @@ struct _MSBitrateDriverDesc{
 	void (*uninit)(MSBitrateDriver *obj);
 };
 
-/*
+/**
  * The MSBitrateDriver has the responsibility to execute rate control actions.
  * This is an abstract interface.
+ * @deprecated
 **/
 struct _MSBitrateDriver{
 	MSBitrateDriverDesc *desc;
@@ -98,6 +132,7 @@ MS2_PUBLIC MSQosAnalyzerAlgorithm ms_qos_analyzer_algorithm_from_string(const ch
  * A MSQosAnalyzer is responsible to analyze RTCP feedback and suggest
  * actions on bitrate or packet rate accordingly.
  * This is an abstract interface.
+ * @deprecated
 **/
 struct _MSQosAnalyzer{
 	MSQosAnalyzerDesc *desc;

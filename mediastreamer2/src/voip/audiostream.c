@@ -809,7 +809,6 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		stream->dtmfgen=NULL;
 	rtp_session_signal_connect(rtps,"telephone-event",(RtpCallback)on_dtmf_received,stream);
 	rtp_session_signal_connect(rtps,"payload_type_changed",(RtpCallback)audio_stream_payload_type_changed,stream);
-	rtp_session_set_dscp(rtps, stream->ms.dscp);
 
 	if (stream->ms.state==MSStreamPreparing){
 		/*we were using the dummy preload graph, destroy it but keep sound filters unless no soundcard is given*/

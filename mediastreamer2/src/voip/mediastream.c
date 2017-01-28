@@ -48,6 +48,8 @@ ms_time(time_t *t) {
 }
 #endif
 
+static void tmmbr_received(const OrtpEventData *evd, void *user_pointer);
+
 
 static void disable_checksums(ortp_socket_t sock) {
 #if defined(DISABLE_CHECKSUMS) && defined(SO_NO_CHECK)
@@ -116,6 +118,11 @@ void media_stream_init(MediaStream *stream, MSFactory *factory, const MSMediaStr
 	if (sessions->dtls_context != NULL) {
 		ms_dtls_srtp_set_stream_sessions(sessions->dtls_context, &stream->sessions);
 	}
+	ortp_ev_dispatcher_connect(stream->evd
+								, ORTP_EVENT_RTCP_PACKET_RECEIVED
+								, RTCP_RTPFB
+								, (OrtpEvDispatcherCb)tmmbr_received
+								, stream);
 }
 
 RtpSession * ms_create_duplex_rtp_session(const char* local_ip, int loc_rtp_port, int loc_rtcp_port, int mtu) {
@@ -182,6 +189,7 @@ void ms_media_stream_sessions_uninit(MSMediaStreamSessions *sessions){
 }
 
 void media_stream_free(MediaStream *stream) {
+	ortp_ev_dispatcher_disconnect(stream->evd, ORTP_EVENT_RTCP_PACKET_RECEIVED, RTCP_RTPFB, (OrtpEvDispatcherCb)tmmbr_received);
 	if (stream->sessions.zrtp_context != NULL) {
 		ms_zrtp_set_stream_sessions(stream->sessions.zrtp_context, NULL);
 	}
@@ -221,10 +229,7 @@ void media_stream_get_local_rtp_stats(MediaStream *stream, rtp_stats_t *lstats) 
 
 int media_stream_set_dscp(MediaStream *stream, int dscp) {
 	ms_message("Setting DSCP to %i for %s stream.", dscp, media_stream_type_str(stream));
-	stream->dscp = dscp;
-	if ((stream->sessions.rtp_session != NULL) && (stream->sessions.rtp_session->rtp.gs.rem_addr.ss_family != AF_UNSPEC))
-		return rtp_session_set_dscp(stream->sessions.rtp_session, dscp);
-	return 0;
+	return rtp_session_set_dscp(stream->sessions.rtp_session, dscp);
 }
 
 void media_stream_enable_adaptive_bitrate_control(MediaStream *stream, bool_t enabled) {
@@ -613,4 +618,37 @@ MSWebCamDesc *ms_mire_webcam_desc_get(void){
 }
 
 #endif
+
+
+static void apply_bitrate_limit(MediaStream *obj, int br_limit){
+
+	if (!obj->encoder){
+		ms_warning("TMMNR not applicable because no encoder for this stream.");
+		return;
+	}
+	if (rtp_session_get_target_upload_bandwidth(obj->sessions.rtp_session) == br_limit) return;
+	
+	if (ms_filter_call_method(obj->encoder,MS_FILTER_SET_BITRATE, &br_limit) != 0){
+		ms_warning("Failed to apply bitrate constraint to %s", obj->encoder->desc->name);
+	}
+	rtp_session_set_target_upload_bandwidth(obj->sessions.rtp_session, br_limit);
+}
+
+static void tmmbr_received(const OrtpEventData *evd, void *user_pointer) {
+	MediaStream *ms = (MediaStream *)user_pointer;
+	switch (rtcp_RTPFB_get_type(evd->packet)) {
+		case RTCP_RTPFB_TMMBR: {
+			int tmmbr_mxtbr = rtcp_RTPFB_tmmbr_get_max_bitrate(evd->packet);
+			
+			ms_message("MediaStream[%p]: received a TMMBR for %i kbits/s"
+						, ms, (int)(tmmbr_mxtbr/1000));
+			apply_bitrate_limit(ms, tmmbr_mxtbr);
+			break;
+		}
+		default:
+			break;
+	}
+}
+
+
 

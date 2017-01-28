@@ -132,7 +132,6 @@ struct _MediaStream {
 	bool_t is_beginning;
 	bool_t owns_sessions;
 	bool_t pad;
-	int dscp;
 	/**
 	 * defines encoder target network bit rate, uses #media_stream_set_target_network_bitrate() setter.
 	 * */
@@ -140,6 +139,7 @@ struct _MediaStream {
 	media_stream_process_rtcp_callback_t process_rtcp;
 	OrtpEvDispatcher *evd;
 	MSFactory *factory;
+	MSBandwidthController *bandwidth_controller;
 };
 
 MS2_PUBLIC void media_stream_init(MediaStream *stream, MSFactory *factory, const MSMediaStreamSessions *sessions);
