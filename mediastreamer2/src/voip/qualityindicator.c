@@ -162,6 +162,7 @@ void ms_quality_indicator_update_local(MSQualityIndicator *qi){
 	int lost,late,recvcnt;
 	float loss_rate=0,late_rate=0;
 	uint32_t ext_seq=rtp_session_get_rcv_ext_seq_number(qi->session);
+	uint32_t expected;
 
 	recvcnt=(int)(stats->packet_recv-qi->last_packet_count);
 	if (recvcnt==0){
@@ -175,8 +176,8 @@ void ms_quality_indicator_update_local(MSQualityIndicator *qi){
 	}else if (qi->last_packet_count==0){
 		qi->last_ext_seq=ext_seq;
 	}
-
-	lost=(ext_seq-qi->last_ext_seq) - (recvcnt);
+	expected = ext_seq-qi->last_ext_seq;
+	lost = expected - recvcnt;
 	qi->last_ext_seq=ext_seq;
 	qi->last_packet_count=stats->packet_recv;
 
@@ -187,7 +188,7 @@ void ms_quality_indicator_update_local(MSQualityIndicator *qi){
 	if (lost<0) lost=0; /* will be the case at least the first time, because we don't know the initial sequence number*/
 	if (late<0) late=0;
 
-	loss_rate=(float)lost/(float)recvcnt;
+	loss_rate=(float)lost/(float)expected;
 	qi->cur_loss_rate=loss_rate*100.0f;
 
 	late_rate=(float)late/(float)recvcnt;
