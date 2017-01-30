@@ -141,6 +141,7 @@ RtpSession * ms_create_duplex_rtp_session(const char* local_ip, int loc_rtp_port
 	rtp_session_set_rtcp_report_interval(rtpr, 2500);	/* At the beginning of the session send more reports. */
 	rtp_session_set_multicast_loopback(rtpr,TRUE); /*very useful, specially for testing purposes*/
 	rtp_session_set_send_ts_offset(rtpr, (uint32_t)bctbx_random());
+	rtp_session_enable_avpf_feature(rtpr, ORTP_AVPF_FEATURE_TMMBR, TRUE);
 	disable_checksums(rtp_session_get_rtp_socket(rtpr));
 	return rtpr;
 }
