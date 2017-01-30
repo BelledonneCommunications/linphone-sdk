@@ -61,7 +61,14 @@ static const char * audio_unit_format_error (OSStatus error) {
 		case kAudioUnitErr_Initialized: return "kAudioUnitErr_Initialized";
 		case kAudioUnitErr_InvalidOfflineRender: return "kAudioUnitErr_InvalidOfflineRender";
 		case kAudioUnitErr_Unauthorized: return "kAudioUnitErr_Unauthorized";
-		default: return "unknown error";
+		default: {
+			ms_error ("Cannot start audioUnit because [%c%c%c%c]"
+						  ,((char*)&error)[3]
+						  ,((char*)&error)[2]
+						  ,((char*)&error)[1]
+						  ,((char*)&error)[0]);
+			return "unknown error";
+		} 
 	}
 
 }
@@ -69,34 +76,12 @@ static const char * audio_unit_format_error (OSStatus error) {
 
 static const char *audio_session_format_error(OSStatus error)
 {
-	switch (error) {
-		case kAudioSessionNotInitialized:
-			return "kAudioSessionNotInitialized";
-		case kAudioSessionAlreadyInitialized:
-			return "kAudioSessionAlreadyInitialized";
-		case kAudioSessionInitializationError:
-			return "kAudioSessionInitializationError";
-		case kAudioSessionUnsupportedPropertyError:
-			return "kAudioSessionUnsupportedPropertyError";
-		case kAudioSessionBadPropertySizeError:
-			return "kAudioSessionBadPropertySizeError";
-		case kAudioSessionNotActiveError:
-			return "kAudioSessionNotActiveError";
-		case kAudioServicesNoHardwareError:
-			return "kAudioServicesNoHardwareError";
-		case kAudioSessionNoCategorySet:
-			return "kAudioSessionNoCategorySet";
-		case kAudioSessionIncompatibleCategory:
-			return "kAudioSessionIncompatibleCategory";
-		case kAudioSessionUnspecifiedError:
-			return "kAudioSessionUnspecifiedError";
-		default: return "unkown error";
-	}
+	return [(NSString *)error UTF8String];
 
- }
+}
 
 #define check_au_session_result(au,method) \
-if (au!=AVAudioSessionErrorInsufficientPriority && au!=0) ms_error("AudioSession error for %s: ret=%s (%li) (%s:%d)",method, audio_session_format_error(au), (long)au, __FILE__, __LINE__ )
+if (au!=AVAudioSessionErrorInsufficientPriority && au!=0) ms_error("AudioSession error for %s: ret=%s (%s:%d)",method, audio_session_format_error(au), __FILE__, __LINE__ )
 
 #define check_au_unit_result(au,method) \
 if (au!=0) ms_error("AudioUnit error for %s: ret=%s (%li) (%s:%d)",method, audio_unit_format_error(au), (long)au, __FILE__, __LINE__ )
@@ -156,7 +141,6 @@ struct au_filter_read_data{
 	queue_t		rq;
 	AudioTimeStamp readTimeStamp;
 	unsigned int n_lost_frame;
-
 } ;
 
 struct au_filter_write_data{
@@ -198,9 +182,19 @@ static OSStatus au_render_cb (
 							  AudioBufferList             *ioData
 							  );
 
-static void create_io_unit (AudioUnit* au, MSSndCard* sndcard) {
+static OSStatus au_read_cb (
+							  void                        *inRefCon,
+							  AudioUnitRenderActionFlags  *ioActionFlags,
+							  const AudioTimeStamp        *inTimeStamp,
+							  UInt32                      inBusNumber,
+							  UInt32                      inNumberFrames,
+							  AudioBufferList             *ioData
+);
+
+static void create_io_unit (AudioUnit* au, au_card_t *card) {
 	AudioComponentDescription au_description;
 	AudioComponent foundComponent;
+	MSSndCard* sndcard = card->ms_snd_card;
 
 	bool_t noVoiceProc = (strcasecmp(sndcard->name, AU_CARD_NOVOICEPROC) == 0);
 	OSType subtype = noVoiceProc ? kAudioUnitSubType_RemoteIO : kAudioUnitSubType_VoiceProcessingIO;
@@ -214,6 +208,19 @@ static void create_io_unit (AudioUnit* au, MSSndCard* sndcard) {
 	foundComponent = AudioComponentFindNext (NULL,&au_description);
 
 	check_audiounit_call( AudioComponentInstanceNew(foundComponent, au) );
+
+	//Always configure readcb
+	AURenderCallbackStruct renderCallbackStruct;
+	renderCallbackStruct.inputProc       = au_read_cb;
+	renderCallbackStruct.inputProcRefCon = card;
+	check_audiounit_call(AudioUnitSetProperty (
+								   card->io_unit,
+								   kAudioOutputUnitProperty_SetInputCallback,
+								   kAudioUnitScope_Input,
+								   outputBus,
+								   &renderCallbackStruct,
+								   sizeof (renderCallbackStruct)
+								   ));
 
 	ms_message("AudioUnit created with type %s.", subtype==kAudioUnitSubType_RemoteIO ? "kAudioUnitSubType_RemoteIO" : "kAudioUnitSubType_VoiceProcessingIO" );
 }
@@ -250,7 +257,6 @@ static void au_init(MSSndCard *card){
 	card->preferred_sample_rate=44100;
 	card->capabilities|=MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER|MS_SND_CARD_CAP_IS_SLOW;
 	ms_mutex_init(&d->mutex,NULL);
-	AudioSessionInitialize(NULL, NULL, au_interruption_listener, d);
 	card->data=d;
 }
 
@@ -326,6 +332,7 @@ static void au_detect(MSSndCardManager *m){
 	ms_snd_card_manager_add_card(m,card);
 }
 
+/********************write cb only used for write operation******************/
 static OSStatus au_read_cb (
 							  void                        *inRefCon,
 							  AudioUnitRenderActionFlags  *ioActionFlags,
@@ -335,7 +342,6 @@ static OSStatus au_read_cb (
 							  AudioBufferList             *ioData
 )
 {
-
 	au_card_t* card = (au_card_t*)inRefCon;
 	ms_mutex_lock(&card->mutex);
 	if (!card->read_data) {
@@ -372,8 +378,6 @@ static OSStatus au_read_cb (
 	ms_mutex_unlock(&card->mutex);
 	return err;
 }
-
-/********************write cb only used for write operation******************/
 
 static OSStatus au_write_cb (
 							  void                        *inRefCon,
@@ -429,36 +433,40 @@ static OSStatus au_write_cb (
 
 /****************config**************/
 static void configure_audio_session (au_card_t* d,uint64_t time) {
-	UInt32 audioCategory;
-	UInt32 audioMode;
-	UInt32 audioCategorySize=sizeof(audioCategory);
+	NSString *audioCategory;
+	NSString *audioMode;
+	//UInt32 audioCategorySize=sizeof(audioCategory);
+	AVAudioSession *audioSession = [AVAudioSession sharedInstance];
 	bool_t changed;
 
 	if (!d->is_fast){
 
 		if (d->audio_session_configured){
 			/*check that category wasn't changed*/
-			check_session_call(AudioSessionGetProperty(kAudioSessionProperty_AudioCategory,&audioCategorySize,&audioCategory));
+			audioCategory = audioSession.category;
 
-			changed=(audioCategory!=kAudioSessionCategory_AmbientSound && d->is_ringer)
-			||(audioCategory!=kAudioSessionCategory_PlayAndRecord && !d->is_ringer);
+			changed=(audioCategory!=AVAudioSessionCategoryAmbient && d->is_ringer)
+			||(audioCategory!=AVAudioSessionCategoryPlayAndRecord && !d->is_ringer);
 		}
 
 		if (!d->audio_session_configured || changed) {
-			check_session_call( AudioSessionSetActive(true) );
+			[audioSession setActive:TRUE error:nil];
 
 			if (d->is_ringer && kCFCoreFoundationVersionNumber > kCFCoreFoundationVersionNumber10_6 /*I.E is >=OS4*/) {
-				audioCategory= kAudioSessionCategory_AmbientSound;
-				audioMode = kAudioSessionMode_Default;
+				audioCategory= AVAudioSessionCategoryAmbient;
+				audioMode = AVAudioSessionModeDefault;
 				ms_message("Configuring audio session for playback");
 			} else {
-				audioCategory = kAudioSessionCategory_PlayAndRecord;
-				audioMode = kAudioSessionMode_VoiceChat;
+				audioCategory = AVAudioSessionCategoryPlayAndRecord;
+				audioMode = AVAudioSessionModeVoiceChat;
 				ms_message("Configuring audio session for playback/record");
 			}
-
-			check_audiounit_call(AudioSessionSetProperty(kAudioSessionProperty_AudioCategory, sizeof(audioCategory), &audioCategory));
-			check_audiounit_call(AudioSessionSetProperty(kAudioSessionProperty_Mode, sizeof(audioMode), &audioMode));
+			//NSError *err1;
+			//NSError *err2;
+			[audioSession setCategory:audioCategory error:nil];
+			//check_audiounit_call(err1);
+			[audioSession setMode:audioMode error:nil];
+			//check_audiounit_call(err2);
 
 		}else{
 			ms_message("Audio session already correctly configured.");
@@ -472,8 +480,9 @@ static void configure_audio_session (au_card_t* d,uint64_t time) {
 
 static bool_t  start_audio_unit (au_filter_base_t* d,uint64_t time) {
 	au_card_t* card=d->card;
+	AVAudioSession *audioSession = [AVAudioSession sharedInstance];
 	if (card->io_unit == NULL) {
-		create_io_unit(&card->io_unit, card->ms_snd_card);
+		create_io_unit(&card->io_unit, card);
 		if (card->io_unit == NULL) ms_fatal("io_unit is NULL");
 	}
 	if (!card->io_unit_started && (card->last_failed_iounit_start_time == 0 || (time - card->last_failed_iounit_start_time)>100)) {
@@ -499,29 +508,13 @@ static bool_t  start_audio_unit (au_filter_base_t* d,uint64_t time) {
 									  , &quality
 									  , &qualitySize));
 		ms_message("I/O unit latency [%f], quality [%u]",delay,(unsigned)quality);
-		Float32 hwoutputlatency;
-		UInt32 hwoutputlatencySize=sizeof(hwoutputlatency);
+		Float32 hwoutputlatency = audioSession.outputLatency;
 
-		check_session_call(AudioSessionGetProperty(kAudioSessionProperty_CurrentHardwareOutputLatency
-										 ,&hwoutputlatencySize
-										 , &hwoutputlatency));
-		Float32 hwinputlatency;
-		UInt32 hwinputlatencySize=sizeof(hwoutputlatency);
-		check_session_call(AudioSessionGetProperty(kAudioSessionProperty_CurrentHardwareInputLatency
-										 ,&hwinputlatencySize
-										 , &hwinputlatency));
+		Float32 hwinputlatency = audioSession.inputLatency;
 
-		Float32 hwiobuf;
-		UInt32 hwiobufSize=sizeof(hwiobuf);
-		check_session_call( AudioSessionGetProperty(kAudioSessionProperty_CurrentHardwareIOBufferDuration
-										 ,&hwiobufSize
-										 , &hwiobuf));
+		Float32 hwiobuf = audioSession.IOBufferDuration;
 
-		Float64 hwsamplerate;
-		UInt32 hwsamplerateSize=sizeof(hwsamplerate);
-		check_session_call( AudioSessionGetProperty(kAudioSessionProperty_CurrentHardwareSampleRate
-										 ,&hwsamplerateSize
-										 ,&hwsamplerate));
+		Float64 hwsamplerate = audioSession.sampleRate;
 
 		OSStatus auresult;
 		check_audiounit_call( (auresult = AudioOutputUnitStart(card->io_unit)) );
@@ -543,7 +536,7 @@ static void destroy_audio_unit (au_card_t* d) {
 		AudioComponentInstanceDispose (d->io_unit);
 		d->io_unit=NULL;
 		if (!d->is_fast) {
-			AudioSessionSetActiveWithFlags(false, kAudioSessionSetActiveFlag_NotifyOthersOnDeactivation);
+			[[AVAudioSession sharedInstance] setActive:FALSE withOptions:AVAudioSessionSetActiveOptionNotifyOthersOnDeactivation error:nil];
 		}
 		ms_message("AudioUnit destroyed");
 	}
@@ -577,24 +570,12 @@ static void au_read_preprocess(MSFilter *f){
 	ms_debug("au_read_preprocess");
 	au_filter_read_data_t *d= (au_filter_read_data_t*)f->data;
 	au_card_t* card=d->base.card;
-
+	AVAudioSession *audioSession = [AVAudioSession sharedInstance];
+	//NSError *err;
 	cancel_audio_unit_timer(card);
 	configure_audio_session(card, f->ticker->time);
 
-	if (!card->io_unit) create_io_unit(&card->io_unit, card->ms_snd_card);
-
-	//Always configure readcb
-	AURenderCallbackStruct renderCallbackStruct;
-	renderCallbackStruct.inputProc       = au_read_cb;
-	renderCallbackStruct.inputProcRefCon = card;
-	check_audiounit_call(AudioUnitSetProperty (
-								   card->io_unit,
-								   kAudioOutputUnitProperty_SetInputCallback,
-								   kAudioUnitScope_Input,
-								   outputBus,
-								   &renderCallbackStruct,
-								   sizeof (renderCallbackStruct)
-								   ));
+	if (!card->io_unit) create_io_unit(&card->io_unit, card);
 
 	if (card->io_unit_started) {
 		ms_message("Audio Unit already started");
@@ -611,10 +592,9 @@ static void au_read_preprocess(MSFilter *f){
 		default:
 			preferredBufferSize= .015;
 	}
-
-	check_session_call( AudioSessionSetProperty(kAudioSessionProperty_PreferredHardwareIOBufferDuration
-									 ,sizeof(preferredBufferSize)
-									 , &preferredBufferSize) );
+	[audioSession setPreferredIOBufferDuration:(NSTimeInterval)preferredBufferSize 
+                               error:nil];
+	//check_session_call( err );
 }
 
 static void au_read_postprocess(MSFilter *f){
@@ -627,7 +607,6 @@ static void au_read_postprocess(MSFilter *f){
 static void au_read_process(MSFilter *f){
 	au_filter_read_data_t *d=(au_filter_read_data_t*)f->data;
 	mblk_t *m;
-
 	if (!(d->base.card->read_started=d->base.card->io_unit_started)) {
 		//make sure audio unit is started
 		start_audio_unit((au_filter_base_t*)d,f->ticker->time);
@@ -636,7 +615,10 @@ static void au_read_process(MSFilter *f){
 		ms_mutex_lock(&d->mutex);
 		m=getq(&d->rq);
 		ms_mutex_unlock(&d->mutex);
-		if (m != NULL) ms_queue_put(f->outputs[0],m);
+		if (m != NULL) {
+			ms_queue_put(f->outputs[0],m);
+		}
+
 	}while(m!=NULL);
 }
 
@@ -649,7 +631,7 @@ static void au_write_preprocess(MSFilter *f){
 	OSStatus auresult;
 	au_filter_write_data_t *d= (au_filter_write_data_t*)f->data;
 	au_card_t* card=d->base.card;
-
+	AVAudioSession *audioSession = [AVAudioSession sharedInstance];
 	cancel_audio_unit_timer(card);
 
 	if (card->io_unit_started) {
@@ -659,7 +641,7 @@ static void au_write_preprocess(MSFilter *f){
 	configure_audio_session(card, f->ticker->time);
 
 
-	if (!card->io_unit) create_io_unit(&card->io_unit, card->ms_snd_card);
+	if (!card->io_unit) create_io_unit(&card->io_unit, card);
 
 
 
@@ -677,8 +659,6 @@ static void au_write_preprocess(MSFilter *f){
 	UInt32 doNotSetProperty    = 0;
 	UInt32 doSetProperty    = 1;
 	Float64 hwsamplerate;
-	UInt32 hwsamplerateSize=sizeof(hwsamplerate);
-
 
 	//enable speaker output
 	auresult =AudioUnitSetProperty (
@@ -747,12 +727,7 @@ static void au_write_preprocess(MSFilter *f){
 								   sizeof (renderCallbackStruct)
 								   );
 	check_au_unit_result(auresult,"kAudioUnitProperty_SetRenderCallback,kAudioUnitScope_Input");
-
-	auresult=AudioSessionGetProperty(kAudioSessionProperty_CurrentHardwareSampleRate
-									 ,&hwsamplerateSize
-									 ,&hwsamplerate);
-	check_au_session_result(auresult,"get kAudioSessionProperty_PreferredHardwareSampleRate");
-
+	hwsamplerate = audioSession.sampleRate;
 
 	/*
 	 * Bluetooth bug: on iphone5s at least, some low end BT headset create a bug in iOS when requesting 48khz hardware sampling rate.
@@ -764,19 +739,14 @@ static void au_write_preprocess(MSFilter *f){
 	 */
 	if(card->rate == 8000 && (floor(NSFoundationVersionNumber) >= NSFoundationVersionNumber_iOS_9_x_Max)) {
 		hwsamplerate=48000;
-		auresult=AudioSessionSetProperty(kAudioSessionProperty_PreferredHardwareSampleRate
-										 , sizeof(hwsamplerate)
-										 , &hwsamplerate);
+		[audioSession setPreferredSampleRate:hwsamplerate error:nil];
 		return;
 	}
 
 	if( hwsamplerate != card->rate) {
 		if(card->rate <= 44100 ){
 			hwsamplerate=card->rate;
-			auresult=AudioSessionSetProperty(kAudioSessionProperty_PreferredHardwareSampleRate
-											 ,sizeof(hwsamplerate)
-											 , &hwsamplerate);
-			check_au_session_result(auresult,"set kAudioSessionProperty_PreferredHardwareSampleRate");
+			[audioSession setPreferredSampleRate:hwsamplerate error:nil];
 		} else {
 			ms_message("Not applying kAudioSessionProperty_PreferredHardwareSampleRate because asked rate is too high [%i]",((int)hwsamplerate));
 		}
