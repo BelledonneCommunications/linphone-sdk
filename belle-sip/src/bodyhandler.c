@@ -154,13 +154,20 @@ int belle_sip_body_handler_send_chunk(belle_sip_body_handler_t *obj, belle_sip_m
 	if (obj->expected_size!=0){
 		to_send=MIN(*size,obj->expected_size-obj->transfered_size);
 	}
+	if (to_send==0) {
+		// Ane eWouldBlock error added a call to the function, nothing to send so return
+		belle_sip_message("body handler [%p] : Nothing to send",obj);
+		*size=0;
+		return BELLE_SIP_STOP;
+	}
 	ret=BELLE_SIP_OBJECT_VPTR(obj,belle_sip_body_handler_t)->chunk_send(obj,msg,(off_t)obj->transfered_size,buf,&to_send);
 	obj->transfered_size+=to_send;
 	*size=to_send;
 	update_progress(obj,msg);
 	if (obj->expected_size!=0){
-		if (obj->transfered_size==obj->expected_size)
+		if (obj->transfered_size==obj->expected_size) {
 			return BELLE_SIP_STOP;
+		}
 		if (ret==BELLE_SIP_STOP && obj->transfered_size<obj->expected_size){
 			belle_sip_error("body handler [%p] transfered only [%i] bytes while [%i] were expected",obj,
 					(int)obj->transfered_size,(int)obj->expected_size);
@@ -751,7 +758,6 @@ static int belle_sip_multipart_body_handler_send_chunk(belle_sip_body_handler_t 
 		}
 
 		retval = belle_sip_body_handler_send_chunk(current_part, msg, buffer+offsetSize, size); /* add offsetSize to the buffer address in order to point at the begining of free space (after header if included) */
-
 		*size +=offsetSize; /* restore total of data given including potential separator and header */
 
 
