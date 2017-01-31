@@ -21,8 +21,12 @@
 
 #define TUNNEL_POLLING_DURATION	20 /* in ms */
 
+bool_t tunnel_client_is_dual(void *tunnelClient);
 void * tunnel_client_create_socket(void *tunnelclient, int minLocalPort, int maxLocalPort);
+void * tunnel_client_create_send_only_socket(void *tunnelclient, int minLocalPort, int maxLocalPort);
+void * tunnel_client_create_recv_only_socket(void *tunnelclient, int minLocalPort, int maxLocalPort);
 void tunnel_client_close_socket(void *tunnelclient, void *tunnelsocket);
+void tunnel_client_close_one_dir_socket(void *tunnelclient, void *tunnelsocket);
 int tunnel_socket_has_data(void *tunnelsocket);
 int tunnel_socket_sendto(void *tunnelsocket, const void *buffer, size_t bufsize, const struct sockaddr *dest, socklen_t socklen);
 int tunnel_socket_recvfrom(void *tunnelsocket, void *buffer, size_t bufsize, struct sockaddr *src, socklen_t socklen);
@@ -35,21 +39,43 @@ struct belle_sip_tunnel_channel {
 	belle_sip_source_t *pollingtimer;
 	void *tunnelclient;
 	void *tunnelsocket;
+	void *tunnelsocket2;
 };
 
 typedef struct belle_sip_tunnel_channel belle_sip_tunnel_channel_t;
 
+static void createTunnelSockets(belle_sip_tunnel_channel_t *chan) {
+	if (!chan->tunnelsocket) {
+		if (tunnel_client_is_dual(chan->tunnelclient)) {
+			chan->tunnelsocket = tunnel_client_create_recv_only_socket(chan->tunnelclient, 5060, 6060);
+			chan->tunnelsocket2 = tunnel_client_create_send_only_socket(chan->tunnelclient, 5060, 6060);
+		} else {
+			chan->tunnelsocket = tunnel_client_create_socket(chan->tunnelclient, 5060, 6060);
+			chan->tunnelsocket2 = NULL;
+		}
+	}
+}
 
 static int tunnel_channel_send(belle_sip_channel_t *obj, const void *buf, size_t buflen) {
 	belle_sip_tunnel_channel_t *chan = (belle_sip_tunnel_channel_t *)obj;
-	return tunnel_socket_sendto(chan->tunnelsocket, buf, buflen, obj->current_peer->ai_addr, obj->current_peer->ai_addrlen);
+	createTunnelSockets(chan);
+	if (chan->tunnelsocket2) {
+		return tunnel_socket_sendto(chan->tunnelsocket2, buf, buflen, obj->current_peer->ai_addr, obj->current_peer->ai_addrlen);
+	} else if (chan->tunnelsocket) {
+		return tunnel_socket_sendto(chan->tunnelsocket, buf, buflen, obj->current_peer->ai_addr, obj->current_peer->ai_addrlen);
+	}
+	return 0;
 }
 
 static int tunnel_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen) {
 	belle_sip_tunnel_channel_t *chan = (belle_sip_tunnel_channel_t *)obj;
 	struct sockaddr_storage addr;
 	socklen_t addrlen = sizeof(addr);
-	return tunnel_socket_recvfrom(chan->tunnelsocket, buf, buflen, (struct sockaddr *)&addr, addrlen);
+	createTunnelSockets(chan);
+	if (chan->tunnelsocket) {
+		return tunnel_socket_recvfrom(chan->tunnelsocket, buf, buflen, (struct sockaddr *)&addr, addrlen);
+	}
+	return 0;
 }
 
 static int tunnel_channel_connect(belle_sip_channel_t *obj, const struct addrinfo *ai) {
@@ -64,9 +90,18 @@ static int tunnel_channel_connect(belle_sip_channel_t *obj, const struct addrinf
 
 static void tunnel_channel_close(belle_sip_channel_t *obj) {
 	belle_sip_tunnel_channel_t *chan = (belle_sip_tunnel_channel_t *)obj;
-	if( chan->tunnelsocket != NULL ){
-		tunnel_client_close_socket(chan->tunnelclient, chan->tunnelsocket);
-		chan->tunnelsocket = NULL;
+	if (chan->tunnelsocket2 != NULL) {
+		tunnel_client_close_one_dir_socket(chan->tunnelclient, chan->tunnelsocket);
+		chan->tunnelsocket2 = NULL;
+		if (chan->tunnelsocket != NULL) {
+			tunnel_client_close_one_dir_socket(chan->tunnelclient, chan->tunnelsocket);
+			chan->tunnelsocket = NULL;
+		}
+	} else {
+		if (chan->tunnelsocket != NULL) {
+			tunnel_client_close_socket(chan->tunnelclient, chan->tunnelsocket);
+			chan->tunnelsocket = NULL;
+		}
 	}
 }
 
@@ -112,7 +147,7 @@ belle_sip_channel_t * belle_sip_channel_new_tunnel(belle_sip_stack_t *stack, voi
 	belle_sip_tunnel_channel_t *obj = belle_sip_object_new(belle_sip_tunnel_channel_t);
 	belle_sip_channel_init((belle_sip_channel_t*)obj, stack, bindip, localport, NULL, dest, port);
 	obj->tunnelclient = tunnelclient;
-	obj->tunnelsocket = tunnel_client_create_socket(tunnelclient, 5060, 6060);
+	createTunnelSockets(obj);
 	obj->pollingtimer = belle_sip_timeout_source_new((belle_sip_source_func_t)tunnel_polling_timer, obj, TUNNEL_POLLING_DURATION);
 	belle_sip_object_set_name((belle_sip_object_t*)obj->pollingtimer, "tunnel_polling_timer");
 	belle_sip_main_loop_add_source(stack->ml, obj->pollingtimer);

@@ -24,13 +24,35 @@
 
 using namespace belledonnecomm;
 
+extern "C" int tunnel_client_is_dual(void *tunnelClient) {
+	TunnelClientI *tc = static_cast<TunnelClientI *>(tunnelClient);
+	DualTunnelClient * dtc = dynamic_cast<DualTunnelClient *>(tc);
+	return dtc != NULL;
+}
+
 extern "C" void * tunnel_client_create_socket(void *tunnelclient, int minLocalPort, int maxLocalPort) {
 	TunnelClient *tc = static_cast<TunnelClient *>(tunnelclient);
 	return tc->createSocket(minLocalPort, maxLocalPort);
 }
 
+extern "C" void * tunnel_client_create_send_only_socket(void *tunnelclient, int minLocalPort, int maxLocalPort) {
+	DualTunnelClient *tc = static_cast<DualTunnelClient *>(tunnelclient);
+	return tc->createSocket(TunnelSendOnly, minLocalPort, maxLocalPort);
+}
+
+extern "C" void * tunnel_client_create_recv_only_socket(void *tunnelclient, int minLocalPort, int maxLocalPort) {
+	DualTunnelClient *tc = static_cast<DualTunnelClient *>(tunnelclient);
+	return tc->createSocket(TunnelRecvOnly, minLocalPort, maxLocalPort);
+}
+
 extern "C" void tunnel_client_close_socket(void *tunnelclient, void *tunnelsocket) {
 	TunnelClient *tc = static_cast<TunnelClient *>(tunnelclient);
+	TunnelSocket *ts = static_cast<TunnelSocket *>(tunnelsocket);
+	tc->closeSocket(ts);
+}
+
+extern "C" void tunnel_client_close_one_dir_socket(void *tunnelclient, void *tunnelsocket) {
+	DualTunnelClient *tc = static_cast<DualTunnelClient *>(tunnelclient);
 	TunnelSocket *ts = static_cast<TunnelSocket *>(tunnelsocket);
 	tc->closeSocket(ts);
 }
