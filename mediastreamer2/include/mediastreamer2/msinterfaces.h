@@ -96,6 +96,9 @@ struct _MSVideoDisplayDecodingSupport {
 #define MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION \
    MS_FILTER_METHOD(MSFilterVideoDisplayInterface,11,int)
 
+#define MS_VIDEO_DISPLAY_CALL_GENERIC_RENDER \
+   MS_FILTER_METHOD(MSFilterVideoDisplayInterface,12,void*)
+
 /**
   * Interface definitions for players
 **/
@@ -234,7 +237,7 @@ typedef enum _MSRecorderState MSRecorderState;
 	MS_FILTER_EVENT_NO_ARG(MSFilterVideoDecoderInterface, 9)
 #define MS_VIDEO_DECODER_RESET \
 	MS_FILTER_METHOD_NO_ARG(MSFilterVideoDecoderInterface, 10)
-	
+
 
 
 /** Interface definitions for video capture */
@@ -290,7 +293,7 @@ typedef enum _MSRecorderState MSRecorderState;
 	MS_FILTER_METHOD(MSFilterAudioCaptureInterface, 1, float)
 #define MS_AUDIO_CAPTURE_FORCE_SPEAKER_STATE \
 	MS_FILTER_METHOD(MSFilterAudioCaptureInterface, 255, bool_t)
-	
+
 /** Interface definitions for audio playback */
 enum _MSAudioRoute{
 	MSAudioRouteEarpiece,
@@ -321,7 +324,7 @@ typedef enum _MSAudioRoute MSAudioRoute;
 /* Set the packet loss percentage reported, so that encoder may compensate if forward-correction is enabled and implemented.*/
 #define MS_AUDIO_ENCODER_SET_PACKET_LOSS \
 	MS_FILTER_METHOD(MSFilterAudioEncoderInterface,3,int)
-	
+
 #define MS_AUDIO_ENCODER_CAP_AUTO_PTIME (1)
 
 #define MS_AUDIO_ENCODER_GET_CAPABILITIES \

@@ -392,6 +392,7 @@ if(ENABLE_VIDEO)
 		list(APPEND VOIP_SOURCE_FILES_C
 			utils/opengles_display.c
 			utils/shaderUtil.c
+			videofilters/generic_opengl_display.c
 			videofilters/glxvideo.c
 		)
 	endif()
