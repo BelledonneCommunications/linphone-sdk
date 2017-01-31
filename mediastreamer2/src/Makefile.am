@@ -219,7 +219,7 @@ libmediastreamer_voip_la_SOURCES+=	audiofilters/aac-eld.c
 endif
 
 if BUILD_MACAQSND
-libmediastreamer_voip_la_SOURCES+=	audiofilters/aqsnd.c
+libmediastreamer_voip_la_SOURCES+=	audiofilters/aqsnd.m
 endif
 
 if BUILD_PULSEAUDIO

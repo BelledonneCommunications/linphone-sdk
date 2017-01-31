@@ -55,7 +55,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #ifdef __APPLE__
 #include "TargetConditionals.h"
 #endif
-
+#import <AVFoundation/AVAudioSession.h>
 #include <AudioToolbox/AudioToolbox.h>
 #if !TARGET_OS_IPHONE
 #include <CoreAudio/AudioHardware.h>
@@ -784,8 +784,7 @@ static void aq_stop_r(MSFilter * f)
 		AudioQueueDispose(d->readQueue, true);
 
 #if TARGET_OS_IPHONE
-        OSStatus aqresult = AudioSessionSetActiveWithFlags(false, kAudioSessionSetActiveFlag_NotifyOthersOnDeactivation);
- 		check_aqresult(aqresult,"AudioSessionSetActive(false)");
+		[[AVAudioSession sharedInstance] setActive:FALSE withOptions:AVAudioSessionSetActiveOptionNotifyOthersOnDeactivation error:nil];
 #endif
 	}
 }
@@ -796,14 +795,8 @@ static void aq_start_w(MSFilter * f)
 	if (d->write_started == FALSE) {
 		OSStatus aqresult;
 #if TARGET_OS_IPHONE
-		UInt32 audioCategory;
-		audioCategory= kAudioSessionCategory_AmbientSound;
-		ms_message("AQ: Configuring audio session for playback");
-		aqresult =AudioSessionSetProperty(kAudioSessionProperty_AudioCategory, sizeof(audioCategory), &audioCategory);
-		check_aqresult(aqresult,"Configuring audio session ");
-
-		aqresult = AudioSessionSetActive(true);
-		check_aqresult(aqresult,"AudioSessionSetActive");
+		[[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryAmbient error:nil];
+		[[AVAudioSession sharedInstance] setActive:TRUE error:nil];
 #endif
 		d->writeAudioFormat.mSampleRate = d->rate;
 		d->writeAudioFormat.mFormatID = kAudioFormatLinearPCM;
@@ -884,8 +877,7 @@ static void aq_stop_w(MSFilter * f)
 		AudioQueueDispose(d->writeQueue, true);
 
 #if TARGET_OS_IPHONE
-        OSStatus aqresult = AudioSessionSetActiveWithFlags(false, kAudioSessionSetActiveFlag_NotifyOthersOnDeactivation);
- 		check_aqresult(aqresult,"AudioSessionSetActive(false)");
+		[[AVAudioSession sharedInstance] setActive:FALSE withOptions:AVAudioSessionSetActiveOptionNotifyOthersOnDeactivation error:nil];
 #endif
 	}
 }

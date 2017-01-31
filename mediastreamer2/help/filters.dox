@@ -13,7 +13,7 @@
  *     - Alsa (Linux): src/audiofilters/alsa.c
  *     - Android native sound (libmedia): src/android/androidsound.cpp
  *     - Android sound (deprecated): src/android/androidsound_depr.cpp
- *     - Audio Queue Service (Mac OS X): src/audiofilters/aqsnd.c
+ *     - Audio Queue Service (Mac OS X): src/audiofilters/aqsnd.m
  *     - Audio Unit Service (Mac OS X): src/audiofilters/msiounit.m
  *     - Arts (Linux): src/audiofilters/arts.c
  *     - DirectSound (Windows): src/audiofilters/winsndds.cpp
