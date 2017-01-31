@@ -434,9 +434,8 @@ if(MATROSKA2_FOUND)
 endif()
 
 if(PCAP_FOUND)
-	list(APPEND VOIP_SOURCE_FILES_C src/otherfilters/mspcapfileplayer.c)
+	list(APPEND VOIP_SOURCE_FILES_C otherfilters/mspcapfileplayer.c)
 endif()
-
 set(VOIP_SOURCE_FILES_ALL ${VOIP_SOURCE_FILES_C} ${VOIP_SOURCE_FILES_CXX} ${VOIP_SOURCE_FILES_OBJC})
 
 add_custom_target(ms2-voipdescs-header
