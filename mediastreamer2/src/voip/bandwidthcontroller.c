@@ -80,7 +80,7 @@ static void on_congestion_state_changed(const OrtpEventData *evd, void *user_poi
 		ms_bandwidth_controller_estimate_bandwidths(obj);
 		/*we need to clear the congestion by firstly requesting a bandwidth usage much lower than the theoritically possible,
 		 so that the congested router can finaly expedite all the late packets it retains.*/
-		controlled_stream_bandwidth_requested = compute_target_bandwith_for_controlled_stream(obj, 0.7);
+		controlled_stream_bandwidth_requested = compute_target_bandwith_for_controlled_stream(obj, 0.7f);
 		
 		if (controlled_stream_bandwidth_requested > 0){
 			ms_message("MSBandwidthController: congestion detected - sending tmmbr for stream [%p][%s] for target [%f] kbit/s",
@@ -88,7 +88,7 @@ static void on_congestion_state_changed(const OrtpEventData *evd, void *user_poi
 		}
 	}else{
 		/*now that the congestion has ended, we can submit a new TMMBR to request a bandwidth closer to the maximum available*/
-		controlled_stream_bandwidth_requested = compute_target_bandwith_for_controlled_stream(obj, 0.9);
+		controlled_stream_bandwidth_requested = compute_target_bandwith_for_controlled_stream(obj, 0.9f);
 		
 		if (controlled_stream_bandwidth_requested > 0){
 			ms_message("MSBandwidthController: congestion resolved - sending tmmbr for stream [%p][%s] for target [%f] kbit/s",

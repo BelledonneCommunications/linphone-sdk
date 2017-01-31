@@ -639,7 +639,7 @@ static void tmmbr_received(const OrtpEventData *evd, void *user_pointer) {
 	MediaStream *ms = (MediaStream *)user_pointer;
 	switch (rtcp_RTPFB_get_type(evd->packet)) {
 		case RTCP_RTPFB_TMMBR: {
-			int tmmbr_mxtbr = rtcp_RTPFB_tmmbr_get_max_bitrate(evd->packet);
+			int tmmbr_mxtbr = (int)rtcp_RTPFB_tmmbr_get_max_bitrate(evd->packet);
 			
 			ms_message("MediaStream[%p]: received a TMMBR for %i kbits/s"
 						, ms, (int)(tmmbr_mxtbr/1000));
