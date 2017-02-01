@@ -82,9 +82,34 @@ static void bytesToFromHexaStrings(void) {
 	BC_ASSERT_EQUAL(bctbx_strToUint64("fedcba9876543210"), 0xfedcba9876543210, uint64_t, "0x%016lx");
 }
 
+static void timeFunctions(void) {
+	bctoolboxTimeSpec testTs;
+	bctoolboxTimeSpec y2k;
+	y2k.tv_sec = 946684800;
+	y2k.tv_nsec = 123456789;
+
+	memcpy(&testTs, &y2k, sizeof(bctoolboxTimeSpec));
+	BC_ASSERT_EQUAL(bctbx_timespec_compare(&y2k, &testTs), 0, int, "%d");
+	bctbx_timespec_add(&testTs, 604800);
+	BC_ASSERT_EQUAL(testTs.tv_sec, y2k.tv_sec+604800, int64_t, "%ld");
+	BC_ASSERT_EQUAL(testTs.tv_nsec, y2k.tv_nsec, int64_t, "%ld");
+	BC_ASSERT_TRUE(bctbx_timespec_compare(&y2k, &testTs)<0);
+
+	memcpy(&testTs, &y2k, sizeof(bctoolboxTimeSpec));
+	bctbx_timespec_add(&testTs, -604800);
+	BC_ASSERT_EQUAL(testTs.tv_sec, y2k.tv_sec-604800, int64_t, "%ld");
+	BC_ASSERT_EQUAL(testTs.tv_nsec, y2k.tv_nsec, int64_t, "%ld");
+	BC_ASSERT_TRUE(bctbx_timespec_compare(&y2k, &testTs)>0);
+
+	memcpy(&testTs, &y2k, sizeof(bctoolboxTimeSpec));
+	bctbx_timespec_add(&testTs, -946684801);
+	BC_ASSERT_EQUAL(testTs.tv_sec, 0, int64_t, "%ld");
+	BC_ASSERT_EQUAL(testTs.tv_nsec, 0, int64_t, "%ld");
+}
 
 static test_t utils_tests[] = {
 	TEST_NO_TAG("Bytes to/from Hexa strings", bytesToFromHexaStrings),
+	TEST_NO_TAG("Time", timeFunctions)
 };
 
 test_suite_t utils_test_suite = {"Utils", NULL, NULL, NULL, NULL,

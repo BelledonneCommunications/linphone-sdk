@@ -788,6 +788,45 @@ void bctbx_sleep_until(const bctoolboxTimeSpec *ts){
 #endif
 }
 
+/**
+ * @brief Add given amount of seconds to a timeSpec structure
+ *
+ * @param[in/out]	ts	The timeSpec structure used as input, modified in output by increnting it according to second argument
+ * @param[in]		lap	In seconds, number of seconds to modify the given timeSpec, can be negative(which may set the original timeSpec to 0)
+ */
+void bctbx_timespec_add(bctoolboxTimeSpec *ts, const int64_t lap) {
+	if (lap<0 && -lap > ts->tv_sec) {
+		ts->tv_sec = 0;
+		ts->tv_nsec = 0;
+	} else {
+		ts->tv_sec += lap;
+	}
+}
+
+/**
+ * @brief Compares two TimeSpec s1 and s2.
+ *
+ * @param[in]	s1	First time spec
+ * @param[in]	s2	Second time spec
+ *
+ * @return a negative value if s1 is earlier than s2, 0 if they are equal, a positive value if s1 is later than s2
+ */
+int bctbx_timespec_compare(const bctoolboxTimeSpec *s1, const bctoolboxTimeSpec *s2){
+	int64_t secdiff = s1->tv_sec - s2->tv_sec;
+	if (secdiff == 0){
+		int64_t nsec_diff = s1->tv_nsec - s2->tv_nsec;
+		if (nsec_diff < 0){
+			return -1;
+		}else if (nsec_diff > 0){
+			return 1;
+		}else return 0;
+	}else if (secdiff < 0){
+		return -1;
+	}else
+		return 1;
+}
+
+
 #if defined(_WIN32) && !defined(_MSC_VER)
 char* strtok_r(char *str, const char *delim, char **nextp){
 	char *ret;
