@@ -3,7 +3,7 @@ src/android/androidsound_depr.cpp
 src/android/androidvideo.cpp
 src/audiofilters/alaw.c
 src/audiofilters/alsa.c
-src/audiofilters/aqsnd.c
+src/audiofilters/aqsnd.m
 src/audiofilters/audiomixer.c
 src/audiofilters/chanadapt.c
 src/audiofilters/dtmfgen.c
