@@ -528,6 +528,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/mediastreamer-config.h.cmake ${CMAKE_
 set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/mediastreamer-config.h PROPERTIES GENERATED ON)
 add_definitions("-DHAVE_CONFIG_H")
 add_definitions(${ORTP_CPPFLAGS})
+add_definitions("-DMS2_EXPORTS")
 if(ANDROID)
 	add_definitions("-DANDROID")
 endif()
