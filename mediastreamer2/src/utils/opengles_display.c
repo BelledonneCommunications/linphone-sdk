@@ -184,8 +184,6 @@ void ogl_display_init(struct opengles_display* gldisp, int width, int height) {
 	}
 	load_shaders(&gldisp->program, gldisp->uniforms);
 
-	GL_OPERATION(glUseProgram(gldisp->program))
-
 	gldisp->glResourcesInitialized = TRUE;
 
 	check_GL_errors("ogl_display_init");
@@ -389,6 +387,8 @@ static void ogl_display_render_type(struct opengles_display* gldisp, enum ImageT
 }
 
 void ogl_display_render(struct opengles_display* gldisp, int orientation) {
+	GL_OPERATION(glUseProgram(gldisp->program))
+
 	ogl_display_render_type(gldisp, REMOTE_IMAGE, TRUE, 0, 0, 1, 1, orientation);
 	// preview image already have the correct orientation
 	ogl_display_render_type(gldisp, PREVIEW_IMAGE, FALSE, 0.4f, -0.4f, 0.2f, 0.2f, 0);
@@ -565,6 +565,7 @@ static bool_t update_textures_with_yuv(struct opengles_display* gldisp, enum Ima
 		  ? ((alig_V > alig_Y) ? alig_Y : alig_V)
 			:	((alig_U > alig_Y) ? alig_Y : alig_U);
 	}
+
 	/* upload Y plane */
 	GL_OPERATION(glActiveTexture(GL_TEXTURE0))
 	GL_OPERATION(glBindTexture(GL_TEXTURE_2D, gldisp->textures[gldisp->texture_index][type][Y]))
