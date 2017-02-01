@@ -33,6 +33,7 @@ extern "C" {
 #endif
 
 extern test_suite_t containers_test_suite;
+extern test_suite_t utils_test_suite;
 
 #ifdef __cplusplus
 };

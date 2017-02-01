@@ -44,6 +44,7 @@ static void log_handler(int lev, const char *fmt, va_list args) {
 void bctoolbox_tester_init(void(*ftester_printf)(int level, const char *fmt, va_list args)) {
 	bc_tester_init(log_handler,BCTBX_LOG_ERROR, 0,NULL);
 	bc_tester_add_suite(&containers_test_suite);
+	bc_tester_add_suite(&utils_test_suite);
 }
 
 void bctoolbox_tester_uninit(void) {
