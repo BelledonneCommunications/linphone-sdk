@@ -49,22 +49,28 @@ extern "C" void bctbx_mmap_cchar_delete(bctbx_map_t *mmap) {
 }
 extern "C" void bctbx_mmap_ullong_delete_with_data(bctbx_map_t *mmap, bctbx_map_free_func freefunc) {
 	bctbx_iterator_t *it = bctbx_map_ullong_begin(mmap);
-	while(!bctbx_iterator_ullong_equals(it, bctbx_map_ullong_end(mmap))) {
+	bctbx_iterator_t *end = bctbx_map_ullong_end(mmap);
+	
+	while(!bctbx_iterator_ullong_equals(it, end)) {
 		bctbx_pair_t *pair = bctbx_iterator_ullong_get_pair(it);
 		freefunc(bctbx_pair_ullong_get_second(pair));
 		it = bctbx_iterator_ullong_get_next(it);
 	}
 	bctbx_iterator_ullong_delete(it);
+	bctbx_iterator_ullong_delete(end);
 	bctbx_mmap_ullong_delete(mmap);
 }
 extern "C" void bctbx_mmap_cchar_delete_with_data(bctbx_map_t *mmap, bctbx_map_free_func freefunc) {
 	bctbx_iterator_t *it = bctbx_map_cchar_begin(mmap);
-	while(!bctbx_iterator_cchar_equals(it, bctbx_map_cchar_end(mmap))) {
+	bctbx_iterator_t *end = bctbx_map_cchar_end(mmap);
+	
+	while(!bctbx_iterator_cchar_equals(it, end)) {
 		bctbx_pair_t *pair = bctbx_iterator_cchar_get_pair(it);
 		freefunc(bctbx_pair_cchar_get_second(pair));
 		it = bctbx_iterator_cchar_get_next(it);
 	}
 	bctbx_iterator_cchar_delete(it);
+	bctbx_iterator_cchar_delete(end);
 	bctbx_mmap_cchar_delete(mmap);
 }
 
