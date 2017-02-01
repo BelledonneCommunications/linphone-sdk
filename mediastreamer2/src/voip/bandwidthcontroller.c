@@ -32,7 +32,9 @@ static void ms_bandwidth_controller_estimate_bandwidths(MSBandwidthController *o
 	
 	for (elem = obj->streams; elem != NULL; elem = elem->next){
 		MediaStream *ms = (MediaStream*) elem->data;
-		float bw = rtp_session_get_recv_bandwidth_smooth(ms->sessions.rtp_session);
+		float bw;
+		if (media_stream_get_state(ms) != MSStreamStarted) continue;
+		bw = rtp_session_get_recv_bandwidth_smooth(ms->sessions.rtp_session);
 		bandwidth += bw;
 		if (ms == obj->controlled_stream) obj->stats.controlled_stream_bandwidth = bw;
 	}
@@ -136,6 +138,7 @@ void ms_bandwidth_controller_add_stream(MSBandwidthController *obj, struct _Medi
 }
 
 void ms_bandwidth_controller_remove_stream(MSBandwidthController *obj, struct _MediaStream *stream){
+	if (bctbx_list_find(obj->streams, stream) == NULL) return;
 	ortp_ev_dispatcher_disconnect(media_stream_get_event_dispatcher(stream), ORTP_EVENT_CONGESTION_STATE_CHANGED, 0, 
 		on_congestion_state_changed);
 	rtp_session_enable_congestion_detection(stream->sessions.rtp_session, FALSE);
