@@ -724,35 +724,27 @@ belle_sip_list_t *belle_sip_parse_directory(const char *path, const char *file_t
 #else
 	DIR *dir;
 	struct dirent *ent;
-	struct dirent *result;
-	long int name_max;
-	int res;
 
 	if ((dir = opendir(path)) == NULL) {
 		belle_sip_error("Could't open [%s] directory.", path);
 		return NULL;
 	}
 
-	/* allocate the directory entry structure */
-	name_max = pathconf(path, _PC_NAME_MAX);
-	if (name_max == -1) name_max = 255;
-	ent = malloc(offsetof(struct dirent, d_name) + name_max + 1);
-
 	/* loop on all directory files */
-	res = readdir_r(dir, ent, &result);
-	while ((res == 0) && (result != NULL)) {
+    errno = 0;
+	ent = readdir(dir);
+	while (ent != NULL) {
 		/* filter on file type if given */
 		if (file_type==NULL
 			|| (strncmp(ent->d_name+strlen(ent->d_name)-strlen(file_type), file_type, strlen(file_type))==0) ) {
 			char *name_with_path=belle_sip_strdup_printf("%s/%s",path,ent->d_name);
 			file_list = belle_sip_list_append(file_list, name_with_path);
 		}
-		res = readdir_r(dir, ent, &result);
+		ent = readdir(dir);
 	}
-	if (res != 0) {
+	if (errno != 0) {
 		belle_sip_error("Error while reading the [%s] directory: %s.", path, strerror(errno));
 	}
-	free(ent);
 	closedir(dir);
 #endif
 	return file_list;
