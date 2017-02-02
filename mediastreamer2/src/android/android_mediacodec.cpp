@@ -525,7 +525,7 @@ void AMediaImage_close(AMediaImage *image) {
 }
 
 bool_t AMediaImage_isAvailable(void) {
-	return ms_get_android_sdk_version() >= 21;
+	return ms_get_android_sdk_version() >= 22;
 }
 
 
