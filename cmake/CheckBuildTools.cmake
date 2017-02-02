@@ -60,7 +60,7 @@ file(COPY "${CMAKE_CURRENT_LIST_DIR}/../scripts/gas-preprocessor.pl" DESTINATION
 if(WIN32)
 	if(NOT EXISTS "${CMAKE_BINARY_DIR}/linphone_builder_windows_tools.zip")
 		message(STATUS "Installing windows tools")
-		file(DOWNLOAD https://www.linphone.org/files/linphone_builder_windows_tools.zip "${CMAKE_BINARY_DIR}/linphone_builder_windows_tools.zip")
+		file(DOWNLOAD http://www.linphone.org/files/linphone_builder_windows_tools.zip "${CMAKE_BINARY_DIR}/linphone_builder_windows_tools.zip")
 		execute_process(
 			COMMAND "${CMAKE_COMMAND}" "-E" "tar" "x" "${CMAKE_BINARY_DIR}/linphone_builder_windows_tools.zip"
 			WORKING_DIRECTORY ${CMAKE_PROGRAM_PATH}
