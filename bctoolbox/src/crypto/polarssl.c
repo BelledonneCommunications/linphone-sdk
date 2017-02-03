@@ -463,7 +463,7 @@ int32_t bctbx_x509_certificate_get_fingerprint(const bctbx_x509_certificate_t *c
 		}
 
 		snprintf(fingerprint, fingerprint_size, "%s", hash_alg_string);
-		for (i=0; i<hash_length; i++, fingerprint_index+=3) {
+		for (i=0; i<(int)hash_length; i++, fingerprint_index+=3) {
 			snprintf((char*)fingerprint+fingerprint_index, fingerprint_size-fingerprint_index, "%c%02X", prefix,buffer[i]);
 			prefix=':';
 		}
