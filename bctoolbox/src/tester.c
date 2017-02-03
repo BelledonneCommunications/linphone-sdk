@@ -93,7 +93,7 @@ char * suite_name = NULL;
 char * test_name = NULL;
 char * tag_name = NULL;
 char * expected_res = NULL;
-static long max_vm_kb = 0;
+static size_t max_vm_kb = 0;
 int run_skipped_tests = 0;
 
 static void (*tester_printf_va)(int level, const char *format, va_list args)=NULL;
