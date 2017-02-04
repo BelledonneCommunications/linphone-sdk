@@ -165,6 +165,7 @@ void ms_quality_indicator_update_local(MSQualityIndicator *qi){
 	uint32_t expected;
 
 	recvcnt=(int)(stats->packet_recv-qi->last_packet_count);
+	
 	if (recvcnt==0){
 		// ms_message("ms_quality_indicator_update_local(): no packet received since last call");
 		return;/* no information usable*/
@@ -178,21 +179,23 @@ void ms_quality_indicator_update_local(MSQualityIndicator *qi){
 	}
 	expected = ext_seq-qi->last_ext_seq;
 	lost = expected - recvcnt;
+
 	qi->last_ext_seq=ext_seq;
 	qi->last_packet_count=stats->packet_recv;
 
 	late=(int)(stats->outoftime-qi->last_late);
 	qi->last_late=(uint32_t)stats->outoftime;
 
-
 	if (lost<0) lost=0; /* will be the case at least the first time, because we don't know the initial sequence number*/
 	if (late<0) late=0;
 
-	loss_rate=(float)lost/(float)expected;
-	qi->cur_loss_rate=loss_rate*100.0f;
+	if (expected != 0){
+		loss_rate=(float)lost/(float)expected;
+		qi->cur_loss_rate=loss_rate*100.0f;
 
-	late_rate=(float)late/(float)recvcnt;
-	qi->cur_late_rate=late_rate*100.0f;
+		late_rate=(float)late/(float)recvcnt;
+		qi->cur_late_rate=late_rate*100.0f;
+	}
 
 	qi->local_rating=compute_rating(loss_rate,0,late_rate,rtp_session_get_round_trip_propagation(qi->session));
 	qi->local_lq_rating=compute_lq_rating(loss_rate,0,late_rate);
