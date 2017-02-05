@@ -533,17 +533,24 @@ void bzrtp_resetSASVerified(bzrtpContext_t *zrtpContext) {
  * @param[in]		useKDF				A flag, if set to 0, write data as it is provided, if set to 1, write KDF(s0, "tagContent", KDF_Context, negotiated hash length)
  * @param[in]		fileFlag			Flag, if LOADFILE bit is set, reload the cache buffer from file before updating.
  * 										if WRITEFILE bit is set, update the cache file
+ * @param[in]		multipleTagFlag			Flag, if set to MULTIPLETAG_FORBID, do not allow multiple tags with the same name under the <peer> tag, otherwise allow it.
+ *							Will be effective if new value is different from existing one.
+ *							Has no effect if useKDF flag is on: no multiple tag allowed when storing KDF value
  *
  * @return	0 on success, errorcode otherwise
  */
-int bzrtp_addCustomDataInCache(bzrtpContext_t *zrtpContext, uint8_t peerZID[12], uint8_t *tagName, uint16_t tagNameLength, uint8_t *tagContent, uint16_t tagContentLength, uint8_t derivedDataLength, uint8_t useKDF, uint8_t fileFlag) {
+int bzrtp_addCustomDataInCache(bzrtpContext_t *zrtpContext, uint8_t peerZID[12], uint8_t *tagName, uint16_t tagNameLength, uint8_t *tagContent, uint16_t tagContentLength, uint8_t derivedDataLength, uint8_t useKDF, uint8_t fileFlag, uint8_t multipleTagFlag) {
 	/* check we have a valid context, a cache access callback function and a valid channelContext[0] */
 	if (zrtpContext == NULL || zrtpContext->zrtpCallbacks.bzrtp_loadCache == NULL || zrtpContext->channelContext[0]==NULL) {
 		return BZRTP_ERROR_INVALIDCONTEXT;
 	}
 
 	if (useKDF ==  BZRTP_CUSTOMCACHE_PLAINDATA) { /* write content as provided : content is a string and multiple tag is allowed as we are writing the peer URI(To be modified if needed) */
-		return bzrtp_writePeerNode(zrtpContext, peerZID, tagName, tagNameLength, tagContent, tagContentLength, BZRTP_CACHE_TAGISSTRING|BZRTP_CACHE_ALLOWMULTIPLETAGS, fileFlag);
+		if (multipleTagFlag == BZRTP_CUSTOMCACHE_MULTIPLETAG_ALLOW) {
+			return bzrtp_writePeerNode(zrtpContext, peerZID, tagName, tagNameLength, tagContent, tagContentLength, BZRTP_CACHE_TAGISSTRING|BZRTP_CACHE_ALLOWMULTIPLETAGS, fileFlag);
+		} else {
+			return bzrtp_writePeerNode(zrtpContext, peerZID, tagName, tagNameLength, tagContent, tagContentLength, BZRTP_CACHE_TAGISSTRING|BZRTP_CACHE_NOMULTIPLETAGS, fileFlag);
+		}
 	} else { /* we must derive the content using the key derivation function */
 		uint8_t derivedContent[32];
 		

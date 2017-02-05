@@ -353,7 +353,10 @@ BZRTP_EXPORT int bzrtp_getSelfHelloHash(bzrtpContext_t *zrtpContext, uint32_t se
 BZRTP_EXPORT int bzrtp_getChannelStatus(bzrtpContext_t *zrtpContext, uint32_t selfSSRC);
 
 #define BZRTP_CUSTOMCACHE_USEKDF 	1
-#define BZRTP_CUSTOMCACHE_PLAINDATA 0
+#define BZRTP_CUSTOMCACHE_PLAINDATA 	0
+
+#define BZRTP_CUSTOMCACHE_MULTIPLETAG_FORBID 0
+#define BZRTP_CUSTOMCACHE_MULTIPLETAG_ALLOW 1
 
 #define BZRTP_CACHE_LOADFILE		0x01
 #define BZRTP_CACHE_DONTLOADFILE	0x00
@@ -378,9 +381,12 @@ BZRTP_EXPORT int bzrtp_getChannelStatus(bzrtpContext_t *zrtpContext, uint32_t se
  * @param[in]		useKDF				A flag, if set to 0, write data as it is provided, if set to 1, write KDF(s0, "tagContent", KDF_Context, negotiated hash length)
  * @param[in]		fileFlag			Flag, if LOADFILE bit is set, reload the cache buffer from file before updating.
  * 										if WRITEFILE bit is set, update the cache file
+ * @param[in]		multipleTagFlag			Flag, if set to MULTIPLETAG_FORBID, do not allow multiple tags with the same name under the <peer> tag, otherwise allow it
+ *							Will be effective if new value is different from existing one.
+ *							Has no effect if useKDF flag is on: no multiple tag allowed when storing KDF value
  *
  * @return	0 on success, errorcode otherwise
  */
-BZRTP_EXPORT int bzrtp_addCustomDataInCache(bzrtpContext_t *zrtpContext, uint8_t peerZID[12], uint8_t *tagName, uint16_t tagNameLength, uint8_t *tagContent, uint16_t tagContentLength, uint8_t derivedDataLength, uint8_t useKDF, uint8_t fileFlag);
+BZRTP_EXPORT int bzrtp_addCustomDataInCache(bzrtpContext_t *zrtpContext, uint8_t peerZID[12], uint8_t *tagName, uint16_t tagNameLength, uint8_t *tagContent, uint16_t tagContentLength, uint8_t derivedDataLength, uint8_t useKDF, uint8_t fileFlag, uint8_t multipleTagFlag);
 
 #endif /* ifndef BZRTP_H */
