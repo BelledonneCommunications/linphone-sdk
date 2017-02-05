@@ -34,6 +34,7 @@
 struct _MSZidCacheContext{
 	char *zidFilename; /**< cache filename */
 	char *peerURI; /**< use for cache management */
+	uint32_t limeKeyTimeSpan; /**< amount in seconds of the lime key life span */
 };
 
 typedef struct _MSZidCacheContext MSZidCacheContext;
@@ -322,7 +323,7 @@ static int ms_zrtp_writeCache(void *zidCacheData, const uint8_t* input, uint32_t
 
 /**
  * @brief This callback is called when context is ready to compute exported keys as in rfc6189 section 4.5.2
- * Computed keys are added to zid cache with sip URI of peer(found in client Data) to be used for IM ciphering
+ * Computed keys are added to zid cache with sip URI of peer(found in client Data) to be used for LIME(IM ciphering)
  *
  * @param[in]	zidCacheData	Pointer to our ZidCacheContext structure used to retrieve ZID filename
  * @param[in]	clientData	Pointer to our ZrtpContext structure used to retrieve peer SIP URI
@@ -336,21 +337,60 @@ static int ms_zrtp_addExportedKeysInZidCache(void *zidCacheData, void *clientDat
 	MSZidCacheContext *zidCache = (MSZidCacheContext *)zidCacheData;
 
 	bzrtpContext_t *zrtpContext = userData->zrtpContext;
-
-	if (zidCache->peerURI) {
-		/* Write the peer sip URI in cache */
-		bzrtp_addCustomDataInCache(zrtpContext, peerZid, (uint8_t *)"uri", 3, (uint8_t *)(zidCache->peerURI), (uint16_t)strlen(zidCache->peerURI), 0, BZRTP_CUSTOMCACHE_PLAINDATA, BZRTP_CACHE_LOADFILE|BZRTP_CACHE_DONTWRITEFILE);
-	}
+	bctoolboxTimeSpec currentTime;
+	uint8_t currentTimeHex[17];
 
 	/* Derive the master keys and session Id 32 bytes each */
-	bzrtp_addCustomDataInCache(zrtpContext, peerZid, (uint8_t *)"sndKey", 6, (uint8_t *)((role==RESPONDER)?"ResponderKey":"InitiatorKey"), 12, 32, BZRTP_CUSTOMCACHE_USEKDF, BZRTP_CACHE_DONTLOADFILE|BZRTP_CACHE_DONTWRITEFILE);
-	bzrtp_addCustomDataInCache(zrtpContext, peerZid, (uint8_t *)"rcvKey", 6, (uint8_t *)((role==RESPONDER)?"InitiatorKey":"ResponderKey"), 12, 32, BZRTP_CUSTOMCACHE_USEKDF, BZRTP_CACHE_DONTLOADFILE|BZRTP_CACHE_DONTWRITEFILE);
-	bzrtp_addCustomDataInCache(zrtpContext, peerZid, (uint8_t *)"sndSId", 6, (uint8_t *)((role==RESPONDER)?"ResponderSId":"InitiatorSId"), 12, 32, BZRTP_CUSTOMCACHE_USEKDF, BZRTP_CACHE_DONTLOADFILE|BZRTP_CACHE_DONTWRITEFILE);
-	bzrtp_addCustomDataInCache(zrtpContext, peerZid, (uint8_t *)"rcvSId", 6, (uint8_t *)((role==RESPONDER)?"InitiatorSId":"ResponderSId"), 12, 32, BZRTP_CUSTOMCACHE_USEKDF, BZRTP_CACHE_DONTLOADFILE|BZRTP_CACHE_DONTWRITEFILE);
+	bzrtp_addCustomDataInCache(zrtpContext, peerZid, (uint8_t *)"sndKey", 6, (uint8_t *)((role==RESPONDER)?"ResponderKey":"InitiatorKey"), 12, 32,
+					BZRTP_CUSTOMCACHE_USEKDF,
+					BZRTP_CACHE_LOADFILE|BZRTP_CACHE_DONTWRITEFILE,
+					BZRTP_CUSTOMCACHE_MULTIPLETAG_FORBID);
+	bzrtp_addCustomDataInCache(zrtpContext, peerZid, (uint8_t *)"rcvKey", 6, (uint8_t *)((role==RESPONDER)?"InitiatorKey":"ResponderKey"), 12, 32,
+					BZRTP_CUSTOMCACHE_USEKDF,
+					BZRTP_CACHE_DONTLOADFILE|BZRTP_CACHE_DONTWRITEFILE,
+					BZRTP_CUSTOMCACHE_MULTIPLETAG_FORBID);
+	bzrtp_addCustomDataInCache(zrtpContext, peerZid, (uint8_t *)"sndSId", 6, (uint8_t *)((role==RESPONDER)?"ResponderSId":"InitiatorSId"), 12, 32,
+					BZRTP_CUSTOMCACHE_USEKDF,
+					BZRTP_CACHE_DONTLOADFILE|BZRTP_CACHE_DONTWRITEFILE,
+					BZRTP_CUSTOMCACHE_MULTIPLETAG_FORBID);
+	bzrtp_addCustomDataInCache(zrtpContext, peerZid, (uint8_t *)"rcvSId", 6, (uint8_t *)((role==RESPONDER)?"InitiatorSId":"ResponderSId"), 12, 32,
+					BZRTP_CUSTOMCACHE_USEKDF,
+					BZRTP_CACHE_DONTLOADFILE|BZRTP_CACHE_DONTWRITEFILE,
+					BZRTP_CUSTOMCACHE_MULTIPLETAG_FORBID);
+
+	if (zidCache->peerURI) {
+		/* Write the peer sip URI in cache, allow multiple tag as we can have more than one uri attached to a ZID(device) */
+		bzrtp_addCustomDataInCache(zrtpContext, peerZid, (uint8_t *)"uri", 3, (uint8_t *)(zidCache->peerURI), (uint16_t)strlen(zidCache->peerURI), 0,
+						BZRTP_CUSTOMCACHE_PLAINDATA,
+						BZRTP_CACHE_DONTLOADFILE|BZRTP_CACHE_DONTWRITEFILE,
+						BZRTP_CUSTOMCACHE_MULTIPLETAG_ALLOW);
+	}
 
 	/* Derive session index, 4 bytes */
-	bzrtp_addCustomDataInCache(zrtpContext, peerZid, (uint8_t *)"sndIndex", 6, (uint8_t *)((role==RESPONDER)?"ResponderIndex":"InitiatorIndex"), 14, 4, BZRTP_CUSTOMCACHE_USEKDF, BZRTP_CACHE_DONTLOADFILE|BZRTP_CACHE_DONTWRITEFILE);
-	bzrtp_addCustomDataInCache(zrtpContext, peerZid, (uint8_t *)"rcvIndex", 6, (uint8_t *)((role==RESPONDER)?"InitiatorIndex":"ResponderIndex"), 14, 4, BZRTP_CUSTOMCACHE_USEKDF, BZRTP_CACHE_DONTLOADFILE|BZRTP_CACHE_WRITEFILE);
+	bzrtp_addCustomDataInCache(zrtpContext, peerZid, (uint8_t *)"sndIndex", 8, (uint8_t *)((role==RESPONDER)?"ResponderIndex":"InitiatorIndex"), 14, 4,
+					BZRTP_CUSTOMCACHE_USEKDF,
+					BZRTP_CACHE_DONTLOADFILE|BZRTP_CACHE_DONTWRITEFILE,
+					BZRTP_CUSTOMCACHE_MULTIPLETAG_FORBID);
+	bzrtp_addCustomDataInCache(zrtpContext, peerZid, (uint8_t *)"rcvIndex", 8, (uint8_t *)((role==RESPONDER)?"InitiatorIndex":"ResponderIndex"), 14, 4,
+					BZRTP_CUSTOMCACHE_USEKDF,
+					BZRTP_CACHE_DONTLOADFILE|BZRTP_CACHE_DONTWRITEFILE,
+					BZRTP_CUSTOMCACHE_MULTIPLETAG_FORBID);
+
+	/* Add the key lifetime end, if the life span is 0, we shall just put 0 in the expiration period as it means valid for ever */
+	if (zidCache->limeKeyTimeSpan == 0) {
+		bzrtp_addCustomDataInCache(zrtpContext, peerZid, (uint8_t *)"valid", 5, (uint8_t *)"0000000000000000", 16, 0,
+					BZRTP_CUSTOMCACHE_PLAINDATA,
+					BZRTP_CACHE_DONTLOADFILE|BZRTP_CACHE_WRITEFILE,
+					BZRTP_CUSTOMCACHE_MULTIPLETAG_FORBID);
+	}else  {
+		_bctbx_get_cur_time(&currentTime,TRUE);
+		bctbx_timespec_add(&currentTime, (int64_t)(zidCache->limeKeyTimeSpan));
+		bctbx_uint64ToStr(currentTimeHex, currentTime.tv_sec);
+		bzrtp_addCustomDataInCache(zrtpContext, peerZid, (uint8_t *)"valid", 5, currentTimeHex, (uint16_t)strlen((char *)currentTimeHex), 0,
+					BZRTP_CUSTOMCACHE_PLAINDATA,
+					BZRTP_CACHE_DONTLOADFILE|BZRTP_CACHE_WRITEFILE,
+					BZRTP_CUSTOMCACHE_MULTIPLETAG_FORBID);
+	}
 
 	return 0;
 }
@@ -592,12 +632,15 @@ MSZrtpContext* ms_zrtp_context_new(MSMediaStreamSessions *sessions, MSZrtpParams
 		if (params->uri && strlen(params->uri)>0) {
 			cbs.bzrtp_contextReadyForExportedKeys=ms_zrtp_addExportedKeysInZidCache;
 			ZidCache->peerURI = ms_strdup(params->uri);
+			ZidCache->limeKeyTimeSpan = params->limeKeyTimeSpan;
 		} else {
 			ZidCache->peerURI = NULL;
+			ZidCache->limeKeyTimeSpan = 0;
 		}
 	} else {
 		ZidCache->zidFilename = NULL;
 		ZidCache->peerURI = NULL;
+		ZidCache->limeKeyTimeSpan = 0;
 	}
 
 	bzrtp_setZIDCacheData(context, ZidCache);
