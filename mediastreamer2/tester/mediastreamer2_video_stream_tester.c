@@ -27,6 +27,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define unlink _unlink
 #endif
 
+#ifndef TARGET_OS_OSX
+#define TARGET_OS_OSX TARGET_OS_MAC && !(TARGET_OS_IPHONE || TARGET_OS_SIMULATOR || TARGET_OS_EMBEDDED)
+#endif
+
 typedef struct _CodecsManager CodecsManager;
 
 static RtpProfile rtp_profile;
@@ -127,6 +131,9 @@ static void codecs_manager_test_all_combinations(const CodecsManager *cm, CodecM
 }
 
 static int tester_before_all(void) {
+	MSWebCamManager *cam_manager = NULL;
+	MSWebCam *mire = ms_web_cam_new(ms_mire_webcam_desc_get());
+
 	_factory = ms_factory_new_with_voip();
 
 	ms_factory_create_filter(_factory, TRUE);
@@ -136,6 +143,9 @@ static int tester_before_all(void) {
 	rtp_profile_set_payload(&rtp_profile, MP4V_PAYLOAD_TYPE, &payload_type_mp4v);
 
 	_h264_codecs_manager = codecs_manager_new(_factory, "h264");
+
+	cam_manager = ms_factory_get_web_cam_manager(_factory);
+	if(mire != NULL) ms_web_cam_manager_add_cam(cam_manager, mire);
 
 	return 0;
 }
@@ -186,9 +196,14 @@ void video_stream_tester_set_local_ip(video_stream_tester_t* obj,const char*ip) 
 video_stream_tester_t* video_stream_tester_new(void) {
 	video_stream_tester_t* vst = ms_new0(video_stream_tester_t,1);
 	video_stream_tester_set_local_ip(vst,"127.0.0.1");
-	vst->cam = ms_web_cam_manager_get_cam(ms_factory_get_web_cam_manager(_factory), "StaticImage: Static picture");
+	vst->cam = ms_web_cam_manager_get_cam(ms_factory_get_web_cam_manager(_factory), "Mire: Mire (synthetic moving picture)");
 	vst->local_rtp=-1; /*random*/
 	vst->local_rtcp=-1; /*random*/
+#if TARGET_OS_OSX
+	vst->vconf = ms_new0(MSVideoConfiguration, 1);
+	vst->vconf->vsize = MS_VIDEO_SIZE_VGA;
+	vst->vconf->required_bitrate = 500000;
+#endif
 	return  vst;
 }
 
