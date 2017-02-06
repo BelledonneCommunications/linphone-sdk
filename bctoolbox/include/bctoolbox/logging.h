@@ -232,7 +232,7 @@ template <typename _Tp> inline pumpstream &operator<<(pumpstream &&__os, const _
 #define BCTBX_SLOG(domain, thelevel) \
 \
 if (bctbx_log_level_enabled((domain), (thelevel))) \
-		pumpstream((domain?domain:""),(thelevel))
+		pumpstream((domain != NULL ? domain : ""), (thelevel))
 
 #define BCTBX_SLOGD(DOMAIN) BCTBX_SLOG(DOMAIN, BCTBX_LOG_DEBUG)
 #define BCTBX_SLOGI(DOMAIN) BCTBX_SLOG((DOMAIN), (BCTBX_LOG_MESSAGE))
