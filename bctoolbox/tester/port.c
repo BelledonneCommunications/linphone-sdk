@@ -114,6 +114,22 @@ static void timeFunctions(void) {
 	bctbx_get_utc_cur_time(&testTs);
 	BC_ASSERT_TRUE(bctbx_timespec_compare(&testTs, &monday6Feb2017)>0);
 
+	BC_ASSERT_EQUAL(bctbx_time_string_to_sec(NULL), 0, uint32_t, "%d");
+	BC_ASSERT_EQUAL(bctbx_time_string_to_sec(""), 0, uint32_t, "%d");
+	BC_ASSERT_EQUAL(bctbx_time_string_to_sec("0"), 0, uint32_t, "%d");
+	BC_ASSERT_EQUAL(bctbx_time_string_to_sec("1500"), 1500, uint32_t, "%d");
+	BC_ASSERT_EQUAL(bctbx_time_string_to_sec("2500s"), 2500, uint32_t, "%d");
+	BC_ASSERT_EQUAL(bctbx_time_string_to_sec("10m"), 600, uint32_t, "%d");
+	BC_ASSERT_EQUAL(bctbx_time_string_to_sec("5h"), 5*3600, uint32_t, "%d");
+	BC_ASSERT_EQUAL(bctbx_time_string_to_sec("2d"), 2*24*3600, uint32_t, "%d");
+	BC_ASSERT_EQUAL(bctbx_time_string_to_sec("3W"), 3*7*24*3600, uint32_t, "%d");
+	BC_ASSERT_EQUAL(bctbx_time_string_to_sec("6M"), 6*30*24*3600, uint32_t, "%d");
+	BC_ASSERT_EQUAL(bctbx_time_string_to_sec("7Y"), 7*365*24*3600, uint32_t, "%d");
+	BC_ASSERT_EQUAL(bctbx_time_string_to_sec("7Y6M2W"), (7*365+6*30+2*7)*24*3600, uint32_t, "%d");
+	BC_ASSERT_EQUAL(bctbx_time_string_to_sec("2m30"), 2*60+30, uint32_t, "%d");
+	BC_ASSERT_EQUAL(bctbx_time_string_to_sec("15d1M"), (15+1*30)*24*3600, uint32_t, "%d");
+	BC_ASSERT_EQUAL(bctbx_time_string_to_sec("15d5z"), 15*24*3600, uint32_t, "%d");
+	BC_ASSERT_EQUAL(bctbx_time_string_to_sec("15dM12h"), (15*24+12)*3600, uint32_t, "%d");
 }
 
 static test_t utils_tests[] = {

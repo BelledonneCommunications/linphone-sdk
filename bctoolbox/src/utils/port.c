@@ -831,6 +831,70 @@ int bctbx_timespec_compare(const bctoolboxTimeSpec *s1, const bctoolboxTimeSpec 
 }
 
 
+uint32_t bctbx_time_string_to_sec(const char *timeString) {
+
+	char *p = NULL;
+	char *o = NULL;
+	int32_t n=0;
+	uint32_t ret=0;
+
+	if (timeString == NULL) {
+		return 0;
+	}
+
+	o = p = bctbx_strdup(timeString);
+
+	while (*p!='\0') {
+		n=strtol(p, &p, 10);
+		switch (*p) {
+			case '\0':
+				ret+=n;
+			break;
+
+			case 'Y':
+				ret +=n*365*24*3600;
+				p++;
+			break;
+
+			case 'M':
+				ret +=n*30*24*3600;
+				p++;
+			break;
+
+			case 'W':
+				ret +=n*7*24*3600;
+				p++;
+			break;
+
+			case 'd':
+				ret +=n*24*3600;
+				p++;
+			break;
+
+			case 'h':
+				ret +=n*3600;
+				p++;
+			break;
+
+			case 'm':
+				ret +=n*60;
+				p++;
+			break;
+
+			case 's':
+				ret+=n;
+				p++;
+			break;
+
+			default: /* just ignore any other suffix */
+				p++;
+			break;
+		}
+	}
+	bctbx_free(o);
+	return ret;
+}
+
 #if defined(_WIN32) && !defined(_MSC_VER)
 char* strtok_r(char *str, const char *delim, char **nextp){
 	char *ret;

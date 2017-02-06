@@ -399,6 +399,20 @@ BCTBX_PUBLIC int bctbx_timespec_compare(const bctoolboxTimeSpec *s1, const bctoo
  */
 BCTBX_PUBLIC void bctbx_timespec_add(bctoolboxTimeSpec *ts, const int64_t lap);
 
+/**
+ * @brief Parse a string into a number of seconds
+ *  Accepted suffixes are Y,M,W,d,h,m,s number is expected to be a base 10 integer, no suffix means seconds
+ *  notes:
+ *     - M suffix(month) is consired a 30 days period without any consideration of the current date, Y is always 365 days.
+ *     - You can combine suffixes in any order: 3Y6M is valid, 15d1M6h is valid too.
+ *     - Any unknown suffix is silently ignored and the value preceding it is discarded
+ *     - NULL or empty string('\0') in timeString are valid and return 0.
+ *
+ * @param[in]	timeString		a string formated like {[0-9]+[Y,M,W,d,h,m,s]?}*'\0' (must be null terminated)
+ * @return	described time period in seconds
+ */
+BCTBX_PUBLIC uint32_t bctbx_time_string_to_sec(const char *timeString);
+
 BCTBX_PUBLIC unsigned int bctbx_random(void);
 
 
