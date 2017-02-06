@@ -1,17 +1,17 @@
 /*
  iosdisplay.m
  Copyright (C) 2011 Belledonne Communications, Grenoble, France
- 
+
  This program is free software; you can redistribute it and/or
  modify it under the terms of the GNU General Public License
  as published by the Free Software Foundation; either version 2
  of the License, or (at your option) any later version.
- 
+
  This program is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  GNU General Public License for more details.
- 
+
  You should have received a copy of the GNU General Public License
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
@@ -43,7 +43,7 @@
 @interface IOSDisplay : UIView {
 @public
 	struct opengles_display* display_helper;
-	
+
 @private
 	NSRecursiveLock* lock;
 	EAGLContext* context;
@@ -75,7 +75,7 @@
 	// Init view
 	[self setOpaque:YES];
 	[self setAutoresizingMask: UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight];
-	
+
 	// Init layer
 	CAEAGLLayer *eaglLayer = (CAEAGLLayer*) self.layer;
 	[eaglLayer setOpaque:YES];
@@ -116,21 +116,21 @@
 		ms_error("Opengl context failure");
 		return;
 	}
-	
+
 	glGenFramebuffers(1, &defaultFrameBuffer);
 	glGenRenderbuffers(1, &colorRenderBuffer);
 	glBindFramebuffer(GL_FRAMEBUFFER, defaultFrameBuffer);
 	glBindRenderbuffer(GL_RENDERBUFFER, colorRenderBuffer);
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, colorRenderBuffer);
-	
-	ogl_display_init(display_helper, prevBounds.size.width, prevBounds.size.height);
-	
+
+	ogl_display_init(display_helper, NULL, prevBounds.size.width, prevBounds.size.height);
+
 	// release GL context for this thread
 	[EAGLContext setCurrentContext:nil];
 }
 
-- (void)drawView {	
-	/* no opengl es call made when in background */ 
+- (void)drawView {
+	/* no opengl es call made when in background */
 	if ([UIApplication sharedApplication].applicationState != UIApplicationStateActive)
 		return;
 	if([lock tryLock]) {
@@ -141,17 +141,17 @@
 			ms_error("Failed to bind GL context");
 			return;
 		}
-		
+
 		if (!CGRectEqualToRect(prevBounds, [self bounds])) {
 			CAEAGLLayer* layer = (CAEAGLLayer*)self.layer;
-			
+
 			if (prevBounds.size.width != 0 || prevBounds.size.height != 0) {
 				// release previously allocated storage
 				[context renderbufferStorage:GL_RENDERBUFFER fromDrawable:nil];
 			}
-			
+
 			prevBounds = [self bounds];
-			
+
 			// allocate storage
 			if ([context renderbufferStorage:GL_RENDERBUFFER fromDrawable:layer]) {
 				ms_message("GL renderbuffer allocation size (layer %p frame size: %f x %f)", layer, layer.frame.size.width, layer.frame.size.height);
@@ -161,13 +161,13 @@
 				ms_error("Error in renderbufferStorage (layer %p frame size: %f x %f)", layer, layer.frame.size.width, layer.frame.size.height);
 			}
 		}
-		
+
 		if (!animating) {
 			glClear(GL_COLOR_BUFFER_BIT);
 		} else {
 			ogl_display_render(display_helper, deviceRotation);
 		}
-		
+
 		[context presentRenderbuffer:GL_RENDERBUFFER];
 		[lock unlock];
 	}
@@ -177,33 +177,33 @@
 	if (parentView == aparentView) {
 		return;
 	}
-	
+
 	if(parentView != nil) {
 		animating = FALSE;
-		
+
 		// stop schedule rendering
 		[displayLink invalidate];
 		displayLink = nil;
-		
+
 		[self drawView];
-		
+
 		// remove from parent
 		[self removeFromSuperview];
-		
+
 		[parentView release];
 		parentView = nil;
 	}
-	
+
 	parentView = aparentView;
-	
+
 	if(parentView != nil) {
 		[parentView retain];
 		animating = TRUE;
-		
+
 		// add to new parent
 		[self setFrame: [parentView bounds]];
 		[parentView addSubview:self];
-		
+
 		// schedule rendering
 		displayLink = [NSClassFromString(@"CADisplayLink") displayLinkWithTarget:self selector:@selector(drawView)];
 		[displayLink setFrameInterval:1];
@@ -217,21 +217,21 @@
 
 - (void)dealloc {
 	[EAGLContext setCurrentContext:context];
-	
+
 	ogl_display_uninit(display_helper, TRUE);
 	ogl_display_free(display_helper);
 	display_helper = NULL;
-	
+
 	glDeleteFramebuffers(1, &defaultFrameBuffer);
 	glDeleteRenderbuffers(1, &colorRenderBuffer);
-	
+
 	[EAGLContext setCurrentContext:0];
 
 	[context release];
 	[lock release];
-	
+
 	self.parentView = nil;
-	
+
 	[super dealloc];
 }
 
@@ -247,12 +247,12 @@ static void iosdisplay_process(MSFilter *f) {
 	IOSDisplay* thiz = (IOSDisplay*)f->data;
 
 	mblk_t *m = ms_queue_peek_last(f->inputs[0]);
-	
+
 	if (thiz != nil && m != nil) {
 		ogl_display_set_yuv_to_display(thiz->display_helper, m);
 	}
 	ms_queue_flush(f->inputs[0]);
-	
+
 	if (f->inputs[1] != NULL) {
 		ms_queue_flush(f->inputs[1]);
 	}

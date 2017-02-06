@@ -81,7 +81,7 @@
 		CGLSetCurrentContext(cglContext);
 		CGLLockContext(cglContext);
 
-		ogl_display_init(display_helper, prevBounds.size.width, prevBounds.size.height);
+		ogl_display_init(display_helper, NULL, prevBounds.size.width, prevBounds.size.height);
 
 		CGLUnlockContext(cglContext);
 		CGLSetCurrentContext(savedContext);

@@ -1,5 +1,5 @@
 /*
-     File: shaderUtil.h
+     File: shader_util.h
  Abstract: Functions that compile, link and validate shader programs.
   Version: 1.13
 
@@ -43,40 +43,37 @@
 
  Copyright (C) 2014 Apple Inc. All Rights Reserved.
 
- */
+ Original file modified by Belledonne Communications, Grenoble, France
+ Copyright (C) 2017
+*/
 
-#ifndef SHADERUTIL_H
-#define SHADERUTIL_H
+#ifndef SHADER_UTIL_H
+#define SHADER_UTIL_H
 
-#ifdef __IOS
-#include <OpenGLES/ES2/gl.h>
-#include <OpenGLES/ES2/glext.h>
-#elif defined(__APPLE__)
-#include <OpenGL/OpenGL.h>
-#include <OpenGL/gl.h>
-#elif defined( ANDROID )
-#include <GLES2/gl2.h>
-#include <GLES2/gl2ext.h>
-#else
-#include <GL/glew.h>
-#endif
+#include "opengl_functions.h"
 
 /* Shader Utilities */
-GLint glueCompileShader(GLenum target, GLsizei count, const GLchar *sources, GLuint *shader);
-GLint glueLinkProgram(GLuint program);
-GLint glueValidateProgram(GLuint program);
-GLint glueGetUniformLocation(GLuint program, const GLchar *name);
+GLint glueCompileShader (const OpenGlFunctions *f, GLenum target, GLsizei count, const GLchar *sources, GLuint *shader);
+GLint glueLinkProgram (const OpenGlFunctions *f, GLuint program);
+GLint glueValidateProgram (const OpenGlFunctions *f, GLuint program);
+GLint glueGetUniformLocation (const OpenGlFunctions *f, GLuint program, const GLchar *name);
 
 /* Shader Conveniences */
-GLint glueCreateProgram(const GLchar *vertSource, const GLchar *fragSource,
-                    GLsizei attribNameCt, const GLchar **attribNames,
-                    const GLint *attribLocations,
-                    GLsizei uniformNameCt, const GLchar **uniformNames,
-                    GLint *uniformLocations,
-                    GLuint *program);
+GLint glueCreateProgram (
+  const OpenGlFunctions *f,
+  const GLchar *vertSource,
+  const GLchar *fragSource,
+  GLsizei attribNameCt,
+  const GLchar **attribNames,
+  const GLint *attribLocations,
+  GLsizei uniformNameCt,
+  const GLchar **uniformNames,
+  GLint *uniformLocations,
+  GLuint *program
+);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* SHADERUTIL_H */
+#endif /* SHADER_UTIL_H */

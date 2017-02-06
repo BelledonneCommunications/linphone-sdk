@@ -230,7 +230,7 @@ libmediastreamer_voip_la_LIBTOOLFLAGS= --tag=CC
 
 if BUILD_VIDEO
 
-GLDISPLAY_FILES = utils/shaderUtil.c utils/shaderUtil.h utils/debug.h utils/opengles_display.c utils/opengles_display.h
+GLDISPLAY_FILES = utils/opengl_functions.c utils/opengl_functions.h utils/shader_util.c utils/shader_util.h utils/opengl_debug.h utils/opengles_display.c utils/opengles_display.h
 
 if BUILD_MACOSX
 libmediastreamer_voip_la_SOURCES+=	videofilters/videotoolbox.c

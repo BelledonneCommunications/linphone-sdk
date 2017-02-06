@@ -100,7 +100,7 @@ static void glxvideo_uninit(MSFilter *f){
 	GLXVideo *obj=(GLXVideo*)f->data;
 
 	glxvideo_unprepare(f);
-	
+
 	if (obj->glContext) {
 		glXDestroyContext(obj->display, obj->glContext);
 		obj->glContext = NULL;
@@ -146,7 +146,7 @@ static void glxvideo_prepare(MSFilter *f){
 			ms_error("Need OpenGL 2.0+");
 			return;
 		} else {
-			ogl_display_init(s->glhelper, s->wsize.width, s->wsize.height);
+			ogl_display_init(s->glhelper, NULL, s->wsize.width, s->wsize.height);
 		}
 	}
 	if (s->window_id==0) return;
@@ -187,22 +187,22 @@ static void glxvideo_process(MSFilter *f){
 	MSPicture src={0};
 	bool_t precious=FALSE;
 	XWindowAttributes wa;
-	
+
 	ms_filter_lock(f);
-	
+
 	if (obj->window_id==0 || obj->window_id==(Window)-1 || x11_error==TRUE) goto end;
 	XGetWindowAttributes(obj->display,obj->window_id,&wa);
 	if (wa.width!=obj->wsize.width || wa.height!=obj->wsize.height){
 		ms_warning("Resized to %ix%i", wa.width,wa.height);
 		obj->wsize.width=wa.width;
 		obj->wsize.height=wa.height;
-		ogl_display_init(obj->glhelper, wa.width, wa.height);
+		ogl_display_init(obj->glhelper, NULL, wa.width, wa.height);
 		if (obj->subwindow!=obj->window_id){
 			XResizeWindow(obj->display,obj->subwindow, wa.width,wa.height);
 		}
 	}
 
-	
+
 	if (!obj->show) {
 		goto end;
 	}
@@ -303,13 +303,13 @@ static int glxvideo_set_native_window_id(MSFilter *f, void*arg){
 	GLXVideo *s=(GLXVideo*)f->data;
 	unsigned long id=*(unsigned long*)arg;
 	ms_filter_lock(f);
-	
+
 	if (s->window_id!=id) {
 		if (s->display && s->subwindow!=0 && s->subwindow!=s->window_id){
 			/*if the parent window is unset, and using a subwindow, destroy the subwindow*/
 			XDestroyWindow(s->display, s->subwindow);
 			XSync(s->display,FALSE);/*required to force immediate removal of the subwindow from its parent.
-				Otherwise, if the parent is destroyed by a mouse click, it will automatically destroy child window and there will be a 
+				Otherwise, if the parent is destroyed by a mouse click, it will automatically destroy child window and there will be a
 				double destroy of the subwindow resulting in "bad match" x error.*/
 			ms_message("Subwindow destroyed");
 			s->subwindow=0;
@@ -318,7 +318,7 @@ static int glxvideo_set_native_window_id(MSFilter *f, void*arg){
 	}
 	s->window_id=id;
 	s->own_window=FALSE;
-	
+
 	ms_filter_unlock(f);
 	return 0;
 }
@@ -401,7 +401,7 @@ static bool_t createX11GLWindow(Display* display, MSVideoSize size, GLXContext* 
 	swa.border_pixel	= 0;
 	swa.event_mask	  = StructureNotifyMask;
 	if (*win==0){
-		
+
 		ms_message( "Creating window" );
 		*win = XCreateWindow( display, RootWindow( display, vi->screen ),
 						200, 200, size.width, size.height, 0, vi->depth, InputOutput,

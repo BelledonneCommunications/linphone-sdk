@@ -50,6 +50,7 @@ set(HEADER_FILES
 	msitc.h
 	msjava.h
 	msjpegwriter.h
+	msogl.h
 	msmediaplayer.h
 	msqueue.h
 	msrtp.h
