@@ -383,7 +383,7 @@ static int ms_zrtp_addExportedKeysInZidCache(void *zidCacheData, void *clientDat
 					BZRTP_CACHE_DONTLOADFILE|BZRTP_CACHE_WRITEFILE,
 					BZRTP_CUSTOMCACHE_MULTIPLETAG_FORBID);
 	}else  {
-		_bctbx_get_cur_time(&currentTime,TRUE);
+		bctbx_get_utc_cur_time(&currentTime);
 		bctbx_timespec_add(&currentTime, (int64_t)(zidCache->limeKeyTimeSpan));
 		bctbx_uint64ToStr(currentTimeHex, currentTime.tv_sec);
 		bzrtp_addCustomDataInCache(zrtpContext, peerZid, (uint8_t *)"valid", 5, currentTimeHex, (uint16_t)strlen((char *)currentTimeHex), 0,
