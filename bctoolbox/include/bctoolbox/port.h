@@ -363,8 +363,21 @@ BCTBX_PUBLIC char *bctbx_concat (const char *str, ...) ;
 
 BCTBX_PUBLIC int bctbx_file_exist(const char *pathname);
 
+/**
+ * @brief return a timeSpec structure(sec and nsec) containing current time(WARNING: there is no guarantees it is UTC ).
+ *        The time returned may refers to UTC or last boot.
+ *        Use this function only to compute a time span between two calls
+ * @param[in/out]	ret	The current time (seconds and nano seconds).
+ */
 BCTBX_PUBLIC void bctbx_get_cur_time(bctoolboxTimeSpec *ret);
-void _bctbx_get_cur_time(bctoolboxTimeSpec *ret, bool_t realtime);
+
+/**
+ * @brief return a timeSpec structure(sec and nsec) containing current UTC time.
+ *
+ * @param[in/out]	ret	The current UTC time, (seconds and nano seconds)
+ */
+BCTBX_PUBLIC void bctbx_get_utc_cur_time(bctoolboxTimeSpec *ret);
+
 BCTBX_PUBLIC uint64_t bctbx_get_cur_time_ms(void);
 BCTBX_PUBLIC void bctbx_sleep_ms(int ms);
 BCTBX_PUBLIC void bctbx_sleep_until(const bctoolboxTimeSpec *ts);

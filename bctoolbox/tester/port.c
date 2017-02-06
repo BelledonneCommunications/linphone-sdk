@@ -84,9 +84,11 @@ static void bytesToFromHexaStrings(void) {
 
 static void timeFunctions(void) {
 	bctoolboxTimeSpec testTs;
-	bctoolboxTimeSpec y2k;
+	bctoolboxTimeSpec y2k,monday6Feb2017;
 	y2k.tv_sec = 946684800;
 	y2k.tv_nsec = 123456789;
+	monday6Feb2017.tv_sec = 1486347823;
+	monday6Feb2017.tv_nsec = 0;
 
 	memcpy(&testTs, &y2k, sizeof(bctoolboxTimeSpec));
 	BC_ASSERT_EQUAL(bctbx_timespec_compare(&y2k, &testTs), 0, int, "%d");
@@ -105,6 +107,13 @@ static void timeFunctions(void) {
 	bctbx_timespec_add(&testTs, -946684801);
 	BC_ASSERT_EQUAL(testTs.tv_sec, 0, int64_t, "%ld");
 	BC_ASSERT_EQUAL(testTs.tv_nsec, 0, int64_t, "%ld");
+
+	/* test the get utc time function
+	 * there is no easy way to ensure we get the correct time, just check it is at least not the time from last boot,
+	 * check it is greater than the current time as this test was written(6feb2017) */
+	bctbx_get_utc_cur_time(&testTs);
+	BC_ASSERT_TRUE(bctbx_timespec_compare(&testTs, &monday6Feb2017)>0);
+
 }
 
 static test_t utils_tests[] = {

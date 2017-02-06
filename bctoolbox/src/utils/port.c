@@ -727,6 +727,10 @@ void _bctbx_get_cur_time(bctoolboxTimeSpec *ret, bool_t realtime){
 #endif
 }
 
+void bctbx_get_utc_cur_time(bctoolboxTimeSpec *ret){
+	_bctbx_get_cur_time(ret, TRUE);
+}
+
 void bctbx_get_cur_time(bctoolboxTimeSpec *ret){
 	_bctbx_get_cur_time(ret, FALSE);
 }
@@ -734,7 +738,7 @@ void bctbx_get_cur_time(bctoolboxTimeSpec *ret){
 
 uint64_t bctbx_get_cur_time_ms(void) {
 	bctoolboxTimeSpec ts;
-	bctbx_get_cur_time(&ts);
+	_bctbx_get_cur_time(&ts, TRUE);
 	return (ts.tv_sec * 1000LL) + ((ts.tv_nsec + 500000LL) / 1000000LL);
 }
 
