@@ -97,10 +97,9 @@ typedef struct _VTH264EncCtx {
 static void vth264enc_output_cb(VTH264EncCtx *ctx, void *sourceFrameRefCon, OSStatus status, VTEncodeInfoFlags infoFlags, CMSampleBufferRef sampleBuffer) {
 	MSQueue nalu_queue;
 	CMBlockBufferRef block_buffer;
-	size_t read_size, frame_size;
+	size_t read_size=0, offset=0, frame_size;
 	bool_t is_keyframe = FALSE;
 	mblk_t *nalu;
-	size_t i;
 
 	if(sampleBuffer == NULL || status != noErr) {
 		vth264enc_error("could not encode frame: error %d", (int)status);
@@ -112,14 +111,26 @@ static void vth264enc_output_cb(VTH264EncCtx *ctx, void *sourceFrameRefCon, OSSt
 		ms_queue_init(&nalu_queue);
 		block_buffer = CMSampleBufferGetDataBuffer(sampleBuffer);
 		frame_size = CMBlockBufferGetDataLength(block_buffer);
-		for(i=0, read_size=0; read_size < frame_size; i++) {
+		while(read_size < frame_size) {
 			char *chunk;
 			size_t chunk_size;
 			int idr_count;
-			CMBlockBufferGetDataPointer(block_buffer, i, &chunk_size, NULL, &chunk);
+			OSStatus status = CMBlockBufferGetDataPointer(block_buffer, offset, &chunk_size, NULL, &chunk);
+			if (status != kCMBlockBufferNoErr) {
+				vth264enc_error("error while reading a chunk of encoded frame: %s", os_status_to_string(status));
+				break;
+			}
 			ms_h264_stream_to_nalus((uint8_t *)chunk, chunk_size, &nalu_queue, &idr_count);
 			if(idr_count) is_keyframe = TRUE;
 			read_size += chunk_size;
+			offset += chunk_size;
+		}
+
+		if (read_size < frame_size) {
+			vth264enc_error("error while reading an encoded frame. Dropping it");
+			ms_queue_flush(&nalu_queue);
+			ms_mutex_unlock(&ctx->mutex);
+			return;
 		}
 
 		if(is_keyframe) {
@@ -128,15 +139,15 @@ static void vth264enc_output_cb(VTH264EncCtx *ctx, void *sourceFrameRefCon, OSSt
 			size_t parameter_set_size;
 			size_t parameter_set_count;
 			CMFormatDescriptionRef format_desc = CMSampleBufferGetFormatDescription(sampleBuffer);
-			i=0;
+			offset=0;
 			do {
-				CMVideoFormatDescriptionGetH264ParameterSetAtIndex(format_desc, i, &parameter_set, &parameter_set_size, &parameter_set_count, NULL);
+				CMVideoFormatDescriptionGetH264ParameterSetAtIndex(format_desc, offset, &parameter_set, &parameter_set_size, &parameter_set_count, NULL);
 				nalu = allocb(parameter_set_size, 0);
 				memcpy(nalu->b_wptr, parameter_set, parameter_set_size);
 				nalu->b_wptr += parameter_set_size;
 				ms_queue_insert(&nalu_queue, insertion_point, nalu);
-				i++;
-			} while(i < parameter_set_count);
+				offset++;
+			} while(offset < parameter_set_count);
 			vth264enc_message("I-frame created");
 		}
 
