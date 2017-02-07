@@ -177,7 +177,7 @@ void ogl_display_init (struct opengles_display *gldisp, const OpenGlFunctions *f
 	ms_message("init opengles_display (%d x %d, gl initialized:%d)", width, height, gldisp->glResourcesInitialized);
 
 	GL_OPERATION(f->glDisable(GL_DEPTH_TEST))
-	GL_OPERATION(f->glClearColor(0, 0, 0, 1))
+	GL_OPERATION(f->glClearColor(0, 0, 0, 0))
 
 	ogl_display_set_size(gldisp, width, height);
 
