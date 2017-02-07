@@ -96,9 +96,6 @@ struct _MSVideoDisplayDecodingSupport {
 #define MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION \
    MS_FILTER_METHOD(MSFilterVideoDisplayInterface,11,int)
 
-#define MS_VIDEO_DISPLAY_CALL_GENERIC_RENDER \
-   MS_FILTER_METHOD(MSFilterVideoDisplayInterface,12,void*)
-
 /**
   * Interface definitions for players
 **/

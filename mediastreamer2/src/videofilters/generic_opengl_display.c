@@ -1,27 +1,29 @@
 /*
- * ogl.c - A generic video display using OpenGL.
+ * generic_opengl_display.c - A generic video display using OpenGL.
  *
  * Copyright (C) 2017	Belledonne Communications, Grenoble, France
  *
- *	This program is free software; you can redistribute it and/or modify
- *	it under the terms of the GNU General Public License as published by
- *	the Free Software Foundation; either version 2 of the License, or
- *	(at your option) any later version.
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
  *
- *	This program is distributed in the hope that it will be useful,
- *	but WITHOUT ANY WARRANTY; without even the implied warranty of
- *	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	See the
- *	GNU General Public License for more details.
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
  *
- *	You should have received a copy of the GNU General Public License
- *	along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA	02110-1301, USA.
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
 #include <GL/glew.h>
 
 #include "mediastreamer2/msfilter.h"
+#include "mediastreamer2/msogl.h"
 #include "mediastreamer2/msvideo.h"
+
 #include "opengles_display.h"
 
 // =============================================================================
@@ -29,6 +31,8 @@
 struct _ContextInfo {
 	GLuint width;
 	GLuint height;
+
+	OpenGlFunctions *functions;
 };
 
 typedef struct _ContextInfo ContextInfo;
@@ -42,6 +46,7 @@ struct _FilterData {
 
 	bool_t show_video;
 	bool_t mirroring;
+	bool_t update_context;
 };
 
 typedef struct _FilterData FilterData;
@@ -72,13 +77,14 @@ static void ogl_uninit (MSFilter *f) {
 
 static void ogl_process (MSFilter *f) {
 	FilterData *data = f->data;
+	ContextInfo *context_info = &data->context_info;
 	MSPicture src;
 	mblk_t *inm;
 
 	ms_filter_lock(f);
 
 	// No context given or video disabled.
-	if (data->context_info.width == 0 || data->context_info.height == 0 || !data->show_video)
+	if (!context_info->width || !context_info->height || !context_info->functions || !data->show_video)
 		goto end;
 
 	if (
@@ -131,11 +137,12 @@ static int ogl_set_native_window_id (MSFilter *f, void *arg) {
 			(void*)context_info, (int)context_info->width, (int)context_info->height
 		);
 		data->context_info = *context_info;
-		ogl_display_init(data->display, context_info->width, context_info->height);
 	} else {
 		ms_message("reset native window id");
 		memset(&data->context_info, 0, sizeof data->context_info);
 	}
+
+	data->update_context = TRUE;
 
 	ms_filter_unlock(f);
 
@@ -181,13 +188,20 @@ static int ogl_enable_mirroring (MSFilter *f, void *arg) {
 
 static int ogl_call_render (MSFilter *f, void *arg) {
 	FilterData *data = f->data;
+	const ContextInfo *context_info = &data->context_info;
 
 	(void)arg;
 
 	ms_filter_lock(f);
 
-	if (data->context_info.width > 0 && data->context_info.height > 0 && data->show_video)
+	if (context_info->width && context_info->height && context_info->functions && data->show_video) {
+		if (data->update_context) {
+			ogl_display_init(data->display, context_info->functions, context_info->width, context_info->height);
+			data->update_context = FALSE;
+		}
+
 		ogl_display_render(data->display, 0);
+	}
 
 	ms_filter_unlock(f);
 
@@ -205,7 +219,7 @@ static MSFilterMethod methods[] = {
 	{ MS_VIDEO_DISPLAY_SHOW_VIDEO, ogl_show_video },
 	{ MS_VIDEO_DISPLAY_ZOOM, ogl_zoom },
 	{ MS_VIDEO_DISPLAY_ENABLE_MIRRORING, ogl_enable_mirroring },
-	{ MS_VIDEO_DISPLAY_CALL_GENERIC_RENDER, ogl_call_render },
+	{ MS_OGL_RENDER, ogl_call_render },
 	{ 0, NULL }
 };
 

@@ -28,6 +28,7 @@ mediastreamer2_include_HEADERS=allfilters.h \
 				msgenericplc.h \
 				msinterfaces.h \
 				msitc.h \
+				msogl.h \
 				msjava.h \
 				msjpegwriter.h \
 				msmediaplayer.h \
@@ -57,4 +58,3 @@ mediastreamer2_include_HEADERS=allfilters.h \
 				msudp.h
 
 EXTRA_DIST=$(mediastreamer2_include_HEADERS)
-
