@@ -855,12 +855,13 @@ static void h264_dec_process(MSFilter *f) {
 		ms_queue_flush(&q_nalus2);
 
 		unpack_status = rfc3984_unpack2(&ctx->unpacker, pkt, &q_nalus);
-		if (!(unpack_status & Rfc3984FrameAvailable)) continue;
+		if (unpack_status & Rfc3984FrameAvailable) {
+			h264_dec_filter_nalu_stream(ctx, &q_nalus, &q_nalus2);
+		} else continue;
 		if (unpack_status & Rfc3984FrameCorrupted) {
 			h264_dec_handle_error(ctx, need_pli);
 		}
-		h264_dec_filter_nalu_stream(ctx, &q_nalus, &q_nalus2);
-		if (unpack_status & (Rfc3984NewSPS | Rfc3984NewPPS) && ctx->sps != NULL && ctx->pps != NULL) {
+		if ((ctx->sps != NULL && ctx->pps != NULL) && (ctx->session == NULL || (unpack_status & (Rfc3984NewSPS | Rfc3984NewPPS)))) {
 			if (ctx->session != NULL) h264_dec_uninit_decoder(ctx);
 			if (!h264_dec_init_decoder(ctx)) {
 				vth264dec_error("decoder creation has failed");
