@@ -872,6 +872,33 @@ JNIEXPORT jboolean JNICALL Java_org_linphone_mediastream_Factory_filterFromNameE
 	return result;
 }
 
+
+JNIEXPORT jstring JNICALL Java_org_linphone_mediastream_Factory_getEncoderText(JNIEnv* env, jobject obj,
+    jlong factoryPtr, jstring jmime) {
+	MSFactory *factory = (MSFactory*)factoryPtr;
+	const char *mime = (*env)->GetStringUTFChars(env, jmime, NULL);
+	jstring jtext = NULL;
+	if (mime){
+		MSFilterDesc *desc = ms_factory_get_encoder(factory, mime);
+		if (desc) jtext =(*env)->NewStringUTF(env, desc->text);
+		(*env)->ReleaseStringUTFChars(env, jmime, mime);
+	}
+	return jtext;
+}
+
+JNIEXPORT jstring JNICALL Java_org_linphone_mediastream_Factory_getDecoderText(JNIEnv* env, jobject obj,
+    jlong factoryPtr, jstring jmime) {
+	MSFactory *factory = (MSFactory*)factoryPtr;
+	const char *mime = (*env)->GetStringUTFChars(env, jmime, NULL);
+	jstring jtext = NULL;
+	if (mime){
+		MSFilterDesc *desc = ms_factory_get_decoder(factory, mime);
+		if (desc) jtext = (*env)->NewStringUTF(env, desc->text);
+		(*env)->ReleaseStringUTFChars(env, jmime, mime);
+	}
+	return jtext;
+}
+
 #ifdef _MSC_VER
 #pragma warning(disable : 4996)
 #else

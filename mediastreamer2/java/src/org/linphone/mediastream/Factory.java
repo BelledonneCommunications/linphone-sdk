@@ -35,4 +35,13 @@ public class Factory{
 	public void setDeviceInfo(String manufacturer, String model, String platform, int flags, int delay, int recommended_rate) {
 		setDeviceInfo(mNativePtr, manufacturer, model, platform, flags, delay, recommended_rate);
 	}
+	private native String getEncoderText(long nativePtr, String mime);
+	public String getEncoderText(String mime){
+		return getEncoderText(mNativePtr, mime);
+	}
+	private native String getDecoderText(long nativePtr, String mime);
+	public String getDecoderText(String mime){
+		return getDecoderText(mNativePtr, mime);
+	}
+	
 };

@@ -46,3 +46,7 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_Factory_setDeviceInfo(JNIEn
     ReleaseStringUTFChars(env, jmodel, model);
     ReleaseStringUTFChars(env, jplatform, platform);
 }
+
+
+
+
