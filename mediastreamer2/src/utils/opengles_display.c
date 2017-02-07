@@ -172,6 +172,7 @@ void ogl_display_init (struct opengles_display *gldisp, const OpenGlFunctions *f
 
 	// Update gl functions.
 	gldisp->functions = f ?: gldisp->default_functions;
+	f = gldisp->functions;
 
 	ms_message("init opengles_display (%d x %d, gl initialized:%d)", width, height, gldisp->glResourcesInitialized);
 
@@ -238,14 +239,14 @@ void ogl_display_uninit (struct opengles_display *gldisp, bool_t freeGLresources
 		GL_OPERATION(f->glDeleteProgram(gldisp->program));
 	}
 
+	if (f) check_GL_errors(f, "ogl_display_uninit");
+
 	if (gldisp->default_functions) {
 		ms_free(gldisp->default_functions);
 		gldisp->default_functions = NULL;
 	}
 
 	gldisp->glResourcesInitialized = FALSE;
-
-	check_GL_errors(f, "ogl_display_uninit");
 }
 
 static void ogl_display_set_yuv (struct opengles_display *gldisp, mblk_t *yuv, enum ImageType type) {
