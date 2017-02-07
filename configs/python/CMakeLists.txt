@@ -128,6 +128,7 @@ if(APPLE)
 endif()
 
 add_library(pylinphone MODULE "${SOURCE_FILENAME}")
+add_definitions(${LINPHONE_CPPFLAGS})
 if(UNIX)
 	target_compile_options(pylinphone PRIVATE "-Werror" "-Wno-deprecated-declarations")
 endif()
