@@ -372,7 +372,7 @@ static int send_dtmf(MSFilter * f, uint32_t timestamp_start)
 static void check_stun_sending(MSFilter *f) {
 	SenderData *d = (SenderData *) f->data;
 	RtpSession *s = d->session;
-	if ((d->last_rtp_stun_sent_time == -1) || ((f->ticker->time- d->last_sent_time>2000) /*no need to send stun packets if media sent during last 2s*/
+	if ((d->last_rtp_stun_sent_time == -1) || ((f->ticker->time- d->last_sent_time>20000) /*no need to send stun packets if media sent during last 20s*/
 											&& (f->ticker->time - d->last_rtp_stun_sent_time) >= 500)) {
 		d->last_rtp_stun_sent_time = f->ticker->time;
 		send_stun_packet(d,TRUE,FALSE);
