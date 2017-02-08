@@ -242,7 +242,7 @@ const char *video_stream_get_default_video_renderer(void){
 	return "MSOSXGLDisplay";
 #elif defined (HAVE_XV)
 	return "MSX11Video";
-#elif defined(HAVE_GL)
+#elif defined(HAVE_GLX)
 	return "MSGLXVideo";
 #elif defined(__ios)
 	return "IOSDisplay";

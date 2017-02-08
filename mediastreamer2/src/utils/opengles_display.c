@@ -35,7 +35,7 @@ enum ImageType {
 static void check_GL_errors (const OpenGlFunctions *f, const char *context);
 static bool_t load_shaders (const OpenGlFunctions *f, GLuint *program, GLint *uniforms);
 static void allocate_gl_textures (struct opengles_display *gldisp, int w, int h, enum ImageType type);
-static void load_orthographic_matrix (float left, float right, float bottom, float top, float near, float far, float *mat);
+static void load_orthographic_matrix (float left, float right, float bottom, float top, float _near, float _far, float *mat);
 static unsigned int align_on_power_of_2 (unsigned int value);
 static bool_t update_textures_with_yuv (struct opengles_display *gldisp, enum ImageType type);
 
@@ -47,8 +47,14 @@ static bool_t update_textures_with_yuv (struct opengles_display *gldisp, enum Im
 			(x); \
 			check_GL_errors(#x); \
 		} while (0);
+	#define GL_OPERATION_RET(x, ret)	\
+		do { \
+			ret = (x); \
+			check_GL_errors(#x); \
+		} while (0);
 #else
 	#define GL_OPERATION(x) (x);
+	#define GL_OPERATION_RET(x, ret) ret = (x);
 #endif
 
 enum {
@@ -171,7 +177,7 @@ void ogl_display_init (struct opengles_display *gldisp, const OpenGlFunctions *f
 	}
 
 	// Update gl functions.
-	gldisp->functions = f ?: gldisp->default_functions;
+	gldisp->functions = f ? f : gldisp->default_functions;
 	f = gldisp->functions;
 
 	ms_message("init opengles_display (%d x %d, gl initialized:%d)", width, height, gldisp->glResourcesInitialized);
@@ -297,8 +303,8 @@ static void ogl_display_render_type(
 	float uLeft, uRight, vTop, vBottom;
 	GLfloat squareUvs[8];
 	GLfloat squareVertices[8];
-	int screenW, screenH;
-	int x,y,w,h;
+	GLfloat screenW, screenH;
+	GLfloat x,y,w,h;
 	GLfloat mat[16];
 	float rad;
 
@@ -336,11 +342,11 @@ static void ogl_display_render_type(
 		GL_OPERATION(f->glClear(GL_COLOR_BUFFER_BIT))
 
 	// drawing surface dimensions
-	screenW = gldisp->backingWidth;
-	screenH = gldisp->backingHeight;
+	screenW = (GLfloat)gldisp->backingWidth;
+	screenH = (GLfloat)gldisp->backingHeight;
 	if (orientation == 90 || orientation == 270) {
 		screenW = screenH;
-		screenH = gldisp->backingWidth;
+		screenH = (GLfloat)gldisp->backingWidth;
 	}
 
 	// Fill the smallest dimension, then compute the other one using the image ratio
@@ -365,18 +371,18 @@ static void ogl_display_render_type(
 	x = vpx * screenW;
 	y = vpy * screenH;
 
-	squareVertices[0] = (x - w * 0.5) / screenW - 0.;
-	squareVertices[1] = (y - h * 0.5) / screenH - 0.;
-	squareVertices[2] = (x + w * 0.5) / screenW - 0.;
-	squareVertices[3] = (y - h * 0.5) / screenH - 0.;
-	squareVertices[4] = (x - w * 0.5) / screenW - 0.;
-	squareVertices[5] = (y + h * 0.5) / screenH - 0.;
-	squareVertices[6] = (x + w * 0.5) / screenW - 0.;
-	squareVertices[7] = (y + h * 0.5) / screenH - 0.;
+	squareVertices[0] = (x - w * 0.5f) / screenW;
+	squareVertices[1] = (y - h * 0.5f) / screenH;
+	squareVertices[2] = (x + w * 0.5f) / screenW;
+	squareVertices[3] = (y - h * 0.5f) / screenH;
+	squareVertices[4] = (x - w * 0.5f) / screenW;
+	squareVertices[5] = (y + h * 0.5f) / screenH;
+	squareVertices[6] = (x + w * 0.5f) / screenW;
+	squareVertices[7] = (y + h * 0.5f) / screenH;
 
 	#define VP_SIZE 1.0f
 	if (type == REMOTE_IMAGE) {
-		float scale_factor = 1.0 / gldisp->zoom_factor;
+		float scale_factor = 1.0f / gldisp->zoom_factor;
 		float vpDim = (VP_SIZE * scale_factor) / 2;
 
 		#define ENSURE_RANGE_A_INSIDE_RANGE_B(a, aSize, bMin, bMax) \
@@ -404,7 +410,7 @@ static void ogl_display_render_type(
 
 	GL_OPERATION(f->glUniformMatrix4fv(gldisp->uniforms[UNIFORM_PROJ_MATRIX], 1, GL_FALSE, mat))
 
-	rad = (2.0 * 3.14157 * orientation / 360.0); // Convert orientation to radian
+	rad = (2.0f * 3.14157f * orientation / 360.0f); // Convert orientation to radian
 
 	GL_OPERATION(f->glUniform1f(gldisp->uniforms[UNIFORM_ROTATION], rad))
 
@@ -481,27 +487,27 @@ static bool_t load_shaders (const OpenGlFunctions *f, GLuint *program, GLint *un
 	if (!glueLinkProgram(f, *program))
 		return FALSE;
 
-	uniforms[UNIFORM_PROJ_MATRIX] = glGetUniformLocation(*program, "proj_matrix");
-	uniforms[UNIFORM_ROTATION] = glGetUniformLocation(*program, "rotation");
-	uniforms[UNIFORM_TEXTURE_Y] = glGetUniformLocation(*program, "t_texture_y");
-	uniforms[UNIFORM_TEXTURE_U] = glGetUniformLocation(*program, "t_texture_u");
-	uniforms[UNIFORM_TEXTURE_V] = glGetUniformLocation(*program, "t_texture_v");
+	GL_OPERATION_RET(f->glGetUniformLocation(*program, "proj_matrix"), uniforms[UNIFORM_PROJ_MATRIX])
+	GL_OPERATION_RET(f->glGetUniformLocation(*program, "rotation"), uniforms[UNIFORM_ROTATION])
+	GL_OPERATION_RET(f->glGetUniformLocation(*program, "t_texture_y"), uniforms[UNIFORM_TEXTURE_Y])
+	GL_OPERATION_RET(f->glGetUniformLocation(*program, "t_texture_u"), uniforms[UNIFORM_TEXTURE_U])
+	GL_OPERATION_RET(f->glGetUniformLocation(*program, "t_texture_v"), uniforms[UNIFORM_TEXTURE_V])
 
-	glDeleteShader(vertShader);
-	glDeleteShader(fragShader);
+	GL_OPERATION(f->glDeleteShader(vertShader))
+	GL_OPERATION(f->glDeleteShader(fragShader))
 
 	return TRUE;
 
 	check_GL_errors(f, "load_shaders");
 }
 
-static void load_orthographic_matrix (float left, float right, float bottom, float top, float near, float far, float *mat) {
+static void load_orthographic_matrix (float left, float right, float bottom, float top, float _near, float _far, float *mat) {
 	float r_l = right - left;
 	float t_b = top - bottom;
-	float f_n = far - near;
+	float f_n = _far - _near;
 	float tx = - (right + left) / (right - left);
 	float ty = - (top + bottom) / (top - bottom);
-	float tz = - (far + near) / (far - near);
+	float tz = - (_far + _near) / (_far - _near);
 
 	mat[0] = (2.0f / r_l);
 	mat[1] = mat[2] = mat[3] = 0.0f;
@@ -650,8 +656,8 @@ static bool_t update_textures_with_yuv (struct opengles_display *gldisp, enum Im
 
 void ogl_display_zoom (struct opengles_display *gldisp, float *params) {
 	gldisp->zoom_factor = params[0];
-	gldisp->zoom_cx = params[1] - 0.5;
-	gldisp->zoom_cy = params[2] - 0.5;
+	gldisp->zoom_cx = params[1] - 0.5f;
+	gldisp->zoom_cy = params[2] - 0.5f;
 }
 
 #ifdef ANDROID

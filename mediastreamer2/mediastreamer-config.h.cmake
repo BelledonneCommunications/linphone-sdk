@@ -59,6 +59,7 @@
 #cmakedefine HAVE_FUN_av_frame_free 1
 #cmakedefine HAVE_FUN_av_frame_unref 1
 #cmakedefine HAVE_GL 1
+#cmakedefine HAVE_GLX 1
 #cmakedefine HAVE_X11_XLIB_H 1
 #cmakedefine HAVE_XV 1
 #cmakedefine HAVE_LINUX_VIDEODEV_H 1

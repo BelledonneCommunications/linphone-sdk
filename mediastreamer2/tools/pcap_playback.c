@@ -280,7 +280,7 @@ static void setup_media_streams(MediastreamDatas *args) {
 		MSVideoSize disp_size;
 		int tmp = 1;
 
-#if defined(HAVE_GL)
+#if defined(HAVE_GLX)
 		display_name = "MSGLXVideo";
 #elif defined(HAVE_XV)
 		display_name = "MSX11Video";
