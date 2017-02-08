@@ -394,7 +394,7 @@ if(ENABLE_VIDEO)
 			videofilters/turbojpegwriter.c
 		)
 	endif()
-	if(GL_FOUND OR Qt5Gui_FOUND)
+	if(OPENGL_FOUND OR Qt5Gui_FOUND)
 		list(APPEND VOIP_SOURCE_FILES_C
 			utils/opengl_functions.c
 			utils/opengles_display.c
@@ -455,7 +455,7 @@ add_custom_target(ms2-voipdescs-header
 	BYPRODUCTS "${CMAKE_CURRENT_BINARY_DIR}/voipdescs.h"
 )
 
-if(APPLE OR ANDROID OR GL_FOUND OR Qt5Gui_FOUND)
+if(APPLE OR ANDROID OR OPENGL_FOUND OR Qt5Gui_FOUND)
 	find_package(PythonInterp REQUIRED)
 	find_program(SED_PROGRAM sed)
 	if(NOT SED_PROGRAM)
@@ -600,8 +600,8 @@ endif()
 if(Qt5Gui_FOUND)
 	list(APPEND VOIP_LIBS ${Qt5Gui_LIBRARIES})
 endif()
-if(GL_FOUND)
-	list(APPEND VOIP_LIBS ${GL_LIBRARIES})
+if(OPENGL_FOUND)
+	list(APPEND VOIP_LIBS ${OPENGL_LIBRARIES})
 endif()
 if(GLX_FOUND)
 	list(APPEND VOIP_LIBS ${GLX_LIBRARIES})
@@ -629,7 +629,7 @@ if (BCGG729_FOUND)
 	list(APPEND VOIP_LIBS ${BCG729_LIBRARIES})
 endif()
 set(MS2_VOIP_DEPENDENCIES ms2-git-version ms2-voipdescs-header)
-if(APPLE OR ANDROID OR GL_FOUND OR Qt5Gui_FOUND)
+if(APPLE OR ANDROID OR OPENGL_FOUND OR Qt5Gui_FOUND)
 	list(APPEND MS2_VOIP_DEPENDENCIES ms2-yuv2rgb-fs-header ms2-yuv2rgb-vs-header)
 endif()
 
