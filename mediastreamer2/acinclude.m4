@@ -242,6 +242,7 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 			fi
 			PKG_CHECK_MODULES(GLEW,[glew >= 1.5])
 			AC_CHECK_HEADERS(X11/Xlib.h)
+			AC_DEFINE(HAVE_GLX, 1, [defined if GLX is available])
 		fi
 		
 		AC_ARG_ENABLE(theora,

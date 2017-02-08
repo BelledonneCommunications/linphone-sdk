@@ -285,7 +285,8 @@ static unsigned int output_frame(Rfc3984Context * ctx, MSQueue *out, unsigned in
 	if ((res & Rfc3984FrameCorrupted) == 0){
 		if ((res & Rfc3984HasSPS) && (res & Rfc3984HasPPS) && !(res & Rfc3984HasIDR)){
 			/*some decoders may not be happy with this*/
-			ms_warning("rfc3984_unpack: a frame with SPS+PPS but no IDR was output.");
+			ms_warning("rfc3984_unpack: a frame with SPS+PPS but no IDR was output, starting at seq number %u",
+				mblk_get_cseq(ms_queue_peek_first(&ctx->q)));
 		}
 	}
 	
@@ -347,13 +348,16 @@ unsigned int rfc3984_unpack2(Rfc3984Context *ctx, mblk_t *im, MSQueue *out){
 	uint16_t cseq=mblk_get_cseq(im);
 	unsigned int ret = 0;
 
+	//ms_message("Seeing timestamp %u, sequence %u", ts, (int)cseq);
+	
 	if (ctx->last_ts!=ts){
 		/*a new frame is arriving, in case the marker bit was not set in previous frame, output it now,
 		 unless it is a FU-A packet (workaround for buggy implementations)*/
 		ctx->last_ts=ts;
 		if (ctx->m==NULL && !ms_queue_empty(&ctx->q)){
 			ret = output_frame(ctx, out, Rfc3984FrameAvailable | Rfc3984FrameCorrupted);
-			ms_warning("Incomplete H264 frame (missing marker bit)");
+			ms_warning("Incomplete H264 frame (missing marker bit after seq number %u)",
+				mblk_get_cseq(ms_queue_peek_last(out)));
 		}
 	}
 

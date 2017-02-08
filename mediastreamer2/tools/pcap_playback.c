@@ -28,6 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mediastreamer2/msfileplayer.h"
 #include "mediastreamer2/msvolume.h"
 #include "mediastreamer2/msfilerec.h"
+#include "mediastreamer2/mspcapfileplayer.h"
 #ifdef VIDEO_ENABLED
 #include "mediastreamer2/msv4l.h"
 #endif
@@ -87,6 +88,7 @@ const char *usage = "pcap_playback --infile <pcapfile>\n"
                     "[ --playback-card <name> ]\n"
 					"[ --outfile <name> ] limited to wav file for now\n"
                     "[ --verbose (most verbose messages) ]\n"
+		    "This tool directly renders a pcap file to soundcard or screen (for video), using mediastreamer2 filters.\n"
                     ;
 
 
@@ -175,7 +177,7 @@ static bool_t parse_args(int argc, char **argv, MediastreamDatas *out)
 
 static void reader_notify_cb(void *user_data, MSFilter *f, unsigned int event, void *eventdata)
 {
-	if (event == MS_FILE_PLAYER_EOF) {
+	if (event == MS_PLAYER_EOF) {
 		cond = 0;
 	}
 }
@@ -236,6 +238,8 @@ static void configure_resampler(MSFilter *resampler,MSFilter *from, MSFilter *to
 static void setup_media_streams(MediastreamDatas *args) {
 	MSConnectionHelper h;
 	MSTickerParams params = {0};
+	MSPCAPFilePlayerLayer layer = MSPCAPFilePlayerLayerPayload;
+	MSPCAPFilePlayerTimeRef timeref = MSPCAPFilePlayerTimeRefCapture;
 
 	/*create the rtp session */
 	ortp_init();
@@ -289,7 +293,7 @@ static void setup_media_streams(MediastreamDatas *args) {
 #else
 		display_name = "MSVideoOut";
 #endif
-		args->read = ms_factory_create_filter(factory, MS_FILE_PLAYER_ID);
+		args->read = ms_factory_create_filter(factory, MS_PCAP_FILE_PLAYER_ID);
 		args->write = ms_factory_create_filter_from_name(factory, display_name);
 		args->decoder = ms_factory_create_decoder(factory, args->pt->mime_type);
 		if (args->decoder==NULL){
@@ -299,10 +303,12 @@ static void setup_media_streams(MediastreamDatas *args) {
 		if (ms_filter_call_method(args->decoder,MS_VIDEO_DECODER_ENABLE_AVPF,&args->avpf)==0){
 			ms_filter_add_notify_callback(args->decoder, video_decoder_callback, NULL, TRUE);
 		}
-		ms_filter_call_method_noarg(args->read, MS_FILE_PLAYER_CLOSE);
-		ms_filter_call_method(args->read, MS_FILE_PLAYER_OPEN, args->infile);
+		ms_filter_call_method_noarg(args->read, MS_PLAYER_CLOSE);
+		ms_filter_call_method(args->read, MS_PLAYER_OPEN, args->infile);
 		ms_filter_call_method(args->read, MS_FILTER_SET_SAMPLE_RATE, &args->pt->clock_rate);
-		ms_filter_call_method_noarg(args->read, MS_FILE_PLAYER_START);
+		ms_filter_call_method_noarg(args->read, MS_PLAYER_START);
+		ms_filter_call_method(args->read, MS_PCAP_FILE_PLAYER_SET_LAYER, &layer);
+		ms_filter_call_method(args->read, MS_PCAP_FILE_PLAYER_SET_TIMEREF, &timeref);
 		ms_filter_add_notify_callback(args->read, reader_notify_cb, NULL,FALSE);
 
 		/*force the decoder to output YUV420P */
@@ -344,13 +350,16 @@ static void setup_media_streams(MediastreamDatas *args) {
 			args->write = ms_snd_card_create_writer(play);
 
 		}
-		args->read = ms_factory_create_filter(factory, MS_FILE_PLAYER_ID);
+		args->read = ms_factory_create_filter(factory, MS_PCAP_FILE_PLAYER_ID);
 		args->decoder = ms_factory_create_decoder(factory, args->pt->mime_type);
 		args->resampler = ms_factory_create_filter(factory, MS_RESAMPLE_ID);
-		ms_filter_call_method_noarg(args->read, MS_FILE_PLAYER_CLOSE);
-		ms_filter_call_method(args->read, MS_FILE_PLAYER_OPEN, args->infile);
-		ms_filter_call_method_noarg(args->read, MS_FILE_PLAYER_START);
+		ms_filter_call_method_noarg(args->read, MS_PLAYER_CLOSE);
+		ms_filter_call_method(args->read, MS_PLAYER_OPEN, args->infile);
+		ms_filter_call_method_noarg(args->read, MS_PLAYER_START);
 		ms_filter_call_method(args->read, MS_FILTER_SET_SAMPLE_RATE, &args->pt->clock_rate);
+		ms_filter_call_method(args->read, MS_PCAP_FILE_PLAYER_SET_LAYER, &layer);
+		ms_filter_call_method(args->read, MS_PCAP_FILE_PLAYER_SET_TIMEREF, &timeref);
+		
 		ms_filter_call_method(args->decoder, MS_FILTER_SET_SAMPLE_RATE, &args->pt->clock_rate);
 		ms_filter_call_method(args->decoder, MS_FILTER_SET_NCHANNELS, &args->pt->channels);
 		ms_filter_call_method(args->write, MS_FILTER_SET_SAMPLE_RATE, &args->pt->clock_rate);

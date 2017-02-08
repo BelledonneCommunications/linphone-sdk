@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msfileplayer.h"
 #include "waveheader.h"
 #include "mediastreamer2/msticker.h"
+#include <ortp/rtp.h>
 
 #include <pcap/pcap.h>
 
@@ -252,11 +253,12 @@ static void player_process(MSFilter *f){
 								om->b_wptr += bytes_pcap;
 							} else {
 								if (pcap_seq >= d->pcap_seq) {
+									rtp_header_t *rtph = (rtp_header_t*)rtp_header;
 									om = allocb(bytes_pcap, 0);
 									memcpy(om->b_wptr, payload, bytes_pcap);
 									om->b_wptr += bytes_pcap;
-									mblk_set_cseq(om, pcap_seq);
-									mblk_set_timestamp_info(om, f->ticker->time);
+									mblk_set_cseq(om, ntohs(rtph->seq_number));
+									mblk_set_timestamp_info(om, ntohl(rtph->timestamp));
 									mblk_set_marker_info(om,markbit);
 								}
 							}
