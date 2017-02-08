@@ -34,6 +34,7 @@
 #include <GL/gl.h>
 #elif !defined(QOPENGLFUNCTIONS_H) // glew is already included by QT.
 #include <GL/glew.h>
+#define GLEW_ENABLED 1
 #endif
 
 // =============================================================================
