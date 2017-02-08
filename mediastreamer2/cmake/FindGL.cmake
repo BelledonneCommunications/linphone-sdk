@@ -41,7 +41,7 @@ if(GL_INCLUDE_DIRS)
 	endif()
 endif()
 
-find_library(GL_LIBRARY
+find_library(GL_LIBRARIES
 	NAMES GL
 	PATH_SUFFIXES bin lib
 )
