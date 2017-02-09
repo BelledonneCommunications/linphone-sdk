@@ -31,7 +31,7 @@
 	#include <GLES2/gl2ext.h>
 #elif defined(_WIN32)
 	#if !defined(QOPENGLFUNCTIONS_H)
-		#include <GLES2/gl2.h>
+		#include <GLES3/gl3.h>
 	#endif
 #elif !defined(QOPENGLFUNCTIONS_H) // glew is already included by QT.
 	#include <GL/glew.h>
