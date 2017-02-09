@@ -21,21 +21,20 @@
 #define msogl_h
 
 #ifdef __IOS
-#include <OpenGLES/ES2/gl.h>
-#include <OpenGLES/ES2/glext.h>
+	#include <OpenGLES/ES2/gl.h>
+	#include <OpenGLES/ES2/glext.h>
 #elif defined(__APPLE__)
-#include <OpenGL/OpenGL.h>
-#include <OpenGL/gl.h>
+	#include <OpenGL/OpenGL.h>
+	#include <OpenGL/gl.h>
 #elif defined(ANDROID)
-#include <GLES2/gl2.h>
-#include <GLES2/gl2ext.h>
+	#include <GLES2/gl2.h>
+	#include <GLES2/gl2ext.h>
 #elif defined(_WIN32)
-#if !defined(QOPENGLFUNCTIONS_H)
-#include <GLES2/gl2.h>
-#endif
+	#if !defined(QOPENGLFUNCTIONS_H)
+		#include <GLES2/gl2.h>
+	#endif
 #elif !defined(QOPENGLFUNCTIONS_H) // glew is already included by QT.
-#include <GL/glew.h>
-#define GLEW_ENABLED 1
+	#include <GL/glew.h>
 #endif
 
 // =============================================================================

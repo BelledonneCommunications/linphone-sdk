@@ -31,10 +31,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include <X11/Xlib.h>
 
-#include "opengles_display.h"
 #include <GL/glew.h>
 #include <GL/gl.h>
 #include <GL/glx.h>
+
+#include "opengles_display.h"
 
 static void glxvideo_unprepare(MSFilter *f);
 

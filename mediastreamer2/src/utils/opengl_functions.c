@@ -1,19 +1,21 @@
 #include "opengl_functions.h"
 
 // =============================================================================
+
 #ifdef ANDROID
-#define CAST(type, fn)	(type)fn
+#define CAST(type, fn) (type)fn
 #else
-#define CAST(type, fn)	fn
+#define CAST(type, fn) fn
 #endif
+
 void opengl_functions_default_init (OpenGlFunctions *f) {
 	#if !defined(_WIN32)
 
-	f->glActiveTexture = CAST(resolveGlActiveTexture,glActiveTexture);
-	f->glAttachShader = CAST(resolveGlAttachShader,glAttachShader);
-	f->glBindAttribLocation = CAST(resolveGlBindAttribLocation,glBindAttribLocation);
-	f->glBindTexture = CAST(resolveGlBindTexture,glBindTexture);
-	f->glClear = CAST(resolveGlClear,glClear);
+	f->glActiveTexture = CAST(resolveGlActiveTexture, glActiveTexture);
+	f->glAttachShader = CAST(resolveGlAttachShader, glAttachShader);
+	f->glBindAttribLocation = CAST(resolveGlBindAttribLocation, glBindAttribLocation);
+	f->glBindTexture = CAST(resolveGlBindTexture, glBindTexture);
+	f->glClear = CAST(resolveGlClear, glClear);
 	f->glClearColor = CAST(resolveGlClearColor, glClearColor);
 	f->glCompileShader = CAST(resolveGlCompileShader, glCompileShader);
 	f->glCreateProgram = CAST(resolveGlCreateProgram, glCreateProgram);

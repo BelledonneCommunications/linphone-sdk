@@ -56,15 +56,6 @@ typedef struct _FilterData FilterData;
 static void ogl_init (MSFilter *f) {
 	FilterData *data = ms_new0(FilterData, 1);
 
-	#ifdef GLEW_ENABLED
-
-	if (glewInit() != GLEW_OK)
-		ms_error("glew init error");
-	else if (!GLEW_VERSION_2_0)
-		ms_error("glew 2.0 is required");
-
-	#endif
-
 	data->display = ogl_display_new();
 	data->show_video = TRUE;
 
