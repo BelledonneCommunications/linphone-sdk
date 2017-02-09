@@ -68,4 +68,6 @@ endif()
 
 
 # Add config step for packaging
-set(LINPHONE_BUILDER_ADDITIONAL_CONFIG_STEPS "${CMAKE_CURRENT_LIST_DIR}/desktop/additional_steps.cmake")
+if(NOT LINPHONE_BUILDER_ADDITIONAL_CONFIG_STEPS)
+	set(LINPHONE_BUILDER_ADDITIONAL_CONFIG_STEPS "${CMAKE_CURRENT_LIST_DIR}/desktop/additional_steps.cmake")
+endif()
