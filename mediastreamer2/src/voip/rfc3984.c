@@ -211,6 +211,8 @@ static mblk_t * aggregate_fua(Rfc3984Context *ctx, mblk_t *im){
 	uint8_t fu_header;
 	uint8_t nri,type;
 	bool_t start,end;
+	bool_t marker = mblk_get_marker_info(im);
+	
 	fu_header=im->b_rptr[1];
 	type=nal_header_get_type(&fu_header);
 	start=fu_header>>7;
@@ -244,6 +246,7 @@ static mblk_t * aggregate_fua(Rfc3984Context *ctx, mblk_t *im){
 	if (end && ctx->m){
 		msgpullup(ctx->m,-1);
 		om=ctx->m;
+		mblk_set_marker_info(om, marker); /*set the marker bit of this aggregated NAL as the last fragment received.*/
 		ctx->m=NULL;
 	}
 	return om;
@@ -283,7 +286,7 @@ static unsigned int output_frame(Rfc3984Context * ctx, MSQueue *out, unsigned in
 	
 	/* Log some bizarre things */
 	if ((res & Rfc3984FrameCorrupted) == 0){
-		if ((res & Rfc3984HasSPS) && (res & Rfc3984HasPPS) && !(res & Rfc3984HasIDR)){
+		if ((res & Rfc3984HasSPS) && (res & Rfc3984HasPPS) && !(res & Rfc3984HasIDR) && !(res & Rfc3984IsKeyFrame)){
 			/*some decoders may not be happy with this*/
 			ms_warning("rfc3984_unpack: a frame with SPS+PPS but no IDR was output, starting at seq number %u",
 				mblk_get_cseq(ms_queue_peek_first(&ctx->q)));
@@ -315,6 +318,11 @@ static bool_t update_parameter_set(mblk_t **last_parameter_set, mblk_t *new_para
 	}
 }
 
+static int is_unique_I_slice(const uint8_t *slice_header){
+	ms_message("is_unique_I_slice: %i", (int)*slice_header);
+	return slice_header[0] == 0x88; /*this corresponds to first_mb_in_slice to zero and slice_type = 7*/
+}
+
 static void store_nal(Rfc3984Context *ctx, mblk_t *nal){
 	uint8_t type=nal_header_get_type(nal->b_rptr);
 	if (ms_queue_empty(&ctx->q) && (ctx->status & Rfc3984FrameCorrupted)
@@ -322,6 +330,11 @@ static void store_nal(Rfc3984Context *ctx, mblk_t *nal){
 		ms_message("Previous discontinuity ignored since we are restarting with a keyframe.");
 		ctx->status = 0;
 	}
+	if ((ctx->status & Rfc3984HasSPS) && (ctx->status & Rfc3984HasPPS) && type != MSH264NaluTypeIDR && mblk_get_marker_info(nal) && is_unique_I_slice(nal->b_rptr+1)){
+		ms_warning("Receiving a nal unit which is not IDR but a single I-slice bundled with SPS & PPS - considering it as a key frame.");
+		ctx->status |= Rfc3984IsKeyFrame;
+	}
+	
 	if (type == MSH264NaluTypeIDR){
 		ctx->status |= Rfc3984HasIDR;
 		ctx->status |= Rfc3984IsKeyFrame;
