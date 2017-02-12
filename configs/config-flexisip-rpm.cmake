@@ -94,7 +94,6 @@ endif()
 
 # needed *before* the include
 lcb_builder_linking_type(ortp "--enable-static")
-lcb_builder_use_autogen(ortp YES)
 lcb_builder_use_autogen(ms2 YES)
 lcb_builder_configure_options(ms2 "--disable-video")
 #required to use autotools
@@ -106,12 +105,12 @@ set(EP_bctoolbox_BUILD_METHOD "rpm")
 lcb_builder_cmake_options(bctoolbox "-DENABLE_TESTS=NO")
 lcb_builder_cmake_options(bctoolbox "-DENABLE_TESTS_COMPONENT=NO")
 
+set(EP_ortp_BUILD_METHOD     "rpm")
 # Include builders
 include(builders/CMakeLists.txt)
 
 set(EP_bellesip_LINKING_TYPE "--enable-static")
 
-set(EP_ortp_BUILD_METHOD     "rpm")
 set(EP_bellesip_BUILD_METHOD "rpm")
 set(EP_sofiasip_BUILD_METHOD "rpm")
 set(EP_flexisip_BUILD_METHOD "rpm")

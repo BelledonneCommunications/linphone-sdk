@@ -30,3 +30,10 @@ lcb_dependencies("bctoolbox")
 lcb_spec_file("ortp.spec")
 
 lcb_cmake_options("-DENABLE_DOC=${ENABLE_DOC}")
+
+if(EP_ortp_BUILD_METHOD STREQUAL "rpm")
+        message("using rpm")
+	set(EP_ortp_CONFIGURE_COMMAND_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/builders/ortp/configure.sh.rpm.cmake)
+        set(EP_ortp_BUILD_COMMAND_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/builders/ortp/build.sh.rpm.cmake)
+endif()
+
