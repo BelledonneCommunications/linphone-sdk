@@ -103,6 +103,7 @@ lcb_builder_linking_type(mbedtls "-DUSE_STATIC_MBEDTLS_LIBRARY=YES" "-DUSE_SHARE
 lcb_builder_cmake_options(ms2 "-DENABLE_RELATIVE_PREFIX=YES")
 lcb_builder_cmake_options(ms2 "-DENABLE_UNIT_TESTS=NO")
 lcb_builder_cmake_options(ms2 "-DENABLE_PCAP=NO")
+lcb_builder_cmake_options(ms2 "-DENABLE_GL=NO")
 if(UNIX AND NOT APPLE)
 	lcb_builder_cmake_options(ms2 "-DENABLE_ALSA=YES")
 	lcb_builder_cmake_options(ms2 "-DENABLE_PULSEAUDIO=NO")
