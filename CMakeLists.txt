@@ -26,18 +26,18 @@ include(FeatureSummary)
 
 
 set(LINPHONE_BUILDER_CONFIG_FILE "configs/config-desktop.cmake" CACHE STRING "Path to the linphone builder configuration file.")
-set(LINPHONE_BUILDER_TOP_DIR "${CMAKE_SOURCE_DIR}" CACHE STRING "Top directory of the source tree.")
+set(LINPHONE_BUILDER_TOP_DIR "${CMAKE_SOURCE_DIR}" CACHE PATH "Top directory of the source tree.")
 set(LINPHONE_BUILDER_WORK_DIR "${CMAKE_CURRENT_SOURCE_DIR}/WORK" CACHE PATH "Working directory for the build.")
 set(LINPHONE_BUILDER_TARGET "linphone" CACHE STRING "Target to build.")
 set(LINPHONE_BUILDER_PREBUILT_URL "" CACHE STRING "URL to download some prebuilt dependencies.")
 option(LINPHONE_BUILDER_LATEST "Build latest versions (from git)." NO)
 option(LINPHONE_BUILDER_CHECK_LASTEST "Check that the git revisions are the latest ones." NO)
 option(LINPHONE_BUILDER_BUILD_DEPENDENCIES "Build the dependencies instead of using the system libraries." YES)
-set(LINPHONE_BUILDER_EXTERNAL_SOURCE_PATH "" CACHE STRING "External path to source code that is available.")
+set(LINPHONE_BUILDER_EXTERNAL_SOURCE_PATH "" CACHE PATH "External path to source code that is available.")
 set(LINPHONE_BUILDER_DUMMY_LIBRARIES "" CACHE STRING "Dummy libraries to be generated.")
 option(LINPHONE_BUILDER_USE_SYSTEM_DEPENDENCIES "Use system dependencies." NO)
 option(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS "Group external source path builders in a single external project." NO)
-set(LINPHONE_BUILDER_EXTERNAL_BUILDERS_PATH "" CACHE STRING "Path to external builders.")
+set(LINPHONE_BUILDER_EXTERNAL_BUILDERS_PATH "" CACHE PATH "Path to external builders.")
 
 
 # Include macros definition to be used by builders
