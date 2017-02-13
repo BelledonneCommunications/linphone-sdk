@@ -51,6 +51,7 @@ set(HEADER_FILES
 	msjava.h
 	msjpegwriter.h
 	msogl.h
+	msogl_functions.h
 	msmediaplayer.h
 	msqueue.h
 	msrtp.h

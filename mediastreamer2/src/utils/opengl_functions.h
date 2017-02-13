@@ -20,7 +20,7 @@
 #ifndef OPENGL_FUNCTIONS_H
 #define OPENGL_FUNCTIONS_H
 
-#include "mediastreamer2/msogl.h"
+#include "mediastreamer2/msogl_functions.h"
 
 // -----------------------------------------------------------------------------
 

@@ -19,6 +19,7 @@
  */
 
 #include "mediastreamer2/msfilter.h"
+#include "mediastreamer2/msogl_functions.h"
 #include "mediastreamer2/msogl.h"
 #include "mediastreamer2/msvideo.h"
 

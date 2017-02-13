@@ -29,6 +29,7 @@ mediastreamer2_include_HEADERS=allfilters.h \
 				msinterfaces.h \
 				msitc.h \
 				msogl.h \
+				msogl_functions.h \
 				msjava.h \
 				msjpegwriter.h \
 				msmediaplayer.h \
