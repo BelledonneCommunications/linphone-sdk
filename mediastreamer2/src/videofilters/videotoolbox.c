@@ -61,7 +61,7 @@ static const char *os_status_to_string(OSStatus status) {
 	default:
 		break;
 	}
-	snprintf(complete_message, sizeof(complete_message), "%s [osstatus=%d]", message, status);
+	snprintf(complete_message, sizeof(complete_message), "%s [osstatus=%d]", message, (int)status);
 	return complete_message;
 }
 
