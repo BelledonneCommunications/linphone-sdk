@@ -213,6 +213,7 @@ static void pcap_tester_streams_start(const PcapTesterContext *params,
 		receiver_q = setup_event_queue(&receiver->ms);
 	}
 	if (use_video) {
+#ifdef VIDEO_ENABLED
 		JBParameters video_params;
 		receiverv = video_stream_new(_factory, video_to_port, 0, FALSE);
 		video_stream_set_direction(receiverv, MediaStreamRecvOnly);
@@ -237,6 +238,9 @@ static void pcap_tester_streams_start(const PcapTesterContext *params,
 		rtp_session_set_jitter_buffer_params(receiverv->ms.sessions.rtp_session, &video_params);
 
 		receiverv_q = setup_event_queue(&receiverv->ms);
+#else
+		ms_fatal("Video support disabled at compilation time");
+#endif
 	}
 
 	/* Let the stream start a few seconds without receiving anything, then send the RTP simulation.
@@ -292,7 +296,9 @@ void pcap_tester_stop(const PcapTesterContext *params) {
 		clean_evq(&receiverv->ms, receiverv_q);
 		receiverv_q = NULL;
 		memcpy(&final_video_rtp_stats, rtp_session_get_stats(receiverv->ms.sessions.rtp_session), sizeof(rtp_stats_t));
+#ifdef VIDEO_ENABLED
 		video_stream_stop(receiverv);
+#endif
 		receiverv = NULL;
 	}
 	if (receiver) {

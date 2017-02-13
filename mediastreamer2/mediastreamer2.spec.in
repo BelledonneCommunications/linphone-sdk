@@ -74,8 +74,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root,-)
-%{_bindir}/mediastream
-%{_bindir}/msaudiocmp
+%{_bindir}/*
 %{_libdir}/*.so.*
 %{_datadir}/images/nowebcamCIF.jpg
 %{_datadir}/locale/??/LC_MESSAGES/mediastreamer.mo
