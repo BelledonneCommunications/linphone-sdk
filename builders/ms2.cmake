@@ -110,8 +110,3 @@ endif()
 if(ENABLE_V4L AND LINPHONE_BUILDER_BUILD_DEPENDENCIES)
 	lcb_dependencies("v4l")
 endif()
-
-# TODO: Activate strict compilation options on IOS
-if(IOS)
-	lcb_cmake_options("-DENABLE_STRICT=NO")
-endif()

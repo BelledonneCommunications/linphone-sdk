@@ -30,8 +30,3 @@ lcb_dependencies("bctoolbox")
 lcb_spec_file("ortp.spec")
 
 lcb_cmake_options("-DENABLE_DOC=${ENABLE_DOC}")
-
-# TODO: Activate strict compilation options on IOS
-if(IOS)
-	lcb_cmake_options("-DENABLE_STRICT=NO")
-endif()

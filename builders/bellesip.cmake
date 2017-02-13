@@ -47,8 +47,3 @@ lcb_cmake_options(
 	"-DENABLE_TUNNEL=${ENABLE_TUNNEL}"
 	"-DENABLE_TESTS=${ENABLE_UNIT_TESTS}"
 )
-
-# TODO: Activate strict compilation options on IOS
-if(IOS)
-	lcb_cmake_options("-DENABLE_STRICT=NO")
-endif()

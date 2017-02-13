@@ -71,8 +71,6 @@ set(LINPHONE_BUILDER_LDFLAGS "${LINPHONE_BUILDER_LDFLAGS} -stdlib=libc++")
 # Include builders
 include(builders/CMakeLists.txt)
 
-lcb_builder_cmake_options(bzrtp "-DENABLE_STRICT=NO")
-
 # ffmpeg
 lcb_builder_linking_type(ffmpeg "--enable-static" "--disable-shared" "--enable-pic")
 
