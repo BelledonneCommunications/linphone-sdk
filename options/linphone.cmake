@@ -30,3 +30,4 @@ lcb_add_option("VCARD" "Enable vCard 4 support in Linphone and Liblinphone." "${
 if(UNIX AND NOT IOS)
 	lcb_add_option("Relative prefix" "liblinphone and mediastreamer will look for their respective ressources relatively to their location." OFF)
 endif()
+lcb_add_option("LIME" "Enable Linphone IM Encryption support in  Liblinphone." "${DEFAULT_VALUE_ENABLE_LIME}")
