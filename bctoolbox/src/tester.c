@@ -434,6 +434,10 @@ static void detect_res_prefix(const char* prog) {
 			ptr = strrchr(prog, '\\');
 		}
 		if (ptr != NULL) {
+#ifdef BC_TESTER_WINDOWS_DESKTOP
+			char *exe = strstr(prog, ".exe");
+			if (exe != NULL) exe[0] = '\0';
+#endif
 			progname = strdup(ptr + 1);
 		}
 	}
