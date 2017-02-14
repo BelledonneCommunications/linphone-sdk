@@ -339,6 +339,7 @@ int dns_v_api(void) {
 #define DNS_EAGAIN	EAGAIN
 #define DNS_ETIMEDOUT	WSAETIMEDOUT
 #define DNS_ECONNREFUSED	WSAECONNREFUSED
+#define DNS_ECONNRESET	WSAECONNRESET
 #define DNS_ENETUNREACH WSAENETUNREACH
 #define DNS_EHOSTUNREACH WSAEHOSTUNREACH
 
@@ -355,6 +356,7 @@ int dns_v_api(void) {
 #define DNS_EAGAIN	EAGAIN
 #define DNS_ETIMEDOUT	ETIMEDOUT
 #define DNS_ECONNREFUSED	ECONNREFUSED
+#define DNS_ECONNRESET	ECONNRESET
 #define DNS_ENETUNREACH ENETUNREACH
 #define DNS_EHOSTUNREACH EHOSTUNREACH
 
@@ -7687,6 +7689,7 @@ exec:
 		if ((error = dns_so_check(&R->so)) != 0){
 			if (error == DNS_ENETUNREACH
 				|| error == DNS_ECONNREFUSED
+				|| error == DNS_ECONNRESET
 				|| error == EINVAL
 				|| error == DNS_EHOSTUNREACH) { /* maybe even more case*/
 				dgoto(R->sp, DNS_R_FOREACH_A);
