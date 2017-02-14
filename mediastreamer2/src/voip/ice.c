@@ -34,8 +34,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <bctoolbox/port.h>
 
 
-#define ICE_MAX_NB_CANDIDATES		10
-#define ICE_MAX_NB_CANDIDATE_PAIRS	(ICE_MAX_NB_CANDIDATES*ICE_MAX_NB_CANDIDATES)
+#define ICE_MAX_NB_CANDIDATES		16
+#define ICE_MAX_NB_CANDIDATE_PAIRS	100
 
 #define ICE_RTP_COMPONENT_ID	1
 #define ICE_RTCP_COMPONENT_ID	2
@@ -3733,6 +3733,15 @@ void ice_session_restart(IceSession *session, IceRole role){
 	ice_session_set_role(session, role);
 }
 
+void ice_session_reset(IceSession *session, IceRole role) {
+	int i;
+
+	ice_session_restart(session, role);
+	for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
+		IceCheckList *cl = session->streams[i];
+		cl->local_candidates = bctbx_list_free_with_data(cl->local_candidates, (bctbx_list_free_func)ice_free_candidate);
+	}
+}
 
 /******************************************************************************
  * GLOBAL PROCESS                                                             *

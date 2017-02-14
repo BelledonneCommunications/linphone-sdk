@@ -561,8 +561,18 @@ MS2_PUBLIC void ice_session_select_candidates(IceSession *session);
  * Restart an ICE session.
  *
  * @param session A pointer to a session
+ * @param role The role of the agent after the session restart
  */
 MS2_PUBLIC void ice_session_restart(IceSession *session, IceRole role);
+
+/**
+ * Reset an ICE session.
+ * It has the same effect as a session restart but also clears the local candidates.
+ * 
+ * @param session A pointer to a session
+ * @param role The role of the agent after the session restart
+ */
+MS2_PUBLIC void ice_session_reset(IceSession *session, IceRole role);
 
 /**
  * Get the state of an ICE check list.
