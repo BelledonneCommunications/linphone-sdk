@@ -59,7 +59,6 @@ ENDFOREACH()
 
 set(FLEXISIP_LIBDEPS ssl mysqlclient_r mysqlclient)
 if(PLATFORM STREQUAL "Debian")
-	list(APPEND FLEXISIP_LIBDEPS hiredis)
 	set(DEFAULT_VALUE_ENABLE_SOCI_BUILD ON)
 endif()
 
@@ -76,7 +75,7 @@ set(DEFAULT_VALUE_ENABLE_REDIS ON)
 set(DEFAULT_VALUE_ENABLE_SOCI ON)
 set(DEFAULT_VALUE_ENABLE_UNIT_TESTS OFF)
 set(DEFAULT_VALUE_CMAKE_LINKING_TYPE "-DENABLE_STATIC=NO")
-
+set(DEFAULT_VALUE_ENABLE_BC_HIREDIS ON)
 
 # Global configuration
 set(LINPHONE_BUILDER_HOST "")
@@ -172,6 +171,11 @@ set(LINPHONE_BUILDER_RPMBUILD_PACKAGE_PREFIX "bc-")
 
 set(RPMBUILD_OPTIONS "--define '_mandir %{_prefix}'")
 
+# bc-redis  will be installed in the prefix, but we have to pass it through a special flag to the RPM build, since there
+# is no pkgconfig
+list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--with-redis=${CMAKE_INSTALL_PREFIX}")
+set(EP_flexisip_RPMBUILD_OPTIONS "${EP_flexisip_RPMBUILD_OPTIONS} --define 'hiredisdir ${RPM_INSTALL_PREFIX}'")
+
 if(PLATFORM STREQUAL "Debian")
 	# dependencies cannot be checked by rpmbuild in debian
 	set(RPMBUILD_OPTIONS "${RPMBUILD_OPTIONS} --nodeps")
@@ -184,12 +188,6 @@ if(PLATFORM STREQUAL "Debian")
 
 	# some debians are using dash as shell, which doesn't support "export -n", so we override and use bash
 	set(RPMBUILD_OPTIONS "${RPMBUILD_OPTIONS} --define '_buildshell /bin/bash'")
-
-	# redis for debian 7 will be installed in the prefix, but we have to pass it through a special flag to the RPM build, since there
-	# is no pkgconfig
-	list(APPEND EP_flexisip_DEPENDENCIES EP_hiredis)
-	list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--with-redis=${CMAKE_INSTALL_PREFIX}")
-	set(EP_flexisip_RPMBUILD_OPTIONS "${EP_flexisip_RPMBUILD_OPTIONS} --define 'hiredisdir ${RPM_INSTALL_PREFIX}'")
 
 	CHECK_PROGRAM(alien)
 	CHECK_PROGRAM(fakeroot)
