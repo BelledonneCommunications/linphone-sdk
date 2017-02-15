@@ -3739,7 +3739,11 @@ void ice_session_reset(IceSession *session, IceRole role) {
 	ice_session_restart(session, role);
 	for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
 		IceCheckList *cl = session->streams[i];
-		cl->local_candidates = bctbx_list_free_with_data(cl->local_candidates, (bctbx_list_free_func)ice_free_candidate);
+		if (cl != NULL) {
+			cl->local_candidates = bctbx_list_free_with_data(cl->local_candidates, (bctbx_list_free_func)ice_free_candidate);
+			bctbx_list_free(cl->local_componentIDs);
+			cl->local_componentIDs = NULL;
+		}
 	}
 }
 
