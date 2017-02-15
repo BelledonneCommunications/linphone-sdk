@@ -379,8 +379,14 @@ static void ice_free_candidate(IceCandidate *candidate)
 
 static void ice_check_list_destroy_turn_contexts(IceCheckList *cl) {
 	ice_check_list_deallocate_turn_candidates(cl);
-	if (cl->rtp_turn_context != NULL) ms_turn_context_destroy(cl->rtp_turn_context);
-	if (cl->rtcp_turn_context != NULL) ms_turn_context_destroy(cl->rtcp_turn_context);
+	if (cl->rtp_turn_context != NULL) {
+		ms_turn_context_destroy(cl->rtp_turn_context);
+		cl->rtp_turn_context = NULL;
+	}
+	if (cl->rtcp_turn_context != NULL) {
+		ms_turn_context_destroy(cl->rtcp_turn_context);
+		cl->rtcp_turn_context = NULL;
+	}
 }
 
 void ice_check_list_destroy(IceCheckList *cl)
@@ -1097,13 +1103,18 @@ void ice_session_enable_short_turn_refresh(IceSession *session, bool_t enable) {
 }
 
 static void ice_check_list_create_turn_contexts(IceCheckList *cl) {
-	cl->rtp_turn_context = ms_turn_context_new(MS_TURN_CONTEXT_TYPE_RTP, cl->rtp_session);
-	cl->rtcp_turn_context = ms_turn_context_new(MS_TURN_CONTEXT_TYPE_RTCP, cl->rtp_session);
+	if (!cl->rtp_turn_context){
+		cl->rtp_turn_context = ms_turn_context_new(MS_TURN_CONTEXT_TYPE_RTP, cl->rtp_session);
+	}
+	if (!cl->rtcp_turn_context){
+		cl->rtcp_turn_context = ms_turn_context_new(MS_TURN_CONTEXT_TYPE_RTCP, cl->rtp_session);
+	}
 }
 
 void ice_session_enable_turn(IceSession *session, bool_t enable) {
 	int i;
 	session->turn_enabled = enable;
+	if (!enable) return;
 	for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
 		if (session->streams[i] != NULL)
 			ice_check_list_create_turn_contexts(session->streams[i]);
