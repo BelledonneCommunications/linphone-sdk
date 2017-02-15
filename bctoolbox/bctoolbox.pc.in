@@ -3,7 +3,7 @@ prefix=@CMAKE_INSTALL_PREFIX@
 exec_prefix=@CMAKE_INSTALL_PREFIX@
 
 Name:  bctoolbox
-Description: A common set of tools used by Belledonne Communications' softwares
+Description: A common set of tools used by Belledonne Communication's softwares
 Version: @PROJECT_VERSION@
 Libs: -L@CMAKE_INSTALL_FULL_LIBDIR@ -lbctoolbox
 Libs.private: @LIBS_PRIVATE@
