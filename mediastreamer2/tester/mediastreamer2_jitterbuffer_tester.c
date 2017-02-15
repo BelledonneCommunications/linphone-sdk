@@ -414,6 +414,7 @@ static void burstly_network_rls_with_ts_offset(void) {
 	params.audio_clock_rate = payload_type_opus.clock_rate;
 	params.audio_payload = OPUS_PAYLOAD_TYPE;
 	params.ts_offset = 0x7ffffffc;
+	params.enable_congestion_detection = TRUE;
 	
 	pcap_tester_audio_with_params(&params);
 	BC_ASSERT_GREATER((int)final_audio_rtp_stats.outoftime, 190, int, "%i");
@@ -445,7 +446,7 @@ static void chaotic_start_rls(void) {
 
 
 static void edge_congestion(void) {
-	pcap_tester_audio("./scenarios/opus-edge-congestion20_60_40.pcapng", OrtpJitterBufferRecursiveLeastSquare, 2
+	pcap_tester_audio("./scenarios/opus-edge-congestion20_60_40.pcapng", OrtpJitterBufferRecursiveLeastSquare, 1
 				, payload_type_opus.clock_rate, OPUS_PAYLOAD_TYPE);
 }
 
@@ -458,7 +459,7 @@ static void congestion_detector_ideal_video(void) {
 	params.audio_payload = 0;
 	params.video_clock_rate = payload_type_vp8.clock_rate;
 	params.video_payload = 96;
-	params.congestion_count_expected = 0;
+	params.congestion_count_expected = 1; /*not so ideal video, there is a small congestion in the middle*/
 	params.enable_congestion_detection = TRUE;
 	
 	pcap_tester_streams_start(&params
