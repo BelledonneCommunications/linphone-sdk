@@ -22,8 +22,8 @@ def list_files(source_dir):
 
 # List libraries used in a file
 def list_libraries(file):
-  print "Exec: /usr/bin/otool -L %s" % file 
-  ret = subprocess.check_output(["/usr/bin/otool", "-L", file])
+  print("Exec: /usr/bin/otool -L %s" % file)
+  ret = subprocess.check_output(["/usr/bin/otool", "-L", file]).decode('utf-8')
 
   librarylist = []
   for a in ret.split("\n"):
@@ -36,30 +36,30 @@ def list_libraries(file):
 def change_library_id(file, id):
   id = "@loader_path/" + id
   os.chmod(file, 0o755)
-  print "%s: Change id %s" % (file, id)
+  print("%s: Change id %s" % (file, id))
   ret = subprocess.check_output(["/usr/bin/install_name_tool", "-id", id, file], stderr=subprocess.STDOUT)
 
 # Change path to a library in a file
 def change_library_path(file, old, new, path = ""):
-  if len(path)> 0 and path[-1] <> '/':
+  if len(path)> 0 and path[-1] != '/':
     path = path + "/"
   new = "@loader_path/" + path + new
   os.chmod(file, 0o755)
-  print "%s: Replace %s -> %s" % (file, old, new)
+  print("%s: Replace %s -> %s" % (file, old, new))
   ret = subprocess.check_output(["/usr/bin/install_name_tool", "-change", old, new, file])
 
 # Replace libraries used by a file
 def replace_libraries(file, name, libraries, path = ""):
-  print "---------------------------------------------"
-  print "Replace libraries in %s" % file
+  print("---------------------------------------------")
+  print("Replace libraries in %s" % file)
   change_library_id(file, name)
   librarylist = list_libraries(file)
   for lib in libraries:
-    if lib <> name:
+    if lib != name:
       completelib = [s for s in librarylist if lib in s]
       if len(completelib) == 1:
          change_library_path(file, completelib[0], lib, path)
-  print "---------------------------------------------"
+  print("---------------------------------------------")
 
 def main(argv=None):
   if argv is None:
