@@ -174,7 +174,7 @@ static bool_t parse_args(int argc, char **argv, MediastreamDatas *out)
 	return TRUE;
 }
 
-
+#ifdef VIDEO_ENABLED
 static void reader_notify_cb(void *user_data, MSFilter *f, unsigned int event, void *eventdata)
 {
 	if (event == MS_PLAYER_EOF) {
@@ -200,6 +200,7 @@ static void video_decoder_callback(void *user_data, MSFilter *f, unsigned int ev
 		break;
 	}
 }
+#endif
 
 static 	MSFactory *factory;
 
