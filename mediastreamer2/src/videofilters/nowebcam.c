@@ -177,26 +177,25 @@ mblk_t *ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize) {
 }
 
 
-#ifndef PACKAGE_DATA_DIR
-#define PACKAGE_DATA_DIR "share"
-#endif
-
 #ifndef NOWEBCAM_JPG
 #define NOWEBCAM_JPG "nowebcamCIF"
 #endif
 
 static char *def_image = NULL;
 
-static const char *def_image_path = PACKAGE_DATA_DIR "/images/" NOWEBCAM_JPG ".jpg";
 
-
-mblk_t *ms_load_nowebcam(MSVideoSize *reqsize, int idx) {
-	char tmp[256];
+mblk_t *ms_load_nowebcam(MSFactory *factory, MSVideoSize *reqsize, int idx) {
+	mblk_t *m;
+	char *tmp;
+	char *image_resources_dir = ms_factory_get_image_resources_dir(factory);
 	if (idx < 0)
-		snprintf(tmp, sizeof(tmp), "%s/images/%s.jpg", PACKAGE_DATA_DIR, NOWEBCAM_JPG);
+		tmp = bctbx_strdup_printf("%s/%s.jpg", image_resources_dir, NOWEBCAM_JPG);
 	else
-		snprintf(tmp, sizeof(tmp), "%s/images/%s%i.jpg", PACKAGE_DATA_DIR, NOWEBCAM_JPG, idx);
-	return ms_load_jpeg_as_yuv(tmp, reqsize);
+		tmp = bctbx_strdup_printf("%s/%s%i.jpg", image_resources_dir, NOWEBCAM_JPG, idx);
+	m = ms_load_jpeg_as_yuv(tmp, reqsize);
+	bctbx_free(tmp);
+	bctbx_free(image_resources_dir);
+	return m;
 }
 
 typedef struct _SIData {
@@ -352,9 +351,12 @@ static void static_image_detect(MSWebCamManager *obj);
 
 static void static_image_cam_init(MSWebCam *cam) {
 	cam->name=ms_strdup("Static picture");
-
-	if (def_image == NULL)
-		def_image = ms_strdup(def_image_path);
+	if (def_image == NULL) {
+		MSFactory *factory = ms_web_cam_get_factory(cam);
+		char *image_resources_dir = ms_factory_get_image_resources_dir(factory);
+		def_image = ms_strdup_printf("%s/%s.jpg", image_resources_dir, NOWEBCAM_JPG);
+		bctbx_free(image_resources_dir);
+	}
 }
 
 
@@ -372,7 +374,7 @@ MSWebCamDesc static_image_desc={
 };
 
 static void static_image_detect(MSWebCamManager *obj){
-	MSWebCam *cam=ms_web_cam_new(&static_image_desc);
+	MSWebCam *cam = ms_web_cam_manager_create_cam(obj, &static_image_desc);
 	ms_web_cam_manager_add_cam(obj,cam);
 }
 

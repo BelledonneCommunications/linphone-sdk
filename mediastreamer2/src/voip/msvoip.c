@@ -356,6 +356,13 @@ MSFactory *ms_factory_new_with_voip(void){
 	return f;
 }
 
+MSFactory *ms_factory_new_with_voip_and_plugins_dir(const char *plugins_dir) {
+	MSFactory *f = ms_factory_new();
+	ms_factory_set_plugins_dir(f, plugins_dir);
+	ms_factory_init_voip(f);
+	ms_factory_init_plugins(f);
+	return f;
+}
 
 
 PayloadType * ms_offer_answer_context_match_payload(MSOfferAnswerContext *context, const MSList *local_payloads, const PayloadType *remote_payload, const MSList *remote_payloads, bool_t is_reading){

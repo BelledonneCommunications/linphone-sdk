@@ -59,6 +59,7 @@ typedef struct V4wState{
 	bool_t started;
 	bool_t autostarted;
 	bool_t invert_rgb;
+	MSFactory *factory;
 }V4wState;
 
 static void dummy(void*p){
@@ -272,6 +273,7 @@ static void v4w_init(MSFilter *f){
 	s->thread_running = FALSE;
 #endif
 
+	s->factory = ms_filter_get_factory(f);
 	f->data=s;
 }
 
@@ -451,12 +453,12 @@ static mblk_t * v4w_make_nowebcam(V4wState *s){
 		/* load several images to fake a movie */
 		for (idx=0;idx<10;idx++)
 		{
-			s->mire[idx]=ms_load_nowebcam(&s->vsize, idx);
+			s->mire[idx]=ms_load_nowebcam(s->factory, &s->vsize, idx);
 			if (s->mire[idx]==NULL)
 				break;
 		}
 		if (idx==0)
-			s->mire[0]=ms_load_nowebcam(&s->vsize, -1);
+			s->mire[0]=ms_load_nowebcam(s->factory, &s->vsize, -1);
 	}
 	for (count=0;count<10;count++)
 	{

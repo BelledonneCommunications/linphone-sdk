@@ -22,7 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define nowebcam_h
 
 MS2_PUBLIC mblk_t *ms_load_jpeg_as_yuv(const char *path, MSVideoSize *reqsize);
-MS2_PUBLIC mblk_t *ms_load_nowebcam(MSVideoSize *reqsize, int idx);
+MS2_PUBLIC mblk_t *ms_load_nowebcam(MSFactory *factory, MSVideoSize *reqsize, int idx);
 MS2_PUBLIC mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize);
 
 #endif

@@ -51,6 +51,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #endif
 #endif
 #endif
+
+#ifndef PACKAGE_DATA_DIR
+#define PACKAGE_DATA_DIR "share"
+#endif
+
 #ifdef HAVE_DLOPEN
 #include <dlfcn.h>
 #endif
@@ -848,6 +853,16 @@ MSOfferAnswerContext * ms_factory_create_offer_answer_context(MSFactory *f, cons
 
 MSDevicesInfo* ms_factory_get_devices_info(MSFactory *f) {
 	return f->devices_info;
+}
+
+char * ms_factory_get_image_resources_dir(const MSFactory *f) {
+	if (f->image_resources_dir) bctbx_strdup(f->image_resources_dir);
+	return bctbx_strdup_printf("%s/images", PACKAGE_DATA_DIR);
+}
+
+void ms_factory_set_image_resources_dir(MSFactory *f, const char *path) {
+	if (f->image_resources_dir) bctbx_free(f->image_resources_dir);
+	f->image_resources_dir = bctbx_strdup(path);
 }
 
 #ifdef ANDROID

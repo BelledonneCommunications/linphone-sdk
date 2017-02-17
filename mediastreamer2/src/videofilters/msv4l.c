@@ -75,6 +75,7 @@ typedef struct V4lState{
 	bool_t v4lv2; /*we interface with a V4Lv2 driver */
 	bool_t force_v1;
 	bool_t auto_started;
+	MSFactory *factory;
 }V4lState;
 
 static void *v4l_thread(void *s);
@@ -292,6 +293,7 @@ static void v4l_init(MSFilter *f){
 	s->queued=0;
 	s->force_v1=FALSE;
 	s->auto_started=FALSE;
+	s->factory = ms_filter_get_factory(f);
 	f->data=s;
 }
 
@@ -772,7 +774,7 @@ static mblk_t * v4l_make_mire(V4lState *s){
 static mblk_t * v4l_make_nowebcam(V4lState *s){
 	if (s->mire==NULL && s->frame_ind==0){
 #if !defined(NO_FFMPEG)
-		s->mire=ms_load_nowebcam(&s->vsize, -1);
+		s->mire=ms_load_nowebcam(s->factory, &s->vsize, -1);
 #endif
 	}
 	s->frame_ind++;

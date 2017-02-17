@@ -82,6 +82,14 @@ void ms_web_cam_manager_add_cam(MSWebCamManager *m, MSWebCam *c){
 	m->cams=bctbx_list_append(m->cams,c);
 }
 
+MSWebCam * ms_web_cam_manager_create_cam(MSWebCamManager *m, MSWebCamDesc *desc) {
+	MSWebCam *obj = (MSWebCam *)ms_new0(MSWebCam, 1);
+	obj->desc = desc;
+	ms_web_cam_set_manager(m, obj);
+	if (desc->init!=NULL)
+		desc->init(obj);
+	return obj;
+}
 
 
 void ms_web_cam_manager_prepend_cam(MSWebCamManager *m, MSWebCam *c){

@@ -46,6 +46,7 @@ struct _MSFactory{
 	bool_t statistics_enabled;
 	bool_t voip_initd;
 	MSDevicesInfo *devices_info;
+	char *image_resources_dir;
 };
 
 typedef struct _MSFactory MSFactory;
@@ -61,7 +62,7 @@ extern "C" {
 #define MS2_DEPRECATED __attribute__ ((deprecated))
 #endif
 #endif
-	
+
 /**
  * Create a mediastreamer2 factory. This is the root object that will create everything else from mediastreamer2.
 **/
@@ -71,6 +72,12 @@ MS2_PUBLIC MSFactory *ms_factory_new(void);
  * Create a mediastreamer2 factory and initialize all voip related filter, card and webcam managers.
 **/
 MS2_PUBLIC MSFactory* ms_factory_new_with_voip(void);
+
+/**
+ * Create a mediastreamer2 factory, initialize all voip related filters, cards and webcam managers and load the plugins from the specified directory.
+ * @param[in] plugins_dir The path where to find the mediastreamer2 plugins to be loaded
+ */
+MS2_PUBLIC MSFactory *ms_factory_new_with_voip_and_plugins_dir(const char *plugins_dir);
 
 /**
  * Create the fallback factory (for compatibility with applications not using MSFactory to create ms2 object)
@@ -374,6 +381,20 @@ MS2_PUBLIC MSOfferAnswerProvider * ms_factory_get_offer_answer_provider(MSFactor
 MS2_PUBLIC MSOfferAnswerContext * ms_factory_create_offer_answer_context(MSFactory *f, const char *mime_type);
 
 MS2_PUBLIC MSDevicesInfo* ms_factory_get_devices_info(MSFactory *f);
+
+/**
+ * Get the path where the image resources (mainly the nowebcam image) are located.
+ * @param[in] f MSFactory object
+ * @return The path where the image resources are located
+ */
+MS2_PUBLIC char * ms_factory_get_image_resources_dir(const MSFactory *f);
+
+/**
+ * Set the path where the image resources are located
+ * @param[in] f MSFactory object
+ * @param[in] path The path where the image resources are located
+ */
+MS2_PUBLIC void ms_factory_set_image_resources_dir(MSFactory *f, const char *path);
 
 #ifdef __cplusplus
 }

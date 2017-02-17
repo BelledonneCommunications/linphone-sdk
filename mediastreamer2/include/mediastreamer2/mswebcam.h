@@ -155,7 +155,9 @@ MS2_PUBLIC const MSList * ms_web_cam_manager_get_list(MSWebCamManager *m);
  *
  */
 MS2_PUBLIC void ms_web_cam_manager_add_cam(MSWebCamManager *m, MSWebCam *c);
-	
+
+MS2_PUBLIC MSWebCam * ms_web_cam_manager_create_cam(MSWebCamManager *m, MSWebCamDesc *desc);
+
 MS2_PUBLIC void ms_web_cam_set_manager(MSWebCamManager*m, MSWebCam *c);
 	
 /**
