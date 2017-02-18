@@ -69,7 +69,6 @@ typedef struct V4wState{
 	float fps;
 	uint64_t start_time;
 	int frame_count;
-	MSFactory *factory;
 }V4wState;
 
 static V4wState *s_callback=NULL;
@@ -1021,8 +1020,6 @@ static void v4w_init(MSFilter *f){
 	s->frame_count=-1;
 	s->fps=15;
 	memset(s->dev, 0, sizeof(s->dev));
-
-	s->factory = ms_filter_get_factory(f);
 	f->data=s;
 }
 
@@ -1196,7 +1193,7 @@ static void v4w_uninit(MSFilter *f){
 	ms_free(s);
 }
 
-static mblk_t * v4w_make_nowebcam(V4wState *s){
+static mblk_t * v4w_make_nowebcam(MSFilter *f, V4wState *s){
 #if defined(_WIN32_WCE)
 	return NULL;
 #else
@@ -1210,12 +1207,12 @@ static mblk_t * v4w_make_nowebcam(V4wState *s){
 		/* load several images to fake a movie */
 		for (idx=0;idx<10;idx++)
 		{
-			s->mire[idx]=ms_load_nowebcam(s->factory, &s->vsize, idx);
+			s->mire[idx]=ms_load_nowebcam(f->factory, &s->vsize, idx);
 			if (s->mire[idx]==NULL)
 				break;
 		}
 		if (idx==0)
-			s->mire[0]=ms_load_nowebcam(s->factory, &s->vsize, -1);
+			s->mire[0]=ms_load_nowebcam(f->factory, &s->vsize, -1);
 	}
 	for (count=0;count<10;count++)
 	{

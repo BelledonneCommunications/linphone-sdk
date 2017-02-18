@@ -246,12 +246,7 @@ extern "C"{
  */
 MS2_PUBLIC MS2_DEPRECATED void ms_filter_register(MSFilterDesc *desc);
 
-/**
- * Get the factory that created a filter.
- * @param[in] f MSFilter object
- * @return The MSFactory that created the filter
- */
-MS2_PUBLIC struct _MSFactory * ms_filter_get_factory(MSFilter *f);
+
 
 /**
  * Retrieve capture filter that supports encoding to codec name.

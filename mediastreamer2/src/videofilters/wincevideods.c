@@ -72,7 +72,6 @@ typedef struct V4wState{
 	int frame_count;
 	bool_t running;
 	bool_t startwith_yuv_bug; /* avoid bug with USB vimicro cards. */
-	MSFactory *factory;
 }V4wState;
 
 static V4wState *s_callback=NULL;
@@ -624,8 +623,6 @@ static void v4w_init(MSFilter *f){
 	s->start_time=0;
 	s->frame_count=-1;
 	s->fps=15;
-
-	s->factory = ms_filter_get_factory(f);
 	f->data=s;
 }
 
@@ -841,7 +838,7 @@ static void v4w_uninit(MSFilter *f){
 	ms_free(s);
 }
 
-static mblk_t * v4w_make_nowebcam(V4wState *s){
+static mblk_t * v4w_make_nowebcam(MSFilter *f, V4wState *s){
 #if defined(_WIN32_WCE)
 	return NULL;
 #else
@@ -851,12 +848,12 @@ static mblk_t * v4w_make_nowebcam(V4wState *s){
 		/* load several images to fake a movie */
 		for (idx=0;idx<10;idx++)
 		{
-			s->mire[idx]=ms_load_nowebcam(s->factory, &s->vsize, idx);
+			s->mire[idx]=ms_load_nowebcam(f->factory, &s->vsize, idx);
 			if (s->mire[idx]==NULL)
 				break;
 		}
 		if (idx==0)
-			s->mire[0]=ms_load_nowebcam(s->factory, &s->vsize, -1);
+			s->mire[0]=ms_load_nowebcam(f->factory, &s->vsize, -1);
 	}
 	for (count=0;count<10;count++)
 	{
@@ -910,7 +907,7 @@ static void v4w_process(MSFilter * obj){
 				om=m;
 			}
 		}else {
-			mblk_t *nowebcam = v4w_make_nowebcam(s);
+			mblk_t *nowebcam = v4w_make_nowebcam(obj, s);
 			if (nowebcam!=NULL)
 				om=dupmsg(nowebcam);
 		}
