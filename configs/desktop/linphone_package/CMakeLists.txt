@@ -175,7 +175,7 @@ if(WIN32)
 		PATTERN "lib/cmake" EXCLUDE
 		PATTERN "lib/gdk-pixbuf-2.0" EXCLUDE
 		PATTERN "lib/glib-2.0" EXCLUDE
-		PATTERN "lib/mediastreamer" EXCLUDE
+		PATTERN "lib/mediastreamer/plugins/libmsopenh264.*" EXCLUDE
 		PATTERN "lib/pkgconfig" EXCLUDE
 		PATTERN "lib/*.a" EXCLUDE
 		PATTERN "lib/*.def" EXCLUDE
@@ -222,11 +222,6 @@ if(WIN32)
 			FILES_MATCHING PATTERN "libmsopenh264.*"
 		)
 	endif()
-
-	install(DIRECTORY "${LINPHONE_OUTPUT_DIR}/lib/mediastreamer/plugins/"
-		DESTINATION "lib/mediastreamer/plugins"
-		FILES_MATCHING PATTERN "libmssilk.*"
-	)
 elseif(APPLE)
 	find_program(MAC_BUNDLER gtk-mac-bundler)
 	if(NOT MAC_BUNDLER)
@@ -247,10 +242,6 @@ elseif(APPLE)
 endif()
 
 if(MSVC)
-	install(DIRECTORY "${LINPHONE_OUTPUT_DIR}/lib/mediastreamer/plugins/"
-		DESTINATION "lib/mediastreamer/plugins"
-		FILES_MATCHING PATTERN "libmswasapi.dll"
-	)
 	string(REGEX REPLACE "Visual Studio ([0-9]+).*" "\\1" MSVC_VERSION "${CMAKE_GENERATOR}")
 	find_file(MSVCP_LIB "msvcp${MSVC_VERSION}0.dll" PATHS "C:/Windows/System32")
 	# Starting with Visual Studio 2015 (MSVC_VERSION==14) the msvcr dll has been renamed to vcruntime
