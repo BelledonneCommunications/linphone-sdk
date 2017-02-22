@@ -94,7 +94,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #if defined(_MSC_VER)
 #ifdef MS2_STATIC
 #define MS2_PUBLIC
-#define MS2_VAR_PUBLIC
+#define MS2_VAR_PUBLIC extern
 #else
 #ifdef MS2_EXPORTS
 #define MS2_PUBLIC	__declspec(dllexport)

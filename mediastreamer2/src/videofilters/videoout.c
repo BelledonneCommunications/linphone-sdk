@@ -73,16 +73,6 @@ int ms_display_poll_event(MSDisplay *d, MSDisplayEvent *ev);
 
 extern MSDisplayDesc ms_sdl_display_desc;
 
-#if (defined(_WIN32) || defined(_WIN32_WCE)) && !defined(MEDIASTREAMER_STATIC)
-#if defined(MEDIASTREAMER2_EXPORTS) && defined(INVIDEOUT_C)
-   #define MSVAR_DECLSPEC    __declspec(dllexport)
-#else
-   #define MSVAR_DECLSPEC    __declspec(dllimport)
-#endif
-#else
-   #define MSVAR_DECLSPEC    extern
-#endif
-
 #ifdef __cplusplus
 extern "C"{
 #endif
@@ -93,7 +83,7 @@ void ms_display_desc_set_default(MSDisplayDesc *desc);
 MSDisplayDesc * ms_display_desc_get_default(void);
 void ms_display_desc_set_default_window_id(MSDisplayDesc *desc, long id);
 
-MSVAR_DECLSPEC MSDisplayDesc ms_win_display_desc;
+MS2_VAR_PUBLIC MSDisplayDesc ms_win_display_desc;
 
 MSDisplay *ms_display_new(MSDisplayDesc *desc);
 void ms_display_set_window_id(MSDisplay *d, long window_id);

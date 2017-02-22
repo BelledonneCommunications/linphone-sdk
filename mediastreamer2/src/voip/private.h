@@ -25,20 +25,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mediastreamer2/msvideopresets.h"
 
 
-#if defined(_WIN32) || defined(_WIN32) || defined(__WIN32) || defined(__WIN32__)
-#ifdef MEDIASTREAMER2_INTERNAL_EXPORTS
-#define MEDIASTREAMER2_INTERNAL_EXPORT __declspec(dllexport)
-#define MEDIASTREAMER2_INTERNAL_VAR_EXPORT __declspec(dllexport)
-#else
-#define MEDIASTREAMER2_INTERNAL_EXPORT
-#define MEDIASTREAMER2_INTERNAL_VAR_EXPORT extern __declspec(dllimport)
-#endif
-#else
-#define MEDIASTREAMER2_INTERNAL_EXPORT extern
-#define MEDIASTREAMER2_INTERNAL_VAR_EXPORT extern
-#endif
-
-
 #define MAX_RTP_SIZE	UDP_MAX_SIZE
 
 
