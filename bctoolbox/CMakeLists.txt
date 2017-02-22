@@ -147,6 +147,12 @@ if(POLARSSL_FOUND)
 	include_directories(${POLARSSL_INCLUDE_DIRS})
 endif()
 
+set(BCTOOLBOX_CPPFLAGS )
+if(ENABLE_STATIC)
+	set(BCTBX_STATIC 1)
+	list(APPEND BCTOOLBOX_CPPFLAGS "-DBCTBX_STATIC")
+endif()
+
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/config.h PROPERTIES GENERATED ON)
 add_definitions("-DHAVE_CONFIG_H")
@@ -193,7 +199,6 @@ if(APPLE)
 	endif()
 endif()
 string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
-
 
 if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
 	set(EXPORT_TARGETS_NAME "LinphoneBuilder")

@@ -28,6 +28,7 @@
 #  BCTOOLBOX_FOUND - system has bctoolbox
 #  BCTOOLBOX_INCLUDE_DIRS - the bctoolbox include directory
 #  BCTOOLBOX_LIBRARIES - The libraries needed to use bctoolbox
+#  BCTOOLBOX_CPPFLAGS - The compilation flags needed to use bctoolbox
 #  BCTOOLBOX_LDFLAGS - The linking flags needed to use bctoolbox
 #  BCTOOLBOX_${comp}_FOUND - system has bctoolbox "comp" component
 #  BCTOOLBOX_${comp}_INCLUDE_DIRS - the bctoolbox "comp" component include directory
@@ -48,6 +49,7 @@ else()
 	set(BCTOOLBOX_INCLUDE_DIRS "${BCTOOLBOX_CMAKE_DIR}/../../../include")
 endif()
 
+set(BCTOOLBOX_CPPFLAGS @BCTOOLBOX_CPPFLAGS@)
 set(BCTOOLBOX_LDFLAGS "@LINK_FLAGS_STR@")
 set(BCTOOLBOX_LIBRARIES )
 foreach(comp ${BcToolbox_FIND_COMPONENTS})
