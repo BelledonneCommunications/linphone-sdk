@@ -98,6 +98,10 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY
 set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/config.h PROPERTIES GENERATED ON)
 add_definitions("-DHAVE_CONFIG_H")
 
+if(BCTOOLBOX_CPPFLAGS)
+	add_definitions(${BCTOOLBOX_CPPFLAGS})
+endif()
+
 set(STRICT_OPTIONS_CPP )
 set(STRICT_OPTIONS_C )
 set(STRICT_OPTIONS_CXX )
