@@ -1,11 +1,14 @@
 Utilities library used by Belledonne Communications softwares like belle-sip, mediastreamer2 and linphone.
 
-Depends on mbedtls (https://github.com/ARMmbed/mbedtls.git). For backward compatibility, support of polarssl is also provided.
+Depends
+-------
+* mbedtls (https://github.com/ARMmbed/mbedtls.git). For backward compatibility, support of polarssl is also provided.
+* bcunit (git://git.linphone.org/bcunit.git) for unitary test tools. (optional)
 
 To compile
 ----------
 
-cmake . -DCMAKE_INSTALL_PREFIX=<install prefix>
+cmake . -DCMAKE_INSTALL_PREFIX=<install prefix> -DCMAKE_PREFIX_PATH=<search prefix>
 
 make
 make install
@@ -23,7 +26,7 @@ CMAKE_INSTALL_PREFIX: install prefix
 ex:
 	cmake . -DCMAKE_INSTALL_PREFIX=/opt  
 
-CMAKE_PREFIX_PATH: search path prefix for polarssl or mbetls  
+CMAKE_PREFIX_PATH: search path prefix for dependencies e.g. mbedtls
 ex:
 	cmake . -DCMAKE_PREFIX_PATH=<polarssl or mbtls path>  
 
@@ -37,6 +40,6 @@ ex:
 
 
 
-For backward compatibility with distributions not having the required 3.x cmake version, an automake/autoconf build system is also available.
+For backward compatibility with distributions not having the required 2.8.12 cmake version, an automake/autoconf build system is also available.
 It is maintained as a best effort and then should be used only in last resort.
 
