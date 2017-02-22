@@ -528,7 +528,7 @@ void bc_tester_init(void (*ftester_printf)(int level, const char *format, va_lis
 	}
 }
 
-void bc_tester_set_max_vm(long amax_vm_kb) {
+void bc_tester_set_max_vm(size_t amax_vm_kb) {
 #ifdef __linux
 	max_vm_kb = (size_t)amax_vm_kb;
 	bc_tester_printf(bc_printf_verbosity_info, "Maximum virtual memory space set to %li kilo bytes", max_vm_kb);
