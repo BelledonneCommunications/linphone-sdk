@@ -2,7 +2,8 @@
 
 lib_LTLIBRARIES=libbctoolbox.la libbctoolbox-tester.la
 
-libbctoolbox_la_SOURCES= vfs.c \
+libbctoolbox_la_SOURCES= vconnect.c \
+					vfs.c \
 					utils/port.c \
 					utils/exception.cc \
 					logging/logging.c \

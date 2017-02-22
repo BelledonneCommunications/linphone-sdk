@@ -27,6 +27,7 @@ set(HEADER_FILES
 	map.h
 	port.h
 	vfs.h
+	vconnect.h
 )
 if(ENABLE_TESTS_COMPONENT)
 	list(APPEND HEADER_FILES tester.h)
