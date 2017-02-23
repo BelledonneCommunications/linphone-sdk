@@ -20,12 +20,6 @@
 #
 ############################################################################
 
-if(ENABLE_STATIC)
-	set(PROJECT_LIBS bzrtp-static)
-else()
-	set(PROJECT_LIBS bzrtp)
-endif()
-
 set(TEST_SOURCES
 	bzrtpCryptoTest.c
 	bzrtpParserTest.c
@@ -46,7 +40,7 @@ add_executable(bzrtpTest ${TEST_SOURCES})
 set_target_properties(bzrtpTest PROPERTIES LINK_FLAGS "${LINK_FLAGS}")
 set_target_properties(bzrtpTest PROPERTIES LINKER_LANGUAGE CXX)
 target_include_directories(bzrtpTest PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIR})
-target_link_libraries(bzrtpTest ${BCTOOLBOX_LIBRARIES} ${PROJECT_LIBS})
+target_link_libraries(bzrtpTest ${BCTOOLBOX_LIBRARIES})
 if(HAVE_SQRT)
 	target_link_libraries(bzrtpTest m)
 endif()

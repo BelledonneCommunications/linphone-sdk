@@ -103,7 +103,6 @@ if(BZRTP_CPPFLAGS)
 	list(REMOVE_DUPLICATES BZRTP_CPPFLAGS)
 	add_definitions(${BZRTP_CPPFLAGS})
 endif()
-add_definitions("-DZRTP_EXPORTS")
 
 include_directories(
 	include
