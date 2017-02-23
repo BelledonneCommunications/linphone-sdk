@@ -27,9 +27,17 @@
 #include <stdint.h>
 
 #ifdef _MSC_VER
-#define BZRTP_EXPORT __declspec(dllexport)
+	#ifdef BZRTP_STATIC
+		#define BZRTP_EXPORT
+	#else
+		#ifdef BZRTP_EXPORTS
+			#define BZRTP_EXPORT __declspec(dllexport)
+		#else
+			#define BZRTP_EXPORT __declspec(dllimport)
+		#endif
+	#endif
 #else
-#define BZRTP_EXPORT __attribute__ ((visibility ("default")))
+	#define BZRTP_EXPORT __attribute__ ((visibility ("default")))
 #endif
 
 /**
