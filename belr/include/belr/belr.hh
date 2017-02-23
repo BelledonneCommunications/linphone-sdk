@@ -8,10 +8,18 @@
 
 using namespace ::std;
 
-#if defined(_MSC_VER)
-#define BELR_PUBLIC	__declspec(dllexport)
+#ifdef _MSC_VER
+	#ifdef BELR_STATIC
+		#define BELR_PUBLIC
+	#else
+		#ifdef BELR_EXPORTS
+			#define BELR_PUBLIC	__declspec(dllexport)
+		#else
+			#define BELR_PUBLIC	__declspec(dllimport)
+		#endif
+	#endif
 #else
-#define BELR_PUBLIC
+	#define BELR_PUBLIC
 #endif
 
 namespace belr{

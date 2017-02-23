@@ -26,6 +26,7 @@
 #  BELR_FOUND - system has belr
 #  BELR_INCLUDE_DIRS - the belr include directory
 #  BELR_LIBRARIES - The libraries needed to use belr
+#  BELR_CPPFLAGS - The compilation flags needed to use belr
 
 if(NOT LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
 	include("${CMAKE_CURRENT_LIST_DIR}/BelrTargets.cmake")
@@ -44,4 +45,5 @@ else()
 	set(BELR_LIBRARIES belr-static)
 endif()
 
+set(BELR_CPPFLAGS @BELR_CPPFLAGS@)
 set(BELR_FOUND 1)
