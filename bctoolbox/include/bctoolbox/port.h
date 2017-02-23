@@ -146,7 +146,7 @@ unsigned long __bctbx_thread_self(void);
 #if defined(_WIN32) || defined(_WIN32_WCE)
 #ifdef BCTBX_STATIC
 #define BCTBX_PUBLIC
-#define BCTBX_VAR_PUBLIC
+#define BCTBX_VAR_PUBLIC extern
 #else
 #ifdef BCTBX_EXPORTS
 #define BCTBX_PUBLIC	__declspec(dllexport)
