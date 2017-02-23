@@ -548,7 +548,7 @@ static void playout_buf(WinSnd *d, WAVEHDR *hdr, mblk_t *m){
 	MMRESULT mr;
 	hdr->dwUser=(DWORD)m;
 	hdr->lpData=(LPSTR)m->b_rptr;
-	hdr->dwBufferLength=msgdsize(m);
+	hdr->dwBufferLength=(DWORD)msgdsize(m);
 	hdr->dwFlags = 0;
 	mr = waveOutPrepareHeader(d->outdev,hdr,sizeof(*hdr));
 	if (mr != MMSYSERR_NOERROR){
@@ -597,7 +597,7 @@ static void winsnd_write_process(MSFilter *f){
 		}
 		m=ms_queue_get(f->inputs[0]);
 		if (!m) break;
-		d->nsamples+=msgdsize(m)/d->wfx.nBlockAlign;
+		d->nsamples+=(int)msgdsize(m)/d->wfx.nBlockAlign;
 		/*if the output buffer has finished to play, unprepare it*/
 		if ((hdr->dwFlags & WHDR_DONE) || (hdr->dwFlags == 0)){
 			mr=waveOutUnprepareHeader(d->outdev,hdr,sizeof(*hdr));

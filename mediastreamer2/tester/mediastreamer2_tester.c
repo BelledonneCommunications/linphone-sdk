@@ -110,7 +110,7 @@ int main (int argc, char *argv[]) {
 
 	// this allows to launch tester from outside of tester directory
 	if (strstr(argv[0], ".libs")) {
-		long prefix_length = strstr(argv[0], ".libs") - argv[0] + 1;
+		long prefix_length =(long) (strstr(argv[0], ".libs") - argv[0] + 1);
 		char *prefix = ms_strdup_printf("%s%.*s", argv[0][0] == '/' ? "" : "./", prefix_length, argv[0]);
 		ms_warning("Resource prefix set to %s", prefix);
 		bc_tester_set_resource_dir_prefix(prefix);

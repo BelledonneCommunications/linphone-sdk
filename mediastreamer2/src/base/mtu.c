@@ -120,7 +120,7 @@ int ms_discover_mtu(const char *host)
 		ms_error("getaddrinfo(): error\n");
 		return -1;
 	}
-  getnameinfo (ai->ai_addr, ai->ai_addrlen, ipaddr, sizeof (ipaddr), port,
+  getnameinfo (ai->ai_addr, (socklen_t)ai->ai_addrlen, ipaddr, sizeof (ipaddr), port,
                sizeof (port), NI_NUMERICHOST | NI_NUMERICSERV);
 	freeaddrinfo(ai);
 
