@@ -171,6 +171,12 @@ BCTBX_PUBLIC int bctbx_bind(bctbx_socket_t sockfd, const struct sockaddr *addres
  */
 BCTBX_PUBLIC int bctbx_connect(bctbx_socket_t sockfd, const struct sockaddr *address, socklen_t address_len);
 
+/**
+ * [bctbx_socket_error description]
+ * @param  err [description]
+ * @return     [description]
+ */
+BCTBX_PUBLIC char* bctbx_socket_error(int err);
 
 /**
  * Set default vsocket pointer pDefault to my_vsocket_api.

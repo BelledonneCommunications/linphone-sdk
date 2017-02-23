@@ -119,8 +119,8 @@ int bctbx_shutdown(bctbx_socket_t sock, int how){
 	return pDefaultvSocket->pSocketMethods->pFuncShutdown(sock, how);
 }
 
-char* bctbx_socket_error(int errno){
-	return pDefaultvSocket->pSocketMethods->pFuncGetError(errno);
+char* bctbx_socket_error(int err){
+	return pDefaultvSocket->pSocketMethods->pFuncGetError(err);
 }
 
 void bctbx_vsocket_api_set_default(bctbx_vsocket_api_t *my_vsocket_api) {
