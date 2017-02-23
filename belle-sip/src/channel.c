@@ -1012,6 +1012,12 @@ static void belle_sip_channel_handle_error(belle_sip_channel_t *obj){
 
 int belle_sip_channel_notify_timeout(belle_sip_channel_t *obj){
 	const int too_long=60;
+	
+	if (obj->state != BELLE_SIP_CHANNEL_READY){
+		/*no need to notify the timeout if the channel is already in error or retry state*/
+		return FALSE;
+	}
+	
 	if ((int)(belle_sip_time_ms() - obj->last_recv_time) >= (too_long * 1000)){
 		belle_sip_message("A timeout related to this channel occured and no message received during last %i seconds. This channel is suspect, moving to error state",too_long);
 		channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
