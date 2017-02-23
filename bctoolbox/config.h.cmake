@@ -27,3 +27,5 @@
 #cmakedefine HAVE_CU_SET_TRACE_HANDLER 1
 
 #cmakedefine HAVE_LIBRT 1
+
+#cmakedefine BCTBX_STATIC
