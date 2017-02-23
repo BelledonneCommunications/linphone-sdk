@@ -42,17 +42,18 @@ typedef unsigned __int64 uint64_t;
 #define BELLESIP_INLINE inline
 #endif
 
-#ifdef _WIN32
-#ifdef BELLESIP_EXPORTS
-#define BELLESIP_EXPORT __declspec(dllexport)
-#define BELLESIP_VAR_EXPORT __declspec(dllexport)
+#ifdef _MSC_VER
+    #ifdef BELLESIP_STATIC
+        #define BELLESIP_EXPORT
+    #else
+        #ifdef BELLESIP_EXPORTS
+            #define BELLESIP_EXPORT __declspec(dllexport)
+        #else
+            #define BELLESIP_EXPORT __declspec(dllimport)
+        #endif
+    #endif
 #else
-#define BELLESIP_EXPORT
-#define BELLESIP_VAR_EXPORT extern __declspec(dllimport)
-#endif
-#else
-#define BELLESIP_VAR_EXPORT extern
-#define BELLESIP_EXPORT extern
+    #define BELLESIP_EXPORT
 #endif
 
 #define BELLESIP_UNUSED(a) (void)a;

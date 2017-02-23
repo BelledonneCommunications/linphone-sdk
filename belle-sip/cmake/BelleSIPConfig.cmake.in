@@ -26,6 +26,7 @@
 #  BELLESIP_FOUND - system has belle-sip
 #  BELLESIP_INCLUDE_DIRS - the belle-sip include directory
 #  BELLESIP_LIBRARIES - The libraries needed to use belle-sip
+#  BELLESIP_CPPFLAGS - The compilation flags needed to use belle-sip
 #  BELLESIP_LDFLAGS - The linking flags needed to use belle-sip
 
 if(NOT LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
@@ -58,6 +59,7 @@ else()
 endif()
 list(APPEND BELLESIP_INCLUDE_DIRS ${BCTOOLBOX_CORE_INCLUDE_DIRS})
 list(APPEND BELLESIP_LIBRARIES ${BCTOOLBOX_CORE_LIBRARIES})
+set(BELLESIP_CPPFLAGS @BELLESIP_CPPFLAGS@)
 set(BELLESIP_LDFLAGS "@LINK_FLAGS_STR@")
 if(TUNNEL_FOUND)
 	list(APPEND BELLESIP_INCLUDE_DIRS ${TUNNEL_INCLUDE_DIRS})
