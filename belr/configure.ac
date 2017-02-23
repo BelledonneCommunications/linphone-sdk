@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.63])
-AC_INIT([belr], [0.1.1], [simon.morlat@linphone.org])
+AC_INIT([belr], [0.1.2], [simon.morlat@linphone.org])
 
 BELR_SO_CURRENT=0 dnl increment this number when you add/change/remove an interface
 BELR_SO_REVISION=1 dnl increment this number when you change source code, without changing interfaces; set to 0 when incrementing CURRENT
