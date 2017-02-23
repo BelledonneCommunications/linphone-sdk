@@ -1,5 +1,5 @@
 /*
-vfs.h
+vconnect.h
 Copyright (C) 2016 Belledonne Communications SARL
 
 This program is free software; you can redistribute it and/or
@@ -51,7 +51,7 @@ extern "C"{
 
 
 /**
- * Methods associated with the bctbx_vsocket_t.
+ * Methods associated with the bctbx_vsocket_api_t.
  */
 typedef struct bctbx_vsocket_methods_t bctbx_vsocket_methods_t;
 /**
@@ -75,8 +75,8 @@ struct bctbx_vsocket_methods_t {
 /**
  * vsocket definition
  */
-typedef struct bctbx_vsocket_t bctbx_vsocket_t;
-struct bctbx_vsocket_t {
+typedef struct bctbx_vsocket_api_t bctbx_vsocket_api_t;
+struct bctbx_vsocket_api_t {
 	const char *vSockName;       /* Virtual file system name */
 	const bctbx_vsocket_methods_t *pSocketMethods; 
 };
@@ -86,7 +86,7 @@ struct bctbx_vsocket_t {
 /*
  * This function returns a pointer to the vsocket implemented in this file.
  */
-BCTBX_PUBLIC bctbx_vsocket_t *bc_create_vsocket_api(void);
+BCTBX_PUBLIC bctbx_vsocket_api_t *bc_create_vsocket_api(void);
 
 
 BCTBX_PUBLIC int bctbx_vsocket(int socket_family, int socket_type, int protocol);
@@ -113,23 +113,23 @@ BCTBX_PUBLIC int bctbx_vconnect(int sockfd, const struct sockaddr *address, sock
 /**
  * Set default vsocket pointer pDefault to my_vsocket_api.
  * By default, the global pointer is set to use vsocket implemnted in vfs.c 
- * @param my_vsocket_api Pointer to a bctbx_vsocket_t structure. 
+ * @param my_vsocket_api Pointer to a bctbx_vsocket_api_t structure. 
  */
-BCTBX_PUBLIC void bctbx_vsocket_api_set_default(bctbx_vsocket_t *my_vsocket_api);
+BCTBX_PUBLIC void bctbx_vsocket_api_set_default(bctbx_vsocket_api_t *my_vsocket_api);
 
 
 /**
  * Returns the value of the global variable pDefault,
  * pointing to the default vfs used.
- * @return Pointer to bctbx_vsocket_t set to operate as default vsocket.
+ * @return Pointer to bctbx_vsocket_api_t set to operate as default vsocket.
  */
-BCTBX_PUBLIC bctbx_vsocket_t* bctbx_vsocket_api_get_default(void);
+BCTBX_PUBLIC bctbx_vsocket_api_t* bctbx_vsocket_api_get_default(void);
 	
 /**
  * Return pointer to standard vsocket impletentation.
  * @return  pointer to bcVfs
  */
-BCTBX_PUBLIC bctbx_vsocket_t* bctbx_vsocket_api_get_standard(void);
+BCTBX_PUBLIC bctbx_vsocket_api_t* bctbx_vsocket_api_get_standard(void);
 
 
 #ifdef __cplusplus

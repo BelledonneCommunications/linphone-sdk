@@ -1,5 +1,5 @@
 /*
-vfs.c
+vconnect.c
 Copyright (C) 2016 Belledonne Communications SARL
 
 This program is free software; you can redistribute it and/or
@@ -30,19 +30,23 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 static const bctbx_vsocket_methods_t bcSocketAPI = {
 	socket,
-	bind,  	  	/* from bctoolbox/port.c */
-	connect,	  	/* from bctoolbox/port.c */
+	connect,  	/* from bctoolbox/port.c */
+	bind, /* from bctoolbox/port.c */
 	getsockname,
 	getsockopt,
 	setsockopt,
-	close,  /* from bctoolbox/port.c */
+	#if	!defined(_WIN32) && !defined(_WIN32_WCE) 	  /* from bctoolbox/port.c */
+	close,
+	#else
+	closesocket,
+	#endif
 	shutdown,
 };
 
 
 
 
-static bctbx_vsocket_t bcvSocket = {
+static bctbx_vsocket_api_t bcvSocket = {
 	"bctbx_vsocket",               /* vSockName */
 	&bcSocketAPI,			/*pSocketMethods */
 };
@@ -50,17 +54,35 @@ static bctbx_vsocket_t bcvSocket = {
 
 
 /* Pointer to default socket methods initialized to standard libc implementation here.*/
-static  bctbx_vsocket_t *pDefaultvSocket = &bcvSocket;
+static  bctbx_vsocket_api_t *pDefaultvSocket = &bcvSocket;
 
 
 int bctbx_vsocket(int socket_family, int socket_type, int protocol){
-	return bcSocketAPI.pFuncSocket( socket_family, socket_type, protocol);
+	return pDefaultvSocket->pSocketMethods->pFuncSocket( socket_family, socket_type, protocol);
 }
 
 
+int bctbx_vclose(int fd){
+	return pDefaultvSocket->pSocketMethods->pFuncClose(fd);
+}
+
+
+int bctbx_vbind(int sockfd, const struct sockaddr *address, socklen_t address_len){
+	#ifdef _WIN32
+		return pDefaultvSocket->pSocketMethods->pFuncBind(sockfd, address, (int)address_len);
+	#else 
+		return pDefaultvSocket->pSocketMethods->pFuncBind(sockfd, address, address_len);
+	#endif
+}
+
+
+int bctbx_vconnect(int sockfd, const struct sockaddr *address, socklen_t address_len){
+	return pDefaultvSocket->pSocketMethods->pFuncConnect(sockfd, address, address_len);
+}
+
 int bctbx_vgetsockname(int sockfd, struct sockaddr *addr, socklen_t *addrlen){
 	int ret;
-	ret = bcSocketAPI.pFuncGetSockName(sockfd, addr, addrlen);
+	ret = pDefaultvSocket->pSocketMethods->pFuncGetSockName(sockfd, addr, addrlen);
 	if (ret == 0){
 		return BCTBX_VCONNECT_OK;
 	}
@@ -71,7 +93,7 @@ int bctbx_vgetsockname(int sockfd, struct sockaddr *addr, socklen_t *addrlen){
 int bctbx_vgetsockopt(int sockfd, int level, int optname, 
 						void *optval, socklen_t* optlen){
 	int ret;
-	ret = bcSocketAPI.pFuncGetSockOpt(sockfd, level, optname, optval, optlen);
+	ret = pDefaultvSocket->pSocketMethods->pFuncGetSockOpt(sockfd, level, optname, optval, optlen);
 	if (ret == 0){
 		return BCTBX_VCONNECT_OK;
 	}
@@ -81,7 +103,7 @@ int bctbx_vgetsockopt(int sockfd, int level, int optname,
 int bctbx_vsetsockopt(int sockfd, int level, int optname, 
 							const void *optval, socklen_t optlen){
 	int ret;
-	ret = bcSocketAPI.pFuncSetSockOpt(sockfd, level, optname, optval, optlen);
+	ret = pDefaultvSocket->pSocketMethods->pFuncSetSockOpt(sockfd, level, optname, optval, optlen);
 	if (ret == 0){
 		return BCTBX_VCONNECT_OK;
 	}
@@ -90,19 +112,23 @@ int bctbx_vsetsockopt(int sockfd, int level, int optname,
 
 
 int bctbx_vshutdown(int sockfd, int how){
-	return bcSocketAPI.pFuncShutdown(sockfd, how);
+	return pDefaultvSocket->pSocketMethods->pFuncShutdown(sockfd, how);
 }
 
 
-void bctbx_vsocket_api_set_default(bctbx_vsocket_t *my_vsocket_api) {
-	pDefaultvSocket = my_vsocket_api ;
+void bctbx_vsocket_api_set_default(bctbx_vsocket_api_t *my_vsocket_api) {
+
+	if (my_vsocket_api != NULL){
+		pDefaultvSocket = my_vsocket_api ;
+	}
+
 }
 
-bctbx_vsocket_t* bctbx_vsocket_api_get_default(void) {
+bctbx_vsocket_api_t* bctbx_vsocket_api_get_default(void) {
 	return pDefaultvSocket;	
 }
 
-bctbx_vsocket_t* bctbx_vsocket_api_get_standard(void) {
+bctbx_vsocket_api_t* bctbx_vsocket_api_get_standard(void) {
 	return &bcvSocket;
 }
 
