@@ -19,20 +19,20 @@
 #ifndef belcard_utils_hpp
 #define belcard_utils_hpp
 
-#if defined(_MSC_VER)
-#define BELCARD_PUBLIC	__declspec(dllexport)
-#else
-#define BELCARD_PUBLIC
-#endif
-
 #include <string>
 
-#ifndef BELCARD_PUBLIC
-#if defined(_MSC_VER)
-#define BELCARD_PUBLIC	__declspec(dllexport)
+#ifdef _MSC_VER
+	#ifdef BELCARD_STATIC
+		#define BELCARD_PUBLIC
+	#else
+		#ifdef BELCARD_EXPORTS
+			#define BELCARD_PUBLIC	__declspec(dllexport)
+		#else
+			#define BELCARD_PUBLIC	__declspec(dllimport)
+		#endif
+	#endif
 #else
-#define BELCARD_PUBLIC
-#endif
+	#define BELCARD_PUBLIC
 #endif
 
 using namespace::std;

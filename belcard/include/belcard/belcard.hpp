@@ -19,6 +19,7 @@
 #ifndef belcard_hpp
 #define belcard_hpp
 
+#include "belcard_utils.hpp"
 #include "belcard_generic.hpp"
 #include "belcard_params.hpp"
 #include "belcard_property.hpp"
@@ -37,14 +38,6 @@
 
 #include <string>
 #include <list>
-
-#ifndef BELCARD_PUBLIC
-#if defined(_MSC_VER)
-#define BELCARD_PUBLIC	__declspec(dllexport)
-#else
-#define BELCARD_PUBLIC
-#endif
-#endif
 
 using namespace::std;
 using namespace::belr;

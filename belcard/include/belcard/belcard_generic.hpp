@@ -19,18 +19,11 @@
 #ifndef belcard_generic_hpp
 #define belcard_generic_hpp
 
+#include "belcard_utils.hpp"
 #include "belcard/vcard_grammar.hpp"
 
 #include <memory>
 #include <sstream>
-
-#ifndef BELCARD_PUBLIC
-#if defined(_MSC_VER)
-#define BELCARD_PUBLIC	__declspec(dllexport)
-#else
-#define BELCARD_PUBLIC
-#endif
-#endif
 
 using namespace::std;
 

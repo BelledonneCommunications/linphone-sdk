@@ -21,14 +21,7 @@
 
 #include <belr/grammarbuilder.hh>
 #include <belr/abnf.hh>
-
-#ifndef BELCARD_PUBLIC
-#if defined(_MSC_VER)
-#define BELCARD_PUBLIC	__declspec(dllexport)
-#else
-#define BELCARD_PUBLIC
-#endif
-#endif
+#include "belcard_utils.hpp"
 
 using namespace::belr;
 
