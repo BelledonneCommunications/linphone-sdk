@@ -277,7 +277,7 @@ void belle_sip_transaction_notify_timeout(belle_sip_transaction_t *t){
 	belle_sip_object_ref(t);  /*take a ref in the case where the app calls belle_sip_transaction_terminate() within the timeout listener*/
 	if (strcmp(belle_sip_request_get_method(t->request),"REGISTER")==0){
 		if ( belle_sip_channel_notify_timeout(t->channel)==TRUE){
-			belle_sip_warning("Transaction [%p] reporting timeout, reporting to channel.",t);
+			belle_sip_warning("Transaction [%p] has timeout, reported to channel.",t);
 			t->timed_out=TRUE;
 		}
 	}else {

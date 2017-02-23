@@ -731,7 +731,7 @@ belle_sip_list_t *belle_sip_parse_directory(const char *path, const char *file_t
 	}
 
 	/* loop on all directory files */
-    errno = 0;
+	errno = 0;
 	ent = readdir(dir);
 	while (ent != NULL) {
 		/* filter on file type if given */
