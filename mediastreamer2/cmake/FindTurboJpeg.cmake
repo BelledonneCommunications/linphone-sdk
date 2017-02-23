@@ -35,7 +35,7 @@ if(TURBOJPEG_INCLUDE_DIRS)
 endif()
 
 find_library(TURBOJPEG_LIBRARIES
-	NAMES turbojpeg
+	NAMES turbojpeg turbojpeg-static
 )
 
 include(FindPackageHandleStandardArgs)
