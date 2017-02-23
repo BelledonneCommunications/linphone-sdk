@@ -1071,28 +1071,17 @@ static ms_bool_t matroska_load_file(Matroska *obj) {
 
 static int matroska_open_file(Matroska *obj, const char *path, MatroskaOpenMode mode) {
 	int err = 0;
-	tchar_t *tpath;
+	const tchar_t *tpath;
 
-#ifdef _MSC_VER
-	wchar_t wpath[MAX_PATH + 1];
-#ifndef UNICODE
-	char mbpath[MAX_PATH + 1];
-#endif
-	if(MultiByteToWideChar(CP_UTF8, 0, path, -1, wpath, MAX_PATH + 1) == 0) {
+#if defined(_MSC_VER) && defined(UNICODE)
+	wchar_t wpath[MAX_PATH+1];
+	if (MultiByteToWideChar(CP_ACP, 0, path, -1, wpath, MAX_PATH+1) == 0) {
 		ms_error("Could not convert %s into UTF-16", path);
 		return -1;
 	}
-#ifdef UNICODE
-	tpath = (tchar_t *)wpath;
+	tpath = wpath;
 #else
-	if(WideCharToMultiByte(CP_ACP, 0, wpath, -1, mbpath, MAX_PATH + 1, NULL, NULL) == 0) {
-		ms_error("Could not convert %s from UTF-16 to ACP", path);
-		return -1;
-	}
-	tpath = (tchar_t *)mbpath;
-#endif
-#else
-	tpath = (tchar_t *)path;
+	tpath = path;
 #endif
 
 	switch(mode) {
