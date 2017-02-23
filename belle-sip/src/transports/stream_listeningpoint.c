@@ -70,6 +70,8 @@ static belle_sip_socket_t create_server_socket(const char *addr, int * port, int
 	
 	if (*port==-1) *port=0; /*random port for bind()*/
 
+	belle_sip_set_socket_api(NULL);
+
 	snprintf(portnum,sizeof(portnum),"%i",*port);
 	hints.ai_family=AF_UNSPEC;
 	hints.ai_socktype=SOCK_STREAM;
@@ -81,13 +83,13 @@ static belle_sip_socket_t create_server_socket(const char *addr, int * port, int
 		return -1;
 	}
 	*family=res->ai_family;
-	sock=socket(res->ai_family,res->ai_socktype,res->ai_protocol);
+	sock=bctbx_socket(res->ai_family,res->ai_socktype,res->ai_protocol);
 	if (sock==(belle_sip_socket_t)-1){
 		belle_sip_error("Cannot create TCP socket: %s",belle_sip_get_socket_error_string());
 		freeaddrinfo(res);
 		return -1;
 	}
-	err = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR,
+	err = bctbx_setsockopt(sock, SOL_SOCKET, SO_REUSEADDR,
 			(char*)&optval, sizeof (optval));
 	if (err == -1){
 		belle_sip_warning ("Fail to set SIP/TCP address reusable: %s.", belle_sip_get_socket_error_string());
@@ -108,7 +110,7 @@ static belle_sip_socket_t create_server_socket(const char *addr, int * port, int
 	if (*port==0){
 		struct sockaddr_storage saddr;
 		socklen_t saddr_len=sizeof(saddr);
-		err=getsockname(sock,(struct sockaddr*)&saddr,&saddr_len);
+		err=bctbx_getsockname(sock,(struct sockaddr*)&saddr,&saddr_len);
 		if (err==0){
 			err=bctbx_getnameinfo((struct sockaddr*)&saddr,saddr_len,NULL,0,portnum,sizeof(portnum),NI_NUMERICSERV|NI_NUMERICHOST);
 			if (err==0){

@@ -258,6 +258,12 @@ unsigned int belle_sip_random(void){
 #endif
 }
 
+
+void belle_sip_set_socket_api(bctbx_vsocket_api_t* my_api){
+
+	bctbx_vsocket_api_set_default(my_api);
+}
+
 static const char *symbols="aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ0123456789-~";
 
 /**

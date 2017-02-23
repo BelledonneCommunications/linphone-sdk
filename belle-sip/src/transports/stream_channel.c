@@ -22,7 +22,7 @@
 
 static void set_tcp_nodelay(belle_sip_socket_t sock){
 	int tmp=1;
-	int err=setsockopt(sock, IPPROTO_TCP, TCP_NODELAY,(char*)&tmp,sizeof(tmp));
+	int err=bctbx_setsockopt(sock, IPPROTO_TCP, TCP_NODELAY,(char*)&tmp,sizeof(tmp));
 	if (err == -1){
 		belle_sip_warning ("Fail to set TCP_NODELAY: %s.", belle_sip_get_socket_error_string());
 	}
@@ -124,14 +124,14 @@ int stream_channel_connect(belle_sip_stream_channel_t *obj, const struct addrinf
 	tmp=1;
 	
 	obj->base.ai_family=ai->ai_family;
-	sock=socket(ai->ai_family, SOCK_STREAM, IPPROTO_TCP);
+	sock=bctbx_socket(ai->ai_family, SOCK_STREAM, IPPROTO_TCP);
 	
 	if (sock==(belle_sip_socket_t)-1){
 		belle_sip_error("Could not create socket: %s",belle_sip_get_socket_error_string());
 		return -1;
 	}
 	
-	err=setsockopt(sock, IPPROTO_TCP, TCP_NODELAY,(char*)&tmp,sizeof(tmp));
+	err=bctbx_setsockopt(sock, IPPROTO_TCP, TCP_NODELAY,(char*)&tmp,sizeof(tmp));
 	if (err!=0){
 		belle_sip_error("setsockopt TCP_NODELAY failed: [%s]",belle_sip_get_socket_error_string());
 	}
@@ -187,14 +187,14 @@ int finalize_stream_connection(belle_sip_stream_channel_t *obj, unsigned int rev
 		return -1;
 	}
 	
-	err=getsockopt(sock,SOL_SOCKET,SO_ERROR,(void*)&errnum,&optlen);
+	err=bctbx_getsockopt(sock,SOL_SOCKET,SO_ERROR,(void*)&errnum,&optlen);
 	if (err!=0){
 		belle_sip_error("Failed to retrieve connection status for fd [%i]: cause [%s]",sock,belle_sip_get_socket_error_string());
 		return -1;
 	}else{
 		if (errnum==0){
 			/*obtain bind address for client*/
-			err=getsockname(sock,addr,slen);
+			err=bctbx_getsockname(sock,addr,slen);
 			if (err<0){
 				belle_sip_error("Failed to retrieve sockname  for fd [%i]: cause [%s]",sock,belle_sip_get_socket_error_string());
 				return -1;
@@ -261,7 +261,7 @@ belle_sip_channel_t * belle_sip_stream_channel_new_child(belle_sip_stack_t *stac
 	int err;
 	int optval=1;
 	
-	err = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR,
+	err = bctbx_setsockopt(sock, SOL_SOCKET, SO_REUSEADDR,
 			(char*)&optval, sizeof (optval));
 	if (err == -1){
 		belle_sip_warning ("Fail to set SIP/TCP address reusable: %s.", belle_sip_get_socket_error_string());

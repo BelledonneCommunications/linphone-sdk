@@ -30,6 +30,7 @@
 
 #include "port.h"
 #include <bctoolbox/port.h>
+#include <bctoolbox/vconnect.h>
 
 #ifdef HAVE_CONFIG_H
 
