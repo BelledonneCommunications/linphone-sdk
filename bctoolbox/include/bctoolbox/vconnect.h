@@ -59,16 +59,16 @@ typedef struct bctbx_vsocket_methods_t bctbx_vsocket_methods_t;
 struct bctbx_vsocket_methods_t {
 
 	int (*pFuncSocket)(int socket_family, int socket_type, int protocol);
-	int (*pFuncConnect)(int sockfd, const struct sockaddr *address, socklen_t address_len);
-	int (*pFuncBind)(int sockfd, const struct sockaddr *address, socklen_t address_len);
+	int (*pFuncConnect)(bctbx_socket_t sock, const struct sockaddr *address, socklen_t address_len);
+	int (*pFuncBind)(bctbx_socket_t sock, const struct sockaddr *address, socklen_t address_len);
 
-	int (*pFuncGetSockName)(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
-	int (*pFuncGetSockOpt)(int sockfd, int level, int optname, 
+	int (*pFuncGetSockName)(bctbx_socket_t sockfd, struct sockaddr *addr, socklen_t *addrlen);
+	int (*pFuncGetSockOpt)(bctbx_socket_t sockfd, int level, int optname, 
 							void *optval, socklen_t *optlen);
-	int (*pFuncSetSockOpt)(int sockfd, int level, int optname, 
+	int (*pFuncSetSockOpt)(bctbx_socket_t sockfd, int level, int optname, 
 							const void *optval, socklen_t optlen);
-	int (*pFuncClose)(int fd);
-	int (*pFuncShutdown)(int sockfd, int how);
+	int (*pFuncClose)(bctbx_socket_t sock);
+	int (*pFuncShutdown)(bctbx_socket_t sock, int how);
 };
 
 
@@ -92,19 +92,19 @@ BCTBX_PUBLIC bctbx_vsocket_api_t *bc_create_vsocket_api(void);
 BCTBX_PUBLIC int bctbx_vsocket(int socket_family, int socket_type, int protocol);
 
 
-BCTBX_PUBLIC int bctbx_vgetsockname(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
-BCTBX_PUBLIC int bctbx_vgetsockopt(int sockfd, int level, int optname, 
+BCTBX_PUBLIC int bctbx_vgetsockname(bctbx_socket_t sockfd, struct sockaddr *addr, socklen_t *addrlen);
+BCTBX_PUBLIC int bctbx_vgetsockopt(bctbx_socket_t sockfd, int level, int optname, 
 							void *optval, socklen_t *optlen);
-BCTBX_PUBLIC int bctbx_vsetsockopt(int sockfd, int level, int optname, 
+BCTBX_PUBLIC int bctbx_vsetsockopt(bctbx_socket_t sockfd, int level, int optname, 
 							const void *optval, socklen_t optlen);
 
-BCTBX_PUBLIC int bctbx_vshutdown(int sockfd, int how);
+BCTBX_PUBLIC int bctbx_vshutdown(bctbx_socket_t sockfd, int how);
 
 /* UNUSED : REPLACED BY FUNIONS FROM PORT.C
 bctbx_socket_close, bctbx_bind, bctbx_connect */
-BCTBX_PUBLIC int bctbx_vclose(int fd);
-BCTBX_PUBLIC int bctbx_vbind(int sockfd, const struct sockaddr *address, socklen_t address_len);
-BCTBX_PUBLIC int bctbx_vconnect(int sockfd, const struct sockaddr *address, socklen_t address_len);
+BCTBX_PUBLIC int bctbx_vclose(bctbx_socket_t sockfd);
+BCTBX_PUBLIC int bctbx_vbind(bctbx_socket_t sockfd, const struct sockaddr *address, socklen_t address_len);
+BCTBX_PUBLIC int bctbx_vconnect(bctbx_socket_t sockfd, const struct sockaddr *address, socklen_t address_len);
 
 
 

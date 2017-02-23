@@ -16,6 +16,10 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 
 #include "bctoolbox/vconnect.h"
 #include "bctoolbox/port.h"
@@ -25,13 +29,18 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <errno.h>
 
 
-
-/* Pointer to default VFS initialized to standard VFS implemented here.*/
+static int _bind (bctbx_socket_t sock, const struct sockaddr *address, socklen_t address_len){
+	#ifdef _WIN32
+		return bind(sock, address, (int)address_len);
+	#else 
+		return bind(sock, address, address_len);
+	#endif
+}
 
 static const bctbx_vsocket_methods_t bcSocketAPI = {
 	socket,
 	connect,  	/* from bctoolbox/port.c */
-	bind, /* from bctoolbox/port.c */
+	_bind,
 	getsockname,
 	getsockopt,
 	setsockopt,
@@ -42,8 +51,6 @@ static const bctbx_vsocket_methods_t bcSocketAPI = {
 	#endif
 	shutdown,
 };
-
-
 
 
 static bctbx_vsocket_api_t bcvSocket = {
@@ -62,57 +69,41 @@ int bctbx_vsocket(int socket_family, int socket_type, int protocol){
 }
 
 
-int bctbx_vclose(int fd){
-	return pDefaultvSocket->pSocketMethods->pFuncClose(fd);
+int bctbx_vclose(bctbx_socket_t sock){
+	return pDefaultvSocket->pSocketMethods->pFuncClose(sock);
 }
 
 
-int bctbx_vbind(int sockfd, const struct sockaddr *address, socklen_t address_len){
-	#ifdef _WIN32
-		return pDefaultvSocket->pSocketMethods->pFuncBind(sockfd, address, (int)address_len);
-	#else 
-		return pDefaultvSocket->pSocketMethods->pFuncBind(sockfd, address, address_len);
-	#endif
+int bctbx_vbind(bctbx_socket_t sock, const struct sockaddr *address, socklen_t address_len){
+	return pDefaultvSocket->pSocketMethods->pFuncBind(sock, address, address_len);
+
 }
 
 
-int bctbx_vconnect(int sockfd, const struct sockaddr *address, socklen_t address_len){
-	return pDefaultvSocket->pSocketMethods->pFuncConnect(sockfd, address, address_len);
+int bctbx_vconnect(bctbx_socket_t sock, const struct sockaddr *address, socklen_t address_len){
+	return pDefaultvSocket->pSocketMethods->pFuncConnect(sock, address, address_len);
 }
 
-int bctbx_vgetsockname(int sockfd, struct sockaddr *addr, socklen_t *addrlen){
-	int ret;
-	ret = pDefaultvSocket->pSocketMethods->pFuncGetSockName(sockfd, addr, addrlen);
-	if (ret == 0){
-		return BCTBX_VCONNECT_OK;
-	}
-	return -errno;
+int bctbx_vgetsockname(bctbx_socket_t sockfd, struct sockaddr *addr, socklen_t *addrlen){
+	return pDefaultvSocket->pSocketMethods->pFuncGetSockName(sockfd, addr, addrlen);
 }
 
 
-int bctbx_vgetsockopt(int sockfd, int level, int optname, 
+int bctbx_vgetsockopt(bctbx_socket_t sockfd, int level, int optname, 
 						void *optval, socklen_t* optlen){
-	int ret;
-	ret = pDefaultvSocket->pSocketMethods->pFuncGetSockOpt(sockfd, level, optname, optval, optlen);
-	if (ret == 0){
-		return BCTBX_VCONNECT_OK;
-	}
-	return -errno;
+	return pDefaultvSocket->pSocketMethods->pFuncGetSockOpt(sockfd, level, optname, optval, optlen);
+
 }
 
-int bctbx_vsetsockopt(int sockfd, int level, int optname, 
+int bctbx_vsetsockopt(bctbx_socket_t sockfd, int level, int optname, 
 							const void *optval, socklen_t optlen){
-	int ret;
-	ret = pDefaultvSocket->pSocketMethods->pFuncSetSockOpt(sockfd, level, optname, optval, optlen);
-	if (ret == 0){
-		return BCTBX_VCONNECT_OK;
-	}
-		return -errno;
+	return pDefaultvSocket->pSocketMethods->pFuncSetSockOpt(sockfd, level, optname, optval, optlen);
+
 }
 
 
-int bctbx_vshutdown(int sockfd, int how){
-	return pDefaultvSocket->pSocketMethods->pFuncShutdown(sockfd, how);
+int bctbx_vshutdown(bctbx_socket_t sock, int how){
+	return pDefaultvSocket->pSocketMethods->pFuncShutdown(sock, how);
 }
 
 
@@ -132,4 +123,5 @@ bctbx_vsocket_api_t* bctbx_vsocket_api_get_standard(void) {
 	return &bcvSocket;
 }
 
+/* Pointer to default VFS initialized to standard VFS implemented here.*/
 
