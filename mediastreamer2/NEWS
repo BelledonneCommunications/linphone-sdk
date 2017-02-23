@@ -1,3 +1,9 @@
+mediastreamer2-2.15.0: February 23rd, 2017
+	* Support for TURN (RFC5766).
+	* support of ICE with IPv6.
+	* Many bugfixes around H264 hardware encoder/decoder on iOS/MacOSX/Android.
+	* Deprecation of QTKit for video capture management on Apple platforms.
+
 mediastreamer2-2.14.0: July 8th, 2016
 	* bug fixes
 
