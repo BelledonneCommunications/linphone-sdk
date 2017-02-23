@@ -33,10 +33,10 @@
 #define ANTLR3_LOG_EXCEPTION() belle_sip_message("[\%s] reason [\%s] at line[\%u] position[\%d]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message,EXCEPTION->line,EXCEPTION->charPositionInLine);
 
 
-BELLESIP_INTERNAL_EXPORT belle_sip_header_t* belle_sip_header_get_next(const belle_sip_header_t* headers);
-BELLESIP_INTERNAL_EXPORT void belle_sip_header_set_next(belle_sip_header_t* header,belle_sip_header_t* next);
+BELLESIP_EXPORT belle_sip_header_t* belle_sip_header_get_next(const belle_sip_header_t* headers);
+BELLESIP_EXPORT void belle_sip_header_set_next(belle_sip_header_t* header,belle_sip_header_t* next);
 
-BELLESIP_INTERNAL_EXPORT char* belle_sip_to_unescaped_string(const char* buff);
+BELLESIP_EXPORT char* belle_sip_to_unescaped_string(const char* buff);
 belle_sip_param_pair_t* belle_sip_param_pair_new(const char* name,const char* value);
 char* _belle_sip_str_dup_and_unquote_string(const char* quoted_string);
 
@@ -49,7 +49,7 @@ char* _belle_sip_str_dup_and_unquote_string(const char* quoted_string);
 
 remove any \
  * */
-BELLESIP_INTERNAL_EXPORT char* belle_sip_string_to_backslash_less_unescaped_string(const char* buff);
-BELLESIP_INTERNAL_EXPORT char* belle_sip_display_name_to_backslashed_escaped_string(const char* buff);
+BELLESIP_EXPORT char* belle_sip_string_to_backslash_less_unescaped_string(const char* buff);
+BELLESIP_EXPORT char* belle_sip_display_name_to_backslashed_escaped_string(const char* buff);
 
 #endif

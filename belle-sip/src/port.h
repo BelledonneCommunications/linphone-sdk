@@ -84,22 +84,12 @@
 #	endif
 #endif
 
-#if defined(_WIN32) || defined(_WIN32) || defined(__WIN32) || defined(__WIN32__)
-#ifdef BELLESIP_INTERNAL_EXPORTS
-#define BELLESIP_INTERNAL_EXPORT __declspec(dllexport)
-#else
-#define BELLESIP_INTERNAL_EXPORT
-#endif
-#else
-#define BELLESIP_INTERNAL_EXPORT extern
-#endif
-
 /*
  * Socket abstraction layer
  */
 
-BELLESIP_INTERNAL_EXPORT int belle_sip_init_sockets(void);
-BELLESIP_INTERNAL_EXPORT void belle_sip_uninit_sockets(void);
+BELLESIP_EXPORT int belle_sip_init_sockets(void);
+BELLESIP_EXPORT void belle_sip_uninit_sockets(void);
 int belle_sip_socket_set_nonblocking (belle_sip_socket_t sock);
 int belle_sip_socket_set_dscp(belle_sip_socket_t sock, int ai_family, int dscp);
 int belle_sip_socket_enable_dual_stack(belle_sip_socket_t sock);
@@ -166,7 +156,7 @@ typedef pthread_mutex_t belle_sip_mutex_t;
 #endif
 
 #ifndef BELLE_SIP_WINDOWS_DESKTOP
-BELLESIP_INTERNAL_EXPORT void belle_sip_sleep(unsigned int ms);
+BELLESIP_EXPORT void belle_sip_sleep(unsigned int ms);
 #else
 #define belle_sip_sleep Sleep
 #endif

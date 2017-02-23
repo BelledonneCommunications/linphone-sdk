@@ -535,11 +535,11 @@ struct belle_sip_stack{
 	unsigned char dns_search_enabled;
 };
 
-BELLESIP_INTERNAL_EXPORT belle_sip_hop_t* belle_sip_hop_new(const char* transport, const char *cname, const char* host,int port);
-BELLESIP_INTERNAL_EXPORT belle_sip_hop_t* belle_sip_hop_new_from_uri(const belle_sip_uri_t *uri);
-BELLESIP_INTERNAL_EXPORT belle_sip_hop_t* belle_sip_hop_new_from_generic_uri(const belle_generic_uri_t *uri);
+BELLESIP_EXPORT belle_sip_hop_t* belle_sip_hop_new(const char* transport, const char *cname, const char* host,int port);
+BELLESIP_EXPORT belle_sip_hop_t* belle_sip_hop_new_from_uri(const belle_sip_uri_t *uri);
+BELLESIP_EXPORT belle_sip_hop_t* belle_sip_hop_new_from_generic_uri(const belle_generic_uri_t *uri);
 
-BELLESIP_INTERNAL_EXPORT belle_sip_hop_t * belle_sip_stack_get_next_hop(belle_sip_stack_t *stack, belle_sip_request_t *req);
+BELLESIP_EXPORT belle_sip_hop_t * belle_sip_stack_get_next_hop(belle_sip_stack_t *stack, belle_sip_request_t *req);
 
 /*
  belle_sip_provider_t
@@ -561,12 +561,12 @@ struct belle_sip_provider{
 	unsigned short unconditional_answer;
 };
 
-BELLESIP_INTERNAL_EXPORT belle_sip_provider_t *belle_sip_provider_new(belle_sip_stack_t *s, belle_sip_listening_point_t *lp);
+BELLESIP_EXPORT belle_sip_provider_t *belle_sip_provider_new(belle_sip_stack_t *s, belle_sip_listening_point_t *lp);
 void belle_sip_provider_add_client_transaction(belle_sip_provider_t *prov, belle_sip_client_transaction_t *t);
 belle_sip_client_transaction_t *belle_sip_provider_find_matching_client_transaction(belle_sip_provider_t *prov, belle_sip_response_t *resp);
 void belle_sip_provider_remove_client_transaction(belle_sip_provider_t *prov, belle_sip_client_transaction_t *t);
 void belle_sip_provider_add_server_transaction(belle_sip_provider_t *prov, belle_sip_server_transaction_t *t);
-BELLESIP_INTERNAL_EXPORT belle_sip_server_transaction_t * belle_sip_provider_find_matching_server_transaction(belle_sip_provider_t *prov,belle_sip_request_t *req);
+BELLESIP_EXPORT belle_sip_server_transaction_t * belle_sip_provider_find_matching_server_transaction(belle_sip_provider_t *prov,belle_sip_request_t *req);
 void belle_sip_provider_remove_server_transaction(belle_sip_provider_t *prov, belle_sip_server_transaction_t *t);
 void belle_sip_provider_set_transaction_terminated(belle_sip_provider_t *p, belle_sip_transaction_t *t);
 void *belle_sip_transaction_get_application_data_internal(const belle_sip_transaction_t *t);
@@ -579,7 +579,7 @@ void belle_sip_provider_remove_internal_sip_listener(belle_sip_provider_t *p, be
 belle_sip_client_transaction_t * belle_sip_provider_find_matching_client_transaction_from_req(belle_sip_provider_t *prov, belle_sip_request_t *req);
 belle_sip_dialog_t *belle_sip_provider_find_dialog_from_message(belle_sip_provider_t *prov, belle_sip_message_t *msg, int as_uas);
 /*for testing purpose only:*/
-BELLESIP_INTERNAL_EXPORT void belle_sip_provider_dispatch_message(belle_sip_provider_t *prov, belle_sip_message_t *msg);
+BELLESIP_EXPORT void belle_sip_provider_dispatch_message(belle_sip_provider_t *prov, belle_sip_message_t *msg);
 
 typedef struct listener_ctx{
 	belle_sip_listener_t *listener;
@@ -974,16 +974,16 @@ belle_sip_refresher_t* belle_sip_refresher_new(belle_sip_client_transaction_t* t
  * returns a char, even if entry is escaped*/
 size_t belle_sip_get_char (const char*a,char*out);
 /*return an escaped string*/
-BELLESIP_INTERNAL_EXPORT	char* belle_sip_uri_to_escaped_username(const char* buff) ;
-BELLESIP_INTERNAL_EXPORT	char* belle_sip_uri_to_escaped_userpasswd(const char* buff) ;
-BELLESIP_INTERNAL_EXPORT	char* belle_sip_uri_to_escaped_parameter(const char* buff) ;
-BELLESIP_INTERNAL_EXPORT	char* belle_sip_uri_to_escaped_header(const char* buff) ;
+BELLESIP_EXPORT	char* belle_sip_uri_to_escaped_username(const char* buff) ;
+BELLESIP_EXPORT	char* belle_sip_uri_to_escaped_userpasswd(const char* buff) ;
+BELLESIP_EXPORT	char* belle_sip_uri_to_escaped_parameter(const char* buff) ;
+BELLESIP_EXPORT	char* belle_sip_uri_to_escaped_header(const char* buff) ;
 
 
 /*(uri RFC 2396)*/
 
-BELLESIP_INTERNAL_EXPORT char* belle_generic_uri_to_escaped_query(const char* buff);
-BELLESIP_INTERNAL_EXPORT char* belle_generic_uri_to_escaped_path(const char* buff);
+BELLESIP_EXPORT char* belle_generic_uri_to_escaped_query(const char* buff);
+BELLESIP_EXPORT char* belle_generic_uri_to_escaped_path(const char* buff);
 
 #define BELLE_SIP_SOCKET_TIMEOUT 30000
 
@@ -1019,7 +1019,7 @@ belle_sip_header_extension_t* belle_sip_header_extension_new(void);
 
 belle_sip_header_extension_t* belle_sip_header_extension_parse (const char* extension) ;
 belle_sip_header_extension_t* belle_sip_header_extension_create (const char* name,const char* value);
-BELLESIP_INTERNAL_EXPORT const char* belle_sip_header_extension_get_value(const belle_sip_header_extension_t* extension);
+BELLESIP_EXPORT const char* belle_sip_header_extension_get_value(const belle_sip_header_extension_t* extension);
 void belle_sip_header_extension_set_value(belle_sip_header_extension_t* extension,const char* value);
 #define BELLE_SIP_HEADER_EXTENSION(t) BELLE_SIP_CAST(t,belle_sip_header_extension_t)
 
