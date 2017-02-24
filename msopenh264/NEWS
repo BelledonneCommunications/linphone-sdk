@@ -1,4 +1,7 @@
-msopenh264-1.1.2 -- June 2nd , 2016
+msopenh264-1.2.0 -- February 24th, 2017
+	* use the newest rfc3984 API
+
+msopenh264-1.1.2 -- June 2nd, 2016
 	* MSFactory usage.
 
 msopenh264-1.1.1 -- November 2nd, 2015

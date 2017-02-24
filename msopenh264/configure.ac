@@ -3,7 +3,7 @@ AC_INIT([msopenh264],[1.2.0])
 
 AC_CANONICAL_SYSTEM
 
-AM_INIT_AUTOMAKE([tar-ustar])
+AM_INIT_AUTOMAKE([tar-ustar],[foreign])
 AC_CONFIG_HEADERS(config.h)
 
 AC_MSG_CHECKING([warning make an error on compilation])
