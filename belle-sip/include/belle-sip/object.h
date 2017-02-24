@@ -55,6 +55,16 @@ typedef unsigned int belle_sip_type_id_t;
 	struct object_type##_vptr_struct{\
 		BELLE_SIP_OBJECT_VPTR_TYPE(parent_type) base;
 
+#define BELLE_SIP_DECLARE_VPTR_NO_EXPORT(object_type) \
+	typedef belle_sip_object_vptr_t BELLE_SIP_OBJECT_VPTR_TYPE(object_type);\
+	BELLE_SIP_OBJECT_VPTR_TYPE(object_type) * BELLE_SIP_OBJECT_GET_VPTR_FUNC(object_type)(void);
+
+#define BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN_NO_EXPORT(object_type, parent_type) \
+	typedef struct object_type##_vptr_struct BELLE_SIP_OBJECT_VPTR_TYPE(object_type);\
+	BELLE_SIP_OBJECT_VPTR_TYPE(object_type) * BELLE_SIP_OBJECT_GET_VPTR_FUNC(object_type)(void); \
+	struct object_type##_vptr_struct{\
+		BELLE_SIP_OBJECT_VPTR_TYPE(parent_type) base;
+
 #define BELLE_SIP_DECLARE_CUSTOM_VPTR_END };
 
 #define BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(object_type) \

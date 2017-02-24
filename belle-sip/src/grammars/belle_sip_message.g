@@ -81,7 +81,7 @@ options {
 #include "belle-sip/message.h"
 #include "belle-sip/http-message.h"
 #include "parserutils.h"
-BELLESIP_INTERNAL_EXPORT void belle_sip_header_address_set_quoted_displayname(belle_sip_header_address_t* address,const char* value);
+BELLESIP_EXPORT void belle_sip_header_address_set_quoted_displayname(belle_sip_header_address_t* address,const char* value);
 }
 
 @rulecatch 

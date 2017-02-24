@@ -21,7 +21,7 @@
 ############################################################################
 
 cmake_minimum_required(VERSION 3.0)
-project(belle-sip VERSION 1.5.0 LANGUAGES C CXX)
+project(belle-sip VERSION 1.6.0 LANGUAGES C CXX)
 
 
 set(PACKAGE "${PROJECT_NAME}")
@@ -218,8 +218,8 @@ set(BELLESIP_CPPFLAGS ${BCTOOLBOX_CPPFLAGS})
 if(ENABLE_STATIC)
 	list(APPEND BELLESIP_CPPFLAGS "-DBELLESIP_STATIC")
 endif()
-list(REMOVE_DUPLICATES BELLESIP_CPPFLAGS)
 if(BELLESIP_CPPFLAGS)
+	list(REMOVE_DUPLICATES BELLESIP_CPPFLAGS)
 	add_definitions(${BELLESIP_CPPFLAGS})
 endif()
 add_definitions("-DBELLESIP_EXPORTS")
