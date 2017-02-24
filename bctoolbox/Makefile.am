@@ -9,4 +9,5 @@ EXTRA_DIST=bctoolbox.pc.in \
 		CMakeLists.txt \
 		include/CMakeLists.txt \
 		src/CMakeLists.txt \
-		tester/CMakeLists.txt 
+		tester/CMakeLists.txt \
+		README.md
