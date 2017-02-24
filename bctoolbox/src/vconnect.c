@@ -33,11 +33,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 /**
- * [_bind  description]
- * @param  sock        [description]
- * @param  address     [description]
- * @param  address_len [description]
- * @return             [description]
+ * Calls bind : wrapper around bind to avoid windows address_len type problem.
  */
 static int _bind (bctbx_socket_t sock, const struct sockaddr *address, socklen_t address_len){
 	#ifdef _WIN32
@@ -48,14 +44,18 @@ static int _bind (bctbx_socket_t sock, const struct sockaddr *address, socklen_t
 }
 
 
+/**===================================================
+ * Socket API default methods pointer definition.
+ * ===================================================*/
+ 
 static const bctbx_vsocket_methods_t bcSocketAPI = {
 	socket,
-	connect,  	/* from bctoolbox/port.c */
+	connect,  	
 	_bind,
 	getsockname,
 	getsockopt,
 	setsockopt,
-	#if	!defined(_WIN32) && !defined(_WIN32_WCE) 	  /* from bctoolbox/port.c */
+	#if	!defined(_WIN32) && !defined(_WIN32_WCE) 	  
 	close,
 	strerror,
 	#else
@@ -67,7 +67,7 @@ static const bctbx_vsocket_methods_t bcSocketAPI = {
 
 
 static bctbx_vsocket_api_t bcvSocket = {
-	"bctbx_socket",               /* vSockName */
+	"bctbx_socket",          /* vSockName */
 	&bcSocketAPI,			/*pSocketMethods */
 };
 

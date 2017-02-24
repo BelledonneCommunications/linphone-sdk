@@ -60,7 +60,7 @@ extern "C"{
 typedef struct bctbx_vsocket_methods_t bctbx_vsocket_methods_t;
 
 /**
- * 
+ * Methods pointer prototypes for the socket functions.
  */
 struct bctbx_vsocket_methods_t {
 
@@ -83,118 +83,131 @@ struct bctbx_vsocket_methods_t {
 
 
 /**
- * vsocket definition
+ * Socket API structure definition
  */
 typedef struct bctbx_vsocket_api_t bctbx_vsocket_api_t;
 struct bctbx_vsocket_api_t {
-	const char *vSockName;       /* Virtual file system name */
-	const bctbx_vsocket_methods_t *pSocketMethods; 
+	const char *vSockName;      					 /* Socket API name */
+	const bctbx_vsocket_methods_t *pSocketMethods;   /* Pointer to the socket methods structure */
 };
 
 
-/* API to use the vsocket */
-/*
- * This function returns a pointer to the vsocket implemented in this file.
- */
-BCTBX_PUBLIC bctbx_vsocket_api_t *bc_create_vsocket_api(void);
+
+/**===================================================
+ * Socket API methods prototypes.
+ * The default implementation relies on libc methods.
+ *====================================================*/
+
 
 /**
- * [bctbx_socket description]
- * @param  socket_family [description]
- * @param  socket_type   [description]
- * @param  protocol      [description]
- * @return               [description]
+ * Creates a socket.
+ * @param  socket_family type of address structure
+ * @param  socket_type   socket type i.e SOCK_STREAM
+ * @param  protocol      protocol family i.e AF_INET
+ * @return 				 Returns a socket file descriptor.          
  */
 BCTBX_PUBLIC int bctbx_socket(int socket_family, int socket_type, int protocol);
 
 /**
- * [bctbx_getsockname description]
- * @param  sockfd  [description]
- * @param  addr    [description]
- * @param  addrlen [description]
- * @return         [description]
+ * Get the local socket address.
+ * Calls the function pointer pFuncGetSockName. The default method associated with this pointer 
+ * is getsockname. 
+ * @param  sockfd  socket descriptor 
+ * @param  addr    buffer holding  the current address to which the socket sockfd is bound
+ * @param  addrlen amount of space (in bytes) pointed to by addr
+ * @return         On success, zero is returned.  On error, -1 is returned, and errno is
+ *                 set appropriately.
  */
 BCTBX_PUBLIC int bctbx_getsockname(bctbx_socket_t sockfd, struct sockaddr *addr, socklen_t *addrlen);
 /**
- * [bctbx_getsockopt description]
- * @param  sockfd  [description]
- * @param  level   [description]
- * @param  optname [description]
- * @param  optval  [description]
- * @param  optlen  [description]
- * @return         [description]
+ * Get socket options. 
+ * @param  sockfd  socket file descriptor
+ * @param  level   level of the socket option
+ * @param  optname name of the option
+ * @param  optval  buffer in which the value for the requested option(s) are to be returned
+ * @param  optlen  contains the size of the buffer pointed to by optval, and on return 
+ *                 contains the actual size of the value returned. 
+ * @return         On success, zero is returned.  On error, -1 is returned, and errno is
+ *                 set appropriately.
  */
 BCTBX_PUBLIC int bctbx_getsockopt(bctbx_socket_t sockfd, int level, int optname, 
 							void *optval, socklen_t *optlen);
 /**
- * [bctbx_setsockopt description]
- * @param  sockfd  [description]
- * @param  level   [description]
- * @param  optname [description]
- * @param  optval  [description]
- * @param  optlen  [description]
- * @return         [description]
+ * Set socket options.
+ * @param  sockfd  socket file descriptor
+ * @param  level   level of the socket option
+ * @param  optname name of the option
+ * @param  optval  buffer holding the value for the requested option
+ * @param  optlen  contains the size of the buffer pointed to by optval
+ * @return         On success, zero is returned.  On error, -1 is returned, and errno is
+ *                 set appropriately.
  */
 BCTBX_PUBLIC int bctbx_setsockopt(bctbx_socket_t sockfd, int level, int optname, 
 							const void *optval, socklen_t optlen);
 
 /**
- * [bctbx_shutdown description]
- * @param  sockfd [description]
- * @param  how    [description]
- * @return        [description]
+ * Shut down part of a full duplex connection.
+ * @param  sockfd socket file descriptor
+ * @param  how    specifies what is shut down in the connection.
+ * @return        On success, zero is returned.  On error, -1 is returned, and errno is
+ *                set appropriately.
  */
 BCTBX_PUBLIC int bctbx_shutdown(bctbx_socket_t sockfd, int how);
 
 /**
- * [bctbx_socket_close description]
- * @param  sockfd [description]
- * @return        [description]
+ * Close a socket file descriptor.
+ * @param  sockfd socket file descriptor
+ * @return        0 on success , -1 on error and errno is set.
  */
 BCTBX_PUBLIC int bctbx_socket_close(bctbx_socket_t sockfd);
 
 /**
- * [bctbx_bind description]
- * @param  sockfd      [description]
- * @param  address     [description]
- * @param  address_len [description]
- * @return             [description]
+ * Assign a name to a socket. 
+ * @param  sockfd      socket file descriptor to assign the name to.
+ * @param  address     address of the socket
+ * @param  address_len size of the address structure pointed to by address (bytes)
+ * @return             On success, zero is returned.  On error, -1 is returned, and errno is
+ *                     set appropriately.
  */
 BCTBX_PUBLIC int bctbx_bind(bctbx_socket_t sockfd, const struct sockaddr *address, socklen_t address_len);
 
 /**
- * [bctbx_connect description]
- * @param  sockfd      [description]
- * @param  address     [description]
- * @param  address_len [description]
- * @return             [description]
+ * Initialize a connection to a socket.
+ * @param  sockfd      socket file descriptor
+ * @param  address     address of the socket
+ * @param  address_len size of the address structure pointed to by address (bytes)
+ * @return             On success, zero is returned.  On error, -1 is returned, and errno is
+ *                     set appropriately.
  */
 BCTBX_PUBLIC int bctbx_connect(bctbx_socket_t sockfd, const struct sockaddr *address, socklen_t address_len);
 
 /**
- * [bctbx_socket_error description]
- * @param  err [description]
- * @return     [description]
+ * strerror equivalent.
+ * When an error is returned on a socket operations, returns
+ * the error description based on err (errno) value.
+ * @param  err should be set to errno
+ * @return     Error description
  */
 BCTBX_PUBLIC char* bctbx_socket_error(int err);
 
 /**
- * Set default vsocket pointer pDefault to my_vsocket_api.
- * By default, the global pointer is set to use vsocket implemented in vconnect.c 
+ * Set default bctbx_vsocket_api_t pointer pDefaultvSocket to my_vsocket_api.
+ * By default, the global pointer is set to use bcvSocket implemented in vconnect.c 
  * @param my_vsocket_api Pointer to a bctbx_vsocket_api_t structure. 
  */
 BCTBX_PUBLIC void bctbx_vsocket_api_set_default(bctbx_vsocket_api_t *my_vsocket_api);
 
 
 /**
- * Returns the value of the global variable pDefault,
+ * Returns the value of the global variable pDefaultvSocket,
  * pointing to the default bctbx_vsocket_api_t used.
- * @return Pointer to bctbx_vsocket_api_t set to operate as default vsocket.
+ * @return Pointer to bctbx_vsocket_api_t set to operate as default.
  */
 BCTBX_PUBLIC bctbx_vsocket_api_t* bctbx_vsocket_api_get_default(void);
 	
 /**
- * Return pointer to standard vsocket impletentation.
+ * Return pointer to standard bctbx_vsocket_api_t implementation based on libc
+ * functions.
  * @return  pointer to bcSocketAPI
  */
 BCTBX_PUBLIC bctbx_vsocket_api_t* bctbx_vsocket_api_get_standard(void);
