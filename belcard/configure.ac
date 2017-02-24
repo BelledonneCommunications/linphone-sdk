@@ -26,7 +26,7 @@ LT_INIT([shared disable-static])
 dnl initialize pkg-config so that we can use it within if else fi statements.
 PKG_PROG_PKG_CONFIG()
 
-AM_INIT_AUTOMAKE(subdir-objects)
+AM_INIT_AUTOMAKE(subdir-objects foreign)
 AM_SILENT_RULES(yes)
 
 # Checks for programs.
