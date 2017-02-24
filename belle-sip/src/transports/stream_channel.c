@@ -133,7 +133,7 @@ int stream_channel_connect(belle_sip_stream_channel_t *obj, const struct addrinf
 	
 	err=bctbx_setsockopt(sock, IPPROTO_TCP, TCP_NODELAY,(char*)&tmp,sizeof(tmp));
 	if (err!=0){
-		belle_sip_error("setsockopt TCP_NODELAY failed: [%s]",belle_sip_get_socket_error_string());
+		belle_sip_error("bctbx_setsockopt TCP_NODELAY failed: [%s]",belle_sip_get_socket_error_string());
 	}
 	belle_sip_socket_set_nonblocking(sock);
 	if (ai->ai_family==AF_INET6){
@@ -269,8 +269,8 @@ belle_sip_channel_t * belle_sip_stream_channel_new_child(belle_sip_stack_t *stac
 	
 	set_tcp_nodelay(sock);
 	
-	if (getsockname(sock,(struct sockaddr*)&localaddr,&local_len)==-1){
-		belle_sip_error("getsockname() failed: %s",belle_sip_get_socket_error_string());
+	if (bctbx_getsockname(sock,(struct sockaddr*)&localaddr,&local_len)==-1){
+		belle_sip_error("bctbx_getsockname() failed: %s",belle_sip_get_socket_error_string());
 		return NULL;
 	}
 	

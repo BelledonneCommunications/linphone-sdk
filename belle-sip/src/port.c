@@ -257,7 +257,7 @@ int belle_sip_socket_enable_dual_stack(belle_sip_socket_t sock){
 	int value=0;
 	int err=bctbx_setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY, (const char*)&value, sizeof(value));
 	if (err==-1){
-		belle_sip_warning("belle_sip_socket_enable_dual_stack: setsockopt(IPV6_ONLY) failed: %s",belle_sip_get_socket_error_string());
+		belle_sip_warning("belle_sip_socket_enable_dual_stack: bctbx_setsockopt(IPV6_ONLY) failed: %s",belle_sip_get_socket_error_string());
 	}
 	return err;
 }

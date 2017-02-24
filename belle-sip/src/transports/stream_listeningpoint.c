@@ -117,7 +117,7 @@ static belle_sip_socket_t create_server_socket(const char *addr, int * port, int
 				*port=atoi(portnum);
 				belle_sip_message("Random TCP port is %i",*port);
 			}else belle_sip_error("TCP bind failed, getnameinfo(): %s",gai_strerror(err));
-		}else belle_sip_error("TCP bind failed, getsockname(): %s",belle_sip_get_socket_error_string());
+		}else belle_sip_error("TCP bind failed, bctbx_getsockname(): %s",belle_sip_get_socket_error_string());
 	}
 	
 	err=listen(sock,64);

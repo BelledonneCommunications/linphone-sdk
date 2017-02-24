@@ -1166,12 +1166,12 @@ int belle_sip_get_src_addr_for(const struct sockaddr *dest, socklen_t destlen, s
 	if (bctbx_connect(sock,dest,destlen)==-1){
 	//if (connect(sock,dest,destlen)==-1){
 		ret = -get_socket_error();
-		belle_sip_error("belle_sip_get_src_addr_for: connect() failed: %s",belle_sip_get_socket_error_string_from_code(-ret));
+		belle_sip_error("belle_sip_get_src_addr_for: bctbx_connect() failed: %s",belle_sip_get_socket_error_string_from_code(-ret));
 		goto fail;
 	}
 	if (bctbx_getsockname(sock,src,srclen)==-1){
 		ret = -get_socket_error();
-		belle_sip_error("belle_sip_get_src_addr_for: getsockname() failed: %s",belle_sip_get_socket_error_string_from_code(-ret));
+		belle_sip_error("belle_sip_get_src_addr_for: bctbx_getsockname() failed: %s",belle_sip_get_socket_error_string_from_code(-ret));
 		goto fail;
 	}
 	

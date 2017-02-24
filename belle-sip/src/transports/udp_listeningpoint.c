@@ -117,7 +117,7 @@ static belle_sip_socket_t create_udp_socket(const char *addr, int *port, int *fa
 				*port=atoi(portnum);
 				belle_sip_message("Random UDP port is %i",*port);
 			}else belle_sip_error("udp bind failed, getnameinfo(): %s",gai_strerror(err));
-		}else belle_sip_error("udp bind failed, getsockname(): %s",belle_sip_get_socket_error_string());
+		}else belle_sip_error("udp bind failed, bctbx_getsockname(): %s",belle_sip_get_socket_error_string());
 	}
 	return sock;
 }
