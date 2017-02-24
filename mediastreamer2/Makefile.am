@@ -1,36 +1,43 @@
 
-EXTRA_DIST=mediastreamer-config.h.in pkg.list autogen.sh mediastreamer.pc.in mediastreamer2.spec.in mediastreamer2.spec
-EXTRA_DIST += CMakeLists.txt \
-cmake/FindALSA.cmake \
-cmake/FindArts.cmake \
-cmake/FindBV16.cmake \
-cmake/FindCamApi.cmake \
-cmake/FindFFMpeg.cmake \
-cmake/FindGLX.cmake \
-cmake/FindGSM.cmake \
-cmake/FindOpus.cmake \
-cmake/FindPCAP.cmake \
-cmake/FindPortAudio.cmake \
-cmake/FindPulseAudio.cmake \
-cmake/FindQnxAudioManager.cmake \
-cmake/FindQSA.cmake \
-cmake/FindScreen.cmake \
-cmake/FindSpeex.cmake \
-cmake/FindSRTP.cmake \
-cmake/FindV4L.cmake \
-cmake/FindVPX.cmake \
-cmake/FindX11.cmake \
-cmake/FindXv.cmake \
-cmake/Mediastreamer2Config.cmake.in \
-help/CMakeLists.txt \
-include/CMakeLists.txt \
-mediastreamer-config.h.cmake \
-src/CMakeLists.txt \
-src/generate_descs_header.cmake \
-src/generate_yuv2rgb_header.cmake \
-src/gitversion.cmake \
-tester/CMakeLists.txt \
-tools/CMakeLists.txt
+EXTRA_DIST= \
+	mediastreamer-config.h.in \
+	pkg.list \
+	autogen.sh \
+	mediastreamer.pc.in \
+	mediastreamer2.spec.in \
+	mediastreamer2.spec \
+	CMakeLists.txt \
+	cmake/FindALSA.cmake \
+	cmake/FindArts.cmake \
+	cmake/FindBV16.cmake \
+	cmake/FindCamApi.cmake \
+	cmake/FindFFMpeg.cmake \
+	cmake/FindGLX.cmake \
+	cmake/FindGSM.cmake \
+	cmake/FindOpus.cmake \
+	cmake/FindPCAP.cmake \
+	cmake/FindPortAudio.cmake \
+	cmake/FindPulseAudio.cmake \
+	cmake/FindQnxAudioManager.cmake \
+	cmake/FindQSA.cmake \
+	cmake/FindScreen.cmake \
+	cmake/FindSpeex.cmake \
+	cmake/FindSRTP.cmake \
+	cmake/FindV4L.cmake \
+	cmake/FindVPX.cmake \
+	cmake/FindX11.cmake \
+	cmake/FindXv.cmake \
+	cmake/Mediastreamer2Config.cmake.in \
+	help/CMakeLists.txt \
+	include/CMakeLists.txt \
+	mediastreamer-config.h.cmake \
+	src/CMakeLists.txt \
+	src/generate_descs_header.cmake \
+	src/generate_yuv2rgb_header.cmake \
+	src/gitversion.cmake \
+	tester/CMakeLists.txt \
+	tools/CMakeLists.txt \
+	README.md
 
 ACLOCAL_AMFLAGS = -I m4 $(ACLOCAL_MACOS_FLAGS)
 
