@@ -856,7 +856,7 @@ MSDevicesInfo* ms_factory_get_devices_info(MSFactory *f) {
 }
 
 char * ms_factory_get_image_resources_dir(const MSFactory *f) {
-	if (f->image_resources_dir) bctbx_strdup(f->image_resources_dir);
+	if (f->image_resources_dir) return bctbx_strdup(f->image_resources_dir);
 	return bctbx_strdup_printf("%s/images", PACKAGE_DATA_DIR);
 }
 

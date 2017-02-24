@@ -76,8 +76,9 @@ MS2_PUBLIC MSFactory* ms_factory_new_with_voip(void);
 /**
  * Create a mediastreamer2 factory, initialize all voip related filters, cards and webcam managers and load the plugins from the specified directory.
  * @param[in] plugins_dir The path where to find the mediastreamer2 plugins to be loaded
+ * @param[in] images_dir The path where to find the images
  */
-MS2_PUBLIC MSFactory *ms_factory_new_with_voip_and_plugins_dir(const char *plugins_dir);
+MS2_PUBLIC MSFactory *ms_factory_new_with_voip_and_directories(const char *plugins_dir, const char *images_dir);
 
 /**
  * Create the fallback factory (for compatibility with applications not using MSFactory to create ms2 object)

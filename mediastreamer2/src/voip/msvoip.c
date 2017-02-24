@@ -356,9 +356,10 @@ MSFactory *ms_factory_new_with_voip(void){
 	return f;
 }
 
-MSFactory *ms_factory_new_with_voip_and_plugins_dir(const char *plugins_dir) {
+MSFactory *ms_factory_new_with_voip_and_directories(const char *plugins_dir, const char *images_dir) {
 	MSFactory *f = ms_factory_new();
 	ms_factory_set_plugins_dir(f, plugins_dir);
+	ms_factory_set_image_resources_dir(f, images_dir);
 	ms_factory_init_voip(f);
 	ms_factory_init_plugins(f);
 	return f;
