@@ -32,10 +32,27 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 
+
+
+
+static bctbx_socket_t vsocket_socket(int socket_family, int socket_type, int protocol){
+	return socket(socket_family, socket_type, protocol);
+}
+
+
+
+static int vsocket_connect(bctbx_socket_t sock, const struct sockaddr *address, socklen_t address_len){
+	#ifdef _WIN32
+		return bind(sock, address, (int)address_len);
+	#else 
+		return bind(sock, address, address_len);
+	#endif
+}
+
 /**
  * Calls bind : wrapper around bind to avoid windows address_len type problem.
  */
-static int _bind (bctbx_socket_t sock, const struct sockaddr *address, socklen_t address_len){
+static int vsocket_bind(bctbx_socket_t sock, const struct sockaddr *address, socklen_t address_len){
 	#ifdef _WIN32
 		return bind(sock, address, (int)address_len);
 	#else 
@@ -44,25 +61,72 @@ static int _bind (bctbx_socket_t sock, const struct sockaddr *address, socklen_t
 }
 
 
+static int vsocket_getsockname(bctbx_socket_t sockfd, struct sockaddr *addr, socklen_t *addrlen){
+	#ifdef _WIN32
+		return getsockname(sockfd, addr, (int*)addrlen);
+	#else 
+		return getsockname(sockfd, addr, addrlen);
+	#endif
+}
+
+static int vsocket_getsockopt(bctbx_socket_t sockfd, int level, int optname, 
+						void *optval, socklen_t* optlen){
+		#ifdef _WIN32
+		return getsockopt(sockfd, level, optname, (char*)optval,  (int*)optlen);
+	#else 
+		return getsockopt(sockfd, level, optname, optval,  optlen);
+	#endif
+
+}
+
+
+static int vsocket_setsockopt(bctbx_socket_t sockfd, int level, int optname, 
+							const void *optval, socklen_t optlen){
+	#ifdef _WIN32
+		return setsockopt(sockfd, level, optname, (char*)optval,  (int)optlen);
+	#else 
+		return setsockopt(sockfd, level, optname, optval,  optlen);
+	#endif
+
+}
+
+static int vsocket_close(bctbx_socket_t sock){
+	#ifdef _WIN32
+	return closesocket(sock);
+#else
+	return close(sock);
+#endif
+}
+
+static int vsocket_shutdown(bctbx_socket_t sock, int how){
+	return shutdown(sock, how);
+}
+
+	
+#if	!defined(_WIN32) && !defined(_WIN32_WCE) 	 
+static char* vsocket_error(int err){  
+	 return strerror (err);
+}
+#else
+static const char* vsocket_error(int err){  
+	 return __bctbx_getWinSocketError(err);
+ }
+#endif
+
 /**===================================================
  * Socket API default methods pointer definition.
  * ===================================================*/
  
 static const bctbx_vsocket_methods_t bcSocketAPI = {
-	socket,
-	connect,  	
-	_bind,
-	getsockname,
-	getsockopt,
-	setsockopt,
-	#if	!defined(_WIN32) && !defined(_WIN32_WCE) 	  
-	close,
-	strerror,
-	#else
-	closesocket,
-	__bctbx_getWinSocketError,
-	#endif
-	shutdown,
+	vsocket_socket,
+	vsocket_connect,  	
+	vsocket_bind,
+	vsocket_getsockname,
+	vsocket_getsockopt,
+	vsocket_setsockopt,
+	vsocket_close,
+	vsocket_error,
+	vsocket_shutdown,
 };
 
 
@@ -119,9 +183,15 @@ int bctbx_shutdown(bctbx_socket_t sock, int how){
 	return pDefaultvSocket->pSocketMethods->pFuncShutdown(sock, how);
 }
 
+#if	!defined(_WIN32) && !defined(_WIN32_WCE) 	 
 char* bctbx_socket_error(int err){
 	return pDefaultvSocket->pSocketMethods->pFuncGetError(err);
 }
+#else
+const char* bctbx_socket_error(int err){
+	return pDefaultvSocket->pSocketMethods->pFuncGetError(err);
+}
+#endif 
 
 void bctbx_vsocket_api_set_default(bctbx_vsocket_api_t *my_vsocket_api) {
 
