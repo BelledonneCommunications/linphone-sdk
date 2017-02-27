@@ -37,6 +37,7 @@ belle_sip_parse_SOURCES=parse.c
 belle_http_get_SOURCES=get.c
 
 belle_sip_resolve_SOURCES=resolve.c
+belle_sip_resolve_CFLAGS=$(TLS_CFLAGS)
 
 AM_CPPFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/src
 

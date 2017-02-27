@@ -71,7 +71,7 @@ static void transaction_background_task_ended(belle_sip_transaction_t *obj){
 static void transaction_begin_background_task(belle_sip_transaction_t *obj){
 	if (obj->bg_task_id==0){
 		obj->bg_task_id=belle_sip_begin_background_task("belle-sip transaction",(void (*)(void*))transaction_background_task_ended, obj);
-		if (obj->bg_task_id) belle_sip_message("channel [%p]: starting transaction background task with id=[%lx].",obj,obj->bg_task_id);
+		if (obj->bg_task_id) belle_sip_message("Transaction [%p]: starting transaction background task with id=[%lx].",obj,obj->bg_task_id);
 	}
 }
 
