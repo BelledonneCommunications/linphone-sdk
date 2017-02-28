@@ -105,8 +105,8 @@ if(APPLE)
 	endif()
 endif()
 
-apply_compile_flags(SOURCE_FILES_C "CPP" "C")
-apply_compile_flags(SOURCE_FILES_OBJC "CPP" "OBJC")
+bc_apply_compile_flags(SOURCE_FILES_C STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
+bc_apply_compile_flags(SOURCE_FILES_OBJC STRICT_OPTIONS_CPP STRICT_OPTIONS_OBJC)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 

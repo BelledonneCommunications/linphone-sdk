@@ -108,21 +108,6 @@ cmake_dependent_option(ENABLE_QNX "Build medistreamer2 with BB10 filters." NO "E
 cmake_dependent_option(ENABLE_VT_H264 "Build mediastreamer2 with H264 encoder/decoder based on VirtualToolbox (Apple only)" YES "ENABLE_VIDEO" NO)
 option(ENABLE_JPEG "Enable JPEG support" YES)
 
-macro(apply_compile_flags SOURCE_FILES)
-	if(${SOURCE_FILES})
-		set(options "")
-		foreach(a ${ARGV})
-			if(STRICT_OPTIONS_${a})
-				string(REPLACE ";" " " options_${a} "${STRICT_OPTIONS_${a}}")
-				set(options "${options} ${options_${a}}")
-			endif()
-		endforeach()
-		if(options)
-			set_source_files_properties(${${SOURCE_FILES}} PROPERTIES COMPILE_FLAGS "${options}")
-		endif()
-	endif()
-endmacro()
-
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
