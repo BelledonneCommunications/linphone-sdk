@@ -48,27 +48,12 @@ option(ENABLE_TESTS_COMPONENT "Enable compilation of tests helper library" ON)
 option(ENABLE_TESTS "Enable compilation of tests" ON)
 
 
-macro(apply_compile_flags SOURCE_FILES)
-	if(${SOURCE_FILES})
-		set(options "")
-		foreach(a ${ARGV})
-			if(STRICT_OPTIONS_${a})
-				string(REPLACE ";" " " options_${a} "${STRICT_OPTIONS_${a}}")
-				set(options "${options} ${options_${a}}")
-			endif()
-		endforeach()
-		if(options)
-			set_source_files_properties(${${SOURCE_FILES}} PROPERTIES COMPILE_FLAGS "${options}")
-		endif()
-	endif()
-endmacro()
-
-
 include(CheckLibraryExists)
 include(CheckSymbolExists)
 include(CheckCSourceCompiles)
 include(CMakePushCheckState)
 include(GNUInstallDirs)
+include(cmake/BcToolboxCMakeUtils.cmake)
 
 add_subdirectory(build)
 
@@ -226,6 +211,7 @@ configure_file(cmake/BcToolboxConfig.cmake.in
 	"${CMAKE_CURRENT_BINARY_DIR}/BcToolboxConfig.cmake"
 	@ONLY
 )
+configure_file(cmake/BcToolboxCMakeUtils.cmake "${CMAKE_CURRENT_BINARY_DIR}/BcToolboxCMakeUtils.cmake" COPYONLY)
 
 set(CONFIG_PACKAGE_LOCATION "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/cmake")
 install(EXPORT ${EXPORT_TARGETS_NAME}Targets
@@ -235,5 +221,6 @@ install(EXPORT ${EXPORT_TARGETS_NAME}Targets
 install(FILES
 	"${CMAKE_CURRENT_BINARY_DIR}/BcToolboxConfig.cmake"
 	"${CMAKE_CURRENT_BINARY_DIR}/BcToolboxConfigVersion.cmake"
+	"${CMAKE_CURRENT_BINARY_DIR}/BcToolboxCMakeUtils.cmake"
 	DESTINATION ${CONFIG_PACKAGE_LOCATION}
 )
