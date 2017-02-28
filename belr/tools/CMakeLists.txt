@@ -28,7 +28,7 @@ endif()
 
 foreach(EXECTUABLE belr-parse belr-demo)
 	set(SOURCE_FILES_CXX ${EXECTUABLE}.cc)
-	apply_compile_flags(SOURCE_FILES_CXX "CPP" "CXX")
+	bc_apply_compile_flags(SOURCE_FILES_CXX STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
 	add_executable(${EXECTUABLE} ${SOURCE_FILES_CXX})
 	set_target_properties(${EXECTUABLE} PROPERTIES LINKER_LANGUAGE CXX)
 	target_link_libraries(${EXECTUABLE} ${BELR_LIBRARIES_FOR_TOOLS} ${BCTOOLBOX_CORE_LIBRARIES})
