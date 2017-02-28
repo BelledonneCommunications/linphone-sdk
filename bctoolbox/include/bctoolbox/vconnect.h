@@ -38,11 +38,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <unistd.h>
 #endif
 
-#if !defined(_WIN32) && !defined(_WIN32_WCE)
-#define getSocketError() strerror(errno)
-#else
-#define getSocketError()       __bctbx_getWinSocketError(WSAGetLastError())
-#endif
 
 #define BCTBX_VCONNECT_OK         0   /* Successful result */
 
