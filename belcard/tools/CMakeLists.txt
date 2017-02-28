@@ -28,7 +28,7 @@ endif()
 
 foreach(EXECTUABLE belcard-folder belcard-unfolder belcard-parser)
 	set(SOURCE_FILES_CXX ${EXECTUABLE}.cpp)
-	apply_compile_flags(SOURCE_FILES_CXX "CPP" "CXX")
+	bc_apply_compile_flags(SOURCE_FILES_CXX STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
 	add_executable(${EXECTUABLE} ${SOURCE_FILES_CXX})
 	set_target_properties(${EXECTUABLE} PROPERTIES LINKER_LANGUAGE CXX)
 	target_link_libraries(${EXECTUABLE} ${BELCARD_LIBRARIES_FOR_TOOLS} ${BELR_LIBRARIES})
