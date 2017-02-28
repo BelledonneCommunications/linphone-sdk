@@ -51,8 +51,8 @@ if (IOS)
 endif()
 
 string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
-apply_compile_flags(SOURCE_FILES_C "CPP" "C")
-apply_compile_flags(SOURCE_FILES_OBJC "CPP" "OBJC")
+bc_apply_compile_flags(SOURCE_FILES_C STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
+bc_apply_compile_flags(SOURCE_FILES_OBJC STRICT_OPTIONS_CPP STRICT_OPTIONS_OBJC)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 	add_library(belle_sip_tester_static STATIC ${SOURCE_FILES_C})
@@ -110,7 +110,7 @@ else()
 
 
 	set(OBJECT_DESCRIBE_SOURCES describe.c)
-	apply_compile_flags(OBJECT_DESCRIBE_SOURCES "CPP" "C")
+	bc_apply_compile_flags(OBJECT_DESCRIBE_SOURCES STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
 	add_executable(belle_sip_object_describe ${USE_BUNDLE} ${OBJECT_DESCRIBE_SOURCES})
 	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 		set_target_properties(belle_sip_object_describe PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
@@ -120,7 +120,7 @@ else()
 
 	set(PARSE_SOURCES parse.c)
 
-	apply_compile_flags(PARSE_SOURCES "CPP" "C")
+	bc_apply_compile_flags(PARSE_SOURCES STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
 	add_executable(belle_sip_parse ${USE_BUNDLE} ${PARSE_SOURCES})
 	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 		set_target_properties(belle_sip_parse PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")

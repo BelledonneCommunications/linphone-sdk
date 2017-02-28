@@ -42,22 +42,6 @@ option(ENABLE_TUNNEL "Enable tunnel support" OFF)
 option(ENABLE_TESTS "Enable compilation of tests" ON)
 
 
-macro(apply_compile_flags SOURCE_FILES)
-	if(${SOURCE_FILES})
-		set(options "")
-		foreach(a ${ARGV})
-			if(STRICT_OPTIONS_${a})
-				string(REPLACE ";" " " options_${a} "${STRICT_OPTIONS_${a}}")
-				set(options "${options} ${options_${a}}")
-			endif()
-		endforeach()
-		if(options)
-			set_source_files_properties(${${SOURCE_FILES}} PROPERTIES COMPILE_FLAGS "${options}")
-		endif()
-	endif()
-endmacro()
-
-
 include(CheckLibraryExists)
 include(CheckSymbolExists)
 include(CheckCSourceCompiles)
