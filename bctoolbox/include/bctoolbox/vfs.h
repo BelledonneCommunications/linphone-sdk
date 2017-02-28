@@ -91,6 +91,7 @@ struct bctbx_io_methods_t {
 	int (*pFuncClose)(bctbx_vfs_file_t *pFile);
 	ssize_t (*pFuncRead)(bctbx_vfs_file_t *pFile, void* buf, size_t count, off_t offset);
 	ssize_t (*pFuncWrite)(bctbx_vfs_file_t *pFile, const void* buf, size_t count, off_t offset);
+	int (*pFuncTruncate)(bctbx_vfs_file_t *pFile, int64_t size); 
 	int64_t (*pFuncFileSize)(bctbx_vfs_file_t *pFile);
 	int (*pFuncGetLineFromFd)(bctbx_vfs_file_t *pFile, char* s, int count);
 	off_t (*pFuncSeek)(bctbx_vfs_file_t *pFile, off_t offset, int whence);
@@ -161,6 +162,14 @@ BCTBX_PUBLIC bctbx_vfs_file_t* bctbx_file_open2(bctbx_vfs_t *pVfs, const char *f
  * @return       BCTBX_VFS_ERROR if an error occured, file size otherwise. 
  */
 BCTBX_PUBLIC int64_t bctbx_file_size(bctbx_vfs_file_t *pFile);
+
+/**
+ * Truncates/ Extends a file.
+ * @param  pFile bctbx_vfs_file_t File handle pointer.
+ * @param  size  New size of the file.
+ * @return       BCTBX_VFS_ERROR if an error occured, 0 otherwise. 
+ */
+BCTBX_PUBLIC int bctbx_file_truncate(bctbx_vfs_file_t *pFile, int64_t size);
 
 /**
  * Write count bytes contained in buf to a file associated with pFile at the position
