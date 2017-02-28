@@ -43,9 +43,9 @@ static bctbx_socket_t vsocket_socket(int socket_family, int socket_type, int pro
 
 static int vsocket_connect(bctbx_socket_t sock, const struct sockaddr *address, socklen_t address_len){
 	#ifdef _WIN32
-		return bind(sock, address, (int)address_len);
+		return connect(sock, address, (int)address_len);
 	#else 
-		return bind(sock, address, address_len);
+		return connect(sock, address, address_len);
 	#endif
 }
 
