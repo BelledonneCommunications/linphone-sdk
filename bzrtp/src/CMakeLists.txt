@@ -34,7 +34,7 @@ elseif(MBEDTLS_FOUND)
 	list(APPEND SOURCE_FILES cryptoMbedtls.c)
 endif()
 
-apply_compile_flags(SOURCE_FILES "CPP")
+bc_apply_compile_flags(SOURCE_FILES STRICT_OPTIONS_CPP)
 
 if(ENABLE_STATIC)
 	add_library(bzrtp-static STATIC ${SOURCE_FILES})

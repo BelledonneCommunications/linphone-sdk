@@ -34,7 +34,7 @@ set(TEST_SOURCES
 	../src/zidCache.c
 )
 
-apply_compile_flags(TEST_SOURCES "CPP")
+bc_apply_compile_flags(TEST_SOURCES STRICT_OPTIONS_CPP)
 
 add_executable(bzrtpTest ${TEST_SOURCES})
 set_target_properties(bzrtpTest PROPERTIES LINK_FLAGS "${LINK_FLAGS}")

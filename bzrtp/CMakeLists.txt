@@ -31,22 +31,6 @@ option(ENABLE_STRICT "Build with strict compile options." YES)
 option(ENABLE_TESTS "Enable compilation of unit tests." NO)
 
 
-macro(apply_compile_flags SOURCE_FILES)
-	if(${SOURCE_FILES})
-		set(options "")
-		foreach(a ${ARGV})
-			if(STRICT_OPTIONS_${a})
-				string(REPLACE ";" " " options_${a} "${STRICT_OPTIONS_${a}}")
-				set(options "${options} ${options_${a}}")
-			endif()
-		endforeach()
-		if(options)
-			set_source_files_properties(${${SOURCE_FILES}} PROPERTIES COMPILE_FLAGS "${options}")
-		endif()
-	endif()
-endmacro()
-
-
 if(NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
 	set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_FULL_LIBDIR})
 	message(STATUS "Setting install rpath to ${CMAKE_INSTALL_RPATH}")
