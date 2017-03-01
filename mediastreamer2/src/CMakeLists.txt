@@ -659,7 +659,7 @@ if(ENABLE_SHARED)
 		# Do not version shared library on Android
 		set_target_properties(mediastreamer_voip PROPERTIES SOVERSION ${MEDIASTREAMER_SO_VERSION})
 	endif()
-	target_link_libraries(mediastreamer_voip mediastreamer_base ${VOIP_LIBS})
+	target_link_libraries(mediastreamer_voip PRIVATE mediastreamer_base ${VOIP_LIBS})
 	if(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
 			install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/mediastreamer_voip.pdb
