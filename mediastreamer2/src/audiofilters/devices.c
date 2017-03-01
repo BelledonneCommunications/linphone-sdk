@@ -138,7 +138,7 @@ static SoundDeviceDescription devices[]={
 	{ 	"samsung", 				"SM-G530H", 			"", 			DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
 	{ 	"samsung", 				"SM-J110H", 			"", 			DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
 	{ 	"samsung", 				"SM-N910C", 			"", 			DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
-	
+
 	{	"Sony Ericsson",		"ST15a",				"",				0, 	150 },
 	{	"Sony Ericsson",		"S51SE",				"",				0,	150 },
 	{	"Sony Ericsson",		"SK17i",				"",				0,	140 },
@@ -159,7 +159,7 @@ static SoundDeviceDescription devices[]={
 	{ 	"Sony", 				"D6603", 				"msm8974",		DEVICE_HAS_BUILTIN_AEC_CRAPPY,	280},
 	{	"Sony",					"D2005",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA,	0},
 	{ 	"Sony", 				"E2115", 				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0},
-	
+
 	{	"asus",					"Nexus 7",				"", 			0, 170},
 	{	"asus",					"K00E",					"clovertrail", 	0, 200},
 
@@ -178,7 +178,7 @@ static SoundDeviceDescription devices[]={
 	{	"Vodafone",				"Vodafone 985N",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
 	{	"Acer",					"S57",							"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
 	{ 	"Acer", 				"Z410", 						"", 			DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
-	
+
 	{	"Alcatel",				"4027D",						"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
 	{	"Alcatel", 				"7045Y", 						"", 			DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
 
@@ -191,8 +191,9 @@ static SoundDeviceDescription devices[]={
 	{ 	"HUAWEI", 				"HUAWEI P6-U06", 				"", 			DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
 	{ 	"HUAWEI", 				"Hol-U19", 						"", 			DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
 	{ 	"HUAWEI", 				"302HW", 						"", 			DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
-	
+
 	{ 	"WIKO", 				"HIGHWAY 4G",	 				"tegra", 		DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{   "Symphony",				"HIGHWAY 4G",					"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
 
 	{	NULL, 					NULL, 					NULL,			0, 	0,	0}
 };
