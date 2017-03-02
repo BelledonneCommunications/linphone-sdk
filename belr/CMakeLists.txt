@@ -21,12 +21,8 @@
 ############################################################################
 
 cmake_minimum_required(VERSION 3.0)
-project(BELR C CXX)
+project(BELR VERSION 0.1.2 LANGUAGES C CXX)
 
-set(BELR_MAJOR_VERSION "0")
-set(BELR_MINOR_VERSION "1")
-set(BELR_MICRO_VERSION "2")
-set(BELR_VERSION "${BELR_MAJOR_VERSION}.${BELR_MINOR_VERSION}.${BELR_MICRO_VERSION}")
 set(BELR_SO_VERSION "1")
 
 option(ENABLE_SHARED "Build shared library." ON)
@@ -140,3 +136,16 @@ install(FILES
 	"${CMAKE_CURRENT_BINARY_DIR}/BelrConfig.cmake"
 	DESTINATION ${ConfigPackageLocation}
 )
+
+
+# CPack settings
+set(CPACK_PACKAGE_NAME "belr")
+set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
+set(CPACK_SOURCE_GENERATOR "TGZ")
+set(CPACK_SOURCE_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}")
+set(CPACK_SOURCE_IGNORE_FILES
+        "^${CMAKE_BINARY_DIR}"
+        "/\\\\..+"
+)
+
+include(CPack)
