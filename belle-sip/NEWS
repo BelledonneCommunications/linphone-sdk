@@ -1,3 +1,6 @@
+belle_sip-1.6.1 -- March 2nd, 2017
+	* Fix bug around nsswitch.conf parsing on GNU/Linux
+
 belle-sip-1.6.0 -- February 23th, 2017
 
 belle-sip-1.5.0 -- August 8th, 2016

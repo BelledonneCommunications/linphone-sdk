@@ -21,7 +21,7 @@
 ############################################################################
 
 cmake_minimum_required(VERSION 3.0)
-project(belle-sip VERSION 1.6.0 LANGUAGES C CXX)
+project(belle-sip VERSION 1.6.1 LANGUAGES C CXX)
 
 
 set(PACKAGE "${PROJECT_NAME}")
@@ -258,3 +258,16 @@ install(FILES
 	"${CMAKE_CURRENT_BINARY_DIR}/BelleSIPConfigVersion.cmake"
 	DESTINATION ${CONFIG_PACKAGE_LOCATION}
 )
+
+
+# CPack settings
+set(CPACK_PACKAGE_NAME "belle-sip")
+set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
+set(CPACK_SOURCE_GENERATOR "TGZ")
+set(CPACK_SOURCE_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}")
+set(CPACK_SOURCE_IGNORE_FILES
+        "^${CMAKE_BINARY_DIR}"
+        "/\\\\..+"
+)
+
+include(CPack)
