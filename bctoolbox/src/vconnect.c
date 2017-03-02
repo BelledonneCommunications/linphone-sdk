@@ -33,7 +33,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 
-
+/**============================================================
+ * Wrappers around default libc calls used to handle windows
+ * differences in function prototypes. 
+ *=============================================================*/
 
 static bctbx_socket_t vsocket_socket(int socket_family, int socket_type, int protocol){
 	return socket(socket_family, socket_type, protocol);
@@ -49,9 +52,7 @@ static int vsocket_connect(bctbx_socket_t sock, const struct sockaddr *address, 
 	#endif
 }
 
-/**
- * Calls bind : wrapper around bind to avoid windows address_len type problem.
- */
+
 static int vsocket_bind(bctbx_socket_t sock, const struct sockaddr *address, socklen_t address_len){
 	#ifdef _WIN32
 		return bind(sock, address, (int)address_len);
@@ -71,7 +72,7 @@ static int vsocket_getsockname(bctbx_socket_t sockfd, struct sockaddr *addr, soc
 
 static int vsocket_getsockopt(bctbx_socket_t sockfd, int level, int optname, 
 						void *optval, socklen_t* optlen){
-		#ifdef _WIN32
+	#ifdef _WIN32
 		return getsockopt(sockfd, level, optname, (char*)optval,  (int*)optlen);
 	#else 
 		return getsockopt(sockfd, level, optname, optval,  optlen);
@@ -93,9 +94,9 @@ static int vsocket_setsockopt(bctbx_socket_t sockfd, int level, int optname,
 static int vsocket_close(bctbx_socket_t sock){
 	#ifdef _WIN32
 	return closesocket(sock);
-#else
+	#else
 	return close(sock);
-#endif
+	#endif
 }
 
 static int vsocket_shutdown(bctbx_socket_t sock, int how){
@@ -107,7 +108,9 @@ static int vsocket_shutdown(bctbx_socket_t sock, int how){
 static char* vsocket_error(int err){  
 	 return strerror (err);
 }
+
 #else
+
 static const char* vsocket_error(int err){  
 	 return __bctbx_getWinSocketError(err);
  }
@@ -195,7 +198,10 @@ const char* bctbx_socket_error(int err){
 
 void bctbx_vsocket_api_set_default(bctbx_vsocket_api_t *my_vsocket_api) {
 
-	if (my_vsocket_api != NULL){
+	if (my_vsocket_api == NULL){
+		pDefaultvSocket = &bcvSocket;
+	}
+	else {
 		pDefaultvSocket = my_vsocket_api ;
 	}
 

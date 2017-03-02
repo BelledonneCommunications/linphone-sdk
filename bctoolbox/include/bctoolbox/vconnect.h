@@ -194,7 +194,8 @@ BCTBX_PUBLIC const char* bctbx_socket_error(int err);
 #endif 
 
 /**
- * Set default bctbx_vsocket_api_t pointer pDefaultvSocket to my_vsocket_api.
+ * Set default bctbx_vsocket_api_t pointer pDefaultvSocket to my_vsocket_api
+ * if it is not NULL, sets it to the standard API implementation otherwise.
  * By default, the global pointer is set to use bcvSocket implemented in vconnect.c 
  * @param my_vsocket_api Pointer to a bctbx_vsocket_api_t structure. 
  */
