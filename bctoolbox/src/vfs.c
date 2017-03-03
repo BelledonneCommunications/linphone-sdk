@@ -155,6 +155,29 @@ static int64_t bcFileSize(bctbx_vfs_file_t *pFile) {
 	return sStat.st_size;
 }
 
+
+/*
+ ** Truncate a file
+ * @param pFile File handle pointer.
+ * @param new_size Extends the file with null bytes if it is superiori to the file's size
+ *                 truncates the file otherwise.
+ * @return -errno if an error occurred, 0 otherwise.
+  */
+static int bcTruncate(bctbx_vfs_file_t *pFile, int64_t new_size){
+	
+	int ret;
+	
+	#if _WIN32
+	ret = _chsize(pFile->fd, (long)new_size);
+	#else
+	ret = ftruncate(pFile->fd, new_size);
+	#endif	
+
+	if (ret < 0) {
+		return -errno;
+	}
+	return 0;
+}
 /**
  * Gets a line of max_len length and stores it to the allocaed buffer s.
  * Reads at most max_len characters from the file descriptor associated with the argument pFile
@@ -234,6 +257,7 @@ static const  bctbx_io_methods_t bcio = {
 	bcClose,                    /* pFuncClose */
 	bcRead,                     /* pFuncRead */
 	bcWrite,                    /* pFuncWrite */
+	bcTruncate,					/* pFuncTruncate */
 	bcFileSize,                 /* pFuncFileSize */
 	bcGetLine,
 	bcSeek,
@@ -346,6 +370,7 @@ int bctbx_file_close(bctbx_vfs_file_t *pFile) {
 }
 
 
+
 int64_t bctbx_file_size(bctbx_vfs_file_t *pFile) {
 	int64_t ret = BCTBX_VFS_ERROR;
 	if (pFile){
@@ -355,6 +380,15 @@ int64_t bctbx_file_size(bctbx_vfs_file_t *pFile) {
 	return ret;
 }
 
+
+int bctbx_file_truncate(bctbx_vfs_file_t *pFile, int64_t size) {
+	int ret = BCTBX_VFS_ERROR;
+	if (pFile){
+		ret = pFile->pMethods->pFuncTruncate(pFile, size);
+		if (ret < 0) bctbx_error("bctbx_file_truncate: Error truncate  %s", strerror((int)-(ret)));
+	} 
+	return ret;
+}
 
 ssize_t bctbx_file_fprintf(bctbx_vfs_file_t *pFile, off_t offset, const char *fmt, ...) {
 	char *ret = NULL;
