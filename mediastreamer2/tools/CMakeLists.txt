@@ -57,7 +57,7 @@ foreach(simple_executable ${simple_executables})
 endforeach()
 
 set(ECHO_SOURCE_FILES echo.c)
-apply_compile_flags(ECHO_SOURCE_FILES "CPP" "C")
+bc_apply_compile_flags(ECHO_SOURCE_FILES STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
 add_executable(ms-echo ${USE_BUNDLE} ${ECHO_SOURCE_FILES}) # Do not name the target "echo" to avoid conflict with the shell echo command
 target_link_libraries(ms-echo ${MS2_LIBS_FOR_TOOLS} ${ORTP_LIBRARIES})
 if(LINK_FLAGS_STR)
