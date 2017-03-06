@@ -36,6 +36,7 @@ endif()
 
 find_library(TURBOJPEG_LIBRARIES
 	NAMES turbojpeg turbojpeg-static
+	PATH_SUFFIXES bin lib
 )
 
 include(FindPackageHandleStandardArgs)
