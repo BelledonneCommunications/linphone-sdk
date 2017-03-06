@@ -111,8 +111,8 @@ static char* vsocket_error(int err){
 
 #else
 
-static const char* vsocket_error(int err){  
-	 return __bctbx_getWinSocketError(err);
+static  char* vsocket_error(int err){  
+	 return (char*)__bctbx_getWinSocketError(err);
  }
 #endif
 
@@ -186,15 +186,10 @@ int bctbx_shutdown(bctbx_socket_t sock, int how){
 	return pDefaultvSocket->pSocketMethods->pFuncShutdown(sock, how);
 }
 
-#if	!defined(_WIN32) && !defined(_WIN32_WCE) 	 
+
 char* bctbx_socket_error(int err){
 	return pDefaultvSocket->pSocketMethods->pFuncGetError(err);
 }
-#else
-const char* bctbx_socket_error(int err){
-	return pDefaultvSocket->pSocketMethods->pFuncGetError(err);
-}
-#endif 
 
 void bctbx_vsocket_api_set_default(bctbx_vsocket_api_t *my_vsocket_api) {
 

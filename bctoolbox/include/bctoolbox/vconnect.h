@@ -69,11 +69,7 @@ struct bctbx_vsocket_methods_t {
 	int (*pFuncSetSockOpt)(bctbx_socket_t sockfd, int level, int optname, 
 							const void *optval, socklen_t optlen);
 	int (*pFuncClose)(bctbx_socket_t sock);
-	#if !defined(_WIN32) && !defined(_WIN32_WCE)
 	char* (*pFuncGetError)(int err);
-	#else
-	const char* (*pFuncGetError)(int err);
-	#endif
 	int (*pFuncShutdown)(bctbx_socket_t sock, int how);
 
 
@@ -187,11 +183,8 @@ BCTBX_PUBLIC int bctbx_connect(bctbx_socket_t sockfd, const struct sockaddr *add
  * @param  err should be set to errno
  * @return     Error description
  */
-#if !defined(_WIN32) && !defined(_WIN32_WCE)
 BCTBX_PUBLIC char* bctbx_socket_error(int err);
-#else
-BCTBX_PUBLIC const char* bctbx_socket_error(int err);
-#endif 
+
 
 /**
  * Set default bctbx_vsocket_api_t pointer pDefaultvSocket to my_vsocket_api
