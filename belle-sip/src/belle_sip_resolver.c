@@ -1148,7 +1148,7 @@ It works on all platform except for windows using ipv6 sockets. TODO: find a wor
 */
 int belle_sip_get_src_addr_for(const struct sockaddr *dest, socklen_t destlen, struct sockaddr *src, socklen_t *srclen, int local_port){
 	int af_type=dest->sa_family;
-	int sock=(int)socket(af_type,SOCK_DGRAM,IPPROTO_UDP);
+	int sock=(int)bctbx_socket(af_type,SOCK_DGRAM,IPPROTO_UDP);
 	int ret = 0;
 	
 	if (sock==(belle_sip_socket_t)-1){
@@ -1163,15 +1163,15 @@ int belle_sip_get_src_addr_for(const struct sockaddr *dest, socklen_t destlen, s
 		and unable to provide a correct local address if the remote address is true ipv6 address when in dual stack mode*/
 		belle_sip_socket_enable_dual_stack(sock);
 	}
-	
-	if (connect(sock,dest,destlen)==-1){
+	if (bctbx_connect(sock,dest,destlen)==-1){
+	//if (connect(sock,dest,destlen)==-1){
 		ret = -get_socket_error();
-		belle_sip_error("belle_sip_get_src_addr_for: connect() failed: %s",belle_sip_get_socket_error_string_from_code(-ret));
+		belle_sip_error("belle_sip_get_src_addr_for: bctbx_connect() failed: %s",belle_sip_get_socket_error_string_from_code(-ret));
 		goto fail;
 	}
-	if (getsockname(sock,src,srclen)==-1){
+	if (bctbx_getsockname(sock,src,srclen)==-1){
 		ret = -get_socket_error();
-		belle_sip_error("belle_sip_get_src_addr_for: getsockname() failed: %s",belle_sip_get_socket_error_string_from_code(-ret));
+		belle_sip_error("belle_sip_get_src_addr_for: bctbx_getsockname() failed: %s",belle_sip_get_socket_error_string_from_code(-ret));
 		goto fail;
 	}
 	

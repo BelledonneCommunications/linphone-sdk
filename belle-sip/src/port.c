@@ -244,7 +244,7 @@ int belle_sip_socket_set_dscp(belle_sip_socket_t sock, int ai_family, int dscp){
 			belle_sip_error("Cannot set DSCP because socket family is unspecified.");
 			return -1;
 	}
-	retval = setsockopt(sock, proto, value_type, (const char*)&tos, sizeof(tos));
+	retval = bctbx_setsockopt(sock, proto, value_type, (const char*)&tos, sizeof(tos));
 	if (retval==-1)
 		belle_sip_error("Fail to set DSCP value on socket: %s",belle_sip_get_socket_error_string());
 	return retval;
@@ -255,9 +255,9 @@ int belle_sip_socket_set_dscp(belle_sip_socket_t sock, int ai_family, int dscp){
 
 int belle_sip_socket_enable_dual_stack(belle_sip_socket_t sock){
 	int value=0;
-	int err=setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY, (const char*)&value, sizeof(value));
+	int err=bctbx_setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY, (const char*)&value, sizeof(value));
 	if (err==-1){
-		belle_sip_warning("belle_sip_socket_enable_dual_stack: setsockopt(IPV6_ONLY) failed: %s",belle_sip_get_socket_error_string());
+		belle_sip_warning("belle_sip_socket_enable_dual_stack: bctbx_setsockopt(IPV6_ONLY) failed: %s",belle_sip_get_socket_error_string());
 	}
 	return err;
 }

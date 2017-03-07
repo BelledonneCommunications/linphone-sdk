@@ -70,6 +70,9 @@ static belle_sip_socket_t create_udp_socket(const char *addr, int *port, int *fa
 	
 	if (*port==-1) *port=0; /*random port for bind()*/
 
+	belle_sip_set_socket_api(NULL);
+
+
 	snprintf(portnum,sizeof(portnum),"%i",*port);
 	hints.ai_family=AF_UNSPEC;
 	hints.ai_socktype=SOCK_DGRAM;
@@ -81,13 +84,13 @@ static belle_sip_socket_t create_udp_socket(const char *addr, int *port, int *fa
 		return -1;
 	}
 	*family=res->ai_family;
-	sock=socket(res->ai_family,res->ai_socktype,res->ai_protocol);
+	sock=bctbx_socket(res->ai_family,res->ai_socktype,res->ai_protocol);
 	if (sock==-1){
 		belle_sip_error("Cannot create UDP socket: %s",belle_sip_get_socket_error_string());
 		freeaddrinfo(res);
 		return -1;
 	}
-	err = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR,
+	err = bctbx_setsockopt(sock, SOL_SOCKET, SO_REUSEADDR,
 			(char*)&optval, sizeof (optval));
 	if (err == -1){
 		belle_sip_warning ("Fail to set SIP/UDP address reusable: %s.", belle_sip_get_socket_error_string());
@@ -96,7 +99,7 @@ static belle_sip_socket_t create_udp_socket(const char *addr, int *port, int *fa
 		belle_sip_socket_enable_dual_stack(sock);
 	}
 	
-	err=bctbx_bind(sock,res->ai_addr,(socklen_t)res->ai_addrlen);
+	err=bctbx_bind(sock,res->ai_addr,(socklen_t)res->ai_addrlen);	
 	if (err==-1){
 		belle_sip_error("udp bind() failed for %s port %i: %s",addr,*port,belle_sip_get_socket_error_string());
 		belle_sip_close_socket(sock);
@@ -107,14 +110,14 @@ static belle_sip_socket_t create_udp_socket(const char *addr, int *port, int *fa
 	if (*port==0){
 		struct sockaddr_storage saddr;
 		socklen_t saddr_len=sizeof(saddr);
-		err=getsockname(sock,(struct sockaddr*)&saddr,&saddr_len);
+		err=bctbx_getsockname(sock,(struct sockaddr*)&saddr,&saddr_len);
 		if (err==0){
 			err=bctbx_getnameinfo((struct sockaddr*)&saddr,saddr_len,NULL,0,portnum,sizeof(portnum),NI_NUMERICSERV|NI_NUMERICHOST);
 			if (err==0){
 				*port=atoi(portnum);
 				belle_sip_message("Random UDP port is %i",*port);
 			}else belle_sip_error("udp bind failed, getnameinfo(): %s",gai_strerror(err));
-		}else belle_sip_error("udp bind failed, getsockname(): %s",belle_sip_get_socket_error_string());
+		}else belle_sip_error("udp bind failed, bctbx_getsockname(): %s",belle_sip_get_socket_error_string());
 	}
 	return sock;
 }
