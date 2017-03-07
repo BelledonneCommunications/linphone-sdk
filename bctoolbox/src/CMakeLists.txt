@@ -25,6 +25,7 @@ set(BCTOOLBOX_C_SOURCE_FILES
 	logging/logging.c
 	utils/port.c
 	vfs.c
+	vconnect.c
 )
 
 set(BCTOOLBOX_CXX_SOURCE_FILES containers/map.cc)

@@ -24,6 +24,7 @@
 
 #include "bctoolbox/logging.h"
 #include "bctoolbox/port.h"
+#include "bctoolbox/vconnect.h"
 #include "bctoolbox/list.h"
 #include "utils.h"
 
@@ -121,18 +122,6 @@ int bctbx_socket_set_non_blocking(bctbx_socket_t sock){
 }
 
 
-/*
- * this method is an utility method that calls close() on UNIX or
- * closesocket on Win32.
- * int retrun the result of the system method
- */
-int bctbx_socket_close(bctbx_socket_t sock){
-#if	!defined(_WIN32) && !defined(_WIN32_WCE)
-	return close (sock);
-#else
-	return closesocket(sock);
-#endif
-}
 
 int bctbx_file_exist(const char *pathname) {
 	return access(pathname,F_OK);
@@ -999,13 +988,6 @@ bool_t bctbx_is_multicast_addr(const struct sockaddr *addr) {
 
 #ifdef _WIN32
 
-int bctbx_bind(bctbx_socket_t socket, const struct sockaddr *address, socklen_t address_len) {
-	return bind(socket, address, (int)address_len);
-}
-
-int bctbx_connect(bctbx_socket_t socket, const struct sockaddr *address, socklen_t address_len) {
-	return connect(socket, address, (int)address_len);
-}
 
 ssize_t bctbx_send(bctbx_socket_t socket, const void *buffer, size_t length, int flags) {
 	return send(socket, (const char *)buffer, (int)length, flags);
@@ -1032,14 +1014,6 @@ ssize_t bctbx_write(int fd, const void *buf, size_t nbytes) {
 }
 
 #else
-
-int bctbx_bind(bctbx_socket_t socket, const struct sockaddr *address, socklen_t address_len) {
-	return bind(socket, address, address_len);
-}
-
-int bctbx_connect(bctbx_socket_t socket, const struct sockaddr *address, socklen_t address_len) {
-	return connect(socket, address, address_len);
-}
 
 ssize_t bctbx_send(bctbx_socket_t socket, const void *buffer, size_t length, int flags) {
 	return send(socket, buffer, length, flags);

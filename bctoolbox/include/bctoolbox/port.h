@@ -351,7 +351,6 @@ void bctbx_set_memory_functions(BctoolboxMemoryFunctions *functions);
 #define bctbx_new(type,count)	(type*)bctbx_malloc(sizeof(type)*(count))
 #define bctbx_new0(type,count)	(type*)bctbx_malloc0(sizeof(type)*(count))
 
-BCTBX_PUBLIC int bctbx_socket_close(bctbx_socket_t sock);
 BCTBX_PUBLIC int bctbx_socket_set_non_blocking(bctbx_socket_t sock);
 
 BCTBX_PUBLIC char *bctbx_strndup(const char *str,int n);
@@ -416,8 +415,6 @@ BCTBX_PUBLIC uint32_t bctbx_time_string_to_sec(const char *timeString);
 BCTBX_PUBLIC unsigned int bctbx_random(void);
 
 
-BCTBX_PUBLIC int bctbx_bind(bctbx_socket_t socket, const struct sockaddr *address, socklen_t address_len);
-BCTBX_PUBLIC int bctbx_connect(bctbx_socket_t socket, const struct sockaddr *address, socklen_t address_len);
 BCTBX_PUBLIC ssize_t bctbx_send(bctbx_socket_t socket, const void *buffer, size_t length, int flags);
 BCTBX_PUBLIC ssize_t bctbx_sendto(bctbx_socket_t socket, const void *message, size_t length, int flags, const struct sockaddr *dest_addr,	socklen_t dest_len);
 BCTBX_PUBLIC ssize_t bctbx_recv(bctbx_socket_t socket, void *buffer, size_t length, int flags);
