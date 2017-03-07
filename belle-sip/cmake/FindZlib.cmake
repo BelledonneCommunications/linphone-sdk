@@ -26,8 +26,8 @@
 #  ZLIB_INCLUDE_DIRS - the zlib include directory
 #  ZLIB_LIBRARIES - The libraries needed to use zlib
 
-if(APPLE AND NOT IOS)
-	set(ZLIB_HINTS "/usr")
+if(APPLE AND NOT IOS AND NOT CMAKE_FIND_ROOT_PATH)
+	set(CMAKE_FIND_ROOT_PATH ${CMAKE_OSX_SYSROOT}) #On MACOSX zlib is from xcode SDK
 endif()
 if(ZLIB_HINTS)
 	set(ZLIB_LIBRARIES_HINTS "${ZLIB_HINTS}/lib")
