@@ -20,33 +20,6 @@
 #
 ############################################################################
 
-set(CMAKE_SYSTEM_PROCESSOR "x86")
-set(ARCHITECTURE "x86")
-set(NDK_ARCHITECTURE "x86")
-set(COMPILER_PREFIX "i686-linux-android")
-set(CLANG_TARGET "i686-none-linux-androideabi")
+set(CMAKE_SYSTEM_PROCESSOR "i686")
+set(CMAKE_ANDROID_NDK_TOOLCHAIN_VERSION "clang")
 include("${CMAKE_CURRENT_LIST_DIR}/android/toolchain-android.cmake")
-
-add_compile_options(
-	"-ffunction-sections"
-	"-funwind-tables"
-	"-fstack-protector"
-	"-no-canonical-prefixes"
-	"-fomit-frame-pointer"
-	"-fstrict-aliasing"
-)
-
-if(NOT CLANG_EXECUTABLE)
-	add_compile_options(
-		"-funswitch-loops"
-		"-finline-limit=300"
-	)
-endif()
-
-link_libraries(
-	"-no-canonical-prefixes"
-	"-Wl,--no-undefined"
-	"-Wl,-z,noexecstack"
-	"-Wl,-z,relro"
-	"-Wl,-z,now"
-)

@@ -20,37 +20,7 @@
 #
 ############################################################################
 
-set(CMAKE_SYSTEM_PROCESSOR "armeabi-v7a")
-set(ARCHITECTURE "arm")
-set(NDK_ARCHITECTURE "armeabi-v7a")
-set(COMPILER_PREFIX "arm-linux-androideabi")
-set(CLANG_TARGET "armv7-none-linux-androideabi")
+set(CMAKE_SYSTEM_PROCESSOR "armv7-a")
+set(CMAKE_ANDROID_ARM_NEON 1)
+set(CMAKE_ANDROID_NDK_TOOLCHAIN_VERSION "clang")
 include("${CMAKE_CURRENT_LIST_DIR}/android/toolchain-android.cmake")
-
-add_compile_options(
-	"-ffunction-sections"
-	"-funwind-tables"
-	"-fstack-protector"
-	"-no-canonical-prefixes"
-	"-march=armv7-a"
-	"-mfpu=vfpv3-d16"
-	"-mfloat-abi=softfp"
-	"-fomit-frame-pointer"
-	"-fno-strict-aliasing"
-)
-
-if(NOT CLANG_EXECUTABLE)
-	add_compile_options(
-		"-finline-limit=64"
-	)
-endif()
-
-link_libraries(
-	"-march=armv7-a"
-	"-Wl,--fix-cortex-a8"
-	"-no-canonical-prefixes"
-	"-Wl,--no-undefined"
-	"-Wl,-z,noexecstack"
-	"-Wl,-z,relro"
-	"-Wl,-z,now"
-)

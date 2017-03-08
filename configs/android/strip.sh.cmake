@@ -1,3 +1,3 @@
 #!/bin/sh
 
-@TOOLCHAIN_STRIP@ $*
+@CMAKE_STRIP@ $*

@@ -44,7 +44,7 @@ else()
 	lcb_linking_type("-DENABLE_STATIC=YES")
 
 	if(ANDROID)
-		if(CMAKE_SYSTEM_PROCESSOR STREQUAL "armeabi-v7a")
+		if(CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7-a")
 			lcb_cmake_options("-DENABLE_ARMV7NEON=YES")
 		elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "armeabi")
 			lcb_cmake_options("-DENABLE_ARMV5E=YES")

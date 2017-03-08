@@ -75,6 +75,10 @@ include(builders/CMakeLists.txt)
 set(EP_bctoolbox_LINKING_TYPE "-DENABLE_STATIC=NO" "-DENABLE_SHARED=YES")
 lcb_builder_cmake_options(bctoolbox "-DENABLE_TESTS=NO")
 
+# belcard
+lcb_builder_cmake_options(belcard "-DENABLE_TOOLS=NO")
+lcb_builder_cmake_options(belcard "-DENABLE_UNIT_TESTS=NO")
+
 # belle-sip
 lcb_builder_cmake_options(bellesip "-DENABLE_TESTS=NO")
 
@@ -112,6 +116,7 @@ lcb_builder_cmake_options(ms2 "-DENABLE_V4L=NO")
 lcb_builder_cmake_options(ms2 "-DENABLE_X11=NO")
 lcb_builder_cmake_options(ms2 "-DENABLE_XV=NO")
 lcb_builder_cmake_options(ms2 "-DENABLE_DOC=NO")
+lcb_builder_cmake_options(ms2 "-DENABLE_UNIT_TESTS=NO")
 lcb_builder_linking_type(ms2 "-DENABLE_STATIC=NO" "-DENABLE_SHARED=YES")
 
 # openh264
@@ -121,6 +126,10 @@ endif()
 
 # opus
 lcb_builder_cmake_options(opus "-DENABLE_FIXED_POINT=YES")
+if(CMAKE_SYSTEM_PROCESSOR STREQUAL "armv5te")
+	lcb_builder_cmake_options(opus "-DENABLE_ASM=NO")
+	lcb_builder_cmake_options(opus "-DENABLE_INTRINSICS=NO")
+endif()
 
 # ortp
 lcb_builder_cmake_options(ortp "-DENABLE_DOC=NO")
@@ -132,7 +141,7 @@ lcb_builder_linking_type(polarssl "-DUSE_SHARED_POLARSSL_LIBRARY=NO")
 # speex
 lcb_builder_cmake_options(speex "-DENABLE_FLOAT_API=NO")
 lcb_builder_cmake_options(speex "-DENABLE_FIXED_POINT=YES")
-if(NDK_ARCHITECTURE STREQUAL "armeabi-v7a")
+if(CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7-a")
 	lcb_builder_cmake_options(speex "-DENABLE_ARM_NEON_INTRINSICS=YES")
 endif()
 
@@ -145,7 +154,7 @@ lcb_builder_install_target(x264 "install-lib-static")
 
 
 # Copy c++ library to install prefix
-file(COPY "${ANDROID_NDK_PATH}/sources/cxx-stl/gnu-libstdc++/${GCC_VERSION}/libs/${NDK_ARCHITECTURE}/libgnustl_shared.so"
+file(COPY "${CMAKE_ANDROID_NDK}/sources/cxx-stl/gnu-libstdc++/${CMAKE_CXX_ANDROID_TOOLCHAIN_VERSION}/libs/${CMAKE_ANDROID_ARCH_ABI}/libgnustl_shared.so"
 	DESTINATION "${CMAKE_INSTALL_PREFIX}/lib"
 )
 

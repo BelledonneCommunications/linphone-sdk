@@ -20,35 +20,5 @@
 #
 ############################################################################
 
-set(CMAKE_SYSTEM_PROCESSOR "armeabi")
-set(ARCHITECTURE "arm")
-set(NDK_ARCHITECTURE "armeabi")
-set(COMPILER_PREFIX "arm-linux-androideabi")
-set(CLANG_TARGET "arm-none-linux-androideabi")
+set(CMAKE_SYSTEM_PROCESSOR "armv5te")
 include("${CMAKE_CURRENT_LIST_DIR}/android/toolchain-android.cmake")
-
-add_compile_options(
-	"-ffunction-sections"
-	"-funwind-tables"
-	"-fstack-protector"
-	"-no-canonical-prefixes"
-	"-march=armv5te"
-	"-mtune=xscale"
-	"-msoft-float"
-	"-fomit-frame-pointer"
-	"-fno-strict-aliasing"
-)
-
-if(NOT CLANG_EXECUTABLE)
-	add_compile_options(
-		"-finline-limit=64"
-	)
-endif()
-
-link_libraries(
-	"-no-canonical-prefixes"
-	"-Wl,--no-undefined"
-	"-Wl,-z,noexecstack"
-	"-Wl,-z,relro"
-	"-Wl,-z,now"
-)
