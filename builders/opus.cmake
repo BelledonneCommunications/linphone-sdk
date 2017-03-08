@@ -44,7 +44,4 @@ else()
 		"COMMAND"
 		"${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/opus/config.h.cmake" "<SOURCE_DIR>"
 	)
-	if(ANDROID AND CMAKE_SYSTEM_PROCESSOR STREQUAL "armeabi-v7a")
-		lcb_cmake_options("-DENABLE_INTRINSICS=YES")
-	endif()
 endif()

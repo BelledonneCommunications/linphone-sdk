@@ -33,14 +33,49 @@ option(ENABLE_FIXED_POINT_DEBUG "Debug fixed-point implementation." NO)
 option(ENABLE_FLOAT_API "Compile with the floating point API (to disable for machines with no float library)." YES)
 option(ENABLE_FLOAT_APPROX "Enable fast approximations for floating point." NO)
 option(ENABLE_FUZZING "Causes the encoder to make random decisions." NO)
-option(ENABLE_INTRINSICS "Enable intrinsics optimizations for ARM(float) X86(fixed)." NO)
+option(ENABLE_INTRINSICS "Enable intrinsics optimizations." YES)
 option(ENABLE_RTCD "Enable run-time CPU capabilities detection." YES)
+
+
+include(CheckCSourceCompiles)
+include(CMakePushCheckState)
+
+macro(check_intrinsics NAME_OF_INTRINSICS COMPILER_FLAG_FOR_INTRINSICS VAR_IF_PRESENT VAR_IF_DEFAULT TEST_PROGRAM_BODY)
+	message(STATUS "Checking if compiler supports ${NAME_OF_INTRINSICS} intrinsics")
+	check_c_source_compiles("${TEST_PROGRAM_BODY}" ${VAR_IF_PRESENT})
+	if(${VAR_IF_PRESENT})
+		set(${VAR_IF_DEFAULT} ${VAR_IF_PRESENT})
+	else()
+		message(STATUS "Checking if compiler supports ${NAME_OF_INTRINSICS} intrinsics with ${COMPILER_FLAG_FOR_INTRINSICS}")
+		cmake_push_check_state(RESET)
+		string(REPLACE ";" " " COMPILER_FLAG_FOR_INTRINSICS_STR "${COMPILER_FLAG_FOR_INTRINSICS}")
+		set(CMAKE_REQUIRED_FLAGS "${COMPILER_FLAG_FOR_INTRINSICS_STR}")
+		check_c_source_compiles("${TEST_PROGRAM_BODY}" ${VAR_IF_PRESENT}_FLAGS)
+		if(${VAR_IF_PRESENT}_FLAGS)
+			set(${VAR_IF_PRESENT} ${${VAR_IF_PRESENT}_FLAGS})
+		endif()
+		cmake_pop_check_state()
+	endif()
+endmacro()
+
+
+string(TOLOWER ${CMAKE_SYSTEM_PROCESSOR} SYSTEM_PROCESSOR)
+if(SYSTEM_PROCESSOR MATCHES "^arm*hf*")
+	set(ARM_NEON_INTR_CFLAGS "-mfpu=neon")
+elseif(SYSTEM_PROCESSOR MATCHES "^arm*eabi*")
+	set(ARM_NEON_INTR_CFLAGS "-mfpu=neon" "-mfloat-abi=softfp")
+else()
+	set(ARM_NEON_INTR_CFLAGS "-mfpu=neon")
+endif()
+set(X86_SSE_CFLAGS, "-msse")
+set(X86_SSE2_CFLAGS, "-msse2")
+set(X86_SSE4_1_CFLAGS, "-msse4.1")
+set(X86_AVX_CFLAGS, "-mavx")
 
 
 if(MSVC)
 	set(USE_ALLOCA 1)
 else()
-	include(CheckCSourceCompiles)
 	include(CheckIncludeFile)
 
 	check_c_source_compiles("int main(int argc, char *argv[]) { static int x; char a[++x]; a[sizeof a - 1] = 0; int N; return a[0]; }" VAR_ARRAYS)
@@ -74,12 +109,10 @@ if(ENABLE_ASM)
 	endif()
 	set(CMAKE_ASM_COMPILE_OBJECT "<CMAKE_ASM_COMPILER> ${CMAKE_ASM_TARGET_FLAG} ${CMAKE_CPP_FLAGS} ${CMAKE_C_FLAGS} ${DIRECTORY_PROPERTY_COMPILE_OPTIONS} ${ARCH_OPTIONS} -o <OBJECT> -c <SOURCE>")
 	enable_language(ASM)
-	string(TOLOWER ${CMAKE_SYSTEM_PROCESSOR} SYSTEM_PROCESSOR)
 	#No optimization available yet for arm64
 	if(SYSTEM_PROCESSOR MATCHES "^arm.*")
 		if(ENABLE_FIXED_POINT)
 			set(OPUS_ARM_ASM 1)
-			include(CheckCSourceCompiles)
 			check_c_source_compiles("
 #ifdef __GNUC_MINOR__
 #if (__GNUC__ * 1000 + __GNUC_MINOR__) < 3004
@@ -88,9 +121,11 @@ if(ENABLE_ASM)
 #endif
 int main(int argc, char *argv[]) { __asm__ (\"\"); }
 " OPUS_ARM_INLINE_ASM)
-			check_c_source_compiles("int main(int argc, char *argv[]) { __asm__(\"qadd r3,r3,r3\"); }" OPUS_ARM_INLINE_EDSP)
-			check_c_source_compiles("int main(int argc, char *argv[]) { __asm__(\"shadd8 r3,r3,r3\"); }" OPUS_ARM_INLINE_MEDIA)
-			check_c_source_compiles("int main(int argc, char *argv[]) { __asm__(\"vorr d0,d0,d0\"); }" OPUS_ARM_INLINE_NEON)
+			if(OPUS_ARM_INLINE_ASM)
+				check_c_source_compiles("int main(int argc, char *argv[]) { __asm__(\"qadd r3,r3,r3\"); }" OPUS_ARM_INLINE_EDSP)
+				check_c_source_compiles("int main(int argc, char *argv[]) { __asm__(\"shadd8 r3,r3,r3\"); }" OPUS_ARM_INLINE_MEDIA)
+				check_c_source_compiles("int main(int argc, char *argv[]) { __asm__(\"vorr d0,d0,d0\"); }" OPUS_ARM_INLINE_NEON)
+			endif()
 			find_package(Perl)
 			if(PERL_FOUND)
 				set(OPUS_ARM_EXTERNAL_ASM 1)
@@ -108,30 +143,27 @@ int main(int argc, char *argv[]) { __asm__ (\"\"); }
 				endif()
 				if(ENABLE_RTCD)
 					if(NOT OPUS_ARM_MAY_HAVE_EDSP)
+						message(STATUS "Trying to force-enable armv5e EDSP instructions...")
 						check_c_source_compiles("int main(int argc, char *argv[]) { __asm__(\".arch armv5te\\\\n.object_arch armv4t\\\\nqadd r3,r3,r3\"); }" OPUS_ARM_MAY_HAVE_EDSP)
 					endif()
 					if(NOT OPUS_ARM_MAY_HAVE_MEDIA)
+						message(STATUS "Trying to force-enable ARMv6 media instructions...")
 						check_c_source_compiles("int main(int argc, char *argv[]) { __asm__(\".arch armv6\\\\n.object_arch armv4t\\\\nshadd8 r3,r3,r3\"); }" OPUS_ARM_MAY_HAVE_MEDIA)
 					endif()
 					if(NOT OPUS_ARM_MAY_HAVE_NEON)
+						message(STATUS "Trying to force-enable NEON instructions...")
 						check_c_source_compiles("int main(int argc, char *argv[]) { __asm__(\".arch armv7-a\\\\n.fpu neon\\\\n.object_arch armv4t\\\\nvorr d0,d0,d0\"); }" OPUS_ARM_MAY_HAVE_NEON)
 					endif()
 				endif()
 				set(RTCD_SUPPORT "")
-				if(OPUS_ARM_MAY_HAVE_EDSP)
-					if(NOT OPUS_ARM_PRESUME_EDSP)
-						set(RTCD_SUPPORT "${RTCD_SUPPORT} (EDSP)")
-					endif()
+				if(OPUS_ARM_MAY_HAVE_EDSP AND NOT OPUS_ARM_PRESUME_EDSP)
+					set(RTCD_SUPPORT "${RTCD_SUPPORT} (EDSP)")
 				endif()
-				if(OPUS_ARM_MAY_HAVE_MEDIA)
-					if(NOT OPUS_ARM_PRESUME_MEDIA)
-						set(RTCD_SUPPORT "${RTCD_SUPPORT} (Media)")
-					endif()
+				if(OPUS_ARM_MAY_HAVE_MEDIA AND NOT OPUS_ARM_PRESUME_MEDIA)
+					set(RTCD_SUPPORT "${RTCD_SUPPORT} (Media)")
 				endif()
-				if(OPUS_ARM_MAY_HAVE_NEON)
-					if(NOT OPUS_ARM_PRESUME_NEON)
-						set(RTCD_SUPPORT "${RTCD_SUPPORT} (NEON)")
-					endif()
+				if(OPUS_ARM_MAY_HAVE_NEON AND NOT OPUS_ARM_PRESUME_NEON)
+					set(RTCD_SUPPORT "${RTCD_SUPPORT} (NEON)")
 				endif()
 				if(RTCD_SUPPORT)
 					set(RTCD_SUPPORT "ARM${RTCD_SUPPORT}")
@@ -140,6 +172,117 @@ int main(int argc, char *argv[]) { __asm__ (\"\"); }
 		endif()
 	endif()
 endif()
+
+if(ENABLE_INTRINSICS)
+	if(SYSTEM_PROCESSOR MATCHES "^arm.*" OR SYSTEM_PROCESSOR MATCHES "^aarch64.*")
+		check_intrinsics("ARM Neon" "${ARM_NEON_INTR_CFLAGS}" OPUS_ARM_MAY_HAVE_NEON_INTR OPUS_ARM_PRESUME_NEON_INTR "
+#include <arm_neon.h>
+int main(int argc, char *argv[]) {
+	static float32x4_t A0, A1, SUMM;
+	SUMM = vmlaq_f32(SUMM, A0, A1);
+	return (int)vgetq_lane_f32(SUMM, 0);
+}")
+		if(OPUS_ARM_MAY_HAVE_NEON_INTR)
+			check_intrinsics("Aarch64 Neon" "${ARM_NEON_INTR_CFLAGS}" OPUS_ARM_MAY_HAVE_AARCH64_NEON_INTR OPUS_ARM_PRESUME_AARCH64_NEON_INTR "
+#include <arm_neon.h>
+int main(int argc, char *argv[]) {
+	static int32_t IN;
+	static int16_t OUT;
+	OUT = vqmovns_s32(IN);
+}")
+		else()
+			message(WARNING "Compiler does not support ARM intrinsics")
+		endif()
+	elseif(SYSTEM_PROCESSOR MATCHES "^i.?86.*" OR SYSTEM_PROCESSOR MATCHES "^x86.*" OR SYSTEM_PROCESSOR MATCHES "^x86_64.*")
+		check_intrinsics("SSE" "${X86_SSE_CFLAGS}" OPUS_X86_MAY_HAVE_SSE OPUS_X86_PRESUME_SSE "
+#include <xmmintrin.h>
+#include <time.h>
+int main(int argc, char *argv[]) {
+	__m128 mtest;
+	mtest = _mm_set1_ps((float)time(NULL));
+	mtest = _mm_mul_ps(mtest, mtest);
+	return _mm_cvtss_si32(mtest);
+}")
+		check_intrinsics("SSE2" "${X86_SSE2_CFLAGS}" OPUS_X86_MAY_HAVE_SSE2 OPUS_X86_PRESUME_SSE2 "
+#include <emmintrin.h>
+#include <time.h>
+int main(int argc, char *argv[]) {
+	__m128i mtest;
+	mtest = _mm_set1_epi32((int)time(NULL));
+	mtest = _mm_mul_epu32(mtest, mtest);
+	return _mm_cvtsi128_si32(mtest);
+}")
+		check_intrinsics("SSE4.1" "${X86_SSE4_1_CFLAGS}" OPUS_X86_MAY_HAVE_SSE4_1 OPUS_X86_PRESUME_SSE4_1 "
+#include <smmintrin.h>
+#include <time.h>
+int main(int argc, char *argv[]) {
+	__m128i mtest;
+	mtest = _mm_set1_epi32((int)time(NULL));
+	mtest = _mm_mul_epi32(mtest, mtest);
+	return _mm_cvtsi128_si32(mtest);
+}")
+		check_intrinsics("AVX" "${X86_AVX_CFLAGS}" OPUS_X86_MAY_HAVE_AVX OPUS_X86_PRESUME_AVX "
+#include <immintrin.h>
+#include <time.h>
+int main(int argc, char *argv[]) {
+	__m256 mtest;
+	mtest = _mm256_set1_ps((float)time(NULL));
+	mtest = _mm256_addsub_ps(mtest, mtest);
+	return _mm_cvtss_si32(_mm256_extractf128_ps(mtest, 0));
+}")
+		set(RTCD_SUPPORT "")
+		if(OPUS_X86_MAY_HAVE_SSE AND NOT OPUS_X86_PRESUME_SSE)
+			set(RTCD_SUPPORT "${RTCD_SUPPORT} SSE")
+		endif()
+		if(OPUS_X86_MAY_HAVE_SSE2 AND NOT OPUS_X86_PRESUME_SSE2)
+			set(RTCD_SUPPORT "${RTCD_SUPPORT} SSE2")
+		endif()
+		if(OPUS_X86_MAY_HAVE_SSE4_1 AND NOT OPUS_X86_PRESUME_SSE4_1)
+			set(RTCD_SUPPORT "${RTCD_SUPPORT} SSE4.1")
+		endif()
+		if(OPUS_X86_MAY_HAVE_AVX AND NOT OPUS_X86_PRESUME_AVX)
+			set(RTCD_SUPPORT "${RTCD_SUPPORT} AVX")
+		endif()
+		if(RTCD_SUPPORT)
+			set(RTCD_SUPPORT "x86${RTCD_SUPPORT}")
+		endif()
+		if(ENABLE_RTCD AND RTCD_SUPPORT)
+			check_c_source_compiles("
+#include <stdio.h>
+int main(int argc, char *argv[]) {
+	unsigned int CPUInfo0;
+	unsigned int CPUInfo1;
+	unsigned int CPUInfo2;
+	unsigned int CPUInfo3;
+	unsigned int InfoType;
+	__asm__ __volatile__ (
+		\"cpuid\":
+		\"=a\" (CPUInfo0),
+		\"=b\" (CPUInfo1),
+		\"=c\" (CPUInfo2),
+		\"=d\" (CPUInfo3) :
+		\"a\" (InfoType), \"c\" (0)
+	);
+}" CPU_INFO_BY_ASM)
+			if(NOT CPU_INFO_BY_ASM)
+				check_c_source_compiles("
+#include <cpuid.h>
+int main(int argc, char *argv[]) {
+	unsigned int CPUInfo0;
+	unsigned int CPUInfo1;
+	unsigned int CPUInfo2;
+	unsigned int CPUInfo3;
+	unsigned int InfoType;
+	__get_cpuid(InfoType, &CPUInfo0, &CPUInfo1, &CPUInfo2, &CPUInfo3);
+}" CPU_INFO_BY_C)
+			endif()
+		endif()
+	else()
+		message(WARNING "No intrinsics support for your architecture")
+		set(ENABLE_INTRINSICS OFF CACHE BOOL "Enable intrinsics optimizations." FORCE)
+	endif()
+endif()
+
 if(ENABLE_FIXED_POINT)
 	set(FIXED_POINT 1)
 endif()
@@ -172,6 +315,7 @@ include_directories(
 	silk/float
 	silk/fixed
 	${CMAKE_CURRENT_BINARY_DIR}
+	${CMAKE_CURRENT_SOURCE_DIR}
 )
 if(WIN32)
 	include_directories(win32)
@@ -233,13 +377,30 @@ if(OPUS_ARM_EXTERNAL_ASM)
 	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/celt/arm/armopts-gnu.S
 		COMMAND "${PERL_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/celt/arm/arm2gnu.pl" ${ARM2GNU_PARAMS} "<" "${CELT_AM_SOURCES_ARM_ASM}" ">" "${CELT_AM_SOURCES_EXTERNAL_ARM_ASM}")
 endif()
-if(OPUS_ARM_PRESUME_NEON AND ENABLE_INTRINSICS)
-	set(CELT_AM_SOURCES_NEON_INTRINSICS
+if(OPUS_ARM_MAY_HAVE_NEON_INTR)
+	set(CELT_SOURCES_ARM_NEON_INTR
 		celt/arm/celt_neon_intr.c
 	)
-	if(ANDROID)
-		set_source_files_properties(${CELT_AM_SOURCES_NEON_INTRINSICS} PROPERTIES COMPILE_FLAGS "-mfpu=neon")
-	endif()
+	set_source_files_properties(${CELT_SOURCES_ARM_NEON_INTR} PROPERTIES COMPILE_FLAGS "${ARM_NEON_INTR_CFLAGS}")
+endif()
+if(OPUS_X86_MAY_HAVE_SSE)
+	set(CELT_SOURCES_SSE
+		celt/x86/x86cpu.c
+		celt/x86/x86_celt_map.c
+		celt/x86/pitch_sse.c
+	)
+	set_source_files_properties(${CELT_SOURCES_SSE} PROPERTIES COMPILE_FLAGS "${X86_SSE_CFLAGS}")
+endif()
+if(OPUS_X86_MAY_HAVE_SSE2)
+	set(CELT_SOURCES_SSE2 celt/x86/pitch_sse2.c)
+	set_source_files_properties(${CELT_SOURCES_SSE2} PROPERTIES COMPILE_FLAGS "${X86_SSE2_CFLAGS}")
+endif()
+if(OPUS_X86_MAY_HAVE_SSE4_1)
+	set(CELT_SOURCES_SSE4_1
+		celt/x86/celt_lpc_sse.c
+		celt/x86/pitch_sse4_1.c
+	)
+	set_source_files_properties(${CELT_SOURCES_SSE4_1} PROPERTIES COMPILE_FLAGS "${X86_SSE4_1_CFLAGS}")
 endif()
 
 set(SILK_SOURCES
@@ -383,6 +544,32 @@ set(SILK_SOURCES_FLOAT
 	silk/float/sort_FLP.c
 )
 
+if(OPUS_ARM_MAY_HAVE_NEON_INTR)
+	set(SILK_SOURCES_ARM_NEON_INTR
+		silk/arm/arm_silk_map.c
+		silk/arm/NSQ_neon.c
+	)
+	set_source_files_properties(${SILK_SOURCES_ARM_NEON_INTR} PROPERTIES COMPILE_FLAGS "${ARM_NEON_INTR_CFLAGS}")
+endif()
+if(OPUS_X86_MAY_HAVE_SSE4_1)
+	set(SILK_SOURCES_SSE4_1
+		silk/x86/NSQ_sse.c
+		silk/x86/NSQ_del_dec_sse.c
+		silk/x86/x86_silk_map.c
+		silk/x86/VAD_sse.c
+		silk/x86/VQ_WMat_EC_sse.c
+	)
+	set_source_files_properties(${SILK_SOURCES_SSE4_1} PROPERTIES COMPILE_FLAGS "${X86_SSE4_1_CFLAGS}")
+	if(ENABLE_FIXED_POINT)
+		set(SILK_SOURCES_FIXED_SSE4_1
+			silk/fixed/x86/vector_ops_FIX_sse.c
+			silk/fixed/x86/burg_modified_FIX_sse.c
+			silk/fixed/x86/prefilter_FIX_sse.c
+		)
+		set_source_files_properties(${SILK_SOURCES_FIXED_SSE4_1} PROPERTIES COMPILE_FLAGS "${X86_SSE4_1_CFLAGS}")
+	endif()
+endif()
+
 set(OPUS_SOURCES
 	src/opus.c
 	src/opus_decoder.c
@@ -404,6 +591,15 @@ if(ENABLE_FIXED_POINT)
 else()
 	list(APPEND SILK_SOURCES ${SILK_SOURCES_FLOAT})
 endif()
+if(SILK_SOURCES_ARM_NEON_INTR)
+	list(APPEND SILK_SOURCES ${SILK_SOURCES_ARM_NEON_INTR})
+endif()
+if(SILK_SOURCES_SSE4_1)
+	list(APPEND SILK_SOURCES ${SILK_SOURCES_SSE4_1})
+endif()
+if(SILK_SOURCES_FIXED_SSE4_1)
+	list(APPEND SILK_SOURCES ${SILK_SOURCES_FIXED_SSE4_1})
+endif()
 
 if (ENABLE_FLOAT_API)
 	list(APPEND OPUS_SOURCES ${OPUS_SOURCES_FLOAT})
@@ -411,12 +607,21 @@ endif()
 
 if(OPUS_ARM_ASM)
 	list(APPEND CELT_SOURCES ${CELT_SOURCES_ARM})
-	if(OPUS_ARM_EXTERNAL_ASM)
-		list(APPEND CELT_SOURCES ${CELT_SOURCES_EXTERNAL_ARM_ASM} ${CELT_AM_SOURCES_EXTERNAL_ARM_ASM})
-	endif()
-	if(CELT_AM_SOURCES_NEON_INTRINSICS)
-		list(APPEND CELT_SOURCES ${CELT_AM_SOURCES_NEON_INTRINSICS})
-	endif()
+endif()
+if(OPUS_ARM_EXTERNAL_ASM)
+	list(APPEND CELT_SOURCES ${CELT_SOURCES_EXTERNAL_ARM_ASM} ${CELT_AM_SOURCES_EXTERNAL_ARM_ASM})
+endif()
+if(CELT_SOURCES_ARM_NEON_INTR)
+	list(APPEND CELT_SOURCES ${CELT_SOURCES_ARM_NEON_INTR})
+endif()
+if(CELT_SOURCES_SSE)
+	list(APPEND CELT_SOURCES ${CELT_SOURCES_SSE})
+endif()
+if(CELT_SOURCES_SSE2)
+	list(APPEND CELT_SOURCES ${CELT_SOURCES_SSE2})
+endif()
+if(CELT_SOURCES_SSE4_1)
+	list(APPEND CELT_SOURCES ${CELT_SOURCES_SSE4_1})
 endif()
 if(MSVC AND CMAKE_GENERATOR MATCHES "^.* ARM")
 	add_definitions(-DNO_INLINE_ASM)

@@ -48,7 +48,21 @@
 #cmakedefine OPUS_ARM_PRESUME_MEDIA 1
 #cmakedefine OPUS_ARM_MAY_HAVE_NEON 1
 #cmakedefine OPUS_ARM_PRESUME_NEON 1
+#cmakedefine OPUS_ARM_MAY_HAVE_NEON_INTR 1
+#cmakedefine OPUS_ARM_PRESUME_NEON_INTR 1
+#cmakedefine OPUS_ARM_MAY_HAVE_AARCH64_NEON_INTR 1
+#cmakedefine OPUS_ARM_PRESUME_AARCH64_NEON_INTR 1
+#cmakedefine OPUS_X86_MAY_HAVE_SSE 1
+#cmakedefine OPUS_X86_PRESUME_SSE 1
+#cmakedefine OPUS_X86_MAY_HAVE_SSE2 1
+#cmakedefine OPUS_X86_PRESUME_SSE2 1
+#cmakedefine OPUS_X86_MAY_HAVE_SSE4_1 1
+#cmakedefine OPUS_X86_PRESUME_SSE4_1 1
+#cmakedefine OPUS_X86_MAY_HAVE_AVX 1
+#cmakedefine OPUS_X86_PRESUME_AVX 1
 #cmakedefine OPUS_HAVE_RTCD 1
+#cmakedefine CPU_INFO_BY_ASM 1
+#cmakedefine CPU_INFO_BY_C 1
 #cmakedefine ENABLE_ASSERTIONS 1
 #cmakedefine FUZZING 1
 
