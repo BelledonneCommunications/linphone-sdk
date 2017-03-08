@@ -102,7 +102,7 @@ if(ENABLE_SHARED)
 	add_library(mediastreamer_base SHARED ${MEDIASTREAMER2_HEADER_FILES} ${BASE_SOURCE_FILES_C})
 	set_target_properties(mediastreamer_base PROPERTIES LINKER_LANGUAGE C)
 	if(ANDROID)
-		set_target_properties(mediastreamer_base PROPERTIES OUTPUT_NAME "mediastreamer_base-${NDK_ARCHITECTURE}")
+		set_target_properties(mediastreamer_base PROPERTIES OUTPUT_NAME "mediastreamer_base-${CMAKE_ANDROID_ARCH_ABI}")
 	else()
 		# Do not version shared library on Android
 		set_target_properties(mediastreamer_base PROPERTIES SOVERSION ${MEDIASTREAMER_SO_VERSION})
@@ -356,7 +356,7 @@ if(ENABLE_VIDEO)
 			utils/shader_util.h
 			voip/scaler.c
 		)
-		if(CMAKE_SYSTEM_PROCESSOR STREQUAL "armeabi-v7a")
+		if(CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7-a")
 			list(APPEND VOIP_SOURCE_FILES_ASM
 				voip/scaler_arm.S
 			)
@@ -489,22 +489,15 @@ if(VOIP_SOURCE_FILES_CXX)
 endif()
 
 
-if(ENABLE_VIDEO AND ANDROID AND CMAKE_SYSTEM_PROCESSOR STREQUAL "armeabi-v7a")
+if(ENABLE_VIDEO AND ANDROID AND CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7-a")
 	set(NEON_SOURCE_FILES
 		voip/msvideo_neon.c
 		voip/scaler.c
 	)
-	foreach(file ${NEON_SOURCE_FILES})
-		get_source_file_property(NEON_COMPILE_FLAGS ${file} COMPILE_FLAGS)
-		set_source_files_properties(${file} PROPERTIES COMPILE_FLAGS "${NEON_COMPILE_FLAGS} -mfpu=neon")
-	endforeach()
 endif()
 
 
 if(VOIP_SOURCE_FILES_ASM)
-	if(ANDROID AND CMAKE_SYSTEM_PROCESSOR STREQUAL "armeabi-v7a")
-		set(ARCH_OPTIONS "-mfpu=neon")
-	endif()
 	get_directory_property(DIRECTORY_PROPERTY_COMPILE_OPTIONS "COMPILE_OPTIONS")
 	string(REPLACE ";" " " DIRECTORY_PROPERTY_COMPILE_OPTIONS "${DIRECTORY_PROPERTY_COMPILE_OPTIONS}")
 	set(CMAKE_ASM_TARGET_FLAG "")
@@ -653,7 +646,7 @@ if(ENABLE_SHARED)
 	endif()
 	add_dependencies(mediastreamer_voip ${MS2_VOIP_DEPENDENCIES})
 	if(ANDROID)
-		set_target_properties(mediastreamer_voip PROPERTIES OUTPUT_NAME "mediastreamer_voip-${NDK_ARCHITECTURE}")
+		set_target_properties(mediastreamer_voip PROPERTIES OUTPUT_NAME "mediastreamer_voip-${CMAKE_ANDROID_ARCH_ABI}")
 	else()
 		# Do not version shared library on Android
 		set_target_properties(mediastreamer_voip PROPERTIES SOVERSION ${MEDIASTREAMER_SO_VERSION})
