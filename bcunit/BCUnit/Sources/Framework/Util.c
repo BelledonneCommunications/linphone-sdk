@@ -87,7 +87,7 @@ void OutputDebugStringPrintf(FILE *file, const char *fmt, ...) {
 	}
 	va_end(args);
 }
-#elif defined(ANDROID)
+#elif defined(__ANDROID__)
 
 #include <android/log.h>
 

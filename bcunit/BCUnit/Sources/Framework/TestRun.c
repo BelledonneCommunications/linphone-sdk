@@ -88,7 +88,7 @@
 #ifdef _WIN32
 extern void OutputDebugStringPrintf(FILE *file, const char *fmt, ...);
 #define fprintf(file, fmt, ...) OutputDebugStringPrintf(file, fmt, ##__VA_ARGS__)
-#elif defined(ANDROID)
+#elif defined(__ANDROID__)
 extern void AndroidPrintf(FILE *file, const char *fmt, ...);
 #define fprintf(file, fmt, ...) AndroidPrintf(file, fmt, ##__VA_ARGS__)
 #else
