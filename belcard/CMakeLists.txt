@@ -29,6 +29,7 @@ set(BELCARD_SO_VERSION "1")
 option(ENABLE_SHARED "Build shared library." ON)
 option(ENABLE_STATIC "Build static library." ON)
 option(ENABLE_STRICT "Build with strict compile options." YES)
+option(ENABLE_TOOLS "Enable compilation of tools." YES)
 option(ENABLE_UNIT_TESTS "Enable compilation of unit tests." YES)
 
 
@@ -130,7 +131,9 @@ add_subdirectory(src)
 if(ENABLE_UNIT_TESTS AND BCTOOLBOX_TESTER_FOUND)
 	add_subdirectory(tester)
 endif()
-add_subdirectory(tools)
+if(ENABLE_TOOLS)
+	add_subdirectory(tools)
+endif()
 
 include(CMakePackageConfigHelpers)
 export(EXPORT ${EXPORT_TARGETS_NAME}Targets
