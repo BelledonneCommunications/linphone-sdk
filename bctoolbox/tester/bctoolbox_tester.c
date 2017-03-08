@@ -69,7 +69,7 @@ int bctoolbox_tester_set_log_file(const char *filename) {
 }
 
 
-#if !defined(ANDROID) && !(defined(BCTBX_WINDOWS_PHONE) || defined(BCTBX_WINDOWS_UNIVERSAL))
+#if !defined(__ANDROID__) && !(defined(BCTBX_WINDOWS_PHONE) || defined(BCTBX_WINDOWS_UNIVERSAL))
 
 static const char* bctoolbox_helper =
 		"\t\t\t--verbose\n"

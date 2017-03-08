@@ -1082,7 +1082,7 @@ static struct addrinfo *convert_to_v4mapped(const struct addrinfo *ai){
 	return res;
 }
 
-#if defined(ANDROID) || defined(_WIN32)
+#if defined(__ANDROID__) || defined(_WIN32)
 
 /*
  * SHAME !!! bionic's getaddrinfo does not implement the AI_V4MAPPED flag !

@@ -406,7 +406,7 @@ int bc_tester_run_tests(const char *suite_name, const char *test_name, const cha
 
 }
 
-#if !defined(BC_TESTER_WINDOWS_PHONE) && !defined(BC_TESTER_WINDOWS_UNIVERSAL) && !defined(__QNX__) && !defined(ANDROID) && !defined(IOS)
+#if !defined(BC_TESTER_WINDOWS_PHONE) && !defined(BC_TESTER_WINDOWS_UNIVERSAL) && !defined(__QNX__) && !defined(__ANDROID__) && !defined(IOS)
 static int file_exists(const char* root_path) {
 	char * res_path = bc_sprintf("%s/%s", root_path, expected_res);
 	int err = bctbx_file_exist(res_path);
@@ -441,7 +441,7 @@ static void detect_res_prefix(const char* prog) {
 			progname = strdup(ptr + 1);
 		}
 	}
-#if !defined(BC_TESTER_WINDOWS_PHONE) && !defined(BC_TESTER_WINDOWS_UNIVERSAL) && !defined(__QNX__) && !defined(ANDROID) && !defined(IOS)
+#if !defined(BC_TESTER_WINDOWS_PHONE) && !defined(BC_TESTER_WINDOWS_UNIVERSAL) && !defined(__QNX__) && !defined(__ANDROID__) && !defined(IOS)
 	{
 		char* prefix = NULL;
 		char *installed_resources_path = NULL;
