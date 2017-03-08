@@ -274,6 +274,7 @@ static int volume_set_gain(MSFilter *f, void *arg){
 	float *farg=(float*)arg;
 	Volume *v=(Volume*)f->data;
 	v->gain = v->target_gain = v->static_gain = *farg;
+	ms_message("MSVolume set gain to [%f] linear", v->gain);
 	return 0;
 }
 
@@ -530,7 +531,7 @@ static void volume_process(MSFilter *f){
 static MSFilterMethod methods[]={
 	{	MS_VOLUME_GET		,	volume_get		},
 	{	MS_VOLUME_GET_LINEAR	, 	volume_get_linear	},
-	{ MS_VOLUME_SET_GAIN, volume_set_gain},
+	{	MS_VOLUME_SET_GAIN, volume_set_gain},
 	{	MS_VOLUME_SET_PEER	,	volume_set_peer		},
 	{	MS_VOLUME_SET_EA_THRESHOLD , 	volume_set_ea_threshold	},
 	{	MS_VOLUME_SET_EA_SPEED	,	volume_set_ea_speed	},
