@@ -546,10 +546,6 @@ if(MEDIASTREAMER2_CPPFLAGS)
 	add_definitions(${MEDIASTREAMER2_CPPFLAGS})
 endif()
 
-if(ANDROID)
-	add_definitions("-DANDROID")
-endif()
-
 set(STRICT_OPTIONS_CPP )
 set(STRICT_OPTIONS_C )
 set(STRICT_OPTIONS_OBJC "-Wno-error")

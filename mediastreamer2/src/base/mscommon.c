@@ -284,13 +284,13 @@ void ms_set_payload_max_size(int size){
 extern void _android_key_cleanup(void*);
 
 void ms_thread_exit(void* ref_val) {
-#ifdef ANDROID
+#ifdef __ANDROID__
 	// due to a bug in old Bionic version
 	// cleanup of jni manually
 	// works directly with Android 2.2
 	_android_key_cleanup(NULL);
 #endif
-#if !defined(__linux) || defined(ANDROID)
+#if !defined(__linux) || defined(__ANDROID__)
 	ortp_thread_exit(ref_val); // pthread_exit futex issue: http://lkml.indiana.edu/hypermail/linux/kernel/0902.0/00153.html
 #endif
 }

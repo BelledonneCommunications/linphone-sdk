@@ -39,7 +39,7 @@
 	{ required_bitrate, bitrate_limit, { MS_VIDEO_SIZE_ ## resolution ## _W, MS_VIDEO_SIZE_ ## resolution ## _H }, fps, cpus, NULL }
 
 static const MSVideoConfiguration vp8_conf_list[] = {
-#if defined(ANDROID) || (TARGET_OS_IPHONE == 1) || defined(__arm__) || defined(_M_ARM)
+#if defined(__ANDROID__) || (TARGET_OS_IPHONE == 1) || defined(__arm__) || defined(_M_ARM)
 	MS_VP8_CONF(2048000, 2560000,       UXGA, 12, 2),
 	MS_VP8_CONF(1024000, 1536000, SXGA_MINUS, 12, 2),
 	MS_VP8_CONF( 750000, 1024000,        XGA, 12, 2),
@@ -182,7 +182,7 @@ static void enc_preprocess(MSFilter *f) {
 	s->cfg.g_lag_in_frames = 0;
 
 
-#if defined(ANDROID) || (TARGET_OS_IPHONE == 1) || defined(__arm__) || defined(_M_ARM)
+#if defined(__ANDROID__) || (TARGET_OS_IPHONE == 1) || defined(__arm__) || defined(_M_ARM)
 	cpuused = 10 - s->cfg.g_threads; /*cpu/quality tradeoff: positive values decrease CPU usage at the expense of quality*/
 	if (cpuused < 7) cpuused = 7; /*values beneath 7 consume too much CPU*/
 	if( s->cfg.g_threads == 1 ){

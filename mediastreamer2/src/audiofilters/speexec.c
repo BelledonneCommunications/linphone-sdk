@@ -40,7 +40,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 //#define EC_DUMP 1
-#ifdef ANDROID
+#ifdef __ANDROID__
 #define EC_DUMP_PREFIX "/sdcard"
 #else
 #define EC_DUMP_PREFIX "/dynamic/tests"

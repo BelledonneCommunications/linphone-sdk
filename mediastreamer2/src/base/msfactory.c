@@ -202,7 +202,7 @@ void ms_factory_init(MSFactory *obj){
 #ifdef __QNX__
 	ms_factory_add_platform_tag(obj, "qnx");
 #endif
-#ifdef ANDROID
+#ifdef __ANDROID__
 	ms_factory_add_platform_tag(obj, "android");
 #endif
 #ifdef TARGET_OS_IPHONE
@@ -213,7 +213,7 @@ void ms_factory_init(MSFactory *obj){
 #else
 	ms_factory_add_platform_tag(obj, "x86");
 #endif
-#if defined(ANDROID) || (TARGET_OS_IPHONE == 1) || defined(__arm__) || defined(_M_ARM)
+#if defined(__ANDROID__) || (TARGET_OS_IPHONE == 1) || defined(__arm__) || defined(_M_ARM)
 	ms_factory_add_platform_tag(obj, "embedded");
 #else
 	ms_factory_add_platform_tag(obj, "desktop");
@@ -865,7 +865,7 @@ void ms_factory_set_image_resources_dir(MSFactory *f, const char *path) {
 	f->image_resources_dir = bctbx_strdup(path);
 }
 
-#ifdef ANDROID
+#ifdef __ANDROID__
 #include "sys/system_properties.h"
 #include <jni.h>
 

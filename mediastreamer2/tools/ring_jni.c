@@ -102,8 +102,8 @@ void Java_org_mediastreamer2_test_Ring_echo(JNIEnv*  env,jobject  this,jint freq
 
 JNIEXPORT jint JNICALL  JNI_OnLoad(JavaVM *ajvm, void *reserved)
 {
-#ifdef ANDROID
+#ifdef __ANDROID__
 	ms_set_jvm(ajvm);
-#endif /*ANDROID*/
+#endif /* __ANDROID__ */
 	return JNI_VERSION_1_2;
 }

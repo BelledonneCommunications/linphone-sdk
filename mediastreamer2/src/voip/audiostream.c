@@ -39,7 +39,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mediastreamer2/mseventqueue.h"
 #include "private.h"
 
-#ifdef ANDROID
+#ifdef __ANDROID__
 #include "mediastreamer2/devices.h"
 #endif
 
@@ -1065,7 +1065,7 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		stream->spk_equalizer=NULL;
 	}
 
-#ifdef ANDROID
+#ifdef __ANDROID__
 	{
 		/*configure equalizer if needed*/
 		MSDevicesInfo *devices = ms_factory_get_devices_info(stream->ms.factory);
@@ -1774,7 +1774,7 @@ int audio_stream_send_dtmf(AudioStream *stream, char dtmf)
 
 static void audio_stream_set_rtp_output_gain_db(AudioStream *stream, float gain_db) {
 	float gain = gain_db;
-#ifdef ANDROID
+#ifdef __ANDROID__
 	MSDevicesInfo *devices = ms_factory_get_devices_info(stream->ms.factory);
 	SoundDeviceDescription *device = ms_devices_info_get_sound_device_description(devices);
 	if (device && device->hacks) {
@@ -1801,7 +1801,7 @@ void audio_stream_mute_rtp(AudioStream *stream, bool_t val)
 
 void audio_stream_set_spk_gain_db(AudioStream *stream, float gain_db) {
 	float gain = gain_db;
-#ifdef ANDROID
+#ifdef __ANDROID__
 	MSDevicesInfo *devices = ms_factory_get_devices_info(stream->ms.factory);
 	SoundDeviceDescription *device = ms_devices_info_get_sound_device_description(devices);
 	if (device && device->hacks) {

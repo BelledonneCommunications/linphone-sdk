@@ -26,7 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <speex/speex_resampler.h>
 #include <speex/speex.h>
 
-#ifdef ANDROID
+#ifdef __ANDROID__
 #include "cpu-features.h"
 #endif
 
@@ -63,7 +63,7 @@ static void resample_data_destroy(ResampleData *obj){
 static void resample_init(MSFilter *obj){
 	ResampleData* data=resample_data_new();
 #ifdef SPEEX_LIB_SET_CPU_FEATURES
-	#ifdef ANDROID
+	#ifdef __ANDROID__
 	if (((android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM) && ((android_getCpuFeatures() & ANDROID_CPU_ARM_FEATURE_NEON) != 0))
 		|| (android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM64)) {
 		data->cpuFeatures = SPEEX_LIB_CPU_FEATURE_NEON;

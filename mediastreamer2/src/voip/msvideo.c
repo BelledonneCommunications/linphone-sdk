@@ -630,11 +630,11 @@ static MSScalerDesc android_scaler={
 
 #endif
 
-#ifdef ANDROID
+#ifdef __ANDROID__
 #include "cpu-features.h"
 #endif
 
-#if defined(ANDROID) && defined(MS_HAS_ARM) && !defined(__aarch64__)
+#if defined(__ANDROID__) && defined(MS_HAS_ARM) && !defined(__aarch64__)
 extern MSScalerDesc ms_android_scaler;
 #endif 
 
@@ -644,7 +644,7 @@ static MSScalerDesc *scaler_impl=NULL;
 MSScalerContext *ms_scaler_create_context(int src_w, int src_h, MSPixFmt src_fmt,
                                           int dst_w, int dst_h, MSPixFmt dst_fmt, int flags){
 	if (!scaler_impl){
-#if defined(ANDROID) && defined(MS_HAS_ARM) && !defined(__aarch64__)
+#if defined(__ANDROID__) && defined(MS_HAS_ARM) && !defined(__aarch64__)
 		if (android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM && (android_getCpuFeatures() & ANDROID_CPU_ARM_FEATURE_NEON) != 0){
 			scaler_impl = &ms_android_scaler;
 		}
@@ -708,7 +708,7 @@ static void rotate_plane_down_scale_by_2(int wDest, int hDest, int full_width, c
 	}
 }
 
-#ifdef ANDROID
+#ifdef __ANDROID__
 
 static int hasNeon = -1;
 #elif MS_HAS_ARM_NEON
@@ -729,7 +729,7 @@ mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(MSYuvBu
 	int factor = down_scale?2:1;
 	mblk_t * yuv_block;
 
-#ifdef ANDROID
+#ifdef __ANDROID__
 	if (hasNeon == -1) {
 		hasNeon = (((android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM) && ((android_getCpuFeatures() & ANDROID_CPU_ARM_FEATURE_NEON) != 0))
 			|| (android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM64));

@@ -236,7 +236,7 @@ const char *video_stream_get_default_video_renderer(void){
 	return "MSWP8Dis";
 #elif defined(MS2_WINDOWS_DESKTOP)
 	return "MSDrawDibDisplay";
-#elif defined(ANDROID)
+#elif defined(__ANDROID__)
 	return "MSAndroidDisplay";
 #elif __APPLE__ && !defined(__ios)
 	return "MSOSXGLDisplay";

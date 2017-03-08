@@ -30,7 +30,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #define NO_SAMPLES_THRESHOLD 100 /*ms*/
 
-#if defined(ANDROID) || defined(__ios) /* because android and iOS don't deal well with audio stop and restarts at each dtmf.*/
+#if defined(__ANDROID__) || defined(__ios) /* because android and iOS don't deal well with audio stop and restarts at each dtmf.*/
 #define TRAILLING_SILENCE 10000 /*ms*/
 #else
 #define TRAILLING_SILENCE 500 /*ms*/

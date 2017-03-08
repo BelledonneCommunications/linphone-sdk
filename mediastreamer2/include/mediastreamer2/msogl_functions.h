@@ -26,7 +26,7 @@
 #elif defined(__APPLE__)
 	#include <OpenGL/OpenGL.h>
 	#include <OpenGL/gl.h>
-#elif defined(ANDROID)
+#elif defined(__ANDROID__)
 	#include <GLES2/gl2.h>
 	#include <GLES2/gl2ext.h>
 #elif defined(_WIN32)

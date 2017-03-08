@@ -81,7 +81,7 @@ JNIEnv *ms_get_jni_env(void){
 	return env;
 }
 
-#ifdef ANDROID
+#ifdef __ANDROID__
 
 int ms_get_android_sdk_version(void) {
 	static int sdk_version = 0;

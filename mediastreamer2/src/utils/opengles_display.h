@@ -81,7 +81,7 @@ void ogl_display_render (struct opengles_display *gldisp, int deviceAngleFromPor
  */
 void ogl_display_zoom (struct opengles_display *gldisp, float *params);
 
-#ifdef ANDROID
+#ifdef __ANDROID__
 #include <jni.h>
 JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_display_OpenGLESDisplay_init (JNIEnv * env, jobject obj, jlong ptr, jint width, jint height);
 JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_display_OpenGLESDisplay_render (JNIEnv * env, jobject obj, jlong ptr);

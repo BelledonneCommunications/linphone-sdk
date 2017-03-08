@@ -48,7 +48,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <AudioToolbox/AudioToolbox.h>
 #endif
 
-#if  TARGET_OS_IPHONE || defined (ANDROID)
+#if  TARGET_OS_IPHONE || defined (__ANDROID__)
 extern void ms_set_video_stream(VideoStream* video);
 #if TARGET_OS_IPHONE || defined(HAVE_X264)
 extern void libmsx264_init();
@@ -62,9 +62,9 @@ extern void libmssilk_init();
 #if TARGET_OS_IPHONE || defined(HAVE_WEBRTC)
 extern void libmswebrtc_init();
 #endif
-#endif // TARGET_OS_IPHONE || defined (ANDROID)
+#endif // TARGET_OS_IPHONE || defined (__ANDROID__)
 
-#ifdef ANDROID
+#ifdef __ANDROID__
 #include <android/log.h>
 #include <jni.h>
 #endif
@@ -265,11 +265,11 @@ int main(int argc, char * argv[]) {
 static int _main(int argc, char * argv[])
 #endif
 
-#if !TARGET_OS_MAC && !ANDROID
+#if !TARGET_OS_MAC && !defined(__ANDROID__)
 int main(int argc, char * argv[])
 #endif
 
-#if !ANDROID && !TARGET_OS_MAC || TARGET_OS_IPHONE
+#if !defined(__ANDROID__) && !TARGET_OS_MAC || TARGET_OS_IPHONE
 {
 	MediastreamDatas* args;
 	cond = 1;
@@ -710,7 +710,7 @@ void setup_media_streams(MediastreamDatas* args) {
 
 	args->factory = factory = ms_factory_new_with_voip();
 
-#if TARGET_OS_IPHONE || defined(ANDROID)
+#if TARGET_OS_IPHONE || defined(__ANDROID__)
 #if TARGET_OS_IPHONE || (defined(HAVE_X264) && defined(VIDEO_ENABLED))
 	libmsx264_init(); /*no plugin on IOS/Android */
 #endif
@@ -724,7 +724,7 @@ void setup_media_streams(MediastreamDatas* args) {
 	libmswebrtc_init();
 #endif
 
-#endif /* IPHONE | ANDROID */
+#endif /* TARGET_OS_IPHONE || defined(__ANDROID__) */
 
 	rtp_profile_set_payload(&av_profile,110,&payload_type_speex_nb);
 	rtp_profile_set_payload(&av_profile,111,&payload_type_speex_wb);
@@ -935,7 +935,7 @@ void setup_media_streams(MediastreamDatas* args) {
 		if (args->video_display_filter)
 			video_stream_set_display_filter_name(args->video, args->video_display_filter);
 
-#ifdef ANDROID
+#ifdef __ANDROID__
 		if (args->device_rotation >= 0)
 			video_stream_set_device_rotation(args->video, args->device_rotation);
 #endif
@@ -1155,7 +1155,7 @@ void clear_mediastreams(MediastreamDatas* args) {
 }
 
 // ANDROID JNI WRAPPER
-#ifdef ANDROID
+#ifdef __ANDROID__
 JNIEXPORT jint JNICALL  JNI_OnLoad(JavaVM *ajvm, void *reserved)
 {
 	ms_set_jvm(ajvm);

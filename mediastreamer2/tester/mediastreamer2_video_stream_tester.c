@@ -882,7 +882,7 @@ static void video_configuration_stream_vp8(void) {
 
 	/*Test video rotation (inverted height <-> width). Not supported on desktop
 	because no real use case yet.*/
-#if defined(ANDROID) || defined(TARGET_OS_IPHONE)
+#if defined(__ANDROID__) || defined(TARGET_OS_IPHONE)
 	asked.bitrate_limit=expected.bitrate_limit=1024000;
 	asked.required_bitrate=expected.required_bitrate=1024000;
 	asked.fps=expected.fps=12;
@@ -904,7 +904,7 @@ static void video_configuration_stream_h264(void) {
 
 	/*Test video rotation (inverted height <-> width). Not supported on desktop
 	because no real use case yet.*/
-#if defined(ANDROID) || defined(TARGET_OS_IPHONE)
+#if defined(__ANDROID__) || defined(TARGET_OS_IPHONE)
 	asked.bitrate_limit=expected.bitrate_limit=1024000;
 	asked.required_bitrate=expected.required_bitrate=1024000;
 	asked.fps=expected.fps=12;

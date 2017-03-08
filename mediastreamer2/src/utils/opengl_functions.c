@@ -2,7 +2,7 @@
 
 // =============================================================================
 
-#ifdef ANDROID
+#ifdef __ANDROID__
 #define CAST(type, fn) (type)fn
 #else
 #define CAST(type, fn) fn

@@ -59,7 +59,7 @@ extern void _register_videotoolbox_if_supported(MSFactory *factory);
    #include "TargetConditionals.h"
 #endif
 
-#ifdef ANDROID
+#ifdef __ANDROID__
 #include <android/log.h>
 #endif
 
@@ -110,7 +110,7 @@ extern MSSndCardDesc pulse_card_desc;
 extern MSSndCardDesc au_card_desc;
 #endif
 
-#ifdef ANDROID
+#ifdef __ANDROID__
 extern MSSndCardDesc msandroid_sound_card_desc;
 extern MSSndCardDesc android_native_snd_card_desc;
 extern MSSndCardDesc android_native_snd_opensles_card_desc;
@@ -165,7 +165,7 @@ static MSSndCardDesc * ms_snd_card_descs[]={
 	&aq_card_desc,
 #endif
 
-#ifdef ANDROID
+#ifdef __ANDROID__
 	&android_native_snd_card_desc,
 	&android_native_snd_opensles_card_desc,
 	&msandroid_sound_card_desc,
@@ -205,7 +205,7 @@ extern MSWebCamDesc ms_v4m_cam_desc;
 extern MSWebCamDesc static_image_desc;
 
 extern MSWebCamDesc ms_mire_webcam_desc;
-#ifdef ANDROID
+#ifdef __ANDROID__
 extern MSWebCamDesc ms_android_video_capture_desc;
 extern MSFilterDesc ms_mediacodec_h264_dec_desc;
 extern MSFilterDesc ms_mediacodec_h264_enc_desc;
@@ -224,7 +224,7 @@ extern MSWebCamDesc ms_bb10_camera_desc;
 
 static MSWebCamDesc * ms_web_cam_descs[]={
 #ifdef MS2_FILTERS
-#if defined (ANDROID)
+#if defined (__ANDROID__)
 	&ms_android_video_capture_desc,
 #endif
 #ifdef HAVE_LINUX_VIDEODEV2_H
@@ -276,7 +276,7 @@ void ms_factory_init_voip(MSFactory *obj){
 	_register_videotoolbox_if_supported(obj);
 #endif
 
-#if defined(ANDROID) && defined(VIDEO_ENABLED)
+#if defined(__ANDROID__) && defined(VIDEO_ENABLED)
 	if (AMediaImage_isAvailable()) {
 		ms_factory_register_filter(obj, &ms_mediacodec_h264_dec_desc);
 		ms_factory_register_filter(obj, &ms_mediacodec_h264_enc_desc);
@@ -316,7 +316,7 @@ void ms_factory_init_voip(MSFactory *obj){
 	}
 #endif
 
-#if defined(ANDROID) && defined (VIDEO_ENABLED)
+#if defined(__ANDROID__) && defined (VIDEO_ENABLED)
 	{
 		MSDevicesInfo *devices = ms_factory_get_devices_info(obj);
 		SoundDeviceDescription *description = ms_devices_info_get_sound_device_description(devices);

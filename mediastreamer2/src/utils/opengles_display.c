@@ -660,7 +660,7 @@ void ogl_display_zoom (struct opengles_display *gldisp, float *params) {
 	gldisp->zoom_cy = params[2] - 0.5f;
 }
 
-#ifdef ANDROID
+#ifdef __ANDROID__
 JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_display_OpenGLESDisplay_init (JNIEnv * env, jobject obj, jlong ptr, jint width, jint height) {
 	struct opengles_display* d = (struct opengles_display*) ptr;
 	ogl_display_init(d, NULL, width, height);

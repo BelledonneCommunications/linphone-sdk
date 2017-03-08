@@ -22,14 +22,14 @@
 
 #include "mediastreamer2/devices.h"
 
-#ifdef ANDROID
+#ifdef __ANDROID__
 #include "sys/system_properties.h"
 #include <jni.h>
 #endif
 
 
 
-#ifdef ANDROID
+#ifdef __ANDROID__
 /*
  * 1st column: list of triplet frequency, gain, width
  * 2nd column: mic gain in db
@@ -313,7 +313,7 @@ SoundDeviceDescription* ms_devices_info_get_sound_device_description(MSDevicesIn
 	bool_t exact_match = FALSE;
 	bool_t declares_builtin_aec = FALSE;
 
-#ifdef ANDROID
+#ifdef __ANDROID__
 
 	if (__system_property_get("ro.product.manufacturer", manufacturer) <= 0) {
 		ms_warning("Could not get product manufacturer.");

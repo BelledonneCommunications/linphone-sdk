@@ -577,7 +577,7 @@ MS2_PUBLIC char *ms_load_path_content(const char *path, size_t *nbytes);
 #define N_(String) (String)
 #endif // MS2_INTERNAL
 
-#ifdef ANDROID
+#ifdef __ANDROID__
 #include "mediastreamer2/msjava.h"
 #endif
 #endif

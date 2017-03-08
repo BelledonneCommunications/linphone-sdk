@@ -34,7 +34,7 @@ JavaVM *ms_get_jvm(void);
 
 JNIEnv *ms_get_jni_env(void);
 
-#ifdef ANDROID
+#ifdef __ANDROID__
 int ms_get_android_sdk_version(void);
 #endif
 
