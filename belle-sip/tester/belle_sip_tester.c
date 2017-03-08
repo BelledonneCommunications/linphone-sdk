@@ -169,7 +169,7 @@ int belle_sip_tester_set_log_file(const char *filename) {
 }
 
 
-#if !defined(ANDROID) && !defined(TARGET_OS_IPHONE) && !(defined(BELLE_SIP_WINDOWS_PHONE) || defined(BELLE_SIP_WINDOWS_UNIVERSAL))
+#if !defined(__ANDROID__) && !defined(TARGET_OS_IPHONE) && !(defined(BELLE_SIP_WINDOWS_PHONE) || defined(BELLE_SIP_WINDOWS_UNIVERSAL))
 
 static const char* belle_sip_helper =
 		"\t\t\t--verbose\n"

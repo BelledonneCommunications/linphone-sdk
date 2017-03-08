@@ -960,7 +960,7 @@ int dns_resconf_load_struct_res_state_nameservers(struct dns_resolv_conf *rescon
 DNS_PUBLIC int dns_resconf_loadwin(struct dns_resolv_conf *);
 #endif
 
-#ifdef ANDROID
+#ifdef __ANDROID__
 DNS_PUBLIC int dns_resconf_loadandroid(struct dns_resolv_conf *resconf);
 #endif
 

@@ -112,7 +112,7 @@
 #include <resolv.h>
 #endif
 
-#ifdef ANDROID
+#ifdef __ANDROID__
 #include <sys/system_properties.h>
 #endif
 
@@ -4965,7 +4965,7 @@ int dns_resconf_loadwin(struct dns_resolv_conf *resconf) {
 }
 #endif /* dns_resconf_loadwin() */
 
-#ifdef ANDROID
+#ifdef __ANDROID__
 int dns_resconf_loadandroid(struct dns_resolv_conf *resconf) {
 	char dns[PROP_VALUE_MAX];
 	char prop_name[PROP_NAME_MAX];

@@ -218,7 +218,7 @@ static struct dns_resolv_conf *resconf(belle_sip_simple_resolver_context_t *ctx)
 		if (error) {
 			belle_sip_error("%s dns_resconf_loadwin error", __FUNCTION__);
 		}
-#elif defined(ANDROID)
+#elif defined(__ANDROID__)
 		error = dns_resconf_loadandroid(ctx->resconf);
 		if (error) {
 			belle_sip_error("%s dns_resconf_loadandroid error", __FUNCTION__);

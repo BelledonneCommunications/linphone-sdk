@@ -89,7 +89,7 @@ static int find_best_clock_id (void) {
 #if 0
 	struct timespec ts;
 	static int clock_id=-1;
-#ifndef ANDROID
+#ifndef __ANDROID__
 #define DEFAULT_CLOCK_MODE CLOCK_MONOTONIC
 #else
 #define DEFAULT_CLOCK_MODE CLOCK_REALTIME /*monotonic clock stop during sleep mode*/

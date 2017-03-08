@@ -43,7 +43,7 @@
 #include "belle-sip/belle-sdp.h"
 #include "belle-sip/bodyhandler.h"
 
-#ifdef ANDROID
+#ifdef __ANDROID__
 #include "belle-sip/wakelock.h"
 #endif
 
