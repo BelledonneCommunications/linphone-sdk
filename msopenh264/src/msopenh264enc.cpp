@@ -32,7 +32,7 @@ static int debugLevel = 1;
 
 
 
-#if defined(ANDROID) || (TARGET_OS_IPHONE == 1) || defined(__arm__)
+#if defined(__ANDROID__) || (TARGET_OS_IPHONE == 1) || defined(__arm__)
 	#define MS_OPENH264_CONF(required_bitrate, bitrate_limit, resolution, fps_pc, cpus_pc, fps_mobile, cpus_mobile) \
 		{ required_bitrate, bitrate_limit, { MS_VIDEO_SIZE_ ## resolution ## _W, MS_VIDEO_SIZE_ ## resolution ## _H },fps_mobile, cpus_mobile, NULL }
 #else
