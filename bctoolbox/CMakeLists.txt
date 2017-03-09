@@ -125,13 +125,6 @@ include_directories(
 	${CMAKE_CURRENT_BINARY_DIR}
 )
 
-if(MBEDTLS_FOUND)
-	include_directories(${MBEDTLS_INCLUDE_DIRS})
-endif()
-if(POLARSSL_FOUND)
-	include_directories(${POLARSSL_INCLUDE_DIRS})
-endif()
-
 set(BCTOOLBOX_CPPFLAGS )
 if(ENABLE_STATIC)
 	set(BCTBX_STATIC 1)
