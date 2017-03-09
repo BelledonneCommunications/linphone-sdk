@@ -91,7 +91,6 @@ endif()
 include_directories(
 	include
 	${CMAKE_CURRENT_BINARY_DIR}
-	${BCTOOLBOX_CORE_INCLUDE_DIRS}
 )
 
 set(LIBS ${BCTOOLBOX_CORE_LIBRARIES})

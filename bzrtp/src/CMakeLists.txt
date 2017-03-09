@@ -39,7 +39,8 @@ bc_apply_compile_flags(SOURCE_FILES STRICT_OPTIONS_CPP)
 if(ENABLE_STATIC)
 	add_library(bzrtp-static STATIC ${SOURCE_FILES})
 	set_target_properties(bzrtp-static PROPERTIES OUTPUT_NAME bzrtp)
-	target_link_libraries(bzrtp-static ${LIBS})
+	target_include_directories(bzrtp-static PUBLIC ${BCTOOLBOX_CORE_INCLUDE_DIRS})
+	target_link_libraries(bzrtp-static INTERFACE ${LIBS})
 	install(TARGETS bzrtp-static EXPORT ${EXPORT_TARGETS_NAME}Targets
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
@@ -49,6 +50,7 @@ if(ENABLE_SHARED)
 	add_library(bzrtp SHARED ${SOURCE_FILES})
 	target_compile_definitions(bzrtp PRIVATE "-DZRTP_EXPORTS")
 	set_target_properties(bzrtp PROPERTIES VERSION 0)
+	target_include_directories(bzrtp PUBLIC ${BCTOOLBOX_CORE_INCLUDE_DIRS})
 	target_link_libraries(bzrtp PRIVATE ${LIBS})
 	if(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
