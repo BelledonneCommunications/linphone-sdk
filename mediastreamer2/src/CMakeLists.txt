@@ -517,7 +517,7 @@ set(VOIP_LIBS
 )
 if(WIN32)
 	if(NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone" AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
-		list(APPEND VOIP_LIBS ${LIBGCC} ${LIBMINGWEX} ole32 oleaut32 uuid Ws2_32)
+		list(APPEND VOIP_LIBS ${LIBGCC} ${LIBMINGWEX} ole32 oleaut32 uuid Winmm Ws2_32)
 		if(ENABLE_VIDEO)
 			list(APPEND VOIP_LIBS gdi32 strmiids user32 vfw32)
 		endif()
