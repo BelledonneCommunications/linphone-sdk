@@ -60,7 +60,6 @@ endif()
 include_directories(
 	include/
 	src/
-	${BCTOOLBOX_INCLUDE_DIRS}
 	${CMAKE_CURRENT_BINARY_DIR}
 )
 if(MSVC)
