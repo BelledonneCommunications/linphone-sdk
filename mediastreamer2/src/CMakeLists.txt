@@ -91,7 +91,8 @@ bc_apply_compile_flags(BASE_SOURCE_FILES_C STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
 if(ENABLE_STATIC)
 	add_library(mediastreamer_base-static STATIC ${MEDIASTREAMER2_HEADER_FILES} ${BASE_SOURCE_FILES_C})
 	set_target_properties(mediastreamer_base-static PROPERTIES OUTPUT_NAME mediastreamer_base)
-	target_link_libraries(mediastreamer_base-static ${BASE_LIBS})
+	target_include_directories(mediastreamer_base-static PUBLIC ${MEDIASTREAMER2_INCLUDE_DIRS})
+	target_link_libraries(mediastreamer_base-static INTERFACE ${BASE_LIBS})
 	add_dependencies(mediastreamer_base-static ms2-git-version ms2-basedescs-header)
 	install(TARGETS mediastreamer_base-static EXPORT ${EXPORT_TARGETS_NAME}Targets
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -107,6 +108,7 @@ if(ENABLE_SHARED)
 		# Do not version shared library on Android
 		set_target_properties(mediastreamer_base PROPERTIES SOVERSION ${MEDIASTREAMER_SO_VERSION})
 	endif()
+	target_include_directories(mediastreamer_base PUBLIC ${MEDIASTREAMER2_INCLUDE_DIRS})
 	target_link_libraries(mediastreamer_base PRIVATE ${BASE_LIBS})
 	add_dependencies(mediastreamer_base ms2-git-version ms2-basedescs-header)
 	if(MSVC)
@@ -632,7 +634,8 @@ if(ENABLE_STATIC)
 		set_target_properties(mediastreamer_voip-static PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
 	add_dependencies(mediastreamer_voip-static ${MS2_VOIP_DEPENDENCIES})
-	target_link_libraries(mediastreamer_voip-static mediastreamer_base-static ${VOIP_LIBS})
+	target_include_directories(mediastreamer_voip-static PUBLIC ${MEDIASTREAMER2_INCLUDE_DIRS})
+	target_link_libraries(mediastreamer_voip-static INTERFACE mediastreamer_base-static ${VOIP_LIBS})
 	install(TARGETS mediastreamer_voip-static EXPORT ${EXPORT_TARGETS_NAME}Targets
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
@@ -651,6 +654,7 @@ if(ENABLE_SHARED)
 		# Do not version shared library on Android
 		set_target_properties(mediastreamer_voip PROPERTIES SOVERSION ${MEDIASTREAMER_SO_VERSION})
 	endif()
+	target_include_directories(mediastreamer_voip PUBLIC ${MEDIASTREAMER2_INCLUDE_DIRS})
 	target_link_libraries(mediastreamer_voip PRIVATE mediastreamer_base ${VOIP_LIBS})
 	if(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
