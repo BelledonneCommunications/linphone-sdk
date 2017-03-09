@@ -144,7 +144,7 @@ static bctbx_vsocket_api_t bcvSocket = {
 static  bctbx_vsocket_api_t *pDefaultvSocket = &bcvSocket;
 
 
-int bctbx_socket(int socket_family, int socket_type, int protocol){
+bctbx_socket_t bctbx_socket(int socket_family, int socket_type, int protocol){
 	return pDefaultvSocket->pSocketMethods->pFuncSocket( socket_family, socket_type, protocol);
 }
 

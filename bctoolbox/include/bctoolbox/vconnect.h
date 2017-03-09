@@ -101,7 +101,7 @@ struct bctbx_vsocket_api_t {
  * @param  protocol      protocol family i.e AF_INET
  * @return 				 Returns a socket file descriptor.          
  */
-BCTBX_PUBLIC int bctbx_socket(int socket_family, int socket_type, int protocol);
+BCTBX_PUBLIC bctbx_socket_t bctbx_socket(int socket_family, int socket_type, int protocol);
 
 /**
  * Get the local socket address.
