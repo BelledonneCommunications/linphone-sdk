@@ -305,6 +305,11 @@ if(RTCD_SUPPORT)
 	set(OPUS_HAVE_RTCD 1)
 endif()
 
+add_definitions("-DOPUS_BUILD")
+if(MSVC AND NOT ENABLE_STATIC)
+	add_definitions("-DDLL_EXPORT")
+endif()
+
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 
 
