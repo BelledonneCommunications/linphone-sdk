@@ -191,7 +191,7 @@ int belle_sip_thread_key_delete(belle_sip_thread_key_t key){
 	current_thread_data = NULL;
 	return 0;
 #else
-	return TlsFree(key) ? 0 : -1;
+	return TlsFree((DWORD)key) ? 0 : -1;
 #endif
 }
 

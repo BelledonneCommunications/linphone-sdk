@@ -80,21 +80,21 @@ int main(int argc, char *argv[]){
 	close(fd);
 	belle_sip_set_log_level(BELLE_SIP_LOG_DEBUG);
 
-	for (i=0;i<st.st_size;){
-		size_t read;
+	for (i=0;i<(int)st.st_size;){
+		size_t nbread;
 		if (strcasecmp(protocol,"sip")==0 || strcasecmp(protocol,"http")==0){
 			belle_sip_message_t *msg;
 			uint64_t begin,end;
 			begin=belle_sip_time_ms();
-			msg=belle_sip_message_parse_raw(str+i,st.st_size-i,&read);
+			msg=belle_sip_message_parse_raw(str+i,st.st_size-i,&nbread);
 			end=belle_sip_time_ms();
 			if (msg){
-				printf("Successfully parsed %s message of %i bytes in %i ms.\n",protocol,(int)read, (int)(end-begin));
+				printf("Successfully parsed %s message of %i bytes in %i ms.\n",protocol,(int)nbread, (int)(end-begin));
 			}else{
 				fprintf(stderr,"Failed to parse message.\n");
 				break;
 			}
-			i+=read;
+			i+=(int)nbread;
 		}else if (strcasecmp(protocol,"sdp")==0){
 			belle_sdp_session_description_t *sdp=belle_sdp_session_description_parse(str);
 			if (sdp){
