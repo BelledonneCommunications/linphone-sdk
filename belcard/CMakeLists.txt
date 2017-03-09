@@ -68,8 +68,6 @@ endif()
 include_directories(
 	include/
 	src/
-	${BELR_INCLUDE_DIRS}
-	${BCTOOLBOX_INCLUDE_DIRS}
 	${CMAKE_CURRENT_BINARY_DIR}
 )
 if(MSVC)
