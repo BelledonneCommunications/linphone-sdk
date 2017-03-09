@@ -289,7 +289,7 @@ static void add_input_buffer(WinSnd *d, WAVEHDR *hdr, int buflen){
 	hdr->lpData=(LPSTR)m->b_wptr;
 	hdr->dwBufferLength=buflen;
 	hdr->dwFlags = 0;
-	hdr->dwUser = (DWORD)m;
+	hdr->dwUser = (DWORD_PTR)m;
 	mr = waveInPrepareHeader (d->indev,hdr,sizeof(*hdr));
 	if (mr != MMSYSERR_NOERROR){
 		ms_error("waveInPrepareHeader() error");
@@ -303,8 +303,8 @@ static void add_input_buffer(WinSnd *d, WAVEHDR *hdr, int buflen){
 }
 
 static void CALLBACK 
-read_callback (HWAVEIN waveindev, UINT uMsg, DWORD dwInstance, DWORD dwParam1,
-                DWORD dwParam2)
+read_callback (HWAVEIN waveindev, UINT uMsg, DWORD_PTR dwInstance, DWORD_PTR dwParam1,
+                DWORD_PTR dwParam2)
 {
 	WAVEHDR *wHdr=(WAVEHDR *) dwParam1;
 	MSFilter *f=(MSFilter *)dwInstance;
@@ -358,12 +358,12 @@ static void winsnd_read_preprocess(MSFilter *f){
 	if (d->dev_id != WAVE_MAPPER)
 		dwFlag = WAVE_MAPPED | CALLBACK_FUNCTION;
 	mr = waveInOpen (&d->indev, d->dev_id, &d->wfx,
-	            (DWORD) read_callback, (DWORD)f, dwFlag);
+	            (DWORD_PTR) read_callback, (DWORD_PTR)f, dwFlag);
 	if (mr != MMSYSERR_NOERROR)
 	{
 	    ms_error("Failed to prepare windows sound device. (waveInOpen:0x%i)", mr);
 		mr = waveInOpen (&d->indev, WAVE_MAPPER, &d->wfx,
-					(DWORD) read_callback, (DWORD)f, CALLBACK_FUNCTION);
+					(DWORD_PTR) read_callback, (DWORD_PTR)f, CALLBACK_FUNCTION);
 		if (mr != MMSYSERR_NOERROR)
 		{
 			d->indev=NULL;
@@ -448,8 +448,8 @@ static void winsnd_read_process(MSFilter *f){
 }
 
 static void CALLBACK
-write_callback(HWAVEOUT outdev, UINT uMsg, DWORD dwInstance,
-                 DWORD dwParam1, DWORD dwParam2)
+write_callback(HWAVEOUT outdev, UINT uMsg, DWORD_PTR dwInstance,
+                 DWORD_PTR dwParam1, DWORD_PTR dwParam2)
 {
 	WAVEHDR *hdr=(WAVEHDR *) dwParam1;
 	WinSnd *d=(WinSnd*)dwInstance;
@@ -489,12 +489,12 @@ static void winsnd_write_preprocess(MSFilter *f){
 	if (d->dev_id != WAVE_MAPPER)
 		dwFlag = WAVE_MAPPED | CALLBACK_FUNCTION;
 	mr = waveOutOpen (&d->outdev, d->dev_id, &d->wfx,
-	            (DWORD) write_callback, (DWORD)d, dwFlag);
+	            (DWORD_PTR) write_callback, (DWORD_PTR)d, dwFlag);
 	if (mr != MMSYSERR_NOERROR)
 	{
 		ms_error("Failed to open windows sound device %i. (waveOutOpen:0x%i)",d->dev_id, mr);
 		mr = waveOutOpen (&d->outdev, WAVE_MAPPER, &d->wfx,
-					(DWORD) write_callback, (DWORD)d, CALLBACK_FUNCTION);
+					(DWORD_PTR) write_callback, (DWORD_PTR)d, CALLBACK_FUNCTION);
 		if (mr != MMSYSERR_NOERROR)
 		{
 			ms_error("Failed to open windows sound device %i. (waveOutOpen:0x%i)",d->dev_id, mr);
@@ -546,7 +546,7 @@ static void winsnd_write_postprocess(MSFilter *f){
 
 static void playout_buf(WinSnd *d, WAVEHDR *hdr, mblk_t *m){
 	MMRESULT mr;
-	hdr->dwUser=(DWORD)m;
+	hdr->dwUser=(DWORD_PTR)m;
 	hdr->lpData=(LPSTR)m->b_rptr;
 	hdr->dwBufferLength=(DWORD)msgdsize(m);
 	hdr->dwFlags = 0;
