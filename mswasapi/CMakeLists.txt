@@ -53,13 +53,19 @@ endmacro()
 
 if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
 	include("${EP_ms2_CONFIG_DIR}/Mediastreamer2Config.cmake")
+	include("${EP_ortp_CONFIG_DIR}/ORTPConfig.cmake")
+	include("${EP_bctoolbox_CONFIG_DIR}/BcToolboxConfig.cmake")
 else()
 	find_package(Mediastreamer2 REQUIRED)
+	find_package(ORTP REQUIRED)
+	find_package(BcToolbox REQUIRED COMPONENTS core)
 endif()
 
 
 include_directories(
 	${MEDIASTREAMER2_INCLUDE_DIRS}
+	${ORTP_INCLUDE_DIRS}
+	${BCTOOLBOX_CORE_INCLUDE_DIRS}
 )
 
 set(STRICT_OPTIONS_CPP )
@@ -76,7 +82,7 @@ set(SOURCE_FILES
 	mswasapi_writer.h
 )
 apply_compile_flags(SOURCE_FILES "CPP")
-set(LIBS ${MEDIASTREAMER2_LIBRARIES} ${BCTOOLBOX_CORE_LIBRARIES} ws2_32)
+set(LIBS ${MEDIASTREAMER2_LIBRARIES} ${ORTP_LIBRARIES} ${BCTOOLBOX_CORE_LIBRARIES} ws2_32)
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsPhone")
 	list(APPEND LIBS phoneaudioses)
 endif()
