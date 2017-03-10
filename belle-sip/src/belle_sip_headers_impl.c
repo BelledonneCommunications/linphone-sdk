@@ -84,6 +84,8 @@ static struct header_name_func_pair  header_table[] = {
 	,{PROTO_SIP, 			BELLE_SIP_CONTENT_DISPOSITION,	(header_parse_func)belle_sip_header_content_disposition_parse}
 	,{PROTO_SIP, 			BELLE_SIP_ACCEPT,				(header_parse_func)belle_sip_header_accept_parse}
 	,{PROTO_SIP, 			BELLE_SIP_REASON,				(header_parse_func)belle_sip_header_reason_parse}
+	,{PROTO_SIP,			BELLE_SIP_AUTHENTICATION_INFO,	(header_parse_func)belle_sip_header_authentication_info_parse}
+	,{PROTO_HTTP,			"AuthenticationInfo",			(header_parse_func)belle_sip_header_authentication_info_parse}
 };
 
 static belle_sip_header_t* belle_header_create(const char* name,const char* value,int protocol) {
@@ -2050,7 +2052,6 @@ belle_sip_error_code belle_sip_header_reason_marshal(belle_sip_header_reason_t* 
 	if (error!=BELLE_SIP_OK) return error;
 	if (reason->unquoted_text)
 		error=belle_sip_snprintf(buff,buff_size,offset,"; text=\"%s\"",reason->unquoted_text);
-	if (error!=BELLE_SIP_OK) return error;
 	return error;
 }
 
@@ -2080,3 +2081,79 @@ GET_SET_STRING_PARAM(belle_sip_header_reason,protocol);
 GET_SET_INT_PARAM(belle_sip_header_reason,cause,int);
 BELLE_SIP_PARSE(header_reason)
 BELLE_SIP_NEW_HEADER(header_reason,parameters,BELLE_SIP_REASON)
+
+/******************************
+ * AuthenticationInfo header hinerite from header
+ *
+ ******************************/
+
+struct _belle_sip_header_authentication_info  {
+	belle_sip_header_t header;
+	const char* rsp_auth;
+	const char* cnonce;
+	int nonce_count;
+	const char* qop;
+	const char* next_nonce;
+};
+static void belle_sip_header_authentication_info_destroy(belle_sip_header_authentication_info_t* authentication_info) {
+	DESTROY_STRING(authentication_info,rsp_auth);
+	DESTROY_STRING(authentication_info,cnonce);
+	DESTROY_STRING(authentication_info,qop);
+	DESTROY_STRING(authentication_info,next_nonce);
+	
+}
+
+static void belle_sip_header_authentication_info_clone(	belle_sip_header_authentication_info_t* authentication_info
+													   , const belle_sip_header_authentication_info_t* orig){
+	CLONE_STRING(belle_sip_header_authentication_info,rsp_auth,authentication_info,orig)
+	CLONE_STRING(belle_sip_header_authentication_info,cnonce,authentication_info,orig)
+	CLONE_STRING(belle_sip_header_authentication_info,qop,authentication_info,orig)
+	CLONE_STRING(belle_sip_header_authentication_info,next_nonce,authentication_info,orig)
+}
+
+belle_sip_error_code belle_sip_header_authentication_info_marshal(belle_sip_header_authentication_info_t* authentication_info, char* buff, size_t buff_size, size_t *offset) {
+	char* border=" ";
+	belle_sip_error_code error=belle_sip_header_marshal(BELLE_SIP_HEADER(authentication_info), buff, buff_size, offset);
+	if (error!=BELLE_SIP_OK) return error;
+	
+	if (authentication_info->rsp_auth) {
+		error=belle_sip_snprintf(buff,buff_size,offset,"%srspauth=\"%s\"", border,authentication_info->rsp_auth);
+		border=", ";
+	}
+	if (error!=BELLE_SIP_OK) return error;
+
+	if (authentication_info->cnonce) {
+		error=belle_sip_snprintf(buff,buff_size,offset,"%scnonce=\"%s\"", border, authentication_info->cnonce);
+		border=", ";
+	}
+	if (error!=BELLE_SIP_OK) return error;
+
+	if (authentication_info->nonce_count >= 0) {
+		error=belle_sip_snprintf(buff,buff_size,offset,"%snc=%08x", border, authentication_info->nonce_count);
+		border=", ";
+	}
+	if (error!=BELLE_SIP_OK) return error;
+
+	if (authentication_info->qop) {
+		error=belle_sip_snprintf(buff,buff_size,offset,"%sqop=\"%s\"", border, authentication_info->qop);
+		border=", ";
+	}
+	if (error!=BELLE_SIP_OK) return error;
+	
+	if (authentication_info->next_nonce) {
+		error=belle_sip_snprintf(buff,buff_size,offset,"%snextnonce=\"%s\"", border, authentication_info->next_nonce);
+	}
+	return error;
+
+
+}
+void belle_sip_header_authentication_info_init(belle_sip_header_authentication_info_t* header_authentication) {
+	header_authentication->nonce_count=-1;
+}
+BELLE_SIP_NEW_HEADER_INIT(header_authentication_info,header,BELLE_SIP_AUTHENTICATION_INFO,header_authentication_info)
+BELLE_SIP_PARSE(header_authentication_info)
+GET_SET_STRING(belle_sip_header_authentication_info,rsp_auth);
+GET_SET_STRING(belle_sip_header_authentication_info,qop);
+GET_SET_STRING(belle_sip_header_authentication_info,next_nonce);
+GET_SET_STRING(belle_sip_header_authentication_info,cnonce);
+GET_SET_INT(belle_sip_header_authentication_info,nonce_count,int);

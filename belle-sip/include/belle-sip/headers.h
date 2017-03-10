@@ -771,6 +771,34 @@ BELLESIP_EXPORT const char*	belle_sip_header_reason_get_text(const belle_sip_hea
 #define BELLE_SIP_REASON "Reason"
 
 
+/******************************
+ * AuthenticationInfo header inherit from header
+ *
+ ******************************/
+typedef struct _belle_sip_header_authentication_info belle_sip_header_authentication_info_t;
+
+BELLESIP_EXPORT belle_sip_header_authentication_info_t* belle_sip_header_authentication_info_new(void);
+BELLESIP_EXPORT belle_sip_header_authentication_info_t* belle_sip_header_authentication_info_parse(const char* authentication_info );
+BELLESIP_EXPORT const char*	belle_sip_header_authentication_info_get_next_nonce(const belle_sip_header_authentication_info_t* authentication_info );
+BELLESIP_EXPORT void belle_sip_header_authentication_info_set_next_nonce(belle_sip_header_authentication_info_t* authentication_info, const char* next_nonce);
+
+/*limited to a sinle value*/
+BELLESIP_EXPORT const char*	belle_sip_header_authentication_info_get_qop(const belle_sip_header_authentication_info_t* authentication_info);
+BELLESIP_EXPORT void belle_sip_header_authentication_info_set_qop(belle_sip_header_authentication_info_t* authentication_info, const char* qop);
+
+BELLESIP_EXPORT const char*	belle_sip_header_authentication_info_get_rsp_auth(const belle_sip_header_authentication_info_t* rsp_auth);
+BELLESIP_EXPORT void belle_sip_header_authentication_info_set_rsp_auth(belle_sip_header_authentication_info_t* authentication_info, const char* rsp_auth);
+
+BELLESIP_EXPORT const char* belle_sip_header_authentication_info_get_cnonce(const belle_sip_header_authentication_info_t* authentication_info);
+BELLESIP_EXPORT void belle_sip_header_authentication_info_set_cnonce(belle_sip_header_authentication_info_t* authentication_info, const char* cNonce);
+
+BELLESIP_EXPORT void belle_sip_header_authentication_info_set_nonce_count(belle_sip_header_authentication_info_t* authentication_info, int nonceCount);
+BELLESIP_EXPORT int	belle_sip_header_authentication_info_get_nonce_count(const belle_sip_header_authentication_info_t* authentication_info);
+
+
+#define BELLE_SIP_HEADER_AUTHENTICATION_INFO(t) BELLE_SIP_CAST(t,belle_sip_header_authentication_info_t)
+#define BELLE_SIP_AUTHENTICATION_INFO "Authentication-Info"
+
 BELLE_SIP_END_DECLS
 
 

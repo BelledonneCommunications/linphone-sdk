@@ -1160,6 +1160,29 @@ static void test_reason_header(void) {
 	
 	BC_ASSERT_PTR_NULL(belle_sip_header_reason_parse("nimportequoi"));
 }
+static void test_authentication_info_header(void) {
+	belle_sip_header_authentication_info_t *L_tmp;
+	belle_sip_header_authentication_info_t* L_authentication_info = BELLE_SIP_HEADER_AUTHENTICATION_INFO(belle_sip_header_create("Authentication-Info"
+																													, "nextnonce=\"47364c23432d2e131a5fb210812c\""
+																														", qop=\"auth\""));
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_authentication_info_get_next_nonce(L_authentication_info),"47364c23432d2e131a5fb210812c");
+	belle_sip_header_authentication_info_set_next_nonce(L_authentication_info, "31a5fb210812c47364c23432d2e1");
+	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_authentication_info));
+	
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_authentication_info));
+	L_tmp = belle_sip_header_authentication_info_parse(l_raw_header);
+	L_authentication_info = BELLE_SIP_HEADER_AUTHENTICATION_INFO(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
+	
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_authentication_info_get_next_nonce(L_authentication_info),"31a5fb210812c47364c23432d2e1");
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_authentication_info_get_qop(L_authentication_info),"auth");
+	
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_authentication_info));
+	belle_sip_free(l_raw_header);
+	
+	BC_ASSERT_PTR_NULL(belle_sip_header_authentication_info_parse("nimportequoi"));
+}
+
 test_t headers_tests[] = {
 	TEST_NO_TAG("Address", test_address_header),
 	TEST_NO_TAG("Address tel uri", test_address_header_with_tel_uri),
@@ -1202,7 +1225,8 @@ test_t headers_tests[] = {
 	TEST_NO_TAG("Header Supported", test_supported_header),
 	TEST_NO_TAG("Header Content-Disposition", test_content_disposition_header),
 	TEST_NO_TAG("Header Accept", test_accept_header),
-	TEST_NO_TAG("Header Reason", test_reason_header)
+	TEST_NO_TAG("Header Reason", test_reason_header),
+	TEST_NO_TAG("Header Authentication-Info", test_authentication_info_header)
 };
 
 test_suite_t headers_test_suite = {"Headers", NULL, NULL, belle_sip_tester_before_each, belle_sip_tester_after_each,

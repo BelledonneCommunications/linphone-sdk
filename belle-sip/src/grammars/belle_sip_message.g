@@ -1548,6 +1548,64 @@ scope { belle_sip_header_reason_t* prev;}
 header_reason_protocol
 	:	token;
 //*********************************************//
+
+/*
+AuthenticationInfo = "Authentication-Info" ":" auth-info
+        auth-info          = 1#(nextnonce | [ message-qop ]
+                               | [ response-auth ] | [ cnonce ]
+                               | [nonce-count] )
+        nextnonce          = "nextnonce" "=" nonce-value
+        response-auth      = "rspauth" "=" response-digest
+        response-digest    = <"> *LHEX <">
+*/
+
+header_authentication_info  returns [belle_sip_header_authentication_info_t* ret=NULL]     
+scope { belle_sip_header_authentication_info_t* current; }
+@init {$header_authentication_info::current = belle_sip_header_authentication_info_new(); $ret=$header_authentication_info::current; }
+  :   {IS_TOKEN( Authentication-Info)}? token /*' Authentication-Info'*/ hcolon   auth_info ( comma auth_info)*;
+  catch [ANTLR3_RECOGNITION_EXCEPTION]
+{
+   belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+   belle_sip_object_unref($header_authentication_info::current);
+   $ret=NULL;
+}
+ auth_info
+  	:	
+  ( next_nonce { belle_sip_header_authentication_info_set_next_nonce($header_authentication_info::current,(char*)$next_nonce.ret);
+                 belle_sip_free($next_nonce.ret);
+           }
+  |cnonce{
+            belle_sip_header_authentication_info_set_cnonce($header_authentication_info::current,(char*)$cnonce.ret);
+            belle_sip_free($cnonce.ret);
+           }
+  | authentication_info_message_qop{
+            belle_sip_header_authentication_info_set_qop($header_authentication_info::current,$authentication_info_message_qop.ret);
+           }
+   |nonce_count{
+            belle_sip_header_authentication_info_set_nonce_count($header_authentication_info::current,atoi((char*)$nonce_count.ret));
+           } 
+   |rspauth {
+   	belle_sip_header_authentication_info_set_rsp_auth($header_authentication_info::current,$rspauth.ret);
+   	 belle_sip_free($rspauth.ret);
+           }) ;
+
+authentication_info_message_qop  returns [const char* ret=NULL]     
+  :   {IS_TOKEN(qop)}? token/*'qop'*/ equal  quoted_string  {  $ret = _belle_sip_str_dup_and_unquote_string((char*)$quoted_string.text->chars);};
+
+rspauth  returns [char* ret=NULL]             
+  :   {IS_TOKEN(rspauth)}? token /*'nonce'*/ equal quoted_string{
+                      $ret = _belle_sip_str_dup_and_unquote_string((char*)$quoted_string.text->chars);
+                       };
+next_nonce  returns [char* ret=NULL]             
+  :   {IS_TOKEN(nextnonce)}? token /*'nonce'*/ equal nonce_value{
+                      $ret = _belle_sip_str_dup_and_unquote_string((char*)$nonce_value.text->chars);
+                       };
+                       
+quoted_algorithm  returns [char* ret=NULL]             
+  :   {IS_TOKEN(nextnonce)}? token /*'nonce'*/ equal nonce_value{
+                      $ret = _belle_sip_str_dup_and_unquote_string((char*)$nonce_value.text->chars);
+                       };
+//**********************************************//
 header  returns [belle_sip_header_t* ret=NULL]
 	 : header_extension_base[FALSE] {$ret=$header_extension_base.ret;};
 	
