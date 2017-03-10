@@ -32,6 +32,7 @@ extern "C" {
 extern test_suite_t cast_test_suite;
 extern test_suite_t generic_uri_test_suite;
 extern test_suite_t sip_uri_test_suite;
+extern test_suite_t fast_sip_uri_test_suite;
 extern test_suite_t headers_test_suite;
 extern test_suite_t core_test_suite;
 extern test_suite_t sdp_test_suite;

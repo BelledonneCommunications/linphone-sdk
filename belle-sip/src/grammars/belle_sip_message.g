@@ -1508,7 +1508,45 @@ accept_sub_media_type {belle_sip_header_accept_set_subtype($header_accept::curre
 accept_main_media_type: token;
 accept_sub_media_type: token;
 
+//****************************Reason***********************************//
+/*
+Reason            =  "Reason" HCOLON reason-value *(COMMA reason-value)
+ reason-value      =  protocol *(SEMI reason-params)
+ protocol          =  "SIP" / "Q.850" / token
+ reason-params     =  protocol-cause / reason-text
+                      / reason-extension
+ protocol-cause    =  "cause" EQUAL cause
+ cause             =  1*DIGIT
+ reason-text       =  "text" EQUAL quoted-string
+ reason-extension  =  generic-param
 
+*/
+header_reason  returns [belle_sip_header_reason_t* ret=NULL]
+scope { belle_sip_header_reason_t* current;belle_sip_header_reason_t* first; }
+@init { $header_reason::current = NULL; $header_reason::first =NULL;}
+:   {IS_TOKEN(Reason)}? token /*'Reason'*/ hcolon header_reason_param  ( comma header_reason_param)* {$ret = $header_reason::first; };
+catch [ANTLR3_RECOGNITION_EXCEPTION]
+{
+   belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+   $ret = $header_reason::first;
+   if ($ret) belle_sip_object_unref($ret);
+   $ret=NULL;
+} 
+header_reason_param 
+scope { belle_sip_header_reason_t* prev;}
+@init { if ($header_reason::current == NULL) {
+            $header_reason::first = $header_reason::current = belle_sip_header_reason_new();
+             $header_reason_param::prev=NULL;
+         } else {
+            belle_sip_header_t* header = BELLE_SIP_HEADER($header_reason::current); 
+            $header_reason_param::prev=$header_reason::current;
+            belle_sip_header_set_next(header,(belle_sip_header_t*)($header_reason::current = belle_sip_header_reason_new()));
+         } 
+      }      
+	:header_reason_protocol {belle_sip_header_reason_set_protocol($header_reason::current,(const char*)$header_reason_protocol.text->chars);} 
+	(semi  generic_param [BELLE_SIP_PARAMETERS($header_reason::current)])*;
+header_reason_protocol
+	:	token;
 //*********************************************//
 header  returns [belle_sip_header_t* ret=NULL]
 	 : header_extension_base[FALSE] {$ret=$header_extension_base.ret;};
@@ -1604,6 +1642,12 @@ scope { belle_sip_uri_t* current; }
 @init {$hostport::current=uri;}
         :   host ( COLON port {belle_sip_uri_set_port($hostport::current,$port.ret);})? {belle_sip_uri_set_host($hostport::current,$host.ret);};
 
+fast_hostport[belle_sip_uri_t* uri] 
+scope { belle_sip_uri_t* current; }
+@init {$fast_hostport::current=uri;}
+        :  fast_host ( COLON port {belle_sip_uri_set_port($fast_hostport::current,$port.ret);})? {belle_sip_uri_set_host($fast_hostport::current,$fast_host.ret);};
+
+
 uri_parameters[belle_sip_uri_t* uri] 
 scope { belle_sip_uri_t* current; }
 @init {$uri_parameters::current=uri;}    
@@ -1660,9 +1704,19 @@ hvalue          :  ( hnv_unreserved | unreserved | escaped )+;
 hnv_unreserved  :   LSBRAQUET | RSBRAQUET  | SLASH | QMARK | COLON | PLUS | DOLLARD ;
 
 
-//****************SIP end**********************/	
+
+
 	
-	
+
+fast_host returns [const char* ret]
+scope { const char* current; }
+@init {$fast_host::current=$ret=NULL;}
+            :  (fast_hostname 	{$fast_host::current=(const char *)$fast_hostname.text->chars;}
+                    | ipv4address 	{$fast_host::current=(const char *)$ipv4address.text->chars;}
+                    | ipv6reference  {$fast_host::current=(const char *)$ipv6reference.ret;})  {$ret=$fast_host::current;}; 
+ 	
+fast_hostname: ( alphanum | DASH )*;
+
 //*************************common tokens*******************************/
 
 user_unreserved :  AND | EQUAL | PLUS | DOLLARD | COMMA | SEMI | QMARK | SLASH;
@@ -1671,14 +1725,16 @@ scope { const char* current; }
 @init {$host::current=$ret=NULL;}
             :   (hostname {$host::current=(const char *)$hostname.text->chars;}
                     | ipv4address {$host::current=(const char *)$ipv4address.text->chars;}
-                    | ipv6reference ) {$ret=$host::current;};
+                    | ipv6reference  {$host::current=(const char *)$ipv6reference.ret;}) {$ret=$host::current;};
 hostname        :   ( domainlabel DOT )* (toplabel)=>toplabel DOT? ;
   
 domainlabel     :   alphanum | (alphanum ( alphanum | DASH )* alphanum) ;
 toplabel        :   alpha | (alpha (  DASH?  alphanum)+) ;
 
 ipv4address    :  three_digit DOT three_digit DOT three_digit DOT three_digit ;
-ipv6reference  :  LSBRAQUET ipv6address RSBRAQUET {$host::current=(const char *)$ipv6address.text->chars;};
+ipv6reference returns [const char* ret]
+@init {$ret=NULL;}  
+:  LSBRAQUET ipv6address RSBRAQUET {$ret=(const char *)$ipv6address.text->chars;};
 ipv6address    :  hexpart ( COLON ipv4address )? ;
 hexpart        :  hexseq | hexseq COLON COLON ( hexseq )? | COLON COLON ( hexseq )?;
 hexseq         :  hex4 ( COLON hex4)*;

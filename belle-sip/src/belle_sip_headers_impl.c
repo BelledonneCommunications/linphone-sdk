@@ -83,6 +83,7 @@ static struct header_name_func_pair  header_table[] = {
 	,{PROTO_SIP, 			"k",							(header_parse_func)belle_sip_header_supported_parse}
 	,{PROTO_SIP, 			BELLE_SIP_CONTENT_DISPOSITION,	(header_parse_func)belle_sip_header_content_disposition_parse}
 	,{PROTO_SIP, 			BELLE_SIP_ACCEPT,				(header_parse_func)belle_sip_header_accept_parse}
+	,{PROTO_SIP, 			BELLE_SIP_REASON,				(header_parse_func)belle_sip_header_reason_parse}
 };
 
 static belle_sip_header_t* belle_header_create(const char* name,const char* value,int protocol) {
@@ -2021,4 +2022,61 @@ belle_sip_header_accept_t* belle_sip_header_accept_create (const char* type,cons
 GET_SET_STRING(belle_sip_header_accept,type);
 GET_SET_STRING(belle_sip_header_accept,subtype);
 
+/******************************
+ * Reason header object inherent from parameters
+ *
+ ******************************/
+struct _belle_sip_header_reason  {
+	belle_sip_parameters_t params_list;
+	const char* protocol;
+	const char* unquoted_text;
+};
 
+static void belle_sip_header_reason_destroy(belle_sip_header_reason_t* reason) {
+	DESTROY_STRING(reason,protocol);
+	DESTROY_STRING(reason,unquoted_text);
+}
+
+static void belle_sip_header_reason_clone(belle_sip_header_reason_t* reason, const belle_sip_header_reason_t* orig){
+	CLONE_STRING(belle_sip_header_reason,protocol,reason,orig)
+}
+
+belle_sip_error_code belle_sip_header_reason_marshal(belle_sip_header_reason_t* reason, char* buff, size_t buff_size, size_t *offset) {
+	belle_sip_error_code error=belle_sip_header_marshal(BELLE_SIP_HEADER(reason), buff, buff_size, offset);
+	if (error!=BELLE_SIP_OK) return error;
+		error=belle_sip_snprintf(buff,buff_size,offset,"%s ",reason->protocol);
+	if (error!=BELLE_SIP_OK) return error;
+		error=belle_sip_parameters_marshal(BELLE_SIP_PARAMETERS(reason), buff, buff_size, offset);
+	if (error!=BELLE_SIP_OK) return error;
+	if (reason->unquoted_text)
+		error=belle_sip_snprintf(buff,buff_size,offset,"; text=\"%s\"",reason->unquoted_text);
+	if (error!=BELLE_SIP_OK) return error;
+	return error;
+}
+
+GET_SET_STRING(belle_sip_header_reason,unquoted_text);
+
+void belle_sip_header_reason_set_text(belle_sip_header_reason_t* reason,const char* text) {
+	belle_sip_parameters_remove_parameter(BELLE_SIP_PARAMETERS(reason),"text"); /*just in case*/
+	belle_sip_header_reason_set_unquoted_text((belle_sip_header_reason_t*)reason, text);
+}
+BELLESIP_EXPORT const char*	belle_sip_header_reason_get_text(const belle_sip_header_reason_t* reason) {
+	if (!reason->unquoted_text) {
+		/*try from params*/
+		const char * quoted = belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(reason), "text");
+		if (quoted) {
+			char* unquoted = _belle_sip_str_dup_and_unquote_string(quoted);
+			belle_sip_header_reason_set_unquoted_text((belle_sip_header_reason_t*)reason, unquoted); /*change internal param, ,even if reason is const*/
+			belle_sip_parameters_remove_parameter(BELLE_SIP_PARAMETERS(reason),"text");
+			belle_sip_free(unquoted);
+		}
+
+	}
+	return reason->unquoted_text;
+}
+
+GET_SET_STRING_PARAM(belle_sip_header_reason,protocol);
+
+GET_SET_INT_PARAM(belle_sip_header_reason,cause,int);
+BELLE_SIP_PARSE(header_reason)
+BELLE_SIP_NEW_HEADER(header_reason,parameters,BELLE_SIP_REASON)

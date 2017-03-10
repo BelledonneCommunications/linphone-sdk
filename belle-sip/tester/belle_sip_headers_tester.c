@@ -1133,7 +1133,33 @@ static void test_accept_header(void) {
 
 	BC_ASSERT_PTR_NULL(belle_sip_header_accept_parse("nimportequoi"));
 }
+static void test_reason_header(void) {
+	belle_sip_header_reason_t *L_tmp, *l_next;
+	belle_sip_header_reason_t* L_reason = BELLE_SIP_HEADER_REASON(belle_sip_header_create("Reason", "Q.850 ;cause=16 ;text=\"Busy Everywhere\""));
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_reason_get_text(L_reason),"Busy Everywhere");
+	belle_sip_header_reason_set_text(L_reason, "Terminated");
+	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_reason));
+	
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_reason));
+	L_tmp = belle_sip_header_reason_parse(l_raw_header);
+	L_reason = BELLE_SIP_HEADER_REASON(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
+	
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_reason_get_text(L_reason),"Terminated");
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_reason_get_protocol(L_reason),"Q.850");
+	BC_ASSERT_EQUAL(belle_sip_header_reason_get_cause(L_reason),16 , int,"%d");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_reason));
+	belle_sip_free(l_raw_header);
 
+	L_reason = belle_sip_header_reason_parse("Reason: SIP ;cause=600 ;text=\"Busy Everywhere\", SIP ;cause=580 ;text=\"Precondition Failure\"");
+	l_next =BELLE_SIP_HEADER_REASON(belle_sip_header_get_next(BELLE_SIP_HEADER(L_reason)));
+	BC_ASSERT_PTR_NOT_NULL(l_next);
+	BC_ASSERT_EQUAL(belle_sip_header_reason_get_cause(l_next),580 , int,"%d");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_reason));
+
+	
+	BC_ASSERT_PTR_NULL(belle_sip_header_reason_parse("nimportequoi"));
+}
 test_t headers_tests[] = {
 	TEST_NO_TAG("Address", test_address_header),
 	TEST_NO_TAG("Address tel uri", test_address_header_with_tel_uri),
@@ -1175,7 +1201,8 @@ test_t headers_tests[] = {
 	TEST_NO_TAG("Header event", test_event_header),
 	TEST_NO_TAG("Header Supported", test_supported_header),
 	TEST_NO_TAG("Header Content-Disposition", test_content_disposition_header),
-	TEST_NO_TAG("Header Accept", test_accept_header)
+	TEST_NO_TAG("Header Accept", test_accept_header),
+	TEST_NO_TAG("Header Reason", test_reason_header)
 };
 
 test_suite_t headers_test_suite = {"Headers", NULL, NULL, belle_sip_tester_before_each, belle_sip_tester_after_each,

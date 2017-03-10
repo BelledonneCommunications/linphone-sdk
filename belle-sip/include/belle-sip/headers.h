@@ -753,6 +753,23 @@ BELLESIP_EXPORT void belle_sip_header_accept_set_subtype(belle_sip_header_accept
 #define BELLE_SIP_HEADER_ACCEPT(t) BELLE_SIP_CAST(t,belle_sip_header_accept_t)
 #define BELLE_SIP_ACCEPT "Accept"
 
+/******************************
+ * Reason header object inherent from parameters
+ *
+ ******************************/
+typedef struct _belle_sip_header_reason belle_sip_header_reason_t;
+BELLESIP_EXPORT belle_sip_header_reason_t* belle_sip_header_reason_new(void);
+BELLESIP_EXPORT belle_sip_header_reason_t* belle_sip_header_reason_parse (const char* reason) ;
+BELLESIP_EXPORT const char*	belle_sip_header_reason_get_protocol(const belle_sip_header_reason_t* reason);
+BELLESIP_EXPORT void belle_sip_header_reason_set_protocol(belle_sip_header_reason_t* reason,const char* protocol);
+BELLESIP_EXPORT int	belle_sip_header_reason_get_cause(const belle_sip_header_reason_t* reason);
+BELLESIP_EXPORT void belle_sip_header_reason_set_cause(belle_sip_header_reason_t* reason,int cause);
+BELLESIP_EXPORT void belle_sip_header_reason_set_text(belle_sip_header_reason_t* reason,const char* text);
+BELLESIP_EXPORT const char*	belle_sip_header_reason_get_text(const belle_sip_header_reason_t* reason);
+
+#define BELLE_SIP_HEADER_REASON(t) BELLE_SIP_CAST(t,belle_sip_header_reason_t)
+#define BELLE_SIP_REASON "Reason"
+
 
 BELLE_SIP_END_DECLS
 

@@ -41,6 +41,7 @@ set(SOURCE_FILES_C
 	belle_sip_tester.c
 	belle_sip_tester.h
 	belle_sip_uri_tester.c
+	belle_sip_fast_uri_tester.c
 	cast_test.c
 	register_tester.h
 )

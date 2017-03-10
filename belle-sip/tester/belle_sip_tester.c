@@ -94,6 +94,7 @@ void belle_sip_tester_init(void(*ftester_printf)(int level, const char *fmt, va_
 	ipv6_available=_belle_sip_tester_ipv6_available();
 	bc_tester_add_suite(&cast_test_suite);
 	bc_tester_add_suite(&sip_uri_test_suite);
+	bc_tester_add_suite(&fast_sip_uri_test_suite);
 	bc_tester_add_suite(&generic_uri_test_suite);
 	bc_tester_add_suite(&headers_test_suite);
 	bc_tester_add_suite(&core_test_suite);
