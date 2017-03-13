@@ -39,7 +39,7 @@ def include_hexdump(infilename):
             break
         print_include_hexdump_line(buf)
         size = size + len(buf)
-    print("};")
+    print(",0x00};")
     print("unsigned int {0}_len = {1};".format(varname, size))
 
 def print_hexdump_line(counter, buf):

@@ -22,12 +22,8 @@
 
 execute_process(
 	COMMAND "${PYTHON_EXECUTABLE}" "${INPUT_DIR}/../tools/xxd.py" "-i" "${SOURCE_FILE}"
-	OUTPUT_FILE "${OUTPUT_DIR}/${SOURCE_FILE}.tmp"
-	WORKING_DIRECTORY ${INPUT_DIR}
-)
-execute_process(
-	COMMAND "${SED_PROGRAM}" "s/}\;/,0x00}\;/" "${OUTPUT_DIR}/${SOURCE_FILE}.tmp"
 	OUTPUT_FILE "${OUTPUT_DIR}/${SOURCE_FILE}.h.tmp"
+	WORKING_DIRECTORY ${INPUT_DIR}
 )
 if(EXISTS "${OUTPUT_DIR}/${SOURCE_FILE}.h")
 	file(READ "${OUTPUT_DIR}/${SOURCE_FILE}.h" OLD_CONTENT)
@@ -39,6 +35,5 @@ else()
 	file(RENAME "${OUTPUT_DIR}/${SOURCE_FILE}.h.tmp" "${OUTPUT_DIR}/${SOURCE_FILE}.h")
 endif()
 file(REMOVE
-	"${OUTPUT_DIR}/${SOURCE_FILE}.tmp"
 	"${OUTPUT_DIR}/${SOURCE_FILE}.h.tmp"
 )
