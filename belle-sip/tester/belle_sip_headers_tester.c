@@ -1136,9 +1136,11 @@ static void test_accept_header(void) {
 static void test_reason_header(void) {
 	belle_sip_header_reason_t *L_tmp, *l_next;
 	belle_sip_header_reason_t* L_reason = BELLE_SIP_HEADER_REASON(belle_sip_header_create("Reason", "Q.850 ;cause=16 ;text=\"Busy Everywhere\""));
+	char* l_raw_header;
+	
 	BC_ASSERT_STRING_EQUAL(belle_sip_header_reason_get_text(L_reason),"Busy Everywhere");
 	belle_sip_header_reason_set_text(L_reason, "Terminated");
-	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_reason));
+	l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_reason));
 	
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_reason));
 	L_tmp = belle_sip_header_reason_parse(l_raw_header);
@@ -1165,9 +1167,11 @@ static void test_authentication_info_header(void) {
 	belle_sip_header_authentication_info_t* L_authentication_info = BELLE_SIP_HEADER_AUTHENTICATION_INFO(belle_sip_header_create("Authentication-Info"
 																													, "nextnonce=\"47364c23432d2e131a5fb210812c\""
 																														", qop=\"auth\""));
+	char* l_raw_header;
+	
 	BC_ASSERT_STRING_EQUAL(belle_sip_header_authentication_info_get_next_nonce(L_authentication_info),"47364c23432d2e131a5fb210812c");
 	belle_sip_header_authentication_info_set_next_nonce(L_authentication_info, "31a5fb210812c47364c23432d2e1");
-	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_authentication_info));
+	l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_authentication_info));
 	
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_authentication_info));
 	L_tmp = belle_sip_header_authentication_info_parse(l_raw_header);
