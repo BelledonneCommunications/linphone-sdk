@@ -193,7 +193,7 @@ int main(int argc, char *argv[]) {
 		else()
 			message(WARNING "Compiler does not support ARM intrinsics")
 		endif()
-	elseif(SYSTEM_PROCESSOR MATCHES "^i.?86.*" OR SYSTEM_PROCESSOR MATCHES "^x86.*" OR SYSTEM_PROCESSOR MATCHES "^x86_64.*")
+	elseif(SYSTEM_PROCESSOR MATCHES "^i.?86.*" OR SYSTEM_PROCESSOR MATCHES "^x86.*" OR SYSTEM_PROCESSOR MATCHES "^x86_64.*" OR SYSTEM_PROCESSOR MATCHES "^amd64.*")
 		check_intrinsics("SSE" "${X86_SSE_CFLAGS}" OPUS_X86_MAY_HAVE_SSE OPUS_X86_PRESUME_SSE "
 #include <xmmintrin.h>
 #include <time.h>
