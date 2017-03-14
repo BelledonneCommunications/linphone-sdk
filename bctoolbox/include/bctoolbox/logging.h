@@ -52,7 +52,7 @@ typedef void (*BctoolboxLogFunc)(const char *domain, BctbxLogLevel lev, const ch
 typedef void (*BctoolboxLogHandlerFunc)(void *info,const char *domain, BctbxLogLevel lev, const char *fmt, va_list args);
 
 typedef struct _BctoolboxLogHandler{
-	BctoolboxLogFunc func;
+	BctoolboxLogHandlerFunc func;
 	void* user_info;
 }BctoolboxLogHandler;
 
