@@ -2112,7 +2112,7 @@ static void belle_sip_header_authentication_info_clone(	belle_sip_header_authent
 }
 
 belle_sip_error_code belle_sip_header_authentication_info_marshal(belle_sip_header_authentication_info_t* authentication_info, char* buff, size_t buff_size, size_t *offset) {
-	char* border=" ";
+	char* border="";
 	belle_sip_error_code error=belle_sip_header_marshal(BELLE_SIP_HEADER(authentication_info), buff, buff_size, offset);
 	if (error!=BELLE_SIP_OK) return error;
 	

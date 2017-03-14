@@ -766,7 +766,7 @@ static void process_message_response_event(void *user_ctx, const belle_sip_respo
 		}
 	}
 }
-static belle_sip_request_t* send_message(belle_sip_request_t *initial_request, const char* realm){
+static belle_sip_request_t* send_message_to(belle_sip_request_t *initial_request, const char* realm, belle_sip_uri_t *outbound){
 	int i;
 	int io_error_count=0;
 	belle_sip_request_t *message_request=NULL;
@@ -793,41 +793,58 @@ static belle_sip_request_t* send_message(belle_sip_request_t *initial_request, c
 	// 	belle_sip_header_set_name(BELLE_SIP_HEADER(h), BELLE_SIP_PROXY_AUTHORIZATION);
 	// }
 	clone_request = (belle_sip_request_t*)belle_sip_object_ref(belle_sip_object_clone((belle_sip_object_t*)message_request));
-	belle_sip_client_transaction_send_request_to(belle_sip_provider_create_client_transaction(prov,message_request),NULL);
+	belle_sip_client_transaction_send_request_to(belle_sip_provider_create_client_transaction(prov,message_request),outbound);
 	for(i=0; i<2 && io_error_count==0 &&is_register_ok==0;i++)
 		belle_sip_stack_sleep(stack,5000);
 
 	return clone_request;
 }
-static void reuse_nonce(void) {
+
+static belle_sip_request_t* send_message(belle_sip_request_t *initial_request, const char* realm) {
+	return send_message_to(initial_request,realm,NULL);
+}
+
+static void reuse_nonce_base(const char* outbound) {
 	belle_sip_request_t *register_request;
-	size_t initial_auth_context_count=belle_sip_list_size(prov->auth_contexts);
-	register_request=register_user_at_domain(stack, prov, "tcp",1,"marie","sip.linphone.org",NULL);
+	size_t initial_auth_context_count=0;/*belle_sip_list_size(prov->auth_contexts);*/
+	char outbound_uri[256];
+	/*reset auth context*/
+	prov->auth_contexts = belle_sip_list_free_with_data(prov->auth_contexts,(void(*)(void*))belle_sip_authorization_destroy);
+	
+	if (outbound)
+		snprintf(outbound_uri, sizeof(outbound_uri),"sip:%s",outbound);
+	
+	register_request=register_user_at_domain(stack, prov, "tcp",1,"marie",outbound,NULL);
+	
 	if (register_request) {
 		belle_sip_header_authorization_t * h = NULL;
 		belle_sip_request_t *message_request;
-		listener_callbacks.process_dialog_terminated=process_dialog_terminated;
-		listener_callbacks.process_io_error=process_io_error;
-		listener_callbacks.process_request_event=process_request_event;
-		listener_callbacks.process_response_event=process_message_response_event;
-		listener_callbacks.process_timeout=process_timeout;
-		listener_callbacks.process_transaction_terminated=process_transaction_terminated;
-		listener_callbacks.process_auth_requested=process_auth_requested;
-		listener_callbacks.listener_destroyed=NULL;
-		listener=belle_sip_listener_create_from_callbacks(&listener_callbacks,NULL);
+		belle_sip_listener_callbacks_t cbs;
+		belle_sip_listener_t *reuse_nonce_listener;
+		cbs.process_dialog_terminated=process_dialog_terminated;
+		cbs.process_io_error=process_io_error;
+		cbs.process_request_event=process_request_event;
+		cbs.process_response_event=process_message_response_event;
+		cbs.process_timeout=process_timeout;
+		cbs.process_transaction_terminated=process_transaction_terminated;
+		cbs.process_auth_requested=process_auth_requested;
+		cbs.listener_destroyed=NULL;
+		reuse_nonce_listener=belle_sip_listener_create_from_callbacks(&cbs,NULL);
 
-		belle_sip_provider_add_sip_listener(prov,BELLE_SIP_LISTENER(listener));
+		belle_sip_provider_add_sip_listener(prov,BELLE_SIP_LISTENER(reuse_nonce_listener));
 
 		/*currently only one nonce should have been used (the one for the REGISTER)*/
 		BC_ASSERT_EQUAL((unsigned int)belle_sip_list_size(prov->auth_contexts), (unsigned int)initial_auth_context_count+1,unsigned int,"%u");
 
 		/*this should reuse previous nonce*/
-		message_request=send_message(register_request, auth_domain);
+		message_request=send_message_to(register_request, auth_domain,outbound?belle_sip_uri_parse(outbound_uri):NULL);
 		BC_ASSERT_EQUAL(is_register_ok, 404,int,"%d");
 		h = BELLE_SIP_HEADER_AUTHORIZATION(belle_sip_message_get_header_by_type(
 					BELLE_SIP_MESSAGE(message_request), belle_sip_header_proxy_authorization_t
 				));
-		if (BC_ASSERT_PTR_NOT_NULL(h)) {
+		if (BC_ASSERT_PTR_NOT_NULL(h)
+			&& belle_sip_header_authorization_get_qop(h)
+			&& strcmp(belle_sip_header_authorization_get_qop(h),"auth")==0) {
 			char * first_nonce_used;
 			BC_ASSERT_EQUAL(2, belle_sip_header_authorization_get_nonce_count(h),int,"%d");
 			first_nonce_used = belle_sip_strdup(belle_sip_header_authorization_get_nonce(h));
@@ -837,7 +854,7 @@ static void reuse_nonce(void) {
 
 
 		/*new nonce should be created when not using outbound proxy realm*/
-		message_request=send_message(register_request, NULL);
+		message_request=send_message_to(register_request, NULL,outbound?belle_sip_uri_parse(outbound_uri):NULL);
 		BC_ASSERT_EQUAL(is_register_ok, 407,int,"%d");
 		h = BELLE_SIP_HEADER_AUTHORIZATION(belle_sip_message_get_header_by_type(
 				BELLE_SIP_MESSAGE(message_request), belle_sip_header_proxy_authorization_t
@@ -847,7 +864,7 @@ static void reuse_nonce(void) {
 
 
 		/*new nonce should be created here too*/
-		message_request=send_message(register_request, "wrongrealm");
+		message_request=send_message_to(register_request, "wrongrealm",outbound?belle_sip_uri_parse(outbound_uri):NULL);
 		BC_ASSERT_EQUAL(is_register_ok, 407,int,"%d");
 		h = BELLE_SIP_HEADER_AUTHORIZATION(belle_sip_message_get_header_by_type(
 				BELLE_SIP_MESSAGE(message_request), belle_sip_header_proxy_authorization_t
@@ -856,23 +873,106 @@ static void reuse_nonce(void) {
 		belle_sip_object_unref(message_request);
 
 
-		/*first nonce created should be reused*/
-		message_request=send_message(register_request, auth_domain);
-		BC_ASSERT_EQUAL(is_register_ok, 404,int,"%d");
+		/*first nonce created should be reused. this test is only for qop = auth*/
+		message_request=send_message_to(register_request, auth_domain,outbound?belle_sip_uri_parse(outbound_uri):NULL);
+		
 		h = BELLE_SIP_HEADER_AUTHORIZATION(belle_sip_message_get_header_by_type(
 				BELLE_SIP_MESSAGE(message_request), belle_sip_header_proxy_authorization_t
 			));
-		if (BC_ASSERT_PTR_NOT_NULL(h)) {
+		if (BC_ASSERT_PTR_NOT_NULL(h)
+			&& belle_sip_header_authorization_get_qop(h)
+			&& strcmp(belle_sip_header_authorization_get_qop(h),"auth")==0) {
+			BC_ASSERT_EQUAL(is_register_ok, 404,int,"%d");
 			BC_ASSERT_EQUAL(3, belle_sip_header_authorization_get_nonce_count(h),int,"%d");
 		}
 		belle_sip_object_unref(message_request);
 
-		belle_sip_provider_remove_sip_listener(prov,BELLE_SIP_LISTENER(listener));
+		belle_sip_provider_remove_sip_listener(prov,BELLE_SIP_LISTENER(reuse_nonce_listener));
 		unregister_user(stack,prov,register_request,1);
 		belle_sip_object_unref(register_request);
 	}
 }
+static void reuse_nonce(void) {
+	reuse_nonce_base("sip.linphone.org");
+}
+#define NONCE_SIZE  32
+void register_process_request_event(char *nonce, const belle_sip_request_event_t *event) {
+	belle_sip_request_t *req = belle_sip_request_event_get_request(event);
+	belle_sip_header_authorization_t *authorization;
+	int response_code = 407;
+	char *uri_as_string= belle_sip_uri_to_string(belle_sip_request_get_uri(req));
+	belle_sip_response_t * response_msg;
+	belle_sip_server_transaction_t *trans=belle_sip_provider_create_server_transaction(prov, req);
+	
+	if (strcasecmp(belle_sip_request_get_method(req), "REGISTER") == 0) {
+		response_code=401;
+	}
+	
+	if (	(authorization = belle_sip_message_get_header_by_type(req,belle_sip_header_authorization_t))
+		 || (authorization = BELLE_SIP_HEADER_AUTHORIZATION(belle_sip_message_get_header_by_type(req,belle_sip_header_proxy_authorization_t)))) {
+		 char ha1[33], ha2[33], response[33];
+		belle_sip_auth_helper_compute_ha1(belle_sip_header_authorization_get_username(authorization)
+										, belle_sip_header_authorization_get_realm(authorization)
+										  ,"secret", ha1);
+		belle_sip_auth_helper_compute_ha2(belle_sip_request_get_method(req)
+										  , uri_as_string, ha2);
+		belle_sip_auth_helper_compute_response(ha1,nonce, ha2, response);
+		if (strcmp(response, belle_sip_header_authorization_get_response(authorization)) == 0) {
+			belle_sip_message("Auth sucessfull");
+			if (strcasecmp(belle_sip_request_get_method(req), "MESSAGE") == 0) {
+				response_code = 404;
+			} else {
+				response_code = 200;
+			}
+		}
+	}
+	
+	belle_sip_random_token((nonce), NONCE_SIZE);
+	response_msg = belle_sip_response_create_from_request(req, response_code);
+	
+	if (response_code == 407 || response_code == 401 ) {
+		belle_sip_header_www_authenticate_t *www_authenticate = 401?belle_sip_header_www_authenticate_new():BELLE_SIP_HEADER_WWW_AUTHENTICATE(belle_sip_header_proxy_authenticate_new());
+	
+		
+		belle_sip_header_www_authenticate_set_realm(www_authenticate, "sip.linphone.org");
+		belle_sip_header_www_authenticate_set_domain(www_authenticate, "sip:sip.linphone.org");
+		belle_sip_header_www_authenticate_set_scheme(www_authenticate, "Digest");
+		belle_sip_header_www_authenticate_set_nonce(www_authenticate,nonce);
+		belle_sip_message_add_header(BELLE_SIP_MESSAGE(response_msg), BELLE_SIP_HEADER(www_authenticate));
+	} else {
+		belle_sip_header_authentication_info_t* authentication_info = belle_sip_header_authentication_info_new();
+		belle_sip_header_authentication_info_set_next_nonce(authentication_info, nonce);
+		belle_sip_message_add_header(BELLE_SIP_MESSAGE(response_msg), BELLE_SIP_HEADER(authentication_info));
+	}
+	
+	belle_sip_server_transaction_send_response(trans,response_msg);
+}
 
+static void test_register_with_next_nonce() {
+	belle_sip_listening_point_t *server_lp = belle_sip_stack_create_listening_point(stack,"0.0.0.0",bctbx_random()%20000 +1024,"TCP");
+	char  nonce [NONCE_SIZE];
+	belle_sip_listener_t *server_listener;
+	char listening_uri[256];
+	belle_sip_listener_callbacks_t cbs;
+	belle_sip_random_token((nonce), sizeof(nonce));
+	
+	cbs.process_dialog_terminated=NULL;
+	cbs.process_io_error=NULL;
+	cbs.process_request_event=(void (*)(void *user_ctx, const belle_sip_request_event_t *event))register_process_request_event;
+	cbs.process_response_event=NULL;
+	cbs.process_timeout=NULL;
+	cbs.process_transaction_terminated=NULL;
+	cbs.process_auth_requested=NULL;
+	cbs.listener_destroyed=NULL;
+	server_listener=belle_sip_listener_create_from_callbacks(&cbs,nonce);
+	belle_sip_provider_add_sip_listener(prov,server_listener);
+	belle_sip_provider_add_listening_point(prov,server_lp);
+	snprintf(listening_uri,sizeof(listening_uri), "127.0.0.1:%i;transport=tcp",belle_sip_listening_point_get_port(server_lp));
+
+	reuse_nonce_base(listening_uri);
+	belle_sip_provider_remove_sip_listener(prov, server_listener);
+	belle_sip_provider_remove_listening_point(prov, server_lp);
+}
 
 test_t register_tests[] = {
 	TEST_NO_TAG("Stateful UDP", stateful_register_udp),
@@ -901,7 +1001,8 @@ test_t register_tests[] = {
 	TEST_NO_TAG("Register with DNS SRV failover TLS", register_dns_srv_tls),
 	TEST_NO_TAG("Register with DNS SRV failover TLS with http proxy", register_dns_srv_tls_with_http_proxy),
 	TEST_NO_TAG("Register with DNS load-balancing", register_dns_load_balancing),
-	TEST_NO_TAG("Nonce reutilization", reuse_nonce)
+	TEST_NO_TAG("Nonce reutilization", reuse_nonce),
+	TEST_NO_TAG("Next Nonce", test_register_with_next_nonce)
 };
 
 test_suite_t register_test_suite = {"Register", register_before_all, register_after_all, NULL,

@@ -39,11 +39,27 @@ static void belle_sip_auth_helper_clone_authorization(belle_sip_header_authoriza
 	CLONE_STRING_GENERIC(belle_sip_header_www_authenticate,belle_sip_header_authorization,algorithm,authorization,authentication)
 	CLONE_STRING_GENERIC(belle_sip_header_www_authenticate,belle_sip_header_authorization,opaque,authorization,authentication)
 }
+
+static void belle_sip_auth_helper_clone_www_authenticate(belle_sip_header_www_authenticate_t* authentication, const belle_sip_header_authorization_t* authorization) {
+	CLONE_STRING_GENERIC(belle_sip_header_authorization,belle_sip_header_www_authenticate,scheme, authentication, authorization)
+	CLONE_STRING_GENERIC(belle_sip_header_authorization,belle_sip_header_www_authenticate,realm, authentication, authorization)
+	CLONE_STRING_GENERIC(belle_sip_header_authorization,belle_sip_header_www_authenticate,nonce, authentication, authorization)
+	CLONE_STRING_GENERIC(belle_sip_header_authorization,belle_sip_header_www_authenticate,algorithm,authentication ,authorization)
+	CLONE_STRING_GENERIC(belle_sip_header_authorization,belle_sip_header_www_authenticate,opaque,authentication, authorization)
+}
+
 belle_sip_header_authorization_t* belle_sip_auth_helper_create_authorization(const belle_sip_header_www_authenticate_t* authentication) {
 	belle_sip_header_authorization_t* authorization = belle_sip_header_authorization_new();
 	belle_sip_auth_helper_clone_authorization(authorization,authentication);
 	return authorization;
 }
+
+belle_sip_header_www_authenticate_t* belle_sip_auth_helper_create_www_authenticate(const belle_sip_header_authorization_t* authorization) {
+	belle_sip_header_www_authenticate_t* www_authenticate = belle_sip_header_www_authenticate_new();
+	belle_sip_auth_helper_clone_www_authenticate(www_authenticate, authorization);
+	return www_authenticate;
+}
+
 belle_http_header_authorization_t* belle_http_auth_helper_create_authorization(const belle_sip_header_www_authenticate_t* authentication) {
 	belle_http_header_authorization_t* authorization = belle_http_header_authorization_new();
 	belle_sip_auth_helper_clone_authorization(BELLE_SIP_HEADER_AUTHORIZATION(authorization),authentication);

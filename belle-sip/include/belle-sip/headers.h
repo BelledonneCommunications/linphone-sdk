@@ -772,7 +772,7 @@ BELLESIP_EXPORT const char*	belle_sip_header_reason_get_text(const belle_sip_hea
 
 
 /******************************
- * AuthenticationInfo header inherit from header
+ * Authentication-Info header inherit from header
  *
  ******************************/
 typedef struct _belle_sip_header_authentication_info belle_sip_header_authentication_info_t;

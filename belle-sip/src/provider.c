@@ -20,8 +20,8 @@
 #include "listeningpoint_internal.h"
 #include "md5.h"
 #include "belle-sip/message.h"
-
-typedef struct authorization_context {
+static void  belle_sip_provider_update_or_create_auth_context(belle_sip_provider_t *p,belle_sip_header_call_id_t* call_id,belle_sip_header_www_authenticate_t* authenticate,belle_sip_uri_t *from_uri,const char* realm) ;
+struct authorization_context {
 	belle_sip_header_call_id_t* callid;
 	const char* scheme;
 	const char* realm;
@@ -32,7 +32,7 @@ typedef struct authorization_context {
 	const char* algorithm;
 	int nonce_count;
 	int is_proxy;
-}authorization_context_t;
+};
 
 GET_SET_STRING(authorization_context,realm)
 GET_SET_STRING(authorization_context,nonce)
@@ -49,7 +49,7 @@ static authorization_context_t* belle_sip_authorization_create(belle_sip_header_
 	belle_sip_object_ref(result->callid);
 	return result;
 }
-static void belle_sip_authorization_destroy(authorization_context_t* object) {
+void belle_sip_authorization_destroy(authorization_context_t* object) {
 	DESTROY_STRING(object,scheme);
 	DESTROY_STRING(object,realm);
 	DESTROY_STRING(object,nonce);
@@ -210,7 +210,39 @@ static void belle_sip_provider_dispatch_response(belle_sip_provider_t* p, belle_
 				}
 			}
 		}
+		break;
 	}
+		default:
+			if (t!=NULL){
+				belle_sip_message_t* req = BELLE_SIP_MESSAGE(belle_sip_transaction_get_request((belle_sip_transaction_t*)t));
+				belle_sip_header_authentication_info_t *authentication_info = belle_sip_message_get_header_by_type(msg,belle_sip_header_authentication_info_t);
+				belle_sip_list_t *authorization_lst = NULL;
+				belle_sip_header_call_id_t *call_id = belle_sip_message_get_header_by_type(msg,belle_sip_header_call_id_t);
+				belle_sip_header_from_t *from = belle_sip_message_get_header_by_type(req,belle_sip_header_from_t);
+				belle_sip_uri_t *from_uri=belle_sip_header_address_get_uri((belle_sip_header_address_t*)from);
+				/*searching for authentication headers*/
+				authorization_lst = belle_sip_list_copy(belle_sip_message_get_headers(BELLE_SIP_MESSAGE(req),BELLE_SIP_AUTHORIZATION));
+				/*search for proxy authenticate*/
+				authorization_lst=belle_sip_list_concat(authorization_lst,belle_sip_list_copy(belle_sip_message_get_headers(BELLE_SIP_MESSAGE(req),BELLE_SIP_PROXY_AUTHORIZATION)));
+				/*update auth contexts with authenticate headers from response*/
+				for (;authentication_info && authorization_lst!=NULL;authorization_lst=authorization_lst->next) {
+					belle_sip_header_authorization_t *authorization=BELLE_SIP_HEADER_AUTHORIZATION(authorization_lst->data);
+					belle_sip_header_www_authenticate_t *www_authenticate = belle_sip_auth_helper_create_www_authenticate(authorization);
+					belle_sip_header_www_authenticate_set_nonce(www_authenticate, belle_sip_header_authentication_info_get_next_nonce(authentication_info));
+					belle_sip_message( "Updating auth context for ream [%s] next nonce is going to be [%s]"
+									  , belle_sip_header_www_authenticate_get_realm(www_authenticate)
+									  , belle_sip_header_authentication_info_get_next_nonce(authentication_info));
+					belle_sip_provider_update_or_create_auth_context(p
+																	 , call_id
+																	 , www_authenticate
+																	 , from_uri
+																	 ,belle_sip_header_www_authenticate_get_realm(www_authenticate));
+					belle_sip_object_unref(www_authenticate);
+				}
+				if (authorization_lst)
+					belle_sip_list_free(authorization_lst);
+			}
+			
 	}
 	if (t){ /*In some re-connection case, specially over udp, transaction may be found, but without associated channel*/
 		if (t->base.channel == NULL) {
@@ -1013,6 +1045,7 @@ static void authorization_context_fill_from_auth(authorization_context_t* auth_c
 	}
 }
 
+
 static belle_sip_list_t* belle_sip_provider_get_auth_context_by_realm_or_call_id(belle_sip_provider_t *p,belle_sip_header_call_id_t* call_id,belle_sip_uri_t *from_uri,const char* realm) {
 	belle_sip_list_t* auth_context_lst=NULL;
 	belle_sip_list_t* result=NULL;
@@ -1088,6 +1121,7 @@ static void  belle_sip_provider_update_or_create_auth_context(belle_sip_provider
 	if (auth_context_lst) belle_sip_free(auth_context_lst);
 	return;
 }
+
 
 int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_request_t* request, belle_sip_response_t *resp,
 					 belle_sip_uri_t *from_uri, belle_sip_list_t** auth_infos, const char* realm) {
