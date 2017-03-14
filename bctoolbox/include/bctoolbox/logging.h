@@ -27,6 +27,7 @@
 #define BCTBX_LOGGING_H
 
 #include <bctoolbox/port.h>
+#include "bctoolbox/list.h"
 
 #ifndef BCTBX_LOG_DOMAIN
 #define BCTBX_LOG_DOMAIN NULL
@@ -47,14 +48,18 @@ typedef enum {
 	BCTBX_LOG_LOGLEV_END=1<<6
 } BctbxLogLevel;
 
+typedef void (*BctoolboxLogFunc)(void *info,const char *domain, BctbxLogLevel lev, const char *fmt, va_list args);
 
-typedef void (*BctoolboxLogFunc)(const char *domain, BctbxLogLevel lev, const char *fmt, va_list args);
+typedef struct _BctoolboxLogHandler{
+	BctoolboxLogFunc func;
+	void* user_info;
+}BctoolboxLogHandler;
 
-BCTBX_PUBLIC void bctbx_set_log_file(FILE *file);
-BCTBX_PUBLIC void bctbx_set_log_handler(BctoolboxLogFunc func);
-BCTBX_PUBLIC BctoolboxLogFunc bctbx_get_log_handler(void);
+BCTBX_PUBLIC void bctbx_add_log_handler(BctoolboxLogHandler* handler);
+BCTBX_PUBLIC bctbx_list_t* bctbx_get_log_handlers(void);
 
-BCTBX_PUBLIC void bctbx_logv_out(const char *domain, BctbxLogLevel level, const char *fmt, va_list args);
+BCTBX_PUBLIC void bctbx_logv_out(void* user_info, const char *domain, BctbxLogLevel level, const char *fmt, va_list args);
+BCTBX_PUBLIC void bctbx_logv_file(void* user_info, const char *domain, BctbxLogLevel level, const char *fmt, va_list args);
 
 #define bctbx_log_level_enabled(domain, level)	(bctbx_get_log_level_mask(domain) & (level))
 
