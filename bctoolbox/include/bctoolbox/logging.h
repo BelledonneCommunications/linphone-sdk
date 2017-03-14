@@ -48,7 +48,8 @@ typedef enum {
 	BCTBX_LOG_LOGLEV_END=1<<6
 } BctbxLogLevel;
 
-typedef void (*BctoolboxLogFunc)(void *info,const char *domain, BctbxLogLevel lev, const char *fmt, va_list args);
+typedef void (*BctoolboxLogFunc)(const char *domain, BctbxLogLevel lev, const char *fmt, va_list args);
+typedef void (*BctoolboxLogHandlerFunc)(void *info,const char *domain, BctbxLogLevel lev, const char *fmt, va_list args);
 
 typedef struct _BctoolboxLogHandler{
 	BctoolboxLogFunc func;
