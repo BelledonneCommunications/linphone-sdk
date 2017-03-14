@@ -726,8 +726,7 @@ static bool_t h264_dec_init_decoder(VTH264DecCtx *ctx) {
 		if (hardware_acceleration != NULL) CFRelease(hardware_acceleration);
 #endif
 
-#if (defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && __MAC_OS_X_VERSION_MIN_REQUIRED >= __MAC_10_10) \
-	|| (defined(__IPHONE_OS_VERSION_MIN_REQUIRED) && __IPHONE_OS_VERSION_MIN_REQUIRED >= __IPHONE_8_0)
+#if TARGET_OS_IPHONE // kVTDecompressionPropertyKey_RealTime is only available on MacOSX after 10.10 version
 		status = VTSessionSetProperty(ctx->session, kVTDecompressionPropertyKey_RealTime, kCFBooleanTrue);
 		if (status != noErr) {
 			vth264dec_warning("could not be able to switch to real-time mode: %s", os_status_to_string(status));
