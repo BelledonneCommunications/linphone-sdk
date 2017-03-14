@@ -52,7 +52,7 @@ void bctbx_init_logger(void){
 	BctoolboxLogHandler* handler;
 	bctbx_mutex_init(&__bctbx_logger.domains_mutex, NULL);
 	handler = (BctoolboxLogHandler*)malloc(sizeof(BctoolboxLogHandler));;
-	handler->func=(BctoolboxLogFunc)bctbx_logv_out;
+	handler->func=(BctoolboxLogHandlerFunc)bctbx_logv_out;
 	handler->user_info=NULL;
 	bctbx_add_log_handler(handler);
 }
