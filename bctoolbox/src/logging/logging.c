@@ -296,8 +296,9 @@ void bctbx_logv(const char *domain, BctbxLogLevel level, const char *fmt, va_lis
 				loggers = loggers->next;
 			}
 		} else if (__bctbx_logger.log_thread_id == bctbx_thread_self()) {
+			bctbx_list_t *loggers;
 			bctbx_logv_flush();
-			bctbx_list_t *loggers = bctbx_list_first_elem(__bctbx_logger.logv_outs);
+			loggers = bctbx_list_first_elem(__bctbx_logger.logv_outs);
 			while (loggers) {
 				BctoolboxLogHandler* handler = (BctoolboxLogHandler*)loggers->data;
 				handler->func(handler->user_info, domain, level, fmt, args);
@@ -333,6 +334,7 @@ void bctbx_logv_out(void* user_info, const char *domain, BctbxLogLevel lev, cons
 	time_t tt;
 	bctbx_gettimeofday(&tp,NULL);
 	tt = (time_t)tp.tv_sec;
+	FILE *std = stdout;
 
 #ifdef _WIN32
 	lt = localtime(&tt);
@@ -340,7 +342,6 @@ void bctbx_logv_out(void* user_info, const char *domain, BctbxLogLevel lev, cons
 	lt = localtime_r(&tt,&tmbuf);
 #endif
 
-	FILE *std = stdout;
 	switch(lev){
 		case BCTBX_LOG_DEBUG:
 			lname = "debug";
@@ -397,6 +398,7 @@ void bctbx_logv_file(void* user_info, const char *domain, BctbxLogLevel lev, con
 	time_t tt;
 	bctbx_gettimeofday(&tp,NULL);
 	tt = (time_t)tp.tv_sec;
+	FILE *f = (FILE*) user_info;
 
 #ifdef _WIN32
 	lt = localtime(&tt);
@@ -404,7 +406,6 @@ void bctbx_logv_file(void* user_info, const char *domain, BctbxLogLevel lev, con
 	lt = localtime_r(&tt,&tmbuf);
 #endif
 
-	FILE *f = (FILE*) user_info;
 	if(!f) {
 		return;
 	}
