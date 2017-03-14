@@ -56,6 +56,8 @@ typedef struct _BctoolboxLogHandler{
 }BctoolboxLogHandler;
 
 BCTBX_PUBLIC void bctbx_add_log_handler(BctoolboxLogHandler* handler);
+BCTBX_PUBLIC void bctbx_set_log_handler(BctoolboxLogFunc func);
+BCTBX_PUBLIC void bctbx_set_log_file(FILE* f);
 BCTBX_PUBLIC bctbx_list_t* bctbx_get_log_handlers(void);
 
 BCTBX_PUBLIC void bctbx_logv_out(void* user_info, const char *domain, BctbxLogLevel level, const char *fmt, va_list args);
