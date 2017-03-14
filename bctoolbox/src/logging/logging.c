@@ -76,19 +76,19 @@ void bctbx_add_log_handler(BctoolboxLogHandler* handler){
 }
 
 void wrapper(void* info,const char *domain, BctbxLogLevel lev, const char *fmt, va_list args) {
-	BctoolboxLogFunc func = (BctoolboxLogFunc)info
+	BctoolboxLogFunc func = (BctoolboxLogFunc)info;
 	func(domain, lev, fmt,  args);
 }
 
 void bctbx_set_log_handler(BctoolboxLogFunc func){
-	BctoolboxLogHandler* handler = (BctoolboxLogHandler*)malloc(sizeof(BctoolboxLogHandler));;
+	BctoolboxLogHandler* handler = (BctoolboxLogHandler*)malloc(sizeof(BctoolboxLogHandler));
 	handler->func=wrapper;
 	handler->user_info=(void*)func;
 	bctbx_add_log_handler(handler);
 }
 
 void bctbx_set_log_file(FILE* f){
-	BctoolboxLogHandler* handler = (BctoolboxLogHandler*)malloc(sizeof(BctoolboxLogHandler));;
+	BctoolboxLogHandler* handler = (BctoolboxLogHandler*)malloc(sizeof(BctoolboxLogHandler));
 	handler->func=bctbx_logv_file;
 	handler->user_info=(void*)f;
 	bctbx_add_log_handler(handler);
