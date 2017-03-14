@@ -49,8 +49,9 @@ typedef struct _BctoolboxLogger{
 static BctoolboxLogger __bctbx_logger = { NULL, BCTBX_LOG_WARNING|BCTBX_LOG_ERROR|BCTBX_LOG_FATAL, 0};
 
 void bctbx_init_logger(void){
+	BctoolboxLogHandler* handler;
 	bctbx_mutex_init(&__bctbx_logger.domains_mutex, NULL);
-	BctoolboxLogHandler* handler = (BctoolboxLogHandler*)malloc(sizeof(BctoolboxLogHandler));;
+	handler = (BctoolboxLogHandler*)malloc(sizeof(BctoolboxLogHandler));;
 	handler->func=(BctoolboxLogFunc)bctbx_logv_out;
 	handler->user_info=NULL;
 	bctbx_add_log_handler(handler);
@@ -332,9 +333,9 @@ void bctbx_logv_out(void* user_info, const char *domain, BctbxLogLevel lev, cons
 	struct tm tmbuf;
 #endif
 	time_t tt;
+	FILE *std = stdout;
 	bctbx_gettimeofday(&tp,NULL);
 	tt = (time_t)tp.tv_sec;
-	FILE *std = stdout;
 
 #ifdef _WIN32
 	lt = localtime(&tt);
@@ -396,9 +397,9 @@ void bctbx_logv_file(void* user_info, const char *domain, BctbxLogLevel lev, con
 	struct tm tmbuf;
 #endif
 	time_t tt;
+	FILE *f = (FILE*) user_info;
 	bctbx_gettimeofday(&tp,NULL);
 	tt = (time_t)tp.tv_sec;
-	FILE *f = (FILE*) user_info;
 
 #ifdef _WIN32
 	lt = localtime(&tt);
