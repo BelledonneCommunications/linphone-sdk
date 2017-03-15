@@ -3,6 +3,8 @@ if ENABLE_TESTS
 
 noinst_PROGRAMS=belle_sip_tester belle_sip_object_describe belle_sip_parse belle_http_get belle_sip_resolve
 
+EXTRA_DIST= belle_sip_base_uri_tester.c
+
 belle_sip_tester_SOURCES= \
 				auth_helper_tester.c \
 				belle_generic_uri_tester.c \
@@ -17,6 +19,7 @@ belle_sip_tester_SOURCES= \
 				belle_sip_resolver_tester.c \
 				belle_sip_tester.c belle_sip_tester.h\
 				belle_sip_uri_tester.c \
+				belle_sip_fast_uri_tester.c \
 				cast_test.c \
 				register_tester.h
 
