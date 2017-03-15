@@ -800,10 +800,6 @@ static belle_sip_request_t* send_message_to(belle_sip_request_t *initial_request
 	return clone_request;
 }
 
-static belle_sip_request_t* send_message(belle_sip_request_t *initial_request, const char* realm) {
-	return send_message_to(initial_request,realm,NULL);
-}
-
 static void reuse_nonce_base(const char* outbound) {
 	belle_sip_request_t *register_request;
 	size_t initial_auth_context_count=0;/*belle_sip_list_size(prov->auth_contexts);*/
