@@ -46,8 +46,9 @@ struct SenderData {
 	char relay_session_id[64];
 	int relay_session_id_size;
 	uint64_t last_rsi_time;
-	char dtmf;
+	int timestamp_adjustment_threshold;
 	MSCngData cng_data;
+	char dtmf;
 	bool_t dtmf_start;
 	bool_t skip;
 	bool_t mute;
@@ -118,6 +119,7 @@ static void sender_init(MSFilter * f)
 	d->last_rtcp_stun_sent_time = -1;
 	d->last_ts=0;
 	d->use_task= tmp ? (!!atoi(tmp)) : FALSE;
+	d->timestamp_adjustment_threshold = d->rate / 5;
 	if (d->use_task) ms_message("MSRtpSend will use tasks to send out packet at the beginning of ticks.");
 	d->stun_enabled = TRUE;
 	f->data = d;
@@ -166,6 +168,8 @@ static int sender_set_session(MSFilter * f, void *arg)
 		d->rate = pt->clock_rate;
 		d->dtmf_duration=(default_dtmf_duration_ms*d->rate)/1000;
 		d->dtmf_ts_step=(20*d->rate)/1000;
+		/*Tolerate more jitter in video streams, knowing that video packets are not discarded if they are late*/
+		d->timestamp_adjustment_threshold = (pt->type == PAYLOAD_VIDEO) ? d->rate : d->rate / 5;
 		send_stun_packet(d,TRUE,TRUE);
 	} else {
 		ms_warning("Sending undefined payload type ?");
@@ -251,7 +255,7 @@ static uint32_t get_cur_timestamp(MSFilter * f, mblk_t *im){
 			diffts=packet_ts-d->last_ts;
 			difftime_ts=(int)(((f->ticker->time-d->last_sent_time)*d->rate)/1000);
 			/* detect timestamp jump in the stream and adjust so that they become continuous on the network*/
-			if (abs(diffts-difftime_ts)>(d->rate/5)){
+			if (abs(diffts-difftime_ts)>(d->timestamp_adjustment_threshold)){
 				uint32_t tsoff=curts - packet_ts;
 				ms_message("Adjusting output timestamp by %i",(tsoff-d->tsoff));
 				d->tsoff = tsoff;
