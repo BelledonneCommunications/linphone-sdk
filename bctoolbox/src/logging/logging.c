@@ -68,30 +68,28 @@ void bctbx_uninit_logger(void){
 *
 **/
 void bctbx_add_log_handler(BctoolboxLogHandler* handler){
-	if(__bctbx_logger.logv_outs) {
-		__bctbx_logger.logv_outs = bctbx_list_prepend(__bctbx_logger.logv_outs, (void*)handler);
-	} else {
-		__bctbx_logger.logv_outs = bctbx_list_new((void*)handler);
-	}
+	if (!bctbx_list_find(__bctbx_logger.logv_outs, handler))
+		__bctbx_logger.logv_outs = bctbx_list_append(__bctbx_logger.logv_outs, (void*)handler);
+	/*else, already in*/
 }
 
-void wrapper(void* info,const char *domain, BctbxLogLevel lev, const char *fmt, va_list args) {
+static void wrapper(void* info,const char *domain, BctbxLogLevel lev, const char *fmt, va_list args) {
 	BctoolboxLogFunc func = (BctoolboxLogFunc)info;
 	func(domain, lev, fmt,  args);
 }
 
 void bctbx_set_log_handler(BctoolboxLogFunc func){
-	BctoolboxLogHandler* handler = (BctoolboxLogHandler*)malloc(sizeof(BctoolboxLogHandler));
-	handler->func=wrapper;
-	handler->user_info=(void*)func;
-	bctbx_add_log_handler(handler);
+	static BctoolboxLogHandler handler;
+	handler.func=wrapper;
+	handler.user_info=(void*)func;
+	bctbx_add_log_handler(&handler);
 }
 
 void bctbx_set_log_file(FILE* f){
-	BctoolboxLogHandler* handler = (BctoolboxLogHandler*)malloc(sizeof(BctoolboxLogHandler));
-	handler->func=bctbx_logv_file;
-	handler->user_info=(void*)f;
-	bctbx_add_log_handler(handler);
+	static BctoolboxLogHandler handler;
+	handler.func=bctbx_logv_file;
+	handler.user_info=(void*)f;
+	bctbx_add_log_handler(&handler);
 }
 
 bctbx_list_t* bctbx_get_log_handlers(void){
