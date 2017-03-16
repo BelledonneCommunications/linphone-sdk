@@ -140,6 +140,8 @@ static void ict_on_response(belle_sip_ict_t *obj, belle_sip_response_t *resp){
 static int ict_on_timer_A(belle_sip_ict_t *obj){
 	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
 
+	if (!base->channel) return BELLE_SIP_STOP;
+	
 	switch(base->state){
 		case BELLE_SIP_TRANSACTION_CALLING:
 		{

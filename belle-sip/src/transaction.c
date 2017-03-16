@@ -57,21 +57,21 @@ BELLESIP_EXPORT const char *belle_sip_transaction_get_method(const belle_sip_tra
 
 static void transaction_end_background_task(belle_sip_transaction_t *obj){
 	if (obj->bg_task_id){
-		belle_sip_message("channel [%p]: ending transaction background task with id=[%lx].",obj,obj->bg_task_id);
+		belle_sip_message("transaction [%p]: ending transaction background task with id=[%lx].",obj,obj->bg_task_id);
 		belle_sip_end_background_task(obj->bg_task_id);
 		obj->bg_task_id=0;
 	}
 }
 
 static void transaction_background_task_ended(belle_sip_transaction_t *obj){
-	belle_sip_warning("channel [%p]: transaction background task has to be ended now, but work isn't finished.",obj);
+	belle_sip_warning("transaction [%p]: transaction background task has to be ended now, but work isn't finished.",obj);
 	transaction_end_background_task(obj);
 }
 
 static void transaction_begin_background_task(belle_sip_transaction_t *obj){
 	if (obj->bg_task_id==0){
 		obj->bg_task_id=belle_sip_begin_background_task("belle-sip transaction",(void (*)(void*))transaction_background_task_ended, obj);
-		if (obj->bg_task_id) belle_sip_message("Transaction [%p]: starting transaction background task with id=[%lx].",obj,obj->bg_task_id);
+		if (obj->bg_task_id) belle_sip_message("transaction [%p]: starting transaction background task with id=[%lx].",obj,obj->bg_task_id);
 	}
 }
 
