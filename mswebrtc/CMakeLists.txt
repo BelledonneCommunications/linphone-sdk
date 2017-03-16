@@ -57,8 +57,10 @@ endif()
 
 if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
 	include("${EP_ms2_CONFIG_DIR}/Mediastreamer2Config.cmake")
+	include("${EP_ortp_CONFIG_DIR}/OrtpConfig.cmake")
 else()
 	find_package(Mediastreamer2 REQUIRED)
+	find_package(Ortp REQUIRED)
 endif()
 
 
@@ -323,7 +325,7 @@ if(ENABLE_ILBC)
 	list(APPEND SOURCE_FILES ${ILBC_SRCS})
 endif()
 
-set(LIBS ${MEDIASTREAMER2_LIBRARIES})
+set(LIBS ${MEDIASTREAMER2_LIBRARIES} ${ORTP_LIBRARIES})
 
 if(ENABLE_STATIC)
 	add_library(mswebrtc-static STATIC ${SOURCE_FILES})
