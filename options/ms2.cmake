@@ -31,7 +31,6 @@ lcb_add_dependent_option("ZRTP" "ZRTP media encryption support." "${DEFAULT_VALU
 
 #audio options and codecs
 lcb_add_option("WebRTC AEC" "WebRTC echo canceller support." "${DEFAULT_VALUE_ENABLE_WEBRTC_AEC}")
-lcb_add_dependent_option("WASAPI" "Windows Audio Session API (WASAPI) sound card support." "${DEFAULT_VALUE_ENABLE_WASAPI}" "MSVC" OFF)
 lcb_add_strict_dependent_option("AMRNB" "AMR narrow-band audio encoding/decoding support (require license)." OFF ON OFF "ENABLE_NON_FREE_CODECS" "non free codecs option not enabled (ENABLE_NON_FREE_CODECS).")
 lcb_add_strict_dependent_option("AMRWB" "AMR wide-band audio encoding/decoding support (require license)." OFF ON OFF "ENABLE_NON_FREE_CODECS" "non free codecs option not enabled (ENABLE_NON_FREE_CODECS).")
 lcb_add_option("Codec2" "Codec2 audio encoding/decoding support." "${DEFAULT_VALUE_ENABLE_CODEC2}")
