@@ -177,6 +177,10 @@ if BUILD_G726
 libmediastreamer_voip_la_SOURCES+=	audiofilters/g726.c
 endif
 
+if BUILD_G729
+libmediastreamer_voip_la_SOURCES+=	audiofilters/g729.c
+endif
+
 if BUILD_OPUS
 libmediastreamer_voip_la_SOURCES+=	audiofilters/msopus.c
 endif

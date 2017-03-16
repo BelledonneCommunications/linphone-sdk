@@ -159,7 +159,9 @@ typedef enum MSFilterId{
 	MS_BV16_ENC_ID,
 	MS_UDP_SEND_ID,
 	MS_PCAP_FILE_PLAYER_ID,
-	MS_OGL_ID
+	MS_OGL_ID,
+	MS_G729_DEC_ID,
+	MS_G729_ENC_ID
 } MSFilterId;
 
 #endif

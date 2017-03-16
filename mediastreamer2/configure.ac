@@ -1165,6 +1165,27 @@ fi
 
 AM_CONDITIONAL(LIBBZRTP,test x$zrtp != xfalse)
 
+dnl check for bcg729 presence to use for G729 codec
+AC_ARG_ENABLE(g729,
+	[AS_HELP_STRING([--enable-g729], [Turn on or off usage of G729 codec (default=no)])],
+	[case "${enableval}" in
+		yes)	g729=true ;;
+		no)	g729=false ;;
+		*)	AC_MSG_ERROR(bad value ${enableval} for --enable-g729) ;;
+	esac],
+	[g729=false]
+)
+
+if test "$g729" = "true" ; then
+	PKG_CHECK_MODULES(LIBBCG729, libbcg729 >= 1.0)
+
+	LIBS="$LIBS $LIBBCG729_LIBS"
+	CFLAGS="$CFLAGS $LIBBCG729_CFLAGS"
+else
+	echo "G729 codec is disabled."
+fi
+AM_CONDITIONAL(BUILD_G729,test x$g729 != xfalse)
+
 dnl check for bcg729 annexB presence to use for VAD/DTX (RFC3389 : Real-time Transport Protocol (RTP) Payload for Comfort Noise (CN))
 AC_ARG_ENABLE(g729bCN,
 	[AS_HELP_STRING([--enable-g729bCN], [Turn on or off usage of G729AnnexB in RFC3389 implementation of Comfort Noise Payload (default=no)])],
@@ -1186,6 +1207,7 @@ if test "$g729bCN" = "true" ; then
 else
 	echo "G729 AnnexB in RFC3389 is disabled."
 fi
+
 AM_CONDITIONAL(LIBBCG729,test x$g729bCN != xfalse)
 
 dnl ##################################################
