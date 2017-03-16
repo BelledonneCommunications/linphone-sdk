@@ -1,5 +1,5 @@
 ############################################################################
-# msbcg729.cmake
+# bcg729.cmake
 # Copyright (C) 2014  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -22,10 +22,6 @@
 
 lcb_git_repository("git://git.linphone.org/bcg729.git")
 lcb_git_tag_latest("master")
-lcb_git_tag("1.0.1")
+lcb_git_tag("1.0.2")
 lcb_external_source_paths("bcg729")
 lcb_groupable(YES)
-lcb_plugin(YES)
-
-lcb_dependencies("ms2")
-lcb_cmake_options("-DENABLE_MSPLUGIN=YES")
