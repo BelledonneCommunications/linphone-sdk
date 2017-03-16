@@ -193,7 +193,7 @@ static void msbcg729_encoder_process(MSFilter *f){
 	}
 	
 	/* process ptimes ms of data : (ptime in ms)/1000->ptime is seconds * 8000(sample rate) * 2(byte per sample) */
-	while(ms_bufferizer_get_avail(obj->bufferizer)>=obj->ptime*16){
+	while(ms_bufferizer_get_avail(obj->bufferizer)>=(size_t)obj->ptime*16){
 		uint16_t totalPacketDataLength = 0;
 		uint8_t bitStreamLength = 0;
 		outputMessage = allocb(obj->ptime,0); /* output bitStream is 80 bits long * number of samples */
