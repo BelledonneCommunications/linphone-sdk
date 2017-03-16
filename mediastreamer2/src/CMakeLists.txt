@@ -245,8 +245,12 @@ endif()
 if(IOS)
 	list(APPEND VOIP_SOURCE_FILES_OBJC audiofilters/msiounit.m)
 endif()
-if(WIN32 AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone" AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
-	list(APPEND VOIP_SOURCE_FILES_C audiofilters/winsnd3.c)
+if(WIN32)
+	list(APPEND VOIP_SOURCE_FILES_CXX
+		audiofilters/mswasapi.cpp
+		audiofilters/mswasapi_reader.cpp
+		audiofilters/mswasapi_writer.cpp
+	)
 endif()
 
 if(ENABLE_G726)

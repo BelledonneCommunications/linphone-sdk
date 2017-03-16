@@ -82,8 +82,8 @@ extern MSSndCardDesc oss_card_desc;
 extern MSSndCardDesc arts_card_desc;
 #endif
 
-#ifdef MS2_WINDOWS_DESKTOP
-extern MSSndCardDesc winsnd_card_desc;
+#ifdef _WIN32
+extern MSSndCardDesc ms_wasapi_snd_card_desc;
 #endif
 
 #ifdef __DIRECTSOUND_ENABLED__
@@ -141,8 +141,8 @@ static MSSndCardDesc * ms_snd_card_descs[]={
 	&arts_card_desc,
 #endif
 
-#ifdef MS2_WINDOWS_DESKTOP
-	&winsnd_card_desc,
+#ifdef _WIN32
+	&ms_wasapi_snd_card_desc,
 #endif
 
 #ifdef __DIRECTSOUND_ENABLED__
