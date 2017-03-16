@@ -944,7 +944,7 @@ void register_process_request_event(char *nonce, const belle_sip_request_event_t
 	belle_sip_server_transaction_send_response(trans,response_msg);
 }
 
-static void test_register_with_next_nonce() {
+static void test_register_with_next_nonce(void) {
 	belle_sip_listening_point_t *server_lp = belle_sip_stack_create_listening_point(stack,"0.0.0.0",bctbx_random()%20000 +1024,"TCP");
 	char  nonce [NONCE_SIZE];
 	belle_sip_listener_t *server_listener;

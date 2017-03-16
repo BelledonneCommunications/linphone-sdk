@@ -1075,7 +1075,7 @@ void belle_sip_multipart_body_handler_progress_cb(belle_sip_body_handler_t *obj,
 belle_sip_list_t *belle_sip_parse_directory(const char *path, const char *file_type);
 
 typedef struct authorization_context authorization_context_t;
-void belle_sip_authorization_destroy(authorization_context_t* object);
+BELLESIP_EXPORT void belle_sip_authorization_destroy(authorization_context_t* object);
 
 
 #endif
