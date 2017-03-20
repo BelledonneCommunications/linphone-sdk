@@ -71,6 +71,14 @@ typedef pthread_cond_t bctbx_cond_t;
 #pragma warning(disable : 1469)		// "cc" clobber ignored
 #endif
 
+#ifndef BCTBX_DEPRECATED
+#if defined(_MSC_VER)
+  #define BCTBX_DEPRECATED __declspec(deprecated)
+#else
+  #define BCTBX_DEPRECATED __attribute__ ((deprecated))
+#endif
+#endif
+
 #define BCTBX_PUBLIC
 #define BCTBX_INLINE			inline
 #define BCTBX_EWOULDBLOCK  EWOULDBLOCK
