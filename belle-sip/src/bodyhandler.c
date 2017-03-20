@@ -154,8 +154,9 @@ int belle_sip_body_handler_send_chunk(belle_sip_body_handler_t *obj, belle_sip_m
 	if (obj->expected_size!=0){
 		to_send=MIN(*size,obj->expected_size-obj->transfered_size);
 	}
-	if (to_send==0) {
-		// Ane eWouldBlock error added a call to the function, nothing to send so return
+	if (to_send==0 && obj->transfered_size==obj->expected_size) {
+		// An eWouldBlock error added a call to the function, nothing to send so return
+		// In some case to_send=0 because not buffer is available but sendings not finished.
 		belle_sip_message("body handler [%p] : Nothing to send",obj);
 		*size=0;
 		return BELLE_SIP_STOP;
