@@ -100,16 +100,3 @@ add_subdirectory(Share)
 if(ENABLE_EXAMPLES)
 	add_subdirectory(Examples)
 endif()
-
-
-# CPack settings
-set(CPACK_PACKAGE_NAME "bcunit")
-set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
-set(CPACK_SOURCE_GENERATOR "TGZ")
-set(CPACK_SOURCE_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}")
-set(CPACK_SOURCE_IGNORE_FILES
-        "^${CMAKE_BINARY_DIR}"
-        "/\\\\..+"
-)
-
-include(CPack)
