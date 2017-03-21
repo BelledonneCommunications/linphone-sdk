@@ -125,7 +125,7 @@ static void jpg_process(MSFilter *f) {
 
 		error = tjCompressFromYUVPlanes(
 			s->turboJpeg,
-			(const unsigned char **)yuvbuf.planes,
+			(unsigned char **)yuvbuf.planes,
 			yuvbuf.w,
 			yuvbuf.strides,
 			yuvbuf.h,
