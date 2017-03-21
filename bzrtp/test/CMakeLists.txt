@@ -23,6 +23,7 @@
 set(TEST_SOURCES
 	bzrtpCryptoTest.c
 	bzrtpParserTest.c
+	bzrtpConfigsTest.c
 	bzrtpTest.c
 	testUtils.c
 

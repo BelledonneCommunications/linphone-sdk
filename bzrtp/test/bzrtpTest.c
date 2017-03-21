@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include "bzrtpCryptoTest.h"
 #include "bzrtpParserTest.h"
+#include "bzrtpConfigsTest.h"
 #include "typedef.h"
 #include "testUtils.h"
 #include <bctoolbox/logging.h>
@@ -69,6 +70,21 @@ test_suite_t packet_parser_test_suite = {
 	packet_parser_tests
 };
 
+test_t key_exchange_tests[] = {
+	TEST_NO_TAG("Cacheless multi channel", test_cacheless_exchange),
+	TEST_NO_TAG("Loosy network", test_loosy_network)
+};
+
+test_suite_t key_exchange_test_suite = {
+	"Key exchange",
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	sizeof(key_exchange_tests) / sizeof(key_exchange_tests[0]),
+	key_exchange_tests
+};
+
 void bzrtp_tester_init(void) {
 #ifdef HAVE_LIBXML2
 	xmlInitParser();
@@ -77,6 +93,7 @@ void bzrtp_tester_init(void) {
 
 	bc_tester_add_suite(&crypto_utils_test_suite);
 	bc_tester_add_suite(&packet_parser_test_suite);
+	bc_tester_add_suite(&key_exchange_test_suite);
 }
 
 void bzrtp_tester_uninit(void) {

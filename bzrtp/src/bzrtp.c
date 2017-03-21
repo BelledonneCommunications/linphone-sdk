@@ -322,9 +322,8 @@ int bzrtp_startChannelEngine(bzrtpContext_t *zrtpContext, uint32_t selfSSRC) {
 	initEvent.bzrtpPacketStringLength = 0;
 	initEvent.zrtpContext = zrtpContext;
 	initEvent.zrtpChannelContext = zrtpChannelContext;
-	zrtpChannelContext->stateMachine(initEvent);
 
-	return 0;
+	return zrtpChannelContext->stateMachine(initEvent);
 }
 
 /*
@@ -594,7 +593,7 @@ int bzrtp_resetRetransmissionTimer(bzrtpContext_t *zrtpContext, uint32_t selfSSR
 		return BZRTP_ERROR_INVALIDCONTEXT;
 	}
 	/* reset timer only when not in secure mode yet and for initiator(engine start as initiator so if we call this function in discovery phase, it will reset the timer */
-	if ((zrtpContext->isSecure == 0) && (zrtpChannelContext->role == INITIATOR)) {
+	if ((zrtpChannelContext->isSecure == 0) && (zrtpChannelContext->role == INITIATOR)) {
 		zrtpChannelContext->timer.status = BZRTP_TIMER_ON;
 		zrtpChannelContext->timer.firingTime = 0; /* be sure it will trigger at next call to bzrtp_iterate*/
 		zrtpChannelContext->timer.firingCount = -1; /* -1 to count the initial packet and then retransmit the regular number of packets */
