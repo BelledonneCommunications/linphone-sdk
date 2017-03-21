@@ -128,7 +128,7 @@ case "$target_os" in
 esac
 
 if test "$strict" = "true"; then
-	STRICT_OPTIONS="$STRICT_OPTIONS -Werror -Wextra -Wno-unused-parameter -Wno-error=unknown-pragmas -Wuninitialized -Wno-error=strict-prototypes -Wno-missing-field-initializers"
+	STRICT_OPTIONS="$STRICT_OPTIONS -Werror -Wextra -Wno-unused-parameter -Wno-error=unknown-pragmas -Wuninitialized -Wno-error=strict-prototypes -Wno-missing-field-initializers -Wno-error=deprecated-declarations"
 fi
 
 dnl because of antlr3 we must accept a few warnings...
