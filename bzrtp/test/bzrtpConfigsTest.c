@@ -468,7 +468,7 @@ void test_cacheless_exchange(void) {
 		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH2k},1,{ZRTP_SAS_B256},1,{ZRTP_AUTHTAG_HS32},1},
 		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH2k},1,{ZRTP_SAS_B256},1,{ZRTP_AUTHTAG_HS80},1},
 
-		{{},0,{},0,{},0,{},0,{},0}, /* this pattern will end the run because cipher nb is 0 */
+		{{0},0,{0},0,{0},0,{0},0,{0},0}, /* this pattern will end the run because cipher nb is 0 */
 		};
 
 	pattern = &patterns[0]; /* pattern is a pointer to current pattern */
@@ -484,7 +484,7 @@ void test_cacheless_exchange(void) {
 void test_loosy_network(void) {
 	int i,j;
 	resetGlobalParams();
-	srand(time(NULL));
+	srand((unsigned int)time(NULL));
 
 	/* run through all the configs 10 times to maximise chance to spot a random error based on a specific packet lost sequence */
 	for (j=0; j<10; j++) {

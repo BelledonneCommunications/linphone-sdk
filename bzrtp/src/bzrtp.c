@@ -661,23 +661,23 @@ void bzrtp_setSupportedCryptoTypes(bzrtpContext_t *zrtpContext, uint8_t algoType
 	switch(algoType) {
 		case ZRTP_HASH_TYPE:
 			zrtpContext->hc = selectCommonAlgo(supportedTypes, supportedTypesCount, implementedTypes, implementedTypesCount, zrtpContext->supportedHash);
-			addMandatoryCryptoTypesIfNeeded(algoType, zrtpContext->supportedHash, &zrtpContext->hc);
+			bzrtp_addMandatoryCryptoTypesIfNeeded(algoType, zrtpContext->supportedHash, &zrtpContext->hc);
 			break;
 		case ZRTP_CIPHERBLOCK_TYPE:
 			zrtpContext->cc = selectCommonAlgo(supportedTypes, supportedTypesCount, implementedTypes, implementedTypesCount, zrtpContext->supportedCipher);
-			addMandatoryCryptoTypesIfNeeded(algoType, zrtpContext->supportedCipher, &zrtpContext->cc);
+			bzrtp_addMandatoryCryptoTypesIfNeeded(algoType, zrtpContext->supportedCipher, &zrtpContext->cc);
 			break;
 		case ZRTP_AUTHTAG_TYPE:
 			zrtpContext->ac = selectCommonAlgo(supportedTypes, supportedTypesCount, implementedTypes, implementedTypesCount, zrtpContext->supportedAuthTag);
-			addMandatoryCryptoTypesIfNeeded(algoType, zrtpContext->supportedAuthTag, &zrtpContext->ac);
+			bzrtp_addMandatoryCryptoTypesIfNeeded(algoType, zrtpContext->supportedAuthTag, &zrtpContext->ac);
 			break;
 		case ZRTP_KEYAGREEMENT_TYPE:
 			zrtpContext->kc = selectCommonAlgo(supportedTypes, supportedTypesCount, implementedTypes, implementedTypesCount, zrtpContext->supportedKeyAgreement);
-			addMandatoryCryptoTypesIfNeeded(algoType, zrtpContext->supportedKeyAgreement, &zrtpContext->kc);
+			bzrtp_addMandatoryCryptoTypesIfNeeded(algoType, zrtpContext->supportedKeyAgreement, &zrtpContext->kc);
 			break;
 		case ZRTP_SAS_TYPE:
 			zrtpContext->sc = selectCommonAlgo(supportedTypes, supportedTypesCount, implementedTypes, implementedTypesCount, zrtpContext->supportedSas);
-			addMandatoryCryptoTypesIfNeeded(algoType, zrtpContext->supportedSas, &zrtpContext->sc);
+			bzrtp_addMandatoryCryptoTypesIfNeeded(algoType, zrtpContext->supportedSas, &zrtpContext->sc);
 			break;
 	}
 }
@@ -817,7 +817,7 @@ int bzrtp_setPeerHelloHash(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8
 			zrtpChannelContext->keyAgreementAlgo = ZRTP_UNSET_ALGO;
 			zrtpChannelContext->sasAlgo = ZRTP_UNSET_ALGO;
 
-			updateCryptoFunctionPointers(zrtpChannelContext);
+			bzrtp_updateCryptoFunctionPointers(zrtpChannelContext);
 
 			/* restart channel */
 			bzrtp_startChannelEngine(zrtpContext, selfSSRC);
@@ -1001,7 +1001,7 @@ static int bzrtp_initChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelCon
 	zrtpChannelContext->keyAgreementAlgo = ZRTP_UNSET_ALGO;
 	zrtpChannelContext->sasAlgo = ZRTP_UNSET_ALGO;
 
-	updateCryptoFunctionPointers(zrtpChannelContext);
+	bzrtp_updateCryptoFunctionPointers(zrtpChannelContext);
 
 	/* initialise key buffers */
 	zrtpChannelContext->s0 = NULL;

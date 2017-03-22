@@ -26,13 +26,6 @@ set(TEST_SOURCES
 	bzrtpConfigsTest.c
 	bzrtpTest.c
 	testUtils.c
-
-	../src/bzrtp.c
-	../src/cryptoUtils.c
-	../src/packetParser.c
-	../src/pgpwords.c
-	../src/stateMachine.c
-	../src/zidCache.c
 )
 
 bc_apply_compile_flags(TEST_SOURCES STRICT_OPTIONS_CPP)
@@ -41,6 +34,11 @@ add_executable(bzrtpTest ${TEST_SOURCES})
 set_target_properties(bzrtpTest PROPERTIES LINK_FLAGS "${LINK_FLAGS}")
 set_target_properties(bzrtpTest PROPERTIES LINKER_LANGUAGE CXX)
 target_include_directories(bzrtpTest PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIR})
+if(ENABLE_STATIC)
+	target_link_libraries(bzrtpTest bzrtp-static)
+else()
+	target_link_libraries(bzrtpTest bzrtp)
+endif()
 target_link_libraries(bzrtpTest ${BCTOOLBOX_LIBRARIES})
 if(HAVE_SQRT)
 	target_link_libraries(bzrtpTest m)

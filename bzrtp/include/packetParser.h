@@ -277,7 +277,7 @@ typedef struct bzrtpPingAckMessage_struct {
  *
  * @return		The create bzrtpPacket structure(to be freed using bzrtp_freeZrtpPacket). NULL on error
  */
-bzrtpPacket_t *bzrtp_packetCheck(const uint8_t * input, uint16_t inputLength, uint16_t lastValidSequenceNumber, int *exitCode);
+BZRTP_EXPORT bzrtpPacket_t *bzrtp_packetCheck(const uint8_t * input, uint16_t inputLength, uint16_t lastValidSequenceNumber, int *exitCode);
 
 
 /**
@@ -291,7 +291,7 @@ bzrtpPacket_t *bzrtp_packetCheck(const uint8_t * input, uint16_t inputLength, ui
  *
  * @return 	0 on sucess, error code otherwise
  */
-int bzrtp_packetParser(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, const uint8_t * input, uint16_t inputLength, bzrtpPacket_t *zrtpPacket); 
+BZRTP_EXPORT int bzrtp_packetParser(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, const uint8_t * input, uint16_t inputLength, bzrtpPacket_t *zrtpPacket); 
 
 
 /**
@@ -304,7 +304,7 @@ int bzrtp_packetParser(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpC
  *
  * @return		An empty packet initialised to get data for the requested paquet tyep. NULL on error
  */ 
-bzrtpPacket_t *bzrtp_createZrtpPacket(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, uint32_t messageType, int *exitCode);
+BZRTP_EXPORT bzrtpPacket_t *bzrtp_createZrtpPacket(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, uint32_t messageType, int *exitCode);
 
 
 /**
@@ -319,7 +319,7 @@ bzrtpPacket_t *bzrtp_createZrtpPacket(bzrtpContext_t *zrtpContext, bzrtpChannelC
  * @return			0 on success, error code otherwise
  *
  */
-int bzrtp_packetBuild(bzrtpContext_t *zrtpContext,  bzrtpChannelContext_t *zrtpChannelContext, bzrtpPacket_t *zrtpPacket, uint16_t sequenceNumber);
+BZRTP_EXPORT int bzrtp_packetBuild(bzrtpContext_t *zrtpContext,  bzrtpChannelContext_t *zrtpChannelContext, bzrtpPacket_t *zrtpPacket, uint16_t sequenceNumber);
 
 
 /**
@@ -328,7 +328,7 @@ int bzrtp_packetBuild(bzrtpContext_t *zrtpContext,  bzrtpChannelContext_t *zrtpC
  * @param[in] zrtpPacket	The packet to be freed
  *
  */
-void bzrtp_freeZrtpPacket(bzrtpPacket_t *zrtpPacket);
+BZRTP_EXPORT void bzrtp_freeZrtpPacket(bzrtpPacket_t *zrtpPacket);
 
 /**
  * @brief Modify the current sequence number of the packet in the packetString and sequenceNumber fields
@@ -340,5 +340,5 @@ void bzrtp_freeZrtpPacket(bzrtpPacket_t *zrtpPacket);
  * 
  * return		0 on succes, error code otherwise
  */
-int bzrtp_packetUpdateSequenceNumber(bzrtpPacket_t *zrtpPacket, uint16_t sequenceNumber);
+BZRTP_EXPORT int bzrtp_packetUpdateSequenceNumber(bzrtpPacket_t *zrtpPacket, uint16_t sequenceNumber);
 #endif /* PACKETPARSER_H */

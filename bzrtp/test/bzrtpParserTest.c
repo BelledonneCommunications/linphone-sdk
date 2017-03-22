@@ -142,8 +142,8 @@ void test_parser_param(uint8_t hvi_trick) {
 	context87654321->channelContext[0]->hashAlgo = ZRTP_HASH_S256;
 	context12345678->channelContext[0]->hashAlgo = ZRTP_HASH_S256;
 
-	updateCryptoFunctionPointers(context87654321->channelContext[0]);
-	updateCryptoFunctionPointers(context12345678->channelContext[0]);
+	bzrtp_updateCryptoFunctionPointers(context87654321->channelContext[0]);
+	bzrtp_updateCryptoFunctionPointers(context12345678->channelContext[0]);
 
 	/* set the zrtp and mac keys */
 	context87654321->channelContext[0]->mackeyi = (uint8_t *)malloc(32);
@@ -465,7 +465,7 @@ void test_parserComplete() {
 
 		/* determine crypto Algo to use */
 		alice_HelloFromBob_message = (bzrtpHelloMessage_t *)alice_HelloFromBob->messageData;
-		retval = crypoAlgoAgreement(contextAlice, contextAlice->channelContext[0], contextAlice->channelContext[0]->peerPackets[HELLO_MESSAGE_STORE_ID]->messageData);
+		retval = bzrtp_cryptoAlgoAgreement(contextAlice, contextAlice->channelContext[0], contextAlice->channelContext[0]->peerPackets[HELLO_MESSAGE_STORE_ID]->messageData);
 		if (retval == 0) {
 			bzrtp_message ("Alice selected algo %x\n", contextAlice->channelContext[0]->keyAgreementAlgo);
 			memcpy(contextAlice->peerZID, alice_HelloFromBob_message->ZID, 12);
@@ -492,7 +492,7 @@ void test_parserComplete() {
 
 		/* determine crypto Algo to use */
 		bob_HelloFromAlice_message = (bzrtpHelloMessage_t *)bob_HelloFromAlice->messageData;
-		retval = crypoAlgoAgreement(contextBob, contextBob->channelContext[0], contextBob->channelContext[0]->peerPackets[HELLO_MESSAGE_STORE_ID]->messageData);
+		retval = bzrtp_cryptoAlgoAgreement(contextBob, contextBob->channelContext[0], contextBob->channelContext[0]->peerPackets[HELLO_MESSAGE_STORE_ID]->messageData);
 		if (retval == 0) {
 			bzrtp_message ("Bob selected algo %x\n", contextBob->channelContext[0]->keyAgreementAlgo);
 			memcpy(contextBob->peerZID, bob_HelloFromAlice_message->ZID, 12);
@@ -1328,7 +1328,7 @@ void test_parserComplete() {
 			contextAlice->channelContext[1]->keyAgreementAlgo = ZRTP_KEYAGREEMENT_Mult;
 			contextAlice->channelContext[1]->keyAgreementLength = 0; /* no public values exchanged in Multi channel mode */
 
-			updateCryptoFunctionPointers(contextAlice->channelContext[1]);
+			bzrtp_updateCryptoFunctionPointers(contextAlice->channelContext[1]);
 		} else {
 			bzrtp_message("ERROR : Alice found that Bob doesn't support multi channel\n");
 		}
@@ -1368,7 +1368,7 @@ void test_parserComplete() {
 			contextBob->channelContext[1]->keyAgreementAlgo = ZRTP_KEYAGREEMENT_Mult;
 			contextBob->channelContext[1]->keyAgreementLength = 0; /* no public values exchanged in Multi channel mode */
 
-			updateCryptoFunctionPointers(contextBob->channelContext[1]);
+			bzrtp_updateCryptoFunctionPointers(contextBob->channelContext[1]);
 		} else {
 			bzrtp_message("ERROR : Bob found that Alice doesn't support multi channel\n");
 		}

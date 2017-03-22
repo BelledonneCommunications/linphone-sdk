@@ -286,7 +286,7 @@ uint32_t bzrtp_CRC32(uint8_t *input, uint16_t length) {
  * return			0 on succes, error code otherwise
  *
  */
-int crypoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, bzrtpHelloMessage_t *peerHelloMessage) {
+int bzrtp_cryptoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, bzrtpHelloMessage_t *peerHelloMessage) {
 	uint8_t selfCommonKeyAgreementType[7];
 	uint8_t peerCommonKeyAgreementType[7];
 	uint8_t commonKeyAgreementTypeNumber = 0;
@@ -422,7 +422,7 @@ int crypoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpC
 	zrtpChannelContext->sasAlgo = commonSasType[0];
 
 	/* update the function pointers */
-	return updateCryptoFunctionPointers(zrtpChannelContext);
+	return bzrtp_updateCryptoFunctionPointers(zrtpChannelContext);
 }
 
 /*
@@ -433,7 +433,7 @@ int crypoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpC
  *
  * @return			0 on succes
  */
-int updateCryptoFunctionPointers(bzrtpChannelContext_t *zrtpChannelContext) {
+int bzrtp_updateCryptoFunctionPointers(bzrtpChannelContext_t *zrtpChannelContext) {
 	if (zrtpChannelContext==NULL) {
 		return ZRTP_CRYPTOAGREEMENT_INVALIDCONTEXT;
 	}
@@ -569,7 +569,7 @@ uint8_t selectCommonAlgo(uint8_t masterArray[7], uint8_t masterArrayLength, uint
  * @param[in/out]	algoTypes		mapped to uint8_t value of the 4 char strings giving the algo types as string according to rfc section 5.1.2 to 5.1.6
  * @param[in/out]	algoTypesCount	number of algo types
  */
-void addMandatoryCryptoTypesIfNeeded(uint8_t algoType, uint8_t algoTypes[7], uint8_t *algoTypesCount)
+void bzrtp_addMandatoryCryptoTypesIfNeeded(uint8_t algoType, uint8_t algoTypes[7], uint8_t *algoTypesCount)
 {
 	int i, j;
 	int algosBitmask[BITMASK_256_SIZE];
@@ -620,7 +620,7 @@ void addMandatoryCryptoTypesIfNeeded(uint8_t algoType, uint8_t algoTypes[7], uin
  *
  * @return 		The int value mapped to the algo type, ZRTP_UNSET_ALGO on error
  */
-uint8_t cryptoAlgoTypeStringToInt(uint8_t algoType[4], uint8_t algoFamily) {
+uint8_t bzrtp_cryptoAlgoTypeStringToInt(uint8_t algoType[4], uint8_t algoFamily) {
 	switch (algoFamily) {
 		case ZRTP_HASH_TYPE:
 			{
@@ -713,7 +713,7 @@ uint8_t cryptoAlgoTypeStringToInt(uint8_t algoType[4], uint8_t algoFamily) {
  * @param[in] algoTypeInt	The integer algo type defined in crypoWrapper.h
  * @param[in] algoFamily	The string code for the algorithm as defined in rfc 5.1.2 to 5.1.6
  */
-void cryptoAlgoTypeIntToString(uint8_t algoTypeInt, uint8_t algoTypeString[4]) {
+void bzrtp_cryptoAlgoTypeIntToString(uint8_t algoTypeInt, uint8_t algoTypeString[4]) {
 	switch (algoTypeInt) {
 		case ZRTP_HASH_S256:
 			memcpy(algoTypeString, "S256", 4);

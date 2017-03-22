@@ -184,7 +184,7 @@ static int testAlgoType(uint8_t algoType, uint8_t *packetTypes, uint8_t packetTy
 		setHelloMessageAlgo(helloMessage, algoType, packetTypes, packetTypesCount);
 	}
 
-	BC_ASSERT_FALSE(crypoAlgoAgreement(zrtpContext, zrtpContext->channelContext[0], helloPacket->messageData));
+	BC_ASSERT_FALSE(bzrtp_cryptoAlgoAgreement(zrtpContext, zrtpContext->channelContext[0], helloPacket->messageData));
 	retval = compareAllAlgoTypesWithExpectedChangedOnly(zrtpContext->channelContext[0], algoType, expectedType);
 
 	bzrtp_freeZrtpPacket(helloPacket);
@@ -432,7 +432,7 @@ void test_algoSetterGetter(void) {
 #define ZRTP_AUTHTAG_FAKE_5		0x45
 
 static int testAddMandatoryCryptoTypesIfNeeded(uint8_t algoType, uint8_t *algoTypes, uint8_t algoTypesCount, uint8_t *expectedTypes, uint8_t expectedTypesCount) {
-	addMandatoryCryptoTypesIfNeeded(algoType, algoTypes, &algoTypesCount);
+	bzrtp_addMandatoryCryptoTypesIfNeeded(algoType, algoTypes, &algoTypesCount);
 	return compareAlgoTypes(algoTypes, algoTypesCount, expectedTypes, expectedTypesCount);
 }
 

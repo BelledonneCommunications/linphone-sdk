@@ -54,7 +54,7 @@ int bzrtp_getSelfZID(bzrtpContext_t *context, uint8_t selfZID[12]);
  *
  * return 	0 on succes, error code otherwise 
  */
-int bzrtp_getPeerAssociatedSecretsHash(bzrtpContext_t *context, uint8_t peerZID[12]);
+BZRTP_EXPORT int bzrtp_getPeerAssociatedSecretsHash(bzrtpContext_t *context, uint8_t peerZID[12]);
 
 /* Define for write peer flags */
 /* define positions for bit into the flags */

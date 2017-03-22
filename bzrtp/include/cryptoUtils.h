@@ -65,7 +65,7 @@ uint8_t bzrtpUtils_getAvailableCryptoTypes(uint8_t algoType, uint8_t availableTy
  *
  * @return		0 on succes, error code otherwise
  */
-int bzrtp_keyDerivationFunction(uint8_t *key, uint16_t keyLength,
+BZRTP_EXPORT int bzrtp_keyDerivationFunction(uint8_t *key, uint16_t keyLength,
 		uint8_t *label, uint16_t labelLength,
 		uint8_t *context, uint16_t contextLength,
 		uint16_t hmacLength,
@@ -106,7 +106,7 @@ void bzrtp_base256(uint32_t sas, char *output, int outputSize);
  * @return		the 32 bits CRC value
  *
  */
-uint32_t bzrtp_CRC32(uint8_t *input, uint16_t length); 
+BZRTP_EXPORT uint32_t bzrtp_CRC32(uint8_t *input, uint16_t length); 
 
 /* error code for the cryptoAlgoAgreement and function pointer update functions */
 #define	ZRTP_CRYPTOAGREEMENT_INVALIDCONTEXT		0x1001
@@ -131,7 +131,7 @@ uint32_t bzrtp_CRC32(uint8_t *input, uint16_t length);
  * return			0 on succes, error code otherwise
  *
  */
-int crypoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, bzrtpHelloMessage_t *peerHelloMessage);
+BZRTP_EXPORT int bzrtp_cryptoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, bzrtpHelloMessage_t *peerHelloMessage);
 
 /**
  * @brief Update context crypto function pointer according to related values of choosen algorithms fields (hashAlgo, cipherAlgo, etc..)
@@ -140,7 +140,7 @@ int crypoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpC
  *
  * @return			0 on succes
  */
-int updateCryptoFunctionPointers(bzrtpChannelContext_t *zrtpChannelContext);
+BZRTP_EXPORT int bzrtp_updateCryptoFunctionPointers(bzrtpChannelContext_t *zrtpChannelContext);
 
 /**
  * @brief Select common algorithm from the given array where algo are represented by their 4 chars string defined in rfc section 5.1.2 to 5.1.6
@@ -169,7 +169,7 @@ uint8_t selectCommonAlgo(uint8_t masterArray[7], uint8_t masterArrayLength, uint
  * @param[in/out]	algoTypes		mapped to uint8_t value of the 4 char strings giving the algo types as string according to rfc section 5.1.2 to 5.1.6
  * @param[in/out]	algoTypesCount	number of algo types
  */
-void addMandatoryCryptoTypesIfNeeded(uint8_t algoType, uint8_t algoTypes[7], uint8_t *algoTypesCount);
+BZRTP_EXPORT void bzrtp_addMandatoryCryptoTypesIfNeeded(uint8_t algoType, uint8_t algoTypes[7], uint8_t *algoTypesCount);
 
 /**
  * @brief Map the string description of algo type to an int defined in cryptoWrapper.h
@@ -179,7 +179,7 @@ void addMandatoryCryptoTypesIfNeeded(uint8_t algoType, uint8_t algoTypes[7], uin
  * 							ZRTP_KEYAGREEMENT_TYPE or ZRTP_SAS_TYPE)
  * @return 		The int value mapped to the algo type, ZRTP_UNSET_ALGO on error
  */
-uint8_t cryptoAlgoTypeStringToInt(uint8_t algoType[4], uint8_t algoFamily);
+BZRTP_EXPORT uint8_t bzrtp_cryptoAlgoTypeStringToInt(uint8_t algoType[4], uint8_t algoFamily);
 
 /**
  * @brief Unmap the string description of algo type to an int defined in cryptoWrapper.h
@@ -187,7 +187,7 @@ uint8_t cryptoAlgoTypeStringToInt(uint8_t algoType[4], uint8_t algoFamily);
  * @param[in] algoTypeInt	The integer algo type defined in crypoWrapper.h
  * @param[in] algoFamily	The string code for the algorithm as defined in rfc 5.1.2 to 5.1.6
  */
-void cryptoAlgoTypeIntToString(uint8_t algoTypeInt, uint8_t algoTypeString[4]);
+BZRTP_EXPORT void bzrtp_cryptoAlgoTypeIntToString(uint8_t algoTypeInt, uint8_t algoTypeString[4]);
 
 /**
  * @brief Destroy a key by setting it to a random number
@@ -198,7 +198,7 @@ void cryptoAlgoTypeIntToString(uint8_t algoTypeInt, uint8_t algoTypeString[4]);
  * @param[in]		keyLength	The keyLength in bytes
  * @param[in]		rngContext	The context for RNG
  */
-void bzrtp_DestroyKey(uint8_t *key, uint8_t keyLength, void *rngContext);
+BZRTP_EXPORT void bzrtp_DestroyKey(uint8_t *key, uint8_t keyLength, void *rngContext);
 
 /**
  * @brief Convert an hexadecimal string into the corresponding byte buffer

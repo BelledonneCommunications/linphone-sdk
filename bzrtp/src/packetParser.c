@@ -258,31 +258,31 @@ int bzrtp_packetParser(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpC
 
 				/* parse the variable length part: algorithms types */
 				for (i=0; i<messageData->hc; i++) {
-					messageData->supportedHash[i] = cryptoAlgoTypeStringToInt(messageContent, ZRTP_HASH_TYPE);
+					messageData->supportedHash[i] = bzrtp_cryptoAlgoTypeStringToInt(messageContent, ZRTP_HASH_TYPE);
 					messageContent +=4;
 				}
 				for (i=0; i<messageData->cc; i++) {
-					messageData->supportedCipher[i] = cryptoAlgoTypeStringToInt(messageContent, ZRTP_CIPHERBLOCK_TYPE);
+					messageData->supportedCipher[i] = bzrtp_cryptoAlgoTypeStringToInt(messageContent, ZRTP_CIPHERBLOCK_TYPE);
 					messageContent +=4;
 				}
 				for (i=0; i<messageData->ac; i++) {
-					messageData->supportedAuthTag[i] = cryptoAlgoTypeStringToInt(messageContent, ZRTP_AUTHTAG_TYPE);
+					messageData->supportedAuthTag[i] = bzrtp_cryptoAlgoTypeStringToInt(messageContent, ZRTP_AUTHTAG_TYPE);
 					messageContent +=4;
 				}
 				for (i=0; i<messageData->kc; i++) {
-					messageData->supportedKeyAgreement[i] = cryptoAlgoTypeStringToInt(messageContent, ZRTP_KEYAGREEMENT_TYPE);
+					messageData->supportedKeyAgreement[i] = bzrtp_cryptoAlgoTypeStringToInt(messageContent, ZRTP_KEYAGREEMENT_TYPE);
 					messageContent +=4;
 				}
 				for (i=0; i<messageData->sc; i++) {
-					messageData->supportedSas[i] = cryptoAlgoTypeStringToInt(messageContent, ZRTP_SAS_TYPE);
+					messageData->supportedSas[i] = bzrtp_cryptoAlgoTypeStringToInt(messageContent, ZRTP_SAS_TYPE);
 					messageContent +=4;
 				}
 
-				addMandatoryCryptoTypesIfNeeded(ZRTP_HASH_TYPE, messageData->supportedHash, &messageData->hc);
-				addMandatoryCryptoTypesIfNeeded(ZRTP_CIPHERBLOCK_TYPE, messageData->supportedCipher, &messageData->cc);
-				addMandatoryCryptoTypesIfNeeded(ZRTP_AUTHTAG_TYPE, messageData->supportedAuthTag, &messageData->ac);
-				addMandatoryCryptoTypesIfNeeded(ZRTP_KEYAGREEMENT_TYPE, messageData->supportedKeyAgreement, &messageData->kc);
-				addMandatoryCryptoTypesIfNeeded(ZRTP_SAS_TYPE, messageData->supportedSas, &messageData->sc);
+				bzrtp_addMandatoryCryptoTypesIfNeeded(ZRTP_HASH_TYPE, messageData->supportedHash, &messageData->hc);
+				bzrtp_addMandatoryCryptoTypesIfNeeded(ZRTP_CIPHERBLOCK_TYPE, messageData->supportedCipher, &messageData->cc);
+				bzrtp_addMandatoryCryptoTypesIfNeeded(ZRTP_AUTHTAG_TYPE, messageData->supportedAuthTag, &messageData->ac);
+				bzrtp_addMandatoryCryptoTypesIfNeeded(ZRTP_KEYAGREEMENT_TYPE, messageData->supportedKeyAgreement, &messageData->kc);
+				bzrtp_addMandatoryCryptoTypesIfNeeded(ZRTP_SAS_TYPE, messageData->supportedSas, &messageData->sc);
 
 				memcpy(messageData->MAC, messageContent, 8);
 				
@@ -344,13 +344,13 @@ int bzrtp_packetParser(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpC
 
 				memcpy(messageData->ZID, messageContent, 12);
 				messageContent +=12;
-				messageData->hashAlgo = cryptoAlgoTypeStringToInt(messageContent, ZRTP_HASH_TYPE);
+				messageData->hashAlgo = bzrtp_cryptoAlgoTypeStringToInt(messageContent, ZRTP_HASH_TYPE);
 				messageContent += 4;
-				messageData->cipherAlgo = cryptoAlgoTypeStringToInt(messageContent, ZRTP_CIPHERBLOCK_TYPE);
+				messageData->cipherAlgo = bzrtp_cryptoAlgoTypeStringToInt(messageContent, ZRTP_CIPHERBLOCK_TYPE);
 				messageContent += 4;
-				messageData->authTagAlgo = cryptoAlgoTypeStringToInt(messageContent, ZRTP_AUTHTAG_TYPE);
+				messageData->authTagAlgo = bzrtp_cryptoAlgoTypeStringToInt(messageContent, ZRTP_AUTHTAG_TYPE);
 				messageContent += 4;
-				messageData->keyAgreementAlgo = cryptoAlgoTypeStringToInt(messageContent, ZRTP_KEYAGREEMENT_TYPE);
+				messageData->keyAgreementAlgo = bzrtp_cryptoAlgoTypeStringToInt(messageContent, ZRTP_KEYAGREEMENT_TYPE);
 				messageContent += 4;
 				/* commit message length depends on the key agreement type choosen (and set in the zrtpContext->keyAgreementAlgo) */
 				switch(messageData->keyAgreementAlgo) {
@@ -376,7 +376,7 @@ int bzrtp_packetParser(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpC
 					free(messageData);
 					return BZRTP_PARSER_ERROR_INVALIDMESSAGE;
 				}
-				messageData->sasAlgo = cryptoAlgoTypeStringToInt(messageContent, ZRTP_SAS_TYPE);
+				messageData->sasAlgo = bzrtp_cryptoAlgoTypeStringToInt(messageContent, ZRTP_SAS_TYPE);
 				messageContent += 4;
 
 				/* if it is a multistream or preshared commit, get the 16 bytes nonce */
@@ -793,23 +793,23 @@ int bzrtp_packetBuild(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpCh
 
 				/* now set optionnal supported algorithms */
 				for (i=0; i<messageData->hc; i++) {
-					cryptoAlgoTypeIntToString(messageData->supportedHash[i], messageString);
+					bzrtp_cryptoAlgoTypeIntToString(messageData->supportedHash[i], messageString);
 					messageString +=4;
 				}
 				for (i=0; i<messageData->cc; i++) {
-					cryptoAlgoTypeIntToString(messageData->supportedCipher[i], messageString);
+					bzrtp_cryptoAlgoTypeIntToString(messageData->supportedCipher[i], messageString);
 					messageString +=4;
 				}
 				for (i=0; i<messageData->ac; i++) {
-					cryptoAlgoTypeIntToString(messageData->supportedAuthTag[i], messageString);
+					bzrtp_cryptoAlgoTypeIntToString(messageData->supportedAuthTag[i], messageString);
 					messageString +=4;
 				}
 				for (i=0; i<messageData->kc; i++) {
-					cryptoAlgoTypeIntToString(messageData->supportedKeyAgreement[i], messageString);
+					bzrtp_cryptoAlgoTypeIntToString(messageData->supportedKeyAgreement[i], messageString);
 					messageString +=4;
 				}
 				for (i=0; i<messageData->sc; i++) {
-					cryptoAlgoTypeIntToString(messageData->supportedSas[i], messageString);
+					bzrtp_cryptoAlgoTypeIntToString(messageData->supportedSas[i], messageString);
 					messageString +=4;
 				}
 
@@ -873,15 +873,15 @@ int bzrtp_packetBuild(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpCh
 				messageString += 32;
 				memcpy(messageString, messageData->ZID, 12);
 				messageString += 12;
-				cryptoAlgoTypeIntToString(messageData->hashAlgo, messageString);
+				bzrtp_cryptoAlgoTypeIntToString(messageData->hashAlgo, messageString);
 				messageString += 4;
-				cryptoAlgoTypeIntToString(messageData->cipherAlgo, messageString);
+				bzrtp_cryptoAlgoTypeIntToString(messageData->cipherAlgo, messageString);
 				messageString += 4;
-				cryptoAlgoTypeIntToString(messageData->authTagAlgo, messageString);
+				bzrtp_cryptoAlgoTypeIntToString(messageData->authTagAlgo, messageString);
 				messageString += 4;
-				cryptoAlgoTypeIntToString(messageData->keyAgreementAlgo, messageString);
+				bzrtp_cryptoAlgoTypeIntToString(messageData->keyAgreementAlgo, messageString);
 				messageString += 4;
-				cryptoAlgoTypeIntToString(messageData->sasAlgo, messageString);
+				bzrtp_cryptoAlgoTypeIntToString(messageData->sasAlgo, messageString);
 				messageString += 4;
 
 				/* if it is a multistream or preshared commit insert the 16 bytes nonce */

@@ -134,27 +134,27 @@ void packetDump(bzrtpPacket_t *zrtpPacket, uint8_t addRawMessage) {
 					printf ("S : %d - M : %d - P : %d\nhc : %x - cc : %x - ac : %x - kc : %x - sc : %x\n", messageData->S, messageData->M, messageData->P, messageData->hc, messageData->cc, messageData->ac, messageData->kc, messageData->sc);
 					printf ("hc ");
 					for (j=0; j<messageData->hc; j++) {
-						cryptoAlgoTypeIntToString(messageData->supportedHash[j], algoTypeString);
+						bzrtp_cryptoAlgoTypeIntToString(messageData->supportedHash[j], algoTypeString);
 						printf("%.4s, ", algoTypeString);
 					}
 					printf ("\ncc ");
 					for (j=0; j<messageData->cc; j++) {
-						cryptoAlgoTypeIntToString(messageData->supportedCipher[j], algoTypeString);
+						bzrtp_cryptoAlgoTypeIntToString(messageData->supportedCipher[j], algoTypeString);
 						printf("%.4s, ", algoTypeString);
 					}
 					printf ("\nac ");
 					for (j=0; j<messageData->ac; j++) {
-						cryptoAlgoTypeIntToString(messageData->supportedAuthTag[j], algoTypeString);
+						bzrtp_cryptoAlgoTypeIntToString(messageData->supportedAuthTag[j], algoTypeString);
 						printf("%.4s, ", algoTypeString);
 					}
 					printf ("\nkc ");
 					for (j=0; j<messageData->kc; j++) {
-						cryptoAlgoTypeIntToString(messageData->supportedKeyAgreement[j], algoTypeString);
+						bzrtp_cryptoAlgoTypeIntToString(messageData->supportedKeyAgreement[j], algoTypeString);
 						printf("%.4s, ", algoTypeString);
 					}
 					printf ("\nsc ");
 					for (j=0; j<messageData->sc; j++) {
-						cryptoAlgoTypeIntToString(messageData->supportedSas[j], algoTypeString);
+						bzrtp_cryptoAlgoTypeIntToString(messageData->supportedSas[j], algoTypeString);
 						printf("%.4s, ", algoTypeString);
 					}
 					printHex("\nMAC", messageData->MAC, 8);
@@ -177,15 +177,15 @@ void packetDump(bzrtpPacket_t *zrtpPacket, uint8_t addRawMessage) {
 					messageData = (bzrtpCommitMessage_t *)zrtpPacket->messageData;
 					printHex("H2", messageData->H2, 32);
 					printHex("ZID", messageData->ZID, 12);
-					cryptoAlgoTypeIntToString(messageData->hashAlgo, algoTypeString);
+					bzrtp_cryptoAlgoTypeIntToString(messageData->hashAlgo, algoTypeString);
 					printf("Hash Algo: %.4s\n", algoTypeString);
-					cryptoAlgoTypeIntToString(messageData->cipherAlgo, algoTypeString);
+					bzrtp_cryptoAlgoTypeIntToString(messageData->cipherAlgo, algoTypeString);
 					printf("Cipher Algo: %.4s\n", algoTypeString);
-					cryptoAlgoTypeIntToString(messageData->authTagAlgo, algoTypeString);
+					bzrtp_cryptoAlgoTypeIntToString(messageData->authTagAlgo, algoTypeString);
 					printf("Auth tag Algo: %.4s\n", algoTypeString);
-					cryptoAlgoTypeIntToString(messageData->keyAgreementAlgo, algoTypeString);
+					bzrtp_cryptoAlgoTypeIntToString(messageData->keyAgreementAlgo, algoTypeString);
 					printf("Key agreement Algo: %.4s\n", algoTypeString);
-					cryptoAlgoTypeIntToString(messageData->sasAlgo, algoTypeString);
+					bzrtp_cryptoAlgoTypeIntToString(messageData->sasAlgo, algoTypeString);
 					printf("Sas Algo: %.4s\n", algoTypeString);
 					/* if it is a multistream or preshared commit, get the 16 bytes nonce */
 					if ((messageData->keyAgreementAlgo == ZRTP_KEYAGREEMENT_Prsh) || (messageData->keyAgreementAlgo == ZRTP_KEYAGREEMENT_Mult)) {
@@ -276,15 +276,15 @@ void dumpContext(char *title, bzrtpContext_t *zrtpContext) {
 					printHex("      ", channelContext->peerH[j], 32);
 				}		
 
-				cryptoAlgoTypeIntToString(channelContext->hashAlgo, buffer);
+				bzrtp_cryptoAlgoTypeIntToString(channelContext->hashAlgo, buffer);
 				printf("    Selected algos\n     - Hash: %.4s\n", buffer);
-				cryptoAlgoTypeIntToString(channelContext->cipherAlgo, buffer);
+				bzrtp_cryptoAlgoTypeIntToString(channelContext->cipherAlgo, buffer);
 				printf("     - cipher: %.4s\n", buffer);
-				cryptoAlgoTypeIntToString(channelContext->authTagAlgo, buffer);
+				bzrtp_cryptoAlgoTypeIntToString(channelContext->authTagAlgo, buffer);
 				printf("     - auth tag: %.4s\n", buffer);
-				cryptoAlgoTypeIntToString(channelContext->keyAgreementAlgo, buffer);
+				bzrtp_cryptoAlgoTypeIntToString(channelContext->keyAgreementAlgo, buffer);
 				printf("     - key agreement: %.4s\n", buffer);
-				cryptoAlgoTypeIntToString(channelContext->sasAlgo, buffer);
+				bzrtp_cryptoAlgoTypeIntToString(channelContext->sasAlgo, buffer);
 				printf("     - sas: %.4s\n", buffer);
 				printHex("    initiator auxID", channelContext->initiatorAuxsecretID, 8);
 				printHex("    responder auxID", channelContext->responderAuxsecretID, 8);
