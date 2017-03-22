@@ -72,11 +72,7 @@ typedef pthread_cond_t bctbx_cond_t;
 #endif
 
 #ifndef BCTBX_DEPRECATED
-#if defined(_MSC_VER)
-  #define BCTBX_DEPRECATED __declspec(deprecated)
-#else
-  #define BCTBX_DEPRECATED __attribute__ ((deprecated))
-#endif
+#define BCTBX_DEPRECATED __attribute__ ((deprecated))
 #endif
 
 #define BCTBX_PUBLIC
@@ -149,6 +145,10 @@ unsigned long __bctbx_thread_self(void);
 #elif defined(WINAPI_PARTITION_APP) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP)
 #define BCTBX_WINDOWS_UNIVERSAL 1
 #endif
+#endif
+
+#ifndef BCTBX_DEPRECATED
+#define BCTBX_DEPRECATED __declspec(deprecated)
 #endif
 
 #if defined(_WIN32) || defined(_WIN32_WCE)
