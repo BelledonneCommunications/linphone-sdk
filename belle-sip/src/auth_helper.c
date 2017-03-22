@@ -85,7 +85,7 @@ int belle_sip_auth_helper_compute_ha1(const char* userid,const char* realm,const
 		 return -1;
 	}
 	if (!realm) {
-		 belle_sip_error("belle_sip_fill_authorization_header, password not found ");
+		 belle_sip_error("belle_sip_fill_authorization_header, realm not found ");
 		 return -1;
 	}
 
@@ -254,8 +254,3 @@ int belle_sip_auth_helper_fill_proxy_authorization(belle_sip_header_proxy_author
 
 
 }
-
-
-
-
-
