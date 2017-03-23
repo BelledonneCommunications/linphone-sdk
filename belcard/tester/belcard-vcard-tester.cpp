@@ -32,7 +32,7 @@ using namespace::std;
 using namespace::belcard;
 
 static string openFile(const char *name) {
-	ifstream istr(bc_tester_res(name));
+	ifstream istr(bc_tester_res(name), std::ios::binary);
 	if (!istr.is_open()) {
 		BC_FAIL(name);
 	}
