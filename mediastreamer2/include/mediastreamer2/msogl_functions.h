@@ -20,16 +20,20 @@
 #ifndef msogl_functions_h
 #define msogl_functions_h
 
-#ifdef __IOS
+#ifdef __APPLE__
+   #include "TargetConditionals.h"
+#endif
+
+#ifdef TARGET_OS_IPHONE
 	#include <OpenGLES/ES2/gl.h>
 	#include <OpenGLES/ES2/glext.h>
-#elif defined(__APPLE__)
+#elif TARGET_OS_MAC
 	#include <OpenGL/OpenGL.h>
 	#include <OpenGL/gl.h>
-#elif defined(__ANDROID__)
+#elif __ANDROID__
 	#include <GLES2/gl2.h>
 	#include <GLES2/gl2ext.h>
-#elif defined(_WIN32)
+#elif _WIN32
 	#if !defined(QOPENGLFUNCTIONS_H)
 		#include <GLES3/gl3.h>
 	#endif
