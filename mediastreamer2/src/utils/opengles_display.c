@@ -218,8 +218,8 @@ void ogl_display_init (struct opengles_display *gldisp, const OpenGlFunctions *f
 }
 
 void ogl_display_uninit (struct opengles_display *gldisp, bool_t freeGLresources) {
-	const OpenGlFunctions *f = gldisp->functions;
 	int i, j;
+	const OpenGlFunctions *f;
 
 	if (!gldisp) {
 		ms_error("%s called with null struct opengles_display", __FUNCTION__);
@@ -234,6 +234,8 @@ void ogl_display_uninit (struct opengles_display *gldisp, bool_t freeGLresources
 			gldisp->yuv[i] = NULL;
 		}
 	}
+
+	f = gldisp->functions;
 
 	if (gldisp->glResourcesInitialized && freeGLresources) {
 		// destroy gl resources
