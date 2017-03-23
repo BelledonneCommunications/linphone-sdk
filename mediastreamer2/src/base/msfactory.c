@@ -221,6 +221,7 @@ void ms_factory_init(MSFactory *obj){
 	tags = ms_factory_get_platform_tags_as_string(obj);
 	ms_message("ms_factory_init() done: platform_tags=%s", tags);
 	ms_free(tags);
+	obj->image_resources_dir = bctbx_strdup_printf("%s/images", PACKAGE_DATA_DIR);
 }
 
 
@@ -705,11 +706,9 @@ struct _MSEventQueue *ms_factory_create_event_queue(MSFactory *obj) {
 }
 
 void ms_factory_destroy_event_queue(MSFactory *obj) {
-	
+	if (obj->image_resources_dir) bctbx_free(obj->image_resources_dir);
 	ms_event_queue_destroy(obj->evq);
 	ms_factory_set_event_queue(obj,NULL);
-	
-	
 }
 
 
@@ -855,14 +854,17 @@ MSDevicesInfo* ms_factory_get_devices_info(MSFactory *f) {
 	return f->devices_info;
 }
 
-char * ms_factory_get_image_resources_dir(const MSFactory *f) {
-	if (f->image_resources_dir) return bctbx_strdup(f->image_resources_dir);
-	return bctbx_strdup_printf("%s/images", PACKAGE_DATA_DIR);
+const char * ms_factory_get_image_resources_dir(const MSFactory *f) {
+	return f->image_resources_dir;
 }
 
 void ms_factory_set_image_resources_dir(MSFactory *f, const char *path) {
-	if (f->image_resources_dir) bctbx_free(f->image_resources_dir);
-	f->image_resources_dir = bctbx_strdup(path);
+	if (f->image_resources_dir) {
+		bctbx_free(f->image_resources_dir);
+		f->image_resources_dir = NULL;
+	}
+	if (path)
+		f->image_resources_dir = bctbx_strdup(path);
 }
 
 #ifdef __ANDROID__

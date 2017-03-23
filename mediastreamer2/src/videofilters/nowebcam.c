@@ -187,14 +187,13 @@ static char *def_image = NULL;
 mblk_t *ms_load_nowebcam(MSFactory *factory, MSVideoSize *reqsize, int idx) {
 	mblk_t *m;
 	char *tmp;
-	char *image_resources_dir = ms_factory_get_image_resources_dir(factory);
+	const char *image_resources_dir = ms_factory_get_image_resources_dir(factory);
 	if (idx < 0)
 		tmp = bctbx_strdup_printf("%s/%s.jpg", image_resources_dir, NOWEBCAM_JPG);
 	else
 		tmp = bctbx_strdup_printf("%s/%s%i.jpg", image_resources_dir, NOWEBCAM_JPG, idx);
 	m = ms_load_jpeg_as_yuv(tmp, reqsize);
 	bctbx_free(tmp);
-	bctbx_free(image_resources_dir);
 	return m;
 }
 
@@ -353,9 +352,8 @@ static void static_image_cam_init(MSWebCam *cam) {
 	cam->name=ms_strdup("Static picture");
 	if (def_image == NULL) {
 		MSFactory *factory = ms_web_cam_get_factory(cam);
-		char *image_resources_dir = ms_factory_get_image_resources_dir(factory);
+		const char *image_resources_dir = ms_factory_get_image_resources_dir(factory);
 		def_image = ms_strdup_printf("%s/%s.jpg", image_resources_dir, NOWEBCAM_JPG);
-		bctbx_free(image_resources_dir);
 	}
 }
 

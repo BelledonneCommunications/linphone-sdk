@@ -388,7 +388,7 @@ MS2_PUBLIC MSDevicesInfo* ms_factory_get_devices_info(MSFactory *f);
  * @param[in] f MSFactory object
  * @return The path where the image resources are located
  */
-MS2_PUBLIC char * ms_factory_get_image_resources_dir(const MSFactory *f);
+MS2_PUBLIC const char * ms_factory_get_image_resources_dir(const MSFactory *f);
 
 /**
  * Set the path where the image resources are located
