@@ -322,7 +322,11 @@ if(ENABLE_SOUND AND NOT(WIN32 OR ENABLE_ALSA OR ENABLE_ARTSC OR ENABLE_MACSND OR
 endif()
 
 if(ENABLE_G729 OR ENABLE_G729B_CNG)
-	find_package(Bcg729 1.0.1)
+	if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
+		include("${EP_bcg729_CONFIG_DIR}/Bcg729Config.cmake")
+	else()
+		find_package(Bcg729 1.0.1)
+	endif()
 	if(NOT BCG729_FOUND)
 		message(WARNING "Could not find bcg729, mediastreamer2 will be compiled without G729 codec and G729 AnnexB in RFC3389.")
 		set(ENABLE_G729 OFF CACHE BOOL "Build mediastreamer2 with the G729 codec." FORCE)
@@ -445,7 +449,9 @@ if(ENABLE_ANDROIDSND)
 		src/android/media
 	)
 endif()
-
+if(BCG729_FOUND)
+	list(APPEND MEDIASTREAMER2_INCLUDE_DIRS ${BCG729_INCLUDE_DIRS})
+endif()
 if(ENABLE_DEBUG_LOGS)
 	add_definitions(-DDEBUG)
 endif()
