@@ -19,10 +19,12 @@
 #define belle_sip_parserutils_h
 
 #include "port.h"
-
+static inline int belle_sip_strcasecmp(const char*a,const char* b) {
+	if (!a || !b) return 0;
+	return strcasecmp(a,b) == 0;
+}
 #define IS_TOKEN(token) \
-		(INPUT->toStringTT(INPUT,LT(1),LT(strlen(#token)))->chars ?\
-		strcasecmp(#token,(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(strlen(#token)))->chars)) == 0:0)
+		belle_sip_strcasecmp(#token,(const char*)INPUT->toStringTT(INPUT,LT(1),LT(strlen(#token)))->chars)
 
 
 #define IS_HEADER_NAMED(name,compressed_name) (IS_TOKEN(compressed_name) || IS_TOKEN(name))

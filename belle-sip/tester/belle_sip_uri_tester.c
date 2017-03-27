@@ -1,7 +1,6 @@
-
 /*
 	belle-sip - SIP (RFC3261) library.
- Copyright (C) 2010  Belledonne Communications SARL
+ Copyright (C) 2017  Belledonne Communications SARL
  
  This program is free software: you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -25,5 +24,9 @@
 /*test body*/
 #include "belle_sip_base_uri_tester.c"
 
+
 test_suite_t sip_uri_test_suite = {"SIP URI", NULL, NULL, belle_sip_tester_before_each, belle_sip_tester_after_each,
 	sizeof(uri_tests) / sizeof(uri_tests[0]), uri_tests};
+
+
+

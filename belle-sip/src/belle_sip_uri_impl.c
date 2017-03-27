@@ -501,3 +501,6 @@ int belle_sip_uri_check_components_from_context(const belle_sip_uri_t* uri,const
 
 
 }
+/*fast uri implemenation*/
+typedef belle_sip_uri_t belle_sip_fast_uri_t;
+BELLE_SIP_PARSE(fast_uri);

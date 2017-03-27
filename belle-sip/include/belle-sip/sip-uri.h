@@ -35,6 +35,12 @@ BELLESIP_EXPORT belle_sip_uri_t* belle_sip_uri_new(void);
  *
  */
 BELLESIP_EXPORT belle_sip_uri_t* belle_sip_uri_parse (const char* uri) ;
+
+/**
+ *
+ */
+BELLESIP_EXPORT belle_sip_uri_t* belle_sip_fast_uri_parse (const char* uri) ;
+
 /**
  * same as belle_sip_uri_parse but with much less checks
  */

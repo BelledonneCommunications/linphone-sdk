@@ -668,23 +668,42 @@ header_address returns [belle_sip_header_address_t* ret]
 header_address_base[belle_sip_header_address_t* obj]      returns [belle_sip_header_address_t* ret]   
 @init { $ret=obj; }
      :  ( name_addr_with_generic_uri[BELLE_SIP_HEADER_ADDRESS($ret)]
-| addr_spec_with_generic_uri[BELLE_SIP_HEADER_ADDRESS($ret)]) { if (!belle_sip_header_address_get_uri($ret)
-																	&&
-																	!belle_sip_header_address_get_absolute_uri(($ret))) {
-																											belle_sip_object_unref($ret);
-																											$ret=NULL;
-																											}
-																};
+| addr_spec_with_generic_uri[BELLE_SIP_HEADER_ADDRESS($ret)]) 	{	if (!belle_sip_header_address_get_uri($ret) && !belle_sip_header_address_get_absolute_uri(($ret))) {
+						belle_sip_object_unref($ret);
+						$ret=NULL;
+						} 
+					};
 catch [ANTLR3_RECOGNITION_EXCEPTION]
 {
-  belle_sip_object_unref($ret);
-  $ret=NULL;
-}      
+   belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+   if ($ret) belle_sip_object_unref($ret);
+   $ret=NULL;
+} 
+
+fast_header_address  returns [belle_sip_header_address_t* ret]   
+@init { $ret=belle_sip_header_address_new(); }
+     :  ( 	fast_name_addr_with_generic_uri[BELLE_SIP_HEADER_ADDRESS($ret)]
+	| fast_addr_spec_with_generic_uri[BELLE_SIP_HEADER_ADDRESS($ret)]) 	{	if (!belle_sip_header_address_get_uri($ret) && !belle_sip_header_address_get_absolute_uri(($ret))) {
+							belle_sip_object_unref($ret);
+							$ret=NULL;
+							} 
+						};
+catch [ANTLR3_RECOGNITION_EXCEPTION]
+{
+   belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+   if ($ret) belle_sip_object_unref($ret);
+   $ret=NULL;
+} 
+
 name_addr[belle_sip_header_address_t* object]      
   :      (lws? display_name[object])? sp_laquot  addr_spec[object] raquot_sp;
 
 name_addr_with_generic_uri[belle_sip_header_address_t* object]      
   :      (lws? display_name[object])? sp_laquot  addr_spec_with_generic_uri[object] raquot_sp;
+
+fast_name_addr_with_generic_uri[belle_sip_header_address_t* object]      
+  :      (lws? display_name[object])? sp_laquot  fast_addr_spec_with_generic_uri[object] raquot_sp;
+
 
 
 addr_spec[belle_sip_header_address_t* object]      
@@ -702,6 +721,18 @@ addr_spec_with_generic_uri[belle_sip_header_address_t* object]
 					 }}
   	) lws?;
   
+  fast_addr_spec_with_generic_uri[belle_sip_header_address_t* object]      
+  :  lws? (	fast_uri {belle_sip_header_address_set_uri(object,$fast_uri.ret);}  
+  	| 
+  	generic_uri { if (   strcasecmp(belle_generic_uri_get_scheme($generic_uri.ret),"sip") != 0
+					 &&  strcasecmp(belle_generic_uri_get_scheme($generic_uri.ret),"sips") != 0 ) {
+						 belle_sip_header_address_set_absolute_uri(object,$generic_uri.ret);
+					 } else {
+						 belle_sip_message("Cannot parse a sip/sips uri as a generic uri");
+						 belle_sip_object_unref($generic_uri.ret);
+					 }}
+  	) lws?;
+  	
 paramless_addr_spec[belle_sip_header_address_t* object]      
   :  lws? paramless_uri {belle_sip_header_address_set_uri(object,$paramless_uri.ret);} lws? ;//| absoluteURI;
   
@@ -1671,6 +1702,20 @@ catch [ANTLR3_RECOGNITION_EXCEPTION]
    $ret=NULL;
 }
 
+fast_uri  returns [belle_sip_uri_t* ret=NULL]    
+scope { belle_sip_uri_t* current; }
+@init { $fast_uri::current = belle_sip_uri_new(); }
+   :  sip_schema[$fast_uri::current] ( ((userinfo[NULL])=>userinfo[$fast_uri::current] fast_hostport[$fast_uri::current]) | fast_hostport[$fast_uri::current] ) 
+   uri_parameters[$fast_uri::current]? 
+   headers[$fast_uri::current]? {$ret = $fast_uri::current;}; 
+catch [ANTLR3_RECOGNITION_EXCEPTION]
+{
+   belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+   belle_sip_object_unref($fast_uri::current);
+   $ret=NULL;
+}
+
+
 sip_token:  {IS_TOKEN(sip)}? token;
 sips_token:  {IS_TOKEN(sips)}? token;
 
@@ -1773,7 +1818,7 @@ scope { const char* current; }
                     | ipv4address 	{$fast_host::current=(const char *)$ipv4address.text->chars;}
                     | ipv6reference  {$fast_host::current=(const char *)$ipv6reference.ret;})  {$ret=$fast_host::current;}; 
  	
-fast_hostname: ( alphanum | DASH )*;
+fast_hostname:  alpha ( alphanum | DASH | DOT )*;
 
 //*************************common tokens*******************************/
 
@@ -1783,16 +1828,14 @@ scope { const char* current; }
 @init {$host::current=$ret=NULL;}
             :   (hostname {$host::current=(const char *)$hostname.text->chars;}
                     | ipv4address {$host::current=(const char *)$ipv4address.text->chars;}
-                    | ipv6reference  {$host::current=(const char *)$ipv6reference.ret;}) {$ret=$host::current;};
+                    | ipv6reference {$host::current=(const char *)$ipv6reference.ret;}) {$ret=$host::current;};
 hostname        :   ( domainlabel DOT )* (toplabel)=>toplabel DOT? ;
   
 domainlabel     :   alphanum | (alphanum ( alphanum | DASH )* alphanum) ;
 toplabel        :   alpha | (alpha (  DASH?  alphanum)+) ;
 
 ipv4address    :  three_digit DOT three_digit DOT three_digit DOT three_digit ;
-ipv6reference returns [const char* ret]
-@init {$ret=NULL;}  
-:  LSBRAQUET ipv6address RSBRAQUET {$ret=(const char *)$ipv6address.text->chars;};
+ipv6reference returns [const char* ret=NULL]  :  LSBRAQUET ipv6address RSBRAQUET {$ret=(const char *)$ipv6address.text->chars;};
 ipv6address    :  hexpart ( COLON ipv4address )? ;
 hexpart        :  hexseq | hexseq COLON COLON ( hexseq )? | COLON COLON ( hexseq )?;
 hexseq         :  hex4 ( COLON hex4)*;

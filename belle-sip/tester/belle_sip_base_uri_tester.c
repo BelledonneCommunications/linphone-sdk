@@ -16,6 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "belle-sip/belle-sip.h"
+#include "belle_sip_tester.h"
+#include "belle_sip_internal.h"
 
 
 static void testSIMPLEURI(void) {
@@ -474,6 +477,7 @@ static void test_empty_password(void){
 
 	if (headerAddr) belle_sip_object_unref(headerAddr);
 }
+
 
 static test_t uri_tests[] = {
 	TEST_NO_TAG("Simple URI", testSIMPLEURI),

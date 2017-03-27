@@ -95,6 +95,7 @@ void belle_sip_tester_init(void(*ftester_printf)(int level, const char *fmt, va_
 	bc_tester_add_suite(&cast_test_suite);
 	bc_tester_add_suite(&sip_uri_test_suite);
 	bc_tester_add_suite(&fast_sip_uri_test_suite);
+	bc_tester_add_suite(&perf_sip_uri_test_suite);
 	bc_tester_add_suite(&generic_uri_test_suite);
 	bc_tester_add_suite(&headers_test_suite);
 	bc_tester_add_suite(&core_test_suite);
@@ -207,7 +208,8 @@ int main (int argc, char *argv[]) {
 	if (env_domain) {
 		test_domain=env_domain;
 	}
-
+	bctbx_init_logger();
+	
 	for(i=1;i<argc;++i){
 		if (strcmp(argv[i],"--verbose")==0){
 			belle_sip_set_log_level(BELLE_SIP_LOG_DEBUG);
@@ -243,6 +245,7 @@ int main (int argc, char *argv[]) {
 
 	ret = bc_tester_start(argv[0]);
 	belle_sip_tester_uninit();
+	bctbx_uninit_logger();
 	return ret;
 }
 
