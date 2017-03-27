@@ -230,6 +230,7 @@ void ms_factory_init(MSFactory *obj){
 	tags = ms_factory_get_platform_tags_as_string(obj);
 	ms_message("ms_factory_init() done: platform_tags=%s", tags);
 	ms_free(tags);
+	obj->echo_canceller_filtername = ms_strdup("MSWebRTCAECM");
 	obj->image_resources_dir = bctbx_strdup_printf("%s/images", PACKAGE_DATA_DIR);
 }
 
@@ -981,6 +982,7 @@ void ms_factory_destroy(MSFactory *factory) {
 	factory->offer_answer_provider_list = bctbx_list_free(factory->offer_answer_provider_list);
 	bctbx_list_for_each(factory->platform_tags, ms_free);
 	factory->platform_tags = bctbx_list_free(factory->platform_tags);
+	if (factory->echo_canceller_filtername) ms_free(factory->echo_canceller_filtername);
 	if (factory->plugins_dir) ms_free(factory->plugins_dir);
 	ms_free(factory);
 	if (factory == fallback_factory) fallback_factory = NULL;
