@@ -21,7 +21,7 @@
 ############################################################################
 
 cmake_minimum_required(VERSION 3.0)
-project(mswebrtc VERSION 1.1.0 LANGUAGES C)
+project(mswebrtc VERSION 1.1.0 LANGUAGES C CXX)
 
 
 set(PACKAGE "${PROJECT_NAME}")
@@ -36,6 +36,7 @@ set(VERSION "${PACKAGE_VERSION}")
 
 option(ENABLE_SHARED "Build shared library." YES)
 option(ENABLE_STATIC "Build static library." YES)
+option(ENABLE_AEC "Enable the WebRTC echo canceller support." YES)
 option(ENABLE_AECM "Enable the WebRTC echo canceller for mobile support." YES)
 option(ENABLE_ISAC "Enable the ISAC audio codec support." YES)
 option(ENABLE_ILBC "Build iLBC codec filter" YES)
@@ -43,7 +44,7 @@ set(ISAC_FLAVOUR "fix" CACHE STRING "ISAC audio codec flavour.")
 set_property(CACHE ISAC_FLAVOUR PROPERTY STRINGS "fix" "main")
 
 
-if(NOT ENABLE_AECM AND NOT ENABLE_ISAC AND NOT ENABLE_ILBC)
+if(NOT ENABLE_AEC AND NOT ENABLE_AECM AND NOT ENABLE_ISAC AND NOT ENABLE_ILBC)
 	message(FATAL_ERROR "You need to enable at least one feature of WebRTC.")
 endif()
 
@@ -57,15 +58,18 @@ endif()
 
 if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
 	include("${EP_ms2_CONFIG_DIR}/Mediastreamer2Config.cmake")
-	include("${EP_ortp_CONFIG_DIR}/OrtpConfig.cmake")
+	include("${EP_ortp_CONFIG_DIR}/ORTPConfig.cmake")
 else()
 	find_package(Mediastreamer2 REQUIRED)
-	find_package(Ortp REQUIRED)
+	find_package(ORTP REQUIRED)
 endif()
 
 
-if(ENABLE_AECM)
+if(ENABLE_AEC)
 	set(BUILD_AEC 1)
+endif()
+if(ENABLE_AECM)
+	set(BUILD_AECM 1)
 endif()
 if(ENABLE_ISAC)
 	set(BUILD_ISAC 1)
@@ -159,6 +163,34 @@ set(WEBRTC_COMMON_SRCS
 	${WEBRTC_COMMON_DIR}/ring_buffer.c
 )
 include_directories(${WEBRTC_COMMOND_DIR}/include)
+if(ENABLE_AEC)
+	set(AEC_SRC_DIR "${WEBRTC_SRC_DIR}/modules/audio_processing/aec")
+	set(AEC_SRCS
+		aec.c
+		${AEC_SRC_DIR}/aec_core.c
+		${AEC_SRC_DIR}/aec_rdft.c
+		${AEC_SRC_DIR}/aec_resampler.c
+		${AEC_SRC_DIR}/echo_cancellation.c
+		${WEBRTC_SRC_DIR}/system_wrappers/source/cpu_features.cc
+		${WEBRTC_SRC_DIR}/modules/audio_processing/utility/delay_estimator.c
+		${WEBRTC_SRC_DIR}/modules/audio_processing/utility/delay_estimator_wrapper.c
+	)
+	string(TOLOWER ${CMAKE_SYSTEM_PROCESSOR} SYSTEM_PROCESSOR)
+	if(SYSTEM_PROCESSOR MATCHES "^arm.*" OR SYSTEM_PROCESSOR MATCHES "^aarch64.*")
+		list(APPEND AEC_SRCS
+			${AEC_SRC_DIR}/aec_core_neon.c
+			${AEC_SRC_DIR}/aec_rdft_neon.c
+		)
+	elseif(SYSTEM_PROCESSOR MATCHES "^i.?86.*" OR SYSTEM_PROCESSOR MATCHES "^x86.*" OR SYSTEM_PROCESSOR MATCHES "^x86_64.*" OR SYSTEM_PROCESSOR MATCHES "^amd64.*")
+		list(APPEND AEC_SRCS
+			${AEC_SRC_DIR}/aec_core_sse2.c
+			${AEC_SRC_DIR}/aec_rdft_sse2.c
+		)
+	endif()
+	include_directories(
+		${AEC_SRC_DIR}/include
+	)
+endif()
 if(ENABLE_AECM)
 	set(AECM_SRC_DIR "${WEBRTC_SRC_DIR}/modules/audio_processing/aecm")
 	set(AECM_SRCS
@@ -315,6 +347,9 @@ set(SOURCE_FILES
 	${WEBRTC_COMMON_SRCS}
 	${WEBRTC_SIGNAL_PROCESSING_SRCS}
 )
+if(ENABLE_AEC)
+	list(APPEND SOURCE_FILES ${AEC_SRCS})
+endif()
 if(ENABLE_AECM)
 	list(APPEND SOURCE_FILES ${AECM_SRCS})
 endif()

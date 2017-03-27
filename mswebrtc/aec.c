@@ -17,9 +17,18 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msticker.h"
-#include <echo_control_mobile.h>
+#ifdef BUILD_AEC
+#include "echo_cancellation.h"
+#endif
+#ifdef BUILD_AECM
+#include "echo_control_mobile.h"
+#endif
 #include "ortp/b64.h"
 
 #ifdef _WIN32
@@ -40,8 +49,13 @@ static const int framesize = 80;
 static const int flow_control_interval_ms = 5000;
 
 
+typedef enum _WebRTCAECType {
+	WebRTCAECTypeNormal,
+	WebRTCAECTypeMobile
+} WebRTCAECType;
+
 typedef struct WebRTCAECState {
-	void *aecmInst;
+	void *aecInst;
 	MSBufferizer delayed_ref;
 	MSBufferizer ref;
 	MSBufferizer echo;
@@ -61,10 +75,10 @@ typedef struct WebRTCAECState {
 	bool_t echostarted;
 	bool_t bypass_mode;
 	bool_t using_zeroes;
+	WebRTCAECType aec_type;
 } WebRTCAECState;
 
-static void webrtc_aec_init(MSFilter *f)
-{
+static void webrtc_aecgeneric_init(MSFilter *f, WebRTCAECType aec_type) {
 	WebRTCAECState *s = (WebRTCAECState *) ms_new(WebRTCAECState, 1);
 
 	s->samplerate = 8000;
@@ -72,12 +86,13 @@ static void webrtc_aec_init(MSFilter *f)
 	ms_bufferizer_init(&s->echo);
 	ms_bufferizer_init(&s->ref);
 	s->delay_ms = 0;
-	s->aecmInst = NULL;
+	s->aecInst = NULL;
 	s->framesize = framesize;
 	s->state_str = NULL;
 	s->using_zeroes = FALSE;
 	s->echostarted = FALSE;
 	s->bypass_mode = FALSE;
+	s->aec_type = aec_type;
 
 #ifdef EC_DUMP
 	{
@@ -96,8 +111,19 @@ static void webrtc_aec_init(MSFilter *f)
 	f->data = s;
 }
 
-static void webrtc_aec_uninit(MSFilter *f)
-{
+#ifdef BUILD_AEC
+static void webrtc_aec_init(MSFilter *f) {
+	webrtc_aecgeneric_init(f, WebRTCAECTypeNormal);
+}
+#endif
+
+#ifdef BUILD_AECM
+static void webrtc_aecm_init(MSFilter *f) {
+	webrtc_aecgeneric_init(f, WebRTCAECTypeMobile);
+}
+#endif
+
+static void webrtc_aec_uninit(MSFilter *f) {
 	WebRTCAECState *s = (WebRTCAECState *) f->data;
 	if (s->state_str) ms_free(s->state_str);
 	ms_bufferizer_uninit(&s->delayed_ref);
@@ -110,10 +136,14 @@ static void webrtc_aec_uninit(MSFilter *f)
 	ms_free(s);
 }
 
-static void webrtc_aec_preprocess(MSFilter *f)
-{
+static void webrtc_aec_preprocess(MSFilter *f) {
 	WebRTCAECState *s = (WebRTCAECState *) f->data;
-	AecmConfig config;
+#ifdef BUILD_AEC
+	AecConfig aec_config;
+#endif
+#ifdef BUILD_AECM
+	AecmConfig aecm_config;
+#endif
 	int delay_samples = 0;
 	mblk_t *m;
 	int error_code;
@@ -123,24 +153,50 @@ static void webrtc_aec_preprocess(MSFilter *f)
 	s->framesize=(framesize*s->samplerate)/8000;
 	ms_message("Initializing WebRTC echo canceler with framesize=%i, delay_ms=%i, delay_samples=%i", s->framesize, s->delay_ms, delay_samples);
 
-	if ((s->aecmInst = WebRtcAecm_Create()) == NULL) {
-		s->bypass_mode = TRUE;
-		ms_error("WebRtcAecm_Create(): error, entering bypass mode");
-		return;
-	}
-	if ((error_code = WebRtcAecm_Init(s->aecmInst, s->samplerate)) < 0) {
-		if (error_code == AECM_BAD_PARAMETER_ERROR) {
-			ms_error("WebRtcAecm_Init(): WebRTC echo canceller does not support %d samplerate", s->samplerate);
+#ifdef BUILD_AEC
+	if (s->aec_type == WebRTCAECTypeNormal) {
+		if ((s->aecInst = WebRtcAec_Create()) == NULL) {
+			s->bypass_mode = TRUE;
+			ms_error("WebRtcAec_Create(): error, entering bypass mode");
+			return;
 		}
-		s->bypass_mode = TRUE;
-		ms_error("Entering bypass mode");
-		return;
+		if ((WebRtcAec_Init(s->aecInst, MIN(48000, s->samplerate), s->samplerate)) < 0) {
+			ms_error("WebRtcAec_Init(): WebRTC echo canceller does not support %d samplerate", s->samplerate);
+			s->bypass_mode = TRUE;
+			ms_error("Entering bypass mode");
+			return;
+		}
+		aec_config.nlpMode = kAecNlpAggressive;
+		aec_config.skewMode = kAecFalse;
+		aec_config.metricsMode = kAecFalse;
+		aec_config.delay_logging = kAecFalse;
+		if (WebRtcAec_set_config(s->aecInst, aec_config) != 0) {
+			ms_error("WebRtcAec_set_config(): failed.");
+		}
 	}
-	config.cngMode = TRUE;
-	config.echoMode = 3;
-	if (WebRtcAecm_set_config(s->aecmInst, config)!=0){
-		ms_error("WebRtcAecm_set_config(): failed.");
+#endif
+#ifdef BUILD_AECM
+	if (s->aec_type == WebRTCAECTypeMobile) {
+		if ((s->aecInst = WebRtcAecm_Create()) == NULL) {
+			s->bypass_mode = TRUE;
+			ms_error("WebRtcAecm_Create(): error, entering bypass mode");
+			return;
+		}
+		if ((error_code = WebRtcAecm_Init(s->aecInst, s->samplerate)) < 0) {
+			if (error_code == AECM_BAD_PARAMETER_ERROR) {
+				ms_error("WebRtcAecm_Init(): WebRTC echo canceller does not support %d samplerate", s->samplerate);
+			}
+			s->bypass_mode = TRUE;
+			ms_error("Entering bypass mode");
+			return;
+		}
+		aecm_config.cngMode = TRUE;
+		aecm_config.echoMode = 3;
+		if (WebRtcAecm_set_config(s->aecInst, aecm_config)!=0){
+			ms_error("WebRtcAecm_set_config(): failed.");
+		}
 	}
+#endif
 
 	/* fill with zeroes for the time of the delay*/
 	m = allocb(delay_samples * 2, 0);
@@ -152,17 +208,35 @@ static void webrtc_aec_preprocess(MSFilter *f)
 	s->flow_control_time = f->ticker->time;
 }
 
+#ifdef BUILD_AEC
+void intbuf2floatbuf(int16_t *intbuf, float *floatbuf, int framesize) {
+	int i;
+	for (i = 0; i < framesize; i++) {
+		floatbuf[i] = (float)intbuf[i];
+	}
+}
+
+void floatbuf2intbuf(float *floatbuf, int16_t *intbuf, int framesize) {
+	int i;
+	for (i = 0; i < framesize; i++) {
+		intbuf[i] = (int16_t)floatbuf[i];
+	}
+}
+#endif
+
 /*	inputs[0]= reference signal from far end (sent to soundcard)
  *	inputs[1]= near speech & echo signal (read from soundcard)
  *	outputs[0]=  is a copy of inputs[0] to be sent to soundcard
  *	outputs[1]=  near end speech, echo removed - towards far end
 */
-static void webrtc_aec_process(MSFilter *f)
-{
+static void webrtc_aec_process(MSFilter *f) {
 	WebRTCAECState *s = (WebRTCAECState *) f->data;
 	int nbytes = s->framesize * 2;
 	mblk_t *refm;
 	uint8_t *ref, *echo;
+#ifdef BUILD_AEC
+	float *fref, *fecho, *foecho;
+#endif
 
 	if (s->bypass_mode) {
 		while ((refm = ms_queue_get(f->inputs[0])) != NULL) {
@@ -194,6 +268,14 @@ static void webrtc_aec_process(MSFilter *f)
 
 	ref = (uint8_t *) alloca(nbytes);
 	echo = (uint8_t *) alloca(nbytes);
+#ifdef BUILD_AEC
+	if (s->aec_type == WebRTCAECTypeNormal) {
+		int nfbytes = s->framesize * sizeof(float);
+		fref = (float *)alloca(nfbytes);
+		fecho = (float *)alloca(nfbytes);
+		foecho = (float *)alloca(nfbytes);
+	}
+#endif
 	while (ms_bufferizer_read(&s->echo, echo, nbytes) >= nbytes) {
 		mblk_t *oecho = allocb(nbytes, 0);
 		int avail;
@@ -241,10 +323,25 @@ static void webrtc_aec_process(MSFilter *f)
 		if (s->echofile)
 			fwrite(echo, nbytes, 1, s->echofile);
 #endif
-		if (WebRtcAecm_BufferFarend(s->aecmInst, (const int16_t *) ref, s->framesize)!=0)
-			ms_error("WebRtcAecm_BufferFarend() failed.");
-		if (WebRtcAecm_Process(s->aecmInst, (const int16_t *) echo, NULL, (int16_t *) oecho->b_wptr, s->framesize, 0)!=0)
-			ms_error("WebRtcAecm_Process() failed.");
+#ifdef BUILD_AEC
+		if (s->aec_type == WebRTCAECTypeNormal) {
+			intbuf2floatbuf((int16_t *)ref, fref, s->framesize);
+			intbuf2floatbuf((int16_t *)echo, fecho, s->framesize);
+			if (WebRtcAec_BufferFarend(s->aecInst, (const float*)fref, (size_t)s->framesize) != 0)
+				ms_error("WebRtcAec_BufferFarend() failed.");
+			if (WebRtcAec_Process(s->aecInst, (const float * const *)&fecho, 1, (float * const *)&foecho, (size_t)s->framesize, 0, 0) != 0)
+				ms_error("WebRtcAec_Process() failed.");
+			floatbuf2intbuf(foecho, (int16_t *)oecho->b_wptr, s->framesize);
+		}
+#endif
+#ifdef BUILD_AECM
+		if (s->aec_type == WebRTCAECTypeMobile) {
+			if (WebRtcAecm_BufferFarend(s->aecInst, (const int16_t *)ref, (size_t)s->framesize) != 0)
+				ms_error("WebRtcAecm_BufferFarend() failed.");
+			if (WebRtcAecm_Process(s->aecInst, (const int16_t *)echo, NULL, (int16_t *)oecho->b_wptr, (size_t)s->framesize, 0) != 0)
+				ms_error("WebRtcAecm_Process() failed.");
+		}
+#endif
 #ifdef EC_DUMP
 		if (s->cleanfile)
 			fwrite(oecho->b_wptr, nbytes, 1, s->cleanfile);
@@ -266,21 +363,28 @@ static void webrtc_aec_process(MSFilter *f)
 	}
 }
 
-static void webrtc_aec_postprocess(MSFilter *f)
-{
+static void webrtc_aec_postprocess(MSFilter *f) {
 	WebRTCAECState *s = (WebRTCAECState *) f->data;
 
 	ms_bufferizer_flush(&s->delayed_ref);
 	ms_bufferizer_flush(&s->echo);
 	ms_bufferizer_flush(&s->ref);
-	if (s->aecmInst != NULL) {
-		WebRtcAecm_Free(s->aecmInst);
-		s->aecmInst = NULL;
+	if (s->aecInst != NULL) {
+#ifdef BUILD_AEC
+		if (s->aec_type == WebRTCAECTypeNormal) {
+			WebRtcAec_Free(s->aecInst);
+		}
+#endif
+#ifdef BUILD_AECM
+		if (s->aec_type == WebRTCAECTypeMobile) {
+			WebRtcAecm_Free(s->aecInst);
+		}
+#endif
+		s->aecInst = NULL;
 	}
 }
 
-static int webrtc_aec_set_sr(MSFilter *f, void *arg)
-{
+static int webrtc_aec_set_sr(MSFilter *f, void *arg) {
 	WebRTCAECState *s = (WebRTCAECState *) f->data;
 	int requested_sr = *(int *) arg;
 	int sr = requested_sr;
@@ -294,54 +398,46 @@ static int webrtc_aec_set_sr(MSFilter *f, void *arg)
 	return 0;
 }
 
-static int webrtc_aec_get_sr(MSFilter *f, void *arg)
-{
+static int webrtc_aec_get_sr(MSFilter *f, void *arg) {
 	WebRTCAECState *s = (WebRTCAECState *) f->data;
 	*(int *) arg=s->samplerate;
 	return 0;
 }
 
-static int webrtc_aec_set_framesize(MSFilter *f, void *arg)
-{
+static int webrtc_aec_set_framesize(MSFilter *f, void *arg) {
 	/* Do nothing because the WebRTC echo canceller only accept specific values: 80 and 160. We use 80 at 8khz, and 160 at 16khz */
 	return 0;
 }
 
-static int webrtc_aec_set_delay(MSFilter *f, void *arg)
-{
+static int webrtc_aec_set_delay(MSFilter *f, void *arg) {
 	WebRTCAECState *s = (WebRTCAECState *) f->data;
 	s->delay_ms = *(int *) arg;
 	return 0;
 }
 
-static int webrtc_aec_set_tail_length(MSFilter *f, void *arg)
-{
+static int webrtc_aec_set_tail_length(MSFilter *f, void *arg) {
 	/* Do nothing because this is not needed by the WebRTC echo canceller. */
 	return 0;
 }
-static int webrtc_aec_set_bypass_mode(MSFilter *f, void *arg)
-{
+static int webrtc_aec_set_bypass_mode(MSFilter *f, void *arg) {
 	WebRTCAECState *s = (WebRTCAECState *) f->data;
 	s->bypass_mode = *(bool_t *) arg;
 	ms_message("set EC bypass mode to [%i]", s->bypass_mode);
 	return 0;
 }
-static int webrtc_aec_get_bypass_mode(MSFilter *f, void *arg)
-{
+static int webrtc_aec_get_bypass_mode(MSFilter *f, void *arg) {
 	WebRTCAECState *s = (WebRTCAECState *) f->data;
 	*(bool_t *) arg = s->bypass_mode;
 	return 0;
 }
 
-static int webrtc_aec_set_state(MSFilter *f, void *arg)
-{
+static int webrtc_aec_set_state(MSFilter *f, void *arg) {
 	WebRTCAECState *s = (WebRTCAECState *) f->data;
 	s->state_str = ms_strdup((const char *) arg);
 	return 0;
 }
 
-static int webrtc_aec_get_state(MSFilter *f, void *arg)
-{
+static int webrtc_aec_get_state(MSFilter *f, void *arg) {
 	WebRTCAECState *s = (WebRTCAECState *) f->data;
 	*(char **) arg = s->state_str;
 	return 0;
@@ -360,6 +456,7 @@ static MSFilterMethod webrtc_aec_methods[] = {
 };
 
 
+#ifdef BUILD_AEC
 
 #define MS_WEBRTC_AEC_NAME        "MSWebRTCAEC"
 #define MS_WEBRTC_AEC_DESCRIPTION "Echo canceller using WebRTC library."
@@ -410,3 +507,59 @@ MSFilterDesc ms_webrtc_aec_desc = {
 #endif
 
 MS_FILTER_DESC_EXPORT(ms_webrtc_aec_desc)
+
+#endif /* BUILD_AEC */
+
+#ifdef BUILD_AECM
+
+#define MS_WEBRTC_AECM_NAME        "MSWebRTCAECM"
+#define MS_WEBRTC_AECM_DESCRIPTION "Echo canceller for mobile using WebRTC library."
+#define MS_WEBRTC_AECM_CATEGORY    MS_FILTER_OTHER
+#define MS_WEBRTC_AECM_ENC_FMT     NULL
+#define MS_WEBRTC_AECM_NINPUTS     2
+#define MS_WEBRTC_AECM_NOUTPUTS    2
+#define MS_WEBRTC_AECM_FLAGS       0
+
+#ifdef _MSC_VER
+
+MSFilterDesc ms_webrtc_aecm_desc = {
+	MS_FILTER_PLUGIN_ID,
+	MS_WEBRTC_AECM_NAME,
+	MS_WEBRTC_AECM_DESCRIPTION,
+	MS_WEBRTC_AECM_CATEGORY,
+	MS_WEBRTC_AECM_ENC_FMT,
+	MS_WEBRTC_AECM_NINPUTS,
+	MS_WEBRTC_AECM_NOUTPUTS,
+	webrtc_aecm_init,
+	webrtc_aec_preprocess,
+	webrtc_aec_process,
+	webrtc_aec_postprocess,
+	webrtc_aec_uninit,
+	webrtc_aec_methods,
+	MS_WEBRTC_AECM_FLAGS
+};
+
+#else
+
+MSFilterDesc ms_webrtc_aecm_desc = {
+	.id = MS_FILTER_PLUGIN_ID,
+	.name = MS_WEBRTC_AECM_NAME,
+	.text = MS_WEBRTC_AECM_DESCRIPTION,
+	.category = MS_WEBRTC_AECM_CATEGORY,
+	.enc_fmt = MS_WEBRTC_AECM_ENC_FMT,
+	.ninputs = MS_WEBRTC_AECM_NINPUTS,
+	.noutputs = MS_WEBRTC_AECM_NOUTPUTS,
+	.init = webrtc_aecm_init,
+	.preprocess = webrtc_aec_preprocess,
+	.process = webrtc_aec_process,
+	.postprocess = webrtc_aec_postprocess,
+	.uninit = webrtc_aec_uninit,
+	.methods = webrtc_aec_methods,
+	.flags = MS_WEBRTC_AECM_FLAGS
+};
+
+#endif
+
+MS_FILTER_DESC_EXPORT(ms_webrtc_aecm_desc)
+
+#endif /* BUILD_AECM */
