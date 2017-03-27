@@ -1437,7 +1437,8 @@ void audio_stream_set_features(AudioStream *st, uint32_t features){
 
 AudioStream *audio_stream_new_with_sessions(MSFactory *factory, const MSMediaStreamSessions *sessions){
 	AudioStream *stream=(AudioStream *)ms_new0(AudioStream,1);
-	MSFilterDesc *ec_desc=ms_factory_lookup_filter_by_name(factory, "MSWebRTCAEC");
+	const char *echo_canceller_filtername = ms_factory_get_echo_canceller_filter_name(factory);
+	MSFilterDesc *ec_desc = NULL;
 	const OrtpRtcpXrMediaCallbacks rtcp_xr_media_cbs = {
 		audio_stream_get_rtcp_xr_plc_status,
 		audio_stream_get_rtcp_xr_signal_level,
@@ -1446,6 +1447,10 @@ AudioStream *audio_stream_new_with_sessions(MSFactory *factory, const MSMediaStr
 		audio_stream_get_rtcp_xr_average_lq_quality_rating,
 		stream
 	};
+
+	if (echo_canceller_filtername != NULL) {
+		ec_desc = ms_factory_lookup_filter_by_name(factory, echo_canceller_filtername);
+	}
 
 	stream->ms.type = MSAudio;
 	media_stream_init(&stream->ms,factory, sessions);

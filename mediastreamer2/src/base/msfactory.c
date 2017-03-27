@@ -103,6 +103,15 @@ int ms_factory_get_mtu(MSFactory *obj){
 	return obj->mtu;
 }
 
+void ms_factory_set_echo_canceller_filter_name(MSFactory *obj, const char *filtername) {
+	if (obj->echo_canceller_filtername != NULL) ms_free(obj->echo_canceller_filtername);
+	obj->echo_canceller_filtername = ms_strdup(filtername);
+}
+
+const char * ms_factory_get_echo_canceller_filter_name(const MSFactory *obj) {
+	return obj->echo_canceller_filtername;
+}
+
 unsigned int ms_factory_get_cpu_count(MSFactory *obj) {
 	return obj->cpu_count;
 }

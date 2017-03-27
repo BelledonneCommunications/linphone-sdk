@@ -47,6 +47,7 @@ struct _MSFactory{
 	bool_t voip_initd;
 	MSDevicesInfo *devices_info;
 	char *image_resources_dir;
+	char *echo_canceller_filtername;
 };
 
 typedef struct _MSFactory MSFactory;
@@ -319,6 +320,20 @@ MS2_PUBLIC void ms_factory_set_payload_max_size(MSFactory *obj, int size);
 MS2_PUBLIC void ms_factory_set_mtu(MSFactory *obj, int mtu);
 
 MS2_PUBLIC int ms_factory_get_mtu(MSFactory *obj);
+
+/**
+ * Set the name of the echo canceller filter to use.
+ * @param[in] obj MSFactory object
+ * @param[in] filtername The name of the echo canceller filter to use
+ */
+MS2_PUBLIC void ms_factory_set_echo_canceller_filter_name(MSFactory *obj, const char *filtername);
+
+/**
+ * Get the name of the echo canceller filter being used.
+ * @param[in] obj MSFactory object
+ * @return The name of the echo canceller filter being used
+ */
+MS2_PUBLIC const char * ms_factory_get_echo_canceller_filter_name(const MSFactory *obj);
 
 MS2_PUBLIC const struct _MSFmtDescriptor * ms_factory_get_audio_format(MSFactory *obj, const char *mime, int rate, int channels, const char *fmtp);
 
