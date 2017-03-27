@@ -1,5 +1,5 @@
 ############################################################################
-# config-windowsphone.cmake
+# config-win10.cmake
 # Copyright (C) 2015  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -38,6 +38,7 @@ set(DEFAULT_VALUE_ENABLE_VCARD ON)
 set(DEFAULT_VALUE_ENABLE_VIDEO ON)
 set(DEFAULT_VALUE_ENABLE_VPX ON)
 set(DEFAULT_VALUE_ENABLE_WEBRTC_AEC ON)
+set(DEFAULT_VALUE_ENABLE_WEBRTC_AECM ON)
 set(DEFAULT_VALUE_ENABLE_ZRTP ON)
 set(DEFAULT_VALUE_ENABLE_LIME ON)
 set(DEFAULT_VALUE_ENABLE_TOOLS OFF)
