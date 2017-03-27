@@ -24,6 +24,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "bctoolbox/logging.h"
 #include <time.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 
 typedef struct{
@@ -86,9 +89,13 @@ void bctbx_set_log_handler(BctoolboxLogFunc func){
 }
 
 void bctbx_set_log_file(FILE* f){
+	static BctoolboxFileLogHandler filehandler;
 	static BctoolboxLogHandler handler;
 	handler.func=bctbx_logv_file;
-	handler.user_info=(void*)f;
+	filehandler.handler = handler;
+	filehandler.max_size = -1;
+	filehandler.file = f;
+	handler.user_info=(void*) &filehandler;
 	bctbx_add_log_handler(&handler);
 }
 
@@ -405,6 +412,84 @@ void bctbx_logv_out(void* user_info, const char *domain, BctbxLogLevel lev, cons
 	bctbx_free(msg);
 }
 
+static int _try_open_log_collection_file(BctoolboxFileLogHandler* filehandler) {
+	struct stat statbuf;
+	char *log_filename;
+
+	log_filename = bctbx_strdup_printf("%s/%s.log",
+		filehandler->path,
+		filehandler->name);
+	filehandler->file = fopen(log_filename, "a");
+	bctbx_free(log_filename);
+	if (filehandler->file == NULL) return -1;
+
+	fstat(fileno(filehandler->file), &statbuf);
+	if ((size_t)statbuf.st_size > filehandler->max_size) {
+		fclose(filehandler->file);
+		return -1;
+	}
+
+	filehandler->size = statbuf.st_size;
+	return 0;
+}
+
+static void _rotate_log_collection_files(BctoolboxFileLogHandler* filehandler) {
+	char *log_filename;
+	char *log_filename2;
+	int n = 1;
+
+	log_filename = bctbx_strdup_printf("%s/%s1.log",
+		filehandler->path,
+		filehandler->name);
+	while(access(log_filename, F_OK) != -1) {
+    // file exists
+		n++;
+		log_filename = bctbx_strdup_printf("%s/%s%d.log",
+		filehandler->path,
+		filehandler->name,
+		n);
+	}
+
+	while(n > 0) {
+		log_filename = bctbx_strdup_printf("%s/%s%d.log",
+		filehandler->path,
+		filehandler->name,
+		n-1);
+		log_filename2 = bctbx_strdup_printf("%s/%s%d.log",
+		filehandler->path,
+		filehandler->name,
+		n);
+
+		n--;
+		rename(log_filename, log_filename2);
+	}
+
+	log_filename = bctbx_strdup_printf("%s/%s.log",
+	filehandler->path,
+	filehandler->name);
+	log_filename2 = bctbx_strdup_printf("%s/%s1.log",
+	filehandler->path,
+	filehandler->name);
+	rename(log_filename, log_filename2);
+	bctbx_free(log_filename);
+	bctbx_free(log_filename2);
+}
+
+static void _open_log_collection_file(BctoolboxFileLogHandler* filehandler) {
+	if (_try_open_log_collection_file(filehandler) < 0) {
+		_rotate_log_collection_files(filehandler);
+		_try_open_log_collection_file(filehandler);
+	}
+}
+
+static void _close_log_collection_file(BctoolboxFileLogHandler* filehandler) {
+	if (filehandler->file) {
+		fclose(filehandler->file);
+		filehandler->file = NULL;
+		filehandler->size = 0;
+	}
+}
+
 void bctbx_logv_file(void* user_info, const char *domain, BctbxLogLevel lev, const char *fmt, va_list args){
 	const char *lname="undef";
 	char *msg;
@@ -414,7 +499,9 @@ void bctbx_logv_file(void* user_info, const char *domain, BctbxLogLevel lev, con
 	struct tm tmbuf;
 #endif
 	time_t tt;
-	FILE *f = (FILE*) user_info;
+	int ret = -1;
+	BctoolboxFileLogHandler* filehandler = (BctoolboxFileLogHandler *) user_info;
+	FILE *f = filehandler->file;
 	bctbx_gettimeofday(&tp,NULL);
 	tt = (time_t)tp.tv_sec;
 
@@ -463,13 +550,20 @@ void bctbx_logv_file(void* user_info, const char *domain, BctbxLogLevel lev, con
 	}
 #endif
 #endif
-	fprintf(f,"%i-%.2i-%.2i %.2i:%.2i:%.2i:%.3i %s-%s-%s" ENDLINE
+	ret = fprintf(f,"%i-%.2i-%.2i %.2i:%.2i:%.2i:%.3i %s-%s-%s" ENDLINE
 			,1900+lt->tm_year,1+lt->tm_mon,lt->tm_mday,lt->tm_hour,lt->tm_min,lt->tm_sec
 		,(int)(tp.tv_usec/1000), (domain?domain:"bctoolbox"), lname, msg);
 	fflush(f);
+	if (filehandler->max_size > -1 && ret > 0) {
+		filehandler->size += ret;
+		if (filehandler->size > filehandler->max_size) {
+			_close_log_collection_file(filehandler);
+			_open_log_collection_file(filehandler);
+		}
+	}
+
 	bctbx_free(msg);
 }
-
 
 #ifdef __QNX__
 #include <slog2.h>
@@ -522,4 +616,5 @@ void bctbx_qnx_log_handler(const char *domain, BctbxLogLevel lev, const char *fm
 	msg = bctbx_strdup_vprintf(fmt,args);
 	slog2c(slog2_buffer_handle[buffer_idx], 0, severity, msg);
 }
+
 #endif /* __QNX__ */
