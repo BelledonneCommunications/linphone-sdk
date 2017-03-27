@@ -105,7 +105,7 @@ bctbx_list_t* bctbx_get_log_handlers(void){
 
 static BctoolboxLogDomain * get_log_domain(const char *domain){
 	bctbx_list_t *it;
-	
+
 	if (domain == NULL) return NULL;
 	for (it = __bctbx_logger.log_domains; it != NULL; it = bctbx_list_next(it)) {
 		BctoolboxLogDomain *ld = (BctoolboxLogDomain*)bctbx_list_get_data(it);
@@ -118,7 +118,7 @@ static BctoolboxLogDomain * get_log_domain(const char *domain){
 
 static BctoolboxLogDomain *get_log_domain_rw(const char *domain){
 	BctoolboxLogDomain *ret;
-	
+
 	if (domain == NULL) return NULL;
 	ret = get_log_domain(domain);
 	if (ret) return ret;
@@ -388,7 +388,7 @@ void bctbx_logv_out(void* user_info, const char *domain, BctbxLogLevel lev, cons
 		default:
 			lname = "badlevel";
 	}
-	
+
 	msg=bctbx_strdup_vprintf(fmt,args);
 #if defined(_MSC_VER) && !defined(_WIN32_WCE)
 #ifndef _UNICODE
@@ -533,7 +533,7 @@ void bctbx_logv_file(void* user_info, const char *domain, BctbxLogLevel lev, con
 		default:
 			lname = "badlevel";
 	}
-	
+
 	msg=bctbx_strdup_vprintf(fmt,args);
 #if defined(_MSC_VER) && !defined(_WIN32_WCE)
 #ifndef _UNICODE
@@ -554,7 +554,7 @@ void bctbx_logv_file(void* user_info, const char *domain, BctbxLogLevel lev, con
 			,1900+lt->tm_year,1+lt->tm_mon,lt->tm_mday,lt->tm_hour,lt->tm_min,lt->tm_sec
 		,(int)(tp.tv_usec/1000), (domain?domain:"bctoolbox"), lname, msg);
 	fflush(f);
-	if (filehandler->max_size > -1 && ret > 0) {
+	if (filehandler->max_size != (size_t)-1 && ret > 0) {
 		filehandler->size += ret;
 		if (filehandler->size > filehandler->max_size) {
 			_close_log_collection_file(filehandler);

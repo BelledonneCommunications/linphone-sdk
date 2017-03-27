@@ -60,8 +60,8 @@ typedef struct _BctoolboxFileLogHandler{
 	BctoolboxLogHandler handler;
 	char* path;
 	char* name;
-	long int max_size;
-	long int size;
+	size_t max_size;
+	size_t size;
 	FILE* file;
 }BctoolboxFileLogHandler;
 
@@ -189,10 +189,10 @@ void bctbx_qnx_log_handler(const char *domain, BctbxLogLevel lev, const char *fm
 
 namespace bctoolbox {
 	namespace log {
-		
+
 		// Here we define our application severity levels.
 		enum level { normal, trace, debug, info, warning, error, fatal };
-		
+
 		// The formatting logic for the severity level
 		template <typename CharT, typename TraitsT>
 		inline std::basic_ostream<CharT, TraitsT> &operator<<(std::basic_ostream<CharT, TraitsT> &strm,
@@ -204,12 +204,12 @@ namespace bctoolbox {
 				strm << static_cast<int>(lvl);
 			return strm;
 		}
-		
+
 		template <typename CharT, typename TraitsT>
 		inline std::basic_istream<CharT, TraitsT> &operator>>(std::basic_istream<CharT, TraitsT> &strm,
 															  bctoolbox::log::level &lvl) {
 			static const char *const str[] = {"normal", "trace", "debug", "info", "warning", "error", "fatal"};
-			
+
 			std::string s;
 			strm >> s;
 			for (unsigned int n = 0; n < (sizeof(str) / sizeof(*str)); ++n) {
@@ -233,7 +233,7 @@ struct pumpstream : public std::ostringstream {
 	const std::string mDomain;
 	const BctbxLogLevel level;
 	pumpstream(const std::string &domain, BctbxLogLevel l) : mDomain(domain), level(l) {}
-	
+
 	~pumpstream() {
 		bctbx_log(mDomain.empty()?NULL:mDomain.c_str(), level, "%s", str().c_str());
 	}
