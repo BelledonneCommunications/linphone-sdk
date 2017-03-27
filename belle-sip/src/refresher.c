@@ -258,7 +258,7 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 		if (refresher->state==started) {
 			if (!refresher->first_acknoleged_request)
 				belle_sip_object_ref(refresher->first_acknoleged_request = request);
-			if (is_contact_address_acurate(refresher,request)) {
+			if (is_contact_address_acurate(refresher,request) || !belle_sip_provider_nat_helper_enabled(client_transaction->base.provider)) {
 				schedule_timer(refresher); /*re-arm timer*/
 			} else {
 				belle_sip_message("belle_sip_refresher_start(): refresher [%p] is resubmitting request because contact sent was not correct in original request.",refresher);
