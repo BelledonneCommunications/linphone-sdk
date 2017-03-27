@@ -62,7 +62,7 @@ BCTBX_PUBLIC bctbx_list_t * bctbx_list_unlink(bctbx_list_t * list, bctbx_list_t 
  * Delete the element pointed by 'elem' from the list.
 **/
 BCTBX_PUBLIC bctbx_list_t * bctbx_list_erase_link(bctbx_list_t * list, bctbx_list_t * elem);
-BCTBX_PUBLIC bctbx_list_t * bctbx_list_find(bctbx_list_t * list, void *data);
+BCTBX_PUBLIC bctbx_list_t * bctbx_list_find(bctbx_list_t *list, const void *data);
 BCTBX_PUBLIC bctbx_list_t * bctbx_list_free(bctbx_list_t *list);
 /*frees list elements and associated data, using the supplied function pointer*/
 BCTBX_PUBLIC bctbx_list_t * bctbx_list_free_with_data(bctbx_list_t *list, bctbx_list_free_func freefunc);

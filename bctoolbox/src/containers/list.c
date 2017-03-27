@@ -212,7 +212,7 @@ bctbx_list_t * bctbx_list_erase_link(bctbx_list_t* list, bctbx_list_t* elem){
 	return ret;
 }
 
-bctbx_list_t* bctbx_list_find(bctbx_list_t* list, void *data){
+bctbx_list_t* bctbx_list_find(bctbx_list_t* list, const void *data){
 	for(;list!=NULL;list=list->next){
 		if (list->data==data) return list;
 	}
