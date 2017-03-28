@@ -59,6 +59,12 @@ BELLESIP_EXPORT belle_sip_header_address_t* belle_sip_header_address_create2(con
 
 BELLESIP_EXPORT belle_sip_header_address_t* belle_sip_header_address_parse (const char* address) ;
 
+/*
+ same as belle_sip_header_address_parse but with less syntax checking
+ */
+BELLESIP_EXPORT belle_sip_header_address_t* belle_sip_header_address_fast_parse (const char* address) ;
+
+
 /**
  * returns a sip uri. A header address cannot have both a sip uri and an absolute uri.
  */

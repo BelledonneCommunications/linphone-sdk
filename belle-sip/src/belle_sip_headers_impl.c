@@ -313,6 +313,13 @@ belle_sip_header_address_t* belle_sip_header_address_create2(const char* display
 	return address;
 }
 
+/*fast header address implemenation*/
+typedef belle_sip_header_address_t belle_sip_fast_header_address_t;
+#define belle_sip_fast_header_address_parse belle_sip_header_address_fast_parse  
+BELLE_SIP_PARSE(fast_header_address)
+
+
+
 /******************************
  * Extension header inherits from header
  *
