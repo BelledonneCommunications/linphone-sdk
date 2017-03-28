@@ -55,6 +55,16 @@ typedef struct _BctoolboxLogHandler{
 	BctoolboxLogHandlerFunc func;
 	void* user_info;
 }BctoolboxLogHandler;
+	
+/*
+ initialise logging functions, add default log handler for stdout output.
+ */
+BCTBX_PUBLIC void bctbx_init_logger(void);
+/*
+ free logging memory
+ */
+BCTBX_PUBLIC void bctbx_uninit_logger(void);
+	
 
 typedef struct _BctoolboxFileLogHandler{
 	BctoolboxLogHandler handler;

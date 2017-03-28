@@ -51,8 +51,11 @@ typedef struct _BctoolboxLogger{
 
 static BctoolboxLogger __bctbx_logger = { NULL, BCTBX_LOG_WARNING|BCTBX_LOG_ERROR|BCTBX_LOG_FATAL, 0};
 
+static unsigned int bctbx_init_logger_refcount = 0;
 void bctbx_init_logger(void){
 	BctoolboxLogHandler* handler;
+	if (bctbx_init_logger_refcount++ > 0) return; /*already initialized*/
+	
 	bctbx_mutex_init(&__bctbx_logger.domains_mutex, NULL);
 	handler = (BctoolboxLogHandler*)malloc(sizeof(BctoolboxLogHandler));;
 	handler->func=(BctoolboxLogHandlerFunc)bctbx_logv_out;
@@ -61,9 +64,11 @@ void bctbx_init_logger(void){
 }
 
 void bctbx_uninit_logger(void){
-	bctbx_mutex_destroy(&__bctbx_logger.domains_mutex);
-	bctbx_list_free(__bctbx_logger.logv_outs);
-	__bctbx_logger.log_domains = bctbx_list_free_with_data(__bctbx_logger.log_domains, (void (*)(void*))bctbx_log_domain_destroy);
+	if (--bctbx_init_logger_refcount <= 0) {
+		bctbx_mutex_destroy(&__bctbx_logger.domains_mutex);
+		bctbx_list_free(__bctbx_logger.logv_outs);
+		__bctbx_logger.log_domains = bctbx_list_free_with_data(__bctbx_logger.log_domains, (void (*)(void*))bctbx_log_domain_destroy);
+	}
 }
 
 /**
