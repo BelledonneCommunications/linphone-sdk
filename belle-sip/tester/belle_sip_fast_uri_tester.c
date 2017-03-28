@@ -38,14 +38,14 @@ static void perf(void) {
 	
 	t1 = bctbx_get_cur_time_ms() - start;
 	start=bctbx_get_cur_time_ms();
-	belle_sip_message("t1 = %llu",t1);
+	belle_sip_message("t1 = %" PRIu64 "",t1);
 	
 	for (i=0;i<1000;i++) {
 		belle_sip_uri_t * uri = belle_sip_fast_uri_parse("sip:+331231231231@sip.exmaple.org;user=phone");
 		belle_sip_object_unref(uri);
 	}
 	t2 = bctbx_get_cur_time_ms() - start;
-	belle_sip_message("t1 = %llu",t2);
+	belle_sip_message("t1 = %" PRIu64 "",t2);
 	
 	BC_ASSERT_GREATER(((float)(t1-t2))/(float)(t1), 0.5, float, "%f");
 }

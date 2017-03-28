@@ -70,7 +70,7 @@ if(NOT ANTLR3_COMMAND)
 	)
 
 	if(ANTLR3_JAR_PATH)
-		set(ANTLR3_COMMAND ${Java_JAVA_EXECUTABLE} -Xmx256m -jar ${ANTLR3_JAR_PATH})
+		set(ANTLR3_COMMAND ${Java_JAVA_EXECUTABLE} -Xmx384m -jar ${ANTLR3_JAR_PATH})
 	endif()
 endif()
 
