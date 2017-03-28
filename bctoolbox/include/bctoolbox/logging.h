@@ -65,6 +65,9 @@ typedef struct _BctoolboxFileLogHandler{
 	FILE* file;
 }BctoolboxFileLogHandler;
 
+BCTBX_PUBLIC void bctbx_init_logger(void);
+BCTBX_PUBLIC void bctbx_uninit_logger(void);
+
 BCTBX_PUBLIC void bctbx_add_log_handler(BctoolboxLogHandler* handler);
 BCTBX_PUBLIC BCTBX_DEPRECATED void bctbx_set_log_handler(BctoolboxLogFunc func);
 BCTBX_PUBLIC BCTBX_DEPRECATED void bctbx_set_log_file(FILE* f);
