@@ -675,7 +675,7 @@ header_address_base[belle_sip_header_address_t* obj]      returns [belle_sip_hea
 					};
 catch [ANTLR3_RECOGNITION_EXCEPTION]
 {
-   belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+   belle_sip_debug("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
    if ($ret) belle_sip_object_unref($ret);
    $ret=NULL;
 } 
@@ -690,7 +690,7 @@ fast_header_address  returns [belle_sip_header_address_t* ret]
 						};
 catch [ANTLR3_RECOGNITION_EXCEPTION]
 {
-   belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+   belle_sip_debug("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
    if ($ret) belle_sip_object_unref($ret);
    $ret=NULL;
 } 
