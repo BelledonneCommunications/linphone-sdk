@@ -26,6 +26,7 @@
 #include "mediastreamer2/mscodecutils.h"
 
 
+
 #define VTH264_ENC_NAME "VideoToolboxH264Encoder"
 #define vth264enc_log(level, fmt, ...) ms_##level(VTH264_ENC_NAME ": " fmt, ##__VA_ARGS__)
 #define vth264enc_message(fmt, ...) vth264enc_log(message, fmt, ##__VA_ARGS__)
@@ -218,7 +219,7 @@ static VTCompressionSessionRef vth264enc_session_create(VTH264EncCtx *ctx) {
 	CFRelease(value);
 
 	CFMutableDictionaryRef session_props = CFDictionaryCreateMutable (kCFAllocatorDefault, 1, NULL, NULL);
-#if !TARGET_OS_IOS
+#if !TARGET_OS_IPHONE
 	CFDictionarySetValue(session_props, kVTVideoEncoderSpecification_EnableHardwareAcceleratedVideoEncoder, kCFBooleanTrue);
 #endif
 
@@ -272,7 +273,7 @@ static VTCompressionSessionRef vth264enc_session_create(VTH264EncCtx *ctx) {
 		goto fail;
 	} else {
 		vth264enc_message("encoder succesfully initialized.");
-#if !TARGET_OS_IOS
+#if !TARGET_OS_IPHONE
 		CFBooleanRef hardware_acceleration_enabled;
 		err = VTSessionCopyProperty(session, kVTCompressionPropertyKey_UsingHardwareAcceleratedVideoEncoder, kCFAllocatorDefault, &hardware_acceleration_enabled);
 		if (err != noErr) {
@@ -1011,7 +1012,7 @@ void _register_videotoolbox_if_supported(MSFactory *factory) {
 	ms_message("VideoToolbox H264 codec is not supported on simulators");
 #else
 
-#ifdef __ios
+#if TARGET_OS_IPHONE
 	if (kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_8_0) {
 #else
 	if (kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber10_8) {

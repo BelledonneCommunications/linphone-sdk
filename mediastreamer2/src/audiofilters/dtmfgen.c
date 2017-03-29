@@ -20,6 +20,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mediastreamer2/dtmfgen.h"
 #include "mediastreamer2/msticker.h"
 
+#if __APPLE__
+#include "TargetConditionals.h"
+#endif
 
 #include <math.h>
 
@@ -30,7 +33,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #define NO_SAMPLES_THRESHOLD 100 /*ms*/
 
-#if defined(__ANDROID__) || defined(__ios) /* because android and iOS don't deal well with audio stop and restarts at each dtmf.*/
+#if defined(__ANDROID__) || TARGET_OS_IPHONE /* because android and iOS don't deal well with audio stop and restarts at each dtmf.*/
 #define TRAILLING_SILENCE 10000 /*ms*/
 #else
 #define TRAILLING_SILENCE 500 /*ms*/

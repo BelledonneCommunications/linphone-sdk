@@ -43,6 +43,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mediastreamer2/devices.h"
 #endif
 
+#if __APPLE__
+#include "TargetConditionals.h"
+#endif
+
 #include <sys/types.h>
 
 #ifndef _WIN32
@@ -245,7 +249,7 @@ void audio_stream_prepare_sound(AudioStream *stream, MSSndCard *playcard, MSSndC
 	ms_filter_call_method(stream->dummy,MS_RTP_RECV_SET_SESSION,stream->ms.sessions.rtp_session);
 
 	if (captcard && playcard){
-#ifdef __ios
+#if TARGET_OS_IPHONE
 		int muted = 1;
 		stream->soundread=ms_snd_card_create_reader(captcard);
 		stream->soundwrite=ms_snd_card_create_writer(playcard);
@@ -268,7 +272,7 @@ void audio_stream_prepare_sound(AudioStream *stream, MSSndCard *playcard, MSSndC
 static void _audio_stream_unprepare_sound(AudioStream *stream, bool_t keep_sound_resources){
 	if (stream->ms.state==MSStreamPreparing){
 		stop_preload_graph(stream);
-#ifdef __ios
+#if TARGET_OS_IPHONE
 		if (!keep_sound_resources){
 			if (stream->soundread) ms_filter_destroy(stream->soundread);
 			stream->soundread=NULL;

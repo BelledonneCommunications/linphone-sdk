@@ -28,7 +28,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "private.h"
 #include <ctype.h>
 
-
+#if __APPLE__
+#include "TargetConditionals.h"
+#endif
 
 #ifndef MS_MINIMAL_MTU
 /*this is used for determining the minimum size of recv buffers for RTP packets
@@ -87,7 +89,7 @@ MSTickerPrio __ms_get_default_prio(bool_t is_video) {
 #endif
 		if(penv && _ms_ticker_prio_from_env(penv, &prio) == 0) return prio;
 
-#ifdef __ios
+#if TARGET_OS_IPHONE
 		return MS_TICKER_PRIO_HIGH;
 #else
 		return MS_TICKER_PRIO_NORMAL;

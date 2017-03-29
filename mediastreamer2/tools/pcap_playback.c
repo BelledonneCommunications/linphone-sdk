@@ -47,6 +47,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include <ortp/b64.h>
 
+#if __APPLE__
+#include "TargetConditionals.h"
+#endif
 
 static int cond = 1;
 
@@ -289,7 +292,7 @@ static void setup_media_streams(MediastreamDatas *args) {
 		display_name = "MSGLXVideo";
 #elif defined(HAVE_XV)
 		display_name = "MSX11Video";
-#elif __APPLE__ && !defined(__ios)
+#elif __APPLE__ && !TARGET_OS_IPHONE
 		display_name ="MSOSXGLDisplay";
 #else
 		display_name = "MSVideoOut";

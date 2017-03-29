@@ -32,6 +32,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mediastreamer2/mseventqueue.h"
 #include "private.h"
 
+#if __APPLE__
+#include "TargetConditionals.h"
+#endif
 
 static void configure_recorder_output(VideoStream *stream);
 static int video_stream_start_with_source_and_output(VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
@@ -238,13 +241,13 @@ const char *video_stream_get_default_video_renderer(void){
 	return "MSDrawDibDisplay";
 #elif defined(__ANDROID__)
 	return "MSAndroidDisplay";
-#elif __APPLE__ && !defined(__ios)
+#elif __APPLE__ && !TARGET_OS_IPHONE
 	return "MSOSXGLDisplay";
 #elif defined (HAVE_XV)
 	return "MSX11Video";
 #elif defined(HAVE_GLX)
 	return "MSGLXVideo";
-#elif defined(__ios)
+#elif TARGET_OS_IPHONE
 	return "IOSDisplay";
 #elif defined(__QNX__)
 	return "MSBB10Display";
@@ -1475,7 +1478,7 @@ void video_stream_set_native_window_id(VideoStream *stream, void *id){
 
 void video_stream_set_native_preview_window_id(VideoStream *stream, void *id){
 	stream->preview_window_id=id;
-#ifndef __ios
+#if TARGET_OS_IPHONE
 	if (stream->output2){
 		ms_filter_call_method(stream->output2,MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID,&id);
 	}

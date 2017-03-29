@@ -103,7 +103,7 @@ const char* aq_format_error(OSStatus status) {
 			return "unkown error code";
 	}
 }
-#ifdef __ios
+#if TARGET_OS_IPHONE
 #define CFStringRef void *
 #define CFRelease(A) {}
 #define CFStringGetCString(A, B, LEN, encoding)  {}
@@ -282,7 +282,7 @@ static void show_format(char *name,
 
 static void aqcard_detect(MSSndCardManager * m)
 {
-#ifdef __ios
+#if TARGET_OS_IPHONE
 	AudioStreamBasicDescription deviceFormat;
 	memset(&deviceFormat, 0, sizeof(AudioStreamBasicDescription));
 	

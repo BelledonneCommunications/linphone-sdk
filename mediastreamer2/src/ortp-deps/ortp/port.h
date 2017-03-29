@@ -49,7 +49,9 @@
 #include <arpa/inet.h>
 #endif
 
-
+#if __APPLE__
+#include "TargetConditionals.h"
+#endif
 
 #include <sys/time.h>
 
@@ -332,7 +334,7 @@ ORTP_PUBLIC void ortp_shm_close(void *memory);
 /*define __ios when we are compiling for ios.
  The TARGET_OS_IPHONE macro is stupid, it is defined to 0 when compiling on mac os x.
 */
-#if defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE==1
+#if TARGET_OS_IPHONE
 #define __ios 1
 #endif
 
