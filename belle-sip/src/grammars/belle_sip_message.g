@@ -1815,10 +1815,10 @@ fast_host returns [const char* ret]
 scope { const char* current; }
 @init {$fast_host::current=$ret=NULL;}
             :  (fast_hostname 	{$fast_host::current=(const char *)$fast_hostname.text->chars;}
-                    | ipv4address 	{$fast_host::current=(const char *)$ipv4address.text->chars;}
+                    /*| ipv4address 	{$fast_host::current=(const char *)$ipv4address.text->chars;} because cannot discriminate quickly betwenn 192.168.0.1 and 192.168.0.com*/
                     | ipv6reference  {$fast_host::current=(const char *)$ipv6reference.ret;})  {$ret=$fast_host::current;}; 
  	
-fast_hostname:  alpha ( alphanum | DASH | DOT )*;
+fast_hostname:  alphanum ( alphanum | DASH | DOT )*;
 
 //*************************common tokens*******************************/
 

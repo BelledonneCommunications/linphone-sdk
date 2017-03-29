@@ -39,7 +39,7 @@ static void testSIMPLEURI(void) {
 
 static void testCOMPLEXURI(void) {
 	belle_sip_uri_t* L_tmp;
-	belle_sip_uri_t *  L_uri = belle_sip_uri_parse("sip:toto@titi.com:5060;transport=tcp");
+	belle_sip_uri_t *  L_uri = belle_sip_uri_parse("sip:toto@1titi.com:5060;transport=tcp");
 	char* l_raw_uri = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_uri));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
 	L_tmp = belle_sip_uri_parse(l_raw_uri);
@@ -48,7 +48,7 @@ static void testCOMPLEXURI(void) {
 	belle_sip_free(l_raw_uri);
 	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_user(L_uri), "toto");
 	BC_ASSERT_EQUAL(belle_sip_uri_get_port(L_uri), 5060, int, "%d");
-	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "titi.com");
+	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "1titi.com");
 	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_transport_param(L_uri), "tcp");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
 }
