@@ -18,7 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Android cameras detection, using SDK >= 21.
+ * Android cameras detection, using SDK superior or egal to 21.
  */
 public class AndroidCameraConfigurationReader21 {
 	@TargetApi(Build.VERSION_CODES.LOLLIPOP)
