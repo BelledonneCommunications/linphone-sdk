@@ -63,9 +63,8 @@ int bctoolbox_tester_set_log_file(const char *filename) {
 		bctbx_error("Cannot open file [%s] for writing logs because [%s]", filename, strerror(errno));
 		return -1;
 	}
-	bctbx_message("Redirecting traces to file [%s]", filename);BctoolboxLogHandler* filehandler = (BctoolboxLogHandler*)malloc(sizeof(BctoolboxLogHandler));
-	filehandler->func = bctbx_logv_file;
-	filehandler->user_info = log_file;
+	bctbx_message("Redirecting traces to file [%s]", filename);
+	BctoolboxLogHandler* filehandler = bctbx_create_file_log_handler(0, dirname(filename), basename(filename), log_file);
 	bctbx_add_log_handler(filehandler);
 	return 0;
 }
