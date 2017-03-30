@@ -24,6 +24,7 @@
 #include <belle-sip/belle-sip.h>
 
 #include "port.h"
+#include <libgen.h>
 
 extern const char *test_domain;
 extern const char *auth_domain;
@@ -167,9 +168,8 @@ int belle_sip_tester_set_log_file(const char *filename) {
 		return -1;
 	}
 	belle_sip_message("Redirecting traces to file [%s]", filename);
-	filehandler = (BctoolboxLogHandler*)malloc(sizeof(BctoolboxLogHandler));
-	filehandler->func = bctbx_logv_file;
-	filehandler->user_info = log_file;
+	BctoolboxLogHandler* filehandler = bctbx_create_file_log_handler(0, dirname(filename), basename(filename), log_file);
+	bctbx_add_log_handler(filehandler);
 	bctbx_add_log_handler(filehandler);
 	return 0;
 }
