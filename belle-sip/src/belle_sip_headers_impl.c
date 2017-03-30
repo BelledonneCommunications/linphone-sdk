@@ -2083,7 +2083,7 @@ BELLESIP_EXPORT const char*	belle_sip_header_reason_get_text(const belle_sip_hea
 	return reason->unquoted_text;
 }
 
-GET_SET_STRING_PARAM(belle_sip_header_reason,protocol);
+GET_SET_STRING(belle_sip_header_reason,protocol);
 
 GET_SET_INT_PARAM(belle_sip_header_reason,cause,int);
 BELLE_SIP_PARSE(header_reason)
