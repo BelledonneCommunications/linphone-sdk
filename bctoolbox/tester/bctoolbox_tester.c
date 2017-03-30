@@ -81,8 +81,8 @@ int main (int argc, char *argv[]) {
 	int i;
 	int ret;
 
+	bctbx_init_logger();
 	bctoolbox_tester_init(NULL);
-
 
 	for(i=1;i<argc;++i){
 		if (strcmp(argv[i],"--verbose")==0){
@@ -106,6 +106,7 @@ int main (int argc, char *argv[]) {
 	}
 	ret = bc_tester_start(argv[0]);
 	bctoolbox_tester_uninit();
+	bctbx_uninit_logger();
 	return ret;
 }
 
