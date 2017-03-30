@@ -73,8 +73,8 @@ int bctoolbox_tester_set_log_file(const char *filename) {
 	bctbx_message("Redirecting traces to file [%s]", filename);
 	filehandler = bctbx_create_file_log_handler(0, dirname(dir), basename(base), log_file);
 	bctbx_add_log_handler(filehandler);
-	bctbx_unref(dir);
-	bctbx_unref(name);
+	bctbx_free(dir);
+	bctbx_free(name);
 	return 0;
 }
 
