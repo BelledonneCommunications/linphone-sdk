@@ -58,8 +58,8 @@ void bctoolbox_tester_before_each() {
 
 int bctoolbox_tester_set_log_file(const char *filename) {
 	BctoolboxLogHandler* filehandler;
-	char dirbuffer[512];
-	char basebuffer[512];
+	char* dir;
+	char* base;
 	if (log_file) {
 		fclose(log_file);
 	}
@@ -68,9 +68,13 @@ int bctoolbox_tester_set_log_file(const char *filename) {
 		bctbx_error("Cannot open file [%s] for writing logs because [%s]", filename, strerror(errno));
 		return -1;
 	}
+	dir = bctbx_strdup(filename);
+	base = bctbx_strdup(filename);
 	bctbx_message("Redirecting traces to file [%s]", filename);
-	filehandler = bctbx_create_file_log_handler(0, dirname_r(filename, dirbuffer), basename_r(filename, basebuffer), log_file);
+	filehandler = bctbx_create_file_log_handler(0, dirname(dir), basename(base), log_file);
 	bctbx_add_log_handler(filehandler);
+	bctbx_unref(dir);
+	bctbx_unref(name);
 	return 0;
 }
 
