@@ -70,8 +70,10 @@ static void transaction_background_task_ended(belle_sip_transaction_t *obj){
 
 static void transaction_begin_background_task(belle_sip_transaction_t *obj){
 	if (obj->bg_task_id==0){
-		obj->bg_task_id=belle_sip_begin_background_task("belle-sip transaction",(void (*)(void*))transaction_background_task_ended, obj);
-		if (obj->bg_task_id) belle_sip_message("transaction [%p]: starting transaction background task with id=[%lx].",obj,obj->bg_task_id);
+		char *transaction = bctbx_strdup_printf("belle-sip transaction(%p)", obj);
+        obj->bg_task_id=belle_sip_begin_background_task(transaction,(void (*)(void*))transaction_background_task_ended, obj);
+        if (obj->bg_task_id) belle_sip_message("transaction [%p]: starting transaction background task with id=[%lx].",obj,obj->bg_task_id);
+        bctbx_free(transaction);
 	}
 }
 
@@ -171,7 +173,7 @@ static void on_channel_state_changed(belle_sip_channel_listener_t *l, belle_sip_
 				t->channel = NULL;
 			}
 			belle_sip_object_unref(t);
-			
+
 		break;
 		default:
 			/*ignored*/
@@ -489,13 +491,13 @@ int belle_sip_client_transaction_send_request_to(belle_sip_client_transaction_t 
 	}
 
 	if (t->base.sent_by_dialog_queue){
-		
+
 		/*it can be sent immediately, so update the request with latest cseq and route_set */
 		/*update route and contact just in case they changed*/
 		belle_sip_dialog_update_request(dialog,req);
 	} else if (t->base.request->dialog_queued){
 		/*this request was created by belle_sip_dialog_create_queued_request().*/
-		
+
 		if (dialog == NULL){
 			belle_sip_error("belle_sip_client_transaction_send_request(): transaction [%p], cannot send"
 				" request because it was created in the context of a dialog that appears to be "
@@ -503,7 +505,7 @@ int belle_sip_client_transaction_send_request_to(belle_sip_client_transaction_t 
 			belle_sip_transaction_terminate(BELLE_SIP_TRANSACTION(t));
 			return -1;
 		}
-		
+
 		if (belle_sip_dialog_request_pending(dialog) || dialog->queued_ct!=NULL){
 			/*it cannot be sent immediately, queue the transaction into dialog*/
 			belle_sip_message("belle_sip_client_transaction_send_request(): transaction [%p], cannot send request now because dialog [%p] is busy"
@@ -694,8 +696,8 @@ belle_sip_request_t* belle_sip_client_transaction_create_authenticated_request(b
  contains a "Subscription-State" of "active" or "pending", it creates
  a new subscription and a new dialog (unless they have already been
  created by a matching response, as described above).
- 
- 
+
+
  */
 
 int belle_sip_client_transaction_is_notify_matching_pending_subscribe(belle_sip_client_transaction_t *trans
@@ -704,32 +706,32 @@ int belle_sip_client_transaction_is_notify_matching_pending_subscribe(belle_sip_
 	belle_sip_header_event_t *sub_event, *notif_event;
 	belle_sip_header_call_id_t *sub_call_id, *notif_call_id;
 	const char* sub_from_tag, *notif_to_tag;
-	
+
 	if (!belle_sip_transaction_state_is_transient(belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(trans)))
 		|| strcmp("SUBSCRIBE", belle_sip_transaction_get_method(BELLE_SIP_TRANSACTION(trans)))!=0) return 0;
-	
-	
+
+
 	if (strcmp("NOTIFY",belle_sip_request_get_method(notify)) != 0) {
 		belle_sip_error("belle_sip_client_transaction_is_notify_matching_pending_subscribe for dialog [%p], requires a notify request",notify);
 	}
-	
+
 	subscription = belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(trans));
 	sub_event = belle_sip_message_get_header_by_type(subscription, belle_sip_header_event_t);
 	if (!sub_event || !belle_sip_header_event_get_package_name(sub_event))
 		return 0;
-	
+
 	notif_event = belle_sip_message_get_header_by_type(notify, belle_sip_header_event_t);
 	if (!notif_event || !belle_sip_header_event_get_package_name(notif_event))
 		return 0;
-	
+
 	sub_call_id = belle_sip_message_get_header_by_type(subscription, belle_sip_header_call_id_t);
 	notif_call_id = belle_sip_message_get_header_by_type(notify, belle_sip_header_call_id_t);
 	sub_from_tag = belle_sip_header_from_get_tag(belle_sip_message_get_header_by_type(subscription, belle_sip_header_from_t));
 	notif_to_tag = belle_sip_header_to_get_tag(belle_sip_message_get_header_by_type(notify, belle_sip_header_to_t));
-	
+
 	return strcmp(belle_sip_header_call_id_get_call_id(sub_call_id),belle_sip_header_call_id_get_call_id(notif_call_id))==0
 	&& sub_from_tag && notif_to_tag && strcmp(sub_from_tag,notif_to_tag)==0
 	&& strcasecmp(belle_sip_header_event_get_package_name(sub_event),belle_sip_header_event_get_package_name(notif_event))==0;
-	
+
 }
 
