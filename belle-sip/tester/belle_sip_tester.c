@@ -159,6 +159,8 @@ void belle_sip_tester_after_each(void) {
 
 int belle_sip_tester_set_log_file(const char *filename) {
 	BctoolboxLogHandler* filehandler;
+	char dirbuffer[512];
+	char basebuffer[512];
 	if (log_file) {
 		fclose(log_file);
 	}
@@ -168,7 +170,7 @@ int belle_sip_tester_set_log_file(const char *filename) {
 		return -1;
 	}
 	belle_sip_message("Redirecting traces to file [%s]", filename);
-	BctoolboxLogHandler* filehandler = bctbx_create_file_log_handler(0, dirname(filename), basename(filename), log_file);
+	filehandler = bctbx_create_file_log_handler(0, dirname_r(filename, dirbuffer), basename_r(filename, basebuffer), log_file);
 	bctbx_add_log_handler(filehandler);
 	bctbx_add_log_handler(filehandler);
 	return 0;
