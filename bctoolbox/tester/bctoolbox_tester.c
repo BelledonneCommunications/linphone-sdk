@@ -74,7 +74,7 @@ int bctoolbox_tester_set_log_file(const char *filename) {
 	filehandler = bctbx_create_file_log_handler(0, dirname(dir), basename(base), log_file);
 	bctbx_add_log_handler(filehandler);
 	bctbx_free(dir);
-	bctbx_free(name);
+	bctbx_free(base);
 	return 0;
 }
 
