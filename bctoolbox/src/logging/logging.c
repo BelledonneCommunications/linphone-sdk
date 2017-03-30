@@ -49,6 +49,20 @@ typedef struct _BctoolboxLogger{
 	bctbx_mutex_t domains_mutex;
 }BctoolboxLogger;
 
+struct _BctoolboxLogHandler{
+	BctoolboxLogHandlerFunc func;
+	BctoolboxLogHandlerDestroyFunc destroy;
+	void* user_info;
+};
+
+typedef struct _BctoolboxFileLogHandler{
+	char* path;
+	char* name;
+	uint64_t max_size;
+	uint64_t size;
+	FILE* file;
+}BctoolboxFileLogHandler;
+
 static BctoolboxLogger __bctbx_logger = { NULL, BCTBX_LOG_WARNING|BCTBX_LOG_ERROR|BCTBX_LOG_FATAL, 0};
 
 static unsigned int bctbx_init_logger_refcount = 0;
@@ -57,18 +71,51 @@ void bctbx_init_logger(void){
 	if (bctbx_init_logger_refcount++ > 0) return; /*already initialized*/
 	
 	bctbx_mutex_init(&__bctbx_logger.domains_mutex, NULL);
-	handler = (BctoolboxLogHandler*)malloc(sizeof(BctoolboxLogHandler));;
-	handler->func=(BctoolboxLogHandlerFunc)bctbx_logv_out;
-	handler->user_info=NULL;
+	handler = bctbx_create_log_handler(bctbx_logv_out, bctbx_logv_out_destroy, NULL);
 	bctbx_add_log_handler(handler);
+}
+
+void bctbx_log_handlers_free(void) {
+	bctbx_list_t *loggers = bctbx_list_first_elem(__bctbx_logger.logv_outs);
+	while (loggers) {
+		BctoolboxLogHandler* handler = (BctoolboxLogHandler*)loggers->data;
+		handler->destroy(handler);
+		loggers = loggers->next;
+	}
 }
 
 void bctbx_uninit_logger(void){
 	if (--bctbx_init_logger_refcount <= 0) {
+		bctbx_logv_flush();
 		bctbx_mutex_destroy(&__bctbx_logger.domains_mutex);
+		bctbx_log_handlers_free();
 		bctbx_list_free(__bctbx_logger.logv_outs);
 		__bctbx_logger.log_domains = bctbx_list_free_with_data(__bctbx_logger.log_domains, (void (*)(void*))bctbx_log_domain_destroy);
 	}
+}
+
+BctoolboxLogHandler* bctbx_create_log_handler(BctoolboxLogHandlerFunc func, BctoolboxLogHandlerDestroyFunc destroy, void* user_info) {
+	BctoolboxLogHandler* handler = (BctoolboxLogHandler*)bctbx_malloc(sizeof(BctoolboxLogHandler));
+	handler->func = func;
+	handler->destroy = destroy;
+	handler->user_info = user_info;
+	return handler;
+}
+
+BctoolboxLogHandler* bctbx_create_file_log_handler(uint64_t max_size, const char* path, const char* name, FILE* f) {
+	BctoolboxLogHandler* handler = (BctoolboxLogHandler*)bctbx_malloc(sizeof(BctoolboxLogHandler));
+	BctoolboxFileLogHandler* filehandler = (BctoolboxFileLogHandler*)bctbx_malloc(sizeof(BctoolboxFileLogHandler));
+	handler->func=bctbx_logv_file;
+	handler->destroy=bctbx_logv_file_destroy;
+	filehandler->max_size = max_size;
+	// init with actual file size
+	fseek(f, 0L, SEEK_END);
+	filehandler->size = ftell(f);
+	filehandler->path = bctbx_strdup(path);
+	filehandler->name = bctbx_strdup(name);
+	filehandler->file = f;
+	handler->user_info=(void*) filehandler;
+	return handler;
 }
 
 /**
@@ -89,6 +136,7 @@ static void wrapper(void* info,const char *domain, BctbxLogLevel lev, const char
 void bctbx_set_log_handler(BctoolboxLogFunc func){
 	static BctoolboxLogHandler handler;
 	handler.func=wrapper;
+	handler.destroy=(BctoolboxLogHandlerDestroyFunc)bctbx_logv_out_destroy;
 	handler.user_info=(void*)func;
 	bctbx_add_log_handler(&handler);
 }
@@ -97,7 +145,7 @@ void bctbx_set_log_file(FILE* f){
 	static BctoolboxFileLogHandler filehandler;
 	static BctoolboxLogHandler handler;
 	handler.func=bctbx_logv_file;
-	filehandler.handler = handler;
+	handler.destroy=(BctoolboxLogHandlerDestroyFunc)bctbx_logv_file_destroy;
 	filehandler.max_size = -1;
 	filehandler.file = f;
 	handler.user_info=(void*) &filehandler;
@@ -417,6 +465,10 @@ void bctbx_logv_out(void* user_info, const char *domain, BctbxLogLevel lev, cons
 	bctbx_free(msg);
 }
 
+void bctbx_logv_out_destroy(BctoolboxLogHandler* handler) {
+	handler->user_info=NULL;
+}
+
 static int _try_open_log_collection_file(BctoolboxFileLogHandler* filehandler) {
 	struct stat statbuf;
 	char *log_filename;
@@ -429,7 +481,7 @@ static int _try_open_log_collection_file(BctoolboxFileLogHandler* filehandler) {
 	if (filehandler->file == NULL) return -1;
 
 	fstat(fileno(filehandler->file), &statbuf);
-	if ((size_t)statbuf.st_size > filehandler->max_size) {
+	if ((uint64_t)statbuf.st_size > filehandler->max_size) {
 		fclose(filehandler->file);
 		return -1;
 	}
@@ -443,24 +495,24 @@ static void _rotate_log_collection_files(BctoolboxFileLogHandler* filehandler) {
 	char *log_filename2;
 	int n = 1;
 
-	log_filename = bctbx_strdup_printf("%s/%s1.log",
+	log_filename = bctbx_strdup_printf("%s/%s_1.log",
 		filehandler->path,
 		filehandler->name);
 	while(access(log_filename, F_OK) != -1) {
     // file exists
 		n++;
-		log_filename = bctbx_strdup_printf("%s/%s%d.log",
+		log_filename = bctbx_strdup_printf("%s/%s_%d.log",
 		filehandler->path,
 		filehandler->name,
 		n);
 	}
 
-	while(n > 0) {
-		log_filename = bctbx_strdup_printf("%s/%s%d.log",
+	while(n > 1) {
+		log_filename = bctbx_strdup_printf("%s/%s_%d.log",
 		filehandler->path,
 		filehandler->name,
 		n-1);
-		log_filename2 = bctbx_strdup_printf("%s/%s%d.log",
+		log_filename2 = bctbx_strdup_printf("%s/%s_%d.log",
 		filehandler->path,
 		filehandler->name,
 		n);
@@ -472,7 +524,7 @@ static void _rotate_log_collection_files(BctoolboxFileLogHandler* filehandler) {
 	log_filename = bctbx_strdup_printf("%s/%s.log",
 	filehandler->path,
 	filehandler->name);
-	log_filename2 = bctbx_strdup_printf("%s/%s1.log",
+	log_filename2 = bctbx_strdup_printf("%s/%s_1.log",
 	filehandler->path,
 	filehandler->name);
 	rename(log_filename, log_filename2);
@@ -559,7 +611,7 @@ void bctbx_logv_file(void* user_info, const char *domain, BctbxLogLevel lev, con
 			,1900+lt->tm_year,1+lt->tm_mon,lt->tm_mday,lt->tm_hour,lt->tm_min,lt->tm_sec
 		,(int)(tp.tv_usec/1000), (domain?domain:"bctoolbox"), lname, msg);
 	fflush(f);
-	if (filehandler->max_size != (size_t)-1 && ret > 0) {
+	if (filehandler->max_size > 0 && ret > 0) {
 		filehandler->size += ret;
 		if (filehandler->size > filehandler->max_size) {
 			_close_log_collection_file(filehandler);
@@ -568,6 +620,14 @@ void bctbx_logv_file(void* user_info, const char *domain, BctbxLogLevel lev, con
 	}
 
 	bctbx_free(msg);
+}
+
+void bctbx_logv_file_destroy(BctoolboxLogHandler* handler) {
+	BctoolboxFileLogHandler* filehandler = (BctoolboxFileLogHandler *) handler->user_info;
+	fclose(filehandler->file);
+	bctbx_free(filehandler->path);
+	bctbx_free(filehandler->name);
+	bctbx_logv_out_destroy(handler);
 }
 
 #ifdef __QNX__
