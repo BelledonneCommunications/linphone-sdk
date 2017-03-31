@@ -21,6 +21,8 @@
 #include "belle_sip_tester.h"
 #include "belle_sip_internal.h"
 
+#include <inttypes.h>
+
 #define belle_sip_uri_parse belle_sip_fast_uri_parse
 
 /*test body*/

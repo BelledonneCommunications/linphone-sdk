@@ -24,7 +24,6 @@
 #include <belle-sip/belle-sip.h>
 
 #include "port.h"
-#include <libgen.h>
 
 extern const char *test_domain;
 extern const char *auth_domain;
@@ -158,7 +157,7 @@ void belle_sip_tester_after_each(void) {
 }
 
 int belle_sip_tester_set_log_file(const char *filename) {
-	BctoolboxLogHandler* filehandler;
+	bctbx_log_handler_t *filehandler;
 	char* dir;
 	char* base;
 	if (log_file) {
@@ -169,14 +168,14 @@ int belle_sip_tester_set_log_file(const char *filename) {
 		belle_sip_error("Cannot open file [%s] for writing logs because [%s]", filename, strerror(errno));
 		return -1;
 	}
-	dir = bctbx_strdup(filename);
-	base = bctbx_strdup(filename);
+	dir = bctbx_dirname(filename);
+	base = bctbx_basename(filename);
 	belle_sip_message("Redirecting traces to file [%s]", filename);
-	filehandler = bctbx_create_file_log_handler(0, dirname(dir), basename(base), log_file);
+	filehandler = bctbx_create_file_log_handler(0, dir, base, log_file);
 	bctbx_add_log_handler(filehandler);
 	bctbx_add_log_handler(filehandler);
-	bctbx_free(dir);
-	bctbx_free(base);
+	if (dir) bctbx_free(dir);
+	if (base) bctbx_free(base);
 	return 0;
 }
 
