@@ -374,9 +374,9 @@ void bctbx_logv(const char *domain, BctbxLogLevel level, const char *fmt, va_lis
 		if (__bctbx_logger.log_thread_id == 0) {
 			bctbx_list_t *loggers = bctbx_list_first_elem(__bctbx_logger.logv_outs);
 			while (loggers) {
+				BctoolboxLogHandler* handler = (BctoolboxLogHandler*)loggers->data;
 				va_list tmp;
 				va_copy(tmp, args);
-				BctoolboxLogHandler* handler = (BctoolboxLogHandler*)loggers->data;
 				handler->func(handler->user_info, domain, level, fmt, tmp);
 				va_end(tmp);
 				loggers = loggers->next;
