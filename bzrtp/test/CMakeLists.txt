@@ -24,6 +24,7 @@ set(TEST_SOURCES
 	bzrtpCryptoTest.c
 	bzrtpParserTest.c
 	bzrtpConfigsTest.c
+	bzrtpZidCacheTest.c
 	bzrtpTest.c
 	testUtils.c
 )
@@ -43,8 +44,8 @@ target_link_libraries(bzrtpTest ${BCTOOLBOX_LIBRARIES})
 if(HAVE_SQRT)
 	target_link_libraries(bzrtpTest m)
 endif()
-if(XML2_FOUND)
-	target_link_libraries(bzrtpTest ${XML2_LIBRARIES})
+if(SQLITE3_FOUND)
+	target_link_libraries(bzrtpTest ${SQLITE3_LIBRARIES})
 endif()
 
 unset(PATTERN_FILES_IN_TEST_DIR CACHE)

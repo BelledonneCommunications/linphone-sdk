@@ -27,6 +27,7 @@ project(bzrtp VERSION 1.0.5 LANGUAGES C CXX)
 
 option(ENABLE_SHARED "Build shared library." YES)
 option(ENABLE_STATIC "Build static library." YES)
+option(ENABLE_ZIDCACHE "Turn on compilation of ZID cache, request sqlite" YES)
 option(ENABLE_STRICT "Build with strict compile options." YES)
 option(ENABLE_TESTS "Enable compilation of unit tests." NO)
 
@@ -54,10 +55,8 @@ else()
 	find_package(BcToolbox 0.0.3 REQUIRED OPTIONAL_COMPONENTS tester)
 endif()
 
-find_package(XML2)
-
-if(XML2_FOUND)
-	set(HAVE_LIBXML2 1)
+if(ENABLE_ZIDCACHE)
+	find_package(Sqlite3 REQUIRED)
 endif()
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
@@ -95,10 +94,14 @@ include_directories(
 
 set(LIBS ${BCTOOLBOX_CORE_LIBRARIES})
 
-if(XML2_FOUND)
-	include_directories(${XML2_INCLUDE_DIRS})
-	list(APPEND LIBS ${XML2_LIBRARIES})
+if(SQLITE3_FOUND)
+	include_directories(${SQLITE3_INCLUDE_DIRS})
+	list(APPEND LIBS ${SQLITE3_LIBRARIES})
+	if(ENABLE_ZIDCACHE)
+		add_definitions("-DZIDCACHE_ENABLED")
+	endif()
 endif()
+
 if(MSVC)
 	include_directories(${MSVC_INCLUDE_DIR})
 endif()

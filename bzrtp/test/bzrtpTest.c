@@ -24,15 +24,11 @@
 #include "bzrtpCryptoTest.h"
 #include "bzrtpParserTest.h"
 #include "bzrtpConfigsTest.h"
+#include "bzrtpZidCacheTest.h"
 #include "typedef.h"
 #include "testUtils.h"
 #include <bctoolbox/logging.h>
 #include <bctoolbox/tester.h>
-
-#ifdef HAVE_LIBXML2
-#include <libxml/parser.h>
-#endif
-
 
 test_t crypto_utils_tests[] = {
 	TEST_NO_TAG("zrtpKDF", test_zrtpKDF),
@@ -70,8 +66,25 @@ test_suite_t packet_parser_test_suite = {
 	packet_parser_tests
 };
 
+test_t zidcache_tests[] = {
+	TEST_NO_TAG("SelfZID", test_cache_getSelfZID),
+	TEST_NO_TAG("ZRTP secrets", test_cache_zrtpSecrets),
+};
+
+test_suite_t zidcache_test_suite = {
+	"ZID Cache",
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	sizeof(zidcache_tests) / sizeof(zidcache_tests[0]),
+	zidcache_tests
+};
+
 test_t key_exchange_tests[] = {
 	TEST_NO_TAG("Cacheless multi channel", test_cacheless_exchange),
+	TEST_NO_TAG("Cached Simple", test_cache_enabled_exchange),
+	TEST_NO_TAG("Cached mismatch", test_cache_mismatch_exchange),
 	TEST_NO_TAG("Loosy network", test_loosy_network)
 };
 
@@ -86,22 +99,16 @@ test_suite_t key_exchange_test_suite = {
 };
 
 void bzrtp_tester_init(void) {
-#ifdef HAVE_LIBXML2
-	xmlInitParser();
-#endif
 	bc_tester_init(NULL, BCTBX_LOG_MESSAGE, BCTBX_LOG_ERROR, NULL);
 
 	bc_tester_add_suite(&crypto_utils_test_suite);
 	bc_tester_add_suite(&packet_parser_test_suite);
 	bc_tester_add_suite(&key_exchange_test_suite);
+	bc_tester_add_suite(&zidcache_test_suite);
 }
 
 void bzrtp_tester_uninit(void) {
 	bc_tester_uninit();
-#ifdef HAVE_LIBXML2
-	/* cleanup libxml2 */
-	xmlCleanupParser();
-#endif
 }
 
 int main(int argc, char *argv[]) {

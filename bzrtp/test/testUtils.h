@@ -35,3 +35,6 @@ const char *bzrtp_keyAgreement_toString(uint8_t keyAgreementAlgo);
 const char *bzrtp_cipher_toString(uint8_t cipherAlgo);
 const char *bzrtp_authtag_toString(uint8_t authtagAlgo);
 const char *bzrtp_sas_toString(uint8_t sasAlgo);
+#ifdef ZIDCACHE_ENABLED
+int bzrtptester_sqlite3_open(const char *db_file, sqlite3 **db);
+#endif /* ZIDCACHE_ENABLED */

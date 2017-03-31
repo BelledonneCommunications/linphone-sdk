@@ -40,17 +40,20 @@
 
 #include <stdint.h>
 
-/* some include needed for the cache */
-#ifdef HAVE_LIBXML2
-#include <libxml/tree.h>
-#include <libxml/parser.h>
-#endif
+
+#ifdef ZIDCACHE_ENABLED
+#include "sqlite3.h"
+#endif /* ZIDCACHE_ENABLED */
 
 typedef struct bzrtpChannelContext_struct bzrtpChannelContext_t;
 
 #include <bctoolbox/crypto.h>
 #include "packetParser.h"
 #include "stateMachine.h"
+
+/* logging */
+#define BCTBX_LOG_DOMAIN "bzrtp"
+#include "bctoolbox/logging.h"
 
 #ifdef _WIN32
 #define snprintf _snprintf
@@ -185,9 +188,8 @@ struct bzrtpChannelContext_struct {
 /**
  * @brief structure of the ZRTP engine context
  * Store current state, timers, HMAC and encryption keys
-*/
+ */
 struct bzrtpContext_struct {
-	void *ZIDCacheData; /**<  this is a pointer provided by the client which is then resent as a parameter of the ZID cache related callbacks functions. */
 	/* contexts */
 	bctbx_rng_context_t *RNGContext; /**< context for random number generation */
 	bctbx_DHMContext_t *DHMContext; /**< context for the Diffie-Hellman-Merkle operations. Only one DHM computation may be done during a call, so this belongs to the general context and not the channel one */
@@ -218,11 +220,17 @@ struct bzrtpContext_struct {
 	uint8_t supportedSas[7]; /**< list of supported Sas representations mapped to uint8_t */
 
 	/* ZIDs and cache */
-#ifdef HAVE_LIBXML2
-	xmlDocPtr cacheBuffer; /**< cache file is load in this buffer to be parsed/written */
-#endif
+#ifdef ZIDCACHE_ENABLED
+	sqlite3 *zidCache; /**< an sqlite3 db pointer to the zid cache **/
+#else
+	void *zidCache; /**< an empty pointer always set to NULL when cache is disabled **/
+#endif /* ZIDCACHE_ENABLED */
+	int zuid; /**< internal id used to address zid cache SIP/ZID pair binding **/
+	char *selfURI; /**< a null terminated string storing the local user URI **/
 	uint8_t selfZID[12]; /**< The ZRTP Identifier of this ZRTP end point - a random if running cache less */
+	char *peerURI; /**< a null terminated string storing the peer user URI **/
 	uint8_t peerZID[12]; /**< The ZRTP Identifier of the peer ZRTP end point - given by the Hello packet */
+	uint32_t peerBzrtpVersion; /**< The Bzrtp library version used by peer, retrieved from the peer Hello packet Client identifier and used for backward compatibility in exported key computation */
 	cachedSecrets_t cachedSecret; /**< the local cached secrets */
 	cachedSecretsHash_t initiatorCachedSecretHash; /**< The hash of cached secret from initiator side, computed as described in rfc section 4.3.1 */
 	cachedSecretsHash_t responderCachedSecretHash; /**< The hash of cached secret from responder side, computed as described in rfc section 4.3.1 */
@@ -231,6 +239,8 @@ struct bzrtpContext_struct {
 	/* keys */
 	uint8_t *ZRTPSess; /**< ZRTP session key as described in rfc section 4.5.2 */
 	uint8_t	ZRTPSessLength; /**< length of ZRTP session key depends on agreed hash algorithm */
+	uint8_t *exportedKey; /**< computed as in rfc section 4.5.2 only if needed */
+	uint8_t exportedKeyLength; /**< length of previous buffer, shall be channel[0]->hashLength */
 
 };
 

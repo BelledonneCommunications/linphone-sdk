@@ -508,9 +508,7 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
 						free(zrtpContext->cachedSecret.rs1);
 						zrtpContext->cachedSecret.rs1= NULL;
 						zrtpContext->cachedSecret.rs1Length = 0;
-						zrtpContext->cacheMismatchFlag = 1;
-						/*bzrtp_freeZrtpPacket(zrtpPacket);
-						return BZRTP_ERROR_CACHEMISMATCH;*/
+						zrtpContext->cacheMismatchFlag = 1; /* Do not trigger cache mismatch message for now as it may match rs2 */
 					}
 				}
 			}
@@ -524,8 +522,6 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
 						free(zrtpContext->cachedSecret.rs2);
 						zrtpContext->cachedSecret.rs2= NULL;
 						zrtpContext->cachedSecret.rs2Length = 0;
-						/*bzrtp_freeZrtpPacket(zrtpPacket);
-						return BZRTP_ERROR_CACHEMISMATCH;*/
 					} else { /* it matches rs2, reset the cache mismatch flag */
 						zrtpContext->cacheMismatchFlag = 0;
 					}
@@ -539,8 +535,6 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
 					free(zrtpContext->cachedSecret.auxsecret);
 					zrtpContext->cachedSecret.auxsecret= NULL;
 					zrtpContext->cachedSecret.auxsecretLength = 0;
-					/*bzrtp_freeZrtpPacket(zrtpPacket);
-					return BZRTP_ERROR_CACHEMISMATCH;*/
 				}
 			}
 			if (zrtpContext->cachedSecret.pbxsecret!=NULL) {
@@ -548,17 +542,23 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
 					free(zrtpContext->cachedSecret.pbxsecret);
 					zrtpContext->cachedSecret.pbxsecret= NULL;
 					zrtpContext->cachedSecret.pbxsecretLength = 0;
-					/*bzrtp_freeZrtpPacket(zrtpPacket);
-					return BZRTP_ERROR_CACHEMISMATCH;*/
 				}
 			}
 
 			/* in case of cache mismatch, be sure the Previously Verified Sas flag is reset in cache and in the context */
 			if (zrtpContext->cacheMismatchFlag == 1) {
 				uint8_t pvsFlag = 0;
-				zrtpContext->cachedSecret.previouslyVerifiedSas = 0;
-				bzrtp_writePeerNode(zrtpContext, zrtpContext->peerZID, (uint8_t *)"pvs", 3, &pvsFlag, 1, BZRTP_CACHE_TAGISBYTE|BZRTP_CACHE_NOMULTIPLETAGS, BZRTP_CACHE_LOADFILE|BZRTP_CACHE_WRITEFILE);
+				char *colNames[] = {"pvs"};
+				uint8_t *colValues[] = {&pvsFlag};
+				size_t colLength[] = {1};
 
+				zrtpContext->cachedSecret.previouslyVerifiedSas = 0;
+				bzrtp_cache_write(zrtpContext->zidCache, zrtpContext->zuid, "zrtp", colNames, colValues, colLength, 1);
+
+				/* if we have a statusMessage callback, use it to warn user */
+				if (zrtpContext->zrtpCallbacks.bzrtp_statusMessage!=NULL && zrtpContext->zrtpCallbacks.bzrtp_messageLevel>=BZRTP_MESSAGE_ERROR) { /* use error level as this one MUST (RFC section 4.3.2) be warned */
+					zrtpContext->zrtpCallbacks.bzrtp_statusMessage(zrtpChannelContext->clientData, BZRTP_MESSAGE_ERROR, BZRTP_MESSAGE_CACHEMISMATCH);
+				}
 			}
 
 			/* Check that the received PV is not 1 or Prime-1 TODO*/
@@ -618,7 +618,7 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
 			/* we are by default initiator, so just check the statement which turns us into responder */
 			if (peerCommitMessage->keyAgreementAlgo != selfCommitMessage->keyAgreementAlgo ) { /* commits have differents modes */
 				if ((peerCommitMessage->keyAgreementAlgo != ZRTP_KEYAGREEMENT_Prsh) && (selfCommitMessage->keyAgreementAlgo == ZRTP_KEYAGREEMENT_Prsh)) {
-					zrtpChannelContext->role = RESPONDER;
+					zrtpChannelContext->role = BZRTP_ROLE_RESPONDER;
 				}
 			} else { /* commit have the same mode */ 
 				bzrtpHelloMessage_t *peerHelloMessage = (bzrtpHelloMessage_t *)zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->messageData;
@@ -626,24 +626,24 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
 
 				if (peerCommitMessage->keyAgreementAlgo ==  ZRTP_KEYAGREEMENT_Prsh && ((selfHelloMessage->M == 1) || (peerHelloMessage->M == 1)) ) {
 					if (selfHelloMessage->M == 1) { /* we are a PBX -> act as responder */
-						zrtpChannelContext->role = RESPONDER;
+						zrtpChannelContext->role = BZRTP_ROLE_RESPONDER;
 					}
 				} else { /* modes are the same and no one has the MiTM flag set : compare hvi/nonce */
 					if ((selfCommitMessage->keyAgreementAlgo == ZRTP_KEYAGREEMENT_Prsh) || (selfCommitMessage->keyAgreementAlgo == ZRTP_KEYAGREEMENT_Mult)) { /* non DHM mode, compare the nonce, lower will be responder */
 						if (memcmp(selfCommitMessage->nonce, peerCommitMessage->nonce, 16) < 0) { /* self nonce < peer nonce */
-							zrtpChannelContext->role = RESPONDER;
+							zrtpChannelContext->role = BZRTP_ROLE_RESPONDER;
 						}
 	
 					} else { /* DHM mode, compare the hvi */
 						if (memcmp(selfCommitMessage->hvi, peerCommitMessage->hvi, 32) < 0) { /* self hvi < peer hvi */
-							zrtpChannelContext->role = RESPONDER;
+							zrtpChannelContext->role = BZRTP_ROLE_RESPONDER;
 						}
 					}
 				}
 			}
 			
 			/* so now check if we are responder - if we are initiator just do nothing, continue sending the commits and ignore the one we just receive */
-			if (zrtpChannelContext->role == RESPONDER) {
+			if (zrtpChannelContext->role == BZRTP_ROLE_RESPONDER) {
 				/* free the self commit packet as it is now useless */
 				bzrtp_freeZrtpPacket(zrtpChannelContext->selfPackets[COMMIT_MESSAGE_STORE_ID]);
 				zrtpChannelContext->selfPackets[COMMIT_MESSAGE_STORE_ID] = NULL;
@@ -776,7 +776,7 @@ int state_keyAgreement_responderSendingDHPart1(bzrtpEvent_t event) {
 
 			/* Check shared secret hash found in the DHPart2 message */
 			/* if we do not have the secret, don't check it as we do not expect the other part to have it neither */
-			/* shared secret matching is: check if initiator rs1(received in DHPart2) match responder(computed from cache) rs1 or rs2 */
+			/* shared secret matching is: check if initiator rs1(received in DHPart2) match localy computed(by responder from cache) rs1 or rs2 */
 			/* of not check if received rs2 match local rs1 or rs2 */
 			/* keep the rs1 or rs2 in cachedSecret only if it matches the received one, it will the be used to compute s0 */
 			/* In case of cache mismatch, warn the user(reset the previously verified Sas flag) and erase secret as it must not be used to compute s0 */
@@ -798,7 +798,7 @@ int state_keyAgreement_responderSendingDHPart1(bzrtpEvent_t event) {
 				}
 			}
 
-			/* if we didn't found a match yet(initiator rs1 isn't match responder rs1 or rs2) */
+			/* if we didn't found a match yet(initiator rs1 doesn't match local rs1 or rs2) */
 			if ((zrtpContext->cachedSecret.rs1!=NULL) && (cacheMatchFlag == 0)) {
 				/* does it match initiator rs2 */
 				if (memcmp(zrtpContext->initiatorCachedSecretHash.rs1ID, dhPart2Message->rs2ID,8) != 0) {
@@ -843,13 +843,21 @@ int state_keyAgreement_responderSendingDHPart1(bzrtpEvent_t event) {
 			/* in case of cache mismatch, be sure the Previously Verified Sas flag is reset in cache and in the context */
 			if (zrtpContext->cacheMismatchFlag == 1) {
 				uint8_t pvsFlag = 0;
-				zrtpContext->cachedSecret.previouslyVerifiedSas = 0;
-				bzrtp_writePeerNode(zrtpContext, zrtpContext->peerZID, (uint8_t *)"pvs", 3, &pvsFlag, 1, BZRTP_CACHE_TAGISBYTE|BZRTP_CACHE_NOMULTIPLETAGS, BZRTP_CACHE_LOADFILE|BZRTP_CACHE_WRITEFILE);
+				char *colNames[] = {"pvs"};
+				uint8_t *colValues[] = {&pvsFlag};
+				size_t colLength[] = {1};
 
+				zrtpContext->cachedSecret.previouslyVerifiedSas = 0;
+				bzrtp_cache_write(zrtpContext->zidCache, zrtpContext->zuid, "zrtp", colNames, colValues, colLength, 1);
+
+				/* if we have a statusMessage callback, use it to warn user */
+				if (zrtpContext->zrtpCallbacks.bzrtp_statusMessage!=NULL && zrtpContext->zrtpCallbacks.bzrtp_messageLevel>=BZRTP_MESSAGE_ERROR) { /* use error level as this one MUST (RFC section 4.3.2) be warned */
+					zrtpContext->zrtpCallbacks.bzrtp_statusMessage(zrtpChannelContext->clientData, BZRTP_MESSAGE_ERROR, BZRTP_MESSAGE_CACHEMISMATCH);
+				}
 			}
 
 
-			/* Check that the received PV is not 1 or Prime-1 TODO*/
+			/* Check that the received PV is not 1 or Prime-1 : is performed by crypto lib */
 
 			/* packet is valid, set the sequence Number in channel context */
 			zrtpChannelContext->peerSequenceNumber = zrtpPacket->sequenceNumber;
@@ -1539,7 +1547,7 @@ int bzrtp_turnIntoResponder(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *
 			memcpy(zrtpChannelContext->peerH[2], commitMessage->H2, 32); /* H2 */
 
 			/* we are receiver, set it in the context and update our selected algos */
-			zrtpChannelContext->role = RESPONDER;
+			zrtpChannelContext->role = BZRTP_ROLE_RESPONDER;
 			zrtpChannelContext->hashAlgo = commitMessage->hashAlgo;
 			zrtpChannelContext->cipherAlgo = commitMessage->cipherAlgo;
 			zrtpChannelContext->authTagAlgo = commitMessage->authTagAlgo;
@@ -1651,6 +1659,16 @@ int bzrtp_responseToHelloMessage(bzrtpContext_t *zrtpContext, bzrtpChannelContex
 	memcpy(zrtpChannelContext->peerH[3], helloMessage->H3, 32); /* H3 */
 	zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID] = zrtpPacket; /* peer hello packet */
 
+	/* Extract from peerHello packet the version of bzrtp used by peer and store it in global context(needed later when exporting keys) */
+	/* Bzrtp version started to be publicised in version 1.1, before that the client identifier was simply BZRTP and earlier version also have LINPHONE-ZRTPCPP */
+	/* So basically just check if the client identifier is BZRTPv1.1 or not. */
+	/* If not, it may be earlier version or an other library, so compute the exported keys old style just in case we need them */
+	if (strncmp(ZRTP_CLIENT_IDENTIFIERv1_1, (char *)helloMessage->clientIdentifier, 16)==0) {
+		zrtpContext->peerBzrtpVersion=10100;
+	} else { /* this is not version 1.1 of bzrtp, set it to 1.0 */
+		zrtpContext->peerBzrtpVersion=10000;
+	}
+
 	/* now select mode according to context */
 	if ((zrtpContext->peerSupportMultiChannel) == 1 && (zrtpContext->ZRTPSess != NULL)) { /* if we support multichannel and already have a ZRTPSess key, switch to multichannel mode */
 		zrtpChannelContext->keyAgreementAlgo = ZRTP_KEYAGREEMENT_Mult;
@@ -1658,7 +1676,7 @@ int bzrtp_responseToHelloMessage(bzrtpContext_t *zrtpContext, bzrtpChannelContex
 	} else { /* we are not in multiStream mode, so we shall compute the hash of shared secrets */
 		/* get from cache, if relevant, the retained secrets associated to the peer ZID */
 		if (zrtpContext->cachedSecret.rs1 == NULL) { /* if we do not have already secret hashes in this session context. Note, they may be updated in cache file but they also will be in the context at the same time, so no need to parse the cache again */
-			bzrtp_getPeerAssociatedSecretsHash(zrtpContext, helloMessage->ZID);
+			bzrtp_getPeerAssociatedSecrets(zrtpContext, helloMessage->ZID);
 		}
 
 		/* now compute the retained secret hashes (secrets may be updated but not their hash) as in rfc section 4.3.1 */
@@ -1766,7 +1784,7 @@ int bzrtp_computeS0DHMMode(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *z
 	 * total_hash = hash(Hello of responder || Commit || DHPart1 || DHPart2)
 	 * total_hash length depends on the agreed hash algo
 	 */
-	if (zrtpChannelContext->role == RESPONDER) {
+	if (zrtpChannelContext->role == BZRTP_ROLE_RESPONDER) {
 		hashDataLength = zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID]->messageLength
 			+ zrtpChannelContext->peerPackets[COMMIT_MESSAGE_STORE_ID]->messageLength
 			+ zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->messageLength
@@ -1939,7 +1957,7 @@ int bzrtp_computeS0MultiStreamMode(bzrtpContext_t *zrtpContext, bzrtpChannelCont
 	int retval;
 
 	/* compute the total hash as in rfc section 4.4.3.2 total_hash = hash(Hello of responder || Commit) */
-	if (zrtpChannelContext->role == RESPONDER) { /* if we are responder */
+	if (zrtpChannelContext->role == BZRTP_ROLE_RESPONDER) { /* if we are responder */
 		hashDataLength = zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID]->messageLength + zrtpChannelContext->peerPackets[COMMIT_MESSAGE_STORE_ID]->messageLength;
 		dataToHash = (uint8_t *)malloc(hashDataLength*sizeof(uint8_t));
 		hashDataIndex = 0;
@@ -2064,7 +2082,7 @@ int bzrtp_deriveSrtpKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelContext_
 	}
 
 	/* Associate responder or initiator to self or peer. Self is used to locally encrypt and peer to decrypt */
-	if (zrtpChannelContext->role == INITIATOR) { /* we use keyi to encrypt and keyr to decrypt */
+	if (zrtpChannelContext->role == BZRTP_ROLE_INITIATOR) { /* we use keyi to encrypt and keyr to decrypt */
 		zrtpChannelContext->srtpSecrets.selfSrtpKey = srtpkeyi;
 		zrtpChannelContext->srtpSecrets.selfSrtpSalt = srtpsalti;
 		zrtpChannelContext->srtpSecrets.peerSrtpKey = srtpkeyr;
@@ -2128,8 +2146,10 @@ int bzrtp_deriveSrtpKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelContext_
  * return 0 on success, error code otherwise
  */
 int bzrtp_updateCachedSecrets(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext) {
+	char *colNames[] = {"rs1", "rs2"};
+	uint8_t *colValues[2] = {NULL, NULL};
+	size_t colLength[2] = {RETAINED_SECRET_LENGTH,0};
 	
-
 	/* if this channel context is in multistream mode, do nothing */
 	if (zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_Mult) {
 		/* destroy s0 */
@@ -2146,22 +2166,31 @@ int bzrtp_updateCachedSecrets(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 
 	/* if this channel context is in DHM mode, backup rs1 in rs2 if it exists */
 	if (zrtpChannelContext->keyAgreementAlgo != ZRTP_KEYAGREEMENT_Prsh) {
-		if (zrtpContext->cachedSecret.rs1 != NULL) {
-			bzrtp_writePeerNode(zrtpContext, zrtpContext->peerZID, (uint8_t *)"rs2", 3, zrtpContext->cachedSecret.rs1, zrtpContext->cachedSecret.rs1Length, BZRTP_CACHE_TAGISBYTE|BZRTP_CACHE_NOMULTIPLETAGS, BZRTP_CACHE_LOADFILE|BZRTP_CACHE_WRITEFILE);
+		if (zrtpContext->cachedSecret.rs1 != NULL) { /* store rs2 pointer and length to be passed to cache_write function (otherwise, keep NULL and the rs2 in cache will be erased) */
+			colValues[1] = zrtpContext->cachedSecret.rs1;
+			colLength[1] = RETAINED_SECRET_LENGTH;
 		}
 	}
 
 	/* compute rs1  = KDF(s0, "retained secret", KDF_Context, 256) */
-	if (zrtpContext->cachedSecret.rs1 == NULL) {
-		zrtpContext->cachedSecret.rs1 = (uint8_t *)malloc(RETAINED_SECRET_LENGTH);
-		zrtpContext->cachedSecret.rs1Length = RETAINED_SECRET_LENGTH;
-	}
+	zrtpContext->cachedSecret.rs1 = (uint8_t *)malloc(RETAINED_SECRET_LENGTH); /* Allocate a new buffer for rs1, the old one if exists if still pointed at by colValues[1] */
+	zrtpContext->cachedSecret.rs1Length = RETAINED_SECRET_LENGTH;
+
 	bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"retained secret", 15, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, RETAINED_SECRET_LENGTH, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))zrtpChannelContext->hmacFunction, zrtpContext->cachedSecret.rs1);
-	bzrtp_writePeerNode(zrtpContext, zrtpContext->peerZID, (uint8_t *)"rs1", 3, zrtpContext->cachedSecret.rs1, zrtpContext->cachedSecret.rs1Length, BZRTP_CACHE_TAGISBYTE|BZRTP_CACHE_NOMULTIPLETAGS, BZRTP_CACHE_LOADFILE|BZRTP_CACHE_WRITEFILE);
+
+	colValues[0]=zrtpContext->cachedSecret.rs1;
+	bzrtp_cache_write(zrtpContext->zidCache, zrtpContext->zuid, "zrtp", colNames, colValues, colLength, 2);
 
 	/* if exist, call the callback function to perform custom cache operation that may use s0(writing exported key into cache) */
 	if (zrtpContext->zrtpCallbacks.bzrtp_contextReadyForExportedKeys != NULL) {
-		zrtpContext->zrtpCallbacks.bzrtp_contextReadyForExportedKeys(zrtpContext->ZIDCacheData, zrtpChannelContext->clientData, zrtpContext->peerZID, zrtpChannelContext->role);
+		zrtpContext->zrtpCallbacks.bzrtp_contextReadyForExportedKeys(zrtpChannelContext->clientData, zrtpContext->zuid, zrtpChannelContext->role);
+
+		/* destroy exportedKey if we computed one */
+		if (zrtpContext->exportedKey!=NULL) {
+			bzrtp_DestroyKey(zrtpContext->exportedKey, zrtpContext->exportedKeyLength, zrtpContext->RNGContext);
+			free(zrtpContext->exportedKey);
+			zrtpContext->exportedKey=NULL;
+		}
 	}
 	/* destroy s0 */
 	bzrtp_DestroyKey(zrtpChannelContext->s0, zrtpChannelContext->hashLength, zrtpContext->RNGContext);
@@ -2169,6 +2198,11 @@ int bzrtp_updateCachedSecrets(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 	zrtpChannelContext->s0 = NULL;
 
 	/* destroy all cached keys in context they are not needed anymore (multistream mode doesn't use them to compute s0) */
+	if (colValues[1] != NULL) { /* destroy the old rs1 whose pointer was saved in colValues[1] before secrets.rs1 being crushed by the new rs1 */
+		bzrtp_DestroyKey(colValues[1], zrtpContext->cachedSecret.rs1Length, zrtpContext->RNGContext);
+		free(colValues[1]);
+		colValues[1]=NULL;
+	}
 	if (zrtpContext->cachedSecret.rs1!=NULL) {
 		bzrtp_DestroyKey(zrtpContext->cachedSecret.rs1, zrtpContext->cachedSecret.rs1Length, zrtpContext->RNGContext);
 		free(zrtpContext->cachedSecret.rs1);

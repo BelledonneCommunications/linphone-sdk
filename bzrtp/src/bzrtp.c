@@ -64,8 +64,6 @@ bzrtpContext_t *bzrtp_createBzrtpContext(void) {
 	context->isInitialised = 0; /* will be set by bzrtp_initBzrtpContext */
 
 	/* set to NULL all callbacks pointer */
-	context->zrtpCallbacks.bzrtp_loadCache = NULL;
-	context->zrtpCallbacks.bzrtp_writeCache = NULL;
 	context->zrtpCallbacks.bzrtp_sendData = NULL;
 	context->zrtpCallbacks.bzrtp_srtpSecretsAvailable = NULL;
 	context->zrtpCallbacks.bzrtp_startSrtpSession = NULL;
@@ -86,9 +84,10 @@ bzrtpContext_t *bzrtp_createBzrtpContext(void) {
 	context->sc = bzrtpUtils_getAvailableCryptoTypes(ZRTP_SAS_TYPE, context->supportedSas);
 
 	/* initialise cached secret buffer to null */
-#ifdef HAVE_LIBXML2
-	context->cacheBuffer = NULL; /* this field is present only if cache is compiled*/
-#endif
+	context->zidCache = NULL; /* a pointer to the sqlite3 db accessor, can be NULL if running cacheless */
+	context->zuid = 0;
+	context->peerBzrtpVersion = 0;
+	context->selfURI = NULL;
 	context->cachedSecret.rs1 = NULL;
 	context->cachedSecret.rs1Length = 0;
 	context->cachedSecret.rs2 = NULL;
@@ -102,33 +101,64 @@ bzrtpContext_t *bzrtp_createBzrtpContext(void) {
 	/* initialise key buffers */
 	context->ZRTPSess = NULL;
 	context->ZRTPSessLength = 0;
+	context->exportedKey = NULL;
+	context->exportedKeyLength = 0;
 
 	return context;
 }
 
 /**
+ * @brief Set the pointer allowing cache access
+ *
+ * @param[in]	zidCachePointer		Used by internal function to access cache: turn into a sqlite3 pointer if cache is enabled
+ *
+ * @return 0 or BZRTP_CACHE_SETUP(if cache is populated by this call) on success, error code otherwise
+*/
+int bzrtp_setZIDCache(bzrtpContext_t *context, void *zidCache, const char *selfURI, const char *peerURI) {
+#ifdef ZIDCACHE_ENABLED
+	/* is zrtp context valid */
+	if (context==NULL) {
+		return BZRTP_ERROR_INVALIDCONTEXT;
+	}
+
+	/* zidCache pointer is actually a pointer to sqlite3 db, store it in context */
+	context->zidCache = (sqlite3 *)zidCache;
+	context->selfURI = strdup(selfURI);
+	context->peerURI = strdup(peerURI);
+
+	/* and init the cache(create needed tables if they don't exist) */
+	return bzrtp_initCache(context->zidCache);
+#else /* ZIDCACHE_ENABLED */
+	return BZRTP_ERROR_CACHEDISABLED;
+#endif /* ZIDCACHE_ENABLED */
+}
+
+/**
  * @brief Perform some initialisation which can't be done without some callback functions:
  *  This function is called once per session when the first channel is created.
- *  It must be called after the cache callback function have been set
- *  - load cache
- *	- get ZID from cache or generate it
- *
- *	Initialise the first channel
+ *  It must be called after the cache access pointer have been set
+ *	- Get ZID from cache or generate a random ZID
+ *	- Initialise the first channel
  *
  *	@param[in] 	context		The context to initialise
- *	#param[in]	selfSSRC	SSRC of the first channel
+ *	@param[in]	selfSSRC	SSRC of the first channel
+ * @return 0 on success
  */
-void bzrtp_initBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC) {
+int bzrtp_initBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC) {
 
-	/* initialise ZID. Randomly generated if no ZID is found in cache or no cache found */
-	/* This call will load the cache or create it if the cache callback functions are not null*/
-	bzrtp_getSelfZID(context, context->selfZID);
+	/* is zrtp context valid */
+	if (context==NULL) {
+		return BZRTP_ERROR_INVALIDCONTEXT;
+	}
+
+	/* initialise self ZID. Randomly generated if no ZID is found in cache or no cache found */
+	bzrtp_getSelfZID(context->zidCache, context->selfURI, context->selfZID, context->RNGContext);
 	context->isInitialised = 1;
 
 	/* allocate 1 channel context, set all the others pointers to NULL */
 	context->channelContext[0] = (bzrtpChannelContext_t *)malloc(sizeof(bzrtpChannelContext_t));
 	memset(context->channelContext[0], 0, sizeof(bzrtpChannelContext_t));
-	bzrtp_initChannelContext(context, context->channelContext[0], selfSSRC, 1);
+	return bzrtp_initChannelContext(context, context->channelContext[0], selfSSRC, 1);
 }
 
 /*
@@ -200,10 +230,14 @@ int bzrtp_destroyBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC) {
 		context->ZRTPSess=NULL;
 	}
 
-#ifdef HAVE_LIBXML2
-	xmlFreeDoc(context->cacheBuffer);
-	context->cacheBuffer=NULL;
-#endif
+	if (context->exportedKey!=NULL) {
+		bzrtp_DestroyKey(context->exportedKey, context->exportedKeyLength, context->RNGContext);
+		free(context->exportedKey);
+		context->ZRTPSess=NULL;
+	}
+
+	free(context->selfURI);
+	free(context->peerURI);
 	
 	/* destroy the RNG context at the end because it may be needed to destroy some keys */
 	bctbx_rng_context_free(context->RNGContext);
@@ -220,6 +254,11 @@ int bzrtp_destroyBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC) {
  * @return 0 on success
 */
 int bzrtp_setCallbacks(bzrtpContext_t *context, const bzrtpCallbacks_t *cbs) {
+	/* is zrtp context valid */
+	if (context==NULL) {
+		return BZRTP_ERROR_INVALIDCONTEXT;
+	}
+
 	context->zrtpCallbacks=*cbs;
 	return 0;
 }
@@ -371,26 +410,6 @@ int bzrtp_iterate(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint64_t timeR
 }
 
 /*
- * @brief Set the ZID cache data pointer in the global zrtp context
- * This pointer is returned to the client by the callbacks function linked to cache: bzrtp_loadCache, bzrtp_writeCache and bzrtp_contextReadyForExportedKeys
- * @param[in/out]	zrtpContext		The ZRTP context we're dealing with
- * @param[in]		selfSSRC		The SSRC identifying the channel to be linked to the client Data
- * @param[in]		ZIDCacheData	The ZIDCacheData pointer, casted to a (void *)
- *
- * @return 0 on success
- *
- */
-int bzrtp_setZIDCacheData(bzrtpContext_t *zrtpContext, void *ZIDCacheData) {
-	if (zrtpContext == NULL) {
-		return BZRTP_ERROR_INVALIDCONTEXT;
-	}
-
-	zrtpContext->ZIDCacheData = ZIDCacheData;
-
-	return 0;
-}
-
-/*
  * @brief Set the client data pointer in a channel context
  * This pointer is returned to the client by the callbacks function, used to store associated contexts (RTP session)
  * @param[in/out]	zrtpContext		The ZRTP context we're dealing with
@@ -481,8 +500,7 @@ int bzrtp_processMessage(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8_t
 	event.zrtpContext = zrtpContext;
 	event.zrtpChannelContext = zrtpChannelContext;
 
-	retval = zrtpChannelContext->stateMachine(event);
-	return  retval;
+	return zrtpChannelContext->stateMachine(event);
 }
 
 /*
@@ -494,13 +512,16 @@ int bzrtp_processMessage(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8_t
 void bzrtp_SASVerified(bzrtpContext_t *zrtpContext) {
 	if (zrtpContext != NULL) {
 		uint8_t pvsFlag = 1;
+		char *colNames[] = {"pvs"};
+		uint8_t *colValues[] = {&pvsFlag};
+		size_t colLength[] = {1};
 
 		/* check if we must update the cache(delayed until sas verified in case of cache mismatch) */
 		if (zrtpContext->cacheMismatchFlag  == 1) {
 			zrtpContext->cacheMismatchFlag  = 0;
 			bzrtp_updateCachedSecrets(zrtpContext, zrtpContext->channelContext[0]); /* channel[0] is the only one in DHM mode, so the only one able to have a cache mismatch */
 		}
-		bzrtp_writePeerNode(zrtpContext, zrtpContext->peerZID, (uint8_t *)"pvs", 3, &pvsFlag, 1, BZRTP_CACHE_TAGISBYTE|BZRTP_CACHE_NOMULTIPLETAGS, BZRTP_CACHE_LOADFILE|BZRTP_CACHE_WRITEFILE);
+		bzrtp_cache_write(zrtpContext->zidCache, zrtpContext->zuid, "zrtp", colNames, colValues, colLength, 1);
 	}
 }
 
@@ -513,64 +534,66 @@ void bzrtp_SASVerified(bzrtpContext_t *zrtpContext) {
 void bzrtp_resetSASVerified(bzrtpContext_t *zrtpContext) {
 	if (zrtpContext != NULL) {
 		uint8_t pvsFlag = 0;
-		bzrtp_writePeerNode(zrtpContext, zrtpContext->peerZID, (uint8_t *)"pvs", 3, &pvsFlag, 1, BZRTP_CACHE_TAGISBYTE|BZRTP_CACHE_NOMULTIPLETAGS, BZRTP_CACHE_LOADFILE|BZRTP_CACHE_WRITEFILE);
+		char *colNames[] = {"pvs"};
+		uint8_t *colValues[] = {&pvsFlag};
+		size_t colLength[] = {1};
+		bzrtp_cache_write(zrtpContext->zidCache, zrtpContext->zuid, "zrtp", colNames, colValues, colLength, 1);
 	}
 }
 
-/*
- * @brief Allow client to write data in cache in the current <peer> tag.
- * Data can be written directly or ciphered using the ZRTP Key Derivation Function and current s0.
- * If useKDF flag is set but no s0 is available, nothing is written in cache and an error is returned
- *
- * @param[in/out]	zrtpContext			The ZRTP context we're dealing with
- * @param[in]		peerZID				The ZID identifying the peer node we want to write into
- * @param[in]		tagName				The name of the tag to be written
- * @param[in]		tagNameLength		The length in bytes of the tagName
- * @param[in]		tagContent			The content of the tag to be written(a string, if KDF is used the result will be turned into an hexa string)
- * @param[in]		tagContentLength	The length in bytes of tagContent
- * @param[in]		derivedDataLength	Used only in KDF mode, length in bytes of the derived data to use (max 32)
- * @param[in]		useKDF				A flag, if set to 0, write data as it is provided, if set to 1, write KDF(s0, "tagContent", KDF_Context, negotiated hash length)
- * @param[in]		fileFlag			Flag, if LOADFILE bit is set, reload the cache buffer from file before updating.
- * 										if WRITEFILE bit is set, update the cache file
- * @param[in]		multipleTagFlag			Flag, if set to MULTIPLETAG_FORBID, do not allow multiple tags with the same name under the <peer> tag, otherwise allow it.
- *							Will be effective if new value is different from existing one.
- *							Has no effect if useKDF flag is on: no multiple tag allowed when storing KDF value
- *
- * @return	0 on success, errorcode otherwise
- */
-int bzrtp_addCustomDataInCache(bzrtpContext_t *zrtpContext, uint8_t peerZID[12], uint8_t *tagName, uint16_t tagNameLength, uint8_t *tagContent, uint16_t tagContentLength, uint8_t derivedDataLength, uint8_t useKDF, uint8_t fileFlag, uint8_t multipleTagFlag) {
-	/* check we have a valid context, a cache access callback function and a valid channelContext[0] */
-	if (zrtpContext == NULL || zrtpContext->zrtpCallbacks.bzrtp_loadCache == NULL || zrtpContext->channelContext[0]==NULL) {
-		return BZRTP_ERROR_INVALIDCONTEXT;
-	}
 
-	if (useKDF ==  BZRTP_CUSTOMCACHE_PLAINDATA) { /* write content as provided : content is a string and multiple tag is allowed as we are writing the peer URI(To be modified if needed) */
-		if (multipleTagFlag == BZRTP_CUSTOMCACHE_MULTIPLETAG_ALLOW) {
-			return bzrtp_writePeerNode(zrtpContext, peerZID, tagName, tagNameLength, tagContent, tagContentLength, BZRTP_CACHE_TAGISSTRING|BZRTP_CACHE_ALLOWMULTIPLETAGS, fileFlag);
-		} else {
-			return bzrtp_writePeerNode(zrtpContext, peerZID, tagName, tagNameLength, tagContent, tagContentLength, BZRTP_CACHE_TAGISSTRING|BZRTP_CACHE_NOMULTIPLETAGS, fileFlag);
-		}
-	} else { /* we must derive the content using the key derivation function */
-		uint8_t derivedContent[32];
-		
-		/* check we have s0 and KDFContext in channel[0] */
-		bzrtpChannelContext_t *zrtpChannelContext = zrtpContext->channelContext[0];
+/*
+ * @brief  Allow client to compute an exported according to RFC section 4.5.2
+ *		Check the context is ready(we already have a master exported key and KDF context)
+ * 		and run KDF(master exported key, "Label", KDF_Context, negotiated hash Length)
+ *
+ * @param[in]		zrtpContext		The ZRTP context we're dealing with
+ * @param[in]		label			Label used in the KDF
+ * @param[in]		labelLength		Length of previous buffer
+ * @param[out]		derivedKey		Buffer to store the derived key
+ * @param[in/out]	derivedKeyLength	Length of previous buffer(updated to fit actual length of data produced if too long)
+ *
+ * @return 0 on succes, error code otherwise
+ */
+int bzrtp_exportKey(bzrtpContext_t *zrtpContext, char *label, size_t labelLength, uint8_t *derivedKey, size_t *derivedKeyLength) {
+	/* check we have s0 or exportedKey and KDFContext in channel[0] - export keys is available only on channel 0 completion - see RFC 4.5.2 */
+	bzrtpChannelContext_t *zrtpChannelContext = zrtpContext->channelContext[0];
+
+	if (zrtpContext->peerBzrtpVersion < 10100) { /* keep compatibility with older implementation of bzrtp */
+		/* before version 1.1.0 (turned into an int MMmmpp -> 010100) exported keys wrongly derives from given label and s0 direclty instead of
+		deriving one Exported Key from S0 and then as many as needed from the exported key as specified in the RFC section 4.5.2 */
 		if (zrtpChannelContext->s0 == NULL || zrtpChannelContext->KDFContext == NULL) {
 			return BZRTP_ERROR_INVALIDCONTEXT;
 		}
-		/* We derive a maximum of 32 bytes for a 256 bit key */
-		if (derivedDataLength>32) { 
-			derivedDataLength = 32;
-		}
-		bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, tagContent, tagContentLength, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, derivedDataLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))zrtpChannelContext->hmacFunction, derivedContent);
 
-		/* if derivedDataLength is 4 it means we are writing the session Index, mask the first bit of first byte(MSB) to 0 in order to avoid any counter loop */
-		if (derivedDataLength == 4) {
-			derivedContent[0] &=0x7F;
+		/* We derive a maximum of hashLength bytes */
+		if (*derivedKeyLength > zrtpChannelContext->hashLength) {
+			*derivedKeyLength = zrtpChannelContext->hashLength;
 		}
-		/* write it to cache, do not allow multiple tags */
-		return bzrtp_writePeerNode(zrtpContext, peerZID, tagName, tagNameLength, derivedContent, derivedDataLength, BZRTP_CACHE_TAGISBYTE|BZRTP_CACHE_NOMULTIPLETAGS, fileFlag);
+
+		bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)label, labelLength, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, *derivedKeyLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))zrtpChannelContext->hmacFunction, derivedKey);
+
+	} else {
+		if ((zrtpChannelContext->s0 == NULL && zrtpContext->exportedKey) || zrtpChannelContext->KDFContext == NULL) {
+			return BZRTP_ERROR_INVALIDCONTEXT;
+		}
+
+		/* if we didn't already computed the master exported key, do it now */
+		if (zrtpContext->exportedKey == NULL) {
+			zrtpContext->exportedKeyLength = zrtpChannelContext->hashLength;
+			zrtpContext->exportedKey = (uint8_t *)malloc(zrtpContext->exportedKeyLength*sizeof(uint8_t));
+			bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"Exported key", 12, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, zrtpContext->exportedKeyLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))zrtpChannelContext->hmacFunction, zrtpContext->exportedKey);
+		}
+
+		/* We derive a maximum of hashLength bytes */
+		if (*derivedKeyLength > zrtpChannelContext->hashLength) {
+			*derivedKeyLength = zrtpChannelContext->hashLength;
+		}
+
+		bzrtp_keyDerivationFunction(zrtpContext->exportedKey, zrtpChannelContext->hashLength, (uint8_t *)label, labelLength, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, *derivedKeyLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))zrtpChannelContext->hmacFunction, derivedKey);
+
 	}
+	return 0;
 }
 
 /*
@@ -593,7 +616,7 @@ int bzrtp_resetRetransmissionTimer(bzrtpContext_t *zrtpContext, uint32_t selfSSR
 		return BZRTP_ERROR_INVALIDCONTEXT;
 	}
 	/* reset timer only when not in secure mode yet and for initiator(engine start as initiator so if we call this function in discovery phase, it will reset the timer */
-	if ((zrtpChannelContext->isSecure == 0) && (zrtpChannelContext->role == INITIATOR)) {
+	if ((zrtpChannelContext->isSecure == 0) && (zrtpChannelContext->role == BZRTP_ROLE_INITIATOR)) {
 		zrtpChannelContext->timer.status = BZRTP_TIMER_ON;
 		zrtpChannelContext->timer.firingTime = 0; /* be sure it will trigger at next call to bzrtp_iterate*/
 		zrtpChannelContext->timer.firingCount = -1; /* -1 to count the initial packet and then retransmit the regular number of packets */
@@ -973,7 +996,7 @@ static int bzrtp_initChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelCon
 	zrtpChannelContext->isMainChannel = isMain;
 
 	/* initialise as initiator, switch to responder later if needed */
-	zrtpChannelContext->role = INITIATOR;
+	zrtpChannelContext->role = BZRTP_ROLE_INITIATOR;
 
 	/* create H0 (32 bytes random) and derive using implicit Hash(SHA256) H1,H2,H3 */
 	bctbx_rng_get(zrtpContext->RNGContext, zrtpChannelContext->selfH[0], 32);

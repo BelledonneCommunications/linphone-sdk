@@ -1,6 +1,6 @@
 ############################################################################
-# FindXML2.txt
-# Copyright (C) 2015  Belledonne Communications, Grenoble France
+# FindSqlite3.cmake
+# Copyright (C) 2014  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,38 +20,38 @@
 #
 ############################################################################
 #
-# - Find the libxml2 include file and library
+# - Find the sqlite3 include file and library
 #
-#  XML2_FOUND - system has libxml2
-#  XML2_INCLUDE_DIRS - the libxml2 include directory
-#  XML2_LIBRARIES - The libraries needed to use libxml2
+#  SQLITE3_FOUND - system has sqlite3
+#  SQLITE3_INCLUDE_DIRS - the sqlite3 include directory
+#  SQLITE3_LIBRARIES - The libraries needed to use sqlite3
 
 if(APPLE AND NOT IOS)
-	set(XML2_HINTS "/usr")
+	set(SQLITE3_HINTS "/usr")
 endif()
-if(XML2_HINTS)
-	set(XML2_LIBRARIES_HINTS "${XML2_HINTS}/lib")
+if(SQLITE3_HINTS)
+	set(SQLITE3_LIBRARIES_HINTS "${SQLITE3_HINTS}/lib")
 endif()
 
-find_path(XML2_INCLUDE_DIRS
-	NAMES libxml/xmlreader.h
-	HINTS "${XML2_HINTS}"
-	PATH_SUFFIXES include/libxml2
+find_path(SQLITE3_INCLUDE_DIRS
+	NAMES sqlite3.h
+	HINTS "${SQLITE3_HINTS}"
+	PATH_SUFFIXES include
 )
 
-if(XML2_INCLUDE_DIRS)
-	set(HAVE_LIBXML_XMLREADER_H 1)
+if(SQLITE3_INCLUDE_DIRS)
+	set(HAVE_SQLITE3_H 1)
 endif()
 
-find_library(XML2_LIBRARIES
-	NAMES xml2
-	HINTS "${XML2_LIBRARIES_HINTS}"
+find_library(SQLITE3_LIBRARIES
+	NAMES sqlite3
+	HINTS "${SQLITE3_LIBRARIES_HINTS}"
 )
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(XML2
+find_package_handle_standard_args(Sqlite3
 	DEFAULT_MSG
-	XML2_INCLUDE_DIRS XML2_LIBRARIES
+	SQLITE3_INCLUDE_DIRS SQLITE3_LIBRARIES HAVE_SQLITE3_H
 )
 
-mark_as_advanced(XML2_INCLUDE_DIRS XML2_LIBRARIES)
+mark_as_advanced(SQLITE3_INCLUDE_DIRS SQLITE3_LIBRARIES HAVE_SQLITE3_H)

@@ -25,6 +25,7 @@
 #define BZRTP_H
 
 #include <stdint.h>
+#include "bctoolbox/crypto.h"
 
 #ifdef _MSC_VER
 	#ifdef BZRTP_STATIC
@@ -115,6 +116,16 @@ typedef struct bzrtpSrtpSecrets_struct  {
 	uint8_t sasAlgo; /**< The SAS rendering algo selected during ZRTP negotiation */
 } bzrtpSrtpSecrets_t;
 
+
+/* define message levels */
+#define BZRTP_MESSAGE_ERROR	0x00
+#define BZRTP_MESSAGE_WARNING	0x01
+#define BZRTP_MESSAGE_LOG	0x02
+#define BZRTP_MESSAGE_DEBUG	0x03
+
+/* define message codes */
+#define BZRTP_MESSAGE_CACHEMISMATCH 0x01
+
 /**
  * Function pointer used by bzrtp to free memory allocated by callbacks.
 **/
@@ -123,9 +134,9 @@ typedef void (*zrtpFreeBuffer_callback)(void *);
  * @brief All the callback functions provided by the client needed by the ZRTP engine
  */
 typedef struct bzrtpCallbacks_struct {
-	/* cache related functions */
-	int (* bzrtp_loadCache)(void *ZIDCacheData, uint8_t **cacheBuffer, uint32_t *cacheBufferSize, zrtpFreeBuffer_callback *callback); /**< Cache related function : load the whole cache file in a buffer allocated by the function, return the buffer and its size in bytes */
-	int (* bzrtp_writeCache)(void *ZIDCacheData, const uint8_t *input, uint32_t size); /**< Cache related function : write size bytes to cache */
+	/* messaging status and warnings */
+	int (* bzrtp_statusMessage)(void *clientData, const uint8_t messageLevel, const uint8_t messageId); /**< Sending messages to caller: error, warnings, logs */
+	int bzrtp_messageLevel; /**< Filter calls to this callback to levels inferiors to this setting (BZRTP_MESSAGE_ERROR, BZRTP_MESSAGE_WARNING, BZRTP_MESSAGE_LOG, BZRTP_MESSAGE_DEBUG )*/
 
 	/* sending packets */
 	int (* bzrtp_sendData)(void *clientData, const uint8_t *packetString, uint16_t packetLength); /**< Send a ZRTP packet to peer. Shall return 0 on success */
@@ -135,13 +146,18 @@ typedef struct bzrtpCallbacks_struct {
 	int (* bzrtp_startSrtpSession)(void *clientData, const bzrtpSrtpSecrets_t *srtpSecrets, int32_t verified); /**< ZRTP process ended well, client is given the SAS and informations about the crypto algo used during ZRTP negotiation. He may start his SRTP session if not done when calling srtpSecretsAvailable */
 
 	/* ready for exported keys */
-	int (* bzrtp_contextReadyForExportedKeys)(void *ZIDCacheData, void *clientData, uint8_t peerZID[12], uint8_t role); /**< Tell the client that this is the time to create and store in cache any exported keys, client is given the peerZID to adress the correct node in cache and current role which is needed to set a pair of keys for IM encryption */
+	int (* bzrtp_contextReadyForExportedKeys)(void *clientData, int zuid, uint8_t role); /**< Tell the client that this is the time to create any exported keys, s0 is erased just after the call to this callback. Callback is given the peerZID and zuid to adress the correct node in cache and current role which is needed to set a pair of keys for IM encryption */
 } bzrtpCallbacks_t;
 
 #define ZRTP_MAGIC_COOKIE 0x5a525450
 #define ZRTP_VERSION	"1.10"
 
-#define ZRTP_CLIENT_IDENTIFIER "BZRTP"
+/* Client identifier can contain up to 16 characters */
+/* Use it to pass bzrtp version number to peer, is it part of Hello message */
+/* custom Linphone Instant Messaging Encryption depends on bzrtp version */
+/* Note: ZRTP_VERSION and BZrtp version are for now both at 1.1 but they are unrelated */
+#define ZRTP_CLIENT_IDENTIFIERv1_1 "BZRTPv1.1"
+#define ZRTP_CLIENT_IDENTIFIER ZRTP_CLIENT_IDENTIFIERv1_1
 
 /* error code definition */
 #define BZRTP_ERROR_INVALIDCALLBACKID				0x0001
@@ -153,14 +169,23 @@ typedef struct bzrtpCallbacks_struct {
 #define BZRTP_ERROR_OUTPUTBUFFER_LENGTH				0x0040
 #define BZRTP_ERROR_HELLOHASH_MISMATCH				0x0080
 #define BZRTP_ERROR_CHANNELALREADYSTARTED			0x0100
+#define BZRTP_ERROR_CACHEDISABLED				0x0200
 
 /* channel status definition */
 #define BZRTP_CHANNEL_NOTFOUND						0x1000
 #define BZRTP_CHANNEL_INITIALISED					0x1001
 #define BZRTP_CHANNEL_ONGOING						0x1002
 #define BZRTP_CHANNEL_SECURE						0x1004
-#define BZRTP_CHANNEL_ERROR							0x1008
+#define BZRTP_CHANNEL_ERROR						0x1008
 
+/* role mapping */
+#define BZRTP_ROLE_INITIATOR	0
+#define	BZRTP_ROLE_RESPONDER	1
+
+/* cache related value */
+#define BZRTP_CACHE_SETUP		0x2000
+#define BZRTP_CACHE_UPDATE		0x2001
+#define BZRTP_CACHE_DATA_NOTFOUND	0x2002
 /**
  * @brief bzrtpContext_t The ZRTP engine context
  * Store current state, timers, HMAC and encryption keys
@@ -176,13 +201,15 @@ typedef struct bzrtpContext_struct bzrtpContext_t;
 BZRTP_EXPORT bzrtpContext_t *bzrtp_createBzrtpContext(void);
 
 /**
- * @brief Perform some initialisation which can't be done without some callback functions:
+ * @brief Perform initialisation which can't be done without ZIDcache acces
  * - get ZID and create the first channel context
  *
  *   @param[in]		context		The context to initialise
  *   @param[in]		selfSSRC	The SSRC given to the first channel context created within the zrtpContext
+ *
+ *   @return 0 on success
  */
-BZRTP_EXPORT void bzrtp_initBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC);
+BZRTP_EXPORT int bzrtp_initBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC);
 
 /**
  * Free memory of context structure to a channel, if all channels are freed, free the global zrtp context
@@ -203,17 +230,17 @@ BZRTP_EXPORT int bzrtp_destroyBzrtpContext(bzrtpContext_t *context, uint32_t sel
 */
 BZRTP_EXPORT int bzrtp_setCallbacks(bzrtpContext_t *context, const bzrtpCallbacks_t *cbs);
 
-/*
- * @brief Set the ZID cache data pointer in the global zrtp context
- * This pointer is returned to the client by the callbacks function linked to cache: bzrtp_loadCache, bzrtp_writeCache and bzrtp_contextReadyForExportedKeys
- * @param[in/out]	zrtpContext		The ZRTP context we're dealing with
- * @param[in]		selfSSRC		The SSRC identifying the channel to be linked to the client Data
- * @param[in]		ZIDCacheData	The ZIDCacheData pointer, casted to a (void *)
+/**
+ * @brief Set the pointer allowing cache access
  *
- * @return 0 on success
+ * @param[in]	zidCachePointer		Used by internal function to access cache: turn into a sqlite3 pointer if cache is enabled
+ * @param[in]   selfURI			Local URI used for this communication, needed to perform cache operation, NULL terminated string, duplicated by this function
+ * @param[in]   peerURI			Peer URI used for this communication, needed to perform cache operation, NULL terminated string, duplicated by this function
  *
+ * @return 0 or BZRTP_CACHE_SETUP(if cache is populated by this call) on success, error code otherwise
 */
-BZRTP_EXPORT int bzrtp_setZIDCacheData(bzrtpContext_t *zrtpContext, void *ZIDCacheData);
+BZRTP_EXPORT int bzrtp_setZIDCache(bzrtpContext_t *context, void *zidCache, const char *selfURI, const char *peerURI);
+
 /**
  * @brief Set the client data pointer in a channel context
  * This pointer is returned to the client by the callbacks function, used to store associated contexts (RTP session)
@@ -360,41 +387,96 @@ BZRTP_EXPORT int bzrtp_getSelfHelloHash(bzrtpContext_t *zrtpContext, uint32_t se
  */
 BZRTP_EXPORT int bzrtp_getChannelStatus(bzrtpContext_t *zrtpContext, uint32_t selfSSRC);
 
-#define BZRTP_CUSTOMCACHE_USEKDF 	1
-#define BZRTP_CUSTOMCACHE_PLAINDATA 	0
-
-#define BZRTP_CUSTOMCACHE_MULTIPLETAG_FORBID 0
-#define BZRTP_CUSTOMCACHE_MULTIPLETAG_ALLOW 1
-
-#define BZRTP_CACHE_LOADFILE		0x01
-#define BZRTP_CACHE_DONTLOADFILE	0x00
-#define BZRTP_CACHE_WRITEFILE		0x10
-#define BZRTP_CACHE_DONTWRITEFILE	0x00
-
-/* role mapping */
-#define INITIATOR	0
-#define	RESPONDER	1
+/*** Cache related functions ***/
 /**
- * @brief Allow client to write data in cache in the current <peer> tag.
- * Data can be written directly or ciphered using the ZRTP Key Derivation Function and current s0.
- * If useKDF flag is set but no s0 is available, nothing is written in cache and an error is returned
+ * @brief Check the given sqlite3 DB and create requested tables if needed
+ * 	Also manage DB schema upgrade
+ * @param[in/out]	db	Pointer to the sqlite3 db open connection
+ * 				Use a void * to keep this API when building cacheless
  *
- * @param[in/out]	zrtpContext			The ZRTP context we're dealing with
- * @param[in]		peerZID				The ZID identifying the peer node we want to write into
- * @param[in]		tagName				The name of the tag to be written
- * @param[in]		tagNameLength		The length in bytes of the tagName
- * @param[in]		tagContent			The content of the tag to be written(a string, if KDF is used the result will be turned into an hexa string)
- * @param[in]		tagContentLength	The length in bytes of tagContent
- * @param[in]		derivedDataLength	Used only in KDF mode, length in bytes of the derived data to use (max 32)
- * @param[in]		useKDF				A flag, if set to 0, write data as it is provided, if set to 1, write KDF(s0, "tagContent", KDF_Context, negotiated hash length)
- * @param[in]		fileFlag			Flag, if LOADFILE bit is set, reload the cache buffer from file before updating.
- * 										if WRITEFILE bit is set, update the cache file
- * @param[in]		multipleTagFlag			Flag, if set to MULTIPLETAG_FORBID, do not allow multiple tags with the same name under the <peer> tag, otherwise allow it
- *							Will be effective if new value is different from existing one.
- *							Has no effect if useKDF flag is on: no multiple tag allowed when storing KDF value
- *
- * @return	0 on success, errorcode otherwise
+ * @return 0 on succes, BZRTP_CACHE_SETUP if cache was empty, error code otherwise
  */
-BZRTP_EXPORT int bzrtp_addCustomDataInCache(bzrtpContext_t *zrtpContext, uint8_t peerZID[12], uint8_t *tagName, uint16_t tagNameLength, uint8_t *tagContent, uint16_t tagContentLength, uint8_t derivedDataLength, uint8_t useKDF, uint8_t fileFlag, uint8_t multipleTagFlag);
+BZRTP_EXPORT int bzrtp_initCache(void *db);
+
+/**
+ * @brief : retrieve ZID from cache
+ * ZID is randomly generated if cache is empty or inexistant
+ * ZID is randomly generated in case of cacheless implementation(db argument is NULL)
+ *
+ * @param[in/out] 	db		sqlite3 database(or NULL if we don't use cache at runtime)
+ * 					Use a void * to keep this API when building cacheless
+ * @param[in]		selfURI		the sip uri of local user, NULL terminated string
+ * @param[out]		selfZID		the ZID, retrieved from cache or randomly generated
+ * @param[in]		RNGContext	A RNG context used to generate ZID if needed
+ *
+ * @return		0 on success, or BZRTP_CACHE_DATA_NOTFOUND if no ZID matching the URI was found and no RNGContext is given to generate one
+ */
+BZRTP_EXPORT int bzrtp_getSelfZID(void *db, const char *selfURI, uint8_t selfZID[12], bctbx_rng_context_t *RNGContext);
+
+/**
+ * @brief get the cache internal id used to bind local uri(hence local ZID associated to it)<->peer uri/peer ZID.
+ *	Providing a valid local URI(already present in cache), a peer ZID and peer URI will return the zuid creating it if needed
+ *	Any pair ZID/sipURI shall identify an account on a device.
+ *
+ * @param[in/out]	db		the opened sqlite database pointer
+ * @param[in]		selfURI		local URI, must be already associated to a ZID in the DB(association is performed by any call of getSelfZID on this URI)
+ * @param[in]		peerURI		peer URI
+ * @param[in]		peerZID		peer ZID
+ * @param[out]		zuid		the internal db reference to the data row matching this particular pair of correspondant
+ *
+ * @return 0 on success, error code otherwise
+ */
+BZRTP_EXPORT int bzrtp_cache_getZuid(void *dbPointer, const char *selfURI, const char *peerURI, const uint8_t peerZID[12], int *zuid);
+
+/**
+ * @brief Write(insert or update) data in cache, adressing it by zuid (ZID/URI binding id used in cache)
+ * 		Get arrays of column names, values to be inserted, lengths of theses values
+ *		All three arrays must be the same lenght: columnsCount
+ * 		If the row isn't present in the given table, it will be inserted
+ *
+ * @param[in/out]	dbPointer	Pointer to an already opened sqlite db
+ * @param[in]		zuid		The DB internal id to adress the correct row(binding between local uri and peer ZID+URI)
+ * @param[in]		tableName	The name of the table to write in the db, must already exists. Null terminated string
+ * @param[in]		columns		An array of null terminated strings containing the name of the columns to update
+ * @param[in]		values		An array of buffers containing the values to insert/update matching the order of columns array
+ * @param[in]		lengths		An array of integer containing the lengths of values array buffer matching the order of columns array
+ * @param[in]		columnsCount	length common to columns,values and lengths arrays
+ *
+ * @return 0 on succes, error code otherwise
+ */
+BZRTP_EXPORT int bzrtp_cache_write(void *dbPointer, int zuid, char *tableName, char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount);
+
+/**
+ * @brief Read data from specified table/columns from cache adressing it by zuid (ZID/URI binding id used in cache)
+ * 		Get arrays of column names, values to be read, and the number of colums to be read
+ *		Produce an array of values(uint8_t arrays) and a array of corresponding lengths
+ *		Values memory is allocated by this function and must be freed by caller
+ *
+ * @param[in/out]	dbPointer	Pointer to an already opened sqlite db
+ * @param[in]		zuid		The DB internal id to adress the correct row(binding between local uri and peer ZID+URI)
+ * @param[in]		tableName	The name of the table to read in the db. Null terminated string
+ * @param[in]		columns		An array of null terminated strings containing the name of the columns to read, the array's length  is columnsCount
+ * @param[out]		values		An array of uint8_t pointers, each one will be allocated to the read value and they must be freed by caller
+ * @param[out]		lengths		An array of integer containing the lengths of values array buffer read
+ * @param[in]		columnsCount	length common to columns,values and lengths arrays
+ *
+ * @return 0 on succes, error code otherwise
+ */
+BZRTP_EXPORT int bzrtp_cache_read(void *dbPointer, int zuid, char *tableName, char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount);
+
+/*
+ * @brief  Allow client to compute an exported according to RFC section 4.5.2
+ *		Check the context is ready(we already have a master exported key and KDF context)
+ * 		and run KDF(master exported key, "Label", KDF_Context, negotiated hash Length)
+ *
+ * @param[in]		zrtpContext		The ZRTP context we're dealing with
+ * @param[in]		label			Label used in the KDF
+ * @param[in]		labelLength		Length of previous buffer
+ * @param[out]		derivedKey		Buffer to store the derived key
+ * @param[in/out]	derivedKeyLength	Length of previous buffer(updated to fit actual length of data produced if too long)
+ *
+ * @return 0 on succes, error code otherwise
+ */
+int bzrtp_exportKey(bzrtpContext_t *zrtpContext, char *label, size_t labelLength, uint8_t *derivedKey, size_t *derivedKeyLength);
 
 #endif /* ifndef BZRTP_H */

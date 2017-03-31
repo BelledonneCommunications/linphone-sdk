@@ -427,7 +427,7 @@ int bzrtp_packetParser(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpC
 				messageContent +=32;
 
 				/* We have now H1, check it matches the H2 we had in the commit message H2=SHA256(H1) and that the Commit message MAC is correct */
-				if ( zrtpChannelContext->role == RESPONDER) { /* do it only if we are responder (we received a commit packet) */
+				if ( zrtpChannelContext->role == BZRTP_ROLE_RESPONDER) { /* do it only if we are responder (we received a commit packet) */
 					uint8_t checkH2[32];
 					uint8_t checkMAC[32];
 					bzrtpCommitMessage_t *peerCommitMessageData;
@@ -538,7 +538,7 @@ int bzrtp_packetParser(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpC
 				uint8_t *confirmPlainMessage;
 
 				/* we shall first decrypt and validate the message, check we have the keys to do it */
-				if (zrtpChannelContext->role == RESPONDER) { /* responder uses initiator's keys to decrypt */
+				if (zrtpChannelContext->role == BZRTP_ROLE_RESPONDER) { /* responder uses initiator's keys to decrypt */
 					if ((zrtpChannelContext->zrtpkeyi == NULL) || (zrtpChannelContext->mackeyi == NULL)) {
 						return BZRTP_PARSER_ERROR_INVALIDCONTEXT;
 					}
@@ -546,7 +546,7 @@ int bzrtp_packetParser(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpC
 					confirmMessageMacKey = zrtpChannelContext->mackeyi;
 				}
 
-				if (zrtpChannelContext->role == INITIATOR) { /* the iniator uses responder's keys to decrypt */
+				if (zrtpChannelContext->role == BZRTP_ROLE_INITIATOR) { /* the iniator uses responder's keys to decrypt */
 					if ((zrtpChannelContext->zrtpkeyr == NULL) || (zrtpChannelContext->mackeyr == NULL)) {
 						return BZRTP_PARSER_ERROR_INVALIDCONTEXT;
 					}
@@ -592,7 +592,7 @@ int bzrtp_packetParser(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpC
 					bctbx_sha256(messageData->H0, 32, 32, checkH1);
 
 					/* if we are responder, we received a commit packet with H2 then check that H2=SHA256(H1) and that the commit message MAC keyed with H1 match */
-					if ( zrtpChannelContext->role == RESPONDER) {
+					if ( zrtpChannelContext->role == BZRTP_ROLE_RESPONDER) {
 						uint8_t checkH2[32];
 						uint8_t checkMAC[32];
 						bzrtpCommitMessage_t *peerCommitMessageData;
@@ -962,7 +962,7 @@ int bzrtp_packetBuild(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpCh
 				uint16_t plainMessageStringIndex = 0;
 
 				/* we will have to encrypt and validate the message, check we have the keys to do it */
-				if (zrtpChannelContext->role == INITIATOR) {
+				if (zrtpChannelContext->role == BZRTP_ROLE_INITIATOR) {
 					if ((zrtpChannelContext->zrtpkeyi == NULL) || (zrtpChannelContext->mackeyi == NULL)) {
 						return BZRTP_BUILDER_ERROR_INVALIDCONTEXT;
 					}
@@ -970,7 +970,7 @@ int bzrtp_packetBuild(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpCh
 					confirmMessageMacKey = zrtpChannelContext->mackeyi;
 				}
 
-				if (zrtpChannelContext->role == RESPONDER) {
+				if (zrtpChannelContext->role == BZRTP_ROLE_RESPONDER) {
 					if ((zrtpChannelContext->zrtpkeyr == NULL) || (zrtpChannelContext->mackeyr == NULL)) {
 						return BZRTP_BUILDER_ERROR_INVALIDCONTEXT;
 					}

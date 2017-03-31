@@ -1,5 +1,5 @@
 /**
- @file bzrtpConfigsTest.h
+ @file bzrtpZidCacheTest.h
 
  @author Johan Pascal
 
@@ -19,8 +19,5 @@
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-void test_cacheless_exchange(void);
-void test_loosy_network(void);
-void test_cache_enabled_exchange(void);
-void test_cache_mismatch_exchange(void);
-
+void test_cache_getSelfZID(void);
+void test_cache_zrtpSecrets(void);
