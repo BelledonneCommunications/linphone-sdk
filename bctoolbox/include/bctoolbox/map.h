@@ -91,9 +91,9 @@ BCTBX_PUBLIC void bctbx_iterator_ullong_delete(bctbx_iterator_t *it);
 BCTBX_PUBLIC void bctbx_iterator_cchar_delete(bctbx_iterator_t *it);
 	
 /*pair*/	
-typedef struct _bctbx_pair_ullong_t bctbx_pair_ullong_t; /*inherite from bctbx_pair_t*/
+typedef struct _bctbx_pair_ullong_t bctbx_pair_ullong_t; /*inherit from bctbx_pair_t*/
 BCTBX_PUBLIC bctbx_pair_ullong_t * bctbx_pair_ullong_new(unsigned long long key,void *value);
-typedef struct _bctbx_pair_cchar_t bctbx_pair_cchar_t; /*inherite from bctbx_pair_t*/
+typedef struct _bctbx_pair_cchar_t bctbx_pair_cchar_t; /*inherit from bctbx_pair_t*/
 BCTBX_PUBLIC bctbx_pair_cchar_t * bctbx_pair_cchar_new(const char * key,void *value);
 
 #define bctbx_pair_get_second bctbx_pair_ullong_get_second

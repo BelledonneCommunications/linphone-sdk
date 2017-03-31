@@ -89,7 +89,7 @@ void bctbx_uninit_logger(void){
 		bctbx_logv_flush();
 		bctbx_mutex_destroy(&__bctbx_logger.domains_mutex);
 		bctbx_log_handlers_free();
-		bctbx_list_free(__bctbx_logger.logv_outs);
+		__bctbx_logger.logv_outs = bctbx_list_free(__bctbx_logger.logv_outs);
 		__bctbx_logger.log_domains = bctbx_list_free_with_data(__bctbx_logger.log_domains, (void (*)(void*))bctbx_log_domain_destroy);
 	}
 }
@@ -103,7 +103,7 @@ BctoolboxLogHandler* bctbx_create_log_handler(BctoolboxLogHandlerFunc func, Bcto
 }
 
 BctoolboxLogHandler* bctbx_create_file_log_handler(uint64_t max_size, const char* path, const char* name, FILE* f) {
-	BctoolboxLogHandler* handler = (BctoolboxLogHandler*)bctbx_malloc(sizeof(BctoolboxLogHandler));
+	BctoolboxLogHandler* handler = (BctoolboxLogHandler*)bctbx_malloc0(sizeof(BctoolboxLogHandler));
 	BctoolboxFileLogHandler* filehandler = (BctoolboxFileLogHandler*)bctbx_malloc(sizeof(BctoolboxFileLogHandler));
 	handler->func=bctbx_logv_file;
 	handler->destroy=bctbx_logv_file_destroy;
@@ -339,18 +339,23 @@ void _bctbx_logv_flush(int dummy, ...) {
 #ifdef _WIN32
 		while (loggers) {
 			BctoolboxLogHandler* handler = (BctoolboxLogHandler*)loggers->data;
-			handler->func(handler->user_info, l->domain, l->level, l->msg, empty_va_list);
+			va_list cap;
+			va_copy(cap, empty_va_list);
+			handler->func(handler->user_info, l->domain, l->level, l->msg, cap);
+			va_end(cap);
 			loggers = loggers->next;
 		}
 #else
-		va_list cap;
-		va_copy(cap, empty_va_list);
+		
 		while (loggers) {
 			BctoolboxLogHandler* handler = (BctoolboxLogHandler*)loggers->data;
+			va_list cap;
+			va_copy(cap, empty_va_list);
 			handler->func(handler->user_info, l->domain, l->level, l->msg, cap);
+			va_end(cap);
 			loggers = loggers->next;
 		}
-		va_end(cap);
+		
 #endif
 		if (l->domain) bctbx_free(l->domain);
 		bctbx_free(l->msg);
@@ -369,8 +374,11 @@ void bctbx_logv(const char *domain, BctbxLogLevel level, const char *fmt, va_lis
 		if (__bctbx_logger.log_thread_id == 0) {
 			bctbx_list_t *loggers = bctbx_list_first_elem(__bctbx_logger.logv_outs);
 			while (loggers) {
+				va_list tmp;
+				va_copy(tmp, args);
 				BctoolboxLogHandler* handler = (BctoolboxLogHandler*)loggers->data;
-				handler->func(handler->user_info, domain, level, fmt, args);
+				handler->func(handler->user_info, domain, level, fmt, tmp);
+				va_end(tmp);
 				loggers = loggers->next;
 			}
 		} else if (__bctbx_logger.log_thread_id == bctbx_thread_self()) {
@@ -379,7 +387,10 @@ void bctbx_logv(const char *domain, BctbxLogLevel level, const char *fmt, va_lis
 			loggers = bctbx_list_first_elem(__bctbx_logger.logv_outs);
 			while (loggers) {
 				BctoolboxLogHandler* handler = (BctoolboxLogHandler*)loggers->data;
-				handler->func(handler->user_info, domain, level, fmt, args);
+				va_list tmp;
+				va_copy(tmp, args);
+				handler->func(handler->user_info, domain, level, fmt, tmp);
+				va_end(tmp);
 				loggers = loggers->next;
 			}
 		} else {
