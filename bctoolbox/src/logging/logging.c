@@ -28,6 +28,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#ifdef _MSC_VER
+#ifndef access
+#define access _access
+#endif
+#ifndef fileno
+#define fileno _fileno
+#endif
+#endif
+
 
 typedef struct{
 	char *domain;
@@ -39,7 +48,7 @@ static void bctbx_log_domain_destroy(BctoolboxLogDomain *obj){
 	bctbx_free(obj);
 }
 
-typedef struct _BctoolboxLogger{
+typedef struct _bctbx_logger_t {
 	bctbx_list_t *logv_outs;
 	unsigned int log_mask; /*the default log mask, if no per-domain settings are found*/
 	unsigned long log_thread_id;
@@ -47,27 +56,27 @@ typedef struct _BctoolboxLogger{
 	bctbx_list_t *log_domains;
 	bctbx_mutex_t log_stored_messages_mutex;
 	bctbx_mutex_t domains_mutex;
-}BctoolboxLogger;
+} bctbx_logger_t;
 
-struct _BctoolboxLogHandler{
-	BctoolboxLogHandlerFunc func;
-	BctoolboxLogHandlerDestroyFunc destroy;
+struct _bctbx_log_handler_t {
+	BctbxLogHandlerFunc func;
+	BctbxLogHandlerDestroyFunc destroy;
 	void* user_info;
 };
 
-typedef struct _BctoolboxFileLogHandler{
+typedef struct _bctbx_file_log_handler_t {
 	char* path;
 	char* name;
 	uint64_t max_size;
 	uint64_t size;
 	FILE* file;
-}BctoolboxFileLogHandler;
+} bctbx_file_log_handler_t;
 
-static BctoolboxLogger __bctbx_logger = { NULL, BCTBX_LOG_WARNING|BCTBX_LOG_ERROR|BCTBX_LOG_FATAL, 0};
+static bctbx_logger_t __bctbx_logger = { NULL, BCTBX_LOG_WARNING|BCTBX_LOG_ERROR|BCTBX_LOG_FATAL, 0};
 
 static unsigned int bctbx_init_logger_refcount = 0;
 void bctbx_init_logger(void){
-	BctoolboxLogHandler* handler;
+	bctbx_log_handler_t* handler;
 	if (bctbx_init_logger_refcount++ > 0) return; /*already initialized*/
 	
 	bctbx_mutex_init(&__bctbx_logger.domains_mutex, NULL);
@@ -78,7 +87,7 @@ void bctbx_init_logger(void){
 void bctbx_log_handlers_free(void) {
 	bctbx_list_t *loggers = bctbx_list_first_elem(__bctbx_logger.logv_outs);
 	while (loggers) {
-		BctoolboxLogHandler* handler = (BctoolboxLogHandler*)loggers->data;
+		bctbx_log_handler_t* handler = (bctbx_log_handler_t*)loggers->data;
 		handler->destroy(handler);
 		loggers = loggers->next;
 	}
@@ -94,17 +103,17 @@ void bctbx_uninit_logger(void){
 	}
 }
 
-BctoolboxLogHandler* bctbx_create_log_handler(BctoolboxLogHandlerFunc func, BctoolboxLogHandlerDestroyFunc destroy, void* user_info) {
-	BctoolboxLogHandler* handler = (BctoolboxLogHandler*)bctbx_malloc(sizeof(BctoolboxLogHandler));
+bctbx_log_handler_t* bctbx_create_log_handler(BctbxLogHandlerFunc func, BctbxLogHandlerDestroyFunc destroy, void* user_info) {
+	bctbx_log_handler_t* handler = (bctbx_log_handler_t*)bctbx_malloc(sizeof(bctbx_log_handler_t));
 	handler->func = func;
 	handler->destroy = destroy;
 	handler->user_info = user_info;
 	return handler;
 }
 
-BctoolboxLogHandler* bctbx_create_file_log_handler(uint64_t max_size, const char* path, const char* name, FILE* f) {
-	BctoolboxLogHandler* handler = (BctoolboxLogHandler*)bctbx_malloc0(sizeof(BctoolboxLogHandler));
-	BctoolboxFileLogHandler* filehandler = (BctoolboxFileLogHandler*)bctbx_malloc(sizeof(BctoolboxFileLogHandler));
+bctbx_log_handler_t* bctbx_create_file_log_handler(uint64_t max_size, const char* path, const char* name, FILE* f) {
+	bctbx_log_handler_t* handler = (bctbx_log_handler_t*)bctbx_malloc0(sizeof(bctbx_log_handler_t));
+	bctbx_file_log_handler_t* filehandler = (bctbx_file_log_handler_t*)bctbx_malloc(sizeof(bctbx_file_log_handler_t));
 	handler->func=bctbx_logv_file;
 	handler->destroy=bctbx_logv_file_destroy;
 	filehandler->max_size = max_size;
@@ -122,30 +131,30 @@ BctoolboxLogHandler* bctbx_create_file_log_handler(uint64_t max_size, const char
 *@param func: your logging function, compatible with the BctoolboxLogFunc prototype.
 *
 **/
-void bctbx_add_log_handler(BctoolboxLogHandler* handler){
+void bctbx_add_log_handler(bctbx_log_handler_t* handler){
 	if (!bctbx_list_find(__bctbx_logger.logv_outs, handler))
 		__bctbx_logger.logv_outs = bctbx_list_append(__bctbx_logger.logv_outs, (void*)handler);
 	/*else, already in*/
 }
 
 static void wrapper(void* info,const char *domain, BctbxLogLevel lev, const char *fmt, va_list args) {
-	BctoolboxLogFunc func = (BctoolboxLogFunc)info;
+	BctbxLogFunc func = (BctbxLogFunc)info;
 	func(domain, lev, fmt,  args);
 }
 
-void bctbx_set_log_handler(BctoolboxLogFunc func){
-	static BctoolboxLogHandler handler;
+void bctbx_set_log_handler(BctbxLogFunc func){
+	static bctbx_log_handler_t handler;
 	handler.func=wrapper;
-	handler.destroy=(BctoolboxLogHandlerDestroyFunc)bctbx_logv_out_destroy;
+	handler.destroy=(BctbxLogHandlerDestroyFunc)bctbx_logv_out_destroy;
 	handler.user_info=(void*)func;
 	bctbx_add_log_handler(&handler);
 }
 
 void bctbx_set_log_file(FILE* f){
-	static BctoolboxFileLogHandler filehandler;
-	static BctoolboxLogHandler handler;
+	static bctbx_file_log_handler_t filehandler;
+	static bctbx_log_handler_t handler;
 	handler.func=bctbx_logv_file;
-	handler.destroy=(BctoolboxLogHandlerDestroyFunc)bctbx_logv_file_destroy;
+	handler.destroy=(BctbxLogHandlerDestroyFunc)bctbx_logv_file_destroy;
 	filehandler.max_size = -1;
 	filehandler.file = f;
 	handler.user_info=(void*) &filehandler;
@@ -338,7 +347,7 @@ void _bctbx_logv_flush(int dummy, ...) {
 		bctbx_list_t *loggers = bctbx_list_first_elem(__bctbx_logger.logv_outs);
 #ifdef _WIN32
 		while (loggers) {
-			BctoolboxLogHandler* handler = (BctoolboxLogHandler*)loggers->data;
+			bctbx_log_handler_t* handler = (bctbx_log_handler_t*)loggers->data;
 			va_list cap;
 			va_copy(cap, empty_va_list);
 			handler->func(handler->user_info, l->domain, l->level, l->msg, cap);
@@ -348,7 +357,7 @@ void _bctbx_logv_flush(int dummy, ...) {
 #else
 		
 		while (loggers) {
-			BctoolboxLogHandler* handler = (BctoolboxLogHandler*)loggers->data;
+			bctbx_log_handler_t* handler = (bctbx_log_handler_t*)loggers->data;
 			va_list cap;
 			va_copy(cap, empty_va_list);
 			handler->func(handler->user_info, l->domain, l->level, l->msg, cap);
@@ -374,7 +383,7 @@ void bctbx_logv(const char *domain, BctbxLogLevel level, const char *fmt, va_lis
 		if (__bctbx_logger.log_thread_id == 0) {
 			bctbx_list_t *loggers = bctbx_list_first_elem(__bctbx_logger.logv_outs);
 			while (loggers) {
-				BctoolboxLogHandler* handler = (BctoolboxLogHandler*)loggers->data;
+				bctbx_log_handler_t* handler = (bctbx_log_handler_t*)loggers->data;
 				va_list tmp;
 				va_copy(tmp, args);
 				handler->func(handler->user_info, domain, level, fmt, tmp);
@@ -386,7 +395,7 @@ void bctbx_logv(const char *domain, BctbxLogLevel level, const char *fmt, va_lis
 			bctbx_logv_flush();
 			loggers = bctbx_list_first_elem(__bctbx_logger.logv_outs);
 			while (loggers) {
-				BctoolboxLogHandler* handler = (BctoolboxLogHandler*)loggers->data;
+				bctbx_log_handler_t* handler = (bctbx_log_handler_t*)loggers->data;
 				va_list tmp;
 				va_copy(tmp, args);
 				handler->func(handler->user_info, domain, level, fmt, tmp);
@@ -476,11 +485,11 @@ void bctbx_logv_out(void* user_info, const char *domain, BctbxLogLevel lev, cons
 	bctbx_free(msg);
 }
 
-void bctbx_logv_out_destroy(BctoolboxLogHandler* handler) {
+void bctbx_logv_out_destroy(bctbx_log_handler_t* handler) {
 	handler->user_info=NULL;
 }
 
-static int _try_open_log_collection_file(BctoolboxFileLogHandler* filehandler) {
+static int _try_open_log_collection_file(bctbx_file_log_handler_t *filehandler) {
 	struct stat statbuf;
 	char *log_filename;
 
@@ -501,7 +510,7 @@ static int _try_open_log_collection_file(BctoolboxFileLogHandler* filehandler) {
 	return 0;
 }
 
-static void _rotate_log_collection_files(BctoolboxFileLogHandler* filehandler) {
+static void _rotate_log_collection_files(bctbx_file_log_handler_t *filehandler) {
 	char *log_filename;
 	char *log_filename2;
 	int n = 1;
@@ -543,14 +552,14 @@ static void _rotate_log_collection_files(BctoolboxFileLogHandler* filehandler) {
 	bctbx_free(log_filename2);
 }
 
-static void _open_log_collection_file(BctoolboxFileLogHandler* filehandler) {
+static void _open_log_collection_file(bctbx_file_log_handler_t *filehandler) {
 	if (_try_open_log_collection_file(filehandler) < 0) {
 		_rotate_log_collection_files(filehandler);
 		_try_open_log_collection_file(filehandler);
 	}
 }
 
-static void _close_log_collection_file(BctoolboxFileLogHandler* filehandler) {
+static void _close_log_collection_file(bctbx_file_log_handler_t *filehandler) {
 	if (filehandler->file) {
 		fclose(filehandler->file);
 		filehandler->file = NULL;
@@ -568,7 +577,7 @@ void bctbx_logv_file(void* user_info, const char *domain, BctbxLogLevel lev, con
 #endif
 	time_t tt;
 	int ret = -1;
-	BctoolboxFileLogHandler* filehandler = (BctoolboxFileLogHandler *) user_info;
+	bctbx_file_log_handler_t *filehandler = (bctbx_file_log_handler_t *) user_info;
 	FILE *f = filehandler->file;
 	bctbx_gettimeofday(&tp,NULL);
 	tt = (time_t)tp.tv_sec;
@@ -633,8 +642,8 @@ void bctbx_logv_file(void* user_info, const char *domain, BctbxLogLevel lev, con
 	bctbx_free(msg);
 }
 
-void bctbx_logv_file_destroy(BctoolboxLogHandler* handler) {
-	BctoolboxFileLogHandler* filehandler = (BctoolboxFileLogHandler *) handler->user_info;
+void bctbx_logv_file_destroy(bctbx_log_handler_t* handler) {
+	bctbx_file_log_handler_t *filehandler = (bctbx_file_log_handler_t *) handler->user_info;
 	fclose(filehandler->file);
 	bctbx_free(filehandler->path);
 	bctbx_free(filehandler->name);
