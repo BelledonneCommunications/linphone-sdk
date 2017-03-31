@@ -107,6 +107,37 @@ char * bctbx_strdup(const char *tmp){
 	return ret;
 }
 
+char * bctbx_dirname(const char *path) {
+	char *ptr;
+	char *dname = bctbx_strdup(path);
+	bool_t found = FALSE;
+
+	ptr = strchr(path, '/');
+	if (ptr != NULL) {
+		dname[ptr - path + 1] = '\0';
+		found = TRUE;
+	} else {
+		ptr = strchr(path, '\\');
+		if (ptr != NULL) {
+			dname[ptr - path + 1] = '\0';
+			found = TRUE;
+		}
+	}
+
+	if (found == FALSE) {
+		bctbx_free(dname);
+		return NULL;
+	}
+	return dname;
+}
+
+char * bctbx_basename(const char *path) {
+	char *ptr = strrchr(path, '/');
+	if (ptr == NULL) ptr = strrchr(path, '\\');
+	if (ptr == NULL) return NULL;
+	return bctbx_strdup(ptr + 1);
+}
+
 /*
  * this method is an utility method that calls fnctl() on UNIX or
  * ioctlsocket on Win32.
