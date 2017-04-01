@@ -114,6 +114,7 @@ void test_cache_getSelfZID(void) {
 	BC_ASSERT_EQUAL((ret = bzrtptester_sqlite3_open(bc_tester_file(patternFilename), &aliceDB)), SQLITE_OK, int, "0x%x");
 	if (ret != SQLITE_OK) {
 		bzrtp_message("Error: unable to find patternZIDAlice.sqlite file. Did you set correctly the --resource-dir argument(current set: %s)", resource_dir==NULL?"NULL":resource_dir);
+		return;
 	}
 
 	BC_ASSERT_EQUAL(bzrtp_getSelfZID(aliceDB, "alice@sip.linphone.org", selfZIDalice, aliceContext->RNGContext), 0, int, "%x");
@@ -151,6 +152,10 @@ void test_cache_zrtpSecrets(void) {
 	/* open the pattern file and set it in the zrtp context as zidcache db */
 	sprintf(patternFilename, "%s/patternZIDAlice.sqlite", resource_dir);
 	BC_ASSERT_EQUAL((ret = bzrtptester_sqlite3_open(bc_tester_file(patternFilename), &aliceDB)), SQLITE_OK, int, "0x%x");
+	if (ret != SQLITE_OK) {
+		bzrtp_message("Error: unable to find patternZIDAlice.sqlite file. Did you set correctly the --resource-dir argument(current set: %s)", resource_dir==NULL?"NULL":resource_dir);
+		return;
+	}
 	BC_ASSERT_EQUAL(bzrtp_setZIDCache(aliceContext, (void *)aliceDB, "alice@sip.linphone.org", "bob@sip.linphone.org"),0,int,"%x");
 
 	/* get Secrets */
