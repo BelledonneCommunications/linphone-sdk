@@ -80,8 +80,9 @@ typedef enum _MSZrtpSasType{
 } MSZrtpSasType;
 
 typedef struct MSZrtpParams {
-	const char *zid_file; // File where to store secrets and other information
-	const char *uri; /* the sip URI of correspondant, needed to enable the exportedKey computation used for lime */
+	void *zidCacheDB; /**< a pointer to an sqlite database holding all zrtp related information */
+	const char *selfUri; /* our sip URI, needed for zrtp Cache */
+	const char *peerUri; /* the sip URI of correspondant, needed for zrtp Cache */
 	uint32_t limeKeyTimeSpan; /**< amount in seconds of the lime key life span, set to 0 for infinite life span **/
 
 	/* activated crypto types */

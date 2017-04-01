@@ -31,23 +31,15 @@
 #undef PACKAGE_VERSION
 #include <bzrtp/bzrtp.h>
 
-struct _MSZidCacheContext{
-	char *zidFilename; /**< cache filename */
-	char *peerURI; /**< use for cache management */
-	uint32_t limeKeyTimeSpan; /**< amount in seconds of the lime key life span */
-};
-
-typedef struct _MSZidCacheContext MSZidCacheContext;
-
 struct _MSZrtpContext{
 	MSMediaStreamSessions *stream_sessions; /**< a retro link to the stream session as we need it to configure srtp sessions */
 	uint32_t self_ssrc; /**< store the sender ssrc as it is needed by zrtp to manage channels(and we may destroy stream_sessions before destroying zrtp's one) */
 	RtpTransportModifier *rtp_modifier; /**< transport modifier needed to be able to inject the ZRTP packet for sending */
 	bzrtpContext_t *zrtpContext; /**< the opaque zrtp context from libbzrtp */
-	MSZidCacheContext *zidCacheContext; /**< pointer to the cache context to be able to free it when destroying context */
+	/* cache related data */
+	uint32_t limeKeyTimeSpan; /**< amount in seconds of the lime key life span */
+	void *cacheDB; /**< pointer to an already open sqlite db holding the zid cache */
 };
-
-
 
 /***********************************************/
 /***** LOCAL FUNCTIONS                     *****/
@@ -271,57 +263,6 @@ static int ms_zrtp_startSrtpSession(void *clientData,  const bzrtpSrtpSecrets_t 
 }
 
 /**
- * @brief Load the zrtp cache file into the given buffer
- * The output buffer is allocated by this function and is freed by lib bzrtp
- *
- * @param[in]	zidCacheData	Pointer to our ZidCacheContext structure used to retrieve ZID filename
- * @param[out]	output			Output buffer contains an XML null terminated string: the whole cache file. Is allocated by this function and freed by lib bzrtp
- * @param[out]	outputSize		Buffer length in bytes
- * @return	outputSize
- */
-static int ms_zrtp_loadCache(void *zidCacheData, uint8_t** output, uint32_t *outputSize, zrtpFreeBuffer_callback *cb) {
-	/* get filename from ClientData */
-	MSZidCacheContext *userData = (MSZidCacheContext *)zidCacheData;
-	char *filename = userData->zidFilename;
-	size_t nbytes=0;
-	FILE *CACHEFD = fopen(filename, "rb+");
-	if (CACHEFD == NULL) { /* file doesn't seem to exist, try to create it */
-		CACHEFD = fopen(filename, "wb");
-		if (CACHEFD != NULL) { /* file created with success */
-			*output = NULL;
-			*outputSize = 0;
-			fclose(CACHEFD);
-			return 0;
-		}
-		return -1;
-	}
-	*output=(uint8_t*)ms_load_file_content(CACHEFD, &nbytes);
-	*outputSize = (uint32_t)(nbytes+1);
-	*cb=ms_free;
-	fclose(CACHEFD);
-	return *outputSize;
-}
-
-/**
- * @brief Dump the content of a string in the cache file
- * @param[in]	zidCacheData	Pointer to our ZidCacheContext structure used to retrieve ZID filename
- * @param[in]	input			An XML string to be dumped into cache
- * @param[in]	inputSize		input string length in bytes
- * @return	number of bytes written to file
- */
-static int ms_zrtp_writeCache(void *zidCacheData, const uint8_t* input, uint32_t inputSize) {
-	/* get filename from ClientData */
-	MSZidCacheContext *userData = (MSZidCacheContext *)zidCacheData;
-	char *filename = userData->zidFilename;
-
-	FILE *CACHEFD = fopen(filename, "w+");
-	int retval = (int)fwrite(input, 1, inputSize, CACHEFD);
-	fclose(CACHEFD);
-	return retval;
-
-}
-
-/**
  * @brief This callback is called when context is ready to compute exported keys as in rfc6189 section 4.5.2
  * Computed keys are added to zid cache with sip URI of peer(found in client Data) to be used for LIME(IM ciphering)
  *
@@ -332,67 +273,58 @@ static int ms_zrtp_writeCache(void *zidCacheData, const uint8_t* input, uint32_t
  *
  * @return 	0 on success
  */
-static int ms_zrtp_addExportedKeysInZidCache(void *zidCacheData, void *clientData, uint8_t peerZid[12], uint8_t role) {
+static int ms_zrtp_addExportedKeysInZidCache(void *clientData, int zuid, uint8_t role) {
 	MSZrtpContext *userData = (MSZrtpContext *)clientData;
-	MSZidCacheContext *zidCache = (MSZidCacheContext *)zidCacheData;
-
 	bzrtpContext_t *zrtpContext = userData->zrtpContext;
 	bctoolboxTimeSpec currentTime;
-	uint8_t currentTimeHex[17];
+	/* columns to be written in cache */
+	char *colNames[] = {"sndKey", "rcvKey", "sndSId", "rcvSId", "sndIndex", "rcvIndex", "valid"};
+	uint8_t *colValues[7];
+	size_t colLength[] = {32, 32, 32, 32, 4, 4, 8}; /* data length: keys and session ID : 32 bytes, Indexes: 4 bytes(uint32_t), validity : 8 bytes(UTC time as int64_t) */
+	int i,ret;
 
-	/* Derive the master keys and session Id 32 bytes each */
-	bzrtp_addCustomDataInCache(zrtpContext, peerZid, (uint8_t *)"sndKey", 6, (uint8_t *)((role==RESPONDER)?"ResponderKey":"InitiatorKey"), 12, 32,
-					BZRTP_CUSTOMCACHE_USEKDF,
-					BZRTP_CACHE_LOADFILE|BZRTP_CACHE_DONTWRITEFILE,
-					BZRTP_CUSTOMCACHE_MULTIPLETAG_FORBID);
-	bzrtp_addCustomDataInCache(zrtpContext, peerZid, (uint8_t *)"rcvKey", 6, (uint8_t *)((role==RESPONDER)?"InitiatorKey":"ResponderKey"), 12, 32,
-					BZRTP_CUSTOMCACHE_USEKDF,
-					BZRTP_CACHE_DONTLOADFILE|BZRTP_CACHE_DONTWRITEFILE,
-					BZRTP_CUSTOMCACHE_MULTIPLETAG_FORBID);
-	bzrtp_addCustomDataInCache(zrtpContext, peerZid, (uint8_t *)"sndSId", 6, (uint8_t *)((role==RESPONDER)?"ResponderSId":"InitiatorSId"), 12, 32,
-					BZRTP_CUSTOMCACHE_USEKDF,
-					BZRTP_CACHE_DONTLOADFILE|BZRTP_CACHE_DONTWRITEFILE,
-					BZRTP_CUSTOMCACHE_MULTIPLETAG_FORBID);
-	bzrtp_addCustomDataInCache(zrtpContext, peerZid, (uint8_t *)"rcvSId", 6, (uint8_t *)((role==RESPONDER)?"InitiatorSId":"ResponderSId"), 12, 32,
-					BZRTP_CUSTOMCACHE_USEKDF,
-					BZRTP_CACHE_DONTLOADFILE|BZRTP_CACHE_DONTWRITEFILE,
-					BZRTP_CUSTOMCACHE_MULTIPLETAG_FORBID);
-
-	if (zidCache->peerURI) {
-		/* Write the peer sip URI in cache, allow multiple tag as we can have more than one uri attached to a ZID(device) */
-		bzrtp_addCustomDataInCache(zrtpContext, peerZid, (uint8_t *)"uri", 3, (uint8_t *)(zidCache->peerURI), (uint16_t)strlen(zidCache->peerURI), 0,
-						BZRTP_CUSTOMCACHE_PLAINDATA,
-						BZRTP_CACHE_DONTLOADFILE|BZRTP_CACHE_DONTWRITEFILE,
-						BZRTP_CUSTOMCACHE_MULTIPLETAG_ALLOW);
+	/* allocate colValues */
+	for (i=0; i<7; i++) {
+		colValues[i] = (uint8_t *)ms_malloc(colLength[i]*sizeof(uint8_t));
 	}
 
-	/* Derive session index, 4 bytes */
-	bzrtp_addCustomDataInCache(zrtpContext, peerZid, (uint8_t *)"sndIndex", 8, (uint8_t *)((role==RESPONDER)?"ResponderIndex":"InitiatorIndex"), 14, 4,
-					BZRTP_CUSTOMCACHE_USEKDF,
-					BZRTP_CACHE_DONTLOADFILE|BZRTP_CACHE_DONTWRITEFILE,
-					BZRTP_CUSTOMCACHE_MULTIPLETAG_FORBID);
-	bzrtp_addCustomDataInCache(zrtpContext, peerZid, (uint8_t *)"rcvIndex", 8, (uint8_t *)((role==RESPONDER)?"InitiatorIndex":"ResponderIndex"), 14, 4,
-					BZRTP_CUSTOMCACHE_USEKDF,
-					BZRTP_CACHE_DONTLOADFILE|BZRTP_CACHE_DONTWRITEFILE,
-					BZRTP_CUSTOMCACHE_MULTIPLETAG_FORBID);
+	/* First compute the exported keys */
+	bzrtp_exportKey(zrtpContext, ((role==BZRTP_ROLE_RESPONDER)?"ResponderKey":"InitiatorKey"), 12, colValues[0], &colLength[0]); /* sndKey */
+	bzrtp_exportKey(zrtpContext, ((role==BZRTP_ROLE_RESPONDER)?"InitiatorKey":"ResponderKey"), 12, colValues[1], &colLength[1]); /* rcvKey */
+	bzrtp_exportKey(zrtpContext, ((role==BZRTP_ROLE_RESPONDER)?"ResponderSId":"InitiatorSId"), 12, colValues[2], &colLength[2]); /* snd Session Id*/
+	bzrtp_exportKey(zrtpContext, ((role==BZRTP_ROLE_RESPONDER)?"InitiatorSId":"ResponderSId"), 12, colValues[3], &colLength[3]); /* rcv Session Id*/
+	bzrtp_exportKey(zrtpContext, ((role==BZRTP_ROLE_RESPONDER)?"ResponderIndex":"InitiatorIndex"), 14, colValues[4], &colLength[4]); /* snd Index */
+	bzrtp_exportKey(zrtpContext, ((role==BZRTP_ROLE_RESPONDER)?"InitiatorIndex":"ResponderIndex"), 14, colValues[5], &colLength[5]); /* rcv Index */
 
-	/* Add the key lifetime end, if the life span is 0, we shall just put 0 in the expiration period as it means valid for ever */
-	if (zidCache->limeKeyTimeSpan == 0) {
-		bzrtp_addCustomDataInCache(zrtpContext, peerZid, (uint8_t *)"valid", 5, (uint8_t *)"0000000000000000", 16, 0,
-					BZRTP_CUSTOMCACHE_PLAINDATA,
-					BZRTP_CACHE_DONTLOADFILE|BZRTP_CACHE_WRITEFILE,
-					BZRTP_CUSTOMCACHE_MULTIPLETAG_FORBID);
-	}else  {
+	/* insert validity */
+	if (userData->limeKeyTimeSpan == 0) { /* time span is 0: key is forever valid, just put 0 in cache */
+		memset(colValues[6], 0, 8);
+	} else { /* get current time and add time span */
 		bctbx_get_utc_cur_time(&currentTime);
-		bctbx_timespec_add(&currentTime, (int64_t)(zidCache->limeKeyTimeSpan));
-		bctbx_uint64ToStr(currentTimeHex, currentTime.tv_sec);
-		bzrtp_addCustomDataInCache(zrtpContext, peerZid, (uint8_t *)"valid", 5, currentTimeHex, (uint16_t)strlen((char *)currentTimeHex), 0,
-					BZRTP_CUSTOMCACHE_PLAINDATA,
-					BZRTP_CACHE_DONTLOADFILE|BZRTP_CACHE_WRITEFILE,
-					BZRTP_CUSTOMCACHE_MULTIPLETAG_FORBID);
+		bctbx_timespec_add(&currentTime, (int64_t)(userData->limeKeyTimeSpan));
+		/* store the int64_t in big endian in the cache(cache is not typed, all data seen as blob) */
+		colValues[6][0] = (currentTime.tv_sec>>56)&0xFF;
+		colValues[6][1] = (currentTime.tv_sec>>48)&0xFF;
+		colValues[6][2] = (currentTime.tv_sec>>40)&0xFF;
+		colValues[6][3] = (currentTime.tv_sec>>32)&0xFF;
+		colValues[6][4] = (currentTime.tv_sec>>24)&0xFF;
+		colValues[6][5] = (currentTime.tv_sec>>16)&0xFF;
+		colValues[6][6] = (currentTime.tv_sec>>8)&0xFF;
+		colValues[6][7] = (currentTime.tv_sec)&0xFF;
 	}
 
-	return 0;
+	/* colValues 4 and 5 hold index(uint32_t as 4 bytes in big endian), make sure the first bit on the MSB is set to 0 to avoid loop in the index */
+	colValues[4][0] &= 0x7F;
+	colValues[5][0] &= 0x7F;
+
+	/* then insert all in cache */
+	ret = bzrtp_cache_write(userData->cacheDB, zuid, "lime", colNames, colValues, colLength, 7);
+
+	for (i=0; i<7; i++) {
+		ms_free(colValues[i]);
+	}
+
+	return ret;
 }
 
 /*************************************************/
@@ -609,41 +541,17 @@ bool_t ms_zrtp_available(){return TRUE;}
 
 MSZrtpContext* ms_zrtp_context_new(MSMediaStreamSessions *sessions, MSZrtpParams *params) {
 	MSZrtpContext *userData;
-	MSZidCacheContext *ZidCache;
 	bzrtpContext_t *context;
 	bzrtpCallbacks_t cbs={0};
 
 	ms_message("Creating ZRTP engine on rtp session [%p] ssrc 0x%x",sessions->rtp_session, sessions->rtp_session->snd.ssrc);
 	context = bzrtp_createBzrtpContext();
 
-	/* create the Zid cache context and give it to the zrpt context */
-	ZidCache = ms_new0(MSZidCacheContext,1);
-
-	if (params->zid_file != NULL) {
+	if (params->zidCacheDB != NULL && params->selfUri != NULL && params->peerUri) { /* to enable cache we need a self and peer uri and a pointer to the sqlite cache DB */
 		/*enabling cache*/
-		cbs.bzrtp_loadCache=ms_zrtp_loadCache;
-		cbs.bzrtp_writeCache=ms_zrtp_writeCache;
-
-		ZidCache->zidFilename = (char *)ms_malloc(strlen(params->zid_file)+1);
-		memcpy(ZidCache->zidFilename, params->zid_file, strlen(params->zid_file));
-		ZidCache->zidFilename[strlen(params->zid_file)] = '\0';
-
-		/* enable exportedKeys computation only if we have an uri to associate them */
-		if (params->uri && strlen(params->uri)>0) {
-			cbs.bzrtp_contextReadyForExportedKeys=ms_zrtp_addExportedKeysInZidCache;
-			ZidCache->peerURI = ms_strdup(params->uri);
-			ZidCache->limeKeyTimeSpan = params->limeKeyTimeSpan;
-		} else {
-			ZidCache->peerURI = NULL;
-			ZidCache->limeKeyTimeSpan = 0;
-		}
-	} else {
-		ZidCache->zidFilename = NULL;
-		ZidCache->peerURI = NULL;
-		ZidCache->limeKeyTimeSpan = 0;
+		bzrtp_setZIDCache(context, params->zidCacheDB, params->selfUri, params->peerUri);
+		cbs.bzrtp_contextReadyForExportedKeys=ms_zrtp_addExportedKeysInZidCache;
 	}
-
-	bzrtp_setZIDCacheData(context, ZidCache);
 
 	/* set other callback functions */
 	cbs.bzrtp_sendData=ms_zrtp_sendDataZRTP;
@@ -667,7 +575,9 @@ MSZrtpContext* ms_zrtp_context_new(MSMediaStreamSessions *sessions, MSZrtpParams
 	userData->zrtpContext=context;
 	userData->stream_sessions=sessions;
 	userData->self_ssrc = sessions->rtp_session->snd.ssrc;
-	userData->zidCacheContext = ZidCache; /* add a link to the ZidCache to be able to free it when we will destroy this context */
+
+	userData->limeKeyTimeSpan = params->limeKeyTimeSpan;
+	userData->cacheDB = params->zidCacheDB; /* add a link to the ZidCache to be able to free it when we will destroy this context */
 
 	bzrtp_setClientData(context, sessions->rtp_session->snd.ssrc, (void *)userData);
 
@@ -686,7 +596,7 @@ MSZrtpContext* ms_zrtp_multistream_new(MSMediaStreamSessions *sessions, MSZrtpCo
 	userData->zrtpContext=activeContext->zrtpContext;
 	userData->stream_sessions = sessions;
 	userData->self_ssrc = sessions->rtp_session->snd.ssrc;
-	userData->zidCacheContext = activeContext->zidCacheContext; /* add a link to the ZidCache to be able to free it when we will destroy this context */
+	/* no cache related information here as it is not needed for multistream channel */
 	bzrtp_setClientData(activeContext->zrtpContext, sessions->rtp_session->snd.ssrc, (void *)userData);
 
 	return ms_zrtp_configure_context(userData, sessions->rtp_session);
@@ -710,14 +620,7 @@ int ms_zrtp_channel_start(MSZrtpContext *ctx) {
 
 void ms_zrtp_context_destroy(MSZrtpContext *ctx) {
 	ms_message("Stopping ZRTP context on session [%p]", ctx->stream_sessions ? ctx->stream_sessions->rtp_session : NULL);
-	if (bzrtp_destroyBzrtpContext(ctx->zrtpContext, ctx->self_ssrc) == 0) {
-		/* we have destroyed the last channel in this zrtp session, free the zidCache context if it exists */
-		if (ctx->zidCacheContext != NULL) {
-			if (ctx->zidCacheContext->zidFilename) ms_free(ctx->zidCacheContext->zidFilename);
-			if (ctx->zidCacheContext->peerURI) ms_free(ctx->zidCacheContext->peerURI);
-			ms_free(ctx->zidCacheContext);
-		}
-	}
+	bzrtp_destroyBzrtpContext(ctx->zrtpContext, ctx->self_ssrc);
 	ms_free(ctx);
 	ms_message("ZRTP context destroyed");
 }
