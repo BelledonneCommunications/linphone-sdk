@@ -56,7 +56,6 @@ typedef struct _FilterData FilterData;
 
 static void ogl_init (MSFilter *f) {
 	FilterData *data = ms_new0(FilterData, 1);
-
 	data->display = ogl_display_new();
 	data->show_video = TRUE;
 
@@ -64,18 +63,21 @@ static void ogl_init (MSFilter *f) {
 }
 
 static void ogl_uninit (MSFilter *f) {
-	FilterData *data = ms_new0(FilterData, 1);
+	FilterData *data = f->data;
 	ogl_display_free(data->display);
 	ms_free(data);
 }
 
 static void ogl_process (MSFilter *f) {
-	FilterData *data = f->data;
-	ContextInfo *context_info = &data->context_info;
+	FilterData *data;
+	ContextInfo *context_info;
 	MSPicture src;
 	mblk_t *inm;
 
 	ms_filter_lock(f);
+
+	data = f->data;
+	context_info = &data->context_info;
 
 	// No context given or video disabled.
 	if (!context_info->width || !context_info->height || !context_info->functions || !data->show_video)
@@ -110,20 +112,21 @@ end:
 // =============================================================================
 
 static int ogl_set_video_size (MSFilter *f, void *arg) {
-	FilterData *data = f->data;
-
 	ms_filter_lock(f);
-	data->video_size = *(MSVideoSize *)arg;
+	((FilterData *)f->data)->video_size = *(MSVideoSize *)arg;
 	ms_filter_unlock(f);
 
 	return 0;
 }
 
 static int ogl_set_native_window_id (MSFilter *f, void *arg) {
-	FilterData *data = f->data;
-	ContextInfo *context_info = *((ContextInfo **)arg);
+	FilterData *data;
+	ContextInfo *context_info;
 
 	ms_filter_lock(f);
+
+	data = f->data;
+	context_info = *((ContextInfo **)arg);
 
 	if (context_info) {
 		ms_message(
@@ -151,42 +154,39 @@ static int ogl_get_native_window_id (MSFilter *f, void *arg) {
 }
 
 static int ogl_show_video (MSFilter *f, void *arg) {
-	FilterData *data = f->data;
-
 	ms_filter_lock(f);
-	data->show_video = *(bool_t *)arg;
+	((FilterData *)f->data)->show_video = *(bool_t *)arg;
 	ms_filter_unlock(f);
 
 	return 0;
 }
 
 static int ogl_zoom (MSFilter *f, void *arg) {
-	FilterData *data = f->data;
-
 	ms_filter_lock(f);
-	ogl_display_zoom(data->display, arg);
+	ogl_display_zoom(((FilterData *)f->data)->display, arg);
 	ms_filter_lock(f);
 
 	return 0;
 }
 
 static int ogl_enable_mirroring (MSFilter *f, void *arg) {
-	FilterData *data = f->data;
-
 	ms_filter_lock(f);
-	data->mirroring = *(bool_t *)arg;
+	((FilterData *)f->data)->mirroring = *(bool_t *)arg;
 	ms_filter_lock(f);
 
 	return 0;
 }
 
 static int ogl_call_render (MSFilter *f, void *arg) {
-	FilterData *data = f->data;
-	const ContextInfo *context_info = &data->context_info;
+	FilterData *data;
+	const ContextInfo *context_info;
 
 	(void)arg;
 
 	ms_filter_lock(f);
+
+	data = f->data;
+	context_info = &data->context_info;
 
 	if (context_info->width && context_info->height && context_info->functions && data->show_video) {
 		if (data->update_context) {
