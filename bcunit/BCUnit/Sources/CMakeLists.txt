@@ -155,11 +155,18 @@ endif()
 
 if(ENABLE_STATIC)
 	add_library(bcunit STATIC ${SOURCE_FILES})
-	target_link_libraries(bcunit ${CURSES_LIBRARIES})
+	if(ANDROID)
+		target_link_libraries(bcunit INTERFACE "log")
+	endif()
+	if(CURSES_LIBRARIES)
+		target_link_libraries(bcunit INTERFACE ${CURSES_LIBRARIES})
+	endif()
 else()
 	add_library(bcunit SHARED ${SOURCE_FILES})
 	set_target_properties(bcunit PROPERTIES VERSION 1.0.1)
-	target_link_libraries(bcunit ${CURSES_LIBRARIES})
+	if(CURSES_LIBRARIES)
+		target_link_libraries(bcunit ${CURSES_LIBRARIES})
+	endif()
 	if(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
 			install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/bcunit.pdb
@@ -169,7 +176,7 @@ else()
 		endif()
 	endif()
 endif()
-install(TARGETS bcunit
+install(TARGETS bcunit EXPORT BcUnitTargets
 	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}

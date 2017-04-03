@@ -100,3 +100,26 @@ add_subdirectory(Share)
 if(ENABLE_EXAMPLES)
 	add_subdirectory(Examples)
 endif()
+
+
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+	"${CMAKE_CURRENT_BINARY_DIR}/BcUnitConfigVersion.cmake"
+	VERSION ${PACKAGE_VERSION}
+	COMPATIBILITY AnyNewerVersion
+)
+export(EXPORT BcUnitTargets
+	FILE "${CMAKE_CURRENT_BINARY_DIR}/BcUnitTargets.cmake"
+)
+configure_file(BcUnitConfig.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/BcUnitConfig.cmake" @ONLY)
+
+set(CONFIG_PACKAGE_LOCATION "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/cmake")
+install(EXPORT BcUnitTargets
+	FILE BcUnitTargets.cmake
+	DESTINATION ${CONFIG_PACKAGE_LOCATION}
+)
+install(FILES
+	"${CMAKE_CURRENT_BINARY_DIR}/BcUnitConfig.cmake"
+	"${CMAKE_CURRENT_BINARY_DIR}/BcUnitConfigVersion.cmake"
+	DESTINATION ${CONFIG_PACKAGE_LOCATION}
+)
