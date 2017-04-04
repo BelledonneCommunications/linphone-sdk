@@ -41,6 +41,17 @@ android {
     }
 }
 
+android {
+    libraryVariants.all { variant ->
+        def appName = "libmediastreamer2-sdk"
+
+        variant.outputs.each { output ->
+            def newSdkName = "bin/outputs/aar/${appName}.aar"
+            output.outputFile = new File(newSdkName)
+        }
+    }
+}
+
 ///////////// Task /////////////
 
 task(releaseJavadoc, type: Javadoc, dependsOn: "assembleRelease") {
@@ -61,7 +72,13 @@ task androidJavadocsJar(type: Jar, dependsOn: releaseJavadoc) {
     from releaseJavadoc.destinationDir
 }
 
-artifacts {
-    archives sourcesJar
-    archives androidJavadocsJar
+task sdkZip(type: Zip, dependsOn: ["sourcesJar", "androidJavadocsJar"]) {
+    String appName = "libmediastreamer2-sdk"
+    String gitSha = 'git describe --always'.execute().text.trim()
+    String newSdkName = appName + "-" + gitSha + ".zip"
+
+    from('bin/libs',
+            'bin/outputs/aar')
+    include '*'
+    archiveName newSdkName
 }
