@@ -30,7 +30,7 @@ typedef struct {
 	FILE *file;
 	char *filename;
 	char *tmpFilename;
-	tjhandle *turboJpeg;
+	tjhandle turboJpeg;
 	MSFilter *f;
 }JpegWriter;
 
@@ -125,7 +125,11 @@ static void jpg_process(MSFilter *f) {
 
 		error = tjCompressFromYUVPlanes(
 			s->turboJpeg,
+#ifdef TURBOJPEG_USE_CONST_BUFFERS
 			(const unsigned char **)yuvbuf.planes,
+#else
+			(unsigned char **)yuvbuf.planes,
+#endif
 			yuvbuf.w,
 			yuvbuf.strides,
 			yuvbuf.h,

@@ -401,6 +401,9 @@ if(ENABLE_VIDEO)
 		list(APPEND VOIP_SOURCE_FILES_C
 			videofilters/turbojpegwriter.c
 		)
+		if(TURBOJPEG_USE_CONST_BUFFERS)
+			set_source_files_properties(videofilters/turbojpegwriter.c PROPERTIES COMPILE_DEFINITIONS "TURBOJPEG_USE_CONST_BUFFERS")
+		endif()
 	endif()
 	if(OPENGL_FOUND OR QTANGLE_FOUND)
 		list(APPEND VOIP_SOURCE_FILES_C

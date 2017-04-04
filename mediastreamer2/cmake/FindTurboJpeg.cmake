@@ -39,10 +39,31 @@ find_library(TURBOJPEG_LIBRARIES
 	PATH_SUFFIXES bin lib
 )
 
+if(TURBOJPEG_INCLUDE_DIRS AND TURBOJPEG_LIBRARIES)
+	include(CheckCSourceCompiles)
+	include(CMakePushCheckState)
+
+	cmake_push_check_state(RESET)
+	list(APPEND CMAKE_REQUIRED_INCLUDES ${TURBOJPEG_INCLUDE_DIRS})
+	list(APPEND CMAKE_REQUIRED_LIBRARIES ${TURBOJPEG_LIBRARIES})
+	check_c_source_compiles("
+#include <turbojpeg.h>
+int main(int argc, char *argv[]) {
+	tjhandle handle = 0;
+	const unsigned char *srcPlanes = 0;
+	const int *strides = 0;
+	unsigned char *jpegBuf = 0;
+	unsigned long jpegSize = 0;
+	int width = 0, height = 0, subsamp = 0, jpegQual = 0, flags = 0;
+	return tjCompressFromYUVPlanes(handle, &srcPlanes, width, strides, height, subsamp, &jpegBuf, &jpegSize, jpegQual, flags);
+}" TURBOJPEG_USE_CONST_BUFFERS)
+	cmake_pop_check_state()
+endif()
+
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(TurboJpeg
 	DEFAULT_MSG
 	TURBOJPEG_INCLUDE_DIRS TURBOJPEG_LIBRARIES
 )
 
-mark_as_advanced(TURBOJPEG_INCLUDE_DIRS TURBOJPEG_LIBRARIES)
+mark_as_advanced(TURBOJPEG_INCLUDE_DIRS TURBOJPEG_LIBRARIES TURBOJPEG_USE_CONST_BUFFERS)
