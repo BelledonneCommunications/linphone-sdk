@@ -89,7 +89,7 @@ int main (int argc, char *argv[]) {
 	int i;
 	int ret;
 
-	bctbx_init_logger();
+	bctbx_init_logger(TRUE);
 	bctoolbox_tester_init(NULL);
 
 	for(i=1;i<argc;++i){
