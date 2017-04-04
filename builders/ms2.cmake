@@ -23,7 +23,7 @@
 lcb_git_repository("git://git.linphone.org/mediastreamer2.git")
 lcb_git_tag_latest("master")
 lcb_git_tag("2.14.0")
-lcb_external_source_paths("mediastreamer2" "linphone/mediastreamer2")
+lcb_external_source_paths("mediastreamer2")
 lcb_groupable(YES)
 lcb_spec_file("mediastreamer2.spec")
 lcb_rpmbuild_name("mediastreamer")

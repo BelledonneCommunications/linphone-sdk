@@ -23,7 +23,7 @@
 lcb_git_repository("git://git.linphone.org/ortp.git")
 lcb_git_tag_latest("master")
 lcb_git_tag("0.27.0")
-lcb_external_source_paths("oRTP" "ortp" "linphone/oRTP")
+lcb_external_source_paths("oRTP" "ortp")
 lcb_groupable(YES)
 
 lcb_dependencies("bctoolbox")
