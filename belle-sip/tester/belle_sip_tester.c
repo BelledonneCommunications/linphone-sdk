@@ -213,7 +213,7 @@ int main (int argc, char *argv[]) {
 	if (env_domain) {
 		test_domain=env_domain;
 	}
-	bctbx_init_logger();
+	bctbx_init_logger(TRUE);
 	
 	for(i=1;i<argc;++i){
 		if (strcmp(argv[i],"--verbose")==0){
