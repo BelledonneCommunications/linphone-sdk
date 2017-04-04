@@ -39,6 +39,9 @@ set(PACKAGE_TARNAME "bcunit")
 set(PACKAGE_URL "")
 
 
+option(ENABLE_SHARED "Build shared library." YES)
+option(ENABLE_STATIC "Build static library." YES)
+
 option(ENABLE_AUTOMATED "Compile BCUnit automated interface" ON)
 option(ENABLE_BASIC "Compile BCUnit basic interface" ON)
 option(ENABLE_CONSOLE "Compile BCUnit console interface" ON)
