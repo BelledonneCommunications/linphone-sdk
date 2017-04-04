@@ -66,13 +66,14 @@ typedef struct _BctoolboxFileLogHandler{
 static BctoolboxLogger __bctbx_logger = { NULL, BCTBX_LOG_WARNING|BCTBX_LOG_ERROR|BCTBX_LOG_FATAL, 0};
 
 static unsigned int bctbx_init_logger_refcount = 0;
-void bctbx_init_logger(void){
-	BctoolboxLogHandler* handler;
+void bctbx_init_logger(bool_t create){
 	if (bctbx_init_logger_refcount++ > 0) return; /*already initialized*/
 	
 	bctbx_mutex_init(&__bctbx_logger.domains_mutex, NULL);
-	handler = bctbx_create_log_handler(bctbx_logv_out, bctbx_logv_out_destroy, NULL);
-	bctbx_add_log_handler(handler);
+	if(create) {
+		BctoolboxLogHandler* handler = bctbx_create_log_handler(bctbx_logv_out, bctbx_logv_out_destroy, NULL);
+		bctbx_add_log_handler(handler);
+	}
 }
 
 void bctbx_log_handlers_free(void) {

@@ -57,7 +57,9 @@ typedef void (*BctoolboxLogHandlerDestroyFunc)(BctoolboxLogHandler* handler);
 /*
  initialise logging functions, add default log handler for stdout output.
  */
-BCTBX_PUBLIC void bctbx_init_logger(void);
+BCTBX_PUBLIC void bctbx_init_logger(bool_t create);
+#define bctbx_init_logger() bctbx_init_logger(TRUE);
+
 /*
  free logging memory
  */
