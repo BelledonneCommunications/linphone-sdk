@@ -54,6 +54,7 @@ struct SenderData {
 	bool_t mute;
 	bool_t use_task;
 	bool_t stun_enabled;
+	bool_t enable_ts_adjustment;
 };
 
 typedef struct SenderData SenderData;
@@ -122,6 +123,7 @@ static void sender_init(MSFilter * f)
 	d->timestamp_adjustment_threshold = d->rate / 5;
 	if (d->use_task) ms_message("MSRtpSend will use tasks to send out packet at the beginning of ticks.");
 	d->stun_enabled = TRUE;
+	d->enable_ts_adjustment = TRUE;
 	f->data = d;
 }
 
@@ -251,7 +253,7 @@ static uint32_t get_cur_timestamp(MSFilter * f, mblk_t *im){
 		uint32_t packet_ts=mblk_get_timestamp_info(im);
 		if (d->last_sent_time==-1){
 			d->tsoff = curts - packet_ts;
-		}else{
+		}else if (d->enable_ts_adjustment){
 			diffts=packet_ts-d->last_ts;
 			difftime_ts=(int)(((f->ticker->time-d->last_sent_time)*d->rate)/1000);
 			/* detect timestamp jump in the stream and adjust so that they become continuous on the network*/
@@ -507,6 +509,12 @@ static int get_sender_output_fmt(MSFilter *f, void *arg) {
 	return 0;
 }
 
+static int enable_ts_adjustment(MSFilter *f, void *data){
+	SenderData *d = (SenderData *) f->data;
+	d->enable_ts_adjustment = *(bool_t*)data;
+	return 0;
+}
+
 static MSFilterMethod sender_methods[] = {
 	{MS_RTP_SEND_MUTE, sender_mute},
 	{MS_RTP_SEND_UNMUTE, sender_unmute},
@@ -519,6 +527,7 @@ static MSFilterMethod sender_methods[] = {
 	{MS_RTP_SEND_SEND_GENERIC_CN, sender_send_generic_cn },
 	{ MS_RTP_SEND_ENABLE_STUN, sender_enable_stun },
 	{ MS_FILTER_GET_OUTPUT_FMT, get_sender_output_fmt },
+	{ MS_RTP_SEND_ENABLE_TS_ADJUSTMENT, enable_ts_adjustment },
 	{0, NULL}
 };
 

@@ -790,6 +790,7 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 	bool_t has_builtin_ec=FALSE;
 	bool_t resampler_missing = FALSE;
 	bool_t skip_encoder_and_decoder = FALSE;
+	bool_t do_ts_adjustments = TRUE;
 
 	if (!ms_media_stream_io_is_consistent(io)) return -1;
 
@@ -890,6 +891,8 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 			skip_encoder_and_decoder = ms_fmt_descriptor_equals(sndread_format.fmt, rtpsend_format.fmt) && ms_fmt_descriptor_equals(rtprecv_format.fmt, sndwrite_format.fmt);
 		}
 	}
+	do_ts_adjustments = !skip_encoder_and_decoder;
+	ms_filter_call_method(stream->ms.rtpsend, MS_RTP_SEND_ENABLE_TS_ADJUSTMENT, &do_ts_adjustments);
 	
 	if (!skip_encoder_and_decoder) {
 		stream->ms.encoder=ms_factory_create_encoder(stream->ms.factory, pt->mime_type);

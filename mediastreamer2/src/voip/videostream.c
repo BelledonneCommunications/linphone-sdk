@@ -852,11 +852,13 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 	bool_t avpf_enabled = FALSE;
 	bool_t rtp_source = FALSE;
 	bool_t rtp_output = FALSE;
+	bool_t do_ts_adjustments;
 
 	if (source == NULL) {
 		source = stream->source;
 	}
 	rtp_source = (source && ms_filter_get_id(source) == MS_RTP_RECV_ID) ? TRUE : FALSE;
+	do_ts_adjustments = !rtp_source;
 
 	pt=rtp_profile_get_payload(profile,payload);
 	if (pt==NULL){
@@ -894,6 +896,8 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 
 	/* Plumb the outgoing stream */
 	if (rem_rtp_port>0) ms_filter_call_method(stream->ms.rtpsend,MS_RTP_SEND_SET_SESSION,stream->ms.sessions.rtp_session);
+	ms_filter_call_method(stream->ms.rtpsend, MS_RTP_SEND_ENABLE_TS_ADJUSTMENT, &do_ts_adjustments);
+	
 	if (stream->dir==MediaStreamRecvOnly){
 		/* Create a dummy sending stream to send the STUN packets to open firewall ports. */
 		MSConnectionHelper ch;
