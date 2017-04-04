@@ -39,13 +39,14 @@ find_library(TURBOJPEG_LIBRARIES
 	PATH_SUFFIXES bin lib
 )
 
-if(TURBOJPEG_INCLUDE_DIRS AND TURBOJPEG_LIBRARIES)
+if(TURBOJPEG_INCLUDE_DIRS AND TURBOJPEG_LIBRARIES AND NOT MSVC)
 	include(CheckCSourceCompiles)
 	include(CMakePushCheckState)
 
 	cmake_push_check_state(RESET)
 	list(APPEND CMAKE_REQUIRED_INCLUDES ${TURBOJPEG_INCLUDE_DIRS})
 	list(APPEND CMAKE_REQUIRED_LIBRARIES ${TURBOJPEG_LIBRARIES})
+	set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -Werror")
 	check_c_source_compiles("
 #include <turbojpeg.h>
 int main(int argc, char *argv[]) {
