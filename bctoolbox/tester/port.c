@@ -18,6 +18,7 @@
 */
 
 #include <stdio.h>
+#include <inttypes.h>
 #include "bctoolbox_tester.h"
 #include "bctoolbox/port.h"
 
@@ -77,9 +78,9 @@ static void bytesToFromHexaStrings(void) {
 	bctbx_uint64ToStr(outputString, 0xfedcba9876543210);
 	BC_ASSERT_NSTRING_EQUAL(outputString, "fedcba9876543210", 16);
 
-	BC_ASSERT_EQUAL(bctbx_strToUint64("fa5c37643cde8de0"), 0xfa5c37643cde8de0, uint64_t, "0x%016lx");
-	BC_ASSERT_EQUAL(bctbx_strToUint64("0123456789abcdef"), 0x0123456789abcdef, uint64_t, "0x%016lx");
-	BC_ASSERT_EQUAL(bctbx_strToUint64("fedcba9876543210"), 0xfedcba9876543210, uint64_t, "0x%016lx");
+	BC_ASSERT_EQUAL(bctbx_strToUint64("fa5c37643cde8de0"), 0xfa5c37643cde8de0, uint64_t, "0x%" PRIx64);
+	BC_ASSERT_EQUAL(bctbx_strToUint64("0123456789abcdef"), 0x0123456789abcdef, uint64_t, "0x%" PRIx64);
+	BC_ASSERT_EQUAL(bctbx_strToUint64("fedcba9876543210"), 0xfedcba9876543210, uint64_t, "0x%" PRIx64);
 }
 
 static void timeFunctions(void) {
@@ -93,20 +94,20 @@ static void timeFunctions(void) {
 	memcpy(&testTs, &y2k, sizeof(bctoolboxTimeSpec));
 	BC_ASSERT_EQUAL(bctbx_timespec_compare(&y2k, &testTs), 0, int, "%d");
 	bctbx_timespec_add(&testTs, 604800);
-	BC_ASSERT_EQUAL(testTs.tv_sec, y2k.tv_sec+604800, int64_t, "%ld");
-	BC_ASSERT_EQUAL(testTs.tv_nsec, y2k.tv_nsec, int64_t, "%ld");
+	BC_ASSERT_EQUAL(testTs.tv_sec, y2k.tv_sec+604800, int64_t, "%" PRIi64);
+	BC_ASSERT_EQUAL(testTs.tv_nsec, y2k.tv_nsec, int64_t, "%" PRIi64);
 	BC_ASSERT_TRUE(bctbx_timespec_compare(&y2k, &testTs)<0);
 
 	memcpy(&testTs, &y2k, sizeof(bctoolboxTimeSpec));
 	bctbx_timespec_add(&testTs, -604800);
-	BC_ASSERT_EQUAL(testTs.tv_sec, y2k.tv_sec-604800, int64_t, "%ld");
-	BC_ASSERT_EQUAL(testTs.tv_nsec, y2k.tv_nsec, int64_t, "%ld");
+	BC_ASSERT_EQUAL(testTs.tv_sec, y2k.tv_sec-604800, int64_t, "%" PRIi64);
+	BC_ASSERT_EQUAL(testTs.tv_nsec, y2k.tv_nsec, int64_t, "%" PRIi64);
 	BC_ASSERT_TRUE(bctbx_timespec_compare(&y2k, &testTs)>0);
 
 	memcpy(&testTs, &y2k, sizeof(bctoolboxTimeSpec));
 	bctbx_timespec_add(&testTs, -946684801);
-	BC_ASSERT_EQUAL(testTs.tv_sec, 0, int64_t, "%ld");
-	BC_ASSERT_EQUAL(testTs.tv_nsec, 0, int64_t, "%ld");
+	BC_ASSERT_EQUAL(testTs.tv_sec, 0, int64_t, "%" PRIi64);
+	BC_ASSERT_EQUAL(testTs.tv_nsec, 0, int64_t, "%" PRIi64);
 
 	/* test the get utc time function
 	 * there is no easy way to ensure we get the correct time, just check it is at least not the time from last boot,

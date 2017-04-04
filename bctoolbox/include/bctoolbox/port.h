@@ -368,6 +368,20 @@ BCTBX_PUBLIC char *bctbx_strcat_printf(char *dst, const char *fmt,...);
 BCTBX_PUBLIC char *bctbx_strcat_vprintf(char *dst, const char *fmt, va_list ap);
 BCTBX_PUBLIC char *bctbx_concat (const char *str, ...) ;
 
+/**
+ * Portable version of the dirname function from libgen.h
+ * @param[in] path The full path for which we want to find the dirname
+ * @return NULL if no dirname is found, otherwise a copy of the dirname of path that needs to be freed with bctbx_free().
+ */
+BCTBX_PUBLIC char *bctbx_dirname(const char *path);
+
+/**
+ * Portable version of the basename function from libgen.h
+ * @param[in] path The full path for which we want to find the basename
+ * @return NULL if no basename is found, otherwise a copy of the basename of path that needs to be freed with bctbx_free().
+ */
+BCTBX_PUBLIC char *bctbx_basename(const char *path);
+
 BCTBX_PUBLIC int bctbx_file_exist(const char *pathname);
 
 /**

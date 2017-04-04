@@ -20,7 +20,6 @@
 #endif
 #include "bctoolbox/logging.h"
 #include "bctoolbox_tester.h"
-#include <libgen.h>
 
 static FILE * log_file = NULL;
 static const char *log_domain = "bctoolbox-tester";
@@ -57,7 +56,7 @@ void bctoolbox_tester_before_each() {
 }
 
 int bctoolbox_tester_set_log_file(const char *filename) {
-	BctoolboxLogHandler* filehandler;
+	bctbx_log_handler_t* filehandler;
 	char* dir;
 	char* base;
 	if (log_file) {
@@ -68,13 +67,13 @@ int bctoolbox_tester_set_log_file(const char *filename) {
 		bctbx_error("Cannot open file [%s] for writing logs because [%s]", filename, strerror(errno));
 		return -1;
 	}
-	dir = bctbx_strdup(filename);
-	base = bctbx_strdup(filename);
+	dir = bctbx_dirname(filename);
+	base = bctbx_basename(filename);
 	bctbx_message("Redirecting traces to file [%s]", filename);
-	filehandler = bctbx_create_file_log_handler(0, dirname(dir), basename(base), log_file);
+	filehandler = bctbx_create_file_log_handler(0, dir, base, log_file);
 	bctbx_add_log_handler(filehandler);
-	bctbx_free(dir);
-	bctbx_free(base);
+	if (dir) bctbx_free(dir);
+	if (base) bctbx_free(base);
 	return 0;
 }
 

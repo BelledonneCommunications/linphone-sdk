@@ -48,11 +48,11 @@ typedef enum {
 	BCTBX_LOG_LOGLEV_END=1<<6
 } BctbxLogLevel;
 
-typedef struct _BctoolboxLogHandler BctoolboxLogHandler;
+typedef struct _bctbx_log_handler_t bctbx_log_handler_t;
 
-typedef void (*BctoolboxLogFunc)(const char *domain, BctbxLogLevel lev, const char *fmt, va_list args);
-typedef void (*BctoolboxLogHandlerFunc)(void *info,const char *domain, BctbxLogLevel lev, const char *fmt, va_list args);
-typedef void (*BctoolboxLogHandlerDestroyFunc)(BctoolboxLogHandler* handler);
+typedef void (*BctbxLogFunc)(const char *domain, BctbxLogLevel lev, const char *fmt, va_list args);
+typedef void (*BctbxLogHandlerFunc)(void *info,const char *domain, BctbxLogLevel lev, const char *fmt, va_list args);
+typedef void (*BctbxLogHandlerDestroyFunc)(bctbx_log_handler_t *handler);
 
 /*
  initialise logging functions, add default log handler for stdout output.
@@ -67,19 +67,19 @@ BCTBX_PUBLIC void bctbx_uninit_logger(void);
 
 /* 
  Default functions to free log handlers
- @param[in] BctoolboxLogHandler* handler : the handler to free
+ @param[in] bctbx_log_handler_t* handler : the handler to free
 */
-BCTBX_PUBLIC void bctbx_logv_out_destroy(BctoolboxLogHandler* handler);
-BCTBX_PUBLIC void bctbx_logv_file_destroy(BctoolboxLogHandler* handler);
+BCTBX_PUBLIC void bctbx_logv_out_destroy(bctbx_log_handler_t *handler);
+BCTBX_PUBLIC void bctbx_logv_file_destroy(bctbx_log_handler_t *handler);
 
 /* 
  Function to create a log handler
- @param[in] BctoolboxLogHandlerFunc func : the function to call to handle a new line of log
- @param[in] BctoolboxLogHandlerDestroyFunc destroy : the function to call to free this handler particuler its user_info field
+ @param[in] BctbxLogHandlerFunc func : the function to call to handle a new line of log
+ @param[in] BctbxLogHandlerDestroyFunc destroy : the function to call to free this handler particuler its user_info field
  @param[in] void* user_info : complementary information to handle the logs if needed
- @return a new BctoolboxLogHandler
+ @return a new bctbx_log_handler_t
 */
-BCTBX_PUBLIC BctoolboxLogHandler* bctbx_create_log_handler(BctoolboxLogHandlerFunc func, BctoolboxLogHandlerDestroyFunc destroy, void* user_info);
+BCTBX_PUBLIC bctbx_log_handler_t* bctbx_create_log_handler(BctbxLogHandlerFunc func, BctbxLogHandlerDestroyFunc destroy, void* user_info);
 
 /* 
  Function to create a file log handler
@@ -87,12 +87,12 @@ BCTBX_PUBLIC BctoolboxLogHandler* bctbx_create_log_handler(BctoolboxLogHandlerFu
  @param[in] const char* path : the path where to put the log files
  @param[in] const char* name : the name of the log files
  @param[in] FILE* f : the file where to write the logs
- @return a new BctoolboxLogHandler
+ @return a new bctbx_log_handler_t
 */
-BCTBX_PUBLIC BctoolboxLogHandler* bctbx_create_file_log_handler(uint64_t max_size, const char* path, const char* name, FILE* f);
+BCTBX_PUBLIC bctbx_log_handler_t* bctbx_create_file_log_handler(uint64_t max_size, const char* path, const char* name, FILE* f);
 
-BCTBX_PUBLIC void bctbx_add_log_handler(BctoolboxLogHandler* handler);
-BCTBX_PUBLIC BCTBX_DEPRECATED void bctbx_set_log_handler(BctoolboxLogFunc func);
+BCTBX_PUBLIC void bctbx_add_log_handler(bctbx_log_handler_t* handler);
+BCTBX_PUBLIC BCTBX_DEPRECATED void bctbx_set_log_handler(BctbxLogFunc func);
 BCTBX_PUBLIC BCTBX_DEPRECATED void bctbx_set_log_file(FILE* f);
 BCTBX_PUBLIC bctbx_list_t* bctbx_get_log_handlers(void);
 
