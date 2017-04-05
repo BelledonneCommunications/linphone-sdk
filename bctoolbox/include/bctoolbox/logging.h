@@ -56,6 +56,7 @@ typedef void (*BctbxLogHandlerDestroyFunc)(bctbx_log_handler_t *handler);
 
 /*
  initialise logging functions, add default log handler for stdout output.
+ @param[in] bool_t create : whether or not the initialisation should create a default logger in stdout or not.
  */
 BCTBX_PUBLIC void bctbx_init_logger(bool_t create);
 
