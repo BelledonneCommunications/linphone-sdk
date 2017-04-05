@@ -134,7 +134,6 @@ bctbx_log_handler_t* bctbx_create_file_log_handler(uint64_t max_size, const char
 *
 **/
 void bctbx_add_log_handler(bctbx_log_handler_t* handler){
-	printf("Adding a log handler ! \n");
 	if (!bctbx_list_find(__bctbx_logger.logv_outs, handler))
 		__bctbx_logger.logv_outs = bctbx_list_append(__bctbx_logger.logv_outs, (void*)handler);
 	/*else, already in*/
