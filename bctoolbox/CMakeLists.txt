@@ -29,7 +29,7 @@ project(bctoolbox)
 set(BCTOOLBOX_VERSION_MAJOR 0)
 set(BCTOOLBOX_VERSION_MINOR 5)
 set(BCTOOLBOX_VERSION_PATCH 1)
-set(BCTOOLBOX_SO_VERSION 1)
+set(BCTOOLBOX_SO_VERSION 2) # the SO version has been incremented after the release of bctoolbox 0.5.1. Do not increment it before next release.
 set(BCTOOLBOXTESTER_SO_VERSION 1)
 
 set(BCTOOLBOX_VERSION "${BCTOOLBOX_VERSION_MAJOR}.${BCTOOLBOX_VERSION_MINOR}.${BCTOOLBOX_VERSION_PATCH}")
