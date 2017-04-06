@@ -27,38 +27,36 @@
 #include <string>
 #include <sstream>
 
-using namespace::std;
-using namespace::belr;
 
 namespace belcard {
 	class BelCardPhoneNumber : public BelCardProperty {
 	public:
-		BELCARD_PUBLIC static shared_ptr<BelCardPhoneNumber> parse(const string& input);
-		BELCARD_PUBLIC static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
+		BELCARD_PUBLIC static std::shared_ptr<BelCardPhoneNumber> parse(const std::string& input);
+		BELCARD_PUBLIC static void setHandlerAndCollectors(belr::Parser<std::shared_ptr<BelCardGeneric>> *parser);
 		
 		BELCARD_PUBLIC BelCardPhoneNumber();
 	};
 	
 	class BelCardEmail : public BelCardProperty {
 	public:
-		BELCARD_PUBLIC static shared_ptr<BelCardEmail> parse(const string& input);
-		BELCARD_PUBLIC static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
+		BELCARD_PUBLIC static std::shared_ptr<BelCardEmail> parse(const std::string& input);
+		BELCARD_PUBLIC static void setHandlerAndCollectors(belr::Parser<std::shared_ptr<BelCardGeneric>> *parser);
 		
 		BELCARD_PUBLIC BelCardEmail();
 	};
 	
 	class BelCardImpp : public BelCardProperty {
 	public:
-		BELCARD_PUBLIC static shared_ptr<BelCardImpp> parse(const string& input);
-		BELCARD_PUBLIC static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
+		BELCARD_PUBLIC static std::shared_ptr<BelCardImpp> parse(const std::string& input);
+		BELCARD_PUBLIC static void setHandlerAndCollectors(belr::Parser<std::shared_ptr<BelCardGeneric>> *parser);
 		
 		BELCARD_PUBLIC BelCardImpp();
 	};
 	
 	class BelCardLang : public BelCardProperty {
 	public:
-		BELCARD_PUBLIC static shared_ptr<BelCardLang> parse(const string& input);
-		BELCARD_PUBLIC static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
+		BELCARD_PUBLIC static std::shared_ptr<BelCardLang> parse(const std::string& input);
+		BELCARD_PUBLIC static void setHandlerAndCollectors(belr::Parser<std::shared_ptr<BelCardGeneric>> *parser);
 		
 		BELCARD_PUBLIC BelCardLang();
 	};

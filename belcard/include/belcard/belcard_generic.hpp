@@ -25,34 +25,33 @@
 #include <memory>
 #include <sstream>
 
-using namespace::std;
 
 namespace belcard {
 	class BelCardGeneric {
 	friend class BelCardParser;
 	public:
 		template<typename T>
-		static shared_ptr<T> create() {
-			return make_shared<T>();
+		static std::shared_ptr<T> create() {
+			return std::make_shared<T>();
 		}
 		
 		template<typename T>
-		static bool isValid(const shared_ptr<T> &property) {
+		static bool isValid(const std::shared_ptr<T> &property) {
 			return T::parse(property->toString()) != nullptr;
 		}
 		
 		BELCARD_PUBLIC BelCardGeneric() { }
 		BELCARD_PUBLIC virtual ~BelCardGeneric() { } // A virtual destructor enables polymorphism and dynamic casting.
 		
-		BELCARD_PUBLIC virtual void serialize(ostream &output) const = 0; // Force heriting classes to define this
+		BELCARD_PUBLIC virtual void serialize(std::ostream &output) const = 0; // Force heriting classes to define this
 		
-		BELCARD_PUBLIC friend ostream &operator<<(ostream &output, const BelCardGeneric &me) {
+		BELCARD_PUBLIC friend std::ostream &operator<<(std::ostream &output, const BelCardGeneric &me) {
 			me.serialize(output);
 			return output;
 		}
 		
-		BELCARD_PUBLIC virtual string toString() const {
-			stringstream output;
+		BELCARD_PUBLIC virtual std::string toString() const {
+			std::stringstream output;
 			output << *this;
 			return output.str();
 		}

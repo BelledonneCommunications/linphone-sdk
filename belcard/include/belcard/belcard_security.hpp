@@ -26,14 +26,12 @@
 
 #include <string>
 
-using namespace::std;
-using namespace::belr;
 
 namespace belcard {
 	class BelCardKey : public BelCardProperty {
 	public:
-		BELCARD_PUBLIC static shared_ptr<BelCardKey> parse(const string& input);
-		BELCARD_PUBLIC static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
+		BELCARD_PUBLIC static std::shared_ptr<BelCardKey> parse(const std::string& input);
+		BELCARD_PUBLIC static void setHandlerAndCollectors(belr::Parser<std::shared_ptr<BelCardGeneric>> *parser);
 		
 		BELCARD_PUBLIC BelCardKey();
 	};

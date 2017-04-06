@@ -35,10 +35,9 @@
 	#define BELCARD_PUBLIC
 #endif
 
-using namespace::std;
 
-BELCARD_PUBLIC string belcard_fold(const string &input);
-BELCARD_PUBLIC string belcard_unfold(const string &input);
-BELCARD_PUBLIC string belcard_read_file(const string &filename);
+BELCARD_PUBLIC std::string belcard_fold(const std::string &input);
+BELCARD_PUBLIC std::string belcard_unfold(const std::string &input);
+BELCARD_PUBLIC std::string belcard_read_file(const std::string &filename);
 
 #endif

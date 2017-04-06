@@ -27,52 +27,50 @@
 #include <string>
 #include <sstream>
 
-using namespace::std;
-using namespace::belr;
 
 namespace belcard {
 	class BelCardAddress : public BelCardProperty {
 	private:
-		string _po_box;
-		string _extended_address;
-		string _street;
-		string _locality;
-		string _region;
-		string _postal_code;
-		string _country;
-		shared_ptr<BelCardLabelParam> _label_param;
+		std::string _po_box;
+		std::string _extended_address;
+		std::string _street;
+		std::string _locality;
+		std::string _region;
+		std::string _postal_code;
+		std::string _country;
+		std::shared_ptr<BelCardLabelParam> _label_param;
 		
 	public:
-		BELCARD_PUBLIC static shared_ptr<BelCardAddress> parse(const string& input);
-		BELCARD_PUBLIC static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
+		BELCARD_PUBLIC static std::shared_ptr<BelCardAddress> parse(const std::string& input);
+		BELCARD_PUBLIC static void setHandlerAndCollectors(belr::Parser<std::shared_ptr<BelCardGeneric>> *parser);
 		
 		BELCARD_PUBLIC BelCardAddress();
 		
-		BELCARD_PUBLIC void setPostOfficeBox(const string &value);
-		BELCARD_PUBLIC const string &getPostOfficeBox() const;
+		BELCARD_PUBLIC void setPostOfficeBox(const std::string &value);
+		BELCARD_PUBLIC const std::string &getPostOfficeBox() const;
 		
-		BELCARD_PUBLIC void setExtendedAddress(const string &value);
-		BELCARD_PUBLIC const string &getExtendedAddress() const;
+		BELCARD_PUBLIC void setExtendedAddress(const std::string &value);
+		BELCARD_PUBLIC const std::string &getExtendedAddress() const;
 		
-		BELCARD_PUBLIC void setStreet(const string &value);
-		BELCARD_PUBLIC const string &getStreet() const;
+		BELCARD_PUBLIC void setStreet(const std::string &value);
+		BELCARD_PUBLIC const std::string &getStreet() const;
 		
-		BELCARD_PUBLIC void setLocality(const string &value);
-		BELCARD_PUBLIC const string &getLocality() const;
+		BELCARD_PUBLIC void setLocality(const std::string &value);
+		BELCARD_PUBLIC const std::string &getLocality() const;
 		
-		BELCARD_PUBLIC void setRegion(const string &value);
-		BELCARD_PUBLIC const string &getRegion() const;
+		BELCARD_PUBLIC void setRegion(const std::string &value);
+		BELCARD_PUBLIC const std::string &getRegion() const;
 		
-		BELCARD_PUBLIC void setPostalCode(const string &value);
-		BELCARD_PUBLIC const string &getPostalCode() const;
+		BELCARD_PUBLIC void setPostalCode(const std::string &value);
+		BELCARD_PUBLIC const std::string &getPostalCode() const;
 		
-		BELCARD_PUBLIC void setCountry(const string &value);
-		BELCARD_PUBLIC const string &getCountry() const;
+		BELCARD_PUBLIC void setCountry(const std::string &value);
+		BELCARD_PUBLIC const std::string &getCountry() const;
 		
-		BELCARD_PUBLIC void setLabelParam(const shared_ptr<BelCardLabelParam> &param);
-		BELCARD_PUBLIC const shared_ptr<BelCardLabelParam> &getLabelParam() const;
+		BELCARD_PUBLIC void setLabelParam(const std::shared_ptr<BelCardLabelParam> &param);
+		BELCARD_PUBLIC const std::shared_ptr<BelCardLabelParam> &getLabelParam() const;
 		
-		BELCARD_PUBLIC virtual void serialize(ostream &output) const;
+		BELCARD_PUBLIC virtual void serialize(std::ostream &output) const;
 	};
 }
 

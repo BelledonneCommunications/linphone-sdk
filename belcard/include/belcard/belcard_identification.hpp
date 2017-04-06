@@ -28,86 +28,84 @@
 #include <list>
 #include <sstream>
 
-using namespace::std;
-using namespace::belr;
 
 namespace belcard {
 	class BelCardFullName : public BelCardProperty {
 	public:
-		BELCARD_PUBLIC static shared_ptr<BelCardFullName> parse(const string& input);
-		BELCARD_PUBLIC static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
+		BELCARD_PUBLIC static std::shared_ptr<BelCardFullName> parse(const std::string& input);
+		BELCARD_PUBLIC static void setHandlerAndCollectors(belr::Parser<std::shared_ptr<BelCardGeneric>> *parser);
 		
 		BELCARD_PUBLIC BelCardFullName();
 	};
 	
 	class BelCardName : public BelCardProperty {
 	private:
-		string _family_name;
-		string _given_name;
-		string _additional_name;
-		string _prefixes;
-		string _suffixes;
+		std::string _family_name;
+		std::string _given_name;
+		std::string _additional_name;
+		std::string _prefixes;
+		std::string _suffixes;
 		
 	public:
-		BELCARD_PUBLIC static shared_ptr<BelCardName> parse(const string& input);
-		BELCARD_PUBLIC static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) ;
+		BELCARD_PUBLIC static std::shared_ptr<BelCardName> parse(const std::string& input);
+		BELCARD_PUBLIC static void setHandlerAndCollectors(belr::Parser<std::shared_ptr<BelCardGeneric>> *parser) ;
 		
 		BELCARD_PUBLIC BelCardName();
 		
-		BELCARD_PUBLIC void setFamilyName(const string &value);
-		BELCARD_PUBLIC const string &getFamilyName() const;
+		BELCARD_PUBLIC void setFamilyName(const std::string &value);
+		BELCARD_PUBLIC const std::string &getFamilyName() const;
 		
-		BELCARD_PUBLIC void setGivenName(const string &value);
-		BELCARD_PUBLIC const string &getGivenName() const;
+		BELCARD_PUBLIC void setGivenName(const std::string &value);
+		BELCARD_PUBLIC const std::string &getGivenName() const;
 		
-		BELCARD_PUBLIC void setAdditionalName(const string &value);
-		BELCARD_PUBLIC const string &getAdditionalName() const;
+		BELCARD_PUBLIC void setAdditionalName(const std::string &value);
+		BELCARD_PUBLIC const std::string &getAdditionalName() const;
 		
-		BELCARD_PUBLIC void setPrefixes(const string &value);
-		BELCARD_PUBLIC const string &getPrefixes() const;
+		BELCARD_PUBLIC void setPrefixes(const std::string &value);
+		BELCARD_PUBLIC const std::string &getPrefixes() const;
 		
-		BELCARD_PUBLIC void setSuffixes(const string &value);
-		BELCARD_PUBLIC const string &getSuffixes() const;
+		BELCARD_PUBLIC void setSuffixes(const std::string &value);
+		BELCARD_PUBLIC const std::string &getSuffixes() const;
 		
-		BELCARD_PUBLIC virtual void serialize(ostream &output) const;
+		BELCARD_PUBLIC virtual void serialize(std::ostream &output) const;
 	};
 	
 	class BelCardNickname : public BelCardProperty {
 	public:
-		BELCARD_PUBLIC static shared_ptr<BelCardNickname> parse(const string& input);
-		BELCARD_PUBLIC static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
+		BELCARD_PUBLIC static std::shared_ptr<BelCardNickname> parse(const std::string& input);
+		BELCARD_PUBLIC static void setHandlerAndCollectors(belr::Parser<std::shared_ptr<BelCardGeneric>> *parser);
 		
 		BELCARD_PUBLIC BelCardNickname();
 	};
 	
 	class BelCardBirthday : public BelCardProperty {
 	public:
-		BELCARD_PUBLIC static shared_ptr<BelCardBirthday> parse(const string& input);
-		BELCARD_PUBLIC static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
+		BELCARD_PUBLIC static std::shared_ptr<BelCardBirthday> parse(const std::string& input);
+		BELCARD_PUBLIC static void setHandlerAndCollectors(belr::Parser<std::shared_ptr<BelCardGeneric>> *parser);
 		
 		BELCARD_PUBLIC BelCardBirthday();
 	};
 	
 	class BelCardAnniversary : public BelCardProperty {
 	public:
-		BELCARD_PUBLIC static shared_ptr<BelCardAnniversary> parse(const string& input);
-		BELCARD_PUBLIC static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
+		BELCARD_PUBLIC static std::shared_ptr<BelCardAnniversary> parse(const std::string& input);
+		BELCARD_PUBLIC static void setHandlerAndCollectors(belr::Parser<std::shared_ptr<BelCardGeneric>> *parser);
 		
 		BELCARD_PUBLIC BelCardAnniversary();
 	};
 	
 	class BelCardGender : public BelCardProperty {
 	public:
-		BELCARD_PUBLIC static shared_ptr<BelCardGender> parse(const string& input);
-		BELCARD_PUBLIC static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
+		BELCARD_PUBLIC static std::shared_ptr<BelCardGender> parse(const std::string& input);
+		BELCARD_PUBLIC static void setHandlerAndCollectors(belr::Parser<std::shared_ptr<BelCardGeneric>> *parser);
 		
 		BELCARD_PUBLIC BelCardGender();
 	};
 	
 	class BelCardPhoto : public BelCardProperty {
 	public:
-		BELCARD_PUBLIC static shared_ptr<BelCardPhoto> parse(const string& input);
-		BELCARD_PUBLIC static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
+		BELCARD_PUBLIC static std::shared_ptr<BelCardPhoto> parse(const std::string& input);
+		BELCARD_PUBLIC static void setHandlerAndCollectors(belr::Parser<std::shared_ptr<BelCardGeneric>> *parser);
 		
 		BELCARD_PUBLIC BelCardPhoto();
 	};

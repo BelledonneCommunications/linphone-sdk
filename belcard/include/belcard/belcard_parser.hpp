@@ -23,7 +23,6 @@
 #include <belr/abnf.hh>
 #include "belcard_utils.hpp"
 
-using namespace::belr;
 
 namespace belcard {
 	class BelCardGeneric;
@@ -34,19 +33,19 @@ namespace belcard {
 		
 	friend class BelCardProperty;
 	private:
-		Parser<shared_ptr<BelCardGeneric>> *_parser;
+		belr::Parser<std::shared_ptr<BelCardGeneric>> *_parser;
 		
 	protected:
-		shared_ptr<BelCardGeneric> _parse(const string &input, const string &rule);
+		std::shared_ptr<BelCardGeneric> _parse(const std::string &input, const std::string &rule);
 		
 	public:
-		BELCARD_PUBLIC static shared_ptr<BelCardParser> getInstance();
+		BELCARD_PUBLIC static std::shared_ptr<BelCardParser> getInstance();
 		BELCARD_PUBLIC BelCardParser();
 		BELCARD_PUBLIC ~BelCardParser();
 		
-		BELCARD_PUBLIC shared_ptr<BelCard> parseOne(const string &input);
-		BELCARD_PUBLIC shared_ptr<BelCardList> parse(const string &input);
-		BELCARD_PUBLIC shared_ptr<BelCardList> parseFile(const string &filename);
+		BELCARD_PUBLIC std::shared_ptr<BelCard> parseOne(const std::string &input);
+		BELCARD_PUBLIC std::shared_ptr<BelCardList> parse(const std::string &input);
+		BELCARD_PUBLIC std::shared_ptr<BelCardList> parseFile(const std::string &filename);
 	};
 }
 
