@@ -26,7 +26,6 @@
 #include <ostream>
 
 
-using namespace std;
   /**
   * @brief General pupose exception saving backtrace.
   *
@@ -39,10 +38,10 @@ using namespace std;
   *
   *
   */
-class BctbxException : public exception {
+class BctbxException : public std::exception {
 public:
 	BctbxException();
-	BctbxException(const string &message);
+	BctbxException(const std::string &message);
 	BctbxException(const char *message);
 	virtual ~BctbxException() throw();
 	BctbxException(const BctbxException &other);
@@ -68,8 +67,8 @@ protected:
 private:
 	void *mArray[20];
 	size_t mSize;
-	ostringstream mOs;
-	mutable string mMessage;
+	std::ostringstream mOs;
+	mutable std::string mMessage;
 };
 std::ostream &operator<<(std::ostream &__os, const BctbxException &e);
 

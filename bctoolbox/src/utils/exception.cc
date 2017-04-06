@@ -25,6 +25,8 @@
 #include <iomanip>
 #include <libgen.h>
 
+using namespace std;
+
 static void uncaught_handler() {
 	std::exception_ptr p = current_exception();
 	try {
