@@ -1659,16 +1659,26 @@ int bzrtp_responseToHelloMessage(bzrtpContext_t *zrtpContext, bzrtpChannelContex
 	memcpy(zrtpChannelContext->peerH[3], helloMessage->H3, 32); /* H3 */
 	zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID] = zrtpPacket; /* peer hello packet */
 
-	/* Extract from peerHello packet the version of bzrtp used by peer and store it in global context(needed later when exporting keys) */
-	/* Bzrtp version started to be publicised in version 1.1, before that the client identifier was simply BZRTP and earlier version also have LINPHONE-ZRTPCPP */
-	/* So basically just check if the client identifier is BZRTPv1.1 or not. */
-	/* If not, it may be earlier version or an other library, so compute the exported keys old style just in case we need them */
-	if (strncmp(ZRTP_CLIENT_IDENTIFIERv1_1, (char *)helloMessage->clientIdentifier, 16)==0) {
-		zrtpContext->peerBzrtpVersion=10100;
-	} else { /* this is not version 1.1 of bzrtp(can be another zrtp lib or and older version of bzrtp), set it to 1.0 */
+	/* Extract from peerHello packet the version of bzrtp used by peer and store it in global context(needed later when exporting keys)
+	 * Bzrtp version started to be publicised in version 1.1, before that the client identifier was simply BZRTP and earlier version also have LINPHONE-ZRTPCPP
+	 * We must know this version in order to keep export key computation compatible between version as before v1.1 it was badly implemented
+	 * So basically check :
+	 *	if the client identifier is BZRTP or LINPHONE-ZRTPCPP -> version 1.0 (use the old and incorrect way of creating an export key)
+	 * 	if BZRTPv1.1 -> version 1.1 (use RFC compliant way of creating the export key )
+	 * 	if anything else peer use another library, set version to 0.0 and use RFC compliant way of creating the export key as peer library is expected to be RFC compliant
+	*/
+	/* This is BZRTP in its old version */
+	if ((strncmp(ZRTP_CLIENT_IDENTIFIERv1_0a, (char *)helloMessage->clientIdentifier, 16)==0) || (strncmp(ZRTP_CLIENT_IDENTIFIERv1_0b, (char *)helloMessage->clientIdentifier, 16)==0)){
 		zrtpContext->peerBzrtpVersion=10000;
-		if (zrtpContext->zrtpCallbacks.bzrtp_statusMessage!=NULL && zrtpContext->zrtpCallbacks.bzrtp_messageLevel>=BZRTP_MESSAGE_LOG) { /* use error level as this one MUST (RFC section 4.3.2) be warned */
-				zrtpContext->zrtpCallbacks.bzrtp_statusMessage(zrtpChannelContext->clientData, BZRTP_MESSAGE_LOG, BZRTP_MESSAGE_PEERVERSIONOBSOLETE, (const char *)helloMessage->clientIdentifier);
+		if (zrtpContext->zrtpCallbacks.bzrtp_statusMessage!=NULL && zrtpContext->zrtpCallbacks.bzrtp_messageLevel>=BZRTP_MESSAGE_WARNING) { /* use warning level as the client may really wants to know this */
+				zrtpContext->zrtpCallbacks.bzrtp_statusMessage(zrtpChannelContext->clientData, BZRTP_MESSAGE_WARNING, BZRTP_MESSAGE_PEERVERSIONOBSOLETE, (const char *)helloMessage->clientIdentifier);
+		}
+	} else if (strncmp(ZRTP_CLIENT_IDENTIFIERv1_1, (char *)helloMessage->clientIdentifier, 16)==0) { /* peer has the current version, everything is Ok */
+		zrtpContext->peerBzrtpVersion=10100;
+	} else { /* peer uses another lib, we're probably not LIME compliant, log it */
+		zrtpContext->peerBzrtpVersion=0;
+		if (zrtpContext->zrtpCallbacks.bzrtp_statusMessage!=NULL && zrtpContext->zrtpCallbacks.bzrtp_messageLevel>=BZRTP_MESSAGE_LOG) {
+				zrtpContext->zrtpCallbacks.bzrtp_statusMessage(zrtpChannelContext->clientData, BZRTP_MESSAGE_LOG, BZRTP_MESSAGE_PEERNOTBZRTP, (const char *)helloMessage->clientIdentifier);
 		}
 	}
 

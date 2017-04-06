@@ -127,6 +127,7 @@ typedef struct bzrtpSrtpSecrets_struct  {
 /* define message codes */
 #define BZRTP_MESSAGE_CACHEMISMATCH 		0x01
 #define BZRTP_MESSAGE_PEERVERSIONOBSOLETE	0x02
+#define BZRTP_MESSAGE_PEERNOTBZRTP		0x03
 
 /**
  * Function pointer used by bzrtp to free memory allocated by callbacks.
@@ -153,13 +154,6 @@ typedef struct bzrtpCallbacks_struct {
 
 #define ZRTP_MAGIC_COOKIE 0x5a525450
 #define ZRTP_VERSION	"1.10"
-
-/* Client identifier can contain up to 16 characters */
-/* Use it to pass bzrtp version number to peer, is it part of Hello message */
-/* custom Linphone Instant Messaging Encryption depends on bzrtp version */
-/* Note: ZRTP_VERSION and BZrtp version are for now both at 1.1 but they are unrelated */
-#define ZRTP_CLIENT_IDENTIFIERv1_1 "BZRTPv1.1"
-#define ZRTP_CLIENT_IDENTIFIER ZRTP_CLIENT_IDENTIFIERv1_1
 
 /* error code definition */
 #define BZRTP_ERROR_INVALIDCALLBACKID				0x0001

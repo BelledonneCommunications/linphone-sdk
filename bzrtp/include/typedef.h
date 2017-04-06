@@ -72,6 +72,18 @@ typedef struct bzrtpChannelContext_struct bzrtpChannelContext_t;
 #define NON_HELLO_CAP_RETRANSMISSION_STEP 	1200
 #define NON_HELLO_MAX_RETRANSMISSION_NUMBER	10
 
+/* Client identifier can contain up to 16 characters, it identify the BZRTP library version */
+/* Use it to pass bzrtp version number to peer, is it part of Hello message */
+/* custom Linphone Instant Messaging Encryption depends on bzrtp version */
+/* Note: ZRTP_VERSION and BZrtp version are for now both at 1.1 but they are unrelated */
+/* historically since the creation of bzrtp, it used client idenfiers : */
+#define ZRTP_CLIENT_IDENTIFIERv1_0a "LINPHONE-ZRTPCPP"
+#define ZRTP_CLIENT_IDENTIFIERv1_0b "BZRTP"
+/* Since version 1.1 which implement correctly the key export mechanism described in ZRTP RFC 4.5.2, bzrtp lib identifies itself as */
+#define ZRTP_CLIENT_IDENTIFIERv1_1 "BZRTPv1.1"
+
+#define ZRTP_CLIENT_IDENTIFIER ZRTP_CLIENT_IDENTIFIERv1_1
+
 /* pgp word list for use with SAS */
 extern const char * pgpWordsEven[];
 extern const char * pgpWordsOdd[];
