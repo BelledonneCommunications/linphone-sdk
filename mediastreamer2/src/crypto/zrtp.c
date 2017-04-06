@@ -136,7 +136,11 @@ static int ms_zrtp_statusMessage(void *clientData, const uint8_t messageLevel, c
 			ev=ortp_event_new(ORTP_EVENT_ZRTP_PEER_VERSION_OBSOLETE);
 			eventData=ortp_event_get_data(ev);
 			rtp_session_dispatch_event(userData->stream_sessions->rtp_session, ev);
-			ms_message("Zrtp Event dispatched : Peer ZRTP engine version seems obsolete(or not bzrtp) and may not allow LIME to work correctly, peer ZRTP engine identifies itself as %.16s", messageString==NULL?"NULL":messageString);
+			ms_message("Zrtp Event dispatched : Peer ZRTP engine version is obsolete and may not allow LIME to work correctly, peer ZRTP engine identifies itself as %.16s", messageString==NULL?"NULL":messageString);
+			break;
+		case BZRTP_MESSAGE_PEERNOTBZRTP:
+			/* Do not forward this message upward, just log it, shall we use this to prevent LIME keys creation as it is unlikely peer implement LIME? */
+			ms_warning("Peer ZRTP engine version is not BZRTP and would not allow LIME to work correctly, peer ZRTP engine identifies itself as %.16s", messageString==NULL?"NULL":messageString);
 			break;
 		default:
 			/* unexepected message, do nothing, just log it as a warning */
