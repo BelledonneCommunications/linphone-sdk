@@ -1,6 +1,7 @@
 #include "belr/abnf.hh"
 
-namespace belr{
+using namespace std;
+using namespace belr;
 
 /*
  * CoreRules grammar
@@ -556,6 +557,3 @@ void ABNFGrammar::hex_val(){
 		)
 	);
 }
-
-}//end of namespace
-

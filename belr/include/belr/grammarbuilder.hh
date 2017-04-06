@@ -12,118 +12,118 @@ class ABNFAlternation;
 class ABNFBuilder{
 public:
 	virtual ~ABNFBuilder();
-	virtual shared_ptr<Recognizer> buildRecognizer(const shared_ptr<Grammar> &grammar)=0;
+	virtual std::shared_ptr<Recognizer> buildRecognizer(const std::shared_ptr<Grammar> &grammar)=0;
 };
 
 class ABNFRule : public ABNFBuilder{
 public:
 	ABNFRule();
-	static shared_ptr<ABNFRule> create();
-	void setName(const string &name);
-	void setDefinedAs(const string &defined_as);
-	void setAlternation(const shared_ptr<ABNFAlternation> &a);
-	shared_ptr<Recognizer> buildRecognizer(const shared_ptr<Grammar> &grammar);
+	static std::shared_ptr<ABNFRule> create();
+	void setName(const std::string &name);
+	void setDefinedAs(const std::string &defined_as);
+	void setAlternation(const std::shared_ptr<ABNFAlternation> &a);
+	std::shared_ptr<Recognizer> buildRecognizer(const std::shared_ptr<Grammar> &grammar);
 	bool isExtension()const;
-	const string &getName()const{
+	const std::string &getName()const{
 		return mName;
 	}
 private:
-	shared_ptr<ABNFAlternation> mAlternation;
-	string mName;
-	string mDefinedAs;
+	std::shared_ptr<ABNFAlternation> mAlternation;
+	std::string mName;
+	std::string mDefinedAs;
 };
 
 class ABNFRuleList : public ABNFBuilder{
 public:
-	static shared_ptr<ABNFRuleList> create();
-	void addRule(const shared_ptr<ABNFRule> & rule);
-	shared_ptr<Recognizer> buildRecognizer(const shared_ptr<Grammar> &grammar);
+	static std::shared_ptr<ABNFRuleList> create();
+	void addRule(const std::shared_ptr<ABNFRule> & rule);
+	std::shared_ptr<Recognizer> buildRecognizer(const std::shared_ptr<Grammar> &grammar);
 private:
-	list<shared_ptr<ABNFRule>> mRules;
+	std::list<std::shared_ptr<ABNFRule>> mRules;
 };
 
 class ABNFNumval : public ABNFBuilder{
 public:
 	ABNFNumval();
-	static shared_ptr<ABNFNumval> create();
-	shared_ptr<Recognizer> buildRecognizer(const shared_ptr<Grammar> &grammar);
-	void setDecVal(const string &decval);
-	void setHexVal(const string &hexval);
-	void setBinVal(const string &binval);
+	static std::shared_ptr<ABNFNumval> create();
+	std::shared_ptr<Recognizer> buildRecognizer(const std::shared_ptr<Grammar> &grammar);
+	void setDecVal(const std::string &decval);
+	void setHexVal(const std::string &hexval);
+	void setBinVal(const std::string &binval);
 private:
-	void parseValues(const string &val, int base);
-	vector<int> mValues;
+	void parseValues(const std::string &val, int base);
+	std::vector<int> mValues;
 	bool mIsRange;
 };
 
 class ABNFElement : public ABNFBuilder{
 public:
 	ABNFElement();
-	static shared_ptr<ABNFElement> create();
-	shared_ptr<Recognizer> buildRecognizer(const shared_ptr<Grammar> &grammar);
-	void setElement(const shared_ptr<ABNFBuilder> &e);
-	void setRulename(const string &rulename);
-	void setCharVal(const string &charval);
-	void setProseVal(const string &prose);
+	static std::shared_ptr<ABNFElement> create();
+	std::shared_ptr<Recognizer> buildRecognizer(const std::shared_ptr<Grammar> &grammar);
+	void setElement(const std::shared_ptr<ABNFBuilder> &e);
+	void setRulename(const std::string &rulename);
+	void setCharVal(const std::string &charval);
+	void setProseVal(const std::string &prose);
 private:
-	shared_ptr<ABNFBuilder> mElement;
-	string mRulename;
-	string mCharVal;
+	std::shared_ptr<ABNFBuilder> mElement;
+	std::string mRulename;
+	std::string mCharVal;
 };
 
 class ABNFGroup : public ABNFBuilder{
 public:
 	ABNFGroup();
-	static shared_ptr<ABNFGroup> create();
-	shared_ptr<Recognizer> buildRecognizer(const shared_ptr<Grammar> &grammar);
-	void setAlternation(const shared_ptr<ABNFAlternation> &a);
+	static std::shared_ptr<ABNFGroup> create();
+	std::shared_ptr<Recognizer> buildRecognizer(const std::shared_ptr<Grammar> &grammar);
+	void setAlternation(const std::shared_ptr<ABNFAlternation> &a);
 private:
-	shared_ptr<ABNFAlternation> mAlternation;
+	std::shared_ptr<ABNFAlternation> mAlternation;
 };
 
 class ABNFRepetition : public ABNFBuilder{
 public:
 	ABNFRepetition();
-	static shared_ptr<ABNFRepetition> create();
-	void setRepeat(const string &r);
+	static std::shared_ptr<ABNFRepetition> create();
+	void setRepeat(const std::string &r);
 	void setMin(int min);
 	void setMax(int max);
 	void setCount(int count);
-	void setElement(const shared_ptr<ABNFElement> &e);
-	shared_ptr<Recognizer> buildRecognizer(const shared_ptr<Grammar> &grammar);
+	void setElement(const std::shared_ptr<ABNFElement> &e);
+	std::shared_ptr<Recognizer> buildRecognizer(const std::shared_ptr<Grammar> &grammar);
 private:
 	int mMin, mMax, mCount;
-	string mRepeat;
-	shared_ptr<ABNFElement> mElement;
+	std::string mRepeat;
+	std::shared_ptr<ABNFElement> mElement;
 };
 
 class ABNFOption : public ABNFBuilder{
 public:
 	ABNFOption();
-	static shared_ptr<ABNFOption> create();
-	void setAlternation(const shared_ptr<ABNFAlternation> &a);
-	shared_ptr<Recognizer> buildRecognizer(const shared_ptr<Grammar> &grammar);
+	static std::shared_ptr<ABNFOption> create();
+	void setAlternation(const std::shared_ptr<ABNFAlternation> &a);
+	std::shared_ptr<Recognizer> buildRecognizer(const std::shared_ptr<Grammar> &grammar);
 private:
-	shared_ptr<ABNFAlternation> mAlternation;
+	std::shared_ptr<ABNFAlternation> mAlternation;
 };
 
 class ABNFConcatenation : public ABNFBuilder{
 public:
-	static shared_ptr<ABNFConcatenation> create();
-	shared_ptr<Recognizer> buildRecognizer(const shared_ptr<Grammar> &grammar);
-	void addRepetition(const shared_ptr<ABNFRepetition> &r);
+	static std::shared_ptr<ABNFConcatenation> create();
+	std::shared_ptr<Recognizer> buildRecognizer(const std::shared_ptr<Grammar> &grammar);
+	void addRepetition(const std::shared_ptr<ABNFRepetition> &r);
 private:
-	list<shared_ptr<ABNFRepetition>> mRepetitions;
+	std::list<std::shared_ptr<ABNFRepetition>> mRepetitions;
 };
 
 class ABNFAlternation : public ABNFBuilder{
 public:
-	static shared_ptr<ABNFAlternation> create();
-	void addConcatenation(const shared_ptr<ABNFConcatenation> &c);
-	shared_ptr<Recognizer> buildRecognizer(const shared_ptr<Grammar> &grammar);
-	shared_ptr<Recognizer> buildRecognizerNoOptim(const shared_ptr<Grammar> &grammar);
+	static std::shared_ptr<ABNFAlternation> create();
+	void addConcatenation(const std::shared_ptr<ABNFConcatenation> &c);
+	std::shared_ptr<Recognizer> buildRecognizer(const std::shared_ptr<Grammar> &grammar);
+	std::shared_ptr<Recognizer> buildRecognizerNoOptim(const std::shared_ptr<Grammar> &grammar);
 private:
-	list<shared_ptr<ABNFConcatenation>> mConcatenations;
+	std::list<std::shared_ptr<ABNFConcatenation>> mConcatenations;
 };
 
 /**
@@ -145,7 +145,7 @@ public:
 	 * @param grammar an optional grammar to include.
 	 * @return the Grammar object corresponding to the text definition loaded, NULL if an error occured.
 	**/
-	BELR_PUBLIC shared_ptr<Grammar> createFromAbnf(const string &abnf, const shared_ptr<Grammar> &grammar=NULL);
+	BELR_PUBLIC std::shared_ptr<Grammar> createFromAbnf(const std::string &abnf, const std::shared_ptr<Grammar> &grammar=NULL);
 	/**
 	 * Create a grammar from an ABNF grammar defined in the text file pointed by path.
 	 * An optional Grammar argument corresponding to a grammar to include can be passed.
@@ -156,9 +156,9 @@ public:
 	 * @param grammar an optional grammar to include.
 	 * @return the Grammar object corresponding to the text definition loaded, NULL if an error occured.
 	**/
-	BELR_PUBLIC shared_ptr<Grammar> createFromAbnfFile(const string &path, const shared_ptr<Grammar> &grammar=NULL);
+	BELR_PUBLIC std::shared_ptr<Grammar> createFromAbnfFile(const std::string &path, const std::shared_ptr<Grammar> &grammar=NULL);
 private:
-	Parser<shared_ptr<ABNFBuilder>> mParser;
+	Parser<std::shared_ptr<ABNFBuilder>> mParser;
 };
 
 }

@@ -6,7 +6,6 @@
 #include <map>
 #include <memory>
 
-using namespace ::std;
 
 #ifdef _MSC_VER
 	#ifdef BELR_STATIC
@@ -24,7 +23,7 @@ using namespace ::std;
 
 namespace belr{
 	
-BELR_PUBLIC string tolower(const string &str);
+BELR_PUBLIC std::string tolower(const std::string &str);
 
 class ParserContextBase;
 
@@ -36,11 +35,11 @@ struct TransitionMap{
 	bool mPossibleChars[256];
 };
 
-class Recognizer : public enable_shared_from_this<Recognizer>{
+class Recognizer : public std::enable_shared_from_this<Recognizer>{
 public:
-	void setName(const string &name);
-	const string &getName()const;
-	BELR_PUBLIC size_t feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos);
+	void setName(const std::string &name);
+	const std::string &getName()const;
+	BELR_PUBLIC size_t feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos);
 	unsigned int getId()const{
 		return mId;
 	}
@@ -53,8 +52,8 @@ protected:
 	virtual bool _getTransitionMap(TransitionMap *mask);
 	virtual void _optimize(int recursionLevel)=0;
 	Recognizer();
-	virtual size_t _feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos)=0;
-	string mName;
+	virtual size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos)=0;
+	std::string mName;
 	unsigned int mId;
 };
 
@@ -63,7 +62,7 @@ public:
 	CharRecognizer(int to_recognize, bool caseSensitive=false);
 private:
 	virtual void _optimize(int recursionLevel);
-	virtual size_t _feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos);
+	virtual size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos);
 	int mToRecognize;
 	bool mCaseSensitive;
 };
@@ -71,13 +70,13 @@ private:
 class Selector : public Recognizer{
 public:
 	Selector();
-	shared_ptr<Selector> addRecognizer(const shared_ptr<Recognizer> &element);
+	std::shared_ptr<Selector> addRecognizer(const std::shared_ptr<Recognizer> &element);
 protected:
 	virtual void _optimize(int recursionLevel);
-	virtual size_t _feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos);
-	size_t _feedExclusive(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos);
+	virtual size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos);
+	size_t _feedExclusive(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos);
 	virtual bool _getTransitionMap(TransitionMap *mask);
-	list<shared_ptr<Recognizer>> mElements;
+	std::list<std::shared_ptr<Recognizer>> mElements;
 	bool mIsExclusive;
 };
 
@@ -86,41 +85,41 @@ class ExclusiveSelector : public Selector{
 public:
 	ExclusiveSelector();
 private:
-	virtual size_t _feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos);
+	virtual size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos);
 };
 
 class Sequence : public Recognizer{
 public:
 	Sequence();
-	shared_ptr<Sequence> addRecognizer(const shared_ptr<Recognizer> &element);
+	std::shared_ptr<Sequence> addRecognizer(const std::shared_ptr<Recognizer> &element);
 	virtual bool _getTransitionMap(TransitionMap *mask);
 protected:
 	virtual void _optimize(int recursionLevel);
 private:
-	virtual size_t _feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos);
-	list<shared_ptr<Recognizer>> mElements;
+	virtual size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos);
+	std::list<std::shared_ptr<Recognizer>> mElements;
 };
 
 class Loop : public Recognizer{
 public:
 	Loop();
-	shared_ptr<Loop> setRecognizer(const shared_ptr<Recognizer> &element, int min=0, int max=-1);
+	std::shared_ptr<Loop> setRecognizer(const std::shared_ptr<Recognizer> &element, int min=0, int max=-1);
 	virtual bool _getTransitionMap(TransitionMap *mask);
 protected:
 	virtual void _optimize(int recursionLevel);
 private:
-	virtual size_t _feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos);
-	shared_ptr<Recognizer> mRecognizer;
+	virtual size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos);
+	std::shared_ptr<Recognizer> mRecognizer;
 	int mMin, mMax;
 };
 
 
 class Foundation{
 public:
-	static shared_ptr<CharRecognizer> charRecognizer(int character, bool caseSensitive=false);
-	static shared_ptr<Selector> selector(bool isExclusive=false);
-	static shared_ptr<Sequence> sequence();
-	static shared_ptr<Loop> loop();
+	static std::shared_ptr<CharRecognizer> charRecognizer(int character, bool caseSensitive=false);
+	static std::shared_ptr<Selector> selector(bool isExclusive=false);
+	static std::shared_ptr<Sequence> sequence();
+	static std::shared_ptr<Loop> loop();
 };
 
 /*this is an optimization of a selector with multiple individual char recognizer*/
@@ -129,36 +128,36 @@ public:
 	CharRange(int begin, int end);
 private:
 	virtual void _optimize(int recursionLevel);
-	virtual size_t _feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos);
+	virtual size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos);
 	int mBegin,mEnd;
 };
 
 class Literal : public Recognizer{
 public:
-	Literal(const string &lit);
+	Literal(const std::string &lit);
 	virtual bool _getTransitionMap(TransitionMap *mask);
 private:
 	virtual void _optimize(int recursionLevel);
-	virtual size_t _feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos);
-	string mLiteral;
+	virtual size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos);
+	std::string mLiteral;
 	size_t mLiteralSize;
 };
 
 class Utils{
 public:
-	static shared_ptr<Recognizer> literal(const string & lt);
-	static shared_ptr<Recognizer> char_range(int begin, int end);
+	static std::shared_ptr<Recognizer> literal(const std::string & lt);
+	static std::shared_ptr<Recognizer> char_range(int begin, int end);
 };
 
 class RecognizerPointer :  public Recognizer{
 public:
 	RecognizerPointer();
-	shared_ptr<Recognizer> getPointed();
-	void setPointed(const shared_ptr<Recognizer> &r);
+	std::shared_ptr<Recognizer> getPointed();
+	void setPointed(const std::shared_ptr<Recognizer> &r);
 private:
 	virtual void _optimize(int recursionLevel);
-	virtual size_t _feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos);
-	shared_ptr<Recognizer> mRecognizer;
+	virtual size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos);
+	std::shared_ptr<Recognizer> mRecognizer;
 };
 
 /**
@@ -169,14 +168,14 @@ public:
 	/**
 	 * Initialize an empty grammar, giving a name for debugging.
 	**/
-	BELR_PUBLIC Grammar(const string &name);
+	BELR_PUBLIC Grammar(const std::string &name);
 	
 	BELR_PUBLIC ~Grammar();
 	
 	/**
 	 * Include another grammar into this grammar.
 	**/
-	BELR_PUBLIC void include(const shared_ptr<Grammar>& grammar);
+	BELR_PUBLIC void include(const std::shared_ptr<Grammar>& grammar);
 	/**
 	 * Add arule to the grammar.
 	 * @param name the name of the rule
@@ -186,7 +185,7 @@ public:
 	 * TODO: use unique_ptr to enforce this, or make a copy ?
 	**/
 	template <typename _recognizerT>
-	shared_ptr<_recognizerT> addRule(const string & name, const shared_ptr<_recognizerT> &rule){
+	std::shared_ptr<_recognizerT> addRule(const std::string & name, const std::shared_ptr<_recognizerT> &rule){
 		assignRule(name, rule);
 		return rule;
 	}
@@ -198,7 +197,7 @@ public:
 	 * @return the rule.
 	**/
 	template <typename _recognizerT>
-	shared_ptr<_recognizerT> extendRule(const string & name, const shared_ptr<_recognizerT> &rule){
+	std::shared_ptr<_recognizerT> extendRule(const std::string & name, const std::shared_ptr<_recognizerT> &rule){
 		_extendRule(name, rule);
 		return rule;
 	}
@@ -207,7 +206,7 @@ public:
 	 * @param name the name of the rule
 	 * @return the recognizer implementing this rule. Is NULL if the rule doesn't exist in the grammar.
 	**/
-	BELR_PUBLIC shared_ptr<Recognizer> findRule(const string &name);
+	BELR_PUBLIC std::shared_ptr<Recognizer> findRule(const std::string &name);
 	/**
 	 * Find a rule from the grammar, given its name.
 	 * Unlike findRule(), getRule() never returns NULL. 
@@ -216,7 +215,7 @@ public:
 	 * @param name the name of the rule to get
 	 * @return the recognizer implementing the rule, or a RecognizerPointer if the rule isn't yet defined.
 	**/
-	BELR_PUBLIC shared_ptr<Recognizer> getRule(const string &name);
+	BELR_PUBLIC std::shared_ptr<Recognizer> getRule(const std::string &name);
 	/**
 	 * Returns true if the grammar is complete, that is all rules are defined.
 	 * In other words, a grammar is complete if no rule depends on another rule which is not defined.
@@ -234,11 +233,11 @@ public:
 	**/
 	int getNumRules()const;
 private:
-	void assignRule(const string &name, const shared_ptr<Recognizer> &rule);
-	void _extendRule(const string &name, const shared_ptr<Recognizer> &rule);
-	map<string,shared_ptr<Recognizer>> mRules;
-	list<shared_ptr<RecognizerPointer>> mRecognizerPointers;
-	string mName;
+	void assignRule(const std::string &name, const std::shared_ptr<Recognizer> &rule);
+	void _extendRule(const std::string &name, const std::shared_ptr<Recognizer> &rule);
+	std::map<std::string,std::shared_ptr<Recognizer>> mRules;
+	std::list<std::shared_ptr<RecognizerPointer>> mRecognizerPointers;
+	std::string mName;
 };
 
 

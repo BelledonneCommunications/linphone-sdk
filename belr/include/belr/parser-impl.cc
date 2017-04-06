@@ -5,7 +5,9 @@
 //#include <chrono>
 #include <ctime>
 
-namespace belr{
+
+using namespace std;
+using namespace belr;
 
 template <class T, class U>
 T universal_pointer_cast(const shared_ptr<U>& sp){
@@ -331,6 +333,4 @@ _parserElementT Parser<_parserElementT>::parseInput(const string &rulename, cons
 	if (parsed_size) *parsed_size=parsed;
 	auto ret= pctx->createRootObject(input);
 	return ret;
-}
-
 }

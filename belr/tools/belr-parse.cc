@@ -11,7 +11,8 @@
 #include <cstring>
 #include <cstdlib>
 
-using namespace::belr;
+using namespace belr;
+using namespace std;
 
 int main(int argc, char *argv[]){
 	const char *file=NULL,*message_file=NULL;

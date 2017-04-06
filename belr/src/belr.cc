@@ -5,7 +5,10 @@
 #include <algorithm>
 #include <iostream>
 
-namespace belr{
+
+using namespace std;
+using namespace belr;
+
 
 TransitionMap::TransitionMap(){
 	for(size_t i=0;i<sizeof(mPossibleChars)/sizeof(bool);++i)
@@ -40,7 +43,7 @@ void TransitionMap::merge(const TransitionMap* other){
 Recognizer::Recognizer() : mId(0) {
 }
 
-void Recognizer::setName(const string& name){
+void Recognizer::setName(const std::string& name){
 	static unsigned int id_base=0;
 	mName=name;
 	/* every recognizer that is given a name is given also a unique id*/
@@ -489,10 +492,9 @@ int Grammar::getNumRules() const{
 }
 
 
-string tolower(const string &str){
+string belr::tolower(const string &str){
 	string ret(str);
 	transform(ret.begin(),ret.end(), ret.begin(), ::tolower);
 	return ret;
 }
 
-}
