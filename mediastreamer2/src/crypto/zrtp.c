@@ -110,6 +110,44 @@ static const char *bzrtp_sas_toString(uint8_t sasAlgo) {
 /* ZRTP library Callbacks implementation */
 
 /**
+ * @brief collect messages from the bzrtp lib, log them and pass some through ORTP_EVENTS to liblinphone
+ *
+ * @param[in]	clientData	Pointer to our ZrtpContext structure
+ * @param[in]	messageLevel	One of  BZRTP_MESSAGE_ERROR, BZRTP_MESSAGE_WARNING, BZRTP_MESSAGE_LOG, BZRTP_MESSAGE_DEBUG
+ * @param[in]	messageId	Message code mapped to an int as defined in bzrtp.h
+ * @param[in]	messageString	Can be NULL or a NULL terminated string
+ *
+ * @return	0 on success
+ */
+static int ms_zrtp_statusMessage(void *clientData, const uint8_t messageLevel, const uint8_t messageId, const char *messageString) {
+	MSZrtpContext *userData = (MSZrtpContext *)clientData;
+	OrtpEventData *eventData;
+	OrtpEvent *ev;
+
+	switch (messageId) {
+		case BZRTP_MESSAGE_CACHEMISMATCH:
+			ev=ortp_event_new(ORTP_EVENT_ZRTP_CACHE_MISMATCH);
+			eventData=ortp_event_get_data(ev);
+			eventData->info.zrtp_cache_mismatch=1;
+			rtp_session_dispatch_event(userData->stream_sessions->rtp_session, ev);
+			ms_warning("Zrtp Event dispatched : cache mismatch"); /* log it as a warning */
+			break;
+		case BZRTP_MESSAGE_PEERVERSIONOBSOLETE:
+			ev=ortp_event_new(ORTP_EVENT_ZRTP_PEER_VERSION_OBSOLETE);
+			eventData=ortp_event_get_data(ev);
+			rtp_session_dispatch_event(userData->stream_sessions->rtp_session, ev);
+			ms_message("Zrtp Event dispatched : Peer ZRTP engine version seems obsolete(or not bzrtp) and may not allow LIME to work correctly, peer ZRTP engine identifies itself as %.16s", messageString==NULL?"NULL":messageString);
+			break;
+		default:
+			/* unexepected message, do nothing, just log it as a warning */
+			ms_warning("Zrtp Message Unknown : Level %d Id %d message %s", messageLevel, messageId, messageString==NULL?"NULL":messageString);
+			break;
+	}
+
+	return 0;
+}
+
+/**
 * @brief Send a ZRTP packet via RTP transport modifiers.
 *
 * ZRTP calls this method to send a ZRTP packet via the RTP session.
@@ -247,6 +285,7 @@ static int ms_zrtp_startSrtpSession(void *clientData,  const bzrtpSrtpSecrets_t 
 		// support both b32 and b256 format SAS strings
 		snprintf(eventData->info.zrtp_sas.sas, sizeof(eventData->info.zrtp_sas.sas), "%s", secrets->sas);
 		eventData->info.zrtp_sas.verified=(verified != 0) ? TRUE : FALSE;
+		eventData->info.zrtp_cache_mismatch=( secrets->cacheMismatch != 0) ? TRUE : FALSE;
 		rtp_session_dispatch_event(userData->stream_sessions->rtp_session, ev);
 		ms_message("ZRTP secrets on: SAS is %.32s previously verified %s on session [%p]", secrets->sas, verified == 0 ? "no" : "yes", userData->stream_sessions);
 		ms_message("ZRTP algo used during negotiation: Cipher: %s - KeyAgreement: %s - Hash: %s - AuthTag: %s - Sas Rendering: %s", bzrtp_cipher_toString(secrets->cipherAlgo), bzrtp_keyAgreement_toString(secrets->keyAgreementAlgo), bzrtp_hash_toString(secrets->hashAlgo), bzrtp_authtag_toString(secrets->authTagAlgo), bzrtp_sas_toString(secrets->sasAlgo));
@@ -557,6 +596,8 @@ MSZrtpContext* ms_zrtp_context_new(MSMediaStreamSessions *sessions, MSZrtpParams
 	cbs.bzrtp_sendData=ms_zrtp_sendDataZRTP;
 	cbs.bzrtp_srtpSecretsAvailable=ms_zrtp_srtpSecretsAvailable;
 	cbs.bzrtp_startSrtpSession=ms_zrtp_startSrtpSession;
+	cbs.bzrtp_statusMessage=ms_zrtp_statusMessage;
+	cbs.bzrtp_messageLevel=BZRTP_MESSAGE_LOG; /* get log, warnings and error messages from bzrtp lib */
 
 	bzrtp_setCallbacks(context, &cbs);
 
