@@ -114,6 +114,7 @@ typedef struct bzrtpSrtpSecrets_struct  {
 	uint8_t hashAlgo; /**< The hash algo selected during ZRTP negotiation */
 	uint8_t keyAgreementAlgo; /**< The key agreement algo selected during ZRTP negotiation */
 	uint8_t sasAlgo; /**< The SAS rendering algo selected during ZRTP negotiation */
+	uint8_t cacheMismatch; /**< Flag set to 1 in case of ZRTP cache mismatch, may occurs only on first channel(the one computing SAS) */
 } bzrtpSrtpSecrets_t;
 
 
@@ -124,7 +125,8 @@ typedef struct bzrtpSrtpSecrets_struct  {
 #define BZRTP_MESSAGE_DEBUG	0x03
 
 /* define message codes */
-#define BZRTP_MESSAGE_CACHEMISMATCH 0x01
+#define BZRTP_MESSAGE_CACHEMISMATCH 		0x01
+#define BZRTP_MESSAGE_PEERVERSIONOBSOLETE	0x02
 
 /**
  * Function pointer used by bzrtp to free memory allocated by callbacks.
@@ -135,7 +137,7 @@ typedef void (*zrtpFreeBuffer_callback)(void *);
  */
 typedef struct bzrtpCallbacks_struct {
 	/* messaging status and warnings */
-	int (* bzrtp_statusMessage)(void *clientData, const uint8_t messageLevel, const uint8_t messageId); /**< Sending messages to caller: error, warnings, logs */
+	int (* bzrtp_statusMessage)(void *clientData, const uint8_t messageLevel, const uint8_t messageId, const char *messageString); /**< Sending messages to caller: error, warnings, logs, the messageString can be NULL or a NULL terminated string */
 	int bzrtp_messageLevel; /**< Filter calls to this callback to levels inferiors to this setting (BZRTP_MESSAGE_ERROR, BZRTP_MESSAGE_WARNING, BZRTP_MESSAGE_LOG, BZRTP_MESSAGE_DEBUG )*/
 
 	/* sending packets */

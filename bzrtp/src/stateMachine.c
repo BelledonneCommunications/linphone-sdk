@@ -557,7 +557,7 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
 
 				/* if we have a statusMessage callback, use it to warn user */
 				if (zrtpContext->zrtpCallbacks.bzrtp_statusMessage!=NULL && zrtpContext->zrtpCallbacks.bzrtp_messageLevel>=BZRTP_MESSAGE_ERROR) { /* use error level as this one MUST (RFC section 4.3.2) be warned */
-					zrtpContext->zrtpCallbacks.bzrtp_statusMessage(zrtpChannelContext->clientData, BZRTP_MESSAGE_ERROR, BZRTP_MESSAGE_CACHEMISMATCH);
+					zrtpContext->zrtpCallbacks.bzrtp_statusMessage(zrtpChannelContext->clientData, BZRTP_MESSAGE_ERROR, BZRTP_MESSAGE_CACHEMISMATCH, NULL);
 				}
 			}
 
@@ -852,7 +852,7 @@ int state_keyAgreement_responderSendingDHPart1(bzrtpEvent_t event) {
 
 				/* if we have a statusMessage callback, use it to warn user */
 				if (zrtpContext->zrtpCallbacks.bzrtp_statusMessage!=NULL && zrtpContext->zrtpCallbacks.bzrtp_messageLevel>=BZRTP_MESSAGE_ERROR) { /* use error level as this one MUST (RFC section 4.3.2) be warned */
-					zrtpContext->zrtpCallbacks.bzrtp_statusMessage(zrtpChannelContext->clientData, BZRTP_MESSAGE_ERROR, BZRTP_MESSAGE_CACHEMISMATCH);
+					zrtpContext->zrtpCallbacks.bzrtp_statusMessage(zrtpChannelContext->clientData, BZRTP_MESSAGE_ERROR, BZRTP_MESSAGE_CACHEMISMATCH, NULL);
 				}
 			}
 
@@ -1665,8 +1665,11 @@ int bzrtp_responseToHelloMessage(bzrtpContext_t *zrtpContext, bzrtpChannelContex
 	/* If not, it may be earlier version or an other library, so compute the exported keys old style just in case we need them */
 	if (strncmp(ZRTP_CLIENT_IDENTIFIERv1_1, (char *)helloMessage->clientIdentifier, 16)==0) {
 		zrtpContext->peerBzrtpVersion=10100;
-	} else { /* this is not version 1.1 of bzrtp, set it to 1.0 */
+	} else { /* this is not version 1.1 of bzrtp(can be another zrtp lib or and older version of bzrtp), set it to 1.0 */
 		zrtpContext->peerBzrtpVersion=10000;
+		if (zrtpContext->zrtpCallbacks.bzrtp_statusMessage!=NULL && zrtpContext->zrtpCallbacks.bzrtp_messageLevel>=BZRTP_MESSAGE_LOG) { /* use error level as this one MUST (RFC section 4.3.2) be warned */
+				zrtpContext->zrtpCallbacks.bzrtp_statusMessage(zrtpChannelContext->clientData, BZRTP_MESSAGE_LOG, BZRTP_MESSAGE_PEERVERSIONOBSOLETE, (const char *)helloMessage->clientIdentifier);
+		}
 	}
 
 	/* now select mode according to context */
@@ -2132,6 +2135,11 @@ int bzrtp_deriveSrtpKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelContext_
 		zrtpChannelContext->srtpSecrets.sas = (char *)malloc((zrtpChannelContext->sasLength)*sizeof(char)); /*this shall take in account the selected representation algo for SAS */
 
 		zrtpChannelContext->sasFunction(sasValue, zrtpChannelContext->srtpSecrets.sas, zrtpChannelContext->sasLength);
+
+		/* set also the cache mismtach flag in srtpSecrets structure, may occurs only on the first channel */
+		if (zrtpContext->cacheMismatchFlag!=0) {
+			zrtpChannelContext->srtpSecrets.cacheMismatch = 1;
+		}
 	}
 
 	return 0;

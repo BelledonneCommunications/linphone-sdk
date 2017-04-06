@@ -232,6 +232,7 @@ int bzrtp_packetParser(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpC
 				memcpy(messageData->version, messageContent, 4);
 				messageContent +=4;
 				memcpy(messageData->clientIdentifier, messageContent, 16);
+				messageData->clientIdentifier[16] = '\0'; /* be sure the clientIdentifier is a NULL terminated string */
 				messageContent +=16;
 				memcpy(messageData->H3, messageContent, 32);
 				messageContent +=32;
@@ -1135,6 +1136,7 @@ bzrtpPacket_t *bzrtp_createZrtpPacket(bzrtpContext_t *zrtpContext, bzrtpChannelC
 				/* initialise some fields using zrtp context data */
 				memcpy(zrtpHelloMessage->version, ZRTP_VERSION, 4);
 				strncpy((char*)zrtpHelloMessage->clientIdentifier, ZRTP_CLIENT_IDENTIFIER, 16);
+				zrtpHelloMessage->clientIdentifier[16]='\0'; /* be sure the clientIdentifier filed is a NULL terminated string */
 				memcpy(zrtpHelloMessage->H3, zrtpChannelContext->selfH[3], 32);
 				memcpy(zrtpHelloMessage->ZID, zrtpContext->selfZID, 12);
 				/* set all S,M,P flags to zero as we're not able to verify signatures, we're not a PBX(TODO: implement?), we're not passive */

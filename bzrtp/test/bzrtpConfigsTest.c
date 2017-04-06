@@ -151,7 +151,7 @@ int getSAS(void *clientData, bzrtpSrtpSecrets_t *secrets, int32_t pvs) {
 	return 0;
 }
 
-int getMessage(void *clientData, const uint8_t level, const uint8_t message) {
+int getMessage(void *clientData, const uint8_t level, const uint8_t message, const char *messageString) {
 	/* get the client context */
 	clientContext_t *clientContext = (clientContext_t *)clientData;
 	if (level == BZRTP_MESSAGE_ERROR && message == BZRTP_MESSAGE_CACHEMISMATCH) {

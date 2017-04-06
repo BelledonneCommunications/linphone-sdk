@@ -1052,6 +1052,7 @@ static int bzrtp_initChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelCon
 	zrtpChannelContext->srtpSecrets.hashAlgo = ZRTP_UNSET_ALGO;
 	zrtpChannelContext->srtpSecrets.keyAgreementAlgo = ZRTP_UNSET_ALGO;
 	zrtpChannelContext->srtpSecrets.sasAlgo = ZRTP_UNSET_ALGO;
+	zrtpChannelContext->srtpSecrets.cacheMismatch = 0;
 
 	/* create the Hello packet and store it */
 	helloPacket = bzrtp_createZrtpPacket(zrtpContext, zrtpChannelContext, MSGTYPE_HELLO, &retval);

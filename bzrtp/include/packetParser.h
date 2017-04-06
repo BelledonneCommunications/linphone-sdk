@@ -96,7 +96,7 @@ typedef struct bzrtpPacket_struct {
  */
 typedef struct bzrtpHelloMessage_struct {
 	uint8_t version[4]; /**< a string defining the current version, shall be 1.10 */
-	uint8_t clientIdentifier[16]; /**< a string identifing the vendor and release of ZRTP software */
+	uint8_t clientIdentifier[17]; /**< a string identifing the vendor and release of ZRTP software, actual content is 16, but last character forced to '\0' */
 	uint8_t H3[32]; /**< the hash image H3 (256 bits) */
 	uint8_t ZID[12]; /**< unique identifier for ZRTP endpoint (96 bits) */
 	uint8_t	S; /**< The signature-capable flag. If signatures are not supported, the (S) flag MUST be set to zero (1 bit) */
