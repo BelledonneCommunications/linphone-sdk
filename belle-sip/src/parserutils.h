@@ -19,10 +19,12 @@
 #define belle_sip_parserutils_h
 
 #include "port.h"
-static inline int belle_sip_strcasecmp(const char*a,const char* b) {
+
+static BELLESIP_INLINE int belle_sip_strcasecmp(const char*a, const char* b) {
 	if (!a || !b) return 0;
 	return strcasecmp(a,b) == 0;
 }
+
 #define IS_TOKEN(token) \
 		belle_sip_strcasecmp(#token,(const char*)INPUT->toStringTT(INPUT,LT(1),LT(strlen(#token)))->chars)
 
