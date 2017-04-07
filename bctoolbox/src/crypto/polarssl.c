@@ -628,14 +628,20 @@ void bctbx_DHMCreatePublic(bctbx_DHMContext_t *context, int (*rngFunction)(void 
 /* compute secret - the ->peer field of context must have been set before calling this function */
 void bctbx_DHMComputeSecret(bctbx_DHMContext_t *context, int (*rngFunction)(void *, uint8_t *, size_t), void *rngContext) {
 	size_t keyLength;
+	uint8_t sharedSecretBuffer[384]; /* longest shared secret available in these mode */
 
 	/* import the peer public value G^Y mod P in the polar ssl context */
 	dhm_read_public((dhm_context *)(context->cryptoModuleData), context->peer, context->primeLength);
 
 	/* compute the secret key */
 	keyLength = context->primeLength; /* undocumented but this value seems to be in/out, so we must set it to the expected key length */
-	context->key = (uint8_t *)malloc(keyLength*sizeof(uint8_t)); /* allocate key buffer */
-	dhm_calc_secret((dhm_context *)(context->cryptoModuleData), context->key, &keyLength, (int (*)(void *, unsigned char *, size_t))rngFunction, rngContext);
+	context->key = (uint8_t *)malloc(keyLength*sizeof(uint8_t)); /* allocate and reset the key buffer */
+	memset(context->key,0, keyLength);
+
+	dhm_calc_secret((dhm_context *)(context->cryptoModuleData), sharedSecretBuffer, &keyLength, (int (*)(void *, unsigned char *, size_t))rngFunction, rngContext);
+	/* now copy the resulting secret in the correct place in buffer(result may actually miss some front zero bytes, real length of output is now in keyLength but we want primeLength bytes) */
+	memcpy(context->key+(context->primeLength-keyLength), sharedSecretBuffer, keyLength);
+	memset(sharedSecretBuffer, 0, 384); /* purge secret from temporary buffer */
 }
 
 /* clean DHM context */
