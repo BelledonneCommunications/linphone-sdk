@@ -26,7 +26,7 @@ lcb_git_tag("1.0.4")
 lcb_external_source_paths("bzrtp")
 lcb_groupable(YES)
 
-lcb_dependencies("bctoolbox")
+lcb_dependencies("bctoolbox" "sqlite3")
 if(LINPHONE_BUILDER_BUILD_DEPENDENCIES)
 	if(NOT APPLE)
 		# Do not build xml2 on Apple systems (Mac OS X and iOS), it is provided by the system
