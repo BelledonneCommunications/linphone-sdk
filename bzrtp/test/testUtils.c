@@ -31,9 +31,6 @@
 #ifndef _WIN32
 #if !defined(__QNXNTO__) && !(defined(__ANDROID__) && defined(__LP64__))
 #include <ctype.h>
-#include <langinfo.h>
-#include <locale.h>
-#include <iconv.h>
 #include <string.h>
 #endif
 #else
@@ -347,37 +344,6 @@ void dumpContext(char *title, bzrtpContext_t *zrtpContext) {
 
 #define MAX_PATH_SIZE 1024
 
-static char *utf8_convert(const char *filename){
-	char db_file_utf8[MAX_PATH_SIZE] = "";
-#if defined(_WIN32)
-	wchar_t db_file_utf16[MAX_PATH_SIZE]={0};
-	MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, filename, -1, db_file_utf16, MAX_PATH_SIZE);
-	WideCharToMultiByte(CP_UTF8, 0, db_file_utf16, -1, db_file_utf8, sizeof(db_file_utf8), NULL, NULL);
-#elif defined(__QNXNTO__) || (defined(__ANDROID__) && defined(__LP64__))
-	strncpy(db_file_utf8, filename, MAX_PATH_SIZE - 1);
-#else
-	char db_file_locale[MAX_PATH_SIZE] = {'\0'};
-	char *inbuf=db_file_locale, *outbuf=db_file_utf8;
-	size_t inbyteleft = MAX_PATH_SIZE, outbyteleft = MAX_PATH_SIZE;
-	iconv_t cb;
-
-	if (strcasecmp("UTF-8", nl_langinfo(CODESET)) == 0) {
-		strncpy(db_file_utf8, filename, MAX_PATH_SIZE - 1);
-	} else {
-		strncpy(db_file_locale, filename, MAX_PATH_SIZE-1);
-		cb = iconv_open("UTF-8", nl_langinfo(CODESET));
-		if (cb != (iconv_t)-1) {
-			int ret;
-			ret = iconv(cb, &inbuf, &inbyteleft, &outbuf, &outbyteleft);
-			if(ret == -1) db_file_utf8[0] = '\0';
-			iconv_close(cb);
-		}
-	}
-#endif
-	return bctbx_strdup(db_file_utf8);
-}
-
-
 int bzrtptester_sqlite3_open(const char *db_file, sqlite3 **db) {
 	char* errmsg = NULL;
 	int ret;
@@ -389,12 +355,7 @@ int bzrtptester_sqlite3_open(const char *db_file, sqlite3 **db) {
 	flags |= SQLITE_OPEN_FILEPROTECTION_NONE;
 #endif
 
-	/*since we plug our vfs into sqlite, we convert to UTF-8.
-	 * On Windows, the filename has to be converted back to windows native charset.*/
-	char *utf8_filename = utf8_convert(db_file);
-	//ret = sqlite3_open_v2(utf8_filename, db, flags, LINPHONE_SQLITE3_VFS);
-	ret = sqlite3_open_v2(utf8_filename, db, flags, NULL);
-	bctbx_free(utf8_filename);
+	ret = sqlite3_open_v2(db_file, db, flags, NULL);
 
 	if (ret != SQLITE_OK) return ret;
 	// Some platforms do not provide a way to create temporary files which are needed
