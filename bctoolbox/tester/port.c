@@ -22,7 +22,7 @@
 #include "bctoolbox_tester.h"
 #include "bctoolbox/port.h"
 
-static void bytesToFromHexaStrings(void) {
+static void bytes_to_from_hexa_strings(void) {
 	const uint8_t a55aBytes[2] = {0xa5, 0x5a};
 	const uint8_t a55aString[5] = "a55a";
 	const uint8_t upBytes[8] = {0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef};
@@ -32,58 +32,58 @@ static void bytesToFromHexaStrings(void) {
 	uint8_t outputBytes[16];
 	uint8_t outputString[16];
 
-	BC_ASSERT_EQUAL(bctbx_charToByte("1"[0]), 1, uint8_t, "%d");
-	BC_ASSERT_EQUAL(bctbx_charToByte("5"[0]), 5, uint8_t, "%d");
-	BC_ASSERT_EQUAL(bctbx_charToByte("a"[0]), 10, uint8_t, "%d");
-	BC_ASSERT_EQUAL(bctbx_charToByte("e"[0]), 14, uint8_t, "%d");
-	BC_ASSERT_EQUAL(bctbx_charToByte("B"[0]), 11, uint8_t, "%d");
-	BC_ASSERT_EQUAL(bctbx_charToByte("F"[0]), 15, uint8_t, "%d");
+	BC_ASSERT_EQUAL(bctbx_char_to_byte("1"[0]), 1, uint8_t, "%d");
+	BC_ASSERT_EQUAL(bctbx_char_to_byte("5"[0]), 5, uint8_t, "%d");
+	BC_ASSERT_EQUAL(bctbx_char_to_byte("a"[0]), 10, uint8_t, "%d");
+	BC_ASSERT_EQUAL(bctbx_char_to_byte("e"[0]), 14, uint8_t, "%d");
+	BC_ASSERT_EQUAL(bctbx_char_to_byte("B"[0]), 11, uint8_t, "%d");
+	BC_ASSERT_EQUAL(bctbx_char_to_byte("F"[0]), 15, uint8_t, "%d");
 
-	BC_ASSERT_EQUAL(bctbx_byteToChar(0), "0"[0], char, "%c");
-	BC_ASSERT_EQUAL(bctbx_byteToChar(2), "2"[0], char, "%c");
-	BC_ASSERT_EQUAL(bctbx_byteToChar(5), "5"[0], char, "%c");
-	BC_ASSERT_EQUAL(bctbx_byteToChar(0x0a), "a"[0], char, "%c");
-	BC_ASSERT_EQUAL(bctbx_byteToChar(0x0c), "c"[0], char, "%c");
-	BC_ASSERT_EQUAL(bctbx_byteToChar(0x0e), "e"[0], char, "%c");
+	BC_ASSERT_EQUAL(bctbx_byte_to_char(0), "0"[0], char, "%c");
+	BC_ASSERT_EQUAL(bctbx_byte_to_char(2), "2"[0], char, "%c");
+	BC_ASSERT_EQUAL(bctbx_byte_to_char(5), "5"[0], char, "%c");
+	BC_ASSERT_EQUAL(bctbx_byte_to_char(0x0a), "a"[0], char, "%c");
+	BC_ASSERT_EQUAL(bctbx_byte_to_char(0x0c), "c"[0], char, "%c");
+	BC_ASSERT_EQUAL(bctbx_byte_to_char(0x0e), "e"[0], char, "%c");
 
-	bctbx_strToUint8(outputBytes, a55aString, 4);
+	bctbx_str_to_uint8(outputBytes, a55aString, 4);
 	BC_ASSERT_NSTRING_EQUAL(outputBytes, a55aBytes, 2);
-	bctbx_strToUint8(outputBytes, upString, 16);
+	bctbx_str_to_uint8(outputBytes, upString, 16);
 	BC_ASSERT_NSTRING_EQUAL(outputBytes, upBytes, 8);
-	bctbx_strToUint8(outputBytes, downString, 16);
+	bctbx_str_to_uint8(outputBytes, downString, 16);
 	BC_ASSERT_NSTRING_EQUAL(outputBytes, downBytes, 8);
 
-	bctbx_int8ToStr(outputString, a55aBytes, 2);
+	bctbx_int8_to_str(outputString, a55aBytes, 2);
 	BC_ASSERT_NSTRING_EQUAL(outputString, a55aString, 4);
-	bctbx_int8ToStr(outputString, upBytes, 8);
+	bctbx_int8_to_str(outputString, upBytes, 8);
 	BC_ASSERT_NSTRING_EQUAL(outputString, upString, 16);
-	bctbx_int8ToStr(outputString, downBytes, 8);
+	bctbx_int8_to_str(outputString, downBytes, 8);
 	BC_ASSERT_NSTRING_EQUAL(outputString, downString, 16);
 
-	bctbx_uint32ToStr(outputString, 0x5aa5c376);
+	bctbx_uint32_to_str(outputString, 0x5aa5c376);
 	BC_ASSERT_NSTRING_EQUAL(outputString, "5aa5c376", 8);
-	bctbx_uint32ToStr(outputString, 0x01234567);
+	bctbx_uint32_to_str(outputString, 0x01234567);
 	BC_ASSERT_NSTRING_EQUAL(outputString, "01234567", 8);
-	bctbx_uint32ToStr(outputString, 0xfedcba98);
+	bctbx_uint32_to_str(outputString, 0xfedcba98);
 	BC_ASSERT_NSTRING_EQUAL(outputString, "fedcba98", 8);
 
-	BC_ASSERT_EQUAL(bctbx_strToUint32("5aa5c376"), 0x5aa5c376, uint32_t, "0x%08x");
-	BC_ASSERT_EQUAL(bctbx_strToUint32("01234567"), 0x01234567, uint32_t, "0x%08x");
-	BC_ASSERT_EQUAL(bctbx_strToUint32("fedcba98"), 0xfedcba98, uint32_t, "0x%08x");
+	BC_ASSERT_EQUAL(bctbx_str_to_uint32("5aa5c376"), 0x5aa5c376, uint32_t, "0x%08x");
+	BC_ASSERT_EQUAL(bctbx_str_to_uint32("01234567"), 0x01234567, uint32_t, "0x%08x");
+	BC_ASSERT_EQUAL(bctbx_str_to_uint32("fedcba98"), 0xfedcba98, uint32_t, "0x%08x");
 
-	bctbx_uint64ToStr(outputString, 0xfa5c37643cde8de0);
+	bctbx_uint64_to_str(outputString, 0xfa5c37643cde8de0);
 	BC_ASSERT_NSTRING_EQUAL(outputString, "fa5c37643cde8de0", 16);
-	bctbx_uint64ToStr(outputString, 0x0123456789abcdef);
+	bctbx_uint64_to_str(outputString, 0x0123456789abcdef);
 	BC_ASSERT_NSTRING_EQUAL(outputString, "0123456789abcdef", 16);
-	bctbx_uint64ToStr(outputString, 0xfedcba9876543210);
+	bctbx_uint64_to_str(outputString, 0xfedcba9876543210);
 	BC_ASSERT_NSTRING_EQUAL(outputString, "fedcba9876543210", 16);
 
-	BC_ASSERT_EQUAL(bctbx_strToUint64("fa5c37643cde8de0"), 0xfa5c37643cde8de0, uint64_t, "0x%" PRIx64);
-	BC_ASSERT_EQUAL(bctbx_strToUint64("0123456789abcdef"), 0x0123456789abcdef, uint64_t, "0x%" PRIx64);
-	BC_ASSERT_EQUAL(bctbx_strToUint64("fedcba9876543210"), 0xfedcba9876543210, uint64_t, "0x%" PRIx64);
+	BC_ASSERT_EQUAL(bctbx_str_to_uint64("fa5c37643cde8de0"), 0xfa5c37643cde8de0, uint64_t, "0x%" PRIx64);
+	BC_ASSERT_EQUAL(bctbx_str_to_uint64("0123456789abcdef"), 0x0123456789abcdef, uint64_t, "0x%" PRIx64);
+	BC_ASSERT_EQUAL(bctbx_str_to_uint64("fedcba9876543210"), 0xfedcba9876543210, uint64_t, "0x%" PRIx64);
 }
 
-static void timeFunctions(void) {
+static void time_functions(void) {
 	bctoolboxTimeSpec testTs;
 	bctoolboxTimeSpec y2k,monday6Feb2017;
 	y2k.tv_sec = 946684800;
@@ -134,8 +134,8 @@ static void timeFunctions(void) {
 }
 
 static test_t utils_tests[] = {
-	TEST_NO_TAG("Bytes to/from Hexa strings", bytesToFromHexaStrings),
-	TEST_NO_TAG("Time", timeFunctions)
+	TEST_NO_TAG("Bytes to/from Hexa strings", bytes_to_from_hexa_strings),
+	TEST_NO_TAG("Time", time_functions)
 };
 
 test_suite_t utils_test_suite = {"Utils", NULL, NULL, NULL, NULL,

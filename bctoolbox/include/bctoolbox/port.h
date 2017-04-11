@@ -550,73 +550,72 @@ BCTBX_PUBLIC bool_t bctbx_is_multicast_addr(const struct sockaddr *addr);
  * @brief	convert an hexa char [0-9a-fA-F] into the corresponding unsigned integer value
  * Any invalid char will be converted to zero without any warning
  *
- * @param[in]	inputChar	a char which shall be in range [0-9a-fA-F]
+ * @param[in]	input_char	a char which shall be in range [0-9a-fA-F]
  *
  * @return		the unsigned integer value in range [0-15]
  */
-BCTBX_PUBLIC uint8_t bctbx_charToByte(const uint8_t inputChar);
+BCTBX_PUBLIC uint8_t bctbx_char_to_byte(uint8_t input_char);
 
 /**
  * @brief	convert a byte which value is in range [0-15] into an hexa char [0-9a-fA-F]
  *
- * @param[in]	inputByte	an integer which shall be in range [0-15]
- *
+ * @param[in]	input_byte	an integer which shall be in range [0-15]
  * @return		the hexa char [0-9a-f] corresponding to the input
  */
-BCTBX_PUBLIC uint8_t bctbx_byteToChar(const uint8_t inputByte);
+BCTBX_PUBLIC uint8_t bctbx_byte_to_char(uint8_t input_byte);
 
 
 /**
  * @brief Convert an hexadecimal string into the corresponding byte buffer
  *
- * @param[out]	outputBytes			The output bytes buffer, must have a length of half the input string buffer
- * @param[in]	inputString			The input string buffer, must be hexadecimal(it is not checked by function, any non hexa char is converted to 0)
- * @param[in]	inputStringLength	The lenght in chars of the string buffer, output is half this length
+ * @param[out]	output_bytes			The output bytes buffer, must have a length of half the input string buffer
+ * @param[in]	input_string			The input string buffer, must be hexadecimal(it is not checked by function, any non hexa char is converted to 0)
+ * @param[in]	input_string_length	The lenght in chars of the string buffer, output is half this length
  */
-BCTBX_PUBLIC void bctbx_strToUint8(uint8_t *outputBytes, const uint8_t *inputString, const uint16_t inputStringLength);
+BCTBX_PUBLIC void bctbx_str_to_uint8(uint8_t *output_bytes, const uint8_t *input_string, size_t input_string_length);
 
 /**
  * @brief Convert a byte buffer into the corresponding hexadecimal string
  *
- * @param[out]	outputString		The output string buffer, must have a length of twice the input bytes buffer
- * @param[in]	inputBytes			The input bytes buffer
- * @param[in]	inputBytesLength	The lenght in bytes buffer, output is twice this length
+ * @param[out]	output_string		The output string buffer, must have a length of twice the input bytes buffer
+ * @param[in]	input_bytes			The input bytes buffer
+ * @param[in]	input_bytes_length	The lenght in bytes buffer, output is twice this length
  */
-BCTBX_PUBLIC void bctbx_int8ToStr(uint8_t *outputString, const uint8_t *inputBytes, const uint16_t inputBytesLength);
+BCTBX_PUBLIC void bctbx_int8_to_str(uint8_t *output_string, const uint8_t *input_bytes, size_t input_bytes_length);
 
 /**
  * @brief Convert an unsigned 32 bits integer into the corresponding hexadecimal string(including null termination character)
  *
- * @param[out]	outputString		The output string buffer, must have a length of at least 9 bytes(8 nibbles and the '\0')
- * @param[in]	inputUint32		The input unsigned int
+ * @param[out]	output_string		The output string buffer, must have a length of at least 9 bytes(8 nibbles and the '\0')
+ * @param[in]	input_uint32		The input unsigned int
  */
-BCTBX_PUBLIC void bctbx_uint32ToStr(uint8_t outputString[9], const uint32_t inputUint32);
+BCTBX_PUBLIC void bctbx_uint32_to_str(uint8_t output_string[9], uint32_t input_uint32);
 
 /**
  * @brief Convert an hexadecimal string of 8 char length into the corresponding 32 bits unsigned integer
  *
- * @param[in]	inputString		The input string buffer, must be hexadecimal and at least 8 char long
+ * @param[in]	input_string		The input string buffer, must be hexadecimal and at least 8 char long
  *
  * Note : there is no check on the length or validity as an hexa string on the input, incorrect byte is silently mapped to 0
  */
-BCTBX_PUBLIC uint32_t bctbx_strToUint32(const uint8_t inputString[9]);
+BCTBX_PUBLIC uint32_t bctbx_str_to_uint32(const uint8_t input_string[9]);
 
 /**
  * @brief Convert an unsigned 64 bits integer into the corresponding hexadecimal string(including null termination character)
  *
- * @param[out]	outputString		The output string buffer, must have a length of at least 17 bytes(16 nibbles and the '\0')
- * @param[in]	inputUint64		The input unsigned int
+ * @param[out]	output_string		The output string buffer, must have a length of at least 17 bytes(16 nibbles and the '\0')
+ * @param[in]	input_uint64		The input unsigned int
  */
-BCTBX_PUBLIC void bctbx_uint64ToStr(uint8_t outputString[17], const uint64_t inputUint64);
+BCTBX_PUBLIC void bctbx_uint64_to_str(uint8_t output_string[17], uint64_t input_uint64);
 
 /**
  * @brief Convert an hexadecimal string of 8 char length into the corresponding 64 bits unsigned integer
  *
- * @param[in]	inputString		The input string buffer, must be hexadecimal and at leat 16 char long
+ * @param[in]	input_string		The input string buffer, must be hexadecimal and at leat 16 char long
  *
  * Note : there is no check on the length or validity as an hexa string on the input, incorrect byte is silently mapped to 0
  */
-BCTBX_PUBLIC uint64_t bctbx_strToUint64(const uint8_t inputString[17]);
+BCTBX_PUBLIC uint64_t bctbx_str_to_uint64(const uint8_t input_string[17]);
 
 #ifdef __cplusplus
 }

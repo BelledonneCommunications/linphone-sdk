@@ -1567,30 +1567,20 @@ void bctbx_freeaddrinfo(struct addrinfo *res){
 }
 
 
-/* Useful byte buffer to/from hexa string manipulation */
-
-/**
- * @brief	convert an hexa char [0-9a-fA-F] into the corresponding unsigned integer value
- * Any invalid char will be converted to zero without any warning
- *
- * @param[in]	inputChar	a char which shall be in range [0-9a-fA-F]
- *
- * @return		the unsigned integer value in range [0-15]
- */
-uint8_t bctbx_charToByte(const uint8_t inputChar) {
+uint8_t bctbx_char_to_byte(uint8_t input_char) {
 	/* 0-9 */
-	if (inputChar>0x29 && inputChar<0x3A) {
-		return inputChar - 0x30;
+	if (input_char>0x29 && input_char<0x3A) {
+		return input_char - 0x30;
 	}
 
 	/* a-f */
-	if (inputChar>0x60 && inputChar<0x67) {
-		return inputChar - 0x57; /* 0x57 = 0x61(a) + 0x0A*/
+	if (input_char>0x60 && input_char<0x67) {
+		return input_char - 0x57; /* 0x57 = 0x61(a) + 0x0A*/
 	}
 
 	/* A-F */
-	if (inputChar>0x40 && inputChar<0x47) {
-		return inputChar - 0x37; /* 0x37 = 0x41(a) + 0x0A*/
+	if (input_char>0x40 && input_char<0x47) {
+		return input_char - 0x37; /* 0x37 = 0x41(a) + 0x0A*/
 	}
 
 	/* shall never arrive here, string is not Hex*/
@@ -1598,139 +1588,91 @@ uint8_t bctbx_charToByte(const uint8_t inputChar) {
 
 }
 
-/**
- * @brief	convert a byte which value is in range [0-15] into an hexa char [0-9a-fA-F]
- *
- * @param[in]	inputByte	an integer which shall be in range [0-15]
- *
- * @return		the hexa char [0-9a-f] corresponding to the input
- */
-uint8_t bctbx_byteToChar(const uint8_t inputByte) {
-	uint8_t inputByteCrop = inputByte&0x0F; /* restrict the input value to range [0-15] */
+uint8_t bctbx_byte_to_char(uint8_t input_byte) {
+	uint8_t input_byte_crop = input_byte&0x0F; /* restrict the input value to range [0-15] */
 	/* 0-9 */
-	if(inputByteCrop<0x0A) {
-		return inputByteCrop+0x30;
+	if(input_byte_crop<0x0A) {
+		return input_byte_crop+0x30;
 	}
 	/* a-f */
-	return inputByteCrop + 0x57;
+	return input_byte_crop + 0x57;
 }
 
-
-/**
- * @brief Convert an hexadecimal string into the corresponding byte buffer
- *
- * @param[out]	outputBytes			The output bytes buffer, must have a length of half the input string buffer
- * @param[in]	inputString			The input string buffer, must be hexadecimal(it is not checked by function, any non hexa char is converted to 0)
- * @param[in]	inputStringLength	The lenght in chars of the string buffer, output is half this length
- */
-void bctbx_strToUint8(uint8_t *outputBytes, const uint8_t *inputString, const uint16_t inputStringLength) {
-	int i;
-	for (i=0; i<inputStringLength/2; i++) {
-		outputBytes[i] = (bctbx_charToByte(inputString[2*i]))<<4 | bctbx_charToByte(inputString[2*i+1]);
+void bctbx_str_to_uint8(uint8_t *output_bytes, const uint8_t *input_string, size_t input_string_length) {
+	size_t i;
+	for (i=0; i<input_string_length/2; i++) {
+		output_bytes[i] = (bctbx_char_to_byte(input_string[2*i]))<<4 | bctbx_char_to_byte(input_string[2*i+1]);
 	}
 }
 
-/**
- * @brief Convert a byte buffer into the corresponding hexadecimal string
- *
- * @param[out]	outputString		The output string buffer, must have a length of twice the input bytes buffer
- * @param[in]	inputBytes			The input bytes buffer
- * @param[in]	inputBytesLength	The lenght in bytes buffer, output is twice this length
- */
-void bctbx_int8ToStr(uint8_t *outputString, const uint8_t *inputBytes, const uint16_t inputBytesLength) {
-	int i;
-	for (i=0; i<inputBytesLength; i++) {
-		outputString[2*i] = bctbx_byteToChar((inputBytes[i]>>4)&0x0F);
-		outputString[2*i+1] = bctbx_byteToChar(inputBytes[i]&0x0F);
+void bctbx_int8_to_str(uint8_t *output_string, const uint8_t *input_bytes, size_t input_bytes_length) {
+	size_t i;
+	for (i=0; i<input_bytes_length; i++) {
+		output_string[2*i] = bctbx_byte_to_char((input_bytes[i]>>4)&0x0F);
+		output_string[2*i+1] = bctbx_byte_to_char(input_bytes[i]&0x0F);
 	}
 }
 
-/**
- * @brief Convert an unsigned 32 bits integer into the corresponding hexadecimal string(including null termination character)
- *
- * @param[out]	outputString		The output string buffer, must have a length of at least 9 bytes(8 nibbles and the '\0')
- * @param[in]	inputUint32		The input unsigned int
- */
-void bctbx_uint32ToStr(uint8_t outputString[9], const uint32_t inputUint32) {
+void bctbx_uint32_to_str(uint8_t output_string[9], uint32_t input_uint32) {
 
-	outputString[0] = bctbx_byteToChar((uint8_t)((inputUint32>>28)&0x0F));
-	outputString[1] = bctbx_byteToChar((uint8_t)((inputUint32>>24)&0x0F));
-	outputString[2] = bctbx_byteToChar((uint8_t)((inputUint32>>20)&0x0F));
-	outputString[3] = bctbx_byteToChar((uint8_t)((inputUint32>>16)&0x0F));
-	outputString[4] = bctbx_byteToChar((uint8_t)((inputUint32>>12)&0x0F));
-	outputString[5] = bctbx_byteToChar((uint8_t)((inputUint32>>8)&0x0F));
-	outputString[6] = bctbx_byteToChar((uint8_t)((inputUint32>>4)&0x0F));
-	outputString[7] = bctbx_byteToChar((uint8_t)((inputUint32)&0x0F));
-	outputString[8] = '\0';
+	output_string[0] = bctbx_byte_to_char((uint8_t)((input_uint32>>28)&0x0F));
+	output_string[1] = bctbx_byte_to_char((uint8_t)((input_uint32>>24)&0x0F));
+	output_string[2] = bctbx_byte_to_char((uint8_t)((input_uint32>>20)&0x0F));
+	output_string[3] = bctbx_byte_to_char((uint8_t)((input_uint32>>16)&0x0F));
+	output_string[4] = bctbx_byte_to_char((uint8_t)((input_uint32>>12)&0x0F));
+	output_string[5] = bctbx_byte_to_char((uint8_t)((input_uint32>>8)&0x0F));
+	output_string[6] = bctbx_byte_to_char((uint8_t)((input_uint32>>4)&0x0F));
+	output_string[7] = bctbx_byte_to_char((uint8_t)((input_uint32)&0x0F));
+	output_string[8] = '\0';
 }
 
-/**
- * @brief Convert an hexadecimal string of 8 char length into the corresponding 32 bits unsigned integer
- *
- * @param[in]	inputString			The input string buffer, must be hexadecimal(it is not checked by function, any non hexa char is converted to 0)
- *
- * Note : there is no check on the length or validity as an hexa string on the input, incorrect byte is silently mapped to 0
- */
-uint32_t bctbx_strToUint32(const uint8_t *inputString) {
-	return  (((uint32_t)bctbx_charToByte(inputString[0]))<<28)
-		| (((uint32_t)bctbx_charToByte(inputString[1]))<<24)
-		| (((uint32_t)bctbx_charToByte(inputString[2]))<<20)
-		| (((uint32_t)bctbx_charToByte(inputString[3]))<<16)
-		| (((uint32_t)bctbx_charToByte(inputString[4]))<<12)
-		| (((uint32_t)bctbx_charToByte(inputString[5]))<<8)
-		| (((uint32_t)bctbx_charToByte(inputString[6]))<<4)
-		| (((uint32_t)bctbx_charToByte(inputString[7])));
+uint32_t bctbx_str_to_uint32(const uint8_t *input_string) {
+	return  (((uint32_t)bctbx_char_to_byte(input_string[0]))<<28)
+		| (((uint32_t)bctbx_char_to_byte(input_string[1]))<<24)
+		| (((uint32_t)bctbx_char_to_byte(input_string[2]))<<20)
+		| (((uint32_t)bctbx_char_to_byte(input_string[3]))<<16)
+		| (((uint32_t)bctbx_char_to_byte(input_string[4]))<<12)
+		| (((uint32_t)bctbx_char_to_byte(input_string[5]))<<8)
+		| (((uint32_t)bctbx_char_to_byte(input_string[6]))<<4)
+		| (((uint32_t)bctbx_char_to_byte(input_string[7])));
 }
 
-/**
- * @brief Convert an unsigned 64 bits integer into the corresponding hexadecimal string(including null termination character)
- *
- * @param[out]	outputString		The output string buffer, must have a length of at least 17 bytes(16 nibbles and the '\0')
- * @param[in]	inputUint64		The input unsigned int
- */
-void bctbx_uint64ToStr(uint8_t outputString[17], const uint64_t inputUint64) {
+void bctbx_uint64_to_str(uint8_t output_string[17], uint64_t input_uint64) {
 
-	outputString[0] = bctbx_byteToChar((uint8_t)((inputUint64>>60)&0x0F));
-	outputString[1] = bctbx_byteToChar((uint8_t)((inputUint64>>56)&0x0F));
-	outputString[2] = bctbx_byteToChar((uint8_t)((inputUint64>>52)&0x0F));
-	outputString[3] = bctbx_byteToChar((uint8_t)((inputUint64>>48)&0x0F));
-	outputString[4] = bctbx_byteToChar((uint8_t)((inputUint64>>44)&0x0F));
-	outputString[5] = bctbx_byteToChar((uint8_t)((inputUint64>>40)&0x0F));
-	outputString[6] = bctbx_byteToChar((uint8_t)((inputUint64>>36)&0x0F));
-	outputString[7] = bctbx_byteToChar((uint8_t)((inputUint64>>32)&0x0F));
-	outputString[8] = bctbx_byteToChar((uint8_t)((inputUint64>>28)&0x0F));
-	outputString[9] = bctbx_byteToChar((uint8_t)((inputUint64>>24)&0x0F));
-	outputString[10] = bctbx_byteToChar((uint8_t)((inputUint64>>20)&0x0F));
-	outputString[11] = bctbx_byteToChar((uint8_t)((inputUint64>>16)&0x0F));
-	outputString[12] = bctbx_byteToChar((uint8_t)((inputUint64>>12)&0x0F));
-	outputString[13] = bctbx_byteToChar((uint8_t)((inputUint64>>8)&0x0F));
-	outputString[14] = bctbx_byteToChar((uint8_t)((inputUint64>>4)&0x0F));
-	outputString[15] = bctbx_byteToChar((uint8_t)((inputUint64)&0x0F));
-	outputString[16] = '\0';
+	output_string[0] = bctbx_byte_to_char((uint8_t)((input_uint64>>60)&0x0F));
+	output_string[1] = bctbx_byte_to_char((uint8_t)((input_uint64>>56)&0x0F));
+	output_string[2] = bctbx_byte_to_char((uint8_t)((input_uint64>>52)&0x0F));
+	output_string[3] = bctbx_byte_to_char((uint8_t)((input_uint64>>48)&0x0F));
+	output_string[4] = bctbx_byte_to_char((uint8_t)((input_uint64>>44)&0x0F));
+	output_string[5] = bctbx_byte_to_char((uint8_t)((input_uint64>>40)&0x0F));
+	output_string[6] = bctbx_byte_to_char((uint8_t)((input_uint64>>36)&0x0F));
+	output_string[7] = bctbx_byte_to_char((uint8_t)((input_uint64>>32)&0x0F));
+	output_string[8] = bctbx_byte_to_char((uint8_t)((input_uint64>>28)&0x0F));
+	output_string[9] = bctbx_byte_to_char((uint8_t)((input_uint64>>24)&0x0F));
+	output_string[10] = bctbx_byte_to_char((uint8_t)((input_uint64>>20)&0x0F));
+	output_string[11] = bctbx_byte_to_char((uint8_t)((input_uint64>>16)&0x0F));
+	output_string[12] = bctbx_byte_to_char((uint8_t)((input_uint64>>12)&0x0F));
+	output_string[13] = bctbx_byte_to_char((uint8_t)((input_uint64>>8)&0x0F));
+	output_string[14] = bctbx_byte_to_char((uint8_t)((input_uint64>>4)&0x0F));
+	output_string[15] = bctbx_byte_to_char((uint8_t)((input_uint64)&0x0F));
+	output_string[16] = '\0';
 }
 
-/**
- * @brief Convert an hexadecimal string of 8 char length into the corresponding 64 bits unsigned integer
- *
- * @param[in]	inputString		The input string buffer, must be hexadecimal and at leat 16 char long
- *
- * Note : there is no check on the length or validity as an hexa string on the input, incorrect byte is silently mapped to 0
- */
-uint64_t bctbx_strToUint64(const uint8_t inputString[17]) {
-	return  (((uint64_t)bctbx_charToByte(inputString[0]))<<60)
-		| (((uint64_t)bctbx_charToByte(inputString[1]))<<56)
-		| (((uint64_t)bctbx_charToByte(inputString[2]))<<52)
-		| (((uint64_t)bctbx_charToByte(inputString[3]))<<48)
-		| (((uint64_t)bctbx_charToByte(inputString[4]))<<44)
-		| (((uint64_t)bctbx_charToByte(inputString[5]))<<40)
-		| (((uint64_t)bctbx_charToByte(inputString[6]))<<36)
-		| (((uint64_t)bctbx_charToByte(inputString[7]))<<32)
-		| (((uint64_t)bctbx_charToByte(inputString[8]))<<28)
-		| (((uint64_t)bctbx_charToByte(inputString[9]))<<24)
-		| (((uint64_t)bctbx_charToByte(inputString[10]))<<20)
-		| (((uint64_t)bctbx_charToByte(inputString[11]))<<16)
-		| (((uint64_t)bctbx_charToByte(inputString[12]))<<12)
-		| (((uint64_t)bctbx_charToByte(inputString[13]))<<8)
-		| (((uint64_t)bctbx_charToByte(inputString[14]))<<4)
-		| (((uint64_t)bctbx_charToByte(inputString[15])));
+uint64_t bctbx_str_to_uint64(const uint8_t input_string[17]) {
+	return  (((uint64_t)bctbx_char_to_byte(input_string[0]))<<60)
+		| (((uint64_t)bctbx_char_to_byte(input_string[1]))<<56)
+		| (((uint64_t)bctbx_char_to_byte(input_string[2]))<<52)
+		| (((uint64_t)bctbx_char_to_byte(input_string[3]))<<48)
+		| (((uint64_t)bctbx_char_to_byte(input_string[4]))<<44)
+		| (((uint64_t)bctbx_char_to_byte(input_string[5]))<<40)
+		| (((uint64_t)bctbx_char_to_byte(input_string[6]))<<36)
+		| (((uint64_t)bctbx_char_to_byte(input_string[7]))<<32)
+		| (((uint64_t)bctbx_char_to_byte(input_string[8]))<<28)
+		| (((uint64_t)bctbx_char_to_byte(input_string[9]))<<24)
+		| (((uint64_t)bctbx_char_to_byte(input_string[10]))<<20)
+		| (((uint64_t)bctbx_char_to_byte(input_string[11]))<<16)
+		| (((uint64_t)bctbx_char_to_byte(input_string[12]))<<12)
+		| (((uint64_t)bctbx_char_to_byte(input_string[13]))<<8)
+		| (((uint64_t)bctbx_char_to_byte(input_string[14]))<<4)
+		| (((uint64_t)bctbx_char_to_byte(input_string[15])));
 }
