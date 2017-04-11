@@ -45,7 +45,7 @@ const IID IID_IMMDeviceEnumerator = __uuidof(IMMDeviceEnumerator);
  *****************************************************************************/
 
 static void ms_wasapi_read_init(MSFilter *f) {
-	MSWASAPIReaderPtr r = MSWASAPIReaderNew();
+	MSWASAPIReaderPtr r = MSWASAPIReaderNew(f);
 	f->data = r;
 }
 
