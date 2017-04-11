@@ -473,6 +473,6 @@ BZRTP_EXPORT int bzrtp_cache_read(void *dbPointer, int zuid, char *tableName, ch
  *
  * @return 0 on succes, error code otherwise
  */
-int bzrtp_exportKey(bzrtpContext_t *zrtpContext, char *label, size_t labelLength, uint8_t *derivedKey, size_t *derivedKeyLength);
+BZRTP_EXPORT int bzrtp_exportKey(bzrtpContext_t *zrtpContext, char *label, size_t labelLength, uint8_t *derivedKey, size_t *derivedKeyLength);
 
 #endif /* ifndef BZRTP_H */

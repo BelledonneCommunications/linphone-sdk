@@ -92,18 +92,12 @@ include_directories(
 	${CMAKE_CURRENT_BINARY_DIR}
 )
 
-set(LIBS ${BCTOOLBOX_CORE_LIBRARIES})
-
-if(SQLITE3_FOUND)
-	include_directories(${SQLITE3_INCLUDE_DIRS})
-	list(APPEND LIBS ${SQLITE3_LIBRARIES})
-	if(ENABLE_ZIDCACHE)
-		add_definitions("-DZIDCACHE_ENABLED")
-	endif()
-endif()
-
 if(MSVC)
 	include_directories(${MSVC_INCLUDE_DIR})
+endif()
+
+if(ENABLE_ZIDCACHE)
+	add_definitions("-DZIDCACHE_ENABLED")
 endif()
 
 

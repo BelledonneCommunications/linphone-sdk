@@ -34,6 +34,12 @@
 #ifdef ZIDCACHE_ENABLED
 #include "sqlite3.h"
 
+#ifdef _WIN32
+#include <malloc.h>
+#else
+#include <alloca.h>
+#endif
+
 /* define a version number for the DB schema as an interger MMmmpp */
 /* current version is 0.0.1 */
 #define ZIDCACHE_DBSCHEMA_VERSION_NUMBER 000001
@@ -504,7 +510,7 @@ int bzrtp_cache_write(void *dbPointer, int zuid, char *tableName, char **columns
 
 	/* now check we managed to update a row */
 	if (sqlite3_changes(db)==0) { /* update failed: we must insert the row */
-		char valuesBindingString[2*columnsCount+3];
+		char *valuesBindingString = alloca(2*columnsCount+3);
 		insertColumnsStringLength+=6; /* +6 to add the initial 'zuid, ' to column list */
 		insertColumnsString = (char *)malloc(insertColumnsStringLength+6);
 		sqlite3_snprintf(insertColumnsStringLength,insertColumnsString,"%w","zuid");
