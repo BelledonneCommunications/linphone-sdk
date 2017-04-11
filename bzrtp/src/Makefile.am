@@ -1,6 +1,6 @@
 lib_LTLIBRARIES = libbzrtp.la
 
-libbzrtp_la_LIBADD= $(LIBSQLITE3_LIBS)  $(BCTOOLBOX_LIBS)
+libbzrtp_la_LIBADD= $(SQLITE3_LIBS)  $(BCTOOLBOX_LIBS)
 libbzrtp_la_SOURCES= bzrtp.c cryptoUtils.c packetParser.c zidCache.c stateMachine.c pgpwords.c 
 
 AM_CPPFLAGS= -I$(top_srcdir)/include 
