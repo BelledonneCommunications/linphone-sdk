@@ -308,6 +308,8 @@ typedef struct _Stream{
 	int underflow_notifs;
 	int overflow_notifs;
 	size_t min_buffer_size;
+	MSTickerSynchronizer *ticker_synchronizer; // Only for record stream
+	uint64_t read_samples; // Only for record stream
 }Stream;
 
 static void stream_disconnect(Stream *s);
@@ -338,6 +340,9 @@ static Stream *stream_new(StreamType type) {
 	ms_bufferizer_init(&s->bufferizer);
 	s->dev = NULL;
 	s->init_volume = -1.0;
+	if (type == STREAM_TYPE_RECORD) {
+		s->ticker_synchronizer = ms_ticker_synchronizer_new();
+	}
 	return s;
 }
 
@@ -349,6 +354,9 @@ static void stream_free(Stream *s) {
 		}
 	}
 	if (s->dev) ms_free(s->dev);
+	if (s->type == STREAM_TYPE_RECORD) {
+		ms_ticker_synchronizer_destroy(s->ticker_synchronizer);
+	}
 	ms_bufferizer_uninit(&s->bufferizer);
 	ms_mutex_destroy(&s->mutex);
 	ms_free(s);
@@ -568,6 +576,9 @@ static void pulse_read_preprocess(MSFilter *f) {
 	RecordStream *s=(RecordStream *)f->data;
 	if(!stream_connect(s)) {
 		ms_error("Pulseaudio: fail to connect record stream");
+	} else {
+		ms_ticker_set_synchronizer(f->ticker, s->ticker_synchronizer);
+		s->read_samples = 0;
 	}
 }
 
@@ -587,6 +598,8 @@ static void pulse_read_process(MSFilter *f){
 				mblk_t *om = allocb(nbytes, 0);
 				memcpy(om->b_wptr, buffer, nbytes);
 				om->b_wptr += nbytes;
+				s->read_samples += ((nbytes / 2) / s->sampleSpec.channels);
+				ms_ticker_synchronizer_update(s->ticker_synchronizer, s->read_samples, (unsigned int)s->sampleSpec.rate);
 				ms_queue_put(f->outputs[0], om);
 			}
 			if(nbytes > 0) {
@@ -603,6 +616,7 @@ static void pulse_read_process(MSFilter *f){
 static void pulse_read_postprocess(MSFilter *f) {
 	RecordStream *s=(RecordStream *)f->data;
 	stream_disconnect(s);
+	ms_ticker_set_synchronizer(f->ticker, NULL);
 }
 
 static void pulse_read_uninit(MSFilter *f) {

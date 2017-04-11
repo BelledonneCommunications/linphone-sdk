@@ -398,14 +398,6 @@ static SLresult opensles_recorder_init(OpenSLESInputContext *ictx) {
 	return result;
 }
 
-static void compute_timespec(OpenSLESInputContext *ictx) {
-	uint64_t ns = ((1000 * ictx->read_samples) / (uint64_t) ictx->opensles_context->samplerate) * 1000000;
-	MSTimeSpec ts;
-	ts.tv_nsec = ns % 1000000000;
-	ts.tv_sec = ns / 1000000000;
-	ictx->mAvSkew = ms_ticker_synchronizer_set_external_time(ictx->mTickerSynchronizer, &ts);
-}
-
 
 /*
  * This is a callback function called by AudioRecord's thread. This thread is not created by ortp/ms2 and is not able to attach to a JVM without crashing
@@ -420,7 +412,7 @@ static void opensles_recorder_callback(SLAndroidSimpleBufferQueueItf bq, void *c
 	if (ictx->mTickerSynchronizer == NULL) {
 		MSFilter *obj = ictx->mFilter;
 		/*
-		 * ABSOLUTE HORRIBLE HACK. We temporarily disable logs to prevent ms_ticker_set_time_func() to output a debug log.
+		 * ABSOLUTE HORRIBLE HACK. We temporarily disable logs to prevent ms_ticker_set_synchronizer() to output a debug log.
 		 * This is horrible because this also suspends logs for all concurrent threads during these two lines of code.
 		 * Possible way to do better:
 		 *  1) understand why AudioRecord thread doesn't detach.
@@ -429,7 +421,7 @@ static void opensles_recorder_callback(SLAndroidSimpleBufferQueueItf bq, void *c
 		int loglevel=ortp_get_log_level_mask(ORTP_LOG_DOMAIN);
 		ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_ERROR|ORTP_FATAL);
 		ictx->mTickerSynchronizer = ms_ticker_synchronizer_new();
-		ms_ticker_set_time_func(obj->ticker,(uint64_t (*)(void*))ms_ticker_synchronizer_get_corrected_time, ictx->mTickerSynchronizer);
+		ms_ticker_set_synchronizer(obj->ticker, ictx->mTickerSynchronizer);
 		ortp_set_log_level_mask(ORTP_LOG_DOMAIN, loglevel);
 	}
 	ictx->read_samples += ictx->inBufSize / sizeof(int16_t);
@@ -439,7 +431,7 @@ static void opensles_recorder_callback(SLAndroidSimpleBufferQueueItf bq, void *c
 	m->b_wptr += ictx->inBufSize;
 
 	ms_mutex_lock(&ictx->mutex);
-	compute_timespec(ictx);
+	ictx->mAvSkew = ms_ticker_synchronizer_update(ictx->mTickerSynchronizer, ictx->read_samples, (unsigned int)ictx->opensles_context->samplerate);
 	putq(&ictx->q, m);
 	ms_mutex_unlock(&ictx->mutex);
 
@@ -580,7 +572,7 @@ static void android_snd_read_postprocess(MSFilter *obj) {
 		ictx->recorderBufferQueue = NULL;
 	}
 
-	ms_ticker_set_time_func(obj->ticker, NULL, NULL);
+	ms_ticker_set_synchronizer(obj->ticker, NULL);
 	ms_mutex_lock(&ictx->mutex);
 	ms_ticker_synchronizer_destroy(ictx->mTickerSynchronizer);
 	ictx->mTickerSynchronizer = NULL;

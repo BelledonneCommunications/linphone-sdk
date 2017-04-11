@@ -311,17 +311,6 @@ public:
 	bool builtin_aec;
 };
 
-static void compute_timespec(msandroid_sound_read_data *d) {
-	static int count = 0;
-	uint64_t ns = ((1000 * d->read_samples) / (uint64_t) d->rate) * 1000000;
-	MSTimeSpec ts;
-	ts.tv_nsec = ns % 1000000000;
-	ts.tv_sec = ns / 1000000000;
-	double av_skew = ms_ticker_synchronizer_set_external_time(d->ticker_synchronizer, &ts);
-	if ((++count) % 100 == 0)
-		ms_message("sound/wall clock skew is average=%f ms", av_skew);
-}
-
 static void* msandroid_read_cb(msandroid_sound_read_data* d) {
 	mblk_t *m;
 	int nread;
@@ -353,7 +342,7 @@ static void* msandroid_read_cb(msandroid_sound_read_data* d) {
 		//ms_error("%i octets read",nread);
 		m->b_wptr += nread;
 		d->read_samples+=nread/(2*d->nchannels);
-		compute_timespec(d);
+		ms_ticker_synchronizer_update(d->ticker_synchronizer, d->read_samples, d->rate);
 		ms_mutex_lock(&d->mutex);
 		ms_bufferizer_put (&d->rb,m);
 		ms_mutex_unlock(&d->mutex);
@@ -469,7 +458,7 @@ static void sound_read_preprocess(MSFilter *f){
 	ms_debug("andsnd_read_preprocess");
 	if (!d->started)
 		sound_read_setup(f);
-	ms_ticker_set_time_func(f->ticker,(uint64_t (*)(void*))ms_ticker_synchronizer_get_corrected_time, d->ticker_synchronizer);
+	ms_ticker_set_synchronizer(f->ticker, d->ticker_synchronizer);
 
 	if (d->builtin_aec && d->audio_record) {
 		JNIEnv *env=ms_get_jni_env();
@@ -496,7 +485,7 @@ static void sound_read_postprocess(MSFilter *f){
 
 	JNIEnv *jni_env = ms_get_jni_env();
 
-	ms_ticker_set_time_func(f->ticker,NULL,NULL);
+	ms_ticker_set_synchronizer(f->ticker, NULL);
 	d->read_samples=0;
 
 	//stop recording

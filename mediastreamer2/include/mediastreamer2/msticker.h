@@ -113,6 +113,7 @@ struct _MSTickerSynchronizer
 {
 	uint64_t offset; /**<the default offset of ticker*/
 	double av_skew; /**< mean skew */
+	unsigned int external_time_count; /**< number of times ms_ticker_synchronizer_set_external_time() is called */
 };
 
 /**
@@ -236,49 +237,54 @@ MS2_PUBLIC void ms_ticker_print_graphs(MSTicker *ticker);
 **/
 MS2_PUBLIC float ms_ticker_get_average_load(MSTicker *ticker);
 
-
 /**
  * Get last late tick event description.
  * @param ticker the MSTicker
  * @param ev a MSTickerLaterEvent structure that will be filled in return by the ticker.
 **/
 MS2_PUBLIC void ms_ticker_get_last_late_tick(MSTicker *ticker, MSTickerLateEvent *ev);
+
+/**
+ * Set the MSTickerSynchronizer for a MSTicker.
+ * @param ticker A MSTicker object to synchronize
+ * @param ts A MSTickerSynchronizer to use for synchronization of the ticker
+ */
+MS2_PUBLIC void ms_ticker_set_synchronizer(MSTicker *ticker, MSTickerSynchronizer *ts);
+
 /**
  * Create a ticker synchronizer.
- *
- * Returns: MSTickerSynchronizer * if successfull, NULL otherwise.
+ * @return MSTickerSynchronizer object if successfull, NULL otherwise.
  */
 MS2_PUBLIC MSTickerSynchronizer* ms_ticker_synchronizer_new(void);
 
 /**
  * Set the current external time.
- *
  * @param ts  A #MSTickerSynchronizer object.
  * @param time  A #MSTimeSpec object.
- *
- * Returns: Average skew.
+ * @return Average skew.
  */
-MS2_PUBLIC double ms_ticker_synchronizer_set_external_time(MSTickerSynchronizer* ts, const MSTimeSpec *time);
+MS2_PUBLIC double ms_ticker_synchronizer_set_external_time(MSTickerSynchronizer *ts, const MSTimeSpec *time);
+
+/**
+ * Update the ticker synchronizer state
+ * @param ts A MSTickerSynchronizer object
+ * @param nb_samples The number of samples since the processing started
+ * @param sample_rate The sample rate of the stream
+ */
+MS2_PUBLIC double ms_ticker_synchronizer_update(MSTickerSynchronizer *ts, uint64_t nb_samples, unsigned int sample_rate);
 
 /**
  * Get the corrected current time following the set external times.
- *
  * @param ts  A #MSTickerSynchronizer object.
- *
- *
- * Returns: A corrected current time.
+ * @return A corrected current time.
  */
 MS2_PUBLIC uint64_t ms_ticker_synchronizer_get_corrected_time(MSTickerSynchronizer* ts);
 
 /**
  * Destroy a ticker synchronizer.
- *
  * @param ts  A #MSTickerSynchronizer object.
- *
  */
 MS2_PUBLIC void ms_ticker_synchronizer_destroy(MSTickerSynchronizer* ts);
-
-/* private functions:*/
 
 #ifdef __cplusplus
 }
