@@ -9,7 +9,7 @@ bzrtpTest_SOURCES=bzrtpTest.c \
 				bzrtpZidCacheTest.c
 
 bzrtpTest_CFLAGS=$(BCTOOLBOXTESTER_CFLAGS) $(LIBXML2_CFLAGS)
-bzrtpTest_LDADD=$(top_builddir)/src/libbzrtp.la $(BCTOOLBOX_LIBS) $(BCTOOLBOXTESTER_LIBS) $(LIBXML2_LIBS) -lm
+bzrtpTest_LDADD=$(top_builddir)/src/libbzrtp.la $(BCTOOLBOX_LIBS) $(BCTOOLBOXTESTER_LIBS) $(SQLITE3_LIBS) -lm
 
 AM_CPPFLAGS=-I$(top_srcdir)/include
 

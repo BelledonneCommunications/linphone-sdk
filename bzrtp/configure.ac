@@ -31,13 +31,16 @@ if test "$bctoolbox_found" != "yes" ; then
 	AC_MSG_ERROR([bctoolbox not found, aborting. ])
 fi
 
-dnl check libxml2
-PKG_CHECK_MODULES(LIBXML2, [libxml-2.0] ,[libxml2_found=yes] ,foo=bar)
-if test "$libxml2_found" != "yes" ; then
-	AC_MSG_WARN([libxml2 not found. Disabling cache.])
+
+dnl check for sqlite
+PKG_CHECK_MODULES(SQLITE3,[sqlite3 >= 3.6.0],[found_sqlite=yes],[found_sqlite=no])
+if test "$found_sqlite" != "yes" ; then
+        AC_MSG_WARN([sqlite3 not found. Disabling cache.])
 else
-	AC_DEFINE(HAVE_LIBXML2,1,[defined when libxml2 is available])
+        AC_DEFINE(ZIDCACHE_ENABLED,1,[defined when libxml2 is available])
 fi
+
+
 
 AC_ARG_ENABLE(tests,
         [AS_HELP_STRING([--disable-tests], [Disable compilation of tests])],
