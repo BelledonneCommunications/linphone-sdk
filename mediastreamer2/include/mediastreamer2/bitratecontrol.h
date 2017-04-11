@@ -40,6 +40,8 @@ struct _MSBandwidthController{
 	bctbx_list_t *streams; /*list of MediaStream objects*/
 	struct _MediaStream *controlled_stream; /*the most bandwidth consuming stream, which is the one flow controlled*/
 	MSBandwidthControllerStats stats;
+	bool_t congestion_detected;
+	float remote_video_bandwidth_available_estimated;
 };
 /**
  * The MSBandwidthController is a object managing several streams (audio, video) and monitoring congestion of inbound streams.

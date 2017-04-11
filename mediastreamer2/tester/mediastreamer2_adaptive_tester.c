@@ -89,6 +89,7 @@ typedef struct _stream_manager_t {
 		float congestion_bw_estim;
 	} adaptive_stats;
 
+	MSBandwidthController *bw_controller;
 	void* user_data;
 
 } stream_manager_t ;
@@ -105,6 +106,7 @@ stream_manager_t * stream_manager_new(MSFormatType type) {
 	}else{
 #if VIDEO_ENABLED
 		mgr->video_stream=video_stream_new (_factory, mgr->local_rtp, mgr->local_rtcp,FALSE);
+		mgr->bw_controller = ms_bandwidth_controller_new();
 #else
 		ms_fatal("Unsupported stream type [%s]",ms_format_type_to_string(mgr->type));
 #endif
@@ -124,6 +126,7 @@ static void stream_manager_delete(stream_manager_t * mgr) {
 		audio_stream_stop(mgr->audio_stream);
 	}else{
 #if VIDEO_ENABLED
+		ms_bandwidth_controller_destroy(mgr->bw_controller);
 		video_stream_stop(mgr->video_stream);
 #else
 		ms_fatal("Unsupported stream type [%s]",ms_format_type_to_string(mgr->type));
@@ -258,9 +261,16 @@ void start_adaptive_stream(MSFormatType type, stream_manager_t ** pmarielle, str
 		audio_manager_start(margaux,payload,marielle->local_rtp,0,NULL,recorded_file);
 	}else{
 #if VIDEO_ENABLED
+		struct _MediaStream *margaux_video_stream = &(margaux->video_stream->ms);
+		OrtpVideoBandwidthEstimatorParams params = {0};
 		marielle->video_stream->staticimage_webcam_fps_optimization = FALSE;
 		video_manager_start(marielle,payload,margaux->local_rtp,0,marielle_webcam);
 		video_stream_set_direction(margaux->video_stream, MediaStreamRecvOnly);
+		ms_bandwidth_controller_add_stream(margaux->bw_controller, margaux_video_stream);
+		params.packet_count_min = 5;
+		params.packets_size_max = 5;
+		params.enabled = TRUE;
+		rtp_session_enable_video_bandwidth_estimator(margaux_video_stream->sessions.rtp_session, &params);
 		video_manager_start(margaux,payload,marielle->local_rtp,0,NULL);
 #else
 		ms_fatal("Unsupported stream type [%s]",ms_format_type_to_string(marielle->type));
@@ -304,6 +314,9 @@ static void iterate_adaptive_stream(stream_manager_t * marielle, stream_manager_
 }
 
 static void stop_adaptive_stream(stream_manager_t *marielle, stream_manager_t *margaux, bool_t destroy_files){
+#if VIDEO_ENABLED
+	ms_bandwidth_controller_remove_stream(margaux->bw_controller, &(margaux->video_stream->ms));
+#endif
 	stream_manager_delete(marielle);
 	stream_manager_delete(margaux);
 }
@@ -523,14 +536,14 @@ static void upload_bitrate_opus_3g(void) {
 void adaptive_video(int max_bw, int exp_min_bw, int exp_max_bw, int loss_rate, int exp_min_loss, int exp_max_loss) {
 	bool_t supported = ms_filter_codec_supported("VP8");
 	if( supported ) {
-		stream_manager_t * marielle, * margaux;
-		start_adaptive_stream(MSVideo, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300*1000, max_bw*1000, loss_rate, 50,0);
+		stream_manager_t *marielle, *margaux;
+		start_adaptive_stream(MSVideo, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300*1000, max_bw*1000, loss_rate, 50, 0, 0);
 		iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 7);
 		BC_ASSERT_GREATER(marielle->adaptive_stats.loss_estim, exp_min_loss, int, "%d");
 		BC_ASSERT_LOWER(marielle->adaptive_stats.loss_estim, exp_max_loss, int, "%d");
 		BC_ASSERT_GREATER(marielle->adaptive_stats.congestion_bw_estim, exp_min_bw, int, "%d");
 		BC_ASSERT_LOWER(marielle->adaptive_stats.congestion_bw_estim, exp_max_bw, int, "%d");
-		stop_adaptive_stream(marielle,margaux,TRUE);
+		stop_adaptive_stream(marielle, margaux, TRUE);
 	}
 }
 
@@ -549,6 +562,18 @@ static void adaptive_vp8_lossy_congestion() {
 }
 #endif
 
+void video_bandwidth_estimation(int exp_bw_min, int exp_bw_max) {
+	stream_manager_t * marielle, * margaux;
+	start_adaptive_stream(MSVideo, &marielle, &margaux, VP8_PAYLOAD_TYPE, THIRDGENERATION_BW*1000, THIRDGENERATION_BW*1000, 0, 50, 0, FALSE);
+	iterate_adaptive_stream(marielle, margaux, 600000, (int *)&margaux->bw_controller->remote_video_bandwidth_available_estimated, 1);
+	BC_ASSERT_GREATER(margaux->bw_controller->remote_video_bandwidth_available_estimated, exp_bw_min, int, "%d");
+	BC_ASSERT_LOWER(margaux->bw_controller->remote_video_bandwidth_available_estimated, exp_bw_max, int, "%d");
+	stop_adaptive_stream(marielle, margaux, TRUE);
+}
+
+static void video_bandwidth_estimator(void) {
+	video_bandwidth_estimation(300000000, 1000000000); // kbits/s
+}
 
 static test_t tests[] = {
 	TEST_NO_TAG("Packet duplication", packet_duplication),
@@ -568,6 +593,7 @@ static test_t tests[] = {
 	TEST_NO_TAG("Network detection [VP8] - congested", adaptive_vp8_congestion),
 	TEST_NO_TAG("Network detection [VP8] - lossy congested", adaptive_vp8_lossy_congestion),
 #endif
+	TEST_NO_TAG("Video bandwidth estimator", video_bandwidth_estimator),
 };
 
 test_suite_t adaptive_test_suite = {
