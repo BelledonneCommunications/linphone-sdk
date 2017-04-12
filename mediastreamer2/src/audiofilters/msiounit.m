@@ -141,6 +141,8 @@ struct au_filter_read_data{
 	queue_t		rq;
 	AudioTimeStamp readTimeStamp;
 	unsigned int n_lost_frame;
+	MSTickerSynchronizer *ticker_synchronizer;
+	uint64_t read_samples;
 } ;
 
 struct au_filter_write_data{
@@ -567,7 +569,6 @@ static void cancel_audio_unit_timer(au_card_t* card){
 /***********************************read function********************/
 
 static void au_read_preprocess(MSFilter *f){
-	ms_debug("au_read_preprocess");
 	au_filter_read_data_t *d= (au_filter_read_data_t*)f->data;
 	au_card_t* card=d->base.card;
 	AVAudioSession *audioSession = [AVAudioSession sharedInstance];
@@ -576,6 +577,8 @@ static void au_read_preprocess(MSFilter *f){
 	configure_audio_session(card, f->ticker->time);
 
 	if (!card->io_unit) create_io_unit(&card->io_unit, card);
+	if (!d->ticker_synchronizer) d->ticker_synchronizer = ms_ticker_synchronizer_new();
+	ms_ticker_set_synchronizer(f->ticker, d->ticker_synchronizer);
 
 	if (card->io_unit_started) {
 		ms_message("Audio Unit already started");
@@ -601,6 +604,7 @@ static void au_read_postprocess(MSFilter *f){
 	au_filter_read_data_t *d= (au_filter_read_data_t*)f->data;
 	ms_mutex_lock(&d->mutex);
 	flushq(&d->rq,0);
+	ms_ticker_set_synchronizer(f->ticker, d->ticker_synchronizer);
 	ms_mutex_unlock(&d->mutex);
 }
 
@@ -616,10 +620,12 @@ static void au_read_process(MSFilter *f){
 		m=getq(&d->rq);
 		ms_mutex_unlock(&d->mutex);
 		if (m != NULL) {
+			d->read_samples += (msgdsize(m) / 2) / d->base.card->nchannels;
 			ms_queue_put(f->outputs[0],m);
 		}
 
 	}while(m!=NULL);
+	ms_ticker_synchronizer_update(d->ticker_synchronizer, d->read_samples, d->base.card->rate);
 }
 
 
