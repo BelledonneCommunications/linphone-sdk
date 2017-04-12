@@ -58,6 +58,7 @@ The BSD license below is for the original work.
 
 #include "mediastreamer2/mssndcard.h"
 #include "mediastreamer2/msfilter.h"
+#include "mediastreamer2/msticker.h"
 
 #if __LP64__ 
 #define UINT32_PRINTF "u"
@@ -109,6 +110,8 @@ typedef struct AUCommon{
 typedef struct AURead{
 	AUCommon common;
 	queue_t rq;
+	MSTickerSynchronizer *ticker_synchronizer;
+	uint64_t read_frames;
 }AURead;
 
 typedef struct AUWrite{
@@ -626,11 +629,13 @@ static void au_read_init(MSFilter *f){
 	AURead *d = ms_new0(AURead, 1);
 	au_common_init(&d->common);
 	qinit(&d->rq);
+	d->ticker_synchronizer = ms_ticker_synchronizer_new();
 	f->data=d;
 }	
 
 static void au_read_preprocess(MSFilter *f){
 	AURead *d = (AURead *) f->data;
+	ms_ticker_set_synchronizer(f->ticker, d->ticker_synchronizer);
 	audio_unit_open(&d->common,TRUE);
 }
 
@@ -638,18 +643,22 @@ static void au_read_process(MSFilter *f){
 	AURead *d = (AURead *) f->data;
 	mblk_t *m;
 	while((m=au_read_get(d))!=NULL){
+		d->read_frames += (msgdsize(m) / 2) / d->common.nchannels;
 		ms_queue_put(f->outputs[0],m);
 	}
+	ms_ticker_synchronizer_update(d->ticker_synchronizer, d->read_frames, d->common.rate);
 }
 
 static void au_read_postprocess(MSFilter *f){
 	AURead *d = (AURead *) f->data;
 	audio_unit_close(&d->common);
+	ms_ticker_set_synchronizer(f->ticker, NULL);
 }
 
 static void au_read_uninit(MSFilter *f){
 	AURead *d = (AURead *) f->data;
 	flushq(&d->rq,0);
+	ms_ticker_synchronizer_destroy(d->ticker_synchronizer);
 	au_common_uninit(&d->common);
 	ms_free(d);
 }
