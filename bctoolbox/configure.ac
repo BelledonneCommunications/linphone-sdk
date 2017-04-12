@@ -5,8 +5,8 @@ AC_PREREQ([2.63])
 
 AC_INIT([bctoolbox],[0.5.1],[jehan.monnier@linphone.org])
 
-BCTOOLBOX_SO_CURRENT=2 dnl increment this number when you add/change/remove an interface. It has been incremented after the release of bctooblox 0.5.1. Do not increment before the next release.
-BCTOOLBOX_SO_REVISION=0 dnl increment this number when you change source code, without changing interfaces; set to 0 when incrementing CURRENT
+BCTOOLBOX_SO_CURRENT=1 dnl increment this number when you add/change/remove an interface
+BCTOOLBOX_SO_REVISION=1 dnl increment this number when you change source code, without changing interfaces; set to 0 when incrementing CURRENT
 BCTOOLBOX_SO_AGE=0 dnl increment this number when you add an interface, set to 0 if you remove an interface
 
 BCTOOLBOX_SO_VERSION=$BCTOOLBOX_SO_CURRENT:$BCTOOLBOX_SO_REVISION:$BCTOOLBOX_SO_AGE
