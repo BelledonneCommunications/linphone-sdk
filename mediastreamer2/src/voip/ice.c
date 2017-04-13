@@ -2136,15 +2136,18 @@ static IceCandidate * ice_discover_peer_reflexive_candidate(IceCheckList *cl, co
 	IceCandidate *candidate = NULL;
 	bctbx_list_t *elem;
 	char taddr_str[64];
+	TransportAddress_ComponentID taci;
 
 	memset(&taddr, 0, sizeof(taddr));
 	xor_mapped_address = ms_stun_message_get_xor_mapped_address(msg);
 	ice_fill_transport_address_from_stun_address(&taddr, xor_mapped_address);
-	elem = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_find_candidate_from_transport_address, &taddr);
+	taci.componentID = pair->local->componentID;
+	taci.ta = &taddr;
+	elem = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_find_candidate_from_transport_address_and_componentID, &taci);
 	if (elem == NULL) {
 		memset(taddr_str, 0, sizeof(taddr_str));
 		ice_transport_address_to_printable_ip_address(&taddr, taddr_str, sizeof(taddr_str));
-		ms_message("ice: Discovered peer reflexive candidate %s", taddr_str);
+		ms_message("ice: Discovered peer reflexive candidate %s for componentID %d", taddr_str, pair->local->componentID);
 		/* Add peer reflexive candidate to the local candidates list. */
 		candidate = ice_add_local_candidate(cl, "prflx", taddr.family, taddr.ip, taddr.port, pair->local->componentID, pair->local);
 		ice_compute_candidate_foundation(candidate, cl);
