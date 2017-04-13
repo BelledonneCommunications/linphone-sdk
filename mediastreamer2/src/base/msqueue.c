@@ -22,7 +22,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #endif
 
 #include "mediastreamer2/msqueue.h"
+#include "mediastreamer2/msticker.h"
 #include "mediastreamer2/msvideo.h"
+#include "mediastreamer2/flowcontrol.h"
 #include <string.h>
 
 
@@ -133,4 +135,68 @@ void ms_bufferizer_uninit(MSBufferizer *obj){
 void ms_bufferizer_destroy(MSBufferizer *obj){
 	ms_bufferizer_uninit(obj);
 	ms_free(obj);
+}
+
+
+static const uint32_t flow_control_interval_ms = 5000;
+static const uint32_t max_size_ms = 1000;
+
+MSFlowControlledBufferizer * ms_flow_controlled_bufferizer_new(MSFilter *f, int samplerate, int nchannels) {
+	MSFlowControlledBufferizer *obj = (MSFlowControlledBufferizer *)ms_new0(MSFlowControlledBufferizer, 1);
+	ms_flow_controlled_bufferizer_init(obj, f, samplerate, nchannels);
+	return obj;
+}
+
+void ms_flow_controlled_bufferizer_init(MSFlowControlledBufferizer *obj, MSFilter *f, int samplerate, int nchannels) {
+	ms_bufferizer_init(&obj->base);
+	obj->filter = f;
+	obj->flow_control_interval_ms = flow_control_interval_ms;
+	obj->max_size_ms = max_size_ms;
+	obj->flow_control_time = 0;
+	obj->samplerate = samplerate;
+	obj->nchannels = nchannels;
+}
+
+void ms_flow_controlled_bufferizer_set_max_size_ms(MSFlowControlledBufferizer *obj, uint32_t ms) {
+	obj->max_size_ms = ms;
+}
+
+void ms_flow_controlled_bufferizer_set_flow_control_interval_ms(MSFlowControlledBufferizer *obj, uint32_t ms) {
+	obj->flow_control_interval_ms = ms;
+}
+
+void ms_flow_controlled_bufferizer_set_samplerate(MSFlowControlledBufferizer *obj, int samplerate) {
+	obj->samplerate = samplerate;
+}
+
+void ms_flow_controlled_bufferizer_set_nchannels(MSFlowControlledBufferizer *obj, int nchannels) {
+	obj->nchannels = nchannels;
+}
+
+static void control_flow(MSFlowControlledBufferizer *obj) {
+	uint32_t accumulated_ms = ((obj->base.size * 1000) / obj->samplerate) / obj->nchannels;
+
+	if (obj->flow_control_time == 0) {
+		obj->flow_control_time = obj->filter->ticker->time;
+	}
+
+	if ((accumulated_ms > obj->max_size_ms)
+		&& (((uint32_t)(obj->filter->ticker->time - obj->flow_control_time)) >= obj->flow_control_interval_ms)) {
+		MSAudioFlowControlDropEvent ev;
+		ev.flow_control_interval_ms = obj->flow_control_interval_ms;
+		ev.drop_ms = (accumulated_ms - obj->max_size_ms) + (obj->max_size_ms / 4);
+		ms_warning("Flow controlled bufferizer of max %u ms buffered %u ms, asking to drop %u ms", obj->max_size_ms, accumulated_ms, ev.drop_ms);
+		ms_filter_notify(obj->filter, MS_AUDIO_FLOW_CONTROL_DROP_EVENT, &ev);
+		obj->flow_control_time = obj->filter->ticker->time;
+	}
+}
+
+void ms_flow_controlled_bufferizer_put(MSFlowControlledBufferizer *obj, mblk_t *m) {
+	ms_bufferizer_put(&obj->base, m);
+	control_flow(obj);
+}
+
+void ms_flow_controlled_bufferizer_put_from_queue(MSFlowControlledBufferizer *obj, MSQueue *q) {
+	ms_bufferizer_put_from_queue(&obj->base, q);
+	control_flow(obj);
 }

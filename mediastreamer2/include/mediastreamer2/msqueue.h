@@ -156,6 +156,49 @@ MS2_PUBLIC void ms_bufferizer_uninit(MSBufferizer *obj);
 
 MS2_PUBLIC void ms_bufferizer_destroy(MSBufferizer *obj);
 
+
+struct _MSFlowControlledBufferizer {
+	MSBufferizer base;
+	struct _MSFilter *filter;
+	uint64_t flow_control_time;
+	uint32_t flow_control_interval_ms;
+	uint32_t max_size_ms;
+	int samplerate;
+	int nchannels;
+};
+
+typedef struct _MSFlowControlledBufferizer MSFlowControlledBufferizer;
+
+MS2_PUBLIC MSFlowControlledBufferizer * ms_flow_controlled_bufferizer_new(struct _MSFilter *f, int samplerate, int nchannels);
+
+MS2_PUBLIC void ms_flow_controlled_bufferizer_init(MSFlowControlledBufferizer *obj, struct _MSFilter *f, int samplerate, int nchannels);
+
+MS2_PUBLIC void ms_flow_controlled_bufferizer_set_max_size_ms(MSFlowControlledBufferizer *obj, uint32_t ms);
+
+MS2_PUBLIC void ms_flow_controlled_bufferizer_set_flow_control_interval_ms(MSFlowControlledBufferizer *obj, uint32_t ms);
+
+MS2_PUBLIC void ms_flow_controlled_bufferizer_set_samplerate(MSFlowControlledBufferizer *obj, int samplerate);
+
+MS2_PUBLIC void ms_flow_controlled_bufferizer_set_nchannels(MSFlowControlledBufferizer *obj, int nchannels);
+
+MS2_PUBLIC void ms_flow_controlled_bufferizer_put(MSFlowControlledBufferizer *obj, mblk_t *m);
+
+MS2_PUBLIC void ms_flow_controlled_bufferizer_put_from_queue(MSFlowControlledBufferizer *obj, MSQueue *q);
+
+#define ms_flow_controlled_bufferizer_read(obj, data, datalen) ms_bufferizer_read((MSBufferizer *)(obj), data, datalen)
+
+#define ms_flow_controlled_bufferizer_fill_current_metas(obj, m) ms_bufferizer_fill_current_metas((MSBufferizer *)(obj), m)
+
+#define ms_flow_controlled_bufferizer_get_avail(obj) ms_bufferizer_get_avail((MSBufferizer *)(obj))
+
+#define ms_flow_controlled_bufferizer_skip_bytes(obj, bytes) ms_bufferizer_skip_bytes((MSBufferizer *)(obj), bytes)
+
+#define ms_flow_controlled_bufferizer_flush(obj) ms_bufferizer_flush((MSBufferizer *)(obj))
+
+#define ms_flow_controlled_bufferizer_uninit(obj) ms_bufferizer_uninit((MSBufferizer *)(obj))
+
+#define ms_flow_controlled_bufferizer_destroy(obj) ms_bufferizer_destroy((MSBufferizer *)(obj))
+
 #ifdef __cplusplus
 }
 #endif
