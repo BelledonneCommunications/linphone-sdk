@@ -89,7 +89,7 @@ static void ogl_process (MSFilter *f) {
 		ms_yuv_buf_init_from_mblk(&src, inm) == 0
 	) {
 		data->video_size.width = src.w;
-		data->video_size.width = src.h;
+		data->video_size.height = src.h;
 
 		ogl_display_set_yuv_to_display(data->display, inm);
 
