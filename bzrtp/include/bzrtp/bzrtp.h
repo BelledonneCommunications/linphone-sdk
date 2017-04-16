@@ -166,6 +166,7 @@ typedef struct bzrtpCallbacks_struct {
 #define BZRTP_ERROR_HELLOHASH_MISMATCH				0x0080
 #define BZRTP_ERROR_CHANNELALREADYSTARTED			0x0100
 #define BZRTP_ERROR_CACHEDISABLED				0x0200
+#define BZRTP_ERROR_CACHEMIGRATIONFAILED			0x0400
 
 /* channel status definition */
 #define BZRTP_CHANNEL_NOTFOUND						0x1000
@@ -459,6 +460,18 @@ BZRTP_EXPORT int bzrtp_cache_write(void *dbPointer, int zuid, char *tableName, c
  * @return 0 on succes, error code otherwise
  */
 BZRTP_EXPORT int bzrtp_cache_read(void *dbPointer, int zuid, char *tableName, char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount);
+
+/**
+ * @brief Perform migration from xml version to sqlite3 version of cache
+ *	Warning: new version of cache associate a ZID to each local URI, the old one did not
+ *		the migration function will associate any data in the cache to the sip URI given in parameter which shall be the default URI
+ * @param[in]		cacheXml	a pointer to an xmlDocPtr structure containing the old cache to be migrated
+ * @param[in/out]	cacheSqlite	a pointer to an sqlite3 structure containing a cache initialised using bzrtp_cache_init function
+ * @param[in]		selfURI		default sip URI for this end point, NULL terminated char
+ *
+ * @return	0 on success, BZRTP_ERROR_CACHEDISABLED when bzrtp was not compiled with cache enabled, BZRTP_ERROR_CACHEMIGRATIONFAILED on error during migration
+ */
+BZRTP_EXPORT int bzrtp_cache_migration(void *cacheXmlPtr, void *cacheSqlite, const char *selfURI);
 
 /*
  * @brief  Allow client to compute an exported according to RFC section 4.5.2

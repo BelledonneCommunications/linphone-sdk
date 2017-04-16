@@ -57,6 +57,8 @@ endif()
 
 if(ENABLE_ZIDCACHE)
 	find_package(Sqlite3 REQUIRED)
+	# Also check if we have libxml2, as we need it for migration purpose
+	find_package(XML2)
 endif()
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
@@ -98,6 +100,9 @@ endif()
 
 if(ENABLE_ZIDCACHE)
 	add_definitions("-DZIDCACHE_ENABLED")
+	if(XML2_FOUND)
+		add_definitions("-DHAVE_LIBXML2")
+	endif()
 endif()
 
 
