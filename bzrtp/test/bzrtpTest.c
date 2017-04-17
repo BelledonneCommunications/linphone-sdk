@@ -69,6 +69,7 @@ test_suite_t packet_parser_test_suite = {
 test_t zidcache_tests[] = {
 	TEST_NO_TAG("SelfZID", test_cache_getSelfZID),
 	TEST_NO_TAG("ZRTP secrets", test_cache_zrtpSecrets),
+	TEST_NO_TAG("Migration", test_cache_migration),
 };
 
 test_suite_t zidcache_test_suite = {

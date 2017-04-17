@@ -21,3 +21,4 @@
  */
 void test_cache_getSelfZID(void);
 void test_cache_zrtpSecrets(void);
+void test_cache_migration(void);
