@@ -247,6 +247,7 @@ struct bzrtpContext_struct {
 	cachedSecretsHash_t initiatorCachedSecretHash; /**< The hash of cached secret from initiator side, computed as described in rfc section 4.3.1 */
 	cachedSecretsHash_t responderCachedSecretHash; /**< The hash of cached secret from responder side, computed as described in rfc section 4.3.1 */
 	uint8_t cacheMismatchFlag; /**< Flag set in case of cache mismatch(detected in DHM mode when DH part packet arrives) */
+	uint8_t peerPVS; /**< used to store value of PVS flag sent by peer in the confirm packet on first channel only, then used to compute the PVS value sent to the application */
 
 	/* keys */
 	uint8_t *ZRTPSess; /**< ZRTP session key as described in rfc section 4.5.2 */

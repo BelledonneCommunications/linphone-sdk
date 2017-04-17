@@ -986,6 +986,10 @@ int state_keyAgreement_initiatorSendingDHPart2(bzrtpEvent_t event) {
 			/* update context with the information found in the packet */
 			confirm1Packet = (bzrtpConfirmMessage_t *)zrtpPacket->messageData;
 			memcpy(zrtpChannelContext->peerH[0], confirm1Packet->H0, 32);
+			/* on the first channel, set peerPVS in context */
+			if (zrtpChannelContext->keyAgreementAlgo != ZRTP_KEYAGREEMENT_Mult) {
+				zrtpContext->peerPVS=confirm1Packet->V;
+			}
 
 			/* store the packet to check possible repetitions */
 			zrtpChannelContext->peerPackets[CONFIRM_MESSAGE_STORE_ID] = zrtpPacket;
@@ -1195,6 +1199,10 @@ int state_confirmation_responderSendingConfirm1(bzrtpEvent_t event) {
 			/* update context with the information found in the packet */
 			confirm2Packet = (bzrtpConfirmMessage_t *)zrtpPacket->messageData;
 			memcpy(zrtpChannelContext->peerH[0], confirm2Packet->H0, 32);
+			/* on the first channel, set peerPVS in context */
+			if (zrtpChannelContext->keyAgreementAlgo != ZRTP_KEYAGREEMENT_Mult) {
+				zrtpContext->peerPVS = confirm2Packet->V;
+			}
 
 			/* store the packet to check possible repetitions : note the storage points to confirm1, delete it as we don't need it anymore */
 			bzrtp_freeZrtpPacket(zrtpChannelContext->peerPackets[CONFIRM_MESSAGE_STORE_ID]);
@@ -1462,7 +1470,7 @@ int state_secure(bzrtpEvent_t event) {
 	
 		/* call the environment to signal we're ready to operate */
 		if (zrtpContext->zrtpCallbacks.bzrtp_startSrtpSession!= NULL) {
-			zrtpContext->zrtpCallbacks.bzrtp_startSrtpSession(zrtpChannelContext->clientData, &(zrtpChannelContext->srtpSecrets), zrtpContext->cachedSecret.previouslyVerifiedSas);
+			zrtpContext->zrtpCallbacks.bzrtp_startSrtpSession(zrtpChannelContext->clientData, &(zrtpChannelContext->srtpSecrets), zrtpContext->cachedSecret.previouslyVerifiedSas && zrtpContext->peerPVS);
 		}
 		return 0;
 	}

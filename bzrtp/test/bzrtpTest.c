@@ -86,7 +86,8 @@ test_t key_exchange_tests[] = {
 	TEST_NO_TAG("Cacheless multi channel", test_cacheless_exchange),
 	TEST_NO_TAG("Cached Simple", test_cache_enabled_exchange),
 	TEST_NO_TAG("Cached mismatch", test_cache_mismatch_exchange),
-	TEST_NO_TAG("Loosy network", test_loosy_network)
+	TEST_NO_TAG("Loosy network", test_loosy_network),
+	TEST_NO_TAG("Cached PVS", test_cache_sas_not_confirmed)
 };
 
 test_suite_t key_exchange_test_suite = {

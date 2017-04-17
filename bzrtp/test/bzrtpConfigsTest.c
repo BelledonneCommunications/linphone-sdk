@@ -59,6 +59,7 @@ typedef struct cryptoParams_struct {
 	uint8_t sasNb;
 	uint8_t authtag[MAX_CRYPTO_ALG] ;
 	uint8_t authtagNb;
+	uint8_t dontValidateSASflag; /**< if set, SAS will not be validated even if matching peer **/
 } cryptoParams_t;
 
 
@@ -75,7 +76,8 @@ static uint8_t bobQueueIndex = 0;
 #define ALICE_SSRC_BASE 0x12345000
 #define BOB_SSRC_BASE 0x87654000
 
-static cryptoParams_t defaultCryptoAlgoSelection = {{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH3k},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1};
+static cryptoParams_t defaultCryptoAlgoSelection = {{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH3k},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0};
+static cryptoParams_t defaultCryptoAlgoSelectionNoSASValidation = {{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH3k},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,1};
 
 /* static global settings and their reset function */
 static uint64_t msSTC = 0; /* Simulation Time Coordinated start at 0 and increment it at each sleep, is in milliseconds */
@@ -329,7 +331,7 @@ static int compareAlgoList(bzrtpSrtpSecrets_t *secrets, cryptoParams_t *cryptoPa
 #define RET_CACHE_MISMATCH 0x0001
 
 
-uint32_t multichannel_exchange(cryptoParams_t *aliceCryptoParams, cryptoParams_t *bobCryptoParams, cryptoParams_t *expectedCryptoParams, void *aliceCache, char *aliceURI, void *bobCache, char *bobURI) {
+uint32_t multichannel_exchange_pvs_params(cryptoParams_t *aliceCryptoParams, cryptoParams_t *bobCryptoParams, cryptoParams_t *expectedCryptoParams, void *aliceCache, char *aliceURI, void *bobCache, char *bobURI, uint8_t checkPVS, uint8_t expectedAlicePVS, uint8_t expectedBobPVS) {
 
 	int retval,channelNumber;
 	clientContext_t Alice,Bob;
@@ -406,9 +408,19 @@ uint32_t multichannel_exchange(cryptoParams_t *aliceCryptoParams, cryptoParams_t
 		return retval;
 	} else { /* SAS comparison is Ok, if we have a cache, confirm it */
 		if (aliceCache != NULL && bobCache != NULL) {
-			bzrtp_SASVerified(Alice.bzrtpContext);
-			bzrtp_SASVerified(Bob.bzrtpContext);
+			if (aliceCryptoParams==NULL || aliceCryptoParams->dontValidateSASflag == 0) {
+				bzrtp_SASVerified(Alice.bzrtpContext);
+			}
+			if (bobCryptoParams==NULL || bobCryptoParams->dontValidateSASflag == 0) {
+				bzrtp_SASVerified(Bob.bzrtpContext);
+			}
 		}
+	}
+
+	/* shall we check the PVS returned by the SAS callback? */
+	if (checkPVS==TRUE) {
+		BC_ASSERT_EQUAL(Alice.pvs, expectedAlicePVS, int, "%d");
+		BC_ASSERT_EQUAL(Bob.pvs, expectedBobPVS, int, "%d");
 	}
 
 	/* if we have expected crypto param, check our result */
@@ -508,6 +520,11 @@ uint32_t multichannel_exchange(cryptoParams_t *aliceCryptoParams, cryptoParams_t
 	return ret;
 }
 
+uint32_t multichannel_exchange(cryptoParams_t *aliceCryptoParams, cryptoParams_t *bobCryptoParams, cryptoParams_t *expectedCryptoParams, void *aliceCache, char *aliceURI, void *bobCache, char *bobURI) {
+	return multichannel_exchange_pvs_params(aliceCryptoParams, bobCryptoParams, expectedCryptoParams, aliceCache, aliceURI, bobCache, bobURI, FALSE, 0, 0);
+}
+
+
 void test_cacheless_exchange(void) {
 	cryptoParams_t *pattern;
 
@@ -517,27 +534,27 @@ void test_cacheless_exchange(void) {
 	/* Note: common algo selection is not tested here(this is done in some cryptoUtils tests)
 	here we just perform an exchange with any final configuration avalaible and check it goes well */
 	cryptoParams_t patterns[] = {
-		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH3k},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1},
-		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH3k},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS80},1},
-		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH3k},1,{ZRTP_SAS_B256},1,{ZRTP_AUTHTAG_HS32},1},
-		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH3k},1,{ZRTP_SAS_B256},1,{ZRTP_AUTHTAG_HS80},1},
+		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH3k},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
+		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH3k},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS80},1,0},
+		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH3k},1,{ZRTP_SAS_B256},1,{ZRTP_AUTHTAG_HS32},1,0},
+		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH3k},1,{ZRTP_SAS_B256},1,{ZRTP_AUTHTAG_HS80},1,0},
 
-		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH2k},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1},
-		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH2k},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS80},1},
-		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH2k},1,{ZRTP_SAS_B256},1,{ZRTP_AUTHTAG_HS32},1},
-		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH2k},1,{ZRTP_SAS_B256},1,{ZRTP_AUTHTAG_HS80},1},
+		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH2k},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
+		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH2k},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS80},1,0},
+		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH2k},1,{ZRTP_SAS_B256},1,{ZRTP_AUTHTAG_HS32},1,0},
+		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH2k},1,{ZRTP_SAS_B256},1,{ZRTP_AUTHTAG_HS80},1,0},
 
-		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH3k},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1},
-		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH3k},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS80},1},
-		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH3k},1,{ZRTP_SAS_B256},1,{ZRTP_AUTHTAG_HS32},1},
-		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH3k},1,{ZRTP_SAS_B256},1,{ZRTP_AUTHTAG_HS80},1},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH3k},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH3k},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS80},1,0},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH3k},1,{ZRTP_SAS_B256},1,{ZRTP_AUTHTAG_HS32},1,0},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH3k},1,{ZRTP_SAS_B256},1,{ZRTP_AUTHTAG_HS80},1,0},
 
-		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH2k},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1},
-		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH2k},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS80},1},
-		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH2k},1,{ZRTP_SAS_B256},1,{ZRTP_AUTHTAG_HS32},1},
-		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH2k},1,{ZRTP_SAS_B256},1,{ZRTP_AUTHTAG_HS80},1},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH2k},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH2k},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS80},1,0},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH2k},1,{ZRTP_SAS_B256},1,{ZRTP_AUTHTAG_HS32},1,0},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH2k},1,{ZRTP_SAS_B256},1,{ZRTP_AUTHTAG_HS80},1,0},
 
-		{{0},0,{0},0,{0},0,{0},0,{0},0}, /* this pattern will end the run because cipher nb is 0 */
+		{{0},0,{0},0,{0},0,{0},0,{0},0,0}, /* this pattern will end the run because cipher nb is 0 */
 		};
 
 	pattern = &patterns[0]; /* pattern is a pointer to current pattern */
@@ -639,6 +656,8 @@ void test_cache_enabled_exchange(void) {
 		free(colValuesAlice[i]);
 		free(colValuesBob[i]);
 	}
+	sqlite3_close(aliceDB);
+	sqlite3_close(bobDB);
 
 	/* clean temporary files */
 	remove("tmpZIDAlice_simpleCache.sqlite");
@@ -750,10 +769,114 @@ void test_cache_mismatch_exchange(void) {
 		free(colValuesAlice[i]);
 		free(colValuesBob[i]);
 	}
+	sqlite3_close(aliceDB);
+	sqlite3_close(bobDB);
 
 	/* clean temporary files */
 	remove("tmpZIDAlice_cacheMismatch.sqlite");
 	remove("tmpZIDBob_cacheMismatch.sqlite");
+
+#endif /* ZIDCACHE_ENABLED */
+}
+
+void test_cache_sas_not_confirmed(void) {
+#ifdef ZIDCACHE_ENABLED
+	sqlite3 *aliceDB=NULL;
+	sqlite3 *bobDB=NULL;
+	uint8_t selfZIDalice[12];
+	uint8_t selfZIDbob[12];
+	int zuidAlice=0,zuidBob=0;
+	char *colNames[] = {"rs1", "rs2", "pvs"};
+	uint8_t *colValuesAlice[3];
+	size_t colLengthAlice[3];
+	uint8_t *colValuesBob[3];
+	size_t colLengthBob[3];
+	int i;
+
+	/* create tempory DB files, just try to clean them from dir before, just in case  */
+	remove("tmpZIDAlice_simpleCache.sqlite");
+	remove("tmpZIDBob_simpleCache.sqlite");
+	bzrtptester_sqlite3_open(bc_tester_file("tmpZIDAlice_simpleCache.sqlite"), &aliceDB);
+	bzrtptester_sqlite3_open(bc_tester_file("tmpZIDBob_simpleCache.sqlite"), &bobDB);
+
+	/* make a first exchange, Alice is instructed to not validate the SAS */
+	BC_ASSERT_EQUAL(multichannel_exchange_pvs_params(&defaultCryptoAlgoSelectionNoSASValidation, &defaultCryptoAlgoSelection, &defaultCryptoAlgoSelection, aliceDB, "alice@sip.linphone.org", bobDB, "bob@sip.linphone.org", TRUE, 0, 0), 0, int, "%x");
+
+	/* after the first exchange we shall have alice pvs at 0 and bob at 1 and both rs1 identical and rs2 null, retrieve them from cache and check it */
+	/* first get each ZIDs, note give NULL as RNG context may lead to segfault in case of error(caches were not created correctly)*/
+	BC_ASSERT_EQUAL(bzrtp_getSelfZID((void *)aliceDB, "alice@sip.linphone.org", selfZIDalice, NULL), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_getSelfZID((void *)bobDB, "bob@sip.linphone.org", selfZIDbob, NULL), 0, int, "%x");
+	/* then get the matching zuid in cache */
+	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)aliceDB, "alice@sip.linphone.org", "bob@sip.linphone.org", selfZIDbob, &zuidAlice), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)bobDB, "bob@sip.linphone.org", "alice@sip.linphone.org", selfZIDalice, &zuidBob), 0, int, "%x");
+	/* retrieve the values */
+	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 3), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)bobDB, zuidBob, "zrtp", colNames, colValuesBob, colLengthBob, 3), 0, int, "%x");
+	/* and compare to expected */
+	/* rs1 is set and they are both the same */
+	BC_ASSERT_EQUAL(colLengthAlice[0], 32, int, "%d");
+	BC_ASSERT_EQUAL(colLengthBob[0], 32, int, "%d");
+	BC_ASSERT_EQUAL(memcmp(colValuesAlice[0], colValuesBob[0], 32), 0, int, "%d");
+	/* rs2 is unset(NULL) */
+	BC_ASSERT_EQUAL(colLengthAlice[1], 0, int, "%d");
+	BC_ASSERT_EQUAL(colLengthBob[1], 0, int, "%d");
+	BC_ASSERT_PTR_NULL(colValuesAlice[1]);
+	BC_ASSERT_PTR_NULL(colValuesBob[1]);
+	/* pvs is equal to 0 for Alice(actually NULL, so length is 0 and has no value which is considered 0 by the getPeerSecrets function) and 1 for Bob */
+	BC_ASSERT_EQUAL(colLengthAlice[2], 0, int, "%d");
+	BC_ASSERT_EQUAL(colLengthBob[2], 1, int, "%d");
+	BC_ASSERT_EQUAL(*colValuesBob[2], 1, int, "%d");
+
+	/* make a second exchange, the PVS flag returned by both side shall be 0 as Alice did not validate hers on previous exchange */
+	/* but let them both validate this one */
+	BC_ASSERT_EQUAL(multichannel_exchange_pvs_params(NULL, NULL, &defaultCryptoAlgoSelection, aliceDB, "alice@sip.linphone.org", bobDB, "bob@sip.linphone.org", TRUE, 0, 0), 0, int, "%x");
+	/* read new values in cache, ZIDs and zuids must be identical, read alice first to be able to check rs2 with old rs1 */
+	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 3), 0, int, "%x");
+	/* check what is now rs2 is the old rs1 */
+	BC_ASSERT_EQUAL(colLengthAlice[0], 32, int, "%d");
+	BC_ASSERT_EQUAL(colLengthAlice[1], 32, int, "%d");
+	BC_ASSERT_EQUAL(colLengthAlice[2], 1, int, "%d");
+	BC_ASSERT_EQUAL(memcmp(colValuesAlice[1], colValuesBob[0], 32), 0, int, "%d"); /* colValuesBob, still old values from before the second exchange */
+	/* so read bob updated values and compare rs1, rs2 and check pvs is at 1 */
+	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)bobDB, zuidBob, "zrtp", colNames, colValuesBob, colLengthBob, 3), 0, int, "%x");
+	BC_ASSERT_EQUAL(colLengthBob[0], 32, int, "%d");
+	BC_ASSERT_EQUAL(colLengthBob[1], 32, int, "%d");
+	BC_ASSERT_EQUAL(colLengthBob[2], 1, int, "%d");
+	BC_ASSERT_EQUAL(memcmp(colValuesAlice[0], colValuesBob[0], 32), 0, int, "%d");
+	BC_ASSERT_EQUAL(memcmp(colValuesAlice[1], colValuesBob[1], 32), 0, int, "%d");
+	BC_ASSERT_EQUAL(*colValuesAlice[2], 1, int, "%d");
+	BC_ASSERT_EQUAL(*colValuesBob[2], 1, int, "%d");
+
+	/* make a third exchange, the PVS flag returned by both side shall be 1 */
+	BC_ASSERT_EQUAL(multichannel_exchange_pvs_params(NULL, NULL, &defaultCryptoAlgoSelection, aliceDB, "alice@sip.linphone.org", bobDB, "bob@sip.linphone.org", TRUE, 1, 1), 0, int, "%x");
+	/* read new values in cache, ZIDs and zuids must be identical, read alice first to be able to check rs2 with old rs1 */
+	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 3), 0, int, "%x");
+	/* check what is now rs2 is the old rs1 */
+	BC_ASSERT_EQUAL(colLengthAlice[0], 32, int, "%d");
+	BC_ASSERT_EQUAL(colLengthAlice[1], 32, int, "%d");
+	BC_ASSERT_EQUAL(colLengthAlice[2], 1, int, "%d");
+	BC_ASSERT_EQUAL(memcmp(colValuesAlice[1], colValuesBob[0], 32), 0, int, "%d"); /* colValuesBob, still old values from before the second exchange */
+	/* so read bob updated values and compare rs1, rs2 and check pvs is still at 1 */
+	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)bobDB, zuidBob, "zrtp", colNames, colValuesBob, colLengthBob, 3), 0, int, "%x");
+	BC_ASSERT_EQUAL(colLengthBob[0], 32, int, "%d");
+	BC_ASSERT_EQUAL(colLengthBob[1], 32, int, "%d");
+	BC_ASSERT_EQUAL(colLengthBob[2], 1, int, "%d");
+	BC_ASSERT_EQUAL(memcmp(colValuesAlice[0], colValuesBob[0], 32), 0, int, "%d");
+	BC_ASSERT_EQUAL(memcmp(colValuesAlice[1], colValuesBob[1], 32), 0, int, "%d");
+	BC_ASSERT_EQUAL(*colValuesAlice[2], 1, int, "%d");
+	BC_ASSERT_EQUAL(*colValuesBob[2], 1, int, "%d");
+
+	/* free buffers */
+	for (i=0; i<3; i++) {
+		free(colValuesAlice[i]);
+		free(colValuesBob[i]);
+	}
+	sqlite3_close(aliceDB);
+	sqlite3_close(bobDB);
+
+	/* clean temporary files */
+	remove("tmpZIDAlice_simpleCache.sqlite");
+	remove("tmpZIDBob_simpleCache.sqlite");
 
 #endif /* ZIDCACHE_ENABLED */
 }

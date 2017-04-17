@@ -97,6 +97,7 @@ bzrtpContext_t *bzrtp_createBzrtpContext(void) {
 	context->cachedSecret.auxsecret = NULL;
 	context->cachedSecret.auxsecretLength = 0;
 	context->cacheMismatchFlag = 0;
+	context->peerPVS = 0;
 	
 	/* initialise key buffers */
 	context->ZRTPSess = NULL;

@@ -23,4 +23,5 @@ void test_cacheless_exchange(void);
 void test_loosy_network(void);
 void test_cache_enabled_exchange(void);
 void test_cache_mismatch_exchange(void);
+void test_cache_sas_not_confirmed(void);
 
