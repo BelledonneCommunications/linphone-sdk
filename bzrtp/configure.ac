@@ -40,7 +40,13 @@ else
         AC_DEFINE(ZIDCACHE_ENABLED,1,[defined when libxml2 is available])
 fi
 
-
+dnl check libxml2
+PKG_CHECK_MODULES(LIBXML2, [libxml-2.0] ,[libxml2_found=yes] ,foo=bar)
+if test "$libxml2_found$found_sqlite" != "yesyes" ; then
+	AC_MSG_WARN([libxml2 not found. Disabling cache.])
+else
+	AC_DEFINE(HAVE_LIBXML2,1,[defined when libxml2 is available])
+fi
 
 AC_ARG_ENABLE(tests,
         [AS_HELP_STRING([--disable-tests], [Disable compilation of tests])],
