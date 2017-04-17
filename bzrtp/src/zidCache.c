@@ -639,6 +639,7 @@ int bzrtp_cache_read(void *dbPointer, int zuid, char *tableName, char **columns,
  * @return	0 on success, BZRTP_ERROR_CACHEDISABLED when bzrtp was not compiled with cache enabled, BZRTP_ERROR_CACHEMIGRATIONFAILED on error during migration
  */
 int bzrtp_cache_migration(void *cacheXmlPtr, void *cacheSqlite, const char *selfURI) {
+#ifdef HAVE_LIBXML2
 	if (cacheXmlPtr) {
 		xmlDocPtr cacheXml = (xmlDocPtr)cacheXmlPtr;
 		xmlNodePtr cur;
@@ -809,6 +810,10 @@ int bzrtp_cache_migration(void *cacheXmlPtr, void *cacheSqlite, const char *self
 		return 0;
 	}
 	return BZRTP_ERROR_CACHEMIGRATIONFAILED;
+#else /* HAVE_LIBXML2 */
+	bctbx_error("ZRTP/LIME cache migration: could not perform migration as LIBMXL2 is not linked to bzrtp.");
+	return BZRTP_ERROR_CACHEMIGRATIONFAILED;
+#endif /* HAVE_LIBXML2 */
 }
 
 #else /* ZIDCACHE_ENABLED */
