@@ -47,14 +47,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #endif
 
 static const int framesize=64;
-static const uint32_t flow_control_interval_ms=5000;
 
 
 typedef struct SpeexECState{
 	SpeexEchoState *ecstate;
 	SpeexPreprocessState *den;
 	MSBufferizer delayed_ref;
-	MSBufferizer ref;
+	MSFlowControlledBufferizer ref;
 	MSBufferizer echo;
 	int framesize;
 	int framesize_at_8000;
@@ -64,8 +63,6 @@ typedef struct SpeexECState{
 	int tail_length_ms;
 	int nominal_ref_samples;
 	int min_ref_samples;
-	MSAudioFlowController afc;
-	uint64_t flow_control_time;
 	char *state_str;
 #ifdef EC_DUMP
 	FILE *echofile;
@@ -83,7 +80,7 @@ static void speex_ec_init(MSFilter *f){
 	s->samplerate=8000;
 	ms_bufferizer_init(&s->delayed_ref);
 	ms_bufferizer_init(&s->echo);
-	ms_bufferizer_init(&s->ref);
+	ms_flow_controlled_bufferizer_init(&s->ref, f, s->samplerate, 1);
 	s->delay_ms=0;
 	s->tail_length_ms=250;
 	s->ecstate=NULL;
@@ -185,6 +182,11 @@ static int adjust_framesize(int framesize, int samplerate){
 	return n;
 }
 
+static void configure_flow_controlled_bufferizer(SpeexECState *s) {
+	ms_flow_controlled_bufferizer_set_samplerate(&s->ref, s->samplerate);
+	ms_flow_controlled_bufferizer_set_max_size_ms(&s->ref, s->delay_ms + s->tail_length_ms - (s->tail_length_ms / 4));
+}
+
 static void speex_ec_preprocess(MSFilter *f){
 	SpeexECState *s=(SpeexECState*)f->data;
 	int delay_samples=0;
@@ -207,8 +209,6 @@ static void speex_ec_preprocess(MSFilter *f){
 	ms_bufferizer_put (&s->delayed_ref,m);
 	s->min_ref_samples=-1;
 	s->nominal_ref_samples=delay_samples;
-	ms_audio_flow_controller_init(&s->afc);
-	s->flow_control_time = f->ticker->time;
 #ifdef SPEEX_ECHO_GET_BLOB
 	apply_config(s);
 #else
@@ -240,12 +240,9 @@ static void speex_ec_process(MSFilter *f){
 	if (f->inputs[0]!=NULL){
 		if (s->echostarted){
 			while((refm=ms_queue_get(f->inputs[0]))!=NULL){
-				refm=ms_audio_flow_controller_process(&s->afc,refm);
-				if (refm){
-					mblk_t *cp=dupmsg(refm);
-					ms_bufferizer_put(&s->delayed_ref,cp);
-					ms_bufferizer_put(&s->ref,refm);
-				}
+				mblk_t *cp=dupmsg(refm);
+				ms_bufferizer_put(&s->delayed_ref,cp);
+				ms_flow_controlled_bufferizer_put(&s->ref,refm);
 			}
 		}else{
 			ms_warning("Getting reference signal but no echo to synchronize on.");
@@ -282,7 +279,7 @@ static void speex_ec_process(MSFilter *f){
 			}
 			/* read from our no-delay buffer and output */
 			refm=allocb(nbytes,0);
-			if (ms_bufferizer_read(&s->ref,refm->b_wptr,nbytes)==0){
+			if (ms_flow_controlled_bufferizer_read(&s->ref,refm->b_wptr,nbytes)==0){
 				ms_fatal("Should never happen");
 			}
 			refm->b_wptr+=nbytes;
@@ -315,18 +312,6 @@ static void speex_ec_process(MSFilter *f){
 		oecho->b_wptr+=nbytes;
 		ms_queue_put(f->outputs[1],oecho);
 	}
-	
-	/*verify our ref buffer does not become too big, meaning that we are receiving more samples than we are sending*/
-	if ((((uint32_t)(f->ticker->time - s->flow_control_time)) >= flow_control_interval_ms) && (s->min_ref_samples != -1)) {
-		int diff=s->min_ref_samples-s->nominal_ref_samples;
-		if (diff>(nbytes/2)){
-			int purge=diff-(nbytes/2);
-			ms_warning("echo canceller: we are accumulating too much reference signal, need to throw out %i samples",purge);
-			ms_audio_flow_controller_set_target(&s->afc,purge,(flow_control_interval_ms*s->samplerate)/1000);
-		}
-		s->min_ref_samples=-1;
-		s->flow_control_time = f->ticker->time;
-	}
 }
 
 static void speex_ec_postprocess(MSFilter *f){
@@ -334,7 +319,7 @@ static void speex_ec_postprocess(MSFilter *f){
 
 	ms_bufferizer_flush (&s->delayed_ref);
 	ms_bufferizer_flush (&s->echo);
-	ms_bufferizer_flush (&s->ref);
+	ms_flow_controlled_bufferizer_flush (&s->ref);
 	if (s->ecstate!=NULL){
 		speex_echo_state_destroy(s->ecstate);
 		s->ecstate=NULL;
@@ -348,6 +333,7 @@ static void speex_ec_postprocess(MSFilter *f){
 static int speex_ec_set_sr(MSFilter *f, void *arg){
 	SpeexECState *s=(SpeexECState*)f->data;
 	s->samplerate = *(int*)arg;
+	configure_flow_controlled_bufferizer(s);
 	return 0;
 }
 
@@ -360,12 +346,14 @@ static int speex_ec_set_framesize(MSFilter *f, void *arg){
 static int speex_ec_set_delay(MSFilter *f, void *arg){
 	SpeexECState *s=(SpeexECState*)f->data;
 	s->delay_ms = *(int*)arg;
+	configure_flow_controlled_bufferizer(s);
 	return 0;
 }
 
 static int speex_ec_set_tail_length(MSFilter *f, void *arg){
 	SpeexECState *s=(SpeexECState*)f->data;
 	s->tail_length_ms=*(int*)arg;
+	configure_flow_controlled_bufferizer(s);
 	return 0;
 }
 static int speex_ec_set_bypass_mode(MSFilter *f, void *arg) {

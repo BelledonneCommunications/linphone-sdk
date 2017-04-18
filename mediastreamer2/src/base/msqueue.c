@@ -184,10 +184,12 @@ static void control_flow(MSFlowControlledBufferizer *obj) {
 		&& (((uint32_t)(obj->filter->ticker->time - obj->flow_control_time)) >= obj->flow_control_interval_ms)) {
 		MSAudioFlowControlDropEvent ev;
 		ev.flow_control_interval_ms = obj->flow_control_interval_ms;
-		ev.drop_ms = (accumulated_ms - obj->max_size_ms) + (obj->max_size_ms / 4);
-		ms_warning("Flow controlled bufferizer of max %u ms buffered %u ms, asking to drop %u ms", obj->max_size_ms, accumulated_ms, ev.drop_ms);
-		ms_filter_notify(obj->filter, MS_AUDIO_FLOW_CONTROL_DROP_EVENT, &ev);
-		obj->flow_control_time = obj->filter->ticker->time;
+		ev.drop_ms = (uint32_t)ms_ticker_round((accumulated_ms - obj->max_size_ms) + (obj->max_size_ms / 4));
+		if (ev.drop_ms > 0) {
+			ms_warning("Flow controlled bufferizer of max %u ms buffered %u ms, asking to drop %u ms", obj->max_size_ms, accumulated_ms, ev.drop_ms);
+			ms_filter_notify(obj->filter, MS_AUDIO_FLOW_CONTROL_DROP_EVENT, &ev);
+			obj->flow_control_time = obj->filter->ticker->time;
+		}
 	}
 }
 

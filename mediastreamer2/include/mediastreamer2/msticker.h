@@ -245,6 +245,13 @@ MS2_PUBLIC float ms_ticker_get_average_load(MSTicker *ticker);
 MS2_PUBLIC void ms_ticker_get_last_late_tick(MSTicker *ticker, MSTickerLateEvent *ev);
 
 /**
+ * Round a time in milliseconds to the internal ticker interval.
+ * @param[in] ms The time in milliseconds to round
+ * @return The rounded time in milliseconds
+ */
+MS2_PUBLIC uint64_t ms_ticker_round(uint64_t ms);
+
+/**
  * Set the MSTickerSynchronizer for a MSTicker.
  * @param ticker A MSTicker object to synchronize
  * @param ts A MSTickerSynchronizer to use for synchronization of the ticker

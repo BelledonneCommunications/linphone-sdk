@@ -602,6 +602,10 @@ double ms_ticker_synchronizer_update(MSTickerSynchronizer *ts, uint64_t nb_sampl
 	return ms_ticker_synchronizer_set_external_time(ts, &timespec);
 }
 
+uint64_t ms_ticker_round(uint64_t ms) {
+	return (ms / (uint64_t)TICKER_INTERVAL) * (uint64_t)TICKER_INTERVAL;
+}
+
 uint64_t ms_ticker_synchronizer_get_corrected_time(MSTickerSynchronizer* ts) {
 	/* round skew to timer resolution in order to avoid adapt the ticker just with statistical "noise" */
 	int64_t rounded_skew=( ((int64_t)ts->av_skew)/(int64_t)TICKER_INTERVAL) * (int64_t)TICKER_INTERVAL;
