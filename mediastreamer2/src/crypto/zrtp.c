@@ -690,6 +690,54 @@ int ms_zrtp_setPeerHelloHash(MSZrtpContext *ctx, uint8_t *peerHelloHashHexString
 	return bzrtp_setPeerHelloHash(ctx->zrtpContext, ctx->self_ssrc, peerHelloHashHexString, peerHelloHashHexStringLength);
 }
 
+/**
+ * @brief Check the given sqlite3 DB and create requested tables if needed
+ * 	Also manage DB schema upgrade
+ * @param[in/out]	db	Pointer to the sqlite3 db open connection
+ * 				Use a void * to keep this API when building cacheless
+ *
+ * @return 0 on succes, MSZRTP_CACHE_SETUP if cache was empty, MSZRTP_CACHE_UPDATE if db structure was updated error code otherwise
+ */
+int ms_zrtp_initCache(void *db) {
+	int ret = bzrtp_initCache(db);
+	switch (ret) {
+		case BZRTP_CACHE_SETUP:
+			return MSZRTP_CACHE_SETUP;
+		case BZRTP_CACHE_UPDATE:
+			return MSZRTP_CACHE_UPDATE;
+		case 0:
+			return 0;
+		default:
+			ms_warning("bzrtp_initCache function returned a non zero code %x, something went probably wrong", ret);
+			return MSZRTP_CACHE_ERROR;
+	}
+}
+
+/**
+ * @brief Perform migration from xml version to sqlite3 version of cache
+ *	Warning: new version of cache associate a ZID to each local URI, the old one did not
+ *		the migration function will associate any data in the cache to the sip URI given in parameter which shall be the default URI
+ * @param[in]		cacheXml	a pointer to an xmlDocPtr structure containing the old cache to be migrated
+ * @param[in/out]	cacheSqlite	a pointer to an sqlite3 structure containing a cache initialised using ms_zrtp_cache_init function
+ * @param[in]		selfURI		default sip URI for this end point, NULL terminated char
+ *
+ * @return	0 on success, MSZRTP_ERROR_CACHEDISABLED when bzrtp was not compiled with cache enabled, MSZRTP_ERROR_CACHEMIGRATIONFAILED on error during migration
+ */
+int ms_zrtp_cache_migration(void *cacheXmlPtr, void *cacheSqlite, const char *selfURI) {
+	int ret = bzrtp_cache_migration(cacheXmlPtr, cacheSqlite, selfURI);
+	switch (ret) {
+		case BZRTP_ERROR_CACHEDISABLED:
+			return MSZRTP_ERROR_CACHEDISABLED;
+		case BZRTP_ERROR_CACHEMIGRATIONFAILED:
+			return MSZRTP_ERROR_CACHEMIGRATIONFAILED;
+		case 0:
+			return 0;
+		default:
+			ms_warning("bzrtp_cache_migration function returned a non zero code %x, something went probably wrong", ret);
+			return MSZRTP_CACHE_ERROR;
+	}
+}
+
 #else
 
 MSZrtpContext* ms_zrtp_context_new(MSMediaStreamSessions *sessions, MSZrtpParams *params){
@@ -713,6 +761,8 @@ void ms_zrtp_transport_modifier_destroy(RtpTransportModifier *tp)  {}
 void ms_zrtp_set_stream_sessions(MSZrtpContext *zrtp_context, MSMediaStreamSessions *stream_sessions) {}
 int ms_zrtp_getHelloHash(MSZrtpContext* ctx, uint8_t *output, size_t outputLength) {return 0;}
 int ms_zrtp_setPeerHelloHash(MSZrtpContext *ctx, uint8_t *peerHelloHashHexString, size_t peerHelloHashHexStringLength) {return 0;}
+int ms_zrtp_initCache(void *db){return 0;}
+int ms_zrtp_cache_migration(void *cacheXmlPtr, void *cacheSqlite, const char *selfURI) {return 0;}
 #endif
 
 #define STRING_COMPARE_RETURN(string, value)\

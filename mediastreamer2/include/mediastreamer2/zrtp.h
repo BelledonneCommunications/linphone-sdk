@@ -36,6 +36,15 @@ struct _MSMediaStreamSessions;
 
 #define MS_MAX_ZRTP_CRYPTO_TYPES 7
 
+/* cache related function return codes */
+#define MSZRTP_CACHE_ERROR		-0x1000
+#define MSZRTP_CACHE_SETUP		0x2000
+#define MSZRTP_CACHE_UPDATE		0x2001
+#define MSZRTP_ERROR_CACHEDISABLED				-0x0200
+#define MSZRTP_ERROR_CACHEMIGRATIONFAILED			-0x0400
+
+
+
 typedef uint8_t MsZrtpCryptoTypesCount;
 
 typedef enum _MSZrtpHash{
@@ -185,6 +194,28 @@ MS2_PUBLIC const char* ms_zrtp_key_agreement_to_string(const MSZrtpKeyAgreement 
 MS2_PUBLIC MSZrtpSasType ms_zrtp_sas_type_from_string(const char* str);
 MS2_PUBLIC const char* ms_zrtp_sas_type_to_string(const MSZrtpSasType sasType);
 
+/* Cache wrapper functions : functions needed by liblinphone wrapped to avoid direct dependence of linphone on bzrtp */
+/**
+ * @brief Check the given sqlite3 DB and create requested tables if needed
+ * 	Also manage DB schema upgrade
+ * @param[in/out]	db	Pointer to the sqlite3 db open connection
+ * 				Use a void * to keep this API when building cacheless
+ *
+ * @return 0 on succes, MSZRTP_CACHE_SETUP if cache was empty, MSZRTP_CACHE_UPDATE if db structure was updated error code otherwise
+ */
+MS2_PUBLIC int ms_zrtp_initCache(void *db);
+
+/**
+ * @brief Perform migration from xml version to sqlite3 version of cache
+ *	Warning: new version of cache associate a ZID to each local URI, the old one did not
+ *		the migration function will associate any data in the cache to the sip URI given in parameter which shall be the default URI
+ * @param[in]		cacheXml	a pointer to an xmlDocPtr structure containing the old cache to be migrated
+ * @param[in/out]	cacheSqlite	a pointer to an sqlite3 structure containing a cache initialised using ms_zrtp_cache_init function
+ * @param[in]		selfURI		default sip URI for this end point, NULL terminated char
+ *
+ * @return	0 on success, MSZRTP_ERROR_CACHEDISABLED when bzrtp was not compiled with cache enabled, MSZRTP_ERROR_CACHEMIGRATIONFAILED on error during migration
+ */
+MS2_PUBLIC int ms_zrtp_cache_migration(void *cacheXmlPtr, void *cacheSqlite, const char *selfURI);
 
 #ifdef __cplusplus
 }
