@@ -300,7 +300,7 @@ VideoStream *video_stream_new_with_sessions(MSFactory* factory, const MSMediaStr
 	stream->ms.sessions=*sessions;
 
 	media_stream_init(&stream->ms, factory, sessions);
-	
+
 	rtp_session_resync(stream->ms.sessions.rtp_session);
 	stream->ms.qi=ms_quality_indicator_new(stream->ms.sessions.rtp_session);
 	ms_quality_indicator_set_label(stream->ms.qi,"video");
@@ -441,7 +441,7 @@ static MSVideoSize get_compatible_size(MSVideoSize maxsize, MSVideoSize wished_s
 	return wished_size;
 }
 
-#if !TARGET_IPHONE_SIMULATOR && !defined(MS_HAS_ARM) 
+#if !TARGET_IPHONE_SIMULATOR && !defined(MS_HAS_ARM)
 static MSVideoSize get_with_same_orientation_and_ratio(MSVideoSize size, MSVideoSize refsize){
 	if (ms_video_size_get_orientation(refsize)!=ms_video_size_get_orientation(size)){
 		int tmp;
@@ -897,7 +897,7 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 	/* Plumb the outgoing stream */
 	if (rem_rtp_port>0) ms_filter_call_method(stream->ms.rtpsend,MS_RTP_SEND_SET_SESSION,stream->ms.sessions.rtp_session);
 	ms_filter_call_method(stream->ms.rtpsend, MS_RTP_SEND_ENABLE_TS_ADJUSTMENT, &do_ts_adjustments);
-	
+
 	if (stream->dir==MediaStreamRecvOnly){
 		/* Create a dummy sending stream to send the STUN packets to open firewall ports. */
 		MSConnectionHelper ch;
@@ -1482,7 +1482,7 @@ void video_stream_set_native_window_id(VideoStream *stream, void *id){
 
 void video_stream_set_native_preview_window_id(VideoStream *stream, void *id){
 	stream->preview_window_id=id;
-#if TARGET_OS_IPHONE
+#if !TARGET_OS_IPHONE
 	if (stream->output2){
 		ms_filter_call_method(stream->output2,MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID,&id);
 	}
@@ -1602,12 +1602,12 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device) {
 		ms_filter_call_method(stream->output2, MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE, &corner);
 		/* and then connect all */
 	}
-	
+
 	stream->local_jpegwriter = ms_factory_create_filter(stream->ms.factory, MS_JPEG_WRITER_ID);
 	if (stream->local_jpegwriter) {
 		stream->tee = ms_factory_create_filter(stream->ms.factory, MS_TEE_ID);
 	}
-	
+
 	ms_connection_helper_start(&ch);
 	ms_connection_helper_link(&ch, stream->source, -1, 0);
 	if (stream->pixconv) {
@@ -1639,7 +1639,7 @@ static MSFilter* _video_preview_stop( VideoPreview* stream, bool_t keep_source) 
 	MSFilter* source = NULL;
 	MSConnectionHelper ch;
 	ms_ticker_detach(stream->ms.sessions.ticker, stream->source);
-	
+
 	ms_connection_helper_start(&ch);
 	ms_connection_helper_unlink(&ch, stream->source, -1, 0);
 	if (stream->pixconv) {
