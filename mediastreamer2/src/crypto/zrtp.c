@@ -128,7 +128,7 @@ static int ms_zrtp_statusMessage(void *clientData, const uint8_t messageLevel, c
 		case BZRTP_MESSAGE_CACHEMISMATCH:
 			ev=ortp_event_new(ORTP_EVENT_ZRTP_CACHE_MISMATCH);
 			eventData=ortp_event_get_data(ev);
-			eventData->info.zrtp_cache_mismatch=1;
+			eventData->info.zrtp_info.cache_mismatch=1;
 			rtp_session_dispatch_event(userData->stream_sessions->rtp_session, ev);
 			ms_warning("Zrtp Event dispatched : cache mismatch"); /* log it as a warning */
 			break;
@@ -287,9 +287,9 @@ static int ms_zrtp_startSrtpSession(void *clientData,  const bzrtpSrtpSecrets_t 
 		ev=ortp_event_new(ORTP_EVENT_ZRTP_SAS_READY);
 		eventData=ortp_event_get_data(ev);
 		// support both b32 and b256 format SAS strings
-		snprintf(eventData->info.zrtp_sas.sas, sizeof(eventData->info.zrtp_sas.sas), "%s", secrets->sas);
-		eventData->info.zrtp_sas.verified=(verified != 0) ? TRUE : FALSE;
-		eventData->info.zrtp_cache_mismatch=( secrets->cacheMismatch != 0) ? TRUE : FALSE;
+		snprintf(eventData->info.zrtp_info.sas, sizeof(eventData->info.zrtp_info.sas), "%s", secrets->sas);
+		eventData->info.zrtp_info.verified=(verified != 0) ? TRUE : FALSE;
+		eventData->info.zrtp_info.cache_mismatch=( secrets->cacheMismatch != 0) ? TRUE : FALSE;
 		rtp_session_dispatch_event(userData->stream_sessions->rtp_session, ev);
 		ms_message("ZRTP secrets on: SAS is %.32s previously verified %s on session [%p]", secrets->sas, verified == 0 ? "no" : "yes", userData->stream_sessions);
 		ms_message("ZRTP algo used during negotiation: Cipher: %s - KeyAgreement: %s - Hash: %s - AuthTag: %s - Sas Rendering: %s", bzrtp_cipher_toString(secrets->cipherAlgo), bzrtp_keyAgreement_toString(secrets->keyAgreementAlgo), bzrtp_hash_toString(secrets->hashAlgo), bzrtp_authtag_toString(secrets->authTagAlgo), bzrtp_sas_toString(secrets->sasAlgo));
