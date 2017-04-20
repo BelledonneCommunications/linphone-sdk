@@ -23,14 +23,22 @@ Compatibility with RFC6189 - ZRTP: Media Path Key Agreement for Unicast Secure R
 
 * multistream mode
 * cacheless implementation
-* key agreement DH2048
+* zrtp-hash attribute in SDP
 
 
 ### Optional and NOT implemented
 
-* zrtp-hash attribute in SDP
 * Go Clear/Clear ACK messages
 * SAS signing
+
+
+### Supported Algorithms
+
+* Hash : SHA-256
+* Cipher : AES-128, AES-256
+* SAS rendering: B32, B256(PGP word list)
+* Auth Tag : HS32, HS80
+* Key Agreement : DH-2048, DH-3072
 
 
 Dependencies

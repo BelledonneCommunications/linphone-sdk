@@ -391,7 +391,7 @@ BZRTP_EXPORT int bzrtp_getChannelStatus(bzrtpContext_t *zrtpContext, uint32_t se
  * @param[in/out]	db	Pointer to the sqlite3 db open connection
  * 				Use a void * to keep this API when building cacheless
  *
- * @return 0 on succes, BZRTP_CACHE_SETUP if cache was empty, error code otherwise
+ * @return 0 on success, BZRTP_CACHE_SETUP if cache was empty, BZRTP_CACHE_UPDATE if db structure was updated, error code otherwise
  */
 BZRTP_EXPORT int bzrtp_initCache(void *db);
 
