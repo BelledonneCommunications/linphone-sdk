@@ -26,11 +26,11 @@ lcb_git_tag("1.0.4")
 lcb_external_source_paths("bzrtp")
 lcb_groupable(YES)
 
-lcb_dependencies("bctoolbox" "sqlite3")
+lcb_dependencies("bctoolbox")
 if(LINPHONE_BUILDER_BUILD_DEPENDENCIES)
 	if(NOT APPLE)
-		# Do not build xml2 on Apple systems (Mac OS X and iOS), it is provided by the system
-		lcb_dependencies("xml2")
+		# Do not build xml2 neither sqlite3 on Apple systems (Mac OS X and iOS), they are provided by the system
+		lcb_dependencies("xml2" "sqlite3")
 	endif()
 	if(ENABLE_UNIT_TESTS)
 		lcb_dependencies("bcunit")
