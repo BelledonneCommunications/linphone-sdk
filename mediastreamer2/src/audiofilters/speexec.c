@@ -62,7 +62,6 @@ typedef struct SpeexECState{
 	int delay_ms;
 	int tail_length_ms;
 	int nominal_ref_samples;
-	int min_ref_samples;
 	char *state_str;
 #ifdef EC_DUMP
 	FILE *echofile;
@@ -184,7 +183,8 @@ static int adjust_framesize(int framesize, int samplerate){
 
 static void configure_flow_controlled_bufferizer(SpeexECState *s) {
 	ms_flow_controlled_bufferizer_set_samplerate(&s->ref, s->samplerate);
-	ms_flow_controlled_bufferizer_set_max_size_ms(&s->ref, s->delay_ms + s->tail_length_ms - (s->tail_length_ms / 4));
+	ms_flow_controlled_bufferizer_set_max_size_ms(&s->ref, s->delay_ms);
+	ms_flow_controlled_bufferizer_set_granularity_ms(&s->ref, (s->framesize * 1000) / s->samplerate);
 }
 
 static void speex_ec_preprocess(MSFilter *f){
@@ -207,7 +207,6 @@ static void speex_ec_preprocess(MSFilter *f){
 	m=allocb(delay_samples*2,0);
 	m->b_wptr+=delay_samples*2;
 	ms_bufferizer_put (&s->delayed_ref,m);
-	s->min_ref_samples=-1;
 	s->nominal_ref_samples=delay_samples;
 #ifdef SPEEX_ECHO_GET_BLOB
 	apply_config(s);
@@ -293,9 +292,6 @@ static void speex_ec_process(MSFilter *f){
 		avail-=nbytes;
 		avail_samples=avail/2;
 		/*ms_message("avail=%i",avail_samples);*/
-		if (avail_samples<s->min_ref_samples || s->min_ref_samples==-1){
-			s->min_ref_samples=avail_samples;
-		}
 		
 #ifdef EC_DUMP
 		if (s->reffile)

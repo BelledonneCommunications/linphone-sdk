@@ -71,8 +71,8 @@ The BSD license below is for the original work.
 MSFilter *ms_au_read_new(MSSndCard *card);
 MSFilter *ms_au_write_new(MSSndCard *card);
 
-static const int flow_control_interval = 1000; // ms
-static const int flow_control_threshold = 50; // ms
+static const int flow_control_interval = 5000; // ms
+static const int flow_control_threshold = 40; // ms
 
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 

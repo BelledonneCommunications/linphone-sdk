@@ -163,6 +163,8 @@ struct _MSFlowControlledBufferizer {
 	uint64_t flow_control_time;
 	uint32_t flow_control_interval_ms;
 	uint32_t max_size_ms;
+	uint32_t granularity_ms;
+	uint32_t min_size_ms_during_interval;
 	int samplerate;
 	int nchannels;
 };
@@ -174,6 +176,8 @@ MS2_PUBLIC MSFlowControlledBufferizer * ms_flow_controlled_bufferizer_new(struct
 MS2_PUBLIC void ms_flow_controlled_bufferizer_init(MSFlowControlledBufferizer *obj, struct _MSFilter *f, int samplerate, int nchannels);
 
 MS2_PUBLIC void ms_flow_controlled_bufferizer_set_max_size_ms(MSFlowControlledBufferizer *obj, uint32_t ms);
+
+MS2_PUBLIC void ms_flow_controlled_bufferizer_set_granularity_ms(MSFlowControlledBufferizer *obj, uint32_t ms);
 
 MS2_PUBLIC void ms_flow_controlled_bufferizer_set_flow_control_interval_ms(MSFlowControlledBufferizer *obj, uint32_t ms);
 

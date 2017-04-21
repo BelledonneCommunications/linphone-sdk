@@ -44,8 +44,8 @@ static int the_pa_ref = 0;
 static pa_context *the_pa_context=NULL;
 static pa_threaded_mainloop *the_pa_loop=NULL;
 static const int targeted_latency = 20;/*ms*/
-static const int flow_control_op_interval = 1000; // ms
-static const int flow_control_threshold = 50; // ms
+static const int flow_control_interval = 5000; // ms
+static const int flow_control_threshold = 40; // ms
 
 
 static void context_state_notify_cb(pa_context *ctx, void *userdata){
@@ -340,7 +340,7 @@ static Stream *stream_new(StreamType type, MSFilter *f) {
 	s->state = PA_STREAM_UNCONNECTED;
 	ms_flow_controlled_bufferizer_init(&s->bufferizer, f, s->sampleSpec.rate, s->sampleSpec.channels);
 	ms_flow_controlled_bufferizer_set_max_size_ms(&s->bufferizer, flow_control_threshold);
-	ms_flow_controlled_bufferizer_set_flow_control_interval_ms(&s->bufferizer, flow_control_op_interval);
+	ms_flow_controlled_bufferizer_set_flow_control_interval_ms(&s->bufferizer, flow_control_interval);
 	s->dev = NULL;
 	s->init_volume = -1.0;
 	if (type == STREAM_TYPE_RECORD) {

@@ -44,8 +44,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 	}
 
 
-static const int flowControlInterval = 1000; // ms
-static const int flowControlThreshold = 50; // ms
+static const int flowControlInterval = 5000; // ms
+static const int flowControlThreshold = 40; // ms
 
 bool MSWASAPIWriter::smInstantiated = false;
 

@@ -26,8 +26,8 @@
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msticker.h"
 
-static const int flowControlInterval = 1000; // ms
-static const int flowControlThreshold = 50; // ms
+static const int flowControlInterval = 5000; // ms
+static const int flowControlThreshold = 40; // ms
 
 /*                          -------------------------
 							| i                   o |
