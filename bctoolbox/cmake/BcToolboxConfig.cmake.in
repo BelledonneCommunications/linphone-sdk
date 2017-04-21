@@ -34,8 +34,6 @@
 #  BCTOOLBOX_${comp}_INCLUDE_DIRS - the bctoolbox "comp" component include directory
 #  BCTOOLBOX_${comp}_LIBRARIES - The libraries needed to use bctoolbox "comp" component
 
-include("${CMAKE_CURRENT_LIST_DIR}/BcToolboxCMakeUtils.cmake")
-
 if(NOT LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
 	include("${CMAKE_CURRENT_LIST_DIR}/BcToolboxTargets.cmake")
 endif()
@@ -58,7 +56,17 @@ foreach(comp ${BcToolbox_FIND_COMPONENTS})
 		set(BCTOOLBOX_${uppercomp}_LIBRARIES ${targetname})
 	else()
 		set(targetname ${targetname}-static)
-		bc_set_libraries_from_static_target(BCTOOLBOX_${uppercomp}_LIBRARIES ${targetname})
+		if(TARGET ${targetname})
+			if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
+				set(BCTOOLBOX_${uppercomp}_LIBRARIES ${targetname})
+			else()
+				get_target_property(BCTOOLBOX_${uppercomp}_LIBRARIES ${targetname} LOCATION)
+			endif()
+			get_target_property(BCTOOLBOX_${uppercomp}_LINK_LIBRARIES ${targetname} INTERFACE_LINK_LIBRARIES)
+			if(BCTOOLBOX_${uppercomp}_LINK_LIBRARIES)
+				list(APPEND BCTOOLBOX_${uppercomp}_LIBRARIES ${BCTOOLBOX_${uppercomp}_LINK_LIBRARIES})
+			endif()
+		endif()
 	endif()
 	if(TARGET ${targetname})
 		get_target_property(BCTOOLBOX_${uppercomp}_INCLUDE_DIRS ${targetname} INTERFACE_INCLUDE_DIRECTORIES)
@@ -81,4 +89,6 @@ endforeach()
 if(BCTOOLBOX_INCLUDE_DIRS)
 	list(REMOVE_DUPLICATES BCTOOLBOX_INCLUDE_DIRS)
 endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/BcToolboxCMakeUtils.cmake")
 
