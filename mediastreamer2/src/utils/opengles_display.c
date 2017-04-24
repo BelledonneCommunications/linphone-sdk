@@ -109,6 +109,10 @@ struct opengles_display {
 
 // -----------------------------------------------------------------------------
 
+static void clean_GL_errors (const OpenGlFunctions *f) {
+	while (f->glGetError() != GL_NO_ERROR);
+}
+
 static void check_GL_errors (const OpenGlFunctions *f, const char* context) {
 	GLenum error;
 	while ((error = f->glGetError()) != GL_NO_ERROR) {
@@ -580,6 +584,8 @@ void ogl_display_init (struct opengles_display *gldisp, const OpenGlFunctions *f
 
 	ms_message("init opengles_display (%d x %d, gl initialized:%d)", width, height, gldisp->glResourcesInitialized);
 
+	clean_GL_errors(f);
+
 	GL_OPERATION(f, glDisable(GL_DEPTH_TEST))
 	GL_OPERATION(f, glClearColor(0, 0, 0, 0))
 
@@ -665,6 +671,8 @@ void ogl_display_set_preview_yuv_to_display (struct opengles_display *gldisp, mb
 
 void ogl_display_render (struct opengles_display *gldisp, int orientation) {
 	const OpenGlFunctions *f = gldisp->functions;
+
+	clean_GL_errors(f);
 
 	GL_OPERATION(f, glUseProgram(gldisp->program))
 
