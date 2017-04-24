@@ -469,8 +469,25 @@ static void check_GL_errors (const OpenGlFunctions *f, const char* context) {
 	}
 }
 
+static void print_program_info (const OpenGlFunctions *f, GLuint *program) {
+	GLint logLength;
+	char *msg;
+
+	GL_OPERATION(f, glGetProgramiv(*program, GL_INFO_LOG_LENGTH, &logLength));
+	if (logLength > 0) {
+		msg = ms_new(char, logLength);
+
+		GL_OPERATION(f, glGetProgramInfoLog(*program, logLength, &logLength, msg));
+		ms_message("OpenGL program info: %s", msg);
+
+		ms_free(msg);
+	} else
+		ms_message("OpenGL program info: [NO INFORMATION]");
+}
+
 static bool_t load_shaders (const OpenGlFunctions *f, GLuint *program, GLint *uniforms) {
 	GLuint vertShader, fragShader;
+
 	#include "yuv2rgb.vs.h"
 	#include "yuv2rgb.fs.h"
 	(void)yuv2rgb_vs_len;
@@ -500,9 +517,10 @@ static bool_t load_shaders (const OpenGlFunctions *f, GLuint *program, GLint *un
 	GL_OPERATION(f, glDeleteShader(vertShader))
 	GL_OPERATION(f, glDeleteShader(fragShader))
 
-	return TRUE;
-
 	check_GL_errors(f, "load_shaders");
+	print_program_info(f, program);
+
+	return TRUE;
 }
 
 static void load_orthographic_matrix (float left, float right, float bottom, float top, float _near, float _far, float *mat) {
