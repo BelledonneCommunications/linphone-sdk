@@ -452,20 +452,17 @@ void ogl_display_render (struct opengles_display *gldisp, int orientation) {
 }
 
 static void check_GL_errors (const OpenGlFunctions *f, const char* context) {
-	int maxIterations = 10;
 	GLenum error;
-	while (((error = f->glGetError()) != GL_NO_ERROR) && maxIterations > 0) {
+	while ((error = f->glGetError()) != GL_NO_ERROR) {
 		switch(error) {
-			case GL_INVALID_ENUM:  ms_error("[%2d]GL error: '%s' -> GL_INVALID_ENUM\n", maxIterations, context); break;
-			case GL_INVALID_VALUE: ms_error("[%2d]GL error: '%s' -> GL_INVALID_VALUE\n", maxIterations, context); break;
-			case GL_INVALID_OPERATION: ms_error("[%2d]GL error: '%s' -> GL_INVALID_OPERATION\n", maxIterations, context); break;
-			case GL_OUT_OF_MEMORY: ms_error("[%2d]GL error: '%s' -> GL_OUT_OF_MEMORY\n", maxIterations, context); break;
-			case GL_INVALID_FRAMEBUFFER_OPERATION: ms_error("[%2d]GL error: '%s' -> GL_INVALID_FRAMEBUFFER_OPERATION\n", maxIterations, context); break;
+			case GL_INVALID_ENUM:  ms_error("GL error: '%s' -> GL_INVALID_ENUM\n", context); break;
+			case GL_INVALID_VALUE: ms_error("GL error: '%s' -> GL_INVALID_VALUE\n", context); break;
+			case GL_INVALID_OPERATION: ms_error("GL error: '%s' -> GL_INVALID_OPERATION\n", context); break;
+			case GL_OUT_OF_MEMORY: ms_error("GL error: '%s' -> GL_OUT_OF_MEMORY\n", context); break;
+			case GL_INVALID_FRAMEBUFFER_OPERATION: ms_error("GL error: '%s' -> GL_INVALID_FRAMEBUFFER_OPERATION\n", context); break;
 			default:
-				ms_error("[%2d]GL error: '%s' -> %x\n", maxIterations, context, error);
+				ms_error("GL error: '%s' -> %x\n", context, error);
 		}
-
-		maxIterations--;
 	}
 }
 
