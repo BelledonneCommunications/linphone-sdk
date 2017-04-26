@@ -86,6 +86,7 @@ set(CMAKE_CROSSCOMPILING TRUE)
 
 # Define name of the target system
 set(CMAKE_SYSTEM_NAME "Darwin")
+set(CMAKE_SYSTEM_VERSION ${IOS_SDK_VERSION})
 set(IOS True)
 
 # The following variables are needed to build correctly with Xcode
