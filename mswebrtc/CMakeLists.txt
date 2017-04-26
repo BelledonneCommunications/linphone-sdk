@@ -64,6 +64,7 @@ else()
 	find_package(ORTP REQUIRED)
 endif()
 
+find_library(LIBM NAMES m)
 
 if(ENABLE_AEC)
 	set(BUILD_AEC 1)
@@ -361,6 +362,10 @@ if(ENABLE_ILBC)
 endif()
 
 set(LIBS ${MEDIASTREAMER2_LIBRARIES} ${ORTP_LIBRARIES})
+
+if(LIBM)
+    list(APPEND LIBS ${LIBM})
+endif()
 
 if(ENABLE_STATIC)
 	add_library(mswebrtc-static STATIC ${SOURCE_FILES})
