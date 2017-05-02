@@ -27,3 +27,4 @@ lcb_add_option("Debug logs" "Enable debug level logs in libinphone and mediastre
 lcb_add_option("Doc" "Enable documentation generation with Doxygen." YES)
 lcb_add_option("Tools" "Enable tools binary compilation." "${DEFAULT_VALUE_ENABLE_TOOLS}")
 lcb_add_option("unmaintained" "Allow inclusion of unmaintained code in the build." OFF)
+lbc_add_option("Arch suffix" "Append the android abi to shared libraries" ON)
