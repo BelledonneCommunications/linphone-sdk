@@ -28,21 +28,43 @@ file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/dummy_libraries.txt" "")
 foreach(LIB ${LINPHONE_BUILDER_DUMMY_LIBRARIES})
 	string(REPLACE "-" "_" UNDERSCORE_LIB ${LIB})
 	string(REGEX REPLACE "^lib" "" NOPREFIX_LIB ${LIB})
-	set(_dest "lib")
-	if(${LIB} MATCHES "^libms")
-		set(_dest "lib/mediastreamer/plugins")
-	endif()
-	if(NOT EXISTS "${CMAKE_INSTALL_PREFIX}/${_dest}/${LIB}${CMAKE_STATIC_LIBRARY_SUFFIX}")
-		message(STATUS "Generating dummy library ${LIB}${CMAKE_STATIC_LIBRARY_SUFFIX}")
-		configure_file("${CMAKE_CURRENT_SOURCE_DIR}/dummy.c.in" "${CMAKE_CURRENT_BINARY_DIR}/${LIB}.c" @ONLY)
-		add_library(${NOPREFIX_LIB} STATIC "${CMAKE_CURRENT_BINARY_DIR}/${LIB}.c")
-		install(TARGETS ${NOPREFIX_LIB}
-			LIBRARY DESTINATION ${_dest}
-			ARCHIVE DESTINATION ${_dest}
-			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-		)
-		file(APPEND "${CMAKE_CURRENT_BINARY_DIR}/dummy_libraries.txt" "${LIB}\n")
-	endif()
+	#if(ENABLE_STATIC)
+	#	set(_dest "lib")
+	#	if(${LIB} MATCHES "^libms")
+	#		set(_dest "lib/mediastreamer/plugins")
+	#	endif()
+	#	if(NOT EXISTS "${CMAKE_INSTALL_PREFIX}/${_dest}/${LIB}${CMAKE_STATIC_LIBRARY_SUFFIX}")
+	#		message(STATUS "Generating dummy library ${LIB}${CMAKE_STATIC_LIBRARY_SUFFIX}")
+	#		configure_file("${CMAKE_CURRENT_SOURCE_DIR}/dummy.c.in" "${CMAKE_CURRENT_BINARY_DIR}/${LIB}.c" @ONLY)
+	#		add_library(${NOPREFIX_LIB} STATIC "${CMAKE_CURRENT_BINARY_DIR}/${LIB}.c")
+	#		install(TARGETS ${NOPREFIX_LIB}
+	#			LIBRARY DESTINATION ${_dest}
+	#			ARCHIVE DESTINATION ${_dest}
+	#			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+	#		)
+	#		file(APPEND "${CMAKE_CURRENT_BINARY_DIR}/dummy_libraries.txt" "${LIB}\n")
+	#	endif()
+	#endif()
+	#if(ENABLE_SHARED)
+		set(UNDERSCORE_LIB "lib${UNDERSCORE_LIB}")
+		set(_dest "Frameworks")
+		if(NOT EXISTS "${CMAKE_INSTALL_PREFIX}/${_dest}/${LIB}.framework")
+			message(STATUS "Generating dummy library ${LIB}")
+			configure_file("${CMAKE_CURRENT_SOURCE_DIR}/dummy.c.in" "${CMAKE_CURRENT_BINARY_DIR}/${LIB}.c" @ONLY)
+			add_library(${NOPREFIX_LIB} STATIC "${CMAKE_CURRENT_BINARY_DIR}/${LIB}.c")
+			set_target_properties(${NOPREFIX_LIB} PROPERTIES
+				FRAMEWORK TRUE
+				MACOSX_FRAMEWORK_IDENTIFIER com.belledonne-communications.${NOPREFIX_LIB}
+			)
+			install(TARGETS ${NOPREFIX_LIB}
+				LIBRARY DESTINATION ${_dest}
+				ARCHIVE DESTINATION ${_dest}
+				FRAMEWORK DESTINATION ${_dest}
+				PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+			)
+			file(APPEND "${CMAKE_CURRENT_BINARY_DIR}/dummy_libraries.txt" "${LIB}\n")
+		endif()
+	#endif()
 	unset(_dest)
 endforeach()
 

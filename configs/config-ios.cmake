@@ -43,6 +43,8 @@ set(DEFAULT_VALUE_ENABLE_ZRTP ON)
 set(DEFAULT_VALUE_ENABLE_LIME ON)
 set(DEFAULT_VALUE_ENABLE_TOOLS OFF)
 set(ENABLE_NLS NO CACHE BOOL "" FORCE)
+set(CMAKE_MACOSX_RPATH TRUE)
+set(CMAKE_INSTALL_RPATH "@executable_path/../Frameworks")
 
 set(DEFAULT_VALUE_CMAKE_LINKING_TYPE "-DENABLE_STATIC=YES" "-DENABLE_SHARED=NO")
 
@@ -75,6 +77,9 @@ include(builders/CMakeLists.txt)
 # ffmpeg
 lcb_builder_linking_type(ffmpeg "--enable-static" "--disable-shared" "--enable-pic")
 
+# bctoolbox
+lcb_builder_linking_type(bctoolbox "-DENABLE_STATIC=NO" "-DENABLE_SHARED=YES")
+
 # linphone
 lcb_builder_cmake_options(linphone "-DENABLE_RELATIVE_PREFIX=YES")
 lcb_builder_cmake_options(linphone "-DENABLE_CONSOLE_UI=NO")
@@ -85,6 +90,7 @@ lcb_builder_cmake_options(linphone "-DENABLE_UPNP=NO")
 lcb_builder_cmake_options(linphone "-DENABLE_MSG_STORAGE=YES")
 lcb_builder_cmake_options(linphone "-DENABLE_DOC=NO")
 lcb_builder_cmake_options(linphone "-DENABLE_NLS=NO")
+lcb_builder_linking_type(linphone "-DENABLE_STATIC=NO" "-DENABLE_SHARED=YES")
 
 # mbedtls
 lcb_builder_linking_type(mbedtls "-DUSE_STATIC_MBEDTLS_LIBRARY=YES" "-DUSE_SHARED_MBEDTLS_LIBRARY=NO")
@@ -98,12 +104,21 @@ lcb_builder_cmake_options(ms2 "-DENABLE_GLX=NO")
 lcb_builder_cmake_options(ms2 "-DENABLE_X11=NO")
 lcb_builder_cmake_options(ms2 "-DENABLE_XV=NO")
 lcb_builder_cmake_options(ms2 "-DENABLE_DOC=NO")
+lcb_builder_linking_type(ms2 "-DENABLE_STATIC=NO" "-DENABLE_SHARED=YES")
+## ms2 plugins
+lcb_builder_linking_type(mswebrtc "-DENABLE_STATIC=NO" "-DENABLE_SHARED=YES")
+lcb_builder_linking_type(msamr "-DENABLE_STATIC=NO" "-DENABLE_SHARED=YES")
+lcb_builder_linking_type(mscodec2 "-DENABLE_STATIC=NO" "-DENABLE_SHARED=YES")
+lcb_builder_linking_type(msopenh264 "-DENABLE_STATIC=NO" "-DENABLE_SHARED=YES")
+lcb_builder_linking_type(mssilk "-DENABLE_STATIC=NO" "-DENABLE_SHARED=YES")
+lcb_builder_linking_type(msx264 "-DENABLE_STATIC=NO" "-DENABLE_SHARED=YES")
 
 # opus
 lcb_builder_cmake_options(opus "-DENABLE_FIXED_POINT=YES")
 
 # ortp
 lcb_builder_cmake_options(ortp "-DENABLE_DOC=NO")
+lcb_builder_linking_type(ortp "-DENABLE_STATIC=NO" "-DENABLE_SHARED=YES")
 
 # polarssl
 lcb_builder_linking_type(polarssl "-DUSE_SHARED_POLARSSL_LIBRARY=0")
