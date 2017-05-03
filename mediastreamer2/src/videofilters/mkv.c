@@ -76,6 +76,7 @@ typedef struct {
 	uint8_t NALULenghtSizeMinusOne;
 	bctbx_list_t *sps_list;
 	bctbx_list_t *pps_list;
+	ms_bool_t broken;
 } H264Private;
 
 static void _H264Private_init(H264Private *obj) {
@@ -88,6 +89,18 @@ static H264Private *H264Private_new(void) {
 	return obj;
 }
 
+static void _H264Private_copy(H264Private *dst, const H264Private *src) {
+	memcpy(dst, src, sizeof(H264Private));
+	dst->sps_list = bctbx_list_copy_with_data(src->sps_list, (bctbx_list_copy_func)dupmsg);
+	dst->pps_list = bctbx_list_copy_with_data(src->pps_list, (bctbx_list_copy_func)dupmsg);
+}
+
+static H264Private *H264Private_clone(const H264Private *obj) {
+	H264Private *newObj = (H264Private *)bctbx_new0(H264Private, 1);
+	_H264Private_copy(newObj, obj);
+	return newObj;
+}
+
 static void _H264Private_uninit(H264Private *obj) {
 	if(obj->sps_list != NULL) bctbx_list_free_with_data(obj->sps_list, (bctbx_list_free_func)freemsg);
 	if(obj->pps_list != NULL) bctbx_list_free_with_data(obj->pps_list, (bctbx_list_free_func)freemsg);
@@ -98,19 +111,42 @@ static void H264Private_free(H264Private *obj) {
 	bctbx_free(obj);
 }
 
+static ms_bool_t H264Private_isBroken(const H264Private *obj) {
+	return obj->broken;
+}
+
+static void H264Private_acknowlege(H264Private *obj) {
+	obj->broken = FALSE;
+}
+
+static ms_bool_t _H264Private_msgequal(const mblk_t *m1, const mblk_t *m2) {
+	while (m1 != NULL && m2 != NULL) {
+		size_t size1 = m1->b_wptr - m1->b_rptr;
+		size_t size2 = m2->b_wptr - m2->b_rptr;
+		if (size1 != size2 || memcpy(m1->b_rptr, m2->b_rptr, size1) != 0) return FALSE;
+		m1 = m1->b_cont;
+		m2 = m2->b_cont;
+	}
+	return (m1 == NULL && m2 == NULL);
+}
+
 static void H264Private_addSPS(H264Private *obj, mblk_t *sps) {
 	bctbx_list_t *it;
+	const mblk_t *firstSPS;
 	unsigned int id = ms_h264_sps_get_id(sps);
 	for(it = bctbx_list_first_elem(obj->sps_list); it!=NULL; it=bctbx_list_next(it)) {
 		if (ms_h264_sps_get_id((mblk_t *)it->data) == id) break;
 	}
 	if (it == NULL) {
-		const mblk_t *firstSPS;
 		obj->sps_list = bctbx_list_append(obj->sps_list, dupmsg(sps));
-		firstSPS = (const mblk_t *)bctbx_list_nth_data(obj->sps_list, 0);
-		obj->profile = firstSPS->b_rptr[1];
-		obj->level = firstSPS->b_rptr[3];
+	} else if (!_H264Private_msgequal((mblk_t *)it->data, sps)) {
+		freemsg((mblk_t *)it->data);
+		it->data = dupmsg(sps);
+		obj->broken = TRUE;
 	}
+	firstSPS = (const mblk_t *)bctbx_list_nth_data(obj->sps_list, 0);
+	obj->profile = firstSPS->b_rptr[1];
+	obj->level = firstSPS->b_rptr[3];
 }
 
 static void H264Private_addPPS(H264Private *obj, mblk_t *pps) {
@@ -121,6 +157,10 @@ static void H264Private_addPPS(H264Private *obj, mblk_t *pps) {
 	}
 	if (it == NULL) {
 		obj->pps_list = bctbx_list_append(obj->pps_list, dupmsg(pps));
+	} else if (!_H264Private_msgequal((mblk_t *)it->data, pps)) {
+		freemsg(it->data);
+		it->data = dupmsg(pps);
+		obj->broken = TRUE;
 	}
 }
 
@@ -232,10 +272,11 @@ static void H264Private_load(H264Private *obj, const uint8_t *data) {
 typedef struct {
 	Rfc3984Context rfc3984Context;
 	H264Private *codecPrivate;
+	H264Private *lastCodecPrivate;
 } H264Module;
 
 static void *h264_module_new(MSFactory *factory) {
-	H264Module *mod = ms_new0(H264Module, 1);
+	H264Module *mod = bctbx_new0(H264Module, 1);
 	rfc3984_init(&mod->rfc3984Context);
 	mod->rfc3984Context.maxsz = ms_factory_get_payload_max_size(factory);
 	rfc3984_set_mode(&mod->rfc3984Context, 1);
@@ -245,10 +286,9 @@ static void *h264_module_new(MSFactory *factory) {
 static void h264_module_free(void *data) {
 	H264Module *obj = (H264Module *)data;
 	rfc3984_uninit(&obj->rfc3984Context);
-	if(obj->codecPrivate != NULL) {
-		H264Private_free(obj->codecPrivate);
-	}
-	ms_free(obj);
+	if(obj->codecPrivate != NULL) H264Private_free(obj->codecPrivate);
+	if(obj->lastCodecPrivate != NULL) H264Private_free(obj->lastCodecPrivate);
+	bctbx_free(obj);
 }
 
 static int h264_module_preprocessing(void *data, MSQueue *input, MSQueue *output) {
@@ -272,57 +312,57 @@ static int h264_module_preprocessing(void *data, MSQueue *input, MSQueue *output
 	return 0;
 }
 
-static int h264_nalu_type(const mblk_t *nalu) {
-	return (nalu->b_rptr[0]) & ((1 << 5) - 1);
-}
-
 static ms_bool_t h264_is_key_frame(const mblk_t *frame) {
 	const mblk_t *curNalu = NULL;
-	for(curNalu = frame; curNalu != NULL && h264_nalu_type(curNalu) != 5; curNalu = curNalu->b_cont);
+	for(curNalu = frame; curNalu != NULL && ms_h264_nalu_get_type(curNalu) != MSH264NaluTypeIDR; curNalu = curNalu->b_cont);
 	return curNalu != NULL;
 }
 
 static void nalus_to_frame(mblk_t *buffer, mblk_t **frame, bctbx_list_t **spsList, bctbx_list_t **ppsList, ms_bool_t *isKeyFrame) {
 	mblk_t *curNalu = NULL;
+	mblk_t *size;
 	uint32_t timecode = mblk_get_timestamp_info(buffer);
+	uint32_t bufferSize;
 	*frame = NULL;
 	*isKeyFrame = FALSE;
-
+	*spsList = NULL;
+	*ppsList = NULL;
 
 	for(curNalu = buffer; curNalu != NULL;) {
 		mblk_t *buff = curNalu;
-		int type = h264_nalu_type(buff);
+		MSH264NaluType type = ms_h264_nalu_get_type(buff);
 
 		curNalu = curNalu->b_cont;
 		buff->b_cont = NULL;
+		
 		switch(type) {
-			case 7:
-				*spsList = bctbx_list_append(*spsList, buff);
+			case MSH264NaluTypeSPS:
+				*spsList = bctbx_list_append(*spsList, copymsg(buff));
 				break;
-
-			case 8:
-				*ppsList = bctbx_list_append(*ppsList, buff);
+			
+			case MSH264NaluTypePPS:
+				*ppsList = bctbx_list_append(*ppsList, copymsg(buff));
 				break;
-
+				
+			case MSH264NaluTypeIDR:
+				*isKeyFrame = TRUE;
+				break;
+			
 			default:
-			{
-				uint32_t bufferSize = htonl((uint32_t)msgdsize(buff));
-				mblk_t *size = allocb(4, 0);
+				break;
+		}
+		
+		bufferSize = htonl((uint32_t)msgdsize(buff));
+		size = allocb(4, 0);
+		memcpy(size->b_wptr, &bufferSize, sizeof(bufferSize));
+		size->b_wptr = size->b_wptr + sizeof(bufferSize);
+		concatb(size, buff);
+		buff = size;
 
-				if(type == 5) {
-					*isKeyFrame = TRUE;
-				}
-				memcpy(size->b_wptr, &bufferSize, sizeof(bufferSize));
-				size->b_wptr = size->b_wptr + sizeof(bufferSize);
-				concatb(size, buff);
-				buff = size;
-
-				if(*frame == NULL) {
-					*frame = buff;
-				} else {
-					concatb(*frame, buff);
-				}
-			}
+		if(*frame == NULL) {
+			*frame = buff;
+		} else {
+			concatb(*frame, buff);
 		}
 	}
 
@@ -334,27 +374,52 @@ static void nalus_to_frame(mblk_t *buffer, mblk_t **frame, bctbx_list_t **spsLis
 
 static mblk_t *h264_module_processing(void *data, mblk_t *nalus, ms_bool_t *isKeyFrame, ms_bool_t *isVisible, uint8_t **codecPrivateData, size_t *codecPrivateSize) {
 	H264Module *obj = (H264Module *)data;
-	mblk_t *frame = NULL;
-	bctbx_list_t *spsList = NULL, *ppsList = NULL;
+	mblk_t *frame;
+	bctbx_list_t *spsList, *ppsList;
+	
+	*codecPrivateData = NULL;
+	*codecPrivateSize = 0;
 	nalus_to_frame(nalus, &frame, &spsList, &ppsList, isKeyFrame);
 	if(spsList != NULL || ppsList != NULL) {
 		bctbx_list_t *it;
+		H264Private *newCodecPrivate;
+		
 		ms_message("MKVRecorder: H264 SPS [%p] or PPS [%p] received", spsList, ppsList);
-		if (obj->codecPrivate == NULL) {
-			obj->codecPrivate = H264Private_new();
+		if (obj->lastCodecPrivate != NULL) {
+			newCodecPrivate = H264Private_clone(obj->lastCodecPrivate);
+		} else if (obj->codecPrivate != NULL) {
+			newCodecPrivate = H264Private_clone(obj->codecPrivate);
+		} else {
+			newCodecPrivate = H264Private_new();
 		}
 		for (it=bctbx_list_first_elem(spsList); it!=NULL; it=bctbx_list_next(it)) {
-			H264Private_addSPS(obj->codecPrivate, (mblk_t *)bctbx_list_get_data(it));
+			H264Private_addSPS(newCodecPrivate, (mblk_t *)bctbx_list_get_data(it));
 		}
 		for (it=bctbx_list_first_elem(ppsList); it!=NULL; it=bctbx_list_next(it)) {
-			H264Private_addPPS(obj->codecPrivate, (mblk_t *)bctbx_list_get_data(it));
+			H264Private_addPPS(newCodecPrivate, (mblk_t *)bctbx_list_get_data(it));
 		}
+		if (obj->codecPrivate == NULL) {
+			obj->codecPrivate = newCodecPrivate;
+		} else {
+			if (!H264Private_isBroken(newCodecPrivate)) {
+				if (obj->lastCodecPrivate == NULL) {
+					H264Private_free(obj->codecPrivate);
+					obj->codecPrivate = newCodecPrivate;
+				} else {
+					H264Private_free(obj->lastCodecPrivate);
+					obj->lastCodecPrivate = newCodecPrivate;
+				}
+			} else {
+				H264Private_serialize(newCodecPrivate, codecPrivateData, codecPrivateSize);
+				if (obj->lastCodecPrivate != NULL) H264Private_free(obj->lastCodecPrivate);
+				obj->lastCodecPrivate = newCodecPrivate;
+			}
+		}
+		H264Private_acknowlege(newCodecPrivate);
 		if(spsList != NULL) bctbx_list_free_with_data(spsList, (bctbx_list_free_func)freemsg);
 		if(ppsList != NULL) bctbx_list_free_with_data(ppsList, (bctbx_list_free_func)freemsg);
 	}
 	*isVisible = TRUE;
-	*codecPrivateData = NULL;
-	*codecPrivateSize = 0;
 	return frame;
 }
 
@@ -1838,24 +1903,23 @@ static matroska_block *write_frame(MKVRecorder *obj, mblk_t *buffer, uint16_t pi
 	matroska_frame m_frame;
 
 	frame = module_process(obj->modulesList[pin], buffer, &isKeyFrame, &isVisible, &codecPrivateData, &codecPrivateSize);
-	if (frame != NULL) {
-		m_frame.Timecode = ((int64_t)mblk_get_timestamp_info(frame)) * 1000000LL;
-		m_frame.Size = (uint32_t)msgdsize(frame);
-		m_frame.Data = frame->b_rptr;
+	m_frame.Timecode = ((int64_t)mblk_get_timestamp_info(frame)) * 1000000LL;
+	m_frame.Size = (uint32_t)msgdsize(frame);
+	m_frame.Data = frame->b_rptr;
 
-		if(matroska_clusters_count(&obj->file) == 0) {
+	if(matroska_clusters_count(&obj->file) == 0) {
+		matroska_start_cluster(&obj->file, mblk_get_timestamp_info(frame));
+	} else {
+		if((obj->inputDescsList[pin]->type == MSVideo && isKeyFrame) || (obj->duration - matroska_current_cluster_timecode(&obj->file) >= CLUSTER_MAX_DURATION)) {
+			matroska_close_cluster(&obj->file);
 			matroska_start_cluster(&obj->file, mblk_get_timestamp_info(frame));
-		} else {
-			if((obj->inputDescsList[pin]->type == MSVideo && isKeyFrame) || (obj->duration - matroska_current_cluster_timecode(&obj->file) >= CLUSTER_MAX_DURATION)) {
-				matroska_close_cluster(&obj->file);
-				matroska_start_cluster(&obj->file, mblk_get_timestamp_info(frame));
-			}
 		}
-
-		block = matroska_write_block(&obj->file, &m_frame, pin + 1, isKeyFrame, isVisible, codecPrivateData, codecPrivateSize);
-		freemsg(frame);
-		if (codecPrivateData != NULL) bctbx_free(codecPrivateData);
 	}
+
+	block = matroska_write_block(&obj->file, &m_frame, pin + 1, isKeyFrame, isVisible, codecPrivateData, codecPrivateSize);
+	freemsg(frame);
+	if (codecPrivateData != NULL) bctbx_free(codecPrivateData);
+	
 	return block;
 }
 
