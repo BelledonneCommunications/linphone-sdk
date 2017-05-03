@@ -36,7 +36,7 @@ void BelCardProperty::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>>
 }
 
 BelCardProperty::BelCardProperty() : BelCardGeneric() {
-	
+
 }
 
 void BelCardProperty::setGroup(const string &group) {
@@ -54,7 +54,13 @@ const string &BelCardProperty::getName() const {
 }
 
 void BelCardProperty::setValue(const string &value) {
-	_value = value;
+	string s = value;
+
+	// Trim.
+	s.erase(s.begin(), find_if(s.begin(), s.end(), not1(ptr_fun<int, int>(isspace))));
+	s.erase(find_if(s.rbegin(), s.rend(), not1(ptr_fun<int, int>(isspace))).base(), s.end());
+
+	_value = s;
 }
 const string &BelCardProperty::getValue() const {
 	return _value;
@@ -195,10 +201,10 @@ void BelCardProperty::serialize(ostream& output) const {
 	if (getGroup().length() > 0) {
 		output << getGroup() << ".";
 	}
-	
+
 	output << getName();
 	for (auto it = getParams().begin(); it != getParams().end(); ++it) {
-		output << ";" << (**it); 
+		output << ";" << (**it);
 	}
 	output << ":" << getValue() << "\r\n";
 }
