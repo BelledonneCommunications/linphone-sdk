@@ -39,8 +39,10 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 
 if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
 	include("${EP_ms2_CONFIG_DIR}/Mediastreamer2Config.cmake")
+	include("${EP_ortp_CONFIG_DIR}/OrtpConfig.cmake")
 else()
 	find_package(Mediastreamer2 REQUIRED)
+	find_package(ORTP REQUIRED)
 endif()
 find_package(Codec2 REQUIRED)
 
@@ -50,7 +52,7 @@ include_directories(
 	${CODEC2_INCLUDE_DIRS}
 )
 
-set(LIBS ${MEDIASTREAMER2_LIBRARIES} ${CODEC2_LIBRARIES})
+set(LIBS ${MEDIASTREAMER2_LIBRARIES} ${CODEC2_LIBRARIES} ${ORTP_LIBRARIES})
 
 set(SOURCE_FILES mscodec2.c)
 
@@ -66,8 +68,18 @@ if(ENABLE_STATIC)
 	)
 endif()
 if(ENABLE_SHARED)
-	add_library(mscodec2 MODULE ${SOURCE_FILES})
+	if(NOT IOS)
+		add_library(mscodec2 MODULE ${SOURCE_FILES})
+	else()
+		add_library(mscodec2 SHARED ${SOURCE_FILES})
+	endif()
 	target_link_libraries(mscodec2 ${LIBS})
+	if(IOS)
+		set_target_properties(mscodec2 PROPERTIES
+			FRAMEWORK TRUE
+			MACOSX_FRAMEWORK_IDENTIFIER com.belledonne-communications.mscodec2
+		) 
+	endif()
 	if(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 			install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/libmscodec2.pdb
@@ -78,9 +90,10 @@ if(ENABLE_SHARED)
 		set_target_properties(mscodec2 PROPERTIES PREFIX "lib")
 	endif()
 	install(TARGETS mscodec2
-		RUNTIME DESTINATION lib/mediastreamer/plugins
-		LIBRARY DESTINATION lib/mediastreamer/plugins
-		ARCHIVE DESTINATION lib/mediastreamer/plugins
+		RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR}/mediastreamer/plugins
+		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/mediastreamer/plugins
+		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}/mediastreamer/plugins
+		FRAMEWORK DESTINATION Frameworks
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 	)
 endif()
