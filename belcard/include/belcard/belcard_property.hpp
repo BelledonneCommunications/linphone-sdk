@@ -31,7 +31,6 @@
 #include <list>
 #include <sstream>
 
-
 namespace belcard {
 	class BelCardProperty : public BelCardGeneric {
 	protected:
@@ -50,65 +49,67 @@ namespace belcard {
 		std::shared_ptr<BelCardGeoParam> _geo_param;
 		std::shared_ptr<BelCardTimezoneParam> _tz_param;
 		std::list<std::shared_ptr<BelCardParam>> _params;
-		
+
 	public:
 		template <typename T>
 		static std::shared_ptr<T> parseProperty(const std::string& rule, const std::string& input) {
+			size_t parseLength;
 			std::shared_ptr<BelCardParser> parser = BelCardParser::getInstance();
-			std::shared_ptr<BelCardGeneric> ret = parser->_parser->parseInput(rule, input, NULL);
-			if (ret) {
-				return std::dynamic_pointer_cast<T>(ret);
-			}
-			return nullptr;
+			std::shared_ptr<BelCardGeneric> ret = parser->_parser->parseInput(rule, input, &parseLength);
+
+			// -2 because the input is terminated by a new line.
+			return ret && parseLength == input.length() - 2
+				? std::dynamic_pointer_cast<T>(ret)
+				: nullptr;
 		}
-		
+
 		BELCARD_PUBLIC static std::shared_ptr<BelCardProperty> parse(const std::string& input);
 		BELCARD_PUBLIC static void setHandlerAndCollectors(belr::Parser<std::shared_ptr<BelCardGeneric>> *parser);
-		
+
 		BELCARD_PUBLIC BelCardProperty();
-		
+
 		BELCARD_PUBLIC virtual void setGroup(const std::string &group);
 		BELCARD_PUBLIC virtual const std::string &getGroup() const;
-		
+
 		BELCARD_PUBLIC virtual void setName(const std::string &name);
 		BELCARD_PUBLIC virtual const std::string &getName() const;
-		
+
 		BELCARD_PUBLIC virtual void setValue(const std::string &value);
 		BELCARD_PUBLIC virtual const std::string &getValue() const;
-		
+
 		BELCARD_PUBLIC virtual void setLanguageParam(const std::shared_ptr<BelCardLanguageParam> &param);
 		BELCARD_PUBLIC virtual const std::shared_ptr<BelCardLanguageParam> &getLanguageParam() const;
-		
+
 		BELCARD_PUBLIC virtual void setValueParam(const std::shared_ptr<BelCardValueParam> &param);
 		BELCARD_PUBLIC virtual const std::shared_ptr<BelCardValueParam> &getValueParam() const;
-		
+
 		BELCARD_PUBLIC virtual void setPrefParam(const std::shared_ptr<BelCardPrefParam> &param);
 		BELCARD_PUBLIC virtual const std::shared_ptr<BelCardPrefParam> &getPrefParam() const;
-		
+
 		BELCARD_PUBLIC virtual void setAlternativeIdParam(const std::shared_ptr<BelCardAlternativeIdParam> &param);
 		BELCARD_PUBLIC virtual const std::shared_ptr<BelCardAlternativeIdParam> &getAlternativeIdParam() const;
-		
+
 		BELCARD_PUBLIC virtual void setParamIdParam(const std::shared_ptr<BelCardParamIdParam> &param);
 		BELCARD_PUBLIC virtual const std::shared_ptr<BelCardParamIdParam> &getParamIdParam() const;
-		
+
 		BELCARD_PUBLIC virtual void setTypeParam(const std::shared_ptr<BelCardTypeParam> &param);
 		BELCARD_PUBLIC virtual const std::shared_ptr<BelCardTypeParam> &getTypeParam() const;
-		
+
 		BELCARD_PUBLIC virtual void setMediaTypeParam(const std::shared_ptr<BelCardMediaTypeParam> &param);
 		BELCARD_PUBLIC virtual const std::shared_ptr<BelCardMediaTypeParam> &getMediaTypeParam() const;
-		
+
 		BELCARD_PUBLIC virtual void setCALSCALEParam(const std::shared_ptr<BelCardCALSCALEParam> &param);
 		BELCARD_PUBLIC virtual const std::shared_ptr<BelCardCALSCALEParam> &getCALSCALEParam() const;
-		
+
 		BELCARD_PUBLIC virtual void setSortAsParam(const std::shared_ptr<BelCardSortAsParam> &param);
 		BELCARD_PUBLIC virtual const std::shared_ptr<BelCardSortAsParam> &getSortAsParam() const;
-		
+
 		BELCARD_PUBLIC virtual void setGeoParam(const std::shared_ptr<BelCardGeoParam> &param);
 		BELCARD_PUBLIC virtual const std::shared_ptr<BelCardGeoParam> &getGeoParam() const;
-		
+
 		BELCARD_PUBLIC virtual void setTimezoneParam(const std::shared_ptr<BelCardTimezoneParam> &param);
 		BELCARD_PUBLIC virtual const std::shared_ptr<BelCardTimezoneParam> &getTimezoneParam() const;
-		
+
 		BELCARD_PUBLIC virtual void addParam(const std::shared_ptr<BelCardParam> &param);
 		BELCARD_PUBLIC virtual const std::list<std::shared_ptr<BelCardParam>> &getParams() const;
 		BELCARD_PUBLIC virtual void removeParam(const std::shared_ptr<BelCardParam> &param);
