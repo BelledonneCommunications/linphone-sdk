@@ -21,11 +21,20 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include <bctoolbox/port.h>
 
-
 /* DHM settings defines */
 #define BCTBX_DHM_UNSET	0
 #define BCTBX_DHM_2048	1
 #define BCTBX_DHM_3072	2
+#define BCTBX_ECDH_X25519	3
+#define BCTBX_ECDH_X448		4
+
+/* EdDSA defines */
+#define BCTBX_EDDSA_UNSET	0
+#define BCTBX_EDDSA_25519	1
+#define BCTBX_EDDSA_448		2
+
+#define BCTBX_VERIFY_SUCCESS	0
+#define BCTBX_VERIFY_FAILED	-1
 
 /* SSL settings defines */
 #define BCTBX_SSL_UNSET -1
@@ -540,6 +549,223 @@ BCTBX_PUBLIC void bctbx_DHMComputeSecret(bctbx_DHMContext_t *context, int (*rngF
  *
  */
 BCTBX_PUBLIC void bctbx_DestroyDHMContext(bctbx_DHMContext_t *context);
+
+
+/*****************************************************************************/
+/***** Elliptic Curve Diffie-Hellman-Merkle key exchange                 *****/
+/*****************************************************************************/
+/**
+ *
+ * @brief return TRUE if the Elliptic Curve Cryptography is available
+ */
+int bctbx_crypto_have_ecc(void);
+
+/**
+ * @brief Context for the EC Diffie-Hellman-Merkle key exchange on curve 25519 and 448
+ *	Use RFC7748 for base points values
+ */
+typedef struct bctbx_ECDHContext_struct {
+	uint8_t algo; /**< Algorithm used for the key exchange mapped to an int: BCTBX_ECDH_X25519, BCTBX_ECDH_X448 */
+	uint16_t pointCoordinateLength; /**< length in bytes of the point u-coordinate, can be 32 or 56 */
+	uint8_t *secret; /**< the random secret (scalar) used to compute public key and shared secret */
+	uint8_t secretLength; /**< in bytes, usually the same than pointCoordinateLength */
+	uint8_t *sharedSecret; /**< the key exchanged scalar multiplation of MULT(Self Secret, MULT(Peer Secret, BasePoint)), u-coordinate */
+	uint8_t *selfPublic; /**< this side of the public exchange: MULT(self secret, BasePoint), u-coordinate */
+	uint8_t *peerPublic; /**< the other side of the public exchange: MULT(peer secret, BasePoint), u-coordinate */
+	void *cryptoModuleData; /**< a context needed by the underlying crypto implementation - note if in use, most of the previous buffers could be store in it actually */
+}bctbx_ECDHContext_t;
+
+/**
+ *
+ * @brief Create a context for the ECDH key exchange
+ *
+ * @param[in] ECDHAlgo		The algorithm type(BCTBX_ECDH_X25519 or BCTBX_ECDH_X448)
+ *
+ * @return The initialised context for the ECDH calculation(must then be freed calling the destroyECDHContext function), NULL on error
+ *
+ */
+BCTBX_PUBLIC bctbx_ECDHContext_t *bctbx_CreateECDHContext(uint8_t ECDHAlgo);
+
+/**
+ *
+ * @brief Generate the private secret scalar and compute the public key MULT(scalar, BasePoint)
+ *
+ * @param[in/out] 	context		ECDH context, will store the public value in ->selfPublic after this call, and secret in ->secret
+ * @param[in] 		rngFunction	pointer to a random number generator used to create the secret
+ * @param[in]		rngContext	pointer to the rng context if neeeded
+ *
+ */
+BCTBX_PUBLIC void bctbx_ECDHCreateKeyPair(bctbx_ECDHContext_t *context, int (*rngFunction)(void *, uint8_t *, size_t), void *rngContext);
+
+/**
+ *
+ * @brief	Set the given secret key in the ECDH context
+ *
+ * @param[in/out]	context		ECDH context, will store the given secret key if length is matching the pre-setted algo for this context
+ * @param[in]		secret		The buffer holding the secret, is duplicated in the ECDH context
+ * @param[in]		secretLength	Length of previous buffer, must match the algo type setted at context creation
+ */
+BCTBX_PUBLIC void bctbx_ECDHSetSecretKey(bctbx_ECDHContext_t *context, uint8_t *secret, size_t secretLength);
+
+/**
+ *
+ * @brief	Derive the public key from the secret setted in context and using preselected algo, following RFC7748
+ *
+ * @param[in/out]	context		The context holding algo setting and secret, used to store public key
+ */
+BCTBX_PUBLIC void bctbx_ECDHDerivePublicKey(bctbx_ECDHContext_t *context);
+
+/**
+ *
+ * @brief Compute the shared secret MULT(secret, peer Public)
+ * ->peerPublic, containing MULT(peerSecret, basePoint) must have been set before this call in context
+ *
+ * @param[in/out] 	context		Read the public values from context, export the key to context->sharedSecret
+ * @param[in]		rngFunction	Pointer to a random number generation function, used for blinding countermeasure, may be NULL
+ * @param[in]		rngContext	Pointer to the RNG function context
+ *
+ */
+BCTBX_PUBLIC void bctbx_ECDHComputeSecret(bctbx_ECDHContext_t *context, int (*rngFunction)(void *, uint8_t *, size_t), void *rngContext);
+
+/**
+ *
+ * @brief Clean ECDH context. Secret and key, if present, are erased from memory(set to 0)
+ *
+ * @param	context	The context to deallocate
+ *
+ */
+BCTBX_PUBLIC void bctbx_DestroyECDHContext(bctbx_ECDHContext_t *context);
+
+/*****************************************************************************/
+/***** EdDSA: signature and verify using Elliptic curves                 *****/
+/*****************************************************************************/
+/**
+ * @brief Context for the EdDSA using curves 25519 and 448
+ */
+typedef struct bctbx_EDDSAContext_struct {
+	uint8_t algo; /**< Algorithm used for the key exchange mapped to an int: BCTBX_EDDSA_25519, BCTBX_EDDSA_448 */
+	uint16_t pointCoordinateLength; /**< length in bytes of a serialised point coordinate, can be 32 or 57 */
+	uint8_t *secretKey; /**< the random secret (scalar) used to compute public key and message signature, is the same length than a serialised point coordinate */  
+	uint8_t secretLength; /**< in bytes, usually the same than pointCoordinateLength */
+	uint8_t *publicKey; /**< MULT(HASH(secretKey), BasePoint), serialised coordinate */
+	void *cryptoModuleData; /**< a context needed by the underlying crypto implementation - note if in use, most of the previous buffers could be store in it actually */
+}bctbx_EDDSAContext_t;
+
+/**
+ *
+ * @brief Create a context for the EdDSA sign/verify
+ *
+ * @param[in] EDDSAAlgo		The algorithm type(BCTBX_EDDSA_25519 or BCTBX_EDDSA_448)
+ *
+ * @return The initialised context for the EDDSA calculation(must then be freed calling the destroyEDDSAContext function), NULL on error
+ *
+ */
+BCTBX_PUBLIC bctbx_EDDSAContext_t *bctbx_CreateEDDSAContext(uint8_t EDDSAAlgo);
+
+/**
+ *
+ * @brief Generate the private secret scalar and compute the public MULT(scalar, BasePoint)
+ *
+ * @param[in/out] 	context		EDDSA context, will store the public value in ->publicKey after this call, and secret in ->secretKey
+ * @param[in] 		rngFunction	pointer to a random number generator used to create the secret
+ * @param[in]		rngContext	pointer to the rng context if neeeded
+ *
+ */
+BCTBX_PUBLIC void bctbx_EDDSACreateKeyPair(bctbx_EDDSAContext_t *context, int (*rngFunction)(void *, uint8_t *, size_t), void *rngContext);
+
+/**
+ *
+ * @brief Using the private secret scalar already set in context, compute the public MULT(scalar, BasePoint)
+ *
+ * @param[in/out] 	context		EDDSA context, will store the public value in ->publicKey after this call, already have secret in ->secretKey
+ *
+ */
+BCTBX_PUBLIC void bctbx_EDDSADerivePublicKey(bctbx_EDDSAContext_t *context);
+
+/**
+ *
+ * @brief Clean ECDH context. Secret and key, if present, are erased from memory(set to 0)
+ *
+ * @param	context	The context to deallocate
+ *
+ */
+BCTBX_PUBLIC void bctbx_DestroyEDDSAContext(bctbx_EDDSAContext_t *context);
+
+/**
+ *
+ * @brief Sign the message given using private key and EdDSA algo set in context
+ *
+ * @param[in]		context			EDDSA context storing the algorithm to use(ed448 or ed25519) and the private key to use
+ * @param[in]		message			The message to be signed
+ * @param[in]		messageLength		Length of the message buffer
+ * @param [in]		associatedData		A "context" for this signature of up to 255 bytes.
+ * @param [in]		associatedDataLength	Length of the context.
+ * @param[out]		signature		The signature
+ * @param[in/out]	signatureLength		The size of the signature buffer as input, the size of the actual signature as output
+ *
+ */
+BCTBX_PUBLIC void bctbx_EDDSA_sign(bctbx_EDDSAContext_t *context, const uint8_t *message, const size_t messageLength, const uint8_t *AssociatedData, const size_t associatedDataLength, uint8_t *signature, size_t *signatureLength);
+
+/**
+ *
+ * @brief Set a public key in a EDDSA context to be used to verify messages signature
+ *
+ * @param[in/out]	context		EDDSA context storing the algorithm to use(ed448 or ed25519)
+ * @param[in]		publicKey	The public to store in context
+ * @param[in]		publicKeyLength	The length of previous buffer
+ */
+BCTBX_PUBLIC void bctbx_EDDSA_setPublicKey(bctbx_EDDSAContext_t *context, uint8_t *publicKey, const size_t publicKeyLength);
+
+/**
+ *
+ * @brief Set a private key in a EDDSA context to be used to sign message
+ *
+ * @param[in/out]	context		EDDSA context storing the algorithm to use(ed448 or ed25519)
+ * @param[in]		secretKey	The secret to store in context
+ * @param[in]		secretKeyLength	The length of previous buffer
+ */
+BCTBX_PUBLIC void bctbx_EDDSA_setSecretKey(bctbx_EDDSAContext_t *context, uint8_t *secretKey, const size_t secretKeyLength);
+
+/**
+ *
+ * @brief Use the public key set in context to verify the given signature and message
+ *
+ * @param[in/out]	context			EDDSA context storing the algorithm to use(ed448 or ed25519) and public key
+ * @param[in]		message			Message to verify
+ * @param[in]		messageLength		Length of the message buffer
+ * @param [in]		associatedData		A "context" for this signature of up to 255 bytes.
+ * @param [in]		associatedDataLength	Length of the context.
+ * @param[in]		signature		The signature
+ * @param[in]		signatureLength		The size of the signature buffer
+ *
+ * @return BCTBX_VERIFY_SUCCESS or BCTBX_VERIFY_FAILED
+ */
+BCTBX_PUBLIC int bctbx_EDDSA_verify(bctbx_EDDSAContext_t *context, const uint8_t *message, size_t messageLength, const uint8_t *associatedData, const size_t associatedDataLength, uint8_t *signature, size_t signatureLength);
+
+
+/**
+ *
+ * @brief Convert a EDDSA private key to a ECDH private key
+ *      pass the EDDSA private key through the hash function used in EdDSA
+ *
+ * @param[in]	ed	Context holding the current private key to convert
+ * @param[out]	x	Context to store the private key for x25519 key exchange
+*/
+BCTBX_PUBLIC void bctbx_EDDSA_ECDH_privateKeyConversion(const bctbx_EDDSAContext_t *ed, bctbx_ECDHContext_t *x);
+
+#define BCTBX_ECDH_ISPEER	0
+#define BCTBX_ECDH_ISSELF	1
+
+/**
+ *
+ * @brief Convert a EDDSA public key to a ECDH public key
+ * 	point conversion : montgomeryX = (edwardsY + 1)*inverse(1 - edwardsY) mod p
+ *
+ * @param[in]	ed	Context holding the current public key to convert
+ * @param[out]	x	Context to store the public key for x25519 key exchange
+ * @param[in]	isSelf	Flag to decide where to store the public key in context: BCTBX_ECDH_ISPEER or BCTBX_ECDH_ISPEER
+*/
+BCTBX_PUBLIC void bctbx_EDDSA_ECDH_publicKeyConversion(const bctbx_EDDSAContext_t *ed, bctbx_ECDHContext_t *x, uint8_t isSelf);
 
 /*****************************************************************************/
 /***** Hashing                                                           *****/

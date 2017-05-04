@@ -26,6 +26,7 @@ set(BCTOOLBOX_C_SOURCE_FILES
 	utils/port.c
 	vfs.c
 	vconnect.c
+	crypto/ecc.c
 )
 
 set(BCTOOLBOX_CXX_SOURCE_FILES containers/map.cc)
