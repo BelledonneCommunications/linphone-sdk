@@ -770,9 +770,22 @@ BCTBX_PUBLIC void bctbx_EDDSA_ECDH_publicKeyConversion(const bctbx_EDDSAContext_
 /*****************************************************************************/
 /***** Hashing                                                           *****/
 /*****************************************************************************/
+/*
+ * @brief SHA512 wrapper
+ * @param[in]	input 		Input data buffer
+ * @param[in]	inputLength	Input data length in bytes
+ * @param[in]	hashLength	Length of output required in bytes, Output is truncated to the hashLength left bytes. 64 bytes maximum
+ * @param[out]	output		Output data buffer.
+ *
+ */
+BCTBX_PUBLIC void bctbx_sha512(const uint8_t *input,
+		size_t inputLength,
+		uint8_t hashLength,
+		uint8_t *output);
+
 /**
  * @brief HMAC-SHA256 wrapper
- * @param[in] 	key			HMAC secret key
+ * @param[in] 	key		HMAC secret key
  * @param[in] 	keyLength	HMAC key length in bytes
  * @param[in]	input 		Input data buffer
  * @param[in]   inputLength	Input data length in bytes

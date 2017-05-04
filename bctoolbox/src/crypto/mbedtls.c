@@ -1340,10 +1340,34 @@ void bctbx_hmacSha256(const uint8_t *key,
 }
 
 /*
+ * @brief SHA512 wrapper
+ * @param[in]	input 		Input data buffer
+ * @param[in]   inputLength	Input data length in bytes
+ * @param[in]	hashLength	Length of output required in bytes, Output is truncated to the hashLength left bytes. 64 bytes maximum
+ * @param[out]	output		Output data buffer.
+ *
+ */
+void bctbx_sha512(const uint8_t *input,
+		size_t inputLength,
+		uint8_t hashLength,
+		uint8_t *output)
+{
+	uint8_t hashOutput[64];
+	mbedtls_sha512(input, inputLength, hashOutput, 0); /* last param to zero to select SHA512 and not SHA384 */
+
+	/* check output length, can't be>64 */
+	if (hashLength>64) {
+		memcpy(output, hashOutput, 64);
+	} else {
+		memcpy(output, hashOutput, hashLength);
+	}
+}
+
+/*
  * @brief SHA256 wrapper
  * @param[in]	input 		Input data buffer
  * @param[in]   inputLength	Input data length in bytes
- * @param[in]	hmacLength	Length of output required in bytes, HMAC output is truncated to the hmacLength left bytes. 32 bytes maximum
+ * @param[in]	hashLength	Length of output required in bytes, Output is truncated to the hashLength left bytes. 32 bytes maximum
  * @param[out]	output		Output data buffer.
  *
  */
