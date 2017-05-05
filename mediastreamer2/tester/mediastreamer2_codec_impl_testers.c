@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mediastreamer2/msticker.h"
 #include "mediastreamer2/msfactory.h"
 #include "mediastreamer2/msvideo.h"
+#include "mediastreamer-config.h"
 
 static MSFactory *_factory = NULL;
 
@@ -103,6 +104,19 @@ static void play_scenario_for_all_decoders(const char *mime, const char *pcap_sc
 	ms_filter_destroy(output);
 }
 
+#define scenario_test(scenario_name) \
+static void scenario_name(void) { \
+	char *scenario_pcap_file = ms_strdup_printf("%s/%s", \
+			bc_tester_get_resource_dir_prefix(), \
+			"scenarios/" #scenario_name ".pcap"); \
+	play_scenario_for_all_decoders("h264", scenario_pcap_file); \
+	ms_free(scenario_pcap_file); \
+}
+
+scenario_test(h264_missing_pps_in_second_i_frame)
+scenario_test(h264_one_nalu_per_frame)
+
+#ifdef HAVE_MATROSKA
 static void play_scenario_with_mkv_recorder(const char *pcap_scenario_file, const MSFmtDescriptor *fmt) {
 	MSFilter *player = ms_factory_create_filter(_factory, MS_FILE_PLAYER_ID);
 	MSFilter *recorder = ms_factory_create_filter(_factory, MS_MKV_RECORDER_ID);
@@ -138,29 +152,20 @@ static void play_scenario_with_mkv_recorder(const char *pcap_scenario_file, cons
 	bctbx_free(output_file);
 }
 
-#define scenario_test(scenario_name) \
-static void scenario_name(void) { \
-	char *scenario_pcap_file = ms_strdup_printf("%s/%s", \
-			bc_tester_get_resource_dir_prefix(), \
-			"scenarios/" #scenario_name ".pcap"); \
-	play_scenario_for_all_decoders("h264", scenario_pcap_file); \
-	ms_free(scenario_pcap_file); \
-}
-
-scenario_test(h264_missing_pps_in_second_i_frame)
-scenario_test(h264_one_nalu_per_frame)
-
 void h264_one_nalu_per_frame_with_mkv_recorder(void) {
 	const MSFmtDescriptor *fmt = ms_factory_get_video_format(_factory, "h264", MS_VIDEO_SIZE_VGA, 15, NULL);
 	char *scenario_pcap_file = bctbx_strdup_printf("%s/scenarios/h264_one_nalu_per_frame.pcap",bc_tester_get_resource_dir_prefix());
 	play_scenario_with_mkv_recorder(scenario_pcap_file, fmt);
 	bctbx_free(scenario_pcap_file);
 }
+#endif
 
 static test_t tests[] = {
 	{ "H264: missing PPS in second i-frame scenario"     , h264_missing_pps_in_second_i_frame        },
 	{ "H264: one NALu per frame scenario"                , h264_one_nalu_per_frame                   },
+#ifdef HAVE_MATROSKA
 	{ "H264: one NALu per frame scenario (MKV recorder)" , h264_one_nalu_per_frame_with_mkv_recorder }
+#endif
 };
 
 test_suite_t codec_impl_test_suite = {
