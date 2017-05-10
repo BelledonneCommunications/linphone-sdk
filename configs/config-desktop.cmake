@@ -41,8 +41,10 @@ set(DEFAULT_VALUE_ENABLE_VPX ON)
 set(DEFAULT_VALUE_ENABLE_ZRTP ON)
 set(DEFAULT_VALUE_ENABLE_LIME ON)
 set(DEFAULT_VALUE_ENABLE_TOOLS OFF)
-set(CMAKE_INSTALL_RPATH "@executable_path/../Frameworks;@executable_path/../lib")
 
+if(APPLE)
+	set(CMAKE_INSTALL_RPATH "@executable_path/../Frameworks;@executable_path/../lib")
+endif()
 
 include(configs/config-desktop-common.cmake)
 
