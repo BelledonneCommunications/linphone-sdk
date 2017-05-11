@@ -768,6 +768,15 @@ static void test_address_header(void) {
 	BC_ASSERT_STRING_EQUAL("\"to\\to\"",belle_sip_header_address_get_displayname(laddress));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(laddress));
 
+	laddress = belle_sip_header_address_parse("sips:example.com;transport=tls;maddr=sip1.example.com");
+	BC_ASSERT_PTR_NOT_NULL(laddress);
+	L_raw = belle_sip_object_to_string(BELLE_SIP_OBJECT(laddress));
+	BC_ASSERT_PTR_NOT_NULL(L_raw);
+	belle_sip_object_unref(BELLE_SIP_OBJECT(laddress));
+	laddress = belle_sip_header_address_parse(L_raw);
+	belle_sip_free(L_raw);
+	BC_ASSERT_STRING_EQUAL("sip1.example.com",belle_sip_uri_get_maddr_param(belle_sip_header_address_get_uri(laddress)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(laddress));
 
 
 }
