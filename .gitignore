@@ -1,3 +1,4 @@
 OUTPUT
 WORK
+*.DS_Store
 *.kdev4
