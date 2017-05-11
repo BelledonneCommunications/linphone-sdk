@@ -51,7 +51,7 @@ foreach(LIB ${LINPHONE_BUILDER_DUMMY_LIBRARIES})
 		if(NOT EXISTS "${CMAKE_INSTALL_PREFIX}/${_dest}/${LIB}.framework")
 			message(STATUS "Generating dummy library ${LIB}")
 			configure_file("${CMAKE_CURRENT_SOURCE_DIR}/dummy.c.in" "${CMAKE_CURRENT_BINARY_DIR}/${LIB}.c" @ONLY)
-			add_library(${NOPREFIX_LIB} STATIC "${CMAKE_CURRENT_BINARY_DIR}/${LIB}.c")
+			add_library(${NOPREFIX_LIB} SHARED "${CMAKE_CURRENT_BINARY_DIR}/${LIB}.c")
 			set_target_properties(${NOPREFIX_LIB} PROPERTIES
 				FRAMEWORK TRUE
 				MACOSX_FRAMEWORK_IDENTIFIER com.belledonne-communications.${NOPREFIX_LIB}
