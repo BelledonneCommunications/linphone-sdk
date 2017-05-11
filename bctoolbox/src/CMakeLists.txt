@@ -30,6 +30,7 @@ set(BCTOOLBOX_C_SOURCE_FILES
 
 set(BCTOOLBOX_CXX_SOURCE_FILES containers/map.cc)
 
+
 if(HAVE_EXECINFO) 
 	list(APPEND BCTOOLBOX_CXX_SOURCE_FILES utils/exception.cc)
 endif()
@@ -223,4 +224,11 @@ if(ENABLE_SHARED)
 			COMPONENT tester
 		)
 	endif()
+endif()
+
+
+if(MSVC)
+		#disable "was deprecated" warnings of windows compiler (typically using strcpy_s instead of strcpy and stupid things like this)
+        target_compile_options(bctoolbox PRIVATE "/wd4996")
+		target_compile_options(bctoolbox-tester PRIVATE "/wd4996")
 endif()
