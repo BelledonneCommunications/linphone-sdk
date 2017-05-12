@@ -16,6 +16,7 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <bctoolbox/parser.h>
 #include "belcard/belcard.hpp"
 #include <belr/parser-impl.cc>
 
@@ -82,6 +83,27 @@ void BelCardImpp::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *pa
 
 BelCardImpp::BelCardImpp() : BelCardProperty() {
 	setName("IMPP");
+}
+
+void BelCardImpp::setValue(const string &value) {
+	bctbx_noescape_rules_t uri = {0};
+	bctbx_noescape_rules_add_alfanums(uri);
+	bctbx_noescape_rules_add_list(uri, ":");
+	bctbx_noescape_rules_add_list(uri, "@");
+	_escaped_value = bctbx_escape(value.c_str(), uri);
+	BelCardProperty::setValue(value);
+}
+
+void BelCardImpp::serialize(ostream& output) const {
+	if (getGroup().length() > 0) {
+		output << getGroup() << ".";
+	}
+
+	output << getName();
+	for (auto it = getParams().begin(); it != getParams().end(); ++it) {
+		output << ";" << (**it);
+	}
+	output << ":" << _escaped_value << "\r\n";
 }
 
 shared_ptr<BelCardLang> BelCardLang::parse(const string& input) {

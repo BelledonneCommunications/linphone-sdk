@@ -46,9 +46,14 @@ namespace belcard {
 	};
 	
 	class BelCardImpp : public BelCardProperty {
+	private:
+		std::string _escaped_value;
 	public:
 		BELCARD_PUBLIC static std::shared_ptr<BelCardImpp> parse(const std::string& input);
 		BELCARD_PUBLIC static void setHandlerAndCollectors(belr::Parser<std::shared_ptr<BelCardGeneric>> *parser);
+
+		BELCARD_PUBLIC virtual void setValue(const std::string &value);
+		BELCARD_PUBLIC virtual void serialize(std::ostream &output) const;
 		
 		BELCARD_PUBLIC BelCardImpp();
 	};

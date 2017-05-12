@@ -16,7 +16,7 @@ belcard_tester_SOURCES=belcard-tester.cpp belcard-tester.hpp \
 			belcard-rfc6474-tester.cpp \
 			belcard-vcard-tester.cpp
 			
-belcard_tester_LDADD=$(top_builddir)/src/libbelcard.la $(BELR_LIBS) -lbcunit -lbctoolbox-tester
+belcard_tester_LDADD=$(top_builddir)/src/libbelcard.la $(BELR_LIBS) -lbcunit $(BCTOOLBOX_LIBS) $(BCTOOLBOX_TESTER_LIBS)
 
 belcard_tester_CFLAGS=\
 	-DBC_CONFIG_FILE=\"config.h\" \
