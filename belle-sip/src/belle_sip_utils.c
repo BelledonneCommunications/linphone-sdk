@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 #include "belle_sip_internal.h"
+#include "bctoolbox/parser.h"
 
 #include "clock_gettime.h" /*for apple*/
 
@@ -371,52 +372,14 @@ void belle_sip_util_copy_headers(belle_sip_message_t *orig, belle_sip_message_t 
 	}
 }
 
-static int is_escaped_char(const char *a){
-	return a[0] == '%' && a[1] != '\0' && a[2] != '\0';
-}
-
-size_t belle_sip_get_char (const char*a, char*out) {
-	if (is_escaped_char(a)) {
-		unsigned int tmp;
-		sscanf(a+1,"%02x",&tmp);
-		*out=(char)tmp;
-		return 3;
-	} else {
-		*out=*a;
-		return 1;
-	}
-}
 
 char* belle_sip_to_unescaped_string(const char* buff) {
-	char *output_buff=belle_sip_malloc(strlen(buff)+1);
-	size_t i;
-	size_t out_buff_index=0;
-
-	for(i=0; buff[i]!='\0'; out_buff_index++) {
-		i+=belle_sip_get_char(buff+i,output_buff+out_buff_index);
-	}
-	output_buff[out_buff_index]='\0';
-	return output_buff;
+	return bctbx_unescaped_string(buff);
 }
 
-#define BELLE_SIP_NO_ESCAPES_SIZE 257
-static void noescapes_add_list(char noescapes[BELLE_SIP_NO_ESCAPES_SIZE], const char *allowed) {
-	while (*allowed) {
-		noescapes[(unsigned int) *allowed] = 1;
-		++allowed;
-	}
+size_t belle_sip_get_char(const char* a, char *b) {
+	return bctbx_get_char(a,b);
 }
-
-static void noescapes_add_range(char noescapes[BELLE_SIP_NO_ESCAPES_SIZE], char first, char last) {
-	memset(noescapes + (unsigned int)first, 1, last-first+1);
-}
-
-static void noescapes_add_alfanums(char noescapes[BELLE_SIP_NO_ESCAPES_SIZE]) {
-	noescapes_add_range(noescapes, '0', '9');
-	noescapes_add_range(noescapes, 'A', 'Z');
-	noescapes_add_range(noescapes, 'a', 'z');
-}
-
 /*
 static void print_noescapes_map(char noescapes[BELLE_SIP_NO_ESCAPES_SIZE], const char *name) {
 	unsigned int i;
@@ -429,9 +392,9 @@ static void print_noescapes_map(char noescapes[BELLE_SIP_NO_ESCAPES_SIZE], const
 }
 */
 
-static const char *get_sip_uri_username_noescapes(void) {
-	static char noescapes[BELLE_SIP_NO_ESCAPES_SIZE] = {0};
-	if (noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1] == 0) {
+static const bctbx_noescape_rules_t* get_sip_uri_username_noescapes(void) {
+	static bctbx_noescape_rules_t noescapes = {0};
+	if (noescapes[BCTBX_NOESCAPE_RULES_USER_INDEX] == 0) {
 		// concurrent initialization should not be an issue
 		/*user             =  1*( unreserved / escaped / user-unreserved )
 		 unreserved  =  alphanum / mark
@@ -439,39 +402,39 @@ static const char *get_sip_uri_username_noescapes(void) {
 		 / "(" / ")"
 		user-unreserved  =  "&" / "=" / "+" / "$" / "," / ";" / "?" / "/"
 		*/
-		noescapes_add_alfanums(noescapes);
+		bctbx_noescape_rules_add_alfanums(noescapes);
 		/*mark*/
-		noescapes_add_list(noescapes, "-_.!~*'()");
+		bctbx_noescape_rules_add_list(noescapes, "-_.!~*'()");
 		/*user-unreserved*/
-		noescapes_add_list(noescapes, "&=+$,;?/");
+		bctbx_noescape_rules_add_list(noescapes, "&=+$,;?/");
 
-		noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1] = 1; // initialized
+		noescapes[BCTBX_NOESCAPE_RULES_USER_INDEX] = 1; // initialized
 //		print_noescapes_map(noescapes, "uri_username");
 	}
-	return noescapes;
+	return &noescapes;
 }
 /*
  *
  * password         =  *( unreserved / escaped /
                     "&" / "=" / "+" / "$" / "," )
  * */
-static const char *get_sip_uri_userpasswd_noescapes(void) {
-	static char noescapes[BELLE_SIP_NO_ESCAPES_SIZE] = {0};
-	if (noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1] == 0) {
+static const bctbx_noescape_rules_t* get_sip_uri_userpasswd_noescapes(void) {
+	static bctbx_noescape_rules_t noescapes = {0};
+	if (noescapes[BCTBX_NOESCAPE_RULES_USER_INDEX] == 0) {
 		// unreserved
-		noescapes_add_alfanums(noescapes);
-		noescapes_add_list(noescapes, "-_.!~*'()");
-		noescapes_add_list(noescapes, "&=+$,");
+		bctbx_noescape_rules_add_alfanums(noescapes);
+		bctbx_noescape_rules_add_list(noescapes, "-_.!~*'()");
+		bctbx_noescape_rules_add_list(noescapes, "&=+$,");
 
-		noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1] = 1; // initialized
+		noescapes[BCTBX_NOESCAPE_RULES_USER_INDEX] = 1; // initialized
 
 	}
-	return noescapes;
+	return &noescapes;
 }
 
-static const char *get_sip_uri_parameter_noescapes(void) {
-	static char noescapes[BELLE_SIP_NO_ESCAPES_SIZE] = {0};
-	if (noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1] == 0) {
+static  const bctbx_noescape_rules_t* get_sip_uri_parameter_noescapes(void) {
+	static bctbx_noescape_rules_t  noescapes= {0};
+	if (noescapes[BCTBX_NOESCAPE_RULES_USER_INDEX] == 0) {
 		/*
 		 other-param       =  pname [ "=" pvalue ]
 		 pname             =  1*paramchar
@@ -487,23 +450,23 @@ static const char *get_sip_uri_parameter_noescapes(void) {
 		 */
 		//param-unreserved  =
 
-		noescapes_add_list(noescapes,"[]/:&+$");
+		bctbx_noescape_rules_add_list(noescapes,"[]/:&+$");
 
 		// token
-		noescapes_add_alfanums(noescapes);
-		noescapes_add_list(noescapes, "-.!%*_+`'~");
+		bctbx_noescape_rules_add_alfanums(noescapes);
+		bctbx_noescape_rules_add_list(noescapes, "-.!%*_+`'~");
 
 		// unreserved
-		noescapes_add_list(noescapes, "-_.!~*'()");
+		bctbx_noescape_rules_add_list(noescapes, "-_.!~*'()");
 
-		noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1] = 1; // initialized
+		noescapes[BCTBX_NOESCAPE_RULES_USER_INDEX] = 1; // initialized
 //		print_noescapes_map(noescapes, "uri_parameter");
 	}
-	return noescapes;
+	return & noescapes;
 }
-static const char *get_sip_uri_header_noescapes(void) {
-	static char noescapes[BELLE_SIP_NO_ESCAPES_SIZE] = {0};
-	if (noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1] == 0) {
+static const bctbx_noescape_rules_t* get_sip_uri_header_noescapes(void) {
+	static bctbx_noescape_rules_t  noescapes= {0};
+	if (noescapes[BCTBX_NOESCAPE_RULES_USER_INDEX] == 0) {
 		/*
 		 unreserved  =  alphanum / mark
 		 mark        =  "-" / "_" / "." / "!" / "~" / "*" / "'"
@@ -520,61 +483,37 @@ static const char *get_sip_uri_header_noescapes(void) {
 
 		// unreserved
 		//alphanum
-		noescapes_add_alfanums(noescapes);
+		bctbx_noescape_rules_add_alfanums(noescapes);
 		//mark
-		noescapes_add_list(noescapes, "-_.!~*'()");
+		bctbx_noescape_rules_add_list(noescapes, "-_.!~*'()");
 
-		noescapes_add_list(noescapes, "[]/?:+$");
+		bctbx_noescape_rules_add_list(noescapes, "[]/?:+$");
 		//hnv-unreserved
-		noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1] = 1; // initialized
+		noescapes[BCTBX_NOESCAPE_RULES_USER_INDEX] = 1; // initialized
 //		print_noescapes_map(noescapes, "uri_parameter");
 	}
-	return noescapes;
+	return &noescapes;
 }
 
-static char* belle_sip_escape(const char* buff, const char *noescapes) {
-	size_t outbuf_size=strlen(buff);
-	size_t orig_size=outbuf_size;
-	char *output_buff=(char*)belle_sip_malloc(outbuf_size + 1);
-	int i;
-	size_t out_buff_index=0;
-
-	for(i=0; buff[i] != '\0'; i++) {
-		int c = ((unsigned char*)buff)[i];
-		if (outbuf_size < out_buff_index + 3){
-			// we will possibly add 3 chars
-			outbuf_size += MAX(orig_size/2,3);
-			output_buff = belle_sip_realloc(output_buff, outbuf_size + 1);
-		}
-		if (noescapes[c] == 1) {
-			output_buff[out_buff_index++]=c;
-		} else {
-			// this will write 3 characters
-			out_buff_index+=snprintf(output_buff+out_buff_index, outbuf_size +1 - out_buff_index, "%%%02x", c);
-		}
-	}
-	output_buff[out_buff_index]='\0';
-	return output_buff;
-}
 
 char* belle_sip_uri_to_escaped_username(const char* buff) {
-	return belle_sip_escape(buff, get_sip_uri_username_noescapes());
+	return bctbx_escape(buff, *get_sip_uri_username_noescapes());
 }
 char* belle_sip_uri_to_escaped_userpasswd(const char* buff) {
-	return belle_sip_escape(buff, get_sip_uri_userpasswd_noescapes());
+	return bctbx_escape(buff, *get_sip_uri_userpasswd_noescapes());
 }
 char* belle_sip_uri_to_escaped_parameter(const char* buff) {
-	return belle_sip_escape(buff, get_sip_uri_parameter_noescapes());
+	return bctbx_escape(buff, *get_sip_uri_parameter_noescapes());
 }
 char* belle_sip_uri_to_escaped_header(const char* buff) {
-	return belle_sip_escape(buff, get_sip_uri_header_noescapes());
+	return bctbx_escape(buff, *get_sip_uri_header_noescapes());
 }
 
 
 /*uri (I.E RFC 2396)*/
-static const char *get_generic_uri_query_noescapes(void) {
-	static char noescapes[BELLE_SIP_NO_ESCAPES_SIZE] = {0};
-	if (noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1] == 0) {
+static const bctbx_noescape_rules_t *get_generic_uri_query_noescapes(void) {
+	static bctbx_noescape_rules_t  noescapes= {0};
+	if (noescapes[BCTBX_NOESCAPE_RULES_USER_INDEX] == 0) {
 		/*
 	    uric          = reserved | unreserved | escaped
 		reserved      = ";" | "/" | "?" | ":" | "@" | "&" | "=" | "+" |
@@ -590,18 +529,18 @@ static const char *get_generic_uri_query_noescapes(void) {
 
 		*/
 		/*unreserved*/
-		noescapes_add_alfanums(noescapes);
+		bctbx_noescape_rules_add_alfanums(noescapes);
 		/*mark*/
-		noescapes_add_list(noescapes, "-_.!~*'()");
-		noescapes_add_list(noescapes, "=&"); // otherwise how to pass parameters?
-		noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1] = 1; // initialized
+		bctbx_noescape_rules_add_list(noescapes, "-_.!~*'()");
+		bctbx_noescape_rules_add_list(noescapes, "=&"); // otherwise how to pass parameters?
+		noescapes[BCTBX_NOESCAPE_RULES_USER_INDEX] = 1; // initialized
 	}
-	return noescapes;
+	return &noescapes;
 }
 
-static const char *get_generic_uri_path_noescapes(void) {
-	static char noescapes[BELLE_SIP_NO_ESCAPES_SIZE] = {0};
-	if (noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1] == 0) {
+static const bctbx_noescape_rules_t *get_generic_uri_path_noescapes(void) {
+	static bctbx_noescape_rules_t  noescapes= {0};
+	if (noescapes[BCTBX_NOESCAPE_RULES_USER_INDEX] == 0) {
 		/*
 	    3.3. Path Component
 
@@ -627,25 +566,25 @@ static const char *get_generic_uri_path_noescapes(void) {
 
 		*/
 		/*unreserved*/
-		noescapes_add_alfanums(noescapes);
+		bctbx_noescape_rules_add_alfanums(noescapes);
 		/*mark*/
-		noescapes_add_list(noescapes, "-_.!~*'()");
+		bctbx_noescape_rules_add_list(noescapes, "-_.!~*'()");
 		/*pchar*/
-		noescapes_add_list(noescapes, ":@&=+$,");
+		bctbx_noescape_rules_add_list(noescapes, ":@&=+$,");
 		/*;*/
-		noescapes_add_list(noescapes, ";");
-		noescapes_add_list(noescapes, "/");
+		bctbx_noescape_rules_add_list(noescapes, ";");
+		bctbx_noescape_rules_add_list(noescapes, "/");
 
-		noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1] = 1; // initialized
+		noescapes[BCTBX_NOESCAPE_RULES_USER_INDEX] = 1; // initialized
 	}
-	return noescapes;
+	return &noescapes;
 }
 
 char* belle_generic_uri_to_escaped_query(const char* buff) {
-	return belle_sip_escape(buff, get_generic_uri_query_noescapes());
+	return bctbx_escape(buff, *get_generic_uri_query_noescapes());
 }
 char* belle_generic_uri_to_escaped_path(const char* buff) {
-	return belle_sip_escape(buff, get_generic_uri_path_noescapes());
+	return bctbx_escape(buff, *get_generic_uri_path_noescapes());
 }
 
 char* belle_sip_string_to_backslash_less_unescaped_string(const char* buff) {
