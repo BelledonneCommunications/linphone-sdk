@@ -19,6 +19,8 @@
 #ifndef BCTBX_PARSER_H_
 #define BCTBX_PARSER_H_
 
+#include "port.h"
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -35,7 +37,7 @@ typedef  unsigned char bctbx_noescape_rules_t[256+1]; /*last entry (BCTBX_NOESCA
  * sample:
  * bctbx_noescape_rules_t my_rules = {0}; nothing allowed
  * bctbx_noescape_rules_add_alfanums(my_rules);
- * char * my_escaped_string = bctbx_escape(my_rules,"François");
+ * char * my_escaped_string = bctbx_escape("François",my_rules);
  * expeted result my_escaped_string == Fran%c3%a7ois
  * @param  buff  NULL terminated input buffer.
  * @param  noescape_rules bctbx_noescape_rules_t to apply for this input buff

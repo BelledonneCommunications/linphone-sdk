@@ -8,7 +8,8 @@ libbctoolbox_la_SOURCES= vconnect.c \
 					utils/exception.cc \
 					logging/logging.c \
 					containers/list.c \
-					containers/map.cc
+					containers/map.cc \
+					parser.c
 
 if ENABLE_POLARSSL
 
