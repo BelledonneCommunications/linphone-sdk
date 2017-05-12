@@ -26,6 +26,7 @@ set(BCTOOLBOX_C_SOURCE_FILES
 	utils/port.c
 	vfs.c
 	vconnect.c
+	parser.c
 )
 
 set(BCTOOLBOX_CXX_SOURCE_FILES containers/map.cc)

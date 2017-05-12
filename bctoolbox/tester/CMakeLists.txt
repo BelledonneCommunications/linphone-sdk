@@ -32,6 +32,7 @@ if(BCUNIT_FOUND AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 		bctoolbox_tester.h
 		containers.cc
 		port.c
+		parser.c
 	)
 
 	string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
