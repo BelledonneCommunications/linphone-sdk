@@ -90,8 +90,19 @@ void BelCardImpp::setValue(const string &value) {
 	bctbx_noescape_rules_add_alfanums(uri);
 	bctbx_noescape_rules_add_list(uri, ":");
 	bctbx_noescape_rules_add_list(uri, "@");
-	_escaped_value = bctbx_escape(value.c_str(), uri);
-	BelCardProperty::setValue(value);
+	bctbx_noescape_rules_add_list(uri, ".");
+
+	// Escape characters if required
+	char * escaped_value = bctbx_escape(value.c_str(), uri);
+	_escaped_value = string(escaped_value);
+	bctbx_free(escaped_value);
+
+	// Unescape previously escaped characters
+	char * unescaped_value = bctbx_unescaped_string(value.c_str());
+	string new_value = string(unescaped_value);
+	bctbx_free(unescaped_value);
+
+	BelCardProperty::setValue(new_value);
 }
 
 void BelCardImpp::serialize(ostream& output) const {
