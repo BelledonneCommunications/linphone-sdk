@@ -247,6 +247,7 @@ BCTBX_PUBLIC int __bctbx_WIN_inet_aton (const char * cp, struct in_addr * addr);
 #define BCTBX_ENETUNREACH  WSAENETUNREACH
 #define BCTBX_EHOSTUNREACH WSAEHOSTUNREACH
 #define BCTBX_ENOTCONN     WSAENOTCONN
+#define BCTBX_EPROTOTYPE	WSAEPROTOTYPE /* Protocol wrong type for socket */
 
 #if defined(_WIN32_WCE)
 
