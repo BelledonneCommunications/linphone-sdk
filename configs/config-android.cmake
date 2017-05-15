@@ -72,7 +72,7 @@ include(builders/CMakeLists.txt)
 
 
 # bctoolbox
-set(EP_bctoolbox_LINKING_TYPE "-DENABLE_STATIC=NO" "-DENABLE_SHARED=YES")
+lcb_builder_linking_type(bctoolbox "-DENABLE_STATIC=NO" "-DENABLE_SHARED=YES")
 lcb_builder_cmake_options(bctoolbox "-DENABLE_TESTS=NO")
 
 # belcard
