@@ -88,9 +88,7 @@ BelCardImpp::BelCardImpp() : BelCardProperty() {
 void BelCardImpp::setValue(const string &value) {
 	bctbx_noescape_rules_t uri = {0};
 	bctbx_noescape_rules_add_alfanums(uri);
-	bctbx_noescape_rules_add_list(uri, ":");
-	bctbx_noescape_rules_add_list(uri, "@");
-	bctbx_noescape_rules_add_list(uri, ".");
+	bctbx_noescape_rules_add_list(uri, ":@.-_~%!$&'()*+,;=");
 
 	// Escape characters if required
 	char * escaped_value = bctbx_escape(value.c_str(), uri);
