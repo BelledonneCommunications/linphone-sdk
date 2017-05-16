@@ -1486,7 +1486,10 @@ static int get_local_ip_for_with_connect(int type, const char *dest, int port, c
 	err = connect(sock, res->ai_addr, (int)res->ai_addrlen);
 	if (err == -1) {
 		/* The network isn't reachable. We don't display the error as it is the case that we want to check in normal operation. */
-		if (getSocketErrorCode() != BCTBX_ENETUNREACH || getSocketErrorCode() != BCTBX_EHOSTUNREACH) bctbx_error("Error in connect: %s", getSocketError());
+		if (   getSocketErrorCode() != BCTBX_ENETUNREACH
+			&& getSocketErrorCode() != BCTBX_EHOSTUNREACH
+			&& getSocketErrorCode() != BCTBX_EPROTOTYPE)
+				bctbx_error("Error in connect: %s", getSocketError());
 		freeaddrinfo(res);
 		bctbx_socket_close(sock);
 		return -1;

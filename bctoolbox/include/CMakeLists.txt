@@ -28,6 +28,7 @@ set(HEADER_FILES
 	port.h
 	vfs.h
 	vconnect.h
+	parser.h
 )
 if(ENABLE_TESTS_COMPONENT)
 	list(APPEND HEADER_FILES tester.h)

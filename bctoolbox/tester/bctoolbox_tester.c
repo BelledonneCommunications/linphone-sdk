@@ -47,6 +47,7 @@ void bctoolbox_tester_init(void(*ftester_printf)(int level, const char *fmt, va_
 	bc_tester_add_suite(&containers_test_suite);
 	bc_tester_add_suite(&utils_test_suite);
 	bc_tester_add_suite(&crypto_test_suite);
+	bc_tester_add_suite(&parser_test_suite);
 }
 
 void bctoolbox_tester_uninit(void) {

@@ -33,6 +33,7 @@ if(BCUNIT_FOUND AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 		containers.cc
 		port.c
 		crypto.c
+		parser.c
 	)
 
 	string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
