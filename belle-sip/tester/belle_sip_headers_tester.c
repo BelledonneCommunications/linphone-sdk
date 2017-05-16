@@ -1193,6 +1193,11 @@ static void test_authentication_info_header(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_authentication_info));
 	belle_sip_free(l_raw_header);
 	
+	
+	L_authentication_info = belle_sip_header_authentication_info_parse("Authentication-Info:nextnonce=\"WRSE5VkUg7kOjnP5sBZZzsxrsOQ8Eyp6ZNttXIA=\", qop=\"auth\" , rspauth=\"5e8518291c1320989df6966405e0b3d1\", cnonce=\"05bc00e63a7794182f9425da9266d00d\", nc=00000001");
+	BC_ASSERT_EQUAL(belle_sip_header_authentication_info_get_nonce_count(L_authentication_info),1, int, "%i");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_authentication_info));
+	
 	BC_ASSERT_PTR_NULL(belle_sip_header_authentication_info_parse("nimportequoi"));
 }
 
