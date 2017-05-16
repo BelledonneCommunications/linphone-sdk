@@ -215,5 +215,7 @@ install(FILES
 	"${CMAKE_CURRENT_BINARY_DIR}/BcToolboxConfig.cmake"
 	"${CMAKE_CURRENT_BINARY_DIR}/BcToolboxConfigVersion.cmake"
 	"${CMAKE_CURRENT_BINARY_DIR}/BcToolboxCMakeUtils.cmake"
+	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/BcGitVersion.cmake"
+	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/gitversion.h.in"
 	DESTINATION ${CONFIG_PACKAGE_LOCATION}
 )
