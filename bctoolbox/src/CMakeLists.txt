@@ -83,7 +83,7 @@ endif()
 if(ENABLE_SHARED)
 	add_library(bctoolbox SHARED ${BCTOOLBOX_SOURCE_FILES} ${BCTOOLBOX_HEADER_FILES})
 	target_link_libraries(bctoolbox PRIVATE ${CMAKE_THREAD_LIBS_INIT})
-	if(APPLE)
+	if(IOS)
 		set_target_properties(bctoolbox PROPERTIES
 			FRAMEWORK TRUE
 			MACOSX_FRAMEWORK_IDENTIFIER com.belledonne-communications.bctoolbox
@@ -169,7 +169,7 @@ if(BCUNIT_FOUND)
 	if(ENABLE_SHARED)
 		target_include_directories(bctoolbox-tester PUBLIC ${BCUNIT_INCLUDE_DIRS})
 		target_link_libraries(bctoolbox-tester PRIVATE bctoolbox ${BCUNIT_LIBRARIES})
-		if(APPLE)
+		if(IOS)
 			set_target_properties(bctoolbox-tester PROPERTIES
 				FRAMEWORK TRUE
 				MACOSX_FRAMEWORK_IDENTIFIER com.belledonne-communications.bctoolbox-tester
