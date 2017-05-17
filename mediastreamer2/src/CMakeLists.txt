@@ -102,7 +102,7 @@ endif()
 if(ENABLE_SHARED)
 	add_library(mediastreamer_base SHARED ${MEDIASTREAMER2_HEADER_FILES} ${BASE_SOURCE_FILES_C})
 	set_target_properties(mediastreamer_base PROPERTIES LINKER_LANGUAGE C)
-	if(APPLE)
+	if(IOS)
 		set_target_properties(mediastreamer_base PROPERTIES
 			FRAMEWORK TRUE
 			MACOSX_FRAMEWORK_IDENTIFIER com.belledonne-communications.mediastreamer_base
@@ -666,7 +666,7 @@ if(ENABLE_SHARED)
 		set_target_properties(mediastreamer_voip PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
 	add_dependencies(mediastreamer_voip ${MS2_VOIP_DEPENDENCIES})
-	if(APPLE)
+	if(IOS)
 		set_target_properties(mediastreamer_voip PROPERTIES
 			FRAMEWORK TRUE
 			MACOSX_FRAMEWORK_IDENTIFIER com.belledonne-communications.mediastreamer_voip
