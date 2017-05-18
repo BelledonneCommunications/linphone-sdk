@@ -67,14 +67,14 @@ PKG_CHECK_MODULES(BCTOOLBOXTESTER, [bctoolbox-tester],[libbctoolbox_tester_found
 if test "$libbctoolbox_tester_found" != "yes" ; then
         dnl Check the lib presence in case the PKG-CONFIG version is not found
         AC_LANG_CPLUSPLUS
-        AC_CHECK_LIB(bctoolbox-tester, main, [BCTOOLBOX_TESTER_LIBS+=" -lbctoolbox-tester"; libbctoolbox_tester_found=yes], [foo=bar])
+        AC_CHECK_LIB(bctoolbox-tester, main, [BCTOOLBOXTESTER_LIBS+=" -lbctoolbox-tester"; libbctoolbox_tester_found=yes], [foo=bar])
         AC_LANG_C
 fi
 if test "$libbctoolbox_tester_found" != "yes" ; then
         AC_MSG_ERROR([libbctoolbox tester not found. Install it and try again])
 fi
 
-AC_SUBST(BCTOOLBOX_TESTER_LIBS)
+AC_SUBST(BCTOOLBOXTESTER_LIBS)
 
 dnl ##################################################
 dnl # Check for Belr
