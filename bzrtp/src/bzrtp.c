@@ -5,7 +5,7 @@
  
  @author Johan Pascal
 
- @copyright Copyright (C) 2014 Belledonne Communications, Grenoble, France
+ @copyright Copyright (C) 2017 Belledonne Communications, Grenoble, France
  
  This program is free software; you can redistribute it and/or
  modify it under the terms of the GNU General Public License
@@ -56,7 +56,8 @@ bzrtpContext_t *bzrtp_createBzrtpContext(void) {
 	/* start the random number generator */
 	context->RNGContext = bctbx_rng_context_new(); /* TODO: give a seed for the RNG? */
 	/* set the DHM context to NULL, it will be created if needed when creating a DHPart packet */
-	context->DHMContext = NULL;
+	context->keyAgreementContext = NULL;
+	context->keyAgreementAlgo = ZRTP_UNSET_ALGO;
 
 	/* set flags */
 	context->isSecure = 0; /* start unsecure */
@@ -196,10 +197,16 @@ int bzrtp_destroyBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC) {
 
 
 	/* We have no more channel, destroy the zrtp context */
-	/* DHM context shall already been destroyed after s0 computation, but just in case */
-	if (context->DHMContext != NULL) {
-		bctbx_DestroyDHMContext(context->DHMContext);
-		context->DHMContext = NULL;
+	/* key agreement context shall already been destroyed after s0 computation, but just in case */
+	if (context->keyAgreementContext != NULL) {
+		if (context->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X255 || context->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X448) {
+			bctbx_DestroyECDHContext((bctbx_ECDHContext_t *)context->keyAgreementContext);
+		}
+		if (context->keyAgreementAlgo == ZRTP_KEYAGREEMENT_DH2k || context->keyAgreementAlgo == ZRTP_KEYAGREEMENT_DH3k) {
+			bctbx_DestroyDHMContext((bctbx_DHMContext_t *)context->keyAgreementContext);
+		}
+		context->keyAgreementContext = NULL;
+		context->keyAgreementAlgo = ZRTP_UNSET_ALGO;
 	}
 
 	/* Destroy keys and secrets */

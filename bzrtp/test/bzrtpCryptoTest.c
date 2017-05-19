@@ -115,7 +115,14 @@ void test_CRC32(void) {
 		BC_ASSERT_TRUE(bzrtp_CRC32(patterCRCinput[i], patternCRCLength[i]) == patternCRCoutput[i]);
 	}
 }
-
+/* expected result of tests vary according to default key agreement algorithm */
+/* if EC25519 is available, this is the default, DH3k otherwise */
+static uint8_t getDefaultKeyAgreementAlgo() {
+	if (bctbx_key_agreement_algo_list()&BCTBX_ECDH_X25519) {
+		return ZRTP_KEYAGREEMENT_X255;
+	}
+	return ZRTP_KEYAGREEMENT_DH3k;
+}
 static void setHelloMessageAlgo(bzrtpHelloMessage_t *helloMessage, uint8_t algoType, uint8_t types[7], const uint8_t typesCount) {
 	switch(algoType) {
 		case ZRTP_HASH_TYPE:
@@ -153,17 +160,17 @@ static int compareAllAlgoTypes(bzrtpChannelContext_t *zrtpChannelContext, uint8_
 static int compareAllAlgoTypesWithExpectedChangedOnly(bzrtpChannelContext_t *zrtpChannelContext, uint8_t expectedAlgoType, uint8_t expectedType) {
 	switch(expectedAlgoType) {
 		case ZRTP_HASH_TYPE:
-			return compareAllAlgoTypes(zrtpChannelContext, expectedType,   ZRTP_CIPHER_AES1, ZRTP_AUTHTAG_HS32, ZRTP_KEYAGREEMENT_DH3k, ZRTP_SAS_B32);
+			return compareAllAlgoTypes(zrtpChannelContext, expectedType,   ZRTP_CIPHER_AES1, ZRTP_AUTHTAG_HS32, getDefaultKeyAgreementAlgo(), ZRTP_SAS_B32);
 		case ZRTP_CIPHERBLOCK_TYPE:
-			return compareAllAlgoTypes(zrtpChannelContext, ZRTP_HASH_S256, expectedType,     ZRTP_AUTHTAG_HS32, ZRTP_KEYAGREEMENT_DH3k, ZRTP_SAS_B32);
+			return compareAllAlgoTypes(zrtpChannelContext, ZRTP_HASH_S256, expectedType,     ZRTP_AUTHTAG_HS32, getDefaultKeyAgreementAlgo(), ZRTP_SAS_B32);
 		case ZRTP_AUTHTAG_TYPE:
-			return compareAllAlgoTypes(zrtpChannelContext, ZRTP_HASH_S256, ZRTP_CIPHER_AES1, expectedType,      ZRTP_KEYAGREEMENT_DH3k, ZRTP_SAS_B32);
+			return compareAllAlgoTypes(zrtpChannelContext, ZRTP_HASH_S256, ZRTP_CIPHER_AES1, expectedType,      getDefaultKeyAgreementAlgo(), ZRTP_SAS_B32);
 		case ZRTP_KEYAGREEMENT_TYPE:
 			return compareAllAlgoTypes(zrtpChannelContext, ZRTP_HASH_S256, ZRTP_CIPHER_AES1, ZRTP_AUTHTAG_HS32, expectedType,           ZRTP_SAS_B32);
 		case ZRTP_SAS_TYPE:
-			return compareAllAlgoTypes(zrtpChannelContext, ZRTP_HASH_S256, ZRTP_CIPHER_AES1, ZRTP_AUTHTAG_HS32, ZRTP_KEYAGREEMENT_DH3k, expectedType);
+			return compareAllAlgoTypes(zrtpChannelContext, ZRTP_HASH_S256, ZRTP_CIPHER_AES1, ZRTP_AUTHTAG_HS32, getDefaultKeyAgreementAlgo(), expectedType);
 		default:
-			return compareAllAlgoTypes(zrtpChannelContext, ZRTP_HASH_S256, ZRTP_CIPHER_AES1, ZRTP_AUTHTAG_HS32, ZRTP_KEYAGREEMENT_DH3k, ZRTP_SAS_B32);
+			return compareAllAlgoTypes(zrtpChannelContext, ZRTP_HASH_S256, ZRTP_CIPHER_AES1, ZRTP_AUTHTAG_HS32, getDefaultKeyAgreementAlgo(), ZRTP_SAS_B32);
 	}
 }
 
@@ -296,7 +303,7 @@ void test_algoAgreement(void) {
 	struct st_algo_type *cipher_type;
 
 	/* check defaults */
-	BC_ASSERT_TRUE(testAlgoTypeWithPacket(ZRTP_UNSET_ALGO, NULL, 0, ZRTP_KEYAGREEMENT_DH3k));
+	BC_ASSERT_TRUE(testAlgoTypeWithPacket(ZRTP_UNSET_ALGO, NULL, 0, getDefaultKeyAgreementAlgo()));
 
 	/* key agreement type */
 	agreement_type_with_packet = &agreement_types_with_packet[0];
@@ -391,6 +398,15 @@ void test_algoSetterGetter(void) {
 		{ {ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH3k}, 8, {ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_Mult}, 2 },
 		{ {ZRTP_UNSET_ALGO}, 0, {ZRTP_UNSET_ALGO}, 0, }
 	};
+	/* Define another set used only if ECDH agreements are availables */
+	struct st_algo_setter_getter ecdh_agreement_types[] = {
+		{ {ZRTP_KEYAGREEMENT_X255}, 1, {ZRTP_KEYAGREEMENT_X255, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_Mult}, 3 },
+		{ {ZRTP_KEYAGREEMENT_X448}, 1, {ZRTP_KEYAGREEMENT_X448, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_Mult}, 3 },
+		{ {ZRTP_KEYAGREEMENT_X255, ZRTP_KEYAGREEMENT_X448}, 2, {ZRTP_KEYAGREEMENT_X255, ZRTP_KEYAGREEMENT_X448, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_Mult}, 4 },
+		{ {ZRTP_KEYAGREEMENT_X448, ZRTP_KEYAGREEMENT_X255}, 2, {ZRTP_KEYAGREEMENT_X448, ZRTP_KEYAGREEMENT_X255, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_Mult}, 4 },
+		{ {ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_X448, ZRTP_KEYAGREEMENT_X255}, 3, {ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_X448, ZRTP_KEYAGREEMENT_X255, ZRTP_KEYAGREEMENT_Mult}, 4 },
+		{ {ZRTP_UNSET_ALGO}, 0, {ZRTP_UNSET_ALGO}, 0, }
+	};
 	struct st_algo_setter_getter *agreement_type;
 	struct st_algo_setter_getter cipher_types[] = {
 		{ {ZRTP_CIPHER_AES1}, 1, {ZRTP_CIPHER_AES1}, 1 },
@@ -415,6 +431,15 @@ void test_algoSetterGetter(void) {
 	while (agreement_type->contextTypesCount > 0) {
 		BC_ASSERT_TRUE(testAlgoSetterGetter(ZRTP_KEYAGREEMENT_TYPE, agreement_type->contextTypes, agreement_type->contextTypesCount, agreement_type->expectedTypes, agreement_type->expectedTypesCount));
 		agreement_type++;
+	}
+
+	/* ECDH agreement type */
+	if (bctbx_key_agreement_algo_list()&BCTBX_ECDH_X25519) {
+		agreement_type = &ecdh_agreement_types[0];
+		while (agreement_type->contextTypesCount > 0) {
+			BC_ASSERT_TRUE(testAlgoSetterGetter(ZRTP_KEYAGREEMENT_TYPE, agreement_type->contextTypes, agreement_type->contextTypesCount, agreement_type->expectedTypes, agreement_type->expectedTypesCount));
+			agreement_type++;
+		}
 	}
 
 	/* cipher type */
@@ -451,6 +476,7 @@ void test_addMandatoryCryptoTypesIfNeeded(void) {
 		{ ZRTP_CIPHERBLOCK_TYPE, {ZRTP_UNSET_ALGO}, 0, {ZRTP_CIPHER_AES1}, 1 },
 		{ ZRTP_AUTHTAG_TYPE, {ZRTP_UNSET_ALGO}, 0, {ZRTP_AUTHTAG_HS32, ZRTP_AUTHTAG_HS80}, 2 },
 		{ ZRTP_KEYAGREEMENT_TYPE, {ZRTP_UNSET_ALGO}, 0, {ZRTP_KEYAGREEMENT_DH3k}, 1 },
+		{ ZRTP_KEYAGREEMENT_TYPE, {ZRTP_KEYAGREEMENT_X255}, 1, {ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_X255}, 2 },
 		{ ZRTP_SAS_TYPE, {ZRTP_UNSET_ALGO}, 0, {ZRTP_SAS_B32}, 1 },
 		{ ZRTP_AUTHTAG_TYPE, {ZRTP_AUTHTAG_HS32, ZRTP_AUTHTAG_HS80}, 2, {ZRTP_AUTHTAG_HS32, ZRTP_AUTHTAG_HS80}, 2 },
 		{ ZRTP_AUTHTAG_TYPE, {ZRTP_AUTHTAG_HS80, ZRTP_AUTHTAG_HS32}, 2, {ZRTP_AUTHTAG_HS80, ZRTP_AUTHTAG_HS32}, 2 },

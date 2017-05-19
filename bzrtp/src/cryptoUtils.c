@@ -35,10 +35,10 @@
 /** Return available crypto functions. For now we have
  *
  * - Hash: HMAC-SHA256(Mandatory)
- * - CipherBlock: AES128(Mandatory)
+ * - CipherBlock: AES128(Mandatory), AES256(optional)
  * - Auth Tag: HMAC-SHA132 and HMAC-SHA180 (These are mandatory for SRTP and depends on the SRTP implementation thus we can just suppose they are both available)
- * - Key Agreement: DHM3k(Mandatory), DHM2k(optional and shall not be used except on low power devices)
- * - Sas: base32(Mandatory), b256(pgp words)
+ * - Key Agreement: ECDH25519(not mentionned in RFC), ECDH448(not mentionned in RFC), DHM3k(Mandatory), DHM2k(optional and shall not be used except on low power devices)
+ * - Sas: base32(Mandatory), b256(pgp words, optional)
  */
 uint8_t bzrtpUtils_getAvailableCryptoTypes(uint8_t algoType, uint8_t availableTypes[7]) {
 
@@ -46,28 +46,45 @@ uint8_t bzrtpUtils_getAvailableCryptoTypes(uint8_t algoType, uint8_t availableTy
 		case ZRTP_HASH_TYPE:
 			availableTypes[0] = ZRTP_HASH_S256;
 			return 1;
-			break;
 		case ZRTP_CIPHERBLOCK_TYPE:
 			availableTypes[0] = ZRTP_CIPHER_AES1;
 			availableTypes[1] = ZRTP_CIPHER_AES3;
 			return 2;
-			break;
 		case ZRTP_AUTHTAG_TYPE:
 			availableTypes[0] = ZRTP_AUTHTAG_HS32;
 			availableTypes[1] = ZRTP_AUTHTAG_HS80;
 			return 2;
-			break;
 		case ZRTP_KEYAGREEMENT_TYPE:
-			availableTypes[0] = ZRTP_KEYAGREEMENT_DH3k;
-			availableTypes[1] = ZRTP_KEYAGREEMENT_DH2k;
-			availableTypes[2] = ZRTP_KEYAGREEMENT_Mult; /* This one shall always be at the end of the list, it is just to inform the peer ZRTP endpoint that we support the Multichannel ZRTP */
-			return 3;
-			break;
+			{
+				/* get availables types from bctoolbox */
+				uint32_t available_key_agreements = bctbx_key_agreement_algo_list();
+				uint8_t index=0;
+				if (available_key_agreements&BCTBX_ECDH_X25519) {
+					availableTypes[index] = ZRTP_KEYAGREEMENT_X255;
+					index++;
+				}
+
+				if (available_key_agreements&BCTBX_ECDH_X448) {
+					availableTypes[index] = ZRTP_KEYAGREEMENT_X448;
+					index++;
+				}
+
+				/* DH3k is mandatory*/
+				availableTypes[index] = ZRTP_KEYAGREEMENT_DH3k;
+				index++;
+
+				if (available_key_agreements|BCTBX_DHM_2048) {
+					availableTypes[index] = ZRTP_KEYAGREEMENT_DH2k;
+					index++;
+				}
+
+				availableTypes[index] = ZRTP_KEYAGREEMENT_Mult; /* This one shall always be at the end of the list, it is just to inform the peer ZRTP endpoint that we support the Multichannel ZRTP */
+				return index+1;
+			}
 		case ZRTP_SAS_TYPE: /* the SAS function is implemented in cryptoUtils.c and then is not directly linked to the polarSSL crypto wrapper */
 			availableTypes[0] = ZRTP_SAS_B32;
 			availableTypes[1] = ZRTP_SAS_B256;
 			return 2;
-			break;
 		default:
 			return 0;
 	}
@@ -331,7 +348,7 @@ int bzrtp_cryptoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 	/* if the first choices are the same for both, select it */
 	if (selfCommonKeyAgreementType[0] == peerCommonKeyAgreementType[0]) {
 		zrtpChannelContext->keyAgreementAlgo = selfCommonKeyAgreementType[0];
-	} else { /* select the fastest of the two algoritm. Order is "DH2k", "EC25", "DH3k", "EC38", "EC52" */
+	} else { /* select the fastest of the two algoritm. Order is "DH2k", "E255", "EC25", "E448", "DH3k", "EC38", "EC52" is defined by value order from bzrtp.h */
 		if (peerCommonKeyAgreementType[0]<selfCommonKeyAgreementType[0]) { /* mapping to uint8_t is defined to have them in the fast to slow order */
 			zrtpChannelContext->keyAgreementAlgo = peerCommonKeyAgreementType[0];
 		} else {
@@ -484,6 +501,12 @@ int bzrtp_updateCryptoFunctionPointers(bzrtpChannelContext_t *zrtpChannelContext
 			break;
 		case ZRTP_KEYAGREEMENT_DH3k :
 			zrtpChannelContext->keyAgreementLength = 384;
+			break;
+		case ZRTP_KEYAGREEMENT_X255 :
+			zrtpChannelContext->keyAgreementLength = 32;
+			break;
+		case ZRTP_KEYAGREEMENT_X448 :
+			zrtpChannelContext->keyAgreementLength = 56;
 			break;
 		default:
 			return ZRTP_CRYPTOAGREEMENT_INVALIDCIPHER;
@@ -677,8 +700,12 @@ uint8_t bzrtp_cryptoAlgoTypeStringToInt(uint8_t algoType[4], uint8_t algoFamily)
 					return ZRTP_KEYAGREEMENT_DH3k;
 				} else if (memcmp(algoType, "DH2k", 4) == 0) {
 					return ZRTP_KEYAGREEMENT_DH2k;
+				} else if (memcmp(algoType, "E255", 4) == 0) {
+					return ZRTP_KEYAGREEMENT_X255;
 				} else if (memcmp(algoType, "EC25", 4) == 0) {
 					return ZRTP_KEYAGREEMENT_EC25;
+				} else if (memcmp(algoType, "E448", 4) == 0) {
+					return ZRTP_KEYAGREEMENT_X448;
 				} else if (memcmp(algoType, "EC38", 4) == 0) {
 					return ZRTP_KEYAGREEMENT_EC38;
 				} else if (memcmp(algoType, "EC52", 4) == 0) {
@@ -760,8 +787,14 @@ void bzrtp_cryptoAlgoTypeIntToString(uint8_t algoTypeInt, uint8_t algoTypeString
 		case ZRTP_KEYAGREEMENT_DH2k:
 			memcpy(algoTypeString, "DH2k", 4);
 			break;
+		case ZRTP_KEYAGREEMENT_X255:
+			memcpy(algoTypeString, "E255", 4);
+			break;
 		case ZRTP_KEYAGREEMENT_EC25:
 			memcpy(algoTypeString, "EC25", 4);
+			break;
+		case ZRTP_KEYAGREEMENT_X448:
+			memcpy(algoTypeString, "E448", 4);
 			break;
 		case ZRTP_KEYAGREEMENT_DH3k:
 			memcpy(algoTypeString, "DH3k", 4);

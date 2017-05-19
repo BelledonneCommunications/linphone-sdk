@@ -5,7 +5,7 @@
 
  @author Johan Pascal
 
- @copyright Copyright (C) 2014 Belledonne Communications, Grenoble, France
+ @copyright Copyright (C) 2017 Belledonne Communications, Grenoble, France
  
  This program is free software; you can redistribute it and/or
  modify it under the terms of the GNU General Public License
@@ -76,13 +76,15 @@
  * as it is used to easily sort them from faster(DH2k) to slower(EC52)
  */
 #define ZRTP_KEYAGREEMENT_DH2k	0x41
-#define ZRTP_KEYAGREEMENT_EC25	0x42
-#define ZRTP_KEYAGREEMENT_DH3k	0x43
-#define ZRTP_KEYAGREEMENT_EC38	0x44
-#define ZRTP_KEYAGREEMENT_EC52	0x45
+#define ZRTP_KEYAGREEMENT_X255	0x42
+#define ZRTP_KEYAGREEMENT_EC25	0x43
+#define ZRTP_KEYAGREEMENT_X448	0x44
+#define ZRTP_KEYAGREEMENT_DH3k	0x45
+#define ZRTP_KEYAGREEMENT_EC38	0x46
+#define ZRTP_KEYAGREEMENT_EC52	0x47
 
-#define ZRTP_KEYAGREEMENT_Prsh	0x46
-#define ZRTP_KEYAGREEMENT_Mult	0x47
+#define ZRTP_KEYAGREEMENT_Prsh	0x4e
+#define ZRTP_KEYAGREEMENT_Mult	0x4f
 
 #define ZRTP_SAS_B32			0x51
 #define ZRTP_SAS_B256			0x52

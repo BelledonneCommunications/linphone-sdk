@@ -76,8 +76,23 @@ static uint8_t bobQueueIndex = 0;
 #define ALICE_SSRC_BASE 0x12345000
 #define BOB_SSRC_BASE 0x87654000
 
-static cryptoParams_t defaultCryptoAlgoSelection = {{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH3k},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0};
-static cryptoParams_t defaultCryptoAlgoSelectionNoSASValidation = {{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH3k},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,1};
+static cryptoParams_t withoutX255 = {{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH3k},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0};
+static cryptoParams_t withX255 = {{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_X255},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0};
+cryptoParams_t *defaultCryptoAlgoSelection(void) {
+	if (bctbx_key_agreement_algo_list()&BCTBX_ECDH_X25519) {
+		return &withX255;
+	}
+	return &withoutX255;
+}
+
+static cryptoParams_t withoutX255noSAS = {{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH3k},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,1};
+static cryptoParams_t withX255noSAS = {{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_X255},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,1};
+cryptoParams_t *defaultCryptoAlgoSelectionNoSASValidation(void) {
+	if (bctbx_key_agreement_algo_list()&BCTBX_ECDH_X25519) {
+		return &withX255noSAS;
+	}
+	return &withoutX255noSAS;
+}
 
 /* static global settings and their reset function */
 static uint64_t msSTC = 0; /* Simulation Time Coordinated start at 0 and increment it at each sleep, is in milliseconds */
@@ -557,6 +572,31 @@ void test_cacheless_exchange(void) {
 		{{0},0,{0},0,{0},0,{0},0,{0},0,0}, /* this pattern will end the run because cipher nb is 0 */
 		};
 
+	/* serie tested only if ECDH is available */
+	cryptoParams_t ecdh_patterns[] = {
+		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_X448},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
+		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_X448},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS80},1,0},
+		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_X448},1,{ZRTP_SAS_B256},1,{ZRTP_AUTHTAG_HS32},1,0},
+		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_X448},1,{ZRTP_SAS_B256},1,{ZRTP_AUTHTAG_HS80},1,0},
+
+		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_X255},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
+		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_X255},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS80},1,0},
+		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_X255},1,{ZRTP_SAS_B256},1,{ZRTP_AUTHTAG_HS32},1,0},
+		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_X255},1,{ZRTP_SAS_B256},1,{ZRTP_AUTHTAG_HS80},1,0},
+
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_X448},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_X448},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS80},1,0},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_X448},1,{ZRTP_SAS_B256},1,{ZRTP_AUTHTAG_HS32},1,0},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_X448},1,{ZRTP_SAS_B256},1,{ZRTP_AUTHTAG_HS80},1,0},
+
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_X255},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_X255},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS80},1,0},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_X255},1,{ZRTP_SAS_B256},1,{ZRTP_AUTHTAG_HS32},1,0},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_X255},1,{ZRTP_SAS_B256},1,{ZRTP_AUTHTAG_HS80},1,0},
+
+		{{0},0,{0},0,{0},0,{0},0,{0},0,0}, /* this pattern will end the run because cipher nb is 0 */
+	};
+
 	pattern = &patterns[0]; /* pattern is a pointer to current pattern */
 
 	while (pattern->cipherNb!=0) {
@@ -564,7 +604,14 @@ void test_cacheless_exchange(void) {
 		pattern++; /* point to next row in the array of patterns */
 	}
 
-	BC_ASSERT_EQUAL(multichannel_exchange(NULL, NULL, &defaultCryptoAlgoSelection, NULL, NULL, NULL, NULL), 0, int, "%x");
+	/* with ECDH agreement types if available */
+	if (bctbx_key_agreement_algo_list()&BCTBX_ECDH_X25519) {
+		pattern = &ecdh_patterns[0]; /* pattern is a pointer to current pattern */
+		BC_ASSERT_EQUAL(multichannel_exchange(pattern, pattern, pattern, NULL, NULL, NULL, NULL), 0, int, "%x");
+		pattern++; /* point to next row in the array of patterns */
+	}
+
+	BC_ASSERT_EQUAL(multichannel_exchange(NULL, NULL, defaultCryptoAlgoSelection(), NULL, NULL, NULL, NULL), 0, int, "%x");
 }
 
 void test_loosy_network(void) {
@@ -578,7 +625,7 @@ void test_loosy_network(void) {
 			resetGlobalParams();
 			timeOutLimit =100000; //outrageous time limit just to be sure to complete, not run in real time anyway
 			loosePacketPercentage=i;
-			BC_ASSERT_EQUAL(multichannel_exchange(NULL, NULL, &defaultCryptoAlgoSelection, NULL, NULL, NULL, NULL), 0, int, "%x");
+			BC_ASSERT_EQUAL(multichannel_exchange(NULL, NULL, defaultCryptoAlgoSelection(), NULL, NULL, NULL, NULL), 0, int, "%x");
 		}
 	}
 }
@@ -604,7 +651,7 @@ void test_cache_enabled_exchange(void) {
 	bzrtptester_sqlite3_open(bc_tester_file("tmpZIDBob_simpleCache.sqlite"), &bobDB);
 
 	/* make a first exchange */
-	BC_ASSERT_EQUAL(multichannel_exchange(NULL, NULL, &defaultCryptoAlgoSelection, aliceDB, "alice@sip.linphone.org", bobDB, "bob@sip.linphone.org"), 0, int, "%x");
+	BC_ASSERT_EQUAL(multichannel_exchange(NULL, NULL, defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bobDB, "bob@sip.linphone.org"), 0, int, "%x");
 
 	/* after the first exchange we shall have both pvs values at 1 and both rs1 identical and rs2 null, retrieve them from cache and check it */
 	/* first get each ZIDs, note give NULL as RNG context may lead to segfault in case of error(caches were not created correctly)*/
@@ -633,7 +680,7 @@ void test_cache_enabled_exchange(void) {
 	BC_ASSERT_EQUAL(*colValuesBob[2], 1, int, "%d");
 
 	/* make a second exchange */
-	BC_ASSERT_EQUAL(multichannel_exchange(NULL, NULL, &defaultCryptoAlgoSelection, aliceDB, "alice@sip.linphone.org", bobDB, "bob@sip.linphone.org"), 0, int, "%x");
+	BC_ASSERT_EQUAL(multichannel_exchange(NULL, NULL, defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bobDB, "bob@sip.linphone.org"), 0, int, "%x");
 	/* read new values in cache, ZIDs and zuids must be identical, read alice first to be able to check rs2 with old rs1 */
 	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 3), 0, int, "%x");
 	/* check what is now rs2 is the old rs1 */
@@ -688,7 +735,7 @@ void test_cache_mismatch_exchange(void) {
 	bzrtptester_sqlite3_open(bc_tester_file("tmpZIDBob_cacheMismatch.sqlite"), &bobDB);
 
 	/* make a first exchange */
-	BC_ASSERT_EQUAL(multichannel_exchange(NULL, NULL, &defaultCryptoAlgoSelection, aliceDB, "alice@sip.linphone.org", bobDB, "bob@sip.linphone.org"), 0, int, "%x");
+	BC_ASSERT_EQUAL(multichannel_exchange(NULL, NULL, defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bobDB, "bob@sip.linphone.org"), 0, int, "%x");
 
 	/* after the first exchange we shall have both pvs values at 1 and both rs1 identical and rs2 null, retrieve them from cache and check it */
 	/* first get each ZIDs, note give NULL as RNG context may lead to segfault in case of error(caches were not created correctly)*/
@@ -722,7 +769,7 @@ void test_cache_mismatch_exchange(void) {
 
 	/* make a second exchange : we have a cache mismatch(both on Bob and Alice side), wich means rs1 will not be backed up in rs2 which shall be NULL again */
 	/* rs1 will be in sync has the SAS comparison will succeed and pvs will be set to 1*/
-	BC_ASSERT_EQUAL(multichannel_exchange(NULL, NULL, &defaultCryptoAlgoSelection, aliceDB, "alice@sip.linphone.org", bobDB, "bob@sip.linphone.org"), RET_CACHE_MISMATCH<<16|RET_CACHE_MISMATCH, int, "%x");
+	BC_ASSERT_EQUAL(multichannel_exchange(NULL, NULL, defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bobDB, "bob@sip.linphone.org"), RET_CACHE_MISMATCH<<16|RET_CACHE_MISMATCH, int, "%x");
 
 	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)bobDB, zuidBob, "zrtp", colNames, colValuesBob, colLengthBob, 3), 0, int, "%x");
 	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 3), 0, int, "%x");
@@ -748,7 +795,7 @@ void test_cache_mismatch_exchange(void) {
 
 	/* make a third exchange : we have a cache mismatch(on Bob side only), wich means rs1 will not be backed up in rs2 which shall be NULL again */
 	/* rs1 will be in sync has the SAS comparison will succeed and pvs will be set to 1*/
-	BC_ASSERT_EQUAL(multichannel_exchange(NULL, NULL, &defaultCryptoAlgoSelection, aliceDB, "alice@sip.linphone.org", bobDB, "bob@sip.linphone.org"), RET_CACHE_MISMATCH<<16, int, "%x");
+	BC_ASSERT_EQUAL(multichannel_exchange(NULL, NULL, defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bobDB, "bob@sip.linphone.org"), RET_CACHE_MISMATCH<<16, int, "%x");
 
 	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)bobDB, zuidBob, "zrtp", colNames, colValuesBob, colLengthBob, 3), 0, int, "%x");
 	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 3), 0, int, "%x");
@@ -800,7 +847,7 @@ void test_cache_sas_not_confirmed(void) {
 	bzrtptester_sqlite3_open(bc_tester_file("tmpZIDBob_simpleCache.sqlite"), &bobDB);
 
 	/* make a first exchange, Alice is instructed to not validate the SAS */
-	BC_ASSERT_EQUAL(multichannel_exchange_pvs_params(&defaultCryptoAlgoSelectionNoSASValidation, &defaultCryptoAlgoSelection, &defaultCryptoAlgoSelection, aliceDB, "alice@sip.linphone.org", bobDB, "bob@sip.linphone.org", TRUE, 0, 0), 0, int, "%x");
+	BC_ASSERT_EQUAL(multichannel_exchange_pvs_params(defaultCryptoAlgoSelectionNoSASValidation(), defaultCryptoAlgoSelection(), defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bobDB, "bob@sip.linphone.org", TRUE, 0, 0), 0, int, "%x");
 
 	/* after the first exchange we shall have alice pvs at 0 and bob at 1 and both rs1 identical and rs2 null, retrieve them from cache and check it */
 	/* first get each ZIDs, note give NULL as RNG context may lead to segfault in case of error(caches were not created correctly)*/
@@ -829,7 +876,7 @@ void test_cache_sas_not_confirmed(void) {
 
 	/* make a second exchange, the PVS flag returned by both side shall be 0 as Alice did not validate hers on previous exchange */
 	/* but let them both validate this one */
-	BC_ASSERT_EQUAL(multichannel_exchange_pvs_params(NULL, NULL, &defaultCryptoAlgoSelection, aliceDB, "alice@sip.linphone.org", bobDB, "bob@sip.linphone.org", TRUE, 0, 0), 0, int, "%x");
+	BC_ASSERT_EQUAL(multichannel_exchange_pvs_params(NULL, NULL, defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bobDB, "bob@sip.linphone.org", TRUE, 0, 0), 0, int, "%x");
 	/* read new values in cache, ZIDs and zuids must be identical, read alice first to be able to check rs2 with old rs1 */
 	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 3), 0, int, "%x");
 	/* check what is now rs2 is the old rs1 */
@@ -848,7 +895,7 @@ void test_cache_sas_not_confirmed(void) {
 	BC_ASSERT_EQUAL(*colValuesBob[2], 1, int, "%d");
 
 	/* make a third exchange, the PVS flag returned by both side shall be 1 */
-	BC_ASSERT_EQUAL(multichannel_exchange_pvs_params(NULL, NULL, &defaultCryptoAlgoSelection, aliceDB, "alice@sip.linphone.org", bobDB, "bob@sip.linphone.org", TRUE, 1, 1), 0, int, "%x");
+	BC_ASSERT_EQUAL(multichannel_exchange_pvs_params(NULL, NULL, defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bobDB, "bob@sip.linphone.org", TRUE, 1, 1), 0, int, "%x");
 	/* read new values in cache, ZIDs and zuids must be identical, read alice first to be able to check rs2 with old rs1 */
 	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 3), 0, int, "%x");
 	/* check what is now rs2 is the old rs1 */
