@@ -43,6 +43,7 @@ static SoundDeviceAudioHacks SonySGP511Hacks = { "50:0.01:100 600:0.2:100 1350:0
  * All these values can be obtained from the device using "adb shell getprop"
 */
 static SoundDeviceDescription devices[]={
+	{	"alps",					"Bluboo Maya Max",		"mt6750",		DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0 },
 	{	"HTC",					"Nexus One",			"qsd8k",		0,	300 },
 	{	"HTC",					"HTC One X",			"tegra",		0,	150 },	/*has a very good acoustic isolation, which result in calibration saying no echo. */
 										/*/But with speaker mode there is a strong echo if software ec is disabled.*/
