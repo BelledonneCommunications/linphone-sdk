@@ -1,6 +1,6 @@
 /*
 crypto.h
-Copyright (C) 2016  Belledonne Communications SARL
+Copyright (C) 2017  Belledonne Communications SARL
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -21,12 +21,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include <bctoolbox/port.h>
 
-/* DHM settings defines */
-#define BCTBX_DHM_UNSET	0
-#define BCTBX_DHM_2048	1
-#define BCTBX_DHM_3072	2
-#define BCTBX_ECDH_X25519	3
-#define BCTBX_ECDH_X448		4
+/* key agreements settings defines */
+/* Each algo is defined as a bit toggled in a 32 bits integer,
+ * so we can easily ask for all availables ones
+ */
+#define BCTBX_DHM_UNSET		0x00000000
+#define BCTBX_DHM_2048		0x00000001
+#define BCTBX_DHM_3072		0x00000002
+#define BCTBX_ECDH_X25519	0x00000004
+#define BCTBX_ECDH_X448		0x00000008
 
 /* EdDSA defines */
 #define BCTBX_EDDSA_UNSET	0
@@ -484,6 +487,16 @@ BCTBX_PUBLIC int32_t bctbx_ssl_config_set_dtls_srtp_protection_profiles(bctbx_ss
 BCTBX_PUBLIC int32_t bctbx_ssl_get_dtls_srtp_key_material(bctbx_ssl_context_t *ssl_ctx, char *output, size_t *output_length);
 BCTBX_PUBLIC uint8_t bctbx_dtls_srtp_supported(void);
 
+/*****************************************************************************/
+/***** Key exchanges defined algorithms                                  *****/
+/*****************************************************************************/
+/**
+ * @brief Return a 32 bits unsigned integer, each bit set to one matches an
+ * available key agreement algorithm as defined in bctoolbox/include/crypto.h
+ *
+ * @return An unsigned integer of 32 flags matching key agreement algos
+ */
+BCTBX_PUBLIC uint32_t bctbx_key_agreement_algo_list(void);
 
 /*****************************************************************************/
 /***** Diffie-Hellman-Merkle key exchange                                *****/

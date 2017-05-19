@@ -33,6 +33,19 @@ int bctbx_crypto_have_ecc(void) {
  return TRUE;
 }
 
+/**
+ * @brief Return a 32 bits unsigned integer, each bit set to one matches an
+ * available key agreement algorithm as defined in bctoolbox/include/crypto.h
+ *
+ * This function is implemented in ecc.c as all other backend crypto libraries
+ * (polarssl-1.2, polarssl-1.3/1.4, mbedtls implement DHM2048 and DHM3072
+ *
+ * @return An unsigned integer of 32 flags matching key agreement algos
+ */
+uint32_t bctbx_key_agreement_algo_list(void) {
+	return BCTBX_DHM_2048|BCTBX_DHM_3072|BCTBX_ECDH_X25519|BCTBX_ECDH_X448;
+}
+
 /*****************************************************************************/
 /*** Elliptic Curve Diffie-Hellman - ECDH                                  ***/
 /*****************************************************************************/
@@ -439,6 +452,13 @@ void bctbx_EDDSA_ECDH_publicKeyConversion(const bctbx_EDDSAContext_t *ed, bctbx_
 }
 
 #else /* HAVE_DECAF */
+ /* This function is implemented in ecc.c as all other backend crypto libraries
+ * (polarssl-1.2, polarssl-1.3/1.4, mbedtls implement DHM2048 and DHM3072
+ */
+uint32_t bctbx_key_agreement_algo_list(void) {
+	return BCTBX_DHM_2048|BCTBX_DHM_3072;
+}
+
 /* We do not have lib decaf, implement empty stubs */
 int bctbx_crypto_have_ecc(void) { return FALSE;}
 bctbx_ECDHContext_t *bctbx_CreateECDHContext(uint8_t ECDHAlgo) {return NULL;}
