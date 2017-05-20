@@ -20,6 +20,7 @@
 #
 ############################################################################
 
+set(BCTOOLBOX_CMAKE_UTILS_DIR "${CMAKE_CURRENT_LIST_DIR}")
 
 macro(bc_apply_compile_flags SOURCE_FILES)
 	if(${SOURCE_FILES})
@@ -36,17 +37,10 @@ macro(bc_apply_compile_flags SOURCE_FILES)
 	endif()
 endmacro()
 
-macro(bc_set_libraries_from_static_target LIBRARIES TARGET_NAME)
-	if(TARGET ${TARGET_NAME})
-		if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
-			set(${LIBRARIES} ${TARGET_NAME})
-		else()
-			get_target_property(${LIBRARIES} ${TARGET_NAME} LOCATION)
-		endif()
-		get_target_property(_link_libraries ${TARGET_NAME} INTERFACE_LINK_LIBRARIES)
-		if(_link_libraries)
-			list(APPEND ${LIBRARIES} ${_link_libraries})
-		endif()
-	endif()
+macro(bc_git_version PROJECT_NAME PROJECT_VERSION)
+	find_package(Git)
+	add_custom_target(${PROJECT_NAME}-git-version
+		COMMAND ${CMAKE_COMMAND} -DGIT_EXECUTABLE=${GIT_EXECUTABLE} -DPROJECT_NAME=${PROJECT_NAME} -DPROJECT_VERSION=${PROJECT_VERSION} -DWORK_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DTEMPLATE_DIR=${BCTOOLBOX_CMAKE_UTILS_DIR} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR} -P ${BCTOOLBOX_CMAKE_UTILS_DIR}/BcGitVersion.cmake
+		BYPRODUCTS "${CMAKE_CURRENT_BINARY_DIR}/gitversion.h"
+	)
 endmacro()
-
