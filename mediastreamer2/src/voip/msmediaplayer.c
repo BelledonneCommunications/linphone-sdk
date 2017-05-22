@@ -88,6 +88,7 @@ static MSFileFormat four_cc_to_file_format(const FourCC four_cc) {
 MSMediaPlayer *ms_media_player_new(MSFactory* factory, MSSndCard *snd_card, const char *video_display_name, void *window_id) {
 	MSMediaPlayer *obj = (MSMediaPlayer *)ms_new0(MSMediaPlayer, 1);
 	obj->ticker = ms_ticker_new();
+	ms_ticker_set_name(obj->ticker, "Player");
 	ms_mutex_init(&obj->cb_access, NULL);
 	obj->snd_card = snd_card;
 	if(video_display_name != NULL && strlen(video_display_name) > 0) {

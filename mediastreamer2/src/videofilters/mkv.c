@@ -31,6 +31,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mediastreamer2/formats.h"
 #include "vp8rtpfmt.h"
 #include "mkv_reader.h"
+#include "h264utils.h"
 #undef bool_t
 
 #define bool_t ambigous use ms_bool_t or matroska_bool_t
@@ -77,36 +78,50 @@ typedef struct {
 	bctbx_list_t *pps_list;
 } H264Private;
 
-static void _ms_list_append_copy(const mblk_t *buffer, bctbx_list_t **list) {
-	*list = bctbx_list_append(*list, copymsg(buffer));
+static void _H264Private_init(H264Private *obj) {
+	obj->NALULenghtSizeMinusOne = 0xFF;
 }
 
-static void H264Private_init(H264Private *obj, const bctbx_list_t *spsList, const bctbx_list_t *ppsList) {
-	memset(obj, 0, sizeof(H264Private));
-	obj->NALULenghtSizeMinusOne = 0xFF;
-	bctbx_list_for_each2(spsList, (MSIterate2Func)_ms_list_append_copy, &obj->sps_list);
-	bctbx_list_for_each2(ppsList, (MSIterate2Func)_ms_list_append_copy, &obj->pps_list);
-	if(obj->sps_list != NULL) {
-		const mblk_t *firstSPS = (const mblk_t *)bctbx_list_nth_data(obj->sps_list, 0);
+static H264Private *H264Private_new(void) {
+	H264Private *obj = (H264Private *)bctbx_new0(H264Private, 1);
+	_H264Private_init(obj);
+	return obj;
+}
+
+static void _H264Private_uninit(H264Private *obj) {
+	if(obj->sps_list != NULL) bctbx_list_free_with_data(obj->sps_list, (bctbx_list_free_func)freemsg);
+	if(obj->pps_list != NULL) bctbx_list_free_with_data(obj->pps_list, (bctbx_list_free_func)freemsg);
+}
+
+static void H264Private_free(H264Private *obj) {
+	_H264Private_uninit(obj);
+	bctbx_free(obj);
+}
+
+static void H264Private_addSPS(H264Private *obj, mblk_t *sps) {
+	bctbx_list_t *it;
+	unsigned int id = ms_h264_sps_get_id(sps);
+	for(it = bctbx_list_first_elem(obj->sps_list); it!=NULL; it=bctbx_list_next(it)) {
+		if (ms_h264_sps_get_id((mblk_t *)it->data) == id) break;
+	}
+	if (it == NULL) {
+		const mblk_t *firstSPS;
+		obj->sps_list = bctbx_list_append(obj->sps_list, dupmsg(sps));
+		firstSPS = (const mblk_t *)bctbx_list_nth_data(obj->sps_list, 0);
 		obj->profile = firstSPS->b_rptr[1];
 		obj->level = firstSPS->b_rptr[3];
 	}
 }
 
-static void H264Private_uninit(H264Private *obj) {
-	if(obj->sps_list != NULL) bctbx_list_free_with_data(obj->sps_list, (void ( *)(void *))freemsg);
-	if(obj->pps_list != NULL) bctbx_list_free_with_data(obj->pps_list, (void ( *)(void *))freemsg);
-}
-
-static H264Private *H264Private_new(const bctbx_list_t *spsList, const bctbx_list_t *ppsList) {
-	H264Private *obj = (H264Private *)ms_new0(H264Private, 1);
-	H264Private_init(obj, spsList, ppsList);
-	return obj;
-}
-
-static void H264Private_free(H264Private *obj) {
-	H264Private_uninit(obj);
-	ms_free(obj);
+static void H264Private_addPPS(H264Private *obj, mblk_t *pps) {
+	bctbx_list_t *it;
+	unsigned int id = ms_h264_pps_get_id(pps);
+	for(it = bctbx_list_first_elem(obj->pps_list); it!=NULL; it=bctbx_list_next(it)) {
+		if (ms_h264_pps_get_id((mblk_t *)it->data) == id) break;
+	}
+	if (it == NULL) {
+		obj->pps_list = bctbx_list_append(obj->pps_list, dupmsg(pps));
+	}
 }
 
 static const bctbx_list_t *H264Private_getSPS(const H264Private *obj) {
@@ -177,8 +192,8 @@ static void H264Private_load(H264Private *obj, const uint8_t *data) {
 	uint16_t nalu_size;
 	mblk_t *nalu = NULL;
 
-	H264Private_uninit(obj);
-	H264Private_init(obj, NULL, NULL);
+	_H264Private_uninit(obj);
+	_H264Private_init(obj);
 
 	N = data[5] & 0x1F;
 	r_ptr = data + 6;
@@ -323,18 +338,23 @@ static mblk_t *h264_module_processing(void *data, mblk_t *nalus, ms_bool_t *isKe
 	bctbx_list_t *spsList = NULL, *ppsList = NULL;
 	nalus_to_frame(nalus, &frame, &spsList, &ppsList, isKeyFrame);
 	if(spsList != NULL || ppsList != NULL) {
-		H264Private *codecPrivateStruct = H264Private_new(spsList, ppsList);
-		ms_message("MKVRecorder: Received H264 SPS [%p] or PPS [%p]", spsList, ppsList);
-		if(obj->codecPrivate == NULL) {
-			obj->codecPrivate = codecPrivateStruct;
-		} else {
-			H264Private_serialize(codecPrivateStruct, codecPrivateData, codecPrivateSize);
-			H264Private_free(codecPrivateStruct);
+		bctbx_list_t *it;
+		ms_message("MKVRecorder: H264 SPS [%p] or PPS [%p] received", spsList, ppsList);
+		if (obj->codecPrivate == NULL) {
+			obj->codecPrivate = H264Private_new();
 		}
-		if(spsList != NULL) bctbx_list_free_with_data(spsList, (void ( *)(void *))freemsg);
-		if(ppsList != NULL) bctbx_list_free_with_data(ppsList, (void ( *)(void *))freemsg);
+		for (it=bctbx_list_first_elem(spsList); it!=NULL; it=bctbx_list_next(it)) {
+			H264Private_addSPS(obj->codecPrivate, (mblk_t *)bctbx_list_get_data(it));
+		}
+		for (it=bctbx_list_first_elem(ppsList); it!=NULL; it=bctbx_list_next(it)) {
+			H264Private_addPPS(obj->codecPrivate, (mblk_t *)bctbx_list_get_data(it));
+		}
+		if(spsList != NULL) bctbx_list_free_with_data(spsList, (bctbx_list_free_func)freemsg);
+		if(ppsList != NULL) bctbx_list_free_with_data(ppsList, (bctbx_list_free_func)freemsg);
 	}
 	*isVisible = TRUE;
+	*codecPrivateData = NULL;
+	*codecPrivateSize = 0;
 	return frame;
 }
 
@@ -365,7 +385,7 @@ static void h264_module_reverse(MSFactory* factory, void *data, mblk_t *input, M
 	if(isFirstFrame) {
 		selectedCodecPrivate = obj->codecPrivate;
 	} else if(codecPrivateData != NULL) {
-		codecPrivate = H264Private_new(NULL, NULL);
+		codecPrivate = H264Private_new();
 		H264Private_load(codecPrivate, codecPrivateData);
 		selectedCodecPrivate = codecPrivate;
 	}
@@ -405,7 +425,7 @@ static void h264_module_get_private_data(const void *o, uint8_t **data, size_t *
 
 static void h264_module_load_private_data(void *o, const uint8_t *data, size_t size) {
 	H264Module *obj = (H264Module *)o;
-	obj->codecPrivate = H264Private_new(NULL, NULL);
+	obj->codecPrivate = H264Private_new();
 	H264Private_load(obj->codecPrivate, data);
 }
 
@@ -1813,28 +1833,29 @@ static matroska_block *write_frame(MKVRecorder *obj, mblk_t *buffer, uint16_t pi
 	ms_bool_t isVisible;
 	uint8_t *codecPrivateData = NULL;
 	size_t codecPrivateSize;
-	matroska_block *block;
+	matroska_block *block = NULL;
 	mblk_t *frame = NULL;
 	matroska_frame m_frame;
 
 	frame = module_process(obj->modulesList[pin], buffer, &isKeyFrame, &isVisible, &codecPrivateData, &codecPrivateSize);
+	if (frame != NULL) {
+		m_frame.Timecode = ((int64_t)mblk_get_timestamp_info(frame)) * 1000000LL;
+		m_frame.Size = (uint32_t)msgdsize(frame);
+		m_frame.Data = frame->b_rptr;
 
-	m_frame.Timecode = ((int64_t)mblk_get_timestamp_info(frame)) * 1000000LL;
-	m_frame.Size = (uint32_t)msgdsize(frame);
-	m_frame.Data = frame->b_rptr;
-
-	if(matroska_clusters_count(&obj->file) == 0) {
-		matroska_start_cluster(&obj->file, mblk_get_timestamp_info(frame));
-	} else {
-		if((obj->inputDescsList[pin]->type == MSVideo && isKeyFrame) || (obj->duration - matroska_current_cluster_timecode(&obj->file) >= CLUSTER_MAX_DURATION)) {
-			matroska_close_cluster(&obj->file);
+		if(matroska_clusters_count(&obj->file) == 0) {
 			matroska_start_cluster(&obj->file, mblk_get_timestamp_info(frame));
+		} else {
+			if((obj->inputDescsList[pin]->type == MSVideo && isKeyFrame) || (obj->duration - matroska_current_cluster_timecode(&obj->file) >= CLUSTER_MAX_DURATION)) {
+				matroska_close_cluster(&obj->file);
+				matroska_start_cluster(&obj->file, mblk_get_timestamp_info(frame));
+			}
 		}
-	}
 
-	block = matroska_write_block(&obj->file, &m_frame, pin + 1, isKeyFrame, isVisible, codecPrivateData, codecPrivateSize);
-	freemsg(frame);
-	ms_free(codecPrivateData);
+		block = matroska_write_block(&obj->file, &m_frame, pin + 1, isKeyFrame, isVisible, codecPrivateData, codecPrivateSize);
+		freemsg(frame);
+		if (codecPrivateData != NULL) bctbx_free(codecPrivateData);
+	}
 	return block;
 }
 
@@ -2036,7 +2057,7 @@ static void recorder_process(MSFilter *f) {
 
 			block = write_frame(obj, buffer, pin);
 
-			if(obj->inputDescsList[pin]->type == MSVideo) {
+			if(obj->inputDescsList[pin]->type == MSVideo && block != NULL) {
 				matroska_add_cue(&obj->file, block);
 			}
 			if(bufferTimecode > obj->duration) {

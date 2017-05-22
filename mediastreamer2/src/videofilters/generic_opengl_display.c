@@ -89,7 +89,7 @@ static void ogl_process (MSFilter *f) {
 		ms_yuv_buf_init_from_mblk(&src, inm) == 0
 	) {
 		data->video_size.width = src.w;
-		data->video_size.width = src.h;
+		data->video_size.height = src.h;
 
 		ogl_display_set_yuv_to_display(data->display, inm);
 
@@ -164,7 +164,7 @@ static int ogl_show_video (MSFilter *f, void *arg) {
 static int ogl_zoom (MSFilter *f, void *arg) {
 	ms_filter_lock(f);
 	ogl_display_zoom(((FilterData *)f->data)->display, arg);
-	ms_filter_lock(f);
+	ms_filter_unlock(f);
 
 	return 0;
 }
@@ -172,7 +172,7 @@ static int ogl_zoom (MSFilter *f, void *arg) {
 static int ogl_enable_mirroring (MSFilter *f, void *arg) {
 	ms_filter_lock(f);
 	((FilterData *)f->data)->mirroring = *(bool_t *)arg;
-	ms_filter_lock(f);
+	ms_filter_unlock(f);
 
 	return 0;
 }

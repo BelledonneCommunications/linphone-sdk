@@ -132,7 +132,7 @@ typedef struct _MediastreamDatas {
 	int el_sustain;
 	float el_transmit_thres;
 	float ng_floorgain;
-	char * zrtp_secrets;
+	bool_t enable_zrtp;
 	PayloadType *custom_pt;
 	int video_window_id;
 	int preview_window_id;
@@ -234,7 +234,7 @@ const char *usage="mediastream --local <port>\n"
 								"[ --video-windows-id <video surface:preview surface >]\n"
 								"[ --width <pixels> ]\n"
 								"[ --zoom zoom factor ]\n"
-								"[ --zrtp <secrets file> (enable zrtp) ]\n"
+								"[ --zrtp (enable zrtp) ]\n"
 								#if TARGET_OS_IPHONE
 								"[ --speaker route audio to speaker ]\n"
 								#endif
@@ -330,7 +330,7 @@ MediastreamDatas* init_default_args(void) {
 	args->el_sustain=-1;
 	args->el_transmit_thres=-1;
 	args->ng_floorgain=-1;
-	args->zrtp_secrets=NULL;
+	args->enable_zrtp =FALSE;
 	args->custom_pt=NULL;
 	args->video_window_id = -1;
 	args->preview_window_id = -1;
@@ -508,7 +508,7 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 			i++;
 			out->el_transmit_thres=(float)atof(argv[i]);
 		} else if (strcmp(argv[i],"--zrtp")==0){
-			out->zrtp_secrets=argv[++i];
+			out->enable_zrtp = TRUE;
 		} else if (strcmp(argv[i],"--verbose")==0){
 			out->is_verbose=TRUE;
 		} else if (strcmp(argv[i], "--video-windows-id")==0) {
@@ -887,9 +887,8 @@ void setup_media_streams(MediastreamDatas* args) {
 				}
 			}
 
-			if (args->zrtp_secrets != NULL) {
-				MSZrtpParams params;
-				params.zid_file=args->zrtp_secrets;
+			if (args->enable_zrtp) {
+				MSZrtpParams params = {0};
 				audio_stream_enable_zrtp(args->audio,&params);
 			}
 
