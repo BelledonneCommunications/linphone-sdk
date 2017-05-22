@@ -411,7 +411,7 @@ static const bctbx_noescape_rules_t* get_sip_uri_username_noescapes(void) {
 		noescapes[BCTBX_NOESCAPE_RULES_USER_INDEX] = 1; // initialized
 //		print_noescapes_map(noescapes, "uri_username");
 	}
-	return &noescapes;
+	return (const bctbx_noescape_rules_t*)&noescapes;/*gcc asks for a cast, clang not*/
 }
 /*
  *
@@ -429,7 +429,7 @@ static const bctbx_noescape_rules_t* get_sip_uri_userpasswd_noescapes(void) {
 		noescapes[BCTBX_NOESCAPE_RULES_USER_INDEX] = 1; // initialized
 
 	}
-	return &noescapes;
+	return (const bctbx_noescape_rules_t*)&noescapes;/*gcc asks for a cast, clang not*/
 }
 
 static  const bctbx_noescape_rules_t* get_sip_uri_parameter_noescapes(void) {
@@ -462,7 +462,7 @@ static  const bctbx_noescape_rules_t* get_sip_uri_parameter_noescapes(void) {
 		noescapes[BCTBX_NOESCAPE_RULES_USER_INDEX] = 1; // initialized
 //		print_noescapes_map(noescapes, "uri_parameter");
 	}
-	return & noescapes;
+	return (const bctbx_noescape_rules_t*)&noescapes;/*gcc asks for a cast, clang not*/
 }
 static const bctbx_noescape_rules_t* get_sip_uri_header_noescapes(void) {
 	static bctbx_noescape_rules_t  noescapes= {0};
@@ -492,7 +492,7 @@ static const bctbx_noescape_rules_t* get_sip_uri_header_noescapes(void) {
 		noescapes[BCTBX_NOESCAPE_RULES_USER_INDEX] = 1; // initialized
 //		print_noescapes_map(noescapes, "uri_parameter");
 	}
-	return &noescapes;
+	return (const bctbx_noescape_rules_t*)&noescapes;/*gcc asks for a cast, clang not*/
 }
 
 
@@ -535,7 +535,7 @@ static const bctbx_noescape_rules_t *get_generic_uri_query_noescapes(void) {
 		bctbx_noescape_rules_add_list(noescapes, "=&"); // otherwise how to pass parameters?
 		noescapes[BCTBX_NOESCAPE_RULES_USER_INDEX] = 1; // initialized
 	}
-	return &noescapes;
+	return (const bctbx_noescape_rules_t*)&noescapes;/*gcc asks for a cast, clang not*/
 }
 
 static const bctbx_noescape_rules_t *get_generic_uri_path_noescapes(void) {
@@ -577,7 +577,7 @@ static const bctbx_noescape_rules_t *get_generic_uri_path_noescapes(void) {
 
 		noescapes[BCTBX_NOESCAPE_RULES_USER_INDEX] = 1; // initialized
 	}
-	return &noescapes;
+	return (const bctbx_noescape_rules_t*)&noescapes;/*gcc asks for a cast, clang not*/
 }
 
 char* belle_generic_uri_to_escaped_query(const char* buff) {
