@@ -1620,8 +1620,11 @@ scope { belle_sip_header_authentication_info_t* current; }
    	 belle_sip_free($rspauth.ret);
            }) ;
 
+qop_token
+	:	 {IS_TOKEN(qop)}? token/*'qop'*/;
+/*as defined by 3261*/
 authentication_info_message_qop  returns [const char* ret=NULL]     
-  :   {IS_TOKEN(qop)}? token/*'qop'*/ equal  quoted_string  {  $ret = _belle_sip_str_dup_and_unquote_string((char*)$quoted_string.text->chars);};
+  :   qop_token equal  token  {  $ret = (const char*)$token.text->chars;};
 
 rspauth  returns [char* ret=NULL]             
   :   {IS_TOKEN(rspauth)}? token /*'nonce'*/ equal quoted_string{

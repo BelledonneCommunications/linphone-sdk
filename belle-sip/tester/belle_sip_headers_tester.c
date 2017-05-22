@@ -1175,7 +1175,7 @@ static void test_authentication_info_header(void) {
 	belle_sip_header_authentication_info_t *L_tmp;
 	belle_sip_header_authentication_info_t* L_authentication_info = BELLE_SIP_HEADER_AUTHENTICATION_INFO(belle_sip_header_create("Authentication-Info"
 																													, "nextnonce=\"47364c23432d2e131a5fb210812c\""
-																														", qop=\"auth\""));
+																														", qop=auth"));
 	char* l_raw_header;
 	
 	BC_ASSERT_STRING_EQUAL(belle_sip_header_authentication_info_get_next_nonce(L_authentication_info),"47364c23432d2e131a5fb210812c");

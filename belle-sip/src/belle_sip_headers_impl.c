@@ -85,7 +85,6 @@ static struct header_name_func_pair  header_table[] = {
 	,{PROTO_SIP, 			BELLE_SIP_ACCEPT,				(header_parse_func)belle_sip_header_accept_parse}
 	,{PROTO_SIP, 			BELLE_SIP_REASON,				(header_parse_func)belle_sip_header_reason_parse}
 	,{PROTO_SIP,			BELLE_SIP_AUTHENTICATION_INFO,	(header_parse_func)belle_sip_header_authentication_info_parse}
-	,{PROTO_HTTP,			"AuthenticationInfo",			(header_parse_func)belle_sip_header_authentication_info_parse}
 };
 
 static belle_sip_header_t* belle_header_create(const char* name,const char* value,int protocol) {
@@ -2142,7 +2141,7 @@ belle_sip_error_code belle_sip_header_authentication_info_marshal(belle_sip_head
 	if (error!=BELLE_SIP_OK) return error;
 
 	if (authentication_info->qop) {
-		error=belle_sip_snprintf(buff,buff_size,offset,"%sqop=\"%s\"", border, authentication_info->qop);
+		error=belle_sip_snprintf(buff,buff_size,offset,"%sqop=%s", border, authentication_info->qop);
 		border=", ";
 	}
 	if (error!=BELLE_SIP_OK) return error;
