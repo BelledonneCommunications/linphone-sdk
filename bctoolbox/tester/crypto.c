@@ -17,10 +17,17 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <stdio.h>
 #include "bctoolbox_tester.h"
 #include "bctoolbox/crypto.h"
+#ifdef HAVE_MBEDTLS
+/* used to cross test ECDH25519 */
 #include "mbedtls/ecdh.h"
+#endif /* HAVE_MBEDTLS */
 
 static void DHM(void) {
 
@@ -242,6 +249,7 @@ static void ECDH(void) {
 /* mbedtls works with all buffer in big endian, while rfc 7748 specify little endian encoding, so all buffer in or out of mbedtls_mpi_read/write must be reversed */
 static void ECDH25519compat(void) {
 
+#ifdef HAVE_MBEDTLS
 	int i;
 	bctbx_ECDHContext_t *alice;
 	bctbx_rng_context_t *RNG;
@@ -306,6 +314,9 @@ static void ECDH25519compat(void) {
 
 	/* clear contexts */
 	bctbx_rng_context_free(RNG);
+#else /* HAVE_MBEDTLS */
+	bctbx_warning("test skipped as we don't have mbedtls in bctoolbox");
+#endif /* HAVE_MBEDTLS */
 }
 
 static char *importantMessage1 = "The most obvious mechanical phenomenon in electrical and magnetical experiments is the mutual action by which bodies in certain states set each other in motion while still at a sensible distance from each other. The first step, therefore, in reducing these phenomena into scientific form, is to ascertain the magnitude and direction of the force acting between the bodies, and when it is found that this force depends in a certain way upon the relative position of the bodies and on their electric or magnetic condition, it seems at first sight natural to explain the facts by assuming the existence of something either at rest or in motion in each body, constituting its electric or magnetic state, and capable of acting at a distance according to mathematical laws.In this way mathematical theories of statical electricity, of magnetism, of the mechanical action between conductors carrying currents, and of the induction of currents have been formed. In these theories the force acting between the two bodies is treated with reference only to the condition of the bodies and their relative position, and without any express consideration of the surrounding medium. These theories assume, more or less explicitly, the existence of substances the particles of which have the property of acting on one another at a distance by attraction or repulsion. The most complete development of a theory of this kind is that of M.W. Weber[1], who has made the same theory include electrostatic and electromagnetic phenomena. In doing so, however, he has found it necessary to assume that the force between two particles depends on their relative velocity, as well as on their distance. This theory, as developed by MM. W. Weber and C. Neumann[2], is exceedingly ingenious, and wonderfully comprehensive in its application to the phenomena of statical electricity, electromagnetic attractions, induction of current and diamagnetic phenomena; and it comes to us with the more authority, as it has served to guide the speculations of one who has made so great an advance in the practical part of electric science, both by introducing a consistent system of units in electrical measurement, and by actually determining electrical quantities with an accuracy hitherto unknown.";
@@ -488,13 +499,33 @@ static void sign_and_key_exchange(void) {
 	}
 }
 
+static void hash_test(void) {
+	char *sha_input = "abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu";
+
+	uint8_t sha256_pattern[] = {0xcf, 0x5b, 0x16, 0xa7, 0x78, 0xaf, 0x83, 0x80, 0x03, 0x6c, 0xe5, 0x9e, 0x7b, 0x04, 0x92, 0x37, 0x0b, 0x24, 0x9b, 0x11, 0xe8, 0xf0, 0x7a, 0x51, 0xaf, 0xac, 0x45, 0x03, 0x7a, 0xfe, 0xe9, 0xd1};
+	uint8_t sha384_pattern[] = {0x09, 0x33, 0x0c, 0x33, 0xf7, 0x11, 0x47, 0xe8, 0x3d, 0x19, 0x2f, 0xc7, 0x82, 0xcd, 0x1b, 0x47, 0x53, 0x11, 0x1b, 0x17, 0x3b, 0x3b, 0x05, 0xd2, 0x2f, 0xa0, 0x80, 0x86, 0xe3, 0xb0, 0xf7, 0x12, 0xfc, 0xc7, 0xc7, 0x1a, 0x55, 0x7e, 0x2d, 0xb9, 0x66, 0xc3, 0xe9, 0xfa, 0x91, 0x74, 0x60, 0x39}; 
+	uint8_t sha512_pattern[] = {0x8e, 0x95, 0x9b, 0x75, 0xda, 0xe3, 0x13, 0xda, 0x8c, 0xf4, 0xf7, 0x28, 0x14, 0xfc, 0x14, 0x3f, 0x8f, 0x77, 0x79, 0xc6, 0xeb, 0x9f, 0x7f, 0xa1, 0x72, 0x99, 0xae, 0xad, 0xb6, 0x88, 0x90, 0x18, 0x50, 0x1d, 0x28, 0x9e, 0x49, 0x00, 0xf7, 0xe4, 0x33, 0x1b, 0x99, 0xde, 0xc4, 0xb5, 0x43, 0x3a, 0xc7, 0xd3, 0x29, 0xee, 0xb6, 0xdd, 0x26, 0x54, 0x5e, 0x96, 0xe5, 0x5b, 0x87, 0x4b, 0xe9, 0x09};
+
+	uint8_t outputBuffer[64];
+
+	bctbx_sha256(sha_input, strlen(sha_input), 32, outputBuffer);
+	BC_ASSERT_TRUE(memcmp(outputBuffer, sha256_pattern, 32)==0);
+
+	bctbx_sha384(sha_input, strlen(sha_input), 48, outputBuffer);
+	BC_ASSERT_TRUE(memcmp(outputBuffer, sha384_pattern, 48)==0);
+
+	bctbx_sha512(sha_input, strlen(sha_input), 64, outputBuffer);
+	BC_ASSERT_TRUE(memcmp(outputBuffer, sha512_pattern, 64)==0);
+}
+
 static test_t crypto_tests[] = {
 	TEST_NO_TAG("Diffie-Hellman Key exchange", DHM),
 	TEST_NO_TAG("Elliptic Curve Diffie-Hellman Key exchange", ECDH),
 	TEST_NO_TAG("ECDH25519 decaf-mbedtls", ECDH25519compat),
 	TEST_NO_TAG("EdDSA sign and verify", EdDSA),
 	TEST_NO_TAG("Ed25519 to X25519 key conversion", ed25519_to_x25519_keyconversion),
-	TEST_NO_TAG("Sign message and exchange key using the same base secret", sign_and_key_exchange)
+	TEST_NO_TAG("Sign message and exchange key using the same base secret", sign_and_key_exchange),
+	TEST_NO_TAG("Hash functions", hash_test)
 };
 
 test_suite_t crypto_test_suite = {"Crypto", NULL, NULL, NULL, NULL,

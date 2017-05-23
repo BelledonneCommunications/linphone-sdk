@@ -796,6 +796,31 @@ BCTBX_PUBLIC void bctbx_sha512(const uint8_t *input,
 		uint8_t hashLength,
 		uint8_t *output);
 
+/*
+ * @brief SHA384 wrapper
+ * @param[in]	input 		Input data buffer
+ * @param[in]   inputLength	Input data length in bytes
+ * @param[in]	hashLength	Length of output required in bytes, Output is truncated to the hashLength left bytes. 48 bytes maximum
+ * @param[out]	output		Output data buffer.
+ *
+ */
+void bctbx_sha384(const uint8_t *input,
+		size_t inputLength,
+		uint8_t hashLength,
+		uint8_t *output);
+/**
+ * @brief SHA256 wrapper
+ * @param[in]	input 		Input data buffer
+ * @param[in]   inputLength	Input data length in bytes
+ * @param[in]	hmacLength	Length of output required in bytes, SHA256 output is truncated to the hashLength left bytes. 32 bytes maximum
+ * @param[out]	output		Output data buffer.
+ *
+ */
+BCTBX_PUBLIC void bctbx_sha256(const uint8_t *input,
+		size_t inputLength,
+		uint8_t hashLength,
+		uint8_t *output);
+
 /**
  * @brief HMAC-SHA256 wrapper
  * @param[in] 	key		HMAC secret key
@@ -811,19 +836,6 @@ BCTBX_PUBLIC void bctbx_hmacSha256(const uint8_t *key,
 		const uint8_t *input,
 		size_t inputLength,
 		uint8_t hmacLength,
-		uint8_t *output);
-
-/**
- * @brief SHA256 wrapper
- * @param[in]	input 		Input data buffer
- * @param[in]   inputLength	Input data length in bytes
- * @param[in]	hmacLength	Length of output required in bytes, SHA256 output is truncated to the hashLength left bytes. 32 bytes maximum
- * @param[out]	output		Output data buffer.
- *
- */
-BCTBX_PUBLIC void bctbx_sha256(const uint8_t *input,
-		size_t inputLength,
-		uint8_t hashLength,
 		uint8_t *output);
 
 /**

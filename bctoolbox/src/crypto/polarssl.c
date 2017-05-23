@@ -1191,6 +1191,53 @@ void bctbx_hmacSha256(const uint8_t *key,
 		memcpy(output, hmacOutput, hmacLength);
 	}
 }
+/*
+ * @brief SHA512 wrapper
+ * @param[in]	input 		Input data buffer
+ * @param[in]   inputLength	Input data length in bytes
+ * @param[in]	hashLength	Length of output required in bytes, Output is truncated to the hashLength left bytes. 64 bytes maximum
+ * @param[out]	output		Output data buffer.
+ *
+ */
+void bctbx_sha512(const uint8_t *input,
+		size_t inputLength,
+		uint8_t hashLength,
+		uint8_t *output)
+{
+	uint8_t hashOutput[64];
+	sha512(input, inputLength, hashOutput, 0); /* last param to zero to select SHA512 and not SHA384 */
+
+	/* check output length, can't be>64 */
+	if (hashLength>64) {
+		memcpy(output, hashOutput, 64);
+	} else {
+		memcpy(output, hashOutput, hashLength);
+	}
+}
+
+/*
+ * @brief SHA384 wrapper
+ * @param[in]	input 		Input data buffer
+ * @param[in]   inputLength	Input data length in bytes
+ * @param[in]	hashLength	Length of output required in bytes, Output is truncated to the hashLength left bytes. 48 bytes maximum
+ * @param[out]	output		Output data buffer.
+ *
+ */
+void bctbx_sha384(const uint8_t *input,
+		size_t inputLength,
+		uint8_t hashLength,
+		uint8_t *output)
+{
+	uint8_t hashOutput[48];
+	sha512(input, inputLength, hashOutput, 1); /* last param to one to select SHA384 and not SHA512 */
+
+	/* check output length, can't be>48 */
+	if (hashLength>48) {
+		memcpy(output, hashOutput, 48);
+	} else {
+		memcpy(output, hashOutput, hashLength);
+	}
+}
 
 /**
  * @brief SHA256 wrapper
