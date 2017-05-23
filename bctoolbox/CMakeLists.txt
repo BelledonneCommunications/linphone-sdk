@@ -205,6 +205,8 @@ configure_file(cmake/BcToolboxConfig.cmake.in
 	@ONLY
 )
 configure_file(cmake/BcToolboxCMakeUtils.cmake "${CMAKE_CURRENT_BINARY_DIR}/BcToolboxCMakeUtils.cmake" COPYONLY)
+configure_file(cmake/BcGitVersion.cmake "${CMAKE_CURRENT_BINARY_DIR}/BcGitVersion.cmake" COPYONLY)
+configure_file(cmake/gitversion.h.in "${CMAKE_CURRENT_BINARY_DIR}/gitversion.h.in" COPYONLY)
 
 set(CONFIG_PACKAGE_LOCATION "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/cmake")
 install(EXPORT ${EXPORT_TARGETS_NAME}Targets
@@ -215,7 +217,7 @@ install(FILES
 	"${CMAKE_CURRENT_BINARY_DIR}/BcToolboxConfig.cmake"
 	"${CMAKE_CURRENT_BINARY_DIR}/BcToolboxConfigVersion.cmake"
 	"${CMAKE_CURRENT_BINARY_DIR}/BcToolboxCMakeUtils.cmake"
-	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/BcGitVersion.cmake"
-	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/gitversion.h.in"
+	"${CMAKE_CURRENT_BINARY_DIR}/BcGitVersion.cmake"
+	"${CMAKE_CURRENT_BINARY_DIR}/gitversion.h.in"
 	DESTINATION ${CONFIG_PACKAGE_LOCATION}
 )
