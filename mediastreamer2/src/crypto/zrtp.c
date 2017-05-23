@@ -68,6 +68,8 @@ static const char *bzrtp_keyAgreement_toString(uint8_t keyAgreementAlgo) {
 		case(ZRTP_KEYAGREEMENT_DH3k): return "DHM-3072";
 		case(ZRTP_KEYAGREEMENT_EC38): return "ECDH-384";
 		case(ZRTP_KEYAGREEMENT_EC52): return "ECDH-521";
+		case(ZRTP_KEYAGREEMENT_X255): return "ECDH-255";
+		case(ZRTP_KEYAGREEMENT_X448): return "ECDH-448";
 		case(ZRTP_KEYAGREEMENT_Prsh): return "PreShared";
 		case(ZRTP_KEYAGREEMENT_Mult): return "MultiStream";
 		default: return "Unknown Algo";
@@ -545,6 +547,8 @@ static void set_key_agreement_suites(bzrtpContext_t *ctx, const MSZrtpKeyAgreeme
 			case MS_ZRTP_KEY_AGREEMENT_EC25:    bzrtpKeyAgreements[bzrtpCount++] = ZRTP_KEYAGREEMENT_EC25; break;
 			case MS_ZRTP_KEY_AGREEMENT_EC38:    bzrtpKeyAgreements[bzrtpCount++] = ZRTP_KEYAGREEMENT_EC38; break;
 			case MS_ZRTP_KEY_AGREEMENT_EC52:    bzrtpKeyAgreements[bzrtpCount++] = ZRTP_KEYAGREEMENT_EC52; break;
+			case MS_ZRTP_KEY_AGREEMENT_X255:    bzrtpKeyAgreements[bzrtpCount++] = ZRTP_KEYAGREEMENT_X255; break;
+			case MS_ZRTP_KEY_AGREEMENT_X448:    bzrtpKeyAgreements[bzrtpCount++] = ZRTP_KEYAGREEMENT_X448; break;
 		}
 	}
 
@@ -842,6 +846,8 @@ MSZrtpKeyAgreement ms_zrtp_key_agreement_from_string(const char* str) {
 	STRING_COMPARE_RETURN(str, MS_ZRTP_KEY_AGREEMENT_EC25);
 	STRING_COMPARE_RETURN(str, MS_ZRTP_KEY_AGREEMENT_EC38);
 	STRING_COMPARE_RETURN(str, MS_ZRTP_KEY_AGREEMENT_EC52);
+	STRING_COMPARE_RETURN(str, MS_ZRTP_KEY_AGREEMENT_X255);
+	STRING_COMPARE_RETURN(str, MS_ZRTP_KEY_AGREEMENT_X448);
 	return MS_ZRTP_KEY_AGREEMENT_INVALID;
 }
 
@@ -853,6 +859,8 @@ const char* ms_zrtp_key_agreement_to_string(const MSZrtpKeyAgreement keyAgreemen
 		CASE_RETURN_STRING(MS_ZRTP_KEY_AGREEMENT_EC25);\
 		CASE_RETURN_STRING(MS_ZRTP_KEY_AGREEMENT_EC38);\
 		CASE_RETURN_STRING(MS_ZRTP_KEY_AGREEMENT_EC52);\
+		CASE_RETURN_STRING(MS_ZRTP_KEY_AGREEMENT_X255);\
+		CASE_RETURN_STRING(MS_ZRTP_KEY_AGREEMENT_X448);\
 	);
 }
 
