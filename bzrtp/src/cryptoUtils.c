@@ -45,7 +45,8 @@ uint8_t bzrtpUtils_getAvailableCryptoTypes(uint8_t algoType, uint8_t availableTy
 	switch(algoType) {
 		case ZRTP_HASH_TYPE:
 			availableTypes[0] = ZRTP_HASH_S256;
-			return 1;
+			availableTypes[1] = ZRTP_HASH_S384;
+			return 2;
 		case ZRTP_CIPHERBLOCK_TYPE:
 			availableTypes[0] = ZRTP_CIPHER_AES1;
 			availableTypes[1] = ZRTP_CIPHER_AES3;
@@ -461,6 +462,11 @@ int bzrtp_updateCryptoFunctionPointers(bzrtpChannelContext_t *zrtpChannelContext
 			zrtpChannelContext->hashFunction = bctbx_sha256;
 			zrtpChannelContext->hmacFunction = bctbx_hmacSha256;
 			zrtpChannelContext->hashLength = 32;
+			break;
+		case ZRTP_HASH_S384 :
+			zrtpChannelContext->hashFunction = bctbx_sha384;
+			zrtpChannelContext->hmacFunction = bctbx_hmacSha384;
+			zrtpChannelContext->hashLength = 48;
 			break;
 		case ZRTP_UNSET_ALGO :
 			zrtpChannelContext->hashFunction = NULL;
