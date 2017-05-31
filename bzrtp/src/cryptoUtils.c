@@ -706,11 +706,11 @@ uint8_t bzrtp_cryptoAlgoTypeStringToInt(uint8_t algoType[4], uint8_t algoFamily)
 					return ZRTP_KEYAGREEMENT_DH3k;
 				} else if (memcmp(algoType, "DH2k", 4) == 0) {
 					return ZRTP_KEYAGREEMENT_DH2k;
-				} else if (memcmp(algoType, "E255", 4) == 0) {
+				} else if (memcmp(algoType, "X255", 4) == 0) {
 					return ZRTP_KEYAGREEMENT_X255;
 				} else if (memcmp(algoType, "EC25", 4) == 0) {
 					return ZRTP_KEYAGREEMENT_EC25;
-				} else if (memcmp(algoType, "E448", 4) == 0) {
+				} else if (memcmp(algoType, "X448", 4) == 0) {
 					return ZRTP_KEYAGREEMENT_X448;
 				} else if (memcmp(algoType, "EC38", 4) == 0) {
 					return ZRTP_KEYAGREEMENT_EC38;
@@ -794,13 +794,13 @@ void bzrtp_cryptoAlgoTypeIntToString(uint8_t algoTypeInt, uint8_t algoTypeString
 			memcpy(algoTypeString, "DH2k", 4);
 			break;
 		case ZRTP_KEYAGREEMENT_X255:
-			memcpy(algoTypeString, "E255", 4);
+			memcpy(algoTypeString, "X255", 4);
 			break;
 		case ZRTP_KEYAGREEMENT_EC25:
 			memcpy(algoTypeString, "EC25", 4);
 			break;
 		case ZRTP_KEYAGREEMENT_X448:
-			memcpy(algoTypeString, "E448", 4);
+			memcpy(algoTypeString, "X448", 4);
 			break;
 		case ZRTP_KEYAGREEMENT_DH3k:
 			memcpy(algoTypeString, "DH3k", 4);
