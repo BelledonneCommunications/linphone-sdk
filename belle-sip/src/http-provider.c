@@ -17,6 +17,8 @@
 */
 
 
+#include <bctoolbox/defs.h>
+
 #include "belle_sip_internal.h"
 
 typedef struct belle_http_channel_context belle_http_channel_context_t;
@@ -266,6 +268,7 @@ static void channel_state_changed(belle_sip_channel_listener_t *obj, belle_sip_c
 			break;
 		case BELLE_SIP_CHANNEL_ERROR:
 			http_channel_context_handle_io_error(ctx, chan);
+			BCTBX_NO_BREAK; /*intentionally no break*/
 		case BELLE_SIP_CHANNEL_DISCONNECTED:
 			if (!chan->force_close) provider_remove_channel(ctx->provider,chan);
 			break;
@@ -492,7 +495,7 @@ int belle_http_provider_set_tls_crypto_config(belle_http_provider_t *obj, belle_
 
 void belle_http_provider_set_recv_error(belle_http_provider_t *obj, int recv_error) {
 	belle_sip_list_t *it;
-	
+
 	for(it=obj->tcp_channels;it!=NULL;it=it->next){
 		belle_sip_channel_t *chan = (belle_sip_channel_t*)it->data;
 		chan->simulated_recv_return=recv_error;
@@ -504,4 +507,3 @@ void belle_http_provider_set_recv_error(belle_http_provider_t *obj, int recv_err
 		chan->base.notify_required=(recv_error<=0);
 	}
 }
-

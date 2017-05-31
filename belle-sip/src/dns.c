@@ -117,6 +117,7 @@
 #endif
 
 #include <bctoolbox/port.h>
+#include <bctoolbox/defs.h>
 
 /*
  * C O M P I L E R  V E R S I O N  &  F E A T U R E  D E T E C T I O N
@@ -6297,7 +6298,7 @@ static int dns_socket(struct sockaddr *local, int type, int *error_) {
 #endif
 	if (-1 == (fd = socket(local->sa_family, type|flags, 0)))
 		goto soerr;
-	
+
 	if (local->sa_family == AF_INET6){
 		int value=0;
 		setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, (const char*)&value, sizeof(value));
@@ -10057,4 +10058,3 @@ int main(int argc, char **argv) {
 #elif DNS_GNUC_PREREQ(4,6,0)
 #pragma GCC diagnostic pop
 #endif
-

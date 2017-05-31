@@ -18,6 +18,7 @@
 
 #include "belle_sip_internal.h"
 #include "dns.h"
+#include <bctoolbox/defs.h>
 
 #include <stdlib.h>
 #ifdef __APPLE__
@@ -51,7 +52,7 @@ struct belle_sip_dns_srv{
 	belle_sip_combined_resolver_context_t *root_resolver;/* used internally to combine SRV and A queries*/
 	belle_sip_resolver_context_t *a_resolver; /* used internally to combine SRV and A queries*/
 	struct addrinfo *a_results; /* used internally to combine SRV and A queries*/
-	
+
 };
 
 static void belle_sip_dns_srv_destroy(belle_sip_dns_srv_t *obj){
@@ -195,10 +196,10 @@ static struct dns_resolv_conf *resconf(belle_sip_simple_resolver_context_t *ctx)
 		belle_sip_error("%s dns_resconf_open error: %s", __FUNCTION__, dns_strerror(error));
 		return NULL;
 	}
-	
+
 	path = belle_sip_stack_get_dns_resolv_conf_file(ctx->base.stack);
 	servers = ctx->base.stack->dns_servers;
-	
+
 	if (servers){
 		belle_sip_message("%s using application supplied dns server list.", __FUNCTION__);
 		error = dns_resconf_nameservers_from_list(ctx->resconf, servers);
@@ -250,13 +251,13 @@ static struct dns_resolv_conf *resconf(belle_sip_simple_resolver_context_t *ctx)
 			return NULL;
 		}
 	}
-	
+
 	if (error==0){
 		char ip[64];
 		char serv[10];
 		int using_ipv6=FALSE;
 		size_t i;
-		
+
 		belle_sip_message("Resolver is using DNS server(s):");
 		for(i=0;i<sizeof(ctx->resconf->nameserver)/sizeof(ctx->resconf->nameserver[0]);++i){
 			struct sockaddr *ns_addr=(struct sockaddr*)&ctx->resconf->nameserver[i];
@@ -339,7 +340,7 @@ static belle_sip_dns_srv_t *srv_elect_one(belle_sip_list_t *srv_list){
 	belle_sip_list_t *elem;
 	belle_sip_dns_srv_t *srv;
 	int rand_number;
-	
+
 	for(elem=srv_list;elem!=NULL;elem=elem->next){
 		srv=(belle_sip_dns_srv_t*)elem->data;
 		sum+=srv->weight;
@@ -458,7 +459,7 @@ static void append_dns_result(belle_sip_simple_resolver_context_t *ctx, struct a
 	char host[NI_MAXHOST + 1];
 	int gai_err;
 	int family=ctx->family;
-	
+
 	if ((gai_err=bctbx_getnameinfo(addr, addrlen, host, sizeof(host), NULL, 0, NI_NUMERICHOST)) != 0){
 		belle_sip_error("append_dns_result(): getnameinfo() failed: %s",gai_strerror(gai_err));
 		return;
@@ -482,7 +483,7 @@ static int resolver_process_data(belle_sip_simple_resolver_context_t *ctx, unsig
 		belle_sip_warning("Simulating DNS timeout");
 		simulated_timeout=1;
 	}
-	
+
 	if (simulated_timeout || ((revents & BELLE_SIP_EVENT_TIMEOUT) && ((int)(belle_sip_time_ms()-ctx->start_time)>=timeout))) {
 		belle_sip_error("%s timed-out", __FUNCTION__);
 		belle_sip_resolver_context_notify(BELLE_SIP_RESOLVER_CONTEXT(ctx));
@@ -662,7 +663,7 @@ static int _resolver_send_query(belle_sip_simple_resolver_context_t *ctx) {
 static int resolver_process_data_delayed(belle_sip_simple_resolver_context_t *ctx, unsigned int revents) {
 	int err=_resolver_send_query(ctx);
 	if (err==0) return BELLE_SIP_CONTINUE;
-	
+
 	return BELLE_SIP_STOP;
 }
 
@@ -918,7 +919,7 @@ static void combined_resolver_context_check_finished(belle_sip_combined_resolver
 	belle_sip_list_t *elem;
 	struct addrinfo *final=NULL;
 	unsigned char finished=TRUE;
-	
+
 	for(elem=obj->srv_results;elem!=NULL;elem=elem->next){
 		belle_sip_dns_srv_t *srv=(belle_sip_dns_srv_t*)elem->data;
 		if (!srv->a_done) {
@@ -1095,6 +1096,7 @@ belle_sip_resolver_context_t * belle_sip_stack_resolve_a(belle_sip_stack_t *stac
 		switch(family){
 			case AF_UNSPEC:
 				family=AF_INET6;
+				BCTBX_NO_BREAK; /*intentionally no break*/
 			case AF_INET6:
 				return belle_sip_stack_resolve_dual(stack,name,port,cb,data);
 				break;
@@ -1150,14 +1152,14 @@ int belle_sip_get_src_addr_for(const struct sockaddr *dest, socklen_t destlen, s
 	int af_type=dest->sa_family;
 	int sock=(int)bctbx_socket(af_type,SOCK_DGRAM,IPPROTO_UDP);
 	int ret = 0;
-	
+
 	if (sock==(belle_sip_socket_t)-1){
 		if (af_type == AF_INET){
 			belle_sip_fatal("Could not create socket: %s",belle_sip_get_socket_error_string());
 		}
 		goto fail;
 	}
-	
+
 	if (af_type==AF_INET6 && (IN6_IS_ADDR_V4MAPPED(&((struct sockaddr_in6*)dest)->sin6_addr))){
 		/*this is actually required only for windows, who is unable to provide an ipv4 mapped local address if the remote is ipv4 mapped,
 		and unable to provide a correct local address if the remote address is true ipv6 address when in dual stack mode*/
@@ -1174,7 +1176,7 @@ int belle_sip_get_src_addr_for(const struct sockaddr *dest, socklen_t destlen, s
 		belle_sip_error("belle_sip_get_src_addr_for: bctbx_getsockname() failed: %s",belle_sip_get_socket_error_string_from_code(-ret));
 		goto fail;
 	}
-	
+
 	if (af_type==AF_INET6){
 		struct sockaddr_in6 *sin6=(struct sockaddr_in6*)src;
 		sin6->sin6_port=htons(local_port);
@@ -1182,7 +1184,7 @@ int belle_sip_get_src_addr_for(const struct sockaddr *dest, socklen_t destlen, s
 		struct sockaddr_in *sin=(struct sockaddr_in*)src;
 		sin->sin_port=htons(local_port);
 	}
-	
+
 	belle_sip_close_socket(sock);
 	return ret;
 fail:

@@ -16,6 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <bctoolbox/defs.h>
+
 #include "belle_sip_internal.h"
 #include "belle-sip/refresher.h"
 
@@ -111,7 +113,7 @@ static void process_dialog_terminated(belle_sip_listener_t *user_ctx, const bell
 		 * so there is no need to reschedule a retry here.*/
 		belle_sip_warning("Refresher [%p] still started but expired, retrying",refresher);
 		if (refresher->listener) refresher->listener(refresher,refresher->user_data,481, "dialod terminated", TRUE);
-		
+
 	}
 
 }
@@ -336,7 +338,7 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 				return; /*do not notify this kind of error*/
 			}
 		}
-		/*intentionally no break*/
+		BCTBX_NO_BREAK; /*intentionally no break*/
 		case 505:
 		case 501:
 			/*irrecoverable errors, probably no need to retry later*/
@@ -534,8 +536,8 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher
 
 					belle_sip_message_set_header((belle_sip_message_t*)request, (belle_sip_header_t*)belle_sip_provider_create_call_id(prov));
 					break;
-				} /*else nop, error case*/
-
+				}
+				BCTBX_NO_BREAK; /*else nop, error case*/
 			}
 			default: {
 				belle_sip_error("Unexpected dialog state [%s] for dialog [%p], cannot refresh [%s]"
@@ -574,7 +576,7 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher
 
 	client_transaction = belle_sip_provider_create_client_transaction(prov,request);
 	client_transaction->base.is_internal=1;
-	
+
 	if (request ==  refresher->first_acknoleged_request) { /*request is now ref by transaction so no need to keepo it*/
 		belle_sip_object_unref(refresher->first_acknoleged_request);
 		refresher->first_acknoleged_request = NULL;

@@ -16,9 +16,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-/** 
+/**
  * INVITE client transaction implementation.
 **/
+
+#include <bctoolbox/defs.h>
 
 #include "belle_sip_internal.h"
 
@@ -104,7 +106,7 @@ static void ict_on_response(belle_sip_ict_t *obj, belle_sip_response_t *resp){
 	switch (base->state){
 		case BELLE_SIP_TRANSACTION_CALLING:
 			belle_sip_transaction_set_state(base,BELLE_SIP_TRANSACTION_PROCEEDING);
-			/* no break*/
+			BCTBX_NO_BREAK; /*intentionally no break*/
 		case BELLE_SIP_TRANSACTION_PROCEEDING:
 			if (code>=300){
 				belle_sip_transaction_set_state(base,BELLE_SIP_TRANSACTION_COMPLETED);
@@ -141,7 +143,7 @@ static int ict_on_timer_A(belle_sip_ict_t *obj){
 	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
 
 	if (!base->channel) return BELLE_SIP_STOP;
-	
+
 	switch(base->state){
 		case BELLE_SIP_TRANSACTION_CALLING:
 		{
@@ -154,7 +156,7 @@ static int ict_on_timer_A(belle_sip_ict_t *obj){
 		default:
 		break;
 	}
-	
+
 	return BELLE_SIP_CONTINUE;
 }
 
@@ -177,7 +179,7 @@ static void ict_send_request(belle_sip_ict_t *obj){
 	const belle_sip_timer_config_t *cfg=belle_sip_transaction_get_timer_config(base);
 
 	belle_sip_transaction_set_state(base,BELLE_SIP_TRANSACTION_CALLING);
-	
+
 	if (!belle_sip_channel_is_reliable(base->channel)){
 		obj->timer_A=belle_sip_timeout_source_new((belle_sip_source_func_t)ict_on_timer_A,obj,cfg->T1);
 		belle_sip_transaction_start_timer(base,obj->timer_A);
@@ -185,7 +187,7 @@ static void ict_send_request(belle_sip_ict_t *obj){
 
 	obj->timer_B=belle_sip_timeout_source_new((belle_sip_source_func_t)ict_on_timer_B,obj,cfg->T1*64);
 	belle_sip_transaction_start_timer(base,obj->timer_B);
-	
+
 	belle_sip_channel_queue_message(base->channel,(belle_sip_message_t*)base->request);
 }
 
@@ -214,4 +216,3 @@ belle_sip_ict_t *belle_sip_ict_new(belle_sip_provider_t *prov, belle_sip_request
 	belle_sip_client_transaction_init((belle_sip_client_transaction_t*)obj,prov,req);
 	return obj;
 }
-

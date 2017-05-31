@@ -16,9 +16,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-/** 
+/**
  * non-INVITE server transaction implementation.
 **/
+
+#include <bctoolbox/defs.h>
 
 #include "belle_sip_internal.h"
 
@@ -63,7 +65,7 @@ static int nist_send_new_response(belle_sip_nist_t *obj, belle_sip_response_t *r
 				belle_sip_channel_queue_message(base->channel,(belle_sip_message_t*)resp);
 				break;
 			}
-			/* no break nist can directly pass from TRYING to PROCEEDING*/
+			BCTBX_NO_BREAK; /* no break nist can directly pass from TRYING to PROCEEDING*/
 		case BELLE_SIP_TRANSACTION_PROCEEDING:
 			if (code>=200){
 				nist_set_completed(obj);
