@@ -22,6 +22,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "mediastreamer2/bitratecontrol.h"
 
+#include <bctoolbox/defs.h>
+
 static const int probing_up_interval=10;
 
 enum state_t{
@@ -66,6 +68,7 @@ static void state_machine(MSBitrateController *obj){
 	switch(obj->state){
 		case Stable:
 			obj->stable_count++;
+			BCTBX_NO_BREAK; /*intentionally no break*/
 		case Init:
 			ms_qos_analyzer_suggest_action(obj->analyzer,&action);
 			if (action.type!=MSRateControlActionDoNothing){
@@ -155,4 +158,3 @@ MSBitrateController *ms_bandwidth_bitrate_controller_new(RtpSession *asession, M
 	                                 ms_stateful_qos_analyzer_new(vsession?vsession:asession),
 	                                 ms_bandwidth_bitrate_driver_new(asession, aenc, vsession, venc));
 }
-
