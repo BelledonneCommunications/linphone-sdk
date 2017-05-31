@@ -22,6 +22,7 @@
 
 set(HEADER_FILES
 	crypto.h
+	defs.h
 	list.h
 	logging.h
 	map.h
@@ -33,7 +34,7 @@ set(HEADER_FILES
 if(ENABLE_TESTS_COMPONENT)
 	list(APPEND HEADER_FILES tester.h)
 endif()
-if(HAVE_EXECINFO) 
+if(HAVE_EXECINFO)
 	list(APPEND HEADER_FILES exception.hh)
 endif()
 
