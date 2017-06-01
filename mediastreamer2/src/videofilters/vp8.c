@@ -587,7 +587,6 @@ static int enc_set_configuration(MSFilter *f, void *data) {
 		enc_postprocess(f);
 		enc_preprocess(f);
 		ms_filter_unlock(f);
-		return 0;
 	}
 
 	ms_message("Video configuration set: bitrate=%dbits/s, fps=%f, vsize=%dx%d for encoder [%p]"	, s->vconf.required_bitrate,
@@ -891,7 +890,7 @@ static void dec_init(MSFilter *f) {
 static int dec_initialize_impl(MSFilter *f){
 	DecState *s = (DecState *)f->data;
 	vpx_codec_dec_cfg_t cfg;
-		
+
 	memset(&cfg, 0, sizeof(cfg));
 	cfg.threads = ms_factory_get_cpu_count(f->factory);
 	if (vpx_codec_dec_init(&s->codec, s->iface, &cfg, s->flags)){
@@ -907,7 +906,7 @@ static void dec_preprocess(MSFilter* f) {
 
 	/* Initialize codec */
 	if (!s->ready){
-		
+
 		s->flags = 0;
 #if 0
 		/* Deactivate fragments input for the vpx decoder because it has been broken in libvpx 1.4.
@@ -947,12 +946,12 @@ static void dec_process(MSFilter *f) {
 	MSQueue frame;
 	MSQueue mtofree_queue;
 	Vp8RtpFmtFrameInfo frame_info;
-	
+
 	if (!s->ready){
 		ms_queue_flush(f->inputs[0]);
 		return;
 	}
-	
+
 	ms_filter_lock(f);
 
 	ms_queue_init(&frame);
@@ -1019,7 +1018,7 @@ static void dec_process(MSFilter *f) {
 			freemsg(im);
 		}
 	}
-	
+
 	ms_filter_unlock(f);
 }
 

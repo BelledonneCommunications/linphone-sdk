@@ -903,6 +903,8 @@ MS2_PUBLIC MSFilter* video_stream_get_source_filter(const VideoStream* stream);
 
 MS2_PUBLIC void video_stream_change_camera(VideoStream *stream, MSWebCam *cam);
 
+MS2_PUBLIC void video_stream_recreate_graph(VideoStream *stream);
+
 /**
  * @brief This functions changes the source filter for the passed video stream.
  * @details This is quite the same function as \ref video_stream_change_camera, but this one

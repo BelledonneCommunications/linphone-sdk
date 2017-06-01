@@ -1196,10 +1196,7 @@ void video_stream_update_video_params(VideoStream *stream){
  *
  * @return NULL if keep_old_source is FALSE, or the previous source filter if keep_old_source is TRUE
  */
-static MSFilter* _video_stream_change_camera(VideoStream *stream, MSWebCam *cam, MSFilter* new_source, MSFilter *sink, bool_t keep_old_source){
-	PayloadType *pt;
-	RtpProfile *profile;
-	int payload;
+static MSFilter* _video_stream_change_camera(VideoStream *stream, MSWebCam *cam, MSFilter* new_source, MSFilter *sink, bool_t keep_old_source, bool_t skip_payload_config){
 	MSFilter* old_source = NULL;
 	bool_t new_src_different = (new_source && new_source != stream->source);
 	bool_t use_player        = (sink && !stream->player_active) || (!sink && stream->player_active);
@@ -1256,17 +1253,23 @@ static MSFilter* _video_stream_change_camera(VideoStream *stream, MSWebCam *cam,
 			ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION,&stream->device_orientation);
 		}
 
-		/* Apply bitrate limit to increase video size if the preferred one has changed. */
-		profile = rtp_session_get_profile(stream->ms.sessions.rtp_session);
-		payload = rtp_session_get_send_payload_type(stream->ms.sessions.rtp_session);
-		pt = rtp_profile_get_payload(profile, payload);
-		if (stream->source_performs_encoding == TRUE) {
-			MSPixFmt format = mime_type_to_pix_format(pt->mime_type);
-			ms_filter_call_method(stream->source, MS_FILTER_SET_PIX_FMT, &format);
-		}
-		apply_video_preset(stream, pt);
-		if (pt->normal_bitrate > 0){
-			apply_bitrate_limit(stream ,pt);
+		if (!skip_payload_config) {
+			PayloadType *pt;
+			RtpProfile *profile;
+			int payload;
+
+			/* Apply bitrate limit to increase video size if the preferred one has changed. */
+			profile = rtp_session_get_profile(stream->ms.sessions.rtp_session);
+			payload = rtp_session_get_send_payload_type(stream->ms.sessions.rtp_session);
+			pt = rtp_profile_get_payload(profile, payload);
+			if (stream->source_performs_encoding == TRUE) {
+				MSPixFmt format = mime_type_to_pix_format(pt->mime_type);
+				ms_filter_call_method(stream->source, MS_FILTER_SET_PIX_FMT, &format);
+			}
+			apply_video_preset(stream, pt);
+			if (pt->normal_bitrate > 0){
+				apply_bitrate_limit(stream ,pt);
+			}
 		}
 
 		configure_video_source(stream);
@@ -1291,24 +1294,28 @@ static MSFilter* _video_stream_change_camera(VideoStream *stream, MSWebCam *cam,
 }
 
 void video_stream_change_camera(VideoStream *stream, MSWebCam *cam){
-	_video_stream_change_camera(stream, cam, NULL, NULL, FALSE);
+	_video_stream_change_camera(stream, cam, NULL, NULL, FALSE, FALSE);
 }
 
 MSFilter* video_stream_change_camera_keep_previous_source(VideoStream *stream, MSWebCam *cam){
-	return _video_stream_change_camera(stream, cam, NULL, NULL, TRUE);
+	return _video_stream_change_camera(stream, cam, NULL, NULL, TRUE, FALSE);
 }
 
 MSFilter* video_stream_change_source_filter(VideoStream *stream, MSWebCam* cam, MSFilter* filter, bool_t keep_previous ){
-	return _video_stream_change_camera(stream, cam, filter, NULL, keep_previous);
+	return _video_stream_change_camera(stream, cam, filter, NULL, keep_previous, FALSE);
 }
 
 void video_stream_open_player(VideoStream *stream, MSFilter *sink){
 	ms_message("video_stream_open_player(): sink=%p",sink);
-	_video_stream_change_camera(stream, stream->cam, NULL, sink, FALSE);
+	_video_stream_change_camera(stream, stream->cam, NULL, sink, FALSE, FALSE);
 }
 
 void video_stream_close_player(VideoStream *stream){
-	_video_stream_change_camera(stream,stream->cam, NULL, NULL, FALSE);
+	_video_stream_change_camera(stream,stream->cam, NULL, NULL, FALSE, FALSE);
+}
+
+void video_stream_recreate_graph(VideoStream *stream){
+	_video_stream_change_camera(stream,stream->cam, NULL, NULL, FALSE, TRUE);
 }
 
 void video_stream_send_fir(VideoStream *stream) {
