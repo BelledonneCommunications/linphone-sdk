@@ -173,7 +173,7 @@ void pa_sourcelist_cb(pa_context *c, const pa_source_info *l, int eol, void *use
 	if (l->monitor_of_sink!=PA_INVALID_INDEX) { /* ignore monitors */
 		goto end;
 	}
-	
+
 	pa_device = ms_malloc0(sizeof(pa_device_t));
 	strncpy(pa_device->name, l->name, PA_STRING_SIZE -1);
 	strncpy(pa_device->description, l->description, PA_STRING_SIZE -1);
@@ -231,13 +231,13 @@ int pulse_card_compare(pa_device_t *sink, pa_device_t *source) {
 }
 
 static void pulse_card_merge_lists(pa_device_t *pa_device, bctbx_list_t **pa_source_list) {
-	bctbx_list_t *sourceCard = bctbx_list_find_custom(*pa_source_list, (bctbx_compare_func)pulse_card_compare, pa_device); 
+	bctbx_list_t *sourceCard = bctbx_list_find_custom(*pa_source_list, (bctbx_compare_func)pulse_card_compare, pa_device);
 	if (sourceCard!= NULL) {
 		pa_device_t *sourceCard_data = (pa_device_t *)sourceCard->data;
 		pa_device->bidirectionnal = 1;
 		strncpy(pa_device->source_name,sourceCard_data->name, PA_STRING_SIZE -1);
 		*pa_source_list = bctbx_list_remove(*pa_source_list, sourceCard->data);
-		ms_free(sourceCard_data);	
+		ms_free(sourceCard_data);
 	}
 }
 
@@ -251,7 +251,7 @@ static void pulse_card_detect(MSSndCardManager *m){
 	pa_operation *pa_op;
 	bctbx_list_t *pa_sink_list=NULL;
 	bctbx_list_t *pa_source_list=NULL;
-	
+
 	/* connect to pulse server */
 	init_pulse_context();
 	if(!wait_for_context_state(PA_CONTEXT_READY, PA_CONTEXT_FAILED)) {
@@ -260,7 +260,7 @@ static void pulse_card_detect(MSSndCardManager *m){
 	}
 
 	pa_threaded_mainloop_lock(the_pa_loop);
-	
+
 	/* retrieve all available sinks */
 	pa_op = pa_context_get_sink_info_list(the_pa_context, pa_sinklist_cb, &pa_sink_list);
 
@@ -280,7 +280,7 @@ static void pulse_card_detect(MSSndCardManager *m){
 	pa_operation_unref(pa_op);
 
 	pa_threaded_mainloop_unlock(the_pa_loop);
-	
+
 	/* merge source list into sink list for dual capabilities cards */
 	bctbx_list_for_each2(pa_sink_list, (MSIterate2Func)pulse_card_merge_lists, &pa_source_list);
 
@@ -374,18 +374,16 @@ static size_t stream_play(Stream *s, size_t nbytes) {
 	avail = ms_flow_controlled_bufferizer_get_avail(&s->bufferizer);
 	if (avail > 0) {
 		uint8_t *data;
-		size_t buffer_size;
 		if (nbytes > avail)
 			nbytes = avail;
 		data = ms_new(uint8_t, nbytes);
 		ms_mutex_lock(&s->mutex);
 		ms_flow_controlled_bufferizer_read(&s->bufferizer, data, nbytes);
-		buffer_size = ms_flow_controlled_bufferizer_get_avail(&s->bufferizer);
 		ms_mutex_unlock(&s->mutex);
 		pa_stream_write(s->stream, data, nbytes, ms_free, 0, PA_SEEK_RELATIVE);
 	}
-		
-	
+
+
 	return nbytes;
 }
 
@@ -416,20 +414,20 @@ static bool_t stream_connect(Stream *s) {
 	int err;
 	pa_buffer_attr attr;
 	pa_cvolume volume, *volume_ptr = NULL;
-	
+
 	attr.maxlength = -1;
 	attr.fragsize = pa_usec_to_bytes(targeted_latency * 1000, &s->sampleSpec);
 	attr.tlength = attr.fragsize;
 	attr.minreq = -1;
 	attr.prebuf = -1;
-	
+
 	if(s->init_volume >= 0.0) {
 		pa_volume_t value = scale_to_volume(s->init_volume);
 		volume_ptr = pa_cvolume_init(&volume);
 		pa_cvolume_set(&volume, s->sampleSpec.channels, value);
 	}
-	
-	
+
+
 	if (the_pa_context==NULL) {
 		ms_error("No PulseAudio context");
 		return FALSE;
@@ -448,7 +446,7 @@ static bool_t stream_connect(Stream *s) {
 		err=pa_stream_connect_playback(
 			s->stream,s->dev,&attr,
 			PA_STREAM_ADJUST_LATENCY | PA_STREAM_AUTO_TIMING_UPDATE | PA_STREAM_INTERPOLATE_TIMING,
-			volume_ptr, 
+			volume_ptr,
 			NULL);
 	} else {
 		err=pa_stream_connect_record(s->stream,s->dev,&attr, PA_STREAM_ADJUST_LATENCY);
@@ -464,7 +462,7 @@ static bool_t stream_connect(Stream *s) {
 	           s->type == STREAM_TYPE_PLAYBACK ? "playback" : "record",
 	           s->sampleSpec.rate,
 	           s->sampleSpec.channels);
-			
+
 	return TRUE;
 }
 
@@ -495,7 +493,7 @@ static bool_t stream_set_volume(Stream *s, double volume) {
 	uint32_t idx;
 	pa_operation *op;
 	int success;
-	
+
 	if(s->stream == NULL) {
 		if(s->type == STREAM_TYPE_PLAYBACK) {
 			ms_error("stream_set_volume(): no stream");
@@ -539,7 +537,7 @@ static void stream_get_sink_volume_cb(pa_context *c, const pa_sink_input_info *i
 static bool_t stream_get_volume(Stream *s, double *volume) {
 	uint32_t idx;
 	pa_operation *op;
-	
+
 	if(s->stream == NULL) {
 		ms_error("stream_get_volume(): no stream");
 		return FALSE;
@@ -623,12 +621,12 @@ static void pulse_read_uninit(MSFilter *f) {
 
 static int pulse_read_set_sr(MSFilter *f, void *arg){
 	RecordStream *s = (RecordStream *)f->data;
-	
+
 	if(s->state == PA_STREAM_READY) {
 		ms_error("pulseaudio: cannot set sample rate: stream is connected");
 		return -1;
 	}
-	
+
 	s->sampleSpec.rate = *(int *)arg;
 	return 0;
 }
@@ -641,12 +639,12 @@ static int pulse_read_get_sr(MSFilter *f, void *arg) {
 
 static int pulse_read_set_nchannels(MSFilter *f, void *arg){
 	RecordStream *s = (RecordStream *)f->data;
-	
+
 	if(s->state == PA_STREAM_READY) {
 		ms_error("pulseaudio: cannot set channels number: stream is connected");
 		return -1;
 	}
-	
+
 	s->sampleSpec.channels = *(int *)arg;
 	return 0;
 }
@@ -671,7 +669,7 @@ static int pulse_read_get_volume(MSFilter *f, void *arg) {
 	Stream *s = (Stream *)f->data;
 	bool_t success;
 	double volume;
-	
+
 	ms_filter_lock(f);
 	success = stream_get_volume(s, &volume);
 	ms_filter_unlock(f);
@@ -731,12 +729,12 @@ static void pulse_write_process(MSFilter *f){
 		ms_mutex_lock(&s->mutex);
 		ms_flow_controlled_bufferizer_put_from_queue(&s->bufferizer,f->inputs[0]);
 		ms_mutex_unlock(&s->mutex);
-		
+
 		pa_threaded_mainloop_lock(the_pa_loop);
 		nwritable = pa_stream_writable_size(s->stream);
 		stream_play(s, nwritable);
 		pa_threaded_mainloop_unlock(the_pa_loop);
-		
+
 		if (s->last_stats == (uint64_t)-1) {
 			s->last_stats = f->ticker->time;
 		} else if (f->ticker->time - s->last_stats >= 5000) {
@@ -848,5 +846,3 @@ static MSFilter *pulse_card_create_writer(MSSndCard *card) {
 	s->dev = ms_strdup(card_data->pa_id_sink); /* add pulse audio card id to connect the stream to the correct card */
 	return f;
 }
-
-

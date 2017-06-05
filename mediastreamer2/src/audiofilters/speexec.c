@@ -1,6 +1,6 @@
 /*
 mediastreamer2 library - modular sound and video processing and streaming
-Copyright (C) 2010  Belledonne Communications SARL 
+Copyright (C) 2010  Belledonne Communications SARL
 Author: Simon Morlat <simon.morlat@linphone.org>
 
 This program is free software; you can redistribute it and/or
@@ -103,7 +103,7 @@ static void speex_ec_init(MSFilter *f){
 		ms_free(fname);
 	}
 #endif
-	
+
 	f->data=s;
 }
 
@@ -141,7 +141,7 @@ static void apply_config(SpeexECState *s){
 		}
 		speex_echo_state_blob_free(blob);
 		ms_message("speex echo state restored.");
-	}	
+	}
 }
 
 static void fetch_config(SpeexECState *s){
@@ -150,7 +150,7 @@ static void fetch_config(SpeexECState *s){
 	size_t txt_len;
 
 	if (s->ecstate==NULL) return;
-	
+
 	if (speex_echo_ctl(s->ecstate, SPEEX_ECHO_GET_BLOB, &blob)!=0){
 		ms_error("Could not retrieve speex echo blob !");
 		return;
@@ -174,7 +174,7 @@ static int adjust_framesize(int framesize, int samplerate){
 	int newsize=(framesize*samplerate)/8000;
 	int n=1;
 	int next;
-	
+
 	while((next=n<<1)<=newsize){
 		n=next;
 	}
@@ -198,7 +198,7 @@ static void speex_ec_preprocess(MSFilter *f){
 	delay_samples=s->delay_ms*s->samplerate/1000;
 	ms_message("Initializing speex echo canceler with framesize=%i, filterlength=%i, delay_samples=%i",
 		s->framesize,s->filterlength,delay_samples);
-	
+
 	s->ecstate=speex_echo_state_init(s->framesize,s->filterlength);
 	s->den = speex_preprocess_state_init(s->framesize, s->samplerate);
 	speex_echo_ctl(s->ecstate, SPEEX_ECHO_SET_SAMPLING_RATE, &s->samplerate);
@@ -225,7 +225,7 @@ static void speex_ec_process(MSFilter *f){
 	int nbytes=s->framesize*2;
 	mblk_t *refm;
 	uint8_t *ref,*echo;
-	
+
 	if (s->bypass_mode) {
 		while((refm=ms_queue_get(f->inputs[0]))!=NULL){
 			ms_queue_put(f->outputs[0],refm);
@@ -235,7 +235,7 @@ static void speex_ec_process(MSFilter *f){
 		}
 		return;
 	}
-	
+
 	if (f->inputs[0]!=NULL){
 		if (s->echostarted){
 			while((refm=ms_queue_get(f->inputs[0]))!=NULL){
@@ -250,13 +250,12 @@ static void speex_ec_process(MSFilter *f){
 	}
 
 	ms_bufferizer_put_from_queue(&s->echo,f->inputs[1]);
-	
+
 	ref=(uint8_t*)alloca(nbytes);
 	echo=(uint8_t*)alloca(nbytes);
 	while ((int)ms_bufferizer_read(&s->echo,echo,nbytes)==nbytes){
 		mblk_t *oecho=allocb(nbytes,0);
 		int avail;
-		int avail_samples;
 
 		if (!s->echostarted) s->echostarted=TRUE;
 		if ((avail=(int)ms_bufferizer_get_avail(&s->delayed_ref))<((s->nominal_ref_samples*2)+nbytes)){
@@ -290,9 +289,7 @@ static void speex_ec_process(MSFilter *f){
 			ms_fatal("Should never happen");
 		}
 		avail-=nbytes;
-		avail_samples=avail/2;
-		/*ms_message("avail=%i",avail_samples);*/
-		
+
 #ifdef EC_DUMP
 		if (s->reffile)
 			fwrite(ref,nbytes,1,s->reffile);
@@ -429,4 +426,3 @@ MSFilterDesc ms_speex_ec_desc={
 #endif
 
 MS_FILTER_DESC_EXPORT(ms_speex_ec_desc)
-
