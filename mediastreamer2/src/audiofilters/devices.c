@@ -43,6 +43,7 @@ static SoundDeviceAudioHacks SonySGP511Hacks = { "50:0.01:100 600:0.2:100 1350:0
  * All these values can be obtained from the device using "adb shell getprop"
 */
 static SoundDeviceDescription devices[]={
+	{	"alps",					"Bluboo Maya Max",		"mt6750",		DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0 },
 	{	"HTC",					"Nexus One",			"qsd8k",		0,	300 },
 	{	"HTC",					"HTC One X",			"tegra",		0,	150 },	/*has a very good acoustic isolation, which result in calibration saying no echo. */
 										/*/But with speaker mode there is a strong echo if software ec is disabled.*/
@@ -53,20 +54,20 @@ static SoundDeviceDescription devices[]={
 	{	"HTC",					"HTC One mini 2",		"",				DEVICE_HAS_BUILTIN_AEC|DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0, 0},
 	{	"HTC",					"0PCV1",				"msm8226",		DEVICE_HAS_BUILTIN_AEC|DEVICE_HAS_BUILTIN_OPENSLES_AEC|DEVICE_HAS_CRAPPY_ANDROID_FASTTRACK, 0, 0},
 	{	"HTC",					"HTC Desire 610",		"msm8226",		DEVICE_HAS_BUILTIN_AEC|DEVICE_HAS_BUILTIN_OPENSLES_AEC|DEVICE_HAS_CRAPPY_ANDROID_FASTTRACK, 0, 0},
-	{ 	"HTC", 					"HTC Desire 820G PLUS dual sim", "", 	DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
-	{	"OnePlus",				"A0001",        		"msm8974",      0,      120 },
-	{	"HTC",					"HTC One_M8",   		"msm8974",      0,      120 },
+	{	"HTC", 					"HTC Desire 820G PLUS dual sim", "",	DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"OnePlus",				"A0001",				"msm8974",		0,	120 },
+	{	"HTC",					"HTC One_M8",			"msm8974",		0,	120 },
 	{	"LGE",					"LS670",				"",				0,	170 },
 	{	"LGE",					"Nexus 5",				"msm8974",		0,	0 , 16000 },
-	{	"LGE", 					"LG-H815",				"msm8992",	    DEVICE_HAS_BUILTIN_AEC, 0 },
-	{	"LGE", 					"LG-H735", 				"msm8916",	    DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0, 16000},
-	{   "LGE",                  "LG-H850",              "msm8996",      DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0}, /* LG5 */
+	{	"LGE",					"LG-H815",				"msm8992",		DEVICE_HAS_BUILTIN_AEC, 0 },
+	{	"LGE",					"LG-H735", 				"msm8916",		DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0, 16000},
+	{	"LGE",					"LG-H850",				"msm8996",		DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0}, /* LG5 */
 	{	"motorola",				"DROID RAZR",			"",				0,	400 },
 	{	"motorola",				"MB860",				"",				0,	200 },
 	{	"motorola",				"XT907",				"",				0,	500 },
 	{	"motorola",				"DROIX X2",				"",				0,	320 },
 	{	"motorola",				"MotoG3",				"msm8916",		DEVICE_HAS_BUILTIN_AEC_CRAPPY,	100 }, /*The MotoG3 audio capture hangs for several seconds when switching to speaker mode*/
-	{   "motorola",             "Nexus 6",              "msm8084",      DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0}, /* Nexus 6*/
+	{	"motorola",				"Nexus 6",				"msm8084",		DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0}, /* Nexus 6*/
 	{	"samsung",				"GT-S5360",				"bcm21553",		0,	250 }, /*<Galaxy Y*/
 	{	"samsung",				"GT-S5360L",			"",				0,	250 }, /*<Galaxy Y*/
 	{	"samsung",				"GT-S6102",				"",				DEVICE_HAS_BUILTIN_AEC,	0 }, /*<Galaxy Y duo*/
@@ -93,9 +94,11 @@ static SoundDeviceDescription devices[]={
 	{	"samsung",				"GT-I9305",				"",				DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_UNSTANDARD_LIBMEDIA | DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0 }, /*Galaxy S3*/
 	{	"samsung",				"SAMSUNG-SGH-I337",		"",				DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC,	0 }, /* Galaxy S4 ? */
 	{	"samsung",				"GT-I9195",				"",				DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC,	0 }, /* Galaxy S4 mini*/
-	{   "samsung",              "SM-G900F",             "msm8974",      DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0 }, /* Galaxy S5 */
-	{   "samsung",              "SM-G920F",             "exynos5",      DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0 }, /* Galaxy S6*/
-	{   "samsung",              "SM-G930F",             "exynos5",      DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0 }, /* Galaxy S7*/
+	{	"samsung",				"SM-G900F",				"msm8974",		DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0 }, /* Galaxy S5 */
+	{	"samsung",				"SM-G920F",				"exynos5",		DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0 }, /* Galaxy S6*/
+	{	"samsung",				"SM-G925F",				"exynos5",		DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0 }, /* Galaxy S6 Edge*/
+	{	"samsung",				"SM-G930F",				"exynos5",		DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0 }, /* Galaxy S7*/
+	{	"samsung",				"SM-G950F",				"exynos5",		DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0 }, /* Galaxy S8*/
 	{	"samsung",				"GT-N7000",				"",				DEVICE_HAS_BUILTIN_AEC,	0 },  /*Galaxy Note*/
 	{	"samsung",				"GT-N7100",				"exynos4",		DEVICE_HAS_BUILTIN_AEC|DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 }, /*Galaxy Note 2  */
 	{	"samsung",				"GT-N7105",				"",				DEVICE_HAS_BUILTIN_AEC|DEVICE_HAS_UNSTANDARD_LIBMEDIA,	0 },  /*Galaxy Note 2 t0lte*/
@@ -121,23 +124,23 @@ static SoundDeviceDescription devices[]={
 	{	"samsung",				"SHV-E230K",			"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
 	{	"samsung",				"SM-G530F",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
 	{	"samsung",				"SM-T315",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
-	{ 	"samsung", 				"GT-I8160", 			"", 			DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
-	{ 	"samsung", 				"GT-I9305T", 			"", 			DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
-	{ 	"samsung", 				"GT-N5100", 			"", 			DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
-	{ 	"samsung", 				"GT-N7105T", 			"", 			DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
-	{ 	"samsung", 				"GT-S7582", 			"", 			DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
-	{ 	"samsung", 				"SCH-I605", 			"", 			DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
-	{ 	"samsung", 				"SGH-I317M", 			"", 			DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
-	{	"samsung", 				"SHV-E210K", 			"", 			DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
-	{	"samsung", 				"SHV-E250K", 			"", 			DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
-	{	"samsung", 				"SHV-E250L", 			"", 			DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
-	{	"samsung", 				"SHV-E250S", 			"", 			DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
-	{	"samsung", 				"SM-C101", 				"", 			DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
-	{ 	"samsung", 				"SM-C105", 				"", 			DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
-	{ 	"samsung", 				"SM-G530E", 			"", 			DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
-	{ 	"samsung", 				"SM-G530H", 			"", 			DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
-	{ 	"samsung", 				"SM-J110H", 			"", 			DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
-	{ 	"samsung", 				"SM-N910C", 			"", 			DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"samsung",				"GT-I8160",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"samsung",				"GT-I9305T",			"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"samsung",				"GT-N5100",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"samsung",				"GT-N7105T",			"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"samsung",				"GT-S7582",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"samsung",				"SCH-I605",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"samsung",				"SGH-I317M",			"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"samsung",				"SHV-E210K",			"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"samsung",				"SHV-E250K",			"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"samsung",				"SHV-E250L",			"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"samsung",				"SHV-E250S",			"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"samsung",				"SM-C101",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"samsung",				"SM-C105",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"samsung",				"SM-G530E",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"samsung",				"SM-G530H",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"samsung",				"SM-J110H",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"samsung",				"SM-N910C",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
 
 	{	"Sony Ericsson",		"ST15a",				"",				0, 	150 },
 	{	"Sony Ericsson",		"S51SE",				"",				0,	150 },
@@ -155,12 +158,12 @@ static SoundDeviceDescription devices[]={
 	{	"Sony Ericsson",		"MT15i",				"",				0,	150 },
 	{	"Sony Ericsson",		"ST15i",				"msm7x30",		0,	150 },
 	{	"Sony",					"SGP511",				"msm8974",		DEVICE_HAS_BUILTIN_AEC_CRAPPY,	130, 0, &SonySGP511Hacks},
-	{ 	"Sony", 				"D6503", 				"msm8974",		DEVICE_HAS_BUILTIN_AEC_CRAPPY,	280},
-	{ 	"Sony", 				"D6603", 				"msm8974",		DEVICE_HAS_BUILTIN_AEC_CRAPPY,	280},
+	{	"Sony",					"D6503",				"msm8974",		DEVICE_HAS_BUILTIN_AEC_CRAPPY,	280},
+	{	"Sony",					"D6603",				"msm8974",		DEVICE_HAS_BUILTIN_AEC_CRAPPY,	280},
 	{	"Sony",					"D2005",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA,	0},
-	{ 	"Sony", 				"E2115", 				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0},
+	{	"Sony",					"E2115", 				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0},
 
-	{	"asus",					"Nexus 7",				"", 			0, 170},
+	{	"asus",					"Nexus 7",				"",				0, 170},
 	{	"asus",					"K00E",					"clovertrail", 	0, 200},
 
 	{	"Amazon",				"KFTT",					"omap4",		DEVICE_USE_ANDROID_MIC,200},
@@ -170,32 +173,32 @@ static SoundDeviceDescription devices[]={
 	{	"LENOVO",				"Lenovo A616",			"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0},
 
 	{	"Enspert",				"IGGY",					""		,		0,	320 ,0}, /*Wiko iggy*/
-	{	"Yota Devices Limited", "YD201", 				"msm8974", 		DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0, 48000 }, /* Yotaphone 2 */
+	{	"Yota Devices Limited", "YD201",				"msm8974",		DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0, 48000 }, /* Yotaphone 2 */
 
-	{	"Hewlett-Packard",		"Slate 21 Pro",			"tegra4", 		DEVICE_HAS_UNSTANDARD_LIBMEDIA, 250  },
+	{	"Hewlett-Packard",		"Slate 21 Pro",			"tegra4",		DEVICE_HAS_UNSTANDARD_LIBMEDIA, 250  },
 	{	"blackberry",			"STV100-4",				"msm8992",		DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0 , 48000},
 
-	{	"Vodafone",				"Vodafone 985N",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
-	{	"Acer",					"S57",							"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
-	{ 	"Acer", 				"Z410", 						"", 			DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"Vodafone",				"Vodafone 985N",		"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"Acer",					"S57",					"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"Acer",					"Z410",					"", 			DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
 
-	{	"Alcatel",				"4027D",						"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
-	{	"Alcatel", 				"7045Y", 						"", 			DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"Alcatel",				"4027D",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"Alcatel",				"7045Y", 				"", 			DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
 
-	{	"HUAWEI",				"HUAWEI P7-L10",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
-	{	"HUAWEI",				"HUAWEI P7-L11",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
-	{	"HUAWEI",				"HUAWEI P7-L12",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
-	{	"HUAWEI",				"HUAWEI MT7-L09",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
-	{ 	"HUAWEI", 				"HUAWEI P7-L00", 				"", 			DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
-	{ 	"HUAWEI", 				"H30-L02", 						"", 			DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
-	{ 	"HUAWEI", 				"HUAWEI P6-U06", 				"", 			DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
-	{ 	"HUAWEI", 				"Hol-U19", 						"", 			DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
-	{ 	"HUAWEI", 				"302HW", 						"", 			DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"HUAWEI",				"HUAWEI P7-L10",		"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"HUAWEI",				"HUAWEI P7-L11",		"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"HUAWEI",				"HUAWEI P7-L12",		"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"HUAWEI",				"HUAWEI MT7-L09",		"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"HUAWEI",				"HUAWEI P7-L00",		"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"HUAWEI",				"H30-L02",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"HUAWEI",				"HUAWEI P6-U06",		"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"HUAWEI",				"Hol-U19",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"HUAWEI",				"302HW",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
 
-	{ 	"WIKO", 				"HIGHWAY 4G",	 				"tegra", 		DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
-	{   "Symphony",				"HIGHWAY 4G",					"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"WIKO", 				"HIGHWAY 4G",			"tegra",		DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"Symphony",				"HIGHWAY 4G",			"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
 
-	{	NULL, 					NULL, 					NULL,			0, 	0,	0}
+	{	NULL, 					NULL,					NULL,			0, 	0,	0}
 };
 
 SoundDeviceDescription genericSoundDeviceDescriptor={"Generic", "Generic", "Generic", 0, 250, 0, 0};

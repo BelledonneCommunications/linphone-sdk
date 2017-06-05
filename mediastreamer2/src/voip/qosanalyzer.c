@@ -23,6 +23,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mediastreamer2/bitratecontrol.h"
 #include "qosanalyzer.h"
 
+#include <bctoolbox/defs.h>
+
 #include <math.h>
 
 #define LOSS_RATE_MIN_INTERVAL 60
@@ -658,6 +660,7 @@ static void stateful_analyzer_update(MSQosAnalyzer *objbase){
 			obj->burst_state=MSStatefulQosAnalyzerBurstInProgress;
 			ortp_gettimeofday(&obj->start_time, NULL);
 			rtp_session_set_duplication_ratio(obj->session, (float)obj->burst_ratio);
+			BCTBX_NO_BREAK; /*intentionally no break*/
 		} case MSStatefulQosAnalyzerBurstInProgress: {
 			struct timeval now;
 			float elapsed;
@@ -669,6 +672,7 @@ static void stateful_analyzer_update(MSQosAnalyzer *objbase){
 				obj->burst_state=MSStatefulQosAnalyzerBurstDisable;
 				rtp_session_set_duplication_ratio(obj->session, 0);
 			}
+			BCTBX_NO_BREAK; /*intentionally no break*/
 		} case MSStatefulQosAnalyzerBurstDisable: {
 		}
 		}
@@ -701,5 +705,3 @@ MSQosAnalyzer * ms_stateful_qos_analyzer_new(RtpSession *session){
 	obj->burst_ratio=9;
 	return (MSQosAnalyzer*)obj;
 }
-
-

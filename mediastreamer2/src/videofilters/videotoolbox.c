@@ -207,10 +207,9 @@ static bool_t vth264enc_session_set_bitrate(VTCompressionSessionRef session, int
 	return TRUE;
 }
 
-static VTCompressionSessionRef vth264enc_session_create(VTH264EncCtx *ctx) {
+static void vth264enc_session_create(VTH264EncCtx *ctx) {
 	OSStatus err;
 	CFNumberRef value;
-	VTCompressionSessionRef session = NULL;
 
 	CFMutableDictionaryRef pixbuf_attr = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, NULL, &kCFTypeDictionaryValueCallBacks);
 	int32_t pixel_type = kCVPixelFormatType_420YpCbCr8Planar;
@@ -224,7 +223,7 @@ static VTCompressionSessionRef vth264enc_session_create(VTH264EncCtx *ctx) {
 #endif
 
 	err = VTCompressionSessionCreate(kCFAllocatorDefault, ctx->conf.vsize.width, ctx->conf.vsize.height, kCMVideoCodecType_H264,
-									session_props, pixbuf_attr, kCFAllocatorDefault, (VTCompressionOutputCallback)vth264enc_output_cb, ctx, &session);
+									session_props, pixbuf_attr, kCFAllocatorDefault, (VTCompressionOutputCallback)vth264enc_output_cb, ctx, &ctx->session);
 	CFRelease(pixbuf_attr);
 	CFRelease(session_props);
 	if(err) {
@@ -234,7 +233,7 @@ static VTCompressionSessionRef vth264enc_session_create(VTH264EncCtx *ctx) {
 
 #if 0 /*for debuging purpose*/
 	CFDictionaryRef dict;
-	err = VTSessionCopySupportedPropertyDictionary (session, &dict);
+	err = VTSessionCopySupportedPropertyDictionary (ctx->session, &dict);
 	if (err == noErr) {
 		CFDictionaryApplyFunction (dict,
 								   (CFDictionaryApplierFunction) print_properties, ctx);
@@ -245,12 +244,12 @@ static VTCompressionSessionRef vth264enc_session_create(VTH264EncCtx *ctx) {
 	}
 #endif
 
-	err = VTSessionSetProperty(session, kVTCompressionPropertyKey_ProfileLevel, kVTProfileLevel_H264_Baseline_AutoLevel);
+	err = VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_ProfileLevel, kVTProfileLevel_H264_Baseline_AutoLevel);
 	if (err != noErr) {
 		vth264enc_error("could not set H264 profile and level: %s", os_status_to_string(err));
 	}
 
-	err = VTSessionSetProperty(session, kVTCompressionPropertyKey_RealTime, kCFBooleanTrue);
+	err = VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_RealTime, kCFBooleanTrue);
 	if (err != noErr) {
 		vth264enc_warning("could not enable real-time mode: %s", os_status_to_string(err));
 	}
@@ -258,24 +257,24 @@ static VTCompressionSessionRef vth264enc_session_create(VTH264EncCtx *ctx) {
 #if 0
 	int delay_count = 0;
 	value = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &delay_count);
-	err = VTSessionSetProperty(session, kVTCompressionPropertyKey_MaxFrameDelayCount, value);
+	err = VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_MaxFrameDelayCount, value);
 	CFRelease(value);
 	if (err != noErr) {
 		vth264enc_warning("could not set frame delay: %s", os_status_to_string(err));
 	}
 #endif
 
-	vth264enc_session_set_fps(session, ctx->conf.fps);
-	vth264enc_session_set_bitrate(session, ctx->conf.required_bitrate);
+	vth264enc_session_set_fps(ctx->session, ctx->conf.fps);
+	vth264enc_session_set_bitrate(ctx->session, ctx->conf.required_bitrate);
 
-	if((err = VTCompressionSessionPrepareToEncodeFrames(session)) != noErr) {
+	if((err = VTCompressionSessionPrepareToEncodeFrames(ctx->session)) != noErr) {
 		vth264enc_error("could not prepare the VideoToolbox compression session: %s", os_status_to_string(err));
 		goto fail;
 	} else {
 		vth264enc_message("encoder succesfully initialized.");
 #if !TARGET_OS_IPHONE
 		CFBooleanRef hardware_acceleration_enabled;
-		err = VTSessionCopyProperty(session, kVTCompressionPropertyKey_UsingHardwareAcceleratedVideoEncoder, kCFAllocatorDefault, &hardware_acceleration_enabled);
+		err = VTSessionCopyProperty(ctx->session, kVTCompressionPropertyKey_UsingHardwareAcceleratedVideoEncoder, kCFAllocatorDefault, &hardware_acceleration_enabled);
 		if (err != noErr) {
 			vth264enc_error("could not read kVTCompressionPropertyKey_UsingHardwareAcceleratedVideoEncoder property: %s", os_status_to_string(err));
 		} else {
@@ -288,17 +287,17 @@ static VTCompressionSessionRef vth264enc_session_create(VTH264EncCtx *ctx) {
 		if (hardware_acceleration_enabled != NULL) CFRelease(hardware_acceleration_enabled);
 #endif
 	}
-	return session;
+	return;
 
 fail:
-	if(session) CFRelease(session);
-	if(session != NULL) CFRelease(session);
-	return NULL;
+	if(ctx->session != NULL) CFRelease(ctx->session);
 }
 
-static void vth264enc_session_destroy(VTCompressionSessionRef session) {
-	VTCompressionSessionInvalidate(session);
-	CFRelease(session);
+static void vth264enc_session_destroy(VTH264EncCtx *ctx) {
+	vth264enc_message("destroying the encoding session");
+	VTCompressionSessionInvalidate(ctx->session);
+	CFRelease(ctx-> session);
+	ctx->session = NULL;
 }
 
 static void vth264enc_init(MSFilter *f) {
@@ -315,7 +314,7 @@ static void vth264enc_init(MSFilter *f) {
 
 static void vth264enc_preprocess(MSFilter *f) {
 	VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
-	ctx->session = vth264enc_session_create(ctx);
+	vth264enc_session_create(ctx);
 
 	rfc3984_init(&ctx->packer_ctx);
 	rfc3984_set_mode(&ctx->packer_ctx, 1);
@@ -385,6 +384,10 @@ static void vth264enc_process(MSFilter *f) {
 		CMTime p_time = CMTimeMake(f->ticker->time, 1000);
 		if((err = VTCompressionSessionEncodeFrame(ctx->session, pixbuf, p_time, kCMTimeInvalid, ctx->frame_properties, NULL, NULL)) != noErr) {
 			vth264enc_error("could not pass a pixbuf to the encoder: %s", os_status_to_string(err));
+			if (err == kVTInvalidSessionErr) {
+				vth264enc_session_destroy(ctx);
+				vth264enc_session_create(ctx);
+			}
 		}
 		CFRelease(pixbuf);
 
@@ -406,8 +409,7 @@ static void vth264enc_process(MSFilter *f) {
 static void vth264enc_postprocess(MSFilter *f) {
 	VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
 	if(ctx->session != NULL) {
-		vth264enc_session_destroy(ctx->session);
-		ctx->session = NULL;
+		vth264enc_session_destroy(ctx);
 	}
 	ms_queue_flush(&ctx->queue);
 	rfc3984_uninit(&ctx->packer_ctx);

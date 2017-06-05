@@ -40,6 +40,18 @@ typedef enum {
 MSH264NaluType ms_h264_nalu_get_type(const mblk_t *nalu);
 
 /**
+ * @brief Get the ID of a SPS NALu.
+ * @warning If the passed NALu is not a SPS, the behavior is undefined.
+ */
+unsigned int ms_h264_sps_get_id(const mblk_t *sps);
+
+/**
+ * @brief Get the ID of a PPS NALu.
+ * @warning If the passed NALu is not a PPS, the behavior is undefined.
+ */
+unsigned int ms_h264_pps_get_id(const mblk_t *pps);
+
+/**
  * Slices a bitstream buffer into several nal units.
  *
  * Nal units are stored in freshly allocated mblk_t buffers which are pushed into

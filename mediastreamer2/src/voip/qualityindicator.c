@@ -171,6 +171,7 @@ void ms_quality_indicator_update_local(MSQualityIndicator *qi){
 		// Divise rating by two to quickly decrease the rating
 		qi->local_rating=qi->local_rating/2;
 		qi->local_lq_rating=qi->local_lq_rating/2;
+		update_global_rating(qi);
 		return;/* no information usable*/
 	}else if (recvcnt<0){
 		qi->last_packet_count=stats->packet_recv;

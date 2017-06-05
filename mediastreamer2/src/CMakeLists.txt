@@ -102,9 +102,14 @@ endif()
 if(ENABLE_SHARED)
 	add_library(mediastreamer_base SHARED ${MEDIASTREAMER2_HEADER_FILES} ${BASE_SOURCE_FILES_C})
 	set_target_properties(mediastreamer_base PROPERTIES LINKER_LANGUAGE C)
-	if(ANDROID)
-		set_target_properties(mediastreamer_base PROPERTIES OUTPUT_NAME "mediastreamer_base-${CMAKE_ANDROID_ARCH_ABI}")
-	else()
+	if(IOS)
+		set_target_properties(mediastreamer_base PROPERTIES
+			FRAMEWORK TRUE
+			MACOSX_FRAMEWORK_IDENTIFIER com.belledonne-communications.mediastreamer_base
+			PUBLIC_HEADER "${MEDIASTREAMER2_HEADER_FILES}"
+		) 
+	endif()
+	if(NOT ANDROID)
 		# Do not version shared library on Android
 		set_target_properties(mediastreamer_base PROPERTIES SOVERSION ${MEDIASTREAMER_SO_VERSION})
 	endif()
@@ -123,6 +128,7 @@ if(ENABLE_SHARED)
 		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+		FRAMEWORK DESTINATION Frameworks
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 	)
 endif()
@@ -660,14 +666,22 @@ if(ENABLE_SHARED)
 		set_target_properties(mediastreamer_voip PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
 	add_dependencies(mediastreamer_voip ${MS2_VOIP_DEPENDENCIES})
-	if(ANDROID)
-		set_target_properties(mediastreamer_voip PROPERTIES OUTPUT_NAME "mediastreamer_voip-${CMAKE_ANDROID_ARCH_ABI}")
-	else()
+	if(IOS)
+		set_target_properties(mediastreamer_voip PROPERTIES
+			FRAMEWORK TRUE
+			MACOSX_FRAMEWORK_IDENTIFIER com.belledonne-communications.mediastreamer_voip
+			PUBLIC_HEADER "${MEDIASTREAMER2_HEADER_FILES}"
+		) 
+	endif()
+	if(NOT ANDROID)
 		# Do not version shared library on Android
 		set_target_properties(mediastreamer_voip PROPERTIES SOVERSION ${MEDIASTREAMER_SO_VERSION})
 	endif()
 	target_include_directories(mediastreamer_voip PUBLIC ${MEDIASTREAMER2_INCLUDE_DIRS})
 	target_link_libraries(mediastreamer_voip PRIVATE mediastreamer_base ${VOIP_LIBS})
+	if(IOS)
+		target_link_libraries(mediastreamer_voip INTERFACE "-framework Foundation" "-framework AVFoundation")
+	endif()
 	if(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
 			install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/mediastreamer_voip.pdb
@@ -680,6 +694,7 @@ if(ENABLE_SHARED)
 		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+		FRAMEWORK DESTINATION Frameworks
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 	)
 endif()
