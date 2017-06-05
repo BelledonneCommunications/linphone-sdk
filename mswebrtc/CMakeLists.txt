@@ -64,6 +64,7 @@ else()
 	find_package(ORTP REQUIRED)
 endif()
 
+find_library(LIBM NAMES m)
 
 if(ENABLE_AEC)
 	set(BUILD_AEC 1)
@@ -362,6 +363,10 @@ endif()
 
 set(LIBS ${MEDIASTREAMER2_LIBRARIES} ${ORTP_LIBRARIES})
 
+if(LIBM)
+    list(APPEND LIBS ${LIBM})
+endif()
+
 if(ENABLE_STATIC)
 	add_library(mswebrtc-static STATIC ${SOURCE_FILES})
 	set_target_properties(mswebrtc-static PROPERTIES OUTPUT_NAME mswebrtc)
@@ -372,8 +377,18 @@ if(ENABLE_STATIC)
 	)
 endif()
 if(ENABLE_SHARED)
-	add_library(mswebrtc MODULE ${SOURCE_FILES})
+	if(NOT IOS)
+		add_library(mswebrtc MODULE ${SOURCE_FILES})
+	else()
+		add_library(mswebrtc SHARED ${SOURCE_FILES})
+	endif()
 	target_link_libraries(mswebrtc ${LIBS})
+	if(IOS)
+		set_target_properties(mswebrtc PROPERTIES
+			FRAMEWORK TRUE
+			MACOSX_FRAMEWORK_IDENTIFIER com.belledonne-communications.mswebrtc
+		) 
+	endif()
 	if(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
 			install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/libmswebrtc.pdb
@@ -381,12 +396,15 @@ if(ENABLE_SHARED)
 				PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 			)
 		endif()
-		set_target_properties(mswebrtc PROPERTIES PREFIX "lib")
+		if(NOT IOS)
+			set_target_properties(mswebrtc PROPERTIES PREFIX "lib")
+		endif()
 	endif()
 	install(TARGETS mswebrtc
 		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}/mediastreamer/plugins
 		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/mediastreamer/plugins
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}/mediastreamer/plugins
+		FRAMEWORK DESTINATION Frameworks
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 	)
 endif()
