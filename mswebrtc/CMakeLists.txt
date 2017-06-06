@@ -384,9 +384,12 @@ if(ENABLE_SHARED)
 	endif()
 	target_link_libraries(mswebrtc ${LIBS})
 	if(IOS)
+		set(MIN_OS ${LINPHONE_IOS_DEPLOYMENT_TARGET})
+		set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/build/osx/")
 		set_target_properties(mswebrtc PROPERTIES
 			FRAMEWORK TRUE
-			MACOSX_FRAMEWORK_IDENTIFIER com.belledonne-communications.mswebrtc
+			MACOSX_FRAMEWORK_IDENTIFIER org.linphone.mswebrtc
+  			MACOSX_FRAMEWORK_INFO_PLIST Info.plist.in
 		) 
 	endif()
 	if(MSVC)

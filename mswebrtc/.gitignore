@@ -16,3 +16,4 @@ sdk/webrtc
 msisac.iss
 m4/
 config.h.in
+*.DS_Store
