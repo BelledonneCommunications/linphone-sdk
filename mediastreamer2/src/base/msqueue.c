@@ -25,6 +25,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mediastreamer2/msticker.h"
 #include "mediastreamer2/msvideo.h"
 #include "mediastreamer2/flowcontrol.h"
+
+#include <stdint.h>
 #include <string.h>
 
 
@@ -85,7 +87,7 @@ size_t ms_bufferizer_read(MSBufferizer *obj, uint8_t *data, size_t datalen){
 		size_t sz=0;
 		size_t cplen;
 		mblk_t *m=peekq(&obj->q);
-		
+
 		/* first store current meta information in the _q_stopper field the queue, just to reuse space*/
 		mblk_meta_copy(m, &obj->q._q_stopper);
 		while(sz<datalen){
