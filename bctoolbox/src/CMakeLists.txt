@@ -84,9 +84,16 @@ if(ENABLE_SHARED)
 	add_library(bctoolbox SHARED ${BCTOOLBOX_SOURCE_FILES} ${BCTOOLBOX_HEADER_FILES})
 	target_link_libraries(bctoolbox PRIVATE ${CMAKE_THREAD_LIBS_INIT})
 	if(IOS)
+		if(IOS)
+			set(MIN_OS ${LINPHONE_IOS_DEPLOYMENT_TARGET})
+		else()
+			set(MIN_OS ${CMAKE_OSX_DEPLOYMENT_TARGET})
+		endif()
+		set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/build/osx/")
 		set_target_properties(bctoolbox PROPERTIES
 			FRAMEWORK TRUE
-			MACOSX_FRAMEWORK_IDENTIFIER com.belledonne-communications.bctoolbox
+			MACOSX_FRAMEWORK_IDENTIFIER org.linphone.bctoolbox
+  			MACOSX_FRAMEWORK_INFO_PLIST Info.plist.in
 			PUBLIC_HEADER "${BCTOOLBOX_HEADER_FILES}"
 		) 
 	endif()
