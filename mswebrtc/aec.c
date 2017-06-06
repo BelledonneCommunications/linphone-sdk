@@ -371,7 +371,7 @@ static int webrtc_aec_set_sr(MSFilter *f, void *arg) {
 	int requested_sr = *(int *) arg;
 	int sr = requested_sr;
 
-	if (requested_sr != 8000 && requested_sr != 16000) {
+	if ((s->aec_type == WebRTCAECTypeMobile) && (requested_sr != 8000) && (requested_sr != 16000)) {
 		if (requested_sr > 16000) sr = 16000;
 		else sr = 8000;
 		ms_message("Webrtc aec does not support sampling rate %i, using %i instead", requested_sr, sr);
