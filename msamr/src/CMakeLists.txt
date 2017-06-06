@@ -59,9 +59,12 @@ if(ENABLE_SHARED)
 	endif()
 	target_link_libraries(msamr ${LIBS})
 	if(IOS)
+		set(MIN_OS ${LINPHONE_IOS_DEPLOYMENT_TARGET})
+		set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/build/osx/")
 		set_target_properties(msamr PROPERTIES
 			FRAMEWORK TRUE
-			MACOSX_FRAMEWORK_IDENTIFIER com.belledonne-communications.msamr
+			MACOSX_FRAMEWORK_IDENTIFIER org.linphone.msamr
+  			MACOSX_FRAMEWORK_INFO_PLIST Info.plist.in
 		) 
 	endif()
 	if(MSVC)
