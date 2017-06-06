@@ -103,9 +103,16 @@ if(ENABLE_SHARED)
 	add_library(mediastreamer_base SHARED ${MEDIASTREAMER2_HEADER_FILES} ${BASE_SOURCE_FILES_C})
 	set_target_properties(mediastreamer_base PROPERTIES LINKER_LANGUAGE C)
 	if(IOS)
+		if(IOS)
+			set(MIN_OS ${LINPHONE_IOS_DEPLOYMENT_TARGET})
+		else()
+			set(MIN_OS ${CMAKE_OSX_DEPLOYMENT_TARGET})
+		endif()
+		set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/build/osx/")
 		set_target_properties(mediastreamer_base PROPERTIES
 			FRAMEWORK TRUE
-			MACOSX_FRAMEWORK_IDENTIFIER com.belledonne-communications.mediastreamer_base
+			MACOSX_FRAMEWORK_IDENTIFIER org.linphone.mediastreamerbase
+  			MACOSX_FRAMEWORK_INFO_PLIST Info_base.plist.in
 			PUBLIC_HEADER "${MEDIASTREAMER2_HEADER_FILES}"
 		) 
 	endif()
@@ -667,9 +674,16 @@ if(ENABLE_SHARED)
 	endif()
 	add_dependencies(mediastreamer_voip ${MS2_VOIP_DEPENDENCIES})
 	if(IOS)
+		if(IOS)
+			set(MIN_OS ${LINPHONE_IOS_DEPLOYMENT_TARGET})
+		else()
+			set(MIN_OS ${CMAKE_OSX_DEPLOYMENT_TARGET})
+		endif()
+		set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/build/osx/")
 		set_target_properties(mediastreamer_voip PROPERTIES
 			FRAMEWORK TRUE
-			MACOSX_FRAMEWORK_IDENTIFIER com.belledonne-communications.mediastreamer_voip
+			MACOSX_FRAMEWORK_IDENTIFIER org.linphone.mediastreamervoip
+  			MACOSX_FRAMEWORK_INFO_PLIST Info_voip.plist.in
 			PUBLIC_HEADER "${MEDIASTREAMER2_HEADER_FILES}"
 		) 
 	endif()
