@@ -64,6 +64,7 @@ public class AndroidVideoApi5JniWrapper {
 	 * - try to find the same one
 	 * - try to find one just a little bigger (ex: CIF when asked QVGA)
 	 * - as a fallback the nearest smaller one
+	 * @param cameraId Camera id
 	 * @param requestedW Requested video size width
 	 * @param requestedH Requested video size height
 	 * @return int[width, height] of the chosen resolution, may be null if no
