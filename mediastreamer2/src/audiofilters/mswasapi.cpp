@@ -493,6 +493,7 @@ static MSSndCard *ms_wasapi_snd_card_new(LPWSTR id, const char *name, uint8_t ca
 	WasapiSndCard *wasapicard = static_cast<WasapiSndCard *>(card->data);
 	card->name = ms_strdup(name);
 	card->capabilities = capabilities;
+	card->latency = (capabilities & MS_SND_CARD_CAP_CAPTURE) ? 70 : 0;
 	wasapicard->id_vector = new std::vector<wchar_t>(wcslen(id) + 1);
 	wcscpy_s(&wasapicard->id_vector->front(), wasapicard->id_vector->size(), id);
 	wasapicard->id = &wasapicard->id_vector->front();
