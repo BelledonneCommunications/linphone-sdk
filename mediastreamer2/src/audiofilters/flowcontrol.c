@@ -19,7 +19,10 @@
  */
 
 #include "mediastreamer2/mscommon.h"
+#include "mediastreamer2/msfilter.h"
+#include "mediastreamer2/msticker.h"
 #include "mediastreamer2/flowcontrol.h"
+
 
 void ms_audio_flow_controller_init(MSAudioFlowController *ctl)
 {
@@ -73,8 +76,12 @@ static void discard_well_choosed_samples(mblk_t *m, int nsamples, int todrop)
 	}
 }
 
+static bool_t ms_audio_flow_controller_running(MSAudioFlowController *ctl) {
+	return (ctl->total_samples > 0) && (ctl->target_samples > 0);
+}
+
 mblk_t *ms_audio_flow_controller_process(MSAudioFlowController *ctl, mblk_t *m){
-	if (ctl->total_samples > 0 && ctl->target_samples > 0) {
+	if (ms_audio_flow_controller_running(ctl)) {
 		int nsamples = (int)((m->b_wptr - m->b_rptr) / 2);
 		int th_dropped;
 		int todrop;
@@ -98,3 +105,142 @@ mblk_t *ms_audio_flow_controller_process(MSAudioFlowController *ctl, mblk_t *m){
 	}
 	return m;
 }
+
+
+
+
+typedef struct MSAudioFlowControlState {
+	MSAudioFlowController afc;
+	int samplerate;
+	int nchannels;
+} MSAudioFlowControlState;
+
+
+static void ms_audio_flow_control_init(MSFilter *f) {
+	MSAudioFlowControlState *s = ms_new0(MSAudioFlowControlState, 1);
+	f->data = s;
+}
+
+static void ms_audio_flow_control_preprocess(MSFilter *f) {
+	MSAudioFlowControlState *s = (MSAudioFlowControlState *)f->data;
+	ms_audio_flow_controller_init(&s->afc);
+}
+
+static void ms_audio_flow_control_process(MSFilter *f) {
+	MSAudioFlowControlState *s = (MSAudioFlowControlState *)f->data;
+	mblk_t *m;
+
+	while((m = ms_queue_get(f->inputs[0])) != NULL) {
+		m = ms_audio_flow_controller_process(&s->afc, m);
+		if (m) {
+			ms_queue_put(f->outputs[0], m);
+		}
+	}
+}
+
+static void ms_audio_flow_control_postprocess(MSFilter *f) {
+	
+}
+
+static void ms_audio_flow_control_uninit(MSFilter *f) {
+	MSAudioFlowControlState *s = (MSAudioFlowControlState *)f->data;
+	ms_free(s);
+}
+
+
+void ms_audio_flow_control_event_handler(void *user_data, MSFilter *source, unsigned int event, void *eventdata) {
+	if (event == MS_AUDIO_FLOW_CONTROL_DROP_EVENT) {
+		MSFilter *f = (MSFilter *)user_data;
+		MSAudioFlowControlState *s = (MSAudioFlowControlState *)f->data;
+		MSAudioFlowControlDropEvent *ev = (MSAudioFlowControlDropEvent *)eventdata;
+		if (!ms_audio_flow_controller_running(&s->afc)) {
+			ms_warning("Too much buffered audio signal, throwing out %u ms", ev->drop_ms);
+			ms_audio_flow_controller_set_target(&s->afc,
+				(ev->drop_ms * s->samplerate * s->nchannels) / 1000,
+				(ev->flow_control_interval_ms * s->samplerate * s->nchannels) / 1000);
+		}
+	}
+}
+
+
+static int ms_audio_flow_control_set_sample_rate(MSFilter *f, void *arg) {
+	MSAudioFlowControlState *s = (MSAudioFlowControlState *)f->data;
+	s->samplerate = *((int *)arg);
+	return 0;
+}
+
+static int ms_audio_flow_control_get_sample_rate(MSFilter *f, void *arg) {
+	MSAudioFlowControlState *s = (MSAudioFlowControlState *)f->data;
+	*((int *)arg) = s->samplerate;
+	return 0;
+}
+
+static int ms_audio_flow_control_set_nchannels(MSFilter *f, void *arg) {
+	MSAudioFlowControlState *s = (MSAudioFlowControlState *)f->data;
+	s->nchannels = *((int *)arg);
+	return 0;
+}
+
+static int ms_audio_flow_control_get_nchannels(MSFilter *f, void *arg) {
+	MSAudioFlowControlState *s = (MSAudioFlowControlState *)f->data;
+	*((int *)arg) = s->nchannels;
+	return 0;
+}
+
+static MSFilterMethod ms_audio_flow_control_methods[] = {
+	{ MS_FILTER_SET_SAMPLE_RATE, ms_audio_flow_control_set_sample_rate },
+	{ MS_FILTER_GET_SAMPLE_RATE, ms_audio_flow_control_get_sample_rate },
+	{ MS_FILTER_SET_NCHANNELS,   ms_audio_flow_control_set_nchannels   },
+	{ MS_FILTER_GET_NCHANNELS,   ms_audio_flow_control_get_nchannels   }
+};
+
+
+#define MS_AUDIO_FLOW_CONTROL_NAME        "MSAudioFlowControl"
+#define MS_AUDIO_FLOW_CONTROL_DESCRIPTION "Flow control filter to drop sample in the audio graph if too many samples are queued."
+#define MS_AUDIO_FLOW_CONTROL_CATEGORY    MS_FILTER_OTHER
+#define MS_AUDIO_FLOW_CONTROL_ENC_FMT     NULL
+#define MS_AUDIO_FLOW_CONTROL_NINPUTS     1
+#define MS_AUDIO_FLOW_CONTROL_NOUTPUTS    1
+#define MS_AUDIO_FLOW_CONTROL_FLAGS       0
+
+#ifdef _MSC_VER
+
+MSFilterDesc ms_audio_flow_control_desc = {
+	MS_AUDIO_FLOW_CONTROL_ID,
+	MS_AUDIO_FLOW_CONTROL_NAME,
+	MS_AUDIO_FLOW_CONTROL_DESCRIPTION,
+	MS_AUDIO_FLOW_CONTROL_CATEGORY,
+	MS_AUDIO_FLOW_CONTROL_ENC_FMT,
+	MS_AUDIO_FLOW_CONTROL_NINPUTS,
+	MS_AUDIO_FLOW_CONTROL_NOUTPUTS,
+	ms_audio_flow_control_init,
+	ms_audio_flow_control_preprocess,
+	ms_audio_flow_control_process,
+	ms_audio_flow_control_postprocess,
+	ms_audio_flow_control_uninit,
+	ms_audio_flow_control_methods,
+	MS_AUDIO_FLOW_CONTROL_FLAGS
+};
+
+#else
+
+MSFilterDesc ms_audio_flow_control_desc = {
+	.id = MS_AUDIO_FLOW_CONTROL_ID,
+	.name = MS_AUDIO_FLOW_CONTROL_NAME,
+	.text = MS_AUDIO_FLOW_CONTROL_DESCRIPTION,
+	.category = MS_AUDIO_FLOW_CONTROL_CATEGORY,
+	.enc_fmt = MS_AUDIO_FLOW_CONTROL_ENC_FMT,
+	.ninputs = MS_AUDIO_FLOW_CONTROL_NINPUTS,
+	.noutputs = MS_AUDIO_FLOW_CONTROL_NOUTPUTS,
+	.init = ms_audio_flow_control_init,
+	.preprocess = ms_audio_flow_control_preprocess,
+	.process = ms_audio_flow_control_process,
+	.postprocess = ms_audio_flow_control_postprocess,
+	.uninit = ms_audio_flow_control_uninit,
+	.methods = ms_audio_flow_control_methods,
+	.flags = MS_AUDIO_FLOW_CONTROL_FLAGS
+};
+
+#endif
+
+MS_FILTER_DESC_EXPORT(ms_audio_flow_control_desc)

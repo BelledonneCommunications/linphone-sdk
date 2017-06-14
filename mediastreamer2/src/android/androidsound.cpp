@@ -331,14 +331,6 @@ static void android_snd_read_init(MSFilter *obj){
 	obj->data=ad;
 }
 
-static void compute_timespec(AndroidSndReadData *d) {
-	uint64_t ns = ((1000 * d->read_samples) / (uint64_t) d->rate) * 1000000;
-	MSTimeSpec ts;
-	ts.tv_nsec = ns % 1000000000;
-	ts.tv_sec = ns / 1000000000;
-	d->av_skew = ms_ticker_synchronizer_set_external_time(d->mTickerSynchronizer, &ts);
-}
-
 /*
  * This is a callback function called by AudioRecord's thread. This thread is not created by ortp/ms2 and is not able to attach to a JVM without crashing
  * at the end, despite it is detached (since android 4.4).
@@ -352,7 +344,7 @@ static void android_snd_read_cb(int event, void* user, void *p_info){
 	if (ad->mTickerSynchronizer==NULL){
 		MSFilter *obj=ad->mFilter;
 		/*
-		 * ABSOLUTE HORRIBLE HACK. We temporarily disable logs to prevent ms_ticker_set_time_func() to output a debug log.
+		 * ABSOLUTE HORRIBLE HACK. We temporarily disable logs to prevent ms_ticker_set_synchronizer() to output a debug log.
 		 * This is horrible because this also suspends logs for all concurrent threads during these two lines of code.
 		 * Possible way to do better:
 		 *  1) understand why AudioRecord thread doesn't detach.
@@ -361,7 +353,7 @@ static void android_snd_read_cb(int event, void* user, void *p_info){
 		int loglevel=ortp_get_log_level_mask(ORTP_LOG_DOMAIN);
 		ortp_set_log_level_mask(NULL, ORTP_ERROR|ORTP_FATAL);
 		ad->mTickerSynchronizer = ms_ticker_synchronizer_new();
-		ms_ticker_set_time_func(obj->ticker,(uint64_t (*)(void*))ms_ticker_synchronizer_get_corrected_time, ad->mTickerSynchronizer);
+		ms_ticker_set_synchronizer(obj->ticker, ad->mTickerSynchronizer);
 		ortp_set_log_level_mask(ORTP_LOG_DOMAIN, loglevel);
 	}
 	if (event==AudioRecord::EVENT_MORE_DATA){
@@ -374,7 +366,7 @@ static void android_snd_read_cb(int event, void* user, void *p_info){
 			ad->read_samples+=info.frameCount;
 
 			ms_mutex_lock(&ad->mutex);
-			compute_timespec(ad);
+			ms_ticker_synchronizer_update(ad->mTickerSynchronizer, (uint64_t)ad->read_samples, (unsigned int)ad->rate);
 			putq(&ad->q,m);
 			ms_mutex_unlock(&ad->mutex);
 		}
@@ -449,7 +441,7 @@ static void android_snd_read_postprocess(MSFilter *obj){
 		}
 		ad->rec=0;
 	}
-	ms_ticker_set_time_func(obj->ticker,NULL,NULL);
+	ms_ticker_set_synchronizer(obj->ticker, NULL);
 	ms_mutex_lock(&ad->mutex);
 	ms_ticker_synchronizer_destroy(ad->mTickerSynchronizer);
 	ad->mTickerSynchronizer=NULL;

@@ -452,19 +452,6 @@ MS2_PUBLIC bool_t ms_filter_implements_interface(MSFilter *f, MSFilterInterfaceI
 **/
 MS2_PUBLIC bool_t ms_filter_desc_implements_interface(MSFilterDesc *desc, MSFilterInterfaceId id);
 
-/**
- * Set a callback on filter's to be informed of private filter's event.
- * This callback is called from the filter's MSTicker, unless a global event queue
- * is created to receive all filter's notification asynchronously.
- * See ms_event_queue_new() for details.
- *
- * @param f        A MSFilter object.
- * @param fn       A MSFilterNotifyFunc that will be called.
- * @param userdata A pointer to private data.
- * @deprecated use ms_filter_add_notify_callback()
- *
- */
-
 
 /**
  * Set a callback on filter's to be informed of private filter's event.

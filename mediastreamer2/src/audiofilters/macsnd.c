@@ -58,6 +58,7 @@ The BSD license below is for the original work.
 
 #include "mediastreamer2/mssndcard.h"
 #include "mediastreamer2/msfilter.h"
+#include "mediastreamer2/msticker.h"
 
 #if __LP64__ 
 #define UINT32_PRINTF "u"
@@ -69,6 +70,9 @@ The BSD license below is for the original work.
 
 MSFilter *ms_au_read_new(MSSndCard *card);
 MSFilter *ms_au_write_new(MSSndCard *card);
+
+static const int flow_control_interval = 5000; // ms
+static const int flow_control_threshold = 40; // ms
 
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
@@ -109,11 +113,13 @@ typedef struct AUCommon{
 typedef struct AURead{
 	AUCommon common;
 	queue_t rq;
+	MSTickerSynchronizer *ticker_synchronizer;
+	uint64_t read_frames;
 }AURead;
 
 typedef struct AUWrite{
 	AUCommon common;
-	MSBufferizer *buffer;
+	MSFlowControlledBufferizer *buffer;
 }AUWrite;
 
 
@@ -416,14 +422,7 @@ static OSStatus writeRenderProc(void *inRefCon,
 
 	if (ioData->mNumberBuffers!=1) ms_warning("writeRenderProc: %"UINT32_PRINTF" buffers",ioData->mNumberBuffers);
 	ms_mutex_lock(&d->common.mutex);
-	read=ms_bufferizer_read(d->buffer,ioData->mBuffers[0].mData,ioData->mBuffers[0].mDataByteSize);
-	if (ms_bufferizer_get_avail(d->buffer) >10*inNumFrames*2) {
-		ms_message("we are late, bufferizer sise is [%i] bytes in framezize is [%"UINT32_PRINTF"] bytes"
-					,(int)ms_bufferizer_get_avail(d->buffer)
-					,inNumFrames*2);
-		ms_bufferizer_flush(d->buffer);
-	}
-
+	read=ms_flow_controlled_bufferizer_read(d->buffer,ioData->mBuffers[0].mData,ioData->mBuffers[0].mDataByteSize);
 	ms_mutex_unlock(&d->common.mutex);
 	if (read==0){
 		ms_debug("Silence inserted in audio output unit (%"UINT32_PRINTF" bytes)",ioData->mBuffers[0].mDataByteSize);
@@ -608,7 +607,7 @@ static mblk_t *au_read_get(AURead *d){
 
 static void au_write_put(AUWrite *d, mblk_t *m){
 	ms_mutex_lock(&d->common.mutex);
-	ms_bufferizer_put(d->buffer,m);
+	ms_flow_controlled_bufferizer_put(d->buffer,m);
 	ms_mutex_unlock(&d->common.mutex);
 }
 
@@ -626,11 +625,13 @@ static void au_read_init(MSFilter *f){
 	AURead *d = ms_new0(AURead, 1);
 	au_common_init(&d->common);
 	qinit(&d->rq);
+	d->ticker_synchronizer = ms_ticker_synchronizer_new();
 	f->data=d;
 }	
 
 static void au_read_preprocess(MSFilter *f){
 	AURead *d = (AURead *) f->data;
+	ms_ticker_set_synchronizer(f->ticker, d->ticker_synchronizer);
 	audio_unit_open(&d->common,TRUE);
 }
 
@@ -638,18 +639,22 @@ static void au_read_process(MSFilter *f){
 	AURead *d = (AURead *) f->data;
 	mblk_t *m;
 	while((m=au_read_get(d))!=NULL){
+		d->read_frames += (msgdsize(m) / 2) / d->common.nchannels;
 		ms_queue_put(f->outputs[0],m);
 	}
+	ms_ticker_synchronizer_update(d->ticker_synchronizer, d->read_frames, d->common.rate);
 }
 
 static void au_read_postprocess(MSFilter *f){
 	AURead *d = (AURead *) f->data;
 	audio_unit_close(&d->common);
+	ms_ticker_set_synchronizer(f->ticker, NULL);
 }
 
 static void au_read_uninit(MSFilter *f){
 	AURead *d = (AURead *) f->data;
 	flushq(&d->rq,0);
+	ms_ticker_synchronizer_destroy(d->ticker_synchronizer);
 	au_common_uninit(&d->common);
 	ms_free(d);
 }
@@ -659,7 +664,9 @@ static void au_read_uninit(MSFilter *f){
 static void au_write_init(MSFilter *f){
 	AUWrite *d = ms_new0(AUWrite, 1);
 	au_common_init(&d->common);
-	d->buffer=ms_bufferizer_new();
+	d->buffer=ms_flow_controlled_bufferizer_new(f, d->common.rate, d->common.nchannels);
+	ms_flow_controlled_bufferizer_set_max_size_ms(d->buffer, flow_control_threshold);
+	ms_flow_controlled_bufferizer_set_flow_control_interval_ms(d->buffer, flow_control_interval);
 	f->data=d;
 }	
 
@@ -683,7 +690,7 @@ static void au_write_postprocess(MSFilter *f){
 
 static void au_write_uninit(MSFilter *f){
 	AUWrite *d = (AUWrite *) f->data;
-	ms_bufferizer_destroy(d->buffer);
+	ms_flow_controlled_bufferizer_destroy(d->buffer);
 	au_common_uninit(&d->common);
 	ms_free(d);
 }
@@ -701,9 +708,16 @@ static int get_rate(MSFilter * f, void *arg)
 	return 0;
 }
 
-static int set_nchannels(MSFilter *f, void *arg){
-	AUCommon *d = (AUCommon *) f->data;
-	d->nchannels=*((int*)arg);
+static int read_set_nchannels(MSFilter *f, void *arg){
+	AURead *d = (AURead *) f->data;
+	d->common.nchannels=*((int*)arg);
+	return 0;
+}
+
+static int write_set_nchannels(MSFilter *f, void *arg){
+	AUWrite *d = (AUWrite *) f->data;
+	d->common.nchannels=*((int*)arg);
+	ms_flow_controlled_bufferizer_set_nchannels(d->buffer, d->common.nchannels);
 	return 0;
 }
 
@@ -713,10 +727,18 @@ static int get_nchannels(MSFilter *f, void *arg){
 	return 0;
 }
 
-static MSFilterMethod au_methods[]={
+static MSFilterMethod au_read_methods[]={
 	{	MS_FILTER_SET_SAMPLE_RATE	, set_rate	},
 	{	MS_FILTER_GET_SAMPLE_RATE	, get_rate },
-	{	MS_FILTER_SET_NCHANNELS		, set_nchannels	},
+	{	MS_FILTER_SET_NCHANNELS		, read_set_nchannels	},
+	{	MS_FILTER_GET_NCHANNELS		, get_nchannels	},
+	{	0				, NULL		}
+};
+
+static MSFilterMethod au_write_methods[]={
+	{	MS_FILTER_SET_SAMPLE_RATE	, set_rate	},
+	{	MS_FILTER_GET_SAMPLE_RATE	, get_rate },
+	{	MS_FILTER_SET_NCHANNELS		, write_set_nchannels	},
 	{	MS_FILTER_GET_NCHANNELS		, get_nchannels	},
 	{	0				, NULL		}
 };
@@ -733,7 +755,7 @@ MSFilterDesc ms_au_read_desc={
 	.process=au_read_process,
 	.postprocess=au_read_postprocess,
 	.uninit=au_read_uninit,
-	.methods=au_methods
+	.methods=au_read_methods
 };
 
 MSFilterDesc ms_au_write_desc={
@@ -748,7 +770,7 @@ MSFilterDesc ms_au_write_desc={
 	.process=au_write_process,
 	.postprocess=au_write_postprocess,
 	.uninit=au_write_uninit,
-	.methods=au_methods
+	.methods=au_write_methods
 };
 
 static void set_audio_device_id(AuCard *wc,AUCommon* d, bool_t is_read) {
