@@ -171,6 +171,7 @@ static SoundDeviceDescription devices[]={
 	{	"LENOVO",				"Lenovo S60-a",			"msm8916",		0,	0 ,	44100},
 	{	"LENOVO",				"Lenovo A6000",			"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0},
 	{	"LENOVO",				"Lenovo A616",			"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0},
+	{	"LENOVO",				"Lenovo YT3-850F",		"msm8909",			DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0},
 
 	{	"Enspert",				"IGGY",					""		,		0,	320 ,0}, /*Wiko iggy*/
 	{	"Yota Devices Limited", "YD201",				"msm8974",		DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0, 48000 }, /* Yotaphone 2 */
