@@ -46,7 +46,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 static const float smooth_factor = 0.05;
 static const int framesize = 80;
-static const int flow_control_interval_ms = 5000;
 
 
 typedef enum _WebRTCAECType {
@@ -57,15 +56,12 @@ typedef enum _WebRTCAECType {
 typedef struct WebRTCAECState {
 	void *aecInst;
 	MSBufferizer delayed_ref;
-	MSBufferizer ref;
+	MSFlowControlledBufferizer ref;
 	MSBufferizer echo;
 	int framesize;
 	int samplerate;
 	int delay_ms;
 	int nominal_ref_samples;
-	int min_ref_samples;
-	MSAudioFlowController afc;
-	uint64_t flow_control_time;
 	char *state_str;
 #ifdef EC_DUMP
 	FILE *echofile;
@@ -84,7 +80,7 @@ static void webrtc_aecgeneric_init(MSFilter *f, WebRTCAECType aec_type) {
 	s->samplerate = 8000;
 	ms_bufferizer_init(&s->delayed_ref);
 	ms_bufferizer_init(&s->echo);
-	ms_bufferizer_init(&s->ref);
+	ms_flow_controlled_bufferizer_init(&s->ref, f, s->samplerate, 1);
 	s->delay_ms = 0;
 	s->aecInst = NULL;
 	s->framesize = framesize;
@@ -136,6 +132,12 @@ static void webrtc_aec_uninit(MSFilter *f) {
 	ms_free(s);
 }
 
+static void configure_flow_controlled_bufferizer(WebRTCAECState *s) {
+	ms_flow_controlled_bufferizer_set_samplerate(&s->ref, s->samplerate);
+	ms_flow_controlled_bufferizer_set_max_size_ms(&s->ref, s->delay_ms);
+	ms_flow_controlled_bufferizer_set_granularity_ms(&s->ref, (s->framesize * 1000) / s->samplerate);
+}
+
 static void webrtc_aec_preprocess(MSFilter *f) {
 	WebRTCAECState *s = (WebRTCAECState *) f->data;
 #ifdef BUILD_AEC
@@ -152,6 +154,7 @@ static void webrtc_aec_preprocess(MSFilter *f) {
 	delay_samples = s->delay_ms * s->samplerate / 1000;
 	s->framesize=(framesize*s->samplerate)/8000;
 	ms_message("Initializing WebRTC echo canceler with framesize=%i, delay_ms=%i, delay_samples=%i", s->framesize, s->delay_ms, delay_samples);
+	configure_flow_controlled_bufferizer(s);
 
 #ifdef BUILD_AEC
 	if (s->aec_type == WebRTCAECTypeNormal) {
@@ -202,10 +205,7 @@ static void webrtc_aec_preprocess(MSFilter *f) {
 	m = allocb(delay_samples * 2, 0);
 	m->b_wptr += delay_samples * 2;
 	ms_bufferizer_put(&s->delayed_ref, m);
-	s->min_ref_samples = -1;
 	s->nominal_ref_samples = delay_samples;
-	ms_audio_flow_controller_init(&s->afc);
-	s->flow_control_time = f->ticker->time;
 }
 
 #ifdef BUILD_AEC
@@ -251,12 +251,9 @@ static void webrtc_aec_process(MSFilter *f) {
 	if (f->inputs[0] != NULL) {
 		if (s->echostarted) {
 			while ((refm = ms_queue_get(f->inputs[0])) != NULL) {
-				refm=ms_audio_flow_controller_process(&s->afc,refm);
-				if (refm){
-					mblk_t *cp=dupmsg(refm);
-					ms_bufferizer_put(&s->delayed_ref,cp);
-					ms_bufferizer_put(&s->ref,refm);
-				}
+				mblk_t *cp=dupmsg(refm);
+				ms_bufferizer_put(&s->delayed_ref,cp);
+				ms_flow_controlled_bufferizer_put(&s->ref,refm);
 			}
 		} else {
 			ms_warning("Getting reference signal but no echo to synchronize on.");
@@ -300,7 +297,7 @@ static void webrtc_aec_process(MSFilter *f) {
 			}
 			/* read from our no-delay buffer and output */
 			refm = allocb(nbytes, 0);
-			if (ms_bufferizer_read(&s->ref, refm->b_wptr, nbytes) == 0) {
+			if (ms_flow_controlled_bufferizer_read(&s->ref, refm->b_wptr, nbytes) == 0) {
 				ms_fatal("Should never happen");
 			}
 			refm->b_wptr += nbytes;
@@ -313,9 +310,6 @@ static void webrtc_aec_process(MSFilter *f) {
 		}
 		avail -= nbytes;
 		avail_samples = avail / 2;
-		if (avail_samples < s->min_ref_samples || s->min_ref_samples == -1) {
-			s->min_ref_samples = avail_samples;
-		}
 
 #ifdef EC_DUMP
 		if (s->reffile)
@@ -349,18 +343,6 @@ static void webrtc_aec_process(MSFilter *f) {
 		oecho->b_wptr += nbytes;
 		ms_queue_put(f->outputs[1], oecho);
 	}
-
-	/*verify our ref buffer does not become too big, meaning that we are receiving more samples than we are sending*/
-	if ((((uint32_t) (f->ticker->time - s->flow_control_time)) >= flow_control_interval_ms) && (s->min_ref_samples != -1)) {
-		int diff = s->min_ref_samples - s->nominal_ref_samples;
-		if (diff > (nbytes / 2)) {
-			int purge = diff - (nbytes / 2);
-			ms_warning("echo canceller: we are accumulating too much reference signal, need to throw out %i samples", purge);
-			ms_audio_flow_controller_set_target(&s->afc, purge, (flow_control_interval_ms * s->samplerate) / 1000);
-		}
-		s->min_ref_samples = -1;
-		s->flow_control_time = f->ticker->time;
-	}
 }
 
 static void webrtc_aec_postprocess(MSFilter *f) {
@@ -368,7 +350,7 @@ static void webrtc_aec_postprocess(MSFilter *f) {
 
 	ms_bufferizer_flush(&s->delayed_ref);
 	ms_bufferizer_flush(&s->echo);
-	ms_bufferizer_flush(&s->ref);
+	ms_flow_controlled_bufferizer_flush(&s->ref);
 	if (s->aecInst != NULL) {
 #ifdef BUILD_AEC
 		if (s->aec_type == WebRTCAECTypeNormal) {
@@ -395,6 +377,7 @@ static int webrtc_aec_set_sr(MSFilter *f, void *arg) {
 		ms_message("Webrtc aec does not support sampling rate %i, using %i instead", requested_sr, sr);
 	}
 	s->samplerate = sr;
+	configure_flow_controlled_bufferizer(s);
 	return 0;
 }
 
@@ -412,6 +395,7 @@ static int webrtc_aec_set_framesize(MSFilter *f, void *arg) {
 static int webrtc_aec_set_delay(MSFilter *f, void *arg) {
 	WebRTCAECState *s = (WebRTCAECState *) f->data;
 	s->delay_ms = *(int *) arg;
+	configure_flow_controlled_bufferizer(s);
 	return 0;
 }
 
