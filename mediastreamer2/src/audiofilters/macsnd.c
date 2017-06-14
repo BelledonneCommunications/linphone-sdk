@@ -200,6 +200,9 @@ static MSSndCard *ca_card_new(const char *name, const char * uidname, AudioDevic
 	d->uidname = ms_strdup(uidname);
 	card->name = ms_strdup_printf("%s (%s)", name, uidname); /*include uid so that names are uniques*/
 	card->capabilities = cap;
+	if (cap & MS_SND_CARD_CAP_CAPTURE){
+		card->latency = 70; /* Sound card latency seems always not least than 70ms on mac*/
+	}
 	
 	slen = sizeof(format);
 	d->rate=44100;
