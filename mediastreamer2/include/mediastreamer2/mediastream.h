@@ -384,6 +384,7 @@ struct _AudioStream
 		int videopin;
 		bool_t plumbed;
 	}av_player;
+	MSFilter *flowcontrol;
 	RtpSession *rtp_io_session; /**< The RTP session used for RTP input/output. */
 	MSFilter *vaddtx;
 	char *recorder_file;
@@ -512,6 +513,7 @@ MS2_PUBLIC AudioStream *audio_stream_new_with_sessions(MSFactory* factory, const
 #define AUDIO_STREAM_FEATURE_MIXED_RECORDING	(1 << 7)
 #define AUDIO_STREAM_FEATURE_LOCAL_PLAYING	(1 << 8)
 #define AUDIO_STREAM_FEATURE_REMOTE_PLAYING	(1 << 9)
+#define AUDIO_STREAM_FEATURE_FLOW_CONTROL	(1 << 10)
 
 #define AUDIO_STREAM_FEATURE_ALL	(\
 					AUDIO_STREAM_FEATURE_PLC | \
@@ -523,7 +525,8 @@ MS2_PUBLIC AudioStream *audio_stream_new_with_sessions(MSFactory* factory, const
 					AUDIO_STREAM_FEATURE_DTMF_ECHO |\
 					AUDIO_STREAM_FEATURE_MIXED_RECORDING |\
 					AUDIO_STREAM_FEATURE_LOCAL_PLAYING | \
-					AUDIO_STREAM_FEATURE_REMOTE_PLAYING \
+					AUDIO_STREAM_FEATURE_REMOTE_PLAYING | \
+					AUDIO_STREAM_FEATURE_FLOW_CONTROL \
 					)
 
 

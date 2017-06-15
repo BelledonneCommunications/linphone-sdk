@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 #include "mediastreamer2/msfilter.h"
+#include "mediastreamer2/msticker.h"
 
 #include "mswasapi.h"
 
@@ -35,7 +36,7 @@ class MSWASAPIReader
 #endif
 {
 public:
-	MSWASAPIReader();
+	MSWASAPIReader(MSFilter *filter);
 	virtual ~MSWASAPIReader();
 
 	void init(LPCWSTR id);
@@ -80,6 +81,9 @@ private:
 	bool mIsStarted;
 	int mRate;
 	int mNChannels;
+	MSFilter *mFilter;
+	MSTickerSynchronizer *mTickerSynchronizer;
+	uint64_t mReadFrames;
 };
 
 
@@ -99,5 +103,5 @@ typedef MSWASAPIReader* MSWASAPIReaderPtr;
 typedef MSWASAPIReader* MSWASAPIReaderType;
 #endif
 
-MSWASAPIReaderPtr MSWASAPIReaderNew();
+MSWASAPIReaderPtr MSWASAPIReaderNew(MSFilter *f);
 void MSWASAPIReaderDelete(MSWASAPIReaderPtr ptr);

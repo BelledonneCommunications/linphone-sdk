@@ -45,7 +45,7 @@ const IID IID_IMMDeviceEnumerator = __uuidof(IMMDeviceEnumerator);
  *****************************************************************************/
 
 static void ms_wasapi_read_init(MSFilter *f) {
-	MSWASAPIReaderPtr r = MSWASAPIReaderNew();
+	MSWASAPIReaderPtr r = MSWASAPIReaderNew(f);
 	f->data = r;
 }
 
@@ -493,6 +493,7 @@ static MSSndCard *ms_wasapi_snd_card_new(LPWSTR id, const char *name, uint8_t ca
 	WasapiSndCard *wasapicard = static_cast<WasapiSndCard *>(card->data);
 	card->name = ms_strdup(name);
 	card->capabilities = capabilities;
+	card->latency = (capabilities & MS_SND_CARD_CAP_CAPTURE) ? 70 : 0;
 	wasapicard->id_vector = new std::vector<wchar_t>(wcslen(id) + 1);
 	wcscpy_s(&wasapicard->id_vector->front(), wasapicard->id_vector->size(), id);
 	wasapicard->id = &wasapicard->id_vector->front();
@@ -511,7 +512,7 @@ static void add_or_update_card(MSSndCardManager *m, bctbx_list_t **l, LPWSTR id,
 	inputlen = wcslen(wname);
 	returnlen = inputlen * 2;
 	name = (char *)ms_malloc(returnlen);
-	if ((err = WideCharToMultiByte(CP_UTF8, 0, wname, -1, name, (int)returnlen, NULL, NULL)) == 0) {
+	if ((err = WideCharToMultiByte(CP_ACP, 0, wname, -1, name, (int)returnlen, NULL, NULL)) == 0) {
 		ms_error("mswasapi: Cannot convert card name to multi-byte string.");
 		return;
 	}
@@ -630,6 +631,6 @@ static MSFilter *ms_wasapi_snd_card_create_writer(MSSndCard *card) {
 	MSFilter *f = ms_factory_create_filter_from_desc(ms_snd_card_get_factory(card), &ms_wasapi_write_desc);
 	WasapiSndCard *wasapicard = static_cast<WasapiSndCard *>(card->data);
 	MSWASAPIWriterType writer = MSWASAPI_WRITER(f->data);
-	writer->init(wasapicard->id);
+	writer->init(wasapicard->id, f);
 	return f;
 }

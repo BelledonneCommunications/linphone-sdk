@@ -970,18 +970,6 @@ static void alsa_stop_r(AlsaReadData *d){
 }
 #endif
 
-static void compute_timespec(AlsaReadData *d) {
-	static int count = 0;
-	uint64_t ns = ((1000 * d->read_samples) / (uint64_t) d->rate) * 1000000;
-	double av_skew;
-	MSTimeSpec ts;
-	ts.tv_nsec = ns % 1000000000;
-	ts.tv_sec = ns / 1000000000;
-	av_skew = ms_ticker_synchronizer_set_external_time(d->ticker_synchronizer, &ts);
-	if ((++count) % 100 == 0)
-		ms_message("sound/wall clock skew is average=%f ms", av_skew);
-}
-
 void alsa_read_preprocess(MSFilter *obj){
 #ifdef THREADED_VERSION
 	AlsaReadData *ad=(AlsaReadData*)obj->data;
@@ -995,7 +983,7 @@ void alsa_read_postprocess(MSFilter *obj){
 #ifdef THREADED_VERSION
 	alsa_stop_r(ad);
 #endif
-	ms_ticker_set_time_func(obj->ticker,NULL,NULL);
+	ms_ticker_set_synchronizer(obj->ticker, NULL);
 	if (ad->handle!=NULL) snd_pcm_close(ad->handle);
 	ad->read_started=FALSE;
 	ad->handle=NULL;
@@ -1027,7 +1015,7 @@ void alsa_read_process(MSFilter *obj){
 		ad->handle=alsa_open_r(ad->pcmdev,16,ad->nchannels==2,ad->rate);
 		if (ad->handle){
 			ad->read_samples=0;
-			ms_ticker_set_time_func(obj->ticker,(uint64_t (*)(void*))ms_ticker_synchronizer_get_corrected_time, ad->ticker_synchronizer);
+			ms_ticker_set_synchronizer(obj->ticker, ad->ticker_synchronizer);
 		}
 	}
 	if (ad->handle==NULL) return;
@@ -1043,7 +1031,7 @@ void alsa_read_process(MSFilter *obj){
 		ad->read_samples+=err;
 		size=err*2*ad->nchannels;
 		om->b_wptr+=size;
-		compute_timespec(ad);
+		ms_ticker_synchronizer_update(ad->ticker_synchronizer, ad->read_samples, (unsigned int)ad->rate);
 
 		/*ms_message("alsa_read_process: Outputing %i bytes",size);*/
 		ms_queue_put(obj->outputs[0],om);

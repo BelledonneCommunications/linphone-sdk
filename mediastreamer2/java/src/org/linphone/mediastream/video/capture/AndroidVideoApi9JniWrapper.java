@@ -28,19 +28,20 @@ import android.hardware.Camera;
 import android.hardware.Camera.Parameters;
 import android.hardware.Camera.Size;
 import android.os.Build;
- 
+
 @TargetApi(Build.VERSION_CODES.GINGERBREAD)
 public class AndroidVideoApi9JniWrapper {
 	static public int detectCameras(int[] indexes, int[] frontFacing, int[] orientation) {
 		return AndroidVideoApi5JniWrapper.detectCameras(indexes, frontFacing, orientation);
 	}
-	
+
 	/**
 	 * Return the hw-available available resolution best matching the requested one.
 	 * Best matching meaning :
 	 * - try to find the same one
 	 * - try to find one just a little bigger (ex: CIF when asked QVGA)
 	 * - as a fallback the nearest smaller one
+	 * @param cameraId Camera id
 	 * @param requestedW Requested video size width
 	 * @param requestedH Requested video size height
 	 * @return int[width, height] of the chosen resolution, may be null if no
@@ -50,14 +51,14 @@ public class AndroidVideoApi9JniWrapper {
 		Log.d("selectNearestResolutionAvailable: " + cameraId + ", " + requestedW + "x" + requestedH);
 		return AndroidVideoApi5JniWrapper.selectNearestResolutionAvailableForCamera(cameraId, requestedW, requestedH);
 	}
-	
+
 	public static Object startRecording(int cameraId, int width, int height, int fps, int rotation, final long nativePtr) {
 		Log.d("startRecording(" + cameraId + ", " + width + ", " + height + ", " + fps + ", " + rotation + ", " + nativePtr + ")");
 		try {
-		Camera camera = Camera.open(cameraId); 
+		Camera camera = Camera.open(cameraId);
 		Parameters params = camera.getParameters();
 
-		params.setPreviewSize(width, height); 
+		params.setPreviewSize(width, height);
 		int[] chosenFps = findClosestEnclosingFpsRange(fps*1000, params.getSupportedPreviewFpsRange());
 		params.setPreviewFpsRange(chosenFps[0], chosenFps[1]);
 		camera.setParameters(params);
@@ -87,26 +88,26 @@ public class AndroidVideoApi9JniWrapper {
 		camera.startPreview();
 		AndroidVideoApi5JniWrapper.isRecording = true;
 		Log.d("Returning camera object: " + camera);
-		return camera; 
+		return camera;
 		} catch (Exception exc) {
 			exc.printStackTrace();
 			return null;
 		}
-	} 
-	
+	}
+
 	public static void stopRecording(Object cam) {
 		AndroidVideoApi5JniWrapper.isRecording = false;
 		AndroidVideoApi8JniWrapper.stopRecording(cam);
-	} 
-	
+	}
+
 	public static void setPreviewDisplaySurface(Object cam, Object surf) {
 		AndroidVideoApi5JniWrapper.setPreviewDisplaySurface(cam, surf);
 	}
-	
+
 	private static void setCameraDisplayOrientation(int rotationDegrees, int cameraId, Camera camera) {
 		android.hardware.Camera.CameraInfo info = new android.hardware.Camera.CameraInfo();
 		android.hardware.Camera.getCameraInfo(cameraId, info);
-		
+
 		int result;
 		if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
 			result = (info.orientation + rotationDegrees) % 360;
@@ -114,7 +115,7 @@ public class AndroidVideoApi9JniWrapper {
 		} else { // back-facing
 			result = (info.orientation - rotationDegrees + 360) % 360;
 		}
-		
+
 		Log.w("Camera preview orientation: "+ result);
 		try {
 			camera.setDisplayOrientation(result);
@@ -123,13 +124,13 @@ public class AndroidVideoApi9JniWrapper {
 			exc.printStackTrace();
 		}
 	}
-	
+
 	private static int[] findClosestEnclosingFpsRange(int expectedFps, List<int[]> fpsRanges) {
 		Log.d("Searching for closest fps range from " + expectedFps);
 		if (fpsRanges == null || fpsRanges.size() == 0) {
 			return new int[] { 0, 0 };
 		}
-		
+
 		// init with first element
 		int[] closestRange = fpsRanges.get(0);
 		int measure = Math.abs(closestRange[0] - expectedFps)

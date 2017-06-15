@@ -104,6 +104,7 @@ void register_video_preset_high_fps(MSVideoPresetsManager *manager);
 MSFilter *_ms_create_av_player(const char *filename, MSFactory* factory);
 void video_recorder_handle_event(void *userdata, MSFilter *recorder, unsigned int event, void *event_arg);
 
+void ms_audio_flow_control_event_handler(void *user_data, MSFilter *f, unsigned int event, void *eventdata);
 
 #ifdef __cplusplus
 }

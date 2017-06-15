@@ -425,11 +425,11 @@ static int ms_opus_enc_set_sample_rate(MSFilter *f, void *arg) {
 	/* check values: supported are 8, 12, 16, 24 and 48 kHz */
 	switch (samplerate) {
 		case 8000:case 12000:case 16000:case 24000:case 48000:
-			d->samplerate=samplerate;
+			d->samplerate = samplerate;
 			break;
 		default:
-			ms_error("Opus encoder got unsupported sample rate of %d, switch to default 48kHz",samplerate);
-			d->samplerate=48000;
+			ms_message("Opus encoder got unsupported sample rate of %d, will suggest to use default 48kHz instead",samplerate);
+			d->samplerate = 48000;
 	}
 	return 0;
 }

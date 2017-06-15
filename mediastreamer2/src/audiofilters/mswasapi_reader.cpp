@@ -48,9 +48,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 bool MSWASAPIReader::smInstantiated = false;
 
 
-MSWASAPIReader::MSWASAPIReader()
-	: mAudioClient(NULL), mAudioCaptureClient(NULL), mVolumeControler(NULL), mBufferFrameCount(0), mIsInitialized(false), mIsActivated(false), mIsStarted(false)
+MSWASAPIReader::MSWASAPIReader(MSFilter *filter)
+	: mAudioClient(NULL), mAudioCaptureClient(NULL), mVolumeControler(NULL), mBufferFrameCount(0), mIsInitialized(false), mIsActivated(false), mIsStarted(false), mFilter(filter)
 {
+	mTickerSynchronizer = ms_ticker_synchronizer_new();
 #ifdef MS2_WINDOWS_UNIVERSAL
 	mActivationEvent = CreateEventEx(NULL, NULL, 0, EVENT_ALL_ACCESS);
 	if (!mActivationEvent) {
@@ -72,6 +73,7 @@ MSWASAPIReader::~MSWASAPIReader()
 		mActivationEvent = INVALID_HANDLE_VALUE;
 	}
 #endif
+	ms_ticker_synchronizer_destroy(mTickerSynchronizer);
 	smInstantiated = false;
 }
 
@@ -164,6 +166,8 @@ int MSWASAPIReader::activate()
 
 	if (!mIsInitialized) goto error;
 
+	ms_ticker_set_synchronizer(mFilter->ticker, mTickerSynchronizer);
+
 #ifdef MS2_WINDOWS_PHONE
 	flags = AUDCLNT_SESSIONFLAGS_EXPIREWHENUNOWNED | AUDCLNT_SESSIONFLAGS_DISPLAY_HIDE | AUDCLNT_SESSIONFLAGS_DISPLAY_HIDEWHENEXPIRED;
 #endif
@@ -213,6 +217,7 @@ int MSWASAPIReader::deactivate()
 {
 	RELEASE_CLIENT(mAudioCaptureClient);
 	RELEASE_CLIENT(mVolumeControler);
+	ms_ticker_set_synchronizer(mFilter->ticker, nullptr);
 	mIsActivated = false;
 	return 0;
 }
@@ -279,6 +284,8 @@ int MSWASAPIReader::feed(MSFilter *f)
 				REPORT_ERROR("Could not release buffer of the MSWASAPI audio input interface [%x]", result);
 
 				m->b_wptr += numFramesAvailable * bytesPerFrame;
+				mReadFrames += numFramesAvailable;
+				ms_ticker_synchronizer_update(mTickerSynchronizer, mReadFrames, (unsigned int)mRate);
 
 				ms_queue_put(f->outputs[0], m);
 				result = mAudioCaptureClient->GetNextPacketSize(&numFramesInNextPacket);
@@ -374,9 +381,9 @@ exit:
 }
 
 
-MSWASAPIReaderPtr MSWASAPIReaderNew()
+MSWASAPIReaderPtr MSWASAPIReaderNew(MSFilter *f)
 {
-	MSWASAPIReaderPtr r = new MSWASAPIReaderWrapper();
+	MSWASAPIReaderPtr r = new MSWASAPIReaderWrapper(f);
 	r->reader = Make<MSWASAPIReader>();
 	return r;
 }
@@ -387,9 +394,9 @@ void MSWASAPIReaderDelete(MSWASAPIReaderPtr ptr)
 	delete ptr;
 }
 #else
-MSWASAPIReaderPtr MSWASAPIReaderNew()
+MSWASAPIReaderPtr MSWASAPIReaderNew(MSFilter *f)
 {
-	return (MSWASAPIReaderPtr) new MSWASAPIReader();
+	return (MSWASAPIReaderPtr) new MSWASAPIReader(f);
 }
 void MSWASAPIReaderDelete(MSWASAPIReaderPtr ptr)
 {

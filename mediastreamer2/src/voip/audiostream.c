@@ -64,6 +64,7 @@ static void audio_stream_free(AudioStream *stream) {
 	if (stream->soundread!=NULL) ms_filter_destroy(stream->soundread);
 	if (stream->soundwrite!=NULL) ms_filter_destroy(stream->soundwrite);
 	if (stream->dtmfgen!=NULL) ms_filter_destroy(stream->dtmfgen);
+	if (stream->flowcontrol != NULL) ms_filter_destroy(stream->flowcontrol);
 	if (stream->plc!=NULL)	ms_filter_destroy(stream->plc);
 	if (stream->ec!=NULL)	ms_filter_destroy(stream->ec);
 	if (stream->volrecv!=NULL) ms_filter_destroy(stream->volrecv);
@@ -1169,6 +1170,18 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		stream->plc = NULL;
 	}
 
+	if ((stream->features & AUDIO_STREAM_FEATURE_FLOW_CONTROL) != 0) {
+		stream->flowcontrol = ms_factory_create_filter(stream->ms.factory, MS_AUDIO_FLOW_CONTROL_ID);
+		if (stream->flowcontrol) {
+			ms_filter_call_method(stream->flowcontrol, MS_FILTER_SET_NCHANNELS, &nchannels);
+			ms_filter_call_method(stream->flowcontrol, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
+			if (stream->ec) ms_filter_add_notify_callback(stream->ec, ms_audio_flow_control_event_handler, stream->flowcontrol, FALSE);
+			if (stream->soundwrite) ms_filter_add_notify_callback(stream->soundwrite, ms_audio_flow_control_event_handler, stream->flowcontrol, FALSE);
+		}
+	} else {
+		stream->flowcontrol = NULL;
+	}
+
 	if (stream->features & AUDIO_STREAM_FEATURE_LOCAL_PLAYING){
 		stream->local_mixer=ms_factory_create_filter(stream->ms.factory, MS_AUDIO_MIXER_ID);
 
@@ -1215,6 +1228,8 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		ms_connection_helper_link(&h,stream->ms.decoder,0,0);
 	if (stream->plc)
 		ms_connection_helper_link(&h,stream->plc,0,0);
+	if (stream->flowcontrol)
+		ms_connection_helper_link(&h, stream->flowcontrol, 0, 0);
 	if (stream->dtmfgen)
 		ms_connection_helper_link(&h,stream->dtmfgen,0,0);
 	if (stream->volrecv)
@@ -1730,6 +1745,8 @@ void audio_stream_stop(AudioStream * stream){
 				ms_connection_helper_unlink(&h,stream->ms.decoder,0,0);
 			if (stream->plc!=NULL)
 				ms_connection_helper_unlink(&h,stream->plc,0,0);
+			if (stream->flowcontrol != NULL)
+				ms_connection_helper_unlink(&h, stream->flowcontrol, 0, 0);
 			if (stream->dtmfgen!=NULL)
 				ms_connection_helper_unlink(&h,stream->dtmfgen,0,0);
 			if (stream->volrecv!=NULL)

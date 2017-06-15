@@ -26,6 +26,9 @@
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msticker.h"
 
+static const int flowControlInterval = 5000; // ms
+static const int flowControlThreshold = 40; // ms
+
 /*                          -------------------------
 							| i                   o |
 -- BUS 1 -- from mic -->	| n    REMOTE I/O     u | -- BUS 1 -- to app -->
@@ -141,15 +144,15 @@ struct au_filter_read_data{
 	queue_t		rq;
 	AudioTimeStamp readTimeStamp;
 	unsigned int n_lost_frame;
+	MSTickerSynchronizer *ticker_synchronizer;
+	uint64_t read_samples;
 } ;
 
 struct au_filter_write_data{
 	au_filter_base_t base;
-	ms_mutex_t	mutex;
-	MSBufferizer	*bufferizer;
+	ms_mutex_t mutex;
+	MSFlowControlledBufferizer *bufferizer;
 	unsigned int n_lost_frame;
-	bool first_frame_wrote;
-
 };
 
 static void  stop_audio_unit (au_card_t* d);
@@ -400,33 +403,20 @@ static OSStatus au_write_cb (
 	au_filter_write_data_t *d=card->write_data;
 
 	if (d!=NULL){
+		unsigned int size;
 		ms_mutex_lock(&d->mutex);
-		if (!d->first_frame_wrote) {
-			ms_bufferizer_flush(d->bufferizer); /*to avoid keeping delay from first start which can be around 100ms becasue io unit takes time to start*/
-			d->first_frame_wrote=true;
-		}
-		if(ms_bufferizer_get_avail(d->bufferizer) >= inNumberFrames*d->base.card->bits/8) {
-			ms_bufferizer_read(d->bufferizer, ioData->mBuffers[0].mData, inNumberFrames*d->base.card->bits/8);
-			/*basic algo,  can be enhanced with a more advanced bufferizer computing average value*/
-			if (ms_bufferizer_get_avail(d->bufferizer) > card->rate* (card->nchannels * card->bits / 8)/5 ) {
-				ms_warning("we are at least 200ms late, bufferizer sise is %li bytes in framezize is %li bytes"
-						,(long)ms_bufferizer_get_avail(d->bufferizer)
-						,(long)inNumberFrames*d->base.card->bits/8);
-				ms_bufferizer_flush(d->bufferizer);
-			}
-			ms_mutex_unlock(&d->mutex);
-			ms_mutex_unlock(&card->mutex);
-			return 0;//break
+		size = MIN(inNumberFrames*d->base.card->bits/8, ms_flow_controlled_bufferizer_get_avail(d->bufferizer));
+		if (size > 0) {
+			ms_flow_controlled_bufferizer_read(d->bufferizer, ioData->mBuffers[0].mData, size);
 		} else {
-			d->n_lost_frame+=inNumberFrames;
-			ms_mutex_unlock(&d->mutex);
+			//writing silence;
+			memset(ioData->mBuffers[0].mData, 0,ioData->mBuffers[0].mDataByteSize);
+			ms_debug("nothing to write, pushing silences,  framezize is %u bytes mDataByteSize %u"
+					 ,inNumberFrames*card->bits/8
+					 ,(unsigned int)ioData->mBuffers[0].mDataByteSize);
 		}
+		ms_mutex_unlock(&d->mutex);
 	}
-	//writing silence;
-	memset(ioData->mBuffers[0].mData, 0,ioData->mBuffers[0].mDataByteSize);
-	ms_debug("nothing to write, pushing silences,  framezize is %u bytes mDataByteSize %u"
-			 ,inNumberFrames*card->bits/8
-			 ,(unsigned int)ioData->mBuffers[0].mDataByteSize);
 	ms_mutex_unlock(&card->mutex);
 	return 0;
 }
@@ -567,7 +557,6 @@ static void cancel_audio_unit_timer(au_card_t* card){
 /***********************************read function********************/
 
 static void au_read_preprocess(MSFilter *f){
-	ms_debug("au_read_preprocess");
 	au_filter_read_data_t *d= (au_filter_read_data_t*)f->data;
 	au_card_t* card=d->base.card;
 	AVAudioSession *audioSession = [AVAudioSession sharedInstance];
@@ -576,6 +565,8 @@ static void au_read_preprocess(MSFilter *f){
 	configure_audio_session(card, f->ticker->time);
 
 	if (!card->io_unit) create_io_unit(&card->io_unit, card);
+	if (!d->ticker_synchronizer) d->ticker_synchronizer = ms_ticker_synchronizer_new();
+	ms_ticker_set_synchronizer(f->ticker, d->ticker_synchronizer);
 
 	if (card->io_unit_started) {
 		ms_message("Audio Unit already started");
@@ -601,6 +592,7 @@ static void au_read_postprocess(MSFilter *f){
 	au_filter_read_data_t *d= (au_filter_read_data_t*)f->data;
 	ms_mutex_lock(&d->mutex);
 	flushq(&d->rq,0);
+	ms_ticker_set_synchronizer(f->ticker, d->ticker_synchronizer);
 	ms_mutex_unlock(&d->mutex);
 }
 
@@ -616,10 +608,12 @@ static void au_read_process(MSFilter *f){
 		m=getq(&d->rq);
 		ms_mutex_unlock(&d->mutex);
 		if (m != NULL) {
+			d->read_samples += (msgdsize(m) / 2) / d->base.card->nchannels;
 			ms_queue_put(f->outputs[0],m);
 		}
 
 	}while(m!=NULL);
+	ms_ticker_synchronizer_update(d->ticker_synchronizer, d->read_samples, d->base.card->rate);
 }
 
 
@@ -759,7 +753,7 @@ static void au_write_postprocess(MSFilter *f){
 	ms_debug("au_write_postprocess");
 	au_filter_write_data_t *d= (au_filter_write_data_t*)f->data;
 	ms_mutex_lock(&d->mutex);
-	ms_bufferizer_flush(d->bufferizer);
+	ms_flow_controlled_bufferizer_flush(d->bufferizer);
 	ms_mutex_unlock(&d->mutex);
 }
 
@@ -768,7 +762,6 @@ static void au_write_postprocess(MSFilter *f){
 static void au_write_process(MSFilter *f){
 	ms_debug("au_write_process");
 	au_filter_write_data_t *d=(au_filter_write_data_t*)f->data;
-	mblk_t *m;
 
 	if (!(d->base.card->write_started=d->base.card->io_unit_started)) {
 		//make sure audio unit is started
@@ -779,11 +772,9 @@ static void au_write_process(MSFilter *f){
 		ms_queue_flush(f->inputs[0]);
 		return;
 	}
-	while((m=ms_queue_get(f->inputs[0]))!=NULL){
-		ms_mutex_lock(&d->mutex);
-		ms_bufferizer_put(d->bufferizer,m);
-		ms_mutex_unlock(&d->mutex);
-	}
+	ms_mutex_lock(&d->mutex);
+	ms_flow_controlled_bufferizer_put_from_queue(d->bufferizer, f->inputs[0]);
+	ms_mutex_unlock(&d->mutex);
 }
 
 static int set_rate(MSFilter *f, void *arg){
@@ -804,10 +795,18 @@ static int get_rate(MSFilter *f, void *data){
 }
 
 
-static int set_nchannels(MSFilter *f, void *arg){
+static int read_set_nchannels(MSFilter *f, void *arg){
 	ms_debug("set_nchannels %d", *((int*)arg));
 	au_filter_base_t *d=(au_filter_base_t*)f->data;
 	d->card->nchannels=*(int*)arg;
+	return 0;
+}
+
+static int write_set_nchannels(MSFilter *f, void *arg){
+	ms_debug("set_nchannels %d", *((int*)arg));
+	au_filter_write_data_t *d=(au_filter_write_data_t*)f->data;
+	d->base.card->nchannels=*(int*)arg;
+	ms_flow_controlled_bufferizer_set_nchannels(d->bufferizer, d->base.card->nchannels);
 	return 0;
 }
 
@@ -823,10 +822,19 @@ static int set_muted(MSFilter *f, void *data){
 	return 0;
 }
 
-static MSFilterMethod au_methods[]={
+static MSFilterMethod au_read_methods[]={
 	{	MS_FILTER_SET_SAMPLE_RATE	, set_rate	},
 	{	MS_FILTER_GET_SAMPLE_RATE	, get_rate	},
-	{	MS_FILTER_SET_NCHANNELS		, set_nchannels	},
+	{	MS_FILTER_SET_NCHANNELS		, read_set_nchannels	},
+	{	MS_FILTER_GET_NCHANNELS		, get_nchannels	},
+	{	MS_AUDIO_PLAYBACK_MUTE	 	, set_muted	},
+	{	0				, NULL		}
+};
+
+static MSFilterMethod au_write_methods[]={
+	{	MS_FILTER_SET_SAMPLE_RATE	, set_rate	},
+	{	MS_FILTER_GET_SAMPLE_RATE	, get_rate	},
+	{	MS_FILTER_SET_NCHANNELS		, write_set_nchannels	},
 	{	MS_FILTER_GET_NCHANNELS		, get_nchannels	},
 	{	MS_AUDIO_PLAYBACK_MUTE	 	, set_muted	},
 	{	0				, NULL		}
@@ -887,7 +895,7 @@ static void au_write_uninit(MSFilter *f) {
 	check_unused(card);
 
 	ms_mutex_destroy(&d->mutex);
-	ms_bufferizer_destroy(d->bufferizer);
+	ms_flow_controlled_bufferizer_destroy(d->bufferizer);
 	ms_free(d);
 }
 
@@ -902,7 +910,7 @@ MSFilterDesc au_read_desc={
 .process=au_read_process,
 .postprocess=au_read_postprocess,
 .uninit=au_read_uninit,
-.methods=au_methods
+.methods=au_read_methods
 };
 
 
@@ -917,7 +925,7 @@ MSFilterDesc au_write_desc={
 .process=au_write_process,
 .postprocess=au_write_postprocess,
 .uninit=au_write_uninit,
-.methods=au_methods
+.methods=au_write_methods
 };
 
 static MSFilter *ms_au_read_new(MSSndCard *mscard){
@@ -939,7 +947,9 @@ static MSFilter *ms_au_write_new(MSSndCard *mscard){
 	au_card_t* card=(au_card_t*)(mscard->data);
 	MSFilter *f=ms_factory_create_filter_from_desc(ms_snd_card_get_factory(mscard), &au_write_desc);
 	au_filter_write_data_t *d=ms_new0(au_filter_write_data_t,1);
-	d->bufferizer= ms_bufferizer_new();
+	d->bufferizer= ms_flow_controlled_bufferizer_new(f, card->rate, card->nchannels);
+	ms_flow_controlled_bufferizer_set_max_size_ms(d->bufferizer, flowControlThreshold);
+	ms_flow_controlled_bufferizer_set_flow_control_interval_ms(d->bufferizer, flowControlInterval);
 	ms_mutex_init(&d->mutex,NULL);
 	d->base.card=card;
 	card->write_data=d;
@@ -947,6 +957,7 @@ static MSFilter *ms_au_write_new(MSSndCard *mscard){
 
 	if (card->rate == 0){ /*iounit stopped set initial value*/
 		card->rate=ms_snd_card_get_preferred_sample_rate(card->ms_snd_card);
+		ms_flow_controlled_bufferizer_set_samplerate(d->bufferizer, card->rate);
 	}
 	return f;
 }

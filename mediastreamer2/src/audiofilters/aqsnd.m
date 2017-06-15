@@ -63,6 +63,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "mediastreamer2/mssndcard.h"
 #include "mediastreamer2/msfilter.h"
+#include "mediastreamer2/msticker.h"
 
 MSFilter *ms_aq_read_new(MSSndCard * card);
 MSFilter *ms_aq_write_new(MSSndCard * card);
@@ -141,6 +142,8 @@ typedef struct AQData {
 	AudioQueueBufferRef writeBuffers[kNumberAudioOutDataBuffers];
 	int curWriteBuffer;
 	MSBufferizer *bufferizer;
+	MSTickerSynchronizer *ticker_synchronizer;
+	uint64_t read_samples;
 } AQData;
 
 
@@ -763,6 +766,7 @@ static void aq_start_r(MSFilter * f)
 		aqresult = AudioQueueStart(d->readQueue, NULL);	// start time. NULL means ASAP.
 		check_aqresult(aqresult,"AudioQueueStart - read");
 		if (aqresult == noErr) {
+			ms_ticker_set_synchronizer(f->ticker, d->ticker_synchronizer);
 			d->read_started = TRUE;
 		}
 		
@@ -786,6 +790,7 @@ static void aq_stop_r(MSFilter * f)
 #if TARGET_OS_IPHONE
 		[[AVAudioSession sharedInstance] setActive:FALSE withOptions:AVAudioSessionSetActiveOptionNotifyOthersOnDeactivation error:nil];
 #endif
+		ms_ticker_set_synchronizer(f->ticker, NULL);
 	}
 }
 
@@ -955,6 +960,7 @@ static void aq_init(MSFilter * f)
 	d->write_started = FALSE;
 	qinit(&d->rq);
 	d->bufferizer = ms_bufferizer_new();
+	d->ticker_synchronizer = ms_ticker_synchronizer_new();
 	ms_mutex_init(&d->mutex, NULL);
 	f->data = d;
 }
@@ -963,6 +969,7 @@ static void aq_uninit(MSFilter * f)
 {
 	AQData *d = (AQData *) f->data;
 	flushq(&d->rq, 0);
+	ms_ticker_synchronizer_destroy(d->ticker_synchronizer);
 	ms_bufferizer_destroy(d->bufferizer);
 	ms_mutex_destroy(&d->mutex);
 	if (d->uidname != NULL)
@@ -982,10 +989,13 @@ static void aq_read_postprocess(MSFilter * f)
 
 static void aq_read_process(MSFilter * f)
 {
+	AQData *d = (AQData *) f->data;
 	mblk_t *m;
 	while ((m = aq_get(f)) != NULL) {
+		d->read_samples = msgdsize(m) / 2;
 		ms_queue_put(f->outputs[0], m);
 	}
+	ms_ticker_synchronizer_update(d->ticker_synchronizer, d->read_samples, d->rate);
 }
 
 static void aq_write_preprocess(MSFilter * f)
