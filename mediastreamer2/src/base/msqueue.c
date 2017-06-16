@@ -182,7 +182,7 @@ void ms_flow_controlled_bufferizer_set_nchannels(MSFlowControlledBufferizer *obj
 }
 
 static void control_flow(MSFlowControlledBufferizer *obj) {
-	uint32_t accumulated_ms = ((obj->base.size * 1000) / obj->samplerate) / obj->nchannels;
+	uint32_t accumulated_ms = (uint32_t)((obj->base.size * 1000) / obj->samplerate) / obj->nchannels;
 
 	if (obj->flow_control_time == 0) {
 		obj->flow_control_time = obj->filter->ticker->time;
