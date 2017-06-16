@@ -457,6 +457,7 @@ static MSVideoSize get_with_same_orientation_and_ratio(MSVideoSize size, MSVideo
 static void configure_video_source(VideoStream *stream){
 	MSVideoSize vsize,cam_vsize;
 	float fps=15;
+	int bitrate;
 	MSPixFmt format=MS_PIX_FMT_UNKNOWN;
 	MSVideoEncoderPixFmt encoder_supports_source_format;
 	int ret;
@@ -475,6 +476,12 @@ static void configure_video_source(VideoStream *stream){
 	/* transmit its preview window id if any to source filter*/
 	if (stream->preview_window_id!=0){
 		video_stream_set_native_preview_window_id(stream, stream->preview_window_id);
+	}
+
+	ms_filter_call_method(stream->ms.encoder, MS_FILTER_GET_BITRATE, &bitrate);
+	if (bitrate == 0) {
+		bitrate = ms_factory_get_expected_bandwidth(stream->ms.factory);
+		ms_filter_call_method(stream->ms.encoder, MS_FILTER_SET_BITRATE, &bitrate);
 	}
 
 	ms_filter_call_method(stream->ms.encoder,MS_FILTER_GET_VIDEO_SIZE,&vsize);
@@ -817,8 +824,13 @@ static void apply_bitrate_limit(VideoStream *stream, PayloadType *pt) {
 	MSVideoConfiguration *vconf_list = NULL;
 
 	if (stream->ms.target_bitrate<=0) {
-		stream->ms.target_bitrate=pt->normal_bitrate;
-		ms_message("target bitrate not set for stream [%p] using payload's bitrate is %i",stream,stream->ms.target_bitrate);
+		stream->ms.target_bitrate = ms_factory_get_expected_bandwidth(stream->ms.factory);
+		if (stream->ms.target_bitrate <= 0) {
+			stream->ms.target_bitrate=pt->normal_bitrate;
+			ms_message("target bitrate not set for stream [%p] using payload's bitrate is %i",stream,stream->ms.target_bitrate);
+		} else {
+			ms_message("target bitrate not set for stream [%p] using expected bitrate is %i",stream,stream->ms.target_bitrate);
+		}
 	}
 
 	ms_message("Limiting bitrate of video encoder to %i bits/s for stream [%p]",stream->ms.target_bitrate,stream);

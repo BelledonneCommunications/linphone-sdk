@@ -408,6 +408,8 @@ MS2_PUBLIC MSVideoConfiguration ms_video_find_best_configuration_for_bitrate(con
  */
 MS2_PUBLIC MSVideoConfiguration ms_video_find_best_configuration_for_size(const MSVideoConfiguration *vconf_list, MSVideoSize vsize, int cpucount);
 
+MS2_PUBLIC MSVideoConfiguration ms_video_find_best_configuration_for_size_and_bitrate(const MSVideoConfiguration *vconf_list, MSVideoSize vsize, int cpu_count, int bitrate);
+
 #ifdef __cplusplus
 }
 #endif

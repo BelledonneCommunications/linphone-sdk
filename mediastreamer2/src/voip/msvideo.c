@@ -969,3 +969,37 @@ MSVideoConfiguration ms_video_find_best_configuration_for_size(const MSVideoConf
 	best_vconf.vsize=vsize;
 	return best_vconf;
 }
+
+MSVideoConfiguration ms_video_find_best_configuration_for_size_and_bitrate(const MSVideoConfiguration *vconf_list, MSVideoSize vsize, int cpu_count, int bitrate) {
+	const MSVideoConfiguration *vconf_it = vconf_list;
+	MSVideoConfiguration best_vconf={0};
+	int min_score=INT32_MAX;
+	int ref_pixels=vsize.height*vsize.width;
+
+	if (bitrate == 0) return ms_video_find_best_configuration_for_size(vconf_list, vsize, cpu_count);
+
+	/* search for configuration that is first nearest to target video size, then target bitrate and finally has the greater fps,
+	 * but any case making sure the the cpu count is sufficient*/
+	while(TRUE) {
+		int pixels=vconf_it->vsize.width*vconf_it->vsize.height;
+		int score=abs(pixels-ref_pixels);
+		if (cpu_count>=vconf_it->mincpu){
+			if (score<min_score){
+				best_vconf=*vconf_it;
+				min_score=score;
+			}else if (score==min_score) {
+				if (bitrate <= vconf_it->bitrate_limit && bitrate >= vconf_it->required_bitrate) {
+					best_vconf=*vconf_it;
+				}
+			}
+		}
+		if (vconf_it->required_bitrate==0) {
+			break;
+		}
+		vconf_it++;
+
+	}
+	best_vconf.vsize = vsize;
+	best_vconf.bitrate_limit = bitrate;
+	return best_vconf;
+}

@@ -44,6 +44,7 @@ static const MSVideoConfiguration vp8_conf_list[] = {
 	MS_VP8_CONF(1024000, 1536000, SXGA_MINUS, 12, 2),
 	MS_VP8_CONF( 750000, 1024000,        XGA, 12, 2),
 	MS_VP8_CONF( 500000,  750000,       SVGA, 12, 2),
+	MS_VP8_CONF( 600000, 3000000,        VGA, 25, 4),
 	MS_VP8_CONF( 300000,  500000,        VGA, 12, 2),
 	MS_VP8_CONF( 100000,  300000,       QVGA, 18, 2),
 	MS_VP8_CONF(  64000,  100000,       QCIF, 12, 2),
@@ -56,6 +57,7 @@ static const MSVideoConfiguration vp8_conf_list[] = {
 	MS_VP8_CONF(800000,  2000000,       720P, 25, 4),
 	MS_VP8_CONF(800000,  1536000,        XGA, 25, 4),
 	MS_VP8_CONF( 600000,  1024000,       SVGA, 25, 2),
+	MS_VP8_CONF( 600000,  3000000,        VGA, 30, 2),
 	MS_VP8_CONF( 350000,   600000,        VGA, 25, 2),
 	MS_VP8_CONF( 350000,   600000,        VGA, 15, 1),
 	MS_VP8_CONF( 200000,   350000,        CIF, 18, 1),
@@ -598,7 +600,7 @@ static int enc_set_vsize(MSFilter *f, void *data) {
 	MSVideoConfiguration best_vconf;
 	MSVideoSize *vs = (MSVideoSize *)data;
 	EncState *s = (EncState *)f->data;
-	best_vconf = ms_video_find_best_configuration_for_size(s->vconf_list, *vs, ms_factory_get_cpu_count(f->factory));
+	best_vconf = ms_video_find_best_configuration_for_size_and_bitrate(s->vconf_list, *vs, ms_factory_get_cpu_count(f->factory), s->vconf.required_bitrate);
 	s->vconf.vsize = *vs;
 	s->vconf.fps = best_vconf.fps;
 	s->vconf.bitrate_limit = best_vconf.bitrate_limit;
