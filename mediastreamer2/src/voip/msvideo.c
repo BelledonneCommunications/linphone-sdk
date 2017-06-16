@@ -1000,6 +1000,5 @@ MSVideoConfiguration ms_video_find_best_configuration_for_size_and_bitrate(const
 
 	}
 	best_vconf.vsize = vsize;
-	best_vconf.bitrate_limit = bitrate;
 	return best_vconf;
 }

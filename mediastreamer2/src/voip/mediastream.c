@@ -629,13 +629,18 @@ static void apply_bitrate_limit(MediaStream *obj, int br_limit){
 		ms_warning("TMMNR not applicable because no encoder for this stream.");
 		return;
 	}
-	if (previous_br_limit == br_limit) return;
-	
+	if (previous_br_limit == br_limit) {
+		ms_message("Previous bitrate limit was already %i, skipping...", br_limit);
+		return;
+	}
+
 	if (ms_filter_call_method(obj->encoder,MS_FILTER_SET_BITRATE, &br_limit) != 0){
 		ms_warning("Failed to apply bitrate constraint to %s", obj->encoder->desc->name);
 	}
+
 	media_stream_set_target_network_bitrate(obj, br_limit);
 	rtp_session_set_target_upload_bandwidth(obj->sessions.rtp_session, br_limit);
+	
 	if (obj->type == MSVideo) {
 		MSVideoConfiguration *vconf_list = NULL;
 		MSVideoConfiguration vconf1, vconf2;

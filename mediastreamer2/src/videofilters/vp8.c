@@ -581,8 +581,8 @@ static int enc_set_configuration(MSFilter *f, void *data) {
 	const MSVideoConfiguration *vconf = (const MSVideoConfiguration *)data;
 	if (vconf != &s->vconf) memcpy(&s->vconf, vconf, sizeof(MSVideoConfiguration));
 
-	if (s->vconf.required_bitrate > s->vconf.bitrate_limit)
-		s->vconf.required_bitrate = s->vconf.bitrate_limit;
+	/*if (s->vconf.required_bitrate > s->vconf.bitrate_limit)
+		s->vconf.required_bitrate = s->vconf.bitrate_limit;*/
 	s->cfg.rc_target_bitrate = (unsigned int)(((float)s->vconf.required_bitrate) * 0.92f / 1024.0f); //0.92=take into account IP/UDP/RTP overhead, in average.
 	if (s->ready) {
 		ms_filter_lock(f);
@@ -644,7 +644,7 @@ static int enc_set_br(MSFilter *f, void *data) {
 		s->vconf.required_bitrate = br;
 		enc_set_configuration(f, &s->vconf);
 	} else {
-		MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_bitrate(s->vconf_list, br, ms_factory_get_cpu_count(f->factory));
+		MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_size_and_bitrate(s->vconf_list, s->vconf.vsize, ms_factory_get_cpu_count(f->factory), br);
 		enc_set_configuration(f, &best_vconf);
 	}
 	return 0;

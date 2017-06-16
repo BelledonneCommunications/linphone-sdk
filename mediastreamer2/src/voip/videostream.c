@@ -481,6 +481,7 @@ static void configure_video_source(VideoStream *stream){
 	ms_filter_call_method(stream->ms.encoder, MS_FILTER_GET_BITRATE, &bitrate);
 	if (bitrate == 0) {
 		bitrate = ms_factory_get_expected_bandwidth(stream->ms.factory);
+		ms_message("Encoder current bitrate is 0, using expected bandwidth %i", bitrate);
 		ms_filter_call_method(stream->ms.encoder, MS_FILTER_SET_BITRATE, &bitrate);
 	}
 
