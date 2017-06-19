@@ -537,6 +537,9 @@ static int resolver_process_data(belle_sip_simple_resolver_context_t *ctx, unsig
 #ifdef USE_GETADDRINFO_FALLBACK
 		ctx->getaddrinfo_cancelled = TRUE;
 #endif
+		if (dns_res_was_asymetric(ctx->R)){
+			belle_sip_warning("DNS answer was not received from the DNS server IP address the request was sent to. This seems to be a known issue with NAT64 networks created by Apple computers.");
+		}
 		belle_sip_resolver_context_notify(BELLE_SIP_RESOLVER_CONTEXT(ctx));
 		return BELLE_SIP_STOP;
 	}
@@ -685,6 +688,11 @@ static int _resolver_start_query(belle_sip_simple_resolver_context_t *ctx) {
 		return -1;
 
 	memset(&opts, 0, sizeof opts);
+	
+	/* When there are IPv6 nameservers, allow responses to arrive from an IP address that is not the IP address to which the request was sent originally.
+		* Mac' NAT64 network tend to do this sometimes.*/
+	opts.udp_uses_connect = ctx->resconf->iface.ss_family != AF_INET6;
+	if (!opts.udp_uses_connect) belle_sip_message("Resolver is not using connect().");
 
 	if (!(ctx->R = dns_res_open(ctx->resconf, ctx->hosts, dns_hints_mortal(dns_hints_local(ctx->resconf, &error)), cache(ctx), &opts, &error))) {
 		belle_sip_error("%s dns_res_open error [%s]: %s", __FUNCTION__, ctx->name, dns_strerror(error));

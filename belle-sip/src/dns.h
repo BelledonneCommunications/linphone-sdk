@@ -1098,6 +1098,7 @@ struct dns_options {
 		DNS_SYSPOLL,
 		DNS_LIBEVENT,
 	} events;
+	int udp_uses_connect;
 }; /* struct dns_options */
 
 
@@ -1201,6 +1202,8 @@ DNS_PUBLIC const struct dns_stat *dns_res_stat(struct dns_resolver *);
 DNS_PUBLIC void dns_res_sethints(struct dns_resolver *, struct dns_hints *);
 
 DNS_PUBLIC void dns_res_enable_search(struct dns_resolver *, unsigned char enable);
+
+DNS_PUBLIC int dns_res_was_asymetric(struct dns_resolver *);
 
 
 /*

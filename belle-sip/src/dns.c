@@ -6419,6 +6419,7 @@ struct dns_socket {
 
 	struct dns_packet *answer;
 	size_t alen, apos;
+	int ip_differ; /*set when remote address and response from which it is received are different*/
 }; /* struct dns_socket */
 
 
@@ -6484,7 +6485,7 @@ static void dns_so_closefds(struct dns_socket *so, int which) {
 static void dns_so_destroy(struct dns_socket *);
 
 static struct dns_socket *dns_so_init(struct dns_socket *so, const struct sockaddr *local, int type, const struct dns_options *opts, int *error) {
-	static const struct dns_socket so_initializer = { .opts = DNS_OPTS_INITIALIZER, .udp = -1, .tcp = -1, };
+	static const struct dns_socket so_initializer = { .opts = DNS_OPTS_INITIALIZER, .udp = -1, .tcp = -1};
 
 	*so		= so_initializer;
 	so->type	= type;
@@ -6749,8 +6750,9 @@ static int dns_so_tcp_recv(struct dns_socket *so) {
 #endif
 
 
-int dns_so_check(struct dns_socket *so) {
-	struct sockaddr_storage reset_ss;
+int dns_so_check(struct  dns_socket *so) {
+	struct sockaddr_storage tmp_ss;
+	socklen_t tmp_ss_len = sizeof(tmp_ss);
 	int error;
 	long n;
 
@@ -6759,23 +6761,41 @@ retry:
 	case DNS_SO_UDP_INIT:
 		so->state++;
 	case DNS_SO_UDP_CONN:
-		memset(&reset_ss, 0, sizeof(reset_ss));
-		connect(so->udp, (struct sockaddr *)&reset_ss, sizeof(reset_ss)); // Reset the previous connection
-		if (0 != connect(so->udp, (struct sockaddr *)&so->remote, dns_sa_len(&so->remote)))
-			goto soerr;
+		memset(&tmp_ss, 0, sizeof(tmp_ss));
+		connect(so->udp, (struct sockaddr *)&tmp_ss, sizeof(tmp_ss)); // Reset the previous connection
+		if (so->opts.udp_uses_connect){
+			if (0 != connect(so->udp, (struct sockaddr *)&so->remote, dns_sa_len(&so->remote)))
+				goto soerr;
+		}
 
 		so->state++;
 	case DNS_SO_UDP_SEND:
-		if (0 > (n = send(so->udp, (void *)so->query->data, so->query->end, 0)))
-			goto soerr;
+		if (so->opts.udp_uses_connect){
+			if (0 > (n = send(so->udp, (void *)so->query->data, so->query->end, 0)))
+				goto soerr;
+		}else{
+			if (0 > (n = sendto(so->udp, (void *)so->query->data, so->query->end, 0, (struct sockaddr *)&so->remote, dns_sa_len(&so->remote))))
+				goto soerr;
+		}
 
 		so->stat.udp.sent.bytes += n;
 		so->stat.udp.sent.count++;
 
 		so->state++;
 	case DNS_SO_UDP_RECV:
-		if (0 > (n = recv(so->udp, (void *)so->answer->data, so->answer->size, 0)))
-			goto soerr;
+		if (so->opts.udp_uses_connect){
+			if (0 > (n = recv(so->udp, (void *)so->answer->data, so->answer->size, 0)))
+				goto soerr;
+		}else{
+			memset(&tmp_ss, 0, sizeof(tmp_ss));
+			tmp_ss_len = sizeof(tmp_ss);
+			if (0 > (n = recvfrom(so->udp, (void *)so->answer->data, so->answer->size, 0, (struct sockaddr *)&tmp_ss, &tmp_ss_len)))
+				goto soerr;
+			if (memcmp(&tmp_ss, &so->remote, tmp_ss_len) != 0){
+				so->ip_differ = 1;
+			}
+			
+		}
 
 		so->stat.udp.rcvd.bytes += n;
 		so->stat.udp.rcvd.count++;
@@ -8131,6 +8151,10 @@ void dns_res_sethints(struct dns_resolver *res, struct dns_hints *hints) {
 
 void dns_res_enable_search(struct dns_resolver *res, unsigned char enable) {
 	res->search_enabled = enable;
+}
+
+int dns_res_was_asymetric(struct dns_resolver *res){
+	return res->so.ip_differ;
 }
 
 
