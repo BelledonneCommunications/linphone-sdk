@@ -116,12 +116,21 @@ bctbx_log_handler_t* bctbx_create_log_handler(BctbxLogHandlerFunc func, BctbxLog
 bctbx_log_handler_t* bctbx_create_file_log_handler(uint64_t max_size, const char* path, const char* name, FILE* f) {
 	bctbx_log_handler_t* handler = (bctbx_log_handler_t*)bctbx_malloc0(sizeof(bctbx_log_handler_t));
 	bctbx_file_log_handler_t* filehandler = (bctbx_file_log_handler_t*)bctbx_malloc(sizeof(bctbx_file_log_handler_t));
+	char *full_name = bctbx_strdup_printf("%s/%s.log",
+									path,
+									name);
+	struct stat buf;
+	memset(&buf, 0, sizeof(buf));
 	handler->func=bctbx_logv_file;
 	handler->destroy=bctbx_logv_file_destroy;
 	filehandler->max_size = max_size;
 	// init with actual file size
-	fseek(f, 0L, SEEK_END);
-	filehandler->size = ftell(f);
+	if(stat(full_name, &buf) != 0) {
+		fprintf(stderr,"Error while creating file log handler. \n");
+		return NULL;
+	}
+	bctbx_free(full_name);
+	filehandler->size = buf.st_size;
 	filehandler->path = bctbx_strdup(path);
 	filehandler->name = bctbx_strdup(name);
 	filehandler->file = f;
