@@ -112,14 +112,14 @@ char * bctbx_dirname(const char *path) {
 	char *dname = bctbx_strdup(path);
 	bool_t found = FALSE;
 
-	ptr = strchr(path, '/');
+	ptr = strrchr(path, '/');
 	if (ptr != NULL) {
-		dname[ptr - path + 1] = '\0';
+		dname[ptr - path] = '\0';
 		found = TRUE;
 	} else {
-		ptr = strchr(path, '\\');
+		ptr = strrchr(path, '\\');
 		if (ptr != NULL) {
-			dname[ptr - path + 1] = '\0';
+			dname[ptr - path] = '\0';
 			found = TRUE;
 		}
 	}

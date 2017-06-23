@@ -116,7 +116,7 @@ bctbx_log_handler_t* bctbx_create_log_handler(BctbxLogHandlerFunc func, BctbxLog
 bctbx_log_handler_t* bctbx_create_file_log_handler(uint64_t max_size, const char* path, const char* name, FILE* f) {
 	bctbx_log_handler_t* handler = (bctbx_log_handler_t*)bctbx_malloc0(sizeof(bctbx_log_handler_t));
 	bctbx_file_log_handler_t* filehandler = (bctbx_file_log_handler_t*)bctbx_malloc(sizeof(bctbx_file_log_handler_t));
-	char *full_name = bctbx_strdup_printf("%s/%s.log",
+	char *full_name = bctbx_strdup_printf("%s/%s",
 									path,
 									name);
 	struct stat buf;
@@ -504,7 +504,7 @@ static int _try_open_log_collection_file(bctbx_file_log_handler_t *filehandler) 
 	struct stat statbuf;
 	char *log_filename;
 
-	log_filename = bctbx_strdup_printf("%s/%s.log",
+	log_filename = bctbx_strdup_printf("%s/%s",
 		filehandler->path,
 		filehandler->name);
 	filehandler->file = fopen(log_filename, "a");
@@ -524,43 +524,53 @@ static int _try_open_log_collection_file(bctbx_file_log_handler_t *filehandler) 
 static void _rotate_log_collection_files(bctbx_file_log_handler_t *filehandler) {
 	char *log_filename;
 	char *log_filename2;
+	char *extension = strrchr(filehandler->name, '.');
+	char *file_no_extension = bctbx_strdup(filehandler->name);
+	file_no_extension[extension - file_no_extension] = '\0';
 	int n = 1;
 
-	log_filename = bctbx_strdup_printf("%s/%s_1.log",
+	log_filename = bctbx_strdup_printf("%s/%s_1.%s",
 		filehandler->path,
-		filehandler->name);
+		file_no_extension,
+		extension);
 	while(access(log_filename, F_OK) != -1) {
     // file exists
 		n++;
-		log_filename = bctbx_strdup_printf("%s/%s_%d.log",
+		log_filename = bctbx_strdup_printf("%s/%s_%d.%s",
 		filehandler->path,
-		filehandler->name,
-		n);
+		file_no_extension,
+		n,
+		extension);
 	}
 
 	while(n > 1) {
-		log_filename = bctbx_strdup_printf("%s/%s_%d.log",
+		log_filename = bctbx_strdup_printf("%s/%s_%d.%s",
 		filehandler->path,
-		filehandler->name,
-		n-1);
-		log_filename2 = bctbx_strdup_printf("%s/%s_%d.log",
+		file_no_extension,
+		n-1,
+		extension);
+		log_filename2 = bctbx_strdup_printf("%s/%s_%d.%s",
 		filehandler->path,
-		filehandler->name,
-		n);
+		file_no_extension,
+		n,
+		extension);
 
 		n--;
 		rename(log_filename, log_filename2);
 	}
 
-	log_filename = bctbx_strdup_printf("%s/%s.log",
+	log_filename = bctbx_strdup_printf("%s/%s",
 	filehandler->path,
 	filehandler->name);
-	log_filename2 = bctbx_strdup_printf("%s/%s_1.log",
+	log_filename2 = bctbx_strdup_printf("%s/%s_1.%s",
 	filehandler->path,
-	filehandler->name);
+	file_no_extension,
+	extension);
 	rename(log_filename, log_filename2);
 	bctbx_free(log_filename);
 	bctbx_free(log_filename2);
+	bctbx_free(extension);
+	bctbx_free(file_no_extension);
 }
 
 static void _open_log_collection_file(bctbx_file_log_handler_t *filehandler) {

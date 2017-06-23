@@ -63,7 +63,7 @@ int bctoolbox_tester_set_log_file(const char *filename) {
 	if (log_file) {
 		fclose(log_file);
 	}
-	log_file = fopen(filename, "w");
+	log_file = fopen(filename, "a");
 	if (!log_file) {
 		bctbx_error("Cannot open file [%s] for writing logs because [%s]", filename, strerror(errno));
 		return -1;
