@@ -3413,11 +3413,13 @@ static void ice_perform_regular_nomination(IceValidCandidatePair *valid_pair, Ch
 					cr->cl->nomination_delay_running = TRUE;
 					cr->cl->nomination_delay_start_time = ice_current_time();
 				} else if (ice_compare_time(curtime, cr->cl->nomination_delay_start_time) >= ICE_NOMINATION_DELAY) {
+					ms_message("ice: Nomination delay timeout while performing nomination, select the potential relayed candidate anyway.");
 					cr->cl->nomination_delay_running = FALSE;
 					valid_pair->generated_from->use_candidate = TRUE;
 					ice_check_list_queue_triggered_check(cr->cl, valid_pair->generated_from);
 				}
 			} else {
+				ms_message("ice: We were waiting for a better pair and found one, use it!");
 				cr->cl->nomination_delay_running = FALSE;
 				valid_pair->generated_from->use_candidate = TRUE;
 				ice_check_list_queue_triggered_check(cr->cl, valid_pair->generated_from);
