@@ -527,8 +527,8 @@ static void _rotate_log_collection_files(bctbx_file_log_handler_t *filehandler) 
 	char *file_no_extension = bctbx_strdup(filehandler->name);
 	char *extension = strrchr(file_no_extension, '.');
 	char *extension2 = bctbx_strdup(extension);
-	file_no_extension[extension - file_no_extension] = '\0';
 	int n = 1;
+	file_no_extension[extension - file_no_extension] = '\0';
 
 	log_filename = bctbx_strdup_printf("%s/%s_1%s",
 		filehandler->path,
