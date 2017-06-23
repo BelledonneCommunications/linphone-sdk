@@ -524,36 +524,37 @@ static int _try_open_log_collection_file(bctbx_file_log_handler_t *filehandler) 
 static void _rotate_log_collection_files(bctbx_file_log_handler_t *filehandler) {
 	char *log_filename;
 	char *log_filename2;
-	char *extension = strrchr(filehandler->name, '.');
 	char *file_no_extension = bctbx_strdup(filehandler->name);
+	char *extension = strrchr(file_no_extension, '.');
+	char *extension2 = bctbx_strdup(extension);
 	file_no_extension[extension - file_no_extension] = '\0';
 	int n = 1;
 
-	log_filename = bctbx_strdup_printf("%s/%s_1.%s",
+	log_filename = bctbx_strdup_printf("%s/%s_1%s",
 		filehandler->path,
 		file_no_extension,
-		extension);
+		extension2);
 	while(access(log_filename, F_OK) != -1) {
-    // file exists
+		// file exists
 		n++;
-		log_filename = bctbx_strdup_printf("%s/%s_%d.%s",
+		log_filename = bctbx_strdup_printf("%s/%s_%d%s",
 		filehandler->path,
 		file_no_extension,
 		n,
-		extension);
+		extension2);
 	}
 
 	while(n > 1) {
-		log_filename = bctbx_strdup_printf("%s/%s_%d.%s",
+		log_filename = bctbx_strdup_printf("%s/%s_%d%s",
 		filehandler->path,
 		file_no_extension,
 		n-1,
-		extension);
-		log_filename2 = bctbx_strdup_printf("%s/%s_%d.%s",
+		extension2);
+		log_filename2 = bctbx_strdup_printf("%s/%s_%d%s",
 		filehandler->path,
 		file_no_extension,
 		n,
-		extension);
+		extension2);
 
 		n--;
 		rename(log_filename, log_filename2);
@@ -562,14 +563,14 @@ static void _rotate_log_collection_files(bctbx_file_log_handler_t *filehandler) 
 	log_filename = bctbx_strdup_printf("%s/%s",
 	filehandler->path,
 	filehandler->name);
-	log_filename2 = bctbx_strdup_printf("%s/%s_1.%s",
+	log_filename2 = bctbx_strdup_printf("%s/%s_1%s",
 	filehandler->path,
 	file_no_extension,
-	extension);
+	extension2);
 	rename(log_filename, log_filename2);
 	bctbx_free(log_filename);
 	bctbx_free(log_filename2);
-	bctbx_free(extension);
+	bctbx_free(extension2);
 	bctbx_free(file_no_extension);
 }
 
