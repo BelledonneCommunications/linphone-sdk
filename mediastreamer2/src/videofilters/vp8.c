@@ -44,6 +44,7 @@ static const MSVideoConfiguration vp8_conf_list[] = {
 	MS_VP8_CONF(1024000, 1536000, SXGA_MINUS, 12, 2),
 	MS_VP8_CONF( 750000, 1024000,        XGA, 12, 2),
 	MS_VP8_CONF( 500000,  750000,       SVGA, 12, 2),
+	MS_VP8_CONF( 600000, 3000000,        VGA, 25, 4),
 	MS_VP8_CONF( 300000,  500000,        VGA, 12, 2),
 	MS_VP8_CONF( 100000,  300000,       QVGA, 18, 2),
 	MS_VP8_CONF(  64000,  100000,       QCIF, 12, 2),
@@ -56,6 +57,7 @@ static const MSVideoConfiguration vp8_conf_list[] = {
 	MS_VP8_CONF(800000,  2000000,       720P, 25, 4),
 	MS_VP8_CONF(800000,  1536000,        XGA, 25, 4),
 	MS_VP8_CONF( 600000,  1024000,       SVGA, 25, 2),
+	MS_VP8_CONF( 600000,  3000000,        VGA, 30, 2),
 	MS_VP8_CONF( 350000,   600000,        VGA, 25, 2),
 	MS_VP8_CONF( 350000,   600000,        VGA, 15, 1),
 	MS_VP8_CONF( 200000,   350000,        CIF, 18, 1),
@@ -579,15 +581,14 @@ static int enc_set_configuration(MSFilter *f, void *data) {
 	const MSVideoConfiguration *vconf = (const MSVideoConfiguration *)data;
 	if (vconf != &s->vconf) memcpy(&s->vconf, vconf, sizeof(MSVideoConfiguration));
 
-	if (s->vconf.required_bitrate > s->vconf.bitrate_limit)
-		s->vconf.required_bitrate = s->vconf.bitrate_limit;
+	/*if (s->vconf.required_bitrate > s->vconf.bitrate_limit)
+		s->vconf.required_bitrate = s->vconf.bitrate_limit;*/
 	s->cfg.rc_target_bitrate = (unsigned int)(((float)s->vconf.required_bitrate) * 0.92f / 1024.0f); //0.92=take into account IP/UDP/RTP overhead, in average.
 	if (s->ready) {
 		ms_filter_lock(f);
 		enc_postprocess(f);
 		enc_preprocess(f);
 		ms_filter_unlock(f);
-		return 0;
 	}
 
 	ms_message("Video configuration set: bitrate=%dbits/s, fps=%f, vsize=%dx%d for encoder [%p]"	, s->vconf.required_bitrate,
@@ -599,7 +600,7 @@ static int enc_set_vsize(MSFilter *f, void *data) {
 	MSVideoConfiguration best_vconf;
 	MSVideoSize *vs = (MSVideoSize *)data;
 	EncState *s = (EncState *)f->data;
-	best_vconf = ms_video_find_best_configuration_for_size(s->vconf_list, *vs, ms_factory_get_cpu_count(f->factory));
+	best_vconf = ms_video_find_best_configuration_for_size_and_bitrate(s->vconf_list, *vs, ms_factory_get_cpu_count(f->factory), s->vconf.required_bitrate);
 	s->vconf.vsize = *vs;
 	s->vconf.fps = best_vconf.fps;
 	s->vconf.bitrate_limit = best_vconf.bitrate_limit;
@@ -643,7 +644,7 @@ static int enc_set_br(MSFilter *f, void *data) {
 		s->vconf.required_bitrate = br;
 		enc_set_configuration(f, &s->vconf);
 	} else {
-		MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_bitrate(s->vconf_list, br, ms_factory_get_cpu_count(f->factory));
+		MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_size_and_bitrate(s->vconf_list, s->vconf.vsize, ms_factory_get_cpu_count(f->factory), br);
 		enc_set_configuration(f, &best_vconf);
 	}
 	return 0;
@@ -891,7 +892,7 @@ static void dec_init(MSFilter *f) {
 static int dec_initialize_impl(MSFilter *f){
 	DecState *s = (DecState *)f->data;
 	vpx_codec_dec_cfg_t cfg;
-		
+
 	memset(&cfg, 0, sizeof(cfg));
 	cfg.threads = ms_factory_get_cpu_count(f->factory);
 	if (vpx_codec_dec_init(&s->codec, s->iface, &cfg, s->flags)){
@@ -907,7 +908,7 @@ static void dec_preprocess(MSFilter* f) {
 
 	/* Initialize codec */
 	if (!s->ready){
-		
+
 		s->flags = 0;
 #if 0
 		/* Deactivate fragments input for the vpx decoder because it has been broken in libvpx 1.4.
@@ -947,12 +948,12 @@ static void dec_process(MSFilter *f) {
 	MSQueue frame;
 	MSQueue mtofree_queue;
 	Vp8RtpFmtFrameInfo frame_info;
-	
+
 	if (!s->ready){
 		ms_queue_flush(f->inputs[0]);
 		return;
 	}
-	
+
 	ms_filter_lock(f);
 
 	ms_queue_init(&frame);
@@ -1019,7 +1020,7 @@ static void dec_process(MSFilter *f) {
 			freemsg(im);
 		}
 	}
-	
+
 	ms_filter_unlock(f);
 }
 

@@ -624,17 +624,34 @@ MSWebCamDesc *ms_mire_webcam_desc_get(void){
 
 
 static void apply_bitrate_limit(MediaStream *obj, int br_limit){
-
+	int previous_br_limit = rtp_session_get_target_upload_bandwidth(obj->sessions.rtp_session);
 	if (!obj->encoder){
 		ms_warning("TMMNR not applicable because no encoder for this stream.");
 		return;
 	}
-	if (rtp_session_get_target_upload_bandwidth(obj->sessions.rtp_session) == br_limit) return;
-	
+	if (previous_br_limit == br_limit) {
+		ms_message("Previous bitrate limit was already %i, skipping...", br_limit);
+		return;
+	}
+
 	if (ms_filter_call_method(obj->encoder,MS_FILTER_SET_BITRATE, &br_limit) != 0){
 		ms_warning("Failed to apply bitrate constraint to %s", obj->encoder->desc->name);
 	}
+
+	media_stream_set_target_network_bitrate(obj, br_limit);
 	rtp_session_set_target_upload_bandwidth(obj->sessions.rtp_session, br_limit);
+	
+	if (obj->type == MSVideo) {
+		MSVideoConfiguration *vconf_list = NULL;
+		MSVideoConfiguration vconf1, vconf2;
+		ms_filter_call_method(obj->encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, &vconf_list);
+		vconf1 = ms_video_find_best_configuration_for_bitrate(vconf_list, previous_br_limit, ms_factory_get_cpu_count(obj->factory));
+		vconf2 = ms_video_find_best_configuration_for_bitrate(vconf_list, br_limit, ms_factory_get_cpu_count(obj->factory));
+		if (vconf1.required_bitrate != vconf2.required_bitrate || vconf1.bitrate_limit != vconf2.bitrate_limit) {
+			ms_message("VideoStream[%p]: bitrate update will change video configuration, recreate graph", obj);
+			video_stream_recreate_graph((VideoStream *)obj);
+		}
+	}
 }
 
 static void tmmbr_received(const OrtpEventData *evd, void *user_pointer) {
@@ -643,7 +660,7 @@ static void tmmbr_received(const OrtpEventData *evd, void *user_pointer) {
 		case RTCP_RTPFB_TMMBR: {
 			int tmmbr_mxtbr = (int)rtcp_RTPFB_tmmbr_get_max_bitrate(evd->packet);
 			
-			ms_message("MediaStream[%p]: received a TMMBR for %i kbits/s"
+			ms_message("MediaStream[%p]: received a TMMBR for bitrate %i kbits/s"
 						, ms, (int)(tmmbr_mxtbr/1000));
 			apply_bitrate_limit(ms, tmmbr_mxtbr);
 			break;

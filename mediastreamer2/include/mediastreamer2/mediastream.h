@@ -834,7 +834,6 @@ struct _VideoStream
 	bool_t output_performs_decoding;
 	bool_t player_active;
 	bool_t staticimage_webcam_fps_optimization; /* if TRUE, the StaticImage webcam will ignore the fps target in order to save CPU time. Default is TRUE */
-	
 };
 
 typedef struct _VideoStream VideoStream;
@@ -905,6 +904,8 @@ MS2_PUBLIC const MSWebCam * video_stream_get_camera(const VideoStream *stream);
 MS2_PUBLIC MSFilter* video_stream_get_source_filter(const VideoStream* stream);
 
 MS2_PUBLIC void video_stream_change_camera(VideoStream *stream, MSWebCam *cam);
+
+MS2_PUBLIC void video_stream_recreate_graph(VideoStream *stream);
 
 /**
  * @brief This functions changes the source filter for the passed video stream.

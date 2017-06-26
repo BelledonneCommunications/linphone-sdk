@@ -877,6 +877,14 @@ void ms_factory_set_image_resources_dir(MSFactory *f, const char *path) {
 		f->image_resources_dir = bctbx_strdup(path);
 }
 
+void ms_factory_set_expected_bandwidth(MSFactory *f, int bitrate) {
+	f->expected_video_bandwidth = bitrate;
+}
+
+int ms_factory_get_expected_bandwidth(MSFactory *f) {
+	return f->expected_video_bandwidth;
+}
+
 #ifdef __ANDROID__
 #include "sys/system_properties.h"
 #include <jni.h>

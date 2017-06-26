@@ -48,6 +48,7 @@ struct _MSFactory{
 	MSDevicesInfo *devices_info;
 	char *image_resources_dir;
 	char *echo_canceller_filtername;
+	int expected_video_bandwidth;
 };
 
 typedef struct _MSFactory MSFactory;
@@ -411,6 +412,10 @@ MS2_PUBLIC const char * ms_factory_get_image_resources_dir(const MSFactory *f);
  * @param[in] path The path where the image resources are located
  */
 MS2_PUBLIC void ms_factory_set_image_resources_dir(MSFactory *f, const char *path);
+
+MS2_PUBLIC void ms_factory_set_expected_bandwidth(MSFactory *f, int bitrate);
+
+MS2_PUBLIC int ms_factory_get_expected_bandwidth(MSFactory *f);
 
 #ifdef __cplusplus
 }
