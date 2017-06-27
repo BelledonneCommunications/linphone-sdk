@@ -147,9 +147,9 @@ public class AndroidVideoApi5JniWrapper {
 		Log.e("mediastreamer", "Failed to retrieve supported resolutions.");
 			return null;
 		}
-		Log.d("mediastreamer", supportedSizes.size() + " supported resolutions :");
+		Log.i("mediastreamer", supportedSizes.size() + " supported resolutions :");
 		for(AndroidCamera.Size s : supportedSizes) {
-			Log.d("mediastreamer", "\t" + s.width + "x" + s.height);
+			Log.i("mediastreamer", "\t" + s.width + "x" + s.height);
 		}
 		int r[] = null;
 
@@ -189,7 +189,7 @@ public class AndroidVideoApi5JniWrapper {
 				}
 			}
 			r = new int[] {result.width, result.height, useDownscale};
-			Log.d("mediastreamer", "resolution selection done (" + r[0] + ", " + r[1] + ", " + r[2] + ")");
+			Log.i("mediastreamer", "resolution selection done (" + r[0] + ", " + r[1] + ", " + r[2] + ")");
 			return r;
 		} catch (Exception exc) {
 			Log.e(exc,"mediastreamer", " resolution selection failed");
