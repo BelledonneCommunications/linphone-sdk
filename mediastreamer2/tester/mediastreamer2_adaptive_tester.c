@@ -315,7 +315,9 @@ static void iterate_adaptive_stream(stream_manager_t * marielle, stream_manager_
 
 static void stop_adaptive_stream(stream_manager_t *marielle, stream_manager_t *margaux, bool_t destroy_files){
 #if VIDEO_ENABLED
-	ms_bandwidth_controller_remove_stream(margaux->bw_controller, &(margaux->video_stream->ms));
+	if (margaux->bw_controller) {
+		ms_bandwidth_controller_remove_stream(margaux->bw_controller, &(margaux->video_stream->ms));
+	}
 #endif
 	stream_manager_delete(marielle);
 	stream_manager_delete(margaux);
