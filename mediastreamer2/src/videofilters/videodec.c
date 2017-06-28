@@ -53,7 +53,7 @@ typedef struct DecState{
 	enum CodecID codec;
 	mblk_t *input;
 	YuvBuf outbuf;
-	mblk_t *yuv_msg;
+	MSYuvBufAllocator *allocator;
 	struct SwsContext *sws_ctx;
 	enum AVPixelFormat output_pix_fmt;
 	uint8_t dci[512];
@@ -70,10 +70,10 @@ static void dec_init(MSFilter *f, enum CodecID cid){
 	ms_ffmpeg_check_init();
 
 	avcodec_get_context_defaults3(&s->av_context, NULL);
+	s->allocator = ms_yuv_buf_allocator_new();
 	s->av_codec=NULL;
 	s->codec=cid;
 	s->input=NULL;
-	s->yuv_msg=NULL;
 	s->output_pix_fmt=AV_PIX_FMT_YUV420P;
 	s->snow_initialized=FALSE;
 	s->outbuf.w=0;
@@ -122,8 +122,8 @@ static void dec_uninit(MSFilter *f){
 		avcodec_close(&s->av_context);
 		s->av_context.codec=NULL;
 	}
+	ms_yuv_buf_allocator_free(s->allocator);
 	if (s->input!=NULL) freemsg(s->input);
-	if (s->yuv_msg!=NULL) freemsg(s->yuv_msg);
 	if (s->sws_ctx!=NULL){
 		sws_freeContext(s->sws_ctx);
 		s->sws_ctx=NULL;
@@ -628,6 +628,7 @@ read_rfc2435_header(DecState *s,mblk_t *inm)
 
 static mblk_t *get_as_yuvmsg(MSFilter *f, DecState *s, AVFrame *orig){
 	AVCodecContext *ctx=&s->av_context;
+	mblk_t *yuv_msg;
 
 	if (ctx->width==0 || ctx->height==0){
 		ms_error("%s: wrong image size provided by decoder.",f->desc->name);
@@ -642,9 +643,6 @@ static mblk_t *get_as_yuvmsg(MSFilter *f, DecState *s, AVFrame *orig){
 			sws_freeContext(s->sws_ctx);
 			s->sws_ctx=NULL;
 		}
-		s->yuv_msg=ms_yuv_buf_alloc(&s->outbuf,ctx->width,ctx->height);
-		s->outbuf.w=ctx->width;
-		s->outbuf.h=ctx->height;
 		s->sws_ctx=sws_getContext(ctx->width,ctx->height,ctx->pix_fmt,
 			ctx->width,ctx->height,s->output_pix_fmt,SWS_FAST_BILINEAR,
                 	NULL, NULL, NULL);
@@ -653,6 +651,7 @@ static mblk_t *get_as_yuvmsg(MSFilter *f, DecState *s, AVFrame *orig){
 		ms_error("%s: missing rescaling context.",f->desc->name);
 		return NULL;
 	}
+	yuv_msg=ms_yuv_buf_allocator_get(s->allocator,&s->outbuf,ctx->width,ctx->height);
 #if LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(0,9,0)
 	if (sws_scale(s->sws_ctx,(const uint8_t* const*)orig->data,orig->linesize, 0,
 					ctx->height, s->outbuf.planes, s->outbuf.strides)<0){
@@ -662,7 +661,7 @@ static mblk_t *get_as_yuvmsg(MSFilter *f, DecState *s, AVFrame *orig){
 #endif
 		ms_error("%s: error in ms_sws_scale().",f->desc->name);
 	}
-	return dupmsg(s->yuv_msg);
+	return yuv_msg;
 }
 /* Bitmasks to select bits of a byte from low side */
 static unsigned char smasks[7] = { 0x7f, 0x3f, 0x1f, 0x0f, 0x07, 0x03, 0x01 };

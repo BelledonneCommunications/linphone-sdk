@@ -91,10 +91,10 @@ static void ogl_process (MSFilter *f) {
 		data->video_size.width = src.w;
 		data->video_size.height = src.h;
 
-		ogl_display_set_yuv_to_display(data->display, inm);
-
 		if (data->mirroring && !mblk_get_precious_flag(inm))
 			ms_yuv_buf_mirror(&src);
+
+		ogl_display_set_yuv_to_display(data->display, inm);
 	}
 
 end:
