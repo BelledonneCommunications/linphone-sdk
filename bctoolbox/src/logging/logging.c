@@ -359,20 +359,24 @@ void _bctbx_logv_flush(int dummy, ...) {
 #ifdef _WIN32
 		while (loggers) {
 			bctbx_log_handler_t* handler = (bctbx_log_handler_t*)loggers->data;
-			va_list cap;
-			va_copy(cap, empty_va_list);
-			handler->func(handler->user_info, l->domain, l->level, l->msg, cap);
-			va_end(cap);
+			if(handler) {
+				va_list cap;
+				va_copy(cap, empty_va_list);
+				handler->func(handler->user_info, l->domain, l->level, l->msg, cap);
+				va_end(cap);
+			}
 			loggers = loggers->next;
 		}
 #else
 		
 		while (loggers) {
 			bctbx_log_handler_t* handler = (bctbx_log_handler_t*)loggers->data;
-			va_list cap;
-			va_copy(cap, empty_va_list);
-			handler->func(handler->user_info, l->domain, l->level, l->msg, cap);
-			va_end(cap);
+			if(handler) {
+				va_list cap;
+				va_copy(cap, empty_va_list);
+				handler->func(handler->user_info, l->domain, l->level, l->msg, cap);
+				va_end(cap);
+			}
 			loggers = loggers->next;
 		}
 		
@@ -395,10 +399,12 @@ void bctbx_logv(const char *domain, BctbxLogLevel level, const char *fmt, va_lis
 			bctbx_list_t *loggers = bctbx_list_first_elem(__bctbx_logger.logv_outs);
 			while (loggers) {
 				bctbx_log_handler_t* handler = (bctbx_log_handler_t*)loggers->data;
-				va_list tmp;
-				va_copy(tmp, args);
-				handler->func(handler->user_info, domain, level, fmt, tmp);
-				va_end(tmp);
+				if(handler) {
+					va_list tmp;
+					va_copy(tmp, args);
+					handler->func(handler->user_info, domain, level, fmt, tmp);
+					va_end(tmp);
+				}
 				loggers = loggers->next;
 			}
 		} else if (__bctbx_logger.log_thread_id == bctbx_thread_self()) {
@@ -407,10 +413,12 @@ void bctbx_logv(const char *domain, BctbxLogLevel level, const char *fmt, va_lis
 			loggers = bctbx_list_first_elem(__bctbx_logger.logv_outs);
 			while (loggers) {
 				bctbx_log_handler_t* handler = (bctbx_log_handler_t*)loggers->data;
-				va_list tmp;
-				va_copy(tmp, args);
-				handler->func(handler->user_info, domain, level, fmt, tmp);
-				va_end(tmp);
+				if(handler) {
+					va_list tmp;
+					va_copy(tmp, args);
+					handler->func(handler->user_info, domain, level, fmt, tmp);
+					va_end(tmp);
+				}
 				loggers = loggers->next;
 			}
 		} else {
