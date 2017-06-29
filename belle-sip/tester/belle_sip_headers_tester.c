@@ -800,6 +800,27 @@ static void test_address_header_with_tel_uri(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(laddress));
 }
 
+static void test_address_header_with_urn(void) {
+	belle_generic_uri_t* L_uri;
+	char* L_raw;
+	belle_sip_header_address_t* laddress = belle_sip_header_address_fast_parse("urn:service:sos");
+	BC_ASSERT_PTR_NOT_NULL(laddress);
+	L_raw = belle_sip_object_to_string(BELLE_SIP_OBJECT(laddress));
+	BC_ASSERT_PTR_NOT_NULL(L_raw);
+	belle_sip_object_unref(BELLE_SIP_OBJECT(laddress));
+	laddress = belle_sip_header_address_parse(L_raw);
+	belle_sip_free(L_raw);
+
+	BC_ASSERT_PTR_NULL(belle_sip_header_address_get_displayname(laddress));
+	L_uri = belle_sip_header_address_get_absolute_uri(laddress);
+
+	BC_ASSERT_PTR_NOT_NULL(belle_generic_uri_get_scheme(L_uri));
+	BC_ASSERT_STRING_EQUAL(belle_generic_uri_get_scheme(L_uri), "urn");
+	BC_ASSERT_PTR_NOT_NULL(belle_generic_uri_get_opaque_part(L_uri));
+	BC_ASSERT_STRING_EQUAL(belle_generic_uri_get_opaque_part(L_uri), "service:sos");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(laddress));
+}
+
 static void test_very_long_address_header(void) {
 	belle_sip_uri_t* L_uri;
 	const char* raw = "<sip:jehan@sip.linphone.org"
@@ -1204,6 +1225,7 @@ static void test_authentication_info_header(void) {
 test_t headers_tests[] = {
 	TEST_NO_TAG("Address", test_address_header),
 	TEST_NO_TAG("Address tel uri", test_address_header_with_tel_uri),
+	TEST_NO_TAG("Address urn", test_address_header_with_urn),
 	TEST_NO_TAG("Header address (very long)", test_very_long_address_header),
 	TEST_NO_TAG("Address with error", test_address_with_error_header),
 	TEST_NO_TAG("Allow", test_allow_header),
