@@ -641,6 +641,7 @@ static void apply_bitrate_limit(MediaStream *obj, int br_limit){
 	media_stream_set_target_network_bitrate(obj, br_limit);
 	rtp_session_set_target_upload_bandwidth(obj->sessions.rtp_session, br_limit);
 	
+#ifdef VIDEO_ENABLED
 	if (obj->type == MSVideo) {
 		MSVideoConfiguration *vconf_list = NULL;
 		MSVideoConfiguration vconf1, vconf2;
@@ -652,6 +653,7 @@ static void apply_bitrate_limit(MediaStream *obj, int br_limit){
 			video_stream_recreate_graph((VideoStream *)obj);
 		}
 	}
+#endif
 }
 
 static void tmmbr_received(const OrtpEventData *evd, void *user_pointer) {
