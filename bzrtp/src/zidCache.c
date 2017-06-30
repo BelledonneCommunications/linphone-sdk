@@ -95,6 +95,7 @@ int bzrtp_initCache(void *dbPointer) {
 	/* get current db schema version (user_version pragma in sqlite )*/
 	sql = sqlite3_mprintf("PRAGMA user_version;");
 	ret = sqlite3_exec(db, sql, callback_getUserVersion, &userVersion, &errmsg);
+	sqlite3_free(sql);
 	if (ret!=SQLITE_OK) {
 		sqlite3_free(errmsg);
 		return BZRTP_ZIDCACHE_UNABLETOREAD;
@@ -108,6 +109,7 @@ int bzrtp_initCache(void *dbPointer) {
 			/* update the schema version in DB metadata */
 			sql = sqlite3_mprintf("PRAGMA user_version = %d;",ZIDCACHE_DBSCHEMA_VERSION_NUMBER);
 			ret = sqlite3_prepare(db, sql, -1, &stmt, NULL);
+			sqlite3_free(sql);
 			if (ret != SQLITE_OK) {
 				return BZRTP_ZIDCACHE_UNABLETOUPDATE;
 			}
