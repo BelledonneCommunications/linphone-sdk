@@ -371,9 +371,10 @@ static int check_body(belle_sip_channel_t *obj){
 
 	obj->input_stream.content_length= content_length_header ? belle_sip_header_content_length_get_content_length(content_length_header) : 0;
 
-	if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(msg,belle_sip_response_t) || BELLE_SIP_OBJECT_IS_INSTANCE_OF(msg,belle_sip_request_t)){
-		expect_body=obj->input_stream.content_length>0;
-	}else{/*http*/
+	expect_body=obj->input_stream.content_length>0;
+	
+	if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(msg,belle_http_response_t) || BELLE_SIP_OBJECT_IS_INSTANCE_OF(msg,belle_http_request_t)){
+		/*http chunked mode handling*/
 		if (belle_sip_message_get_header_by_type(msg, belle_sip_header_content_type_t)!=NULL){
 			belle_sip_header_t *transfer_encoding=belle_sip_message_get_header(msg,"Transfer-Encoding");
 

@@ -32,6 +32,8 @@ static belle_sip_stack_t *stack=NULL;
 static void process_response(void *data, const belle_http_response_event_t *event){
 	belle_http_response_t *resp=event->response;
 	const char *body=belle_sip_message_get_body(BELLE_SIP_MESSAGE(resp));
+	fprintf(stdout,"Got response:\n");
+
 	if (body){
 		fprintf(stdout,"%s",body);
 	}
@@ -66,12 +68,14 @@ int main(int argc, char *argv[]){
 	if (argc<2){
 		usage(argv[0]);
 	}
+	bctbx_init_logger(1);
 	for (i = 2; i < argc; ++i){
 		if (strcmp(argv[i], "--ca-path") == 0){
 			i++;
 			ca_path = argv[i];
 		}else if (strcmp(argv[i], "--debug")==0){
-			belle_sip_set_log_level(BELLE_SIP_LOG_DEBUG);
+			fprintf(stderr, "Logs are enabled.\n");
+			bctbx_set_log_level(BCTBX_LOG_DOMAIN,BCTBX_LOG_DEBUG);
 		}else if (strcmp(argv[i], "--no-tls-check")==0){
 			check_tls = 0;
 		}else{
