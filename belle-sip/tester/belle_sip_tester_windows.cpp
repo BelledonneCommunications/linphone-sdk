@@ -112,7 +112,8 @@ bool NativeTester::run(Platform::String^ suiteName, Platform::String^ caseName, 
 	else {
 		belle_sip_set_log_level(BELLE_SIP_LOG_ERROR);
 	}
-	belle_sip_set_log_handler(belleSipNativeOutputTraceHandler);
+	bctbx_log_handler_t* log_handler = bctbx_create_log_handler(belleSipNativeOutputTraceHandler, NULL, NULL);
+	bctbx_add_log_handler(log_handler);
 	return bc_tester_run_tests(wssuitename == all ? 0 : csuitename, wscasename == all ? 0 : ccasename, NULL) != 0;
 }
 
