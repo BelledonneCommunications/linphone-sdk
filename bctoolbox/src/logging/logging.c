@@ -56,6 +56,7 @@ typedef struct _bctbx_logger_t {
 	bctbx_list_t *log_domains;
 	bctbx_mutex_t log_stored_messages_mutex;
 	bctbx_mutex_t domains_mutex;
+	bctbx_mutex_t log_mutex;
 } bctbx_logger_t;
 
 struct _bctbx_log_handler_t {
@@ -80,6 +81,7 @@ void bctbx_init_logger(bool_t create){
 	if (bctbx_init_logger_refcount++ > 0) return; /*already initialized*/
 	
 	bctbx_mutex_init(&__bctbx_logger.domains_mutex, NULL);
+	bctbx_mutex_init(&__bctbx_logger.log_mutex, NULL);
 	if(create) {
 		bctbx_log_handler_t* handler = bctbx_create_log_handler(bctbx_logv_out, bctbx_logv_out_destroy, NULL);
 		bctbx_add_log_handler(handler);
@@ -99,6 +101,7 @@ void bctbx_uninit_logger(void){
 	if (--bctbx_init_logger_refcount <= 0) {
 		bctbx_logv_flush();
 		bctbx_mutex_destroy(&__bctbx_logger.domains_mutex);
+		bctbx_mutex_destroy(&__bctbx_logger.log_mutex);
 		bctbx_log_handlers_free();
 		__bctbx_logger.logv_outs = bctbx_list_free(__bctbx_logger.logv_outs);
 		__bctbx_logger.log_domains = bctbx_list_free_with_data(__bctbx_logger.log_domains, (void (*)(void*))bctbx_log_domain_destroy);
@@ -608,6 +611,7 @@ void bctbx_logv_file(void* user_info, const char *domain, BctbxLogLevel lev, con
 	time_t tt;
 	int ret = -1;
 	bctbx_file_log_handler_t *filehandler = (bctbx_file_log_handler_t *) user_info;
+	bctbx_mutex_lock(&__bctbx_logger.log_mutex);
 	FILE *f = filehandler->file;
 	bctbx_gettimeofday(&tp,NULL);
 	tt = (time_t)tp.tv_sec;
@@ -668,6 +672,7 @@ void bctbx_logv_file(void* user_info, const char *domain, BctbxLogLevel lev, con
 			_open_log_collection_file(filehandler);
 		}
 	}
+	bctbx_mutex_unlock(&__bctbx_logger.log_mutex);
 
 	bctbx_free(msg);
 }
