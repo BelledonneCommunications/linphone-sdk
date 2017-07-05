@@ -24,6 +24,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #pragma once
 
 #include <mediastreamer2/mscommon.h>
+#include <mediastreamer2/msfilter.h>
+#include <mediastreamer2/mssndcard.h>
 
 #include <vector>
 #include <objbase.h>
@@ -75,3 +77,7 @@ extern const IID IID_ISimpleAudioVolume;
 extern const CLSID CLSID_MMDeviceEnumerator;
 extern const IID IID_IMMDeviceEnumerator;
 #endif
+
+extern "C" MSFilterDesc ms_wasapi_read_desc;
+extern "C" MSFilterDesc ms_wasapi_write_desc;
+extern "C" MSSndCardDesc ms_wasapi_snd_card_desc;

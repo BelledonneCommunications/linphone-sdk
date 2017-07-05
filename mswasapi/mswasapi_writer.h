@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 #include "mediastreamer2/msfilter.h"
+#include "mediastreamer2/msqueue.h"
 
 #include "mswasapi.h"
 
@@ -38,7 +39,7 @@ public:
 	MSWASAPIWriter();
 	virtual ~MSWASAPIWriter();
 
-	void init(LPCWSTR id);
+	void init(LPCWSTR id, MSFilter *f);
 	int activate();
 	int deactivate();
 	bool isStarted() { return mIsStarted; }
@@ -59,10 +60,16 @@ public:
 #endif
 
 private:
+	static void * feedThread(void *p);
+	void * feedThread();
+	void createBufferizer(MSFilter *f);
 	void drop(MSFilter *f);
 	HRESULT configureAudioClient();
 
 	static bool smInstantiated;
+	HANDLE mSamplesRequestedEvent;
+	ms_thread_t mThread;
+	ms_mutex_t mThreadMutex;
 #ifdef MS2_WINDOWS_UNIVERSAL
 	Platform::String^ mRenderId;
 	HANDLE mActivationEvent;
@@ -76,10 +83,12 @@ private:
 #endif
 	IAudioRenderClient *mAudioRenderClient;
 	ISimpleAudioVolume *mVolumeControler;
+	MSFlowControlledBufferizer *mBufferizer;
 	UINT32 mBufferFrameCount;
 	bool mIsInitialized;
 	bool mIsActivated;
 	bool mIsStarted;
+	bool mIsReadyToWrite;
 	int mRate;
 	int mNChannels;
 };
