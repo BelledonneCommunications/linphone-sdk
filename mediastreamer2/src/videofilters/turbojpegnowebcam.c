@@ -38,13 +38,19 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include <math.h>
 
+#define free_and_reset_msg(m) \
+	freemsg(m); \
+	m = NULL
+
 mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize) {
 	MSPicture dest;
 	mblk_t *m = NULL;
+	uint8_t *rgbBuf = NULL;
 	int imgsrch, imgsrcw, imgsrcsubsamp, imgsrccolor, sfnum, i;
 	int scaledw = 0, scaledh = 0;
 	tjscalingfactor* sf = NULL;
 	tjhandle turbojpegDec = tjInitDecompress();
+	tjhandle *yuvEncoder = NULL;
 
 	if (turbojpegDec == NULL) {
 		ms_error("tjInitDecompress error: %s", tjGetErrorStr());
@@ -81,18 +87,65 @@ mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize) {
 	m = ms_yuv_buf_alloc(&dest, scaledw, scaledh);
 	if (m == NULL) goto clean;
 
-	if (tjDecompressToYUVPlanes(
-		turbojpegDec,
-		jpgbuf,
-		bufsize,
-		dest.planes,
-		dest.w,
-		dest.strides,
-		dest.h,
-		0
+	if (imgsrccolor == TJCS_YCbCr && imgsrcsubsamp == TJSAMP_420) {
+		if (tjDecompressToYUVPlanes(
+			turbojpegDec,
+			jpgbuf,
+			bufsize,
+			dest.planes,
+			dest.w,
+			dest.strides,
+			dest.h,
+			0
+			) != 0) {
+			ms_error("tjDecompressToYUVPlanes() failed, error: %s", tjGetErrorStr());
+			free_and_reset_msg(m);
+			goto clean;
+		}
+	} else {
+		size_t pitch = scaledw * tjPixelSize[TJPF_RGB];
+		size_t rgbBufSize = pitch * scaledh;
+		
+		yuvEncoder = tjInitCompress();
+		if (yuvEncoder == NULL) {
+			ms_error("tjInitCompress() failed, error: %s", tjGetErrorStr());
+			free_and_reset_msg(m);
+			goto clean;
+		}
+		
+		rgbBuf = bctbx_new(uint8_t, rgbBufSize);
+		if (tjDecompress2(
+			turbojpegDec,
+			jpgbuf,
+			bufsize,
+			rgbBuf,
+			scaledw,
+			pitch,
+			scaledh,
+			TJPF_RGB,
+			0
 		) != 0) {
-		ms_error("tjDecompressToYUVPlanes() failed, error: %s", tjGetErrorStr());
-		goto clean;
+			ms_error("tjDecompress2() failed, error: %s", tjGetErrorStr());
+			free_and_reset_msg(m);
+			goto clean;
+		}
+		
+		if (tjEncodeYUVPlanes(
+			yuvEncoder,
+			rgbBuf,
+			scaledw,
+			pitch,
+			scaledh,
+			TJPF_RGB,
+			dest.planes,
+			dest.strides,
+			TJSAMP_420,
+			0
+		) != 0) {
+			ms_error("tjEncodeYUVPlanes() failed, error: %s", tjGetErrorStr());
+			free_and_reset_msg(m);
+			goto clean;
+		}
 	}
 
 	reqsize->width = scaledw;
@@ -103,6 +156,12 @@ mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize) {
 		if (tjDestroy(turbojpegDec) != 0)
 			ms_error("tjDestroy decompress error: %s", tjGetErrorStr());
 	}
+	if (yuvEncoder != NULL) {
+		if (tjDestroy(yuvEncoder) != 0) {
+			ms_error("YUV encoder destroying failed: %s", tjGetErrorStr());
+		}
+	}
+	if (rgbBuf != NULL) bctbx_free(rgbBuf);
 	return m;
 }
 
