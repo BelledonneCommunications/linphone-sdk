@@ -611,8 +611,9 @@ void bctbx_logv_file(void* user_info, const char *domain, BctbxLogLevel lev, con
 	time_t tt;
 	int ret = -1;
 	bctbx_file_log_handler_t *filehandler = (bctbx_file_log_handler_t *) user_info;
+	FILE *f;
 	bctbx_mutex_lock(&__bctbx_logger.log_mutex);
-	FILE *f = filehandler->file;
+	f = filehandler->file;
 	bctbx_gettimeofday(&tp,NULL);
 	tt = (time_t)tp.tv_sec;
 
