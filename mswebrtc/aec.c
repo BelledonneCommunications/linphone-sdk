@@ -44,7 +44,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "mediastreamer2/flowcontrol.h"
 
-static const float smooth_factor = 0.05;
+static const float smooth_factor = 0.05f;
 static const int framesize = 80;
 
 
@@ -145,10 +145,10 @@ static void webrtc_aec_preprocess(MSFilter *f) {
 #endif
 #ifdef BUILD_AECM
 	AecmConfig aecm_config;
+	int error_code;
 #endif
 	int delay_samples = 0;
 	mblk_t *m;
-	int error_code;
 
 	s->echostarted = FALSE;
 	delay_samples = s->delay_ms * s->samplerate / 1000;
@@ -273,7 +273,7 @@ static void webrtc_aec_process(MSFilter *f) {
 		foecho = (float *)alloca(nfbytes);
 	}
 #endif
-	while (ms_bufferizer_read(&s->echo, echo, nbytes) >= nbytes) {
+	while (ms_bufferizer_read(&s->echo, echo, (size_t)nbytes) >= (size_t)nbytes) {
 		mblk_t *oecho = allocb(nbytes, 0);
 		int avail;
 		int avail_samples;
