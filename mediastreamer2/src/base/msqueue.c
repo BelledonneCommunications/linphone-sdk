@@ -182,6 +182,7 @@ void ms_flow_controlled_bufferizer_set_nchannels(MSFlowControlledBufferizer *obj
 }
 
 static void control_flow(MSFlowControlledBufferizer *obj) {
+	uint32_t time_since_last_control = (uint32_t)(obj->filter->ticker->time - obj->flow_control_time);
 	uint32_t accumulated_ms = (uint32_t)((obj->base.size * 1000) / obj->samplerate) / obj->nchannels;
 
 	if (obj->flow_control_time == 0) {
@@ -191,20 +192,32 @@ static void control_flow(MSFlowControlledBufferizer *obj) {
 		obj->min_size_ms_during_interval = accumulated_ms;
 	}
 
-	if ((((uint32_t)(obj->filter->ticker->time - obj->flow_control_time)) >= obj->flow_control_interval_ms)
-		&& (obj->min_size_ms_during_interval != UINT32_MAX) && (obj->min_size_ms_during_interval > obj->max_size_ms)) {
-		uint32_t diff_ms = obj->min_size_ms_during_interval - obj->max_size_ms;
-		if (diff_ms > (obj->granularity_ms / 2)) {
-			MSAudioFlowControlDropEvent ev;
-			ev.flow_control_interval_ms = obj->flow_control_interval_ms;
-			ev.drop_ms = diff_ms - (obj->granularity_ms / 2);
-			if (ev.drop_ms > 0) {
-				ms_warning("Flow controlled bufferizer of max %u ms buffered at least %u ms in the last %u ms, asking to drop %u ms", obj->max_size_ms, obj->min_size_ms_during_interval, obj->flow_control_interval_ms, ev.drop_ms);
-				ms_filter_notify(obj->filter, MS_AUDIO_FLOW_CONTROL_DROP_EVENT, &ev);
-				obj->min_size_ms_during_interval = UINT32_MAX;
-				obj->flow_control_time = obj->filter->ticker->time;
+	if (time_since_last_control >= obj->flow_control_interval_ms) {
+		if ((obj->min_size_ms_during_interval != UINT32_MAX) && (obj->min_size_ms_during_interval > obj->max_size_ms)) {
+			uint32_t diff_ms = obj->min_size_ms_during_interval - obj->max_size_ms;
+			if (diff_ms > (obj->granularity_ms / 2)) {
+				MSAudioFlowControlDropEvent ev;
+				ev.flow_control_interval_ms = obj->flow_control_interval_ms;
+				ev.drop_ms = diff_ms - (obj->granularity_ms / 2);
+				if (ev.drop_ms > 0) {
+					ms_warning("Flow controlled bufferizer of max %u ms was filled with at least %u ms in the last %u ms, asking to drop %u ms", obj->max_size_ms, obj->min_size_ms_during_interval, obj->flow_control_interval_ms, ev.drop_ms);
+					ms_filter_notify(obj->filter, MS_AUDIO_FLOW_CONTROL_DROP_EVENT, &ev);
+				}
+			}
+		} else if (accumulated_ms > (obj->max_size_ms * 4)) {
+			uint32_t diff_ms = (accumulated_ms - obj->max_size_ms) / 2;
+			if (diff_ms > (obj->granularity_ms / 2)) {
+				MSAudioFlowControlDropEvent ev;
+				ev.flow_control_interval_ms = obj->flow_control_interval_ms;
+				ev.drop_ms = diff_ms - (obj->granularity_ms / 2);
+				if (ev.drop_ms > 0) {
+					ms_warning("Flow controlled bufferizer of max %u ms is filled with %u ms at the end of the %u ms interval, asking to drop %u ms", obj->max_size_ms, accumulated_ms, obj->flow_control_interval_ms, ev.drop_ms);
+					ms_filter_notify(obj->filter, MS_AUDIO_FLOW_CONTROL_DROP_EVENT, &ev);
+				}
 			}
 		}
+		obj->flow_control_time = obj->filter->ticker->time;
+		obj->min_size_ms_during_interval = UINT32_MAX;
 	}
 }
 
