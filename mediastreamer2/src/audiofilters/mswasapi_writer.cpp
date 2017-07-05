@@ -25,8 +25,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mswasapi_writer.h"
 
 
-#define REFTIME_250MS 2500000
-
 #define REPORT_ERROR(msg, result) \
 	if (result != S_OK) { \
 		ms_error(msg, result); \
@@ -51,8 +49,14 @@ bool MSWASAPIWriter::smInstantiated = false;
 
 
 MSWASAPIWriter::MSWASAPIWriter()
-	: mAudioClient(NULL), mAudioRenderClient(NULL), mVolumeControler(NULL), mBufferFrameCount(0), mIsInitialized(false), mIsActivated(false), mIsStarted(false), mBufferizer(NULL)
+	: mThread(0), mAudioClient(NULL), mAudioRenderClient(NULL), mVolumeControler(NULL), mBufferFrameCount(0), mIsInitialized(false), mIsActivated(false), mIsStarted(false), mIsReadyToWrite(false), mBufferizer(NULL)
 {
+	mSamplesRequestedEvent = CreateEventEx(NULL, NULL, 0, EVENT_ALL_ACCESS);
+	if (!mSamplesRequestedEvent) {
+		ms_error("Could not create samples requested event of the MSWASAPI audio output interface [%i]", GetLastError());
+		return;
+	}
+	ms_mutex_init(&mThreadMutex, NULL);
 #ifdef MS2_WINDOWS_UNIVERSAL
 	mActivationEvent = CreateEventEx(NULL, NULL, 0, EVENT_ALL_ACCESS);
 	if (!mActivationEvent) {
@@ -74,6 +78,11 @@ MSWASAPIWriter::~MSWASAPIWriter()
 		mActivationEvent = INVALID_HANDLE_VALUE;
 	}
 #endif
+	ms_mutex_destroy(&mThreadMutex);
+	if (mSamplesRequestedEvent != INVALID_HANDLE_VALUE) {
+		CloseHandle(mSamplesRequestedEvent);
+		mSamplesRequestedEvent = INVALID_HANDLE_VALUE;
+	}
 	if (mBufferizer) ms_flow_controlled_bufferizer_destroy(mBufferizer);
 	smInstantiated = false;
 }
@@ -160,7 +169,6 @@ error:
 int MSWASAPIWriter::activate()
 {
 	HRESULT result;
-	REFERENCE_TIME requestedDuration = REFTIME_250MS;
 	WAVEFORMATPCMEX proposedWfx;
 	WAVEFORMATEX *pUsedWfx = NULL;
 	WAVEFORMATEX *pSupportedWfx = NULL;
@@ -189,10 +197,12 @@ int MSWASAPIWriter::activate()
 	} else {
 		REPORT_ERROR("Audio format not supported by the MSWASAPI audio output interface [%x]", result);
 	}
-	result = mAudioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_NOPERSIST, requestedDuration, 0, pUsedWfx, NULL);
+	result = mAudioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_EVENTCALLBACK | AUDCLNT_STREAMFLAGS_NOPERSIST, 0, 0, pUsedWfx, NULL);
 	if ((result != S_OK) && (result != AUDCLNT_E_ALREADY_INITIALIZED)) {
 		REPORT_ERROR("Could not initialize the MSWASAPI audio output interface [%x]", result);
 	}
+	result = mAudioClient->SetEventHandle(mSamplesRequestedEvent);
+	REPORT_ERROR("SetEventHandle for MSWASAPI audio output interface failed [%x]", result)
 	result = mAudioClient->GetBufferSize(&mBufferFrameCount);
 	REPORT_ERROR("Could not get buffer size for the MSWASAPI audio output interface [%x]", result);
 	ms_message("MSWASAPI audio output interface buffer size: %i", mBufferFrameCount);
@@ -221,6 +231,7 @@ void MSWASAPIWriter::start()
 
 	if (!isStarted() && mIsActivated) {
 		mIsStarted = true;
+		ms_thread_create(&mThread, NULL, MSWASAPIWriter::feedThread, this);
 		result = mAudioClient->Start();
 		if (result != S_OK) {
 			ms_error("Could not start playback on the MSWASAPI audio output interface [%x]", result);
@@ -238,10 +249,20 @@ void MSWASAPIWriter::stop()
 		if (result != S_OK) {
 			ms_error("Could not stop playback on the MSWASAPI audio output interface [%x]", result);
 		}
+		if (mThread != 0) {
+			ms_thread_join(mThread, NULL);
+			mThread = 0;
+		}
 	}
 }
 
-int MSWASAPIWriter::feed(MSFilter *f)
+void * MSWASAPIWriter::feedThread(void *p)
+{
+	MSWASAPIWriter *writer = (MSWASAPIWriter *)p;
+	return writer->feedThread();
+}
+
+void * MSWASAPIWriter::feedThread()
 {
 	HRESULT result;
 	BYTE *buffer;
@@ -250,46 +271,71 @@ int MSWASAPIWriter::feed(MSFilter *f)
 	UINT32 numFramesFed;
 	size_t msBufferSizeAvailable;
 	int msNumFramesAvailable;
-	int bytesPerFrame = (16 * mNChannels / 8);
+	int bytesPerFrame;
 
-	if (isStarted()) {
-		ms_flow_controlled_bufferizer_put_from_queue(mBufferizer, f->inputs[0]);
-		do {
-			numFramesFed = 0;
-			msBufferSizeAvailable = ms_flow_controlled_bufferizer_get_avail(mBufferizer);
-			if (msBufferSizeAvailable > 0) {
-				msNumFramesAvailable = (int)(msBufferSizeAvailable / (size_t)bytesPerFrame);
-				if (msNumFramesAvailable > 0) {
-					// Calculate the number of frames to pass to the Audio Render Client
-					result = mAudioClient->GetCurrentPadding(&numFramesPadding);
-					REPORT_ERROR("Could not get current buffer padding for the MSWASAPI audio output interface [%x]", result);
-					numFramesAvailable = mBufferFrameCount - numFramesPadding;
-					if ((UINT32)msNumFramesAvailable > numFramesAvailable) {
-						// The bufferizer is filled more than the space available in the Audio Render Client.
-						// Some frames will be dropped.
-						numFramesFed = numFramesAvailable;
-					} else {
-						numFramesFed = msNumFramesAvailable;
-					}
+	while (mIsStarted) {
+		WaitForSingleObjectEx(mSamplesRequestedEvent, INFINITE, false);
 
-					// Feed the Audio Render Client
-					if (numFramesFed > 0) {
-						result = mAudioRenderClient->GetBuffer(numFramesFed, &buffer);
-						REPORT_ERROR("Could not get buffer from the MSWASAPI audio output interface [%x]", result);
-						ms_flow_controlled_bufferizer_read(mBufferizer, buffer, numFramesFed * bytesPerFrame);
-						result = mAudioRenderClient->ReleaseBuffer(numFramesFed, 0);
-						REPORT_ERROR("Could not release buffer of the MSWASAPI audio output interface [%x]", result);
-					}
+		mIsReadyToWrite = true;
+		bytesPerFrame = (16 * mNChannels / 8);
+		numFramesFed = 0;
+		ms_mutex_lock(&mThreadMutex);
+		msBufferSizeAvailable = ms_flow_controlled_bufferizer_get_avail(mBufferizer);
+		if (msBufferSizeAvailable > 0) {
+			msNumFramesAvailable = (int)(msBufferSizeAvailable / (size_t)bytesPerFrame);
+			if (msNumFramesAvailable > 0) {
+				// Calculate the number of frames to pass to the Audio Render Client
+				result = mAudioClient->GetCurrentPadding(&numFramesPadding);
+				REPORT_ERROR("Could not get current buffer padding for the MSWASAPI audio output interface [%x]", result);
+				numFramesAvailable = mBufferFrameCount - numFramesPadding;
+				if ((UINT32)msNumFramesAvailable > numFramesAvailable) {
+					// The bufferizer is filled more than the space available in the Audio Render Client.
+					// Some frames will be dropped.
+					numFramesFed = numFramesAvailable;
+				}
+				else {
+					numFramesFed = msNumFramesAvailable;
+				}
+
+				// Feed the Audio Render Client
+				if (numFramesFed > 0) {
+					result = mAudioRenderClient->GetBuffer(numFramesFed, &buffer);
+					REPORT_ERROR("Could not get buffer from the MSWASAPI audio output interface [%x]", result);
+					ms_flow_controlled_bufferizer_read(mBufferizer, buffer, numFramesFed * bytesPerFrame);
+					result = mAudioRenderClient->ReleaseBuffer(numFramesFed, 0);
+					REPORT_ERROR("Could not release buffer of the MSWASAPI audio output interface [%x]", result);
 				}
 			}
-		} while (numFramesFed > 0);
+		} else {
+			result = mAudioClient->GetCurrentPadding(&numFramesPadding);
+			REPORT_ERROR("Could not get current buffer padding for the MSWASAPI audio output interface [%x]", result);
+			numFramesAvailable = mBufferFrameCount - numFramesPadding;
+			result = mAudioRenderClient->GetBuffer(numFramesAvailable, &buffer);
+			REPORT_ERROR("Could not get buffer from the MSWASAPI audio output interface [%x]", result);
+			memset(buffer, 0, numFramesAvailable * bytesPerFrame);
+			result = mAudioRenderClient->ReleaseBuffer(numFramesAvailable, 0);
+			REPORT_ERROR("Could not release buffer of the MSWASAPI audio output interface [%x]", result);
+		}
+		ms_mutex_unlock(&mThreadMutex);
+	};
+
+	return nullptr;
+
+error:
+	ms_mutex_unlock(&mThreadMutex);
+	return nullptr;
+}
+
+int MSWASAPIWriter::feed(MSFilter *f)
+{
+	if (isStarted() && mIsReadyToWrite) {
+		ms_mutex_lock(&mThreadMutex);
+		ms_flow_controlled_bufferizer_put_from_queue(mBufferizer, f->inputs[0]);
+		ms_mutex_unlock(&mThreadMutex);
 	} else {
 		drop(f);
 	}
 	return 0;
-
-error:
-	return -1;
 }
 
 float MSWASAPIWriter::getVolumeLevel() {

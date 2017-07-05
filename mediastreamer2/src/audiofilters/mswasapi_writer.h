@@ -60,11 +60,16 @@ public:
 #endif
 
 private:
+	static void * feedThread(void *p);
+	void * feedThread();
 	void createBufferizer(MSFilter *f);
 	void drop(MSFilter *f);
 	HRESULT configureAudioClient();
 
 	static bool smInstantiated;
+	HANDLE mSamplesRequestedEvent;
+	ms_thread_t mThread;
+	ms_mutex_t mThreadMutex;
 #ifdef MS2_WINDOWS_UNIVERSAL
 	Platform::String^ mRenderId;
 	HANDLE mActivationEvent;
@@ -83,6 +88,7 @@ private:
 	bool mIsInitialized;
 	bool mIsActivated;
 	bool mIsStarted;
+	bool mIsReadyToWrite;
 	int mRate;
 	int mNChannels;
 };
