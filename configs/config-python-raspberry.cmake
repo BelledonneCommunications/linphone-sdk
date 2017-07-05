@@ -30,6 +30,8 @@ set(PACKAGE_NAME "linphone4raspberry")
 
 include("configs/config-python.cmake")
 
+set(DEFAULT_VALUE_ENABLE_WASAPI OFF)
+
 # ffmpeg
 lcb_builder_cross_compilation_options(ffmpeg
 	"--prefix=${CMAKE_INSTALL_PREFIX}"
