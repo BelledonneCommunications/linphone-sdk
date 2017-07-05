@@ -32,7 +32,7 @@ void ms_audio_flow_controller_init(MSAudioFlowController *ctl)
 	ctl->current_dropped = 0;
 }
 
-void ms_audio_flow_controller_set_target(MSAudioFlowController *ctl, int samples_to_drop, int total_samples)
+void ms_audio_flow_controller_set_target(MSAudioFlowController *ctl, uint32_t samples_to_drop, uint32_t total_samples)
 {
 	ctl->target_samples = samples_to_drop;
 	ctl->total_samples = total_samples;
@@ -40,12 +40,12 @@ void ms_audio_flow_controller_set_target(MSAudioFlowController *ctl, int samples
 	ctl->current_dropped = 0;
 }
 
-static void discard_well_choosed_samples(mblk_t *m, int nsamples, int todrop)
+static void discard_well_choosed_samples(mblk_t *m, uint32_t nsamples, uint32_t todrop)
 {
-	int i;
+	uint32_t i;
 	int16_t *samples = (int16_t *) m->b_rptr;
 	int min_diff = 32768;
-	int pos = 0;
+	uint32_t pos = 0;
 
 
 #ifdef TWO_SAMPLES_CRITERIA
@@ -82,23 +82,23 @@ static bool_t ms_audio_flow_controller_running(MSAudioFlowController *ctl) {
 
 mblk_t *ms_audio_flow_controller_process(MSAudioFlowController *ctl, mblk_t *m){
 	if (ms_audio_flow_controller_running(ctl)) {
-		int nsamples = (int)((m->b_wptr - m->b_rptr) / 2);
-		int th_dropped;
-		int todrop;
+		uint32_t nsamples = (uint32_t)((m->b_wptr - m->b_rptr) / 2);
+		uint32_t th_dropped;
+		uint32_t todrop;
 
 		ctl->current_pos += nsamples;
-		th_dropped = (ctl->target_samples * ctl->current_pos) / ctl->total_samples;
-		todrop = th_dropped - ctl->current_dropped;
+		th_dropped = (uint32_t)(((uint64_t)ctl->target_samples * (uint64_t)ctl->current_pos) / (uint64_t)ctl->total_samples);
+		todrop = (th_dropped > ctl->current_dropped) ? (th_dropped - ctl->current_dropped) : 0;
 		if (todrop > 0) {
-			if (todrop*8<nsamples){
+			if ((todrop * 8) < nsamples) {
 				discard_well_choosed_samples(m, nsamples, todrop);
-			}else{
+			} else {
 				ms_warning("Too many samples to drop, dropping entire frame.");
 				freemsg(m);
-				m=NULL;
-				todrop=nsamples;
+				m = NULL;
+				todrop = nsamples;
 			}
-			/*ms_message("th_dropped=%i, current_dropped=%i, %i samples dropped.",th_dropped,ctl->current_dropped,todrop);*/
+			/*ms_message("th_dropped=%i, current_dropped=%i, %i samples dropped", th_dropped, ctl->current_dropped, todrop);*/
 			ctl->current_dropped += todrop;
 		}
 		if (ctl->current_pos >= ctl->total_samples) ctl->target_samples = 0; /*stop discarding*/
