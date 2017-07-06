@@ -120,7 +120,7 @@ mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize) {
 			bufsize,
 			rgbBuf,
 			scaledw,
-			pitch,
+			(int)pitch,
 			scaledh,
 			TJPF_RGB,
 			0
@@ -134,7 +134,7 @@ mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize) {
 			yuvEncoder,
 			rgbBuf,
 			scaledw,
-			pitch,
+			(int)pitch,
 			scaledh,
 			TJPF_RGB,
 			dest.planes,
