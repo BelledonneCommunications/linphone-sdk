@@ -235,7 +235,7 @@ static void webrtc_aec_process(MSFilter *f) {
 	mblk_t *refm;
 	uint8_t *ref, *echo;
 #ifdef BUILD_AEC
-	float *fref, *fecho, *foecho;
+	float *fref = NULL, *fecho = NULL, *foecho = NULL;
 #endif
 
 	if (s->bypass_mode) {

@@ -117,7 +117,8 @@ if(UNIX)
 	endif()
 endif()
 
-string(REGEX MATCH "^(arm*|aarch64)" FIXED_POINT_PROCESSOR "${CMAKE_SYSTEM_PROCESSOR}")
+string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" SYSTEM_PROCESSOR)
+string(REGEX MATCH "^(arm*|aarch64)" FIXED_POINT_PROCESSOR "${SYSTEM_PROCESSOR}")
 if(FIXED_POINT_PROCESSOR)
 	add_definitions(-D__ARMEL__)
 endif()
@@ -176,13 +177,12 @@ if(ENABLE_AEC)
 		${WEBRTC_SRC_DIR}/modules/audio_processing/utility/delay_estimator.c
 		${WEBRTC_SRC_DIR}/modules/audio_processing/utility/delay_estimator_wrapper.c
 	)
-	string(TOLOWER ${CMAKE_SYSTEM_PROCESSOR} SYSTEM_PROCESSOR)
 	if(SYSTEM_PROCESSOR MATCHES "^arm.*" OR SYSTEM_PROCESSOR MATCHES "^aarch64.*")
 		list(APPEND AEC_SRCS
 			${AEC_SRC_DIR}/aec_core_neon.c
 			${AEC_SRC_DIR}/aec_rdft_neon.c
 		)
-	elseif(SYSTEM_PROCESSOR MATCHES "^i.?86.*" OR SYSTEM_PROCESSOR MATCHES "^x86.*" OR SYSTEM_PROCESSOR MATCHES "^x86_64.*" OR SYSTEM_PROCESSOR MATCHES "^amd64.*")
+	elseif(SYSTEM_PROCESSOR MATCHES "^i.?86.*" OR SYSTEM_PROCESSOR MATCHES "^x86.*" OR SYSTEM_PROCESSOR MATCHES "^x86_64.*" OR SYSTEM_PROCESSOR MATCHES "^amd64.*" OR SYSTEM_PROCESSOR MATCHES "^x64.*")
 		list(APPEND AEC_SRCS
 			${AEC_SRC_DIR}/aec_core_sse2.c
 			${AEC_SRC_DIR}/aec_rdft_sse2.c
