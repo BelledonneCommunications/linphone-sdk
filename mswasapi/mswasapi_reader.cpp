@@ -383,8 +383,8 @@ exit:
 
 MSWASAPIReaderPtr MSWASAPIReaderNew(MSFilter *f)
 {
-	MSWASAPIReaderPtr r = new MSWASAPIReaderWrapper(f);
-	r->reader = Make<MSWASAPIReader>();
+	MSWASAPIReaderPtr r = new MSWASAPIReaderWrapper();
+	r->reader = Make<MSWASAPIReader>(f);
 	return r;
 }
 void MSWASAPIReaderDelete(MSWASAPIReaderPtr ptr)
