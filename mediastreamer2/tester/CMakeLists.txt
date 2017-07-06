@@ -111,15 +111,15 @@ bc_apply_compile_flags(SOURCE_FILES_OBJC STRICT_OPTIONS_CPP STRICT_OPTIONS_OBJC)
 if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 
 	add_library(mediastreamer2_tester_static STATIC ${SOURCE_FILES_C})
-	target_include_directories(mediastreamer2_tester_static PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIRS})
-	target_link_libraries(mediastreamer2_tester_static ${MS2_LIBS_FOR_TESTER} ${BCTOOLBOX_TESTER_LIBRARIES})
+	target_include_directories(mediastreamer2_tester_static PUBLIC ${BCTOOLBOX_INCLUDE_DIRS} ${ORTP_INCLUDE_DIRS})
+	target_link_libraries(mediastreamer2_tester_static ${MS2_LIBS_FOR_TESTER} ${BCTOOLBOX_LIBRARIES} ${ORTP_LIBRARIES})
 
 	set(RUNTIME_COMPONENT_SOURCES
 		mediastreamer2_tester_windows.cpp
 		mediastreamer2_tester_windows.h
 	)
 	add_library(mediastreamer2_tester_runtime MODULE ${RUNTIME_COMPONENT_SOURCES})
-	target_include_directories(mediastreamer2_tester_runtime PRIVATE "../../../mswinrtvid")	# HACK!!
+	target_include_directories(mediastreamer2_tester_runtime PRIVATE "../../mswinrtvid")	# HACK!!
 	target_link_libraries(mediastreamer2_tester_runtime mediastreamer2_tester_static)
 	set_target_properties(mediastreamer2_tester_runtime PROPERTIES VS_WINRT_COMPONENT TRUE)
 	set_target_properties(mediastreamer2_tester_runtime PROPERTIES LIBRARY_OUTPUT_NAME "BelledonneCommunications.Mediastreamer2.Tester")
