@@ -46,7 +46,7 @@ static void nativeOutputTraceHandler(int lev, const char *fmt, va_list args)
 	}
 }
 
-static void belleSipNativeOutputTraceHandler(const char *domain, BctbxLogLevel lev, const char *fmt, va_list args)
+static void belleSipNativeOutputTraceHandler(void *info, const char *domain, BctbxLogLevel lev, const char *fmt, va_list args)
 {
 	nativeOutputTraceHandler((int)lev, fmt, args);
 }
@@ -103,6 +103,7 @@ bool NativeTester::run(Platform::String^ suiteName, Platform::String^ caseName, 
 	std::wstring wscasename = caseName->Data();
 	char csuitename[MAX_SUITE_NAME_SIZE] = { 0 };
 	char ccasename[MAX_SUITE_NAME_SIZE] = { 0 };
+	bctbx_log_handler_t *log_handler = bctbx_create_log_handler(belleSipNativeOutputTraceHandler, NULL, NULL);
 	wcstombs(csuitename, wssuitename.c_str(), sizeof(csuitename));
 	wcstombs(ccasename, wscasename.c_str(), sizeof(ccasename));
 
@@ -112,7 +113,6 @@ bool NativeTester::run(Platform::String^ suiteName, Platform::String^ caseName, 
 	else {
 		belle_sip_set_log_level(BELLE_SIP_LOG_ERROR);
 	}
-	bctbx_log_handler_t* log_handler = bctbx_create_log_handler(belleSipNativeOutputTraceHandler, NULL, NULL);
 	bctbx_add_log_handler(log_handler);
 	return bc_tester_run_tests(wssuitename == all ? 0 : csuitename, wscasename == all ? 0 : ccasename, NULL) != 0;
 }
