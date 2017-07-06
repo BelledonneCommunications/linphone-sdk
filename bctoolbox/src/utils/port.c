@@ -1351,9 +1351,6 @@ void bctbx_sockaddr_remove_nat64_mapping(const struct sockaddr *v6, struct socka
 
 void bctbx_sockaddr_ipv6_to_ipv4(const struct sockaddr *v6, struct sockaddr *result, socklen_t *result_len) {
 	bctbx_sockaddr_remove_v4_mapping(v6, result, result_len);
-	if (result->sa_family == AF_INET6) {
-		bctbx_sockaddr_remove_nat64_mapping(v6, result, result_len);
-	}
 }
 
 void bctbx_sockaddr_ipv4_to_ipv6(const struct sockaddr *v4, struct sockaddr *result, socklen_t *result_len) {
