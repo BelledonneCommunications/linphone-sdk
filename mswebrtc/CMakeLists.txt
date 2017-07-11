@@ -59,9 +59,12 @@ endif()
 if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
 	include("${EP_ms2_CONFIG_DIR}/Mediastreamer2Config.cmake")
 	include("${EP_ortp_CONFIG_DIR}/ORTPConfig.cmake")
+	set(BcToolbox_FIND_COMPONENTS tester)
+	include("${EP_bctoolbox_CONFIG_DIR}/BcToolboxConfig.cmake")
 else()
 	find_package(Mediastreamer2 REQUIRED)
 	find_package(ORTP REQUIRED)
+	find_package(BcToolbox REQUIRED)
 endif()
 
 find_library(LIBM NAMES m)
@@ -123,6 +126,8 @@ if(FIXED_POINT_PROCESSOR)
 	add_definitions(-D__ARMEL__)
 endif()
 
+set(AEC_CXX11_FLAGS "-std=c++11")
+
 set(WEBRTC_SIGNAL_PROCESSING_DIR ${WEBRTC_SRC_DIR}/common_audio/signal_processing)
 set(WEBRTC_SIGNAL_PROCESSING_SRCS
 	${WEBRTC_SIGNAL_PROCESSING_DIR}/spl_sqrt.c
@@ -169,14 +174,26 @@ if(ENABLE_AEC)
 	set(AEC_SRC_DIR "${WEBRTC_SRC_DIR}/modules/audio_processing/aec")
 	set(AEC_SRCS
 		aec.c
+		aec_splitting_filter.cc
 		${AEC_SRC_DIR}/aec_core.c
 		${AEC_SRC_DIR}/aec_rdft.c
 		${AEC_SRC_DIR}/aec_resampler.c
 		${AEC_SRC_DIR}/echo_cancellation.c
+		${WEBRTC_SRC_DIR}/base/checks.cc
+		${WEBRTC_SRC_DIR}/common_audio/audio_util.cc
+		${WEBRTC_SRC_DIR}/common_audio/sparse_fir_filter.cc
 		${WEBRTC_SRC_DIR}/system_wrappers/source/cpu_features.cc
+		${WEBRTC_SRC_DIR}/modules/audio_processing/three_band_filter_bank.cc
 		${WEBRTC_SRC_DIR}/modules/audio_processing/utility/delay_estimator.c
 		${WEBRTC_SRC_DIR}/modules/audio_processing/utility/delay_estimator_wrapper.c
 	)
+	set(AEC_CXX11_SRCS
+		aec_splitting_filter.cc
+		${WEBRTC_SRC_DIR}/common_audio/audio_util.cc
+		${WEBRTC_SRC_DIR}/common_audio/sparse_fir_filter.cc
+		${WEBRTC_SRC_DIR}/modules/audio_processing/three_band_filter_bank.cc
+	)
+	bc_apply_compile_flags(AEC_CXX11_SRCS AEC_CXX11_FLAGS)
 	if(SYSTEM_PROCESSOR MATCHES "^arm.*" OR SYSTEM_PROCESSOR MATCHES "^aarch64.*")
 		list(APPEND AEC_SRCS
 			${AEC_SRC_DIR}/aec_core_neon.c
@@ -190,6 +207,8 @@ if(ENABLE_AEC)
 	endif()
 	include_directories(
 		${AEC_SRC_DIR}/include
+		${WEBRTC_SRC_DIR}/common_audio/include
+		${WEBRTC_SRC_DIR}/modules/audio_processing
 	)
 endif()
 if(ENABLE_AECM)
@@ -370,6 +389,7 @@ endif()
 if(ENABLE_STATIC)
 	add_library(mswebrtc-static STATIC ${SOURCE_FILES})
 	set_target_properties(mswebrtc-static PROPERTIES OUTPUT_NAME mswebrtc)
+	set_target_properties(mswebrtc-static PROPERTIES LINKER_LANGUAGE CXX)
 	target_link_libraries(mswebrtc-static ${LIBS})
 	install(TARGETS mswebrtc-static
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}/mediastreamer/plugins
@@ -383,6 +403,7 @@ if(ENABLE_SHARED)
 		add_library(mswebrtc SHARED ${SOURCE_FILES})
 	endif()
 	target_link_libraries(mswebrtc ${LIBS})
+	set_target_properties(mswebrtc PROPERTIES LINKER_LANGUAGE CXX)
 	if(IOS)
 		set(MIN_OS ${LINPHONE_IOS_DEPLOYMENT_TARGET})
 		set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/build/osx/")

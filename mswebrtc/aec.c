@@ -25,7 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mediastreamer2/msticker.h"
 #ifdef BUILD_AEC
 #include "echo_cancellation.h"
-#include "signal_processing_library.h"
+#include "aec_splitting_filter.h"
 #endif
 #ifdef BUILD_AECM
 #include "echo_control_mobile.h"
@@ -74,12 +74,7 @@ typedef struct WebRTCAECState {
 	bool_t using_zeroes;
 	WebRTCAECType aec_type;
 #ifdef BUILD_AEC
-	int ref_state1[6];
-	int ref_state2[6];
-	int echo_state1[6];
-	int echo_state2[6];
-	int oecho_state1[6];
-	int oecho_state2[6];
+	MSWebRtcAecSplittingFilter *splitting_filter;
 #endif
 } WebRTCAECState;
 
@@ -98,14 +93,6 @@ static void webrtc_aecgeneric_init(MSFilter *f, WebRTCAECType aec_type) {
 	s->echostarted = FALSE;
 	s->bypass_mode = FALSE;
 	s->aec_type = aec_type;
-#ifdef BUILD_AEC
-	memset(s->ref_state1, 0, sizeof(s->ref_state1));
-	memset(s->ref_state2, 0, sizeof(s->ref_state2));
-	memset(s->echo_state1, 0, sizeof(s->echo_state1));
-	memset(s->echo_state2, 0, sizeof(s->echo_state2));
-	memset(s->oecho_state1, 0, sizeof(s->oecho_state1));
-	memset(s->oecho_state2, 0, sizeof(s->oecho_state2));
-#endif
 
 #ifdef EC_DUMP
 	{
@@ -225,22 +212,6 @@ static void webrtc_aec_preprocess(MSFilter *f) {
 	s->nominal_ref_samples = delay_samples;
 }
 
-#ifdef BUILD_AEC
-void intbuf2floatbuf(int16_t *intbuf, float *floatbuf, int framesize) {
-	int i;
-	for (i = 0; i < framesize; i++) {
-		floatbuf[i] = (float)intbuf[i];
-	}
-}
-
-void floatbuf2intbuf(float *floatbuf, int16_t *intbuf, int framesize) {
-	int i;
-	for (i = 0; i < framesize; i++) {
-		intbuf[i] = (int16_t)floatbuf[i];
-	}
-}
-#endif
-
 /*	inputs[0]= reference signal from far end (sent to soundcard)
  *	inputs[1]= near speech & echo signal (read from soundcard)
  *	outputs[0]=  is a copy of inputs[0] to be sent to soundcard
@@ -251,14 +222,8 @@ static void webrtc_aec_process(MSFilter *f) {
 	int nbytes = s->framesize * sizeof(int16_t);
 	mblk_t *refm;
 	int16_t *ref, *echo;
-#ifdef BUILD_AEC
-	float *fref = NULL, *fecho = NULL, *foecho = NULL;
-	const float * fecho_bands_array[3];
-	float * foecho_bands_array[3];
-	int16_t *bandsref, *bandsecho, *bandsoecho;
 	int nbands = 1;
 	int bandsize = s->framesize;
-#endif
 
 	if (s->bypass_mode) {
 		while ((refm = ms_queue_get(f->inputs[0])) != NULL) {
@@ -289,19 +254,12 @@ static void webrtc_aec_process(MSFilter *f) {
 	echo = (int16_t *) alloca(nbytes);
 #ifdef BUILD_AEC
 	if (s->aec_type == WebRTCAECTypeNormal) {
-		int nfbytes = s->framesize * sizeof(float);
-		fref = (float *)alloca(nfbytes);
-		fecho = (float *)alloca(nfbytes);
-		foecho = (float *)alloca(nfbytes);
 		if (s->samplerate > 16000) {
 			nbands = s->samplerate / 16000;
 			bandsize = 160;
 		}
-		if (nbands > 1) {
-			int bandsbufsize = nbands * bandsize * sizeof(int16_t);
-			bandsref = (int16_t *) alloca(bandsbufsize);
-			bandsecho = (int16_t *) alloca(bandsbufsize);
-			bandsoecho = (int16_t *) alloca(bandsbufsize);
+		if (!s->splitting_filter) {
+			s->splitting_filter = mswebrtc_aec_splitting_filter_create(nbands, bandsize);
 		}
 	}
 #endif
@@ -351,31 +309,18 @@ static void webrtc_aec_process(MSFilter *f) {
 #endif
 #ifdef BUILD_AEC
 		if (s->aec_type == WebRTCAECTypeNormal) {
-			if (nbands == 2) {
-				WebRtcSpl_AnalysisQMF(ref, s->framesize, bandsref, bandsref + bandsize, s->ref_state1, s->ref_state2);
-				intbuf2floatbuf(bandsref, fref, s->framesize);
-				WebRtcSpl_AnalysisQMF(echo, s->framesize, bandsecho, bandsecho + bandsize, s->echo_state1, s->echo_state2);
-				intbuf2floatbuf(bandsecho, fecho, s->framesize);
-				fecho_bands_array[0] = fecho;
-				fecho_bands_array[1] = fecho + bandsize;
-				foecho_bands_array[0] = foecho;
-				foecho_bands_array[1] = foecho + bandsize;
-			} else {
-				intbuf2floatbuf(ref, fref, s->framesize);
-				intbuf2floatbuf(echo, fecho, s->framesize);
-				fecho_bands_array[0] = fecho;
-				foecho_bands_array[0] = foecho;
-			}
-			if (WebRtcAec_BufferFarend(s->aecInst, (const float*)fref, (size_t)bandsize) != 0)
+			mswebrtc_aec_splitting_filter_analysis(s->splitting_filter, ref, echo);
+			if (WebRtcAec_BufferFarend(s->aecInst,
+					mswebrtc_aec_splitting_filter_get_ref(s->splitting_filter),
+					(size_t)mswebrtc_aec_splitting_filter_get_bandsize(s->splitting_filter)) != 0)
 				ms_error("WebRtcAec_BufferFarend() failed.");
-			if (WebRtcAec_Process(s->aecInst, fecho_bands_array, nbands, foecho_bands_array, (size_t)bandsize, 0, 0) != 0)
+			if (WebRtcAec_Process(s->aecInst,
+					mswebrtc_aec_splitting_filter_get_echo_bands(s->splitting_filter),
+					mswebrtc_aec_splitting_filter_get_number_of_bands(s->splitting_filter),
+					mswebrtc_aec_splitting_filter_get_output_bands(s->splitting_filter),
+					(size_t)mswebrtc_aec_splitting_filter_get_bandsize(s->splitting_filter), 0, 0) != 0)
 				ms_error("WebRtcAec_Process() failed.");
-			if (nbands == 2) {
-				floatbuf2intbuf(foecho, bandsoecho, s->framesize);
-				WebRtcSpl_SynthesisQMF(bandsoecho, bandsoecho + bandsize, bandsize, (int16_t *)oecho->b_wptr, s->oecho_state1, s->oecho_state2);
-			} else {
-				floatbuf2intbuf(foecho, (int16_t *)oecho->b_wptr, s->framesize);
-			}
+			mswebrtc_aec_splitting_filter_synthesis(s->splitting_filter, (int16_t *)oecho->b_wptr);
 		}
 #endif
 #ifdef BUILD_AECM
@@ -401,6 +346,10 @@ static void webrtc_aec_postprocess(MSFilter *f) {
 	ms_bufferizer_flush(&s->delayed_ref);
 	ms_bufferizer_flush(&s->echo);
 	ms_flow_controlled_bufferizer_flush(&s->ref);
+	if (s->splitting_filter) {
+		mswebrtc_aec_splitting_filter_destroy(s->splitting_filter);
+		s->splitting_filter = NULL;
+	}
 	if (s->aecInst != NULL) {
 #ifdef BUILD_AEC
 		if (s->aec_type == WebRTCAECTypeNormal) {
@@ -421,8 +370,10 @@ static int webrtc_aec_set_sr(MSFilter *f, void *arg) {
 	int requested_sr = *(int *) arg;
 	int sr = requested_sr;
 
-	if ((requested_sr != 8000) && (requested_sr != 16000) && (requested_sr != 32000)) {
-		if ((s->aec_type == WebRTCAECTypeNormal) && (requested_sr > 32000)) {
+	if ((requested_sr != 8000) && (requested_sr != 16000) && (requested_sr != 32000) && (requested_sr != 48000)) {
+		if ((s->aec_type == WebRTCAECTypeNormal) && (requested_sr > 48000)) {
+			sr = 48000;
+		} else if ((s->aec_type == WebRTCAECTypeNormal) && (requested_sr > 32000)) {
 			sr = 32000;
 		} else if (requested_sr > 16000) {
 			sr = 16000;
