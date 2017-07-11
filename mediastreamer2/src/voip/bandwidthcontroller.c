@@ -19,6 +19,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "mediastreamer2/bitratecontrol.h"
 #include "mediastreamer2/mediastream.h"
+#include "mediastreamer2/mscommon.h"
+#include <ortp/ortp.h>
 
 
 MSBandwidthController *ms_bandwidth_controller_new(void){
@@ -70,6 +72,7 @@ static void on_congestion_state_changed(const OrtpEventData *evd, void *user_poi
 	MSBandwidthController *obj = ms->bandwidth_controller;
 	float controlled_stream_bandwidth_requested;
 	RtpSession *session;
+	OrtpVideoBandwidthEstimatorParams video_bandwidth_estimator_params = {0};
 	
 	if (ms != obj->controlled_stream){
 		ms_message("MSBandwidthController: congestion event (%i) received on stream [%p][%s], not the controlled one.", (int)evd->info.congestion_detected,
@@ -89,6 +92,8 @@ static void on_congestion_state_changed(const OrtpEventData *evd, void *user_poi
 			ms_message("MSBandwidthController: congestion detected - sending tmmbr for stream [%p][%s] for target [%f] kbit/s",
 				   obj->controlled_stream, ms_format_type_to_string(obj->controlled_stream->type), controlled_stream_bandwidth_requested*1e-3);
 		}
+
+		video_bandwidth_estimator_params.enabled = FALSE;
 	}else{
 		/*now that the congestion has ended, we can submit a new TMMBR to request a bandwidth closer to the maximum available*/
 		controlled_stream_bandwidth_requested = compute_target_bandwith_for_controlled_stream(obj, 0.9f);
@@ -99,8 +104,10 @@ static void on_congestion_state_changed(const OrtpEventData *evd, void *user_poi
 		}
 		/*we shall reset the jitter buffers, so that they recover faster their diverged states*/
 		resync_jitter_buffers(obj);
+		video_bandwidth_estimator_params.enabled = TRUE;
 	}
 	rtp_session_send_rtcp_fb_tmmbr(session, (uint64_t)controlled_stream_bandwidth_requested);
+	rtp_session_enable_video_bandwidth_estimator(obj->controlled_stream->sessions.rtp_session, &video_bandwidth_estimator_params);
 }
 
 static void on_video_bandwidth_estimation_available(const OrtpEventData *evd, void *user_pointer) {
@@ -109,10 +116,14 @@ static void on_video_bandwidth_estimation_available(const OrtpEventData *evd, vo
 	if (!obj->congestion_detected) {
 		RtpSession *session = obj->controlled_stream->sessions.rtp_session;
 		float estimated_bitrate = evd->info.video_bandwidth_available;
-		ms_message("MSBandwidthController: video bandwidth estimation available, sending tmmbr for stream [%p][%s] for target [%f] kbit/s", 
-				obj->controlled_stream, ms_format_type_to_string(obj->controlled_stream->type), estimated_bitrate / 1000);
-		obj->remote_video_bandwidth_available_estimated = estimated_bitrate;
-		rtp_session_send_rtcp_fb_tmmbr(session, (uint64_t)estimated_bitrate);
+		if (estimated_bitrate <= obj->remote_video_bandwidth_available_estimated) {
+			ms_message("MSBandwidthController: video bandwidth estimation available, sending tmmbr for stream [%p][%s] for target [%f] kbit/s", 
+					obj->controlled_stream, ms_format_type_to_string(obj->controlled_stream->type), estimated_bitrate / 1000);
+			obj->remote_video_bandwidth_available_estimated = estimated_bitrate;
+			rtp_session_send_rtcp_fb_tmmbr(session, (uint64_t)estimated_bitrate);
+		} else {
+			ms_message("MSBandwidthController: discarding available video bandwidth estimation (%f kbit/s) because it's lower than the previous one (%f kbit/s)", estimated_bitrate, obj->remote_video_bandwidth_available_estimated);
+		}
 	}
 }
 
