@@ -126,7 +126,9 @@ static void capture_queue_cleanup(void* p) {
 	[self stop];
 	
     
-	if (session) {		
+	if (session) {
+		if (input) [session removeInput:input];
+        if (output) [session removeOutput:output];
 		[session release];
 		session = nil;
 	}
@@ -177,14 +179,12 @@ static void capture_queue_cleanup(void* p) {
 
 - (int)stop {
        if (session.running) {
-           [session removeInput:input];
-           [session removeOutput:output];
 
-            [session stopRunning];
+           [session stopRunning];
     
            [output setSampleBufferDelegate:nil queue:nil];
             ms_message("AVCapture: Engine stopped");
-}
+    }
 	return 0;
 }
 
