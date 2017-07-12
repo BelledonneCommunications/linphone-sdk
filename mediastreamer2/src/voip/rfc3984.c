@@ -455,9 +455,13 @@ void rfc3984_uninit(Rfc3984Context *ctx){
 	if (ctx->m != NULL) freemsg(ctx->m);
 	if (ctx->sps != NULL) freemsg(ctx->sps);
 	if (ctx->pps != NULL) freemsg(ctx->pps);
+	if (ctx->last_pps != NULL) freemsg(ctx->last_pps);
+	if (ctx->last_sps != NULL) freemsg(ctx->last_sps);
 	ctx->m = NULL;
 	ctx->sps = NULL;
 	ctx->pps = NULL;
+	ctx->last_pps = NULL;
+	ctx->last_sps = NULL;
 }
 
 void rfc3984_set_mode(Rfc3984Context *ctx, int mode){
