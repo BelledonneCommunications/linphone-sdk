@@ -116,7 +116,7 @@ static void on_video_bandwidth_estimation_available(const OrtpEventData *evd, vo
 	if (!obj->congestion_detected) {
 		RtpSession *session = obj->controlled_stream->sessions.rtp_session;
 		float estimated_bitrate = evd->info.video_bandwidth_available;
-		if (estimated_bitrate <= obj->remote_video_bandwidth_available_estimated) {
+		if (estimated_bitrate >= obj->remote_video_bandwidth_available_estimated) {
 			ms_message("MSBandwidthController: video bandwidth estimation available, sending tmmbr for stream [%p][%s] for target [%f] kbit/s", 
 					obj->controlled_stream, ms_format_type_to_string(obj->controlled_stream->type), estimated_bitrate / 1000);
 			obj->remote_video_bandwidth_available_estimated = estimated_bitrate;
