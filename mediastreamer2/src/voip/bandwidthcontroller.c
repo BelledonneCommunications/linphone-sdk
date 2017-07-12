@@ -107,6 +107,7 @@ static void on_congestion_state_changed(const OrtpEventData *evd, void *user_poi
 		video_bandwidth_estimator_params.enabled = TRUE;
 	}
 	rtp_session_send_rtcp_fb_tmmbr(session, (uint64_t)controlled_stream_bandwidth_requested);
+	obj->remote_video_bandwidth_available_estimated = 0;
 	rtp_session_enable_video_bandwidth_estimator(obj->controlled_stream->sessions.rtp_session, &video_bandwidth_estimator_params);
 }
 
