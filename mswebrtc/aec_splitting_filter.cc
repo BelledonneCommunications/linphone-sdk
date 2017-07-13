@@ -73,12 +73,17 @@ void floatbuf2intbuf(float *floatbuf, int16_t *intbuf, int framesize) {
 
 
 MSWebRtcAecSplittingFilterStruct::MSWebRtcAecSplittingFilterStruct(int nbands, int bandsize)
-	: mNbands(nbands), mBandsize(bandsize) {
+	: mRef(0), mEcho(0), mOEcho(0), mBandsRef(0), mBandsEcho(0), mBandsOEcho(0),
+	mBandsRefFloat(0), mBandsEchoFloat(0), mBandsOEchoFloat(0),
+	mThreeBandFilterBankRef(0), mThreeBandFilterBankEcho(0), mThreeBandFilterBankOEcho(0),
+	mNbands(nbands), mBandsize(bandsize), mFramesize(nbands * bandsize) {
 
-	mFramesize = mNbands * mBandsize;
 	mRef = new float[mFramesize];
 	mEcho = new float[mFramesize];
 	mOEcho = new float[mFramesize];
+	memset(mRefBandsArray, 0, sizeof(mRefBandsArray));
+	memset(mEchoBandsArray, 0, sizeof(mEchoBandsArray));
+	memset(mOEchoBandsArray, 0, sizeof(mOEchoBandsArray));
 	memset(mRefState1, 0, sizeof(mRefState1));
 	memset(mRefState2, 0, sizeof(mRefState2));
 	memset(mEchoState1, 0, sizeof(mEchoState1));
@@ -93,7 +98,6 @@ MSWebRtcAecSplittingFilterStruct::MSWebRtcAecSplittingFilterStruct(int nbands, i
 		mBandsRefFloat = new float[mFramesize];
 		mBandsEchoFloat = new float[mFramesize];
 		mBandsOEchoFloat = new float[mFramesize];
-		mBandsRef = mBandsEcho = mBandsOEcho = nullptr;
 		mRefBandsArray[0] = mBandsRefFloat;
 		mRefBandsArray[1] = mBandsRefFloat + mBandsize;
 		mRefBandsArray[2] = mBandsRefFloat + 2 * mBandsize;
@@ -107,10 +111,6 @@ MSWebRtcAecSplittingFilterStruct::MSWebRtcAecSplittingFilterStruct(int nbands, i
 		mBandsRef = new int16_t[mFramesize];
 		mBandsEcho = new int16_t[mFramesize];
 		mBandsOEcho = new int16_t[mFramesize];
-		mThreeBandFilterBankRef = nullptr;
-		mThreeBandFilterBankEcho = nullptr;
-		mThreeBandFilterBankOEcho = nullptr;
-		mBandsRefFloat = mBandsEchoFloat = mBandsOEchoFloat = nullptr;
 		mRefBandsArray[0] = mRef;
 		mEchoBandsArray[0] = mEcho;
 		mEchoBandsArray[1] = mEcho + mBandsize;
