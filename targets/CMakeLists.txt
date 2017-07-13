@@ -22,6 +22,7 @@
 
 lcb_define_target("bctoolbox")
 lcb_define_target("bellesip" "bctoolbox")
+lcb_define_target("belr" "bctoolbox")
 lcb_define_target("ortp" "bctoolbox")
 lcb_define_target("ms2" "ortp")
 lcb_define_target("ms2plugins" "ms2")
