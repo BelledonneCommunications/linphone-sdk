@@ -341,7 +341,7 @@ typedef struct _MSMediaStreamIO {
 	MSMediaResource output;
 } MSMediaStreamIO;
 
-#define MS_MEDIA_STREAM_IO_INITIALIZER { {0}, {0} }
+#define MS_MEDIA_STREAM_IO_INITIALIZER { {MSResourceInvalid}, {MSResourceInvalid} }
 
 MS2_PUBLIC bool_t ms_media_stream_io_is_consistent(const MSMediaStreamIO *io);
 

@@ -25,6 +25,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 typedef struct _MSEventQueue MSEventQueue;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Creates an event queue to receive notifications from MSFilters.
  *
@@ -61,4 +65,10 @@ MS2_PUBLIC void ms_event_queue_skip(MSEventQueue *q);
 **/
 //MS2_PUBLIC MS2_DEPRECATED void ms_event_queue_destroy(MSEventQueue *q);
 MS2_PUBLIC void ms_event_queue_destroy(MSEventQueue *q);
+
+#ifdef __cplusplus
+}
 #endif
+
+#endif
+
