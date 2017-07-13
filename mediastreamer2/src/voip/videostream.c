@@ -217,8 +217,8 @@ static void video_stream_track_fps_changes(VideoStream *stream){
 					if (fabsf(fps-stream->configured_fps)/stream->configured_fps>0.2){
 						ms_warning("Measured and target fps significantly different (%f<->%f), updating encoder.",
 							fps,stream->configured_fps);
-						stream->configured_fps=fps;
-						ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_FPS,&stream->configured_fps);
+						stream->real_fps=fps;
+						ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_FPS,&stream->real_fps);
 					}
 				}
 			}
@@ -309,7 +309,8 @@ VideoStream *video_stream_new_with_sessions(MSFactory* factory, const MSMediaStr
 
 	stream->ms.ice_check_list=NULL;
 	MS_VIDEO_SIZE_ASSIGN(stream->sent_vsize, CIF);
-	stream->fps=0;
+	stream->forced_fps=0;
+	stream->real_fps=0;
 	stream->dir=MediaStreamSendRecv;
 	stream->display_filter_auto_rotate_enabled=0;
 	stream->freeze_on_error = FALSE;
@@ -345,7 +346,7 @@ void video_stream_set_preview_size(VideoStream *stream, MSVideoSize vsize){
 }
 
 void video_stream_set_fps(VideoStream *stream, float fps){
-	stream->fps=fps;
+	stream->forced_fps=fps;
 }
 
 MSVideoSize video_stream_get_sent_video_size(const VideoStream *stream) {
@@ -536,8 +537,8 @@ static void configure_video_source(VideoStream *stream){
 		if (fps==0) fps=15;
 		ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_FPS,&fps);
 	}else{
-		if (stream->fps!=0)
-			fps=stream->fps;
+		if (stream->forced_fps!=0)
+			fps=stream->forced_fps;
 		ms_message("Setting sent vsize=%ix%i, fps=%f",vsize.width,vsize.height,fps);
 		/* configure the filters */
 		if (ms_filter_get_id(stream->source)!=MS_STATIC_IMAGE_ID || !stream->staticimage_webcam_fps_optimization) {
@@ -1570,7 +1571,7 @@ static void configure_video_preview_source(VideoPreview *stream) {
 	MSVideoSize vsize = stream->sent_vsize;
 	float fps;
 
-	if (stream->fps != 0) fps = stream->fps;
+	if (stream->forced_fps != 0) fps = stream->forced_fps;
 	else fps = (float)29.97;
 
 	/* Transmit orientation to source filter. */

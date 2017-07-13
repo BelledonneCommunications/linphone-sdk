@@ -808,8 +808,9 @@ struct _VideoStream
 	MSFilter *local_jpegwriter;
 	MSVideoSize sent_vsize;
 	MSVideoSize preview_vsize;
-	float fps; /*the target fps explicitely set by application, overrides internally selected fps*/
+	float forced_fps; /*the target fps explicitely set by application, overrides internally selected fps*/
 	float configured_fps; /*the fps that was configured to the encoder. It might be different from the one really obtained from camera.*/
+	float real_fps; /*the fps obtained from camera.*/
 	int corner; /*for selfview*/
 	VideoStreamRenderCallback rendercb;
 	void *render_pointer;
