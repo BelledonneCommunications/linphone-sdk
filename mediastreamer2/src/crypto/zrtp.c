@@ -321,7 +321,7 @@ static int ms_zrtp_addExportedKeysInZidCache(void *clientData, int zuid, uint8_t
 	bzrtpContext_t *zrtpContext = userData->zrtpContext;
 	bctoolboxTimeSpec currentTime;
 	/* columns to be written in cache */
-	char *colNames[] = {"sndKey", "rcvKey", "sndSId", "rcvSId", "sndIndex", "rcvIndex", "valid"};
+	const char *colNames[] = {"sndKey", "rcvKey", "sndSId", "rcvSId", "sndIndex", "rcvIndex", "valid"};
 	uint8_t *colValues[7];
 	size_t colLength[] = {32, 32, 32, 32, 4, 4, 8}; /* data length: keys and session ID : 32 bytes, Indexes: 4 bytes(uint32_t), validity : 8 bytes(UTC time as int64_t) */
 	int i,ret;
