@@ -548,7 +548,7 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
 			/* in case of cache mismatch, be sure the Previously Verified Sas flag is reset in cache and in the context */
 			if (zrtpContext->cacheMismatchFlag == 1) {
 				uint8_t pvsFlag = 0;
-				char *colNames[] = {"pvs"};
+				const char *colNames[] = {"pvs"};
 				uint8_t *colValues[] = {&pvsFlag};
 				size_t colLength[] = {1};
 
@@ -843,7 +843,7 @@ int state_keyAgreement_responderSendingDHPart1(bzrtpEvent_t event) {
 			/* in case of cache mismatch, be sure the Previously Verified Sas flag is reset in cache and in the context */
 			if (zrtpContext->cacheMismatchFlag == 1) {
 				uint8_t pvsFlag = 0;
-				char *colNames[] = {"pvs"};
+				const char *colNames[] = {"pvs"};
 				uint8_t *colValues[] = {&pvsFlag};
 				size_t colLength[] = {1};
 
@@ -2172,7 +2172,7 @@ int bzrtp_deriveSrtpKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelContext_
  * return 0 on success, error code otherwise
  */
 int bzrtp_updateCachedSecrets(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext) {
-	char *colNames[] = {"rs1", "rs2"};
+	const char *colNames[] = {"rs1", "rs2"};
 	uint8_t *colValues[2] = {NULL, NULL};
 	size_t colLength[2] = {RETAINED_SECRET_LENGTH,0};
 	

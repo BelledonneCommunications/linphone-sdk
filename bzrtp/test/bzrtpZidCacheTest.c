@@ -56,7 +56,7 @@ void test_cache_getSelfZID(void) {
 	uint8_t rs1Value[] = {0xff, 0xee, 0xdd, 0xcc, 0xbb, 0xaa, 0x99, 0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00};
 	uint8_t rs2Value[] = {0xdd, 0xcc, 0xbb, 0xaa, 0x99, 0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00, 0xff, 0xee};
 	uint8_t pvsValue[] = {0x1};
-	char *patternColNames[]={"rs1", "rs2", "pvs", "aux"};
+	const char *patternColNames[]={"rs1", "rs2", "pvs", "aux"};
 	uint8_t *patternColValues[] = {rs1Value, rs2Value, pvsValue};
 	size_t patternColValuesLength[] = {16, 16, 1};
 	uint8_t *readValues[] = {NULL, NULL, NULL,NULL};
@@ -100,11 +100,11 @@ void test_cache_getSelfZID(void) {
 	BC_ASSERT_EQUAL(zuidalicebob, zuidCheck, int, "%d");
 
 	/* Then write in cache zrtp table */
-	BC_ASSERT_EQUAL(bzrtp_cache_write((void *)aliceDB, zuidalicebob, "zrtp", (char **)patternColNames, (uint8_t **)patternColValues, patternColValuesLength, patternLength), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_write((void *)aliceDB, zuidalicebob, "zrtp", patternColNames, (uint8_t **)patternColValues, patternColValuesLength, patternLength), 0, int, "%x");
 	/* Try to write a zuid row in zrtp table while zuid is not present in ziduri table: it shall fail */
-	BC_ASSERT_EQUAL(bzrtp_cache_write((void *)aliceDB, zuidalicebob+10, "zrtp", (char **)patternColNames, (uint8_t **)patternColValues, patternColValuesLength, patternLength), BZRTP_ZIDCACHE_UNABLETOUPDATE, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_write((void *)aliceDB, zuidalicebob+10, "zrtp", patternColNames, (uint8_t **)patternColValues, patternColValuesLength, patternLength), BZRTP_ZIDCACHE_UNABLETOUPDATE, int, "%x");
 	/* Now read the data and check they're the same */
-	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)aliceDB, zuidalicebob, "zrtp", (char **)patternColNames, readValues, readLength, patternLength+1), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)aliceDB, zuidalicebob, "zrtp", patternColNames, readValues, readLength, patternLength+1), 0, int, "%x");
 	for (i=0; i<patternLength; i++) {
 		BC_ASSERT_EQUAL(readLength[i], patternColValuesLength[i], int, "%d");
 		BC_ASSERT_EQUAL(memcmp(readValues[i], patternColValues[i], patternColValuesLength[i]), 0, int, "%d");

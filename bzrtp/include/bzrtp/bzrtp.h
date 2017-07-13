@@ -189,6 +189,11 @@ typedef struct bzrtpCallbacks_struct {
 */
 typedef struct bzrtpContext_struct bzrtpContext_t;
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Create context structure and initialise it
  *
@@ -441,7 +446,7 @@ BZRTP_EXPORT int bzrtp_cache_getZuid(void *dbPointer, const char *selfURI, const
  *
  * @return 0 on succes, error code otherwise
  */
-BZRTP_EXPORT int bzrtp_cache_write(void *dbPointer, int zuid, char *tableName, char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount);
+BZRTP_EXPORT int bzrtp_cache_write(void *dbPointer, int zuid, const char *tableName, const char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount);
 
 /**
  * @brief Read data from specified table/columns from cache adressing it by zuid (ZID/URI binding id used in cache)
@@ -459,7 +464,7 @@ BZRTP_EXPORT int bzrtp_cache_write(void *dbPointer, int zuid, char *tableName, c
  *
  * @return 0 on succes, error code otherwise
  */
-BZRTP_EXPORT int bzrtp_cache_read(void *dbPointer, int zuid, char *tableName, char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount);
+BZRTP_EXPORT int bzrtp_cache_read(void *dbPointer, int zuid, const char *tableName, const char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount);
 
 /**
  * @brief Perform migration from xml version to sqlite3 version of cache
@@ -487,5 +492,9 @@ BZRTP_EXPORT int bzrtp_cache_migration(void *cacheXmlPtr, void *cacheSqlite, con
  * @return 0 on succes, error code otherwise
  */
 BZRTP_EXPORT int bzrtp_exportKey(bzrtpContext_t *zrtpContext, char *label, size_t labelLength, uint8_t *derivedKey, size_t *derivedKeyLength);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* ifndef BZRTP_H */

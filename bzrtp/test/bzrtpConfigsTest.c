@@ -590,7 +590,7 @@ void test_cache_enabled_exchange(void) {
 	uint8_t selfZIDalice[12];
 	uint8_t selfZIDbob[12];
 	int zuidAlice=0,zuidBob=0;
-	char *colNames[] = {"rs1", "rs2", "pvs"};
+	const char *colNames[] = {"rs1", "rs2", "pvs"};
 	uint8_t *colValuesAlice[3];
 	size_t colLengthAlice[3];
 	uint8_t *colValuesBob[3];
@@ -674,7 +674,7 @@ void test_cache_mismatch_exchange(void) {
 	uint8_t selfZIDalice[12];
 	uint8_t selfZIDbob[12];
 	int zuidAlice=0,zuidBob=0;
-	char *colNames[] = {"rs1", "rs2", "pvs"};
+	const char *colNames[] = {"rs1", "rs2", "pvs"};
 	uint8_t *colValuesAlice[3];
 	size_t colLengthAlice[3];
 	uint8_t *colValuesBob[3];
@@ -786,7 +786,7 @@ void test_cache_sas_not_confirmed(void) {
 	uint8_t selfZIDalice[12];
 	uint8_t selfZIDbob[12];
 	int zuidAlice=0,zuidBob=0;
-	char *colNames[] = {"rs1", "rs2", "pvs"};
+	const char *colNames[] = {"rs1", "rs2", "pvs"};
 	uint8_t *colValuesAlice[3];
 	size_t colLengthAlice[3];
 	uint8_t *colValuesBob[3];
