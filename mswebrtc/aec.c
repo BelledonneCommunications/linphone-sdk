@@ -346,10 +346,12 @@ static void webrtc_aec_postprocess(MSFilter *f) {
 	ms_bufferizer_flush(&s->delayed_ref);
 	ms_bufferizer_flush(&s->echo);
 	ms_flow_controlled_bufferizer_flush(&s->ref);
+#ifdef BUILD_AEC
 	if (s->splitting_filter) {
 		mswebrtc_aec_splitting_filter_destroy(s->splitting_filter);
 		s->splitting_filter = NULL;
 	}
+#endif
 	if (s->aecInst != NULL) {
 #ifdef BUILD_AEC
 		if (s->aec_type == WebRTCAECTypeNormal) {
