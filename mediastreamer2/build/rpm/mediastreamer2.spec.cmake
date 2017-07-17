@@ -81,15 +81,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_bindir}/*
 %{_libdir}/*.so.*
 %{_datadir}/images/nowebcamCIF.jpg
-%{_datadir}/locale/??/LC_MESSAGES/mediastreamer.mo
-%{_datadir}/locale/??_??/LC_MESSAGES/mediastreamer.mo
-
-%files devel
-%{_docdir}
-
-%files
-%defattr(-,root,root)
-%{_libdir}/*.so.*
 
 %files devel
 %defattr(-,root,root,-)
@@ -103,6 +94,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_datadir}/Mediastreamer2/cmake/Mediastreamer2Targets.cmake
 %{_datadir}/mediastreamer2_tester/*
 %{_bindir}/*
+%{_docdir}
 
 %changelog
 * Thu Jul 13 2017 jehan.monnier <jehan.monnier@linphone.org>
