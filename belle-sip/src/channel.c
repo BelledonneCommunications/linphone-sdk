@@ -126,6 +126,10 @@ static void belle_sip_channel_destroy(belle_sip_channel_t *obj){
 		belle_sip_main_loop_remove_source(obj->stack->ml,obj->inactivity_timer);
 		belle_sip_object_unref(obj->inactivity_timer);
 	}
+	if (obj->dns_ttl_timer) {
+		belle_sip_main_loop_remove_source(obj->stack->ml, obj->dns_ttl_timer);
+		belle_sip_object_unref(obj->dns_ttl_timer);
+	}
 	if (obj->public_ip) belle_sip_free(obj->public_ip);
 	if (obj->outgoing_messages) belle_sip_list_free_with_data(obj->outgoing_messages,belle_sip_object_unref);
 	if (obj->incoming_messages) belle_sip_list_free_with_data(obj->incoming_messages,belle_sip_object_unref);
@@ -1418,16 +1422,57 @@ void belle_sip_channel_set_ready(belle_sip_channel_t *obj, const struct sockaddr
 	channel_process_queue(obj);
 }
 
-static void channel_res_done(void *data, const char *name, struct addrinfo *ai_list){
+static int channel_dns_ttl_timeout(void *data, unsigned int event) {
+	belle_sip_channel_t *obj = (belle_sip_channel_t *)data;
+	belle_sip_message("Channel [%p]: DNS TTL timeout reached.", obj);
+	obj->dns_ttl_timedout = TRUE;
+	return BELLE_SIP_STOP;
+}
+
+static bool_t addrinfo_in_list(const struct addrinfo *ai, const struct addrinfo *list) {
+	const struct addrinfo *item = list;
+	bool_t in_list = FALSE;
+	while (item != NULL) {
+		if ((ai->ai_family == item->ai_family) && (bctbx_sockaddr_equals(ai->ai_addr, item->ai_addr))) {
+			in_list = TRUE;
+			break;
+		}
+		item = item->ai_next;
+	}
+	return in_list;
+}
+
+static void channel_res_done(void *data, const char *name, struct addrinfo *ai_list, uint32_t ttl){
 	belle_sip_channel_t *obj=(belle_sip_channel_t*)data;
 	if (obj->resolver_ctx){
 		belle_sip_object_unref(obj->resolver_ctx);
 		obj->resolver_ctx=NULL;
 	}
 	if (ai_list){
-		obj->peer_list=obj->current_peer=ai_list;
-		channel_set_state(obj,BELLE_SIP_CHANNEL_RES_DONE);
+		if (!obj->current_peer) {
+			obj->peer_list=obj->current_peer=ai_list;
+			channel_set_state(obj,BELLE_SIP_CHANNEL_RES_DONE);
+		} else {
+			if (addrinfo_in_list(obj->current_peer, ai_list)) {
+				belle_sip_message("channel[%p]: DNS resolution returned the currently used address, continue using it", obj);
+				obj->peer_list = ai_list;
+				channel_set_state(obj, BELLE_SIP_CHANNEL_READY);
+			} else {
+				belle_sip_message("channel[%p]: DNS resolution returned an address different than the one being used, reconnect to the new address", obj);
+				obj->peer_list = obj->current_peer = ai_list;
+				belle_sip_channel_close(obj);
+				belle_sip_main_loop_do_later(obj->stack->ml, (belle_sip_callback_t)channel_connect_next, belle_sip_object_ref(obj));
+				channel_set_state(obj, BELLE_SIP_CHANNEL_RETRY);
+			}
+		}
 		channel_prepare_continue(obj);
+		if (!obj->dns_ttl_timer ) {
+			obj->dns_ttl_timer = belle_sip_main_loop_create_timeout(obj->stack->ml, channel_dns_ttl_timeout, obj, ttl * 1000, "Channel DNS TTL timer");
+		} else {
+			/* Restart the timer for new period. */
+			belle_sip_source_set_timeout(obj->dns_ttl_timer, ttl * 1000);
+			belle_sip_main_loop_add_source(obj->stack->ml, obj->dns_ttl_timer);
+		}
 	}else{
 		belle_sip_error("%s: DNS resolution failed for %s", __FUNCTION__, name);
 		channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
@@ -1536,6 +1581,13 @@ belle_sip_channel_t *belle_sip_channel_find_from_list(belle_sip_list_t *l, int a
 	chan=belle_sip_channel_find_from_list_with_addrinfo(l,hop,res);
 	if (res) bctbx_freeaddrinfo(res);
 	return chan;
+}
+
+void belle_sip_channel_check_dns_reusability(belle_sip_channel_t *obj) {
+	if (obj->dns_ttl_timedout) {
+		obj->dns_ttl_timedout = FALSE;
+		belle_sip_channel_resolve(obj);
+	}
 }
 
 #ifdef __ANDROID__

@@ -85,7 +85,7 @@ static void destroy_endpoint(endpoint_t *endpoint) {
 	belle_sip_uninit_sockets();
 }
 
-static void a_resolve_done(void *data, const char *name, struct addrinfo *ai_list) {
+static void a_resolve_done(void *data, const char *name, struct addrinfo *ai_list, uint32_t ttl) {
 	endpoint_t *client = (endpoint_t *)data;
 	BELLESIP_UNUSED(name);
 	client->resolve_done = 1;
@@ -96,7 +96,7 @@ static void a_resolve_done(void *data, const char *name, struct addrinfo *ai_lis
 		client->resolve_ko = 1;
 }
 
-static void srv_resolve_done(void *data, const char *name, belle_sip_list_t *srv_list) {
+static void srv_resolve_done(void *data, const char *name, belle_sip_list_t *srv_list, uint32_t ttl) {
 	endpoint_t *client = (endpoint_t *)data;
 	BELLESIP_UNUSED(name);
 	client->resolve_done = 1;

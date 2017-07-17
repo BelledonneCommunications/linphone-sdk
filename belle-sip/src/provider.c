@@ -833,7 +833,10 @@ belle_sip_channel_t * belle_sip_provider_get_channel(belle_sip_provider_t *p, co
 			lp=(belle_sip_listening_point_t*)l->data;
 			if (strcasecmp(belle_sip_listening_point_get_transport(lp),hop->transport)==0){
 				chan=belle_sip_listening_point_get_channel(lp,hop);
-				if (chan) return chan;
+				if (chan) {
+					belle_sip_channel_check_dns_reusability(chan);
+					return chan;
+				}
 				candidate=lp;
 			}
 		}

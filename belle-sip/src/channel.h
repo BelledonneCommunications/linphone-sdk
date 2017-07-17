@@ -112,6 +112,7 @@ struct belle_sip_channel{
 	belle_sip_channel_input_stream_t input_stream;
 	belle_sip_list_t* incoming_messages;
 	belle_sip_source_t *inactivity_timer;
+	belle_sip_source_t *dns_ttl_timer;
 	uint64_t last_recv_time;
 	int simulated_recv_return; /* used to simulate network error. 0= no data (disconnected) >0= do nothing -1= network error, 1500 special number to silently discard incoming buffer*/
 	unsigned long bg_task_id;
@@ -124,6 +125,7 @@ struct belle_sip_channel{
 	unsigned char soft_error; /*set when this channel enters ERROR state because of error detected in upper layer */
 	int stop_logging_buffer; /*log buffer content only if this is non binary data, and stop it at the first occurence*/
 	bool_t closed_by_remote; /*If the channel has been remotely closed*/
+	bool_t dns_ttl_timedout;
 };
 
 #define BELLE_SIP_CHANNEL(obj)		BELLE_SIP_CAST(obj,belle_sip_channel_t)
@@ -206,6 +208,11 @@ int belle_sip_channel_notify_timeout(belle_sip_channel_t *obj);
 
 /*Used by transaction layer to report a server having internal errors, so that we can retry with another IP (in case of DNS SRV)*/
 BELLESIP_EXPORT void belle_sip_channel_notify_server_error(belle_sip_channel_t *obj);
+
+/*
+ * Check if the DNS TTL has expired. If this is the case, set the channel status to RES_IN_PROGRESS.
+ */
+void belle_sip_channel_check_dns_reusability(belle_sip_channel_t *obj);
 
 BELLE_SIP_END_DECLS
 

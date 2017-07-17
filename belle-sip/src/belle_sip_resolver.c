@@ -103,6 +103,7 @@ BELLE_SIP_INSTANCIATE_VPTR(belle_sip_dns_srv_t, belle_sip_object_t,belle_sip_dns
 struct belle_sip_resolver_context{
 	belle_sip_source_t source;
 	belle_sip_stack_t *stack;
+	uint32_t min_ttl;
 	uint8_t notified;
 	uint8_t cancelled;
 	uint8_t pad[2];
@@ -168,6 +169,7 @@ struct belle_sip_dual_resolver_context{
 
 void belle_sip_resolver_context_init(belle_sip_resolver_context_t *obj, belle_sip_stack_t *stack){
 	obj->stack=stack;
+	obj->min_ttl = UINT32_MAX;
 	belle_sip_init_sockets(); /* Need to be called for DNS resolution to work on Windows platform. */
 }
 
@@ -418,11 +420,11 @@ static void simple_resolver_context_notify(belle_sip_resolver_context_t *obj) {
 #if USE_GETADDRINFO_FALLBACK
 		if (ctx->getaddrinfo_ai_list != NULL) ai_list = &ctx->getaddrinfo_ai_list;
 #endif
-		ctx->cb(ctx->cb_data, ctx->name, *ai_list);
+		ctx->cb(ctx->cb_data, ctx->name, *ai_list, BELLE_SIP_RESOLVER_CONTEXT(obj)->min_ttl);
 		*ai_list = NULL;
 	} else if (ctx->type == DNS_T_SRV) {
 		ctx->srv_list = srv_select_by_weight(ctx->srv_list);
-		ctx->srv_cb(ctx->srv_cb_data, ctx->name, ctx->srv_list);
+		ctx->srv_cb(ctx->srv_cb_data, ctx->name, ctx->srv_list, BELLE_SIP_RESOLVER_CONTEXT(obj)->min_ttl);
 	}
 }
 
@@ -432,7 +434,7 @@ static void dual_resolver_context_notify(belle_sip_resolver_context_t *obj) {
 	results = ai_list_append(results, ctx->a_results);
 	ctx->a_results = NULL;
 	ctx->aaaa_results = NULL;
-	ctx->cb(ctx->cb_data, ctx->name, results);
+	ctx->cb(ctx->cb_data, ctx->name, results, BELLE_SIP_RESOLVER_CONTEXT(obj)->min_ttl);
 }
 
 static void combined_resolver_context_cleanup(belle_sip_combined_resolver_context_t *ctx) {
@@ -450,7 +452,7 @@ static void combined_resolver_context_cleanup(belle_sip_combined_resolver_contex
 
 static void combined_resolver_context_notify(belle_sip_resolver_context_t *obj) {
 	belle_sip_combined_resolver_context_t *ctx = BELLE_SIP_COMBINED_RESOLVER_CONTEXT(obj);
-	ctx->cb(ctx->cb_data, ctx->name, ctx->final_results);
+	ctx->cb(ctx->cb_data, ctx->name, ctx->final_results, BELLE_SIP_RESOLVER_CONTEXT(obj)->min_ttl);
 	ctx->final_results = NULL;
 	combined_resolver_context_cleanup(ctx);
 }
@@ -515,6 +517,7 @@ static int resolver_process_data(belle_sip_simple_resolver_context_t *ctx, unsig
 					sin6.sin6_family = AF_INET6;
 					sin6.sin6_port = ctx->port;
 					append_dns_result(ctx,&ctx->ai_list,(struct sockaddr*)&sin6,sizeof(sin6));
+					if (rr.ttl < BELLE_SIP_RESOLVER_CONTEXT(ctx)->min_ttl) BELLE_SIP_RESOLVER_CONTEXT(ctx)->min_ttl = rr.ttl;
 				} else if ((ctx->type == DNS_T_A) && (rr.class == DNS_C_IN) && (rr.type == DNS_T_A)) {
 					struct dns_a *a = &any.a;
 					struct sockaddr_in sin;
@@ -523,6 +526,7 @@ static int resolver_process_data(belle_sip_simple_resolver_context_t *ctx, unsig
 					sin.sin_family = AF_INET;
 					sin.sin_port = ctx->port;
 					append_dns_result(ctx,&ctx->ai_list,(struct sockaddr*)&sin,sizeof(sin));
+					if (rr.ttl < BELLE_SIP_RESOLVER_CONTEXT(ctx)->min_ttl) BELLE_SIP_RESOLVER_CONTEXT(ctx)->min_ttl = rr.ttl;
 				} else if ((ctx->type == DNS_T_SRV) && (rr.class == DNS_C_IN) && (rr.type == DNS_T_SRV)) {
 					char host[NI_MAXHOST + 1];
 					struct dns_srv *srv = &any.srv;
@@ -530,6 +534,7 @@ static int resolver_process_data(belle_sip_simple_resolver_context_t *ctx, unsig
 					snprintf(host, sizeof(host), "[target:%s port:%d prio:%d weight:%d]", srv->target, srv->port, srv->priority, srv->weight);
 					ctx->srv_list = belle_sip_list_insert_sorted(ctx->srv_list, belle_sip_object_ref(b_srv), srv_compare_prio);
 					belle_sip_message("SRV %s resolved to %s", ctx->name, host);
+					if (rr.ttl < BELLE_SIP_RESOLVER_CONTEXT(ctx)->min_ttl) BELLE_SIP_RESOLVER_CONTEXT(ctx)->min_ttl = rr.ttl;
 				}
 			}
 		}
@@ -917,17 +922,18 @@ static char * srv_prefix_from_service_and_transport(const char *service, const c
 	return belle_sip_strdup_printf("_%s._udp.", service);
 }
 
-static void process_a_fallback_result(void *data, const char *name, struct addrinfo *ai_list){
+static void process_a_fallback_result(void *data, const char *name, struct addrinfo *ai_list, uint32_t ttl){
 	belle_sip_combined_resolver_context_t *ctx=(belle_sip_combined_resolver_context_t *)data;
 	ctx->final_results=ai_list;
 	belle_sip_resolver_context_notify(BELLE_SIP_RESOLVER_CONTEXT(ctx));
 }
 
-static void combined_resolver_context_check_finished(belle_sip_combined_resolver_context_t *obj){
+static void combined_resolver_context_check_finished(belle_sip_combined_resolver_context_t *obj, uint32_t ttl){
 	belle_sip_list_t *elem;
 	struct addrinfo *final=NULL;
 	unsigned char finished=TRUE;
 
+	if (ttl < BELLE_SIP_RESOLVER_CONTEXT(obj)->min_ttl) BELLE_SIP_RESOLVER_CONTEXT(obj)->min_ttl = ttl;
 	for(elem=obj->srv_results;elem!=NULL;elem=elem->next){
 		belle_sip_dns_srv_t *srv=(belle_sip_dns_srv_t*)elem->data;
 		if (!srv->a_done) {
@@ -949,12 +955,13 @@ static void combined_resolver_context_check_finished(belle_sip_combined_resolver
 	}
 }
 
-static void process_a_from_srv(void *data, const char *name, struct addrinfo *ai_list){
+static void process_a_from_srv(void *data, const char *name, struct addrinfo *ai_list, uint32_t ttl){
 	belle_sip_dns_srv_t *srv=(belle_sip_dns_srv_t*)data;
 	srv->a_results=ai_list;
 	srv->a_done=TRUE;
 	belle_sip_message("A query finished for srv result [%s]",srv->target);
-	combined_resolver_context_check_finished(srv->root_resolver);
+	if (ttl < BELLE_SIP_RESOLVER_CONTEXT(srv->root_resolver)->min_ttl) BELLE_SIP_RESOLVER_CONTEXT(srv->root_resolver)->min_ttl = ttl;
+	combined_resolver_context_check_finished(srv->root_resolver, ttl);
 }
 
 static void srv_resolve_a(belle_sip_combined_resolver_context_t *obj, belle_sip_dns_srv_t *srv){
@@ -970,10 +977,11 @@ static void srv_resolve_a(belle_sip_combined_resolver_context_t *obj, belle_sip_
 	belle_sip_object_unref(srv);
 }
 
-static void process_srv_results(void *data, const char *name, belle_sip_list_t *srv_results){
+static void process_srv_results(void *data, const char *name, belle_sip_list_t *srv_results, uint32_t ttl){
 	belle_sip_combined_resolver_context_t *ctx=(belle_sip_combined_resolver_context_t *)data;
 	/*take a ref here, because the A resolution might succeed synchronously and terminate the context before exiting this function*/
 	belle_sip_object_ref(ctx);
+	if (ttl < BELLE_SIP_RESOLVER_CONTEXT(data)->min_ttl) BELLE_SIP_RESOLVER_CONTEXT(data)->min_ttl = ttl;
 	if (srv_results){
 		belle_sip_list_t *elem;
 		/* take a ref of each srv_results because the last A resolution may terminate synchronously
@@ -1023,7 +1031,7 @@ belle_sip_resolver_context_t * belle_sip_stack_resolve(belle_sip_stack_t *stack,
 		return BELLE_SIP_RESOLVER_CONTEXT(ctx);
 	} else {
 		/* There is no resolve to be done */
-		cb(data, name, res);
+		cb(data, name, res, UINT32_MAX);
 		return NULL;
 	}
 }
@@ -1061,14 +1069,14 @@ static void dual_resolver_context_check_finished(belle_sip_dual_resolver_context
 	}
 }
 
-static void on_ipv4_results(void *data, const char *name, struct addrinfo *ai_list) {
+static void on_ipv4_results(void *data, const char *name, struct addrinfo *ai_list, uint32_t ttl) {
 	belle_sip_dual_resolver_context_t *ctx = BELLE_SIP_DUAL_RESOLVER_CONTEXT(data);
 	ctx->a_results = ai_list;
 	ctx->a_notified = TRUE;
 	dual_resolver_context_check_finished(ctx);
 }
 
-static void on_ipv6_results(void *data, const char *name, struct addrinfo *ai_list) {
+static void on_ipv6_results(void *data, const char *name, struct addrinfo *ai_list, uint32_t ttl) {
 	belle_sip_dual_resolver_context_t *ctx = BELLE_SIP_DUAL_RESOLVER_CONTEXT(data);
 	ctx->aaaa_results = ai_list;
 	ctx->aaaa_notified = TRUE;
@@ -1116,7 +1124,7 @@ belle_sip_resolver_context_t * belle_sip_stack_resolve_a(belle_sip_stack_t *stac
 		}
 	} else {
 		/* There is no resolve to be done */
-		cb(data, name, res);
+		cb(data, name, res, UINT32_MAX);
 	}
 	return NULL;
 }

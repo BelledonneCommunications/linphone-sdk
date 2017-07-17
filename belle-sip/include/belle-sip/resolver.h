@@ -31,14 +31,14 @@ typedef struct belle_sip_resolver_context belle_sip_resolver_context_t;
  * Callback prototype for asynchronous DNS SRV resolution.
  * The srv_list contains struct dns_srv elements that must be taken and (possibly later) freed by the callee, using belle_sip_free().
  */
-typedef void (*belle_sip_resolver_srv_callback_t)(void *data, const char *name, belle_sip_list_t *srv_list);
+typedef void (*belle_sip_resolver_srv_callback_t)(void *data, const char *name, belle_sip_list_t *srv_list, uint32_t ttl);
 
 /**
  * Callback prototype for asynchronous DNS A and AAAA resolution.
  * The ai_list contains addrinfo elements that must be taken and (possibly later) freed by the callee, using freeaddrinfo().
  * These elements are linked by their ai_next field.
 **/
-typedef void (*belle_sip_resolver_callback_t)(void *data, const char *name, struct addrinfo *ai_list);
+typedef void (*belle_sip_resolver_callback_t)(void *data, const char *name, struct addrinfo *ai_list, uint32_t ttl);
 
 
 BELLE_SIP_BEGIN_DECLS

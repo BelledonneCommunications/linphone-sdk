@@ -413,7 +413,7 @@ static int tls_channel_connect_to(belle_sip_channel_t *obj, const struct addrinf
 	return -1;
 }
 
-static void http_proxy_res_done(void *data, const char *name, struct addrinfo *ai_list){
+static void http_proxy_res_done(void *data, const char *name, struct addrinfo *ai_list, uint32_t ttl){
 	belle_sip_tls_channel_t *obj=(belle_sip_tls_channel_t*)data;
 	if (obj->http_proxy_resolver_ctx){
 		belle_sip_object_unref(obj->http_proxy_resolver_ctx);
