@@ -65,3 +65,12 @@ Note for packagers
 Our CMake scripts may automatically add some paths into research paths of generated binaries.
 To ensure that the installed binaries are striped of any rpath, use `-DCMAKE_SKIP_INSTALL_RPATH=ON`
 while you invoke cmake.
+
+Rpm packaging
+belle-sip can be generated with cmake3 using the following command:
+mkdir WORK
+cd WORK
+cmake3 ../
+make package_source
+rpmbuild -ta --clean --rmsource --rmspec belle-sip-<version>-<release>.tar.gz
+
