@@ -75,7 +75,7 @@ macro(bc_project_build_version PROJECT_VERSION PROJECT_BUILD_VERSION)
        		         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
        		 )
 	endif()
-	if (NOT PROJECT_VERSION_BUILD) {
+	if (NOT PROJECT_VERSION_BUILD) 
 		set(PROJECT_VERSION_BUILD 0)
 	endif()
 endmacro()
