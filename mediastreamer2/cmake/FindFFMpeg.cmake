@@ -31,21 +31,21 @@ include(CheckSymbolExists)
 
 find_path(LIBAVCODEC_INCLUDE_DIRS
 	NAMES libavcodec/avcodec.h
-	PATH_SUFFIXES include
+	PATH_SUFFIXES include include/ffmpeg
 )
 if(LIBAVCODEC_INCLUDE_DIRS)
 	set(HAVE_LIBAVCODEC_AVCODEC_H 1)
 endif()
 find_path(LIBAVUTIL_INCLUDE_DIRS
 	NAMES libavutil/avutil.h
-	PATH_SUFFIXES include
+	PATH_SUFFIXES include include/ffmpeg
 )
 if(LIBAVUTIL_INCLUDE_DIRS)
 	set(HAVE_LIBAVUTIL_AVUTIL_H 1)
 endif()
 find_path(LIBSWSCALE_INCLUDE_DIRS
 	NAMES libswscale/swscale.h
-	PATH_SUFFIXES include
+	PATH_SUFFIXES include include/ffmpeg
 )
 if(LIBSWSCALE_INCLUDE_DIRS)
 	set(HAVE_LIBSWSCALE_SWSCALE_H 1)
