@@ -53,5 +53,10 @@ if(HAVE_SQRT)
 endif()
 
 unset(PATTERN_FILES_IN_TEST_DIR CACHE)
-
+find_file(PATTERN_FILES_IN_TEST_DIR
+       patternZIDAlice.sqlite ${CMAKE_CURRENT_BINARY_DIR}
+)
+if (NOT PATTERN_FILES_IN_TEST_DIR)
+       file(COPY patternZIDAlice.sqlite DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+endif()
 add_test(NAME bzrtpTest COMMAND bzrtpTest)
