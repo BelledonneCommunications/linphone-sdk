@@ -104,7 +104,7 @@ static void on_congestion_state_changed(const OrtpEventData *evd, void *user_poi
 		}
 		/*we shall reset the jitter buffers, so that they recover faster their diverged states*/
 		resync_jitter_buffers(obj);
-		video_bandwidth_estimator_params.enabled = TRUE;
+		video_bandwidth_estimator_params.enabled = FALSE; // Set to TRUE to enable
 	}
 	rtp_session_send_rtcp_fb_tmmbr(session, (uint64_t)controlled_stream_bandwidth_requested);
 	obj->remote_video_bandwidth_available_estimated = 0;
@@ -147,7 +147,7 @@ static void elect_controlled_stream(MSBandwidthController *obj){
 				done = TRUE;
 				ortp_ev_dispatcher_connect(media_stream_get_event_dispatcher(ms), ORTP_EVENT_NEW_VIDEO_BANDWIDTH_ESTIMATION_AVAILABLE, 0, 
 											on_video_bandwidth_estimation_available, ms);
-				params.enabled = TRUE;
+				params.enabled = FALSE; // Set to TRUE to enable
 				rtp_session_enable_video_bandwidth_estimator(ms->sessions.rtp_session, &params);
 			break;
 			case MSText:
