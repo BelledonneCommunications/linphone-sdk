@@ -76,6 +76,8 @@ BCTBX_PUBLIC bctbx_list_t * bctbx_list_insert(bctbx_list_t * list, bctbx_list_t 
 BCTBX_PUBLIC bctbx_list_t * bctbx_list_copy(const bctbx_list_t * list);
 /*copy list elements and associated data, using the supplied function pointer*/
 BCTBX_PUBLIC bctbx_list_t* bctbx_list_copy_with_data(const bctbx_list_t* list, bctbx_list_copy_func copyfunc);
+/*Same as bctbx_list_copy_with_data but in reverse order*/
+BCTBX_PUBLIC bctbx_list_t* bctbx_list_copy_reverse_with_data(const bctbx_list_t* list, bctbx_list_copy_func copyfunc);
 
 BCTBX_PUBLIC bctbx_list_t* bctbx_list_next(const bctbx_list_t *elem);
 BCTBX_PUBLIC void* bctbx_list_get_data(const bctbx_list_t *elem);

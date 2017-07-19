@@ -325,3 +325,11 @@ bctbx_list_t* bctbx_list_copy_with_data(const bctbx_list_t* list, bctbx_list_cop
 	return copy;
 }
 
+bctbx_list_t* bctbx_list_copy_reverse_with_data(const bctbx_list_t* list, bctbx_list_copy_func copyfunc){
+	bctbx_list_t* copy=NULL;
+	const bctbx_list_t* iter;
+	for(iter=list;iter!=NULL;iter=bctbx_list_next(iter)){
+		copy=bctbx_list_prepend(copy,copyfunc(iter->data));
+	}
+	return copy;
+}
