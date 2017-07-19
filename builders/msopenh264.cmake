@@ -25,6 +25,7 @@ lcb_git_tag_latest("master")
 lcb_git_tag("1.1.2")
 lcb_external_source_paths("msopenh264")
 lcb_groupable(YES)
+lcb_package_source(YES)
 lcb_plugin(YES)
 
 lcb_dependencies("ms2" "openh264")

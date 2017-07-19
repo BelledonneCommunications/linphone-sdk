@@ -25,6 +25,7 @@ lcb_git_tag_latest("master")
 lcb_git_tag("0.27.0")
 lcb_external_source_paths("oRTP" "ortp")
 lcb_groupable(YES)
+lcb_package_source(YES)
 
 lcb_dependencies("bctoolbox")
 lcb_spec_file("ortp.spec")

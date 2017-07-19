@@ -25,6 +25,7 @@ lcb_git_tag_latest("master")
 lcb_git_tag("1.0.4")
 lcb_external_source_paths("bzrtp")
 lcb_groupable(YES)
+lcb_package_source(YES)
 
 lcb_dependencies("bctoolbox")
 if(LINPHONE_BUILDER_BUILD_DEPENDENCIES)

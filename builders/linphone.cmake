@@ -25,6 +25,7 @@ lcb_git_tag_latest("master")
 lcb_git_tag("3.10.0")
 lcb_external_source_paths("linphone")
 lcb_groupable(YES)
+lcb_package_source(YES)
 
 lcb_dependencies("bctoolbox" "bellesip" "ortp" "ms2")
 if(LINPHONE_BUILDER_BUILD_DEPENDENCIES AND NOT APPLE)

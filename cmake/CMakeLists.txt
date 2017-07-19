@@ -815,6 +815,14 @@ macro(linphone_builder_add_external_project PROJNAME)
 			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 		)
 	endif()
+	if(ENABLE_SOURCE_PACKAGING AND EP_${PROJNAME}_PACKAGE_SOURCE)
+		ExternalProject_Add_Step(EP_${PROJNAME} package_source
+			COMMAND ${CMAKE_COMMAND} --build ${ep_build} --target package_source
+			COMMENT "Creating source package for 'EP_${PROJNAME}'"
+			DEPENDEES install
+			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+		)
+	endif()
 
 	if(EP_${PROJNAME}_GROUPED_SOURCE_DIRS OR EP_${PROJNAME}_SOURCE_DIR)
 		if(EP_${PROJNAME}_GROUPED_SOURCE_DIRS)
@@ -1143,6 +1151,14 @@ endmacro()
 
 macro(lcb_groupable BOOL_VALUE)
 	lcb_builder_groupable("${LINPHONE_BUILDER_CURRENT_BUILDER}" ${BOOL_VALUE})
+endmacro()
+
+macro(lcb_builder_package_source BUILDER BOOL_VALUE)
+	set(EP_${BUILDER}_PACKAGE_SOURCE ${BOOL_VALUE})
+endmacro()
+
+macro(lcb_package_source BOOL_VALUE)
+	lcb_builder_package_source("${LINPHONE_BUILDER_CURRENT_BUILDER}" ${BOOL_VALUE})
 endmacro()
 
 macro(lcb_builder_spec_file BUILDER SPEC_FILE)

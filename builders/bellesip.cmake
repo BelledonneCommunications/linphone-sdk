@@ -25,6 +25,7 @@ lcb_git_tag_latest("master")
 lcb_git_tag("1.5.3")
 lcb_external_source_paths("belle-sip")
 lcb_groupable(YES)
+lcb_package_source(YES)
 lcb_spec_file("belle-sip.spec")
 lcb_rpmbuild_name("belle-sip")
 

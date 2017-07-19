@@ -104,6 +104,8 @@ class Target:
             cmd += ["-DENABLE_PACKAGING=YES"]
             if self.packaging_args is not None:
                 cmd += self.packaging_args
+        if 'package_source' in vars(args) and args.package_source:
+            cmd += ["-DENABLE_SOURCE_PACKAGING=YES"]
         for arg in self.additional_args:
             cmd += [arg]
         for arg in additional_args:
