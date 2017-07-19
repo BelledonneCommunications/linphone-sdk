@@ -32,10 +32,9 @@
 #define BELLE_SIP_CHANNEL_INVOKE_SENDING_LISTENERS(channel,msg) \
 	BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(channel->full_listeners, belle_sip_channel_listener_t, on_sending, channel, msg)
 
-
 #define BELLE_SIP_CHANNEL_INVOKE_STATE_LISTENERS(channel,state) \
-	BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(channel->full_listeners, belle_sip_channel_listener_t, on_state_changed, channel, state) \
-	BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(channel->state_listeners, belle_sip_channel_listener_t, on_state_changed, channel, state) 
+	BELLE_SIP_INVOKE_LISTENERS_REVERSE_ARG1_ARG2(channel->full_listeners, belle_sip_channel_listener_t, on_state_changed, channel, state) \
+	BELLE_SIP_INVOKE_LISTENERS_REVERSE_ARG1_ARG2(channel->state_listeners, belle_sip_channel_listener_t, on_state_changed, channel, state) 
 
 
 static void channel_prepare_continue(belle_sip_channel_t *obj);
@@ -1384,8 +1383,9 @@ static void channel_process_queue(belle_sip_channel_t *obj){
 	belle_sip_message_t *msg;
 	belle_sip_object_ref(obj);/* we need to ref ourself because code below may trigger our destruction*/
 
-	if (obj->out_state!=OUTPUT_STREAM_IDLE)
+	if (obj->out_state!=OUTPUT_STREAM_IDLE) {
 		_send_message(obj);
+	}
 
 	while((msg=channel_pop_outgoing(obj))!=NULL && obj->state==BELLE_SIP_CHANNEL_READY && obj->out_state==OUTPUT_STREAM_IDLE) {
 		send_message(obj, msg);

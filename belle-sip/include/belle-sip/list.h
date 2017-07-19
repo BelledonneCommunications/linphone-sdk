@@ -50,5 +50,6 @@ typedef struct _bctbx_list belle_sip_list_t;
 #define belle_sip_list_insert bctbx_list_insert
 #define belle_sip_list_copy bctbx_list_copy
 #define belle_sip_list_copy_with_data bctbx_list_copy_with_data
+#define belle_sip_list_copy_reverse_with_data bctbx_list_copy_reverse_with_data
 
 #endif /* BELLE_SIP_LIST_H_ */

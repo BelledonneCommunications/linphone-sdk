@@ -82,6 +82,16 @@
 			__method=BELLE_SIP_INTERFACE_GET_METHODS(__obj,interface_name)->method;\
 			if (__method) BELLE_SIP_INTERFACE_GET_METHODS(__obj,interface_name)->
 
+#define __BELLE_SIP_INVOKE_LISTENER_REVERSE_BEGIN(list,interface_name,method) \
+	if (list!=NULL) {\
+		belle_sip_list_t *__copy=belle_sip_list_copy_reverse_with_data((list), (void* (*)(void*))belle_sip_object_ref);\
+		const belle_sip_list_t *__elem=__copy;\
+		do{\
+			void *__method;\
+			interface_name *__obj=(interface_name*)__elem->data;\
+			__method=BELLE_SIP_INTERFACE_GET_METHODS(__obj,interface_name)->method;\
+			if (__method) BELLE_SIP_INTERFACE_GET_METHODS(__obj,interface_name)->
+
 #define __BELLE_SIP_INVOKE_LISTENER_END \
 			__elem=__elem->next;\
 		}while(__elem!=NULL);\
@@ -98,9 +108,13 @@
 	method(__obj,arg);\
 	__BELLE_SIP_INVOKE_LISTENER_END
 
-
 #define BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(list,interface_name,method,arg1,arg2) \
 			__BELLE_SIP_INVOKE_LISTENER_BEGIN(list,interface_name,method)\
+			method(__obj,arg1,arg2);\
+			__BELLE_SIP_INVOKE_LISTENER_END
+
+#define BELLE_SIP_INVOKE_LISTENERS_REVERSE_ARG1_ARG2(list,interface_name,method,arg1,arg2) \
+			__BELLE_SIP_INVOKE_LISTENER_REVERSE_BEGIN(list,interface_name,method)\
 			method(__obj,arg1,arg2);\
 			__BELLE_SIP_INVOKE_LISTENER_END
 
