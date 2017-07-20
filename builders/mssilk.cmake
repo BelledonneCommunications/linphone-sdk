@@ -25,6 +25,7 @@ lcb_git_tag_latest("master")
 lcb_git_tag("1.0.2")
 lcb_external_source_paths("mssilk")
 lcb_groupable(YES)
+lcb_package_source(YES)
 lcb_plugin(YES)
 
 lcb_dependencies("ms2")
