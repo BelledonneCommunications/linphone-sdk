@@ -24,8 +24,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #   ifndef MEDIASTREAMER_VERSION
 #   define MEDIASTREAMER_VERSION "unknown"
 #   endif
-#	ifndef GIT_VERSION
-#	define GIT_VERSION "unknown"
+#	ifndef MS2_GIT_VERSION
+#	define MS2_GIT_VERSION "unknown"
 #	endif
 #endif
 
@@ -174,7 +174,7 @@ void ms_factory_init(MSFactory *obj){
 		ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 	}
 
-	ms_message("Mediastreamer2 factory " MEDIASTREAMER_VERSION " (git: " GIT_VERSION ") initialized.");
+	ms_message("Mediastreamer2 factory " MEDIASTREAMER_VERSION " (git: " MS2_GIT_VERSION ") initialized.");
 	/* register builtin MSFilter's */
 	for (i=0;ms_base_filter_descs[i]!=NULL;i++){
 		ms_factory_register_filter(obj,ms_base_filter_descs[i]);
