@@ -1,3 +1,7 @@
+bctoolbox-0.6.0 -- July 20th, 2017
+	* Add API to escape/unescape strings (SIP, VCARD).
+	* Bug fixes.
+
 bctoolbox-0.5.1 -- February 22nd, 2017
 	* security bugfix: TLS session could be successfully established whereas the common
 	  name did not match the server name.
