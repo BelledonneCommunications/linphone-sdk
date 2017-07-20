@@ -21,7 +21,7 @@
 ############################################################################
 
 cmake_minimum_required(VERSION 3.0)
-project(mswebrtc VERSION 1.1.0 LANGUAGES C CXX)
+project(mswebrtc VERSION 1.1.1 LANGUAGES C CXX)
 
 
 set(PACKAGE "${PROJECT_NAME}")

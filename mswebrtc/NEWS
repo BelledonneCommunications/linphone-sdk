@@ -1,3 +1,6 @@
+mswebrtc-1.1.1 -- July 20th, 2017
+	* Bug fixes
+
 mswebrtc-1.0.0 -- August 17th, 2016
 	* Adding iLBC build support for autotools.
 	* iLBC codec.
