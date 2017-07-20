@@ -48,6 +48,7 @@ endif()
 set(LINPHONE_BUILDER_EP_VARS)
 set(LINPHONE_BUILDER_INCLUDED_BUILDERS)
 set(LINPHONE_BUILDER_INCLUDED_BUILDERS_TO_EXCLUDE)
+set(LINPHONE_BUILDER_SOURCE_PACKAGE_BUILDERS)
 set(LINPHONE_BUILDER_EXTERNAL_SOURCE_PATH_BUILDERS)
 set(LINPHONE_BUILDER_SYSTEM_DEPENDENCIES_BUILDERS)
 
@@ -596,6 +597,9 @@ macro(linphone_builder_add_external_project PROJNAME)
 			endif()
 		endforeach()
 	endif()
+	if(EP_${PROJNAME}_PACKAGE_SOURCE)
+		list(APPEND LINPHONE_BUILDER_SOURCE_PACKAGE_BUILDERS ${PROJNAME})
+	endif()
 
 	linphone_builder_set_ep_directories(${PROJNAME})
 	linphone_builder_set_ep_generator()
@@ -994,6 +998,24 @@ macro(linphone_builder_add_dummy_libraries_generation)
 			DOWNLOAD_COMMAND ""
 			CMAKE_GENERATOR ${ep_generator}
 			CMAKE_ARGS ${LINPHONE_BUILDER_EP_ARGS} -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} -DLINPHONE_BUILDER_DUMMY_LIBRARIES=${LINPHONE_BUILDER_DUMMY_LIBRARIES}
+		)
+	endif()
+endmacro()
+
+macro(linphone_builder_add_package_source_check_project)
+	if(ENABLE_SOURCE_PACKAGING AND LINPHONE_BUILDER_SOURCE_PACKAGE_BUILDERS)
+		string(REPLACE ";" " " LINPHONE_BUILDER_SOURCE_PACKAGE_BUILDERS "${LINPHONE_BUILDER_SOURCE_PACKAGE_BUILDERS}")
+		linphone_builder_set_ep_directories(package_source_check)
+		linphone_builder_set_ep_generator()
+		linphone_builder_expand_external_project_vars()
+		ExternalProject_Add(EP_package_source_check
+			DEPENDS TARGET_linphone_builder
+			TMP_DIR "${ep_tmp}"
+			BINARY_DIR "${ep_build}"
+			SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/cmake/package_source_check"
+			DOWNLOAD_COMMAND ""
+			CMAKE_GENERATOR ${ep_generator}
+			CMAKE_ARGS -DCMAKE_PREFIX_PATH=${CMAKE_INSTALL_PREFIX}/package_source_check -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}/package_source_check -DLINPHONE_BUILDER_WORK_DIR=${LINPHONE_BUILDER_WORK_DIR} -DLINPHONE_BUILDER_SOURCE_PACKAGE_BUILDERS=${LINPHONE_BUILDER_SOURCE_PACKAGE_BUILDERS} -DGENERATOR=${ep_generator}
 		)
 	endif()
 endmacro()

@@ -77,6 +77,7 @@ else()
 	# Add external projects
 	linphone_builder_add_projects()
 	linphone_builder_add_dummy_libraries_generation()
+	linphone_builder_add_package_source_check_project()
 
 
 	if(LINPHONE_BUILDER_ADDITIONAL_CONFIG_STEPS)
