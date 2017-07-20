@@ -1,0 +1,92 @@
+# -*- rpm-spec -*-
+
+## rpmbuild options
+# These 2 lines are here because we can build the RPM for flexisip, in which
+# case we prefix the entire installation so that we don't break compatibility
+# with the user's libs.
+# To compile with bc prefix, use rpmbuild -ba --with bc [SPEC]
+%define                 pkg_name        bzrtp
+
+# re-define some directories for older RPMBuild versions which don't. This messes up the doc/ dir
+# taken from https://fedoraproject.org/wiki/Packaging:RPMMacros?rd=Packaging/RPMMacros
+%define _datarootdir       %{_prefix}/share
+%define _datadir           %{_datarootdir}
+%define _docdir            %{_datadir}/doc
+
+%define build_number @PROJECT_VERSION_BUILD@
+
+
+
+Name:           %{pkg_name}
+Version:        @PROJECT_VERSION@
+Release:        %{build_number}%{?dist}
+Summary:        BZRTP is an opensource implementation of ZRTP keys exchange protocol.
+
+Group:          Applications/Communications
+License:        GPL
+URL:            http://www.linphone.org
+Source0:        %{name}-%{version}-%{build_number}.tar.gz
+BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-buildroot
+
+%description
+
+BZRTP is an opensource implementation of ZRTP keys exchange protocol.
+The library written in C 89 is fully portable and can be executed  on many platforms including both ARM  processor and x86.
+
+Licensing: The source code is licensed under GPLv2.
+
+%package devel
+Summary:       Development libraries for bzrtp
+Group:         Development/Libraries
+Requires:      %{name} = %{version}-%{release}
+
+%description    devel
+Libraries and headers required to develop software with bzrtp
+
+%if 0%{?rhel} && 0%{?rhel} <= 7
+%global cmake_name cmake3
+%define ctest_name ctest3
+%else
+%global cmake_name cmake
+%define ctest_name ctest
+%endif
+
+%prep
+%setup -n %{name}-%{version}-%build_number
+
+%build
+%{expand:%%%cmake_name} . -DCMAKE_INSTALL_LIBDIR:PATH=%{_libdir} -DCMAKE_PREFIX_PATH:PATH=%{_prefix}
+make %{?_smp_mflags}
+
+%install
+make install DESTDIR=%{buildroot}
+
+%check
+%{ctest_name} -V %{?_smp_mflags}
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+%post -p /sbin/ldconfig
+
+%postun -p /sbin/ldconfig
+
+
+%files
+%defattr(-,root,root)
+%doc AUTHORS ChangeLog COPYING NEWS README.md
+%{_libdir}/*.so.*
+
+%files devel
+%defattr(-,root,root)
+%{_includedir}/bzrtp
+%{_libdir}/libbzrtp.a
+%{_libdir}/libbzrtp.so
+%{_datadir}/bzrtp/cmake/BZRTPConfig.cmake
+%{_datadir}/bzrtp/cmake/BZRTPTargets-noconfig.cmake
+%{_datadir}/bzrtp/cmake/BZRTPTargets.cmake
+%{_datadir}/bzrtp/cmake/BZRTPConfigVersion.cmake
+
+%changelog
+* Wed Jul 19 2017 jehan.monnier <jehan.monnier@linphone.org>
+- Initial RPM release.

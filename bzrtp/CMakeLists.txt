@@ -147,14 +147,4 @@ install(FILES
 )
 
 
-# CPack settings
-set(CPACK_PACKAGE_NAME "bzrtp")
-set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
-set(CPACK_SOURCE_GENERATOR "TGZ")
-set(CPACK_SOURCE_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}")
-set(CPACK_SOURCE_IGNORE_FILES
-        "^${CMAKE_BINARY_DIR}"
-        "/\\\\..+"
-)
-
-include(CPack)
+add_subdirectory(build)
