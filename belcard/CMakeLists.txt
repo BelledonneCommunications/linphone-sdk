@@ -22,7 +22,7 @@
 ############################################################################
 
 cmake_minimum_required(VERSION 3.0)
-project(BELCARD VERSION 1.0.1 LANGUAGES C CXX)
+project(BELCARD VERSION 1.0.2 LANGUAGES C CXX)
 
 set(BELCARD_SO_VERSION "1")
 
