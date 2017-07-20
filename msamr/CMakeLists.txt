@@ -103,3 +103,14 @@ if(NOT MSVC)
 endif()
 
 add_subdirectory(src)
+
+
+# CPack settings
+set(CPACK_SOURCE_GENERATOR "TGZ")
+set(CPACK_SOURCE_PACKAGE_FILE_NAME "${PROJECT_NAME}-${PROJECT_VERSION}")
+set(CPACK_SOURCE_IGNORE_FILES
+	"^${CMAKE_BINARY_DIR}"
+	"/\\\\..+"
+)
+
+include(CPack)
