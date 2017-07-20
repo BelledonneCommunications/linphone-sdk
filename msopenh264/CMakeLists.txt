@@ -21,7 +21,7 @@
 ############################################################################
 
 cmake_minimum_required(VERSION 3.0)
-project(msopenh264 VERSION 1.2.0 LANGUAGES CXX)
+project(msopenh264 VERSION 1.2.1 LANGUAGES CXX)
 
 
 set(PACKAGE "${PROJECT_NAME}")
