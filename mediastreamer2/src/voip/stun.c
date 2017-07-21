@@ -198,7 +198,7 @@ static void encode_string(StunMessageEncoder *encoder, uint16_t type, const char
 
 static void encode_error_code(StunMessageEncoder *encoder, uint16_t number, const char *reason) {
 	size_t reason_len = 0;
-	size_t padding = 4 - (reason_len % 4);
+	size_t padding;
 	if (reason != NULL) reason_len = strlen(reason);
 	encode16(encoder, MS_STUN_ATTR_ERROR_CODE);
 	encode16(encoder, 4 + (uint16_t)reason_len);
@@ -206,6 +206,7 @@ static void encode_error_code(StunMessageEncoder *encoder, uint16_t number, cons
 	encode8(encoder, number / 100);
 	encode8(encoder, number - ((number / 100) * 100));
 	if (reason != NULL) encode(encoder, reason, reason_len);
+	padding = 4 - (reason_len % 4);
 	if (padding < 4) {
 		size_t i;
 		for (i = 0; i < padding; i++) encode8(encoder, 0);
