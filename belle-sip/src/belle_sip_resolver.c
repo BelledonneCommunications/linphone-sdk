@@ -21,6 +21,7 @@
 #include <bctoolbox/defs.h>
 
 #include <stdlib.h>
+#include <stdint.h>
 #ifdef __APPLE__
 #include "TargetConditionals.h"
 #endif
