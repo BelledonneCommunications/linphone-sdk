@@ -21,7 +21,7 @@
 ############################################################################
 
 cmake_minimum_required(VERSION 3.0)
-project(mediastreamer2 VERSION 2.16.0 LANGUAGES C CXX)
+project(mediastreamer2 VERSION 2.16.1 LANGUAGES C CXX)
 
 
 set(MEDIASTREAMER_MAJOR_VERSION ${PROJECT_VERSION_MAJOR})

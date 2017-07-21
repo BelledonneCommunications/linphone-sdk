@@ -1,3 +1,6 @@
+mediastreamer2-2.16.1: July 21th, 2017
+	* Build fix for Windows
+
 mediastreamer2-2.16.0: July 20th, 2017
 	* Add sound card driven ticker
         * Sound card flow control improvements
