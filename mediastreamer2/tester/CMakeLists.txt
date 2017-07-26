@@ -61,6 +61,7 @@ set(SCENARIO_FILES
 	scenarios/firstvalid.pcapng
 	scenarios/opus-edge-congestion20_60_40.pcapng
 	scenarios/h264_one_nalu_per_frame.pcap
+	scenarios/h264_one_nalu_per_frame_with_corrupted_idr.pcap
 	scenarios/poor_jitter_quality_22_filter.pcapng
 	scenarios/rtp-120late-1000total.pcapng
 	scenarios/rtp-240late-2000total.pcapng
