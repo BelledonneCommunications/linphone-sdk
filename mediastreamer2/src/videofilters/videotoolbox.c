@@ -978,12 +978,18 @@ static int h264_dec_enable_avpf(MSFilter *f, const bool_t *enable) {
 	return 0;
 }
 
+static int h264_dec_freeze_on_error_enabled(MSFilter *f, bool_t *enabled) {
+	*enabled = ((VTH264DecCtx *)f->data)->freeze_on_error_enabled;
+	return 0;
+}
+
 static MSFilterMethod h264_dec_methods[] = {
 	{   MS_FILTER_GET_VIDEO_SIZE                           ,    (MSFilterMethodFunc)h264_dec_get_video_size                    },
 	{   MS_FILTER_GET_FPS                                  ,    (MSFilterMethodFunc)h264_dec_get_fps                           },
 	{   MS_FILTER_GET_OUTPUT_FMT                           ,    (MSFilterMethodFunc)h264_dec_get_output_fmt                    },
 	{   MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION    ,    (MSFilterMethodFunc)h264_dec_reset_first_image_notification    },
 	{   MS_VIDEO_DECODER_ENABLE_AVPF                       ,    (MSFilterMethodFunc)h264_dec_enable_avpf                       },
+	{	MS_VIDEO_DECODER_FREEZE_ON_ERROR_ENABLED           ,    (MSFilterMethodFunc)h264_dec_freeze_on_error_enabled           },
 	{   0                                                  ,    NULL                                                           }
 
 };
