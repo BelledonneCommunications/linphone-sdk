@@ -30,10 +30,6 @@ using namespace std;
 // =============================================================================
 
 namespace belr{
-
-ABNFBuilder::~ABNFBuilder(){
-}
-
 ABNFNumval::ABNFNumval() : mIsRange(false) {
 
 }

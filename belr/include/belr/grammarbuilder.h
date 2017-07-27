@@ -28,7 +28,8 @@ class ABNFAlternation;
 
 class ABNFBuilder{
 public:
-	virtual ~ABNFBuilder();
+	virtual ~ABNFBuilder() = default;
+
 	virtual std::shared_ptr<Recognizer> buildRecognizer(const std::shared_ptr<Grammar> &grammar)=0;
 };
 

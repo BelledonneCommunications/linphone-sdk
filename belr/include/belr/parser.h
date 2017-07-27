@@ -34,7 +34,7 @@ template<typename _parserElementT>
 class AbstractCollector{
 public:
 	virtual void invokeWithChild(_parserElementT obj, _parserElementT child)=0;
-	virtual ~AbstractCollector();
+	virtual ~AbstractCollector() = default;
 };
 
 template<typename _parserElementT, typename _valueT>
@@ -141,7 +141,7 @@ public:
 
 class HandlerContextBase : public std::enable_shared_from_this<HandlerContextBase>{
 public:
-	BELR_PUBLIC virtual ~HandlerContextBase();
+	BELR_PUBLIC virtual ~HandlerContextBase() = default;
 };
 
 template <typename _parserElementT>
@@ -293,10 +293,6 @@ T universal_pointer_cast(const std::shared_ptr<U>& sp){
 template <class T, class U>
 T universal_pointer_cast(U * p){
 	return static_cast<T>(p);
-}
-
-template <typename _parserElementT>
-AbstractCollector<_parserElementT>::~AbstractCollector(){
 }
 
 template <typename _derivedParserElementT, typename _parserElementT, typename _valueT>

@@ -56,6 +56,8 @@ struct TransitionMap{
 
 class Recognizer : public std::enable_shared_from_this<Recognizer>{
 public:
+	virtual ~Recognizer() = default;
+
 	void setName(const std::string &name);
 	const std::string &getName()const;
 	BELR_PUBLIC size_t feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos);
@@ -65,7 +67,6 @@ public:
 	bool getTransitionMap(TransitionMap *mask);
 	void optimize();
 	void optimize(int recursionLevel);
-	virtual ~Recognizer() { }
 protected:
 	/*returns true if the transition map is complete, false otherwise*/
 	virtual bool _getTransitionMap(TransitionMap *mask);

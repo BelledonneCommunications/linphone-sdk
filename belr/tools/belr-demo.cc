@@ -20,11 +20,7 @@ using namespace::std;
 /*This is our base class for all our parsed elements. It does nothing but is required for run time type identification*/
 class SipElement{
 public:
-	SipElement(){
-	}
-	//put a virtual destructor to enable polymorphism and dynamic casting.
-	virtual ~SipElement(){
-	}
+	virtual ~SipElement () = default;
 };
 
 /*this the class representing uri "other" params, per the grammar. They will be added to the SIP-URI when found.*/
@@ -102,7 +98,7 @@ public:
 
 int main(int argc, char *argv[]){
 	string uriToParse;
-	
+
 	if (argc<2){
 		cerr<<argv[0]<<" <uri to parse>"<<endl;
 		return -1;
@@ -112,16 +108,16 @@ int main(int argc, char *argv[]){
 	ABNFGrammarBuilder builder;
 	//construct the grammar from the grammar file, the core rules are included since required by most RFCs.
 	shared_ptr<Grammar> grammar=builder.createFromAbnfFile("sipgrammar.txt", make_shared<CoreRules>());
-	
+
 	if (!grammar){
 		cerr<<"Could not build grammar from sipgrammar.txt"<<endl;
 		return -1;
 	}
-	
+
 	//now instanciate a parser and assign it collectors and handlers
 	//This parser expects to build objects which are all inherited from SipElement, and that are stored as shared_ptr.
 	Parser<shared_ptr<SipElement>> parser(grammar);
-	
+
 	//Now, tell our parser where to assign elements when they are found during parsing.
 	parser.setHandler("SIP-URI", make_fn(&SipUri::create)) //tells that whenever a SIP-URI is found, a SipUri object must be created.
 		->setCollector("user", make_sfn(&SipUri::setUsername)) //tells that when a "user" field is found, SipUri::setUsername() is to be called for assigning the "user"
@@ -132,7 +128,7 @@ int main(int argc, char *argv[]){
 	parser.setHandler("other-param", make_fn(&OtherParam::create)) //when other-param is matched, construct an OtherParam object to hold the name and value of the other-params.
 		->setCollector("pname", make_sfn(&OtherParam::setName))
 		->setCollector("pvalue", make_sfn(&OtherParam::setValue));
-	
+
 	//now, parse the input. We have to tell the parser the root object, which is the SIP-URI in this example.
 	size_t parsedSize = 0;
 	shared_ptr<SipElement> ret = parser.parseInput("SIP-URI", uriToParse, &parsedSize);

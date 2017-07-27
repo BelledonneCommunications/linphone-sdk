@@ -25,8 +25,7 @@ using namespace std;
 namespace belr{
 
 
-HandlerContextBase::~HandlerContextBase(){
-}
+
 
 DebugElement::DebugElement(const string& rulename, const string& value)
 	:mRulename(rulename), mValue(value){
