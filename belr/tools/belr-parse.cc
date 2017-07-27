@@ -15,7 +15,7 @@ using namespace belr;
 using namespace std;
 
 int main(int argc, char *argv[]){
-	const char *file=NULL,*message_file=NULL;
+	const char *file=nullptr,*message_file=nullptr;
 	int rules_first=0;
 	int i;
 	int repeat_count=1;
@@ -39,12 +39,12 @@ int main(int argc, char *argv[]){
 		}
 	}
 	rules_first=i+1;
-	
+
 	ABNFGrammarBuilder builder;
 	shared_ptr<Grammar> grammar=make_shared<Grammar>(file);
 	grammar->include(make_shared<CoreRules>());
 	grammar = builder.createFromAbnfFile(file,grammar);
-	
+
 	if (message_file){
 		ifstream istr(message_file);
 		if (!istr.is_open()){

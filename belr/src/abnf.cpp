@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "belr/abnf.hh"
+#include "belr/abnf.h"
 
 using namespace std;
 using namespace belr;

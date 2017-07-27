@@ -24,7 +24,7 @@
 #include <iostream>
 #include <algorithm>
 
-#include "belr.hh"
+#include "belr.h"
 
 
 namespace belr {
@@ -404,7 +404,7 @@ void HandlerContext< _parserElementT >::recycle(){
 //
 
 template <typename _parserElementT>
-ParserHandlerBase<_parserElementT>::ParserHandlerBase(const Parser<_parserElementT> &parser, const std::string &name) : mParser(parser), mRulename(tolower(name)), mCachedContext(NULL) {
+ParserHandlerBase<_parserElementT>::ParserHandlerBase(const Parser<_parserElementT> &parser, const std::string &name) : mParser(parser), mRulename(tolower(name)), mCachedContext(nullptr) {
 }
 
 template <typename _parserElementT>
@@ -449,7 +449,7 @@ _parserElementT ParserHandler<_derivedParserElementT,_parserElementT>::invoke(co
 		return universal_pointer_cast<_parserElementT>(mHandlerCreateFunc());
 	if (mHandlerCreateDebugFunc)
 		return universal_pointer_cast<_parserElementT>(mHandlerCreateDebugFunc(this->getRulename(), input.substr(begin, count)));
-	return NULL;
+	return nullptr;
 }
 
 
@@ -495,7 +495,7 @@ void ParserContext<_parserElementT>::_endParse(const ParserLocalContext &localct
 		if (count!=std::string::npos && count>0){
 			/*assign std::string to parent */
 			if (localctx.mRecognizer->getId()!=0)
-				mHandlerStack.back()->setChild(localctx.mRecognizer->getId(), begin, count, NULL);
+				mHandlerStack.back()->setChild(localctx.mRecognizer->getId(), begin, count, nullptr);
 		}else{
 			mHandlerStack.back()->undoAssignments(localctx.mAssignmentPos);
 		}
@@ -504,7 +504,7 @@ void ParserContext<_parserElementT>::_endParse(const ParserLocalContext &localct
 
 template <typename _parserElementT>
 _parserElementT ParserContext<_parserElementT>::createRootObject(const std::string &input){
-	 return mRoot ? mRoot->realize(input,0,input.size()) : NULL;
+	 return mRoot ? mRoot->realize(input,0,input.size()) : nullptr;
 }
 
 template <typename _parserElementT>

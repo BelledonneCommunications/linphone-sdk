@@ -19,7 +19,7 @@
 #ifndef _GRAMMARBUILDER_H_
 #define _GRAMMARBUILDER_H_
 
-#include "parser.hh"
+#include "parser.h"
 #include <vector>
 
 using namespace std;
@@ -161,9 +161,9 @@ public:
 	 * the protocol or language described in the grammar.
 	 * @param abnf the string that contains the abnf grammar.
 	 * @param grammar an optional grammar to include.
-	 * @return the Grammar object corresponding to the text definition loaded, NULL if an error occured.
+	 * @return the Grammar object corresponding to the text definition loaded, nullptr if an error occured.
 	**/
-	BELR_PUBLIC std::shared_ptr<Grammar> createFromAbnf(const std::string &abnf, const std::shared_ptr<Grammar> &grammar=NULL);
+	BELR_PUBLIC std::shared_ptr<Grammar> createFromAbnf(const std::string &abnf, const std::shared_ptr<Grammar> &grammar=nullptr);
 	/**
 	 * Create a grammar from an ABNF grammar defined in the text file pointed by path.
 	 * An optional Grammar argument corresponding to a grammar to include can be passed.
@@ -172,9 +172,9 @@ public:
 	 * the protocol or language described in the grammar.
 	 * @param path the path from where to load the abnf definition.
 	 * @param grammar an optional grammar to include.
-	 * @return the Grammar object corresponding to the text definition loaded, NULL if an error occured.
+	 * @return the Grammar object corresponding to the text definition loaded, nullptr if an error occured.
 	**/
-	BELR_PUBLIC std::shared_ptr<Grammar> createFromAbnfFile(const std::string &path, const std::shared_ptr<Grammar> &grammar=NULL);
+	BELR_PUBLIC std::shared_ptr<Grammar> createFromAbnfFile(const std::string &path, const std::shared_ptr<Grammar> &grammar=nullptr);
 private:
 	Parser<std::shared_ptr<ABNFBuilder>> mParser;
 };

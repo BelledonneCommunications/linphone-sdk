@@ -16,9 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "belr/abnf.hh"
-#include "belr/grammarbuilder.hh"
-#include "belr/parser.hh"
+#include "belr/abnf.h"
+#include "belr/grammarbuilder.h"
+#include "belr/parser.h"
 
 #include "bctoolbox/logging.h"
 
@@ -59,13 +59,13 @@ void ABNFNumval::parseValues(const string &val, int base){
 		mIsRange=true;
 		string first=val.substr(1,dash-1);
 		string last=val.substr(dash+1,string::npos);
-		mValues.push_back(strtol(first.c_str(),NULL,base));
-		mValues.push_back(strtol(last.c_str(),NULL,base));
+		mValues.push_back(strtol(first.c_str(),nullptr,base));
+		mValues.push_back(strtol(last.c_str(),nullptr,base));
 	}else{
 		mIsRange=false;
 		string tmp=val.substr(1,string::npos);
 		const char *s=tmp.c_str();
-		char *endptr=NULL;
+		char *endptr=nullptr;
 		do{
 			long lv=strtol(s,&endptr,base);
 			if (lv == 0 && s == endptr) {
@@ -135,7 +135,7 @@ shared_ptr< Recognizer > ABNFElement::buildRecognizer(const shared_ptr< Grammar 
 	}
 	bctbx_error("[belr] ABNFElement::buildRecognizer is empty, should not happen!");
 	abort();
-	return NULL;
+	return nullptr;
 }
 
 ABNFElement::ABNFElement() {
@@ -221,7 +221,7 @@ shared_ptr<Recognizer> ABNFConcatenation::buildRecognizer(const shared_ptr<Gramm
 		}
 		return seq;
 	}
-	return NULL;
+	return nullptr;
 }
 
 void ABNFConcatenation::addRepetition(const shared_ptr< ABNFRepetition >& r){
@@ -301,7 +301,7 @@ shared_ptr<Recognizer> ABNFRuleList::buildRecognizer(const shared_ptr<Grammar> &
 			grammar->addRule(rule->getName(), rule->buildRecognizer(grammar));
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 ABNFGrammarBuilder::ABNFGrammarBuilder()
@@ -345,10 +345,10 @@ shared_ptr<Grammar> ABNFGrammarBuilder::createFromAbnf(const string &abnf, const
 	shared_ptr<ABNFBuilder> builder = mParser.parseInput("rulelist",abnf,&parsed);
 	if (parsed<(size_t)abnf.size()){
 		bctbx_error("[belr] Only %llu bytes parsed over a total of %llu.", (unsigned long long)parsed, (unsigned long long) abnf.size());
-		return NULL;
+		return nullptr;
 	}
 	shared_ptr<Grammar> retGram;
-	if (gram==NULL) retGram=make_shared<Grammar>(abnf);
+	if (gram==nullptr) retGram=make_shared<Grammar>(abnf);
 	else retGram=gram;
 	builder->buildRecognizer(retGram);
 	bctbx_message("[belr] Succesfully created grammar with %i rules.", retGram->getNumRules());
@@ -366,7 +366,7 @@ shared_ptr<Grammar> ABNFGrammarBuilder::createFromAbnfFile(const string &path, c
 	ifstream istr(path);
 	if (!istr.is_open()){
 		bctbx_error("[belr] Could not open %s", path.c_str());
-		return NULL;
+		return nullptr;
 	}
 	stringstream sstr;
 	sstr<<istr.rdbuf();

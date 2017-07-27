@@ -221,12 +221,12 @@ public:
 	/**
 	 * Find a rule from the grammar, given its name.
 	 * @param name the name of the rule
-	 * @return the recognizer implementing this rule. Is NULL if the rule doesn't exist in the grammar.
+	 * @return the recognizer implementing this rule. Is nullptr if the rule doesn't exist in the grammar.
 	**/
 	BELR_PUBLIC std::shared_ptr<Recognizer> findRule(const std::string &name);
 	/**
 	 * Find a rule from the grammar, given its name.
-	 * Unlike findRule(), getRule() never returns NULL.
+	 * Unlike findRule(), getRule() never returns nullptr.
 	 * If the rule is not (yet) defined, it returns an undefined pointer, that will be set later if the rule gets defined.
 	 * This mechanism is required to allow defining rules in any order, and defining rules that call themselve recursively.
 	 * @param name the name of the rule to get

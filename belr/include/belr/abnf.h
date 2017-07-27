@@ -19,7 +19,7 @@
 #ifndef _ABNF_H_
 #define _ABNF_H_
 
-#include "belr.hh"
+#include "belr.h"
 
 namespace belr{
 

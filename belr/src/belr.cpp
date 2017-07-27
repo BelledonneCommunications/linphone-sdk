@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "belr/belr.hh"
-#include "belr/parser.hh"
+#include "belr/belr.h"
+#include "belr/parser.h"
 #include <algorithm>
 #include <iostream>
 
@@ -105,7 +105,7 @@ bool Recognizer::_getTransitionMap(TransitionMap* mask){
 	input.resize(2,'\0');
 	for(int i=0;i<256;++i){
 		input[0]=i;
-		if (feed(NULL,input,0)==1)
+		if (feed(nullptr,input,0)==1)
 			mask->mPossibleChars[i]=true;
 	}
 	return true;
@@ -201,7 +201,7 @@ void Selector::_optimize(int recursionLevel){
 	for (auto it=mElements.begin(); it!=mElements.end(); ++it){
 		(*it)->optimize(recursionLevel);
 	}
-	TransitionMap *all=NULL;
+	TransitionMap *all=nullptr;
 	bool intersectionFound=false;
 	for (auto it=mElements.begin(); it!=mElements.end() && !intersectionFound; ++it){
 		TransitionMap *cur=new TransitionMap();
@@ -403,7 +403,7 @@ Grammar::Grammar(const string& name) : mName(name){
 Grammar::~Grammar() {
 	for(auto it = mRecognizerPointers.begin(); it != mRecognizerPointers.end(); ++it) {
 		shared_ptr<RecognizerPointer> pointer = dynamic_pointer_cast<RecognizerPointer>(*it);
-		pointer->setPointed(NULL);
+		pointer->setPointed(nullptr);
 	}
 }
 
@@ -448,7 +448,7 @@ shared_ptr<Recognizer> Grammar::findRule(const string &argname){
 	if (it!=mRules.end()){
 		return (*it).second;
 	}
-	return NULL;
+	return nullptr;
 }
 
 shared_ptr<Recognizer> Grammar::getRule(const string &argname){
