@@ -187,7 +187,7 @@ REV-param = VALUE-param / any-param
 REV-value = timestamp
 
 SOUND = [group "."] "SOUND" *(";" SOUND-param) ":" SOUND-value
-SOUND-param = VALUE-param / LANGUAGE-param / PID-param / PREF-param 
+SOUND-param = VALUE-param / LANGUAGE-param / PID-param / PREF-param
 			/ TYPE-param / MEDIATYPE-param / ALTID-param / any-param
 SOUND-value = URI
 

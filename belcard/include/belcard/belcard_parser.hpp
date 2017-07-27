@@ -19,8 +19,8 @@
 #ifndef belcard_parser_hpp
 #define belcard_parser_hpp
 
-#include <belr/grammarbuilder.hh>
-#include <belr/abnf.hh>
+#include <belr/grammarbuilder.h>
+#include <belr/abnf.h>
 #include "belcard_utils.hpp"
 
 

@@ -21,8 +21,8 @@
 
 #include "belcard_utils.hpp"
 #include "belcard_property.hpp"
-#include <belr/grammarbuilder.hh>
-#include <belr/abnf.hh>
+#include <belr/grammarbuilder.h>
+#include <belr/abnf.h>
 
 #include <string>
 
@@ -32,23 +32,23 @@ namespace belcard {
 	public:
 		BELCARD_PUBLIC static std::shared_ptr<BelCardFBURL> parse(const std::string& input);
 		BELCARD_PUBLIC static void setHandlerAndCollectors(belr::Parser<std::shared_ptr<BelCardGeneric>> *parser);
-		
+
 		BELCARD_PUBLIC BelCardFBURL();
 	};
-	
+
 	class BelCardCALADRURI : public BelCardProperty {
 	public:
 		BELCARD_PUBLIC static std::shared_ptr<BelCardCALADRURI> parse(const std::string& input);
 		BELCARD_PUBLIC static void setHandlerAndCollectors(belr::Parser<std::shared_ptr<BelCardGeneric>> *parser);
-		
+
 		BELCARD_PUBLIC BelCardCALADRURI();
 	};
-	
+
 	class BelCardCALURI : public BelCardProperty {
 	public:
 		BELCARD_PUBLIC static std::shared_ptr<BelCardCALURI> parse(const std::string& input);
 		BELCARD_PUBLIC static void setHandlerAndCollectors(belr::Parser<std::shared_ptr<BelCardGeneric>> *parser);
-		
+
 		BELCARD_PUBLIC BelCardCALURI();
 	};
 }
