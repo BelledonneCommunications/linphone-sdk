@@ -68,10 +68,11 @@ public:
 	void optimize();
 	void optimize(int recursionLevel);
 protected:
+	Recognizer() = default;
+
 	/*returns true if the transition map is complete, false otherwise*/
 	virtual bool _getTransitionMap(TransitionMap *mask);
 	virtual void _optimize(int recursionLevel)=0;
-	Recognizer();
 	virtual size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos)=0;
 	std::string mName;
 	unsigned int mId = 0;
