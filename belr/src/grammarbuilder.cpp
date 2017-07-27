@@ -1,7 +1,24 @@
+/*
+ * grammarbuilder.cpp
+ * Copyright (C) 2017  Belledonne Communications SARL
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #include "belr/abnf.hh"
 #include "belr/grammarbuilder.hh"
-#include "belr/parser-impl.cc"
+#include "belr/parser.hh"
 
 #include "bctoolbox/logging.h"
 
@@ -9,6 +26,7 @@
 #include <fstream>
 #include <sstream>
 
+using namespace std;
 
 namespace belr{
 
@@ -16,7 +34,7 @@ ABNFBuilder::~ABNFBuilder(){
 }
 
 ABNFNumval::ABNFNumval() : mIsRange(false) {
-	
+
 }
 
 shared_ptr< ABNFNumval > ABNFNumval::create(){
@@ -77,7 +95,7 @@ shared_ptr< Recognizer > ABNFOption::buildRecognizer(const shared_ptr< Grammar >
 }
 
 ABNFOption::ABNFOption() {
-	
+
 }
 
 shared_ptr< ABNFOption > ABNFOption::create(){
@@ -89,7 +107,7 @@ void ABNFOption::setAlternation(const shared_ptr< ABNFAlternation >& a){
 }
 
 ABNFGroup::ABNFGroup() {
-	
+
 }
 
 shared_ptr< ABNFGroup > ABNFGroup::create(){
@@ -112,7 +130,7 @@ shared_ptr< Recognizer > ABNFElement::buildRecognizer(const shared_ptr< Grammar 
 	if (!mCharVal.empty()){
 		if (mCharVal.size()==1)
 			return Foundation::charRecognizer(mCharVal[0],false);
-		else 
+		else
 			return Utils::literal(mCharVal);
 	}
 	bctbx_error("[belr] ABNFElement::buildRecognizer is empty, should not happen!");
@@ -121,7 +139,7 @@ shared_ptr< Recognizer > ABNFElement::buildRecognizer(const shared_ptr< Grammar 
 }
 
 ABNFElement::ABNFElement() {
-	
+
 }
 
 shared_ptr< ABNFElement > ABNFElement::create(){
@@ -148,7 +166,7 @@ void ABNFElement::setProseVal(const string& prose){
 }
 
 ABNFRepetition::ABNFRepetition() : mMin(0), mMax(-1), mCount(-1) {
-	
+
 }
 
 shared_ptr< ABNFRepetition > ABNFRepetition::create(){
@@ -233,7 +251,7 @@ shared_ptr< Recognizer > ABNFAlternation::buildRecognizerNoOptim(const shared_pt
 }
 
 ABNFRule::ABNFRule() {
-	
+
 }
 
 shared_ptr<ABNFRule> ABNFRule::create(){
@@ -323,7 +341,7 @@ ABNFGrammarBuilder::ABNFGrammarBuilder()
 
 shared_ptr<Grammar> ABNFGrammarBuilder::createFromAbnf(const string &abnf, const shared_ptr<Grammar> &gram){
 	size_t parsed;
-	
+
 	shared_ptr<ABNFBuilder> builder = mParser.parseInput("rulelist",abnf,&parsed);
 	if (parsed<(size_t)abnf.size()){
 		bctbx_error("[belr] Only %llu bytes parsed over a total of %llu.", (unsigned long long)parsed, (unsigned long long) abnf.size());

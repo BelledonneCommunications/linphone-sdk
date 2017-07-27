@@ -21,11 +21,10 @@
 ############################################################################
 
 set(HEADER_FILES
-	abnf.hh
-	belr.hh
-	grammarbuilder.hh
-	parser.hh
-	parser-impl.cc
+	abnf.h
+	belr.h
+	grammarbuilder.h
+	parser.h
 )
 
 set(BELR_HEADER_FILES )

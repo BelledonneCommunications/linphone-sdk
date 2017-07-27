@@ -1,11 +1,28 @@
-#ifndef belr_hh
-#define belr_hh
+/*
+ * belr.h
+ * Copyright (C) 2017  Belledonne Communications SARL
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#ifndef _BELR_H_
+#define _BELR_H_
 
 #include <string>
 #include <list>
 #include <map>
 #include <memory>
-
 
 #ifdef _MSC_VER
 	#ifdef BELR_STATIC
@@ -22,7 +39,7 @@
 #endif
 
 namespace belr{
-	
+
 BELR_PUBLIC std::string tolower(const std::string &str);
 
 class ParserContextBase;
@@ -169,9 +186,9 @@ public:
 	 * Initialize an empty grammar, giving a name for debugging.
 	**/
 	BELR_PUBLIC Grammar(const std::string &name);
-	
+
 	BELR_PUBLIC ~Grammar();
-	
+
 	/**
 	 * Include another grammar into this grammar.
 	**/
@@ -209,7 +226,7 @@ public:
 	BELR_PUBLIC std::shared_ptr<Recognizer> findRule(const std::string &name);
 	/**
 	 * Find a rule from the grammar, given its name.
-	 * Unlike findRule(), getRule() never returns NULL. 
+	 * Unlike findRule(), getRule() never returns NULL.
 	 * If the rule is not (yet) defined, it returns an undefined pointer, that will be set later if the rule gets defined.
 	 * This mechanism is required to allow defining rules in any order, and defining rules that call themselve recursively.
 	 * @param name the name of the rule to get
@@ -226,7 +243,7 @@ public:
 	 * The optimization step consists in checking whether belr::Selector objects in the grammar are exclusive or not.
 	 * A selector is said exclusive when a single sub-rule can match. Knowing this in advance optimizes the processing because no branch
 	 * context is to be created to explore the different choices of the selector recognizer.
-	**/ 
+	**/
 	void optimize();
 	/**
 	 * Return the number of rules in this grammar.

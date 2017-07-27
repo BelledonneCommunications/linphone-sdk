@@ -22,11 +22,11 @@
 
 set(BELR_HEADER_FILES )
 set(BELR_SOURCE_FILES_C )
-set(BELR_SOURCE_FILES_CXX 
-	abnf.cc
-	belr.cc
-	grammarbuilder.cc
-	parser.cc
+set(BELR_SOURCE_FILES_CXX
+	abnf.cpp
+	belr.cpp
+	grammarbuilder.cpp
+	parser.cpp
 )
 
 bc_apply_compile_flags(BELR_SOURCE_FILES_C STRICT_OPTIONS_CPP STRICT_OPTIONS_C)

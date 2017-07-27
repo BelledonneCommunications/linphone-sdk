@@ -1,3 +1,21 @@
+/*
+ * abnf.cpp
+ * Copyright (C) 2017  Belledonne Communications SARL
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include "belr/abnf.hh"
 
 using namespace std;
@@ -27,7 +45,7 @@ CoreRules::CoreRules() : Grammar("core rules"){
 
 void CoreRules::alpha(){
 	shared_ptr<Selector> selector=Foundation::selector(true);
-	
+
 	selector->addRecognizer(Utils::char_range('a','z'));
 	selector->addRecognizer(Utils::char_range('A','Z'));
 
@@ -155,7 +173,7 @@ ABNFGrammar::ABNFGrammar(): Grammar("ABNF"){
 }
 
 void ABNFGrammar::crlf_or_lf(){
-	addRule("crlf-or-lf", 
+	addRule("crlf-or-lf",
 			Foundation::selector()
 				->addRecognizer(getRule("crlf"))
 				->addRecognizer(getRule("lf")));
@@ -361,8 +379,8 @@ void ABNFGrammar::element(){
 	);
 }
 
-/* 
-    "(" *c-wsp alternation *c-wsp ")" 
+/*
+    "(" *c-wsp alternation *c-wsp ")"
  */
 void ABNFGrammar::group(){
 	addRule("group", Foundation::sequence()

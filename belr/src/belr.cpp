@@ -1,4 +1,20 @@
-
+/*
+ * belr.cpp
+ * Copyright (C) 2017  Belledonne Communications SARL
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #include "belr/belr.hh"
 #include "belr/parser.hh"
@@ -56,7 +72,7 @@ const string &Recognizer::getName()const{
 
 size_t Recognizer::feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos){
 	size_t match;
-	
+
 	ParserLocalContext hctx;
 	if (ctx) ctx->beginParse(hctx, shared_from_this());
 	match=_feed(ctx, input, pos);
@@ -67,7 +83,7 @@ size_t Recognizer::feed(const shared_ptr<ParserContextBase> &ctx, const string &
 		}
 	}
 	if (ctx) ctx->endParse(hctx, input, pos, match);
-	
+
 	return match;
 }
 
@@ -144,7 +160,7 @@ bool Selector::_getTransitionMap(TransitionMap* mask){
 
 size_t Selector::_feedExclusive(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos){
 	size_t matched=0;
-	
+
 	for (auto it=mElements.begin(); it!=mElements.end(); ++it){
 		matched=(*it)->feed(ctx, input, pos);
 		if (matched!=string::npos && matched>0) {
@@ -156,11 +172,11 @@ size_t Selector::_feedExclusive(const shared_ptr<ParserContextBase> &ctx, const 
 
 size_t Selector::_feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos){
 	if (mIsExclusive) return _feedExclusive(ctx, input, pos);
-	
+
 	size_t matched=0;
 	size_t bestmatch=0;
 	shared_ptr<HandlerContextBase> bestBranch;
-	
+
 	for (auto it=mElements.begin(); it!=mElements.end(); ++it){
 		shared_ptr<HandlerContextBase> br;
 		if (ctx) br=ctx->branch();
@@ -238,7 +254,7 @@ bool Sequence::_getTransitionMap(TransitionMap* mask){
 size_t Sequence::_feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos){
 	size_t matched=0;
 	size_t total=0;
-	
+
 	for (auto it=mElements.begin(); it!=mElements.end(); ++it){
 		matched=(*it)->feed(ctx, input, pos);
 		if (matched==string::npos){
@@ -257,7 +273,7 @@ void Sequence::_optimize(int recursionLevel){
 
 
 Loop::Loop() : mMin(0), mMax(-1) {
-	
+
 }
 
 shared_ptr<Loop> Loop::setRecognizer(const shared_ptr<Recognizer> &element, int min, int max){
@@ -271,7 +287,7 @@ size_t Loop::_feed(const shared_ptr<ParserContextBase> &ctx, const string &input
 	size_t matched=0;
 	size_t total=0;
 	int repeat;
-	
+
 	for(repeat=0;mMax!=-1 ? repeat<mMax : true;repeat++){
 		matched=mRecognizer->feed(ctx, input, pos);
 		if (matched==string::npos) break;
@@ -324,7 +340,7 @@ shared_ptr<Loop> Foundation::loop(){
 }
 
 Literal::Literal(const string& lit) : mLiteral(tolower(lit)), mLiteralSize(mLiteral.size()) {
-	
+
 }
 
 size_t Literal::_feed(const shared_ptr< ParserContextBase >& ctx, const string& input, size_t pos){
@@ -497,4 +513,3 @@ string belr::tolower(const string &str){
 	transform(ret.begin(),ret.end(), ret.begin(), ::tolower);
 	return ret;
 }
-
