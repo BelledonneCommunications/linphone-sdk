@@ -19,13 +19,14 @@
 #ifndef _PARSER_H_
 #define _PARSER_H_
 
-#include <functional>
-#include <vector>
-#include <iostream>
 #include <algorithm>
+#include <functional>
+#include <iostream>
+#include <vector>
 
 #include "belr.h"
 
+// =============================================================================
 
 namespace belr {
 

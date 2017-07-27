@@ -19,7 +19,10 @@
 #include "belr/abnf.h"
 
 using namespace std;
+
 using namespace belr;
+
+// =============================================================================
 
 /*
  * CoreRules grammar

@@ -16,15 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "belr/belr.h"
 #include "belr/parser.h"
-#include <algorithm>
-#include <iostream>
 
+#include "belr/belr.h"
 
 using namespace std;
+
 using namespace belr;
 
+// =============================================================================
 
 TransitionMap::TransitionMap(){
 	for(size_t i=0;i<sizeof(mPossibleChars)/sizeof(bool);++i)

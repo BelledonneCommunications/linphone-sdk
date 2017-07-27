@@ -19,10 +19,12 @@
 #ifndef _BELR_H_
 #define _BELR_H_
 
-#include <string>
 #include <list>
 #include <map>
 #include <memory>
+#include <string>
+
+// =============================================================================
 
 #ifdef _MSC_VER
 	#ifdef BELR_STATIC

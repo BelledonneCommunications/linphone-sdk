@@ -16,17 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <fstream>
+
+#include <bctoolbox/logging.h>
+
 #include "belr/abnf.h"
-#include "belr/grammarbuilder.h"
 #include "belr/parser.h"
 
-#include "bctoolbox/logging.h"
-
-#include <iostream>
-#include <fstream>
-#include <sstream>
+#include "belr/grammarbuilder.h"
 
 using namespace std;
+
+// =============================================================================
 
 namespace belr{
 

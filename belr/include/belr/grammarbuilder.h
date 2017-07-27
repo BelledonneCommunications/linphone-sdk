@@ -20,9 +20,8 @@
 #define _GRAMMARBUILDER_H_
 
 #include "parser.h"
-#include <vector>
 
-using namespace std;
+// =============================================================================
 
 namespace belr{
 class ABNFAlternation;
