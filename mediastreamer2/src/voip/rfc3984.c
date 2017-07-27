@@ -325,11 +325,13 @@ static int is_unique_I_slice(const uint8_t *slice_header){
 
 static void store_nal(Rfc3984Context *ctx, mblk_t *nal){
 	uint8_t type=nal_header_get_type(nal->b_rptr);
+#if 0
 	if (ms_queue_empty(&ctx->q) && (ctx->status & Rfc3984FrameCorrupted)
 		&& (type == MSH264NaluTypeSPS || type == MSH264NaluTypePPS || type == MSH264NaluTypeIDR)){
 		ms_message("Previous discontinuity ignored since we are restarting with a keyframe.");
 		ctx->status = 0;
 	}
+#endif
 	if ((ctx->status & Rfc3984HasSPS) && (ctx->status & Rfc3984HasPPS) && type != MSH264NaluTypeIDR && mblk_get_marker_info(nal) && is_unique_I_slice(nal->b_rptr+1)){
 		ms_warning("Receiving a nal unit which is not IDR but a single I-slice bundled with SPS & PPS - considering it as a key frame.");
 		ctx->status |= Rfc3984IsKeyFrame;
