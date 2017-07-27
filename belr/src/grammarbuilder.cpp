@@ -30,10 +30,6 @@ using namespace std;
 // =============================================================================
 
 namespace belr{
-ABNFNumval::ABNFNumval() : mIsRange(false) {
-
-}
-
 shared_ptr< ABNFNumval > ABNFNumval::create(){
 	return make_shared<ABNFNumval>();
 }
@@ -91,20 +87,12 @@ shared_ptr< Recognizer > ABNFOption::buildRecognizer(const shared_ptr< Grammar >
 	return Foundation::loop()->setRecognizer(mAlternation->buildRecognizer(grammar),0,1);
 }
 
-ABNFOption::ABNFOption() {
-
-}
-
 shared_ptr< ABNFOption > ABNFOption::create(){
 	return make_shared<ABNFOption>();
 }
 
 void ABNFOption::setAlternation(const shared_ptr< ABNFAlternation >& a){
 	mAlternation=a;
-}
-
-ABNFGroup::ABNFGroup() {
-
 }
 
 shared_ptr< ABNFGroup > ABNFGroup::create(){
@@ -135,10 +123,6 @@ shared_ptr< Recognizer > ABNFElement::buildRecognizer(const shared_ptr< Grammar 
 	return nullptr;
 }
 
-ABNFElement::ABNFElement() {
-
-}
-
 shared_ptr< ABNFElement > ABNFElement::create(){
 	return make_shared<ABNFElement>();
 }
@@ -160,10 +144,6 @@ void ABNFElement::setProseVal(const string& prose){
 		bctbx_error("[belr] prose-val is not supported.");
 		abort();
 	}
-}
-
-ABNFRepetition::ABNFRepetition() : mMin(0), mMax(-1), mCount(-1) {
-
 }
 
 shared_ptr< ABNFRepetition > ABNFRepetition::create(){
@@ -245,10 +225,6 @@ shared_ptr< Recognizer > ABNFAlternation::buildRecognizerNoOptim(const shared_pt
 		sel->addRecognizer((*it)->buildRecognizer(grammar));
 	}
 	return sel;
-}
-
-ABNFRule::ABNFRule() {
-
 }
 
 shared_ptr<ABNFRule> ABNFRule::create(){

@@ -74,7 +74,7 @@ protected:
 	Recognizer();
 	virtual size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos)=0;
 	std::string mName;
-	unsigned int mId;
+	unsigned int mId = 0;
 };
 
 class CharRecognizer : public Recognizer{
@@ -89,7 +89,6 @@ private:
 
 class Selector : public Recognizer{
 public:
-	Selector();
 	std::shared_ptr<Selector> addRecognizer(const std::shared_ptr<Recognizer> &element);
 protected:
 	virtual void _optimize(int recursionLevel);
@@ -97,20 +96,17 @@ protected:
 	size_t _feedExclusive(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos);
 	virtual bool _getTransitionMap(TransitionMap *mask);
 	std::list<std::shared_ptr<Recognizer>> mElements;
-	bool mIsExclusive;
+	bool mIsExclusive = false;
 };
 
 /**This is an optimization of the first one for the case where there can be only a single match*/
 class ExclusiveSelector : public Selector{
-public:
-	ExclusiveSelector();
 private:
 	virtual size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos);
 };
 
 class Sequence : public Recognizer{
 public:
-	Sequence();
 	std::shared_ptr<Sequence> addRecognizer(const std::shared_ptr<Recognizer> &element);
 	virtual bool _getTransitionMap(TransitionMap *mask);
 protected:
@@ -122,7 +118,6 @@ private:
 
 class Loop : public Recognizer{
 public:
-	Loop();
 	std::shared_ptr<Loop> setRecognizer(const std::shared_ptr<Recognizer> &element, int min=0, int max=-1);
 	virtual bool _getTransitionMap(TransitionMap *mask);
 protected:
@@ -130,7 +125,8 @@ protected:
 private:
 	virtual size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos);
 	std::shared_ptr<Recognizer> mRecognizer;
-	int mMin, mMax;
+	int mMin = 0;
+	int mMax = -1;
 };
 
 
@@ -171,7 +167,6 @@ public:
 
 class RecognizerPointer :  public Recognizer{
 public:
-	RecognizerPointer();
 	std::shared_ptr<Recognizer> getPointed();
 	void setPointed(const std::shared_ptr<Recognizer> &r);
 private:

@@ -35,7 +35,6 @@ public:
 
 class ABNFRule : public ABNFBuilder{
 public:
-	ABNFRule();
 	static std::shared_ptr<ABNFRule> create();
 	void setName(const std::string &name);
 	void setDefinedAs(const std::string &defined_as);
@@ -62,7 +61,6 @@ private:
 
 class ABNFNumval : public ABNFBuilder{
 public:
-	ABNFNumval();
 	static std::shared_ptr<ABNFNumval> create();
 	std::shared_ptr<Recognizer> buildRecognizer(const std::shared_ptr<Grammar> &grammar);
 	void setDecVal(const std::string &decval);
@@ -71,12 +69,11 @@ public:
 private:
 	void parseValues(const std::string &val, int base);
 	std::vector<int> mValues;
-	bool mIsRange;
+	bool mIsRange = false;
 };
 
 class ABNFElement : public ABNFBuilder{
 public:
-	ABNFElement();
 	static std::shared_ptr<ABNFElement> create();
 	std::shared_ptr<Recognizer> buildRecognizer(const std::shared_ptr<Grammar> &grammar);
 	void setElement(const std::shared_ptr<ABNFBuilder> &e);
@@ -91,7 +88,6 @@ private:
 
 class ABNFGroup : public ABNFBuilder{
 public:
-	ABNFGroup();
 	static std::shared_ptr<ABNFGroup> create();
 	std::shared_ptr<Recognizer> buildRecognizer(const std::shared_ptr<Grammar> &grammar);
 	void setAlternation(const std::shared_ptr<ABNFAlternation> &a);
@@ -101,7 +97,6 @@ private:
 
 class ABNFRepetition : public ABNFBuilder{
 public:
-	ABNFRepetition();
 	static std::shared_ptr<ABNFRepetition> create();
 	void setRepeat(const std::string &r);
 	void setMin(int min);
@@ -110,14 +105,15 @@ public:
 	void setElement(const std::shared_ptr<ABNFElement> &e);
 	std::shared_ptr<Recognizer> buildRecognizer(const std::shared_ptr<Grammar> &grammar);
 private:
-	int mMin, mMax, mCount;
+	int mMin = 0;
+	int mMax = -1;
+	int mCount = -1;
 	std::string mRepeat;
 	std::shared_ptr<ABNFElement> mElement;
 };
 
 class ABNFOption : public ABNFBuilder{
 public:
-	ABNFOption();
 	static std::shared_ptr<ABNFOption> create();
 	void setAlternation(const std::shared_ptr<ABNFAlternation> &a);
 	std::shared_ptr<Recognizer> buildRecognizer(const std::shared_ptr<Grammar> &grammar);

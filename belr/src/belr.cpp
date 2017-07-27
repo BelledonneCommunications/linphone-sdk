@@ -54,11 +54,6 @@ void TransitionMap::merge(const TransitionMap* other){
 	}
 }
 
-
-
-Recognizer::Recognizer() : mId(0) {
-}
-
 void Recognizer::setName(const std::string& name){
 	static unsigned int id_base=0;
 	mName=name;
@@ -142,10 +137,6 @@ void CharRecognizer::_optimize(int recursionLevel){
 
 }
 
-
-Selector::Selector() : mIsExclusive(false){
-}
-
 shared_ptr<Selector> Selector::addRecognizer(const shared_ptr<Recognizer> &r){
 	mElements.push_back(r);
 	return static_pointer_cast<Selector> (shared_from_this());
@@ -221,18 +212,10 @@ void Selector::_optimize(int recursionLevel){
 	}
 }
 
-
-ExclusiveSelector::ExclusiveSelector() {
-	mIsExclusive = true;
-}
-
 size_t ExclusiveSelector::_feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos){
 	return Selector::_feedExclusive(ctx, input, pos);
 }
 
-
-Sequence::Sequence(){
-}
 
 shared_ptr<Sequence> Sequence::addRecognizer(const shared_ptr<Recognizer> &element){
 	mElements.push_back(element);
@@ -271,10 +254,6 @@ void Sequence::_optimize(int recursionLevel){
 		(*it)->optimize(recursionLevel);
 }
 
-
-Loop::Loop() : mMin(0), mMax(-1) {
-
-}
 
 shared_ptr<Loop> Loop::setRecognizer(const shared_ptr<Recognizer> &element, int min, int max){
 	mMin=min;
@@ -367,9 +346,6 @@ shared_ptr<Recognizer> Utils::literal(const string & lt){
 
 shared_ptr<Recognizer> Utils::char_range(int begin, int end){
 	return make_shared<CharRange>(begin, end);
-}
-
-RecognizerPointer::RecognizerPointer() {
 }
 
 shared_ptr<Recognizer> RecognizerPointer::getPointed(){
