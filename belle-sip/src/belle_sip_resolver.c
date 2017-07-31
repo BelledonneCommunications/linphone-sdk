@@ -1072,6 +1072,15 @@ static void dual_resolver_context_check_finished(belle_sip_dual_resolver_context
 
 static void on_ipv4_results(void *data, const char *name, struct addrinfo *ai_list, uint32_t ttl) {
 	belle_sip_dual_resolver_context_t *ctx = BELLE_SIP_DUAL_RESOLVER_CONTEXT(data);
+	struct addrinfo *ai = ai_list;
+	/* Convert v4mapped results to v4 */
+	while (ai != NULL) {
+		if (ai->ai_family == AF_INET6) {
+			bctbx_sockaddr_ipv6_to_ipv4(ai->ai_addr, ai->ai_addr, &ai->ai_addrlen);
+			if (ai->ai_addr->sa_family == AF_INET) ai->ai_family = AF_INET;
+		}
+		ai = ai->ai_next;
+	}
 	ctx->a_results = ai_list;
 	ctx->a_notified = TRUE;
 	dual_resolver_context_check_finished(ctx);
