@@ -187,6 +187,12 @@ static void enc_preprocess(MSFilter *f) {
 #if defined(__ANDROID__) || (TARGET_OS_IPHONE == 1) || defined(__arm__) || defined(_M_ARM)
 	cpuused = 10 - s->cfg.g_threads; /*cpu/quality tradeoff: positive values decrease CPU usage at the expense of quality*/
 	if (cpuused < 7) cpuused = 7; /*values beneath 7 consume too much CPU*/
+	if (ms_video_size_area_strictly_greater_than(s->vconf.vsize, MS_VIDEO_SIZE_VGA)){
+		if (s->cfg.g_threads <= 2) cpuused = 8;
+		else if (s->cfg.g_threads <= 4) cpuused = 5;
+		else cpuused = 1;
+		
+	}
 	if( s->cfg.g_threads == 1 ){
 		/* on mono-core iOS devices, we reduce the quality a bit more due to VP8 being slower with new Clang compilers */
 		cpuused = 16;

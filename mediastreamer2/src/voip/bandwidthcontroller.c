@@ -28,6 +28,12 @@ MSBandwidthController *ms_bandwidth_controller_new(void){
 	return obj;
 }
 
+void ms_bandwidth_controller_reset_state(MSBandwidthController *obj){
+	memset(&obj->stats, 0, sizeof(obj->stats));
+	obj->remote_video_bandwidth_available_estimated = 0;
+	obj->congestion_detected = 0;
+}
+
 static void ms_bandwidth_controller_estimate_bandwidths(MSBandwidthController *obj){
 	bctbx_list_t *elem;
 	float bandwidth = 0;
@@ -104,7 +110,7 @@ static void on_congestion_state_changed(const OrtpEventData *evd, void *user_poi
 		}
 		/*we shall reset the jitter buffers, so that they recover faster their diverged states*/
 		resync_jitter_buffers(obj);
-		video_bandwidth_estimator_params.enabled = FALSE; // Set to TRUE to enable
+		video_bandwidth_estimator_params.enabled = TRUE;
 	}
 	rtp_session_send_rtcp_fb_tmmbr(session, (uint64_t)controlled_stream_bandwidth_requested);
 	obj->remote_video_bandwidth_available_estimated = 0;
@@ -123,7 +129,7 @@ static void on_video_bandwidth_estimation_available(const OrtpEventData *evd, vo
 			obj->remote_video_bandwidth_available_estimated = estimated_bitrate;
 			rtp_session_send_rtcp_fb_tmmbr(session, (uint64_t)estimated_bitrate);
 		} else {
-			ms_message("MSBandwidthController: discarding available video bandwidth estimation (%f kbit/s) because it's lower than the previous one (%f kbit/s)", estimated_bitrate, obj->remote_video_bandwidth_available_estimated);
+			ms_message("MSBandwidthController: discarding available video bandwidth estimation (%f kbit/s) because it's lower than the previous one (%f kbit/s)", estimated_bitrate/1000, obj->remote_video_bandwidth_available_estimated/1000);
 		}
 	}
 }
@@ -134,6 +140,7 @@ static void elect_controlled_stream(MSBandwidthController *obj){
 	bctbx_list_t *elem;
 	bool_t done = FALSE;
 	OrtpVideoBandwidthEstimatorParams params = {0};
+	MediaStream *old_controlled_stream = obj->controlled_stream;
 	
 	obj->controlled_stream = NULL;
 	for (elem = obj->streams; elem != NULL && !done; elem = elem->next){
@@ -147,7 +154,7 @@ static void elect_controlled_stream(MSBandwidthController *obj){
 				done = TRUE;
 				ortp_ev_dispatcher_connect(media_stream_get_event_dispatcher(ms), ORTP_EVENT_NEW_VIDEO_BANDWIDTH_ESTIMATION_AVAILABLE, 0, 
 											on_video_bandwidth_estimation_available, ms);
-				params.enabled = FALSE; // Set to TRUE to enable
+				params.enabled = TRUE;
 				rtp_session_enable_video_bandwidth_estimator(ms->sessions.rtp_session, &params);
 			break;
 			case MSText:
@@ -155,6 +162,10 @@ static void elect_controlled_stream(MSBandwidthController *obj){
 			case MSUnknownMedia:
 			break;
 		}
+	}
+	if (obj->controlled_stream != old_controlled_stream && old_controlled_stream != NULL){
+		/*in case of change of controlled stream, we shall reset the state of the bandwidth controller*/
+		ms_bandwidth_controller_reset_state(obj);
 	}
 }
 
