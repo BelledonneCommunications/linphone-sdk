@@ -19,8 +19,8 @@
 #ifndef belcard_parser_hpp
 #define belcard_parser_hpp
 
-#include <belr/grammarbuilder.h>
-#include <belr/abnf.h>
+#include <belr/grammarbuilder.hh>
+#include <belr/abnf.hh>
 #include "belcard_utils.hpp"
 
 
@@ -28,21 +28,22 @@ namespace belcard {
 	class BelCardGeneric;
 	class BelCardList;
 	class BelCard;
-	
+
 	class BelCardParser {
-		
+
 	friend class BelCardProperty;
 	private:
 		belr::Parser<std::shared_ptr<BelCardGeneric>> *_parser;
-		
+
 	protected:
 		std::shared_ptr<BelCardGeneric> _parse(const std::string &input, const std::string &rule);
-		
+
 	public:
 		BELCARD_PUBLIC static std::shared_ptr<BelCardParser> getInstance();
 		BELCARD_PUBLIC BelCardParser();
+		BELCARD_PUBLIC BelCardParser(std::string fileName);
 		BELCARD_PUBLIC ~BelCardParser();
-		
+
 		BELCARD_PUBLIC std::shared_ptr<BelCard> parseOne(const std::string &input);
 		BELCARD_PUBLIC std::shared_ptr<BelCardList> parse(const std::string &input);
 		BELCARD_PUBLIC std::shared_ptr<BelCardList> parseFile(const std::string &filename);
