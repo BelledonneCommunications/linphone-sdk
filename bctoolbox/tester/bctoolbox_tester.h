@@ -34,6 +34,7 @@ extern "C" {
 
 extern test_suite_t containers_test_suite;
 extern test_suite_t utils_test_suite;
+extern test_suite_t crypto_test_suite;
 extern test_suite_t parser_test_suite;
 
 #ifdef __cplusplus

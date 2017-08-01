@@ -26,6 +26,7 @@ set(BCTOOLBOX_C_SOURCE_FILES
 	utils/port.c
 	vfs.c
 	vconnect.c
+	crypto/ecc.c
 	parser.c
 )
 
@@ -170,6 +171,17 @@ if(POLARSSL_FOUND)
 		target_link_libraries(bctoolbox PRIVATE ${POLARSSL_LIBRARIES})
 	endif()
 endif()
+if(DECAF_FOUND)
+	if(ENABLE_STATIC)
+		target_include_directories(bctoolbox-static PUBLIC ${DECAF_INCLUDE_DIRS})
+		target_link_libraries(bctoolbox-static INTERFACE ${DECAF_LIBRARY})
+	endif()
+	if(ENABLE_SHARED)
+		target_include_directories(bctoolbox PUBLIC ${DECAF_INCLUDE_DIRS})
+		target_link_libraries(bctoolbox PRIVATE ${DECAF_LIBRARY})
+	endif()
+endif()
+
 if(BCUNIT_FOUND)
 	if(ENABLE_STATIC)
 		target_include_directories(bctoolbox-tester-static PUBLIC ${BCUNIT_INCLUDE_DIRS})

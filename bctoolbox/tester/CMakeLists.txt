@@ -32,6 +32,7 @@ if(BCUNIT_FOUND AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 		bctoolbox_tester.h
 		containers.cc
 		port.c
+		crypto.c
 		parser.c
 	)
 
@@ -48,6 +49,9 @@ if(BCUNIT_FOUND AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 	endif()
 	if(POLARSSL_FOUND)
 		target_link_libraries(bctoolbox_tester_exe PRIVATE ${POLARSSL_LIBRARIES})
+	endif()
+	if(DECAF_FOUND)
+		target_link_libraries(bctoolbox_tester_exe PRIVATE ${DECAF_LIBRARY})
 	endif()
 	set_target_properties(bctoolbox_tester_exe PROPERTIES XCODE_ATTRIBUTE_WARNING_CFLAGS "")
 	add_test(NAME bctoolbox_tester COMMAND bctoolbox_tester --verbose)
