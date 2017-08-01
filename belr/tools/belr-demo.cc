@@ -1,5 +1,3 @@
-#include "belr/grammarbuilder.hh"
-#include "belr/abnf.hh"
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -7,7 +5,8 @@
 #include <ctime>
 #include <cstring>
 
-#include "belr/parser-impl.cc" //this file is to be included only in the file where the parser is instanciated, for template instanciation.
+#include "belr/grammarbuilder.h"
+#include "belr/abnf.h"
 
 using namespace::belr;
 using namespace::std;

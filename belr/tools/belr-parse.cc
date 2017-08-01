@@ -1,8 +1,3 @@
-
-
-
-#include "belr/grammarbuilder.hh"
-#include "belr/abnf.hh"
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -10,6 +5,9 @@
 #include <ctime>
 #include <cstring>
 #include <cstdlib>
+
+#include "belr/grammarbuilder.h"
+#include "belr/abnf.h"
 
 using namespace belr;
 using namespace std;
