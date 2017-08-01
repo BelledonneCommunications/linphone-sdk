@@ -267,12 +267,11 @@ size_t Loop::_feed(const shared_ptr<ParserContextBase> &ctx, const string &input
 	size_t total=0;
 	int repeat;
 
-	for(repeat=0;mMax!=-1 ? repeat<mMax : true;repeat++){
+	for(repeat=0;(mMax!=-1 ? repeat<mMax : true) && input[pos]!='\0';repeat++){
 		matched=mRecognizer->feed(ctx, input, pos);
 		if (matched==string::npos) break;
 		total+=matched;
 		pos+=matched;
-		if (input[pos]=='\0') break;
 	}
 	if (repeat<mMin) return string::npos;
 	return total;

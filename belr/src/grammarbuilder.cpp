@@ -314,15 +314,21 @@ ABNFGrammarBuilder::ABNFGrammarBuilder()
 
 shared_ptr<Grammar> ABNFGrammarBuilder::createFromAbnf(const string &abnf, const shared_ptr<Grammar> &gram){
 	size_t parsed;
-
 	shared_ptr<ABNFBuilder> builder = mParser.parseInput("rulelist",abnf,&parsed);
+	if (!builder) {
+		bctbx_error("[belr] Failed to create builder.");
+		return nullptr;
+	}
+
 	if (parsed<(size_t)abnf.size()){
 		bctbx_error("[belr] Only %llu bytes parsed over a total of %llu.", (unsigned long long)parsed, (unsigned long long) abnf.size());
 		return nullptr;
 	}
+
 	shared_ptr<Grammar> retGram;
 	if (gram==nullptr) retGram=make_shared<Grammar>(abnf);
 	else retGram=gram;
+
 	builder->buildRecognizer(retGram);
 	bctbx_message("[belr] Succesfully created grammar with %i rules.", retGram->getNumRules());
 	if (retGram->isComplete()){
