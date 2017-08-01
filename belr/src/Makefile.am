@@ -2,10 +2,10 @@
 lib_LTLIBRARIES=libbelr.la
 
 libbelr_la_SOURCES= \
-	belr.cc \
-	abnf.cc \
-	parser.cc \
-	grammarbuilder.cc
+	belr.cpp \
+	abnf.cpp \
+	parser.cpp \
+	grammarbuilder.cpp
 
 AM_CPPFLAGS=-I$(top_srcdir)/include
 
