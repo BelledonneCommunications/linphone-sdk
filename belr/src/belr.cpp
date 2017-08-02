@@ -68,14 +68,20 @@ const string &Recognizer::getName()const{
 size_t Recognizer::feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos){
 	size_t match;
 
+	#ifdef BELR_DEBUG
+	  cout << "Trying to match: "<<mName<<endl;
+	#endif
+
 	ParserLocalContext hctx;
 	if (ctx) ctx->beginParse(hctx, shared_from_this());
 	match=_feed(ctx, input, pos);
 	if (match!=string::npos && match>0){
-		if (0 && mName.size()>0){
-			string matched=input.substr(pos,match);
-			cout<<"Matched recognizer '"<<mName<<"' with sequence '"<<matched<<"'."<<endl;
-		}
+		#ifdef BELR_DEBUG
+			if (mName.size()>0){
+				string matched=input.substr(pos,match);
+				cout<<"Matched recognizer '"<<mName<<"' with sequence '"<<matched<<"'."<<endl;
+			}
+		#endif
 	}
 	if (ctx) ctx->endParse(hctx, input, pos, match);
 
@@ -143,10 +149,10 @@ shared_ptr<Selector> Selector::addRecognizer(const shared_ptr<Recognizer> &r){
 }
 
 bool Selector::_getTransitionMap(TransitionMap* mask){
-    for (auto it=mElements.begin(); it!=mElements.end(); ++it){
-	    (*it)->getTransitionMap(mask);
-    }
-    return true;
+		for (auto it=mElements.begin(); it!=mElements.end(); ++it){
+			(*it)->getTransitionMap(mask);
+		}
+		return true;
 }
 
 size_t Selector::_feedExclusive(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos){
