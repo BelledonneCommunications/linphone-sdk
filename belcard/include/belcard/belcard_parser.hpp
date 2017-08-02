@@ -41,6 +41,7 @@ namespace belcard {
 	public:
 		BELCARD_PUBLIC static std::shared_ptr<BelCardParser> getInstance();
 		BELCARD_PUBLIC BelCardParser();
+		BELCARD_PUBLIC BelCardParser(std::string fileName);
 		BELCARD_PUBLIC ~BelCardParser();
 		
 		BELCARD_PUBLIC std::shared_ptr<BelCard> parseOne(const std::string &input);
