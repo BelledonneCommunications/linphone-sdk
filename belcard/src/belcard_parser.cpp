@@ -94,9 +94,7 @@ BelCardParser::BelCardParser() {
 }
 
 BelCardParser::BelCardParser(std::string fileName) {
-
 	shared_ptr<Grammar> grammar = Grammar::loadVectRulesMap(fileName);
-
 	_parser = new Parser<shared_ptr<BelCardGeneric>>(grammar);
 	
 	BelCardList::setHandlerAndCollectors(_parser);
