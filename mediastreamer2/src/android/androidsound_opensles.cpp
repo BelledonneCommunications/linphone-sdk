@@ -924,10 +924,6 @@ static void android_snd_write_preprocess(MSFilter *obj) {
 	octx->nbufs = 0;
 }
 
-static int bytes_to_ms(OpenSLESOutputContext *octx, int bytes){
-	return bytes * 1000 / (2 * octx->opensles_context->nchannels * octx->opensles_context->samplerate);
-}
-
 static void android_snd_write_process(MSFilter *obj) {
 	OpenSLESOutputContext *octx = (OpenSLESOutputContext*)obj->data;
 	ms_mutex_lock(&octx->mutex);
