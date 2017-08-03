@@ -69,7 +69,7 @@ size_t Recognizer::feed(const shared_ptr<ParserContextBase> &ctx, const string &
 	size_t match;
 
 	#ifdef BELR_DEBUG
-	  cout << "Trying to match: "<<mName<<endl;
+		cout << "Trying to match: "<<mName<<endl;
 	#endif
 
 	ParserLocalContext hctx;
@@ -149,10 +149,10 @@ shared_ptr<Selector> Selector::addRecognizer(const shared_ptr<Recognizer> &r){
 }
 
 bool Selector::_getTransitionMap(TransitionMap* mask){
-		for (auto it=mElements.begin(); it!=mElements.end(); ++it){
-			(*it)->getTransitionMap(mask);
-		}
-		return true;
+	for (auto it=mElements.begin(); it!=mElements.end(); ++it){
+		(*it)->getTransitionMap(mask);
+	}
+	return true;
 }
 
 size_t Selector::_feedExclusive(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos){
