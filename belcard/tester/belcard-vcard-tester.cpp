@@ -137,51 +137,6 @@ static void property_sort_using_pref_param(void) {
 	BC_ASSERT_EQUAL((unsigned int)belCard->getProperties().size(), 1, unsigned int, "%u");
 }
 
-static void vcard_grammar_from_binary_dump(void) {
-	string grammarDumpFileName = bc_tester_file("vcardGrammarDump.bin");
-	remove(grammarDumpFileName.c_str());
-
-	ABNFGrammarBuilder grammar_builder;
-	shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
-	grammar->createGrammarDump(grammarDumpFileName);
-	shared_ptr<Grammar> grammar2 = Grammar::loadVectRulesMap(grammarDumpFileName);
-	BC_ASSERT_TRUE(grammar->equal(grammar2));
-}
-
-static void vcard_parsing_serialized(void) {
-	string vcard = openFile("vcards/vcard.vcf");
-	string grammarDumpFileName = bc_tester_file("vcardGrammarDump.bin");
-  	remove(grammarDumpFileName.c_str());
-
-	belr::ABNFGrammarBuilder grammar_builder;
-	shared_ptr<belr::Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<belr::CoreRules>());
-	grammar->createGrammarDump(grammarDumpFileName);
-
-	BelCardParser *parser = new BelCardParser(grammarDumpFileName);
-	shared_ptr<BelCard> belCard = parser->parseOne(vcard);
-	if (!BC_ASSERT_TRUE(belCard!=NULL)) return;
-	BC_ASSERT_TRUE(belCard->assertRFCCompliance());
-
-	string vcard2 = belCard->toFoldedString();
-	BC_ASSERT_EQUAL(vcard2.compare(vcard), 0, int, "%d");
-	delete(parser);
-}
-
-static void vcards_parsing_serialized(void) {
-	string vcards = openFile("vcards/vcards.vcf");
-	string grammarDumpFileName = bc_tester_file("vcardGrammarDump.bin");
-
-	BelCardParser *parser = new BelCardParser(grammarDumpFileName);
-
-	shared_ptr<BelCardList> belCards = parser->parse(vcards);
-	if (!BC_ASSERT_TRUE(belCards!=NULL)) return;
-	BC_ASSERT_EQUAL((unsigned int)belCards->getCards().size(), 2, unsigned int, "%u");
-
-	string vcards2 = belCards->toString();
-	BC_ASSERT_EQUAL(vcards2.compare(vcards), 0, int, "%d");
-	delete(parser);
-}
-
 static test_t tests[] = {
 	TEST_NO_TAG("Folding", folding),
 	TEST_NO_TAG("Unfolding", unfolding),
@@ -189,9 +144,6 @@ static test_t tests[] = {
 	TEST_NO_TAG("VCards parsing", vcards_parsing),
 	TEST_NO_TAG("VCard created from scratch", create_vcard_from_api),
 	TEST_NO_TAG("Property sort using pref param", property_sort_using_pref_param),
-	TEST_NO_TAG("VCard grammar from binary dump", vcard_grammar_from_binary_dump),
-	TEST_NO_TAG("VCard parsing serialized", vcard_parsing_serialized),
-	TEST_NO_TAG("VCards parsing serialized", vcards_parsing_serialized),
 };
 
 test_suite_t vcard_test_suite = {
