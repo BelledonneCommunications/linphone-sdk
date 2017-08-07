@@ -694,7 +694,7 @@ static int _resolver_start_query(belle_sip_simple_resolver_context_t *ctx) {
 		return -1;
 
 	memset(&opts, 0, sizeof opts);
-
+	
 	/* When there are IPv6 nameservers, allow responses to arrive from an IP address that is not the IP address to which the request was sent originally.
 		* Mac' NAT64 network tend to do this sometimes.*/
 	opts.udp_uses_connect = ctx->resconf->iface.ss_family != AF_INET6;
@@ -1076,7 +1076,7 @@ static void on_ipv4_results(void *data, const char *name, struct addrinfo *ai_li
 	/* Convert v4mapped results to v4 */
 	while (ai != NULL) {
 		if (ai->ai_family == AF_INET6) {
-			bctbx_sockaddr_ipv6_to_ipv4(ai->ai_addr, ai->ai_addr, (socklen_t*)&ai->ai_addrlen);
+			bctbx_sockaddr_ipv6_to_ipv4(ai->ai_addr, ai->ai_addr, &ai->ai_addrlen);
 			if (ai->ai_addr->sa_family == AF_INET) ai->ai_family = AF_INET;
 		}
 		ai = ai->ai_next;
