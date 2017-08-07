@@ -129,7 +129,7 @@ bctbx_log_handler_t* bctbx_create_file_log_handler(uint64_t max_size, const char
 	filehandler->max_size = max_size;
 	// init with actual file size
 	if(stat(full_name, &buf) != 0) {
-		fprintf(stderr,"Error while creating file log handler. \n");
+		fprintf(stderr,"Error while creating file log %s because : %s. \n", full_name, strerror(errno));
 		return NULL;
 	}
 	bctbx_free(full_name);
