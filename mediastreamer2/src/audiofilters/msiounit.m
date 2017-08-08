@@ -425,6 +425,7 @@ static OSStatus au_write_cb (
 static void configure_audio_session (au_card_t* d,uint64_t time) {
 	NSString *audioCategory;
 	NSString *audioMode;
+	NSError *err;
 	//UInt32 audioCategorySize=sizeof(audioCategory);
 	AVAudioSession *audioSession = [AVAudioSession sharedInstance];
 	bool_t changed;
@@ -440,10 +441,11 @@ static void configure_audio_session (au_card_t* d,uint64_t time) {
 		}
 
 		if (!d->audio_session_configured || changed) {
-			[audioSession setActive:TRUE error:nil];
+			[audioSession setActive:TRUE error:&err];
+			if(err) ms_error("%s", [err localizedDescription].UTF8String);
 
 			if (d->is_ringer && kCFCoreFoundationVersionNumber > kCFCoreFoundationVersionNumber10_6 /*I.E is >=OS4*/) {
-				audioCategory= AVAudioSessionCategoryAmbient;
+				audioCategory = AVAudioSessionCategoryAmbient;
 				audioMode = AVAudioSessionModeDefault;
 				ms_message("Configuring audio session for playback");
 			} else {
@@ -451,13 +453,12 @@ static void configure_audio_session (au_card_t* d,uint64_t time) {
 				audioMode = AVAudioSessionModeVoiceChat;
 				ms_message("Configuring audio session for playback/record");
 			}
-			//NSError *err1;
-			//NSError *err2;
-			[audioSession setCategory:audioCategory error:nil];
-			//check_audiounit_call(err1);
-			[audioSession setMode:audioMode error:nil];
-			//check_audiounit_call(err2);
 
+			[audioSession setCategory:audioCategory error:&err];
+			if(err) ms_error("%s", [err localizedDescription].UTF8String);
+
+			[audioSession setMode:audioMode error:&err];
+			if(err) ms_error("%s", [err localizedDescription].UTF8String);
 		}else{
 			ms_message("Audio session already correctly configured.");
 		}
@@ -526,7 +527,9 @@ static void destroy_audio_unit (au_card_t* d) {
 		AudioComponentInstanceDispose (d->io_unit);
 		d->io_unit=NULL;
 		if (!d->is_fast) {
-			[[AVAudioSession sharedInstance] setActive:FALSE withOptions:AVAudioSessionSetActiveOptionNotifyOthersOnDeactivation error:nil];
+			NSError *err;
+			[[AVAudioSession sharedInstance] setActive:FALSE withOptions:AVAudioSessionSetActiveOptionNotifyOthersOnDeactivation error:&err];
+			if(err) ms_error("%s", [err localizedDescription].UTF8String);
 		}
 		ms_message("AudioUnit destroyed");
 	}
@@ -560,7 +563,7 @@ static void au_read_preprocess(MSFilter *f){
 	au_filter_read_data_t *d= (au_filter_read_data_t*)f->data;
 	au_card_t* card=d->base.card;
 	AVAudioSession *audioSession = [AVAudioSession sharedInstance];
-	//NSError *err;
+	NSError *err;
 	cancel_audio_unit_timer(card);
 	configure_audio_session(card, f->ticker->time);
 
@@ -584,8 +587,8 @@ static void au_read_preprocess(MSFilter *f){
 			preferredBufferSize= .015;
 	}
 	[audioSession setPreferredIOBufferDuration:(NSTimeInterval)preferredBufferSize 
-                               error:nil];
-	//check_session_call( err );
+                               error:&err];
+	if(err) ms_error("%s", [err localizedDescription].UTF8String);
 }
 
 static void au_read_postprocess(MSFilter *f){
@@ -623,6 +626,7 @@ static void au_read_process(MSFilter *f){
 static void au_write_preprocess(MSFilter *f){
 	ms_debug("au_write_preprocess");
 	OSStatus auresult;
+	NSError *err;
 	au_filter_write_data_t *d= (au_filter_write_data_t*)f->data;
 	au_card_t* card=d->base.card;
 	AVAudioSession *audioSession = [AVAudioSession sharedInstance];
@@ -733,19 +737,21 @@ static void au_write_preprocess(MSFilter *f){
 	 */
 	if(card->rate == 8000 && (floor(NSFoundationVersionNumber) >= NSFoundationVersionNumber_iOS_9_x_Max)) {
 		hwsamplerate=48000;
-		[audioSession setPreferredSampleRate:hwsamplerate error:nil];
+		[audioSession setPreferredSampleRate:hwsamplerate error:&err];
+		if(err) ms_error("%s", [err localizedDescription].UTF8String);
 		return;
 	}
 
 	if( hwsamplerate != card->rate) {
-		if(card->rate <= 44100 ){
+		if(card->rate <= 44100 || (floor(NSFoundationVersionNumber) >= NSFoundationVersionNumber_iOS_9_x_Max)){
 			hwsamplerate=card->rate;
-			[audioSession setPreferredSampleRate:hwsamplerate error:nil];
+			[audioSession setPreferredSampleRate:hwsamplerate error:&err];
+			if(err) ms_error("%s", [err localizedDescription].UTF8String);
 		} else {
-			ms_message("Not applying kAudioSessionProperty_PreferredHardwareSampleRate because asked rate is too high [%i]",((int)hwsamplerate));
+			ms_message("Not applying PreferredSampleRate because asked rate is too high [%i]",((int)hwsamplerate));
 		}
 	} else {
-		ms_message("Not applying kAudioSessionProperty_PreferredHardwareSampleRate because HW rate already correct [%i]",((int)hwsamplerate));
+		ms_message("Not applying PreferredSampleRate because HW rate already correct [%i]",((int)hwsamplerate));
 	}
 }
 
