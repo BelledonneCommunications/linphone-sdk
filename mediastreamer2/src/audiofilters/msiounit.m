@@ -425,7 +425,7 @@ static OSStatus au_write_cb (
 static void configure_audio_session (au_card_t* d,uint64_t time) {
 	NSString *audioCategory;
 	NSString *audioMode;
-	NSError *err;
+	NSError *err = nil;;
 	//UInt32 audioCategorySize=sizeof(audioCategory);
 	AVAudioSession *audioSession = [AVAudioSession sharedInstance];
 	bool_t changed;
@@ -443,6 +443,7 @@ static void configure_audio_session (au_card_t* d,uint64_t time) {
 		if (!d->audio_session_configured || changed) {
 			[audioSession setActive:TRUE error:&err];
 			if(err) ms_error("Unable to activate audio session because : %s", [err localizedDescription].UTF8String);
+			err = nil;
 
 			if (d->is_ringer && kCFCoreFoundationVersionNumber > kCFCoreFoundationVersionNumber10_6 /*I.E is >=OS4*/) {
 				audioCategory = AVAudioSessionCategoryAmbient;
@@ -456,9 +457,11 @@ static void configure_audio_session (au_card_t* d,uint64_t time) {
 
 			[audioSession setCategory:audioCategory error:&err];
 			if(err) ms_error("Unable to change audio category because : %s", [err localizedDescription].UTF8String);
+			err = nil;
 
 			[audioSession setMode:audioMode error:&err];
 			if(err) ms_error("Unable to change audio mode because : %s", [err localizedDescription].UTF8String);
+			err = nil;
 		}else{
 			ms_message("Audio session already correctly configured.");
 		}
@@ -527,9 +530,10 @@ static void destroy_audio_unit (au_card_t* d) {
 		AudioComponentInstanceDispose (d->io_unit);
 		d->io_unit=NULL;
 		if (!d->is_fast) {
-			NSError *err;
+			NSError *err = nil;;
 			[[AVAudioSession sharedInstance] setActive:FALSE withOptions:AVAudioSessionSetActiveOptionNotifyOthersOnDeactivation error:&err];
 			if(err) ms_error("Unable to activate audio session because : %s", [err localizedDescription].UTF8String);
+			err = nil;
 		}
 		ms_message("AudioUnit destroyed");
 	}
@@ -563,7 +567,7 @@ static void au_read_preprocess(MSFilter *f){
 	au_filter_read_data_t *d= (au_filter_read_data_t*)f->data;
 	au_card_t* card=d->base.card;
 	AVAudioSession *audioSession = [AVAudioSession sharedInstance];
-	NSError *err;
+	NSError *err = nil;;
 	cancel_audio_unit_timer(card);
 	configure_audio_session(card, f->ticker->time);
 
@@ -589,6 +593,7 @@ static void au_read_preprocess(MSFilter *f){
 	[audioSession setPreferredIOBufferDuration:(NSTimeInterval)preferredBufferSize 
                                error:&err];
 	if(err) ms_error("Unable to change IO buffer duration because : %s", [err localizedDescription].UTF8String);
+	err = nil;
 }
 
 static void au_read_postprocess(MSFilter *f){
@@ -626,7 +631,7 @@ static void au_read_process(MSFilter *f){
 static void au_write_preprocess(MSFilter *f){
 	ms_debug("au_write_preprocess");
 	OSStatus auresult;
-	NSError *err;
+	NSError *err = nil;;
 	au_filter_write_data_t *d= (au_filter_write_data_t*)f->data;
 	au_card_t* card=d->base.card;
 	AVAudioSession *audioSession = [AVAudioSession sharedInstance];
@@ -739,6 +744,7 @@ static void au_write_preprocess(MSFilter *f){
 		hwsamplerate=48000;
 		[audioSession setPreferredSampleRate:hwsamplerate error:&err];
 		if(err) ms_error("Unable to change sample rate because : %s", [err localizedDescription].UTF8String);
+		err = nil;
 		return;
 	}
 
@@ -747,6 +753,7 @@ static void au_write_preprocess(MSFilter *f){
 			hwsamplerate=card->rate;
 			[audioSession setPreferredSampleRate:hwsamplerate error:&err];
 			if(err) ms_error("Unable to change sample rate because : %s", [err localizedDescription].UTF8String);
+			err = nil;
 		} else {
 			ms_message("Not applying PreferredSampleRate because asked rate is too high [%i]",((int)hwsamplerate));
 		}
