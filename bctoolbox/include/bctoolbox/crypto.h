@@ -571,7 +571,7 @@ BCTBX_PUBLIC void bctbx_DestroyDHMContext(bctbx_DHMContext_t *context);
  *
  * @brief return TRUE if the Elliptic Curve Cryptography is available
  */
-int bctbx_crypto_have_ecc(void);
+BCTBX_PUBLIC int bctbx_crypto_have_ecc(void);
 
 /**
  * @brief Context for the EC Diffie-Hellman-Merkle key exchange on curve 25519 and 448
@@ -658,7 +658,7 @@ BCTBX_PUBLIC void bctbx_DestroyECDHContext(bctbx_ECDHContext_t *context);
 typedef struct bctbx_EDDSAContext_struct {
 	uint8_t algo; /**< Algorithm used for the key exchange mapped to an int: BCTBX_EDDSA_25519, BCTBX_EDDSA_448 */
 	uint16_t pointCoordinateLength; /**< length in bytes of a serialised point coordinate, can be 32 or 57 */
-	uint8_t *secretKey; /**< the random secret (scalar) used to compute public key and message signature, is the same length than a serialised point coordinate */  
+	uint8_t *secretKey; /**< the random secret (scalar) used to compute public key and message signature, is the same length than a serialised point coordinate */
 	uint8_t secretLength; /**< in bytes, usually the same than pointCoordinateLength */
 	uint8_t *publicKey; /**< MULT(HASH(secretKey), BasePoint), serialised coordinate */
 	void *cryptoModuleData; /**< a context needed by the underlying crypto implementation - note if in use, most of the previous buffers could be store in it actually */
@@ -804,7 +804,7 @@ BCTBX_PUBLIC void bctbx_sha512(const uint8_t *input,
  * @param[out]	output		Output data buffer.
  *
  */
-void bctbx_sha384(const uint8_t *input,
+BCTBX_PUBLIC void bctbx_sha384(const uint8_t *input,
 		size_t inputLength,
 		uint8_t hashLength,
 		uint8_t *output);
