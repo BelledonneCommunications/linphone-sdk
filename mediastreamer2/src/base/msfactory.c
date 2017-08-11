@@ -224,13 +224,15 @@ void ms_factory_init(MSFactory *obj){
 #endif
 #if defined(__ANDROID__) || (TARGET_OS_IPHONE == 1) || defined(__arm__) || defined(_M_ARM)
 	ms_factory_add_platform_tag(obj, "embedded");
+	obj->echo_canceller_filtername = ms_strdup("MSWebRTCAECM");
 #else
 	ms_factory_add_platform_tag(obj, "desktop");
+	obj->echo_canceller_filtername = ms_strdup("MSWebRTCAEC");
 #endif
 	tags = ms_factory_get_platform_tags_as_string(obj);
 	ms_message("ms_factory_init() done: platform_tags=%s", tags);
 	ms_free(tags);
-	obj->echo_canceller_filtername = ms_strdup("MSWebRTCAECM");
+	
 	obj->image_resources_dir = bctbx_strdup_printf("%s/images", PACKAGE_DATA_DIR);
 }
 
