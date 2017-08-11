@@ -194,6 +194,12 @@ if(ENABLE_AEC)
 		${WEBRTC_SRC_DIR}/modules/audio_processing/three_band_filter_bank.cc
 	)
 	bc_apply_compile_flags(AEC_CXX11_SRCS AEC_CXX11_FLAGS)
+	if(SYSTEM_PROCESSOR MATCHES "^aarch64.*")
+		add_definitions(
+			-DWEBRTC_ARCH_ARM64=1
+		)
+	endif()
+	
 	if(SYSTEM_PROCESSOR MATCHES "^arm.*" OR SYSTEM_PROCESSOR MATCHES "^aarch64.*")
 		list(APPEND AEC_SRCS
 			${AEC_SRC_DIR}/aec_core_neon.c
