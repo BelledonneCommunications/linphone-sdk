@@ -67,6 +67,7 @@ static SoundDeviceDescription devices[]={
 	{	"motorola",				"XT907",				"",				0,	500 },
 	{	"motorola",				"DROIX X2",				"",				0,	320 },
 	{	"motorola",				"MotoG3",				"msm8916",		DEVICE_HAS_BUILTIN_AEC_CRAPPY,	100 }, /*The MotoG3 audio capture hangs for several seconds when switching to speaker mode*/
+	{	"motorola",				"Moto G (4)",				"msm8952",			0, 0, 44100 }, /*the soundcard doesn't work well at 48khz, it apparently output 44100 ! */
 	{	"motorola",				"Nexus 6",				"msm8084",		DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0}, /* Nexus 6*/
 	{	"samsung",				"GT-S5360",				"bcm21553",		0,	250 }, /*<Galaxy Y*/
 	{	"samsung",				"GT-S5360L",			"",				0,	250 }, /*<Galaxy Y*/

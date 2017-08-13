@@ -137,8 +137,6 @@ struct OpenSLESOutputContext {
 		nbufs = 0;
 		outBufSize = DeviceFavoriteBufferSize;
 		ms_flow_controlled_bufferizer_init(&buffer, f, DeviceFavoriteSampleRate, 1);
-		ms_flow_controlled_bufferizer_set_max_size_ms(&buffer, flowControlThresholdMs);
-		ms_flow_controlled_bufferizer_set_flow_control_interval_ms(&buffer, flowControlIntervalMs);
 		ms_mutex_init(&mutex,NULL);
 
 		currentBuffer = 0;
@@ -157,6 +155,8 @@ struct OpenSLESOutputContext {
 		opensles_context = context;
 		ms_flow_controlled_bufferizer_set_samplerate(&buffer, opensles_context->samplerate);
 		ms_flow_controlled_bufferizer_set_nchannels(&buffer, opensles_context->nchannels);
+		ms_flow_controlled_bufferizer_set_max_size_ms(&buffer, flowControlThresholdMs);
+		ms_flow_controlled_bufferizer_set_flow_control_interval_ms(&buffer, flowControlIntervalMs);
 	}
 
 	OpenSLESContext *opensles_context;
@@ -262,10 +262,9 @@ static void android_snd_card_detect(MSSndCardManager *m) {
 		ms_message("libOpenSLES correctly loaded, creating OpenSLES MS soundcard");
 		devices = ms_factory_get_devices_info(m->factory);
 		d = ms_devices_info_get_sound_device_description(devices);
-		if (d->flags & DEVICE_HAS_CRAPPY_OPENSLES)
-            return;
-        MSSndCard *card = android_snd_card_new(m);
-        ms_snd_card_manager_add_card(m, card);
+		if (d->flags & DEVICE_HAS_CRAPPY_OPENSLES) return;
+		MSSndCard *card = android_snd_card_new(m);
+		ms_snd_card_manager_add_card(m, card);
 	} else {
 		ms_warning("Failed to dlopen libOpenSLES, OpenSLES MS soundcard unavailable");
 	}
@@ -839,11 +838,6 @@ static SLresult opensles_player_callback_init(OpenSLESOutputContext *octx) {
         return result;
 }
 
-static OpenSLESOutputContext* opensles_output_context_init(MSFilter *f) {
-	OpenSLESOutputContext* octx = new OpenSLESOutputContext(f);
-	return octx;
-}
-
 static MSFilter *android_snd_card_create_writer(MSSndCard *card) {
 	MSFilter *f = ms_android_snd_write_new(ms_snd_card_get_factory(card));
 	OpenSLESOutputContext *octx = static_cast<OpenSLESOutputContext*>(f->data);
@@ -852,7 +846,7 @@ static MSFilter *android_snd_card_create_writer(MSSndCard *card) {
 }
 
 static void android_snd_write_init(MSFilter *obj){
-	OpenSLESOutputContext *octx = opensles_output_context_init(obj);
+	OpenSLESOutputContext *octx = new OpenSLESOutputContext(obj);
 	obj->data = octx;
 }
 
@@ -956,6 +950,10 @@ static void android_snd_write_postprocess(MSFilter *obj) {
 		(*octx->outputMixObject)->Destroy(octx->outputMixObject);
 		octx->outputMixObject = NULL;
 	}
+	free(octx->playBuffer[0]);
+	octx->playBuffer[0]=NULL;
+	free(octx->playBuffer[1]);
+	octx->playBuffer[1]=NULL;
 }
 
 static MSFilterMethod android_snd_write_methods[] = {
