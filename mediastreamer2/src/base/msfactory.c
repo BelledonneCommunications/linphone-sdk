@@ -24,9 +24,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #   ifndef MEDIASTREAMER_VERSION
 #   define MEDIASTREAMER_VERSION "unknown"
 #   endif
-#	ifndef MS2_GIT_VERSION
-#	define MS2_GIT_VERSION "unknown"
-#	endif
+#endif
+
+#ifndef MS2_GIT_VERSION
+#define MS2_GIT_VERSION "unknown"
 #endif
 
 #include "mediastreamer2/msfilter.h"
