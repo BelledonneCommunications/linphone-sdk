@@ -31,7 +31,7 @@ struct authorization_context {
 	const char* user_id;
 	const char* algorithm;
 	int nonce_count;
-	int is_proxy;
+	int is_proxy; /*To know if created by a 407*/
 };
 
 GET_SET_STRING(authorization_context,realm)
@@ -1043,9 +1043,6 @@ static void authorization_context_fill_from_auth(authorization_context_t* auth_c
 	authorization_context_set_opaque(auth_context,belle_sip_header_www_authenticate_get_opaque(authenticate));
 	authorization_context_set_user_id(auth_context, from_uri?belle_sip_uri_get_user(from_uri):NULL);
 
-	if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(authenticate,belle_sip_header_proxy_authenticate_t)) {
-		auth_context->is_proxy=1;
-	}
 }
 
 
@@ -1114,6 +1111,11 @@ static void  belle_sip_provider_update_or_create_auth_context(belle_sip_provider
 
 	/*no auth context found, creating one*/
 	auth_context=belle_sip_authorization_create(call_id);
+	
+	if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(authenticate,belle_sip_header_proxy_authenticate_t)) {
+		auth_context->is_proxy=1; /*this cannot be changed*/
+	}
+	
 	belle_sip_debug("belle_sip_provider_auth: no matching auth context, creating one for [realm=%s][user_id=%s][call_id=%s]"
 		, belle_sip_header_www_authenticate_get_realm(authenticate)?belle_sip_header_www_authenticate_get_realm(authenticate):"(null)"
 		, from_uri?belle_sip_uri_get_user(from_uri):"(null)"
@@ -1221,18 +1223,26 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_requ
 				belle_sip_auth_event_set_userid(auth_event,auth_event->username);
 			}
 			belle_sip_message("Auth info found for [%s] realm [%s]",auth_event->userid,auth_event->realm);
-			if (auth_context->is_proxy ||
-				(!belle_sip_header_call_id_equals(call_id,auth_context->callid)
-						&&realm
-						&&strcmp(realm,auth_context->realm)==0
-						&&from_uri
-						&&strcmp(auth_event->username,belle_sip_uri_get_user(from_uri))==0
-						&&strcmp("REGISTER",request_method)!=0)) /* Relying on method name for choosing between authorization and proxy-authorization
-						is not very strong but I don't see any better solution as we don't know all the time what type of challange we will have*/{
-				authorization=BELLE_SIP_HEADER_AUTHORIZATION(belle_sip_header_proxy_authorization_new());
-			} else {
+			
+			if (belle_sip_header_call_id_equals(call_id,auth_context->callid)) {
+				/*Same call id so we can make sure auth_context->is_proxy is accurate*/
+				if (auth_context->is_proxy)
+					authorization=BELLE_SIP_HEADER_AUTHORIZATION(belle_sip_header_proxy_authorization_new());
+				else
+					authorization=belle_sip_header_authorization_new();
+				
+			} else if (realm
+					   &&strcmp(realm,auth_context->realm)==0
+					   &&from_uri
+					   &&strcmp(auth_event->username,belle_sip_uri_get_user(from_uri))==0
+					   &&strcmp("REGISTER",request_method)==0){
+				/*We can only guess, so for REGISTER, it's probably Authorization*/
 				authorization=belle_sip_header_authorization_new();
+			} else {
+				/* for other case, it's probably Proxy-Authorization*/
+				authorization=BELLE_SIP_HEADER_AUTHORIZATION(belle_sip_header_proxy_authorization_new());
 			}
+			
 			belle_sip_header_authorization_set_scheme(authorization,auth_context->scheme);
 			belle_sip_header_authorization_set_realm(authorization,auth_context->realm);
 			belle_sip_header_authorization_set_username(authorization,auth_event->userid);
