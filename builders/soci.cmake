@@ -22,6 +22,7 @@
 
 lcb_git_repository("git://git.linphone.org/soci.git")
 lcb_external_source_paths("externals/soci")
+lcb_dependencies("sqlite3")
 
 lcb_cmake_options(
 	"-DSOCI_TESTS=NO"
