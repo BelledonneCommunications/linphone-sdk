@@ -146,6 +146,24 @@ if (ENABLE_PRESENCE)
 endif()
 
 if (ENABLE_SOCI)
+	set(soci_filename "soci-3.2.3.tar.gz")
+	set(EP_soci_URL "${CMAKE_CURRENT_SOURCE_DIR}/builders/soci/${soci_filename}")
+	set(EP_soci_URL_HASH "SHA1=5e527cf5c1740198fa706fc8821af45b34867ee1")
+
+	set(EP_soci_BUILD_METHOD "rpm")
+	set(EP_soci_SPEC_FILE "soci.spec" )
+	set(EP_soci_CONFIG_H_FILE "${CMAKE_CURRENT_SOURCE_DIR}/builders/soci/${EP_soci_SPEC_FILE}" )
+	set(EP_soci_RPMBUILD_OPTIONS "--without postgresql --without sqlite3 --without odbc --with mysql --without oracle --define 'soci_patch ${CMAKE_CURRENT_SOURCE_DIR}/builders/soci/soci_libdir.patch'")
+
+	#create source dir and copy the tar.gz inside
+	set(EP_soci_PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "make_directory" "${LINPHONE_BUILDER_WORK_DIR}/rpmbuild/SOURCES/")
+	set(EP_soci_PATCH_COMMAND ${EP_soci_PATCH_COMMAND} "COMMAND" "${CMAKE_COMMAND}" "-E" "copy" "${EP_soci_URL}" "${LINPHONE_BUILDER_WORK_DIR}/rpmbuild/SOURCES/")
+	set(EP_soci_PATCH_COMMAND ${EP_soci_PATCH_COMMAND} "COMMAND" "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/soci/soci_libdir.patch" "${LINPHONE_BUILDER_WORK_DIR}/rpmbuild/SOURCES/")
+	set(EP_soci_PATCH_COMMAND ${EP_soci_PATCH_COMMAND} "COMMAND" "${CMAKE_COMMAND}" "-E" "copy" ${EP_soci_CONFIG_H_FILE} "<BINARY_DIR>")
+
+	# no configure needed for soci
+	set(EP_soci_CONFIGURE_COMMAND_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/builders/soci/configure.sh.cmake)
+
 	set(EP_flexisip_RPMBUILD_OPTIONS "${EP_flexisip_RPMBUILD_OPTIONS} --with soci")
 	list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--enable-soci")
 endif()
