@@ -23,11 +23,4 @@
 lcb_git_repository("git://git.linphone.org/xerces-c.git")
 lcb_external_source_paths("externals/xerces-c")
 lcb_may_be_found_on_system(YES)
-lcb_build_method("autotools")
-lcb_configure_options(
-	"--disable-threads"
-	"--disable-network"
-)
-lcb_linking_type("--disable-static" "--enable-shared")
-lcb_cross_compilation_options("--prefix=${CMAKE_INSTALL_PREFIX}")
 
