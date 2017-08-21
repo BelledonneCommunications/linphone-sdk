@@ -79,7 +79,7 @@ BCTBX_PUBLIC void bctbx_logv_file_destroy(bctbx_log_handler_t *handler);
  @param[in] void* user_info : complementary information to handle the logs if needed
  @return a new bctbx_log_handler_t
 */
-BCTBX_PUBLIC bctbx_log_handler_t* bctbx_create_log_handler(BctbxLogHandlerFunc func, BctbxLogHandlerDestroyFunc destroy, void* user_info);
+BCTBX_PUBLIC bctbx_log_handler_t* bctbx_create_log_handler(BctbxLogHandlerFunc func, BctbxLogHandlerDestroyFunc destroy, void* user_data);
 
 /* 
  Function to create a file log handler
@@ -90,13 +90,22 @@ BCTBX_PUBLIC bctbx_log_handler_t* bctbx_create_log_handler(BctbxLogHandlerFunc f
  @return a new bctbx_log_handler_t
 */
 BCTBX_PUBLIC bctbx_log_handler_t* bctbx_create_file_log_handler(uint64_t max_size, const char* path, const char* name, FILE* f);
-
+/* set domain the handler is limited to. NULL for ALL*/
+BCTBX_PUBLIC void bctbx_log_handler_set_domain(bctbx_log_handler_t * log_handler,const char *domain);
+BCTBX_PUBLIC void bctbx_log_handler_set_user_data(bctbx_log_handler_t*, void* user_data);
+BCTBX_PUBLIC void *bctbx_log_handler_get_user_data(const bctbx_log_handler_t* log_handler);
+	
 BCTBX_PUBLIC void bctbx_add_log_handler(bctbx_log_handler_t* handler);
+BCTBX_PUBLIC void bctbx_remove_log_handler(bctbx_log_handler_t* handler);
+	
 BCTBX_PUBLIC BCTBX_DEPRECATED void bctbx_set_log_handler(BctbxLogFunc func);
+/*same as bctbx_set_log_handler but only for a domain. NULL for all*/
+BCTBX_PUBLIC void bctbx_set_log_handler_for_domain(BctbxLogFunc func, const char* domain);
+	
 BCTBX_PUBLIC BCTBX_DEPRECATED void bctbx_set_log_file(FILE* f);
 BCTBX_PUBLIC bctbx_list_t* bctbx_get_log_handlers(void);
 
-BCTBX_PUBLIC void bctbx_logv_out(void* user_info, const char *domain, BctbxLogLevel level, const char *fmt, va_list args);
+BCTBX_PUBLIC void bctbx_logv_out(const char *domain, BctbxLogLevel level, const char *fmt, va_list args);
 BCTBX_PUBLIC void bctbx_logv_file(void* user_info, const char *domain, BctbxLogLevel level, const char *fmt, va_list args);
 
 #define bctbx_log_level_enabled(domain, level)	(bctbx_get_log_level_mask(domain) & (level))
