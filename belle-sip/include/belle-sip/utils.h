@@ -60,7 +60,7 @@ BELLE_SIP_END_DECLS
 #define	BELLE_SIP_LOG_END BCTBX_LOG_END
 #define  belle_sip_log_level BctbxLogLevel
 
-#define belle_sip_log_function_t BctoolboxLogFunc
+#define belle_sip_log_function_t BctbxLogFunc
 
 
 typedef enum {
@@ -105,9 +105,8 @@ BELLE_SIP_BEGIN_DECLS
 #endif
 
 
-#define belle_sip_set_log_file bctbx_set_log_file
-#define belle_sip_set_log_handler bctbx_set_log_handler
-#define belle_sip_get_log_handler bctbx_get_log_handler
+BELLESIP_EXPORT void  belle_sip_set_log_handler(belle_sip_log_function_t func);
+
 
 #define belle_sip_strdup_printf bctbx_strdup_printf
 #define belle_sip_strcat_vprintf bctbx_strcat_vprintf

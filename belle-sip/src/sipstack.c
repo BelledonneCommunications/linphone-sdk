@@ -112,13 +112,14 @@ static void belle_sip_stack_destroy(belle_sip_stack_t *stack){
 	if (stack->http_proxy_passwd) belle_sip_free(stack->http_proxy_passwd);
 	if (stack->http_proxy_username) belle_sip_free(stack->http_proxy_username);
 	belle_sip_list_free_with_data(stack->dns_servers, belle_sip_free);
-
+	bctbx_uninit_logger();
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_stack_t);
 BELLE_SIP_INSTANCIATE_VPTR(belle_sip_stack_t,belle_sip_object_t,belle_sip_stack_destroy,NULL,NULL,FALSE);
 
 belle_sip_stack_t * belle_sip_stack_new(const char *properties){
+	bctbx_init_logger(FALSE);
 	belle_sip_stack_t *stack=belle_sip_object_new(belle_sip_stack_t);
 	stack->ml=belle_sip_main_loop_new ();
 	stack->timer_config.T1=500;
@@ -315,3 +316,6 @@ int belle_sip_stack_content_encoding_available(belle_sip_stack_t *stack, const c
 GET_SET_STRING(belle_sip_stack,http_proxy_host)
 GET_SET_INT(belle_sip_stack,http_proxy_port, int)
 
+void  belle_sip_set_log_handler(belle_sip_log_function_t func) {
+	bctbx_set_log_handler_for_domain(func, BELLE_SIP_LOG_DOMAIN);
+}
