@@ -59,7 +59,7 @@ belle_sip_hop_t* belle_sip_hop_new_from_generic_uri(const belle_generic_uri_t *u
 	const char *scheme=belle_generic_uri_get_scheme(uri);
 	int port=belle_generic_uri_get_port(uri);
 	int well_known_port=0;
-	
+
 	host=belle_generic_uri_get_host(uri);
 	if (strcasecmp(scheme,"http")==0) {
 		transport="TCP";
@@ -97,7 +97,7 @@ static void belle_sip_hop_clone(belle_sip_hop_t *hop, const belle_sip_hop_t *ori
 		hop->cname=belle_sip_strdup(orig->cname);
 	if (orig->transport)
 		hop->transport=belle_sip_strdup(orig->transport);
-	
+
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_hop_t);
@@ -119,8 +119,8 @@ BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_stack_t);
 BELLE_SIP_INSTANCIATE_VPTR(belle_sip_stack_t,belle_sip_object_t,belle_sip_stack_destroy,NULL,NULL,FALSE);
 
 belle_sip_stack_t * belle_sip_stack_new(const char *properties){
-	bctbx_init_logger(FALSE);
 	belle_sip_stack_t *stack=belle_sip_object_new(belle_sip_stack_t);
+	bctbx_init_logger(FALSE);
 	stack->ml=belle_sip_main_loop_new ();
 	stack->timer_config.T1=500;
 	stack->timer_config.T2=4000;
