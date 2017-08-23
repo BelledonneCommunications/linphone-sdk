@@ -52,10 +52,12 @@ check_include_file_cxx("stdbool.h" HAVE_STDBOOL_H)
 
 if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
 	include("${EP_ortp_CONFIG_DIR}/OrtpConfig.cmake")
+	include("${EP_bctoolbox_CONFIG_DIR}/BcToolboxConfig.cmake")
 	include("${EP_ms2_CONFIG_DIR}/Mediastreamer2Config.cmake")
 else()
 	find_package(Mediastreamer2 REQUIRED)
 	find_package(ORTP REQUIRED)
+	find_package(BCTOOLBOX REQUIRED)
 endif()
 find_package(OpenH264 REQUIRED)
 
