@@ -54,6 +54,8 @@ public class Version {
 	public static final int API22_LOLLIPOP_51 = 22;
 	public static final int API23_MARSHMALLOW_60 = 23;
 	public static final int API24_NOUGAT_70 = 24;
+	public static final int API25_NOUGAT_71 = 25;
+	public static final int API26_O_80 = 26;
 
 	private static native boolean nativeHasZrtp();
 	private static native boolean nativeHasNeon();
@@ -64,11 +66,11 @@ public class Version {
 //		8; // 2.2
 //		7; // 2.1
 
-	public static boolean isXLargeScreen(Context context) 
+	public static boolean isXLargeScreen(Context context)
 	{
 		return (context.getResources().getConfiguration().screenLayout & Configuration.SCREENLAYOUT_SIZE_MASK) >= Configuration.SCREENLAYOUT_SIZE_XLARGE;
 	}
-	
+
 	public static final boolean sdkAboveOrEqual(int value) {
 		return buildVersion >= value;
 	}
