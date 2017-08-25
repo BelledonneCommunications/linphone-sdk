@@ -19,10 +19,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include <jni.h>
 
-extern "C" {
-	#include <mediastreamer2/msfactory.h>
-	#include <mediastreamer2/devices.h>
-}
+#include <mediastreamer2/msfactory.h>
+#include <mediastreamer2/devices.h>
 
 static const char* GetStringUTFChars(JNIEnv* env, jstring string) {
 	const char *cstring = string ? env->GetStringUTFChars(string, NULL) : NULL;
@@ -46,7 +44,3 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_Factory_setDeviceInfo(JNIEn
     ReleaseStringUTFChars(env, jmodel, model);
     ReleaseStringUTFChars(env, jplatform, platform);
 }
-
-
-
-

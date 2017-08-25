@@ -24,13 +24,11 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-extern "C" {
 #include "mediastreamer2/msvideo.h"
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/mswebcam.h"
 #include "mediastreamer2/msjava.h"
 #include "mediastreamer2/msticker.h"
-}
 
 #include <jni.h>
 #include <math.h>
@@ -109,7 +107,7 @@ static int video_capture_set_autofocus(MSFilter *f, void* data){
 	AndroidReaderContext* d = (AndroidReaderContext*) f->data;
 	jmethodID method = env->GetStaticMethodID(d->helperClass,"activateAutoFocus", "(Ljava/lang/Object;)V");
 	env->CallStaticObjectMethod(d->helperClass, method, d->androidCamera);
-	
+
 	return 0;
 }
 
@@ -175,11 +173,11 @@ static int video_capture_set_vsize(MSFilter *f, void* data){
 		d->usedSize.width = d->requestedSize.width;
 		d->usedSize.height = d->requestedSize.height;
 	}
-	
+
 	// is phone held |_ to cam orientation ?
 	if (d->rotation == UNDEFINED_ROTATION || compute_image_rotation_correction(d, d->rotation) % 180 != 0) {
 		if (d->rotation == UNDEFINED_ROTATION) {
-			ms_error("To produce a correct image, Mediastreamer MUST be aware of device's orientation BEFORE calling 'configure_video_source'\n"); 
+			ms_error("To produce a correct image, Mediastreamer MUST be aware of device's orientation BEFORE calling 'configure_video_source'\n");
 			ms_warning("Capture filter do not know yet about device's orientation.\n"
 				"Current assumption: device is held perpendicular to its webcam (ie: portrait mode for a phone)\n");
 			d->rotationSavedDuringVSize = 0;
@@ -218,7 +216,7 @@ static int video_capture_get_pix_fmt(MSFilter *f, void *data){
 // Java will give us a pointer to capture preview surface.
 static int video_set_native_preview_window(MSFilter *f, void *arg) {
 	AndroidReaderContext* d = (AndroidReaderContext*) f->data;
-	
+
 	ms_mutex_lock(&d->mutex);
 
 	jobject w = (jobject)*((unsigned long*)arg);
@@ -331,9 +329,9 @@ static void video_capture_postprocess(MSFilter *f){
 	ms_message("Postprocessing of Android VIDEO capture filter");
 	AndroidReaderContext* d = getContext(f);
 	JNIEnv *env = ms_get_jni_env();
-	
+
 	ms_mutex_lock(&d->mutex);
-	
+
 	if (d->androidCamera) {
 		jmethodID method = env->GetStaticMethodID(d->helperClass,"stopRecording", "(Ljava/lang/Object;)V");
 
@@ -407,7 +405,7 @@ static MSFilter *video_capture_create_reader(MSWebCam *obj){
 
 	MSFilter* lFilter = ms_factory_create_filter_from_desc(ms_web_cam_get_factory(obj), &ms_video_capture_desc);
 	getContext(lFilter)->webcam = obj;
-	
+
 	return lFilter;
 }
 
@@ -423,7 +421,7 @@ static void video_capture_detect(MSWebCamManager *obj){
 	ms_message("Detecting Android VIDEO cards");
 	JNIEnv *env = ms_get_jni_env();
 	jclass helperClass = getHelperClassGlobalRef(env);
-	
+
 	if (helperClass==NULL) return;
 
 	// create 3 int arrays - assuming 2 webcams at most
@@ -468,9 +466,9 @@ extern "C" {
 JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_capture_AndroidVideoApi5JniWrapper_putImage(JNIEnv*  env,
 		jclass  thiz,jlong nativePtr,jbyteArray frame) {
 	AndroidReaderContext* d = (AndroidReaderContext*) nativePtr;
-	
+
 	ms_mutex_lock(&d->mutex);
-	
+
 	if (!d->androidCamera){
 		ms_mutex_unlock(&d->mutex);
 		return;
@@ -575,7 +573,7 @@ static jclass getHelperClassGlobalRef(JNIEnv *env) {
 	ms_message("getHelperClassGlobalRef (env: %p)", env);
 	const char* className;
 	// FindClass only returns local references.
-	
+
 	// Find the current Android SDK version
 	jclass version = env->FindClass(VersionPath);
 	jmethodID method = env->GetStaticMethodID(version,"sdk", "()I");
