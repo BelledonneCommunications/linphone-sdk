@@ -28,7 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <mbedtls/timing.h>
 #include <mbedtls/error.h>
 #include <mbedtls/base64.h>
-
+#include <mbedtls/version.h>
 #include <mbedtls/pem.h>
 #include <mbedtls/x509.h>
 #include <mbedtls/entropy.h>
@@ -39,7 +39,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <mbedtls/sha512.h>
 #include <mbedtls/gcm.h>
 
-#if MBEDTLS_VERSION_NUMBER > 0x02040000 // v2.4.0
+#if MBEDTLS_VERSION_NUMBER >= 0x02040000 // v2.4.0
 #include <mbedtls/net_sockets.h>
 #else
 #include <mbedtls/net.h>
