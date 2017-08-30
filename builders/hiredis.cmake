@@ -27,6 +27,8 @@ set(EP_hiredis_GIT_REPOSITORY "https://github.com/redis/hiredis.git" CACHE STRIN
 set(EP_hiredis_GIT_TAG "010756025e8cefd1bc66c6d4ed3b1648ef6f1f95" CACHE STRING "hiredis tag to use")
 
 set(EP_hiredis_BUILD_METHOD "rpm")
+lcb_use_autotools_for_rpm(YES)
+
 set(EP_hiredis_SPEC_FILE "hiredis.spec" )
 set(EP_hiredis_CONFIG_H_FILE "${CMAKE_CURRENT_SOURCE_DIR}/builders/hiredis/${EP_hiredis_SPEC_FILE}" )
 

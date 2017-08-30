@@ -41,3 +41,4 @@ set(EP_sofiasip_CROSS_COMPILATION_OPTIONS
 # RPM 
 set(EP_sofiasip_SPEC_FILE "packages/sofia-sip-*.spec")
 set(EP_sofiasip_RPMBUILD_NAME "sofia-sip")
+lcb_use_autotools_for_rpm(YES)

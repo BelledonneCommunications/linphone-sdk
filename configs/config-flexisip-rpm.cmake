@@ -91,39 +91,27 @@ else() # Windows
 	set(LINPHONE_BUILDER_PKG_CONFIG_PATH "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig/")
 endif()
 
-# needed *before* the include
-lcb_builder_linking_type(ortp "--enable-static")
-lcb_builder_use_autogen(ms2 YES)
-lcb_builder_configure_options(ms2 "--disable-video")
-#required to use autotools
-lcb_builder_use_autogen(bellesip YES)
-set(EP_flexisip_FORCE_AUTOTOOLS TRUE)
 
 # we can override the bctoolbox build method before including builders because it doesn't define it.
 set(EP_bctoolbox_BUILD_METHOD "rpm")
 lcb_builder_cmake_options(bctoolbox "-DENABLE_TESTS=NO")
 lcb_builder_cmake_options(bctoolbox "-DENABLE_TESTS_COMPONENT=NO")
 
+set(EP_ms2_BUILD_METHOD "rpm")
 set(EP_ortp_BUILD_METHOD     "rpm")
 # Include builders
 include(builders/CMakeLists.txt)
-
-set(EP_bellesip_LINKING_TYPE "--enable-static")
 
 set(EP_bellesip_BUILD_METHOD "rpm")
 set(EP_sofiasip_BUILD_METHOD "rpm")
 set(EP_flexisip_BUILD_METHOD "rpm")
 set(EP_odb_BUILD_METHOD      "custom")
-set(EP_ms2_BUILD_METHOD "rpm")
 
 set(EP_ms2_SPEC_PREFIX     "${RPM_INSTALL_PREFIX}")
 set(EP_ortp_SPEC_PREFIX     "${RPM_INSTALL_PREFIX}")
 set(EP_bellesip_SPEC_PREFIX "${RPM_INSTALL_PREFIX}")
 set(EP_sofiasip_SPEC_PREFIX "${RPM_INSTALL_PREFIX}")
 set(EP_flexisip_SPEC_PREFIX "${RPM_INSTALL_PREFIX}")
-
-set(EP_flexisip_CONFIGURE_OPTIONS "--enable-redis" "--enable-libodb=no" "--enable-libodb-mysql=no")
-
 
 set(EP_ortp_RPMBUILD_OPTIONS      "--with bc")
 set(EP_ms2_RPMBUILD_OPTIONS       "--with bc --without video")
@@ -142,7 +130,6 @@ set(EP_bellesip_RPMBUILD_OPTIONS  "--with bc ")
 
 if (ENABLE_PRESENCE)
 	set(EP_flexisip_RPMBUILD_OPTIONS "${EP_flexisip_RPMBUILD_OPTIONS} --with presence")
-	list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--enable-presence")
 endif()
 
 if (ENABLE_SOCI)
@@ -165,12 +152,10 @@ if (ENABLE_SOCI)
 	set(EP_soci_CONFIGURE_COMMAND_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/builders/soci/configure.sh.cmake)
 
 	set(EP_flexisip_RPMBUILD_OPTIONS "${EP_flexisip_RPMBUILD_OPTIONS} --with soci")
-	list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--enable-soci")
 endif()
 
 if (ENABLE_SNMP)
 	set(EP_flexisip_RPMBUILD_OPTIONS "${EP_flexisip_RPMBUILD_OPTIONS} --with snmp")
-	list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--enable-snmp")
 endif()
 
 if(ENABLE_BC_ODBC)
@@ -188,11 +173,6 @@ set(LINPHONE_BUILDER_RPMBUILD_PACKAGE_PREFIX "bc-")
 # prepare the RPMBUILD options that we need to pass
 
 set(RPMBUILD_OPTIONS "--define '_mandir %{_prefix}'")
-
-# bc-redis  will be installed in the prefix, but we have to pass it through a special flag to the RPM build, since there
-# is no pkgconfig
-list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--with-redis=${CMAKE_INSTALL_PREFIX}")
-set(EP_flexisip_RPMBUILD_OPTIONS "${EP_flexisip_RPMBUILD_OPTIONS} --define 'hiredisdir ${RPM_INSTALL_PREFIX}'")
 
 if(PLATFORM STREQUAL "Debian")
 	# dependencies cannot be checked by rpmbuild in debian

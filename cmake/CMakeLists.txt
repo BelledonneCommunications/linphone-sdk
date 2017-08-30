@@ -753,8 +753,13 @@ macro(linphone_builder_add_external_project PROJNAME)
 		endif()
 
 		# allow to have special command steps
-		linphone_builder_configure_file_for_project(${PROJNAME} CONFIGURE ${CMAKE_CURRENT_SOURCE_DIR}/cmake/configure.rpm.sh.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_configure_rpm.sh)
-		linphone_builder_configure_file_for_project(${PROJNAME} BUILD ${CMAKE_CURRENT_SOURCE_DIR}/cmake/build.rpm.sh.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_build_rpm.sh)
+		if(EP_${PROJNAME}_USE_AUTOTOOLS_FOR_RPM)
+			linphone_builder_configure_file_for_project(${PROJNAME} CONFIGURE ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Autotools/configure.rpm.sh.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_configure_rpm.sh)
+			linphone_builder_configure_file_for_project(${PROJNAME} BUILD ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Autotools/build.rpm.sh.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_build_rpm.sh)
+		else()
+			linphone_builder_configure_file_for_project(${PROJNAME} CONFIGURE ${CMAKE_CURRENT_SOURCE_DIR}/cmake/configure.rpm.sh.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_configure_rpm.sh)
+			linphone_builder_configure_file_for_project(${PROJNAME} BUILD ${CMAKE_CURRENT_SOURCE_DIR}/cmake/build.rpm.sh.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_build_rpm.sh)
+		endif()
 		linphone_builder_configure_file_for_project(${PROJNAME} INSTALL ${CMAKE_CURRENT_SOURCE_DIR}/cmake/install.rpm.sh.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_install_rpm.sh)
 
 		set(BUILD_COMMANDS
@@ -1196,7 +1201,15 @@ macro(lcb_builder_use_autogen BUILDER BOOL_VALUE)
 endmacro()
 
 macro(lcb_use_autogen BOOL_VALUE)
-	lcb_builder_use_autogen(${BOOL_VALUE})
+	lcb_builder_use_autogen("${LINPHONE_BUILDER_CURRENT_BUILDER}" ${BOOL_VALUE})
+endmacro()
+
+macro(lcb_builder_use_autotools_for_rpm BUILDER BOOL_VALUE)
+	set(EP_${BUILDER}_USE_AUTOTOOLS_FOR_RPM ${BOOL_VALUE})
+endmacro()
+
+macro(lcb_use_autotools_for_rpm BOOL_VALUE)
+	lcb_builder_use_autotools_for_rpm("${LINPHONE_BUILDER_CURRENT_BUILDER}" ${BOOL_VALUE})
 endmacro()
 
 macro(lcb_builder_use_autoreconf BUILDER BOOL_VALUE)

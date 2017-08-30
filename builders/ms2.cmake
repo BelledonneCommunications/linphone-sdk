@@ -112,3 +112,4 @@ endif()
 if(ENABLE_V4L AND LINPHONE_BUILDER_BUILD_DEPENDENCIES)
 	lcb_dependencies("v4l")
 endif()
+
