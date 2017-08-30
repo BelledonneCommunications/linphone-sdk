@@ -55,7 +55,7 @@ Libraries and headers required to develop software with belle-sip
 %setup -n %{name}-%{version}-%build_number
 
 %build
-%{expand:%%%cmake_name} . -DCMAKE_INSTALL_LIBDIR:PATH=%{_libdir} -DCMAKE_PREFIX_PATH:PATH=%{_prefix}
+%{expand:%%%cmake_name} . -DCMAKE_INSTALL_LIBDIR:PATH=%{_libdir} -DCMAKE_PREFIX_PATH:PATH=%{_prefix} -DENABLE_TESTS=no
 make %{?_smp_mflags}
 
 %install
@@ -87,7 +87,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_datadir}/BelleSIP/cmake/BelleSIPConfigVersion.cmake
 %{_datadir}/BelleSIP/cmake/BelleSIPTargets-noconfig.cmake
 %{_datadir}/BelleSIP/cmake/BelleSIPTargets.cmake
-%{_bindir}/*
 
 %changelog
 * Mon Aug 19 2013 jehan.monnier <jehan.monnier@linphone.org>
