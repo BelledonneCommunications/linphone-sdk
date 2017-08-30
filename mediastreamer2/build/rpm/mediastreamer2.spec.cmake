@@ -59,7 +59,7 @@ develop programs using the mediastreamer2 library.
 %setup -n %{name}-%{version}-%build_number
 
 %build
-%{expand:%%%cmake_name} . -DCMAKE_INSTALL_LIBDIR:PATH=%{_libdir} -DCMAKE_PREFIX_PATH:PATH=%{_prefix} -DENABLE_VIDEO=%{video}
+%{expand:%%%cmake_name} . -DCMAKE_INSTALL_LIBDIR:PATH=%{_libdir} -DCMAKE_PREFIX_PATH:PATH=%{_prefix} -DENABLE_VIDEO=%{video} -DENABLE_TESTS=no
 make %{?_smp_mflags}
 
 %install
@@ -80,7 +80,9 @@ rm -rf $RPM_BUILD_ROOT
 %doc AUTHORS ChangeLog COPYING NEWS README.md
 %{_bindir}/*
 %{_libdir}/*.so.*
+%if %{video}
 %{_datadir}/images/nowebcamCIF.jpg
+%endif
 
 %files devel
 %defattr(-,root,root,-)
@@ -92,8 +94,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_datadir}/Mediastreamer2/cmake/Mediastreamer2ConfigVersion.cmake
 %{_datadir}/Mediastreamer2/cmake/Mediastreamer2Targets-noconfig.cmake
 %{_datadir}/Mediastreamer2/cmake/Mediastreamer2Targets.cmake
-%{_datadir}/mediastreamer2_tester/*
-%{_bindir}/*
 %{_docdir}
 
 %changelog

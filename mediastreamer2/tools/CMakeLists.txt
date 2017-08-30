@@ -88,6 +88,9 @@ if (NOT IOS)
 	if(LINK_FLAGS_STR)
 		set_target_properties(mediastream PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
+	install(TARGETS mediastream
+		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+	)
 endif()
 
 if(ENABLE_VIDEO)
@@ -100,7 +103,7 @@ if(ENABLE_VIDEO)
 	endif()
 
 	if (NOT IOS)
-		install(TARGETS mediastream mkvstream
+		install(TARGETS mkvstream
 			RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 		)
 	endif()
