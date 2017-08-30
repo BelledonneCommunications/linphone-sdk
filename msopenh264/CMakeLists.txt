@@ -57,7 +57,7 @@ if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
 else()
 	find_package(Mediastreamer2 REQUIRED)
 	find_package(ORTP REQUIRED)
-	find_package(BCTOOLBOX REQUIRED)
+	find_package(BcToolbox REQUIRED)
 endif()
 find_package(OpenH264 REQUIRED)
 
