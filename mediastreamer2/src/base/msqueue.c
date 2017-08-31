@@ -181,15 +181,19 @@ void ms_flow_controlled_bufferizer_set_nchannels(MSFlowControlledBufferizer *obj
 	obj->nchannels = nchannels;
 }
 
-static void control_flow(MSFlowControlledBufferizer *obj) {
-	uint32_t time_since_last_control = (uint32_t)(obj->filter->ticker->time - obj->flow_control_time);
+static uint32_t update_min_size(MSFlowControlledBufferizer *obj){
 	uint32_t accumulated_ms = (uint32_t)((obj->base.size * 1000) / obj->samplerate) / obj->nchannels;
+	if ((accumulated_ms < obj->min_size_ms_during_interval) || (obj->min_size_ms_during_interval == UINT32_MAX)) {
+		obj->min_size_ms_during_interval = accumulated_ms;
+	}
+	return accumulated_ms;
+}
+
+static void control_flow(MSFlowControlledBufferizer *obj, uint32_t accumulated_ms) {
+	uint32_t time_since_last_control = (uint32_t)(obj->filter->ticker->time - obj->flow_control_time);
 
 	if (obj->flow_control_time == 0) {
 		obj->flow_control_time = obj->filter->ticker->time;
-	}
-	if ((accumulated_ms < obj->min_size_ms_during_interval) || (obj->min_size_ms_during_interval == UINT32_MAX)) {
-		obj->min_size_ms_during_interval = accumulated_ms;
 	}
 
 	if (time_since_last_control >= obj->flow_control_interval_ms) {
@@ -222,11 +226,13 @@ static void control_flow(MSFlowControlledBufferizer *obj) {
 }
 
 void ms_flow_controlled_bufferizer_put(MSFlowControlledBufferizer *obj, mblk_t *m) {
+	uint32_t accumulated_ms = update_min_size(obj);
 	ms_bufferizer_put(&obj->base, m);
-	control_flow(obj);
+	control_flow(obj, accumulated_ms);
 }
 
 void ms_flow_controlled_bufferizer_put_from_queue(MSFlowControlledBufferizer *obj, MSQueue *q) {
+	uint32_t accumulated_ms = update_min_size(obj);
 	ms_bufferizer_put_from_queue(&obj->base, q);
-	control_flow(obj);
+	control_flow(obj, accumulated_ms);
 }
