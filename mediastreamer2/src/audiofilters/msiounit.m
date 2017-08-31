@@ -405,8 +405,8 @@ static OSStatus au_write_cb (
 	if (d!=NULL){
 		unsigned int size;
 		ms_mutex_lock(&d->mutex);
-		size = MIN(inNumberFrames*d->base.card->bits/8, ms_flow_controlled_bufferizer_get_avail(d->bufferizer));
-		if (size > 0) {
+		size = inNumberFrames*d->base.card->bits/8;
+		if (ms_flow_controlled_bufferizer_get_avail(d->bufferizer) >= size) {
 			ms_flow_controlled_bufferizer_read(d->bufferizer, ioData->mBuffers[0].mData, size);
 		} else {
 			//writing silence;
