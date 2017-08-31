@@ -37,4 +37,5 @@ lcb_cmake_options(
 	"-DWITH_SQLITE3=YES"
 )
 lcb_linking_type("-DSOCI_SHARED=YES" "-DSOCI_STATIC=NO")
+lcb_use_autotools_for_rpm(YES)
 
