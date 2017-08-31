@@ -7,6 +7,7 @@
 # To compile with bc prefix, use rpmbuild -ba --with bc [SPEC]
 %define                 pkg_name        %{?_with_bc:bc-mediastreamer}%{!?_with_bc:mediastreamer}
 %{?_with_bc: %define    _prefix         /opt/belledonne-communications}
+%define                 srtp            %{?_without_srtp:0}%{?!_without_srtp:1}
 
 # re-define some directories for older RPMBuild versions which don't. This messes up the doc/ dir
 # taken from https://fedoraproject.org/wiki/Packaging:RPMMacros?rd=Packaging/RPMMacros
@@ -59,7 +60,7 @@ develop programs using the mediastreamer2 library.
 %setup -n %{name}-%{version}-%build_number
 
 %build
-%{expand:%%%cmake_name} . -DCMAKE_INSTALL_LIBDIR:PATH=%{_libdir} -DCMAKE_PREFIX_PATH:PATH=%{_prefix} -DENABLE_VIDEO=%{video} -DENABLE_UNIT_TESTS=no
+%{expand:%%%cmake_name} . -DCMAKE_INSTALL_LIBDIR:PATH=%{_libdir} -DCMAKE_PREFIX_PATH:PATH=%{_prefix} -DENABLE_VIDEO=%{video} -DENABLE_SRTP=%{srtp} -DENABLE_UNIT_TESTS=no
 make %{?_smp_mflags}
 
 %install
