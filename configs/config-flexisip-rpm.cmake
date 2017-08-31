@@ -97,6 +97,7 @@ set(EP_bctoolbox_BUILD_METHOD "rpm")
 lcb_builder_cmake_options(bctoolbox "-DENABLE_TESTS=NO")
 lcb_builder_cmake_options(bctoolbox "-DENABLE_TESTS_COMPONENT=NO")
 
+lcb_builder_cmake_options(ms2 "-DENABLE_SRTP=NO") #mainly to avoid issue with old libsrtp (sha1_update conflict with polarssl)
 set(EP_ms2_BUILD_METHOD "rpm")
 set(EP_ortp_BUILD_METHOD     "rpm")
 # Include builders
@@ -114,7 +115,7 @@ set(EP_sofiasip_SPEC_PREFIX "${RPM_INSTALL_PREFIX}")
 set(EP_flexisip_SPEC_PREFIX "${RPM_INSTALL_PREFIX}")
 
 set(EP_ortp_RPMBUILD_OPTIONS      "--with bc")
-set(EP_ms2_RPMBUILD_OPTIONS       "--with bc --without video")
+set(EP_ms2_RPMBUILD_OPTIONS       "--with bc --without video --without srtp")
 set(EP_unixodbc_RPMBUILD_OPTIONS  "--with bc")
 set(EP_myodbc_RPMBUILD_OPTIONS    "--with bc")
 set(EP_sofiasip_RPMBUILD_OPTIONS  "--with bc --without glib")
