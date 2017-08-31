@@ -77,7 +77,6 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root,-)
-%doc AUTHORS ChangeLog COPYING NEWS README.md
 %{_bindir}/*
 %{_libdir}/*.so.*
 %if %{video}
@@ -94,7 +93,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_datadir}/Mediastreamer2/cmake/Mediastreamer2ConfigVersion.cmake
 %{_datadir}/Mediastreamer2/cmake/Mediastreamer2Targets-noconfig.cmake
 %{_datadir}/Mediastreamer2/cmake/Mediastreamer2Targets.cmake
-%{_docdir}
+%doc %{_docdir}/*
 
 %changelog
 * Thu Jul 13 2017 jehan.monnier <jehan.monnier@linphone.org>
