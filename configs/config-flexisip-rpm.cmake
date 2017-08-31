@@ -122,13 +122,13 @@ set(EP_hiredis_RPMBUILD_OPTIONS   "--with bc" )
 if (ENABLE_TRANSCODER)
 	set(EP_flexisip_RPMBUILD_OPTIONS  "--with bc --with push")
 else()
-	list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--disable-transcoder")
 	set(EP_flexisip_RPMBUILD_OPTIONS  "--with bc --without transcoder --with push")
 endif()
 
 set(EP_bellesip_RPMBUILD_OPTIONS  "--with bc ")
 
 if (ENABLE_PRESENCE)
+	lcb_builder_rpmbuild_name("flexisip" "flexisip-presence")
 	set(EP_flexisip_RPMBUILD_OPTIONS "${EP_flexisip_RPMBUILD_OPTIONS} --with presence")
 endif()
 
