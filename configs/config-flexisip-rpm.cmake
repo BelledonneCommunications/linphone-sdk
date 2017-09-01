@@ -183,7 +183,10 @@ if(PLATFORM STREQUAL "Debian")
 	set(RPMBUILD_OPTIONS "${RPMBUILD_OPTIONS} --define 'dist .deb'")
 
 	# debian has multi-arch lib dir instead of lib and lib64
-	set(RPMBUILD_OPTIONS "${RPMBUILD_OPTIONS} --define '_libdir %{_prefix}/${CMAKE_INSTALL_LIBDIR}'")
+	set(RPMBUILD_OPTIONS "${RPMBUILD_OPTIONS} --define '_lib lib'")
+
+	# debian has multi-arch lib dir instead of lib and lib64
+	set(RPMBUILD_OPTIONS "${RPMBUILD_OPTIONS} --define '_libdir %{_prefix}/%{_lib}'")
 
 	# some debians are using dash as shell, which doesn't support "export -n", so we override and use bash
 	set(RPMBUILD_OPTIONS "${RPMBUILD_OPTIONS} --define '_buildshell /bin/bash'")
