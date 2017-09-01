@@ -60,7 +60,7 @@ develop programs using the mediastreamer2 library.
 %setup -n %{name}-%{version}-%build_number
 
 %build
-%{expand:%%%cmake_name} . -DCMAKE_INSTALL_LIBDIR:PATH=%{_libdir} -DCMAKE_PREFIX_PATH:PATH=%{_prefix} -DENABLE_VIDEO=%{video} -DENABLE_SRTP=%{srtp} -DENABLE_UNIT_TESTS=no
+%{expand:%%%cmake_name} . -DCMAKE_INSTALL_LIBDIR=%{_lib} -DCMAKE_PREFIX_PATH:PATH=%{_prefix} -DENABLE_VIDEO=%{video} -DENABLE_SRTP=%{srtp} -DENABLE_UNIT_TESTS=no
 make %{?_smp_mflags}
 
 %install
