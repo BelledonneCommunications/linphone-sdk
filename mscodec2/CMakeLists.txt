@@ -39,9 +39,11 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 
 if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
 	include("${EP_ms2_CONFIG_DIR}/Mediastreamer2Config.cmake")
+	include("${EP_bctoolbox_CONFIG_DIR}/BcToolboxConfig.cmake")
 	include("${EP_ortp_CONFIG_DIR}/OrtpConfig.cmake")
 else()
 	find_package(Mediastreamer2 REQUIRED)
+	find_package(BCTOOLBOX REQUIRED)
 	find_package(ORTP REQUIRED)
 endif()
 find_package(Codec2 REQUIRED)
@@ -52,7 +54,7 @@ include_directories(
 	${CODEC2_INCLUDE_DIRS}
 )
 
-set(LIBS ${MEDIASTREAMER2_LIBRARIES} ${CODEC2_LIBRARIES} ${ORTP_LIBRARIES})
+set(LIBS ${MEDIASTREAMER2_LIBRARIES} ${CODEC2_LIBRARIES} ${ORTP_LIBRARIES} ${BCTOOLBOX_CORE_LIBRARIES})
 
 set(SOURCE_FILES mscodec2.c)
 
