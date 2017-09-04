@@ -45,6 +45,8 @@ typedef enum auth_mode {
 	none
 	,digest
 	,digest_auth
+	,digest_with_next_nonce
+	,digest_auth_with_next_nonce
 }auth_mode_t;
 
 typedef struct _status {
@@ -80,6 +82,7 @@ typedef struct endpoint {
 	int number_of_body_found;
 	const char* realm;
 	unsigned int max_nc_count;
+	bool_t bad_next_nonce;
 } endpoint_t;
 
 
@@ -162,6 +165,8 @@ static void server_process_request_event(void *obj, const belle_sip_request_even
 		break;
 	}
 	case digest_auth:
+	case digest_with_next_nonce:
+	case digest_auth_with_next_nonce:
 	case digest: {
 		if ((authorization=belle_sip_message_get_header_by_type(req,belle_sip_header_authorization_t)) != NULL
 			|| (authorization=BELLE_SIP_HEADER_AUTHORIZATION(belle_sip_message_get_header_by_type(req,belle_sip_header_proxy_authorization_t))) != NULL  ){
@@ -198,7 +203,7 @@ static void server_process_request_event(void *obj, const belle_sip_request_even
 			auth_ok=strcmp(belle_sip_header_authorization_get_response(authorization),local_resp)==0;
 		}
 		if (auth_ok && endpoint->nonce_count < endpoint->max_nc_count ) {/*revoke nonce after MAX_NC_COUNT uses*/
-			if (endpoint->auth == digest ) {
+			if (endpoint->auth == digest || endpoint->auth == digest_with_next_nonce || endpoint->auth == digest_auth_with_next_nonce) {
 				sprintf(endpoint->nonce,"%p",authorization); //*change the nonce for next auth*/
 			} else {
 				endpoint->nonce_count++;
@@ -212,7 +217,7 @@ static void server_process_request_event(void *obj, const belle_sip_request_even
 			}
 			sprintf(endpoint->nonce,"%p",www_authenticate); //*change the nonce for next auth*/
 			belle_sip_header_www_authenticate_set_nonce(www_authenticate,endpoint->nonce);
-			if (endpoint->auth == digest_auth) {
+			if (endpoint->auth == digest_auth || endpoint->auth == digest_auth_with_next_nonce) {
 				belle_sip_header_www_authenticate_add_qop(www_authenticate,"auth");
 				if (endpoint->nonce_count>=MAX_NC_COUNT) {
 					belle_sip_header_www_authenticate_set_stale(www_authenticate,1);
@@ -238,6 +243,17 @@ static void server_process_request_event(void *obj, const belle_sip_request_even
 		if(endpoint->unreconizable_contact) {
 			/*put an unexpected address*/
 			belle_sip_uri_set_host(belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(contact)),"nimportequoi.com");
+		}
+		if (endpoint->auth == digest_with_next_nonce || endpoint->auth == digest_auth_with_next_nonce) {
+			belle_sip_header_t *authentication_info;
+			if (!endpoint->bad_next_nonce) {
+				authentication_info = BELLE_SIP_HEADER(belle_sip_header_authentication_info_new());
+				belle_sip_header_authentication_info_set_next_nonce(BELLE_SIP_HEADER_AUTHENTICATION_INFO(authentication_info), endpoint->nonce);
+			} else {
+				authentication_info = BELLE_SIP_HEADER(belle_sip_header_extension_create(BELLE_SIP_AUTHENTICATION_INFO,"nonce=\"nimporte quoi\" nc=")); 
+			}
+				
+			belle_sip_message_add_header(BELLE_SIP_MESSAGE(resp), BELLE_SIP_HEADER(authentication_info));
 		}
 		belle_sip_message_add_header(BELLE_SIP_MESSAGE(resp),BELLE_SIP_HEADER(contact));
 		if (strcmp(belle_sip_request_get_method(req),"PUBLISH")==0) {
@@ -966,6 +982,34 @@ static void register_and_publish(void) {
 	destroy_endpoint(server);
 }
 
+static void register_digest_with_next_nonce(void) {
+	register_test_with_param(0,digest_with_next_nonce);
+}
+
+static void register_digest_auth_with_next_nonce(void) {
+	register_test_with_param(0,digest_auth_with_next_nonce);
+}
+
+static void register_digest_auth_with_bad_next_nonce(void) {
+	belle_sip_listener_callbacks_t client_callbacks;
+	belle_sip_listener_callbacks_t server_callbacks;
+	endpoint_t* client,*server;
+	memset(&client_callbacks,0,sizeof(belle_sip_listener_callbacks_t));
+	memset(&server_callbacks,0,sizeof(belle_sip_listener_callbacks_t));
+	client_callbacks.process_response_event=client_process_response_event;
+	client_callbacks.process_auth_requested=client_process_auth_requested;
+	server_callbacks.process_request_event=server_process_request_event;
+	client = create_udp_endpoint(3452,&client_callbacks);
+	server = create_udp_endpoint(6788,&server_callbacks);
+	server->auth=digest_auth_with_next_nonce;
+	server->bad_next_nonce = TRUE;
+	register_base(client,server);
+	destroy_endpoint(client);
+	destroy_endpoint(server);
+
+}
+
+
 test_t refresher_tests[] = {
 	TEST_NO_TAG("REGISTER Expires header", register_expires_header),
 	TEST_NO_TAG("REGISTER Expires in Contact", register_expires_in_contact),
@@ -991,6 +1035,9 @@ test_t refresher_tests[] = {
 	TEST_NO_TAG("REGISTER TCP from random port using AF_INET", register_tcp_test_ipv4_random_port),
 	TEST_NO_TAG("REGISTER TCP from random port using AF_INET6", register_tcp_test_ipv6_random_port),
 	TEST_NO_TAG("REGISTER AND PUBLISH", register_and_publish),
+	TEST_NO_TAG("REGISTER, digest with next nonce", register_digest_with_next_nonce),
+	TEST_NO_TAG("REGISTER, digest auth with next nonce", register_digest_auth_with_next_nonce),
+	TEST_NO_TAG("REGISTER, digest auth with bad next nonce", register_digest_auth_with_bad_next_nonce)
 	
 };
 
