@@ -5006,7 +5006,7 @@ int dns_resconf_loadfromresolv(struct dns_resolv_conf *resconf) {
 	struct __res_state res;
 	union res_sockaddr_union addresses[3];
 	int i,error,write_index;
-	
+
 
 	if ((error = res_ninit(&res))) {
 		return error;
@@ -5015,7 +5015,7 @@ int dns_resconf_loadfromresolv(struct dns_resolv_conf *resconf) {
 	error=res_getservers(&res,addresses,3);
 	if (error>0){
 		for (i = 0,write_index=0; i<error ; i++ ) {
-			
+
 			if (	(addresses[i].sin.sin_family == AF_INET6)
 				&&	(addresses[i].sin6.sin6_addr.__u6_addr.__u6_addr16[0] == 0x80fe) /*local link*/
 				&&	(addresses[i].sin6.sin6_scope_id == 0) ) {
@@ -6805,7 +6805,7 @@ retry:
 			if (memcmp(&tmp_ss, &so->remote, tmp_ss_len) != 0){
 				so->ip_differ = 1;
 			}
-			
+
 		}
 
 		so->stat.udp.rcvd.bytes += n;
@@ -7737,7 +7737,8 @@ exec:
 				|| error == EINVAL
 				|| error == DNS_EHOSTUNREACH) { /* maybe even more case*/
 				char remote_sock[64];
-				bctbx_sockaddr_to_printable_ip_address((struct sockaddr*)&R->so.remote, R->so.remote.ss_len,remote_sock, sizeof(remote_sock));
+				struct sockaddr *addr = (struct sockaddr*)&R->so.remote;
+				bctbx_sockaddr_to_printable_ip_address(addr, sizeof *addr, remote_sock, sizeof(remote_sock));
 				belle_sip_error("Cannot reach [%s] because [%s]", remote_sock, strerror(error));
 				dgoto(R->sp, DNS_R_FOREACH_A);
 			}else goto error;
