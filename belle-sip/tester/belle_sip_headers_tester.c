@@ -741,11 +741,14 @@ static void test_address_with_error_header(void) {
 static void test_address_header(void) {
 	belle_sip_uri_t* L_uri;
 	char* L_raw;
+	belle_sip_header_address_t* lclonedaddr;
+
 	belle_sip_header_address_t* laddress = belle_sip_header_address_fast_parse("\"toto\" <sip:liblinphone_tester@81.56.11.2:5060>");
 	BC_ASSERT_PTR_NOT_NULL(laddress);
-	L_raw = belle_sip_object_to_string(BELLE_SIP_OBJECT(laddress));
+	L_raw = belle_sip_object_to_string(BELLE_SIP_OBJECT(lclonedaddr=belle_sip_header_address_clone(laddress)));
 	BC_ASSERT_PTR_NOT_NULL(L_raw);
 	belle_sip_object_unref(BELLE_SIP_OBJECT(laddress));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lclonedaddr));
 	laddress = belle_sip_header_address_parse(L_raw);
 	belle_sip_free(L_raw);
 

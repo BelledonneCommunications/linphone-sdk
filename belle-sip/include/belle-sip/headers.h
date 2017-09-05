@@ -92,6 +92,15 @@ BELLESIP_EXPORT const char* belle_sip_header_address_get_displayname(const belle
  */
 BELLESIP_EXPORT void belle_sip_header_address_set_displayname(belle_sip_header_address_t* address, const char* uri);
 
+/*
+ * Clone both display name and an uri from an belle_sip_header_address_t to a newly allocated belle_sip_header_address_t
+ * @param orig, originating header adderss.
+ * @return belle_sip_header_address_t
+ * */
+BELLESIP_EXPORT belle_sip_header_address_t* belle_sip_header_address_clone(const belle_sip_header_address_t* orig);
+
+
+
 #define BELLE_SIP_HEADER_ADDRESS(t) BELLE_SIP_CAST(t,belle_sip_header_address_t)
 
 

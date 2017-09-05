@@ -199,7 +199,7 @@ static void belle_sip_header_address_destroy(belle_sip_header_address_t* address
 	if (address->absolute_uri) belle_sip_object_unref(address->absolute_uri);
 }
 
-static void belle_sip_header_address_clone(belle_sip_header_address_t *addr, const belle_sip_header_address_t *orig){
+static void _belle_sip_header_address_clone(belle_sip_header_address_t *addr, const belle_sip_header_address_t *orig){
 	CLONE_STRING(belle_sip_header_address,displayname,addr,orig)
 	if (belle_sip_header_address_get_uri(orig)) {
 		belle_sip_header_address_set_uri(addr,BELLE_SIP_URI(belle_sip_object_clone(BELLE_SIP_OBJECT(belle_sip_header_address_get_uri(orig)))));
@@ -208,7 +208,11 @@ static void belle_sip_header_address_clone(belle_sip_header_address_t *addr, con
 		belle_sip_header_address_set_absolute_uri(addr,BELLE_GENERIC_URI(belle_sip_object_clone(BELLE_SIP_OBJECT(belle_sip_header_address_get_absolute_uri(orig)))));
 	}
 }
-
+belle_sip_header_address_t* belle_sip_header_address_clone(const belle_sip_header_address_t* orig) {
+	belle_sip_header_address_t* new_address = belle_sip_header_address_new();
+	_belle_sip_header_address_clone(new_address, orig);
+	return new_address;
+}
 static belle_sip_error_code _belle_sip_header_address_marshal(belle_sip_header_address_t* header, char* buff, size_t buff_size, size_t *offset, int force_angle_quote) {
 	belle_sip_error_code error=BELLE_SIP_OK;
 	/*1 display name*/
@@ -253,7 +257,7 @@ static belle_sip_error_code _belle_sip_header_address_marshal(belle_sip_header_a
 belle_sip_error_code belle_sip_header_address_marshal(belle_sip_header_address_t* header, char* buff, size_t buff_size, size_t *offset){
 	return _belle_sip_header_address_marshal(header, buff, buff_size, offset, FALSE);
 }
-
+#define belle_sip_header_address_clone _belle_sip_header_address_clone /*because public clone function is not the one to be used internally*/
 BELLE_SIP_NEW_HEADER(header_address,parameters,"header_address")
 BELLE_SIP_PARSE(header_address)
 GET_SET_STRING(belle_sip_header_address,displayname);
