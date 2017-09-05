@@ -118,6 +118,7 @@
 
 #include <bctoolbox/port.h>
 #include <bctoolbox/defs.h>
+#include <belle-sip/utils.h>
 
 /*
  * C O M P I L E R  V E R S I O N  &  F E A T U R E  D E T E C T I O N
@@ -5004,7 +5005,8 @@ int dns_resconf_loadandroid(struct dns_resolv_conf *resconf) {
 int dns_resconf_loadfromresolv(struct dns_resolv_conf *resconf) {
 	struct __res_state res;
 	union res_sockaddr_union addresses[3];
-	int i,error;
+	int i,error,write_index;
+	
 
 	if ((error = res_ninit(&res))) {
 		return error;
@@ -5012,8 +5014,17 @@ int dns_resconf_loadfromresolv(struct dns_resolv_conf *resconf) {
 
 	error=res_getservers(&res,addresses,3);
 	if (error>0){
-		for (i = 0; i<error ; i++ ) {
-			memcpy(&resconf->nameserver[i],&addresses[i],sizeof(union res_sockaddr_union));
+		for (i = 0,write_index=0; i<error ; i++ ) {
+			
+			if (	(addresses[i].sin.sin_family == AF_INET6)
+				&&	(addresses[i].sin6.sin6_addr.__u6_addr.__u6_addr16[0] == 0x80fe) /*local link*/
+				&&	(addresses[i].sin6.sin6_scope_id == 0) ) {
+				char ip[32];
+				bctbx_sockaddr_to_printable_ip_address((struct sockaddr*)&addresses[i].sin6, sizeof(struct sockaddr),ip, sizeof (ip));
+				belle_sip_error("DNS entry [%s] cannot be used without scope id",ip);
+			} else {
+				memcpy(&resconf->nameserver[write_index++],&addresses[i],sizeof(union res_sockaddr_union));
+			}
 		}
 		error=0;
 	}else error=-1;
@@ -7725,6 +7736,9 @@ exec:
 				|| error == DNS_ECONNRESET
 				|| error == EINVAL
 				|| error == DNS_EHOSTUNREACH) { /* maybe even more case*/
+				char remote_sock[64];
+				bctbx_sockaddr_to_printable_ip_address((struct sockaddr*)&R->so.remote, R->so.remote.ss_len,remote_sock, sizeof(remote_sock));
+				belle_sip_error("Cannot reach [%s] because [%s]", remote_sock, strerror(error));
 				dgoto(R->sp, DNS_R_FOREACH_A);
 			}else goto error;
 		}
