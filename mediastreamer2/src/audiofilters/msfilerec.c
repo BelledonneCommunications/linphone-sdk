@@ -39,6 +39,7 @@ typedef struct RecState{
 	MSAsyncWriter *writer;
 	MSRecorderState state;
 	bool_t swap;
+	bool_t is_wav;
 } RecState;
 
 static void rec_init(MSFilter *f){
@@ -51,6 +52,7 @@ static void rec_init(MSFilter *f){
 	s->state=MSRecorderClosed;
 	s->mime = "pcm";
 	s->swap = FALSE;
+	s->is_wav = FALSE;
 	f->data=s;
 }
 
@@ -80,8 +82,8 @@ static void rec_process(MSFilter *f){
 				len = s->max_size - s->size;
 				max_size_reached = 1;
 			}
-			if (s->swap) swap_bytes(m->b_wptr,len);
-			ms_async_reader_write(s->writer,m);
+			if (s->swap) swap_bytes(m->b_rptr,len);
+			ms_async_writer_write(s->writer,m);
 			s->size+=len;
 			if (max_size_reached) {
 				ms_warning("MSFileRec: Maximum size (%d) has been reached. closing file.",s->max_size);
@@ -113,16 +115,21 @@ static int rec_open(MSFilter *f, void *arg){
 	
 	if (s->fd!=-1) rec_close(f,NULL);
 	
+	if (strstr(filename, ".wav") == filename + strlen(filename) - 4){
+		s->is_wav = TRUE;
+	}
+	
 	if (access(filename,R_OK|W_OK)==0){
 		flags=O_WRONLY|O_BINARY;
 		if (rec_get_length(filename,&s->size)>0){
 			ms_message("Opening wav file in append mode, current data size is %i",s->size);
+			s->is_wav = TRUE;
 		}
 	}else{
 		flags=O_WRONLY|O_CREAT|O_TRUNC|O_BINARY;
 		s->size=0;
 	}
-	s->fd=open(filename,flags, S_IRUSR|S_IWUSR);
+	s->fd=open(filename, flags, S_IRUSR|S_IWUSR);
 	if (s->fd==-1){
 		ms_warning("Cannot open %s: %s",filename,strerror(errno));
 		return -1;
@@ -192,7 +199,9 @@ static void _rec_close(RecState *s){
 	if (s->fd!=-1){
 		ms_async_writer_destroy(s->writer);
 		s->writer = NULL;
-		write_wav_header(s->fd, s->rate, s->nchannels, s->size);
+		if (s->is_wav){
+			write_wav_header(s->fd, s->rate, s->nchannels, s->size);
+		}
 		close(s->fd);
 		s->fd=-1;
 	}
@@ -260,6 +269,8 @@ static int rec_set_fmtp(MSFilter *f, void *arg){
 	d->rate = pinfmt->fmt->rate;
 	d->nchannels = pinfmt->fmt->nchannels;
 	d->mime = pinfmt->fmt->encoding;
+	d->swap = strcmp(d->mime, "L16") == 0;
+	if (d->swap) d->is_wav = FALSE;
 	ms_filter_unlock(f);
 	return 0;
 }

@@ -188,7 +188,7 @@ void ms_async_writer_destroy(MSAsyncWriter *obj){
 	ms_free(obj);
 }
 
-int ms_async_reader_write(MSAsyncWriter *obj, mblk_t *m){
+int ms_async_writer_write(MSAsyncWriter *obj, mblk_t *m){
 	ms_mutex_lock(&obj->mutex);
 	ms_bufferizer_put(&obj->buf, m);
 	/*each time we have blocksize bytes in a bufferizer, push a write*/

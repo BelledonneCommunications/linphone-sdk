@@ -40,7 +40,7 @@ MSAsyncWriter *ms_async_writer_new(int fd);
 
 void ms_async_writer_destroy(MSAsyncWriter *obj);
 
-int ms_async_reader_write(MSAsyncWriter *obj, mblk_t *m);
+int ms_async_writer_write(MSAsyncWriter *obj, mblk_t *m);
 
 
 #endif
