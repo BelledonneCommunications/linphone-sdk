@@ -638,6 +638,7 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_client_transaction_t)
 		NULL
 	},
 	NULL,
+	NULL,
 	NULL
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
@@ -732,6 +733,9 @@ int belle_sip_client_transaction_is_notify_matching_pending_subscribe(belle_sip_
 	return strcmp(belle_sip_header_call_id_get_call_id(sub_call_id),belle_sip_header_call_id_get_call_id(notif_call_id))==0
 	&& sub_from_tag && notif_to_tag && strcmp(sub_from_tag,notif_to_tag)==0
 	&& strcasecmp(belle_sip_header_event_get_package_name(sub_event),belle_sip_header_event_get_package_name(notif_event))==0;
+}
 
+void belle_sip_client_transaction_stop_retransmissions(belle_sip_client_transaction_t *t){
+	BELLE_SIP_OBJECT_VPTR(t,belle_sip_client_transaction_t)->stop_retransmissions(t);
 }
 

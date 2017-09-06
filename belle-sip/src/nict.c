@@ -126,6 +126,15 @@ static int nict_on_timer_E(belle_sip_nict_t *obj){
 	return BELLE_SIP_CONTINUE;
 }
 
+static void nict_stop_retransmissions(belle_sip_nict_t *obj){
+	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
+	if (obj->timer_E){
+		belle_sip_transaction_stop_timer(base,obj->timer_E);
+		belle_sip_object_unref(obj->timer_E);
+		obj->timer_E=NULL;
+	}
+}
+
 static void nict_send_request(belle_sip_nict_t *obj){
 	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
 	const belle_sip_timer_config_t *cfg=belle_sip_transaction_get_timer_config(base);
@@ -163,7 +172,8 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_nict_t)
 			(void (*)(belle_sip_transaction_t *))nict_on_terminate
 		},
 		(void (*)(belle_sip_client_transaction_t*))nict_send_request,
-		(void (*)(belle_sip_client_transaction_t*,belle_sip_response_t*))nict_on_response
+		(void (*)(belle_sip_client_transaction_t*,belle_sip_response_t*))nict_on_response,
+		(void (*)(belle_sip_client_transaction_t*))nict_stop_retransmissions
 	}
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 

@@ -83,6 +83,12 @@ BELLESIP_EXPORT belle_sip_refresher_t* belle_sip_client_transaction_create_refre
  * */
 BELLESIP_EXPORT belle_sip_request_t* belle_sip_client_transaction_create_authenticated_request(belle_sip_client_transaction_t *t,belle_sip_list_t** auth_infos,const char* realm);
 
+/**
+ * For transactions over unreliable transports, stop retransmissions. This avoids for example to keep sending INVITE retransmissions of a call that has just been terminated, while
+ * keeping the transaction alive in order to eventually let a response being handled, so that the transaction can be cancelled properly.
+**/
+BELLESIP_EXPORT void belle_sip_client_transaction_stop_retransmissions(belle_sip_client_transaction_t *t);
+
 #define BELLE_SIP_TRANSACTION(t) BELLE_SIP_CAST(t,belle_sip_transaction_t)
 #define BELLE_SIP_SERVER_TRANSACTION(t) BELLE_SIP_CAST(t,belle_sip_server_transaction_t)
 #define BELLE_SIP_CLIENT_TRANSACTION(t) BELLE_SIP_CAST(t,belle_sip_client_transaction_t)

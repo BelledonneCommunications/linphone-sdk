@@ -725,6 +725,7 @@ struct belle_sip_client_transaction{
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_client_transaction_t,belle_sip_transaction_t)
 	void (*send_request)(belle_sip_client_transaction_t *);
 	void (*on_response)(belle_sip_client_transaction_t *obj, belle_sip_response_t *resp);
+	void (*stop_retransmissions)(belle_sip_client_transaction_t *obj);
 BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 
 void belle_sip_client_transaction_init(belle_sip_client_transaction_t *obj, belle_sip_provider_t *prov, belle_sip_request_t *req);
