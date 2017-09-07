@@ -82,7 +82,14 @@ static void rec_process(MSFilter *f){
 				len = s->max_size - s->size;
 				max_size_reached = 1;
 			}
-			if (s->swap) swap_bytes(m->b_rptr,len);
+			if (s->swap) {
+				if (dblk_ref_value(m->b_datap) != 1){
+					mblk_t *old = m;
+					m = copymsg(m);
+					freemsg(old);
+				}
+				swap_bytes(m->b_rptr,len);
+			}
 			ms_async_writer_write(s->writer,m);
 			s->size+=len;
 			if (max_size_reached) {
