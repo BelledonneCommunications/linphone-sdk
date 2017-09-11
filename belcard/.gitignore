@@ -34,3 +34,4 @@ tests/belcard-unfolder
 tests/belcard-parser
 tools/output.vcf
 tester/belcard-tester
+belcard.spec
