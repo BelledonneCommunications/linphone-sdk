@@ -51,7 +51,7 @@ uint32_t bctbx_key_agreement_algo_list(void) {
 /*****************************************************************************/
 
 /* Create and initialise the ECDH Context */
-bctbx_ECDHContext_t *bctbx_CreateECDHContext(uint8_t ECDHAlgo) {
+bctbx_ECDHContext_t *bctbx_CreateECDHContext(const uint8_t ECDHAlgo) {
 	/* create the context */
 	bctbx_ECDHContext_t *context = (bctbx_ECDHContext_t *)bctbx_malloc(sizeof(bctbx_ECDHContext_t));
 	memset (context, 0, sizeof(bctbx_ECDHContext_t));
@@ -91,10 +91,49 @@ bctbx_ECDHContext_t *bctbx_CreateECDHContext(uint8_t ECDHAlgo) {
  * @param[in]		secret		The buffer holding the secret, is duplicated in the ECDH context
  * @param[in]		secretLength	Length of previous buffer, must match the algo type setted at context creation
  */
-void bctbx_ECDHSetSecretKey(bctbx_ECDHContext_t *context, uint8_t *secret, size_t secretLength) {
+void bctbx_ECDHSetSecretKey(bctbx_ECDHContext_t *context, const uint8_t *secret, const size_t secretLength) {
 	if (context!=NULL && context->secretLength==secretLength) {
-		context->secret = (uint8_t *)bctbx_malloc(context->secretLength);
+		if (context->secret == NULL) { /* allocate a new buffer */
+			context->secret = (uint8_t *)bctbx_malloc(context->secretLength);
+		} else { /* or make sure we wipe out the existing one */
+			memset(context->secret, 0, context->secretLength);
+		}
 		memcpy(context->secret, secret, secretLength);
+	}
+}
+
+/**
+ *
+ * @brief	Set the given self public key in the ECDH context
+ *		Warning: no check if it matches the private key value
+ *
+ * @param[in/out]	context			ECDH context, will store the given self public key if length is matching the pre-setted algo for this context
+ * @param[in]		selfPublic		The buffer holding the self public key, is duplicated in the ECDH context
+ * @param[in]		selfPublicLength	Length of previous buffer, must match the algo type setted at context creation
+ */
+void bctbx_ECDHSetSelfPublicKey(bctbx_ECDHContext_t *context, const uint8_t *selfPublic, const size_t selfPublicLength) {
+	if (context!=NULL && context->pointCoordinateLength==selfPublicLength) {
+		if (context->selfPublic == NULL) {
+			context->selfPublic = (uint8_t *)bctbx_malloc(selfPublicLength);
+		}
+		memcpy(context->selfPublic, selfPublic, selfPublicLength);
+	}
+}
+/**
+ *
+ * @brief	Set the given peer public key in the ECDH context
+ *
+ * @param[in/out]	context			ECDH context, will store the given peer public key if length is matching the pre-setted algo for this context
+ * @param[in]		peerPublic		The buffer holding the peer public key, is duplicated in the ECDH context
+ * @param[in]		peerPublicLength	Length of previous buffer, must match the algo type setted at context creation
+ */
+BCTBX_PUBLIC void bctbx_ECDHSetPeerPublicKey(bctbx_ECDHContext_t *context, const uint8_t *peerPublic, const size_t peerPublicLength) {
+	if (context!=NULL && context->pointCoordinateLength==peerPublicLength) {
+		/* allocate public key buffer if needed */
+		if (context->peerPublic == NULL) {
+			context->peerPublic = (uint8_t *)bctbx_malloc(peerPublicLength);
+		}
+		memcpy(context->peerPublic, peerPublic, peerPublicLength);
 	}
 }
 
@@ -106,8 +145,10 @@ void bctbx_ECDHSetSecretKey(bctbx_ECDHContext_t *context, uint8_t *secret, size_
  */
 void bctbx_ECDHDerivePublicKey(bctbx_ECDHContext_t *context) {
 	if (context!=NULL && context->secret!=NULL) {
-		/* allocate public key buffer */
-		context->selfPublic = (uint8_t *)bctbx_malloc(context->pointCoordinateLength);
+		/* allocate public key buffer if needed */
+		if (context->selfPublic == NULL) {
+			context->selfPublic = (uint8_t *)bctbx_malloc(context->pointCoordinateLength);
+		}
 
 		/* then generate the public value */
 		switch (context->algo) {
@@ -127,7 +168,11 @@ void bctbx_ECDHDerivePublicKey(bctbx_ECDHContext_t *context) {
 void bctbx_ECDHCreateKeyPair(bctbx_ECDHContext_t *context, int (*rngFunction)(void *, uint8_t *, size_t), void *rngContext) {
 	if (context!=NULL) {
 		/* first generate the random bytes of self secret and store it in context(do it directly instead of creating a temp buffer and calling SetSecretKey) */
-		context->secret = (uint8_t *)bctbx_malloc(context->secretLength);
+		if (context->secret == NULL) { /* allocate buffer if needed */
+			context->secret = (uint8_t *)bctbx_malloc(context->secretLength);
+		} else { /* otherwise make sure we wipe out previous secret */
+			memset(context->secret, 0, context->secretLength);
+		}
 		rngFunction(rngContext, context->secret, context->secretLength);
 
 		/* Then derive the public key */
@@ -138,19 +183,24 @@ void bctbx_ECDHCreateKeyPair(bctbx_ECDHContext_t *context, int (*rngFunction)(vo
 /* compute secret - the ->peerPublic field of context must have been set before calling this function */
 void bctbx_ECDHComputeSecret(bctbx_ECDHContext_t *context, int (*rngFunction)(void *, uint8_t *, size_t), void *rngContext) {
 	if (context != NULL && context->secret!=NULL && context->peerPublic!=NULL) {
-		/* allocate shared secret buffer */
-		context->sharedSecret = (uint8_t *)bctbx_malloc(context->pointCoordinateLength);
+		if (context->sharedSecret == NULL) { /* allocate buffer if needed */
+			context->sharedSecret = (uint8_t *)bctbx_malloc(context->pointCoordinateLength);
+		} else { /* otherwise make sure we wipe out previous secret */
+			memset(context->sharedSecret, 0, context->pointCoordinateLength);
+		}
 
 		switch (context->algo) {
 			case BCTBX_ECDH_X25519:
 				if (decaf_x25519(context->sharedSecret, context->peerPublic, context->secret)==DECAF_FAILURE) {
 					bctbx_free(context->sharedSecret);
+					memset(context->sharedSecret, 0, context->pointCoordinateLength);
 					context->sharedSecret=NULL;
 				}
 				break;
 			case BCTBX_ECDH_X448:
 				if (decaf_x448(context->sharedSecret, context->peerPublic, context->secret)==DECAF_FAILURE) {
 					bctbx_free(context->sharedSecret);
+					memset(context->sharedSecret, 0, context->pointCoordinateLength);
 					context->sharedSecret=NULL;
 				}
 				break;
@@ -167,14 +217,17 @@ void bctbx_DestroyECDHContext(bctbx_ECDHContext_t *context) {
 		if (context->secret != NULL) {
 			memset(context->secret, 0, context->secretLength);
 			free(context->secret);
+			context->secret=NULL;
 		}
 		free(context->selfPublic);
+		context->selfPublic=NULL;
 		if (context->sharedSecret != NULL) {
 			memset(context->sharedSecret, 0, context->pointCoordinateLength);
 			free(context->sharedSecret);
+			context->sharedSecret=NULL;
 		}
 		free(context->peerPublic);
-		free(context->cryptoModuleData);
+		context->peerPublic=NULL;
 		free(context);
 	}
 }
@@ -461,9 +514,11 @@ uint32_t bctbx_key_agreement_algo_list(void) {
 
 /* We do not have lib decaf, implement empty stubs */
 int bctbx_crypto_have_ecc(void) { return FALSE;}
-bctbx_ECDHContext_t *bctbx_CreateECDHContext(uint8_t ECDHAlgo) {return NULL;}
+bctbx_ECDHContext_t *bctbx_CreateECDHContext(const uint8_t ECDHAlgo) {return NULL;}
 void bctbx_ECDHCreateKeyPair(bctbx_ECDHContext_t *context, int (*rngFunction)(void *, uint8_t *, size_t), void *rngContext) {return;}
-void bctbx_ECDHSetSecretKey(bctbx_ECDHContext_t *context, uint8_t *secret, size_t secretLength){return;}
+void bctbx_ECDHSetSecretKey(bctbx_ECDHContext_t *context, const uint8_t *secret, const size_t secretLength){return;}
+void bctbx_ECDHSetSelfPublicKey(bctbx_ECDHContext_t *context, const uint8_t *selfPublic, const size_t selfPublicLength){return;}
+void bctbx_ECDHSetPeerPublicKey(bctbx_ECDHContext_t *context, const uint8_t *peerPublic, const size_t peerPublicLength){return;}
 void bctbx_ECDHDerivePublicKey(bctbx_ECDHContext_t *context){return;}
 void bctbx_ECDHComputeSecret(bctbx_ECDHContext_t *context, int (*rngFunction)(void *, uint8_t *, size_t), void *rngContext){return;}
 void bctbx_DestroyECDHContext(bctbx_ECDHContext_t *context){return;}

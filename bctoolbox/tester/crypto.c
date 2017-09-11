@@ -92,10 +92,8 @@ static void DHM(void) {
 
 static void ECDH_exchange(bctbx_ECDHContext_t *alice, bctbx_ECDHContext_t *bob) {
 	/* exchange public keys */
-	alice->peerPublic = (uint8_t *)malloc(alice->pointCoordinateLength*sizeof(uint8_t));
-	memcpy(alice->peerPublic, bob->selfPublic, alice->pointCoordinateLength);
-	bob->peerPublic = (uint8_t *)malloc(alice->pointCoordinateLength*sizeof(uint8_t));
-	memcpy(bob->peerPublic, alice->selfPublic, alice->pointCoordinateLength);
+	bctbx_ECDHSetPeerPublicKey(alice, bob->selfPublic, alice->pointCoordinateLength);
+	bctbx_ECDHSetPeerPublicKey(bob, alice->selfPublic, bob->pointCoordinateLength);
 
 	/* compute shared secrets */
 	bctbx_ECDHComputeSecret(alice, NULL, NULL);
@@ -162,6 +160,30 @@ static void ECDH(void) {
 	bctbx_rng_context_free(RNG);
 
 	/********************************************************************/
+	/*** Run an exchange using patterns from RFC7748                    */
+	/********************************************************************/
+	/*** Run it on the X25519 patterns ***/
+	/* set contexts */
+	alice = bctbx_CreateECDHContext(BCTBX_ECDH_X25519);
+	bob = bctbx_CreateECDHContext(BCTBX_ECDH_X25519);
+
+	/* Set private and public value */
+	bctbx_ECDHSetSecretKey(alice, ECDHpattern_X25519_alicePrivate, 32);
+	bctbx_ECDHSetSelfPublicKey(alice, ECDHpattern_X25519_alicePublic, 32);
+	bctbx_ECDHSetSecretKey(bob, ECDHpattern_X25519_bobPrivate, 32);
+	bctbx_ECDHSetSelfPublicKey(bob, ECDHpattern_X25519_bobPublic, 32);
+
+	/* Perform the key exchange and compute shared secret, it will check shared secrets are matching */
+	ECDH_exchange(alice, bob);
+
+	/* check shared secret according to RFC7748 patterns */
+	BC_ASSERT_TRUE(memcmp(alice->sharedSecret, ECDHpattern_X25519_sharedSecret, 32)==0);
+
+	/* clear contexts */
+	bctbx_DestroyECDHContext(alice);
+	bctbx_DestroyECDHContext(bob);
+
+	/********************************************************************/
 	/*** Run an key derivation and exchange using patterns from RFC7748 */
 	/********************************************************************/
 	/*** Run it on the X25519 patterns ***/
@@ -217,6 +239,30 @@ static void ECDH(void) {
 	bctbx_DestroyECDHContext(bob);
 
 	/********************************************************************/
+	/*** Run an exchange using patterns from RFC7748                    */
+	/********************************************************************/
+	/*** Run it on the X448 patterns ***/
+	/* set contexts */
+	alice = bctbx_CreateECDHContext(BCTBX_ECDH_X448);
+	bob = bctbx_CreateECDHContext(BCTBX_ECDH_X448);
+
+	/* Set private and derive the public value */
+	bctbx_ECDHSetSecretKey(alice, ECDHpattern_X448_alicePrivate, 56);
+	bctbx_ECDHSetSelfPublicKey(alice, ECDHpattern_X448_alicePublic, 56);
+	bctbx_ECDHSetSecretKey(bob, ECDHpattern_X448_bobPrivate, 56);
+	bctbx_ECDHSetSelfPublicKey(bob, ECDHpattern_X448_bobPublic, 56);
+
+	/* Perform the key exchange and compute shared secret, it will check shared secrets are matching */
+	ECDH_exchange(alice, bob);
+
+	/* check shared secret according to RFC7748 patterns */
+	BC_ASSERT_TRUE(memcmp(alice->sharedSecret, ECDHpattern_X448_sharedSecret, 56)==0);
+
+	/* clear contexts */
+	bctbx_DestroyECDHContext(alice);
+	bctbx_DestroyECDHContext(bob);
+
+	/********************************************************************/
 	/*** Run an key derivation and exchange using patterns from RFC7748 */
 	/********************************************************************/
 	/*** Run it on the X448 patterns ***/
@@ -251,7 +297,7 @@ static void ECDH25519compat(void) {
 
 #ifdef HAVE_MBEDTLS
 	int i;
-	bctbx_ECDHContext_t *alice;
+	bctbx_ECDHContext_t *alice=NULL;
 	bctbx_rng_context_t *RNG;
 	mbedtls_ecdh_context *bob=NULL;
 	uint8_t tmpBuffer[32];
@@ -270,7 +316,7 @@ static void ECDH25519compat(void) {
 	/* Create Alice and Bob contexts */
 	alice = bctbx_CreateECDHContext(BCTBX_ECDH_X25519);
 
-	bob=(mbedtls_ecdh_context *)malloc(sizeof(mbedtls_ecdh_context));
+	bob=(mbedtls_ecdh_context *)bctbx_malloc(sizeof(mbedtls_ecdh_context));
 	mbedtls_ecdh_init(bob);
 	mbedtls_ecp_group_load(&(bob->grp), MBEDTLS_ECP_DP_CURVE25519 );
 
@@ -311,6 +357,8 @@ static void ECDH25519compat(void) {
 
 	/* clear contexts */
 	bctbx_DestroyECDHContext(alice);
+	mbedtls_ecdh_free(bob);
+	free(bob);
 
 	/* clear contexts */
 	bctbx_rng_context_free(RNG);
@@ -378,6 +426,8 @@ static void EdDSA(void) {
 		bctbx_DestroyEDDSAContext(james);
 		bctbx_DestroyEDDSAContext(world);
 	}
+
+	bctbx_rng_context_free(RNG);
 }
 
 static void ed25519_to_x25519_keyconversion(void) {
@@ -418,10 +468,10 @@ static void ed25519_to_x25519_keyconversion(void) {
 static void sign_and_key_exchange(void) {
 	int i;
 	bctbx_rng_context_t *RNG;
-	bctbx_ECDHContext_t *aliceECDH =  bctbx_CreateECDHContext(BCTBX_ECDH_X25519);
-	bctbx_EDDSAContext_t *aliceEDDSA =  bctbx_CreateEDDSAContext(BCTBX_EDDSA_25519);
-	bctbx_ECDHContext_t *bobECDH =  bctbx_CreateECDHContext(BCTBX_ECDH_X25519);
-	bctbx_EDDSAContext_t *bobEDDSA =  bctbx_CreateEDDSAContext(BCTBX_EDDSA_25519);
+	bctbx_ECDHContext_t *aliceECDH = NULL;//bctbx_CreateECDHContext(BCTBX_ECDH_X25519);
+	bctbx_EDDSAContext_t *aliceEDDSA =  NULL;//bctbx_CreateEDDSAContext(BCTBX_EDDSA_25519);
+	bctbx_ECDHContext_t *bobECDH =  NULL;//bctbx_CreateECDHContext(BCTBX_ECDH_X25519);
+	bctbx_EDDSAContext_t *bobEDDSA =  NULL;//bctbx_CreateEDDSAContext(BCTBX_EDDSA_25519);
 	uint8_t availableAlgosEDDSA[2]={BCTBX_EDDSA_25519, BCTBX_EDDSA_448};
 	uint8_t availableAlgosECDH[2]={BCTBX_ECDH_X25519, BCTBX_ECDH_X448};
 	uint8_t availableAlgosNb=2;
@@ -494,6 +544,8 @@ static void sign_and_key_exchange(void) {
 		bctbx_DestroyEDDSAContext(bobEDDSA);
 		bctbx_DestroyECDHContext(bobECDH);
 	}
+
+	bctbx_rng_context_free(RNG);
 }
 
 static void hash_test(void) {

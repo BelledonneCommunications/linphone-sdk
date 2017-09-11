@@ -597,7 +597,7 @@ typedef struct bctbx_ECDHContext_struct {
  * @return The initialised context for the ECDH calculation(must then be freed calling the destroyECDHContext function), NULL on error
  *
  */
-BCTBX_PUBLIC bctbx_ECDHContext_t *bctbx_CreateECDHContext(uint8_t ECDHAlgo);
+BCTBX_PUBLIC bctbx_ECDHContext_t *bctbx_CreateECDHContext(const uint8_t ECDHAlgo);
 
 /**
  *
@@ -618,7 +618,28 @@ BCTBX_PUBLIC void bctbx_ECDHCreateKeyPair(bctbx_ECDHContext_t *context, int (*rn
  * @param[in]		secret		The buffer holding the secret, is duplicated in the ECDH context
  * @param[in]		secretLength	Length of previous buffer, must match the algo type setted at context creation
  */
-BCTBX_PUBLIC void bctbx_ECDHSetSecretKey(bctbx_ECDHContext_t *context, uint8_t *secret, size_t secretLength);
+BCTBX_PUBLIC void bctbx_ECDHSetSecretKey(bctbx_ECDHContext_t *context, const uint8_t *secret, const size_t secretLength);
+
+/**
+ *
+ * @brief	Set the given self public key in the ECDH context
+ *		Warning: no check if it matches the private key value
+ *
+ * @param[in/out]	context			ECDH context, will store the given self public key if length is matching the pre-setted algo for this context
+ * @param[in]		selfPublic		The buffer holding the self public key, is duplicated in the ECDH context
+ * @param[in]		selfPublicLength	Length of previous buffer, must match the algo type setted at context creation
+ */
+BCTBX_PUBLIC void bctbx_ECDHSetSelfPublicKey(bctbx_ECDHContext_t *context, const uint8_t *selfPublic, const size_t selfPublicLength);
+
+/**
+ *
+ * @brief	Set the given peer public key in the ECDH context
+ *
+ * @param[in/out]	context			ECDH context, will store the given peer public key if length is matching the pre-setted algo for this context
+ * @param[in]		peerPublic		The buffer holding the peer public key, is duplicated in the ECDH context
+ * @param[in]		peerPublicLength	Length of previous buffer, must match the algo type setted at context creation
+ */
+BCTBX_PUBLIC void bctbx_ECDHSetPeerPublicKey(bctbx_ECDHContext_t *context, const uint8_t *peerPublic, const size_t peerPublicLength);
 
 /**
  *
