@@ -372,18 +372,18 @@ static int webrtc_aec_set_sr(MSFilter *f, void *arg) {
 	int requested_sr = *(int *) arg;
 	int sr = requested_sr;
 
-	if ((requested_sr != 8000) && (requested_sr != 16000) && (requested_sr != 32000) && (requested_sr != 48000)) {
-		if ((s->aec_type == WebRTCAECTypeNormal) && (requested_sr > 48000)) {
-			sr = 48000;
-		} else if ((s->aec_type == WebRTCAECTypeNormal) && (requested_sr > 32000)) {
-			sr = 32000;
-		} else if (requested_sr > 16000) {
-			sr = 16000;
-		} else {
-			sr = 8000;
-		}
-		ms_message("Webrtc aec does not support sampling rate %i, using %i instead", requested_sr, sr);
+	if ((s->aec_type == WebRTCAECTypeNormal) && (requested_sr >= 48000)) {
+		sr = 48000;
+	} else if ((s->aec_type == WebRTCAECTypeNormal) && (requested_sr >= 32000)) {
+		sr = 32000;
+	} else if (requested_sr >= 16000) {
+		sr = 16000;
+	} else {
+		sr = 8000;
 	}
+	if (sr != requested_sr)
+		ms_message("Webrtc %s does not support sampling rate %i, using %i instead", ((s->aec_type == WebRTCAECTypeNormal)?"aec":"aecm"),requested_sr, sr);
+	 
 	s->samplerate = sr;
 	configure_flow_controlled_bufferizer(s);
 	return 0;
