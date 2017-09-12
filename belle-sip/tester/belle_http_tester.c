@@ -78,6 +78,9 @@ static belle_http_provider_t *prov=NULL;
 
 static int http_before_all(void) {
 	stack=belle_sip_stack_new(NULL);
+	if (userhostsfile)
+		belle_sip_stack_set_dns_user_hosts_file(stack,userhostsfile);
+
 	prov=belle_sip_stack_create_http_provider(stack,"0.0.0.0");
 	if (belle_sip_tester_get_root_ca_path() != NULL) {
 		belle_tls_crypto_config_t *crypto_config=belle_tls_crypto_config_new();

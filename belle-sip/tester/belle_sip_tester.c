@@ -35,6 +35,7 @@ static FILE * log_file = NULL;
 static belle_sip_object_pool_t *pool;
 
 static int leaked_objects_count;
+const char *userhostsfile = NULL;
 
 static int _belle_sip_tester_ipv6_available(void){
 	struct addrinfo *ai=bctbx_ip_address_to_addrinfo(AF_INET6,SOCK_STREAM,"2a01:e00::2",53);
@@ -187,7 +188,8 @@ static const char* belle_sip_helper =
 		"\t\t\t--log-file <output log file path>\n"
 		"\t\t\t--domain <test sip domain>\n"
 		"\t\t\t--auth-domain <test auth domain>\n"
-		"\t\t\t--root-ca <root ca file path>\n";
+		"\t\t\t--root-ca <root ca file path>\n"
+		"\t\t\t--dns-hosts </etc/hosts -like file to used to override DNS names (default: tester_hosts)>\n";
 
 int main (int argc, char *argv[]) {
 	int i;
@@ -233,6 +235,9 @@ int main (int argc, char *argv[]) {
 		} else if (strcmp(argv[i], "--root-ca") == 0) {
 			CHECK_ARG("--root-ca", ++i, argc);
 			root_ca_path = argv[i];
+		}else if (strcmp(argv[i],"--dns-hosts")==0){
+			CHECK_ARG("--dns-hosts", ++i, argc);
+			userhostsfile=argv[i];
 		}else {
 			int ret = bc_tester_parse_args(argc, argv, i);
 			if (ret>0) {

@@ -240,6 +240,9 @@ static void process_auth_requested(void *user_ctx, belle_sip_auth_event_t *event
 int register_before_all(void) {
 	belle_sip_listening_point_t *lp;
 	stack=belle_sip_stack_new(NULL);
+	if (userhostsfile)
+		belle_sip_stack_set_dns_user_hosts_file(stack,userhostsfile);
+	
 	lp=belle_sip_stack_create_listening_point(stack,"0.0.0.0",7060,"UDP");
 	prov=belle_sip_stack_create_provider(stack,lp);
 

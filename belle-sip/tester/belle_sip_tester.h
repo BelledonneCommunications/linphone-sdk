@@ -58,6 +58,7 @@ void belle_sip_tester_uninit(void);
 void belle_sip_tester_before_each(void);
 void belle_sip_tester_after_each(void);
 int belle_sip_tester_set_log_file(const char *filename);
+extern const char *userhostsfile;
 
 #ifdef __cplusplus
 };
