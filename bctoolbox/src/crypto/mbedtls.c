@@ -1316,7 +1316,35 @@ int32_t bctbx_ssl_context_setup(bctbx_ssl_context_t *ssl_ctx, bctbx_ssl_config_t
 /***** Hashing                                                           *****/
 /*****************************************************************************/
 /*
- * HMAC-SHA-384 wrapper
+ * @brief HMAC-SHA512 wrapper
+ * @param[in] 	key		HMAC secret key
+ * @param[in] 	keyLength	HMAC key length
+ * @param[in]	input 		Input data buffer
+ * @param[in]   inputLength	Input data length
+ * @param[in]	hmacLength	Length of output required in bytes, HMAC output is truncated to the hmacLength left bytes. 64 bytes maximum
+ * @param[out]	output		Output data buffer.
+ *
+ */
+void bctbx_hmacSha512(const uint8_t *key,
+		size_t keyLength,
+		const uint8_t *input,
+		size_t inputLength,
+		uint8_t hmacLength,
+		uint8_t *output)
+{
+	uint8_t hmacOutput[64];
+	mbedtls_md_hmac(mbedtls_md_info_from_type(MBEDTLS_MD_SHA512), key, keyLength, input, inputLength, hmacOutput);
+
+	/* check output length, can't be>64 */
+	if (hmacLength>64) {
+		memcpy(output, hmacOutput, 64);
+	} else {
+		memcpy(output, hmacOutput, hmacLength);
+	}
+}
+
+/*
+ * @brief HMAC-SHA384 wrapper
  * @param[in] 	key		HMAC secret key
  * @param[in] 	keyLength	HMAC key length
  * @param[in]	input 		Input data buffer
@@ -1344,7 +1372,7 @@ void bctbx_hmacSha384(const uint8_t *key,
 }
 
 /*
- * HMAC-SHA-256 wrapper
+ * brief HMAC-SHA256 wrapper
  * @param[in] 	key			HMAC secret key
  * @param[in] 	keyLength	HMAC key length
  * @param[in]	input 		Input data buffer

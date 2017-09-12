@@ -842,6 +842,23 @@ BCTBX_PUBLIC void bctbx_sha256(const uint8_t *input,
 		uint8_t hashLength,
 		uint8_t *output);
 
+/*
+ * @brief HMAC-SHA512 wrapper
+ * @param[in] 	key		HMAC secret key
+ * @param[in] 	keyLength	HMAC key length
+ * @param[in]	input 		Input data buffer
+ * @param[in]   inputLength	Input data length
+ * @param[in]	hmacLength	Length of output required in bytes, HMAC output is truncated to the hmacLength left bytes. 64 bytes maximum
+ * @param[out]	output		Output data buffer.
+ *
+ */
+BCTBX_PUBLIC void bctbx_hmacSha512(const uint8_t *key,
+		size_t keyLength,
+		const uint8_t *input,
+		size_t inputLength,
+		uint8_t hmacLength,
+		uint8_t *output);
+
 /**
  * @brief HMAC-SHA384 wrapper
  * @param[in] 	key		HMAC secret key

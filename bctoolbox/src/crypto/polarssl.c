@@ -1165,6 +1165,34 @@ int32_t bctbx_ssl_context_setup(bctbx_ssl_context_t *ssl_ctx, bctbx_ssl_config_t
 /***** Hashing                                                           *****/
 /*****************************************************************************/
 /**
+ * @brief HMAC-SHA512 wrapper
+ * @param[in] 	key		HMAC secret key
+ * @param[in] 	keyLength	HMAC key length in bytes
+ * @param[in]	input 		Input data buffer
+ * @param[in]   inputLength	Input data length in bytes
+ * @param[in]	hmacLength	Length of output required in bytes, HMAC output is truncated to the hmacLength left bytes. 48 bytes maximum
+ * @param[out]	output		Output data buffer.
+ *
+ */
+void bctbx_hmacSha512(const uint8_t *key,
+		size_t keyLength,
+		const uint8_t *input,
+		size_t inputLength,
+		uint8_t hmacLength,
+		uint8_t *output)
+{
+	uint8_t hmacOutput[64];
+	sha512_hmac(key, keyLength, input, inputLength, hmacOutput, 0); /* last param to one to select SHA512 and not SHA384 */
+
+	/* check output length, can't be>64 */
+	if (hmacLength>64) {
+		memcpy(output, hmacOutput, 64);
+	} else {
+		memcpy(output, hmacOutput, hmacLength);
+	}
+}
+
+/**
  * @brief HMAC-SHA384 wrapper
  * @param[in] 	key		HMAC secret key
  * @param[in] 	keyLength	HMAC key length in bytes
