@@ -136,6 +136,7 @@ struct _MediaStream {
 	 * defines encoder target network bit rate, uses #media_stream_set_target_network_bitrate() setter.
 	 * */
 	int target_bitrate;
+	int max_target_bitrate;
 	media_stream_process_rtcp_callback_t process_rtcp;
 	OrtpEvDispatcher *evd;
 	MSFactory *factory;
@@ -227,6 +228,15 @@ MS2_PUBLIC float media_stream_get_average_lq_quality_rating(MediaStream *stream)
  * @return 0 if succeed
  * */
 MS2_PUBLIC int media_stream_set_target_network_bitrate(MediaStream *stream,int target_bitrate);
+
+/**
+ * Set a maximum target bitrate for the stream. Indeed, the MSBandwidthController may adapt the target bitrate
+ * according to network conditions, which includes the possibility to increase it if remote side sends a TMMBR
+ * to invite to increase bitrate. The max_network_bitrate defines the upper limit for increasing the bitrate usage automatically.
+ * @param stream stream to apply parameter on
+ * @param target_bitrate in bit per seconds
+**/
+MS2_PUBLIC int media_stream_set_max_network_bitrate(MediaStream *stream,int max_bitrate);
 
 /**
  * get the stream target bitrate.
@@ -905,8 +915,6 @@ MS2_PUBLIC const MSWebCam * video_stream_get_camera(const VideoStream *stream);
 MS2_PUBLIC MSFilter* video_stream_get_source_filter(const VideoStream* stream);
 
 MS2_PUBLIC void video_stream_change_camera(VideoStream *stream, MSWebCam *cam);
-
-MS2_PUBLIC void video_stream_recreate_graph(VideoStream *stream);
 
 /**
  * @brief This functions changes the source filter for the passed video stream.

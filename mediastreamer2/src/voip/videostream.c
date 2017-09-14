@@ -1328,10 +1328,6 @@ void video_stream_close_player(VideoStream *stream){
 	_video_stream_change_camera(stream,stream->cam, NULL, NULL, FALSE, FALSE);
 }
 
-void video_stream_recreate_graph(VideoStream *stream){
-	_video_stream_change_camera(stream,stream->cam, NULL, NULL, FALSE, TRUE);
-}
-
 void video_stream_send_fir(VideoStream *stream) {
 	if (stream->ms.sessions.rtp_session != NULL) {
 		rtp_session_send_rtcp_fb_fir(stream->ms.sessions.rtp_session);
