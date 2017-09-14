@@ -590,8 +590,7 @@ static int enc_set_configuration(MSFilter *f, void *data) {
 	s->cfg.rc_target_bitrate = (unsigned int)(((float)s->vconf.required_bitrate) * 0.92f / 1024.0f); //0.92=take into account IP/UDP/RTP overhead, in average.
 	if (s->ready) {
 		ms_filter_lock(f);
-		enc_postprocess(f);
-		enc_preprocess(f);
+		vpx_codec_enc_config_set(&s->codec, &s->cfg);
 		ms_filter_unlock(f);
 	}
 
