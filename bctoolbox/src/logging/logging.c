@@ -638,7 +638,9 @@ void bctbx_logv_file(void* user_info, const char *domain, BctbxLogLevel lev, con
 	bctbx_file_log_handler_t *filehandler = (bctbx_file_log_handler_t *) user_info;
 	FILE *f;
 	bctbx_mutex_lock(&__bctbx_logger.log_mutex);
-	f = filehandler->file;
+	if (filehandler != NULL){
+		f = filehandler->file;
+	}else f = stdout;
 	bctbx_gettimeofday(&tp,NULL);
 	tt = (time_t)tp.tv_sec;
 
@@ -691,7 +693,7 @@ void bctbx_logv_file(void* user_info, const char *domain, BctbxLogLevel lev, con
 			,1900+lt->tm_year,1+lt->tm_mon,lt->tm_mday,lt->tm_hour,lt->tm_min,lt->tm_sec
 		,(int)(tp.tv_usec/1000), (domain?domain:"bctoolbox"), lname, msg);
 	fflush(f);
-	if (filehandler->max_size > 0 && ret > 0) {
+	if (filehandler && filehandler->max_size > 0 && ret > 0) {
 		filehandler->size += ret;
 		if (filehandler->size > filehandler->max_size) {
 			_close_log_collection_file(filehandler);
