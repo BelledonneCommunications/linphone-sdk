@@ -72,15 +72,15 @@ typedef struct _MediastreamDatas {
 
 // MAIN METHODS
 /* init default arguments */
-static MediastreamDatas *init_default_args(void);
+MediastreamDatas *init_default_args(void);
 /* parse args */
-static bool_t parse_args(int argc, char **argv, MediastreamDatas *out);
+bool_t parse_args(int argc, char **argv, MediastreamDatas *out);
 /* setup streams */
-static void setup_media_streams(MediastreamDatas *args);
+void setup_media_streams(MediastreamDatas *args);
 /* run loop */
-static void run_non_interactive_loop(MediastreamDatas *args);
+void run_non_interactive_loop(MediastreamDatas *args);
 /* exit */
-static void clear_mediastreams(MediastreamDatas *args);
+void clear_mediastreams(MediastreamDatas *args);
 
 // HELPER METHODS
 static void stop_handler(int signum);
@@ -94,7 +94,7 @@ const char *usage = "pcap_playback --infile <pcapfile>\n"
 		    "This tool directly renders a pcap file to soundcard or screen (for video), using mediastreamer2 filters.\n"
                     ;
 
-
+#if !TARGET_OS_MAC
 int main(int argc, char *argv[])
 {
 	MediastreamDatas *args;
@@ -115,9 +115,9 @@ int main(int argc, char *argv[])
 
 	return 0;
 }
+#endif
 
-
-static MediastreamDatas *init_default_args(void)
+MediastreamDatas *init_default_args(void)
 {
 	MediastreamDatas *args = (MediastreamDatas *) ms_malloc0(sizeof(MediastreamDatas));
 
@@ -136,7 +136,7 @@ static MediastreamDatas *init_default_args(void)
 	return args;
 }
 
-static bool_t parse_args(int argc, char **argv, MediastreamDatas *out)
+bool_t parse_args(int argc, char **argv, MediastreamDatas *out)
 {
 	int i;
 
@@ -239,7 +239,7 @@ static void configure_resampler(MSFilter *resampler,MSFilter *from, MSFilter *to
 		from->desc->name, from, to->desc->name, to, from_rate, to_rate, from_channels, to_channels);
 }
 
-static void setup_media_streams(MediastreamDatas *args) {
+void setup_media_streams(MediastreamDatas *args) {
 	MSConnectionHelper h;
 	MSTickerParams params = {0};
 	MSPCAPFilePlayerLayer layer = MSPCAPFilePlayerLayerPayload;
@@ -389,7 +389,7 @@ static void setup_media_streams(MediastreamDatas *args) {
 }
 
 
-static void run_non_interactive_loop(MediastreamDatas *args)
+void run_non_interactive_loop(MediastreamDatas *args)
 {
 	while (cond) {
 		int n;
@@ -411,7 +411,7 @@ static void run_non_interactive_loop(MediastreamDatas *args)
 	}
 }
 
-static void clear_mediastreams(MediastreamDatas *args)
+void clear_mediastreams(MediastreamDatas *args)
 {
 	MSConnectionHelper h;
 
