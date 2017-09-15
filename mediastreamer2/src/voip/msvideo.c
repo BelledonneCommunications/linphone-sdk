@@ -973,13 +973,15 @@ MSVideoConfiguration ms_video_find_best_configuration_for_size(const MSVideoConf
 MSVideoConfiguration ms_video_find_best_configuration_for_size_and_bitrate(const MSVideoConfiguration *vconf_list, MSVideoSize vsize, int cpu_count, int bitrate) {
 	const MSVideoConfiguration *vconf_it = vconf_list;
 	MSVideoConfiguration best_vconf={0};
+	MSVideoConfiguration *last_good_vconf = NULL;
 	int min_score=INT32_MAX;
 	int ref_pixels=vsize.height*vsize.width;
 
 	if (bitrate == 0) return ms_video_find_best_configuration_for_size(vconf_list, vsize, cpu_count);
 
-	/* search for configuration that is first nearest to target video size, then target bitrate and finally has the greater fps,
-	 * but any case making sure the the cpu count is sufficient*/
+	/* Search for configuration that is first nearest to target video size, then target bitrate and finally has the greater fps,
+	 * but any case making sure the cpu count is sufficient. 
+	 * We suppose that the configuration list is ordered. */
 	while(TRUE) {
 		int pixels=vconf_it->vsize.width*vconf_it->vsize.height;
 		int score=abs(pixels-ref_pixels);
@@ -987,9 +989,17 @@ MSVideoConfiguration ms_video_find_best_configuration_for_size_and_bitrate(const
 			if (score<min_score){
 				best_vconf=*vconf_it;
 				min_score=score;
+				
+				if (bitrate <= vconf_it->bitrate_limit && bitrate >= vconf_it->required_bitrate) last_good_vconf=&best_vconf;
 			}else if (score==min_score) {
 				if (bitrate <= vconf_it->bitrate_limit && bitrate >= vconf_it->required_bitrate) {
+					if (last_good_vconf == NULL || last_good_vconf->fps < vconf_it->fps) {
+						best_vconf=*vconf_it;
+						last_good_vconf=&best_vconf;
+					}
+				} else if (bitrate < vconf_it->required_bitrate) {
 					best_vconf=*vconf_it;
+					last_good_vconf=NULL;
 				}
 			}
 		}
@@ -999,6 +1009,9 @@ MSVideoConfiguration ms_video_find_best_configuration_for_size_and_bitrate(const
 		vconf_it++;
 
 	}
+	last_good_vconf = NULL;
 	best_vconf.vsize = vsize;
 	return best_vconf;
+}
+
 }
