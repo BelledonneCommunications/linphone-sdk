@@ -1018,5 +1018,3 @@ bool_t ms_video_configuratons_equal(const MSVideoConfiguration *vconf1, const MS
 	if (vconf1 == NULL || vconf2 == NULL) return 0;
 	return (vconf1->required_bitrate == vconf2->required_bitrate && vconf1->bitrate_limit == vconf2->bitrate_limit && vconf1->fps == vconf2->fps && vconf1->mincpu == vconf2->mincpu);
 }
-
-}
