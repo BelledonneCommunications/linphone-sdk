@@ -1014,4 +1014,9 @@ MSVideoConfiguration ms_video_find_best_configuration_for_size_and_bitrate(const
 	return best_vconf;
 }
 
+bool_t ms_video_configuratons_equal(const MSVideoConfiguration *vconf1, const MSVideoConfiguration *vconf2) {
+	if (vconf1 == NULL || vconf2 == NULL) return 0;
+	return (vconf1->required_bitrate == vconf2->required_bitrate && vconf1->bitrate_limit == vconf2->bitrate_limit && vconf1->fps == vconf2->fps && vconf1->mincpu == vconf2->mincpu);
+}
+
 }

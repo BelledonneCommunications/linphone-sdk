@@ -663,7 +663,7 @@ static void apply_bitrate_limit(MediaStream *obj, int br_limit){
 
 		vconf1 = ms_video_find_best_configuration_for_size_and_bitrate(vconf_list, vsize, ms_factory_get_cpu_count(obj->factory), previous_br_limit);
 		vconf2 = ms_video_find_best_configuration_for_size_and_bitrate(vconf_list, vsize, ms_factory_get_cpu_count(obj->factory), br_limit);
-		if (vconf1.required_bitrate != vconf2.required_bitrate || vconf1.bitrate_limit != vconf2.bitrate_limit) {
+		if (!ms_video_configuratons_equal(&vconf1, &vconf2)) {
 			ms_message("VideoStream[%p]: bitrate update will change video configuration, recreate graph", obj);
 			video_stream_update_video_params((VideoStream *)obj);
 		} else {

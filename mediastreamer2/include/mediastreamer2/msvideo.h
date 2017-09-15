@@ -410,6 +410,14 @@ MS2_PUBLIC MSVideoConfiguration ms_video_find_best_configuration_for_size(const 
 
 MS2_PUBLIC MSVideoConfiguration ms_video_find_best_configuration_for_size_and_bitrate(const MSVideoConfiguration *vconf_list, MSVideoSize vsize, int cpu_count, int bitrate);
 
+/**
+ * Compares two video configurations and tell if they are equals.
+ * @param[in] vconf1 The first video configuration.
+ * @param[in] vconf2 The second video configuration.
+ * @return true if both configurations are equal, false otherwise.
+ */
+MS2_PUBLIC bool_t ms_video_configuratons_equal(const MSVideoConfiguration *vconf1, const MSVideoConfiguration *vconf2);
+
 #ifdef __cplusplus
 }
 #endif
