@@ -607,7 +607,7 @@ static int enc_set_vsize(MSFilter *f, void *data) {
 	s->vconf.vsize = *vs;
 	s->vconf.fps = best_vconf.fps;
 	s->vconf.bitrate_limit = best_vconf.bitrate_limit;
-	s->vconf.required_bitrate = best_vconf.bitrate_limit;
+	s->vconf.required_bitrate = best_vconf.bitrate_limit < s->vconf.required_bitrate ? best_vconf.bitrate_limit : s->vconf.required_bitrate;
 	enc_set_configuration(f, &s->vconf);
 	return 0;
 }
