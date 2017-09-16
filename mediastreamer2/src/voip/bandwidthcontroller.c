@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mediastreamer2/mscommon.h"
 #include <ortp/ortp.h>
 
+#define NO_INCREASE_THRESHOLD 1.2
 
 MSBandwidthController *ms_bandwidth_controller_new(void){
 	MSBandwidthController *obj = ms_new0(MSBandwidthController, 1);
@@ -31,6 +32,7 @@ MSBandwidthController *ms_bandwidth_controller_new(void){
 void ms_bandwidth_controller_reset_state(MSBandwidthController *obj){
 	memset(&obj->stats, 0, sizeof(obj->stats));
 	obj->remote_video_bandwidth_available_estimated = 0;
+	obj->stats.estimated_download_bandwidth = 0; /*this value is computed under congestion situation, if any*/
 	obj->congestion_detected = 0;
 }
 
@@ -123,14 +125,22 @@ static void on_video_bandwidth_estimation_available(const OrtpEventData *evd, vo
 	if (!obj->congestion_detected) {
 		RtpSession *session = obj->controlled_stream->sessions.rtp_session;
 		float estimated_bitrate = evd->info.video_bandwidth_available;
-		if (estimated_bitrate >= obj->remote_video_bandwidth_available_estimated) {
-			ms_message("MSBandwidthController: video bandwidth estimation available, sending tmmbr for stream [%p][%s] for target [%f] kbit/s", 
-					obj->controlled_stream, ms_format_type_to_string(obj->controlled_stream->type), estimated_bitrate / 1000);
-			obj->remote_video_bandwidth_available_estimated = estimated_bitrate;
-			rtp_session_send_rtcp_fb_tmmbr(session, (uint64_t)estimated_bitrate);
-		} else {
-			ms_message("MSBandwidthController: discarding available video bandwidth estimation (%f kbit/s) because it's lower than the previous one (%f kbit/s)", estimated_bitrate/1000, obj->remote_video_bandwidth_available_estimated/1000);
+		if (estimated_bitrate <= obj->remote_video_bandwidth_available_estimated * NO_INCREASE_THRESHOLD) {
+			ms_message("MSBandwidthController: not using new video bandwidth estimation (%f kbit/s) because it's not enough greater than the previous one (%f kbit/s)",
+				estimated_bitrate/1000, obj->remote_video_bandwidth_available_estimated/1000);
+			return;
 		}
+		
+		if (obj->stats.estimated_download_bandwidth != 0 && estimated_bitrate <= NO_INCREASE_THRESHOLD * obj->stats.estimated_download_bandwidth){
+			ms_message("MSBandwidthController: not using new video bandwidth estimation (%f kbit/s) because it's not enough greater than bandwidth measured under congestion (%f kbit/s)",
+				estimated_bitrate/1000, obj->stats.estimated_download_bandwidth/1000);
+			return;
+		}
+			
+		ms_message("MSBandwidthController: video bandwidth estimation available, sending tmmbr for stream [%p][%s] for target [%f] kbit/s", 
+					obj->controlled_stream, ms_format_type_to_string(obj->controlled_stream->type), estimated_bitrate / 1000);
+		obj->remote_video_bandwidth_available_estimated = estimated_bitrate;
+		rtp_session_send_rtcp_fb_tmmbr(session, (uint64_t)estimated_bitrate);
 	}
 }
 
