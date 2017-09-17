@@ -1007,7 +1007,6 @@ MSVideoConfiguration ms_video_find_best_configuration_for_size_and_bitrate(const
 			break;
 		}
 		vconf_it++;
-
 	}
 	last_good_vconf = NULL;
 	best_vconf.vsize = vsize;

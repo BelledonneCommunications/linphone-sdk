@@ -483,6 +483,19 @@ static int enc_notify_fir(MSFilter *f, void *data) {
 	return 0;
 }
 
+static int enc_get_conf_list(MSFilter *f, void *data){
+	EncData *d = (EncData *)f->data;
+	*(MSVideoConfiguration **)data = (MSVideoConfiguration*)d->vconf_list;
+	return 0;
+}
+
+static int enc_set_conf_list(MSFilter *f, void *data){
+	EncData *d = (EncData *)f->data;
+	MSVideoConfiguration *conf_list = *(MSVideoConfiguration **)data;
+	d->vconf_list = conf_list != NULL ? conf_list : mediaCodecH264_conf_list;
+	return 0;
+}
+
 static MSFilterMethod  mediacodec_h264_enc_methods[] = {
 	{ MS_FILTER_SET_FPS,                       enc_set_fps                },
 	{ MS_FILTER_SET_BITRATE,                   enc_set_br                 },
@@ -493,6 +506,9 @@ static MSFilterMethod  mediacodec_h264_enc_methods[] = {
 	{ MS_VIDEO_ENCODER_NOTIFY_FIR,             enc_notify_fir             },
 	{ MS_FILTER_SET_VIDEO_SIZE,                enc_set_vsize              },
 	{ MS_VIDEO_ENCODER_ENABLE_AVPF,            enc_enable_avpf            },
+	{ MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, enc_get_conf_list	      },
+	{ MS_VIDEO_ENCODER_SET_CONFIGURATION_LIST, enc_set_conf_list	      },
+	{ MS_VIDEO_ENCODER_SET_CONFIGURATION,	   enc_set_configuration      },
 	{ 0,                                       NULL                       }
 };
 
