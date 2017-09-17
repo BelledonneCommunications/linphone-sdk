@@ -82,6 +82,7 @@ struct AMediaFormat {
 	jmethodID setInteger;
 	jmethodID getInteger;
 	jmethodID setString;
+	jmethodID containsKey;
 };
 
 int handle_java_exception() {
@@ -404,10 +405,23 @@ void AMediaCodec_reset(AMediaCodec *codec) {
 	handle_java_exception();
 }
 
-void AMediaCodec_setParams(AMediaCodec *codec, const char *params) {
+static void putToBundle(JNIEnv *env, AMediaCodec *codec, jobject jbundle, AMediaFormat *fmt, const char *key){
+	int32_t value = 0;
+	
+	if (AMediaFormat_getInt32(fmt, key, &value)){
+		jstring jkey = env->NewStringUTF(key);
+		env->CallVoidMethod(jbundle, codec->putIntId, jkey, value);
+		handle_java_exception();
+		env->DeleteLocalRef(jkey);
+		ms_message("AMediaCodec_setParams() %s key transfered to Bundle with value %i", key, value);
+	}
+}
+
+void AMediaCodec_setParams(AMediaCodec *codec, const AMediaFormat * fmt) {
 	JNIEnv *env = ms_get_jni_env();
 	jobject jbundle = NULL;
 	jclass BundleClass = NULL;
+	
 
 	/* We can't stock jclass information due to JNIEnv difference between different threads */
 	if (!_loadClass(env, "android/os/Bundle", &BundleClass)) {
@@ -415,12 +429,10 @@ void AMediaCodec_setParams(AMediaCodec *codec, const char *params) {
 		handle_java_exception();
 		return;
 	}
-
-	jstring msg = env->NewStringUTF(params);
 	jbundle = env->NewObject(BundleClass, codec->_init_BundleClass);
-	env->CallVoidMethod(jbundle, codec->putIntId, msg, 0);
-	handle_java_exception();
-	env->DeleteLocalRef(msg);
+
+	putToBundle(env, codec, jbundle, (AMediaFormat *)fmt, "request-sync");
+	putToBundle(env, codec, jbundle, (AMediaFormat *)fmt, "video-bitrate");
 
 	env->CallVoidMethod(codec->jcodec, codec->setParameters, jbundle);
 	handle_java_exception();
@@ -553,6 +565,7 @@ bool AMediaFormat_loadMethodID(AMediaFormat * format) {
 	success &= _getMethodID(env, mediaFormatClass, "setInteger", "(Ljava/lang/String;I)V", &(format->setInteger));
 	success &= _getMethodID(env, mediaFormatClass, "getInteger", "(Ljava/lang/String;)I", &(format->getInteger));
 	success &= _getMethodID(env, mediaFormatClass, "setString", "(Ljava/lang/String;Ljava/lang/String;)V", &(format->setString));
+	success &= _getMethodID(env, mediaFormatClass, "containsKey", "(Ljava/lang/String;)Z", &(format->containsKey));
 	if(!success) {
 		ms_error("%s(): one method or field could not be found", __FUNCTION__);
 		goto error;
@@ -600,19 +613,24 @@ media_status_t AMediaFormat_delete(AMediaFormat* format) {
 
 bool AMediaFormat_getInt32(AMediaFormat *format, const char *name, int32_t *out){
 	JNIEnv *env = ms_get_jni_env();
+	bool hasValue;
 
 	if (!format) {
-		ms_error("Format nul");
+		ms_error("Format null");
 		return false;
 	}
+	
 
 	jstring jkey = env->NewStringUTF(name);
-	jint jout = env->CallIntMethod(format->jformat, format->getInteger, jkey);
-	*out = jout;
+	hasValue = env->CallBooleanMethod(format->jformat, format->containsKey, jkey);
+	
+	if (hasValue){
+		jint jout = env->CallIntMethod(format->jformat, format->getInteger, jkey);
+		*out = jout;
+	}
 	env->DeleteLocalRef(jkey);
 	handle_java_exception();
-
-	return true;
+	return hasValue;
 }
 
 void AMediaFormat_setInt32(AMediaFormat *format, const char* name, int32_t value) {

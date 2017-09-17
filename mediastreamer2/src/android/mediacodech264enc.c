@@ -249,8 +249,11 @@ static void enc_process(MSFilter *f) {
 
 			if (ms_iframe_requests_limiter_iframe_requested(&d->iframe_limiter, f->ticker->time) ||
 			        (d->avpf_enabled == FALSE && ms_video_starter_need_i_frame(&d->starter, f->ticker->time))) {
+				AMediaFormat *afmt = AMediaFormat_new();
 				/*Force a key-frame*/
-				AMediaCodec_setParams(d->codec, "request-sync");
+				AMediaFormat_setInt32(afmt, "request-sync", 0);
+				AMediaCodec_setParams(d->codec, afmt);
+				AMediaFormat_delete(afmt);
 				ms_error("MSMediaCodecH264Enc: I-frame requested to MediaCodec");
 				ms_iframe_requests_limiter_notify_iframe_sent(&d->iframe_limiter, f->ticker->time);
 			}
@@ -397,7 +400,17 @@ static int enc_set_configuration(MSFilter *f, void *arg) {
 	if (d->vconf.required_bitrate > d->vconf.bitrate_limit)
 		d->vconf.required_bitrate = d->vconf.bitrate_limit;
 
-	ms_message("Video configuration set: bitrate=%dbits/s, fps=%f, vsize=%dx%d", d->vconf.required_bitrate, d->vconf.fps, d->vconf.vsize.width, d->vconf.vsize.height);
+	ms_message("Video configuration set: bitrate=%d bits/s, fps=%f, vsize=%dx%d", d->vconf.required_bitrate, d->vconf.fps, d->vconf.vsize.width, d->vconf.vsize.height);
+	
+	if (d->codec_started){
+		AMediaFormat *afmt = AMediaFormat_new();
+		/*Force a key-frame*/
+		ms_filter_lock(f);
+		AMediaFormat_setInt32(afmt, "video-bitrate", d->vconf.required_bitrate);
+		AMediaCodec_setParams(d->codec, afmt);
+		AMediaFormat_delete(afmt);
+		ms_filter_unlock(f);
+	}
 	return 0;
 }
 

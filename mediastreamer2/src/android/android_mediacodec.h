@@ -38,7 +38,7 @@ typedef struct {
 } AMediaImage;
 
 void AMediaCodec_reset(AMediaCodec *codec);
-void AMediaCodec_setParams(AMediaCodec *codec, const char *params);
+void AMediaCodec_setParams(AMediaCodec *codec, const AMediaFormat * fmt);
 bool AMediaCodec_getInputImage(AMediaCodec *codec, int index, AMediaImage *image);
 bool AMediaCodec_getOutputImage(AMediaCodec *codec, int index, AMediaImage *image);
 void AMediaImage_close(AMediaImage *image);
