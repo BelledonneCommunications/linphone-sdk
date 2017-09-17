@@ -188,7 +188,7 @@ static bool_t vth264enc_session_set_bitrate(VTCompressionSessionRef session, int
 		return FALSE;
 	}
 
-	int bytes_per_seconds = bitrate/8 * 2; /*allow to have 2 times the average bitrate in one second*/
+	int bytes_per_seconds = bitrate/8;
 	int dur = 1;
 	CFNumberRef bytes_value = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &bytes_per_seconds);
 	CFNumberRef duration_value = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &dur);
