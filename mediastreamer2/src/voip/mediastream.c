@@ -107,12 +107,12 @@ MSTickerPrio __ms_get_default_prio(bool_t is_video) {
 
 void media_stream_init(MediaStream *stream, MSFactory *factory, const MSMediaStreamSessions *sessions) {
 	stream->sessions = *sessions;
-	
+
 	stream->evd = ortp_ev_dispatcher_new(stream->sessions.rtp_session);
 	stream->evq = ortp_ev_queue_new();
 	stream->factory = factory; /*the factory is used later to instanciate everything in mediastreamer2.*/
 	rtp_session_register_event_queue(stream->sessions.rtp_session, stream->evq);
-	
+
 	/*we give to the zrtp and dtls sessions a backpointer to all the stream sessions*/
 	if (sessions->zrtp_context != NULL) {
 		ms_zrtp_set_stream_sessions(sessions->zrtp_context, &stream->sessions);
@@ -199,7 +199,7 @@ void media_stream_free(MediaStream *stream) {
 	if (stream->sessions.dtls_context != NULL) {
 		ms_dtls_srtp_set_stream_sessions(stream->sessions.dtls_context, NULL);
 	}
-	
+
 	if (stream->sessions.rtp_session != NULL) rtp_session_unregister_event_queue(stream->sessions.rtp_session, stream->evq);
 	if (stream->evq != NULL) ortp_ev_queue_destroy(stream->evq);
 	if (stream->evd != NULL) ortp_ev_dispatcher_destroy(stream->evd);
@@ -601,7 +601,7 @@ bool_t ms_media_resource_is_consistent(const MSMediaResource *r){
 			ms_error("Invalid resource type specified");
 			return FALSE;
 	}
-	ms_error("Unsupported media resource type [%i]", (int)r->type);  
+	ms_error("Unsupported media resource type [%i]", (int)r->type);
 	return FALSE;
 }
 
@@ -634,12 +634,12 @@ static void apply_bitrate_limit(MediaStream *obj, int br_limit){
 		ms_warning("TMMNR not applicable because no encoder for this stream.");
 		return;
 	}
-	
+
 	if (obj->max_target_bitrate > 0 && br_limit > obj->max_target_bitrate){
 		br_limit = obj->max_target_bitrate;
 		ms_message("TMMBR is greater than maximum target bitrate set (%i > %i)", br_limit, obj->max_target_bitrate);
 	}
-	
+
 	if (previous_br_limit == br_limit) {
 		ms_message("Previous bitrate limit was already %i, skipping...", br_limit);
 		return;
@@ -651,15 +651,15 @@ static void apply_bitrate_limit(MediaStream *obj, int br_limit){
 
 	media_stream_set_target_network_bitrate(obj, br_limit);
 	rtp_session_set_target_upload_bandwidth(obj->sessions.rtp_session, br_limit);
-	
+
 #ifdef VIDEO_ENABLED
 	if (obj->type == MSVideo) {
 		MSVideoConfiguration *vconf_list = NULL;
 		MSVideoSize vsize;
 		MSVideoConfiguration vconf1, vconf2;
-		
+
 		ms_filter_call_method(obj->encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, &vconf_list);
-		
+
 		if (vconf_list){
 			ms_filter_call_method(obj->encoder, MS_FILTER_GET_VIDEO_SIZE, &vsize);
 
@@ -669,12 +669,13 @@ static void apply_bitrate_limit(MediaStream *obj, int br_limit){
 				ms_message("VideoStream[%p]: bitrate update will change would need to change fps", obj);
 				/*TO BE IMPLEMENTED*/
 			}
-			int new_bitrate_limit = br_limit < vconf2.bitrate_limit ? br_limit : vconf2.bitrate_limit;
-			ms_message("VideoStream[%p]: changing video encoder's output bitrate to %i", obj, new_bitrate_limit);
-			if (ms_filter_call_method(obj->encoder,MS_FILTER_SET_BITRATE, &new_bitrate_limit) != 0){
-				ms_warning("Failed to apply bitrate constraint to %s", obj->encoder->desc->name);
+			{
+				int new_bitrate_limit = br_limit < vconf2.bitrate_limit ? br_limit : vconf2.bitrate_limit;
+				ms_message("VideoStream[%p]: changing video encoder's output bitrate to %i", obj, new_bitrate_limit);
+				if (ms_filter_call_method(obj->encoder,MS_FILTER_SET_BITRATE, &new_bitrate_limit) != 0){
+					ms_warning("Failed to apply bitrate constraint to %s", obj->encoder->desc->name);
+				}
 			}
-			
 		}else ms_warning("Video encoder doesn't implement MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, TMMBR not applied.");
 	}
 #endif
@@ -685,7 +686,7 @@ static void tmmbr_received(const OrtpEventData *evd, void *user_pointer) {
 	switch (rtcp_RTPFB_get_type(evd->packet)) {
 		case RTCP_RTPFB_TMMBR: {
 			int tmmbr_mxtbr = (int)rtcp_RTPFB_tmmbr_get_max_bitrate(evd->packet);
-			
+
 			ms_message("MediaStream[%p]: received a TMMBR for bitrate %i kbits/s"
 						, ms, (int)(tmmbr_mxtbr/1000));
 			apply_bitrate_limit(ms, tmmbr_mxtbr);
@@ -695,6 +696,3 @@ static void tmmbr_received(const OrtpEventData *evd, void *user_pointer) {
 			break;
 	}
 }
-
-
-
