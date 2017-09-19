@@ -56,11 +56,13 @@ if(NOT LINPHONE_IOS_DEPLOYMENT_TARGET)
 	set(LINPHONE_IOS_DEPLOYMENT_TARGET 8.0)
 endif()
 set(LINPHONE_BUILDER_HOST "${CMAKE_SYSTEM_PROCESSOR}-apple-darwin")
-set(COMMON_FLAGS "-miphoneos-version-min=${LINPHONE_IOS_DEPLOYMENT_TARGET} -DTARGET_OS_IPHONE=1 -D__IOS -fms-extensions")
+set(COMMON_FLAGS "-miphoneos-version-min=${LINPHONE_IOS_DEPLOYMENT_TARGET} -fms-extensions")
 set(LINPHONE_BUILDER_CPPFLAGS "${COMMON_FLAGS}")
 set(LINPHONE_BUILDER_LDFLAGS "${COMMON_FLAGS}")
 set(LINPHONE_BUILDER_PKG_CONFIG_LIBDIR ${CMAKE_INSTALL_PREFIX}/lib/pkgconfig)	# Restrict pkg-config to search in the install directory
 unset(COMMON_FLAGS)
+
+message ("-- Xcode version  ${XCODE_VERSION}")
 
 #XCode7 requires Cmake 3.3.20150815 at least
 if(NOT ${XCODE_VERSION} VERSION_LESS 7)
