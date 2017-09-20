@@ -52,8 +52,8 @@ namespace belcard {
 		BELCARD_PUBLIC static std::shared_ptr<BelCardImpp> parse(const std::string& input);
 		BELCARD_PUBLIC static void setHandlerAndCollectors(belr::Parser<std::shared_ptr<BelCardGeneric>> *parser);
 
-		BELCARD_PUBLIC virtual void setValue(const std::string &value);
-		BELCARD_PUBLIC virtual void serialize(std::ostream &output) const;
+		BELCARD_PUBLIC void setValue(const std::string &value) override;
+		BELCARD_PUBLIC void serialize(std::ostream &output) const override;
 
 		BELCARD_PUBLIC BelCardImpp();
 	};

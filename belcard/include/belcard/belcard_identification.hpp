@@ -67,7 +67,7 @@ namespace belcard {
 		BELCARD_PUBLIC void setSuffixes(const std::string &value);
 		BELCARD_PUBLIC const std::string &getSuffixes() const;
 		
-		BELCARD_PUBLIC virtual void serialize(std::ostream &output) const;
+		BELCARD_PUBLIC void serialize(std::ostream &output) const override;
 	};
 	
 	class BelCardNickname : public BelCardProperty {

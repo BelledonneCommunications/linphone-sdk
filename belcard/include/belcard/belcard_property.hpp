@@ -114,7 +114,7 @@ namespace belcard {
 		BELCARD_PUBLIC virtual const std::list<std::shared_ptr<BelCardParam>> &getParams() const;
 		BELCARD_PUBLIC virtual void removeParam(const std::shared_ptr<BelCardParam> &param);
 
-		BELCARD_PUBLIC virtual void serialize(std::ostream &output) const;
+		BELCARD_PUBLIC void serialize(std::ostream &output) const override;
 	};
 }
 #endif

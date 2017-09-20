@@ -70,7 +70,7 @@ namespace belcard {
 		BELCARD_PUBLIC void setLabelParam(const std::shared_ptr<BelCardLabelParam> &param);
 		BELCARD_PUBLIC const std::shared_ptr<BelCardLabelParam> &getLabelParam() const;
 
-		BELCARD_PUBLIC virtual void serialize(std::ostream &output) const;
+		BELCARD_PUBLIC void serialize(std::ostream &output) const override;
 	};
 }
 
