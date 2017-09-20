@@ -33,8 +33,9 @@ namespace belr {
 template<typename _parserElementT>
 class AbstractCollector{
 public:
-	virtual void invokeWithChild(_parserElementT obj, _parserElementT child)=0;
 	virtual ~AbstractCollector() = default;
+
+	virtual void invokeWithChild(_parserElementT obj, _parserElementT child)=0;
 };
 
 template<typename _parserElementT, typename _valueT>
@@ -48,8 +49,8 @@ class ParserCollector : public CollectorBase<_parserElementT,_valueT>{
 public:
 	ParserCollector(const std::function<void (_derivedParserElementT , _valueT)> &fn) : mFunc(fn) {}
 
-	virtual void invoke(_parserElementT obj, _valueT value);
-	void invokeWithChild(_parserElementT obj, _parserElementT child);
+	void invoke(_parserElementT obj, _valueT value) override;
+	void invokeWithChild(_parserElementT obj, _parserElementT child) override;
 
 private:
 	std::function<void (_derivedParserElementT, _valueT)> mFunc;
@@ -60,8 +61,8 @@ class ParserChildCollector : public CollectorBase<_parserElementT,_valueT>{
 public:
 	ParserChildCollector(const std::function<void (_derivedParserElementT , _valueT)> &fn) : mFunc(fn){}
 
-	virtual void invoke(_parserElementT obj, _valueT value);
-	virtual void invokeWithChild(_parserElementT obj, _parserElementT child);
+	void invoke(_parserElementT obj, _valueT value) override;
+	void invokeWithChild(_parserElementT obj, _parserElementT child) override;
 
 private:
 	std::function<void (_derivedParserElementT, _valueT)> mFunc;
@@ -81,8 +82,9 @@ class ParserHandlerBase : public std::enable_shared_from_this<ParserHandlerBase<
 
 public:
 	virtual _parserElementT invoke(const std::string &input, size_t begin, size_t count)=0;
+
 	std::shared_ptr<HandlerContext<_parserElementT>> createContext();
-	const std::string &getRulename()const{
+	const std::string &getRulename() const {
 		return mRulename;
 	}
 
@@ -107,6 +109,8 @@ public:
 	ParserHandler(const Parser<_parserElementT> &parser, const std::string &rulename, const std::function<_derivedParserElementT (const std::string &, const std::string &)> &create)
 		: ParserHandlerBase<_parserElementT>(parser, rulename), mHandlerCreateDebugFunc(create){}
 
+	_parserElementT invoke(const std::string &input, size_t begin, size_t count) override;
+
 	template <typename _derivedParserElementTChild>
 	std::shared_ptr<ParserHandler<_derivedParserElementT,_parserElementT>> setCollector(const std::string &child_rule_name, std::function<void (_derivedParserElementTChild , const std::string & )> fn){
 		this->installCollector(child_rule_name, std::make_shared<ParserCollector<_derivedParserElementT,_parserElementT,const std::string&>>(fn));
@@ -122,7 +126,6 @@ public:
 		this->installCollector(child_rule_name, std::make_shared<ParserChildCollector<_derivedParserElementT,_parserElementT,_valueT>>(fn));
 		return std::static_pointer_cast<ParserHandler<_derivedParserElementT,_parserElementT>>(this->shared_from_this());
 	}
-	_parserElementT invoke(const std::string &input, size_t begin, size_t count);
 
 private:
 	std::function<_derivedParserElementT ()> mHandlerCreateFunc;
@@ -194,11 +197,12 @@ public:
 	_parserElementT createRootObject(const std::string &input);
 
 protected:
-	virtual void beginParse(ParserLocalContext &ctx, const std::shared_ptr<Recognizer> &rec);
-	virtual void endParse(const ParserLocalContext &ctx, const std::string &input, size_t begin, size_t count);
-	virtual std::shared_ptr<HandlerContextBase> branch();
-	virtual void merge(const std::shared_ptr<HandlerContextBase> &other);
-	virtual void removeBranch(const std::shared_ptr<HandlerContextBase> &other);
+	void beginParse(ParserLocalContext &ctx, const std::shared_ptr<Recognizer> &rec) override;
+	void endParse(const ParserLocalContext &ctx, const std::string &input, size_t begin, size_t count) override;
+	std::shared_ptr<HandlerContextBase> branch() override;
+	void merge(const std::shared_ptr<HandlerContextBase> &other) override;
+	void removeBranch(const std::shared_ptr<HandlerContextBase> &other) override;
+
 	void  _beginParse(ParserLocalContext &ctx, const std::shared_ptr<Recognizer> &rec);
 	void _endParse(const ParserLocalContext &ctx, const std::string &input, size_t begin, size_t count);
 	std::shared_ptr<HandlerContext<_parserElementT>> _branch();

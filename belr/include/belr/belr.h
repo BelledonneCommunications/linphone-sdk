@@ -51,6 +51,7 @@ struct TransitionMap{
 	bool intersect(const TransitionMap *other);
 	bool intersect(const TransitionMap *other, TransitionMap *result); //performs a AND operation
 	void merge(const TransitionMap *other); //Performs an OR operation
+
 	bool mPossibleChars[256];
 };
 
@@ -67,13 +68,15 @@ public:
 	bool getTransitionMap(TransitionMap *mask);
 	void optimize();
 	void optimize(int recursionLevel);
+
 protected:
 	Recognizer() = default;
 
 	/*returns true if the transition map is complete, false otherwise*/
 	virtual bool _getTransitionMap(TransitionMap *mask);
 	virtual void _optimize(int recursionLevel)=0;
-	virtual size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos)=0;
+	virtual size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos) = 0;
+
 	std::string mName;
 	unsigned int mId = 0;
 };
@@ -81,9 +84,11 @@ protected:
 class CharRecognizer : public Recognizer{
 public:
 	CharRecognizer(int to_recognize, bool caseSensitive=false);
+
 private:
-	virtual void _optimize(int recursionLevel);
-	virtual size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos);
+	size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos) override;
+	void _optimize(int recursionLevel) override;
+
 	int mToRecognize;
 	bool mCaseSensitive;
 };
@@ -91,11 +96,14 @@ private:
 class Selector : public Recognizer{
 public:
 	std::shared_ptr<Selector> addRecognizer(const std::shared_ptr<Recognizer> &element);
+
 protected:
-	virtual void _optimize(int recursionLevel);
-	virtual size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos);
+	void _optimize(int recursionLevel) override;
+	size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos) override;
+	bool _getTransitionMap(TransitionMap *mask) override;
+
 	size_t _feedExclusive(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos);
-	virtual bool _getTransitionMap(TransitionMap *mask);
+
 	std::list<std::shared_ptr<Recognizer>> mElements;
 	bool mIsExclusive = false;
 };
@@ -103,28 +111,36 @@ protected:
 /**This is an optimization of the first one for the case where there can be only a single match*/
 class ExclusiveSelector : public Selector{
 private:
-	virtual size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos);
+	size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos) override;
 };
 
 class Sequence : public Recognizer{
 public:
+	bool _getTransitionMap(TransitionMap *mask) override;
+
 	std::shared_ptr<Sequence> addRecognizer(const std::shared_ptr<Recognizer> &element);
-	virtual bool _getTransitionMap(TransitionMap *mask);
+
 protected:
-	virtual void _optimize(int recursionLevel);
+	void _optimize(int recursionLevel) override;
+
 private:
-	virtual size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos);
+	size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos) override;
+
 	std::list<std::shared_ptr<Recognizer>> mElements;
 };
 
 class Loop : public Recognizer{
 public:
+	bool _getTransitionMap(TransitionMap *mask) override;
+
 	std::shared_ptr<Loop> setRecognizer(const std::shared_ptr<Recognizer> &element, int min=0, int max=-1);
-	virtual bool _getTransitionMap(TransitionMap *mask);
+
 protected:
-	virtual void _optimize(int recursionLevel);
+	void _optimize(int recursionLevel) override;
+
 private:
-	virtual size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos);
+	size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos) override;
+
 	std::shared_ptr<Recognizer> mRecognizer;
 	int mMin = 0;
 	int mMax = -1;
@@ -143,19 +159,25 @@ public:
 class CharRange : public Recognizer{
 public:
 	CharRange(int begin, int end);
+
 private:
-	virtual void _optimize(int recursionLevel);
-	virtual size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos);
-	int mBegin,mEnd;
+	void _optimize(int recursionLevel) override;
+	size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos) override;
+
+	int mBegin;
+	int mEnd;
 };
 
 class Literal : public Recognizer{
 public:
 	Literal(const std::string &lit);
-	virtual bool _getTransitionMap(TransitionMap *mask);
+
+	bool _getTransitionMap(TransitionMap *mask) override;
+
 private:
-	virtual void _optimize(int recursionLevel);
-	virtual size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos);
+	void _optimize(int recursionLevel) override;
+	size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos) override;
+
 	std::string mLiteral;
 	size_t mLiteralSize;
 };
@@ -170,9 +192,11 @@ class RecognizerPointer :  public Recognizer{
 public:
 	std::shared_ptr<Recognizer> getPointed();
 	void setPointed(const std::shared_ptr<Recognizer> &r);
+
 private:
-	virtual void _optimize(int recursionLevel);
-	virtual size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos);
+	void _optimize(int recursionLevel) override;
+	size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos) override;
+
 	std::shared_ptr<Recognizer> mRecognizer;
 };
 
