@@ -362,8 +362,6 @@ static void v4m_process(MSFilter * obj){
 			ms_queue_put(obj->outputs[0],om);
 			ms_average_fps_update(&s->afps, obj->ticker->time);
 		}
-	} else {
-		flushq([s->webcam rq],0);
 	}
 
 	ms_mutex_unlock([s->webcam mutex]);
