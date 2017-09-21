@@ -657,7 +657,8 @@ static void apply_bitrate_limit(MediaStream *obj, int br_limit){
 		MSVideoConfiguration *vconf_list = NULL;
 		MSVideoSize vsize;
 		MSVideoConfiguration vconf1, vconf2;
-
+		int new_bitrate_limit;
+		
 		ms_filter_call_method(obj->encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, &vconf_list);
 
 		if (vconf_list){
@@ -667,14 +668,14 @@ static void apply_bitrate_limit(MediaStream *obj, int br_limit){
 			vconf2 = ms_video_find_best_configuration_for_size_and_bitrate(vconf_list, vsize, ms_factory_get_cpu_count(obj->factory), br_limit);
 			if (!ms_video_configuratons_equal(&vconf1, &vconf2)) {
 				ms_message("VideoStream[%p]: bitrate update will change would need to change fps", obj);
-				/*TO BE IMPLEMENTED*/
+				ms_filter_call_method(obj->encoder, MS_FILTER_SET_FPS, &vconf2.fps);
+				ms_filter_call_method(((VideoStream*)obj)->source, MS_FILTER_SET_FPS, &vconf2.fps);
+				((VideoStream*)obj)->configured_fps = vconf2.fps;
 			}
-			{
-				int new_bitrate_limit = br_limit < vconf2.bitrate_limit ? br_limit : vconf2.bitrate_limit;
-				ms_message("VideoStream[%p]: changing video encoder's output bitrate to %i", obj, new_bitrate_limit);
-				if (ms_filter_call_method(obj->encoder,MS_FILTER_SET_BITRATE, &new_bitrate_limit) != 0){
-					ms_warning("Failed to apply bitrate constraint to %s", obj->encoder->desc->name);
-				}
+			new_bitrate_limit = br_limit < vconf2.bitrate_limit ? br_limit : vconf2.bitrate_limit;
+			ms_message("VideoStream[%p]: changing video encoder's output bitrate to %i", obj, new_bitrate_limit);
+			if (ms_filter_call_method(obj->encoder,MS_FILTER_SET_BITRATE, &new_bitrate_limit) != 0){
+				ms_warning("Failed to apply bitrate constraint to %s", obj->encoder->desc->name);
 			}
 		}else ms_warning("Video encoder doesn't implement MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, TMMBR not applied.");
 	}
