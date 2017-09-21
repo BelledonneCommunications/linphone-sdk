@@ -293,9 +293,8 @@ typedef struct v4mState {
 	NsMsWebCam * webcam;
 	int frame_ind;
 	float fps;
-	float start_time;
-	int frame_count;
 	MSAverageFPS afps;
+	MSFrameRateController framerate_controller;
 } v4mState;
 
 
@@ -304,8 +303,6 @@ static void v4m_init(MSFilter *f) {
 	NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
 	v4mState *s = ms_new0(v4mState,1);
 	s->webcam = [[NsMsWebCam alloc] init];
-	s->start_time = 0;
-	s->frame_count = -1;
 	s->fps = 15;
 	f->data = s;
 	[myPool drain];
@@ -342,18 +339,12 @@ static void v4m_uninit(MSFilter *f) {
 static void v4m_process(MSFilter * obj){
 	v4mState *s = (v4mState*)obj->data;
 	uint32_t timestamp;
-	int cur_frame;
-	if (s->frame_count == -1){
-		s->start_time=obj->ticker->time;
-		s->frame_count=0;
-	}
-	
+
 	NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
 
 	ms_mutex_lock([s->webcam mutex]);
 
-	cur_frame = ((obj->ticker->time-s->start_time)*s->fps/1000.0);
-	if (cur_frame >= s->frame_count) {
+	if (ms_video_capture_new_frame(&s->framerate_controller, obj->ticker->time)) {
 		mblk_t *om=NULL;
 		mblk_t *m;
 		/*keep the most recent frame if several frames have been captured */
@@ -369,7 +360,6 @@ static void v4m_process(MSFilter * obj){
 			mblk_set_timestamp_info(om,timestamp);
 			mblk_set_marker_info(om,TRUE);	
 			ms_queue_put(obj->outputs[0],om);
-			s->frame_count++;
 			ms_average_fps_update(&s->afps, obj->ticker->time);
 		}
 	} else {
@@ -396,7 +386,8 @@ static void v4m_postprocess(MSFilter *f) {
 static int v4m_set_fps(MSFilter *f, void *arg) {
 	v4mState *s = (v4mState*)f->data;
 	s->fps = *((float*)arg);
-	s->frame_count = -1;
+	ms_video_init_framerate_controller(&s->framerate_controller, s->fps);
+	ms_average_fps_init(&s->afps, "AV capture average fps = %f");
 	return 0;
 }
 

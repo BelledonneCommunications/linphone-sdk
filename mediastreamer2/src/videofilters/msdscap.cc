@@ -147,8 +147,6 @@ public:
 		_vsize.width=MS_VIDEO_SIZE_CIF_W;
 		_vsize.height=MS_VIDEO_SIZE_CIF_H;
 		_fps=15;
-		_start_time=0;
-		_frame_count=0;
 		_pixfmt=MS_YUV420P;
 		_ready=false;
 		m_refCount=1;
@@ -194,6 +192,7 @@ public:
 		_devid=index;
 	}
 	MSAverageFPS avgfps;
+	MSFrameRateController framerate_controller;
 protected:
   	long m_refCount;
 private:
@@ -205,8 +204,6 @@ private:
 	queue_t _rq;
 	ms_mutex_t _mutex;
 	float _fps;
-	float _start_time;
-	int _frame_count;
 	MSPixFmt _pixfmt;
 	SharedComPtr< IGraphBuilder > _graphBuilder;
 	SharedComPtr< IBaseFilter > _source;
@@ -535,16 +532,7 @@ void DSCapture::stopAndClean(){
 }
 
 bool DSCapture::isTimeToSend(uint64_t ticker_time){
-	if (_frame_count==-1){
-		_start_time=(float)ticker_time;
-		_frame_count=0;
-	}
-	int cur_frame=(int)(((float)ticker_time-_start_time)*_fps/1000.0);
-	if (cur_frame>_frame_count){
-		_frame_count++;
-		return true;
-	}
-	return false;
+	return ms_video_capture_new_frame(&framerate_controller, ticker_time);
 }
 
 
@@ -605,6 +593,8 @@ static void dscap_process(MSFilter * obj){
 static int dscap_set_fps(MSFilter *f, void *arg){
 	DSCapture *s=(DSCapture*)f->data;
 	s->setFps(*(float*)arg);
+	ms_video_init_framerate_controller(&s->framerate_controller, *(float*)arg);
+	ms_average_fps_init(&s->avgfps,"msdscap: fps=%f");
 	return 0;
 }
 

@@ -83,11 +83,10 @@ typedef struct V4l2State{
 	int frame_ind;
 	int frame_max;
 	float fps;
-	unsigned int start_time;
 	MSAverageFPS avgfps;
-	int th_frame_count;
 	int queued;
 	bool_t configured;
+	MSFrameRateController framerate_controller;
 }V4l2State;
 
 static int msv4l2_open(V4l2State *s){
@@ -718,25 +717,14 @@ static void msv4l2_preprocess(MSFilter *f){
 	V4l2State *s=(V4l2State*)f->data;
 	s->thread_run=TRUE;
 	ms_thread_create(&s->thread,NULL,msv4l2_thread,s);
-	s->th_frame_count=-1;
 	ms_average_fps_init(&s->avgfps,"V4L2 capture: fps=%f");
 }
 
 static void msv4l2_process(MSFilter *f){
 	V4l2State *s=(V4l2State*)f->data;
 	uint32_t timestamp;
-	int cur_frame;
-	uint32_t curtime=f->ticker->time;
-	float elapsed;
 
-	if (s->th_frame_count==-1){
-		s->start_time=curtime;
-		s->th_frame_count=0;
-	}
-	elapsed=((float)(curtime-s->start_time))/1000.0;
-	cur_frame=elapsed*s->fps;
-
-	if (cur_frame>=s->th_frame_count){
+	if (ms_video_capture_new_frame(&s->framerate_controller, f->ticker->time)){
 		mblk_t *om=NULL;
 		ms_mutex_lock(&s->mutex);
 		/*keep the most recent frame if several frames have been captured */
@@ -755,7 +743,6 @@ static void msv4l2_process(MSFilter *f){
 			ms_queue_put(f->outputs[0],om);
 			ms_average_fps_update(&s->avgfps,f->ticker->time);
 		}
-		s->th_frame_count++;
 	}
 }
 
@@ -777,6 +764,8 @@ static void msv4l2_postprocess(MSFilter *f){
 static int msv4l2_set_fps(MSFilter *f, void *arg){
 	V4l2State *s=(V4l2State*)f->data;
 	s->fps=*(float*)arg;
+	ms_video_init_framerate_controller(&s->framerate_controller, s->fps);
+	ms_average_fps_init(&s->avgfps,"V4L2 capture: fps=%f");
 	return 0;
 }
 
