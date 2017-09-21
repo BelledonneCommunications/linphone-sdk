@@ -268,7 +268,7 @@ struct belle_sip_source{
 	unsigned char oneshot;
 	unsigned char notify_required; /*for testing purpose, use to ask for being scheduled*/
 	bctbx_iterator_t *it; /*for fast removal*/
-	belle_sip_main_loop_t *ml; 
+	belle_sip_main_loop_t *ml;
 };
 
 void belle_sip_socket_source_init(belle_sip_source_t *s, belle_sip_source_func_t func, void *data, belle_sip_socket_t fd, unsigned int events, unsigned int timeout_value_ms);
@@ -1037,7 +1037,7 @@ typedef struct _belle_sip_header_extension belle_sip_header_extension_t;
 belle_sip_header_extension_t* belle_sip_header_extension_new(void);
 
 belle_sip_header_extension_t* belle_sip_header_extension_parse (const char* extension) ;
-belle_sip_header_extension_t* belle_sip_header_extension_create (const char* name,const char* value);
+BELLESIP_EXPORT belle_sip_header_extension_t* belle_sip_header_extension_create (const char* name,const char* value);
 BELLESIP_EXPORT const char* belle_sip_header_extension_get_value(const belle_sip_header_extension_t* extension);
 void belle_sip_header_extension_set_value(belle_sip_header_extension_t* extension,const char* value);
 #define BELLE_SIP_HEADER_EXTENSION(t) BELLE_SIP_CAST(t,belle_sip_header_extension_t)
