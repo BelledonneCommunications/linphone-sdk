@@ -22,7 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mediastreamer2/mscommon.h"
 #include <ortp/ortp.h>
 
-#define NO_INCREASE_THRESHOLD 1.2
+#define NO_INCREASE_THRESHOLD 1.4
 
 MSBandwidthController *ms_bandwidth_controller_new(void){
 	MSBandwidthController *obj = ms_new0(MSBandwidthController, 1);
