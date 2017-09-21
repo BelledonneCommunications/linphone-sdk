@@ -99,6 +99,8 @@ static AndroidReaderContext *getContext(MSFilter *f);
 static int video_capture_set_fps(MSFilter *f, void *arg){
 	AndroidReaderContext* d = (AndroidReaderContext*) f->data;
 	d->fps=*((float*)arg);
+    ms_video_init_framerate_controller(&d->fpsControl, d->fps);
+    ms_video_init_average_fps(&d->averageFps, d->fps_context);
 	return 0;
 }
 
