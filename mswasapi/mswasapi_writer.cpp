@@ -250,6 +250,7 @@ void MSWASAPIWriter::stop()
 			ms_error("Could not stop playback on the MSWASAPI audio output interface [%x]", result);
 		}
 		if (mThread != 0) {
+			SetEvent(mSamplesRequestedEvent);
 			ms_thread_join(mThread, NULL);
 			mThread = 0;
 		}
