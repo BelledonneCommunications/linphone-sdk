@@ -170,7 +170,7 @@ public:
 		ms_mutex_unlock(&_mutex);
 		return ret;
 	}
-	bool isTimeToSend(uint64_t ticker_time);
+	bool_t isTimeToSend(uint64_t ticker_time);
 	MSVideoSize getVSize(){
 		if (!_ready) createDshowGraph(); /* so that _vsize is updated according to hardware capabilities*/
 		return _vsize;
@@ -531,7 +531,7 @@ void DSCapture::stopAndClean(){
 	_ready=false;
 }
 
-bool DSCapture::isTimeToSend(uint64_t ticker_time){
+bool_t DSCapture::isTimeToSend(uint64_t ticker_time){
 	return ms_video_capture_new_frame(&framerate_controller, ticker_time);
 }
 
