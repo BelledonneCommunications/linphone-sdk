@@ -5021,7 +5021,7 @@ int dns_resconf_loadfromresolv(struct dns_resolv_conf *resconf) {
 				&&	(addresses[i].sin6.sin6_scope_id == 0) ) {
 				char ip[32];
 				bctbx_sockaddr_to_printable_ip_address((struct sockaddr*)&addresses[i].sin6, sizeof(struct sockaddr),ip, sizeof (ip));
-				belle_sip_error("DNS entry [%s] cannot be used without scope id",ip);
+				belle_sip_warning("DNS entry [%s] cannot be used without scope id",ip);
 			} else {
 				memcpy(&resconf->nameserver[write_index++],&addresses[i],sizeof(union res_sockaddr_union));
 			}
