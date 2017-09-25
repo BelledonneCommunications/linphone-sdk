@@ -68,6 +68,8 @@ static AVCaptureVideoOrientation Angle2AVCaptureVideoOrientation(int deviceOrien
 	char fps_context[64];
 	const char *deviceId;
 	MSYuvBufAllocator* bufAllocator;
+	MSFilter *filter;
+	MSFrameRateController framerate_controller;
 };
 
 - (void)initIOSCapture;
@@ -110,11 +112,12 @@ static void capture_queue_cleanup(void* p) {
 	return self;
 }
 
-- (id)initWithFrame:(CGRect)frame {
+- (id)initWithFrame:(CGRect)frame andFilter:(MSFilter *)f {
 	self = [super initWithFrame:frame];
 	if (self) {
 		[self initIOSCapture];
 	}
+	filter = f;
 	return self;
 }
 
@@ -172,6 +175,8 @@ static void capture_queue_cleanup(void* p) {
 				frame=nil;
 				return;
 			}
+			
+			if (!ms_video_capture_new_frame(&framerate_controller, filter->ticker->time)) return;
 
 			/*kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange*/
 			size_t plane_width = CVPixelBufferGetWidthOfPlane(frame, 0);
@@ -351,6 +356,7 @@ static void capture_queue_cleanup(void* p) {
 
 			[session startRunning]; //warning can take around 1s before returning
 			snprintf(fps_context, sizeof(fps_context), "Captured mean fps=%%f, expected=%f", fps);
+			ms_video_init_framerate_controller(&framerate_controller, fps);
 			ms_video_init_average_fps(&averageFps, fps_context);
 
 			ms_message("ioscapture video device started.");
@@ -525,6 +531,7 @@ static AVCaptureVideoOrientation Angle2AVCaptureVideoOrientation(int deviceOrien
 
 		fps=value;
 		snprintf(fps_context, sizeof(fps_context), "Captured mean fps=%%f, expected=%f", fps);
+		ms_video_init_framerate_controller(&framerate_controller, fps);
 		ms_video_init_average_fps(&averageFps, fps_context);
 		[session commitConfiguration];
 	}
@@ -562,7 +569,7 @@ static AVCaptureVideoOrientation Angle2AVCaptureVideoOrientation(int deviceOrien
 
 static void ioscapture_init(MSFilter *f) {
 	NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
-	f->data = [[IOSCapture alloc] initWithFrame:CGRectMake(0, 0, 0, 0)];
+	f->data = [[IOSCapture alloc] initWithFrame:CGRectMake(0, 0, 0, 0) andFilter:f];
 	[myPool drain];
 }
 
