@@ -62,7 +62,7 @@ set(LINPHONE_BUILDER_LDFLAGS "${COMMON_FLAGS}")
 set(LINPHONE_BUILDER_PKG_CONFIG_LIBDIR ${CMAKE_INSTALL_PREFIX}/lib/pkgconfig)	# Restrict pkg-config to search in the install directory
 unset(COMMON_FLAGS)
 
-message ("-- Xcode version  ${XCODE_VERSION}")
+message(STATUS "Xcode version: ${XCODE_VERSION}")
 
 #XCode7 requires Cmake 3.3.20150815 at least
 if(NOT ${XCODE_VERSION} VERSION_LESS 7)
