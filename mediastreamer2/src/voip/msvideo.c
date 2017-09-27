@@ -1010,6 +1010,9 @@ MSVideoConfiguration ms_video_find_best_configuration_for_size_and_bitrate(const
 	}
 	last_good_vconf = NULL;
 	best_vconf.vsize = vsize;
+    
+    ms_message("Best video configuration for %dbits/s: rb=%d, bl=%d, fps=%f, vsize=%dx%d, mincpu=%d", bitrate, best_vconf.required_bitrate, best_vconf.bitrate_limit, best_vconf.fps, best_vconf.vsize.width, best_vconf.vsize.height, best_vconf.mincpu);
+    
 	return best_vconf;
 }
 
