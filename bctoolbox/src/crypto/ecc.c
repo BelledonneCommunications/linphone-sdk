@@ -30,7 +30,18 @@
 #include "decaf/ed448.h"
 
 int bctbx_crypto_have_ecc(void) {
- return TRUE;
+	/* Check our re-defines of key length are matching the decaf ones */
+	static_assert(BCTBX_ECDH_X25519_PUBLIC_SIZE == DECAF_X25519_PUBLIC_BYTES);
+	static_assert(BCTBX_ECDH_X25519_PRIVATE_SIZE == DECAF_X25519_PRIVATE_BYTES);
+	static_assert(BCTBX_ECDH_X448_PUBLIC_SIZE == DECAF_X448_PUBLIC_BYTES);
+	static_assert(BCTBX_ECDH_X448_PRIVATE_SIZE == DECAF_X448_PRIVATE_BYTES);
+
+	static_assert(BCTBX_EDDSA_25519_PUBLIC_SIZE == DECAF_EDDSA_25519_PUBLIC_BYTES);
+	static_assert(BCTBX_EDDSA_25519_PRIVATE_SIZE == DECAF_EDDSA_25519_PRIVATE_BYTES);
+	static_assert(BCTBX_EDDSA_448_PUBLIC_SIZE == DECAF_EDDSA_448_PUBLIC_BYTES);
+	static_assert(BCTBX_EDDSA_448_PRIVATE_SIZE == DECAF_EDDSA_448_PRIVATE_BYTES);
+
+	return TRUE;
 }
 
 /**
@@ -286,7 +297,7 @@ void bctbx_EDDSADerivePublicKey(bctbx_EDDSAContext_t *context) {
 	if (context != NULL) {
 		if (context->secretKey != NULL) { /* don't go further if we have no secret key in context */
 			if (context->publicKey == NULL) { /* delete existing key if any */
-				context->publicKey = bctbx_malloc(context->pointCoordinateLength);
+				context->publicKey = (uint8_t *)bctbx_malloc(context->pointCoordinateLength);
 			}
 
 			/* then generate the public value */
@@ -388,7 +399,7 @@ void bctbx_EDDSA_setSecretKey(bctbx_EDDSAContext_t *context, uint8_t *secretKey,
 		if (context->secretLength == secretKeyLength) {
 			/* allocate key buffer if needed */
 			if (context->secretKey == NULL) {
-				context->secretKey = bctbx_malloc(secretKeyLength);
+				context->secretKey = (uint8_t *)bctbx_malloc(secretKeyLength);
 			}
 			memcpy(context->secretKey, secretKey, secretKeyLength);
 		}
@@ -447,13 +458,13 @@ void bctbx_EDDSA_ECDH_privateKeyConversion(const bctbx_EDDSAContext_t *ed, bctbx
 		if (ed->algo == BCTBX_EDDSA_25519 && x->algo == BCTBX_ECDH_X25519) {
 			/* allocate key buffer if needed */
 			if (x->secret==NULL) {
-				x->secret = bctbx_malloc(x->secretLength);
+				x->secret = (uint8_t *)bctbx_malloc(x->secretLength);
 			}
 			decaf_ed25519_convert_private_key_to_x25519(x->secret, ed->secretKey);
 		} else if (ed->algo == BCTBX_EDDSA_448 && x->algo == BCTBX_ECDH_X448) {
 			/* allocate key buffer if needed */
 			if (x->secret==NULL) {
-				x->secret = bctbx_malloc(x->secretLength);
+				x->secret = (uint8_t *)bctbx_malloc(x->secretLength);
 			}
 			decaf_ed448_convert_private_key_to_x448(x->secret, ed->secretKey);
 		}
@@ -474,24 +485,24 @@ void bctbx_EDDSA_ECDH_publicKeyConversion(const bctbx_EDDSAContext_t *ed, bctbx_
 		if (ed->algo == BCTBX_EDDSA_25519 && x->algo == BCTBX_ECDH_X25519) {
 			if (isSelf==BCTBX_ECDH_ISPEER) {
 				if (x->peerPublic==NULL) {
-					x->peerPublic = bctbx_malloc(x->pointCoordinateLength);
+					x->peerPublic = (uint8_t *)bctbx_malloc(x->pointCoordinateLength);
 				}
 				decaf_ed25519_convert_public_key_to_x25519(x->peerPublic, ed->publicKey);
 			} else {
 				if (x->selfPublic==NULL) {
-					x->selfPublic = bctbx_malloc(x->pointCoordinateLength);
+					x->selfPublic = (uint8_t *)bctbx_malloc(x->pointCoordinateLength);
 				}
 				decaf_ed25519_convert_public_key_to_x25519(x->selfPublic, ed->publicKey);
 			}
 		} else if (ed->algo == BCTBX_EDDSA_448 && x->algo == BCTBX_ECDH_X448) {
 			if (isSelf==BCTBX_ECDH_ISPEER) {
 				if (x->peerPublic==NULL) {
-					x->peerPublic = bctbx_malloc(x->pointCoordinateLength);
+					x->peerPublic = (uint8_t *)bctbx_malloc(x->pointCoordinateLength);
 				}
 				decaf_ed448_convert_public_key_to_x448(x->peerPublic, ed->publicKey);
 			} else {
 				if (x->selfPublic==NULL) {
-					x->selfPublic = bctbx_malloc(x->pointCoordinateLength);
+					x->selfPublic = (uint8_t *)bctbx_malloc(x->pointCoordinateLength);
 				}
 				decaf_ed448_convert_public_key_to_x448(x->selfPublic, ed->publicKey);
 			}

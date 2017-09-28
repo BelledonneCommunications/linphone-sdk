@@ -39,6 +39,19 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define BCTBX_VERIFY_SUCCESS	0
 #define BCTBX_VERIFY_FAILED	-1
 
+/* Elliptic Curves Key lengths defines:
+theses are redefines of the values defined in decaf headers made available to bctoolbox library users
+bctoolbox will fail to compile if these values are not in sync with the decaf ones */
+#define BCTBX_ECDH_X25519_PUBLIC_SIZE	32
+#define BCTBX_ECDH_X25519_PRIVATE_SIZE	BCTBX_ECDH_X25519_PUBLIC_SIZE
+#define BCTBX_ECDH_X448_PUBLIC_SIZE	56
+#define BCTBX_ECDH_X448_PRIVATE_SIZE	BCTBX_ECDH_X448_PUBLIC_SIZE
+
+#define BCTBX_EDDSA_25519_PUBLIC_SIZE	32
+#define BCTBX_EDDSA_25519_PRIVATE_SIZE	BCTBX_EDDSA_25519_PUBLIC_SIZE
+#define BCTBX_EDDSA_448_PUBLIC_SIZE	57
+#define BCTBX_EDDSA_448_PRIVATE_SIZE	BCTBX_EDDSA_448_PUBLIC_SIZE
+
 /* SSL settings defines */
 #define BCTBX_SSL_UNSET -1
 
