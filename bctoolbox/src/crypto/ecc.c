@@ -271,7 +271,9 @@ bctbx_EDDSAContext_t *bctbx_CreateEDDSAContext(uint8_t EDDSAAlgo) {
 /* generate the random secret and compute the public value */
 void bctbx_EDDSACreateKeyPair(bctbx_EDDSAContext_t *context, int (*rngFunction)(void *, uint8_t *, size_t), void *rngContext) {
 	/* first generate the random bytes of self secret and store it in context */
-	context->secretKey = (uint8_t *)bctbx_malloc(context->secretLength);
+	if (context->secretKey==NULL) {
+		context->secretKey = (uint8_t *)bctbx_malloc(context->secretLength);
+	}
 	rngFunction(rngContext, context->secretKey, context->secretLength);
 
 	/* then generate the public value */
@@ -283,10 +285,9 @@ void bctbx_EDDSADerivePublicKey(bctbx_EDDSAContext_t *context) {
 	/* check we have a context and it was set to get a public key matching the length of the given one */
 	if (context != NULL) {
 		if (context->secretKey != NULL) { /* don't go further if we have no secret key in context */
-			if (context->publicKey != NULL) { /* delete existing key if any */
-				bctbx_free(context->publicKey);
+			if (context->publicKey == NULL) { /* delete existing key if any */
+				context->publicKey = bctbx_malloc(context->pointCoordinateLength);
 			}
-			context->publicKey = bctbx_malloc(context->pointCoordinateLength);
 
 			/* then generate the public value */
 			switch (context->algo) {
@@ -312,7 +313,6 @@ void bctbx_DestroyEDDSAContext(bctbx_EDDSAContext_t *context) {
 			free(context->secretKey);
 		}
 		free(context->publicKey);
-		free(context->cryptoModuleData);
 		free(context);
 	}
 }
@@ -366,10 +366,10 @@ void bctbx_EDDSA_setPublicKey(bctbx_EDDSAContext_t *context, uint8_t *publicKey,
 	/* check we have a context and it was set to get a public key matching the length of the given one */
 	if (context != NULL) {
 		if (context->pointCoordinateLength == publicKeyLength) {
-			if (context->publicKey != NULL) { /* delete existing key if any */
-				bctbx_free(context->publicKey);
+			/* allocate key buffer if needed */
+			if (context->publicKey == NULL) {
+				context->publicKey = (uint8_t *)bctbx_malloc(publicKeyLength);
 			}
-			context->publicKey = bctbx_malloc(publicKeyLength);
 			memcpy(context->publicKey, publicKey, publicKeyLength);
 		}
 	}
@@ -386,10 +386,10 @@ void bctbx_EDDSA_setSecretKey(bctbx_EDDSAContext_t *context, uint8_t *secretKey,
 	/* check we have a context and it was set to get a public key matching the length of the given one */
 	if (context != NULL) {
 		if (context->secretLength == secretKeyLength) {
-			if (context->secretKey != NULL) { /* delete existing key if any */
-				bctbx_free(context->secretKey);
+			/* allocate key buffer if needed */
+			if (context->secretKey == NULL) {
+				context->secretKey = bctbx_malloc(secretKeyLength);
 			}
-			context->secretKey = bctbx_malloc(secretKeyLength);
 			memcpy(context->secretKey, secretKey, secretKeyLength);
 		}
 	}
@@ -445,16 +445,16 @@ int bctbx_EDDSA_verify(bctbx_EDDSAContext_t *context, const uint8_t *message, si
 void bctbx_EDDSA_ECDH_privateKeyConversion(const bctbx_EDDSAContext_t *ed, bctbx_ECDHContext_t *x) {
 	if (ed!=NULL && x!=NULL && ed->secretKey!=NULL) {
 		if (ed->algo == BCTBX_EDDSA_25519 && x->algo == BCTBX_ECDH_X25519) {
-			if (x->secret!=NULL) {
-				bctbx_free(x->secret);
+			/* allocate key buffer if needed */
+			if (x->secret==NULL) {
+				x->secret = bctbx_malloc(x->secretLength);
 			}
-			x->secret = bctbx_malloc(x->secretLength);
 			decaf_ed25519_convert_private_key_to_x25519(x->secret, ed->secretKey);
 		} else if (ed->algo == BCTBX_EDDSA_448 && x->algo == BCTBX_ECDH_X448) {
-			if (x->secret!=NULL) {
-				bctbx_free(x->secret);
+			/* allocate key buffer if needed */
+			if (x->secret==NULL) {
+				x->secret = bctbx_malloc(x->secretLength);
 			}
-			x->secret = bctbx_malloc(x->secretLength);
 			decaf_ed448_convert_private_key_to_x448(x->secret, ed->secretKey);
 		}
 	}
@@ -467,36 +467,32 @@ void bctbx_EDDSA_ECDH_privateKeyConversion(const bctbx_EDDSAContext_t *ed, bctbx
  *
  * @param[in]	ed	Context holding the current public key to convert
  * @param[out]	x	Context to store the public key for x25519 key exchange
- * @param[in]	isSelf	Flag to decide where to store the public key in context: BCTBX_ECDH_ISPEER or BCTBX_ECDH_ISPEER
+ * @param[in]	isSelf	Flag to decide where to store the public key in context: BCTBX_ECDH_ISPEER or BCTBX_ECDH_ISSELF
 */
 void bctbx_EDDSA_ECDH_publicKeyConversion(const bctbx_EDDSAContext_t *ed, bctbx_ECDHContext_t *x, uint8_t isSelf) {
 	if (ed!=NULL && x!=NULL && ed->publicKey!=NULL) {
 		if (ed->algo == BCTBX_EDDSA_25519 && x->algo == BCTBX_ECDH_X25519) {
 			if (isSelf==BCTBX_ECDH_ISPEER) {
-				if (x->peerPublic!=NULL) {
-					bctbx_free(x->peerPublic);
+				if (x->peerPublic==NULL) {
+					x->peerPublic = bctbx_malloc(x->pointCoordinateLength);
 				}
-				x->peerPublic = bctbx_malloc(x->pointCoordinateLength);
 				decaf_ed25519_convert_public_key_to_x25519(x->peerPublic, ed->publicKey);
 			} else {
-				if (x->selfPublic!=NULL) {
-					bctbx_free(x->selfPublic);
+				if (x->selfPublic==NULL) {
+					x->selfPublic = bctbx_malloc(x->pointCoordinateLength);
 				}
-				x->selfPublic = bctbx_malloc(x->pointCoordinateLength);
 				decaf_ed25519_convert_public_key_to_x25519(x->selfPublic, ed->publicKey);
 			}
 		} else if (ed->algo == BCTBX_EDDSA_448 && x->algo == BCTBX_ECDH_X448) {
 			if (isSelf==BCTBX_ECDH_ISPEER) {
-				if (x->peerPublic!=NULL) {
-					bctbx_free(x->peerPublic);
+				if (x->peerPublic==NULL) {
+					x->peerPublic = bctbx_malloc(x->pointCoordinateLength);
 				}
-				x->peerPublic = bctbx_malloc(x->pointCoordinateLength);
 				decaf_ed448_convert_public_key_to_x448(x->peerPublic, ed->publicKey);
 			} else {
-				if (x->selfPublic!=NULL) {
-					bctbx_free(x->selfPublic);
+				if (x->selfPublic==NULL) {
+					x->selfPublic = bctbx_malloc(x->pointCoordinateLength);
 				}
-				x->selfPublic = bctbx_malloc(x->pointCoordinateLength);
 				decaf_ed448_convert_public_key_to_x448(x->selfPublic, ed->publicKey);
 			}
 		}
