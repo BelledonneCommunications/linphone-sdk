@@ -408,6 +408,15 @@ MS2_PUBLIC MSVideoConfiguration ms_video_find_best_configuration_for_bitrate(con
  */
 MS2_PUBLIC MSVideoConfiguration ms_video_find_best_configuration_for_size(const MSVideoConfiguration *vconf_list, MSVideoSize vsize, int cpucount);
 
+/**
+ * Find the worst video configuration from a list of configuration according to a given video size.
+ * @param[in] vconf_list The list of video configurations to choose from.
+ * @param[in] vsize The maximum video size the chosen configuration is allowed to use.
+ * @param[in] cpucount the number of cpu that can be used for this encoding.
+ * @return The best video configuration found in the given list.
+ */
+MS2_PUBLIC MSVideoConfiguration ms_video_find_worst_configuration_for_size(const MSVideoConfiguration *vconf_list, MSVideoSize vsize, int cpucount);
+
 MS2_PUBLIC MSVideoConfiguration ms_video_find_best_configuration_for_size_and_bitrate(const MSVideoConfiguration *vconf_list, MSVideoSize vsize, int cpu_count, int bitrate);
 
 /**
