@@ -440,6 +440,7 @@ static void dec_process(MSFilter *f) {
 				ms_filter_notify_no_arg(f, MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
 			}
 
+			ms_average_fps_update(&d->fps, f->ticker->time);
 			ms_queue_put(f->outputs[0], om);
 		} else {
 			ms_error("MSMediaCodecH264Dec: width and height are not known !");
