@@ -234,3 +234,7 @@ if(ENABLE_SHARED)
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 	)
 endif()
+#to avoid // build to generate code twice in // leading compilation issues. Might probably be done in a better way
+if (ENABLE_SHARED AND ENABLE_STATIC)
+	add_dependencies(bellesip-static bellesip)
+endif()
