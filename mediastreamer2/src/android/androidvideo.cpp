@@ -58,6 +58,7 @@ struct AndroidReaderContext {
 		previewWindow = 0;
 		rotation = rotationSavedDuringVSize = UNDEFINED_ROTATION;
 		allocator = ms_yuv_buf_allocator_new();
+		snprintf(fps_context, sizeof(fps_context), "Captured mean fps=%%f");
 	};
 
 	~AndroidReaderContext(){
