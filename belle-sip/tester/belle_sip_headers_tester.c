@@ -783,6 +783,32 @@ static void test_address_header(void) {
 
 
 }
+static void test_address_header_with_params(void) {
+	belle_sip_uri_t* L_uri;
+	char* L_raw;
+	belle_sip_header_address_t* lclonedaddr;
+	
+	belle_sip_header_address_t* laddress = belle_sip_header_address_fast_parse("\"toto\" <sip:liblinphone_tester@81.56.11.2:5060> ; toto=\"titi\";tutu");
+	BC_ASSERT_PTR_NOT_NULL(laddress);
+	L_raw = belle_sip_object_to_string(BELLE_SIP_OBJECT(lclonedaddr=belle_sip_header_address_clone(laddress)));
+	BC_ASSERT_PTR_NOT_NULL(L_raw);
+	belle_sip_object_unref(BELLE_SIP_OBJECT(laddress));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lclonedaddr));
+	laddress = belle_sip_header_address_parse(L_raw);
+	belle_sip_free(L_raw);
+	
+	BC_ASSERT_STRING_EQUAL("toto",belle_sip_header_address_get_displayname(laddress));
+	L_uri = belle_sip_header_address_get_uri(laddress);
+	
+	BC_ASSERT_PTR_NOT_NULL(belle_sip_uri_get_user(L_uri));
+	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "81.56.11.2");
+	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_user(L_uri), "liblinphone_tester");
+	BC_ASSERT_EQUAL(belle_sip_uri_get_port(L_uri), 5060,int,"%d");
+	BC_ASSERT_STRING_EQUAL(belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(laddress), "toto"),"\"titi\"");
+	BC_ASSERT_TRUE(belle_sip_parameters_has_parameter(BELLE_SIP_PARAMETERS(laddress), "toto"));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(laddress));
+	
+}
 
 static void test_address_header_with_tel_uri(void) {
 	belle_generic_uri_t* L_uri;
@@ -1227,6 +1253,7 @@ static void test_authentication_info_header(void) {
 
 test_t headers_tests[] = {
 	TEST_NO_TAG("Address", test_address_header),
+	TEST_NO_TAG("Address with params",test_address_header_with_params),
 	TEST_NO_TAG("Address tel uri", test_address_header_with_tel_uri),
 	TEST_NO_TAG("Address urn", test_address_header_with_urn),
 	TEST_NO_TAG("Header address (very long)", test_very_long_address_header),
@@ -1262,14 +1289,14 @@ test_t headers_tests[] = {
 	TEST_NO_TAG("User-Agent", test_user_agent_header),
 	TEST_NO_TAG("Via", test_via_header),
 	TEST_NO_TAG("WWW-Authenticate", test_www_authenticate_header),
-	TEST_NO_TAG("Header extension", test_header_extension_1),
-	TEST_NO_TAG("Header extension 2", test_header_extension_2),
-	TEST_NO_TAG("Header event", test_event_header),
-	TEST_NO_TAG("Header Supported", test_supported_header),
-	TEST_NO_TAG("Header Content-Disposition", test_content_disposition_header),
-	TEST_NO_TAG("Header Accept", test_accept_header),
-	TEST_NO_TAG("Header Reason", test_reason_header),
-	TEST_NO_TAG("Header Authentication-Info", test_authentication_info_header)
+	TEST_NO_TAG("Extension", test_header_extension_1),
+	TEST_NO_TAG("Extension 2", test_header_extension_2),
+	TEST_NO_TAG("Event", test_event_header),
+	TEST_NO_TAG("Supported", test_supported_header),
+	TEST_NO_TAG("Content-Disposition", test_content_disposition_header),
+	TEST_NO_TAG("Accept", test_accept_header),
+	TEST_NO_TAG("Reason", test_reason_header),
+	TEST_NO_TAG("Authentication-Info", test_authentication_info_header)
 };
 
 test_suite_t headers_test_suite = {"Headers", NULL, NULL, belle_sip_tester_before_each, belle_sip_tester_after_each,

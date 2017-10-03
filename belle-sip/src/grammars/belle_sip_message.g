@@ -662,6 +662,24 @@ scope { belle_sip_header_contact_t* prev;}
 
 
 header_address returns [belle_sip_header_address_t* ret]   
+@init { $ret=belle_sip_header_address_new(); }
+  : ( (name_addr_with_generic_uri[BELLE_SIP_HEADER_ADDRESS($ret)]  (SEMI lws? generic_param [BELLE_SIP_PARAMETERS($ret)] lws?)*)
+	| addr_spec_with_generic_uri[BELLE_SIP_HEADER_ADDRESS($ret)]) {
+						if (!belle_sip_header_address_get_uri($ret) && !belle_sip_header_address_get_absolute_uri(($ret))) {
+							belle_sip_object_unref($ret);
+							$ret=NULL;
+						} 
+					};
+catch [ANTLR3_RECOGNITION_EXCEPTION]
+{
+   belle_sip_debug("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+   if ($ret) belle_sip_object_unref($ret);
+   $ret=NULL;
+} 
+
+
+
+header_address_param_less returns [belle_sip_header_address_t* ret]   
 @init { $ret=NULL; }
   : header_address_base[belle_sip_header_address_new()] {$ret=$header_address_base.ret;}; 
 
@@ -681,6 +699,21 @@ catch [ANTLR3_RECOGNITION_EXCEPTION]
 } 
 
 fast_header_address  returns [belle_sip_header_address_t* ret]   
+@init { $ret=belle_sip_header_address_new(); }
+     :  (  (fast_name_addr_with_generic_uri[BELLE_SIP_HEADER_ADDRESS($ret)]  (SEMI lws? generic_param [BELLE_SIP_PARAMETERS($ret)] lws?)*)
+	| fast_addr_spec_with_generic_uri[BELLE_SIP_HEADER_ADDRESS($ret)]) 	{	if (!belle_sip_header_address_get_uri($ret) && !belle_sip_header_address_get_absolute_uri(($ret))) {
+							belle_sip_object_unref($ret);
+							$ret=NULL;
+							} 
+						};
+catch [ANTLR3_RECOGNITION_EXCEPTION]
+{
+   belle_sip_debug("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+   if ($ret) belle_sip_object_unref($ret);
+   $ret=NULL;
+} 
+
+fast_header_address_param_less  returns [belle_sip_header_address_t* ret]   
 @init { $ret=belle_sip_header_address_new(); }
      :  ( 	fast_name_addr_with_generic_uri[BELLE_SIP_HEADER_ADDRESS($ret)]
 	| fast_addr_spec_with_generic_uri[BELLE_SIP_HEADER_ADDRESS($ret)]) 	{	if (!belle_sip_header_address_get_uri($ret) && !belle_sip_header_address_get_absolute_uri(($ret))) {
