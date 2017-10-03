@@ -411,6 +411,15 @@ static void send_pli(Vp8RtpFmtUnpackerCtx *ctx) {
 	}
 }
 
+static void send_fir(Vp8RtpFmtUnpackerCtx *ctx) {
+	if (ctx->avpf_enabled == TRUE) {
+		if(ctx->filter) ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_SEND_FIR);
+	} else {
+		if(ctx->filter) ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_DECODING_ERRORS);
+		ctx->error_notified = TRUE;
+	}
+}
+
 static void send_sli(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpFmtFrame *frame) {
 	if (ctx->avpf_enabled == TRUE) {
 		if (frame->pictureid_present == TRUE) {
@@ -752,7 +761,13 @@ static int output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 				frame->outputted = TRUE;
 			} else {
 				frame->discarded = TRUE;
-				if (!ctx->valid_keyframe_received) send_pli(ctx);
+				if (!ctx->valid_keyframe_received) {
+					/*We send a FIR because:
+					 * in some case the remote encoder thinks that AF and GF are acknoledge and then will create recovery frame based on one of them (or both)
+					 * HOWEVER, the local decoder (if has just been re-instancianted) had no KF at all to start decoding.*/
+					send_fir(ctx);
+					send_pli(ctx);
+				}
 				if (ctx->waiting_for_reference_frame == TRUE) {
 					/* Do not decode frames while we are waiting for a reference frame. */
 					if (frame->pictureid_present == TRUE)

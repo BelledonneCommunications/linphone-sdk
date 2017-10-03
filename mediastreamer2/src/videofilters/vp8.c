@@ -688,9 +688,11 @@ static int enc_notify_pli(MSFilter *f, void *data) {
 static int enc_notify_fir(MSFilter *f, void *data) {
 	EncState *s = (EncState *)f->data;
 	uint8_t seq_nr = *((uint8_t *)data);
-	if (seq_nr != s->last_fir_seq_nr) {
-		s->force_keyframe = TRUE;
-		s->last_fir_seq_nr = seq_nr;
+	if (should_generate_key_frame(s,MIN_KEY_FRAME_DIST)){
+		if (seq_nr != s->last_fir_seq_nr) {
+			s->force_keyframe = TRUE;
+			s->last_fir_seq_nr = seq_nr;
+		}
 	}
 	return 0;
 }

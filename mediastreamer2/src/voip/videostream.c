@@ -106,6 +106,10 @@ static void internal_event_cb(void *ud, MSFilter *f, unsigned int event, void *e
 	const MSVideoCodecRPSI *rpsi;
 
 	switch (event) {
+		case MS_VIDEO_DECODER_SEND_FIR:
+			ms_message("Request sending of FIR on videostream [%p]", stream);
+			video_stream_send_fir(stream);
+			break;
 		case MS_VIDEO_DECODER_SEND_PLI:
 			ms_message("Request sending of PLI on videostream [%p]", stream);
 			video_stream_send_pli(stream);
