@@ -27,7 +27,6 @@
 #  ANTLR3C_LIBRARIES - The libraries needed to use antlr3c
 #  ANTLR3_COMMAND - The command to run the antlr jar
 
-find_package(Java COMPONENTS Runtime REQUIRED)
 
 set(_ANTLR3C_ROOT_PATHS
 	${CMAKE_INSTALL_PREFIX}
@@ -38,7 +37,6 @@ set(_ANTLR3_JAR_ROOT_PATHS
 	/usr
 	/opt/local
 )
-
 
 find_path(ANTLR3C_INCLUDE_DIRS
 	NAMES antlr3.h
@@ -54,14 +52,18 @@ find_library(ANTLR3C_LIBRARIES
 	HINTS _ANTLR3C_ROOT_PATHS
 	PATH_SUFFIXES bin lib
 )
-
+#NO_CMAKE_FIND_ROOT_PATH usefull to allow yocto build to find antlr3 in host file system
 find_file(ANTLR3_COMMAND
 	NAMES antlr3
 	HINTS ${_ANTLR3_JAR_ROOT_PATHS}
 	PATH_SUFFIXES bin
+	NO_CMAKE_FIND_ROOT_PATH
 )
 
 if(NOT ANTLR3_COMMAND)
+	if (NOT Java_JAVA_EXECUTABLE) #to give a chance to set Java_JAVA_EXECUTABLE from command line
+		find_package(Java COMPONENTS Runtime REQUIRED)
+	endif()
 	# antlr3 command not found, search for the jar file
 	find_file(ANTLR3_JAR_PATH
 		NAMES antlr3.jar antlr.jar
