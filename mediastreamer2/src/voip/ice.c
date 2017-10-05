@@ -1994,7 +1994,7 @@ static IceCandidatePair * ice_trigger_connectivity_check_on_binding_request(IceC
 	elem = bctbx_list_find_custom(cl->check_list, (bctbx_compare_func)ice_find_pair_from_candidates, &candidates);
 	if (elem == NULL) {
 		/* The pair is not in the check list yet. */
-		ms_message("ice: Add new candidate pair in the check list");
+		ms_message("ice: Add new candidate pair [%p - %p] in the check list", candidates.local, candidates.remote);
 		/* Check if the pair is in the list of pairs even if it is not in the check list. */
 		elem = bctbx_list_find_custom(cl->pairs, (bctbx_compare_func)ice_find_pair_from_candidates, &candidates);
 		if (elem == NULL) {
