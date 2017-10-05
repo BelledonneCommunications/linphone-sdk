@@ -100,6 +100,7 @@ static AndroidReaderContext *getContext(MSFilter *f);
 static int video_capture_set_fps(MSFilter *f, void *arg){
 	AndroidReaderContext* d = (AndroidReaderContext*) f->data;
 	d->fps=*((float*)arg);
+	snprintf(d->fps_context, sizeof(d->fps_context), "Captured mean fps=%%f, expected=%f", d->fps);
     ms_video_init_framerate_controller(&d->fpsControl, d->fps);
     ms_video_init_average_fps(&d->averageFps, d->fps_context);
 	return 0;
@@ -284,7 +285,6 @@ void video_capture_preprocess(MSFilter *f){
 	AndroidReaderContext *d = getContext(f);
 	ms_mutex_lock(&d->mutex);
 
-	snprintf(d->fps_context, sizeof(d->fps_context), "Captured mean fps=%%f, expected=%f", d->fps);
 	ms_video_init_framerate_controller(&d->fpsControl, d->fps);
 	ms_video_init_average_fps(&d->averageFps, d->fps_context);
 
