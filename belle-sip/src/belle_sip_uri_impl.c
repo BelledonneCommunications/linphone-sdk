@@ -446,6 +446,7 @@ typedef struct uri_components {
 static  uri_components_t uri_component_use_for_request = 			{"Req.-URI"					,o	,o	,m	,o	,o	,na	,o	,o	,o	,o	,o	,na};
 static  uri_components_t uri_component_use_for_header_to = 			{"Header To"				,o	,o	,m	,na	,o	,na	,na	,na	,na	,na	,o	,na};
 static  uri_components_t uri_component_use_for_header_from = 		{"Header From"				,o	,o	,m	,na	,o	,na	,na	,na	,na	,na	,o	,na};
+static  uri_components_t uri_component_use_for_header_refer_to = 	{"Header Refer-To"			,o	,o	,/*m*/o	,na	,o	,na	,na	,na	,na	,na	,o	,na};
 static  uri_components_t uri_component_use_for_contact_in_reg =		{"Contact in REG"			,o	,o	,/*m*/o	,o	,o	,na	,o	,o	,o	,na	,o	,o};
 static  uri_components_t uri_component_use_for_dialog_ct_rr_ro =	{"Dialog Contact/R-R/Route"	,o	,o	,/*m*/o	,o	,o	,na	,o	,na	,o	,o	,o	,na};
 static  uri_components_t uri_component_use_for_external =			{"External"					,o	,o	,m	,o	,o	,o	,o	,o	,o	,o	,o	,o};
@@ -496,6 +497,8 @@ int belle_sip_uri_check_components_from_context(const belle_sip_uri_t* uri,const
 				|| strcasecmp(BELLE_SIP_RECORD_ROUTE,header_name)==0
 				|| strcasecmp(BELLE_SIP_ROUTE,header_name)==0)
 		return check_uri_components(uri,&uri_component_use_for_dialog_ct_rr_ro);
+	else if (strcasecmp(BELLE_SIP_REFER_TO, header_name) == 0)
+		return check_uri_components(uri, &uri_component_use_for_header_refer_to);
 	else
 		return check_uri_components(uri,&uri_component_use_for_external);
 
