@@ -449,13 +449,60 @@ static int channel_on_auth_requested(belle_sip_channel_listener_t *obj, belle_si
 	return 0;
 }
 
-static void channel_on_sending(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, belle_sip_message_t *msg){
-	belle_sip_header_contact_t* contact;
-	belle_sip_header_content_length_t* content_length = (belle_sip_header_content_length_t*)belle_sip_message_get_header(msg,"Content-Length");
-	belle_sip_uri_t* contact_uri;
-	const belle_sip_list_t *contacts;
+static void fix_automatic_header_address(belle_sip_provider_t *prov, belle_sip_channel_t *chan, belle_sip_header_address_t *addr){
 	const char *ip=NULL;
 	int port=0;
+	belle_sip_uri_t* uri;
+	const char *transport;
+	belle_sip_header_contact_t *contact = BELLE_SIP_OBJECT_IS_INSTANCE_OF(addr, belle_sip_header_contact_t) ? (belle_sip_header_contact_t*)addr : NULL;
+	
+	if (contact && belle_sip_header_contact_is_wildcard(contact)) return;
+	/* fix the contact if in automatic mode or null uri (for backward compatibility)*/
+	if (!(uri = belle_sip_header_address_get_uri((belle_sip_header_address_t*)addr))) {
+		uri = belle_sip_uri_new();
+		belle_sip_header_address_set_uri((belle_sip_header_address_t*)addr,uri);
+		belle_sip_header_address_set_automatic(addr,TRUE);
+	}else if (belle_sip_uri_get_host(uri)==NULL){
+		belle_sip_header_address_set_automatic(addr,TRUE);
+	}
+	if (!belle_sip_header_address_get_automatic(addr)) return;
+
+	if (prov->nat_helper){
+		ip=chan->public_ip ? chan->public_ip : chan->local_ip;
+		port=chan->public_port ? chan->public_port : chan->local_port;
+		if (contact) belle_sip_header_contact_set_unknown(contact,!chan->learnt_ip_port);
+	}else{
+		ip=chan->local_ip;
+		port=chan->local_port;
+	}
+
+	belle_sip_uri_set_host(uri, ip);
+	transport = belle_sip_channel_get_transport_name_lower_case(chan);
+	
+	/* Enforce a transport name in "sip" scheme.
+		* RFC3263 (locating SIP servers) says that UDP SHOULD be used in absence of transport parameter,
+		* when port or numeric IP are provided. It is a SHOULD, not a must.
+		* We need in this case that the automatic Contact exactly matches the socket that is going 
+		* to be used for sending the messages.
+		* TODO: we may need to do the same for sips, but dtls is currently not supported.
+		**/
+	
+	if (!belle_sip_uri_is_secure(uri))
+		belle_sip_uri_set_transport_param(uri,transport);
+
+	if (port!=belle_sip_listening_point_get_well_known_port(transport)) {
+		belle_sip_uri_set_port(uri,port);
+	}else{
+		belle_sip_uri_set_port(uri,0);
+	}
+	
+}
+
+static void channel_on_sending(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, belle_sip_message_t *msg){
+	belle_sip_header_address_t* contact;
+	belle_sip_header_content_length_t* content_length = (belle_sip_header_content_length_t*)belle_sip_message_get_header(msg,"Content-Length");
+	const belle_sip_list_t *contacts;
+	belle_sip_header_refer_to_t *refer_to;
 	belle_sip_provider_t *prov=BELLE_SIP_PROVIDER(obj);
 
 	if (belle_sip_message_is_request(msg)){
@@ -473,52 +520,12 @@ static void channel_on_sending(belle_sip_channel_listener_t *obj, belle_sip_chan
 	}
 
 	for (contacts=belle_sip_message_get_headers(msg,"Contact");contacts!=NULL;contacts=contacts->next){
-		const char *transport;
-		contact=(belle_sip_header_contact_t*)contacts->data;
-
-		if (belle_sip_header_contact_is_wildcard(contact)) continue;
-		/* fix the contact if in automatic mode or null uri (for backward compatibility)*/
-		if (!(contact_uri = belle_sip_header_address_get_uri((belle_sip_header_address_t*)contact))) {
-			contact_uri = belle_sip_uri_new();
-			belle_sip_header_address_set_uri((belle_sip_header_address_t*)contact,contact_uri);
-			belle_sip_header_contact_set_automatic(contact,TRUE);
-		}else if (belle_sip_uri_get_host(contact_uri)==NULL){
-			belle_sip_header_contact_set_automatic(contact,TRUE);
-		}
-		if (!belle_sip_header_contact_get_automatic(contact)) continue;
-
-		if (ip==NULL){
-			if (prov->nat_helper){
-				ip=chan->public_ip ? chan->public_ip : chan->local_ip;
-				port=chan->public_port ? chan->public_port : chan->local_port;
-				belle_sip_header_contact_set_unknown(contact,!chan->learnt_ip_port);
-			}else{
-				ip=chan->local_ip;
-				port=chan->local_port;
-			}
-		}
-
-		belle_sip_uri_set_host(contact_uri,ip);
-		transport=belle_sip_channel_get_transport_name_lower_case(chan);
-		
-		/* Enforce a transport name in "sip" scheme.
-		 * RFC3263 (locating SIP servers) says that UDP SHOULD be used in absence of transport parameter,
-		 * when port or numeric IP are provided. It is a SHOULD, not a must.
-		 * We need in this case that the automatic Contact exactly matches the socket that is going 
-		 * to be used for sending the messages.
-		 * TODO: we may need to do the same for sips, but dtls is currently not supported.
-		 **/
-		
-		if (!belle_sip_uri_is_secure(contact_uri))
-			belle_sip_uri_set_transport_param(contact_uri,transport);
-
-		if (port!=belle_sip_listening_point_get_well_known_port(transport)) {
-			belle_sip_uri_set_port(contact_uri,port);
-		}else{
-			belle_sip_uri_set_port(contact_uri,0);
-		}
+		contact=(belle_sip_header_address_t*)contacts->data;
+		fix_automatic_header_address(prov, chan, contact);
 	}
-
+	
+	refer_to = belle_sip_message_get_header_by_type(msg, belle_sip_header_refer_to_t);
+	if (refer_to) fix_automatic_header_address(prov, chan, (belle_sip_header_address_t*)refer_to);
 /*
  * According to RFC3261, content-length is mandatory for stream based transport, but optional for datagram transport.
  * However some servers (opensips) are confused when they receive a SIP/UDP packet without Content-Length (they shouldn't).

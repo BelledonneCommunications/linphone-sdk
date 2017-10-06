@@ -84,6 +84,14 @@ BELLESIP_EXPORT belle_generic_uri_t* belle_sip_header_address_get_absolute_uri(c
 BELLESIP_EXPORT void belle_sip_header_address_set_absolute_uri(belle_sip_header_address_t* address, belle_generic_uri_t* uri);
 
 /**
+  * Enable automatic filling of the contact ip, port and transport according to the channel that sends this message.
+ **/
+BELLESIP_EXPORT void belle_sip_header_address_set_automatic(belle_sip_header_address_t *address, int automatic);
+
+BELLESIP_EXPORT int belle_sip_header_address_get_automatic(const belle_sip_header_address_t *address);
+
+
+/**
  *
  */
 BELLESIP_EXPORT const char* belle_sip_header_address_get_displayname(const belle_sip_header_address_t* address);
@@ -193,6 +201,7 @@ BELLESIP_EXPORT belle_sip_header_contact_t* belle_sip_header_contact_create (con
  
  /**
   * Enable automatic filling of the contact ip, port and transport according to the channel that sends this message.
+  * @deprecated use belle_sip_header_address_set_automatic();
  **/
  BELLESIP_EXPORT void belle_sip_header_contact_set_automatic(belle_sip_header_contact_t *a, int enabled);
  
@@ -599,7 +608,7 @@ BELLESIP_EXPORT void belle_sip_header_subscription_state_set_retry_after(belle_s
 #define BELLE_SIP_SUBSCRIPTION_STATE_TERMINATED "terminated"
 
 /******************************
- * Refer-To header object inherent from header_address
+ * Refer-To header object inherits from header_address
  *
  ******************************/
  typedef struct _belle_sip_header_refer_to belle_sip_header_refer_to_t;
@@ -610,7 +619,7 @@ BELLESIP_EXPORT void belle_sip_header_subscription_state_set_retry_after(belle_s
 #define BELLE_SIP_REFER_TO "Refer-To"
 
  /******************************
-  * Referred-by header object inherent from header_address
+  * Referred-by header object inherits from header_address
   *
   ******************************/
   typedef struct _belle_sip_header_referred_by belle_sip_header_referred_by_t;
@@ -621,7 +630,7 @@ BELLESIP_EXPORT void belle_sip_header_subscription_state_set_retry_after(belle_s
  #define BELLE_SIP_REFERRED_BY "Referred-By"
 
   /******************************
-   * Replace header object inherent from parameters
+   * Replace header object inherits from parameters
    *
    ******************************/
 typedef struct _belle_sip_header_replaces belle_sip_header_replaces_t;

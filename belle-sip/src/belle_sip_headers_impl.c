@@ -187,6 +187,7 @@ struct _belle_sip_header_address {
 	char* displayname;
 	belle_sip_uri_t* uri;
 	belle_generic_uri_t* absolute_uri;
+	unsigned char automatic;
 };
 
 static void belle_sip_header_address_init(belle_sip_header_address_t* object){
@@ -287,6 +288,14 @@ void belle_sip_header_address_set_uri(belle_sip_header_address_t* address, belle
 	}
 }
 
+void belle_sip_header_address_set_automatic(belle_sip_header_address_t *address, int automatic){
+	address->automatic = (unsigned char)automatic;
+}
+
+int belle_sip_header_address_get_automatic(const belle_sip_header_address_t *address){
+	return address->automatic;
+}
+
 belle_generic_uri_t* belle_sip_header_address_get_absolute_uri(const belle_sip_header_address_t* address) {
 	return address->absolute_uri;
 }
@@ -365,9 +374,8 @@ GET_SET_STRING(belle_sip_header_allow,method);
 struct _belle_sip_header_contact {
 	belle_sip_header_address_t address;
 	unsigned char wildcard;
-	unsigned char automatic;
 	unsigned char unknown;
-	unsigned char pad[1];
+	unsigned char pad[2];
 };
 
 void belle_sip_header_contact_destroy(belle_sip_header_contact_t* contact) {
@@ -375,7 +383,6 @@ void belle_sip_header_contact_destroy(belle_sip_header_contact_t* contact) {
 
 void belle_sip_header_contact_clone(belle_sip_header_contact_t *contact, const belle_sip_header_contact_t *orig){
 	contact->wildcard=orig->wildcard;
-	contact->automatic=orig->automatic;
 }
 
 belle_sip_error_code belle_sip_header_contact_marshal(belle_sip_header_contact_t* contact, char* buff, size_t buff_size, size_t *offset) {
@@ -432,11 +439,11 @@ unsigned int belle_sip_header_contact_not_equals(const belle_sip_header_contact_
 }
 
 void belle_sip_header_contact_set_automatic(belle_sip_header_contact_t *a, int enabled){
-	a->automatic=enabled;
+	belle_sip_header_address_set_automatic((belle_sip_header_address_t*)a, enabled);
 }
 
 int belle_sip_header_contact_get_automatic(const belle_sip_header_contact_t *a){
-	return a->automatic;
+	return belle_sip_header_address_get_automatic((belle_sip_header_address_t*)a);
 }
 
 void belle_sip_header_contact_set_unknown(belle_sip_header_contact_t *a, int value){
