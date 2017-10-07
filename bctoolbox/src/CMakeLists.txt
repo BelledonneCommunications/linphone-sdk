@@ -27,13 +27,14 @@ set(BCTOOLBOX_C_SOURCE_FILES
 	vfs.c
 	vconnect.c
 	parser.c
+	
 )
 
 set(BCTOOLBOX_CXX_SOURCE_FILES
 	containers/map.cc
-	crypto/ecc.c)
+	crypto/ecc.cc
+)
 
-set_source_files_properties(crypto/ecc.c PROPERTIES LANGUAGE CXX)
 
 if(HAVE_EXECINFO) 
 	list(APPEND BCTOOLBOX_CXX_SOURCE_FILES utils/exception.cc)
