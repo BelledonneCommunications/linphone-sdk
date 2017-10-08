@@ -77,14 +77,8 @@ static const char * audio_unit_format_error (OSStatus error) {
 }
 
 
-static const char *audio_session_format_error(OSStatus error)
-{
-	return [(NSString *)error UTF8String];
-
-}
-
 #define check_au_session_result(au,method) \
-if (au!=AVAudioSessionErrorInsufficientPriority && au!=0) ms_error("AudioSession error for %s: ret=%s (%s:%d)",method, audio_session_format_error(au), __FILE__, __LINE__ )
+if (au!=AVAudioSessionErrorInsufficientPriority && au!=0) ms_error("AudioSession error for %s: ret=%i (%s:%d)",method, au, __FILE__, __LINE__ )
 
 #define check_au_unit_result(au,method) \
 if (au!=0) ms_error("AudioUnit error for %s: ret=%s (%li) (%s:%d)",method, audio_unit_format_error(au), (long)au, __FILE__, __LINE__ )
@@ -572,7 +566,7 @@ static void au_read_preprocess(MSFilter *f){
 	configure_audio_session(card, f->ticker->time);
 
 	if (!card->io_unit) create_io_unit(&card->io_unit, card);
-	if (!d->ticker_synchronizer) d->ticker_synchronizer = ms_ticker_synchronizer_new();
+	d->ticker_synchronizer = ms_ticker_synchronizer_new();
 	ms_ticker_set_synchronizer(f->ticker, d->ticker_synchronizer);
 
 	if (card->io_unit_started) {
@@ -601,6 +595,7 @@ static void au_read_postprocess(MSFilter *f){
 	ms_mutex_lock(&d->mutex);
 	flushq(&d->rq,0);
 	ms_ticker_set_synchronizer(f->ticker, NULL);
+	ms_ticker_synchronizer_destroy(d->ticker_synchronizer);
 	ms_mutex_unlock(&d->mutex);
 }
 

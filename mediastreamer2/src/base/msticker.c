@@ -595,10 +595,10 @@ double ms_ticker_synchronizer_set_external_time(MSTickerSynchronizer* ts, const 
 }
 
 double ms_ticker_synchronizer_update(MSTickerSynchronizer *ts, uint64_t nb_samples, unsigned int sample_rate) {
-	uint64_t ns = ((1000 * nb_samples) / (uint64_t)sample_rate) * 1000000;
+	uint64_t ms = ((1000 * nb_samples) / (uint64_t)sample_rate);
 	MSTimeSpec timespec;
-	timespec.tv_nsec = ns % 1000000000;
-	timespec.tv_sec = ns / 1000000000;
+	timespec.tv_nsec = (ms % 1000) * 1000000LL;
+	timespec.tv_sec = ms / 1000LL;
 	return ms_ticker_synchronizer_set_external_time(ts, &timespec);
 }
 
