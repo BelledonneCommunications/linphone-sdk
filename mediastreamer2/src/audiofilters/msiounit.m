@@ -600,7 +600,7 @@ static void au_read_postprocess(MSFilter *f){
 	au_filter_read_data_t *d= (au_filter_read_data_t*)f->data;
 	ms_mutex_lock(&d->mutex);
 	flushq(&d->rq,0);
-	ms_ticker_set_synchronizer(f->ticker, d->ticker_synchronizer);
+	ms_ticker_set_synchronizer(f->ticker, NULL);
 	ms_mutex_unlock(&d->mutex);
 }
 
