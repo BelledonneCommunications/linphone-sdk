@@ -101,8 +101,8 @@ static int video_capture_set_fps(MSFilter *f, void *arg){
 	AndroidReaderContext* d = (AndroidReaderContext*) f->data;
 	d->fps=*((float*)arg);
 	snprintf(d->fps_context, sizeof(d->fps_context), "Captured mean fps=%%f, expected=%f", d->fps);
-    ms_video_init_framerate_controller(&d->fpsControl, d->fps);
-    ms_video_init_average_fps(&d->averageFps, d->fps_context);
+	ms_video_init_framerate_controller(&d->fpsControl, d->fps);
+	ms_video_init_average_fps(&d->averageFps, d->fps_context);
 	return 0;
 }
 
@@ -149,8 +149,8 @@ static int video_capture_set_vsize(MSFilter *f, void* data){
 
 	// handle result :
 	//   - 0 : width
-    //   - 1 : height
-    //   - 2 : useDownscaling
+	//   - 1 : height
+	//   - 2 : useDownscaling
 	jint res[3];
 	env->GetIntArrayRegion((jintArray)resArray, 0, 3, res);
 	ms_message("Camera selected resolution is: %dx%d (requested: %dx%d) with downscaling?%d\n", res[0], res[1], d->requestedSize.width, d->requestedSize.height, res[2]);

@@ -70,7 +70,7 @@ static AVCaptureVideoOrientation Angle2AVCaptureVideoOrientation(int deviceOrien
 	MSYuvBufAllocator* bufAllocator;
 	MSFilter *filter;
 	MSFrameRateController framerate_controller;
-    bool_t filterIsRunning;
+	bool_t filterIsRunning;
 };
 
 - (void)initIOSCapture;
@@ -169,14 +169,14 @@ static void capture_queue_cleanup(void* p) {
 	CVImageBufferRef frame = nil;
 	@synchronized(self) {
 		@try {
-            ms_mutex_lock(&mutex);
-            if (!filterIsRunning || !ms_video_capture_new_frame(&framerate_controller, filter->ticker->time)) {
-                ms_mutex_unlock(&mutex);
-                return;
-            }
-            ms_mutex_unlock(&mutex);
-            
-            
+			ms_mutex_lock(&mutex);
+			if (!filterIsRunning || !ms_video_capture_new_frame(&framerate_controller, filter->ticker->time)) {
+				ms_mutex_unlock(&mutex);
+				return;
+			}
+			ms_mutex_unlock(&mutex);
+
+
 			frame = CMSampleBufferGetImageBuffer(sampleBuffer);
 			CVReturn status = CVPixelBufferLockBaseAddress(frame, 0);
 			if (kCVReturnSuccess != status) {
@@ -430,9 +430,9 @@ static AVCaptureVideoOrientation Angle2AVCaptureVideoOrientation(int deviceOrien
         mDownScalingRequired = FALSE;
 	} else if ( (outputSize.width * outputSize.height) == (MS_VIDEO_SIZE_QCIF_W * MS_VIDEO_SIZE_QCIF_H) ){
 		[session setSessionPreset:AVCaptureSessionPreset352x288];
-        mCameraVideoSize     = MS_VIDEO_SIZE_CIF;
-        mOutputVideoSize     = MS_VIDEO_SIZE_QCIF;
-        mDownScalingRequired = TRUE;
+		mCameraVideoSize     = MS_VIDEO_SIZE_CIF;
+		mOutputVideoSize     = MS_VIDEO_SIZE_QCIF;
+		mDownScalingRequired = TRUE;
 	} else {
 		// Default case
 		[session setSessionPreset: AVCaptureSessionPresetMedium];
@@ -615,20 +615,20 @@ static void ioscapture_preprocess(MSFilter *f) {
 		NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
 		[thiz performSelectorInBackground:@selector(start) withObject:nil];
 		[myPool drain];
-        
-        ms_mutex_lock(&thiz->mutex);
-        thiz->filterIsRunning = 1;
-        ms_mutex_unlock(&thiz->mutex);
+
+		ms_mutex_lock(&thiz->mutex);
+		thiz->filterIsRunning = 1;
+		ms_mutex_unlock(&thiz->mutex);
 	}
 }
 
 static void ioscapture_postprocess(MSFilter *f) {
-    IOSCapture *thiz = (IOSCapture*)f->data;
-    if (thiz != NULL) {
-        ms_mutex_lock(&thiz->mutex);
-        thiz->filterIsRunning = 0;
-        ms_mutex_unlock(&thiz->mutex);
-    }
+	IOSCapture *thiz = (IOSCapture*)f->data;
+	if (thiz != NULL) {
+		ms_mutex_lock(&thiz->mutex);
+		thiz->filterIsRunning = 0;
+		ms_mutex_unlock(&thiz->mutex);
+	}
 }
 
 static int ioscapture_get_fps(MSFilter *f, void *arg) {
