@@ -171,11 +171,7 @@ void bctbx_remove_log_handler(bctbx_log_handler_t* handler){
 }
 static void wrapper(void* info,const char *domain, BctbxLogLevel lev, const char *fmt, va_list args) {
 	BctbxLogFunc func = (BctbxLogFunc)info;
-    if (func) {
-        func(domain, lev, fmt, args);
-    } else {
-        bctbx_logv_out(domain, lev, fmt, args);
-    }
+	if (func) func(domain, lev, fmt,  args);
 }
 
 void bctbx_set_log_handler(BctbxLogFunc func){
