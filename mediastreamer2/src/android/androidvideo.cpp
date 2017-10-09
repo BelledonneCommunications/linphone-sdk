@@ -250,7 +250,7 @@ static int video_set_native_preview_window(MSFilter *f, void *arg) {
 						((AndroidWebcamConfig*)d->webcam->data)->id,
 						d->hwCapableSize.width,
 						d->hwCapableSize.height,
-						(jint)d->fps,
+						(jint)30,
 						(d->rotation != UNDEFINED_ROTATION) ? d->rotation:0,
 						(jlong)d));
 		}
@@ -297,7 +297,7 @@ void video_capture_preprocess(MSFilter *f){
 			((AndroidWebcamConfig*)d->webcam->data)->id,
 			d->hwCapableSize.width,
 			d->hwCapableSize.height,
-			(jint)d->fps,
+			(jint)30,
 			d->rotationSavedDuringVSize,
 			(jlong)d);
 	d->androidCamera = env->NewGlobalRef(cam);
