@@ -35,6 +35,9 @@ set(BCTOOLBOX_CXX_SOURCE_FILES
 	crypto/ecc.cc
 )
 
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+	list(APPEND STRICT_OPTIONS_CXX "-x c++")
+endif()
 
 if(HAVE_EXECINFO) 
 	list(APPEND BCTOOLBOX_CXX_SOURCE_FILES utils/exception.cc)
