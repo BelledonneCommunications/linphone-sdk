@@ -828,37 +828,38 @@ static void apply_video_preset(VideoStream *stream, PayloadType *pt) {
 
 static void apply_bitrate_limit(VideoStream *stream, PayloadType *pt) {
 	MSVideoConfiguration *vconf_list = NULL;
+	int target_upload_bandwidth = 0;
 
-	if (stream->ms.target_bitrate <= 0) {
+	if (stream->ms.max_target_bitrate <= 0) {
 		if (pt->normal_bitrate <= 0) {
 			ms_message("target and payload bitrates not set for stream [%p] using lowest configuration of preferred video size %dx%d",stream,stream->sent_vsize.width, stream->sent_vsize.height);
 		} else {
-			stream->ms.target_bitrate=pt->normal_bitrate;
-			ms_message("target bitrate not set for stream [%p] using payload's bitrate is %i",stream,stream->ms.target_bitrate);
+			stream->ms.max_target_bitrate=pt->normal_bitrate;
+			ms_message("target bitrate not set for stream [%p] using payload's bitrate is %i",stream,stream->ms.max_target_bitrate);
 		}
 	}
 
-	ms_message("Limiting bitrate of video encoder to %i bits/s for stream [%p]",stream->ms.target_bitrate,stream);
+	ms_message("Limiting bitrate of video encoder to %i bits/s for stream [%p]",stream->ms.max_target_bitrate,stream);
 	ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, &vconf_list);
 	if (vconf_list != NULL) {
 		MSVideoConfiguration vconf;
 		
-		if (stream->ms.target_bitrate > 0) {
-			vconf = ms_video_find_best_configuration_for_bitrate(vconf_list, stream->ms.target_bitrate, ms_factory_get_cpu_count(stream->ms.factory));
+		if (stream->ms.max_target_bitrate > 0) {
+			vconf = ms_video_find_best_configuration_for_bitrate(vconf_list, stream->ms.max_target_bitrate, ms_factory_get_cpu_count(stream->ms.factory));
 			/* Adjust configuration video size to use the user preferred video size if it is lower that the configuration one. */
 			if ((stream->sent_vsize.height * stream->sent_vsize.width) < (vconf.vsize.height * vconf.vsize.width)) {
 				vconf.vsize = stream->sent_vsize;
 			}
 		} else {
 			/* We retrieve the lowest configuration for that vsize since the bandwidth estimator will increase quality if possible */
-			vconf = ms_video_find_worst_configuration_for_size(vconf_list, stream->sent_vsize, ms_factory_get_cpu_count(stream->ms.factory));
-			stream->ms.target_bitrate = vconf.required_bitrate;
+			vconf = ms_video_find_best_configuration_for_size(vconf_list, stream->sent_vsize, ms_factory_get_cpu_count(stream->ms.factory));
+			target_upload_bandwidth = vconf.required_bitrate;
 		}
 		ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_SET_CONFIGURATION, &vconf);
 	} else {
-		ms_filter_call_method(stream->ms.encoder, MS_FILTER_SET_BITRATE, &stream->ms.target_bitrate);
+		ms_filter_call_method(stream->ms.encoder, MS_FILTER_SET_BITRATE, &stream->ms.max_target_bitrate);
 	}
-	rtp_session_set_target_upload_bandwidth(stream->ms.sessions.rtp_session, stream->ms.target_bitrate);
+	rtp_session_set_target_upload_bandwidth(stream->ms.sessions.rtp_session, target_upload_bandwidth != 0 ? target_upload_bandwidth : stream->ms.max_target_bitrate);
 }
 
 static MSPixFmt mime_type_to_pix_format(const char *mime_type) {
