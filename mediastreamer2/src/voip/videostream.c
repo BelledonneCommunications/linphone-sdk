@@ -852,7 +852,7 @@ static void apply_bitrate_limit(VideoStream *stream, PayloadType *pt) {
 			}
 		} else {
 			/* We retrieve the lowest configuration for that vsize since the bandwidth estimator will increase quality if possible */
-			vconf = ms_video_find_best_configuration_for_size(vconf_list, stream->sent_vsize, ms_factory_get_cpu_count(stream->ms.factory));
+			vconf = ms_video_find_worst_configuration_for_size(vconf_list, stream->sent_vsize, ms_factory_get_cpu_count(stream->ms.factory));
 			target_upload_bandwidth = vconf.required_bitrate;
 		}
 		ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_SET_CONFIGURATION, &vconf);
