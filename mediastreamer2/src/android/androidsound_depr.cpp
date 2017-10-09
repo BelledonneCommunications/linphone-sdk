@@ -486,6 +486,7 @@ static void sound_read_postprocess(MSFilter *f){
 	JNIEnv *jni_env = ms_get_jni_env();
 
 	ms_ticker_set_synchronizer(f->ticker, NULL);
+	ms_ticker_synchronizer_destroy(d->ticker_synchronizer);
 	d->read_samples=0;
 
 	//stop recording

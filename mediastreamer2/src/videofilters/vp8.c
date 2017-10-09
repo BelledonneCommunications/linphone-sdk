@@ -188,7 +188,7 @@ static void enc_preprocess(MSFilter *f) {
 #if defined(__ANDROID__) || (TARGET_OS_IPHONE == 1) || defined(__arm__) || defined(_M_ARM)
 	cpuused = 10 - s->cfg.g_threads; /*cpu/quality tradeoff: positive values decrease CPU usage at the expense of quality*/
 	if (cpuused < 7) cpuused = 7; /*values beneath 7 consume too much CPU*/
-	if (ms_video_size_area_strictly_greater_than(s->vconf.vsize, MS_VIDEO_SIZE_VGA)){
+	if (ms_video_size_area_greater_than(MS_VIDEO_SIZE_VGA, s->vconf.vsize)){
 		if (s->cfg.g_threads <= 2) cpuused = 8;
 		else if (s->cfg.g_threads <= 4) cpuused = 5;
 		else cpuused = 1;
@@ -589,6 +589,8 @@ static int enc_set_configuration(MSFilter *f, void *data) {
 	if (vconf != &s->vconf) memcpy(&s->vconf, vconf, sizeof(MSVideoConfiguration));
 
 	s->cfg.rc_target_bitrate = (unsigned int)(((float)s->vconf.required_bitrate) * 0.92f / 1024.0f); //0.92=take into account IP/UDP/RTP overhead, in average.
+	s->cfg.g_timebase.num = 1;
+	s->cfg.g_timebase.den = (int)s->vconf.fps;
 	if (s->ready) {
 		ms_filter_lock(f);
 		vpx_codec_enc_config_set(&s->codec, &s->cfg);
