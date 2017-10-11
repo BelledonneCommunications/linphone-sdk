@@ -23,6 +23,8 @@
 #include "mediastreamer2/msticker.h"
 #include "mediastreamer2/msvideo.h"
 #include "mediastreamer2/mscodecutils.h"
+#include "mediastreamer2/msasync.h"
+#include "mediastreamer2/msqueue.h"
 #include "vp8rtpfmt.h"
 
 #define PICTURE_ID_ON_16_BITS
@@ -102,6 +104,9 @@ typedef struct EncState {
 	bool_t invalid_frame_reported;
 	bool_t avpf_enabled;
 	bool_t ready;
+	MSWorkerThread *process_thread;
+	queue_t entry_q;
+	MSQueue *exit_q;
 } EncState;
 
 #define MIN_KEY_FRAME_DIST 4 /*since one i-frame is allowed to be 4 times bigger of the target bitrate*/
@@ -226,6 +231,11 @@ static void enc_preprocess(MSFilter *f) {
 	} else if (s->frame_count == 0) {
 		ms_video_starter_init(&s->starter);
 	}
+	
+	s->process_thread = ms_worker_thread_new();
+	qinit(&s->entry_q);
+	s->exit_q = ms_queue_new(0, 0, 0, 0);
+	
 	s->ready = TRUE;
 }
 
@@ -433,8 +443,9 @@ static bool_t is_frame_independent(unsigned int flags){
 	return FALSE;
 }
 
-static void enc_process(MSFilter *f) {
+static void enc_process_frame_task(void *obj) {
 	mblk_t *im;
+	MSFilter *f = (MSFilter*)obj;
 	uint64_t timems = f->ticker->time;
 	uint32_t timestamp = (uint32_t)(timems*90);
 	EncState *s = (EncState *)f->data;
@@ -442,6 +453,143 @@ static void enc_process(MSFilter *f) {
 	vpx_codec_err_t err;
 	MSPicture yuv;
 	bool_t is_ref_frame=FALSE;
+	vpx_image_t img;
+	
+	ms_filter_lock(f);
+	if ((im = getq(&s->entry_q)) == NULL) {
+		ms_warning("VP8 async process: No frame in entry queue");
+		ms_filter_unlock(f);
+		return;
+	}
+	
+	if (s->entry_q.q_mcount >= 4){
+		/*don't let too much buffers to be queued here, it makes no sense for a real time processing and would consume too much memory*/
+		ms_warning("VP8 async process: dropping %i frames", s->entry_q.q_mcount);
+		flushq(&s->entry_q, 0);
+	}
+	ms_filter_unlock(f);
+
+	flags = 0;
+	ms_yuv_buf_init_from_mblk(&yuv, im);
+	freemsg(im);
+	vpx_img_wrap(&img, VPX_IMG_FMT_I420, s->vconf.vsize.width, s->vconf.vsize.height, 1, yuv.planes[0]);
+
+	if ((s->avpf_enabled != TRUE) && ms_video_starter_need_i_frame(&s->starter, f->ticker->time)) {
+		s->force_keyframe = TRUE;
+	}
+	if (s->force_keyframe == TRUE) {
+		ms_message("Forcing vp8 key frame for filter [%p]", f);
+		flags = VPX_EFLAG_FORCE_KF;
+	} else if (s->avpf_enabled == TRUE) {
+		if (s->frame_count == 0) s->force_keyframe = TRUE;
+		enc_fill_encoder_flags(s, &flags);
+	}
+
+#ifdef AVPF_DEBUG
+	ms_message("VP8 encoder frames state:");
+	ms_message("\tgolden: count=%" PRIi64 ", picture_id=0x%04x, ack=%s",
+		s->frames_state.golden.count, s->frames_state.golden.picture_id, (s->frames_state.golden.acknowledged == TRUE) ? "Y" : "N");
+	ms_message("\taltref: count=%" PRIi64 ", picture_id=0x%04x, ack=%s",
+		s->frames_state.altref.count, s->frames_state.altref.picture_id, (s->frames_state.altref.acknowledged == TRUE) ? "Y" : "N");
+#endif
+	err = vpx_codec_encode(&s->codec, &img, s->frame_count, 1, flags, 1000000LL/(2*(int)s->vconf.fps)); /*encoder has half a framerate interval to encode*/
+	if (err) {
+		ms_error("vpx_codec_encode failed : %d %s (%s)\n", err, vpx_codec_err_to_string(err), vpx_codec_error_detail(&s->codec));
+	} else {
+		vpx_codec_iter_t iter = NULL;
+		const vpx_codec_cx_pkt_t *pkt;
+		bctbx_list_t *list = NULL;
+
+		/* Update the frames state. */
+		is_ref_frame=FALSE;
+		if (flags & VPX_EFLAG_FORCE_KF) {
+			enc_mark_reference_frame_as_sent(s, VP8_GOLD_FRAME);
+			enc_mark_reference_frame_as_sent(s, VP8_ALTR_FRAME);
+			s->frames_state.golden.is_independant=TRUE;
+			s->frames_state.altref.is_independant=TRUE;
+			s->frames_state.last_independent_frame=s->frame_count;
+			s->force_keyframe = FALSE;
+			is_ref_frame=TRUE;
+		}else if (flags & VP8_EFLAG_FORCE_GF) {
+			enc_mark_reference_frame_as_sent(s, VP8_GOLD_FRAME);
+			is_ref_frame=TRUE;
+		}else if (flags & VP8_EFLAG_FORCE_ARF) {
+			enc_mark_reference_frame_as_sent(s, VP8_ALTR_FRAME);
+			is_ref_frame=TRUE;
+		}else if (flags & VP8_EFLAG_NO_REF_LAST) {
+			enc_mark_reference_frame_as_sent(s, VP8_LAST_FRAME);
+			is_ref_frame=is_reconstruction_frame_sane(s,flags);
+		}
+		if (is_frame_independent(flags)){
+			s->frames_state.last_independent_frame=s->frame_count;
+		}
+
+		/* Pack the encoded frame. */
+		while( (pkt = vpx_codec_get_cx_data(&s->codec, &iter)) ) {
+			if ((pkt->kind == VPX_CODEC_CX_FRAME_PKT) && (pkt->data.frame.sz > 0)) {
+				Vp8RtpFmtPacket *packet = ms_new0(Vp8RtpFmtPacket, 1);
+
+				packet->m = allocb(pkt->data.frame.sz, 0);
+				memcpy(packet->m->b_wptr, pkt->data.frame.buf, pkt->data.frame.sz);
+				packet->m->b_wptr += pkt->data.frame.sz;
+				mblk_set_timestamp_info(packet->m, timestamp);
+				packet->pd = ms_new0(Vp8RtpFmtPayloadDescriptor, 1);
+				packet->pd->start_of_partition = TRUE;
+				packet->pd->non_reference_frame = s->avpf_enabled && !is_ref_frame;
+				if (s->avpf_enabled == TRUE) {
+					packet->pd->extended_control_bits_present = TRUE;
+					packet->pd->pictureid_present = TRUE;
+					packet->pd->pictureid = s->picture_id;
+				} else {
+					packet->pd->extended_control_bits_present = FALSE;
+					packet->pd->pictureid_present = FALSE;
+				}
+				if (s->flags & VPX_CODEC_USE_OUTPUT_PARTITION) {
+					packet->pd->pid = (uint8_t)pkt->data.frame.partition_id;
+					if (!(pkt->data.frame.flags & VPX_FRAME_IS_FRAGMENT)) {
+						mblk_set_marker_info(packet->m, TRUE);
+					}
+				} else {
+					packet->pd->pid = 0;
+					mblk_set_marker_info(packet->m, TRUE);
+				}
+				list = bctbx_list_append(list, packet);
+			}
+		}
+
+#ifdef AVPF_DEBUG
+		ms_message("VP8 encoder picture_id=%i ***| %s | %s | %s | %s", (int)s->picture_id,
+			(flags & VPX_EFLAG_FORCE_KF) ? "KF " : (flags & VP8_EFLAG_FORCE_GF) ? "GF " :  (flags & VP8_EFLAG_FORCE_ARF) ? "ARF" : "   ",
+			(flags & VP8_EFLAG_NO_REF_GF) ? "NOREFGF" : "       ",
+			(flags & VP8_EFLAG_NO_REF_ARF) ? "NOREFARF" : "        ",
+			(flags & VP8_EFLAG_NO_REF_LAST) ? "NOREFLAST" : "         ");
+#endif
+		ms_filter_lock(f);
+		vp8rtpfmt_packer_process(&s->packer, list, s->exit_q, f->factory);
+		ms_filter_unlock(f);
+
+		/* Handle video starter if AVPF is not enabled. */
+		s->frame_count++;
+		if ((s->avpf_enabled != TRUE) && (s->frame_count == 1)) {
+			ms_video_starter_first_frame(&s->starter, f->ticker->time);
+		}
+
+		/* Increment the pictureID. */
+		s->picture_id++;
+#ifdef PICTURE_ID_ON_16_BITS
+		if (s->picture_id == 0)
+			s->picture_id = 0x8000;
+#else
+		if (s->picture_id == 0x0080)
+			s->picture_id = 0;
+#endif
+	}
+}
+
+static void enc_process(MSFilter *f) {
+	EncState *s = (EncState *)f->data;
+	mblk_t *entry_f;
+	mblk_t *exit_f;
 
 	ms_filter_lock(f);
 
@@ -455,123 +603,18 @@ static void enc_process(MSFilter *f) {
 		return;
 	}
 
-	if ((im = ms_queue_peek_last(f->inputs[0])) != NULL) {
-		vpx_image_t img;
-
-		flags = 0;
-		ms_yuv_buf_init_from_mblk(&yuv, im);
-		vpx_img_wrap(&img, VPX_IMG_FMT_I420, s->vconf.vsize.width, s->vconf.vsize.height, 1, yuv.planes[0]);
-
-		if ((s->avpf_enabled != TRUE) && ms_video_starter_need_i_frame(&s->starter, f->ticker->time)) {
-			s->force_keyframe = TRUE;
-		}
-		if (s->force_keyframe == TRUE) {
-			ms_message("Forcing vp8 key frame for filter [%p]", f);
-			flags = VPX_EFLAG_FORCE_KF;
-		} else if (s->avpf_enabled == TRUE) {
-			if (s->frame_count == 0) s->force_keyframe = TRUE;
-			enc_fill_encoder_flags(s, &flags);
-		}
-
-#ifdef AVPF_DEBUG
-		ms_message("VP8 encoder frames state:");
-		ms_message("\tgolden: count=%" PRIi64 ", picture_id=0x%04x, ack=%s",
-			s->frames_state.golden.count, s->frames_state.golden.picture_id, (s->frames_state.golden.acknowledged == TRUE) ? "Y" : "N");
-		ms_message("\taltref: count=%" PRIi64 ", picture_id=0x%04x, ack=%s",
-			s->frames_state.altref.count, s->frames_state.altref.picture_id, (s->frames_state.altref.acknowledged == TRUE) ? "Y" : "N");
-#endif
-		err = vpx_codec_encode(&s->codec, &img, s->frame_count, 1, flags, 1000000LL/(2*(int)s->vconf.fps)); /*encoder has half a framerate interval to encode*/
-		if (err) {
-			ms_error("vpx_codec_encode failed : %d %s (%s)\n", err, vpx_codec_err_to_string(err), vpx_codec_error_detail(&s->codec));
-		} else {
-			vpx_codec_iter_t iter = NULL;
-			const vpx_codec_cx_pkt_t *pkt;
-			bctbx_list_t *list = NULL;
-
-			/* Update the frames state. */
-			is_ref_frame=FALSE;
-			if (flags & VPX_EFLAG_FORCE_KF) {
-				enc_mark_reference_frame_as_sent(s, VP8_GOLD_FRAME);
-				enc_mark_reference_frame_as_sent(s, VP8_ALTR_FRAME);
-				s->frames_state.golden.is_independant=TRUE;
-				s->frames_state.altref.is_independant=TRUE;
-				s->frames_state.last_independent_frame=s->frame_count;
-				s->force_keyframe = FALSE;
-				is_ref_frame=TRUE;
-			}else if (flags & VP8_EFLAG_FORCE_GF) {
-				enc_mark_reference_frame_as_sent(s, VP8_GOLD_FRAME);
-				is_ref_frame=TRUE;
-			}else if (flags & VP8_EFLAG_FORCE_ARF) {
-				enc_mark_reference_frame_as_sent(s, VP8_ALTR_FRAME);
-				is_ref_frame=TRUE;
-			}else if (flags & VP8_EFLAG_NO_REF_LAST) {
-				enc_mark_reference_frame_as_sent(s, VP8_LAST_FRAME);
-				is_ref_frame=is_reconstruction_frame_sane(s,flags);
-			}
-			if (is_frame_independent(flags)){
-				s->frames_state.last_independent_frame=s->frame_count;
-			}
-
-			/* Pack the encoded frame. */
-			while( (pkt = vpx_codec_get_cx_data(&s->codec, &iter)) ) {
-				if ((pkt->kind == VPX_CODEC_CX_FRAME_PKT) && (pkt->data.frame.sz > 0)) {
-					Vp8RtpFmtPacket *packet = ms_new0(Vp8RtpFmtPacket, 1);
-
-					packet->m = allocb(pkt->data.frame.sz, 0);
-					memcpy(packet->m->b_wptr, pkt->data.frame.buf, pkt->data.frame.sz);
-					packet->m->b_wptr += pkt->data.frame.sz;
-					mblk_set_timestamp_info(packet->m, timestamp);
-					packet->pd = ms_new0(Vp8RtpFmtPayloadDescriptor, 1);
-					packet->pd->start_of_partition = TRUE;
-					packet->pd->non_reference_frame = s->avpf_enabled && !is_ref_frame;
-					if (s->avpf_enabled == TRUE) {
-						packet->pd->extended_control_bits_present = TRUE;
-						packet->pd->pictureid_present = TRUE;
-						packet->pd->pictureid = s->picture_id;
-					} else {
-						packet->pd->extended_control_bits_present = FALSE;
-						packet->pd->pictureid_present = FALSE;
-					}
-					if (s->flags & VPX_CODEC_USE_OUTPUT_PARTITION) {
-						packet->pd->pid = (uint8_t)pkt->data.frame.partition_id;
-						if (!(pkt->data.frame.flags & VPX_FRAME_IS_FRAGMENT)) {
-							mblk_set_marker_info(packet->m, TRUE);
-						}
-					} else {
-						packet->pd->pid = 0;
-						mblk_set_marker_info(packet->m, TRUE);
-					}
-					list = bctbx_list_append(list, packet);
-				}
-			}
-
-#ifdef AVPF_DEBUG
-			ms_message("VP8 encoder picture_id=%i ***| %s | %s | %s | %s", (int)s->picture_id,
-				(flags & VPX_EFLAG_FORCE_KF) ? "KF " : (flags & VP8_EFLAG_FORCE_GF) ? "GF " :  (flags & VP8_EFLAG_FORCE_ARF) ? "ARF" : "   ",
-				(flags & VP8_EFLAG_NO_REF_GF) ? "NOREFGF" : "       ",
-				(flags & VP8_EFLAG_NO_REF_ARF) ? "NOREFARF" : "        ",
-				(flags & VP8_EFLAG_NO_REF_LAST) ? "NOREFLAST" : "         ");
-#endif
-
-			vp8rtpfmt_packer_process(&s->packer, list, f->outputs[0], f->factory);
-
-			/* Handle video starter if AVPF is not enabled. */
-			s->frame_count++;
-			if ((s->avpf_enabled != TRUE) && (s->frame_count == 1)) {
-				ms_video_starter_first_frame(&s->starter, f->ticker->time);
-			}
-
-			/* Increment the pictureID. */
-			s->picture_id++;
-#ifdef PICTURE_ID_ON_16_BITS
-			if (s->picture_id == 0)
-				s->picture_id = 0x8000;
-#else
-			if (s->picture_id == 0x0080)
-				s->picture_id = 0;
-#endif
-		}
+	/* If we have a frame then we put it in the entry queue and we call the task enc_process_frame_task in async */
+	if ((entry_f = ms_queue_peek_last(f->inputs[0])) != NULL) {
+		ms_queue_remove(f->inputs[0], entry_f);
+		putq(&s->entry_q, entry_f);
+		ms_worker_thread_add_task(s->process_thread, enc_process_frame_task, (void*)f);
 	}
+		
+	/* Put each frame we have in exit_q in f->output[0] */
+	while ((exit_f = ms_queue_get(s->exit_q)) != NULL) {
+		ms_queue_put(f->outputs[0], exit_f);
+	}
+
 	ms_filter_unlock(f);
 	ms_queue_flush(f->inputs[0]);
 }
@@ -580,6 +623,10 @@ static void enc_postprocess(MSFilter *f) {
 	EncState *s = (EncState *)f->data;
 	if (s->ready) vpx_codec_destroy(&s->codec);
 	vp8rtpfmt_packer_uninit(&s->packer);
+	ms_worker_thread_destroy(s->process_thread, FALSE);
+	flushq(&s->entry_q,0);
+	ms_queue_destroy(s->exit_q);
+	s->exit_q = NULL;
 	s->ready = FALSE;
 }
 
@@ -811,7 +858,7 @@ static MSFilterMethod enc_methods[] = {
 #define MS_VP8_ENC_ENC_FMT     "VP8"
 #define MS_VP8_ENC_NINPUTS     1 /*MS_YUV420P is assumed on this input */
 #define MS_VP8_ENC_NOUTPUTS    1
-#define MS_VP8_ENC_FLAGS       0
+#define MS_VP8_ENC_FLAGS       MS_FILTER_IS_PUMP
 
 #ifdef _MSC_VER
 
