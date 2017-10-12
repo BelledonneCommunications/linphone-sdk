@@ -19,8 +19,9 @@
 
 #include "belle-sip/auth-helper.h"
 #include "belle_sip_internal.h"
-#include "md5.h"
 #include <string.h>
+#include "bctoolbox/crypto.h"
+
 
 #ifndef BELLE_SIP_CNONCE_LENGTH
 #define BELLE_SIP_CNONCE_LENGTH 16
@@ -30,7 +31,7 @@
 	if (!belle_sip_header_##header_name##_get_##name(obj)) {\
 		 belle_sip_error("parameter ["#name"]not found for header ["#header_name"]");\
 		 return-1;\
-	}
+    }
 
 static void belle_sip_auth_helper_clone_authorization(belle_sip_header_authorization_t* authorization, const belle_sip_header_www_authenticate_t* authentication) {
 	CLONE_STRING_GENERIC(belle_sip_header_www_authenticate,belle_sip_header_authorization,scheme,authorization,authentication)
@@ -72,118 +73,156 @@ belle_sip_header_proxy_authorization_t* belle_sip_auth_helper_create_proxy_autho
 	return authorization;
 }
 
-int belle_sip_auth_helper_compute_ha1(const char* userid,const char* realm,const char* password, char ha1[33]) {
-	md5_byte_t out[16];
-	md5_state_t state;
-	int di;
-	if (!userid) {
-		 belle_sip_error("belle_sip_fill_authorization_header, username not found ");
-		 return -1;
-	}
-	if (!password) {
-		 belle_sip_error("belle_sip_fill_authorization_header, password not found ");
-		 return -1;
-	}
-	if (!realm) {
-		 belle_sip_error("belle_sip_fill_authorization_header, realm not found ");
-		 return -1;
-	}
-
-	belle_sip_md5_init(&state);
-	belle_sip_md5_append(&state,(const md5_byte_t *)userid,(int)strlen(userid));
-	belle_sip_md5_append(&state,(const md5_byte_t *)":",1);
-	belle_sip_md5_append(&state,(const md5_byte_t *)realm,(int)strlen(realm));
-	belle_sip_md5_append(&state,(const md5_byte_t *)":",1);
-	belle_sip_md5_append(&state,(const md5_byte_t *)password,(int)strlen(password));
-	belle_sip_md5_finish(&state,out);
-	for (di = 0; di < 16; ++di)
-			    sprintf(ha1 + di * 2, "%02x", out[di]);
-	ha1[32]='\0';
-	return 0;
+void concatNstrings(size_t n, char **ask, ...) {
+    va_list input_args;
+    char *input_strings[n];
+    size_t i;
+    size_t ask_size = n;
+    va_start(input_args, ask);
+    
+    for(i=0; i<n; i++){
+        input_strings[i] = va_arg(input_args, char*);
+        ask_size += strlen(input_strings[i]);
+    }
+    *ask = malloc(sizeof(char)*ask_size);
+    for(i=0; i<(n-1); i++){
+        strcat(*ask, input_strings[i]);
+        strcat(*ask, ":");
+    }
+    strcat(*ask, input_strings[n-1]);
+    va_end(input_args);
 }
 
-int belle_sip_auth_helper_compute_ha2(const char* method,const char* uri, char ha2[33]) {
-	md5_byte_t out[16];
-	md5_state_t state;
-	int di;
-	ha2[32]='\0';
+void chooseMethode(const char* algo,char *ask,uint8_t *out, int size){
+    if (!strcmp(algo,"MD5")){
+        bctbx_md5((const unsigned char*)ask, strlen(ask), out);
+    }
+    else if(!strcmp(algo,"SHA-256")){
+        bctbx_sha256((const unsigned char*)ask, strlen(ask), 32, out);
+    }
+    else{
+        belle_sip_error("belle_sip_fill_authorization_header, algorithm is neither MD5 nor SHA-256 ");
+    }
+}
+
+int belle_sip_auth_helper_compute_ha1_for_algorithm(const char* userid,const char* realm,const char* password, char *ha1, int size, const char* algo) {
+    uint8_t out[size];
+    int di;
+    char *ask;
+    if (!userid) {
+        belle_sip_error("belle_sip_fill_authorization_header, username not found ");
+        return -1;
+    }
+    if (!password) {
+        belle_sip_error("belle_sip_fill_authorization_header, password not found ");
+        return -1;
+    }
+    if (!realm) {
+        belle_sip_error("belle_sip_fill_authorization_header, password not found ");
+        return -1;
+    }
+
+    concatNstrings(3, &ask, userid, realm, password);
+    chooseMethode(algo, ask, out, size);
+    
+    for (di = 0; di < size; ++di)
+        sprintf(ha1 + di * 2, "%02x", out[di]);
+    ha1[size*2]='\0';
+    return 0;
+}
+
+int belle_sip_auth_helper_compute_ha1(const char* userid,const char* realm,const char* password, char ha1[33]) {
+    belle_sip_auth_helper_compute_ha1_for_algorithm(userid,realm,password,ha1,16,"MD5");
+    return 0;
+}
+
+int belle_sip_auth_helper_compute_ha2_for_algorithm(const char* method,const char* uri, char *ha2, int size, const char* algo) {
+    uint8_t out[size];
+    int di;
+    char *ask;
+	ha2[size*2]='\0';
 	/*HA2=MD5(method:uri)*/
-	belle_sip_md5_init(&state);
-	belle_sip_md5_append(&state,(const md5_byte_t *)method,(int)strlen(method));
-	belle_sip_md5_append(&state,(const md5_byte_t *)":",1);
-	belle_sip_md5_append(&state,(const md5_byte_t *)uri,(int)strlen(uri));
-	belle_sip_md5_finish(&state,out);
-	for (di = 0; di < 16; ++di)
+    concatNstrings(2, &ask, method, uri);
+    chooseMethode(algo, ask, out, size);
+	for (di = 0; di < size; ++di)
 		sprintf(ha2 + di * 2, "%02x", out[di]);
 	return 0;
 }
 
-int belle_sip_auth_helper_compute_response(const char* ha1,const char* nonce, const char* ha2, char response[33]) {
-	md5_byte_t out[16];
-	md5_state_t state;
-	int di;
-	response[32]='\0';
+int belle_sip_auth_helper_compute_ha2(const char* method,const char* uri, char ha2[33]) {
+    belle_sip_auth_helper_compute_ha2_for_algorithm(method, uri, ha2, 16, "MD5");
+    return 0;
+}
 
-	belle_sip_md5_init(&state);
-	belle_sip_md5_append(&state,(const md5_byte_t *)ha1,(int)strlen(ha1));
-	belle_sip_md5_append(&state,(const md5_byte_t *)":",1);
-	belle_sip_md5_append(&state,(const md5_byte_t *)nonce,(int)strlen(nonce));
-	belle_sip_md5_append(&state,(const md5_byte_t *)":",1);
-	belle_sip_md5_append(&state,(const md5_byte_t *)ha2,(int)strlen(ha2));
-	belle_sip_md5_finish(&state,out);
+int belle_sip_auth_helper_compute_response_for_algorithm(const char* ha1,const char* nonce, const char* ha2, char *response, int size, const char* algo) {
+    uint8_t out[size];
+    int di;
+    char *ask;
+	response[size*2]='\0';
+
+    concatNstrings(3, &ask, ha1, nonce, ha2);
+    chooseMethode(algo, ask, out, size);
 	/*copy values*/
-	for (di = 0; di < 16; ++di)
+	for (di = 0; di < size; ++di)
 		sprintf(response + di * 2, "%02x", out[di]);
 	return 0;
 
 }
 
-int belle_sip_auth_helper_compute_response_qop_auth(const char* ha1
+int belle_sip_auth_helper_compute_response(const char* ha1,const char* nonce, const char* ha2, char response[33]) {
+    belle_sip_auth_helper_compute_response_for_algorithm(ha1, nonce, ha2, response, 16, "MD5");
+    return 0;
+}
+
+int belle_sip_auth_helper_compute_response_qop_auth_for_algorithm(const char* ha1
 													, const char* nonce
 													, unsigned int nonce_count
 													, const char* cnonce
 													, const char* qop
-													, const char* ha2, char response[33]) {
-	md5_byte_t out[16];
-	md5_state_t state;
+													, const char* ha2
+                                                    , char *response
+                                                    , int size, const char* algo) {
+    uint8_t out[size];
+    int di;
+    char *ask;
 	char nounce_count_as_string[9];
-	int di;
 
-	response[32]='\0';
+	response[size*2]='\0';
 
 	snprintf(nounce_count_as_string,sizeof(nounce_count_as_string),"%08x",nonce_count);
 	/*response=MD5(HA1:nonce:nonce_count:cnonce:qop:HA2)*/
 
-	belle_sip_md5_init(&state);
-	belle_sip_md5_append(&state,(const md5_byte_t *)ha1,(int)strlen(ha1));
-	belle_sip_md5_append(&state,(const md5_byte_t *)":",1);
-	belle_sip_md5_append(&state,(const md5_byte_t *)nonce,(int)strlen(nonce));
-	belle_sip_md5_append(&state,(const md5_byte_t *)":",1);
-	belle_sip_md5_append(&state,(const md5_byte_t *)nounce_count_as_string,(int)strlen(nounce_count_as_string));
-	belle_sip_md5_append(&state,(const md5_byte_t *)":",1);
-	belle_sip_md5_append(&state,(const md5_byte_t *)cnonce,(int)strlen(cnonce));
-	belle_sip_md5_append(&state,(const md5_byte_t *)":",1);
-	belle_sip_md5_append(&state,(const md5_byte_t *)qop,(int)strlen(qop));
-	belle_sip_md5_append(&state,(const md5_byte_t *)":",1);
-	belle_sip_md5_append(&state,(const md5_byte_t *)ha2,(int)strlen(ha2));
-	belle_sip_md5_finish(&state,out);
+    concatNstrings(6, &ask, ha1, nonce, nounce_count_as_string, cnonce, qop, ha2);
+    chooseMethode(algo, ask, out, size);
 	/*copy values*/
-	for (di = 0; di < 16; ++di)
+	for (di = 0; di < size; ++di)
 		sprintf(response + di * 2, "%02x", out[di]);
 
 	return 0;
 }
 
-int belle_sip_auth_helper_fill_authorization(belle_sip_header_authorization_t* authorization
+int belle_sip_auth_helper_compute_response_qop_auth(const char* ha1
+                                                    , const char* nonce
+                                                    , unsigned int nonce_count
+                                                    , const char* cnonce
+                                                    , const char* qop
+                                                    , const char* ha2, char response[33]) {
+    belle_sip_auth_helper_compute_response_qop_auth_for_algorithm(ha1, nonce, nonce_count, cnonce, qop, ha2, response, 16, "MD5");
+    return 0;
+}
+
+int belle_sip_auth_helper_fill_authorization_for_algorithm(belle_sip_header_authorization_t* authorization
 											,const char* method
-											,const char* ha1) {
+											,const char* ha1
+                                            ,int size
+                                            ,const char* algo) {
 	int auth_mode=0;
 	char* uri;
-	char ha2[16*2 + 1];
-	char response[16*2 + 1];
+	char ha2[size*2 + 1];
+	char response[size*2 + 1];
 	char cnonce[BELLE_SIP_CNONCE_LENGTH + 1];
 
-	response[32]=ha2[32]='\0';
+	response[size*2]=ha2[size*2]='\0';
 
 	if (belle_sip_header_authorization_get_scheme(authorization) != NULL &&
 		strcmp("Digest",belle_sip_header_authorization_get_scheme(authorization))!=0) {
@@ -226,24 +265,32 @@ int belle_sip_auth_helper_fill_authorization(belle_sip_header_authorization_t* a
 		uri=belle_sip_uri_to_string(belle_sip_header_authorization_get_uri(authorization));
 	}
 
-	belle_sip_auth_helper_compute_ha2(method,uri,ha2);
+	belle_sip_auth_helper_compute_ha2_for_algorithm(method,uri,ha2,size,algo);
 	belle_sip_free(uri);
 	if (auth_mode) {
 		/*response=MD5(HA1:nonce:nonce_count:cnonce:qop:HA2)*/
-
-		belle_sip_auth_helper_compute_response_qop_auth(ha1
+		belle_sip_auth_helper_compute_response_qop_auth_for_algorithm(ha1
 														,belle_sip_header_authorization_get_nonce(authorization)
 														,belle_sip_header_authorization_get_nonce_count(authorization)
 														,belle_sip_header_authorization_get_cnonce(authorization)
 														,belle_sip_header_authorization_get_qop(authorization)
 														,ha2
-														,response);
+														,response
+                                                        ,size
+                                                        ,algo);
 	}  else {
 		/*response=MD5(ha1:nonce:ha2)*/
-		belle_sip_auth_helper_compute_response(ha1,belle_sip_header_authorization_get_nonce(authorization),ha2,response);
+		belle_sip_auth_helper_compute_response_for_algorithm(ha1,belle_sip_header_authorization_get_nonce(authorization),ha2,response,size,algo);
 	}
 	belle_sip_header_authorization_set_response(authorization,(const char*)response);
 	return 0;
+}
+
+int belle_sip_auth_helper_fill_authorization(belle_sip_header_authorization_t* authorization
+                                             ,const char* method
+                                             ,const char* ha1) {
+    belle_sip_auth_helper_fill_authorization_for_algorithm(authorization, method, ha1, 16, "MD5");
+    return 0;
 }
 
 int belle_sip_auth_helper_fill_proxy_authorization(belle_sip_header_proxy_authorization_t* proxy_authorization

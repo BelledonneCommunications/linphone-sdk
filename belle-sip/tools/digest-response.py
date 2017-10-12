@@ -40,23 +40,33 @@ def main(argv=None):
 	
 	parser.add_argument('--ha1',help='ha1 MD5(username:realm:password)')
 	parser.add_argument('--qop-auth', help='Indicate if auth mode has to reuse nonce (I.E qop=auth',action='store_true')
-	
+        
 	parser.add_argument('--cnonce', help='client nonce')
-	parser.add_argument('--nonce-count',type=int16, help='nonce count in hexa: ex 2b' )	
+	parser.add_argument('--nonce-count',type=int16, help='nonce count in hexa: ex 2b')
+	parser.add_argument('--algorithm', help='choose algorithm from MD5 and SHA256')
 					
 	
 	args = parser.parse_args(argv)
 
 	if not args.ha1 :
-		#HA1=MD5(username:realm:password)
-		ha1 = hashlib.md5()
+        	if not args.algorithm:
+            		#HA1=MD5(username:realm:password)
+            		ha1 = hashlib.md5()
+		else:
+			#HA1=SHA256(username:realm:password)
+			ha1 = hashlib.sha256()
 		ha1.update((args.userid+":"+args.realm+":"+args.password).encode())
 		ha1_value = ha1.hexdigest()
 	else:
 		ha1_value = args.ha1
 
-	#HA2=MD5(method:digestURI)	
-	ha2 = hashlib.md5()
+	if not args.algorithm:
+		#HA2=MD5(method:digestURI)
+		ha2 = hashlib.md5()
+	else:
+		#HA2=SHA256(method:digestURI)
+		ha2 = hashlib.sha256()
+	
 	ha2.update((args.method+":"+args.uri).encode())
 	print ("ha1 = "+ha1_value);
 	print ("ha2 = "+ha2.hexdigest());		
@@ -66,8 +76,13 @@ def main(argv=None):
 			print ("--qop-auth requires both --cnonce and --nonce-count")
 			sys.exit(-1)
 		
-		#response=MD5(HA1:nonce:nonceCount:clientNonce:qop:HA2)
-		response = hashlib.md5()
+		if not args.algorithm:
+			#response=MD5(HA1:nonce:nonceCount:clientNonce:qop:HA2)
+			response = hashlib.md5()
+		else:
+			#response=SHA256(HA1:nonce:nonceCount:clientNonce:qop:HA2)
+			response = hashlib.sha256()
+        
 		response.update(		(ha1_value
 							+":"+args.nonce
 							+":" + '{:08x}'.format(args.nonce_count)
@@ -78,8 +93,13 @@ def main(argv=None):
 				
 	
 	else:
-		#response=MD5(HA1:nonce:HA2)
-		response = hashlib.md5()
+		if not args.algorithm:
+			#response=MD5(HA1:nonce:HA2)
+			response = hashlib.md5()
+		else:
+			#response=SHA256(HA1:nonce:HA2)
+			response = hashlib.sha256()
+		
 		response.update((ha1_value+":"+args.nonce+":"+ha2.hexdigest()).encode())
 		print ("responce = "+response.hexdigest());	
 			

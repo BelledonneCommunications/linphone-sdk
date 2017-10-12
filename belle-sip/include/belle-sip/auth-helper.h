@@ -67,6 +67,20 @@ BELLESIP_EXPORT belle_sip_header_proxy_authorization_t* belle_sip_auth_helper_cr
 BELLESIP_EXPORT int belle_sip_auth_helper_fill_authorization(belle_sip_header_authorization_t* authorization
 												,const char* method
 												,const char* ha1);
+
+/**
+ * compute and set response value according to parameters
+ * HA1=MD5(username:realm:passwd)
+ * fills cnonce if needed (qop=auth);
+ * fills qop
+ *
+ * @return 0 if succeed
+ */
+BELLESIP_EXPORT int belle_sip_auth_helper_fill_authorization_for_algorithm(belle_sip_header_authorization_t* authorization
+                                                       ,const char* method
+                                                       ,const char* ha1
+                                                       ,int size
+                                                       ,const char* algo);
 /**
  * compute and set response value according to parameters
  * @return 0 if succeed
@@ -81,6 +95,12 @@ BELLESIP_EXPORT int belle_sip_auth_helper_fill_proxy_authorization(belle_sip_hea
  * return 0 in case of success
  * */
 BELLESIP_EXPORT int belle_sip_auth_helper_compute_ha1(const char* userid,const char* realm,const char* password, char ha1[33]);
+/*
+ * compute HA1 (NULL terminated)
+ * HA1=MD5(userid:realm:passwd) or SHA-256(userid:realm:passwd)
+ * return 0 in case of success
+ * */
+BELLESIP_EXPORT int belle_sip_auth_helper_compute_ha1_for_algorithm(const char* userid,const char* realm,const char* password, char *ha1, int size, const char* algo);
 /*
  * compute HA2 (NULL terminated)
  * HA2=MD5(method:uri)
