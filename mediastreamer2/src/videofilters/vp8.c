@@ -455,19 +455,28 @@ static void enc_process_frame_task(void *obj) {
 	bool_t is_ref_frame=FALSE;
 	vpx_image_t img;
 	
+#if defined(__ANDROID__) || (TARGET_OS_IPHONE == 1) || defined(__arm__) || defined(_M_ARM)
 	ms_filter_lock(f);
 	if ((im = getq(&s->entry_q)) == NULL) {
 		ms_warning("VP8 async process: No frame in entry queue");
 		ms_filter_unlock(f);
 		return;
 	}
+#else
+	if ((im = getq(&s->entry_q)) == NULL) {
+		ms_warning("VP8 process: No frame in entry queue");
+		return;
+	}
+#endif
 	
-	if (s->entry_q.q_mcount >= 4){
+#if defined(__ANDROID__) || (TARGET_OS_IPHONE == 1) || defined(__arm__) || defined(_M_ARM)
+	if (s->entry_q.q_mcount >= 3){
 		/*don't let too much buffers to be queued here, it makes no sense for a real time processing and would consume too much memory*/
 		ms_warning("VP8 async process: dropping %i frames", s->entry_q.q_mcount);
 		flushq(&s->entry_q, 0);
 	}
 	ms_filter_unlock(f);
+#endif
 
 	flags = 0;
 	ms_yuv_buf_init_from_mblk(&yuv, im);
@@ -564,9 +573,14 @@ static void enc_process_frame_task(void *obj) {
 			(flags & VP8_EFLAG_NO_REF_ARF) ? "NOREFARF" : "        ",
 			(flags & VP8_EFLAG_NO_REF_LAST) ? "NOREFLAST" : "         ");
 #endif
+		
+#if defined(__ANDROID__) || (TARGET_OS_IPHONE == 1) || defined(__arm__) || defined(_M_ARM)
 		ms_filter_lock(f);
 		vp8rtpfmt_packer_process(&s->packer, list, s->exit_q, f->factory);
 		ms_filter_unlock(f);
+#else
+		vp8rtpfmt_packer_process(&s->packer, list, f->outputs[0], f->factory);
+#endif
 
 		/* Handle video starter if AVPF is not enabled. */
 		s->frame_count++;
@@ -607,13 +621,19 @@ static void enc_process(MSFilter *f) {
 	if ((entry_f = ms_queue_peek_last(f->inputs[0])) != NULL) {
 		ms_queue_remove(f->inputs[0], entry_f);
 		putq(&s->entry_q, entry_f);
+#if defined(__ANDROID__) || (TARGET_OS_IPHONE == 1) || defined(__arm__) || defined(_M_ARM)
 		ms_worker_thread_add_task(s->process_thread, enc_process_frame_task, (void*)f);
+#else
+		enc_process_frame_task((void*)f);
+#endif
 	}
 		
+#if defined(__ANDROID__) || (TARGET_OS_IPHONE == 1) || defined(__arm__) || defined(_M_ARM)
 	/* Put each frame we have in exit_q in f->output[0] */
 	while ((exit_f = ms_queue_get(s->exit_q)) != NULL) {
 		ms_queue_put(f->outputs[0], exit_f);
 	}
+#endif
 
 	ms_filter_unlock(f);
 	ms_queue_flush(f->inputs[0]);
