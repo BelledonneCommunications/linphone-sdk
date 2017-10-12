@@ -603,7 +603,9 @@ static void enc_process_frame_task(void *obj) {
 static void enc_process(MSFilter *f) {
 	EncState *s = (EncState *)f->data;
 	mblk_t *entry_f;
+#if defined(__ANDROID__) || (TARGET_OS_IPHONE == 1) || defined(__arm__) || defined(_M_ARM)
 	mblk_t *exit_f;
+#endif
 
 	ms_filter_lock(f);
 
