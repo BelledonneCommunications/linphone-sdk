@@ -550,8 +550,13 @@ void ms_ticker_get_last_late_tick(MSTicker *ticker, MSTickerLateEvent *ev){
 	if (need_lock) ms_mutex_unlock(&ticker->lock);
 }
 
+static void ms_ticker_synchronizer_reset(MSTickerSynchronizer* ts){
+	memset(&ts, 0, sizeof(ts));
+}
+
 void ms_ticker_set_synchronizer(MSTicker *ticker, MSTickerSynchronizer *ts) {
 	if (ts) {
+		ms_ticker_synchronizer_reset(ts);
 		ms_ticker_set_time_func(ticker, (MSTickerTimeFunc)ms_ticker_synchronizer_get_corrected_time, ts);
 	} else {
 		ms_ticker_set_time_func(ticker, NULL, NULL);
@@ -576,6 +581,8 @@ MSTickerSynchronizer* ms_ticker_synchronizer_new(void) {
 	MSTickerSynchronizer *obj=(MSTickerSynchronizer *)ms_new0(MSTickerSynchronizer,1);
 	return obj;
 }
+
+
 
 double ms_ticker_synchronizer_set_external_time(MSTickerSynchronizer* ts, const MSTimeSpec *time) {
 	int64_t sound_time;
