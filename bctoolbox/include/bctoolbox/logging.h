@@ -56,7 +56,7 @@ typedef void (*BctbxLogHandlerDestroyFunc)(bctbx_log_handler_t *handler);
 
 /*
  initialise logging functions, add default log handler for stdout output.
- @param[in] bool_t create : whether or not the initialisation should create a default logger in stdout or not.
+ @param[in] bool_t create : No longuer used, always created with a default logger to stdout.
  */
 BCTBX_PUBLIC void bctbx_init_logger(bool_t create);
 
@@ -98,7 +98,7 @@ BCTBX_PUBLIC void *bctbx_log_handler_get_user_data(const bctbx_log_handler_t* lo
 BCTBX_PUBLIC void bctbx_add_log_handler(bctbx_log_handler_t* handler);
 BCTBX_PUBLIC void bctbx_remove_log_handler(bctbx_log_handler_t* handler);
 	
-BCTBX_PUBLIC BCTBX_DEPRECATED void bctbx_set_log_handler(BctbxLogFunc func);
+BCTBX_PUBLIC void bctbx_set_log_handler(BctbxLogFunc func);
 /*same as bctbx_set_log_handler but only for a domain. NULL for all*/
 BCTBX_PUBLIC void bctbx_set_log_handler_for_domain(BctbxLogFunc func, const char* domain);
 	
