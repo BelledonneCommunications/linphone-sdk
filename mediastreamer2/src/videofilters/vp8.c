@@ -456,6 +456,7 @@ static void enc_process_frame_task(void *obj) {
 	vpx_image_t img;
 	
 #if defined(__ANDROID__) || (TARGET_OS_IPHONE == 1) || defined(__arm__) || defined(_M_ARM)
+	
 	ms_filter_lock(f);
 	if ((im = getq(&s->entry_q)) == NULL) {
 		ms_warning("VP8 async process: No frame in entry queue");
@@ -643,9 +644,9 @@ static void enc_process(MSFilter *f) {
 
 static void enc_postprocess(MSFilter *f) {
 	EncState *s = (EncState *)f->data;
+	ms_worker_thread_destroy(s->process_thread, FALSE);
 	if (s->ready) vpx_codec_destroy(&s->codec);
 	vp8rtpfmt_packer_uninit(&s->packer);
-	ms_worker_thread_destroy(s->process_thread, FALSE);
 	flushq(&s->entry_q,0);
 	ms_queue_destroy(s->exit_q);
 	s->exit_q = NULL;
