@@ -628,10 +628,10 @@ MSWebCamDesc *ms_mire_webcam_desc_get(void){
 #endif
 
 
-static void apply_bitrate_limit(MediaStream *obj, int br_limit){
+void update_bitrate_limit_from_tmmbr(MediaStream *obj, int br_limit){
 	int previous_br_limit = rtp_session_get_target_upload_bandwidth(obj->sessions.rtp_session);
 	if (!obj->encoder){
-		ms_warning("TMMNR not applicable because no encoder for this stream.");
+		ms_warning("TMMBR not applicable because no encoder for this stream.");
 		return;
 	}
 
@@ -690,7 +690,7 @@ static void tmmbr_received(const OrtpEventData *evd, void *user_pointer) {
 
 			ms_message("MediaStream[%p]: received a TMMBR for bitrate %i kbits/s"
 						, ms, (int)(tmmbr_mxtbr/1000));
-			apply_bitrate_limit(ms, tmmbr_mxtbr);
+			update_bitrate_limit_from_tmmbr(ms, tmmbr_mxtbr);
 			break;
 		}
 		default:
