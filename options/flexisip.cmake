@@ -29,6 +29,7 @@ lcb_add_option("REDIS" "Enable hiredis support." "${DEFAULT_VALUE_ENABLE_REDIS}"
 lcb_add_dependent_option("BC REDIS" "Enable hiredis support from Belledonne Communications." "${DEFAULT_VALUE_ENABLE_BC_HIREDIS}" "ENABLE_REDIS" OFF)
 lcb_add_option("PushNotification" "Enable push notification support." "${DEFAULT_VALUE_ENABLE_PUSHNOTIFICATION}")
 lcb_add_option("Presence" "Enable presence server support." "${DEFAULT_VALUE_ENABLE_PRESENCE}")
+lcb_add_option("Conference" "Enable conference server support." "${DEFAULT_VALUE_ENABLE_CONFERENCE}")
 lcb_add_option("SNMP" "Enable SNMP support." "${DEFAULT_ENABLE_SNMP}")
 lcb_add_option("SOCI" "Enable SOCI support." "${DEFAULT_ENABLE_SOCI}")
 lcb_add_dependent_option("SOCI build" "Build SOCI from sources instead of taking the operating system version." "${DEFAULT_VALUE_ENABLE_SOCI_BUILD}" "ENABLE_SOCI" OFF)
