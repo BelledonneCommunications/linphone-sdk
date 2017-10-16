@@ -602,21 +602,20 @@ static void au_read_postprocess(MSFilter *f){
 static void au_read_process(MSFilter *f){
 	au_filter_read_data_t *d=(au_filter_read_data_t*)f->data;
 	mblk_t *m;
+	bool_t read_something = FALSE;
 	if (!(d->base.card->read_started=d->base.card->io_unit_started)) {
 		//make sure audio unit is started
 		start_audio_unit((au_filter_base_t*)d,f->ticker->time);
 	}
-	do {
-		ms_mutex_lock(&d->mutex);
-		m=getq(&d->rq);
-		ms_mutex_unlock(&d->mutex);
-		if (m != NULL) {
-			d->read_samples += (msgdsize(m) / 2) / d->base.card->nchannels;
-			ms_queue_put(f->outputs[0],m);
-		}
-
-	}while(m!=NULL);
-	ms_ticker_synchronizer_update(d->ticker_synchronizer, d->read_samples, d->base.card->rate);
+	ms_mutex_lock(&d->mutex);
+	while((m = getq(&d->rq)) != NULL){
+		d->read_samples += (msgdsize(m) / 2) / d->base.card->nchannels;
+		ms_queue_put(f->outputs[0],m);
+		read_something = TRUE;
+	}
+	ms_mutex_unlock(&d->mutex);
+	
+	if (read_something) ms_ticker_synchronizer_update(d->ticker_synchronizer, d->read_samples, d->base.card->rate);
 }
 
 
