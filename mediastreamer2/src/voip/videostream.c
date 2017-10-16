@@ -470,7 +470,6 @@ static void configure_video_source(VideoStream *stream){
 	MSPinFormat pf={0};
 	bool_t is_player=ms_filter_get_id(stream->source)==MS_ITC_SOURCE_ID || ms_filter_get_id(stream->source)==MS_MKV_PLAYER_ID;
 
-
 	/* transmit orientation to source filter */
 	if (ms_filter_has_method(stream->source, MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION))
 		ms_filter_call_method(stream->source,MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION,&stream->device_orientation);
@@ -482,7 +481,6 @@ static void configure_video_source(VideoStream *stream){
 	if (stream->preview_window_id!=0){
 		video_stream_set_native_preview_window_id(stream, stream->preview_window_id);
 	}
-
 	ms_filter_call_method(stream->ms.encoder, MS_FILTER_GET_BITRATE, &bitrate);
 	if (bitrate == 0) {
 		bitrate = ms_factory_get_expected_bandwidth(stream->ms.factory);
@@ -534,6 +532,9 @@ static void configure_video_source(VideoStream *stream){
 #endif
 	}
 	ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_VIDEO_SIZE,&vsize);
+	
+	if (stream->ms.target_bitrate > 0) update_bitrate_limit_from_tmmbr(&stream->ms, stream->ms.target_bitrate);
+		
 	ms_filter_call_method(stream->ms.encoder,MS_FILTER_GET_FPS,&fps);
 
 	if (is_player){
