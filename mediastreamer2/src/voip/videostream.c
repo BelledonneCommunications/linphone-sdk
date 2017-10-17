@@ -854,7 +854,8 @@ static void apply_bitrate_limit(VideoStream *stream, PayloadType *pt) {
 		} else {
 			/* We retrieve the lowest configuration for that vsize since the bandwidth estimator will increase quality if possible */
 			vconf = ms_video_find_worst_configuration_for_size(vconf_list, stream->sent_vsize, ms_factory_get_cpu_count(stream->ms.factory));
-			target_upload_bandwidth = vconf.required_bitrate;
+			/*If the lower config is found, required_bitrate will be 0. In this case, use the bitrate_limit*/
+			target_upload_bandwidth = vconf.required_bitrate > 0 ? vconf.required_bitrate : vconf.bitrate_limit;
 		}
 		ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_SET_CONFIGURATION, &vconf);
 	} else {
