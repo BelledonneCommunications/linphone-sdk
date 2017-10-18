@@ -298,6 +298,7 @@ endif()
 
 
 set(SOURCE_FILES
+	buf.c
 	c14n.c
 	catalog.c
 	chvalid.c
