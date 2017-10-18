@@ -57,6 +57,12 @@ BELLESIP_EXPORT belle_http_header_authorization_t* belle_http_auth_helper_create
 BELLESIP_EXPORT belle_sip_header_proxy_authorization_t* belle_sip_auth_helper_create_proxy_authorization(const belle_sip_header_proxy_authenticate_t* proxy_authentication);
 
 /**
+ * return size which depends on algorithm
+ * @return 0 if failed
+ */
+BELLESIP_EXPORT int belle_sip_auth_define_size(const char* algo);
+
+/**
  * compute and set response value according to parameters
  * HA1=MD5(username:realm:passwd)
  * fills cnonce if needed (qop=auth);
@@ -96,12 +102,24 @@ BELLESIP_EXPORT int belle_sip_auth_helper_compute_ha1_for_algorithm(const char* 
 BELLESIP_EXPORT int belle_sip_auth_helper_compute_ha2(const char* method,const char* uri, char ha2[33]);
 
 /*
+ * compute HA2 (NULL terminated)
+ * HA2=MD5(method:uri) or SHA-256(method:uri)
+ * return 0 in case of success
+ * */
+BELLESIP_EXPORT int belle_sip_auth_helper_compute_ha2_for_algorithm(const char* method,const char* uri, char *ha2, size_t size, const char* algo);
+/*
  * compute response(NULL terminated)
  * res=MD5(ha1:nonce:ha2)
  * return 0 in case of success
  * */
 BELLESIP_EXPORT int belle_sip_auth_helper_compute_response(const char* ha1,const char* nonce, const char* ha2, char response[33]);
 
+/*
+ * compute response(NULL terminated)
+ * res=MD5(ha1:nonce:ha2) or SHA-256(ha1:nonce:ha2)
+ * return 0 in case of success
+ * */
+BELLESIP_EXPORT int belle_sip_auth_helper_compute_response_for_algorithm(const char* ha1,const char* nonce, const char* ha2, char *response, size_t size, const char* algo);
 /*
  * compute response(NULL terminated)
  * res=MD5(HA1:nonce:nonce_count:cnonce:qop:HA2)
@@ -115,7 +133,19 @@ BELLESIP_EXPORT int belle_sip_auth_helper_compute_response_qop_auth(	const char*
 													, const char* ha2
 													, char response[33]);
 
-
+/*
+ * compute response(NULL terminated)
+ * res=MD5(HA1:nonce:nonce_count:cnonce:qop:HA2) or SHA-256(HA1:nonce:nonce_count:cnonce:qop:HA2)
+ * return 0 in case of success
+ * */
+BELLESIP_EXPORT int belle_sip_auth_helper_compute_response_qop_auth_for_algorithm(const char* ha1
+                                                                  , const char* nonce
+                                                                  , unsigned int nonce_count
+                                                                  , const char* cnonce
+                                                                  , const char* qop
+                                                                  , const char* ha2
+                                                                  , char *response
+                                                                  , size_t size, const char* algo);
 /*TLS client certificate auth*/
 
 /**

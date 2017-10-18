@@ -1135,8 +1135,8 @@ static void  belle_sip_provider_update_or_create_auth_context(belle_sip_provider
 }
 
 
-int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_request_t* request, belle_sip_response_t *resp,
-					 belle_sip_uri_t *from_uri, belle_sip_list_t** auth_infos, const char* realm) {
+int belle_sip_provider_add_authorization_for_algorithm(belle_sip_provider_t *p, belle_sip_request_t* request, belle_sip_response_t *resp,
+					 belle_sip_uri_t *from_uri, belle_sip_list_t** auth_infos, const char* realm, const char* algorithm) {
 	belle_sip_header_call_id_t* call_id;
 	belle_sip_list_t* auth_context_iterator;
 	belle_sip_list_t* authenticate_lst;
@@ -1147,9 +1147,11 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_requ
 	belle_sip_auth_event_t* auth_event;
 	authorization_context_t* auth_context;
 	const char* ha1;
-	char computed_ha1[33];
+	char computed_ha1[65];
 	int result=0;
 	const char* request_method;
+    size_t size;
+    const char* algo;
 	/*check params*/
 	if (!p || !request) {
 		belle_sip_error("belle_sip_provider_add_authorization bad parameters");
@@ -1256,17 +1258,28 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_requ
 			belle_sip_header_authorization_set_nonce(authorization,auth_context->nonce);
 			belle_sip_header_authorization_set_qop(authorization,auth_context->qop);
 			belle_sip_header_authorization_set_opaque(authorization,auth_context->opaque);
-			belle_sip_header_authorization_set_algorithm(authorization,auth_context->algorithm);
+            if(algorithm==NULL){
+                belle_sip_header_authorization_set_algorithm(authorization,auth_context->algorithm);
+            }
+            else {
+                belle_sip_header_authorization_set_algorithm(authorization,algorithm);
+            }
+            
 			belle_sip_header_authorization_set_uri(authorization,(belle_sip_uri_t*)belle_sip_request_get_uri(request));
 			if (auth_context->qop){
 				++auth_context->nonce_count;
 				belle_sip_header_authorization_set_nonce_count(authorization,auth_context->nonce_count);
 			}
-
+            algo = belle_sip_header_authorization_get_algorithm(authorization);
+            size = belle_sip_auth_define_size(algo);
+            if (!size) {
+                belle_sip_error("Algorithm [%s] is not correct ", algo);
+                return -1;
+            }
 			if (auth_event->ha1) {
 				ha1=auth_event->ha1;
 			} else {
-				belle_sip_auth_helper_compute_ha1(auth_event->userid,auth_context->realm,auth_event->passwd, computed_ha1);
+				belle_sip_auth_helper_compute_ha1_for_algorithm(auth_event->userid,auth_context->realm,auth_event->passwd, computed_ha1, size, algo);
 				ha1=computed_ha1;
 			}
 			if (belle_sip_auth_helper_fill_authorization(authorization
@@ -1291,6 +1304,11 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_requ
 	return result;
 }
 
+int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_request_t* request, belle_sip_response_t *resp,
+                                         belle_sip_uri_t *from_uri, belle_sip_list_t** auth_infos, const char* realm) {
+    belle_sip_provider_add_authorization_for_algorithm(p,request,resp,from_uri,auth_infos,realm,NULL);
+    return 0;
+}
 void belle_sip_provider_set_recv_error(belle_sip_provider_t *prov, int recv_error) {
 	belle_sip_list_t *lps;
 	belle_sip_list_t *channels;

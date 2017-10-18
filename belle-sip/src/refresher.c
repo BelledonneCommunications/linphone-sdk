@@ -56,6 +56,7 @@ struct belle_sip_refresher {
 	timer_purpose_t timer_purpose;
 	unsigned char manual;
 	unsigned int publish_pending;
+    char* algo;
 };
 static void set_or_update_dialog(belle_sip_refresher_t* refresher, belle_sip_dialog_t* dialog);
 static int set_expires_from_trans(belle_sip_refresher_t* refresher);
@@ -481,7 +482,7 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher
 				belle_sip_header_cseq_set_seq_number(cseq,belle_sip_header_cseq_get_seq_number(cseq)+1);
 			}
 		} else {
-			request=belle_sip_client_transaction_create_authenticated_request(refresher->transaction,auth_infos,refresher->realm);
+			request=belle_sip_client_transaction_create_authenticated_request_for_algorithm(refresher->transaction,auth_infos,refresher->realm,refresher->algo);
 		}
 		if (requri){
 			/*case where we are redirected*/
@@ -523,7 +524,7 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher
 
 					}
 				}
-				belle_sip_provider_add_authorization(prov,request,old_response,NULL,auth_infos,refresher->realm);
+				belle_sip_provider_add_authorization_for_algorithm(prov,request,old_response,NULL,auth_infos,refresher->realm,refresher->algo);
 				break;
 			}
 			case BELLE_SIP_DIALOG_TERMINATED: {
@@ -816,6 +817,10 @@ const char* belle_sip_refresher_get_realm(const belle_sip_refresher_t* refresher
 	return refresher->realm;
 }
 
+const char* belle_sip_refresher_get_algorithm(const belle_sip_refresher_t* refresher){
+    return refresher->algo;
+}
+
 void belle_sip_refresher_set_realm(belle_sip_refresher_t* refresher, const char* realm) {
 	if (refresher->realm){
 		belle_sip_free(refresher->realm);
@@ -824,6 +829,16 @@ void belle_sip_refresher_set_realm(belle_sip_refresher_t* refresher, const char*
 	if (realm!=NULL){
 		refresher->realm=belle_sip_strdup(realm);
 	}
+}
+
+void belle_sip_refresher_set_algorithm(belle_sip_refresher_t* refresher, const char* algorithm) {
+    if (refresher->algo){
+        belle_sip_free(refresher->algo);
+        refresher->algo = NULL;
+    }
+    if (algorithm!=NULL){
+        refresher->algo=belle_sip_strdup(algorithm);
+    }
 }
 
 const belle_sip_client_transaction_t* belle_sip_refresher_get_transaction(const belle_sip_refresher_t* refresher) {

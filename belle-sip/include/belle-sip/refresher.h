@@ -80,9 +80,19 @@ BELLESIP_EXPORT void belle_sip_refresher_set_retry_after(belle_sip_refresher_t* 
 BELLESIP_EXPORT const char* belle_sip_refresher_get_realm(const belle_sip_refresher_t* refresher);
 
 /**
+ * returns  algorithm of the outbound proxy used for authentication, if any
+ */
+BELLESIP_EXPORT const char* belle_sip_refresher_get_algorithm(const belle_sip_refresher_t* refresher);
+
+/**
  * Realm of the outbound proxy used for authentication, if any
  */
 BELLESIP_EXPORT void belle_sip_refresher_set_realm(belle_sip_refresher_t* refresher, const char* realm);
+
+/**
+ * algorithm of the outbound proxy used for authentication, if any
+ */
+BELLESIP_EXPORT void belle_sip_refresher_set_algorithm(belle_sip_refresher_t* refresher, const char* algorithm);
 
 /**
  * get current client transaction

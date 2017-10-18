@@ -84,6 +84,17 @@ BELLESIP_EXPORT belle_sip_refresher_t* belle_sip_client_transaction_create_refre
 BELLESIP_EXPORT belle_sip_request_t* belle_sip_client_transaction_create_authenticated_request(belle_sip_client_transaction_t *t,belle_sip_list_t** auth_infos,const char* realm);
 
 /**
+ * Create an authenticated request based on an existing terminated transaction.
+ * <br>This function, update cseq, put route set and try to fill authorization headers. Initial request is not cloned.
+ * @param transaction . must be in state completed
+ * @param auth_infos  if auth infos cannot be added for an authenticate header,
+ * @param realm optional - If an outbound proxy realm is used, digestion authentication can be optimized.
+ * @param algo   for different algorithm MD5 or SHA-256
+ * a newly allocated belle_sip_auth_info_t object is added to this list. These object contains useful information like realm and username. May be NULL
+ * */
+BELLESIP_EXPORT belle_sip_request_t* belle_sip_client_transaction_create_authenticated_request_for_algorithm(belle_sip_client_transaction_t *t,belle_sip_list_t** auth_infos,const char* realm,const char* algo);
+
+/**
  * For transactions over unreliable transports, stop retransmissions. This avoids for example to keep sending INVITE retransmissions of a call that has just been terminated, while
  * keeping the transaction alive in order to eventually let a response being handled, so that the transaction can be cancelled properly.
 **/

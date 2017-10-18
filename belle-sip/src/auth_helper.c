@@ -74,7 +74,7 @@ belle_sip_header_proxy_authorization_t* belle_sip_auth_helper_create_proxy_autho
 }
 
 static void belle_sip_auth_choose_method(const char* algo,char *ask,uint8_t *out, size_t size){
-    if (!strcmp(algo,"MD5")){
+    if((algo==NULL)||(!strcmp(algo,"MD5"))){
         bctbx_md5((const unsigned char*)ask, strlen(ask), out);
     }
     else if(!strcmp(algo,"SHA-256")){
@@ -82,8 +82,22 @@ static void belle_sip_auth_choose_method(const char* algo,char *ask,uint8_t *out
     }
 }
 
+int belle_sip_auth_define_size(const char* algo) {
+    if((algo==NULL)||(!strcmp(algo,"MD5"))){
+        return 33;
+    }
+    else if(!strcmp(algo,"SHA-256")){
+        return 65;
+    }
+    else{
+        return 0;
+    }
+}
+
 int belle_sip_auth_helper_compute_ha1_for_algorithm(const char* userid,const char* realm,const char* password, char *ha1, size_t size, const char* algo) {
-    if (!(((size == 33) && (!strcmp(algo,"MD5")))|| ((size == 65) && (!strcmp(algo,"SHA-256"))))) {
+    size_t compared_size;
+    compared_size = belle_sip_auth_define_size(algo);
+    if (compared_size!= size) {
         belle_sip_error("belle_sip_fill_authorization_header, size of ha1 must be 33 when MD5 or 65 when SHA-256 ");
         return -1;
     }
@@ -119,7 +133,9 @@ int belle_sip_auth_helper_compute_ha1(const char* userid,const char* realm,const
 }
 
 int belle_sip_auth_helper_compute_ha2_for_algorithm(const char* method,const char* uri, char *ha2, size_t size, const char* algo) {
-    if (!(((size == 33) && (!strcmp(algo,"MD5")))|| ((size == 65) && (!strcmp(algo,"SHA-256"))))) {
+    size_t compared_size;
+    compared_size = belle_sip_auth_define_size(algo);
+    if (compared_size!= size) {
         belle_sip_error("belle_sip_fill_authorization_header, size of ha1 must be 33 when MD5 or 65 when SHA-256 ");
         return -1;
     }
@@ -144,7 +160,9 @@ int belle_sip_auth_helper_compute_ha2(const char* method,const char* uri, char h
 }
 
 int belle_sip_auth_helper_compute_response_for_algorithm(const char* ha1,const char* nonce, const char* ha2, char *response, size_t size, const char* algo) {
-    if (!(((size == 33) && (!strcmp(algo,"MD5")))|| ((size == 65) && (!strcmp(algo,"SHA-256"))))) {
+    size_t compared_size;
+    compared_size = belle_sip_auth_define_size(algo);
+    if (compared_size!= size) {
         belle_sip_error("belle_sip_fill_authorization_header, size of ha1 must be 33 when MD5 or 65 when SHA-256 ");
         return -1;
     }
@@ -177,7 +195,9 @@ int belle_sip_auth_helper_compute_response_qop_auth_for_algorithm(const char* ha
 													, const char* ha2
                                                     , char *response
                                                     , size_t size, const char* algo) {
-    if (!(((size == 33) && (!strcmp(algo,"MD5")))|| ((size == 65) && (!strcmp(algo,"SHA-256"))))) {
+    size_t compared_size;
+    compared_size = belle_sip_auth_define_size(algo);
+    if (compared_size!= size) {
         belle_sip_error("belle_sip_fill_authorization_header, size of ha1 must be 33 when MD5 or 65 when SHA-256 ");
         return -1;
     }
@@ -216,14 +236,9 @@ int belle_sip_auth_helper_fill_authorization(belle_sip_header_authorization_t* a
 											,const char* ha1) {
     size_t size;
     const char *algo = belle_sip_header_authorization_get_algorithm(authorization);
-    if (!strcmp(algo,"MD5")){
-        size = 33;
-    }
-    else if(!strcmp(algo,"SHA-256")){
-        size = 65;
-    }
-    else{
-        belle_sip_error("belle_sip_fill_authorization_header, algorithm is neither MD5 nor SHA-256 ");
+    size = belle_sip_auth_define_size(algo);
+    if(!size) {
+        belle_sip_error("Algorithm [%s] is not correct ", algo);
         return -1;
     }
 

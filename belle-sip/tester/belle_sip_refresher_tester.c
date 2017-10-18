@@ -22,13 +22,16 @@
 
 #ifndef _MSC_VER
 #include <sys/time.h>
+#include "belle-sip/headers.h"
+#include "belle-sip/parameters.h"
+#include <stdlib.h>
 #endif
 
 
 #define USERNAME "toto"
 #define SIPDOMAIN "sip.linphone.org"
 #define PASSWD "secret"
-
+#define ALGOM "MD5"
 
 static char publish_body[]=
 	"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
@@ -83,6 +86,7 @@ typedef struct endpoint {
 	const char* realm;
 	unsigned int max_nc_count;
 	bool_t bad_next_nonce;
+    const char* algo;
 } endpoint_t;
 
 
@@ -112,11 +116,13 @@ static void compute_response(const char* username
 									,const char* nonce
 									,const char* method
 									,const char* uri
-									,char response[33] ) {
-	char ha1[33],ha2[33];
-	belle_sip_auth_helper_compute_ha1(username,realm,passwd,ha1);
-	belle_sip_auth_helper_compute_ha2(method,uri,ha2);
-	belle_sip_auth_helper_compute_response(ha1,nonce,ha2,response);
+									,char* response
+                                    ,size_t size
+                                    ,const char* algo) {
+	char ha1[size],ha2[size];
+	belle_sip_auth_helper_compute_ha1_for_algorithm(username,realm,passwd,ha1,size,algo);
+	belle_sip_auth_helper_compute_ha2_for_algorithm(method,uri,ha2,size,algo);
+	belle_sip_auth_helper_compute_response_for_algorithm(ha1,nonce,ha2,response,size,algo);
 }
 
 static void compute_response_auth_qop(const char* username
@@ -128,11 +134,13 @@ static void compute_response_auth_qop(const char* username
 										,const char* qop
 										,const char* method
 										,const char* uri
-										,char response[33] ) {
-	char ha1[33],ha2[33];
-	belle_sip_auth_helper_compute_ha1(username,realm,passwd,ha1);
-	belle_sip_auth_helper_compute_ha2(method,uri,ha2);
-	belle_sip_auth_helper_compute_response_qop_auth(ha1, nonce,nonce_count, cnonce,qop,ha2,response);
+                                        ,char* response
+                                        ,size_t size
+                                        ,const char* algo) {
+    char ha1[size],ha2[size];
+	belle_sip_auth_helper_compute_ha1_for_algorithm(username,realm,passwd,ha1,size,algo);
+	belle_sip_auth_helper_compute_ha2_for_algorithm(method,uri,ha2,size,algo);
+	belle_sip_auth_helper_compute_response_qop_auth_for_algorithm(ha1, nonce,nonce_count, cnonce,qop,ha2,response,size,algo);
 }
 
 #define MAX_NC_COUNT 5
@@ -146,16 +154,33 @@ static void server_process_request_event(void *obj, const belle_sip_request_even
 	belle_sip_header_expires_t* expires;
 	belle_sip_header_authorization_t* authorization;
 	belle_sip_header_via_t* via;
-	const char* raw_authenticate_digest = "WWW-Authenticate: Digest "
-			"algorithm=MD5, realm=\"" SIPDOMAIN "\", opaque=\"1bc7f9097684320\"";
-	const char* raw_proxy_authenticate_digest = "Proxy-Authenticate: Digest "
-	"algorithm=MD5, realm=\"" SIPDOMAIN "\", opaque=\"1bc7f9097684320\"";
-	
+    const char* raw_authenticate_digest;
+    const char* raw_proxy_authenticate_digest;
+    if((!strcmp(endpoint->algo,"MD5"))||(!strcmp(endpoint->algo,"MD_SHA"))){
+        raw_authenticate_digest = "WWW-Authenticate: Digest "
+        "algorithm=MD5, realm=\"" SIPDOMAIN "\", opaque=\"1bc7f9097684320\"";
+        raw_proxy_authenticate_digest = "Proxy-Authenticate: Digest "
+        "algorithm=MD5, realm=\"" SIPDOMAIN "\", opaque=\"1bc7f9097684320\"";
+    }
+    else if(!strcmp(endpoint->algo,"SHA-256")){
+        raw_authenticate_digest = "WWW-Authenticate: Digest "
+        "algorithm=SHA-256, realm=\"" SIPDOMAIN "\", opaque=\"1bc7f9097684320\"";
+        raw_proxy_authenticate_digest = "Proxy-Authenticate: Digest "
+        "algorithm=SHA-256, realm=\"" SIPDOMAIN "\", opaque=\"1bc7f9097684320\"";
+    }
+    else{
+        belle_sip_error("Algorithm of server must be MD5, SHA-256 or MD_SHA, can not be %s", endpoint->algo);
+        return;
+    }
+
 	belle_sip_header_www_authenticate_t* www_authenticate=NULL;
+    belle_sip_header_www_authenticate_t* two_www_authenticate=NULL;
 	const char* auth_uri;
 	const char* qop;
 	unsigned char auth_ok=0;
-	char local_resp[33];
+    size_t size;
+    const char* algo;
+    const char* algo_ref="SHA-256";
 
 	belle_sip_message("caller_process_request_event received [%s] message",belle_sip_request_get_method(belle_sip_request_event_get_request(event)));
 
@@ -176,7 +201,13 @@ static void server_process_request_event(void *obj, const belle_sip_request_even
 			} else {
 				BC_ASSERT_TRUE(BELLE_SIP_OBJECT_IS_INSTANCE_OF(authorization, belle_sip_header_proxy_authorization_t));
 			}
-				
+            algo = belle_sip_header_authorization_get_algorithm(authorization);
+            size = belle_sip_auth_define_size(algo);
+            if (!size) {
+                belle_sip_error("Algorithm [%s] is not correct ", algo);
+                return;
+            }
+            char local_resp[size];
 			if (qop && strcmp(qop,"auth")==0) {
 				compute_response_auth_qop(	belle_sip_header_authorization_get_username(authorization)
 											,belle_sip_header_authorization_get_realm(authorization)
@@ -187,7 +218,9 @@ static void server_process_request_event(void *obj, const belle_sip_request_even
 											,belle_sip_header_authorization_get_qop(authorization)
 											,belle_sip_request_get_method(req)
 											,auth_uri=belle_sip_uri_to_string(belle_sip_header_authorization_get_uri(authorization))
-											,local_resp);
+											,local_resp
+                                            ,size
+                                            ,algo);
 			} else {
 				/*digest*/
 				compute_response(belle_sip_header_authorization_get_username(authorization)
@@ -196,7 +229,9 @@ static void server_process_request_event(void *obj, const belle_sip_request_even
 						,endpoint->nonce
 						,belle_sip_request_get_method(req)
 						,auth_uri=belle_sip_uri_to_string(belle_sip_header_authorization_get_uri(authorization))
-						,local_resp);
+						,local_resp
+                        ,size
+                        ,algo);
 
 			}
 			belle_sip_free((void*)auth_uri);
@@ -285,8 +320,14 @@ static void server_process_request_event(void *obj, const belle_sip_request_even
 			response_code = 407;
 		}
 		resp=belle_sip_response_create_from_request(belle_sip_request_event_get_request(event),response_code);
-		if (www_authenticate)
-			belle_sip_message_add_header(BELLE_SIP_MESSAGE(resp),BELLE_SIP_HEADER(www_authenticate));
+        if (www_authenticate){
+            if (!strcmp(endpoint->algo,"MD_SHA")){
+                two_www_authenticate = BELLE_SIP_HEADER_WWW_AUTHENTICATE(belle_sip_object_clone(BELLE_SIP_OBJECT(www_authenticate)));
+               belle_sip_header_www_authenticate_set_algorithm(two_www_authenticate, algo_ref);
+               belle_sip_message_add_header(BELLE_SIP_MESSAGE(resp),BELLE_SIP_HEADER(two_www_authenticate));
+            }
+            belle_sip_message_add_header(BELLE_SIP_MESSAGE(resp),BELLE_SIP_HEADER(www_authenticate));
+        }
 	}
 	if (endpoint->received) {
 		via=belle_sip_message_get_header_by_type(req,belle_sip_header_via_t);
@@ -430,8 +471,8 @@ static belle_sip_refresher_t*  refresher_base_with_body2( endpoint_t* client
 	uint64_t begin;
 	uint64_t end;
 	if (client->expire_in_contact) belle_sip_header_contact_set_expires(contact,1);
-
-
+    
+    
 	dest_uri=(belle_sip_uri_t*)belle_sip_object_clone((belle_sip_object_t*)belle_sip_listening_point_get_uri(server->lp));
 	if (client->connection_family==AF_INET6)
 		belle_sip_uri_set_host(dest_uri,"::1");
@@ -462,7 +503,7 @@ static belle_sip_refresher_t*  refresher_base_with_body2( endpoint_t* client
 	}
 	if (client->realm
 		&&
-		belle_sip_provider_add_authorization(client->provider, req, NULL, NULL,NULL, client->realm)) {
+		belle_sip_provider_add_authorization_for_algorithm(client->provider, req, NULL, NULL,NULL, client->realm, client->algo)) {
 		
 	}
 	trans=belle_sip_provider_create_client_transaction(client->provider,req);
@@ -473,6 +514,8 @@ static belle_sip_refresher_t*  refresher_base_with_body2( endpoint_t* client
 		client->refresher = refresher = belle_sip_client_transaction_create_refresher(trans);
 		if (client->realm)
 			belle_sip_refresher_set_realm(client->refresher, client->realm);
+        if (client->algo)
+            belle_sip_refresher_set_algorithm(client->refresher, client->algo);
 	} else {
 		if (server->auth == none) {
 			BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.twoHundredOk,1,1000));
@@ -483,7 +526,7 @@ static belle_sip_refresher_t*  refresher_base_with_body2( endpoint_t* client
 				BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.fourHundredSeven,1,1000));
 			}
 			/*update cseq*/
-			req=belle_sip_client_transaction_create_authenticated_request(trans,NULL,NULL);
+			req=belle_sip_client_transaction_create_authenticated_request_for_algorithm(trans,NULL,NULL,client->algo);
 			belle_sip_object_unref(trans);
 			trans=belle_sip_provider_create_client_transaction(client->provider,req);
 			belle_sip_object_ref(trans);
@@ -491,11 +534,12 @@ static belle_sip_refresher_t*  refresher_base_with_body2( endpoint_t* client
 			BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.twoHundredOk,1,1000));
 		}
 		client->refresher= refresher = belle_sip_client_transaction_create_refresher(trans);
+        belle_sip_refresher_set_algorithm(client->refresher, client->algo);
 	}
 	if (BC_ASSERT_PTR_NOT_NULL(refresher)) {
 		belle_sip_object_unref(trans);
 		belle_sip_refresher_set_listener(refresher,belle_sip_refresher_listener,client);
-
+        
 		begin = belle_sip_time_ms();
 		BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.refreshOk,client->register_count+(client->early_refresher?1:0),client->register_count*1000 + 1000));
 		end = belle_sip_time_ms();
@@ -510,6 +554,7 @@ static void refresher_base_with_body(endpoint_t* client
 										 , const char* method
 										 , belle_sip_header_content_type_t* content_type
 										 ,const char* body){
+    
 	 belle_sip_refresher_t*  refresher = refresher_base_with_body2(client, server, method, content_type, body,1);
 	/*unregister twice to make sure refresh operation can be safely cascaded*/
 	belle_sip_refresher_refresh(refresher,0);
@@ -517,8 +562,7 @@ static void refresher_base_with_body(endpoint_t* client
 	BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.refreshOk,client->register_count+1,1000));
 	BC_ASSERT_EQUAL(client->stat.refreshOk,client->register_count+1,int,"%d");
 	belle_sip_refresher_stop(refresher);
-	belle_sip_object_unref(refresher);
-
+    belle_sip_object_unref(refresher);
 	
 
 }
@@ -533,7 +577,9 @@ static void refresher_base_with_param_and_body(const char* method
 												, auth_mode_t auth_mode
 												, int early_refresher
 												, belle_sip_header_content_type_t* content_type
-												,const char* body){
+												,const char* body
+                                                ,const char* client_algo
+                                                ,const char* server_algo){
 	belle_sip_listener_callbacks_t client_callbacks;
 	belle_sip_listener_callbacks_t server_callbacks;
 	endpoint_t* client,*server;
@@ -546,17 +592,19 @@ static void refresher_base_with_param_and_body(const char* method
 	server = create_udp_endpoint(6788,&server_callbacks);
 	server->expire_in_contact=client->expire_in_contact=expire_in_contact;
 	server->auth=auth_mode;
+    server->algo=server_algo;
+    client->algo=client_algo;
 	client->early_refresher=early_refresher;
 	refresher_base_with_body(client,server,method,content_type,body);
 	destroy_endpoint(client);
 	destroy_endpoint(server);
 }
-static void refresher_base_with_param(const char* method, unsigned char expire_in_contact,auth_mode_t auth_mode) {
-	refresher_base_with_param_and_body(method,expire_in_contact,auth_mode,FALSE,NULL,NULL);
+static void refresher_base_with_param(const char* method, unsigned char expire_in_contact,auth_mode_t auth_mode,const char* client_algo,const char* server_algo) {
+	refresher_base_with_param_and_body(method,expire_in_contact,auth_mode,FALSE,NULL,NULL,client_algo,server_algo);
 
 }
 static void register_test_with_param(unsigned char expire_in_contact,auth_mode_t auth_mode) {
-	refresher_base_with_param("REGISTER",expire_in_contact,auth_mode);
+	refresher_base_with_param("REGISTER",expire_in_contact,auth_mode,"MD5","MD5");
 }
 static char *list =	"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
 						"<resource-lists xmlns=\"urn:ietf:params:xml:ns:resource-lists\"\n"
@@ -928,12 +976,12 @@ static void register_tcp_test_ipv6_random_port(void){
 
 static void simple_publish(void) {
 	belle_sip_header_content_type_t* content_type=belle_sip_header_content_type_create("application","pidf+xml");
-	refresher_base_with_param_and_body("PUBLISH",FALSE,TRUE,FALSE, content_type,publish_body);
+	refresher_base_with_param_and_body("PUBLISH",FALSE,TRUE,FALSE, content_type,publish_body,"MD5","MD5");
 
 }
 static void simple_publish_with_early_refresher(void) {
 	belle_sip_header_content_type_t* content_type=belle_sip_header_content_type_create("application","pidf+xml");
-	refresher_base_with_param_and_body("PUBLISH",FALSE,TRUE,TRUE, content_type,publish_body);
+	refresher_base_with_param_and_body("PUBLISH",FALSE,TRUE,TRUE, content_type,publish_body,"MD5","MD5");
 
 }
 
