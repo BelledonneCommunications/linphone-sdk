@@ -1676,3 +1676,10 @@ uint64_t bctbx_str_to_uint64(const uint8_t input_string[17]) {
 		| (((uint64_t)bctbx_char_to_byte(input_string[14]))<<4)
 		| (((uint64_t)bctbx_char_to_byte(input_string[15])));
 }
+
+#if defined(__ANDROID__)
+int mblen(const char* s, size_t n) {
+  mbstate_t state = {};
+  return (int)mbrlen(s, n, &state);
+}
+#endif
