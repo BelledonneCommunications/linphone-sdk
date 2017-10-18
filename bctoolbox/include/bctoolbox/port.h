@@ -36,6 +36,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
+#include <wchar.h>
 
 #ifdef __linux
 #include <stdint.h>
