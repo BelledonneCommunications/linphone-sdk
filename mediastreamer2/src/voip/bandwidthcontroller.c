@@ -80,9 +80,7 @@ static void on_congestion_state_changed(const OrtpEventData *evd, void *user_poi
 	MSBandwidthController *obj = ms->bandwidth_controller;
 	float controlled_stream_bandwidth_requested;
 	RtpSession *session;
-#if !defined(_WIN32) && !defined(_WIN32_WCE)
 	OrtpVideoBandwidthEstimatorParams video_bandwidth_estimator_params = {0};
-#endif
 	
 	if (ms != obj->controlled_stream){
 		ms_message("MSBandwidthController: congestion event (%i) received on stream [%p][%s], not the controlled one.", (int)evd->info.congestion_detected,
@@ -102,9 +100,7 @@ static void on_congestion_state_changed(const OrtpEventData *evd, void *user_poi
 			ms_message("MSBandwidthController: congestion detected - sending tmmbr for stream [%p][%s] for target [%f] kbit/s",
 				   obj->controlled_stream, ms_format_type_to_string(obj->controlled_stream->type), controlled_stream_bandwidth_requested*1e-3);
 		}
-#if !defined(_WIN32) && !defined(_WIN32_WCE)
 		video_bandwidth_estimator_params.enabled = FALSE;
-#endif
 	}else{
 		/*now that the congestion has ended, we can submit a new TMMBR to request a bandwidth closer to the maximum available*/
 		controlled_stream_bandwidth_requested = compute_target_bandwith_for_controlled_stream(obj, 0.9f);
@@ -115,15 +111,11 @@ static void on_congestion_state_changed(const OrtpEventData *evd, void *user_poi
 		}
 		/*we shall reset the jitter buffers, so that they recover faster their diverged states*/
 		resync_jitter_buffers(obj);
-#if !defined(_WIN32) && !defined(_WIN32_WCE)
 		video_bandwidth_estimator_params.enabled = TRUE;
-#endif
 	}
 	rtp_session_send_rtcp_fb_tmmbr(session, (uint64_t)controlled_stream_bandwidth_requested);
 	obj->remote_video_bandwidth_available_estimated = 0;
-#if !defined(_WIN32) && !defined(_WIN32_WCE)
 	rtp_session_enable_video_bandwidth_estimator(obj->controlled_stream->sessions.rtp_session, &video_bandwidth_estimator_params);
-#endif
 }
 
 static void on_video_bandwidth_estimation_available(const OrtpEventData *evd, void *user_pointer) {
@@ -156,9 +148,7 @@ static void on_video_bandwidth_estimation_available(const OrtpEventData *evd, vo
 static void elect_controlled_stream(MSBandwidthController *obj){
 	bctbx_list_t *elem;
 	bool_t done = FALSE;
-#if !defined(_WIN32) && !defined(_WIN32_WCE)
 	OrtpVideoBandwidthEstimatorParams params = {0};
-#endif
 	MediaStream *old_controlled_stream = obj->controlled_stream;
 	
 	obj->controlled_stream = NULL;
@@ -171,12 +161,10 @@ static void elect_controlled_stream(MSBandwidthController *obj){
 			case MSVideo:
 				obj->controlled_stream = ms;
 				done = TRUE;
-#if !defined(_WIN32) && !defined(_WIN32_WCE)
 				ortp_ev_dispatcher_connect(media_stream_get_event_dispatcher(ms), ORTP_EVENT_NEW_VIDEO_BANDWIDTH_ESTIMATION_AVAILABLE, 0, 
 											on_video_bandwidth_estimation_available, ms);
 				params.enabled = TRUE;
 				rtp_session_enable_video_bandwidth_estimator(ms->sessions.rtp_session, &params);
-#endif
 			break;
 			case MSText:
 			break;
@@ -205,12 +193,10 @@ void ms_bandwidth_controller_remove_stream(MSBandwidthController *obj, struct _M
 	ortp_ev_dispatcher_disconnect(media_stream_get_event_dispatcher(stream), ORTP_EVENT_CONGESTION_STATE_CHANGED, 0, 
 		on_congestion_state_changed);
 	rtp_session_enable_congestion_detection(stream->sessions.rtp_session, FALSE);
-#if !defined(_WIN32) && !defined(_WIN32_WCE)
 	ortp_ev_dispatcher_disconnect(media_stream_get_event_dispatcher(stream), ORTP_EVENT_NEW_VIDEO_BANDWIDTH_ESTIMATION_AVAILABLE, 0, 
 		on_video_bandwidth_estimation_available);
 	params.enabled = FALSE;
 	rtp_session_enable_video_bandwidth_estimator(stream->sessions.rtp_session, &params);
-#endif
 	stream->bandwidth_controller = NULL;
 	obj->streams = bctbx_list_remove(obj->streams, stream);
 	elect_controlled_stream(obj);
