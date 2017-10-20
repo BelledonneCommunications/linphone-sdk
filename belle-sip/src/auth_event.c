@@ -29,6 +29,7 @@ GET_SET_STRING(belle_sip_auth_event,domain)
 GET_SET_STRING(belle_sip_auth_event,passwd)
 GET_SET_STRING(belle_sip_auth_event,ha1)
 GET_SET_STRING(belle_sip_auth_event,distinguished_name)
+GET_SET_STRING(belle_sip_auth_event, algorithm)
 
 belle_sip_auth_event_t* belle_sip_auth_event_create(belle_sip_object_t *source, const char* realm, const belle_sip_uri_t *from_uri) {
 	belle_sip_auth_event_t* result = belle_sip_new0(belle_sip_auth_event_t);
@@ -50,6 +51,7 @@ void belle_sip_auth_event_destroy(belle_sip_auth_event_t* event) {
 	DESTROY_STRING(event,passwd);
 	DESTROY_STRING(event,ha1);
 	DESTROY_STRING(event,distinguished_name);
+    DESTROY_STRING(event,algorithm);
 	if (event->cert) belle_sip_object_unref(event->cert);
 	if (event->key) belle_sip_object_unref(event->key);
 

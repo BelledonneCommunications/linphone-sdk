@@ -40,6 +40,8 @@ typedef struct _bctbx_list belle_sip_list_t;
 #define belle_sip_list_find bctbx_list_find
 #define belle_sip_list_free bctbx_list_free
 #define belle_sip_list_free_with_data bctbx_list_free_with_data
+#define belle_sip_list_delete_custom bctbx_list_delete_custom
+#define belle_sip_list_first_elem bctbx_list_first_elem
 
 #define belle_sip_compare_func bctbx_compare_func
 #define belle_sip_list_find_custom bctbx_list_find_custom

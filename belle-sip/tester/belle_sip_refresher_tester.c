@@ -156,7 +156,7 @@ static void server_process_request_event(void *obj, const belle_sip_request_even
 	belle_sip_header_via_t* via;
     const char* raw_authenticate_digest;
     const char* raw_proxy_authenticate_digest;
-    if((!strcmp(endpoint->algo,"MD5"))||(!strcmp(endpoint->algo,"MD_SHA"))){
+    if((endpoint->algo==NULL)||(!strcmp(endpoint->algo,"MD5"))||(!strcmp(endpoint->algo,"MD_SHA"))){
         raw_authenticate_digest = "WWW-Authenticate: Digest "
         "algorithm=MD5, realm=\"" SIPDOMAIN "\", opaque=\"1bc7f9097684320\"";
         raw_proxy_authenticate_digest = "Proxy-Authenticate: Digest "
@@ -321,7 +321,7 @@ static void server_process_request_event(void *obj, const belle_sip_request_even
 		}
 		resp=belle_sip_response_create_from_request(belle_sip_request_event_get_request(event),response_code);
         if (www_authenticate){
-            if (!strcmp(endpoint->algo,"MD_SHA")){
+            if ((endpoint->algo!=NULL)&&(!strcmp(endpoint->algo,"MD_SHA"))){
                 two_www_authenticate = BELLE_SIP_HEADER_WWW_AUTHENTICATE(belle_sip_object_clone(BELLE_SIP_OBJECT(www_authenticate)));
                belle_sip_header_www_authenticate_set_algorithm(two_www_authenticate, algo_ref);
                belle_sip_message_add_header(BELLE_SIP_MESSAGE(resp),BELLE_SIP_HEADER(two_www_authenticate));
@@ -386,11 +386,12 @@ static void client_process_response_event(void *obj, const belle_sip_response_ev
 //}
 
 static void client_process_auth_requested(void *obj, belle_sip_auth_event_t *event){
-	BELLESIP_UNUSED(obj);
+    endpoint_t* endpoint = (endpoint_t*)obj;
 	belle_sip_message("process_auth_requested requested for [%s@%s]"
 			,belle_sip_auth_event_get_username(event)
 			,belle_sip_auth_event_get_realm(event));
-	belle_sip_auth_event_set_passwd(event,PASSWD);
+    if ((endpoint->algo==NULL)||((event->algorithm)&&(strcmp(endpoint->algo,event->algorithm))) == 0)
+        belle_sip_auth_event_set_passwd(event,PASSWD);
 }
 
 static void belle_sip_refresher_listener (belle_sip_refresher_t* refresher
@@ -503,7 +504,7 @@ static belle_sip_refresher_t*  refresher_base_with_body2( endpoint_t* client
 	}
 	if (client->realm
 		&&
-		belle_sip_provider_add_authorization_for_algorithm(client->provider, req, NULL, NULL,NULL, client->realm, client->algo)) {
+		belle_sip_provider_add_authorization(client->provider, req, NULL, NULL,NULL, client->realm)) {
 		
 	}
 	trans=belle_sip_provider_create_client_transaction(client->provider,req);
@@ -514,8 +515,6 @@ static belle_sip_refresher_t*  refresher_base_with_body2( endpoint_t* client
 		client->refresher = refresher = belle_sip_client_transaction_create_refresher(trans);
 		if (client->realm)
 			belle_sip_refresher_set_realm(client->refresher, client->realm);
-        if (client->algo)
-            belle_sip_refresher_set_algorithm(client->refresher, client->algo);
 	} else {
 		if (server->auth == none) {
 			BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.twoHundredOk,1,1000));
@@ -526,15 +525,14 @@ static belle_sip_refresher_t*  refresher_base_with_body2( endpoint_t* client
 				BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.fourHundredSeven,1,1000));
 			}
 			/*update cseq*/
-			req=belle_sip_client_transaction_create_authenticated_request_for_algorithm(trans,NULL,NULL,client->algo);
+			req=belle_sip_client_transaction_create_authenticated_request(trans,NULL,NULL);
 			belle_sip_object_unref(trans);
 			trans=belle_sip_provider_create_client_transaction(client->provider,req);
 			belle_sip_object_ref(trans);
 			belle_sip_client_transaction_send_request(trans);
 			BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.twoHundredOk,1,1000));
 		}
-		client->refresher= refresher = belle_sip_client_transaction_create_refresher(trans);
-        belle_sip_refresher_set_algorithm(client->refresher, client->algo);
+		client->refresher= refresher = belle_sip_client_transaction_create_refresher(trans);       
 	}
 	if (BC_ASSERT_PTR_NOT_NULL(refresher)) {
 		belle_sip_object_unref(trans);
@@ -603,9 +601,15 @@ static void refresher_base_with_param(const char* method, unsigned char expire_i
 	refresher_base_with_param_and_body(method,expire_in_contact,auth_mode,FALSE,NULL,NULL,client_algo,server_algo);
 
 }
-static void register_test_with_param(unsigned char expire_in_contact,auth_mode_t auth_mode) {
-	refresher_base_with_param("REGISTER",expire_in_contact,auth_mode,"MD5","MD5");
+
+static void register_test_with_param_for_algorithm(unsigned char expire_in_contact,auth_mode_t auth_mode,const char* client_algo,const char* server_algo) {
+    refresher_base_with_param("REGISTER",expire_in_contact,auth_mode,client_algo,server_algo);
 }
+
+static void register_test_with_param(unsigned char expire_in_contact,auth_mode_t auth_mode) {
+    register_test_with_param_for_algorithm(expire_in_contact,auth_mode,NULL,NULL);
+}
+
 static char *list =	"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
 						"<resource-lists xmlns=\"urn:ietf:params:xml:ns:resource-lists\"\n"
 						"xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n"
@@ -774,6 +778,18 @@ static void register_expires_header_digest(void) {
 
 static void register_expires_in_contact_header_digest_auth(void) {
 	register_test_with_param(1,digest_auth);
+}
+
+static void register_expires_in_contact_header_digest_auth_sha256(void) {
+    register_test_with_param_for_algorithm(1,digest_auth,"SHA-256","SHA-256");
+}
+
+static void register_expires_in_contact_header_digest_md_sha(void) {
+    register_test_with_param_for_algorithm(1,digest_auth,"MD5","MD_SHA");
+}
+
+static void register_expires_in_contact_header_digest_md_sha256(void) {
+    register_test_with_param_for_algorithm(1,digest_auth,"SHA-256","MD_SHA");
 }
 
 static void register_with_failure(void) {
@@ -1063,6 +1079,9 @@ test_t refresher_tests[] = {
 	TEST_NO_TAG("REGISTER Expires in Contact", register_expires_in_contact),
 	TEST_NO_TAG("REGISTER Expires header digest", register_expires_header_digest),
 	TEST_NO_TAG("REGISTER Expires in Contact digest auth", register_expires_in_contact_header_digest_auth),
+    TEST_NO_TAG("REGISTER Expires in Contact digest auth SHA-256", register_expires_in_contact_header_digest_auth_sha256),
+    TEST_NO_TAG("REGISTER Expires in Contact digest auth MD_SHA", register_expires_in_contact_header_digest_md_sha),
+    TEST_NO_TAG("REGISTER Expires in Contact digest auth MD_SHA-256", register_expires_in_contact_header_digest_md_sha256),
 	TEST_NO_TAG("REGISTER with failure", register_with_failure),
 	TEST_NO_TAG("REGISTER with early refresher",register_early_refresher),
 	TEST_NO_TAG("SUBSCRIBE", subscribe_test),

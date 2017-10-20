@@ -663,7 +663,7 @@ belle_sip_refresher_t* belle_sip_client_transaction_create_refresher(belle_sip_c
 	return belle_sip_refresher_new(t);
 }
 
-belle_sip_request_t* belle_sip_client_transaction_create_authenticated_request_for_algorithm(belle_sip_client_transaction_t *t,belle_sip_list_t** auth_infos,const char* realm, const char* algo) {
+belle_sip_request_t* belle_sip_client_transaction_create_authenticated_request(belle_sip_client_transaction_t *t,belle_sip_list_t** auth_infos,const char* realm) {
 	belle_sip_request_t* initial_request=belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(t));
 	belle_sip_request_t* req=belle_sip_request_clone_with_body(initial_request);
 	belle_sip_header_cseq_t* cseq=belle_sip_message_get_header_by_type(req,belle_sip_header_cseq_t);
@@ -681,13 +681,10 @@ belle_sip_request_t* belle_sip_client_transaction_create_authenticated_request_f
 	belle_sip_message_remove_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_PROXY_AUTHORIZATION);
 
 	/*put auth header*/
-	belle_sip_provider_add_authorization_for_algorithm(t->base.provider,req,t->base.last_response,NULL,auth_infos,realm,algo);
+	belle_sip_provider_add_authorization(t->base.provider,req,t->base.last_response,NULL,auth_infos,realm);
 	return req;
 }
 
-belle_sip_request_t* belle_sip_client_transaction_create_authenticated_request(belle_sip_client_transaction_t *t,belle_sip_list_t** auth_infos,const char* realm){
-    return belle_sip_client_transaction_create_authenticated_request_for_algorithm(t,auth_infos,realm,NULL);
-}
 /*
  rfc 3265
  3.3.4. Dialog creation and termination
