@@ -33,20 +33,23 @@ set(EP_flexisip_CROSS_COMPILATION_OPTIONS
 )
 set(EP_flexisip_CONFIG_H_FILE "flexisip.spec")
 set(EP_flexisip_SPEC_FILE "flexisip.spec")
-set(EP_flexisip_DEPENDENCIES EP_sofiasip )
+lcb_dependencies("sofiasip")
+if (ENABLE_CONFERENCE)
+	lcb_dependencies("linphone" "belr")
+endif()
 if (ENABLE_PRESENCE)
-	list(APPEND EP_flexisip_DEPENDENCIES EP_bellesip)
+	lcb_dependencies("bellesip")
 endif()
 if(ENABLE_SOCI_BUILD)
-	list(APPEND EP_flexisip_DEPENDENCIES EP_soci)
+	lcb_dependencies("soci")
 endif()
 if (ENABLE_TRANSCODER)
-	list(APPEND EP_flexisip_DEPENDENCIES EP_ms2)
+	lcb_dependencies("ms2")
 else()
-	list(APPEND EP_flexisip_DEPENDENCIES EP_ortp)
+	lcb_dependencies("ortp")
 endif()
 
-lcb_builder_cmake_options("flexisip" 
+lcb_builder_cmake_options(flexisip
 	"-DENABLE_TRANSCODER=${ENABLE_TRANSCODER}"
 	"-DENABLE_ODB=${ENABLE_ODB}"
 	"-DENABLE_ODBC=${ENABLE_ODBC}"

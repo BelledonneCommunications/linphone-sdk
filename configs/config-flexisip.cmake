@@ -78,8 +78,15 @@ if(NOT CMAKE_INSTALL_RPATH)
 endif()
 message("cmake install rpath: ${CMAKE_INSTALL_RPATH}")
 
+# Include builders
+include(builders/CMakeLists.txt)
+
 # bctoolbox
 lcb_builder_cmake_options(bctoolbox "-DENABLE_TESTS_COMPONENT=NO")
 
-# Include builders
-include(builders/CMakeLists.txt)
+if(ENABLE_CONFERENCE)
+	lcb_builder_cmake_options(linphone
+		"-DENABLE_CXX_WRAPPER=YES"
+		"-DENABLE_SOCI=YES"
+	)
+endif()
