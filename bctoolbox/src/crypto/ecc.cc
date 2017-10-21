@@ -375,7 +375,7 @@ void bctbx_EDDSA_sign(bctbx_EDDSAContext_t *context, const uint8_t *message, con
  * @param[in]		publicKey	The public to store in context
  * @param[in]		publicKeyLength	The length of previous buffer
  */
-void bctbx_EDDSA_setPublicKey(bctbx_EDDSAContext_t *context, uint8_t *publicKey, size_t publicKeyLength) {
+void bctbx_EDDSA_setPublicKey(bctbx_EDDSAContext_t *context, const uint8_t *publicKey, size_t publicKeyLength) {
 	/* check we have a context and it was set to get a public key matching the length of the given one */
 	if (context != NULL) {
 		if (context->pointCoordinateLength == publicKeyLength) {
@@ -395,7 +395,7 @@ void bctbx_EDDSA_setPublicKey(bctbx_EDDSAContext_t *context, uint8_t *publicKey,
  * @param[in]		secretKey	The secret to store in context
  * @param[in]		secretKeyLength	The length of previous buffer
  */
-void bctbx_EDDSA_setSecretKey(bctbx_EDDSAContext_t *context, uint8_t *secretKey, size_t secretKeyLength) {
+void bctbx_EDDSA_setSecretKey(bctbx_EDDSAContext_t *context, const uint8_t *secretKey, size_t secretKeyLength) {
 	/* check we have a context and it was set to get a public key matching the length of the given one */
 	if (context != NULL) {
 		if (context->secretLength == secretKeyLength) {
@@ -422,7 +422,7 @@ void bctbx_EDDSA_setSecretKey(bctbx_EDDSAContext_t *context, uint8_t *secretKey,
  *
  * @return BCTBX_VERIFY_SUCCESS or BCTBX_VERIFY_FAILED
  */
-int bctbx_EDDSA_verify(bctbx_EDDSAContext_t *context, const uint8_t *message, size_t messageLength, const uint8_t *associatedData, const size_t associatedDataLength, uint8_t *signature, size_t signatureLength) {
+int bctbx_EDDSA_verify(bctbx_EDDSAContext_t *context, const uint8_t *message, size_t messageLength, const uint8_t *associatedData, const size_t associatedDataLength, const uint8_t *signature, size_t signatureLength) {
 	int ret = BCTBX_VERIFY_FAILED;
 	if (context!=NULL) {
 		decaf_error_t retDecaf = DECAF_FAILURE;

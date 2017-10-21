@@ -764,7 +764,7 @@ BCTBX_PUBLIC void bctbx_EDDSA_sign(bctbx_EDDSAContext_t *context, const uint8_t 
  * @param[in]		publicKey	The public to store in context
  * @param[in]		publicKeyLength	The length of previous buffer
  */
-BCTBX_PUBLIC void bctbx_EDDSA_setPublicKey(bctbx_EDDSAContext_t *context, uint8_t *publicKey, const size_t publicKeyLength);
+BCTBX_PUBLIC void bctbx_EDDSA_setPublicKey(bctbx_EDDSAContext_t *context, const uint8_t *publicKey, const size_t publicKeyLength);
 
 /**
  *
@@ -774,7 +774,7 @@ BCTBX_PUBLIC void bctbx_EDDSA_setPublicKey(bctbx_EDDSAContext_t *context, uint8_
  * @param[in]		secretKey	The secret to store in context
  * @param[in]		secretKeyLength	The length of previous buffer
  */
-BCTBX_PUBLIC void bctbx_EDDSA_setSecretKey(bctbx_EDDSAContext_t *context, uint8_t *secretKey, const size_t secretKeyLength);
+BCTBX_PUBLIC void bctbx_EDDSA_setSecretKey(bctbx_EDDSAContext_t *context, const uint8_t *secretKey, const size_t secretKeyLength);
 
 /**
  *
@@ -790,7 +790,7 @@ BCTBX_PUBLIC void bctbx_EDDSA_setSecretKey(bctbx_EDDSAContext_t *context, uint8_
  *
  * @return BCTBX_VERIFY_SUCCESS or BCTBX_VERIFY_FAILED
  */
-BCTBX_PUBLIC int bctbx_EDDSA_verify(bctbx_EDDSAContext_t *context, const uint8_t *message, size_t messageLength, const uint8_t *associatedData, const size_t associatedDataLength, uint8_t *signature, size_t signatureLength);
+BCTBX_PUBLIC int bctbx_EDDSA_verify(bctbx_EDDSAContext_t *context, const uint8_t *message, size_t messageLength, const uint8_t *associatedData, const size_t associatedDataLength, const uint8_t *signature, size_t signatureLength);
 
 
 /**
