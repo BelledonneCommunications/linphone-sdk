@@ -587,10 +587,8 @@ static void receiver_init(MSFilter * f)
 }
 
 static void receiver_postprocess(MSFilter * f){
-#if defined(_WIN32) || defined(_WIN_WCE)
 	ReceiverData *d = (ReceiverData *) f->data;
-	rtp_session_stop_async_recvfrom(d->session);
-#endif
+	rtp_session_reset_recvfrom(d->session);
 }
 
 static void receiver_uninit(MSFilter * f){
