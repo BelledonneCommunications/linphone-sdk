@@ -1148,7 +1148,7 @@ static belle_sip_list_t* belle_sip_list_find_double_events(belle_sip_list_t* lis
     if((ref_list=belle_sip_list_find_event(list,auth_event))&&(ref_list2=belle_sip_list_find_event(ref_list->next,auth_event))){
         belle_sip_auth_event_t* ref_event = (belle_sip_auth_event_t*)ref_list2->data;
         /*delete which hasn't passwd*/
-        if(ref_event->passwd)
+        if(ref_event->passwd || ref_event->ha1)
             return ref_list;
         else
             return ref_list2;

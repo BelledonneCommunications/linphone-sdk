@@ -87,6 +87,7 @@ typedef struct endpoint {
 	unsigned int max_nc_count;
 	bool_t bad_next_nonce;
     const char* algo;
+    const char* ha1;
 } endpoint_t;
 
 
@@ -390,8 +391,12 @@ static void client_process_auth_requested(void *obj, belle_sip_auth_event_t *eve
 	belle_sip_message("process_auth_requested requested for [%s@%s]"
 			,belle_sip_auth_event_get_username(event)
 			,belle_sip_auth_event_get_realm(event));
-    if ((endpoint->algo==NULL)||((event->algorithm)&&(strcmp(endpoint->algo,event->algorithm))) == 0)
-        belle_sip_auth_event_set_passwd(event,PASSWD);
+    if ((endpoint->algo==NULL)||((event->algorithm)&&(!strcmp(endpoint->algo,event->algorithm)))){
+        if(endpoint->ha1)
+            belle_sip_auth_event_set_ha1(event, endpoint->ha1);
+        else
+            belle_sip_auth_event_set_passwd(event,PASSWD);
+    }
 }
 
 static void belle_sip_refresher_listener (belle_sip_refresher_t* refresher
@@ -552,7 +557,6 @@ static void refresher_base_with_body(endpoint_t* client
 										 , const char* method
 										 , belle_sip_header_content_type_t* content_type
 										 ,const char* body){
-    
 	 belle_sip_refresher_t*  refresher = refresher_base_with_body2(client, server, method, content_type, body,1);
 	/*unregister twice to make sure refresh operation can be safely cascaded*/
 	belle_sip_refresher_refresh(refresher,0);
@@ -570,14 +574,15 @@ static void refresher_base(endpoint_t* client,endpoint_t *server, const char* me
 static void register_base(endpoint_t* client,endpoint_t *server) {
 	refresher_base(client,server,"REGISTER");
 }
-static void refresher_base_with_param_and_body(const char* method
+static void refresher_base_with_param_and_body_for_ha1(const char* method
 												, unsigned char expire_in_contact
 												, auth_mode_t auth_mode
 												, int early_refresher
 												, belle_sip_header_content_type_t* content_type
 												,const char* body
                                                 ,const char* client_algo
-                                                ,const char* server_algo){
+                                                ,const char* server_algo
+                                                ,const char* ha1){
 	belle_sip_listener_callbacks_t client_callbacks;
 	belle_sip_listener_callbacks_t server_callbacks;
 	endpoint_t* client,*server;
@@ -593,17 +598,36 @@ static void refresher_base_with_param_and_body(const char* method
     server->algo=server_algo;
     client->algo=client_algo;
 	client->early_refresher=early_refresher;
+    if(ha1){
+        client->ha1=ha1;
+    }
 	refresher_base_with_body(client,server,method,content_type,body);
 	destroy_endpoint(client);
 	destroy_endpoint(server);
 }
-static void refresher_base_with_param(const char* method, unsigned char expire_in_contact,auth_mode_t auth_mode,const char* client_algo,const char* server_algo) {
-	refresher_base_with_param_and_body(method,expire_in_contact,auth_mode,FALSE,NULL,NULL,client_algo,server_algo);
+
+static void refresher_base_with_param_and_body(const char* method
+                                               , unsigned char expire_in_contact
+                                               , auth_mode_t auth_mode
+                                               , int early_refresher
+                                               , belle_sip_header_content_type_t* content_type
+                                               ,const char* body
+                                               ,const char* client_algo
+                                               ,const char* server_algo){
+    refresher_base_with_param_and_body_for_ha1(method,expire_in_contact,auth_mode,early_refresher,content_type,body,client_algo,server_algo,NULL);
+}
+
+static void refresher_base_with_param(const char* method, unsigned char expire_in_contact,auth_mode_t auth_mode,const char* client_algo,const char* server_algo,const char* ha1) {
+	refresher_base_with_param_and_body_for_ha1(method,expire_in_contact,auth_mode,FALSE,NULL,NULL,client_algo,server_algo,ha1);
 
 }
 
 static void register_test_with_param_for_algorithm(unsigned char expire_in_contact,auth_mode_t auth_mode,const char* client_algo,const char* server_algo) {
-    refresher_base_with_param("REGISTER",expire_in_contact,auth_mode,client_algo,server_algo);
+    refresher_base_with_param("REGISTER",expire_in_contact,auth_mode,client_algo,server_algo,NULL);
+}
+
+static void register_test_with_param_for_algorithm_ha1(unsigned char expire_in_contact,auth_mode_t auth_mode,const char* client_algo,const char* server_algo,const char* ha1){
+    refresher_base_with_param("REGISTER",expire_in_contact,auth_mode,client_algo,server_algo,ha1);
 }
 
 static void register_test_with_param(unsigned char expire_in_contact,auth_mode_t auth_mode) {
@@ -788,8 +812,16 @@ static void register_expires_in_contact_header_digest_md_sha(void) {
     register_test_with_param_for_algorithm(1,digest_auth,"MD5","MD_SHA");
 }
 
+static void register_expires_in_contact_header_digest_md_sha_ha1(void) {
+    register_test_with_param_for_algorithm_ha1(1,digest_auth,"MD5","MD_SHA","323897f425eb3f4c22efa4119c85b434");
+}
+
 static void register_expires_in_contact_header_digest_md_sha256(void) {
     register_test_with_param_for_algorithm(1,digest_auth,"SHA-256","MD_SHA");
+}
+
+static void register_expires_in_contact_header_digest_md_sha256_ha1(void) {
+    register_test_with_param_for_algorithm_ha1(1,digest_auth,"SHA-256","MD_SHA","ebf7a06f8211417d6735cd8bfcbecc30ef2045a80d1d6148a6b9d5d3c4f76911");
 }
 
 static void register_with_failure(void) {
@@ -1081,7 +1113,9 @@ test_t refresher_tests[] = {
 	TEST_NO_TAG("REGISTER Expires in Contact digest auth", register_expires_in_contact_header_digest_auth),
     TEST_NO_TAG("REGISTER Expires in Contact digest auth SHA-256", register_expires_in_contact_header_digest_auth_sha256),
     TEST_NO_TAG("REGISTER Expires in Contact digest auth MD_SHA", register_expires_in_contact_header_digest_md_sha),
+    TEST_NO_TAG("REGISTER Expires in Contact digest auth MD_SHA ha1", register_expires_in_contact_header_digest_md_sha_ha1),
     TEST_NO_TAG("REGISTER Expires in Contact digest auth MD_SHA-256", register_expires_in_contact_header_digest_md_sha256),
+    TEST_NO_TAG("REGISTER Expires in Contact digest auth MD_SHA-256 ha1", register_expires_in_contact_header_digest_md_sha256_ha1),
 	TEST_NO_TAG("REGISTER with failure", register_with_failure),
 	TEST_NO_TAG("REGISTER with early refresher",register_early_refresher),
 	TEST_NO_TAG("SUBSCRIBE", subscribe_test),
