@@ -22,6 +22,33 @@
 
 set(BCTOOLBOX_CMAKE_UTILS_DIR "${CMAKE_CURRENT_LIST_DIR}")
 
+macro(bc_init_compilation_flags CPP_FLAGS C_FLAGS CXX_FLAGS STRICT_COMPILATION)
+	set(${CPP_FLAGS} )
+	set(${C_FLAGS} )
+	set(${CXX_FLAGS} )
+	if(MSVC)
+		if(${STRICT_COMPILATION})
+			list(APPEND ${CPP_FLAGS} "/WX")
+			list(APPEND STRICT_OPTIONS_CPP "/wd4996") # Disable deprecated function warnings
+		endif()
+	else()
+		list(APPEND ${CPP_FLAGS} "-Wall" "-Wuninitialized")
+		if(CMAKE_C_COMPILER_ID MATCHES "Clang")
+			list(APPEND ${CPP_FLAGS} "-Wno-error=unknown-warning-option" "-Qunused-arguments" "-Wno-tautological-compare" "-Wno-builtin-requires-header" "-Wno-unused-function" "-Wno-gnu-designator" "-Wno-array-bounds")
+		elseif(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+			list(APPEND ${CPP_FLAGS} "-Wno-error=pragmas")
+		endif()
+		if(APPLE)
+			list(APPEND ${CPP_FLAGS} "-Wno-error=unknown-warning-option" "-Qunused-arguments" "-Wno-tautological-compare" "-Wno-unused-function" "-Wno-array-bounds")
+		endif()
+		if(ENABLE_STRICT)
+			list(APPEND ${CPP_FLAGS} "-Werror" "-Wextra" "-Wno-unused-parameter" "-Wno-error=unknown-pragmas" "-Wuninitialized" "-Wno-missing-field-initializers"
+			                         "-fno-strict-aliasing"  "-Wno-error=deprecated" "-Wno-error=deprecated-declarations")
+			list(APPEND ${C_FLAGS} "-Werror" "-Wdeclaration-after-statement" "-Wstrict-prototypes")
+		endif()
+	endif()
+endmacro()
+
 macro(bc_apply_compile_flags SOURCE_FILES)
 	if(${SOURCE_FILES})
 		set(options "")
