@@ -269,7 +269,7 @@ extern "C" bctbx_pair_cchar_t * bctbx_pair_cchar_new(const char * key,void *valu
 	return (bctbx_pair_cchar_t *)bctbx_pair_new<mmap_cchar_t>((mmap_cchar_t::key_type)key, value);
 }
 
-template<typename T> typename T::key_type bctbx_pair_get_first(const typename T::value_type  * pair) {
+template<typename T> const typename T::key_type& bctbx_pair_get_first(const typename T::value_type  * pair) {
 	return ((typename T::value_type*)pair)->first;
 }
 extern "C" unsigned long long bctbx_pair_ullong_get_first(const bctbx_pair_ullong_t * pair) {
