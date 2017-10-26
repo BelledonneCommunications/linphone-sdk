@@ -82,11 +82,12 @@ message("cmake install rpath: ${CMAKE_INSTALL_RPATH}")
 include(builders/CMakeLists.txt)
 
 # bctoolbox
-lcb_builder_cmake_options(bctoolbox "-DENABLE_TESTS_COMPONENT=NO")
+lcb_builder_cmake_options(bctoolbox "-DENABLE_TESTS_COMPONENT=${ENABLE_UNIT_TESTS}")
 
 if(ENABLE_CONFERENCE)
 	lcb_builder_cmake_options(linphone
 		"-DENABLE_CXX_WRAPPER=YES"
 		"-DENABLE_SOCI=YES"
+		"-DENABLE_UNIT_TESTS=${ENABLE_UNIT_TESTS}"
 	)
 endif()
