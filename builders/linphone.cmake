@@ -41,6 +41,7 @@ endif()
 if(ENABLE_VCARD)
 	lcb_dependencies("belcard")
 endif()
+lcb_dependencies("soci")
 
 lcb_cmake_options(
 	"-DENABLE_GTK_UI=${ENABLE_GTK_UI}"
