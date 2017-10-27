@@ -140,6 +140,9 @@ lcb_builder_linking_type(ortp "-DENABLE_STATIC=NO" "-DENABLE_SHARED=YES")
 # polarssl
 lcb_builder_linking_type(polarssl "-DUSE_SHARED_POLARSSL_LIBRARY=NO")
 
+# soci
+lcb_builder_linking_type(soci "-DSOCI_STATIC=YES" "-DSOCI_SHARED=NO")
+
 # speex
 lcb_builder_cmake_options(speex "-DENABLE_FLOAT_API=NO")
 lcb_builder_cmake_options(speex "-DENABLE_FIXED_POINT=YES")
