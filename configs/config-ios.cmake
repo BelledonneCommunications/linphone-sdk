@@ -135,6 +135,9 @@ endif()
 # polarssl
 lcb_builder_linking_type(polarssl "-DUSE_SHARED_POLARSSL_LIBRARY=0")
 
+# soci
+lcb_builder_linking_type(soci "-DSOCI_STATIC=YES" "-DSOCI_SHARED=NO")
+
 # speex
 lcb_builder_cmake_options(speex "-DENABLE_FLOAT_API=NO")
 lcb_builder_cmake_options(speex "-DENABLE_FIXED_POINT=YES")
