@@ -46,7 +46,6 @@ belle_sip_request_t* authorized_request;
 belle_sip_listener_callbacks_t listener_callbacks;
 belle_sip_listener_t *listener;
 
-
 static void process_dialog_terminated(void *user_ctx, const belle_sip_dialog_terminated_event_t *event){
 	BELLESIP_UNUSED(user_ctx);
 	BELLESIP_UNUSED(event);
@@ -212,17 +211,25 @@ const char *belle_sip_tester_root_ca =
 "6wwCURQtjr0W4MHfRnXnJK3s9EK0hZNwEGe6nQY1ShjTK3rMUUKhemPR5ruhxSvCNr4TDea9Y355\n"
 "e6cJDUCrat2PisP29owaQgVR1EX1n6diIWgVIEM8med8vSTYqZEXc4g/VhsxOBi0cQ+azcgOno4u\n"
 "G+GMmIPLHzHxREzGBHNJdmAPx/i9F4BrLunMTA5amnkPIAou1Z5jJh5VkpTYghdae9C8x49OhgQ=\n"
-"-----END CERTIFICATE-----\n";
+"-----END CERTIFICprocess_auth_requestedATE-----\n";
 
 static void process_auth_requested(void *user_ctx, belle_sip_auth_event_t *event){
-	BELLESIP_UNUSED(user_ctx);
+    const char** client;
+    client = (const char** ) user_ctx;
+    if(*client==NULL)
+        *client = "MD5";
 	if (belle_sip_auth_event_get_mode(event) == BELLE_SIP_AUTH_MODE_HTTP_DIGEST) {
 		const char *username = belle_sip_auth_event_get_username(event);
 		const char *realm = belle_sip_auth_event_get_realm(event);
 		belle_sip_message("process_auth_requested requested for [%s@%s]"
 				,username?username:""
 				,realm?realm:"");
-		belle_sip_auth_event_set_passwd(event,"secret");
+        if ((event->algorithm)&&(!strcmp(*client,event->algorithm))){
+            if(*(client+1))
+                belle_sip_auth_event_set_ha1(event, *(client+1));
+            else
+                belle_sip_auth_event_set_passwd(event,"secret");
+        }
 	} else if (belle_sip_auth_event_get_mode(event) == BELLE_SIP_AUTH_MODE_TLS) {
 		const char *distinguished_name = NULL;
 		belle_sip_certificates_chain_t* cert = belle_sip_certificates_chain_parse(belle_sip_tester_client_cert,strlen(belle_sip_tester_client_cert),BELLE_SIP_CERTIFICATE_RAW_FORMAT_PEM);
@@ -240,6 +247,7 @@ static void process_auth_requested(void *user_ctx, belle_sip_auth_event_t *event
 int register_before_all(void) {
 	belle_sip_listening_point_t *lp;
 	stack=belle_sip_stack_new(NULL);
+    const char* client[2] = {NULL, NULL};
 	if (userhostsfile)
 		belle_sip_stack_set_dns_user_hosts_file(stack,userhostsfile);
 	
@@ -266,7 +274,8 @@ int register_before_all(void) {
 	listener_callbacks.process_transaction_terminated=process_transaction_terminated;
 	listener_callbacks.process_auth_requested=process_auth_requested;
 	listener_callbacks.listener_destroyed=NULL;
-	listener=belle_sip_listener_create_from_callbacks(&listener_callbacks,NULL);
+    
+	listener=belle_sip_listener_create_from_callbacks(&listener_callbacks,client);
 	return 0;
 }
 

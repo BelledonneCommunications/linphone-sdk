@@ -388,10 +388,12 @@ static void client_process_response_event(void *obj, const belle_sip_response_ev
 
 static void client_process_auth_requested(void *obj, belle_sip_auth_event_t *event){
     endpoint_t* endpoint = (endpoint_t*)obj;
+    if(endpoint->algo==NULL)
+        endpoint->algo = "MD5";
 	belle_sip_message("process_auth_requested requested for [%s@%s]"
 			,belle_sip_auth_event_get_username(event)
 			,belle_sip_auth_event_get_realm(event));
-    if ((endpoint->algo==NULL)||((event->algorithm)&&(!strcmp(endpoint->algo,event->algorithm)))){
+    if (((event->algorithm)&&(!strcmp(endpoint->algo,event->algorithm)))){
         if(endpoint->ha1)
             belle_sip_auth_event_set_ha1(event, endpoint->ha1);
         else
