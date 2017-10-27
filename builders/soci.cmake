@@ -22,12 +22,15 @@
 
 lcb_git_repository("git://git.linphone.org/soci.git")
 lcb_external_source_paths("externals/soci")
-lcb_dependencies("sqlite3")
+if(LINPHONE_BUILDER_BUILD_DEPENDENCIES AND NOT APPLE)
+	# Do not build sqlite3 on Apple systems (Mac OS X and iOS), they are provided by the system
+	lcb_dependencies("sqlite3")
+endif()
 
 lcb_cmake_options(
 	"-DSOCI_TESTS=NO"
 	"-DSOCI_EMPTY=NO"
-	
+
 	"-DWITH_DB2=NO"
 	"-DWITH_FIREBIRD=NO"
 	"-DWITH_MYSQL=YES"
