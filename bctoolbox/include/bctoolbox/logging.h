@@ -29,8 +29,17 @@
 #include <bctoolbox/port.h>
 #include "bctoolbox/list.h"
 
+
+/**
+ * The BCTBX_LOG_DOMAIN macro should be defined with a preprocessor directive (ex: -DBCTBX_LOG_DOMAIN="my-component") in every
+ * software entity (application, library, sub-parts of software etc) using the bctoolbox log facility, so that all invocations of the
+ * bctbx_message(), bctbx_warning(), bctbx_error(), bctbx_fatal() outputs their log within the domain title of the software part there are compiled in.
+ * It SHALL not be defined in any public header, otherwise it will conflict with upper layer using the logging facility for their own domain.
+ * As a special exception, bctoolbox defines the log domain to be "bctbx" if no preprocessor directive defines it.
+ * As a result, bctboolbox owns logs will be output into the "bctbx" domain.
+**/
 #ifndef BCTBX_LOG_DOMAIN
-#define BCTBX_LOG_DOMAIN NULL
+#define BCTBX_LOG_DOMAIN "bctbx"
 #endif
 
 #ifdef __cplusplus
@@ -56,7 +65,7 @@ typedef void (*BctbxLogHandlerDestroyFunc)(bctbx_log_handler_t *handler);
 
 /*
  initialise logging functions, add default log handler for stdout output.
- @param[in] bool_t create : No longuer used, always created with a default logger to stdout.
+ @param[in] bool_t create : No longer used, always created with a default logger to stdout.
  */
 BCTBX_PUBLIC void bctbx_init_logger(bool_t create);
 
