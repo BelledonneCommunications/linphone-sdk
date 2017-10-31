@@ -29,6 +29,10 @@ set(TEST_SOURCES
 	testUtils.c
 )
 
+add_definitions(
+	-DBCTBX_LOG_DOMAIN="bzrtp"
+)
+
 bc_apply_compile_flags(TEST_SOURCES STRICT_OPTIONS_CPP)
 
 add_executable(bzrtpTest ${TEST_SOURCES})
