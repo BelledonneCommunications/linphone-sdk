@@ -84,7 +84,7 @@ void NativeTester::initialize(StorageFolder^ writableDirectory, Platform::Boolea
 	}
 	else {
 		mediastreamer2_tester_init(NULL);
-		ortp_set_log_level_mask(NULL, (OrtpLogLevel)(ORTP_MESSAGE | ORTP_WARNING | ORTP_ERROR | ORTP_FATAL));
+		bctbx_set_log_level(NULL, BCTBX_LOG_MESSAGE);
 	}
 
 	char writable_dir[MAX_WRITABLE_DIR_SIZE] = { 0 };
@@ -116,10 +116,10 @@ bool NativeTester::run(Platform::String^ suiteName, Platform::String^ caseName, 
 	wcstombs(ccasename, wscasename.c_str(), sizeof(ccasename));
 
 	if (verbose) {
-		ortp_set_log_level_mask(NULL, ORTP_MESSAGE | ORTP_WARNING | ORTP_ERROR | ORTP_FATAL);
+		bctbx_set_log_level(NULL, BCTBX_LOG_MESSAGE);
 	}
 	else {
-		ortp_set_log_level_mask(NULL, ORTP_ERROR | ORTP_FATAL);
+		bctbx_set_log_level(NULL, BCTBX_LOG_ERROR);
 	}
 	bctbx_add_log_handler(log_handler);
 	return bc_tester_run_tests(wssuitename == all ? 0 : csuitename, wscasename == all ? 0 : ccasename, NULL) != 0;
@@ -310,7 +310,7 @@ void NativeTester::initMS2()
 {
 	if (_factory == nullptr) {
 		ortp_init();
-		ortp_set_log_level_mask(NULL, ORTP_MESSAGE | ORTP_WARNING | ORTP_ERROR | ORTP_FATAL);
+		bctbx_set_log_level(NULL, BCTBX_LOG_MESSAGE);
 		bctbx_log_handler_t *log_handler = bctbx_create_log_handler(ms2NativeOutputTraceHandler, NULL, NULL);
 		bctbx_add_log_handler(log_handler);
 		_factory = ms_factory_new_with_voip();

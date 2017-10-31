@@ -617,10 +617,10 @@ static MSFilter *alsa_card_create_writer(MSSndCard *card)
 
 
 void alsa_error_log_handler(const char *file, int line, const char *function, int err, const char *fmt, ...) {
-	char * format = ms_strdup_printf("also error in %s:%d - %s", file, line, fmt);
+	char * format = ms_strdup_printf("alsa error in %s:%d - %s", file, line, fmt);
 	va_list args;
 	va_start (args, fmt);
-	ortp_logv(ORTP_LOG_DOMAIN, ORTP_MESSAGE, format, args);
+	bctbx_logv(BCTBX_LOG_DOMAIN, BCTBX_LOG_MESSAGE, format, args);
 	va_end (args);
 	ms_free(format);
 }

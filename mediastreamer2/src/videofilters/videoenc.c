@@ -121,7 +121,7 @@ static const MSVideoConfiguration snow_conf_list[] = {
 
 void ms_ffmpeg_log_callback(void* ptr, int level, const char* fmt, va_list vl)
 {
-	ortp_logv(ORTP_MESSAGE,fmt,vl);
+	bctbx_logv(BCTBX_LOG_MESSAGE,fmt,vl);
 }
 
 #endif

@@ -700,12 +700,12 @@ void setup_media_streams(MediastreamDatas* args) {
 	MSFactory *factory;
 	ortp_init();
 	if (args->logfile)
-		ortp_set_log_file(args->logfile);
+		bctbx_set_log_file(args->logfile);
 
 	if (args->is_verbose) {
-		ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_DEBUG|ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
+		bctbx_set_log_level(BCTBX_LOG_DOMAIN, BCTBX_LOG_DEBUG);
 	} else {
-		ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
+		bctbx_set_log_level(BCTBX_LOG_DOMAIN, BCTBX_LOG_MESSAGE);
 	}
 
 	args->factory = factory = ms_factory_new_with_voip();

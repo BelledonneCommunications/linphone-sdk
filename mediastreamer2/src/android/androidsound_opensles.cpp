@@ -421,11 +421,11 @@ static void opensles_recorder_callback(SLAndroidSimpleBufferQueueItf bq, void *c
 		 *  1) understand why AudioRecord thread doesn't detach.
 		 *  2) disable logs just for this thread (using a TLS)
 		 */
-		int loglevel=ortp_get_log_level_mask(ORTP_LOG_DOMAIN);
-		ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_ERROR|ORTP_FATAL);
+		int loglevel=bctbx_get_log_level_mask(BCTBX_LOG_DOMAIN);
+		bctbx_set_log_level_mask(BCTBX_LOG_DOMAIN, BCTBX_LOG_ERROR|BCTBX_LOG_FATAL);
 		ictx->mTickerSynchronizer = ms_ticker_synchronizer_new();
 		ms_ticker_set_synchronizer(obj->ticker, ictx->mTickerSynchronizer);
-		ortp_set_log_level_mask(ORTP_LOG_DOMAIN, loglevel);
+		bctbx_set_log_level_mask(BCTBX_LOG_DOMAIN, loglevel);
 	}
 	ictx->read_samples += ictx->inBufSize / sizeof(int16_t);
 

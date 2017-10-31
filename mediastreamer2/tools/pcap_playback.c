@@ -248,9 +248,9 @@ void setup_media_streams(MediastreamDatas *args) {
 	/*create the rtp session */
 	ortp_init();
 	if (args->is_verbose) {
-		ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_DEBUG | ORTP_MESSAGE | ORTP_WARNING | ORTP_ERROR | ORTP_FATAL);
+		bctbx_set_log_level(BCTBX_LOG_DOMAIN, BCTBX_LOG_DEBUG);
 	} else {
-		ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_MESSAGE | ORTP_WARNING | ORTP_ERROR | ORTP_FATAL);
+		bctbx_set_log_level(BCTBX_LOG_DOMAIN, BCTBX_LOG_MESSAGE);
 	}
 
 	rtp_profile_set_payload(&av_profile, 110, &payload_type_speex_nb);

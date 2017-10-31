@@ -21,7 +21,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include <bctoolbox/port.h>
 #include <bctoolbox/list.h>
-#include <ortp/logging.h>
+#include <bctoolbox/logging.h>
 #include <ortp/port.h>
 #include <ortp/str_utils.h>
 #include <ortp/payloadtype.h>
@@ -120,17 +120,17 @@ static MS2_INLINE void ms_debug(const char *fmt,...)
 {
   va_list args;
   va_start (args, fmt);
-  ortp_logv(ORTP_LOG_DOMAIN, ORTP_DEBUG, fmt, args);
+  bctbx_logv(BCTBX_LOG_DOMAIN, BCTBX_LOG_DEBUG, fmt, args);
   va_end (args);
 }
 #else
 #define ms_debug(fmt, ...)
 #endif
 
-#define ms_message	ortp_message
-#define ms_warning	ortp_warning
-#define ms_error	ortp_error
-#define ms_fatal	ortp_fatal
+#define ms_message	bctbx_message
+#define ms_warning	bctbx_warning
+#define ms_error	bctbx_error
+#define ms_fatal	bctbx_fatal
 
 #define ms_return_val_if_fail(_expr_,_ret_)\
 	if (!(_expr_)) { ms_fatal("assert "#_expr_ "failed"); return (_ret_);}

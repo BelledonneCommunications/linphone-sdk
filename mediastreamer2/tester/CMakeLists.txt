@@ -92,6 +92,10 @@ set(SOURCE_FILES_C
 )
 set(SOURCE_FILES_OBJC )
 
+add_definitions(
+	-DBCTBX_LOG_DOMAIN="mediastreamer"
+)
+
 if(ENABLE_VIDEO)
 	list(APPEND SOURCE_FILES_C mediastreamer2_video_stream_tester.c)
 	if(ENABLE_PCAP)

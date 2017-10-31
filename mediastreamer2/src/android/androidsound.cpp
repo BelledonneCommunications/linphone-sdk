@@ -349,11 +349,11 @@ static void android_snd_read_cb(int event, void* user, void *p_info){
 		 *  1) understand why AudioRecord thread doesn't detach.
 		 *  2) disable logs just for this thread (using a TLS)
 		 */
-		int loglevel=ortp_get_log_level_mask(ORTP_LOG_DOMAIN);
-		ortp_set_log_level_mask(NULL, ORTP_ERROR|ORTP_FATAL);
+		int loglevel=bctbx_get_log_level_mask(BCTBX_LOG_DOMAIN);
+		bctbx_set_log_level_mask(NULL, BCTBX_LOG_ERROR|BCTBX_LOG_FATAL);
 		ad->mTickerSynchronizer = ms_ticker_synchronizer_new();
 		ms_ticker_set_synchronizer(obj->ticker, ad->mTickerSynchronizer);
-		ortp_set_log_level_mask(ORTP_LOG_DOMAIN, loglevel);
+		bctbx_set_log_level_mask(BCTBX_LOG_DOMAIN, loglevel);
 	}
 	if (event==AudioRecord::EVENT_MORE_DATA){
 		AudioRecord::Buffer info;

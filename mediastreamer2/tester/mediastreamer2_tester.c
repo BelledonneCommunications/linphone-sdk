@@ -40,7 +40,7 @@ static void log_handler(int lev, const char *fmt, va_list args) {
 	va_end(cap);
 #endif
 	if (log_file){
-		ortp_logv_out(ORTP_LOG_DOMAIN, lev, fmt, args);
+		bctbx_logv_out(BCTBX_LOG_DOMAIN, lev, fmt, args);
 	}
 }
 
@@ -90,7 +90,7 @@ int mediastreamer2_tester_set_log_file(const char *filename) {
 #ifdef _MSC_VER
 #pragma deprecated(message_state_changed_cb)
 #endif
-	ortp_set_log_file(log_file);
+	bctbx_set_log_file(log_file);
 #if defined(__clang__) || ((__GNUC__ == 4 && __GNUC_MINOR__ >= 6) || __GNUC__ > 4)
 #pragma GCC diagnostic pop
 #endif
