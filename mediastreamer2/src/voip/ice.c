@@ -2164,7 +2164,7 @@ static int ice_compare_valid_pair_priorities(const IceValidCandidatePair *vp1, c
 
 static int ice_find_valid_pair(const IceValidCandidatePair *vp1, const IceValidCandidatePair *vp2)
 {
-	return !((vp1->valid == vp2->valid) && (vp1->generated_from == vp2->generated_from));
+	return ice_compare_pairs(vp1->valid, vp2->valid) || ice_compare_pairs(vp1->generated_from, vp2->generated_from);
 }
 
 /* Construct a valid ICE candidate pair as defined in 7.1.3.2.2. */
@@ -2202,6 +2202,7 @@ static IceCandidatePair * ice_construct_valid_pair(IceCheckList *cl, RtpSession 
 		cl->valid_list = bctbx_list_insert_sorted(cl->valid_list, valid_pair, (bctbx_compare_func)ice_compare_valid_pair_priorities);
 		ms_message("ice: Added pair %p to the valid list: %s:%s --> %s:%s", pair,
 			local_addr_str, candidate_type_values[pair->local->type], remote_addr_str, candidate_type_values[pair->remote->type]);
+		//ice_dump_valid_list(cl);
 		elem = bctbx_list_find_custom(cl->losing_pairs, (bctbx_compare_func)ice_find_pair_from_candidates, &candidates);
 		if (elem != NULL) {
 			cl->losing_pairs = bctbx_list_erase_link(cl->losing_pairs, elem);
@@ -2215,12 +2216,13 @@ static IceCandidatePair * ice_construct_valid_pair(IceCheckList *cl, RtpSession 
 				rtp_session_dispatch_event(rtp_session, ev);
 			}
 		}
+		return pair;
 	} else {
 		ms_message("ice: Pair already in the valid list: %s:%s --> %s:%s",
 			local_addr_str, candidate_type_values[pair->local->type], remote_addr_str, candidate_type_values[pair->remote->type]);
 		ms_free(valid_pair);
+		return ((IceValidCandidatePair *)(elem->data))->valid;
 	}
-	return pair;
 }
 
 static int ice_compare_pair_foundations(const IceCandidatePair *p1, const IceCandidatePair *p2)
@@ -2254,6 +2256,7 @@ static void ice_update_nominated_flag_on_binding_response(const IceCheckList *cl
 		case IR_Controlling:
 			if (succeeded_pair->use_candidate == TRUE) {
 				valid_pair->is_nominated = TRUE;
+				//ice_dump_valid_list(cl);
 			}
 			break;
 		case IR_Controlled:
@@ -3407,11 +3410,12 @@ static void ice_perform_regular_nomination(IceValidCandidatePair *valid_pair, Ch
 		if (elem == NULL) {
 			if (valid_pair->valid->remote->type == ICT_RelayedCandidate) {
 				MSTimeSpec curtime = ice_current_time();
-				if (cr->cl->nomination_delay_running == FALSE) {
+				if ((cr->cl->nomination_delay_running == FALSE) && (cr->cl->nomination_delay_timer_has_already_triggered == FALSE)) {
 					/* There is a potential valid pair but it is a relayed candidate, wait a little so that a better choice may be found. */
 					ms_message("ice: Potential relayed valid pair, wait for a better pair.");
 					cr->cl->nomination_delay_running = TRUE;
 					cr->cl->nomination_delay_start_time = ice_current_time();
+					cr->cl->nomination_delay_timer_has_already_triggered = TRUE;
 				} else if (ice_compare_time(curtime, cr->cl->nomination_delay_start_time) >= ICE_NOMINATION_DELAY) {
 					ms_message("ice: Nomination delay timeout while performing nomination, select the potential relayed candidate anyway.");
 					cr->cl->nomination_delay_running = FALSE;

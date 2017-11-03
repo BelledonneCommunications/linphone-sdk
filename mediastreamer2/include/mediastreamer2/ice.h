@@ -254,6 +254,7 @@ typedef struct _IceCheckList {
 	bool_t gathering_candidates;	/**< Boolean value telling whether a candidate gathering process is running or not */
 	bool_t gathering_finished;	/**< Boolean value telling whether the candidate gathering process has finished or not */
 	bool_t nomination_delay_running;	/**< Boolean value telling whether the nomination process has been delayed or not */
+	bool_t nomination_delay_timer_has_already_triggered;
 	MSTimeSpec gathering_start_time;	/**< Time when the gathering process was started */
 	MSTimeSpec nomination_delay_start_time;	/**< Time when the nomination process has been delayed */
 	IceStunRequestRoundTripTime rtt;
