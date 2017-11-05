@@ -132,7 +132,10 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_tunnel_channel_t)
 			BELLE_SIP_VPTR_INIT(belle_sip_tunnel_channel_t,belle_sip_channel_t,FALSE),
 			(belle_sip_object_destroy_t)tunnel_channel_uninit,
 			NULL,
-			NULL
+			NULL,
+			(belle_sip_object_on_first_ref_t) NULL,
+			(belle_sip_object_on_last_ref_t) NULL,
+			0
 		},
 		"UDP",
 		0, /*is_reliable*/

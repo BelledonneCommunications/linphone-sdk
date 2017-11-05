@@ -113,6 +113,11 @@ belle_sip_object_t * belle_sip_object_ref(void *obj){
 	if (o->ref==0 && o->pool){
 		belle_sip_object_pool_remove(o->pool,obj);
 	}
+	if (o->vptr->on_first_ref){
+		if (o->ref == 0 || (o->vptr->initially_unowned && o->ref == 1)){
+				o->vptr->on_first_ref(o);
+		}
+	}
 	o->ref++;
 	return obj;
 }
@@ -126,6 +131,13 @@ void belle_sip_object_unref(void *ptr){
 		belle_sip_fatal("Fatal object error encountered, aborting.");
 		return;
 	}
+	if (obj->vptr->on_last_ref){
+		if ((obj->vptr->initially_unowned && obj->ref==0)
+			|| (!obj->vptr->initially_unowned && obj->ref == 1)){
+			obj->vptr->on_last_ref(obj);
+		}
+	}
+	
 	if (obj->vptr->initially_unowned && obj->ref==0){
 		if (obj->pool)
 			belle_sip_object_pool_remove(obj->pool,obj);

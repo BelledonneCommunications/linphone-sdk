@@ -38,7 +38,10 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_tunnel_listening_point_t)
 			BELLE_SIP_VPTR_INIT(belle_sip_tunnel_listening_point_t, belle_sip_listening_point_t,TRUE),
 			NULL,
 			NULL,
-			NULL
+			NULL,
+			(belle_sip_object_on_first_ref_t) NULL,
+			(belle_sip_object_on_last_ref_t) NULL,
+			0
 		},
 		"UDP",
 		tunnel_create_channel
