@@ -45,7 +45,7 @@ int main(int argc, char *argv[]){
 	ms_factory_init_voip(factory);
 	ms_factory_init_plugins(factory);
 
-	ortp_set_log_level_mask (ORTP_LOG_DOMAIN, ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
+	bctbx_set_log_level_mask (BCTBX_LOG_DOMAIN, BCTBX_LOG_MESSAGE|BCTBX_LOG_WARNING|BCTBX_LOG_ERROR|BCTBX_LOG_FATAL);
 
 	src=ms_factory_create_filter(factory,MS_FILE_PLAYER_ID);
 	rec=ms_factory_create_filter(factory,MS_FILE_REC_ID);
