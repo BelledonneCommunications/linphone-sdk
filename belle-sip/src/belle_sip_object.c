@@ -100,8 +100,7 @@ belle_sip_object_t * _belle_sip_object_new(size_t objsize, belle_sip_object_vptr
 	if (obj->ref == 0) {
 		belle_sip_object_pool_t *pool=belle_sip_object_pool_get_current();
 		if (pool) belle_sip_object_pool_add(pool,obj);
-	} else if (obj->ref == 1 && obj->vptr->on_first_ref)
-		obj->vptr->on_first_ref(obj);
+	}
 
 	add_new_object(obj);
 	return obj;
@@ -117,9 +116,9 @@ belle_sip_object_t * belle_sip_object_ref(void *obj){
 		belle_sip_object_pool_remove(o->pool,obj);
 	}
 
-	o->ref++;
-	if (o->vptr->on_first_ref && o->ref == 1)
+	if (o->vptr->on_first_ref && (o->ref == 0 || (!o->vptr->initially_unowned && o->ref == 1)))
 		o->vptr->on_first_ref(o);
+	o->ref++;
 
 	return obj;
 }
