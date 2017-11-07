@@ -22,6 +22,10 @@
 
 cmake_minimum_required(VERSION 2.8)
 
-project(autotools LANGUAGES NONE)
+if(IOS)
+	project(autotools LANGUAGES NONE)
+else()
+	project(autotools LANGUAGES C CXX)
+endif()
 
 configure_file(${CMAKE_SOURCE_DIR}/Autotools.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/Autotools.cmake @ONLY)
