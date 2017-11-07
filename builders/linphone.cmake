@@ -27,7 +27,7 @@ lcb_external_source_paths("linphone")
 lcb_groupable(YES)
 lcb_package_source(YES)
 
-lcb_dependencies("bctoolbox" "bellesip" "ortp" "ms2" "belr" "libxsd")
+lcb_dependencies("bctoolbox" "bellesip" "ortp" "ms2" "belr")
 if(LINPHONE_BUILDER_BUILD_DEPENDENCIES AND NOT APPLE)
 	# Do not build sqlite3, xml2 and zlib on Apple systems (Mac OS X and iOS), they are provided by the system
 	lcb_dependencies("sqlite3" "xml2")
