@@ -152,6 +152,8 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_channel_t)
 		(belle_sip_object_destroy_t)belle_sip_channel_destroy,
 		NULL, /*clone*/
 		NULL, /*marshal*/
+		NULL, /*on_first_ref*/
+		NULL, /*on_last_ref*/
 		BELLE_SIP_DEFAULT_BUFSIZE_HINT
 	},
 	NULL, /* transport */

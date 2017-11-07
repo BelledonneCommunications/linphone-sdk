@@ -75,6 +75,8 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_body_handler_t)
 		(belle_sip_object_destroy_t) belle_sip_body_handler_destroy,
 		(belle_sip_object_clone_t) belle_sip_body_handler_clone,
 		(belle_sip_object_marshal_t) belle_sip_body_handler_marshal,
+		(belle_sip_object_on_first_ref_t) NULL,
+		(belle_sip_object_on_last_ref_t) NULL,
 		BELLE_SIP_DEFAULT_BUFSIZE_HINT
 	},
 	NULL, /* begin_recv_transfer */

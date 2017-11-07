@@ -442,11 +442,11 @@ typedef struct uri_components {
 } uri_components_t;
 
 
-/*belle sip allows contact header without host because stack will auutomatically put host if missing*/
+/*belle sip allows contact header without host because stack will automatically put host if missing*/
 static  uri_components_t uri_component_use_for_request = 			{"Req.-URI"					,o	,o	,m	,o	,o	,na	,o	,o	,o	,o	,o	,na};
 static  uri_components_t uri_component_use_for_header_to = 			{"Header To"				,o	,o	,m	,na	,o	,na	,na	,na	,na	,na	,o	,na};
 static  uri_components_t uri_component_use_for_header_from = 		{"Header From"				,o	,o	,m	,na	,o	,na	,na	,na	,na	,na	,o	,na};
-static  uri_components_t uri_component_use_for_header_refer_to = 	{"Header Refer-To"			,o	,o	,/*m*/o	,na	,o	,na	,na	,na	,na	,na	,o	,na};
+static  uri_components_t uri_component_use_for_header_refer_to =	{"Header Refer-To"			,o	,o	,o	,o	,o	,o	,o	,o	,o	,o	,o	,o};
 static  uri_components_t uri_component_use_for_contact_in_reg =		{"Contact in REG"			,o	,o	,/*m*/o	,o	,o	,na	,o	,o	,o	,na	,o	,o};
 static  uri_components_t uri_component_use_for_dialog_ct_rr_ro =	{"Dialog Contact/R-R/Route"	,o	,o	,/*m*/o	,o	,o	,na	,o	,na	,o	,o	,o	,na};
 static  uri_components_t uri_component_use_for_external =			{"External"					,o	,o	,m	,o	,o	,o	,o	,o	,o	,o	,o	,o};

@@ -321,6 +321,8 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_server_transaction_t)
 			(belle_sip_object_destroy_t) server_transaction_destroy,
 			NULL,
 			NULL,
+			(belle_sip_object_on_first_ref_t) NULL,
+			(belle_sip_object_on_last_ref_t) NULL,
 			BELLE_SIP_DEFAULT_BUFSIZE_HINT
 		},
 		NULL
@@ -633,6 +635,8 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_client_transaction_t)
 			(belle_sip_object_destroy_t)client_transaction_destroy,
 			NULL,
 			NULL,
+			(belle_sip_object_on_first_ref_t) NULL,
+			(belle_sip_object_on_last_ref_t) NULL,
 			BELLE_SIP_DEFAULT_BUFSIZE_HINT
 		},
 		NULL

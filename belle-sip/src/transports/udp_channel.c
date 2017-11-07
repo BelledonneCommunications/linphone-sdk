@@ -95,6 +95,8 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_udp_channel_t)
 			(belle_sip_object_destroy_t)udp_channel_uninit,
 			NULL,
 			NULL,
+			(belle_sip_object_on_first_ref_t) NULL,
+			(belle_sip_object_on_last_ref_t) NULL,
 			BELLE_SIP_DEFAULT_BUFSIZE_HINT
 		},
 		"UDP",
