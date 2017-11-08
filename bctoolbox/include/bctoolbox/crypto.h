@@ -1104,6 +1104,18 @@ BCTBX_PUBLIC void bctbx_aes256CfbDecrypt(const uint8_t *key,
 		size_t inputLength,
 		uint8_t *output);
 
+/*****************************************************************************/
+/***** Cleaning                                                          *****/
+/*****************************************************************************/
+
+/**
+ * @brief force a buffer values to zero in a way that shall prevent the compiler from optimizing it out
+ *
+ * @param[in/out]	buffer	the buffer to be cleared
+ * @param[in]		size	buffer size
+ */
+BCTBX_PUBLIC void bctbx_clean(void *buffer, size_t size);
+
 #ifdef __cplusplus
 }
 #endif

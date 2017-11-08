@@ -27,6 +27,7 @@ set(BCTOOLBOX_C_SOURCE_FILES
 	vfs.c
 	vconnect.c
 	parser.c
+	crypto/crypto.c
 	
 )
 

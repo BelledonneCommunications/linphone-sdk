@@ -228,14 +228,14 @@ void bctbx_DestroyECDHContext(bctbx_ECDHContext_t *context) {
 	if (context!= NULL) {
 		/* key and secret must be erased from memory and not just freed */
 		if (context->secret != NULL) {
-			memset(context->secret, 0, context->secretLength);
+			bctbx_clean(context->secret, context->secretLength);
 			free(context->secret);
 			context->secret=NULL;
 		}
 		free(context->selfPublic);
 		context->selfPublic=NULL;
 		if (context->sharedSecret != NULL) {
-			memset(context->sharedSecret, 0, context->pointCoordinateLength);
+			bctbx_clean(context->sharedSecret, context->pointCoordinateLength);
 			free(context->sharedSecret);
 			context->sharedSecret=NULL;
 		}
@@ -322,7 +322,7 @@ void bctbx_DestroyEDDSAContext(bctbx_EDDSAContext_t *context) {
 	if (context!= NULL) {
 		/* secretKey must be erased from memory and not just freed */
 		if (context->secretKey != NULL) {
-			memset(context->secretKey, 0, context->secretLength);
+			bctbx_clean(context->secretKey, context->secretLength);
 			free(context->secretKey);
 		}
 		free(context->publicKey);

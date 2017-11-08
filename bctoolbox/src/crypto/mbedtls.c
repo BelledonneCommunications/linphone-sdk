@@ -767,12 +767,12 @@ void bctbx_DestroyDHMContext(bctbx_DHMContext_t *context) {
 	if (context!= NULL) {
 		/* key and secret must be erased from memory and not just freed */
 		if (context->secret != NULL) {
-			memset(context->secret, 0, context->secretLength);
+			bctbx_clean(context->secret, context->secretLength);
 			free(context->secret);
 		}
 		free(context->self);
 		if (context->key != NULL) {
-			memset(context->key, 0, context->primeLength);
+			bctbx_clean(context->key, context->primeLength);
 			free(context->key);
 		}
 		free(context->peer);
