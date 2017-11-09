@@ -111,7 +111,7 @@ BCTBX_PUBLIC void bctbx_set_log_handler(BctbxLogFunc func);
 /*same as bctbx_set_log_handler but only for a domain. NULL for all*/
 BCTBX_PUBLIC void bctbx_set_log_handler_for_domain(BctbxLogFunc func, const char* domain);
 	
-BCTBX_PUBLIC BCTBX_DEPRECATED void bctbx_set_log_file(FILE* f);
+BCTBX_PUBLIC void bctbx_set_log_file(FILE* f);
 BCTBX_PUBLIC bctbx_list_t* bctbx_get_log_handlers(void);
 
 BCTBX_PUBLIC void bctbx_logv_out(const char *domain, BctbxLogLevel level, const char *fmt, va_list args);
