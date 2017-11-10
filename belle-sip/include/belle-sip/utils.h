@@ -25,18 +25,10 @@
 #include <errno.h>
 #include "belle-sip/defs.h"
 
-#ifdef BCTBX_LOG_DOMAIN
-#undef BCTBX_LOG_DOMAIN
-#endif
-#ifndef BELLE_SIP_LOG_DOMAIN
-#define BELLE_SIP_LOG_DOMAIN "belle-sip"
-#endif
-
-#define BCTBX_LOG_DOMAIN BELLE_SIP_LOG_DOMAIN
-
-
 #include "bctoolbox/logging.h"
 #include "bctoolbox/vconnect.h"
+
+#define BELLE_SIP_LOG_DOMAIN "belle-sip"
 
 BELLE_SIP_BEGIN_DECLS
 

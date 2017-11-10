@@ -317,5 +317,5 @@ GET_SET_STRING(belle_sip_stack,http_proxy_host)
 GET_SET_INT(belle_sip_stack,http_proxy_port, int)
 
 void  belle_sip_set_log_handler(belle_sip_log_function_t func) {
-	bctbx_set_log_handler_for_domain(func, BELLE_SIP_LOG_DOMAIN);
+	bctbx_set_log_handler_for_domain(func, BCTBX_LOG_DOMAIN);
 }
