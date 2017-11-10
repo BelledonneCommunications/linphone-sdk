@@ -1,0 +1,17 @@
+{
+  "name": "x3dh_server",
+  "version": "1.0.0",
+  "description": "A key management server for X3DH",
+  "main": "x3dh.js",
+  "dependencies": {
+    "rwlock": "^5.0.0",
+    "sqlite3": "^3.1.13",
+    "yargs": "^9.0.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Belledonne Communications",
+  "license": "GNU GPL"
+}
