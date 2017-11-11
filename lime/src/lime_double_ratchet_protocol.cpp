@@ -58,6 +58,16 @@ namespace lime {
 		*/
 
 		/**
+		 * @brief return the size of the double ratchet packet header
+		 * header is: Protocol Version Number<1 byte> || Packet Type <1 byte> || curveId <1 byte> || [X3DH Init message <variable>] || Ns<4 bytes> || PN<4 bytes> || DHs<...>
+		 * This function return the size without optionnal X3DH init packet
+		 */
+		template <typename Curve>
+		constexpr size_t headerSize() {
+			return 11 + X<Curve>::keyLength();
+		}
+
+		/**
 		 * @brief  build an X3DH init message to insert in DR header
 		 *	haveOPk <flag 1 byte> || self Ik < ED<Curve>::keyLength() bytes > || Ek < X<Curve>::keyLenght() bytes> || peer SPk id < 4 bytes > || [peer OPk id(if flag is set)<4bytes>]
 		 *
@@ -155,11 +165,12 @@ namespace lime {
 					if (message[3] == 1) { // there is an OPk
 						x3dh_initMessageSize += 4;
 					}
-					// header is: Protocol Version Number<1 byte> || Packet Type <1 byte> || curveId <1 byte> || [X3DH Init message <variable>] || Ns<4 bytes> || PN<4 bytes> || DHs<...>
-					// regular packet header length is 11 + X<Curve>::keuLength(), check our buffer holds at least a complete header
-					if (message.size() <  x3dh_initMessageSize + 11 + X<Curve>::keyLength()) { //header shall be actually longer because buffer passed is the whole message
+
+					//header shall be actually longer because buffer passed is the whole message
+					if (message.size() <  x3dh_initMessageSize + headerSize<Curve>()) {
 						return false;
 					}
+
 					// copy the message in the output buffer
 					X3DH_initMessage.assign(message.begin()+3, message.begin()+3+x3dh_initMessageSize);
 				}
@@ -211,11 +222,9 @@ namespace lime {
 		 */
 		template <typename Curve>
 		DRHeader<Curve>::DRHeader(const std::vector<uint8_t> header) : m_Ns{0},m_PN{0},m_DHs{},m_valid{false},m_size{0}{ // init valid to false and check during parsing if all is ok
-			// if we don't have a least a minimal size, just return, valid is set to false
 			// make sure we have at least enough data to parse version<1 byte> || message type<1 byte> || curve Id<1 byte> || [x3dh init] || OPk flag without any ulterior checks on size
-			// getting these 4 bytes allow us to compute the expected size of header
-			if (header.size()<4) {
-				return;
+			if (header.size()<headerSize<Curve>()) {
+				return; // the valid_flag is false
 			}
 
 			switch (header[0]) { // header[0] contains DR protocol version
@@ -230,7 +239,7 @@ namespace lime {
 							// 		Ns<4 bytes> ||
 							// 		PN <4 bytes> ||
 							// 		DHs < X<Curve>::keyLength() >
-							m_size = 11 + X<Curve>::keyLength();
+							m_size = headerSize<Curve>(); // headerSize is the size when no X3DJ init is present
 							if (header.size() >=  m_size) { //header shall be actually longer because buffer pass is the whole message
 								m_Ns = header[3]<<24|header[4]<<16|header[5]<<8|header[6];
 								m_PN = header[7]<<24|header[8]<<16|header[9]<<8|header[10];
@@ -256,7 +265,7 @@ namespace lime {
 							if (header[3] == 1) { // there is an OPk
 								x3dh_initMessageSize += 4;
 							}
-							m_size = 11 + X<Curve>::keyLength() + x3dh_initMessageSize;
+							m_size = headerSize<Curve>() + x3dh_initMessageSize;
 
 							// X3DH init message is processed separatly, just take care of the DR header values
 							if (header.size() >=  m_size) { //header shall be actually longer because buffer pass is the whole message
