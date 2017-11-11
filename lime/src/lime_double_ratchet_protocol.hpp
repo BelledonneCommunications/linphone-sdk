@@ -77,7 +77,7 @@ namespace lime {
 		 * @param[in]	X3DH_initMessage	A buffer holding an X3DH init message to be inserted in header, if empty packet type is set to regular
 		 */
 		template <typename Curve>
-		void buildMessage_header(std::vector<uint8_t> &header, const uint32_t Ns, const uint32_t PN, const X<Curve> &DHs, const std::vector<uint8_t> X3DH_initMessage) noexcept;
+		void buildMessage_header(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const X<Curve> &DHs, const std::vector<uint8_t> X3DH_initMessage) noexcept;
 
 		/**
 		 * DR message header: helper class and functions to parse message header and access its components
@@ -86,7 +86,7 @@ namespace lime {
 		 template <typename Curve>
 		 class DRHeader {
 			private:
-				uint32_t m_Ns,m_PN; // Sender chain and Previous Sender chain indexes.
+				uint16_t m_Ns,m_PN; // Sender chain and Previous Sender chain indexes.
 				X<Curve> m_DHs; // Public key
 				bool m_valid; // is this header valid?
 				size_t m_size; // store the size of parsed header
@@ -110,7 +110,7 @@ namespace lime {
 		extern template void buildMessage_X3DHinit<C255>(std::vector<uint8_t> &message, const ED<C255> &Ik, const X<C255> &Ek, const uint32_t SPk_id, const uint32_t OPk_id, const bool OPk_flag) noexcept;
 		extern template void parseMessage_X3DHinit<C255>(const std::vector<uint8_t>message, ED<C255> &Ik, X<C255> &Ek, uint32_t &SPk_id, uint32_t &OPk_id, bool &OPk_flag) noexcept;
 		extern template bool parseMessage_get_X3DHinit<C255>(const std::vector<uint8_t> &message, std::vector<uint8_t> &X3DH_initMessage) noexcept;
-		extern template void buildMessage_header<C255>(std::vector<uint8_t> &header, const uint32_t Ns, const uint32_t PN, const X<C255> &DHs, const std::vector<uint8_t> X3DH_initMessage) noexcept;
+		extern template void buildMessage_header<C255>(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const X<C255> &DHs, const std::vector<uint8_t> X3DH_initMessage) noexcept;
 		extern template class DRHeader<C255>;
 #endif
 
@@ -118,7 +118,7 @@ namespace lime {
 		extern template void buildMessage_X3DHinit<C448>(std::vector<uint8_t> &message, const ED<C448> &Ik, const X<C448> &Ek, const uint32_t SPk_id, const uint32_t OPk_id, const bool OPk_flag) noexcept;
 		extern template void parseMessage_X3DHinit<C448>(const std::vector<uint8_t>message, ED<C448> &Ik, X<C448> &Ek, uint32_t &SPk_id, uint32_t &OPk_id, bool &OPk_flag) noexcept;
 		extern template bool parseMessage_get_X3DHinit<C448>(const std::vector<uint8_t> &message, std::vector<uint8_t> &X3DH_initMessage) noexcept;
-		extern template void buildMessage_header<C448>(std::vector<uint8_t> &header, const uint32_t Ns, const uint32_t PN, const X<C448> &DHs, const std::vector<uint8_t> X3DH_initMessage) noexcept;
+		extern template void buildMessage_header<C448>(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const X<C448> &DHs, const std::vector<uint8_t> X3DH_initMessage) noexcept;
 		extern template class DRHeader<C448>;
 #endif
 		/* These constants are needed only for tests purpose, otherwise their usage is internal only */

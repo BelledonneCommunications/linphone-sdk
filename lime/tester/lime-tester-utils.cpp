@@ -151,22 +151,22 @@ bool DR_message_holdsX3DHInit(std::vector<uint8_t> &message) {
 	if (message[1] !=static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::x3dhinit)) return false;
 
 	// check packet length, packet is :
-	// header<3 bytes>, X3DH init packet, Ns+PN<8 bytes>, DHs<X<Curve>::keyLength>, Cipher message Key+tag: DRMessageKey + DRMessageIV <48 bytes>, key auth tag<16 bytes> = <75 + X<Curve>::keyLengh + X3DH init size>
+	// header<3 bytes>, X3DH init packet, Ns+PN<4 bytes>, DHs<X<Curve>::keyLength>, Cipher message Key+tag: DRMessageKey + DRMessageIV <48 bytes>, key auth tag<16 bytes> = <71 + X<Curve>::keyLengh + X3DH init size>
 	// X3DH init size = OPk_flag<1 byte> + selfIK<ED<Curve>::keyLength> + EK<X<Curve>::keyLenght> + SPk id<4 bytes> + OPk id (if flag is 1)<4 bytes>
 	switch (message[2]) {
 		case static_cast<uint8_t>(lime::CurveId::c25519):
 			if (message[3] == 0x00) { // no OPk in the X3DH init message
-				if (message.size() != (75 + X<C255>::keyLength() + 5 + ED<C255>::keyLength() + X<C255>::keyLength())) return false;
+				if (message.size() != (71 + X<C255>::keyLength() + 5 + ED<C255>::keyLength() + X<C255>::keyLength())) return false;
 			} else { // OPk present in the X3DH init message
-				if (message.size() != (75 + X<C255>::keyLength() + 9 + ED<C255>::keyLength() + X<C255>::keyLength())) return false;
+				if (message.size() != (71 + X<C255>::keyLength() + 9 + ED<C255>::keyLength() + X<C255>::keyLength())) return false;
 			}
 			return true;
 		break;
 		case static_cast<uint8_t>(lime::CurveId::c448):
 			if (message[3] == 0x00) { // no OPk in the X3DH init message
-				if (message.size() != (75 + X<C448>::keyLength() + 5 + ED<C448>::keyLength() + X<C448>::keyLength())) return false;
+				if (message.size() != (71 + X<C448>::keyLength() + 5 + ED<C448>::keyLength() + X<C448>::keyLength())) return false;
 			} else { // OPk present in the X3DH init message
-				if (message.size() != (75 + X<C448>::keyLength() + 9 + ED<C448>::keyLength() + X<C448>::keyLength())) return false;
+				if (message.size() != (71 + X<C448>::keyLength() + 9 + ED<C448>::keyLength() + X<C448>::keyLength())) return false;
 			}
 			return true;
 
@@ -193,7 +193,7 @@ bool DR_message_extractX3DHInit(std::vector<uint8_t> &message, std::vector<uint8
 	}
 
 	// copy it in buffer
-	X3DH_initMessage.assign(message.begin()+4, message.begin()+4+X3DH_length);
+	X3DH_initMessage.assign(message.begin()+3, message.begin()+3+X3DH_length);
 	return true;
 }
 

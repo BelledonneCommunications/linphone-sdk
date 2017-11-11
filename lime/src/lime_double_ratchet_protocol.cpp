@@ -37,7 +37,7 @@ namespace lime {
 		 * Supported version description :
 		 *
 		 * Version 0x01:
-		 *	DRHeader is: Protocol Version Number<1 byte> || Packet Type <1 byte> || curveId <1 byte> || [X3DH Init message <variable>] || Ns<4 bytes> || PN<4 bytes> || DHs<...>
+		 *	DRHeader is: Protocol Version Number<1 byte> || Packet Type <1 byte> || curveId <1 byte> || [X3DH Init message <variable>] || Ns<2 bytes> || PN<2 bytes> || DHs<...>
 		 *	Message is : DRheaer<...> || cipherMessageKeyK<48 bytes> || Key auth tag<16 bytes> || cipherText<...> || Message auth tag<16 bytes>
 		 *
 		 *	Associated Data are transmitted separately: ADk for the Key auth tag, and ADm for the Message auth tag
@@ -59,12 +59,12 @@ namespace lime {
 
 		/**
 		 * @brief return the size of the double ratchet packet header
-		 * header is: Protocol Version Number<1 byte> || Packet Type <1 byte> || curveId <1 byte> || [X3DH Init message <variable>] || Ns<4 bytes> || PN<4 bytes> || DHs<...>
+		 * header is: Protocol Version Number<1 byte> || Packet Type <1 byte> || curveId <1 byte> || [X3DH Init message <variable>] || Ns<2 bytes> || PN<2 bytes> || DHs<...>
 		 * This function return the size without optionnal X3DH init packet
 		 */
 		template <typename Curve>
 		constexpr size_t headerSize() {
-			return 11 + X<Curve>::keyLength();
+			return 7 + X<Curve>::keyLength();
 		}
 
 		/**
@@ -149,7 +149,7 @@ namespace lime {
 		template <typename Curve>
 		bool parseMessage_get_X3DHinit(const std::vector<uint8_t> &message, std::vector<uint8_t> &X3DH_initMessage) noexcept {
 			// we need to parse the first 4 bytes of the packet to determine if we have a valid one and an X3DH init in it
-			if (message.size()<4) {
+			if (message.size()<headerSize<Curve>()) {
 				return false;
 			}
 
@@ -183,7 +183,7 @@ namespace lime {
 
 		/**
 		 * @brief Build a header string from needed info
-		 *	header is: Protocol Version Number<1 byte> || Packet Type <1 byte> || curveId <1 byte> || [X3DH Init message <variable>] || Ns<4 bytes> || PN<4 bytes> || DHs<...>
+		 *	header is: Protocol Version Number<1 byte> || Packet Type <1 byte> || curveId <1 byte> || [X3DH Init message <variable>] || Ns<2 bytes> || PN<2 bytes> || DHs<...>
 		 *
 		 * @param[out]	header			output buffer
 		 * @param[in]	Ns			Index of sending chain
@@ -192,9 +192,9 @@ namespace lime {
 		 * @param[in]	X3DH_initMessage	A buffer holding an X3DH init message to be inserted in header, if empty packet type is set to regular
 		 */
 		template <typename Curve>
-		void buildMessage_header(std::vector<uint8_t> &header, const uint32_t Ns, const uint32_t PN, const X<Curve> &DHs, const std::vector<uint8_t> X3DH_initMessage) noexcept {
+		void buildMessage_header(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const X<Curve> &DHs, const std::vector<uint8_t> X3DH_initMessage) noexcept {
 			// Header is one buffer composed of:
-			// Version Number<1 byte> || packet Type <1 byte> || curve Id <1 byte> || [<x3d init <variable>] || Ns <4 bytes> || PN <4 bytes> || Key type byte Id(1 byte) || self public key<DHKey::size bytes>
+			// Version Number<1 byte> || packet Type <1 byte> || curve Id <1 byte> || [<x3d init <variable>] || Ns <2 bytes> || PN <2 bytes> || Key type byte Id(1 byte) || self public key<DHKey::size bytes>
 			header.assign(1, static_cast<uint8_t>(double_ratchet_protocol::DR_v01));
 			if (X3DH_initMessage.size()>0) { // we do have an X3DH init message to insert in the header
 				header.push_back(static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::x3dhinit));
@@ -204,12 +204,8 @@ namespace lime {
 				header.push_back(static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::regular));
 				header.push_back(static_cast<uint8_t>(Curve::curveId()));
 			}
-			header.push_back((uint8_t)((Ns>>24)&0xFF));
-			header.push_back((uint8_t)((Ns>>16)&0xFF));
 			header.push_back((uint8_t)((Ns>>8)&0xFF));
 			header.push_back((uint8_t)(Ns&0xFF));
-			header.push_back((uint8_t)((PN>>24)&0xFF));
-			header.push_back((uint8_t)((PN>>16)&0xFF));
 			header.push_back((uint8_t)((PN>>8)&0xFF));
 			header.push_back((uint8_t)(PN&0xFF));
 			header.insert(header.end(), DHs.begin(), DHs.end());
@@ -236,14 +232,13 @@ namespace lime {
 							// header is :	Version<1 byte> ||
 							// 		packet type <1 byte> ||
 							// 		curve id <1 byte> ||
-							// 		Ns<4 bytes> ||
-							// 		PN <4 bytes> ||
+							// 		Ns<2 bytes> || PN <2 bytes> ||
 							// 		DHs < X<Curve>::keyLength() >
 							m_size = headerSize<Curve>(); // headerSize is the size when no X3DJ init is present
 							if (header.size() >=  m_size) { //header shall be actually longer because buffer pass is the whole message
-								m_Ns = header[3]<<24|header[4]<<16|header[5]<<8|header[6];
-								m_PN = header[7]<<24|header[8]<<16|header[9]<<8|header[10];
-								m_DHs = X<Curve>{header.data()+11}; // DH key start after header other infos
+								m_Ns = header[3]<<8|header[4];
+								m_PN = header[5]<<8|header[6];
+								m_DHs = X<Curve>{header.data()+7}; // DH key start after header other infos
 								m_valid = true;
 							}
 						break;
@@ -253,7 +248,7 @@ namespace lime {
 							// 		packet type <1 byte> ||
 							// 		curve id <1 byte> ||
 							// 		x3dh init message <variable> ||
-							// 		Ns<4 bytes> || PN <4 bytes> ||
+							// 		Ns<2 bytes> || PN <2 bytes> ||
 							// 		DHs < X<Curve>::keyLength() >
 							//
 							// x3dh init is : 	haveOPk <flag 1 byte : 0 no OPk, 1 OPk > ||
@@ -269,9 +264,9 @@ namespace lime {
 
 							// X3DH init message is processed separatly, just take care of the DR header values
 							if (header.size() >=  m_size) { //header shall be actually longer because buffer pass is the whole message
-								m_Ns = header[3+x3dh_initMessageSize]<<24|header[4+x3dh_initMessageSize]<<16|header[5+x3dh_initMessageSize]<<8|header[6+x3dh_initMessageSize];
-								m_PN = header[7+x3dh_initMessageSize]<<24|header[8+x3dh_initMessageSize]<<16|header[9+x3dh_initMessageSize]<<8|header[10+x3dh_initMessageSize];
-								m_DHs = X<Curve>{header.data()+11+x3dh_initMessageSize}; // DH key start after header other infos
+								m_Ns = header[3+x3dh_initMessageSize]<<8|header[4+x3dh_initMessageSize];
+								m_PN = header[5+x3dh_initMessageSize]<<8|header[6+x3dh_initMessageSize];
+								m_DHs = X<Curve>{header.data()+7+x3dh_initMessageSize}; // DH key start after header other infos
 								m_valid = true;
 							}
 						}
@@ -291,7 +286,7 @@ namespace lime {
 		template void buildMessage_X3DHinit<C255>(std::vector<uint8_t> &message, const ED<C255> &Ik, const X<C255> &Ek, const uint32_t SPk_id, const uint32_t OPk_id, const bool OPk_flag) noexcept;
 		template void parseMessage_X3DHinit<C255>(const std::vector<uint8_t>message, ED<C255> &Ik, X<C255> &Ek, uint32_t &SPk_id, uint32_t &OPk_id, bool &OPk_flag) noexcept;
 		template bool parseMessage_get_X3DHinit<C255>(const std::vector<uint8_t> &message, std::vector<uint8_t> &X3DH_initMessage) noexcept;
-		template void buildMessage_header<C255>(std::vector<uint8_t> &header, const uint32_t Ns, const uint32_t PN, const X<C255> &DHs, const std::vector<uint8_t> X3DH_initMessage) noexcept;
+		template void buildMessage_header<C255>(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const X<C255> &DHs, const std::vector<uint8_t> X3DH_initMessage) noexcept;
 		template class DRHeader<C255>;
 #endif
 
@@ -299,7 +294,7 @@ namespace lime {
 		template void buildMessage_X3DHinit<C448>(std::vector<uint8_t> &message, const ED<C448> &Ik, const X<C448> &Ek, const uint32_t SPk_id, const uint32_t OPk_id, const bool OPk_flag) noexcept;
 		template void parseMessage_X3DHinit<C448>(const std::vector<uint8_t>message, ED<C448> &Ik, X<C448> &Ek, uint32_t &SPk_id, uint32_t &OPk_id, bool &OPk_flag) noexcept;
 		template bool parseMessage_get_X3DHinit<C448>(const std::vector<uint8_t> &message, std::vector<uint8_t> &X3DH_initMessage) noexcept;
-		template void buildMessage_header<C448>(std::vector<uint8_t> &header, const uint32_t Ns, const uint32_t PN, const X<C448> &DHs, const std::vector<uint8_t> X3DH_initMessage) noexcept;
+		template void buildMessage_header<C448>(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const X<C448> &DHs, const std::vector<uint8_t> X3DH_initMessage) noexcept;
 		template class DRHeader<C448>;
 #endif
 

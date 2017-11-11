@@ -328,7 +328,7 @@ bool DR<DHKey>::session_save() {
 			m_localStorage->sql<<"select last_insert_rowid()",into(DHid); // WARNING: unportable code, sqlite3 only, see above for more details on similar issue
 		}
 		// insert all the skipped key in the chain
-		uint32_t Nr;
+		uint16_t Nr;
 		blob MK(m_localStorage->sql);
 		statement st = (m_localStorage->sql.prepare << "INSERT INTO DR_MSk_MK(DHid,Nr,MK) VALUES(:DHid,:Nr,:Mk)", use(DHid), use(Nr), use(MK));
 
@@ -341,7 +341,7 @@ bool DR<DHKey>::session_save() {
 
 	// Now do the cleaning(remove unused row from DR_MKs_DHr table) if needed
 	if (MSk_DHr_Clean == true) {
-		uint32_t Nr;
+		uint16_t Nr;
 		m_localStorage->sql<<"SELECT Nr from DR_MSk_MK WHERE DHid = :DHid LIMIT 1;", into(Nr), use(m_usedDHid);
 		if (!m_localStorage->sql.got_data()) { // no more MK with this DHid, remove it
 			m_localStorage->sql<<"DELETE from DR_MSk_DHr WHERE DHid = :DHid;", use(m_usedDHid);
@@ -393,7 +393,7 @@ bool DR<DHKey>::session_load() {
 };
 
 template <typename Curve>
-bool DR<Curve>::trySkippedMessageKeys(const uint32_t Nr, const X<Curve> &DHr, DRMKey &MK) {
+bool DR<Curve>::trySkippedMessageKeys(const uint16_t Nr, const X<Curve> &DHr, DRMKey &MK) {
 	blob MK_blob(m_localStorage->sql);
 	blob DHr_blob(m_localStorage->sql);
 	DHr_blob.write(0, (char *)(DHr.data()), DHr.size());
@@ -415,13 +415,13 @@ bool DR<Curve>::trySkippedMessageKeys(const uint32_t Nr, const X<Curve> &DHr, DR
 #ifdef EC25519_ENABLED
 	template bool DR<C255>::session_load();
 	template bool DR<C255>::session_save();
-	template bool DR<C255>::trySkippedMessageKeys(const uint32_t Nr, const X<C255> &DHr, DRMKey &MK);
+	template bool DR<C255>::trySkippedMessageKeys(const uint16_t Nr, const X<C255> &DHr, DRMKey &MK);
 #endif
 
 #ifdef EC448_ENABLED
 	template bool DR<C448>::session_load();
 	template bool DR<C448>::session_save();
-	template bool DR<C448>::trySkippedMessageKeys(const uint32_t Nr, const X<C448> &DHr, DRMKey &MK);
+	template bool DR<C448>::trySkippedMessageKeys(const uint16_t Nr, const X<C448> &DHr, DRMKey &MK);
 #endif
 
 /******************************************************************************/

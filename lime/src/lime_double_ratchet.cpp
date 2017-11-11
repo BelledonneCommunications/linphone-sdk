@@ -235,7 +235,7 @@ namespace lime {
 	 *	@throws		when we try to overpass the maximum number of key derivation since last valid message
 	 */
 	template <typename Curve>
-	void DR<Curve>::skipMessageKeys(const uint32_t until, const uint32_t limit) {
+	void DR<Curve>::skipMessageKeys(const uint16_t until, const int limit) {
 		if (m_Nr==until) return; // just to be sure we actually have MK to derive and store
 
 		// check if there are not too much message keys to derive in this chain
@@ -359,7 +359,7 @@ namespace lime {
 
 
 		DRMKey MK;
-		int32_t maxAllowedDerivation = lime::settings::maxMessageSkip;
+		int maxAllowedDerivation = lime::settings::maxMessageSkip;
 		m_dirty = DRSessionDbStatus::dirty_decrypt; // we're about to modify the DR session, it will not be in sync anymore with local storage
 		if (!m_DHr_valid) { // it's the first message arriving after the initialisation of the chain in receiver mode, we have no existing history in this chain
 			DHRatchet(header.DHs()); // just perform the DH ratchet step
@@ -391,7 +391,7 @@ namespace lime {
 		}
 
 		// in the derivation limit we remove the derivation done in the previous DH rachet key chain
-		skipMessageKeys(header.Ns(), static_cast<uint32_t>(maxAllowedDerivation)); // maxAllowedDerivation cannot actually be negative or an exception is raised in previous call to skipMessageKeys
+		skipMessageKeys(header.Ns(), maxAllowedDerivation); // maxAllowedDerivation cannot actually be negative or an exception is raised in previous call to skipMessageKeys
 
 		// generate key material for decryption(and derive Chain key)
 		KDF_CK(m_CKr, MK);

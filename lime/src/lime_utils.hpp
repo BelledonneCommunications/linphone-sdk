@@ -46,11 +46,16 @@ namespace settings {
 	constexpr size_t DRMessageAuthTagSize=16;
 
 	// Each session stores a shared AD given at built and derived from Identity keys of sender and receiver
-	// SharedAD is computed by X3DH as SHA256(Identity Key Sender|Identity Key Receiver)
+	// SharedAD is computed by X3DH HKDF(session Initiator Ik || session receiver Ik || session Initiator device Id || session receiver device Id)
 	constexpr size_t DRSessionSharedADSize=32;
 
 	// Maximum number of Message we can skip(and store their keys) at reception of one message
-	constexpr std::uint32_t maxMessageSkip=1024;
+	constexpr std::uint16_t maxMessageSkip=1024;
+
+	// Maximum length of Sending chain: is this count is reached without any return from peer,
+	// the DR session is set to stale and we must create another one to send messages
+	// Can't be more than 2^16 as message number is send on 2 bytes
+	constexpr std::uint16_t maxSendingChain=1000;
 
 /******************************************************************************/
 /*                                                                            */
