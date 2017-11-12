@@ -391,7 +391,7 @@ namespace lime {
 		}
 
 		// in the derivation limit we remove the derivation done in the previous DH rachet key chain
-		skipMessageKeys(header.Ns(), maxAllowedDerivation); // maxAllowedDerivation cannot actually be negative or an exception is raised in previous call to skipMessageKeys
+		skipMessageKeys(header.Ns(), maxAllowedDerivation);
 
 		// generate key material for decryption(and derive Chain key)
 		KDF_CK(m_CKr, MK);
@@ -473,7 +473,15 @@ namespace lime {
 		std::array<uint8_t,lime::settings::DRMessageKeySize+lime::settings::DRMessageIVSize> randomKey; /* use the same size than the one used internally by Double Ratchet */
 
 		for (auto& DRSession : DRSessions) {
-			if(DRSession->ratchetDecrypt(cipherHeader, AD, randomKey) == true) { // we got the random key correctly deciphered
+			bool decryptStatus = false;
+			try {
+				decryptStatus = DRSession->ratchetDecrypt(cipherHeader, AD, randomKey);
+			} catch (BctbxException &e) { // any bctbx Exception is just considered as decryption failed (it shall occurs only in case of maximum skipped keys reached)
+				bctbx_warning("Double Ratchet session failed to decrypt message and raised an exception saying : %s", e.what());
+				decryptStatus = false; // lets keep trying with other sessions if provided
+			}
+
+			if (decryptStatus == true) { // we got the random key correctly deciphered
 				// recompute the AD used for this encryption: source Device Id || recipient User Id
 				std::vector<uint8_t> localAD{sourceDeviceId.begin(), sourceDeviceId.end()};
 				localAD.insert(localAD.end(), recipientUserId.begin(), recipientUserId.end());
