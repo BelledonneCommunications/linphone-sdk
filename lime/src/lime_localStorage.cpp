@@ -296,14 +296,14 @@ bool DR<DHKey>::session_save() {
 				}
 					break;
 				case DRSessionDbStatus::dirty_encrypt: // encrypt modifies: CKs and Ns
-				case DRSessionDbStatus::clean: // encrypt modifies: CKs and Ns
 				{
 					blob CKs(m_localStorage->sql);
 					CKs.write(0, (char *)(m_CKs.data()), m_CKs.size());
 					m_localStorage->sql<<"UPDATE DR_sessions SET Ns= :Ns, CKs= :CKs WHERE sessionId = :sessionId;", use(m_Ns), use(CKs), use(m_dbSessionId);
 				}
 					break;
-				default: // Session is clean? So why have we been called?
+				case DRSessionDbStatus::clean: // Session is clean? So why have we been called?
+				default:
 					bctbx_error("Double ratchet session saved call on sessionId %ld but sessions appears to be clean", m_dbSessionId);
 					break;
 			}
