@@ -97,7 +97,7 @@ static void managersClean(std::unique_ptr<LimeManager> &alice, std::unique_ptr<L
  * - bob.d1 encrypt to Alice (it must use the alice created session, we have no easy way to check that at this point)
  * - alice.d decrypt, it will move its active session back to the one originally created, now devices are in sync on one session.
  */
-static void multiple_DRsessions_test(const lime::CurveId curve, const std::string &dbBaseFilename, const std::string &x3dh_server_url, bool continuousSession=true) {
+static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::string &dbBaseFilename, const std::string &x3dh_server_url, bool continuousSession=true) {
 	// create DB
 	std::string dbFilenameAlice{dbBaseFilename};
 	dbFilenameAlice.append(".alice.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
@@ -303,14 +303,14 @@ static void multiple_DRsessions_test(const lime::CurveId curve, const std::strin
 
 }
 
-static void multiple_DRsessions(void) {
+static void x3dh_multiple_DRsessions(void) {
 #ifdef EC25519_ENABLED
-	multiple_DRsessions_test(lime::CurveId::c25519, "lime_x3dh_multiple_DRsessions", "https://localhost:25519");
-	multiple_DRsessions_test(lime::CurveId::c25519, "lime_x3dh_multiple_DRsessions", "https://localhost:25519", false);
+	x3dh_multiple_DRsessions_test(lime::CurveId::c25519, "lime_x3dh_multiple_DRsessions", "https://localhost:25519");
+	x3dh_multiple_DRsessions_test(lime::CurveId::c25519, "lime_x3dh_multiple_DRsessions", "https://localhost:25519", false);
 #endif
 #ifdef EC448_ENABLED
-	multiple_DRsessions_test(lime::CurveId::c448, "lime_x3dh_multiple_DRsessions", "https://localhost:25520");
-	multiple_DRsessions_test(lime::CurveId::c448, "lime_x3dh_multiple_DRsessions", "https://localhost:25520", false);
+	x3dh_multiple_DRsessions_test(lime::CurveId::c448, "lime_x3dh_multiple_DRsessions", "https://localhost:25520");
+	x3dh_multiple_DRsessions_test(lime::CurveId::c448, "lime_x3dh_multiple_DRsessions", "https://localhost:25520", false);
 #endif
 }
 
@@ -327,7 +327,7 @@ static void multiple_DRsessions(void) {
  * - bob.d4 : test enqueue and must start an asynchronous X3DH request when back
  *
  */
-static void multidev_x3dh_operation_queue_test(const lime::CurveId curve, const std::string &dbBaseFilename, const std::string &x3dh_server_url, bool continuousSession=true) {
+static void x3dh_multidev_operation_queue_test(const lime::CurveId curve, const std::string &dbBaseFilename, const std::string &x3dh_server_url, bool continuousSession=true) {
 	// create DB
 	std::string dbFilenameAlice{dbBaseFilename};
 	dbFilenameAlice.append(".alice.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
@@ -539,14 +539,15 @@ static void multidev_x3dh_operation_queue_test(const lime::CurveId curve, const 
 		return; // no reason to continue the test
 	}
 }
-static void multidev_x3dh_operation_queue(void) {
+
+static void x3dh_multidev_operation_queue(void) {
 #ifdef EC25519_ENABLED
-	multidev_x3dh_operation_queue_test(lime::CurveId::c25519, "lime_x3dh_multidev_operation_queue", "https://localhost:25519");
-	multidev_x3dh_operation_queue_test(lime::CurveId::c25519, "lime_x3dh_multidev_operation_queue", "https://localhost:25519", false);
+	x3dh_multidev_operation_queue_test(lime::CurveId::c25519, "lime_x3dh_multidev_operation_queue", "https://localhost:25519");
+	x3dh_multidev_operation_queue_test(lime::CurveId::c25519, "lime_x3dh_multidev_operation_queue", "https://localhost:25519", false);
 #endif
 #ifdef EC448_ENABLED
-	multidev_x3dh_operation_queue_test(lime::CurveId::c448, "lime_x3dh_multidev_operation_queue", "https://localhost:25520");
-	multidev_x3dh_operation_queue_test(lime::CurveId::c448, "lime_x3dh_multidev_operation_queue", "https://localhost:25520", false);
+	x3dh_multidev_operation_queue_test(lime::CurveId::c448, "lime_x3dh_multidev_operation_queue", "https://localhost:25520");
+	x3dh_multidev_operation_queue_test(lime::CurveId::c448, "lime_x3dh_multidev_operation_queue", "https://localhost:25520", false);
 #endif
 }
 
@@ -559,7 +560,7 @@ static void multidev_x3dh_operation_queue(void) {
  *
  * if continuousSession is set to false, delete and recreate LimeManager before each new operation to force relying on local Storage
  */
-static void basic_x3dh_operation_queue_test(const lime::CurveId curve, const std::string &dbBaseFilename, const std::string &x3dh_server_url, bool continuousSession=true) {
+static void x3dh_operation_queue_test(const lime::CurveId curve, const std::string &dbBaseFilename, const std::string &x3dh_server_url, bool continuousSession=true) {
 	// create DB
 	std::string dbFilenameAlice{dbBaseFilename};
 	dbFilenameAlice.append(".alice.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
@@ -670,14 +671,15 @@ static void basic_x3dh_operation_queue_test(const lime::CurveId curve, const std
 		return; // no reason to continue the test
 	}
 }
-static void basic_x3dh_operation_queue(void) {
+
+static void x3dh_operation_queue(void) {
 #ifdef EC25519_ENABLED
-	basic_x3dh_operation_queue_test(lime::CurveId::c25519, "lime_x3dh_operation_queue", "https://localhost:25519");
-	basic_x3dh_operation_queue_test(lime::CurveId::c25519, "lime_x3dh_operation_queue", "https://localhost:25519", false);
+	x3dh_operation_queue_test(lime::CurveId::c25519, "lime_x3dh_operation_queue", "https://localhost:25519");
+	x3dh_operation_queue_test(lime::CurveId::c25519, "lime_x3dh_operation_queue", "https://localhost:25519", false);
 #endif
 #ifdef EC448_ENABLED
-	basic_x3dh_operation_queue_test(lime::CurveId::c448, "lime_x3dh_operation_queue", "https://localhost:25520");
-	basic_x3dh_operation_queue_test(lime::CurveId::c448, "lime_x3dh_operation_queue", "https://localhost:25520", false);
+	x3dh_operation_queue_test(lime::CurveId::c448, "lime_x3dh_operation_queue", "https://localhost:25520");
+	x3dh_operation_queue_test(lime::CurveId::c448, "lime_x3dh_operation_queue", "https://localhost:25520", false);
 #endif
 }
 
@@ -696,7 +698,7 @@ static void basic_x3dh_operation_queue(void) {
  * if continuousSession is set to false, delete and recreate LimeManager before each new operation to force relying on local Storage
  * Note: no asynchronous operation will start before the previous is over(callback returns)
  */
-static void basic_x3dh_startup_test(const lime::CurveId curve, const std::string &dbBaseFilename, const std::string &x3dh_server_url, bool continuousSession=true) {
+static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBaseFilename, const std::string &x3dh_server_url, bool continuousSession=true) {
 	// create DB
 	std::string dbFilenameAlice{dbBaseFilename};
 	dbFilenameAlice.append(".alice.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
@@ -952,14 +954,14 @@ static void basic_x3dh_startup_test(const lime::CurveId curve, const std::string
 	}
 }
 
-static void basic_x3dh_startup(void) {
+static void x3dh_basic(void) {
 #ifdef EC25519_ENABLED
-	basic_x3dh_startup_test(lime::CurveId::c25519, "lime_x3dh_basic", "https://localhost:25519");
-	basic_x3dh_startup_test(lime::CurveId::c25519, "lime_x3dh_basic", "https://localhost:25519", false);
+	x3dh_basic_test(lime::CurveId::c25519, "lime_x3dh_basic", "https://localhost:25519");
+	x3dh_basic_test(lime::CurveId::c25519, "lime_x3dh_basic", "https://localhost:25519", false);
 #endif
 #ifdef EC448_ENABLED
-	basic_x3dh_startup_test(lime::CurveId::c448, "lime_x3dh_basic", "https://localhost:25520");
-	basic_x3dh_startup_test(lime::CurveId::c448, "lime_x3dh_basic", "https://localhost:25520", false);
+	x3dh_basic_test(lime::CurveId::c448, "lime_x3dh_basic", "https://localhost:25520");
+	x3dh_basic_test(lime::CurveId::c448, "lime_x3dh_basic", "https://localhost:25520", false);
 #endif
 }
 
@@ -1124,13 +1126,12 @@ static void user_management(void) {
 #endif
 }
 
-/* TODO : test for decryption with stale device and message being held: Bob send to Alice, message is held, Bob crash and generate a new Ik but keep its device Id. Held message shall still decrypt */
 static test_t tests[] = {
 	TEST_NO_TAG("User Management", user_management),
-	TEST_NO_TAG("Basic X3DH", basic_x3dh_startup),
-	TEST_NO_TAG("Queued encryption", basic_x3dh_operation_queue),
-	TEST_NO_TAG("Multi devices queued encryption", multidev_x3dh_operation_queue),
-	TEST_NO_TAG("Multiple sessions between pair", multiple_DRsessions),
+	TEST_NO_TAG("Basic", x3dh_basic),
+	TEST_NO_TAG("Queued encryption", x3dh_operation_queue),
+	TEST_NO_TAG("Multi devices queued encryption", x3dh_multidev_operation_queue),
+	TEST_NO_TAG("Multiple sessions between pair", x3dh_multiple_DRsessions),
 };
 
 test_suite_t lime_lime_test_suite = {
