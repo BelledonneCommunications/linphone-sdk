@@ -89,6 +89,172 @@ static void managersClean(std::unique_ptr<LimeManager> &alice, std::unique_ptr<L
 	bctbx_message("Trash and reload alice and bob LimeManagers");
 }
 
+/* Alice encrypt to bob, bob replies so session is fully established, then alice encrypt more tjan maxSendingChain message so we must start a new session with bob
+ * - alice.d1 and bob.d1 exchange messages
+ * - alice encrypt maxSendingChain messages, bob never reply, no real need to decryp them, just check they are not holding X3DH init message
+ * - alice encrypt one more message, it shall trigger new session creation so message will hold an X3DH init, decrypt it just to check bob can hold the session change
+ */
+static void x3dh_sending_chain_limit_test(const lime::CurveId curve, const std::string &dbBaseFilename, const std::string &x3dh_server_url, bool continuousSession=true) {
+	// create DB
+	std::string dbFilenameAlice{dbBaseFilename};
+	dbFilenameAlice.append(".alice.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
+	std::string dbFilenameBob{dbBaseFilename};
+	dbFilenameBob.append(".bob.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
+
+	remove(dbFilenameAlice.data()); // delete the database file if already exists
+	remove(dbFilenameBob.data()); // delete the database file if already exists
+
+	events_counters_t counters={};
+	int expected_success=0;
+
+	limeCallback callback([&counters](lime::callbackReturn returnCode, std::string anythingToSay) {
+					if (returnCode == lime::callbackReturn::success) {
+						counters.operation_success++;
+					} else {
+						counters.operation_failed++;
+						bctbx_error("Lime operation failed : %s", anythingToSay.data());
+					}
+				});
+
+	// create Manager
+	auto aliceManager = make_unique<LimeManager>(dbFilenameAlice, prov);
+	auto bobManager = make_unique<LimeManager>(dbFilenameBob, prov);
+
+	// create Random devices names
+	auto aliceDevice1 = makeRandomDeviceName("alice.d1.");
+	auto bobDevice1 = makeRandomDeviceName("bob.d1.");
+
+	// create users alice.d1 and bob.d1
+	try {
+		aliceManager->create_user(*aliceDevice1, x3dh_server_url, curve, callback);
+		bobManager->create_user(*bobDevice1, x3dh_server_url, curve, callback);
+		expected_success +=2; // we have two asynchronous operation on going
+		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success, expected_success,4000)); // we must get a callback saying all went well
+		if (counters.operation_failed == 1) return; // skip the end of the test if we can't do this
+	} catch (BctbxException &e) {
+		std::cerr<<e.what()<<endl;;
+		BC_FAIL("Fail to create Lime Users");
+		return; // no reason to continue the test
+	}
+
+	// destroy and reload the Managers(tests everything is correctly saved/load from local Storage)
+	if (!continuousSession) { managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);}
+
+	// alice.d1 encrypts a message for bob.d1, bob replies
+	auto aliceRecipients = make_shared<std::vector<recipientData>>();
+	aliceRecipients->emplace_back(*bobDevice1);
+	auto aliceMessage = make_shared<std::vector<uint8_t>>(lime_messages_pattern[0].begin(), lime_messages_pattern[0].end());
+	auto aliceCipherMessage = make_shared<std::vector<uint8_t>>();
+
+	auto bobRecipients = make_shared<std::vector<recipientData>>();
+	bobRecipients->emplace_back(*aliceDevice1);
+	auto bobMessage = make_shared<const std::vector<uint8_t>>(lime_messages_pattern[1].begin(), lime_messages_pattern[1].end());
+	auto bobCipherMessage = make_shared<std::vector<uint8_t>>();
+
+	try {
+		// alice encrypt
+		aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
+		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,++expected_success,4000)); // we must get a callback saying all went well
+
+		// destroy and reload the Managers(tests everything is correctly saved/load from local Storage)
+		if (!continuousSession) { managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);}
+
+		// bob decrypt
+		std::vector<uint8_t> receivedMessage{};
+		BC_ASSERT_TRUE(DR_message_holdsX3DHInit((*aliceRecipients)[0].cipherHeader)); // new sessions created, they must convey X3DH init message
+		BC_ASSERT_TRUE(bobManager->decrypt(*bobDevice1, "bob", *aliceDevice1, (*aliceRecipients)[0].cipherHeader, *aliceCipherMessage, receivedMessage));
+		std::string receivedMessageString{receivedMessage.begin(), receivedMessage.end()};
+		BC_ASSERT_TRUE(receivedMessageString == lime_messages_pattern[0]);
+
+		// destroy and reload the Managers(tests everything is correctly saved/load from local Storage)
+		if (!continuousSession) { managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);}
+
+		// bob encrypt
+		bobManager->encrypt(*bobDevice1, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
+		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,++expected_success,4000)); // we must get a callback saying all went well
+
+		// destroy and reload the Managers(tests everything is correctly saved/load from local Storage)
+		if (!continuousSession) { managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);}
+
+		// alice decrypt
+		BC_ASSERT_FALSE(DR_message_holdsX3DHInit((*bobRecipients)[0].cipherHeader)); // Bob didn't initiate a new session created, so no X3DH init message
+		BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDevice1, "alice", *bobDevice1, (*bobRecipients)[0].cipherHeader, *bobCipherMessage, receivedMessage));
+		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
+		BC_ASSERT_TRUE(receivedMessageString == lime_messages_pattern[1]);
+	} catch (BctbxException &e) {
+		std::cerr<<e.what()<<endl;;
+		BC_FAIL("Initial session establishment between alice.d1 and bob.d2 failed");
+		return; // no reason to continue the test
+	}
+
+	try {
+		// Alice encrypt maxSendingChain messages to bob, none shall have the X3DH init
+		for (auto i=0; i<lime::settings::maxSendingChain; i++) {
+			// alice encrypt
+			aliceMessage->assign(lime_messages_pattern[i%lime_messages_pattern.size()].begin(), lime_messages_pattern[i%lime_messages_pattern.size()].end());
+			aliceCipherMessage->clear();
+			aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
+			BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,++expected_success,4000)); // we must get a callback saying all went well
+
+			// destroy and reload the Managers(tests everything is correctly saved/load from local Storage)
+			if (!continuousSession) { managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);}
+
+			BC_ASSERT_FALSE(DR_message_holdsX3DHInit((*aliceRecipients)[0].cipherHeader)); // it's an ongoing session, no X3DH init
+			/*
+			// bob decrypt, it's not really needed here but...
+			std::vector<uint8_t> receivedMessage{};
+			BC_ASSERT_TRUE(bobManager->decrypt(*bobDevice1, "bob", *aliceDevice1, (*aliceRecipients)[0].cipherHeader, *aliceCipherMessage, receivedMessage));
+			std::string receivedMessageString{receivedMessage.begin(), receivedMessage.end()};
+			BC_ASSERT_TRUE(receivedMessageString == lime_messages_pattern[i%lime_messages_pattern.size()]);
+			*/
+		}
+	} catch (BctbxException &e) {
+		std::cerr<<e.what()<<endl;;
+		BC_FAIL("Fail to encrypt long batch");
+		return; // no reason to continue the test
+	}
+
+	try {
+		// alice encrypt, we are over the maximum number, so Alice shall fetch a new key on server and start a new session
+		aliceMessage->assign(lime_messages_pattern[0].begin(), lime_messages_pattern[0].end());
+		aliceCipherMessage->clear();
+		aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
+		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,++expected_success,4000)); // we must get a callback saying all went well
+
+		// bob decrypt, it's not really needed here but...
+		std::vector<uint8_t> receivedMessage{};
+		BC_ASSERT_TRUE(DR_message_holdsX3DHInit((*aliceRecipients)[0].cipherHeader)); // we started a new session
+		BC_ASSERT_TRUE(bobManager->decrypt(*bobDevice1, "bob", *aliceDevice1, (*aliceRecipients)[0].cipherHeader, *aliceCipherMessage, receivedMessage));
+		std::string receivedMessageString{receivedMessage.begin(), receivedMessage.end()};
+		BC_ASSERT_TRUE(receivedMessageString == lime_messages_pattern[0]);
+	} catch (BctbxException &e) {
+		std::cerr<<e.what()<<endl;;
+		BC_FAIL("Fail final exchange");
+		return; // no reason to continue the test
+	}
+
+	// delete the users so the remote DB will be clean too
+	try {
+		aliceManager->delete_user(*aliceDevice1, callback);
+		bobManager->delete_user(*bobDevice1, callback);
+		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success+2,4000)); // we must get a callback saying all went well
+	} catch (BctbxException &e) {
+		std::cerr<<e.what()<<endl;;
+		BC_FAIL("Fail to delete users");
+		return; // no reason to continue the test
+	}
+}
+static void x3dh_sending_chain_limit() {
+#ifdef EC25519_ENABLED
+	x3dh_sending_chain_limit_test(lime::CurveId::c25519, "lime_x3dh_multiple_DRsessions", "https://localhost:25519");
+//	x3dh_sending_chain_limit_test(lime::CurveId::c25519, "lime_x3dh_multiple_DRsessions", "https://localhost:25519", false);
+#endif
+#ifdef EC448_ENABLED
+//	x3dh_sending_chain_limit_test(lime::CurveId::c448, "lime_x3dh_multiple_DRsessions", "https://localhost:25520");
+//	x3dh_sending_chain_limit_test(lime::CurveId::c448, "lime_x3dh_multiple_DRsessions", "https://localhost:25520", false);
+#endif
+}
+
 /*
  * Create multiple DR sessions between a pair of devices and check it will converge to one session being used but also that an old message to a stale session is decrypted correctly
  * - create users alice.d1 and bob.d1
@@ -1132,6 +1298,7 @@ static test_t tests[] = {
 	TEST_NO_TAG("Queued encryption", x3dh_operation_queue),
 	TEST_NO_TAG("Multi devices queued encryption", x3dh_multidev_operation_queue),
 	TEST_NO_TAG("Multiple sessions between pair", x3dh_multiple_DRsessions),
+	TEST_NO_TAG("Sending chain limit", x3dh_sending_chain_limit),
 };
 
 test_suite_t lime_lime_test_suite = {
