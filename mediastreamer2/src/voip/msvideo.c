@@ -840,6 +840,75 @@ mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation(MSYuvBufAllocator *allocato
 	return copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(allocator, y, cbcr, rotation, w, h, y_byte_per_row, cbcr_byte_per_row, uFirstvSecond, FALSE);
 }
 
+mblk_t *copy_yuv_with_rotation(MSYuvBufAllocator *allocator, const uint8_t* y, const uint8_t* u, const uint8_t* v, int rotation, int w, int h, int y_byte_per_row, int u_byte_per_row, int v_byte_per_row) {
+	MSPicture pict;
+	int uv_w=w/2;
+	int uv_h=h/2;
+	mblk_t * yuv_block;
+	
+	yuv_block = ms_yuv_buf_allocator_get(allocator, &pict, w, h);
+	
+	if (rotation % 180 == 0) {
+		int i,j;
+
+		if (rotation == 0) {
+			// plain y copy
+			for(i=0; i<h; i++) {
+				memcpy(&pict.planes[0][i*w], &y[i*y_byte_per_row], w);
+			}
+			// plain u/v copy
+			for (i=0; i<uv_h; i++) {
+				memcpy(&pict.planes[1][i*uv_w], &u[i*u_byte_per_row], uv_w);
+				memcpy(&pict.planes[2][i*uv_w], &v[i*v_byte_per_row], uv_w);
+			}
+		} else {
+			// 180° y rotation
+			for(i=0; i<h; i++) {
+				for(j=0 ; j<w;j++) {
+					pict.planes[0][i*w+j] = y[(h-1-i)*y_byte_per_row+(w-1-j)];
+				}
+			}
+			// 180° u/v rotation
+			for (i=0; i<uv_h; i++) {
+				for(j=0; j<uv_w; j++) {
+					pict.planes[1][i*uv_w+j] = u[(uv_h-1-i)*u_byte_per_row+(uv_w-1-j)];
+					pict.planes[2][i*uv_w+j] = v[(uv_h-1-i)*v_byte_per_row+(uv_w-1-j)];
+				}
+			}
+		}
+	} else {
+		bool_t clockwise = rotation == 90 ? TRUE : FALSE;
+		// Rotate Y/U/V
+#if defined(__arm__)
+		if (hasNeon) {
+			if (clockwise) {
+				rotate_down_scale_plane_neon_clockwise(w,h,y_byte_per_row,(uint8_t*)y,pict.planes[0],FALSE);
+				rotate_down_scale_plane_neon_clockwise(uv_w,uv_h,u_byte_per_row,(uint8_t*)u,pict.planes[1],FALSE);
+				rotate_down_scale_plane_neon_clockwise(uv_w,uv_h,v_byte_per_row,(uint8_t*)v,pict.planes[2],FALSE);
+			} else {
+				rotate_down_scale_plane_neon_anticlockwise(w,h,y_byte_per_row,(uint8_t*)y,pict.planes[0],FALSE);
+				rotate_down_scale_plane_neon_anticlockwise(uv_w,uv_h,u_byte_per_row,(uint8_t*)u,pict.planes[1],FALSE);
+				rotate_down_scale_plane_neon_anticlockwise(uv_w,uv_h,v_byte_per_row,(uint8_t*)v,pict.planes[2],FALSE);
+			}
+		} else
+#endif
+		{
+			uint8_t* dsty = pict.planes[0];
+			uint8_t* srcy = (uint8_t*) y;
+			uint8_t* dstu = pict.planes[1];
+			uint8_t* srcu = (uint8_t*) u;
+			uint8_t* dstv = pict.planes[2];
+			uint8_t* srcv = (uint8_t*) v;
+			
+			rotate_plane_down_scale_by_2(w,h,y_byte_per_row,srcy,dsty,1,clockwise,FALSE);
+			rotate_plane_down_scale_by_2(uv_w,uv_h,u_byte_per_row,srcu,dstu,1,clockwise,FALSE);
+			rotate_plane_down_scale_by_2(uv_w,uv_h,v_byte_per_row,srcv,dstv,1,clockwise,FALSE);
+		}
+	}
+
+	return yuv_block;
+}
+
 void ms_video_init_framerate_controller(MSFrameRateController* ctrl, float fps) {
 	ctrl->start_time = 0;
 	ctrl->th_frame_count = -1;

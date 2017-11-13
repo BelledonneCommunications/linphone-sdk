@@ -75,7 +75,7 @@ typedef struct V4l2State{
 	char *dev;
 	char *mmapdbuf;
 	int msize;/*mmapped size*/
-	MSVideoSize vsize;
+	MSVideoSize requested_vsize, used_vsize;
 	MSVideoSize got_vsize;
 	int pix_fmt;
 	int picture_size;
@@ -87,6 +87,9 @@ typedef struct V4l2State{
 	int queued;
 	bool_t configured;
 	MSFrameRateController framerate_controller;
+	MSYuvBufAllocator* buf_allocator;
+	int rotation;
+	bool_t use_rotation;
 }V4l2State;
 
 static int msv4l2_open(V4l2State *s){
@@ -200,7 +203,7 @@ static MSPixFmt v4l2_format_to_ms(int v4l2format) {
 	}
 }
 
-static const V4L2FormatDescription* query_format_description_for_size(int fd, MSVideoSize vsize) {
+static const V4L2FormatDescription* query_format_description_for_size(int fd, MSVideoSize vsize, bool_t use_rotation) {
 	/* hardcode supported format in preferred order*/
 	static V4L2FormatDescription formats[POSSIBLE_FORMATS_COUNT];
 	int i=0;
@@ -210,27 +213,31 @@ static const V4L2FormatDescription* query_format_description_for_size(int fd, MS
 	formats[i].pixel_format = V4L2_PIX_FMT_YUV420;
 	formats[i].max_fps = -1;
 	i++;
-	/* we must avoid YUYV (and actually any YUV format different than YUV420P) because the pixel converter/scaler implementation
-	 * of ffmpeg is not optimized for arm. So we need to prefer YUV420P if directly available or MJPEG*/
+	
+	/* We force the use of YUV420P when rotation is enabled */
+	if (!use_rotation) {
+		/* we must avoid YUYV (and actually any YUV format different than YUV420P) because the pixel converter/scaler implementation
+		* of ffmpeg is not optimized for arm. So we need to prefer YUV420P if directly available or MJPEG*/
 #ifndef __arm__
-	formats[i].pixel_format = V4L2_PIX_FMT_YUYV;
-	formats[i].max_fps = -1;
-	i++;
+		formats[i].pixel_format = V4L2_PIX_FMT_YUYV;
+		formats[i].max_fps = -1;
+		i++;
 #endif
 
-	formats[i].pixel_format = V4L2_PIX_FMT_MJPEG;
-	formats[i].max_fps = -1;
-	i++;
+		formats[i].pixel_format = V4L2_PIX_FMT_MJPEG;
+		formats[i].max_fps = -1;
+		i++;
 
 #ifdef __arm__
-	formats[i].pixel_format = V4L2_PIX_FMT_YUYV;
-	formats[i].max_fps = -1;
-	i++;
+		formats[i].pixel_format = V4L2_PIX_FMT_YUYV;
+		formats[i].max_fps = -1;
+		i++;
 #endif
 
-	formats[i].pixel_format = V4L2_PIX_FMT_RGB24;
-	formats[i].max_fps = -1;
-	i++;
+		formats[i].pixel_format = V4L2_PIX_FMT_RGB24;
+		formats[i].max_fps = -1;
+		i++;
+	}
 
 	{
 		struct v4l2_fmtdesc fmt;
@@ -403,25 +410,25 @@ static int msv4l2_configure(V4l2State *s){
 	if (v4l2_ioctl (s->fd, VIDIOC_G_FMT, &fmt)<0){
 		ms_error("VIDIOC_G_FMT failed: %s",strerror(errno));
 	}
-	vsize=s->vsize;
+	vsize=s->requested_vsize;
 
 	do{
-		const V4L2FormatDescription* formats_desc = query_format_description_for_size(s->fd, s->vsize);
-		s->pix_fmt = pick_best_format(s->fd, formats_desc, s->vsize, s->fps);
+		const V4L2FormatDescription* formats_desc = query_format_description_for_size(s->fd, s->requested_vsize, s->use_rotation);
+		s->pix_fmt = pick_best_format(s->fd, formats_desc, s->requested_vsize, s->fps);
 
 		if (s->pix_fmt == MS_PIX_FMT_UNKNOWN)
-			s->vsize=ms_video_size_get_just_lower_than(s->vsize);
-	} while(s->vsize.width!=0 && (s->pix_fmt == MS_PIX_FMT_UNKNOWN));
+			s->requested_vsize=ms_video_size_get_just_lower_than(s->requested_vsize);
+	} while(s->requested_vsize.width!=0 && (s->pix_fmt == MS_PIX_FMT_UNKNOWN));
 
-	if (s->vsize.width==0){
+	if (s->requested_vsize.width==0){
 		ms_message("Could not find any combination of resolution/pixel-format that works !");
-		s->vsize=vsize;
+		s->requested_vsize=vsize;
 		ms_message("Fallback. Trying to force YUV420 format");
 		memset(&fmt, 0, sizeof(fmt));
 		fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 		fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUV420;
-		fmt.fmt.pix.width = s->vsize.width;
-		fmt.fmt.pix.height = s->vsize.height;
+		fmt.fmt.pix.width = s->requested_vsize.width;
+		fmt.fmt.pix.height = s->requested_vsize.height;
 		fmt.fmt.pix.field = V4L2_FIELD_ANY;
 		if(v4l2_ioctl(s->fd, VIDIOC_S_FMT, &fmt) != 0) {
 			ms_error("VIDIOC_S_FMT failed: %s", strerror(errno));
@@ -437,10 +444,10 @@ static int msv4l2_configure(V4l2State *s){
 		ms_error("VIDIOC_G_FMT failed: %s",strerror(errno));
 	}else{
 		ms_message("Size of webcam delivered pictures is %ix%i. Format:0x%08x",fmt.fmt.pix.width,fmt.fmt.pix.height, s->pix_fmt);
-		s->vsize.width=fmt.fmt.pix.width;
-		s->vsize.height=fmt.fmt.pix.height;
+		s->requested_vsize.width=fmt.fmt.pix.width;
+		s->requested_vsize.height=fmt.fmt.pix.height;
 	}
-	s->picture_size=get_picture_buffer_size(s->pix_fmt,s->vsize.width,s->vsize.height);
+	s->picture_size=get_picture_buffer_size(s->pix_fmt,s->requested_vsize.width,s->requested_vsize.height);
 
 	focus=getenv("MS2_CAM_FOCUS");
 	if (focus){
@@ -507,7 +514,7 @@ static int msv4l2_do_mmap(V4l2State *s){
 		}
 		msg=esballoc(start,buf.length,0,NULL);
 		msg->b_wptr+=buf.length;
-		s->frames[i]=ms_yuv_buf_alloc_from_buffer(s->vsize.width, s->vsize.height, msg);
+		s->frames[i]=ms_yuv_buf_alloc_from_buffer(s->requested_vsize.width, s->requested_vsize.height, msg);
 	}
 	s->frame_max=req.count;
 	for (i = 0; i < s->frame_max; ++i) {
@@ -641,13 +648,24 @@ static void msv4l2_do_munmap(V4l2State *s){
 
 static void msv4l2_init(MSFilter *f){
 	V4l2State *s=ms_new0(V4l2State,1);
+	char* tmp=NULL;
+	
 	s->dev=ms_strdup("/dev/video0");
 	s->fd=-1;
-	s->vsize=MS_VIDEO_SIZE_CIF;
+	s->requested_vsize=MS_VIDEO_SIZE_CIF;
 	s->fps=15;
 	s->configured=FALSE;
 	f->data=s;
 	qinit(&s->rq);
+	
+	tmp=getenv("MS2_USE_ROTATION");
+	if (tmp != NULL && (strcmp("1", tmp) == 0)) {
+		s->use_rotation=TRUE;
+		s->rotation=0;
+		s->buf_allocator=ms_yuv_buf_allocator_new();
+	} else {
+		s->use_rotation=FALSE;
+	}
 }
 
 static void msv4l2_uninit(MSFilter *f){
@@ -656,6 +674,7 @@ static void msv4l2_uninit(MSFilter *f){
 	flushq(&s->rq,0);
 	ms_mutex_destroy(&s->mutex);
 	ms_free(s);
+	if (s->use_rotation) ms_yuv_buf_allocator_free(s->buf_allocator);
 }
 
 static void *msv4l2_thread(void *ptr){
@@ -713,6 +732,30 @@ close:
 	return NULL;
 }
 
+static mblk_t *msv4l2_rotate_image(V4l2State *s, mblk_t *frame) {
+	mblk_t *rotated_frame;
+	YuvBuf buf;
+	
+	ms_yuv_buf_init_from_mblk(&buf, frame);
+		
+	rotated_frame = copy_yuv_with_rotation(s->buf_allocator
+										   , buf.planes[0]
+										   , buf.planes[1]
+										   , buf.planes[2]
+										   , s->rotation
+										   , s->used_vsize.width
+										   , s->used_vsize.height
+										   , buf.strides[0]
+										   , buf.strides[1]
+										   , buf.strides[2]);
+	
+	if (rotated_frame) {
+		freemsg(frame);
+		return rotated_frame;
+	}
+	return frame;
+}
+
 static void msv4l2_preprocess(MSFilter *f){
 	V4l2State *s=(V4l2State*)f->data;
 	s->thread_run=TRUE;
@@ -737,6 +780,9 @@ static void msv4l2_process(MSFilter *f){
 		}
 		ms_mutex_unlock(&s->mutex);
 		if (om!=NULL){
+			if (s->use_rotation && s->rotation > 0) {
+				om = msv4l2_rotate_image(s, om);
+			}
 			timestamp=f->ticker->time*90;/* rtp uses a 90000 Hz clockrate for video*/
 			mblk_set_timestamp_info(om,timestamp);
 			mblk_set_marker_info(om,TRUE);
@@ -771,8 +817,16 @@ static int msv4l2_set_fps(MSFilter *f, void *arg){
 
 static int msv4l2_set_vsize(MSFilter *f, void *arg){
 	V4l2State *s=(V4l2State*)f->data;
-	s->vsize=*(MSVideoSize*)arg;
+	s->requested_vsize=*(MSVideoSize*)arg;
 	s->configured=FALSE;
+	
+	if (s->use_rotation && (s->rotation == 90 || s->rotation == 270)) {
+		s->used_vsize.width = s->requested_vsize.height;
+		s->used_vsize.height = s->requested_vsize.width;
+	} else {
+		s->used_vsize = s->requested_vsize;
+	}
+		
 	return 0;
 }
 
@@ -790,7 +844,7 @@ static int msv4l2_check_configured(V4l2State *s){
 static int msv4l2_get_vsize(MSFilter *f, void *arg){
 	V4l2State *s=(V4l2State*)f->data;
 	msv4l2_check_configured(s);
-	*(MSVideoSize*)arg=s->vsize;
+	*(MSVideoSize*)arg=s->used_vsize;
 	return 0;
 }
 
@@ -816,12 +870,25 @@ static int msv4l2_get_fps(MSFilter *f, void *arg){
 	return 0;
 }
 
+static int ms4vl2_set_device_orientation(MSFilter *f, void *arg) {
+	V4l2State *s=(V4l2State*)f->data;
+	
+	if (s->use_rotation) {
+		s->rotation = *((int*)arg);
+	} else {
+		ms_warning("msv4l2: set_device_orientation was called while env MS2_USE_ROTATION is not set.");
+	}
+		
+	return 0;
+}
+
 static MSFilterMethod msv4l2_methods[]={
 	{	MS_FILTER_SET_FPS	,	msv4l2_set_fps	},
 	{	MS_FILTER_SET_VIDEO_SIZE,	msv4l2_set_vsize	},
 	{	MS_FILTER_GET_VIDEO_SIZE,	msv4l2_get_vsize	},
 	{	MS_FILTER_GET_PIX_FMT	,	msv4l2_get_pixfmt	},
 	{	MS_FILTER_GET_FPS	,	msv4l2_get_fps	},
+	{	MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION	,	ms4vl2_set_device_orientation},
 	{	0			,	NULL		}
 };
 
