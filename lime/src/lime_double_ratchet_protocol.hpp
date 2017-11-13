@@ -93,10 +93,10 @@ namespace lime {
 
 			public:
 				/* data member accessors (read only) */
-				auto Ns(void) const {return m_Ns;}
-				auto PN(void) const {return m_PN;}
+				uint16_t Ns(void) const {return m_Ns;}
+				uint16_t PN(void) const {return m_PN;}
 				const X<Curve> &DHs(void) const {return m_DHs;}
-				auto valid(void) const {return m_valid;}
+				bool valid(void) const {return m_valid;}
 				size_t size(void) {return m_size;}
 
 				/* ctor/dtor */

@@ -36,6 +36,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <memory>
 
 using namespace::std;
 using namespace::lime;
@@ -84,8 +85,8 @@ static int http_after_all(void) {
 static void managersClean(std::unique_ptr<LimeManager> &alice, std::unique_ptr<LimeManager> &bob, std::string aliceDb, std::string bobDb) {
 	alice = nullptr;
 	bob = nullptr;
-	alice = make_unique<LimeManager>(aliceDb, prov);
-	bob = make_unique<LimeManager>(bobDb, prov);
+	alice = unique_ptr<lime::LimeManager>(new lime::LimeManager(aliceDb, prov));
+	bob = std::unique_ptr<lime::LimeManager>(new lime::LimeManager(bobDb, prov));
 	bctbx_message("Trash and reload alice and bob LimeManagers");
 }
 
@@ -117,8 +118,8 @@ static void x3dh_sending_chain_limit_test(const lime::CurveId curve, const std::
 				});
 
 	// create Manager
-	auto aliceManager = make_unique<LimeManager>(dbFilenameAlice, prov);
-	auto bobManager = make_unique<LimeManager>(dbFilenameBob, prov);
+	auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, prov));
+	auto bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, prov));
 
 	// create Random devices names
 	auto aliceDevice1 = makeRandomDeviceName("alice.d1.");
@@ -286,8 +287,8 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 				});
 
 	// create Manager
-	auto aliceManager = make_unique<LimeManager>(dbFilenameAlice, prov);
-	auto bobManager = make_unique<LimeManager>(dbFilenameBob, prov);
+	auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, prov));
+	auto bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, prov));
 
 	// create Random devices names
 	auto aliceDevice1 = makeRandomDeviceName("alice.d1.");
@@ -516,8 +517,8 @@ static void x3dh_multidev_operation_queue_test(const lime::CurveId curve, const 
 				});
 
 	// create Manager
-	auto aliceManager = make_unique<LimeManager>(dbFilenameAlice, prov);
-	auto bobManager = make_unique<LimeManager>(dbFilenameBob, prov);
+	auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, prov));
+	auto bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, prov));
 
 	// create Random devices names
 	auto aliceDevice1 = makeRandomDeviceName("alice.d1.");
@@ -749,8 +750,8 @@ static void x3dh_operation_queue_test(const lime::CurveId curve, const std::stri
 				});
 
 	// create Manager
-	auto aliceManager = make_unique<LimeManager>(dbFilenameAlice, prov);
-	auto bobManager = make_unique<LimeManager>(dbFilenameBob, prov);
+	auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, prov));
+	auto bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, prov));
 
 	// create Random devices names
 	auto aliceDevice1 = makeRandomDeviceName("alice.d1.");
@@ -887,8 +888,8 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 				});
 
 	// create Manager
-	auto aliceManager = make_unique<LimeManager>(dbFilenameAlice, prov);
-	auto bobManager = make_unique<LimeManager>(dbFilenameBob, prov);
+	auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, prov));
+	auto bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, prov));
 
 	// create Random devices names
 	auto aliceDevice1 = makeRandomDeviceName("alice.d1.");
@@ -1163,7 +1164,7 @@ static void user_management_test(const lime::CurveId curve, const std::string &d
 					}
 				});
 	// we need a LimeManager
-	auto Manager = make_unique<LimeManager>(dbFilenameAlice, prov);
+	auto Manager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, prov));
 
 	auto aliceDeviceName = makeRandomDeviceName("alice.");
 
@@ -1260,7 +1261,7 @@ static void user_management_test(const lime::CurveId curve, const std::string &d
 	dbFilenameAliceTmp.append(".tmp.sqlite3");
 
 	// create a manager and try to create alice again, it shall pass local creation(db is empty) but server shall reject it
-	auto ManagerTmp = make_unique<LimeManager>(dbFilenameAliceTmp,prov);
+	auto ManagerTmp = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAliceTmp, prov));
 	try {
 		ManagerTmp->create_user(*aliceDeviceName, x3dh_server_url, curve, callback);
 		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_failed,counters.operation_failed+1,5000)); // we must get a callback saying all went well

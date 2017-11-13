@@ -268,7 +268,7 @@ namespace lime {
 #endif
 
 		/* open DB */
-		auto localStorage = std::make_unique<lime::Db>(dbFilename); // create as unique ptr, ownership is then passed to the Lime structure when instanciated
+		auto localStorage = std::unique_ptr<lime::Db>(new lime::Db(dbFilename)); // create as unique ptr, ownership is then passed to the Lime structure when instanciated
 
 		try {
 			//instanciate the correct Lime object
@@ -318,7 +318,7 @@ namespace lime {
 	std::shared_ptr<LimeGeneric> load_LimeUser(const std::string &dbFilename, const std::string &userId, belle_http_provider *http_provider) {
 
 		/* open DB and load user */
-		auto localStorage = std::make_unique<lime::Db>(dbFilename); // create as unique ptr, ownership is then passed to the Lime structure when instanciated
+		auto localStorage = std::unique_ptr<lime::Db>(new lime::Db(dbFilename)); // create as unique ptr, ownership is then passed to the Lime structure when instanciated
 		auto curve = CurveId::unset;
 		long int Uid=0;
 		std::string x3dh_server_url;

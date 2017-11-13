@@ -101,7 +101,7 @@ namespace lime {
 
 			void ratchetEncrypt(const std::array<uint8_t, 48> &plaintext, std::vector<uint8_t> &&AD, std::vector<uint8_t> &ciphertext);
 			bool ratchetDecrypt(const std::vector<uint8_t> &cipherText, const std::vector<uint8_t> &AD, std::array<uint8_t, 48> &plaintext);
-			auto dbSessionId(void) const {return m_dbSessionId;}; // retrieve the session's local storage id
+			long int dbSessionId(void) const {return m_dbSessionId;}; // retrieve the session's local storage id
 	};
 
 
