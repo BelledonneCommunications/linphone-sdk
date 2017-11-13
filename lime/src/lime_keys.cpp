@@ -76,10 +76,8 @@ namespace lime {
 	}
 #endif
 
-/* instanciate the template specialisation */
+/* template instanciations for Curves 25519 and 448, done  */
 #ifdef EC255_ENABLED
-	template bctbx_ECDHContext_t *ECDHInit<C255>(void);
-	template bctbx_EDDSAContext_t *EDDSAInit<C255>(void);
 	template class X<C255>;
 	template class ED<C255>;
 	template class KeyPair<X<C255>>;
@@ -87,8 +85,6 @@ namespace lime {
 #endif
 
 #ifdef EC448_ENABLED
-	template bctbx_ECDHContext_t *ECDHInit<C448>(void);
-	template bctbx_EDDSAContext_t *EDDSAInit<C448>(void);
 	template class X<C448>;
 	template class ED<C448>;
 	template class KeyPair<X<C448>>;

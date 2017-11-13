@@ -38,9 +38,9 @@ using namespace::lime;
 namespace lime {
 	/* Set of constants used as input is several uses of HKDF like function */
 	/* They MUST be different */
-	const std::array<std::uint8_t,2> hkdf_rk_info{0x03, 0x01}; //it already includes the expansion index (0x01) used in kdf_rk
-	const std::array<std::uint8_t,1> hkdf_ck_info{0x02};
-	const std::array<std::uint8_t,1> hkdf_mk_info{0x01};
+	const std::array<std::uint8_t,2> hkdf_rk_info{{0x03, 0x01}}; //it already includes the expansion index (0x01) used in kdf_rk
+	const std::array<std::uint8_t,1> hkdf_ck_info{{0x02}};
+	const std::array<std::uint8_t,1> hkdf_mk_info{{0x01}};
 
 	/****************************************************************************/
 	/* Helpers functions not part of DR class                                   */
@@ -160,7 +160,7 @@ namespace lime {
 	 */
 	template <typename Curve>
 	DR<Curve>::DR(lime::Db *localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const X<Curve> &peerPublicKey, long int peerDid, const std::vector<uint8_t> &X3DH_initMessage)
-	:m_DHr{peerPublicKey},m_DHr_valid{true}, m_DHs{},m_RK{SK},m_CKs{0},m_CKr{0},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD{AD},m_mkskipped{},
+	:m_DHr{peerPublicKey},m_DHr_valid{true}, m_DHs{},m_RK{SK},m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD{AD},m_mkskipped{},
 	m_RNG{bctbx_rng_context_new()},m_dbSessionId{0},m_usedNr{0},m_usedDHid{0},m_localStorage{localStorage},m_dirty{DRSessionDbStatus::dirty},m_peerDid{peerDid},
 	m_active_status{true}, m_X3DH_initMessage{X3DH_initMessage}
 	{
@@ -194,7 +194,7 @@ namespace lime {
 	 */
 	template <typename Curve>
 	DR<Curve>::DR(lime::Db *localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const KeyPair<X<Curve>> &selfKeyPair, long int peerDid)
-	:m_DHr{},m_DHr_valid{false},m_DHs{selfKeyPair},m_RK{SK},m_CKs{0},m_CKr{0},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD{AD},m_mkskipped{},
+	:m_DHr{},m_DHr_valid{false},m_DHs{selfKeyPair},m_RK{SK},m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD{AD},m_mkskipped{},
 	m_RNG{bctbx_rng_context_new()},m_dbSessionId{0},m_usedNr{0},m_usedDHid{0},m_localStorage{localStorage},m_dirty{DRSessionDbStatus::dirty},m_peerDid{peerDid},
 	m_active_status{true}, m_X3DH_initMessage{}
 	{ }
@@ -209,7 +209,7 @@ namespace lime {
 	 */
 	template <typename Curve>
 	DR<Curve>::DR(lime::Db *localStorage, long sessionId)
-	:m_DHr{},m_DHr_valid{true},m_DHs{},m_RK{0},m_CKs{0},m_CKr{0},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD{0},m_mkskipped{},
+	:m_DHr{},m_DHr_valid{true},m_DHs{},m_RK{},m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD{},m_mkskipped{},
 	m_RNG{bctbx_rng_context_new()},m_dbSessionId{sessionId},m_usedNr{0},m_usedDHid{0},m_localStorage{localStorage},m_dirty{DRSessionDbStatus::clean},m_peerDid{0},
 	m_active_status{false}, m_X3DH_initMessage{}
 	{

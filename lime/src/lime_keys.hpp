@@ -127,8 +127,6 @@ namespace lime {
 	template <> bctbx_ECDHContext_t *ECDHInit<C255>(void);
 	template <> bctbx_EDDSAContext_t *EDDSAInit<C255>(void);
 	/* ask any file including lime_keys.hpp to not instantiate the follownings as it is done in lime_keys.cpp*/
-	extern template bctbx_ECDHContext_t *ECDHInit<C255>(void);
-	extern template bctbx_EDDSAContext_t *EDDSAInit<C255>(void);
 	extern template class X<C255>;
 	extern template class ED<C255>;
 	extern template class KeyPair<X<C255>>;
@@ -140,8 +138,6 @@ namespace lime {
 	template <> bctbx_ECDHContext_t *ECDHInit<C448>(void);
 	template <> bctbx_EDDSAContext_t *EDDSAInit<C448>(void);
 	/* ask any file including lime_keys.hpp to not instantiate the follownings as it is done in lime_keys.cpp*/
-	extern template bctbx_ECDHContext_t *ECDHInit<C448>(void);
-	extern template bctbx_EDDSAContext_t *EDDSAInit<C448>(void);
 	extern template class X<C448>;
 	extern template class ED<C448>;
 	extern template class KeyPair<X<C448>>;

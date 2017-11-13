@@ -46,7 +46,7 @@ namespace lime {
 			}
 		});
 
-		m_users_cache.insert({userId, std::move(insert_LimeUser(m_db_access, userId, x3dhServerUrl, curve, m_http_provider, managerCreateCallback))});
+		m_users_cache.insert({userId, insert_LimeUser(m_db_access, userId, x3dhServerUrl, curve, m_http_provider, managerCreateCallback)});
 	}
 
 	void LimeManager::delete_user(const std::string &userId, const limeCallback &callback) {

@@ -53,7 +53,7 @@ static const std::string AD{"alice@sip.linphone.org;opaque=user:epid:UghFocauauC
   *				All delayed messaged are received in their order of sending at the end of message stack processing
   */
 template <typename Curve>
-static void dr_skippedMessages_basic_test(const uint8_t period=1, const uint8_t skip_period=1000, const uint8_t skip_length=0, const uint8_t skip_delay=0, const std::string db_filename="dr_skipped_message_basic_tmp") {
+static void dr_skippedMessages_basic_test(const uint8_t period=1, const uint8_t skip_period=255, const uint8_t skip_length=0, const uint8_t skip_delay=0, const std::string db_filename="dr_skipped_message_basic_tmp") {
 	std::shared_ptr<DR<Curve>> alice, bob;
 	std::shared_ptr<lime::Db> aliceLocalStorage, bobLocalStorage;
 	std::string aliceFilename(db_filename);
