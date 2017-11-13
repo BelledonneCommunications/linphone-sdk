@@ -658,7 +658,7 @@ static void msv4l2_init(MSFilter *f){
 	f->data=s;
 	qinit(&s->rq);
 	
-	tmp=getenv("MS2_USE_ROTATION");
+	tmp=getenv("MS2_V4L2_USE_ROTATION");
 	if (tmp != NULL && (strcmp("1", tmp) == 0)) {
 		s->use_rotation=TRUE;
 		s->rotation=0;
