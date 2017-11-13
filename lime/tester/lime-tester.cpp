@@ -21,6 +21,7 @@
 
 #define BCTBX_LOG_DOMAIN "lime-tester"
 #include <bctoolbox/logging.h>
+#include "belle-sip/belle-sip.h"
 
 #include "lime-tester.hpp"
 
@@ -106,6 +107,7 @@ int main(int argc, char *argv[]) {
 		if (strcmp(argv[i],"--verbose")==0){
 			bctbx_set_log_level(log_domain, BCTBX_LOG_DEBUG);
 			bctbx_set_log_level(BCTBX_LOG_DOMAIN,BCTBX_LOG_DEBUG);
+			belle_sip_log_level_enabled(BCTBX_LOG_DEBUG);
 		} else if (strcmp(argv[i],"--silent")==0){
 			bctbx_set_log_level(log_domain, BCTBX_LOG_FATAL);
 			bctbx_set_log_level(BCTBX_LOG_DOMAIN, BCTBX_LOG_FATAL);
