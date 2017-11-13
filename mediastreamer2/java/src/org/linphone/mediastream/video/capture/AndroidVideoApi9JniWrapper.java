@@ -57,6 +57,18 @@ public class AndroidVideoApi9JniWrapper {
 		try {
 		Camera camera = Camera.open(cameraId);
 		Parameters params = camera.getParameters();
+		
+
+		for (String focusMode : params.getSupportedFocusModes()) {
+			if (focusMode.equalsIgnoreCase(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO)) {
+				params.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
+				break;
+			}
+		}
+		
+		if (params.isVideoStabilizationSupported()) {
+			params.setVideoStabilization(true);
+		}
 
 		params.setPreviewSize(width, height);
 		int[] chosenFps = findClosestEnclosingFpsRange(fps*1000, params.getSupportedPreviewFpsRange());
