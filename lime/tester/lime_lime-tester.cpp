@@ -215,6 +215,9 @@ static void x3dh_sending_chain_limit_test(const lime::CurveId curve, const std::
 		return; // no reason to continue the test
 	}
 
+	// destroy and reload the Managers(tests everything is correctly saved/load from local Storage)
+	if (!continuousSession) { managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);}
+
 	try {
 		// alice encrypt, we are over the maximum number, so Alice shall fetch a new key on server and start a new session
 		aliceMessage->assign(lime_messages_pattern[0].begin(), lime_messages_pattern[0].end());

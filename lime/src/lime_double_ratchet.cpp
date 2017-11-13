@@ -332,6 +332,9 @@ namespace lime {
 		ciphertext.resize(ciphertext.size()+plaintext.size()+lime::settings::DRMessageAuthTagSize);
 
 		if (encrypt(MK, plaintext, headerSize, AD, ciphertext)) {
+			if (m_Ns >= lime::settings::maxSendingChain) { // if we reached maximum encryption wuthout DH ratchet step, session becomes inactive
+				m_active_status = false;
+			}
 			if (session_save() == true) {
 				m_dirty = DRSessionDbStatus::clean; // this session and local storage are back in sync
 			}

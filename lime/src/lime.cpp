@@ -129,7 +129,7 @@ namespace lime {
 	template <typename Curve>
 	void Lime<Curve>::encrypt(std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<recipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback) {
 		bctbx_debug("encrypt from %s to %ld recipients", m_selfDeviceId.data(), recipients->size());
-		/* Check if we have all the Double Ratcher sessions ready or shall we go for an X3DH */
+		/* Check if we have all the Double Ratchet sessions ready or shall we go for an X3DH */
 		std::vector<std::string> missingPeers; /* vector of userId(GRUU) which are requested to perform X3DH before the encryption can occurs */
 
 		/* Create the appropriate recipient infos and fill it with sessions found in cache */
@@ -137,7 +137,12 @@ namespace lime {
 		for (auto &recipient : *recipients) {
 			auto sessionElem = m_DR_sessions_cache.find(recipient.deviceId);
 			if (sessionElem != m_DR_sessions_cache.end()) { // session is in cache
-				internal_recipients.emplace_back(recipient.deviceId, sessionElem->second);
+				if (sessionElem->second->isActive()) { // the session in cache is active
+					internal_recipients.emplace_back(recipient.deviceId, sessionElem->second);
+				} else { // session in cache is not active(may append if last encryption reach sending chain symmetric ratchet usage)
+					internal_recipients.emplace_back(recipient.deviceId);
+					m_DR_sessions_cache.erase(recipient.deviceId); // remove unactive session from cache
+				}
 			} else { // session is not in cache, just create it and the session ptr will be a nullptr
 				internal_recipients.emplace_back(recipient.deviceId);
 			}
