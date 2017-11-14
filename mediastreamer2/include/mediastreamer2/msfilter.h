@@ -596,7 +596,7 @@ MS2_PUBLIC MS2_DEPRECATED void ms_filter_log_statistics(void);
 the method index (_cnt_) and the argument size */
 /* I hope using this to avoid type mismatch (calling a method on the wrong filter)*/
 #define MS_FILTER_METHOD_ID(_id_,_cnt_,_argsize_) \
-	(  (((unsigned long)(_id_)) & 0xFFFF)<<16 | (_cnt_<<8) | (_argsize_ & 0xFF ))
+	(unsigned int)(((((unsigned int)(_id_)) & 0xFFFF)<<16) | (((unsigned int)(_cnt_))<<8) | (((unsigned int)_argsize_) & 0xFF))
 
 /**
  * Macro to create a method id, unique per filter.
