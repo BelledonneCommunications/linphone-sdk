@@ -26,6 +26,7 @@ if(LINPHONE_BUILDER_BUILD_DEPENDENCIES AND NOT APPLE)
 	# Do not build sqlite3 on Apple systems (Mac OS X and iOS), they are provided by the system
 	lcb_dependencies("sqlite3")
 endif()
+lcb_may_be_found_on_system(YES)
 
 lcb_cmake_options(
 	"-DSOCI_TESTS=NO"
@@ -40,5 +41,4 @@ lcb_cmake_options(
 	"-DWITH_SQLITE3=YES"
 )
 lcb_linking_type("-DSOCI_SHARED=YES" "-DSOCI_STATIC=NO")
-lcb_use_autotools_for_rpm(YES)
 

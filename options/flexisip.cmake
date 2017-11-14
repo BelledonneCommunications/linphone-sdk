@@ -34,6 +34,3 @@ lcb_add_option("SNMP" "Enable SNMP support." "${DEFAULT_ENABLE_SNMP}")
 lcb_add_option("SOCI" "Enable SOCI support." "${DEFAULT_ENABLE_SOCI}")
 lcb_add_option("Transcoder" "Enable transcoder support." "${DEFAULT_ENABLE_TRANSCODER}")
 lcb_add_option("PROTOBUF" "Enable protobuf for REDIS." "${DEFAULT_ENABLE_PROTOBUF}" "ENABLE_PROTOBUF" OFF)
-
-set(XSDCXX_ROOT_PATH "/usr" CACHE STRING "Path of where the bin/xsdcxx executable will be found. Comes from http://www.codesynthesis.com/products/xsd/download.xhtml")
-add_feature_info("XSDCXX_ROOT_PATH" XSDCXX_ROOT_PATH "Path of where the bin/xsdcxx executable will be found. Comes from http://www.codesynthesis.com/products/xsd/download.xhtml")
