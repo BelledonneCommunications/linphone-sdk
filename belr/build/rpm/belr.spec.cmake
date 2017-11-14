@@ -5,7 +5,8 @@
 # case we prefix the entire installation so that we don't break compatibility
 # with the user's libs.
 # To compile with bc prefix, use rpmbuild -ba --with bc [SPEC]
-%define                 pkg_name        belr
+%define                 pkg_name        %{?_with_bc:bc-belr}%{!?_with_bc:belr}
+%{?_with_bc: %define    _prefix         /opt/belledonne-communications}
 
 # re-define some directories for older RPMBuild versions which don't. This messes up the doc/ dir
 # taken from https://fedoraproject.org/wiki/Packaging:RPMMacros?rd=Packaging/RPMMacros
@@ -14,6 +15,9 @@
 %define _docdir            %{_datadir}/doc
 
 %define build_number @PROJECT_VERSION_BUILD@
+%if %{build_number}
+%define build_number_ext -%{build_number}
+%endif
 
 
 
@@ -25,7 +29,7 @@ Summary:        Belr is language recognition library for ABNF based protocols.
 Group:          Applications/Communications
 License:        GPL
 URL:            http://www.linphone.org
-Source0:        %{name}-%{version}-%{build_number}.tar.gz
+Source0:        %{name}-%{version}%{?build_number_ext}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 
 %description
@@ -54,7 +58,7 @@ Libraries and headers required to develop software with belr
 %endif
 
 %prep
-%setup -n %{name}-%{version}-%build_number
+%setup -n %{name}-%{version}%{?build_number_ext}
 
 %build
 %{expand:%%%cmake_name} . -DCMAKE_INSTALL_LIBDIR:PATH=%{_libdir} -DCMAKE_PREFIX_PATH:PATH=%{_prefix}
