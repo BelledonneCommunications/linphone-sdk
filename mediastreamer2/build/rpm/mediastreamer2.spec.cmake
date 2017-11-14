@@ -16,6 +16,9 @@
 %define _docdir            %{_datadir}/doc
 
 %define build_number @PROJECT_VERSION_BUILD@
+%if %{build_number}
+%define build_number_ext -%{build_number}
+%endif
 
 
 
@@ -27,7 +30,7 @@ Summary:         Audio/Video real-time streaming
 Group:          Applications/Communications
 License:        GPL
 URL:            http://www.mediastreamer.org
-Source0:        %{name}-%{version}-%{build_number}.tar.gz
+Source0:        %{name}-%{version}%{?build_number_ext}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 %description
 Mediastreamer2 is a GPL licensed library to make audio and video
@@ -57,7 +60,7 @@ develop programs using the mediastreamer2 library.
 %endif
 
 %prep
-%setup -n %{name}-%{version}-%build_number
+%setup -n %{name}-%{version}%{?build_number_ext}
 
 %build
 %{expand:%%%cmake_name} . -DCMAKE_INSTALL_LIBDIR=%{_lib} -DCMAKE_PREFIX_PATH:PATH=%{_prefix} -DENABLE_VIDEO=%{video} -DENABLE_SRTP=%{srtp} -DENABLE_UNIT_TESTS=no
