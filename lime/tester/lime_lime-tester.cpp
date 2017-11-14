@@ -41,6 +41,11 @@
 using namespace::std;
 using namespace::lime;
 
+int wait_for_timeout=4000;
+std::string test_x3dh_server_url{"localhost"};
+std::string test_x3dh_c25519_server_port{"25519"};
+std::string test_x3dh_c448_server_port{"25520"};
+
 struct events_counters_t {
 	int operation_success;
 	int operation_failed;
@@ -130,7 +135,7 @@ static void x3dh_sending_chain_limit_test(const lime::CurveId curve, const std::
 		aliceManager->create_user(*aliceDevice1, x3dh_server_url, curve, callback);
 		bobManager->create_user(*bobDevice1, x3dh_server_url, curve, callback);
 		expected_success +=2; // we have two asynchronous operation on going
-		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success, expected_success,4000)); // we must get a callback saying all went well
+		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success, expected_success,wait_for_timeout)); // we must get a callback saying all went well
 		if (counters.operation_failed == 1) return; // skip the end of the test if we can't do this
 	} catch (BctbxException &e) {
 		std::cerr<<e.what()<<endl;;
@@ -155,7 +160,7 @@ static void x3dh_sending_chain_limit_test(const lime::CurveId curve, const std::
 	try {
 		// alice encrypt
 		aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
-		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,++expected_success,4000)); // we must get a callback saying all went well
+		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,++expected_success,wait_for_timeout)); // we must get a callback saying all went well
 
 		// destroy and reload the Managers(tests everything is correctly saved/load from local Storage)
 		if (!continuousSession) { managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);}
@@ -172,7 +177,7 @@ static void x3dh_sending_chain_limit_test(const lime::CurveId curve, const std::
 
 		// bob encrypt
 		bobManager->encrypt(*bobDevice1, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
-		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,++expected_success,4000)); // we must get a callback saying all went well
+		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,++expected_success,wait_for_timeout)); // we must get a callback saying all went well
 
 		// destroy and reload the Managers(tests everything is correctly saved/load from local Storage)
 		if (!continuousSession) { managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);}
@@ -195,7 +200,7 @@ static void x3dh_sending_chain_limit_test(const lime::CurveId curve, const std::
 			aliceMessage->assign(lime_messages_pattern[i%lime_messages_pattern.size()].begin(), lime_messages_pattern[i%lime_messages_pattern.size()].end());
 			aliceCipherMessage->clear();
 			aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
-			BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,++expected_success,4000)); // we must get a callback saying all went well
+			BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,++expected_success,wait_for_timeout)); // we must get a callback saying all went well
 
 			// destroy and reload the Managers(tests everything is correctly saved/load from local Storage)
 			if (!continuousSession) { managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);}
@@ -223,7 +228,7 @@ static void x3dh_sending_chain_limit_test(const lime::CurveId curve, const std::
 		aliceMessage->assign(lime_messages_pattern[0].begin(), lime_messages_pattern[0].end());
 		aliceCipherMessage->clear();
 		aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
-		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,++expected_success,4000)); // we must get a callback saying all went well
+		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,++expected_success,wait_for_timeout)); // we must get a callback saying all went well
 
 		// bob decrypt, it's not really needed here but...
 		std::vector<uint8_t> receivedMessage{};
@@ -241,7 +246,7 @@ static void x3dh_sending_chain_limit_test(const lime::CurveId curve, const std::
 	try {
 		aliceManager->delete_user(*aliceDevice1, callback);
 		bobManager->delete_user(*bobDevice1, callback);
-		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success+2,4000)); // we must get a callback saying all went well
+		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success+2,wait_for_timeout)); // we must get a callback saying all went well
 	} catch (BctbxException &e) {
 		std::cerr<<e.what()<<endl;;
 		BC_FAIL("Fail to delete users");
@@ -250,12 +255,12 @@ static void x3dh_sending_chain_limit_test(const lime::CurveId curve, const std::
 }
 static void x3dh_sending_chain_limit() {
 #ifdef EC25519_ENABLED
-	x3dh_sending_chain_limit_test(lime::CurveId::c25519, "lime_x3dh_multiple_DRsessions", "https://localhost:25519");
-//	x3dh_sending_chain_limit_test(lime::CurveId::c25519, "lime_x3dh_multiple_DRsessions", "https://localhost:25519", false);
+	x3dh_sending_chain_limit_test(lime::CurveId::c25519, "lime_x3dh_multiple_DRsessions", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data());
+	x3dh_sending_chain_limit_test(lime::CurveId::c25519, "lime_x3dh_multiple_DRsessions", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data(), false);
 #endif
 #ifdef EC448_ENABLED
-//	x3dh_sending_chain_limit_test(lime::CurveId::c448, "lime_x3dh_multiple_DRsessions", "https://localhost:25520");
-//	x3dh_sending_chain_limit_test(lime::CurveId::c448, "lime_x3dh_multiple_DRsessions", "https://localhost:25520", false);
+	x3dh_sending_chain_limit_test(lime::CurveId::c448, "lime_x3dh_multiple_DRsessions", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data());
+	x3dh_sending_chain_limit_test(lime::CurveId::c448, "lime_x3dh_multiple_DRsessions", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data(), false);
 #endif
 }
 
@@ -302,7 +307,7 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 		aliceManager->create_user(*aliceDevice1, x3dh_server_url, curve, callback);
 		bobManager->create_user(*bobDevice1, x3dh_server_url, curve, callback);
 		expected_success +=2; // we have two asynchronous operation on going
-		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success, expected_success,4000)); // we must get a callback saying all went well
+		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success, expected_success,wait_for_timeout)); // we must get a callback saying all went well
 		if (counters.operation_failed == 1) return; // skip the end of the test if we can't do this
 	} catch (BctbxException &e) {
 		std::cerr<<e.what()<<endl;;
@@ -325,10 +330,10 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 
 	try {
 		aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
-		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,++expected_success,4000)); // we must get a callback saying all went well
+		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,++expected_success,wait_for_timeout)); // we must get a callback saying all went well
 		bobManager->encrypt(*bobDevice1, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
 		expected_success += 1;
-		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success,4000)); // we must get a callback saying all went well
+		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success,wait_for_timeout)); // we must get a callback saying all went well
 	} catch (BctbxException &e) {
 		std::cerr<<e.what()<<endl;;
 		BC_FAIL("Fail to encrypt crossed messages between alice.d1 and bob.d1");
@@ -402,7 +407,7 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 	try {
 		bobManager->encrypt(*bobDevice1, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
 		expected_success += 1;
-		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success,4000)); // we must get a callback saying all went well
+		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success,wait_for_timeout)); // we must get a callback saying all went well
 	} catch (BctbxException &e) {
 		std::cerr<<e.what()<<endl;;
 		BC_FAIL("Fail to encrypt message from bob.d1 to alice.d1");
@@ -463,7 +468,7 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 	try {
 		aliceManager->delete_user(*aliceDevice1, callback);
 		bobManager->delete_user(*bobDevice1, callback);
-		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success+2,4000)); // we must get a callback saying all went well
+		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success+2,wait_for_timeout)); // we must get a callback saying all went well
 	} catch (BctbxException &e) {
 		std::cerr<<e.what()<<endl;;
 		BC_FAIL("Fail to delete users");
@@ -475,12 +480,12 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 
 static void x3dh_multiple_DRsessions(void) {
 #ifdef EC25519_ENABLED
-	x3dh_multiple_DRsessions_test(lime::CurveId::c25519, "lime_x3dh_multiple_DRsessions", "https://localhost:25519");
-	x3dh_multiple_DRsessions_test(lime::CurveId::c25519, "lime_x3dh_multiple_DRsessions", "https://localhost:25519", false);
+	x3dh_multiple_DRsessions_test(lime::CurveId::c25519, "lime_x3dh_multiple_DRsessions", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data());
+	x3dh_multiple_DRsessions_test(lime::CurveId::c25519, "lime_x3dh_multiple_DRsessions", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data(), false);
 #endif
 #ifdef EC448_ENABLED
-	x3dh_multiple_DRsessions_test(lime::CurveId::c448, "lime_x3dh_multiple_DRsessions", "https://localhost:25520");
-	x3dh_multiple_DRsessions_test(lime::CurveId::c448, "lime_x3dh_multiple_DRsessions", "https://localhost:25520", false);
+	x3dh_multiple_DRsessions_test(lime::CurveId::c448, "lime_x3dh_multiple_DRsessions", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data());
+	x3dh_multiple_DRsessions_test(lime::CurveId::c448, "lime_x3dh_multiple_DRsessions", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data(), false);
 #endif
 }
 
@@ -538,7 +543,7 @@ static void x3dh_multidev_operation_queue_test(const lime::CurveId curve, const 
 		bobManager->create_user(*bobDevice3, x3dh_server_url, curve, callback);
 		bobManager->create_user(*bobDevice4, x3dh_server_url, curve, callback);
 		expected_success +=5; // we have two asynchronous operation on going
-		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success, expected_success,4000)); // we must get a callback saying all went well
+		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success, expected_success,wait_for_timeout)); // we must get a callback saying all went well
 		if (counters.operation_failed == 1) return; // skip the end of the test if we can't do this
 	} catch (BctbxException &e) {
 		std::cerr<<e.what()<<endl;;
@@ -567,7 +572,7 @@ static void x3dh_multidev_operation_queue_test(const lime::CurveId curve, const 
 			aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), recipients[i], messages[i], cipherMessage[i], callback);
 			expected_success++;
 		}
-		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success,4000)); // we must get a callback saying all went well
+		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success,wait_for_timeout)); // we must get a callback saying all went well
 	} catch (BctbxException &e) {
 		std::cerr<<e.what()<<endl;;
 		BC_FAIL("Fail to encrypt messages from alice.d1 to bob.d1");
@@ -631,7 +636,7 @@ static void x3dh_multidev_operation_queue_test(const lime::CurveId curve, const 
 			aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), recipients[i], messages[i], cipherMessage[i], callback);
 			expected_success++;
 		}
-		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success,4000)); // we must get a callback saying all went well
+		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success,wait_for_timeout)); // we must get a callback saying all went well
 	} catch (BctbxException &e) {
 		std::cerr<<e.what()<<endl;;
 		BC_FAIL("Fail to encrypt messages from alice.d1 to bob.d1, bob.d2, bob.d3 and bob.d4");
@@ -702,7 +707,7 @@ static void x3dh_multidev_operation_queue_test(const lime::CurveId curve, const 
 		bobManager->delete_user(*bobDevice2, callback);
 		bobManager->delete_user(*bobDevice3, callback);
 		bobManager->delete_user(*bobDevice4, callback);
-		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success+5,4000)); // we must get a callback saying all went well
+		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success+5,wait_for_timeout)); // we must get a callback saying all went well
 	} catch (BctbxException &e) {
 		std::cerr<<e.what()<<endl;;
 		BC_FAIL("Fail to delete users");
@@ -712,12 +717,12 @@ static void x3dh_multidev_operation_queue_test(const lime::CurveId curve, const 
 
 static void x3dh_multidev_operation_queue(void) {
 #ifdef EC25519_ENABLED
-	x3dh_multidev_operation_queue_test(lime::CurveId::c25519, "lime_x3dh_multidev_operation_queue", "https://localhost:25519");
-	x3dh_multidev_operation_queue_test(lime::CurveId::c25519, "lime_x3dh_multidev_operation_queue", "https://localhost:25519", false);
+	x3dh_multidev_operation_queue_test(lime::CurveId::c25519, "lime_x3dh_multidev_operation_queue", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data());
+	x3dh_multidev_operation_queue_test(lime::CurveId::c25519, "lime_x3dh_multidev_operation_queue", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data(), false);
 #endif
 #ifdef EC448_ENABLED
-	x3dh_multidev_operation_queue_test(lime::CurveId::c448, "lime_x3dh_multidev_operation_queue", "https://localhost:25520");
-	x3dh_multidev_operation_queue_test(lime::CurveId::c448, "lime_x3dh_multidev_operation_queue", "https://localhost:25520", false);
+	x3dh_multidev_operation_queue_test(lime::CurveId::c448, "lime_x3dh_multidev_operation_queue", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data());
+	x3dh_multidev_operation_queue_test(lime::CurveId::c448, "lime_x3dh_multidev_operation_queue", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data(), false);
 #endif
 }
 
@@ -765,7 +770,7 @@ static void x3dh_operation_queue_test(const lime::CurveId curve, const std::stri
 		aliceManager->create_user(*aliceDevice1, x3dh_server_url, curve, callback);
 		bobManager->create_user(*bobDevice1, x3dh_server_url, curve, callback);
 		expected_success +=2; // we have two asynchronous operation on going
-		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success, expected_success,4000)); // we must get callback saying all went well
+		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success, expected_success,wait_for_timeout)); // we must get callback saying all went well
 		if (counters.operation_failed == 1) return; // skip the end of the test if we can't do this
 	} catch (BctbxException &e) {
 		std::cerr<<e.what()<<endl;;
@@ -794,7 +799,7 @@ static void x3dh_operation_queue_test(const lime::CurveId curve, const std::stri
 			aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), recipients[i], messages[i], cipherMessage[i], callback);
 			expected_success++;
 		}
-		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success,4000)); // we must get a callback saying all went well
+		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success,wait_for_timeout)); // we must get a callback saying all went well
 	} catch (BctbxException &e) {
 		std::cerr<<e.what()<<endl;;
 		BC_FAIL("Fail to encrypt messages from alice.d1 to bob.d1");
@@ -834,7 +839,7 @@ static void x3dh_operation_queue_test(const lime::CurveId curve, const std::stri
 	try {
 		aliceManager->delete_user(*aliceDevice1, callback);
 		bobManager->delete_user(*bobDevice1, callback);
-		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success+2,4000)); // we must get a callback saying all went well
+		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success+2,wait_for_timeout)); // we must get a callback saying all went well
 	} catch (BctbxException &e) {
 		std::cerr<<e.what()<<endl;;
 		BC_FAIL("Fail to delete users");
@@ -844,12 +849,12 @@ static void x3dh_operation_queue_test(const lime::CurveId curve, const std::stri
 
 static void x3dh_operation_queue(void) {
 #ifdef EC25519_ENABLED
-	x3dh_operation_queue_test(lime::CurveId::c25519, "lime_x3dh_operation_queue", "https://localhost:25519");
-	x3dh_operation_queue_test(lime::CurveId::c25519, "lime_x3dh_operation_queue", "https://localhost:25519", false);
+	x3dh_operation_queue_test(lime::CurveId::c25519, "lime_x3dh_operation_queue", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data());
+	x3dh_operation_queue_test(lime::CurveId::c25519, "lime_x3dh_operation_queue", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data(), false);
 #endif
 #ifdef EC448_ENABLED
-	x3dh_operation_queue_test(lime::CurveId::c448, "lime_x3dh_operation_queue", "https://localhost:25520");
-	x3dh_operation_queue_test(lime::CurveId::c448, "lime_x3dh_operation_queue", "https://localhost:25520", false);
+	x3dh_operation_queue_test(lime::CurveId::c448, "lime_x3dh_operation_queue", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data());
+	x3dh_operation_queue_test(lime::CurveId::c448, "lime_x3dh_operation_queue", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data(), false);
 #endif
 }
 
@@ -902,11 +907,11 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 	// create users
 	try {
 		aliceManager->create_user(*aliceDevice1, x3dh_server_url, curve, callback);
-		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success++,4000)); // we must get a callback saying all went well
+		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success++,wait_for_timeout)); // we must get a callback saying all went well
 		bobManager->create_user(*bobDevice1, x3dh_server_url, curve, callback);
-		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success++,4000)); // we must get a callback saying all went well
+		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success++,wait_for_timeout)); // we must get a callback saying all went well
 		bobManager->create_user(*bobDevice2, x3dh_server_url, curve, callback);
-		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success++,4000)); // we must get a callback saying all went well
+		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success++,wait_for_timeout)); // we must get a callback saying all went well
 		if (counters.operation_failed == 1) return; // skip the end of the test if we can't do this
 	} catch (BctbxException &e) {
 		std::cerr<<e.what()<<endl;;
@@ -926,7 +931,7 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 
 	try {
 		aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
-		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success++,4000)); // we must get a callback saying all went well
+		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success++,wait_for_timeout)); // we must get a callback saying all went well
 	} catch (BctbxException &e) {
 		std::cerr<<e.what()<<endl;;
 		BC_FAIL("Fail to encrypt message from Alice to bob.d1, bob.d2");
@@ -961,7 +966,7 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 
 	try {
 		aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
-		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success++,4000)); // we must get a callback saying all went well
+		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success++,wait_for_timeout)); // we must get a callback saying all went well
 
 		// loop on cipher message and decrypt with bob Manager
 		for (auto &recipient : *recipients) {
@@ -991,7 +996,7 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 
 	try {
 		bobManager->encrypt(*bobDevice1, make_shared<const std::string>("alice"), recipients, message, cipherMessage, callback);
-		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success++,4000)); // we must get a callback saying all went well
+		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success++,wait_for_timeout)); // we must get a callback saying all went well
 	} catch (BctbxException &e) {
 		std::cerr<<e.what()<<endl;;
 		BC_FAIL("bob.d1 reply to alice.d1 and bob.d2failed");
@@ -1037,7 +1042,7 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 
 	try {
 		bobManager->encrypt(*bobDevice2, make_shared<const std::string>("alice"), recipients, message, cipherMessage, callback);
-		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success++,4000)); // we must get a callback saying all went well
+		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success++,wait_for_timeout)); // we must get a callback saying all went well
 
 		// decrypt it
 		std::vector<uint8_t> receivedMessage{};
@@ -1069,7 +1074,7 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 
 	try {
 		aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
-		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success++,4000)); // we must get a callback saying all went well
+		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success++,wait_for_timeout)); // we must get a callback saying all went well
 
 		// loop on cipher message and decrypt with bob Manager
 		for (auto &recipient : *recipients) {
@@ -1097,7 +1102,7 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 
 	try {
 		aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
-		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_failed,1,4000)); // we must get a callback saying all went well
+		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_failed,1,wait_for_timeout)); // we must get a callback saying all went well
 	} catch (BctbxException &e) {
 		std::cerr<<e.what()<<endl;;
 		BC_FAIL("Attempt to encrypt to an unknown user generate an exception instead of simple failure message in callback");
@@ -1116,7 +1121,7 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 		aliceManager->delete_user(*aliceDevice1, callback);
 		bobManager->delete_user(*bobDevice1, callback);
 		bobManager->delete_user(*bobDevice2, callback);
-		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success+2,4000)); // we must get a callback saying all went well
+		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success+2,wait_for_timeout)); // we must get a callback saying all went well
 	} catch (BctbxException &e) {
 		std::cerr<<e.what()<<endl;;
 		BC_FAIL("Fail to delete users");
@@ -1126,12 +1131,12 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 
 static void x3dh_basic(void) {
 #ifdef EC25519_ENABLED
-	x3dh_basic_test(lime::CurveId::c25519, "lime_x3dh_basic", "https://localhost:25519");
-	x3dh_basic_test(lime::CurveId::c25519, "lime_x3dh_basic", "https://localhost:25519", false);
+	x3dh_basic_test(lime::CurveId::c25519, "lime_x3dh_basic", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data());
+	x3dh_basic_test(lime::CurveId::c25519, "lime_x3dh_basic", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data(), false);
 #endif
 #ifdef EC448_ENABLED
-	x3dh_basic_test(lime::CurveId::c448, "lime_x3dh_basic", "https://localhost:25520");
-	x3dh_basic_test(lime::CurveId::c448, "lime_x3dh_basic", "https://localhost:25520", false);
+	x3dh_basic_test(lime::CurveId::c448, "lime_x3dh_basic", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data());
+	x3dh_basic_test(lime::CurveId::c448, "lime_x3dh_basic", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data(), false);
 #endif
 }
 
@@ -1174,7 +1179,7 @@ static void user_management_test(const lime::CurveId curve, const std::string &d
 	/* create a user in a fresh database */
 	try {
 		Manager->create_user(*aliceDeviceName, x3dh_server_url, curve, callback);
-		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success++,5000)); // we must get a callback saying all went well
+		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success++,wait_for_timeout)); // we must get a callback saying all went well
 		if (counters.operation_failed == 1) return; // skip the end of the test if we can't do this
 	} catch (BctbxException &e) {
 		std::cerr<<e.what()<<endl;;
@@ -1224,7 +1229,7 @@ static void user_management_test(const lime::CurveId curve, const std::string &d
 	try {
 		// delete Alice, wait for callback confirmation from server
 		Manager->delete_user(*aliceDeviceName, callback);
-		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success++,5000)); // we must get a callback saying all went well
+		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success++,wait_for_timeout)); // we must get a callback saying all went well
 	} catch (BctbxException &e) {
 		std::cerr<<e.what()<<endl;
 		BC_FAIL("Delete Lime user raised exception");
@@ -1243,7 +1248,7 @@ static void user_management_test(const lime::CurveId curve, const std::string &d
 		BC_FAIL("No exception arised when deleting inexistent user from DB");
 		return;
 	}
-	BC_ASSERT_FALSE(wait_for(stack,&counters.operation_failed,savedCounters.operation_failed+1,3000)); // give we few seconds to possible call to the callback(it shall not occurs
+	BC_ASSERT_FALSE(wait_for(stack,&counters.operation_failed,savedCounters.operation_failed+1,wait_for_timeout/2)); // give we few seconds to possible call to the callback(it shall not occurs
 	// check we didn't land into call back as any call to it will modify the counters
 	BC_ASSERT_TRUE(counters == savedCounters);
 
@@ -1251,7 +1256,7 @@ static void user_management_test(const lime::CurveId curve, const std::string &d
 	/* Create Alice again */
 	try {
 		std::shared_ptr<LimeGeneric> alice = insert_LimeUser(dbFilenameAlice, *aliceDeviceName, x3dh_server_url, curve, prov, callback);
-		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success++,5000)); // we must get a callback saying all went well
+		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success++,wait_for_timeout)); // we must get a callback saying all went well
 		/* wait on this one but we shall get a fail from server */
 	} catch (BctbxException &e) {
 		std::cerr<<e.what()<<endl;;
@@ -1267,7 +1272,7 @@ static void user_management_test(const lime::CurveId curve, const std::string &d
 	auto ManagerTmp = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAliceTmp, prov));
 	try {
 		ManagerTmp->create_user(*aliceDeviceName, x3dh_server_url, curve, callback);
-		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_failed,counters.operation_failed+1,5000)); // we must get a callback saying all went well
+		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_failed,counters.operation_failed+1,wait_for_timeout)); // we must get a callback saying all went well
 		/* wait on this one but we shall get a fail from server */
 	} catch (BctbxException &e) {
 		std::cerr<<e.what()<<endl;;
@@ -1279,7 +1284,7 @@ static void user_management_test(const lime::CurveId curve, const std::string &d
 	try {
 		// delete Alice, wait for callback confirmation from server
 		Manager->delete_user(*aliceDeviceName, callback);
-		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success++,5000)); // we must get a callback saying all went well
+		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success++,wait_for_timeout)); // we must get a callback saying all went well
 	} catch (BctbxException &e) {
 		std::cerr<<e.what()<<endl;
 		BC_FAIL("Delete Lime user raised exception");
@@ -1289,10 +1294,10 @@ static void user_management_test(const lime::CurveId curve, const std::string &d
 
 static void user_management(void) {
 #ifdef EC25519_ENABLED
-	user_management_test(lime::CurveId::c25519, "lime_user_management", "https://localhost:25519");
+	user_management_test(lime::CurveId::c25519, "lime_user_management", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data());
 #endif
 #ifdef EC448_ENABLED
-	user_management_test(lime::CurveId::c448, "lime_user_management", "https://localhost:25520");
+	user_management_test(lime::CurveId::c448, "lime_user_management", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data());
 #endif
 }
 

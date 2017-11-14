@@ -28,6 +28,12 @@
 static FILE * log_file = NULL;
 static const char *log_domain = "lime";
 
+// settings used in lime suite
+extern std::string test_x3dh_server_url;
+extern int wait_for_timeout;
+extern std::string test_x3dh_c25519_server_port;
+extern std::string test_x3dh_c448_server_port;
+
 static void log_handler(int lev, const char *fmt, va_list args) {
 #ifdef _WIN32
 	/* We must use stdio to avoid log formatting (for autocompletion etc.) */
@@ -87,6 +93,15 @@ int lime_tester_set_log_file(const char *filename) {
 static const char* lime_helper =
 		"\t\t\t--verbose\n"
 		"\t\t\t--silent\n"
+		"\t\t\t--x3dh-server-url <url without protocol prefix nor port>, default : localhost\n\t\t\t                   a test instance shall be running on sip5.linphone.org\n"
+#ifdef EC25519_ENABLED
+		"\t\t\t--c255-x3dh-server-port <port to use on x3dh server for instance running on curve25519>, default : 25519\n"
+#endif
+#ifdef EC448_ENABLED
+		"\t\t\t--c448-x3dh-server-port <port to use on x3dh server for instance running on curve448>, default : 25520\n"
+#endif
+		"\t\t\t--operation-timeout <delay in ms to complete basic operations involving server>, default : 4000, you may want to increase this if you are not using a local X3DH server\n"
+
 		"\t\t\t--log-file <output log file path>\n";
 
 int main(int argc, char *argv[]) {
@@ -114,6 +129,18 @@ int main(int argc, char *argv[]) {
 		} else if (strcmp(argv[i],"--log-file")==0){
 			CHECK_ARG("--log-file", ++i, argc);
 			if (lime_tester_set_log_file(argv[i]) < 0) return -2;
+		} else if (strcmp(argv[i],"--x3dh-server-url")==0){
+			CHECK_ARG("--x3dh-server-url", ++i, argc);
+			test_x3dh_server_url=std::string(argv[i]);
+		} else if (strcmp(argv[i],"--c255-x3dh-server-port")==0){
+			CHECK_ARG("--c255-x3dh-server-port", ++i, argc);
+			test_x3dh_c25519_server_port=std::string(argv[i]);
+		} else if (strcmp(argv[i],"--c448-x3dh-server-port")==0){
+			CHECK_ARG("--c448-x3dh-server-port", ++i, argc);
+			test_x3dh_c448_server_port=std::string(argv[i]);
+		} else if (strcmp(argv[i],"--operation-timeout")==0){
+			CHECK_ARG("--operation-timeout", ++i, argc);
+			wait_for_timeout=std::atoi(argv[i]);
 		}else {
 			int ret = bc_tester_parse_args(argc, argv, i);
 			if (ret>0) {

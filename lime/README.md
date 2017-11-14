@@ -26,6 +26,8 @@ Testing
  A nodejs version of UNSECURE X3DH server is provided in tester/server
  See README from this directory for instructions.
 
+ A test instance of X3DH server shall be running on sip5.linphone.org.
+
 
 Options
 -------
