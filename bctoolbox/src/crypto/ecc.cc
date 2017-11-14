@@ -31,17 +31,17 @@
 
 int bctbx_crypto_have_ecc(void) {
 	/* Check our re-defines of key length are matching the decaf ones */
-	static_assert(BCTBX_ECDH_X25519_PUBLIC_SIZE == DECAF_X25519_PUBLIC_BYTES);
-	static_assert(BCTBX_ECDH_X25519_PRIVATE_SIZE == DECAF_X25519_PRIVATE_BYTES);
-	static_assert(BCTBX_ECDH_X448_PUBLIC_SIZE == DECAF_X448_PUBLIC_BYTES);
-	static_assert(BCTBX_ECDH_X448_PRIVATE_SIZE == DECAF_X448_PRIVATE_BYTES);
+	static_assert(BCTBX_ECDH_X25519_PUBLIC_SIZE == DECAF_X25519_PUBLIC_BYTES, "forwarding DECAF defines mismatch");
+	static_assert(BCTBX_ECDH_X25519_PRIVATE_SIZE == DECAF_X25519_PRIVATE_BYTES, "forwarding DECAF defines mismatch");
+	static_assert(BCTBX_ECDH_X448_PUBLIC_SIZE == DECAF_X448_PUBLIC_BYTES, "forwarding DECAF defines mismatch");
+	static_assert(BCTBX_ECDH_X448_PRIVATE_SIZE == DECAF_X448_PRIVATE_BYTES, "forwarding DECAF defines mismatch");
 
-	static_assert(BCTBX_EDDSA_25519_PUBLIC_SIZE == DECAF_EDDSA_25519_PUBLIC_BYTES);
-	static_assert(BCTBX_EDDSA_25519_PRIVATE_SIZE == DECAF_EDDSA_25519_PRIVATE_BYTES);
-	static_assert(BCTBX_EDDSA_25519_SIGNATURE_SIZE == DECAF_EDDSA_25519_SIGNATURE_BYTES);
-	static_assert(BCTBX_EDDSA_448_PUBLIC_SIZE == DECAF_EDDSA_448_PUBLIC_BYTES);
-	static_assert(BCTBX_EDDSA_448_PRIVATE_SIZE == DECAF_EDDSA_448_PRIVATE_BYTES);
-	static_assert(BCTBX_EDDSA_448_SIGNATURE_SIZE == DECAF_EDDSA_448_SIGNATURE_BYTES);
+	static_assert(BCTBX_EDDSA_25519_PUBLIC_SIZE == DECAF_EDDSA_25519_PUBLIC_BYTES, "forwarding DECAF defines mismatch");
+	static_assert(BCTBX_EDDSA_25519_PRIVATE_SIZE == DECAF_EDDSA_25519_PRIVATE_BYTES, "forwarding DECAF defines mismatch");
+	static_assert(BCTBX_EDDSA_25519_SIGNATURE_SIZE == DECAF_EDDSA_25519_SIGNATURE_BYTES, "forwarding DECAF defines mismatch");
+	static_assert(BCTBX_EDDSA_448_PUBLIC_SIZE == DECAF_EDDSA_448_PUBLIC_BYTES, "forwarding DECAF defines mismatch");
+	static_assert(BCTBX_EDDSA_448_PRIVATE_SIZE == DECAF_EDDSA_448_PRIVATE_BYTES, "forwarding DECAF defines mismatch");
+	static_assert(BCTBX_EDDSA_448_SIGNATURE_SIZE == DECAF_EDDSA_448_SIGNATURE_BYTES, "forwarding DECAF defines mismatch");
 
 	return TRUE;
 }
