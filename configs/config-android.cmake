@@ -21,6 +21,7 @@
 ############################################################################
 
 # Define options that are specific to the android config
+lcb_add_option("Arch suffix" "Append the android abi to shared libraries" ON)
 lcb_add_dependent_option("Embedded OpenH264" "Embed the openh264 library instead of downloading it from Cisco." "${DEFAULT_VALUE_ENABLE_EMBEDDED_OPENH264}" "ENABLE_OPENH264" OFF)
 
 
