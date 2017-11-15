@@ -214,34 +214,58 @@ const char *belle_sip_tester_root_ca =
 "-----END CERTIFICprocess_auth_requestedATE-----\n";
 
 static void process_auth_requested(void *user_ctx, belle_sip_auth_event_t *event){
+    BELLESIP_UNUSED(user_ctx);
+    if (belle_sip_auth_event_get_mode(event) == BELLE_SIP_AUTH_MODE_HTTP_DIGEST) {
+        const char *username = belle_sip_auth_event_get_username(event);
+        const char *realm = belle_sip_auth_event_get_realm(event);
+        belle_sip_message("process_auth_requested requested for [%s@%s]"
+                          ,username?username:""
+                          ,realm?realm:"");
+        belle_sip_auth_event_set_passwd(event,"secret");
+    } else if (belle_sip_auth_event_get_mode(event) == BELLE_SIP_AUTH_MODE_TLS) {
+        const char *distinguished_name = NULL;
+        belle_sip_certificates_chain_t* cert = belle_sip_certificates_chain_parse(belle_sip_tester_client_cert,strlen(belle_sip_tester_client_cert),BELLE_SIP_CERTIFICATE_RAW_FORMAT_PEM);
+        belle_sip_signing_key_t* key = belle_sip_signing_key_parse(belle_sip_tester_private_key,strlen(belle_sip_tester_private_key),belle_sip_tester_private_key_passwd);
+        belle_sip_auth_event_set_client_certificates_chain(event,cert);
+        belle_sip_auth_event_set_signing_key(event,key);
+        distinguished_name = belle_sip_auth_event_get_distinguished_name(event);
+        belle_sip_message("process_auth_requested requested for  DN[%s]",distinguished_name?distinguished_name:"");
+        
+    } else {
+        belle_sip_error("Unexpected auth mode");
+    }
+}
+
+static void process_auth_requested_for_algorithm(void *user_ctx, belle_sip_auth_event_t *event){
     const char** client;
-    client = (const char** ) user_ctx;
+    client = (const char** ) user_ctx; //*client is algorithm of client, *(client+1) is password haché
     if(*client==NULL)
         *client = "MD5";
-	if (belle_sip_auth_event_get_mode(event) == BELLE_SIP_AUTH_MODE_HTTP_DIGEST) {
-		const char *username = belle_sip_auth_event_get_username(event);
-		const char *realm = belle_sip_auth_event_get_realm(event);
-		belle_sip_message("process_auth_requested requested for [%s@%s]"
-				,username?username:""
-				,realm?realm:"");
-        if ((event->algorithm)&&(!strcmp(*client,event->algorithm))){
+    if (belle_sip_auth_event_get_mode(event) == BELLE_SIP_AUTH_MODE_HTTP_DIGEST) {
+        const char *username = belle_sip_auth_event_get_username(event);
+        const char *realm = belle_sip_auth_event_get_realm(event);
+        belle_sip_message("process_auth_requested requested for [%s@%s]"
+                          ,username?username:""
+                          ,realm?realm:"");
+        /* Default algorithm is MD5 if it's NULL. If algorithm of client = algorithm of server (event->algorithm), set ha1 or passwd. */
+        if (((event->algorithm)&&(!strcmp(*client,event->algorithm)))||((event->algorithm==NULL)&&(!strcmp(*client, "MD5")))){
             if(*(client+1))
                 belle_sip_auth_event_set_ha1(event, *(client+1));
             else
                 belle_sip_auth_event_set_passwd(event,"secret");
         }
-	} else if (belle_sip_auth_event_get_mode(event) == BELLE_SIP_AUTH_MODE_TLS) {
-		const char *distinguished_name = NULL;
-		belle_sip_certificates_chain_t* cert = belle_sip_certificates_chain_parse(belle_sip_tester_client_cert,strlen(belle_sip_tester_client_cert),BELLE_SIP_CERTIFICATE_RAW_FORMAT_PEM);
-		belle_sip_signing_key_t* key = belle_sip_signing_key_parse(belle_sip_tester_private_key,strlen(belle_sip_tester_private_key),belle_sip_tester_private_key_passwd);
-		belle_sip_auth_event_set_client_certificates_chain(event,cert);
-		belle_sip_auth_event_set_signing_key(event,key);
-		distinguished_name = belle_sip_auth_event_get_distinguished_name(event);
-		belle_sip_message("process_auth_requested requested for  DN[%s]",distinguished_name?distinguished_name:"");
-
-	} else {
-		belle_sip_error("Unexpected auth mode");
-	}
+    } else if (belle_sip_auth_event_get_mode(event) == BELLE_SIP_AUTH_MODE_TLS) {
+        const char *distinguished_name = NULL;
+        belle_sip_certificates_chain_t* cert = belle_sip_certificates_chain_parse(belle_sip_tester_client_cert,strlen(belle_sip_tester_client_cert),BELLE_SIP_CERTIFICATE_RAW_FORMAT_PEM);
+        belle_sip_signing_key_t* key = belle_sip_signing_key_parse(belle_sip_tester_private_key,strlen(belle_sip_tester_private_key),belle_sip_tester_private_key_passwd);
+        belle_sip_auth_event_set_client_certificates_chain(event,cert);
+        belle_sip_auth_event_set_signing_key(event,key);
+        distinguished_name = belle_sip_auth_event_get_distinguished_name(event);
+        belle_sip_message("process_auth_requested requested for  DN[%s]",distinguished_name?distinguished_name:"");
+        
+    } else {
+        belle_sip_error("Unexpected auth mode");
+    }
 }
 
 int register_before_all(void) {
@@ -272,7 +296,7 @@ int register_before_all(void) {
 	listener_callbacks.process_response_event=process_response_event;
 	listener_callbacks.process_timeout=process_timeout;
 	listener_callbacks.process_transaction_terminated=process_transaction_terminated;
-	listener_callbacks.process_auth_requested=process_auth_requested;
+	listener_callbacks.process_auth_requested=process_auth_requested_for_algorithm;
 	listener_callbacks.listener_destroyed=NULL;
     
 	listener=belle_sip_listener_create_from_callbacks(&listener_callbacks,client);
