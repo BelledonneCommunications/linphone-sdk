@@ -9,6 +9,8 @@
 %{?_with_bc: %define    _prefix         /opt/belledonne-communications}
 %define                 srtp            %{?_without_srtp:0}%{?!_without_srtp:1}
 
+%define     pkg_prefix %{?_with_bc:bc-}%{!?_with_bc:}
+
 # re-define some directories for older RPMBuild versions which don't. This messes up the doc/ dir
 # taken from https://fedoraproject.org/wiki/Packaging:RPMMacros?rd=Packaging/RPMMacros
 %define _datarootdir       %{_prefix}/share
@@ -29,6 +31,9 @@ License:        GPL
 URL:            http://www.belle-sip.org
 Source0:        %{name}-%{version}-%{build_number}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-buildroot
+
+Requires:	%{pkg_prefix}bctoolbox
+
 %description
 Belle-sip is an object oriented SIP stack, written in C, used by Linphone.
 
