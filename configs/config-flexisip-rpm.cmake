@@ -25,18 +25,7 @@ include(${CMAKE_SOURCE_DIR}/cmake/FindLinuxPlatform.cmake)
 
 # Check if we have everything to compile correctly
 
-FUNCTION(CHECK_PROGRAM progname)
-	find_program(${progname}_PROGRAM
-		NAMES ${progname}
-	)
-	if(NOT ${progname}_PROGRAM)
-		message(FATAL_ERROR "Could not find the ${progname} program, which is needed for RPMBuild")
-	else()
-		message(STATUS "Found ${progname} : ${${progname}_PROGRAM}.")
-	endif()
-ENDFUNCTION()
-
-FUNCTION(CHECK_LIBRARY libname)
+function(CHECK_LIBRARY libname)
 	find_library(${libname}_LIBRARY
 		NAMES ${libname}
 		PATHS /usr/lib/mysql/
@@ -46,23 +35,16 @@ FUNCTION(CHECK_LIBRARY libname)
 	else()
 		message(STATUS "Found ${libname} : ${${libname}_LIBRARY}.")
 	endif()
-ENDFUNCTION()
-
-# Doxygen can be found through CMake
-find_package(Doxygen REQUIRED)
-
-# the rest will be checked manually
-FOREACH(PROGNAME rpmbuild bison)
-	CHECK_PROGRAM(${PROGNAME})
-ENDFOREACH()
-
+endfunction()
 
 set(FLEXISIP_LIBDEPS ssl mysqlclient_r mysqlclient)
 
-FOREACH(LIBNAME ${FLEXISIP_LIBDEPS})
-	CHECK_LIBRARY(${LIBNAME})
-ENDFOREACH()
+foreach(LIBNAME ${FLEXISIP_LIBDEPS})
+	check_library(${LIBNAME})
+endforeach()
 
+# Force use of system dependencies to build RPM packages
+set(LINPHONE_BUILDER_USE_SYSTEM_DEPENDENCIES YES CACHE BOOL "" FORCE)
 
 # Define default values for the flexisip builder options
 set(DEFAULT_VALUE_DISABLE_BC_ANTLR ON)
@@ -76,7 +58,6 @@ set(DEFAULT_VALUE_ENABLE_BC_HIREDIS ON)
 
 # Global configuration
 set(LINPHONE_BUILDER_HOST "")
-
 set(RPM_INSTALL_PREFIX "/opt/belledonne-communications")
 
 # Adjust PKG_CONFIG_PATH to include install directory
@@ -115,7 +96,10 @@ lcb_builder_build_method(bellesip "rpm")
 lcb_builder_rpmbuild_options(bellesip "--with bc")
 
 lcb_builder_build_method(linphone "rpm")
-lcb_builder_rpmbuild_options(linphone "--with bc")
+lcb_builder_rpmbuild_options(linphone
+	"--with bc"
+	"--without video"
+)
 
 lcb_builder_build_method(sofiasip "rpm")
 lcb_builder_rpmbuild_options(sofiasip
@@ -138,7 +122,6 @@ if(NOT ENABLE_TRANSCODER)
 endif()
 
 if(ENABLE_PRESENCE)
-	lcb_builder_rpmbuild_name(flexisip "flexisip-presence")
 	lcb_builder_rpmbuild_options(flexisip "--with presence")
 endif()
 if(ENABLE_CONFERENCE)
