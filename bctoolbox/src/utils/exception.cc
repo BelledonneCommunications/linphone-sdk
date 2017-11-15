@@ -32,9 +32,9 @@ static void uncaught_handler() {
 	try {
 		rethrow_exception(p);
 	} catch (BctbxException &e) {
-		BCTBX_SLOGE(NULL) << e;
+		BCTBX_SLOGE << e;
 	} catch (std::exception &ee) {
-		BCTBX_SLOGE(NULL) << "Unexpected exception [" << ee.what() << " ] use BctbxException for better debug";
+		BCTBX_SLOGE << "Unexpected exception [" << ee.what() << " ] use BctbxException for better debug";
 	}
 	abort();
 }
