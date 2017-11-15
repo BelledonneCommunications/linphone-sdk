@@ -153,6 +153,10 @@ set(BELLE_SIP_SOURCE_FILES_C
 	${TUNNEL_SOURCE_FILES_C}
 )
 
+add_definitions(
+	-DBCTBX_LOG_DOMAIN="belle-sip"
+)
+
 if(ANDROID)
 	list(APPEND BELLE_SIP_SOURCE_FILES_C wakelock.c)
 endif()

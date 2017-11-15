@@ -46,6 +46,10 @@ set(SOURCE_FILES_C
 	register_tester.h
 )
 
+add_definitions(
+	-DBCTBX_LOG_DOMAIN="belle-sip"
+)
+
 set(SOURCE_FILES_OBJC )
 if (IOS)
 	list(APPEND SOURCE_FILES_OBJC belle_sip_tester_ios.m)
