@@ -160,7 +160,7 @@ namespace lime {
 	 */
 	template <typename Curve>
 	DR<Curve>::DR(lime::Db *localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const X<Curve> &peerPublicKey, long int peerDid, const std::vector<uint8_t> &X3DH_initMessage)
-	:m_DHr{peerPublicKey},m_DHr_valid{true}, m_DHs{},m_RK{SK},m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD{AD},m_mkskipped{},
+	:m_DHr{peerPublicKey},m_DHr_valid{true}, m_DHs{},m_RK(SK),m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD(AD),m_mkskipped{},
 	m_RNG{bctbx_rng_context_new()},m_dbSessionId{0},m_usedNr{0},m_usedDHid{0},m_localStorage{localStorage},m_dirty{DRSessionDbStatus::dirty},m_peerDid{peerDid},
 	m_active_status{true}, m_X3DH_initMessage{X3DH_initMessage}
 	{
@@ -194,7 +194,7 @@ namespace lime {
 	 */
 	template <typename Curve>
 	DR<Curve>::DR(lime::Db *localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const KeyPair<X<Curve>> &selfKeyPair, long int peerDid)
-	:m_DHr{},m_DHr_valid{false},m_DHs{selfKeyPair},m_RK{SK},m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD{AD},m_mkskipped{},
+	:m_DHr{},m_DHr_valid{false},m_DHs{selfKeyPair},m_RK(SK),m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD(AD),m_mkskipped{},
 	m_RNG{bctbx_rng_context_new()},m_dbSessionId{0},m_usedNr{0},m_usedDHid{0},m_localStorage{localStorage},m_dirty{DRSessionDbStatus::dirty},m_peerDid{peerDid},
 	m_active_status{true}, m_X3DH_initMessage{}
 	{ }
