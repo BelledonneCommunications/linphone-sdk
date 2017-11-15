@@ -206,13 +206,14 @@ static void x3dh_sending_chain_limit_test(const lime::CurveId curve, const std::
 			if (!continuousSession) { managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);}
 
 			BC_ASSERT_FALSE(DR_message_holdsX3DHInit((*aliceRecipients)[0].cipherHeader)); // it's an ongoing session, no X3DH init
-			/*
-			// bob decrypt, it's not really needed here but...
+
+			// bob decrypt, it's not really needed here but cannot really hurt, comment if the test is too slow
+/*
 			std::vector<uint8_t> receivedMessage{};
 			BC_ASSERT_TRUE(bobManager->decrypt(*bobDevice1, "bob", *aliceDevice1, (*aliceRecipients)[0].cipherHeader, *aliceCipherMessage, receivedMessage));
 			std::string receivedMessageString{receivedMessage.begin(), receivedMessage.end()};
 			BC_ASSERT_TRUE(receivedMessageString == lime_messages_pattern[i%lime_messages_pattern.size()]);
-			*/
+*/
 		}
 	} catch (BctbxException &e) {
 		BCTBX_SLOGE <<e;;

@@ -609,26 +609,14 @@ void Lime<Curve>::cache_DR_sessions(std::vector<recipientInfos<Curve>> &internal
 	sqlString_requestedDevices.pop_back(); // remove the last ','
 
 	/* fetch them from DB */
-	std::vector<long int>sessionId(requestedDevicesCount);
-	std::vector<std::string>peerId(requestedDevicesCount);
+	rowset<row> rs = (m_localStorage->sql.prepare << "SELECT s.sessionId, d.DeviceId FROM DR_sessions as s INNER JOIN lime_PeerDevices as d ON s.Did=d.Did WHERE d.Uid= :Uid AND s.Status=1 AND d.DeviceId IN ("<<sqlString_requestedDevices<<");", use(m_db_Uid));
+	for (auto &r : rs) {
+		auto sessionId = r.get<int>(0);
+		auto peerDeviceId = r.get<string>(1);
 
-	statement st = (m_localStorage->sql.prepare << "SELECT s.sessionId, d.DeviceId FROM DR_sessions as s INNER JOIN lime_PeerDevices as d ON s.Did=d.Did WHERE d.Uid= :Uid AND s.Status=1 AND d.DeviceId IN ("<<sqlString_requestedDevices<<");",  into(sessionId), into(peerId), use(m_db_Uid));
-
-	st.execute();
-	while (st.fetch()) { // we shall do it only once as we probably won't get more devices than requested, could happend if DB is in chaos and we have several sessions actives for one pair
-		/* load session in cache for them */
-		for (size_t i=0; i<sessionId.size(); i++ ) {
-			requestedDevices[peerId[i]] = std::make_shared<DR<Curve>>(m_localStorage.get(), sessionId[i]); // load session from cache
-		}
-
-		/* loop on found sessions and store them in cache */
-		for (auto &recipient : requestedDevices) {
-			m_DR_sessions_cache[recipient.first] = recipient.second;
-		}
-
-		// useless but recommended by SOCI spec
-		sessionId.resize(requestedDevicesCount);
-		peerId.resize(requestedDevicesCount);
+		auto DRsession = std::make_shared<DR<Curve>>(m_localStorage.get(), sessionId); // load session from local storage
+		requestedDevices[peerDeviceId] = DRsession; // store found session in a our temp container
+		m_DR_sessions_cache[peerDeviceId] = DRsession; // session is also stored in cache
 	}
 
 	/* loop on internal recipient and fill it with the found ones, store the missing ones in the missing_devices vector */
@@ -638,7 +626,7 @@ void Lime<Curve>::cache_DR_sessions(std::vector<recipientInfos<Curve>> &internal
 			if (retrievedElem == requestedDevices.end()) { // we didn't found this one
 				missing_devices.push_back(recipient.deviceId);
 			} else { // we got this one
-				recipient.DRSession = std::move(retrievedElem->second); // don't need this pointer in map anymore
+				recipient.DRSession = std::move(retrievedElem->second); // don't need this pointer in tmp comtainer anymore
 			}
 		}
 	}
@@ -686,16 +674,11 @@ long int Lime<Curve>::store_peerDevice(const std::string &peerDeviceId, const ED
 // load from local storage in DRSessions all DR session matching the peerDeviceId, ignore the one picked by id in 2nd arg
 template <typename Curve>
 void Lime<Curve>::get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDRSessionId, std::vector<std::shared_ptr<DR<Curve>>> &DRSessions) {
-	std::vector<long int> sessionIds(10); // get sessions 10 by 10, one fetch shall be enough anyway
-	statement st = (m_localStorage->sql.prepare << "SELECT s.sessionId FROM DR_sessions as s INNER JOIN lime_PeerDevices as d ON s.Did=d.Did WHERE d.DeviceId = :senderDeviceId AND s.sessionId <> :ignoreThisDRSessionId ORDER BY s.Status DESC, timeStamp ASC;",  into(sessionIds), use(senderDeviceId), use(ignoreThisDRSessionId));
-	st.execute();
+	rowset<int> rs = (m_localStorage->sql.prepare << "SELECT s.sessionId FROM DR_sessions as s INNER JOIN lime_PeerDevices as d ON s.Did=d.Did WHERE d.DeviceId = :senderDeviceId AND s.sessionId <> :ignoreThisDRSessionId ORDER BY s.Status DESC, timeStamp ASC;", use(senderDeviceId), use(ignoreThisDRSessionId));
 
-	while (st.fetch()) {
-		for (auto sessionId : sessionIds) {
-			/* load session in cache DRSessions */
-			DRSessions.push_back(make_shared<DR<Curve>>(m_localStorage.get(), sessionId)); // load session from cache
-		}
-		sessionIds.resize(10);
+	for (auto sessionId : rs) {
+		/* load session in cache DRSessions */
+		DRSessions.push_back(make_shared<DR<Curve>>(m_localStorage.get(), sessionId)); // load session from cache
 	}
 };
 
