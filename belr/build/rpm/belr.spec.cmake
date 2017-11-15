@@ -8,6 +8,8 @@
 %define                 pkg_name        %{?_with_bc:bc-belr}%{!?_with_bc:belr}
 %{?_with_bc: %define    _prefix         /opt/belledonne-communications}
 
+%define     pkg_prefix %{?_with_bc:bc-}%{!?_with_bc:}
+
 # re-define some directories for older RPMBuild versions which don't. This messes up the doc/ dir
 # taken from https://fedoraproject.org/wiki/Packaging:RPMMacros?rd=Packaging/RPMMacros
 %define _datarootdir       %{_prefix}/share
@@ -31,6 +33,8 @@ License:        GPL
 URL:            http://www.linphone.org
 Source0:        %{name}-%{version}%{?build_number_ext}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-buildroot
+
+Requires:	%{pkg_prefix}bctoolbox
 
 %description
 
