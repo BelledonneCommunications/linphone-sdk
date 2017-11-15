@@ -73,7 +73,7 @@ static int http_before_all(void) {
 
 	belle_tls_crypto_config_t *crypto_config=belle_tls_crypto_config_new();
 
-	belle_tls_crypto_config_set_root_ca(crypto_config,std::string(bc_tester_get_resource_dir_prefix()).append("data/").data());
+	belle_tls_crypto_config_set_root_ca(crypto_config,std::string(bc_tester_get_resource_dir_prefix()).append("/data/").data());
 	belle_http_provider_set_tls_crypto_config(prov,crypto_config);
 	belle_sip_object_unref(crypto_config);
 	return 0;
@@ -138,7 +138,7 @@ static void x3dh_sending_chain_limit_test(const lime::CurveId curve, const std::
 		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success, expected_success,wait_for_timeout)); // we must get a callback saying all went well
 		if (counters.operation_failed == 1) return; // skip the end of the test if we can't do this
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;;
+		BCTBX_SLOGE <<e;;
 		BC_FAIL("Fail to create Lime Users");
 		return; // no reason to continue the test
 	}
@@ -188,7 +188,7 @@ static void x3dh_sending_chain_limit_test(const lime::CurveId curve, const std::
 		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
 		BC_ASSERT_TRUE(receivedMessageString == lime_messages_pattern[1]);
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;;
+		BCTBX_SLOGE <<e;;
 		BC_FAIL("Initial session establishment between alice.d1 and bob.d2 failed");
 		return; // no reason to continue the test
 	}
@@ -215,7 +215,7 @@ static void x3dh_sending_chain_limit_test(const lime::CurveId curve, const std::
 			*/
 		}
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;;
+		BCTBX_SLOGE <<e;;
 		BC_FAIL("Fail to encrypt long batch");
 		return; // no reason to continue the test
 	}
@@ -237,7 +237,7 @@ static void x3dh_sending_chain_limit_test(const lime::CurveId curve, const std::
 		std::string receivedMessageString{receivedMessage.begin(), receivedMessage.end()};
 		BC_ASSERT_TRUE(receivedMessageString == lime_messages_pattern[0]);
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;;
+		BCTBX_SLOGE <<e;;
 		BC_FAIL("Fail final exchange");
 		return; // no reason to continue the test
 	}
@@ -248,7 +248,7 @@ static void x3dh_sending_chain_limit_test(const lime::CurveId curve, const std::
 		bobManager->delete_user(*bobDevice1, callback);
 		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success+2,wait_for_timeout)); // we must get a callback saying all went well
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;;
+		BCTBX_SLOGE <<e;;
 		BC_FAIL("Fail to delete users");
 		return; // no reason to continue the test
 	}
@@ -310,7 +310,7 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success, expected_success,wait_for_timeout)); // we must get a callback saying all went well
 		if (counters.operation_failed == 1) return; // skip the end of the test if we can't do this
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;;
+		BCTBX_SLOGE <<e;;
 		BC_FAIL("Fail to create Lime Users");
 		return; // no reason to continue the test
 	}
@@ -335,7 +335,7 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 		expected_success += 1;
 		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success,wait_for_timeout)); // we must get a callback saying all went well
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;;
+		BCTBX_SLOGE <<e;;
 		BC_FAIL("Fail to encrypt crossed messages between alice.d1 and bob.d1");
 		return; // no reason to continue the test
 	}
@@ -352,7 +352,7 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 		BC_ASSERT_EQUAL(bobActiveSessionId, 1, long int, "%ld");
 		BC_ASSERT_EQUAL(bobSessionsId.size(), 1, size_t, "%ld");
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;;
+		BCTBX_SLOGE <<e;;
 		BC_FAIL("Couldn't fetch sessionsId from Db");
 		return;
 	}
@@ -373,7 +373,7 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
 		BC_ASSERT_TRUE(receivedMessageString == lime_messages_pattern[1]);
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;;
+		BCTBX_SLOGE <<e;;
 		BC_FAIL("Fail to decrypt swap message betwwen alice.d1 and bob.d1");
 		return; // no reason to continue the test
 	}
@@ -390,7 +390,7 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 		BC_ASSERT_EQUAL(bobActiveSessionId, 2, long int, "%ld");
 		BC_ASSERT_EQUAL(bobSessionsId.size(), 2, size_t, "%ld");
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;;
+		BCTBX_SLOGE <<e;;
 		BC_FAIL("Couldn't fetch sessionsId from Db");
 		return;
 	}
@@ -409,7 +409,7 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 		expected_success += 1;
 		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success,wait_for_timeout)); // we must get a callback saying all went well
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;;
+		BCTBX_SLOGE <<e;;
 		BC_FAIL("Fail to encrypt message from bob.d1 to alice.d1");
 		return; // no reason to continue the test
 	}
@@ -429,7 +429,7 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 		BC_ASSERT_EQUAL(bobActiveSessionId, 2, long int, "%ld");
 		BC_ASSERT_EQUAL(bobSessionsId.size(), 2, size_t, "%ld");
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;;
+		BCTBX_SLOGE <<e;;
 		BC_FAIL("Couldn't fetch sessionsId from Db");
 		return;
 	}
@@ -442,7 +442,7 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 		std::string receivedMessageString{receivedMessage.begin(), receivedMessage.end()};
 		BC_ASSERT_TRUE(receivedMessageString == lime_messages_pattern[2]);
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;;
+		BCTBX_SLOGE <<e;;
 		BC_FAIL("Fail to decrypt swap message betwwen alice.d1 and bob.d1");
 		return; // no reason to continue the test
 	}
@@ -459,7 +459,7 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 		BC_ASSERT_EQUAL(bobActiveSessionId, 2, long int, "%ld");
 		BC_ASSERT_EQUAL(bobSessionsId.size(), 2, size_t, "%ld");
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;;
+		BCTBX_SLOGE <<e;;
 		BC_FAIL("Couldn't fetch sessionsId from Db");
 		return;
 	}
@@ -470,7 +470,7 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 		bobManager->delete_user(*bobDevice1, callback);
 		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success+2,wait_for_timeout)); // we must get a callback saying all went well
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;;
+		BCTBX_SLOGE <<e;;
 		BC_FAIL("Fail to delete users");
 		return; // no reason to continue the test
 	}
@@ -546,7 +546,7 @@ static void x3dh_multidev_operation_queue_test(const lime::CurveId curve, const 
 		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success, expected_success,wait_for_timeout)); // we must get a callback saying all went well
 		if (counters.operation_failed == 1) return; // skip the end of the test if we can't do this
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;;
+		BCTBX_SLOGE <<e;;
 		BC_FAIL("Fail to create Lime Users");
 		return; // no reason to continue the test
 	}
@@ -574,7 +574,7 @@ static void x3dh_multidev_operation_queue_test(const lime::CurveId curve, const 
 		}
 		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success,wait_for_timeout)); // we must get a callback saying all went well
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;;
+		BCTBX_SLOGE <<e;;
 		BC_FAIL("Fail to encrypt messages from alice.d1 to bob.d1");
 		return; // no reason to continue the test
 	}
@@ -602,7 +602,7 @@ static void x3dh_multidev_operation_queue_test(const lime::CurveId curve, const 
 			}
 		}
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;;
+		BCTBX_SLOGE <<e;;
 		BC_FAIL("Fail to decrypt messages from Alice to bob.d1");
 		return; // no reason to continue the test
 	}
@@ -638,7 +638,7 @@ static void x3dh_multidev_operation_queue_test(const lime::CurveId curve, const 
 		}
 		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success,wait_for_timeout)); // we must get a callback saying all went well
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;;
+		BCTBX_SLOGE <<e;;
 		BC_FAIL("Fail to encrypt messages from alice.d1 to bob.d1, bob.d2, bob.d3 and bob.d4");
 		return; // no reason to continue the test
 	}
@@ -695,7 +695,7 @@ static void x3dh_multidev_operation_queue_test(const lime::CurveId curve, const 
 		BC_ASSERT_TRUE(receivedMessageString == lime_messages_pattern[messages.size()+4]);
 
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;;
+		BCTBX_SLOGE <<e;;
 		BC_FAIL("Fail to decrypt messages from alice.d1 to bob.d1, bob.d2, bob.d3 and bob.d4");
 		return; // no reason to continue the test
 	}
@@ -709,7 +709,7 @@ static void x3dh_multidev_operation_queue_test(const lime::CurveId curve, const 
 		bobManager->delete_user(*bobDevice4, callback);
 		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success+5,wait_for_timeout)); // we must get a callback saying all went well
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;;
+		BCTBX_SLOGE <<e;;
 		BC_FAIL("Fail to delete users");
 		return; // no reason to continue the test
 	}
@@ -773,7 +773,7 @@ static void x3dh_operation_queue_test(const lime::CurveId curve, const std::stri
 		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success, expected_success,wait_for_timeout)); // we must get callback saying all went well
 		if (counters.operation_failed == 1) return; // skip the end of the test if we can't do this
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;;
+		BCTBX_SLOGE << e;
 		BC_FAIL("Fail to create Lime Users");
 		return; // no reason to continue the test
 	}
@@ -801,7 +801,7 @@ static void x3dh_operation_queue_test(const lime::CurveId curve, const std::stri
 		}
 		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success,wait_for_timeout)); // we must get a callback saying all went well
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;;
+		BCTBX_SLOGE << e;
 		BC_FAIL("Fail to encrypt messages from alice.d1 to bob.d1");
 		return; // no reason to continue the test
 	}
@@ -830,7 +830,7 @@ static void x3dh_operation_queue_test(const lime::CurveId curve, const std::stri
 			}
 		}
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;;
+		BCTBX_SLOGE << e;
 		BC_FAIL("Fail to decrypt messages from Alice to bob.d1");
 		return; // no reason to continue the test
 	}
@@ -841,7 +841,7 @@ static void x3dh_operation_queue_test(const lime::CurveId curve, const std::stri
 		bobManager->delete_user(*bobDevice1, callback);
 		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success+2,wait_for_timeout)); // we must get a callback saying all went well
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;;
+		BCTBX_SLOGE << e;
 		BC_FAIL("Fail to delete users");
 		return; // no reason to continue the test
 	}
@@ -914,7 +914,7 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success++,wait_for_timeout)); // we must get a callback saying all went well
 		if (counters.operation_failed == 1) return; // skip the end of the test if we can't do this
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;;
+		BCTBX_SLOGE <<e;
 		BC_FAIL("Fail to create Lime Users");
 		return; // no reason to continue the test
 	}
@@ -933,7 +933,7 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 		aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
 		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success++,wait_for_timeout)); // we must get a callback saying all went well
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;;
+		BCTBX_SLOGE <<e;;
 		BC_FAIL("Fail to encrypt message from Alice to bob.d1, bob.d2");
 		return; // no reason to continue the test
 	}
@@ -948,7 +948,7 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 			BC_ASSERT_TRUE(receivedMessageString == lime_messages_pattern[0]);
 		}
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;;
+		BCTBX_SLOGE <<e;
 		BC_FAIL("Fail to decrypt message from Alice to bob.d1, bob.d2");
 		return; // no reason to continue the test
 	}
@@ -977,7 +977,7 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 			BC_ASSERT_TRUE(receivedMessageString == lime_messages_pattern[1]);
 		}
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;;
+		BCTBX_SLOGE <<e;;
 		BC_FAIL("Second encrypt/decrypt message from Alice to bob.d1, bob.d2 failed");
 		return; // no reason to continue the test
 	}
@@ -998,7 +998,7 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 		bobManager->encrypt(*bobDevice1, make_shared<const std::string>("alice"), recipients, message, cipherMessage, callback);
 		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success++,wait_for_timeout)); // we must get a callback saying all went well
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;;
+		BCTBX_SLOGE <<e;
 		BC_FAIL("bob.d1 reply to alice.d1 and bob.d2failed");
 		return; // no reason to continue the test
 	}
@@ -1012,7 +1012,7 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 		std::string receivedMessageStringAlice{receivedMessage.begin(), receivedMessage.end()};
 		BC_ASSERT_TRUE(receivedMessageStringAlice == lime_messages_pattern[2]);
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;;
+		BCTBX_SLOGE <<e;;
 		BC_FAIL("alice.d1 couldn't decipher bob.d1 response");
 		return; // no reason to continue the test
 	}
@@ -1024,7 +1024,7 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 		std::string receivedMessageStringBob{receivedMessage.begin(), receivedMessage.end()};
 		BC_ASSERT_TRUE(receivedMessageStringBob == lime_messages_pattern[2]);
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;;
+		BCTBX_SLOGE <<e;
 		BC_FAIL("bob.d2 couldn't decipher bob.d1 response");
 		return; // no reason to continue the test
 	}
@@ -1056,7 +1056,7 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 		std::string receivedMessageStringBob{receivedMessage.begin(), receivedMessage.end()};
 		BC_ASSERT_TRUE(receivedMessageStringBob == lime_messages_pattern[3]);
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;;
+		BCTBX_SLOGE <<e;
 		BC_FAIL("bob.d2 to alice.d1 and bob.d1 failed");
 		return; // no reason to continue the test
 	}
@@ -1085,7 +1085,7 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 			BC_ASSERT_TRUE(receivedMessageString == lime_messages_pattern[4]);
 		}
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;;
+		BCTBX_SLOGE <<e;
 		BC_FAIL("Second encrypt/decrypt message from Alice to bob.d1, bob.d2 failed");
 		return; // no reason to continue the test
 	}
@@ -1104,7 +1104,7 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 		aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
 		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_failed,1,wait_for_timeout)); // we must get a callback saying all went well
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;;
+		BCTBX_SLOGE <<e;;
 		BC_FAIL("Attempt to encrypt to an unknown user generate an exception instead of simple failure message in callback");
 		return; // no reason to continue the test
 	}
@@ -1123,7 +1123,7 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 		bobManager->delete_user(*bobDevice2, callback);
 		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success+2,wait_for_timeout)); // we must get a callback saying all went well
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;;
+		BCTBX_SLOGE <<e;;
 		BC_FAIL("Fail to delete users");
 		return; // no reason to continue the test
 	}
@@ -1168,7 +1168,7 @@ static void user_management_test(const lime::CurveId curve, const std::string &d
 						counters.operation_success++;
 					} else {
 						counters.operation_failed++;
-						bctbx_message("Insert Lime user failed : %s", anythingToSay.data());
+						BCTBX_SLOGI <<"Insert Lime user failed : "<< anythingToSay.data() ;
 					}
 				});
 	// we need a LimeManager
@@ -1182,7 +1182,7 @@ static void user_management_test(const lime::CurveId curve, const std::string &d
 		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success++,wait_for_timeout)); // we must get a callback saying all went well
 		if (counters.operation_failed == 1) return; // skip the end of the test if we can't do this
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;;
+		BCTBX_SLOGE <<e;;
 		BC_FAIL("Fail to create Lime User");
 		return; // no reason to continue the test
 	}
@@ -1192,7 +1192,7 @@ static void user_management_test(const lime::CurveId curve, const std::string &d
 		auto alice = load_LimeUser(dbFilenameAlice, *aliceDeviceName, prov);
 		/* no need to wait here, it shall load alice immediately */
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;;
+		BCTBX_SLOGE <<e;;
 		BC_FAIL("Fail to create Lime User");
 		return; // no reason to continue the test
 	}
@@ -1231,7 +1231,7 @@ static void user_management_test(const lime::CurveId curve, const std::string &d
 		Manager->delete_user(*aliceDeviceName, callback);
 		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success++,wait_for_timeout)); // we must get a callback saying all went well
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;
+		BCTBX_SLOGE <<e;
 		BC_FAIL("Delete Lime user raised exception");
 		return;
 	}
@@ -1259,7 +1259,7 @@ static void user_management_test(const lime::CurveId curve, const std::string &d
 		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success++,wait_for_timeout)); // we must get a callback saying all went well
 		/* wait on this one but we shall get a fail from server */
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;;
+		BCTBX_SLOGE <<e;;
 		BC_FAIL("Fail to create Lime User");
 		return; // no reason to continue the test
 	}
@@ -1275,7 +1275,7 @@ static void user_management_test(const lime::CurveId curve, const std::string &d
 		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_failed,counters.operation_failed+1,wait_for_timeout)); // we must get a callback saying all went well
 		/* wait on this one but we shall get a fail from server */
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;;
+		BCTBX_SLOGE <<e;;
 		BC_FAIL("Fail to create Lime User");
 		return; // no reason to continue the test
 	}
@@ -1286,7 +1286,7 @@ static void user_management_test(const lime::CurveId curve, const std::string &d
 		Manager->delete_user(*aliceDeviceName, callback);
 		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success++,wait_for_timeout)); // we must get a callback saying all went well
 	} catch (BctbxException &e) {
-		std::cerr<<e.what()<<endl;
+		BCTBX_SLOGE <<e;
 		BC_FAIL("Delete Lime user raised exception");
 		return;
 	}
