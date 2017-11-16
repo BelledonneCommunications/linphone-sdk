@@ -359,6 +359,17 @@ std::shared_ptr<std::string> makeRandomDeviceName(const char *basename) {
 	return ret;
 }
 
+// wait for a counter to reach a value or timeout to occur, gives ticks to the belle-sip stack every SLEEP_TIME
+int wait_for(belle_sip_stack_t*s1,int* counter,int value,int timeout) {
+	int retry=0;
+#define SLEEP_TIME 50
+	while (*counter!=value && retry++ <(timeout/SLEEP_TIME)) {
+		if (s1) belle_sip_stack_sleep(s1,SLEEP_TIME);
+	}
+	if (*counter!=value) return FALSE;
+	else return TRUE;
+}
+
 // template instanciation
 #ifdef EC25519_ENABLED
 	template void dr_sessionsInit<C255>(std::shared_ptr<DR<C255>> &alice, std::shared_ptr<DR<C255>> &bob, std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob, std::string dbFilenameAlice, std::string dbFilenameBob, bool initStorage); 

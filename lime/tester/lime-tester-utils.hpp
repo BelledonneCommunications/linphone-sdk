@@ -85,6 +85,19 @@ long int get_DRsessionsId(const std::string &dbFilename, const std::string &self
  */
 std::shared_ptr<std::string> makeRandomDeviceName(const char *basename);
 
+
+// wait for a counter to reach a value or timeout to occur, gives ticks to the belle-sip stack every SLEEP_TIME
+// structure used by callbacks to register events
+struct events_counters_t {
+	int operation_success;
+	int operation_failed;
+	events_counters_t() : operation_success{0}, operation_failed{0} {};
+	bool operator==(const events_counters_t &b) const {return this->operation_success==b.operation_success && this->operation_failed==b.operation_failed;}
+};
+
+// wait for a counter to reach a value or timeout to occur, gives ticks to the belle-sip stack every SLEEP_TIME
+int wait_for(belle_sip_stack_t*s1,int* counter,int value,int timeout);
+
 // template instanciation are done in lime-tester-utils.cpp
 #ifdef EC25519_ENABLED
 	extern template void dr_sessionsInit<C255>(std::shared_ptr<DR<C255>> &alice, std::shared_ptr<DR<C255>> &bob, std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob, std::string dbFilenameAlice, std::string dbFilenameBob, bool initStorage); 

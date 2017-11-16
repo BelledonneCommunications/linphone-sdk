@@ -30,6 +30,7 @@ extern "C" {
 extern bool cleanDatabase;
 extern test_suite_t lime_double_ratchet_test_suite;
 extern test_suite_t lime_lime_test_suite;
+extern test_suite_t lime_helloworld_test_suite;
 
 void lime_tester_init(void(*ftester_printf)(int level, const char *fmt, va_list args));
 void lime_tester_uninit(void);

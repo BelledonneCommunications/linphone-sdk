@@ -31,6 +31,7 @@ set(SOURCE_FILES_CXX
 	lime-tester-utils.cpp
 	lime_double_ratchet-tester.cpp
 	lime_lime-tester.cpp
+	lime_helloworld-tester.cpp
 )
 
 bc_apply_compile_flags(SOURCE_FILES_CXX STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)

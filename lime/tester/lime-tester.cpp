@@ -58,6 +58,7 @@ void lime_tester_init(void(*ftester_printf)(int level, const char *fmt, va_list 
 
 	bc_tester_add_suite(&lime_double_ratchet_test_suite);
 	bc_tester_add_suite(&lime_lime_test_suite);
+	bc_tester_add_suite(&lime_helloworld_test_suite);
 }
 
 void lime_tester_uninit(void) {
