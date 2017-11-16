@@ -27,7 +27,7 @@
 #include <iostream>
 
 extern "C" {
-
+extern bool cleanDatabase;
 extern test_suite_t lime_double_ratchet_test_suite;
 extern test_suite_t lime_lime_test_suite;
 

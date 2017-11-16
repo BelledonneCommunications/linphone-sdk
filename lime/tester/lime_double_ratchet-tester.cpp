@@ -193,7 +193,11 @@ static void dr_skippedMessages_basic_test(const uint8_t period=1, const uint8_t 
 	for (size_t i=0; i<lime_messages_pattern.size(); i++) {
 		BC_ASSERT_TRUE(plainMessage[i] == lime_messages_pattern[i]);
 	}
-	bctbx_debug("End of skip test\n\n");
+
+	if (cleanDatabase) {
+		remove(aliceFilename.data());
+		remove(bobFilename.data());
+	}
 }
 
 static void dr_skippedMessages_basic(void) {
@@ -276,9 +280,11 @@ static void dr_long_exchange_test(uint8_t period=1, std::string db_filename="dr_
 		}
 	}
 
-	// remove temporary db file
-	remove(aliceFilename.data());
-	remove(bobFilename.data());
+	if (cleanDatabase) {
+		// remove temporary db file
+		remove(aliceFilename.data());
+		remove(bobFilename.data());
+	}
 }
 static void dr_long_exchange1(void) {
 #ifdef EC25519_ENABLED
@@ -363,6 +369,11 @@ static void dr_basic_test(std::string db_filename) {
 	remove(bobFilename.data());
 
 	dr_simple_exchange(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename);
+
+	if (cleanDatabase) {
+		remove(aliceFilename.data());
+		remove(bobFilename.data());
+	}
 }
 
 static void dr_basic(void) {
@@ -386,7 +397,8 @@ static void dr_multidevice_basic_test(std::string db_filename) {
 	for (auto &user : users) user.resize(3);
 
 	/* init and instanciate, session will be then found in a 4 dimensional vector indexed this way : [self user id][self device id][peer user id][peer device id] */
-	dr_devicesInit(db_filename, users, usernames);
+	std::vector<std::string> created_db_files{};
+	dr_devicesInit(db_filename, users, usernames, created_db_files);
 
 	/* Send a message from alice.dev0 to all bob device(and copy to alice devices too) */
 	std::vector<recipientInfos<Curve>> recipients;
@@ -430,6 +442,12 @@ static void dr_multidevice_basic_test(std::string db_filename) {
 
 				recipients.erase(recipients.begin());
 			}
+		}
+	}
+
+	if (cleanDatabase) {
+		for (auto &filename : created_db_files) {
+			remove(filename.data());
 		}
 	}
 }
@@ -547,6 +565,11 @@ static void dr_skip_too_much_test(std::string db_filename) {
 	recipientDRSessions.push_back(bob);
 	plainBuffer.clear();
 	BC_ASSERT_TRUE (decryptMessage("alice", "bob", "bob", recipientDRSessions, lostRecipients[0].cipherHeader, aliceCipher, plainBuffer) == nullptr); // decrypt must fail without throwing any exception
+
+	if (cleanDatabase) {
+		remove(aliceFilename.data());
+		remove(bobFilename.data());
+	}
 }
 
 static void dr_skip_too_much(void) {

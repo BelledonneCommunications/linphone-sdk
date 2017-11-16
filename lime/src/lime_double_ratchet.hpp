@@ -167,13 +167,11 @@ namespace lime {
 	extern template class DR<C255>;
 	extern template void encryptMessage<C255>(std::vector<recipientInfos<C255>>& recipients, const std::vector<uint8_t>& plaintext, const std::string& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage);
 	extern template std::shared_ptr<DR<C255>> decryptMessage<C255>(const std::string& sourceDeviceId, const std::string& recipientDeviceId, const std::string& recipientUserId, std::vector<std::shared_ptr<DR<C255>>>& DRSessions, const std::vector<uint8_t>& cipherHeader, const std::vector<uint8_t>& cipherMessage, std::vector<uint8_t>& plaintext);
-	extern template bool get_X3DH_initMessage<C255>(const std::vector<uint8_t> &header, std::vector<uint8_t> &X3DH_initMessage);
 #endif
 #ifdef EC448_ENABLED
 	extern template class DR<C448>;
 	extern template void encryptMessage<C448>(std::vector<recipientInfos<C448>>& recipients, const std::vector<uint8_t>& plaintext, const std::string& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage);
 	extern template std::shared_ptr<DR<C448>> decryptMessage<C448>(const std::string& sourceDeviceId, const std::string& recipientDeviceId, const std::string& recipientUserId, std::vector<std::shared_ptr<DR<C448>>>& DRSessions, const std::vector<uint8_t>& cipherHeader, const std::vector<uint8_t>& cipherMessage, std::vector<uint8_t>& plaintext);
-	extern template bool get_X3DH_initMessage<C448>(const std::vector<uint8_t> &header, std::vector<uint8_t> &X3DH_initMessage);
 #endif
 
 }

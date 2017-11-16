@@ -511,7 +511,7 @@ namespace lime {
 		return nullptr; // no session correctly deciphered
 	}
 
-	/* template instanciations for DHKeyX25519 and DHKeyX448 encryption/decryption functions */
+	/* template instanciations for C25519 and C448 encryption/decryption functions */
 #ifdef EC25519_ENABLED
 	template void encryptMessage<C255>(std::vector<recipientInfos<C255>>& recipients, const std::vector<uint8_t>& plaintext, const std::string& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage);
 	template std::shared_ptr<DR<C255>> decryptMessage<C255>(const std::string& sourceId, const std::string& recipientDeviceId, const std::string& recipientUserId, std::vector<std::shared_ptr<DR<C255>>>& DRSessions, const std::vector<uint8_t>& cipherHeader, const std::vector<uint8_t>& cipherMessage, std::vector<uint8_t>& plaintext);
