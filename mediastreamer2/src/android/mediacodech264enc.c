@@ -273,11 +273,10 @@ static void enc_process(MSFilter *f) {
 								int src_pix_strides[4] = {1, 1, 1, 1};
 								ms_yuv_buf_copy_with_pix_strides(pic.planes, pic.strides, src_pix_strides, src_roi, image.buffers, image.row_strides, image.pixel_strides, image.crop_rect);
 								bufsize = image.row_strides[0] * image.height * 3 / 2;
-								AMediaImage_close(&image);
 							} else {
 								ms_error("%s: encoder requires non YUV420 format", f->desc->name);
-								AMediaImage_close(&image);
 							}
+							AMediaImage_close(&image);
 						}
 					} else {
 						if (d->isPlanar) {
@@ -405,7 +404,7 @@ static int enc_set_configuration(MSFilter *f, void *arg) {
 	
 	if (d->codec_started){
 		AMediaFormat *afmt = AMediaFormat_new();
-		/*Force a key-frame*/
+		/*Update the output bitrate*/
 		ms_filter_lock(f);
 		AMediaFormat_setInt32(afmt, "video-bitrate", d->vconf.required_bitrate);
 		AMediaCodec_setParams(d->codec, afmt);
@@ -422,10 +421,10 @@ static int enc_set_br(MSFilter *f, void *arg) {
 	if (d->codec_started) {
 		/* Encoding is already ongoing, do not change video size, only bitrate. */
 		d->vconf.required_bitrate = br;
-		/* TODO apply the new bitrate request to the running MediaCodec*/
+		/* apply the new bitrate request to the running MediaCodec*/
 		enc_set_configuration(f, &d->vconf);
 	} else {
-		MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_bitrate(d->vconf_list, br, ms_factory_get_cpu_count(f->factory));
+		MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_size_and_bitrate(d->vconf_list, d->vconf.vsize, ms_factory_get_cpu_count(f->factory),  br);
 		enc_set_configuration(f, &best_vconf);
 	}
 
