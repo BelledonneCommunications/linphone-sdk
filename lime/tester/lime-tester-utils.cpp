@@ -248,6 +248,11 @@ void dr_devicesInit(std::string dbBaseFilename, std::vector<std::vector<std::vec
 
 
 bool DR_message_holdsX3DHInit(std::vector<uint8_t> &message) {
+	bool dummy;
+	return  DR_message_holdsX3DHInit(message, dummy);
+}
+
+bool DR_message_holdsX3DHInit(std::vector<uint8_t> &message, bool &haveOPk) {
 	// checks on length
 	if (message.size()<4) return false;
 
@@ -263,16 +268,20 @@ bool DR_message_holdsX3DHInit(std::vector<uint8_t> &message) {
 		case static_cast<uint8_t>(lime::CurveId::c25519):
 			if (message[3] == 0x00) { // no OPk in the X3DH init message
 				if (message.size() != (71 + X<C255>::keyLength() + 5 + ED<C255>::keyLength() + X<C255>::keyLength())) return false;
+				haveOPk=false;
 			} else { // OPk present in the X3DH init message
 				if (message.size() != (71 + X<C255>::keyLength() + 9 + ED<C255>::keyLength() + X<C255>::keyLength())) return false;
+				haveOPk=true;
 			}
 			return true;
 		break;
 		case static_cast<uint8_t>(lime::CurveId::c448):
 			if (message[3] == 0x00) { // no OPk in the X3DH init message
 				if (message.size() != (71 + X<C448>::keyLength() + 5 + ED<C448>::keyLength() + X<C448>::keyLength())) return false;
+				haveOPk=false;
 			} else { // OPk present in the X3DH init message
 				if (message.size() != (71 + X<C448>::keyLength() + 9 + ED<C448>::keyLength() + X<C448>::keyLength())) return false;
+				haveOPk=true;
 			}
 			return true;
 

@@ -78,6 +78,91 @@ static void managersClean(std::unique_ptr<LimeManager> &alice, std::unique_ptr<L
 	BCTBX_SLOGI<<"Trash and reload alice and bob LimeManagers";
 }
 
+/** Scenario
+ * - Create one device for alice
+ * - Create OPk_batch_number devices for bob, they will all fetch a key and encrypt a messaage to alice, server shall not have anymore OPks
+ * - Create another device for alice and send a message to bob, it shall get a non OPk bundle, check it is the case in the message sent to Alice
+ * Alice decrypt all messages to complete the check
+ *
+ */
+static void x3dh_without_OPk_test(const lime::CurveId curve, const std::string &dbBaseFilename, const std::string &x3dh_server_url, bool continuousSession=true) {
+	// create DB
+	std::string dbFilenameAlice{dbBaseFilename};
+	dbFilenameAlice.append(".alice.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
+	std::string dbFilenameBob{dbBaseFilename};
+	dbFilenameBob.append(".bob.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
+
+	remove(dbFilenameAlice.data()); // delete the database file if already exists
+	remove(dbFilenameBob.data()); // delete the database file if already exists
+
+	events_counters_t counters={};
+	int expected_success=0;
+
+	limeCallback callback([&counters](lime::callbackReturn returnCode, std::string anythingToSay) {
+					if (returnCode == lime::callbackReturn::success) {
+						counters.operation_success++;
+					} else {
+						counters.operation_failed++;
+						BCTBX_SLOGE<<"Lime operation failed : "<<anythingToSay;
+					}
+				});
+	try {
+		// create Manager and device for alice
+		auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, prov));
+		auto aliceDeviceId = makeRandomDeviceName("alice.d1.");
+		aliceManager->create_user(*aliceDeviceId, x3dh_server_url, curve, callback);
+		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success, ++expected_success,wait_for_timeout));
+
+		for (auto i=0; i<lime::settings::OPk_batch_number +1; i++) {
+			// Create manager and device for bob
+			auto bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, prov));
+			auto bobDeviceId = makeRandomDeviceName("bob.d");
+			bobManager->create_user(*bobDeviceId, x3dh_server_url, curve, callback);
+			BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success, ++expected_success,wait_for_timeout));
+
+			// encrypt a message to Alice
+			auto messagePatternIndex = i % lime_messages_pattern.size();
+			auto bobRecipients = make_shared<std::vector<recipientData>>();
+			bobRecipients->emplace_back(*aliceDeviceId);
+			auto bobMessage = make_shared<const std::vector<uint8_t>>(lime_messages_pattern[messagePatternIndex].begin(), lime_messages_pattern[messagePatternIndex].end());
+			auto bobCipherMessage = make_shared<std::vector<uint8_t>>();
+
+			bobManager->encrypt(*bobDeviceId, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
+			BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,++expected_success,wait_for_timeout)); // we must get a callback saying all went well
+
+			// alice decrypt
+			std::vector<uint8_t> receivedMessage{};
+			bool haveOPk=false;
+			BC_ASSERT_TRUE(DR_message_holdsX3DHInit((*bobRecipients)[0].cipherHeader, haveOPk));
+			if (i<lime::settings::OPk_batch_number) { // the first OPk_batch_messages must hold an X3DH init message with an OPk
+				BC_ASSERT_TRUE(haveOPk);
+			} else { // then the last message shall not convey OPK_id as none were available
+				BC_ASSERT_FALSE(haveOPk);
+			}
+			BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDeviceId, "alice", *bobDeviceId, (*bobRecipients)[0].cipherHeader, *bobCipherMessage, receivedMessage));
+			auto receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
+			BC_ASSERT_TRUE(receivedMessageString == lime_messages_pattern[messagePatternIndex]);
+
+			// destroy and reload the Managers(tests everything is correctly saved/load from local Storage)
+			if (!continuousSession) { managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);}
+		}
+	} catch (BctbxException &e) {
+		BCTBX_SLOGE <<e;;
+		BC_FAIL();
+	}
+}
+static void x3dh_without_OPk() {
+#ifdef EC25519_ENABLED
+	x3dh_without_OPk_test(lime::CurveId::c25519, "lime_x3dh_without_OPk", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data());
+	x3dh_without_OPk_test(lime::CurveId::c25519, "lime_x3dh_without_OPk_clean", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data(), false);
+#endif
+#ifdef EC448_ENABLED
+	x3dh_without_OPk_test(lime::CurveId::c448, "lime_x3dh_without_OPk", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data());
+	x3dh_without_OPk_test(lime::CurveId::c448, "lime_x3dh_without_OPk_clean", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data(), false);
+#endif
+}
+
+
 /* Alice encrypt to bob, bob replies so session is fully established, then alice encrypt more tjan maxSendingChain message so we must start a new session with bob
  * - alice.d1 and bob.d1 exchange messages
  * - alice encrypt maxSendingChain messages, bob never reply, no real need to decryp them, just check they are not holding X3DH init message
@@ -217,12 +302,12 @@ static void x3dh_sending_chain_limit_test(const lime::CurveId curve, const std::
 }
 static void x3dh_sending_chain_limit() {
 #ifdef EC25519_ENABLED
-	x3dh_sending_chain_limit_test(lime::CurveId::c25519, "lime_x3dh_multiple_DRsessions", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data());
-	x3dh_sending_chain_limit_test(lime::CurveId::c25519, "lime_x3dh_multiple_DRsessions_clean", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data(), false);
+	x3dh_sending_chain_limit_test(lime::CurveId::c25519, "lime_x3dh_sending_chain_limit", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data());
+	x3dh_sending_chain_limit_test(lime::CurveId::c25519, "lime_x3dh_sending_chain_limit_clean", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data(), false);
 #endif
 #ifdef EC448_ENABLED
-	x3dh_sending_chain_limit_test(lime::CurveId::c448, "lime_x3dh_multiple_DRsessions", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data());
-	x3dh_sending_chain_limit_test(lime::CurveId::c448, "lime_x3dh_multiple_DRsessions_clean", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data(), false);
+	x3dh_sending_chain_limit_test(lime::CurveId::c448, "lime_x3dh_sending_chain_limit", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data());
+	x3dh_sending_chain_limit_test(lime::CurveId::c448, "lime_x3dh_sending_chain_limit_clean", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data(), false);
 #endif
 }
 
@@ -1100,6 +1185,7 @@ static test_t tests[] = {
 	TEST_NO_TAG("Multi devices queued encryption", x3dh_multidev_operation_queue),
 	TEST_NO_TAG("Multiple sessions", x3dh_multiple_DRsessions),
 	TEST_NO_TAG("Sending chain limit", x3dh_sending_chain_limit),
+	TEST_NO_TAG("Without OPk", x3dh_without_OPk),
 };
 
 test_suite_t lime_lime_test_suite = {

@@ -67,6 +67,8 @@ void dr_devicesInit(std::string dbBaseFilename, std::vector<std::vector<std::vec
 
 /* return true if the message buffer is a valid DR message holding a X3DH init one in its header */
 bool DR_message_holdsX3DHInit(std::vector<uint8_t> &message);
+/* this version will set the OPk status in the given bool if a packet is found */
+bool DR_message_holdsX3DHInit(std::vector<uint8_t> &message, bool &haveOPk);
 
 /* return true if the message buffer is a valid DR message holding a X3DH init one in its header and copy the X3DH init message in the provided buffer */
 bool DR_message_extractX3DHInit(std::vector<uint8_t> &message, std::vector<uint8_t> &X3DH_initMessage);

@@ -66,7 +66,9 @@ namespace lime {
 		public :
 			constexpr static size_t keyLength(void) {return Curve::XkeySize();}; // provide a static size function to be able to call the function not on an object
 			constexpr static uint8_t byteId(void) {return Curve::XkeyByteId();};
-			X(const uint8_t *buffer) {std::copy_n(buffer, Curve::XkeySize(), this->data());} // construct from a C style buffer
+			// construct from a C style buffer
+			// WARNING: very dangerous code could lead to read anywhere(X{0} will call this constructor), get rid of it if we manage to use c++ buffer style only - get a bctoolbox/crypto.hpp?
+			X(const uint8_t *buffer) {std::copy_n(buffer, Curve::XkeySize(), this->data());}
 			X(std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, Curve::XkeySize(), this->begin());} // construct from a std::vector<uint8_t>
 			X() {};
 			void assign(std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, Curve::XkeySize(), this->begin());} // copy from a std::vector<uint8_t>
@@ -84,7 +86,9 @@ namespace lime {
 		public :
 			constexpr static size_t keyLength(void) {return Curve::EDkeySize();}; // provide a static size function to be able to call the function not on an object
 			constexpr static uint8_t byteId(void) {return Curve::EDkeyByteId();};
-			ED(const uint8_t *buffer) {std::copy_n(buffer, Curve::EDkeySize(), this->data());} // construct from a C style buffer
+			// construct from a C style buffer
+			// WARNING: very dangerous code could lead to read anywhere(ED{0} will call this constructor), get rid of it if we manage to use c++ buffer style only - get a bctoolbox/crypto.hpp?
+			ED(const uint8_t *buffer) {std::copy_n(buffer, Curve::EDkeySize(), this->data());}
 			ED(std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, Curve::EDkeySize(), this->begin());} // contruct from a std::vector<uint8_t>
 			ED() {};
 			void assign(std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, Curve::EDkeySize(), this->begin());} // copy from a std::vector<uint8_t>

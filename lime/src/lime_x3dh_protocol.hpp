@@ -35,7 +35,8 @@ namespace lime {
 		uint32_t OPk_id;
 		// use uint8_t * constructor for all keys/signatures
 		X3DH_peerBundle(std::string &&deviceId, const uint8_t *Ik, const uint8_t *SPk, uint32_t SPk_id, const uint8_t *SPk_sig) :
-		deviceId{deviceId}, Ik{Ik}, SPk{SPk}, SPk_id{SPk_id}, SPk_sig{SPk_sig}, haveOPk{false}, OPk{0}, OPk_id{0} {};
+		deviceId{deviceId}, Ik{Ik}, SPk{SPk}, SPk_id{SPk_id}, SPk_sig{SPk_sig}, haveOPk{false}, OPk{}, OPk_id{0} {};
+
 		X3DH_peerBundle(std::string &&deviceId, const uint8_t *Ik, const uint8_t *SPk, uint32_t SPk_id, const uint8_t *SPk_sig, const uint8_t *OPk, uint32_t OPk_id) :
 		deviceId{deviceId}, Ik{Ik}, SPk{SPk}, SPk_id{SPk_id}, SPk_sig{SPk_sig}, haveOPk{true}, OPk{OPk}, OPk_id{OPk_id} {};
 
