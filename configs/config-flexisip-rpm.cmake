@@ -53,8 +53,9 @@ set(DEFAULT_VALUE_ENABLE_PUSHNOTIFICATION ON)
 set(DEFAULT_VALUE_ENABLE_REDIS ON)
 set(DEFAULT_VALUE_ENABLE_SOCI ON)
 set(DEFAULT_VALUE_ENABLE_UNIT_TESTS OFF)
-set(DEFAULT_VALUE_CMAKE_LINKING_TYPE "-DENABLE_STATIC=NO")
 set(DEFAULT_VALUE_ENABLE_BC_HIREDIS ON)
+
+set(DEFAULT_VALUE_CMAKE_LINKING_TYPE "-DENABLE_STATIC=NO")
 
 # Global configuration
 set(LINPHONE_BUILDER_HOST "")
@@ -98,6 +99,7 @@ lcb_builder_rpmbuild_options(bellesip "--with bc")
 lcb_builder_build_method(linphone "rpm")
 lcb_builder_rpmbuild_options(linphone
 	"--with bc"
+	"--without lime"
 	"--without video"
 )
 
