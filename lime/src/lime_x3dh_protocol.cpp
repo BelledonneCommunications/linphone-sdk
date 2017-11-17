@@ -160,7 +160,7 @@ namespace lime {
 			message.push_back(static_cast<uint8_t>((peer_device_ids.size())&0xFF));
 
 			if (peer_device_ids.size()>0xFFFF) { // we're asking for more than 2^16 key bundles, really?
-				bctbx_warning("We are about to request for more than 2^16 key bundles to the X3DH server, it won't fit in protocol, truncate the request to 2^16 but it's very very unusual");
+				BCTBX_SLOGW<<"We are about to request for more than 2^16 key bundles to the X3DH server, it won't fit in protocol, truncate the request to 2^16 but it's very very unusual";
 				peer_device_ids.resize(0xFFFF); // resize to max possible value
 			}
 
@@ -169,7 +169,7 @@ namespace lime {
 				message.push_back(static_cast<uint8_t>(((peer_device_id.size())>>8)&0xFF));
 				message.push_back(static_cast<uint8_t>((peer_device_id.size())&0xFF));
 				message.insert(message.end(),peer_device_id.begin(), peer_device_id.end());
-				bctbx_message("Request X3DH keys for device %s",peer_device_id.data());
+				BCTBX_SLOGI<<"Request X3DH keys for device "<<peer_device_id;
 			}
 		}
 
@@ -186,21 +186,21 @@ namespace lime {
 		bool parseMessage_getType(const uint8_t *body, const size_t bodySize, x3dh_message_type &message_type, x3dh_error_code &error_code, const limeCallback callback) noexcept {
 			// check message holds at leat a header before trying to read it
 			if (body == nullptr || bodySize<X3DH_headerSize) {
-				bctbx_error("Got an invalid response from X3DH server");
+				BCTBX_SLOGE<<"Got an invalid response from X3DH server";
 				if (callback) callback(lime::callbackReturn::fail, "Got an invalid response from X3DH server");
 				return false;
 			}
 
 			// check X3DH protocol version
 			if (body[0] != static_cast<uint8_t>(X3DH_protocolVersion)) {
-				bctbx_error("X3DH server runs an other version of X3DH protocol(server %d - local %d)", body[0], static_cast<uint8_t>(X3DH_protocolVersion));
+				BCTBX_SLOGE<<"X3DH server runs an other version of X3DH protocol(server "<<int(body[0])<<" - local "<<static_cast<uint8_t>(X3DH_protocolVersion)<<")";
 				if (callback) callback(lime::callbackReturn::fail, "X3DH server and client protocol version mismatch");
 				return false;
 			}
 
 			// check curve id
 			if (body[2] != static_cast<uint8_t>(Curve::curveId())) {
-				bctbx_error("X3DH server runs curve Id %d while local is set to %d for this server)", body[2], static_cast<uint8_t>(Curve::curveId()));
+				BCTBX_SLOGE<<"X3DH server runs curve Id "<<int(body[2])<<" while local is set to "<<static_cast<uint8_t>(Curve::curveId())<<" for this server)";
 				if (callback) callback(lime::callbackReturn::fail, "X3DH server and client curve Id mismatch");
 				return false;
 			}
@@ -239,9 +239,9 @@ namespace lime {
 				}
 
 				if (bodySize==X3DH_headerSize+1) {
-					bctbx_error("X3DH server respond error : code %x (no error message)", body[X3DH_headerSize]);
+					BCTBX_SLOGE<<"X3DH server respond error : code "<<int(body[X3DH_headerSize])<<" (no error message)";
 				} else {
-					bctbx_error("X3DH server respond error : code %x : %s", body[X3DH_headerSize], body+X3DH_headerSize+1);
+					BCTBX_SLOGE<<"X3DH server respond error : code "<<int(body[X3DH_headerSize])<<" : "<<std::string(body+X3DH_headerSize+1, body+bodySize);
 				}
 
 				switch (static_cast<uint8_t>(body[X3DH_headerSize])) {
@@ -425,7 +425,7 @@ namespace lime {
 				auto thiz = userData->limeObj.lock(); // get a shared pointer to Lime Object from the weak pointer stored in userData
 				// check it is valid (lock() returns nullptr)
 				if (!thiz) { // our Lime caller object doesn't exists anymore
-					bctbx_error("Got response from X3DH server but our Lime Object has been destroyed");
+					BCTBX_SLOGE<<"Got response from X3DH server but our Lime Object has been destroyed";
 					delete(userData);
 					return;
 				}
@@ -454,7 +454,7 @@ namespace lime {
 				if (message_type == lime::x3dh_protocol::x3dh_message_type::peerBundle) {
 					std::vector<X3DH_peerBundle<Curve>> peersBundle;
 					if (!x3dh_protocol::parseMessage_getPeerBundles(body, bodySize, peersBundle)) { // parsing went wrong
-						bctbx_error("Got an invalid peerBundle packet from X3DH server");
+						BCTBX_SLOGE<<"Got an invalid peerBundle packet from X3DH server";
 						if (callback) callback(lime::callbackReturn::fail, "Got an invalid peerBundle packet from X3DH server");
 						thiz->cleanUserData(userData);
 						return;

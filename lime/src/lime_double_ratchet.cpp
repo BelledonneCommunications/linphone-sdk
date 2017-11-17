@@ -480,7 +480,7 @@ namespace lime {
 			try {
 				decryptStatus = DRSession->ratchetDecrypt(cipherHeader, AD, randomKey);
 			} catch (BctbxException &e) { // any bctbx Exception is just considered as decryption failed (it shall occurs only in case of maximum skipped keys reached)
-				bctbx_warning("Double Ratchet session failed to decrypt message and raised an exception saying : %s", e.what());
+				BCTBX_SLOGW<<"Double Ratchet session failed to decrypt message and raised an exception saying : "<<e.what();
 				decryptStatus = false; // lets keep trying with other sessions if provided
 			}
 

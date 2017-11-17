@@ -51,13 +51,13 @@ namespace lime {
 	 *  just load it into Lime class
 	 *
 	 * @param[in/out]	localStorage	pointer to DB accessor
-	 * @param[in]		userId		user Id(shall be GRUU), stored in the structure
+	 * @param[in]		deviceId	device Id(shall be GRUU), stored in the structure
 	 * @param[in]		Uid		the DB internal Id for this user, speed up DB operations by holding it in DB
 	 * @param[in]		url		URL of the X3DH key server used to publish our keys(retrieved from DB)
 	 */
 	template <typename Curve>
-	Lime<Curve>::Lime(std::unique_ptr<lime::Db> &&localStorage, const std::string &userId, const std::string &url, belle_http_provider_t *http_provider, const long int Uid)
-	: m_RNG{bctbx_rng_context_new()}, m_selfDeviceId{userId},
+	Lime<Curve>::Lime(std::unique_ptr<lime::Db> &&localStorage, const std::string &deviceId, const std::string &url, belle_http_provider_t *http_provider, const long int Uid)
+	: m_RNG{bctbx_rng_context_new()}, m_selfDeviceId{deviceId},
 	m_Ik{}, m_Ik_loaded(false),
 	m_localStorage(std::move(localStorage)), m_db_Uid{Uid},
 	m_http_provider{http_provider}, m_X3DH_Server_URL{url},
@@ -70,12 +70,12 @@ namespace lime {
 	 *  Create a user in DB, if already existing, throw exception
 	 *
 	 * @param[in/out]	localStorage	pointer to DB accessor
-	 * @param[in]		userId		user Id(shall be GRUU), stored in the structure
+	 * @param[in]		deviceId		device Id(shall be GRUU), stored in the structure
 	 * @param[in]		url		URL of the X3DH key server used to publish our keys
 	 */
 	template <typename Curve>
-	Lime<Curve>::Lime(std::unique_ptr<lime::Db> &&localStorage, const std::string &userId, const std::string &url, belle_http_provider_t *http_provider)
-	: m_RNG{bctbx_rng_context_new()}, m_selfDeviceId{userId},
+	Lime<Curve>::Lime(std::unique_ptr<lime::Db> &&localStorage, const std::string &deviceId, const std::string &url, belle_http_provider_t *http_provider)
+	: m_RNG{bctbx_rng_context_new()}, m_selfDeviceId{deviceId},
 	m_Ik{}, m_Ik_loaded(false),
 	m_localStorage(std::move(localStorage)), m_db_Uid{0},
 	m_http_provider{http_provider}, m_X3DH_Server_URL{url},
@@ -130,7 +130,7 @@ namespace lime {
 	void Lime<Curve>::encrypt(std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<recipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback) {
 		bctbx_debug("encrypt from %s to %ld recipients", m_selfDeviceId.data(), recipients->size());
 		/* Check if we have all the Double Ratchet sessions ready or shall we go for an X3DH */
-		std::vector<std::string> missingPeers; /* vector of userId(GRUU) which are requested to perform X3DH before the encryption can occurs */
+		std::vector<std::string> missingPeers; /* vector of deviceId(GRUU) which are requested to perform X3DH before the encryption can occurs */
 
 		/* Create the appropriate recipient infos and fill it with sessions found in cache */
 		std::vector<recipientInfos<Curve>> internal_recipients{};
@@ -247,19 +247,19 @@ namespace lime {
 	/****************************************************************************/
 	/**
 	 * @brief : Insert user in database and return a pointer to the control class instanciating the appropriate Lime children class
-	 m*	Once created a user cannot be modified, insertion of existing userId will raise an exception.
+	 m*	Once created a user cannot be modified, insertion of existing deviceId will raise an exception.
 	 *
 	 * @param[in]	dbFilename	Path to filename to use
-	 * @param[in]	userId		User to create in DB, userId shall be the GRUU
+	 * @param[in]	deviceId	User to create in DB, deviceId shall be the GRUU
 	 * @param[in]	url		URL of X3DH key server to be used to publish our keys
 	 * @param[in]	curve		Which curve shall we use for this account, select the implemenation to instanciate when using this user
 	 * @param[in]	http_provider	An http provider used to communicate with x3dh key server
 	 *
 	 * @return a pointer to the LimeGeneric class allowing access to API declared in lime.hpp
 	 */
-	std::shared_ptr<LimeGeneric> insert_LimeUser(const std::string &dbFilename, const std::string &userId, const std::string &url, const lime::CurveId curve, belle_http_provider *http_provider,
+	std::shared_ptr<LimeGeneric> insert_LimeUser(const std::string &dbFilename, const std::string &deviceId, const std::string &url, const lime::CurveId curve, belle_http_provider *http_provider,
 			 const limeCallback &callback) {
-		bctbx_message("Create Lime user %s", userId.data());
+		BCTBX_SLOGI<<"Create Lime user "<<deviceId;
 		/* first check the requested curve is instanciable and return an exception if not */
 #ifndef EC25519_ENABLED
 		if (curve == lime::CurveId::c25519) {
@@ -282,7 +282,7 @@ namespace lime {
 #ifdef EC25519_ENABLED
 				{
 					/* constructor will insert user in Db, if already present, raise an exception*/
-					auto lime_ptr = std::make_shared<Lime<C255>>(std::move(localStorage), userId, url, http_provider);
+					auto lime_ptr = std::make_shared<Lime<C255>>(std::move(localStorage), deviceId, url, http_provider);
 					lime_ptr->publish_user(callback);
 					return lime_ptr;
 				}
@@ -292,7 +292,7 @@ namespace lime {
 				case lime::CurveId::c448 :
 #ifdef EC448_ENABLED
 				{
-					auto lime_ptr = std::make_shared<Lime<C448>>(std::move(localStorage), userId, url, http_provider);
+					auto lime_ptr = std::make_shared<Lime<C448>>(std::move(localStorage), deviceId, url, http_provider);
 					lime_ptr->publish_user(callback);
 					return lime_ptr;
 				}
@@ -301,7 +301,7 @@ namespace lime {
 
 				case lime::CurveId::unset :
 				default: // asking for an unsupported type
-					throw BCTBX_EXCEPTION << "Cannot create lime user "<<userId;//<<". Unsupported curve (id <<"static_cast<uint8_t>(curve)") requested";
+					throw BCTBX_EXCEPTION << "Cannot create lime user "<<deviceId;//<<". Unsupported curve (id <<"static_cast<uint8_t>(curve)") requested";
 				break;
 			}
 		} catch (BctbxException &e) {
@@ -315,12 +315,12 @@ namespace lime {
 	 *	Fail to find the user will raise an exception
 	 *
 	 * @param[in]	dbFilename	Path to filename to use
-	 * @param[in]	userId		User to create in DB, userId shall be the GRUU
+	 * @param[in]	deviceId	User to lookup in DB, deviceId shall be the GRUU
 	 * @param[in]	http_provider	An http provider used to communicate with x3dh key server
 	 *
 	 * @return a pointer to the LimeGeneric class allowing access to API declared in lime.hpp
 	 */
-	std::shared_ptr<LimeGeneric> load_LimeUser(const std::string &dbFilename, const std::string &userId, belle_http_provider *http_provider) {
+	std::shared_ptr<LimeGeneric> load_LimeUser(const std::string &dbFilename, const std::string &deviceId, belle_http_provider *http_provider) {
 
 		/* open DB and load user */
 		auto localStorage = std::unique_ptr<lime::Db>(new lime::Db(dbFilename)); // create as unique ptr, ownership is then passed to the Lime structure when instanciated
@@ -328,18 +328,18 @@ namespace lime {
 		long int Uid=0;
 		std::string x3dh_server_url;
 
-		localStorage->load_LimeUser(userId, Uid, curve, x3dh_server_url); // this one will throw an exception if user is not found, just let it rise
-		bctbx_message("Load Lime user %s", userId.data());
+		localStorage->load_LimeUser(deviceId, Uid, curve, x3dh_server_url); // this one will throw an exception if user is not found, just let it rise
+		BCTBX_SLOGI<<"Load Lime user "<<deviceId;
 
 		/* check the curve id retrieved from DB is instanciable and return an exception if not */
 #ifndef EC25519_ENABLED
 		if (curve == lime::CurveId::c25519) {
-			throw BCTBX_EXCEPTION << "Lime load User "<<userId<<" requests usage of Curve 25519 but it's not supported - change lib lime compile option to enable it";
+			throw BCTBX_EXCEPTION << "Lime load User "<<deviceId<<" requests usage of Curve 25519 but it's not supported - change lib lime compile option to enable it";
 		}
 #endif
 #ifndef EC448_ENABLED
 		if (curve == lime::CurveId::c448) {
-			throw BCTBX_EXCEPTION << "Lime load User "<<userId<<" requests usage of Curve 448 but it's not supported - change lib lime compile option to enable it";
+			throw BCTBX_EXCEPTION << "Lime load User "<<deviceId<<" requests usage of Curve 448 but it's not supported - change lib lime compile option to enable it";
 		}
 #endif
 
@@ -348,20 +348,20 @@ namespace lime {
 			switch (curve) {
 				case lime::CurveId::c25519 :
 #ifdef EC25519_ENABLED
-					return std::make_shared<Lime<C255>>(std::move(localStorage), userId, x3dh_server_url, http_provider, Uid);
+					return std::make_shared<Lime<C255>>(std::move(localStorage), deviceId, x3dh_server_url, http_provider, Uid);
 #endif
 				break;
 
 				case lime::CurveId::c448 :
 #ifdef EC448_ENABLED
 
-					return std::make_shared<Lime<C448>>(std::move(localStorage), userId, x3dh_server_url, http_provider, Uid);
+					return std::make_shared<Lime<C448>>(std::move(localStorage), deviceId, x3dh_server_url, http_provider, Uid);
 #endif
 				break;
 
 				case lime::CurveId::unset :
 				default: // asking for an unsupported type
-					throw BCTBX_EXCEPTION << "Cannot create load user "<<userId;//<<". Unsupported curve (id <<"static_cast<uint8_t>(curve)") requested";
+					throw BCTBX_EXCEPTION << "Cannot create load user "<<deviceId;//<<". Unsupported curve (id <<"static_cast<uint8_t>(curve)") requested";
 				break;
 			}
 		} catch (BctbxException &e) {

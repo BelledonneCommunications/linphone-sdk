@@ -330,7 +330,7 @@ long int get_DRsessionsId(const std::string &dbFilename, const std::string &self
 		return 0;
 
 	} catch (exception &e) { // swallow any error on DB
-		bctbx_error("Got an error on DB: %s", e.what());
+		BCTBX_SLOGE<<"Got an error on DB: "<<e.what();
 		sessionsId.clear();
 		return 0;
 	}

@@ -75,7 +75,7 @@ static void managersClean(std::unique_ptr<LimeManager> &alice, std::unique_ptr<L
 	bob = nullptr;
 	alice = unique_ptr<lime::LimeManager>(new lime::LimeManager(aliceDb, prov));
 	bob = std::unique_ptr<lime::LimeManager>(new lime::LimeManager(bobDb, prov));
-	bctbx_message("Trash and reload alice and bob LimeManagers");
+	BCTBX_SLOGI<<"Trash and reload alice and bob LimeManagers";
 }
 
 /* Alice encrypt to bob, bob replies so session is fully established, then alice encrypt more tjan maxSendingChain message so we must start a new session with bob
@@ -101,7 +101,7 @@ static void x3dh_sending_chain_limit_test(const lime::CurveId curve, const std::
 						counters.operation_success++;
 					} else {
 						counters.operation_failed++;
-						bctbx_error("Lime operation failed : %s", anythingToSay.data());
+						BCTBX_SLOGE<<"Lime operation failed : "<<anythingToSay;
 					}
 				});
 	try {
@@ -252,7 +252,7 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 						counters.operation_success++;
 					} else {
 						counters.operation_failed++;
-						bctbx_error("Lime operation failed : %s", anythingToSay.data());
+						BCTBX_SLOGE<<"Lime operation failed : "<<anythingToSay;
 					}
 				});
 
@@ -428,7 +428,7 @@ static void x3dh_multidev_operation_queue_test(const lime::CurveId curve, const 
 						counters.operation_success++;
 					} else {
 						counters.operation_failed++;
-						bctbx_error("Lime operation failed : %s", anythingToSay.data());
+						BCTBX_SLOGE<<"Lime operation failed : "<<anythingToSay;
 					}
 				});
 
@@ -633,7 +633,7 @@ static void x3dh_operation_queue_test(const lime::CurveId curve, const std::stri
 						counters.operation_success++;
 					} else {
 						counters.operation_failed++;
-						bctbx_error("Lime operation failed : %s", anythingToSay.data());
+						BCTBX_SLOGE<<"Lime operation failed : "<<anythingToSay;
 					}
 				});
 
@@ -757,7 +757,7 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 						counters.operation_success++;
 					} else {
 						counters.operation_failed++;
-						bctbx_error("Lime operation failed : %s", anythingToSay.data());
+						BCTBX_SLOGE<<"Lime operation failed : "<<anythingToSay;
 					}
 				});
 

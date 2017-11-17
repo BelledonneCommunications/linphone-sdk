@@ -72,7 +72,7 @@ namespace lime {
 			auto verifyIk = bctbx_EDDSA_verify(EDDSAContext, peerBundle.SPk.data(), peerBundle.SPk.size(), nullptr, 0, peerBundle.SPk_sig.data(), peerBundle.SPk_sig.size());
 			if (verifyIk != BCTBX_VERIFY_SUCCESS) {
 				bctbx_DestroyEDDSAContext(EDDSAContext);
-				bctbx_error("X3DH: SPk signature verification failed for device %s", peerBundle.deviceId.data());
+				BCTBX_SLOGE<<"X3DH: SPk signature verification failed for device "<<peerBundle.deviceId;
 				throw BCTBX_EXCEPTION << "Verify signature on SPk failed for deviceId "<<peerBundle.deviceId;
 			}
 
@@ -156,7 +156,7 @@ namespace lime {
 			}
 			m_DR_sessions_cache.emplace(peerBundle.deviceId, make_shared<DR<Curve>>(m_localStorage.get(), SK, AD, peerBundle.SPk, peerDid, X3DH_initMessage)); // will just do nothing if this peerDeviceId is already in cache
 
-			bctbx_message("X3DH created session with device %s", peerBundle.deviceId.data());
+			BCTBX_SLOGI<<"X3DH created session with device "<<peerBundle.deviceId;
 		}
 	}
 

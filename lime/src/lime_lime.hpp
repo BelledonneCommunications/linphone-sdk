@@ -45,24 +45,24 @@ namespace lime {
 	 * @brief Create a local lime user and insert all its needed data in a DB, it will trigger identity key creation and communication of it, SPKs and OPKs to key server
 	 *
 	 * @param[in]	dbFilename	path to the database to be used
-	 * @param[in]	userId		a unique identifier to a local user, if not already present in base it will be inserted. Recommended value: device's GRUU
+	 * @param[in]	deviceId	a unique identifier to a local user, if not already present in base it will be inserted. Recommended value: device's GRUU
 	 * @param[in]	keyServer	URL of X3DH key server(WARNING : matching between elliptic curve usage of all clients on the same server is responsability of clients)
 	 * @param[in]	curve		select which Elliptic curve to base X3DH and Double ratchet on: Curve25519 or Curve448,
 	 *				this is set once at user creation and can't be modified, it must reflect key server preference.
 	 * @return	a unique pointer to the object to be used by this user for any Lime operations
 	 */
-	std::shared_ptr<LimeGeneric> insert_LimeUser(const std::string &dbFilename, const std::string &userId, const std::string &url, const lime::CurveId curve,
+	std::shared_ptr<LimeGeneric> insert_LimeUser(const std::string &dbFilename, const std::string &deviceId, const std::string &url, const lime::CurveId curve,
 							belle_http_provider_t *http_provider, const limeCallback &callback);
 
 	/**
 	 * @brief Load a local user from database
 	 *
 	 * @param[in]	dbFilename	path to the database to be used
-	 * @param[in]	userId		a unique identifier to a local user, if not already present in base it will be inserted. Recommended value: device's GRUU
+	 * @param[in]	deviceId	a unique identifier to a local user, if not already present in base it will be inserted. Recommended value: device's GRUU
 	 *
 	 * @return	a unique pointer to the object to be used by this user for any Lime operations
 	 */
-	std::shared_ptr<LimeGeneric> load_LimeUser(const std::string &dbFilename, const std::string &userId, belle_http_provider_t *http_provider);
+	std::shared_ptr<LimeGeneric> load_LimeUser(const std::string &dbFilename, const std::string &deviceId, belle_http_provider_t *http_provider);
 
 }
 #endif // lime_lime_hpp

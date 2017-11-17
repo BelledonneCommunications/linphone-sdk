@@ -96,8 +96,8 @@ namespace lime {
 			  * - one to load the user from db based on provided user Id(which shall be GRUU)
 			  * Note: ownership of localStorage pointer is transfered to a shared pointer, private menber of Lime class
 			 */
-			Lime(std::unique_ptr<lime::Db> &&localStorage, const std::string &userId, const std::string &url, belle_http_provider_t *http_provider);
-			Lime(std::unique_ptr<lime::Db> &&localStorage, const std::string &userId, const std::string &url, belle_http_provider_t *http_provider, const long Uid);
+			Lime(std::unique_ptr<lime::Db> &&localStorage, const std::string &deviceId, const std::string &url, belle_http_provider_t *http_provider);
+			Lime(std::unique_ptr<lime::Db> &&localStorage, const std::string &deviceId, const std::string &url, belle_http_provider_t *http_provider, const long Uid);
 			~Lime();
 			Lime(Lime<Curve> &a) = delete; // can't copy a session, force usage of shared pointers
 			Lime<Curve> &operator=(Lime<Curve> &a) = delete; // can't copy a session

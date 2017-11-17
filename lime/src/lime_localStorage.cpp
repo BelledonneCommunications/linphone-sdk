@@ -304,7 +304,7 @@ bool DR<DHKey>::session_save() {
 					break;
 				case DRSessionDbStatus::clean: // Session is clean? So why have we been called?
 				default:
-					bctbx_error("Double ratchet session saved call on sessionId %ld but sessions appears to be clean", m_dbSessionId);
+					BCTBX_SLOGE<<"Double ratchet session saved call on sessionId "<<m_dbSessionId<<" but sessions appears to be clean";
 					break;
 			}
 		} catch (...) {
@@ -654,7 +654,7 @@ long int Lime<Curve>::store_peerDevice(const std::string &peerDeviceId, const ED
 			if (stored_Ik == Ik) { // they match, so we just return the Did
 				return Did;
 			} else { // Ik are not matching, peer device changed its Ik!?! Reject
-				bctbx_error("It appears that peer device %s was known with an identity key but is trying to use another one now", peerDeviceId.data());
+				BCTBX_SLOGE<<"It appears that peer device "<<peerDeviceId<<" was known with an identity key but is trying to use another one now";
 				throw BCTBX_EXCEPTION << "Peer device "<<peerDeviceId<<" changed its Ik";
 			}
 		} else { // not found in local Storage

@@ -116,7 +116,7 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 						counters.operation_success++;
 					} else {
 						counters.operation_failed++;
-						bctbx_error("Lime operation failed : %s", anythingToSay.data());
+						BCTBX_SLOGE<<"Lime operation failed : "<<anythingToSay;
 					}
 				});
 

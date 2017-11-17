@@ -77,12 +77,12 @@ int lime_tester_set_log_file(const char *filename) {
 	}
 	log_file = fopen(filename, "w");
 	if (!log_file) {
-		bctbx_error("Cannot open file [%s] for writing logs because [%s]", filename, strerror(errno));
+		BCTBX_SLOGE<<"Cannot open file ["<<std::string{filename}<<"] for writing logs because ["<<std::string{strerror(errno)}<<"]";
 		return -1;
 	}
 	dir = bctbx_dirname(filename);
 	base = bctbx_basename(filename);
-	bctbx_message("Redirecting traces to file [%s]", filename);
+	BCTBX_SLOGI<<"Redirecting traces to file ["<<std::string{filename}<<"]";
 	filehandler = bctbx_create_file_log_handler(0, dir, base, log_file);
 	bctbx_add_log_handler(filehandler);
 	if (dir) bctbx_free(dir);
