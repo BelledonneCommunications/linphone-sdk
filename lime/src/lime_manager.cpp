@@ -33,39 +33,39 @@ namespace lime {
 	/* Lime Manager API                                                         */
 	/*                                                                          */
 	/****************************************************************************/
-	void LimeManager::create_user(const std::string &userId, const std::string &x3dhServerUrl, const lime::CurveId curve, const limeCallback &callback) {
+	void LimeManager::create_user(const std::string &localDeviceId, const std::string &x3dhServerUrl, const lime::CurveId curve, const limeCallback &callback) {
 		auto thiz = this;
-		limeCallback managerCreateCallback([thiz, userId, callback](lime::callbackReturn returnCode, std::string errorMessage) {
+		limeCallback managerCreateCallback([thiz, localDeviceId, callback](lime::callbackReturn returnCode, std::string errorMessage) {
 			// first forward the callback
 			callback(returnCode, errorMessage);
 
 			// then check if it went well, if not remove the user from cache(it will trigger destruction of the lime generic object so do it last
 			// as it will also destroy the instance of this callback)
 			if (returnCode != lime::callbackReturn::success) {
-				thiz->m_users_cache.erase(userId);
+				thiz->m_users_cache.erase(localDeviceId);
 			}
 		});
 
-		m_users_cache.insert({userId, insert_LimeUser(m_db_access, userId, x3dhServerUrl, curve, m_http_provider, managerCreateCallback)});
+		m_users_cache.insert({localDeviceId, insert_LimeUser(m_db_access, localDeviceId, x3dhServerUrl, curve, m_http_provider, managerCreateCallback)});
 	}
 
-	void LimeManager::delete_user(const std::string &userId, const limeCallback &callback) {
+	void LimeManager::delete_user(const std::string &localDeviceId, const limeCallback &callback) {
 		auto thiz = this;
-		limeCallback managerDeleteCallback([thiz, userId, callback](lime::callbackReturn returnCode, std::string errorMessage) {
+		limeCallback managerDeleteCallback([thiz, localDeviceId, callback](lime::callbackReturn returnCode, std::string errorMessage) {
 			// first forward the callback
 			callback(returnCode, errorMessage);
 
 			// then remove the user from cache(it will trigger destruction of the lime generic object so do it last
 			// as it will also destroy the instance of this callback)
-			thiz->m_users_cache.erase(userId);
+			thiz->m_users_cache.erase(localDeviceId);
 		});
 
 		// is the user load? if no we must load it to be able to delete it(generate an exception if user doesn't exists)
-		auto userElem = m_users_cache.find(userId);
+		auto userElem = m_users_cache.find(localDeviceId);
 		std::shared_ptr<LimeGeneric> user;
 		if (userElem == m_users_cache.end()) {
-			user = load_LimeUser(m_db_access, userId, m_http_provider);
-			m_users_cache[userId]=user; // we must load it in cache otherwise object will be destroyed before getting into callback
+			user = load_LimeUser(m_db_access, localDeviceId, m_http_provider);
+			m_users_cache[localDeviceId]=user; // we must load it in cache otherwise object will be destroyed before getting into callback
 		} else {
 			user = userElem->second;
 		}
@@ -73,13 +73,13 @@ namespace lime {
 		user->delete_user(managerDeleteCallback);
 	}
 
-	void LimeManager::encrypt(const std::string &localUserId, std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<recipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback) {
+	void LimeManager::encrypt(const std::string &localDeviceId, std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<recipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback) {
 		// Load user object
-		auto userElem = m_users_cache.find(localUserId);
+		auto userElem = m_users_cache.find(localDeviceId);
 		std::shared_ptr<LimeGeneric> user;
 		if (userElem == m_users_cache.end()) { // not in cache, load it from DB
-			user = load_LimeUser(m_db_access, localUserId, m_http_provider);
-			m_users_cache[localUserId]=user;
+			user = load_LimeUser(m_db_access, localDeviceId, m_http_provider);
+			m_users_cache[localDeviceId]=user;
 		} else {
 			user = userElem->second;
 		}
@@ -88,13 +88,13 @@ namespace lime {
 		user->encrypt(recipientUserId, recipients, plainMessage, cipherMessage, callback);
 	}
 
-	bool LimeManager::decrypt(const std::string &localUserId, const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &cipherHeader, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) {
+	bool LimeManager::decrypt(const std::string &localDeviceId, const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &cipherHeader, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) {
 		// Load user object
-		auto userElem = m_users_cache.find(localUserId);
+		auto userElem = m_users_cache.find(localDeviceId);
 		std::shared_ptr<LimeGeneric> user;
 		if (userElem == m_users_cache.end()) { // not in cache, load it from DB
-			user = load_LimeUser(m_db_access, localUserId, m_http_provider);
-			m_users_cache[localUserId]=user;
+			user = load_LimeUser(m_db_access, localDeviceId, m_http_provider);
+			m_users_cache[localDeviceId]=user;
 		} else {
 			user = userElem->second;
 		}

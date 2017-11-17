@@ -18,7 +18,7 @@
 #ifndef lime_hpp
 #define lime_hpp
 
-#include <memory> // unique_ptr
+#include <memory> //smart ptrs
 #include <unordered_map>
 #include <vector>
 #include "belle-sip/belle-sip.h"
@@ -46,20 +46,87 @@ namespace lime {
 	/* Forward declare the class managing one lime user*/
 	class LimeGeneric;
 
-	/* class to manage and cache Lime objects(its one per user), then adressed using their userId (GRUU) */
+	/* Manage Lime objects(it's one per user), then adressed using their device Id (GRUU) */
 	class LimeManager {
 		private :
 			std::unordered_map<std::string, std::shared_ptr<LimeGeneric>> m_users_cache; // cache of already opened Lime Session, identified by user Id (GRUU)
 			std::string m_db_access; // DB access information forwarded to SOCI to correctly access database
-			belle_http_provider_t *m_http_provider;
+			belle_http_provider_t *m_http_provider; // used to access the X3DH key server
 		public :
-			void create_user(const std::string &userId, const std::string &x3dhServerUrl, const lime::CurveId curve, const limeCallback &callback);
-			void delete_user(const std::string &userId, const limeCallback &callback);
-			void encrypt(const std::string &localUserId, std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<recipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback);
-			bool decrypt(const std::string &localUserId, const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &cipherHeader, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage);
+			/* LimeManager is mostly a cache of Lime users, any command get as first parameter the device Id (Lime manage devices only, the link user(sip:uri)<->device(GRUU) is provided by upper level) */
+
+			/**
+			 * @brief Create a user in local database and publish it on the given X3DH server
+			 * 	The Lime user shall be created at the same time the account is created on the device, this function shall not be called again, attempt to re-create an already existing user will fail.
+			 * 	A user is identified by its deviceId(shall be the GRUU) and must at creation select a base Elliptic curve to use, this setting cannot be changed later
+			 * 	A user is published on an X3DH key server who must run using the same elliptic curve selected for this user (creation will fail otherwise), the server url cannot be changed later
+			 *
+			 * @param[in]	localDeviceId	Identify the local user acount to use, it must be unique and is also be used as Id on the X3DH key server, it shall be the GRUU
+			 * @param[in]	x3dhServerUrl	The complete url(including port) of the X3DH key server. It must connect using HTTPS. Example: https://sip5.linphone.org:25519
+			 * @param[in]	curve		Choice of elliptic curve to use as base for ECDH and EdDSA operation involved. Can be CurveId::c25519 or CurveId::c448.
+			 * @param[in]	callback	This operation contact the X3DH server and is thus asynchronous, when server responds,
+			 * 				this callback will be called giving the exit status and an error message in case of failure
+			 */
+			void create_user(const std::string &localDeviceId, const std::string &x3dhServerUrl, const lime::CurveId curve, const limeCallback &callback);
+
+			/**
+			 * @brief Delete a user from local database and from the X3DH server
+			 *
+			 * @param[in]	localDeviceId	Identify the local user acount to use, it must be unique and is also be used as Id on the X3DH key server, it shall be the GRUU
+			 * @param[in]	callback	This operation contact the X3DH server and is thus asynchronous, when server responds,
+			 * 				this callback will be called giving the exit status and an error message in case of failure
+			 */
+			void delete_user(const std::string &localDeviceId, const limeCallback &callback);
+
+			/**
+			 * @brief Encrypt a buffer(text or file) for a given list of recipient devices
+			 * 	Clarification on recipients:
+			 *
+			 * 	recipients information needed are a list of the device Id and one userId. The device Id shall be their GRUU while the userId is a sip:uri.
+			 *
+			 * 	recipient User Id is used to identify the actual intended recipient. Example: alice have two devices and is signed up on a conference having
+			 * 	bob and claire as other members. The recipientUserId will be the conference sip:uri and device list will include:
+			 * 		 - alice other device
+			 * 		 - bob devices
+			 * 		 - claire devices
+			 * 	If Alice write to Bob only, the recipientUserId will be bob sip:uri and recipient devices list :
+			 * 		 - alice other device
+			 * 		 - bob devices
+			 *
+			 * 	In all cases, the identified source of the message will be the localDeviceId
+			 *
+			 * 	Note: nearly all parameters are shared pointers as the process being asynchronous, the ownership will be taken internally exempting caller to manage the buffers.
+			 *
+			 * @param[in]		localDeviceId	used to identify which local acount to use and also as the identified source of the message, shall be the GRUU
+			 * @param[in]		recipientUserId	the Id of intended recipient, shall be a sip:uri of user or conference, is used as associated data to ensure no-one can mess with intended recipient
+			 * @param[in/out]	recipients	a list of recipientData holding: the recipient device Id(GRUU) and an empty buffer to store the cipherHeader which must then be routed to that recipient
+			 * @param[in]		plainMessage	a buffer holding the message to encrypt, can be text or data.
+			 * @param[out]		cipherMessage	points to the buffer to store the encrypted message which must be routed to all recipients
+			 * @param[in]		callback	This operation contact the X3DH server and is thus asynchronous, when server responds,
+			 * 					this callback will be called giving the exit status and an error message in case of failure.
+			 * 					It is advised to capture a copy of cipherMessage and recipients shared_ptr in this callback so they can access
+			 * 					the output of encryption as it won't be part of the callback parameters.
+			 */
+			void encrypt(const std::string &localDeviceId, std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<recipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback);
+
+			/**
+			 * @brief Decrypt the given message
+			 *
+			 * @param[in]		localDeviceId	used to identify which local acount to use and also as the recipient device ID of the message, shall be the GRUU
+			 * @param[in]		recipientUserId	the Id of intended recipient, shall be a sip:uri of user or conference, is used as associated data to ensure no-one can mess with intended recipient
+			 * 					it is not necessarily the sip:uri base of the GRUU as this could be a message from alice first device intended to bob being decrypted on alice second device
+			 * @param[in]		cipherHeader	the part of cipher which is targeted to current device
+			 * @param[in]		cipherMessage	part of cipher routed to all recipient devices
+			 * @param[out]		plainMessage	the output buffer
+			 *
+			 * @return	true if the decryption is successfull, false otherwise
+			 */
+			bool decrypt(const std::string &localDeviceId, const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &cipherHeader, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage);
+
 			LimeManager() = delete; // no manager without Database and http provider
 			LimeManager(const LimeManager&) = delete; // no copy constructor
 			LimeManager operator=(const LimeManager &) = delete; // nor copy operator
+
 			/**
 			 * @brief Lime Manager constructor
 			 *
