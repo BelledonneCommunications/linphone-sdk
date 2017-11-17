@@ -163,9 +163,6 @@ if(PLATFORM STREQUAL "Debian")
 
 	# some debians are using dash as shell, which doesn't support "export -n", so we override and use bash
 	set(GLOBAL_RPMBUILD_OPTIONS "${GLOBAL_RPMBUILD_OPTIONS} --define '_buildshell /bin/bash'")
-
-	CHECK_PROGRAM(alien)
-	CHECK_PROGRAM(fakeroot)
 endif()
 
 set(LINPHONE_BUILDER_RPMBUILD_GLOBAL_OPTIONS ${GLOBAL_RPMBUILD_OPTIONS})
