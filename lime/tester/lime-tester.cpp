@@ -102,7 +102,7 @@ static const char* lime_helper =
 #ifdef EC448_ENABLED
 		"\t\t\t--c448-x3dh-server-port <port to use on x3dh server for instance running on curve448>, default : 25520\n"
 #endif
-		"\t\t\t--operation-timeout <delay in ms to complete basic operations involving server>, default : 4000, you may want to increase this if you are not using a local X3DH server\n"
+		"\t\t\t--operation-timeout <delay in ms to complete basic operations involving server>, default : 4000\n\t\t\t                    you may want to increase this value if you are not using a local X3DH server and experience tests failures\n"
 		"\t\t\t--keep-tmp-db, when set don't delete temporary db files created by tests, usefull for debug\n"
 
 		"\t\t\t--log-file <output log file path>\n";
@@ -132,8 +132,8 @@ int main(int argc, char *argv[]) {
 		} else if (strcmp(argv[i],"--log-file")==0){
 			CHECK_ARG("--log-file", ++i, argc);
 			if (lime_tester_set_log_file(argv[i]) < 0) return -2;
-		} else if (strcmp(argv[i],"--x3dh-server-url")==0){
-			CHECK_ARG("--x3dh-server-url", ++i, argc);
+		} else if (strcmp(argv[i],"--x3dh-server-name")==0){
+			CHECK_ARG("--x3dh-server-name", ++i, argc);
 			test_x3dh_server_url=std::string(argv[i]);
 		} else if (strcmp(argv[i],"--c255-x3dh-server-port")==0){
 			CHECK_ARG("--c255-x3dh-server-port", ++i, argc);
