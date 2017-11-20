@@ -57,9 +57,9 @@ Db::Db(std::string filename) : sql{sqlite3, filename}{
 			 *  - SessionId(primary key)
 			 *  - Ns, Nr, PN : index for sending, receivind and previous sending chain
 			 *  - DHr : peer current public ECDH key
-			 *  - DHs public, DHs private : self current ECDH key
+			 *  - DHs : self current ECDH key. (public || private keys)
 			 *  - RK, CKs, CKr : Root key, sender and receiver chain keys
-			 *  - AD : Associated data(provided once at session creation by X3DH, shall be initiator public Ik||receiver public Ik)
+			 *  - AD : Associated data : provided once at session creation by X3DH, is derived from initiator public Ik and id, receiver public Ik and id
 			 *  - Status : 0 is for stale and 1 is for active, only one session shall be active for a peer device, by default created as active
 			 *  - timeStamp : is updated when session change status and is used to remove stale session after determined time in cleaning operation
 			 *  - X3DHInit : when we are initiator, store the generated X3DH init message and keep sending it until we've got at least a reply from peer
@@ -71,8 +71,7 @@ Db::Db(std::string filename) : sql{sqlite3, filename}{
 						Nr UNSIGNED INTEGER NOT NULL, \
 						PN UNSIGNED INTEGER NOT NULL, \
 						DHr BLOB NOT NULL, \
-						DHs_pub BLOB NOT NULL, \
-						DHs_priv BLOB NOT NULL, \
+						DHs BLOB NOT NULL, \
 						RK BLOB NOT NULL, \
 						CKs BLOB NOT NULL, \
 						CKr BLOB NOT NULL, \
@@ -99,7 +98,7 @@ Db::Db(std::string filename) : sql{sqlite3, filename}{
 			/* List each self account enable on device :
 			   - Uid : primary key, used to make link with Peer Devices, SPk and OPk tables
 			   - User Id : shall be the GRUU
-			   - Ik : public||private indentity key
+			   - Ik : public||private indentity key (EdDSA key)
 			   - server : the URL of key Server
 			   - curveId : identifies the curve used by this user - MUST be in sync with server
 			*/
@@ -221,10 +220,9 @@ bool DR<DHKey>::session_save() {
 		// Build blobs from DR session
 		blob DHr(m_localStorage->sql);
 		DHr.write(0, (char *)(m_DHr.data()), m_DHr.size());
-		blob DHs_pub(m_localStorage->sql);
-		DHs_pub.write(0, (char *)(m_DHs.publicKey().data()), m_DHs.publicKey().size());
-		blob DHs_priv(m_localStorage->sql);
-		DHs_priv.write(0, (char *)(m_DHs.privateKey().data()), m_DHs.privateKey().size());
+		blob DHs(m_localStorage->sql);
+		DHs.write(0, (char *)(m_DHs.publicKey().data()), m_DHs.publicKey().size()); // DHs holds Public || Private keys in the same field
+		DHs.write(m_DHs.publicKey().size(), (char *)(m_DHs.privateKey().data()), m_DHs.privateKey().size());
 		blob RK(m_localStorage->sql);
 		RK.write(0, (char *)(m_RK.data()), m_RK.size());
 		blob CKs(m_localStorage->sql);
@@ -241,9 +239,9 @@ bool DR<DHKey>::session_save() {
 		if (m_X3DH_initMessage.size()>0) {
 			blob X3DH_initMessage(m_localStorage->sql);
 			X3DH_initMessage.write(0, (char *)(m_X3DH_initMessage.data()), m_X3DH_initMessage.size());
-			m_localStorage->sql<<"INSERT INTO DR_sessions(Ns,Nr,PN,DHr,DHs_pub,DHs_priv,RK,CKs,CKr,AD,Did,X3DHInit) VALUES(:Ns,:Nr,:PN,:DHr,:DHs_pub,:DHs_priv,:RK,:CKs,:CKr,:AD,:Did,:X3DHinit);", use(m_Ns), use(m_Nr), use(m_PN), use(DHr), use(DHs_pub), use(DHs_priv), use(RK), use(CKs), use(CKr), use(AD), use(m_peerDid), use(X3DH_initMessage);
+			m_localStorage->sql<<"INSERT INTO DR_sessions(Ns,Nr,PN,DHr,DHs,RK,CKs,CKr,AD,Did,X3DHInit) VALUES(:Ns,:Nr,:PN,:DHr,:DHs,:RK,:CKs,:CKr,:AD,:Did,:X3DHinit);", use(m_Ns), use(m_Nr), use(m_PN), use(DHr), use(DHs), use(RK), use(CKs), use(CKr), use(AD), use(m_peerDid), use(X3DH_initMessage);
 		} else {
-			m_localStorage->sql<<"INSERT INTO DR_sessions(Ns,Nr,PN,DHr,DHs_pub,DHs_priv,RK,CKs,CKr,AD,Did) VALUES(:Ns,:Nr,:PN,:DHr,:DHs_pub,:DHs_priv,:RK,:CKs,:CKr,:AD,:Did);", use(m_Ns), use(m_Nr), use(m_PN), use(DHr), use(DHs_pub), use(DHs_priv), use(RK), use(CKs), use(CKr), use(AD), use(m_peerDid);
+			m_localStorage->sql<<"INSERT INTO DR_sessions(Ns,Nr,PN,DHr,DHs,RK,CKs,CKr,AD,Did) VALUES(:Ns,:Nr,:PN,:DHr,:DHs,:RK,:CKs,:CKr,:AD,:Did);", use(m_Ns), use(m_Nr), use(m_PN), use(DHr), use(DHs), use(RK), use(CKs), use(CKr), use(AD), use(m_peerDid);
 		}
 		// if insert went well we shall be able to retrieve the last insert id to save it in the Session object
 		/*** WARNING: unportable section of code, works only with sqlite3 backend ***/
@@ -268,10 +266,9 @@ bool DR<DHKey>::session_save() {
 					// Build blobs from DR session
 					blob DHr(m_localStorage->sql);
 					DHr.write(0, (char *)(m_DHr.data()), m_DHr.size());
-					blob DHs_pub(m_localStorage->sql);
-					DHs_pub.write(0, (char *)(m_DHs.publicKey().data()), m_DHs.publicKey().size());
-					blob DHs_priv(m_localStorage->sql);
-					DHs_priv.write(0, (char *)(m_DHs.privateKey().data()), m_DHs.privateKey().size());
+					blob DHs(m_localStorage->sql);
+					DHs.write(0, (char *)(m_DHs.publicKey().data()), m_DHs.publicKey().size()); // DHs holds Public || Private keys in the same field
+					DHs.write(m_DHs.publicKey().size(), (char *)(m_DHs.privateKey().data()), m_DHs.privateKey().size());
 					blob RK(m_localStorage->sql);
 					RK.write(0, (char *)(m_RK.data()), m_RK.size());
 					blob CKs(m_localStorage->sql);
@@ -279,7 +276,7 @@ bool DR<DHKey>::session_save() {
 					blob CKr(m_localStorage->sql);
 					CKr.write(0, (char *)(m_CKr.data()), m_CKr.size());
 
-					m_localStorage->sql<<"UPDATE DR_sessions SET Ns= :Ns, Nr= :Nr, PN= :PN, DHr= :DHr,DHs_pub= :DHs_pub, DHs_priv= :DHs_priv,RK= :RK, CKs= :CKs, CKr= :CKr, Status = 1,  X3DHInit = NULL WHERE sessionId = :sessionId;", use(m_Ns), use(m_Nr), use(m_PN), use(DHr), use(DHs_pub), use(DHs_priv), use(RK), use(CKs), use(CKr), use(m_dbSessionId);
+					m_localStorage->sql<<"UPDATE DR_sessions SET Ns= :Ns, Nr= :Nr, PN= :PN, DHr= :DHr,DHs= :DHs, RK= :RK, CKs= :CKs, CKr= :CKr, Status = 1,  X3DHInit = NULL WHERE sessionId = :sessionId;", use(m_Ns), use(m_Nr), use(m_PN), use(DHr), use(DHs), use(RK), use(CKs), use(CKr), use(m_dbSessionId);
 				}
 					break;
 				case DRSessionDbStatus::dirty_decrypt: // decrypt modifies: CKr and Nr. Also set Status to active and clear X3DH init message if there is one(it is actually useless as our first reply from peer shall trigger a ratchet&decrypt)
@@ -356,8 +353,7 @@ template <typename DHKey>
 bool DR<DHKey>::session_load() {
 	// blobs to store DR session data
 	blob DHr(m_localStorage->sql);
-	blob DHs_pub(m_localStorage->sql);
-	blob DHs_priv(m_localStorage->sql);
+	blob DHs(m_localStorage->sql);
 	blob RK(m_localStorage->sql);
 	blob CKs(m_localStorage->sql);
 	blob CKr(m_localStorage->sql);
@@ -367,12 +363,12 @@ bool DR<DHKey>::session_load() {
 	// create an empty DR session
 	indicator ind;
 	int status; // retrieve an int from DB, turn it into a bool to store in object
-	m_localStorage->sql<<"SELECT Did,Ns,Nr,PN,DHr,DHs_pub,DHs_priv,RK,CKs,CKr,AD,Status,X3DHInit FROM DR_sessions WHERE sessionId = :sessionId LIMIT 1", into(m_peerDid), into(m_Ns), into(m_Nr), into(m_PN), into(DHr), into(DHs_pub), into(DHs_priv), into(RK), into(CKs), into(CKr), into(AD), into(status), into(X3DH_initMessage,ind), use(m_dbSessionId);
+	m_localStorage->sql<<"SELECT Did,Ns,Nr,PN,DHr,DHs,RK,CKs,CKr,AD,Status,X3DHInit FROM DR_sessions WHERE sessionId = :sessionId LIMIT 1", into(m_peerDid), into(m_Ns), into(m_Nr), into(m_PN), into(DHr), into(DHs), into(RK), into(CKs), into(CKr), into(AD), into(status), into(X3DH_initMessage,ind), use(m_dbSessionId);
 
 	if (m_localStorage->sql.got_data()) { // TODO : some more specific checks on length of retrieved data?
 		DHr.read(0, (char *)(m_DHr.data()), m_DHr.size());
-		DHs_pub.read(0, (char *)(m_DHs.publicKey().data()), m_DHs.publicKey().size());
-		DHs_priv.read(0, (char *)(m_DHs.privateKey().data()), m_DHs.privateKey().size());
+		DHs.read(0, (char *)(m_DHs.publicKey().data()), m_DHs.publicKey().size());
+		DHs.read(m_DHs.publicKey().size(), (char *)(m_DHs.privateKey().data()), m_DHs.privateKey().size());
 		RK.read(0, (char *)(m_RK.data()), m_RK.size());
 		CKs.read(0, (char *)(m_CKs.data()), m_CKs.size());
 		CKr.read(0, (char *)(m_CKr.data()), m_CKr.size());
