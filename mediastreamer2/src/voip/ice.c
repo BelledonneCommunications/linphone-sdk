@@ -155,6 +155,7 @@ static void ice_check_list_remove_stun_server_request(IceCheckList *cl, UInt96 *
 static IceStunServerRequest * ice_check_list_get_stun_server_request(IceCheckList *cl, UInt96 *tr_id);
 static void ice_transport_address_to_printable_ip_address(const IceTransportAddress *taddr, char *printable_ip, size_t printable_ip_size);
 static void ice_stun_server_request_add_transaction(IceStunServerRequest *request, IceStunServerRequestTransaction *transaction);
+static int ice_session_connectivity_checks_duration(IceSession *session);
 
 
 /******************************************************************************
@@ -226,6 +227,7 @@ static void ice_session_init(IceSession *session)
 	session->send_event = FALSE;
 	session->gathering_start_ts.tv_sec = session->gathering_start_ts.tv_nsec = -1;
 	session->gathering_end_ts.tv_sec = session->gathering_end_ts.tv_nsec = -1;
+	session->connectivity_checks_start_ts.tv_sec = session->connectivity_checks_start_ts.tv_nsec = -1;
 	session->check_message_integrity=TRUE;
 	session->default_types[0] = ICT_RelayedCandidate;
 	session->default_types[1] = ICT_ServerReflexiveCandidate;
@@ -1092,6 +1094,14 @@ int ice_session_gathering_duration(IceSession *session)
 	if ((session->gathering_start_ts.tv_sec == -1) || (session->gathering_end_ts.tv_sec == -1)) return -1;
 	return (int)(((session->gathering_end_ts.tv_sec - session->gathering_start_ts.tv_sec) * 1000.0)
 		+ ((session->gathering_end_ts.tv_nsec - session->gathering_start_ts.tv_nsec) / 1000000.0));
+}
+
+static int ice_session_connectivity_checks_duration(IceSession *session) {
+	MSTimeSpec current_ts;
+	if (session->connectivity_checks_start_ts.tv_sec == -1) return -1;
+	ms_get_cur_time(&current_ts);
+	return (int)(((current_ts.tv_sec - session->connectivity_checks_start_ts.tv_sec) * 1000.0)
+		+ ((current_ts.tv_nsec - session->connectivity_checks_start_ts.tv_nsec) / 1000000.0));
 }
 
 void ice_session_enable_forced_relay(IceSession *session, bool_t enable) {
@@ -3396,6 +3406,7 @@ void ice_session_start_connectivity_checks(IceSession *session)
 {
 	ice_session_pair_candidates(session);
 	session->state = IS_Running;
+	ms_get_cur_time(&session->connectivity_checks_start_ts);
 }
 
 
@@ -3611,6 +3622,16 @@ static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session)
 
 	if (cl->state == ICL_Running) {
 		if (cl->session->role == IR_Controlling) {
+			/* Workaround to stop ICE if it has not finished after 5 seconds. */
+			/* TODO: To remove */
+			if (ice_session_connectivity_checks_duration(cl->session) >= 5000) {
+				ms_warning("ice: Connectivity checks not terminated, deactivate ICE");
+				ev = ortp_event_new(ORTP_EVENT_ICE_DEACTIVATION_NEEDED);
+				ortp_event_get_data(ev)->info.ice_processing_successful = FALSE;
+				rtp_session_dispatch_event(rtp_session, ev);
+				return;
+			}
+
 			/* Perform regular nomination for valid pairs. */
 			cr.cl = cl;
 			cr.rtp_session = rtp_session;

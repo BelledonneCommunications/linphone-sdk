@@ -120,6 +120,7 @@ typedef struct _IceSession {
 	socklen_t ss_len;	/**< Length of the STUN server address to use for the candidates gathering process */
 	MSTimeSpec gathering_start_ts;
 	MSTimeSpec gathering_end_ts;
+	MSTimeSpec connectivity_checks_start_ts;
 	IceCandidateType default_types[ICT_CandidateTypeMax];
 	bool_t check_message_integrity; /*set to false for backward compatibility only*/
 	bool_t send_event;	/**< Boolean value telling whether an event must be sent or not */
