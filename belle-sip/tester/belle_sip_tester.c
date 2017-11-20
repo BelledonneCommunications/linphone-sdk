@@ -225,6 +225,7 @@ int main (int argc, char *argv[]) {
 			bctbx_set_log_level(BCTBX_LOG_DOMAIN,BCTBX_LOG_FATAL);
 		} else if (strcmp(argv[i],"--log-file")==0){
 			CHECK_ARG("--log-file", ++i, argc);
+			bctbx_set_log_handler(NULL);/*remove default log handler*/
 			if (belle_sip_tester_set_log_file(argv[i]) < 0) return -2;
 		} else if (strcmp(argv[i],"--domain")==0){
 			CHECK_ARG("--domain", ++i, argc);
