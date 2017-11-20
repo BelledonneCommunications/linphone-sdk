@@ -143,8 +143,21 @@ static void x3dh_without_OPk_test(const lime::CurveId curve, const std::string &
 			auto receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
 			BC_ASSERT_TRUE(receivedMessageString == lime_messages_pattern[messagePatternIndex]);
 
+			if (cleanDatabase) {
+				bobManager->delete_user(*bobDeviceId, callback);
+				BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,++expected_success,wait_for_timeout)); // we must get a callback saying all went well
+			}
+
 			// destroy and reload the Managers(tests everything is correctly saved/load from local Storage)
 			if (!continuousSession) { managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);}
+		}
+
+		// delete the users so the remote DB will be clean too
+		if (cleanDatabase) {
+			aliceManager->delete_user(*aliceDeviceId, callback);
+			BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,++expected_success,wait_for_timeout)); // we must get a callback saying all went well
+			remove(dbFilenameAlice.data());
+			remove(dbFilenameBob.data());
 		}
 	} catch (BctbxException &e) {
 		BCTBX_SLOGE <<e;;
