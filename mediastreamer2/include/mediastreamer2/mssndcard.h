@@ -123,6 +123,22 @@ struct _MSSndCardDesc{
  */
 typedef struct _MSSndCardDesc MSSndCardDesc;
 
+/**
+ * Structure for sound card object.
+ * @var MSSndCard
+ */
+typedef struct _MSSndCard MSSndCard;
+
+enum _MSSndCardStreamType{
+	MS_SND_CARD_STREAM_VOICE,
+	MS_SND_CARD_STREAM_RING
+};
+
+/**
+ * Structure for sound card stream type.
+ */
+typedef enum _MSSndCardStreamType MSSndCardStreamType;
+
 #define MS_SND_CARD_CAP_DISABLED (0) /**<This soundcard is disabled.*/
 #define MS_SND_CARD_CAP_CAPTURE (1) /**<This sound card can capture sound */
 #define MS_SND_CARD_CAP_PLAYBACK (1<<1) /**<This sound card can playback sound */
@@ -138,13 +154,8 @@ struct _MSSndCard{
 	void *data;
 	int preferred_sample_rate;
 	int latency;
+	MSSndCardStreamType streamType;
 };
-
-/**
- * Structure for sound card object.
- * @var MSSndCard
- */
-typedef struct _MSSndCard MSSndCard;
 
 #ifdef __cplusplus
 extern "C"{
@@ -518,6 +529,16 @@ MS2_PUBLIC int ms_snd_card_set_preferred_sample_rate(MSSndCard *obj,int rate);
  * This is recommended for cards which are known to be slow (see flag MS_SND_CARD_CAP_IS_SLOW ).
 **/
 MS2_PUBLIC void ms_snd_card_set_usage_hint(MSSndCard *obj, bool_t is_going_to_be_used);
+
+/**
+ * Sets the stream type for this soundcard, default is VOICE
+**/
+MS2_PUBLIC void ms_snd_card_set_stream_type(MSSndCard *obj, MSSndCardStreamType type);
+
+/**
+ * Gets the stream type for this soundcard, default is VOICE
+**/
+MS2_PUBLIC MSSndCardStreamType ms_snd_card_get_stream_type(MSSndCard *obj);
 
 /**
  * Create a alsa card with user supplied pcm name and mixer name.

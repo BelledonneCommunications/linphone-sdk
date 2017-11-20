@@ -174,6 +174,7 @@ MSSndCard * ms_snd_card_new_with_name(MSSndCardDesc *desc,const char* name) {
 	obj->data=NULL;
 	obj->id=NULL;
 	obj->capabilities=MS_SND_CARD_CAP_CAPTURE|MS_SND_CARD_CAP_PLAYBACK;
+	obj->streamType=MS_SND_CARD_STREAM_VOICE;
 	if (desc->init!=NULL)
 		desc->init(obj);
 	return obj;
@@ -274,6 +275,14 @@ int ms_snd_card_get_preferred_sample_rate(const MSSndCard *obj) {
 int ms_snd_card_set_preferred_sample_rate(MSSndCard *obj,int rate) {
 	obj->preferred_sample_rate=rate;
 	return 0;
+}
+
+void ms_snd_card_set_stream_type(MSSndCard *obj, MSSndCardStreamType type) {
+	obj->streamType = type;
+}
+
+MSSndCardStreamType ms_snd_card_get_stream_type(MSSndCard *obj) {
+	return obj->streamType;
 }
 
 #ifdef __linux

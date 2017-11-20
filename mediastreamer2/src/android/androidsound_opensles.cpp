@@ -159,6 +159,14 @@ struct OpenSLESOutputContext {
 		ms_flow_controlled_bufferizer_set_flow_control_interval_ms(&buffer, flowControlIntervalMs);
 	}
 
+	void updateStreamTypeFromMsSndCard() {
+		MSSndCardStreamType type = ms_snd_card_get_stream_type(soundCard);
+		streamType = SL_ANDROID_STREAM_VOICE;
+		if (type == MS_SND_CARD_STREAM_RING) {
+			streamType = SL_ANDROID_STREAM_RING;
+		}
+	}
+
 	OpenSLESContext *opensles_context;
 
 	SLObjectItf outputMixObject;
@@ -168,6 +176,7 @@ struct OpenSLESOutputContext {
 	SLAndroidConfigurationItf playerConfig;
 	SLint32 streamType;
 
+	MSSndCard *soundCard;
 	MSFilter *filter;
 	MSFlowControlledBufferizer buffer;
 	int nbufs;
@@ -738,6 +747,7 @@ static SLresult opensles_sink_init(OpenSLESOutputContext *octx) {
 		return result;
 	}
 
+	octx->updateStreamTypeFromMsSndCard();
 	result = (*octx->playerConfig)->SetConfiguration(octx->playerConfig, SL_ANDROID_KEY_STREAM_TYPE, &octx->streamType, sizeof(SLint32));
 	if (result != SL_RESULT_SUCCESS) {
 		ms_error("OpenSLES Error %u while setting stream type configuration", result);
@@ -841,6 +851,7 @@ static SLresult opensles_player_callback_init(OpenSLESOutputContext *octx) {
 static MSFilter *android_snd_card_create_writer(MSSndCard *card) {
 	MSFilter *f = ms_android_snd_write_new(ms_snd_card_get_factory(card));
 	OpenSLESOutputContext *octx = static_cast<OpenSLESOutputContext*>(f->data);
+	octx->soundCard = card;
 	octx->setContext((OpenSLESContext*)card->data);
 	return f;
 }

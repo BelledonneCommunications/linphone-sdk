@@ -184,12 +184,20 @@ struct AndroidSndWriteData{
 		ms_mutex_destroy(&mutex);
 		ms_bufferizer_uninit(&bf);
 	}
+	void updateStreamTypeFromMsSndCard() {
+		MSSndCardStreamType type = ms_snd_card_get_stream_type(soundCard);
+		stype = AUDIO_STREAM_VOICE_CALL;
+		if (type == MS_SND_CARD_STREAM_RING) {
+			stype = AUDIO_STREAM_RING;
+		}
+	}
 	void setCard(AndroidNativeSndCardData *card){
 		mCard=card;
 #ifdef NATIVE_USE_HARDWARE_RATE
 		rate=card->mPlayRate;
 #endif
 	}
+	MSSndCard *soundCard;
 	AndroidNativeSndCardData *mCard;
 	audio_stream_type_t stype;
 	int rate;
@@ -213,6 +221,7 @@ static MSFilter *android_snd_card_create_reader(MSSndCard *card){
 static MSFilter *android_snd_card_create_writer(MSSndCard *card){
 	MSFilter *f=ms_android_snd_write_new(ms_snd_card_get_factory(card));
 	(static_cast<AndroidSndWriteData*>(f->data))->setCard((AndroidNativeSndCardData*)card->data);
+	(static_cast<AndroidSndWriteData*>(f->data))->soundCard = card;
 	return f;
 }
 
@@ -706,6 +715,7 @@ static void android_snd_write_preprocess(MSFilter *obj){
 	ad->mCard->enableVoipMode();
 	ad->nFramesRequested=0;
 	
+	ad->updateStreamTypeFromMsSndCard();
 	if (AudioTrack::getMinFrameCount(&play_buf_size,ad->stype,ad->rate)==0){
 		ms_message("AudioTrack: min frame count is %i",play_buf_size);
 	}else{
