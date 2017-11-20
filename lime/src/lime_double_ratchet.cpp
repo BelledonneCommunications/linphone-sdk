@@ -77,7 +77,7 @@ namespace lime {
 	 * @Brief Key Derivation Function used in Symmetric key ratchet chain.
 	 *      Impleted according to DR spec section 5.2 using HMAC-SHA256 for CK derivation and 512 for MK and IV derivation
 	 *		MK = HMAC-SHA512(CK, hkdf_mk_info) // get 48 bytes of it: first 32 to be key and last 16 to be IV
-	 *		CK = HMAC-SHA256(CK, hkdf_ck_info)
+	 *		CK = HMAC-SHA512(CK, hkdf_ck_info)
 	 *              hkdf_ck_info and hldf_mk_info being a distincts constant strings
 	 *
 	 * @param[in/out]	CK	Input/output buffer used as key to compute MK and then next CK
@@ -101,13 +101,13 @@ namespace lime {
 	 * @param[in]	ciphertext	buffer holding: header<size depends on DHKey type> || ciphertext || auth tag<16 bytes>
 	 * @param[in]	headerSize	Size of the header included in ciphertext
 	 * @param[in]	AD		Associated data
-	 * @param[out]	plaintext	the output message(may be a vector or an array of unsigned char)
+	 * @param[out]	plaintext	the output message : a fixed size vector, encrypted message is the random seed used to generate the key to encrypt the real message
 	 *				this vector need resizing before calling actual decrypt
 	 *
 	 * @return false if authentication failed
 	 *
 	 */
-	static bool decrypt(const lime::DRMKey &MK, const std::vector<uint8_t> &ciphertext, const size_t headerSize, std::vector<uint8_t> &AD, std::array<uint8_t,48> &plaintext) {
+	static bool decrypt(const lime::DRMKey &MK, const std::vector<uint8_t> &ciphertext, const size_t headerSize, std::vector<uint8_t> &AD, std::array<uint8_t, lime::settings::DRrandomSeedSize> &plaintext) {
 		return (bctbx_aes_gcm_decrypt_and_auth(MK.data(), lime::settings::DRMessageKeySize, // MK buffer hold key<DRMessageKeySize bytes>||IV<DRMessageIVSize bytes>
 		ciphertext.data()+headerSize, plaintext.size(), // cipher text starts after header, length is the one computed for plaintext
 		AD.data(), AD.size(),
@@ -120,7 +120,7 @@ namespace lime {
 	 * @brief Encrypt as described is spec section 3.1
 	 *
 	 * @param[in]		MK		A buffer holding key<32 bytes> || IV<16 bytes>
-	 * @param[in]		plaintext	the output message(may be a vector or an array of unsigned char)
+	 * @param[in]		plaintext	the input message, it is a fixed size vector as we always encrypt the random seed only
 	 * @param[in]		AD		Associated data
 	 * @param[in]		headerSize	Size of the header included in ciphertext
 	 * @param[in/out]	ciphertext	buffer holding: header<size depends on DHKey type>, will append to it: ciphertext || auth tag<16 bytes>
@@ -129,7 +129,7 @@ namespace lime {
 	 * @return false if something goes wrong
 	 *
 	 */
-	static bool encrypt(const lime::DRMKey &MK, const std::array<uint8_t,48> &plaintext, const size_t headerSize, std::vector<uint8_t> &AD, std::vector<uint8_t> &ciphertext) {
+	static bool encrypt(const lime::DRMKey &MK, const std::array<uint8_t,lime::settings::DRrandomSeedSize> &plaintext, const size_t headerSize, std::vector<uint8_t> &AD, std::vector<uint8_t> &ciphertext) {
 		return (bctbx_aes_gcm_encrypt_and_tag(MK.data(), lime::settings::DRMessageKeySize, // MK buffer also hold the IV
 				plaintext.data(), plaintext.size(),
 				AD.data(), AD.size(),
@@ -305,12 +305,12 @@ namespace lime {
 	/**
 	 * @brief Encrypt using the double-ratchet algorithm.
 	 *
-	 * @param[in]	plaintext	Shall actally be a 48 bytes buffer holding key+IV for a GCM encryption to the actual message
+	 * @param[in]	plaintext	Shall actally be a 32 bytes buffer holding the seed used to generate key+IV for a GCM encryption to the actual message
 	 * @param[in]	AD		Associated Data, this buffer shall hold: source GRUU<...> || recipient GRUU<...> || actual message AEAD auth tag
 	 * @param[out]	ciphertext	buffer holding the header, cipher text and auth tag, shall contain the key and IV used to cipher the actual message, auth tag applies on AD || header
 	 */
 	template <typename Curve>
-	void DR<Curve>::ratchetEncrypt(const array<uint8_t, 48>& plaintext, std::vector<uint8_t> &&AD, std::vector<uint8_t> &ciphertext) {
+	void DR<Curve>::ratchetEncrypt(const array<uint8_t, lime::settings::DRrandomSeedSize>& plaintext, std::vector<uint8_t> &&AD, std::vector<uint8_t> &ciphertext) {
 		m_dirty = DRSessionDbStatus::dirty_encrypt; // we're about to modify this session, it won't be in sync anymore with local storage
 		// chain key derivation(also compute message key)
 		DRMKey MK;
@@ -348,7 +348,7 @@ namespace lime {
 	 * 
 	 */
 	template <typename Curve>
-	bool DR<Curve>::ratchetDecrypt(const std::vector<uint8_t> &ciphertext,const std::vector<uint8_t> &AD, array<uint8_t,48> &plaintext) {
+	bool DR<Curve>::ratchetDecrypt(const std::vector<uint8_t> &ciphertext,const std::vector<uint8_t> &AD, array<uint8_t,lime::settings::DRrandomSeedSize> &plaintext) {
 		// parse header
 		double_ratchet_protocol::DRHeader<Curve> header{ciphertext};
 		if (!header.valid()) { // check it is valid otherwise just stop
@@ -428,11 +428,18 @@ namespace lime {
 	template <typename Curve>
 	void encryptMessage(std::vector<recipientInfos<Curve>>& recipients, const std::vector<uint8_t>& plaintext, const std::string& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage) {
 		// First generate a key and IV, use it to encrypt the given message, Associated Data are : sourceDeviceId || recipientUserId
-		// generate the random key : 32 bytes of key, 16 bytes of IV
+		// generate the random seed
 		bctbx_rng_context_t *RNG = bctbx_rng_context_new();
-		std::array<uint8_t,lime::settings::DRMessageKeySize+lime::settings::DRMessageIVSize> randomKey; // use the same size than the one used internally by Double Ratchet
-		bctbx_rng_get(RNG, randomKey.data(), randomKey.size());
+		std::array<uint8_t,lime::settings::DRrandomSeedSize> randomSeed{}; // this seed is sent in DR message and used to derivate random key + IV to encrypt the actual message
+		bctbx_rng_get(RNG, randomSeed.data(), randomSeed.size());
 		bctbx_rng_context_free(RNG);
+
+		// expansion of randomSeed to 48 bytes: 32 bytes random key + 16 bytes nonce
+		// use the expansion round of HKDF - RFC 5869
+		std::array<uint8_t,lime::settings::DRMessageKeySize+lime::settings::DRMessageIVSize> randomKey{};
+		std::vector<uint8_t> expansionRoundInput{lime::settings::hkdf_randomSeed_info.begin(), lime::settings::hkdf_randomSeed_info.end()};
+		expansionRoundInput.push_back(0x01);
+		bctbx_hmacSha512(randomSeed.data(), randomSeed.size(), expansionRoundInput.data(), expansionRoundInput.size(), randomKey.size(), randomKey.data());
 
 		// resize cipherMessage vector as it is adressed directly by C library: same as plain message + room for the authentication tag
 		cipherMessage.resize(plaintext.size()+lime::settings::DRMessageAuthTagSize);
@@ -460,7 +467,7 @@ namespace lime {
 			std::vector<uint8_t> recipientAD{AD}; // copy AD
 			recipientAD.insert(recipientAD.end(), recipients[i].deviceId.begin(), recipients[i].deviceId.end()); //insert recipient device id(gruu)
 
-			recipients[i].DRSession->ratchetEncrypt(randomKey, std::move(recipientAD), recipients[i].cipherHeader);
+			recipients[i].DRSession->ratchetEncrypt(randomSeed, std::move(recipientAD), recipients[i].cipherHeader);
 		}
 		bctbx_clean(randomKey.data(), randomKey.size());
 	}
@@ -472,13 +479,13 @@ namespace lime {
 		AD.insert(AD.end(), sourceDeviceId.begin(), sourceDeviceId.end());
 		AD.insert(AD.end(), recipientDeviceId.begin(), recipientDeviceId.end());
 
-		// buffer to store the random key used to encrypt message
-		std::array<uint8_t,lime::settings::DRMessageKeySize+lime::settings::DRMessageIVSize> randomKey; /* use the same size than the one used internally by Double Ratchet */
+		// buffer to store the random seed used to derive key and IV to decrypt message
+		std::array<uint8_t, lime::settings::DRrandomSeedSize> randomSeed{};
 
 		for (auto& DRSession : DRSessions) {
 			bool decryptStatus = false;
 			try {
-				decryptStatus = DRSession->ratchetDecrypt(cipherHeader, AD, randomKey);
+				decryptStatus = DRSession->ratchetDecrypt(cipherHeader, AD, randomSeed);
 			} catch (BctbxException &e) { // any bctbx Exception is just considered as decryption failed (it shall occurs only in case of maximum skipped keys reached)
 				BCTBX_SLOGW<<"Double Ratchet session failed to decrypt message and raised an exception saying : "<<e.what();
 				decryptStatus = false; // lets keep trying with other sessions if provided
@@ -491,6 +498,13 @@ namespace lime {
 
 				// resize plaintext vector as it is adressed directly by C library: same as cipher message - authentication tag length
 				plaintext.resize(cipherMessage.size()-lime::settings::DRMessageAuthTagSize);
+
+				// rebuild the random key and IV from given seed
+				// use the expansion round of HKDF - RFC 5869
+				std::array<uint8_t,lime::settings::DRMessageKeySize+lime::settings::DRMessageIVSize> randomKey{};
+				std::vector<uint8_t> expansionRoundInput{lime::settings::hkdf_randomSeed_info.begin(), lime::settings::hkdf_randomSeed_info.end()};
+				expansionRoundInput.push_back(0x01);
+				bctbx_hmacSha512(randomSeed.data(), randomSeed.size(), expansionRoundInput.data(), expansionRoundInput.size(), randomKey.size(), randomKey.data());
 
 				// use it to decipher message
 				if (bctbx_aes_gcm_decrypt_and_auth(randomKey.data(), lime::settings::DRMessageKeySize, // random key buffer hold key<DRMessageKeySize bytes> || IV<DRMessageIVSize bytes>

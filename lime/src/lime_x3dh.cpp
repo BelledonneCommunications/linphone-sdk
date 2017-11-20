@@ -41,7 +41,7 @@ namespace lime {
 	 *              PRK = HMAC-SHA512(salt, input)
 	 *              Output = HMAC-SHA512(PRK, info || 0x01)
 	 *
-	 * 		with salt being a 0 filled buffer of SHA256 output length(32 bytes)
+	 * 		with salt being a 0 filled buffer of SHA512 output length(64 bytes) X3DH spec section 2.2 KDF
 	 *
 	 * @param[in]		input		Input buffer holding F || DH1 || DH2 || DH3 [|| DH4] or Ik initiator || Ik receiver || Initiator device Id || Receiver device Id
 	 * @param[in]		info		The string used as info
@@ -53,7 +53,7 @@ namespace lime {
 		// expansion round input shall be info || 0x01
 		std::vector<uint8_t> expansionRoundInput{info.begin(), info.end()};
 		expansionRoundInput.push_back(0x01);
-		std::array<uint8_t,32> zeroFilledSalt; zeroFilledSalt.fill(0);
+		std::array<uint8_t,64> zeroFilledSalt; zeroFilledSalt.fill(0);
 		bctbx_hmacSha512(zeroFilledSalt.data(), zeroFilledSalt.size(), input.data(), input.size(), prk.size(), prk.data());
 		bctbx_hmacSha512(prk.data(), prk.size(), expansionRoundInput.data(), expansionRoundInput.size(), output.size(), output.data());
 		bctbx_clean(prk.data(), prk.size());
@@ -102,7 +102,8 @@ namespace lime {
 			bctbx_DestroyEDDSAContext(EDDSAContext); // don't need the EDDSA anymore, all ECDH from now
 
 			// Initiate HKDF input : We will compute HKDF with a concat of F and all DH computed, see X3DH spec section 2.2 for what is F
-			std::vector<uint8_t> HKDF_input(X<Curve>::keyLength(), 0xFF);
+			std::vector<uint8_t> HKDF_input(ED<Curve>::keyLength(), 0xFF);
+			HKDF_input.reserve(ED<Curve>::keyLength() + X<Curve>::keyLength()*4); // reserve memory for DH4 anyway, each DH has the same size the key has
 
 			// Compute DH1 = DH(self Ik, peer SPk) - selfIk context already holds selfIk.
 			bctbx_ECDHSetPeerPublicKey(selfIk, peerBundle.SPk.data(), peerBundle.SPk.size());
@@ -183,8 +184,8 @@ namespace lime {
 		// 		DH4 = DH(OPk, Ek)  if peer used an OPk
 
 		// Initiate HKDF input : We will compute HKDF with a concat of F and all DH computed, see X3DH spec section 2.2 for what is F: keyLength bytes set to 0xFF
-		std::vector<uint8_t> HKDF_input(X<Curve>::keyLength(), 0xFF);
-		HKDF_input.reserve(X<Curve>::keyLength()*5); // reserve memory for DH4 anyway, each DH has the same size the key has
+		std::vector<uint8_t> HKDF_input(ED<Curve>::keyLength(), 0xFF);
+		HKDF_input.reserve(ED<Curve>::keyLength() + X<Curve>::keyLength()*4); // reserve memory for DH4 anyway, each DH has the same size the key has
 
 		// DH1 first
 		// Convert peer Ik ED keys to X keys:: TODO what if peer directly send his X key instead of ED one as he got it in X form anyway?

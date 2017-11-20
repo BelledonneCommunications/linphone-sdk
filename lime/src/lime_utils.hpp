@@ -38,9 +38,14 @@ namespace settings {
 	// Sending, Receiving and Root key chain use 32 bytes keys (spec 3.2)
 	constexpr size_t DRChainKeySize=32;
 
-	// Message Key are composed of a 32 bytes key and 16 bytes of IV
+	// DR Message Key are composed of a 32 bytes key and 16 bytes of IV
 	constexpr size_t DRMessageKeySize=32;
 	constexpr size_t DRMessageIVSize=16;
+
+	// Message Key is based on a message seed(sent in the DR message)
+	// Message key and nonce are derived from this seed and have the same length as DR Message Key
+	constexpr size_t DRrandomSeedSize=32;
+	const std::string hkdf_randomSeed_info{"DR Message Key Derivation"};
 
 	// AEAD generates tag 16 bytes long
 	constexpr size_t DRMessageAuthTagSize=16;
@@ -72,7 +77,7 @@ namespace settings {
 /*                                                                            */
 /******************************************************************************/
 	const std::string X3DH_SK_info{"Lime"}; // shall be an ASCII string identifying the application (X3DH spec section 2.1)
-	const std::string X3DH_AD_info{"X3DH Authenticated Data"}; // used to generate a shared AD based on Ik and deviceID
+	const std::string X3DH_AD_info{"X3DH Associated Data"}; // used to generate a shared AD based on Ik and deviceID
 }
 
 }

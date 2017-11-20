@@ -38,7 +38,7 @@ namespace lime {
 		 *
 		 * Version 0x01:
 		 *	DRHeader is: Protocol Version Number<1 byte> || Packet Type <1 byte> || curveId <1 byte> || [X3DH Init message <variable>] || Ns<2 bytes> || PN<2 bytes> || DHs<...>
-		 *	Message is : DRheaer<...> || cipherMessageKeyK<48 bytes> || Key auth tag<16 bytes> || cipherText<...> || Message auth tag<16 bytes>
+		 *	Message is : DRheader<...> || cipherMessageKeyK<32 bytes> || Key auth tag<16 bytes> || cipherText<...> || Message auth tag<16 bytes>
 		 *
 		 *	Associated Data are transmitted separately: ADk for the Key auth tag, and ADm for the Message auth tag
 		 *	Message AEAD on : (ADm, message plain text) keyed by message Key(include IV)
