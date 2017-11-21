@@ -49,6 +49,7 @@ extern "C" {
 
 struct _RingStream
 {
+	MSSndCard *card;
 	MSTicker *ticker;
 	MSFilter *source;
 	MSFilter *gendtmf;

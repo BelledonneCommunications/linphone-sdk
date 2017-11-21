@@ -60,6 +60,7 @@ RingStream * ring_start_with_cb(MSFactory* factory, const char *file, int interv
 	MSPinFormat pinfmt={0};
 
 	stream=(RingStream *)ms_new0(RingStream,1);
+	stream->card = sndcard;
 	if (file) {
 		stream->source=_ms_create_av_player(file,factory);
 		if (stream->source == NULL){
