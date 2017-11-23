@@ -20,21 +20,10 @@
 #
 ############################################################################
 
-#set(hiredis_filename "v0.13.3.tar.gz")
-#set(EP_hiredis_URL "https://github.com/redis/hiredis/archive/${hiredis_filename}")
-#set(EP_hiredis_URL_HASH "SHA1=be6f1c50fc4d649dd2924f0afecc0a1705dbe0d3")
-set(EP_hiredis_GIT_REPOSITORY "https://github.com/redis/hiredis.git" CACHE STRING "hiredis repository URL")
-set(EP_hiredis_GIT_TAG "010756025e8cefd1bc66c6d4ed3b1648ef6f1f95" CACHE STRING "hiredis tag to use")
+lcb_git_repository("https://github.com/redis/hiredis.git")
+lcb_external_source_paths("externals/hiredis")
+lcb_patch_command("COMMAND" "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/hiredis/CMakeLists.txt" "<SOURCE_DIR>")
 
-set(EP_hiredis_BUILD_METHOD "rpm")
+lcb_spec_file("hiredis.spec")
 lcb_use_autotools_for_rpm(YES)
-
-set(EP_hiredis_SPEC_FILE "hiredis.spec" )
-set(EP_hiredis_CONFIG_H_FILE "${CMAKE_CURRENT_SOURCE_DIR}/builders/hiredis/${EP_hiredis_SPEC_FILE}" )
-
-# the spec file goes into the build directory
-set(EP_hiredis_PATCH_COMMAND "COMMAND" "${CMAKE_COMMAND}" "-E" "copy" ${EP_hiredis_CONFIG_H_FILE} "<BINARY_DIR>")
-
-# Current versions of CMake cannot download over HTTPS.. we have a speficic step that uses wget to get the archive instead of 
-# using CMake's own downkoad facility.
-set(EP_hiredis_CONFIGURE_COMMAND_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/builders/hiredis/configure.sh.cmake)
+lcb_patch_command("COMMAND" "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/hiredis/hiredis.spec" "<SOURCE_DIR>")

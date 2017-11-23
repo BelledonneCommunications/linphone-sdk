@@ -117,6 +117,7 @@ lcb_builder_rpmbuild_options(flexisip
 	"--with push"
 )
 
+lcb_builder_build_method(hiredis "rpm")
 lcb_builder_rpmbuild_options(hiredis "--with bc")
 
 if(NOT ENABLE_TRANSCODER)
