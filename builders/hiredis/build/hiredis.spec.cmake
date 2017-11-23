@@ -1,7 +1,6 @@
 
 
-%define                 pkg_name        hiredis
-%define                 finalpkg_name   %{?_with_bc:bc-%{pkg_name}}%{!?_with_bc:%{pkg_name}}
+%define                 pkg_name   %{?_with_bc:bc-hiredis}%{!?_with_bc:hiredis}
 %{?_with_bc: %define    _prefix         /opt/belledonne-communications}
 # re-define some directories for older RPMBuild versions which don't. This messes up the doc/ dir
 # taken from https://fedoraproject.org/wiki/Packaging:RPMMacros?rd=Packaging/RPMMacros
@@ -9,14 +8,18 @@
 %define _datadir           %{_datarootdir}
 %define _docdir            %{_datadir}/doc
 
+%define build_number @PROJECT_VERSION_BUILD@
+%if %{build_number}
+%define build_number_ext -%{build_number}
+%endif
 
-Name:           %{finalpkg_name}
-Version:        0.13.3
-Release:        3%{?dist}
+Name:           %{pkg_name}
+Version:        @PROJECT_VERSION@
+Release:        %{build_number}%{?dist}
 Summary:        Minimalistic C client library for Redis
 License:        BSD
 URL:            https://github.com/redis/hiredis
-Source0:        v%{version}.tar.gz
+Source0:        %{name}-%{version}%{?build_number_ext}.tar.gz
 
 %description 
 Hiredis is a minimalistic C client library for the Redis database.
@@ -29,19 +32,26 @@ Requires:       %{name}%{?_isa} = %{version}-%{release}
 This package contains libraries and header files for
 developing applications that use %{name}.
 
+%if 0%{?rhel} && 0%{?rhel} <= 7
+%global cmake_name cmake3
+%define ctest_name ctest3
+%else
+%global cmake_name cmake
+%define ctest_name ctest
+%endif
+
 %prep
-%setup -q -n hiredis-%{version}
+%setup -q -n %{name}-%{version}%{?build_number_ext}
 
 %build
-make %{?_smp_mflags} OPTIMIZATION="%{optflags}"
+%{expand:%%%cmake_name} . -DCMAKE_INSTALL_LIBDIR:PATH=%{_libdir} -DCMAKE_PREFIX_PATH:PATH=%{_prefix}
+make %{?_smp_mflags}
 
 %install
-make install PREFIX=%{buildroot}%{_prefix} INSTALL_LIBRARY_PATH=%{buildroot}%{_libdir}
+make install DESTDIR=%{buildroot}
 
-mkdir -p %{buildroot}%{_bindir}
-cp hiredis-test    %{buildroot}%{_bindir}
-
-find %{buildroot} -name '*.a' -delete -print
+%clean
+rm -rf $RPM_BUILD_ROOT
 
 %post -p /sbin/ldconfig
 
@@ -49,13 +59,12 @@ find %{buildroot} -name '*.a' -delete -print
 
 %files
 %doc COPYING
-%{_bindir}/hiredis-test
 %{_libdir}/libhiredis.so.0.13
-%{_libdir}/pkgconfig/hiredis.pc
 
 %files devel
 %doc README.md
-%{_includedir}/%{pkg_name}/
+%{_includedir}/hiredis/
+%{_libdir}/libhiredis.a
 %{_libdir}/libhiredis.so
 
 %changelog

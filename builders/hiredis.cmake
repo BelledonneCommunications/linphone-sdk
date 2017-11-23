@@ -23,7 +23,11 @@
 lcb_git_repository("https://github.com/redis/hiredis.git")
 lcb_external_source_paths("externals/hiredis")
 lcb_patch_command("COMMAND" "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/hiredis/CMakeLists.txt" "<SOURCE_DIR>")
+lcb_patch_command("COMMAND" "${CMAKE_COMMAND}" "-E" "make_directory" "<SOURCE_DIR>/build/")
+lcb_patch_command("COMMAND" "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/hiredis/build/CMakeLists.txt" "<SOURCE_DIR>/build/")
+lcb_package_source(YES)
+
+lcb_dependencies(bctoolbox)
 
 lcb_spec_file("hiredis.spec")
-lcb_use_autotools_for_rpm(YES)
-lcb_patch_command("COMMAND" "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/hiredis/hiredis.spec" "<SOURCE_DIR>")
+lcb_patch_command("COMMAND" "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/hiredis/build/hiredis.spec.cmake" "<SOURCE_DIR>/build/")
