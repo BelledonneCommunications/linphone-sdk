@@ -3622,16 +3622,6 @@ static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session)
 
 	if (cl->state == ICL_Running) {
 		if (cl->session->role == IR_Controlling) {
-			/* Workaround to stop ICE if it has not finished after 5 seconds. */
-			/* TODO: To remove */
-			if (ice_session_connectivity_checks_duration(cl->session) >= 5000) {
-				ms_warning("ice: Connectivity checks not terminated, deactivate ICE");
-				ev = ortp_event_new(ORTP_EVENT_ICE_DEACTIVATION_NEEDED);
-				ortp_event_get_data(ev)->info.ice_processing_successful = FALSE;
-				rtp_session_dispatch_event(rtp_session, ev);
-				return;
-			}
-
 			/* Perform regular nomination for valid pairs. */
 			cr.cl = cl;
 			cr.rtp_session = rtp_session;
@@ -3946,6 +3936,16 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 			if (ice_check_list_send_triggered_check(cl, rtp_session) != NULL) return;
 			break;
 		case ICL_Running:
+			/* Workaround to stop ICE if it has not finished after 5 seconds. */
+			/* TODO: To remove */
+			if ((cl->session->role == IR_Controlling) && (ice_session_connectivity_checks_duration(cl->session) >= 5000)) {
+				OrtpEvent *ev = ortp_event_new(ORTP_EVENT_ICE_DEACTIVATION_NEEDED);
+				ortp_event_get_data(ev)->info.ice_processing_successful = FALSE;
+				ms_warning("ice: Connectivity checks not terminated, deactivate ICE");
+				rtp_session_dispatch_event(rtp_session, ev);
+				return;
+			}
+
 			/* Check nomination delay. */
 			if ((cl->nomination_delay_running == TRUE) && (ice_compare_time(curtime, cl->nomination_delay_start_time) >= ICE_NOMINATION_DELAY)) {
 				ms_message("ice: Nomination delay timeout, select the potential relayed candidate anyway.");
