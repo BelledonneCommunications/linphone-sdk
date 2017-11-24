@@ -34,6 +34,7 @@ set(BCTOOLBOX_C_SOURCE_FILES
 set(BCTOOLBOX_CXX_SOURCE_FILES
 	containers/map.cc
 	crypto/ecc.cc
+	utils/regex.cc
 )
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
