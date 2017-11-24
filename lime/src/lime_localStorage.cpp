@@ -36,20 +36,42 @@ using namespace::lime;
 namespace lime {
 
 Db::Db(std::string filename) : sql{sqlite3, filename}{
-	int userVersion=-1;
-	sql<<"PRAGMA user_version;",into(userVersion);
+	constexpr int db_module_table_not_in_base = -2;
+	constexpr int db_module_table_not_holding_lime_row = -1;
+
+	int userVersion=db_module_table_not_holding_lime_row;
+	try  {
+		sql<<"SELECT version FROM db_module_version WHERE name='lime'", into(userVersion);
+	} catch(...) {
+		// the select generates an exception is the table doesn't exist
+		userVersion = db_module_table_not_in_base;
+	}
+
 	sql<<"PRAGMA foreign_keys = ON;"; // make sure this connection enable foreign keys
 	if (userVersion != lime::settings::DBuserVersion) {
 		if (userVersion > lime::settings::DBuserVersion) { /* nothing to do if we encounter a superior version number than expected, just hope it is compatible */
-			//TODO: Log this event, throw an execption?
-			//TODO: use a table for versionning not the user_version pragma
+			BCTBX_SLOGE<<"Lime module database schema version found in DB(v "<<userVersion<<") is more recent than the one currently supported by the lime module(v "<<static_cast<unsigned int>(lime::settings::DBuserVersion)<<")";
 		} else { /* Perform update if needed */
-			// update the schema version in DB metadata, the above line shall work but if fails at runtime in soci lib on syntax error
-			//sql<<"PRAGMA user_version = :versionNumber;", use(lime::settings::DBuserVersion);
-			sql<<"PRAGMA user_version = "<<lime::settings::DBuserVersion<<";"; // This one does the job. This pragma is valid in sqlite3 but might not be with other soci backends
+			transaction tr(sql); // begin a transaction which will hold all the create table queries
 
-			// whole DB creation:
-			transaction tr(sql); // begin a transaction which will hold all the create table queries (no sense in allowing the DB to be partially created)
+			// update the schema version in DB
+			if (userVersion!=db_module_table_not_in_base) { // db_module_table exists
+				if (userVersion == db_module_table_not_holding_lime_row) { // but not any lime row in it
+					sql<<"INSERT INTO db_module_version(name,version) VALUES('lime',:DbVersion)", use(lime::settings::DBuserVersion);
+				} else { // and we had an older version
+					sql<<"UPDATE db_module_version SET version = :DbVersion WHERE name='lime'", use(lime::settings::DBuserVersion);
+					/* Do the update here */
+					tr.commit(); // commit all the previous queries
+					return;
+				}
+			} else { // The db_module_version table doen't exist, create it
+				sql<<"CREATE TABLE db_module_version( \
+						name VARCHAR(16) PRIMARY KEY, \
+						version UNSIGNED INTEGER NOT NULL)";
+				sql<<"INSERT INTO db_module_version(name,version) VALUES('lime',:DbVersion)", use(lime::settings::DBuserVersion);
+			}
+
+			// create the lime DB:
 
 			/*** Double Ratchet tables ***/
 			/* DR Session:
