@@ -457,6 +457,7 @@ namespace lime {
 		cipherMessage.data()) != 0) {
 			throw BCTBX_EXCEPTION << "DR Session low level encryption routine failed";
 		}
+		bctbx_clean(randomKey.data(), randomKey.size());
 
 		// Loop on each session, given Associated Data to Double Ratchet encryption is: auth tag of cipherMessage AEAD || sourceDeviceId || recipient device Id(gruu)
 		// build the common part to AD given to DR Session encryption
@@ -469,11 +470,15 @@ namespace lime {
 
 			recipients[i].DRSession->ratchetEncrypt(randomSeed, std::move(recipientAD), recipients[i].cipherHeader);
 		}
-		bctbx_clean(randomKey.data(), randomKey.size());
+		bctbx_clean(randomSeed.data(), randomSeed.size());
 	}
 
 	template <typename Curve>
 	std::shared_ptr<DR<Curve>> decryptMessage(const std::string& sourceDeviceId, const std::string& recipientDeviceId, const std::string& recipientUserId, std::vector<std::shared_ptr<DR<Curve>>>& DRSessions, const std::vector<uint8_t>& cipherHeader, const std::vector<uint8_t>& cipherMessage, std::vector<uint8_t>& plaintext) {
+		// check cipher Message validity, it must be at least auth tag bytes long
+		if (cipherMessage.size()<lime::settings::DRMessageAuthTagSize) {
+			throw BCTBX_EXCEPTION << "Invalid cipher message - too short";
+		}
 		// prepare the AD given to ratchet decrypt: auth tag from cipherMessage || source Device Id || recipient Device Id
 		std::vector<uint8_t> AD{cipherMessage.end()-lime::settings::DRMessageAuthTagSize, cipherMessage.end()};
 		AD.insert(AD.end(), sourceDeviceId.begin(), sourceDeviceId.end());
@@ -505,6 +510,7 @@ namespace lime {
 				std::vector<uint8_t> expansionRoundInput{lime::settings::hkdf_randomSeed_info.begin(), lime::settings::hkdf_randomSeed_info.end()};
 				expansionRoundInput.push_back(0x01);
 				bctbx_hmacSha512(randomSeed.data(), randomSeed.size(), expansionRoundInput.data(), expansionRoundInput.size(), randomKey.size(), randomKey.data());
+				bctbx_clean(randomSeed.data(), randomSeed.size());
 
 				// use it to decipher message
 				if (bctbx_aes_gcm_decrypt_and_auth(randomKey.data(), lime::settings::DRMessageKeySize, // random key buffer hold key<DRMessageKeySize bytes> || IV<DRMessageIVSize bytes>
