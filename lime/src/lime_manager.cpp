@@ -24,6 +24,7 @@
 
 #include "lime/lime.hpp"
 #include "lime_lime.hpp"
+#include "lime_localStorage.hpp"
 
 using namespace::std;
 
@@ -39,14 +40,15 @@ namespace lime {
 			// first forward the callback
 			callback(returnCode, errorMessage);
 
-			// then check if it went well, if not remove the user from cache(it will trigger destruction of the lime generic object so do it last
-			// as it will also destroy the instance of this callback)
+			// then check if it went well, if not delete the user from localDB
 			if (returnCode != lime::callbackReturn::success) {
+				auto localStorage = std::unique_ptr<lime::Db>(new lime::Db(thiz->m_db_access));
+				localStorage->delete_LimeUser(localDeviceId);
 				thiz->m_users_cache.erase(localDeviceId);
 			}
 		});
 
-		m_users_cache.insert({localDeviceId, insert_LimeUser(m_db_access, localDeviceId, x3dhServerUrl, curve, m_http_provider, managerCreateCallback)});
+		m_users_cache.insert({localDeviceId, insert_LimeUser(m_db_access, localDeviceId, x3dhServerUrl, curve, m_http_provider, m_user_auth, managerCreateCallback)});
 	}
 
 	void LimeManager::delete_user(const std::string &localDeviceId, const limeCallback &callback) {
@@ -64,7 +66,7 @@ namespace lime {
 		auto userElem = m_users_cache.find(localDeviceId);
 		std::shared_ptr<LimeGeneric> user;
 		if (userElem == m_users_cache.end()) {
-			user = load_LimeUser(m_db_access, localDeviceId, m_http_provider);
+			user = load_LimeUser(m_db_access, localDeviceId, m_http_provider, m_user_auth);
 			m_users_cache[localDeviceId]=user; // we must load it in cache otherwise object will be destroyed before getting into callback
 		} else {
 			user = userElem->second;
@@ -78,7 +80,7 @@ namespace lime {
 		auto userElem = m_users_cache.find(localDeviceId);
 		std::shared_ptr<LimeGeneric> user;
 		if (userElem == m_users_cache.end()) { // not in cache, load it from DB
-			user = load_LimeUser(m_db_access, localDeviceId, m_http_provider);
+			user = load_LimeUser(m_db_access, localDeviceId, m_http_provider, m_user_auth);
 			m_users_cache[localDeviceId]=user;
 		} else {
 			user = userElem->second;
@@ -93,7 +95,7 @@ namespace lime {
 		auto userElem = m_users_cache.find(localDeviceId);
 		std::shared_ptr<LimeGeneric> user;
 		if (userElem == m_users_cache.end()) { // not in cache, load it from DB
-			user = load_LimeUser(m_db_access, localDeviceId, m_http_provider);
+			user = load_LimeUser(m_db_access, localDeviceId, m_http_provider, m_user_auth);
 			m_users_cache[localDeviceId]=user;
 		} else {
 			user = userElem->second;

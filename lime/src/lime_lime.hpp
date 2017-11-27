@@ -42,27 +42,33 @@ namespace lime {
 	/* Lime Factory functions : return a pointer to the implementation using the specified elliptic curve. Two functions: one for creation, one for loading from local storage */
 
 	/**
-	 * @brief Create a local lime user and insert all its needed data in a DB, it will trigger identity key creation and communication of it, SPKs and OPKs to key server
+	 * @brief : Insert user in database and return a pointer to the control class instanciating the appropriate Lime children class
+	 *	Once created a user cannot be modified, insertion of existing deviceId will raise an exception.
 	 *
-	 * @param[in]	dbFilename	path to the database to be used
-	 * @param[in]	deviceId	a unique identifier to a local user, if not already present in base it will be inserted. Recommended value: device's GRUU
-	 * @param[in]	keyServer	URL of X3DH key server(WARNING : matching between elliptic curve usage of all clients on the same server is responsability of clients)
-	 * @param[in]	curve		select which Elliptic curve to base X3DH and Double ratchet on: Curve25519 or Curve448,
-	 *				this is set once at user creation and can't be modified, it must reflect key server preference.
-	 * @return	a unique pointer to the object to be used by this user for any Lime operations
+	 * @param[in]	dbFilename			Path to filename to use
+	 * @param[in]	deviceId			User to create in DB, deviceId shall be the GRUU
+	 * @param[in]	url				URL of X3DH key server to be used to publish our keys
+	 * @param[in]	curve				Which curve shall we use for this account, select the implemenation to instanciate when using this user
+	 * @param[in]	http_provider			An http provider used to communicate with x3dh key server
+	 * @param[in]	user_authentication_callback	To complete user authentication on server: must provide user credentials
+	 * @param[in]	callback			To provide caller the operation result
+	 *
+	 * @return a pointer to the LimeGeneric class allowing access to API declared in lime.hpp
 	 */
-	std::shared_ptr<LimeGeneric> insert_LimeUser(const std::string &dbFilename, const std::string &deviceId, const std::string &url, const lime::CurveId curve,
-							belle_http_provider_t *http_provider, const limeCallback &callback);
+	std::shared_ptr<LimeGeneric> insert_LimeUser(const std::string &dbFilename, const std::string &deviceId, const std::string &url, const lime::CurveId curve, belle_http_provider *http_provider,
+			  const userAuthenticateCallback &user_authentication_callback, const limeCallback &callback);
 
 	/**
 	 * @brief Load a local user from database
 	 *
-	 * @param[in]	dbFilename	path to the database to be used
-	 * @param[in]	deviceId	a unique identifier to a local user, if not already present in base it will be inserted. Recommended value: device's GRUU
+	 * @param[in]	dbFilename			path to the database to be used
+	 * @param[in]	deviceId			a unique identifier to a local user, if not already present in base it will be inserted. Recommended value: device's GRUU
+	 * @param[in]	http_provider			An http provider used to access X3DH server, no scheduling is done on it internally
+	 * @param[in]	user_authentication_callback	To complete user authentication on server: must provide user credentials
 	 *
 	 * @return	a unique pointer to the object to be used by this user for any Lime operations
 	 */
-	std::shared_ptr<LimeGeneric> load_LimeUser(const std::string &dbFilename, const std::string &deviceId, belle_http_provider_t *http_provider);
+	std::shared_ptr<LimeGeneric> load_LimeUser(const std::string &dbFilename, const std::string &deviceId, belle_http_provider_t *http_provider, const userAuthenticateCallback &user_authentication_callback);
 
 }
 #endif // lime_lime_hpp

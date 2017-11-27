@@ -41,6 +41,8 @@ namespace lime {
 	// a callback function must return a code and may return a string(could actually be empty) to detail what's happening
 	// callback is used on every operation possibly involving a connection to X3DH server: create_user, delete_user, encrypt
 	using limeCallback = std::function<void(lime::callbackReturn, std::string)>;
+	// the user authenticate callback will pass a sip_auth_event to be completed with user's password
+	using userAuthenticateCallback = std::function<void(belle_sip_auth_event_t *)>;
 
 
 	/* Forward declare the class managing one lime user*/
@@ -52,6 +54,8 @@ namespace lime {
 			std::unordered_map<std::string, std::shared_ptr<LimeGeneric>> m_users_cache; // cache of already opened Lime Session, identified by user Id (GRUU)
 			std::string m_db_access; // DB access information forwarded to SOCI to correctly access database
 			belle_http_provider_t *m_http_provider; // used to access the X3DH key server
+			userAuthenticateCallback m_user_auth; // called to complete user authentication on server
+
 		public :
 			/* LimeManager is mostly a cache of Lime users, any command get as first parameter the device Id (Lime manage devices only, the link user(sip:uri)<->device(GRUU) is provided by upper level) */
 
@@ -130,11 +134,12 @@ namespace lime {
 			/**
 			 * @brief Lime Manager constructor
 			 *
-			 * @param[in]	db_access	string used to access DB: can be filename for sqlite3 or access params for mysql, directly forwarded to SOCI session opening
-			 * @param[in]	http_provider	An http provider used to access X3DH server, no scheduling is done on it internally
+			 * @param[in]	db_access			string used to access DB: can be filename for sqlite3 or access params for mysql, directly forwarded to SOCI session opening
+			 * @param[in]	http_provider			An http provider used to access X3DH server, no scheduling is done on it internally
+			 * @param[in]	user_authentication_callback	To complete user authentication on server: must provide user credentials
 			 */
-			LimeManager(const std::string &db_access, belle_http_provider_t *http_provider)
-				: m_users_cache{}, m_db_access{db_access}, m_http_provider{http_provider} {};
+			LimeManager(const std::string &db_access, belle_http_provider_t *http_provider, const userAuthenticateCallback &user_authentication_callback)
+				: m_users_cache{}, m_db_access{db_access}, m_http_provider{http_provider}, m_user_auth{user_authentication_callback} {};
 
 			~LimeManager() = default;
 	};

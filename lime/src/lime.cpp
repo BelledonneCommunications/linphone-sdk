@@ -50,17 +50,19 @@ namespace lime {
 	 *  before calling this constructor, user existence in DB is checked and its Uid retrieved
 	 *  just load it into Lime class
 	 *
-	 * @param[in/out]	localStorage	pointer to DB accessor
-	 * @param[in]		deviceId	device Id(shall be GRUU), stored in the structure
-	 * @param[in]		Uid		the DB internal Id for this user, speed up DB operations by holding it in DB
-	 * @param[in]		url		URL of the X3DH key server used to publish our keys(retrieved from DB)
+	 * @param[in/out]	localStorage			pointer to DB accessor
+	 * @param[in]		deviceId			device Id(shall be GRUU), stored in the structure
+	 * @param[in]		url				URL of the X3DH key server used to publish our keys(retrieved from DB)
+	 * @param[in]		http_provider			An HTTP stack
+	 * @param[in]		user_authentication_callback	called to get users credentials to log on X3DH key server
+	 * @param[in]		Uid				the DB internal Id for this user, speed up DB operations by holding it in DB
 	 */
 	template <typename Curve>
-	Lime<Curve>::Lime(std::unique_ptr<lime::Db> &&localStorage, const std::string &deviceId, const std::string &url, belle_http_provider_t *http_provider, const long int Uid)
+	Lime<Curve>::Lime(std::unique_ptr<lime::Db> &&localStorage, const std::string &deviceId, const std::string &url, belle_http_provider_t *http_provider,  const userAuthenticateCallback &user_authentication_callback, const long int Uid)
 	: m_RNG{bctbx_rng_context_new()}, m_selfDeviceId{deviceId},
 	m_Ik{}, m_Ik_loaded(false),
 	m_localStorage(std::move(localStorage)), m_db_Uid{Uid},
-	m_http_provider{http_provider}, m_X3DH_Server_URL{url},
+	m_http_provider{http_provider}, m_user_auth{user_authentication_callback}, m_X3DH_Server_URL{url},
 	m_DR_sessions_cache{}, m_ongoing_encryption{nullptr}, m_encryption_queue{}
 	{ }
 
@@ -69,16 +71,18 @@ namespace lime {
 	 * @brief Create user constructor
 	 *  Create a user in DB, if already existing, throw exception
 	 *
-	 * @param[in/out]	localStorage	pointer to DB accessor
-	 * @param[in]		deviceId		device Id(shall be GRUU), stored in the structure
-	 * @param[in]		url		URL of the X3DH key server used to publish our keys
+	 * @param[in/out]	localStorage			pointer to DB accessor
+	 * @param[in]		deviceId			device Id(shall be GRUU), stored in the structure
+	 * @param[in]		url				URL of the X3DH key server used to publish our keys
+	 * @param[in]		http_provider			An HTTP stack
+	 * @param[in]		user_authentication_callback	called to get users credentials to log on X3DH key server
 	 */
 	template <typename Curve>
-	Lime<Curve>::Lime(std::unique_ptr<lime::Db> &&localStorage, const std::string &deviceId, const std::string &url, belle_http_provider_t *http_provider)
+	Lime<Curve>::Lime(std::unique_ptr<lime::Db> &&localStorage, const std::string &deviceId, const std::string &url, belle_http_provider_t *http_provider, const userAuthenticateCallback &user_authentication_callback)
 	: m_RNG{bctbx_rng_context_new()}, m_selfDeviceId{deviceId},
 	m_Ik{}, m_Ik_loaded(false),
 	m_localStorage(std::move(localStorage)), m_db_Uid{0},
-	m_http_provider{http_provider}, m_X3DH_Server_URL{url},
+	m_http_provider{http_provider}, m_user_auth{user_authentication_callback}, m_X3DH_Server_URL{url},
 	m_DR_sessions_cache{}, m_ongoing_encryption{nullptr}, m_encryption_queue{}
 	{
 		try {
@@ -247,18 +251,20 @@ namespace lime {
 	/****************************************************************************/
 	/**
 	 * @brief : Insert user in database and return a pointer to the control class instanciating the appropriate Lime children class
-	 m*	Once created a user cannot be modified, insertion of existing deviceId will raise an exception.
+	 *	Once created a user cannot be modified, insertion of existing deviceId will raise an exception.
 	 *
-	 * @param[in]	dbFilename	Path to filename to use
-	 * @param[in]	deviceId	User to create in DB, deviceId shall be the GRUU
-	 * @param[in]	url		URL of X3DH key server to be used to publish our keys
-	 * @param[in]	curve		Which curve shall we use for this account, select the implemenation to instanciate when using this user
-	 * @param[in]	http_provider	An http provider used to communicate with x3dh key server
+	 * @param[in]	dbFilename			Path to filename to use
+	 * @param[in]	deviceId			User to create in DB, deviceId shall be the GRUU
+	 * @param[in]	url				URL of X3DH key server to be used to publish our keys
+	 * @param[in]	curve				Which curve shall we use for this account, select the implemenation to instanciate when using this user
+	 * @param[in]	http_provider			An http provider used to communicate with x3dh key server
+	 * @param[in]	user_authentication_callback	To complete user authentication on server: must provide user credentials
+	 * @param[in]	callback			To provide caller the operation result
 	 *
 	 * @return a pointer to the LimeGeneric class allowing access to API declared in lime.hpp
 	 */
 	std::shared_ptr<LimeGeneric> insert_LimeUser(const std::string &dbFilename, const std::string &deviceId, const std::string &url, const lime::CurveId curve, belle_http_provider *http_provider,
-			 const limeCallback &callback) {
+			  const userAuthenticateCallback &user_authentication_callback, const limeCallback &callback) {
 		BCTBX_SLOGI<<"Create Lime user "<<deviceId;
 		/* first check the requested curve is instanciable and return an exception if not */
 #ifndef EC25519_ENABLED
@@ -282,7 +288,7 @@ namespace lime {
 #ifdef EC25519_ENABLED
 				{
 					/* constructor will insert user in Db, if already present, raise an exception*/
-					auto lime_ptr = std::make_shared<Lime<C255>>(std::move(localStorage), deviceId, url, http_provider);
+					auto lime_ptr = std::make_shared<Lime<C255>>(std::move(localStorage), deviceId, url, http_provider, user_authentication_callback);
 					lime_ptr->publish_user(callback);
 					return lime_ptr;
 				}
@@ -292,7 +298,7 @@ namespace lime {
 				case lime::CurveId::c448 :
 #ifdef EC448_ENABLED
 				{
-					auto lime_ptr = std::make_shared<Lime<C448>>(std::move(localStorage), deviceId, url, http_provider);
+					auto lime_ptr = std::make_shared<Lime<C448>>(std::move(localStorage), deviceId, url, http_provider, user_authentication_callback);
 					lime_ptr->publish_user(callback);
 					return lime_ptr;
 				}
@@ -314,13 +320,14 @@ namespace lime {
 	 * @brief : Load user from database and return a pointer to the control class instanciating the appropriate Lime children class
 	 *	Fail to find the user will raise an exception
 	 *
-	 * @param[in]	dbFilename	Path to filename to use
-	 * @param[in]	deviceId	User to lookup in DB, deviceId shall be the GRUU
-	 * @param[in]	http_provider	An http provider used to communicate with x3dh key server
+	 * @param[in]	dbFilename			Path to filename to use
+	 * @param[in]	deviceId			User to lookup in DB, deviceId shall be the GRUU
+	 * @param[in]	http_provider			An http provider used to communicate with x3dh key server
+	 * @param[in]	user_authentication_callback	To complete user authentication on server: must provide user credentials
 	 *
 	 * @return a pointer to the LimeGeneric class allowing access to API declared in lime.hpp
 	 */
-	std::shared_ptr<LimeGeneric> load_LimeUser(const std::string &dbFilename, const std::string &deviceId, belle_http_provider *http_provider) {
+	std::shared_ptr<LimeGeneric> load_LimeUser(const std::string &dbFilename, const std::string &deviceId, belle_http_provider *http_provider, const userAuthenticateCallback &user_authentication_callback) {
 
 		/* open DB and load user */
 		auto localStorage = std::unique_ptr<lime::Db>(new lime::Db(dbFilename)); // create as unique ptr, ownership is then passed to the Lime structure when instanciated
@@ -348,14 +355,14 @@ namespace lime {
 			switch (curve) {
 				case lime::CurveId::c25519 :
 #ifdef EC25519_ENABLED
-					return std::make_shared<Lime<C255>>(std::move(localStorage), deviceId, x3dh_server_url, http_provider, Uid);
+					return std::make_shared<Lime<C255>>(std::move(localStorage), deviceId, x3dh_server_url, http_provider, user_authentication_callback, Uid);
 #endif
 				break;
 
 				case lime::CurveId::c448 :
 #ifdef EC448_ENABLED
 
-					return std::make_shared<Lime<C448>>(std::move(localStorage), deviceId, x3dh_server_url, http_provider, Uid);
+					return std::make_shared<Lime<C448>>(std::move(localStorage), deviceId, x3dh_server_url, http_provider, user_authentication_callback, Uid);
 #endif
 				break;
 

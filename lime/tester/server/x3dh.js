@@ -47,17 +47,28 @@ const yargs = require('yargs')
 		type : 'number',
 		default : 300
 	})
+	.option('passwords', {
+		alias : 'h',
+		describe : 'the htpassword file',
+		type : 'string',
+		default : 'htpasswd'
+	})
 	.argv;
 
 const https = require('https');
+var auth = require('http-auth');
+var digest = auth.digest({
+	realm: "limeTester",
+	file: yargs.resource_dir+"/"+yargs.passwords
+});
 const fs = require('fs');
 const sqlite3 = require('sqlite3').verbose();
 const ReadWriteLock = require('rwlock');
 var lock = new ReadWriteLock();
 
 const options = {
-  key: fs.readFileSync(yargs.resource_dir+yargs.key),
-  cert: fs.readFileSync(yargs.resource_dir+yargs.certificate)
+  key: fs.readFileSync(yargs.resource_dir+"/"+yargs.key),
+  cert: fs.readFileSync(yargs.resource_dir+"/"+yargs.certificate)
 };
 
 // define the curve Id used on this server, default is curve25519, it will be either load from DB or got from args if we are creation the DB.
@@ -169,7 +180,7 @@ function deleteUser(userId) {
 
 // start https server
 console.log("X3DH server on, listening port "+yargs.port);
-https.createServer(options, (req, res) => {
+https.createServer(digest, options, (req, res) => {
   function returnError(code, errorMessage) {
 	console.log("return an error message code "+code+" : "+errorMessage);
 	var errorBuffer = Buffer.from([X3DH_protocolVersion, enum_messageTypes.error, curveId, code]); // build the X3DH response header, append the error code

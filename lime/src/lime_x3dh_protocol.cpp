@@ -414,6 +414,16 @@ namespace lime {
 	void Lime<Curve>::process_response(void *data, const belle_http_response_event_t *event) noexcept {
 		if (event->response){
 			auto code=belle_http_response_get_status_code(event->response);
+			callbackUserData<Curve> *userData = static_cast<callbackUserData<Curve> *>(data);
+			auto thiz = userData->limeObj.lock(); // get a shared pointer to Lime Object from the weak pointer stored in userData
+			// check it is valid (lock() returns nullptr)
+			if (!thiz) { // our Lime caller object doesn't exists anymore
+				BCTBX_SLOGE<<"Got response from X3DH server but our Lime Object has been destroyed";
+				delete(userData);
+				return;
+			}
+			auto callback = userData->callback; // get callback
+
 			if (code == 200) { // HTTP server is happy with our packet
 				// check response from X3DH server: header shall be X3DH protocol version || message type || curveId
 				belle_sip_message_t *message = BELLE_SIP_MESSAGE(event->response);
@@ -421,15 +431,6 @@ namespace lime {
 				auto body = reinterpret_cast<const uint8_t *>(belle_sip_message_get_body(message));
 				auto bodySize = belle_sip_message_get_body_size(message);
 
-				callbackUserData<Curve> *userData = static_cast<callbackUserData<Curve> *>(data);
-				auto thiz = userData->limeObj.lock(); // get a shared pointer to Lime Object from the weak pointer stored in userData
-				// check it is valid (lock() returns nullptr)
-				if (!thiz) { // our Lime caller object doesn't exists anymore
-					BCTBX_SLOGE<<"Got response from X3DH server but our Lime Object has been destroyed";
-					delete(userData);
-					return;
-				}
-				auto callback = userData->callback; // get callback
 
 				lime::x3dh_protocol::x3dh_message_type message_type{x3dh_protocol::x3dh_message_type::unset_type};
 				lime::x3dh_protocol::x3dh_error_code error_code{x3dh_protocol::x3dh_error_code::unset_error_code};
@@ -440,11 +441,6 @@ namespace lime {
 
 				// Is it an error message?
 				if (message_type == lime::x3dh_protocol::x3dh_message_type::error) {
-					// check error code: if we have a user_already_in it means we tried to insert a user on server but it failed, we must delete it from local Storagemak
-					if (error_code == lime::x3dh_protocol::x3dh_error_code::user_already_in) {
-						thiz->m_localStorage->delete_LimeUser(thiz->m_selfDeviceId); // do not use the lime delete function as it forwards the delete to X3DH server, local delete only
-					}
-
 					if (callback) callback(lime::callbackReturn::fail, "X3DH server error");
 					thiz->cleanUserData(userData);
 					return;
@@ -508,19 +504,43 @@ namespace lime {
 					return;
 				}
 			} else { // response code is not 200Ok
-				//TODO : something here
+				if (callback) callback(lime::callbackReturn::fail, std::string("Got a non Ok response from server : ").append(std::to_string(code)));
+				thiz->cleanUserData(userData);
+				return;
 			}
 		}
 	}
 
-	static void process_io_error(void *data, const belle_sip_io_error_event_t *event){
-		//TODO : something here
+	template <typename Curve>
+	void Lime<Curve>::process_io_error(void *data, const belle_sip_io_error_event_t *event) noexcept{
+		callbackUserData<Curve> *userData = static_cast<callbackUserData<Curve> *>(data);
+		auto thiz = userData->limeObj.lock(); // get a shared pointer to Lime Object from the weak pointer stored in userData
+		// check it is valid (lock() returns nullptr)
+		if (!thiz) { // our Lime caller object doesn't exists anymore
+			BCTBX_SLOGE<<"Unable to contact X3DH server and our Lime Object has been destroyed";
+			delete(userData);
+			return;
+		}
+		auto callback = userData->callback; // get callback
+
+		if (callback) callback(lime::callbackReturn::fail, "Unable to contact X3DH server");
+		thiz->cleanUserData(userData);
 	}
 
-	static void process_auth_requested(void *data, belle_sip_auth_event_t *event){
-		if (belle_sip_auth_event_get_mode(event)==BELLE_SIP_AUTH_MODE_TLS){
-		//TODO : something here
+	template <typename Curve>
+	void Lime<Curve>::process_auth_requested(void *data, belle_sip_auth_event_t *event) noexcept{
+		callbackUserData<Curve> *userData = static_cast<callbackUserData<Curve> *>(data);
+		auto thiz = userData->limeObj.lock(); // get a shared pointer to Lime Object from the weak pointer stored in userData
+		// check it is valid (lock() returns nullptr)
+		if (!thiz) { // our Lime caller object doesn't exists anymore
+			BCTBX_SLOGE<<"Unable to contact X3DH server and our Lime Object has been destroyed";
+			delete(userData);
+			return;
 		}
+
+		// Set in the auth the username of current user (X3DH uses device Id)
+		belle_sip_auth_event_set_username(event, thiz->m_selfDeviceId.data());
+		if (thiz->m_user_auth) thiz->m_user_auth(event);
 	}
 
 
@@ -546,8 +566,8 @@ namespace lime {
 		belle_sip_message_set_body_handler(BELLE_SIP_MESSAGE(req),BELLE_SIP_BODY_HANDLER(bh));
 		cbs.process_response=Lime<Curve>::process_response;
 		cbs.process_response_headers=process_response_header;
-		cbs.process_io_error=process_io_error;
-		cbs.process_auth_requested=process_auth_requested;
+		cbs.process_io_error=Lime<Curve>::process_io_error;
+		cbs.process_auth_requested=Lime<Curve>::process_auth_requested;
 		l=belle_http_request_listener_create_from_callbacks(&cbs,static_cast<void *>(userData));
 		belle_sip_object_data_set(BELLE_SIP_OBJECT(req), "http_request_listener", l, belle_sip_object_unref); // Ensure the listener object is destroyed when the request is destroyed
 		belle_http_provider_send_request(m_http_provider,req,l);
@@ -560,12 +580,16 @@ namespace lime {
 #ifdef EC25519_ENABLED
 	template void Lime<C255>::postToX3DHServer(callbackUserData<C255> *userData, const std::vector<uint8_t> &message);
 	template void Lime<C255>::process_response(void *data, const belle_http_response_event_t *event) noexcept;
+	template void Lime<C255>::process_io_error(void *data, const belle_sip_io_error_event_t *event) noexcept;
+	template void Lime<C255>::process_auth_requested(void *data, belle_sip_auth_event_t *event) noexcept;
 	template void Lime<C255>::cleanUserData(callbackUserData<C255> *userData);
 #endif
 
 #ifdef EC448_ENABLED
 	template void Lime<C448>::postToX3DHServer(callbackUserData<C448> *userData, const std::vector<uint8_t> &message);
 	template void Lime<C448>::process_response(void *data, const belle_http_response_event_t *event) noexcept;
+	template void Lime<C448>::process_io_error(void *data, const belle_sip_io_error_event_t *event) noexcept;
+	template void Lime<C448>::process_auth_requested(void *data, belle_sip_auth_event_t *event) noexcept;
 	template void Lime<C448>::cleanUserData(callbackUserData<C448> *userData);
 #endif
 } //namespace lime

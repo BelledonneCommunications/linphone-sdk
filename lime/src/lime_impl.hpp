@@ -56,6 +56,7 @@ namespace lime {
 
 			/* network related */
 			belle_http_provider_t *m_http_provider; // externally provided http stack used to communicate with x3dh server
+			userAuthenticateCallback m_user_auth; // called to complete user authentication on server
 			std::string m_X3DH_Server_URL; // url of x3dh key server
 
 			/* Double ratchet related */
@@ -86,7 +87,9 @@ namespace lime {
 
 			/* network related */
 			void postToX3DHServer(callbackUserData<Curve> *userData, const std::vector<uint8_t> &message); // send a request to X3DH server
-			static void process_response(void *data, const belle_http_response_event_t *event) noexcept; // callback on server response (hence the static)
+			static void process_response(void *data, const belle_http_response_event_t *event) noexcept; // callback on server response (must be static)
+			static void process_io_error(void *data, const belle_sip_io_error_event_t *event) noexcept; // callback on server i/o error (must be static)
+			static void process_auth_requested(void *data, belle_sip_auth_event_t *event) noexcept; // callback on server requesting user credentials (must be static)
 			void cleanUserData(callbackUserData<Curve> *userData); // clean user data
 
 		public: /* Implement API defined in lime.hpp in factory abstract class */
@@ -96,8 +99,8 @@ namespace lime {
 			  * - one to load the user from db based on provided user Id(which shall be GRUU)
 			  * Note: ownership of localStorage pointer is transfered to a shared pointer, private menber of Lime class
 			 */
-			Lime(std::unique_ptr<lime::Db> &&localStorage, const std::string &deviceId, const std::string &url, belle_http_provider_t *http_provider);
-			Lime(std::unique_ptr<lime::Db> &&localStorage, const std::string &deviceId, const std::string &url, belle_http_provider_t *http_provider, const long Uid);
+			Lime(std::unique_ptr<lime::Db> &&localStorage, const std::string &deviceId, const std::string &url, belle_http_provider_t *http_provider, const userAuthenticateCallback &user_authentication_callback);
+			Lime(std::unique_ptr<lime::Db> &&localStorage, const std::string &deviceId, const std::string &url, belle_http_provider_t *http_provider, const userAuthenticateCallback &user_authentication_callback, const long Uid);
 			~Lime();
 			Lime(Lime<Curve> &a) = delete; // can't copy a session, force usage of shared pointers
 			Lime<Curve> &operator=(Lime<Curve> &a) = delete; // can't copy a session
