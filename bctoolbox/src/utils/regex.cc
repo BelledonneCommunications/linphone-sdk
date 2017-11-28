@@ -16,11 +16,31 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "bctoolbox/logging.h"
-#include "bctoolbox/regex.h"
 #include <regex>
 
+#include "bctoolbox/logging.h"
+#include "bctoolbox/regex.h"
+
+/*
+	This part is needed since CentOS7 have an old gcc compiler.
+	TODO: Remove this code when all supported platorms have gcc 4.9.0 or more 
+ */
+#if __cplusplus >= 201103L &&                             \
+    (!defined(__GLIBCXX__) || (__cplusplus >= 201402L) || \
+        (defined(_GLIBCXX_REGEX_DFS_QUANTIFIERS_LIMIT) || \
+         defined(_GLIBCXX_REGEX_STATE_LIMIT)           || \
+             (defined(_GLIBCXX_RELEASE)                && \
+             _GLIBCXX_RELEASE > 4)))
+#define HAVE_WORKING_REGEX 1
+#elif defined(_WIN32)
+#error "Your compiler does not support <regex>, please upgrade it."
+#else
+#define HAVE_WORKING_REGEX 0
+#include <regex.h>
+#endif
+
 extern "C" bool_t bctbx_is_matching_regex(const char *entry, const char* regex) {
+#if HAVE_WORKING_REGEX
 	try {
 		std::regex entry_regex(regex, std::regex_constants::extended | std::regex_constants::nosubs);
 		std::cmatch m;
@@ -30,4 +50,18 @@ extern "C" bool_t bctbx_is_matching_regex(const char *entry, const char* regex) 
 		bctbx_error("Could not compile regex '%s': %s", regex, e.what());
 		return FALSE;
 	}
+#else
+	regex_t regex_pattern;
+	char err_msg[256];
+	int res;
+	res = regcomp(&regex_pattern, regex, REG_EXTENDED | REG_NOSUB);
+	if(res != 0) {
+		regerror(res, &regex_pattern, err_msg, sizeof(err_msg));
+		bctbx_error("Could not compile regex '%s': %s", regex, err_msg);
+		return FALSE;
+	}
+	res = regexec(&regex_pattern, entry, 0, NULL, 0);
+	regfree(&regex_pattern);
+	return (res != REG_NOMATCH);
+#endif
 }
