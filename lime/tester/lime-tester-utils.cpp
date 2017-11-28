@@ -36,8 +36,12 @@
 using namespace::std;
 using namespace::soci;
 
-namespace lime {
-std::vector<std::string> lime_messages_pattern = {
+namespace lime_tester {
+
+// default value for the timeout
+int wait_for_timeout=4000;
+
+std::vector<std::string> messages_pattern = {
 	{"Frankly, my dear, I don't give a damn."},
 	{"I'm gonna make him an offer he can't refuse."},
 	{"You don't understand! I coulda had class. I coulda been a contender. I could've been somebody, instead of a bum, which is what I am."},
@@ -424,5 +428,5 @@ int wait_for(belle_sip_stack_t*s1,int* counter,int value,int timeout) {
 #endif
 
 
-} // namespace lime
+} // namespace lime_tester
 

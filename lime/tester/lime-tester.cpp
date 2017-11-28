@@ -24,6 +24,7 @@
 #include "belle-sip/belle-sip.h"
 
 #include "lime-tester.hpp"
+#include "lime-tester-utils.hpp"
 
 static FILE * log_file = NULL;
 static const char *log_domain = "lime";
@@ -31,7 +32,6 @@ bool cleanDatabase = true;
 
 // settings used in lime suite
 extern std::string test_x3dh_server_url;
-extern int wait_for_timeout;
 extern std::string test_x3dh_c25519_server_port;
 extern std::string test_x3dh_c448_server_port;
 
@@ -143,7 +143,7 @@ int main(int argc, char *argv[]) {
 			test_x3dh_c448_server_port=std::string(argv[i]);
 		} else if (strcmp(argv[i],"--operation-timeout")==0){
 			CHECK_ARG("--operation-timeout", ++i, argc);
-			wait_for_timeout=std::atoi(argv[i]);
+			lime_tester::wait_for_timeout=std::atoi(argv[i]);
 		} else if (strcmp(argv[i],"--keep-tmp-db")==0){
 			cleanDatabase=false;
 		}else {

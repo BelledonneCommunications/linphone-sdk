@@ -60,26 +60,26 @@ static void dr_skippedMessages_basic_test(const uint8_t period=1, const uint8_t 
 	remove(bobFilename.data());
 
 	// create sessions
-	dr_sessionsInit(alice, bob, aliceLocalStorage, bobLocalStorage, aliceFilename, bobFilename);
+	lime_tester::dr_sessionsInit(alice, bob, aliceLocalStorage, bobLocalStorage, aliceFilename, bobFilename);
 	std::vector<std::vector<uint8_t>> cipher;
 	std::vector<std::vector<recipientInfos<Curve>>> recipients;
 	std::vector<uint8_t> messageSender; // hold status of message: 0 not sent, 1 sent by Alice, 2 sent by Bob, 3 received
 	std::vector<std::string> plainMessage;
 
 	// resize vectors to hold all materials
-	cipher.resize(lime_messages_pattern.size());
-	recipients.resize(lime_messages_pattern.size());
-	plainMessage.resize(lime_messages_pattern.size());
-	messageSender.resize(lime_messages_pattern.size(), 0);
+	cipher.resize(lime_tester::messages_pattern.size());
+	recipients.resize(lime_tester::messages_pattern.size());
+	plainMessage.resize(lime_tester::messages_pattern.size());
+	messageSender.resize(lime_tester::messages_pattern.size(), 0);
 
 	bool aliceSender=true;
 	bctbx_debug("Start skip test\n\n");
-	for (size_t i=0; i<lime_messages_pattern.size(); i++) {
+	for (size_t i=0; i<lime_tester::messages_pattern.size(); i++) {
 		/* sending */
 		if (aliceSender) {
 			// alice encrypt a message
 			recipients[i].emplace_back("bob",alice);
-			std::vector<uint8_t> plaintext{lime_messages_pattern[i].begin(), lime_messages_pattern[i].end()};
+			std::vector<uint8_t> plaintext{lime_tester::messages_pattern[i].begin(), lime_tester::messages_pattern[i].end()};
 			std::vector<uint8_t> cipherMessage{};
 			encryptMessage(recipients[i], plaintext, "bob", "alice", cipher[i]);
 			bctbx_debug("alice encrypt %d", int(i));
@@ -91,7 +91,7 @@ static void dr_skippedMessages_basic_test(const uint8_t period=1, const uint8_t 
 		} else {
 			// bob encrypt a message
 			recipients[i].emplace_back("alice",bob);
-			std::vector<uint8_t> plaintext{lime_messages_pattern[i].begin(), lime_messages_pattern[i].end()};
+			std::vector<uint8_t> plaintext{lime_tester::messages_pattern[i].begin(), lime_tester::messages_pattern[i].end()};
 			std::vector<uint8_t> cipherMessage{};
 			encryptMessage(recipients[i], plaintext, "alice", "bob", cipher[i]);
 			bctbx_debug("bob encrypt %d", int(i));
@@ -159,7 +159,7 @@ static void dr_skippedMessages_basic_test(const uint8_t period=1, const uint8_t 
 	}
 
 	/* Do we have some old message to decrypt(ignore delay we're at the end of test */
-	for (size_t j=0; j<lime_messages_pattern.size(); j++) {
+	for (size_t j=0; j<lime_tester::messages_pattern.size(); j++) {
 		if (messageSender[j]==2) {
 			bctbx_debug("alice decrypt %d", int(j));
 			// alice decrypt it
@@ -184,8 +184,8 @@ static void dr_skippedMessages_basic_test(const uint8_t period=1, const uint8_t 
 	}
 
 	// same same
-	for (size_t i=0; i<lime_messages_pattern.size(); i++) {
-		BC_ASSERT_TRUE(plainMessage[i] == lime_messages_pattern[i]);
+	for (size_t i=0; i<lime_tester::messages_pattern.size(); i++) {
+		BC_ASSERT_TRUE(plainMessage[i] == lime_tester::messages_pattern[i]);
 	}
 
 	if (cleanDatabase) {
@@ -217,17 +217,17 @@ static void dr_long_exchange_test(uint8_t period=1, std::string db_filename="dr_
 	aliceFilename.append(".alice.sqlite3");
 	bobFilename.append(".bob.sqlite3");
 	// create sessions
-	dr_sessionsInit(alice, bob, aliceLocalStorage, bobLocalStorage, aliceFilename, bobFilename);
+	lime_tester::dr_sessionsInit(alice, bob, aliceLocalStorage, bobLocalStorage, aliceFilename, bobFilename);
 	std::vector<uint8_t> aliceCipher, bobCipher;
 
 	bool aliceSender=true;
 
-	for (size_t i=0; i<lime_messages_pattern.size(); i++) {
+	for (size_t i=0; i<lime_tester::messages_pattern.size(); i++) {
 		if (aliceSender) {
 			// alice encrypt a message
 			std::vector<recipientInfos<Curve>> recipients;
 			recipients.emplace_back("bob",alice);
-			std::vector<uint8_t> plaintext{lime_messages_pattern[i].begin(), lime_messages_pattern[i].end()};
+			std::vector<uint8_t> plaintext{lime_tester::messages_pattern[i].begin(), lime_tester::messages_pattern[i].end()};
 			std::vector<uint8_t> cipherMessage{};
 			encryptMessage(recipients, plaintext, "bob", "alice", cipherMessage);
 
@@ -239,7 +239,7 @@ static void dr_long_exchange_test(uint8_t period=1, std::string db_filename="dr_
 			std::string plainMessage{plainBuffer.begin(), plainBuffer.end()};
 
 			// same same?
-			BC_ASSERT_TRUE(plainMessage==lime_messages_pattern[i]);
+			BC_ASSERT_TRUE(plainMessage==lime_tester::messages_pattern[i]);
 			if (i%period == 0) {
 				aliceSender=false;
 				/* destroy and reload bob sessions */
@@ -251,7 +251,7 @@ static void dr_long_exchange_test(uint8_t period=1, std::string db_filename="dr_
 			// bob replies
 			std::vector<recipientInfos<Curve>> recipients;
 			recipients.emplace_back("alice",bob);
-			std::vector<uint8_t> plaintext{lime_messages_pattern[i].begin(), lime_messages_pattern[i].end()};
+			std::vector<uint8_t> plaintext{lime_tester::messages_pattern[i].begin(), lime_tester::messages_pattern[i].end()};
 			std::vector<uint8_t> cipherMessage{};
 			encryptMessage(recipients, plaintext, "alice", "bob", cipherMessage);
 
@@ -263,7 +263,7 @@ static void dr_long_exchange_test(uint8_t period=1, std::string db_filename="dr_
 			std::string plainMessage{plainBuffer.begin(), plainBuffer.end()};
 
 			// same same?
-			BC_ASSERT_TRUE(plainMessage==lime_messages_pattern[i]);
+			BC_ASSERT_TRUE(plainMessage==lime_tester::messages_pattern[i]);
 			if (i%period == 0) {
 				aliceSender=true;
 				/* destroy and reload alice sessions */
@@ -311,13 +311,13 @@ static void dr_simple_exchange(std::shared_ptr<DR<Curve>> &DRsessionAlice, std::
 			std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob,
 			std::string &filenameAlice, std::string &filenameBob) {
 	// create sessions: alice sender, bob receiver
-	dr_sessionsInit(DRsessionAlice, DRsessionBob, localStorageAlice, localStorageBob, filenameAlice, filenameBob);
+	lime_tester::dr_sessionsInit(DRsessionAlice, DRsessionBob, localStorageAlice, localStorageBob, filenameAlice, filenameBob);
 	std::vector<uint8_t> aliceCipher, bobCipher;
 
 	// alice encrypt a message
 	std::vector<recipientInfos<Curve>> recipients;
 	recipients.emplace_back("bob",DRsessionAlice);
-	std::vector<uint8_t> plaintextAlice{lime_messages_pattern[0].begin(), lime_messages_pattern[0].end()};
+	std::vector<uint8_t> plaintextAlice{lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end()};
 	encryptMessage(recipients, plaintextAlice, "bob", "alice", aliceCipher);
 
 	// bob decrypt it
@@ -328,12 +328,12 @@ static void dr_simple_exchange(std::shared_ptr<DR<Curve>> &DRsessionAlice, std::
 	std::string plainMessageBob{plainBuffer.begin(), plainBuffer.end()};
 
 	// same same?
-	BC_ASSERT_TRUE(plainMessageBob==lime_messages_pattern[0]);
+	BC_ASSERT_TRUE(plainMessageBob==lime_tester::messages_pattern[0]);
 
 	// bob replies
 	recipients.clear();
 	recipients.emplace_back("alice",DRsessionBob);
-	std::vector<uint8_t> plaintextBob{lime_messages_pattern[1].begin(), lime_messages_pattern[1].end()};
+	std::vector<uint8_t> plaintextBob{lime_tester::messages_pattern[1].begin(), lime_tester::messages_pattern[1].end()};
 	encryptMessage(recipients, plaintextBob, "alice", "bob", bobCipher);
 
 	// alice decrypt it
@@ -344,7 +344,7 @@ static void dr_simple_exchange(std::shared_ptr<DR<Curve>> &DRsessionAlice, std::
 	std::string plainMessageAlice{plainBuffer.begin(), plainBuffer.end()};
 
 	// same same?
-	BC_ASSERT_TRUE(plainMessageAlice==lime_messages_pattern[1]);
+	BC_ASSERT_TRUE(plainMessageAlice==lime_tester::messages_pattern[1]);
 
 }
 
@@ -384,7 +384,7 @@ template <typename Curve>
 static void dr_multidevice_basic_test(std::string db_filename) {
 	/* we have 2 users "alice" and "bob" with 3 devices each */
 	std::vector<std::string> usernames{"alice", "bob"};
-	std::vector<std::vector<std::vector<std::vector<sessionDetails<Curve>>>>> users;
+	std::vector<std::vector<std::vector<std::vector<lime_tester::sessionDetails<Curve>>>>> users;
 
 	/* give correct size to our users vector for users and devices count */
 	users.resize(usernames.size());
@@ -392,7 +392,7 @@ static void dr_multidevice_basic_test(std::string db_filename) {
 
 	/* init and instanciate, session will be then found in a 4 dimensional vector indexed this way : [self user id][self device id][peer user id][peer device id] */
 	std::vector<std::string> created_db_files{};
-	dr_devicesInit(db_filename, users, usernames, created_db_files);
+	lime_tester::dr_devicesInit(db_filename, users, usernames, created_db_files);
 
 	/* Send a message from alice.dev0 to all bob device(and copy to alice devices too) */
 	std::vector<recipientInfos<Curve>> recipients;
@@ -412,7 +412,7 @@ static void dr_multidevice_basic_test(std::string db_filename) {
 	sourceId.append("@").append(to_string(0)); // source deviceId shall be alice@0
 	std::vector<std::vector<uint8_t>> cipherHeader;
 	std::vector<uint8_t> cipherMessage;
-	std::vector<uint8_t> plaintext{lime_messages_pattern[0].begin(), lime_messages_pattern[0].end()};
+	std::vector<uint8_t> plaintext{lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end()};
 
 	encryptMessage(recipients, plaintext, usernames[1], sourceId, cipherMessage);
 
@@ -432,7 +432,7 @@ static void dr_multidevice_basic_test(std::string db_filename) {
 				// convert back the output vector to a string
 				std::string plaintext_back_string{plaintext_back.begin(), plaintext_back.end()};
 
-				BC_ASSERT_TRUE(plaintext_back_string==lime_messages_pattern[0]);
+				BC_ASSERT_TRUE(plaintext_back_string==lime_tester::messages_pattern[0]);
 
 				recipients.erase(recipients.begin());
 			}
@@ -477,7 +477,7 @@ static void dr_skip_too_much_test(std::string db_filename) {
 	std::vector<uint8_t> aliceCipher{};
 	std::vector<recipientInfos<Curve>> recipients;
 	recipients.emplace_back("bob",alice);
-	std::vector<uint8_t> plaintextAlice{lime_messages_pattern[1].begin(), lime_messages_pattern[1].end()};
+	std::vector<uint8_t> plaintextAlice{lime_tester::messages_pattern[1].begin(), lime_tester::messages_pattern[1].end()};
 	for (auto i=0; i<lime::settings::maxMessageSkip+2; i++) { // we can skip maxMessageSkip, so encrypt +2 and we will skip +1
 		// alice encrypt a message, just discard it, it's not the point to decrypt it
 		encryptMessage(recipients, plaintextAlice, "bob", "alice", aliceCipher);
@@ -504,7 +504,7 @@ static void dr_skip_too_much_test(std::string db_filename) {
 	aliceCipher.clear();
 	recipients.clear();
 	recipients.emplace_back("bob",alice);
-	plaintextAlice.assign(lime_messages_pattern[1].begin(), lime_messages_pattern[1].end());
+	plaintextAlice.assign(lime_tester::messages_pattern[1].begin(), lime_tester::messages_pattern[1].end());
 	encryptMessage(recipients, plaintextAlice, "bob", "alice", aliceCipher);
 
 	// bob decrypt it - Bob perform a DH Ratchet and than have receiving chain n, sending chain n+1
@@ -515,20 +515,20 @@ static void dr_skip_too_much_test(std::string db_filename) {
 	std::string plainMessageBob{plainBuffer.begin(), plainBuffer.end()};
 
 	// same same?
-	BC_ASSERT_TRUE(plainMessageBob==lime_messages_pattern[1]);
+	BC_ASSERT_TRUE(plainMessageBob==lime_tester::messages_pattern[1]);
 
 	// bob replies : receiving chain n, sending chain n+1
 	std::vector<uint8_t> bobCipher{};
 	recipients.clear();
 	recipients.emplace_back("alice",bob);
-	std::vector<uint8_t> plaintextBob{lime_messages_pattern[2].begin(), lime_messages_pattern[2].end()};
+	std::vector<uint8_t> plaintextBob{lime_tester::messages_pattern[2].begin(), lime_tester::messages_pattern[2].end()};
 	encryptMessage(recipients, plaintextBob, "alice", "bob", bobCipher);
 
 	// alice did not get bob reply, and encrypt maxMessageSkip/2 messages, with sending chain n (receiving chain is still n too))
 	aliceCipher.clear();
 	std::vector<recipientInfos<Curve>> lostRecipients;
 	lostRecipients.emplace_back("bob",alice);
-	plaintextAlice.assign(lime_messages_pattern[2].begin(), lime_messages_pattern[2].end());
+	plaintextAlice.assign(lime_tester::messages_pattern[2].begin(), lime_tester::messages_pattern[2].end());
 	for (auto i=0; i<lime::settings::maxMessageSkip/2; i++) {
 		// alice encrypt a message, just discard it, it's not the point to decrypt it
 		encryptMessage(lostRecipients, plaintextAlice, "bob", "alice", aliceCipher);
@@ -542,13 +542,13 @@ static void dr_skip_too_much_test(std::string db_filename) {
 	std::string plainMessageAlice{plainBuffer.begin(), plainBuffer.end()};
 
 	// same same?
-	BC_ASSERT_TRUE(plainMessageAlice==lime_messages_pattern[2]);
+	BC_ASSERT_TRUE(plainMessageAlice==lime_tester::messages_pattern[2]);
 
 	// alice then encrypt some maxMessageSkip/2 + 3(in case maxMessageSkip was odd number), with sending chain n+1
 	aliceCipher.clear();
 	lostRecipients.clear();
 	lostRecipients.emplace_back("bob",alice);
-	plaintextAlice.assign(lime_messages_pattern[2].begin(), lime_messages_pattern[2].end());
+	plaintextAlice.assign(lime_tester::messages_pattern[2].begin(), lime_tester::messages_pattern[2].end());
 	for (auto i=0; i<lime::settings::maxMessageSkip/2+3; i++) {
 		// alice encrypt a message, just discard it, it's not the point to decrypt it
 		encryptMessage(lostRecipients, plaintextAlice, "bob", "alice", aliceCipher);

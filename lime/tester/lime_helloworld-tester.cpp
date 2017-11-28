@@ -30,7 +30,6 @@
 using namespace::std;
 using namespace::lime;
 
-extern int wait_for_timeout;
 extern std::string test_x3dh_server_url;
 extern std::string test_x3dh_c25519_server_port;
 extern std::string test_x3dh_c448_server_port;
@@ -110,7 +109,7 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 	remove(dbFilenameAlice.data()); // delete the database file if already exists
 	remove(dbFilenameBob.data()); // delete the database file if already exists
 
-	events_counters_t counters={};
+	lime_tester::events_counters_t counters={};
 	int expected_success=0;
 
 	// This function is used as a lambda for creation/deletion of user, not of lot of interest
@@ -130,12 +129,12 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 		BCTBX_SLOGI<<"Create alice and bob LimeManagers"<<endl;
 		// create Random devices names (in case we use a shared test server, devices id shall be the GRUU, X3DH/Lime does not connect user(sip:uri) and device(gruu)
 		// From Lime perspective, only devices exists and they must be uniquely identifies on the X3DH server.
-		auto aliceDeviceId = makeRandomDeviceName("alice.");
-		auto bobDeviceId = makeRandomDeviceName("bob.");
+		auto aliceDeviceId = lime_tester::makeRandomDeviceName("alice.");
+		auto bobDeviceId = lime_tester::makeRandomDeviceName("bob.");
 
 		// users must also provide an authentication context: a way to retrieve their password to authenticate on server
-		authContext aliceCredentials(*aliceDeviceId, test_server_user_password);
-		authContext bobCredentials(*bobDeviceId, test_server_user_password);
+		authContext aliceCredentials(*aliceDeviceId, lime_tester::test_server_user_password);
+		authContext bobCredentials(*bobDeviceId, lime_tester::test_server_user_password);
 
 		// create Managers : they will open/create the database given in first parameter, and use the http provider given in second one to communicate with server.
 		// The third parameter is a callback used to identify the user on server
@@ -149,7 +148,7 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 
 						// for test purpose we use a server which accept commands in name of any user using credential of the only one user active on it
 						// so we will crash the username with the one test server accepts
-						belle_sip_auth_event_set_username(event, test_server_user_name.data());
+						belle_sip_auth_event_set_username(event, lime_tester::test_server_user_name.data());
 
 						// In real world we shall provide the password for the requested user as below
 						belle_sip_auth_event_set_passwd(event, aliceCredentials.password.data());
@@ -163,7 +162,7 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 
 						// for test purpose we use a server which accept commands in name of any user using credential of the only one user active on it
 						// so we will crash the username with the one test server accepts
-						belle_sip_auth_event_set_username(event, test_server_user_name.data());
+						belle_sip_auth_event_set_username(event, lime_tester::test_server_user_name.data());
 
 						// In real world we shall provide the password for the requested user as below
 						belle_sip_auth_event_set_passwd(event, bobCredentials.password.data());
@@ -175,9 +174,9 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 		//      - In case of successfull operation the return code is lime::callbackReturn::success, and string is empty
 		//      - In case of failure, the return code is lime::callbackReturn::fail and the string shall give details on the failure cause
 		aliceManager->create_user(*aliceDeviceId, x3dh_server_url, curve, callback);
-		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,++expected_success,wait_for_timeout)); // we must get a callback saying all went well
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout)); // we must get a callback saying all went well
 		bobManager->create_user(*bobDeviceId, x3dh_server_url, curve, callback);
-		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,++expected_success,wait_for_timeout)); // we must get a callback saying all went well
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout)); // we must get a callback saying all went well
 
 
 		/*** alice encrypt a message to bob, all parameters given to encrypt function are shared_ptr. ***/
@@ -194,7 +193,7 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 		//Shall we have more recipients(bob can have several devices or be a conference sip:uri, alice other devices must get a copy of the message), we just need to emplace_back some more recipients Device Id(GRUU)
 
 		// the plain message, type is std::vector<uint8_t> as it can be text as in this test but also any kind of data.
-		auto message = make_shared<const std::vector<uint8_t>>(lime_messages_pattern[0].begin(), lime_messages_pattern[0].end());
+		auto message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
 		auto cipherMessage = make_shared<std::vector<uint8_t>>(); // an empty buffer to get the encrypted message
 
 		BCTBX_SLOGI<<"Alice encrypt the message"<<endl;
@@ -244,7 +243,7 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 		/************** SYNCHRO **************************************/
 		// this is just waiting for the callback to increase the operation_success field in counters
 		// sending ticks to the belle-sip stack in order to process messages
-		BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,++expected_success,wait_for_timeout));
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 		BCTBX_SLOGI<<"Alice encrypt the message, callback Ok or timeout reached"<<endl;
 		/****** end of  SYNCHRO **************************************/
 
@@ -263,7 +262,7 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 
 			// it's a text message, so turn it into a string and compare with the one alice sent
 			std::string plainTextMessageString{plainTextMessage.begin(), plainTextMessage.end()};
-			BC_ASSERT_TRUE(plainTextMessageString == lime_messages_pattern[0]);
+			BC_ASSERT_TRUE(plainTextMessageString == lime_tester::messages_pattern[0]);
 			BCTBX_SLOGI<<"Bob decrypt the message completed"<<endl;
 		} else {
 			BCTBX_SLOGI<<"Bob decrypt the message : no message found"<<endl;
@@ -274,7 +273,7 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 		if (cleanDatabase) {
 			aliceManager->delete_user(*aliceDeviceId, callback);
 			bobManager->delete_user(*bobDeviceId, callback);
-			BC_ASSERT_TRUE(wait_for(stack,&counters.operation_success,expected_success+2,wait_for_timeout)); // we must get a callback saying all went well
+			BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,expected_success+2,lime_tester::wait_for_timeout)); // we must get a callback saying all went well
 			remove(dbFilenameAlice.data());
 			remove(dbFilenameBob.data());
 		}

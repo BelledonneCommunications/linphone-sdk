@@ -25,9 +25,14 @@
 
 #include "soci/sqlite3/soci-sqlite3.h"
 
-namespace lime {
+using namespace::lime;
 
-extern std::vector<std::string> lime_messages_pattern;
+namespace lime_tester {
+
+extern std::vector<std::string> messages_pattern;
+
+// default value for the timeout
+extern int wait_for_timeout;
 
 /**
  * @brief Create and initialise the two sessions given in parameter. Alice as sender session and Bob as receiver one
@@ -126,6 +131,6 @@ int wait_for(belle_sip_stack_t*s1,int* counter,int value,int timeout);
 // not based on the From field of HTPP packets
 const std::string test_server_user_name{"alice"};
 const std::string test_server_user_password{"you see the problem is this"};
-} // namespace lime
+} // namespace lime_tester
 
 #endif
