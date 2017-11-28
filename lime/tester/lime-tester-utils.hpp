@@ -76,7 +76,18 @@ bool DR_message_extractX3DHInit(std::vector<uint8_t> &message, std::vector<uint8
 /* Open provided DB and look for DRSessions established between selfDevice and peerDevice
  * Populate the sessionsId vector with the Ids of sessions found
  * return the id of the active session if one is found, 0 otherwise */
-long int get_DRsessionsId(const std::string &dbFilename, const std::string &selfDeviceId, const std::string &peerDeviceId, std::vector<long int> &sessionsId);
+long int get_DRsessionsId(const std::string &dbFilename, const std::string &selfDeviceId, const std::string &peerDeviceId, std::vector<long int> &sessionsId) noexcept;
+
+
+/* Open provided DB, look for DRSessions established between selfDevice and peerDevice, count the stored message keys in all these sessions
+ * return 0 if no sessions found or no user found
+ */
+unsigned int get_StoredMessageKeyCount(const std::string &dbFilename, const std::string &selfDeviceId, const std::string &peerDeviceId) noexcept;
+
+/* Move back in time all timeStamps by the given amout of days
+ * DB holds timeStamps in DR_sessions and X3DH_SPK tables
+ */
+void forwardTime(const std::string &dbFilename, int days) noexcept;
 
 /**
  * @brief append a random suffix to user name to avoid collision if test server is user by several tests runs

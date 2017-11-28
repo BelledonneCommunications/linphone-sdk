@@ -38,12 +38,6 @@
 using namespace::std;
 using namespace::lime;
 
-static const std::string AD{"alice@sip.linphone.org;opaque=user:epid:UghFocauauCHBHoLhAAA;gruu;bob@sip.linphone.org;opaque=user:epid:CTboShduoSCdauSEUDbka;gruu;"};
-
-/*****************************************************************************/
-/* Direct use of DR encrypt/decrypt, is not what is done in real usage       */
-/*****************************************************************************/
-
 /**
   * @param[in]	period		altern sended each <period> messages (sequence will anyways always start with alice send - bob receive - bob send)
   * @param[in]	skip_period	same than above but for reception skipping: at each begining of skip_period, skip reception of skip_length messages

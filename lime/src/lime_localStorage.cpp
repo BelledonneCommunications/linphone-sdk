@@ -103,18 +103,31 @@ Db::Db(std::string filename) : sql{sqlite3, filename}{
 						X3DHInit BLOB DEFAULT NULL, \
 						FOREIGN KEY(Did) REFERENCES lime_PeerDevices(Did) ON UPDATE CASCADE ON DELETE CASCADE)";
 
-			/* DR Message Skipped DH : DHid(primary key), SessionId, DHr */
+			/* DR Message Skipped DH : Store chains of skipped message keys, this table store the DHr identifying the chain
+			 *  - DHid(primary key)
+			 *  - SessionId : foreign key, link to the DR session the skipped keys are attached
+			 *  - DHr : the peer ECDH public key used in this key chain
+			 *  - received : count messages successfully decoded since the last MK insertion in that chain, allow to delete chains that are too old
+			 */
 			sql<<"CREATE TABLE DR_MSk_DHr( \
 						DHid INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, \
 						sessionId INTEGER NOT NULL DEFAULT 0, \
-						DHr BLOB NOT NULL);";
+						DHr BLOB NOT NULL, \
+						received UNSIGNED INTEGER NOT NULL DEFAULT 0, \
+						FOREIGN KEY(sessionId) REFERENCES DR_sessions(sessionId) ON UPDATE CASCADE ON DELETE CASCADE);";
 
-			/* DR Message Skipped MK : [DHid,NR](primary key), MK */
+			/* DR Message Skipped MK : Store chains of skipped message keys, this table store the message keys with their index in the chain
+			 *  - DHid : foreign key, link to the key chain table: DR_Message_Skipped_DH
+			 *  - Nr : the id in the key chain
+			 *  - MK : the message key stored
+			 *  primary key is [DHid,Nr]
+			 */
 			sql<<"CREATE TABLE DR_MSk_MK( \
 						DHid INTEGER NOT NULL, \
 						Nr INTEGER NOT NULL, \
 						MK BLOB NOT NULL, \
-						PRIMARY KEY( DHid , Nr ));";
+						PRIMARY KEY( DHid , Nr ), \
+						FOREIGN KEY(DHid) REFERENCES DR_MSk_DHr(DHid) ON UPDATE CASCADE ON DELETE CASCADE);";
 
 			/*** Lime tables : local user identities, peer devices identities ***/
 			/* List each self account enable on device :
@@ -136,12 +149,14 @@ Db::Db(std::string filename) : sql{sqlite3, filename}{
 			 * - DeviceId: peer device id (shall be its GRUU)
 			 * - Uid: link to LocalUsers table, identify which localUser registered this peer Device
 			 * - Ik : Peer device Identity public key, got it from X3DH server or X3DH init message
+			 * - Verified : a flag, 0 : peer identity was not verified, 1 : peer identity confirmed
 			 */
 			sql<<"CREATE TABLE lime_PeerDevices( \
 						Did INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, \
 						DeviceId TEXT NOT NULL, \
 						Uid INTEGER NOT NULL, \
 						Ik BLOB NOT NULL, \
+						Verified UNSIGNED INTEGER DEFAULT 0,\
 						FOREIGN KEY(Uid) REFERENCES lime_LocalUsers(Uid) ON UPDATE CASCADE ON DELETE CASCADE);";
 
 			/*** X3DH tables ***/
@@ -214,6 +229,24 @@ void Db::load_LimeUser(const std::string &userId, long int &Uid, lime::CurveId &
 	}
 }
 
+/**
+ * @brief Delete old stale sessions and old stored message key
+ * 	- DR Session in stale status for more than DRSession_limboTime are deleted
+ * 	- MessageKey stored linked to a session who received more than maxMessagesReceivedAfterSkip are deleted
+ * 	Note : The messagekeys count is on a chain, so if we have in a chain
+ * 	Received1 Skip1 Skip2 Received2 Received3 Skip3 Received4
+ * 	The counter will be reset to 0 when we insert Skip3 (when Received4 arrives) so Skip1 and Skip2 won't be deleted until we got the counter above max on this chain
+ * 	Once we moved to next chain(as soon as peer got an answer from us and replies), the count won't be reset anymore
+ */
+void Db::clean_DRSessions() {
+	// WARNIMG: not sure this code is portable it may work with sqlite3 only
+	// delete stale sessions considered to old
+
+	sql<<"DELETE FROM DR_sessions WHERE Status=0 AND timeStamp < date('now', '-"<<lime::settings::DRSession_limboTime_days<<" day');";
+
+	// clean Message keys (MK will be cascade deleted when the DHr is deleted )
+	sql<<"DELETE FROM DR_MSk_DHr WHERE received > "<<lime::settings::maxMessagesReceivedAfterSkip<<";";
+}
 /**
  * @brief if exists, delete user
  *
@@ -333,6 +366,11 @@ bool DR<DHKey>::session_save() {
 		if (m_usedDHid !=0 ) { // ok, we consumed a key, remove it from db
 			m_localStorage->sql<<"DELETE from DR_MSk_MK WHERE DHid = :DHid AND Nr = :Nr;", use(m_usedDHid), use(m_usedNr);
 			MSk_DHr_Clean = true; // flag the cleaning needed in DR_MSk_DH table, we may have to remove a row in it if no more row are linked to it in DR_MSk_MK
+		} else { // we did not consume a key
+			if (m_dirty == DRSessionDbStatus::dirty_decrypt || m_dirty == DRSessionDbStatus::dirty_ratchet) { // if we did a message decrypt :
+				// update the count of posterior messages received in the stored skipped messages keys for this session(all stored chains)
+				m_localStorage->sql<<"UPDATE DR_MSk_DHr SET received = received + 1 WHERE sessionId = :sessionId", use(m_dbSessionId);
+			}
 		}
 	}
 
@@ -345,6 +383,8 @@ bool DR<DHKey>::session_save() {
 		if (!m_localStorage->sql.got_data()) { // There is no row in DR_MSk_DHr matching this key, we must add it
 			m_localStorage->sql<<"INSERT INTO DR_MSk_DHr(sessionId, DHr) VALUES(:sessionId, :DHr)", use(m_dbSessionId), use(DHr);
 			m_localStorage->sql<<"select last_insert_rowid()",into(DHid); // WARNING: unportable code, sqlite3 only, see above for more details on similar issue
+		} else { // the chain already exists in storage, just reset its counter of newer message received
+			m_localStorage->sql<<"UPDATE DR_MSk_DHr SET received = 0 WHERE DHid = :DHid", use(DHid);
 		}
 		// insert all the skipped key in the chain
 		uint16_t Nr;

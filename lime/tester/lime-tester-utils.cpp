@@ -316,12 +316,12 @@ bool DR_message_extractX3DHInit(std::vector<uint8_t> &message, std::vector<uint8
 /* Open provided DB and look for DRSessions established between selfDevice and peerDevice
  * Populate the sessionsId vector with the Ids of sessions found
  * return the id of the active session if one is found, 0 otherwise */
-long int get_DRsessionsId(const std::string &dbFilename, const std::string &selfDeviceId, const std::string &peerDeviceId, std::vector<long int> &sessionsId) {
-	soci::session sql(sqlite3, dbFilename); // open the DB
+long int get_DRsessionsId(const std::string &dbFilename, const std::string &selfDeviceId, const std::string &peerDeviceId, std::vector<long int> &sessionsId) noexcept{
 	sessionsId.clear();
 	sessionsId.resize(25); // no more than 25 sessions id fetched
 	std::vector<int> status(25);
 	try {
+		soci::session sql(sqlite3, dbFilename); // open the DB
 		soci::statement st = (sql.prepare << "SELECT s.sessionId, s.Status FROM DR_sessions as s INNER JOIN lime_PeerDevices as d on s.Did = d.Did INNER JOIN lime_LocalUsers as u on u.Uid = d.Uid WHERE u.UserId = :selfId AND d.DeviceId = :peerId ORDER BY s.Status DESC, s.Did;", into(sessionsId), into(status), use(selfDeviceId), use(peerDeviceId));
 		st.execute();
 		if (st.fetch()) { // all retrieved session shall fit in the arrays no need to go on several fetch
@@ -342,6 +342,40 @@ long int get_DRsessionsId(const std::string &dbFilename, const std::string &self
 		BCTBX_SLOGE<<"Got an error on DB: "<<e.what();
 		sessionsId.clear();
 		return 0;
+	}
+}
+
+/* Open provided DB, look for DRSessions established between selfDevice and peerDevice, count the stored message keys in all these sessions
+ * return 0 if no sessions found or no user found
+ */
+unsigned int get_StoredMessageKeyCount(const std::string &dbFilename, const std::string &selfDeviceId, const std::string &peerDeviceId) noexcept{
+	try {
+		soci::session sql(sqlite3, dbFilename); // open the DB
+		unsigned int mkCount=0;
+		sql<< "SELECT count(m.MK) FROM DR_sessions as s INNER JOIN lime_PeerDevices as d on s.Did = d.Did INNER JOIN lime_LocalUsers as u on u.Uid = d.Uid INNER JOIN DR_MSk_DHr as c on c.sessionId = s.sessionId INNER JOIN DR_MSk_Mk as m ON m.DHid=c.DHid WHERE u.UserId = :selfId AND d.DeviceId = :peerId ORDER BY s.Status DESC, s.Did;", into(mkCount), use(selfDeviceId), use(peerDeviceId);
+		if (sql.got_data()) {
+			return mkCount;
+		} else {
+			return 0;
+		}
+
+	} catch (exception &e) { // swallow any error on DB
+		BCTBX_SLOGE<<"Got an error while getting the MK count in DB: "<<e.what();
+		return 0;
+	}
+}
+
+/* Move back in time all timeStamps by the given amout of days
+ * DB holds timeStamps in DR_sessions and X3DH_SPK tables
+ */
+void forwardTime(const std::string &dbFilename, int days) noexcept {
+	try {
+		soci::session sql(sqlite3, dbFilename); // open the DB
+		/* move back by days all timeStamp, we have some in DR_sessions and X3DH_SPk tables */
+		sql<<"UPDATE DR_sessions SET timeStamp = date (timeStamp, '-"<<days<<" day');";
+		sql<<"UPDATE X3DH_SPK SET timeStamp = date (timeStamp, '-"<<days<<" day');";
+	} catch (exception &e) { // swallow any error on DB
+		BCTBX_SLOGE<<"Got an error forwarding time in DB: "<<e.what();
 	}
 }
 

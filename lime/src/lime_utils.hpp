@@ -57,10 +57,17 @@ namespace settings {
 	// Maximum number of Message we can skip(and store their keys) at reception of one message
 	constexpr std::uint16_t maxMessageSkip=1024;
 
+	// after a message key is stored, count how many messages we can receive from peer before deleting the key
+	// Note: implemented by receiving key chain, so any new skipped message in a chain will reset the counter to 0
+	constexpr std::uint16_t maxMessagesReceivedAfterSkip = 128;
+
 	// Maximum length of Sending chain: is this count is reached without any return from peer,
 	// the DR session is set to stale and we must create another one to send messages
 	// Can't be more than 2^16 as message number is send on 2 bytes
 	constexpr std::uint16_t maxSendingChain=1000;
+
+	// Lifetime of a session once not active anymore, unit is day
+	constexpr unsigned int DRSession_limboTime_days=30;
 
 /******************************************************************************/
 /*                                                                            */
@@ -78,6 +85,10 @@ namespace settings {
 /******************************************************************************/
 	const std::string X3DH_SK_info{"Lime"}; // shall be an ASCII string identifying the application (X3DH spec section 2.1)
 	const std::string X3DH_AD_info{"X3DH Associated Data"}; // used to generate a shared AD based on Ik and deviceID
+
+	// use time period definitions as in bctoolbox/port.h bctbx_time_string_to_sec function
+	const std::string SPK_lifeTime{"1W"}; // Life tine of a signed pre-key, it will be set to stale after that period
+	const std::string SPK_limboTime{"1W"}; // How long shall we keep a signed pre-key once it has been replaced by a new one
 }
 
 }

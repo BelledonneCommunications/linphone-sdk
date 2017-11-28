@@ -127,6 +127,19 @@ namespace lime {
 			 */
 			bool decrypt(const std::string &localDeviceId, const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &cipherHeader, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage);
 
+			/**
+			 * @brief Update: shall be called once a day at least, performs checks, updates and cleaning operations
+			 *  - check if we shall update a new SPk to X3DH server(SPk lifetime is set in settings)
+			 *  - check if we need to upload OPks to X3DH server
+			 *  - remove old SPks, clean double ratchet sessions (remove staled, clean their stored keys for skipped messages)
+			 *
+			 *  Is performed for all users founds in local storage
+			 *
+			 * @param[in]	callback	This operation may contact the X3DH server and is thus asynchronous, when server responds,
+			 * 				this callback will be called giving the exit status and an error message in case of failure.
+			 */
+			void update(const limeCallback &callback);
+
 			LimeManager() = delete; // no manager without Database and http provider
 			LimeManager(const LimeManager&) = delete; // no copy constructor
 			LimeManager operator=(const LimeManager &) = delete; // nor copy operator

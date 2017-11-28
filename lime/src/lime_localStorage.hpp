@@ -34,6 +34,7 @@ namespace lime {
 
 		void load_LimeUser(const std::string &userId, long int &Uid, lime::CurveId &curveId, std::string &url);
 		void delete_LimeUser(const std::string &userId);
+		void clean_DRSessions();
 	};
 
 #ifdef EC25519_ENABLED

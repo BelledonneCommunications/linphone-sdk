@@ -104,4 +104,18 @@ namespace lime {
 		// call the decryption function
 		return user->decrypt(recipientUserId, senderDeviceId, cipherHeader, cipherMessage, plainMessage);
 	}
+
+	void LimeManager::update(const limeCallback &callback) {
+		// open local DB
+		auto localStorage = std::unique_ptr<lime::Db>(new lime::Db(m_db_access));
+
+		/* DR sessions cleaning */
+		localStorage->clean_DRSessions();
+
+		/* OPk check : ask X3DH server how many keys are left */
+
+		/* SPk check */
+
+		if (callback) callback(lime::callbackReturn::success, "");
+	}
 } // namespace lime
