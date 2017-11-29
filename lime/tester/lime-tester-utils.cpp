@@ -41,6 +41,9 @@ namespace lime_tester {
 // default value for the timeout
 int wait_for_timeout=4000;
 
+// default value for initial OPk batch size, keep it small so not too many OPks generated
+uint16_t OPkInitialBatchSize=3;
+
 std::vector<std::string> messages_pattern = {
 	{"Frankly, my dear, I don't give a damn."},
 	{"I'm gonna make him an offer he can't refuse."},

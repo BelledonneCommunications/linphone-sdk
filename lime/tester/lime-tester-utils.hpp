@@ -34,6 +34,9 @@ extern std::vector<std::string> messages_pattern;
 // default value for the timeout
 extern int wait_for_timeout;
 
+// default value for initial OPk batch size, keep it small so not too many OPks generated
+extern uint16_t OPkInitialBatchSize;
+
 /**
  * @brief Create and initialise the two sessions given in parameter. Alice as sender session and Bob as receiver one
  *	Alice must then send the first message, once bob got it, sessions are fully initialised

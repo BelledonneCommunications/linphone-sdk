@@ -34,9 +34,10 @@ namespace lime {
 		/* Encrypt/Decrypt */
 		virtual void encrypt(std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<recipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback) = 0;
 		virtual bool decrypt(const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &cipherHeader, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) = 0;
-		virtual void publish_user(const limeCallback &callback) = 0;
+		virtual void publish_user(const limeCallback &callback, const uint16_t OPkInitialBatchSize) = 0;
 		virtual void delete_user(const limeCallback &callback) = 0;
 		virtual void update_SPk(const limeCallback &callback) = 0;
+		virtual void update_OPk(const limeCallback &callback, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize) = 0;
 		virtual ~LimeGeneric() {};
 	};
 
@@ -50,14 +51,15 @@ namespace lime {
 	 * @param[in]	deviceId			User to create in DB, deviceId shall be the GRUU
 	 * @param[in]	url				URL of X3DH key server to be used to publish our keys
 	 * @param[in]	curve				Which curve shall we use for this account, select the implemenation to instanciate when using this user
+	 * @param[in]	initialOPkBatchSize		Number of OPks in the first batch uploaded to X3DH server
 	 * @param[in]	http_provider			An http provider used to communicate with x3dh key server
 	 * @param[in]	user_authentication_callback	To complete user authentication on server: must provide user credentials
 	 * @param[in]	callback			To provide caller the operation result
 	 *
 	 * @return a pointer to the LimeGeneric class allowing access to API declared in lime.hpp
 	 */
-	std::shared_ptr<LimeGeneric> insert_LimeUser(const std::string &dbFilename, const std::string &deviceId, const std::string &url, const lime::CurveId curve, belle_http_provider *http_provider,
-			  const userAuthenticateCallback &user_authentication_callback, const limeCallback &callback);
+	std::shared_ptr<LimeGeneric> insert_LimeUser(const std::string &dbFilename, const std::string &deviceId, const std::string &url, const lime::CurveId curve, const uint16_t OPkInitialBatchSize,
+			belle_http_provider *http_provider, const userAuthenticateCallback &user_authentication_callback, const limeCallback &callback);
 
 	/**
 	 * @brief Load a local user from database

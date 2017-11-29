@@ -189,13 +189,13 @@ static void lime_session_establishment(const lime::CurveId curve, const std::str
 		// create Manager and device for alice
 		aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, prov, user_auth_callback));
 		aliceDeviceId = lime_tester::makeRandomDeviceName("alice.d1.");
-		aliceManager->create_user(*aliceDeviceId, x3dh_server_url, curve, callback);
+		aliceManager->create_user(*aliceDeviceId, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		// Create manager and device for bob
 		bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, prov, user_auth_callback));
 		bobDeviceId = lime_tester::makeRandomDeviceName("bob.d");
-		bobManager->create_user(*bobDeviceId, x3dh_server_url, curve, callback);
+		bobManager->create_user(*bobDeviceId, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		lime_exchange_messages(aliceDeviceId, aliceManager, bobDeviceId, bobManager, 1, 1);
@@ -243,7 +243,7 @@ static void lime_update_SPk_test(const lime::CurveId curve, const std::string &d
 		// create Manager and device for alice
 		auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, prov, user_auth_callback));
 		auto aliceDeviceId = lime_tester::makeRandomDeviceName("alice.d1.");
-		aliceManager->create_user(*aliceDeviceId, x3dh_server_url, curve, callback);
+		aliceManager->create_user(*aliceDeviceId, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 		size_t SPkCount=0;
 		uint32_t activeSPkId=0;
@@ -259,7 +259,7 @@ static void lime_update_SPk_test(const lime::CurveId curve, const std::string &d
 		// create a device for bob and encrypt to alice
 		bobManagers.push_back(std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, prov, user_auth_callback)));
 		bobDeviceIds.push_back(lime_tester::makeRandomDeviceName("bob.d"));
-		bobManagers.back()->create_user(*(bobDeviceIds.back()), x3dh_server_url, curve, callback);
+		bobManagers.back()->create_user(*(bobDeviceIds.back()), x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		bobRecipients.push_back(make_shared<std::vector<recipientData>>());
@@ -299,7 +299,7 @@ static void lime_update_SPk_test(const lime::CurveId curve, const std::string &d
 			// create a device for bob and use it to encrypt
 			bobManagers.push_back(std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, prov, user_auth_callback)));
 			bobDeviceIds.push_back(lime_tester::makeRandomDeviceName("bob.d"));
-			bobManagers.back()->create_user(*(bobDeviceIds.back()), x3dh_server_url, curve, callback);
+			bobManagers.back()->create_user(*(bobDeviceIds.back()), x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
 			BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 			bobRecipients.push_back(make_shared<std::vector<recipientData>>());
@@ -473,7 +473,7 @@ static void lime_update_clean_MK() {
 
 /** Scenario
  * - Create one device for alice
- * - Create OPk_batch_number devices for bob, they will all fetch a key and encrypt a messaage to alice, server shall not have anymore OPks
+ * - Create OPk_batch_size devices for bob, they will all fetch a key and encrypt a messaage to alice, server shall not have anymore OPks
  * - Create another device for alice and send a message to bob, it shall get a non OPk bundle, check it is the case in the message sent to Alice
  * Alice decrypt all messages to complete the check
  *
@@ -503,14 +503,15 @@ static void x3dh_without_OPk_test(const lime::CurveId curve, const std::string &
 		// create Manager and device for alice
 		auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, prov, user_auth_callback));
 		auto aliceDeviceId = lime_tester::makeRandomDeviceName("alice.d1.");
-		aliceManager->create_user(*aliceDeviceId, x3dh_server_url, curve, callback);
+		auto aliceOPkInitialBatchSize = 3; // give it only 3 OPks as initial batch
+		aliceManager->create_user(*aliceDeviceId, x3dh_server_url, curve, aliceOPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
-		for (auto i=0; i<lime::settings::OPk_batch_number +1; i++) {
+		for (auto i=0; i<aliceOPkInitialBatchSize+1; i++) {
 			// Create manager and device for bob
 			auto bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, prov, user_auth_callback));
 			auto bobDeviceId = lime_tester::makeRandomDeviceName("bob.d");
-			bobManager->create_user(*bobDeviceId, x3dh_server_url, curve, callback);
+			bobManager->create_user(*bobDeviceId, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
 			BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 			// encrypt a message to Alice
@@ -527,7 +528,7 @@ static void x3dh_without_OPk_test(const lime::CurveId curve, const std::string &
 			std::vector<uint8_t> receivedMessage{};
 			bool haveOPk=false;
 			BC_ASSERT_TRUE(lime_tester::DR_message_holdsX3DHInit((*bobRecipients)[0].cipherHeader, haveOPk));
-			if (i<lime::settings::OPk_batch_number) { // the first OPk_batch_messages must hold an X3DH init message with an OPk
+			if (i<aliceOPkInitialBatchSize) { // the first aliceOPkInitialBatchSize messages must hold an X3DH init message with an OPk
 				BC_ASSERT_TRUE(haveOPk);
 			} else { // then the last message shall not convey OPK_id as none were available
 				BC_ASSERT_FALSE(haveOPk);
@@ -605,8 +606,8 @@ static void x3dh_sending_chain_limit_test(const lime::CurveId curve, const std::
 		auto bobDevice1 = lime_tester::makeRandomDeviceName("bob.d1.");
 
 		// create users alice.d1 and bob.d1
-		aliceManager->create_user(*aliceDevice1, x3dh_server_url, curve, callback);
-		bobManager->create_user(*bobDevice1, x3dh_server_url, curve, callback);
+		aliceManager->create_user(*aliceDevice1, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
+		bobManager->create_user(*bobDevice1, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
 		expected_success +=2; // we have two asynchronous operation on going
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, expected_success,lime_tester::wait_for_timeout));
 		if (counters.operation_failed == 1) return; // skip the end of the test if we can't do this
@@ -757,8 +758,8 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 		auto bobDevice1 = lime_tester::makeRandomDeviceName("bob.d1.");
 
 		// create users alice.d1 and bob.d1
-		aliceManager->create_user(*aliceDevice1, x3dh_server_url, curve, callback);
-		bobManager->create_user(*bobDevice1, x3dh_server_url, curve, callback);
+		aliceManager->create_user(*aliceDevice1, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
+		bobManager->create_user(*bobDevice1, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
 		expected_success +=2; // we have two asynchronous operation on going
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, expected_success,lime_tester::wait_for_timeout));
 		if (counters.operation_failed == 1) return; // skip the end of the test if we can't do this
@@ -980,11 +981,11 @@ static void x3dh_multidev_operation_queue_test(const lime::CurveId curve, const 
 		auto bobDevice4 = lime_tester::makeRandomDeviceName("bob.d4.");
 
 		// create users alice.d1 and bob.d1,d2,d3,d4
-		aliceManager->create_user(*aliceDevice1, x3dh_server_url, curve, callback);
-		bobManager->create_user(*bobDevice1, x3dh_server_url, curve, callback);
-		bobManager->create_user(*bobDevice2, x3dh_server_url, curve, callback);
-		bobManager->create_user(*bobDevice3, x3dh_server_url, curve, callback);
-		bobManager->create_user(*bobDevice4, x3dh_server_url, curve, callback);
+		aliceManager->create_user(*aliceDevice1, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
+		bobManager->create_user(*bobDevice1, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
+		bobManager->create_user(*bobDevice2, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
+		bobManager->create_user(*bobDevice3, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
+		bobManager->create_user(*bobDevice4, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
 		expected_success +=5; // we have two asynchronous operation on going
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, expected_success,lime_tester::wait_for_timeout));
 		if (counters.operation_failed == 1) return; // skip the end of the test if we can't do this
@@ -1182,8 +1183,8 @@ static void x3dh_operation_queue_test(const lime::CurveId curve, const std::stri
 		auto bobDevice1 = lime_tester::makeRandomDeviceName("bob.d1.");
 
 		// create users alice.d1 and bob.d1
-		aliceManager->create_user(*aliceDevice1, x3dh_server_url, curve, callback);
-		bobManager->create_user(*bobDevice1, x3dh_server_url, curve, callback);
+		aliceManager->create_user(*aliceDevice1, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
+		bobManager->create_user(*bobDevice1, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
 		expected_success +=2; // we have two asynchronous operation on going
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, expected_success,lime_tester::wait_for_timeout)); // we must get callback saying all went well
 		if (counters.operation_failed == 1) return; // skip the end of the test if we can't do this
@@ -1307,11 +1308,11 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 		auto bobDevice2 = lime_tester::makeRandomDeviceName("bob.d2.");
 
 		// create users
-		aliceManager->create_user(*aliceDevice1, x3dh_server_url, curve, callback);
+		aliceManager->create_user(*aliceDevice1, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
-		bobManager->create_user(*bobDevice1, x3dh_server_url, curve, callback);
+		bobManager->create_user(*bobDevice1, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
-		bobManager->create_user(*bobDevice2, x3dh_server_url, curve, callback);
+		bobManager->create_user(*bobDevice2, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 		if (counters.operation_failed == 1) return; // skip the end of the test if we can't do this
 
@@ -1522,7 +1523,7 @@ static void user_management_test(const lime::CurveId curve, const std::string &d
 
 	try {
 		/* create a user in a fresh database */
-		Manager->create_user(*aliceDeviceName, x3dh_server_url, curve, callback);
+		Manager->create_user(*aliceDeviceName, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 		if (counters.operation_failed == 1) return; // skip the end of the test if we can't do this
 
@@ -1537,7 +1538,7 @@ static void user_management_test(const lime::CurveId curve, const std::string &d
 	bool gotExpectedException = false;
 	/* Try to create the same user in the same data base, it must fail with exception raised */
 	try {
-		auto alice = insert_LimeUser(dbFilenameAlice, *aliceDeviceName, x3dh_server_url, curve, prov, user_auth_callback, callback);
+		auto alice = insert_LimeUser(dbFilenameAlice, *aliceDeviceName, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, prov, user_auth_callback, callback);
 		/* no need to wait here, it must fail immediately */
 	} catch (BctbxException &e) {
 		gotExpectedException = true;
@@ -1592,7 +1593,7 @@ static void user_management_test(const lime::CurveId curve, const std::string &d
 
 	/* Create Alice again */
 	try {
-		std::shared_ptr<LimeGeneric> alice = insert_LimeUser(dbFilenameAlice, *aliceDeviceName, x3dh_server_url, curve, prov, user_auth_callback, callback);
+		std::shared_ptr<LimeGeneric> alice = insert_LimeUser(dbFilenameAlice, *aliceDeviceName, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, prov, user_auth_callback, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		// create another manager with a fresh DB
@@ -1602,7 +1603,7 @@ static void user_management_test(const lime::CurveId curve, const std::string &d
 		// create a manager and try to create alice again, it shall pass local creation(db is empty) but server shall reject it
 		auto ManagerTmp = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAliceTmp, prov, user_auth_callback));
 
-		ManagerTmp->create_user(*aliceDeviceName, x3dh_server_url, curve, callback);
+		ManagerTmp->create_user(*aliceDeviceName, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_failed,counters.operation_failed+1,lime_tester::wait_for_timeout)); // wait on this one but we shall get a fail from server
 
 		/* Clean DB */

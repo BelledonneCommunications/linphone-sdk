@@ -25,6 +25,7 @@
 #include "lime/lime.hpp"
 #include "lime_lime.hpp"
 #include "lime_localStorage.hpp"
+#include "lime_utils.hpp"
 
 using namespace::std;
 
@@ -35,6 +36,9 @@ namespace lime {
 	/*                                                                          */
 	/****************************************************************************/
 	void LimeManager::create_user(const std::string &localDeviceId, const std::string &x3dhServerUrl, const lime::CurveId curve, const limeCallback &callback) {
+		create_user(localDeviceId, x3dhServerUrl, curve, lime::settings::OPk_initialBatchSize, callback);
+	}
+	void LimeManager::create_user(const std::string &localDeviceId, const std::string &x3dhServerUrl, const lime::CurveId curve, const uint16_t OPkInitialBatchSize, const limeCallback &callback) {
 		auto thiz = this;
 		limeCallback managerCreateCallback([thiz, localDeviceId, callback](lime::callbackReturn returnCode, std::string errorMessage) {
 			// first forward the callback
@@ -48,7 +52,7 @@ namespace lime {
 			}
 		});
 
-		m_users_cache.insert({localDeviceId, insert_LimeUser(m_db_access, localDeviceId, x3dhServerUrl, curve, m_http_provider, m_user_auth, managerCreateCallback)});
+		m_users_cache.insert({localDeviceId, insert_LimeUser(m_db_access, localDeviceId, x3dhServerUrl, curve, OPkInitialBatchSize, m_http_provider, m_user_auth, managerCreateCallback)});
 	}
 
 	void LimeManager::delete_user(const std::string &localDeviceId, const limeCallback &callback) {
@@ -105,7 +109,11 @@ namespace lime {
 		return user->decrypt(recipientUserId, senderDeviceId, cipherHeader, cipherMessage, plainMessage);
 	}
 
+	/* This version use default settings */
 	void LimeManager::update(const limeCallback &callback) {
+		update(callback, lime::settings::OPk_serverLowLimit, lime::settings::OPk_batchSize);
+	}
+	void LimeManager::update(const limeCallback &callback, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize) {
 		// open local DB
 		auto localStorage = std::unique_ptr<lime::Db>(new lime::Db(m_db_access));
 
@@ -117,19 +125,19 @@ namespace lime {
 		std::vector<std::string> deviceIds{};
 		localStorage->get_allLocalDevices(deviceIds);
 
-		//This counter will trace number of callbacks, to trace how many operation did end,
-		auto callbackCounts = make_shared<size_t>(0);
+		//This counter will trace number of callbacks, to trace how many operation did end.
 		// we expect two callback per local user account: one for update SPk, one for get OPk number on server
-		size_t expectedCallbacks = deviceIds.size();
+		auto callbackCount = make_shared<size_t>(deviceIds.size()*2);
 		auto globalReturnCode = make_shared<lime::callbackReturn>(lime::callbackReturn::success);
 
-		limeCallback managerUpdateCallback([callbackCounts, expectedCallbacks, globalReturnCode, callback](lime::callbackReturn returnCode, std::string errorMessage) {
-			(*callbackCounts)++;
+		// this callback will get all callbacks from update OPk and SPk on all users, when everyone is done, call the callback given to LimeManager::update
+		limeCallback managerUpdateCallback([callbackCount, globalReturnCode, callback](lime::callbackReturn returnCode, std::string errorMessage) {
+			(*callbackCount)--;
 			if (returnCode == lime::callbackReturn::fail) {
 				*globalReturnCode = lime::callbackReturn::fail; // if one fail, return fail at the end of it
 			}
 
-			if (*callbackCounts == expectedCallbacks) {
+			if (*callbackCount == 0) {
 				if (callback) callback(*globalReturnCode, "");
 			}
 		});
@@ -148,8 +156,8 @@ namespace lime {
 				user = userElem->second;
 			}
 
-			// send a request to X3DH server to check how many OPk are left on server
-
+			// send a request to X3DH server to check how many OPk are left on server, upload more if needed
+			user->update_OPk(managerUpdateCallback, OPkServerLowLimit, OPkBatchSize);
 
 			// update the SPk(if needed)
 			user->update_SPk(managerUpdateCallback);

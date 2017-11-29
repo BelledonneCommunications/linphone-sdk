@@ -58,6 +58,9 @@ namespace lime {
 		template <typename Curve>
 		void buildMessage_getPeerBundles(std::vector<uint8_t> &message, std::vector<std::string> &peer_device_ids) noexcept;
 
+		template <typename Curve>
+		void buildMessage_getSelfOPks(std::vector<uint8_t> &message) noexcept;
+
 		/* this templates are intanciated in lime_x3dh_procotocol.cpp, do not re-instanciate it anywhere else */
 #ifdef EC25519_ENABLED
 		extern template void buildMessage_registerUser<C255>(std::vector<uint8_t> &message, const ED<C255> &Ik) noexcept;
@@ -65,6 +68,7 @@ namespace lime {
 		extern template void buildMessage_publishSPk<C255>(std::vector<uint8_t> &message, const X<C255> &SPk, const Signature<C255> &Sig, const uint32_t SPk_id) noexcept;
 		extern template void buildMessage_publishOPks<C255>(std::vector<uint8_t> &message, const std::vector<X<C255>> &OPks, const std::vector<uint32_t> &OPk_ids) noexcept;
 		extern template void buildMessage_getPeerBundles<C255>(std::vector<uint8_t> &message, std::vector<std::string> &peer_device_ids) noexcept;
+		extern template void buildMessage_getSelfOPks<C255>(std::vector<uint8_t> &message) noexcept;
 #endif
 
 #ifdef EC448_ENABLED
@@ -73,6 +77,7 @@ namespace lime {
 		extern template void buildMessage_publishSPk<C448>(std::vector<uint8_t> &message, const X<C448> &SPk, const Signature<C448> &Sig, const uint32_t SPk_id) noexcept;
 		extern template void buildMessage_publishOPks<C448>(std::vector<uint8_t> &message, const std::vector<X<C448>> &OPks, const std::vector<uint32_t> &OPk_ids) noexcept;
 		extern template void buildMessage_getPeerBundles<C448>(std::vector<uint8_t> &message, std::vector<std::string> &peer_device_ids) noexcept;
+		extern template void buildMessage_getSelfOPks<C448>(std::vector<uint8_t> &message) noexcept;
 #endif
 
 	} // namespace x3dh_protocol

@@ -22,12 +22,6 @@
 namespace lime {
 // this namespace hold constants definition used as settings in all components of the lime library
 namespace settings {
-/******************************************************************************/
-/*                                                                            */
-/* Generic settings: number of OPks to generate, Life time of SPks, ecc..     */
-/*                                                                            */
-/******************************************************************************/
-	constexpr uint16_t OPk_batch_number = 5; //TODO: 5 is ok for testing purpose what to set on real deployment
 
 /******************************************************************************/
 /*                                                                            */
@@ -88,6 +82,10 @@ namespace settings {
 
 	constexpr unsigned int SPK_lifeTime_days=7; // in days, Life time of a signed pre-key, it will be set to stale after that period
 	constexpr unsigned int SPK_limboTime_days=30; // in days, How long shall we keep a signed pre-key once it has been replaced by a new one
+
+	constexpr uint16_t OPk_batchSize = 25; // default batch size when uploading OPks to X3DH server
+	constexpr uint16_t OPk_initialBatchSize = 2*OPk_batchSize; // default batch size when creating a new user
+	constexpr uint16_t OPk_serverLowLimit = 50; // this is a default value but it can be set by parameter to the update function
 }
 
 }

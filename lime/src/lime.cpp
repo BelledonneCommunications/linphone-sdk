@@ -107,11 +107,12 @@ namespace lime {
 	 * @brief Publish on X3DH server the user, it is performed just after creation in local storage
 	 * this  will, on success, trigger generation and sending of SPk and OPks for our new user
 	 *
-	 * @param[in]	callback	call when completed
+	 * @param[in]	initialOPkBatchSize	Number of OPks in the first batch uploaded to X3DH server
+	 * @param[in]	callback		call when completed
 	 */
 	template <typename Curve>
-	void Lime<Curve>::publish_user(const limeCallback &callback) {
-		callbackUserData<Curve> *userData = new callbackUserData<Curve>{this->shared_from_this(), callback, true};
+	void Lime<Curve>::publish_user(const limeCallback &callback, const uint16_t OPkInitialBatchSize) {
+		callbackUserData<Curve> *userData = new callbackUserData<Curve>{this->shared_from_this(), callback, OPkInitialBatchSize, true};
 		get_SelfIdentityKey(); // make sure our Ik is loaded in object
 		std::vector<uint8_t> X3DHmessage{};
 		x3dh_protocol::buildMessage_registerUser<Curve>(X3DHmessage, m_Ik.publicKey());
@@ -147,6 +148,15 @@ namespace lime {
 		} else { // nothing to do but caller expect a callback
 			if (callback) callback(lime::callbackReturn::success, "");
 		}
+	}
+
+	template <typename Curve>
+	void Lime<Curve>::update_OPk(const limeCallback &callback, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize) {
+		// Request Server for the count of our OPk it still holds
+		callbackUserData<Curve> *userData = new callbackUserData<Curve>{this->shared_from_this(), callback, OPkServerLowLimit, OPkBatchSize};
+		std::vector<uint8_t> X3DHmessage{};
+		x3dh_protocol::buildMessage_getSelfOPks<Curve>(X3DHmessage);
+		postToX3DHServer(userData, X3DHmessage); // in the response from server, if more OPks are needed, it will generate and post them before calling the callback
 	}
 
 	template <typename Curve>
@@ -281,14 +291,15 @@ namespace lime {
 	 * @param[in]	deviceId			User to create in DB, deviceId shall be the GRUU
 	 * @param[in]	url				URL of X3DH key server to be used to publish our keys
 	 * @param[in]	curve				Which curve shall we use for this account, select the implemenation to instanciate when using this user
+	 * @param[in]	initialOPkBatchSize		Number of OPks in the first batch uploaded to X3DH server
 	 * @param[in]	http_provider			An http provider used to communicate with x3dh key server
 	 * @param[in]	user_authentication_callback	To complete user authentication on server: must provide user credentials
 	 * @param[in]	callback			To provide caller the operation result
 	 *
 	 * @return a pointer to the LimeGeneric class allowing access to API declared in lime.hpp
 	 */
-	std::shared_ptr<LimeGeneric> insert_LimeUser(const std::string &dbFilename, const std::string &deviceId, const std::string &url, const lime::CurveId curve, belle_http_provider *http_provider,
-			  const userAuthenticateCallback &user_authentication_callback, const limeCallback &callback) {
+	std::shared_ptr<LimeGeneric> insert_LimeUser(const std::string &dbFilename, const std::string &deviceId, const std::string &url, const lime::CurveId curve, const uint16_t OPkInitialBatchSize,
+			belle_http_provider *http_provider, const userAuthenticateCallback &user_authentication_callback, const limeCallback &callback) {
 		BCTBX_SLOGI<<"Create Lime user "<<deviceId;
 		/* first check the requested curve is instanciable and return an exception if not */
 #ifndef EC25519_ENABLED
@@ -313,7 +324,7 @@ namespace lime {
 				{
 					/* constructor will insert user in Db, if already present, raise an exception*/
 					auto lime_ptr = std::make_shared<Lime<C255>>(std::move(localStorage), deviceId, url, http_provider, user_authentication_callback);
-					lime_ptr->publish_user(callback);
+					lime_ptr->publish_user(callback, OPkInitialBatchSize);
 					return lime_ptr;
 				}
 #endif
@@ -323,7 +334,7 @@ namespace lime {
 #ifdef EC448_ENABLED
 				{
 					auto lime_ptr = std::make_shared<Lime<C448>>(std::move(localStorage), deviceId, url, http_provider, user_authentication_callback);
-					lime_ptr->publish_user(callback);
+					lime_ptr->publish_user(callback, OPkInitialBatchSize);
 					return lime_ptr;
 				}
 #endif

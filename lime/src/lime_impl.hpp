@@ -106,7 +106,7 @@ namespace lime {
 			Lime(Lime<Curve> &a) = delete; // can't copy a session, force usage of shared pointers
 			Lime<Curve> &operator=(Lime<Curve> &a) = delete; // can't copy a session
 
-			void publish_user(const limeCallback &callback) override;
+			void publish_user(const limeCallback &callback, const uint16_t OPkInitialBatchSize) override;
 			void delete_user(const limeCallback &callback) override;
 
 			/**
@@ -115,6 +115,18 @@ namespace lime {
 			 * @param[in] callback 	Called with success or failure when operation is completed.
 			*/
 			void update_SPk(const limeCallback &callback) override;
+
+			/**
+			 * @brief check if we shall upload more OPks on X3DH server
+			 * - ask server four our keys (returns the count and all their Ids)
+			 * - check if it's under the low limit, if yes, generate a batch of keys and upload them
+			 *
+			 * @param[in]	callback 		Called with success or failure when operation is completed.
+			 * @param[in]	OPkServerLowLimit	If server holds less OPk than this limit, generate and upload a batch of OPks
+			 * @param[in]	OPkBatchSize		Number of OPks in a batch uploaded to server
+			*/
+			void update_OPk(const limeCallback &callback, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize) override;
+
 
 			void encrypt(std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<recipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback) override;
 			bool decrypt(const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &cipherHeader, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) override;
@@ -132,17 +144,27 @@ namespace lime {
 		std::shared_ptr<const std::vector<uint8_t>> plainMessage;
 		std::shared_ptr<std::vector<uint8_t>> cipherMessage;
 		lime::network_state network_state_machine; /* used to run a simple state machine at user creation to perform sequence of packet sending: registerUser, postSPk, postOPks */
+		uint16_t OPkServerLowLimit; /* Used when fetching from server self OPk to check if we shall upload more */
+		uint16_t OPkBatchSize;
 
-		// when created at user_create/delete
-		callbackUserData(std::weak_ptr<Lime<Curve>> thiz, const limeCallback &callbackRef, bool startRegisterUserSequence=false)
+		// created at user create/delete and keys Post
+		callbackUserData(std::weak_ptr<Lime<Curve>> thiz, const limeCallback &callbackRef, uint16_t OPkInitialBatchSize=lime::settings::OPk_initialBatchSize, bool startRegisterUserSequence=false)
 			: limeObj{thiz}, callback{callbackRef},
-			recipientUserId{nullptr}, recipients{nullptr}, plainMessage{nullptr}, cipherMessage{nullptr}, network_state_machine{startRegisterUserSequence?lime::network_state::sendSPk:lime::network_state::done}  {};
-		// when created at encrypt
+			recipientUserId{nullptr}, recipients{nullptr}, plainMessage{nullptr}, cipherMessage{nullptr}, network_state_machine{startRegisterUserSequence?lime::network_state::sendSPk:lime::network_state::done},
+			OPkServerLowLimit(0), OPkBatchSize(OPkInitialBatchSize) {};
+
+		// created at update: getSelfOPks
+		callbackUserData(std::weak_ptr<Lime<Curve>> thiz, const limeCallback &callbackRef, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize)
+			: limeObj{thiz}, callback{callbackRef},
+			recipientUserId{nullptr}, recipients{nullptr}, plainMessage{nullptr}, cipherMessage{nullptr}, network_state_machine{lime::network_state::done},
+			OPkServerLowLimit{OPkServerLowLimit}, OPkBatchSize{OPkBatchSize} {};
+		// created at encrypt(getPeerBundle)
 		callbackUserData(std::weak_ptr<Lime<Curve>> thiz, const limeCallback &callbackRef,
 				std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<recipientData>> recipients,
 				std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage)
 			: limeObj{thiz}, callback{callbackRef},
-			recipientUserId{recipientUserId}, recipients{recipients}, plainMessage{plainMessage}, cipherMessage{cipherMessage}, network_state_machine {lime::network_state::done} {};// copy construct all shared_ptr
+			recipientUserId{recipientUserId}, recipients{recipients}, plainMessage{plainMessage}, cipherMessage{cipherMessage}, network_state_machine {lime::network_state::done}, // copy construct all shared_ptr
+			OPkServerLowLimit(0), OPkBatchSize(0) {};
 		// do not copy callback data, force passing the pointer around after creation
 		callbackUserData(callbackUserData &a) = delete;
 		callbackUserData operator=(callbackUserData &a) = delete;

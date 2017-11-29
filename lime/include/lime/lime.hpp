@@ -65,12 +65,16 @@ namespace lime {
 			 * 	A user is identified by its deviceId(shall be the GRUU) and must at creation select a base Elliptic curve to use, this setting cannot be changed later
 			 * 	A user is published on an X3DH key server who must run using the same elliptic curve selected for this user (creation will fail otherwise), the server url cannot be changed later
 			 *
-			 * @param[in]	localDeviceId	Identify the local user acount to use, it must be unique and is also be used as Id on the X3DH key server, it shall be the GRUU
-			 * @param[in]	x3dhServerUrl	The complete url(including port) of the X3DH key server. It must connect using HTTPS. Example: https://sip5.linphone.org:25519
-			 * @param[in]	curve		Choice of elliptic curve to use as base for ECDH and EdDSA operation involved. Can be CurveId::c25519 or CurveId::c448.
-			 * @param[in]	callback	This operation contact the X3DH server and is thus asynchronous, when server responds,
-			 * 				this callback will be called giving the exit status and an error message in case of failure
+			 * @param[in]	localDeviceId		Identify the local user acount to use, it must be unique and is also be used as Id on the X3DH key server, it shall be the GRUU
+			 * @param[in]	x3dhServerUrl		The complete url(including port) of the X3DH key server. It must connect using HTTPS. Example: https://sip5.linphone.org:25519
+			 * @param[in]	curve			Choice of elliptic curve to use as base for ECDH and EdDSA operation involved. Can be CurveId::c25519 or CurveId::c448.
+			 * @param[in]	initialOPkBatchSize	Number of OPks in the first batch uploaded to X3DH server
+			 * @param[in]	callback		This operation contact the X3DH server and is thus asynchronous, when server responds,
+			 * 					this callback will be called giving the exit status and an error message in case of failure
+			 * The initialOPkBatchSize is optionnal, if not used, set to defaults defined in lime::settings
+			 * (not done with param default value as the lime::settings shall not be available in public include)
 			 */
+			void create_user(const std::string &localDeviceId, const std::string &x3dhServerUrl, const lime::CurveId curve, const uint16_t initialOPkBatchSize, const limeCallback &callback);
 			void create_user(const std::string &localDeviceId, const std::string &x3dhServerUrl, const lime::CurveId curve, const limeCallback &callback);
 
 			/**
@@ -135,10 +139,16 @@ namespace lime {
 			 *
 			 *  Is performed for all users founds in local storage
 			 *
-			 * @param[in]	callback	This operation may contact the X3DH server and is thus asynchronous, when server responds,
-			 * 				this callback will be called giving the exit status and an error message in case of failure.
+			 * @param[in]	callback		This operation may contact the X3DH server and is thus asynchronous, when server responds,
+			 * 					this callback will be called giving the exit status and an error message in case of failure.
+			 * @param[in]	OPkServerLowLimit	If server holds less OPk than this limit, generate and upload a batch of OPks
+			 * @param[in]	OPkBatchSize		Number of OPks in a batch uploaded to server
+			 *
+			 * The last two parameters are optionnal, if not used, set to defaults defined in lime::settings
+			 * (not done with param default value as the lime::settings shall not be available in public include)
 			 */
 			void update(const limeCallback &callback);
+			void update(const limeCallback &callback, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize);
 
 			LimeManager() = delete; // no manager without Database and http provider
 			LimeManager(const LimeManager&) = delete; // no copy constructor

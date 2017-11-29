@@ -91,6 +91,8 @@ const enum_messageTypes = {
 	postOPks:0x04,
 	getPeerBundle:0x05,
 	peerBundle:0x06,
+	getSelfOPks:0x07,
+	selfOPks:0x08,
 	error:0xff
 };
 
@@ -533,6 +535,40 @@ https.createServer(digest, options, (req, res) => {
 
 
 			break;
+
+			/* selfOPks :	OPKs Id Count < 2 bytes unsigned Big Endian> |
+			 *	    (OPk id <4 bytes>){ OPks Id Count}
+			 */
+			case enum_messageTypes.getSelfOPks:
+				console.log("Process a getSelfOPks Message from "+userId);
+				db.all("SELECT o.OPk_id  as OPk_id FROM Users as u INNER JOIN OPk as o ON u.Uid=o.Uid WHERE UserId = ?;", userId, function (err, rows) {
+					if (err) {
+						returnError(enum_errorCodes.db_error, " Database error in getSelfOPks by "+userId+" : "+err);
+						return;
+					}
+
+					// create the return message
+					let selfOPKsBuffer = Buffer.allocUnsafe(X3DH_headerSize+2);
+					selfOPKsBuffer.writeUInt8(X3DH_protocolVersion, 0);
+					selfOPKsBuffer.writeUInt8(enum_messageTypes.selfOPks, 1);
+					selfOPKsBuffer.writeUInt8(curveId, 2);
+
+					if (rows == undefined || rows.length == 0) { // no Id founds
+						selfOPKsBuffer.writeUInt16BE(0, 3); // peers bundle count on 2 bytes in Big Endian
+
+					} else {
+						selfOPKsBuffer.writeUInt16BE(rows.length, 3); // peers bundle count on 2 bytes in Big Endian
+
+						for (let i=0; i<rows.length; i++) {
+							let OPk_idBuffer = Buffer.allocUnsafe(4);
+							OPk_idBuffer.writeUInt32BE(rows[i]['OPk_id'], 0); // OPk id on 4 bytes in Big Endian
+							selfOPKsBuffer = Buffer.concat([selfOPKsBuffer, OPk_idBuffer]);
+						}
+					}
+					returnOk(selfOPKsBuffer);
+				});
+			break;
+
 			default:
 				returnError(enum_errorCodes.bad_message_type, "Unknown message type "+messageType);
 			break;

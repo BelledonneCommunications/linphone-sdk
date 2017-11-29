@@ -65,6 +65,11 @@ namespace lime {
 		 *				    (OPk <ECDH Public Key Length> || OPk id <4 bytes>){0,1 in accordance to flag}
 		 *				) { bundle Count}
 		 *
+		 *		- getSelfOPks : empty message, ask server for the OPk Id it still holds for us
+		 *
+		 *		- selfOPks : OPk Count <2 bytes unsigned integer Big Endian> ||
+		 *				(OPk id <4 bytes uint32_t big endian>){OPk Count}
+		 *
 		 *		- error :	errorCode<1 byte> || (errorMessage<...>){0,1}
 		 */
 
@@ -77,6 +82,8 @@ namespace lime {
 							postOPks=0x04,
 							getPeerBundle=0x05,
 							peerBundle=0x06,
+							getSelfOPks=0x07,
+							selfOPks=0x08,
 							error=0xff};
 
 		enum class x3dh_error_code : uint8_t{	bad_content_type=0x00,
@@ -173,6 +180,14 @@ namespace lime {
 			}
 		}
 
+		// getSelfOPks : empty message, ask server for the OPk Id it still holds for us
+		template <typename Curve>
+		void buildMessage_getSelfOPks(std::vector<uint8_t> &message) noexcept {
+			// create the header
+			message = X3DH_makeHeader(x3dh_message_type::getSelfOPks, Curve::curveId());
+		}
+
+
 		/*
 		 * @brief Perform validity verifications on x3dh message and extract its type and error code if its the case
 		 *
@@ -224,6 +239,12 @@ namespace lime {
 					break;
 				case static_cast<uint8_t>(x3dh_message_type::peerBundle) :
 					message_type = x3dh_message_type::peerBundle;
+					break;
+				case static_cast<uint8_t>(x3dh_message_type::getSelfOPks) :
+					message_type = x3dh_message_type::getSelfOPks;
+					break;
+				case static_cast<uint8_t>(x3dh_message_type::selfOPks) :
+					message_type = x3dh_message_type::selfOPks;
 					break;
 				case static_cast<uint8_t>(x3dh_message_type::error) :
 					message_type = x3dh_message_type::error;
@@ -361,6 +382,46 @@ namespace lime {
 			return true;
 		}
 
+		/*
+		 * selfOPks : OPk Count <2 bytes unsigned integer Big Endian> ||
+		 *	(OPk id <4 bytes uint32_t big endian>){OPk Count}
+		 */
+		/**
+		 * @brief Parse a selfPk message and populate a self OPk ids
+		 * Warning: no checks are done on message type, they are performed before calling this function
+		 *
+		 * @param[in]	body		a buffer holding the message
+		 * @param[in]	bodySize	size of previous buffer
+		 * @param[out]	selfOPkIds	a vector to be populated from message content, is empty if no OPk returned
+		 *
+		 * @return true if all went ok, false otherwise
+		 */
+		template <typename Curve>
+		bool parseMessage_selfOPks(const uint8_t *body, const size_t bodySize, std::vector<uint32_t> &selfOPkIds) noexcept {
+			selfOPkIds.clear();
+			if (bodySize < X3DH_headerSize+2) { // we must be able to at least have a count of bundles
+				return false;
+			}
+
+			uint16_t selfOPkIdsCount = (static_cast<uint16_t>(body[X3DH_headerSize]))<<8|body[X3DH_headerSize+1];
+
+			if (bodySize < X3DH_headerSize+2+4*selfOPkIdsCount) { // this expected message size
+				return false;
+			}
+			size_t index = X3DH_headerSize+2;
+			// loop on all OPk Ids
+			for (auto i=0; i<selfOPkIdsCount; i++) { // they are in big endian
+				uint32_t OPkId = static_cast<uint32_t>(body[index])<<24 |
+						static_cast<uint32_t>(body[index+1])<<16 |
+						static_cast<uint32_t>(body[index+2])<<8 |
+						static_cast<uint32_t>(body[index+3]);
+				index+=4;
+				selfOPkIds.push_back(OPkId);
+			}
+			return true;
+		}
+
+
 		/* Instanciate templated functions */
 #ifdef EC25519_ENABLED
 		template void buildMessage_registerUser<C255>(std::vector<uint8_t> &message, const ED<C255> &Ik) noexcept;
@@ -368,6 +429,7 @@ namespace lime {
 		template void buildMessage_publishSPk<C255>(std::vector<uint8_t> &message, const X<C255> &SPk, const Signature<C255> &Sig, const uint32_t SPk_id) noexcept;
 		template void buildMessage_publishOPks<C255>(std::vector<uint8_t> &message, const std::vector<X<C255>> &OPks, const std::vector<uint32_t> &OPk_ids) noexcept;
 		template void buildMessage_getPeerBundles<C255>(std::vector<uint8_t> &message, std::vector<std::string> &peer_device_ids) noexcept;
+		template void buildMessage_getSelfOPks<C255>(std::vector<uint8_t> &message) noexcept;
 #endif
 
 #ifdef EC448_ENABLED
@@ -376,6 +438,7 @@ namespace lime {
 		template void buildMessage_publishSPk<C448>(std::vector<uint8_t> &message, const X<C448> &SPk, const Signature<C448> &Sig, const uint32_t SPk_id) noexcept;
 		template void buildMessage_publishOPks<C448>(std::vector<uint8_t> &message, const std::vector<X<C448>> &OPks, const std::vector<uint32_t> &OPk_ids) noexcept;
 		template void buildMessage_getPeerBundles<C448>(std::vector<uint8_t> &message, std::vector<std::string> &peer_device_ids) noexcept;
+		template void buildMessage_getSelfOPks<C448>(std::vector<uint8_t> &message) noexcept;
 #endif
 	} //namespace x3dh_protocol
 
@@ -431,7 +494,6 @@ namespace lime {
 				auto body = reinterpret_cast<const uint8_t *>(belle_sip_message_get_body(message));
 				auto bodySize = belle_sip_message_get_body_size(message);
 
-
 				lime::x3dh_protocol::x3dh_message_type message_type{x3dh_protocol::x3dh_message_type::unset_type};
 				lime::x3dh_protocol::x3dh_error_code error_code{x3dh_protocol::x3dh_error_code::unset_error_code};
 				if (!x3dh_protocol::parseMessage_getType<Curve>(body, bodySize, message_type, error_code, callback)) {
@@ -476,6 +538,33 @@ namespace lime {
 					return;
 				}
 
+				// Is it a selfOPks message?
+				if (message_type == lime::x3dh_protocol::x3dh_message_type::selfOPks) {
+					std::vector<uint32_t> selfOPkIds{};
+					if (!x3dh_protocol::parseMessage_selfOPks<Curve>(body, bodySize, selfOPkIds)) { // parsing went wrong
+						BCTBX_SLOGE<<"Got an invalid selfOPKs packet from X3DH server";
+						if (callback) callback(lime::callbackReturn::fail, "Got an invalid selfOPKs packet from X3DH server");
+						thiz->cleanUserData(userData);
+						return;
+					}
+
+					// TODO: tag as seen on server all the Ids so one day we can remove the OPk distributed by server but not used
+					// Check if we shall upload more packets
+					if (selfOPkIds.size() < userData->OPkServerLowLimit) {
+						// generate and publish the OPks
+						std::vector<X<Curve>> OPks{};
+						std::vector<uint32_t> OPk_ids{};
+						thiz->X3DH_generate_OPks(OPks, OPk_ids, userData->OPkBatchSize);
+						std::vector<uint8_t> X3DHmessage{};
+						x3dh_protocol::buildMessage_publishOPks(X3DHmessage, OPks, OPk_ids);
+						thiz->postToX3DHServer(userData, X3DHmessage);
+					} else { /* nothing to do, just call the callback */
+						if (callback) callback(lime::callbackReturn::success, "");
+						thiz->cleanUserData(userData);
+					}
+					return;
+				}
+
 				// Rudimental state machine active at user registration only:
 				// - after registering a new user on X3dh server, if all goes well(server responde message type is registerIdentity), we shall upload SPK
 				// - after uploading SPk on X3dh server, if all goes well(server responde message type is registerIdentity), we shall upload SPK
@@ -494,7 +583,7 @@ namespace lime {
 					// generate and publish the OPks
 					std::vector<X<Curve>> OPks{};
 					std::vector<uint32_t> OPk_ids{};
-					thiz->X3DH_generate_OPks(OPks, OPk_ids, lime::settings::OPk_batch_number);
+					thiz->X3DH_generate_OPks(OPks, OPk_ids, userData->OPkBatchSize);
 					std::vector<uint8_t> X3DHmessage{};
 					x3dh_protocol::buildMessage_publishOPks(X3DHmessage, OPks, OPk_ids);
 					thiz->postToX3DHServer(userData, X3DHmessage);
