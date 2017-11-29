@@ -78,6 +78,9 @@ bool DR_message_holdsX3DHInit(std::vector<uint8_t> &message, bool &haveOPk);
 /* return true if the message buffer is a valid DR message holding a X3DH init one in its header and copy the X3DH init message in the provided buffer */
 bool DR_message_extractX3DHInit(std::vector<uint8_t> &message, std::vector<uint8_t> &X3DH_initMessage);
 
+/* return true if the message buffer is a valid DR message holding an X3DH init message, copy its SPk id in the given parameter */
+bool DR_message_extractX3DHInit_SPkId(std::vector<uint8_t> &message, uint32_t &SPkId);
+
 /* Open provided DB and look for DRSessions established between selfDevice and peerDevice
  * Populate the sessionsId vector with the Ids of sessions found
  * return the id of the active session if one is found, 0 otherwise */
@@ -88,6 +91,11 @@ long int get_DRsessionsId(const std::string &dbFilename, const std::string &self
  * return 0 if no sessions found or no user found
  */
 unsigned int get_StoredMessageKeyCount(const std::string &dbFilename, const std::string &selfDeviceId, const std::string &peerDeviceId) noexcept;
+
+/* For the given deviceId, count the number of associated SPk and return the Id of the active one(if any)
+ * return true if an active one was found
+ */
+bool get_SPks(const std::string &dbFilename, const std::string &selfDeviceId, size_t &count, uint32_t &activeId) noexcept;
 
 /* Move back in time all timeStamps by the given amout of days
  * DB holds timeStamps in DR_sessions and X3DH_SPK tables

@@ -131,6 +131,25 @@ namespace lime {
 	}
 
 	template <typename Curve>
+	void Lime<Curve>::update_SPk(const limeCallback &callback) {
+		// Do we need to update the SPk
+		if (!is_currentSPk_valid()) {
+			BCTBX_SLOGI<<"User "<<m_selfDeviceId<<" updates its SPk";
+			callbackUserData<Curve> *userData = new callbackUserData<Curve>{this->shared_from_this(), callback};
+			// generate and publish the SPk
+			X<Curve> SPk{};
+			Signature<Curve> SPk_sig{};
+			uint32_t SPk_id=0;
+			X3DH_generate_SPk(SPk, SPk_sig, SPk_id);
+			std::vector<uint8_t> X3DHmessage{};
+			x3dh_protocol::buildMessage_publishSPk(X3DHmessage, SPk, SPk_sig, SPk_id);
+			postToX3DHServer(userData, X3DHmessage);
+		} else { // nothing to do but caller expect a callback
+			if (callback) callback(lime::callbackReturn::success, "");
+		}
+	}
+
+	template <typename Curve>
 	void Lime<Curve>::encrypt(std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<recipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback) {
 		bctbx_debug("encrypt from %s to %ld recipients", m_selfDeviceId.data(), recipients->size());
 		/* Check if we have all the Double Ratchet sessions ready or shall we go for an X3DH */
@@ -223,13 +242,18 @@ namespace lime {
 		}
 
 		// parse the X3DH init message, get keys from localStorage, compute the shared secrets, create DR_Session and return a shared pointer to it
-		std::shared_ptr<DR<Curve>> DRSession{X3DH_init_receiver_session(X3DH_initMessage, senderDeviceId)}; // would just throw an exception in case of failure, let it flow up
-		DRSessions.clear();
-		DRSessions.push_back(DRSession);
+		try {
+			std::shared_ptr<DR<Curve>> DRSession{X3DH_init_receiver_session(X3DH_initMessage, senderDeviceId)}; // would just throw an exception in case of failure, let it flow up
+			DRSessions.clear();
+			DRSessions.push_back(DRSession);
+		} catch (BctbxException &e) {
+			BCTBX_SLOGE<<"Fail to create the DR session from the X3DH init message : "<<e;
+			return false;
+		}
 
 		if (decryptMessage<Curve>(senderDeviceId, m_selfDeviceId, recipientUserId, DRSessions, cipherHeader, cipherMessage, plainMessage) != 0) {
 			// we manage to decrypt the message with this session, set it in cache
-			m_DR_sessions_cache[senderDeviceId] = std::move(DRSession);
+			m_DR_sessions_cache[senderDeviceId] = std::move(DRSessions.front());
 			return true;
 		}
 		return false;

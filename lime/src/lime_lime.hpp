@@ -36,6 +36,7 @@ namespace lime {
 		virtual bool decrypt(const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &cipherHeader, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) = 0;
 		virtual void publish_user(const limeCallback &callback) = 0;
 		virtual void delete_user(const limeCallback &callback) = 0;
+		virtual void update_SPk(const limeCallback &callback) = 0;
 		virtual ~LimeGeneric() {};
 	};
 

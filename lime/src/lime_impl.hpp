@@ -80,6 +80,7 @@ namespace lime {
 			void X3DH_generate_SPk(X<Curve> &publicSPk, Signature<Curve> &SPk_sig, uint32_t &SPk_id); // generate a new Signed Pre-Key key pair, store it in DB and set its public key, signature and Id in given params
 			void X3DH_generate_OPks(std::vector<X<Curve>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number); // generate a new batch of OPks, store them in base and fill the vector with information to be sent to X3DH server
 			void X3DH_get_SPk(uint32_t SPk_id, KeyPair<X<Curve>> &SPk); // retrieve matching SPk from localStorage, throw an exception if not found
+			bool is_currentSPk_valid(void); // check validity of current SPk
 			void X3DH_get_OPk(uint32_t OPk_id, KeyPair<X<Curve>> &SPk); // retrieve matching OPk from localStorage, throw an exception if not found
 			/* X3DH related  - part related to X3DH DR session initiation, implemented in lime_x3dh.cpp */
 			void X3DH_init_sender_session(const std::vector<X3DH_peerBundle<Curve>> &peersBundle); // compute a sender X3DH using the data from peer bundle, then create and load the DR_Session
@@ -107,6 +108,13 @@ namespace lime {
 
 			void publish_user(const limeCallback &callback) override;
 			void delete_user(const limeCallback &callback) override;
+
+			/**
+			 * @brief Check if the current SPk needs to be updated, if yes, generate a new one and publish it on server
+			 *
+			 * @param[in] callback 	Called with success or failure when operation is completed.
+			*/
+			void update_SPk(const limeCallback &callback) override;
 
 			void encrypt(std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<recipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback) override;
 			bool decrypt(const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &cipherHeader, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) override;

@@ -142,7 +142,7 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 		// Any application using Lime shall instantiate one LimeManager only, even in case of multiple users managed by the application.
 		auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, prov,
 					// closure copy from context its way to access users credentials
-					[&aliceCredentials](belle_sip_auth_event_t *event){
+					[aliceCredentials](belle_sip_auth_event_t *event){
 						// the deviceId is set in the event username(accessible via belle_sip_auth_event_get_username(event);
 						BCTBX_SLOGI<<"Accessing credentials for user "<<std::string(belle_sip_auth_event_get_username(event))<<endl;
 
@@ -156,7 +156,7 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 
 		auto bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, prov,
 					// closure copy from context its way to access users credentials
-					[&bobCredentials](belle_sip_auth_event_t *event){
+					[bobCredentials](belle_sip_auth_event_t *event){
 						// the deviceId is set in the event username(accessible via belle_sip_auth_event_get_username(event);
 						BCTBX_SLOGI<<"Accessing credentials for user "<<std::string(belle_sip_auth_event_get_username(event))<<endl;
 
@@ -207,14 +207,16 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 		//      - a callback (prototype: void(lime::callbackReturn, std::string))
 		aliceManager->encrypt(*aliceDeviceId, make_shared<const std::string>("bob"), recipients, message, cipherMessage,
 					// lambda to get the results, it captures :
-					// - counter : relative to the test, real application won't need this, it's local and used to wait for this macro so can't be destroyed before the call to this closure
+					// - counter : relative to the test, real application won't need this, it's local and used to wait for completion and can't be destroyed before the call to this closure
 					// - recipients :  It will hold the same list of deviceIds we set as input with their corresponding cipherHeader.
 					// - cipherMessage : It will hold the cipher message to be sent to all recipients devices.
 					// IMPORTANT : recipients and cipherMessage are captured by copy not reference. They are shared_ptr, their original scope is likely to be the function where the encrypt is called.
 					//             they shall then be destroyed when getting out of this function and thus won't be valid anymore when this closure is called. By getting a copy we just increase their
 					//             use count and are sure to still have them valid when we are called.
-					//             It may be wise to use weak_ptr instead of shared ones so if any problem occurs resulting in callback never being called, it won't held this buffer from being destroyed
-					//             In normal operation, the shared_ptr given to encrypt function is internally owned at least until the callback is called.
+					//             After this closure is called it is destroyed(internal reference is dropped) decreasing the count and allowing the release of the buffer.
+					//
+					//             It may be wise to use weak_ptr instead of shared ones so if any problem occurs resulting in callback never being called/destroyed, it won't held this buffer from being destroyed
+					//             In normal operation, the shared_ptrs to recipients and cipherMessage given to encrypt function are internally owned at least until the callback is called.
 					[&counters,
 					recipients, cipherMessage](lime::callbackReturn returnCode, std::string errorMessage){
 						// counters is related to this test environment only, not to be considered for real usage

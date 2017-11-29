@@ -208,11 +208,178 @@ static void lime_session_establishment(const lime::CurveId curve, const std::str
 
 /**
  * Scenario:
+ * - Create a user alice
+ * - simulate a move forward in time
+ * - check we changed SPk and still got the old one
+ * - repeat until we reach the epoch in which SPk shall be deleted, check it is the case
+ */
+static void lime_update_SPk_test(const lime::CurveId curve, const std::string &dbBaseFilename, const std::string &x3dh_server_url) {
+	// create DB
+	std::string dbFilenameAlice{dbBaseFilename};
+	std::string dbFilenameBob{dbBaseFilename};
+	dbFilenameAlice.append(".alice.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
+	dbFilenameBob.append(".bob.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
+
+	remove(dbFilenameAlice.data()); // delete the database file if already exists
+	remove(dbFilenameBob.data()); // delete the database file if already exists
+
+	lime_tester::events_counters_t counters={};
+	int expected_success=0;
+
+	limeCallback callback([&counters](lime::callbackReturn returnCode, std::string anythingToSay) {
+					if (returnCode == lime::callbackReturn::success) {
+						counters.operation_success++;
+					} else {
+						counters.operation_failed++;
+						BCTBX_SLOGE<<"Lime operation failed : "<<anythingToSay;
+					}
+				});
+	try {
+		// starting epoch nad number of SPk keys in localStorage
+		unsigned int epoch=0;
+		auto SPkExpectedCount=1;
+		size_t patternIndex = 0;
+
+		// create Manager and device for alice
+		auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, prov, user_auth_callback));
+		auto aliceDeviceId = lime_tester::makeRandomDeviceName("alice.d1.");
+		aliceManager->create_user(*aliceDeviceId, x3dh_server_url, curve, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+		size_t SPkCount=0;
+		uint32_t activeSPkId=0;
+		BC_ASSERT_TRUE(lime_tester::get_SPks(dbFilenameAlice, *aliceDeviceId, SPkCount, activeSPkId));
+		BC_ASSERT_EQUAL(SPkCount, SPkExpectedCount, int, "%d");
+
+		// We will create a bob device and encrypt for each new epoch
+		std::vector<std::unique_ptr<LimeManager>> bobManagers{};
+		std::vector<std::shared_ptr<std::string>> bobDeviceIds{};
+		std::vector<std::shared_ptr<std::vector<recipientData>>> bobRecipients{};
+		std::vector<std::shared_ptr<std::vector<uint8_t>>> bobCipherMessages{};
+
+		// create a device for bob and encrypt to alice
+		bobManagers.push_back(std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, prov, user_auth_callback)));
+		bobDeviceIds.push_back(lime_tester::makeRandomDeviceName("bob.d"));
+		bobManagers.back()->create_user(*(bobDeviceIds.back()), x3dh_server_url, curve, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+
+		bobRecipients.push_back(make_shared<std::vector<recipientData>>());
+		bobRecipients.back()->emplace_back(*aliceDeviceId);
+		auto plainMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[patternIndex].begin(), lime_tester::messages_pattern[patternIndex].end());
+		bobCipherMessages.push_back(make_shared<std::vector<uint8_t>>());
+
+		bobManagers.back()->encrypt(*(bobDeviceIds.back()), make_shared<const std::string>("alice"), bobRecipients.back(), plainMessage, bobCipherMessages.back(), callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+		uint32_t SPkIdMessage=0;
+		// extract SPKid from bob's message, and check it matches the current one from Alice DB
+		BC_ASSERT_TRUE(lime_tester::DR_message_extractX3DHInit_SPkId((*(bobRecipients.back()))[0].cipherHeader, SPkIdMessage));
+		BC_ASSERT_EQUAL(SPkIdMessage, activeSPkId, uint32_t, "%x");
+
+		patternIndex++;
+		patternIndex %= lime_tester::messages_pattern.size();
+
+		// steping by SPK_lifeTime_days go ahead in time and check the update is performed correctly
+		while (epoch<=lime::settings::SPK_limboTime_days) {
+			// forward time by SPK_lifeTime_days
+			aliceManager=nullptr; // destroy manager before modifying DB
+			lime_tester::forwardTime(dbFilenameAlice, lime::settings::SPK_lifeTime_days);
+			epoch+=lime::settings::SPK_lifeTime_days;
+			aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, prov, user_auth_callback));
+
+			// call the update, it shall create and upload a new SPk but keep the old ones
+			aliceManager->update(callback);
+			BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+			SPkExpectedCount++;
+
+			// check we have the correct count of keys in local
+			SPkCount=0;
+			activeSPkId=0;
+			BC_ASSERT_TRUE(lime_tester::get_SPks(dbFilenameAlice, *aliceDeviceId, SPkCount, activeSPkId));
+			BC_ASSERT_EQUAL(SPkCount, SPkExpectedCount, int, "%d");
+
+			// create a device for bob and use it to encrypt
+			bobManagers.push_back(std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, prov, user_auth_callback)));
+			bobDeviceIds.push_back(lime_tester::makeRandomDeviceName("bob.d"));
+			bobManagers.back()->create_user(*(bobDeviceIds.back()), x3dh_server_url, curve, callback);
+			BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+
+			bobRecipients.push_back(make_shared<std::vector<recipientData>>());
+			bobRecipients.back()->emplace_back(*aliceDeviceId);
+			auto plainMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[patternIndex].begin(), lime_tester::messages_pattern[patternIndex].end());
+			bobCipherMessages.push_back(make_shared<std::vector<uint8_t>>());
+
+			bobManagers.back()->encrypt(*(bobDeviceIds.back()), make_shared<const std::string>("alice"), bobRecipients.back(), plainMessage, bobCipherMessages.back(), callback);
+			BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+
+			// extract SPKid from bob's message, and check it matches the current one from Alice DB
+			SPkIdMessage=0;
+			BC_ASSERT_TRUE(lime_tester::DR_message_extractX3DHInit_SPkId((*(bobRecipients.back()))[0].cipherHeader, SPkIdMessage));
+			BC_ASSERT_EQUAL(SPkIdMessage, activeSPkId, uint32_t, "%x");
+
+			patternIndex++;
+			patternIndex %= lime_tester::messages_pattern.size();
+		}
+
+		// forward time once more by SPK_lifeTime_days, our first SPk shall now be out of limbo and ready to be deleted
+		aliceManager=nullptr; // destroy manager before modifying DB
+		lime_tester::forwardTime(dbFilenameAlice, lime::settings::SPK_lifeTime_days);
+		epoch+=lime::settings::SPK_lifeTime_days;
+		aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, prov, user_auth_callback));
+
+		// call the update, it shall create and upload a new SPk but keep the old ones and delete one
+		aliceManager->update(callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+		// there shall not be any rise in the number of SPk keys found in DB, check that
+		SPkCount=0;
+		activeSPkId=0;
+		BC_ASSERT_TRUE(lime_tester::get_SPks(dbFilenameAlice, *aliceDeviceId, SPkCount, activeSPkId));
+		BC_ASSERT_EQUAL(SPkCount, SPkExpectedCount, int, "%d");
+
+		// Try to decrypt all message: the first message must fail to decrypt as we just deleted the SPk needed to create the session
+		std::vector<uint8_t> receivedMessage{};
+		BC_ASSERT_FALSE(aliceManager->decrypt(*aliceDeviceId, "alice", *(bobDeviceIds[0]), (*bobRecipients[0])[0].cipherHeader, *(bobCipherMessages[0]), receivedMessage));
+		// other shall be Ok.
+		for (size_t i=1; i<bobManagers.size(); i++) {
+			receivedMessage.clear();
+			BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDeviceId, "alice", *(bobDeviceIds[i]), (*bobRecipients[i])[0].cipherHeader, *(bobCipherMessages[i]), receivedMessage));
+			auto receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
+			BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[i%lime_tester::messages_pattern.size()]);
+		}
+
+		if (cleanDatabase) {
+			auto i=0;
+			for (auto &bobManager : bobManagers) {
+				bobManager->delete_user(*(bobDeviceIds[i]), callback);
+				i++;
+			}
+			aliceManager->delete_user(*aliceDeviceId, callback);
+			expected_success += 1+bobManagers.size();
+			BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,expected_success,lime_tester::wait_for_timeout));
+			remove(dbFilenameAlice.data());
+			remove(dbFilenameBob.data());
+		}
+	} catch (BctbxException &e) {
+		BCTBX_SLOGE <<e;;
+		BC_FAIL();
+	}
+}
+
+static void lime_update_SPk() {
+#ifdef EC25519_ENABLED
+	lime_update_SPk_test(lime::CurveId::c25519, "lime_update_SPk", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data());
+#endif
+#ifdef EC448_ENABLED
+	//lime_update_SPk_test(lime::CurveId::c448, "lime_update_SPk", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data());
+#endif
+}
+
+/**
+ * Scenario:
  * - Establish a session between alice and bob
  * - Skip two messages and keep on exchanging post until maxMessagesReceivedAfterSkip
  * - Check we have two message key in localStorage
  * - decrypt a message
  * - Check we have one message key in localStorage
+ * - simulate a move forward in time
  * - call the update
  * - Check we have no more message key in storage
  * - try to decrypt the message, it shall fail
@@ -1470,6 +1637,7 @@ static test_t tests[] = {
 	TEST_NO_TAG("Sending chain limit", x3dh_sending_chain_limit),
 	TEST_NO_TAG("Without OPk", x3dh_without_OPk),
 	TEST_NO_TAG("Update - clean MK", lime_update_clean_MK),
+	TEST_NO_TAG("Update - SPk", lime_update_SPk)
 };
 
 test_suite_t lime_lime_test_suite = {

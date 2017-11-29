@@ -109,13 +109,55 @@ namespace lime {
 		// open local DB
 		auto localStorage = std::unique_ptr<lime::Db>(new lime::Db(m_db_access));
 
-		/* DR sessions cleaning */
+		/* DR sessions and old stale SPk cleaning */
 		localStorage->clean_DRSessions();
+		localStorage->clean_SPk();
 
-		/* OPk check : ask X3DH server how many keys are left */
+		// get all users from localStorage
+		std::vector<std::string> deviceIds{};
+		localStorage->get_allLocalDevices(deviceIds);
+
+		//This counter will trace number of callbacks, to trace how many operation did end,
+		auto callbackCounts = make_shared<size_t>(0);
+		// we expect two callback per local user account: one for update SPk, one for get OPk number on server
+		size_t expectedCallbacks = deviceIds.size();
+		auto globalReturnCode = make_shared<lime::callbackReturn>(lime::callbackReturn::success);
+
+		limeCallback managerUpdateCallback([callbackCounts, expectedCallbacks, globalReturnCode, callback](lime::callbackReturn returnCode, std::string errorMessage) {
+			(*callbackCounts)++;
+			if (returnCode == lime::callbackReturn::fail) {
+				*globalReturnCode = lime::callbackReturn::fail; // if one fail, return fail at the end of it
+			}
+
+			if (*callbackCounts == expectedCallbacks) {
+				if (callback) callback(*globalReturnCode, "");
+			}
+		});
+
+
+		// for each user
+		for (auto deviceId : deviceIds) {
+			BCTBX_SLOGI<<"Lime update user "<<deviceId;
+			//load user
+			auto userElem = m_users_cache.find(deviceId);
+			std::shared_ptr<LimeGeneric> user;
+			if (userElem == m_users_cache.end()) { // not in cache, load it from DB
+				user = load_LimeUser(m_db_access, deviceId, m_http_provider, m_user_auth);
+				m_users_cache[deviceId]=user;
+			} else {
+				user = userElem->second;
+			}
+
+			// send a request to X3DH server to check how many OPk are left on server
+
+
+			// update the SPk(if needed)
+			user->update_SPk(managerUpdateCallback);
+		}
+
 
 		/* SPk check */
 
-		if (callback) callback(lime::callbackReturn::success, "");
+		//if (callback) callback(lime::callbackReturn::success, "");
 	}
 } // namespace lime

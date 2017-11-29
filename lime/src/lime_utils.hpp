@@ -86,9 +86,8 @@ namespace settings {
 	const std::string X3DH_SK_info{"Lime"}; // shall be an ASCII string identifying the application (X3DH spec section 2.1)
 	const std::string X3DH_AD_info{"X3DH Associated Data"}; // used to generate a shared AD based on Ik and deviceID
 
-	// use time period definitions as in bctoolbox/port.h bctbx_time_string_to_sec function
-	const std::string SPK_lifeTime{"1W"}; // Life tine of a signed pre-key, it will be set to stale after that period
-	const std::string SPK_limboTime{"1W"}; // How long shall we keep a signed pre-key once it has been replaced by a new one
+	constexpr unsigned int SPK_lifeTime_days=7; // in days, Life time of a signed pre-key, it will be set to stale after that period
+	constexpr unsigned int SPK_limboTime_days=30; // in days, How long shall we keep a signed pre-key once it has been replaced by a new one
 }
 
 }

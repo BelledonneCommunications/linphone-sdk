@@ -35,6 +35,16 @@ using namespace::lime;
 
 namespace lime {
 
+/******************************************************************************/
+/*                                                                            */
+/* Db public API                                                              */
+/*                                                                            */
+/******************************************************************************/
+/**
+ * @brief Constructor, open and check DB validity, create or update db schema is needed
+ *
+ * @param[in]	filename	The path to DB file
+ */
 Db::Db(std::string filename) : sql{sqlite3, filename}{
 	constexpr int db_module_table_not_in_base = -2;
 	constexpr int db_module_table_not_holding_lime_row = -1;
@@ -190,23 +200,20 @@ Db::Db(std::string filename) : sql{sqlite3, filename}{
 		}
 	}
 };
-/******************************************************************************/
-/*                                                                            */
-/* Db public API                                                              */
-/*                                                                            */
-/******************************************************************************/
+
 /**
  * @brief Check for existence, retrieve Uid for local user based on its userId(GRUU) and curve from table lime_LocalUsers
  *
- * @param[in]	userId		a string holding the user to look for in DB, shall be its GRUU
+ * @param[in]	deviceId	a string holding the user to look for in DB, shall be its GRUU
  * @param[out]	Uid		the DB internal Id matching given userId(if find in DB, 0 otherwise)
  * @param[out]	curveId		the curve selected at user creation
+ * @param[out]	url		the url of the X3DH server this user is registered on
  *
  */
-void Db::load_LimeUser(const std::string &userId, long int &Uid, lime::CurveId &curveId, std::string &url)
+void Db::load_LimeUser(const std::string &deviceId, long int &Uid, lime::CurveId &curveId, std::string &url)
 {
 	int curve=0;
-	sql<<"SELECT Uid,CurveId,server FROM lime_LocalUsers WHERE UserId = :userId LIMIT 1;", into(Uid), into(curve), into(url), use(userId);
+	sql<<"SELECT Uid,CurveId,server FROM lime_LocalUsers WHERE UserId = :userId LIMIT 1;", into(Uid), into(curve), into(url), use(deviceId);
 
 	if (sql.got_data()) { // we found someone
 		// turn back integer value retrieved from DB into a lime::CurveId
@@ -221,16 +228,16 @@ void Db::load_LimeUser(const std::string &userId, long int &Uid, lime::CurveId &
 			default: // we got an unknow or unset curve Id, DB is either corrupted or a future version
 				curveId=lime::CurveId::unset;
 				Uid=0;
-				throw BCTBX_EXCEPTION << "Lime DB either corrupted or back from the future. User "<<userId<<" claim to run with unknown or unset Curve Id "<< curve;
+				throw BCTBX_EXCEPTION << "Lime DB either corrupted or back from the future. User "<<deviceId<<" claim to run with unknown or unset Curve Id "<< curve;
 		}
 	} else { // no match: throw an execption
 		Uid = 0; // be sure to reset the db_Uid to 0
-		throw BCTBX_EXCEPTION << "Cannot find Lime User "<<userId<<" in DB";
+		throw BCTBX_EXCEPTION << "Cannot find Lime User "<<deviceId<<" in DB";
 	}
 }
 
 /**
- * @brief Delete old stale sessions and old stored message key
+ * @brief Delete old stale sessions and old stored message key. Apply to all users in localStorage
  * 	- DR Session in stale status for more than DRSession_limboTime are deleted
  * 	- MessageKey stored linked to a session who received more than maxMessagesReceivedAfterSkip are deleted
  * 	Note : The messagekeys count is on a chain, so if we have in a chain
@@ -241,21 +248,44 @@ void Db::load_LimeUser(const std::string &userId, long int &Uid, lime::CurveId &
 void Db::clean_DRSessions() {
 	// WARNIMG: not sure this code is portable it may work with sqlite3 only
 	// delete stale sessions considered to old
-
 	sql<<"DELETE FROM DR_sessions WHERE Status=0 AND timeStamp < date('now', '-"<<lime::settings::DRSession_limboTime_days<<" day');";
 
 	// clean Message keys (MK will be cascade deleted when the DHr is deleted )
 	sql<<"DELETE FROM DR_MSk_DHr WHERE received > "<<lime::settings::maxMessagesReceivedAfterSkip<<";";
 }
+
+/**
+ * @brief Delete old stale SPk. Apply to all users in localStorage
+ * 	- SPk in stale status for more than SPK_limboTime_days are deleted
+ */
+void Db::clean_SPk() {
+	// WARNIMG: not sure this code is portable it may work with sqlite3 only
+	// delete stale sessions considered to old
+	sql<<"DELETE FROM X3DH_SPK WHERE Status=0 AND timeStamp < date('now', '-"<<lime::settings::SPK_limboTime_days<<" day');";
+}
+
+/**
+ * @brief Get a list of deviceIds of all local users present in localStorage
+ *
+ * @param[out]	deviceIds	the list of all local users (their device Id)
+ */
+void Db::get_allLocalDevices(std::vector<std::string> &deviceIds) {
+	deviceIds.clear();
+	rowset<row> rs = (sql.prepare << "SELECT UserId FROM lime_LocalUsers;");
+	for (auto &r : rs) {
+		deviceIds.push_back(r.get<string>(0));
+	}
+}
+
 /**
  * @brief if exists, delete user
  *
- * @param[in]	userId		a string holding the user to look for in DB, shall be its GRUU
+ * @param[in]	deviceId	a string holding the user to look for in DB, shall be its GRUU
  *
  */
-void Db::delete_LimeUser(const std::string &userId)
+void Db::delete_LimeUser(const std::string &deviceId)
 {
-	sql<<"DELETE FROM lime_LocalUsers WHERE UserId = :userId;", use(userId);
+	sql<<"DELETE FROM lime_LocalUsers WHERE UserId = :userId;", use(deviceId);
 }
 
 /******************************************************************************/
@@ -582,7 +612,7 @@ void Lime<Curve>::X3DH_generate_SPk(X<Curve> &publicSPk, Signature<Curve> &SPk_s
 		transaction tr(m_localStorage->sql);
 
 		// We must first update potential existing SPK in base from active to stale status
-		m_localStorage->sql<<"UPDATE X3DH_SPK SET Status = 0, timeStamp = CURRENT_TIMESTAMP WHERE Uid = :Uid", use(m_db_Uid);
+		m_localStorage->sql<<"UPDATE X3DH_SPK SET Status = 0, timeStamp = CURRENT_TIMESTAMP WHERE Uid = :Uid AND Status = 1;", use(m_db_Uid);
 
 		blob SPk_blob(m_localStorage->sql);
 		SPk_blob.write(0, (const char *)ECDH_Context->selfPublic, ECDH_Context->pointCoordinateLength);
@@ -758,6 +788,20 @@ void Lime<Curve>::X3DH_get_SPk(uint32_t SPk_id, KeyPair<X<Curve>> &SPk) {
 	}
 }
 
+/**
+ * @brief is current SPk valid?
+ */
+template <typename Curve>
+bool Lime<Curve>::is_currentSPk_valid(void) {
+	// Do we have an active SPk for this user which is younger than SPK_lifeTime_days
+	int dummy;
+	m_localStorage->sql<<"SELECT SPKid FROM X3DH_SPk WHERE Uid = :Uid AND Status = 1 AND timeStamp > date('now', '-"<<lime::settings::SPK_lifeTime_days<<" day') LIMIT 1;", into(dummy), use(m_db_Uid);
+	if (m_localStorage->sql.got_data()) {
+		return true;
+	} else {
+		return false;
+	}
+}
 
 /**
  * @brief retrieve matching OPk from localStorage, throw an exception if not found
@@ -789,6 +833,7 @@ void Lime<Curve>::X3DH_get_OPk(uint32_t OPk_id, KeyPair<X<Curve>> &OPk) {
 	template long int Lime<C255>::store_peerDevice(const std::string &peerDeviceId, const ED<C255> &Ik);
 	template void Lime<C255>::get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDBSessionId, std::vector<std::shared_ptr<DR<C255>>> &DRSessions);
 	template void Lime<C255>::X3DH_get_SPk(uint32_t SPk_id, KeyPair<X<C255>> &SPk);
+	template bool Lime<C255>::is_currentSPk_valid(void);
 	template void Lime<C255>::X3DH_get_OPk(uint32_t OPk_id, KeyPair<X<C255>> &SPk);
 #endif
 
@@ -801,6 +846,7 @@ void Lime<Curve>::X3DH_get_OPk(uint32_t OPk_id, KeyPair<X<Curve>> &OPk) {
 	template long int Lime<C448>::store_peerDevice(const std::string &peerDeviceId, const ED<C448> &Ik);
 	template void Lime<C448>::get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDBSessionId, std::vector<std::shared_ptr<DR<C448>>> &DRSessions);
 	template void Lime<C448>::X3DH_get_SPk(uint32_t SPk_id, KeyPair<X<C448>> &SPk);
+	template bool Lime<C448>::is_currentSPk_valid(void);
 	template void Lime<C448>::X3DH_get_OPk(uint32_t OPk_id, KeyPair<X<C448>> &SPk);
 #endif
 

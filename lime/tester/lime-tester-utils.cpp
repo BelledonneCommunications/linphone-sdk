@@ -316,6 +316,25 @@ bool DR_message_extractX3DHInit(std::vector<uint8_t> &message, std::vector<uint8
 	return true;
 }
 
+/* return true if the message buffer is a valid DR message holding an X3DH init message, copy its SPk id in the given parameter */
+bool DR_message_extractX3DHInit_SPkId(std::vector<uint8_t> &message, uint32_t &SPkId) {
+	if (DR_message_holdsX3DHInit(message) == false) return false;
+
+	// compute position of SPkId in message
+	size_t SPkIdPos = 3+1; // DR message header + OPK flag
+	if (message[2] == static_cast<uint8_t>(lime::CurveId::c25519)) { // curve 25519
+		SPkIdPos += ED<C255>::keyLength() + X<C255>::keyLength();
+	} else { // curve 448
+		SPkIdPos += ED<C448>::keyLength() + X<C448>::keyLength();
+	}
+
+	SPkId = message[SPkIdPos]<<24 |
+		message[SPkIdPos+1]<<16 |
+		message[SPkIdPos+2]<<8  |
+		message[SPkIdPos+3];
+	return true;
+}
+
 
 /* Open provided DB and look for DRSessions established between selfDevice and peerDevice
  * Populate the sessionsId vector with the Ids of sessions found
@@ -367,6 +386,33 @@ unsigned int get_StoredMessageKeyCount(const std::string &dbFilename, const std:
 		BCTBX_SLOGE<<"Got an error while getting the MK count in DB: "<<e.what();
 		return 0;
 	}
+}
+
+/* For the given deviceId, count the number of associated SPk and return the Id of the active one(if any)
+ * return true if an active one was found
+ */
+bool get_SPks(const std::string &dbFilename, const std::string &selfDeviceId, size_t &count, uint32_t &activeId) noexcept{
+	try {
+		soci::session sql(sqlite3, dbFilename); // open the DB
+		count=0;
+		sql<< "SELECT count(SPKid) FROM X3DH_SPK as s INNER JOIN lime_LocalUsers as u on u.Uid = s.Uid WHERE u.UserId = :selfId;", into(count), use(selfDeviceId);
+		if (sql.got_data()) {
+			sql<< "SELECT SPKid FROM X3DH_SPK as s INNER JOIN lime_LocalUsers as u on u.Uid = s.Uid WHERE u.UserId = :selfId AND s.Status=1 LIMIT 1;", into(activeId), use(selfDeviceId);
+			if (sql.got_data()) {
+				return true;
+			} else {
+				return false;
+			}
+		} else {
+			return false;
+		}
+
+	} catch (exception &e) { // swallow any error on DB
+		BCTBX_SLOGE<<"Got an error while getting the MK count in DB: "<<e.what();
+		count=0;
+		return false;
+	}
+
 }
 
 /* Move back in time all timeStamps by the given amout of days
