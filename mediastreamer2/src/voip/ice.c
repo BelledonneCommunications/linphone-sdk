@@ -837,6 +837,7 @@ void ice_session_add_check_list(IceSession *session, IceCheckList *cl, unsigned 
 	cl->session = session;
 	if (cl->state == ICL_Running) {
 		session->state = IS_Running;
+		ms_get_cur_time(&session->connectivity_checks_start_ts);
 	}
 }
 
