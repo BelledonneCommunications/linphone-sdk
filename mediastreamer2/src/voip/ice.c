@@ -837,7 +837,6 @@ void ice_session_add_check_list(IceSession *session, IceCheckList *cl, unsigned 
 	cl->session = session;
 	if (cl->state == ICL_Running) {
 		session->state = IS_Running;
-		ms_get_cur_time(&session->connectivity_checks_start_ts);
 	}
 }
 
@@ -3373,6 +3372,7 @@ static void ice_compute_pairs_states(IceCheckList *cl)
 static void ice_check_list_pair_candidates(IceCheckList *cl)
 {
 	if (cl->state == ICL_Running) {
+		cl->connectivity_checks_running = TRUE;
 		ice_form_candidate_pairs(cl);
 		ice_prune_candidate_pairs(cl);
 		/* Generate pair foundations list. */
@@ -3622,6 +3622,7 @@ static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session)
 	RtpTransport *rtptp;
 
 	if (cl->state == ICL_Running) {
+		cl->connectivity_checks_running = FALSE;
 		if (cl->session->role == IR_Controlling) {
 			/* Perform regular nomination for valid pairs. */
 			cr.cl = cl;
@@ -3939,11 +3940,12 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 		case ICL_Running:
 			/* Workaround to stop ICE if it has not finished after 5 seconds. */
 			/* TODO: To remove */
-			if ((cl->session->role == IR_Controlling) && (ice_session_connectivity_checks_duration(cl->session) >= 5000)) {
+			if ((cl->session->role == IR_Controlling) && cl->connectivity_checks_running && (ice_session_connectivity_checks_duration(cl->session) >= 5000)) {
 				OrtpEvent *ev = ortp_event_new(ORTP_EVENT_ICE_DEACTIVATION_NEEDED);
 				ortp_event_get_data(ev)->info.ice_processing_successful = FALSE;
 				ms_warning("ice: Connectivity checks not terminated, deactivate ICE");
 				rtp_session_dispatch_event(rtp_session, ev);
+				cl->connectivity_checks_running = FALSE;
 				return;
 			}
 
