@@ -340,7 +340,7 @@ static void lime_update_OPk() {
 	lime_update_OPk_test(lime::CurveId::c25519, "lime_update_OPk", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data());
 #endif
 #ifdef EC448_ENABLED
-	//lime_update_SPk_test(lime::CurveId::c448, "lime_update_OPk", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data());
+	lime_update_OPk_test(lime::CurveId::c448, "lime_update_OPk", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data());
 #endif
 }
 

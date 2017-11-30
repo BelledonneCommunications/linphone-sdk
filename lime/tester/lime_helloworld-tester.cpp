@@ -170,13 +170,22 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 
 		BCTBX_SLOGI<<"Create "<<*aliceDeviceId<<" and "<<*bobDeviceId<<" users"<<endl;
 		// create users, this operation is asynchronous(as the user is also created on X3DH server)
+		// The OPkInitialBatchSize parameter is optionnal and is used to set how many One-Time pre-keys will be
+		// uploaded to the X3DH server at creation. Default value is set in lime::settings.
 		// Last parameter is a callback acceptiong as parameters a return code and a string
 		//      - In case of successfull operation the return code is lime::callbackReturn::success, and string is empty
 		//      - In case of failure, the return code is lime::callbackReturn::fail and the string shall give details on the failure cause
-		aliceManager->create_user(*aliceDeviceId, x3dh_server_url, curve, callback);
-		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout)); // we must get a callback saying all went well
-		bobManager->create_user(*bobDeviceId, x3dh_server_url, curve, callback);
-		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout)); // we must get a callback saying all went well
+		auto tmp_aliceDeviceId = *aliceDeviceId; // use a temporary variable as it may be a local variable which get out of scope right after call to create_user
+		aliceManager->create_user(tmp_aliceDeviceId, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
+		tmp_aliceDeviceId.clear(); // deviceId may go out of scope as soon as we come back from call
+		//wait for the operation to complete
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+
+		auto tmp_bobDeviceId = *bobDeviceId; // use a temporary variable as it may be a local variable which get out of scope right after call to create_user
+		bobManager->create_user(tmp_bobDeviceId, x3dh_server_url, curve, callback);
+		tmp_bobDeviceId.clear(); // deviceId may go out of scope as soon as we come back from call
+		//wait for the operation to complete
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 
 		/*** alice encrypt a message to bob, all parameters given to encrypt function are shared_ptr. ***/
@@ -213,6 +222,7 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 					// IMPORTANT : recipients and cipherMessage are captured by copy not reference. They are shared_ptr, their original scope is likely to be the function where the encrypt is called.
 					//             they shall then be destroyed when getting out of this function and thus won't be valid anymore when this closure is called. By getting a copy we just increase their
 					//             use count and are sure to still have them valid when we are called.
+					//             When the closure itself is destroyed (when last reference to it is destroyed), it will trigger destruction of the captured values(-1 in use count for the shared_ptr)
 					//             After this closure is called it is destroyed(internal reference is dropped) decreasing the count and allowing the release of the buffer.
 					//
 					//             It may be wise to use weak_ptr instead of shared ones so if any problem occurs resulting in callback never being called/destroyed, it won't held this buffer from being destroyed
@@ -270,6 +280,25 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 			BCTBX_SLOGI<<"Bob decrypt the message : no message found"<<endl;
 		}
 		/******* end of RECIPIENT SIDE CODE **************************/
+
+
+
+		/************** Users maintenance ****************************/
+		// Around once a day the update function shall be called on LimeManagers
+		// it will perform localStorage cleanings
+		// update of cryptographic material(Signed Pre-key and One-time Pre-keys)
+		// The update take as optionnal parameters :
+		//  - lower bound for One-time Pre-key available on server
+		//  - One-time Pre-key batch size to be generated and uploaded if lower limit on server is reached
+		//
+		// Important : Avoid calling this function when connection to network is impossible
+		// try to first fetch any available message on server, process anything and then update
+		aliceManager->update(callback, 10, 3); // if less than 10 keys are availables on server, upload a batch of 3, typical values shall be higher.
+		bobManager->update(callback); // use default values for the limit and batch size
+		expected_success+=2;
+		/******* end of Users maintenance ****************************/
+		// wait for updates to complete
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,expected_success,lime_tester::wait_for_timeout));
 
 		// delete the users
 		if (cleanDatabase) {
