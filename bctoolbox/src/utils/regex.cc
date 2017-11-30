@@ -25,7 +25,7 @@
 	This part is needed since CentOS7 have an old gcc compiler.
 	TODO: Remove this code when all supported platorms have gcc 4.9.0 or more 
  */
-#if __cplusplus >= 201103L &&                             \
+#if __cplusplus >= 201103L && !defined(__ANDROID__)    && \
     (!defined(__GLIBCXX__) || (__cplusplus >= 201402L) || \
         (defined(_GLIBCXX_REGEX_DFS_QUANTIFIERS_LIMIT) || \
          defined(_GLIBCXX_REGEX_STATE_LIMIT)           || \
