@@ -57,7 +57,9 @@ typedef struct Rfc3984Context{
 	bool_t initialized_ref_cseq;
 } Rfc3984Context;
 
-MS2_PUBLIC Rfc3984Context *rfc3984_new(void);
+MS2_DEPRECATED MS2_PUBLIC Rfc3984Context *rfc3984_new(void);
+MS2_PUBLIC Rfc3984Context *rfc3984_new_with_factory(MSFactory *factory);
+
 MS2_PUBLIC void rfc3984_destroy(Rfc3984Context *ctx);
 
 void rfc3984_init(Rfc3984Context *ctx);

@@ -66,6 +66,13 @@ void rfc3984_set_max_payload_size(Rfc3984Context *ctx, int size){
 	ctx->maxsz=size;
 }
 
+Rfc3984Context *rfc3984_new_with_factory(MSFactory *factory){
+	Rfc3984Context *ctx=ms_new0(Rfc3984Context,1);
+	rfc3984_init(ctx);
+	rfc3984_set_max_payload_size(ctx, ms_factory_get_payload_max_size(factory));
+	return ctx;
+}
+
 static void send_packet(Rfc3984Context *ctx, MSQueue *rtpq, uint32_t ts, mblk_t *m, bool_t marker){
 	mblk_set_timestamp_info(m,ts);
 	mblk_set_marker_info(m,marker);

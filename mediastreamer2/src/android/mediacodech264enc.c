@@ -180,7 +180,7 @@ static void enc_preprocess(MSFilter *f) {
 
 	enc_configure(d);
 	
-	d->packer = rfc3984_new();
+	d->packer = rfc3984_new_with_factory(f->factory);
 	rfc3984_set_mode(d->packer, d->mode);
 	rfc3984_enable_stap_a(d->packer, FALSE);
 	ms_video_starter_init(&d->starter);
