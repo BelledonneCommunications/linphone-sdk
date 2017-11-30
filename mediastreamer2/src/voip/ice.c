@@ -3373,6 +3373,7 @@ static void ice_check_list_pair_candidates(IceCheckList *cl)
 {
 	if (cl->state == ICL_Running) {
 		cl->connectivity_checks_running = TRUE;
+		ms_message("ICE: connectivity checks are going to start for check list %p", cl);
 		ice_form_candidate_pairs(cl);
 		ice_prune_candidate_pairs(cl);
 		/* Generate pair foundations list. */
@@ -3622,7 +3623,6 @@ static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session)
 	RtpTransport *rtptp;
 
 	if (cl->state == ICL_Running) {
-		cl->connectivity_checks_running = FALSE;
 		if (cl->session->role == IR_Controlling) {
 			/* Perform regular nomination for valid pairs. */
 			cr.cl = cl;
@@ -3643,6 +3643,7 @@ static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session)
 				cl->nomination_delay_running = FALSE;
 				ice_check_list_select_candidates(cl);
 				ms_message("ice: Finished ICE check list [%p] processing successfully!",cl);
+				cl->connectivity_checks_running = FALSE;
 				ice_dump_valid_list(cl);
 				/* Initialise keepalive time. */
 				cl->keepalive_time = ice_current_time();
@@ -3689,6 +3690,7 @@ static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session)
 				if (cl->state != ICL_Failed) {
 					cl->state = ICL_Failed;
 					ms_message("ice: Failed ICE check list processing!");
+					cl->connectivity_checks_running = FALSE;
 					ice_dump_valid_list(cl);
 					/* Notify the application of the failed processing. */
 					ev = ortp_event_new(ORTP_EVENT_ICE_CHECK_LIST_PROCESSING_FINISHED);
