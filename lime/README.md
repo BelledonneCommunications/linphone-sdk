@@ -20,6 +20,7 @@ Build instrucitons
  make
  make install
 
+
 Testing
 -------
  To test on local machine, you must run a local X3DH server.
@@ -27,6 +28,11 @@ Testing
  See README from this directory for instructions.
 
  A test instance of X3DH server shall be running on sip5.linphone.org.
+
+
+Library settings
+----------------
+Some mostly harmless settings are available in src/lime_settings.hpp
 
 
 Options
