@@ -24,7 +24,7 @@
 
 #include "lime/lime.hpp"
 #include "lime_x3dh_protocol.hpp"
-#include "lime_utils.hpp"
+#include "lime_settings.hpp"
 #include "lime_impl.hpp"
 
 #include "belle-sip/belle-sip.h"

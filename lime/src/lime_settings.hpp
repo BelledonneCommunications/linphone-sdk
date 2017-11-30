@@ -1,5 +1,5 @@
 /*
-	lime_utils.hpp
+	lime_settings.hpp
 	Copyright (C) 2017  Belledonne Communications SARL
 
 	This program is free software: you can redistribute it and/or modify
@@ -16,11 +16,14 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef lime_utils_hpp
-#define lime_utils_hpp
+#ifndef lime_settings_hpp
+#define lime_settings_hpp
 
 namespace lime {
 // this namespace hold constants definition used as settings in all components of the lime library
+// Here you can tweak the behavior of the library
+// No compatibility break between clients shall result by modifying this definitions
+// Note : you can tweak values but not the types, uint16_t values are intended to be bounded by 2^16 -1.
 namespace settings {
 
 /******************************************************************************/
@@ -29,29 +32,15 @@ namespace settings {
 /*                                                                            */
 /******************************************************************************/
 
-	// Sending, Receiving and Root key chain use 32 bytes keys (spec 3.2)
-	constexpr size_t DRChainKeySize=32;
-
-	// DR Message Key are composed of a 32 bytes key and 16 bytes of IV
-	constexpr size_t DRMessageKeySize=32;
-	constexpr size_t DRMessageIVSize=16;
-
-	// Message Key is based on a message seed(sent in the DR message)
-	// Message key and nonce are derived from this seed and have the same length as DR Message Key
-	constexpr size_t DRrandomSeedSize=32;
-	const std::string hkdf_randomSeed_info{"DR Message Key Derivation"};
-
-	// AEAD generates tag 16 bytes long
-	constexpr size_t DRMessageAuthTagSize=16;
-
 	// Each session stores a shared AD given at built and derived from Identity keys of sender and receiver
-	// SharedAD is computed by X3DH HKDF(session Initiator Ik || session receiver Ik || session Initiator device Id || session receiver device Id)
-	constexpr size_t DRSessionSharedADSize=32;
+	// SharedAD is computed by HKDF-Sha511(session Initiator Ik || session receiver Ik || session Initiator device Id || session receiver device Id)
+	constexpr size_t DRSessionSharedADSize=31;
+	static_assert(DRSessionSharedADSize<64, "Shared AD is generated through HKDF-Sha512 with only one round implemented so its size can't be more than Sha512 max output size");
 
 	// Maximum number of Message we can skip(and store their keys) at reception of one message
 	constexpr std::uint16_t maxMessageSkip=1024;
 
-	// after a message key is stored, count how many messages we can receive from peer before deleting the key
+	// after a message key is stored, count how many messages we can receive from peer before deleting the key at next update
 	// Note: implemented by receiving key chain, so any new skipped message in a chain will reset the counter to 0
 	constexpr std::uint16_t maxMessagesReceivedAfterSkip = 128;
 
@@ -65,30 +54,21 @@ namespace settings {
 
 /******************************************************************************/
 /*                                                                            */
-/* Local Storage related definitions                                          */
-/*                                                                            */
-/******************************************************************************/
-	/* define a version number for the DB schema as an integer 0xMMmmpp */
-	/* current version is 0.0.1 */
-	constexpr int DBuserVersion=0x000001;
-
-/******************************************************************************/
-/*                                                                            */
 /* X3DH related definitions                                                   */
 /*                                                                            */
 /******************************************************************************/
-	const std::string X3DH_SK_info{"Lime"}; // shall be an ASCII string identifying the application (X3DH spec section 2.1)
-	const std::string X3DH_AD_info{"X3DH Associated Data"}; // used to generate a shared AD based on Ik and deviceID
-
 	constexpr unsigned int SPK_lifeTime_days=7; // in days, Life time of a signed pre-key, it will be set to stale after that period
 	constexpr unsigned int SPK_limboTime_days=30; // in days, How long shall we keep a signed pre-key once it has been replaced by a new one
 
+	// Note: the three following values can be overriden by call parameters when creating the user or calling update
 	constexpr uint16_t OPk_batchSize = 25; // default batch size when uploading OPks to X3DH server
-	constexpr uint16_t OPk_initialBatchSize = 2*OPk_batchSize; // default batch size when creating a new user
-	constexpr uint16_t OPk_serverLowLimit = 50; // this is a default value but it can be set by parameter to the update function
+	constexpr uint16_t OPk_initialBatchSize = 4*OPk_batchSize; // default batch size when creating a new user
+	constexpr uint16_t OPk_serverLowLimit = 100; // default limit for keys on server to trigger generation/upload of a new batch of OPks
+
 	constexpr unsigned int OPk_limboTime_days=SPK_lifeTime_days+SPK_limboTime_days; // in days, How long shall we keep an OPk in localStorage once we've noticed X3DH server dispatched it
-}
 
-}
+} // namespace settings
 
-#endif /* lime_utils_hpp */
+} // namespace lime
+
+#endif /* lime_settings_hpp */

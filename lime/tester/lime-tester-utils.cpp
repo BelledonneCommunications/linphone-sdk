@@ -24,7 +24,7 @@
 
 #include <vector>
 #include <string>
-#include "lime_utils.hpp"
+#include "lime_settings.hpp"
 #include "lime/lime.hpp"
 #include "lime_keys.hpp"
 #include "lime_double_ratchet_protocol.hpp"

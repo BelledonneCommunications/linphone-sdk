@@ -25,7 +25,8 @@
 #include <vector>
 #include <memory>
 
-#include "lime_utils.hpp"
+#include "lime_settings.hpp"
+#include "lime_defines.hpp"
 #include "lime_keys.hpp"
 
 namespace lime {

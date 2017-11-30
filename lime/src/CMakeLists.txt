@@ -21,7 +21,8 @@
 ############################################################################
 
 set(LIME_HEADER_FILES
-	lime_utils.hpp
+	lime_settings.hpp
+	lime_defines.hpp
 	lime_keys.hpp
 	lime_impl.hpp
 	lime_x3dh_protocol.hpp
