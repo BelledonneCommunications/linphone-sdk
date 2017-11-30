@@ -409,11 +409,28 @@ bool get_SPks(const std::string &dbFilename, const std::string &selfDeviceId, si
 		} else {
 			return false;
 		}
-
 	} catch (exception &e) { // swallow any error on DB
-		BCTBX_SLOGE<<"Got an error while getting the MK count in DB: "<<e.what();
+		BCTBX_SLOGE<<"Got an error while getting the SPk count in DB: "<<e.what();
 		count=0;
 		return false;
+	}
+}
+
+/* For the given deviceId, count the number of associated OPk
+ */
+size_t get_OPks(const std::string &dbFilename, const std::string &selfDeviceId) noexcept {
+	try {
+		soci::session sql(sqlite3, dbFilename); // open the DB
+		auto count=0;
+		sql<< "SELECT count(OPKid) FROM X3DH_OPK as o INNER JOIN lime_LocalUsers as u on u.Uid = o.Uid WHERE u.UserId = :selfId;", into(count), use(selfDeviceId);
+		if (sql.got_data()) {
+			return count;
+		} else {
+			return 0;
+		}
+	} catch (exception &e) { // swallow any error on DB
+		BCTBX_SLOGE<<"Got an error while getting the OPk count in DB: "<<e.what();
+		return 0;
 	}
 
 }
@@ -427,6 +444,7 @@ void forwardTime(const std::string &dbFilename, int days) noexcept {
 		/* move back by days all timeStamp, we have some in DR_sessions and X3DH_SPk tables */
 		sql<<"UPDATE DR_sessions SET timeStamp = date (timeStamp, '-"<<days<<" day');";
 		sql<<"UPDATE X3DH_SPK SET timeStamp = date (timeStamp, '-"<<days<<" day');";
+		sql<<"UPDATE X3DH_OPK SET timeStamp = date (timeStamp, '-"<<days<<" day');";
 	} catch (exception &e) { // swallow any error on DB
 		BCTBX_SLOGE<<"Got an error forwarding time in DB: "<<e.what();
 	}

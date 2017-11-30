@@ -86,6 +86,7 @@ namespace settings {
 	constexpr uint16_t OPk_batchSize = 25; // default batch size when uploading OPks to X3DH server
 	constexpr uint16_t OPk_initialBatchSize = 2*OPk_batchSize; // default batch size when creating a new user
 	constexpr uint16_t OPk_serverLowLimit = 50; // this is a default value but it can be set by parameter to the update function
+	constexpr unsigned int OPk_limboTime_days=SPK_lifeTime_days+SPK_limboTime_days; // in days, How long shall we keep an OPk in localStorage once we've noticed X3DH server dispatched it
 }
 
 }

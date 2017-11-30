@@ -100,6 +100,10 @@ unsigned int get_StoredMessageKeyCount(const std::string &dbFilename, const std:
  */
 bool get_SPks(const std::string &dbFilename, const std::string &selfDeviceId, size_t &count, uint32_t &activeId) noexcept;
 
+/* For the given deviceId, count the number of associated OPk
+ */
+size_t get_OPks(const std::string &dbFilename, const std::string &selfDeviceId) noexcept;
+
 /* Move back in time all timeStamps by the given amout of days
  * DB holds timeStamps in DR_sessions and X3DH_SPK tables
  */

@@ -189,11 +189,16 @@ Db::Db(std::string filename) : sql{sqlite3, filename}{
 			 * - OPKid : the primary key must be a random number as it is public, so avoid leaking information on number of key used
 			 * - OPK : Public key||Private Key (ECDH keys)
 			 * - Uid : User Id from lime_LocalUsers table: who's key is this
+			 * - Status : a boolean: can be published on X3DH Server(1) or not anymore on X3DH server(0), by default any newly inserted key is set to published
+			 * - timeStamp : timeStamp is set during update if we found out a key is no more on server(and we didn't used it as usage delete key).
+			 *   		So after a limbo period, key is considered missing in action and removed from storage.
 			 */
 			sql<<"CREATE TABLE X3DH_OPK( \
 						OPKid UNSIGNED INTEGER PRIMARY KEY NOT NULL, \
 						OPK BLOB NOT NULL, \
 						Uid INTEGER NOT NULL, \
+						Status INTEGER NOT NULL DEFAULT 1, \
+						timeStamp DATETIME DEFAULT CURRENT_TIMESTAMP, \
 						FOREIGN KEY(Uid) REFERENCES lime_LocalUsers(Uid) ON UPDATE CASCADE ON DELETE CASCADE);";
 
 			tr.commit(); // commit all the previous queries
@@ -601,10 +606,11 @@ void Lime<Curve>::X3DH_generate_SPk(X<Curve> &publicSPk, Signature<Curve> &SPk_s
 	auto sig_size=SPk_sig.size();
 	bctbx_EDDSA_sign(EDDSA_Context, ECDH_Context->selfPublic, ECDH_Context->pointCoordinateLength, nullptr, 0, SPk_sig.data(), &sig_size);
 
-	// Generate a random SPk Id
+	// Generate a random SPk Id: Sqlite doesn't really support unsigned value.
+	// Be sure the MSbit is set to zero to avoid problem as even if declared unsigned this Id will be treated by sqlite as signed(but still unsigned in this lib)
 	std::array<uint8_t,4> randomId;
 	bctbx_rng_get(m_RNG, randomId.data(), randomId.size());
-	SPk_id = static_cast<uint32_t>(randomId[0])<<24 | static_cast<uint32_t>(randomId[1])<<16 | static_cast<uint32_t>(randomId[2])<<8 | static_cast<uint32_t>(randomId[3]);
+	SPk_id = static_cast<uint32_t>(randomId[0])<<23 | static_cast<uint32_t>(randomId[1])<<16 | static_cast<uint32_t>(randomId[2])<<8 | static_cast<uint32_t>(randomId[3]);
 
 	// insert all this in DB
 	try {
@@ -655,10 +661,11 @@ void Lime<Curve>::X3DH_generate_OPks(std::vector<X<Curve>> &publicOPks, std::vec
 			// Generate a new ECDH Key pair
 			bctbx_ECDHCreateKeyPair(ECDH_Context, (int (*)(void *, uint8_t *, size_t))bctbx_rng_get, m_RNG);
 
-			// Generate a random SPk Id (uint32_t)
+			// Generate a random OPk Id: Sqlite doesn't really support unsigned value.
+			// Be sure the MSbit is set to zero to avoid problem as even if declared unsigned this Id will be treated by sqlite as signed(but still unsigned in this lib)
 			std::array<uint8_t,4> randomId;
 			bctbx_rng_get(m_RNG, randomId.data(), randomId.size());
-			OPk_id = static_cast<uint32_t>(randomId[0])<<24 | static_cast<uint32_t>(randomId[1])<<16 | static_cast<uint32_t>(randomId[2])<<8 | static_cast<uint32_t>(randomId[3]);
+			OPk_id = static_cast<uint32_t>(randomId[0])<<23 | static_cast<uint32_t>(randomId[1])<<16 | static_cast<uint32_t>(randomId[2])<<8 | static_cast<uint32_t>(randomId[3]);
 
 			// Insert in DB: store Public Key || Private Key
 			OPk.write(0, (char *)(ECDH_Context->selfPublic), ECDH_Context->pointCoordinateLength);
@@ -813,14 +820,41 @@ bool Lime<Curve>::is_currentSPk_valid(void) {
 template <typename Curve>
 void Lime<Curve>::X3DH_get_OPk(uint32_t OPk_id, KeyPair<X<Curve>> &OPk) {
 	blob OPk_blob(m_localStorage->sql);
-	m_localStorage->sql<<"SELECT OPk FROM X3DH_OPk WHERE Uid = :Uid AND OPKid = :OPk_id LIMIT 1;", into(OPk_blob), use(m_db_Uid), use(OPk_id);
+	m_localStorage->sql<<"SELECT OPk FROM X3DH_OPK WHERE Uid = :Uid AND OPKid = :OPk_id LIMIT 1;", into(OPk_blob), use(m_db_Uid), use(OPk_id);
 	if (m_localStorage->sql.got_data()) { // Found it, it is stored in one buffer Public || Private
 		OPk_blob.read(0, (char *)(OPk.publicKey().data()), OPk.publicKey().size()); // Read the public key
 		OPk_blob.read(OPk.publicKey().size(), (char *)(OPk.privateKey().data()), OPk.privateKey().size()); // Read the private key
-		m_localStorage->sql<<"DELETE FROM X3DH_OPk WHERE Uid = :Uid AND OPKid = :OPk_id;", use(m_db_Uid), use(OPk_id); // And remove it from local Storage
+		m_localStorage->sql<<"DELETE FROM X3DH_OPK WHERE Uid = :Uid AND OPKid = :OPk_id;", use(m_db_Uid), use(OPk_id); // And remove it from local Storage
 	} else {
 		throw BCTBX_EXCEPTION << "X3DH "<<m_selfDeviceId<<"look up for OPk id "<<OPk_id<<" failed";
 	}
+}
+
+/**
+ * @brief update OPk Status so we can get an idea of what's on server and what was dispatched but not used yet
+ * 	get rid of anyone with status 0 and oldest than OPk_limboTime_days
+ *
+ * @param[in]	OPkIds	List of Ids found on server
+ */
+template <typename Curve>
+void Lime<Curve>::X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds) {
+	if (OPkIds.size()>0) { /* we have keys on server */
+		// build a comma-separated list of OPk id on server
+		std::string sqlString_OPkIds{""};
+		for (auto OPkId : OPkIds) {
+			sqlString_OPkIds.append(to_string(OPkId)).append(",");
+		}
+
+		sqlString_OPkIds.pop_back(); // remove the last ','
+
+		// Update Status and timeStamp in DB for keys we own and are not anymore on server
+		m_localStorage->sql << "UPDATE X3DH_OPK SET Status = 0, timeStamp=CURRENT_TIMESTAMP WHERE Status = 1 AND Uid = :Uid AND OPKid NOT IN ("<<sqlString_OPkIds<<");", use(m_db_Uid);
+	} else { /* we have no keys on server */
+		m_localStorage->sql << "UPDATE X3DH_OPK SET Status = 0, timeStamp=CURRENT_TIMESTAMP WHERE Status = 1 AND Uid = :Uid;", use(m_db_Uid);
+	}
+
+	// Delete keys not anymore on server since too long
+	m_localStorage->sql << "DELETE FROM X3DH_OPK WHERE Uid = :Uid AND Status = 0 AND timeStamp < date('now', '-"<<lime::settings::OPk_limboTime_days<<" day');", use(m_db_Uid);
 }
 
 /* template instanciations for Curves 25519 and 448 */
@@ -835,6 +869,7 @@ void Lime<Curve>::X3DH_get_OPk(uint32_t OPk_id, KeyPair<X<Curve>> &OPk) {
 	template void Lime<C255>::X3DH_get_SPk(uint32_t SPk_id, KeyPair<X<C255>> &SPk);
 	template bool Lime<C255>::is_currentSPk_valid(void);
 	template void Lime<C255>::X3DH_get_OPk(uint32_t OPk_id, KeyPair<X<C255>> &SPk);
+	template void Lime<C255>::X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds);
 #endif
 
 #ifdef EC448_ENABLED
@@ -848,6 +883,7 @@ void Lime<Curve>::X3DH_get_OPk(uint32_t OPk_id, KeyPair<X<Curve>> &OPk) {
 	template void Lime<C448>::X3DH_get_SPk(uint32_t SPk_id, KeyPair<X<C448>> &SPk);
 	template bool Lime<C448>::is_currentSPk_valid(void);
 	template void Lime<C448>::X3DH_get_OPk(uint32_t OPk_id, KeyPair<X<C448>> &SPk);
+	template void Lime<C448>::X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds);
 #endif
 
 

@@ -548,7 +548,9 @@ namespace lime {
 						return;
 					}
 
-					// TODO: tag as seen on server all the Ids so one day we can remove the OPk distributed by server but not used
+					// update in LocalStorage the OPk status: tag removed from server and delete old keys
+					thiz->X3DH_updateOPkStatus(selfOPkIds);
+
 					// Check if we shall upload more packets
 					if (selfOPkIds.size() < userData->OPkServerLowLimit) {
 						// generate and publish the OPks

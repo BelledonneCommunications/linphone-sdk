@@ -82,6 +82,7 @@ namespace lime {
 			void X3DH_get_SPk(uint32_t SPk_id, KeyPair<X<Curve>> &SPk); // retrieve matching SPk from localStorage, throw an exception if not found
 			bool is_currentSPk_valid(void); // check validity of current SPk
 			void X3DH_get_OPk(uint32_t OPk_id, KeyPair<X<Curve>> &SPk); // retrieve matching OPk from localStorage, throw an exception if not found
+			void X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds); // update OPks to tag those not anymore on X3DH server but not used and destroyed yet
 			/* X3DH related  - part related to X3DH DR session initiation, implemented in lime_x3dh.cpp */
 			void X3DH_init_sender_session(const std::vector<X3DH_peerBundle<Curve>> &peersBundle); // compute a sender X3DH using the data from peer bundle, then create and load the DR_Session
 			std::shared_ptr<DR<Curve>> X3DH_init_receiver_session(const std::vector<uint8_t> X3DH_initMessage, const std::string &senderDeviceId); // from received X3DH init packet, try to compute the shared secrets, then create the DR_Session

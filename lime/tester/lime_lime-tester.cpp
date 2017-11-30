@@ -209,9 +209,149 @@ static void lime_session_establishment(const lime::CurveId curve, const std::str
 /**
  * Scenario:
  * - Create a user alice
- * - simulate a move forward in time
+ * - Create Bob with two devices and encrypt to alice
+ * - update so localStorage can notice two keys are not on server anymore and upload more keys(check it worked)
+ * - simulate a move forward in time so the OPks missing from server shall be deleted from base
+ * - decrypt the first message, it shall work
+ * - update
+ * - decrypt the second message, it shall fail
+ */
+static void lime_update_OPk_test(const lime::CurveId curve, const std::string &dbBaseFilename, const std::string &x3dh_server_url) {
+	// create DB
+	std::string dbFilenameAlice{dbBaseFilename};
+	std::string dbFilenameBob{dbBaseFilename};
+	dbFilenameAlice.append(".alice.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
+	dbFilenameBob.append(".bob.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
+
+	remove(dbFilenameAlice.data()); // delete the database file if already exists
+	remove(dbFilenameBob.data()); // delete the database file if already exists
+
+	lime_tester::events_counters_t counters={};
+	int expected_success=0;
+
+	limeCallback callback([&counters](lime::callbackReturn returnCode, std::string anythingToSay) {
+					if (returnCode == lime::callbackReturn::success) {
+						counters.operation_success++;
+					} else {
+						counters.operation_failed++;
+						BCTBX_SLOGE<<"Lime operation failed : "<<anythingToSay;
+					}
+				});
+	try {
+		// create Manager and device for alice
+		auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, prov, user_auth_callback));
+		auto aliceDeviceId = lime_tester::makeRandomDeviceName("alice.d1.");
+		aliceManager->create_user(*aliceDeviceId, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+
+		// check we have the expected count of OPk in base : the initial batch
+		BC_ASSERT_EQUAL(lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), lime_tester::OPkInitialBatchSize, size_t, "%ld");
+
+		// call the update, set the serverLimit to initialBatch size and upload an other initial batch if needed
+		// As all the keys are still on server, it shall have no effect, check it then
+		aliceManager->update(callback, lime_tester::OPkInitialBatchSize, lime_tester::OPkInitialBatchSize);
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+		BC_ASSERT_EQUAL(lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), lime_tester::OPkInitialBatchSize, size_t, "%ld");
+
+		// We will create a bob device and encrypt for each new epoch
+		std::vector<std::unique_ptr<LimeManager>> bobManagers{};
+		std::vector<std::shared_ptr<std::string>> bobDeviceIds{};
+		std::vector<std::shared_ptr<std::vector<recipientData>>> bobRecipients{};
+		std::vector<std::shared_ptr<std::vector<uint8_t>>> bobCipherMessages{};
+
+		size_t patternIndex = 0;
+		// create tow devices for bob and encrypt to alice
+		for (auto i=0; i<2; i++) {
+			bobManagers.push_back(std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, prov, user_auth_callback)));
+			bobDeviceIds.push_back(lime_tester::makeRandomDeviceName("bob.d"));
+			bobManagers.back()->create_user(*(bobDeviceIds.back()), x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
+			BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+
+			bobRecipients.push_back(make_shared<std::vector<recipientData>>());
+			bobRecipients.back()->emplace_back(*aliceDeviceId);
+			auto plainMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[patternIndex].begin(), lime_tester::messages_pattern[patternIndex].end());
+			bobCipherMessages.push_back(make_shared<std::vector<uint8_t>>());
+
+			bobManagers.back()->encrypt(*(bobDeviceIds.back()), make_shared<const std::string>("alice"), bobRecipients.back(), plainMessage, bobCipherMessages.back(), callback);
+			BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+
+			patternIndex++;
+			patternIndex %= lime_tester::messages_pattern.size();
+		}
+
+		// check we have the expected count of OPk in base : we shall still have the initial batch
+		BC_ASSERT_EQUAL(lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), lime_tester::OPkInitialBatchSize, size_t, "%ld");
+
+		// call the update, set the serverLimit to initialBatch size and upload an other initial batch if needed
+		// As some keys were removed from server this time we shall generate and upload a new batch
+		aliceManager->update(callback, lime_tester::OPkInitialBatchSize, lime_tester::OPkInitialBatchSize);
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+		// we uploaded a new batch but no key were removed from localStorage so we now have 2*batch size keys
+		BC_ASSERT_EQUAL(lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), 2*lime_tester::OPkInitialBatchSize, size_t, "%ld");
+
+		// forward time by OPK_limboTime_days
+		aliceManager=nullptr; // destroy manager before modifying DB
+		lime_tester::forwardTime(dbFilenameAlice, lime::settings::OPk_limboTime_days+1);
+		aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, prov, user_auth_callback));
+
+		// check nothing has changed on our local OPk count
+		BC_ASSERT_EQUAL(lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), 2*lime_tester::OPkInitialBatchSize, size_t, "%ld");
+
+		// decrypt Bob first message
+		std::vector<uint8_t> receivedMessage{};
+		BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDeviceId, "alice", *(bobDeviceIds[0]), (*bobRecipients[0])[0].cipherHeader, *(bobCipherMessages[0]), receivedMessage));
+		auto receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
+		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
+
+		// check we have one less key
+		BC_ASSERT_EQUAL(lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), 2*lime_tester::OPkInitialBatchSize - 1, size_t, "%ld");
+
+		// call the update, set the serverLimit to 0, we don't want to upload more keys, but too old unused local OPk dispatched by server long ago shall be deleted
+		aliceManager->update(callback, 0, 0);
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+
+		// check the local OPk missing on server for a long time has been deleted
+		BC_ASSERT_EQUAL(lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), 2*lime_tester::OPkInitialBatchSize - 2, size_t, "%ld");
+
+		// try to decrypt Bob's second message, it shall fail as we got rid of the OPk
+		receivedMessage.clear();
+		BC_ASSERT_FALSE(aliceManager->decrypt(*aliceDeviceId, "alice", *(bobDeviceIds[1]), (*bobRecipients[1])[0].cipherHeader, *(bobCipherMessages[1]), receivedMessage));
+
+		if (cleanDatabase) {
+			auto i=0;
+			for (auto &bobManager : bobManagers) {
+				bobManager->delete_user(*(bobDeviceIds[i]), callback);
+				i++;
+			}
+			aliceManager->delete_user(*aliceDeviceId, callback);
+			expected_success += 1+bobManagers.size();
+			BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,expected_success,lime_tester::wait_for_timeout));
+			remove(dbFilenameAlice.data());
+			remove(dbFilenameBob.data());
+		}
+	} catch (BctbxException &e) {
+		BCTBX_SLOGE <<e;;
+		BC_FAIL();
+	}
+}
+
+static void lime_update_OPk() {
+#ifdef EC25519_ENABLED
+	lime_update_OPk_test(lime::CurveId::c25519, "lime_update_OPk", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data());
+#endif
+#ifdef EC448_ENABLED
+	//lime_update_SPk_test(lime::CurveId::c448, "lime_update_OPk", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data());
+#endif
+}
+
+/**
+ * Scenario:
+ * - Create a user alice
+ * - simulate a move forward in time and update
  * - check we changed SPk and still got the old one
+ * - create a device for Bob and encrypt a message for alice fetching a new key bundle(check Bob uses the current SPk set as active)
  * - repeat until we reach the epoch in which SPk shall be deleted, check it is the case
+ * - decrypt all Bob message, it shall be Ok for all except the one encrypted with a bundle based on the deleted SPk where decrypt shall fail
  */
 static void lime_update_SPk_test(const lime::CurveId curve, const std::string &dbBaseFilename, const std::string &x3dh_server_url) {
 	// create DB
@@ -286,7 +426,7 @@ static void lime_update_SPk_test(const lime::CurveId curve, const std::string &d
 			aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, prov, user_auth_callback));
 
 			// call the update, it shall create and upload a new SPk but keep the old ones
-			aliceManager->update(callback);
+			aliceManager->update(callback, 0, lime_tester::OPkInitialBatchSize);
 			BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 			SPkExpectedCount++;
 
@@ -326,7 +466,7 @@ static void lime_update_SPk_test(const lime::CurveId curve, const std::string &d
 		aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, prov, user_auth_callback));
 
 		// call the update, it shall create and upload a new SPk but keep the old ones and delete one
-		aliceManager->update(callback);
+		aliceManager->update(callback, 0, lime_tester::OPkInitialBatchSize);
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 		// there shall not be any rise in the number of SPk keys found in DB, check that
 		SPkCount=0;
@@ -368,7 +508,7 @@ static void lime_update_SPk() {
 	lime_update_SPk_test(lime::CurveId::c25519, "lime_update_SPk", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data());
 #endif
 #ifdef EC448_ENABLED
-	//lime_update_SPk_test(lime::CurveId::c448, "lime_update_SPk", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data());
+	lime_update_SPk_test(lime::CurveId::c448, "lime_update_SPk", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data());
 #endif
 }
 
@@ -440,7 +580,7 @@ static void lime_update_clean_MK_test(const lime::CurveId curve, const std::stri
 		BC_ASSERT_EQUAL(lime_tester::get_StoredMessageKeyCount(dbFilenameBob, *bobDeviceId, *aliceDeviceId), 1, unsigned int, "%d");
 
 		/* call the update function */
-		bobManager->update(callback);
+		bobManager->update(callback, 0, lime_tester::OPkInitialBatchSize);
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success, lime_tester::wait_for_timeout));
 
 		/* Check that bob got 0 message key in local Storage */
@@ -864,8 +1004,8 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 		BC_ASSERT_EQUAL(bobSessionsId.size(), 2, size_t, "%ld");
 
 		// run the update function
-		aliceManager->update(callback);
-		bobManager->update(callback);
+		aliceManager->update(callback, 0, lime_tester::OPkInitialBatchSize);
+		bobManager->update(callback, 0, lime_tester::OPkInitialBatchSize);
 		expected_success+=2;
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,expected_success,lime_tester::wait_for_timeout));
 
@@ -892,8 +1032,8 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 		bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, prov, user_auth_callback));
 
 		// run the update function
-		aliceManager->update(callback);
-		bobManager->update(callback);
+		aliceManager->update(callback, 0, lime_tester::OPkInitialBatchSize);
+		bobManager->update(callback, 0, lime_tester::OPkInitialBatchSize);
 		expected_success+=2;
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,expected_success,lime_tester::wait_for_timeout));
 
@@ -1638,7 +1778,8 @@ static test_t tests[] = {
 	TEST_NO_TAG("Sending chain limit", x3dh_sending_chain_limit),
 	TEST_NO_TAG("Without OPk", x3dh_without_OPk),
 	TEST_NO_TAG("Update - clean MK", lime_update_clean_MK),
-	TEST_NO_TAG("Update - SPk", lime_update_SPk)
+	TEST_NO_TAG("Update - SPk", lime_update_SPk),
+	TEST_NO_TAG("Update - OPk", lime_update_OPk)
 };
 
 test_suite_t lime_lime_test_suite = {
