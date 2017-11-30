@@ -85,7 +85,7 @@ MSOpenH264Encoder::~MSOpenH264Encoder()
 void MSOpenH264Encoder::initialize()
 {
 	mFrameCount = 0;
-	mPacker = rfc3984_new();
+	mPacker = rfc3984_new_with_factory(mFilter->factory);
 	if (mPacketisationModeSet)
 		rfc3984_set_mode(mPacker, mPacketisationMode);
 	else rfc3984_set_mode(mPacker, 1); // in absence of explicit directive from the other end, allow mode 1 because it allows to send big slices which is necessary for large images
