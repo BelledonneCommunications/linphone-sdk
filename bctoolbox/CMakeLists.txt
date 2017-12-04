@@ -65,6 +65,10 @@ if(NOT CPACK_GENERATOR AND NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
 	message(STATUS "Setting install rpath to ${CMAKE_INSTALL_RPATH}")
 endif()
 
+if(APPLE)
+	find_package(Iconv REQUIRED)
+endif()
+
 if(ENABLE_MBEDTLS)
 	find_package(MbedTLS)
 	if(MBEDTLS_FOUND)
