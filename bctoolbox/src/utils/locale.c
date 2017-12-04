@@ -37,7 +37,7 @@ char *bctbx_convert_utf8_locale(const char *str, bool_t locale_to_utf8) {
 	
 	nChar = MultiByteToWideChar(from, 0, str, -1, NULL, 0);
 	if (nChar == 0) return NULL;
-	wideStr = reinterpret_cast<LPWSTR>(bctbx_malloc(nChar*sizeof(wideStr[0])));
+	wideStr = (LPWSTR) bctbx_malloc(nChar*sizeof(wideStr[0]));
 	if (wideStr == NULL) return NULL;
 	nChar = MultiByteToWideChar(from, 0, str, -1, wideStr, nChar);
 	if (nChar == 0) {
@@ -47,7 +47,7 @@ char *bctbx_convert_utf8_locale(const char *str, bool_t locale_to_utf8) {
 	
 	nb_byte = WideCharToMultiByte(to, 0, wideStr, -1, 0, 0, 0, 0);
 	if (nb_byte == 0) return NULL;
-	convertedStr = reinterpret_cast<char *>(bctbx_malloc(nb_byte));
+	convertedStr = (char *) bctbx_malloc(nb_byte);
 	if (convertedStr == NULL) return NULL;
 	nb_byte = WideCharToMultiByte(to, 0, wideStr, -1, convertedStr, nb_byte, 0, 0);
 	if (nb_byte == 0) {
