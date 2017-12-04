@@ -519,7 +519,6 @@ static void lime_update_SPk() {
  * - Check we have two message key in localStorage
  * - decrypt a message
  * - Check we have one message key in localStorage
- * - simulate a move forward in time
  * - call the update
  * - Check we have no more message key in storage
  * - try to decrypt the message, it shall fail

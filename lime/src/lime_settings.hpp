@@ -34,7 +34,7 @@ namespace settings {
 
 	// Each session stores a shared AD given at built and derived from Identity keys of sender and receiver
 	// SharedAD is computed by HKDF-Sha511(session Initiator Ik || session receiver Ik || session Initiator device Id || session receiver device Id)
-	constexpr size_t DRSessionSharedADSize=31;
+	constexpr size_t DRSessionSharedADSize=32;
 	static_assert(DRSessionSharedADSize<64, "Shared AD is generated through HKDF-Sha512 with only one round implemented so its size can't be more than Sha512 max output size");
 
 	// Maximum number of Message we can skip(and store their keys) at reception of one message

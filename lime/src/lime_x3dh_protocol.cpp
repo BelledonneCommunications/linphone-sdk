@@ -496,104 +496,136 @@ namespace lime {
 
 				lime::x3dh_protocol::x3dh_message_type message_type{x3dh_protocol::x3dh_message_type::unset_type};
 				lime::x3dh_protocol::x3dh_error_code error_code{x3dh_protocol::x3dh_error_code::unset_error_code};
+				// check message validity, extract type and error code(if any)
 				if (!x3dh_protocol::parseMessage_getType<Curve>(body, bodySize, message_type, error_code, callback)) {
 					thiz->cleanUserData(userData);
 					return;
 				}
 
-				// Is it an error message?
-				if (message_type == lime::x3dh_protocol::x3dh_message_type::error) {
-					if (callback) callback(lime::callbackReturn::fail, "X3DH server error");
-					thiz->cleanUserData(userData);
-					return;
-				}
-
-				// Is it a peerBundle message?
-				if (message_type == lime::x3dh_protocol::x3dh_message_type::peerBundle) {
-					std::vector<X3DH_peerBundle<Curve>> peersBundle;
-					if (!x3dh_protocol::parseMessage_getPeerBundles(body, bodySize, peersBundle)) { // parsing went wrong
-						BCTBX_SLOGE<<"Got an invalid peerBundle packet from X3DH server";
-						if (callback) callback(lime::callbackReturn::fail, "Got an invalid peerBundle packet from X3DH server");
-						thiz->cleanUserData(userData);
-						return;
-					}
-
-					// generate X3DH init packets, create a store DR Sessions(in Lime obj cache, they'll be stored in DB when the first encryption will occurs)
-					try {
-						//Note: if while we were waiting for the peer bundle we did get an init message from him and created a session
-						// just do nothing : create a second session with the peer bundle we retrieved and at some point one session will stale
-						// when message stop crossing themselves on the network
-						thiz->X3DH_init_sender_session(peersBundle);
-					} catch (BctbxException &e) { // something went wrong but we can't forward the exception to belle-sip, go for callback
-						if (callback) callback(lime::callbackReturn::fail, std::string{"Error during the peer Bundle processing : "}.append(e.what()));
-						thiz->cleanUserData(userData);
-						return;
-					}
-
-					// call the encrypt function again, it will call the callback when done, encryption queue won't be processed as still locked by the m_ongoing_encryption member
-					thiz->encrypt(userData->recipientUserId, userData->recipients, userData->plainMessage, userData->cipherMessage, callback);
-
-					// now we can safely delete the user data, note that this may trigger an other encryption if there is one in queue
-					thiz->cleanUserData(userData);
-					return;
-				}
-
-				// Is it a selfOPks message?
-				if (message_type == lime::x3dh_protocol::x3dh_message_type::selfOPks) {
-					std::vector<uint32_t> selfOPkIds{};
-					if (!x3dh_protocol::parseMessage_selfOPks<Curve>(body, bodySize, selfOPkIds)) { // parsing went wrong
-						BCTBX_SLOGE<<"Got an invalid selfOPKs packet from X3DH server";
-						if (callback) callback(lime::callbackReturn::fail, "Got an invalid selfOPKs packet from X3DH server");
-						thiz->cleanUserData(userData);
-						return;
-					}
-
-					// update in LocalStorage the OPk status: tag removed from server and delete old keys
-					thiz->X3DH_updateOPkStatus(selfOPkIds);
-
-					// Check if we shall upload more packets
-					if (selfOPkIds.size() < userData->OPkServerLowLimit) {
-						// generate and publish the OPks
-						std::vector<X<Curve>> OPks{};
-						std::vector<uint32_t> OPk_ids{};
-						thiz->X3DH_generate_OPks(OPks, OPk_ids, userData->OPkBatchSize);
-						std::vector<uint8_t> X3DHmessage{};
-						x3dh_protocol::buildMessage_publishOPks(X3DHmessage, OPks, OPk_ids);
-						thiz->postToX3DHServer(userData, X3DHmessage);
-					} else { /* nothing to do, just call the callback */
-						if (callback) callback(lime::callbackReturn::success, "");
+				switch (message_type) {
+					// for registerUser, deleteUser, postSPk and postOPks, on success, server will respond with an identical header
+					// but we cannot get from server unset_type, getPeerBundle or getSelfOPks message
+					case x3dh_protocol::x3dh_message_type::unset_type:
+					case x3dh_protocol::x3dh_message_type::getPeerBundle:
+					case x3dh_protocol::x3dh_message_type::getSelfOPks: {
+						if (callback) callback(lime::callbackReturn::fail, "X3DH unexpected message from server");
 						thiz->cleanUserData(userData);
 					}
 					return;
-				}
 
-				// Rudimental state machine active at user registration only:
-				// - after registering a new user on X3dh server, if all goes well(server responde message type is registerIdentity), we shall upload SPK
-				// - after uploading SPk on X3dh server, if all goes well(server responde message type is registerIdentity), we shall upload SPK
-				if (userData->network_state_machine == lime::network_state::sendSPk && message_type == lime::x3dh_protocol::x3dh_message_type::registerUser) {
-					userData->network_state_machine = lime::network_state::sendOPk;
-					// generate and publish the SPk
-					X<Curve> SPk{};
-					Signature<Curve> SPk_sig{};
-					uint32_t SPk_id=0;
-					thiz->X3DH_generate_SPk(SPk, SPk_sig, SPk_id);
-					std::vector<uint8_t> X3DHmessage{};
-					x3dh_protocol::buildMessage_publishSPk(X3DHmessage, SPk, SPk_sig, SPk_id);
-					thiz->postToX3DHServer(userData, X3DHmessage);
-				} else if (userData->network_state_machine == lime::network_state::sendOPk && message_type == lime::x3dh_protocol::x3dh_message_type::postSPk) {
-					userData->network_state_machine = lime::network_state::done;
-					// generate and publish the OPks
-					std::vector<X<Curve>> OPks{};
-					std::vector<uint32_t> OPk_ids{};
-					thiz->X3DH_generate_OPks(OPks, OPk_ids, userData->OPkBatchSize);
-					std::vector<uint8_t> X3DHmessage{};
-					x3dh_protocol::buildMessage_publishOPks(X3DHmessage, OPks, OPk_ids);
-					thiz->postToX3DHServer(userData, X3DHmessage);
-				} else { // we're done
-					if (callback) callback(lime::callbackReturn::success, "");
-					delete(userData);
+					case x3dh_protocol::x3dh_message_type::registerUser: {
+						// server response to a registerUser, we shall have the network state machine set to next action: sendSPk, just check it
+						if (userData->network_state_machine == lime::network_state::sendSPk) {
+							userData->network_state_machine = lime::network_state::sendOPk;
+							// generate and publish the SPk
+							X<Curve> SPk{};
+							Signature<Curve> SPk_sig{};
+							uint32_t SPk_id=0;
+							thiz->X3DH_generate_SPk(SPk, SPk_sig, SPk_id);
+							std::vector<uint8_t> X3DHmessage{};
+							x3dh_protocol::buildMessage_publishSPk(X3DHmessage, SPk, SPk_sig, SPk_id);
+							thiz->postToX3DHServer(userData, X3DHmessage);
+						} else { // after registering a user, we must post SPk and OPks
+							if (callback) callback(lime::callbackReturn::fail, "Internal Error: we registered a new user on X3DH server but do not plan to post SPk or OPks");
+							thiz->cleanUserData(userData);
+						}
+					}
+					return;
+
+					case x3dh_protocol::x3dh_message_type::postSPk: {
+						// server response to a post SPk, if we are at user creation, the state machine is set to next action post OPk, do it
+						if (userData->network_state_machine == lime::network_state::sendOPk) {
+							userData->network_state_machine = lime::network_state::done;
+							// generate and publish the OPks
+							std::vector<X<Curve>> OPks{};
+							std::vector<uint32_t> OPk_ids{};
+							thiz->X3DH_generate_OPks(OPks, OPk_ids, userData->OPkBatchSize);
+							std::vector<uint8_t> X3DHmessage{};
+							x3dh_protocol::buildMessage_publishOPks(X3DHmessage, OPks, OPk_ids);
+							thiz->postToX3DHServer(userData, X3DHmessage);
+							return;
+						}
+					}
+					break;
+
+					case x3dh_protocol::x3dh_message_type::deleteUser:
+					case x3dh_protocol::x3dh_message_type::postOPks:
+						// server response to deleteUser or postOPks, nothing to do really
+						// success callback is the common behavior, performed after the switch
+					break;
+
+					case x3dh_protocol::x3dh_message_type::peerBundle: {
+						// server response to a getPeerBundle packet
+						std::vector<X3DH_peerBundle<Curve>> peersBundle;
+						if (!x3dh_protocol::parseMessage_getPeerBundles(body, bodySize, peersBundle)) { // parsing went wrong
+							BCTBX_SLOGE<<"Got an invalid peerBundle packet from X3DH server";
+							if (callback) callback(lime::callbackReturn::fail, "Got an invalid peerBundle packet from X3DH server");
+							thiz->cleanUserData(userData);
+							return;
+						}
+
+						// generate X3DH init packets, create a store DR Sessions(in Lime obj cache, they'll be stored in DB when the first encryption will occurs)
+						try {
+							//Note: if while we were waiting for the peer bundle we did get an init message from him and created a session
+							// just do nothing : create a second session with the peer bundle we retrieved and at some point one session will stale
+							// when message stop crossing themselves on the network
+							thiz->X3DH_init_sender_session(peersBundle);
+						} catch (BctbxException &e) { // something went wrong but we can't forward the exception to belle-sip, go for callback
+							if (callback) callback(lime::callbackReturn::fail, std::string{"Error during the peer Bundle processing : "}.append(e.what()));
+							thiz->cleanUserData(userData);
+							return;
+						}
+
+						// call the encrypt function again, it will call the callback when done, encryption queue won't be processed as still locked by the m_ongoing_encryption member
+						thiz->encrypt(userData->recipientUserId, userData->recipients, userData->plainMessage, userData->cipherMessage, callback);
+
+						// now we can safely delete the user data, note that this may trigger an other encryption if there is one in queue
+						thiz->cleanUserData(userData);
+					}
+					return;
+
+					case x3dh_protocol::x3dh_message_type::selfOPks: {
+						// server response to a getSelfOPks
+						std::vector<uint32_t> selfOPkIds{};
+						if (!x3dh_protocol::parseMessage_selfOPks<Curve>(body, bodySize, selfOPkIds)) { // parsing went wrong
+							BCTBX_SLOGE<<"Got an invalid selfOPKs packet from X3DH server";
+							if (callback) callback(lime::callbackReturn::fail, "Got an invalid selfOPKs packet from X3DH server");
+							thiz->cleanUserData(userData);
+							return;
+						}
+
+						// update in LocalStorage the OPk status: tag removed from server and delete old keys
+						thiz->X3DH_updateOPkStatus(selfOPkIds);
+
+						// Check if we shall upload more packets
+						if (selfOPkIds.size() < userData->OPkServerLowLimit) {
+							// generate and publish the OPks
+							std::vector<X<Curve>> OPks{};
+							std::vector<uint32_t> OPk_ids{};
+							thiz->X3DH_generate_OPks(OPks, OPk_ids, userData->OPkBatchSize);
+							std::vector<uint8_t> X3DHmessage{};
+							x3dh_protocol::buildMessage_publishOPks(X3DHmessage, OPks, OPk_ids);
+							thiz->postToX3DHServer(userData, X3DHmessage);
+						} else { /* nothing to do, just call the callback */
+							if (callback) callback(lime::callbackReturn::success, "");
+							thiz->cleanUserData(userData);
+						}
+					}
+					return;
+
+					case x3dh_protocol::x3dh_message_type::error: {
+						// error messages are logged inside the parseMessage_getType function, just return failure to callback
+						if (callback) callback(lime::callbackReturn::fail, "X3DH server error");
+						thiz->cleanUserData(userData);
+					}
 					return;
 				}
+
+				// we get here only if processing is over and response was the expected one
+				if (callback) callback(lime::callbackReturn::success, "");
+				thiz->cleanUserData(userData);
+				return;
+
 			} else { // response code is not 200Ok
 				if (callback) callback(lime::callbackReturn::fail, std::string("Got a non Ok response from server : ").append(std::to_string(code)));
 				thiz->cleanUserData(userData);
