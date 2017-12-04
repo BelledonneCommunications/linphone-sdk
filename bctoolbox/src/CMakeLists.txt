@@ -24,11 +24,11 @@ set(BCTOOLBOX_C_SOURCE_FILES
 	containers/list.c
 	logging/logging.c
 	utils/port.c
+	utils/locale.c
 	vfs.c
 	vconnect.c
 	parser.c
 	crypto/crypto.c
-	
 )
 
 set(BCTOOLBOX_CXX_SOURCE_FILES
