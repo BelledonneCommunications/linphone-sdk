@@ -24,7 +24,7 @@ set(BCTOOLBOX_C_SOURCE_FILES
 	containers/list.c
 	logging/logging.c
 	utils/port.c
-	utils/locale.c
+	utils/charconv.c
 	vfs.c
 	vconnect.c
 	parser.c

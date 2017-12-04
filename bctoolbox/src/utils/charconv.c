@@ -26,7 +26,7 @@
 
 #include "bctoolbox/logging.h"
 #include "bctoolbox/port.h"
-#include "bctoolbox/locale.h"
+#include "bctoolbox/charconv.h"
 
 char *bctbx_convert_utf8_locale(const char *str, bool_t locale_to_utf8) {
 #if defined(_WIN32)

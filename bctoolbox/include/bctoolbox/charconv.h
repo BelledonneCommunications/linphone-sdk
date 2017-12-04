@@ -16,8 +16,8 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef BCTBX_LOCALE_H
-#define BCTBX_LOCALE_H
+#ifndef BCTBX_CHARCONV_H
+#define BCTBX_CHARCONV_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -30,5 +30,5 @@ BCTBX_PUBLIC char *bctbx_utf8_to_locale(const char *str);
 }
 #endif
 
-#endif /* BCTBX_LOCALE_H */
+#endif /* BCTBX_CHARCONV_H */
 

@@ -31,7 +31,7 @@ set(HEADER_FILES
 	vconnect.h
 	parser.h
 	regex.h
-	locale.h
+	charconv.h
 )
 if(ENABLE_TESTS_COMPONENT)
 	list(APPEND HEADER_FILES tester.h)
