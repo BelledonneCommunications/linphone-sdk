@@ -32,7 +32,7 @@ include(CheckIncludeFile)
 
 find_path(DECAF_INCLUDE_DIRS
 	NAMES decaf.h
-	PATH_SUFFIXES include
+	PATH_SUFFIXES include/decaf
 )
 
 # find the three mbedtls library
