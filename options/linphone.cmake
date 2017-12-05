@@ -30,7 +30,6 @@ lcb_add_option("LIME" "Enable Linphone IM Encryption support in  Liblinphone." "
 lcb_add_option("NLS" "Enable internationalization of Linphone and Liblinphone." "${DEFAULT_VALUE_ENABLE_NLS}")
 lcb_add_option("Update Check" "Enable update check." "${DEFAULT_VALUE_ENABLE_UPDATE_CHECK}")
 lcb_add_option("VCARD" "Enable vCard 4 support in Linphone and Liblinphone." "${DEFAULT_VALUE_ENABLE_VCARD}")
-lcb_add_dependent_option("SQLite build" "Build SQLite from sources instead of taking the operating system version." "${DEFAULT_VALUE_ENABLE_SQLITE_BUILD}" "ENABLE_SQLITE" OFF)
 
 if(UNIX AND NOT IOS)
 	lcb_add_option("Relative prefix" "liblinphone and mediastreamer will look for their respective ressources relatively to their location." OFF)
