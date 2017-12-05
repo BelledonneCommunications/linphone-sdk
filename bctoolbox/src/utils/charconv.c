@@ -90,8 +90,13 @@ char *bctbx_convert_utf8_locale(const char *str, bool_t locale_to_utf8) {
 				
 				ret = iconv(cd, &in_buf, &in_left, &out_buf, &out_left);
 			}
-			
 			iconv_close(cd);
+			
+			if (ret == (size_t)-1 && errno != E2BIG) {
+				bctbx_error("Error while converting a string: %s", strerror(errno));
+				bctbx_free(ptr);
+				return NULL;
+			}
 		} else {
 			bctbx_error("Unable to open iconv content descriptor: %s", strerror(errno));
 			return NULL;
