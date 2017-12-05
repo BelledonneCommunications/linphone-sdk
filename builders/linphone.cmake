@@ -44,6 +44,9 @@ if(ENABLE_VCARD)
 	lcb_dependencies("belcard")
 endif()
 
+if(ENABLE_LIME_X3DH)
+	lcb_dependencies("lime")
+endif()
 lcb_cmake_options(
 	"-DENABLE_GTK_UI=${ENABLE_GTK_UI}"
 	"-DENABLE_VIDEO=${ENABLE_VIDEO}"
