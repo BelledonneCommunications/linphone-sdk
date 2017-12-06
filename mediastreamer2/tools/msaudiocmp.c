@@ -39,7 +39,7 @@ int main(int argc, char *argv[]){
 	if (argc>4){
 		params.chunk_size_ms = atoi(argv[4]);
 	}
-	ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
+	bctbx_set_log_level(BCTBX_LOG_DOMAIN, BCTBX_LOG_MESSAGE);
 	if (ms_audio_diff(argv[1],argv[2],&ret,&params,completion_cb,NULL)==0){
 		fprintf(stdout,"%s and %s are similar with a degree of %g.\n",argv[1],argv[2],ret);
 		return 0;
