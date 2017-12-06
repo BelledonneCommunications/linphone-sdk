@@ -31,7 +31,7 @@
 #include "cryptoUtils.h"
 #include "zidCache.h"
 #include "testUtils.h"
-#include <bctoolbox/tester.h>
+#include "bzrtpTest.h"
 
 #ifndef _WIN32
 #include <time.h>
@@ -267,11 +267,11 @@ error:
 	bzrtp_destroyBzrtpContext(context12345678, 0x12345678);
 }
 
-void test_parser(void) {
+static void test_parser(void) {
 	test_parser_param(0);
 }
 
-void test_parser_hvi(void) {
+static void test_parser_hvi(void) {
 	test_parser_param(1);
 }
 
@@ -283,7 +283,7 @@ typedef struct my_Context_struct {
 } my_Context_t;
 
 
-void test_parserComplete() {
+static void test_parserComplete() {
 
 	int retval;
 	/* alice's maintained packet */
@@ -1634,7 +1634,7 @@ static void sleepMs(int ms){
 /* Ping message length is 24 bytes (already define in packetParser.c out of this scope) */
 #define ZRTP_PINGMESSAGE_FIXED_LENGTH 24
 
-void test_stateMachine() {
+static void test_stateMachine() {
 	int retval;
 	my_Context_t aliceClientData, bobClientData;
 	uint64_t initialTime;
@@ -1845,7 +1845,7 @@ void test_stateMachine() {
 }
 
 /* first parse a packet and then try good and bad zrtp-hash, then do it the other way : set the zrtp-hash and then parse packet */
-void test_zrtphash(void) {
+static void test_zrtphash(void) {
 	bzrtpPacket_t *zrtpPacket;
 	int retval;
 
@@ -1883,3 +1883,21 @@ void test_zrtphash(void) {
 	retval = bzrtp_packetParser(context12345678, context12345678->channelContext[0], HelloPacketZrtpHash, sizeof(HelloPacketZrtpHash), zrtpPacket);
 	BC_ASSERT_EQUAL(retval, 0, int, "%d");
 }
+
+static test_t packet_parser_tests[] = {
+	TEST_NO_TAG("Parse", test_parser),
+	TEST_NO_TAG("Parse hvi check fail", test_parser_hvi),
+	TEST_NO_TAG("Parse Exchange", test_parserComplete),
+	TEST_NO_TAG("State machine", test_stateMachine),
+	TEST_NO_TAG("ZRTP-hash", test_zrtphash)
+};
+
+test_suite_t packet_parser_test_suite = {
+	"Packet Parser",
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	sizeof(packet_parser_tests) / sizeof(packet_parser_tests[0]),
+	packet_parser_tests
+};

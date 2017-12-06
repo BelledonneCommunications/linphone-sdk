@@ -35,7 +35,7 @@
 #include "bzrtp/bzrtp.h"
 #include "cryptoUtils.h"
 #include "testUtils.h"
-#include <bctoolbox/tester.h>
+#include "bzrtpTest.h"
 
 /**
  *
@@ -73,7 +73,7 @@ uint8_t patternKDFContext[KDF_TEST_NUMBER][56] = {
 	{0xf0, 0x1f, 0x24, 0x02, 0x00, 0x00, 0x00, 0x00, 0x80, 0x24, 0xad, 0xfb, 0x94, 0xa9, 0x06, 0x90, 0xcf, 0x9c, 0xed, 0x13, 0x99, 0x8c, 0x51, 0x34, 0x7d, 0xc4, 0x35, 0xa7, 0x4d, 0x75, 0x25, 0x44, 0x80, 0xc2, 0x11, 0xf2, 0xd3, 0x20, 0x5e, 0xa7, 0x1b, 0x4b, 0xa4, 0xee, 0xc7, 0x8e, 0xb7, 0x35, 0x75, 0x28, 0xe5, 0x6f, 0xcf, 0x4f, 0x74, 0x9f}
 };
 
-void test_zrtpKDF(void) {
+static void test_zrtpKDF(void) {
 
 	int i;
 	uint8_t keyKDF[32] = {0x33, 0xe6, 0x6c, 0x01, 0xca, 0x6f, 0xe6, 0x4f, 0xb7, 0x6f, 0xfd, 0xe3, 0x1c, 0xab, 0xc0, 0xfb, 0xad, 0x3d, 0x31, 0x02, 0x67, 0x6b, 0x0c, 0x09, 0x0f, 0xc9, 0x96, 0x38, 0x1e, 0x0a, 0x8c, 0x2f};
@@ -109,7 +109,7 @@ uint32_t patternCRCoutput[CRC_TEST_NUMBER] = {0x5065ab04, 0x9c9edccd, 0xda5c92ea
  * Pattern generated using GNU-ZRTP C++
  *
  */
-void test_CRC32(void) {
+static void test_CRC32(void) {
 	int i;
 	for (i=0; i<CRC_TEST_NUMBER; i++) {
 		BC_ASSERT_TRUE(bzrtp_CRC32(patterCRCinput[i], patternCRCLength[i]) == patternCRCoutput[i]);
@@ -227,7 +227,7 @@ struct st_algo_type {
 	uint8_t expectedType;
 };
 
-void test_algoAgreement(void) {
+static void test_algoAgreement(void) {
 	struct st_algo_type_with_packet agreement_types_with_packet[] = {
 		{ {ZRTP_KEYAGREEMENT_DH2k}, 1, ZRTP_KEYAGREEMENT_DH2k },
 		{ {ZRTP_KEYAGREEMENT_DH3k}, 1, ZRTP_KEYAGREEMENT_DH3k },
@@ -377,7 +377,7 @@ struct st_algo_setter_getter {
 	uint8_t expectedTypesCount;
 };
 
-void test_algoSetterGetter(void) {
+static void test_algoSetterGetter(void) {
 	struct st_algo_setter_getter agreement_types[] = {
 		{ {ZRTP_KEYAGREEMENT_DH2k}, 1, {ZRTP_KEYAGREEMENT_DH2k, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_Mult}, 3 },
 		{ {ZRTP_KEYAGREEMENT_DH3k}, 1, {ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_Mult}, 2 },
@@ -469,7 +469,7 @@ struct st_add_crypto {
 	uint8_t expectedTypesCount;
 };
 
-void test_addMandatoryCryptoTypesIfNeeded(void) {
+static void test_addMandatoryCryptoTypesIfNeeded(void) {
 	struct st_add_crypto crypto_types[] = {
 		/* mandatory types */
 		{ ZRTP_HASH_TYPE, {ZRTP_UNSET_ALGO}, 0, {ZRTP_HASH_S256}, 1 },
@@ -507,3 +507,21 @@ void test_addMandatoryCryptoTypesIfNeeded(void) {
 		crypto_type++;
 	}
 }
+
+static test_t crypto_utils_tests[] = {
+	TEST_NO_TAG("zrtpKDF", test_zrtpKDF),
+	TEST_NO_TAG("CRC32", test_CRC32),
+	TEST_NO_TAG("algo agreement", test_algoAgreement),
+	TEST_NO_TAG("context algo setter and getter", test_algoSetterGetter),
+	TEST_NO_TAG("adding mandatory crypto algorithms if needed", test_addMandatoryCryptoTypesIfNeeded)
+};
+
+test_suite_t crypto_utils_test_suite = {
+	"Crypto Utils",
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	sizeof(crypto_utils_tests) / sizeof(crypto_utils_tests[0]),
+	crypto_utils_tests
+};

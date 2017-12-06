@@ -28,6 +28,8 @@
 #include "testUtils.h"
 #include "cryptoUtils.h"
 
+#include "bzrtpTest.h"
+
 #ifndef _WIN32
 #if !defined(__QNXNTO__) && !(defined(__ANDROID__) && defined(__LP64__))
 #include <ctype.h>
@@ -60,6 +62,8 @@ const char *bzrtp_keyAgreement_toString(uint8_t keyAgreementAlgo) {
 		case(ZRTP_KEYAGREEMENT_DH3k): return "DHM-3072";
 		case(ZRTP_KEYAGREEMENT_EC38): return "ECDH-384";
 		case(ZRTP_KEYAGREEMENT_EC52): return "ECDH-521";
+		case(ZRTP_KEYAGREEMENT_X255): return "X25519";
+		case(ZRTP_KEYAGREEMENT_X448): return "X448";
 		case(ZRTP_KEYAGREEMENT_Prsh): return "PreShared";
 		case(ZRTP_KEYAGREEMENT_Mult): return "MultiStream";
 		default: return "Unknown Algo";
@@ -97,17 +101,6 @@ const char *bzrtp_sas_toString(uint8_t sasAlgo) {
 		case(ZRTP_SAS_B256): return "PGP-WordList";
 		default: return "Unknown Algo";
 		}
-}
-
-
-void bzrtp_message(const char *fmt, ...) {
-	if (verbose) {
-		va_list args;
-		va_start(args, fmt);
-		vprintf(fmt, args);
-		va_end(args);
-		fflush(NULL);
-	}
 }
 
 void printHex(char *title, uint8_t *data, uint32_t length) {

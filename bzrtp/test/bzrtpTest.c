@@ -21,87 +21,34 @@
  */
 
 #include <stdio.h>
-#include "bzrtpCryptoTest.h"
-#include "bzrtpParserTest.h"
-#include "bzrtpConfigsTest.h"
-#include "bzrtpZidCacheTest.h"
+#include "bzrtpTest.h"
 #include "typedef.h"
 #include "testUtils.h"
-#include <bctoolbox/logging.h>
-#include <bctoolbox/tester.h>
 
-test_t crypto_utils_tests[] = {
-	TEST_NO_TAG("zrtpKDF", test_zrtpKDF),
-	TEST_NO_TAG("CRC32", test_CRC32),
-	TEST_NO_TAG("algo agreement", test_algoAgreement),
-	TEST_NO_TAG("context algo setter and getter", test_algoSetterGetter),
-	TEST_NO_TAG("adding mandatory crypto algorithms if needed", test_addMandatoryCryptoTypesIfNeeded)
-};
+static FILE * log_file = NULL;
+static const char *log_domain = "bzrtp-tester";
 
-test_suite_t crypto_utils_test_suite = {
-	"Crypto Utils",
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	sizeof(crypto_utils_tests) / sizeof(crypto_utils_tests[0]),
-	crypto_utils_tests
-};
 
-test_t packet_parser_tests[] = {
-	TEST_NO_TAG("Parse", test_parser),
-	TEST_NO_TAG("Parse hvi check fail", test_parser_hvi),
-	TEST_NO_TAG("Parse Exchange", test_parserComplete),
-	TEST_NO_TAG("State machine", test_stateMachine),
-	TEST_NO_TAG("ZRTP-hash", test_zrtphash)
-};
+static void log_handler(int lev, const char *fmt, va_list args) {
+#ifdef _WIN32
+	/* We must use stdio to avoid log formatting (for autocompletion etc.) */
+	vfprintf(lev == BCTBX_LOG_ERROR ? stderr : stdout, fmt, args);
+	fprintf(lev == BCTBX_LOG_ERROR ? stderr : stdout, "\n");
+#else
+	va_list cap;
+	va_copy(cap,args);
+	vfprintf(lev == BCTBX_LOG_ERROR ? stderr : stdout, fmt, cap);
+	fprintf(lev == BCTBX_LOG_ERROR ? stderr : stdout, "\n");
+	va_end(cap);
+#endif
+	if (log_file){
+		bctbx_logv(log_domain, (BctbxLogLevel)lev, fmt, args);
+	}
+}
 
-test_suite_t packet_parser_test_suite = {
-	"Packet Parser",
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	sizeof(packet_parser_tests) / sizeof(packet_parser_tests[0]),
-	packet_parser_tests
-};
-
-test_t zidcache_tests[] = {
-	TEST_NO_TAG("SelfZID", test_cache_getSelfZID),
-	TEST_NO_TAG("ZRTP secrets", test_cache_zrtpSecrets),
-	TEST_NO_TAG("Migration", test_cache_migration),
-};
-
-test_suite_t zidcache_test_suite = {
-	"ZID Cache",
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	sizeof(zidcache_tests) / sizeof(zidcache_tests[0]),
-	zidcache_tests
-};
-
-test_t key_exchange_tests[] = {
-	TEST_NO_TAG("Cacheless multi channel", test_cacheless_exchange),
-	TEST_NO_TAG("Cached Simple", test_cache_enabled_exchange),
-	TEST_NO_TAG("Cached mismatch", test_cache_mismatch_exchange),
-	TEST_NO_TAG("Loosy network", test_loosy_network),
-	TEST_NO_TAG("Cached PVS", test_cache_sas_not_confirmed)
-};
-
-test_suite_t key_exchange_test_suite = {
-	"Key exchange",
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	sizeof(key_exchange_tests) / sizeof(key_exchange_tests[0]),
-	key_exchange_tests
-};
-
-void bzrtp_tester_init(void) {
-	bc_tester_init(NULL, BCTBX_LOG_MESSAGE, BCTBX_LOG_ERROR, NULL);
+void bzrtp_tester_init(void(*ftester_printf)(int level, const char *fmt, va_list args)) {
+	if (ftester_printf == NULL) ftester_printf = log_handler;
+	bc_tester_init(ftester_printf, BCTBX_LOG_MESSAGE, BCTBX_LOG_ERROR, NULL);
 
 	bc_tester_add_suite(&crypto_utils_test_suite);
 	bc_tester_add_suite(&packet_parser_test_suite);
@@ -113,25 +60,76 @@ void bzrtp_tester_uninit(void) {
 	bc_tester_uninit();
 }
 
+int bzrtp_tester_set_log_file(const char *filename) {
+	bctbx_log_handler_t* filehandler;
+	char* dir;
+	char* base;
+	if (log_file) {
+		fclose(log_file);
+	}
+	log_file = fopen(filename, "w");
+	if (!log_file) {
+		bctbx_error("Cannot open file [%s] for writing logs because [%s]", filename, strerror(errno));
+		return -1;
+	}
+	dir = bctbx_dirname(filename);
+	base = bctbx_basename(filename);
+	bctbx_message("Redirecting traces to file [%s]", filename);
+	filehandler = bctbx_create_file_log_handler(0, dir, base, log_file);
+	bctbx_add_log_handler(filehandler);
+	if (dir) bctbx_free(dir);
+	if (base) bctbx_free(base);
+	return 0;
+}
+
+#if !defined(__ANDROID__) && !(defined(BCTBX_WINDOWS_PHONE) || defined(BCTBX_WINDOWS_UNIVERSAL))
+
+static const char* lime_helper =
+		"\t\t\t--verbose\n"
+		"\t\t\t--silent\n"
+		"\t\t\t--log-file <output log file path>\n";
+
 int main(int argc, char *argv[]) {
 	int i;
 	int ret;
 
-	bzrtp_tester_init();
+	bzrtp_tester_init(NULL);
 
-	for (i = 1; i < argc; ++i) {
-		int ret = bc_tester_parse_args(argc, argv, i);
-		if (ret > 0) {
-			i += ret - 1;
-			continue;
-		} else if (ret < 0) {
-			bc_tester_helper(argv[0], "");
-		}
-		return ret;
+	if (strstr(argv[0], ".libs")) {
+		int prefix_length = (int)(strstr(argv[0], ".libs") - argv[0]) + 1;
+		char prefix[200];
+		sprintf(prefix, "%s%.*s", argv[0][0] == '/' ? "" : "./", prefix_length, argv[0]);
+		bc_tester_set_resource_dir_prefix(prefix);
+		bc_tester_set_writable_dir_prefix(prefix);
 	}
 
+	for(i = 1; i < argc; ++i) {
+		if (strcmp(argv[i],"--verbose")==0){
+			bctbx_set_log_level(log_domain, BCTBX_LOG_DEBUG);
+			bctbx_set_log_level(BCTBX_LOG_DOMAIN,BCTBX_LOG_DEBUG);
+			verbose = 1;
+		} else if (strcmp(argv[i],"--silent")==0){
+			bctbx_set_log_level(log_domain, BCTBX_LOG_FATAL);
+			bctbx_set_log_level(BCTBX_LOG_DOMAIN, BCTBX_LOG_FATAL);
+			verbose = 0;
+		} else if (strcmp(argv[i],"--log-file")==0){
+			CHECK_ARG("--log-file", ++i, argc);
+			if (bzrtp_tester_set_log_file(argv[i]) < 0) return -2;
+		}else {
+			int ret = bc_tester_parse_args(argc, argv, i);
+			if (ret>0) {
+				i += ret - 1;
+				continue;
+			} else if (ret<0) {
+				bc_tester_helper(argv[0], lime_helper);
+			}
+			return ret;
+		}
+	}
 	ret = bc_tester_start(argv[0]);
 	bzrtp_tester_uninit();
+	bctbx_uninit_logger();
 	return ret;
 }
 
+#endif

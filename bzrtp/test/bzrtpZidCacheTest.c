@@ -24,9 +24,9 @@
 #include <stdlib.h>
 
 #include "bzrtp/bzrtp.h"
-#include <bctoolbox/tester.h>
 #include "testUtils.h"
 #include "zidCache.h"
+#include "bzrtpTest.h"
 
 #ifdef ZIDCACHE_ENABLED
 #include "sqlite3.h"
@@ -40,7 +40,7 @@ static const char *xmlCacheMigration = "<?xml version=\"1.0\" encoding=\"UTF-8\"
 
 
 
-void test_cache_getSelfZID(void) {
+static void test_cache_getSelfZID(void) {
 #ifdef ZIDCACHE_ENABLED
 	bzrtpContext_t *aliceContext;
 	sqlite3 *aliceDB=NULL;
@@ -143,7 +143,7 @@ void test_cache_getSelfZID(void) {
 #endif
 }
 
-void test_cache_zrtpSecrets(void) {
+static void test_cache_zrtpSecrets(void) {
 #ifdef ZIDCACHE_ENABLED
 	bzrtpContext_t *aliceContext;
 	sqlite3 *aliceDB=NULL;
@@ -198,7 +198,7 @@ void test_cache_zrtpSecrets(void) {
 #endif /* ZIDCACHE_ENABLED */
 }
 
-void test_cache_migration(void) {
+static void test_cache_migration(void) {
 #ifdef ZIDCACHE_ENABLED
 #ifdef HAVE_LIBXML2
 	uint8_t pattern_selfZIDalice[12] = {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb};
@@ -231,3 +231,19 @@ void test_cache_migration(void) {
 	bzrtp_message("Test skipped as ZID cache is disabled\n");
 #endif /* ZIDCACHE_ENABLED */
 }
+
+static test_t zidcache_tests[] = {
+	TEST_NO_TAG("SelfZID", test_cache_getSelfZID),
+	TEST_NO_TAG("ZRTP secrets", test_cache_zrtpSecrets),
+	TEST_NO_TAG("Migration", test_cache_migration),
+};
+
+test_suite_t zidcache_test_suite = {
+	"ZID Cache",
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	sizeof(zidcache_tests) / sizeof(zidcache_tests[0]),
+	zidcache_tests
+};
