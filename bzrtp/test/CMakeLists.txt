@@ -63,4 +63,5 @@ find_file(PATTERN_FILES_IN_TEST_DIR
 if (NOT PATTERN_FILES_IN_TEST_DIR)
        file(COPY patternZIDAlice.sqlite DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 endif()
-add_test(NAME bzrtpTest COMMAND bzrtpTest)
+
+add_test(NAME bzrtpTest COMMAND bzrtpTest --resource-dir .)
