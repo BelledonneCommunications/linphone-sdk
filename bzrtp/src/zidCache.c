@@ -95,6 +95,7 @@ int bzrtp_initCache(void *dbPointer) {
 	/* get current db schema version (user_version pragma in sqlite )*/
 	sql = sqlite3_mprintf("PRAGMA user_version;");
 	ret = sqlite3_exec(db, sql, callback_getUserVersion, &userVersion, &errmsg);
+	sqlite3_free(sql);
 	if (ret!=SQLITE_OK) {
 		sqlite3_free(errmsg);
 		return BZRTP_ZIDCACHE_UNABLETOREAD;
@@ -108,6 +109,7 @@ int bzrtp_initCache(void *dbPointer) {
 			/* update the schema version in DB metadata */
 			sql = sqlite3_mprintf("PRAGMA user_version = %d;",ZIDCACHE_DBSCHEMA_VERSION_NUMBER);
 			ret = sqlite3_prepare(db, sql, -1, &stmt, NULL);
+			sqlite3_free(sql);
 			if (ret != SQLITE_OK) {
 				return BZRTP_ZIDCACHE_UNABLETOUPDATE;
 			}
@@ -464,7 +466,7 @@ int bzrtp_cache_getZuid(void *dbPointer, const char *selfURI, const char *peerUR
  *
  * @return 0 on succes, error code otherwise
  */
-int bzrtp_cache_write(void *dbPointer, int zuid, char *tableName, char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount) {
+int bzrtp_cache_write(void *dbPointer, int zuid, const char *tableName, const char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount) {
 	char *stmt=NULL;
 	int ret,i,j;
 	sqlite3_stmt *sqlStmt = NULL;
@@ -568,7 +570,7 @@ int bzrtp_cache_write(void *dbPointer, int zuid, char *tableName, char **columns
  *
  * @return 0 on succes, error code otherwise
  */
-int bzrtp_cache_read(void *dbPointer, int zuid, char *tableName, char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount) {
+int bzrtp_cache_read(void *dbPointer, int zuid, const char *tableName, const char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount) {
 	char *stmt=NULL;
 	int ret,i,j;
 	sqlite3_stmt *sqlStmt = NULL;
@@ -707,12 +709,12 @@ int bzrtp_cache_migration(void *cacheXmlPtr, void *cacheSqlite, const char *self
 				xmlChar *peerUri[128]; /* array to contain all the peer uris found in one node */
 				/* hopefully they won't be more than 128(it would mean some peer has more than 128 accounts and we called all of them...) */
 				int peerUriIndex=0; /* index of previous array */
-				char *zrtpColNames[] = {"rs1", "rs2", "pvs"};
+				const char *zrtpColNames[] = {"rs1", "rs2", "pvs"};
 				uint8_t *zrtpColValues[] = {NULL, NULL, NULL};
 				size_t zrtpColExpectedLengths[] = {32,32,1};
 				size_t zrtpColLengths[] = {0,0,0};
 
-				char *limeColNames[] = {"sndKey", "rcvKey", "sndSId", "rcvSId", "sndIndex", "rcvIndex", "valid"};
+				const char *limeColNames[] = {"sndKey", "rcvKey", "sndSId", "rcvSId", "sndIndex", "rcvIndex", "valid"};
 				uint8_t *limeColValues[] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL};
 				size_t limeColExpectedLengths[] = {32,32,32,32,4,4,8};
 				size_t limeColLengths[] = {0,0,0,0,0,0,0};
@@ -851,11 +853,11 @@ int bzrtp_getPeerAssociatedSecrets(bzrtpContext_t *context, uint8_t peerZID[12])
 	return 0;
 }
 
-int bzrtp_cache_write(void *dbPointer, int zuid, char *tableName, char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount) {
+int bzrtp_cache_write(void *dbPointer, int zuid, const char *tableName, const char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount) {
 	return BZRTP_ERROR_CACHEDISABLED;
 }
 
-int bzrtp_cache_read(void *dbPointer, int zuid, char *tableName, char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount) {
+int bzrtp_cache_read(void *dbPointer, int zuid, const char *tableName, const char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount) {
 	return BZRTP_ERROR_CACHEDISABLED;
 }
 

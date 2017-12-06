@@ -22,7 +22,7 @@
 
 cmake_minimum_required(VERSION 3.0)
 
-project(bzrtp VERSION 1.0.5 LANGUAGES C CXX)
+project(bzrtp VERSION 1.0.6 LANGUAGES C CXX)
 
 
 option(ENABLE_SHARED "Build shared library." YES)
@@ -68,7 +68,7 @@ add_definitions("-DHAVE_CONFIG_H")
 set(STRICT_OPTIONS_CPP )
 if(NOT MSVC)
 	list(APPEND STRICT_OPTIONS_CPP "-Wall")
-	if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
+	if(CMAKE_C_COMPILER_ID MATCHES "Clang")
 		list(APPEND STRICT_OPTIONS_CPP "-Qunused-arguments")
 	endif()
 	if(ENABLE_STRICT)
@@ -147,14 +147,4 @@ install(FILES
 )
 
 
-# CPack settings
-set(CPACK_PACKAGE_NAME "bzrtp")
-set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
-set(CPACK_SOURCE_GENERATOR "TGZ")
-set(CPACK_SOURCE_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}")
-set(CPACK_SOURCE_IGNORE_FILES
-        "^${CMAKE_BINARY_DIR}"
-        "/\\\\..+"
-)
-
-include(CPack)
+add_subdirectory(build)

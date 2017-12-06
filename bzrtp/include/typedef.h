@@ -52,7 +52,6 @@ typedef struct bzrtpChannelContext_struct bzrtpChannelContext_t;
 #include "stateMachine.h"
 
 /* logging */
-#define BCTBX_LOG_DOMAIN "bzrtp"
 #include "bctoolbox/logging.h"
 
 #ifdef _WIN32

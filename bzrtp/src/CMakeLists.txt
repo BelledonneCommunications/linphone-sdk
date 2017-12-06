@@ -28,6 +28,11 @@ set(SOURCE_FILES
 	stateMachine.c
 	zidCache.c
 )
+
+add_definitions(
+	-DBCTBX_LOG_DOMAIN="bzrtp"
+)
+
 if(POLARSSL_FOUND)
 	list(APPEND SOURCE_FILES cryptoPolarssl.c)
 elseif(MBEDTLS_FOUND)

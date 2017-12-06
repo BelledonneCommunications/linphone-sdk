@@ -520,7 +520,7 @@ int bzrtp_processMessage(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8_t
 void bzrtp_SASVerified(bzrtpContext_t *zrtpContext) {
 	if (zrtpContext != NULL) {
 		uint8_t pvsFlag = 1;
-		char *colNames[] = {"pvs"};
+		const char *colNames[] = {"pvs"};
 		uint8_t *colValues[] = {&pvsFlag};
 		size_t colLength[] = {1};
 
@@ -542,7 +542,7 @@ void bzrtp_SASVerified(bzrtpContext_t *zrtpContext) {
 void bzrtp_resetSASVerified(bzrtpContext_t *zrtpContext) {
 	if (zrtpContext != NULL) {
 		uint8_t pvsFlag = 0;
-		char *colNames[] = {"pvs"};
+		const char *colNames[] = {"pvs"};
 		uint8_t *colValues[] = {&pvsFlag};
 		size_t colLength[] = {1};
 		bzrtp_cache_write(zrtpContext->zidCache, zrtpContext->zuid, "zrtp", colNames, colValues, colLength, 1);
