@@ -110,7 +110,8 @@ BCTBX_PUBLIC void bctbx_remove_log_handler(bctbx_log_handler_t* handler);
 BCTBX_PUBLIC void bctbx_set_log_handler(BctbxLogFunc func);
 /*same as bctbx_set_log_handler but only for a domain. NULL for all*/
 BCTBX_PUBLIC void bctbx_set_log_handler_for_domain(BctbxLogFunc func, const char* domain);
-	
+/*Convenient function that creates a static log handler logging into supplied FILE argument.
+ Despite it is not recommended to use it in libraries, it can be useful for simple test programs.*/
 BCTBX_PUBLIC void bctbx_set_log_file(FILE* f);
 BCTBX_PUBLIC bctbx_list_t* bctbx_get_log_handlers(void);
 
