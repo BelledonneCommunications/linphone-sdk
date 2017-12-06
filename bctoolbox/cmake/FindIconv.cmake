@@ -1,6 +1,6 @@
 ############################################################################
-# CMakeLists.txt
-# Copyright (C) 2016  Belledonne Communications, Grenoble France
+# FindIconv.cmake
+# Copyright (C) 2014  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -19,34 +19,39 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 ############################################################################
+#
+# - Find the iconv include file and library
+#
+#  ICONV_FOUND - system has libiconv
+#  ICONV_INCLUDE_DIRS - the libiconv include directory
+#  ICONV_LIBRARIES - The libraries needed to use libiconv
 
-set(HEADER_FILES
-	crypto.h
-	defs.h
-	list.h
-	logging.h
-	map.h
-	port.h
-	vfs.h
-	vconnect.h
-	parser.h
-	regex.h
-	charconv.h
-)
-if(ENABLE_TESTS_COMPONENT)
-	list(APPEND HEADER_FILES tester.h)
+if(APPLE AND NOT IOS)
+	set(ICONV_HINTS "${CMAKE_OSX_SYSROOT}/usr" "/usr")
 endif()
-if(HAVE_EXECINFO)
-	list(APPEND HEADER_FILES exception.hh)
+if(ICONV_HINTS)
+	set(ICONV_LIBRARIES_HINTS "${ICONV_HINTS}/lib")
 endif()
 
-set(BCTOOLBOX_HEADER_FILES )
-foreach(HEADER_FILE ${HEADER_FILES})
-        list(APPEND BCTOOLBOX_HEADER_FILES "${CMAKE_CURRENT_LIST_DIR}/bctoolbox/${HEADER_FILE}")
-endforeach()
-set(BCTOOLBOX_HEADER_FILES ${BCTOOLBOX_HEADER_FILES} PARENT_SCOPE)
-
-install(FILES ${BCTOOLBOX_HEADER_FILES}
-	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/bctoolbox
-	PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
+find_path(ICONV_INCLUDE_DIRS
+	NAMES iconv.h
+	HINTS "${ICONV_HINTS}"
+	PATH_SUFFIXES include
 )
+
+if(ICONV_INCLUDE_DIRS)
+	set(HAVE_ICONV_H 1)
+endif()
+
+find_library(ICONV_LIBRARIES
+	NAMES iconv
+	HINTS "${ICONV_LIBRARIES_HINTS}"
+)
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(Iconv
+	DEFAULT_MSG
+	ICONV_INCLUDE_DIRS ICONV_LIBRARIES HAVE_ICONV_H
+)
+
+mark_as_advanced(ICONV_INCLUDE_DIRS ICONV_LIBRARIES HAVE_ICONV_H)
