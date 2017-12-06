@@ -25,15 +25,14 @@
 	This part is needed since CentOS7 have an old gcc compiler.
 	TODO: Remove this code when all supported platorms have gcc 4.9.0 or more 
  */
-#if __cplusplus >= 201103L && !defined(__ANDROID__)    && \
+#if __cplusplus >= 201103L                             && \
     (!defined(__GLIBCXX__) || (__cplusplus >= 201402L) || \
         (defined(_GLIBCXX_REGEX_DFS_QUANTIFIERS_LIMIT) || \
          defined(_GLIBCXX_REGEX_STATE_LIMIT)           || \
              (defined(_GLIBCXX_RELEASE)                && \
-             _GLIBCXX_RELEASE > 4)))
+             _GLIBCXX_RELEASE > 4)))                   && \
+	!defined(__ANDROID__) || defined(_WIN32)
 #define HAVE_WORKING_REGEX 1
-#elif defined(_WIN32)
-#error "Your compiler does not support <regex>, please upgrade it."
 #else
 #define HAVE_WORKING_REGEX 0
 #include <regex.h>
