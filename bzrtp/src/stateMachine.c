@@ -530,13 +530,17 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
 				}
 			}
 
+			/* if we have an aux secret check it match peer's one */
 			if (zrtpContext->cachedSecret.auxsecret!=NULL) {
-				if (memcmp(zrtpChannelContext->responderAuxsecretID, dhPart1Message->auxsecretID,8) != 0) {
+				if (memcmp(zrtpChannelContext->responderAuxsecretID, dhPart1Message->auxsecretID,8) != 0) { // they do not match, delete the aux secret as we must not use it
 					free(zrtpContext->cachedSecret.auxsecret);
 					zrtpContext->cachedSecret.auxsecret= NULL;
 					zrtpContext->cachedSecret.auxsecretLength = 0;
+				} else { // they do match, set the flag to 0 (its default is 1)
+					zrtpChannelContext->srtpSecrets.auxSecretMismatch=0;
 				}
 			}
+
 			if (zrtpContext->cachedSecret.pbxsecret!=NULL) {
 				if (memcmp(zrtpContext->responderCachedSecretHash.pbxsecretID, dhPart1Message->pbxsecretID,8) != 0) {
 					free(zrtpContext->cachedSecret.pbxsecret);
@@ -830,22 +834,22 @@ int state_keyAgreement_responderSendingDHPart1(bzrtpEvent_t event) {
 				}
 			}
 
+			/* if we have an auxiliary secret, check it match peer's one */
 			if (zrtpContext->cachedSecret.auxsecret!=NULL) {
-				if (memcmp(zrtpChannelContext->initiatorAuxsecretID, dhPart2Message->auxsecretID,8) != 0) {
+				if (memcmp(zrtpChannelContext->initiatorAuxsecretID, dhPart2Message->auxsecretID,8) != 0) {  // they do not match, delete the aux secret as we must not use it
 					free(zrtpContext->cachedSecret.auxsecret);
 					zrtpContext->cachedSecret.auxsecret= NULL;
 					zrtpContext->cachedSecret.auxsecretLength = 0;
-					/*bzrtp_freeZrtpPacket(zrtpPacket);
-					return BZRTP_ERROR_CACHEMISMATCH;*/
+				} else { // they do match, set the flag to 0 (its default is 1)
+					zrtpChannelContext->srtpSecrets.auxSecretMismatch=0;
 				}
 			}
+
 			if (zrtpContext->cachedSecret.pbxsecret!=NULL) {
 				if (memcmp(zrtpContext->initiatorCachedSecretHash.pbxsecretID, dhPart2Message->pbxsecretID,8) != 0) {
 					free(zrtpContext->cachedSecret.pbxsecret);
 					zrtpContext->cachedSecret.pbxsecret= NULL;
 					zrtpContext->cachedSecret.pbxsecretLength = 0;
-					/*bzrtp_freeZrtpPacket(zrtpPacket);
-					return BZRTP_ERROR_CACHEMISMATCH;*/
 				}
 			}
 
@@ -1742,6 +1746,13 @@ int bzrtp_responseToHelloMessage(bzrtpContext_t *zrtpContext, bzrtpChannelContex
 		} else { /* we have no secret, generate a random */
 			bctbx_rng_get(zrtpContext->RNGContext, zrtpContext->initiatorCachedSecretHash.pbxsecretID, 8);
 			bctbx_rng_get(zrtpContext->RNGContext, zrtpContext->responderCachedSecretHash.pbxsecretID, 8);
+		}
+
+		/* if we have any transient auxiliary secret, append it to the one found in cache */
+		if (zrtpContext->transientAuxSecret!=NULL) {
+			zrtpContext->cachedSecret.auxsecret = (uint8_t *)realloc(zrtpContext->cachedSecret.auxsecret, zrtpContext->cachedSecret.auxsecretLength + zrtpContext->transientAuxSecretLength);
+			memcpy(zrtpContext->cachedSecret.auxsecret + zrtpContext->cachedSecret.auxsecretLength, zrtpContext->transientAuxSecret, zrtpContext->transientAuxSecretLength);
+			zrtpContext->cachedSecret.auxsecretLength += zrtpContext->transientAuxSecretLength;
 		}
 
 		if (zrtpContext->cachedSecret.auxsecret!=NULL) {

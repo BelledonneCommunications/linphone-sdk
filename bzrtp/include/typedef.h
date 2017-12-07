@@ -249,6 +249,11 @@ struct bzrtpContext_struct {
 	uint8_t cacheMismatchFlag; /**< Flag set in case of cache mismatch(detected in DHM mode when DH part packet arrives) */
 	uint8_t peerPVS; /**< used to store value of PVS flag sent by peer in the confirm packet on first channel only, then used to compute the PVS value sent to the application */
 
+	/* transient auxiliary shared secret : in addition to the auxiliary shared secret stored in ZID cache, caller can provide a shared secret to the zrtp context which will be used for this transaction only */
+	/* both auxiliary secret are used and combined as transientAuxiliarySecret appended to cachedAuxiliarySecret*/
+	uint8_t *transientAuxSecret; /**< an auxiliary secret not stored in cache, provided after context creation and before the main channel is started */
+	size_t transientAuxSecretLength; /**< size of the previous buffer */
+
 	/* keys */
 	uint8_t *ZRTPSess; /**< ZRTP session key as described in rfc section 4.5.2 */
 	uint8_t	ZRTPSessLength; /**< length of ZRTP session key depends on agreed hash algorithm */

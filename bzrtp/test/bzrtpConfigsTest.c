@@ -139,6 +139,7 @@ static int sendData(void *clientData, const uint8_t *packetString, uint16_t pack
 		}
 		//bzrtp_message("%d Keep %.8s from %s - LC %d\n", msSTC, packetString+16, (clientContext->id==ALICE?"Alice":"Bob"), totalPacketLost);
 	}
+	//bzrtp_message("%ld %.8s from %s\n", msSTC, packetString+16, (clientContext->id==ALICE?"Alice":"Bob"));
 
 	/* put the message in the message correct queue */
 	if (clientContext->id == ALICE) { /* message sent by Alice, so put it in Bob's queue */
@@ -249,11 +250,6 @@ static int setUpClientContext(clientContext_t *clientContext, uint8_t clientID, 
 		return -4;
 	}
 
-	/* start the ZRTP engine(it will send a hello packet )*/
-	if ((retval = bzrtp_startChannelEngine(clientContext->bzrtpContext, SSRC))!=0) {
-		bzrtp_message("ERROR: bzrtp_startChannelEngine returned %0x, client id is %d SSRC is %d\n", retval, clientID, SSRC);
-		return -5;
-	}
 	return 0;
 }
 
@@ -366,6 +362,16 @@ uint32_t multichannel_exchange_pvs_params(cryptoParams_t *aliceCryptoParams, cry
 	if ((retval=setUpClientContext(&Bob, BOB, bobSSRC, bobCache, bobURI, aliceURI, bobCryptoParams))!=0) {
 		bzrtp_message("ERROR: can't init setup client context id %d\n", BOB);
 		BC_ASSERT_EQUAL(retval, 0, uint32_t, "0x%08x");
+		return retval;
+	}
+
+	/* start the ZRTP engine(it will send a hello packet )*/
+	if ((retval = bzrtp_startChannelEngine(Alice.bzrtpContext, aliceSSRC))!=0) {
+		bzrtp_message("ERROR: bzrtp_startChannelEngine returned %0x, client id is %d SSRC is %d\n", retval, ALICE, aliceSSRC);
+		return retval;
+	}
+	if ((retval = bzrtp_startChannelEngine(Bob.bzrtpContext, bobSSRC))!=0) {
+		bzrtp_message("ERROR: bzrtp_startChannelEngine returned %0x, client id is %d SSRC is %d\n", retval, BOB, bobSSRC);
 		return retval;
 	}
 
@@ -646,7 +652,6 @@ static void test_cacheless_exchange(void) {
 
 	/* with ECDH agreement types if available */
 	if (bctbx_key_agreement_algo_list()&BCTBX_ECDH_X25519) {
-		printf("Oh yeah\n");
 		pattern = &ecdh_patterns[0]; /* pattern is a pointer to current pattern */
 		while (pattern->cipherNb!=0) {
 			BC_ASSERT_EQUAL(multichannel_exchange(pattern, pattern, pattern, NULL, NULL, NULL, NULL), 0, int, "%x");
@@ -771,6 +776,8 @@ static void test_cache_mismatch_exchange(void) {
 	size_t colLengthBob[3];
 	int i;
 
+	resetGlobalParams();
+
 	/* create tempory DB files, just try to clean them from dir before, just in case  */
 	remove("tmpZIDAlice_cacheMismtach.sqlite");
 	remove("tmpZIDBob_cacheMismatch.sqlite");
@@ -883,6 +890,8 @@ static void test_cache_sas_not_confirmed(void) {
 	size_t colLengthBob[3];
 	int i;
 
+	resetGlobalParams();
+
 	/* create tempory DB files, just try to clean them from dir before, just in case  */
 	remove("tmpZIDAlice_simpleCache.sqlite");
 	remove("tmpZIDBob_simpleCache.sqlite");
@@ -971,12 +980,180 @@ static void test_cache_sas_not_confirmed(void) {
 #endif /* ZIDCACHE_ENABLED */
 }
 
+static int test_auxiliary_secret_params(uint8_t *aliceAuxSecret, size_t aliceAuxSecretLength, uint8_t *bobAuxSecret, size_t bobAuxSecretLength, uint8_t expectedAuxSecretMismatch, uint8_t badTimingFlag) {
+	int retval;
+	clientContext_t Alice,Bob;
+	uint64_t initialTime=0;
+	uint64_t lastPacketSentTime=0;
+	uint32_t aliceSSRC = ALICE_SSRC_BASE;
+	uint32_t bobSSRC = BOB_SSRC_BASE;
+	uint8_t setAuxSecretFlag=0; // switch to 1 once we've set the aux secret
+
+	/*** Create the main channel */
+	if ((retval=setUpClientContext(&Alice, ALICE, aliceSSRC, NULL, NULL, NULL, NULL))!=0) {
+		bzrtp_message("ERROR: can't init setup client context id %d\n", ALICE);
+		BC_ASSERT_EQUAL(retval, 0, uint32_t, "0x%08x");
+		return -1;
+	}
+
+	if ((retval=setUpClientContext(&Bob, BOB, bobSSRC, NULL, NULL, NULL, NULL))!=0) {
+		bzrtp_message("ERROR: can't init setup client context id %d\n", BOB);
+		BC_ASSERT_EQUAL(retval, 0, uint32_t, "0x%08x");
+		return -1;
+	}
+
+	/*** Setup a transient auxiliary secret ***/
+	if (badTimingFlag==0) {
+		setAuxSecretFlag=1;
+		if (aliceAuxSecret != NULL) {
+			if ((retval = bzrtp_setAuxiliarySharedSecret(Alice.bzrtpContext, aliceAuxSecret, aliceAuxSecretLength))!=0) {
+				bzrtp_message("ERROR: can't set Auxiliary shared secret. id is %d\n", ALICE);
+				BC_ASSERT_EQUAL(retval, 0, uint32_t, "0x%08x");
+				return -1;
+			}
+		}
+
+		if (bobAuxSecret != NULL) {
+			if ((retval = bzrtp_setAuxiliarySharedSecret(Bob.bzrtpContext, bobAuxSecret, bobAuxSecretLength))!=0) {
+				bzrtp_message("ERROR: can't set Auxiliary shared secret. id is %d\n", BOB);
+				BC_ASSERT_EQUAL(retval, 0, uint32_t, "0x%08x");
+				return -1;
+			}
+		}
+	}
+
+	/* start the ZRTP engine(it will send a hello packet )*/
+	if ((retval = bzrtp_startChannelEngine(Alice.bzrtpContext, aliceSSRC))!=0) {
+		bzrtp_message("ERROR: bzrtp_startChannelEngine returned %0x, client id is %d SSRC is %d\n", retval, ALICE, aliceSSRC);
+		BC_ASSERT_EQUAL(retval, 0, uint32_t, "0x%08x");
+		return -1;
+	}
+	if ((retval = bzrtp_startChannelEngine(Bob.bzrtpContext, bobSSRC))!=0) {
+		bzrtp_message("ERROR: bzrtp_startChannelEngine returned %0x, client id is %d SSRC is %d\n", retval, BOB, bobSSRC);
+		BC_ASSERT_EQUAL(retval, 0, uint32_t, "0x%08x");
+		return -1;
+	}
+
+	initialTime = getSimulatedTime();
+
+	while ((bzrtp_getChannelStatus(Alice.bzrtpContext, aliceSSRC)!= BZRTP_CHANNEL_SECURE || bzrtp_getChannelStatus(Bob.bzrtpContext, bobSSRC)!= BZRTP_CHANNEL_SECURE) && (getSimulatedTime()-initialTime<timeOutLimit)){
+		int i;
+		/* check the message queue */
+		for (i=0; i<aliceQueueIndex; i++) {
+			retval = bzrtp_processMessage(Alice.bzrtpContext, aliceSSRC, aliceQueue[i].packetString, aliceQueue[i].packetLength);
+			//bzrtp_message("%ld Alice processed a %.8s and returns %x\n", msSTC, (aliceQueue[i].packetString)+16, retval);
+			memset(aliceQueue[i].packetString, 0, MAX_PACKET_LENGTH); /* destroy the packet after sending it to the ZRTP engine */
+			lastPacketSentTime=getSimulatedTime();
+		}
+		aliceQueueIndex = 0;
+
+		for (i=0; i<bobQueueIndex; i++) {
+			retval = bzrtp_processMessage(Bob.bzrtpContext, bobSSRC, bobQueue[i].packetString, bobQueue[i].packetLength);
+			//bzrtp_message("%ld Bob processed a %.8s and returns %x\n",msSTC, (bobQueue[i].packetString)+16, retval);
+			memset(bobQueue[i].packetString, 0, MAX_PACKET_LENGTH); /* destroy the packet after sending it to the ZRTP engine */
+			lastPacketSentTime=getSimulatedTime();
+		}
+		bobQueueIndex = 0;
+
+
+		/* send the actual time to the zrtpContext */
+		retval = bzrtp_iterate(Alice.bzrtpContext, aliceSSRC, getSimulatedTime());
+		retval = bzrtp_iterate(Bob.bzrtpContext, bobSSRC, getSimulatedTime());
+
+		/* sleep for 10 ms */
+		STC_sleep(10);
+
+		/* check if we shall try to reset re-emission timers */
+		if (getSimulatedTime()-lastPacketSentTime > 1250 ) { /*higher re-emission timeout is 1200ms */
+			retval = bzrtp_resetRetransmissionTimer(Alice.bzrtpContext, aliceSSRC);
+			retval +=bzrtp_resetRetransmissionTimer(Bob.bzrtpContext, bobSSRC);
+			lastPacketSentTime=getSimulatedTime();
+
+		}
+
+		if (badTimingFlag!=0 && setAuxSecretFlag < 2) { /* after the HelloPacket exchange has occurs, insert the auxSecret if we have the badTiming flag on */
+			setAuxSecretFlag ++;
+			if (setAuxSecretFlag == 2) { // first time we process a clock tick will be sending Hello Message, at the second one we will already have processed them and it will be too late
+				if (aliceAuxSecret != NULL) {
+					BC_ASSERT_NOT_EQUAL(bzrtp_setAuxiliarySharedSecret(Alice.bzrtpContext, aliceAuxSecret, aliceAuxSecretLength), 0, int, "%d"); // we expect this insert to be rejected
+				}
+
+				if (bobAuxSecret != NULL) {
+					BC_ASSERT_NOT_EQUAL(bzrtp_setAuxiliarySharedSecret(Bob.bzrtpContext, bobAuxSecret, bobAuxSecretLength), 0, int, "%d"); // we expect this insert to be rejected
+				}
+			}
+	}
+
+	}
+	if ((retval=bzrtp_getChannelStatus(Alice.bzrtpContext, aliceSSRC))!=BZRTP_CHANNEL_SECURE) {
+		bzrtp_message("Fail Alice on channel1 loss rate is %d", loosePacketPercentage);
+		BC_ASSERT_EQUAL(retval, BZRTP_CHANNEL_SECURE, int, "%0x");
+		return -1;
+	}
+	if ((retval=bzrtp_getChannelStatus(Bob.bzrtpContext, bobSSRC))!=BZRTP_CHANNEL_SECURE) {
+		bzrtp_message("Fail Bob on channel1 loss rate is %d", loosePacketPercentage);
+		BC_ASSERT_EQUAL(retval, BZRTP_CHANNEL_SECURE, int, "%0x");
+		return -1;
+	}
+
+	bzrtp_message("ZRTP algo used during negotiation: Cipher: %s - KeyAgreement: %s - Hash: %s - AuthTag: %s - Sas Rendering: %s\n", bzrtp_cipher_toString(Alice.secrets->cipherAlgo), bzrtp_keyAgreement_toString(Alice.secrets->keyAgreementAlgo), bzrtp_hash_toString(Alice.secrets->hashAlgo), bzrtp_authtag_toString(Alice.secrets->authTagAlgo), bzrtp_sas_toString(Alice.secrets->sasAlgo));
+
+	if ((retval=compareSecrets(Alice.secrets, Bob.secrets, TRUE))!=0) {
+		BC_ASSERT_EQUAL(retval, 0, int, "%d");
+		return -1;
+	}
+
+	// check aux secrets mismatch flag, they must be in sync
+	if (Alice.secrets->auxSecretMismatch != Bob.secrets->auxSecretMismatch) {
+		BC_FAIL("computed auxSecretMismatch flags differ from Alice to Bob");
+		return -1;
+	}
+
+	// Do we have a mismatch on aux secret
+	BC_ASSERT_EQUAL(Alice.secrets->auxSecretMismatch, expectedAuxSecretMismatch, uint8_t, "%d");
+
+	/*** Destroy Contexts ***/
+	while (bzrtp_destroyBzrtpContext(Alice.bzrtpContext, aliceSSRC)>0 && aliceSSRC>=ALICE_SSRC_BASE) {
+		aliceSSRC--;
+	}
+	while (bzrtp_destroyBzrtpContext(Bob.bzrtpContext, bobSSRC)>0 && bobSSRC>=BOB_SSRC_BASE) {
+		bobSSRC--;
+	}
+
+	return 0;
+}
+
+static void test_auxiliary_secret() {
+	uint8_t secret1[] = {0x01, 0x12, 0x23, 0x34, 0x45, 0x56, 0x67, 0x78, 0x89, 0x9a, 0x00, 0xff};
+	uint8_t secret2[] = {0xfe, 0xed, 0xdc, 0xcb, 0xba, 0xa9, 0x98, 0x87, 0x76, 0x65, 0x54, 0x43};
+
+	resetGlobalParams();
+
+	// matching cases (expect mismatch flag to be 0)
+	BC_ASSERT_EQUAL(test_auxiliary_secret_params(secret1, sizeof(secret1), secret1, sizeof(secret1), 0, 0), 0, int, "%d");
+	BC_ASSERT_EQUAL(test_auxiliary_secret_params(secret2, sizeof(secret2), secret2, sizeof(secret2), 0, 0), 0, int, "%d");
+
+	// mismatching cases (expect mismatch flag to be 1)
+	// different secrets
+	BC_ASSERT_EQUAL(test_auxiliary_secret_params(secret1, sizeof(secret1), secret2, sizeof(secret2), 1, 0), 0, int, "%d");
+	// only one side has a secret
+	BC_ASSERT_EQUAL(test_auxiliary_secret_params(secret1, sizeof(secret1), NULL, 0, 1, 0), 0, int, "%d");
+	// no one has a secret
+	BC_ASSERT_EQUAL(test_auxiliary_secret_params(NULL, 0, NULL, 0, 1, 0), 0, int, "%d");
+	// same secret but one is one byte shorter
+	BC_ASSERT_EQUAL(test_auxiliary_secret_params(secret1, sizeof(secret1)-1, secret1, sizeof(secret1), 1, 0), 0, int, "%d");
+
+	// matching secret, but inserted to late(last param is a flag to do that)
+	BC_ASSERT_EQUAL(test_auxiliary_secret_params(secret1, sizeof(secret1), secret1, sizeof(secret1), 1, 1), 0, int, "%d");
+};
+
 static test_t key_exchange_tests[] = {
 	TEST_NO_TAG("Cacheless multi channel", test_cacheless_exchange),
 	TEST_NO_TAG("Cached Simple", test_cache_enabled_exchange),
 	TEST_NO_TAG("Cached mismatch", test_cache_mismatch_exchange),
 	TEST_NO_TAG("Loosy network", test_loosy_network),
-	TEST_NO_TAG("Cached PVS", test_cache_sas_not_confirmed)
+	TEST_NO_TAG("Cached PVS", test_cache_sas_not_confirmed),
+	TEST_NO_TAG("Auxiliary Secret", test_auxiliary_secret)
 };
 
 test_suite_t key_exchange_test_suite = {

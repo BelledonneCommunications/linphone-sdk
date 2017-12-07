@@ -117,6 +117,7 @@ typedef struct bzrtpSrtpSecrets_struct  {
 	uint8_t keyAgreementAlgo; /**< The key agreement algo selected during ZRTP negotiation */
 	uint8_t sasAlgo; /**< The SAS rendering algo selected during ZRTP negotiation */
 	uint8_t cacheMismatch; /**< Flag set to 1 in case of ZRTP cache mismatch, may occurs only on first channel(the one computing SAS) */
+	uint8_t auxSecretMismatch; /**< Flag set to 1 in case of auxiliary secret mismatch, may occurs only on first channel(the one computing SAS), in case of mismatch it is just ignored and we can still validate the SAS */
 } bzrtpSrtpSecrets_t;
 
 
@@ -390,6 +391,20 @@ BZRTP_EXPORT int bzrtp_getSelfHelloHash(bzrtpContext_t *zrtpContext, uint32_t se
  *			BZRTP_CHANNEL_ERROR			An error occured on this channel
  */
 BZRTP_EXPORT int bzrtp_getChannelStatus(bzrtpContext_t *zrtpContext, uint32_t selfSSRC);
+
+
+/**
+ * @brief Set Auxiliary Secret for this channel(shall be used only on primary audio channel)
+ *   The given auxSecret is appended to any aux secret found in ZIDcache
+ *   This function must be called before reception of peerHello packet
+ *
+ * @param[in]		zrtpContext	The ZRTP context we're dealing with
+ * @param[in]		auxSecret	A buffer holding the auxiliary shared secret to use (see RFC 6189 section 4.3)
+ * @param[in]		auxSecretLength	lenght of the previous buffer
+ *
+ * @return 0 on success, error code otherwise
+ */
+BZRTP_EXPORT int bzrtp_setAuxiliarySharedSecret(bzrtpContext_t *zrtpContext, const uint8_t *auxSecret, size_t auxSecretLength);
 
 /*** Cache related functions ***/
 /**

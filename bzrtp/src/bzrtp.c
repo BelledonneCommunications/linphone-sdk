@@ -65,6 +65,7 @@ bzrtpContext_t *bzrtp_createBzrtpContext(void) {
 	context->isInitialised = 0; /* will be set by bzrtp_initBzrtpContext */
 
 	/* set to NULL all callbacks pointer */
+	context->zrtpCallbacks.bzrtp_statusMessage = NULL;
 	context->zrtpCallbacks.bzrtp_sendData = NULL;
 	context->zrtpCallbacks.bzrtp_srtpSecretsAvailable = NULL;
 	context->zrtpCallbacks.bzrtp_startSrtpSession = NULL;
@@ -99,6 +100,10 @@ bzrtpContext_t *bzrtp_createBzrtpContext(void) {
 	context->cachedSecret.auxsecretLength = 0;
 	context->cacheMismatchFlag = 0;
 	context->peerPVS = 0;
+
+	/* initialise transient shared auxiliary secret buffer */
+	context->transientAuxSecret = NULL;
+	context->transientAuxSecretLength = 0;
 	
 	/* initialise key buffers */
 	context->ZRTPSess = NULL;
@@ -247,6 +252,13 @@ int bzrtp_destroyBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC) {
 	free(context->selfURI);
 	free(context->peerURI);
 	
+	/* transient shared auxiliary secret */
+	if (context->transientAuxSecret != NULL) {
+		bzrtp_DestroyKey(context->transientAuxSecret, context->transientAuxSecretLength, context->RNGContext);
+		free(context->transientAuxSecret);
+		context->transientAuxSecret=NULL;
+	}
+
 	/* destroy the RNG context at the end because it may be needed to destroy some keys */
 	bctbx_rng_context_free(context->RNGContext);
 	context->RNGContext = NULL;
@@ -908,6 +920,38 @@ int bzrtp_getSelfHelloHash(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8
 	return 0;
 }
 
+/**
+ * @brief Set Auxiliary Secret for this channel(shall be used only on primary audio channel)
+ *   The given auxSecret is appended to any aux secret found in ZIDcache
+ *   This function must be called before reception of peerHello packet
+ *
+ * @param[in]		zrtpContext	The ZRTP context we're dealing with
+ * @param[in]		auxSecret	A buffer holding the auxiliary shared secret to use (see RFC 6189 section 4.3)
+ * @param[in]		auxSecretLength	lenght of the previous buffer
+ *
+ * @return 0 on success, error code otherwise
+ */
+BZRTP_EXPORT int bzrtp_setAuxiliarySharedSecret(bzrtpContext_t *zrtpContext, const uint8_t *auxSecret, size_t auxSecretLength) {
+	if (zrtpContext == NULL) {
+		return BZRTP_ERROR_INVALIDCONTEXT;
+	}
+
+	if (zrtpContext->channelContext[0] && zrtpContext->channelContext[0]->peerPackets[HELLO_MESSAGE_STORE_ID] != NULL) {
+		return BZRTP_ERROR_CONTEXTNOTREADY;
+	}
+
+	/* allocate memory to store the secret - check it wasn't already allocated */
+	if (zrtpContext->transientAuxSecret) {
+		free(zrtpContext->transientAuxSecret);
+	}
+	zrtpContext->transientAuxSecret = (uint8_t *)malloc(auxSecretLength*sizeof(uint8_t));
+
+	/* copy the aux secret and length */
+	memcpy(zrtpContext->transientAuxSecret, auxSecret, auxSecretLength);
+	zrtpContext->transientAuxSecretLength = auxSecretLength;
+
+	return 0;
+}
 
 /**
  * @brief Get the channel status
@@ -1061,6 +1105,7 @@ static int bzrtp_initChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelCon
 	zrtpChannelContext->srtpSecrets.keyAgreementAlgo = ZRTP_UNSET_ALGO;
 	zrtpChannelContext->srtpSecrets.sasAlgo = ZRTP_UNSET_ALGO;
 	zrtpChannelContext->srtpSecrets.cacheMismatch = 0;
+	zrtpChannelContext->srtpSecrets.auxSecretMismatch = 1; /* default is mismatch, explicitely set it to zero if we have a match */
 
 	/* create the Hello packet and store it */
 	helloPacket = bzrtp_createZrtpPacket(zrtpContext, zrtpChannelContext, MSGTYPE_HELLO, &retval);
