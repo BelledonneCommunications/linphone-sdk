@@ -79,6 +79,13 @@ lcb_builder_cmake_options(bctoolbox "-DENABLE_TESTS_COMPONENT=NO")
 # Include builders
 include(builders/CMakeLists.txt)
 
+lcb_builder_build_method(soci "rpm")
+lcb_builder_rpmbuild_options(soci
+	"--with bc"
+	"--with sqlite3"
+	"--with mysql"
+)
+
 lcb_builder_build_method(ortp "rpm")
 lcb_builder_rpmbuild_options(ortp "--with bc")
 
