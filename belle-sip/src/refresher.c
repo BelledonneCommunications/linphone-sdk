@@ -596,6 +596,9 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher
 	refresher->transaction=client_transaction;
 	belle_sip_object_ref(refresher->transaction);
 
+	/*Dialog may have changed, specially if terminated (I.E timeout). In that case, it will only be autiore-created when response is received from peer, so in the mean time, we reset it*/
+	set_or_update_dialog(refresher, belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(client_transaction)));
+	
 	if (belle_sip_client_transaction_send_request_to(client_transaction,requri?requri:preset_route)) { /*send imediatly to requri in case of redirect*/
 		belle_sip_error("Cannot send refresh method [%s] for refresher [%p]"
 				,belle_sip_request_get_method(request)
