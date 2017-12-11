@@ -106,6 +106,7 @@ lcb_builder_rpmbuild_options(bellesip "--with bc")
 lcb_builder_build_method(linphone "rpm")
 lcb_builder_rpmbuild_options(linphone
 	"--with bc"
+	"--with soci"
 	"--without lime"
 	"--without video"
 )
