@@ -180,9 +180,10 @@ void test_parser_param(uint8_t hvi_trick) {
 		if (hvi_trick==0) {
 			BC_ASSERT_EQUAL(retval, 0, int, "%d");
 			if (retval != 0) goto error;
-		} else { /* when hvi trick is enable, the DH2 parsing shall fail and return BZRTP_PARSER_ERROR_UNMATCHINGHVI */
+		} else { /* when hvi trick is enabled, the DH2 parsing shall fail and return BZRTP_PARSER_ERROR_UNMATCHINGHVI */
 			if (zrtpPacket->messageType==MSGTYPE_DHPART2) {
 				BC_ASSERT_EQUAL(retval, BZRTP_PARSER_ERROR_UNMATCHINGHVI, int, "%d");
+				bzrtp_freeZrtpPacket(zrtpPacket);
 				goto error;
 			} else {
 				BC_ASSERT_EQUAL(retval, 0, int, "%d");
@@ -241,10 +242,6 @@ void test_parser_param(uint8_t hvi_trick) {
 			BC_FAIL("Unable to build packet");
 		}
 
-		if (freePacketFlag == 1) {
-			bzrtp_freeZrtpPacket(zrtpPacket);
-		}
-
 		/* modify the hvi stored in the peerPackets, this shall result in parsing failure on DH2 packet */
 		if (hvi_trick == 1) {
 			if (zrtpPacket->messageType==MSGTYPE_COMMIT) {
@@ -254,6 +251,10 @@ void test_parser_param(uint8_t hvi_trick) {
 					peerCommitMessageData->hvi[0]=0xFF;
 				}
 			}
+		}
+
+		if (freePacketFlag == 1) {
+			bzrtp_freeZrtpPacket(zrtpPacket);
 		}
 
 	}
@@ -348,17 +349,11 @@ static void test_parserComplete() {
 	bzrtp_initBzrtpContext(contextBob, 0x87654321); /* Bob's SSRC of main channel is 87654321 */
 
 
-	/* now create Alice and BOB Hello packet */
-	alice_Hello = bzrtp_createZrtpPacket(contextAlice, contextAlice->channelContext[0], MSGTYPE_HELLO, &retval);
-	if (bzrtp_packetBuild(contextAlice, contextAlice->channelContext[0], alice_Hello, contextAlice->channelContext[0]->selfSequenceNumber) ==0) {
-		contextAlice->channelContext[0]->selfSequenceNumber++;
-		contextAlice->channelContext[0]->selfPackets[HELLO_MESSAGE_STORE_ID] = alice_Hello;
-	}
-	bob_Hello = bzrtp_createZrtpPacket(contextBob, contextBob->channelContext[0], MSGTYPE_HELLO, &retval);
-	if (bzrtp_packetBuild(contextBob, contextBob->channelContext[0], bob_Hello, contextBob->channelContext[0]->selfSequenceNumber) ==0) {
-		contextBob->channelContext[0]->selfSequenceNumber++;
-		contextBob->channelContext[0]->selfPackets[HELLO_MESSAGE_STORE_ID] = bob_Hello;
-	}
+	/* Hello packets are built during the context init(but we must still increase their sequence Number) */
+	alice_Hello = contextAlice->channelContext[0]->selfPackets[HELLO_MESSAGE_STORE_ID];
+	bob_Hello = contextBob->channelContext[0]->selfPackets[HELLO_MESSAGE_STORE_ID];
+	contextAlice->channelContext[0]->selfSequenceNumber++;
+	contextBob->channelContext[0]->selfSequenceNumber++;
 
 	/* now send Alice Hello's to Bob and vice-versa, so they parse them */
 	alice_HelloFromBob = bzrtp_packetCheck(bob_Hello->packetString, bob_Hello->messageLength+16, contextAlice->channelContext[0]->peerSequenceNumber, &retval);
@@ -1882,6 +1877,10 @@ static void test_zrtphash(void) {
 	BC_ASSERT_EQUAL(retval, 0, int, "%d");
 	retval = bzrtp_packetParser(context12345678, context12345678->channelContext[0], HelloPacketZrtpHash, sizeof(HelloPacketZrtpHash), zrtpPacket);
 	BC_ASSERT_EQUAL(retval, 0, int, "%d");
+
+	/* cleaning */
+	bzrtp_destroyBzrtpContext(context12345678, 0x12345678);
+	bzrtp_freeZrtpPacket(zrtpPacket);
 }
 
 static test_t packet_parser_tests[] = {

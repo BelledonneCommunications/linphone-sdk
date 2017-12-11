@@ -130,7 +130,14 @@ int bzrtp_setZIDCache(bzrtpContext_t *context, void *zidCache, const char *selfU
 
 	/* zidCache pointer is actually a pointer to sqlite3 db, store it in context */
 	context->zidCache = (sqlite3 *)zidCache;
+	if (context->selfURI != NULL) {
+		free(context->selfURI);
+	}
 	context->selfURI = strdup(selfURI);
+
+	if (context->peerURI != NULL) {
+		free(context->peerURI);
+	}
 	context->peerURI = strdup(peerURI);
 
 	/* and init the cache(create needed tables if they don't exist) */

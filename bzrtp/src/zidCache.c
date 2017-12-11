@@ -418,6 +418,7 @@ int bzrtp_cache_getZuid(void *dbPointer, const char *selfURI, const char *peerUR
 			if (localZID==NULL) { /* this sip URI is not in our DB, do not create an association with the peer ZID/URI binding */
 				return BZRTP_ZIDCACHE_BADINPUTDATA;
 			} else { /* yes we know this URI on local device, add a row in the ziduri table */
+				free(localZID);
 				stmt = sqlite3_mprintf("INSERT INTO ziduri (zid,selfuri,peeruri) VALUES(?,?,?);");
 				ret = sqlite3_prepare_v2(db, stmt, -1, &sqlStmt, NULL);
 				if (ret != SQLITE_OK) {
@@ -531,6 +532,7 @@ int bzrtp_cache_write(void *dbPointer, int zuid, const char *tableName, const ch
 		stmt = sqlite3_mprintf("INSERT INTO %w (%s) VALUES(%s);", tableName, insertColumnsString, valuesBindingString);
 		free(insertColumnsString);
 		ret = sqlite3_prepare_v2(db, stmt, -1, &sqlStmt, NULL);
+		sqlite3_free(stmt);
 		if (ret != SQLITE_OK) {
 			return BZRTP_ZIDCACHE_UNABLETOUPDATE;
 		}

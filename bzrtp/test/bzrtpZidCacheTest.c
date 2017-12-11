@@ -138,6 +138,12 @@ static void test_cache_getSelfZID(void) {
 
 	bzrtp_destroyBzrtpContext(aliceContext, 0); /* note: we didn't initialised any channel, so just give 0 to destroy, it will destroy the bzrtp context itself */
 
+	for (i=0; i<4; i++) {
+		free(readValues[i]);
+	}
+
+	sqlite3_close(aliceDB);
+
 #else /* ZIDCACHE_ENABLED */
 	bzrtp_message("Test skipped as ZID cache is disabled\n");
 #endif
@@ -193,6 +199,9 @@ static void test_cache_zrtpSecrets(void) {
 	BC_ASSERT_EQUAL(aliceContext->cachedSecret.pbxsecretLength, 0, int, "%d");
 	BC_ASSERT_PTR_NULL(aliceContext->cachedSecret.pbxsecret);
 	BC_ASSERT_EQUAL(aliceContext->cachedSecret.previouslyVerifiedSas, 0, int, "%d");
+
+	bzrtp_destroyBzrtpContext(aliceContext, 0); /* note: we didn't initialised any channel, so just give 0 to destroy, it will destroy the bzrtp context itself */
+	sqlite3_close(aliceDB);
 #else /* ZIDCACHE_ENABLED */
 	bzrtp_message("Test skipped as ZID cache is disabled\n");
 #endif /* ZIDCACHE_ENABLED */

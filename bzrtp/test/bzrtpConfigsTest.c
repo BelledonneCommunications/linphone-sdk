@@ -727,6 +727,12 @@ static void test_cache_enabled_exchange(void) {
 	BC_ASSERT_EQUAL(*colValuesAlice[2], 1, int, "%d");
 	BC_ASSERT_EQUAL(*colValuesBob[2], 1, int, "%d");
 
+	/* free buffers */
+	for (i=0; i<3; i++) {
+		free(colValuesAlice[i]);
+		colValuesAlice[i]=NULL;
+	}
+
 	/* make a second exchange */
 	BC_ASSERT_EQUAL(multichannel_exchange(NULL, NULL, defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bobDB, "bob@sip.linphone.org"), 0, int, "%x");
 	/* read new values in cache, ZIDs and zuids must be identical, read alice first to be able to check rs2 with old rs1 */
@@ -736,6 +742,12 @@ static void test_cache_enabled_exchange(void) {
 	BC_ASSERT_EQUAL(colLengthAlice[1], 32, int, "%d");
 	BC_ASSERT_EQUAL(colLengthAlice[2], 1, int, "%d");
 	BC_ASSERT_EQUAL(memcmp(colValuesAlice[1], colValuesBob[0], 32), 0, int, "%d"); /* colValuesBob, still old values from before the second exchange */
+
+	/* free buffers */
+	for (i=0; i<3; i++) {
+		free(colValuesBob[i]);
+		colValuesBob[i]=NULL;
+	}
 	/* so read bob updated values and compare rs1, rs2 and check pvs is still at 1 */
 	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)bobDB, zuidBob, "zrtp", colNames, colValuesBob, colLengthBob, 3), 0, int, "%x");
 	BC_ASSERT_EQUAL(colLengthBob[0], 32, int, "%d");
@@ -817,6 +829,15 @@ static void test_cache_mismatch_exchange(void) {
 	colValuesAlice[0][0] += 1;
 	BC_ASSERT_EQUAL(bzrtp_cache_write((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 1), 0, int, "%x");
 
+	/* free buffers */
+	for (i=0; i<3; i++) {
+		free(colValuesAlice[i]);
+		colValuesAlice[i]=NULL;
+		free(colValuesBob[i]);
+		colValuesBob[i]=NULL;
+	}
+
+	/* make a third exchange : we have a cache mismatch(on Bob side only), wich means rs1 will not be backed up in rs2 which shall be NULL again */
 	/* make a second exchange : we have a cache mismatch(both on Bob and Alice side), wich means rs1 will not be backed up in rs2 which shall be NULL again */
 	/* rs1 will be in sync has the SAS comparison will succeed and pvs will be set to 1*/
 	BC_ASSERT_EQUAL(multichannel_exchange(NULL, NULL, defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bobDB, "bob@sip.linphone.org"), RET_CACHE_MISMATCH<<16|RET_CACHE_MISMATCH, int, "%x");
@@ -842,6 +863,14 @@ static void test_cache_mismatch_exchange(void) {
 	colLengthAlice[0] = 0;
 	colValuesAlice[2][0] = 0; /* reset pvs to 0 */
 	BC_ASSERT_EQUAL(bzrtp_cache_write((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 3), 0, int, "%x");
+
+	/* free buffers */
+	for (i=0; i<3; i++) {
+		free(colValuesAlice[i]);
+		colValuesAlice[i]=NULL;
+		free(colValuesBob[i]);
+		colValuesBob[i]=NULL;
+	}
 
 	/* make a third exchange : we have a cache mismatch(on Bob side only), wich means rs1 will not be backed up in rs2 which shall be NULL again */
 	/* rs1 will be in sync has the SAS comparison will succeed and pvs will be set to 1*/
@@ -892,6 +921,12 @@ static void test_cache_sas_not_confirmed(void) {
 
 	resetGlobalParams();
 
+	/* init columns values pointers */
+	for (i=0; i<3; i++) {
+		colValuesAlice[i] = NULL;
+		colValuesBob[i] = NULL;
+	}
+
 	/* create tempory DB files, just try to clean them from dir before, just in case  */
 	remove("tmpZIDAlice_simpleCache.sqlite");
 	remove("tmpZIDBob_simpleCache.sqlite");
@@ -926,6 +961,12 @@ static void test_cache_sas_not_confirmed(void) {
 	BC_ASSERT_EQUAL(colLengthBob[2], 1, int, "%d");
 	BC_ASSERT_EQUAL(*colValuesBob[2], 1, int, "%d");
 
+	/* free buffers */
+	for (i=0; i<3; i++) {
+		free(colValuesAlice[i]);
+		colValuesAlice[i] = NULL;
+	}
+
 	/* make a second exchange, the PVS flag returned by both side shall be 0 as Alice did not validate hers on previous exchange */
 	/* but let them both validate this one */
 	BC_ASSERT_EQUAL(multichannel_exchange_pvs_params(NULL, NULL, defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bobDB, "bob@sip.linphone.org", TRUE, 0, 0), 0, int, "%x");
@@ -936,6 +977,13 @@ static void test_cache_sas_not_confirmed(void) {
 	BC_ASSERT_EQUAL(colLengthAlice[1], 32, int, "%d");
 	BC_ASSERT_EQUAL(colLengthAlice[2], 1, int, "%d");
 	BC_ASSERT_EQUAL(memcmp(colValuesAlice[1], colValuesBob[0], 32), 0, int, "%d"); /* colValuesBob, still old values from before the second exchange */
+
+	/* free buffers */
+	for (i=0; i<3; i++) {
+		free(colValuesBob[i]);
+		colValuesBob[i] = NULL;
+	}
+
 	/* so read bob updated values and compare rs1, rs2 and check pvs is at 1 */
 	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)bobDB, zuidBob, "zrtp", colNames, colValuesBob, colLengthBob, 3), 0, int, "%x");
 	BC_ASSERT_EQUAL(colLengthBob[0], 32, int, "%d");
@@ -946,6 +994,12 @@ static void test_cache_sas_not_confirmed(void) {
 	BC_ASSERT_EQUAL(*colValuesAlice[2], 1, int, "%d");
 	BC_ASSERT_EQUAL(*colValuesBob[2], 1, int, "%d");
 
+	/* free buffers */
+	for (i=0; i<3; i++) {
+		free(colValuesAlice[i]);
+		colValuesAlice[i] = NULL;
+	}
+
 	/* make a third exchange, the PVS flag returned by both side shall be 1 */
 	BC_ASSERT_EQUAL(multichannel_exchange_pvs_params(NULL, NULL, defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bobDB, "bob@sip.linphone.org", TRUE, 1, 1), 0, int, "%x");
 	/* read new values in cache, ZIDs and zuids must be identical, read alice first to be able to check rs2 with old rs1 */
@@ -955,6 +1009,13 @@ static void test_cache_sas_not_confirmed(void) {
 	BC_ASSERT_EQUAL(colLengthAlice[1], 32, int, "%d");
 	BC_ASSERT_EQUAL(colLengthAlice[2], 1, int, "%d");
 	BC_ASSERT_EQUAL(memcmp(colValuesAlice[1], colValuesBob[0], 32), 0, int, "%d"); /* colValuesBob, still old values from before the second exchange */
+
+	/* free buffers */
+	for (i=0; i<3; i++) {
+		free(colValuesBob[i]);
+		colValuesBob[i] = NULL;
+	}
+	/* so read bob updated values and compare rs1, rs2 and check pvs is at 1 */
 	/* so read bob updated values and compare rs1, rs2 and check pvs is still at 1 */
 	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)bobDB, zuidBob, "zrtp", colNames, colValuesBob, colLengthBob, 3), 0, int, "%x");
 	BC_ASSERT_EQUAL(colLengthBob[0], 32, int, "%d");
