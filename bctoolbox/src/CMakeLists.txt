@@ -24,7 +24,6 @@ set(BCTOOLBOX_C_SOURCE_FILES
 	containers/list.c
 	logging/logging.c
 	utils/port.c
-	utils/charconv.c
 	vfs.c
 	vconnect.c
 	parser.c
@@ -35,6 +34,7 @@ set(BCTOOLBOX_CXX_SOURCE_FILES
 	containers/map.cc
 	crypto/ecc.cc
 	utils/regex.cc
+	utils/charconv.cc
 )
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")

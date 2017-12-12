@@ -23,8 +23,40 @@
 extern "C" {
 #endif
 
+/**
+ * @brief Convert the given string from system locale to UTF8.
+ *
+ * @param[in]		str			string to convert
+ *
+ * @return a pointer to a null-terminated string containing the converted string. This buffer must then be freed
+ * by caller. NULL on failure.
+ */
 BCTBX_PUBLIC char *bctbx_locale_to_utf8(const char *str);
+
+/**
+ * @brief Convert the given string from UTF8 to system locale.
+ *
+ * @param[in]		str			string to convert
+ *
+ * @return a pointer to a null-terminated string containing the converted string. This buffer must then be freed
+ * by caller. NULL on failure.
+ */
 BCTBX_PUBLIC char *bctbx_utf8_to_locale(const char *str);
+
+/**
+ * @brief Convert the given string.
+ *
+ * @param[in]		str			string to convert
+ * @param[in]		from		charset of the string
+ * @param[in]		to			charset to convert
+ *
+ * @return a pointer to a null-terminated string containing the converted string. This buffer must then be freed
+ * by caller. NULL on failure.
+ *
+ * @note If from or to is equal to "locale" then it will use the system's locale
+ * @note If from and to are equals then it returns a copy of str
+ */
+BCTBX_PUBLIC char *bctbx_convert_from_to(const char *str, const char *from, const char *to);
 
 #ifdef __cplusplus
 }
