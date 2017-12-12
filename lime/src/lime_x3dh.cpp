@@ -156,7 +156,7 @@ namespace lime {
 			if (peerBundle.haveOPk) {
 				m_DR_sessions_cache.erase(peerBundle.deviceId); // will just do nothing if this peerDeviceId is not in cache
 			}
-			m_DR_sessions_cache.emplace(peerBundle.deviceId, make_shared<DR<Curve>>(m_localStorage.get(), SK, AD, peerBundle.SPk, peerDid, X3DH_initMessage)); // will just do nothing if this peerDeviceId is already in cache
+			m_DR_sessions_cache.emplace(peerBundle.deviceId, make_shared<DR<Curve>>(m_localStorage.get(), SK, AD, peerBundle.SPk, peerDid, m_db_Uid, X3DH_initMessage)); // will just do nothing if this peerDeviceId is already in cache
 
 			BCTBX_SLOGI<<"X3DH created session with device "<<peerBundle.deviceId;
 		}
@@ -249,7 +249,7 @@ namespace lime {
 		long int peerDid=0;
 		peerDid = store_peerDevice(senderDeviceId, peerIk);
 
-		auto DRSession = make_shared<DR<Curve>>(m_localStorage.get(), SK, AD, SPk, peerDid);
+		auto DRSession = make_shared<DR<Curve>>(m_localStorage.get(), SK, AD, SPk, peerDid, m_db_Uid);
 		bctbx_clean(SPk.privateKey().data(), SPk.privateKey().size());
 
 		return DRSession;

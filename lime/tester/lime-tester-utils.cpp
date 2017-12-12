@@ -183,18 +183,18 @@ void dr_sessionsInit(std::shared_ptr<DR<Curve>> &alice, std::shared_ptr<DR<Curve
 	long int aliceUid,bobUid,bobDid,aliceDid;
 	localStorageAlice->sql<<"INSERT INTO lime_LocalUsers(UserId, Ik, server) VALUES ('dummy', 1, 'dummy')";
 	localStorageAlice->sql<<"select last_insert_rowid()",soci::into(aliceUid);
-	localStorageAlice->sql<<"INSERT INTO lime_PeerDevices(DeviceId, Uid, Ik) VALUES ('dummy', :Uid, 1)", soci::use(aliceUid);
+	localStorageAlice->sql<<"INSERT INTO lime_PeerDevices(DeviceId, Ik) VALUES ('dummy', 1)";
 	localStorageAlice->sql<<"select last_insert_rowid()",soci::into(aliceDid);
 
 	localStorageBob->sql<<"INSERT INTO lime_LocalUsers(UserId, Ik, server) VALUES ('dummy', 1, 'dummy')";
 	localStorageBob->sql<<"select last_insert_rowid()",soci::into(bobUid);
-	localStorageBob->sql<<"INSERT INTO lime_PeerDevices(DeviceId, Uid, Ik) VALUES ('dummy', :Uid, 1)", soci::use(bobUid);
+	localStorageBob->sql<<"INSERT INTO lime_PeerDevices(DeviceId, Ik) VALUES ('dummy', 1)";
 	localStorageBob->sql<<"select last_insert_rowid()",soci::into(bobDid);
 
 	// create DR sessions
 	std::vector<uint8_t> X3DH_initMessage{};
-	alice = std::make_shared<DR<Curve>>(localStorageAlice.get(), SK, AD, bobKeyPair.publicKey(), aliceDid, X3DH_initMessage);
-	bob = std::make_shared<DR<Curve>>(localStorageBob.get(), SK, AD, bobKeyPair, bobDid);
+	alice = std::make_shared<DR<Curve>>(localStorageAlice.get(), SK, AD, bobKeyPair.publicKey(), aliceDid, aliceUid, X3DH_initMessage);
+	bob = std::make_shared<DR<Curve>>(localStorageBob.get(), SK, AD, bobKeyPair, bobDid, bobUid);
 }
 
 
@@ -349,7 +349,7 @@ long int get_DRsessionsId(const std::string &dbFilename, const std::string &self
 	std::vector<int> status(25);
 	try {
 		soci::session sql(sqlite3, dbFilename); // open the DB
-		soci::statement st = (sql.prepare << "SELECT s.sessionId, s.Status FROM DR_sessions as s INNER JOIN lime_PeerDevices as d on s.Did = d.Did INNER JOIN lime_LocalUsers as u on u.Uid = d.Uid WHERE u.UserId = :selfId AND d.DeviceId = :peerId ORDER BY s.Status DESC, s.Did;", into(sessionsId), into(status), use(selfDeviceId), use(peerDeviceId));
+		soci::statement st = (sql.prepare << "SELECT s.sessionId, s.Status FROM DR_sessions as s INNER JOIN lime_PeerDevices as d on s.Did = d.Did INNER JOIN lime_LocalUsers as u on u.Uid = s.Uid WHERE u.UserId = :selfId AND d.DeviceId = :peerId ORDER BY s.Status DESC, s.Did;", into(sessionsId), into(status), use(selfDeviceId), use(peerDeviceId));
 		st.execute();
 		if (st.fetch()) { // all retrieved session shall fit in the arrays no need to go on several fetch
 			// check we don't have more than one active session
@@ -379,7 +379,7 @@ unsigned int get_StoredMessageKeyCount(const std::string &dbFilename, const std:
 	try {
 		soci::session sql(sqlite3, dbFilename); // open the DB
 		unsigned int mkCount=0;
-		sql<< "SELECT count(m.MK) FROM DR_sessions as s INNER JOIN lime_PeerDevices as d on s.Did = d.Did INNER JOIN lime_LocalUsers as u on u.Uid = d.Uid INNER JOIN DR_MSk_DHr as c on c.sessionId = s.sessionId INNER JOIN DR_MSk_Mk as m ON m.DHid=c.DHid WHERE u.UserId = :selfId AND d.DeviceId = :peerId ORDER BY s.Status DESC, s.Did;", into(mkCount), use(selfDeviceId), use(peerDeviceId);
+		sql<< "SELECT count(m.MK) FROM DR_sessions as s INNER JOIN lime_PeerDevices as d on s.Did = d.Did INNER JOIN lime_LocalUsers as u on u.Uid = s.Uid INNER JOIN DR_MSk_DHr as c on c.sessionId = s.sessionId INNER JOIN DR_MSk_Mk as m ON m.DHid=c.DHid WHERE u.UserId = :selfId AND d.DeviceId = :peerId ORDER BY s.Status DESC, s.Did;", into(mkCount), use(selfDeviceId), use(peerDeviceId);
 		if (sql.got_data()) {
 			return mkCount;
 		} else {

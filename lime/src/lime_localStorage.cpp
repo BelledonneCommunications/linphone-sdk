@@ -86,7 +86,8 @@ Db::Db(std::string filename) : sql{sqlite3, filename}{
 
 			/*** Double Ratchet tables ***/
 			/* DR Session:
-			 *  - DId : Device Id is a foreign key from lime_PeerDevices table: peer device Id, allow to retrieve sessions linking to a peer device and a local account
+			 *  - DId : link to lime_PeerDevices table, identify which peer is associated to this session
+			 *  - Uid: link to LocalUsers table, identify which local device is associated to this session
 			 *  - SessionId(primary key)
 			 *  - Ns, Nr, PN : index for sending, receivind and previous sending chain
 			 *  - DHr : peer current public ECDH key
@@ -99,6 +100,7 @@ Db::Db(std::string filename) : sql{sqlite3, filename}{
 			 */
 			sql<<"CREATE TABLE DR_sessions( \
 						Did INTEGER NOT NULL DEFAULT 0, \
+						Uid INTEGER NOT NULL DEFAULT 0, \
 						sessionId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, \
 						Ns UNSIGNED INTEGER NOT NULL, \
 						Nr UNSIGNED INTEGER NOT NULL, \
@@ -112,7 +114,8 @@ Db::Db(std::string filename) : sql{sqlite3, filename}{
 						Status INTEGER NOT NULL DEFAULT 1, \
 						timeStamp DATETIME DEFAULT CURRENT_TIMESTAMP, \
 						X3DHInit BLOB DEFAULT NULL, \
-						FOREIGN KEY(Did) REFERENCES lime_PeerDevices(Did) ON UPDATE CASCADE ON DELETE CASCADE)";
+						FOREIGN KEY(Did) REFERENCES lime_PeerDevices(Did) ON UPDATE CASCADE ON DELETE CASCADE, \
+						FOREIGN KEY(Uid) REFERENCES lime_LocalUsers(Uid) ON UPDATE CASCADE ON DELETE CASCADE);";
 
 			/* DR Message Skipped DH : Store chains of skipped message keys, this table store the DHr identifying the chain
 			 *  - DHid(primary key)
@@ -158,17 +161,16 @@ Db::Db(std::string filename) : sql{sqlite3, filename}{
 			/* Peer Devices :
 			 * - Did : primary key, used to make link with DR_sessions table.
 			 * - DeviceId: peer device id (shall be its GRUU)
-			 * - Uid: link to LocalUsers table, identify which localUser registered this peer Device
 			 * - Ik : Peer device Identity public key, got it from X3DH server or X3DH init message
 			 * - Verified : a flag, 0 : peer identity was not verified, 1 : peer identity confirmed
+			 *
+			 * Note: peer device information is shared by all local device, hence they are not linked to particular local devices from lime_LocalUsers table
 			 */
 			sql<<"CREATE TABLE lime_PeerDevices( \
 						Did INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, \
 						DeviceId TEXT NOT NULL, \
-						Uid INTEGER NOT NULL, \
 						Ik BLOB NOT NULL, \
-						Verified UNSIGNED INTEGER DEFAULT 0,\
-						FOREIGN KEY(Uid) REFERENCES lime_LocalUsers(Uid) ON UPDATE CASCADE ON DELETE CASCADE);";
+						Verified UNSIGNED INTEGER DEFAULT 0);";
 
 			/*** X3DH tables ***/
 			/* Signed pre-key :
@@ -324,15 +326,15 @@ bool DR<DHKey>::session_save() {
 		blob AD(m_localStorage->sql);
 		AD.write(0, (char *)(m_sharedAD.data()), m_sharedAD.size());
 
-		// make sure we have no other session active with this peer DiD
-		m_localStorage->sql<<"UPDATE DR_sessions SET Status = 0, timeStamp = CURRENT_TIMESTAMP WHERE Did = :Did", use(m_peerDid);
+		// make sure we have no other session active with this pair local,peer DiD
+		m_localStorage->sql<<"UPDATE DR_sessions SET Status = 0, timeStamp = CURRENT_TIMESTAMP WHERE Did = :Did AND Uid = :Uid", use(m_peerDid), use(m_db_Uid);
 
 		if (m_X3DH_initMessage.size()>0) {
 			blob X3DH_initMessage(m_localStorage->sql);
 			X3DH_initMessage.write(0, (char *)(m_X3DH_initMessage.data()), m_X3DH_initMessage.size());
-			m_localStorage->sql<<"INSERT INTO DR_sessions(Ns,Nr,PN,DHr,DHs,RK,CKs,CKr,AD,Did,X3DHInit) VALUES(:Ns,:Nr,:PN,:DHr,:DHs,:RK,:CKs,:CKr,:AD,:Did,:X3DHinit);", use(m_Ns), use(m_Nr), use(m_PN), use(DHr), use(DHs), use(RK), use(CKs), use(CKr), use(AD), use(m_peerDid), use(X3DH_initMessage);
+			m_localStorage->sql<<"INSERT INTO DR_sessions(Ns,Nr,PN,DHr,DHs,RK,CKs,CKr,AD,Did,Uid,X3DHInit) VALUES(:Ns,:Nr,:PN,:DHr,:DHs,:RK,:CKs,:CKr,:AD,:Did,:Uid,:X3DHinit);", use(m_Ns), use(m_Nr), use(m_PN), use(DHr), use(DHs), use(RK), use(CKs), use(CKr), use(AD), use(m_peerDid), use(m_db_Uid), use(X3DH_initMessage);
 		} else {
-			m_localStorage->sql<<"INSERT INTO DR_sessions(Ns,Nr,PN,DHr,DHs,RK,CKs,CKr,AD,Did) VALUES(:Ns,:Nr,:PN,:DHr,:DHs,:RK,:CKs,:CKr,:AD,:Did);", use(m_Ns), use(m_Nr), use(m_PN), use(DHr), use(DHs), use(RK), use(CKs), use(CKr), use(AD), use(m_peerDid);
+			m_localStorage->sql<<"INSERT INTO DR_sessions(Ns,Nr,PN,DHr,DHs,RK,CKs,CKr,AD,Did,Uid) VALUES(:Ns,:Nr,:PN,:DHr,:DHs,:RK,:CKs,:CKr,:AD,:Did,:Uid);", use(m_Ns), use(m_Nr), use(m_PN), use(DHr), use(DHs), use(RK), use(CKs), use(CKr), use(AD), use(m_peerDid), use(m_db_Uid);
 		}
 		// if insert went well we shall be able to retrieve the last insert id to save it in the Session object
 		/*** WARNING: unportable section of code, works only with sqlite3 backend ***/
@@ -348,9 +350,9 @@ bool DR<DHKey>::session_save() {
 				case DRSessionDbStatus::dirty: // dirty case shall actually never occurs as a dirty is set only at creation not loading, first save is processed above
 				case DRSessionDbStatus::dirty_ratchet: // ratchet&decrypt modifies all but also request to delete X3DHInit from storage
 				{
-					// make sure we have no other session active with this peer DiD
+					// make sure we have no other session active with this pair local,peer DiD
 					if (m_active_status == false) {
-						m_localStorage->sql<<"UPDATE DR_sessions SET Status = 0, timeStamp = CURRENT_TIMESTAMP WHERE Did = :Did", use(m_peerDid);
+						m_localStorage->sql<<"UPDATE DR_sessions SET Status = 0, timeStamp = CURRENT_TIMESTAMP WHERE Did = :Did AND Uid = :Uid", use(m_peerDid), use(m_db_Uid);
 						m_active_status = true;
 					}
 
@@ -372,9 +374,9 @@ bool DR<DHKey>::session_save() {
 					break;
 				case DRSessionDbStatus::dirty_decrypt: // decrypt modifies: CKr and Nr. Also set Status to active and clear X3DH init message if there is one(it is actually useless as our first reply from peer shall trigger a ratchet&decrypt)
 				{
-					// make sure we have no other session active with this peer DiD
+					// make sure we have no other session active with this pair local,peer DiD
 					if (m_active_status == false) {
-						m_localStorage->sql<<"UPDATE DR_sessions SET Status = 0, timeStamp = CURRENT_TIMESTAMP WHERE Did = :Did", use(m_peerDid);
+						m_localStorage->sql<<"UPDATE DR_sessions SET Status = 0, timeStamp = CURRENT_TIMESTAMP WHERE Did = :Did AND Uid = :Uid", use(m_peerDid), use(m_db_Uid);
 						m_active_status = true;
 					}
 
@@ -461,7 +463,7 @@ bool DR<DHKey>::session_load() {
 	// create an empty DR session
 	indicator ind;
 	int status; // retrieve an int from DB, turn it into a bool to store in object
-	m_localStorage->sql<<"SELECT Did,Ns,Nr,PN,DHr,DHs,RK,CKs,CKr,AD,Status,X3DHInit FROM DR_sessions WHERE sessionId = :sessionId LIMIT 1", into(m_peerDid), into(m_Ns), into(m_Nr), into(m_PN), into(DHr), into(DHs), into(RK), into(CKs), into(CKr), into(AD), into(status), into(X3DH_initMessage,ind), use(m_dbSessionId);
+	m_localStorage->sql<<"SELECT Did,Uid,Ns,Nr,PN,DHr,DHs,RK,CKs,CKr,AD,Status,X3DHInit FROM DR_sessions WHERE sessionId = :sessionId LIMIT 1", into(m_peerDid), into(m_db_Uid), into(m_Ns), into(m_Nr), into(m_PN), into(DHr), into(DHs), into(RK), into(CKs), into(CKr), into(AD), into(status), into(X3DH_initMessage,ind), use(m_dbSessionId);
 
 	if (m_localStorage->sql.got_data()) { // TODO : some more specific checks on length of retrieved data?
 		DHr.read(0, (char *)(m_DHr.data()), m_DHr.size());
@@ -705,7 +707,7 @@ void Lime<Curve>::cache_DR_sessions(std::vector<recipientInfos<Curve>> &internal
 	sqlString_requestedDevices.pop_back(); // remove the last ','
 
 	/* fetch them from DB */
-	rowset<row> rs = (m_localStorage->sql.prepare << "SELECT s.sessionId, d.DeviceId FROM DR_sessions as s INNER JOIN lime_PeerDevices as d ON s.Did=d.Did WHERE d.Uid= :Uid AND s.Status=1 AND d.DeviceId IN ("<<sqlString_requestedDevices<<");", use(m_db_Uid));
+	rowset<row> rs = (m_localStorage->sql.prepare << "SELECT s.sessionId, d.DeviceId FROM DR_sessions as s INNER JOIN lime_PeerDevices as d ON s.Did=d.Did WHERE s.Uid= :Uid AND s.Status=1 AND d.DeviceId IN ("<<sqlString_requestedDevices<<");", use(m_db_Uid));
 	for (auto &r : rs) {
 		auto sessionId = r.get<int>(0);
 		auto peerDeviceId = r.get<string>(1);
@@ -743,7 +745,7 @@ long int Lime<Curve>::store_peerDevice(const std::string &peerDeviceId, const ED
 	try {
 		long int Did=0;
 		// make sure this device wasn't already here, if it was, check they have the same Ik
-		m_localStorage->sql<<"SELECT Ik,Did FROM lime_peerDevices WHERE DeviceId = :DeviceId AND Uid = :Uid LIMIT 1;", into(Ik_blob), into(Did), use(peerDeviceId), use(m_db_Uid);
+		m_localStorage->sql<<"SELECT Ik,Did FROM lime_PeerDevices WHERE DeviceId = :DeviceId LIMIT 1;", into(Ik_blob), into(Did), use(peerDeviceId);
 		if (m_localStorage->sql.got_data()) { // Found one
 			ED<Curve> stored_Ik;
 			Ik_blob.read(0, (char *)(stored_Ik.data()), stored_Ik.size()); // Read it to compare it to the given one
@@ -756,10 +758,10 @@ long int Lime<Curve>::store_peerDevice(const std::string &peerDeviceId, const ED
 		} else { // not found in local Storage
 			transaction tr(m_localStorage->sql);
 			Ik_blob.write(0, (char *)(Ik.data()), Ik.size());
-			m_localStorage->sql<<"INSERT INTO lime_PeerDevices(DeviceId,Uid,Ik) VALUES (:deviceId,:Uid,:Ik) ", use(peerDeviceId), use(m_db_Uid), use(Ik_blob);
+			m_localStorage->sql<<"INSERT INTO lime_PeerDevices(DeviceId,Ik) VALUES (:deviceId,:Ik) ", use(peerDeviceId), use(Ik_blob);
 			m_localStorage->sql<<"select last_insert_rowid()",into(Did);
 			tr.commit();
-			bctbx_debug("user %s store peerDevice %s with device id %x", m_selfDeviceId.data(), peerDeviceId.data(), Did);
+			bctbx_debug("store peerDevice %s with device id %x", peerDeviceId.data(), Did);
 			return Did;
 		}
 	} catch (exception const &e) {
@@ -770,7 +772,7 @@ long int Lime<Curve>::store_peerDevice(const std::string &peerDeviceId, const ED
 // load from local storage in DRSessions all DR session matching the peerDeviceId, ignore the one picked by id in 2nd arg
 template <typename Curve>
 void Lime<Curve>::get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDRSessionId, std::vector<std::shared_ptr<DR<Curve>>> &DRSessions) {
-	rowset<int> rs = (m_localStorage->sql.prepare << "SELECT s.sessionId FROM DR_sessions as s INNER JOIN lime_PeerDevices as d ON s.Did=d.Did WHERE d.DeviceId = :senderDeviceId AND s.sessionId <> :ignoreThisDRSessionId ORDER BY s.Status DESC, timeStamp ASC;", use(senderDeviceId), use(ignoreThisDRSessionId));
+	rowset<int> rs = (m_localStorage->sql.prepare << "SELECT s.sessionId FROM DR_sessions as s INNER JOIN lime_PeerDevices as d ON s.Did=d.Did WHERE d.DeviceId = :senderDeviceId AND s.Uid = :Uid AND s.sessionId <> :ignoreThisDRSessionId ORDER BY s.Status DESC, timeStamp ASC;", use(senderDeviceId), use (m_db_Uid), use(ignoreThisDRSessionId));
 
 	for (auto sessionId : rs) {
 		/* load session in cache DRSessions */
