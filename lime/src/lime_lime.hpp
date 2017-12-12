@@ -32,13 +32,98 @@ namespace lime {
 	class LimeGeneric {
 
 	public:
-		/* Encrypt/Decrypt */
+		// Encrypt/Decrypt
+		/**
+		 * @brief Encrypt a buffer(text or file) for a given list of recipient devices
+		 *
+		 * 	Clarification on recipients:
+		 *
+		 * 	recipients information needed are a list of the device Id and one userId. The device Id shall be their GRUU while the userId is a sip:uri.
+		 *
+		 * 	recipient User Id is used to identify the actual intended recipient. Example: alice have two devices and is signed up on a conference having
+		 * 	bob and claire as other members. The recipientUserId will be the conference sip:uri and device list will include:
+		 * 		 - alice other device
+		 * 		 - bob devices
+		 * 		 - claire devices
+		 * 	If Alice write to Bob only, the recipientUserId will be bob sip:uri and recipient devices list :
+		 * 		 - alice other device
+		 * 		 - bob devices
+		 *
+		 * 	In all cases, the identified source of the message will be the localDeviceId
+		 *
+		 * 	Note: all parameters are shared pointers as the process being asynchronous, the ownership will be taken internally exempting caller to manage the buffers.
+		 *
+		 * @param[in]		recipientUserId	the Id of intended recipient, shall be a sip:uri of user or conference, is used as associated data to ensure no-one can mess with intended recipient
+		 * @param[in/out]	recipients	a list of recipientData holding: the recipient device Id(GRUU) and an empty buffer to store the cipherHeader which must then be routed to that recipient
+		 * @param[in]		plainMessage	a buffer holding the message to encrypt, can be text or data.
+		 * @param[out]		cipherMessage	points to the buffer to store the encrypted message which must be routed to all recipients
+		 * @param[in]		callback	This operation contact the X3DH server and is thus asynchronous, when server responds,
+		 * 					this callback will be called giving the exit status and an error message in case of failure.
+		 * 					It is advised to capture a copy of cipherMessage and recipients shared_ptr in this callback so they can access
+		 * 					the output of encryption as it won't be part of the callback parameters.
+		*/
 		virtual void encrypt(std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<recipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback) = 0;
+
+		/**
+		 * @brief Decrypt the given message
+		 *
+		 * @param[in]		recipientUserId	the Id of intended recipient, shall be a sip:uri of user or conference, is used as associated data to ensure no-one can mess with intended recipient
+		 * 					it is not necessarily the sip:uri base of the GRUU as this could be a message from alice first device intended to bob being decrypted on alice second device
+		 * @param[in]		cipherHeader	the part of cipher which is targeted to current device
+		 * @param[in]		cipherMessage	part of cipher routed to all recipient devices
+		 * @param[out]		plainMessage	the output buffer
+		 *
+		 * @return	true if the decryption is successfull, false otherwise
+		*/
 		virtual bool decrypt(const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &cipherHeader, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) = 0;
+
+
+
+		// User management
+		/**
+		 * @brief Publish on X3DH server the user, it is performed just after creation in local storage
+		 * this  will, on success, trigger generation and sending of SPk and OPks for our new user
+		 *
+		 * @param[in]	callback		call when completed
+		 * @param[in]	initialOPkBatchSize	Number of OPks in the first batch uploaded to X3DH server
+		*/
 		virtual void publish_user(const limeCallback &callback, const uint16_t OPkInitialBatchSize) = 0;
+
+		/**
+		 * @brief Delete user from local Storage and from X3DH server
+		 *
+		 * @param[in]	callback		call when completed
+		 */
 		virtual void delete_user(const limeCallback &callback) = 0;
+
+
+
+		// User keys management
+		/**
+		 * @brief Check if the current SPk needs to be updated, if yes, generate a new one and publish it on server
+		 *
+		 * @param[in] callback 	Called with success or failure when operation is completed.
+		*/
 		virtual void update_SPk(const limeCallback &callback) = 0;
+
+		/**
+		 * @brief check if we shall upload more OPks on X3DH server
+		 * - ask server four our keys (returns the count and all their Ids)
+		 * - check if it's under the low limit, if yes, generate a batch of keys and upload them
+		 *
+		 * @param[in]	callback 		Called with success or failure when operation is completed.
+		 * @param[in]	OPkServerLowLimit	If server holds less OPk than this limit, generate and upload a batch of OPks
+		 * @param[in]	OPkBatchSize		Number of OPks in a batch uploaded to server
+		*/
 		virtual void update_OPk(const limeCallback &callback, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize) = 0;
+
+		/**
+		 * @brief Retrieve self public Identity key
+		 *
+		 * @param[out]	Ik	the public EdDSA formatted Identity key
+		*/
+		virtual void get_Ik(std::vector<uint8_t> &Ik) = 0;
+
 		virtual ~LimeGeneric() {};
 	};
 

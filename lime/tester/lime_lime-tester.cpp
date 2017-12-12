@@ -207,6 +207,45 @@ static void lime_session_establishment(const lime::CurveId curve, const std::str
 	}
 }
 
+static void lime_getSelfIk_test(const lime::CurveId curve, const std::string &dbFilename, const std::vector<uint8_t> &pattern) {
+	// retrieve the Ik and check it matches given pattern
+	std::unique_ptr<LimeManager> aliceManager = nullptr;
+	std::vector<uint8_t> Ik{};
+	try  {
+		// create Manager for alice
+		aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilename, prov, user_auth_callback));
+		// retrieve alice identity key
+		aliceManager->get_selfIdentityKey("alice", Ik);
+
+		BC_ASSERT_TRUE((Ik==pattern));
+	} catch (BctbxException &e) {
+		BCTBX_SLOGE <<e;;
+		BC_FAIL();
+		return;
+	}
+
+	// try to get the Ik of a user not in there, we shall get an exception
+	try {
+		aliceManager->get_selfIdentityKey("bob", Ik);
+	} catch (BctbxException &e) {
+		// just swallow it
+		BC_PASS();
+		return;
+	}
+	BC_FAIL("Get the Ik of a user not in local Storage didn't throw an exception");
+}
+
+static void lime_getSelfIk() {
+#ifdef EC25519_ENABLED
+	std::vector<uint8_t> pattern_selfIk_C25519 {{0x55, 0x6b, 0x4a, 0xc2, 0x24, 0xc1, 0xd4, 0xff, 0xb7, 0x44, 0x82, 0xe2, 0x3c, 0x75, 0x1c, 0x2b, 0x1c, 0xcb, 0xf6, 0xe2, 0x96, 0xcb, 0x18, 0x01, 0xc6, 0x76, 0x2d, 0x30, 0xa0, 0xa2, 0xbb, 0x27}};
+	lime_getSelfIk_test(lime::CurveId::c25519, std::string(bc_tester_get_resource_dir_prefix()).append("/data/pattern_getSelfIk.C25519.sqlite3"), pattern_selfIk_C25519);
+#endif
+#ifdef EC448_ENABLED
+	std::vector<uint8_t> pattern_selfIk_C448 {{0xe7, 0x96, 0x9e, 0x53, 0xd3, 0xbf, 0xfb, 0x4c, 0x6d, 0xdb, 0x79, 0xd2, 0xd7, 0x24, 0x91, 0x7b, 0xa8, 0x99, 0x87, 0x20, 0x23, 0xe1, 0xec, 0xd4, 0xb5, 0x76, 0x0f, 0xc2, 0x83, 0xae, 0x5a, 0xf9, 0x1d, 0x25, 0x47, 0xda, 0x0e, 0x71, 0x50, 0xd5, 0xaf, 0x79, 0x92, 0x48, 0xb0, 0xb6, 0x0f, 0xdc, 0x6f, 0x73, 0x3f, 0xd9, 0x9c, 0x2c, 0x95, 0xe3, 0x00}};
+	lime_getSelfIk_test(lime::CurveId::c448, std::string(bc_tester_get_resource_dir_prefix()).append("/data/pattern_getSelfIk.C448.sqlite3"), pattern_selfIk_C448);
+#endif
+}
+
 /**
  * Scenario:
  * - Create a user alice
@@ -1779,7 +1818,8 @@ static test_t tests[] = {
 	TEST_NO_TAG("Without OPk", x3dh_without_OPk),
 	TEST_NO_TAG("Update - clean MK", lime_update_clean_MK),
 	TEST_NO_TAG("Update - SPk", lime_update_SPk),
-	TEST_NO_TAG("Update - OPk", lime_update_OPk)
+	TEST_NO_TAG("Update - OPk", lime_update_OPk),
+	TEST_NO_TAG("get self Identity Key", lime_getSelfIk)
 };
 
 test_suite_t lime_lime_test_suite = {

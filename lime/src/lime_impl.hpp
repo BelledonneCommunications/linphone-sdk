@@ -129,6 +129,12 @@ namespace lime {
 			*/
 			void update_OPk(const limeCallback &callback, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize) override;
 
+			/**
+			 * @brief Retrieve self public Identity key
+			 *
+			 * @param[out]	Ik	the public EdDSA formatted Identity key
+			 */
+			virtual void get_Ik(std::vector<uint8_t> &Ik) override;
 
 			void encrypt(std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<recipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback) override;
 			bool decrypt(const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &cipherHeader, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) override;

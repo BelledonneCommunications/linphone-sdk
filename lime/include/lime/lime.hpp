@@ -56,6 +56,7 @@ namespace lime {
 			std::string m_db_access; // DB access information forwarded to SOCI to correctly access database
 			belle_http_provider_t *m_http_provider; // used to access the X3DH key server
 			userAuthenticateCallback m_user_auth; // called to complete user authentication on server
+			void load_user(std::shared_ptr<LimeGeneric> &user, const std::string &localDeviceId); // helper function, get from m_users_cache of local Storage the requested Lime object
 
 		public :
 			/* LimeManager is mostly a cache of Lime users, any command get as first parameter the device Id (Lime manage devices only, the link user(sip:uri)<->device(GRUU) is provided by upper level) */
@@ -80,6 +81,7 @@ namespace lime {
 
 			/**
 			 * @brief Delete a user from local database and from the X3DH server
+			 * if specified localDeviceId is not found in local Storage, throw an exception
 			 *
 			 * @param[in]	localDeviceId	Identify the local user acount to use, it must be unique and is also be used as Id on the X3DH key server, it shall be the GRUU
 			 * @param[in]	callback	This operation contact the X3DH server and is thus asynchronous, when server responds,
@@ -89,6 +91,8 @@ namespace lime {
 
 			/**
 			 * @brief Encrypt a buffer(text or file) for a given list of recipient devices
+			 * if specified localDeviceId is not found in local Storage, throw an exception
+			 *
 			 * 	Clarification on recipients:
 			 *
 			 * 	recipients information needed are a list of the device Id and one userId. The device Id shall be their GRUU while the userId is a sip:uri.
@@ -120,6 +124,7 @@ namespace lime {
 
 			/**
 			 * @brief Decrypt the given message
+			 * if specified localDeviceId is not found in local Storage, throw an exception
 			 *
 			 * @param[in]		localDeviceId	used to identify which local acount to use and also as the recipient device ID of the message, shall be the GRUU
 			 * @param[in]		recipientUserId	the Id of intended recipient, shall be a sip:uri of user or conference, is used as associated data to ensure no-one can mess with intended recipient
@@ -150,6 +155,16 @@ namespace lime {
 			 */
 			void update(const limeCallback &callback);
 			void update(const limeCallback &callback, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize);
+
+			/**
+			 * @brief retrieve self Identity Key, an EdDSA formatted public key
+			 * if specified localDeviceId is not found in local Storage, throw an exception
+			 *
+			 *
+			 * @param[in]	localDeviceId	used to identify which local account we're dealing with, shall be the GRUU
+			 * @param[out]	Ik		the EdDSA public identity key, formatted as in RFC8032
+			 */
+			void get_selfIdentityKey(const std::string &localDeviceId, std::vector<uint8_t> &Ik);
 
 			LimeManager() = delete; // no manager without Database and http provider
 			LimeManager(const LimeManager&) = delete; // no copy constructor

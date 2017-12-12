@@ -108,8 +108,8 @@ namespace lime {
 	 * @brief Publish on X3DH server the user, it is performed just after creation in local storage
 	 * this  will, on success, trigger generation and sending of SPk and OPks for our new user
 	 *
-	 * @param[in]	initialOPkBatchSize	Number of OPks in the first batch uploaded to X3DH server
 	 * @param[in]	callback		call when completed
+	 * @param[in]	initialOPkBatchSize	Number of OPks in the first batch uploaded to X3DH server
 	 */
 	template <typename Curve>
 	void Lime<Curve>::publish_user(const limeCallback &callback, const uint16_t OPkInitialBatchSize) {
@@ -158,6 +158,13 @@ namespace lime {
 		std::vector<uint8_t> X3DHmessage{};
 		x3dh_protocol::buildMessage_getSelfOPks<Curve>(X3DHmessage);
 		postToX3DHServer(userData, X3DHmessage); // in the response from server, if more OPks are needed, it will generate and post them before calling the callback
+	}
+
+	template <typename Curve>
+	void Lime<Curve>::get_Ik(std::vector<uint8_t> &Ik) {
+		get_SelfIdentityKey(); // make sure our Ik is loaded in object
+		// copy self Ik to output buffer
+		Ik.assign(m_Ik.publicKey().begin(), m_Ik.publicKey().end());
 	}
 
 	template <typename Curve>

@@ -31,6 +31,18 @@
 using namespace::std;
 
 namespace lime {
+	void LimeManager::load_user(std::shared_ptr<LimeGeneric> &user, const std::string &localDeviceId) {
+		// Load user object
+		auto userElem = m_users_cache.find(localDeviceId);
+		if (userElem == m_users_cache.end()) { // not in cache, load it from DB
+			user = load_LimeUser(m_db_access, localDeviceId, m_http_provider, m_user_auth);
+			m_users_cache[localDeviceId]=user;
+		} else {
+			user = userElem->second;
+		}
+
+	}
+
 	/****************************************************************************/
 	/*                                                                          */
 	/* Lime Manager API                                                         */
@@ -67,29 +79,17 @@ namespace lime {
 			thiz->m_users_cache.erase(localDeviceId);
 		});
 
-		// is the user load? if no we must load it to be able to delete it(generate an exception if user doesn't exists)
-		auto userElem = m_users_cache.find(localDeviceId);
+		// Load user object
 		std::shared_ptr<LimeGeneric> user;
-		if (userElem == m_users_cache.end()) {
-			user = load_LimeUser(m_db_access, localDeviceId, m_http_provider, m_user_auth);
-			m_users_cache[localDeviceId]=user; // we must load it in cache otherwise object will be destroyed before getting into callback
-		} else {
-			user = userElem->second;
-		}
+		LimeManager::load_user(user, localDeviceId);
 
 		user->delete_user(managerDeleteCallback);
 	}
 
 	void LimeManager::encrypt(const std::string &localDeviceId, std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<recipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback) {
 		// Load user object
-		auto userElem = m_users_cache.find(localDeviceId);
 		std::shared_ptr<LimeGeneric> user;
-		if (userElem == m_users_cache.end()) { // not in cache, load it from DB
-			user = load_LimeUser(m_db_access, localDeviceId, m_http_provider, m_user_auth);
-			m_users_cache[localDeviceId]=user;
-		} else {
-			user = userElem->second;
-		}
+		LimeManager::load_user(user, localDeviceId);
 
 		// call the encryption function
 		user->encrypt(recipientUserId, recipients, plainMessage, cipherMessage, callback);
@@ -97,14 +97,8 @@ namespace lime {
 
 	bool LimeManager::decrypt(const std::string &localDeviceId, const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &cipherHeader, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) {
 		// Load user object
-		auto userElem = m_users_cache.find(localDeviceId);
 		std::shared_ptr<LimeGeneric> user;
-		if (userElem == m_users_cache.end()) { // not in cache, load it from DB
-			user = load_LimeUser(m_db_access, localDeviceId, m_http_provider, m_user_auth);
-			m_users_cache[localDeviceId]=user;
-		} else {
-			user = userElem->second;
-		}
+		LimeManager::load_user(user, localDeviceId);
 
 		// call the decryption function
 		return user->decrypt(recipientUserId, senderDeviceId, cipherHeader, cipherMessage, plainMessage);
@@ -148,14 +142,8 @@ namespace lime {
 		for (auto deviceId : deviceIds) {
 			BCTBX_SLOGI<<"Lime update user "<<deviceId;
 			//load user
-			auto userElem = m_users_cache.find(deviceId);
 			std::shared_ptr<LimeGeneric> user;
-			if (userElem == m_users_cache.end()) { // not in cache, load it from DB
-				user = load_LimeUser(m_db_access, deviceId, m_http_provider, m_user_auth);
-				m_users_cache[deviceId]=user;
-			} else {
-				user = userElem->second;
-			}
+			LimeManager::load_user(user, deviceId);
 
 			// send a request to X3DH server to check how many OPk are left on server, upload more if needed
 			user->update_OPk(managerUpdateCallback, OPkServerLowLimit, OPkBatchSize);
@@ -163,10 +151,13 @@ namespace lime {
 			// update the SPk(if needed)
 			user->update_SPk(managerUpdateCallback);
 		}
-
-
-		/* SPk check */
-
-		//if (callback) callback(lime::callbackReturn::success, "");
 	}
+
+	void LimeManager::get_selfIdentityKey(const std::string &localDeviceId, std::vector<uint8_t> &Ik) {
+		std::shared_ptr<LimeGeneric> user;
+		LimeManager::load_user(user, localDeviceId);
+
+		user->get_Ik(Ik);
+	}
+
 } // namespace lime
