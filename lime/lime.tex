@@ -8,6 +8,7 @@
 \usepackage[margin=1.25in]{geometry}
 \usepackage{placeins}
 \usepackage[skip=-10pt,font=small,font=bf,labelformat=empty,justification=RaggedRight]{caption}
+\usepackage{msc}
 
 \let\oldtabular\tabular 
 \renewcommand{\tabular}{\footnotesize\oldtabular}
@@ -112,6 +113,8 @@ any session-based message encryption algorithm that meets certain conditions.
     \paragraph{}Lime performs the same signature and ECDH operations but the identity key(Ik) is generated, stored and transmitted in its EdDSA format and then converted into X25519 or X448 format when ECDH computation is performed on it.
     \paragraph{}The X3DH $Encode(PK)$ function recommends the usage of a single byte constant to represent the type of curve followed by the encoding specified in \cite{rfc7748}. Lime uses direct encoding specified in \cite{rfc7748} for its ECDH public keys and \cite{rfc8032} for its EdDSA keys.
 
+  \subsection{Authentication}
+    X3DH specification mentions \cite[section 4.1]{x3dh} the necessity of an identity authentication mecanism. libsignal\cite{libsignal} implements key fingerprints comparison to provide it. Lime make use of ZRTP\cite{zrtp} call with oral SAS verification to provide mutual identity authentication. See implementation details in section \ref{subsec:mutualauthentication}
   \subsection{Optional features not implemented}
     \begin{itemize}
       \item Double ratchet with header encryption as in \cite[section 4]{doubleRatchet}
@@ -275,7 +278,7 @@ any session-based message encryption algorithm that meets certain conditions.
       \end{itemize}
 
   \subsection{Sesame}
-    The Sesame part of the system is spread into different elements:
+    \paragraph{}The Sesame part of the system is distributed into different elements:
     \begin{itemize}
       \item Lime is operating in per-device identity keys mode.
       \item Providing an updated list of Devices Id to match the intended recipients (and sender user other devices) is performed by the linphone ecosystem (SIP and conference server). So the loop between client and server during encryption described in the Sesame spec\cite{sesame} is not relevant. Lime relies on the SIP or conference server to provide an updated list of recipient devices before the message encryption.
@@ -284,10 +287,100 @@ any session-based message encryption algorithm that meets certain conditions.
       \item User and device identifications are provided by the linphone ecosystem: a user Id is its sip:uri, also used to identify groups. A device Id is its GRUU\cite{rfc5627}. The connection to the X3DH server is performed over HTTPS and uses the user authentication associated to the sip user account.
       \item Mailboxes and message routing is provided by the linphone ecosystem
     \end{itemize}
+    \subsubsection{use case: first encryption, multiple devices}
+    \paragraph{}In the following diagram, Alice1 encrypts a message to Bob for the first time. Alice1 must establish Double Ratchet's sessions and for that requests key bundles. It is assumed that Alice2 is known to Alice1 so there is no request for Alice2 key bundle.\\\newline
+    \begin{msc}{Alice1 encrypts to Bob for the first time}
+    \setlength{\instdist}{2.9cm}
+    \setlength{\envinstdist}{0.85cm}
+    \declinst{aliced1}{}{Alice1}
+    \declinst{aliced2}{}{Alice2}
+    \declinst{SIP}{}{SIP s.}
+    \declinst{X3DH}{}{X3DH s.}
+    \declinst{bobd1}{}{Bob1}
+    \declinst{bobd2}{}{Bob2}
+    \mess{get Bob device's GRUU}{aliced1}{SIP}
+    \nextlevel
+    \mess{Alice2, Bob1, Bob2}{SIP}{aliced1}
+    \nextlevel[2]
+    \mess{get Bob1, Bob2 keys bundles}{aliced1}{X3DH}
+    \nextlevel
+    \mess{get Alice user credentials}{X3DH}{SIP}
+    \nextlevel
+    \mess{auth challenge}{X3DH}{aliced1}
+    \nextlevel
+    \mess{Alice user credentials}{SIP}{X3DH}
+    \nextlevel
+    \mess{auth challenge response}{aliced1}{X3DH}
+    \nextlevel
+    \action*{Check credentials}{X3DH}
+    \nextlevel[2]
+    \mess{Bob1, Bob2 keys bundles}{X3DH}{aliced1}
+    \nextlevel
+    \action{encrypt}{aliced1}
+    \nextlevel[3]
+    \mess{Alice2, Bob1, Bob2 headers$\Arrowvert $cipher Message}{aliced1}{SIP}
+    \nextlevel[2]
+    \mess{Alice2 header$\Arrowvert $cipher Message}{SIP}{aliced2}
+    \nextlevel
+    \mess{Bob1 header$\Arrowvert $cipher Message}{SIP}{bobd1}
+    \nextlevel
+    \mess{Bob2 header$\Arrowvert $cipher Message}{SIP}{bobd2}
+    \end{msc}
     
   \subsection{Mutual authentication}
-    [TBD]
-  
+    \label{subsec:mutualauthentication}
+    \paragraph{}As stated in \cite[section 4.1]{x3dh}, the parties shall compare their identity public keys otherwise they receive no cryptographic guarantee as to who they are communicating with.
+    \paragraph{}Lime relies on a ZRTP\cite{zrtp} audio call leveraging the MiTM detection offered by the ZRTP short authentication string to authenticate peer identity key. ZRTP auxiliary secret is used to compare both parties identity public keys in the following way:
+    \begin{itemize}
+      \item parties exchange they identity public key in the signaling channel at call establishment
+      \item parties use $caller\ Ik \Arrowvert receiver\ Ik$ as ZRTP auxiliary secret
+      \item when ZRTP key exchange is complete, parties check that auxiliary secret are matching and perform vocal SAS comparison(if not performed before)
+      \item if all is Ok, each party store peer Ik as trusted in the Lime local storage. If the peer key is already present, check it matches the one retrieved through the ZRTP channel  
+    \end{itemize}
+    
+    \paragraph{}In the following diagram $alice\ Ik$ and $bob\ Ik$ refer to the identity public key associated to the particular device of alice and bob involved in the audio call.\\\newline
+    \begin{msc}{Mutual Authentication}
+    \setlength{\instdist}{9cm}
+    \setlength{\envinstdist}{2.5cm}
+    \declinst{alice}{}{Alice}
+    \declinst{bob}{}{Bob}
+    \mess{SIP INVITE with $alice\ Ik$}{alice}{bob}
+    \nextlevel
+    \mess{SIP 200 Ok with $bob\ Ik$}{bob}{alice}
+    \nextlevel
+    \action*{%
+      \begin{minipage}{4cm}\centering
+        set $alice\ Ik\Arrowvert bob\ Ik$\\
+        as ZRTP auxsecret
+      \end{minipage}%
+      }{alice}
+    \action*{%
+      \begin{minipage}{4cm}\centering
+        set $alice\ Ik\Arrowvert bob\ Ik$\\
+        as ZRTP auxsecret
+      \end{minipage}%
+      }{bob}
+    \nextlevel[3]
+    \mess{ZRTP exchange}{alice}{bob}
+    \mess{}{bob}{alice}
+    \nextlevel
+    \condition{ZRTP SAS verified, auxiliary secret match}{alice,bob}
+    \nextlevel[2]
+    \action*{%
+      \begin{minipage}{4cm}\centering
+        set $bob\ Ik$ as trusted\\
+        in Lime local storage
+      \end{minipage}%
+      }{alice}
+    \action*{%
+      \begin{minipage}{4cm}\centering
+        set $alice\ Ik$ as trusted\\
+        in Lime local storage
+      \end{minipage}%
+      }{bob}
+    \nextlevel[3]
+    \end{msc}
+
   \subsection{Keys and sessions management}
     \paragraph{}Key lifetime management is the responsibility of the client device only. The X3DH server is not involved in their management. On a regular schedule (once a day is recommended), the devices must run the $update$ function to check keys validity, renew and/or delete of outdated ones. Several settings are involved in the $update$ operation, they are all defined in \textit{lime\_settings.hpp}.
     
@@ -341,12 +434,12 @@ any session-based message encryption algorithm that meets certain conditions.
     \end{itemize}
     
     \paragraph*{lime\_PeerDevices}
+    \textit{Note:} Records in this table are not linked to a local user but shared between them in order to avoid getting multiples records storing the same information.
     \begin{itemize}
       \item $Did$: integer primary key
       \item $DeviceId$: the peer device Id, it shall be its GRUU
-      \item $Uid$: link to $lime\_LocalUsers$: identify which local user own this record
       \item $Ik$: the peer's public EdDSA identity key.
-      \item $verified$: flag: 0 for peer's identity not verified, 1 for peer's identity verified
+      \item $verified$: flag: 0 for peer's identity not verified, 1 for peer's identity verified, see this document section \ref{subsec:mutualauthentication} for usage
     \end{itemize}
     
     \subsubsection{X3DH tables}
@@ -371,10 +464,11 @@ any session-based message encryption algorithm that meets certain conditions.
     \end{itemize}
               
     \subsubsection{Double ratchet tables}
-    The Double Ratchet dedicated tables store all material needed for the Double Ratchet session, including dedicated table for skipped keys. Records are linked to a peer Device(itself linked to a local Device) through a foreign key: Did.
+    The Double Ratchet dedicated tables store all material needed for the Double Ratchet session, including dedicated table for skipped keys. Records are linked to local and peer devices through a foreign keys: Uid and Did.
     \paragraph*{DR\_sessions}
     \begin{itemize}
-      \item $Did$: link to $lime\_PeerDevices$ : identify peer and local device
+      \item $Did$: link to $lime\_PeerDevices$ : identify peer device for this session
+      \item $Uid$: link to $lime\_LocalUsers$ : identify local device for this session
       \item $sessionId$: integer primary key
       \item $Ns$: index of current sending chain
       \item $Nr$: index of current receiving chain
@@ -770,6 +864,12 @@ any session-based message encryption algorithm that meets certain conditions.
   \textit{\ :"HMAC-based Extract-and-Expand Key Derivation Function (HKDF)"},
   Internet Engineering Task Force; RFC 5869 (Informational); IETF, May-2010.
   \href{https://tools.ietf.org/html/rfc5869}{https://tools.ietf.org/html/rfc5869}
+  
+\bibitem{zrtp}
+  P. Zimmermann, A. Johnston and J. Callas
+  \textit{\ :"ZRTP: Media Path Key Agreement for Unicast Secure RTP"},
+  Internet Engineering Task Force; RFC 6189 (Informational); IETF, April-2011.
+  \href{https://tools.ietf.org/html/rfc6189}{https://tools.ietf.org/html/rfc6189}
 
 \bibitem{libsignal}
   Whisper Systems
