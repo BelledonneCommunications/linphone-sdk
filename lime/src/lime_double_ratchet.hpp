@@ -113,10 +113,11 @@ namespace lime {
 	struct recipientInfos {
 		std::shared_ptr<DR<Curve>> DRSession; // Session to reach recipient
 		std::string deviceId; // recipient device Id(gruu)
+		bool identityVerified; // will hold the status of peer: did we already verified his identity
 		std::vector<uint8_t> cipherHeader; // will hold the header targeted to this recipient after encryption
-		recipientInfos() : DRSession{nullptr}, deviceId{}, cipherHeader{} {};
-		recipientInfos(std::string deviceId) : DRSession{nullptr}, deviceId{deviceId}, cipherHeader{} {};
-		recipientInfos(std::string deviceId, std::shared_ptr<DR<Curve>> session) : DRSession{session}, deviceId{deviceId}, cipherHeader{} {};
+		recipientInfos() : DRSession{nullptr}, deviceId{}, identityVerified{false}, cipherHeader{} {};
+		recipientInfos(std::string deviceId) : DRSession{nullptr}, deviceId{deviceId}, identityVerified{false}, cipherHeader{} {};
+		recipientInfos(std::string deviceId, std::shared_ptr<DR<Curve>> session) : DRSession{session}, deviceId{deviceId}, identityVerified{false}, cipherHeader{} {};
 	};
 
 	// helpers function wich are the one to be used to encrypt/decrypt messages

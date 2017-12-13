@@ -286,6 +286,60 @@ void Db::get_allLocalDevices(std::vector<std::string> &deviceIds) {
 }
 
 /**
+ * @brief set the identity verified flag for peer device
+ *
+ * @param[in]	peerDeviceId	The device Id of peer, shall be its GRUU
+ * @param[in]	Ik		the EdDSA peer public identity key, formatted as in RFC8032
+ * @param[in]	status		value of flag to set
+ *
+ * throw an exception if given key doesn't match the one present in local storage
+ * if peer Device is not present in local storage and status is true, it is added, if status is false, it is just ignored
+ */
+void Db::set_PeerDevicesVerifiedStatus(const std::string &peerDeviceId, const std::vector<uint8_t> &Ik, bool status) {
+	// Do we have this peerDevice in lime_PeerDevices
+	blob Ik_blob(sql);
+	sql<<"SELECT Ik FROM Lime_PeerDevices WHERE DeviceId = :peerDeviceId LIMIT 1;", into(Ik_blob), use(peerDeviceId);
+	if (sql.got_data()) { // Found it
+		auto IkSize = Ik_blob.get_len();
+		std::vector<uint8_t> storedIk;
+		storedIk.resize(IkSize);
+		Ik_blob.read(0, (char *)(storedIk.data()), IkSize); // Read the public key
+		if (storedIk == Ik) {
+			sql<<"UPDATE  Lime_PeerDevices SET Verified = :Verified WHERE DeviceId = :peerDeviceId LIMIT 1;", use((status==true)?1:0), use(peerDeviceId);
+		} else { // Ik in local Storage differs than the one given... raise an exception
+			throw BCTBX_EXCEPTION << "Trying to insert an Identity key for peer device "<<peerDeviceId<<" which differs from one already in local storage";
+		}
+	} else { // peer is not in local Storage
+		if (status) { // insert it only if status is true, if false just ignore the request
+			blob Ik_insert_blob(sql);
+			Ik_insert_blob.write(0, (char *)(Ik.data()), Ik.size());
+			sql<<"INSERT INTO Lime_PeerDevices(DeviceId, Ik, Verified) VALUES(:peerDeviceId, :Ik, 1);", use(peerDeviceId), use(Ik_insert_blob);
+		}
+	}
+}
+
+/**
+ * @brief get the identity verified flag for peer device
+ *
+ * @param[in]	peerDeviceId	The device Id of peer, shall be its GRUU
+ *
+ * @return the stored Verified status, false if peer Device is not present in local Storage
+ */
+bool Db::get_PeerDevicesIdentityVerifiedStatus(const std::string &peerDeviceId) {
+	int verified;
+	sql<<"SELECT Verified FROM Lime_PeerDevices WHERE DeviceId = :peerDeviceId LIMIT 1;", into(verified), use(peerDeviceId);
+	if (sql.got_data()) { // Found it
+		if (verified == 1) {
+			return true;
+		}
+		return false; // verified is stored as false
+	}
+
+	// peerDeviceId not found in local storage: return false
+	return false;
+}
+
+/**
  * @brief if exists, delete user
  *
  * @param[in]	deviceId	a string holding the user to look for in DB, shall be its GRUU
@@ -691,23 +745,54 @@ void Lime<Curve>::X3DH_generate_OPks(std::vector<X<Curve>> &publicOPks, std::vec
 
 template <typename Curve>
 void Lime<Curve>::cache_DR_sessions(std::vector<recipientInfos<Curve>> &internal_recipients, std::vector<std::string> &missing_devices) {
-	/* build a user list of missing ones : produce a list ready to be sent to SQL query: 'user','user','user',... also build a map to store shared_ptr to sessions */
+	// build a user list of missing ones : produce a list ready to be sent to SQL query: 'user','user','user',... also build a map to store shared_ptr to sessions
+	// build also a list of all peer devices used to fetch from DB the ones with identity not verified
 	std::string sqlString_requestedDevices{""};
-	std::unordered_map<std::string, std::shared_ptr<DR<Curve>>> requestedDevices; // found session will be loaded and temp stored in this
+	std::string sqlString_allDevices{""};
 
 	size_t requestedDevicesCount = 0;
+	size_t allDevicesCount = 0;
 	for (auto &recipient : internal_recipients) {
 		if (recipient.DRSession == nullptr) {
 			sqlString_requestedDevices.append("'").append(recipient.deviceId).append("',");
 			requestedDevicesCount++;
 		}
+		sqlString_allDevices.append("'").append(recipient.deviceId).append("',");
+		allDevicesCount++;
 	}
+
+	// fetch devices with identity verified flag to false
+	if (allDevicesCount==0) return; // the device list was empty... this is very strange
+
+	sqlString_allDevices.pop_back(); // remove the last ','
+	// fetch all the verified devices (we don't directly fetch unverified device as some devices may not be in local storage at all)
+	rowset<row> rs_devices = (m_localStorage->sql.prepare << "SELECT d.DeviceId FROM lime_PeerDevices as d WHERE d.Verified = 1 AND d.DeviceId IN ("<<sqlString_allDevices<<");");
+	std::vector<std::string> verifiedDevices{}; // vector of verified deviceId
+	for (auto &r : rs_devices) {
+		verifiedDevices.push_back(r.get<string>(0));
+	}
+
+	// loop on internal recipient and mark the one verified as verified
+	for (auto &recipient : internal_recipients) {
+		recipient.identityVerified = false;
+		for (auto &verifiedDevice : verifiedDevices) {
+			if (verifiedDevice == recipient.deviceId) {
+				recipient.identityVerified = true;
+				break;
+			}
+		}
+	}
+
+
+	// Now do we have sessions to load?
 	if (requestedDevicesCount==0) return; // we already got them all
 
 	sqlString_requestedDevices.pop_back(); // remove the last ','
 
-	/* fetch them from DB */
+	// fetch them from DB
 	rowset<row> rs = (m_localStorage->sql.prepare << "SELECT s.sessionId, d.DeviceId FROM DR_sessions as s INNER JOIN lime_PeerDevices as d ON s.Did=d.Did WHERE s.Uid= :Uid AND s.Status=1 AND d.DeviceId IN ("<<sqlString_requestedDevices<<");", use(m_db_Uid));
+
+	std::unordered_map<std::string, std::shared_ptr<DR<Curve>>> requestedDevices; // found session will be loaded and temp stored in this
 	for (auto &r : rs) {
 		auto sessionId = r.get<int>(0);
 		auto peerDeviceId = r.get<string>(1);
@@ -717,7 +802,7 @@ void Lime<Curve>::cache_DR_sessions(std::vector<recipientInfos<Curve>> &internal
 		m_DR_sessions_cache[peerDeviceId] = DRsession; // session is also stored in cache
 	}
 
-	/* loop on internal recipient and fill it with the found ones, store the missing ones in the missing_devices vector */
+	// loop on internal recipient and fill it with the found ones, store the missing ones in the missing_devices vector
 	for (auto &recipient : internal_recipients) {
 		if (recipient.DRSession == nullptr) { // they are missing
 			auto retrievedElem = requestedDevices.find(recipient.deviceId);

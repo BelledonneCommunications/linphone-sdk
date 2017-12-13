@@ -206,7 +206,159 @@ static void lime_session_establishment(const lime::CurveId curve, const std::str
 		throw;
 	}
 }
+/**
+ * Scenario:
+ * - create Bob and Alice devices
+ * - retrieve their respective Identity keys
+ * - check if they are verified -> they shall not be
+ * - set alice key as verified in bob's context
+ * - check it is now verified
+ * - set it as non verified and check
+ * - try to set a different alice identity key in bob's context, we shall have an exception
+ * - bob encrypts a message to alice -> check return status give NOT all recipients trusted
+ * - set alice key as verified in bob's context
+ * - bob encrypts a message to alice -> check return status give all recipients trusted
+ * - set a fake bob key in alice context
+ * - try to decrypt bob's message, it shall fail
+ * - alice try to encrypt a message to bob, it shall fail
+ */
+static void lime_identityVerifiedStatus_test(const lime::CurveId curve, const std::string &dbBaseFilename, const std::string &x3dh_server_url) {
+		// create DB
+	std::string dbFilenameAlice{dbBaseFilename};
+	std::string dbFilenameBob{dbBaseFilename};
+	dbFilenameAlice.append(".alice.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
+	dbFilenameBob.append(".bob.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
 
+	remove(dbFilenameAlice.data()); // delete the database file if already exists
+	remove(dbFilenameBob.data()); // delete the database file if already exists
+
+	lime_tester::events_counters_t counters={};
+	int expected_success=0;
+
+	limeCallback callback([&counters](lime::callbackReturn returnCode, std::string anythingToSay) {
+					if (returnCode == lime::callbackReturn::success) {
+						counters.operation_success++;
+					} else {
+						counters.operation_failed++;
+						BCTBX_SLOGE<<"Lime operation failed : "<<anythingToSay;
+					}
+				});
+	// declare variable outside the try block as we will generate exceptions during the test
+	std::unique_ptr<LimeManager> aliceManager = nullptr;
+	std::unique_ptr<LimeManager> bobManager = nullptr;
+	std::shared_ptr<std::string> aliceDeviceId = nullptr;
+	std::shared_ptr<std::string> bobDeviceId = nullptr;
+	std::vector<uint8_t> aliceIk{};
+	std::vector<uint8_t> bobIk{};
+
+	try {
+		// create Manager and device for alice and bob
+		aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, prov, user_auth_callback));
+		aliceDeviceId = lime_tester::makeRandomDeviceName("alice.d1.");
+		aliceManager->create_user(*aliceDeviceId, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
+		bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, prov, user_auth_callback));
+		bobDeviceId = lime_tester::makeRandomDeviceName("bob.d1.");
+		bobManager->create_user(*bobDeviceId, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
+		expected_success += 2;
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, expected_success,lime_tester::wait_for_timeout));
+
+		// retrieve their respective Ik
+		aliceManager->get_selfIdentityKey(*aliceDeviceId, aliceIk);
+		bobManager->get_selfIdentityKey(*bobDeviceId, bobIk);
+
+		// check their status
+		BC_ASSERT_FALSE(aliceManager->get_peerIdentityVerifiedStatus(*bobDeviceId));
+		BC_ASSERT_FALSE(bobManager->get_peerIdentityVerifiedStatus(*aliceDeviceId));
+
+		// set alice Id key as vertified in Bob's Manager and check it worked
+		bobManager->set_peerIdentityVerifiedStatus(*aliceDeviceId, aliceIk, true);
+		BC_ASSERT_TRUE(bobManager->get_peerIdentityVerifiedStatus(*aliceDeviceId));
+		// reset it and check it worked
+		bobManager->set_peerIdentityVerifiedStatus(*aliceDeviceId, aliceIk, false);
+		BC_ASSERT_FALSE(bobManager->get_peerIdentityVerifiedStatus(*aliceDeviceId));
+
+	} catch (BctbxException &e) {
+		BCTBX_SLOGE <<e;;
+		BC_FAIL();
+	}
+
+	// try to set another key for alice in bob's context, it shall generate an exception
+	auto gotException = false;
+	try {
+		// copy alice Ik but modify it
+		std::vector<uint8_t> fakeIk = aliceIk;
+		fakeIk[0] ^= 0xFF;
+
+		bobManager->set_peerIdentityVerifiedStatus(*aliceDeviceId, fakeIk, true);
+	} catch (BctbxException &e) {
+		BC_PASS();
+		gotException = true;
+	}
+
+	BC_ASSERT_TRUE(gotException);
+
+
+	try {
+		// Bob encrypts a message for Alice, alice identity verified status shall be : not verified
+		auto bobRecipients = make_shared<std::vector<recipientData>>();
+		bobRecipients->emplace_back(*aliceDeviceId);
+		auto bobMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
+		auto bobCipherMessage = make_shared<std::vector<uint8_t>>();
+		bobManager->encrypt(*bobDeviceId, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+		BC_ASSERT_FALSE((*bobRecipients)[0].identityVerified);
+
+		// set again the key as verified in bob's context
+		bobManager->set_peerIdentityVerifiedStatus(*aliceDeviceId, aliceIk, true);
+		BC_ASSERT_TRUE(bobManager->get_peerIdentityVerifiedStatus(*aliceDeviceId));
+
+		// Bob encrypts a message for Alice, alice identity verified status shall be : verified
+		bobRecipients = make_shared<std::vector<recipientData>>();
+		bobRecipients->emplace_back(*aliceDeviceId);
+		bobMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[1].begin(), lime_tester::messages_pattern[1].end());
+		bobCipherMessage = make_shared<std::vector<uint8_t>>();
+		bobManager->encrypt(*bobDeviceId, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+		BC_ASSERT_TRUE((*bobRecipients)[0].identityVerified);
+
+		// set a fake bob key in alice context(set is as verified otherwise the request is just ignored)
+		std::vector<uint8_t> fakeIk = bobIk;
+		fakeIk[0] ^= 0xFF;
+		aliceManager->set_peerIdentityVerifiedStatus(*bobDeviceId, fakeIk, true);
+
+		// alice decrypt but it will fail as the identity key in X3DH init packet is not matching the one we assert as verified
+		std::vector<uint8_t> receivedMessage{};
+		BC_ASSERT_FALSE (aliceManager->decrypt(*aliceDeviceId, "alice", *bobDeviceId, (*bobRecipients)[0].cipherHeader, *bobCipherMessage, receivedMessage));
+
+		// alice now try to encrypt to Bob but it will fail as key fetched from X3DH server won't match the one we assert as verified
+		auto aliceRecipients = make_shared<std::vector<recipientData>>();
+		aliceRecipients->emplace_back(*bobDeviceId);
+		auto aliceMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[2].begin(), lime_tester::messages_pattern[2].end());
+		auto aliceCipherMessage = make_shared<std::vector<uint8_t>>();
+
+		aliceManager->encrypt(*aliceDeviceId, make_shared<const std::string>("bob"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_failed,1,lime_tester::wait_for_timeout));
+
+	} catch (BctbxException &e) {
+		BCTBX_SLOGE <<e;;
+		BC_FAIL();
+	}
+}
+
+static void lime_identityVerifiedStatus() {
+#ifdef EC25519_ENABLED
+	lime_identityVerifiedStatus_test(lime::CurveId::c25519, "lime_identityVerifiedStatus", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data());
+#endif
+#ifdef EC448_ENABLED
+	lime_identityVerifiedStatus_test(lime::CurveId::c448, "lime_identityVerifiedStatus", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data());
+#endif
+}
+
+/**
+ * scenario :
+ * - check the Ik in pattern_db is retrieved as expected
+ * - try asking for an unknown user, we shall get an exception
+ */
 static void lime_getSelfIk_test(const lime::CurveId curve, const std::string &dbFilename, const std::vector<uint8_t> &pattern) {
 	// retrieve the Ik and check it matches given pattern
 	std::unique_ptr<LimeManager> aliceManager = nullptr;
@@ -1819,7 +1971,8 @@ static test_t tests[] = {
 	TEST_NO_TAG("Update - clean MK", lime_update_clean_MK),
 	TEST_NO_TAG("Update - SPk", lime_update_SPk),
 	TEST_NO_TAG("Update - OPk", lime_update_OPk),
-	TEST_NO_TAG("get self Identity Key", lime_getSelfIk)
+	TEST_NO_TAG("get self Identity Key", lime_getSelfIk),
+	TEST_NO_TAG("Verified Status", lime_identityVerifiedStatus)
 };
 
 test_suite_t lime_lime_test_suite = {

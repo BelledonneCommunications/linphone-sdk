@@ -81,6 +81,28 @@ namespace lime {
 		 * @param[out]	deviceIds	the list of all local users (their device Id)
 		 */
 		void get_allLocalDevices(std::vector<std::string> &deviceIds);
+
+		/**
+		 * @brief set the identity verified flag for peer device
+		 *
+		 * @param[in]	peerDeviceId	The device Id of peer, shall be its GRUU
+		 * @param[in]	Ik		the EdDSA peer public identity key, formatted as in RFC8032
+		 * @param[in]	status		value of flag to set
+		 *
+		 * throw an exception if given key doesn't match the one present in local storage
+		 * if peer Device is not present in local storage and status is true, it is added, if status is false, it is just ignored
+		 */
+		void set_PeerDevicesVerifiedStatus(const std::string &peerDeviceId, const std::vector<uint8_t> &Ik, bool status);
+
+		/**
+		 * @brief get the identity verified flag for peer device
+		 *
+		 * @param[in]	peerDeviceId	The device Id of peer, shall be its GRUU
+		 *
+		 * @return the stored Verified status, false if peer Device is not present in local Storage
+		 */
+		bool get_PeerDevicesIdentityVerifiedStatus(const std::string &peerDeviceId);
+
 	};
 
 #ifdef EC25519_ENABLED

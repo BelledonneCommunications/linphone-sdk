@@ -33,8 +33,9 @@ namespace lime {
 	/* Struct used to manage recipient list for encrypt function input: give a recipient GRUU and get it back with the header which must be sent to recipient with the cipher text*/
 	struct recipientData {
 		std::string deviceId; // recipient deviceId (shall be GRUU)
+		bool identityVerified; // after encrypt calls back, it will hold the status of this peer device: identity verified or not
 		std::vector<uint8_t> cipherHeader; // after encrypt calls back, it will hold the header targeted to the specified recipient. This header may contain an X3DH init message.
-		recipientData(std::string deviceId) : deviceId{deviceId}, cipherHeader{} {};
+		recipientData(std::string deviceId) : deviceId{deviceId}, identityVerified{false}, cipherHeader{} {};
 	};
 
 	/* Enum of what a Lime callback could possibly say */
@@ -165,6 +166,27 @@ namespace lime {
 			 * @param[out]	Ik		the EdDSA public identity key, formatted as in RFC8032
 			 */
 			void get_selfIdentityKey(const std::string &localDeviceId, std::vector<uint8_t> &Ik);
+
+			/**
+			 * @brief set the identity verified flag for peer device
+			 *
+			 * @param[in]	peerDeviceId	The device Id of peer, shall be its GRUU
+			 * @param[in]	Ik		the EdDSA peer public identity key, formatted as in RFC8032
+			 * @param[in]	status		value of flag to set
+			 *
+			 * throw an exception if given key doesn't match the one present in local storage
+			 * if peer Device is not present in local storage and status is true, it is added, if status is false, it is just ignored
+			 */
+			void set_peerIdentityVerifiedStatus(const std::string &peerDeviceId, const std::vector<uint8_t> &Ik, bool status);
+
+			/**
+			 * @brief get the identity verified flag for peer device
+			 *
+			 * @param[in]	peerDeviceId	The device Id of peer, shall be its GRUU
+			 *
+			 * @return the stored Verified status, false if peer Device is not present in local Storage
+			 */
+			bool get_peerIdentityVerifiedStatus(const std::string &peerDeviceId);
 
 			LimeManager() = delete; // no manager without Database and http provider
 			LimeManager(const LimeManager&) = delete; // no copy constructor

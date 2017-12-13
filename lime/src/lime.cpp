@@ -208,13 +208,12 @@ namespace lime {
 			x3dh_protocol::buildMessage_getPeerBundles<Curve>(X3DHmessage, missing_devices);
 			// use the raw pointer to userData as it is passed to belle-sip C callbacks but store it in current object so it is not destroyed
 			postToX3DHServer(userData.get(), X3DHmessage);
-			// use the raw pointer to userData as it is passed to belle-sip C callbacks but store it in current object so it is not destroyed
-			//X3DH_get_peerBundles(userData.get(), missing_devices);
 		} else { // got everyone, encrypt
 			encryptMessage(internal_recipients, *plainMessage, *recipientUserId, m_selfDeviceId, *cipherMessage);
 			// move cipher headers to the input/output structure
 			for (size_t i=0; i<recipients->size(); i++) {
 				(*recipients)[i].cipherHeader = std::move(internal_recipients[i].cipherHeader);
+				(*recipients)[i].identityVerified = internal_recipients[i].identityVerified;
 			}
 			if (callback) callback(lime::callbackReturn::success, "");
 			// is there no one in an asynchronous encryption process and do we have something in encryption queue to process
@@ -261,7 +260,7 @@ namespace lime {
 
 		// parse the X3DH init message, get keys from localStorage, compute the shared secrets, create DR_Session and return a shared pointer to it
 		try {
-			std::shared_ptr<DR<Curve>> DRSession{X3DH_init_receiver_session(X3DH_initMessage, senderDeviceId)}; // would just throw an exception in case of failure, let it flow up
+			std::shared_ptr<DR<Curve>> DRSession{X3DH_init_receiver_session(X3DH_initMessage, senderDeviceId)}; // would just throw an exception in case of failure
 			DRSessions.clear();
 			DRSessions.push_back(DRSession);
 		} catch (BctbxException &e) {
