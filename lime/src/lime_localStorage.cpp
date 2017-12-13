@@ -833,6 +833,10 @@ long int Lime<Curve>::store_peerDevice(const std::string &peerDeviceId, const ED
 		m_localStorage->sql<<"SELECT Ik,Did FROM lime_PeerDevices WHERE DeviceId = :DeviceId LIMIT 1;", into(Ik_blob), into(Did), use(peerDeviceId);
 		if (m_localStorage->sql.got_data()) { // Found one
 			ED<Curve> stored_Ik;
+			if (Ik_blob.get_len() != stored_Ik.size()) { // can't match they are not the same size
+				BCTBX_SLOGE<<"It appears that peer device "<<peerDeviceId<<" was known with an identity key but is trying to use another one now";
+				throw BCTBX_EXCEPTION << "Peer device "<<peerDeviceId<<" changed its Ik";
+			}
 			Ik_blob.read(0, (char *)(stored_Ik.data()), stored_Ik.size()); // Read it to compare it to the given one
 			if (stored_Ik == Ik) { // they match, so we just return the Did
 				return Did;
