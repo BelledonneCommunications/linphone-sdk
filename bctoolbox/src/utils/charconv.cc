@@ -120,11 +120,21 @@ std::string string_to_upper (const std::string &str) {
 #endif
 
 extern "C" char *bctbx_locale_to_utf8(const char *str) {
+#ifdef __ANDROID__
+	// TODO remove this part when the NDK will contain a usable iconv
+	return bctbx_strdup(str);
+#else
 	return bctbx_convert_from_to(str, "locale", "UTF-8");
+#endif
 }
 
 extern "C" char *bctbx_utf8_to_locale(const char *str) {
+#ifdef __ANDROID__
+	// TODO remove this part when the NDK will contain a usable iconv
+	return bctbx_strdup(str);
+#else
 	return bctbx_convert_from_to(str, "UTF-8", "locale");
+#endif
 }
 
 extern "C" char *bctbx_convert_from_to(const char *str, const char *from, const char *to) {
@@ -170,6 +180,10 @@ extern "C" char *bctbx_convert_from_to(const char *str, const char *from, const 
 	}
 	bctbx_free(wide_str);
 	return converted_str;
+#elif defined(__ANDROID__)
+	// TODO remove this part when the NDK will contain a usable iconv
+	bctbx_error("Unable to convert a string in Android: iconv is not available");
+	return NULL;
 #else
 	char *in_buf = (char *) str;
 	char *out_buf, *ptr;
