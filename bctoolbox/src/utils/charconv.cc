@@ -29,6 +29,7 @@
 #include "bctoolbox/charconv.h"
 
 #ifdef _WIN32
+#include <algorithm>
 #include <unordered_map>
 
 static std::unordered_map <std::string, UINT> windows_charset {
@@ -110,6 +111,12 @@ static std::unordered_map <std::string, UINT> windows_charset {
 	{ "UTF-7", 65000 },
 	{ "UTF-8", 65001 }
 };
+
+std::string string_to_upper (const std::string &str) {
+	std::string result(str.size(), ' ');
+	std::transform(str.cbegin(), str.cend(), result.begin(), ::toupper);
+	return result;
+}
 #endif
 
 extern "C" char *bctbx_locale_to_utf8(const char *str) {
@@ -128,41 +135,41 @@ extern "C" char *bctbx_convert_from_to(const char *str, const char *from, const 
 		return bctbx_strdup(str);
 
 #if defined(_WIN32)
-	char* convertedStr;
-	int nChar, nb_byte;
-	LPWSTR wideStr;
+	char* converted_str;
+	int n_char, nb_byte;
+	LPWSTR wide_str;
 	UINT r_from, r_to;
 
 	try {
-		r_from = windows_charset.at(std::string(from));
-		r_to = windows_charset.at(std::string(to));
+		r_from = windows_charset.at(string_to_upper(std::string(from)));
+		r_to = windows_charset.at(string_to_upper(std::string(to)));
 	}
 	catch (const std::out_of_range&) {
 		bctbx_error("Error while converting a string from '%s' to '%s': unknown charset", from, to);
 		return FALSE;
 	}
 
-	nChar = MultiByteToWideChar(r_from, 0, str, -1, NULL, 0);
-	if (nChar == 0) return NULL;
-	wideStr = (LPWSTR) bctbx_malloc(nChar*sizeof(wideStr[0]));
-	if (wideStr == NULL) return NULL;
-	nChar = MultiByteToWideChar(r_from, 0, str, -1, wideStr, nChar);
-	if (nChar == 0) {
-		bctbx_free(wideStr);
-		wideStr = 0;
+	n_char = MultiByteToWideChar(r_from, 0, str, -1, NULL, 0);
+	if (n_char == 0) return NULL;
+	wide_str = (LPWSTR) bctbx_malloc(n_char*sizeof(wide_str[0]));
+	if (wide_str == NULL) return NULL;
+	n_char = MultiByteToWideChar(r_from, 0, str, -1, wide_str, n_char);
+	if (n_char == 0) {
+		bctbx_free(wide_str);
+		wide_str = 0;
 	}
 
-	nb_byte = WideCharToMultiByte(r_to, 0, wideStr, -1, 0, 0, 0, 0);
+	nb_byte = WideCharToMultiByte(r_to, 0, wide_str, -1, 0, 0, 0, 0);
 	if (nb_byte == 0) return NULL;
-	convertedStr = (char *) bctbx_malloc(nb_byte);
-	if (convertedStr == NULL) return NULL;
-	nb_byte = WideCharToMultiByte(r_to, 0, wideStr, -1, convertedStr, nb_byte, 0, 0);
+	converted_str = (char *) bctbx_malloc(nb_byte);
+	if (converted_str == NULL) return NULL;
+	nb_byte = WideCharToMultiByte(r_to, 0, wide_str, -1, converted_str, nb_byte, 0, 0);
 	if (nb_byte == 0) {
-		bctbx_free(convertedStr);
-		convertedStr = 0;
+		bctbx_free(converted_str);
+		converted_str = 0;
 	}
-	bctbx_free(wideStr);
-	return convertedStr;
+	bctbx_free(wide_str);
+	return converted_str;
 #else
 	char *in_buf = (char *) str;
 	char *out_buf, *ptr;
