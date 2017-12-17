@@ -102,7 +102,7 @@ AC_ARG_ENABLE(strict,
 		esac],[strict=true])
 
 STRICT_OPTIONS="-Wall"
-STRICT_OPTIONS_CC="-Wdeclaration-after-statement -Wstrict-prototypes"
+STRICT_OPTIONS_CC="-Wstrict-prototypes"
 STRICT_OPTIONS_CXX=""
 
 case "$CC" in
