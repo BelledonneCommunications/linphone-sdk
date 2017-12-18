@@ -1103,57 +1103,57 @@ static belle_sip_list_t* belle_sip_provider_get_auth_context_by_realm_or_call_id
 	return result;
 }
 
-static void  belle_sip_provider_update_or_create_auth_context(belle_sip_provider_t *p,belle_sip_header_call_id_t* call_id,belle_sip_header_www_authenticate_t* authenticate,belle_sip_uri_t *from_uri,const char* realm) {
-	belle_sip_list_t* auth_context_lst = NULL;
-    authorization_context_t* auth_context;
+static void  belle_sip_provider_update_or_create_auth_context(belle_sip_provider_t *p, belle_sip_header_call_id_t *call_id, belle_sip_header_www_authenticate_t *authenticate, belle_sip_uri_t *from_uri, const char *realm) {
+	belle_sip_list_t *auth_context_lst = NULL;
+	authorization_context_t *auth_context;
 
-	for (auth_context_lst= belle_sip_provider_get_auth_context_by_realm_or_call_id(p,call_id,from_uri,realm);auth_context_lst!=NULL;auth_context_lst=auth_context_lst->next) {
-		auth_context=(authorization_context_t*)auth_context_lst->data;
-        if ((strcmp(auth_context->realm,belle_sip_header_www_authenticate_get_realm(authenticate))==0)&&((auth_context->algorithm==NULL)||strcmp(auth_context->algorithm,belle_sip_header_www_authenticate_get_algorithm(authenticate))==0))  {
-            authorization_context_fill_from_auth(auth_context,authenticate,from_uri);
-            if (auth_context_lst) belle_sip_free(auth_context_lst);
-            return; /*only one realm is supposed to be found for now*/
-        }
+	for (auth_context_lst = belle_sip_provider_get_auth_context_by_realm_or_call_id(p, call_id, from_uri, realm); auth_context_lst != NULL; auth_context_lst = auth_context_lst->next) {
+		auth_context = (authorization_context_t *)auth_context_lst->data;
+		if ((strcmp(auth_context->realm, belle_sip_header_www_authenticate_get_realm(authenticate)) == 0) && ((auth_context->algorithm == NULL) || strcmp(auth_context->algorithm, belle_sip_header_www_authenticate_get_algorithm(authenticate)) == 0))  {
+			authorization_context_fill_from_auth(auth_context, authenticate, from_uri);
+			if (auth_context_lst) belle_sip_free(auth_context_lst);
+			return; /*only one realm is supposed to be found for now*/
+		}
 	}
 	/*no auth context found, creating one*/
-	auth_context=belle_sip_authorization_create(call_id);
-	
-	if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(authenticate,belle_sip_header_proxy_authenticate_t)) {
-		auth_context->is_proxy=1; /*this cannot be changed*/
-	}
-	
-	belle_sip_debug("belle_sip_provider_auth: no matching auth context, creating one for [realm=%s][user_id=%s][call_id=%s]"
-		, belle_sip_header_www_authenticate_get_realm(authenticate)?belle_sip_header_www_authenticate_get_realm(authenticate):"(null)"
-		, from_uri?belle_sip_uri_get_user(from_uri):"(null)"
-		, call_id?belle_sip_header_call_id_get_call_id(call_id):"(null)");
-	authorization_context_fill_from_auth(auth_context,authenticate,from_uri);
+	auth_context = belle_sip_authorization_create(call_id);
 
-	p->auth_contexts=belle_sip_list_append(p->auth_contexts,auth_context);
+	if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(authenticate, belle_sip_header_proxy_authenticate_t)) {
+		auth_context->is_proxy = 1; /*this cannot be changed*/
+	}
+
+	belle_sip_debug("belle_sip_provider_auth: no matching auth context, creating one for [realm=%s][user_id=%s][call_id=%s]"
+	                , belle_sip_header_www_authenticate_get_realm(authenticate) ? belle_sip_header_www_authenticate_get_realm(authenticate) : "(null)"
+	                , from_uri ? belle_sip_uri_get_user(from_uri) : "(null)"
+	                , call_id ? belle_sip_header_call_id_get_call_id(call_id) : "(null)");
+	authorization_context_fill_from_auth(auth_context, authenticate, from_uri);
+
+	p->auth_contexts = belle_sip_list_append(p->auth_contexts, auth_context);
 	if (auth_context_lst) belle_sip_free(auth_context_lst);
 	return;
 }
 
-static belle_sip_list_t* belle_sip_list_find_event(belle_sip_list_t* list, belle_sip_auth_event_t* auth_event){
-    for(;list!=NULL;list=list->next){
-        belle_sip_auth_event_t* ref_event = (belle_sip_auth_event_t*)list->data;
-        if((!strcmp(ref_event->realm, auth_event->realm))&&(!strcmp(ref_event->username, auth_event->username)))
-            return list;
-    }
-    return NULL;
+static belle_sip_list_t *belle_sip_list_find_event(belle_sip_list_t *list, belle_sip_auth_event_t *auth_event) {
+	for (; list != NULL; list = list->next) {
+		belle_sip_auth_event_t *ref_event = (belle_sip_auth_event_t *)list->data;
+		if ((!strcmp(ref_event->realm, auth_event->realm)) && (!strcmp(ref_event->username, auth_event->username)))
+			return list;
+	}
+	return NULL;
 }
 
-static belle_sip_list_t* belle_sip_list_find_double_events(belle_sip_list_t* list, belle_sip_auth_event_t* auth_event){
-    belle_sip_list_t* ref_list;
-    belle_sip_list_t* ref_list2;
-    if((ref_list=belle_sip_list_find_event(list,auth_event))&&(ref_list2=belle_sip_list_find_event(ref_list->next,auth_event))){
-        belle_sip_auth_event_t* ref_event = (belle_sip_auth_event_t*)ref_list2->data;
-        /*delete which hasn't passwd*/
-        if(ref_event->passwd || ref_event->ha1)
-            return ref_list;
-        else
-            return ref_list2;
-        }
-    return NULL;
+static belle_sip_list_t *belle_sip_list_find_double_events(belle_sip_list_t *list, belle_sip_auth_event_t *auth_event) {
+	belle_sip_list_t *ref_list;
+	belle_sip_list_t *ref_list2;
+	if ((ref_list = belle_sip_list_find_event(list, auth_event)) && (ref_list2 = belle_sip_list_find_event(ref_list->next, auth_event))) {
+		belle_sip_auth_event_t *ref_event = (belle_sip_auth_event_t *)ref_list2->data;
+		/*delete which hasn't passwd*/
+		if (ref_event->passwd || ref_event->ha1)
+			return ref_list;
+		else
+			return ref_list2;
+	}
+	return NULL;
 }
 
 int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_request_t* request, belle_sip_response_t *resp,
@@ -1171,8 +1171,8 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_requ
 	char computed_ha1[65];
 	int result=0;
 	const char* request_method;
-    size_t size;
-    const char* algo;
+	size_t size;
+	const char* algo;
 	/*check params*/
 	if (!p || !request) {
 		belle_sip_error("belle_sip_provider_add_authorization bad parameters");
@@ -1238,8 +1238,8 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_requ
 		, from_uri?belle_sip_uri_get_user(from_uri):"(null)"
 		, call_id?belle_sip_header_call_id_get_call_id(call_id):"(null)"
 	);
-    head=belle_sip_provider_get_auth_context_by_realm_or_call_id(p,call_id,from_uri,realm);
-    /*we assume there no existing auth headers*/
+	head=belle_sip_provider_get_auth_context_by_realm_or_call_id(p,call_id,from_uri,realm);
+	/*we assume there no existing auth headers*/
 	for (auth_context_iterator=head;auth_context_iterator!=NULL;auth_context_iterator=auth_context_iterator->next) {
 		/*clear auth info*/
 		auth_context=(authorization_context_t*)auth_context_iterator->data;

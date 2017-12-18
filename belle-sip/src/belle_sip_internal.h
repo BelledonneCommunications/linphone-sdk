@@ -977,7 +977,7 @@ struct belle_sip_auth_event {
 	char* distinguished_name;
 	belle_sip_certificates_chain_t * cert;
 	belle_sip_signing_key_t* key;
-    char* algorithm; /* either MD5 ot SHA256*/
+	char* algorithm; /* either MD5 ot SHA256*/
 };
 
 belle_sip_auth_event_t* belle_sip_auth_event_create(belle_sip_object_t *source, const char* realm,const belle_sip_uri_t * from_uri);

@@ -4943,22 +4943,22 @@ int dns_resconf_loadwin(struct dns_resolv_conf *resconf) {
 	FIXED_INFO *pFixedInfo;
 	ULONG ulOutBufLen;
 	DWORD dwRetVal;
-    IP_ADDR_STRING *pIPAddr;
+	IP_ADDR_STRING *pIPAddr;
 	unsigned sa_count = 0;
 	int error;
 
 	pFixedInfo = (FIXED_INFO *) malloc(sizeof(FIXED_INFO));
-    if (pFixedInfo == NULL) {
-        return -1;
-    }
-    ulOutBufLen = sizeof(FIXED_INFO);
+	if (pFixedInfo == NULL) {
+		return -1;
+	}
+	ulOutBufLen = sizeof(FIXED_INFO);
 	if (GetNetworkParams(pFixedInfo, &ulOutBufLen) == ERROR_BUFFER_OVERFLOW) {
-        free(pFixedInfo);
-        pFixedInfo = (FIXED_INFO *) malloc(ulOutBufLen);
-        if (pFixedInfo == NULL) {
-            return -1;
-        }
-    }
+		free(pFixedInfo);
+		pFixedInfo = (FIXED_INFO *) malloc(ulOutBufLen);
+		if (pFixedInfo == NULL) {
+			return -1;
+		}
+	}
 
 	if ((dwRetVal = GetNetworkParams(pFixedInfo, &ulOutBufLen)) == NO_ERROR) {
 		memset(resconf->search, '\0', sizeof resconf->search);

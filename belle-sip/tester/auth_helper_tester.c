@@ -41,25 +41,25 @@ static void test_authentication(void) {
 }
 
 static void test_authentication_sha256(void) {
-    const char* l_raw_header = "WWW-Authenticate: Digest "
-    "algorithm=SHA-256, realm=\"http-auth@example.org\", opaque=\"FQhe/qaU925kfnzjCev0ciny7QMkPqMAFRtzCUYo5tdS\","
-    " qop=\"auth,auth-int\", nonce=\"7ypf/xlj9XXwfDPEoM4URrv/xwf94BcCAzFZH4GiTo0v\"";
-    char ha1[65];
-    size_t size = sizeof(ha1)/sizeof(char);
-    belle_sip_header_www_authenticate_t* www_authenticate=belle_sip_header_www_authenticate_parse(l_raw_header);
-    belle_sip_header_authorization_t* authorization = belle_sip_auth_helper_create_authorization(www_authenticate);
-    belle_sip_header_authorization_set_uri(authorization,belle_sip_uri_parse("sip:sip.linphone.org"));
-    belle_sip_header_authorization_set_nonce_count(authorization,1);
-    belle_sip_header_authorization_set_qop(authorization,"auth");
-    belle_sip_header_authorization_set_cnonce(authorization,"8302210f"); /*for testing purpose*/
-    const char *algo = belle_sip_header_authorization_get_algorithm(authorization);
-    BC_ASSERT_EQUAL(0,belle_sip_auth_helper_compute_ha1_for_algorithm("Mufasa","http-auth@example.org","Circle of Life",ha1,size,algo), int, "%d");
-    BC_ASSERT_EQUAL(0,belle_sip_auth_helper_fill_authorization(authorization,"REGISTER",ha1), int, "%d");
-    BC_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_qop(authorization),"auth");
-    BC_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_response(authorization),"91253bea2bbc3b34a5dac192c672fb7fff1ae6d657207b6719842827a509a501");
-    BC_ASSERT_EQUAL(belle_sip_header_authorization_get_nonce_count(authorization),1, int, "%d");
-    belle_sip_object_unref(www_authenticate);
-    belle_sip_object_unref(authorization);
+	const char *l_raw_header = "WWW-Authenticate: Digest "
+	                           "algorithm=SHA-256, realm=\"http-auth@example.org\", opaque=\"FQhe/qaU925kfnzjCev0ciny7QMkPqMAFRtzCUYo5tdS\","
+	                           " qop=\"auth,auth-int\", nonce=\"7ypf/xlj9XXwfDPEoM4URrv/xwf94BcCAzFZH4GiTo0v\"";
+	char ha1[65];
+	size_t size = sizeof(ha1) / sizeof(char);
+	belle_sip_header_www_authenticate_t *www_authenticate = belle_sip_header_www_authenticate_parse(l_raw_header);
+	belle_sip_header_authorization_t *authorization = belle_sip_auth_helper_create_authorization(www_authenticate);
+	belle_sip_header_authorization_set_uri(authorization, belle_sip_uri_parse("sip:sip.linphone.org"));
+	belle_sip_header_authorization_set_nonce_count(authorization, 1);
+	belle_sip_header_authorization_set_qop(authorization, "auth");
+	belle_sip_header_authorization_set_cnonce(authorization, "8302210f"); /*for testing purpose*/
+	const char *algo = belle_sip_header_authorization_get_algorithm(authorization);
+	BC_ASSERT_EQUAL(0, belle_sip_auth_helper_compute_ha1_for_algorithm("Mufasa", "http-auth@example.org", "Circle of Life", ha1, size, algo), int, "%d");
+	BC_ASSERT_EQUAL(0, belle_sip_auth_helper_fill_authorization(authorization, "REGISTER", ha1), int, "%d");
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_qop(authorization), "auth");
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_response(authorization), "91253bea2bbc3b34a5dac192c672fb7fff1ae6d657207b6719842827a509a501");
+	BC_ASSERT_EQUAL(belle_sip_header_authorization_get_nonce_count(authorization), 1, int, "%d");
+	belle_sip_object_unref(www_authenticate);
+	belle_sip_object_unref(authorization);
 }
 
 
@@ -218,8 +218,8 @@ static void test_certificate_fingerprint(void) {
 
 test_t authentication_helper_tests[] = {
 	TEST_NO_TAG("Proxy-Authenticate", test_proxy_authentication),
-    TEST_NO_TAG("WWW-Authenticate", test_authentication),
-    TEST_NO_TAG("WWW-Authenticate-sha", test_authentication_sha256),
+	TEST_NO_TAG("WWW-Authenticate", test_authentication),
+	TEST_NO_TAG("WWW-Authenticate-sha", test_authentication_sha256),
 	TEST_NO_TAG("WWW-Authenticate (with qop)", test_authentication_qop_auth),
 	TEST_NO_TAG("generate and parse self signed certificates", test_generate_and_parse_certificates),
 	TEST_NO_TAG("generate certificate fingerprint", test_certificate_fingerprint)

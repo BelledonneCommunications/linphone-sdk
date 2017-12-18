@@ -1595,11 +1595,11 @@ void belle_sip_channel_check_dns_reusability(belle_sip_channel_t *obj) {
 #ifdef __ANDROID__
 
 unsigned long belle_sip_begin_background_task(const char *name, belle_sip_background_task_end_callback_t cb, void *data){
-    return wake_lock_acquire(name);
+	return wake_lock_acquire(name);
 }
 
 void belle_sip_end_background_task(unsigned long id){
-    wake_lock_release(id);
+	wake_lock_release(id);
 }
 
 #elif !TARGET_OS_IPHONE && !defined(__APPLE__)
