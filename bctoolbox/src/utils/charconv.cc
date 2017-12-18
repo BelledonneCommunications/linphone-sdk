@@ -24,6 +24,10 @@
 #	include <errno.h>
 #endif
 
+#ifdef __APPLE__
+   #include "TargetConditionals.h"
+#endif
+
 #include "bctoolbox/logging.h"
 #include "bctoolbox/port.h"
 #include "bctoolbox/charconv.h"
@@ -120,7 +124,7 @@ std::string string_to_upper (const std::string &str) {
 #endif
 
 extern "C" char *bctbx_locale_to_utf8(const char *str) {
-#ifdef __ANDROID__
+#if defined(__ANDROID__) || TARGET_OS_IPHONE
 	// TODO remove this part when the NDK will contain a usable iconv
 	return bctbx_strdup(str);
 #else
@@ -129,7 +133,7 @@ extern "C" char *bctbx_locale_to_utf8(const char *str) {
 }
 
 extern "C" char *bctbx_utf8_to_locale(const char *str) {
-#ifdef __ANDROID__
+#if defined(__ANDROID__) || TARGET_OS_IPHONE
 	// TODO remove this part when the NDK will contain a usable iconv
 	return bctbx_strdup(str);
 #else
