@@ -215,7 +215,7 @@ void ms_factory_init(MSFactory *obj){
 #ifdef __ANDROID__
 	ms_factory_add_platform_tag(obj, "android");
 #endif
-#ifdef TARGET_OS_IPHONE
+#if TARGET_OS_IPHONE
 	ms_factory_add_platform_tag(obj, "ios");
 #endif
 #if defined(__arm__) || defined(_M_ARM)
