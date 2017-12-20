@@ -1,19 +1,19 @@
 /*
- * parser.h
  * Copyright (C) 2017  Belledonne Communications SARL
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
+ * 
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
 #ifndef _PARSER_H_
@@ -312,6 +312,8 @@ T universal_pointer_cast(U * p){
 	return static_cast<T>(p);
 }
 
+void belr_fatal(const char *message);
+
 template <typename _derivedParserElementT, typename _parserElementT, typename _valueT>
 void ParserCollector<_derivedParserElementT,_parserElementT, _valueT>::invoke(_parserElementT obj, _valueT value){
 	mFunc(universal_pointer_cast<_derivedParserElementT>(obj),value);
@@ -319,8 +321,7 @@ void ParserCollector<_derivedParserElementT,_parserElementT, _valueT>::invoke(_p
 
 template <typename _derivedParserElementT, typename _parserElementT, typename _valueT>
 void ParserCollector<_derivedParserElementT,_parserElementT, _valueT>::invokeWithChild(_parserElementT obj, _parserElementT child){
-	std::cerr<<"We should never be called in ParserCollector<_derivedParserElementT,_parserElementT, _valueT>::invokeWithChild(_parserElementT obj, _parserElementT child)"<<std::endl;
-	abort();
+	belr_fatal("We should never be called in ParserCollector<_derivedParserElementT,_parserElementT, _valueT>::invokeWithChild(_parserElementT obj, _parserElementT child)");
 }
 
 template <typename _derivedParserElementT, typename _parserElementT, typename _valueT>
@@ -330,8 +331,7 @@ void ParserChildCollector<_derivedParserElementT,_parserElementT, _valueT>::invo
 
 template <typename _derivedParserElementT, typename _parserElementT, typename _valueT>
 void ParserChildCollector<_derivedParserElementT,_parserElementT, _valueT>::invoke(_parserElementT obj, _valueT value){
-	std::cerr<<"We should never be called in ParserChildCollector<_derivedParserElementT,_parserElementT, _valueT>::invoke(_parserElementT obj, _valueT value)"<<std::endl;
-	abort();
+	belr_fatal("We should never be called in ParserChildCollector<_derivedParserElementT,_parserElementT, _valueT>::invoke(_parserElementT obj, _valueT value)");
 }
 
 template <typename _parserElementT>
@@ -425,7 +425,9 @@ template <typename _parserElementT>
 void ParserHandlerBase<_parserElementT>::installCollector(const std::string &rulename, const std::shared_ptr<AbstractCollector<_parserElementT>> &collector){
 	std::shared_ptr<Recognizer> rec=mParser.mGrammar->findRule(rulename);
 	if (!rec){
-		std::cerr<<"There is no rule '"<<rulename<<"' in the grammar."<<std::endl;
+		std::ostringstream ostr;
+		ostr<<"There is no rule '"<<rulename<<"' in the grammar.";
+		belr_fatal(ostr.str().c_str());
 		return;
 	}
 	mCollectors[rec->getId()]=collector;
@@ -524,7 +526,7 @@ _parserElementT ParserContext<_parserElementT>::createRootObject(const std::stri
 template <typename _parserElementT>
 std::shared_ptr<HandlerContext<_parserElementT>> ParserContext<_parserElementT>::_branch(){
 	if (mHandlerStack.empty()){
-		std::cerr<<"Cannot branch while stack is empty"<<std::endl;
+		belr_fatal("Cannot branch while stack is empty");
 	}
 	std::shared_ptr<HandlerContext<_parserElementT>> ret=mHandlerStack.back()->branch();
 	mHandlerStack.push_back(ret);
@@ -534,8 +536,7 @@ std::shared_ptr<HandlerContext<_parserElementT>> ParserContext<_parserElementT>:
 template <typename _parserElementT>
 void ParserContext<_parserElementT>::_merge(const std::shared_ptr<HandlerContext<_parserElementT>> &other){
 	if (mHandlerStack.back()!=other){
-		std::cerr<<"The branch being merged is not the last one of the stack !"<<std::endl;
-		abort();
+		belr_fatal("The branch being merged is not the last one of the stack !");
 	}
 	mHandlerStack.pop_back();
 	mHandlerStack.back()->merge(other);
@@ -546,8 +547,7 @@ template <typename _parserElementT>
 void ParserContext<_parserElementT>::_removeBranch(const std::shared_ptr<HandlerContext<_parserElementT>> &other){
 	auto it=find(mHandlerStack.rbegin(), mHandlerStack.rend(),other);
 	if (it==mHandlerStack.rend()){
-		std::cerr<<"A branch could not be found in the stack while removing it !"<<std::endl;
-		abort();
+		belr_fatal("A branch could not be found in the stack while removing it !");
 	}else{
 		advance(it,1);
 		mHandlerStack.erase(it.base());
@@ -587,7 +587,7 @@ void ParserContext<_parserElementT>::removeBranch(const std::shared_ptr<HandlerC
 template <typename _parserElementT>
 Parser<_parserElementT>::Parser(const std::shared_ptr<Grammar> &grammar) : mGrammar(grammar) {
 	if (!mGrammar->isComplete()){
-		std::cerr<<"Grammar not complete, aborting."<<std::endl;
+		belr_fatal("Grammar not complete, aborting.");
 		return;
 	}
 }
@@ -603,8 +603,9 @@ template <typename _parserElementT>
 void Parser<_parserElementT>::installHandler(const std::shared_ptr<ParserHandlerBase<_parserElementT>> &handler){
 	std::shared_ptr<Recognizer> rec=mGrammar->findRule(handler->getRulename());
 	if (!rec){
-		std::cerr<<"There is no rule '"<<handler->getRulename()<<"' in the grammar."<<std::endl;
-		return;
+		std::ostringstream str;
+		str<<"There is no rule '"<<handler->getRulename()<<"' in the grammar.";
+		belr_fatal(str.str().c_str());
 	}
 	mHandlers[rec->getId()]=handler;
 }

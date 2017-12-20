@@ -1,19 +1,19 @@
 /*
- * grammarbuilder.cpp
  * Copyright (C) 2017  Belledonne Communications SARL
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
+ * 
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
 #include <fstream>
@@ -118,8 +118,7 @@ shared_ptr< Recognizer > ABNFElement::buildRecognizer(const shared_ptr< Grammar 
 		else
 			return Utils::literal(mCharVal);
 	}
-	bctbx_error("[belr] ABNFElement::buildRecognizer is empty, should not happen!");
-	abort();
+	bctbx_fatal("ABNFElement::buildRecognizer is empty, should not happen!");
 	return nullptr;
 }
 
@@ -141,8 +140,7 @@ void ABNFElement::setCharVal(const string& charval){
 
 void ABNFElement::setProseVal(const string& prose){
 	if (!prose.empty()){
-		bctbx_error("[belr] prose-val is not supported.");
-		abort();
+		bctbx_fatal("prose-val is not supported.");
 	}
 }
 
@@ -172,7 +170,6 @@ void ABNFRepetition::setElement(const shared_ptr< ABNFElement >& e){
 
 shared_ptr< Recognizer > ABNFRepetition::buildRecognizer(const shared_ptr< Grammar >& grammar){
 	if (mRepeat.empty()) return mElement->buildRecognizer(grammar);
-	//cout<<"Building repetition recognizer with count="<<mCount<<" min="<<mMin<<" max="<<mMax<<endl;
 	if (mCount!=-1){
 		return Foundation::loop()->setRecognizer(mElement->buildRecognizer(grammar), mCount, mCount);
 	}else{
@@ -186,8 +183,7 @@ shared_ptr<ABNFConcatenation> ABNFConcatenation::create(){
 
 shared_ptr<Recognizer> ABNFConcatenation::buildRecognizer(const shared_ptr<Grammar> &grammar){
 	if (mRepetitions.size()==0){
-		bctbx_error("[belr] No repetitions set !");
-		abort();
+		bctbx_fatal("No repetitions set !");
 	}
 	if (mRepetitions.size()==1){
 		return mRepetitions.front()->buildRecognizer(grammar);
@@ -210,7 +206,6 @@ shared_ptr<ABNFAlternation> ABNFAlternation::create(){
 }
 
 void ABNFAlternation::addConcatenation(const shared_ptr<ABNFConcatenation> &c){
-	//cout<<"Concatenation "<<c<<" added to alternation "<<this<<endl;
 	mConcatenations.push_back(c);
 }
 
@@ -232,13 +227,11 @@ shared_ptr<ABNFRule> ABNFRule::create(){
 }
 
 void ABNFRule::setName(const string& name){
-	if (!mName.empty()) bctbx_error("[belr] Rule %s is renamed !!!!!", name.c_str());
-	//cout<<"Rule "<<this<<" is named "<<name<<endl;
+	if (!mName.empty()) bctbx_error("Rule %s is renamed !!!!!", name.c_str());
 	mName=name;
 }
 
 void ABNFRule::setAlternation(const shared_ptr<ABNFAlternation> &a){
-	//cout<<"Rule "<<this<<" is given alternation "<<a<<endl;
 	mAlternation=a;
 }
 
@@ -256,12 +249,10 @@ void ABNFRule::setDefinedAs(const string& defined_as){
 
 
 shared_ptr<ABNFRuleList> ABNFRuleList::create(){
-	//cout<<"Rulelist created."<<endl;
 	return make_shared<ABNFRuleList>();
 }
 
 void ABNFRuleList::addRule(const shared_ptr<ABNFRule>& rule){
-	//cout<<"Rule "<<rule<<" added to rulelist "<<this<<endl;
 	mRules.push_back(rule);
 }
 
@@ -316,12 +307,12 @@ shared_ptr<Grammar> ABNFGrammarBuilder::createFromAbnf(const string &abnf, const
 	size_t parsed;
 	shared_ptr<ABNFBuilder> builder = mParser.parseInput("rulelist",abnf,&parsed);
 	if (!builder) {
-		bctbx_error("[belr] Failed to create builder.");
+		bctbx_error("Failed to create builder.");
 		return nullptr;
 	}
 
 	if (parsed<(size_t)abnf.size()){
-		bctbx_error("[belr] Only %llu bytes parsed over a total of %llu.", (unsigned long long)parsed, (unsigned long long) abnf.size());
+		bctbx_error("Only %llu bytes parsed over a total of %llu.", (unsigned long long)parsed, (unsigned long long) abnf.size());
 		return nullptr;
 	}
 
@@ -330,13 +321,13 @@ shared_ptr<Grammar> ABNFGrammarBuilder::createFromAbnf(const string &abnf, const
 	else retGram=gram;
 
 	builder->buildRecognizer(retGram);
-	bctbx_message("[belr] Succesfully created grammar with %i rules.", retGram->getNumRules());
+	bctbx_message("Succesfully created grammar with %i rules.", retGram->getNumRules());
 	if (retGram->isComplete()){
-		bctbx_message("[belr] Grammar is complete.");
+		bctbx_message("Grammar is complete.");
 		retGram->optimize();
-		bctbx_message("[belr] Grammar has been optimized.");
+		bctbx_message("Grammar has been optimized.");
 	}else{
-		bctbx_warning("[belr] Grammar is not complete.");
+		bctbx_warning("Grammar is not complete.");
 	}
 	return gram;
 }
@@ -344,7 +335,7 @@ shared_ptr<Grammar> ABNFGrammarBuilder::createFromAbnf(const string &abnf, const
 shared_ptr<Grammar> ABNFGrammarBuilder::createFromAbnfFile(const string &path, const shared_ptr<Grammar> &gram){
 	ifstream istr(path);
 	if (!istr.is_open()){
-		bctbx_error("[belr] Could not open %s", path.c_str());
+		bctbx_error("Could not open %s", path.c_str());
 		return nullptr;
 	}
 	stringstream sstr;

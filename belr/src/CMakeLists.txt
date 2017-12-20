@@ -32,6 +32,10 @@ set(BELR_SOURCE_FILES_CXX
 bc_apply_compile_flags(BELR_SOURCE_FILES_C STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
 bc_apply_compile_flags(BELR_SOURCE_FILES_CXX STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
 
+add_definitions(
+	-DBCTBX_LOG_DOMAIN="belr"
+)
+
 if(ENABLE_STATIC)
 	add_library(belr-static STATIC ${BELR_HEADER_FILES} ${BELR_SOURCE_FILES_C} ${BELR_SOURCE_FILES_CXX})
 	set_target_properties(belr-static PROPERTIES OUTPUT_NAME belr)

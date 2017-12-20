@@ -1,28 +1,33 @@
 /*
- * belr.cpp
  * Copyright (C) 2017  Belledonne Communications SARL
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
+ * 
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#include "belr/parser.h"
+#include "common.h"
 
+#include "belr/parser.h"
 #include "belr/belr.h"
 
 using namespace std;
 
-using namespace belr;
+namespace belr{;
+
+void belr_fatal(const char *message){
+	bctbx_fatal("%s", message);
+}
 
 // =============================================================================
 
@@ -68,9 +73,9 @@ const string &Recognizer::getName()const{
 size_t Recognizer::feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos){
 	size_t match;
 
-	#ifdef BELR_DEBUG
-		cout << "Trying to match: "<<mName<<endl;
-	#endif
+#ifdef BELR_DEBUG
+	BCTBX_SLOGD<<<"Trying to match: "<<mName;
+#endif
 
 	ParserLocalContext hctx;
 	if (ctx) ctx->beginParse(hctx, shared_from_this());
@@ -79,7 +84,7 @@ size_t Recognizer::feed(const shared_ptr<ParserContextBase> &ctx, const string &
 		#ifdef BELR_DEBUG
 			if (mName.size()>0){
 				string matched=input.substr(pos,match);
-				cout<<"Matched recognizer '"<<mName<<"' with sequence '"<<matched<<"'."<<endl;
+				BCTBX_SLOGD<<"Matched recognizer '"<<mName<<"' with sequence '"<<matched<<"'.";
 			}
 		#endif
 	}
@@ -91,11 +96,12 @@ size_t Recognizer::feed(const shared_ptr<ParserContextBase> &ctx, const string &
 bool Recognizer::getTransitionMap(TransitionMap* mask){
 	bool ret=_getTransitionMap(mask);
 	if (0 /*!mName.empty()*/){
-		cout<<"TransitionMap after "<<mName<<endl;
+		BCTBX_SLOGD<<"TransitionMap after "<<mName;
+		ostringstream mapss;
 		for(int i=0;i<256;++i){
-			if (mask->mPossibleChars[i]) cout<<(char)i;
+			if (mask->mPossibleChars[i]) mapss<<(char)i;
 		}
-		cout<<endl;
+		BCTBX_SLOGD<<mapss.str();
 	}
 	return ret;
 }
@@ -213,7 +219,6 @@ void Selector::_optimize(int recursionLevel){
 	}
 	if (all) delete all;
 	if (!intersectionFound){
-		//cout<<"Selector '"<<getName()<<"' is exclusive."<<endl;
 		mIsExclusive=true;
 	}
 }
@@ -361,8 +366,7 @@ size_t RecognizerPointer::_feed(const shared_ptr<ParserContextBase> &ctx, const 
 	if (mRecognizer){
 		return mRecognizer->feed(ctx, input, pos);
 	}else{
-		cerr<<"RecognizerPointer with name '"<<mName<<"' is undefined"<<endl;
-		abort();
+		bctbx_fatal("RecognizerPointer with name '%s' is undefined", mName.c_str());
 	}
 	return string::npos;
 }
@@ -397,8 +401,7 @@ void Grammar::assignRule(const string &argname, const shared_ptr<Recognizer> &ru
 		if (pointer){
 			pointer->setPointed(rule);
 		}else{
-			cerr<<"Error: rule '"<<name<<"' is being redefined !"<<endl;
-			abort();
+			bctbx_fatal("Rule '%s' is being redefined !", name.c_str());
 		}
 	}
 	/*in any case the map should contain real recognizers (not just pointers) */
@@ -414,12 +417,10 @@ void Grammar::_extendRule(const string &argname, const shared_ptr<Recognizer> &r
 		if (sel){
 			sel->addRecognizer(rule);
 		}else{
-			cerr<<"Error: rule '"<<name<<"' cannot be extended because it was not defined with a Selector."<<endl;
-			abort();
+			bctbx_fatal("rule '%s' cannot be extended because it was not defined with a Selector.", name.c_str());
 		}
 	}else{
-		cerr<<"Error: rule '"<<name<<"' cannot be extended because it is not defined."<<endl;
-		abort();
+		bctbx_fatal("rule '%s' cannot be extended because it is not defined.", name.c_str());
 	}
 }
 
@@ -459,7 +460,7 @@ shared_ptr<Recognizer> Grammar::getRule(const string &argname){
 void Grammar::include(const shared_ptr<Grammar>& grammar){
 	for(auto it=grammar->mRules.begin();it!=grammar->mRules.end();++it){
 		if (mRules.find((*it).first)!=mRules.end()){
-			cerr<<"Rule '"<<(*it).first<<"' is being redefined while including grammar '"<<grammar->mName<<"' into '"<<mName<<"'"<<endl;
+			BCTBX_SLOGE<<"Rule '"<<(*it).first<<"' is being redefined while including grammar '"<<grammar->mName<<"' into '"<<mName<<"'";
 		}
 		mRules[(*it).first]=(*it).second;
 	}
@@ -470,7 +471,7 @@ bool Grammar::isComplete()const{
 	for(auto it=mRules.begin(); it!=mRules.end(); ++it){
 		shared_ptr<RecognizerPointer> pointer=dynamic_pointer_cast<RecognizerPointer>((*it).second);
 		if (pointer && !pointer->getPointed()){
-			cerr<<"Rule '"<<(*it).first<<"' is not defined."<<endl;
+			BCTBX_SLOGE<<"Rule '"<<(*it).first<<"' is not defined.";
 			ret=false;
 		}
 	}
@@ -489,8 +490,11 @@ int Grammar::getNumRules() const{
 }
 
 
-string belr::tolower(const string &str){
+string tolower(const string &str){
 	string ret(str);
 	transform(ret.begin(),ret.end(), ret.begin(), ::tolower);
 	return ret;
 }
+
+}//end of namespace
+
