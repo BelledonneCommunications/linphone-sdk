@@ -37,7 +37,7 @@
 #include <unordered_map>
 
 static std::unordered_map <std::string, UINT> windows_charset {
-	{ "locale", CP_ACP },
+	{ "LOCALE", CP_ACP },
 	{ "IBM037", 037 },
 	{ "IBM437", 437 },
 	{ "IBM500", 500 },
