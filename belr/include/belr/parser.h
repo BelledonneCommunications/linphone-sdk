@@ -23,6 +23,7 @@
 #include <functional>
 #include <iostream>
 #include <vector>
+#include <sstream>
 
 #include "belr.h"
 

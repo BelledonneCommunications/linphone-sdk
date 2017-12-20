@@ -23,6 +23,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <fstream>
 
 // =============================================================================
 
@@ -68,10 +69,11 @@ public:
 	bool getTransitionMap(TransitionMap *mask);
 	void optimize();
 	void optimize(int recursionLevel);
-
+	void serialize(std::ofstream &fstr);
 protected:
 	Recognizer() = default;
-
+	virtual void _serialize(std::ofstream &fstr) = 0;
+	void writeInt(std::ofstream &fstr, int number);
 	/*returns true if the transition map is complete, false otherwise*/
 	virtual bool _getTransitionMap(TransitionMap *mask);
 	virtual void _optimize(int recursionLevel)=0;
@@ -81,6 +83,17 @@ protected:
 	unsigned int mId = 0;
 };
 
+enum RecognizerTypeId{
+	CharRecognizerId = 1,
+	SelectorId,
+	ExclusiveSelectorId,
+	SequenceId,
+	LoopId,
+	CharRangeId,
+	LiteralId,
+	PointerId
+};
+
 class CharRecognizer : public Recognizer{
 public:
 	CharRecognizer(int to_recognize, bool caseSensitive=false);
@@ -88,6 +101,7 @@ public:
 private:
 	size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos) override;
 	void _optimize(int recursionLevel) override;
+	virtual void _serialize(std::ofstream &fstr) override;
 
 	int mToRecognize;
 	bool mCaseSensitive;
@@ -101,6 +115,7 @@ protected:
 	void _optimize(int recursionLevel) override;
 	size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos) override;
 	bool _getTransitionMap(TransitionMap *mask) override;
+	virtual void _serialize(std::ofstream &fstr) override;
 
 	size_t _feedExclusive(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos);
 
@@ -121,6 +136,7 @@ public:
 	std::shared_ptr<Sequence> addRecognizer(const std::shared_ptr<Recognizer> &element);
 
 protected:
+	virtual void _serialize(std::ofstream &fstr) override;
 	void _optimize(int recursionLevel) override;
 
 private:
@@ -136,6 +152,7 @@ public:
 	std::shared_ptr<Loop> setRecognizer(const std::shared_ptr<Recognizer> &element, int min=0, int max=-1);
 
 protected:
+	virtual void _serialize(std::ofstream &fstr) override;
 	void _optimize(int recursionLevel) override;
 
 private:
@@ -161,6 +178,7 @@ public:
 	CharRange(int begin, int end);
 
 private:
+	virtual void _serialize(std::ofstream &fstr) override;
 	void _optimize(int recursionLevel) override;
 	size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos) override;
 
@@ -176,6 +194,7 @@ public:
 
 private:
 	void _optimize(int recursionLevel) override;
+	virtual void _serialize(std::ofstream &fstr) override;
 	size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos) override;
 
 	std::string mLiteral;
@@ -195,6 +214,7 @@ public:
 
 private:
 	void _optimize(int recursionLevel) override;
+	virtual void _serialize(std::ofstream &fstr) override;
 	size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos) override;
 
 	std::shared_ptr<Recognizer> mRecognizer;
@@ -272,6 +292,10 @@ public:
 	 * Return the number of rules in this grammar.
 	**/
 	int getNumRules()const;
+	/**
+	 * Save the grammar into a binary file.
+	**/
+	int save(const std::string &filename);
 private:
 	void assignRule(const std::string &name, const std::shared_ptr<Recognizer> &rule);
 	void _extendRule(const std::string &name, const std::shared_ptr<Recognizer> &rule);

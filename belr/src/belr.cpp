@@ -66,6 +66,36 @@ void Recognizer::setName(const std::string& name){
 	mId=++id_base;
 }
 
+void Recognizer::serialize(std::ofstream& fstr){
+	RecognizerTypeId tid = CharRecognizerId;
+	if (typeid(*this) == typeid(CharRecognizer)) tid = CharRecognizerId;
+	else if (typeid(*this) == typeid(Selector)) tid = SelectorId;
+	else if (typeid(*this) == typeid(Loop)) tid = LoopId;
+	else if (typeid(*this) == typeid(ExclusiveSelector)) tid = ExclusiveSelectorId;
+	else if (typeid(*this) == typeid(CharRange)) tid = CharRangeId;
+	else if (typeid(*this) == typeid(Literal)) tid = LiteralId;
+	else if (typeid(*this) == typeid(Sequence)) tid = SequenceId;
+	else if (typeid(*this) == typeid(RecognizerPointer)) tid = PointerId;
+	else bctbx_fatal("Unsupported Recognizer derived type.");
+	
+	unsigned char type_byte = (unsigned char)tid;
+	//write the type
+	fstr.write((char*)&type_byte, 1);
+	//write the id if any followed by name, or a single zero byte if not.
+	if (mId > 0){
+		writeInt(fstr, mId);
+		fstr<<mName;
+		fstr.write("", 1);
+	}
+	//then invoked derived class serialization
+	_serialize(fstr);
+}
+
+void Recognizer::writeInt(std::ofstream &fstr, int number){
+	int tmp = htonl(number);
+	fstr.write((char*)&tmp, sizeof(tmp));
+}
+
 const string &Recognizer::getName()const{
 	return mName;
 }
@@ -149,6 +179,12 @@ void CharRecognizer::_optimize(int recursionLevel){
 
 }
 
+void CharRecognizer::_serialize(std::ofstream &fstr){
+	unsigned char charToRecognize = (unsigned char)mToRecognize;
+	fstr.write((char*)&charToRecognize, 1);
+	fstr.write((char*)&mCaseSensitive, 1);
+}
+
 shared_ptr<Selector> Selector::addRecognizer(const shared_ptr<Recognizer> &r){
 	mElements.push_back(r);
 	return static_pointer_cast<Selector> (shared_from_this());
@@ -198,6 +234,14 @@ size_t Selector::_feed(const shared_ptr<ParserContextBase> &ctx, const string &i
 		ctx->merge(bestBranch);
 	}
 	return bestmatch;
+}
+
+void Selector::_serialize(std::ofstream &fstr){
+	fstr.write((char*)&mIsExclusive, 1);
+	writeInt(fstr, (int)mElements.size());
+	for(auto it = mElements.begin(); it != mElements.end(); ++it){
+		(*it)->serialize(fstr);
+	}
 }
 
 void Selector::_optimize(int recursionLevel){
@@ -265,6 +309,12 @@ void Sequence::_optimize(int recursionLevel){
 		(*it)->optimize(recursionLevel);
 }
 
+void Sequence::_serialize(std::ofstream &fstr){
+	writeInt(fstr, (int) mElements.size());
+	for (auto it=mElements.begin(); it!=mElements.end(); ++it){
+		(*it)->serialize(fstr);
+	}
+}
 
 shared_ptr<Loop> Loop::setRecognizer(const shared_ptr<Recognizer> &element, int min, int max){
 	mMin=min;
@@ -293,6 +343,12 @@ bool Loop::_getTransitionMap(TransitionMap* mask){
 	return mMin!=0; //we must say to upper layer that this loop recognizer is allowed to be optional by returning FALSE
 }
 
+void Loop::_serialize(std::ofstream &fstr){
+	writeInt(fstr, mMin);
+	writeInt(fstr, mMax);
+	mRecognizer->serialize(fstr);
+}
+
 void Loop::_optimize(int recursionLevel){
 	mRecognizer->optimize(recursionLevel);
 }
@@ -309,6 +365,14 @@ size_t CharRange::_feed(const shared_ptr<ParserContextBase> &ctx, const string &
 
 void CharRange::_optimize(int recursionLevel){
 
+}
+
+void CharRange::_serialize(std::ofstream& fstr){
+	unsigned char begin, end;
+	begin = (unsigned char)mBegin;
+	end = (unsigned char)mEnd;
+	fstr.write((char*)&begin, 1);
+	fstr.write((char*)&end, 1);
 }
 
 
@@ -340,6 +404,11 @@ size_t Literal::_feed(const shared_ptr< ParserContextBase >& ctx, const string& 
 	return mLiteralSize;
 }
 
+void Literal::_serialize(ofstream &fstr){
+	fstr<<mLiteral;
+	fstr.write("", 1);
+}
+
 void Literal::_optimize(int recursionLevel){
 
 }
@@ -369,6 +438,10 @@ size_t RecognizerPointer::_feed(const shared_ptr<ParserContextBase> &ctx, const 
 		bctbx_fatal("RecognizerPointer with name '%s' is undefined", mName.c_str());
 	}
 	return string::npos;
+}
+
+void RecognizerPointer::_serialize(std::ofstream &fstr){
+	//nothing to do
 }
 
 void RecognizerPointer::setPointed(const shared_ptr<Recognizer> &r){
@@ -487,6 +560,30 @@ void Grammar::optimize(){
 
 int Grammar::getNumRules() const{
 	return (int)mRules.size();
+}
+
+int Grammar::save(const std::string &filename){
+	ofstream of;
+	of.open(filename,ofstream::out|ofstream::trunc|ofstream::binary);
+	if (of.fail()){
+		BCTBX_SLOGE<<"Could not open "<<filename;
+		return -1;
+	}
+	//serialize the name followed by null character
+	of<<mName;
+	of.write("",1);
+	//iterate over rules
+	for (auto it = mRules.begin(); it != mRules.end(); ++it){
+		//serialize the name of the rule
+		of<<(*it).first;
+		of.write("",1);
+		(*it).second->serialize(of);
+		of.write("",1);
+		of.write("",1);
+	}
+	
+	of.close();
+	return 0;
 }
 
 
