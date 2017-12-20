@@ -29,7 +29,7 @@
 
 static MSFactory *_factory= NULL;
 
-static int tester_before_all() {
+static int tester_before_all(void) {
 	ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_MESSAGE | ORTP_WARNING | ORTP_ERROR | ORTP_FATAL);
 	_factory = ms_factory_new();
 	ms_factory_init_voip(_factory);
@@ -38,7 +38,7 @@ static int tester_before_all() {
 	return 0;
 }
 
-static int tester_after_all() {
+static int tester_after_all(void) {
 	ms_factory_destroy(_factory);
 	return 0;
 }
