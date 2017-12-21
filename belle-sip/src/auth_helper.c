@@ -75,6 +75,7 @@ belle_sip_header_proxy_authorization_t* belle_sip_auth_helper_create_proxy_autho
 
 static void belle_sip_auth_choose_method(const char *algo, char *ask, uint8_t *out, size_t size) {
 	if ((algo == NULL) || (!strcmp(algo, "MD5"))) {
+		// By default, using MD5 when algorithm is NULL
 		bctbx_md5((const unsigned char *)ask, strlen(ask), out);
 	} else if (!strcmp(algo, "SHA-256")) {
 		bctbx_sha256((const unsigned char *)ask, strlen(ask), size, out);
@@ -99,7 +100,7 @@ int belle_sip_auth_helper_compute_ha1_for_algorithm(const char *userid, const ch
 		return -1;
 	}
 	size_t length_byte = (size - 1) / 2;
-	uint8_t out[length_byte];
+	uint8_t out[32];
 	size_t di;
 	char *ask;
 	if (!userid) {
@@ -137,7 +138,7 @@ int belle_sip_auth_helper_compute_ha2_for_algorithm(const char *method, const ch
 		return -1;
 	}
 	size_t length_byte = (size - 1) / 2;
-	uint8_t out[length_byte];
+	uint8_t out[32];
 	size_t di;
 	char *ask;
 	ha2[length_byte * 2] = '\0';
@@ -164,7 +165,7 @@ int belle_sip_auth_helper_compute_response_for_algorithm(const char *ha1, const 
 		return -1;
 	}
 	size_t length_byte = (size - 1) / 2;
-	uint8_t out[length_byte];
+	uint8_t out[32];
 	size_t di;
 	char *ask;
 	response[length_byte * 2] = '\0';
@@ -199,7 +200,7 @@ int belle_sip_auth_helper_compute_response_qop_auth_for_algorithm(const char* ha
 		return -1;
 	}
 	size_t length_byte = (size - 1) / 2;
-	uint8_t out[length_byte];
+	uint8_t out[32];
 	size_t di;
 	char *ask;
 	char nounce_count_as_string[9];
@@ -231,18 +232,16 @@ int belle_sip_auth_helper_compute_response_qop_auth(const char* ha1
 int belle_sip_auth_helper_fill_authorization(belle_sip_header_authorization_t* authorization
 											,const char* method
 											,const char* ha1) {
-	size_t size;
 	const char *algo = belle_sip_header_authorization_get_algorithm(authorization);
-	size = belle_sip_auth_define_size(algo);
+	size_t size = belle_sip_auth_define_size(algo);
 	if (!size) {
 		belle_sip_error("Algorithm [%s] is not correct ", algo);
 		return -1;
-	}
-
+	}	
 	int auth_mode=0;
 	char* uri;
-	char ha2[size];
-	char response[size];
+	char ha2[65];
+	char response[65];
 	char cnonce[BELLE_SIP_CNONCE_LENGTH + 1];
 
 	response[size-1]=ha2[size-1]='\0';

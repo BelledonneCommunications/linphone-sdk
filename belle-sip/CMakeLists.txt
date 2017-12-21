@@ -171,6 +171,7 @@ else()
 	if(CMAKE_C_COMPILER_ID MATCHES "Clang")
 		list(APPEND STRICT_OPTIONS_CPP "-Wno-error=unknown-warning-option" "-Qunused-arguments" "-Wno-tautological-compare" "-Wno-builtin-requires-header" "-Wno-unused-function" "-Wno-gnu-designator" "-Wno-array-bounds")
 	elseif(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+		list(APPEND STRICT_OPTIONS_C "-Werror=vla") # Forbids usage of variable length arrays since Visual Studio's compiler does not support them.
 		list(APPEND STRICT_OPTIONS_CPP "-Wno-error=pragmas")
 	endif()
 	if(APPLE)
