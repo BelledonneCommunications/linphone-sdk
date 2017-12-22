@@ -339,6 +339,14 @@ static void lime_identityVerifiedStatus_test(const lime::CurveId curve, const st
 		aliceManager->encrypt(*aliceDeviceId, make_shared<const std::string>("bob"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_failed,1,lime_tester::wait_for_timeout));
 
+		if (cleanDatabase) {
+			aliceManager->delete_user(*aliceDeviceId, callback);
+			bobManager->delete_user(*bobDeviceId, callback);
+			BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,expected_success+2,lime_tester::wait_for_timeout));
+			remove(dbFilenameAlice.data());
+			remove(dbFilenameBob.data());
+		}
+
 	} catch (BctbxException &e) {
 		BCTBX_SLOGE <<e;;
 		BC_FAIL();
