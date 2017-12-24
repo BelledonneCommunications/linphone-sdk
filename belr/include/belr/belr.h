@@ -23,7 +23,7 @@
 #include <map>
 #include <memory>
 #include <string>
-#include <fstream>
+
 
 // =============================================================================
 
@@ -46,7 +46,12 @@ namespace belr{
 BELR_PUBLIC std::string tolower(const std::string &str);
 
 class ParserContextBase;
+class BinaryOutputStream;
+class BinaryGrammarBuilder;
 
+/**
+ * The transition map is an internal tool used to optimize recognizers
+**/
 struct TransitionMap{
 	TransitionMap();
 	bool intersect(const TransitionMap *other);
@@ -69,11 +74,12 @@ public:
 	bool getTransitionMap(TransitionMap *mask);
 	void optimize();
 	void optimize(int recursionLevel);
-	void serialize(std::ofstream &fstr);
+	void serialize(BinaryOutputStream &fstr, bool topLevel=false);
+	static std::shared_ptr<Recognizer> build(BinaryGrammarBuilder &ifstr);
 protected:
 	Recognizer() = default;
-	virtual void _serialize(std::ofstream &fstr) = 0;
-	void writeInt(std::ofstream &fstr, int number);
+	Recognizer(BinaryGrammarBuilder &istr);
+	virtual void _serialize(BinaryOutputStream &fstr) = 0;
 	/*returns true if the transition map is complete, false otherwise*/
 	virtual bool _getTransitionMap(TransitionMap *mask);
 	virtual void _optimize(int recursionLevel)=0;
@@ -91,17 +97,19 @@ enum RecognizerTypeId{
 	LoopId,
 	CharRangeId,
 	LiteralId,
-	PointerId
+	PointerId,
+	AliasId,
+	RuleRefId
 };
 
 class CharRecognizer : public Recognizer{
 public:
 	CharRecognizer(int to_recognize, bool caseSensitive=false);
-
+	CharRecognizer(BinaryGrammarBuilder &istr);
 private:
 	size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos) override;
 	void _optimize(int recursionLevel) override;
-	virtual void _serialize(std::ofstream &fstr) override;
+	virtual void _serialize(BinaryOutputStream &fstr) override;
 
 	int mToRecognize;
 	bool mCaseSensitive;
@@ -110,12 +118,13 @@ private:
 class Selector : public Recognizer{
 public:
 	std::shared_ptr<Selector> addRecognizer(const std::shared_ptr<Recognizer> &element);
-
+	Selector(bool isExclusive = false);
+	Selector(BinaryGrammarBuilder &istr);
 protected:
 	void _optimize(int recursionLevel) override;
 	size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos) override;
 	bool _getTransitionMap(TransitionMap *mask) override;
-	virtual void _serialize(std::ofstream &fstr) override;
+	virtual void _serialize(BinaryOutputStream &fstr) override;
 
 	size_t _feedExclusive(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos);
 
@@ -125,18 +134,22 @@ protected:
 
 /**This is an optimization of the first one for the case where there can be only a single match*/
 class ExclusiveSelector : public Selector{
+public:
+	ExclusiveSelector();
+	ExclusiveSelector(BinaryGrammarBuilder &istr);
 private:
 	size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos) override;
 };
 
 class Sequence : public Recognizer{
 public:
+	Sequence() = default;
+	Sequence(BinaryGrammarBuilder &istr);
 	bool _getTransitionMap(TransitionMap *mask) override;
-
 	std::shared_ptr<Sequence> addRecognizer(const std::shared_ptr<Recognizer> &element);
 
 protected:
-	virtual void _serialize(std::ofstream &fstr) override;
+	virtual void _serialize(BinaryOutputStream &fstr) override;
 	void _optimize(int recursionLevel) override;
 
 private:
@@ -147,12 +160,13 @@ private:
 
 class Loop : public Recognizer{
 public:
+	Loop() = default;
+	Loop(BinaryGrammarBuilder &istr);
 	bool _getTransitionMap(TransitionMap *mask) override;
-
 	std::shared_ptr<Loop> setRecognizer(const std::shared_ptr<Recognizer> &element, int min=0, int max=-1);
 
 protected:
-	virtual void _serialize(std::ofstream &fstr) override;
+	virtual void _serialize(BinaryOutputStream &fstr) override;
 	void _optimize(int recursionLevel) override;
 
 private:
@@ -176,9 +190,9 @@ public:
 class CharRange : public Recognizer{
 public:
 	CharRange(int begin, int end);
-
+	CharRange(BinaryGrammarBuilder &istr);
 private:
-	virtual void _serialize(std::ofstream &fstr) override;
+	virtual void _serialize(BinaryOutputStream &fstr) override;
 	void _optimize(int recursionLevel) override;
 	size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos) override;
 
@@ -189,12 +203,12 @@ private:
 class Literal : public Recognizer{
 public:
 	Literal(const std::string &lit);
-
+	Literal(BinaryGrammarBuilder &istr);
 	bool _getTransitionMap(TransitionMap *mask) override;
 
 private:
 	void _optimize(int recursionLevel) override;
-	virtual void _serialize(std::ofstream &fstr) override;
+	virtual void _serialize(BinaryOutputStream &fstr) override;
 	size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos) override;
 
 	std::string mLiteral;
@@ -207,16 +221,44 @@ public:
 	static std::shared_ptr<Recognizer> char_range(int begin, int end);
 };
 
+/**
+ * The RecognizerPointer just points to another recognizer and delegates everything to the pointed recognizer.
+ * It is a place holder when a rule not-yet-defined appears when parsing an ABNF grammar.
+ * The pointed recognizer is set to the rule when it comes defined.
+**/
 class RecognizerPointer :  public Recognizer{
 public:
+	RecognizerPointer() = default;
+	//RecognizerPointer(BinaryGrammarBuilder &istr);
 	std::shared_ptr<Recognizer> getPointed();
 	void setPointed(const std::shared_ptr<Recognizer> &r);
 
 private:
 	void _optimize(int recursionLevel) override;
-	virtual void _serialize(std::ofstream &fstr) override;
+	virtual void _serialize(BinaryOutputStream &fstr) override;
 	size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos) override;
 
+	std::shared_ptr<Recognizer> mRecognizer;
+};
+
+
+/**
+ * The RecognizerAlias points to another recognizer and delegates everything. It is necessary to represents ABNF statements like
+ * rule2 = rule1
+ * It is different from the RecognizerPointer in its function, however it behaves exactly the same way.
+ * A different type is necessary to distinguish between the two usage.
+**/
+class RecognizerAlias :  public Recognizer{
+public:
+	RecognizerAlias() = default;
+	RecognizerAlias(BinaryGrammarBuilder &istr);
+	std::shared_ptr<Recognizer> getPointed();
+	void setPointed(const std::shared_ptr<Recognizer> &r);
+
+private:
+	void _optimize(int recursionLevel) override;
+	virtual void _serialize(BinaryOutputStream &fstr) override;
+	size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos) override;
 	std::shared_ptr<Recognizer> mRecognizer;
 };
 
@@ -287,19 +329,25 @@ public:
 	 * A selector is said exclusive when a single sub-rule can match. Knowing this in advance optimizes the processing because no branch
 	 * context is to be created to explore the different choices of the selector recognizer.
 	**/
-	void optimize();
+	BELR_PUBLIC void optimize();
 	/**
 	 * Return the number of rules in this grammar.
 	**/
-	int getNumRules()const;
+	BELR_PUBLIC int getNumRules()const;
 	/**
 	 * Save the grammar into a binary file.
 	**/
-	int save(const std::string &filename);
+	BELR_PUBLIC int save(const std::string &filename);
+	/**
+	 * Load the grammar from a binary file
+	**/
+	BELR_PUBLIC int load(const std::string &filename);
 private:
 	void assignRule(const std::string &name, const std::shared_ptr<Recognizer> &rule);
 	void _extendRule(const std::string &name, const std::shared_ptr<Recognizer> &rule);
 	std::map<std::string,std::shared_ptr<Recognizer>> mRules;
+	//The recognizer pointers create loops in the chain of recognizer, preventing shared_ptr<> to be released.
+	//We store them in this list so that we can reset them manually to break the loop of reference.
 	std::list<std::shared_ptr<RecognizerPointer>> mRecognizerPointers;
 	std::string mName;
 };

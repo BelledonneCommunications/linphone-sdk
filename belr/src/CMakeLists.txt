@@ -27,6 +27,7 @@ set(BELR_SOURCE_FILES_CXX
 	belr.cpp
 	grammarbuilder.cpp
 	parser.cpp
+	binarystream.cpp
 )
 
 bc_apply_compile_flags(BELR_SOURCE_FILES_C STRICT_OPTIONS_CPP STRICT_OPTIONS_C)

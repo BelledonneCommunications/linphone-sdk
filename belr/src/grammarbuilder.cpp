@@ -262,7 +262,21 @@ shared_ptr<Recognizer> ABNFRuleList::buildRecognizer(const shared_ptr<Grammar> &
 		if (rule->isExtension()){
 			grammar->extendRule(rule->getName(), rule->buildRecognizer(grammar));
 		}else{
-			grammar->addRule(rule->getName(), rule->buildRecognizer(grammar));
+			auto rec = rule->buildRecognizer(grammar);
+			/* Special case: if the returned recognizer is a rule that was already added to the grammar, 
+			 * we should not add it a second time, otherwise the name of the recognizer and the name in the grammar entry
+			 * will be different. To solve this problem, we use an intermediary AliasRecognizer*/
+			if (!rec->getName().empty()){
+				/*only rules (that is recognizers added to the grammar) have a name defined*/
+				if (rec->getName() != rule->getName()){
+					/* we are facing a statement like rule2 = rule1 */
+					auto alias = make_shared<RecognizerAlias>();
+					alias->setPointed(rec);
+					rec = alias;
+					
+				}
+			}
+			grammar->addRule(rule->getName(), rec);
 		}
 	}
 	return nullptr;
