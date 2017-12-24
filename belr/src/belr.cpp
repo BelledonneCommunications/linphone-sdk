@@ -93,11 +93,7 @@ void Recognizer::serialize(BinaryOutputStream& fstr, bool topLevel){
 	if (topLevel || mName.empty()) {
 		//write the type
 		fstr<<type_byte;
-		//write the id followed by name if mId>0
-		fstr<<mId;
-		if (mId > 0) {
-			fstr<<mName;
-		}
+		fstr<<mName;
 		//then invoked derived class serialization
 		_serialize(fstr);
 	}else{
@@ -110,12 +106,10 @@ void Recognizer::serialize(BinaryOutputStream& fstr, bool topLevel){
 }
 
 Recognizer::Recognizer(BinaryGrammarBuilder& istr){
-	//read the id
-	istr >> mId;
-	//if the id is > 0, read the recognizer name:
-	if (mId > 0){
-		istr >> mName;
-	}
+	// read the recognizer name:
+	string name;
+	istr >> name;
+	if (!name.empty()) setName(name);
 }
 
 
@@ -774,7 +768,6 @@ int Grammar::load(const std::string &filename){
 	/*extract the magic string*/
 	string magic;
 	ifs>>magic;
-	cout <<magic<<endl;
 	if (magic != "#!belr"){
 		ifs.close();
 		BCTBX_SLOGE<<filename<< " is not a belr grammar binary file.";
