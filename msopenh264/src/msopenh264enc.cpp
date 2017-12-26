@@ -314,6 +314,7 @@ void MSOpenH264Encoder::generateKeyframe()
 {
 	int ret=0;
 	if (mFrameCount>0){
+		ms_message("Requesting OpenH264 to generate a keyframe");
 		ret = mEncoder->ForceIntraFrame(true);
 	}else ms_message("ForceIntraFrame() ignored since no frame has been generated yet.");
 
@@ -361,13 +362,16 @@ void MSOpenH264Encoder::applyBitrate()
 	targetBitrateInfo.iLayer = maxBitrateInfo.iLayer = SPATIAL_LAYER_0;
 	targetBitrateInfo.iBitrate = targetBitrate;
 	maxBitrateInfo.iBitrate = maxBitrate;
-	int ret = mEncoder->SetOption(ENCODER_OPTION_BITRATE, &targetBitrateInfo);
+
+	int ret = mEncoder->SetOption(ENCODER_OPTION_MAX_BITRATE, &maxBitrateInfo);
+        if (ret != 0) {
+                ms_error("OpenH264 encoder: Failed setting maximum bitrate: %d", ret);
+        }
+
+
+	ret = mEncoder->SetOption(ENCODER_OPTION_BITRATE, &targetBitrateInfo);
 	if (ret != 0) {
 		ms_error("OpenH264 encoder: Failed setting bitrate: %d", ret);
-	}
-	ret = mEncoder->SetOption(ENCODER_OPTION_MAX_BITRATE, &maxBitrateInfo);
-	if (ret != 0) {
-		ms_error("OpenH264 encoder: Failed setting maximum bitrate: %d", ret);
 	}
 	float frameRate = mVConf.fps;
 	ret = mEncoder->SetOption(ENCODER_OPTION_FRAME_RATE, &frameRate);
