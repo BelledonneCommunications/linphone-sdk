@@ -22,7 +22,6 @@
 #include <string.h>
 #include "bctoolbox/crypto.h"
 
-
 #ifndef BELLE_SIP_CNONCE_LENGTH
 #define BELLE_SIP_CNONCE_LENGTH 16
 #endif
@@ -100,7 +99,7 @@ int belle_sip_auth_helper_compute_ha1_for_algorithm(const char *userid, const ch
 		return -1;
 	}
 	size_t length_byte = (size - 1) / 2;
-	uint8_t out[32];
+	uint8_t out[MAX_LENGTH_BYTE];
 	size_t di;
 	char *ask;
 	if (!userid) {
@@ -138,7 +137,7 @@ int belle_sip_auth_helper_compute_ha2_for_algorithm(const char *method, const ch
 		return -1;
 	}
 	size_t length_byte = (size - 1) / 2;
-	uint8_t out[32];
+	uint8_t out[MAX_LENGTH_BYTE];
 	size_t di;
 	char *ask;
 	ha2[length_byte * 2] = '\0';
@@ -165,7 +164,7 @@ int belle_sip_auth_helper_compute_response_for_algorithm(const char *ha1, const 
 		return -1;
 	}
 	size_t length_byte = (size - 1) / 2;
-	uint8_t out[32];
+	uint8_t out[MAX_LENGTH_BYTE];
 	size_t di;
 	char *ask;
 	response[length_byte * 2] = '\0';
@@ -200,7 +199,7 @@ int belle_sip_auth_helper_compute_response_qop_auth_for_algorithm(const char* ha
 		return -1;
 	}
 	size_t length_byte = (size - 1) / 2;
-	uint8_t out[32];
+	uint8_t out[MAX_LENGTH_BYTE];
 	size_t di;
 	char *ask;
 	char nounce_count_as_string[9];
@@ -240,8 +239,8 @@ int belle_sip_auth_helper_fill_authorization(belle_sip_header_authorization_t* a
 	}	
 	int auth_mode=0;
 	char* uri;
-	char ha2[65];
-	char response[65];
+	char ha2[MAX_RESPONSE_SIZE];
+	char response[MAX_RESPONSE_SIZE];
 	char cnonce[BELLE_SIP_CNONCE_LENGTH + 1];
 
 	response[size-1]=ha2[size-1]='\0';

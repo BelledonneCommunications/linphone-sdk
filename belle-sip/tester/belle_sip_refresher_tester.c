@@ -120,7 +120,7 @@ static void compute_response(const char* username
 									,char* response
                                     ,size_t size
                                     ,const char* algo) {
-	char ha1[65],ha2[65];
+	char ha1[MAX_RESPONSE_SIZE],ha2[MAX_RESPONSE_SIZE];
 	belle_sip_auth_helper_compute_ha1_for_algorithm(username,realm,passwd,ha1,size,algo);
 	belle_sip_auth_helper_compute_ha2_for_algorithm(method,uri,ha2,size,algo);
 	belle_sip_auth_helper_compute_response_for_algorithm(ha1,nonce,ha2,response,size,algo);
@@ -138,7 +138,7 @@ static void compute_response_auth_qop(const char* username
                                         ,char* response
                                         ,size_t size
                                         ,const char* algo) {
-	char ha1[65],ha2[65];
+	char ha1[MAX_RESPONSE_SIZE],ha2[MAX_RESPONSE_SIZE];
 	belle_sip_auth_helper_compute_ha1_for_algorithm(username,realm,passwd,ha1,size,algo);
 	belle_sip_auth_helper_compute_ha2_for_algorithm(method,uri,ha2,size,algo);
 	belle_sip_auth_helper_compute_response_qop_auth_for_algorithm(ha1, nonce,nonce_count, cnonce,qop,ha2,response,size,algo);
@@ -206,7 +206,7 @@ static void server_process_request_event(void *obj, const belle_sip_request_even
 					belle_sip_error("Algorithm [%s] is not correct ", algo);
 					return;
 				}
-				char local_resp[65];
+				char local_resp[MAX_RESPONSE_SIZE];
 				if (qop && strcmp(qop, "auth") == 0) {
 					compute_response_auth_qop(belle_sip_header_authorization_get_username(authorization)
 					                          , belle_sip_header_authorization_get_realm(authorization)
