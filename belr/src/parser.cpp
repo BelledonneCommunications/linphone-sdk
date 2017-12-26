@@ -42,6 +42,20 @@ void DebugElement::addChild(const shared_ptr< DebugElement >& e){
 	mChildren.push_back(e);
 }
 
+const string &DebugElement::getValue()const{
+	return mValue;
+}
+
+void DebugElement::findChildren(const std::string &rulename, std::list<std::shared_ptr<DebugElement>> &retlist)const{
+	for (std::list<std::shared_ptr<DebugElement>>::const_iterator it = mChildren.begin(); it != mChildren.end() ; ++it){
+		if ((*it)->mRulename == rulename){
+			retlist.push_back(*it);
+		}else{
+			findChildren(rulename, retlist);
+		}
+	}
+}
+
 ostream& DebugElement::tostream(int level, ostream& str) const{
 	int i;
 	for(i=0;i<level;i++) str<<'\t';
@@ -81,6 +95,7 @@ void DebugParser::setObservedRules(const list< string >& rules){
 		}
 	}
 }
+
 
 
 }//end of namespace

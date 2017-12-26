@@ -262,9 +262,11 @@ public:
 	DebugElement(const std::string &rulename, const std::string &value);
 	static std::shared_ptr<DebugElement> create(const std::string &rulename, const std::string &value);
 	void addChild(const std::shared_ptr<DebugElement> &e);
+	void findChildren(const std::string &rulename, std::list<std::shared_ptr<DebugElement>> &retlist)const;
 	BELR_PUBLIC std::ostream &tostream(int level, std::ostream &str)const;
-
+	const std::string &getValue()const;
 private:
+	
 	std::string mRulename;
 	std::string mValue;
 	std::list<std::shared_ptr<DebugElement>> mChildren;
@@ -486,6 +488,9 @@ void ParserContext<_parserElementT>::_beginParse(ParserLocalContext & lctx, cons
 	if (h){
 		ctx=h->createContext();
 		mHandlerStack.push_back(std::static_pointer_cast<HandlerContext<_parserElementT>>(ctx));
+	}
+	if (mHandlerStack.empty()){
+		belr_fatal("Cannot parse when mHandlerStack is empty. You must define a top-level rule handler.");
 	}
 	lctx.set(ctx,rec,mHandlerStack.back()->getLastIterator());
 }

@@ -5,5 +5,6 @@ To: <sip:smorlat2@siptest.linphone.org>;tag=yDXec8ej8Hrea
 Call-ID: s69J2OQ4h4
 CSeq: 21 REGISTER
 Server: Flexisip/0.8.0 (sofia-sip-nta/2.0)
+Custom-header: some-value
 Content-Length: 0
 
