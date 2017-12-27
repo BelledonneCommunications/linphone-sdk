@@ -107,7 +107,7 @@ void MSOpenH264Encoder::initialize()
 			params.iMaxBitrate = maxBitrate;
 			params.iRCMode = RC_BITRATE_MODE;
 			params.fMaxFrameRate = mVConf.fps;
-			params.uiIntraPeriod=mVConf.fps*10;
+			params.uiIntraPeriod = mAVPFEnabled ? (mVConf.fps * 40) :(mVConf.fps*10);
 			//params.bEnableRc = true;
 			params.bEnableFrameSkip = true;
 			params.bPrefixNalAddingCtrl = false;
@@ -198,6 +198,8 @@ void MSOpenH264Encoder::feed()
 					if (sFbi.eFrameType == videoFrameTypeIDR) {
 						ms_iframe_requests_limiter_notify_iframe_sent(&mIFrameLimiter, mFilter->ticker->time);
 						ms_message("MSOpenH264Encoder: sending IDR");
+					}else if (sFbi.eFrameType == videoFrameTypeI){
+						ms_message("MSOpenH264Encoder: sending I (but not IDR) frame");
 					}
 					mFrameCount++;
 					if (!mAVPFEnabled && (mFrameCount == 1)) {
