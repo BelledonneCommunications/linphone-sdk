@@ -834,7 +834,6 @@ static MSFilterMethod au_read_methods[]={
 	{	MS_FILTER_GET_SAMPLE_RATE	, get_rate	},
 	{	MS_FILTER_SET_NCHANNELS		, read_set_nchannels	},
 	{	MS_FILTER_GET_NCHANNELS		, get_nchannels	},
-	{	MS_AUDIO_PLAYBACK_MUTE	 	, set_muted	},
 	{	0				, NULL		}
 };
 

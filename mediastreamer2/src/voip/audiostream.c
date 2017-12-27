@@ -1270,7 +1270,7 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 	stream->ms.state=MSStreamStarted;
 
 	if (stream->soundwrite) {
-		if (ms_filter_implements_interface(stream->soundwrite, MSFilterAudioPlaybackInterface)) {
+		if (ms_filter_has_method(stream->soundwrite, MS_AUDIO_PLAYBACK_SET_ROUTE)) {
 			ms_filter_call_method(stream->soundwrite, MS_AUDIO_PLAYBACK_SET_ROUTE, &stream->audio_route);
 		}
 	}
