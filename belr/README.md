@@ -1,9 +1,10 @@
 What's Belr
 ===========
 
-Belr is Belledonne Communications' language recognition library.
+Belr is Belledonne Communications' language recognition library, written in C++11.
 It aims at parsing any input formatted according to a language defined by an ABNF grammar,
 such as the protocols standardized at IETF.
+The recognized language elements are notified to the application through std::function provided to the parser by the application.
 
 It is based on finite state machine theory and heavily relies on recursivity from an implementation standpoint.
 
@@ -53,4 +54,4 @@ rpmbuild -ta --clean --rmsource --rmspec belr-<version>-<release>.tar.gz
 
 -----------------------
 
-* [1] git://git.linphon.org/bctoolbox.git or <http://www.linphone.org/releases/sources/bctoolbox>
+* [1] git://git.linphone.org/bctoolbox.git or <http://www.linphone.org/releases/sources/bctoolbox>
