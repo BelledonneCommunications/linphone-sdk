@@ -30,7 +30,8 @@ set(GRAMMAR_FILES
 	res/basicgrammar.txt
 	res/vcardgrammar.txt
 	res/sipgrammar.txt
-	res/sipmessage.txt
+	res/response.txt
+	res/register.txt
 )
 
 set(HEADER_FILES_CXX belr-tester.h)
