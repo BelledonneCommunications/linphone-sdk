@@ -34,6 +34,8 @@ set(GRAMMAR_FILES
 	res/register.txt
 )
 
+set(BINARY_GRAMMAR_FILES res/belr-grammar-example.blr)
+
 set(HEADER_FILES_CXX belr-tester.h)
 set(SOURCE_FILES_CXX
 	belr-tester.cpp
@@ -58,11 +60,7 @@ if(NOT IOS)
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 	)
 endif()
+
 install(FILES ${GRAMMAR_FILES} DESTINATION "${CMAKE_INSTALL_DATADIR}/belr-tester/res")
-
-set(BINARY_GRAMMAR_FILES
-	res/belr-grammar-example.blr
-)
-
-install(FILES BINARY_GRAMMAR_FILES DESTINATION "${CMAKE_INSTALL_DATADIR}/belr/grammars")
+install(FILES ${BINARY_GRAMMAR_FILES} DESTINATION "${CMAKE_INSTALL_DATADIR}/belr/grammars")
 
