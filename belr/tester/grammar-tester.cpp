@@ -105,10 +105,7 @@ static void aliases_rules(void) {
 	ABNFGrammarBuilder builder;
 
 	//Read grammar put it in object grammar
-	auto start = std::chrono::high_resolution_clock::now();
 	shared_ptr<Grammar> grammar=builder.createFromAbnfFile(grammarToParse, make_shared<CoreRules>());
-	auto finish = std::chrono::high_resolution_clock::now();
-	std::chrono::duration<double> elapsedFirst = finish - start;
 
 	BC_ASSERT_FALSE(!grammar);
 	
