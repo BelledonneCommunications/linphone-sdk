@@ -33,16 +33,16 @@
 #include <vector>
 #include <chrono>
 
+
+std::string bcTesterFile(const std::string &name);
+std::string bcTesterRes(const std::string &name);
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-
-
 extern test_suite_t grammar_suite;
 
-std::string bcTesterFile(const std::string &name);
-std::string bcTesterRes(const std::string &name);
 
 void belr_tester_init(void(*ftester_printf)(int level, const char *fmt, va_list args));
 void belr_tester_uninit(void);
