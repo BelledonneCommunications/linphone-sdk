@@ -385,6 +385,9 @@ BCTBX_PUBLIC char *bctbx_dirname(const char *path);
  */
 BCTBX_PUBLIC char *bctbx_basename(const char *path);
 
+/**
+ * Tests if a file with given pathname exists. Return 0 if yes, -1 otherwise.
+**/
 BCTBX_PUBLIC int bctbx_file_exist(const char *pathname);
 
 /**
