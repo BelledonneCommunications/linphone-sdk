@@ -279,30 +279,20 @@ public:
 	**/
 	BELR_PUBLIC void include(const std::shared_ptr<Grammar>& grammar);
 	/**
-	 * Add arule to the grammar.
+	 * Add a rule to the grammar.
 	 * @param name the name of the rule
-	 * @param rule the rule recognier, must be an instance of belr::Recognizer.
-	 * @return the rule (the recognizer). The recognizer is given the name of the rule.
+	 * @param rule the rule recognizer, must be an instance of belr::Recognizer.
 	 * @note The grammar takes ownership of the recognizer, which must not be used outside of this grammar.
 	 * TODO: use unique_ptr to enforce this, or make a copy ?
 	**/
-	template <typename _recognizerT>
-	std::shared_ptr<_recognizerT> addRule(const std::string & name, const std::shared_ptr<_recognizerT> &rule){
-		assignRule(name, rule);
-		return rule;
-	}
+	void addRule(const std::string & name, const std::shared_ptr<Recognizer> &rule);
 	/**
 	 * Extend a rule from the grammar.
 	 * This corresponds to the '/=' operator of ABNF definition.
 	 * @param name the name of the rule to extend.
 	 * @param rule the recognizer of the extension.
-	 * @return the rule.
 	**/
-	template <typename _recognizerT>
-	std::shared_ptr<_recognizerT> extendRule(const std::string & name, const std::shared_ptr<_recognizerT> &rule){
-		_extendRule(name, rule);
-		return rule;
-	}
+	void extendRule(const std::string & name, const std::shared_ptr<Recognizer> &rule);
 	/**
 	 * Find a rule from the grammar, given its name.
 	 * @param name the name of the rule
@@ -343,15 +333,12 @@ public:
 	**/
 	BELR_PUBLIC int load(const std::string &filename);
 private:
-	void assignRule(const std::string &name, const std::shared_ptr<Recognizer> &rule);
-	void _extendRule(const std::string &name, const std::shared_ptr<Recognizer> &rule);
 	std::map<std::string,std::shared_ptr<Recognizer>> mRules;
 	//The recognizer pointers create loops in the chain of recognizer, preventing shared_ptr<> to be released.
 	//We store them in this list so that we can reset them manually to break the loop of reference.
 	std::list<std::shared_ptr<RecognizerPointer>> mRecognizerPointers;
 	std::string mName;
 };
-
 
 
 

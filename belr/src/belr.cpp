@@ -639,7 +639,7 @@ Grammar::~Grammar() {
 	}
 }
 
-void Grammar::assignRule(const string &argname, const shared_ptr<Recognizer> &rule){
+void Grammar::addRule(const string &argname, const shared_ptr<Recognizer> &rule){
 	string name=tolower(argname);
 	rule->setName(name);
 	auto it=mRules.find(name);
@@ -655,7 +655,7 @@ void Grammar::assignRule(const string &argname, const shared_ptr<Recognizer> &ru
 	mRules[name]=rule;
 }
 
-void Grammar::_extendRule(const string &argname, const shared_ptr<Recognizer> &rule){
+void Grammar::extendRule(const string &argname, const shared_ptr<Recognizer> &rule){
 	string name=tolower(argname);
 	rule->setName("");
 	auto it=mRules.find(name);
@@ -795,7 +795,7 @@ int Grammar::load(const std::string &filename){
 			break;
 		}
 		BCTBX_SLOGD<<"Added rule "<< rule->getName();
-		assignRule(rule->getName(), rule);
+		addRule(rule->getName(), rule);
 	}
 	ifs.close();
 	if (!isComplete()){

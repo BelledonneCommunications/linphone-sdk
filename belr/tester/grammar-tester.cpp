@@ -131,10 +131,17 @@ static void aliases_rules(void) {
 }
 
 
+static void test_grammar_loader(void) {
+	GrammarLoader & loader = GrammarLoader::get();
+	loader.addPath("res");
+	shared_ptr<Grammar> grammar = loader.load("belr-grammar-example.blr");
+	BC_ASSERT_PTR_NOT_NULL(grammar);
+}
 
 static test_t tests[] = {
 	TEST_NO_TAG("SIP grammar save and load", sipgrammar_save_and_load),
-	TEST_NO_TAG("SIP grammar with aliases rules", aliases_rules)
+	TEST_NO_TAG("SIP grammar with aliases rules", aliases_rules), 
+	TEST_NO_TAG("Grammar loader", test_grammar_loader)
 };
 
 test_suite_t grammar_suite = {

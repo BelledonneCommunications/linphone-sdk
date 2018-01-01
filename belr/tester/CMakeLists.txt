@@ -60,3 +60,9 @@ if(NOT IOS)
 endif()
 install(FILES ${GRAMMAR_FILES} DESTINATION "${CMAKE_INSTALL_DATADIR}/belr-tester/res")
 
+set(BINARY_GRAMMAR_FILES
+	res/belr-grammar-example.blr
+)
+
+install(FILES BINARY_GRAMMAR_FILES DESTINATION "${CMAKE_INSTALL_DATADIR}/belr/grammars")
+

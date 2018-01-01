@@ -202,6 +202,47 @@ public:
 private:
 	Parser<std::shared_ptr<ABNFBuilder>> mParser;
 };
-}
+
+/**
+ * The GrammarLoader creates Grammar objects from binary files lookup and loaded from a pre-defined set of paths.
+ * The binary files have to be created from the ABNF grammar files using the belr-compiler tool.
+**/
+class GrammarLoader{
+public:
+	/**
+	 * Obtain the GrammarLoader singleton.
+	**/
+	BELR_PUBLIC static GrammarLoader &get();
+	/**
+	 * Clear all specific lookup paths previously set in the GrammarLoader.
+	 * The system paths are not erased.
+	**/
+	BELR_PUBLIC void clear();
+	/**
+	 * Add a specific path to lookup for grammar binary files.
+	 * Any specific paths added by this method is actually prepended to the list of paths.
+	 * @param path a path
+	**/
+	BELR_PUBLIC void addPath(const std::string &path);
+	/**
+	 * Build a grammar loaded from a binary file whose name is 'fileName' argument.
+	 * The file searched from the list of specific paths eventually added by addPath(), and the system paths.
+	 * That the GrammarLoader is initialized with two system paths used for searching:
+	 * - ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATADIR}/belr/grammars
+	 * - ${CMAKE_INSTALL_DATADIR}/belr/grammars
+	 * @param fileName the file name of grammar
+	**/
+	BELR_PUBLIC std::shared_ptr<Grammar> load(const std::string &fileName);
+private:
+	GrammarLoader();
+	GrammarLoader(const GrammarLoader & other); //forbids copy constructor
+	std::string lookup(const std::string &fileName, const std::list<std::string> &dirs);
+	std::list<std::string> mSystemPaths;
+	std::list<std::string> mAppPaths;
+	bool isAbsolutePath(const std::string &path);
+	static GrammarLoader *sInstance;
+};
+
+}//end of namespace
 
 #endif

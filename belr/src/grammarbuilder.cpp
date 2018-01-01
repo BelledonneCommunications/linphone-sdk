@@ -22,8 +22,9 @@
 
 #include "belr/abnf.h"
 #include "belr/parser.h"
-
 #include "belr/grammarbuilder.h"
+
+#include "config.h"
 
 using namespace std;
 
@@ -355,6 +356,69 @@ shared_ptr<Grammar> ABNFGrammarBuilder::createFromAbnfFile(const string &path, c
 	stringstream sstr;
 	sstr<<istr.rdbuf();
 	return createFromAbnf(sstr.str(), gram);
+}
+
+GrammarLoader * GrammarLoader::sInstance = nullptr;
+
+GrammarLoader::GrammarLoader(){
+	mSystemPaths.push_back(BELR_GRAMMARS_DIR);
+	mSystemPaths.push_back(BELR_GRAMMARS_RELATIVE_DIR);
+}
+
+GrammarLoader &GrammarLoader::get(){
+	if (sInstance == nullptr){
+		sInstance = new GrammarLoader();
+	}
+	return *sInstance;
+}
+
+void GrammarLoader::addPath(const string &path){
+	mAppPaths.push_front(path);
+}
+
+void GrammarLoader::clear(){
+	mAppPaths.clear();
+}
+
+string GrammarLoader::lookup(const string &fileName, const list<string> & paths){
+	for(auto & it : paths){
+		ostringstream absFilename;
+		absFilename<<it<<"/"<<fileName;
+		if (bctbx_file_exist(absFilename.str().c_str()) == 0){
+			return absFilename.str();
+		}
+	}
+	return "";
+}
+
+bool GrammarLoader::isAbsolutePath(const string &fileName){
+	if (fileName[0] == '/') return TRUE;
+#ifdef _WIN32
+	/* for windows:*/
+	if (fileName.size() > 2 && fileName[1] == ':') return TRUE;
+#endif
+	return FALSE;
+}
+
+shared_ptr<Grammar> GrammarLoader::load(const string &fileName){
+	string absFilename;
+	
+	if (isAbsolutePath(fileName)){
+		absFilename = fileName;
+	}
+	if (absFilename.empty()){
+		absFilename = lookup(fileName, mAppPaths);
+	}
+	if (absFilename.empty()){
+		absFilename = lookup(fileName, mSystemPaths);
+	}
+	if (absFilename.empty()){
+		bctbx_error("Could not load grammar %s because the file could not be located.", fileName.c_str());
+		return nullptr;
+	}
+	shared_ptr<Grammar> ret = make_shared<Grammar>(fileName);
+	if (ret->load(absFilename) == 0) return ret;
+	return nullptr;
 }
 
 }//end of namespace
