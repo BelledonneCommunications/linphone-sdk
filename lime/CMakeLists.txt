@@ -46,18 +46,14 @@ include(CheckSymbolExists)
 include(CMakePushCheckState)
 
 if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
-	include("${EP_bellesip_CONFIG_DIR}/BelleSIPConfig.cmake")
 	set(BcToolbox_FIND_COMPONENTS tester)
 	include("${EP_bctoolbox_CONFIG_DIR}/BcToolboxConfig.cmake")
 else()
 	find_package(BcToolbox 0.5.1 REQUIRED OPTIONAL_COMPONENTS tester)
-	find_package(BelleSIP REQUIRED)
 endif()
 
 find_package(Soci REQUIRED)
 find_package(Sqlite3 REQUIRED)
-
-set(LIME_LDFLAGS "${BELLESIP_LDFLAGS}")
 
 include_directories(
 	include/
@@ -69,7 +65,6 @@ if(MSVC)
 endif()
 
 set(LIME_INCLUDE_DIRS
-	${BELLESIP_INCLUDE_DIRS}
 	${BCTOOLBOX_CORE_INCLUDE_DIRS}
 )
 
@@ -77,7 +72,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY
 set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/config.h PROPERTIES GENERATED ON)
 add_definitions("-DHAVE_CONFIG_H")
 
-set(LIME_CPPFLAGS ${BELLESIP_CPPFLAGS} ${BCTOOLBOX_CPPFLAGS})
+set(LIME_CPPFLAGS ${BCTOOLBOX_CPPFLAGS})
 if(LIME_CPPFLAGS)
 	list(REMOVE_DUPLICATES LIME_CPPFLAGS)
 	add_definitions(${LIME_CPPFLAGS})

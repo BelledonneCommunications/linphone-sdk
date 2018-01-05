@@ -20,6 +20,12 @@
 #
 ############################################################################
 
+if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
+	include("${EP_bellesip_CONFIG_DIR}/BelleSIPConfig.cmake")
+else()
+	find_package(BelleSIP REQUIRED)
+endif()
+
 if(ENABLE_SHARED)
 	set(LIME_LIBRARIES_FOR_TESTER lime)
 else()
@@ -36,6 +42,7 @@ set(SOURCE_FILES_CXX
 
 bc_apply_compile_flags(SOURCE_FILES_CXX STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
 
+include_directories(${BELLESIP_INCLUDE_DIRS})
 add_executable(lime_tester ${SOURCE_FILES_CXX} ${HEADER_FILES_CXX})
 set_target_properties(lime_tester PROPERTIES LINKER_LANGUAGE CXX)
 target_include_directories(lime_tester PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIRS})

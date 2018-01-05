@@ -83,12 +83,85 @@ static void getMessageFor(std::string recipient, std::vector<uint8_t> &cipherHea
 	BC_FAIL();
 }
 
-// define a context used to extract user authentication data
-struct authContext {
-	std::string name;
-	std::string password;
-	authContext(std::string name, std::string password) : name{name}, password{password} {};
+static void process_auth_requested (void *data, belle_sip_auth_event_t *event){
+	// the deviceId is set in the event username(accessible via belle_sip_auth_event_get_username(event);
+	BCTBX_SLOGI<<"Accessing credentials for user "<<std::string(belle_sip_auth_event_get_username(event))<<endl;
+
+	// for test purpose we use a server which accept commands in name of any user using credential of the only one user active on it
+	// so we will crash the username with the one test server accepts
+	belle_sip_auth_event_set_username(event, lime_tester::test_server_user_name.data());
+
+	// In real world we shall provide the password for the requested user as below
+	belle_sip_auth_event_set_passwd(event, lime_tester::test_server_user_password.data());
+}
+
+struct C_Callback_userData {
+	const limeX3DHServerResponseProcess responseProcess;
+	C_Callback_userData(const limeX3DHServerResponseProcess &response) : responseProcess(response) {};
 };
+
+static void process_io_error(void *data, const belle_sip_io_error_event_t *event) noexcept{
+	C_Callback_userData *userData = static_cast<C_Callback_userData *>(data);
+	(userData->responseProcess)(0, std::vector<uint8_t>{});
+	delete(userData);
+}
+
+static void process_response(void *data, const belle_http_response_event_t *event) noexcept {
+	C_Callback_userData *userData = static_cast<C_Callback_userData *>(data);
+	if (event->response){
+		auto code=belle_http_response_get_status_code(event->response);
+		belle_sip_message_t *message = BELLE_SIP_MESSAGE(event->response);
+		// all raw data access functions in lime use uint8_t *, so safely cast the body pointer to it, it's just a data stream pointer anyway
+		auto body = reinterpret_cast<const uint8_t *>(belle_sip_message_get_body(message));
+		auto bodySize = belle_sip_message_get_body_size(message);
+		(userData->responseProcess)(code, std::vector<uint8_t>{body, body+bodySize});
+	} else {
+		(userData->responseProcess)(0, std::vector<uint8_t>{});
+	}
+	delete(userData);
+}
+
+/** @brief Post data to X3DH server.
+ * Communication with X3DH server is entirely managed out of the lib lime, in this example code it is performed over HTTPS provided by belle-sip
+ * Here the HTTPS stack provider prov is a static variable in global context so there is no need to capture it, it may be the case in real usage
+ * This lambda prototype is defined in lime.hpp
+ *
+ * @param[in] url		The URL of X3DH server
+ * @param[in] from		The local device id, used to identify user on the X3DH server, user identification and credential verification is out of lib lime scope.
+ * 				Here identification is performed on test server via belle-sip authentication mechanism and providing the test user credentials
+ * @param[in] message		The data to be sent to the X3DH server
+ * @param[in] responseProcess	The function to be called when response from server arrives. Function prototype is defined in lime.hpp: (void)(int responseCode, std::vector<uint8_t>response)
+ */
+static limeX3DHServerPostData X3DHServerPost([](const std::string &url, const std::string &from, const std::vector<uint8_t> &message, const limeX3DHServerResponseProcess &responseProcess){
+	belle_http_request_listener_callbacks_t cbs={};
+	belle_http_request_listener_t *l;
+	belle_generic_uri_t *uri;
+	belle_http_request_t *req;
+	belle_sip_memory_body_handler_t *bh;
+
+	bh = belle_sip_memory_body_handler_new_copy_from_buffer(message.data(), message.size(), NULL, NULL);
+
+	uri=belle_generic_uri_parse(url.data());
+
+	req=belle_http_request_create("POST",
+			uri,
+			belle_http_header_create("User-Agent", "lime"),
+			belle_http_header_create("Content-type", "x3dh/octet-stream"),
+			belle_http_header_create("From", from.data()),
+			NULL);
+
+	belle_sip_message_set_body_handler(BELLE_SIP_MESSAGE(req),BELLE_SIP_BODY_HANDLER(bh));
+	cbs.process_response=process_response;
+	cbs.process_io_error=process_io_error;
+	cbs.process_auth_requested=process_auth_requested;
+	// store a reference to the responseProcess function in a wrapper as belle-sip request C-style callbacks with a void * user data parameter, C++ implementation shall
+	// use lambda and capture the function.
+	C_Callback_userData *userData = new C_Callback_userData(responseProcess); // this new creates on the heap a copy of the responseProcess closure, so we have access to it when called back by belle-sip
+	l=belle_http_request_listener_create_from_callbacks(&cbs, userData);
+	belle_sip_object_data_set(BELLE_SIP_OBJECT(req), "http_request_listener", l, belle_sip_object_unref); // Ensure the listener object is destroyed when the request is destroyed
+	belle_http_provider_send_request(prov,req,l);
+});
+
 
  /* Basic usage scenario
  * - Alice and Bob register themselves on X3DH server(use randomized device Ids to allow test server to run several test in parallel)
@@ -133,41 +206,12 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 		auto aliceDeviceId = lime_tester::makeRandomDeviceName("alice.");
 		auto bobDeviceId = lime_tester::makeRandomDeviceName("bob.");
 
-		// users must also provide an authentication context: a way to retrieve their password to authenticate on server
-		authContext aliceCredentials(*aliceDeviceId, lime_tester::test_server_user_password);
-		authContext bobCredentials(*bobDeviceId, lime_tester::test_server_user_password);
-
-		// create Managers : they will open/create the database given in first parameter, and use the http provider given in second one to communicate with server.
-		// The third parameter is a callback used to identify the user on server
-
+		// create Managers : they will open/create the database given in first parameter, and use the function given in second one to communicate with server.
 		// Any application using Lime shall instantiate one LimeManager only, even in case of multiple users managed by the application.
-		auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, prov,
-					// closure copy from context its way to access users credentials
-					[aliceCredentials](belle_sip_auth_event_t *event){
-						// the deviceId is set in the event username(accessible via belle_sip_auth_event_get_username(event);
-						BCTBX_SLOGI<<"Accessing credentials for user "<<std::string(belle_sip_auth_event_get_username(event))<<endl;
+		auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
 
-						// for test purpose we use a server which accept commands in name of any user using credential of the only one user active on it
-						// so we will crash the username with the one test server accepts
-						belle_sip_auth_event_set_username(event, lime_tester::test_server_user_name.data());
-
-						// In real world we shall provide the password for the requested user as below
-						belle_sip_auth_event_set_passwd(event, aliceCredentials.password.data());
-					}));
-
-		auto bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, prov,
-					// closure copy from context its way to access users credentials
-					[bobCredentials](belle_sip_auth_event_t *event){
-						// the deviceId is set in the event username(accessible via belle_sip_auth_event_get_username(event);
-						BCTBX_SLOGI<<"Accessing credentials for user "<<std::string(belle_sip_auth_event_get_username(event))<<endl;
-
-						// for test purpose we use a server which accept commands in name of any user using credential of the only one user active on it
-						// so we will crash the username with the one test server accepts
-						belle_sip_auth_event_set_username(event, lime_tester::test_server_user_name.data());
-
-						// In real world we shall provide the password for the requested user as below
-						belle_sip_auth_event_set_passwd(event, bobCredentials.password.data());
-					}));
+		// Here we have simulate two distinct devices so we have two managers
+		auto bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, X3DHServerPost));
 
 		BCTBX_SLOGI<<"Create "<<*aliceDeviceId<<" and "<<*bobDeviceId<<" users"<<endl;
 		// create users, this operation is asynchronous(as the user is also created on X3DH server)
@@ -216,6 +260,7 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 		//      - plain message
 		//      - cipher message (this one must then be distributed to all recipients devices)
 		//      - a callback (prototype: void(lime::callbackReturn, std::string))
+		{
 		aliceManager->encrypt(*aliceDeviceId, make_shared<const std::string>("bob"), recipients, message, cipherMessage,
 					// lambda to get the results, it captures :
 					// - counter : relative to the test, real application won't need this, it's local and used to wait for completion and can't be destroyed before the call to this closure
@@ -246,7 +291,7 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 							BCTBX_SLOGE<<"Lime operation failed : "<<errorMessage;
 						}
 					});
-
+		}
 		BCTBX_SLOGI<<"Alice encrypt the message, out of encrypt call, wait for callback"<<endl;
 		// in real sending situation, the local instance of the shared pointer are destroyed by exiting the function where they've been declared
 		// and where we called the encrypt function. (The LimeManager shall instead never be destroyed until the application terminates)
@@ -368,41 +413,12 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve, const std:
 		auto aliceDeviceId = lime_tester::makeRandomDeviceName("alice.");
 		auto bobDeviceId = lime_tester::makeRandomDeviceName("bob.");
 
-		// users must also provide an authentication context: a way to retrieve their password to authenticate on server
-		authContext aliceCredentials(*aliceDeviceId, lime_tester::test_server_user_password);
-		authContext bobCredentials(*bobDeviceId, lime_tester::test_server_user_password);
-
-		// create Managers : they will open/create the database given in first parameter, and use the http provider given in second one to communicate with server.
-		// The third parameter is a callback used to identify the user on server
-
+		// create Managers : they will open/create the database given in first parameter, and use the function given in second one to communicate with server.
 		// Any application using Lime shall instantiate one LimeManager only, even in case of multiple users managed by the application.
-		auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, prov,
-					// closure copy from context its way to access users credentials
-					[aliceCredentials](belle_sip_auth_event_t *event){
-						// the deviceId is set in the event username(accessible via belle_sip_auth_event_get_username(event);
-						BCTBX_SLOGI<<"Accessing credentials for user "<<std::string(belle_sip_auth_event_get_username(event))<<endl;
+		auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
 
-						// for test purpose we use a server which accept commands in name of any user using credential of the only one user active on it
-						// so we will crash the username with the one test server accepts
-						belle_sip_auth_event_set_username(event, lime_tester::test_server_user_name.data());
-
-						// In real world we shall provide the password for the requested user as below
-						belle_sip_auth_event_set_passwd(event, aliceCredentials.password.data());
-					}));
-
-		auto bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, prov,
-					// closure copy from context its way to access users credentials
-					[bobCredentials](belle_sip_auth_event_t *event){
-						// the deviceId is set in the event username(accessible via belle_sip_auth_event_get_username(event);
-						BCTBX_SLOGI<<"Accessing credentials for user "<<std::string(belle_sip_auth_event_get_username(event))<<endl;
-
-						// for test purpose we use a server which accept commands in name of any user using credential of the only one user active on it
-						// so we will crash the username with the one test server accepts
-						belle_sip_auth_event_set_username(event, lime_tester::test_server_user_name.data());
-
-						// In real world we shall provide the password for the requested user as below
-						belle_sip_auth_event_set_passwd(event, bobCredentials.password.data());
-					}));
+		// Here we have simulate two distinct devices so we have two managers
+		auto bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, X3DHServerPost));
 
 		BCTBX_SLOGI<<"Create "<<*aliceDeviceId<<" and "<<*bobDeviceId<<" users"<<endl;
 		// create users, this operation is asynchronous(as the user is also created on X3DH server)

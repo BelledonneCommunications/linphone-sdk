@@ -71,17 +71,92 @@ static int http_after_all(void) {
 /* This is the callback used for authentication on the test server.
  * Test server holds only one user which is used for all connections(which MUST not work on a real server)
  */
-static userAuthenticateCallback user_auth_callback([](belle_sip_auth_event_t *event) {
+static void process_auth_requested (void *data, belle_sip_auth_event_t *event){
+	// the deviceId is set in the event username(accessible via belle_sip_auth_event_get_username(event);
+	BCTBX_SLOGI<<"Accessing credentials for user "<<std::string(belle_sip_auth_event_get_username(event))<<endl;
+
+	// for test purpose we use a server which accept commands in name of any user using credential of the only one user active on it
+	// so we will crash the username with the one test server accepts
 	belle_sip_auth_event_set_username(event, lime_tester::test_server_user_name.data());
+
+	// In real world we shall provide the password for the requested user as below
 	belle_sip_auth_event_set_passwd(event, lime_tester::test_server_user_password.data());
+}
+
+struct C_Callback_userData {
+	const limeX3DHServerResponseProcess responseProcess;
+	C_Callback_userData(const limeX3DHServerResponseProcess &response) : responseProcess(response) {};
+};
+
+static void process_io_error(void *data, const belle_sip_io_error_event_t *event) noexcept{
+	C_Callback_userData *userData = static_cast<C_Callback_userData *>(data);
+	(userData->responseProcess)(0, std::vector<uint8_t>{});
+	delete(userData);
+}
+
+static void process_response(void *data, const belle_http_response_event_t *event) noexcept {
+	C_Callback_userData *userData = static_cast<C_Callback_userData *>(data);
+	if (event->response){
+		auto code=belle_http_response_get_status_code(event->response);
+		belle_sip_message_t *message = BELLE_SIP_MESSAGE(event->response);
+		// all raw data access functions in lime use uint8_t *, so safely cast the body pointer to it, it's just a data stream pointer anyway
+		auto body = reinterpret_cast<const uint8_t *>(belle_sip_message_get_body(message));
+		auto bodySize = belle_sip_message_get_body_size(message);
+		(userData->responseProcess)(code, std::vector<uint8_t>{body, body+bodySize});
+	} else {
+		(userData->responseProcess)(0, std::vector<uint8_t>{});
+	}
+	delete(userData);
+}
+
+/** @brief Post data to X3DH server.
+ * Communication with X3DH server is entirely managed out of the lib lime, in this example code it is performed over HTTPS provided by belle-sip
+ * Here the HTTPS stack provider prov is a static variable in global context so there is no need to capture it, it may be the case in real usage
+ * This lambda prototype is defined in lime.hpp
+ *
+ * @param[in] url		The URL of X3DH server
+ * @param[in] from		The local device id, used to identify user on the X3DH server, user identification and credential verification is out of lib lime scope.
+ * 				Here identification is performed on test server via belle-sip authentication mechanism and providing the test user credentials
+ * @param[in] message		The data to be sent to the X3DH server
+ * @param[in] responseProcess	The function to be called when response from server arrives. Function prototype is defined in lime.hpp: (void)(int responseCode, std::vector<uint8_t>response)
+ */
+static limeX3DHServerPostData X3DHServerPost([](const std::string &url, const std::string &from, const std::vector<uint8_t> &message, const limeX3DHServerResponseProcess &responseProcess){
+	belle_http_request_listener_callbacks_t cbs={};
+	belle_http_request_listener_t *l;
+	belle_generic_uri_t *uri;
+	belle_http_request_t *req;
+	belle_sip_memory_body_handler_t *bh;
+
+	bh = belle_sip_memory_body_handler_new_copy_from_buffer(message.data(), message.size(), NULL, NULL);
+
+	uri=belle_generic_uri_parse(url.data());
+
+	req=belle_http_request_create("POST",
+			uri,
+			belle_http_header_create("User-Agent", "lime"),
+			belle_http_header_create("Content-type", "x3dh/octet-stream"),
+			belle_http_header_create("From", from.data()),
+			NULL);
+
+	belle_sip_message_set_body_handler(BELLE_SIP_MESSAGE(req),BELLE_SIP_BODY_HANDLER(bh));
+	cbs.process_response=process_response;
+	cbs.process_io_error=process_io_error;
+	cbs.process_auth_requested=process_auth_requested;
+	// store a reference to the responseProcess function in a wrapper as belle-sip request C-style callbacks with a void * user data parameter, C++ implementation shall
+	// use lambda and capture the function.
+	C_Callback_userData *userData = new C_Callback_userData(responseProcess); // create on the heap a copy of the responseProcess closure so it's available when we're called back by belle-sip
+	l=belle_http_request_listener_create_from_callbacks(&cbs, userData);
+	belle_sip_object_data_set(BELLE_SIP_OBJECT(req), "http_request_listener", l, belle_sip_object_unref); // Ensure the listener object is destroyed when the request is destroyed
+	belle_http_provider_send_request(prov,req,l);
 });
+
 
 /* This function will destroy and recreate managers given in parameter, force deleting all internal cache and start back from what is in local Storage */
 static void managersClean(std::unique_ptr<LimeManager> &alice, std::unique_ptr<LimeManager> &bob, std::string aliceDb, std::string bobDb) {
 	alice = nullptr;
 	bob = nullptr;
-	alice = unique_ptr<lime::LimeManager>(new lime::LimeManager(aliceDb, prov, user_auth_callback));
-	bob = std::unique_ptr<lime::LimeManager>(new lime::LimeManager(bobDb, prov, user_auth_callback));
+	alice = unique_ptr<lime::LimeManager>(new lime::LimeManager(aliceDb, X3DHServerPost));
+	bob = std::unique_ptr<lime::LimeManager>(new lime::LimeManager(bobDb, X3DHServerPost));
 	BCTBX_SLOGI<<"Trash and reload alice and bob LimeManagers";
 }
 
@@ -188,13 +263,13 @@ static void lime_session_establishment(const lime::CurveId curve, const std::str
 				});
 	try {
 		// create Manager and device for alice
-		aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, prov, user_auth_callback));
+		aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
 		aliceDeviceId = lime_tester::makeRandomDeviceName("alice.d1.");
 		aliceManager->create_user(*aliceDeviceId, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		// Create manager and device for bob
-		bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, prov, user_auth_callback));
+		bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, X3DHServerPost));
 		bobDeviceId = lime_tester::makeRandomDeviceName("bob.d");
 		bobManager->create_user(*bobDeviceId, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
@@ -253,10 +328,10 @@ static void lime_identityVerifiedStatus_test(const lime::CurveId curve, const st
 
 	try {
 		// create Manager and device for alice and bob
-		aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, prov, user_auth_callback));
+		aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
 		aliceDeviceId = lime_tester::makeRandomDeviceName("alice.d1.");
 		aliceManager->create_user(*aliceDeviceId, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
-		bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, prov, user_auth_callback));
+		bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, X3DHServerPost));
 		bobDeviceId = lime_tester::makeRandomDeviceName("bob.d1.");
 		bobManager->create_user(*bobDeviceId, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
 		expected_success += 2;
@@ -373,7 +448,7 @@ static void lime_getSelfIk_test(const lime::CurveId curve, const std::string &db
 	std::vector<uint8_t> Ik{};
 	try  {
 		// create Manager for alice
-		aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilename, prov, user_auth_callback));
+		aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilename, X3DHServerPost));
 		// retrieve alice identity key
 		aliceManager->get_selfIdentityKey("alice", Ik);
 
@@ -439,7 +514,7 @@ static void lime_update_OPk_test(const lime::CurveId curve, const std::string &d
 				});
 	try {
 		// create Manager and device for alice
-		auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, prov, user_auth_callback));
+		auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
 		auto aliceDeviceId = lime_tester::makeRandomDeviceName("alice.d1.");
 		aliceManager->create_user(*aliceDeviceId, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
@@ -462,7 +537,7 @@ static void lime_update_OPk_test(const lime::CurveId curve, const std::string &d
 		size_t patternIndex = 0;
 		// create tow devices for bob and encrypt to alice
 		for (auto i=0; i<2; i++) {
-			bobManagers.push_back(std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, prov, user_auth_callback)));
+			bobManagers.push_back(std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, X3DHServerPost)));
 			bobDeviceIds.push_back(lime_tester::makeRandomDeviceName("bob.d"));
 			bobManagers.back()->create_user(*(bobDeviceIds.back()), x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
 			BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
@@ -492,7 +567,7 @@ static void lime_update_OPk_test(const lime::CurveId curve, const std::string &d
 		// forward time by OPK_limboTime_days
 		aliceManager=nullptr; // destroy manager before modifying DB
 		lime_tester::forwardTime(dbFilenameAlice, lime::settings::OPk_limboTime_days+1);
-		aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, prov, user_auth_callback));
+		aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
 
 		// check nothing has changed on our local OPk count
 		BC_ASSERT_EQUAL(lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), 2*lime_tester::OPkInitialBatchSize, size_t, "%ld");
@@ -581,7 +656,7 @@ static void lime_update_SPk_test(const lime::CurveId curve, const std::string &d
 		size_t patternIndex = 0;
 
 		// create Manager and device for alice
-		auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, prov, user_auth_callback));
+		auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
 		auto aliceDeviceId = lime_tester::makeRandomDeviceName("alice.d1.");
 		aliceManager->create_user(*aliceDeviceId, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
@@ -597,7 +672,7 @@ static void lime_update_SPk_test(const lime::CurveId curve, const std::string &d
 		std::vector<std::shared_ptr<std::vector<uint8_t>>> bobCipherMessages{};
 
 		// create a device for bob and encrypt to alice
-		bobManagers.push_back(std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, prov, user_auth_callback)));
+		bobManagers.push_back(std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, X3DHServerPost)));
 		bobDeviceIds.push_back(lime_tester::makeRandomDeviceName("bob.d"));
 		bobManagers.back()->create_user(*(bobDeviceIds.back()), x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
@@ -623,7 +698,7 @@ static void lime_update_SPk_test(const lime::CurveId curve, const std::string &d
 			aliceManager=nullptr; // destroy manager before modifying DB
 			lime_tester::forwardTime(dbFilenameAlice, lime::settings::SPK_lifeTime_days);
 			epoch+=lime::settings::SPK_lifeTime_days;
-			aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, prov, user_auth_callback));
+			aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
 
 			// call the update, it shall create and upload a new SPk but keep the old ones
 			aliceManager->update(callback, 0, lime_tester::OPkInitialBatchSize);
@@ -637,7 +712,7 @@ static void lime_update_SPk_test(const lime::CurveId curve, const std::string &d
 			BC_ASSERT_EQUAL(SPkCount, SPkExpectedCount, int, "%d");
 
 			// create a device for bob and use it to encrypt
-			bobManagers.push_back(std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, prov, user_auth_callback)));
+			bobManagers.push_back(std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, X3DHServerPost)));
 			bobDeviceIds.push_back(lime_tester::makeRandomDeviceName("bob.d"));
 			bobManagers.back()->create_user(*(bobDeviceIds.back()), x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
 			BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
@@ -663,7 +738,7 @@ static void lime_update_SPk_test(const lime::CurveId curve, const std::string &d
 		aliceManager=nullptr; // destroy manager before modifying DB
 		lime_tester::forwardTime(dbFilenameAlice, lime::settings::SPK_lifeTime_days);
 		epoch+=lime::settings::SPK_lifeTime_days;
-		aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, prov, user_auth_callback));
+		aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
 
 		// call the update, it shall create and upload a new SPk but keep the old ones and delete one
 		aliceManager->update(callback, 0, lime_tester::OPkInitialBatchSize);
@@ -840,7 +915,7 @@ static void x3dh_without_OPk_test(const lime::CurveId curve, const std::string &
 				});
 	try {
 		// create Manager and device for alice
-		auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, prov, user_auth_callback));
+		auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
 		auto aliceDeviceId = lime_tester::makeRandomDeviceName("alice.d1.");
 		auto aliceOPkInitialBatchSize = 3; // give it only 3 OPks as initial batch
 		aliceManager->create_user(*aliceDeviceId, x3dh_server_url, curve, aliceOPkInitialBatchSize, callback);
@@ -848,7 +923,7 @@ static void x3dh_without_OPk_test(const lime::CurveId curve, const std::string &
 
 		for (auto i=0; i<aliceOPkInitialBatchSize+1; i++) {
 			// Create manager and device for bob
-			auto bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, prov, user_auth_callback));
+			auto bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, X3DHServerPost));
 			auto bobDeviceId = lime_tester::makeRandomDeviceName("bob.d");
 			bobManager->create_user(*bobDeviceId, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
 			BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
@@ -937,8 +1012,8 @@ static void x3dh_sending_chain_limit_test(const lime::CurveId curve, const std::
 				});
 	try {
 		// create Manager
-		auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, prov, user_auth_callback));
-		auto bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, prov, user_auth_callback));
+		auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
+		auto bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, X3DHServerPost));
 
 		// create Random devices names
 		auto aliceDevice1 = lime_tester::makeRandomDeviceName("alice.d1.");
@@ -1089,8 +1164,8 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 
 	try {
 		// create Manager
-		auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, prov, user_auth_callback));
-		auto bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, prov, user_auth_callback));
+		auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
+		auto bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, X3DHServerPost));
 
 		// create Random devices names
 		auto aliceDevice1 = lime_tester::makeRandomDeviceName("alice.d1.");
@@ -1227,8 +1302,8 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 		lime_tester::forwardTime(dbFilenameAlice, lime::settings::DRSession_limboTime_days+1);
 		lime_tester::forwardTime(dbFilenameBob, lime::settings::DRSession_limboTime_days+1);
 
-		aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, prov, user_auth_callback));
-		bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, prov, user_auth_callback));
+		aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
+		bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, X3DHServerPost));
 
 		// run the update function
 		aliceManager->update(callback, 0, lime_tester::OPkInitialBatchSize);
@@ -1309,8 +1384,8 @@ static void x3dh_multidev_operation_queue_test(const lime::CurveId curve, const 
 
 	try {
 		// create Manager
-		auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, prov, user_auth_callback));
-		auto bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, prov, user_auth_callback));
+		auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
+		auto bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, X3DHServerPost));
 
 		// create Random devices names
 		auto aliceDevice1 = lime_tester::makeRandomDeviceName("alice.d1.");
@@ -1514,8 +1589,8 @@ static void x3dh_operation_queue_test(const lime::CurveId curve, const std::stri
 
 	try {
 		// create Manager
-		auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, prov, user_auth_callback));
-		auto bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, prov, user_auth_callback));
+		auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
+		auto bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, X3DHServerPost));
 
 		// create Random devices names
 		auto aliceDevice1 = lime_tester::makeRandomDeviceName("alice.d1.");
@@ -1638,8 +1713,8 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 
 	try {
 		// create Manager
-		auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, prov, user_auth_callback));
-		auto bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, prov, user_auth_callback));
+		auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
+		auto bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, X3DHServerPost));
 
 		// create Random devices names
 		auto aliceDevice1 = lime_tester::makeRandomDeviceName("alice.d1.");
@@ -1857,7 +1932,7 @@ static void user_management_test(const lime::CurveId curve, const std::string &d
 					}
 				});
 	// we need a LimeManager
-	auto Manager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, prov, user_auth_callback));
+	auto Manager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
 	auto aliceDeviceName = lime_tester::makeRandomDeviceName("alice.");
 
 	try {
@@ -1867,7 +1942,7 @@ static void user_management_test(const lime::CurveId curve, const std::string &d
 		if (counters.operation_failed == 1) return; // skip the end of the test if we can't do this
 
 		/* load alice from from DB */
-		auto alice = load_LimeUser(dbFilenameAlice, *aliceDeviceName, prov, user_auth_callback);
+		auto alice = load_LimeUser(dbFilenameAlice, *aliceDeviceName, X3DHServerPost);
 		/* no need to wait here, it shall load alice immediately */
 	} catch (BctbxException &e) {
 		BCTBX_SLOGE <<e;;
@@ -1877,7 +1952,7 @@ static void user_management_test(const lime::CurveId curve, const std::string &d
 	bool gotExpectedException = false;
 	/* Try to create the same user in the same data base, it must fail with exception raised */
 	try {
-		auto alice = insert_LimeUser(dbFilenameAlice, *aliceDeviceName, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, prov, user_auth_callback, callback);
+		auto alice = insert_LimeUser(dbFilenameAlice, *aliceDeviceName, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, X3DHServerPost, callback);
 		/* no need to wait here, it must fail immediately */
 	} catch (BctbxException &e) {
 		gotExpectedException = true;
@@ -1891,7 +1966,7 @@ static void user_management_test(const lime::CurveId curve, const std::string &d
 	/* Try to load a user which is not in DB, it must fail with exception raised */
 	gotExpectedException = false;
 	try {
-		auto alice = load_LimeUser(dbFilenameAlice, "bob", prov, user_auth_callback);
+		auto alice = load_LimeUser(dbFilenameAlice, "bob", X3DHServerPost);
 		/* no need to wait here, it must fail immediately */
 	} catch (BctbxException &e) {
 		gotExpectedException = true;
@@ -1932,7 +2007,7 @@ static void user_management_test(const lime::CurveId curve, const std::string &d
 
 	/* Create Alice again */
 	try {
-		std::shared_ptr<LimeGeneric> alice = insert_LimeUser(dbFilenameAlice, *aliceDeviceName, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, prov, user_auth_callback, callback);
+		std::shared_ptr<LimeGeneric> alice = insert_LimeUser(dbFilenameAlice, *aliceDeviceName, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, X3DHServerPost, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		// create another manager with a fresh DB
@@ -1940,7 +2015,7 @@ static void user_management_test(const lime::CurveId curve, const std::string &d
 		dbFilenameAliceTmp.append(".tmp.sqlite3");
 
 		// create a manager and try to create alice again, it shall pass local creation(db is empty) but server shall reject it
-		auto ManagerTmp = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAliceTmp, prov, user_auth_callback));
+		auto ManagerTmp = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAliceTmp, X3DHServerPost));
 
 		ManagerTmp->create_user(*aliceDeviceName, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_failed,counters.operation_failed+1,lime_tester::wait_for_timeout)); // wait on this one but we shall get a fail from server

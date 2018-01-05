@@ -54,16 +54,15 @@ namespace lime {
 	 * @param[in/out]	localStorage			pointer to DB accessor
 	 * @param[in]		deviceId			device Id(shall be GRUU), stored in the structure
 	 * @param[in]		url				URL of the X3DH key server used to publish our keys(retrieved from DB)
-	 * @param[in]		http_provider			An HTTP stack
-	 * @param[in]		user_authentication_callback	called to get users credentials to log on X3DH key server
+	 * @param[in]		X3DH_post_data			A function used to communicate with the X3DH server
 	 * @param[in]		Uid				the DB internal Id for this user, speed up DB operations by holding it in DB
 	 */
 	template <typename Curve>
-	Lime<Curve>::Lime(std::unique_ptr<lime::Db> &&localStorage, const std::string &deviceId, const std::string &url, belle_http_provider_t *http_provider,  const userAuthenticateCallback &user_authentication_callback, const long int Uid)
+	Lime<Curve>::Lime(std::unique_ptr<lime::Db> &&localStorage, const std::string &deviceId, const std::string &url, const limeX3DHServerPostData &X3DH_post_data, const long int Uid)
 	: m_RNG{bctbx_rng_context_new()}, m_selfDeviceId{deviceId},
 	m_Ik{}, m_Ik_loaded(false),
 	m_localStorage(std::move(localStorage)), m_db_Uid{Uid},
-	m_http_provider{http_provider}, m_user_auth{user_authentication_callback}, m_X3DH_Server_URL{url},
+	m_X3DH_post_data{X3DH_post_data}, m_X3DH_Server_URL{url},
 	m_DR_sessions_cache{}, m_ongoing_encryption{nullptr}, m_encryption_queue{}
 	{ }
 
@@ -75,15 +74,14 @@ namespace lime {
 	 * @param[in/out]	localStorage			pointer to DB accessor
 	 * @param[in]		deviceId			device Id(shall be GRUU), stored in the structure
 	 * @param[in]		url				URL of the X3DH key server used to publish our keys
-	 * @param[in]		http_provider			An HTTP stack
-	 * @param[in]		user_authentication_callback	called to get users credentials to log on X3DH key server
+	 * @param[in]		X3DH_post_data			A function used to communicate with the X3DH server
 	 */
 	template <typename Curve>
-	Lime<Curve>::Lime(std::unique_ptr<lime::Db> &&localStorage, const std::string &deviceId, const std::string &url, belle_http_provider_t *http_provider, const userAuthenticateCallback &user_authentication_callback)
+	Lime<Curve>::Lime(std::unique_ptr<lime::Db> &&localStorage, const std::string &deviceId, const std::string &url, const limeX3DHServerPostData &X3DH_post_data)
 	: m_RNG{bctbx_rng_context_new()}, m_selfDeviceId{deviceId},
 	m_Ik{}, m_Ik_loaded(false),
 	m_localStorage(std::move(localStorage)), m_db_Uid{0},
-	m_http_provider{http_provider}, m_user_auth{user_authentication_callback}, m_X3DH_Server_URL{url},
+	m_X3DH_post_data{X3DH_post_data}, m_X3DH_Server_URL{url},
 	m_DR_sessions_cache{}, m_ongoing_encryption{nullptr}, m_encryption_queue{}
 	{
 		try {
@@ -113,7 +111,7 @@ namespace lime {
 	 */
 	template <typename Curve>
 	void Lime<Curve>::publish_user(const limeCallback &callback, const uint16_t OPkInitialBatchSize) {
-		callbackUserData<Curve> *userData = new callbackUserData<Curve>{this->shared_from_this(), callback, OPkInitialBatchSize, true};
+		auto userData = make_shared<callbackUserData<Curve>>(this->shared_from_this(), callback, OPkInitialBatchSize, true);
 		get_SelfIdentityKey(); // make sure our Ik is loaded in object
 		std::vector<uint8_t> X3DHmessage{};
 		x3dh_protocol::buildMessage_registerUser<Curve>(X3DHmessage, m_Ik.publicKey());
@@ -126,7 +124,7 @@ namespace lime {
 		m_localStorage->delete_LimeUser(m_selfDeviceId);
 
 		// delete user from server
-		callbackUserData<Curve> *userData = new callbackUserData<Curve>{this->shared_from_this(), callback};
+		auto userData = make_shared<callbackUserData<Curve>>(this->shared_from_this(), callback);
 		std::vector<uint8_t> X3DHmessage{};
 		x3dh_protocol::buildMessage_deleteUser<Curve>(X3DHmessage);
 		postToX3DHServer(userData, X3DHmessage);
@@ -137,7 +135,7 @@ namespace lime {
 		// Do we need to update the SPk
 		if (!is_currentSPk_valid()) {
 			BCTBX_SLOGI<<"User "<<m_selfDeviceId<<" updates its SPk";
-			callbackUserData<Curve> *userData = new callbackUserData<Curve>{this->shared_from_this(), callback};
+			auto userData = make_shared<callbackUserData<Curve>>(this->shared_from_this(), callback);
 			// generate and publish the SPk
 			X<Curve> SPk{};
 			Signature<Curve> SPk_sig{};
@@ -154,7 +152,7 @@ namespace lime {
 	template <typename Curve>
 	void Lime<Curve>::update_OPk(const limeCallback &callback, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize) {
 		// Request Server for the count of our OPk it still holds
-		callbackUserData<Curve> *userData = new callbackUserData<Curve>{this->shared_from_this(), callback, OPkServerLowLimit, OPkBatchSize};
+		auto userData = make_shared<callbackUserData<Curve>>(this->shared_from_this(), callback, OPkServerLowLimit, OPkBatchSize);
 		std::vector<uint8_t> X3DHmessage{};
 		x3dh_protocol::buildMessage_getSelfOPks<Curve>(X3DHmessage);
 		postToX3DHServer(userData, X3DHmessage); // in the response from server, if more OPks are needed, it will generate and post them before calling the callback
@@ -206,8 +204,7 @@ namespace lime {
 			// retrieve bundles from X3DH server, when they arrive, it will run the X3DH initiation and create the DR sessions
 			std::vector<uint8_t> X3DHmessage{};
 			x3dh_protocol::buildMessage_getPeerBundles<Curve>(X3DHmessage, missing_devices);
-			// use the raw pointer to userData as it is passed to belle-sip C callbacks but store it in current object so it is not destroyed
-			postToX3DHServer(userData.get(), X3DHmessage);
+			postToX3DHServer(userData, X3DHmessage);
 		} else { // got everyone, encrypt
 			encryptMessage(internal_recipients, *plainMessage, *recipientUserId, m_selfDeviceId, *cipherMessage);
 			// move cipher headers to the input/output structure
@@ -299,14 +296,13 @@ namespace lime {
 	 * @param[in]	url				URL of X3DH key server to be used to publish our keys
 	 * @param[in]	curve				Which curve shall we use for this account, select the implemenation to instanciate when using this user
 	 * @param[in]	initialOPkBatchSize		Number of OPks in the first batch uploaded to X3DH server
-	 * @param[in]	http_provider			An http provider used to communicate with x3dh key server
-	 * @param[in]	user_authentication_callback	To complete user authentication on server: must provide user credentials
+	 * @param[in]	X3DH_post_data			A function used to communicate with the X3DH server
 	 * @param[in]	callback			To provide caller the operation result
 	 *
 	 * @return a pointer to the LimeGeneric class allowing access to API declared in lime.hpp
 	 */
 	std::shared_ptr<LimeGeneric> insert_LimeUser(const std::string &dbFilename, const std::string &deviceId, const std::string &url, const lime::CurveId curve, const uint16_t OPkInitialBatchSize,
-			belle_http_provider *http_provider, const userAuthenticateCallback &user_authentication_callback, const limeCallback &callback) {
+			const limeX3DHServerPostData &X3DH_post_data, const limeCallback &callback) {
 		BCTBX_SLOGI<<"Create Lime user "<<deviceId;
 		/* first check the requested curve is instanciable and return an exception if not */
 #ifndef EC25519_ENABLED
@@ -330,7 +326,7 @@ namespace lime {
 #ifdef EC25519_ENABLED
 				{
 					/* constructor will insert user in Db, if already present, raise an exception*/
-					auto lime_ptr = std::make_shared<Lime<C255>>(std::move(localStorage), deviceId, url, http_provider, user_authentication_callback);
+					auto lime_ptr = std::make_shared<Lime<C255>>(std::move(localStorage), deviceId, url, X3DH_post_data);
 					lime_ptr->publish_user(callback, OPkInitialBatchSize);
 					return lime_ptr;
 				}
@@ -340,7 +336,7 @@ namespace lime {
 				case lime::CurveId::c448 :
 #ifdef EC448_ENABLED
 				{
-					auto lime_ptr = std::make_shared<Lime<C448>>(std::move(localStorage), deviceId, url, http_provider, user_authentication_callback);
+					auto lime_ptr = std::make_shared<Lime<C448>>(std::move(localStorage), deviceId, url, X3DH_post_data);
 					lime_ptr->publish_user(callback, OPkInitialBatchSize);
 					return lime_ptr;
 				}
@@ -364,12 +360,11 @@ namespace lime {
 	 *
 	 * @param[in]	dbFilename			Path to filename to use
 	 * @param[in]	deviceId			User to lookup in DB, deviceId shall be the GRUU
-	 * @param[in]	http_provider			An http provider used to communicate with x3dh key server
-	 * @param[in]	user_authentication_callback	To complete user authentication on server: must provide user credentials
+	 * @param[in]	X3DH_post_data			A function used to communicate with the X3DH server
 	 *
 	 * @return a pointer to the LimeGeneric class allowing access to API declared in lime.hpp
 	 */
-	std::shared_ptr<LimeGeneric> load_LimeUser(const std::string &dbFilename, const std::string &deviceId, belle_http_provider *http_provider, const userAuthenticateCallback &user_authentication_callback) {
+	std::shared_ptr<LimeGeneric> load_LimeUser(const std::string &dbFilename, const std::string &deviceId, const limeX3DHServerPostData &X3DH_post_data) {
 
 		/* open DB and load user */
 		auto localStorage = std::unique_ptr<lime::Db>(new lime::Db(dbFilename)); // create as unique ptr, ownership is then passed to the Lime structure when instanciated
@@ -397,14 +392,14 @@ namespace lime {
 			switch (curve) {
 				case lime::CurveId::c25519 :
 #ifdef EC25519_ENABLED
-					return std::make_shared<Lime<C255>>(std::move(localStorage), deviceId, x3dh_server_url, http_provider, user_authentication_callback, Uid);
+					return std::make_shared<Lime<C255>>(std::move(localStorage), deviceId, x3dh_server_url, X3DH_post_data, Uid);
 #endif
 				break;
 
 				case lime::CurveId::c448 :
 #ifdef EC448_ENABLED
 
-					return std::make_shared<Lime<C448>>(std::move(localStorage), deviceId, x3dh_server_url, http_provider, user_authentication_callback, Uid);
+					return std::make_shared<Lime<C448>>(std::move(localStorage), deviceId, x3dh_server_url, X3DH_post_data, Uid);
 #endif
 				break;
 

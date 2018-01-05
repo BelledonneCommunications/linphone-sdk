@@ -22,7 +22,6 @@
 #include <memory> //smart ptrs
 #include <unordered_map>
 #include <vector>
-#include "belle-sip/belle-sip.h"
 
 namespace lime {
 
@@ -43,9 +42,26 @@ namespace lime {
 	// a callback function must return a code and may return a string(could actually be empty) to detail what's happening
 	// callback is used on every operation possibly involving a connection to X3DH server: create_user, delete_user, encrypt
 	using limeCallback = std::function<void(lime::callbackReturn, std::string)>;
-	// the user authenticate callback will pass a sip_auth_event to be completed with user's password
-	using userAuthenticateCallback = std::function<void(belle_sip_auth_event_t *)>;
 
+	/* X3DH server communication : these functions prototypes are used to post data and get response from/to the X3DH server */
+	/**
+	 * @brief Get the response from server. The external service providing secure communication to the X3DH server shall forward to lime library the server's response
+	 *
+	 * @param[in]	responseCode	Lime expects communication with server to be over HTTPS, this shall be the response code. Lime expects 200 for successfull response from server.
+	 * 				Any other response code is treated as an error and response ignored(but it is still usefull to forward it in order to perform internal cleaning)
+	 * @param[in]	responseBody	The actual response from X3DH server
+	 */
+	using limeX3DHServerResponseProcess = std::function<void(int responseCode, const std::vector<uint8_t> &responseBody)>;
+
+	/**
+	 * @brief Post a message to the X3DH server
+	 *
+	 * @param[in]	url			X3DH server's URL
+	 * @param[in]	from			User identification on X3DH server(which shall challenge for password digest, this is not however part of lime)
+	 * @param[in]	message			The message to post to the X3DH server
+	 * @param[in]	responseProcess		Function to be called with server's response
+	 */
+	using limeX3DHServerPostData = std::function<void(const std::string &url, const std::string &from, const std::vector<uint8_t> &message, const limeX3DHServerResponseProcess &reponseProcess)>;
 
 	/* Forward declare the class managing one lime user*/
 	class LimeGeneric;
@@ -55,8 +71,7 @@ namespace lime {
 		private :
 			std::unordered_map<std::string, std::shared_ptr<LimeGeneric>> m_users_cache; // cache of already opened Lime Session, identified by user Id (GRUU)
 			std::string m_db_access; // DB access information forwarded to SOCI to correctly access database
-			belle_http_provider_t *m_http_provider; // used to access the X3DH key server
-			userAuthenticateCallback m_user_auth; // called to complete user authentication on server
+			limeX3DHServerPostData m_X3DH_post_data; // send data to the X3DH key server
 			void load_user(std::shared_ptr<LimeGeneric> &user, const std::string &localDeviceId); // helper function, get from m_users_cache of local Storage the requested Lime object
 
 		public :
@@ -116,7 +131,7 @@ namespace lime {
 			 * @param[in/out]	recipients	a list of recipientData holding: the recipient device Id(GRUU) and an empty buffer to store the cipherHeader which must then be routed to that recipient
 			 * @param[in]		plainMessage	a buffer holding the message to encrypt, can be text or data.
 			 * @param[out]		cipherMessage	points to the buffer to store the encrypted message which must be routed to all recipients
-			 * @param[in]		callback	This operation contact the X3DH server and is thus asynchronous, when server responds,
+			 * @param[in]		callback	Performing encryption may involve the X3DH server and is thus asynchronous, when the operation is completed,
 			 * 					this callback will be called giving the exit status and an error message in case of failure.
 			 * 					It is advised to capture a copy of cipherMessage and recipients shared_ptr in this callback so they can access
 			 * 					the output of encryption as it won't be part of the callback parameters.
@@ -195,12 +210,11 @@ namespace lime {
 			/**
 			 * @brief Lime Manager constructor
 			 *
-			 * @param[in]	db_access			string used to access DB: can be filename for sqlite3 or access params for mysql, directly forwarded to SOCI session opening
-			 * @param[in]	http_provider			An http provider used to access X3DH server, no scheduling is done on it internally
-			 * @param[in]	user_authentication_callback	To complete user authentication on server: must provide user credentials
+			 * @param[in]	db_access	string used to access DB: can be filename for sqlite3 or access params for mysql, directly forwarded to SOCI session opening
+			 * @param[in]	X3DH_post_data	A function to send data to the X3DH server, parameters includes a callback to transfer back the server response
 			 */
-			LimeManager(const std::string &db_access, belle_http_provider_t *http_provider, const userAuthenticateCallback &user_authentication_callback)
-				: m_users_cache{}, m_db_access{db_access}, m_http_provider{http_provider}, m_user_auth{user_authentication_callback} {};
+			LimeManager(const std::string &db_access, const limeX3DHServerPostData &X3DH_post_data)
+				: m_users_cache{}, m_db_access{db_access}, m_X3DH_post_data{X3DH_post_data} {};
 
 			~LimeManager() = default;
 	};

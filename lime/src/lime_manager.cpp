@@ -35,7 +35,7 @@ namespace lime {
 		// Load user object
 		auto userElem = m_users_cache.find(localDeviceId);
 		if (userElem == m_users_cache.end()) { // not in cache, load it from DB
-			user = load_LimeUser(m_db_access, localDeviceId, m_http_provider, m_user_auth);
+			user = load_LimeUser(m_db_access, localDeviceId, m_X3DH_post_data);
 			m_users_cache[localDeviceId]=user;
 		} else {
 			user = userElem->second;
@@ -65,7 +65,7 @@ namespace lime {
 			}
 		});
 
-		m_users_cache.insert({localDeviceId, insert_LimeUser(m_db_access, localDeviceId, x3dhServerUrl, curve, OPkInitialBatchSize, m_http_provider, m_user_auth, managerCreateCallback)});
+		m_users_cache.insert({localDeviceId, insert_LimeUser(m_db_access, localDeviceId, x3dhServerUrl, curve, OPkInitialBatchSize, m_X3DH_post_data, managerCreateCallback)});
 	}
 
 	void LimeManager::delete_user(const std::string &localDeviceId, const limeCallback &callback) {

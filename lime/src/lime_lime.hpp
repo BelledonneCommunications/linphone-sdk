@@ -23,7 +23,6 @@
 #include <memory> // unique_ptr
 #include <unordered_map>
 #include <vector>
-#include "belle-sip/belle-sip.h"
 
 namespace lime {
 
@@ -138,26 +137,24 @@ namespace lime {
 	 * @param[in]	url				URL of X3DH key server to be used to publish our keys
 	 * @param[in]	curve				Which curve shall we use for this account, select the implemenation to instanciate when using this user
 	 * @param[in]	initialOPkBatchSize		Number of OPks in the first batch uploaded to X3DH server
-	 * @param[in]	http_provider			An http provider used to communicate with x3dh key server
-	 * @param[in]	user_authentication_callback	To complete user authentication on server: must provide user credentials
+	 * @param[in]	X3DH_post_data			A function to communicate with x3dh key server
 	 * @param[in]	callback			To provide caller the operation result
 	 *
 	 * @return a pointer to the LimeGeneric class allowing access to API declared in lime.hpp
 	 */
 	std::shared_ptr<LimeGeneric> insert_LimeUser(const std::string &dbFilename, const std::string &deviceId, const std::string &url, const lime::CurveId curve, const uint16_t OPkInitialBatchSize,
-			belle_http_provider *http_provider, const userAuthenticateCallback &user_authentication_callback, const limeCallback &callback);
+			const limeX3DHServerPostData &X3DH_post_data, const limeCallback &callback);
 
 	/**
 	 * @brief Load a local user from database
 	 *
 	 * @param[in]	dbFilename			path to the database to be used
 	 * @param[in]	deviceId			a unique identifier to a local user, if not already present in base it will be inserted. Recommended value: device's GRUU
-	 * @param[in]	http_provider			An http provider used to access X3DH server, no scheduling is done on it internally
-	 * @param[in]	user_authentication_callback	To complete user authentication on server: must provide user credentials
+	 * @param[in]	X3DH_post_data			A function to communicate with x3dh key server
 	 *
 	 * @return	a unique pointer to the object to be used by this user for any Lime operations
 	 */
-	std::shared_ptr<LimeGeneric> load_LimeUser(const std::string &dbFilename, const std::string &deviceId, belle_http_provider_t *http_provider, const userAuthenticateCallback &user_authentication_callback);
+	std::shared_ptr<LimeGeneric> load_LimeUser(const std::string &dbFilename, const std::string &deviceId, const limeX3DHServerPostData &X3DH_post_data);
 
 }
 #endif // lime_lime_hpp

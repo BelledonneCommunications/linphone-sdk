@@ -100,7 +100,9 @@ namespace lime {
 		public :
 			constexpr static size_t signatureLength(void) {return Curve::EDSigSize();}; // provide a static size function to be able to call the function not on an object
 			Signature(const uint8_t *buffer) {std::copy_n(buffer, Curve::EDSigSize(), this->data());}
+			Signature(std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, Curve::EDSigSize(), this->begin());}
 			Signature() {};
+			void assign(std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, Curve::EDSigSize(), this->begin());} // copy from a std::vector<uint8_t>
 	};
 
 

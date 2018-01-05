@@ -23,6 +23,7 @@
 #include "bctoolbox/crypto.h"
 #include "lime_double_ratchet.hpp"
 #include "lime_localStorage.hpp"
+#include "belle-sip/belle-sip.h"
 
 #include "soci/sqlite3/soci-sqlite3.h"
 
@@ -147,6 +148,7 @@ int wait_for(belle_sip_stack_t*s1,int* counter,int value,int timeout);
 // not based on the From field of HTPP packets
 const std::string test_server_user_name{"alice"};
 const std::string test_server_user_password{"you see the problem is this"};
+
 } // namespace lime_tester
 
 #endif
