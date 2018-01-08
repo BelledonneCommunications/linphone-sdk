@@ -38,7 +38,7 @@ foreach(EXECUTABLE belr-parse belr-demo belr-compiler)
 
 endforeach()
 if(NOT IOS)
-	install(TARGETS belr-parse
+	install(TARGETS belr-parse belr-compiler
 		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
