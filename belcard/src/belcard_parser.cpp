@@ -19,6 +19,7 @@
 #include "belcard/belcard_parser.hpp"
 #include "belcard/belcard.hpp"
 #include "belcard/belcard_utils.hpp"
+#include "belcard/vcard_grammar.hpp"
 
 
 #include <iostream>
@@ -35,8 +36,7 @@ shared_ptr<BelCardParser> BelCardParser::getInstance() {
 }
 
 BelCardParser::BelCardParser() {
-	ABNFGrammarBuilder grammar_builder;
-	shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
+	shared_ptr<Grammar> grammar = loadVcardGrammar();
 	_parser = new Parser<shared_ptr<BelCardGeneric>>(grammar);
 
 	BelCardList::setHandlerAndCollectors(_parser);
