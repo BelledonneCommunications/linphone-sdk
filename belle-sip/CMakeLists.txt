@@ -40,6 +40,7 @@ option(ENABLE_RTP_MAP_ALWAYS_IN_SDP "Always include rtpmap in SDP." OFF)
 option(ENABLE_STRICT "Build with strict compile options." YES)
 option(ENABLE_TUNNEL "Enable tunnel support" OFF)
 option(ENABLE_TESTS "Enable compilation of tests" ON)
+option(ENABLE_MDNS "Enable multicast DNS" OFF)
 
 
 include(CheckLibraryExists)
@@ -114,6 +115,13 @@ if(ZLIB_FOUND)
 	set(HAVE_ZLIB 1)
 endif()
 
+if(ENABLE_MDNS)
+	find_package(DNSSD REQUIRED)
+	if(DNSSD_FOUND)
+		set(HAVE_MDNS 1)
+	endif()
+endif()
+
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 
@@ -151,6 +159,9 @@ if(TUNNEL_FOUND)
 endif()
 if(ZLIB_FOUND)
 	include_directories(${ZLIB_INCLUDE_DIRS})
+endif()
+if(DNSSD_FOUND)
+	include_directories(${DNSSD_INCLUDE_DIRS})
 endif()
 if(MSVC)
 	include_directories(${MSVC_INCLUDE_DIR})
