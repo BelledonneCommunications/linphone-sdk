@@ -688,6 +688,33 @@ static void test_register_client_authenticated(void) {
 	if (reg) belle_sip_object_unref(reg);
 }
 
+static void test_register_client_bad_ciphersuites(void) {
+	/* If there is no mbedtls, this test will do nothing. */
+	if(bctbx_ssl_get_implementation_type()==BCTBX_MBEDTLS) {
+		belle_sip_request_t *reg;
+		authorized_request=NULL;
+		belle_sip_tls_listening_point_t *s = BELLE_SIP_TLS_LISTENING_POINT(belle_sip_provider_get_listening_point(prov, "tls"));
+		belle_tls_crypto_config_t *crypto_config = belle_sip_tls_listening_point_get_crypto_config(s);
+
+		int ciphersuites[2] = {bctbx_ssl_get_ciphersuite_id("TLS-RSA-WITH-AES-128-GCM-SHA256"),0};
+
+		bctbx_ssl_config_t *sslcfg = bctbx_ssl_config_new();
+		bctbx_ssl_config_defaults( sslcfg, BCTBX_SSL_IS_CLIENT, BCTBX_SSL_TRANSPORT_STREAM);
+		bctbx_ssl_config_set_authmode(sslcfg, BCTBX_SSL_VERIFY_REQUIRED);
+		bctbx_ssl_config_set_ciphersuites(sslcfg,ciphersuites);
+		crypto_config->ssl_config = bctbx_ssl_config_get_private_config(sslcfg);
+
+		/* This ciphersuite will be rejected by flexisip, so success_expected=0. See tls-ciphers in flexisip. */
+		reg=try_register_user_at_domain(stack, prov, "tls",1,"tester",client_auth_domain,client_auth_outbound_proxy,0);
+		if (authorized_request) {
+			unregister_user(stack,prov,authorized_request,1);
+			belle_sip_object_unref(authorized_request);
+		}
+		if (reg) belle_sip_object_unref(reg);
+		bctbx_ssl_config_free(sslcfg);
+	}
+}
+
 static void test_connection_failure(void){
 	belle_sip_request_t *req;
 	io_error_count=0;
@@ -1023,6 +1050,7 @@ test_t register_tests[] = {
 	TEST_NO_TAG("Bad TCP request", test_bad_request),
 	TEST_NO_TAG("Authenticate", test_register_authenticate),
 	TEST_NO_TAG("TLS client cert authentication", test_register_client_authenticated),
+	TEST_NO_TAG("TLS client cert bad ciphersuites", test_register_client_bad_ciphersuites),
 	TEST_NO_TAG("Channel inactive", test_register_channel_inactive),
 	TEST_NO_TAG("Channel moving to error test and cleaned", test_channel_moving_to_error_and_cleaned),
 	TEST_NO_TAG("TCP connection failure", test_connection_failure),

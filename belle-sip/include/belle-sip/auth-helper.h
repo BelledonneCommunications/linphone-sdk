@@ -21,6 +21,7 @@
 
 #include "belle-sip/defs.h"
 #include "belle-sip/belle-sip.h"
+#include "bctoolbox/crypto.h"
 
 #define MAX_LENGTH_BYTE 32
 #define MAX_RESPONSE_SIZE 65
