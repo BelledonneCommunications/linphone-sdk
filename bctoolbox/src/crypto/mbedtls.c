@@ -948,6 +948,10 @@ const char *bctbx_ssl_get_ciphersuite(bctbx_ssl_context_t *ssl_ctx){
 	return mbedtls_ssl_get_ciphersuite(&(ssl_ctx->ssl_ctx));
 }
 
+int bctbx_ssl_get_ciphersuite_id(const char *ciphersuite){
+	return mbedtls_ssl_get_ciphersuite_id(ciphersuite);
+}
+
 const char *bctbx_ssl_get_version(bctbx_ssl_context_t *ssl_ctx){
 	return mbedtls_ssl_get_version(&(ssl_ctx->ssl_ctx));
 }
@@ -1054,6 +1058,10 @@ bctbx_ssl_config_t *bctbx_ssl_config_new(void) {
 	ssl_config->callback_cli_cert_data = NULL;
 
 	return ssl_config;
+}
+
+bctbx_type_implementation_t bctbx_ssl_get_implementation_type(void) {
+	return BCTBX_MBEDTLS;
 }
 
 int32_t bctbx_ssl_config_set_crypto_library_config(bctbx_ssl_config_t *ssl_config, void *internal_config) {
@@ -1176,6 +1184,24 @@ int32_t bctbx_ssl_config_set_transport (bctbx_ssl_config_t *ssl_config, int tran
 	mbedtls_ssl_conf_transport(ssl_config->ssl_config, mbedtls_transport);
 
 	return 0;
+}
+
+int32_t bctbx_ssl_config_set_ciphersuites(bctbx_ssl_config_t *ssl_config, const int *ciphersuites) {
+	if (ssl_config == NULL) {
+	 return BCTBX_ERROR_INVALID_SSL_CONFIG;
+	 }
+	/* remap input arguments */
+	if (ciphersuites == NULL) {
+		return BCTBX_ERROR_INVALID_INPUT_DATA;
+	}
+
+	mbedtls_ssl_conf_ciphersuites(ssl_config->ssl_config, ciphersuites);
+
+	return 0;
+}
+
+void *bctbx_ssl_config_get_private_config(bctbx_ssl_config_t *ssl_config) {
+	return (void *)ssl_config->ssl_config;
 }
 
 int32_t bctbx_ssl_config_set_authmode(bctbx_ssl_config_t *ssl_config, int authmode) {

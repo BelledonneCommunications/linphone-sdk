@@ -57,6 +57,10 @@ static int bctbx_ssl_sendrecv_callback_return_remap(int32_t ret_code) {
 	}
 }
 
+bctbx_type_implementation_t bctbx_ssl_get_implementation_type(void) {
+	return BCTBX_POLARSSL;
+}
+
 void bctbx_strerror(int32_t error_code, char *buffer, size_t buffer_length) {
 	if (error_code>0) {
 		snprintf(buffer, buffer_length, "%s", "Invalid Error code");
@@ -808,6 +812,9 @@ const char *bctbx_ssl_get_ciphersuite(bctbx_ssl_context_t *ssl_ctx){
 	return ssl_get_ciphersuite(&(ssl_ctx->ssl_ctx));
 }
 
+int bctbx_ssl_get_ciphersuite_id(const char *ciphersuite){
+	return BCTBX_ERROR_UNAVAILABLE_FUNCTION;
+}
 const char *bctbx_ssl_get_version(bctbx_ssl_context_t *ssl_ctx){
 	return ssl_get_version(&(ssl_ctx->ssl_ctx));
 }
@@ -1011,6 +1018,14 @@ int32_t bctbx_ssl_config_set_transport (bctbx_ssl_config_t *ssl_config, int tran
 		}
 #endif
 	return 0;
+}
+
+int32_t bctbx_ssl_config_set_ciphersuites(bctbx_ssl_config_t *ssl_config, const int *ciphersuites) {
+	return BCTBX_ERROR_INVALID_SSL_CONFIG;
+}
+
+void *bctbx_ssl_config_get_mbedtls_config(bctbx_ssl_config_t *ssl_config) {
+	return BCTBX_ERROR_UNAVAILABLE_FUNCTION;
 }
 
 int32_t bctbx_ssl_config_set_authmode(bctbx_ssl_config_t *ssl_config, int authmode) {
