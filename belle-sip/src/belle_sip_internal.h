@@ -149,9 +149,6 @@ BELLE_SIP_DECLARE_VPTR(belle_sip_datagram_listening_point_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_provider_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_main_loop_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_source_t);
-#ifdef HAVE_MDNS
-BELLE_SIP_DECLARE_VPTR(belle_sip_mdns_resolve_source_t);
-#endif
 BELLE_SIP_DECLARE_VPTR(belle_sip_dialog_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_address_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_contact_t);
@@ -231,6 +228,10 @@ BELLE_SIP_DECLARE_VPTR(belle_sip_header_content_disposition_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_accept_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_reason_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_authentication_info_t);
+#ifdef HAVE_MDNS
+BELLE_SIP_DECLARE_VPTR(belle_sip_mdns_resolve_source_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_mdns_register_t);
+#endif
 
 
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_resolver_context_t,belle_sip_source_t)

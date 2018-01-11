@@ -37,6 +37,7 @@ set(HEADER_FILES
 	listener.h
 	listeningpoint.h
 	mainloop.h
+	mdns_register.h
 	message.h
 	object.h
 	parameters.h
