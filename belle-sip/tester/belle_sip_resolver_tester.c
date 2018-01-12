@@ -565,6 +565,82 @@ static void ipv4_and_ipv6_dns_server(void) {
 	destroy_endpoint(client);
 }
 
+#ifdef HAVE_MDNS
+static void mdns_register_callback(void *data, int error) {
+	int *register_error = (int *)data;
+	*register_error = error;
+}
+
+static void mdns_query(void) {
+	belle_sip_mdns_register_t *reg;
+	endpoint_t *client;
+	int register_error;
+
+	client = create_endpoint();
+
+	reg = belle_sip_mdns_register("sip", "tcp", "test.linphone.local", NULL, 5060, 10, 100, mdns_register_callback, &register_error);
+	BC_ASSERT_PTR_NOT_NULL(reg);
+	BC_ASSERT_TRUE(wait_for(client->stack, &register_error, 0, 5000));
+
+	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "sip", "tcp", "test.linphone.local", 5060, AF_INET6, a_resolve_done, client);
+	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
+	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, 6000));
+	BC_ASSERT_PTR_NOT_NULL(client->ai_list);
+
+	belle_sip_mdns_unregister(reg);
+	destroy_endpoint(client);
+}
+
+static void mdns_query_no_result(void) {
+	endpoint_t *client;
+
+	client = create_endpoint();
+
+	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "sip", "tcp", "test.linphone.local", 5060, AF_INET6, a_resolve_done, client);
+	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
+	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, 6000));
+	BC_ASSERT_PTR_NULL(client->ai_list);
+
+	destroy_endpoint(client);
+}
+
+static void mdns_query_multiple_result(void) {
+	belle_sip_mdns_register_t *reg1, *reg2;
+	endpoint_t *client;
+	int register_error;
+
+	client = create_endpoint();
+
+	reg1 = belle_sip_mdns_register("sip", "tcp", "test.linphone.local", "Flexisip1", 5060, 20, 100, mdns_register_callback, &register_error);
+	BC_ASSERT_PTR_NOT_NULL(reg1);
+	BC_ASSERT_TRUE(wait_for(client->stack, &register_error, 0, 5000));
+
+	reg2 = belle_sip_mdns_register("sip", "tcp", "test.linphone.local", "Flexisip2", 5070, 10, 100, mdns_register_callback, &register_error);
+	BC_ASSERT_PTR_NOT_NULL(reg2);
+	BC_ASSERT_TRUE(wait_for(client->stack, &register_error, 0, 5000));
+
+	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "sip", "tcp", "test.linphone.local", 5060, AF_INET6, a_resolve_done, client);
+	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
+	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, 6000));
+
+	BC_ASSERT_PTR_NOT_NULL(client->ai_list);
+	if (client->ai_list) {
+		/* The first adress should be the one registered on port 5070 since it has higher priority */
+		if (client->ai_list->ai_addr->sa_family == AF_INET) {
+			struct sockaddr_in *sock_in = (struct sockaddr_in *)client->ai_list->ai_addr;
+			BC_ASSERT_EQUAL((int)ntohs(sock_in->sin_port), 5070, int, "%d");
+		} else {
+			struct sockaddr_in6 *sock_in = (struct sockaddr_in6 *)client->ai_list->ai_addr;
+			BC_ASSERT_EQUAL((int)ntohs(sock_in->sin6_port), 5070, int, "%d");
+		}
+	}
+
+	belle_sip_mdns_unregister(reg1);
+	belle_sip_mdns_unregister(reg2);
+	destroy_endpoint(client);
+}
+#endif
+
 test_t resolver_tests[] = {
 	TEST_NO_TAG("A query (IPv4)", ipv4_a_query),
 	TEST_NO_TAG("A query (IPv4) with CNAME", ipv4_cname_a_query),
@@ -584,7 +660,12 @@ test_t resolver_tests[] = {
 	TEST_NO_TAG("DNS fallback because of scope link IPv6", dns_fallback_because_of_scope_link_ipv6),
 	TEST_NO_TAG("DNS fallback because of invalid IPv6", dns_fallback_because_of_invalid_ipv6),
 	TEST_NO_TAG("IPv6 DNS server", ipv6_dns_server),
-	TEST_NO_TAG("IPv4 and v6 DNS servers", ipv4_and_ipv6_dns_server)
+	TEST_NO_TAG("IPv4 and v6 DNS servers", ipv4_and_ipv6_dns_server),
+#ifdef HAVE_MDNS
+	TEST_NO_TAG("MDNS query", mdns_query),
+	TEST_NO_TAG("MDNS query with no result", mdns_query_no_result),
+	TEST_NO_TAG("MDNS query with multiple result", mdns_query_multiple_result)
+#endif
 };
 
 test_suite_t resolver_test_suite = {"Resolver", NULL, NULL, belle_sip_tester_before_each, belle_sip_tester_after_each,
