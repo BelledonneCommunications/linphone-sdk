@@ -124,6 +124,7 @@ size_t belle_sip_body_handler_get_transfered_size(const belle_sip_body_handler_t
 }
 
 static void update_progress(belle_sip_body_handler_t *obj, belle_sip_message_t *msg){
+	belle_sip_message("body handler [%p] : %llu bytes exchanged of %llu ", obj, (unsigned long long)obj->transfered_size, (unsigned long long)obj->expected_size);
 	if (obj->progress_cb)
 		obj->progress_cb(obj,msg,obj->user_data,obj->transfered_size,obj->expected_size);
 }
