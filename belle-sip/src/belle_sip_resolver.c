@@ -138,6 +138,7 @@ struct belle_sip_simple_resolver_context{
 	char *srv_prefix;
 	char *srv_name;
 	int resolving;
+	bool_t result;
 #endif
 #if defined(USE_GETADDRINFO_FALLBACK) || defined(HAVE_MDNS)
 	struct addrinfo *getaddrinfo_ai_list;
@@ -700,17 +701,17 @@ static int resolver_process_data_delayed(belle_sip_simple_resolver_context_t *ct
 }
 
 #ifdef HAVE_MDNS
-typedef struct belle_sip_mdns_resolve_source belle_sip_mdns_resolve_source_t;
-#define BELLE_SIP_MDNS_RESOLVE_SOURCE(obj) BELLE_SIP_CAST(obj,belle_sip_mdns_resolve_source_t)
+typedef struct belle_sip_mdns_source belle_sip_mdns_source_t;
+#define BELLE_SIP_MDNS_SOURCE(obj) BELLE_SIP_CAST(obj,belle_sip_mdns_source_t)
 
-struct belle_sip_mdns_resolve_source {
+struct belle_sip_mdns_source {
 	belle_sip_source_t base;
 	DNSServiceRef service_ref;
 	belle_sip_simple_resolver_context_t *ctx;
 };
 
-belle_sip_mdns_resolve_source_t *belle_sip_mdns_resolve_source_new(DNSServiceRef service_ref, belle_sip_simple_resolver_context_t *ctx, belle_sip_source_func_t func) {
-	belle_sip_mdns_resolve_source_t *obj = belle_sip_object_new(belle_sip_mdns_resolve_source_t);
+belle_sip_mdns_source_t *belle_sip_mdns_source_new(DNSServiceRef service_ref, belle_sip_simple_resolver_context_t *ctx, belle_sip_source_func_t func, int timeout) {
+	belle_sip_mdns_source_t *obj = belle_sip_object_new(belle_sip_mdns_source_t);
 	obj->service_ref = service_ref;
 	obj->ctx = ctx;
 	belle_sip_fd_source_init((belle_sip_source_t*)obj
@@ -718,12 +719,12 @@ belle_sip_mdns_resolve_source_t *belle_sip_mdns_resolve_source_new(DNSServiceRef
 							, obj
 							, DNSServiceRefSockFD(service_ref)
 							, BELLE_SIP_EVENT_READ | BELLE_SIP_EVENT_TIMEOUT
-							, 1000);
+							, timeout);
 	return obj;
 }
 
-BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_mdns_resolve_source_t);
-BELLE_SIP_INSTANCIATE_VPTR(belle_sip_mdns_resolve_source_t, belle_sip_source_t, NULL, NULL, NULL, TRUE);
+BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_mdns_source_t);
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_mdns_source_t, belle_sip_source_t, NULL, NULL, NULL, TRUE);
 
 static void resolver_process_mdns_resolve(DNSServiceRef service_ref
 										, DNSServiceFlags flags
@@ -776,16 +777,15 @@ static void resolver_process_mdns_resolve(DNSServiceRef service_ref
 	}
 }
 
-static int resolver_process_mdns_resolve_result(belle_sip_mdns_resolve_source_t *source, unsigned int revents) {
+static int resolver_process_mdns_resolve_result(belle_sip_mdns_source_t *source, unsigned int revents) {
 	if (revents & BELLE_SIP_EVENT_READ) {
 		DNSServiceProcessResult(source->service_ref);
 	}
 
 	if (revents & BELLE_SIP_EVENT_TIMEOUT) {
 		source->ctx->resolving--;
-
-		/* There is no resolve left, we can notify */
 		if (source->ctx->resolving == 0) {
+			/* There is no resolve left, we can notify */
 			belle_sip_resolver_context_notify(BELLE_SIP_RESOLVER_CONTEXT(source->ctx));
 		}
 
@@ -812,8 +812,10 @@ static void resolver_process_mdns_browse(DNSServiceRef service_ref
 		error = DNSServiceResolve(&resolve_ref, 0, interface, name, type, domain, (DNSServiceResolveReply)resolver_process_mdns_resolve, ctx);
 
 		if (error == kDNSServiceErr_NoError) {
+			if (!ctx->result) ctx->result = TRUE;
 			ctx->resolving++;
-			belle_sip_mdns_resolve_source_t *source = belle_sip_mdns_resolve_source_new(resolve_ref, ctx, (belle_sip_source_func_t)resolver_process_mdns_resolve_result);
+
+			belle_sip_mdns_source_t *source = belle_sip_mdns_source_new(resolve_ref, ctx, (belle_sip_source_func_t)resolver_process_mdns_resolve_result, 1000);
 			belle_sip_main_loop_add_source(ctx->base.stack->ml, (belle_sip_source_t*)source);
 		} else {
 			belle_sip_error("%s DNSServiceResolve error [%s]: code %d", __FUNCTION__, ctx->name, error);
@@ -821,13 +823,17 @@ static void resolver_process_mdns_browse(DNSServiceRef service_ref
 	}
 }
 
-static int resolver_process_mdns_browse_result(DNSServiceRef service_ref, unsigned int revents) {
+static int resolver_process_mdns_browse_result(belle_sip_mdns_source_t *source, unsigned int revents) {
 	if (revents & BELLE_SIP_EVENT_READ) {
-		DNSServiceProcessResult(service_ref);
+		DNSServiceProcessResult(source->service_ref);
 	}
 
 	if (revents & BELLE_SIP_EVENT_TIMEOUT) {
-		DNSServiceRefDeallocate(service_ref);
+		if (!source->ctx->result) {
+			belle_sip_resolver_context_notify(BELLE_SIP_RESOLVER_CONTEXT(source->ctx));
+		}
+
+		DNSServiceRefDeallocate(source->service_ref);
 		return BELLE_SIP_STOP;
 	}
 	return BELLE_SIP_CONTINUE;
@@ -850,16 +856,13 @@ static int _resolver_start_query(belle_sip_simple_resolver_context_t *ctx) {
 		error = DNSServiceBrowse(&browse_ref, 0, 0, ctx->srv_prefix, ctx->srv_name, (DNSServiceBrowseReply)resolver_process_mdns_browse, ctx);
 
 		if (error == kDNSServiceErr_NoError) {
-			belle_sip_fd_source_init((belle_sip_source_t*)ctx
-									, (belle_sip_source_func_t)resolver_process_mdns_browse_result
-									, browse_ref
-									, DNSServiceRefSockFD(browse_ref)
-									, BELLE_SIP_EVENT_READ | BELLE_SIP_EVENT_TIMEOUT
-									, 1000);
-			belle_sip_main_loop_add_source(ctx->base.stack->ml, (belle_sip_source_t*)ctx);
+			belle_sip_mdns_source_t *source = belle_sip_mdns_source_new(browse_ref, ctx, (belle_sip_source_func_t)resolver_process_mdns_browse_result, 5000);
+			belle_sip_main_loop_add_source(ctx->base.stack->ml, (belle_sip_source_t*)source);
+
 			return 0;
 		} else {
 			belle_sip_error("%s DNSServiceBrowse error [%s]: code %d", __FUNCTION__, ctx->name, error);
+
 			return -1;
 		}
 	} else {
@@ -1340,6 +1343,7 @@ belle_sip_resolver_context_t * belle_sip_stack_resolve_srv(belle_sip_stack_t *st
 	ctx->srv_prefix = belle_sip_strdup(srv_prefix);
 	ctx->srv_name = belle_sip_strdup(name);
 	ctx->resolving = 0;
+	ctx->result = FALSE;
 #endif
 	ctx->name = belle_sip_concat(srv_prefix, name, NULL);
 	ctx->type = DNS_T_SRV;

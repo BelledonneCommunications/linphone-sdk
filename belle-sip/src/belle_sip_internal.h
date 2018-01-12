@@ -229,7 +229,7 @@ BELLE_SIP_DECLARE_VPTR(belle_sip_header_accept_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_reason_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_authentication_info_t);
 #ifdef HAVE_MDNS
-BELLE_SIP_DECLARE_VPTR(belle_sip_mdns_resolve_source_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_mdns_source_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_mdns_register_t);
 #endif
 
