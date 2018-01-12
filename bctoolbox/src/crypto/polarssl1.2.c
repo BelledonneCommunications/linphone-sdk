@@ -710,8 +710,9 @@ int32_t bctbx_ssl_config_set_ciphersuites(bctbx_ssl_config_t *ssl_config, const 
 		return BCTBX_ERROR_INVALID_SSL_CONFIG;
 }
 
-void *bctbx_ssl_config_get_mbedtls_config(bctbx_ssl_config_t *ssl_config) {
-	return BCTBX_ERROR_UNAVAILABLE_FUNCTION;
+/* unavailable function */
+void *bctbx_ssl_config_get_private_config(bctbx_ssl_config_t *ssl_config) {
+	return NULL;
 }
 
 int32_t bctbx_ssl_config_set_authmode(bctbx_ssl_config_t *ssl_config, int authmode) {
