@@ -34,6 +34,7 @@ BELLE_SIP_BEGIN_DECLS
  * @param service the queried service ("sip", "stun", "turn"...).
  * @param transport the queried transport ("udp", "tcp", "tls").
  * @param domain the local domain name in which the service will be registered.
+ * @param name the name of the mdns service, if NULL it is the computer's name. Only useful for multiple registrations to avoid conflicts.
  * @param port the port of the service.
  * @param priority the priority of the service, lower value means more preferred.
  * @param weight a relative weight for services within the same local domain that have the same priority, higher value means more preferred.
@@ -41,7 +42,7 @@ BELLE_SIP_BEGIN_DECLS
  * @param data a user pointer passed through the callback as first argument.
  * @return a #belle_sip_register_t that can be used to cancel the registration if needed. The context must have been ref'd with belle_sip_object_ref().
 **/
-BELLESIP_EXPORT belle_sip_mdns_register_t *belle_sip_mdns_register(const char *service, const char *transport, const char *domain, int port, int prio, int weight, belle_sip_mdns_register_callback_t cb, void *data);
+BELLESIP_EXPORT belle_sip_mdns_register_t *belle_sip_mdns_register(const char *service, const char *transport, const char *domain, const char* name, int port, int prio, int weight, belle_sip_mdns_register_callback_t cb, void *data);
 
 /**
  * Cancels the mdns registration.

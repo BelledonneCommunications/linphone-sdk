@@ -119,7 +119,7 @@ void *mdns_register_poll(void *data) {
 	return NULL;
 }
 
-belle_sip_mdns_register_t *belle_sip_mdns_register(const char *service, const char *transport, const char *domain, int port, int prio, int weight, belle_sip_mdns_register_callback_t cb, void *data) {
+belle_sip_mdns_register_t *belle_sip_mdns_register(const char *service, const char *transport, const char *domain, const char *name, int port, int prio, int weight, belle_sip_mdns_register_callback_t cb, void *data) {
 	belle_sip_mdns_register_t *reg = belle_sip_mdns_register_create(cb, data);
 	DNSServiceErrorType error;
 	TXTRecordRef txt_ref;
@@ -140,7 +140,7 @@ belle_sip_mdns_register_t *belle_sip_mdns_register(const char *service, const ch
 	error = DNSServiceRegister(&reg->service_ref
 							, 0
 							, 0
-							, NULL
+							, name
 							, prefix
 							, domain
 							, NULL
@@ -154,7 +154,7 @@ belle_sip_mdns_register_t *belle_sip_mdns_register(const char *service, const ch
 	TXTRecordDeallocate(&txt_ref);
 
 	if (error != kDNSServiceErr_NoError) {
-		belle_sip_error("%s Register error [%s%s]: code %d", __FUNCTION__, prefix, domain, error);
+		belle_sip_error("%s Register error [_%s._%s.%s]: code %d", __FUNCTION__, service, transport, domain, error);
 		belle_sip_object_unref(reg);
 		return NULL;
 	} else {
