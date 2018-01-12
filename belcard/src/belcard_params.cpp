@@ -17,7 +17,7 @@
 */
 
 #include "belcard/belcard_params.hpp"
-#include "belcard/vcard_grammar.hpp"
+
 
 using namespace::std;
 using namespace::belr;
@@ -25,7 +25,8 @@ using namespace::belcard;
 
 template <typename T>
 shared_ptr<T> BelCardParam::parseParam(const string& rule, const string& input) {
-	shared_ptr<Grammar> grammar = loadVcardGrammar();
+	ABNFGrammarBuilder grammar_builder;
+	shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
 	Parser<shared_ptr<BelCardGeneric>> parser(grammar);
 	T::setHandlerAndCollectors(&parser);
 	shared_ptr<BelCardGeneric> ret = parser.parseInput(rule, input, NULL);
@@ -94,7 +95,8 @@ BelCardLanguageParam::BelCardLanguageParam() : BelCardParam() {
 }
 
 shared_ptr<BelCardValueParam> BelCardValueParam::parse(const string& input) {
-	shared_ptr<Grammar> grammar = loadVcardGrammar();
+	ABNFGrammarBuilder grammar_builder;
+	shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
 	Parser<shared_ptr<BelCardGeneric>> parser(grammar);
 	setHandlerAndCollectors(&parser);
 	shared_ptr<BelCardGeneric> ret = parser.parseInput("VALUE-param", input, NULL);

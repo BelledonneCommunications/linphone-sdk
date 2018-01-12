@@ -1,6 +1,6 @@
 /*
 	vcard_grammar.hpp
-	Copyright (C) 2017  Belledonne Communications SARL
+	Copyright (C) 2015  Belledonne Communications SARL
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -19,10 +19,6 @@
 #ifndef vcard_grammar_hpp
 #define vcard_grammar_hpp
 
-#include <belr/grammarbuilder.h>
-
-#define VCARD_GRAMMAR "vcard_grammar"
-
-std::shared_ptr<belr::Grammar> loadVcardGrammar();
+extern const char *vcard_grammar;
 
 #endif
