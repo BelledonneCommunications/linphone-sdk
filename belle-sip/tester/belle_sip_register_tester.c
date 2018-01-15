@@ -299,7 +299,7 @@ int register_before_all(void) {
 	listener_callbacks.process_auth_requested = process_auth_requested_for_algorithm;
 	listener_callbacks.listener_destroyed = NULL;
 
-	listener = belle_sip_listener_create_from_callbacks(&listener_callbacks, client);
+	listener = belle_sip_listener_create_from_callbacks(&listener_callbacks, (void *)client);
 	return 0;
 }
 
