@@ -615,10 +615,11 @@ static void * _resolver_getaddrinfo_thread(void *ptr) {
 	if (err != 0) {
 		belle_sip_error("getaddrinfo DNS resolution of %s failed: %s", ctx->name, gai_strerror(err));
 	} else if (!ctx->getaddrinfo_cancelled) {
+		struct addrinfo *res_it = res;
 		do {
-			append_dns_result(ctx, &ctx->getaddrinfo_ai_list, res->ai_addr, (socklen_t)res->ai_addrlen);
-			res = res->ai_next;
-		} while (res != NULL);
+			append_dns_result(ctx, &ctx->getaddrinfo_ai_list, res_it->ai_addr, (socklen_t)res_it->ai_addrlen);
+			res_it = res_it->ai_next;
+		} while (res_it != NULL);
 	}
 	if (res) freeaddrinfo(res);
 	ctx->getaddrinfo_done = TRUE;
