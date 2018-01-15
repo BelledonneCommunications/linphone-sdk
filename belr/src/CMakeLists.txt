@@ -20,6 +20,8 @@
 #
 ############################################################################
 
+set(LIBS ${BCTOOLBOX_CORE_LIBRARIES})
+
 set(BELR_HEADER_FILES )
 set(BELR_SOURCE_FILES_C )
 set(BELR_SOURCE_FILES_CXX
@@ -37,11 +39,15 @@ add_definitions(
 	-DBCTBX_LOG_DOMAIN="belr"
 )
 
+if(WIN32 AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
+	list(APPEND LIBS ws2_32)
+endif()
+
 if(ENABLE_STATIC)
 	add_library(belr-static STATIC ${BELR_HEADER_FILES} ${BELR_SOURCE_FILES_C} ${BELR_SOURCE_FILES_CXX})
 	set_target_properties(belr-static PROPERTIES OUTPUT_NAME belr)
 	target_include_directories(belr-static PUBLIC ${BCTOOLBOX_CORE_INCLUDE_DIRS})
-	target_link_libraries(belr-static INTERFACE ${BCTOOLBOX_CORE_LIBRARIES})
+	target_link_libraries(belr-static INTERFACE ${LIBS})
 endif()
 if(ENABLE_SHARED)
 	add_library(belr SHARED ${BELR_HEADER_FILES} ${BELR_SOURCE_FILES_C} ${BELR_SOURCE_FILES_CXX})
@@ -50,7 +56,7 @@ if(ENABLE_SHARED)
 	endif()
 	set_target_properties(belr PROPERTIES VERSION ${BELR_SO_VERSION})
 	target_include_directories(belr PUBLIC ${BCTOOLBOX_CORE_INCLUDE_DIRS})
-	target_link_libraries(belr PRIVATE ${BCTOOLBOX_CORE_LIBRARIES})
+	target_link_libraries(belr PRIVATE ${LIBS})
 	if(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
 			install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/belr.pdb

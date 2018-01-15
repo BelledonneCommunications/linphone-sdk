@@ -16,9 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#include "binarystream.h"
+#ifdef _WIN32
+	#include <winsock2.h>
+#else
+	#include <netinet/in.h>
+#endif
+
 #include "belr/belr.h"
-#include <netinet/in.h>
+#include "binarystream.h"
 
 using namespace std;
 
