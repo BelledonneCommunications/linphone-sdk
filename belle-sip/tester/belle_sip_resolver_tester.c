@@ -571,10 +571,10 @@ static void mdns_register_callback(void *data, int error) {
 	*register_error = error;
 }
 
-static void mdns_query(void) {
+static void mdns_query_ipv4_or_ipv6(int family) {
 	belle_sip_mdns_register_t *reg;
 	endpoint_t *client;
-	int register_error;
+	int register_error = -1;
 
 	client = create_endpoint();
 
@@ -582,7 +582,7 @@ static void mdns_query(void) {
 	BC_ASSERT_PTR_NOT_NULL(reg);
 	BC_ASSERT_TRUE(wait_for(client->stack, &register_error, 0, 5000));
 
-	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "sip", "tcp", "test.linphone.local", 5060, AF_INET6, a_resolve_done, client);
+	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "sip", "tcp", "test.linphone.local", 5060, family, a_resolve_done, client);
 	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
 	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, 6000));
 	BC_ASSERT_PTR_NOT_NULL(client->ai_list);
@@ -591,12 +591,25 @@ static void mdns_query(void) {
 	destroy_endpoint(client);
 }
 
+static void mdns_query(void) {
+	mdns_query_ipv4_or_ipv6(AF_INET);
+}
+
+static void mdns_query_ipv6(void) {
+	if (!belle_sip_tester_ipv6_available()){
+		belle_sip_warning("Test skipped, IPv6 connectivity not available.");
+		return;
+	}
+
+	mdns_query_ipv4_or_ipv6(AF_INET6);
+}
+
 static void mdns_query_no_result(void) {
 	endpoint_t *client;
 
 	client = create_endpoint();
 
-	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "sip", "tcp", "test.linphone.local", 5060, AF_INET6, a_resolve_done, client);
+	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "sip", "tcp", "test.linphone.local", 5060, AF_INET, a_resolve_done, client);
 	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
 	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, 6000));
 	BC_ASSERT_PTR_NULL(client->ai_list);
@@ -607,19 +620,19 @@ static void mdns_query_no_result(void) {
 static void mdns_query_multiple_result(void) {
 	belle_sip_mdns_register_t *reg1, *reg2;
 	endpoint_t *client;
-	int register_error;
+	int register_error = -1;
 
 	client = create_endpoint();
 
-	reg1 = belle_sip_mdns_register("sip", "tcp", "test.linphone.local", "Flexisip1", 5060, 20, 100, mdns_register_callback, &register_error);
+	reg1 = belle_sip_mdns_register("sip", "tcp", "test.linphone.local", "Register1", 5060, 20, 100, mdns_register_callback, &register_error);
 	BC_ASSERT_PTR_NOT_NULL(reg1);
 	BC_ASSERT_TRUE(wait_for(client->stack, &register_error, 0, 5000));
 
-	reg2 = belle_sip_mdns_register("sip", "tcp", "test.linphone.local", "Flexisip2", 5070, 10, 100, mdns_register_callback, &register_error);
+	reg2 = belle_sip_mdns_register("sip", "tcp", "test.linphone.local", "Register2", 5070, 10, 100, mdns_register_callback, &register_error);
 	BC_ASSERT_PTR_NOT_NULL(reg2);
 	BC_ASSERT_TRUE(wait_for(client->stack, &register_error, 0, 5000));
 
-	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "sip", "tcp", "test.linphone.local", 5060, AF_INET6, a_resolve_done, client);
+	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "sip", "tcp", "test.linphone.local", 5060, AF_INET, a_resolve_done, client);
 	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
 	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, 6000));
 
@@ -663,6 +676,7 @@ test_t resolver_tests[] = {
 	TEST_NO_TAG("IPv4 and v6 DNS servers", ipv4_and_ipv6_dns_server),
 #ifdef HAVE_MDNS
 	TEST_NO_TAG("MDNS query", mdns_query),
+	TEST_NO_TAG("MDNS query with ipv6", mdns_query_ipv6),
 	TEST_NO_TAG("MDNS query with no result", mdns_query_no_result),
 	TEST_NO_TAG("MDNS query with multiple result", mdns_query_multiple_result)
 #endif
