@@ -77,7 +77,7 @@ static void belle_sip_auth_choose_method(const char *algo, const char *ask, uint
 		// By default, using MD5 when algorithm is NULL
 		bctbx_md5((const uint8_t *)ask, strlen(ask), out);
 	} else if (!strcmp(algo, "SHA-256")) {
-		bctbx_sha256((const uint8_t *)ask, (uint8_t)strlen(ask), size, out);
+		bctbx_sha256((const uint8_t *)ask, strlen(ask), (uint8_t)size, out);
 	}
 }
 
