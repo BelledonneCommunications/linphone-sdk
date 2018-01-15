@@ -260,11 +260,10 @@ struct belle_sip_main_loop{
 };
 
 void belle_sip_main_loop_remove_source(belle_sip_main_loop_t *ml, belle_sip_source_t *source){
-	bool_t elem_removed = FALSE;
+	int unrefs = 0;
 	if (source->node.next || source->node.prev || &source->node==ml->fd_sources)  {
 		ml->fd_sources=belle_sip_list_remove_link(ml->fd_sources,&source->node);
-		belle_sip_object_unref(source);
-		elem_removed = TRUE;
+		unrefs++;
 	}
 	if (source->it) {
 		bctbx_mutex_lock(&ml->timer_sources_mutex);
@@ -273,15 +272,18 @@ void belle_sip_main_loop_remove_source(belle_sip_main_loop_t *ml, belle_sip_sour
 		bctbx_mutex_unlock(&ml->timer_sources_mutex);
 
 		source->it=NULL;
-		belle_sip_object_unref(source);
-		elem_removed = TRUE;
+		unrefs++;
 	}
-	if (elem_removed) {
+	if (unrefs) {
 		source->cancelled=TRUE;
 		ml->nsources--;
 		if (source->on_remove)
 			source->on_remove(source);
-		
+
+		while(unrefs) {
+			belle_sip_object_unref(source);
+			unrefs--;
+		}
 	}
 }
 
