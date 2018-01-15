@@ -72,12 +72,12 @@ belle_sip_header_proxy_authorization_t* belle_sip_auth_helper_create_proxy_autho
 	return authorization;
 }
 
-static void belle_sip_auth_choose_method(const char *algo, char *ask, uint8_t *out, size_t size) {
+static void belle_sip_auth_choose_method(const char *algo, const char *ask, uint8_t *out, size_t size) {
 	if ((algo == NULL) || (!strcmp(algo, "MD5"))) {
 		// By default, using MD5 when algorithm is NULL
-		bctbx_md5((const unsigned char *)ask, strlen(ask), out);
+		bctbx_md5((const uint8_t *)ask, strlen(ask), out);
 	} else if (!strcmp(algo, "SHA-256")) {
-		bctbx_sha256((const unsigned char *)ask, strlen(ask), size, out);
+		bctbx_sha256((const uint8_t *)ask, (uint8_t)strlen(ask), size, out);
 	}
 }
 
@@ -236,7 +236,7 @@ int belle_sip_auth_helper_fill_authorization(belle_sip_header_authorization_t* a
 	if (!size) {
 		belle_sip_error("Algorithm [%s] is not correct ", algo);
 		return -1;
-	}	
+	}
 	int auth_mode=0;
 	char* uri;
 	char ha2[MAX_RESPONSE_SIZE];
