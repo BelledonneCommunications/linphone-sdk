@@ -262,7 +262,7 @@ CharRecognizer::CharRecognizer(BinaryGrammarBuilder &istr) : Recognizer(istr){
 	
 	unsigned char tmp;
 	istr>>tmp;
-	mCaseSensitive = (bool)tmp;
+	mCaseSensitive = !!tmp;
 }
 
 shared_ptr<Selector> Selector::addRecognizer(const shared_ptr<Recognizer> &r){
@@ -328,7 +328,7 @@ void Selector::_serialize(BinaryOutputStream &fstr){
 Selector::Selector(BinaryGrammarBuilder& istr) : Recognizer(istr){
 	unsigned char tmp;
 	istr>>tmp;
-	mIsExclusive = (bool)tmp;
+	mIsExclusive = !!tmp;
 	
 	int count;
 	istr>>count;
