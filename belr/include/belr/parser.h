@@ -10,7 +10,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
@@ -262,11 +262,11 @@ public:
 	DebugElement(const std::string &rulename, const std::string &value);
 	static std::shared_ptr<DebugElement> create(const std::string &rulename, const std::string &value);
 	void addChild(const std::shared_ptr<DebugElement> &e);
-	void findChildren(const std::string &rulename, std::list<std::shared_ptr<DebugElement>> &retlist)const;
+	BELR_PUBLIC void findChildren(const std::string &rulename, std::list<std::shared_ptr<DebugElement>> &retlist)const;
 	BELR_PUBLIC std::ostream &tostream(int level, std::ostream &str)const;
-	const std::string &getValue()const;
+	BELR_PUBLIC const std::string &getValue()const;
 private:
-	
+
 	std::string mRulename;
 	std::string mValue;
 	std::list<std::shared_ptr<DebugElement>> mChildren;
