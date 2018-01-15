@@ -10,7 +10,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
@@ -25,7 +25,7 @@ using namespace std;
 
 namespace belr{;
 
-void belr_fatal(const char *message){
+void fatal(const char *message){
 	bctbx_fatal("%s", message);
 }
 
@@ -78,9 +78,9 @@ void Recognizer::serialize(BinaryOutputStream& fstr, bool topLevel){
 	else if (typeid(*this) == typeid(RecognizerPointer)) tid = PointerId;
 	else if (typeid(*this) == typeid(RecognizerAlias)) tid = AliasId;
 	else bctbx_fatal("Unsupported Recognizer derived type.");
-	
+
 	unsigned char type_byte = (unsigned char)tid;
-	
+
 	if (tid == PointerId){
 		/*
 		 * It is useless to serialize a RecognizerPointer, which is only a trick to break loops in recognizer chains.
@@ -89,7 +89,7 @@ void Recognizer::serialize(BinaryOutputStream& fstr, bool topLevel){
 		dynamic_cast<RecognizerPointer*>(this)->getPointed()->serialize(fstr, topLevel);
 		return;
 	}
-	
+
 	if (topLevel || mName.empty()) {
 		//write the type
 		fstr<<type_byte;
@@ -259,7 +259,7 @@ CharRecognizer::CharRecognizer(BinaryGrammarBuilder &istr) : Recognizer(istr){
 	unsigned char toRecognize;
 	istr>>toRecognize;
 	mToRecognize = toRecognize;
-	
+
 	unsigned char tmp;
 	istr>>tmp;
 	mCaseSensitive = !!tmp;
@@ -319,7 +319,7 @@ size_t Selector::_feed(const shared_ptr<ParserContextBase> &ctx, const string &i
 void Selector::_serialize(BinaryOutputStream &fstr){
 	fstr<<(unsigned char) mIsExclusive;
 	fstr<<(int)mElements.size();
-	
+
 	for(auto it = mElements.begin(); it != mElements.end(); ++it){
 		(*it)->serialize(fstr);
 	}
@@ -329,7 +329,7 @@ Selector::Selector(BinaryGrammarBuilder& istr) : Recognizer(istr){
 	unsigned char tmp;
 	istr>>tmp;
 	mIsExclusive = !!tmp;
-	
+
 	int count;
 	istr>>count;
 	for (int i = 0 ; i < count ; ++i){
@@ -424,7 +424,7 @@ void Sequence::_serialize(BinaryOutputStream &fstr){
 Sequence::Sequence(BinaryGrammarBuilder& istr) : Recognizer(istr){
 	int count;
 	istr>>count;
-	
+
 	for (int i = 0 ; i < count ; ++i){
 		shared_ptr<Recognizer> rec;
 		rec = Recognizer::build(istr);
@@ -751,7 +751,7 @@ int Grammar::save(const std::string &filename){
 	for (auto it = mRules.begin(); it != mRules.end(); ++it){
 		(*it).second->serialize(of, true);
 	}
-	
+
 	of.close();
 	return 0;
 }
@@ -759,7 +759,7 @@ int Grammar::save(const std::string &filename){
 int Grammar::load(const std::string &filename){
 	BinaryGrammarBuilder ifs(*this);
 	int err = 0;
-	
+
 	ifs.open(filename, ifstream::in|ifstream::binary);
 	if (ifs.fail()){
 		BCTBX_SLOGE<<"Could not open "<<filename;
@@ -773,7 +773,7 @@ int Grammar::load(const std::string &filename){
 		BCTBX_SLOGE<<filename<< " is not a belr grammar binary file.";
 		return -1;
 	}
-	
+
 	/*extract the name of the grammar*/
 	ifs>>mName;
 	//load rules
@@ -782,7 +782,7 @@ int Grammar::load(const std::string &filename){
 		ifs.get();
 		if (ifs.eof()) break;
 		ifs.unget();
-		
+
 		shared_ptr<Recognizer> rule = Recognizer::build(ifs);
 		if (!rule){
 			bctbx_error("Fail to parse recognizer.");
@@ -813,4 +813,3 @@ string tolower(const string &str){
 }
 
 }//end of namespace
-

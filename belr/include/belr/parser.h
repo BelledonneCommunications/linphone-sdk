@@ -315,7 +315,7 @@ T universal_pointer_cast(U * p){
 	return static_cast<T>(p);
 }
 
-void belr_fatal(const char *message);
+BELR_PUBLIC void fatal(const char *message);
 
 template <typename _derivedParserElementT, typename _parserElementT, typename _valueT>
 void ParserCollector<_derivedParserElementT,_parserElementT, _valueT>::invoke(_parserElementT obj, _valueT value){
@@ -324,7 +324,7 @@ void ParserCollector<_derivedParserElementT,_parserElementT, _valueT>::invoke(_p
 
 template <typename _derivedParserElementT, typename _parserElementT, typename _valueT>
 void ParserCollector<_derivedParserElementT,_parserElementT, _valueT>::invokeWithChild(_parserElementT obj, _parserElementT child){
-	belr_fatal("We should never be called in ParserCollector<_derivedParserElementT,_parserElementT, _valueT>::invokeWithChild(_parserElementT obj, _parserElementT child)");
+	fatal("We should never be called in ParserCollector<_derivedParserElementT,_parserElementT, _valueT>::invokeWithChild(_parserElementT obj, _parserElementT child)");
 }
 
 template <typename _derivedParserElementT, typename _parserElementT, typename _valueT>
@@ -334,7 +334,7 @@ void ParserChildCollector<_derivedParserElementT,_parserElementT, _valueT>::invo
 
 template <typename _derivedParserElementT, typename _parserElementT, typename _valueT>
 void ParserChildCollector<_derivedParserElementT,_parserElementT, _valueT>::invoke(_parserElementT obj, _valueT value){
-	belr_fatal("We should never be called in ParserChildCollector<_derivedParserElementT,_parserElementT, _valueT>::invoke(_parserElementT obj, _valueT value)");
+	fatal("We should never be called in ParserChildCollector<_derivedParserElementT,_parserElementT, _valueT>::invoke(_parserElementT obj, _valueT value)");
 }
 
 template <typename _parserElementT>
@@ -430,7 +430,7 @@ void ParserHandlerBase<_parserElementT>::installCollector(const std::string &rul
 	if (!rec){
 		std::ostringstream ostr;
 		ostr<<"There is no rule '"<<rulename<<"' in the grammar.";
-		belr_fatal(ostr.str().c_str());
+		fatal(ostr.str().c_str());
 		return;
 	}
 	mCollectors[rec->getId()]=collector;
@@ -490,7 +490,7 @@ void ParserContext<_parserElementT>::_beginParse(ParserLocalContext & lctx, cons
 		mHandlerStack.push_back(std::static_pointer_cast<HandlerContext<_parserElementT>>(ctx));
 	}
 	if (mHandlerStack.empty()){
-		belr_fatal("Cannot parse when mHandlerStack is empty. You must define a top-level rule handler.");
+		fatal("Cannot parse when mHandlerStack is empty. You must define a top-level rule handler.");
 	}
 	lctx.set(ctx,rec,mHandlerStack.back()->getLastIterator());
 }
@@ -532,7 +532,7 @@ _parserElementT ParserContext<_parserElementT>::createRootObject(const std::stri
 template <typename _parserElementT>
 std::shared_ptr<HandlerContext<_parserElementT>> ParserContext<_parserElementT>::_branch(){
 	if (mHandlerStack.empty()){
-		belr_fatal("Cannot branch while stack is empty");
+		fatal("Cannot branch while stack is empty");
 	}
 	std::shared_ptr<HandlerContext<_parserElementT>> ret=mHandlerStack.back()->branch();
 	mHandlerStack.push_back(ret);
@@ -542,7 +542,7 @@ std::shared_ptr<HandlerContext<_parserElementT>> ParserContext<_parserElementT>:
 template <typename _parserElementT>
 void ParserContext<_parserElementT>::_merge(const std::shared_ptr<HandlerContext<_parserElementT>> &other){
 	if (mHandlerStack.back()!=other){
-		belr_fatal("The branch being merged is not the last one of the stack !");
+		fatal("The branch being merged is not the last one of the stack !");
 	}
 	mHandlerStack.pop_back();
 	mHandlerStack.back()->merge(other);
@@ -553,7 +553,7 @@ template <typename _parserElementT>
 void ParserContext<_parserElementT>::_removeBranch(const std::shared_ptr<HandlerContext<_parserElementT>> &other){
 	auto it=find(mHandlerStack.rbegin(), mHandlerStack.rend(),other);
 	if (it==mHandlerStack.rend()){
-		belr_fatal("A branch could not be found in the stack while removing it !");
+		fatal("A branch could not be found in the stack while removing it !");
 	}else{
 		advance(it,1);
 		mHandlerStack.erase(it.base());
@@ -593,7 +593,7 @@ void ParserContext<_parserElementT>::removeBranch(const std::shared_ptr<HandlerC
 template <typename _parserElementT>
 Parser<_parserElementT>::Parser(const std::shared_ptr<Grammar> &grammar) : mGrammar(grammar) {
 	if (!mGrammar->isComplete()){
-		belr_fatal("Grammar not complete, aborting.");
+		fatal("Grammar not complete, aborting.");
 		return;
 	}
 }
@@ -611,7 +611,7 @@ void Parser<_parserElementT>::installHandler(const std::shared_ptr<ParserHandler
 	if (!rec){
 		std::ostringstream str;
 		str<<"There is no rule '"<<handler->getRulename()<<"' in the grammar.";
-		belr_fatal(str.str().c_str());
+		fatal(str.str().c_str());
 	}
 	mHandlers[rec->getId()]=handler;
 }
