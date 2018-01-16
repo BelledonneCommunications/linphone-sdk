@@ -21,6 +21,7 @@
 #define H264_UTILS_H
 
 #include <mediastreamer2/msqueue.h>
+#include "mediastreamer2/msvideo.h"
 
 /**
  * Enumeration that lists the different type of NAL unit
@@ -74,4 +75,9 @@ void ms_h264_bitstream_to_nalus(const uint8_t *bitstream, size_t size, MSQueue *
  */
 void ms_h264_stream_to_nalus(const uint8_t *frame, size_t size, MSQueue *nalus, int *idr_count);
 
+/**
+ * Set the video size from sps
+ * @param sps The sps unit to read
+ */
+void update_picture_size_with_sps(const mblk_t* sps, MSVideoSize *video_size);
 #endif /* defined(H264_UTILS_H) */
