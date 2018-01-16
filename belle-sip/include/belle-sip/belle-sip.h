@@ -42,6 +42,7 @@
 #include "belle-sip/http-message.h"
 #include "belle-sip/belle-sdp.h"
 #include "belle-sip/bodyhandler.h"
+#include "belle-sip/mdns_register.h"
 
 #ifdef __ANDROID__
 #include "belle-sip/wakelock.h"

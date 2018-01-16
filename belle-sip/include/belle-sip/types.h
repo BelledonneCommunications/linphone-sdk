@@ -51,6 +51,7 @@ BELLE_SIP_DECLARE_TYPES_BEGIN(belle_sip,1)
 	BELLE_SIP_TYPE_ID(belle_sip_provider_t),
 	BELLE_SIP_TYPE_ID(belle_sip_main_loop_t),
 	BELLE_SIP_TYPE_ID(belle_sip_source_t),
+	BELLE_SIP_TYPE_ID(belle_sip_mdns_source_t),
 	BELLE_SIP_TYPE_ID(belle_sip_resolver_context_t),
 	BELLE_SIP_TYPE_ID(belle_sip_transaction_t),
 	BELLE_SIP_TYPE_ID(belle_sip_server_transaction_t),
@@ -145,7 +146,8 @@ BELLE_SIP_DECLARE_TYPES_BEGIN(belle_sip,1)
 	BELLE_SIP_TYPE_ID(belle_sip_header_content_disposition_t),
 	BELLE_SIP_TYPE_ID(belle_sip_header_accept_t),
 	BELLE_SIP_TYPE_ID(belle_sip_header_reason_t),
-	BELLE_SIP_TYPE_ID(belle_sip_header_authentication_info_t)
+	BELLE_SIP_TYPE_ID(belle_sip_header_authentication_info_t),
+	BELLE_SIP_TYPE_ID(belle_sip_mdns_register_t)
 BELLE_SIP_DECLARE_TYPES_END
 
 

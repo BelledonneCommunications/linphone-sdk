@@ -58,6 +58,12 @@ endif()
 if(ZLIB_FOUND)
 	list(APPEND LIBS ${ZLIB_LIBRARIES})
 endif()
+if(DNSSD_FOUND)
+	set(MDNS_SOURCE_FILES_C
+		belle_sip_mdns_register.c
+	)
+	list(APPEND LIBS ${DNSSD_LIBRARIES})
+endif()
 if(WIN32)
 	list(APPEND LIBS ws2_32)
 endif()
@@ -151,6 +157,7 @@ set(BELLE_SIP_SOURCE_FILES_C
 	${SDP_GENERATED_SOURCE_FILES_C}
 	${SIP_MESSAGE_GENERATED_SOURCE_FILES_C}
 	${TUNNEL_SOURCE_FILES_C}
+	${MDNS_SOURCE_FILES_C}
 )
 
 add_definitions(

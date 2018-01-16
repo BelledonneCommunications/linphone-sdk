@@ -42,3 +42,5 @@
 
 #cmakedefine BELLE_SDP_FORCE_RTP_MAP
 #cmakedefine ENABLE_SERVER_SOCKETS
+
+#cmakedefine HAVE_MDNS

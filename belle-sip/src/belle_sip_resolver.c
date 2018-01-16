@@ -20,6 +20,9 @@
 #include "dns.h"
 #include <bctoolbox/defs.h>
 
+#ifdef HAVE_MDNS
+#include <dns_sd.h>
+#endif
 #include <stdlib.h>
 #include <stdint.h>
 #ifdef __APPLE__
@@ -72,13 +75,17 @@ static void belle_sip_dns_srv_destroy(belle_sip_dns_srv_t *obj){
 	}
 }
 
-belle_sip_dns_srv_t *belle_sip_dns_srv_create(struct dns_srv *srv){
+belle_sip_dns_srv_t *belle_sip_dns_srv_create_raw(short unsigned int priority, short unsigned int weight, short unsigned int port, const char *target){
 	belle_sip_dns_srv_t *obj=belle_sip_object_new(belle_sip_dns_srv_t);
-	obj->priority=srv->priority;
-	obj->weight=srv->weight;
-	obj->port=srv->port;
-	obj->target=belle_sip_strdup(srv->target);
+	obj->priority=priority;
+	obj->weight=weight;
+	obj->port=port;
+	obj->target=belle_sip_strdup(target);
 	return obj;
+}
+
+belle_sip_dns_srv_t *belle_sip_dns_srv_create(struct dns_srv *srv){
+	return belle_sip_dns_srv_create_raw(srv->priority, srv->weight, srv->port, srv->target);
 }
 
 const char *belle_sip_dns_srv_get_target(const belle_sip_dns_srv_t *obj){
@@ -127,7 +134,13 @@ struct belle_sip_simple_resolver_context{
 	int family;
 	int flags;
 	uint64_t start_time;
-#ifdef USE_GETADDRINFO_FALLBACK
+#ifdef HAVE_MDNS
+	char *srv_prefix;
+	char *srv_name;
+	int resolving;
+	bool_t result;
+#endif
+#if defined(USE_GETADDRINFO_FALLBACK) || defined(HAVE_MDNS)
 	struct addrinfo *getaddrinfo_ai_list;
 	belle_sip_source_t *getaddrinfo_source;
 	belle_sip_thread_t getaddrinfo_thread;
@@ -328,6 +341,16 @@ static int srv_compare_prio(const void *psrv1, const void *psrv2){
 	return 1;
 }
 
+static int srv_compare_host_and_port(const void *psrv1, const void *psrv2){
+	belle_sip_dns_srv_t *srv1=(belle_sip_dns_srv_t*)psrv1;
+	belle_sip_dns_srv_t *srv2=(belle_sip_dns_srv_t*)psrv2;
+	int ret = strcmp(srv1->target, srv2->target);
+	if (ret != 0) return ret;
+	if (srv1->port < srv2->port) return -1;
+	if (srv1->port == srv2->port) return 0;
+	return 1;
+}
+
 /*
  * see https://www.ietf.org/rfc/rfc2782.txt
  * 0 weighted must just appear first.
@@ -418,7 +441,7 @@ static void simple_resolver_context_notify(belle_sip_resolver_context_t *obj) {
 	belle_sip_simple_resolver_context_t *ctx = BELLE_SIP_SIMPLE_RESOLVER_CONTEXT(obj);
 	if ((ctx->type == DNS_T_A) || (ctx->type == DNS_T_AAAA)) {
 		struct addrinfo **ai_list = &ctx->ai_list;
-#if USE_GETADDRINFO_FALLBACK
+#if defined(USE_GETADDRINFO_FALLBACK) || defined(HAVE_MDNS)
 		if (ctx->getaddrinfo_ai_list != NULL) ai_list = &ctx->getaddrinfo_ai_list;
 #endif
 		ctx->cb(ctx->cb_data, ctx->name, *ai_list, BELLE_SIP_RESOLVER_CONTEXT(obj)->min_ttl);
@@ -540,7 +563,7 @@ static int resolver_process_data(belle_sip_simple_resolver_context_t *ctx, unsig
 			}
 		}
 		free(ans);
-#ifdef USE_GETADDRINFO_FALLBACK
+#if defined(USE_GETADDRINFO_FALLBACK) || defined(HAVE_MDNS)
 		ctx->getaddrinfo_cancelled = TRUE;
 #endif
 		if (dns_res_was_asymetric(ctx->R)){
@@ -551,7 +574,7 @@ static int resolver_process_data(belle_sip_simple_resolver_context_t *ctx, unsig
 	}
 	if (error != DNS_EAGAIN) {
 		belle_sip_error("%s dns_res_check() error: %s (%d)", __FUNCTION__, dns_strerror(error), error);
-#ifdef USE_GETADDRINFO_FALLBACK
+#if defined(USE_GETADDRINFO_FALLBACK) || defined(HAVE_MDNS)
 		if (ctx->getaddrinfo_done) {
 			return BELLE_SIP_STOP;
 		} else {
@@ -563,7 +586,7 @@ static int resolver_process_data(belle_sip_simple_resolver_context_t *ctx, unsig
 		return BELLE_SIP_STOP;
 #endif
 	} else {
-#ifdef USE_GETADDRINFO_FALLBACK
+#if defined(USE_GETADDRINFO_FALLBACK) || defined(HAVE_MDNS)
 		if (ctx->getaddrinfo_done) {
 			return BELLE_SIP_STOP;
 		} else
@@ -575,7 +598,7 @@ static int resolver_process_data(belle_sip_simple_resolver_context_t *ctx, unsig
 	return BELLE_SIP_CONTINUE;
 }
 
-#ifdef USE_GETADDRINFO_FALLBACK
+#if defined(USE_GETADDRINFO_FALLBACK) || defined(HAVE_MDNS)
 static void * _resolver_getaddrinfo_thread(void *ptr) {
 	belle_sip_simple_resolver_context_t *ctx = (belle_sip_simple_resolver_context_t *)ptr;
 	struct addrinfo *res = NULL;
@@ -587,14 +610,16 @@ static void * _resolver_getaddrinfo_thread(void *ptr) {
 	snprintf(serv, sizeof(serv), "%i", ctx->port);
 	hints.ai_family = ctx->family;
 	hints.ai_flags = AI_NUMERICSERV;
+	hints.ai_protocol = strstr(ctx->name, "udp") ? IPPROTO_UDP : IPPROTO_TCP;
 	err = getaddrinfo(ctx->name, serv, &hints, &res);
 	if (err != 0) {
 		belle_sip_error("getaddrinfo DNS resolution of %s failed: %s", ctx->name, gai_strerror(err));
 	} else if (!ctx->getaddrinfo_cancelled) {
+		struct addrinfo *res_it = res;
 		do {
-			append_dns_result(ctx, &ctx->getaddrinfo_ai_list, res->ai_addr, (socklen_t)res->ai_addrlen);
-			res = res->ai_next;
-		} while (res != NULL);
+			append_dns_result(ctx, &ctx->getaddrinfo_ai_list, res_it->ai_addr, (socklen_t)res_it->ai_addrlen);
+			res_it = res_it->ai_next;
+		} while (res_it != NULL);
 	}
 	if (res) freeaddrinfo(res);
 	ctx->getaddrinfo_done = TRUE;
@@ -629,7 +654,7 @@ static void _resolver_getaddrinfo_start(belle_sip_simple_resolver_context_t *ctx
 	}
 	fd = ctx->ctlpipe[0];
 #endif
-	belle_sip_thread_create(&ctx->getaddrinfo_thread, NULL, _resolver_getaddrinfo_thread, ctx);
+	bctbx_thread_create(&ctx->getaddrinfo_thread, NULL, _resolver_getaddrinfo_thread, ctx);
 	ctx->getaddrinfo_source = belle_sip_fd_source_new((belle_sip_source_func_t)_resolver_getaddrinfo_callback, ctx, fd, BELLE_SIP_EVENT_READ, -1);
 	belle_sip_main_loop_add_source(ctx->base.stack->ml, ctx->getaddrinfo_source);
 }
@@ -657,7 +682,7 @@ static int _resolver_send_query(belle_sip_simple_resolver_context_t *ctx) {
 		/*only init source if res inprogress*/
 		/*the timeout set to the source is 1 s, this is to allow dns.c to send request retransmissions*/
 		belle_sip_socket_source_init((belle_sip_source_t*)ctx, (belle_sip_source_func_t)resolver_process_data, ctx, dns_res_pollfd(ctx->R), BELLE_SIP_EVENT_READ | BELLE_SIP_EVENT_TIMEOUT, 1000);
-#ifdef USE_GETADDRINFO_FALLBACK
+#if defined(USE_GETADDRINFO_FALLBACK) || defined(HAVE_MDNS)
 		{
 			int timeout = belle_sip_stack_get_dns_timeout(ctx->base.stack);
 			if ((timeout != 0) && ((ctx->type == DNS_T_A) || (ctx->type == DNS_T_AAAA))) {
@@ -676,43 +701,212 @@ static int resolver_process_data_delayed(belle_sip_simple_resolver_context_t *ct
 	return BELLE_SIP_STOP;
 }
 
+#ifdef HAVE_MDNS
+typedef struct belle_sip_mdns_source belle_sip_mdns_source_t;
+#define BELLE_SIP_MDNS_SOURCE(obj) BELLE_SIP_CAST(obj,belle_sip_mdns_source_t)
+
+struct belle_sip_mdns_source {
+	belle_sip_source_t base;
+	DNSServiceRef service_ref;
+	belle_sip_simple_resolver_context_t *ctx;
+};
+
+belle_sip_mdns_source_t *belle_sip_mdns_source_new(DNSServiceRef service_ref, belle_sip_simple_resolver_context_t *ctx, belle_sip_source_func_t func, int timeout) {
+	belle_sip_mdns_source_t *obj = belle_sip_object_new(belle_sip_mdns_source_t);
+	obj->service_ref = service_ref;
+	obj->ctx = ctx;
+	belle_sip_fd_source_init((belle_sip_source_t*)obj
+							, func
+							, obj
+							, DNSServiceRefSockFD(service_ref)
+							, BELLE_SIP_EVENT_READ | BELLE_SIP_EVENT_TIMEOUT
+							, timeout);
+	return obj;
+}
+
+BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_mdns_source_t);
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_mdns_source_t, belle_sip_source_t, NULL, NULL, NULL, TRUE);
+
+static void resolver_process_mdns_resolve(DNSServiceRef service_ref
+										, DNSServiceFlags flags
+										, uint32_t interface
+										, DNSServiceErrorType error_code
+										, const char *fullname
+										, const char *hosttarget
+										, uint16_t port
+										, uint16_t txt_len
+										, const unsigned char *txt_record
+										, belle_sip_simple_resolver_context_t *ctx) {
+	if (error_code != kDNSServiceErr_NoError) {
+		belle_sip_error("%s error while resolving [%s]: code %d", __FUNCTION__, ctx->name, error_code);
+	} else {
+		uint8_t prio_size, weight_size;
+
+		const char *prio_buf = TXTRecordGetValuePtr(txt_len, txt_record, "prio", &prio_size);
+		const char *weight_buf = TXTRecordGetValuePtr(txt_len, txt_record, "weight", &weight_size);
+
+		/* If the buffer is non-NULL then the key exist and if the result size is > 0 then the value is not empty */
+		if (prio_buf && prio_size > 0 && weight_buf && weight_size > 0) {
+			short unsigned int prio, weight;
+
+			/* Don't use the VLAs since it doesn't work on Windows */
+			char *prio_value = belle_sip_malloc(prio_size + 1);
+			char *weight_value = belle_sip_malloc(weight_size + 1);
+
+			memcpy(prio_value, prio_buf, prio_size);
+			memcpy(weight_value, weight_buf, weight_size);
+
+			prio_value[prio_size] = '\0';
+			weight_value[weight_size] = '\0';
+
+			prio = atoi(prio_value);
+			weight = atoi(weight_value);
+
+			belle_sip_dns_srv_t *b_srv = belle_sip_dns_srv_create_raw(prio, weight, port, hosttarget);
+			if (!belle_sip_list_find_custom(ctx->srv_list, srv_compare_host_and_port, b_srv))
+				ctx->srv_list = belle_sip_list_insert_sorted(ctx->srv_list, belle_sip_object_ref(b_srv), srv_compare_prio);
+			else
+				belle_sip_dns_srv_destroy(b_srv);
+
+			belle_sip_free(prio_value);
+			belle_sip_free(weight_value);
+
+			belle_sip_message("mDNS %s resolved to [target:%s port:%d prio:%d weight:%d]", ctx->name, hosttarget, port, prio, weight);
+		} else {
+			belle_sip_warning("%s TXT record of %s does not contain a priority or weight key!", __FUNCTION__, hosttarget);
+		}
+	}
+}
+
+static int resolver_process_mdns_resolve_result(belle_sip_mdns_source_t *source, unsigned int revents) {
+	if (revents & BELLE_SIP_EVENT_READ) {
+		DNSServiceProcessResult(source->service_ref);
+	}
+
+	if (revents & BELLE_SIP_EVENT_TIMEOUT) {
+		source->ctx->resolving--;
+		if (source->ctx->resolving == 0) {
+			/* There is no resolve left, we can notify */
+			belle_sip_resolver_context_notify(BELLE_SIP_RESOLVER_CONTEXT(source->ctx));
+		}
+
+		DNSServiceRefDeallocate(source->service_ref);
+		return BELLE_SIP_STOP;
+	}
+	return BELLE_SIP_CONTINUE;
+}
+
+static void resolver_process_mdns_browse(DNSServiceRef service_ref
+										, DNSServiceFlags flags
+										, uint32_t interface
+										, DNSServiceErrorType error_code
+										, const char *name
+										, const char *type
+										, const char *domain
+										, belle_sip_simple_resolver_context_t *ctx) {
+	if (error_code != kDNSServiceErr_NoError) {
+		belle_sip_error("%s error while browing [%s]: code %d", __FUNCTION__, ctx->name, error_code);
+	} else {
+		DNSServiceRef resolve_ref;
+		DNSServiceErrorType error;
+
+		error = DNSServiceResolve(&resolve_ref, 0, interface, name, type, domain, (DNSServiceResolveReply)resolver_process_mdns_resolve, ctx);
+
+		if (error == kDNSServiceErr_NoError) {
+			if (!ctx->result) ctx->result = TRUE;
+			ctx->resolving++;
+
+			belle_sip_mdns_source_t *source = belle_sip_mdns_source_new(resolve_ref, ctx, (belle_sip_source_func_t)resolver_process_mdns_resolve_result, 1000);
+			belle_sip_main_loop_add_source(ctx->base.stack->ml, (belle_sip_source_t*)source);
+		} else {
+			belle_sip_error("%s DNSServiceResolve error [%s]: code %d", __FUNCTION__, ctx->name, error);
+		}
+	}
+}
+
+static int resolver_process_mdns_browse_result(belle_sip_mdns_source_t *source, unsigned int revents) {
+	if (revents & BELLE_SIP_EVENT_READ) {
+		DNSServiceProcessResult(source->service_ref);
+	}
+
+	if (revents & BELLE_SIP_EVENT_TIMEOUT) {
+		if (!source->ctx->result) {
+			belle_sip_resolver_context_notify(BELLE_SIP_RESOLVER_CONTEXT(source->ctx));
+		}
+
+		DNSServiceRefDeallocate(source->service_ref);
+		return BELLE_SIP_STOP;
+	}
+	return BELLE_SIP_CONTINUE;
+}
+#endif
+
 static int _resolver_start_query(belle_sip_simple_resolver_context_t *ctx) {
-	struct dns_options opts;
-	int error;
-	struct dns_resolv_conf *conf;
+#ifdef HAVE_MDNS
+	char *suffix;
 
 	if (!ctx->name) return -1;
 
-	conf=resconf(ctx);
-	if (conf){
-		conf->options.recurse = 0;
-		conf->options.timeout=2;
-		conf->options.attempts=5;
-	}else
-		return -1;
-	if (!hosts(ctx))
-		return -1;
+	/* Check if name ends with .local to determine if we'll use multicast DNS or not */
+	suffix = strrchr(ctx->name, '.');
 
-	memset(&opts, 0, sizeof opts);
-	
-	/* When there are IPv6 nameservers, allow responses to arrive from an IP address that is not the IP address to which the request was sent originally.
-		* Mac' NAT64 network tend to do this sometimes.*/
-	opts.udp_uses_connect = ctx->resconf->iface.ss_family != AF_INET6;
-	if (!opts.udp_uses_connect) belle_sip_message("Resolver is not using connect().");
+	if (suffix && strcmp(suffix, ".local") == 0 && ctx->type == DNS_T_SRV) {
+		DNSServiceErrorType error;
+		DNSServiceRef browse_ref;
 
-	if (!(ctx->R = dns_res_open(ctx->resconf, ctx->hosts, dns_hints_mortal(dns_hints_local(ctx->resconf, &error)), cache(ctx), &opts, &error))) {
-		belle_sip_error("%s dns_res_open error [%s]: %s", __FUNCTION__, ctx->name, dns_strerror(error));
-		return -1;
-	}
-	error=0;
-	if (ctx->base.stack->resolver_tx_delay > 0) {
-		belle_sip_socket_source_init((belle_sip_source_t*)ctx, (belle_sip_source_func_t)resolver_process_data_delayed, ctx, -1, BELLE_SIP_EVENT_TIMEOUT, ctx->base.stack->resolver_tx_delay + 1000);
-		belle_sip_message("%s DNS resolution delayed by %d ms", __FUNCTION__, ctx->base.stack->resolver_tx_delay);
+		error = DNSServiceBrowse(&browse_ref, 0, 0, ctx->srv_prefix, ctx->srv_name, (DNSServiceBrowseReply)resolver_process_mdns_browse, ctx);
+
+		if (error == kDNSServiceErr_NoError) {
+			belle_sip_mdns_source_t *source = belle_sip_mdns_source_new(browse_ref, ctx, (belle_sip_source_func_t)resolver_process_mdns_browse_result, 5000);
+			belle_sip_main_loop_add_source(ctx->base.stack->ml, (belle_sip_source_t*)source);
+
+			return 0;
+		} else {
+			belle_sip_error("%s DNSServiceBrowse error [%s]: code %d", __FUNCTION__, ctx->name, error);
+
+			return -1;
+		}
 	} else {
-		error=_resolver_send_query(ctx);
+#endif
+		struct dns_options opts;
+		int error;
+		struct dns_resolv_conf *conf;
+
+		if (!ctx->name) return -1;
+
+		conf=resconf(ctx);
+		if (conf){
+			conf->options.recurse = 0;
+			conf->options.timeout=2;
+			conf->options.attempts=5;
+		}else
+			return -1;
+		if (!hosts(ctx))
+			return -1;
+
+		memset(&opts, 0, sizeof opts);
+		
+		/* When there are IPv6 nameservers, allow responses to arrive from an IP address that is not the IP address to which the request was sent originally.
+			* Mac' NAT64 network tend to do this sometimes.*/
+		opts.udp_uses_connect = ctx->resconf->iface.ss_family != AF_INET6;
+		if (!opts.udp_uses_connect) belle_sip_message("Resolver is not using connect().");
+
+		if (!(ctx->R = dns_res_open(ctx->resconf, ctx->hosts, dns_hints_mortal(dns_hints_local(ctx->resconf, &error)), cache(ctx), &opts, &error))) {
+			belle_sip_error("%s dns_res_open error [%s]: %s", __FUNCTION__, ctx->name, dns_strerror(error));
+			return -1;
+		}
+		error=0;
+		if (ctx->base.stack->resolver_tx_delay > 0) {
+			belle_sip_socket_source_init((belle_sip_source_t*)ctx, (belle_sip_source_func_t)resolver_process_data_delayed, ctx, -1, BELLE_SIP_EVENT_TIMEOUT, ctx->base.stack->resolver_tx_delay + 1000);
+			belle_sip_message("%s DNS resolution delayed by %d ms", __FUNCTION__, ctx->base.stack->resolver_tx_delay);
+		} else {
+			error=_resolver_send_query(ctx);
+		}
+		if (error==0 && !ctx->base.notified) belle_sip_main_loop_add_source(ctx->base.stack->ml,(belle_sip_source_t*)ctx);
+		return error;
+#ifdef HAVE_MDNS
 	}
-	if (error==0 && !ctx->base.notified) belle_sip_main_loop_add_source(ctx->base.stack->ml,(belle_sip_source_t*)ctx);
-	return error;
+#endif
 }
 
 static belle_sip_simple_resolver_context_t * resolver_start_query(belle_sip_simple_resolver_context_t *ctx) {
@@ -755,9 +949,9 @@ static void belle_sip_combined_resolver_context_destroy(belle_sip_combined_resol
 static void belle_sip_simple_resolver_context_destroy(belle_sip_simple_resolver_context_t *ctx){
 	/* Do not free elements of ctx->ai_list with bctbx_freeaddrinfo(). Let the caller do it, otherwise
 	   it will not be able to use them after the resolver has been destroyed. */
-#ifdef USE_GETADDRINFO_FALLBACK
+#if defined(USE_GETADDRINFO_FALLBACK) || defined(HAVE_MDNS)
 	if (ctx->getaddrinfo_thread != 0) {
-		belle_sip_thread_join(ctx->getaddrinfo_thread, NULL);
+		bctbx_thread_join(ctx->getaddrinfo_thread, NULL);
 	}
 	if (ctx->getaddrinfo_source) belle_sip_object_unref(ctx->getaddrinfo_source);
 #ifdef _WIN32
@@ -773,7 +967,7 @@ static void belle_sip_simple_resolver_context_destroy(belle_sip_simple_resolver_
 		bctbx_freeaddrinfo(ctx->ai_list);
 		ctx->ai_list = NULL;
 	}
-#ifdef USE_GETADDRINFO_FALLBACK
+#if defined(USE_GETADDRINFO_FALLBACK) || defined(HAVE_MDNS)
 	if (ctx->getaddrinfo_ai_list != NULL) {
 		bctbx_freeaddrinfo(ctx->getaddrinfo_ai_list);
 		ctx->getaddrinfo_ai_list = NULL;
@@ -795,6 +989,16 @@ static void belle_sip_simple_resolver_context_destroy(belle_sip_simple_resolver_
 		free(ctx->resconf);
 		ctx->resconf = NULL;
 	}
+#ifdef HAVE_MDNS
+	if (ctx->srv_prefix) {
+		belle_sip_free(ctx->srv_prefix);
+		ctx->srv_prefix = NULL;
+	}
+	if (ctx->srv_name) {
+		belle_sip_free(ctx->srv_name);
+		ctx->srv_name = NULL;
+	}
+#endif
 }
 
 static void belle_sip_dual_resolver_context_destroy(belle_sip_dual_resolver_context_t *obj){
@@ -1052,7 +1256,7 @@ static belle_sip_resolver_context_t * belle_sip_stack_resolve_single(belle_sip_s
 	if (family == 0) family = AF_UNSPEC;
 	ctx->family = family;
 	ctx->type = (ctx->family == AF_INET6) ? DNS_T_AAAA : DNS_T_A;
-#if defined(USE_GETADDRINFO_FALLBACK) && defined(_WIN32)
+#if (defined(USE_GETADDRINFO_FALLBACK) || defined(HAVE_MDNS)) && defined(_WIN32)
 	ctx->ctlevent = (belle_sip_fd_t)-1;
 #endif
 	return (belle_sip_resolver_context_t*)resolver_start_query(ctx);
@@ -1136,6 +1340,12 @@ belle_sip_resolver_context_t * belle_sip_stack_resolve_srv(belle_sip_stack_t *st
 	belle_sip_resolver_context_init((belle_sip_resolver_context_t*)ctx,stack);
 	ctx->srv_cb_data = data;
 	ctx->srv_cb = cb;
+#ifdef HAVE_MDNS
+	ctx->srv_prefix = belle_sip_strdup(srv_prefix);
+	ctx->srv_name = belle_sip_strdup(name);
+	ctx->resolving = 0;
+	ctx->result = FALSE;
+#endif
 	ctx->name = belle_sip_concat(srv_prefix, name, NULL);
 	ctx->type = DNS_T_SRV;
 	belle_sip_object_set_name((belle_sip_object_t*)ctx, ctx->name);

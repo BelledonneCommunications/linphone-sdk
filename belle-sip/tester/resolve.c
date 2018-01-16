@@ -42,6 +42,9 @@ static void resolver_callback(void *data, const char *queried_name, struct addri
 			printf("\t%s %s  (ttl:%u)\n",name,port,ttl);
 		}
 	}
+	if (ai_list){
+		bctbx_freeaddrinfo(ai_list);
+	}
 	belle_sip_main_loop_quit(belle_sip_stack_get_main_loop(stack));
 }
 
