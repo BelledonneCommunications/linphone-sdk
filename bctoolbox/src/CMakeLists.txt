@@ -41,7 +41,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 	list(APPEND STRICT_OPTIONS_CXX "-x c++")
 endif()
 
-if(HAVE_EXECINFO) 
+if(HAVE_EXECINFO)
 	list(APPEND BCTOOLBOX_CXX_SOURCE_FILES utils/exception.cc)
 endif()
 
@@ -110,9 +110,9 @@ if(ENABLE_SHARED)
 		set_target_properties(bctoolbox PROPERTIES
 			FRAMEWORK TRUE
 			MACOSX_FRAMEWORK_IDENTIFIER org.linphone.bctoolbox
-  			MACOSX_FRAMEWORK_INFO_PLIST Info.plist.in
+			MACOSX_FRAMEWORK_INFO_PLIST Info.plist.in
 			PUBLIC_HEADER "${BCTOOLBOX_HEADER_FILES}"
-		) 
+		)
 	endif()
 	if(WIN32)
 		if(NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
@@ -211,7 +211,7 @@ if(BCUNIT_FOUND)
 				FRAMEWORK TRUE
 				MACOSX_FRAMEWORK_IDENTIFIER com.belledonne-communications.bctoolbox-tester
 				PUBLIC_HEADER "${BCTOOLBOX_HEADER_FILES}"
-			) 
+			)
 		endif()
 	endif()
 endif()
@@ -252,9 +252,10 @@ if(ENABLE_SHARED)
 	endif()
 endif()
 
-
 if(MSVC)
-		#disable "was deprecated" warnings of windows compiler (typically using strcpy_s instead of strcpy and stupid things like this)
-        target_compile_options(bctoolbox PRIVATE "/wd4996")
+	# Disable "was deprecated" warnings of windows compiler (typically using strcpy_s instead of strcpy and stupid things like this).
+	target_compile_options(bctoolbox PRIVATE "/wd4996")
+	if(BCUNIT_FOUND)
 		target_compile_options(bctoolbox-tester PRIVATE "/wd4996")
+	endif()
 endif()
