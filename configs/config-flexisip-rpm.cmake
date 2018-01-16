@@ -75,6 +75,10 @@ endif()
 lcb_builder_build_method(bctoolbox "rpm")
 lcb_builder_cmake_options(bctoolbox "-DENABLE_TESTS=NO")
 lcb_builder_cmake_options(bctoolbox "-DENABLE_TESTS_COMPONENT=NO")
+lcb_builder_rpmbuild_options(bctoolbox
+	"--with bc"
+	"--without tests_component"
+)
 
 # Include builders
 include(builders/CMakeLists.txt)

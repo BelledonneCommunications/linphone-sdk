@@ -44,7 +44,3 @@ lcb_cmake_options(
 	"-DENABLE_TESTS_COMPONENT=${ENABLE_UNIT_TESTS}"
 )
 
-if(EP_bctoolbox_BUILD_METHOD STREQUAL "rpm")
-	set(EP_bctoolbox_CONFIGURE_COMMAND_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/builders/bctoolbox/configure.sh.rpm.cmake)
-	set(EP_bctoolbox_BUILD_COMMAND_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/builders/bctoolbox/build.sh.rpm.cmake)
-endif()
