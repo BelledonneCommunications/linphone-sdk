@@ -19,6 +19,7 @@
 #include "belle_sip_internal.h"
 #include <bctoolbox/defs.h>
 
+#ifdef HAVE_MDNS
 #include <dns_sd.h>
 
 #ifndef _WIN32
@@ -118,8 +119,18 @@ void *mdns_register_poll(void *data) {
 
 	return NULL;
 }
+#endif
+
+int belle_sip_mdns_register_available(void) {
+#ifdef HAVE_MDNS
+	return TRUE;
+#else
+	return FALSE;
+#endif
+}
 
 belle_sip_mdns_register_t *belle_sip_mdns_register(const char *service, const char *transport, const char *domain, const char *name, int port, int prio, int weight, belle_sip_mdns_register_callback_t cb, void *data) {
+#ifdef HAVE_MDNS
 	belle_sip_mdns_register_t *reg = belle_sip_mdns_register_create(cb, data);
 	DNSServiceErrorType error;
 	TXTRecordRef txt_ref;
@@ -167,9 +178,13 @@ belle_sip_mdns_register_t *belle_sip_mdns_register(const char *service, const ch
 	}
 
 	return reg;
+#else
+	return NULL;
+#endif
 }
 
 void belle_sip_mdns_unregister(belle_sip_mdns_register_t *reg) {
+#ifdef HAVE_MDNS
 	if (!reg) return;
 
 	if (reg->running) {
@@ -179,4 +194,5 @@ void belle_sip_mdns_unregister(belle_sip_mdns_register_t *reg) {
 
 	DNSServiceRefDeallocate(reg->service_ref);
 	belle_sip_object_unref(reg);
+#endif
 }

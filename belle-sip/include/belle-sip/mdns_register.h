@@ -29,6 +29,17 @@ typedef void (*belle_sip_mdns_register_callback_t)(void *data, int error);
 
 BELLE_SIP_BEGIN_DECLS
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+/**
+ * Tells if multicast DNS is available.
+ * @return true if it is available, false otherwise.
+**/
+BELLESIP_EXPORT int belle_sip_mdns_register_available(void);
+
 /**
  * Asynchronously performs the mdns registration (advertisement).
  * @param service the queried service ("sip", "stun", "turn"...).
@@ -49,6 +60,10 @@ BELLESIP_EXPORT belle_sip_mdns_register_t *belle_sip_mdns_register(const char *s
  * @param context the belle_sip_mdns_register_t used to register the service.
 **/
 BELLESIP_EXPORT void belle_sip_mdns_unregister(belle_sip_mdns_register_t *context);
+
+#ifdef __cplusplus
+} /* end extern "C" */
+#endif
 
 BELLE_SIP_END_DECLS
 

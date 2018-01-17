@@ -59,9 +59,6 @@ if(ZLIB_FOUND)
 	list(APPEND LIBS ${ZLIB_LIBRARIES})
 endif()
 if(DNSSD_FOUND)
-	set(MDNS_SOURCE_FILES_C
-		belle_sip_mdns_register.c
-	)
 	list(APPEND LIBS ${DNSSD_LIBRARIES})
 endif()
 if(WIN32)
@@ -113,6 +110,7 @@ set(BELLE_SIP_SOURCE_FILES_C
 	belle_sip_headers_impl.c
 	belle_sip_internal.h
 	belle_sip_loop.c
+	belle_sip_mdns_register.c
 	belle_sip_object.c
 	belle_sip_parameters.c
 	belle_sip_resolver.c
@@ -157,7 +155,6 @@ set(BELLE_SIP_SOURCE_FILES_C
 	${SDP_GENERATED_SOURCE_FILES_C}
 	${SIP_MESSAGE_GENERATED_SOURCE_FILES_C}
 	${TUNNEL_SOURCE_FILES_C}
-	${MDNS_SOURCE_FILES_C}
 )
 
 add_definitions(
