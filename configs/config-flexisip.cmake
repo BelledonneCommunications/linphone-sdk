@@ -43,7 +43,6 @@ set(DEFAULT_VALUE_CMAKE_LINKING_TYPE "-DENABLE_STATIC=NO")
 # ms2 default values
 set(DEFAULT_VALUE_ENABLE_SPEEX ON)
 
-
 # Global configuration
 set(LINPHONE_BUILDER_HOST "")
 
@@ -84,6 +83,9 @@ include(builders/CMakeLists.txt)
 
 # bctoolbox
 lcb_builder_cmake_options(bctoolbox "-DENABLE_TESTS_COMPONENT=${ENABLE_UNIT_TESTS}")
+
+# bellesip
+lcb_builder_cmake_options(bellesip "-DENABLE_MDNS=YES")
 
 # linphone
 lcb_builder_cmake_options(linphone
