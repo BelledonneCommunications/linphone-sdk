@@ -48,6 +48,7 @@ set(DEFAULT_VALUE_ENABLE_WEBRTC_AECM ON)
 set(DEFAULT_VALUE_ENABLE_WEBRTC_AEC ON)
 set(DEFAULT_VALUE_ENABLE_ZRTP ON)
 set(DEFAULT_VALUE_ENABLE_LIME ON)
+set(DEFAULT_VALUE_ENABLE_LIME_X3DH OFF)
 set(DEFAULT_VALUE_ENABLE_TOOLS OFF)
 set(DEFAULT_VALUE_ENABLE_JAVA_WRAPPER ON)
 set(ENABLE_NLS NO CACHE BOOL "" FORCE)
@@ -143,6 +144,9 @@ lcb_builder_linking_type(ortp "-DENABLE_STATIC=NO" "-DENABLE_SHARED=YES")
 # polarssl
 lcb_builder_linking_type(polarssl "-DUSE_SHARED_POLARSSL_LIBRARY=NO")
 
+# soci
+lcb_builder_linking_type(soci "-DSOCI_STATIC=YES" "-DSOCI_SHARED=NO")
+
 # speex
 lcb_builder_cmake_options(speex "-DENABLE_FLOAT_API=NO")
 lcb_builder_cmake_options(speex "-DENABLE_FIXED_POINT=YES")
@@ -159,7 +163,7 @@ lcb_builder_install_target(x264 "install-lib-static")
 
 
 # Copy c++ library to install prefix
-file(COPY "${CMAKE_ANDROID_NDK}/sources/cxx-stl/gnu-libstdc++/${CMAKE_CXX_ANDROID_TOOLCHAIN_VERSION}/libs/${CMAKE_ANDROID_ARCH_ABI}/libgnustl_shared.so"
+file(COPY "${CMAKE_ANDROID_NDK}/sources/cxx-stl/llvm-libc++/libs/${CMAKE_ANDROID_ARCH_ABI}/libc++_shared.so"
 	DESTINATION "${CMAKE_INSTALL_PREFIX}/lib"
 )
 

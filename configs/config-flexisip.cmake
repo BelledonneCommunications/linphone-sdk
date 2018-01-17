@@ -35,6 +35,7 @@ set(DEFAULT_VALUE_ENABLE_SNMP ON)
 set(DEFAULT_VALUE_ENABLE_POLARSSL ON)
 set(DEFAULT_VALUE_ENABLE_PROTOBUF OFF)
 
+set(DEFAULT_VALUE_ENABLE_VCARD OFF)
 set(DEFAULT_VALUE_ENABLE_VIDEO OFF)
 
 set(DEFAULT_VALUE_CMAKE_LINKING_TYPE "-DENABLE_STATIC=NO")
@@ -84,6 +85,11 @@ include(builders/CMakeLists.txt)
 # bctoolbox
 lcb_builder_cmake_options(bctoolbox "-DENABLE_TESTS_COMPONENT=${ENABLE_UNIT_TESTS}")
 
+# linphone
+lcb_builder_cmake_options(linphone
+	"-DENABLE_CONSOLE_UI=NO"
+	"-DENABLE_DAEMON=NO"
+)
 if(ENABLE_CONFERENCE)
 	lcb_builder_cmake_options(linphone
 		"-DENABLE_CXX_WRAPPER=YES"
@@ -91,3 +97,4 @@ if(ENABLE_CONFERENCE)
 		"-DENABLE_UNIT_TESTS=${ENABLE_UNIT_TESTS}"
 	)
 endif()
+

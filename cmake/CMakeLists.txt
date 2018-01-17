@@ -733,7 +733,7 @@ macro(linphone_builder_add_external_project PROJNAME)
 
 		# some specific RPMBUILD options to pass for this particular project
 		if(EP_${PROJNAME}_RPMBUILD_OPTIONS)
-			set(LINPHONE_BUILDER_RPMBUILD_OPTIONS "${EP_${PROJNAME}_RPMBUILD_OPTIONS}")
+			string(REPLACE ";" " " LINPHONE_BUILDER_RPMBUILD_OPTIONS "${EP_${PROJNAME}_RPMBUILD_OPTIONS}")
 		else()
 			set(LINPHONE_BUILDER_RPMBUILD_OPTIONS "")
 		endif()
@@ -1378,6 +1378,17 @@ endmacro()
 
 macro(lcb_use_c_compiler_for_assembler BOOL_VALUE)
 	lcb_builder_use_c_compiler_for_assembler("${LINPHONE_BUILDER_CURRENT_BUILDER}" ${BOOL_VALUE})
+endmacro()
+
+macro(lcb_builder_rpmbuild_options BUILDER)
+	set(_args "${ARGN}")
+	foreach(_arg IN LISTS _args)
+		list(APPEND EP_${BUILDER}_RPMBUILD_OPTIONS "${_arg}")
+	endforeach()
+endmacro()
+
+macro(lcb_rpmbuild_options)
+	lcb_builder_rmpbuild_options("${LINPHONE_BUILDER_CURRENT_BUILDER}" ${ARGN})
 endmacro()
 
 macro(lcb_blacklist_dependencies)

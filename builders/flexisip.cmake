@@ -20,39 +20,34 @@
 #
 ############################################################################
 
-set(EP_flexisip_GIT_REPOSITORY "git://git.linphone.org/flexisip" CACHE STRING "flexisip repository URL")
-set(EP_flexisip_GIT_TAG_LATEST "master" CACHE STRING "flexisip tag to use when compiling latest version")
-set(EP_flexisip_GIT_TAG "cc4e47496600e9b1d3d412ce6e887275c204334b" CACHE STRING "flexisip tag to use")
-set(EP_flexisip_EXTERNAL_SOURCE_PATHS "<LINPHONE_BUILDER_TOP_DIR>")
-set(EP_flexisip_GROUPABLE YES)
+lcb_git_repository("git://git.linphone.org/flexisip")
+lcb_git_tag_latest("master")
+lcb_git_tag("cc4e47496600e9b1d3d412ce6e887275c204334b")
+lcb_external_source_paths("<LINPHONE_BUILDER_TOP_DIR>")
+lcb_groupable(YES)
 
-set(EP_flexisip_CMAKE_OPTIONS )
-set(EP_flexisip_CROSS_COMPILATION_OPTIONS
-	"--prefix=${CMAKE_INSTALL_PREFIX}"
-	"--host=${LINPHONE_BUILDER_HOST}"
-)
-set(EP_flexisip_CONFIG_H_FILE "flexisip.spec")
-set(EP_flexisip_SPEC_FILE "flexisip.spec")
+#set(EP_flexisip_CONFIG_H_FILE "flexisip.spec")
+lcb_spec_file("flexisip.spec")
 lcb_dependencies("sofiasip")
-if (ENABLE_CONFERENCE)
+if(ENABLE_CONFERENCE)
 	lcb_dependencies("linphone" "belr")
 endif()
-if (ENABLE_PRESENCE)
+if(ENABLE_PRESENCE)
 	lcb_dependencies("bellesip")
 endif()
-if (ENABLE_REDIS)
-	lcb_dependencies("hiredis")
-endif()
-if(ENABLE_SOCI_BUILD)
+if(ENABLE_SOCI)
 	lcb_dependencies("soci")
 endif()
-if (ENABLE_TRANSCODER)
+if(ENABLE_TRANSCODER)
 	lcb_dependencies("ms2")
 else()
 	lcb_dependencies("ortp")
 endif()
+if(ENABLE_REDIS)
+	lcb_dependencies("hiredis")
+endif()
 
-lcb_builder_cmake_options(flexisip
+lcb_cmake_options(
 	"-DENABLE_TRANSCODER=${ENABLE_TRANSCODER}"
 	"-DENABLE_ODB=${ENABLE_ODB}"
 	"-DENABLE_ODBC=${ENABLE_ODBC}"
@@ -61,7 +56,6 @@ lcb_builder_cmake_options(flexisip
 	"-DENABLE_PUSHNOTIFICATION=${ENABLE_PUSHNOTIFICATION}"
 	"-DENABLE_PRESENCE=${ENABLE_PRESENCE}"
 	"-DENABLE_CONFERENCE=${ENABLE_CONFERENCE}"
-	"-DXSDCXX_ROOT_PATH=${XSDCXX_ROOT_PATH}"
 	"-DENABLE_SNMP=${ENABLE_SNMP}"
 	"-DENABLE_DOC=${ENABLE_DOC}"
 	"-DENABLE_PROTOBUF=${ENABLE_PROTOBUF}"

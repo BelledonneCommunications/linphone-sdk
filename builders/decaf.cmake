@@ -1,6 +1,6 @@
 ############################################################################
-# bctoolbox.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# decaf.cmake
+# Copyright (C) 2017  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,27 +20,10 @@
 #
 ############################################################################
 
-lcb_git_repository("git://git.linphone.org/bctoolbox.git")
+lcb_git_repository("git://git.linphone.org/decaf.git")
 lcb_git_tag_latest("master")
 lcb_git_tag("master")
-lcb_external_source_paths("bctoolbox")
+lcb_external_source_paths("externals/decaf")
 lcb_groupable(YES)
 lcb_package_source(YES)
-lcb_spec_file("bctoolbox.spec")
-
-if(LINPHONE_BUILDER_BUILD_DEPENDENCIES)
-	if(ENABLE_MBEDTLS)
-		lcb_dependencies("mbedtls")
-	elseif(ENABLE_POLARSSL)
-		lcb_dependencies("polarssl")
-	endif()
-	if(ENABLE_UNIT_TESTS)
-		lcb_dependencies("bcunit")
-	endif()
-endif()
-
-lcb_cmake_options(
-	"-DENABLE_TESTS=${ENABLE_UNIT_TESTS}"
-	"-DENABLE_TESTS_COMPONENT=${ENABLE_UNIT_TESTS}"
-)
 

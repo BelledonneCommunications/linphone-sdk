@@ -26,8 +26,10 @@ lcb_git_tag("3.10.0")
 lcb_external_source_paths("linphone")
 lcb_groupable(YES)
 lcb_package_source(YES)
+lcb_spec_file("liblinphone.spec")
+lcb_rpmbuild_name("liblinphone")
 
-lcb_dependencies("bctoolbox" "bellesip" "ortp" "ms2" "belr")
+lcb_dependencies("bctoolbox" "bellesip" "ortp" "ms2" "belr" "libxsd" "soci")
 if(LINPHONE_BUILDER_BUILD_DEPENDENCIES AND NOT APPLE)
 	# Do not build sqlite3, xml2 and zlib on Apple systems (Mac OS X and iOS), they are provided by the system
 	lcb_dependencies("sqlite3" "xml2")
@@ -42,6 +44,9 @@ if(ENABLE_VCARD)
 	lcb_dependencies("belcard")
 endif()
 
+if(ENABLE_LIME_X3DH)
+	lcb_dependencies("lime")
+endif()
 lcb_cmake_options(
 	"-DENABLE_GTK_UI=${ENABLE_GTK_UI}"
 	"-DENABLE_VIDEO=${ENABLE_VIDEO}"

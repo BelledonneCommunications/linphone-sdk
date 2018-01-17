@@ -30,7 +30,7 @@ set(CMAKE_SYSTEM_NAME "Android")
 if(NOT CMAKE_ANDROID_API)
 	set(CMAKE_ANDROID_API 16)
 endif()
-set(CMAKE_ANDROID_STL_TYPE "gnustl_shared")
+set(CMAKE_ANDROID_STL_TYPE "c++_shared")
 
 set(CMAKE_FIND_ROOT_PATH "${CMAKE_SYSROOT}" "${CMAKE_INSTALL_PREFIX}")
 # search for programs in the build host directories
