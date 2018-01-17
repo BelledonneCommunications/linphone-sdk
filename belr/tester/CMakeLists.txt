@@ -42,12 +42,19 @@ set(SOURCE_FILES_CXX
 	grammar-tester.cpp
 )
 
+string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
+
 bc_apply_compile_flags(SOURCE_FILES_CXX STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
 
 add_executable(belr_tester ${SOURCE_FILES_CXX} ${HEADER_FILES_CXX})
 set_target_properties(belr_tester PROPERTIES LINKER_LANGUAGE CXX)
 target_include_directories(belr_tester PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIRS})
-target_link_libraries(belr_tester ${BELR_LIBRARIES_FOR_TESTER} ${BCTOOLBOX_TESTER_LIBRARIES})
+
+target_link_libraries(belr_tester ${BELR_LIBRARIES_FOR_TESTER} ${BCTOOLBOX_LIBRARIES})
+
+if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
+	set_target_properties(belle_sip_tester PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
+endif()
 
 if(APPLE)
 	set_target_properties(belr_tester PROPERTIES LINK_FLAGS "-stdlib=libc++")
