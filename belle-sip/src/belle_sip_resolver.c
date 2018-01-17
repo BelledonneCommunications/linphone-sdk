@@ -341,6 +341,7 @@ static int srv_compare_prio(const void *psrv1, const void *psrv2){
 	return 1;
 }
 
+#ifdef HAVE_MDNS
 static int srv_compare_host_and_port(const void *psrv1, const void *psrv2){
 	belle_sip_dns_srv_t *srv1=(belle_sip_dns_srv_t*)psrv1;
 	belle_sip_dns_srv_t *srv2=(belle_sip_dns_srv_t*)psrv2;
@@ -350,6 +351,7 @@ static int srv_compare_host_and_port(const void *psrv1, const void *psrv2){
 	if (srv1->port == srv2->port) return 0;
 	return 1;
 }
+#endif
 
 /*
  * see https://www.ietf.org/rfc/rfc2782.txt
