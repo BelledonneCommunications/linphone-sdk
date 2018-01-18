@@ -88,6 +88,9 @@ lcb_builder_cmake_options(belcard "-DENABLE_UNIT_TESTS=NO")
 # belle-sip
 lcb_builder_cmake_options(bellesip "-DENABLE_TESTS=NO")
 
+# belr
+lcb_builder_cmake_options(belr "-DENABLE_TESTS=NO")
+
 # bzrtp
 lcb_builder_cmake_options(bzrtp "-DENABLE_TESTS=NO")
 
