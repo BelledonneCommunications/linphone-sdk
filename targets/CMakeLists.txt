@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2016  Belledonne Communications, Grenoble France
+# Copyright (C) 2016-2018  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,13 +20,14 @@
 #
 ############################################################################
 
-lcb_define_target("bctoolbox")
-lcb_define_target("bellesip" "bctoolbox")
-lcb_define_target("belr" "bctoolbox")
-lcb_define_target("belcard" "belr")
-lcb_define_target("ortp" "bctoolbox")
-lcb_define_target("ms2" "ortp")
-lcb_define_target("ms2plugins" "ms2")
-lcb_define_target("linphone" "bellesip" "ms2plugins" "belr")
-lcb_define_target("odb")
-lcb_define_target("flexisip" "linphone")
+lcb_define_targets(
+	bctoolbox
+	belcard
+	bellesip
+	belr
+	flexisip
+	linphone
+	ms2
+	ms2plugins
+	ortp
+)

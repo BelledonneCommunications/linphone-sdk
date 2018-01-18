@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# Copyright (C) 2014-2018  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -60,13 +60,8 @@ else()
 		include(${LINPHONE_BUILDER_EXTERNAL_BUILDERS_PATH}/CMakeLists.txt)
 	endif()
 
-	# Include builder options definitions according to the targets to be built
+	# Include common builder options definitions
 	include(${CMAKE_CURRENT_LIST_DIR}/../options/common.cmake)
-	foreach(_target IN LISTS TARGET_${LINPHONE_BUILDER_TARGET}_DEPENDENCIES)
-		if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/../options/${_target}.cmake)
-			include(${CMAKE_CURRENT_LIST_DIR}/../options/${_target}.cmake)
-		endif()
-	endforeach()
 
 	# Check for build tools and show an error if one of them is not present
 	include(${CMAKE_CURRENT_LIST_DIR}/../cmake/CheckBuildTools.cmake)

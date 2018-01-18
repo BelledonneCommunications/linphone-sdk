@@ -1,6 +1,6 @@
 ############################################################################
-# belle-sip.cmake
-# Copyright (C) 2015  Belledonne Communications, Grenoble France
+# bellesip.cmake
+# Copyright (C) 2015-2018  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
