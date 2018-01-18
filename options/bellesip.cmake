@@ -24,7 +24,7 @@
 
 lcb_add_option("Tunnel" "Secure tunnel for SIP/RTP (require license)." "${DEFAULT_VALUE_ENABLE_TUNNEL}")
 lcb_add_option("RTP Map always in SDP" "Always include rtpmap in SDP." OFF)
-lcb_add_option("mDNS" "Multicast DNS support" OFF)
+lcb_add_option("mDNS" "Multicast DNS support" "${DEFAULT_VALUE_ENABLE_MDNS}")
 
 option(DISABLE_BC_ANTLR "Do not build Antlr as part of the CMake builder, and instead use the system version" "${DEFAULT_VALUE_DISABLE_BC_ANTLR}")
 add_feature_info("Belledonne Antlr" DISABLE_BC_ANTLR "Do not build the Belledonne version of Antlr3c")

@@ -84,9 +84,6 @@ include(builders/CMakeLists.txt)
 # bctoolbox
 lcb_builder_cmake_options(bctoolbox "-DENABLE_TESTS_COMPONENT=${ENABLE_UNIT_TESTS}")
 
-# bellesip
-lcb_builder_cmake_options(bellesip "-DENABLE_MDNS=YES")
-
 # linphone
 lcb_builder_cmake_options(linphone
 	"-DENABLE_CONSOLE_UI=NO"

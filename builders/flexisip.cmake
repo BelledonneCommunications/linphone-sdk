@@ -29,9 +29,11 @@ lcb_groupable(YES)
 #set(EP_flexisip_CONFIG_H_FILE "flexisip.spec")
 lcb_spec_file("flexisip.spec")
 lcb_dependencies("sofiasip")
-lcb_dependencies("bellesip")
 if(ENABLE_CONFERENCE)
 	lcb_dependencies("linphone" "belr")
+endif()
+if(ENABLE_PRESENCE OR ENABLE_MDNS)
+	lcb_dependencies("bellesip")
 endif()
 if(ENABLE_SOCI)
 	lcb_dependencies("soci")
@@ -57,5 +59,6 @@ lcb_cmake_options(
 	"-DENABLE_SNMP=${ENABLE_SNMP}"
 	"-DENABLE_DOC=${ENABLE_DOC}"
 	"-DENABLE_PROTOBUF=${ENABLE_PROTOBUF}"
+	"-DENABLE_MDNS=${ENABLE_MDNS}"
 )
 
