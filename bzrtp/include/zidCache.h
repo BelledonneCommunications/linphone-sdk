@@ -47,4 +47,25 @@
  */
 BZRTP_EXPORT int bzrtp_getPeerAssociatedSecrets(bzrtpContext_t *context, uint8_t peerZID[12]);
 
+/**
+ * @brief get the cache internal id used to bind local uri(hence local ZID associated to it)<->peer uri/peer ZID.
+ *	Providing a valid local URI(already present in cache), a peer ZID and peer URI will return the zuid creating it if needed and requested
+ *	Any pair ZID/sipURI shall identify an account on a device.
+ *
+ * @param[in/out]	db		the opened sqlite database pointer
+ * @param[in]		selfURI		local URI, must be already associated to a ZID in the DB(association is performed by any call of getSelfZID on this URI)
+ * @param[in]		peerURI		peer URI
+ * @param[in]		peerZID		peer ZID
+ * @param[in]		insertFlag	A boolean managing insertion or not of a new row:
+ * 					- BZRTP_ZIDCACHE_DONT_INSERT_ZUID : if not found identity binding won't lead to insertion and return zuid will be 0
+ * 					- BZRTP_ZIDCACHE_INSERT_ZUID : if not found, insert a new row in ziduri table and return newly inserted zuid
+ * @param[out]		zuid		the internal db reference to the data row matching this particular pair of correspondant
+ * 					if identity binding is not found and insertFlag set to 0, this value is set to 0
+ *
+ * @return 0 on success, BZRTP_ERROR_CACHE_PEERNOTFOUND if peer was not in and the insert flag is not set to BZRTP_ZIDCACHE_INSERT_ZUID, error code otherwise
+ */
+#define BZRTP_ZIDCACHE_DONT_INSERT_ZUID	0
+#define BZRTP_ZIDCACHE_INSERT_ZUID	1
+BZRTP_EXPORT int bzrtp_cache_getZuid(void *dbPointer, const char *selfURI, const char *peerURI, const uint8_t peerZID[12], const uint8_t insertFlag, int *zuid);
+
 #endif /* ZIDCACHE_H */

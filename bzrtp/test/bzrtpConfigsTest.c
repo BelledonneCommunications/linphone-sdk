@@ -25,6 +25,7 @@
 #include <time.h>
 
 #include "bzrtp/bzrtp.h"
+#include "zidCache.h"
 #include "bzrtpTest.h"
 #include "testUtils.h"
 
@@ -102,6 +103,8 @@ static float fadingLostAlice=0.0; /* try not to throw away too many packet in a 
 static float fadingLostBob=0.0; /* try not to throw away too many packet in a row */
 static int totalPacketLost=0; /* set a limit to the total number of packet we can loose to enforce completion of the exchange */
 
+/* when timeout is set to this specific value, negotiation is aborted but silently fails */
+#define ABORT_NEGOTIATION_TIMEOUT 24
 static void resetGlobalParams() {
 	msSTC=0;
 	totalPacketLost =0;
@@ -411,6 +414,20 @@ uint32_t multichannel_exchange_pvs_params(cryptoParams_t *aliceCryptoParams, cry
 
 		}
 	}
+
+	/* when timeOutLimit is set to this specific value, our intention is to start a negotiation but not to finish it, so just return without errors */
+	if (timeOutLimit == ABORT_NEGOTIATION_TIMEOUT) {
+		/*** Destroy Contexts ***/
+		while (bzrtp_destroyBzrtpContext(Alice.bzrtpContext, aliceSSRC)>0 && aliceSSRC>=ALICE_SSRC_BASE) {
+			aliceSSRC--;
+		}
+		while (bzrtp_destroyBzrtpContext(Bob.bzrtpContext, bobSSRC)>0 && bobSSRC>=BOB_SSRC_BASE) {
+			bobSSRC--;
+		}
+
+		return ret;
+	}
+
 	if ((retval=bzrtp_getChannelStatus(Alice.bzrtpContext, aliceSSRC))!=BZRTP_CHANNEL_SECURE) {
 		bzrtp_message("Fail Alice on channel1 loss rate is %d", loosePacketPercentage);
 		BC_ASSERT_EQUAL(retval, BZRTP_CHANNEL_SECURE, int, "%0x");
@@ -692,6 +709,8 @@ static void test_cache_enabled_exchange(void) {
 	size_t colLengthBob[3];
 	int i;
 
+	resetGlobalParams();
+
 	/* create tempory DB files, just try to clean them from dir before, just in case  */
 	remove("tmpZIDAlice_simpleCache.sqlite");
 	remove("tmpZIDBob_simpleCache.sqlite");
@@ -706,8 +725,8 @@ static void test_cache_enabled_exchange(void) {
 	BC_ASSERT_EQUAL(bzrtp_getSelfZID((void *)aliceDB, "alice@sip.linphone.org", selfZIDalice, NULL), 0, int, "%x");
 	BC_ASSERT_EQUAL(bzrtp_getSelfZID((void *)bobDB, "bob@sip.linphone.org", selfZIDbob, NULL), 0, int, "%x");
 	/* then get the matching zuid in cache */
-	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)aliceDB, "alice@sip.linphone.org", "bob@sip.linphone.org", selfZIDbob, &zuidAlice), 0, int, "%x");
-	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)bobDB, "bob@sip.linphone.org", "alice@sip.linphone.org", selfZIDalice, &zuidBob), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)aliceDB, "alice@sip.linphone.org", "bob@sip.linphone.org", selfZIDbob, BZRTP_ZIDCACHE_DONT_INSERT_ZUID, &zuidAlice), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)bobDB, "bob@sip.linphone.org", "alice@sip.linphone.org", selfZIDalice, BZRTP_ZIDCACHE_DONT_INSERT_ZUID, &zuidBob), 0, int, "%x");
 	/* retrieve the values */
 	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 3), 0, int, "%x");
 	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)bobDB, zuidBob, "zrtp", colNames, colValuesBob, colLengthBob, 3), 0, int, "%x");
@@ -804,8 +823,8 @@ static void test_cache_mismatch_exchange(void) {
 	BC_ASSERT_EQUAL(bzrtp_getSelfZID((void *)aliceDB, "alice@sip.linphone.org", selfZIDalice, NULL), 0, int, "%x");
 	BC_ASSERT_EQUAL(bzrtp_getSelfZID((void *)bobDB, "bob@sip.linphone.org", selfZIDbob, NULL), 0, int, "%x");
 	/* then get the matching zuid in cache */
-	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)aliceDB, "alice@sip.linphone.org", "bob@sip.linphone.org", selfZIDbob, &zuidAlice), 0, int, "%x");
-	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)bobDB, "bob@sip.linphone.org", "alice@sip.linphone.org", selfZIDalice, &zuidBob), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)aliceDB, "alice@sip.linphone.org", "bob@sip.linphone.org", selfZIDbob, BZRTP_ZIDCACHE_DONT_INSERT_ZUID, &zuidAlice), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)bobDB, "bob@sip.linphone.org", "alice@sip.linphone.org", selfZIDalice, BZRTP_ZIDCACHE_DONT_INSERT_ZUID, &zuidBob), 0, int, "%x");
 	/* retrieve the values */
 	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 3), 0, int, "%x");
 	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)bobDB, zuidBob, "zrtp", colNames, colValuesBob, colLengthBob, 3), 0, int, "%x");
@@ -941,8 +960,8 @@ static void test_cache_sas_not_confirmed(void) {
 	BC_ASSERT_EQUAL(bzrtp_getSelfZID((void *)aliceDB, "alice@sip.linphone.org", selfZIDalice, NULL), 0, int, "%x");
 	BC_ASSERT_EQUAL(bzrtp_getSelfZID((void *)bobDB, "bob@sip.linphone.org", selfZIDbob, NULL), 0, int, "%x");
 	/* then get the matching zuid in cache */
-	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)aliceDB, "alice@sip.linphone.org", "bob@sip.linphone.org", selfZIDbob, &zuidAlice), 0, int, "%x");
-	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)bobDB, "bob@sip.linphone.org", "alice@sip.linphone.org", selfZIDalice, &zuidBob), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)aliceDB, "alice@sip.linphone.org", "bob@sip.linphone.org", selfZIDbob, BZRTP_ZIDCACHE_DONT_INSERT_ZUID, &zuidAlice), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)bobDB, "bob@sip.linphone.org", "alice@sip.linphone.org", selfZIDalice, BZRTP_ZIDCACHE_DONT_INSERT_ZUID, &zuidBob), 0, int, "%x");
 	/* retrieve the values */
 	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 3), 0, int, "%x");
 	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)bobDB, zuidBob, "zrtp", colNames, colValuesBob, colLengthBob, 3), 0, int, "%x");
@@ -1208,13 +1227,111 @@ static void test_auxiliary_secret() {
 	BC_ASSERT_EQUAL(test_auxiliary_secret_params(secret1, sizeof(secret1), secret1, sizeof(secret1), 1, 1), 0, int, "%d");
 };
 
+/**
+ * scenario:
+ *  - create new users with empty zid cache
+ *  - start a firt exchange but abort it before conclusion
+ *  - make a successive exchange going correctly to the end
+ */
+static void test_abort_retry(void) {
+#ifdef ZIDCACHE_ENABLED
+	sqlite3 *aliceDB=NULL;
+	sqlite3 *bobDB=NULL;
+	uint8_t selfZIDalice[12];
+	uint8_t selfZIDbob[12];
+	int zuidAlice=0,zuidBob=0;
+	const char *colNames[] = {"rs1", "rs2", "pvs"};
+	uint8_t *colValuesAlice[3];
+	size_t colLengthAlice[3];
+	uint8_t *colValuesBob[3];
+	size_t colLengthBob[3];
+	int i;
+
+	resetGlobalParams();
+
+	/* create tempory DB files, just try to clean them from dir before, just in case  */
+	remove("tmpZIDAlice_abortRetry.sqlite");
+	remove("tmpZIDBob_abortRetry.sqlite");
+	bzrtptester_sqlite3_open(bc_tester_file("tmpZIDAlice_abortRetry.sqlite"), &aliceDB);
+	bzrtptester_sqlite3_open(bc_tester_file("tmpZIDBob_abortRetry.sqlite"), &bobDB);
+
+	/* make a first exchange but abort it */
+	timeOutLimit = ABORT_NEGOTIATION_TIMEOUT; /* set timeout to ABORT_NEGOTIATION_TIMEOUT aborts an ongoing negotiation without errors */
+	BC_ASSERT_EQUAL(multichannel_exchange(NULL, NULL, defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bobDB, "bob@sip.linphone.org"), 0, int, "%x");
+
+	/* after the first exchange we shall have only self ZID, peer ZID must not be inserted in cache */
+	/* first get each ZIDs, note give NULL as RNG context may lead to segfault in case of error(caches were not created correctly)*/
+	BC_ASSERT_EQUAL(bzrtp_getSelfZID((void *)aliceDB, "alice@sip.linphone.org", selfZIDalice, NULL), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_getSelfZID((void *)bobDB, "bob@sip.linphone.org", selfZIDbob, NULL), 0, int, "%x");
+	/* try to get the matching zuid in cache: it shall not be there as the negotiation didn't completed */
+	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)aliceDB, "alice@sip.linphone.org", "bob@sip.linphone.org", selfZIDbob, BZRTP_ZIDCACHE_DONT_INSERT_ZUID, &zuidAlice), BZRTP_ERROR_CACHE_PEERNOTFOUND, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)bobDB, "bob@sip.linphone.org", "alice@sip.linphone.org", selfZIDalice, BZRTP_ZIDCACHE_DONT_INSERT_ZUID, &zuidBob), BZRTP_ERROR_CACHE_PEERNOTFOUND, int, "%x");
+
+	/* make a second exchange */
+	resetGlobalParams(); /* this one goes to the end of it */
+	BC_ASSERT_EQUAL(multichannel_exchange(NULL, NULL, defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bobDB, "bob@sip.linphone.org"), 0, int, "%x");
+
+	/* after the exchange we shall have both pvs values at 1 and both rs1 identical and rs2 null, retrieve them from cache and check it */
+	/* first get each ZIDs, note give NULL as RNG context may lead to segfault in case of error(caches were not created correctly)*/
+	/* get the matching zuid in cache */
+	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)aliceDB, "alice@sip.linphone.org", "bob@sip.linphone.org", selfZIDbob, BZRTP_ZIDCACHE_DONT_INSERT_ZUID, &zuidAlice), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)bobDB, "bob@sip.linphone.org", "alice@sip.linphone.org", selfZIDalice, BZRTP_ZIDCACHE_DONT_INSERT_ZUID, &zuidBob), 0, int, "%x");
+
+	if (zuidAlice==0 || zuidBob==0) {//abort if we didn't retrieve valid zuid values, keep tmp sqlite files for inspection
+		sqlite3_close(aliceDB);
+		sqlite3_close(bobDB);
+
+		return;
+	}
+
+	/* retrieve the values */
+	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 3), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)bobDB, zuidBob, "zrtp", colNames, colValuesBob, colLengthBob, 3), 0, int, "%x");
+	/* and compare to expected */
+	/* rs1 is set and they are both the same */
+	BC_ASSERT_EQUAL(colLengthAlice[0], 32, int, "%d");
+	BC_ASSERT_EQUAL(colLengthBob[0], 32, int, "%d");
+	BC_ASSERT_EQUAL(memcmp(colValuesAlice[0], colValuesBob[0], 32), 0, int, "%d");
+	/* rs2 is unset(NULL) */
+	BC_ASSERT_EQUAL(colLengthAlice[1], 0, int, "%d");
+	BC_ASSERT_EQUAL(colLengthBob[1], 0, int, "%d");
+	BC_ASSERT_PTR_NULL(colValuesAlice[1]);
+	BC_ASSERT_PTR_NULL(colValuesBob[1]);
+	/* pvs is equal to 1 */
+	BC_ASSERT_EQUAL(colLengthAlice[2], 1, int, "%d");
+	BC_ASSERT_EQUAL(colLengthBob[2], 1, int, "%d");
+	BC_ASSERT_EQUAL(*colValuesAlice[2], 1, int, "%d");
+	BC_ASSERT_EQUAL(*colValuesBob[2], 1, int, "%d");
+
+	/* free buffers */
+	for (i=0; i<3; i++) {
+		free(colValuesBob[i]);
+		colValuesBob[i]=NULL;
+	}
+
+	/* free buffers */
+	for (i=0; i<3; i++) {
+		free(colValuesAlice[i]);
+		free(colValuesBob[i]);
+	}
+	sqlite3_close(aliceDB);
+	sqlite3_close(bobDB);
+
+	/* clean temporary files */
+	remove("tmpZIDAlice_simpleCache.sqlite");
+	remove("tmpZIDBob_simpleCache.sqlite");
+
+#endif /* ZIDCACHE_ENABLED */
+}
+
 static test_t key_exchange_tests[] = {
 	TEST_NO_TAG("Cacheless multi channel", test_cacheless_exchange),
 	TEST_NO_TAG("Cached Simple", test_cache_enabled_exchange),
 	TEST_NO_TAG("Cached mismatch", test_cache_mismatch_exchange),
 	TEST_NO_TAG("Loosy network", test_loosy_network),
 	TEST_NO_TAG("Cached PVS", test_cache_sas_not_confirmed),
-	TEST_NO_TAG("Auxiliary Secret", test_auxiliary_secret)
+	TEST_NO_TAG("Auxiliary Secret", test_auxiliary_secret),
+	TEST_NO_TAG("Abort and retry", test_abort_retry)
 };
 
 test_suite_t key_exchange_test_suite = {

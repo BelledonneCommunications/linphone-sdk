@@ -170,6 +170,7 @@ typedef struct bzrtpCallbacks_struct {
 #define BZRTP_ERROR_CHANNELALREADYSTARTED			0x0100
 #define BZRTP_ERROR_CACHEDISABLED				0x0200
 #define BZRTP_ERROR_CACHEMIGRATIONFAILED			0x0400
+#define BZRTP_ERROR_CACHE_PEERNOTFOUND				0x0800
 
 /* channel status definition */
 #define BZRTP_CHANNEL_NOTFOUND						0x1000
@@ -431,21 +432,6 @@ BZRTP_EXPORT int bzrtp_initCache(void *db);
  * @return		0 on success, or BZRTP_CACHE_DATA_NOTFOUND if no ZID matching the URI was found and no RNGContext is given to generate one
  */
 BZRTP_EXPORT int bzrtp_getSelfZID(void *db, const char *selfURI, uint8_t selfZID[12], bctbx_rng_context_t *RNGContext);
-
-/**
- * @brief get the cache internal id used to bind local uri(hence local ZID associated to it)<->peer uri/peer ZID.
- *	Providing a valid local URI(already present in cache), a peer ZID and peer URI will return the zuid creating it if needed
- *	Any pair ZID/sipURI shall identify an account on a device.
- *
- * @param[in/out]	db		the opened sqlite database pointer
- * @param[in]		selfURI		local URI, must be already associated to a ZID in the DB(association is performed by any call of getSelfZID on this URI)
- * @param[in]		peerURI		peer URI
- * @param[in]		peerZID		peer ZID
- * @param[out]		zuid		the internal db reference to the data row matching this particular pair of correspondant
- *
- * @return 0 on success, error code otherwise
- */
-BZRTP_EXPORT int bzrtp_cache_getZuid(void *dbPointer, const char *selfURI, const char *peerURI, const uint8_t peerZID[12], int *zuid);
 
 /**
  * @brief Write(insert or update) data in cache, adressing it by zuid (ZID/URI binding id used in cache)

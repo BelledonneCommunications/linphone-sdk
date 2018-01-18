@@ -2248,6 +2248,12 @@ int bzrtp_updateCachedSecrets(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 	bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"retained secret", 15, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, RETAINED_SECRET_LENGTH, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))zrtpChannelContext->hmacFunction, zrtpContext->cachedSecret.rs1);
 
 	colValues[0]=zrtpContext->cachedSecret.rs1;
+
+	/* before writing into cache, we must check we have the zuid correctly set, if not (it's our first successfull exchange with peer), insert it*/
+	if (zrtpContext->zuid==0) {
+		bzrtp_cache_getZuid((void *)zrtpContext->zidCache, zrtpContext->selfURI, zrtpContext->peerURI, zrtpContext->peerZID, BZRTP_ZIDCACHE_INSERT_ZUID, &zrtpContext->zuid);
+	}
+
 	bzrtp_cache_write(zrtpContext->zidCache, zrtpContext->zuid, "zrtp", colNames, colValues, colLength, 2);
 
 	/* if exist, call the callback function to perform custom cache operation that may use s0(writing exported key into cache) */

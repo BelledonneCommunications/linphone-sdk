@@ -293,7 +293,7 @@ int bzrtp_getPeerAssociatedSecrets(bzrtpContext_t *context, uint8_t peerZID[12])
 	}
 
 	/* get all secrets from zrtp table, ORDER BY is just to ensure consistent return in case of inconsistent table) */
-	stmt = sqlite3_mprintf("SELECT z.zuid, z.rs1, z.rs2, z.aux, z.pbx, z.pvs FROM ziduri as zu LEFT JOIN zrtp as z ON z.zuid=zu.zuid WHERE zu.selfuri=? AND zu.peeruri=? AND zu.zid=? ORDER BY zu.zuid LIMIT 1;");
+	stmt = sqlite3_mprintf("SELECT z.zuid, z.rs1, z.rs2, z.aux, z.pbx, z.pvs FROM ziduri as zu INNER JOIN zrtp as z ON z.zuid=zu.zuid WHERE zu.selfuri=? AND zu.peeruri=? AND zu.zid=? ORDER BY zu.zuid LIMIT 1;");
 	ret = sqlite3_prepare_v2(context->zidCache, stmt, -1, &sqlStmt, NULL);
 	sqlite3_free(stmt);
 	if (ret != SQLITE_OK) {
@@ -307,8 +307,8 @@ int bzrtp_getPeerAssociatedSecrets(bzrtpContext_t *context, uint8_t peerZID[12])
 
 	if (ret!=SQLITE_ROW) {
 		sqlite3_finalize(sqlStmt);
-		if (ret == SQLITE_DONE) {/* not found in cache, just leave cached secrets reset, but retrieve (or create) zuid */
-			return bzrtp_cache_getZuid((void *)context->zidCache, context->selfURI, context->peerURI, context->peerZID, &context->zuid);
+		if (ret == SQLITE_DONE) {/* not found in cache, just leave cached secrets reset, but retrieve zuid, do not insert new peer ZID at this step, it must be done only when negotiation succeeds */
+			return bzrtp_cache_getZuid((void *)context->zidCache, context->selfURI, context->peerURI, context->peerZID, BZRTP_ZIDCACHE_DONT_INSERT_ZUID, &context->zuid);
 		} else { /* we had an error querying the DB... */
 			return BZRTP_ZIDCACHE_UNABLETOREAD;
 		}
@@ -363,20 +363,25 @@ int bzrtp_getPeerAssociatedSecrets(bzrtpContext_t *context, uint8_t peerZID[12])
 	return 0;
 }
 
+
 /**
  * @brief get the cache internal id used to bind local uri(hence local ZID associated to it)<->peer uri/peer ZID.
- *	Providing a valid local URI(already present in cache), a peer ZID and peer URI will return the zuid creating it if needed
+ *	Providing a valid local URI(already present in cache), a peer ZID and peer URI will return the zuid creating it if needed and requested
  *	Any pair ZID/sipURI shall identify an account on a device.
  *
  * @param[in/out]	db		the opened sqlite database pointer
  * @param[in]		selfURI		local URI, must be already associated to a ZID in the DB(association is performed by any call of getSelfZID on this URI)
  * @param[in]		peerURI		peer URI
  * @param[in]		peerZID		peer ZID
+ * @param[in]		insertFlag	A boolean managing insertion or not of a new row:
+ * 					- BZRTP_ZIDCACHE_DONT_INSERT_ZUID : if not found identity binding won't lead to insertion and return zuid will be 0
+ * 					- BZRTP_ZIDCACHE_INSERT_ZUID : if not found, insert a new row in ziduri table and return newly inserted zuid
  * @param[out]		zuid		the internal db reference to the data row matching this particular pair of correspondant
+ * 					if identity binding is not found and insertFlag set to BZRTP_ZIDCACHE_DONT_INSERT_ZUID, this value is set to 0
  *
- * @return 0 on success, error code otherwise
+ * @return 0 on success, BZRTP_ERROR_CACHE_PEERNOTFOUND if peer was not in and the insert flag is not set to BZRTP_ZIDCACHE_INSERT_ZUID, error code otherwise
  */
-int bzrtp_cache_getZuid(void *dbPointer, const char *selfURI, const char *peerURI, const uint8_t peerZID[12], int *zuid) {
+int bzrtp_cache_getZuid(void *dbPointer, const char *selfURI, const char *peerURI, const uint8_t peerZID[12], const uint8_t insertFlag, int *zuid) {
 	char *stmt=NULL;
 	int ret;
 	sqlite3_stmt *sqlStmt = NULL;
@@ -403,41 +408,47 @@ int bzrtp_cache_getZuid(void *dbPointer, const char *selfURI, const char *peerUR
 	if (ret!=SQLITE_ROW) { /* We didn't found this binding in the DB */
 		sqlite3_finalize(sqlStmt);
 		if (ret == SQLITE_DONE) { /* query executed correctly, just our data is not there */
-			uint8_t *localZID = NULL;
-			char *errmsg=NULL;
+			/* shall we insert it? */
+			if (insertFlag == BZRTP_ZIDCACHE_INSERT_ZUID) {
+				uint8_t *localZID = NULL;
+				char *errmsg=NULL;
 
-			/* check that we have a self ZID matching the self URI and insert a new row */
-			stmt = sqlite3_mprintf("SELECT zid FROM ziduri WHERE selfuri=%Q AND peeruri='self' ORDER BY zuid LIMIT 1;",selfURI);
-			ret = sqlite3_exec(db,stmt,callback_getSelfZID,&localZID,&errmsg);
-			sqlite3_free(stmt);
-			if (ret != SQLITE_OK) {
-				sqlite3_free(errmsg);
-				return BZRTP_ZIDCACHE_UNABLETOREAD;
-			}
-
-			if (localZID==NULL) { /* this sip URI is not in our DB, do not create an association with the peer ZID/URI binding */
-				return BZRTP_ZIDCACHE_BADINPUTDATA;
-			} else { /* yes we know this URI on local device, add a row in the ziduri table */
-				free(localZID);
-				stmt = sqlite3_mprintf("INSERT INTO ziduri (zid,selfuri,peeruri) VALUES(?,?,?);");
-				ret = sqlite3_prepare_v2(db, stmt, -1, &sqlStmt, NULL);
-				if (ret != SQLITE_OK) {
-					return BZRTP_ZIDCACHE_UNABLETOUPDATE;
-				}
+				/* check that we have a self ZID matching the self URI and insert a new row */
+				stmt = sqlite3_mprintf("SELECT zid FROM ziduri WHERE selfuri=%Q AND peeruri='self' ORDER BY zuid LIMIT 1;",selfURI);
+				ret = sqlite3_exec(db,stmt,callback_getSelfZID,&localZID,&errmsg);
 				sqlite3_free(stmt);
-
-				sqlite3_bind_blob(sqlStmt, 1, peerZID, 12, SQLITE_TRANSIENT);
-				sqlite3_bind_text(sqlStmt, 2, selfURI,-1,SQLITE_TRANSIENT);
-				sqlite3_bind_text(sqlStmt, 3, peerURI,-1,SQLITE_TRANSIENT);
-
-				ret = sqlite3_step(sqlStmt);
-				if (ret!=SQLITE_DONE) {
-					return BZRTP_ZIDCACHE_UNABLETOUPDATE;
+				if (ret != SQLITE_OK) {
+					sqlite3_free(errmsg);
+					return BZRTP_ZIDCACHE_UNABLETOREAD;
 				}
-				sqlite3_finalize(sqlStmt);
-				/* get the zuid created */
-				*zuid = (int)sqlite3_last_insert_rowid(db);
-				return 0;
+
+				if (localZID==NULL) { /* this sip URI is not in our DB, do not create an association with the peer ZID/URI binding */
+					return BZRTP_ZIDCACHE_BADINPUTDATA;
+				} else { /* yes we know this URI on local device, add a row in the ziduri table */
+					free(localZID);
+					stmt = sqlite3_mprintf("INSERT INTO ziduri (zid,selfuri,peeruri) VALUES(?,?,?);");
+					ret = sqlite3_prepare_v2(db, stmt, -1, &sqlStmt, NULL);
+					if (ret != SQLITE_OK) {
+						return BZRTP_ZIDCACHE_UNABLETOUPDATE;
+					}
+					sqlite3_free(stmt);
+
+					sqlite3_bind_blob(sqlStmt, 1, peerZID, 12, SQLITE_TRANSIENT);
+					sqlite3_bind_text(sqlStmt, 2, selfURI,-1,SQLITE_TRANSIENT);
+					sqlite3_bind_text(sqlStmt, 3, peerURI,-1,SQLITE_TRANSIENT);
+
+					ret = sqlite3_step(sqlStmt);
+					if (ret!=SQLITE_DONE) {
+						return BZRTP_ZIDCACHE_UNABLETOUPDATE;
+					}
+					sqlite3_finalize(sqlStmt);
+					/* get the zuid created */
+					*zuid = (int)sqlite3_last_insert_rowid(db);
+					return 0;
+				}
+			} else { /* no found and not inserted */
+				*zuid = 0;
+				return BZRTP_ERROR_CACHE_PEERNOTFOUND;
 			}
 		} else { /* we had an error querying the DB... */
 			return BZRTP_ZIDCACHE_UNABLETOREAD;
@@ -477,6 +488,10 @@ int bzrtp_cache_write(void *dbPointer, int zuid, const char *tableName, const ch
 
 	if (dbPointer == NULL) { /* we are running cacheless */
 		return BZRTP_ZIDCACHE_RUNTIME_CACHELESS;
+	}
+
+	if (zuid == 0) { /* we're giving an invalid zuid, means we were not able to retrieve it previously, just do nothing */
+		return BZRTP_ERROR_CACHE_PEERNOTFOUND;
 	}
 
 	/* As the zuid row may not be already present in the table, we must run an insert or update SQL command which is not provided by sqlite3 */

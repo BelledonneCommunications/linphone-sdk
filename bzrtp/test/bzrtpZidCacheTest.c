@@ -95,9 +95,9 @@ static void test_cache_getSelfZID(void) {
 	BC_ASSERT_EQUAL(memcmp(selfZIDalice, aliceContext->selfZID, 12), 0, int, "%d");
 
 	/* try to get a zuid on alice/bob+patternZIDbob, at first the row shall be created */
-	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)aliceDB, "alice@sip.linphone.org", "bob@sip.linphone.org", patternZIDbob, &zuidalicebob), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)aliceDB, "alice@sip.linphone.org", "bob@sip.linphone.org", patternZIDbob, BZRTP_ZIDCACHE_INSERT_ZUID, &zuidalicebob), 0, int, "%x");
 	/* ask for it again and check they are the same */
-	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)aliceDB, "alice@sip.linphone.org", "bob@sip.linphone.org", patternZIDbob, &zuidCheck), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)aliceDB, "alice@sip.linphone.org", "bob@sip.linphone.org", patternZIDbob, BZRTP_ZIDCACHE_DONT_INSERT_ZUID, &zuidCheck), 0, int, "%x");
 	BC_ASSERT_EQUAL(zuidalicebob, zuidCheck, int, "%d");
 
 	/* Then write in cache zrtp table */
@@ -130,7 +130,7 @@ static void test_cache_getSelfZID(void) {
 	BC_ASSERT_EQUAL(memcmp(selfZIDalice, patternZIDalice, 12), 0, int, "%x");
 
 	/* test the getZuid function */
-	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)aliceDB, "alice@sip.linphone.org", "bob@sip.linphone.org", patternZIDbob, &zuidalicebob), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)aliceDB, "alice@sip.linphone.org", "bob@sip.linphone.org", patternZIDbob, BZRTP_ZIDCACHE_DONT_INSERT_ZUID, &zuidalicebob), 0, int, "%x");
 	BC_ASSERT_EQUAL(zuidalicebob, 5, int, "%d"); /* from the pattern DB: the zuid for alice/bob+provided ZID is 5 */
 
 	BC_ASSERT_EQUAL(bzrtp_getSelfZID(aliceDB, "ecila@sip.linphone.org", selfZIDecila, aliceContext->RNGContext), 0, int, "%x");
