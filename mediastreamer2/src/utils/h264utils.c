@@ -160,10 +160,15 @@ void ms_h264_stream_to_nalus(const uint8_t *frame, size_t size, MSQueue *nalus, 
 void update_picture_size_with_sps(const mblk_t* sps, MSVideoSize *video_size) {
 
 	MSBitsReader reader;
+	unsigned int profile_idc;
+	unsigned int pic_order_cnt_type;
+	unsigned int pic_width_in_mbs_minus1;
+	unsigned int pic_height_in_map_units_minus1;
+	unsigned int frame_mbs_only_flag;
+	unsigned int frame_cropping_flag;
 	/* init reader, but skip 1 byte (nal_unit_type) */
 	ms_bits_reader_init(&reader, sps->b_rptr + 1, sps->b_wptr - sps->b_rptr - 1);
 
-	unsigned int profile_idc;
 	ms_bits_reader_n_bits(&reader, 8, &profile_idc, "profile_idc");
 	ms_bits_reader_n_bits(&reader, 1, NULL, "constraint_set0_flag");
 	ms_bits_reader_n_bits(&reader, 1, NULL, "constraint_set1_flag");
@@ -183,7 +188,6 @@ void update_picture_size_with_sps(const mblk_t* sps, MSVideoSize *video_size) {
 	}
 	ms_bits_reader_ue(&reader, NULL, "log2_max_frame_num_minus4");
 	
-	unsigned int pic_order_cnt_type;
 	ms_bits_reader_ue(&reader, &pic_order_cnt_type, "pic_order_cnt_type");
 	
 	if (pic_order_cnt_type == 0) {
@@ -207,13 +211,10 @@ void update_picture_size_with_sps(const mblk_t* sps, MSVideoSize *video_size) {
 	ms_bits_reader_ue(&reader, NULL, "num_ref_frames");
 	ms_bits_reader_n_bits(&reader, 1, NULL, "gaps_in_frame_num_value_allowed_flag");
 	
-	unsigned int pic_width_in_mbs_minus1;
 	ms_bits_reader_ue(&reader, &pic_width_in_mbs_minus1, "pic_width_in_mbs_minus1");
 	
-	unsigned int pic_height_in_map_units_minus1;
 	ms_bits_reader_ue(&reader, &pic_height_in_map_units_minus1, "pic_height_in_map_units_minus1");
 	
-	unsigned int frame_mbs_only_flag;
 	ms_bits_reader_n_bits(&reader, 1, &frame_mbs_only_flag, "frame_mbs_only_flag");
 	
 	if (!frame_mbs_only_flag) {
@@ -222,19 +223,18 @@ void update_picture_size_with_sps(const mblk_t* sps, MSVideoSize *video_size) {
 	
 	ms_bits_reader_n_bits(&reader, 1, NULL, "direct_8x8_inference_flag");
 	
-	unsigned int frame_cropping_flag;
 	ms_bits_reader_n_bits(&reader, 1, &frame_cropping_flag, "frame_cropping_flag");
 
 	if (frame_cropping_flag) {
 		
 		unsigned int frame_crop_left_offset;
-		ms_bits_reader_ue(&reader, &frame_crop_left_offset, "frame_crop_left_offset");
 		unsigned int frame_crop_right_offset;
+		unsigned int frame_crop_top_offset;
+		unsigned int frame_crop_bottom_offset;
+		ms_bits_reader_ue(&reader, &frame_crop_left_offset, "frame_crop_left_offset");
 		ms_bits_reader_ue(&reader, &frame_crop_right_offset, "frame_crop_right_offset");
 		video_size->width = ((pic_width_in_mbs_minus1+1)*16)-frame_crop_left_offset*2-frame_crop_right_offset*2;
-		unsigned int frame_crop_top_offset;
 		ms_bits_reader_ue(&reader, &frame_crop_top_offset, "frame_crop_top_offset");
-		unsigned int frame_crop_bottom_offset;
 		ms_bits_reader_ue(&reader, &frame_crop_bottom_offset, "frame_crop_bottom_offset");
 		video_size->height = ((2-frame_mbs_only_flag)*(pic_height_in_map_units_minus1+1)*16)-(frame_crop_top_offset*2)-(frame_crop_bottom_offset*2);
 	}
