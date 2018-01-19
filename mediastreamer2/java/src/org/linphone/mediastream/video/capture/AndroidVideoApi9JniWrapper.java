@@ -61,12 +61,14 @@ public class AndroidVideoApi9JniWrapper {
 
 		for (String focusMode : params.getSupportedFocusModes()) {
 			if (focusMode.equalsIgnoreCase(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO)) {
+				Log.d("FOCUS_MODE_CONTINUOUS_VIDEO is supported, let's use it");
 				params.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
 				break;
 			}
 		}
 		
 		if (params.isVideoStabilizationSupported()) {
+			Log.d("Video stabilization is supported, let's use it");
 			params.setVideoStabilization(true);
 		}
 
