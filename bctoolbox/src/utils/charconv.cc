@@ -198,6 +198,10 @@ extern "C" char *bctbx_convert_from_to(const char *str, const char *from, const 
 	const char* r_from = strcasecmp("locale", from) == 0 ? nl_langinfo(CODESET) : from;
 	const char* r_to = strcasecmp("locale", to) == 0 ? nl_langinfo(CODESET) : to;
 
+	if (strcasecmp(r_from, r_to) == 0) {
+		return bctbx_strdup(str);
+	}
+
 	cd = iconv_open(r_to, r_from);
 
 	if (cd != (iconv_t)-1) {
