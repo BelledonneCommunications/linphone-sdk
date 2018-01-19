@@ -25,6 +25,7 @@
 #include "mediastreamer2/ms_srtp.h"
 #include "mediastreamer2/mediastream.h"
 
+
 #ifdef HAVE_SRTP
 
 /*srtp defines all this stuff*/
@@ -34,13 +35,7 @@
 #undef PACKAGE_TARNAME
 #undef PACKAGE_VERSION
 
-#if defined(MS2_WINDOWS_PHONE)
-// Windows phone doesn't use make install
-#include <srtp.h>
-#else
-#include <srtp/srtp.h>
-#endif
-
+#include "srtp_prefix.h"
 
 #include "ortp/b64.h"
 
@@ -352,7 +347,6 @@ int ms_srtp_init(void)
 			srtp_init_done++;
 		}else{
 			ms_fatal("Couldn't initialize SRTP library: %d.", st);
-			err_reporting_init("mediastreamer2");
 		}
 	}else srtp_init_done++;
 	return (int)st;

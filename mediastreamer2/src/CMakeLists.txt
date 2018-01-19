@@ -183,6 +183,7 @@ set(VOIP_SOURCE_FILES_C
 	utils/pcap_sender.c
 	utils/pcap_sender.h
 	utils/stream_regulator.c
+	utils/srtp_prefix.h
 	voip/audioconference.c
 	voip/audiostream.c
 	voip/bandwidthcontroller.c

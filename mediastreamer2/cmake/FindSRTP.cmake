@@ -31,20 +31,36 @@ set(_SRTP_ROOT_PATHS
 )
 
 find_path(SRTP_INCLUDE_DIRS
-	NAMES srtp/srtp.h
+	NAMES srtp2/srtp.h
 	HINTS _SRTP_ROOT_PATHS
 	PATH_SUFFIXES include
 )
 
 if(SRTP_INCLUDE_DIRS)
 	set(HAVE_SRTP_SRTP_H 1)
-endif()
-
-find_library(SRTP_LIBRARIES
+	set(SRTP_VERSION 2)
+	find_library(SRTP_LIBRARIES
+		NAMES srtp2
+		HINTS ${_SRTP_ROOT_PATHS}
+		PATH_SUFFIXES bin lib
+	)
+else()
+	find_path(SRTP_INCLUDE_DIRS
+		NAMES srtp/srtp.h
+		HINTS _SRTP_ROOT_PATHS
+		PATH_SUFFIXES include
+	)
+	if(SRTP_INCLUDE_DIRS)
+		set(HAVE_SRTP_SRTP_H 1)
+		set(SRTP_VERSION 1)
+	endif()
+	find_library(SRTP_LIBRARIES
 	NAMES srtp
 	HINTS ${_SRTP_ROOT_PATHS}
 	PATH_SUFFIXES bin lib
 )
+endif()
+
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(SRTP
