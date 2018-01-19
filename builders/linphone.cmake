@@ -29,7 +29,7 @@ lcb_package_source(YES)
 lcb_spec_file("liblinphone.spec")
 lcb_rpmbuild_name("liblinphone")
 
-lcb_dependencies("bctoolbox" "bellesip" "ortp" "ms2" "belr" "libxsd" "soci")
+lcb_dependencies("bctoolbox" "bellesip" "ortp" "ms2" "ms2plugins" "belr" "libxsd" "soci")
 if(LINPHONE_BUILDER_BUILD_DEPENDENCIES AND NOT APPLE)
 	# Do not build sqlite3, xml2 and zlib on Apple systems (Mac OS X and iOS), they are provided by the system
 	lcb_dependencies("sqlite3" "xml2")
