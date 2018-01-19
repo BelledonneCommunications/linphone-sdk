@@ -166,9 +166,15 @@ lcb_builder_install_target(x264 "install-lib-static")
 
 
 # Copy c++ library to install prefix
-file(COPY "${CMAKE_ANDROID_NDK}/sources/cxx-stl/llvm-libc++/libs/${CMAKE_ANDROID_ARCH_ABI}/libc++_shared.so"
-	DESTINATION "${CMAKE_INSTALL_PREFIX}/lib"
-)
+if(CMAKE_ANDROID_NDK_VERSION VERSION_LESS 16)
+	file(COPY "${CMAKE_ANDROID_NDK}/sources/cxx-stl/gnu-libstdc++/${CMAKE_CXX_ANDROID_TOOLCHAIN_VERSION}/libs/${CMAKE_ANDROID_ARCH_ABI}/libgnustl_shared.so"
+		DESTINATION "${CMAKE_INSTALL_PREFIX}/lib"
+	)
+else()
+	file(COPY "${CMAKE_ANDROID_NDK}/sources/cxx-stl/llvm-libc++/libs/${CMAKE_ANDROID_ARCH_ABI}/libc++_shared.so"
+		DESTINATION "${CMAKE_INSTALL_PREFIX}/lib"
+	)
+endif()
 
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
