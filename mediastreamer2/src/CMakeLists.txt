@@ -112,7 +112,7 @@ if(ENABLE_SHARED)
 			MACOSX_FRAMEWORK_IDENTIFIER org.linphone.mediastreamerbase
   			MACOSX_FRAMEWORK_INFO_PLIST Info_base.plist.in
 			PUBLIC_HEADER "${MEDIASTREAMER2_HEADER_FILES}"
-		) 
+		)
 	endif()
 	if(NOT ANDROID)
 		# Do not version shared library on Android
@@ -174,8 +174,6 @@ set(VOIP_SOURCE_FILES_C
 	utils/g722.h
 	utils/g722_decode.c
 	utils/g722_encode.c
-	utils/h264utils.h
-	utils/h264utils.c
 	utils/kiss_fft.c
 	utils/kiss_fft.h
 	utils/kiss_fftr.c
@@ -286,6 +284,8 @@ endif()
 if(ENABLE_VIDEO)
 	list(APPEND VOIP_SOURCE_FILES_C
 		utils/bits_rw.c
+		utils/h264utils.c
+		utils/h264utils.h
 		videofilters/extdisplay.c
 		videofilters/mire.c
 		videofilters/nowebcam.c
@@ -293,15 +293,15 @@ if(ENABLE_VIDEO)
 		videofilters/sizeconv.c
 		voip/layouts.c
 		voip/layouts.h
-		voip/msvideo.c
 		voip/msvideo_neon.c
 		voip/msvideo_neon.h
+		voip/msvideo.c
 		voip/nowebcam.h
 		voip/rfc2429.h
 		voip/rfc3984.c
+		voip/video_preset_high_fps.c
 		voip/videostarter.c
 		voip/videostream.c
-		voip/video_preset_high_fps.c
 	)
 	if(FFMPEG_FOUND AND NOT TURBOJPEG_FOUND)
 		list(APPEND VOIP_SOURCE_FILES_C
@@ -683,7 +683,7 @@ if(ENABLE_SHARED)
 			MACOSX_FRAMEWORK_IDENTIFIER org.linphone.mediastreamervoip
   			MACOSX_FRAMEWORK_INFO_PLIST Info_voip.plist.in
 			PUBLIC_HEADER "${MEDIASTREAMER2_HEADER_FILES}"
-		) 
+		)
 	endif()
 	if(NOT ANDROID)
 		# Do not version shared library on Android
