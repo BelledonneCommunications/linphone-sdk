@@ -23,11 +23,11 @@
 # Linphone build options
 
 lcb_add_option("GTK UI" "Enable the GTK user interface of Linphone." "${DEFAULT_VALUE_ENABLE_GTK_UI}")
-lcb_add_option("CXX_WRAPPER" "Build the C++ wrapper for Liblinphone." "${DEFAULT_VALUE_ENABLE_CXX_WRAPPER}")
-lcb_add_option("CSHARP_WRAPPER" "Build the C# wrapper from Liblinphone." "${DEFAULT_VALUE_ENABLE_CSHARP_WRAPPER}")
-lcb_add_option("JAVA_WRAPPER" "Build the Java wrapper from Liblinphone." "${DEFAULT_VALUE_ENABLE_JAVA_WRAPPER}")
+lcb_add_option("CXX wrapper" "Build the C++ wrapper for Liblinphone." "${DEFAULT_VALUE_ENABLE_CXX_WRAPPER}")
+lcb_add_option("CSharp wrapper" "Build the C# wrapper from Liblinphone." "${DEFAULT_VALUE_ENABLE_CSHARP_WRAPPER}")
+lcb_add_option("Java wrapper" "Build the Java wrapper from Liblinphone." "${DEFAULT_VALUE_ENABLE_JAVA_WRAPPER}")
 lcb_add_option("LIME" "Enable Linphone IM Encryption support in  Liblinphone." "${DEFAULT_VALUE_ENABLE_LIME}")
-lcb_add_option("LIME_X3DH" "Enable Linphone IM Encryption version 2 support in  Liblinphone." "${DEFAULT_VALUE_ENABLE_LIME_X3DH}")
+lcb_add_option("LIME X3DH" "Enable Linphone IM Encryption version 2 support in  Liblinphone." "${DEFAULT_VALUE_ENABLE_LIME_X3DH}")
 lcb_add_option("NLS" "Enable internationalization of Linphone and Liblinphone." "${DEFAULT_VALUE_ENABLE_NLS}")
 lcb_add_option("Update Check" "Enable update check." "${DEFAULT_VALUE_ENABLE_UPDATE_CHECK}")
 lcb_add_option("VCARD" "Enable vCard 4 support in Linphone and Liblinphone." "${DEFAULT_VALUE_ENABLE_VCARD}")
