@@ -412,14 +412,8 @@ struct belle_sip_dict {
 		belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS(obj),#attribute,NULL);\
 	}
 
-#ifdef HAVE_ANTLR_STRING_STREAM_NEW
 #define ANTLR_STREAM_NEW(object_type, value,length) \
 antlr3StringStreamNew((pANTLR3_UINT8)value,ANTLR3_ENC_8BIT,(ANTLR3_UINT32)length,(pANTLR3_UINT8)#object_type)
-#else
-#define ANTLR_STREAM_NEW(object_type, value, length) \
-antlr3NewAsciiStringCopyStream((pANTLR3_UINT8)value,(ANTLR3_UINT32)length,NULL)
-#endif /*HAVE_ANTLR_STRING_STREAM_NEW*/
-
 
 #define BELLE_PARSE(parser_name, object_type_prefix, object_type) \
 	object_type_prefix##object_type##_t* object_type_prefix##object_type##_parse (const char* value) { \

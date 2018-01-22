@@ -35,11 +35,12 @@ function(require_c99 target)
 	endif()
 endfunction()
 
-set(INCLUDES ${ANTLR3C_INCLUDE_DIRS})
-set(LIBS ${ANTLR3C_LIBRARIES})
-
-list(APPEND INCLUDES ${BCTOOLBOX_CORE_INCLUDE_DIR})
-list(APPEND LIBS ${BCTOOLBOX_CORE_LIBRARIES})
+set(PUBLIC_INCLUDE_DIRS
+	${BCTOOLBOX_CORE_INCLUDE_DIR}
+	$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+	$<INSTALL_INTERFACE:include>
+)
+set(LIBS ${BCTOOLBOX_CORE_LIBRARIES})
 
 if(Threads_FOUND)
 	if(CMAKE_USE_PTHREADS_INIT AND NOT CMAKE_SYSTEM_NAME MATCHES "QNX" AND NOT ANDROID)
@@ -66,30 +67,17 @@ if(WIN32)
 endif()
 
 set(SDP_GENERATED_SOURCE_FILES_C
-	${CMAKE_CURRENT_BINARY_DIR}/grammars/belle_sdpLexer.c
-	${CMAKE_CURRENT_BINARY_DIR}/grammars/belle_sdpLexer.h
-	${CMAKE_CURRENT_BINARY_DIR}/grammars/belle_sdpParser.c
-	${CMAKE_CURRENT_BINARY_DIR}/grammars/belle_sdpParser.h
+	grammars/belle_sdpLexer.c
+	grammars/belle_sdpLexer.h
+	grammars/belle_sdpParser.c
+	grammars/belle_sdpParser.h
 )
-add_custom_command(
-	OUTPUT ${SDP_GENERATED_SOURCE_FILES_C}
-	COMMAND ${ANTLR3_COMMAND} -make -Xmultithreaded -Xconversiontimeout 10000 -fo ${CMAKE_CURRENT_BINARY_DIR}/grammars ${CMAKE_CURRENT_SOURCE_DIR}/grammars/belle_sdp.g
-	DEPENDS grammars/belle_sdp.g
-)
-
 set(SIP_MESSAGE_GENERATED_SOURCE_FILES_C
-	${CMAKE_CURRENT_BINARY_DIR}/grammars/belle_sip_messageLexer.c
-	${CMAKE_CURRENT_BINARY_DIR}/grammars/belle_sip_messageLexer.h
-	${CMAKE_CURRENT_BINARY_DIR}/grammars/belle_sip_messageParser.c
-	${CMAKE_CURRENT_BINARY_DIR}/grammars/belle_sip_messageParser.h
+	grammars/belle_sip_messageLexer.c
+	grammars/belle_sip_messageLexer.h
+	grammars/belle_sip_messageParser.c
+	grammars/belle_sip_messageParser.h
 )
-add_custom_command(
-	OUTPUT ${SIP_MESSAGE_GENERATED_SOURCE_FILES_C}
-	COMMAND ${ANTLR3_COMMAND} -make -Xmultithreaded -Xconversiontimeout 10000 -fo ${CMAKE_CURRENT_BINARY_DIR}/grammars ${CMAKE_CURRENT_SOURCE_DIR}/grammars/belle_sip_message.g
-	DEPENDS grammars/belle_sip_message.g
-)
-
-set_source_files_properties(${SDP_GENERATED_SOURCE_FILES_C} ${SIP_MESSAGE_GENERATED_SOURCE_FILES_C} PROPERTIES GENERATED TRUE)
 
 if(ENABLE_TUNNEL)
 	set(TUNNEL_SOURCE_FILES_C
@@ -101,6 +89,8 @@ if(ENABLE_TUNNEL)
 	)
 	list(APPEND LIBS ${TUNNEL_LIBRARIES})
 endif()
+
+add_subdirectory(antlr3c)
 
 set(BELLE_SIP_SOURCE_FILES_C
 	auth_event.c
@@ -204,9 +194,9 @@ endif()
 
 string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
 if(ENABLE_STATIC)
-	add_library(bellesip-static STATIC ${BELLE_SIP_HEADER_FILES} ${BELLE_SIP_SOURCE_FILES_C} ${BELLE_SIP_SOURCE_FILES_CXX} ${BELLE_SIP_SOURCE_FILES_OBJC})
+	add_library(bellesip-static STATIC ${BELLE_SIP_HEADER_FILES} ${BELLE_SIP_SOURCE_FILES_C} ${BELLE_SIP_SOURCE_FILES_CXX} ${BELLE_SIP_SOURCE_FILES_OBJC} ${ANTLR3C_SOURCE_FILES})
 	set_target_properties(bellesip-static PROPERTIES OUTPUT_NAME bellesip)
-	target_include_directories(bellesip-static PUBLIC ${INCLUDES})
+	target_include_directories(bellesip-static PUBLIC ${PUBLIC_INCLUDE_DIRS} PRIVATE "antlr3c/include")
 	target_link_libraries(bellesip-static INTERFACE ${LIBS})
 	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 		set_target_properties(bellesip-static PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
@@ -218,10 +208,10 @@ if(ENABLE_STATIC)
 	)
 endif()
 if(ENABLE_SHARED)
-	add_library(bellesip SHARED ${BELLE_SIP_HEADER_FILES} ${BELLE_SIP_SOURCE_FILES_C} ${BELLE_SIP_SOURCE_FILES_CXX} ${BELLE_SIP_SOURCE_FILES_OBJC})
+	add_library(bellesip SHARED ${BELLE_SIP_HEADER_FILES} ${BELLE_SIP_SOURCE_FILES_C} ${BELLE_SIP_SOURCE_FILES_CXX} ${BELLE_SIP_SOURCE_FILES_OBJC} ${ANTLR3C_SOURCE_FILES})
 	set_target_properties(bellesip PROPERTIES SOVERSION 0)
 	set_target_properties(bellesip PROPERTIES LINKER_LANGUAGE CXX)
-	target_include_directories(bellesip PUBLIC ${INCLUDES})
+	target_include_directories(bellesip PUBLIC ${PUBLIC_INCLUDE_DIRS} PRIVATE "antlr3c/include")
 	target_link_libraries(bellesip PRIVATE ${LIBS})
 	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 		set_target_properties(bellesip PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
