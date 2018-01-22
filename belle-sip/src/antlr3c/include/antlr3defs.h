@@ -243,7 +243,7 @@ typedef struct sockaddr		ANTLR3_SOCKADDRC, * pANTLR3_SOCKADDRC;	// Type used for
 
 /* Include configure generated header file
  */
-#include	<antlr3config.h>
+#include	"antlr3config.h"
 
 #include <stdio.h>
 

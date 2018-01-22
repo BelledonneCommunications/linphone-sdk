@@ -40,6 +40,10 @@ set(PUBLIC_INCLUDE_DIRS
 	$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
 	$<INSTALL_INTERFACE:include>
 )
+set(PRIVATE_INCLUDE_DIRS
+	${CMAKE_CURRENT_SOURCE_DIR}/antlr3c/include
+	${CMAKE_CURRENT_BINARY_DIR}/antlr3c
+)
 set(LIBS ${BCTOOLBOX_CORE_LIBRARIES})
 
 if(Threads_FOUND)
@@ -196,7 +200,7 @@ string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
 if(ENABLE_STATIC)
 	add_library(bellesip-static STATIC ${BELLE_SIP_HEADER_FILES} ${BELLE_SIP_SOURCE_FILES_C} ${BELLE_SIP_SOURCE_FILES_CXX} ${BELLE_SIP_SOURCE_FILES_OBJC} ${ANTLR3C_SOURCE_FILES})
 	set_target_properties(bellesip-static PROPERTIES OUTPUT_NAME bellesip)
-	target_include_directories(bellesip-static PUBLIC ${PUBLIC_INCLUDE_DIRS} PRIVATE "antlr3c/include")
+	target_include_directories(bellesip-static PUBLIC ${PUBLIC_INCLUDE_DIRS} PRIVATE ${PRIVATE_INCLUDE_DIRS})
 	target_link_libraries(bellesip-static INTERFACE ${LIBS})
 	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 		set_target_properties(bellesip-static PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
@@ -211,7 +215,7 @@ if(ENABLE_SHARED)
 	add_library(bellesip SHARED ${BELLE_SIP_HEADER_FILES} ${BELLE_SIP_SOURCE_FILES_C} ${BELLE_SIP_SOURCE_FILES_CXX} ${BELLE_SIP_SOURCE_FILES_OBJC} ${ANTLR3C_SOURCE_FILES})
 	set_target_properties(bellesip PROPERTIES SOVERSION 0)
 	set_target_properties(bellesip PROPERTIES LINKER_LANGUAGE CXX)
-	target_include_directories(bellesip PUBLIC ${PUBLIC_INCLUDE_DIRS} PRIVATE "antlr3c/include")
+	target_include_directories(bellesip PUBLIC ${PUBLIC_INCLUDE_DIRS} PRIVATE ${PRIVATE_INCLUDE_DIRS})
 	target_link_libraries(bellesip PRIVATE ${LIBS})
 	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 		set_target_properties(bellesip PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")

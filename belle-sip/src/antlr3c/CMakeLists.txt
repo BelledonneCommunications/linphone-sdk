@@ -21,7 +21,7 @@
 ############################################################################
 
 option(ENABLE_64BIT "Turns on flags that produce 64 bit object code if any are required." OFF)
-option(ENABLE_DEBUGGER "Turns on default flags that include the antlr debugger in the runtime. Disable to remove debugger and the socket dependancies." ON)
+option(ENABLE_DEBUGGER "Turns on default flags that include the antlr debugger in the runtime. Disable to remove debugger and the socket dependancies." OFF)
 
 if(ENABLE_64BIT)
 	set(ANTLR3_USE_64BIT 1)
