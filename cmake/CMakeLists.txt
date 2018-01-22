@@ -26,6 +26,7 @@ include(FeatureSummary)
 
 set(ep_base "${LINPHONE_BUILDER_WORK_DIR}/${CONFIG_NAME}")
 set_property(DIRECTORY PROPERTY EP_BASE ${ep_base})
+set(LINPHONE_BUILDER_OPTIONS_DIR "${CMAKE_CURRENT_LIST_DIR}/../options")
 
 
 # Define the architecture. It will be used to generate the URL to get prebuilt dependencies.
@@ -279,9 +280,6 @@ macro(linphone_builder_include_builder BUILDER INCLUDE_AFTER DEPENDENCIES _inclu
 		if(EXISTS "${_builder_filepath}")
 			message(STATUS "Including builder ${BUILDER}")
 			set(LINPHONE_BUILDER_CURRENT_BUILDER "${BUILDER}")
-			if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/../options/${BUILDER}.cmake)
-				include(${CMAKE_CURRENT_LIST_DIR}/../options/${BUILDER}.cmake)
-			endif()
 			include(${_builder_filepath})
 			if(INCLUDE_AFTER)
 				list(APPEND ${DEPENDENCIES} ${BUILDER})
@@ -1168,6 +1166,9 @@ macro(lcb_builder_dependencies BUILDER)
 		endif()
 		if(_add_dependency)
 			list(APPEND EP_${BUILDER}_DEPENDENCIES "EP_${_dependency}")
+			if(EXISTS ${LINPHONE_BUILDER_OPTIONS_DIR}/${_dependency}.cmake)
+				include(${LINPHONE_BUILDER_OPTIONS_DIR}/${_dependency}.cmake)
+			endif()
 		endif()
 	endforeach()
 endmacro()
