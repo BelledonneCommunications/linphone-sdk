@@ -546,7 +546,7 @@ string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/mediastreamer-config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/mediastreamer-config.h)
 set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/mediastreamer-config.h PROPERTIES GENERATED ON)
 add_definitions("-DHAVE_CONFIG_H")
-add_definitions("-DSRTP_VERSION")
+add_definitions("-DSRTP_VERSION=${SRTP_VERSION}")
 
 set(MEDIASTREAMER2_CPPFLAGS ${ORTP_CPPFLAGS} ${BZRTP_CPPFLAGS} ${BCTOOLBOX_CPPFLAGS} ${BCG729_CPPFLAGS})
 if(ENABLE_STATIC)
