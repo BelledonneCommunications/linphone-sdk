@@ -409,8 +409,7 @@ static AVCaptureVideoOrientation Angle2AVCaptureVideoOrientation(int deviceOrien
 		|| ((outputSize.width * outputSize.height) == (MS_VIDEO_SIZE_720P_W * MS_VIDEO_SIZE_720P_H))) {
 		[session setSessionPreset: AVCaptureSessionPreset1280x720];
 		mCameraVideoSize = outputSize;
-		// Force 4/3 ratio
-		mOutputVideoSize.width = (outputSize.width / 4) * 3;
+		mOutputVideoSize.width = outputSize.width;
 		mOutputVideoSize.height = outputSize.height;
 		mDownScalingRequired = false;
 	} else if ((outputSize.width * outputSize.height) == (MS_VIDEO_SIZE_VGA_W * MS_VIDEO_SIZE_VGA_H)) {
