@@ -137,5 +137,5 @@ endif()
 
 # vpx
 if(WIN32)
-	lcb_linking_type(vpx "--enable-static" "--disable-shared" "--enable-pic")
+	lcb_builder_linking_type(vpx "--enable-static" "--disable-shared" "--enable-pic")
 endif()
