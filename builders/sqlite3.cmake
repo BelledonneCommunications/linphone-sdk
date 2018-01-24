@@ -20,16 +20,9 @@
 #
 ############################################################################
 
-lcb_url("http://www.sqlite.org/2014/sqlite-amalgamation-3080702.zip")
-lcb_url_hash("MD5=10587262e4381358b707df75392c895f")
+lcb_git_repository("git://git.linphone.org/sqlite3.git")
+lcb_git_tag_latest("master")
 lcb_external_source_paths("externals/sqlite3")
 lcb_may_be_found_on_system(YES)
 lcb_ignore_warnings(YES)
 
-lcb_patch_command("${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/sqlite3/CMakeLists.txt" "<SOURCE_DIR>")
-if(WIN32)
-	lcb_patch_command(
-		"COMMAND"
-		"${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/sqlite3/sqlite3.def" "<SOURCE_DIR>"
-	)
-endif()
