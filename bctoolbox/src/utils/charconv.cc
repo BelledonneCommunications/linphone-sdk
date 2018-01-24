@@ -195,6 +195,8 @@ extern "C" char *bctbx_convert_from_to(const char *str, const char *from, const 
 	size_t out_left = in_left + in_left/10; // leave a marge of 10%
 	iconv_t cd;
 
+	setlocale(LC_CTYPE, ""); // Retrieve environment locale before calling nl_langinfo
+
 	const char* r_from = strcasecmp("locale", from) == 0 ? nl_langinfo(CODESET) : from;
 	const char* r_to = strcasecmp("locale", to) == 0 ? nl_langinfo(CODESET) : to;
 
