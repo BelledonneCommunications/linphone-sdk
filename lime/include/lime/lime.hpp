@@ -22,6 +22,7 @@
 #include <memory> //smart ptrs
 #include <unordered_map>
 #include <vector>
+#include <functional>
 
 namespace lime {
 
