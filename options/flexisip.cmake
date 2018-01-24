@@ -22,9 +22,6 @@
 
 # Flexisip build options
 
-lcb_add_option("ODB" "Enable odb support." "${DEFAULT_VALUE_ENABLE_ODB}")
-lcb_add_option("ODBC" "Enable odbc support." "${DEFAULT_VALUE_ENABLE_ODBC}")
-lcb_add_dependent_option("BC ODBC" "Enable odbc support from Belledonne Communications." "${DEFAULT_VALUE_ENABLE_BC_ODBC}" "ENABLE_ODBC" OFF)
 lcb_add_option("REDIS" "Enable hiredis support." "${DEFAULT_VALUE_ENABLE_REDIS}")
 lcb_add_option("PushNotification" "Enable push notification support." "${DEFAULT_VALUE_ENABLE_PUSHNOTIFICATION}")
 lcb_add_option("Presence" "Enable presence server support." "${DEFAULT_VALUE_ENABLE_PRESENCE}")

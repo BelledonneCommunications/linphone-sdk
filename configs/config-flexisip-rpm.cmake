@@ -47,7 +47,6 @@ endforeach()
 set(LINPHONE_BUILDER_USE_SYSTEM_DEPENDENCIES YES CACHE BOOL "" FORCE)
 
 # Define default values for the flexisip builder options
-set(DEFAULT_VALUE_ENABLE_ODBC OFF)
 set(DEFAULT_VALUE_ENABLE_PUSHNOTIFICATION ON)
 set(DEFAULT_VALUE_ENABLE_REDIS ON)
 set(DEFAULT_VALUE_ENABLE_SOCI ON)
@@ -119,8 +118,6 @@ lcb_builder_rpmbuild_options(sofiasip
 	"--without glib"
 )
 
-lcb_builder_build_method(odb "custom")
-
 lcb_builder_build_method(flexisip "rpm")
 lcb_builder_rpmbuild_options(flexisip
 	"--with bc"
@@ -150,18 +147,6 @@ endif()
 
 if(NOT ENABLE_REDIS)
 	lcb_builder_rpmbuild_options(flexisip "--without redis")
-endif()
-
-if(ENABLE_BC_ODBC)
-	lcb_builder_build_method(unixodbc "rpm")
-	lcb_builder_rpmbuild_options(unixodbc "--with bc")
-
-	lcb_builder_build_method(myodbc "rpm")
-	lcb_builder_rpmbuild_options(myodbc "--with bc")
-	lcb_builder_configure_options(myodbc "--with-unixODBC=${RPM_INSTALL_PREFIX}")
-
-	lcb_builder_rpmbuild_options(flexisip "--with bcodbc")
-	lcb_builder_configure_options(flexisip "--with-odbc=${RPM_INSTALL_PREFIX}")
 endif()
 
 set(LINPHONE_BUILDER_RPMBUILD_PACKAGE_PREFIX "bc-")

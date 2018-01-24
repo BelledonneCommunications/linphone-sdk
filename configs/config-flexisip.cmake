@@ -21,8 +21,6 @@
 ############################################################################
 
 # Define default values for the flexisip builder options
-set(DEFAULT_VALUE_ENABLE_ODB OFF)
-set(DEFAULT_VALUE_ENABLE_ODBC OFF)
 set(DEFAULT_VALUE_ENABLE_PUSHNOTIFICATION ON)
 set(DEFAULT_VALUE_ENABLE_REDIS ON)
 set(DEFAULT_VALUE_ENABLE_UNIT_TESTS OFF)
