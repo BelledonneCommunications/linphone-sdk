@@ -148,6 +148,10 @@ if(ENABLE_SNMP)
 	lcb_builder_rpmbuild_options(flexisip "--with snmp")
 endif()
 
+if(NOT ENABLE_REDIS)
+	lcb_builder_rpmbuild_options(flexisip "--without redis")
+endif()
+
 if(ENABLE_BC_ODBC)
 	lcb_builder_build_method(unixodbc "rpm")
 	lcb_builder_rpmbuild_options(unixodbc "--with bc")
