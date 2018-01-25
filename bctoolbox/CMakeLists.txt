@@ -56,8 +56,6 @@ include(CMakePushCheckState)
 include(GNUInstallDirs)
 include(cmake/BcToolboxCMakeUtils.cmake)
 
-add_subdirectory(build)
-
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 if(NOT CPACK_GENERATOR AND NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
@@ -178,6 +176,8 @@ add_subdirectory(src)
 if(ENABLE_TESTS AND ENABLE_TESTS_COMPONENT AND BCUNIT_FOUND)
 	add_subdirectory(tester)
 endif()
+
+add_subdirectory(build)
 
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
