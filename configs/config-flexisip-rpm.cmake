@@ -85,6 +85,7 @@ lcb_builder_rpmbuild_options(soci
 	"--with bc"
 	"--with sqlite3"
 	"--with mysql"
+	"--with_postgresql"
 )
 
 lcb_builder_build_method(ortp "rpm")
