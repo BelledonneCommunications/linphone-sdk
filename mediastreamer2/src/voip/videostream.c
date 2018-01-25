@@ -30,6 +30,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mediastreamer2/zrtp.h"
 #include "mediastreamer2/msvideopresets.h"
 #include "mediastreamer2/mseventqueue.h"
+#include "mediastreamer2/mstee.h"
 #include "private.h"
 
 #if __APPLE__
@@ -1122,6 +1123,7 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 			if (stream->recorder_output){
 				ms_connection_helper_link(&ch,stream->tee3,0,0);
 				ms_filter_link(stream->tee3,1,stream->recorder_output,0);
+				video_stream_enable_recording(stream, FALSE);/*until recorder is started, the tee3 is kept muted on pin 1*/
 				configure_recorder_output(stream);
 			}
 			ms_connection_helper_link(&ch,stream->ms.decoder,0,0);
@@ -1852,6 +1854,15 @@ const MSWebCam * video_stream_get_camera(const VideoStream *stream) {
 void video_stream_use_video_preset(VideoStream *stream, const char *preset) {
 	if (stream->preset != NULL) ms_free(stream->preset);
 	stream->preset = ms_strdup(preset);
+}
+
+/*this function optimizes the processing by enabling the duplication of video packets to the recorder, which is not required to be done
+ * when the recorder is not recording of course.*/
+void video_stream_enable_recording(VideoStream *stream, int enabled){
+	if (stream->tee3){
+		int pin = 1;
+		ms_filter_call_method(stream->tee3, enabled ? MS_TEE_UNMUTE : MS_TEE_MUTE, &pin);
+	}
 }
 
 MSFilter * video_stream_open_remote_play(VideoStream *stream, const char *filename){

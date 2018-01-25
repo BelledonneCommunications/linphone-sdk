@@ -106,6 +106,8 @@ void video_recorder_handle_event(void *userdata, MSFilter *recorder, unsigned in
 
 void ms_audio_flow_control_event_handler(void *user_data, MSFilter *f, unsigned int event, void *eventdata);
 
+void video_stream_enable_recording(VideoStream *stream, int enabled);
+
 #ifdef __cplusplus
 }
 #endif

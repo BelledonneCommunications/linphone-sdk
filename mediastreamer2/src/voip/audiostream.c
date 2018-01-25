@@ -1427,6 +1427,7 @@ int audio_stream_mixed_record_start(AudioStream *st){
 		mctl.pin=pin;
 		mctl.param.enabled=TRUE;
 		ms_filter_call_method(st->outbound_mixer,MS_AUDIO_MIXER_ENABLE_OUTPUT,&mctl);
+		if (st->videostream) video_stream_enable_recording(st->videostream, TRUE);
 		return 0;
 	}
 	return -1;
@@ -1440,11 +1441,13 @@ int audio_stream_mixed_record_stop(AudioStream *st){
 
 		if (recorder==NULL) return -1;
 		ms_filter_call_method(st->recv_tee,MS_TEE_MUTE,&pin);
+		if (st->videostream) video_stream_enable_recording(st->videostream, FALSE);
 		mctl.pin=pin;
 		mctl.param.enabled=FALSE;
 		ms_filter_call_method(st->outbound_mixer,MS_AUDIO_MIXER_ENABLE_OUTPUT,&mctl);
 		ms_filter_call_method_noarg(recorder,MS_RECORDER_PAUSE);
 		ms_filter_call_method_noarg(recorder,MS_RECORDER_CLOSE);
+		
 	}
 	return 0;
 }
@@ -1907,6 +1910,7 @@ void audio_stream_unlink_video(AudioStream *stream, VideoStream *video){
 	stream->videostream=NULL;
 	if (stream->av_recorder.video_input && video->recorder_output){
 		ms_filter_call_method(video->recorder_output,MS_ITC_SINK_CONNECT,NULL);
+		video_stream_enable_recording(video, FALSE);
 	}
 }
 
