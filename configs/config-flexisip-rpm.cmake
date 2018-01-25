@@ -81,6 +81,7 @@ lcb_builder_rpmbuild_options(bctoolbox
 include(builders/CMakeLists.txt)
 
 lcb_builder_build_method(soci "rpm")
+lcb_builder_cmake_options(soci "-DWITH_POSTGRESQL=YES")
 lcb_builder_rpmbuild_options(soci
 	"--with bc"
 	"--with sqlite3"
