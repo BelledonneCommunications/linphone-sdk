@@ -37,6 +37,9 @@ if(LINPHONE_BUILDER_BUILD_DEPENDENCIES)
 	if(ENABLE_UNIT_TESTS)
 		lcb_dependencies("bcunit")
 	endif()
+	if(ENABLE_LIME_X3DH)
+		lcb_dependencies("decaf")
+	endif()
 endif()
 
 lcb_cmake_options(
