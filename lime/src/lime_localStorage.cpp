@@ -50,157 +50,163 @@ Db::Db(string filename) : sql{sqlite3, filename}{
 	constexpr int db_module_table_not_holding_lime_row = -1;
 
 	int userVersion=db_module_table_not_holding_lime_row;
-    sql<<"PRAGMA foreign_keys = ON;"; // make sure this connection enable foreign keys
-    transaction tr(sql);
-    // CREATE OR INGORE TABLE db_module_version(
-    sql<<"CREATE TABLE IF NOT EXISTS db_module_version("
-        "name VARCHAR(16) PRIMARY KEY,"
-        "version UNSIGNED INTEGER NOT NULL"
-        ")";
-    sql<<"SELECT version FROM db_module_version WHERE name='lime'", into(userVersion);
+	sql<<"PRAGMA foreign_keys = ON;"; // make sure this connection enable foreign keys
+	transaction tr(sql);
+	// CREATE OR INGORE TABLE db_module_version(
+	sql<<"CREATE TABLE IF NOT EXISTS db_module_version("
+		"name VARCHAR(16) PRIMARY KEY,"
+		"version UNSIGNED INTEGER NOT NULL"
+		")";
+	sql<<"SELECT version FROM db_module_version WHERE name='lime'", into(userVersion);
 
-	if (userVersion == lime::settings::DBuserVersion)
-        return;
+	// Enforce value in case there is no lime version number in table db_module_version
+	if (!sql.got_data()) {
+		userVersion=db_module_table_not_holding_lime_row;
+	}
 
-    if (userVersion > lime::settings::DBuserVersion) { /* nothing to do if we encounter a superior version number than expected, just hope it is compatible */
-        BCTBX_SLOGE<<"Lime module database schema version found in DB(v "<<userVersion<<") is more recent than the one currently supported by the lime module(v "<<static_cast<unsigned int>(lime::settings::DBuserVersion)<<")";
-        return;
-    }
+	if (userVersion == lime::settings::DBuserVersion) {
+		return;
+	}
 
-    /* Perform update if needed */
-    // update the schema version in DB
-    if (userVersion == db_module_table_not_holding_lime_row) { // but not any lime row in it
-        sql<<"INSERT INTO db_module_version(name,version) VALUES('lime',:DbVersion)", use(lime::settings::DBuserVersion);
-    } else { // and we had an older version
-        sql<<"UPDATE db_module_version SET version = :DbVersion WHERE name='lime'", use(lime::settings::DBuserVersion);
-        /* Do the update here */
-        tr.commit(); // commit all the previous queries
-        return;
-    }
+	if (userVersion > lime::settings::DBuserVersion) { /* nothing to do if we encounter a superior version number than expected, just hope it is compatible */
+		BCTBX_SLOGE<<"Lime module database schema version found in DB(v "<<userVersion<<") is more recent than the one currently supported by the lime module(v "<<static_cast<unsigned int>(lime::settings::DBuserVersion)<<")";
+		return;
+	}
 
-    // create the lime DB:
+	/* Perform update if needed */
+	// update the schema version in DB
+	if (userVersion == db_module_table_not_holding_lime_row) { // but not any lime row in it
+		sql<<"INSERT INTO db_module_version(name,version) VALUES('lime',:DbVersion)", use(lime::settings::DBuserVersion);
+	} else { // and we had an older version
+		sql<<"UPDATE db_module_version SET version = :DbVersion WHERE name='lime'", use(lime::settings::DBuserVersion);
+		/* Do the update here */
+		tr.commit(); // commit all the previous queries
+		return;
+	}
 
-    /*** Double Ratchet tables ***/
-    /* DR Session:
-        *  - DId : link to lime_PeerDevices table, identify which peer is associated to this session
-        *  - Uid: link to LocalUsers table, identify which local device is associated to this session
-        *  - SessionId(primary key)
-        *  - Ns, Nr, PN : index for sending, receivind and previous sending chain
-        *  - DHr : peer current public ECDH key
-        *  - DHs : self current ECDH key. (public || private keys)
-        *  - RK, CKs, CKr : Root key, sender and receiver chain keys
-        *  - AD : Associated data : provided once at session creation by X3DH, is derived from initiator public Ik and id, receiver public Ik and id
-        *  - Status : 0 is for stale and 1 is for active, only one session shall be active for a peer device, by default created as active
-        *  - timeStamp : is updated when session change status and is used to remove stale session after determined time in cleaning operation
-        *  - X3DHInit : when we are initiator, store the generated X3DH init message and keep sending it until we've got at least a reply from peer
-        */
-    sql<<"CREATE TABLE DR_sessions( \
-                Did INTEGER NOT NULL DEFAULT 0, \
-                Uid INTEGER NOT NULL DEFAULT 0, \
-                sessionId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, \
-                Ns UNSIGNED INTEGER NOT NULL, \
-                Nr UNSIGNED INTEGER NOT NULL, \
-                PN UNSIGNED INTEGER NOT NULL, \
-                DHr BLOB NOT NULL, \
-                DHs BLOB NOT NULL, \
-                RK BLOB NOT NULL, \
-                CKs BLOB NOT NULL, \
-                CKr BLOB NOT NULL, \
-                AD BLOB NOT NULL, \
-                Status INTEGER NOT NULL DEFAULT 1, \
-                timeStamp DATETIME DEFAULT CURRENT_TIMESTAMP, \
-                X3DHInit BLOB DEFAULT NULL, \
-                FOREIGN KEY(Did) REFERENCES lime_PeerDevices(Did) ON UPDATE CASCADE ON DELETE CASCADE, \
-                FOREIGN KEY(Uid) REFERENCES lime_LocalUsers(Uid) ON UPDATE CASCADE ON DELETE CASCADE);";
+	// create the lime DB:
 
-    /* DR Message Skipped DH : Store chains of skipped message keys, this table store the DHr identifying the chain
-        *  - DHid(primary key)
-        *  - SessionId : foreign key, link to the DR session the skipped keys are attached
-        *  - DHr : the peer ECDH public key used in this key chain
-        *  - received : count messages successfully decoded since the last MK insertion in that chain, allow to delete chains that are too old
-        */
-    sql<<"CREATE TABLE DR_MSk_DHr( \
-                DHid INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, \
-                sessionId INTEGER NOT NULL DEFAULT 0, \
-                DHr BLOB NOT NULL, \
-                received UNSIGNED INTEGER NOT NULL DEFAULT 0, \
-                FOREIGN KEY(sessionId) REFERENCES DR_sessions(sessionId) ON UPDATE CASCADE ON DELETE CASCADE);";
+	/*** Double Ratchet tables ***/
+	/* DR Session:
+	*  - DId : link to lime_PeerDevices table, identify which peer is associated to this session
+	*  - Uid: link to LocalUsers table, identify which local device is associated to this session
+	*  - SessionId(primary key)
+	*  - Ns, Nr, PN : index for sending, receivind and previous sending chain
+	*  - DHr : peer current public ECDH key
+	*  - DHs : self current ECDH key. (public || private keys)
+	*  - RK, CKs, CKr : Root key, sender and receiver chain keys
+	*  - AD : Associated data : provided once at session creation by X3DH, is derived from initiator public Ik and id, receiver public Ik and id
+	*  - Status : 0 is for stale and 1 is for active, only one session shall be active for a peer device, by default created as active
+	*  - timeStamp : is updated when session change status and is used to remove stale session after determined time in cleaning operation
+	*  - X3DHInit : when we are initiator, store the generated X3DH init message and keep sending it until we've got at least a reply from peer
+	*/
+	sql<<"CREATE TABLE DR_sessions( \
+				Did INTEGER NOT NULL DEFAULT 0, \
+				Uid INTEGER NOT NULL DEFAULT 0, \
+				sessionId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, \
+				Ns UNSIGNED INTEGER NOT NULL, \
+				Nr UNSIGNED INTEGER NOT NULL, \
+				PN UNSIGNED INTEGER NOT NULL, \
+				DHr BLOB NOT NULL, \
+				DHs BLOB NOT NULL, \
+				RK BLOB NOT NULL, \
+				CKs BLOB NOT NULL, \
+				CKr BLOB NOT NULL, \
+				AD BLOB NOT NULL, \
+				Status INTEGER NOT NULL DEFAULT 1, \
+				timeStamp DATETIME DEFAULT CURRENT_TIMESTAMP, \
+				X3DHInit BLOB DEFAULT NULL, \
+				FOREIGN KEY(Did) REFERENCES lime_PeerDevices(Did) ON UPDATE CASCADE ON DELETE CASCADE, \
+				FOREIGN KEY(Uid) REFERENCES lime_LocalUsers(Uid) ON UPDATE CASCADE ON DELETE CASCADE);";
 
-    /* DR Message Skipped MK : Store chains of skipped message keys, this table store the message keys with their index in the chain
-        *  - DHid : foreign key, link to the key chain table: DR_Message_Skipped_DH
-        *  - Nr : the id in the key chain
-        *  - MK : the message key stored
-        *  primary key is [DHid,Nr]
-        */
-    sql<<"CREATE TABLE DR_MSk_MK( \
-                DHid INTEGER NOT NULL, \
-                Nr INTEGER NOT NULL, \
-                MK BLOB NOT NULL, \
-                PRIMARY KEY( DHid , Nr ), \
-                FOREIGN KEY(DHid) REFERENCES DR_MSk_DHr(DHid) ON UPDATE CASCADE ON DELETE CASCADE);";
+	/* DR Message Skipped DH : Store chains of skipped message keys, this table store the DHr identifying the chain
+	*  - DHid(primary key)
+	*  - SessionId : foreign key, link to the DR session the skipped keys are attached
+	*  - DHr : the peer ECDH public key used in this key chain
+	*  - received : count messages successfully decoded since the last MK insertion in that chain, allow to delete chains that are too old
+	*/
+	sql<<"CREATE TABLE DR_MSk_DHr( \
+				DHid INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, \
+				sessionId INTEGER NOT NULL DEFAULT 0, \
+				DHr BLOB NOT NULL, \
+				received UNSIGNED INTEGER NOT NULL DEFAULT 0, \
+				FOREIGN KEY(sessionId) REFERENCES DR_sessions(sessionId) ON UPDATE CASCADE ON DELETE CASCADE);";
 
-    /*** Lime tables : local user identities, peer devices identities ***/
-    /* List each self account enable on device :
-        - Uid : primary key, used to make link with Peer Devices, SPk and OPk tables
-        - User Id : shall be the GRUU
-        - Ik : public||private indentity key (EdDSA key)
-        - server : the URL of key Server
-        - curveId : identifies the curve used by this user - MUST be in sync with server
-    */
-    sql<<"CREATE TABLE lime_LocalUsers( \
-                Uid INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, \
-                UserId TEXT NOT NULL, \
-                Ik BLOB NOT NULL, \
-                server TEXT NOT NULL, \
-                curveId INTEGER NOT NULL DEFAULT 0);"; // default the curveId value to 0 which is not one of the possible values(defined in lime.hpp)
+	/* DR Message Skipped MK : Store chains of skipped message keys, this table store the message keys with their index in the chain
+	*  - DHid : foreign key, link to the key chain table: DR_Message_Skipped_DH
+	*  - Nr : the id in the key chain
+	*  - MK : the message key stored
+	*  primary key is [DHid,Nr]
+	*/
+	sql<<"CREATE TABLE DR_MSk_MK( \
+				DHid INTEGER NOT NULL, \
+				Nr INTEGER NOT NULL, \
+				MK BLOB NOT NULL, \
+				PRIMARY KEY( DHid , Nr ), \
+				FOREIGN KEY(DHid) REFERENCES DR_MSk_DHr(DHid) ON UPDATE CASCADE ON DELETE CASCADE);";
 
-    /* Peer Devices :
-        * - Did : primary key, used to make link with DR_sessions table.
-        * - DeviceId: peer device id (shall be its GRUU)
-        * - Ik : Peer device Identity public key, got it from X3DH server or X3DH init message
-        * - Verified : a flag, 0 : peer identity was not verified, 1 : peer identity confirmed
-        *
-        * Note: peer device information is shared by all local device, hence they are not linked to particular local devices from lime_LocalUsers table
-        */
-    sql<<"CREATE TABLE lime_PeerDevices( \
-                Did INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, \
-                DeviceId TEXT NOT NULL, \
-                Ik BLOB NOT NULL, \
-                Verified UNSIGNED INTEGER DEFAULT 0);";
+	/*** Lime tables : local user identities, peer devices identities ***/
+	/* List each self account enable on device :
+	*  - Uid : primary key, used to make link with Peer Devices, SPk and OPk tables
+	*  - User Id : shall be the GRUU
+	*  - Ik : public||private indentity key (EdDSA key)
+	*  - server : the URL of key Server
+	*  - curveId : identifies the curve used by this user - MUST be in sync with server
+	*/
+	sql<<"CREATE TABLE lime_LocalUsers( \
+				Uid INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, \
+				UserId TEXT NOT NULL, \
+				Ik BLOB NOT NULL, \
+				server TEXT NOT NULL, \
+				curveId INTEGER NOT NULL DEFAULT 0);"; // default the curveId value to 0 which is not one of the possible values(defined in lime.hpp)
 
-    /*** X3DH tables ***/
-    /* Signed pre-key :
-        * - SPKid : the primary key must be a random number as it is public, so avoid leaking information on number of key used
-        * - SPK : Public key||Private Key (ECDH keys)
-        * - timeStamp : Application shall renew SPK regurlarly(SPK_LifeTime). Old key are disactivated and deleted after a period(SPK_LimboTime))
-        * - Status : a boolean: can be active(1) or stale(0), by default any newly inserted key is set to active
-        * - Uid : User Id from lime_LocalUsers table: who's key is this
-        */
-    sql<<"CREATE TABLE X3DH_SPK( \
-                SPKid UNSIGNED INTEGER PRIMARY KEY NOT NULL, \
-                SPK BLOB NOT NULL, \
-                timeStamp DATETIME DEFAULT CURRENT_TIMESTAMP, \
-                Status INTEGER NOT NULL DEFAULT 1, \
-                Uid INTEGER NOT NULL, \
-                FOREIGN KEY(Uid) REFERENCES lime_LocalUsers(Uid) ON UPDATE CASCADE ON DELETE CASCADE);";
+	/* Peer Devices :
+	* - Did : primary key, used to make link with DR_sessions table.
+	* - DeviceId: peer device id (shall be its GRUU)
+	* - Ik : Peer device Identity public key, got it from X3DH server or X3DH init message
+	* - Verified : a flag, 0 : peer identity was not verified, 1 : peer identity confirmed
+	*
+	* Note: peer device information is shared by all local device, hence they are not linked to particular local devices from lime_LocalUsers table
+	*/
+	sql<<"CREATE TABLE lime_PeerDevices( \
+				Did INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, \
+				DeviceId TEXT NOT NULL, \
+				Ik BLOB NOT NULL, \
+				Verified UNSIGNED INTEGER DEFAULT 0);";
 
-    /* One time pre-key : deleted after usage, generated at user creation and on X3DH server request
-        * - OPKid : the primary key must be a random number as it is public, so avoid leaking information on number of key used
-        * - OPK : Public key||Private Key (ECDH keys)
-        * - Uid : User Id from lime_LocalUsers table: who's key is this
-        * - Status : a boolean: can be published on X3DH Server(1) or not anymore on X3DH server(0), by default any newly inserted key is set to published
-        * - timeStamp : timeStamp is set during update if we found out a key is no more on server(and we didn't used it as usage delete key).
-        *   		So after a limbo period, key is considered missing in action and removed from storage.
-        */
-    sql<<"CREATE TABLE X3DH_OPK( \
-                OPKid UNSIGNED INTEGER PRIMARY KEY NOT NULL, \
-                OPK BLOB NOT NULL, \
-                Uid INTEGER NOT NULL, \
-                Status INTEGER NOT NULL DEFAULT 1, \
-                timeStamp DATETIME DEFAULT CURRENT_TIMESTAMP, \
-                FOREIGN KEY(Uid) REFERENCES lime_LocalUsers(Uid) ON UPDATE CASCADE ON DELETE CASCADE);";
+	/*** X3DH tables ***/
+	/* Signed pre-key :
+	* - SPKid : the primary key must be a random number as it is public, so avoid leaking information on number of key used
+	* - SPK : Public key||Private Key (ECDH keys)
+	* - timeStamp : Application shall renew SPK regurlarly(SPK_LifeTime). Old key are disactivated and deleted after a period(SPK_LimboTime))
+	* - Status : a boolean: can be active(1) or stale(0), by default any newly inserted key is set to active
+	* - Uid : User Id from lime_LocalUsers table: who's key is this
+	*/
+	sql<<"CREATE TABLE X3DH_SPK( \
+				SPKid UNSIGNED INTEGER PRIMARY KEY NOT NULL, \
+				SPK BLOB NOT NULL, \
+				timeStamp DATETIME DEFAULT CURRENT_TIMESTAMP, \
+				Status INTEGER NOT NULL DEFAULT 1, \
+				Uid INTEGER NOT NULL, \
+				FOREIGN KEY(Uid) REFERENCES lime_LocalUsers(Uid) ON UPDATE CASCADE ON DELETE CASCADE);";
 
-    tr.commit(); // commit all the previous queries
+	/* One time pre-key : deleted after usage, generated at user creation and on X3DH server request
+	* - OPKid : the primary key must be a random number as it is public, so avoid leaking information on number of key used
+	* - OPK : Public key||Private Key (ECDH keys)
+	* - Uid : User Id from lime_LocalUsers table: who's key is this
+	* - Status : a boolean: can be published on X3DH Server(1) or not anymore on X3DH server(0), by default any newly inserted key is set to published
+	* - timeStamp : timeStamp is set during update if we found out a key is no more on server(and we didn't used it as usage delete key).
+	*   		So after a limbo period, key is considered missing in action and removed from storage.
+	*/
+	sql<<"CREATE TABLE X3DH_OPK( \
+				OPKid UNSIGNED INTEGER PRIMARY KEY NOT NULL, \
+				OPK BLOB NOT NULL, \
+				Uid INTEGER NOT NULL, \
+				Status INTEGER NOT NULL DEFAULT 1, \
+				timeStamp DATETIME DEFAULT CURRENT_TIMESTAMP, \
+				FOREIGN KEY(Uid) REFERENCES lime_LocalUsers(Uid) ON UPDATE CASCADE ON DELETE CASCADE);";
+
+	tr.commit(); // commit all the previous queries
 };
 
 /**
