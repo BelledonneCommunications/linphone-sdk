@@ -298,14 +298,15 @@ void Db::get_allLocalDevices(std::vector<std::string> &deviceIds) {
 void Db::set_PeerDevicesVerifiedStatus(const std::string &peerDeviceId, const std::vector<uint8_t> &Ik, bool status) {
 	// Do we have this peerDevice in lime_PeerDevices
 	blob Ik_blob(sql);
-	sql<<"SELECT Ik FROM Lime_PeerDevices WHERE DeviceId = :peerDeviceId LIMIT 1;", into(Ik_blob), use(peerDeviceId);
+    long long id;
+	sql<<"SELECT Did, Ik FROM Lime_PeerDevices WHERE DeviceId = :peerDeviceId;", into(id), into(Ik_blob), use(peerDeviceId);
 	if (sql.got_data()) { // Found it
 		auto IkSize = Ik_blob.get_len();
 		std::vector<uint8_t> storedIk;
 		storedIk.resize(IkSize);
 		Ik_blob.read(0, (char *)(storedIk.data()), IkSize); // Read the public key
 		if (storedIk == Ik) {
-			sql<<"UPDATE  Lime_PeerDevices SET Verified = :Verified WHERE DeviceId = :peerDeviceId LIMIT 1;", use((status==true)?1:0), use(peerDeviceId);
+			sql<<"UPDATE Lime_PeerDevices SET Verified = :Verified WHERE Did = :id;", use((status==true)?1:0), use(id);
 		} else { // Ik in local Storage differs than the one given... raise an exception
 			throw BCTBX_EXCEPTION << "Trying to insert an Identity key for peer device "<<peerDeviceId<<" which differs from one already in local storage";
 		}
