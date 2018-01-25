@@ -83,27 +83,25 @@ static void getMessageFor(std::string recipient, std::vector<uint8_t> &cipherHea
 	BC_FAIL();
 }
 
+struct C_Callback_userData {
+	const limeX3DHServerResponseProcess responseProcess; // a callback to forward the response to lib lime
+	const std::string username; // the username to provide corresponding credentials, not really in use in this test as the test server let us access any record with the same credentials
+	C_Callback_userData(const limeX3DHServerResponseProcess &response, const std::string &username) : responseProcess(response), username{username} {};
+};
+
 static void process_auth_requested (void *data, belle_sip_auth_event_t *event){
-	// the deviceId is set in the event username(accessible via belle_sip_auth_event_get_username(event);
-	const char *username = belle_sip_auth_event_get_username(event);
-	if (username == NULL) {
-		BCTBX_SLOGI<<"Unable to retrieve username from server's authentication request";
-	} else {
-		BCTBX_SLOGI<<"Accessing credentials for user "<<std::string(username);
-	}
+	// Useless code but just for the example: we shall get the username from our callback user data
+	C_Callback_userData *userData = static_cast<C_Callback_userData *>(data);
+	// and set it as username to retrieve the correct credentials and send them back
+	BCTBX_SLOGI<<"Accessing credentials for user "<<std::string(userData->username.data());
 
 	// for test purpose we use a server which accept commands in name of any user using credential of the only one user active on it
-	// so we will crash the username with the one test server accepts
+	// so we will set the username with the one test server accepts but real life example shall use the correct credentials
 	belle_sip_auth_event_set_username(event, lime_tester::test_server_user_name.data());
 
 	// In real world we shall provide the password for the requested user as below
 	belle_sip_auth_event_set_passwd(event, lime_tester::test_server_user_password.data());
 }
-
-struct C_Callback_userData {
-	const limeX3DHServerResponseProcess responseProcess;
-	C_Callback_userData(const limeX3DHServerResponseProcess &response) : responseProcess(response) {};
-};
 
 static void process_io_error(void *data, const belle_sip_io_error_event_t *event) noexcept{
 	C_Callback_userData *userData = static_cast<C_Callback_userData *>(data);
@@ -161,7 +159,9 @@ static limeX3DHServerPostData X3DHServerPost([](const std::string &url, const st
 	cbs.process_auth_requested=process_auth_requested;
 	// store a reference to the responseProcess function in a wrapper as belle-sip request C-style callbacks with a void * user data parameter, C++ implementation shall
 	// use lambda and capture the function.
-	C_Callback_userData *userData = new C_Callback_userData(responseProcess); // this new creates on the heap a copy of the responseProcess closure, so we have access to it when called back by belle-sip
+	// this new creates on the heap a copy of the responseProcess closure, so we have access to it when called back by belle-sip
+	// We also provide the username to be used to retrieve credentials when server ask for it
+	C_Callback_userData *userData = new C_Callback_userData(responseProcess, from);
 	l=belle_http_request_listener_create_from_callbacks(&cbs, userData);
 	belle_sip_object_data_set(BELLE_SIP_OBJECT(req), "http_request_listener", l, belle_sip_object_unref); // Ensure the listener object is destroyed when the request is destroyed
 	belle_http_provider_send_request(prov,req,l);

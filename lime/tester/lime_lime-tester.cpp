@@ -72,14 +72,6 @@ static int http_after_all(void) {
  * Test server holds only one user which is used for all connections(which MUST not work on a real server)
  */
 static void process_auth_requested (void *data, belle_sip_auth_event_t *event){
-	// the deviceId is set in the event username(accessible via belle_sip_auth_event_get_username(event);
-	const char *username = belle_sip_auth_event_get_username(event);
-	if (username == NULL) {
-		BCTBX_SLOGI<<"Unable to retrieve username from server's authentication request";
-	} else {
-		BCTBX_SLOGI<<"Accessing credentials for user "<<std::string(username);
-	}
-
 	// for test purpose we use a server which accept commands in name of any user using credential of the only one user active on it
 	// so we will crash the username with the one test server accepts
 	belle_sip_auth_event_set_username(event, lime_tester::test_server_user_name.data());
