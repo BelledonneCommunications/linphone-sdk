@@ -673,8 +673,8 @@ static void msv4l2_uninit(MSFilter *f){
 	ms_free(s->dev);
 	flushq(&s->rq,0);
 	ms_mutex_destroy(&s->mutex);
-	ms_free(s);
 	if (s->use_rotation) ms_yuv_buf_allocator_free(s->buf_allocator);
+	ms_free(s);
 }
 
 static void *msv4l2_thread(void *ptr){
