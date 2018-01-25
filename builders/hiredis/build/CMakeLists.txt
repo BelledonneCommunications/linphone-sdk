@@ -46,7 +46,8 @@ endif()
 message("-- Package file name is ${CPACK_PACKAGE_FILE_NAME}" )
 
 set(CPACK_SOURCE_PACKAGE_FILE_NAME ${CPACK_PACKAGE_FILE_NAME})
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/hiredis.spec.cmake ${CMAKE_CURRENT_SOURCE_DIR}/../hiredis.spec)
+
+bc_generate_rpm_specfile("hiredis.spec.cmake" "${PROJECT_SOURCE_DIR}/hiredis.spec")
 
 include(CPack)
 

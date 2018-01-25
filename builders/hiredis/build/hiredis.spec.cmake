@@ -1,7 +1,7 @@
+# -*- rpm-spec -*-
 
+%define _prefix    @CMAKE_INSTALL_PREFIX@
 
-%define                 pkg_name   %{?_with_bc:bc-hiredis}%{!?_with_bc:hiredis}
-%{?_with_bc: %define    _prefix         /opt/belledonne-communications}
 # re-define some directories for older RPMBuild versions which don't. This messes up the doc/ dir
 # taken from https://fedoraproject.org/wiki/Packaging:RPMMacros?rd=Packaging/RPMMacros
 %define _datarootdir       %{_prefix}/share
@@ -13,7 +13,7 @@
 %define build_number_ext -%{build_number}
 %endif
 
-Name:           %{pkg_name}
+Name:           @CPACK_PACKAGE_NAME@
 Version:        @PROJECT_VERSION@
 Release:        %{build_number}%{?dist}
 Summary:        Minimalistic C client library for Redis
@@ -44,7 +44,7 @@ developing applications that use %{name}.
 %setup -q -n %{name}-%{version}%{?build_number_ext}
 
 %build
-%{expand:%%%cmake_name} . -DCMAKE_INSTALL_LIBDIR:PATH=%{_libdir} -DCMAKE_PREFIX_PATH:PATH=%{_prefix}
+%{expand:%%%cmake_name} . -DCMAKE_INSTALL_LIBDIR:PATH=%{_libdir} -DCMAKE_PREFIX_PATH:PATH=%{_prefix} @RPM_ALL_CMAKE_OPTIONS@
 make %{?_smp_mflags}
 
 %install
