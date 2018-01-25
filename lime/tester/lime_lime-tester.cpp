@@ -73,7 +73,12 @@ static int http_after_all(void) {
  */
 static void process_auth_requested (void *data, belle_sip_auth_event_t *event){
 	// the deviceId is set in the event username(accessible via belle_sip_auth_event_get_username(event);
-	BCTBX_SLOGI<<"Accessing credentials for user "<<std::string(belle_sip_auth_event_get_username(event))<<endl;
+	const char *username = belle_sip_auth_event_get_username(event);
+	if (username == NULL) {
+		BCTBX_SLOGI<<"Unable to retrieve username from server's authentication request";
+	} else {
+		BCTBX_SLOGI<<"Accessing credentials for user "<<std::string(username);
+	}
 
 	// for test purpose we use a server which accept commands in name of any user using credential of the only one user active on it
 	// so we will crash the username with the one test server accepts
