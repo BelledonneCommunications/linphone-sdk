@@ -82,17 +82,20 @@ static void process_auth_requested (void *data, belle_sip_auth_event_t *event){
 
 struct C_Callback_userData {
 	const limeX3DHServerResponseProcess responseProcess;
-	C_Callback_userData(const limeX3DHServerResponseProcess &response) : responseProcess(response) {};
+	const std::string username; // the username sending message, used for logs
+	C_Callback_userData(const limeX3DHServerResponseProcess &response, const std::string &username) : responseProcess(response), username{username} {};
 };
 
 static void process_io_error(void *data, const belle_sip_io_error_event_t *event) noexcept{
 	C_Callback_userData *userData = static_cast<C_Callback_userData *>(data);
+	BCTBX_SLOGI<<"IO Error on X3DH server request from user "<<userData->username;
 	(userData->responseProcess)(0, std::vector<uint8_t>{});
 	delete(userData);
 }
 
 static void process_response(void *data, const belle_http_response_event_t *event) noexcept {
 	C_Callback_userData *userData = static_cast<C_Callback_userData *>(data);
+	BCTBX_SLOGI<<"Response from X3DH server for user "<<userData->username;
 	if (event->response){
 		auto code=belle_http_response_get_status_code(event->response);
 		belle_sip_message_t *message = BELLE_SIP_MESSAGE(event->response);
@@ -141,9 +144,10 @@ static limeX3DHServerPostData X3DHServerPost([](const std::string &url, const st
 	cbs.process_auth_requested=process_auth_requested;
 	// store a reference to the responseProcess function in a wrapper as belle-sip request C-style callbacks with a void * user data parameter, C++ implementation shall
 	// use lambda and capture the function.
-	C_Callback_userData *userData = new C_Callback_userData(responseProcess); // create on the heap a copy of the responseProcess closure so it's available when we're called back by belle-sip
+	C_Callback_userData *userData = new C_Callback_userData(responseProcess, from); // create on the heap a copy of the responseProcess closure so it's available when we're called back by belle-sip
 	l=belle_http_request_listener_create_from_callbacks(&cbs, userData);
 	belle_sip_object_data_set(BELLE_SIP_OBJECT(req), "http_request_listener", l, belle_sip_object_unref); // Ensure the listener object is destroyed when the request is destroyed
+	BCTBX_SLOGI<<"user "<<from<<"post a request to X3DH server";
 	belle_http_provider_send_request(prov,req,l);
 });
 
@@ -850,6 +854,9 @@ static void lime_update_clean_MK_test(const lime::CurveId curve, const std::stri
 		/* Check that bob got 1 message key in local Storage */
 		BC_ASSERT_EQUAL(lime_tester::get_StoredMessageKeyCount(dbFilenameBob, *bobDeviceId, *aliceDeviceId), 1, unsigned int, "%d");
 
+		/* update belle-sip stack processing possible incoming messages from server */
+		belle_sip_stack_sleep(stack,0);
+
 		/* call the update function */
 		bobManager->update(callback, 0, lime_tester::OPkInitialBatchSize);
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success, lime_tester::wait_for_timeout));
@@ -1088,6 +1095,9 @@ static void x3dh_sending_chain_limit_test(const lime::CurveId curve, const std::
 			BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[i%lime_tester::messages_pattern.size()]);
 */
 		}
+
+		// update belle-sip stack processing possible incoming messages from server
+		belle_sip_stack_sleep(stack,0);
 
 		// destroy and reload the Managers(tests everything is correctly saved/load from local Storage)
 		if (!continuousSession) { managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);}

@@ -127,6 +127,7 @@ int main(int argc, char *argv[]) {
 			bctbx_set_log_level(log_domain, BCTBX_LOG_DEBUG);
 			bctbx_set_log_level(BCTBX_LOG_DOMAIN,BCTBX_LOG_DEBUG);
 			belle_sip_log_level_enabled(BCTBX_LOG_DEBUG);
+			// belle_sip_set_log_level(BELLE_SIP_LOG_MESSAGE); //uncomment to get belle-sip logs on verbose
 		} else if (strcmp(argv[i],"--silent")==0){
 			bctbx_set_log_level(log_domain, BCTBX_LOG_FATAL);
 			bctbx_set_log_level(BCTBX_LOG_DOMAIN, BCTBX_LOG_FATAL);

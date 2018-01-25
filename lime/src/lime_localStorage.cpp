@@ -298,7 +298,7 @@ void Db::get_allLocalDevices(std::vector<std::string> &deviceIds) {
 void Db::set_PeerDevicesVerifiedStatus(const std::string &peerDeviceId, const std::vector<uint8_t> &Ik, bool status) {
 	// Do we have this peerDevice in lime_PeerDevices
 	blob Ik_blob(sql);
-    long long id;
+	long long id;
 	sql<<"SELECT Did, Ik FROM Lime_PeerDevices WHERE DeviceId = :peerDeviceId;", into(id), into(Ik_blob), use(peerDeviceId);
 	if (sql.got_data()) { // Found it
 		auto IkSize = Ik_blob.get_len();
