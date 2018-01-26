@@ -64,6 +64,7 @@ else()
 		lcb_configure_options("--enable-ccache")
 	endif()
 
+	set(USE_TARGET YES)
 	if(WIN32)
 		if(CMAKE_GENERATOR MATCHES "^Visual Studio")
 			lcb_build_method("custom")
@@ -144,17 +145,27 @@ else()
 		)
 		list(REMOVE_ITEM EP_vpx_CONFIGURE_OPTIONS "--enable-multithread")
 	else()
-		if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-			set(VPX_TARGET "x86_64-linux-gcc")
+		if(CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7l")
+			set(USE_TARGET NO)
 		else()
-			set(VPX_TARGET "x86-linux-gcc")
+			if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+				set(VPX_TARGET "x86_64-linux-gcc")
+			else()
+				set(VPX_TARGET "x86-linux-gcc")
+			endif()
 		endif()
 		lcb_linking_type("--disable-static" "--enable-shared")
 	endif()
 
-	lcb_cross_compilation_options(
-		"--prefix=${CMAKE_INSTALL_PREFIX}"
-		"--target=${VPX_TARGET}"
-	)
+	if(USE_TARGET)
+		lcb_cross_compilation_options(
+			"--prefix=${CMAKE_INSTALL_PREFIX}"
+			"--target=${VPX_TARGET}"
+		)
+	else()
+		lcb_cross_compilation_options(
+                	"--prefix=${CMAKE_INSTALL_PREFIX}"
+        	)
+	endif()
 	lcb_configure_env("CC=$CC_NO_LAUNCHER LD=$CC_NO_LAUNCHER ASFLAGS=$ASFLAGS CFLAGS=$CFLAGS LDFLAGS=$LDFLAGS")
 endif()
