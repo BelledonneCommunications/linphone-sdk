@@ -1,6 +1,6 @@
 ############################################################################
 # config-flexisip-rpm.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# Copyright (C) 2014-2018  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -68,8 +68,6 @@ if(UNIX)
 	set(LINPHONE_BUILDER_PKG_CONFIG_PATH "${RPM_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/pkgconfig/:${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/pkgconfig/:$ENV{PKG_CONFIG_PATH}:/usr/${CMAKE_INSTALL_LIBDIR}/pkgconfig/:/usr/${CMAKE_INSTALL_LIBDIR}/x86_64-linux-gnu/pkgconfig/:/usr/share/pkgconfig/:/usr/local/${CMAKE_INSTALL_LIBDIR}/pkgconfig/:/opt/local/${CMAKE_INSTALL_LIBDIR}/pkgconfig/")
 	message(STATUS "PKG CONFIG PATH: ${LINPHONE_BUILDER_PKG_CONFIG_PATH}")
 	message(STATUS "LIBDIR: ${LIBDIR}")
-else() # Windows
-	set(LINPHONE_BUILDER_PKG_CONFIG_PATH "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig/")
 endif()
 
 
@@ -98,11 +96,6 @@ lcb_builder_rpmbuild_options(linphone
 	"--with soci"
 	"--without lime"
 	"--without video"
-)
-
-lcb_builder_rpmbuild_options(sofiasip
-	"--with bc"
-	"--without glib"
 )
 
 lcb_builder_rpmbuild_options(flexisip

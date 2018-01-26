@@ -1,6 +1,6 @@
 ############################################################################
 # sofiasip.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# Copyright (C) 2014-2018  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -36,4 +36,8 @@ lcb_cross_compilation_options(
 
 lcb_spec_file("packages/sofia-sip-*.spec")
 lcb_rpmbuild_name("sofia-sip")
+lcb_rpmbuild_options(
+	"--with bc"
+	"--without glib"
+)
 lcb_use_autotools_for_rpm(YES)
