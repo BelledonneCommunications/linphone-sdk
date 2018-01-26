@@ -38,6 +38,7 @@ option(LINPHONE_BUILDER_USE_SYSTEM_DEPENDENCIES "Use system dependencies." NO)
 option(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS "Group external source path builders in a single external project." NO)
 set(LINPHONE_BUILDER_EXTERNAL_BUILDERS_PATH "" CACHE PATH "Path to external builders.")
 set(LINPHONE_BUILDER_SIGNING_IDENTITY "" CACHE STRING "Signing identity used for code signing on Mac OS X")
+option(LINPHONE_BUILDER_ENABLE_RPM_PACKAGING "Enable RPM packaging." NO)
 
 
 # Include macros definition to be used by builders

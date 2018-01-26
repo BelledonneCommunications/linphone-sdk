@@ -43,6 +43,9 @@ foreach(LIBNAME ${FLEXISIP_LIBDEPS})
 	check_library(${LIBNAME})
 endforeach()
 
+# Force build of RPM packages
+set(LINPHONE_BUILDER_ENABLE_RPM_PACKAGING YES CACHE BOOL "" FORCE)
+
 # Force use of system dependencies to build RPM packages
 set(LINPHONE_BUILDER_USE_SYSTEM_DEPENDENCIES YES CACHE BOOL "" FORCE)
 
@@ -52,11 +55,12 @@ set(DEFAULT_VALUE_ENABLE_REDIS ON)
 set(DEFAULT_VALUE_ENABLE_SOCI ON)
 set(DEFAULT_VALUE_ENABLE_UNIT_TESTS OFF)
 
-set(DEFAULT_VALUE_CMAKE_LINKING_TYPE "-DENABLE_STATIC=NO")
+set(DEFAULT_VALUE_CMAKE_LINKING_TYPE "-DENABLE_SHARED=YES" "-DENABLE_STATIC=NO")
 
 # Global configuration
 set(LINPHONE_BUILDER_HOST "")
 set(RPM_INSTALL_PREFIX "/opt/belledonne-communications")
+set(LINPHONE_BUILDER_RPMBUILD_PACKAGE_PREFIX "bc-")
 
 # Adjust PKG_CONFIG_PATH to include install directory
 if(UNIX)
@@ -68,19 +72,14 @@ else() # Windows
 endif()
 
 
-# we can override the bctoolbox build method before including builders because it doesn't define it.
-lcb_builder_build_method(bctoolbox "rpm")
-lcb_builder_cmake_options(bctoolbox "-DENABLE_TESTS=NO")
-lcb_builder_cmake_options(bctoolbox "-DENABLE_TESTS_COMPONENT=NO")
-lcb_builder_rpmbuild_options(bctoolbox
-	"--with bc"
-	"--without tests_component"
-)
-
 # Include builders
 include(builders/CMakeLists.txt)
 
-lcb_builder_build_method(soci "rpm")
+lcb_builder_cmake_options(bctoolbox
+	"-DENABLE_TESTS=NO"
+	"-DENABLE_TESTS_COMPONENT=NO"
+)
+
 lcb_builder_cmake_options(soci "-DWITH_POSTGRESQL=YES")
 lcb_builder_rpmbuild_options(soci
 	"--with bc"
@@ -89,10 +88,6 @@ lcb_builder_rpmbuild_options(soci
 	"--with postgresql"
 )
 
-lcb_builder_build_method(ortp "rpm")
-lcb_builder_rpmbuild_options(ortp "--with bc")
-
-lcb_builder_build_method(ms2 "rpm")
 lcb_builder_cmake_options(ms2 "-DENABLE_SRTP=NO") #mainly to avoid issue with old libsrtp (sha1_update conflict with polarssl)
 lcb_builder_rpmbuild_options(ms2
 	"--with bc"
@@ -100,13 +95,10 @@ lcb_builder_rpmbuild_options(ms2
 	"--without srtp"
 )
 
-lcb_builder_build_method(belr "rpm")
 lcb_builder_rpmbuild_options(belr "--with bc")
 
-lcb_builder_build_method(bellesip "rpm")
 lcb_builder_rpmbuild_options(bellesip "--with bc")
 
-lcb_builder_build_method(linphone "rpm")
 lcb_builder_rpmbuild_options(linphone
 	"--with bc"
 	"--with soci"
@@ -114,62 +106,49 @@ lcb_builder_rpmbuild_options(linphone
 	"--without video"
 )
 
-lcb_builder_build_method(sofiasip "rpm")
 lcb_builder_rpmbuild_options(sofiasip
 	"--with bc"
 	"--without glib"
 )
 
-lcb_builder_build_method(flexisip "rpm")
 lcb_builder_rpmbuild_options(flexisip
 	"--with bc"
 	"--with push"
 )
-
-lcb_builder_build_method(hiredis "rpm")
-lcb_builder_rpmbuild_options(hiredis "--with bc")
-
 if(NOT ENABLE_TRANSCODER)
 	lcb_builder_rpmbuild_options(flexisip "--without transcoder")
 endif()
 if(NOT ENABLE_SOCI)
 	lcb_builder_rpmbuild_options(flexisip "--without soci")
 endif()
-
 if(ENABLE_PRESENCE)
 	lcb_builder_rpmbuild_options(flexisip "--with presence")
 endif()
 if(ENABLE_CONFERENCE)
 	lcb_builder_rpmbuild_options(flexisip "--with conference")
 endif()
-
 if(ENABLE_SNMP)
 	lcb_builder_rpmbuild_options(flexisip "--with snmp")
 endif()
-
 if(NOT ENABLE_REDIS)
 	lcb_builder_rpmbuild_options(flexisip "--without redis")
 endif()
 
-set(LINPHONE_BUILDER_RPMBUILD_PACKAGE_PREFIX "bc-")
-
 # prepare the RPMBUILD options that we need to pass
-set(GLOBAL_RPMBUILD_OPTIONS "--define '_mandir %{_prefix}'")
+set(LINPHONE_BUILDER_RPMBUILD_GLOBAL_OPTIONS "--define '_mandir %{_prefix}'")
 if(PLATFORM STREQUAL "Debian")
 	# dependencies cannot be checked by rpmbuild in debian
-	set(GLOBAL_RPMBUILD_OPTIONS "${GLOBAL_RPMBUILD_OPTIONS} --nodeps")
+	set(LINPHONE_BUILDER_RPMBUILD_GLOBAL_OPTIONS "${LINPHONE_BUILDER_RPMBUILD_GLOBAL_OPTIONS} --nodeps")
 
 	# dist is not defined in debian for rpmbuild..
-	set(GLOBAL_RPMBUILD_OPTIONS "${GLOBAL_RPMBUILD_OPTIONS} --define 'dist .deb'")
+	set(LINPHONE_BUILDER_RPMBUILD_GLOBAL_OPTIONS "${LINPHONE_BUILDER_RPMBUILD_GLOBAL_OPTIONS} --define 'dist .deb'")
 
 	# debian has multi-arch lib dir instead of lib and lib64
-	set(GLOBAL_RPMBUILD_OPTIONS "${GLOBAL_RPMBUILD_OPTIONS} --define '_lib lib'")
+	set(LINPHONE_BUILDER_RPMBUILD_GLOBAL_OPTIONS "${LINPHONE_BUILDER_RPMBUILD_GLOBAL_OPTIONS} --define '_lib lib'")
 
 	# debian has multi-arch lib dir instead of lib and lib64
-	set(GLOBAL_RPMBUILD_OPTIONS "${GLOBAL_RPMBUILD_OPTIONS} --define '_libdir %{_prefix}/%{_lib}'")
+	set(LINPHONE_BUILDER_RPMBUILD_GLOBAL_OPTIONS "${LINPHONE_BUILDER_RPMBUILD_GLOBAL_OPTIONS} --define '_libdir %{_prefix}/%{_lib}'")
 
 	# some debians are using dash as shell, which doesn't support "export -n", so we override and use bash
-	set(GLOBAL_RPMBUILD_OPTIONS "${GLOBAL_RPMBUILD_OPTIONS} --define '_buildshell /bin/bash'")
+	set(LINPHONE_BUILDER_RPMBUILD_GLOBAL_OPTIONS "${LINPHONE_BUILDER_RPMBUILD_GLOBAL_OPTIONS} --define '_buildshell /bin/bash'")
 endif()
-
-set(LINPHONE_BUILDER_RPMBUILD_GLOBAL_OPTIONS ${GLOBAL_RPMBUILD_OPTIONS})

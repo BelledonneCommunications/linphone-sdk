@@ -586,6 +586,10 @@ macro(linphone_builder_filter_out_inexistent_dependencies PROJNAME)
 endmacro()
 
 macro(linphone_builder_add_external_project PROJNAME)
+	if(LINPHONE_BUILDER_ENABLE_RPM_PACKAGING)
+		set(EP_${PROJNAME}_BUILD_METHOD "rpm")
+	endif()
+
 	if(LINPHONE_BUILDER_EXTERNAL_SOURCE_PATH)
 		foreach(SUBDIR ${EP_${PROJNAME}_EXTERNAL_SOURCE_PATHS})
 			if(NOT EP_${PROJNAME}_SOURCE_DIR)
