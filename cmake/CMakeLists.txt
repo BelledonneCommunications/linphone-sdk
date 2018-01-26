@@ -1478,7 +1478,7 @@ endmacro()
 
 macro(lcb_rpmbuild_options)
 	lcb_check_current_builder()
-	lcb_builder_rmpbuild_options("${LINPHONE_BUILDER_CURRENT_BUILDER}" ${ARGN})
+	lcb_builder_rpmbuild_options("${LINPHONE_BUILDER_CURRENT_BUILDER}" ${ARGN})
 endmacro()
 
 macro(lcb_blacklist_dependencies)
