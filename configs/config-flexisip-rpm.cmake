@@ -54,6 +54,7 @@ set(DEFAULT_VALUE_ENABLE_PUSHNOTIFICATION ON)
 set(DEFAULT_VALUE_ENABLE_REDIS ON)
 set(DEFAULT_VALUE_ENABLE_SOCI ON)
 set(DEFAULT_VALUE_ENABLE_UNIT_TESTS OFF)
+set(ENABLE_SRTP NO CACHE BOOL "" FORCE) # Mainly to avoid issues with old libsrtp (sha1_update conflict with polarssl)
 
 set(DEFAULT_VALUE_CMAKE_LINKING_TYPE "-DENABLE_SHARED=YES" "-DENABLE_STATIC=NO")
 
@@ -86,13 +87,6 @@ lcb_builder_rpmbuild_options(soci
 	"--with sqlite3"
 	"--with mysql"
 	"--with postgresql"
-)
-
-lcb_builder_cmake_options(ms2 "-DENABLE_SRTP=NO") #mainly to avoid issue with old libsrtp (sha1_update conflict with polarssl)
-lcb_builder_rpmbuild_options(ms2
-	"--with bc"
-	"--without video"
-	"--without srtp"
 )
 
 lcb_builder_rpmbuild_options(belr "--with bc")
