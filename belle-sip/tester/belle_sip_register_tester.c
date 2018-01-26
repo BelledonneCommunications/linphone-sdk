@@ -695,7 +695,7 @@ static void test_register_client_bad_ciphersuites(void) {
 		authorized_request=NULL;
 		belle_sip_tls_listening_point_t *s = BELLE_SIP_TLS_LISTENING_POINT(belle_sip_provider_get_listening_point(prov, "tls"));
 		belle_tls_crypto_config_t *crypto_config = belle_sip_tls_listening_point_get_crypto_config(s);
-
+		void *config_ref = crypto_config->ssl_config;
 		int ciphersuites[2] = {bctbx_ssl_get_ciphersuite_id("TLS-RSA-WITH-AES-128-GCM-SHA256"),0};
 
 		bctbx_ssl_config_t *sslcfg = bctbx_ssl_config_new();
@@ -712,6 +712,7 @@ static void test_register_client_bad_ciphersuites(void) {
 		}
 		if (reg) belle_sip_object_unref(reg);
 		bctbx_ssl_config_free(sslcfg);
+		crypto_config->ssl_config = config_ref;
 	}
 }
 
