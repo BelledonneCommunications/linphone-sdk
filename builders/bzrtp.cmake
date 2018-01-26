@@ -1,6 +1,6 @@
 ############################################################################
 # bzrtp.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# Copyright (C) 2014-2018  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -28,14 +28,12 @@ lcb_groupable(YES)
 lcb_package_source(YES)
 
 lcb_dependencies("bctoolbox")
-if(LINPHONE_BUILDER_BUILD_DEPENDENCIES)
-	if(NOT APPLE)
-		# Do not build xml2 neither sqlite3 on Apple systems (Mac OS X and iOS), they are provided by the system
-		lcb_dependencies("xml2" "sqlite3")
-	endif()
-	if(ENABLE_UNIT_TESTS)
-		lcb_dependencies("bcunit")
-	endif()
+if(NOT APPLE)
+	# Do not build xml2 neither sqlite3 on Apple systems (Mac OS X and iOS), they are provided by the system
+	lcb_dependencies("xml2" "sqlite3")
+endif()
+if(ENABLE_UNIT_TESTS)
+	lcb_dependencies("bcunit")
 endif()
 if(MINGW)
 	lcb_extra_cppflags("-D__USE_MINGW_ANSI_STDIO")

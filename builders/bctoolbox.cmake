@@ -1,6 +1,6 @@
 ############################################################################
 # bctoolbox.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# Copyright (C) 2014-2018  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -28,15 +28,13 @@ lcb_groupable(YES)
 lcb_package_source(YES)
 lcb_spec_file("bctoolbox.spec")
 
-if(LINPHONE_BUILDER_BUILD_DEPENDENCIES)
-	if(ENABLE_MBEDTLS)
-		lcb_dependencies("mbedtls")
-	elseif(ENABLE_POLARSSL)
-		lcb_dependencies("polarssl")
-	endif()
-	if(ENABLE_UNIT_TESTS)
-		lcb_dependencies("bcunit")
-	endif()
+if(ENABLE_MBEDTLS)
+	lcb_dependencies("mbedtls")
+elseif(ENABLE_POLARSSL)
+	lcb_dependencies("polarssl")
+endif()
+if(ENABLE_UNIT_TESTS)
+	lcb_dependencies("bcunit")
 endif()
 
 lcb_cmake_options(

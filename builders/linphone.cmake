@@ -1,6 +1,6 @@
 ############################################################################
 # linphone.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# Copyright (C) 2014-2018  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -30,7 +30,7 @@ lcb_spec_file("liblinphone.spec")
 lcb_rpmbuild_name("liblinphone")
 
 lcb_dependencies("bctoolbox" "bellesip" "ortp" "ms2" "ms2plugins" "belr" "libxsd" "soci")
-if(LINPHONE_BUILDER_BUILD_DEPENDENCIES AND NOT APPLE)
+if(NOT APPLE)
 	# Do not build sqlite3, xml2 and zlib on Apple systems (Mac OS X and iOS), they are provided by the system
 	lcb_dependencies("sqlite3" "xml2")
 	if(NOT ANDROID AND NOT QNX)

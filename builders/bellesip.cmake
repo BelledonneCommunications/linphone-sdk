@@ -1,6 +1,6 @@
 ############################################################################
 # bellesip.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# Copyright (C) 2014-2018  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -34,10 +34,8 @@ if(ENABLE_TUNNEL)
 	lcb_dependencies("tunnel")
 endif()
 
-if(LINPHONE_BUILDER_BUILD_DEPENDENCIES)
-	if(NOT APPLE AND NOT ANDROID AND NOT QNX)
-		lcb_dependencies("zlib")
-	endif()
+if(NOT APPLE AND NOT ANDROID AND NOT QNX)
+	lcb_dependencies("zlib")
 endif()
 
 lcb_cmake_options(

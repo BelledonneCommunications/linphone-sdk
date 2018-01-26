@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# Copyright (C) 2014-2018  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -32,7 +32,6 @@ set(LINPHONE_BUILDER_TARGET "linphone" CACHE STRING "Target to build.")
 set(LINPHONE_BUILDER_PREBUILT_URL "" CACHE STRING "URL to download some prebuilt dependencies.")
 option(LINPHONE_BUILDER_LATEST "Build latest versions (from git)." NO)
 option(LINPHONE_BUILDER_CHECK_LASTEST "Check that the git revisions are the latest ones." NO)
-option(LINPHONE_BUILDER_BUILD_DEPENDENCIES "Build the dependencies instead of using the system libraries." YES)
 set(LINPHONE_BUILDER_EXTERNAL_SOURCE_PATH "" CACHE PATH "External path to source code that is available.")
 set(LINPHONE_BUILDER_DUMMY_LIBRARIES "" CACHE STRING "Dummy libraries to be generated.")
 option(LINPHONE_BUILDER_USE_SYSTEM_DEPENDENCIES "Use system dependencies." NO)

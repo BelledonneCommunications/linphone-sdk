@@ -1,6 +1,6 @@
 ############################################################################
 # soci.cmake
-# Copyright (C) 2015  Belledonne Communications, Grenoble France
+# Copyright (C) 2015-2018  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -22,8 +22,8 @@
 
 lcb_git_repository("git://git.linphone.org/soci.git")
 lcb_external_source_paths("externals/soci")
-if(LINPHONE_BUILDER_BUILD_DEPENDENCIES AND NOT APPLE)
-	# Do not build sqlite3 on Apple systems (Mac OS X and iOS), they are provided by the system
+if(NOT APPLE)
+	# Do not build sqlite3 on Apple systems (Mac OS X and iOS), it is provided by the system
 	lcb_dependencies("sqlite3")
 endif()
 
