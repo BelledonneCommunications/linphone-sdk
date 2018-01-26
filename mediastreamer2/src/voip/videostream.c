@@ -1858,7 +1858,7 @@ void video_stream_use_video_preset(VideoStream *stream, const char *preset) {
 
 /*this function optimizes the processing by enabling the duplication of video packets to the recorder, which is not required to be done
  * when the recorder is not recording of course.*/
-void video_stream_enable_recording(VideoStream *stream, int enabled){
+void video_stream_enable_recording(VideoStream *stream, bool_t enabled){
 	if (stream->tee3){
 		int pin = 1;
 		ms_filter_call_method(stream->tee3, enabled ? MS_TEE_UNMUTE : MS_TEE_MUTE, &pin);
