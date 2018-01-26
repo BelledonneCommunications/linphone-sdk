@@ -1,15 +1,7 @@
 # -*- rpm-spec -*-
 
-## rpmbuild options
-# These 2 lines are here because we can build the RPM for flexisip, in which
-# case we prefix the entire installation so that we don't break compatibility
-# with the user's libs.
-# To compile with bc prefix, use rpmbuild -ba --with bc [SPEC]
-%define                 pkg_name        %{?_with_bc:bc-mediastreamer}%{!?_with_bc:mediastreamer}
-%{?_with_bc: %define    _prefix         /opt/belledonne-communications}
-%define                 srtp            %{?_without_srtp:0}%{?!_without_srtp:1}
-
-%define     pkg_prefix %{?_with_bc:bc-}%{!?_with_bc:}
+%define _prefix    @CMAKE_INSTALL_PREFIX@
+%define pkg_prefix @BC_PACKAGE_NAME_PREFIX@
 
 # re-define some directories for older RPMBuild versions which don't. This messes up the doc/ dir
 # taken from https://fedoraproject.org/wiki/Packaging:RPMMacros?rd=Packaging/RPMMacros
@@ -22,9 +14,7 @@
 %define build_number_ext -%{build_number}
 %endif
 
-
-
-Name:           %{pkg_name}
+Name:           @CPACK_PACKAGE_NAME@
 Version:        @PROJECT_VERSION@
 Release:        %build_number%{?dist}
 Summary:         Audio/Video real-time streaming
@@ -43,8 +33,6 @@ Mediastreamer2 is a GPL licensed library to make audio and video
 real-time streaming and processing. Written in pure C, it is based
 upon the oRTP library.
 
-
-%define         video           %{?_without_video:0}%{!?_without_video:1}
 
 BuildRequires: 
 
@@ -69,7 +57,7 @@ develop programs using the mediastreamer2 library.
 %setup -n %{name}-%{version}%{?build_number_ext}
 
 %build
-%{expand:%%%cmake_name} . -DCMAKE_INSTALL_LIBDIR=%{_lib} -DCMAKE_PREFIX_PATH:PATH=%{_prefix} -DENABLE_VIDEO=%{video} -DENABLE_SRTP=%{srtp} -DENABLE_UNIT_TESTS=no
+%{expand:%%%cmake_name} . -DCMAKE_INSTALL_LIBDIR=%{_lib} -DCMAKE_PREFIX_PATH:PATH=%{_prefix} @RPM_ALL_CMAKE_OPTIONS@
 make %{?_smp_mflags}
 
 %install
@@ -87,9 +75,11 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root,-)
+%if @ENABLE_TOOLS@ || @ENABLE_UNIT_TESTS@
 %{_bindir}/*
+%endif
 %{_libdir}/*.so.*
-%if %{video}
+%if @ENABLE_VIDEO@
 %{_datadir}/images/nowebcamCIF.jpg
 %endif
 

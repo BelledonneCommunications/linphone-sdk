@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2017  Belledonne Communications, Grenoble France
+# Copyright (C) 2017-2018  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-if (NOT CPACK_PACKAGE_NAME)
+if(NOT CPACK_PACKAGE_NAME)
 	set(CPACK_PACKAGE_NAME "mediastreamer")
 ENDIF()
 
@@ -39,14 +39,15 @@ set(CPACK_SOURCE_IGNORE_FILES
 )
 
 bc_project_build_version(${PROJECT_VERSION} PROJECT_VERSION_BUILD)
-if (PROJECT_VERSION_BUILD)
+if(PROJECT_VERSION_BUILD)
         set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_FILE_NAME}-${PROJECT_VERSION_BUILD}")
 endif()
 
 message("-- Package file name is ${CPACK_PACKAGE_FILE_NAME}" )
 
 set(CPACK_SOURCE_PACKAGE_FILE_NAME ${CPACK_PACKAGE_FILE_NAME})
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/rpm/mediastreamer2.spec.cmake ${CMAKE_CURRENT_SOURCE_DIR}/../mediastreamer2.spec)
+
+bc_generate_rpm_specfile("rpm/mediastreamer2.spec.cmake" "${PROJECT_SOURCE_DIR}/mediastreamer2.spec")
 
 include(CPack)
 
