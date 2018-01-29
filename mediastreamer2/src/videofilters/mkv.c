@@ -130,7 +130,7 @@ static ms_bool_t _H264Private_msgequal(const mblk_t *m1, const mblk_t *m2) {
 	while (m1 != NULL && m2 != NULL) {
 		size_t size1 = m1->b_wptr - m1->b_rptr;
 		size_t size2 = m2->b_wptr - m2->b_rptr;
-		if (size1 != size2 || memcpy(m1->b_rptr, m2->b_rptr, size1) != 0) return FALSE;
+		if (size1 != size2 || memcmp(m1->b_rptr, m2->b_rptr, size1) != 0) return FALSE;
 		m1 = m1->b_cont;
 		m2 = m2->b_cont;
 	}
