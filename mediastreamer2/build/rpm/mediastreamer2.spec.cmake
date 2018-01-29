@@ -53,6 +53,10 @@ develop programs using the mediastreamer2 library.
 %define ctest_name ctest
 %endif
 
+# This is for debian builds where debug_package has to be manually specified, whereas in centos it does not
+%define custom_debug_package %{!?_enable_debug_packages:%debug_package}%{?_enable_debug_package:%{nil}}
+%custom_debug_package
+
 %prep
 %setup -n %{name}-%{version}%{?build_number_ext}
 
