@@ -82,8 +82,12 @@ rm -rf $RPM_BUILD_ROOT
 %files devel
 %defattr(-,root,root)
 %{_includedir}/bctoolbox
+%if @ENABLE_STATIC@
 %{_libdir}/libbctoolbox.a
+%endif
+%if @ENABLE_SHARED@
 %{_libdir}/libbctoolbox.so
+%endif
 %{_libdir}/pkgconfig/bctoolbox.pc
 %{_datadir}/bctoolbox/cmake/BcGitVersion.cmake
 %{_datadir}/bctoolbox/cmake/BcToolboxCMakeUtils.cmake
@@ -93,8 +97,12 @@ rm -rf $RPM_BUILD_ROOT
 %{_datadir}/bctoolbox/cmake/BcToolboxTargets.cmake
 %{_datadir}/bctoolbox/cmake/gitversion.h.in
 %if @ENABLE_TESTS_COMPONENT@
+%if @ENABLE_STATIC@
 %{_libdir}/libbctoolbox-tester.a
+%endif
+%if @ENABLE_SHARED@
 %{_libdir}/libbctoolbox-tester.so
+%endif
 %{_libdir}/pkgconfig/bctoolbox-tester.pc
 %endif
 
