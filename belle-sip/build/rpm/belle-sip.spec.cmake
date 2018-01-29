@@ -1,15 +1,7 @@
 # -*- rpm-spec -*-
 
-## rpmbuild options
-# These 2 lines are here because we can build the RPM for flexisip, in which
-# case we prefix the entire installation so that we don't break compatibility
-# with the user's libs.
-# To compile with bc prefix, use rpmbuild -ba --with bc [SPEC]
-%define                 pkg_name        %{?_with_bc:bc-belle-sip}%{!?_with_bc:belle-sip}
-%{?_with_bc: %define    _prefix         /opt/belledonne-communications}
-%define                 srtp            %{?_without_srtp:0}%{?!_without_srtp:1}
-
-%define     pkg_prefix %{?_with_bc:bc-}%{!?_with_bc:}
+%define _prefix    @CMAKE_INSTALL_PREFIX@
+%define pkg_prefix @BC_PACKAGE_NAME_PREFIX@
 
 # re-define some directories for older RPMBuild versions which don't. This messes up the doc/ dir
 # taken from https://fedoraproject.org/wiki/Packaging:RPMMacros?rd=Packaging/RPMMacros
@@ -21,7 +13,7 @@
 
 
 
-Name:           %{pkg_name}
+Name:           @CPACK_PACKAGE_NAME@
 Version:        @PROJECT_VERSION@
 Release:        %build_number%{?dist}
 Summary:        Linphone's sip stack
@@ -37,8 +29,6 @@ Requires:	%{pkg_prefix}bctoolbox
 %description
 Belle-sip is an object oriented SIP stack, written in C, used by Linphone.
 
-
-BuildRequires: antlr3-tool antlr3-C-devel
 
 %package devel
 Summary:       Development libraries for belle-sip
@@ -56,11 +46,15 @@ Libraries and headers required to develop software with belle-sip
 %define ctest_name ctest
 %endif
 
+# This is for debian builds where debug_package has to be manually specified, whereas in centos it does not
+%define custom_debug_package %{!?_enable_debug_packages:%debug_package}%{?_enable_debug_package:%{nil}}
+%custom_debug_package
+
 %prep
 %setup -n %{name}-%{version}-%build_number
 
 %build
-%{expand:%%%cmake_name} . -DCMAKE_INSTALL_LIBDIR=%{_lib} -DCMAKE_PREFIX_PATH:PATH=%{_prefix} -DENABLE_TESTS=no
+%{expand:%%%cmake_name} . -DCMAKE_INSTALL_LIBDIR=%{_lib} -DCMAKE_PREFIX_PATH:PATH=%{_prefix} @RPM_ALL_CMAKE_OPTIONS@
 make %{?_smp_mflags}
 
 %install
@@ -85,8 +79,12 @@ rm -rf $RPM_BUILD_ROOT
 %files devel
 %defattr(-,root,root)
 %{_includedir}/belle-sip
+%if @ENABLE_STATIC@
 %{_libdir}/libbellesip.a
+%endif
+%if @ENABLE_SHARED@
 %{_libdir}/libbellesip.so
+%endif
 %{_libdir}/pkgconfig/belle-sip.pc
 %{_datadir}/BelleSIP/cmake/BelleSIPConfig.cmake
 %{_datadir}/BelleSIP/cmake/BelleSIPConfigVersion.cmake
