@@ -63,13 +63,17 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %doc COPYING
-%{_libdir}/libhiredis.so.0.13
+%{_libdir}/libhiredis.so.*
 
 %files devel
 %doc README.md
 %{_includedir}/hiredis/
+%if @ENABLE_STATIC@
 %{_libdir}/libhiredis.a
+%endif
+%if @ENABLE_SHARED@
 %{_libdir}/libhiredis.so
+%endif
 
 %changelog
 * Wed Sep 16 2015 Sylvain Berfini <sylvain.berfini@belledonne-communications.com> - 0.13.3-1
