@@ -98,29 +98,6 @@ lcb_builder_rpmbuild_options(linphone
 	"--without video"
 )
 
-lcb_builder_rpmbuild_options(flexisip
-	"--with bc"
-	"--with push"
-)
-if(NOT ENABLE_TRANSCODER)
-	lcb_builder_rpmbuild_options(flexisip "--without transcoder")
-endif()
-if(NOT ENABLE_SOCI)
-	lcb_builder_rpmbuild_options(flexisip "--without soci")
-endif()
-if(ENABLE_PRESENCE)
-	lcb_builder_rpmbuild_options(flexisip "--with presence")
-endif()
-if(ENABLE_CONFERENCE)
-	lcb_builder_rpmbuild_options(flexisip "--with conference")
-endif()
-if(ENABLE_SNMP)
-	lcb_builder_rpmbuild_options(flexisip "--with snmp")
-endif()
-if(NOT ENABLE_REDIS)
-	lcb_builder_rpmbuild_options(flexisip "--without redis")
-endif()
-
 # prepare the RPMBUILD options that we need to pass
 set(LINPHONE_BUILDER_RPMBUILD_GLOBAL_OPTIONS "--define '_mandir %{_prefix}'")
 if(PLATFORM STREQUAL "Debian")
