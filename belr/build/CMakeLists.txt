@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2017  Belledonne Communications, Grenoble France
+# Copyright (C) 2017-2018  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-if (NOT CPACK_PACKAGE_NAME)
+if(NOT CPACK_PACKAGE_NAME)
 	set(CPACK_PACKAGE_NAME "belr")
 ENDIF()
 
@@ -46,7 +46,8 @@ endif()
 message("-- Package file name is ${CPACK_PACKAGE_FILE_NAME}" )
 
 set(CPACK_SOURCE_PACKAGE_FILE_NAME ${CPACK_PACKAGE_FILE_NAME})
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/rpm/belr.spec.cmake ${CMAKE_CURRENT_SOURCE_DIR}/../belr.spec)
+
+bc_generate_rpm_specfile("rpm/belr.spec.cmake" "${PROJECT_SOURCE_DIR}/belr.spec")
 
 include(CPack)
 
