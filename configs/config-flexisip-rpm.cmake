@@ -50,6 +50,7 @@ set(LINPHONE_BUILDER_ENABLE_RPM_PACKAGING YES CACHE BOOL "" FORCE)
 set(LINPHONE_BUILDER_USE_SYSTEM_DEPENDENCIES YES CACHE BOOL "" FORCE)
 
 # Define default values for the flexisip builder options
+set(DEFAULT_VALUE_ENABLE_CXX_WRAPPER ON)
 set(DEFAULT_VALUE_ENABLE_PUSHNOTIFICATION ON)
 set(DEFAULT_VALUE_ENABLE_REDIS ON)
 set(DEFAULT_VALUE_ENABLE_SOCI ON)
@@ -74,11 +75,6 @@ endif()
 # Include builders
 include(builders/CMakeLists.txt)
 
-lcb_builder_cmake_options(bctoolbox
-	"-DENABLE_TESTS=NO"
-	"-DENABLE_TESTS_COMPONENT=NO"
-)
-
 lcb_builder_cmake_options(soci "-DWITH_POSTGRESQL=YES")
 lcb_builder_rpmbuild_options(soci
 	"--with bc"
@@ -87,15 +83,9 @@ lcb_builder_rpmbuild_options(soci
 	"--with postgresql"
 )
 
-lcb_builder_rpmbuild_options(belr "--with bc")
-
-lcb_builder_rpmbuild_options(bellesip "--with bc")
-
-lcb_builder_rpmbuild_options(linphone
-	"--with bc"
-	"--with soci"
-	"--without lime"
-	"--without video"
+lcb_builder_cmake_options(linphone
+	"-DENABLE_CONSOLE_UI=NO"
+	"-DENABLE_DAEMON=NO"
 )
 
 # prepare the RPMBUILD options that we need to pass
