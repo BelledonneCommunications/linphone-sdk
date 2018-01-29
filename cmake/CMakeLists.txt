@@ -759,14 +759,24 @@ macro(linphone_builder_add_external_project PROJNAME)
 			set(LINPHONE_BUILDER_CONFIGURE_EXTRA_CMD "")
 		endif()
 
+		if(NOT EP_${PROJNAME}_LINKING_TYPE) # Apply default CMake linking type if not set explicitely
+			if(EP_${PROJNAME}_PLUGIN)
+				set(EP_${PROJNAME}_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_PLUGIN_LINKING_TYPE})
+			else()
+				set(EP_${PROJNAME}_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
+			endif()
+		endif()
+
 		# allow to have special command steps
 		if(EP_${PROJNAME}_USE_AUTOTOOLS_FOR_RPM)
 			linphone_builder_configure_file_for_project(${PROJNAME} CONFIGURE ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Autotools/configure.rpm.sh.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_configure_rpm.sh)
 			linphone_builder_configure_file_for_project(${PROJNAME} BUILD ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Autotools/build.rpm.sh.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_build_rpm.sh)
 		else()
-			string(REPLACE ";" " " CURRENT_PROJ_CMAKE_OPTIONS  "${EP_${PROJNAME}_CMAKE_OPTIONS}")
+			set(CURRENT_PROJ_CMAKE_OPTIONS ${EP_${PROJNAME}_CMAKE_OPTIONS} ${EP_${PROJNAME}_LINKING_TYPE})
+			string(REPLACE ";" " " CURRENT_PROJ_CMAKE_OPTIONS  "${CURRENT_PROJ_CMAKE_OPTIONS}")
 			linphone_builder_configure_file_for_project(${PROJNAME} CONFIGURE ${CMAKE_CURRENT_SOURCE_DIR}/cmake/configure.rpm.sh.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_configure_rpm.sh)
 			linphone_builder_configure_file_for_project(${PROJNAME} BUILD ${CMAKE_CURRENT_SOURCE_DIR}/cmake/build.rpm.sh.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_build_rpm.sh)
+			unset(CURRENT_PROJ_CMAKE_OPTIONS)
 		endif()
 		linphone_builder_configure_file_for_project(${PROJNAME} INSTALL ${CMAKE_CURRENT_SOURCE_DIR}/cmake/install.rpm.sh.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_install_rpm.sh)
 
