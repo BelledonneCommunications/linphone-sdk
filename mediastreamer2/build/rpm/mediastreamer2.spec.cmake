@@ -89,15 +89,21 @@ rm -rf $RPM_BUILD_ROOT
 
 %files devel
 %defattr(-,root,root,-)
+%if @ENABLE_STATIC@
 %{_libdir}/*.a
+%endif
+%if @ENABLE_SHARED@
 %{_libdir}/*.so
+%endif
 #%{_libdir}/pkgconfig/*.pc
 %{_includedir}
 %{_datadir}/Mediastreamer2/cmake/Mediastreamer2Config.cmake
 %{_datadir}/Mediastreamer2/cmake/Mediastreamer2ConfigVersion.cmake
 %{_datadir}/Mediastreamer2/cmake/Mediastreamer2Targets-noconfig.cmake
 %{_datadir}/Mediastreamer2/cmake/Mediastreamer2Targets.cmake
+%if @ENABLE_DOC@
 %doc %{_docdir}/*
+%endif
 
 %changelog
 * Thu Jul 13 2017 jehan.monnier <jehan.monnier@linphone.org>
