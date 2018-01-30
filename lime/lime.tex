@@ -166,8 +166,14 @@ any session-based message encryption algorithm that meets certain conditions.}\t
           \State $DRsession$: an active Double Ratchet session with the recipient device
           \State $DRcipher$: encryption output ($header\Arrowvert ciphertext$) for this recipient device
         \end{algorithmic}
-      \paragraph{}The message is sent from the sender device to one recipient user (with one user Id and one or more associated device Id) but also distributed to other devices registered to the same sender user. Recipient devices in the list must all be linked this, unique, recipient user Id or to the sender user Id.
-      
+      \paragraph{}The message is sent from the sender device to one recipient user (with one user Id and one or more associated device Id) but also distributed to other devices registered to the same sender user. Recipient devices in the list must all be linked to this, unique, recipient user Id or to the sender user Id. For example:
+      \begin{itemize}
+        \item $Alice$, $Bob$ and $Claire$ are users Id. Each of them have several ($nA, nB, nC$) associated devices with devices Id $Alice.1$, $Alice.2$, .., $Alice.nA$
+        \item $Alice$, $Bob$ and $Claire$ are members of a group with user Id $Group$
+        \item If $Alice.1$ sends a message to $Bob$, the inputs for the RatchetEncrypt function must include $Bob$ as recipient user and $Bob.1$, .., $Bob.nB$, $Alice.2$, .., $Alice.nA$ as list of recipient devices.
+        \item If $Alice.1$ sends a message to $Group$, the inputs for the RatchetEncrypt function must include $Group$ as recipient user and $Bob.1$, .., $Bob.nB$, $Alice.2$, .., $Alice.nA$, $Claire.1$, .., $Claire.nC$ as list of recipient devices.
+        \item The Lime library does not perform any check on the link between user Id and device Id and will not generate any error if the RatchetEncrypt arguments are $Bob$ as recipient user and $Bob.1$, .., $Bob.nB$, $Alice.2$, .., $Alice.nA$, $Claire.1$ as list of recipient devices. The error would instead be detected by $Claire.1$ during decryption. See \ref{subsubsec:associatedData} for details on the use of Associated Data to detect mismatching association of user Id and device Id.
+      \end{itemize}
       \paragraph*{}The encryption request performs:
         \label{messageEncrypt}
         \begin{algorithmic}
@@ -209,7 +215,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
           \EndFunction
         \end{algorithmic}
       \paragraph*{Notes:}HKDFSha512Expansion implements one round of the HKDF expansion defined in \cite{rfc5869}.
-      \paragraph{}Header function is specified in section \ref{subsec:protocol_doubleratchet}
+      \paragraph{}Header function is specified in section \ref{subsubsec:protocol_doubleratchet_header}
         
     \subsubsection{RatchetDecrypt}
       \paragraph{}The decryption function described in \cite[section 3.5]{doubleRatchet} is not directly used to decrypt the message. Instead the decryption matches the two steps of encryption: first decrypt the Double Ratchet message to retrieve the random Key and IV, then decrypt the message itself.
@@ -243,6 +249,20 @@ any session-based message encryption algorithm that meets certain conditions.}\t
           \EndFunction
         \end{algorithmic}
 
+    \subsubsection{Associated Data}
+     \label{subsubsec:associatedData}
+     \paragraph{}The double ratchet encryption and decryption AEAD scheme uses Associated Data as recommended is X3DH and Double Ratchet specifications\cite[section 3.3]{x3dh}, \cite[section 3.4]{doubleRatchet}. The Associated Data authenticated is composed of:
+     \begin{algorithmic}
+          \State $Message\ Tag\langle 16bytes\rangle \Arrowvert Source\ deviceId \Arrowvert Recipient\ deviceId \Arrowvert X3DH AD\langle 32bytes\rangle \Arrowvert DR\ Header$
+     \end{algorithmic}
+     \begin{itemize}
+      \item $Message\ Tag$: AEAD authentication tag computed on plaintext and $Source\ deviceId \Arrowvert Recipient\ UserId$. The inclusion of $Recipient\ UserId$ allows the recipient device to verify the original intended recipient user. The $Recipient\ UserId$ is provided to the recipient device along the message by the routing protocol as it may not be the $UserId$ linked to the recipient device but a group user Id.
+      \item $Source\ deviceId$ and $Recipient\ deviceId$: Enforce identification of source and recipient device.
+      \item $X3DH\ AD$: Associated data computed at session creation by the X3DH protocol, based on both parties Identity keys and devices Id. See \ref{subsubsec:X3DHAD} for details. It is present in the device local storage from the X3DH initialisation completion.
+      \item $DR\ Header$: as specified in \cite[section 3.4]{doubleRatchet}. See \ref{subsubsec:protocol_doubleratchet_header} for details.
+     \end{itemize}
+
+
   \subsection{X3DH}
     \paragraph*{}As stated in section \ref{subsec:x3dhIk}, Lime does not use XEdDSA but manipulates two key formats: the identity key is stored in EdDSA format (as defined in \cite{rfc8032}); while all the other keys are stored in ECDH format (as defined is \cite{rfc7748}).
     \subsubsection{DH}
@@ -260,12 +280,14 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \EndFunction
       \end{algorithmic}
     \subsubsection{Shared Secrets generation}
-      \paragraph{SK}is computed as specified in \cite[section 3.3]{x3dh}.
+      \paragraph{SK}is computed as specified in \cite[section 3.3 and 2.2]{x3dh}.
           \begin{algorithmic}
-            \State $SK\langle 32bytes\rangle  \gets \Call{KDF}{F\langle 32,57bytes\rangle \Arrowvert DH1\Arrowvert DH2\Arrowvert DH2\Arrowvert DH4, $\textit{"Lime"}}
+            \State $SK\langle 32bytes\rangle  \gets \Call{KDF}{F\langle 32,57bytes\rangle \Arrowvert DH1\Arrowvert DH2\Arrowvert DH3\Arrowvert DH4, $\textit{"Lime"}}
           \end{algorithmic}
-        F being a 32 (when using curve25519) or 57 (when using curve448) bytes 0xFF filled buffer.
+        F is a 32 (when using curve25519) or 57 (when using curve448) bytes 0xFF filled buffer.\\
+        \textit{"Lime"} is the \textit{info} input field of the HKDF function\cite{rfc5869}.
 
+      \label{subsubsec:X3DHAD}
       \paragraph{Associated Data} is computed from identity keys and devices Id as specified in \cite[section 3.3]{x3dh}. For implementation convenience, the actual AD used by the Double Ratchet session is derived from these inputs by the KDF function producing a fixed size buffer as following:
           \begin{algorithmic}
             \State $ADinput \gets initiatorIk\Arrowvert receiverIk\Arrowvert initiatorDeviceId\Arrowvert receiverDeviceId$
@@ -448,7 +470,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
       \paragraph{}Is valid for the lifetime of a device.
     
     \subsubsection{Signed Pre-key}
-      \paragraph*{SPK\_lifeTime\_days}is a constant (7 days default) defining the key validity period. Once a key is outdated, a new one is generated, signed and uploaded on the X3DH server. Old keys are kept in storage with an $invalid$ status.
+      \paragraph*{SPK\_lifeTime\_days}is a constant (7 days default) defining the key validity period. Once a key is outdated, a new one is generated, signed and uploaded on the X3DH server. Old keys are kept in storage with an $invalid$ status so valid but delayed X3DH initiation messages using this signed pre-key can still be processed.
       \paragraph*{SPK\_limboTime\_days}is a constant (30 days default) defining the period invalid keys are kept by the device.
        
     \subsubsection{One-time Pre-key}
@@ -593,7 +615,6 @@ any session-based message encryption algorithm that meets certain conditions.}\t
   Others numeric values (counts, Ids, counters) are unsigned integers in big endian.
   
   \subsection{Double Ratchet message}
-    \label{subsec:protocol_doubleratchet}
     \paragraph*{}These packets are exchanged among devices. The system runs in asynchronous mode, and packets are sent to and stored by a server and are fetched by final recipients when online. The server in charge of storing/routing the packets shall fan-out to the respective recipients not all the incoming message but only the part addressed to them.
 
     \paragraph*{}Double Ratchet messages are composed of headers and the cipher message. Sender produces one header per recipient device and one cipher message common to all recipients.\\
@@ -605,6 +626,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
       \end{itemize}
 
       \subsubsection{Header}
+      \label{subsubsec:protocol_doubleratchet_header}
       \begin{center}
       \begin{tabular}{ | p{1.4in} | p{1.4in} | p{1.4in} | p{1.4in} |}
         \hline
@@ -628,6 +650,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \hline
       \end{tabular}
       \end{center}
+      \paragraph{Note}: Header as intended in Double Ratchet specification \cite{doubleRatchet} and in sections \ref{messageEncrypt} and \ref{subsubsec:associatedData} of this document excludes the Random Seed and AEAD authentication tag which, regarding the Double Ratchet specification, are the actual payload.
       
       \subsubsection{Cipher Message}
       \begin{center}
