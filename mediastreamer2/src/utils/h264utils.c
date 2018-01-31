@@ -23,50 +23,6 @@
 
 #include <math.h>
 
-typedef struct _MSBitsReader {
-	const uint8_t *data;
-	uint8_t mask;
-	int index;
-} MSBitsReaderPrivate;
-
-static void ms_bits_reader_init_private(MSBitsReaderPrivate *br, const uint8_t *data) {
-	br->data = data;
-	br->mask = 0x80;
-	br->index = 0;
-}
-
-static unsigned int ms_bits_reader_read_as_uint(MSBitsReaderPrivate *br, int n) {
-	unsigned int value = 0;
-	int i;
-	for(i=0; i<n; i++) {
-		if (i != 0) {
-			value <<= 1;
-		}
-		if (br->data[br->index] & br->mask) {
-			value |= 0x1;
-		}
-		br->mask >>= 1;
-		if (br->mask == 0) {
-			br->mask = 0x80;
-			br->index++;
-		}
-	}
-	return value;
-}
-
-static unsigned int ms_h264_exp_golomb_code_to_uint(const uint8_t *data) {
-	int leading_zero_bits = -1;
-	bool_t b = FALSE;
-	MSBitsReaderPrivate bits_reader;
-	
-	ms_bits_reader_init_private(&bits_reader, data);
-	while (!b) {
-		b = ms_bits_reader_read_as_uint(&bits_reader, 1);
-		leading_zero_bits++;
-	}
-	return (0x1<<leading_zero_bits) - 1 + ms_bits_reader_read_as_uint(&bits_reader, leading_zero_bits);
-}
-
 static void  push_nalu(const uint8_t *begin, const uint8_t *end, MSQueue *nalus){
     unsigned ecount = 0;
     const uint8_t *src=begin;
@@ -124,12 +80,21 @@ MSH264NaluType ms_h264_nalu_get_type(const mblk_t *nalu) {
     return (*nalu->b_rptr) & ((1<<5)-1);
 }
 
+unsigned int _ms_h264_get_id(const mblk_t *parameter_set, size_t offset, const char *symbol_name) {
+	unsigned int id;
+	MSBitsReader reader;
+	const uint8_t *buffer = parameter_set->b_rptr + offset;
+	size_t bufsize = parameter_set->b_wptr - buffer;
+	ms_bits_reader_init(&reader, buffer, bufsize);
+	return ms_bits_reader_ue(&reader, &id, symbol_name) == 0 ? id : 0;
+}
+
 unsigned int ms_h264_sps_get_id(const mblk_t *sps) {
-	return ms_h264_exp_golomb_code_to_uint(sps->b_rptr+4);
+	return _ms_h264_get_id(sps, 4, "seq_parameter_set_id");
 }
 
 unsigned int ms_h264_pps_get_id(const mblk_t *pps) {
-	return ms_h264_exp_golomb_code_to_uint(pps->b_rptr+1);
+	return _ms_h264_get_id(pps, 1, "pic_parameter_set_id");
 }
 
 void ms_h264_stream_to_nalus(const uint8_t *frame, size_t size, MSQueue *nalus, int *idr_count) {
