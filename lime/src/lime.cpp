@@ -162,7 +162,7 @@ namespace lime {
 	void Lime<Curve>::get_Ik(std::vector<uint8_t> &Ik) {
 		get_SelfIdentityKey(); // make sure our Ik is loaded in object
 		// copy self Ik to output buffer
-		Ik.assign(m_Ik.publicKey().begin(), m_Ik.publicKey().end());
+		Ik.assign(m_Ik.publicKey().cbegin(), m_Ik.publicKey().cend());
 	}
 
 	template <typename Curve>
@@ -173,7 +173,7 @@ namespace lime {
 
 		/* Create the appropriate recipient infos and fill it with sessions found in cache */
 		std::vector<recipientInfos<Curve>> internal_recipients{};
-		for (auto &recipient : *recipients) {
+		for (const auto &recipient : *recipients) {
 			auto sessionElem = m_DR_sessions_cache.find(recipient.deviceId);
 			if (sessionElem != m_DR_sessions_cache.end()) { // session is in cache
 				if (sessionElem->second->isActive()) { // the session in cache is active

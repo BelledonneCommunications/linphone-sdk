@@ -280,7 +280,7 @@ void Db::clean_SPk() {
 void Db::get_allLocalDevices(std::vector<std::string> &deviceIds) {
 	deviceIds.clear();
 	rowset<row> rs = (sql.prepare << "SELECT UserId FROM lime_LocalUsers;");
-	for (auto &r : rs) {
+	for (const auto &r : rs) {
 		deviceIds.push_back(r.get<string>(0));
 	}
 }
@@ -468,7 +468,7 @@ bool DR<DHKey>::session_save() {
 	}
 
 	// Shall we insert some skipped Message keys?
-	for ( auto rChain : m_mkskipped) { // loop all chains of message keys, each one is a DHr associated to an unordered map of MK indexed by Nr to be saved
+	for ( const auto &rChain : m_mkskipped) { // loop all chains of message keys, each one is a DHr associated to an unordered map of MK indexed by Nr to be saved
 		blob DHr(m_localStorage->sql);
 		DHr.write(0, (char *)(rChain.DHr.data()), rChain.DHr.size());
 		long DHid=0;
@@ -753,7 +753,7 @@ void Lime<Curve>::cache_DR_sessions(std::vector<recipientInfos<Curve>> &internal
 
 	size_t requestedDevicesCount = 0;
 	size_t allDevicesCount = 0;
-	for (auto &recipient : internal_recipients) {
+	for (const auto &recipient : internal_recipients) {
 		if (recipient.DRSession == nullptr) {
 			sqlString_requestedDevices.append("'").append(recipient.deviceId).append("',");
 			requestedDevicesCount++;
@@ -769,14 +769,14 @@ void Lime<Curve>::cache_DR_sessions(std::vector<recipientInfos<Curve>> &internal
 	// fetch all the verified devices (we don't directly fetch unverified device as some devices may not be in local storage at all)
 	rowset<row> rs_devices = (m_localStorage->sql.prepare << "SELECT d.DeviceId FROM lime_PeerDevices as d WHERE d.Verified = 1 AND d.DeviceId IN ("<<sqlString_allDevices<<");");
 	std::vector<std::string> verifiedDevices{}; // vector of verified deviceId
-	for (auto &r : rs_devices) {
+	for (const auto &r : rs_devices) {
 		verifiedDevices.push_back(r.get<string>(0));
 	}
 
 	// loop on internal recipient and mark the one verified as verified
 	for (auto &recipient : internal_recipients) {
 		recipient.identityVerified = false;
-		for (auto &verifiedDevice : verifiedDevices) {
+		for (const auto &verifiedDevice : verifiedDevices) {
 			if (verifiedDevice == recipient.deviceId) {
 				recipient.identityVerified = true;
 				break;
@@ -794,7 +794,7 @@ void Lime<Curve>::cache_DR_sessions(std::vector<recipientInfos<Curve>> &internal
 	rowset<row> rs = (m_localStorage->sql.prepare << "SELECT s.sessionId, d.DeviceId FROM DR_sessions as s INNER JOIN lime_PeerDevices as d ON s.Did=d.Did WHERE s.Uid= :Uid AND s.Status=1 AND d.DeviceId IN ("<<sqlString_requestedDevices<<");", use(m_db_Uid));
 
 	std::unordered_map<std::string, std::shared_ptr<DR<Curve>>> requestedDevices; // found session will be loaded and temp stored in this
-	for (auto &r : rs) {
+	for (const auto &r : rs) {
 		auto sessionId = r.get<int>(0);
 		auto peerDeviceId = r.get<string>(1);
 
@@ -864,7 +864,7 @@ template <typename Curve>
 void Lime<Curve>::get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDRSessionId, std::vector<std::shared_ptr<DR<Curve>>> &DRSessions) {
 	rowset<int> rs = (m_localStorage->sql.prepare << "SELECT s.sessionId FROM DR_sessions as s INNER JOIN lime_PeerDevices as d ON s.Did=d.Did WHERE d.DeviceId = :senderDeviceId AND s.Uid = :Uid AND s.sessionId <> :ignoreThisDRSessionId ORDER BY s.Status DESC, timeStamp ASC;", use(senderDeviceId), use (m_db_Uid), use(ignoreThisDRSessionId));
 
-	for (auto sessionId : rs) {
+	for (const auto &sessionId : rs) {
 		/* load session in cache DRSessions */
 		DRSessions.push_back(make_shared<DR<Curve>>(m_localStorage.get(), sessionId)); // load session from cache
 	}
@@ -934,7 +934,7 @@ void Lime<Curve>::X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds) {
 	if (OPkIds.size()>0) { /* we have keys on server */
 		// build a comma-separated list of OPk id on server
 		std::string sqlString_OPkIds{""};
-		for (auto OPkId : OPkIds) {
+		for (const auto &OPkId : OPkIds) {
 			sqlString_OPkIds.append(to_string(OPkId)).append(",");
 		}
 

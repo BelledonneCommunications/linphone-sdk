@@ -107,7 +107,7 @@ namespace lime {
 			// create the header
 			message = X3DH_makeHeader(x3dh_message_type::registerUser, Curve::curveId());
 			// append the Ik
-			message.insert(message.end(), Ik.begin(), Ik.end());
+			message.insert(message.end(), Ik.cbegin(), Ik.cend());
 		}
 
 		// deleteUser : empty message, server retrieves deviceId to delete from authentication header, you cannot delete someone else!
@@ -126,8 +126,8 @@ namespace lime {
 			// create the header
 			message = X3DH_makeHeader(x3dh_message_type::postSPk, Curve::curveId());
 			// append SPk, Signature and SPkId
-			message.insert(message.end(), SPk.begin(), SPk.end());
-			message.insert(message.end(), Sig.begin(), Sig.end());
+			message.insert(message.end(), SPk.cbegin(), SPk.cend());
+			message.insert(message.end(), Sig.cbegin(), Sig.cend());
 			message.push_back(static_cast<uint8_t>((SPk_id>>24)&0xFF));
 			message.push_back(static_cast<uint8_t>((SPk_id>>16)&0xFF));
 			message.push_back(static_cast<uint8_t>((SPk_id>>8)&0xFF));
@@ -147,7 +147,7 @@ namespace lime {
 			message.push_back(static_cast<uint8_t>((OPkCount)&0xFF));
 
 			for (decltype(OPkCount) i=0; i<OPkCount; i++) {
-				message.insert(message.end(), OPks[i].begin(), OPks[i].end());
+				message.insert(message.end(), OPks[i].cbegin(), OPks[i].cend());
 				message.push_back(static_cast<uint8_t>((OPk_ids[i]>>24)&0xFF));
 				message.push_back(static_cast<uint8_t>((OPk_ids[i]>>16)&0xFF));
 				message.push_back(static_cast<uint8_t>((OPk_ids[i]>>8)&0xFF));
@@ -172,10 +172,10 @@ namespace lime {
 			}
 
 			// append a sequence of peer device Id size(on 2 bytes) || device id
-			for (auto &peer_device_id : peer_device_ids) {
+			for (const auto &peer_device_id : peer_device_ids) {
 				message.push_back(static_cast<uint8_t>(((peer_device_id.size())>>8)&0xFF));
 				message.push_back(static_cast<uint8_t>((peer_device_id.size())&0xFF));
-				message.insert(message.end(),peer_device_id.begin(), peer_device_id.end());
+				message.insert(message.end(),peer_device_id.cbegin(), peer_device_id.cend());
 				BCTBX_SLOGI<<"Request X3DH keys for device "<<peer_device_id;
 			}
 		}
@@ -261,7 +261,7 @@ namespace lime {
 				if (body.size() == X3DH_headerSize+1) {
 					BCTBX_SLOGE<<"X3DH server respond error : code "<<int(body[X3DH_headerSize])<<" (no error message)";
 				} else {
-					BCTBX_SLOGE<<"X3DH server respond error : code "<<int(body[X3DH_headerSize])<<" : "<<std::string(body.begin()+X3DH_headerSize+1, body.end());
+					BCTBX_SLOGE<<"X3DH server respond error : code "<<int(body[X3DH_headerSize])<<" : "<<std::string(body.cbegin()+X3DH_headerSize+1, body.cend());
 				}
 
 				switch (static_cast<uint8_t>(body[X3DH_headerSize])) {
@@ -343,7 +343,7 @@ namespace lime {
 					peersBundle.clear();
 					return false;
 				}
-				std::string deviceId{body.begin()+index, body.begin()+index+deviceIdSize};
+				std::string deviceId{body.cbegin()+index, body.cbegin()+index+deviceIdSize};
 				index += deviceIdSize;
 
 				// check if we have an OPk
@@ -357,16 +357,16 @@ namespace lime {
 				}
 
 				// retrieve simple pointers to all keys and signature, the X3DH_peerBundle constructor will construct the keys out of them
-				const auto Ik = body.begin()+index; index += ED<Curve>::keyLength();
-				const auto SPk = body.begin()+index; index += X<Curve>::keyLength();
+				const auto Ik = body.cbegin()+index; index += ED<Curve>::keyLength();
+				const auto SPk = body.cbegin()+index; index += X<Curve>::keyLength();
 				uint32_t SPk_id = static_cast<uint32_t>(body[index])<<24 |
 						static_cast<uint32_t>(body[index+1])<<16 |
 						static_cast<uint32_t>(body[index+2])<<8 |
 						static_cast<uint32_t>(body[index+3]);
 				index += 4;
-				const auto SPk_sig = body.begin()+index; index += Signature<Curve>::signatureLength();
+				const auto SPk_sig = body.cbegin()+index; index += Signature<Curve>::signatureLength();
 				if (haveOPk) {
-					const auto OPk = body.begin()+index; index += X<Curve>::keyLength();
+					const auto OPk = body.cbegin()+index; index += X<Curve>::keyLength();
 					uint32_t OPk_id = static_cast<uint32_t>(body[index])<<24 |
 						static_cast<uint32_t>(body[index+1])<<16 |
 						static_cast<uint32_t>(body[index+2])<<8 |

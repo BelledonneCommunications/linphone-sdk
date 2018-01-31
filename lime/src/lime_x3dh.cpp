@@ -52,7 +52,7 @@ namespace lime {
 	static void X3DH_HKDF(std::vector<uint8_t> &input, const std::string &info, T &output) noexcept {
 		std::array<uint8_t,64> prk; // hold the output of pre-computation, as we use SHA512 gets a 64 bytes
 		// expansion round input shall be info || 0x01
-		std::vector<uint8_t> expansionRoundInput{info.begin(), info.end()};
+		std::vector<uint8_t> expansionRoundInput{info.cbegin(), info.cend()};
 		expansionRoundInput.push_back(0x01);
 		std::array<uint8_t,64> zeroFilledSalt; zeroFilledSalt.fill(0);
 		bctbx_hmacSha512(zeroFilledSalt.data(), zeroFilledSalt.size(), input.data(), input.size(), prk.size(), prk.data());
@@ -66,7 +66,7 @@ namespace lime {
 	 */
 	template <typename Curve>
 	void Lime<Curve>::X3DH_init_sender_session(const std::vector<X3DH_peerBundle<Curve>> &peersBundle) {
-		for (auto &peerBundle : peersBundle) {
+		for (const auto &peerBundle : peersBundle) {
 			// Verifify SPk_signature, throw an exception if it fails
 			auto EDDSAContext = EDDSAInit<Curve>();
 			bctbx_EDDSA_setPublicKey(EDDSAContext, peerBundle.Ik.data(), peerBundle.Ik.size());
@@ -142,10 +142,10 @@ namespace lime {
 
 			// Generate the shared AD used in DR session
 			SharedADBuffer AD; // AD is HKDF(session Initiator Ik || session receiver Ik || session Initiator device Id || session receiver device Id)
-			std::vector<uint8_t>AD_input{m_Ik.publicKey().begin(), m_Ik.publicKey().end()};
-			AD_input.insert(AD_input.end(), peerBundle.Ik.begin(), peerBundle.Ik.end());
-			AD_input.insert(AD_input.end(), m_selfDeviceId.begin(), m_selfDeviceId.end());
-			AD_input.insert(AD_input.end(), peerBundle.deviceId.begin(), peerBundle.deviceId.end());
+			std::vector<uint8_t>AD_input{m_Ik.publicKey().cbegin(), m_Ik.publicKey().cend()};
+			AD_input.insert(AD_input.end(), peerBundle.Ik.cbegin(), peerBundle.Ik.cend());
+			AD_input.insert(AD_input.end(), m_selfDeviceId.cbegin(), m_selfDeviceId.cend());
+			AD_input.insert(AD_input.end(), peerBundle.deviceId.cbegin(), peerBundle.deviceId.cend());
 			X3DH_HKDF<SharedADBuffer>(AD_input, lime::settings::X3DH_AD_info, AD);
 
 			// Generate DR_Session and put it in cache(but not in localStorage yet, that would be done when first message generation will be complete)
@@ -239,10 +239,10 @@ namespace lime {
 
 		// Generate the shared AD used in DR session
 		SharedADBuffer AD; // AD is HKDF(session Initiator Ik || session receiver Ik || session Initiator device Id || session receiver device Id), we are receiver on this one
-		std::vector<uint8_t> AD_input{peerIk.begin(), peerIk.end()};
-		AD_input.insert(AD_input.end(), m_Ik.publicKey().begin(), m_Ik.publicKey().end());
-		AD_input.insert(AD_input.end(), senderDeviceId.begin(), senderDeviceId.end());
-		AD_input.insert(AD_input.end(), m_selfDeviceId.begin(), m_selfDeviceId.end());
+		std::vector<uint8_t> AD_input{peerIk.cbegin(), peerIk.cend()};
+		AD_input.insert(AD_input.end(), m_Ik.publicKey().cbegin(), m_Ik.publicKey().cend());
+		AD_input.insert(AD_input.end(), senderDeviceId.cbegin(), senderDeviceId.cend());
+		AD_input.insert(AD_input.end(), m_selfDeviceId.cbegin(), m_selfDeviceId.cend());
 		X3DH_HKDF<SharedADBuffer>(AD_input, lime::settings::X3DH_AD_info, AD);
 
 		// insert the new peer device Id in Storage, keep the Id used in table to give it to DR_Session which will need it to save itself into DB.

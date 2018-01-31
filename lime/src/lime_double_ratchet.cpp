@@ -327,8 +327,8 @@ namespace lime {
 		m_Ns++;
 
 		// build AD: given AD || sharedAD stored in session || header (see DR spec section 3.4)
-		AD.insert(AD.end(), m_sharedAD.begin(), m_sharedAD.end());
-		AD.insert(AD.end(), ciphertext.begin(), ciphertext.end()); // cipher text holds header only for now
+		AD.insert(AD.end(), m_sharedAD.cbegin(), m_sharedAD.cend());
+		AD.insert(AD.end(), ciphertext.cbegin(), ciphertext.cend()); // cipher text holds header only for now
 
 		// data will be written directly in the underlying structure by C library, so set size to the actual one
 		// header size + cipher text size + auth tag size
@@ -360,8 +360,8 @@ namespace lime {
 
 		// build an Associated Data buffer: given AD || shared AD stored in session || header (as in DR spec section 3.4)
 		std::vector<uint8_t> DRAD{AD}; // copy given AD
-		DRAD.insert(DRAD.end(), m_sharedAD.begin(), m_sharedAD.end());
-		DRAD.insert(DRAD.end(), ciphertext.begin(), ciphertext.begin()+header.size());
+		DRAD.insert(DRAD.end(), m_sharedAD.cbegin(), m_sharedAD.cend());
+		DRAD.insert(DRAD.end(), ciphertext.cbegin(), ciphertext.cbegin()+header.size());
 
 
 		DRMKey MK;
@@ -440,7 +440,7 @@ namespace lime {
 		// expansion of randomSeed to 48 bytes: 32 bytes random key + 16 bytes nonce
 		// use the expansion round of HKDF - RFC 5869
 		std::array<uint8_t,lime::settings::DRMessageKeySize+lime::settings::DRMessageIVSize> randomKey{};
-		std::vector<uint8_t> expansionRoundInput{lime::settings::hkdf_randomSeed_info.begin(), lime::settings::hkdf_randomSeed_info.end()};
+		std::vector<uint8_t> expansionRoundInput{lime::settings::hkdf_randomSeed_info.cbegin(), lime::settings::hkdf_randomSeed_info.cend()};
 		expansionRoundInput.push_back(0x01);
 		bctbx_hmacSha512(randomSeed.data(), randomSeed.size(), expansionRoundInput.data(), expansionRoundInput.size(), randomKey.size(), randomKey.data());
 
@@ -448,8 +448,8 @@ namespace lime {
 		cipherMessage.resize(plaintext.size()+lime::settings::DRMessageAuthTagSize);
 
 		// AD is source deviceId(gruu) || recipientUserId(sip uri)
-		std::vector<uint8_t> AD{sourceDeviceId.begin(),sourceDeviceId.end()};
-		AD.insert(AD.end(), recipientUserId.begin(), recipientUserId.end());
+		std::vector<uint8_t> AD{sourceDeviceId.cbegin(),sourceDeviceId.cend()};
+		AD.insert(AD.end(), recipientUserId.cbegin(), recipientUserId.cend());
 
 		// encrypt to cipherMessage buffer
 		if (bctbx_aes_gcm_encrypt_and_tag(randomKey.data(), lime::settings::DRMessageKeySize, // key buffer also hold the IV
@@ -464,12 +464,12 @@ namespace lime {
 
 		// Loop on each session, given Associated Data to Double Ratchet encryption is: auth tag of cipherMessage AEAD || sourceDeviceId || recipient device Id(gruu)
 		// build the common part to AD given to DR Session encryption
-		AD.assign(cipherMessage.begin()+plaintext.size(), cipherMessage.end());
-		AD.insert(AD.end(), sourceDeviceId.begin(), sourceDeviceId.end());
+		AD.assign(cipherMessage.cbegin()+plaintext.size(), cipherMessage.cend());
+		AD.insert(AD.end(), sourceDeviceId.cbegin(), sourceDeviceId.cend());
 
 		for(size_t i=0; i<recipients.size(); i++) {
 			std::vector<uint8_t> recipientAD{AD}; // copy AD
-			recipientAD.insert(recipientAD.end(), recipients[i].deviceId.begin(), recipients[i].deviceId.end()); //insert recipient device id(gruu)
+			recipientAD.insert(recipientAD.end(), recipients[i].deviceId.cbegin(), recipients[i].deviceId.cend()); //insert recipient device id(gruu)
 
 			recipients[i].DRSession->ratchetEncrypt(randomSeed, std::move(recipientAD), recipients[i].cipherHeader);
 		}
@@ -483,9 +483,9 @@ namespace lime {
 			throw BCTBX_EXCEPTION << "Invalid cipher message - too short";
 		}
 		// prepare the AD given to ratchet decrypt: auth tag from cipherMessage || source Device Id || recipient Device Id
-		std::vector<uint8_t> AD{cipherMessage.end()-lime::settings::DRMessageAuthTagSize, cipherMessage.end()};
-		AD.insert(AD.end(), sourceDeviceId.begin(), sourceDeviceId.end());
-		AD.insert(AD.end(), recipientDeviceId.begin(), recipientDeviceId.end());
+		std::vector<uint8_t> AD{cipherMessage.cend()-lime::settings::DRMessageAuthTagSize, cipherMessage.cend()};
+		AD.insert(AD.end(), sourceDeviceId.cbegin(), sourceDeviceId.cend());
+		AD.insert(AD.end(), recipientDeviceId.cbegin(), recipientDeviceId.cend());
 
 		// buffer to store the random seed used to derive key and IV to decrypt message
 		std::array<uint8_t, lime::settings::DRrandomSeedSize> randomSeed{};
@@ -501,8 +501,8 @@ namespace lime {
 
 			if (decryptStatus == true) { // we got the random key correctly deciphered
 				// recompute the AD used for this encryption: source Device Id || recipient User Id
-				std::vector<uint8_t> localAD{sourceDeviceId.begin(), sourceDeviceId.end()};
-				localAD.insert(localAD.end(), recipientUserId.begin(), recipientUserId.end());
+				std::vector<uint8_t> localAD{sourceDeviceId.cbegin(), sourceDeviceId.cend()};
+				localAD.insert(localAD.end(), recipientUserId.cbegin(), recipientUserId.cend());
 
 				// resize plaintext vector as it is adressed directly by C library: same as cipher message - authentication tag length
 				plaintext.resize(cipherMessage.size()-lime::settings::DRMessageAuthTagSize);
@@ -510,7 +510,7 @@ namespace lime {
 				// rebuild the random key and IV from given seed
 				// use the expansion round of HKDF - RFC 5869
 				std::array<uint8_t,lime::settings::DRMessageKeySize+lime::settings::DRMessageIVSize> randomKey{};
-				std::vector<uint8_t> expansionRoundInput{lime::settings::hkdf_randomSeed_info.begin(), lime::settings::hkdf_randomSeed_info.end()};
+				std::vector<uint8_t> expansionRoundInput{lime::settings::hkdf_randomSeed_info.cbegin(), lime::settings::hkdf_randomSeed_info.cend()};
 				expansionRoundInput.push_back(0x01);
 				bctbx_hmacSha512(randomSeed.data(), randomSeed.size(), expansionRoundInput.data(), expansionRoundInput.size(), randomKey.size(), randomKey.data());
 				bctbx_clean(randomSeed.data(), randomSeed.size());

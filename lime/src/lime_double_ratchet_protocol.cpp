@@ -86,8 +86,8 @@ namespace lime {
 			message.assign(1, static_cast<uint8_t>(OPk_flag?DR_X3DH_OPk_flag::withOPk:DR_X3DH_OPk_flag::withoutOPk));
 			message.reserve(1+Ik.size()+Ek.size()+4+(OPk_flag?4:0));
 
-			message.insert(message.end(), Ik.begin(), Ik.end());
-			message.insert(message.end(), Ek.begin(), Ek.end());
+			message.insert(message.end(), Ik.cbegin(), Ik.cend());
+			message.insert(message.end(), Ek.cbegin(), Ek.cend());
 			message.push_back((SPk_id>>24)&0xFF);
 			message.push_back((SPk_id>>16)&0xFF);
 			message.push_back((SPk_id>>8)&0xFF);
@@ -119,10 +119,10 @@ namespace lime {
 			OPk_flag = (message[0] == static_cast<uint8_t>(DR_X3DH_OPk_flag::withOPk))?true:false;
 			size_t index = 1;
 
-			Ik.assign(message.begin()+index);
+			Ik.assign(message.cbegin()+index);
 			index += ED<Curve>::keyLength();
 
-			Ek.assign(message.begin()+index);
+			Ek.assign(message.cbegin()+index);
 			index += X<Curve>::keyLength();
 
 			SPk_id = static_cast<uint32_t>(message[index])<<24 |
@@ -173,7 +173,7 @@ namespace lime {
 					}
 
 					// copy the message in the output buffer
-					X3DH_initMessage.assign(message.begin()+3, message.begin()+3+x3dh_initMessageSize);
+					X3DH_initMessage.assign(message.cbegin()+3, message.cbegin()+3+x3dh_initMessageSize);
 				}
 					return true;
 
@@ -200,7 +200,7 @@ namespace lime {
 			if (X3DH_initMessage.size()>0) { // we do have an X3DH init message to insert in the header
 				header.push_back(static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::x3dhinit));
 				header.push_back(static_cast<uint8_t>(Curve::curveId()));
-				header.insert(header.end(), X3DH_initMessage.begin(), X3DH_initMessage.end());
+				header.insert(header.end(), X3DH_initMessage.cbegin(), X3DH_initMessage.cend());
 			} else {
 				header.push_back(static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::regular));
 				header.push_back(static_cast<uint8_t>(Curve::curveId()));
@@ -209,7 +209,7 @@ namespace lime {
 			header.push_back((uint8_t)(Ns&0xFF));
 			header.push_back((uint8_t)((PN>>8)&0xFF));
 			header.push_back((uint8_t)(PN&0xFF));
-			header.insert(header.end(), DHs.begin(), DHs.end());
+			header.insert(header.end(), DHs.cbegin(), DHs.cend());
 		 }
 
 		/**
