@@ -27,10 +27,7 @@
 #include "lime/lime.hpp"
 
 namespace lime {
-	// all keys types have an ID byte prepended to it before sending it in any message
-	// as recommended in X3DH spec section 2.1
-	enum class keyByteId : uint8_t {x25519=0x01, x448=0x02, ed25519=0x81, ed448=0x82};
-	// also define in an enum their key size
+	// define available keys and signatures sizes in an enum (forward define from bctoolbox/crypto.h)
 	enum class keySize : size_t {x25519=BCTBX_ECDH_X25519_PUBLIC_SIZE, x448=BCTBX_ECDH_X448_PUBLIC_SIZE, ed25519=BCTBX_EDDSA_25519_PUBLIC_SIZE, ed448=BCTBX_EDDSA_448_PUBLIC_SIZE};
 	enum class sigSize : size_t {ed25519=BCTBX_EDDSA_25519_SIGNATURE_SIZE, ed448=BCTBX_EDDSA_448_SIGNATURE_SIZE};
 
@@ -39,19 +36,15 @@ namespace lime {
 	struct C255 { // curve 25519, use a 4 chars to identify it to improve code readability
 		static constexpr lime::CurveId curveId() {return lime::CurveId::c25519;};
 		static constexpr size_t XkeySize() {return static_cast<size_t>(keySize::x25519);};
-		static constexpr uint8_t XkeyByteId() {return static_cast<uint8_t>(keyByteId::x25519);};
 		static constexpr size_t EDkeySize() {return static_cast<size_t>(keySize::ed25519);};
 		static constexpr size_t EDSigSize() {return static_cast<size_t>(sigSize::ed25519);};
-		static constexpr uint8_t EDkeyByteId() {return static_cast<uint8_t>(keyByteId::ed25519);};
 	};
 
 	struct C448 { // curve 448-goldilocks
 		static constexpr lime::CurveId curveId() {return lime::CurveId::c448;};
 		static constexpr size_t XkeySize() {return static_cast<size_t>(keySize::x448);};
-		static constexpr uint8_t XkeyByteId() {return static_cast<uint8_t>(keyByteId::x448);};
 		static constexpr size_t EDkeySize() {return static_cast<size_t>(keySize::ed448);};
 		static constexpr size_t EDSigSize() {return static_cast<size_t>(sigSize::ed448);};
-		static constexpr uint8_t EDkeyByteId() {return static_cast<uint8_t>(keyByteId::ed448);};
 	};
 
 
@@ -66,7 +59,6 @@ namespace lime {
 	class X : public std::array<uint8_t, static_cast<size_t>(Curve::XkeySize())>{
 		public :
 			constexpr static size_t keyLength(void) {return Curve::XkeySize();}; // provide a static size function to be able to call the function not on an object
-			constexpr static uint8_t byteId(void) {return Curve::XkeyByteId();};
 			// construct from a C style buffer
 			// WARNING: very dangerous code could lead to read anywhere(X{0} will call this constructor), get rid of it if we manage to use c++ buffer style only - get a bctoolbox/crypto.hpp?
 			X(const uint8_t *buffer) {std::copy_n(buffer, Curve::XkeySize(), this->data());}
@@ -86,7 +78,6 @@ namespace lime {
 	class ED : public std::array<uint8_t, static_cast<size_t>(Curve::EDkeySize())>{
 		public :
 			constexpr static size_t keyLength(void) {return Curve::EDkeySize();}; // provide a static size function to be able to call the function not on an object
-			constexpr static uint8_t byteId(void) {return Curve::EDkeyByteId();};
 			// construct from a C style buffer
 			// WARNING: very dangerous code could lead to read anywhere(ED{0} will call this constructor), get rid of it if we manage to use c++ buffer style only - get a bctoolbox/crypto.hpp?
 			ED(const uint8_t *buffer) {std::copy_n(buffer, Curve::EDkeySize(), this->data());}
