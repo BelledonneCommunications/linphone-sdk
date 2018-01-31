@@ -76,8 +76,10 @@ void ms_h264_bitstream_to_nalus(const uint8_t *bitstream, size_t size, MSQueue *
 void ms_h264_stream_to_nalus(const uint8_t *frame, size_t size, MSQueue *nalus, int *idr_count);
 
 /**
- * Set the video size from sps
- * @param sps The sps unit to read
+ * @brief Extract video size from a SPS NALu.
+ * @param sps A mblk_t holding the SPS.
+ * @return The video size.
  */
-void update_picture_size_with_sps(const mblk_t* sps, MSVideoSize *video_size);
+MSVideoSize ms_h264_sps_get_video_size(const mblk_t* sps);
+
 #endif /* defined(H264_UTILS_H) */

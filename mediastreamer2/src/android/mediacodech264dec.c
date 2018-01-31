@@ -55,7 +55,7 @@ typedef struct _DecData {
 static int dec_init_mediacodec(DecData *d) {
 	AMediaFormat *format;
 	media_status_t status = 0;
-	MSVideoSize initial_size={0};
+
 	if (d->codec == NULL){
 		d->codec = AMediaCodec_createDecoderByType("video/avc");
 		if (d->codec == NULL){
@@ -68,7 +68,7 @@ static int dec_init_mediacodec(DecData *d) {
 	AMediaFormat_setString(format, "mime", "video/avc");
 	//Size mandatory for decoder configuration
 	if(d->sps) {
-		update_picture_size_with_sps(d->sps, &initial_size);
+		MSVideoSize initial_size = ms_h264_sps_get_video_size(d->sps);
 		AMediaFormat_setInt32(format, "width", initial_size.width);
 		AMediaFormat_setInt32(format, "height", initial_size.height);
 	}

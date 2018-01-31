@@ -122,8 +122,8 @@ void ms_h264_stream_to_nalus(const uint8_t *frame, size_t size, MSQueue *nalus, 
     }
 }
 
-void update_picture_size_with_sps(const mblk_t* sps, MSVideoSize *video_size) {
-
+MSVideoSize ms_h264_sps_get_video_size(const mblk_t* sps) {
+	MSVideoSize video_size;
 	MSBitsReader reader;
 	unsigned int profile_idc;
 	unsigned int pic_order_cnt_type;
@@ -191,23 +191,23 @@ void update_picture_size_with_sps(const mblk_t* sps, MSVideoSize *video_size) {
 	ms_bits_reader_n_bits(&reader, 1, &frame_cropping_flag, "frame_cropping_flag");
 
 	if (frame_cropping_flag) {
-		
 		unsigned int frame_crop_left_offset;
 		unsigned int frame_crop_right_offset;
 		unsigned int frame_crop_top_offset;
 		unsigned int frame_crop_bottom_offset;
 		ms_bits_reader_ue(&reader, &frame_crop_left_offset, "frame_crop_left_offset");
 		ms_bits_reader_ue(&reader, &frame_crop_right_offset, "frame_crop_right_offset");
-		video_size->width = ((pic_width_in_mbs_minus1+1)*16)-frame_crop_left_offset*2-frame_crop_right_offset*2;
+		video_size.width = ((pic_width_in_mbs_minus1+1)*16)-frame_crop_left_offset*2-frame_crop_right_offset*2;
 		ms_bits_reader_ue(&reader, &frame_crop_top_offset, "frame_crop_top_offset");
 		ms_bits_reader_ue(&reader, &frame_crop_bottom_offset, "frame_crop_bottom_offset");
-		video_size->height = ((2-frame_mbs_only_flag)*(pic_height_in_map_units_minus1+1)*16)-(frame_crop_top_offset*2)-(frame_crop_bottom_offset*2);
+		video_size.height = ((2-frame_mbs_only_flag)*(pic_height_in_map_units_minus1+1)*16)-(frame_crop_top_offset*2)-(frame_crop_bottom_offset*2);
 	}
 	else {
-		video_size->width = (pic_width_in_mbs_minus1+1)*16;
-		video_size->height = (2-frame_mbs_only_flag)*(pic_height_in_map_units_minus1+1)*16;
+		video_size.width = (pic_width_in_mbs_minus1+1)*16;
+		video_size.height = (2-frame_mbs_only_flag)*(pic_height_in_map_units_minus1+1)*16;
 	}
 	
 	ms_bits_reader_n_bits(&reader, 1, NULL, "vui_parameters_present_flag");
+	return video_size;
 }
 
