@@ -890,12 +890,14 @@ void belle_sip_multipart_body_handler_progress_cb(belle_sip_body_handler_t *obj,
 		do {
 			if (strncmp((char *)cursor, "\r\n", 2)) {
 				belle_sip_warning("belle_sip_multipart_body_handler [%p]: no new-line after boundary", obj_multipart);
+				belle_sip_free(boundary);
 				return;
 			}
 			cursor += 2;
 			end_part_cursor = (uint8_t *)strstr((char *)cursor, boundary);
 			if (end_part_cursor == NULL) {
 				belle_sip_warning("belle_sip_multipart_body_handler [%p]: cannot find next boundary", obj_multipart);
+				belle_sip_free(boundary);
 				return;
 			} else {
 				*end_part_cursor = 0;
