@@ -149,10 +149,9 @@ char *bctbx_signing_key_get_pem(bctbx_signing_key_t *key) {
 
 int32_t bctbx_signing_key_parse(bctbx_signing_key_t *key, const char *buffer, size_t buffer_length, const unsigned char *password, size_t password_length) {
 	int err;
+	
 	err=mbedtls_pk_parse_key((mbedtls_pk_context *)key, (const unsigned char *)buffer, buffer_length, password, password_length);
-	if(err==0 && !mbedtls_pk_can_do((mbedtls_pk_context *)key, MBEDTLS_PK_RSA)) {
-		err=MBEDTLS_ERR_PK_TYPE_MISMATCH;
-	}
+	
 	if (err<0) {
 		char tmp[128];
 		mbedtls_strerror(err,tmp,sizeof(tmp));
@@ -164,10 +163,9 @@ int32_t bctbx_signing_key_parse(bctbx_signing_key_t *key, const char *buffer, si
 
 int32_t bctbx_signing_key_parse_file(bctbx_signing_key_t *key, const char *path, const char *password) {
 	int err;
+	
 	err=mbedtls_pk_parse_keyfile((mbedtls_pk_context *)key, path, password);
-	if(err==0 && !mbedtls_pk_can_do((mbedtls_pk_context *)key,MBEDTLS_PK_RSA)) {
-		err=MBEDTLS_ERR_PK_TYPE_MISMATCH;
-	}
+	
 	if (err<0) {
 		char tmp[128];
 		mbedtls_strerror(err,tmp,sizeof(tmp));
