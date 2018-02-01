@@ -24,7 +24,7 @@ URL:            http://www.belle-sip.org
 Source0:        %{name}-%{version}-%{build_number}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 
-Requires:       {!?pkg_prefix:%{nil}}%{?pkg_prefix:%{pkg_prefix}}bctoolbox
+Requires:	%{pkg_prefix}bctoolbox
 
 %description
 Belle-sip is an object oriented SIP stack, written in C, used by Linphone.
