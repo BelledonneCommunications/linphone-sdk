@@ -120,7 +120,7 @@ Db::Db(string filename) : sql{sqlite3, filename}{
 				FOREIGN KEY(Uid) REFERENCES lime_LocalUsers(Uid) ON UPDATE CASCADE ON DELETE CASCADE);";
 
 	/* DR Message Skipped DH : Store chains of skipped message keys, this table store the DHr identifying the chain
-	*  - DHid(primary key)
+	*  - DHid (primary key)
 	*  - SessionId : foreign key, link to the DR session the skipped keys are attached
 	*  - DHr : the peer ECDH public key used in this key chain
 	*  - received : count messages successfully decoded since the last MK insertion in that chain, allow to delete chains that are too old
@@ -158,7 +158,7 @@ Db::Db(string filename) : sql{sqlite3, filename}{
 				UserId TEXT NOT NULL, \
 				Ik BLOB NOT NULL, \
 				server TEXT NOT NULL, \
-				curveId INTEGER NOT NULL DEFAULT 0);"; // default the curveId value to 0 which is not one of the possible values(defined in lime.hpp)
+				curveId INTEGER NOT NULL DEFAULT 0);"; // default the curveId value to 0 which is not one of the possible values (defined in lime.hpp)
 
 	/* Peer Devices :
 	* - Did : primary key, used to make link with DR_sessions table.
@@ -178,7 +178,7 @@ Db::Db(string filename) : sql{sqlite3, filename}{
 	/* Signed pre-key :
 	* - SPKid : the primary key must be a random number as it is public, so avoid leaking information on number of key used
 	* - SPK : Public key||Private Key (ECDH keys)
-	* - timeStamp : Application shall renew SPK regurlarly(SPK_LifeTime). Old key are disactivated and deleted after a period(SPK_LimboTime))
+	* - timeStamp : Application shall renew SPK regurlarly (SPK_LifeTime). Old key are disactivated and deleted after a period (SPK_LimboTime))
 	* - Status : a boolean: can be active(1) or stale(0), by default any newly inserted key is set to active
 	* - Uid : User Id from lime_LocalUsers table: who's key is this
 	*/
@@ -210,10 +210,10 @@ Db::Db(string filename) : sql{sqlite3, filename}{
 };
 
 /**
- * @brief Check for existence, retrieve Uid for local user based on its userId(GRUU) and curve from table lime_LocalUsers
+ * @brief Check for existence, retrieve Uid for local user based on its userId (GRUU) and curve from table lime_LocalUsers
  *
  * @param[in]	deviceId	a string holding the user to look for in DB, shall be its GRUU
- * @param[out]	Uid		the DB internal Id matching given userId(if find in DB, 0 otherwise)
+ * @param[out]	Uid		the DB internal Id matching given userId (if find in DB, 0 otherwise)
  * @param[out]	curveId		the curve selected at user creation
  * @param[out]	url		the url of the X3DH server this user is registered on
  *
@@ -254,7 +254,7 @@ void Db::load_LimeUser(const std::string &deviceId, long int &Uid, lime::CurveId
  * 	Once we moved to next chain(as soon as peer got an answer from us and replies), the count won't be reset anymore
  */
 void Db::clean_DRSessions() {
-	// WARNIMG: not sure this code is portable it may work with sqlite3 only
+	// WARNING: not sure this code is portable it may work with sqlite3 only
 	// delete stale sessions considered to old
 	sql<<"DELETE FROM DR_sessions WHERE Status=0 AND timeStamp < date('now', '-"<<lime::settings::DRSession_limboTime_days<<" day');";
 
@@ -267,7 +267,7 @@ void Db::clean_DRSessions() {
  * 	- SPk in stale status for more than SPK_limboTime_days are deleted
  */
 void Db::clean_SPk() {
-	// WARNIMG: not sure this code is portable it may work with sqlite3 only
+	// WARNING: not sure this code is portable it may work with sqlite3 only
 	// delete stale sessions considered to old
 	sql<<"DELETE FROM X3DH_SPK WHERE Status=0 AND timeStamp < date('now', '-"<<lime::settings::SPK_limboTime_days<<" day');";
 }
@@ -461,7 +461,7 @@ bool DR<DHKey>::session_save() {
 			MSk_DHr_Clean = true; // flag the cleaning needed in DR_MSk_DH table, we may have to remove a row in it if no more row are linked to it in DR_MSk_MK
 		} else { // we did not consume a key
 			if (m_dirty == DRSessionDbStatus::dirty_decrypt || m_dirty == DRSessionDbStatus::dirty_ratchet) { // if we did a message decrypt :
-				// update the count of posterior messages received in the stored skipped messages keys for this session(all stored chains)
+				// update the count of posterior messages received in the stored skipped messages keys for this session (all stored chains)
 				m_localStorage->sql<<"UPDATE DR_MSk_DHr SET received = received + 1 WHERE sessionId = :sessionId", use(m_dbSessionId);
 			}
 		}
@@ -491,7 +491,7 @@ bool DR<DHKey>::session_save() {
 		}
 	}
 
-	// Now do the cleaning(remove unused row from DR_MKs_DHr table) if needed
+	// Now do the cleaning (remove unused row from DR_MKs_DHr table) if needed
 	if (MSk_DHr_Clean == true) {
 		uint16_t Nr;
 		m_localStorage->sql<<"SELECT Nr from DR_MSk_MK WHERE DHid = :DHid LIMIT 1;", into(Nr), use(m_usedDHid);
@@ -556,7 +556,7 @@ bool DR<Curve>::trySkippedMessageKeys(const uint16_t Nr, const X<Curve> &DHr, DR
 		m_usedDHid=0; // make sure the DHid is not set when we didn't find anything as it is later used to remove confirmed used key from DB
 		return false;
 	}
-	// record the Nr of extracted to be able to delete it fron base later(if decrypt ends well)
+	// record the Nr of extracted to be able to delete it fron base later (if decrypt ends well)
 	m_usedNr=Nr;
 
 	MK_blob.read(0, (char *)(MK.data()), MK.size());

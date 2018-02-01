@@ -58,7 +58,7 @@ static int http_after_all(void) {
 	return 0;
 }
 
-// this emulate a network transmission: bob got a mailbox(2 buffers actually) where we can post/retrieve data to/from
+// this emulate a network transmission: bob got a mailbox (2 buffers actually) where we can post/retrieve data to/from
 static std::vector<uint8_t> bobCipherHeaderMailbox{};
 static std::vector<uint8_t> bobCipherMessageMailbox{};
 static void sendMessageTo(std::string recipient, std::vector<uint8_t> &cipherHeader, std::vector<uint8_t> &cipherMessage) {
@@ -95,7 +95,7 @@ static void process_auth_requested (void *data, belle_sip_auth_event_t *event){
 	// and set it as username to retrieve the correct credentials and send them back
 	BCTBX_SLOGI<<"Accessing credentials for user "<<std::string(userData->username.data());
 
-	// for test purpose we use a server which accept commands in name of any user using credential of the only one user active on it
+	// for test purpose we use a server which accept commands in name of any user using credentials of the only one user active on it
 	// so we will set the username with the one test server accepts but real life example shall use the correct credentials
 	belle_sip_auth_event_set_username(event, lime_tester::test_server_user_name.data());
 
@@ -206,7 +206,7 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 
 	try {
 		BCTBX_SLOGI<<"Create alice and bob LimeManagers"<<endl;
-		// create Random devices names (in case we use a shared test server, devices id shall be the GRUU, X3DH/Lime does not connect user(sip:uri) and device(gruu)
+		// create Random devices names (in case we use a shared test server, devices id shall be the GRUU, X3DH/Lime does not connect user (sip:uri) and device (gruu)
 		// From Lime perspective, only devices exists and they must be uniquely identifies on the X3DH server.
 		auto aliceDeviceId = lime_tester::makeRandomDeviceName("alice.");
 		auto bobDeviceId = lime_tester::makeRandomDeviceName("bob.");
@@ -219,22 +219,22 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 		auto bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, X3DHServerPost));
 
 		BCTBX_SLOGI<<"Create "<<*aliceDeviceId<<" and "<<*bobDeviceId<<" users"<<endl;
-		// create users, this operation is asynchronous(as the user is also created on X3DH server)
+		// create users, this operation is asynchronous (as the user is also created on X3DH server)
 		// The OPkInitialBatchSize parameter is optionnal and is used to set how many One-Time pre-keys will be
 		// uploaded to the X3DH server at creation. Default value is set in lime::settings.
-		// Last parameter is a callback acceptiong as parameters a return code and a string
-		//      - In case of successfull operation the return code is lime::callbackReturn::success, and string is empty
+		// Last parameter is a callback accepting as parameters a return code and a string
+		//      - In case of successful operation the return code is lime::callbackReturn::success, and string is empty
 		//      - In case of failure, the return code is lime::callbackReturn::fail and the string shall give details on the failure cause
 		auto tmp_aliceDeviceId = *aliceDeviceId; // use a temporary variable as it may be a local variable which get out of scope right after call to create_user
 		aliceManager->create_user(tmp_aliceDeviceId, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
 		tmp_aliceDeviceId.clear(); // deviceId may go out of scope as soon as we come back from call
-		//wait for the operation to complete
+		// wait for the operation to complete
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		auto tmp_bobDeviceId = *bobDeviceId; // use a temporary variable as it may be a local variable which get out of scope right after call to create_user
 		bobManager->create_user(tmp_bobDeviceId, x3dh_server_url, curve, callback);
 		tmp_bobDeviceId.clear(); // deviceId may go out of scope as soon as we come back from call
-		//wait for the operation to complete
+		// wait for the operation to complete
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 
@@ -250,7 +250,7 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 		//      - cipherHeader : output of encryption process targeted to this recipient device only
 		auto recipients = make_shared<std::vector<recipientData>>();
 		recipients->emplace_back(*bobDeviceId); // we have only one recipient identified by its device id.
-		//Shall we have more recipients(bob can have several devices or be a conference sip:uri, alice other devices must get a copy of the message), we just need to emplace_back some more recipients Device Id(GRUU)
+		// Shall we have more recipients (bob can have several devices or be a conference sip:uri, alice other devices must get a copy of the message), we just need to emplace_back some more recipients Device Id (GRUU)
 
 		// the plain message, type is std::vector<uint8_t> as it can be text as in this test but also any kind of data.
 		auto message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
@@ -259,9 +259,9 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 		BCTBX_SLOGI<<"Alice encrypt the message"<<endl;
 		/************** SENDER SIDE CODE *****************************/
 		// encrypt, parameters are:
-		//      - localDeviceId to select which of the users managed by the LimeManager we shall use to perform the encryption(in our example we have only one local device). This one doesn't need to be a shared pointer.
-		//      - recipientUser: an id of the recipient user(which can hold several devices), typically its sip:uri
-		//      - recipientData vector(see above), list all recipient devices, will hold their cipher header
+		//      - localDeviceId to select which of the users managed by the LimeManager we shall use to perform the encryption (in our example we have only one local device). This one doesn't need to be a shared pointer.
+		//      - recipientUser: an id of the recipient user (which can hold several devices), typically its sip:uri
+		//      - recipientData vector (see above), list all recipient devices, will hold their cipher header
 		//      - plain message
 		//      - cipher message (this one must then be distributed to all recipients devices)
 		//      - a callback (prototype: void(lime::callbackReturn, std::string))
@@ -274,7 +274,7 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 					// IMPORTANT : recipients and cipherMessage are captured by copy not reference. They are shared_ptr, their original scope is likely to be the function where the encrypt is called.
 					//             they shall then be destroyed when getting out of this function and thus won't be valid anymore when this closure is called. By getting a copy we just increase their
 					//             use count and are sure to still have them valid when we are called.
-					//             When the closure itself is destroyed (when last reference to it is destroyed), it will trigger destruction of the captured values(-1 in use count for the shared_ptr)
+					//             When the closure itself is destroyed (when last reference to it is destroyed), it will trigger destruction of the captured values (-1 in use count for the shared_ptr)
 					//             After this closure is called it is destroyed(internal reference is dropped) decreasing the count and allowing the release of the buffer.
 					//
 					//             It may be wise to use weak_ptr instead of shared ones so if any problem occurs resulting in callback never being called/destroyed, it won't held this buffer from being destroyed
@@ -288,7 +288,7 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 							// Send the message to recipient
 							// that function must, before returning, send or copy the data to send them later
 							// recipients and cipherMessage are likely to be be destroyed as soon as we get out of this closure
-							// In this exanple we know that bodDevice is in recipients[0], real code shall loop on recipients vector
+							// In this example we know that bodDevice is in recipients[0], real code shall loop on recipients vector
 							sendMessageTo("bob", (*recipients)[0].cipherHeader, *cipherMessage);
 						} else {
 							counters.operation_failed++;
@@ -339,7 +339,7 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 		/************** Users maintenance ****************************/
 		// Around once a day the update function shall be called on LimeManagers
 		// it will perform localStorage cleanings
-		// update of cryptographic material(Signed Pre-key and One-time Pre-keys)
+		// update of cryptographic material (Signed Pre-key and One-time Pre-keys)
 		// The update take as optionnal parameters :
 		//  - lower bound for One-time Pre-key available on server
 		//  - One-time Pre-key batch size to be generated and uploaded if lower limit on server is reached
@@ -413,7 +413,7 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve, const std:
 
 	try {
 		BCTBX_SLOGI<<"Create alice and bob LimeManagers"<<endl;
-		// create Random devices names (in case we use a shared test server, devices id shall be the GRUU, X3DH/Lime does not connect user(sip:uri) and device(gruu)
+		// create random devices names (in case we use a shared test server, devices id shall be the GRUU, X3DH/Lime does not connect user (sip:uri) and device (gruu)
 		// From Lime perspective, only devices exists and they must be uniquely identifies on the X3DH server.
 		auto aliceDeviceId = lime_tester::makeRandomDeviceName("alice.");
 		auto bobDeviceId = lime_tester::makeRandomDeviceName("bob.");
@@ -435,13 +435,13 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve, const std:
 		auto tmp_aliceDeviceId = *aliceDeviceId; // use a temporary variable as it may be a local variable which get out of scope right after call to create_user
 		aliceManager->create_user(tmp_aliceDeviceId, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
 		tmp_aliceDeviceId.clear(); // deviceId may go out of scope as soon as we come back from call
-		//wait for the operation to complete
+		// wait for the operation to complete
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		auto tmp_bobDeviceId = *bobDeviceId; // use a temporary variable as it may be a local variable which get out of scope right after call to create_user
 		bobManager->create_user(tmp_bobDeviceId, x3dh_server_url, curve, callback);
 		tmp_bobDeviceId.clear(); // deviceId may go out of scope as soon as we come back from call
-		//wait for the operation to complete
+		// wait for the operation to complete
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		// [verify] Retrieve from Managers Bob and Alice device Identity Key
@@ -477,7 +477,7 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve, const std:
 		//      - cipherHeader : output of encryption process targeted to this recipient device only
 		auto recipients = make_shared<std::vector<recipientData>>();
 		recipients->emplace_back(*bobDeviceId); // we have only one recipient identified by its device id.
-		//Shall we have more recipients(bob can have several devices or be a conference sip:uri, alice other devices must get a copy of the message), we just need to emplace_back some more recipients Device Id(GRUU)
+		// Shall we have more recipients (bob can have several devices or be a conference sip:uri, alice other devices must get a copy of the message), we just need to emplace_back some more recipients Device Id (GRUU)
 
 		// the plain message, type is std::vector<uint8_t> as it can be text as in this test but also any kind of data.
 		auto message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
@@ -486,9 +486,9 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve, const std:
 		BCTBX_SLOGI<<"Alice encrypt the message"<<endl;
 		/************** SENDER SIDE CODE *****************************/
 		// encrypt, parameters are:
-		//      - localDeviceId to select which of the users managed by the LimeManager we shall use to perform the encryption(in our example we have only one local device). This one doesn't need to be a shared pointer.
-		//      - recipientUser: an id of the recipient user(which can hold several devices), typically its sip:uri
-		//      - recipientData vector(see above), list all recipient devices, will hold their cipher header
+		//      - localDeviceId to select which of the users managed by the LimeManager we shall use to perform the encryption (in our example we have only one local device). This one doesn't need to be a shared pointer.
+		//      - recipientUser: an id of the recipient user (which can hold several devices), typically its sip:uri
+		//      - recipientData vector (see above), list all recipient devices, will hold their cipher header
 		//      - plain message
 		//      - cipher message (this one must then be distributed to all recipients devices)
 		//      - a callback (prototype: void(lime::callbackReturn, std::string))
@@ -514,7 +514,7 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve, const std:
 							// Send the message to recipient
 							// that function must, before returning, send or copy the data to send them later
 							// recipients and cipherMessage are likely to be be destroyed as soon as we get out of this closure
-							// In this exanple we know that bodDevice is in recipients[0], real code shall loop on recipients vector
+							// In this example we know that bodDevice is in recipients[0], real code shall loop on recipients vector
 							sendMessageTo("bob", (*recipients)[0].cipherHeader, *cipherMessage);
 							// [verify] now we can also check the trusted status of recipients, as we set as trusted Bob's key, it shall be trusted
 							BC_ASSERT_TRUE((*recipients)[0].identityVerified);
@@ -570,7 +570,7 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve, const std:
 		/************** Users maintenance ****************************/
 		// Around once a day the update function shall be called on LimeManagers
 		// it will perform localStorage cleanings
-		// update of cryptographic material(Signed Pre-key and One-time Pre-keys)
+		// update of cryptographic material (Signed Pre-key and One-time Pre-keys)
 		// The update take as optionnal parameters :
 		//  - lower bound for One-time Pre-key available on server
 		//  - One-time Pre-key batch size to be generated and uploaded if lower limit on server is reached
