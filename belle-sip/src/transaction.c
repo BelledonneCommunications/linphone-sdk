@@ -207,12 +207,12 @@ void *belle_sip_transaction_get_application_data_internal(const belle_sip_transa
 }
 
 void *belle_sip_transaction_get_application_data(const belle_sip_transaction_t *t){
-	if (t->is_internal) {
-		belle_sip_error("belle_sip_transaction_get_application_data should not be used on internal transaction [%p]",t);
-		return NULL;
-	} else {
+	//if (t->is_internal) {
+	//	belle_sip_error("belle_sip_transaction_get_application_data should not be used on internal transaction [%p]",t);
+	//	return NULL;
+	//} else {
 		return belle_sip_transaction_get_application_data_internal(t);
-	};
+	//};
 }
 
 void belle_sip_transaction_set_application_data(belle_sip_transaction_t *t, void *data){
