@@ -161,9 +161,9 @@ namespace lime {
 	 * @param[in]	X3DH_initMessage	at session creation as sender we shall also store the X3DHInit message to be able to include it in all message until we got a response from peer
 	 */
 	template <typename Curve>
-	DR<Curve>::DR(lime::Db *localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const X<Curve> &peerPublicKey, long int peerDid, long int selfDid, const std::vector<uint8_t> &X3DH_initMessage)
+	DR<Curve>::DR(lime::Db *localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const X<Curve> &peerPublicKey, long int peerDid, long int selfDid, const std::vector<uint8_t> &X3DH_initMessage, bctbx_rng_context_t *RNG_context)
 	:m_DHr{peerPublicKey},m_DHr_valid{true}, m_DHs{},m_RK(SK),m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD(AD),m_mkskipped{},
-	m_RNG{bctbx_rng_context_new()},m_dbSessionId{0},m_usedNr{0},m_usedDHid{0},m_localStorage{localStorage},m_dirty{DRSessionDbStatus::dirty},m_peerDid{peerDid}, m_db_Uid{selfDid},
+	m_RNG{RNG_context},m_dbSessionId{0},m_usedNr{0},m_usedDHid{0},m_localStorage{localStorage},m_dirty{DRSessionDbStatus::dirty},m_peerDid{peerDid}, m_db_Uid{selfDid},
 	m_active_status{true}, m_X3DH_initMessage{X3DH_initMessage}
 	{
 		// generate a new self key pair
@@ -196,9 +196,9 @@ namespace lime {
 	 * @param[in]	selfDid			Id used in local storage for local user this session shall be attached to
 	 */
 	template <typename Curve>
-	DR<Curve>::DR(lime::Db *localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const KeyPair<X<Curve>> &selfKeyPair, long int peerDid, long int selfDid)
+	DR<Curve>::DR(lime::Db *localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const KeyPair<X<Curve>> &selfKeyPair, long int peerDid, long int selfDid, bctbx_rng_context_t *RNG_context)
 	:m_DHr{},m_DHr_valid{false},m_DHs{selfKeyPair},m_RK(SK),m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD(AD),m_mkskipped{},
-	m_RNG{bctbx_rng_context_new()},m_dbSessionId{0},m_usedNr{0},m_usedDHid{0},m_localStorage{localStorage},m_dirty{DRSessionDbStatus::dirty},m_peerDid{peerDid}, m_db_Uid{selfDid},
+	m_RNG{RNG_context},m_dbSessionId{0},m_usedNr{0},m_usedDHid{0},m_localStorage{localStorage},m_dirty{DRSessionDbStatus::dirty},m_peerDid{peerDid}, m_db_Uid{selfDid},
 	m_active_status{true}, m_X3DH_initMessage{}
 	{ }
 
@@ -211,9 +211,9 @@ namespace lime {
 	 * @param[in]	sessionId	row id in the database identifying the session to be loaded
 	 */
 	template <typename Curve>
-	DR<Curve>::DR(lime::Db *localStorage, long sessionId)
+	DR<Curve>::DR(lime::Db *localStorage, long sessionId, bctbx_rng_context_t *RNG_context)
 	:m_DHr{},m_DHr_valid{true},m_DHs{},m_RK{},m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD{},m_mkskipped{},
-	m_RNG{bctbx_rng_context_new()},m_dbSessionId{sessionId},m_usedNr{0},m_usedDHid{0},m_localStorage{localStorage},m_dirty{DRSessionDbStatus::clean},m_peerDid{0}, m_db_Uid{0},
+	m_RNG{RNG_context},m_dbSessionId{sessionId},m_usedNr{0},m_usedDHid{0},m_localStorage{localStorage},m_dirty{DRSessionDbStatus::clean},m_peerDid{0}, m_db_Uid{0},
 	m_active_status{false}, m_X3DH_initMessage{}
 	{
 		session_load();
@@ -225,7 +225,6 @@ namespace lime {
 		bctbx_clean(m_RK.data(), m_RK.size());
 		bctbx_clean(m_CKs.data(), m_CKs.size());
 		bctbx_clean(m_CKr.data(), m_CKr.size());
-		bctbx_rng_context_free(m_RNG);
 	}
 
 	/**

@@ -95,9 +95,9 @@ namespace lime {
 
 		public:
 			DR() = delete; // make sure the Double Ratchet is not initialised without parameters
-			DR(lime::Db *localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const X<Curve> &peerPublicKey, long int peerDeviceId, long int selfDeviceId, const std::vector<uint8_t> &X3DH_initMessage); // call to initialise a session for sender: we have Shared Key and peer Public key
-			DR(lime::Db *localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const KeyPair<X<Curve>> &selfKeyPair, long int peerDeviceId, long int selfDeviceId); // call at initialisation of a session for receiver: we have Share Key and self key pair
-			DR(lime::Db *localStorage, long sessionId); // load session from DB
+			DR(lime::Db *localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const X<Curve> &peerPublicKey, long int peerDeviceId, long int selfDeviceId, const std::vector<uint8_t> &X3DH_initMessage, bctbx_rng_context_t *RNG_context); // call to initialise a session for sender: we have Shared Key and peer Public key
+			DR(lime::Db *localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const KeyPair<X<Curve>> &selfKeyPair, long int peerDeviceId, long int selfDeviceId, bctbx_rng_context_t *RNG_context); // call at initialisation of a session for receiver: we have Share Key and self key pair
+			DR(lime::Db *localStorage, long sessionId, bctbx_rng_context_t *RNG_context); // load session from DB
 			DR(DR<Curve> &a) = delete; // can't copy a session, force usage of shared pointers
 			DR<Curve> &operator=(DR<Curve> &a) = delete; // can't copy a session
 			~DR();

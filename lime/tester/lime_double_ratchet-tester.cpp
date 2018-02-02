@@ -39,6 +39,18 @@
 using namespace::std;
 using namespace::lime;
 
+static bctbx_rng_context_t *RNG_context=nullptr;
+
+static int start_RNG_before_all(void) {
+	RNG_context = bctbx_rng_context_new();
+	return 0;
+}
+
+static int stop_RNG_after_all(void) {
+	bctbx_rng_context_free(RNG_context);
+	return 0;
+}
+
 /**
   * @param[in]	period		altern sended each <period> messages (sequence will anyways always start with alice send - bob receive - bob send)
   * @param[in]	skip_period	same than above but for reception skipping: at each begining of skip_period, skip reception of skip_length messages
@@ -61,7 +73,7 @@ static void dr_skippedMessages_basic_test(const uint8_t period=1, const uint8_t 
 	remove(bobFilename.data());
 
 	// create sessions
-	lime_tester::dr_sessionsInit(alice, bob, aliceLocalStorage, bobLocalStorage, aliceFilename, bobFilename);
+	lime_tester::dr_sessionsInit(alice, bob, aliceLocalStorage, bobLocalStorage, aliceFilename, bobFilename, true, RNG_context);
 	std::vector<std::vector<uint8_t>> cipher;
 	std::vector<std::vector<recipientInfos<Curve>>> recipients;
 	std::vector<uint8_t> messageSender; // hold status of message: 0 not sent, 1 sent by Alice, 2 sent by Bob, 3 received
@@ -218,7 +230,7 @@ static void dr_long_exchange_test(uint8_t period=1, std::string db_filename="dr_
 	aliceFilename.append(".alice.sqlite3");
 	bobFilename.append(".bob.sqlite3");
 	// create sessions
-	lime_tester::dr_sessionsInit(alice, bob, aliceLocalStorage, bobLocalStorage, aliceFilename, bobFilename);
+	lime_tester::dr_sessionsInit(alice, bob, aliceLocalStorage, bobLocalStorage, aliceFilename, bobFilename, true, RNG_context);
 	std::vector<uint8_t> aliceCipher, bobCipher;
 
 	bool aliceSender=true;
@@ -246,7 +258,7 @@ static void dr_long_exchange_test(uint8_t period=1, std::string db_filename="dr_
 				/* destroy and reload bob sessions */
 				auto bobSessionId=bob->dbSessionId();
 				bob = nullptr; // release and destroy bob DR context
-				bob = make_shared<DR<Curve>>(bobLocalStorage.get(), bobSessionId);
+				bob = make_shared<DR<Curve>>(bobLocalStorage.get(), bobSessionId, RNG_context);
 			}
 		} else {
 			// bob replies
@@ -270,7 +282,7 @@ static void dr_long_exchange_test(uint8_t period=1, std::string db_filename="dr_
 				/* destroy and reload alice sessions */
 				auto aliceSessionId=alice->dbSessionId();
 				alice = nullptr; // release and destroy alice DR context
-				alice = make_shared<DR<Curve>>(aliceLocalStorage.get(), aliceSessionId);
+				alice = make_shared<DR<Curve>>(aliceLocalStorage.get(), aliceSessionId, RNG_context);
 			}
 		}
 	}
@@ -312,7 +324,7 @@ static void dr_simple_exchange(std::shared_ptr<DR<Curve>> &DRsessionAlice, std::
 			std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob,
 			std::string &filenameAlice, std::string &filenameBob) {
 	// create sessions: alice sender, bob receiver
-	lime_tester::dr_sessionsInit(DRsessionAlice, DRsessionBob, localStorageAlice, localStorageBob, filenameAlice, filenameBob);
+	lime_tester::dr_sessionsInit(DRsessionAlice, DRsessionBob, localStorageAlice, localStorageBob, filenameAlice, filenameBob, true, RNG_context);
 	std::vector<uint8_t> aliceCipher, bobCipher;
 
 	// alice encrypt a message
@@ -393,7 +405,7 @@ static void dr_multidevice_basic_test(std::string db_filename) {
 
 	/* init and instanciate, session will be then found in a 4 dimensional vector indexed this way : [self user id][self device id][peer user id][peer device id] */
 	std::vector<std::string> created_db_files{};
-	lime_tester::dr_devicesInit(db_filename, users, usernames, created_db_files);
+	lime_tester::dr_devicesInit(db_filename, users, usernames, created_db_files, RNG_context);
 
 	/* Send a message from alice.dev0 to all bob device(and copy to alice devices too) */
 	std::vector<recipientInfos<Curve>> recipients;
@@ -588,8 +600,8 @@ static test_t tests[] = {
 
 test_suite_t lime_double_ratchet_test_suite = {
 	"Double Ratchet",
-	NULL,
-	NULL,
+	start_RNG_before_all,
+	stop_RNG_after_all,
 	NULL,
 	NULL,
 	sizeof(tests) / sizeof(tests[0]),

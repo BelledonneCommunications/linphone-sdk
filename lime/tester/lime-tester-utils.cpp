@@ -156,7 +156,7 @@ std::vector<std::string> messages_pattern = {
  *	if fileName doesn't exists as a DB, it will be created, caller shall then delete it if needed
  */
 template <typename Curve>
-void dr_sessionsInit(std::shared_ptr<DR<Curve>> &alice, std::shared_ptr<DR<Curve>> &bob, std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob, std::string dbFilenameAlice, std::string dbFilenameBob, bool initStorage) {
+void dr_sessionsInit(std::shared_ptr<DR<Curve>> &alice, std::shared_ptr<DR<Curve>> &bob, std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob, std::string dbFilenameAlice, std::string dbFilenameBob, bool initStorage, bctbx_rng_context_t *RNG_context) {
 	if (initStorage==true) {
 		// create or load Db
 		localStorageAlice = std::make_shared<lime::Db>(dbFilenameAlice);
@@ -193,8 +193,8 @@ void dr_sessionsInit(std::shared_ptr<DR<Curve>> &alice, std::shared_ptr<DR<Curve
 
 	// create DR sessions
 	std::vector<uint8_t> X3DH_initMessage{};
-	alice = std::make_shared<DR<Curve>>(localStorageAlice.get(), SK, AD, bobKeyPair.publicKey(), aliceDid, aliceUid, X3DH_initMessage);
-	bob = std::make_shared<DR<Curve>>(localStorageBob.get(), SK, AD, bobKeyPair, bobDid, bobUid);
+	alice = std::make_shared<DR<Curve>>(localStorageAlice.get(), SK, AD, bobKeyPair.publicKey(), aliceDid, aliceUid, X3DH_initMessage, RNG_context);
+	bob = std::make_shared<DR<Curve>>(localStorageBob.get(), SK, AD, bobKeyPair, bobDid, bobUid, RNG_context);
 }
 
 
@@ -206,7 +206,7 @@ void dr_sessionsInit(std::shared_ptr<DR<Curve>> &alice, std::shared_ptr<DR<Curve
  * createdDBfiles is filled with all filenames of DB created to allow easy deletion
  */
 template <typename Curve>
-void dr_devicesInit(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<Curve>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles) {
+void dr_devicesInit(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<Curve>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles, bctbx_rng_context_t *RNG_context) {
 	createdDBfiles.clear();
 	/* each device must have a db, produce filename for them from provided base name and given username */
 	for (size_t i=0; i<users.size(); i++) { // loop on users
@@ -243,11 +243,11 @@ void dr_devicesInit(std::string dbBaseFilename, std::vector<std::vector<std::vec
 	for (size_t i=0; i<users.size(); i++) { // loop on users
 		for (size_t j=0; j<users[i].size(); j++) { // loop on devices
 			for (size_t j_fw=j+1; j_fw<users[i].size(); j_fw++) { // loop on the rest of our devices
-				dr_sessionsInit(users[i][j][i][j_fw].DRSession, users[i][j_fw][i][j].DRSession, users[i][j][i][j_fw].localStorage, users[i][j_fw][i][j].localStorage, " ", " ", false);
+				dr_sessionsInit(users[i][j][i][j_fw].DRSession, users[i][j_fw][i][j].DRSession, users[i][j][i][j_fw].localStorage, users[i][j_fw][i][j].localStorage, " ", " ", false, RNG_context);
 			}
 			for (size_t i_fw=i+1; i_fw<users.size(); i_fw++) { // loop on the rest of users
 				for (size_t j_fw=0; j_fw<users[i].size(); j_fw++) { // loop on the rest of devices
-					dr_sessionsInit(users[i][j][i_fw][j_fw].DRSession, users[i_fw][j_fw][i][j].DRSession, users[i][j][i_fw][j_fw].localStorage, users[i_fw][j_fw][i][j].localStorage, " ", " ", false);
+					dr_sessionsInit(users[i][j][i_fw][j_fw].DRSession, users[i_fw][j_fw][i][j].DRSession, users[i][j][i_fw][j_fw].localStorage, users[i_fw][j_fw][i][j].localStorage, " ", " ", false, RNG_context);
 				}
 			}
 		}
@@ -487,12 +487,12 @@ int wait_for(belle_sip_stack_t*s1,int* counter,int value,int timeout) {
 
 // template instanciation
 #ifdef EC25519_ENABLED
-	template void dr_sessionsInit<C255>(std::shared_ptr<DR<C255>> &alice, std::shared_ptr<DR<C255>> &bob, std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob, std::string dbFilenameAlice, std::string dbFilenameBob, bool initStorage); 
-	template void dr_devicesInit<C255>(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<C255>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles);
+	template void dr_sessionsInit<C255>(std::shared_ptr<DR<C255>> &alice, std::shared_ptr<DR<C255>> &bob, std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob, std::string dbFilenameAlice, std::string dbFilenameBob, bool initStorage, bctbx_rng_context_t *RNG_context); 
+	template void dr_devicesInit<C255>(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<C255>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles, bctbx_rng_context_t *RNG_context);
 #endif
 #ifdef EC448_ENABLED
-	template void dr_sessionsInit<C448>(std::shared_ptr<DR<C448>> &alice, std::shared_ptr<DR<C448>> &bob, std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob, std::string dbFilenameAlice, std::string dbFilenameBob, bool initStorage); 
-	template void dr_devicesInit<C448>(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<C448>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles);
+	template void dr_sessionsInit<C448>(std::shared_ptr<DR<C448>> &alice, std::shared_ptr<DR<C448>> &bob, std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob, std::string dbFilenameAlice, std::string dbFilenameBob, bool initStorage, bctbx_rng_context_t *RNG_context); 
+	template void dr_devicesInit<C448>(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<C448>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles, bctbx_rng_context_t *RNG_context);
 #endif
 
 
