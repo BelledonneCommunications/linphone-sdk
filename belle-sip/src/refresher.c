@@ -220,6 +220,7 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 		return; /*not for me*/
 
 	set_or_update_dialog(refresher,belle_sip_response_event_get_dialog(event));
+	contact=belle_sip_message_get_header_by_type(response,belle_sip_header_contact_t);
 	/*success case:*/
 	if (response_code>=200 && response_code<300){
 		refresher->auth_failures=0;
@@ -260,7 +261,8 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 		if (refresher->state==started) {
 			if (!refresher->first_acknoleged_request)
 				belle_sip_object_ref(refresher->first_acknoleged_request = request);
-			if (is_contact_address_acurate(refresher,request) || !belle_sip_provider_nat_helper_enabled(client_transaction->base.provider)) {
+			if (is_contact_address_acurate(refresher,request)
+				|| (!belle_sip_provider_nat_helper_enabled(client_transaction->base.provider) || (contact && belle_sip_parameters_has_parameter(BELLE_SIP_PARAMETERS(contact), "pub-gruu"))) ) { /*Disable nat helper in gruu case. Might not be the best fix, maybe better to make reflesh is not mandatory*/
 				schedule_timer(refresher); /*re-arm timer*/
 			} else {
 				belle_sip_message("belle_sip_refresher_start(): refresher [%p] is resubmitting request because contact sent was not correct in original request.",refresher);
@@ -273,7 +275,7 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 		switch (response_code) {
 		case 301:
 		case 302:
-			contact=belle_sip_message_get_header_by_type(response,belle_sip_header_contact_t);
+			
 			if (contact){
 				belle_sip_uri_t *uri=belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(contact));
 				if (uri && belle_sip_refresher_refresh_internal(refresher,refresher->target_expires,TRUE,&refresher->auth_events,uri)==0)
