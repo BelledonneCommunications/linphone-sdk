@@ -29,8 +29,8 @@ set(LIME_SO_VERSION "0")
 option(ENABLE_SHARED "Build shared library." ON)
 option(ENABLE_STATIC "Build static library." ON)
 option(ENABLE_STRICT "Build with strict compile options." YES)
-option(ENABLE_Curve25519 "Enable support of Curve 25519." YES)
-option(ENABLE_Curve448 "Enable support of Curve 448(goldilock)." YES)
+option(ENABLE_CURVE25519 "Enable support of Curve 25519." YES)
+option(ENABLE_CURVE448 "Enable support of Curve 448(goldilock)." YES)
 option(ENABLE_UNIT_TESTS "Enable compilation of unit tests." YES)
 
 
@@ -53,7 +53,6 @@ else()
 endif()
 
 find_package(Soci REQUIRED)
-find_package(Sqlite3 REQUIRED)
 
 include_directories(
 	include/
@@ -116,12 +115,12 @@ else()
 	set(EXPORT_TARGETS_NAME "lime")
 endif()
 
-if (ENABLE_Curve25519)
+if (ENABLE_CURVE25519)
 	add_definitions("-DEC25519_ENABLED")
 	message(STATUS "Support Curve 25519")
 endif()
 
-if (ENABLE_Curve448)
+if (ENABLE_CURVE448)
 	add_definitions("-DEC448_ENABLED")
 	message(STATUS "Support Curve 448")
 endif()
