@@ -454,7 +454,7 @@ static int vth264enc_set_bitrate(MSFilter *f, const int *bitrate) {
 	VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
 	vth264enc_message("requested bitrate: %d bits/s", *bitrate);
 	if(ctx->session == NULL) {
-		ctx->conf = ms_video_find_best_configuration_for_bitrate(ctx->video_confs, *bitrate, f->factory->cpu_count);
+		ctx->conf = ms_video_find_best_configuration_for_size_and_bitrate(ctx->video_confs, ctx->conf.vsize, ms_factory_get_cpu_count(f->factory), *bitrate);
 		vth264enc_message("selected video conf: size=%dx%d, framerate=%ffps", ctx->conf.vsize.width, ctx->conf.vsize.height, ctx->conf.fps);
 	} else {
 		ms_filter_lock(f);
