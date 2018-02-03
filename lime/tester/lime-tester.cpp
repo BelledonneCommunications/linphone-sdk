@@ -30,6 +30,7 @@
 static FILE * log_file = NULL;
 static const char *log_domain = "lime";
 bool cleanDatabase = true;
+bool bench = false;
 
 // settings used in lime suite
 extern std::string test_x3dh_server_url;
@@ -57,6 +58,7 @@ void lime_tester_init(void(*ftester_printf)(int level, const char *fmt, va_list 
 	if (ftester_printf == NULL) ftester_printf = log_handler;
 	bc_tester_init(ftester_printf, BCTBX_LOG_MESSAGE, BCTBX_LOG_ERROR, "data");
 
+	bc_tester_add_suite(&lime_crypto_test_suite);
 	bc_tester_add_suite(&lime_double_ratchet_test_suite);
 	bc_tester_add_suite(&lime_lime_test_suite);
 	bc_tester_add_suite(&lime_helloworld_test_suite);
@@ -104,9 +106,10 @@ static const char* lime_helper =
 		"\t\t\t--c448-x3dh-server-port <port to use on x3dh server for instance running on curve448>, default : 25520\n"
 #endif
 		"\t\t\t--operation-timeout <delay in ms to complete basic operations involving server>, default : 4000\n\t\t\t                    you may want to increase this value if you are not using a local X3DH server and experience tests failures\n"
-		"\t\t\t--keep-tmp-db, when set don't delete temporary db files created by tests, usefull for debug\n"
+		"\t\t\t--keep-tmp-db, when set don't delete temporary db files created by tests, useful for debug\n"
 
-		"\t\t\t--log-file <output log file path>\n";
+		"\t\t\t--log-file <output log file path>\n"
+		"\t\t\t--bench run benchmarks when set";
 
 int main(int argc, char *argv[]) {
 	int i;
@@ -148,6 +151,8 @@ int main(int argc, char *argv[]) {
 			lime_tester::wait_for_timeout=std::atoi(argv[i]);
 		} else if (strcmp(argv[i],"--keep-tmp-db")==0){
 			cleanDatabase=false;
+		} else if (strcmp(argv[i],"--bench")==0){
+			bench=true;
 		}else {
 			int ret = bc_tester_parse_args(argc, argv, i);
 			if (ret>0) {

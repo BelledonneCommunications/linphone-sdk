@@ -30,11 +30,13 @@ set(LIME_HEADER_FILES
 	lime_double_ratchet.hpp
 	lime_double_ratchet_protocol.hpp
 	lime_lime.hpp
+	lime_crypto_primitives.hpp
 )
 set(LIME_SOURCE_FILES_C )
 set(LIME_SOURCE_FILES_CXX
 	lime.cpp
 	lime_keys.cpp
+	lime_crypto_primitives.cpp
 	lime_x3dh.cpp
 	lime_x3dh_protocol.cpp
 	lime_localStorage.cpp
