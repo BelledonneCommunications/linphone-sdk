@@ -166,8 +166,163 @@ static void exchange(void) {
 #endif
 }
 
+/**
+ * Testing sign, verify and DSA to keyEchange key conversion
+ * Scenario:
+ * - Alice and Bob generate a Signature key pair
+ * - They both sign a message, exchange it and verify it
+ * - each of them convert their private Signature key into a private keyExchange one and derive the matching public key
+ * - each of them convert the peer Signature public key into a keyExchange public key
+ * - both compute the shared secret and compare
+ */
+template <typename Curve>
+void signAndVerify_test(void) {
+	/* We need a RNG */
+	auto rng = make_RNG();
+	/* Create Alice, Bob, Vera Signature context */
+	auto AliceDSA = make_Signature<Curve>();
+	auto BobDSA = make_Signature<Curve>();
+	auto Vera = make_Signature<Curve>();
+
+	std::string aliceMessageString{"Lluchiwn ein gwydrau achos Ni yw y byd Ni yw y byd, Ni yw y byd, Carwn ein gelynion achos Ni yw y byd. Ni yw y byd, dewch bawb ynghyd, Tynnwn ein dillad achos Ni yw y byd. Ni yw y byd, Ni yw y byd, Dryswn ein cyfoedion achos Ni yw y byd. Ni yw y byd, dewch bawb ynghyd, Gwaeddwn yn llawen achos Ni yw y byd."};
+	std::string bobMessageString{"Neidiwn i'r awyr achos ni yw y byd Ni yw y byd, dewch bawb ynghyd, Chwalwn ddisgyrchiant achos Ni yw y byd, Rowliwn yn y rhedyn achos Ni yw y byd. Rhyddhawn ein penblethau! Ni yw y byd, dewch bawb ynghyd, Paratown am chwyldro achos Ni yw y byd"};
+	std::vector<uint8_t> aliceMessage{aliceMessageString.cbegin(), aliceMessageString.cend()};
+	std::vector<uint8_t> bobMessage{bobMessageString.cbegin(), bobMessageString.cend()};
+
+	/* Generate Signature key pairs */
+	AliceDSA->createKeyPair(rng);
+	BobDSA->createKeyPair(rng);
+
+	/* Sign messages*/
+	DSA<Curve, lime::DSAtype::signature> aliceSignature;
+	DSA<Curve, lime::DSAtype::signature> bobSignature;
+	AliceDSA->sign(aliceMessage, aliceSignature);
+	BobDSA->sign(bobMessage, bobSignature);
+
+	/* Vera check messages authenticity */
+	Vera->set_public(AliceDSA->get_public());
+	BC_ASSERT_TRUE(Vera->verify(aliceMessage, aliceSignature));
+	BC_ASSERT_FALSE(Vera->verify(bobMessage, aliceSignature));
+	Vera->set_public(BobDSA->get_public());
+	BC_ASSERT_FALSE(Vera->verify(aliceMessage, bobSignature));
+	BC_ASSERT_TRUE(Vera->verify(bobMessage, bobSignature));
+
+	/* Bob and Alice create keyExchange context */
+	auto AliceKeyExchange = make_keyExchange<Curve>();
+	auto BobKeyExchange = make_keyExchange<Curve>();
+
+	/* Convert keys */
+	AliceKeyExchange->set_secret(AliceDSA->get_secret()); // auto convert from DSA to X format
+	AliceKeyExchange->deriveSelfPublic(); // derive public from private
+	AliceKeyExchange->set_peerPublic(BobDSA->get_public()); // import Bob DSA public key
+
+	BobKeyExchange->set_secret(BobDSA->get_secret()); // convert from DSA to X format
+	BobKeyExchange->set_selfPublic(BobDSA->get_public()); // convert from DSA to X format
+	BobKeyExchange->set_peerPublic(AliceDSA->get_public()); // import Alice DSA public key
+
+	/* Compute shared secret */
+	AliceKeyExchange->computeSharedSecret();
+	BobKeyExchange->computeSharedSecret();
+
+	/* Compare them */
+	BC_ASSERT_TRUE(AliceKeyExchange->get_sharedSecret()==BobKeyExchange->get_sharedSecret());
+}
+
+template <typename Curve>
+void signAndVerify_bench(uint64_t runTime_ms ) {
+	constexpr size_t batch_size = 100;
+
+	/* We need a RNG */
+	auto rng = make_RNG();
+	/* Create Alice, Vera Signature context */
+	auto Alice = make_Signature<Curve>();
+	auto Vera = make_Signature<Curve>();
+
+	// the message to sign is a public Key for keyExchange algo
+	auto keyExchangeContext = make_keyExchange<Curve>();
+	keyExchangeContext->createKeyPair(rng);
+	auto XpublicKey = keyExchangeContext->get_selfPublic();
+
+	auto start = bctbx_get_cur_time_ms();
+	uint64_t span=0;
+	size_t runCount = 0;
+
+	while (span<runTime_ms) {
+		for (size_t i=0; i<batch_size; i++) {
+			/* Generate Signature key pairs */
+			Alice->createKeyPair(rng);
+		}
+		span = bctbx_get_cur_time_ms() - start;
+		runCount += batch_size;
+	}
+
+	auto freq = 1000*runCount/static_cast<double>(span);
+	std::string freq_unit, period_unit;
+	snprintSI(freq_unit, freq, "generations/s");
+	snprintSI(period_unit, 1/freq, "s/generation");
+	std::cout<<"Generate "<<int(runCount)<<" Signature key pairs in "<<int(span)<<" ms : "<<period_unit<<" "<<freq_unit<<endl;
+
+	start = bctbx_get_cur_time_ms();
+	span=0;
+	runCount = 0;
+
+	/* Sign messages*/
+	DSA<Curve, lime::DSAtype::signature> aliceSignature;
+
+	while (span<runTime_ms) {
+		for (size_t i=0; i<batch_size; i++) {
+			Alice->sign(XpublicKey, aliceSignature);
+		}
+		span = bctbx_get_cur_time_ms() - start;
+		runCount += batch_size;
+	}
+
+	freq = 1000*runCount/static_cast<double>(span);
+	snprintSI(freq_unit, freq, "signatures/s");
+	snprintSI(period_unit, 1/freq, "s/signature");
+	std::cout<<"Sign "<<int(runCount)<<" messages "<<int(span)<<" ms : "<<period_unit<<" "<<freq_unit<<endl;
+
+	start = bctbx_get_cur_time_ms();
+	span=0;
+	runCount = 0;
+	/* Vera check messages authenticity */
+	Vera->set_public(Alice->get_public());
+	while (span<runTime_ms) {
+		for (size_t i=0; i<batch_size; i++) {
+			Vera->verify(XpublicKey, aliceSignature);
+		}
+		span = bctbx_get_cur_time_ms() - start;
+		runCount += batch_size;
+	}
+
+	freq = 1000*runCount/static_cast<double>(span);
+	snprintSI(freq_unit, freq, "verifies/s");
+	snprintSI(period_unit, 1/freq, "s/verify");
+	std::cout<<"Verify "<<int(runCount)<<" messages "<<int(span)<<" ms : "<<period_unit<<" "<<freq_unit<<endl<<endl;
+
+	BC_ASSERT_TRUE(Vera->verify(XpublicKey, aliceSignature));
+}
+
+static void signAndVerify(void) {
+#ifdef EC25519_ENABLED
+	signAndVerify_test<C255>();
+	if (bench) {
+		std::cout<<"Bench for Curve 25519:"<<endl;
+		signAndVerify_bench<C255>(BENCH_TIMING_MS);
+	}
+#endif
+#ifdef EC448_ENABLED
+	signAndVerify_test<C448>();
+	if (bench) {
+		std::cout<<"Bench for Curve 448:"<<endl;
+		signAndVerify_bench<C448>(BENCH_TIMING_MS);
+	}
+#endif
+}
+
 static test_t tests[] = {
 	TEST_NO_TAG("Key Exchange", exchange),
+	TEST_NO_TAG("Signature", signAndVerify),
 };
 
 test_suite_t lime_crypto_test_suite = {

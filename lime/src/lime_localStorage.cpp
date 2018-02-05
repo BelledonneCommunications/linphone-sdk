@@ -544,7 +544,7 @@ bool DR<DHKey>::session_load() {
 };
 
 template <typename Curve>
-bool DR<Curve>::trySkippedMessageKeys(const uint16_t Nr, const X<Curve> &DHr, DRMKey &MK) {
+bool DR<Curve>::trySkippedMessageKeys(const uint16_t Nr, const X<Curve, lime::Xtype::publicKey> &DHr, DRMKey &MK) {
 	blob MK_blob(m_localStorage->sql);
 	blob DHr_blob(m_localStorage->sql);
 	DHr_blob.write(0, (char *)(DHr.data()), DHr.size());
@@ -566,13 +566,13 @@ bool DR<Curve>::trySkippedMessageKeys(const uint16_t Nr, const X<Curve> &DHr, DR
 #ifdef EC25519_ENABLED
 	template bool DR<C255>::session_load();
 	template bool DR<C255>::session_save();
-	template bool DR<C255>::trySkippedMessageKeys(const uint16_t Nr, const X<C255> &DHr, DRMKey &MK);
+	template bool DR<C255>::trySkippedMessageKeys(const uint16_t Nr, const X<C255, lime::Xtype::publicKey> &DHr, DRMKey &MK);
 #endif
 
 #ifdef EC448_ENABLED
 	template bool DR<C448>::session_load();
 	template bool DR<C448>::session_save();
-	template bool DR<C448>::trySkippedMessageKeys(const uint16_t Nr, const X<C448> &DHr, DRMKey &MK);
+	template bool DR<C448>::trySkippedMessageKeys(const uint16_t Nr, const X<C448, lime::Xtype::publicKey> &DHr, DRMKey &MK);
 #endif
 
 /******************************************************************************/
@@ -600,17 +600,17 @@ bool Lime<Curve>::create_user()
 		throw BCTBX_EXCEPTION << "Lime user "<<m_selfDeviceId<<" cannot be created: it is already in Database - delete it before if you really want to replace it";
 	}
 
-	// generate an identity EDDSA key pair
-	auto EDDSAContext = EDDSAInit<Curve>();
-	bctbx_EDDSACreateKeyPair(EDDSAContext, (int (*)(void *, uint8_t *, size_t))bctbx_rng_get, m_RNG);
+	// generate an identity Signature key pair
+	auto IkSig = make_Signature<Curve>();
+	IkSig->createKeyPair(m_RNG);
+
 	// store it in a blob : Public||Private
 	blob Ik(m_localStorage->sql);
-	Ik.write(0, (const char *)EDDSAContext->publicKey, EDDSAContext->pointCoordinateLength);
-	Ik.write(EDDSAContext->pointCoordinateLength, (const char *)EDDSAContext->secretKey, EDDSAContext->secretLength);
-	/* set the Ik in Lime object */
-	//m_Ik = std::move(KeyPair<ED<Curve>>{EDDSAContext->publicKey, EDDSAContext->secretKey});
-	bctbx_DestroyEDDSAContext(EDDSAContext);
+	Ik.write(0, (const char *)(IkSig->get_public().data()), DSA<Curve, lime::DSAtype::publicKey>::ssize());
+	Ik.write(DSA<Curve, lime::DSAtype::publicKey>::ssize(), (const char *)(IkSig->get_secret().data()), DSA<Curve, lime::DSAtype::privateKey>::ssize());
 
+	// set the Ik in Lime object?
+	//m_Ik = std::move(KeyPair<ED<Curve>>{EDDSAContext->publicKey, EDDSAContext->secretKey});
 
 	// insert in DB
 	try {
@@ -649,25 +649,25 @@ void Lime<Curve>::get_SelfIdentityKey() {
 
 
 template <typename Curve>
-void Lime<Curve>::X3DH_generate_SPk(X<Curve> &publicSPk, Signature<Curve> &SPk_sig, uint32_t &SPk_id) {
+void Lime<Curve>::X3DH_generate_SPk(X<Curve, lime::Xtype::publicKey> &publicSPk, DSA<Curve, lime::DSAtype::signature> &SPk_sig, uint32_t &SPk_id) {
 	// check Identity key is loaded in Lime object context
 	get_SelfIdentityKey();
 
 	// Generate a new ECDH Key pair
-	auto ECDH_Context = ECDHInit<Curve>();
-	bctbx_ECDHCreateKeyPair(ECDH_Context, (int (*)(void *, uint8_t *, size_t))bctbx_rng_get, m_RNG);
+	auto DH = make_keyExchange<Curve>();
+	DH->createKeyPair(m_RNG);
+	publicSPk = DH->get_selfPublic();
 
 	// Sign the public key with our identity key
-	auto EDDSA_Context = EDDSAInit<Curve>();
-	bctbx_EDDSA_setPublicKey(EDDSA_Context, m_Ik.publicKey().data(), m_Ik.publicKey().size());
-	bctbx_EDDSA_setSecretKey(EDDSA_Context, m_Ik.privateKey().data(), m_Ik.privateKey().size());
-	auto sig_size=SPk_sig.size();
-	bctbx_EDDSA_sign(EDDSA_Context, ECDH_Context->selfPublic, ECDH_Context->pointCoordinateLength, nullptr, 0, SPk_sig.data(), &sig_size);
+	auto SPkSign = make_Signature<Curve>();
+	SPkSign->set_public(m_Ik.publicKey());
+	SPkSign->set_secret(m_Ik.privateKey());
+	SPkSign->sign(publicSPk, SPk_sig);
 
 	// Generate a random SPk Id: Sqlite doesn't really support unsigned value.
 	// Be sure the MSbit is set to zero to avoid problem as even if declared unsigned this Id will be treated by sqlite as signed(but still unsigned in this lib)
 	std::array<uint8_t,4> randomId;
-	bctbx_rng_get(m_RNG, randomId.data(), randomId.size());
+	m_RNG->randomize(randomId.data(), randomId.size());
 	SPk_id = static_cast<uint32_t>(randomId[0])<<23 | static_cast<uint32_t>(randomId[1])<<16 | static_cast<uint32_t>(randomId[2])<<8 | static_cast<uint32_t>(randomId[3]);
 
 	// insert all this in DB
@@ -679,27 +679,18 @@ void Lime<Curve>::X3DH_generate_SPk(X<Curve> &publicSPk, Signature<Curve> &SPk_s
 		m_localStorage->sql<<"UPDATE X3DH_SPK SET Status = 0, timeStamp = CURRENT_TIMESTAMP WHERE Uid = :Uid AND Status = 1;", use(m_db_Uid);
 
 		blob SPk_blob(m_localStorage->sql);
-		SPk_blob.write(0, (const char *)ECDH_Context->selfPublic, ECDH_Context->pointCoordinateLength);
-		SPk_blob.write(ECDH_Context->pointCoordinateLength, (const char *)ECDH_Context->secret, ECDH_Context->secretLength);
+		SPk_blob.write(0, (const char *)publicSPk.data(), publicSPk.size());
+		SPk_blob.write(publicSPk.size(), (const char *)(DH->get_secret().data()), X<Curve, lime::Xtype::privateKey>::ssize());
 		m_localStorage->sql<<"INSERT INTO X3DH_SPK(SPKid,SPK,Uid) VALUES (:SPKid,:SPK,:Uid) ", use(SPk_id), use(SPk_blob), use(m_db_Uid);
 
 		tr.commit();
 	} catch (exception const &e) {
-		bctbx_DestroyECDHContext(ECDH_Context);
-		bctbx_DestroyEDDSAContext(EDDSA_Context);
 		throw BCTBX_EXCEPTION << "SPK insertion in DB failed. DB backend says : "<<e.what();
 	}
-
-	// get SPk public key in output param
-	publicSPk = std::move(X<Curve>{ECDH_Context->selfPublic});
-
-	// destroy contexts
-	bctbx_DestroyECDHContext(ECDH_Context);
-	bctbx_DestroyEDDSAContext(EDDSA_Context);
 }
 
 template <typename Curve>
-void Lime<Curve>::X3DH_generate_OPks(std::vector<X<Curve>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number) {
+void Lime<Curve>::X3DH_generate_OPks(std::vector<X<Curve, lime::Xtype::publicKey>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number) {
 
 	// make room for OPk and OPk ids
 	publicOPks.reserve(OPk_number);
@@ -711,37 +702,34 @@ void Lime<Curve>::X3DH_generate_OPks(std::vector<X<Curve>> &publicOPks, std::vec
 	uint32_t OPk_id;
 	statement st = (m_localStorage->sql.prepare << "INSERT INTO X3DH_OPK(OPKid, OPK,Uid) VALUES(:OPKid,:OPK,:Uid)", use(OPk_id), use(OPk), use(m_db_Uid));
 
-	// Create an ECDH context to create key pairs
-	auto ECDH_Context = ECDHInit<Curve>();
+	// Create an key exchange context to create key pairs
+	auto DH = make_keyExchange<Curve>();
 
 	try {
 		for (uint16_t i=0; i<OPk_number; i++) {
 			// Generate a new ECDH Key pair
-			bctbx_ECDHCreateKeyPair(ECDH_Context, (int (*)(void *, uint8_t *, size_t))bctbx_rng_get, m_RNG);
+			DH->createKeyPair(m_RNG);
 
 			// Generate a random OPk Id: Sqlite doesn't really support unsigned value.
 			// Be sure the MSbit is set to zero to avoid problem as even if declared unsigned this Id will be treated by sqlite as signed(but still unsigned in this lib)
 			std::array<uint8_t,4> randomId;
-			bctbx_rng_get(m_RNG, randomId.data(), randomId.size());
+			m_RNG->randomize(randomId.data(), randomId.size());
 			OPk_id = static_cast<uint32_t>(randomId[0])<<23 | static_cast<uint32_t>(randomId[1])<<16 | static_cast<uint32_t>(randomId[2])<<8 | static_cast<uint32_t>(randomId[3]);
 
 			// Insert in DB: store Public Key || Private Key
-			OPk.write(0, (char *)(ECDH_Context->selfPublic), ECDH_Context->pointCoordinateLength);
-			OPk.write(ECDH_Context->pointCoordinateLength, (char *)(ECDH_Context->secret), ECDH_Context->secretLength);
+			OPk.write(0, (const char *)(DH->get_selfPublic().data()), X<Curve, lime::Xtype::publicKey>::ssize());
+			OPk.write(X<Curve, lime::Xtype::publicKey>::ssize(), (const char *)(DH->get_secret().data()), X<Curve, lime::Xtype::privateKey>::ssize());
 			st.execute(true);
 
 			// set in output vectors
-			publicOPks.emplace_back(ECDH_Context->selfPublic);
+			publicOPks.emplace_back(DH->get_selfPublic());
 			OPk_ids.push_back(OPk_id);
 		}
 	} catch (exception &e) {
-		bctbx_DestroyECDHContext(ECDH_Context);
 		throw BCTBX_EXCEPTION << "OPK insertion in DB failed. DB backend says : "<<e.what();
 	}
 	// commit changes to DB
 	tr.commit();
-
-	bctbx_DestroyECDHContext(ECDH_Context);
 }
 
 template <typename Curve>
@@ -825,7 +813,7 @@ void Lime<Curve>::cache_DR_sessions(std::vector<recipientInfos<Curve>> &internal
  * @return the id internally used by db to store this row
  */
 template <typename Curve>
-long int Lime<Curve>::store_peerDevice(const std::string &peerDeviceId, const ED<Curve> &Ik) {
+long int Lime<Curve>::store_peerDevice(const std::string &peerDeviceId, const DSA<Curve, lime::DSAtype::publicKey> &Ik) {
 	blob Ik_blob(m_localStorage->sql);
 
 	try {
@@ -833,7 +821,7 @@ long int Lime<Curve>::store_peerDevice(const std::string &peerDeviceId, const ED
 		// make sure this device wasn't already here, if it was, check they have the same Ik
 		m_localStorage->sql<<"SELECT Ik,Did FROM lime_PeerDevices WHERE DeviceId = :DeviceId LIMIT 1;", into(Ik_blob), into(Did), use(peerDeviceId);
 		if (m_localStorage->sql.got_data()) { // Found one
-			ED<Curve> stored_Ik;
+			DSA<Curve, lime::DSAtype::publicKey> stored_Ik;
 			if (Ik_blob.get_len() != stored_Ik.size()) { // can't match they are not the same size
 				BCTBX_SLOGE<<"It appears that peer device "<<peerDeviceId<<" was known with an identity key but is trying to use another one now";
 				throw BCTBX_EXCEPTION << "Peer device "<<peerDeviceId<<" changed its Ik";
@@ -877,7 +865,7 @@ void Lime<Curve>::get_DRSessions(const std::string &senderDeviceId, const long i
  * @param[out]	SPk	The SPk if found
  */
 template <typename Curve>
-void Lime<Curve>::X3DH_get_SPk(uint32_t SPk_id, KeyPair<X<Curve>> &SPk) {
+void Lime<Curve>::X3DH_get_SPk(uint32_t SPk_id, Xpair<Curve> &SPk) {
 	blob SPk_blob(m_localStorage->sql);
 	m_localStorage->sql<<"SELECT SPk FROM X3DH_SPk WHERE Uid = :Uid AND SPKid = :SPk_id LIMIT 1;", into(SPk_blob), use(m_db_Uid), use(SPk_id);
 	if (m_localStorage->sql.got_data()) { // Found it, it is stored in one buffer Public || Private
@@ -911,7 +899,7 @@ bool Lime<Curve>::is_currentSPk_valid(void) {
  * @param[out]	OPk	The OPk if found
  */
 template <typename Curve>
-void Lime<Curve>::X3DH_get_OPk(uint32_t OPk_id, KeyPair<X<Curve>> &OPk) {
+void Lime<Curve>::X3DH_get_OPk(uint32_t OPk_id, Xpair<Curve> &OPk) {
 	blob OPk_blob(m_localStorage->sql);
 	m_localStorage->sql<<"SELECT OPk FROM X3DH_OPK WHERE Uid = :Uid AND OPKid = :OPk_id LIMIT 1;", into(OPk_blob), use(m_db_Uid), use(OPk_id);
 	if (m_localStorage->sql.got_data()) { // Found it, it is stored in one buffer Public || Private
@@ -954,28 +942,28 @@ void Lime<Curve>::X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds) {
 #ifdef EC25519_ENABLED
 	template bool Lime<C255>::create_user();
 	template void Lime<C255>::get_SelfIdentityKey();
-	template void Lime<C255>::X3DH_generate_SPk(X<C255> &publicSPk, Signature<C255> &SPk_sig, uint32_t &SPk_id);
-	template void Lime<C255>::X3DH_generate_OPks(std::vector<X<C255>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number);
+	template void Lime<C255>::X3DH_generate_SPk(X<C255, lime::Xtype::publicKey> &publicSPk, DSA<C255, DSAtype::signature> &SPk_sig, uint32_t &SPk_id);
+	template void Lime<C255>::X3DH_generate_OPks(std::vector<X<C255, lime::Xtype::publicKey>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number);
 	template void Lime<C255>::cache_DR_sessions(std::vector<recipientInfos<C255>> &internal_recipients, std::vector<std::string> &missing_devices);
-	template long int Lime<C255>::store_peerDevice(const std::string &peerDeviceId, const ED<C255> &Ik);
+	template long int Lime<C255>::store_peerDevice(const std::string &peerDeviceId, const DSA<C255, lime::DSAtype::publicKey> &Ik);
 	template void Lime<C255>::get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDBSessionId, std::vector<std::shared_ptr<DR<C255>>> &DRSessions);
-	template void Lime<C255>::X3DH_get_SPk(uint32_t SPk_id, KeyPair<X<C255>> &SPk);
+	template void Lime<C255>::X3DH_get_SPk(uint32_t SPk_id, Xpair<C255> &SPk);
 	template bool Lime<C255>::is_currentSPk_valid(void);
-	template void Lime<C255>::X3DH_get_OPk(uint32_t OPk_id, KeyPair<X<C255>> &SPk);
+	template void Lime<C255>::X3DH_get_OPk(uint32_t OPk_id, Xpair<C255> &SPk);
 	template void Lime<C255>::X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds);
 #endif
 
 #ifdef EC448_ENABLED
 	template bool Lime<C448>::create_user();
 	template void Lime<C448>::get_SelfIdentityKey();
-	template void Lime<C448>::X3DH_generate_SPk(X<C448> &publicSPk, Signature<C448> &SPk_sig, uint32_t &SPk_id);
-	template void Lime<C448>::X3DH_generate_OPks(std::vector<X<C448>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number);
+	template void Lime<C448>::X3DH_generate_SPk(X<C448, lime::Xtype::publicKey> &publicSPk, DSA<C448, DSAtype::signature> &SPk_sig, uint32_t &SPk_id);
+	template void Lime<C448>::X3DH_generate_OPks(std::vector<X<C448, lime::Xtype::publicKey>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number);
 	template void Lime<C448>::cache_DR_sessions(std::vector<recipientInfos<C448>> &internal_recipients, std::vector<std::string> &missing_devices);
-	template long int Lime<C448>::store_peerDevice(const std::string &peerDeviceId, const ED<C448> &Ik);
+	template long int Lime<C448>::store_peerDevice(const std::string &peerDeviceId, const DSA<C448, lime::DSAtype::publicKey> &Ik);
 	template void Lime<C448>::get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDBSessionId, std::vector<std::shared_ptr<DR<C448>>> &DRSessions);
-	template void Lime<C448>::X3DH_get_SPk(uint32_t SPk_id, KeyPair<X<C448>> &SPk);
+	template void Lime<C448>::X3DH_get_SPk(uint32_t SPk_id, Xpair<C448> &SPk);
 	template bool Lime<C448>::is_currentSPk_valid(void);
-	template void Lime<C448>::X3DH_get_OPk(uint32_t OPk_id, KeyPair<X<C448>> &SPk);
+	template void Lime<C448>::X3DH_get_OPk(uint32_t OPk_id, Xpair<C448> &SPk);
 	template void Lime<C448>::X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds);
 #endif
 

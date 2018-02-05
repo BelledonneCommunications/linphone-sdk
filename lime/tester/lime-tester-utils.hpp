@@ -24,6 +24,7 @@
 #include "lime_double_ratchet.hpp"
 #include "lime_localStorage.hpp"
 #include "belle-sip/belle-sip.h"
+#include "lime_crypto_primitives.hpp"
 
 #include "soci/sqlite3/soci-sqlite3.h"
 
@@ -45,7 +46,7 @@ extern uint16_t OPkInitialBatchSize;
  *	if fileName doesn't exists as a DB, it will be created, caller shall then delete it if needed
  */
 template <typename Curve>
-void dr_sessionsInit(std::shared_ptr<DR<Curve>> &alice, std::shared_ptr<DR<Curve>> &bob, std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob, std::string dbFilenameAlice, std::string dbFilenameBob, bool initStorage, bctbx_rng_context_t *RNG_context);
+void dr_sessionsInit(std::shared_ptr<DR<Curve>> &alice, std::shared_ptr<DR<Curve>> &bob, std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob, std::string dbFilenameAlice, std::string dbFilenameBob, bool initStorage, std::shared_ptr<RNG> RNG_context);
 
 
 /* non efficient but used friendly structure to store all details about a session */
@@ -73,7 +74,7 @@ struct sessionDetails {
  * createdDBfiles is filled with all filenames of DB created to allow easy deletion
  */
 template <typename Curve>
-void dr_devicesInit(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<Curve>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles, bctbx_rng_context_t *RNG_context);
+void dr_devicesInit(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<Curve>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles, std::shared_ptr<RNG> RNG_context);
 
 /* return true if the message buffer is a valid DR message holding a X3DH init one in its header */
 bool DR_message_holdsX3DHInit(std::vector<uint8_t> &message);
@@ -135,12 +136,12 @@ int wait_for(belle_sip_stack_t*s1,int* counter,int value,int timeout);
 
 // template instanciation are done in lime-tester-utils.cpp
 #ifdef EC25519_ENABLED
-	extern template void dr_sessionsInit<C255>(std::shared_ptr<DR<C255>> &alice, std::shared_ptr<DR<C255>> &bob, std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob, std::string dbFilenameAlice, std::string dbFilenameBob, bool initStorage, bctbx_rng_context_t *RNG_context); 
-	extern template void dr_devicesInit<C255>(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<C255>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles,  bctbx_rng_context_t *RNG_context);
+	extern template void dr_sessionsInit<C255>(std::shared_ptr<DR<C255>> &alice, std::shared_ptr<DR<C255>> &bob, std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob, std::string dbFilenameAlice, std::string dbFilenameBob, bool initStorage, std::shared_ptr<RNG> RNG_context); 
+	extern template void dr_devicesInit<C255>(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<C255>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles,  std::shared_ptr<RNG> RNG_context);
 #endif
 #ifdef EC448_ENABLED
-	extern template void dr_sessionsInit<C448>(std::shared_ptr<DR<C448>> &alice, std::shared_ptr<DR<C448>> &bob, std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob, std::string dbFilenameAlice, std::string dbFilenameBob, bool initStorage,  bctbx_rng_context_t *RNG_context); 
-	extern template void dr_devicesInit<C448>(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<C448>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles,  bctbx_rng_context_t *RNG_context);
+	extern template void dr_sessionsInit<C448>(std::shared_ptr<DR<C448>> &alice, std::shared_ptr<DR<C448>> &bob, std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob, std::string dbFilenameAlice, std::string dbFilenameBob, bool initStorage,  std::shared_ptr<RNG> RNG_context); 
+	extern template void dr_devicesInit<C448>(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<C448>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles,  std::shared_ptr<RNG> RNG_context);
 #endif
 
 // the test server has only one user registered but accept commands from any users using this credentials

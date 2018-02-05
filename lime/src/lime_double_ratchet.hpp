@@ -22,13 +22,12 @@
 #include <array>
 #include <string>
 #include <unordered_map>
-#include "bctoolbox/crypto.h"
 #include <vector>
 #include <memory>
 
 #include "lime_settings.hpp"
 #include "lime_defines.hpp"
-#include "lime_keys.hpp"
+#include "lime_crypto_primitives.hpp"
 
 namespace lime {
 
@@ -39,17 +38,24 @@ namespace lime {
 	enum class DRSessionDbStatus : uint8_t {clean, dirty_encrypt, dirty_decrypt, dirty_ratchet, dirty};
 
 	// Double Rachet chain keys: Root key, Sender and receiver keys are 32 bytes arrays
-	using DRChainKey = std::array<uint8_t, lime::settings::DRChainKeySize>;
+	class DRChainKey : public std::array<uint8_t, lime::settings::DRChainKeySize> {
+		public:
+		~DRChainKey() {cleanBuffer(this->data(), lime::settings::DRChainKeySize);}
+	};
 	// Double Ratchet Message keys : 32 bytes of encryption key followed by 16 bytes of IV
-	using DRMKey = std::array<uint8_t, lime::settings::DRMessageKeySize+lime::settings::DRMessageIVSize>;
+	class DRMKey : public std::array<uint8_t, lime::settings::DRMessageKeySize+lime::settings::DRMessageIVSize> {
+		public:
+		~DRMKey() {cleanBuffer(this->data(), lime::settings::DRMessageKeySize+lime::settings::DRMessageIVSize);}
+	};
+
 	// Shared Associated Data : stored at session initialisation, given by upper level(X3DH), shall be derived from Identity and Identity keys of sender and recipient, fixed size for storage convenience
 	using SharedADBuffer = std::array<uint8_t, lime::settings::DRSessionSharedADSize>;
 	// Chain storing the DH and MKs associated with Nr(uint16_t map index)
 	template <typename Curve>
 	struct receiverKeyChain {
-		X<Curve> DHr;
+		X<Curve, lime::Xtype::publicKey> DHr;
 		std::unordered_map<std::uint16_t, DRMKey> messageKeys;
-		receiverKeyChain(X<Curve> key) :DHr{std::move(key)}, messageKeys{} {};
+		receiverKeyChain(X<Curve, lime::Xtype::publicKey> key) :DHr{std::move(key)}, messageKeys{} {};
 	};
 
 	/**
@@ -62,9 +68,9 @@ namespace lime {
 	class DR {
 		private:
 			/* State variables for Double Ratchet, see Double Ratchet spec section 3.2 for details */
-			X<Curve> m_DHr; // Remote public key
+			X<Curve, lime::Xtype::publicKey> m_DHr; // Remote public key
 			bool m_DHr_valid; // do we have a valid remote public key, flag used to spot the first message arriving at session creation in receiver mode
-			KeyPair<X<Curve>> m_DHs; // self Key pair
+			Xpair<Curve> m_DHs; // self Key pair
 			DRChainKey m_RK; // 32 bytes root key
 			DRChainKey m_CKs; // 32 bytes key chain for sending
 			DRChainKey m_CKr; // 32 bytes key chain for receiving
@@ -74,7 +80,7 @@ namespace lime {
 			std::vector<lime::receiverKeyChain<Curve>> m_mkskipped; // list of skipped message indexed by DH receiver public key and Nr, store MK generated during on-going decrypt, lookup is done directly in DB.
 
 			/* helpers variables */
-			bctbx_rng_context_t *m_RNG; // Random Number Generator context
+			std::shared_ptr<RNG> m_RNG; // Random Number Generator context
 			long int m_dbSessionId; // used to store row id from Database Storage
 			uint16_t m_usedNr; // store the index of message key used for decryption if it came from mkskipped db
 			long m_usedDHid; // store the index of DHr message key used for decryption if it came from mkskipped db(not zero only if used)
@@ -87,17 +93,17 @@ namespace lime {
 
 			/*helpers functions */
 			void skipMessageKeys(const uint16_t until, const int limit); /* check if we skipped some messages in current receiving chain, generate and store in session intermediate message keys */
-			void DHRatchet(const X<Curve> &headerDH); /* perform a Diffie-Hellman ratchet using the given peer public key */
+			void DHRatchet(const X<Curve, lime::Xtype::publicKey> &headerDH); /* perform a Diffie-Hellman ratchet using the given peer public key */
 			/* local storage related implemented in lime_localStorage.cpp */
 			bool session_save(); /* save/update session in database : updated component depends m_dirty value */
 			bool session_load(); /* load session in database */
-			bool trySkippedMessageKeys(const uint16_t Nr, const X<Curve> &DHr, DRMKey &MK); /* check in DB if we have a message key matching public DH and Ns */
+			bool trySkippedMessageKeys(const uint16_t Nr, const X<Curve, lime::Xtype::publicKey> &DHr, DRMKey &MK); /* check in DB if we have a message key matching public DH and Ns */
 
 		public:
 			DR() = delete; // make sure the Double Ratchet is not initialised without parameters
-			DR(lime::Db *localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const X<Curve> &peerPublicKey, long int peerDeviceId, long int selfDeviceId, const std::vector<uint8_t> &X3DH_initMessage, bctbx_rng_context_t *RNG_context); // call to initialise a session for sender: we have Shared Key and peer Public key
-			DR(lime::Db *localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const KeyPair<X<Curve>> &selfKeyPair, long int peerDeviceId, long int selfDeviceId, bctbx_rng_context_t *RNG_context); // call at initialisation of a session for receiver: we have Share Key and self key pair
-			DR(lime::Db *localStorage, long sessionId, bctbx_rng_context_t *RNG_context); // load session from DB
+			DR(lime::Db *localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const X<Curve, lime::Xtype::publicKey> &peerPublicKey, long int peerDeviceId, long int selfDeviceId, const std::vector<uint8_t> &X3DH_initMessage, std::shared_ptr<RNG> RNG_context); // call to initialise a session for sender: we have Shared Key and peer Public key
+			DR(lime::Db *localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const Xpair<Curve> &selfKeyPair, long int peerDeviceId, long int selfDeviceId, std::shared_ptr<RNG> RNG_context); // call at initialisation of a session for receiver: we have Share Key and self key pair
+			DR(lime::Db *localStorage, long sessionId, std::shared_ptr<RNG> RNG_context); // load session from DB
 			DR(DR<Curve> &a) = delete; // can't copy a session, force usage of shared pointers
 			DR<Curve> &operator=(DR<Curve> &a) = delete; // can't copy a session
 			~DR();

@@ -35,7 +35,6 @@ set(LIME_HEADER_FILES
 set(LIME_SOURCE_FILES_C )
 set(LIME_SOURCE_FILES_CXX
 	lime.cpp
-	lime_keys.cpp
 	lime_crypto_primitives.cpp
 	lime_x3dh.cpp
 	lime_x3dh_protocol.cpp

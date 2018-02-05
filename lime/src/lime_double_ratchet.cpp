@@ -60,18 +60,18 @@ namespace lime {
 	 *
 	 * @param[in/out]	RK	Input buffer used as salt also to store the 32 first byte of output key material
 	 * @param[out]		CK	Output buffer, last 32 bytes of output key material
-	 * @param[in]		dh_out	Buffer used as input key material, buffer is C style as it comes directly from another C API buffer(ECDH in bctoolbox)
+	 * @param[in]		dh_out	Buffer used as input key material
 	 */
 	template <typename Curve>
-	static void KDF_RK(DRChainKey &RK, DRChainKey &CK, const uint8_t *dh_out) noexcept {
+	static void KDF_RK(DRChainKey &RK, DRChainKey &CK, const X<Curve, lime::Xtype::sharedSecret> &dh_out) noexcept {
 		uint8_t PRK[64]; // PRK size is the one of hmacSha512 maximum output
 		uint8_t tmp[2*lime::settings::DRChainKeySize]; // tmp will hold RK || CK
-		bctbx_hmacSha512(RK.data(), RK.size(), dh_out, X<Curve>::keyLength(), sizeof(PRK), PRK);
+		bctbx_hmacSha512(RK.data(), RK.size(), dh_out.data(), dh_out.size(), sizeof(PRK), PRK);
 		bctbx_hmacSha512(PRK, sizeof(PRK), hkdf_rk_info.data(), hkdf_rk_info.size(), sizeof(tmp), tmp);
 		std::copy_n(tmp, lime::settings::DRChainKeySize, RK.begin());
 		std::copy_n(tmp+lime::settings::DRChainKeySize, lime::settings::DRChainKeySize, CK.begin());
-		bctbx_clean(PRK, 64);
-		bctbx_clean(tmp, 2*lime::settings::DRChainKeySize);
+		cleanBuffer(PRK, 64);
+		cleanBuffer(tmp, 2*lime::settings::DRChainKeySize);
 	}
 
 	/**
@@ -89,10 +89,9 @@ namespace lime {
 		bctbx_hmacSha512(CK.data(), CK.size(), hkdf_mk_info.data(), hkdf_mk_info.size(), MK.size(), MK.data());
 
 		// use temporary buffer, not likely that output and key could be the same buffer
-		uint8_t tmp[lime::settings::DRChainKeySize];
-		bctbx_hmacSha512(CK.data(), CK.size(), hkdf_ck_info.data(), hkdf_ck_info.size(), CK.size(), tmp);
-		std::copy_n(tmp, CK.size(), CK.begin());
-		bctbx_clean(tmp, lime::settings::DRChainKeySize);
+		DRChainKey tmp;
+		bctbx_hmacSha512(CK.data(), CK.size(), hkdf_ck_info.data(), hkdf_ck_info.size(), tmp.size(), tmp.data());
+		CK = tmp;
 	}
 
 	/**
@@ -161,29 +160,27 @@ namespace lime {
 	 * @param[in]	X3DH_initMessage	at session creation as sender we shall also store the X3DHInit message to be able to include it in all message until we got a response from peer
 	 */
 	template <typename Curve>
-	DR<Curve>::DR(lime::Db *localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const X<Curve> &peerPublicKey, long int peerDid, long int selfDid, const std::vector<uint8_t> &X3DH_initMessage, bctbx_rng_context_t *RNG_context)
+	DR<Curve>::DR(lime::Db *localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const X<Curve, lime::Xtype::publicKey> &peerPublicKey, long int peerDid, long int selfDid, const std::vector<uint8_t> &X3DH_initMessage, std::shared_ptr<RNG> RNG_context)
 	:m_DHr{peerPublicKey},m_DHr_valid{true}, m_DHs{},m_RK(SK),m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD(AD),m_mkskipped{},
 	m_RNG{RNG_context},m_dbSessionId{0},m_usedNr{0},m_usedDHid{0},m_localStorage{localStorage},m_dirty{DRSessionDbStatus::dirty},m_peerDid{peerDid}, m_db_Uid{selfDid},
 	m_active_status{true}, m_X3DH_initMessage{X3DH_initMessage}
 	{
 		// generate a new self key pair
-		// use specialized templates to init the bctoolbox ECDH context with the correct DH algo
-		bctbx_ECDHContext_t *ECDH_Context = ECDHInit<Curve>();
-		bctbx_ECDHCreateKeyPair(ECDH_Context, (int (*)(void *, uint8_t *, size_t))bctbx_rng_get, m_RNG);
+		auto DH = make_keyExchange<Curve>();
+		DH->createKeyPair(m_RNG);
 
 		// copy the peer public key into ECDH context
-		bctbx_ECDHSetPeerPublicKey(ECDH_Context, peerPublicKey.data(), peerPublicKey.size());
+		DH->set_peerPublic(peerPublicKey);
+
 		// get self key pair from context
-		m_DHs.publicKey() = X<Curve>{ECDH_Context->selfPublic};
-		m_DHs.privateKey() = X<Curve>{ECDH_Context->secret};
+		m_DHs.publicKey() = DH->get_selfPublic();
+		m_DHs.privateKey() = DH->get_secret();
 
 		// compute shared secret
-		bctbx_ECDHComputeSecret(ECDH_Context, NULL, NULL);
+		DH->computeSharedSecret();
 
 		// derive the root key
-		KDF_RK<Curve>(m_RK, m_CKs, ECDH_Context->sharedSecret);
-
-		bctbx_DestroyECDHContext(ECDH_Context);
+		KDF_RK<Curve>(m_RK, m_CKs, DH->get_sharedSecret());
 	}
 
 	/**
@@ -196,7 +193,7 @@ namespace lime {
 	 * @param[in]	selfDid			Id used in local storage for local user this session shall be attached to
 	 */
 	template <typename Curve>
-	DR<Curve>::DR(lime::Db *localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const KeyPair<X<Curve>> &selfKeyPair, long int peerDid, long int selfDid, bctbx_rng_context_t *RNG_context)
+	DR<Curve>::DR(lime::Db *localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const Xpair<Curve> &selfKeyPair, long int peerDid, long int selfDid, std::shared_ptr<RNG> RNG_context)
 	:m_DHr{},m_DHr_valid{false},m_DHs{selfKeyPair},m_RK(SK),m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD(AD),m_mkskipped{},
 	m_RNG{RNG_context},m_dbSessionId{0},m_usedNr{0},m_usedDHid{0},m_localStorage{localStorage},m_dirty{DRSessionDbStatus::dirty},m_peerDid{peerDid}, m_db_Uid{selfDid},
 	m_active_status{true}, m_X3DH_initMessage{}
@@ -211,7 +208,7 @@ namespace lime {
 	 * @param[in]	sessionId	row id in the database identifying the session to be loaded
 	 */
 	template <typename Curve>
-	DR<Curve>::DR(lime::Db *localStorage, long sessionId, bctbx_rng_context_t *RNG_context)
+	DR<Curve>::DR(lime::Db *localStorage, long sessionId, std::shared_ptr<RNG> RNG_context)
 	:m_DHr{},m_DHr_valid{true},m_DHs{},m_RK{},m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD{},m_mkskipped{},
 	m_RNG{RNG_context},m_dbSessionId{sessionId},m_usedNr{0},m_usedDHid{0},m_localStorage{localStorage},m_dirty{DRSessionDbStatus::clean},m_peerDid{0}, m_db_Uid{0},
 	m_active_status{false}, m_X3DH_initMessage{}
@@ -220,12 +217,7 @@ namespace lime {
 	}
 
 	template <typename Curve>
-	DR<Curve>::~DR() {
-		bctbx_clean(m_DHs.privateKey().data(), m_DHs.privateKey().size());
-		bctbx_clean(m_RK.data(), m_RK.size());
-		bctbx_clean(m_CKs.data(), m_CKs.size());
-		bctbx_clean(m_CKr.data(), m_CKr.size());
-	}
+	DR<Curve>::~DR() { }
 
 	/**
 	 * @brief Derive chain keys until reaching the requested Id. Handling unordered messages
@@ -258,7 +250,6 @@ namespace lime {
 
 			m_Nr++;
 		}
-		bctbx_clean(MK.data(), MK.size());
 	}
 
 	/**
@@ -267,7 +258,7 @@ namespace lime {
 	 * @param[in] headerDH	The peer public key to use for the DH shared secret computation
 	 */
 	template <typename Curve>
-	void DR<Curve>::DHRatchet(const X<Curve> &headerDH) {
+	void DR<Curve>::DHRatchet(const X<Curve, lime::Xtype::publicKey> &headerDH) {
 		// reinit counters
 		m_PN=m_Ns;
 		m_Ns=0;
@@ -276,29 +267,28 @@ namespace lime {
 		// this is our new DHr
 		m_DHr = headerDH;
 
-		// use specialized templates to init the bctoolbox ECDH context with the correct DH algo
-		bctbx_ECDHContext_t *ECDH_Context = ECDHInit<Curve>();
-		// insert correct keys in the ECDH context
-		bctbx_ECDHSetPeerPublicKey(ECDH_Context, m_DHr.data(), m_DHr.size()); // new Dhr
-		bctbx_ECDHSetSelfPublicKey(ECDH_Context, m_DHs.publicKey().data(), m_DHs.publicKey().size()); // local key pair
-		bctbx_ECDHSetSecretKey(ECDH_Context, m_DHs.privateKey().data(), m_DHs.privateKey().size());
+		// generate a new self key pair
+		auto DH = make_keyExchange<Curve>();
+
+		// copy the peer public key into ECDH context
+		DH->set_peerPublic(m_DHr);
+		DH->set_selfPublic(m_DHs.publicKey());
+		DH->set_secret(m_DHs.privateKey());
 
 		//  Derive the new receiving chain key
-		bctbx_ECDHComputeSecret(ECDH_Context, NULL, NULL);
-		KDF_RK<Curve>(m_RK, m_CKr, ECDH_Context->sharedSecret);
+		DH->computeSharedSecret();
+		KDF_RK<Curve>(m_RK, m_CKr, DH->get_sharedSecret());
 
 		// generate a new self key pair
-		bctbx_ECDHCreateKeyPair(ECDH_Context, (int (*)(void *, uint8_t *, size_t))bctbx_rng_get, m_RNG);
+		DH->createKeyPair(m_RNG);
+
 		//  Derive the new sending chain key
-		bctbx_ECDHComputeSecret(ECDH_Context, NULL, NULL);
-		KDF_RK<Curve>(m_RK, m_CKs, ECDH_Context->sharedSecret);
+		DH->computeSharedSecret();
+		KDF_RK<Curve>(m_RK, m_CKs, DH->get_sharedSecret());
 
-		// retrieve new self pair from context
-		m_DHs.publicKey() = X<Curve>{ECDH_Context->selfPublic};
-		m_DHs.privateKey() = X<Curve>{ECDH_Context->secret};
-
-		// destroy context, it will erase the shared secret
-		bctbx_DestroyECDHContext(ECDH_Context);
+		// get self key pair from context
+		m_DHs.publicKey() = DH->get_selfPublic();
+		m_DHs.privateKey() = DH->get_secret();
 
 		// modified the DR session, not in sync anymore with local storage
 		m_dirty = DRSessionDbStatus::dirty_ratchet;
@@ -341,7 +331,6 @@ namespace lime {
 				m_dirty = DRSessionDbStatus::clean; // this session and local storage are back in sync
 			}
 		}
-		bctbx_clean(MK.data(), MK.size());
 	}
 
 
@@ -381,10 +370,8 @@ namespace lime {
 						m_X3DH_initMessage.clear(); // just in case we had a valid X3DH init in session, erase it as it's not needed after the first message received from peer
 					}
 				} else {
-					bctbx_clean(MK.data(), MK.size());
 					return false;
 				};
-				bctbx_clean(MK.data(), MK.size());
 				return true;
 			}
 			// if header DH public key != current stored peer public DH key: we must perform a DH ratchet
@@ -410,10 +397,8 @@ namespace lime {
 				m_mkskipped.clear(); // potential skipped message keys are now stored in DB, clear the local storage
 				m_X3DH_initMessage.clear(); // just in case we had a valid X3DH init in session, erase it as it's not needed after the first message received from peer
 			}
-			bctbx_clean(MK.data(), MK.size());
 			return true;
 		} else {
-			bctbx_clean(MK.data(), MK.size());
 			return false;
 		}
 	}
@@ -431,10 +416,9 @@ namespace lime {
 	void encryptMessage(std::vector<recipientInfos<Curve>>& recipients, const std::vector<uint8_t>& plaintext, const std::string& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage) {
 		// First generate a key and IV, use it to encrypt the given message, Associated Data are : sourceDeviceId || recipientUserId
 		// generate the random seed
-		bctbx_rng_context_t *RNG = bctbx_rng_context_new();
+		auto RNG_context = make_RNG();
 		std::array<uint8_t,lime::settings::DRrandomSeedSize> randomSeed{}; // this seed is sent in DR message and used to derivate random key + IV to encrypt the actual message
-		bctbx_rng_get(RNG, randomSeed.data(), randomSeed.size());
-		bctbx_rng_context_free(RNG);
+		RNG_context->randomize(randomSeed.data(), randomSeed.size());
 
 		// expansion of randomSeed to 48 bytes: 32 bytes random key + 16 bytes nonce
 		// use the expansion round of HKDF - RFC 5869
@@ -459,7 +443,7 @@ namespace lime {
 		cipherMessage.data()) != 0) {
 			throw BCTBX_EXCEPTION << "DR Session low level encryption routine failed";
 		}
-		bctbx_clean(randomKey.data(), randomKey.size());
+		cleanBuffer(randomKey.data(), randomKey.size());
 
 		// Loop on each session, given Associated Data to Double Ratchet encryption is: auth tag of cipherMessage AEAD || sourceDeviceId || recipient device Id(gruu)
 		// build the common part to AD given to DR Session encryption
@@ -472,7 +456,7 @@ namespace lime {
 
 			recipients[i].DRSession->ratchetEncrypt(randomSeed, std::move(recipientAD), recipients[i].cipherHeader);
 		}
-		bctbx_clean(randomSeed.data(), randomSeed.size());
+		cleanBuffer(randomSeed.data(), randomSeed.size());
 	}
 
 	template <typename Curve>
@@ -512,7 +496,7 @@ namespace lime {
 				std::vector<uint8_t> expansionRoundInput{lime::settings::hkdf_randomSeed_info.cbegin(), lime::settings::hkdf_randomSeed_info.cend()};
 				expansionRoundInput.push_back(0x01);
 				bctbx_hmacSha512(randomSeed.data(), randomSeed.size(), expansionRoundInput.data(), expansionRoundInput.size(), randomKey.size(), randomKey.data());
-				bctbx_clean(randomSeed.data(), randomSeed.size());
+				cleanBuffer(randomSeed.data(), randomSeed.size());
 
 				// use it to decipher message
 				if (bctbx_aes_gcm_decrypt_and_auth(randomKey.data(), lime::settings::DRMessageKeySize, // random key buffer hold key<DRMessageKeySize bytes> || IV<DRMessageIVSize bytes>
@@ -522,10 +506,10 @@ namespace lime {
 					cipherMessage.data()+cipherMessage.size()-lime::settings::DRMessageAuthTagSize, lime::settings::DRMessageAuthTagSize, // tag is in the last 16 bytes of buffer
 					plaintext.data()) == 0) {
 
-					bctbx_clean(randomKey.data(), randomKey.size());
+					cleanBuffer(randomKey.data(), randomKey.size());
 					return DRSession;
 				} else {
-					bctbx_clean(randomKey.data(), randomKey.size());
+					cleanBuffer(randomKey.data(), randomKey.size());
 					throw BCTBX_EXCEPTION << "Message key correctly deciphered but then failed to decipher message itself";
 				}
 			}

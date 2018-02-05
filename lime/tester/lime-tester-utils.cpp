@@ -28,6 +28,7 @@
 #include "lime_settings.hpp"
 #include "lime/lime.hpp"
 #include "lime_keys.hpp"
+#include "lime_crypto_primitives.hpp"
 #include "lime_double_ratchet_protocol.hpp"
 #include "bctoolbox/exception.hh"
 #include "lime-tester-utils.hpp"
@@ -156,28 +157,25 @@ std::vector<std::string> messages_pattern = {
  *	if fileName doesn't exists as a DB, it will be created, caller shall then delete it if needed
  */
 template <typename Curve>
-void dr_sessionsInit(std::shared_ptr<DR<Curve>> &alice, std::shared_ptr<DR<Curve>> &bob, std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob, std::string dbFilenameAlice, std::string dbFilenameBob, bool initStorage, bctbx_rng_context_t *RNG_context) {
+void dr_sessionsInit(std::shared_ptr<DR<Curve>> &alice, std::shared_ptr<DR<Curve>> &bob, std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob, std::string dbFilenameAlice, std::string dbFilenameBob, bool initStorage, std::shared_ptr<RNG> RNG_context) {
 	if (initStorage==true) {
 		// create or load Db
 		localStorageAlice = std::make_shared<lime::Db>(dbFilenameAlice);
 		localStorageBob = std::make_shared<lime::Db>(dbFilenameBob);
 	}
 
-	// create and init a RNG needed for shared secret generation
-	bctbx_rng_context_t *RNG = bctbx_rng_context_new();
-
 	/* generate key pair for bob */
-	bctbx_ECDHContext_t *tempECDH = ECDHInit<Curve>();
-	bctbx_ECDHCreateKeyPair(tempECDH, (int (*)(void *, uint8_t *, size_t))bctbx_rng_get, RNG);
-	KeyPair<X<Curve>> bobKeyPair{tempECDH->selfPublic, tempECDH->secret};
-	bctbx_DestroyECDHContext(tempECDH);
+	auto tempECDH = make_keyExchange<Curve>();
+	tempECDH->createKeyPair(RNG_context);
+	auto bobPublic = tempECDH->get_selfPublic();
+	auto bobPrivate = tempECDH->get_secret();
+	Xpair<Curve> bobKeyPair{bobPublic, bobPrivate};
 
 	/* generate a shared secret and AD */
 	lime::DRChainKey SK;
 	lime::SharedADBuffer AD;
-	bctbx_rng_get(RNG, SK.data(), SK.size());
-	bctbx_rng_get(RNG, AD.data(), AD.size());
-	bctbx_rng_context_free(RNG);
+	RNG_context->randomize(SK.data(), SK.size());
+	RNG_context->randomize(AD.data(), AD.size());
 
 	// insert the peer Device (with dummy datas in lime_PeerDevices and lime_LocalUsers tables, not used in the DR tests but needed to satisfy foreign key condition on session insertion)
 	long int aliceUid,bobUid,bobDid,aliceDid;
@@ -206,7 +204,7 @@ void dr_sessionsInit(std::shared_ptr<DR<Curve>> &alice, std::shared_ptr<DR<Curve
  * createdDBfiles is filled with all filenames of DB created to allow easy deletion
  */
 template <typename Curve>
-void dr_devicesInit(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<Curve>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles, bctbx_rng_context_t *RNG_context) {
+void dr_devicesInit(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<Curve>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles, std::shared_ptr<RNG> RNG_context) {
 	createdDBfiles.clear();
 	/* each device must have a db, produce filename for them from provided base name and given username */
 	for (size_t i=0; i<users.size(); i++) { // loop on users
@@ -271,24 +269,24 @@ bool DR_message_holdsX3DHInit(std::vector<uint8_t> &message, bool &haveOPk) {
 
 	// check packet length, packet is :
 	// header<3 bytes>, X3DH init packet, Ns+PN<4 bytes>, DHs<X<Curve>::keyLength>, Cipher message RandomSeed<32 bytes>, key auth tag<16 bytes> = <55 + X<Curve>::keyLengh + X3DH init size>
-	// X3DH init size = OPk_flag<1 byte> + selfIK<ED<Curve>::keyLength> + EK<X<Curve>::keyLenght> + SPk id<4 bytes> + OPk id (if flag is 1)<4 bytes>
+	// X3DH init size = OPk_flag<1 byte> + selfIK<DSA<Curve>::keyLength> + EK<X<Curve>::keyLenght> + SPk id<4 bytes> + OPk id (if flag is 1)<4 bytes>
 	switch (message[2]) {
 		case static_cast<uint8_t>(lime::CurveId::c25519):
 			if (message[3] == 0x00) { // no OPk in the X3DH init message
-				if (message.size() != (55 + X<C255>::keyLength() + 5 + ED<C255>::keyLength() + X<C255>::keyLength())) return false;
+				if (message.size() != (55 + X<C255, lime::Xtype::publicKey>::ssize() + 5 + DSA<C255, lime::DSAtype::publicKey>::ssize() + X<C255, lime::Xtype::publicKey>::ssize())) return false;
 				haveOPk=false;
 			} else { // OPk present in the X3DH init message
-				if (message.size() != (55 + X<C255>::keyLength() + 9 + ED<C255>::keyLength() + X<C255>::keyLength())) return false;
+				if (message.size() != (55 + X<C255, lime::Xtype::publicKey>::ssize() + 9 + DSA<C255, lime::DSAtype::publicKey>::ssize() + X<C255, lime::Xtype::publicKey>::ssize())) return false;
 				haveOPk=true;
 			}
 			return true;
 		break;
 		case static_cast<uint8_t>(lime::CurveId::c448):
 			if (message[3] == 0x00) { // no OPk in the X3DH init message
-				if (message.size() != (55 + X<C448>::keyLength() + 5 + ED<C448>::keyLength() + X<C448>::keyLength())) return false;
+				if (message.size() != (55 + X<C448, lime::Xtype::publicKey>::ssize() + 5 + DSA<C448, lime::DSAtype::publicKey>::ssize() + X<C448, lime::Xtype::publicKey>::ssize())) return false;
 				haveOPk=false;
 			} else { // OPk present in the X3DH init message
-				if (message.size() != (55 + X<C448>::keyLength() + 9 + ED<C448>::keyLength() + X<C448>::keyLength())) return false;
+				if (message.size() != (55 + X<C448, lime::Xtype::publicKey>::ssize() + 9 + DSA<C448, lime::DSAtype::publicKey>::ssize() + X<C448, lime::Xtype::publicKey>::ssize())) return false;
 				haveOPk=true;
 			}
 			return true;
@@ -306,9 +304,9 @@ bool DR_message_extractX3DHInit(std::vector<uint8_t> &message, std::vector<uint8
 	// compute size
 	size_t X3DH_length = 5;
 	if (message[2] == static_cast<uint8_t>(lime::CurveId::c25519)) { // curve 25519
-		X3DH_length += ED<C255>::keyLength() + X<C255>::keyLength();
+		X3DH_length += DSA<C255, lime::DSAtype::publicKey>::ssize() + X<C255, lime::Xtype::publicKey>::ssize();
 	} else { // curve 448
-		X3DH_length += ED<C448>::keyLength() + X<C448>::keyLength();
+		X3DH_length += DSA<C448, lime::DSAtype::publicKey>::ssize() + X<C448, lime::Xtype::publicKey>::ssize();
 	}
 
 	if (message[3] == 0x00) { // there is an OPk id
@@ -327,9 +325,9 @@ bool DR_message_extractX3DHInit_SPkId(std::vector<uint8_t> &message, uint32_t &S
 	// compute position of SPkId in message
 	size_t SPkIdPos = 3+1; // DR message header + OPK flag
 	if (message[2] == static_cast<uint8_t>(lime::CurveId::c25519)) { // curve 25519
-		SPkIdPos += ED<C255>::keyLength() + X<C255>::keyLength();
+		SPkIdPos += DSA<C255, lime::DSAtype::publicKey>::ssize() + X<C255, lime::Xtype::publicKey>::ssize();
 	} else { // curve 448
-		SPkIdPos += ED<C448>::keyLength() + X<C448>::keyLength();
+		SPkIdPos += DSA<C448, lime::DSAtype::publicKey>::ssize() + X<C448, lime::Xtype::publicKey>::ssize();
 	}
 
 	SPkId = message[SPkIdPos]<<24 |
@@ -487,12 +485,12 @@ int wait_for(belle_sip_stack_t*s1,int* counter,int value,int timeout) {
 
 // template instanciation
 #ifdef EC25519_ENABLED
-	template void dr_sessionsInit<C255>(std::shared_ptr<DR<C255>> &alice, std::shared_ptr<DR<C255>> &bob, std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob, std::string dbFilenameAlice, std::string dbFilenameBob, bool initStorage, bctbx_rng_context_t *RNG_context); 
-	template void dr_devicesInit<C255>(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<C255>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles, bctbx_rng_context_t *RNG_context);
+	template void dr_sessionsInit<C255>(std::shared_ptr<DR<C255>> &alice, std::shared_ptr<DR<C255>> &bob, std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob, std::string dbFilenameAlice, std::string dbFilenameBob, bool initStorage, std::shared_ptr<RNG> RNG_context); 
+	template void dr_devicesInit<C255>(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<C255>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles, std::shared_ptr<RNG> RNG_context);
 #endif
 #ifdef EC448_ENABLED
-	template void dr_sessionsInit<C448>(std::shared_ptr<DR<C448>> &alice, std::shared_ptr<DR<C448>> &bob, std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob, std::string dbFilenameAlice, std::string dbFilenameBob, bool initStorage, bctbx_rng_context_t *RNG_context); 
-	template void dr_devicesInit<C448>(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<C448>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles, bctbx_rng_context_t *RNG_context);
+	template void dr_sessionsInit<C448>(std::shared_ptr<DR<C448>> &alice, std::shared_ptr<DR<C448>> &bob, std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob, std::string dbFilenameAlice, std::string dbFilenameBob, bool initStorage, std::shared_ptr<RNG> RNG_context); 
+	template void dr_devicesInit<C448>(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<C448>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles, std::shared_ptr<RNG> RNG_context);
 #endif
 
 

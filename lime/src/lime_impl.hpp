@@ -26,7 +26,7 @@
 
 #include "lime/lime.hpp"
 #include "lime_lime.hpp"
-#include "lime_keys.hpp"
+#include "lime_crypto_primitives.hpp"
 #include "lime_localStorage.hpp"
 #include "lime_double_ratchet.hpp"
 #include "lime_x3dh_protocol.hpp"
@@ -44,11 +44,11 @@ namespace lime {
 		private:
 			/*** data members ***/
 			/* general purpose */
-			bctbx_rng_context_t *m_RNG; // Random Number Generator context
+			std::shared_ptr<RNG> m_RNG; // Random Number Generator context
 			std::string m_selfDeviceId; // self device Id, shall be the GRUU
 
 			/* X3DH keys */
-			KeyPair<ED<Curve>> m_Ik; // our identity key pair, is loaded from DB only if requested(to sign a SPK or to perform X3DH init)
+			DSApair<Curve> m_Ik; // our identity key pair, is loaded from DB only if requested(to sign a SPK or to perform X3DH init)
 			bool m_Ik_loaded; // did we load the Ik yet?
 
 			/* local storage related */
@@ -74,14 +74,14 @@ namespace lime {
 			void get_SelfIdentityKey(); // check our Identity key pair is loaded in Lime object, retrieve it from DB if it isn't
 			void cache_DR_sessions(std::vector<recipientInfos<Curve>> &internal_recipients, std::vector<std::string> &missing_devices); // loop on internal recipient an try to load in DR session cache the one which have no session attached 
 			void get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDRSessionId, std::vector<std::shared_ptr<DR<Curve>>> &DRSessions); // load from local storage in DRSessions all DR session matching the peerDeviceId, ignore the one picked by id in 2nd arg
-			long int store_peerDevice(const std::string &peerDeviceId, const ED<Curve> &Ik); // store given peer Device Id and public identity key, return the Id used in table to store it
+			long int store_peerDevice(const std::string &peerDeviceId, const DSA<Curve, lime::DSAtype::publicKey> &Ik); // store given peer Device Id and public identity key, return the Id used in table to store it
 
 			/* X3DH related  - part related to exchange with server or localStorage - implemented in lime_x3dh_protocol.cpp or lime_localStorage.cpp */
-			void X3DH_generate_SPk(X<Curve> &publicSPk, Signature<Curve> &SPk_sig, uint32_t &SPk_id); // generate a new Signed Pre-Key key pair, store it in DB and set its public key, signature and Id in given params
-			void X3DH_generate_OPks(std::vector<X<Curve>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number); // generate a new batch of OPks, store them in base and fill the vector with information to be sent to X3DH server
-			void X3DH_get_SPk(uint32_t SPk_id, KeyPair<X<Curve>> &SPk); // retrieve matching SPk from localStorage, throw an exception if not found
+			void X3DH_generate_SPk(X<Curve, lime::Xtype::publicKey> &publicSPk, DSA<Curve, lime::DSAtype::signature> &SPk_sig, uint32_t &SPk_id); // generate a new Signed Pre-Key key pair, store it in DB and set its public key, signature and Id in given params
+			void X3DH_generate_OPks(std::vector<X<Curve, lime::Xtype::publicKey>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number); // generate a new batch of OPks, store them in base and fill the vector with information to be sent to X3DH server
+			void X3DH_get_SPk(uint32_t SPk_id, Xpair<Curve> &SPk); // retrieve matching SPk from localStorage, throw an exception if not found
 			bool is_currentSPk_valid(void); // check validity of current SPk
-			void X3DH_get_OPk(uint32_t OPk_id, KeyPair<X<Curve>> &SPk); // retrieve matching OPk from localStorage, throw an exception if not found
+			void X3DH_get_OPk(uint32_t OPk_id, Xpair<Curve> &OPk); // retrieve matching OPk from localStorage, throw an exception if not found
 			void X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds); // update OPks to tag those not anymore on X3DH server but not used and destroyed yet
 			/* X3DH related  - part related to X3DH DR session initiation, implemented in lime_x3dh.cpp */
 			void X3DH_init_sender_session(const std::vector<X3DH_peerBundle<Curve>> &peersBundle); // compute a sender X3DH using the data from peer bundle, then create and load the DR_Session

@@ -39,15 +39,14 @@
 using namespace::std;
 using namespace::lime;
 
-static bctbx_rng_context_t *RNG_context=nullptr;
+static std::shared_ptr<RNG> RNG_context;
 
 static int start_RNG_before_all(void) {
-	RNG_context = bctbx_rng_context_new();
+	RNG_context = make_RNG();
 	return 0;
 }
 
 static int stop_RNG_after_all(void) {
-	bctbx_rng_context_free(RNG_context);
 	return 0;
 }
 

@@ -103,7 +103,7 @@ namespace lime {
 
 		// registerUser : Identity Key<EDDSA Public Key length>
 		template <typename Curve>
-		void buildMessage_registerUser(std::vector<uint8_t> &message, const ED<Curve> &Ik) noexcept {
+		void buildMessage_registerUser(std::vector<uint8_t> &message, const DSA<Curve, lime::DSAtype::publicKey> &Ik) noexcept {
 			// create the header
 			message = X3DH_makeHeader(x3dh_message_type::registerUser, Curve::curveId());
 			// append the Ik
@@ -122,7 +122,7 @@ namespace lime {
 		//		SPk Signature<Signature Length> ||
 		//		SPk Id < 4 bytes>
 		template <typename Curve>
-		void buildMessage_publishSPk(std::vector<uint8_t> &message, const X<Curve> &SPk, const Signature<Curve> &Sig, const uint32_t SPk_id) noexcept {
+		void buildMessage_publishSPk(std::vector<uint8_t> &message, const X<Curve, lime::Xtype::publicKey> &SPk, const DSA<Curve, lime::DSAtype::signature> &Sig, const uint32_t SPk_id) noexcept {
 			// create the header
 			message = X3DH_makeHeader(x3dh_message_type::postSPk, Curve::curveId());
 			// append SPk, Signature and SPkId
@@ -137,7 +137,7 @@ namespace lime {
 		// postOPks : 	Keys Count<2 bytes unsigned integer Big endian> ||
 		//		( OPk<ECDH Public key length> || OPk Id <4 bytes>){Keys Count}
 		template <typename Curve>
-		void buildMessage_publishOPks(std::vector<uint8_t> &message, const std::vector<X<Curve>> &OPks, const std::vector<uint32_t> &OPk_ids) noexcept {
+		void buildMessage_publishOPks(std::vector<uint8_t> &message, const std::vector<X<Curve, lime::Xtype::publicKey>> &OPks, const std::vector<uint32_t> &OPk_ids) noexcept {
 			// create the header
 			message = X3DH_makeHeader(x3dh_message_type::postOPks, Curve::curveId());
 
@@ -351,22 +351,22 @@ namespace lime {
 				index += 1;
 
 
-				if (body.size() < index + ED<Curve>::keyLength() + X<Curve>::keyLength() + Signature<Curve>::signatureLength() + 4 + (haveOPk?(X<Curve>::keyLength()+4):0) ) {
+				if (body.size() < index + DSA<Curve, lime::DSAtype::publicKey>::ssize() + X<Curve, lime::Xtype::publicKey>::ssize() + DSA<Curve, lime::DSAtype::signature>::ssize() + 4 + (haveOPk?(X<Curve, lime::Xtype::publicKey>::ssize()+4):0) ) {
 					peersBundle.clear();
 					return false;
 				}
 
 				// retrieve simple pointers to all keys and signature, the X3DH_peerBundle constructor will construct the keys out of them
-				const auto Ik = body.cbegin()+index; index += ED<Curve>::keyLength();
-				const auto SPk = body.cbegin()+index; index += X<Curve>::keyLength();
+				const auto Ik = body.cbegin()+index; index += DSA<Curve, lime::DSAtype::publicKey>::ssize();
+				const auto SPk = body.cbegin()+index; index += X<Curve, lime::Xtype::publicKey>::ssize();
 				uint32_t SPk_id = static_cast<uint32_t>(body[index])<<24 |
 						static_cast<uint32_t>(body[index+1])<<16 |
 						static_cast<uint32_t>(body[index+2])<<8 |
 						static_cast<uint32_t>(body[index+3]);
 				index += 4;
-				const auto SPk_sig = body.cbegin()+index; index += Signature<Curve>::signatureLength();
+				const auto SPk_sig = body.cbegin()+index; index += DSA<Curve, lime::DSAtype::signature>::ssize();
 				if (haveOPk) {
-					const auto OPk = body.cbegin()+index; index += X<Curve>::keyLength();
+					const auto OPk = body.cbegin()+index; index += X<Curve, lime::Xtype::publicKey>::ssize();
 					uint32_t OPk_id = static_cast<uint32_t>(body[index])<<24 |
 						static_cast<uint32_t>(body[index+1])<<16 |
 						static_cast<uint32_t>(body[index+2])<<8 |
@@ -421,19 +421,19 @@ namespace lime {
 
 		/* Instanciate templated functions */
 #ifdef EC25519_ENABLED
-		template void buildMessage_registerUser<C255>(std::vector<uint8_t> &message, const ED<C255> &Ik) noexcept;
+		template void buildMessage_registerUser<C255>(std::vector<uint8_t> &message, const DSA<C255, lime::DSAtype::publicKey> &Ik) noexcept;
 		template void buildMessage_deleteUser<C255>(std::vector<uint8_t> &message) noexcept;
-		template void buildMessage_publishSPk<C255>(std::vector<uint8_t> &message, const X<C255> &SPk, const Signature<C255> &Sig, const uint32_t SPk_id) noexcept;
-		template void buildMessage_publishOPks<C255>(std::vector<uint8_t> &message, const std::vector<X<C255>> &OPks, const std::vector<uint32_t> &OPk_ids) noexcept;
+		template void buildMessage_publishSPk<C255>(std::vector<uint8_t> &message, const X<C255, lime::Xtype::publicKey> &SPk, const DSA<C255, lime::DSAtype::signature> &Sig, const uint32_t SPk_id) noexcept;
+		template void buildMessage_publishOPks<C255>(std::vector<uint8_t> &message, const std::vector<X<C255, lime::Xtype::publicKey>> &OPks, const std::vector<uint32_t> &OPk_ids) noexcept;
 		template void buildMessage_getPeerBundles<C255>(std::vector<uint8_t> &message, std::vector<std::string> &peer_device_ids) noexcept;
 		template void buildMessage_getSelfOPks<C255>(std::vector<uint8_t> &message) noexcept;
 #endif
 
 #ifdef EC448_ENABLED
-		template void buildMessage_registerUser<C448>(std::vector<uint8_t> &message, const ED<C448> &Ik) noexcept;
+		template void buildMessage_registerUser<C448>(std::vector<uint8_t> &message, const DSA<C448, lime::DSAtype::publicKey> &Ik) noexcept;
 		template void buildMessage_deleteUser<C448>(std::vector<uint8_t> &message) noexcept;
-		template void buildMessage_publishSPk<C448>(std::vector<uint8_t> &message, const X<C448> &SPk, const Signature<C448> &Sig, const uint32_t SPk_id) noexcept;
-		template void buildMessage_publishOPks<C448>(std::vector<uint8_t> &message, const std::vector<X<C448>> &OPks, const std::vector<uint32_t> &OPk_ids) noexcept;
+		template void buildMessage_publishSPk<C448>(std::vector<uint8_t> &message, const X<C448, lime::Xtype::publicKey> &SPk, const DSA<C448, lime::DSAtype::signature> &Sig, const uint32_t SPk_id) noexcept;
+		template void buildMessage_publishOPks<C448>(std::vector<uint8_t> &message, const std::vector<X<C448, lime::Xtype::publicKey>> &OPks, const std::vector<uint32_t> &OPk_ids) noexcept;
 		template void buildMessage_getPeerBundles<C448>(std::vector<uint8_t> &message, std::vector<std::string> &peer_device_ids) noexcept;
 		template void buildMessage_getSelfOPks<C448>(std::vector<uint8_t> &message) noexcept;
 #endif
@@ -490,8 +490,8 @@ namespace lime {
 					if (userData->network_state_machine == lime::network_state::sendSPk) {
 						userData->network_state_machine = lime::network_state::sendOPk;
 						// generate and publish the SPk
-						X<Curve> SPk{};
-						Signature<Curve> SPk_sig{};
+						X<Curve, lime::Xtype::publicKey> SPk{};
+						DSA<Curve, lime::DSAtype::signature> SPk_sig{};
 						uint32_t SPk_id=0;
 						X3DH_generate_SPk(SPk, SPk_sig, SPk_id);
 						std::vector<uint8_t> X3DHmessage{};
@@ -509,7 +509,7 @@ namespace lime {
 					if (userData->network_state_machine == lime::network_state::sendOPk) {
 						userData->network_state_machine = lime::network_state::done;
 						// generate and publish the OPks
-						std::vector<X<Curve>> OPks{};
+						std::vector<X<Curve, lime::Xtype::publicKey>> OPks{};
 						std::vector<uint32_t> OPk_ids{};
 						X3DH_generate_OPks(OPks, OPk_ids, userData->OPkBatchSize);
 						std::vector<uint8_t> X3DHmessage{};
@@ -572,7 +572,7 @@ namespace lime {
 					// Check if we shall upload more packets
 					if (selfOPkIds.size() < userData->OPkServerLowLimit) {
 						// generate and publish the OPks
-						std::vector<X<Curve>> OPks{};
+						std::vector<X<Curve, lime::Xtype::publicKey>> OPks{};
 						std::vector<uint32_t> OPk_ids{};
 						X3DH_generate_OPks(OPks, OPk_ids, userData->OPkBatchSize);
 						std::vector<uint8_t> X3DHmessage{};

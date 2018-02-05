@@ -23,6 +23,30 @@
 
 namespace lime {
 
+/* template instanciations for Curves 25519 and 448, done  */
+#ifdef EC255_ENABLED
+	template class X<C255, lime::Xtype::publicKey>;
+	template class X<C255, lime::Xtype::privateKey>;
+	template class X<C255, lime::Xtype::sharedSecret>;
+	template class Xpair<C255>;
+	template class DSA<C255, lime::DSAtype::publicKey>;
+	template class DSA<C255, lime::DSAtype::privateKey>;
+	template class DSA<C255, lime::DSAtype::signature>;
+	template class DSApair<C255>;
+#endif
+
+#ifdef EC448_ENABLED
+	template class X<C448, lime::Xtype::publicKey>;
+	template class X<C448, lime::Xtype::privateKey>;
+	template class X<C448, lime::Xtype::sharedSecret>;
+	template class Xpair<C448>;
+	template class DSA<C448, lime::DSAtype::publicKey>;
+	template class DSA<C448, lime::DSAtype::privateKey>;
+	template class DSA<C448, lime::DSAtype::signature>;
+	template class DSApair<C448>;
+#endif
+
+
 /***** Random Number Generator ********/
 class bctbx_RNG : public RNG {
 	private :
@@ -55,6 +79,126 @@ class bctbx_RNG : public RNG {
 std::shared_ptr<RNG> make_RNG() {
 	return std::make_shared<bctbx_RNG>();
 }
+/***** Signature  ********************/
+/* bctbx_EdDSA specialized constructor */
+template <typename Curve>
+bctbx_EDDSAContext_t *bctbx_EDDSAInit(void) {
+	/* if this template is instanciated the static_assert will fail but will give us an error message with faulty Curve type */
+	static_assert(sizeof(Curve) != sizeof(Curve), "You must specialize Signature class constructor for your type");
+	return nullptr;
+}
+
+#ifdef EC25519_ENABLED
+	/* specialise ECDH context creation */
+	template <> bctbx_EDDSAContext_t *bctbx_EDDSAInit<C255>(void) {
+		return bctbx_CreateEDDSAContext(BCTBX_EDDSA_25519);
+	}
+#endif // EC25519_ENABLED
+
+#ifdef EC448_ENABLED
+	/* specialise ECDH context creation */
+	template <> bctbx_EDDSAContext_t *bctbx_EDDSAInit<C448>(void) {
+		return bctbx_CreateEDDSAContext(BCTBX_EDDSA_448);
+	}
+#endif // EC448_ENABLED
+template <typename Curve>
+class bctbx_EDDSA : public Signature<Curve> {
+	private :
+		bctbx_EDDSAContext_t *m_context; // the EDDSA context
+	public :
+		/* accessors */
+		const DSA<Curve, lime::DSAtype::privateKey> get_secret(void) override { /**< Secret key */
+			if (m_context->secretKey == nullptr) {
+				throw BCTBX_EXCEPTION << "invalid EdDSA secret key";
+			}
+			if (DSA<Curve, lime::DSAtype::privateKey>::ssize() != m_context->secretLength) {
+				throw BCTBX_EXCEPTION << "Invalid buffer to store EdDSA secret key";
+			}
+			DSA<Curve, lime::DSAtype::privateKey> s;
+			std::copy_n(m_context->secretKey, s.ssize(), s.data());
+			return s;
+		}
+		const DSA<Curve, lime::DSAtype::publicKey> get_public(void) override {/**< Self Public key */
+			if (m_context->publicKey == nullptr) {
+				throw BCTBX_EXCEPTION << "invalid EdDSA public key";
+			}
+			if (DSA<Curve, lime::DSAtype::publicKey>::ssize() != m_context->pointCoordinateLength) {
+				throw BCTBX_EXCEPTION << "Invalid buffer to store EdDSA public key";
+			}
+			DSA<Curve, lime::DSAtype::publicKey> p;
+			std::copy_n(m_context->publicKey, p.ssize(), p.data());
+			return p;
+		}
+
+		/* Setting keys */
+		void set_secret(const DSA<Curve, lime::DSAtype::privateKey> &secretKey) override { /**< Secret key */
+			bctbx_EDDSA_setSecretKey(m_context, secretKey.data(), secretKey.ssize());
+		}
+
+		void set_public(const DSA<Curve, lime::DSAtype::publicKey> &publicKey) override { /**< Self Public key */
+			bctbx_EDDSA_setPublicKey(m_context, publicKey.data(), publicKey.ssize());
+		}
+
+		/**
+		 * @Brief generate a new random EdDSA key pair
+		 *
+		 * @param[in]	rng	The Random Number Generator to be used to generate the private kay
+		 */
+		void createKeyPair(std::shared_ptr<lime::RNG> rng) override {
+			// the dynamic cast will generate an exception if RNG is not actually a bctbx_RNG
+			bctbx_EDDSACreateKeyPair(m_context, (int (*)(void *, uint8_t *, size_t))bctbx_rng_get, dynamic_cast<lime::bctbx_RNG&>(*rng).get_context());
+		}
+
+		/**
+		 * @brief Compute the public key using the secret already set in context
+		 */
+		void derivePublic(void) override {
+			bctbx_EDDSADerivePublicKey(m_context);
+		}
+
+		/**
+		 * @brief Sign a message using the key pair previously set in the object
+		 *
+		 * @param[in]	message		The message to be signed
+		 * @param[in]	associatedData	A context for this signature, up to 255 bytes
+		 * @param[out]	signature	The signature produced from the message with a key pair previously introduced in the object
+		 */
+		void sign(const std::vector<uint8_t> &message, DSA<Curve, lime::DSAtype::signature> &signature) override {
+			auto sigSize = signature.size();
+			bctbx_EDDSA_sign(m_context, message.data(), message.size(), nullptr, 0, signature.data(), &sigSize);
+		}
+		void sign(const X<Curve, lime::Xtype::publicKey> &message, DSA<Curve, lime::DSAtype::signature> &signature) override {
+			auto sigSize = signature.size();
+			bctbx_EDDSA_sign(m_context, message.data(), message.ssize(), nullptr, 0, signature.data(), &sigSize);
+		}
+
+		/**
+		 * @brief Verify a message signature using the public key previously set in the object
+		 *
+		 * @param[in]	message		The message signed
+		 * @param[in]	signature	The signature produced from the message with a key pair previously introduced in the object
+		 *
+		 * @return	true if the signature is valid, false otherwise
+		 */
+		bool verify(const std::vector<uint8_t> &message, const DSA<Curve, lime::DSAtype::signature> &signature) override {
+			return (bctbx_EDDSA_verify(m_context, message.data(), message.size(), nullptr, 0, signature.data(), signature.size()) == BCTBX_VERIFY_SUCCESS);
+		}
+		bool verify(const X<Curve, lime::Xtype::publicKey> &message, const DSA<Curve, lime::DSAtype::signature> &signature) override {
+			return (bctbx_EDDSA_verify(m_context, message.data(), message.ssize(), nullptr, 0, signature.data(), signature.ssize()) == BCTBX_VERIFY_SUCCESS);
+		}
+
+		/**
+		 * ctor/dtor
+		 */
+		bctbx_EDDSA() {
+			m_context = bctbx_EDDSAInit<Curve>();
+		}
+		~bctbx_EDDSA(){
+			/* perform proper destroy cleaning buffers*/
+			bctbx_DestroyEDDSAContext(m_context);
+			m_context = nullptr;
+		}
+}; // class bctbx_EDDSA
 
 /***** Key Exchange ******************/
 
@@ -62,7 +206,7 @@ std::shared_ptr<RNG> make_RNG() {
 template <typename Curve>
 bctbx_ECDHContext_t *bctbx_ECDHInit(void) {
 	/* if this template is instanciated the static_assert will fail but will give us an error message with faulty Curve type */
-	static_assert(sizeof(Curve) != sizeof(Curve), "You must specialize sessionsInit<> for your type: correctly initialise the ECDH context");
+	static_assert(sizeof(Curve) != sizeof(Curve), "You must specialize keyExchange class contructor for your type");
 	return nullptr;
 }
 
@@ -71,75 +215,114 @@ bctbx_ECDHContext_t *bctbx_ECDHInit(void) {
 	template <> bctbx_ECDHContext_t *bctbx_ECDHInit<C255>(void) {
 		return bctbx_CreateECDHContext(BCTBX_ECDH_X25519);
 	}
-#endif
+#endif //EC25519_ENABLED
 
 #ifdef EC448_ENABLED
 	/* specialise ECDH context creation */
 	template <> bctbx_ECDHContext_t *bctbx_ECDHInit<C448>(void) {
 		return bctbx_CreateECDHContext(BCTBX_ECDH_X448);
 	}
-#endif
+#endif //EC448_ENABLED
 
 template <typename Curve>
 class bctbx_ECDH : public keyExchange<Curve> {
 	private :
-		bctbx_ECDHContext_t *m_context; // the ECDH RNG context
+		bctbx_ECDHContext_t *m_context; // the ECDH context
 	public :
 		/* accessors */
-		const X<Curve> get_secret(void) override { /**< Secret key */
+		const X<Curve, lime::Xtype::privateKey> get_secret(void) override { /**< Secret key */
 			if (m_context->secret == nullptr) {
 				throw BCTBX_EXCEPTION << "invalid ECDH secret key";
 			}
-			if (X<Curve>::keyLength() != m_context->secretLength) {
+			if (X<Curve, lime::Xtype::privateKey>::ssize() != m_context->secretLength) {
 				throw BCTBX_EXCEPTION << "Invalid buffer to store ECDH secret key";
 			}
-			X<Curve> s;
-			std::copy_n(m_context->secret, s.keyLength(), s.data());
+			X<Curve, lime::Xtype::privateKey> s;
+			std::copy_n(m_context->secret, s.ssize(), s.data());
 			return s;
 		}
-		const X<Curve> get_selfPublic(void) override {/**< Self Public key */
+		const X<Curve, lime::Xtype::publicKey> get_selfPublic(void) override {/**< Self Public key */
 			if (m_context->selfPublic == nullptr) {
 				throw BCTBX_EXCEPTION << "invalid ECDH self public key";
 			}
-			if (X<Curve>::keyLength() != m_context->pointCoordinateLength) {
+			if (X<Curve, lime::Xtype::publicKey>::ssize() != m_context->pointCoordinateLength) {
 				throw BCTBX_EXCEPTION << "Invalid buffer to store ECDH self public key";
 			}
-			X<Curve> p;
-			std::copy_n(m_context->selfPublic, p.keyLength(), p.data());
+			X<Curve, lime::Xtype::publicKey> p;
+			std::copy_n(m_context->selfPublic, p.ssize(), p.data());
 			return p;
 		}
-		const X<Curve> get_peerPublic(void) override { /**< Peer Public key */
+		const X<Curve, lime::Xtype::publicKey> get_peerPublic(void) override { /**< Peer Public key */
 			if (m_context->peerPublic == nullptr) {
 				throw BCTBX_EXCEPTION << "invalid ECDH peer public key";
 			}
-			if (X<Curve>::keyLength() != m_context->pointCoordinateLength) {
+			if (X<Curve, lime::Xtype::publicKey>::ssize() != m_context->pointCoordinateLength) {
 				throw BCTBX_EXCEPTION << "Invalid buffer to store ECDH peer public key";
 			}
-			X<Curve> p;
-			std::copy_n(m_context->peerPublic, p.keyLength(), p.data());
+			X<Curve, lime::Xtype::publicKey> p;
+			std::copy_n(m_context->peerPublic, p.ssize(), p.data());
 			return p;
 		}
-		const X<Curve> get_sharedSecret(void) override { /**< ECDH output */
+		const X<Curve, lime::Xtype::sharedSecret> get_sharedSecret(void) override { /**< ECDH output */
 			if (m_context->sharedSecret == nullptr) {
 				throw BCTBX_EXCEPTION << "invalid ECDH shared secret";
 			}
-			if (X<Curve>::keyLength() != m_context->pointCoordinateLength) {
+			if (X<Curve, lime::Xtype::sharedSecret>::ssize() != m_context->pointCoordinateLength) {
 				throw BCTBX_EXCEPTION << "Invalid buffer to store ECDH output";
 			}
-			X<Curve> s;
-			std::copy_n(m_context->sharedSecret, s.keyLength(), s.data());
+			X<Curve, lime::Xtype::sharedSecret> s;
+			std::copy_n(m_context->sharedSecret, s.ssize(), s.data());
 			return s;
 		}
 
-		void set_secret(const X<Curve> &secret) override { /**< Secret key */
-			bctbx_ECDHSetSecretKey(m_context, secret.data(), secret.keyLength());
+
+		/* Setting keys, accept Signature keys */
+		void set_secret(const X<Curve, lime::Xtype::privateKey> &secret) override { /**< Secret key */
+			bctbx_ECDHSetSecretKey(m_context, secret.data(), secret.ssize());
 		}
 
-		void set_selfPublic(const X<Curve> &selfPublic) override { /**< Self Public key */
-			bctbx_ECDHSetSelfPublicKey(m_context, selfPublic.data(), selfPublic.keyLength()); 
+		void set_secret(const DSA<Curve, lime::DSAtype::privateKey> &secret) override { /**< Secret key */
+			// we must create a temporary bctbx_EDDSA context and set the given key in
+			auto tmp_context = bctbx_EDDSAInit<Curve>();
+			bctbx_EDDSA_setSecretKey(tmp_context, secret.data(), secret.ssize());
+
+			// Convert
+			bctbx_EDDSA_ECDH_privateKeyConversion(tmp_context, m_context);
+
+			// Cleaning
+			bctbx_DestroyEDDSAContext(tmp_context);
 		}
-		void set_peerPublic(const X<Curve> &peerPublic) override {; /**< Peer Public key */
-			bctbx_ECDHSetPeerPublicKey(m_context, peerPublic.data(), peerPublic.keyLength());
+
+		void set_selfPublic(const X<Curve, lime::Xtype::publicKey> &selfPublic) override { /**< Self Public key */
+			bctbx_ECDHSetSelfPublicKey(m_context, selfPublic.data(), selfPublic.ssize());
+		}
+
+		void set_selfPublic(const DSA<Curve, lime::DSAtype::publicKey> &selfPublic) override { /**< Self Public key */
+			// we must create a temporary bctbx_EDDSA context and set the given key in
+			auto tmp_context = bctbx_EDDSAInit<Curve>();
+			bctbx_EDDSA_setPublicKey(tmp_context, selfPublic.data(), selfPublic.ssize());
+
+			// Convert in self Public
+			bctbx_EDDSA_ECDH_publicKeyConversion(tmp_context, m_context, BCTBX_ECDH_ISSELF);
+
+			// Cleaning
+			bctbx_DestroyEDDSAContext(tmp_context);
+		}
+
+		void set_peerPublic(const X<Curve, lime::Xtype::publicKey> &peerPublic) override {; /**< Peer Public key */
+			bctbx_ECDHSetPeerPublicKey(m_context, peerPublic.data(), peerPublic.ssize());
+		}
+
+		void set_peerPublic(const DSA<Curve, lime::DSAtype::publicKey> &peerPublic) override {; /**< Peer Public key */
+			// we must create a temporary bctbx_EDDSA context and set the given key in
+			auto tmp_context = bctbx_EDDSAInit<Curve>();
+			bctbx_EDDSA_setPublicKey(tmp_context, peerPublic.data(), peerPublic.ssize());
+
+			// Convert in peer Public
+			bctbx_EDDSA_ECDH_publicKeyConversion(tmp_context, m_context, BCTBX_ECDH_ISPEER);
+
+			// Cleaning
+			bctbx_DestroyEDDSAContext(tmp_context);
 		}
 
 
@@ -180,26 +363,59 @@ class bctbx_ECDH : public keyExchange<Curve> {
 		}
 }; // class bctbx_ECDH
 
-/* Factory function */
+/* Factory functions */
 template <typename Base>
 std::shared_ptr<keyExchange<Base>> make_keyExchange() {
 	return std::make_shared<bctbx_ECDH<Base>>();
 }
 
+template <typename Base>
+std::shared_ptr<Signature<Base>> make_Signature() {
+	return std::make_shared<bctbx_EDDSA<Base>>();
+}
 
-	/* template instanciations for Curve 25519 and Curve 448 */
+/* check buffer length are in sync with bctoolbox ones */
+#ifdef EC25519_ENABLED
+	static_assert(BCTBX_ECDH_X25519_PUBLIC_SIZE == X<C255, Xtype::publicKey>::ssize(), "bctoolbox and local defines mismatch");
+	// for ECDH public value and shared secret have the same size
+	static_assert(BCTBX_ECDH_X25519_PUBLIC_SIZE == X<C255, Xtype::sharedSecret>::ssize(), "bctoolbox and local defines mismatch");
+	static_assert(BCTBX_ECDH_X25519_PRIVATE_SIZE == X<C255, Xtype::privateKey>::ssize(), "bctoolbox and local defines mismatch");
+
+	static_assert(BCTBX_EDDSA_25519_PUBLIC_SIZE == DSA<C255, DSAtype::publicKey>::ssize(), "bctoolbox and local defines mismatch");
+	static_assert(BCTBX_EDDSA_25519_PRIVATE_SIZE == DSA<C255, DSAtype::privateKey>::ssize(), "bctoolbox and local defines mismatch");
+	static_assert(BCTBX_EDDSA_25519_SIGNATURE_SIZE == DSA<C255, DSAtype::signature>::ssize(), "bctoolbox and local defines mismatch");
+#endif //EC25519_ENABLED
+
+#ifdef EC448_ENABLED
+	static_assert(BCTBX_ECDH_X448_PUBLIC_SIZE == X<C448, Xtype::publicKey>::ssize(), "bctoolbox and local defines mismatch");
+	// for ECDH public value and shared secret have the same size
+	static_assert(BCTBX_ECDH_X448_PUBLIC_SIZE == X<C448, Xtype::sharedSecret>::ssize(), "bctoolbox and local defines mismatch");
+	static_assert(BCTBX_ECDH_X448_PRIVATE_SIZE == X<C448, Xtype::privateKey>::ssize(), "bctoolbox and local defines mismatch");
+
+	static_assert(BCTBX_EDDSA_448_PUBLIC_SIZE == DSA<C448, DSAtype::publicKey>::ssize(), "bctoolbox and local defines mismatch");
+	static_assert(BCTBX_EDDSA_448_PRIVATE_SIZE == DSA<C448, DSAtype::privateKey>::ssize(), "bctoolbox and local defines mismatch");
+	static_assert(BCTBX_EDDSA_448_SIGNATURE_SIZE == DSA<C448, DSAtype::signature>::ssize(), "bctoolbox and local defines mismatch");
+#endif //EC448_ENABLED
+
+void cleanBuffer(uint8_t *buffer, size_t size) {
+	bctbx_clean(buffer, size);
+}
+
+/* template instanciations for Curve 25519 and Curve 448 */
 #ifdef EC25519_ENABLED
 	template class bctbx_ECDH<C255>;
+	template class bctbx_EDDSA<C255>;
 	template std::shared_ptr<keyExchange<C255>> make_keyExchange();
-#endif
+	template std::shared_ptr<Signature<C255>> make_Signature();
+#endif //EC25519_ENABLED
 
 #ifdef EC448_ENABLED
 	template class bctbx_ECDH<C448>;
+	template class bctbx_EDDSA<C448>;
 	template std::shared_ptr<keyExchange<C448>> make_keyExchange();
-#endif
+	template std::shared_ptr<Signature<C448>> make_Signature();
+#endif //EC448_ENABLED
 
-
-/***** Signature  ********************/
 
 } // namespace lime
 

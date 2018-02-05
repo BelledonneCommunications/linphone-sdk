@@ -59,7 +59,7 @@ namespace lime {
 	 */
 	template <typename Curve>
 	Lime<Curve>::Lime(std::unique_ptr<lime::Db> &&localStorage, const std::string &deviceId, const std::string &url, const limeX3DHServerPostData &X3DH_post_data, const long int Uid)
-	: m_RNG{bctbx_rng_context_new()}, m_selfDeviceId{deviceId},
+	: m_RNG{make_RNG()}, m_selfDeviceId{deviceId},
 	m_Ik{}, m_Ik_loaded(false),
 	m_localStorage(std::move(localStorage)), m_db_Uid{Uid},
 	m_X3DH_post_data{X3DH_post_data}, m_X3DH_Server_URL{url},
@@ -78,24 +78,17 @@ namespace lime {
 	 */
 	template <typename Curve>
 	Lime<Curve>::Lime(std::unique_ptr<lime::Db> &&localStorage, const std::string &deviceId, const std::string &url, const limeX3DHServerPostData &X3DH_post_data)
-	: m_RNG{bctbx_rng_context_new()}, m_selfDeviceId{deviceId},
+	: m_RNG{make_RNG()}, m_selfDeviceId{deviceId},
 	m_Ik{}, m_Ik_loaded(false),
 	m_localStorage(std::move(localStorage)), m_db_Uid{0},
 	m_X3DH_post_data{X3DH_post_data}, m_X3DH_Server_URL{url},
 	m_DR_sessions_cache{}, m_ongoing_encryption{nullptr}, m_encryption_queue{}
 	{
-		try {
-			create_user();
-		} catch (...) { // if createUser throw an exception we must clean ressource allocated C style by constructor
-			bctbx_rng_context_free(m_RNG);
-			throw;
-		}
+		create_user();
 	}
 
 	template <typename Curve>
-	Lime<Curve>::~Lime() {
-		bctbx_rng_context_free(m_RNG);
-	}
+	Lime<Curve>::~Lime() {};
 
 	/****************************************************************************/
 	/*                                                                          */
@@ -137,8 +130,8 @@ namespace lime {
 			BCTBX_SLOGI<<"User "<<m_selfDeviceId<<" updates its SPk";
 			auto userData = make_shared<callbackUserData<Curve>>(this->shared_from_this(), callback);
 			// generate and publish the SPk
-			X<Curve> SPk{};
-			Signature<Curve> SPk_sig{};
+			X<Curve, lime::Xtype::publicKey> SPk{};
+			DSA<Curve, lime::DSAtype::signature> SPk_sig{};
 			uint32_t SPk_id=0;
 			X3DH_generate_SPk(SPk, SPk_sig, SPk_id);
 			std::vector<uint8_t> X3DHmessage{};
