@@ -48,7 +48,6 @@ set(DEFAULT_VALUE_ENABLE_WEBRTC_AECM ON)
 set(DEFAULT_VALUE_ENABLE_WEBRTC_AEC ON)
 set(DEFAULT_VALUE_ENABLE_ZRTP ON)
 set(DEFAULT_VALUE_ENABLE_LIME ON)
-set(DEFAULT_VALUE_ENABLE_LIME_X3DH OFF)
 set(DEFAULT_VALUE_ENABLE_TOOLS OFF)
 set(DEFAULT_VALUE_ENABLE_JAVA_WRAPPER ON)
 set(ENABLE_NLS NO CACHE BOOL "" FORCE)
@@ -87,6 +86,9 @@ lcb_builder_cmake_options(belcard "-DENABLE_UNIT_TESTS=NO")
 
 # belle-sip
 lcb_builder_cmake_options(bellesip "-DENABLE_TESTS=NO")
+
+# belr
+lcb_builder_cmake_options(belr "-DENABLE_TESTS=NO")
 
 # bzrtp
 lcb_builder_cmake_options(bzrtp "-DENABLE_TESTS=NO")
@@ -163,9 +165,15 @@ lcb_builder_install_target(x264 "install-lib-static")
 
 
 # Copy c++ library to install prefix
-file(COPY "${CMAKE_ANDROID_NDK}/sources/cxx-stl/llvm-libc++/libs/${CMAKE_ANDROID_ARCH_ABI}/libc++_shared.so"
-	DESTINATION "${CMAKE_INSTALL_PREFIX}/lib"
-)
+if(CMAKE_ANDROID_NDK_VERSION VERSION_LESS 16)
+	file(COPY "${CMAKE_ANDROID_NDK}/sources/cxx-stl/gnu-libstdc++/${CMAKE_CXX_ANDROID_TOOLCHAIN_VERSION}/libs/${CMAKE_ANDROID_ARCH_ABI}/libgnustl_shared.so"
+		DESTINATION "${CMAKE_INSTALL_PREFIX}/lib"
+	)
+else()
+	file(COPY "${CMAKE_ANDROID_NDK}/sources/cxx-stl/llvm-libc++/libs/${CMAKE_ANDROID_ARCH_ABI}/libc++_shared.so"
+		DESTINATION "${CMAKE_INSTALL_PREFIX}/lib"
+	)
+endif()
 
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")

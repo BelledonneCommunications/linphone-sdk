@@ -20,17 +20,29 @@
 #
 ############################################################################
 
-find_program(ANDROID_NDK_BUILD_PROGRAM ndk-build)
-if(NOT ANDROID_NDK_BUILD_PROGRAM)
-	message(FATAL_ERROR "Cannot find 'ndk-build', make sure you installed the NDK and added it to your PATH")
+set(CMAKE_ANDROID_NDK "$ENV{ANDROID_NDK_HOME}")
+if(NOT CMAKE_ANDROID_NDK)
+	find_program(ANDROID_NDK_BUILD_PROGRAM ndk-build)
+	if(NOT ANDROID_NDK_BUILD_PROGRAM)
+		message(FATAL_ERROR "Cannot find 'ndk-build', make sure you installed the NDK and added it to your PATH")
+	endif()
+	get_filename_component(CMAKE_ANDROID_NDK "${ANDROID_NDK_BUILD_PROGRAM}" DIRECTORY)
 endif()
-get_filename_component(CMAKE_ANDROID_NDK "${ANDROID_NDK_BUILD_PROGRAM}" DIRECTORY)
+
+file(READ "${CMAKE_ANDROID_NDK}/source.properties" SOURCE_PROPERTIES_CONTENT)
+string(REGEX MATCH "Pkg\\.Revision = ([0-9]+)\\." NDK_VERSION_MATCH "${SOURCE_PROPERTIES_CONTENT}")
+set(CMAKE_ANDROID_NDK_VERSION ${CMAKE_MATCH_1})
 
 set(CMAKE_SYSTEM_NAME "Android")
 if(NOT CMAKE_ANDROID_API)
 	set(CMAKE_ANDROID_API 16)
 endif()
-set(CMAKE_ANDROID_STL_TYPE "c++_shared")
+
+if(CMAKE_ANDROID_NDK_VERSION VERSION_LESS 16)
+	set(CMAKE_ANDROID_STL_TYPE "gnustl_shared")
+else()
+	set(CMAKE_ANDROID_STL_TYPE "c++_shared")
+endif()
 
 set(CMAKE_FIND_ROOT_PATH "${CMAKE_SYSROOT}" "${CMAKE_INSTALL_PREFIX}")
 # search for programs in the build host directories
