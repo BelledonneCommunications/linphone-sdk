@@ -86,10 +86,8 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/libbellesip.so
 %endif
 %{_libdir}/pkgconfig/belle-sip.pc
-%{_datadir}/BelleSIP/cmake/BelleSIPConfig.cmake
-%{_datadir}/BelleSIP/cmake/BelleSIPConfigVersion.cmake
-%{_datadir}/BelleSIP/cmake/BelleSIPTargets-noconfig.cmake
-%{_datadir}/BelleSIP/cmake/BelleSIPTargets.cmake
+%{_datadir}/BelleSIP/cmake/BelleSIPConfig*.cmake
+%{_datadir}/BelleSIP/cmake/BelleSIPTargets*.cmake
 
 %changelog
 * Mon Aug 19 2013 jehan.monnier <jehan.monnier@linphone.org>
