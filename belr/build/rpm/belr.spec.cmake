@@ -62,7 +62,7 @@ Libraries and headers required to develop software with belr
 %setup -n %{name}-%{version}%{?build_number_ext}
 
 %build
-%{expand:%%%cmake_name} . -DCMAKE_INSTALL_LIBDIR:PATH=%{_libdir} -DCMAKE_PREFIX_PATH:PATH=%{_prefix} @RPM_ALL_CMAKE_OPTIONS@
+%{expand:%%%cmake_name} . -DCMAKE_BUILD_TYPE=@CMAKE_BUILD_TYPE@ -DCMAKE_INSTALL_LIBDIR:PATH=%{_libdir} -DCMAKE_PREFIX_PATH:PATH=%{_prefix} @RPM_ALL_CMAKE_OPTIONS@
 make %{?_smp_mflags}
 
 %install
@@ -93,9 +93,8 @@ rm -rf $RPM_BUILD_ROOT
 %if @ENABLE_SHARED@
 %{_libdir}/libbelr.so
 %endif
-%{_datadir}/Belr/cmake/BelrConfig.cmake
-%{_datadir}/Belr/cmake/BelrTargets-noconfig.cmake
-%{_datadir}/Belr/cmake/BelrTargets.cmake
+%{_datadir}/Belr/cmake/BelrConfig*.cmake
+%{_datadir}/Belr/cmake/BelrTargets*.cmake
 %if @ENABLE_TESTS@ || @ENABLE_TOOLS@
 %{_bindir}/*
 %endif
