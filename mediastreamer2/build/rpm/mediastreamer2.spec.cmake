@@ -97,10 +97,8 @@ rm -rf $RPM_BUILD_ROOT
 %endif
 #%{_libdir}/pkgconfig/*.pc
 %{_includedir}
-%{_datadir}/Mediastreamer2/cmake/Mediastreamer2Config.cmake
-%{_datadir}/Mediastreamer2/cmake/Mediastreamer2ConfigVersion.cmake
-%{_datadir}/Mediastreamer2/cmake/Mediastreamer2Targets-noconfig.cmake
-%{_datadir}/Mediastreamer2/cmake/Mediastreamer2Targets.cmake
+%{_datadir}/Mediastreamer2/cmake/Mediastreamer2Config*.cmake
+%{_datadir}/Mediastreamer2/cmake/Mediastreamer2Targets*.cmake
 %if @ENABLE_DOC@
 %doc %{_docdir}/*
 %endif
