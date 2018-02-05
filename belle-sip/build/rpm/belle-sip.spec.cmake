@@ -54,7 +54,7 @@ Libraries and headers required to develop software with belle-sip
 %setup -n %{name}-%{version}-%build_number
 
 %build
-%{expand:%%%cmake_name} . -DCMAKE_INSTALL_LIBDIR=%{_lib} -DCMAKE_PREFIX_PATH:PATH=%{_prefix} @RPM_ALL_CMAKE_OPTIONS@
+%{expand:%%%cmake_name} . -DCMAKE_BUILD_TYPE=@CMAKE_BUILD_TYPE@ -DCMAKE_INSTALL_LIBDIR=%{_lib} -DCMAKE_PREFIX_PATH:PATH=%{_prefix} @RPM_ALL_CMAKE_OPTIONS@
 make %{?_smp_mflags}
 
 %install
