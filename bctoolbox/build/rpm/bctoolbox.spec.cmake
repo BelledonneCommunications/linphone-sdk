@@ -91,10 +91,8 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/pkgconfig/bctoolbox.pc
 %{_datadir}/bctoolbox/cmake/BcGitVersion.cmake
 %{_datadir}/bctoolbox/cmake/BcToolboxCMakeUtils.cmake
-%{_datadir}/bctoolbox/cmake/BcToolboxConfig.cmake
-%{_datadir}/bctoolbox/cmake/BcToolboxConfigVersion.cmake
-%{_datadir}/bctoolbox/cmake/BcToolboxTargets-noconfig.cmake
-%{_datadir}/bctoolbox/cmake/BcToolboxTargets.cmake
+%{_datadir}/bctoolbox/cmake/BcToolboxConfig*.cmake
+%{_datadir}/bctoolbox/cmake/BcToolboxTargets*.cmake
 %{_datadir}/bctoolbox/cmake/gitversion.h.in
 %if @ENABLE_TESTS_COMPONENT@
 %if @ENABLE_STATIC@
