@@ -628,6 +628,7 @@ static void mdns_query_multiple_result(void) {
 	BC_ASSERT_PTR_NOT_NULL(reg1);
 	BC_ASSERT_TRUE(wait_for(client->stack, &register_error, 0, 5000));
 
+	register_error = -1;
 	reg2 = belle_sip_mdns_register("sip", "tcp", "test.linphone.local", "Register2", 5070, 10, 100, mdns_register_callback, &register_error);
 	BC_ASSERT_PTR_NOT_NULL(reg2);
 	BC_ASSERT_TRUE(wait_for(client->stack, &register_error, 0, 5000));
@@ -641,15 +642,48 @@ static void mdns_query_multiple_result(void) {
 		/* The first adress should be the one registered on port 5070 since it has higher priority */
 		if (client->ai_list->ai_addr->sa_family == AF_INET) {
 			struct sockaddr_in *sock_in = (struct sockaddr_in *)client->ai_list->ai_addr;
-			BC_ASSERT_EQUAL((int)ntohs(sock_in->sin_port), 5070, int, "%d");
+			int ntohsi = (int)ntohs(sock_in->sin_port);
+			BC_ASSERT_EQUAL(ntohsi, 5070, int, "%d");
 		} else {
 			struct sockaddr_in6 *sock_in = (struct sockaddr_in6 *)client->ai_list->ai_addr;
-			BC_ASSERT_EQUAL((int)ntohs(sock_in->sin6_port), 5070, int, "%d");
+			int ntohsi = (int)ntohs(sock_in->sin6_port);
+			BC_ASSERT_EQUAL(ntohsi, 5070, int, "%d");
 		}
 	}
 
 	belle_sip_mdns_unregister(reg1);
 	belle_sip_mdns_unregister(reg2);
+	destroy_endpoint(client);
+}
+
+static void mdns_queries(void) {
+	belle_sip_mdns_register_t *reg;
+	endpoint_t *client;
+	int register_error = -1;
+
+	client = create_endpoint();
+
+	reg = belle_sip_mdns_register("sip", "tcp", "test.linphone.local", NULL, 5060, 10, 100, mdns_register_callback, &register_error);
+	BC_ASSERT_PTR_NOT_NULL(reg);
+	BC_ASSERT_TRUE(wait_for(client->stack, &register_error, 0, 5000));
+
+	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "sip", "tcp", "test.linphone.local", 5060, AF_INET, a_resolve_done, client);
+	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
+	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, 6000));
+	BC_ASSERT_PTR_NOT_NULL(client->ai_list);
+
+	client->resolve_done = 0;
+	wait_for(client->stack, &client->resolve_done, 1, 10000); // Wait 10 seconds
+
+	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "sip", "tcp", "test.linphone.local", 5060, AF_INET, a_resolve_done, client);
+	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
+	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, 6000));
+	BC_ASSERT_PTR_NOT_NULL(client->ai_list);
+
+	client->resolve_done = 0;
+	wait_for(client->stack, &client->resolve_done, 1, 10000); // Wait 10 seconds
+
+	belle_sip_mdns_unregister(reg);
 	destroy_endpoint(client);
 }
 #endif
@@ -678,7 +712,8 @@ test_t resolver_tests[] = {
 	TEST_NO_TAG("MDNS query", mdns_query),
 	TEST_NO_TAG("MDNS query with ipv6", mdns_query_ipv6),
 	TEST_NO_TAG("MDNS query with no result", mdns_query_no_result),
-	TEST_NO_TAG("MDNS query with multiple result", mdns_query_multiple_result)
+	TEST_NO_TAG("MDNS query with multiple result", mdns_query_multiple_result),
+	TEST_NO_TAG("MDNS multiple queries", mdns_queries)
 #endif
 };
 
