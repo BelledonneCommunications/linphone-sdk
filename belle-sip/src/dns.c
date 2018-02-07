@@ -811,9 +811,9 @@ static size_t dns_af_len(int af) {
 	return table[af];
 } /* dns_af_len() */
 
-#define dns_sa_family(sa)	(((struct sockaddr_storage *)(sa))->ss_family)
+#define dns_sa_family(sa) (((struct sockaddr_storage *)(sa))->ss_family)
 
-#define dns_sa_len(sa)		dns_af_len(dns_sa_family(sa))
+#define dns_sa_len(sa) dns_af_len(dns_sa_family(sa))
 
 
 #define DNS_SA_NOPORT	&dns_sa_noport
@@ -7738,10 +7738,10 @@ exec:
 				|| error == DNS_EHOSTUNREACH) { /* maybe even more case*/
 				char remote_sock[64];
 				struct sockaddr *addr = (struct sockaddr*)&R->so.remote;
-				bctbx_sockaddr_to_printable_ip_address(addr, sizeof *addr, remote_sock, sizeof(remote_sock));
+				bctbx_sockaddr_to_printable_ip_address(addr, dns_sa_len(addr), remote_sock, sizeof(remote_sock));
 				belle_sip_error("Cannot reach [%s] because [%s]", remote_sock, strerror(error));
 				dgoto(R->sp, DNS_R_FOREACH_A);
-			}else goto error;
+			} else goto error;
 		}
 		if (!dns_p_setptr(&F->answer, dns_so_fetch(&R->so, &error)))
 			goto error;
