@@ -363,6 +363,7 @@ class bctbx_ECDH : public keyExchange<Curve> {
 		}
 }; // class bctbx_ECDH
 
+
 /* Factory functions */
 template <typename Base>
 std::shared_ptr<keyExchange<Base>> make_keyExchange() {
@@ -373,6 +374,68 @@ template <typename Base>
 std::shared_ptr<Signature<Base>> make_Signature() {
 	return std::make_shared<bctbx_EDDSA<Base>>();
 }
+
+/* HMAC templates */
+template <typename hashAlgo>
+void HMAC(const uint8_t *const key, const size_t keySize, const uint8_t *const input, const size_t inputSize, uint8_t *hash, size_t hashSize);
+template <typename hashAlgo>
+void HMAC(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input, std::array<uint8_t, hashAlgo::ssize()> &hash);
+
+/* HMAC must use a specialized template */
+template <typename hashAlgo>
+void HMAC(const uint8_t *const key, const size_t keySize, const uint8_t *const input, const size_t inputSize, uint8_t *hash, size_t hashSize) {
+	/* if this template is instanciated the static_assert will fail but will give us an error message with faulty Curve type */
+	static_assert(sizeof(hashAlgo) != sizeof(hashAlgo), "You must specialize HMAC_KDF function template");
+}
+template <typename hashAlgo>
+void HMAC(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input, std::array<uint8_t, hashAlgo::ssize()> &hash) {
+	/* if this template is instanciated the static_assert will fail but will give us an error message with faulty Curve type */
+	static_assert(sizeof(hashAlgo) != sizeof(hashAlgo), "You must specialize HMAC_KDF function template");
+}
+
+/* HMAC specialized template for SHA512 */
+template <> void HMAC<SHA512>(const uint8_t *const key, const size_t keySize, const uint8_t *const input, const size_t inputSize, uint8_t *hash, size_t hashSize) {
+	bctbx_hmacSha512(key, keySize, input, inputSize, std::min(SHA512::ssize(),hashSize), hash);
+}
+template <> void HMAC<SHA512>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input, std::array<uint8_t, SHA512::ssize()> &hash) {
+	bctbx_hmacSha512(key.data(), key.size(), input.data(), input.size(), SHA512::ssize(), hash.data());
+}
+
+/* generic implementation, of HKDF RFC-5869 */
+template <typename hashAlgo, typename infoType>
+void HMAC_KDF(const uint8_t *const salt, const size_t saltSize, const uint8_t *const ikm, const size_t ikmSize, const infoType &info, uint8_t *output, size_t outputSize) {
+	std::array<uint8_t, hashAlgo::ssize()> prk; // hold the output of pre-computation, as we use SHA512 gets a 64 bytes
+	// extraction
+	HMAC<hashAlgo>(salt, saltSize, ikm, ikmSize, prk.data(), prk.size());
+
+	// expansion round 0
+	std::vector<uint8_t> T(info.cbegin(), info.cend());
+	T.push_back(0x01);
+	HMAC<hashAlgo>(prk.data(), prk.size(), T.data(), T.size(), output, outputSize);
+
+	// successives expansion rounds
+	size_t index = std::min(outputSize, hashAlgo::ssize());
+	for(uint8_t i=0x02; index < outputSize; i++) {
+		T.assign(output+(i-2)*hashAlgo::ssize(), output+(i-1)*hashAlgo::ssize());
+		T.insert(T.end(), info.cbegin(), info.cend());
+		T.push_back(i);
+		HMAC<hashAlgo>(prk.data(), prk.size(), T.data(), T.size(), output+index, outputSize-index);
+		index += hashAlgo::ssize();
+	}
+	cleanBuffer(prk.data(), prk.size());
+	cleanBuffer(T.data(), T.size());
+}
+template <typename hashAlgo, typename infoType>
+void HMAC_KDF(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const infoType &info, uint8_t *output, size_t outputSize) {
+	HMAC_KDF<SHA512>(salt.data(), salt.size(), ikm.data(), ikm.size(), info, output, outputSize);
+};
+
+/* instanciate HMAC_KDF template with SHA512 and string or vector info */
+template void HMAC<SHA512>(const uint8_t *const key, const size_t keySize, const uint8_t *const input, const size_t inputSize, uint8_t *hash, size_t hashSize);
+template void HMAC_KDF<SHA512, std::vector<uint8_t>>(const uint8_t *const salt, const size_t saltSize, const uint8_t *const ikm, const size_t ikmSize, const std::vector<uint8_t> &info, uint8_t *output, size_t outputSize);
+template void HMAC_KDF<SHA512, std::string>(const uint8_t *const salt, const size_t saltSize, const uint8_t *const ikm, const size_t ikmSize, const std::string &info, uint8_t *output, size_t outputSize);
+template void HMAC_KDF<SHA512, std::vector<uint8_t>>(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const std::vector<uint8_t> &info, uint8_t *output, size_t outputSize);
+template void HMAC_KDF<SHA512, std::string>(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const std::string &info, uint8_t *output, size_t outputSize);
 
 /* check buffer length are in sync with bctoolbox ones */
 #ifdef EC25519_ENABLED

@@ -197,6 +197,54 @@ class Signature {
 		virtual ~Signature() = default;
 }; //class EdDSA
 
+/**
+ * @brief templated HMAC
+ *	template parameter is the hash algorithm used (SHA512 available for now)
+ *
+ * @parameter[in]	key
+ * @parameter[in]	keySize		previous buffer size
+ * @parameter[in]	input
+ * @parameter[in]	inputSize	previous buffer size
+ * @parameter[out]	hash		pointer to the output, this buffer must be able to hold as much data as requested
+ * @parameter[in]	hashSize	amount of expected data, if more than selected Hash algorithm can compute, silently ignored and maximum output size is generated
+ *
+ */
+template <typename hashAlgo>
+void HMAC(const uint8_t *const key, const size_t keySize, const uint8_t *const input, const size_t inputSize, uint8_t *hash, size_t hashSize);
+/* declare template specialisations */
+template <> void HMAC<SHA512>(const uint8_t *const key, const size_t keySize, const uint8_t *const input, const size_t inputSize, uint8_t *hash, size_t hashSize);
+
+/**
+ * @brief HKDF as described in RFC5869
+ *	template parameters:
+ *	hashAlgo: the hash algorithm to use (SHA512 available for now)
+ *	infoType: the info parameter can be passed as a string or a std::vector<uint8_t>
+ *	Compute:
+ *		PRK = HMAC-Hash(salt, IKM)
+ *
+ *		N = ceil(L/HashLen)
+ *		T = T(1) | T(2) | T(3) | ... | T(N)
+ *		OKM = first L octets of T
+ *
+ *		where:
+ *		T(0) = empty string (zero length)
+ *		T(1) = HMAC-Hash(PRK, T(0) | info | 0x01)
+ *		T(2) = HMAC-Hash(PRK, T(1) | info | 0x02)
+ *		T(3) = HMAC-Hash(PRK, T(2) | info | 0x03)
+ *		...
+ *
+ * @param[in]	salt 		salt
+ * @param[in]	ikm		input key material
+ * @param[in]	info		a info string or buffer
+ * @param[out]	okm		output key material
+ * @param[in]	okmSize		requested amount of data, okm buffer must be able to hold it. (L in the RFC doc)
+ *
+ */
+template <typename hashAlgo, typename infoType>
+void HMAC_KDF(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const infoType &info, uint8_t *okm, size_t okmSize);
+template <typename hashAlgo, typename infoType>
+void HMAC_KDF(const uint8_t *const salt, const size_t saltSize, const uint8_t *const ikm, const size_t ikmSize, const infoType &info, uint8_t *output, size_t outputSize);
+
 
 /*************************************************************************************************/
 /********************** Factory Functions ********************************************************/
@@ -210,11 +258,15 @@ std::shared_ptr<keyExchange<Base>> make_keyExchange();
 template <typename Base>
 std::shared_ptr<Signature<Base>> make_Signature();
 
-
 /*************************************************************************************************/
 /********************** Template Instanciation ***************************************************/
 /*************************************************************************************************/
 /* this templates are instanciated once in the lime_crypto_primitives.cpp file, explicitly tell anyone including this header that there is no need to re-instanciate them */
+extern template void HMAC_KDF<SHA512, std::vector<uint8_t>>(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const std::vector<uint8_t> &info, uint8_t *output, size_t outputSize);
+extern template void HMAC_KDF<SHA512, std::string>(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const std::string &info, uint8_t *output, size_t outputSize);
+extern template void HMAC_KDF<SHA512, std::vector<uint8_t>>(const uint8_t *const salt, const size_t saltSize, const uint8_t *const ikm, const size_t ikmSize, const std::vector<uint8_t> &info, uint8_t *output, size_t outputSize);
+extern template void HMAC_KDF<SHA512, std::string>(const uint8_t *const salt, const size_t saltSize, const uint8_t *const ikm, const size_t ikmSize, const std::string &info, uint8_t *output, size_t outputSize);
+
 #ifdef EC25519_ENABLED
 	extern template std::shared_ptr<keyExchange<C255>> make_keyExchange();
 	extern template std::shared_ptr<Signature<C255>> make_Signature();

@@ -37,26 +37,13 @@ using namespace::std;
 using namespace::lime;
 
 namespace lime {
-	/* Set of constants used as input is several uses of HKDF like function */
-	/* They MUST be different */
-	const std::array<std::uint8_t,2> hkdf_rk_info{{0x03, 0x01}}; //it already includes the expansion index (0x01) used in kdf_rk
-	const std::array<std::uint8_t,1> hkdf_ck_info{{0x02}};
-	const std::array<std::uint8_t,1> hkdf_mk_info{{0x01}};
-
 	/****************************************************************************/
 	/* Helpers functions not part of DR class                                   */
 	/****************************************************************************/
 	/* Key derivation functions : KDF_RK (root key derivation function, for DH ratchet) and KDF_CK(chain key derivation function, for symmetric ratchet) */
 	/**
 	 * @Brief Key Derivation Function used in Root key/Diffie-Hellman Ratchet chain.
-	 *      HKDF impleted as described in RFC5869, using SHA512 as hash function according to recommendation in DR spec section 5.2
-	 *      Note: Output length requested by DH ratchet is 64 bytes. Using SHA512 we got it in one round of
-	 *              expansion (RFC5869 2.3), thus only one round is implemented here:
-	 *              PRK = HMAC-SHA512(salt, input)
-	 *              Output = HMAC-SHA512(PRK, info || 0x01)
-	 *
-	 *              i.e: RK || CK = HMAC-SHA512(HMAC-SHA512(RK, dh_out), info || 0x01)
-	 *              info being a constant string HKDF_RK_INFO_STRING used only for this implementation of HKDF
+	 *      Use HKDF (see RFC5869) to derive CK and RK in one derivation
 	 *
 	 * @param[in/out]	RK	Input buffer used as salt also to store the 32 first byte of output key material
 	 * @param[out]		CK	Output buffer, last 32 bytes of output key material
@@ -64,33 +51,38 @@ namespace lime {
 	 */
 	template <typename Curve>
 	static void KDF_RK(DRChainKey &RK, DRChainKey &CK, const X<Curve, lime::Xtype::sharedSecret> &dh_out) noexcept {
-		uint8_t PRK[64]; // PRK size is the one of hmacSha512 maximum output
-		uint8_t tmp[2*lime::settings::DRChainKeySize]; // tmp will hold RK || CK
-		bctbx_hmacSha512(RK.data(), RK.size(), dh_out.data(), dh_out.size(), sizeof(PRK), PRK);
-		bctbx_hmacSha512(PRK, sizeof(PRK), hkdf_rk_info.data(), hkdf_rk_info.size(), sizeof(tmp), tmp);
-		std::copy_n(tmp, lime::settings::DRChainKeySize, RK.begin());
-		std::copy_n(tmp+lime::settings::DRChainKeySize, lime::settings::DRChainKeySize, CK.begin());
-		cleanBuffer(PRK, 64);
-		cleanBuffer(tmp, 2*lime::settings::DRChainKeySize);
+		// Ask for twice the size of a DRChainKey for HKDF output
+		std::array<uint8_t, 2*lime::settings::DRChainKeySize> HKDFoutput;
+		HMAC_KDF<SHA512>(RK.data(), RK.size(), dh_out.data(), dh_out.size(), lime::settings::hkdf_DRChainKey_info, HKDFoutput.data(), HKDFoutput.size());
+
+		// First half of the output goes to RootKey (RK)
+		std::copy_n(HKDFoutput.cbegin(), lime::settings::DRChainKeySize, RK.begin());
+		// Second half of the output goes to ChainKey (CK)
+		std::copy_n(HKDFoutput.cbegin()+lime::settings::DRChainKeySize, lime::settings::DRChainKeySize, CK.begin());
+		cleanBuffer(HKDFoutput.data(), HKDFoutput.size());
 	}
+
+	/* Set of constants used as input of HKDF like function, see double ratchet spec section 5.2 - KDF_CK */
+	const std::array<std::uint8_t,1> hkdf_ck_info{{0x02}};
+	const std::array<std::uint8_t,1> hkdf_mk_info{{0x01}};
 
 	/**
 	 * @Brief Key Derivation Function used in Symmetric key ratchet chain.
-	 *      Impleted according to DR spec section 5.2 using HMAC-SHA256 for CK derivation and 512 for MK and IV derivation
+	 *      Implemented according to DR spec section 5.2 using HMAC-SHA512
 	 *		MK = HMAC-SHA512(CK, hkdf_mk_info) // get 48 bytes of it: first 32 to be key and last 16 to be IV
 	 *		CK = HMAC-SHA512(CK, hkdf_ck_info)
-	 *              hkdf_ck_info and hldf_mk_info being a distincts constant strings
+	 *              hkdf_ck_info and hldf_mk_info being a distincts constants (0x02 and 0x01 as suggested in double ratchet - section 5.2)
 	 *
 	 * @param[in/out]	CK	Input/output buffer used as key to compute MK and then next CK
-	 * @param[out]		MK	Message Key(32 bytes) and IV(16 bytes) computed from HMAc_SHA512 keyed with CK
+	 * @param[out]		MK	Message Key(32 bytes) and IV(16 bytes) computed from HMAC_SHA512 keyed with CK
 	 */
 	static void KDF_CK(DRChainKey &CK, DRMKey &MK) noexcept {
 		// derive MK and IV from CK and constant
-		bctbx_hmacSha512(CK.data(), CK.size(), hkdf_mk_info.data(), hkdf_mk_info.size(), MK.size(), MK.data());
+		HMAC<SHA512>(CK.data(), CK.size(), hkdf_mk_info.data(), hkdf_mk_info.size(), MK.data(), MK.size());
 
 		// use temporary buffer, not likely that output and key could be the same buffer
 		DRChainKey tmp;
-		bctbx_hmacSha512(CK.data(), CK.size(), hkdf_ck_info.data(), hkdf_ck_info.size(), tmp.size(), tmp.data());
+		HMAC<SHA512>(CK.data(), CK.size(), hkdf_ck_info.data(), hkdf_ck_info.size(), tmp.data(), tmp.size());
 		CK = tmp;
 	}
 
@@ -420,12 +412,11 @@ namespace lime {
 		std::array<uint8_t,lime::settings::DRrandomSeedSize> randomSeed{}; // this seed is sent in DR message and used to derivate random key + IV to encrypt the actual message
 		RNG_context->randomize(randomSeed.data(), randomSeed.size());
 
-		// expansion of randomSeed to 48 bytes: 32 bytes random key + 16 bytes nonce
-		// use the expansion round of HKDF - RFC 5869
+		// expansion of randomSeed to 48 bytes: 32 bytes random key + 16 bytes nonce, use HKDF with empty salt
+		std::vector<uint8_t> emptySalt{};
+		emptySalt.clear();
 		std::array<uint8_t,lime::settings::DRMessageKeySize+lime::settings::DRMessageIVSize> randomKey{};
-		std::vector<uint8_t> expansionRoundInput{lime::settings::hkdf_randomSeed_info.cbegin(), lime::settings::hkdf_randomSeed_info.cend()};
-		expansionRoundInput.push_back(0x01);
-		bctbx_hmacSha512(randomSeed.data(), randomSeed.size(), expansionRoundInput.data(), expansionRoundInput.size(), randomKey.size(), randomKey.data());
+		HMAC_KDF<SHA512>(emptySalt.data(), emptySalt.size(), randomSeed.data(), randomSeed.size(), lime::settings::hkdf_randomSeed_info, randomKey.data(), randomKey.size());
 
 		// resize cipherMessage vector as it is adressed directly by C library: same as plain message + room for the authentication tag
 		cipherMessage.resize(plaintext.size()+lime::settings::DRMessageAuthTagSize);
@@ -491,11 +482,11 @@ namespace lime {
 				plaintext.resize(cipherMessage.size()-lime::settings::DRMessageAuthTagSize);
 
 				// rebuild the random key and IV from given seed
-				// use the expansion round of HKDF - RFC 5869
+				// use HKDF - RFC 5869 with empty salt
+				std::vector<uint8_t> emptySalt{};
+				emptySalt.clear();
 				std::array<uint8_t,lime::settings::DRMessageKeySize+lime::settings::DRMessageIVSize> randomKey{};
-				std::vector<uint8_t> expansionRoundInput{lime::settings::hkdf_randomSeed_info.cbegin(), lime::settings::hkdf_randomSeed_info.cend()};
-				expansionRoundInput.push_back(0x01);
-				bctbx_hmacSha512(randomSeed.data(), randomSeed.size(), expansionRoundInput.data(), expansionRoundInput.size(), randomKey.size(), randomKey.data());
+				HMAC_KDF<SHA512>(emptySalt.data(), emptySalt.size(), randomSeed.data(), randomSeed.size(), lime::settings::hkdf_randomSeed_info, randomKey.data(), randomKey.size());
 				cleanBuffer(randomSeed.data(), randomSeed.size());
 
 				// use it to decipher message

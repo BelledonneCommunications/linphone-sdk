@@ -31,7 +31,7 @@ namespace lime {
 	enum class DSAtype {publicKey, privateKey, signature}; // Signature has public key, private key and signature
 
 	/* define needed constant for the curves: self identificatio(used in DB and as parameter from lib users, data structures sizes)*/
-	/* These structure are used as template argument to enable support for different Algorithms */
+	/* These structure are used as template argument to enable support for different key Exchznge and signature Algorithms */
 	struct C255 { // curve 25519, use a 4 chars to identify it to improve code readability
 		static constexpr lime::CurveId curveId() {return lime::CurveId::c25519;};
 		// for X25519, public, private and shared secret have the same length: 32 bytes
@@ -46,6 +46,11 @@ namespace lime {
 		static constexpr size_t Xsize(lime::Xtype dataType) {return 56;};
 		// for Ed448, public and private key have the same length 57 bytes, signature is 114 bytes long
 		static constexpr size_t DSAsize(lime::DSAtype dataType) {return (dataType != lime::DSAtype::signature)?57:114;};
+	};
+
+	// Hash function defines
+	struct SHA512 {
+		static constexpr size_t ssize() {return 64;} // maximum output size
 	};
 }
 

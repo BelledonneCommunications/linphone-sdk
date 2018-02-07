@@ -34,6 +34,7 @@ namespace settings {
 
 	// Sending, Receiving and Root key chain use 32 bytes keys (spec 3.2)
 	constexpr size_t DRChainKeySize=32;
+	const std::string hkdf_DRChainKey_info{"DR Root Chain Key Derivation"}; // String used as info in the root key derivation
 
 	// DR Message Key are composed of a 32 bytes key and 16 bytes of IV
 	constexpr size_t DRMessageKeySize=32;
