@@ -96,8 +96,6 @@ static void belle_sip_mdns_register_reply(DNSServiceRef service_ref
 	if (error_code != kDNSServiceErr_NoError) {
 		belle_sip_error("%s error while registering %s [%s%s]: code %d", __FUNCTION__, name, type, domain, error_code);
 		error = -1;
-	}else{
-		belle_sip_message("mDNS register of %s/%s/%s completed.", name, type, domain);
 	}
 
 	if (reg->cb) reg->cb(reg->data, error);
@@ -178,7 +176,7 @@ belle_sip_mdns_register_t *belle_sip_mdns_register(const char *service, const ch
 			return NULL;
 		}
 	}
-	belle_sip_message("MDNS register of %s/%s/%s/%s starting.", service, transport, domain, name);
+
 	return reg;
 #else
 	return NULL;
@@ -188,8 +186,6 @@ belle_sip_mdns_register_t *belle_sip_mdns_register(const char *service, const ch
 void belle_sip_mdns_unregister(belle_sip_mdns_register_t *reg) {
 #ifdef HAVE_MDNS
 	if (!reg) return;
-	
-	belle_sip_message("MDNS unregistering service.");
 
 	if (reg->running) {
 		reg->running = FALSE;

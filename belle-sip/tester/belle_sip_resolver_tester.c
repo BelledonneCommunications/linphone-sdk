@@ -673,15 +673,12 @@ static void mdns_queries(void) {
 	BC_ASSERT_PTR_NOT_NULL(client->ai_list);
 
 	client->resolve_done = 0;
-	wait_for(client->stack, &client->resolve_done, 1, 10000); // Wait 10 seconds
+	wait_for(client->stack, &client->resolve_done, 1, 5000); // Wait 5 seconds
 
 	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "sip", "tcp", "test.linphone.local", 5060, AF_INET, a_resolve_done, client);
 	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
 	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, 6000));
 	BC_ASSERT_PTR_NOT_NULL(client->ai_list);
-
-	client->resolve_done = 0;
-	wait_for(client->stack, &client->resolve_done, 1, 10000); // Wait 10 seconds
 
 	belle_sip_mdns_unregister(reg);
 	destroy_endpoint(client);
