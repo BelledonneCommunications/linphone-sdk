@@ -584,7 +584,7 @@ static void mdns_query_ipv4_or_ipv6(int family) {
 
 	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "sip", "tcp", "test.linphone.local", 5060, family, a_resolve_done, client);
 	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
-	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, 6000));
+	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, 10000));
 	BC_ASSERT_PTR_NOT_NULL(client->ai_list);
 
 	belle_sip_mdns_unregister(reg);
@@ -642,6 +642,9 @@ static void mdns_query_multiple_result(void) {
 
 	BC_ASSERT_PTR_NOT_NULL(client->ai_list);
 	if (client->ai_list) {
+		/* We need to know if we have two results, if ai_list is != NULL then we have one so we check ai_next */
+		BC_ASSERT_PTR_NOT_NULL(client->ai_list->ai_next);
+
 		/* The first adress should be the one registered on port 5070 since it has higher priority */
 		if (client->ai_list->ai_addr->sa_family == AF_INET) {
 			struct sockaddr_in *sock_in = (struct sockaddr_in *)client->ai_list->ai_addr;
@@ -675,7 +678,7 @@ static void mdns_queries(void) {
 	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, 6000));
 	BC_ASSERT_PTR_NOT_NULL(client->ai_list);
 
-	client->resolve_done = 0;
+	reset_endpoint(client);
 	wait_for(client->stack, &client->resolve_done, 1, 5000); // Wait 5 seconds
 
 	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "sip", "tcp", "test.linphone.local", 5060, AF_INET, a_resolve_done, client);
