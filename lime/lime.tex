@@ -134,16 +134,24 @@ any session-based message encryption algorithm that meets certain conditions.}\t
       \item recipient: the parties targeted to receive and decrypt the message. Multiple devices can be associated to the it so any mention of recipient must specify user Id or device Id to clarify the intent.
     \end{itemize}
 
+  \subsection{HKDF}
+      The HKDF function, as described in RFC5869 \cite{rfc5869} is used in both X3DH and Double Ratchet. Lime uses an implementation of HKDF based on SHA512. Its prototype in the pseudo-code is as follow, all inputs and output have variable size. $salt$ is optionnal and the function may be used without(set to $null$ in the pseudo-code). The size of the generated output key material, $okm$, is arbitrary and depends only on request not on input or hash algorithm used.
+      \begin{algorithmic}
+        \Statex
+        \Function{HKDFSha512}{$salt, ikm, info$}
+          \State \Return {$okm$}
+        \EndFunction
+      \end{algorithmic}
   \subsection{Double Ratchet}
     \subsubsection{Diffie-Hellman}
       \paragraph{}The ECDH function can be either X448 or X25519 as described in \cite{rfc7748}.
     \subsubsection{KDF\_RK}
-      \paragraph*{}This function implements one round of HKDF\cite{rfc5869}. The $salt$ is RK and $ikm$ is the output of ECDH(\textit{DH\_out}). The info string is a simple char: 0x03. \textit{DH\_out} size depends on ECDH function used, X25519 produces a 32 bytes output, X448 a 56 bytes output. 
+      \paragraph{}As recommended in \cite[section 5.2]{doubleRatchet}, this function uses HKDF\cite{rfc5869} based on SHA512. The $salt$ is RK and $ikm$ is the output of ECDH(\textit{DH\_out}). The info string is "\textit{DR Root Chain Key Derivation}". \textit{DH\_out} size depends on ECDH function used, X25519 produces a 32 bytes output, X448 a 56 bytes output.
 
       \begin{algorithmic}
         \Function{KDF\_RK}{RK$\langle 32bytes\rangle, DH\_out\langle 32,56bytes\rangle  $}
-          \State $PRK\langle 64bytes\rangle  \gets \Call{HmacSha512}{RK, DH\_out}$
-          \State $RK\Arrowvert CK \gets \Call{HmacSha512}{PRK, 0x03\Arrowvert 0x01}$
+          \State $info \gets \textit{"DR Root Chain Key Derivation"}$
+          \State $RK\langle 32bytes\rangle\Arrowvert CK\langle 32bytes\rangle \gets \Call{HKDFSha512}{RK, DH\_out, info}$
           \State \Return $RK\langle 32bytes\rangle , CK\langle 32bytes\rangle$
         \EndFunction
       \end{algorithmic}
@@ -179,10 +187,10 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \begin{algorithmic}
           \Statex
           \Function{MessageEncrypt}{$recipientList, plain, sourceDeviceId, recipientUserId$}
-            \Comment{Generate a random key and nonce to encrypt the plain}
+            \Comment{Generate a random key and nonce to encrypt the plain, HKDF is called with no salt}
             \State $randomSeed\langle 32bytes\rangle \gets \Call{RandomSource}{}$
             \State $info \gets \textit{"DR Message Key Derivation"}$
-            \State $key\langle 32bytes\rangle\Arrowvert IV\langle 16bytes\rangle \gets \Call{HKDFSha512Expansion}{randomSeed, info}$
+            \State $key\langle 32bytes\rangle\Arrowvert IV\langle 16bytes\rangle \gets \Call{HKDFSha512}{null, randomSeed, info}$
             \State $cipher\Arrowvert tag\langle 16bytes\rangle  \gets\Call{Encrypt}{key, IV, plain, sourceDeviceId \Arrowvert recipientUserId}$
             \Statex
             \Statex
@@ -210,11 +218,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
             \State\Return $header, \Call{Encrypt}{mK, IV, plaintext, AD\Arrowvert X3DH$ $provided$ $AD\Arrowvert header$}
           \EndFunction
           \Statex
-          \Function{HKDFSha512Expansion}{ikm, info}
-            \State \Return $\Call{HmacSha512}{ikm, info\Arrowvert 0x01}$
-          \EndFunction
         \end{algorithmic}
-      \paragraph*{Notes:}HKDFSha512Expansion implements one round of the HKDF expansion defined in \cite{rfc5869}.
       \paragraph{}Header function is specified in section \ref{subsubsec:protocol_doubleratchet_header}
         
     \subsubsection{RatchetDecrypt}
@@ -230,7 +234,8 @@ any session-based message encryption algorithm that meets certain conditions.}\t
           \State $AD \gets tag\Arrowvert sourceDeviceId\Arrowvert recipientDeviceId$
           \ForAll{$DRsession \in DRsessionList$}
             \If{$randomSeed \gets\Call{RatchetDecrypt}{DRsession, DRcipher, AD}}$
-              \State $key\langle 32bytes\rangle\Arrowvert IV\langle 16bytes\rangle \gets \Call{HKDFSha512Expansion}{randomSeed\langle 32bytes\rangle$}
+              \State $info \gets \textit{"DR Message Key Derivation"}$
+              \State $key\langle 32bytes\rangle\Arrowvert IV\langle 16bytes\rangle \gets \Call{HKDFSha512}{null, randomSeed\langle 32bytes\rangle, info$}
               \State $plain \gets \Call{Decrypt}{key, IV, cipher, sourceDeviceId\Arrowvert recipientUserId}$
               \State \Return $plain$
             \EndIf
@@ -269,29 +274,20 @@ any session-based message encryption algorithm that meets certain conditions.}\t
       \paragraph*{}Available Diffie-Hellman algorithms are X25519 and X448, the DH computations performed strictly follow the X3DH specifications.
     \subsubsection{Sig}
       \paragraph*{}The signature/verify operation performed is an EdDSA (both EdDSA25519 and EdDSA448 are available). The identity key used is stored in EdDSA format so there is no need to use XEdDSA contrary to the X3DH specifications \cite[section 2.2]{x3dh}.
-    \subsubsection{KDF}
-      As specified in \cite[section 2.2]{x3dh}, the HKDF function\cite{rfc5869} is used with a zero filled salt buffer. This function is used for shared key derivation but also for shared associated data derivation for implementation convenience.
-      \begin{algorithmic}
-        \Statex
-        \Function{KDF}{$ikm, info$}
-          \State $PRK\langle 64bytes\rangle  \gets \Call{HmacSha512}{ZeroFilledBuffer\langle 64bytes\rangle, ikm}$
-          \State $output\langle 32bytes\rangle \gets \Call{HmacSha512}{PRK, info\Arrowvert 0x01}$
-          \State \Return {$output\langle 32bytes\rangle$}
-        \EndFunction
-      \end{algorithmic}
     \subsubsection{Shared Secrets generation}
-      \paragraph{SK}is computed as specified in \cite[section 3.3 and 2.2]{x3dh}.
+      \paragraph{SK}is computed as specified in \cite[section 3.3 and 2.2]{x3dh}. The salt used for the HKDF function is a zero filled buffer the size of the hash function used, the \textit{info} parameter is "\textit{Lime}".
           \begin{algorithmic}
-            \State $SK\langle 32bytes\rangle  \gets \Call{KDF}{F\langle 32,57bytes\rangle \Arrowvert DH1\Arrowvert DH2\Arrowvert DH3\Arrowvert DH4, $\textit{"Lime"}}
+            \State $ZeroBuffer\langle SHA512 output size(64bytes)\rangle \gets 0$
+            \State $SK\langle 32bytes\rangle  \gets \Call{HKDFSha512}{ZeroBuffer, F\langle 32,57bytes\rangle \Arrowvert DH1\Arrowvert DH2\Arrowvert DH3\Arrowvert DH4, $\textit{"Lime"}}
           \end{algorithmic}
-        F is a 32 (when using curve25519) or 57 (when using curve448) bytes 0xFF filled buffer.\\
-        \textit{"Lime"} is the \textit{info} input field of the HKDF function\cite{rfc5869}.
+        F is a 32 (when using curve25519) or 57 (when using curve448) bytes 0xFF filled buffer.
 
       \label{subsubsec:X3DHAD}
-      \paragraph{Associated Data} is computed from identity keys and devices Id as specified in \cite[section 3.3]{x3dh}. For implementation convenience, the actual AD used by the Double Ratchet session is derived from these inputs by the KDF function producing a fixed size buffer as following:
+      \paragraph{Associated Data} is computed from identity keys and devices Id as specified in \cite[section 3.3]{x3dh}. For implementation convenience, the actual AD used by the Double Ratchet session is derived from these inputs by the HKDF function producing a fixed size buffer as following:
           \begin{algorithmic}
+            \State $ZeroBuffer\langle SHA512 output size(64bytes)\rangle \gets 0$
             \State $ADinput \gets initiatorIk\Arrowvert receiverIk\Arrowvert initiatorDeviceId\Arrowvert receiverDeviceId$
-            \State $AD\langle 32bytes\rangle  \gets \Call{KDF}{ADinput, $\textit{"X3DH Associated Data"}}
+            \State $AD\langle 32bytes\rangle  \gets \Call{HKDFSha512}{ZeroBuffer, ADinput, $\textit{"X3DH Associated Data"}}
           \end{algorithmic}
           \textit{initiator} being the device who initiates the session (Alice in the X3DH spec) by fetching a keys bundle on the X3DH server and \textit{receiver} being the recipient device of the first message (Bob in the X3DH spec).
     \subsubsection{Server}
