@@ -376,11 +376,6 @@ std::shared_ptr<Signature<Base>> make_Signature() {
 }
 
 /* HMAC templates */
-template <typename hashAlgo>
-void HMAC(const uint8_t *const key, const size_t keySize, const uint8_t *const input, const size_t inputSize, uint8_t *hash, size_t hashSize);
-template <typename hashAlgo>
-void HMAC(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input, std::array<uint8_t, hashAlgo::ssize()> &hash);
-
 /* HMAC must use a specialized template */
 template <typename hashAlgo>
 void HMAC(const uint8_t *const key, const size_t keySize, const uint8_t *const input, const size_t inputSize, uint8_t *hash, size_t hashSize) {
@@ -436,6 +431,51 @@ template void HMAC_KDF<SHA512, std::vector<uint8_t>>(const uint8_t *const salt, 
 template void HMAC_KDF<SHA512, std::string>(const uint8_t *const salt, const size_t saltSize, const uint8_t *const ikm, const size_t ikmSize, const std::string &info, uint8_t *output, size_t outputSize);
 template void HMAC_KDF<SHA512, std::vector<uint8_t>>(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const std::vector<uint8_t> &info, uint8_t *output, size_t outputSize);
 template void HMAC_KDF<SHA512, std::string>(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const std::string &info, uint8_t *output, size_t outputSize);
+
+/* AEAD template must be specialized */
+template <typename AEADAlgo>
+void AEAD_encrypt(const uint8_t *const key, const size_t keySize, const uint8_t *const IV, const size_t IVSize,
+		const uint8_t *const plain, const size_t plainSize, const uint8_t *const AD, const size_t ADSize,
+		uint8_t *tag, const size_t tagSize, uint8_t *cipher) {
+	/* if this template is instanciated the static_assert will fail but will give us an error message with faulty type */
+	static_assert(sizeof(AEADAlgo) != sizeof(AEADAlgo), "You must specialize AEAD_encrypt function template");
+}
+
+template <typename AEADAlgo>
+bool AEAD_decrypt(const uint8_t *const key, const size_t keySize, const uint8_t *const IV, const size_t IVSize,
+		const uint8_t *const cipher, const size_t cipherSize, const uint8_t *const AD, const size_t ADSize,
+		const uint8_t *const tag, const size_t tagSize, uint8_t *plain) {
+	/* if this template is instanciated the static_assert will fail but will give us an error message with faulty type */
+	static_assert(sizeof(AEADAlgo) != sizeof(AEADAlgo), "You must specialize AEAD_decrypt function template");
+	return false;
+}
+
+/* AEAD scheme specialiazed template with AES256-GCM, 16 bytes auth tag */
+template <> void AEAD_encrypt<AES256GCM>(const uint8_t *const key, const size_t keySize, const uint8_t *const IV, const size_t IVSize,
+		const uint8_t *const plain, const size_t plainSize, const uint8_t *const AD, const size_t ADSize,
+		uint8_t *tag, const size_t tagSize, uint8_t *cipher) {
+	/* perforn checks on sizes */
+	if (keySize != AES256GCM::keySize() || tagSize != AES256GCM::tagSize()) {
+		throw BCTBX_EXCEPTION << "invalid arguments for AEAD_encrypt AES256-GCM";
+	}
+	auto ret = bctbx_aes_gcm_encrypt_and_tag(key, keySize, plain, plainSize, AD, ADSize, IV, IVSize, tag, tagSize, cipher);
+	if (ret != 0) {
+		throw BCTBX_EXCEPTION << "AEAD_encrypt AES256-GCM error: "<<ret;
+	}
+}
+
+template <> bool AEAD_decrypt<AES256GCM>(const uint8_t *const key, const size_t keySize, const uint8_t *const IV, const size_t IVSize,
+		const uint8_t *const cipher, const size_t cipherSize, const uint8_t *const AD, const size_t ADSize,
+		const uint8_t *const tag, const size_t tagSize, uint8_t *plain) {
+	/* perforn checks on sizes */
+	if (keySize != AES256GCM::keySize() || tagSize != AES256GCM::tagSize()) {
+		throw BCTBX_EXCEPTION << "invalid arguments for AEAD_decrypt AES256-GCM";
+	}
+	auto ret = bctbx_aes_gcm_decrypt_and_auth(key, keySize, cipher, cipherSize, AD, ADSize, IV, IVSize, tag, tagSize, plain);
+	if (ret == 0) return true;
+	if (ret == BCTBX_ERROR_AUTHENTICATION_FAILED) return false;
+	throw BCTBX_EXCEPTION << "AEAD_decrypt AES256-GCM error: "<<ret;
+}
 
 /* check buffer length are in sync with bctoolbox ones */
 #ifdef EC25519_ENABLED

@@ -27,7 +27,6 @@
 #include "lime_double_ratchet_protocol.hpp"
 #include "lime_localStorage.hpp"
 
-#include "bctoolbox/crypto.h"
 #include "bctoolbox/exception.hh"
 
 #include <algorithm> //copy_n
@@ -52,14 +51,13 @@ namespace lime {
 	template <typename Curve>
 	static void KDF_RK(DRChainKey &RK, DRChainKey &CK, const X<Curve, lime::Xtype::sharedSecret> &dh_out) noexcept {
 		// Ask for twice the size of a DRChainKey for HKDF output
-		std::array<uint8_t, 2*lime::settings::DRChainKeySize> HKDFoutput;
+		lime::sBuffer<2*lime::settings::DRChainKeySize> HKDFoutput;
 		HMAC_KDF<SHA512>(RK.data(), RK.size(), dh_out.data(), dh_out.size(), lime::settings::hkdf_DRChainKey_info, HKDFoutput.data(), HKDFoutput.size());
 
 		// First half of the output goes to RootKey (RK)
 		std::copy_n(HKDFoutput.cbegin(), lime::settings::DRChainKeySize, RK.begin());
 		// Second half of the output goes to ChainKey (CK)
 		std::copy_n(HKDFoutput.cbegin()+lime::settings::DRChainKeySize, lime::settings::DRChainKeySize, CK.begin());
-		cleanBuffer(HKDFoutput.data(), HKDFoutput.size());
 	}
 
 	/* Set of constants used as input of HKDF like function, see double ratchet spec section 5.2 - KDF_CK */
@@ -100,12 +98,12 @@ namespace lime {
 	 *
 	 */
 	static bool decrypt(const lime::DRMKey &MK, const std::vector<uint8_t> &ciphertext, const size_t headerSize, std::vector<uint8_t> &AD, std::array<uint8_t, lime::settings::DRrandomSeedSize> &plaintext) {
-		return (bctbx_aes_gcm_decrypt_and_auth(MK.data(), lime::settings::DRMessageKeySize, // MK buffer hold key<DRMessageKeySize bytes>||IV<DRMessageIVSize bytes>
-		ciphertext.data()+headerSize, plaintext.size(), // cipher text starts after header, length is the one computed for plaintext
-		AD.data(), AD.size(),
-		MK.data()+lime::settings::DRMessageKeySize, lime::settings::DRMessageIVSize,
-		ciphertext.data()+ciphertext.size() - lime::settings::DRMessageAuthTagSize, lime::settings::DRMessageAuthTagSize, // tag is in the last 16 bytes of buffer
-		plaintext.data()) == 0);
+		return AEAD_decrypt<AES256GCM>(MK.data(), lime::settings::DRMessageKeySize, // MK buffer hold key<DRMessageKeySize bytes>||IV<DRMessageIVSize bytes>
+					MK.data()+lime::settings::DRMessageKeySize, lime::settings::DRMessageIVSize,
+					ciphertext.data()+headerSize, plaintext.size(), // cipher text starts after header, length is the one computed for plaintext
+					AD.data(), AD.size(),
+					ciphertext.data()+ciphertext.size() - lime::settings::DRMessageAuthTagSize, lime::settings::DRMessageAuthTagSize, // tag is in the last 16 bytes of buffer
+					plaintext.data());
 	}
 
 	/**
@@ -121,13 +119,14 @@ namespace lime {
 	 * @return false if something goes wrong
 	 *
 	 */
-	static bool encrypt(const lime::DRMKey &MK, const std::array<uint8_t,lime::settings::DRrandomSeedSize> &plaintext, const size_t headerSize, std::vector<uint8_t> &AD, std::vector<uint8_t> &ciphertext) {
-		return (bctbx_aes_gcm_encrypt_and_tag(MK.data(), lime::settings::DRMessageKeySize, // MK buffer also hold the IV
+	static void encrypt(const lime::DRMKey &MK, const std::array<uint8_t,lime::settings::DRrandomSeedSize> &plaintext, const size_t headerSize, std::vector<uint8_t> &AD, std::vector<uint8_t> &ciphertext) {
+
+		AEAD_encrypt<AES256GCM>(MK.data(), lime::settings::DRMessageKeySize, // MK buffer also hold the IV
+				MK.data()+lime::settings::DRMessageKeySize, lime::settings::DRMessageIVSize, // IV is stored in the same buffer as key, after it
 				plaintext.data(), plaintext.size(),
 				AD.data(), AD.size(),
-				MK.data()+lime::settings::DRMessageKeySize, lime::settings::DRMessageIVSize, // IV is stored in the same buffer as key, after it
 				ciphertext.data()+headerSize+plaintext.size(), lime::settings::DRMessageAuthTagSize, // directly store tag after cipher text in the output buffer
-				ciphertext.data()+headerSize) == 0);
+				ciphertext.data()+headerSize);
 	}
 
 	/****************************************************************************/
@@ -315,13 +314,14 @@ namespace lime {
 		// header size + cipher text size + auth tag size
 		ciphertext.resize(ciphertext.size()+plaintext.size()+lime::settings::DRMessageAuthTagSize);
 
-		if (encrypt(MK, plaintext, headerSize, AD, ciphertext)) {
-			if (m_Ns >= lime::settings::maxSendingChain) { // if we reached maximum encryption wuthout DH ratchet step, session becomes inactive
-				m_active_status = false;
-			}
-			if (session_save() == true) {
-				m_dirty = DRSessionDbStatus::clean; // this session and local storage are back in sync
-			}
+		encrypt(MK, plaintext, headerSize, AD, ciphertext);
+
+		if (m_Ns >= lime::settings::maxSendingChain) { // if we reached maximum encryption wuthout DH ratchet step, session becomes inactive
+			m_active_status = false;
+		}
+
+		if (session_save() == true) {
+			m_dirty = DRSessionDbStatus::clean; // this session and local storage are back in sync
 		}
 	}
 
@@ -409,13 +409,13 @@ namespace lime {
 		// First generate a key and IV, use it to encrypt the given message, Associated Data are : sourceDeviceId || recipientUserId
 		// generate the random seed
 		auto RNG_context = make_RNG();
-		std::array<uint8_t,lime::settings::DRrandomSeedSize> randomSeed{}; // this seed is sent in DR message and used to derivate random key + IV to encrypt the actual message
+		lime::sBuffer<lime::settings::DRrandomSeedSize> randomSeed{}; // this seed is sent in DR message and used to derivate random key + IV to encrypt the actual message
 		RNG_context->randomize(randomSeed.data(), randomSeed.size());
 
 		// expansion of randomSeed to 48 bytes: 32 bytes random key + 16 bytes nonce, use HKDF with empty salt
 		std::vector<uint8_t> emptySalt{};
 		emptySalt.clear();
-		std::array<uint8_t,lime::settings::DRMessageKeySize+lime::settings::DRMessageIVSize> randomKey{};
+		lime::sBuffer<lime::settings::DRMessageKeySize+lime::settings::DRMessageIVSize> randomKey{};
 		HMAC_KDF<SHA512>(emptySalt.data(), emptySalt.size(), randomSeed.data(), randomSeed.size(), lime::settings::hkdf_randomSeed_info, randomKey.data(), randomKey.size());
 
 		// resize cipherMessage vector as it is adressed directly by C library: same as plain message + room for the authentication tag
@@ -426,15 +426,12 @@ namespace lime {
 		AD.insert(AD.end(), recipientUserId.cbegin(), recipientUserId.cend());
 
 		// encrypt to cipherMessage buffer
-		if (bctbx_aes_gcm_encrypt_and_tag(randomKey.data(), lime::settings::DRMessageKeySize, // key buffer also hold the IV
-		plaintext.data(), plaintext.size(),
-		AD.data(), AD.size(),
-		randomKey.data()+lime::settings::DRMessageKeySize, lime::settings::DRMessageIVSize, // IV is stored in the same buffer as key, after it
-		cipherMessage.data()+plaintext.size(), lime::settings::DRMessageAuthTagSize, // directly store tag after cipher text in the output buffer
-		cipherMessage.data()) != 0) {
-			throw BCTBX_EXCEPTION << "DR Session low level encryption routine failed";
-		}
-		cleanBuffer(randomKey.data(), randomKey.size());
+		AEAD_encrypt<AES256GCM>(randomKey.data(), lime::settings::DRMessageKeySize, // key buffer also hold the IV
+			randomKey.data()+lime::settings::DRMessageKeySize, lime::settings::DRMessageIVSize, // IV is stored in the same buffer as key, after it
+			plaintext.data(), plaintext.size(),
+			AD.data(), AD.size(),
+			cipherMessage.data()+plaintext.size(), lime::settings::DRMessageAuthTagSize, // directly store tag after cipher text in the output buffer
+			cipherMessage.data());
 
 		// Loop on each session, given Associated Data to Double Ratchet encryption is: auth tag of cipherMessage AEAD || sourceDeviceId || recipient device Id(gruu)
 		// build the common part to AD given to DR Session encryption
@@ -447,7 +444,6 @@ namespace lime {
 
 			recipients[i].DRSession->ratchetEncrypt(randomSeed, std::move(recipientAD), recipients[i].cipherHeader);
 		}
-		cleanBuffer(randomSeed.data(), randomSeed.size());
 	}
 
 	template <typename Curve>
@@ -462,7 +458,7 @@ namespace lime {
 		AD.insert(AD.end(), recipientDeviceId.cbegin(), recipientDeviceId.cend());
 
 		// buffer to store the random seed used to derive key and IV to decrypt message
-		std::array<uint8_t, lime::settings::DRrandomSeedSize> randomSeed{};
+		lime::sBuffer<lime::settings::DRrandomSeedSize> randomSeed{};
 
 		for (auto& DRSession : DRSessions) {
 			bool decryptStatus = false;
@@ -485,22 +481,18 @@ namespace lime {
 				// use HKDF - RFC 5869 with empty salt
 				std::vector<uint8_t> emptySalt{};
 				emptySalt.clear();
-				std::array<uint8_t,lime::settings::DRMessageKeySize+lime::settings::DRMessageIVSize> randomKey{};
+				lime::sBuffer<lime::settings::DRMessageKeySize+lime::settings::DRMessageIVSize> randomKey{};
 				HMAC_KDF<SHA512>(emptySalt.data(), emptySalt.size(), randomSeed.data(), randomSeed.size(), lime::settings::hkdf_randomSeed_info, randomKey.data(), randomKey.size());
-				cleanBuffer(randomSeed.data(), randomSeed.size());
 
 				// use it to decipher message
-				if (bctbx_aes_gcm_decrypt_and_auth(randomKey.data(), lime::settings::DRMessageKeySize, // random key buffer hold key<DRMessageKeySize bytes> || IV<DRMessageIVSize bytes>
-					cipherMessage.data(), cipherMessage.size()-lime::settings::DRMessageAuthTagSize, // cipherMessage is Message || auth tag
-					localAD.data(), localAD.size(),
-					randomKey.data()+lime::settings::DRMessageKeySize, lime::settings::DRMessageIVSize,
-					cipherMessage.data()+cipherMessage.size()-lime::settings::DRMessageAuthTagSize, lime::settings::DRMessageAuthTagSize, // tag is in the last 16 bytes of buffer
-					plaintext.data()) == 0) {
-
-					cleanBuffer(randomKey.data(), randomKey.size());
+				if (AEAD_decrypt<AES256GCM>(randomKey.data(), lime::settings::DRMessageKeySize, // random key buffer hold key<DRMessageKeySize bytes> || IV<DRMessageIVSize bytes>
+						randomKey.data()+lime::settings::DRMessageKeySize, lime::settings::DRMessageIVSize,
+						cipherMessage.data(), cipherMessage.size()-lime::settings::DRMessageAuthTagSize, // cipherMessage is Message || auth tag
+						localAD.data(), localAD.size(),
+						cipherMessage.data()+cipherMessage.size()-lime::settings::DRMessageAuthTagSize, lime::settings::DRMessageAuthTagSize, // tag is in the last 16 bytes of buffer
+						plaintext.data())) {
 					return DRSession;
 				} else {
-					cleanBuffer(randomKey.data(), randomKey.size());
 					throw BCTBX_EXCEPTION << "Message key correctly deciphered but then failed to decipher message itself";
 				}
 			}

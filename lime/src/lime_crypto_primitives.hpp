@@ -37,6 +37,14 @@ namespace lime {
 	 * @param[in]		size	buffer size
 	 */
 	void cleanBuffer(uint8_t *buffer, size_t size);
+	/****************************************************************/
+	/* auto clean fixed size buffer                                 */
+	/****************************************************************/
+	template <size_t T>
+	struct sBuffer : public std::array<uint8_t, T> {
+			~sBuffer() {cleanBuffer(this->data(), T);}; // zeroise all buffer when done
+	};
+
 
 	/****************************************************************/
 	/* Key Exchange Data structures                                 */
@@ -246,6 +254,60 @@ template <typename hashAlgo, typename infoType>
 void HMAC_KDF(const uint8_t *const salt, const size_t saltSize, const uint8_t *const ikm, const size_t ikmSize, const infoType &info, uint8_t *output, size_t outputSize);
 
 
+/************************ AEAD interface *************************************/
+
+/**
+ * @Brief Encrypt and tag using scheme given as template parameter
+ *
+ * @param[in]	key		Encryption key
+ * @param[in]	keySize		Key buffer length, it must match the selected AEAD scheme or an exception is generated
+ * @param[in]	IV		Buffer holding the initialisation vector
+ * @param[in]	IVSize		Initialisation vector length in bytes
+ * @param[in]	plain		buffer to be encrypted
+ * @param[in]	plainSize	Length in bytes of buffer to be encrypted
+ * @param[in]	AD		Buffer holding additional data to be used in tag computation
+ * @param[in]	ADSize		Additional data length in bytes
+ * @param[out]	tag		Buffer holding the generated tag
+ * @param[in]	tagSize		Requested length for the generated tag, it must match the selected AEAD scheme or an exception is generated
+ * @param[out]	cipher		Buffer holding the output, shall be at least the length of plainText buffer
+ */
+template <typename AEADAlgo>
+void AEAD_encrypt(const uint8_t *const key, const size_t keySize, const uint8_t *const IV, const size_t IVSize,
+		const uint8_t *const plain, const size_t plainSize, const uint8_t *const AD, const size_t ADSize,
+		uint8_t *tag, const size_t tagSize, uint8_t *cipher);
+
+/**
+ * @Brief Authenticate and Decrypt using scheme given as template parameter
+ *
+ * @param[in]	key		Encryption key
+ * @param[in]	keySize		Key buffer length, it must match the selected AEAD scheme or an exception is generated
+ * @param[in]	IV		Buffer holding the initialisation vector
+ * @param[in]	IVSize		Initialisation vector length in bytes
+ * @param[in]	cipher		Buffer holding the data to be decipherd
+ * @param[in]	plainSize	Length in bytes of buffer to be encrypted
+ * @param[in]	AD		Buffer holding additional data to be used in tag computation
+ * @param[in]	ADSize		Additional data length in bytes
+ * @param[in]	tag		Buffer holding the authentication tag
+ * @param[in]	tagSize		Length for the generated tag, it must match the selected AEAD scheme or an exception is generated
+ * @param[out]	plain		buffer holding the plain output, shall be at least the length of plainText buffer
+ *
+ * @return true if authentication tag match and decryption was successful
+ */
+template <typename AEADAlgo>
+bool AEAD_decrypt(const uint8_t *const key, const size_t keySize, const uint8_t *const IV, const size_t IVSize,
+		const uint8_t *const cipher, const size_t cipherSize, const uint8_t *const AD, const size_t ADSize,
+		const uint8_t *const tag, const size_t tagSize, uint8_t *plain);
+
+/* declare AEAD template specialisations */
+template <> void AEAD_encrypt<AES256GCM>(const uint8_t *const key, const size_t keySize, const uint8_t *const IV, const size_t IVSize,
+		const uint8_t *const plain, const size_t plainSize, const uint8_t *const AD, const size_t ADSize,
+		uint8_t *tag, const size_t tagSize, uint8_t *cipher);
+
+template <> bool AEAD_decrypt<AES256GCM>(const uint8_t *const key, const size_t keySize, const uint8_t *const IV, const size_t IVSize,
+		const uint8_t *const cipher, const size_t cipherSize, const uint8_t *const AD, const size_t ADSize,
+		const uint8_t *const tag, const size_t tagSize, uint8_t *plain);
+
+
 /*************************************************************************************************/
 /********************** Factory Functions ********************************************************/
 /*************************************************************************************************/
@@ -266,6 +328,14 @@ extern template void HMAC_KDF<SHA512, std::vector<uint8_t>>(const std::vector<ui
 extern template void HMAC_KDF<SHA512, std::string>(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const std::string &info, uint8_t *output, size_t outputSize);
 extern template void HMAC_KDF<SHA512, std::vector<uint8_t>>(const uint8_t *const salt, const size_t saltSize, const uint8_t *const ikm, const size_t ikmSize, const std::vector<uint8_t> &info, uint8_t *output, size_t outputSize);
 extern template void HMAC_KDF<SHA512, std::string>(const uint8_t *const salt, const size_t saltSize, const uint8_t *const ikm, const size_t ikmSize, const std::string &info, uint8_t *output, size_t outputSize);
+
+extern template void AEAD_encrypt<AES256GCM>(const uint8_t *const key, const size_t keySize, const uint8_t *const IV, const size_t IVSize,
+		const uint8_t *const plain, const size_t plainSize, const uint8_t *const AD, const size_t ADSize,
+		uint8_t *tag, const size_t tagSize, uint8_t *cipher);
+
+extern template bool AEAD_decrypt<AES256GCM>(const uint8_t *const key, const size_t keySize, const uint8_t *const IV, const size_t IVSize,
+		const uint8_t *const cipher, const size_t cipherSize, const uint8_t *const AD, const size_t ADSize,
+		const uint8_t *const tag, const size_t tagSize, uint8_t *plain);
 
 #ifdef EC25519_ENABLED
 	extern template std::shared_ptr<keyExchange<C255>> make_keyExchange();

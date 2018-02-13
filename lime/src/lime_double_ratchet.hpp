@@ -38,15 +38,10 @@ namespace lime {
 	enum class DRSessionDbStatus : uint8_t {clean, dirty_encrypt, dirty_decrypt, dirty_ratchet, dirty};
 
 	// Double Rachet chain keys: Root key, Sender and receiver keys are 32 bytes arrays
-	class DRChainKey : public std::array<uint8_t, lime::settings::DRChainKeySize> {
-		public:
-		~DRChainKey() {cleanBuffer(this->data(), lime::settings::DRChainKeySize);}
-	};
+	using DRChainKey = lime::sBuffer<lime::settings::DRChainKeySize>;
+
 	// Double Ratchet Message keys : 32 bytes of encryption key followed by 16 bytes of IV
-	class DRMKey : public std::array<uint8_t, lime::settings::DRMessageKeySize+lime::settings::DRMessageIVSize> {
-		public:
-		~DRMKey() {cleanBuffer(this->data(), lime::settings::DRMessageKeySize+lime::settings::DRMessageIVSize);}
-	};
+	using DRMKey = lime::sBuffer<lime::settings::DRMessageKeySize+lime::settings::DRMessageIVSize>;
 
 	// Shared Associated Data : stored at session initialisation, given by upper level(X3DH), shall be derived from Identity and Identity keys of sender and recipient, fixed size for storage convenience
 	using SharedADBuffer = std::array<uint8_t, lime::settings::DRSessionSharedADSize>;

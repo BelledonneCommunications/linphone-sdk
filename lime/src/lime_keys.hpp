@@ -52,6 +52,12 @@ namespace lime {
 	struct SHA512 {
 		static constexpr size_t ssize() {return 64;} // maximum output size
 	};
+
+	// AEAD function defines
+	struct AES256GCM {
+		static constexpr size_t keySize(void) {return 32;}; // key size is 256 bits
+		static constexpr size_t tagSize(void) {return 16;}; // authentication tag size is 128 bits
+	};
 }
 
 #endif /* lime_keys_hpp */
