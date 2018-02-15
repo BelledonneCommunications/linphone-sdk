@@ -16,13 +16,8 @@
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
 
-#define BCTBX_LOG_DOMAIN "lime"
-#include <bctoolbox/logging.h>
-
+#include "lime_log.hpp"
 #include "lime_double_ratchet.hpp"
 #include "lime_double_ratchet_protocol.hpp"
 #include "lime_localStorage.hpp"
@@ -465,7 +460,7 @@ namespace lime {
 			try {
 				decryptStatus = DRSession->ratchetDecrypt(cipherHeader, AD, randomSeed);
 			} catch (BctbxException &e) { // any bctbx Exception is just considered as decryption failed (it shall occurs only in case of maximum skipped keys reached)
-				BCTBX_SLOGW<<"Double Ratchet session failed to decrypt message and raised an exception saying : "<<e.what();
+				LIME_LOGW<<"Double Ratchet session failed to decrypt message and raised an exception saying : "<<e.what();
 				decryptStatus = false; // lets keep trying with other sessions if provided
 			}
 

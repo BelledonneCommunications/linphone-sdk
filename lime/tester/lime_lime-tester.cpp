@@ -16,13 +16,8 @@
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
 
-#define BCTBX_LOG_DOMAIN "lime-tester"
-#include <bctoolbox/logging.h>
-
+#include "lime_log.hpp"
 #include "lime/lime.hpp"
 #include "lime_lime.hpp"
 #include "lime-tester.hpp"
@@ -88,14 +83,14 @@ struct C_Callback_userData {
 
 static void process_io_error(void *data, const belle_sip_io_error_event_t *event) noexcept{
 	C_Callback_userData *userData = static_cast<C_Callback_userData *>(data);
-	BCTBX_SLOGI<<"IO Error on X3DH server request from user "<<userData->username;
+	LIME_LOGI<<"IO Error on X3DH server request from user "<<userData->username;
 	(userData->responseProcess)(0, std::vector<uint8_t>{});
 	delete(userData);
 }
 
 static void process_response(void *data, const belle_http_response_event_t *event) noexcept {
 	C_Callback_userData *userData = static_cast<C_Callback_userData *>(data);
-	BCTBX_SLOGI<<"Response from X3DH server for user "<<userData->username;
+	LIME_LOGI<<"Response from X3DH server for user "<<userData->username;
 	if (event->response){
 		auto code=belle_http_response_get_status_code(event->response);
 		belle_sip_message_t *message = BELLE_SIP_MESSAGE(event->response);
@@ -147,7 +142,7 @@ static limeX3DHServerPostData X3DHServerPost([](const std::string &url, const st
 	C_Callback_userData *userData = new C_Callback_userData(responseProcess, from); // create on the heap a copy of the responseProcess closure so it's available when we're called back by belle-sip
 	l=belle_http_request_listener_create_from_callbacks(&cbs, userData);
 	belle_sip_object_data_set(BELLE_SIP_OBJECT(req), "http_request_listener", l, belle_sip_object_unref); // Ensure the listener object is destroyed when the request is destroyed
-	BCTBX_SLOGI<<"user "<<from<<"post a request to X3DH server";
+	LIME_LOGI<<"user "<<from<<"post a request to X3DH server";
 	belle_http_provider_send_request(prov,req,l);
 });
 
@@ -158,7 +153,7 @@ static void managersClean(std::unique_ptr<LimeManager> &alice, std::unique_ptr<L
 	bob = nullptr;
 	alice = unique_ptr<lime::LimeManager>(new lime::LimeManager(aliceDb, X3DHServerPost));
 	bob = std::unique_ptr<lime::LimeManager>(new lime::LimeManager(bobDb, X3DHServerPost));
-	BCTBX_SLOGI<<"Trash and reload alice and bob LimeManagers";
+	LIME_LOGI<<"Trash and reload alice and bob LimeManagers";
 }
 
 /**
@@ -182,7 +177,7 @@ static void lime_exchange_messages(std::shared_ptr<std::string> &aliceDeviceId, 
 						counters.operation_success++;
 					} else {
 						counters.operation_failed++;
-						BCTBX_SLOGE<<"Lime operation failed : "<<anythingToSay;
+						LIME_LOGE<<"Lime operation failed : "<<anythingToSay;
 					}
 				});
 
@@ -259,7 +254,7 @@ static void lime_session_establishment(const lime::CurveId curve, const std::str
 						counters.operation_success++;
 					} else {
 						counters.operation_failed++;
-						BCTBX_SLOGE<<"Lime operation failed : "<<anythingToSay;
+						LIME_LOGE<<"Lime operation failed : "<<anythingToSay;
 					}
 				});
 	try {
@@ -316,7 +311,7 @@ static void lime_identityVerifiedStatus_test(const lime::CurveId curve, const st
 						counters.operation_success++;
 					} else {
 						counters.operation_failed++;
-						BCTBX_SLOGE<<"Lime operation failed : "<<anythingToSay;
+						LIME_LOGE<<"Lime operation failed : "<<anythingToSay;
 					}
 				});
 	// declare variable outside the try block as we will generate exceptions during the test
@@ -354,7 +349,7 @@ static void lime_identityVerifiedStatus_test(const lime::CurveId curve, const st
 		BC_ASSERT_FALSE(bobManager->get_peerIdentityVerifiedStatus(*aliceDeviceId));
 
 	} catch (BctbxException &e) {
-		BCTBX_SLOGE <<e;;
+		LIME_LOGE <<e;;
 		BC_FAIL();
 	}
 
@@ -424,7 +419,7 @@ static void lime_identityVerifiedStatus_test(const lime::CurveId curve, const st
 		}
 
 	} catch (BctbxException &e) {
-		BCTBX_SLOGE <<e;;
+		LIME_LOGE <<e;;
 		BC_FAIL();
 	}
 }
@@ -455,7 +450,7 @@ static void lime_getSelfIk_test(const lime::CurveId curve, const std::string &db
 
 		BC_ASSERT_TRUE((Ik==pattern));
 	} catch (BctbxException &e) {
-		BCTBX_SLOGE <<e;;
+		LIME_LOGE <<e;;
 		BC_FAIL();
 		return;
 	}
@@ -510,7 +505,7 @@ static void lime_update_OPk_test(const lime::CurveId curve, const std::string &d
 						counters.operation_success++;
 					} else {
 						counters.operation_failed++;
-						BCTBX_SLOGE<<"Lime operation failed : "<<anythingToSay;
+						LIME_LOGE<<"Lime operation failed : "<<anythingToSay;
 					}
 				});
 	try {
@@ -606,7 +601,7 @@ static void lime_update_OPk_test(const lime::CurveId curve, const std::string &d
 			remove(dbFilenameBob.data());
 		}
 	} catch (BctbxException &e) {
-		BCTBX_SLOGE <<e;;
+		LIME_LOGE <<e;;
 		BC_FAIL();
 	}
 }
@@ -647,7 +642,7 @@ static void lime_update_SPk_test(const lime::CurveId curve, const std::string &d
 						counters.operation_success++;
 					} else {
 						counters.operation_failed++;
-						BCTBX_SLOGE<<"Lime operation failed : "<<anythingToSay;
+						LIME_LOGE<<"Lime operation failed : "<<anythingToSay;
 					}
 				});
 	try {
@@ -774,7 +769,7 @@ static void lime_update_SPk_test(const lime::CurveId curve, const std::string &d
 			remove(dbFilenameBob.data());
 		}
 	} catch (BctbxException &e) {
-		BCTBX_SLOGE <<e;;
+		LIME_LOGE <<e;;
 		BC_FAIL();
 	}
 }
@@ -815,7 +810,7 @@ static void lime_update_clean_MK_test(const lime::CurveId curve, const std::stri
 						counters.operation_success++;
 					} else {
 						counters.operation_failed++;
-						BCTBX_SLOGE<<"Lime operation failed : "<<anythingToSay;
+						LIME_LOGE<<"Lime operation failed : "<<anythingToSay;
 					}
 				});
 
@@ -875,7 +870,7 @@ static void lime_update_clean_MK_test(const lime::CurveId curve, const std::stri
 			remove(dbFilenameBob.data());
 		}
 	} catch (BctbxException &e) {
-		BCTBX_SLOGE <<e;;
+		LIME_LOGE <<e;;
 		BC_FAIL();
 	}
 }
@@ -914,7 +909,7 @@ static void x3dh_without_OPk_test(const lime::CurveId curve, const std::string &
 						counters.operation_success++;
 					} else {
 						counters.operation_failed++;
-						BCTBX_SLOGE<<"Lime operation failed : "<<anythingToSay;
+						LIME_LOGE<<"Lime operation failed : "<<anythingToSay;
 					}
 				});
 	try {
@@ -972,7 +967,7 @@ static void x3dh_without_OPk_test(const lime::CurveId curve, const std::string &
 			remove(dbFilenameBob.data());
 		}
 	} catch (BctbxException &e) {
-		BCTBX_SLOGE <<e;;
+		LIME_LOGE <<e;;
 		BC_FAIL();
 	}
 }
@@ -1011,7 +1006,7 @@ static void x3dh_sending_chain_limit_test(const lime::CurveId curve, const std::
 						counters.operation_success++;
 					} else {
 						counters.operation_failed++;
-						BCTBX_SLOGE<<"Lime operation failed : "<<anythingToSay;
+						LIME_LOGE<<"Lime operation failed : "<<anythingToSay;
 					}
 				});
 	try {
@@ -1124,7 +1119,7 @@ static void x3dh_sending_chain_limit_test(const lime::CurveId curve, const std::
 			remove(dbFilenameBob.data());
 		}
 	} catch (BctbxException &e) {
-		BCTBX_SLOGE <<e;;
+		LIME_LOGE <<e;;
 		BC_FAIL();
 	}
 }
@@ -1165,7 +1160,7 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 						counters.operation_success++;
 					} else {
 						counters.operation_failed++;
-						BCTBX_SLOGE<<"Lime operation failed : "<<anythingToSay;
+						LIME_LOGE<<"Lime operation failed : "<<anythingToSay;
 					}
 				});
 
@@ -1338,7 +1333,7 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 			remove(dbFilenameBob.data()); // delete the database file if already exists
 		}
 	} catch (BctbxException &e) {
-		BCTBX_SLOGE <<e;;
+		LIME_LOGE <<e;;
 		BC_FAIL();
 	}
 }
@@ -1385,7 +1380,7 @@ static void x3dh_multidev_operation_queue_test(const lime::CurveId curve, const 
 						counters.operation_success++;
 					} else {
 						counters.operation_failed++;
-						BCTBX_SLOGE<<"Lime operation failed : "<<anythingToSay;
+						LIME_LOGE<<"Lime operation failed : "<<anythingToSay;
 					}
 				});
 
@@ -1547,7 +1542,7 @@ static void x3dh_multidev_operation_queue_test(const lime::CurveId curve, const 
 			remove(dbFilenameBob.data());
 		}
 	} catch (BctbxException &e) {
-		BCTBX_SLOGE <<e;;
+		LIME_LOGE <<e;;
 		BC_FAIL();
 	}
 }
@@ -1590,7 +1585,7 @@ static void x3dh_operation_queue_test(const lime::CurveId curve, const std::stri
 						counters.operation_success++;
 					} else {
 						counters.operation_failed++;
-						BCTBX_SLOGE<<"Lime operation failed : "<<anythingToSay;
+						LIME_LOGE<<"Lime operation failed : "<<anythingToSay;
 					}
 				});
 
@@ -1665,7 +1660,7 @@ static void x3dh_operation_queue_test(const lime::CurveId curve, const std::stri
 			remove(dbFilenameBob.data()); // delete the database file if already exists
 		}
 	} catch (BctbxException &e) {
-		BCTBX_SLOGE << e;
+		LIME_LOGE << e;
 		BC_FAIL();
 	}
 }
@@ -1714,7 +1709,7 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 						counters.operation_success++;
 					} else {
 						counters.operation_failed++;
-						BCTBX_SLOGE<<"Lime operation failed : "<<anythingToSay;
+						LIME_LOGE<<"Lime operation failed : "<<anythingToSay;
 					}
 				});
 
@@ -1888,7 +1883,7 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 			remove(dbFilenameBob.data());
 		}
 	} catch (BctbxException &e) {
-		BCTBX_SLOGE <<e;;
+		LIME_LOGE <<e;;
 		BC_FAIL();
 	}
 }
@@ -1935,7 +1930,7 @@ static void user_management_test(const lime::CurveId curve, const std::string &d
 						counters.operation_success++;
 					} else {
 						counters.operation_failed++;
-						BCTBX_SLOGI <<"Insert Lime user failed : "<< anythingToSay.data() ;
+						LIME_LOGI <<"Insert Lime user failed : "<< anythingToSay.data() ;
 					}
 				});
 	// we need a LimeManager
@@ -1952,7 +1947,7 @@ static void user_management_test(const lime::CurveId curve, const std::string &d
 		auto alice = load_LimeUser(dbFilenameAlice, *aliceDeviceName, X3DHServerPost);
 		/* no need to wait here, it shall load alice immediately */
 	} catch (BctbxException &e) {
-		BCTBX_SLOGE <<e;;
+		LIME_LOGE <<e;;
 		BC_FAIL();
 	}
 
@@ -1990,7 +1985,7 @@ static void user_management_test(const lime::CurveId curve, const std::string &d
 		Manager->delete_user(*aliceDeviceName, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 	} catch (BctbxException &e) {
-		BCTBX_SLOGE <<e;
+		LIME_LOGE <<e;
 		BC_FAIL("Delete Lime user raised exception");
 		return;
 	}
@@ -2036,7 +2031,7 @@ static void user_management_test(const lime::CurveId curve, const std::string &d
 			remove(dbFilenameAliceTmp.data()); // delete the database file
 		}
 	} catch (BctbxException &e) {
-		BCTBX_SLOGE <<e;
+		LIME_LOGE <<e;
 		BC_FAIL();
 	}
 }

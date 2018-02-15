@@ -17,9 +17,7 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define BCTBX_LOG_DOMAIN "lime-tester"
-#include <bctoolbox/logging.h>
-
+#include "lime_log.hpp"
 #include "lime/lime.hpp"
 #include "lime-tester.hpp"
 #include "lime-tester-utils.hpp"
@@ -68,7 +66,7 @@ static void sendMessageTo(std::string recipient, std::vector<uint8_t> &cipherHea
 		return;
 	}
 
-	BCTBX_SLOGE<<"sending a message to unknown user "<<recipient;
+	LIME_LOGE<<"sending a message to unknown user "<<recipient;
 	BC_FAIL();
 }
 
@@ -79,7 +77,7 @@ static void getMessageFor(std::string recipient, std::vector<uint8_t> &cipherHea
 		return;
 	}
 
-	BCTBX_SLOGE<<"getting a message to unknown user "<<recipient;
+	LIME_LOGE<<"getting a message to unknown user "<<recipient;
 	BC_FAIL();
 }
 
@@ -93,7 +91,7 @@ static void process_auth_requested (void *data, belle_sip_auth_event_t *event){
 	// Useless code but just for the example: we shall get the username from our callback user data
 	C_Callback_userData *userData = static_cast<C_Callback_userData *>(data);
 	// and set it as username to retrieve the correct credentials and send them back
-	BCTBX_SLOGI<<"Accessing credentials for user "<<std::string(userData->username.data());
+	LIME_LOGI<<"Accessing credentials for user "<<std::string(userData->username.data());
 
 	// for test purpose we use a server which accept commands in name of any user using credentials of the only one user active on it
 	// so we will set the username with the one test server accepts but real life example shall use the correct credentials
@@ -200,12 +198,12 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 						counters.operation_success++;
 					} else {
 						counters.operation_failed++;
-						BCTBX_SLOGE<<"Lime operation failed : "<<anythingToSay;
+						LIME_LOGE<<"Lime operation failed : "<<anythingToSay;
 					}
 				});
 
 	try {
-		BCTBX_SLOGI<<"Create alice and bob LimeManagers"<<endl;
+		LIME_LOGI<<"Create alice and bob LimeManagers"<<endl;
 		// create Random devices names (in case we use a shared test server, devices id shall be the GRUU, X3DH/Lime does not connect user (sip:uri) and device (gruu)
 		// From Lime perspective, only devices exists and they must be uniquely identifies on the X3DH server.
 		auto aliceDeviceId = lime_tester::makeRandomDeviceName("alice.");
@@ -218,7 +216,7 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 		// Here we have simulate two distinct devices so we have two managers
 		auto bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, X3DHServerPost));
 
-		BCTBX_SLOGI<<"Create "<<*aliceDeviceId<<" and "<<*bobDeviceId<<" users"<<endl;
+		LIME_LOGI<<"Create "<<*aliceDeviceId<<" and "<<*bobDeviceId<<" users"<<endl;
 		// create users, this operation is asynchronous (as the user is also created on X3DH server)
 		// The OPkInitialBatchSize parameter is optionnal and is used to set how many One-Time pre-keys will be
 		// uploaded to the X3DH server at creation. Default value is set in lime::settings.
@@ -256,7 +254,7 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 		auto message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
 		auto cipherMessage = make_shared<std::vector<uint8_t>>(); // an empty buffer to get the encrypted message
 
-		BCTBX_SLOGI<<"Alice encrypt the message"<<endl;
+		LIME_LOGI<<"Alice encrypt the message"<<endl;
 		/************** SENDER SIDE CODE *****************************/
 		// encrypt, parameters are:
 		//      - localDeviceId to select which of the users managed by the LimeManager we shall use to perform the encryption (in our example we have only one local device). This one doesn't need to be a shared pointer.
@@ -293,11 +291,11 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 						} else {
 							counters.operation_failed++;
 							// The encryption failed.
-							BCTBX_SLOGE<<"Lime operation failed : "<<errorMessage;
+							LIME_LOGE<<"Lime operation failed : "<<errorMessage;
 						}
 					});
 		}
-		BCTBX_SLOGI<<"Alice encrypt the message, out of encrypt call, wait for callback"<<endl;
+		LIME_LOGI<<"Alice encrypt the message, out of encrypt call, wait for callback"<<endl;
 		// in real sending situation, the local instance of the shared pointer are destroyed by exiting the function where they've been declared
 		// and where we called the encrypt function. (The LimeManager shall instead never be destroyed until the application terminates)
 		recipients = nullptr;
@@ -308,12 +306,12 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 		// this is just waiting for the callback to increase the operation_success field in counters
 		// sending ticks to the belle-sip stack in order to process messages
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
-		BCTBX_SLOGI<<"Alice encrypt the message, callback Ok or timeout reached"<<endl;
+		LIME_LOGI<<"Alice encrypt the message, callback Ok or timeout reached"<<endl;
 		/****** end of  SYNCHRO **************************************/
 
 
 		/************** RECIPIENT SIDE CODE **************************/
-		BCTBX_SLOGI<<"Bob decrypt the message"<<endl;
+		LIME_LOGI<<"Bob decrypt the message"<<endl;
 		// retrieve message, in real situation the server shall fan-out only the part we need or client shall parse in the cipherHeaders to retrieve the one addressed to him.
 		// Note: here we just use the aliceDeviceId variable, in real situation, recipient shall extract from incoming message the sender's GRUU
 		std::vector<uint8_t> bobReceivedCipherHeader{};
@@ -328,9 +326,9 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 			// it's a text message, so turn it into a string and compare with the one alice sent
 			std::string plainTextMessageString{plainTextMessage.begin(), plainTextMessage.end()};
 			BC_ASSERT_TRUE(plainTextMessageString == lime_tester::messages_pattern[0]);
-			BCTBX_SLOGI<<"Bob decrypt the message completed"<<endl;
+			LIME_LOGI<<"Bob decrypt the message completed"<<endl;
 		} else {
-			BCTBX_SLOGI<<"Bob decrypt the message : no message found"<<endl;
+			LIME_LOGI<<"Bob decrypt the message : no message found"<<endl;
 		}
 		/******* end of RECIPIENT SIDE CODE **************************/
 
@@ -362,7 +360,7 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 			remove(dbFilenameBob.data());
 		}
 	} catch (BctbxException &e) {
-		BCTBX_SLOGE <<e;;
+		LIME_LOGE <<e;;
 		BC_FAIL();
 	}
 }
@@ -407,12 +405,12 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve, const std:
 						counters.operation_success++;
 					} else {
 						counters.operation_failed++;
-						BCTBX_SLOGE<<"Lime operation failed : "<<anythingToSay;
+						LIME_LOGE<<"Lime operation failed : "<<anythingToSay;
 					}
 				});
 
 	try {
-		BCTBX_SLOGI<<"Create alice and bob LimeManagers"<<endl;
+		LIME_LOGI<<"Create alice and bob LimeManagers"<<endl;
 		// create random devices names (in case we use a shared test server, devices id shall be the GRUU, X3DH/Lime does not connect user (sip:uri) and device (gruu)
 		// From Lime perspective, only devices exists and they must be uniquely identifies on the X3DH server.
 		auto aliceDeviceId = lime_tester::makeRandomDeviceName("alice.");
@@ -425,7 +423,7 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve, const std:
 		// Here we have simulate two distinct devices so we have two managers
 		auto bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, X3DHServerPost));
 
-		BCTBX_SLOGI<<"Create "<<*aliceDeviceId<<" and "<<*bobDeviceId<<" users"<<endl;
+		LIME_LOGI<<"Create "<<*aliceDeviceId<<" and "<<*bobDeviceId<<" users"<<endl;
 		// create users, this operation is asynchronous(as the user is also created on X3DH server)
 		// The OPkInitialBatchSize parameter is optionnal and is used to set how many One-Time pre-keys will be
 		// uploaded to the X3DH server at creation. Default value is set in lime::settings.
@@ -483,7 +481,7 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve, const std:
 		auto message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
 		auto cipherMessage = make_shared<std::vector<uint8_t>>(); // an empty buffer to get the encrypted message
 
-		BCTBX_SLOGI<<"Alice encrypt the message"<<endl;
+		LIME_LOGI<<"Alice encrypt the message"<<endl;
 		/************** SENDER SIDE CODE *****************************/
 		// encrypt, parameters are:
 		//      - localDeviceId to select which of the users managed by the LimeManager we shall use to perform the encryption (in our example we have only one local device). This one doesn't need to be a shared pointer.
@@ -521,11 +519,11 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve, const std:
 						} else {
 							counters.operation_failed++;
 							// The encryption failed.
-							BCTBX_SLOGE<<"Lime operation failed : "<<errorMessage;
+							LIME_LOGE<<"Lime operation failed : "<<errorMessage;
 						}
 					});
 
-		BCTBX_SLOGI<<"Alice encrypt the message, out of encrypt call, wait for callback"<<endl;
+		LIME_LOGI<<"Alice encrypt the message, out of encrypt call, wait for callback"<<endl;
 		// in real sending situation, the local instance of the shared pointer are destroyed by exiting the function where they've been declared
 		// and where we called the encrypt function. (The LimeManager shall instead never be destroyed until the application terminates)
 		recipients = nullptr;
@@ -536,12 +534,12 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve, const std:
 		// this is just waiting for the callback to increase the operation_success field in counters
 		// sending ticks to the belle-sip stack in order to process messages
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
-		BCTBX_SLOGI<<"Alice encrypt the message, callback Ok or timeout reached"<<endl;
+		LIME_LOGI<<"Alice encrypt the message, callback Ok or timeout reached"<<endl;
 		/****** end of  SYNCHRO **************************************/
 
 
 		/************** RECIPIENT SIDE CODE **************************/
-		BCTBX_SLOGI<<"Bob decrypt the message"<<endl;
+		LIME_LOGI<<"Bob decrypt the message"<<endl;
 		// retrieve message, in real situation the server shall fan-out only the part we need or client shall parse in the cipherHeaders to retrieve the one addressed to him.
 		// Note: here we just use the aliceDeviceId variable, in real situation, recipient shall extract from incoming message the sender's GRUU
 		std::vector<uint8_t> bobReceivedCipherHeader{};
@@ -559,9 +557,9 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve, const std:
 			// it's a text message, so turn it into a string and compare with the one alice sent
 			std::string plainTextMessageString{plainTextMessage.begin(), plainTextMessage.end()};
 			BC_ASSERT_TRUE(plainTextMessageString == lime_tester::messages_pattern[0]);
-			BCTBX_SLOGI<<"Bob decrypt the message completed"<<endl;
+			LIME_LOGI<<"Bob decrypt the message completed"<<endl;
 		} else {
-			BCTBX_SLOGI<<"Bob decrypt the message : no message found"<<endl;
+			LIME_LOGI<<"Bob decrypt the message : no message found"<<endl;
 		}
 		/******* end of RECIPIENT SIDE CODE **************************/
 
@@ -593,7 +591,7 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve, const std:
 			remove(dbFilenameBob.data());
 		}
 	} catch (BctbxException &e) {
-		BCTBX_SLOGE <<e;;
+		LIME_LOGE <<e;;
 		BC_FAIL();
 	}
 }

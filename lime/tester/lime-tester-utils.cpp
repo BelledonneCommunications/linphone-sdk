@@ -16,13 +16,8 @@
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
 
-#define BCTBX_LOG_DOMAIN "lime-tester"
-#include <bctoolbox/logging.h>
-
+#include "lime_log.hpp"
 #include <vector>
 #include <string>
 #include "lime_settings.hpp"
@@ -364,7 +359,7 @@ long int get_DRsessionsId(const std::string &dbFilename, const std::string &self
 		return 0;
 
 	} catch (exception &e) { // swallow any error on DB
-		BCTBX_SLOGE<<"Got an error on DB: "<<e.what();
+		LIME_LOGE<<"Got an error on DB: "<<e.what();
 		sessionsId.clear();
 		return 0;
 	}
@@ -385,7 +380,7 @@ unsigned int get_StoredMessageKeyCount(const std::string &dbFilename, const std:
 		}
 
 	} catch (exception &e) { // swallow any error on DB
-		BCTBX_SLOGE<<"Got an error while getting the MK count in DB: "<<e.what();
+		LIME_LOGE<<"Got an error while getting the MK count in DB: "<<e.what();
 		return 0;
 	}
 }
@@ -409,7 +404,7 @@ bool get_SPks(const std::string &dbFilename, const std::string &selfDeviceId, si
 			return false;
 		}
 	} catch (exception &e) { // swallow any error on DB
-		BCTBX_SLOGE<<"Got an error while getting the SPk count in DB: "<<e.what();
+		LIME_LOGE<<"Got an error while getting the SPk count in DB: "<<e.what();
 		count=0;
 		return false;
 	}
@@ -428,7 +423,7 @@ size_t get_OPks(const std::string &dbFilename, const std::string &selfDeviceId) 
 			return 0;
 		}
 	} catch (exception &e) { // swallow any error on DB
-		BCTBX_SLOGE<<"Got an error while getting the OPk count in DB: "<<e.what();
+		LIME_LOGE<<"Got an error while getting the OPk count in DB: "<<e.what();
 		return 0;
 	}
 
@@ -445,7 +440,7 @@ void forwardTime(const std::string &dbFilename, int days) noexcept {
 		sql<<"UPDATE X3DH_SPK SET timeStamp = date (timeStamp, '-"<<days<<" day');";
 		sql<<"UPDATE X3DH_OPK SET timeStamp = date (timeStamp, '-"<<days<<" day');";
 	} catch (exception &e) { // swallow any error on DB
-		BCTBX_SLOGE<<"Got an error forwarding time in DB: "<<e.what();
+		LIME_LOGE<<"Got an error forwarding time in DB: "<<e.what();
 	}
 }
 

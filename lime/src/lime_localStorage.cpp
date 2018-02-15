@@ -16,13 +16,8 @@
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
 
-#define BCTBX_LOG_DOMAIN "lime"
-#include <bctoolbox/logging.h>
-
+#include "lime_log.hpp"
 #include "lime/lime.hpp"
 #include "lime_localStorage.hpp"
 #include "lime_double_ratchet.hpp"
@@ -69,7 +64,7 @@ Db::Db(string filename) : sql{sqlite3, filename}{
 	}
 
 	if (userVersion > lime::settings::DBuserVersion) { /* nothing to do if we encounter a superior version number than expected, just hope it is compatible */
-		BCTBX_SLOGE<<"Lime module database schema version found in DB(v "<<userVersion<<") is more recent than the one currently supported by the lime module(v "<<static_cast<unsigned int>(lime::settings::DBuserVersion)<<")";
+		LIME_LOGE<<"Lime module database schema version found in DB(v "<<userVersion<<") is more recent than the one currently supported by the lime module(v "<<static_cast<unsigned int>(lime::settings::DBuserVersion)<<")";
 		return;
 	}
 
@@ -449,7 +444,7 @@ bool DR<DHKey>::session_save() {
 					break;
 				case DRSessionDbStatus::clean: // Session is clean? So why have we been called?
 				default:
-					BCTBX_SLOGE<<"Double ratchet session saved call on sessionId "<<m_dbSessionId<<" but sessions appears to be clean";
+					LIME_LOGE<<"Double ratchet session saved call on sessionId "<<m_dbSessionId<<" but sessions appears to be clean";
 					break;
 			}
 		} catch (...) {
@@ -823,14 +818,14 @@ long int Lime<Curve>::store_peerDevice(const std::string &peerDeviceId, const DS
 		if (m_localStorage->sql.got_data()) { // Found one
 			DSA<Curve, lime::DSAtype::publicKey> stored_Ik;
 			if (Ik_blob.get_len() != stored_Ik.size()) { // can't match they are not the same size
-				BCTBX_SLOGE<<"It appears that peer device "<<peerDeviceId<<" was known with an identity key but is trying to use another one now";
+				LIME_LOGE<<"It appears that peer device "<<peerDeviceId<<" was known with an identity key but is trying to use another one now";
 				throw BCTBX_EXCEPTION << "Peer device "<<peerDeviceId<<" changed its Ik";
 			}
 			Ik_blob.read(0, (char *)(stored_Ik.data()), stored_Ik.size()); // Read it to compare it to the given one
 			if (stored_Ik == Ik) { // they match, so we just return the Did
 				return Did;
 			} else { // Ik are not matching, peer device changed its Ik!?! Reject
-				BCTBX_SLOGE<<"It appears that peer device "<<peerDeviceId<<" was known with an identity key but is trying to use another one now";
+				LIME_LOGE<<"It appears that peer device "<<peerDeviceId<<" was known with an identity key but is trying to use another one now";
 				throw BCTBX_EXCEPTION << "Peer device "<<peerDeviceId<<" changed its Ik";
 			}
 		} else { // not found in local Storage
@@ -839,7 +834,7 @@ long int Lime<Curve>::store_peerDevice(const std::string &peerDeviceId, const DS
 			m_localStorage->sql<<"INSERT INTO lime_PeerDevices(DeviceId,Ik) VALUES (:deviceId,:Ik) ", use(peerDeviceId), use(Ik_blob);
 			m_localStorage->sql<<"select last_insert_rowid()",into(Did);
 			tr.commit();
-			bctbx_debug("store peerDevice %s with device id %x", peerDeviceId.data(), Did);
+			LIME_LOGD<<"store peerDevice "<<peerDeviceId<<" with device id "<<Did;
 			return Did;
 		}
 	} catch (exception const &e) {

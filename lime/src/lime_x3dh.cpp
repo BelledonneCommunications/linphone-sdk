@@ -16,13 +16,8 @@
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
 
-#define BCTBX_LOG_DOMAIN "lime"
-#include <bctoolbox/logging.h>
-
+#include "lime_log.hpp"
 #include "lime/lime.hpp"
 #include "lime_impl.hpp"
 #include "lime_double_ratchet_protocol.hpp"
@@ -45,7 +40,7 @@ namespace lime {
 			SPkVerify->set_public(peerBundle.Ik);
 
 			if (!SPkVerify->verify(peerBundle.SPk, peerBundle.SPk_sig)) {
-				BCTBX_SLOGE<<"X3DH: SPk signature verification failed for device "<<peerBundle.deviceId;
+				LIME_LOGE<<"X3DH: SPk signature verification failed for device "<<peerBundle.deviceId;
 				throw BCTBX_EXCEPTION << "Verify signature on SPk failed for deviceId "<<peerBundle.deviceId;
 			}
 
@@ -121,7 +116,7 @@ namespace lime {
 			}
 			m_DR_sessions_cache.emplace(peerBundle.deviceId, make_shared<DR<Curve>>(m_localStorage.get(), SK, AD, peerBundle.SPk, peerDid, m_db_Uid, X3DH_initMessage, m_RNG)); // will just do nothing if this peerDeviceId is already in cache
 
-			BCTBX_SLOGI<<"X3DH created session with device "<<peerBundle.deviceId;
+			LIME_LOGI<<"X3DH created session with device "<<peerBundle.deviceId;
 		}
 	}
 

@@ -16,13 +16,8 @@
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
 
-#define BCTBX_LOG_DOMAIN "lime-tester"
-#include <bctoolbox/logging.h>
-
+#include "lime_log.hpp"
 #include "lime-tester.hpp"
 #include "lime-tester-utils.hpp"
 #include "lime_localStorage.hpp"

@@ -16,13 +16,8 @@
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
 
-#define BCTBX_LOG_DOMAIN "lime"
-#include <bctoolbox/logging.h>
-
+#include "lime_log.hpp"
 #include "lime/lime.hpp"
 #include "lime_lime.hpp"
 #include "lime_localStorage.hpp"
@@ -140,7 +135,7 @@ namespace lime {
 
 		// for each user
 		for (auto deviceId : deviceIds) {
-			BCTBX_SLOGI<<"Lime update user "<<deviceId;
+			LIME_LOGI<<"Lime update user "<<deviceId;
 			//load user
 			std::shared_ptr<LimeGeneric> user;
 			LimeManager::load_user(user, deviceId);

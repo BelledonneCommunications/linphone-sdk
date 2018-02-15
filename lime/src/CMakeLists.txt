@@ -31,6 +31,7 @@ set(LIME_HEADER_FILES
 	lime_double_ratchet_protocol.hpp
 	lime_lime.hpp
 	lime_crypto_primitives.hpp
+	lime_log.hpp
 )
 set(LIME_SOURCE_FILES_C )
 set(LIME_SOURCE_FILES_CXX

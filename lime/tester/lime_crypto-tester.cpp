@@ -16,13 +16,8 @@
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
 
-#define BCTBX_LOG_DOMAIN "lime-tester"
-#include <bctoolbox/logging.h>
-
+#include "lime_log.hpp"
 #include "lime-tester.hpp"
 #include "lime-tester-utils.hpp"
 #include "lime_keys.hpp"
@@ -125,7 +120,7 @@ void keyExchange_bench(uint64_t runTime_ms) {
 	std::string freq_unit, period_unit;
 	snprintSI(freq_unit, freq, "keys/s");
 	snprintSI(period_unit, 1/freq, "s/keys");
-	std::cout<<"Key generation "<<int(2*runCount)<<" ECDH keys in "<<int(span)<<" ms : "<<period_unit<<" "<<freq_unit<<endl;
+	LIME_LOGI<<"Key generation "<<int(2*runCount)<<" ECDH keys in "<<int(span)<<" ms : "<<period_unit<<" "<<freq_unit<<endl;
 
 	/* Exchange keys */
 	Alice->set_peerPublic(Bob->get_selfPublic());
@@ -146,21 +141,21 @@ void keyExchange_bench(uint64_t runTime_ms) {
 	freq = 1000*runCount/static_cast<double>(span);
 	snprintSI(freq_unit, freq, "computations/s");
 	snprintSI(period_unit, 1/freq, "s/computation");
-	std::cout<<"Shared Secret "<<int(runCount)<<" computations in "<<int(span)<<" ms : "<<period_unit<<" "<<freq_unit<<endl<<endl;
+	LIME_LOGI<<"Shared Secret "<<int(runCount)<<" computations in "<<int(span)<<" ms : "<<period_unit<<" "<<freq_unit<<endl<<endl;
 }
 
 static void exchange(void) {
 #ifdef EC25519_ENABLED
 	keyExchange_test<C255>();
 	if (bench) {
-		std::cout<<"Bench for Curve 25519:"<<endl;
+		LIME_LOGI<<"Bench for Curve 25519:"<<endl;
 		keyExchange_bench<C255>(BENCH_TIMING_MS);
 	}
 #endif
 #ifdef EC448_ENABLED
 	keyExchange_test<C448>();
 	if (bench) {
-		std::cout<<"Bench for Curve 448:"<<endl;
+		LIME_LOGI<<"Bench for Curve 448:"<<endl;
 		keyExchange_bench<C448>(BENCH_TIMING_MS);
 	}
 #endif
@@ -260,7 +255,7 @@ void signAndVerify_bench(uint64_t runTime_ms ) {
 	std::string freq_unit, period_unit;
 	snprintSI(freq_unit, freq, "generations/s");
 	snprintSI(period_unit, 1/freq, "s/generation");
-	std::cout<<"Generate "<<int(runCount)<<" Signature key pairs in "<<int(span)<<" ms : "<<period_unit<<" "<<freq_unit<<endl;
+	LIME_LOGI<<"Generate "<<int(runCount)<<" Signature key pairs in "<<int(span)<<" ms : "<<period_unit<<" "<<freq_unit<<endl;
 
 	start = bctbx_get_cur_time_ms();
 	span=0;
@@ -280,7 +275,7 @@ void signAndVerify_bench(uint64_t runTime_ms ) {
 	freq = 1000*runCount/static_cast<double>(span);
 	snprintSI(freq_unit, freq, "signatures/s");
 	snprintSI(period_unit, 1/freq, "s/signature");
-	std::cout<<"Sign "<<int(runCount)<<" messages "<<int(span)<<" ms : "<<period_unit<<" "<<freq_unit<<endl;
+	LIME_LOGI<<"Sign "<<int(runCount)<<" messages "<<int(span)<<" ms : "<<period_unit<<" "<<freq_unit<<endl;
 
 	start = bctbx_get_cur_time_ms();
 	span=0;
@@ -298,7 +293,7 @@ void signAndVerify_bench(uint64_t runTime_ms ) {
 	freq = 1000*runCount/static_cast<double>(span);
 	snprintSI(freq_unit, freq, "verifies/s");
 	snprintSI(period_unit, 1/freq, "s/verify");
-	std::cout<<"Verify "<<int(runCount)<<" messages "<<int(span)<<" ms : "<<period_unit<<" "<<freq_unit<<endl<<endl;
+	LIME_LOGI<<"Verify "<<int(runCount)<<" messages "<<int(span)<<" ms : "<<period_unit<<" "<<freq_unit<<endl<<endl;
 
 	BC_ASSERT_TRUE(Vera->verify(XpublicKey, aliceSignature));
 }
@@ -307,14 +302,14 @@ static void signAndVerify(void) {
 #ifdef EC25519_ENABLED
 	signAndVerify_test<C255>();
 	if (bench) {
-		std::cout<<"Bench for Curve 25519:"<<endl;
+		LIME_LOGI<<"Bench for Curve 25519:"<<endl;
 		signAndVerify_bench<C255>(BENCH_TIMING_MS);
 	}
 #endif
 #ifdef EC448_ENABLED
 	signAndVerify_test<C448>();
 	if (bench) {
-		std::cout<<"Bench for Curve 448:"<<endl;
+		LIME_LOGI<<"Bench for Curve 448:"<<endl;
 		signAndVerify_bench<C448>(BENCH_TIMING_MS);
 	}
 #endif
@@ -349,7 +344,7 @@ static void hashMac_KDF_bench(uint64_t runTime_ms, size_t IKMsize) {
 	std::string freq_unit, period_unit;
 	snprintSI(freq_unit, freq, "derivations/s");
 	snprintSI(period_unit, 1/freq, "s/derivation");
-	std::cout<<"Derive "<<int(runCount)<<" key material in "<<int(span)<<" ms : "<<period_unit<<" "<<freq_unit<<endl<<endl;
+	LIME_LOGI<<"Derive "<<int(runCount)<<" key material in "<<int(span)<<" ms : "<<period_unit<<" "<<freq_unit<<endl<<endl;
 }
 
 static void hashMac_KDF(void) {
@@ -406,12 +401,12 @@ static void hashMac_KDF(void) {
 		size_t IKMsize = 0;
 	#ifdef EC25519_ENABLED
 		IKMsize = DSA<C255, lime::DSAtype::publicKey>::ssize()+4*X<C255, lime::Xtype::sharedSecret>::ssize();
-		std::cout<<"Bench for SHA512 on Curve 25519 X3DH sized IKM("<<IKMsize<<" bytes)"<<endl;
+		LIME_LOGI<<"Bench for SHA512 on Curve 25519 X3DH sized IKM("<<IKMsize<<" bytes)"<<endl;
 		hashMac_KDF_bench(BENCH_TIMING_MS, IKMsize);
 	#endif
 	#ifdef EC448_ENABLED
 		IKMsize = DSA<C448, lime::DSAtype::publicKey>::ssize()+4*X<C448, lime::Xtype::sharedSecret>::ssize();
-		std::cout<<"Bench for SHA512 on Curve 448 X3DH sized IKM("<<IKMsize<<" bytes)"<<endl;
+		LIME_LOGI<<"Bench for SHA512 on Curve 448 X3DH sized IKM("<<IKMsize<<" bytes)"<<endl;
 		hashMac_KDF_bench(BENCH_TIMING_MS, IKMsize);
 	#endif
 	}

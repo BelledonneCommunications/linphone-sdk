@@ -16,12 +16,7 @@
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#define BCTBX_LOG_DOMAIN "lime-tester"
-#include <bctoolbox/logging.h>
+#include "lime_log.hpp"
 #include "belle-sip/belle-sip.h"
 
 #include "lime-tester.hpp"
@@ -80,12 +75,12 @@ int lime_tester_set_log_file(const char *filename) {
 	}
 	log_file = fopen(filename, "w");
 	if (!log_file) {
-		BCTBX_SLOGE<<"Cannot open file ["<<std::string{filename}<<"] for writing logs because ["<<std::string{strerror(errno)}<<"]";
+		LIME_LOGE<<"Cannot open file ["<<std::string{filename}<<"] for writing logs because ["<<std::string{strerror(errno)}<<"]";
 		return -1;
 	}
 	dir = bctbx_dirname(filename);
 	base = bctbx_basename(filename);
-	BCTBX_SLOGI<<"Redirecting traces to file ["<<std::string{filename}<<"]";
+	LIME_LOGI<<"Redirecting traces to file ["<<std::string{filename}<<"]";
 	filehandler = bctbx_create_file_log_handler(0, dir, base, log_file);
 	bctbx_add_log_handler(filehandler);
 	if (dir) bctbx_free(dir);

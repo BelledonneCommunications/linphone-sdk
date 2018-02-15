@@ -16,15 +16,9 @@
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
 
-#define BCTBX_LOG_DOMAIN "lime"
-#include <bctoolbox/logging.h>
-
+#include "lime_log.hpp"
 #include "lime/lime.hpp"
-
 #include "lime_impl.hpp"
 #include "bctoolbox/exception.hh"
 #include "lime_double_ratchet.hpp"
@@ -127,7 +121,7 @@ namespace lime {
 	void Lime<Curve>::update_SPk(const limeCallback &callback) {
 		// Do we need to update the SPk
 		if (!is_currentSPk_valid()) {
-			BCTBX_SLOGI<<"User "<<m_selfDeviceId<<" updates its SPk";
+			LIME_LOGI<<"User "<<m_selfDeviceId<<" updates its SPk";
 			auto userData = make_shared<callbackUserData<Curve>>(this->shared_from_this(), callback);
 			// generate and publish the SPk
 			X<Curve, lime::Xtype::publicKey> SPk{};
@@ -160,7 +154,7 @@ namespace lime {
 
 	template <typename Curve>
 	void Lime<Curve>::encrypt(std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<recipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback) {
-		bctbx_debug("encrypt from %s to %ld recipients", m_selfDeviceId.data(), recipients->size());
+		LIME_LOGD<<"encrypt from "<<m_selfDeviceId<<" to "<<recipients->size()<<" recipients";
 		/* Check if we have all the Double Ratchet sessions ready or shall we go for an X3DH */
 		std::vector<std::string> missingPeers; /* vector of deviceId(GRUU) which are requested to perform X3DH before the encryption can occurs */
 
@@ -217,7 +211,7 @@ namespace lime {
 
 	template <typename Curve>
 	bool Lime<Curve>::decrypt(const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &cipherHeader, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) {
-		bctbx_debug("decrypt from %s to %s", senderDeviceId.data(), recipientUserId.data());
+		LIME_LOGD<<"decrypt from "<<senderDeviceId<<" to "<<recipientUserId;
 		// do we have any session (loaded or not) matching that senderDeviceId ?
 		auto sessionElem = m_DR_sessions_cache.find(senderDeviceId);
 		auto db_sessionIdInCache = 0; // this would be the db_sessionId of the session stored in cache if there is one, no session has the Id 0
@@ -254,7 +248,7 @@ namespace lime {
 			DRSessions.clear();
 			DRSessions.push_back(DRSession);
 		} catch (BctbxException &e) {
-			BCTBX_SLOGE<<"Fail to create the DR session from the X3DH init message : "<<e;
+			LIME_LOGE<<"Fail to create the DR session from the X3DH init message : "<<e;
 			return false;
 		}
 
@@ -296,7 +290,7 @@ namespace lime {
 	 */
 	std::shared_ptr<LimeGeneric> insert_LimeUser(const std::string &dbFilename, const std::string &deviceId, const std::string &url, const lime::CurveId curve, const uint16_t OPkInitialBatchSize,
 			const limeX3DHServerPostData &X3DH_post_data, const limeCallback &callback) {
-		BCTBX_SLOGI<<"Create Lime user "<<deviceId;
+		LIME_LOGI<<"Create Lime user "<<deviceId;
 		/* first check the requested curve is instanciable and return an exception if not */
 #ifndef EC25519_ENABLED
 		if (curve == lime::CurveId::c25519) {
@@ -366,7 +360,7 @@ namespace lime {
 		std::string x3dh_server_url;
 
 		localStorage->load_LimeUser(deviceId, Uid, curve, x3dh_server_url); // this one will throw an exception if user is not found, just let it rise
-		BCTBX_SLOGI<<"Load Lime user "<<deviceId;
+		LIME_LOGI<<"Load Lime user "<<deviceId;
 
 		/* check the curve id retrieved from DB is instanciable and return an exception if not */
 #ifndef EC25519_ENABLED
