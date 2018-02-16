@@ -129,7 +129,7 @@ int belle_sip_mdns_register_available(void) {
 #endif
 }
 
-belle_sip_mdns_register_t *belle_sip_mdns_register(const char *service, const char *transport, const char *domain, const char *name, int port, int prio, int weight, belle_sip_mdns_register_callback_t cb, void *data) {
+belle_sip_mdns_register_t *belle_sip_mdns_register(const char *service, const char *transport, const char *domain, const char *name, int port, int prio, int weight, int ttl,  belle_sip_mdns_register_callback_t cb, void *data) {
 #ifdef HAVE_MDNS
 	belle_sip_mdns_register_t *reg = belle_sip_mdns_register_create(cb, data);
 	DNSServiceErrorType error;
@@ -145,6 +145,9 @@ belle_sip_mdns_register_t *belle_sip_mdns_register(const char *service, const ch
 
 	n = snprintf(number, sizeof(number), "%d", weight);
 	TXTRecordSetValue(&txt_ref, "weight\0", n, number);
+
+	n = snprintf(number, sizeof(number), "%d", ttl);
+	TXTRecordSetValue(&txt_ref, "ttl\0", n, number);
 
 	prefix = srv_prefix_from_service_and_transport(service, transport);
 

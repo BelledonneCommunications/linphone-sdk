@@ -785,43 +785,50 @@ static void resolver_process_mdns_resolve(DNSServiceRef service_ref
 	if (error_code != kDNSServiceErr_NoError) {
 		belle_sip_error("%s error while resolving [%s]: code %d", __FUNCTION__, source->ctx->name, error_code);
 	} else {
-		uint8_t prio_size, weight_size;
+		uint8_t prio_size, weight_size, ttl_size;
 
 		const char *prio_buf = TXTRecordGetValuePtr(txt_len, txt_record, "prio", &prio_size);
 		const char *weight_buf = TXTRecordGetValuePtr(txt_len, txt_record, "weight", &weight_size);
+		const char *ttl_buf = TXTRecordGetValuePtr(txt_len, txt_record, "weight", &ttl_size);
 
 		/* If the buffer is non-NULL then the key exist and if the result size is > 0 then the value is not empty */
-		if (prio_buf && prio_size > 0 && weight_buf && weight_size > 0) {
-			short unsigned int prio, weight;
+		if (prio_buf && prio_size > 0 && weight_buf && weight_size > 0 && ttl_buf && ttl_size > 0) {
+			short unsigned int prio, weight, ttl;
 
 			/* Don't use the VLAs since it doesn't work on Windows */
 			char *prio_value = belle_sip_malloc(prio_size + 1);
 			char *weight_value = belle_sip_malloc(weight_size + 1);
+			char *ttl_value = belle_sip_malloc(ttl_size + 1);
 
 			memcpy(prio_value, prio_buf, prio_size);
 			memcpy(weight_value, weight_buf, weight_size);
+			memcpy(ttl_value, ttl_buf, ttl_size);
 
 			prio_value[prio_size] = '\0';
 			weight_value[weight_size] = '\0';
+			ttl_value[ttl_size] = '\0';
 
 			prio = atoi(prio_value);
 			weight = atoi(weight_value);
+			ttl = atoi(ttl_value);
 
 			belle_sip_dns_srv_t *b_srv = belle_sip_dns_srv_create_raw(prio, weight, port, hosttarget);
 			if (!belle_sip_list_find_custom(source->ctx->srv_list, srv_compare_host_and_port, b_srv)) {
 				source->ctx->srv_list = belle_sip_list_insert_sorted(source->ctx->srv_list, belle_sip_object_ref(b_srv), srv_compare_prio);
+				if (ttl < BELLE_SIP_RESOLVER_CONTEXT(source->ctx)->min_ttl) BELLE_SIP_RESOLVER_CONTEXT(source->ctx)->min_ttl = ttl;
 			} else {
 				belle_sip_object_unref(b_srv);
 			}
 
 			belle_sip_free(prio_value);
 			belle_sip_free(weight_value);
+			belle_sip_free(ttl_value);
 
-			belle_sip_message("mDNS %s resolved to [target:%s port:%d prio:%d weight:%d]", source->ctx->name, hosttarget, port, prio, weight);
+			belle_sip_message("mDNS %s resolved to [target:%s port:%d prio:%d weight:%d ttl:%d]", source->ctx->name, hosttarget, port, prio, weight, ttl);
 
 			source->resolve_finished = BELLE_SIP_STOP;
 		} else {
-			belle_sip_warning("%s TXT record of %s does not contain a priority or weight key!", __FUNCTION__, hosttarget);
+			belle_sip_warning("%s TXT record of %s does not contain a priority, weight or ttl key!", __FUNCTION__, hosttarget);
 		}
 	}
 }
