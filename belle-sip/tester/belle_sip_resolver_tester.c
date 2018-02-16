@@ -578,7 +578,7 @@ static void mdns_query_ipv4_or_ipv6(int family) {
 
 	client = create_endpoint();
 
-	reg = belle_sip_mdns_register("sip", "tcp", "test.linphone.local", NULL, 5060, 10, 100, mdns_register_callback, &register_error);
+	reg = belle_sip_mdns_register("sip", "tcp", "test.linphone.local", NULL, 5060, 10, 100, 3600, mdns_register_callback, &register_error);
 	BC_ASSERT_PTR_NOT_NULL(reg);
 	BC_ASSERT_TRUE(wait_for(client->stack, &register_error, 0, 5000));
 
@@ -627,12 +627,12 @@ static void mdns_query_multiple_result(void) {
 
 	client = create_endpoint();
 
-	reg1 = belle_sip_mdns_register("sip", "tcp", "test.linphone.local", "Register1", 5060, 20, 100, mdns_register_callback, &register_error);
+	reg1 = belle_sip_mdns_register("sip", "tcp", "test.linphone.local", "Register1", 5060, 20, 100, 3600, mdns_register_callback, &register_error);
 	BC_ASSERT_PTR_NOT_NULL(reg1);
 	BC_ASSERT_TRUE(wait_for(client->stack, &register_error, 0, 5000));
 
 	register_error = -1;
-	reg2 = belle_sip_mdns_register("sip", "tcp", "test.linphone.local", "Register2", 5070, 10, 100, mdns_register_callback, &register_error);
+	reg2 = belle_sip_mdns_register("sip", "tcp", "test.linphone.local", "Register2", 5070, 10, 100, 3600, mdns_register_callback, &register_error);
 	BC_ASSERT_PTR_NOT_NULL(reg2);
 	BC_ASSERT_TRUE(wait_for(client->stack, &register_error, 0, 5000));
 
@@ -669,7 +669,7 @@ static void mdns_queries(void) {
 
 	client = create_endpoint();
 
-	reg = belle_sip_mdns_register("sip", "tcp", "test.linphone.local", NULL, 5060, 10, 100, mdns_register_callback, &register_error);
+	reg = belle_sip_mdns_register("sip", "tcp", "test.linphone.local", NULL, 5060, 10, 100, 3600, mdns_register_callback, &register_error);
 	BC_ASSERT_PTR_NOT_NULL(reg);
 	BC_ASSERT_TRUE(wait_for(client->stack, &register_error, 0, 5000));
 
