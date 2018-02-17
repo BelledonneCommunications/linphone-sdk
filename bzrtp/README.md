@@ -34,12 +34,13 @@ Compatibility with RFC6189 - ZRTP: Media Path Key Agreement for Unicast Secure R
 
 ### Supported Algorithms
 
-* Hash : SHA-256
+* Hash : SHA-256, SHA-384
 * Cipher : AES-128, AES-256
 * SAS rendering: B32, B256(PGP word list)
 * Auth Tag : HS32, HS80
-* Key Agreement : DH-2048, DH-3072
+* Key Agreement : DH-2048, DH-3072, X25519, X448
 
+*Note*: X25519 and X448 Key agreements(RFC7748) are not part of RFC6189 and supported only when *bctoolbox[1]* is linking *libdecaf[2]*
 
 Dependencies
 ------------
@@ -88,3 +89,4 @@ rpmbuild -ta --clean --rmsource --rmspec bzrtp-<version>-<release>.tar.gz
 
 
 * [1] git://git.linphone.org/bctoolbox.git or <http://www.linphone.org/releases/sources/bctoolbox>
+* [2] <https://sourceforge.net/projects/ed448goldilocks/>
