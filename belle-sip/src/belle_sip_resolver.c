@@ -789,7 +789,7 @@ static void resolver_process_mdns_resolve(DNSServiceRef service_ref
 
 		const char *prio_buf = TXTRecordGetValuePtr(txt_len, txt_record, "prio", &prio_size);
 		const char *weight_buf = TXTRecordGetValuePtr(txt_len, txt_record, "weight", &weight_size);
-		const char *ttl_buf = TXTRecordGetValuePtr(txt_len, txt_record, "weight", &ttl_size);
+		const char *ttl_buf = TXTRecordGetValuePtr(txt_len, txt_record, "ttl", &ttl_size);
 
 		/* If the buffer is non-NULL then the key exist and if the result size is > 0 then the value is not empty */
 		if (prio_buf && prio_size > 0 && weight_buf && weight_size > 0 && ttl_buf && ttl_size > 0) {
