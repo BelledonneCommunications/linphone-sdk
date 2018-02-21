@@ -138,7 +138,7 @@ struct belle_sip_simple_resolver_context{
 	char *srv_prefix;
 	char *srv_name;
 	int resolving;
-	bool_t result;
+	bool_t browse_finished;
 #endif
 #if defined(USE_GETADDRINFO_FALLBACK) || defined(HAVE_MDNS)
 	struct addrinfo *getaddrinfo_ai_list;
@@ -816,6 +816,8 @@ static void resolver_process_mdns_resolve(DNSServiceRef service_ref
 			if (!belle_sip_list_find_custom(source->ctx->srv_list, srv_compare_host_and_port, b_srv)) {
 				source->ctx->srv_list = belle_sip_list_insert_sorted(source->ctx->srv_list, belle_sip_object_ref(b_srv), srv_compare_prio);
 				if (ttl < BELLE_SIP_RESOLVER_CONTEXT(source->ctx)->min_ttl) BELLE_SIP_RESOLVER_CONTEXT(source->ctx)->min_ttl = ttl;
+
+				belle_sip_message("mDNS %s resolved to [target:%s port:%d prio:%d weight:%d ttl:%d]", source->ctx->name, hosttarget, port, prio, weight, ttl);
 			} else {
 				belle_sip_object_unref(b_srv);
 			}
@@ -824,13 +826,17 @@ static void resolver_process_mdns_resolve(DNSServiceRef service_ref
 			belle_sip_free(weight_value);
 			belle_sip_free(ttl_value);
 
-			belle_sip_message("mDNS %s resolved to [target:%s port:%d prio:%d weight:%d ttl:%d]", source->ctx->name, hosttarget, port, prio, weight, ttl);
-
 			source->resolve_finished = BELLE_SIP_STOP;
 		} else {
 			belle_sip_warning("%s TXT record of %s does not contain a priority, weight or ttl key!", __FUNCTION__, hosttarget);
 		}
 	}
+
+	source->ctx->resolving--;
+
+	/* If this is the last resolve and the browse has already timed out then we notify */
+	if (source->ctx->resolving == 0 && source->ctx->browse_finished)
+		belle_sip_resolver_context_notify(BELLE_SIP_RESOLVER_CONTEXT(source->ctx));
 }
 
 static int resolver_process_mdns_resolve_result(belle_sip_mdns_source_t *source, unsigned int revents) {
@@ -862,6 +868,8 @@ static void resolver_process_mdns_browse(DNSServiceRef service_ref
 		error = DNSServiceResolve(&resolve_ref, 0, interface, name, type, domain, (DNSServiceResolveReply)resolver_process_mdns_resolve, source);
 
 		if (error == kDNSServiceErr_NoError) {
+			ctx->resolving++;
+
 			belle_sip_mdns_source_set_service_ref(source, resolve_ref);
 			belle_sip_main_loop_add_source(ctx->base.stack->ml, (belle_sip_source_t*)source);
 		} else {
@@ -877,7 +885,10 @@ static int resolver_process_mdns_browse_result(belle_sip_mdns_source_t *source, 
 	}
 
 	if (revents & BELLE_SIP_EVENT_TIMEOUT) {
-		belle_sip_resolver_context_notify(BELLE_SIP_RESOLVER_CONTEXT(source->ctx));
+		if (source->ctx->resolving == 0)
+			belle_sip_resolver_context_notify(BELLE_SIP_RESOLVER_CONTEXT(source->ctx));
+
+		source->ctx->browse_finished = TRUE;
 		return BELLE_SIP_STOP;
 	}
 	return BELLE_SIP_CONTINUE;
@@ -1384,7 +1395,7 @@ belle_sip_resolver_context_t * belle_sip_stack_resolve_srv(belle_sip_stack_t *st
 	ctx->srv_prefix = belle_sip_strdup(srv_prefix);
 	ctx->srv_name = belle_sip_strdup(name);
 	ctx->resolving = 0;
-	ctx->result = FALSE;
+	ctx->browse_finished = FALSE;
 #endif
 	ctx->name = belle_sip_concat(srv_prefix, name, NULL);
 	ctx->type = DNS_T_SRV;
