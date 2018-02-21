@@ -29,6 +29,12 @@ lcb_build_method("autotools")
 lcb_use_autogen(YES)
 lcb_build_in_source_tree(YES)
 lcb_linking_type("--disable-static" "--enable-shared")
+
+if (ENABLE_MDNS)
+	lcb_configure_options("--enable-mdns")
+endif()
+
+
 lcb_cross_compilation_options(
 	"--prefix=${CMAKE_INSTALL_PREFIX}"
 	"--host=${LINPHONE_BUILDER_HOST}"
