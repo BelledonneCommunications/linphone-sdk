@@ -609,8 +609,8 @@ static void mdns_query_no_result(void) {
 
 	client = create_endpoint();
 
-	// Wait some time to be sure that the services from last test are stopped
-	wait_for(client->stack, &client->resolve_done, 1, 2000);
+	/* Wait some time to be sure that the services from last test are stopped */
+	wait_for(client->stack, &client->resolve_done, 1, 1000);
 
 	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "sip", "tcp", "test.linphone.local", 5060, AF_INET, a_resolve_done, client);
 	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
@@ -668,6 +668,9 @@ static void mdns_queries(void) {
 	int register_error = -1;
 
 	client = create_endpoint();
+
+	/* Wait some time to be sure that the services from last test are stopped */
+	wait_for(client->stack, &client->resolve_done, 1, 1000);
 
 	reg = belle_sip_mdns_register("sip", "tcp", "test.linphone.local", NULL, 5060, 10, 100, 3600, mdns_register_callback, &register_error);
 	BC_ASSERT_PTR_NOT_NULL(reg);
