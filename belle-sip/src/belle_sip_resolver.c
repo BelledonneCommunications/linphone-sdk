@@ -56,7 +56,9 @@ struct belle_sip_dns_srv{
 	belle_sip_combined_resolver_context_t *root_resolver;/* used internally to combine SRV and A queries*/
 	belle_sip_resolver_context_t *a_resolver; /* used internally to combine SRV and A queries*/
 	struct addrinfo *a_results; /* used internally to combine SRV and A queries*/
-
+#ifdef HAVE_MDNS
+	char *fullname; /* Used by mDNS */
+#endif
 };
 
 static void belle_sip_dns_srv_destroy(belle_sip_dns_srv_t *obj){
@@ -73,19 +75,33 @@ static void belle_sip_dns_srv_destroy(belle_sip_dns_srv_t *obj){
 		bctbx_freeaddrinfo(obj->a_results);
 		obj->a_results=NULL;
 	}
+#ifdef HAVE_MDNS
+	if (obj->fullname){
+		belle_sip_free(obj->fullname);
+		obj->fullname = NULL;
+	}
+#endif
 }
 
-belle_sip_dns_srv_t *belle_sip_dns_srv_create_raw(short unsigned int priority, short unsigned int weight, short unsigned int port, const char *target){
+#ifdef HAVE_MDNS
+belle_sip_dns_srv_t *belle_sip_mdns_srv_create(short unsigned int priority, short unsigned int weight, short unsigned int port, const char *target, const char *fullname){
 	belle_sip_dns_srv_t *obj=belle_sip_object_new(belle_sip_dns_srv_t);
 	obj->priority=priority;
 	obj->weight=weight;
 	obj->port=port;
 	obj->target=belle_sip_strdup(target);
+	obj->fullname=belle_sip_strdup(fullname);
 	return obj;
 }
+#endif
 
 belle_sip_dns_srv_t *belle_sip_dns_srv_create(struct dns_srv *srv){
-	return belle_sip_dns_srv_create_raw(srv->priority, srv->weight, srv->port, srv->target);
+	belle_sip_dns_srv_t *obj=belle_sip_object_new(belle_sip_dns_srv_t);
+	obj->priority=srv->priority;
+	obj->weight=srv->weight;
+	obj->port=srv->port;
+	obj->target=belle_sip_strdup(srv->target);
+	return obj;
 }
 
 const char *belle_sip_dns_srv_get_target(const belle_sip_dns_srv_t *obj){
@@ -343,7 +359,7 @@ static int srv_compare_prio(const void *psrv1, const void *psrv2){
 }
 
 #ifdef HAVE_MDNS
-static int srv_compare_host_and_port(const void *psrv1, const void *psrv2){
+static int mdns_srv_compare_host_and_port(const void *psrv1, const void *psrv2){
 	belle_sip_dns_srv_t *srv1=(belle_sip_dns_srv_t*)psrv1;
 	belle_sip_dns_srv_t *srv2=(belle_sip_dns_srv_t*)psrv2;
 	int ret = strcmp(srv1->target, srv2->target);
@@ -351,6 +367,12 @@ static int srv_compare_host_and_port(const void *psrv1, const void *psrv2){
 	if (srv1->port < srv2->port) return -1;
 	if (srv1->port == srv2->port) return 0;
 	return 1;
+}
+
+static int mdns_srv_compare_fullname(const void *psrv1, const void *psrv2){
+	belle_sip_dns_srv_t *srv1=(belle_sip_dns_srv_t*)psrv1;
+	belle_sip_dns_srv_t *srv2=(belle_sip_dns_srv_t*)psrv2;
+	return strcmp(srv1->fullname, srv2->fullname);
 }
 #endif
 
@@ -812,8 +834,8 @@ static void resolver_process_mdns_resolve(DNSServiceRef service_ref
 			weight = atoi(weight_value);
 			ttl = atoi(ttl_value);
 
-			belle_sip_dns_srv_t *b_srv = belle_sip_dns_srv_create_raw(prio, weight, port, hosttarget);
-			if (!belle_sip_list_find_custom(source->ctx->srv_list, srv_compare_host_and_port, b_srv)) {
+			belle_sip_dns_srv_t *b_srv = belle_sip_mdns_srv_create(prio, weight, port, hosttarget, fullname);
+			if (!belle_sip_list_find_custom(source->ctx->srv_list, mdns_srv_compare_host_and_port, b_srv)) {
 				source->ctx->srv_list = belle_sip_list_insert_sorted(source->ctx->srv_list, belle_sip_object_ref(b_srv), srv_compare_prio);
 				if (ttl < BELLE_SIP_RESOLVER_CONTEXT(source->ctx)->min_ttl) BELLE_SIP_RESOLVER_CONTEXT(source->ctx)->min_ttl = ttl;
 
@@ -860,21 +882,38 @@ static void resolver_process_mdns_browse(DNSServiceRef service_ref
 	if (error_code != kDNSServiceErr_NoError) {
 		belle_sip_error("%s error while browing [%s]: code %d", __FUNCTION__, ctx->name, error_code);
 	} else {
-		DNSServiceRef resolve_ref;
-		DNSServiceErrorType error;
+		if (flags & kDNSServiceFlagsAdd) {
+			DNSServiceRef resolve_ref;
+			DNSServiceErrorType error;
 
-		belle_sip_mdns_source_t *source = belle_sip_mdns_source_new(NULL, ctx, (belle_sip_source_func_t)resolver_process_mdns_resolve_result, 1000);
+			belle_sip_mdns_source_t *source = belle_sip_mdns_source_new(NULL, ctx, (belle_sip_source_func_t)resolver_process_mdns_resolve_result, 1000);
 
-		error = DNSServiceResolve(&resolve_ref, 0, interface, name, type, domain, (DNSServiceResolveReply)resolver_process_mdns_resolve, source);
+			error = DNSServiceResolve(&resolve_ref, 0, interface, name, type, domain, (DNSServiceResolveReply)resolver_process_mdns_resolve, source);
 
-		if (error == kDNSServiceErr_NoError) {
-			ctx->resolving++;
+			if (error == kDNSServiceErr_NoError) {
+				ctx->resolving++;
 
-			belle_sip_mdns_source_set_service_ref(source, resolve_ref);
-			belle_sip_main_loop_add_source(ctx->base.stack->ml, (belle_sip_source_t*)source);
+				belle_sip_mdns_source_set_service_ref(source, resolve_ref);
+				belle_sip_main_loop_add_source(ctx->base.stack->ml, (belle_sip_source_t*)source);
+			} else {
+				belle_sip_error("%s DNSServiceResolve error [%s]: code %d", __FUNCTION__, ctx->name, error);
+				belle_sip_object_unref(source);
+			}
 		} else {
-			belle_sip_error("%s DNSServiceResolve error [%s]: code %d", __FUNCTION__, ctx->name, error);
-			belle_sip_object_unref(source);
+			belle_sip_list_t *elem;
+			char fullname[512];
+
+			/* If the browse service does not have the Add flags then it has to be removed */
+			snprintf(fullname, sizeof(fullname), "%s.%s%s", name, type, domain);
+			belle_sip_dns_srv_t *b_srv = belle_sip_mdns_srv_create(-1, -1, -1, NULL, fullname);
+
+			elem = belle_sip_list_find_custom(ctx->srv_list, mdns_srv_compare_fullname, b_srv);
+			if (elem) {
+				belle_sip_object_unref((belle_sip_dns_srv_t *)elem->data);
+				ctx->srv_list = belle_sip_list_delete_link(ctx->srv_list, elem);
+			}
+
+			belle_sip_object_unref(b_srv);
 		}
 	}
 }
