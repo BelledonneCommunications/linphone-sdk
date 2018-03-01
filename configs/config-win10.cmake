@@ -58,12 +58,14 @@ include(builders/CMakeLists.txt)
 
 
 # linphone
+lcb_builder_cmake_options(linphone "-DENABLE_CSHARP_WRAPPER=YES")
 lcb_builder_cmake_options(linphone "-DENABLE_RELATIVE_PREFIX=YES")
 lcb_builder_cmake_options(linphone "-DENABLE_CONSOLE_UI=NO")
 lcb_builder_cmake_options(linphone "-DENABLE_DAEMON=NO")
 lcb_builder_cmake_options(linphone "-DENABLE_NOTIFY=NO")
 lcb_builder_cmake_options(linphone "-DENABLE_TUTORIALS=NO")
 lcb_builder_cmake_options(linphone "-DENABLE_UPNP=NO")
+lcb_builder_cmake_options(linphone "-DENABLE_SOCI=NO")
 
 # ms2
 lcb_builder_cmake_options(ms2 "-DENABLE_RELATIVE_PREFIX=YES")
