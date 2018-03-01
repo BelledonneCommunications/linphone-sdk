@@ -543,7 +543,7 @@ static void belle_sip_file_body_handler_begin_recv_transfer(belle_sip_body_handl
 	if (!obj->file) {
 		bctbx_error("Can't open file %s", obj->filepath);
 	}
-	
+
 	if (obj->user_bh && obj->user_bh->start_cb) {
 		obj->user_bh->start_cb((belle_sip_user_body_handler_t*)&(obj->user_bh->base), obj->user_bh->base.user_data);
 	}
@@ -566,11 +566,11 @@ static void belle_sip_file_body_handler_begin_send_transfer(belle_sip_body_handl
 
 static void belle_sip_file_body_handler_end_transfer(belle_sip_body_handler_t *base) {
 	belle_sip_file_body_handler_t *obj = (belle_sip_file_body_handler_t *)base;
-	
+
 	if (obj->user_bh && obj->user_bh->stop_cb) {
 		obj->user_bh->stop_cb((belle_sip_user_body_handler_t*)&(obj->user_bh->base), obj->user_bh->base.user_data);
 	}
-	
+
 	if (obj->file) {
 		ssize_t ret;
 		ret = bctbx_file_close(obj->file);
@@ -586,11 +586,11 @@ static void belle_sip_file_body_handler_recv_chunk(belle_sip_body_handler_t *bas
 	ssize_t ret;
 
 	if (obj->file == NULL) return;
-	
+
 	if (obj->user_bh && obj->user_bh->recv_cb) {
 		obj->user_bh->recv_cb((belle_sip_user_body_handler_t*)&(obj->user_bh->base), msg, obj->user_bh->base.user_data, offset, buf, size);
 	}
-	
+
 	ret = bctbx_file_write(obj->file, buf, size, offset);
 	if (ret == BCTBX_VFS_ERROR) {
 		bctbx_error("File body handler recv write error at offset %lu", (unsigned long)offset);
@@ -609,12 +609,12 @@ static int belle_sip_file_body_handler_send_chunk(belle_sip_body_handler_t *base
 		return BELLE_SIP_STOP;
 	}
 	*size = (size_t)size_t_ret;
-	
+
 	if (obj->user_bh && obj->user_bh->send_cb) {
 		int result = obj->user_bh->send_cb((belle_sip_user_body_handler_t*)&(obj->user_bh->base), msg, obj->user_bh->base.user_data, offset, buf, size);
 		if (result == BELLE_SIP_STOP) return result;
 	}
-	
+
 	return (((obj->base.expected_size - offset) == (size_t)size_t_ret) || (*size == 0)) ? BELLE_SIP_STOP : BELLE_SIP_CONTINUE;
 }
 
@@ -823,7 +823,7 @@ belle_sip_multipart_body_handler_t *belle_sip_multipart_body_handler_new(belle_s
 	return obj;
 }
 
-belle_sip_multipart_body_handler_t *belle_sip_multipart_body_handler_new_from_buffer(void *buffer, size_t bufsize, const char *boundary) {
+belle_sip_multipart_body_handler_t *belle_sip_multipart_body_handler_new_from_buffer(const void *buffer, size_t bufsize, const char *boundary) {
 	belle_sip_multipart_body_handler_t *obj_multipart = belle_sip_object_new(belle_sip_multipart_body_handler_t);
 	belle_sip_body_handler_t *obj = (belle_sip_body_handler_t *)obj_multipart;
 	belle_sip_body_handler_init((belle_sip_body_handler_t *)obj, belle_sip_multipart_body_handler_progress_cb, NULL);
