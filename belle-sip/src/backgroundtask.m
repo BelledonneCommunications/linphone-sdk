@@ -15,31 +15,23 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+#ifdef __APPLE__
+#include <TargetConditionals.h>
+#endif
 
 #include "belle_sip_internal.h"
 
-#if TARGET_OS_IPHONE==1
+#if TARGET_OS_IPHONE
 
 #include <UIKit/UIApplication.h>
-
-typedef struct fallback_callback_data{
-	unsigned long task_id;
-}fallback_callback_data_t;
-
-static void fallback_callback(void *data){
-	fallback_callback_data_t *fbd=(fallback_callback_data_t*)data;
-	belle_sip_end_background_task(fbd->task_id);
-	belle_sip_free(fbd);
-}
 
 unsigned long belle_sip_begin_background_task(const char *name, belle_sip_background_task_end_callback_t cb, void *data){
 	UIApplication *app=[UIApplication sharedApplication];
 	UIBackgroundTaskIdentifier bgid = UIBackgroundTaskInvalid;
-	fallback_callback_data_t *fbd=NULL;
 
 	if (cb==NULL){
-		cb=fallback_callback;
-		data=fbd=(fallback_callback_data_t*)belle_sip_malloc0(sizeof(fallback_callback_data_t));
+		belle_sip_error("belle_sip_begin_background_task(): the callback must not be NULL. Application must be aware that the background task needs to be terminated.");
+		return UIBackgroundTaskInvalid;
 	}
 
 	void (^handler)() = ^{
@@ -63,13 +55,14 @@ unsigned long belle_sip_begin_background_task(const char *name, belle_sip_backgr
 	} else {
 		belle_sip_message("Background task %s started. Remaining time %.1f secs", name, app.backgroundTimeRemaining);
 	}
-	if (fbd) fbd->task_id=bgid;
 	return (unsigned long)bgid;
 }
 
 void belle_sip_end_background_task(unsigned long id){
 	UIApplication *app=[UIApplication sharedApplication];
-	[app endBackgroundTask:(UIBackgroundTaskIdentifier)id];
+	if (id != UIBackgroundTaskInvalid){
+		[app endBackgroundTask:(UIBackgroundTaskIdentifier)id];
+	}
 }
 
 #else
