@@ -199,7 +199,7 @@ static SoundDeviceDescription devices[]={
 
 	{	"WIKO", 				"HIGHWAY 4G",			"tegra",		DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
 	{	"Symphony",				"HIGHWAY 4G",			"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
-
+	{	"rockchip",				"rk3288_box",			"rk3288",		0, 0, 16000},
 	{	NULL, 					NULL,					NULL,			0, 	0,	0}
 };
 
