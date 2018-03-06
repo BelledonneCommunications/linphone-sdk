@@ -549,6 +549,7 @@ struct belle_sip_stack{
 
 	unsigned char dns_srv_enabled;
 	unsigned char dns_search_enabled;
+	unsigned char reconnect_to_primary_asap;
 };
 
 BELLESIP_EXPORT belle_sip_hop_t* belle_sip_hop_new(const char* transport, const char *cname, const char* host,int port);

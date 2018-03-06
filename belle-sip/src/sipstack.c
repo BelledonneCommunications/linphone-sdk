@@ -319,3 +319,11 @@ GET_SET_INT(belle_sip_stack,http_proxy_port, int)
 void  belle_sip_set_log_handler(belle_sip_log_function_t func) {
 	bctbx_set_log_handler_for_domain(func, BCTBX_LOG_DOMAIN);
 }
+
+void belle_sip_stack_enable_reconnect_to_primary_asap(belle_sip_stack_t *stack, int enabled) {
+	stack->reconnect_to_primary_asap=enabled;
+}
+
+int belle_sip_stack_reconnect_to_primary_asap_enabled(const belle_sip_stack_t *stack) {
+	return stack->reconnect_to_primary_asap;
+}
