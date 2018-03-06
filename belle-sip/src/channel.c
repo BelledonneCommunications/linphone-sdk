@@ -1444,6 +1444,12 @@ static bool_t addrinfo_in_list(const struct addrinfo *ai, const struct addrinfo 
 	return in_list;
 }
 
+static bool_t addrinfo_is_first(const struct addrinfo *ai, const struct addrinfo *list) {
+	if (list != NULL && (ai->ai_family == list->ai_family) && (bctbx_sockaddr_equals(ai->ai_addr, list->ai_addr)))
+		return TRUE;
+	return FALSE;
+}
+
 static void channel_res_done(void *data, const char *name, struct addrinfo *ai_list, uint32_t ttl){
 	belle_sip_channel_t *obj=(belle_sip_channel_t*)data;
 	if (obj->resolver_ctx){
@@ -1455,7 +1461,14 @@ static void channel_res_done(void *data, const char *name, struct addrinfo *ai_l
 			obj->peer_list=obj->current_peer=ai_list;
 			channel_set_state(obj,BELLE_SIP_CHANNEL_RES_DONE);
 		} else {
-			if (addrinfo_in_list(obj->current_peer, ai_list)) {
+			bool_t check;
+			if (belle_sip_stack_reconnect_to_primary_asap_enabled(obj->stack)) {
+				check = addrinfo_is_first(obj->current_peer, ai_list);
+			} else {
+				check = addrinfo_in_list(obj->current_peer, ai_list);
+			}
+
+			if (check) {
 				belle_sip_message("channel[%p]: DNS resolution returned the currently used address, continue using it", obj);
 				obj->peer_list = ai_list;
 				channel_set_state(obj, BELLE_SIP_CHANNEL_READY);
