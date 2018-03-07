@@ -184,6 +184,8 @@ struct ParserLocalContext{
 
 class ParserContextBase{
 public:
+	virtual ~ParserContextBase() = default;
+
 	virtual void beginParse(ParserLocalContext &ctx, const std::shared_ptr<Recognizer> &rec)=0;
 	virtual void endParse(const ParserLocalContext &ctx, const std::string &input, size_t begin, size_t count)=0;
 	virtual std::shared_ptr<HandlerContextBase> branch()=0;
