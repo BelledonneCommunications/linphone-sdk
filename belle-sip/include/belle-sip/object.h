@@ -184,7 +184,7 @@ BELLE_SIP_BEGIN_DECLS
 BELLESIP_EXPORT belle_sip_object_t * _belle_sip_object_new(size_t objsize, belle_sip_object_vptr_t *vptr);
 
 #ifdef __cplusplus
-#define belle_sip_object_new(_type) reinterpret_cast<_type*>(_belle_sip_object_new(sizeof(_type),(belle_sip_object_vptr_t*)BELLE_SIP_OBJECT_GET_VPTR_FUNC(_type)()))
+#define belle_sip_object_new(_type) reinterpret_cast<_type*>(static_cast<void *>(_belle_sip_object_new(sizeof(_type),(belle_sip_object_vptr_t*)BELLE_SIP_OBJECT_GET_VPTR_FUNC(_type)())))
 #else
 #define belle_sip_object_new(_type) (_type*)_belle_sip_object_new(sizeof(_type),(belle_sip_object_vptr_t*)BELLE_SIP_OBJECT_GET_VPTR_FUNC(_type)())
 #endif
