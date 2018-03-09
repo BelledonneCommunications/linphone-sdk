@@ -254,7 +254,12 @@ endif()
 
 if(MSVC)
 	# Disable "was deprecated" warnings of windows compiler (typically using strcpy_s instead of strcpy and stupid things like this).
-	target_compile_options(bctoolbox PRIVATE "/wd4996")
+	if(ENABLE_SHARED)
+		target_compile_options(bctoolbox PRIVATE "/wd4996")
+	endif()
+	if(ENABLE_STATIC)
+		target_compile_options(bctoolbox-static PRIVATE "/wd4996")
+	endif()
 	if(BCUNIT_FOUND)
 		target_compile_options(bctoolbox-tester PRIVATE "/wd4996")
 	endif()
