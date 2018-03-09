@@ -19,7 +19,7 @@
 #ifndef BCTBX_PARSER_H_
 #define BCTBX_PARSER_H_
 
-#include "port.h"
+#include "bctoolbox/port.h"
 
 #ifdef __cplusplus
 extern "C"
