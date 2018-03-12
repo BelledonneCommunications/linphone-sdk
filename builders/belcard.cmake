@@ -29,3 +29,7 @@ lcb_package_source(YES)
 lcb_spec_file("belcard.spec")
 
 lcb_dependencies("bctoolbox" "belr")
+
+lcb_cmake_options(
+	"-DENABLE_UNIT_TESTS=${ENABLE_UNIT_TESTS}"
+)

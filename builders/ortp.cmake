@@ -30,5 +30,8 @@ lcb_package_source(YES)
 lcb_dependencies("bctoolbox")
 lcb_spec_file("ortp.spec")
 
-lcb_cmake_options("-DENABLE_DOC=${ENABLE_DOC}")
+lcb_cmake_options(
+	"-DENABLE_DOC=${ENABLE_DOC}"
+	"-DENABLE_UNIT_TESTS=${ENABLE_UNIT_TESTS}"
+)
 
