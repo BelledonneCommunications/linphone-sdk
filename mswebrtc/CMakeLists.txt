@@ -439,44 +439,5 @@ if(ENABLE_SHARED)
 	)
 endif()
 
+add_subdirectory(build)
 
-# CPack settings
-set(CPACK_SOURCE_GENERATOR "TGZ")
-set(CPACK_SOURCE_PACKAGE_FILE_NAME "${PROJECT_NAME}-${PROJECT_VERSION}")
-set(CPACK_SOURCE_IGNORE_FILES
-	"^${CMAKE_BINARY_DIR}"
-	"/\\\\..+"
-	"webrtc/build"
-	"webrtc/build_overrides"
-	"webrtc/chromium"
-	"webrtc/data"
-	"webrtc/infra"
-	"webrtc/resources"
-	"webrtc/talk"
-	"webrtc/third_party"
-	"webrtc/tools"
-	"webrtc/webrtc/audio"
-	"webrtc/webrtc/build"
-	"webrtc/webrtc/call"
-	"webrtc/webrtc/common_video"
-	"webrtc/webrtc/examples"
-	"webrtc/webrtc/libjingle"
-	"webrtc/webrtc/modules/audio_conference_mixer"
-	"webrtc/webrtc/modules/audio_device"
-	"webrtc/webrtc/modules/bitrate_controller"
-	"webrtc/webrtc/modules/desktop_capture"
-	"webrtc/webrtc/modules/media_file"
-	"webrtc/webrtc/modules/pacing"
-	"webrtc/webrtc/modules/remote_bitrate_estimator"
-	"webrtc/webrtc/modules/rtp_rtcp"
-	"webrtc/webrtc/modules/utility"
-	"webrtc/webrtc/modules/video*"
-	"webrtc/webrtc/p2p"
-	"webrtc/webrtc/sound"
-	"webrtc/webrtc/test"
-	"webrtc/webrtc/tools"
-	"webrtc/webrtc/video*"
-	"webrtc/webrtc/voice_engine"
-)
-
-include(CPack)
