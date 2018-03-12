@@ -1,6 +1,6 @@
 ############################################################################
 # belcard.cmake
-# Copyright (C) 2015  Belledonne Communications, Grenoble France
+# Copyright (C) 2015-2018  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -26,5 +26,6 @@ lcb_git_tag("master")
 lcb_external_source_paths("belcard")
 lcb_groupable(YES)
 lcb_package_source(YES)
+lcb_spec_file("belcard.spec")
 
 lcb_dependencies("bctoolbox" "belr")

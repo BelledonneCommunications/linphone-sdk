@@ -1,6 +1,6 @@
 ############################################################################
 # mswebrtc.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# Copyright (C) 2014-2018  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -27,6 +27,7 @@ lcb_external_source_paths("mswebrtc")
 lcb_groupable(YES)
 lcb_package_source(YES)
 lcb_plugin(YES)
+lcb_spec_file("mswebrtc.spec")
 
 lcb_dependencies("ms2")
 

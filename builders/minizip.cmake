@@ -24,6 +24,7 @@ lcb_git_repository("git://git.linphone.org/minizip.git")
 lcb_git_tag_latest("master")
 lcb_git_tag("d65cd2ea9d740f62884e0beaf8ab86740620c783")
 lcb_external_source_paths("externals/minizip")
+lcb_spec_file("minizip.spec")
 
 lcb_dependencies("zlib")
 
