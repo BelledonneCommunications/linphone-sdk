@@ -1,11 +1,7 @@
 # -*- rpm-spec -*-
 
-## rpmbuild options
-# These 2 lines are here because we can build the RPM for flexisip, in which
-# case we prefix the entire installation so that we don't break compatibility
-# with the user's libs.
-# To compile with bc prefix, use rpmbuild -ba --with bc [SPEC]
-%define                 pkg_name        belcard
+%define _prefix    @CMAKE_INSTALL_PREFIX@
+%define pkg_prefix @BC_PACKAGE_NAME_PREFIX@
 
 # re-define some directories for older RPMBuild versions which don't. This messes up the doc/ dir
 # taken from https://fedoraproject.org/wiki/Packaging:RPMMacros?rd=Packaging/RPMMacros
@@ -14,10 +10,13 @@
 %define _docdir            %{_datadir}/doc
 
 %define build_number @PROJECT_VERSION_BUILD@
+%if %{build_number}
+%define build_number_ext -%{build_number}
+%endif
 
 
 
-Name:           %{pkg_name}
+Name:           @CPACK_PACKAGE_NAME@
 Version:        @PROJECT_VERSION@
 Release:        %{build_number}%{?dist}
 Summary:        Belcard is a C++ library to manipulate VCard standard format.
@@ -25,8 +24,10 @@ Summary:        Belcard is a C++ library to manipulate VCard standard format.
 Group:          Applications/Communications
 License:        GPL
 URL:            http://www.linphone.org
-Source0:        %{name}-%{version}-%{build_number}.tar.gz
+Source0:        %{name}-%{version}%{?build_number_ext}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-buildroot
+
+Requires:	%{pkg_prefix}bctoolbox
 
 %description
 
@@ -48,11 +49,15 @@ Libraries and headers required to develop software with belcard
 %define ctest_name ctest
 %endif
 
+# This is for debian builds where debug_package has to be manually specified, whereas in centos it does not
+%define custom_debug_package %{!?_enable_debug_packages:%debug_package}%{?_enable_debug_package:%{nil}}
+%custom_debug_package
+
 %prep
-%setup -n %{name}-%{version}-%build_number
+%setup -n %{name}-%{version}%{?build_number_ext}
 
 %build
-%{expand:%%%cmake_name} . -DCMAKE_INSTALL_LIBDIR:PATH=%{_libdir} -DCMAKE_PREFIX_PATH:PATH=%{_prefix}
+%{expand:%%%cmake_name} . -DCMAKE_BUILD_TYPE=@CMAKE_BUILD_TYPE@ -DCMAKE_INSTALL_LIBDIR:PATH=%{_libdir} -DCMAKE_PREFIX_PATH:PATH=%{_prefix} @RPM_ALL_CMAKE_OPTIONS@
 make %{?_smp_mflags}
 
 %install
@@ -77,13 +82,20 @@ rm -rf $RPM_BUILD_ROOT
 %files devel
 %defattr(-,root,root)
 %{_includedir}/belcard
+%if @ENABLE_STATIC@
 %{_libdir}/libbelcard.a
+%endif
+%if @ENABLE_SHARED@
 %{_libdir}/libbelcard.so
-%{_datadir}/Belcard/cmake/BelcardConfig.cmake
-%{_datadir}/Belcard/cmake/BelcardTargets-noconfig.cmake
-%{_datadir}/Belcard/cmake/BelcardTargets.cmake
+%endif
+%{_datadir}/Belcard/cmake/BelcardConfig*.cmake
+%{_datadir}/Belcard/cmake/BelcardTargets*.cmake
+%if @ENABLE_UNIT_TESTS@
 %{_datadir}/belcard_tester/vcards/*
+%endif
+%if @ENABLE_TOOLS@
 %{_bindir}/*
+%endif
 
 %changelog
 * Wed Jul 19 2017 jehan.monnier <jehan.monnier@linphone.org>
