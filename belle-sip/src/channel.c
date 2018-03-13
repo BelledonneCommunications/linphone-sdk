@@ -331,6 +331,8 @@ static void uncompress_body_if_required(belle_sip_message_t *msg) {
 			mbh = BELLE_SIP_MEMORY_BODY_HANDLER(bh);
 			if (belle_sip_memory_body_handler_unapply_encoding(mbh, content_encoding) == 0) {
 				belle_sip_header_content_type_t *content_type = belle_sip_message_get_header_by_type(msg, belle_sip_header_content_type_t);
+				belle_sip_header_content_length_t *content_length = belle_sip_message_get_header_by_type(msg, belle_sip_header_content_length_t);
+				belle_sip_header_content_length_set_content_length(content_length, belle_sip_body_handler_get_size(BELLE_SIP_BODY_HANDLER(mbh)));
 				belle_sip_message_remove_header_from_ptr(msg, ceh);
 				if (content_type
 					&& (strcmp(belle_sip_header_content_type_get_type(content_type), "multipart") == 0)) {
@@ -1226,7 +1228,10 @@ static void compress_body_if_required(belle_sip_message_t *msg) {
 		}
 		if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(bh, belle_sip_memory_body_handler_t)) {
 			mbh = BELLE_SIP_MEMORY_BODY_HANDLER(bh);
-			belle_sip_memory_body_handler_apply_encoding(mbh, content_encoding);
+			int ret = belle_sip_memory_body_handler_apply_encoding(mbh, content_encoding);
+			/* Remove Content-Encoding header if it could not be applied */
+			if (ret < 0)
+				belle_sip_message_remove_header_from_ptr(msg, ceh);
 		} else {
 			belle_sip_warning("message [%p] has Content-Encoding [%s] that cannot be applied", msg, content_encoding);
 		}

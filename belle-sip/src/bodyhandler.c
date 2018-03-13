@@ -255,10 +255,14 @@ void belle_sip_memory_body_handler_set_buffer(belle_sip_memory_body_handler_t *o
 	obj->buffer = (uint8_t *)buffer;
 }
 
+#define BELLE_SIP_MEMORY_BODY_HANDLER_MINIMUM_DEFLATE_INPUT_SIZE 256
 #define BELLE_SIP_MEMORY_BODY_HANDLER_ZLIB_INITIAL_SIZE 2048
 
-void belle_sip_memory_body_handler_apply_encoding(belle_sip_memory_body_handler_t *obj, const char *encoding) {
-	if ((obj->buffer == NULL) || (obj->encoding_applied == TRUE)) return;
+int belle_sip_memory_body_handler_apply_encoding(belle_sip_memory_body_handler_t *obj, const char *encoding) {
+	if (obj->encoding_applied == TRUE)
+		return 0;
+	if (!obj->buffer || (belle_sip_body_handler_get_size(BELLE_SIP_BODY_HANDLER(obj)) < BELLE_SIP_MEMORY_BODY_HANDLER_MINIMUM_DEFLATE_INPUT_SIZE))
+		return -1;
 
 #ifdef HAVE_ZLIB
 	if (strcmp(encoding, "deflate") == 0) {
@@ -275,7 +279,10 @@ void belle_sip_memory_body_handler_apply_encoding(belle_sip_memory_body_handler_
 		strm.zfree = Z_NULL;
 		strm.opaque = Z_NULL;
 		ret = deflateInit(&strm, Z_DEFAULT_COMPRESSION);
-		if (ret != Z_OK) return;
+		if (ret != Z_OK) {
+			belle_sip_free(outbuf);
+			return -1;
+		}
 		strm.avail_in = (uInt)initial_size;
 		strm.next_in = obj->buffer;
 		do {
@@ -293,15 +300,22 @@ void belle_sip_memory_body_handler_apply_encoding(belle_sip_memory_body_handler_
 		} while (strm.avail_out == 0);
 		deflateEnd(&strm);
 		final_size = outbuf_ptr - outbuf;
+		if ((final_size + 27) >= initial_size) { // 27 is the size of the Content-Encoding header
+			belle_sip_message("Body not compressed because its size would have increased");
+			belle_sip_free(outbuf);
+			return -1;
+		}
 		belle_sip_message("Body has been compressed: %u->%u:\n%s", (unsigned int)initial_size, (unsigned int)final_size, obj->buffer);
 		belle_sip_free(obj->buffer);
 		obj->buffer = outbuf;
 		belle_sip_body_handler_set_size(BELLE_SIP_BODY_HANDLER(obj), final_size);
 		obj->encoding_applied = TRUE;
+		return 0;
 	} else
 #endif
 	{
 		belle_sip_warning("%s: unknown encoding '%s'", __FUNCTION__, encoding);
+		return -1;
 	}
 }
 
