@@ -1460,10 +1460,12 @@ static void ice_send_binding_request(IceCheckList *cl, IceCandidatePair *pair, c
 			return;
 		}
 		if (pair->wait_transaction_timeout == TRUE) {
-			/* Special case where a binding response triggers a binding request for an InProgress pair. */
+			/* Special case where an incoming binding request triggers a binding request for an InProgress pair. */
 			/* In this case we wait for the transmission timeout before creating a new binding request for the pair. */
+			ms_message("ice: ice_send_binding_request(): processing pair %p where wait_transaction_timeout is TRUE", pair);
 			pair->wait_transaction_timeout = FALSE;
 			if (pair->use_candidate == FALSE) {
+				ms_message("ice: queuing a triggered check for pair %p", pair);
 				ice_pair_set_state(pair, ICP_Waiting);
 				ice_check_list_queue_triggered_check(cl, pair);
 			}
@@ -2031,6 +2033,7 @@ static IceCandidatePair * ice_trigger_connectivity_check_on_binding_request(IceC
 				ice_check_list_queue_triggered_check(cl, pair);
 				break;
 			case ICP_InProgress:
+				ms_message("ice: we are receiving a STUN request on pair %p, for which an outgoing STUN transaction is running.", pair);
 				/* Wait transaction timeout before creating a new binding request for this pair. */
 				pair->wait_transaction_timeout = TRUE;
 				break;
