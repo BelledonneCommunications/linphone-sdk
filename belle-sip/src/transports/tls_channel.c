@@ -631,7 +631,8 @@ static int tls_process_data(belle_sip_channel_t *obj,unsigned int revents){
 	} else if ( obj->state == BELLE_SIP_CHANNEL_READY) {
 		return belle_sip_channel_process_data(obj,revents);
 	} else {
-		belle_sip_warning("Unexpected event [%i], for channel [%p]",revents,channel);
+		belle_sip_error("Unexpected event [%i], for channel [%p]",revents,channel);
+		channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
 		return BELLE_SIP_STOP;
 	}
 	return BELLE_SIP_CONTINUE;

@@ -238,7 +238,8 @@ static int stream_channel_process_data(belle_sip_stream_channel_t *obj,unsigned 
 	} else if (state == BELLE_SIP_CHANNEL_READY) {
 		return belle_sip_channel_process_data(base,revents);
 	} else {
-		belle_sip_warning("Unexpected event [%i], in state [%s] for channel [%p]",revents,belle_sip_channel_state_to_string(state),obj);
+		belle_sip_error("Unexpected event [%i], in state [%s] for channel [%p]",revents,belle_sip_channel_state_to_string(state),obj);
+		channel_set_state(base,BELLE_SIP_CHANNEL_ERROR);
 		return BELLE_SIP_STOP;
 	}
 	return BELLE_SIP_CONTINUE;
