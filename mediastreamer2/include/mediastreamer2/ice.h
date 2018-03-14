@@ -260,6 +260,7 @@ typedef struct _IceCheckList {
 	bool_t gathering_finished;	/**< Boolean value telling whether the candidate gathering process has finished or not */
 	bool_t nomination_delay_running;	/**< Boolean value telling whether the nomination process has been delayed or not */
 	bool_t connectivity_checks_running; /**<Boolean to indicate that check list processing is in progress */
+	bool_t nomination_in_progress; /**<substate between ICL_Running and ICL_Completed, when the USE-CANDIDATE requests are waiting for their responses*/
 } IceCheckList;
 
 

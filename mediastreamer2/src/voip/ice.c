@@ -2749,6 +2749,14 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, const Ort
  * ADD CANDIDATES                                                             *
  *****************************************************************************/
 
+static void ice_compute_candidate_priority(IceCandidate *candidate)
+{
+	// TODO: Handle local preferences for multihomed hosts.
+	uint32_t type_preference = type_preference_values[candidate->type];
+	uint32_t local_preference = 65535;	/* Value recommended for non-multihomed hosts in 4.1.2.1 */
+	candidate->priority = (type_preference << 24) | (local_preference << 8) | (256 - candidate->componentID);
+}
+
 static IceCandidate * ice_candidate_new(const char *type, int family, const char *ip, int port, uint16_t componentID)
 {
 	IceCandidate *candidate;
@@ -2787,16 +2795,8 @@ static IceCandidate * ice_candidate_new(const char *type, int family, const char
 			candidate->base = NULL;
 			break;
 	}
-
+	ice_compute_candidate_priority(candidate);
 	return candidate;
-}
-
-static void ice_compute_candidate_priority(IceCandidate *candidate)
-{
-	// TODO: Handle local preferences for multihomed hosts.
-	uint8_t type_preference = type_preference_values[candidate->type];
-	uint16_t local_preference = 65535;	/* Value recommended for non-multihomed hosts in 4.1.2.1 */
-	candidate->priority = (type_preference << 24) | (local_preference << 8) | (256 - candidate->componentID);
 }
 
 static int ice_find_componentID(const uint16_t *cid1, const uint16_t *cid2)
@@ -2828,7 +2828,6 @@ IceCandidate * ice_add_local_candidate(IceCheckList* cl, const char* type, int f
 
 	candidate = ice_candidate_new(type, family, ip, port, componentID);
 	if (candidate->base == NULL) candidate->base = base;
-	ice_compute_candidate_priority(candidate);
 
 	elem = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_compare_candidates, candidate);
 	if (elem != NULL) {
@@ -2855,8 +2854,7 @@ IceCandidate * ice_add_remote_candidate(IceCheckList *cl, const char *type, int 
 
 	candidate = ice_candidate_new(type, family, ip, port, componentID);
 	/* If the priority is 0, compute it. It is used for debugging purpose in mediastream to set priorities of remote candidates. */
-	if (priority == 0) ice_compute_candidate_priority(candidate);
-	else candidate->priority = priority;
+	if (priority != 0) candidate->priority = priority;
 
 	elem = bctbx_list_find_custom(cl->remote_candidates, (bctbx_compare_func)ice_compare_candidates, candidate);
 	if (elem != NULL) {
@@ -3459,7 +3457,8 @@ static void ice_perform_regular_nomination(IceValidCandidatePair *valid_pair, Ch
 #endif
 
 static int valid_pair_compare(IceValidCandidatePair* p1, IceValidCandidatePair *p2){
-	return p1->generated_from->priority - p2->generated_from->priority;
+	//ms_message("ice: priorities %lu  <>   %lu", (unsigned long)p1->generated_from->priority, (unsigned long)p2->generated_from->priority);
+	return p2->generated_from->priority - p1->generated_from->priority;
 }
 
 static bctbx_list_t * ice_get_valid_pairs_for_componentID(IceCheckList *cl, uint16_t componentID){
@@ -3474,6 +3473,23 @@ static bctbx_list_t * ice_get_valid_pairs_for_componentID(IceCheckList *cl, uint
 	return ret;
 }
 
+static void ice_pair_stop_retransmissions(IceCandidatePair *pair, IceCheckList *cl)
+{
+	bctbx_list_t *elem;
+	if (pair->state == ICP_InProgress) {
+		ice_pair_set_state(pair, ICP_Failed);
+		elem = bctbx_list_find(cl->triggered_checks_queue, pair);
+		if (elem != NULL) {
+			cl->triggered_checks_queue = bctbx_list_erase_link(cl->triggered_checks_queue, elem);
+		}
+	}
+}
+
+static void ice_check_list_stop_retransmissions(IceCheckList *cl)
+{
+	bctbx_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_pair_stop_retransmissions, cl);
+}
+
 static void ice_check_list_nominate(IceCheckList *cl, const bctbx_list_t *best_valid_list){
 	const bctbx_list_t *it;
 	for (it = best_valid_list ; it != NULL; it = it->next){
@@ -3483,6 +3499,7 @@ static void ice_check_list_nominate(IceCheckList *cl, const bctbx_list_t *best_v
 			ice_check_list_queue_triggered_check(cl, valid_pair->generated_from);
 		}
 	}
+	cl->nomination_in_progress = TRUE;
 }
 
 static void ice_check_list_perform_nominations(IceCheckList *cl, bool_t nomination_delay_expired){
@@ -3492,6 +3509,8 @@ static void ice_check_list_perform_nominations(IceCheckList *cl, bool_t nominati
 	bool_t concludable = TRUE;
 	bool_t need_more_time = FALSE;
 	int nominations_to_do = 0;
+	
+	if (cl->nomination_in_progress) return;
 	
 	for (comp_it = cl->local_componentIDs; comp_it != NULL; comp_it = comp_it->next){
 		IceValidCandidatePair *valid_pair;
@@ -3604,23 +3623,6 @@ static void ice_check_all_pairs_in_failed_or_succeeded_state(const IceCandidateP
 	}
 }
 
-static void ice_pair_stop_retransmissions(IceCandidatePair *pair, IceCheckList *cl)
-{
-	bctbx_list_t *elem;
-	if (pair->state == ICP_InProgress) {
-		ice_pair_set_state(pair, ICP_Failed);
-		elem = bctbx_list_find(cl->triggered_checks_queue, pair);
-		if (elem != NULL) {
-			cl->triggered_checks_queue = bctbx_list_erase_link(cl->triggered_checks_queue, elem);
-		}
-	}
-}
-
-static void ice_check_list_stop_retransmissions(IceCheckList *cl)
-{
-	bctbx_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_pair_stop_retransmissions, cl);
-}
-
 static IceCheckList * ice_session_find_running_check_list(const IceSession *session)
 {
 	int i;
@@ -3724,6 +3726,7 @@ static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session, b
 			if ((cl->state != ICL_Completed) && (nb_losing_pairs == 0)) {
 				bool_t result;
 				cl->state = ICL_Completed;
+				cl->nomination_in_progress = FALSE;
 				cl->nomination_delay_running = FALSE;
 				ice_check_list_select_candidates(cl);
 				ms_message("ice: Finished ICE check list [%p] processing successfully!",cl);
@@ -3822,6 +3825,7 @@ static void ice_check_list_restart(IceCheckList *cl)
 	cl->gathering_finished = FALSE;
 	cl->nomination_delay_running = FALSE;
 	cl->ta_time = ice_current_time();
+	cl->nomination_in_progress = FALSE;
 	memset(&cl->keepalive_time, 0, sizeof(cl->keepalive_time));
 	memset(&cl->gathering_start_time, 0, sizeof(cl->gathering_start_time));
 	memset(&cl->nomination_delay_start_time, 0, sizeof(cl->nomination_delay_start_time));
@@ -3943,6 +3947,7 @@ static void ice_send_stun_server_requests(IceStunServerRequest *request, IceChec
 
 static void ice_handle_connectivity_check_retransmission(IceCandidatePair *pair, const CheckList_RtpSession_Time *params)
 {
+	if (params->cl->nomination_in_progress && pair->use_candidate == FALSE) return; /*no need to retransmit anything during nomination*/
 	if ((pair->state == ICP_InProgress) && (ice_compare_time(params->time, pair->transmission_time) >= pair->rto)) {
 		ice_send_binding_request(params->cl, pair, params->rtp_session);
 	}
