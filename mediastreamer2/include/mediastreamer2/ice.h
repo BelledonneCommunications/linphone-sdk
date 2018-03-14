@@ -196,7 +196,7 @@ typedef struct _IceCandidatePair {
 	bool_t is_default;	/**< Boolean value telling whether this candidate pair is a default candidate pair or not */
 	bool_t use_candidate;	/**< Boolean value telling if the USE-CANDIDATE attribute must be set for the connectivity checks send for the candidate pair */
 	bool_t is_nominated;	/**< Boolean value telling whether this candidate pair is nominated or not */
-	bool_t wait_transaction_timeout;	/**< Boolean value telling to create a new binding request on retransmission timeout */
+	bool_t has_canceled_transaction;	/**< Boolean value telling that the pair has a cancelled transaction, see RFC5245 7.2.1.4.  Triggered Checks */
 	bool_t retry_with_dummy_message_integrity; /** use to tell to retry with dummy message integrity. Useful to keep backward compatibility with older version*/
 	bool_t use_dummy_hmac; /*don't compute real hmac. used for backward compatibility*/
 } IceCandidatePair;
@@ -220,6 +220,7 @@ typedef struct _IceValidCandidatePair {
 typedef struct _IceTransaction {
 	UInt96 transactionID;	/**< Transaction ID of the connectivity check sent for the candidate pair */
 	IceCandidatePair *pair;	/**< A pointer to the candidate pair associated with the transaction. */
+	int canceled;
 } IceTransaction;
 
 /**
@@ -258,7 +259,6 @@ typedef struct _IceCheckList {
 	bool_t gathering_candidates;	/**< Boolean value telling whether a candidate gathering process is running or not */
 	bool_t gathering_finished;	/**< Boolean value telling whether the candidate gathering process has finished or not */
 	bool_t nomination_delay_running;	/**< Boolean value telling whether the nomination process has been delayed or not */
-	bool_t nomination_delay_timer_has_already_triggered;
 	bool_t connectivity_checks_running; /**<Boolean to indicate that check list processing is in progress */
 } IceCheckList;
 
