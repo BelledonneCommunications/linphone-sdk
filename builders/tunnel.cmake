@@ -25,6 +25,7 @@ lcb_git_tag_latest("master")
 lcb_git_tag("5d8582208f37174ded18280c7c1f8feefb1c4c55")
 lcb_external_source_paths("tunnel")
 lcb_groupable(YES)
+lcb_sanitizable(YES)
 
 lcb_dependencies("bctoolbox")
 lcb_cmake_options("-DENABLE_SERVERS=NO")

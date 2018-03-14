@@ -25,6 +25,7 @@ lcb_git_tag_latest("master")
 lcb_git_tag("cc4e47496600e9b1d3d412ce6e887275c204334b")
 lcb_external_source_paths("<LINPHONE_BUILDER_TOP_DIR>")
 lcb_groupable(YES)
+lcb_sanitizable(YES)
 
 lcb_spec_file("flexisip.spec")
 lcb_dependencies("sofiasip")
