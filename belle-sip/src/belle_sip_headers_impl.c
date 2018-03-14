@@ -1756,8 +1756,8 @@ static const char *months[]={"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Se
 
 BELLESIP_EXPORT time_t belle_sip_header_date_get_time(belle_sip_header_date_t *obj){
 	struct tm ret ={0};
-	char tmp1[16] ={0};
-	char tmp2[16] ={0};
+	char tmp1[4] ={0};
+	char tmp2[17] ={0};
 	int i,j;
 	time_t seconds;
 #if defined(BELLE_SIP_WINDOWS_UNIVERSAL) || defined(BELLE_SIP_MSC_VER_GREATER_19)
