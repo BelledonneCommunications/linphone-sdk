@@ -141,7 +141,9 @@ static int ice_compare_pairs(const IceCandidatePair *p1, const IceCandidatePair 
 static int ice_compare_candidates(const IceCandidate *c1, const IceCandidate *c2);
 static int ice_find_host_candidate(const IceCandidate *candidate, const ComponentID_Family *cf);
 static int ice_find_candidate_from_type_and_componentID(const IceCandidate *candidate, const Type_ComponentID *tc);
+#if 0
 static int ice_find_use_candidate_valid_pair_from_componentID(const IceValidCandidatePair* valid_pair, const uint16_t* componentID);
+#endif
 static int ice_find_nominated_valid_pair_from_componentID(const IceValidCandidatePair* valid_pair, const uint16_t* componentID);
 static int ice_find_selected_valid_pair_from_componentID(const IceValidCandidatePair* valid_pair, const uint16_t* componentID);
 static void ice_find_selected_valid_pair_for_componentID(const uint16_t *componentID, CheckList_Bool *cb);
@@ -155,8 +157,9 @@ static void ice_check_list_remove_stun_server_request(IceCheckList *cl, UInt96 *
 static IceStunServerRequest * ice_check_list_get_stun_server_request(IceCheckList *cl, UInt96 *tr_id);
 static void ice_transport_address_to_printable_ip_address(const IceTransportAddress *taddr, char *printable_ip, size_t printable_ip_size);
 static void ice_stun_server_request_add_transaction(IceStunServerRequest *request, IceStunServerRequestTransaction *transaction);
+#if 0
 static int ice_session_connectivity_checks_duration(IceSession *session);
-
+#endif
 
 /******************************************************************************
  * CONSTANTS DEFINITIONS                                                      *
@@ -1095,6 +1098,7 @@ int ice_session_gathering_duration(IceSession *session)
 		+ ((session->gathering_end_ts.tv_nsec - session->gathering_start_ts.tv_nsec) / 1000000.0));
 }
 
+#if 0
 int ice_session_connectivity_checks_duration(IceSession *session) {
 	MSTimeSpec current_ts;
 	if (session->connectivity_checks_start_ts.tv_sec == -1) return -1;
@@ -1102,6 +1106,7 @@ int ice_session_connectivity_checks_duration(IceSession *session) {
 	return (int)(((current_ts.tv_sec - session->connectivity_checks_start_ts.tv_sec) * 1000.0)
 		+ ((current_ts.tv_nsec - session->connectivity_checks_start_ts.tv_nsec) / 1000000.0));
 }
+#endif
 
 void ice_session_enable_forced_relay(IceSession *session, bool_t enable) {
 	session->forced_relay = enable;
