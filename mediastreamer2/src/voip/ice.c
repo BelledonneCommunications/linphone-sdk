@@ -1095,7 +1095,7 @@ int ice_session_gathering_duration(IceSession *session)
 		+ ((session->gathering_end_ts.tv_nsec - session->gathering_start_ts.tv_nsec) / 1000000.0));
 }
 
-static int ice_session_connectivity_checks_duration(IceSession *session) {
+int ice_session_connectivity_checks_duration(IceSession *session) {
 	MSTimeSpec current_ts;
 	if (session->connectivity_checks_start_ts.tv_sec == -1) return -1;
 	ms_get_cur_time(&current_ts);
@@ -3582,10 +3582,12 @@ static void ice_conclude_waiting_frozen_and_inprogress_pairs(const IceValidCandi
 	}
 }
 
+#if 0
 static int ice_find_use_candidate_valid_pair_from_componentID(const IceValidCandidatePair *valid_pair, const uint16_t *componentID)
 {
 	return !((valid_pair->generated_from->use_candidate == TRUE) && (valid_pair->generated_from->local->componentID == *componentID));
 }
+#endif
 
 static int ice_find_nominated_valid_pair_from_componentID(const IceValidCandidatePair *valid_pair, const uint16_t *componentID)
 {
