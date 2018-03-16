@@ -185,6 +185,7 @@ typedef struct _IceCandidate {
  * Structure representing an ICE candidate pair.
  */
 typedef struct _IceCandidatePair {
+	IceRole role;	/**< Role of the agent when the connectivity check has been sent for the candidate pair */
 	IceCandidate *local;	/**< Pointer to the local candidate of the pair */
 	IceCandidate *remote;	/**< Pointer to the remote candidate of the pair */
 	IceCandidatePairState state;	/**< State of the candidate pair */
@@ -192,10 +193,10 @@ typedef struct _IceCandidatePair {
 	MSTimeSpec transmission_time;	/**< Time when the connectivity check for the candidate pair has been sent */
 	int32_t rto;	/**< Duration of the retransmit timer for the connectivity check sent for the candidate pair in ms */
 	uint8_t retransmissions;	/**< Number of retransmissions for the connectivity check sent for the candidate pair */
-	IceRole role;	/**< Role of the agent when the connectivity check has been sent for the candidate pair */
 	bool_t is_default;	/**< Boolean value telling whether this candidate pair is a default candidate pair or not */
 	bool_t use_candidate;	/**< Boolean value telling if the USE-CANDIDATE attribute must be set for the connectivity checks send for the candidate pair */
 	bool_t is_nominated;	/**< Boolean value telling whether this candidate pair is nominated or not */
+	bool_t nomination_pending; /** Boolean value telling whether this candidate pair was nominated by the remote (in controlled mode), but we could not yet complete the check*/
 	bool_t has_canceled_transaction;	/**< Boolean value telling that the pair has a cancelled transaction, see RFC5245 7.2.1.4.  Triggered Checks */
 	bool_t retry_with_dummy_message_integrity; /** use to tell to retry with dummy message integrity. Useful to keep backward compatibility with older version*/
 	bool_t use_dummy_hmac; /*don't compute real hmac. used for backward compatibility*/

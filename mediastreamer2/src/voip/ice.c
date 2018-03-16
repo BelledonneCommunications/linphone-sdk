@@ -2060,8 +2060,11 @@ static void ice_update_nominated_flag_on_binding_request(const IceCheckList *cl,
 			case ICP_Waiting:
 			case ICP_Frozen:
 			case ICP_InProgress:
+				pair->nomination_pending = TRUE; /*We cannot accept the nomination immediately. We will wait for our pair to complete its bind requests, and then 
+					the pair will be officially nominated*/
+				break;
 			case ICP_Failed:
-				/* Nothing to be done. */
+				ms_error("ice: receiving a binding request with nominated flag on failed pair. This should not happen.");
 				break;
 		}
 	}
@@ -2267,7 +2270,7 @@ static void ice_update_pair_states_on_binding_response(IceCheckList *cl, IceCand
 }
 
 /* Update the nominated flag of a candidate pair according to 7.1.3.2.4. */
-static void ice_update_nominated_flag_on_binding_response(const IceCheckList *cl, IceCandidatePair *valid_pair, const IceCandidatePair *succeeded_pair, IceCandidatePairState succeeded_pair_previous_state)
+static void ice_update_nominated_flag_on_binding_response(const IceCheckList *cl, IceCandidatePair *valid_pair, IceCandidatePair *succeeded_pair)
 {
 	switch (cl->session->role) {
 		case IR_Controlling:
@@ -2277,8 +2280,9 @@ static void ice_update_nominated_flag_on_binding_response(const IceCheckList *cl
 			}
 			break;
 		case IR_Controlled:
-			if (succeeded_pair_previous_state == ICP_InProgress) {
+			if (succeeded_pair->nomination_pending) {
 				valid_pair->is_nominated = TRUE;
+				succeeded_pair->nomination_pending = FALSE;
 			}
 			break;
 	}
@@ -2506,7 +2510,6 @@ static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *r
 	IceCandidatePair *succeeded_pair;
 	IceCandidatePair *valid_pair;
 	IceCandidate *candidate;
-	IceCandidatePairState succeeded_pair_previous_state;
 	bctbx_list_t *elem;
 	IceTransaction *tr;
 	UInt96 tr_id = ms_stun_message_get_tr_id(msg);
@@ -2537,11 +2540,10 @@ static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *r
 	if (ice_check_received_binding_response_addresses(rtp_session, evt_data, succeeded_pair, remote_addr) < 0) return;
 	if (ice_check_received_binding_response_attributes(msg, remote_addr,cl->session->check_message_integrity) < 0) return;
 
-	succeeded_pair_previous_state = succeeded_pair->state;
 	candidate = ice_discover_peer_reflexive_candidate(cl, succeeded_pair, msg);
 	valid_pair = ice_construct_valid_pair(cl, rtp_session, evt_data, candidate, succeeded_pair);
 	ice_update_pair_states_on_binding_response(cl, succeeded_pair);
-	ice_update_nominated_flag_on_binding_response(cl, valid_pair, succeeded_pair, succeeded_pair_previous_state);
+	ice_update_nominated_flag_on_binding_response(cl, valid_pair, succeeded_pair);
 	ice_conclude_processing(cl, rtp_session, FALSE);
 }
 
@@ -2706,7 +2708,8 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, const Ort
 	ms_stun_address_to_printable_ip_address(&source_stun_addr, source_addr_str, sizeof(source_addr_str));
 
 	if (ms_stun_message_is_request(msg)) {
-		ms_message("ice: Recv binding request: %s <-- %s [%s]", recv_addr_str, source_addr_str, tr_id_str);
+		ms_message("ice: Recv binding request: %s <-- %s [%s] (flags:%s)", recv_addr_str, source_addr_str, tr_id_str,
+			ms_stun_message_use_candidate_enabled(msg) ? "use-candidate" : "none");
 		ice_handle_received_binding_request(cl, rtp_session, evt_data, msg, &source_stun_addr);
 	} else if (ms_stun_message_is_success_response(msg)) {
 		ice_set_transaction_response_time(cl, &tr_id, evt_data->ts);
@@ -3716,11 +3719,6 @@ static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session, b
 	if (cl->state == ICL_Running) {
 		if (cl->session->role == IR_Controlling) {
 			ice_check_list_perform_nominations(cl, nomination_delay_expired);
-			/* Perform regular nomination for valid pairs. */
-			/*cr.cl = cl;
-			cr.rtp_session = rtp_session;
-			bctbx_list_for_each2(cl->valid_list, (void (*)(void*,void*))ice_perform_regular_nomination, &cr);
-			*/
 		}
 
 		bctbx_list_for_each2(cl->valid_list, (void (*)(void*,void*))ice_conclude_waiting_frozen_and_inprogress_pairs, cl);
@@ -3745,7 +3743,9 @@ static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session, b
 				if (cl->session->role == IR_Controlling) ice_check_list_stop_retransmissions(cl);
 				result = ice_check_list_selected_valid_remote_candidate(cl, &rtp_remote_candidate, &rtcp_remote_candidate);
 				if (result == TRUE) {
+					/*Switch the destination of the mediastream to the destination selected by ICE*/
 					rtp_session_set_remote_addr_full(rtp_session, rtp_remote_candidate->taddr.ip, rtp_remote_candidate->taddr.port, rtcp_remote_candidate->taddr.ip, rtcp_remote_candidate->taddr.port);
+
 					if (cl->session->turn_enabled) {
 						ice_check_list_selected_valid_local_candidate(cl, &rtp_local_candidate, &rtcp_local_candidate);
 						if (rtp_local_candidate) {
