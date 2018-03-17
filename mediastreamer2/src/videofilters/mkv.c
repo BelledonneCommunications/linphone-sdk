@@ -663,8 +663,10 @@ static void mu_law_module_get_private_data(const void *o, uint8_t **data, size_t
 }
 
 static void mu_law_module_load_private(void *o, const uint8_t *data, size_t size) {
-	WavPrivate *obj = (WavPrivate *)o;
-	wav_private_load(obj, data);
+	if (size > 0) {
+		WavPrivate *obj = (WavPrivate *)o;
+		wav_private_load(obj, data);
+	}
 }
 
 /* µLaw module description */

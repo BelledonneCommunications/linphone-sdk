@@ -406,6 +406,9 @@ static void basic_video_stream_base(int payload_type) {
 	video_stream_get_local_rtp_stats(margaux->vs, &margaux->stats.rtp);
 
 	uninit_video_streams(marielle, margaux);
+
+	video_stream_tester_destroy(margaux);
+	video_stream_tester_destroy(marielle);
 }
 
 static void basic_video_stream_vp8(void) {

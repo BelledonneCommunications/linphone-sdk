@@ -426,6 +426,8 @@ static void loss_rate_estimation_bv16(void){
 		LossRateEstimatorCtx ctx;
 		stream_manager_t * marielle, * margaux;
 		int loss_rate = 15;
+		char *plc_filename;
+		char *no_plc_filename;
 		for (plc_disabled = 0; plc_disabled <=1; plc_disabled++){
 			start_adaptive_stream(MSAudio, &marielle, &margaux, BV16_PAYLOAD_TYPE, 8000, 0, (float)loss_rate, 0, 0.0f, (bool_t)plc_disabled);
 
@@ -442,8 +444,12 @@ static void loss_rate_estimation_bv16(void){
 			ortp_ev_queue_destroy(ctx.q);
 		}
 		/*file without plc must be approx 15% smaller in size than with plc */
-		size_with_plc= fsize(bc_tester_file(RECORDED_16K_1S_FILE));
-		size_no_plc = fsize(bc_tester_file(RECORDED_16K_1S_NO_PLC_FILE));
+		plc_filename = bc_tester_file(RECORDED_16K_1S_FILE);
+		size_with_plc= fsize(plc_filename);
+		bctbx_free(plc_filename);
+		no_plc_filename = bc_tester_file(RECORDED_16K_1S_NO_PLC_FILE);
+		size_no_plc = fsize(no_plc_filename);
+		bctbx_free(no_plc_filename);
 		result = (size_with_plc*loss_rate/100 + size_no_plc) ;
 
 		BC_ASSERT_GREATER(result, size_with_plc, int, "%d");
