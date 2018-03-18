@@ -51,7 +51,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define ICE_GATHERING_CANDIDATES_TIMEOUT	5000	/* In milliseconds */
 #define ICE_NOMINATION_DELAY		1000	/* In milliseconds */
 #define ICE_MAX_RETRANSMISSIONS		7
-#define ICE_MAX_RETRANSMISSIONS_FOR_NOMINATIONS	3
+#define ICE_MAX_RETRANSMISSIONS_FOR_NOMINATIONS	5
 #define ICE_MAX_STUN_REQUEST_RETRANSMISSIONS	7
 
 
@@ -2336,6 +2336,7 @@ static void ice_update_nominated_flag_on_binding_response(const IceCheckList *cl
 	switch (cl->session->role) {
 		case IR_Controlling:
 			if (succeeded_pair->use_candidate == TRUE) {
+				valid_pair->nomination_failing = FALSE;
 				valid_pair->is_nominated = TRUE;
 				//ice_dump_valid_list(cl);
 			}
@@ -3599,9 +3600,7 @@ static void ice_check_list_perform_nominations(IceCheckList *cl, bool_t nominati
 			valid_pair = (IceValidCandidatePair*) valid_it->data;
 			if (valid_pair->generated_from->nomination_failing){
 				ms_message("ice_check_list_perform_nominations(): a nominated pair is not responding");
-				continue;
-			}
-			break;
+			} else break;
 		}
 		if (valid_it){
 			valid_pair = (IceValidCandidatePair*) valid_it->data;
