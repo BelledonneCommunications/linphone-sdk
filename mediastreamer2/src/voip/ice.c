@@ -51,6 +51,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define ICE_GATHERING_CANDIDATES_TIMEOUT	5000	/* In milliseconds */
 #define ICE_NOMINATION_DELAY		1000	/* In milliseconds */
 #define ICE_MAX_RETRANSMISSIONS		7
+#define ICE_MAX_RETRANSMISSIONS_FOR_NOMINATIONS	3
 #define ICE_MAX_STUN_REQUEST_RETRANSMISSIONS	7
 
 
@@ -157,6 +158,7 @@ static void ice_check_list_remove_stun_server_request(IceCheckList *cl, UInt96 *
 static IceStunServerRequest * ice_check_list_get_stun_server_request(IceCheckList *cl, UInt96 *tr_id);
 static void ice_transport_address_to_printable_ip_address(const IceTransportAddress *taddr, char *printable_ip, size_t printable_ip_size);
 static void ice_stun_server_request_add_transaction(IceStunServerRequest *request, IceStunServerRequestTransaction *transaction);
+static void ice_check_list_perform_nominations(IceCheckList *cl, bool_t nomination_delay_expired);
 #if 0
 static int ice_session_connectivity_checks_duration(IceSession *session);
 #endif
@@ -1465,6 +1467,15 @@ static void ice_send_binding_request(IceCheckList *cl, IceCandidatePair *pair, c
 		}
 		/* This is a retransmission: update the number of retransmissions, the retransmission timer value, and the transmission time. */
 		pair->retransmissions++;
+		if (cl->session->role == IR_Controlling && pair->use_candidate && !pair->nomination_failing && pair->retransmissions > ICE_MAX_RETRANSMISSIONS_FOR_NOMINATIONS){
+			/*The nomination process is abnormally long: possibly the nat association has been accidentally closed by the media stream.
+			 * Nominate an alternate pair if possible*/
+			pair->nomination_failing = TRUE;
+			cl->nomination_in_progress = FALSE;
+			ice_check_list_perform_nominations(cl, FALSE);
+			/*Despite we've started a new nomination, we continue the retransmissions for that pair, in case a response is finally received.*/
+		}
+		
 		if (pair->retransmissions > ICE_MAX_RETRANSMISSIONS) {
 			/* Too much retransmissions, stop sending connectivity checks for this pair. */
 			ice_pair_set_state(pair, ICP_Failed);
@@ -1767,12 +1778,30 @@ static void ice_send_keepalive_packet_for_componentID(const uint16_t *componentI
 	}
 }
 
-static void ice_send_keepalive_packets(IceCheckList *cl, const RtpSession *rtp_session)
+static void ice_check_keep_alive_on_valid_pair(IceValidCandidatePair *valid, RtpSession *rtp_session, const MSTimeSpec *curtime){
+	if (ice_compare_time(*curtime, valid->last_keepalive) >= 3000){
+		ice_send_indication(valid->valid, rtp_session);
+		valid->last_keepalive = *curtime;
+	}
+}
+
+static void ice_send_keepalive_packets(IceCheckList *cl, RtpSession *rtp_session)
 {
 	CheckList_RtpSession cr;
-	cr.cl = cl;
-	cr.rtp_session = rtp_session;
-	bctbx_list_for_each2(cl->local_componentIDs, (void (*)(void*,void*))ice_send_keepalive_packet_for_componentID, &cr);
+	if (cl->state == ICL_Completed){
+		cr.cl = cl;
+		cr.rtp_session = rtp_session;
+		bctbx_list_for_each2(cl->local_componentIDs, (void (*)(void*,void*))ice_send_keepalive_packet_for_componentID, &cr);
+	}else if (cl->state == ICL_Running){
+		bctbx_list_t *elem;
+		MSTimeSpec curtime;
+		ms_get_cur_time(&curtime);
+		/*refresh pairs on the valid list, to keep them alive until conclusion*/
+		for (elem = cl->valid_list ; elem != NULL ; elem = elem->next){
+			IceValidCandidatePair *valid = (IceValidCandidatePair*)elem->data;
+			ice_check_keep_alive_on_valid_pair(valid, rtp_session, &curtime);
+		}
+	}
 }
 
 static int ice_find_candidate_from_transport_address(const IceCandidate *candidate, const IceTransportAddress *taddr)
@@ -2049,17 +2078,47 @@ static IceCandidatePair * ice_trigger_connectivity_check_on_binding_request(IceC
 	return pair;
 }
 
+static IceCandidatePair *ice_lookup_possible_valid_pair(const IceCheckList *cl, IceCandidatePair *pair){
+	const bctbx_list_t *elem;
+	
+	for (elem = cl->valid_list; elem != NULL; elem = elem->next){
+		IceValidCandidatePair *valid = (IceValidCandidatePair*) elem->data;
+		if (pair == valid->valid){
+			return pair;
+		}
+		if (pair->remote->type == ICT_RelayedCandidate){
+			/* If the remote candidate of the pair is a relay, we'll find its corresponding peer-reflexive candidate pair in the valid list,
+			 * but not the pair directly.*/
+			if (valid->generated_from == pair){
+				ms_message("ice: found the peer-reflexive peer corresponding to the candidate pair on which the binding request was received.");
+				return valid->valid; /*return the peer reflexive candidate pair*/
+			}
+		}
+	}
+	return NULL;
+}
+
 /* Update the nominated flag of a candidate pair according to 7.2.1.5. */
 static void ice_update_nominated_flag_on_binding_request(const IceCheckList *cl, const MSStunMessage *msg, IceCandidatePair *pair)
 {
 	if (ms_stun_message_use_candidate_enabled(msg) && (cl->session->role == IR_Controlled)) {
+		IceCandidatePair *valid = ice_lookup_possible_valid_pair(cl, pair);
+		
 		switch (pair->state) {
 			case ICP_Succeeded:
-				pair->is_nominated = TRUE;
+				if (valid){
+					valid->is_nominated = TRUE;
+					ms_message("ice: receiving a binding request with nominated flag on succeeded pair");
+				}else{
+					ms_warning("ice: receiving a binding request with nominated flag on succeeded pair that is not in the valid list.");
+					pair->is_nominated = TRUE;
+				}
 				break;
 			case ICP_Waiting:
 			case ICP_Frozen:
 			case ICP_InProgress:
+				/*Normally valid should be null if go here*/
+				ms_message("ice: receiving a binding request with nominated flag on non-succeeded pair");
 				pair->nomination_pending = TRUE; /*We cannot accept the nomination immediately. We will wait for our pair to complete its bind requests, and then 
 					the pair will be officially nominated*/
 				break;
@@ -2068,6 +2127,7 @@ static void ice_update_nominated_flag_on_binding_request(const IceCheckList *cl,
 				break;
 		}
 	}
+	//ice_dump_valid_list(cl);
 }
 
 static void ice_handle_received_binding_request(IceCheckList *cl, RtpSession *rtp_session, const OrtpEventData *evt_data, const MSStunMessage *msg, const MSStunAddress *remote_addr) {
@@ -2212,6 +2272,7 @@ static IceCandidatePair * ice_construct_valid_pair(IceCheckList *cl, RtpSession 
 	valid_pair = ms_new0(IceValidCandidatePair, 1);
 	valid_pair->valid = pair;
 	valid_pair->generated_from = succeeded_pair;
+	ms_get_cur_time(&valid_pair->last_keepalive); /*initialize the origin of keepalives*/
 	valid_pair->selected = FALSE;
 	memset(local_addr_str, 0, sizeof(local_addr_str));
 	memset(remote_addr_str, 0, sizeof(remote_addr_str));
@@ -3512,7 +3573,6 @@ static void ice_check_list_nominate(IceCheckList *cl, const bctbx_list_t *best_v
 
 static void ice_check_list_perform_nominations(IceCheckList *cl, bool_t nomination_delay_expired){
 	const bctbx_list_t *comp_it;
-	bctbx_list_t *valid_it = NULL;
 	bctbx_list_t *best_valid_list = NULL;
 	bool_t concludable = TRUE;
 	bool_t need_more_time = FALSE;
@@ -3522,21 +3582,38 @@ static void ice_check_list_perform_nominations(IceCheckList *cl, bool_t nominati
 	
 	for (comp_it = cl->local_componentIDs; comp_it != NULL; comp_it = comp_it->next){
 		IceValidCandidatePair *valid_pair;
+		bctbx_list_t *valid_it = NULL;
+		bctbx_list_t *valid_list = NULL;
 		
 		uint16_t componentID = *(const uint16_t *)comp_it->data;
-		valid_it = ice_get_valid_pairs_for_componentID(cl, componentID);
-		if (valid_it == NULL){
+		valid_list = ice_get_valid_pairs_for_componentID(cl, componentID);
+		if (valid_list == NULL){
 			ms_message("ice_check_list_perform_nominations(cl=%p): no valid pairs yet for componentID %i", cl, (int)componentID);
 			concludable = FALSE;
 			break;
 		}
-		valid_pair = (IceValidCandidatePair*) valid_it->data;
-		if (valid_pair->generated_from->remote->type == ICT_RelayedCandidate){
-			need_more_time = TRUE;
+		/* Normally the first element in the list is the best one to nominate.
+		 * However if nomination is failing, we'll nominate the next one and so one.
+		 */
+		for (valid_it = valid_list; valid_it != NULL ; valid_it = valid_it->next){
+			valid_pair = (IceValidCandidatePair*) valid_it->data;
+			if (valid_pair->generated_from->nomination_failing){
+				ms_message("ice_check_list_perform_nominations(): a nominated pair is not responding");
+				continue;
+			}
+			break;
 		}
-		best_valid_list = bctbx_list_append(best_valid_list, valid_pair);
-		bctbx_list_free(valid_it);
-		if (valid_pair->generated_from->use_candidate == FALSE) nominations_to_do++;
+		if (valid_it){
+			valid_pair = (IceValidCandidatePair*) valid_it->data;
+			if (valid_pair->generated_from->remote->type == ICT_RelayedCandidate){
+				need_more_time = TRUE;
+			}
+			best_valid_list = bctbx_list_append(best_valid_list, valid_pair);
+			if (valid_pair->generated_from->use_candidate == FALSE) nominations_to_do++;
+		}else{
+			ms_warning("ice_check_list_perform_nominations(cl=%p): no more pair to nominate for componentID %i", cl, (int)componentID);
+		}
+		bctbx_list_free(valid_list);
 	}
 	if (concludable && nominations_to_do > 0){
 		ms_message("ice_check_list_perform_nominations(): check list is concludable.");
@@ -4023,7 +4100,7 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 
 	switch (cl->state) {
 		case ICL_Completed:
-			/* Handle keepalive. */
+			/* Handle keepalives when check list has completed - long periods */
 			if (ice_compare_time(curtime, cl->keepalive_time) >= (cl->session->keepalive_timeout * 1000)) {
 				ice_send_keepalive_packets(cl, rtp_session);
 				cl->keepalive_time = curtime;
@@ -4036,6 +4113,8 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 			if (ice_check_list_send_triggered_check(cl, rtp_session) != NULL) return;
 			break;
 		case ICL_Running:
+			/* Handle keepalives when check list is running, sent only on succeeded pair, to keep them alive until we conclude. */
+			ice_send_keepalive_packets(cl, rtp_session);
 #if 0
 			/* Workaround to stop ICE if it has not finished after 5 seconds. */
 			/* TODO: To remove */

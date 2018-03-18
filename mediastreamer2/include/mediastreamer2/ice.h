@@ -198,6 +198,7 @@ typedef struct _IceCandidatePair {
 	bool_t is_nominated;	/**< Boolean value telling whether this candidate pair is nominated or not */
 	bool_t nomination_pending; /** Boolean value telling whether this candidate pair was nominated by the remote (in controlled mode), but we could not yet complete the check*/
 	bool_t has_canceled_transaction;	/**< Boolean value telling that the pair has a cancelled transaction, see RFC5245 7.2.1.4.  Triggered Checks */
+	bool_t nomination_failing; /**<Boolean that indicates that this pair was nominated but it is apparently failing because no response is received.*/
 	bool_t retry_with_dummy_message_integrity; /** use to tell to retry with dummy message integrity. Useful to keep backward compatibility with older version*/
 	bool_t use_dummy_hmac; /*don't compute real hmac. used for backward compatibility*/
 } IceCandidatePair;
@@ -215,6 +216,7 @@ typedef struct _IcePairFoundation {
 typedef struct _IceValidCandidatePair {
 	IceCandidatePair *valid;	/**< Pointer to a valid candidate pair (it may be in the check list or not */
 	IceCandidatePair *generated_from;	/**< Pointer to the candidate pair that generated the connectivity check producing the valid candidate pair */
+	MSTimeSpec last_keepalive; /**< Time at which last keepalive was sent*/
 	bool_t selected;	/**< Boolean value telling whether this valid candidate pair has been selected or not */
 } IceValidCandidatePair;
 
