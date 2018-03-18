@@ -2086,13 +2086,9 @@ static IceCandidatePair *ice_lookup_possible_valid_pair(const IceCheckList *cl, 
 		if (pair == valid->valid){
 			return pair;
 		}
-		if (pair->remote->type == ICT_RelayedCandidate){
-			/* If the remote candidate of the pair is a relay, we'll find its corresponding peer-reflexive candidate pair in the valid list,
-			 * but not the pair directly.*/
-			if (valid->generated_from == pair){
-				ms_message("ice: found the peer-reflexive peer corresponding to the candidate pair on which the binding request was received.");
-				return valid->valid; /*return the peer reflexive candidate pair*/
-			}
+		if (valid->generated_from == pair){
+			ms_message("ice: found the reflexive candidate corresponding to the candidate pair on which the binding request was received.");
+			return valid->valid; /*return the peer reflexive candidate pair*/
 		}
 	}
 	return NULL;
@@ -2108,9 +2104,9 @@ static void ice_update_nominated_flag_on_binding_request(const IceCheckList *cl,
 			case ICP_Succeeded:
 				if (valid){
 					valid->is_nominated = TRUE;
-					ms_message("ice: receiving a binding request with nominated flag on succeeded pair");
+					ms_message("ice: receiving a binding request with use-candidate flag on succeeded pair");
 				}else{
-					ms_warning("ice: receiving a binding request with nominated flag on succeeded pair that is not in the valid list.");
+					ms_warning("ice: receiving a binding request with use-candidate flag on succeeded pair that is not in the valid list.");
 					pair->is_nominated = TRUE;
 				}
 				break;
