@@ -26,6 +26,7 @@ lcb_git_tag("0a0a9c60f5a1b899ae26b705fa5224ef25377982")
 lcb_external_source_paths("bcunit")
 lcb_ignore_warnings(YES)
 lcb_package_source(YES)
+lcb_spec_file("bcunit.spec")
 
 lcb_cmake_options(
 	"-DENABLE_AUTOMATED=YES"

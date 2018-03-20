@@ -1,6 +1,6 @@
 ############################################################################
 # sofiasip.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# Copyright (C) 2014-2018  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -29,6 +29,12 @@ lcb_build_method("autotools")
 lcb_use_autogen(YES)
 lcb_build_in_source_tree(YES)
 lcb_linking_type("--disable-static" "--enable-shared")
+
+if (ENABLE_MDNS)
+	lcb_configure_options("--enable-mdns")
+endif()
+
+
 lcb_cross_compilation_options(
 	"--prefix=${CMAKE_INSTALL_PREFIX}"
 	"--host=${LINPHONE_BUILDER_HOST}"
@@ -36,4 +42,8 @@ lcb_cross_compilation_options(
 
 lcb_spec_file("packages/sofia-sip-*.spec")
 lcb_rpmbuild_name("sofia-sip")
+lcb_rpmbuild_options(
+	"--with bc"
+	"--without glib"
+)
 lcb_use_autotools_for_rpm(YES)

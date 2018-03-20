@@ -1,7 +1,7 @@
+# -*- rpm-spec -*-
 
+%define _prefix    @CMAKE_INSTALL_PREFIX@
 
-%define                 pkg_name   %{?_with_bc:bc-hiredis}%{!?_with_bc:hiredis}
-%{?_with_bc: %define    _prefix         /opt/belledonne-communications}
 # re-define some directories for older RPMBuild versions which don't. This messes up the doc/ dir
 # taken from https://fedoraproject.org/wiki/Packaging:RPMMacros?rd=Packaging/RPMMacros
 %define _datarootdir       %{_prefix}/share
@@ -13,7 +13,7 @@
 %define build_number_ext -%{build_number}
 %endif
 
-Name:           %{pkg_name}
+Name:           @CPACK_PACKAGE_NAME@
 Version:        @PROJECT_VERSION@
 Release:        %{build_number}%{?dist}
 Summary:        Minimalistic C client library for Redis
@@ -40,11 +40,15 @@ developing applications that use %{name}.
 %define ctest_name ctest
 %endif
 
+# This is for debian builds where debug_package has to be manually specified, whereas in centos it does not
+%define custom_debug_package %{!?_enable_debug_packages:%debug_package}%{?_enable_debug_package:%{nil}}
+%custom_debug_package
+
 %prep
 %setup -q -n %{name}-%{version}%{?build_number_ext}
 
 %build
-%{expand:%%%cmake_name} . -DCMAKE_INSTALL_LIBDIR:PATH=%{_libdir} -DCMAKE_PREFIX_PATH:PATH=%{_prefix}
+%{expand:%%%cmake_name} . -DCMAKE_INSTALL_LIBDIR:PATH=%{_libdir} -DCMAKE_PREFIX_PATH:PATH=%{_prefix} @RPM_ALL_CMAKE_OPTIONS@
 make %{?_smp_mflags}
 
 %install
@@ -59,13 +63,17 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %doc COPYING
-%{_libdir}/libhiredis.so.0.13
+%{_libdir}/libhiredis.so.*
 
 %files devel
 %doc README.md
 %{_includedir}/hiredis/
+%if @ENABLE_STATIC@
 %{_libdir}/libhiredis.a
+%endif
+%if @ENABLE_SHARED@
 %{_libdir}/libhiredis.so
+%endif
 
 %changelog
 * Wed Sep 16 2015 Sylvain Berfini <sylvain.berfini@belledonne-communications.com> - 0.13.3-1

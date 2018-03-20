@@ -1,6 +1,6 @@
 ############################################################################
 # bellesip.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# Copyright (C) 2014-2018  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -25,6 +25,7 @@ lcb_git_tag_latest("master")
 lcb_git_tag("1.5.3")
 lcb_external_source_paths("belle-sip")
 lcb_groupable(YES)
+lcb_sanitizable(YES)
 lcb_package_source(YES)
 lcb_spec_file("belle-sip.spec")
 lcb_rpmbuild_name("belle-sip")
@@ -34,10 +35,8 @@ if(ENABLE_TUNNEL)
 	lcb_dependencies("tunnel")
 endif()
 
-if(LINPHONE_BUILDER_BUILD_DEPENDENCIES)
-	if(NOT APPLE AND NOT ANDROID AND NOT QNX)
-		lcb_dependencies("zlib")
-	endif()
+if(NOT APPLE AND NOT ANDROID AND NOT QNX)
+	lcb_dependencies("zlib")
 endif()
 
 lcb_cmake_options(

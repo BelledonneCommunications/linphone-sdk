@@ -25,10 +25,8 @@ lcb_git_tag_latest("master")
 lcb_git_tag("cc4e47496600e9b1d3d412ce6e887275c204334b")
 lcb_external_source_paths("<LINPHONE_BUILDER_TOP_DIR>")
 lcb_groupable(YES)
+lcb_sanitizable(YES)
 
-if(ENABLE_PRESENCE)
-       lcb_rpmbuild_name("flexisip-presence")
-endif()
 lcb_spec_file("flexisip.spec")
 lcb_dependencies("sofiasip")
 if(ENABLE_CONFERENCE)
@@ -51,8 +49,7 @@ endif()
 
 lcb_cmake_options(
 	"-DENABLE_TRANSCODER=${ENABLE_TRANSCODER}"
-	"-DENABLE_ODB=${ENABLE_ODB}"
-	"-DENABLE_ODBC=${ENABLE_ODBC}"
+	"-DENABLE_ODBC=NO"
 	"-DENABLE_REDIS=${ENABLE_REDIS}"
 	"-DENABLE_SOCI=${ENABLE_SOCI}"
 	"-DENABLE_PUSHNOTIFICATION=${ENABLE_PUSHNOTIFICATION}"

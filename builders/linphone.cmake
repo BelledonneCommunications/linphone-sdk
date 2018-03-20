@@ -1,6 +1,6 @@
 ############################################################################
 # linphone.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# Copyright (C) 2014-2018  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -25,12 +25,13 @@ lcb_git_tag_latest("master")
 lcb_git_tag("3.10.0")
 lcb_external_source_paths("linphone")
 lcb_groupable(YES)
+lcb_sanitizable(YES)
 lcb_package_source(YES)
 lcb_spec_file("liblinphone.spec")
 lcb_rpmbuild_name("liblinphone")
 
 lcb_dependencies("bctoolbox" "bellesip" "ortp" "ms2" "ms2plugins" "belr" "libxsd" "soci")
-if(LINPHONE_BUILDER_BUILD_DEPENDENCIES AND NOT APPLE)
+if(NOT APPLE)
 	# Do not build sqlite3, xml2 and zlib on Apple systems (Mac OS X and iOS), they are provided by the system
 	lcb_dependencies("sqlite3" "xml2")
 	if(NOT ANDROID AND NOT QNX)
@@ -58,6 +59,7 @@ lcb_cmake_options(
 	"-DENABLE_UNIT_TESTS=${ENABLE_UNIT_TESTS}"
 	"-DENABLE_POLARSSL=${ENABLE_POLARSSL}"
 	"-DENABLE_MBEDTLS=${ENABLE_MBEDTLS}"
+	"-DENABLE_SOCI=ON"
 	"-DENABLE_TUNNEL=${ENABLE_TUNNEL}"
 	"-DENABLE_UPDATE_CHECK=${ENABLE_UPDATE_CHECK}"
 	"-DENABLE_VCARD=${ENABLE_VCARD}"

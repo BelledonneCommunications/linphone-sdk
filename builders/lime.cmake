@@ -25,6 +25,7 @@ lcb_git_tag_latest("master")
 lcb_git_tag("master")
 lcb_external_source_paths("lime")
 lcb_groupable(YES)
+lcb_sanitizable(YES)
 lcb_package_source(YES)
 lcb_dependencies("bctoolbox" "soci")
 

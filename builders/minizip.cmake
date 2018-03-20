@@ -1,6 +1,6 @@
 ############################################################################
-# myodbc.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# minizip.cmake
+# Copyright (C) 2018  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,14 +20,15 @@
 #
 ############################################################################
 
-set(EP_myodbc_GIT_REPOSITORY "git://git.linphone.org/myodbc.git" CACHE STRING "myodbc repository URL")
-set(EP_myodbc_GIT_TAG_LATEST "master" CACHE STRING "myodbc tag to use when compiling latest version")
-set(EP_myodbc_GIT_TAG "4bc36b6d5d6e2ca67d1bc5a3bab7728853f2a683" CACHE STRING "myodbc tag to use")
+lcb_git_repository("git://git.linphone.org/minizip.git")
+lcb_git_tag_latest("master")
+lcb_git_tag("d65cd2ea9d740f62884e0beaf8ab86740620c783")
+lcb_external_source_paths("externals/minizip")
+lcb_spec_file("minizip.spec")
 
-set(EP_myodbc_DEPENDENCIES EP_unixodbc)
-set(EP_myodbc_SPEC_FILE "scripts/myodbc3.spec")
-set(EP_myodbc_CONFIG_H_FILE "scripts/myodbc3.spec")
-set(EP_myodbc_CONFIGURE_EXTRA_CMD "cd scripts && make && cd -")
-set(EP_myodbc_RPMBUILD_NAME "mysql-connector")
+lcb_dependencies("zlib")
 
-set(EP_myodbc_CMAKE_OPTIONS "-DWITH_UNIXODBC=1")
+lcb_cmake_options(
+	"-DUSE_AES=NO"
+)
+

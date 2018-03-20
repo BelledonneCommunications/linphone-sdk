@@ -25,6 +25,7 @@ lcb_git_tag_latest("master")
 lcb_git_tag("master")
 lcb_external_source_paths("mscodec2")
 lcb_groupable(YES)
+lcb_sanitizable(YES)
 lcb_plugin(YES)
 
 lcb_dependencies("ms2" "codec2")
