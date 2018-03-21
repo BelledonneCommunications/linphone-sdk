@@ -2588,9 +2588,10 @@ static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *r
 	}
 	tr = (IceTransaction*)elem->data;
 	if (tr->canceled){
-		/* We received an binding response concerning a canceled binding request transaction, ignore it... */
+		/* We received an binding response concerning a canceled binding request transaction*/
 		ms_message("ice: Received a binding response for an cancelled transaction ID: %s", tr_id_str);
-		return;
+		/* It has to be processed anyway. According to 7.3.1.4 , cancellation just stop retransmission and do not 
+		 * consider the lack of response as a failure.*/
 	}
 	
 
@@ -2820,7 +2821,8 @@ static void ice_compute_candidate_priority(IceCandidate *candidate)
 	// TODO: Handle local preferences for multihomed hosts.
 	uint32_t type_preference = type_preference_values[candidate->type];
 	uint32_t local_preference = 65535;	/* Value recommended for non-multihomed hosts in 4.1.2.1 */
-	candidate->priority = (type_preference << 24) | (local_preference << 8) | (256 - candidate->componentID);
+	uint32_t af_preference = candidate->taddr.family == AF_INET6 ? 1<<7 : 0;
+	candidate->priority = (type_preference << 24) | (local_preference << 8) | af_preference | (128 - candidate->componentID);
 }
 
 static IceCandidate * ice_candidate_new(const char *type, int family, const char *ip, int port, uint16_t componentID)
@@ -3522,9 +3524,9 @@ static void ice_perform_regular_nomination(IceValidCandidatePair *valid_pair, Ch
 }
 #endif
 
-static int valid_pair_compare(IceValidCandidatePair* p1, IceValidCandidatePair *p2){
+static int valid_pair_compare(IceValidCandidatePair* new_pair, IceValidCandidatePair * pair_in_list){
 	//ms_message("ice: priorities %lu  <>   %lu", (unsigned long)p1->generated_from->priority, (unsigned long)p2->generated_from->priority);
-	return p2->generated_from->priority - p1->generated_from->priority;
+	return pair_in_list->generated_from->priority > new_pair->generated_from->priority;
 }
 
 static bctbx_list_t * ice_get_valid_pairs_for_componentID(IceCheckList *cl, uint16_t componentID){
