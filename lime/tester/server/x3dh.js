@@ -152,7 +152,7 @@ db.get("PRAGMA user_version;", function(err, row) {
 		 *  - SPk(the current signed pre-key - ECDH public key)
 		 *  - SPk_sig(current SPk public key signed with Identity key)
 		 *  - SPh_id (id for SPk provided and internally used by client) - 4 bytes unsigned integer */
-		 "CREATE TABLE Users(Uid INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, UserId TEXT NOT NULL, Ik BLOB NOT NULL, SPk BLOB, SPk_sig BLOB, SPk_id UNSIGNED INTEGER);")
+		 "CREATE TABLE Users(Uid INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, UserId TEXT NOT NULL, Ik BLOB NOT NULL, SPk BLOB DEFAULT NULL, SPk_sig BLOB, SPk_id UNSIGNED INTEGER);")
 		/* One Time PreKey table:
 		 *  - an id as primary key (internal use)
 		 *  - the Uid of user owning that key
@@ -495,7 +495,7 @@ https.createServer(digest, options, (req, res) => {
 
 					for (let i=0; i<peersCount; i++) {
 					// left join as we may not have any OPk but shall cope with it
-						db.get("SELECT u.Ik, u.SPk, u.SPk_id, u.SPk_sig, o.OPk, o.OPk_id, o.id FROM Users as u LEFT JOIN OPk as o ON u.Uid=o.Uid WHERE UserId = ? LIMIT 1;", peersBundle[i][0] , function (err, row) {
+						db.get("SELECT u.Ik, u.SPk, u.SPk_id, u.SPk_sig, o.OPk, o.OPk_id, o.id FROM Users as u LEFT JOIN OPk as o ON u.Uid=o.Uid WHERE UserId = ? AND u.SPk IS NOT NULL LIMIT 1;", peersBundle[i][0] , function (err, row) {
 								queries_ran++;
 								if (err) {
 									queries_err_message +=' ## get bundle for user '+peersBundle[i]+" error : "+err;
