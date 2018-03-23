@@ -176,13 +176,11 @@ mblk_t *ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize) {
 	return m;
 }
 
-
 #ifndef NOWEBCAM_JPG
 #define NOWEBCAM_JPG "nowebcamCIF"
 #endif
 
 static char *def_image = NULL;
-
 
 mblk_t *ms_load_nowebcam(MSFactory *factory, MSVideoSize *reqsize, int idx) {
 	mblk_t *m;
@@ -318,8 +316,8 @@ static int static_image_set_image(MSFilter *f, void *arg) {
 }
 
 MSFilterMethod static_image_methods[] = {
-	{	MS_FILTER_SET_FPS,	static_image_set_fps	},
-	{	MS_FILTER_GET_FPS,	static_image_get_fps	},
+	{	MS_FILTER_SET_FPS, static_image_set_fps },
+	{	MS_FILTER_GET_FPS, static_image_get_fps },
 	{	MS_FILTER_SET_VIDEO_SIZE, static_image_set_vsize },
 	{	MS_FILTER_GET_VIDEO_SIZE, static_image_get_vsize },
 	{	MS_FILTER_GET_PIX_FMT, static_image_get_pix_fmt },
@@ -357,11 +355,10 @@ static void static_image_cam_init(MSWebCam *cam) {
 	}
 }
 
-
-
 static MSFilter *static_image_create_reader(MSWebCam *obj){
 		return ms_factory_create_filter_from_desc(ms_web_cam_get_factory(obj), &ms_static_image_desc);
 }
+
 MSWebCamDesc static_image_desc={
 	"StaticImage",
 	&static_image_detect,

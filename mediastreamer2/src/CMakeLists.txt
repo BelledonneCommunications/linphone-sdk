@@ -410,6 +410,12 @@ if(ENABLE_VIDEO)
 			set_source_files_properties(videofilters/turbojpegwriter.c PROPERTIES COMPILE_DEFINITIONS "TURBOJPEG_USE_CONST_BUFFERS")
 		endif()
 	endif()
+	if(ZXING_FOUND)
+		list(APPEND VOIP_SOURCE_FILES_CXX
+			videofilters/zxing_qrcode.c
+			utils/qrcode_image.cpp
+		)
+	endif()
 	if(OPENGL_FOUND OR QTANGLE_FOUND)
 		list(APPEND VOIP_SOURCE_FILES_C
 			utils/opengl_functions.c
@@ -637,6 +643,9 @@ if (CAMAPI_FOUND)
 endif()
 if(TURBOJPEG_FOUND)
 	list(APPEND VOIP_LIBS ${TURBOJPEG_LIBRARIES})
+endif()
+if(ZXING_FOUND)
+	list(APPEND VOIP_LIBS ${ZXING_LIBRARIES})
 endif()
 if(BCG729_FOUND)
 	if(ENABLE_G729_CNG)

@@ -37,6 +37,7 @@ extern test_suite_t sound_card_test_suite;
 extern test_suite_t adaptive_test_suite;
 extern test_suite_t audio_stream_test_suite;
 extern test_suite_t video_stream_test_suite;
+extern test_suite_t qrcode_test_suite;
 extern test_suite_t framework_test_suite;
 extern test_suite_t player_test_suite;
 extern test_suite_t text_stream_test_suite;

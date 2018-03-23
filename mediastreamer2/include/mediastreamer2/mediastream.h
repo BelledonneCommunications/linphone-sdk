@@ -805,18 +805,19 @@ typedef struct _MediastreamVideoStat MediaStreamVideoStat;
 struct _VideoStream
 {
 	MediaStream ms;
-	MSFilter *void_source;
-	MSFilter *source;
-	MSFilter *pixconv;
-	MSFilter *sizeconv;
-	MSFilter *tee;
-	MSFilter *output;
-	MSFilter *tee2;
 	MSFilter *jpegwriter;
-	MSFilter *output2;
-	MSFilter *tee3;
-	MSFilter *recorder_output; /*can be an ItcSink to send video to the audiostream's multimedia recorder, or directly a MkvRecorder */
 	MSFilter *local_jpegwriter;
+	MSFilter *output;
+	MSFilter *output2;
+	MSFilter *pixconv;
+	MSFilter *qrcode;
+	MSFilter *recorder_output; /*can be an ItcSink to send video to the audiostream's multimedia recorder, or directly a MkvRecorder */
+	MSFilter *sizeconv;
+	MSFilter *source;
+	MSFilter *tee;
+	MSFilter *tee2;
+	MSFilter *tee3;
+	MSFilter *void_source;
 	MSVideoSize sent_vsize;
 	MSVideoSize preview_vsize;
 	float forced_fps; /*the target fps explicitely set by application, overrides internally selected fps*/
@@ -839,6 +840,7 @@ struct _VideoStream
 	uint64_t last_fps_check;
 	MediaStreamVideoStat ms_video_stat;
 	bool_t use_preview_window;
+	bool_t enable_qrcode_decoder;
 	bool_t freeze_on_error;
 	bool_t display_filter_auto_rotate_enabled;
 	bool_t source_performs_encoding;
@@ -1175,13 +1177,15 @@ MS2_PUBLIC void video_stream_close_remote_record(VideoStream *stream);
 typedef VideoStream VideoPreview;
 
 MS2_PUBLIC VideoPreview * video_preview_new(MSFactory *factory);
-#define video_preview_set_size(p,s)			video_stream_set_sent_video_size(p,s)
-#define video_preview_set_display_filter_name(p,dt)	video_stream_set_display_filter_name(p,dt)
-#define video_preview_set_native_window_id(p,id)	video_stream_set_native_preview_window_id(p,id)
-#define video_preview_get_native_window_id(p)		video_stream_get_native_preview_window_id(p)
-#define video_preview_set_fps(p,fps)			video_stream_set_fps((VideoStream*)p,fps)
+#define video_preview_set_event_callback(p,c,u) video_stream_set_event_callback(p,c,u)
+#define video_preview_set_size(p,s) video_stream_set_sent_video_size(p,s)
+#define video_preview_set_display_filter_name(p,dt) video_stream_set_display_filter_name(p,dt)
+#define video_preview_set_native_window_id(p,id) video_stream_set_native_preview_window_id(p,id)
+#define video_preview_get_native_window_id(p) video_stream_get_native_preview_window_id(p)
+#define video_preview_set_fps(p,fps) video_stream_set_fps((VideoStream*)p,fps)
 #define video_preview_set_device_rotation(p, r) video_stream_set_device_rotation(p, r)
 MS2_PUBLIC void video_preview_start(VideoPreview *stream, MSWebCam *device);
+MS2_PUBLIC void video_preview_enable_qrcode(VideoPreview *stream, bool_t enable);
 MS2_PUBLIC MSVideoSize video_preview_get_current_size(VideoPreview *stream);
 MS2_PUBLIC void video_preview_stop(VideoPreview *stream);
 MS2_PUBLIC void video_preview_change_camera(VideoPreview *stream, MSWebCam *cam);
@@ -1202,7 +1206,6 @@ MS2_PUBLIC MSFilter* video_preview_stop_reuse_source(VideoPreview *stream);
  * Returns the web cam descriptor for the mire kind of camera.
 **/
 MS2_PUBLIC MSWebCamDesc *ms_mire_webcam_desc_get(void);
-
 
 /**
  * Create an RTP session for duplex communication.

@@ -55,6 +55,9 @@ void mediastreamer2_tester_init(void(*ftester_printf)(int level, const char *fmt
 #ifdef VIDEO_ENABLED
 	bc_tester_add_suite(&video_stream_test_suite);
 #endif
+#ifdef QRCODE_ENABLED
+	bc_tester_add_suite(&qrcode_test_suite);
+#endif
 	bc_tester_add_suite(&framework_test_suite);
 	bc_tester_add_suite(&player_test_suite);
 #if MS_HAS_ARM_NEON

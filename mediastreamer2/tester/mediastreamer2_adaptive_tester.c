@@ -214,7 +214,7 @@ void start_adaptive_stream(MSFormatType type, stream_manager_t ** pmarielle, str
 	char* recorded_file = NULL;
 	char* file = bc_tester_res(HELLO_16K_1S_FILE);
 #if VIDEO_ENABLED
-	MSWebCam * marielle_webcam=mediastreamer2_tester_get_mire_webcam(ms_factory_get_web_cam_manager(_factory));
+	MSWebCam * marielle_webcam=mediastreamer2_tester_get_mire(_factory);
 #endif
 
 	stream_manager_t *marielle=*pmarielle=stream_manager_new(type);

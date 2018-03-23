@@ -995,6 +995,7 @@ void ms_factory_destroy(MSFactory *factory) {
 	factory->platform_tags = bctbx_list_free(factory->platform_tags);
 	if (factory->echo_canceller_filtername) ms_free(factory->echo_canceller_filtername);
 	if (factory->plugins_dir) ms_free(factory->plugins_dir);
+	if (factory->image_resources_dir) ms_free(factory->image_resources_dir);
 	ms_free(factory);
 	if (factory == fallback_factory) fallback_factory = NULL;
 }

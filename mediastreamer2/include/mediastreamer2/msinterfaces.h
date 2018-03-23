@@ -243,7 +243,7 @@ typedef enum _MSRecorderState MSRecorderState;
 
 /** Interface definitions for video capture */
 #define MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION \
-	MS_FILTER_METHOD(MSFilterVideoCaptureInterface,0,int)
+	MS_FILTER_METHOD(MSFilterVideoCaptureInterface, 0,int)
 #define MS_VIDEO_CAPTURE_GET_CAMERA_SENSOR_ROTATION \
 	MS_FILTER_METHOD(MSFilterVideoCaptureInterface, 1, int)
 

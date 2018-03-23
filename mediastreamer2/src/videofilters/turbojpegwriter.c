@@ -34,19 +34,6 @@ typedef struct {
 	MSFilter *f;
 }JpegWriter;
 
-static void close_file(JpegWriter *obj, bool_t doRenaming);
-
-static bool_t open_file(JpegWriter *obj, const char *filename) {
-	obj->filename = ms_strdup(filename);
-	obj->tmpFilename = ms_strdup_printf("%s.part",filename);
-	obj->file = fopen(obj->tmpFilename, "wb");
-	if (!obj->file) {
-		ms_error("Could not open %s for write", obj->tmpFilename);
-		close_file(obj,FALSE);
-	}
-	return TRUE;
-}
-
 static void close_file(JpegWriter *obj, bool_t doRenaming) {
 	if (obj->file) {
 		fclose(obj->file);
@@ -64,6 +51,17 @@ static void close_file(JpegWriter *obj, bool_t doRenaming) {
 
 	ms_free(obj->tmpFilename);
 	obj->tmpFilename = NULL;
+}
+
+static bool_t open_file(JpegWriter *obj, const char *filename) {
+	obj->filename = ms_strdup(filename);
+	obj->tmpFilename = ms_strdup_printf("%s.part",filename);
+	obj->file = fopen(obj->tmpFilename, "wb");
+	if (!obj->file) {
+		ms_error("Could not open %s for write", obj->tmpFilename);
+		close_file(obj,FALSE);
+	}
+	return TRUE;
 }
 
 static void jpg_init(MSFilter *f) {

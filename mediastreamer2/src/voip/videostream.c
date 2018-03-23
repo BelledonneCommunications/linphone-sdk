@@ -638,6 +638,10 @@ static void configure_decoder(VideoStream *stream, PayloadType *pt){
 	ms_filter_add_notify_callback(stream->ms.decoder, internal_event_cb, stream, TRUE);
 }
 
+static void configure_qrcode_filter(VideoStream *stream) {
+	ms_filter_add_notify_callback(stream->qrcode, event_cb, stream, FALSE);
+}
+
 static void video_stream_payload_type_changed(RtpSession *session, void *data){
 	VideoStream *stream = (VideoStream *)data;
 	RtpProfile *prof = rtp_session_get_profile(session);
@@ -1640,14 +1644,23 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device) {
 
 	ms_connection_helper_start(&ch);
 	ms_connection_helper_link(&ch, stream->source, -1, 0);
-	if (stream->pixconv) {
-		ms_connection_helper_link(&ch, stream->pixconv, 0, 0);
-	}
 
 	if (stream->output2) {
 		if (stream->preview_window_id != 0) {
 			video_stream_set_native_preview_window_id(stream, stream->preview_window_id);
 		}
+	}
+
+	if (stream->pixconv) {
+		ms_connection_helper_link(&ch, stream->pixconv, 0, 0);
+	}
+
+	if (stream->enable_qrcode_decoder) {
+#ifdef QRCODE_ENABLED
+		stream->qrcode = ms_factory_create_filter(stream->ms.factory, MS_QRCODE_READER_ID);
+		configure_qrcode_filter(stream);
+		ms_connection_helper_link(&ch, stream->qrcode, 0, 0);
+#endif
 	}
 
 	if (stream->tee) {
@@ -1665,15 +1678,25 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device) {
 	stream->ms.state = MSStreamStarted;
 }
 
+void video_preview_enable_qrcode(VideoPreview *stream, bool_t enable) {
+	stream->enable_qrcode_decoder = enable;
+}
+
 static MSFilter* _video_preview_stop( VideoPreview* stream, bool_t keep_source) {
 	MSFilter* source = NULL;
 	MSConnectionHelper ch;
 	ms_ticker_detach(stream->ms.sessions.ticker, stream->source);
 
+	stream->eventcb = NULL;
+	stream->event_pointer = NULL;
+
 	ms_connection_helper_start(&ch);
 	ms_connection_helper_unlink(&ch, stream->source, -1, 0);
 	if (stream->pixconv) {
 		ms_connection_helper_unlink(&ch, stream->pixconv, 0, 0);
+	}
+	if (stream->qrcode) {
+		ms_connection_helper_unlink(&ch, stream->qrcode, 0, 0);
 	}
 	if (stream->tee) {
 		ms_connection_helper_unlink(&ch, stream->tee, 0, 0);
@@ -1720,6 +1743,9 @@ static MSFilter* _video_preview_change_camera(VideoPreview *stream, MSWebCam *ca
 		} else {
 			cur_filter = stream->source;
 		}
+		if (stream->qrcode) {
+			ms_filter_unlink(cur_filter, 0, stream->qrcode, 0);
+		}
 		if (stream->tee) {
 			ms_filter_unlink(cur_filter, 0, stream->tee, 0);
 			if (stream->output2) {
@@ -1736,8 +1762,7 @@ static MSFilter* _video_preview_change_camera(VideoPreview *stream, MSWebCam *ca
 		if (change_source) {
 			if (!keep_old_source) {
 				ms_filter_destroy(stream->source);
-			}
-			else {
+			} else {
 				old_source = stream->source;
 			}
 		}
@@ -1761,6 +1786,9 @@ static MSFilter* _video_preview_change_camera(VideoPreview *stream, MSWebCam *ca
 			cur_filter = stream->pixconv;
 		} else {
 			cur_filter = stream->source;
+		}
+		if (stream->qrcode) {
+			ms_filter_link(cur_filter, 0, stream->qrcode, 0);
 		}
 		if (stream->tee) {
 			ms_filter_link(cur_filter, 0, stream->tee, 0);
