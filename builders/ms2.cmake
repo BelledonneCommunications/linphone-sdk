@@ -53,6 +53,7 @@ lcb_cmake_options(
 	"-DENABLE_G729=${ENABLE_G729}"
 	"-DENABLE_G729B_CNG=${ENABLE_G729B_CNG}"
 	"-DENABLE_JPEG=${ENABLE_JPEG}"
+	"-DENABLE_QRCODE=${ENABLE_QRCODE}"
 )
 if(ENABLE_GSM)
 	lcb_dependencies("gsm")
@@ -71,6 +72,9 @@ if(ENABLE_G729 OR ENABLE_G729B_CNG)
 endif()
 if(ENABLE_JPEG)
 	lcb_dependencies("turbo-jpeg")
+endif()
+if(ENABLE_QRCODE)
+	lcb_dependencies("zxing")
 endif()
 
 lcb_cmake_options("-DENABLE_VIDEO=${ENABLE_VIDEO}")

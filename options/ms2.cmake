@@ -46,9 +46,10 @@ lcb_add_option("OPUS"  "OPUS audio encoding/decoding support." "${DEFAULT_VALUE_
 lcb_add_option("Silk"  "Silk audio encoding/decoding support." "${DEFAULT_VALUE_ENABLE_SILK}")
 lcb_add_option("Speex"  "Speex audio encoding/decoding support." "${DEFAULT_VALUE_ENABLE_SPEEX}")
 lcb_add_option("BV16"  "BroadVoice 16 audio encoding/decoding support." "${DEFAULT_VALUE_ENABLE_BV16}")
-lcb_add_option("jpeg"  "JPEG support with libjpeg-turbo." "${DEFAULT_VALUE_ENABLE_JPEG}")
 #video options and codecs
 lcb_add_option("Video" "Ability to capture and display video." "${DEFAULT_VALUE_ENABLE_VIDEO}")
+lcb_add_option("jpeg"  "JPEG support with libjpeg-turbo." "${DEFAULT_VALUE_ENABLE_JPEG}")
+lcb_add_option("qrcode" "QRCode support with zxing." "${DEFAULT_VALUE_ENABLE_QRCODE}")
 # FFMpeg is LGPL which is an issue only for iOS applications; otherwise it can be used in proprietary software as well
 if (IOS)
 	lcb_add_strict_dependent_option("FFmpeg" "Some video processing features via FFmpeg: JPEG encoding/decoding, video scaling, H264 decoding..." "${DEFAULT_VALUE_ENABLE_FFMPEG}" "ENABLE_VIDEO" OFF "ENABLE_GPL_THIRD_PARTIES" "GPL third parties not enabled (ENABLE_GPL_THIRD_PARTIES).")
