@@ -27,3 +27,5 @@ lcb_external_source_paths("bcg729")
 lcb_groupable(YES)
 lcb_sanitizable(YES)
 lcb_package_source(YES)
+lcb_spec_file("bcg729.spec")
+
