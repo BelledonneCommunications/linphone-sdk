@@ -558,6 +558,8 @@ const char* belle_sip_message_get_body(belle_sip_message_t *msg) {
 		return (const char*)belle_sip_memory_body_handler_get_buffer(
 			BELLE_SIP_MEMORY_BODY_HANDLER(msg->body_handler)
 		);
+	} else if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(msg->body_handler, belle_sip_multipart_body_handler_t)) {
+		return belle_sip_object_to_string(msg->body_handler);
 	}
 	belle_sip_error("belle_sip_message_get_body(): body cannot be returned as pointer.");
 	return NULL;
