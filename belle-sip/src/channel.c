@@ -34,7 +34,7 @@
 
 #define BELLE_SIP_CHANNEL_INVOKE_STATE_LISTENERS(channel,state) \
 	BELLE_SIP_INVOKE_LISTENERS_REVERSE_ARG1_ARG2(channel->full_listeners, belle_sip_channel_listener_t, on_state_changed, channel, state) \
-	BELLE_SIP_INVOKE_LISTENERS_REVERSE_ARG1_ARG2(channel->state_listeners, belle_sip_channel_listener_t, on_state_changed, channel, state) 
+	BELLE_SIP_INVOKE_LISTENERS_REVERSE_ARG1_ARG2(channel->state_listeners, belle_sip_channel_listener_t, on_state_changed, channel, state)
 
 
 static void channel_prepare_continue(belle_sip_channel_t *obj);
@@ -379,7 +379,7 @@ static int check_body(belle_sip_channel_t *obj){
 	obj->input_stream.content_length= content_length_header ? belle_sip_header_content_length_get_content_length(content_length_header) : 0;
 
 	expect_body=obj->input_stream.content_length>0;
-	
+
 	if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(msg,belle_http_response_t) || BELLE_SIP_OBJECT_IS_INSTANCE_OF(msg,belle_http_request_t)){
 		/*http chunked mode handling*/
 		if (belle_sip_message_get_header_by_type(msg, belle_sip_header_content_type_t)!=NULL){
@@ -399,24 +399,33 @@ static int check_body(belle_sip_channel_t *obj){
 	}
 	if (expect_body){
 		belle_sip_body_handler_t *bh;
-		/*should notify the listeners*/
+		// Should notify the listeners
 		BELLE_SIP_CHANNEL_INVOKE_MESSAGE_HEADERS_LISTENERS(obj,msg);
-		/*check if the listener has setup a body handler, otherwise create a default one*/
-		if ((bh=belle_sip_message_get_body_handler(msg))==NULL){
+		// Check if the listener has setup a body handler, otherwise create a default one
+		bh = belle_sip_message_get_body_handler(msg);
+		if (!bh) {
 			belle_sip_header_t *content_encoding = belle_sip_message_get_header(msg, "Content-Encoding");
 			belle_sip_header_content_type_t *content_type = belle_sip_message_get_header_by_type(msg, belle_sip_header_content_type_t);
-			if (content_encoding != NULL) {
-				belle_sip_message_set_body_handler(msg, (bh = (belle_sip_body_handler_t *)belle_sip_memory_body_handler_new(NULL, NULL)));
+			if (content_encoding) {
+				bh = (belle_sip_body_handler_t *)belle_sip_memory_body_handler_new(NULL, NULL);
+				belle_sip_body_handler_add_header(bh,BELLE_SIP_HEADER(content_length_header));
+				belle_sip_body_handler_add_header(bh, BELLE_SIP_HEADER(content_type));
+				belle_sip_body_handler_add_header(bh, content_encoding);
+				belle_sip_message_set_body_handler(msg, bh);
 			} else if (content_type
 				&& (strcmp(belle_sip_header_content_type_get_type(content_type), "multipart") == 0)) {
 				const char *unparsed_value = belle_sip_header_get_unparsed_value(BELLE_SIP_HEADER(content_type));
 				const char *boundary = strstr(unparsed_value, ";boundary=");
-				if (boundary != NULL) boundary += 10;
+				if (boundary) boundary += 10;
 				if (boundary[0] == '\0') boundary = NULL;
-				belle_sip_message_set_body_handler(msg, (bh = (belle_sip_body_handler_t *)belle_sip_multipart_body_handler_new(belle_sip_multipart_body_handler_progress_cb, NULL, NULL, boundary)));
+				bh = (belle_sip_body_handler_t *)belle_sip_multipart_body_handler_new(belle_sip_multipart_body_handler_progress_cb, NULL, NULL, boundary);
 				belle_sip_body_handler_set_size(bh, obj->input_stream.content_length);
+				belle_sip_body_handler_add_header(bh, BELLE_SIP_HEADER(content_length_header));
+				belle_sip_body_handler_add_header(bh, BELLE_SIP_HEADER(content_type));
+				belle_sip_message_set_body_handler(msg, bh);
 			} else {
-				belle_sip_message_set_body_handler(msg,(bh=(belle_sip_body_handler_t*)belle_sip_memory_body_handler_new(NULL,NULL)));
+				bh = (belle_sip_body_handler_t *)belle_sip_memory_body_handler_new(NULL, NULL);
+				belle_sip_message_set_body_handler(msg, bh);
 			}
 		}
 		belle_sip_body_handler_begin_recv_transfer(bh);
@@ -517,7 +526,7 @@ static int acquire_body(belle_sip_channel_t *obj, int end_of_stream){
 
 static void notify_incoming_messages(belle_sip_channel_t *obj){
 	belle_sip_list_t *elem,*l_it;
-	
+
 	belle_sip_list_t *listeners=belle_sip_list_copy_with_data(obj->full_listeners,(void *(*)(void*))belle_sip_object_ref);
 
 	for(l_it=listeners;l_it!=NULL;l_it=l_it->next){
@@ -812,7 +821,7 @@ static void channel_remove_listener(belle_sip_channel_t *obj, belle_sip_channel_
 }
 
 void belle_sip_channel_add_listener(belle_sip_channel_t *obj, belle_sip_channel_listener_t *l){
-	
+
 	if (is_state_only_listener(l)) {
 		obj->state_listeners=belle_sip_list_prepend(obj->state_listeners,
 												   belle_sip_object_weak_ref(l,
@@ -822,7 +831,7 @@ void belle_sip_channel_add_listener(belle_sip_channel_t *obj, belle_sip_channel_
 													belle_sip_object_weak_ref(l,
 																		(belle_sip_object_destroy_notify_t)channel_remove_listener,obj));
 	}
-	
+
 }
 
 void belle_sip_channel_remove_listener(belle_sip_channel_t *obj, belle_sip_channel_listener_t *l){
@@ -1020,12 +1029,12 @@ static void belle_sip_channel_handle_error(belle_sip_channel_t *obj){
 
 int belle_sip_channel_notify_timeout(belle_sip_channel_t *obj){
 	const int too_long=60;
-	
+
 	if (obj->state != BELLE_SIP_CHANNEL_READY){
 		/*no need to notify the timeout if the channel is already in error or retry state*/
 		return FALSE;
 	}
-	
+
 	if ((int)(belle_sip_time_ms() - obj->last_recv_time) >= (too_long * 1000)){
 		belle_sip_message("A timeout related to this channel occured and no message received during last %i seconds. This channel is suspect, moving to error state",too_long);
 		channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
