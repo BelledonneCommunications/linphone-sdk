@@ -334,8 +334,7 @@ static void uncompress_body_if_required(belle_sip_message_t *msg) {
 				belle_sip_header_content_length_t *content_length = belle_sip_message_get_header_by_type(msg, belle_sip_header_content_length_t);
 				belle_sip_header_content_length_set_content_length(content_length, belle_sip_body_handler_get_size(BELLE_SIP_BODY_HANDLER(mbh)));
 				belle_sip_message_remove_header_from_ptr(msg, ceh);
-				if (content_type
-					&& (strcmp(belle_sip_header_content_type_get_type(content_type), "multipart") == 0)) {
+				if (content_type && (strcmp(belle_sip_header_content_type_get_type(content_type), "multipart") == 0)) {
 					const char *unparsed_value = belle_sip_header_get_unparsed_value(BELLE_SIP_HEADER(content_type));
 					const char *boundary = strstr(unparsed_value, ";boundary=");
 					if (boundary != NULL) boundary += 10;

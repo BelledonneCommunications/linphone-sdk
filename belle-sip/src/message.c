@@ -528,7 +528,7 @@ void belle_sip_message_set_body_handler(belle_sip_message_t *msg, belle_sip_body
 			}
 			const belle_sip_header_content_type_t *new_content_type_header = belle_sip_message_get_header_by_type(msg, belle_sip_header_content_type_t);
 			if (!new_content_type_header || !belle_sip_parameters_has_parameter(BELLE_SIP_PARAMETERS(new_content_type_header), "boundary")) {
-				belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS(content_type), "boundary", BELLESIP_MULTIPART_BOUNDARY);
+				belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS(content_type), "boundary", belle_sip_multipart_body_handler_get_boundary(multipart_body_handler));
 				belle_sip_message_add_header(BELLE_SIP_MESSAGE(msg), BELLE_SIP_HEADER(content_type));
 			}
 		} else {

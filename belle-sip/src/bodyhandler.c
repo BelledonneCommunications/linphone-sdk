@@ -827,6 +827,10 @@ static void belle_sip_multipart_body_handler_set_boundary(belle_sip_multipart_bo
 	}
 }
 
+const char *belle_sip_multipart_body_handler_get_boundary(const belle_sip_multipart_body_handler_t *obj) {
+	return obj->boundary;
+}
+
 belle_sip_multipart_body_handler_t *belle_sip_multipart_body_handler_new(belle_sip_body_handler_progress_callback_t progress_cb, void *data,
 									 belle_sip_body_handler_t *first_part, const char *boundary){
 	belle_sip_multipart_body_handler_t *obj=belle_sip_object_new(belle_sip_multipart_body_handler_t);
