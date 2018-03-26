@@ -518,9 +518,6 @@ void belle_sip_message_set_body_handler(belle_sip_message_t *msg, belle_sip_body
 				belle_sip_header_content_type_set_subtype(content_type, "form-data");
 			}
 
-			if (content_type_header)
-				belle_sip_message_remove_header_from_ptr(msg, BELLE_SIP_HEADER(content_type_header));
-
 			while (body_handler_headers) {
 				belle_sip_header_t *header = BELLE_SIP_HEADER(body_handler_headers->data);
 				belle_sip_message_add_header(BELLE_SIP_MESSAGE(msg), header);
