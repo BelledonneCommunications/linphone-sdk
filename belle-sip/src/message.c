@@ -26,12 +26,12 @@ typedef struct _headers_container {
 	belle_sip_list_t* header_list;
 } headers_container_t;
 
-/*reference is 
+/*reference is
  * http://www.iana.org/assignments/sip-parameters/sip-parameters.xhtml#sip-parameters-2
  */
 static const char * expand_name(const char *name){
 	const char *full_name=NULL;
-	
+
 	if (strlen(name)>1) return name;
 	switch(name[0]){
 		case 'a':
@@ -150,7 +150,7 @@ static int belle_sip_headers_container_comp_func(const headers_container_t *a, c
 }
 
 void belle_sip_message_init(belle_sip_message_t *message){
-	
+
 }
 
 headers_container_t* belle_sip_headers_container_get(const belle_sip_message_t* message,const char* header_name) {
@@ -183,12 +183,12 @@ void belle_sip_message_add_header(belle_sip_message_t *message,belle_sip_header_
 void belle_sip_message_add_headers(belle_sip_message_t *message, const belle_sip_list_t *header_list){
 	const char *hname;
 	headers_container_t *headers_container;
-	
+
 	if (header_list == NULL) return;
-	
+
 	hname=belle_sip_header_get_name(BELLE_SIP_HEADER((header_list->data)));
 	headers_container=get_or_create_container(message,hname);
-	
+
 	for(;header_list!=NULL;header_list=header_list->next){
 		belle_sip_header_t *h=BELLE_SIP_HEADER(header_list->data);
 		if (strcmp(belle_sip_header_get_name(h),hname)!=0){
@@ -319,7 +319,7 @@ belle_sip_error_code belle_sip_headers_marshal(belle_sip_message_t *message, cha
 #ifdef BELLE_SIP_WORKAROUND_TECHNICOLOR_SIP_ALG_ROUTER_BUG
 	belle_sip_header_t *content_length=NULL;
 #endif
-	
+
 	for(headers_list=message->header_list;headers_list!=NULL;headers_list=headers_list->next){
 		for(header_list=((headers_container_t*)(headers_list->data))->header_list
 				;header_list!=NULL
@@ -391,7 +391,7 @@ belle_sip_error_code belle_sip_request_marshal(belle_sip_request_t* request, cha
 	if (error!=BELLE_SIP_OK) return error;
 	error=belle_sip_headers_marshal(BELLE_SIP_MESSAGE(request),buff,buff_size,offset);
 	if (error!=BELLE_SIP_OK) return error;
-	
+
 	return error;
 }
 
@@ -476,9 +476,11 @@ belle_sip_body_handler_t *belle_sip_message_get_body_handler(const belle_sip_mes
 }
 
 void belle_sip_message_set_body_handler(belle_sip_message_t *msg, belle_sip_body_handler_t *body_handler){
-	belle_sip_header_content_length_t *content_length_header = belle_sip_message_get_header_by_type(msg, belle_sip_header_content_length_t);
-	belle_sip_header_content_type_t *content_type_header = belle_sip_message_get_header_by_type(msg, belle_sip_header_content_type_t);
-
+	const belle_sip_header_content_length_t *content_length_header = belle_sip_message_get_header_by_type(msg, belle_sip_header_content_length_t);
+	const belle_sip_header_content_type_t *content_type_header = belle_sip_message_get_header_by_type(msg, belle_sip_header_content_type_t);
+	const belle_sip_list_t *body_handler_headers = NULL;
+	if (body_handler)
+		body_handler_headers = belle_sip_body_handler_get_headers(body_handler);
 	/* In case of multipart message, we must add the message Content-Type header containing the boundary */
 	if (body_handler != NULL) {
 		if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(body_handler, belle_sip_multipart_body_handler_t)){
@@ -512,22 +514,33 @@ void belle_sip_message_set_body_handler(belle_sip_message_t *msg, belle_sip_body
 					belle_sip_error("Multipart related body handler [%p] cannot be set without first part",body_handler);
 				}
 				belle_sip_header_content_type_set_subtype(content_type, "related");
-				
 			} else {
 				belle_sip_header_content_type_set_subtype(content_type, "form-data");
 			}
-			belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS(content_type), "boundary", BELLESIP_MULTIPART_BOUNDARY);
-			belle_sip_message_add_header(BELLE_SIP_MESSAGE(msg), BELLE_SIP_HEADER(content_type));
+
+			if (content_type_header)
+				belle_sip_message_remove_header_from_ptr(msg, BELLE_SIP_HEADER(content_type_header));
+
+			while (body_handler_headers) {
+				belle_sip_header_t *header = BELLE_SIP_HEADER(body_handler_headers->data);
+				belle_sip_message_add_header(BELLE_SIP_MESSAGE(msg), header);
+				body_handler_headers = body_handler_headers->next;
+			}
+			const belle_sip_header_content_type_t *new_content_type_header = belle_sip_message_get_header_by_type(msg, belle_sip_header_content_type_t);
+			if (!new_content_type_header || !belle_sip_parameters_has_parameter(BELLE_SIP_PARAMETERS(new_content_type_header), "boundary")) {
+				belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS(content_type), "boundary", BELLESIP_MULTIPART_BOUNDARY);
+				belle_sip_message_add_header(BELLE_SIP_MESSAGE(msg), BELLE_SIP_HEADER(content_type));
+			}
 		} else {
 			const belle_sip_list_t *headers = belle_sip_body_handler_get_headers(body_handler);
 			for(; headers != NULL; headers = headers->next) {
 				belle_sip_header_t *header = BELLE_SIP_HEADER(headers->data);
 				if (strcasecmp(belle_sip_header_get_name(header),BELLE_SIP_CONTENT_LENGTH ) == 0 && content_length_header)
 					belle_sip_message_remove_header_from_ptr(msg, BELLE_SIP_HEADER(content_length_header));
-				
+
 				if (strcasecmp(belle_sip_header_get_name(header),BELLE_SIP_CONTENT_TYPE ) == 0 && content_type_header)
 					belle_sip_message_remove_header_from_ptr(msg, BELLE_SIP_HEADER(content_type_header));
-				
+
 				belle_sip_message_add_header(BELLE_SIP_MESSAGE(msg), header);
 			}
 		}
@@ -665,7 +678,7 @@ belle_sip_error_code belle_sip_response_marshal(belle_sip_response_t *resp, char
 						,"SIP/2.0 %i %s\r\n"
 						,belle_sip_response_get_status_code(resp)
 						,belle_sip_response_get_reason_phrase(resp)?belle_sip_response_get_reason_phrase(resp):"");
-	
+
 	if (error!=BELLE_SIP_OK) return error;
 	error=belle_sip_headers_marshal(BELLE_SIP_MESSAGE(resp),buff,buff_size,offset);
 	if (error!=BELLE_SIP_OK) return error;
@@ -796,7 +809,7 @@ belle_sip_response_t *belle_sip_response_create_from_request(belle_sip_request_t
 	belle_sip_header_t *h;
 	belle_sip_header_to_t *to;
 	const belle_sip_list_t *vias;
-	
+
 	belle_sip_response_init_default(resp,status_code,NULL);
 	if (status_code==100 && (h=belle_sip_message_get_header((belle_sip_message_t*)req,"timestamp"))){
 		belle_sip_message_add_header((belle_sip_message_t*)resp,h);
@@ -845,7 +858,7 @@ void belle_sip_response_fill_for_dialog(belle_sip_response_t *obj, belle_sip_req
 			/*add a dummy contact to be filled by channel later*/
 			belle_sip_message_add_header((belle_sip_message_t*)obj,(belle_sip_header_t*)belle_sip_header_contact_new());
 		}
-	}	
+	}
 }
 
 belle_sip_hop_t* belle_sip_response_get_return_hop(belle_sip_response_t *msg){
@@ -1012,7 +1025,7 @@ int belle_sip_message_check_headers(const belle_sip_message_t* message) {
 		int i;
 		belle_sip_header_via_t *via;
 		const char * method = belle_sip_request_get_method(BELLE_SIP_REQUEST(message));
-		
+
 		for (i=0;mandatory_headers[i].method!=NULL;i++) {
 			if ( (strcasecmp(method,mandatory_headers[i].method)==0) ||
 				 (mandatory_headers[i].method[0] == '*') ){
