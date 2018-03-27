@@ -69,13 +69,13 @@ namespace lime {
 
 		/**
 		 * @brief Build a header string from needed info
-		 *	header is: Protocol Version Number<1 byte> || Packet Type <1 byte> || curveId <1 byte> || [X3DH Init message <variable>] || Ns<4 bytes> || PN<4 bytes> || DHs<...>
+		 *	header is: Protocol Version Number<1 byte> || Message Type <1 byte> || curveId <1 byte> || [X3DH Init message <variable>] || Ns<4 bytes> || PN<4 bytes> || DHs<...>
 		 *
 		 * @param[out]	header	the buffer containing header to be sent to recipient
 		 * @param[in]	Ns			Index of sending chain
 		 * @param[in]	PN			Index of previous sending chain
 		 * @param[in]	DHs			Current DH public key
-		 * @param[in]	X3DH_initMessage	A buffer holding an X3DH init message to be inserted in header, if empty packet type is set to regular
+		 * @param[in]	X3DH_initMessage	A buffer holding an X3DH init message to be inserted in header. If empty message type X3DH init flag is not set
 		 */
 		template <typename Curve>
 		void buildMessage_header(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const X<Curve, lime::Xtype::publicKey> &DHs, const std::vector<uint8_t> X3DH_initMessage) noexcept;
@@ -91,6 +91,7 @@ namespace lime {
 				X<Curve, lime::Xtype::publicKey> m_DHs; // Public key
 				bool m_valid; // is this header valid?
 				size_t m_size; // store the size of parsed header
+				bool m_payload_direct_encryption; // flag to store the message encryption mode: in the double ratchet packet or using a random key to encrypt it separately and encrypt the key in the DR packet
 
 			public:
 				/* data member accessors (read only) */
@@ -98,6 +99,7 @@ namespace lime {
 				uint16_t PN(void) const {return m_PN;}
 				const X<Curve, lime::Xtype::publicKey> &DHs(void) const {return m_DHs;}
 				bool valid(void) const {return m_valid;}
+				bool payloadDirectEncryption(void) const {return m_payload_direct_encryption;}
 				size_t size(void) {return m_size;}
 
 				/* ctor/dtor */
@@ -122,9 +124,23 @@ namespace lime {
 		extern template void buildMessage_header<C448>(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const X<C448, lime::Xtype::publicKey> &DHs, const std::vector<uint8_t> X3DH_initMessage) noexcept;
 		extern template class DRHeader<C448>;
 #endif
-		/* These constants are needed only for tests purpose, otherwise their usage is internal only */
+		/* These constants are needed only for tests purpose, otherwise their usage is internal only to double_ratchet_protocol.hpp */
+		/* Double ratchet protocol version number */
 		constexpr std::uint8_t DR_v01=0x01;
-		enum class DR_message_type : uint8_t{unset_type=0x00, regular=0x01, x3dhinit=0x02};
+
+		/* DR message type byte bit mapping 
+		 * | 7  6  5  4  3  2                1                      0         |
+		 * | <  Unused      > Payload_Direct_Encryption_Flag  X3DH_Init_Flag
+		 * Payload_Direct_Encryptiun Flag (bit 1):
+		 *      - set  : the Double Ratchet packet encrypts the user plaintext
+		 *      - unset: the Double Ratchet packet encrypts a random seed used to encrypt the user plaintext
+		 *
+		 * X3DH_Init_Flag (bit 0):
+		 *      - set  : the Double Ratchet Packet header contains a X3DH Init message
+		 *      - unset: the Double Ratcher Packet header does not contain a X3DH Init message
+		 */
+		enum class DR_message_type : uint8_t{X3DH_init_flag=0x01, payload_direct_encryption_flag=0x02};
+
 		enum class DR_X3DH_OPk_flag : uint8_t{withoutOPk=0x00, withOPk=0x01};
 
 	} // namespace double_ratchet_protocol

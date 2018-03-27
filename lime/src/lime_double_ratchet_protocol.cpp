@@ -31,7 +31,7 @@ namespace lime {
 		 * Supported version description :
 		 *
 		 * Version 0x01:
-		 *	DRHeader is: Protocol Version Number<1 byte> || Packet Type <1 byte> || curveId <1 byte> || [X3DH Init message <variable>] || Ns<2 bytes> || PN<2 bytes> || DHs<...>
+		 *	DRHeader is: Protocol Version Number<1 byte> || Message Type <1 byte> || curveId <1 byte> || [X3DH Init message <variable>] || Ns<2 bytes> || PN<2 bytes> || DHs<...>
 		 *	Message is : DRheader<...> || cipherMessageKeyK<32 bytes> || Key auth tag<16 bytes> || cipherText<...> || Message auth tag<16 bytes>
 		 *
 		 *	Associated Data are transmitted separately: ADk for the Key auth tag, and ADm for the Message auth tag
@@ -53,7 +53,7 @@ namespace lime {
 
 		/**
 		 * @brief return the size of the double ratchet packet header
-		 * header is: Protocol Version Number<1 byte> || Packet Type <1 byte> || curveId <1 byte> || [X3DH Init message <variable>] || Ns<2 bytes> || PN<2 bytes> || DHs<...>
+		 * header is: Protocol Version Number<1 byte> || Message Type <1 byte> || curveId <1 byte> || [X3DH Init message <variable>] || Ns<2 bytes> || PN<2 bytes> || DHs<...>
 		 * This function return the size without optionnal X3DH init packet
 		 */
 		template <typename Curve>
@@ -151,7 +151,7 @@ namespace lime {
 				case double_ratchet_protocol::DR_v01: // version 0x01 of protocol
 				{
 					// if curveId is not matching or message type is not x3dhinit, return false
-					if (message[2] != static_cast<uint8_t>(Curve::curveId()) || message[1]!=static_cast<uint8_t>(DR_message_type::x3dhinit)) {
+					if (message[2] != static_cast<uint8_t>(Curve::curveId()) || !(message[1]&static_cast<uint8_t>(DR_message_type::X3DH_init_flag))) {
 						return false;
 					}
 					// check length
@@ -177,25 +177,28 @@ namespace lime {
 
 		/**
 		 * @brief Build a header string from needed info
-		 *	header is: Protocol Version Number<1 byte> || Packet Type <1 byte> || curveId <1 byte> || [X3DH Init message <variable>] || Ns<2 bytes> || PN<2 bytes> || DHs<...>
+		 *	header is: Protocol Version Number<1 byte> || Message Type <1 byte> || curveId <1 byte> || [X3DH Init message <variable>] || Ns<2 bytes> || PN<2 bytes> || DHs<...>
 		 *
 		 * @param[out]	header			output buffer
 		 * @param[in]	Ns			Index of sending chain
 		 * @param[in]	PN			Index of previous sending chain
 		 * @param[in]	DHs			Current DH public key
-		 * @param[in]	X3DH_initMessage	A buffer holding an X3DH init message to be inserted in header, if empty packet type is set to regular
+		 * @param[in]	X3DH_initMessage	A buffer holding an X3DH init message to be inserted in header. If empty message type X3DH init flag is not set
 		 */
 		template <typename Curve>
 		void buildMessage_header(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const X<Curve, lime::Xtype::publicKey> &DHs, const std::vector<uint8_t> X3DH_initMessage) noexcept {
 			// Header is one buffer composed of:
-			// Version Number<1 byte> || packet Type <1 byte> || curve Id <1 byte> || [<x3d init <variable>] || Ns <2 bytes> || PN <2 bytes> || Key type byte Id(1 byte) || self public key<DHKey::size bytes>
+			// Version Number<1 byte> || message Type <1 byte> || curve Id <1 byte> || [<x3d init <variable>] || Ns <2 bytes> || PN <2 bytes> || Key type byte Id(1 byte) || self public key<DHKey::size bytes>
 			header.assign(1, static_cast<uint8_t>(double_ratchet_protocol::DR_v01));
+			uint8_t messageType = 0;
 			if (X3DH_initMessage.size()>0) { // we do have an X3DH init message to insert in the header
-				header.push_back(static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::x3dhinit));
+				messageType |= static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::X3DH_init_flag); // turn on the flag
+				header.push_back(messageType);
 				header.push_back(static_cast<uint8_t>(Curve::curveId()));
 				header.insert(header.end(), X3DH_initMessage.cbegin(), X3DH_initMessage.cend());
 			} else {
-				header.push_back(static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::regular));
+				messageType &= ~static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::X3DH_init_flag); // be sure to have this flag turned off
+				header.push_back(messageType);
 				header.push_back(static_cast<uint8_t>(Curve::curveId()));
 			}
 			header.push_back((uint8_t)((Ns>>8)&0xFF));
@@ -218,56 +221,57 @@ namespace lime {
 			}
 
 			switch (header[0]) { // header[0] contains DR protocol version
-				case lime::double_ratchet_protocol::DR_v01: // version 0x01 of protocol, see in lime_utils for details
+				case lime::double_ratchet_protocol::DR_v01: { // version 0x01 of protocol, see in lime_utils for details
 					if (header[2] != static_cast<uint8_t>(Curve::curveId())) return; // wrong curve in use, return with valid flag false
-
-					switch (header[1]) { // packet types
-						case static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::regular) :
-							// header is :	Version<1 byte> ||
-							// 		packet type <1 byte> ||
-							// 		curve id <1 byte> ||
-							// 		Ns<2 bytes> || PN <2 bytes> ||
-							// 		DHs < X<Curve, lime::Xtype::publicKey>::ssize() >
-							m_size = headerSize<Curve>(); // headerSize is the size when no X3DJ init is present
-							if (header.size() >=  m_size) { //header shall be actually longer because buffer pass is the whole message
-								m_Ns = header[3]<<8|header[4];
-								m_PN = header[5]<<8|header[6];
-								m_DHs = X<Curve, lime::Xtype::publicKey>{header.cbegin()+7}; // DH key start after header other infos
-								m_valid = true;
-							}
-						break;
-						case static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::x3dhinit) :
-						{
-							// header is :	Version<1 byte> ||
-							// 		packet type <1 byte> ||
-							// 		curve id <1 byte> ||
-							// 		x3dh init message <variable> ||
-							// 		Ns<2 bytes> || PN <2 bytes> ||
-							// 		DHs < X<Curve, lime::Xtype::publicKey>::ssize() >
-							//
-							// x3dh init is : 	haveOPk <flag 1 byte : 0 no OPk, 1 OPk > ||
-							// 			self Ik < DSA<Curve, lime::DSAtype::publicKey>::ssize() bytes > ||
-							// 			Ek < X<Curve, lime::Xtype::publicKey>::keyLenght() bytes > ||
-							// 			peer SPk id < 4 bytes > ||
-							// 			[peer OPk id < 4 bytes >] {0,1} according to haveOPk flag
-							size_t x3dh_initMessageSize = 1 + DSA<Curve, lime::DSAtype::publicKey>::ssize() + X<Curve, lime::Xtype::publicKey>::ssize() + 4; // add size of X3DH init message without OPk
-							if (header[3] == 1) { // there is an OPk
-								x3dh_initMessageSize += 4;
-							}
-							m_size = headerSize<Curve>() + x3dh_initMessageSize;
-
-							// X3DH init message is processed separatly, just take care of the DR header values
-							if (header.size() >=  m_size) { //header shall be actually longer because buffer pass is the whole message
-								m_Ns = header[3+x3dh_initMessageSize]<<8|header[4+x3dh_initMessageSize];
-								m_PN = header[5+x3dh_initMessageSize]<<8|header[6+x3dh_initMessageSize];
-								m_DHs = X<Curve, lime::Xtype::publicKey>{header.cbegin()+7+x3dh_initMessageSize}; // DH key start after header other infos
-								m_valid = true;
-							}
-						}
-						break;
-						default: // unknown packet type, just return with valid set to false
-							return;
+					uint8_t messageType = header[1];
+					// Parse the message type byte(see .hpp for mapping):
+					if (messageType & static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::payload_direct_encryption_flag)) {
+						m_payload_direct_encryption = true;
+					} else {
+						m_payload_direct_encryption = false;
 					}
+
+					if (messageType & static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::X3DH_init_flag)) {
+						// header is :	Version<1 byte> ||
+						// 		message type <1 byte> ||
+						// 		curve id <1 byte> ||
+						// 		x3dh init message <variable> ||
+						// 		Ns<2 bytes> || PN <2 bytes> ||
+						// 		DHs < X<Curve, lime::Xtype::publicKey>::ssize() >
+						//
+						// x3dh init is : 	haveOPk <flag 1 byte : 0 no OPk, 1 OPk > ||
+						// 			self Ik < DSA<Curve, lime::DSAtype::publicKey>::ssize() bytes > ||
+						// 			Ek < X<Curve, lime::Xtype::publicKey>::keyLenght() bytes > ||
+						// 			peer SPk id < 4 bytes > ||
+						// 			[peer OPk id < 4 bytes >] {0,1} according to haveOPk flag
+						size_t x3dh_initMessageSize = 1 + DSA<Curve, lime::DSAtype::publicKey>::ssize() + X<Curve, lime::Xtype::publicKey>::ssize() + 4; // add size of X3DH init message without OPk
+						if (header[3] == 1) { // there is an OPk
+							x3dh_initMessageSize += 4;
+						}
+						m_size = headerSize<Curve>() + x3dh_initMessageSize;
+
+						// X3DH init message is processed separatly, just take care of the DR header values
+						if (header.size() >=  m_size) { //header shall be actually longer because buffer pass is the whole message
+							m_Ns = header[3+x3dh_initMessageSize]<<8|header[4+x3dh_initMessageSize];
+							m_PN = header[5+x3dh_initMessageSize]<<8|header[6+x3dh_initMessageSize];
+							m_DHs = X<Curve, lime::Xtype::publicKey>{header.cbegin()+7+x3dh_initMessageSize}; // DH key start after header other infos
+							m_valid = true;
+						}
+					} else { // There is no X3DH init message in the DR header
+						// header is :	Version<1 byte> ||
+						// 		message type <1 byte> ||
+						// 		curve id <1 byte> ||
+						// 		Ns<2 bytes> || PN <2 bytes> ||
+						// 		DHs < X<Curve, lime::Xtype::publicKey>::ssize() >
+						m_size = headerSize<Curve>(); // headerSize is the size when no X3DJ init is present
+						if (header.size() >=  m_size) { //header shall be actually longer because buffer pass is the whole message
+							m_Ns = header[3]<<8|header[4];
+							m_PN = header[5]<<8|header[6];
+							m_DHs = X<Curve, lime::Xtype::publicKey>{header.cbegin()+7}; // DH key start after header other infos
+							m_valid = true;
+						}
+					}
+				}
 				break;
 
 				default: // just do nothing, we do not know this version of header, don't parse anything and leave its valid flag to false

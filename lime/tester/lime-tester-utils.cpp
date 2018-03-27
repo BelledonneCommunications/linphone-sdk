@@ -260,7 +260,7 @@ bool DR_message_holdsX3DHInit(std::vector<uint8_t> &message, bool &haveOPk) {
 	// check protocol version
 	if (message[0] != static_cast<uint8_t>(lime::double_ratchet_protocol::DR_v01)) return false;
 	// check message type: we must have a X3DH init message
-	if (message[1] !=static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::x3dhinit)) return false;
+	if (!(message[1]&static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::X3DH_init_flag))) return false;
 
 	// check packet length, packet is :
 	// header<3 bytes>, X3DH init packet, Ns+PN<4 bytes>, DHs<X<Curve>::keyLength>, Cipher message RandomSeed<32 bytes>, key auth tag<16 bytes> = <55 + X<Curve>::keyLengh + X3DH init size>
