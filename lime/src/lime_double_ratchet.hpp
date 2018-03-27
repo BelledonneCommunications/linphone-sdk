@@ -103,8 +103,8 @@ namespace lime {
 			DR<Curve> &operator=(DR<Curve> &a) = delete; // can't copy a session
 			~DR();
 
-			void ratchetEncrypt(const std::array<uint8_t, lime::settings::DRrandomSeedSize> &plaintext, std::vector<uint8_t> &&AD, std::vector<uint8_t> &ciphertext);
-			bool ratchetDecrypt(const std::vector<uint8_t> &cipherText, const std::vector<uint8_t> &AD, std::array<uint8_t, lime::settings::DRrandomSeedSize> &plaintext);
+			void ratchetEncrypt(const lime::sVector &plaintext, std::vector<uint8_t> &&AD, std::vector<uint8_t> &ciphertext);
+			bool ratchetDecrypt(const std::vector<uint8_t> &cipherText, const std::vector<uint8_t> &AD, lime::sVector &plaintext);
 			long int dbSessionId(void) const {return m_dbSessionId;}; // retrieve the session's local storage id
 			bool isActive(void) const {return m_active_status;} // return the current status of session
 	};

@@ -44,6 +44,12 @@ namespace lime {
 	struct sBuffer : public std::array<uint8_t, T> {
 			~sBuffer() {cleanBuffer(this->data(), T);}; // zeroise all buffer when done
 	};
+	/****************************************************************/
+	/* auto clean flexible size buffer(uint8_t vector based)        */
+	/****************************************************************/
+	struct sVector : public std::vector<uint8_t> {
+			~sVector() {cleanBuffer(this->data(), this->size());}; // zeroise all buffer when done
+	};
 
 
 	/****************************************************************/

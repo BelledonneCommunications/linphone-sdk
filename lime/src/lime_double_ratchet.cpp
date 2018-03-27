@@ -86,13 +86,13 @@ namespace lime {
 	 * @param[in]	ciphertext	buffer holding: header<size depends on DHKey type> || ciphertext || auth tag<16 bytes>
 	 * @param[in]	headerSize	Size of the header included in ciphertext
 	 * @param[in]	AD		Associated data
-	 * @param[out]	plaintext	the output message : a fixed size vector, encrypted message is the random seed used to generate the key to encrypt the real message
-	 *				this vector need resizing before calling actual decrypt
+	 * @param[out]	plaintext	the output message : a vector resized to hold the plaintext.
 	 *
 	 * @return false if authentication failed
 	 *
 	 */
-	static bool decrypt(const lime::DRMKey &MK, const std::vector<uint8_t> &ciphertext, const size_t headerSize, std::vector<uint8_t> &AD, std::array<uint8_t, lime::settings::DRrandomSeedSize> &plaintext) {
+	static bool decrypt(const lime::DRMKey &MK, const std::vector<uint8_t> &ciphertext, const size_t headerSize, std::vector<uint8_t> &AD, std::vector<uint8_t> &plaintext) {
+		plaintext.resize(ciphertext.size() - headerSize - lime::settings::DRMessageAuthTagSize); // size of plaintext is: cipher - header - authentication tag
 		return AEAD_decrypt<AES256GCM>(MK.data(), lime::settings::DRMessageKeySize, // MK buffer hold key<DRMessageKeySize bytes>||IV<DRMessageIVSize bytes>
 					MK.data()+lime::settings::DRMessageKeySize, lime::settings::DRMessageIVSize,
 					ciphertext.data()+headerSize, plaintext.size(), // cipher text starts after header, length is the one computed for plaintext
@@ -105,7 +105,7 @@ namespace lime {
 	 * @brief Encrypt as described is spec section 3.1
 	 *
 	 * @param[in]		MK		A buffer holding key<32 bytes> || IV<16 bytes>
-	 * @param[in]		plaintext	the input message, it is a fixed size vector as we always encrypt the random seed only
+	 * @param[in]		plaintext	the input message
 	 * @param[in]		AD		Associated data
 	 * @param[in]		headerSize	Size of the header included in ciphertext
 	 * @param[in/out]	ciphertext	buffer holding: header<size depends on DHKey type>, will append to it: ciphertext || auth tag<16 bytes>
@@ -114,7 +114,7 @@ namespace lime {
 	 * @return false if something goes wrong
 	 *
 	 */
-	static void encrypt(const lime::DRMKey &MK, const std::array<uint8_t,lime::settings::DRrandomSeedSize> &plaintext, const size_t headerSize, std::vector<uint8_t> &AD, std::vector<uint8_t> &ciphertext) {
+	static void encrypt(const lime::DRMKey &MK, const std::vector<uint8_t> &plaintext, const size_t headerSize, std::vector<uint8_t> &AD, std::vector<uint8_t> &ciphertext) {
 
 		AEAD_encrypt<AES256GCM>(MK.data(), lime::settings::DRMessageKeySize, // MK buffer also hold the IV
 				MK.data()+lime::settings::DRMessageKeySize, lime::settings::DRMessageIVSize, // IV is stored in the same buffer as key, after it
@@ -283,12 +283,12 @@ namespace lime {
 	/**
 	 * @brief Encrypt using the double-ratchet algorithm.
 	 *
-	 * @param[in]	plaintext	Shall actally be a 32 bytes buffer holding the seed used to generate key+IV for a GCM encryption to the actual message
+	 * @param[in]	plaintext	the input to be encrypted, may actually be a 32 bytes buffer holding the seed used to generate key+IV for a GCM encryption to the actual message
 	 * @param[in]	AD		Associated Data, this buffer shall hold: source GRUU<...> || recipient GRUU<...> || actual message AEAD auth tag
 	 * @param[out]	ciphertext	buffer holding the header, cipher text and auth tag, shall contain the key and IV used to cipher the actual message, auth tag applies on AD || header
 	 */
 	template <typename Curve>
-	void DR<Curve>::ratchetEncrypt(const array<uint8_t, lime::settings::DRrandomSeedSize>& plaintext, std::vector<uint8_t> &&AD, std::vector<uint8_t> &ciphertext) {
+	void DR<Curve>::ratchetEncrypt(const lime::sVector &plaintext, std::vector<uint8_t> &&AD, std::vector<uint8_t> &ciphertext) {
 		m_dirty = DRSessionDbStatus::dirty_encrypt; // we're about to modify this session, it won't be in sync anymore with local storage
 		// chain key derivation(also compute message key)
 		DRMKey MK;
@@ -326,7 +326,7 @@ namespace lime {
 	 * 
 	 */
 	template <typename Curve>
-	bool DR<Curve>::ratchetDecrypt(const std::vector<uint8_t> &ciphertext,const std::vector<uint8_t> &AD, array<uint8_t,lime::settings::DRrandomSeedSize> &plaintext) {
+	bool DR<Curve>::ratchetDecrypt(const std::vector<uint8_t> &ciphertext,const std::vector<uint8_t> &AD, lime::sVector &plaintext) {
 		// parse header
 		double_ratchet_protocol::DRHeader<Curve> header{ciphertext};
 		if (!header.valid()) { // check it is valid otherwise just stop
@@ -404,7 +404,8 @@ namespace lime {
 		// First generate a key and IV, use it to encrypt the given message, Associated Data are : sourceDeviceId || recipientUserId
 		// generate the random seed
 		auto RNG_context = make_RNG();
-		lime::sBuffer<lime::settings::DRrandomSeedSize> randomSeed{}; // this seed is sent in DR message and used to derivate random key + IV to encrypt the actual message
+		lime::sVector randomSeed{}; // this seed is sent in DR message and used to derivate random key + IV to encrypt the actual message
+		randomSeed.resize(lime::settings::DRrandomSeedSize);
 		RNG_context->randomize(randomSeed.data(), randomSeed.size());
 
 		// expansion of randomSeed to 48 bytes: 32 bytes random key + 16 bytes nonce, use HKDF with empty salt
@@ -453,12 +454,12 @@ namespace lime {
 		AD.insert(AD.end(), recipientDeviceId.cbegin(), recipientDeviceId.cend());
 
 		// buffer to store the random seed used to derive key and IV to decrypt message
-		lime::sBuffer<lime::settings::DRrandomSeedSize> randomSeed{};
+		lime::sVector randomSeed{};
 
 		for (auto& DRSession : DRSessions) {
 			bool decryptStatus = false;
 			try {
-				decryptStatus = DRSession->ratchetDecrypt(cipherHeader, AD, randomSeed);
+				decryptStatus = DRSession->ratchetDecrypt(cipherHeader, AD, randomSeed); // ratchetDecrypt will resize randomSeed to correct length
 			} catch (BctbxException &e) { // any bctbx Exception is just considered as decryption failed (it shall occurs only in case of maximum skipped keys reached)
 				LIME_LOGW<<"Double Ratchet session failed to decrypt message and raised an exception saying : "<<e.what();
 				decryptStatus = false; // lets keep trying with other sessions if provided
