@@ -1216,6 +1216,48 @@ static void _bctbx_addrinfo_to_ip_address_error(int err, char *ip, size_t ip_siz
 	strncpy(ip, "<bug!!>", ip_size);
 }
 
+struct addrinfo* bctbx_addrinfo_sort(struct addrinfo *ais) {
+	bctbx_list_t* v6 = NULL;
+	bctbx_list_t* v4_mapped = NULL;
+	bctbx_list_t* v4 = NULL;
+	struct addrinfo* res0 = NULL;
+	struct addrinfo* res = NULL;
+	
+	//sort by type
+	for (struct addrinfo* ai = ais; ai != NULL;  ) {
+		struct addrinfo* next = ai->ai_next;
+		struct sockaddr_in6 *sock_in6 = (struct sockaddr_in6 *)ai->ai_addr;
+		if (ai->ai_family == AF_INET6) {
+			if (IN6_IS_ADDR_V4MAPPED(&sock_in6->sin6_addr)) {
+				v4_mapped = bctbx_list_prepend(v4_mapped, ai);
+			} else {
+				v6 = bctbx_list_prepend(v6, ai);
+			}
+		} else {
+				v4 = bctbx_list_prepend(v4, ai);
+		}
+		
+		ai->ai_next = NULL ;
+		ai = next;
+	}
+	v6 = bctbx_list_concat(v6, v4_mapped);
+	v6 = bctbx_list_concat(v6, v4);
+	
+	for (bctbx_list_t *it = v6; it != NULL; it = it->next) {
+		if (res0 == NULL) {
+			res0 = res = (struct addrinfo*)it->data;
+		} else {
+			res->ai_next = (struct addrinfo*)it->data;
+			res = res->ai_next;
+ 		}
+	}
+	if (res)
+		res->ai_next = NULL;
+	
+	bctbx_list_free(v6);
+	
+	return res0;
+}
 int bctbx_addrinfo_to_ip_address(const struct addrinfo *ai, char *ip, size_t ip_size, int *port){
 	char serv[16];
 	int err=bctbx_getnameinfo(ai->ai_addr,(socklen_t)ai->ai_addrlen,ip,(socklen_t)ip_size,serv,(socklen_t)sizeof(serv),NI_NUMERICHOST|NI_NUMERICSERV);
@@ -1279,6 +1321,10 @@ static struct addrinfo * _bctbx_name_to_addrinfo(int family, int socktype, const
 			bctbx_error("%s(%s): getaddrinfo failed: %s",__FUNCTION__, ipaddress, gai_strerror(err));
 		return NULL;
 	}
+	//sort result
+	if (res)
+		res = bctbx_addrinfo_sort(res);
+	
 	return res;
 }
 

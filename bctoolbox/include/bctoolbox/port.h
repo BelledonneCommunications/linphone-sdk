@@ -459,6 +459,14 @@ BCTBX_PUBLIC int bctbx_addrinfo_to_printable_ip_address(const struct addrinfo *a
 BCTBX_PUBLIC int bctbx_sockaddr_to_ip_address(const struct sockaddr *sa, socklen_t salen, char *ip, size_t ip_size, int *port);
 BCTBX_PUBLIC int bctbx_sockaddr_to_printable_ip_address(struct sockaddr *sa, socklen_t salen, char *printable_ip, size_t printable_ip_size);
 
+/** Sort a list of addrinfo with the following rules:
+ -IPV6 including NAT64.
+ -V4 MAPPED IPV6.
+ -V4.
+**/
+BCTBX_PUBLIC struct addrinfo *bctbx_addrinfo_sort(struct addrinfo *ai);
+	
+
 /**
  * Convert a numeric ip address and port into an addrinfo, whose family will be as specified in the first argument.
  * If AF_INET6 is requested, the returned addrinfo will always be an IPv6 address, possibly V4MAPPED if the
