@@ -1186,6 +1186,7 @@ MS2_PUBLIC VideoPreview * video_preview_new(MSFactory *factory);
 #define video_preview_set_device_rotation(p, r) video_stream_set_device_rotation(p, r)
 MS2_PUBLIC void video_preview_start(VideoPreview *stream, MSWebCam *device);
 MS2_PUBLIC void video_preview_enable_qrcode(VideoPreview *stream, bool_t enable);
+MS2_PUBLIC bool_t video_preview_qrcode_enabled(VideoPreview *stream);
 MS2_PUBLIC MSVideoSize video_preview_get_current_size(VideoPreview *stream);
 MS2_PUBLIC void video_preview_stop(VideoPreview *stream);
 MS2_PUBLIC void video_preview_change_camera(VideoPreview *stream, MSWebCam *cam);

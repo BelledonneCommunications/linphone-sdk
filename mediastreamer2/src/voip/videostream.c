@@ -60,36 +60,39 @@ void video_stream_free(VideoStream *stream) {
 
 	media_stream_free(&stream->ms);
 
-	if (stream->void_source != NULL)
-		ms_filter_destroy(stream->void_source);
-	if (stream->source != NULL)
-		ms_filter_destroy (stream->source);
-	if (stream->output != NULL)
-		ms_filter_destroy (stream->output);
-	if (stream->sizeconv != NULL)
-		ms_filter_destroy (stream->sizeconv);
-	if (stream->pixconv!=NULL)
-		ms_filter_destroy(stream->pixconv);
-	if (stream->tee!=NULL)
-		ms_filter_destroy(stream->tee);
-	if (stream->tee2!=NULL)
-		ms_filter_destroy(stream->tee2);
-	if (stream->jpegwriter!=NULL)
+	if (stream->jpegwriter)
 		ms_filter_destroy(stream->jpegwriter);
-	if (stream->output2!=NULL)
-		ms_filter_destroy(stream->output2);
-	if (stream->tee3)
-		ms_filter_destroy(stream->tee3);
-	if (stream->recorder_output)
-		ms_filter_destroy(stream->recorder_output);
 	if (stream->local_jpegwriter)
 		ms_filter_destroy(stream->local_jpegwriter);
+	if (stream->output)
+		ms_filter_destroy (stream->output);
+	if (stream->output2)
+		ms_filter_destroy(stream->output2);
+	if (stream->pixconv)
+		ms_filter_destroy(stream->pixconv);
+	if (stream->qrcode)
+		ms_filter_destroy(stream->qrcode);
+	if (stream->recorder_output)
+		ms_filter_destroy(stream->recorder_output);
 	if (stream->rtp_io_session)
 		rtp_session_destroy(stream->rtp_io_session);
+	if (stream->sizeconv)
+		ms_filter_destroy (stream->sizeconv);
+	if (stream->source)
+		ms_filter_destroy (stream->source);
+	if (stream->tee)
+		ms_filter_destroy(stream->tee);
+	if (stream->tee2)
+		ms_filter_destroy(stream->tee2);
+	if (stream->tee3)
+		ms_filter_destroy(stream->tee3);
+	if (stream->void_source)
+		ms_filter_destroy(stream->void_source);
 
-	if (stream->display_name!=NULL)
+	if (stream->display_name)
 		ms_free(stream->display_name);
-	if (stream->preset != NULL) ms_free(stream->preset);
+	if (stream->preset)
+		ms_free(stream->preset);
 
 	ms_free(stream);
 }
@@ -1660,6 +1663,8 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device) {
 		stream->qrcode = ms_factory_create_filter(stream->ms.factory, MS_QRCODE_READER_ID);
 		configure_qrcode_filter(stream);
 		ms_connection_helper_link(&ch, stream->qrcode, 0, 0);
+#else
+		ms_error("Can't create qrcode decoder, dependency not enabled.");
 #endif
 	}
 
@@ -1680,6 +1685,10 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device) {
 
 void video_preview_enable_qrcode(VideoPreview *stream, bool_t enable) {
 	stream->enable_qrcode_decoder = enable;
+}
+
+bool_t video_preview_qrcode_enabled(VideoPreview *stream) {
+	return stream->enable_qrcode_decoder;
 }
 
 static MSFilter* _video_preview_stop( VideoPreview* stream, bool_t keep_source) {

@@ -52,6 +52,7 @@ set(HEADER_FILES
 	msjpegwriter.h
 	msogl.h
 	msogl_functions.h
+	msqrcodereader.h
 	msmediaplayer.h
 	msqueue.h
 	msrtp.h

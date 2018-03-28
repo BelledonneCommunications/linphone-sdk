@@ -719,7 +719,6 @@ struct _MSEventQueue *ms_factory_create_event_queue(MSFactory *obj) {
 }
 
 void ms_factory_destroy_event_queue(MSFactory *obj) {
-	if (obj->image_resources_dir) bctbx_free(obj->image_resources_dir);
 	ms_event_queue_destroy(obj->evq);
 	ms_factory_set_event_queue(obj,NULL);
 }
