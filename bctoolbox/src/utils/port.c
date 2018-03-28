@@ -1220,11 +1220,13 @@ struct addrinfo* bctbx_addrinfo_sort(struct addrinfo *ais) {
 	bctbx_list_t* v6 = NULL;
 	bctbx_list_t* v4_mapped = NULL;
 	bctbx_list_t* v4 = NULL;
+	bctbx_list_t *it = NULL;
 	struct addrinfo* res0 = NULL;
 	struct addrinfo* res = NULL;
+	struct addrinfo* ai = NULL;
 	
 	//sort by type
-	for (struct addrinfo* ai = ais; ai != NULL;  ) {
+	for (ai = ais; ai != NULL;  ) {
 		struct addrinfo* next = ai->ai_next;
 		struct sockaddr_in6 *sock_in6 = (struct sockaddr_in6 *)ai->ai_addr;
 		if (ai->ai_family == AF_INET6) {
@@ -1243,7 +1245,7 @@ struct addrinfo* bctbx_addrinfo_sort(struct addrinfo *ais) {
 	v6 = bctbx_list_concat(v6, v4_mapped);
 	v6 = bctbx_list_concat(v6, v4);
 	
-	for (bctbx_list_t *it = v6; it != NULL; it = it->next) {
+	for (it = v6; it != NULL; it = it->next) {
 		if (res0 == NULL) {
 			res0 = res = (struct addrinfo*)it->data;
 		} else {
