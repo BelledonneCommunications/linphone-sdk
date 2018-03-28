@@ -923,15 +923,15 @@ void belle_sip_multipart_body_handler_progress_cb(belle_sip_body_handler_t *obj,
 			}
 			cursor += 2;
 			end_part_cursor = (uint8_t *)strstr((char *)cursor, dash_boundary);
-			if (*(end_part_cursor-1) == '\n' && *(end_part_cursor-2) == '\r') {
-				end_part_cursor-=2; /* delimiter is well formed: delimiter := CRLF dash-boundary */
-				delimiter_contains_crlf = TRUE;
-			}
 			if (end_part_cursor == NULL) {
 				belle_sip_warning("belle_sip_multipart_body_handler [%p]: cannot find next boundary", obj_multipart);
 				belle_sip_free(dash_boundary);
 				return;
 			} else {
+				if (*(end_part_cursor-1) == '\n' && *(end_part_cursor-2) == '\r') {
+					end_part_cursor-=2; /* delimiter is well formed: delimiter := CRLF dash-boundary */
+					delimiter_contains_crlf = TRUE;
+				}
 				*end_part_cursor = 0;
 				end_headers_cursor = (uint8_t *)strstr((char *)cursor, "\r\n\r\n");
 				if (end_headers_cursor == NULL) {
