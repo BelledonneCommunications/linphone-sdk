@@ -23,6 +23,7 @@
 #include "lime_localStorage.hpp"
 
 #include <bctoolbox/tester.h>
+#include <bctoolbox/exception.hh>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -312,11 +313,25 @@ static void dr_long_exchange10(void) {
 #endif
 }
 
-/* Basic exchange alice send a message to bob and he replies so the session is established */
+/* Basic exchange alice send a message to bob and he replies so the session is established
+ *
+ * @param DRsession 		Alice and Bob double ratchet initialized sessions
+ * @param localStorage		Alice and Bob database access pointer
+ * @param filename 		ALice and Bob database string(file path) access
+ * @param message		Alice and Bob message to be encrypted and sent
+ * @param checkEncryptionPolicy if set, perform a check on the encryption policy in emitted DR messages headers
+ * @param setEncryptionPolicy	if set, set the encryption policy when call encryptMessage, otherwise just let it default to optimizeSize
+ * @param getEncryptionType	Expected encryptionPolicy for generated DR messages: DRMessage or cipherMessage
+ * @param setEncryptionType	Policy requested, DRMessage, cipherMessage, optimizeSize
+ */
 template <typename Curve>
 static void dr_simple_exchange(std::shared_ptr<DR<Curve>> &DRsessionAlice, std::shared_ptr<DR<Curve>> &DRsessionBob,
 			std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob,
-			std::string &filenameAlice, std::string &filenameBob) {
+			std::string &filenameAlice, std::string &filenameBob,
+			std::string &messageAlice, std::string &messageBob,
+			bool checkEncryptionPolicy, bool setEncryptionPolicy,
+			lime::EncryptionPolicy getEncryptionTypeAlice, lime::EncryptionPolicy getEncryptionTypeBob,
+			lime::EncryptionPolicy setEncryptionTypeAlice, lime::EncryptionPolicy setEncryptionTypeBob) {
 	// create sessions: alice sender, bob receiver
 	lime_tester::dr_sessionsInit(DRsessionAlice, DRsessionBob, localStorageAlice, localStorageBob, filenameAlice, filenameBob, true, RNG_context);
 	std::vector<uint8_t> aliceCipher, bobCipher;
@@ -324,8 +339,22 @@ static void dr_simple_exchange(std::shared_ptr<DR<Curve>> &DRsessionAlice, std::
 	// alice encrypt a message
 	std::vector<recipientInfos<Curve>> recipients;
 	recipients.emplace_back("bob",DRsessionAlice);
-	std::vector<uint8_t> plaintextAlice{lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end()};
-	encryptMessage(recipients, plaintextAlice, "bob", "alice", aliceCipher);
+	std::vector<uint8_t> plaintextAlice{messageAlice.begin(), messageAlice.end()};
+	if (setEncryptionPolicy) {
+		encryptMessage(recipients, plaintextAlice, "bob", "alice", aliceCipher, setEncryptionTypeAlice);
+	} else {
+		encryptMessage(recipients, plaintextAlice, "bob", "alice", aliceCipher);
+	}
+
+	if (checkEncryptionPolicy) {
+		bool is_directEncryptionType = lime_tester::DR_message_payloadDirectEncrypt(recipients[0].cipherHeader);
+		if (getEncryptionTypeAlice == lime::EncryptionPolicy::DRMessage) {
+			BC_ASSERT_TRUE(is_directEncryptionType);
+			BC_ASSERT_EQUAL(aliceCipher.size(), 0, size_t, "%ld"); // in direct Encryption mode, cipherMessage is empty
+		} else {
+			BC_ASSERT_FALSE(is_directEncryptionType);
+		}
+	}
 
 	// bob decrypt it
 	std::vector<shared_ptr<DR<Curve>>> recipientDRSessions{};
@@ -335,13 +364,27 @@ static void dr_simple_exchange(std::shared_ptr<DR<Curve>> &DRsessionAlice, std::
 	std::string plainMessageBob{plainBuffer.begin(), plainBuffer.end()};
 
 	// same same?
-	BC_ASSERT_TRUE(plainMessageBob==lime_tester::messages_pattern[0]);
+	BC_ASSERT_TRUE(plainMessageBob==messageAlice);
 
 	// bob replies
 	recipients.clear();
 	recipients.emplace_back("alice",DRsessionBob);
-	std::vector<uint8_t> plaintextBob{lime_tester::messages_pattern[1].begin(), lime_tester::messages_pattern[1].end()};
-	encryptMessage(recipients, plaintextBob, "alice", "bob", bobCipher);
+	std::vector<uint8_t> plaintextBob{messageBob.begin(), messageBob.end()};
+	if (setEncryptionPolicy) {
+		encryptMessage(recipients, plaintextBob, "alice", "bob", bobCipher, setEncryptionTypeBob);
+	} else {
+		encryptMessage(recipients, plaintextBob, "alice", "bob", bobCipher);
+	}
+
+	if (checkEncryptionPolicy) { // we must check Bob encryption type
+		bool is_directEncryptionType = lime_tester::DR_message_payloadDirectEncrypt(recipients[0].cipherHeader);
+		if (getEncryptionTypeBob == lime::EncryptionPolicy::DRMessage) {
+			BC_ASSERT_TRUE(is_directEncryptionType);
+			BC_ASSERT_EQUAL(bobCipher.size(), 0, size_t, "%ld"); // in direct Encryption mode, cipherMessage is empty
+		} else {
+			BC_ASSERT_FALSE(is_directEncryptionType);
+		}
+	}
 
 	// alice decrypt it
 	recipientDRSessions.clear();
@@ -351,8 +394,22 @@ static void dr_simple_exchange(std::shared_ptr<DR<Curve>> &DRsessionAlice, std::
 	std::string plainMessageAlice{plainBuffer.begin(), plainBuffer.end()};
 
 	// same same?
-	BC_ASSERT_TRUE(plainMessageAlice==lime_tester::messages_pattern[1]);
+	BC_ASSERT_TRUE(plainMessageAlice==messageBob);
 
+}
+
+template <typename Curve>
+static void dr_simple_exchange(std::shared_ptr<DR<Curve>> &DRsessionAlice, std::shared_ptr<DR<Curve>> &DRsessionBob,
+			std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob,
+			std::string &filenameAlice, std::string &filenameBob) {
+
+	dr_simple_exchange(DRsessionAlice, DRsessionBob,
+			localStorageAlice, localStorageBob,
+			filenameAlice, filenameBob,
+			lime_tester::messages_pattern[0], lime_tester::messages_pattern[1], // default: use messages_pattern 0 and 1
+			false, false, // do not check or set encryption policy
+			lime::EncryptionPolicy::DRMessage, lime::EncryptionPolicy::DRMessage, //useless as we are not checking anything
+			lime::EncryptionPolicy::DRMessage, lime::EncryptionPolicy::DRMessage); // useless as we are not setting anything
 }
 
 /* alice send a message to bob, and he replies */
@@ -388,7 +445,10 @@ static void dr_basic(void) {
 
 /* alice send a message to bob, and he replies. Both users have 3 devices */
 template <typename Curve>
-static void dr_multidevice_basic_test(std::string db_filename) {
+static void dr_multidevice_exchange(std::string db_filename,
+		std::string &message,
+		bool checkEncryptionPolicy, bool setEncryptionPolicy,
+		lime::EncryptionPolicy getEncryptionType, lime::EncryptionPolicy setEncryptionType) {
 	/* we have 2 users "alice" and "bob" with 3 devices each */
 	std::vector<std::string> usernames{"alice", "bob"};
 	std::vector<std::vector<std::vector<std::vector<lime_tester::sessionDetails<Curve>>>>> users;
@@ -419,9 +479,23 @@ static void dr_multidevice_basic_test(std::string db_filename) {
 	sourceId.append("@").append(to_string(0)); // source deviceId shall be alice@0
 	std::vector<std::vector<uint8_t>> cipherHeader;
 	std::vector<uint8_t> cipherMessage;
-	std::vector<uint8_t> plaintext{lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end()};
+	std::vector<uint8_t> plaintext{message.begin(), message.end()};
 
-	encryptMessage(recipients, plaintext, usernames[1], sourceId, cipherMessage);
+	if (setEncryptionPolicy) {
+		encryptMessage(recipients, plaintext, usernames[1], sourceId, cipherMessage, setEncryptionType);
+	} else {
+		encryptMessage(recipients, plaintext, usernames[1], sourceId, cipherMessage);
+	}
+
+	if (checkEncryptionPolicy) { // we must check encryption type
+		bool is_directEncryptionType = lime_tester::DR_message_payloadDirectEncrypt(recipients[0].cipherHeader); // check on recipients[0], they shall all be the same
+		if (getEncryptionType == lime::EncryptionPolicy::DRMessage) {
+			BC_ASSERT_TRUE(is_directEncryptionType);
+			BC_ASSERT_EQUAL(cipherMessage.size(), 0, size_t, "%ld"); // in direct Encryption mode, cipherMessage is empty
+		} else {
+			BC_ASSERT_FALSE(is_directEncryptionType);
+		}
+	}
 
 	// Now try decrypt the messages received on every device
 	// pop the headers from front in recipients so loop on the exact same order as when building it
@@ -434,12 +508,12 @@ static void dr_multidevice_basic_test(std::string db_filename) {
 				recipientDRSessions.push_back(users[u][d][0][0].DRSession); // we are u,d receiving from 0,0
 
 				std::vector<uint8_t> plaintext_back;
-				decryptMessage(sourceId, recipient.deviceId, usernames[1], recipientDRSessions, recipient.cipherHeader, cipherMessage, plaintext_back); // recipient id is username 1
+				BC_ASSERT_TRUE(decryptMessage(sourceId, recipient.deviceId, usernames[1], recipientDRSessions, recipient.cipherHeader, cipherMessage, plaintext_back) != nullptr); // recipient id is username 1
 
 				// convert back the output vector to a string
 				std::string plaintext_back_string{plaintext_back.begin(), plaintext_back.end()};
 
-				BC_ASSERT_TRUE(plaintext_back_string==lime_tester::messages_pattern[0]);
+				BC_ASSERT_TRUE(plaintext_back_string==message);
 
 				recipients.erase(recipients.begin());
 			}
@@ -453,6 +527,13 @@ static void dr_multidevice_basic_test(std::string db_filename) {
 	}
 }
 
+template <typename Curve>
+static void dr_multidevice_basic_test(std::string db_filename) {
+	dr_multidevice_exchange<Curve>(db_filename,
+			lime_tester::messages_pattern[0],
+			false, false, // do not check, do not set encryption policy
+			lime::EncryptionPolicy::optimizeSize, lime::EncryptionPolicy::optimizeSize); // default but useless setting
+}
 static void dr_multidevice_basic(void) {
 #ifdef EC25519_ENABLED
 	dr_multidevice_basic_test<C255>("dr_multidevice_basic_C25519");
@@ -582,6 +663,223 @@ static void dr_skip_too_much(void) {
 #endif
 }
 
+/* alice send a message to bob, and he replies */
+template <typename Curve>
+static void dr_encryptionType_basic_test(std::string db_filename) {
+	std::shared_ptr<DR<Curve>> alice, bob;
+	std::shared_ptr<lime::Db> localStorageAlice, localStorageBob;
+	std::string aliceFilename(db_filename);
+	std::string bobFilename(db_filename);
+	aliceFilename.append(".alice.sqlite3");
+	bobFilename.append(".bob.sqlite3");
+
+	// remove temporary db file if they are here
+	remove(aliceFilename.data());
+	remove(bobFilename.data());
+
+	std::string aliceShortMessage{"Alice message is short"};
+	std::string bobShortMessage{"Bob message is short"};
+
+	std::string aliceLongMessage{"Alice message is long enough to trigger automatic switch to cipher message mode when enough recipients are involved and we are in default mode"};
+	std::string bobLongMessage{"Bob message is long enough to trigger automatic switch to cipher message mode when enough recipients are involved and we are in default mode"};
+
+	/* short message, default policy -> direct encryption(we have only one recipient)*/
+	dr_simple_exchange(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename, aliceShortMessage, bobShortMessage,
+			true, false, // check result but do not set policy
+			lime::EncryptionPolicy::DRMessage, lime::EncryptionPolicy::DRMessage, // we expect direct message encryption when we have only one recipient
+			lime::EncryptionPolicy::optimizeSize, lime::EncryptionPolicy::optimizeSize); // and we keep the default behavior
+
+	/* long message, default policy -> direct encryption(we have only one recipient)*/
+	dr_simple_exchange(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename, aliceLongMessage, bobLongMessage,
+			true, false, // check result but do not set policy
+			lime::EncryptionPolicy::DRMessage, lime::EncryptionPolicy::DRMessage, // we expect direct message encryption as we have only one recipient even if the message is long
+			lime::EncryptionPolicy::optimizeSize, lime::EncryptionPolicy::optimizeSize); // and we keep the default behavior
+
+	/* short message, force optimizeSize policy -> direct encryption(we have only one recipient)*/
+	dr_simple_exchange(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename, aliceShortMessage, bobShortMessage,
+			true, true, // check result but do not set policy
+			lime::EncryptionPolicy::DRMessage, lime::EncryptionPolicy::DRMessage, // we expect direct message encryption when we have only one recipient
+			lime::EncryptionPolicy::optimizeSize, lime::EncryptionPolicy::optimizeSize); // and force optimizeSize
+
+	/* long message, force optimizeSize policy -> direct encryption(we have only one recipient)*/
+	dr_simple_exchange(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename, aliceLongMessage, bobLongMessage,
+			true, true, // check result but do not set policy
+			lime::EncryptionPolicy::DRMessage, lime::EncryptionPolicy::DRMessage, // we expect direct message encryption as we have only one recipient even if the message is long
+			lime::EncryptionPolicy::optimizeSize, lime::EncryptionPolicy::optimizeSize); // and force optimizeSize
+
+	/* short message, force cipher Message policy -> cipher Message encryption */
+	dr_simple_exchange(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename, aliceShortMessage, bobShortMessage,
+			true, true, // check result and set policy
+			lime::EncryptionPolicy::cipherMessage, lime::EncryptionPolicy::cipherMessage, // we expect cipher message encryption
+			lime::EncryptionPolicy::cipherMessage, lime::EncryptionPolicy::cipherMessage); // when we force it
+
+	/* long message, force cipher Message policy -> cipher Message encryption */
+	dr_simple_exchange(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename, aliceLongMessage, bobLongMessage,
+			true, true, // check result and set policy
+			lime::EncryptionPolicy::cipherMessage, lime::EncryptionPolicy::cipherMessage, // we expect cipher message encryption
+			lime::EncryptionPolicy::cipherMessage, lime::EncryptionPolicy::cipherMessage); // when we force it
+
+	/* short message, force DRMessage policy -> DRMessage encryption */
+	dr_simple_exchange(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename, aliceShortMessage, bobShortMessage,
+			true, true, // check result and set policy
+			lime::EncryptionPolicy::DRMessage, lime::EncryptionPolicy::DRMessage, // we expect DR message encryption
+			lime::EncryptionPolicy::DRMessage, lime::EncryptionPolicy::DRMessage); // when we force it
+
+	/* long message, force DRMessage policy -> DRMessage encryption */
+	dr_simple_exchange(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename, aliceLongMessage, bobLongMessage,
+			true, true, // check result and set policy
+			lime::EncryptionPolicy::DRMessage, lime::EncryptionPolicy::DRMessage, // we expect DR message encryption
+			lime::EncryptionPolicy::DRMessage, lime::EncryptionPolicy::DRMessage); // when we force it
+
+	if (cleanDatabase) {
+		remove(aliceFilename.data());
+		remove(bobFilename.data());
+	}
+}
+
+static void dr_encryptionType_basic(void) {
+#ifdef EC25519_ENABLED
+	dr_encryptionType_basic_test<C255>("dr_encryptionType_X25519");
+#endif
+#ifdef EC448_ENABLED
+	dr_encryptionType_basic_test<C448>("dr_encryptionType_X448");
+#endif
+}
+
+template <typename Curve>
+static void dr_encryptionType_multidevice_test(std::string db_filename) {
+	std::string shortMessage{"This message is short"};
+	std::string longMessage{"This message is long enough to trigger automatic switch to cipher message mode when several recipients are involved and we are in default mode"};
+
+	/* short message, default policy -> direct encryption(even if we have more thant one recipient) */
+	dr_multidevice_exchange<Curve>(db_filename,
+			shortMessage,
+			true, false, // check message but use default encryption policy
+			lime::EncryptionPolicy::DRMessage, // check we have direct encryotion
+			lime::EncryptionPolicy::optimizeSize); // do nothing about payload encryption policy: use default
+
+	/* long message, default policy -> cipher message  encryption(we have more thant one recipient) */
+	dr_multidevice_exchange<Curve>(db_filename,
+			longMessage,
+			true, false, // check message but use default encryption policy
+			lime::EncryptionPolicy::cipherMessage,// check we have cipher message encryption
+			lime::EncryptionPolicy::optimizeSize); // do nothing about payload encryption policy: use default
+
+	/* short message, forced optimizeSize policy(which shall be the default anyway) -> direct encryption(even if we have more thant one recipient) */
+	dr_multidevice_exchange<Curve>(db_filename,
+			shortMessage,
+			true, true, // check message but use default encryption policy
+			lime::EncryptionPolicy::DRMessage, // check we have direct encryotion
+			lime::EncryptionPolicy::optimizeSize); // do nothing about payload encryption policy: use default
+
+	/* long message, forced optimizeSize policy(which shall be the default anyway) -> cipher message  encryption(we have more thant one recipient) */
+	dr_multidevice_exchange<Curve>(db_filename,
+			longMessage,
+			true, true, // check message but use default encryption policy
+			lime::EncryptionPolicy::cipherMessage,// check we have cipher message encryption
+			lime::EncryptionPolicy::optimizeSize); // do nothing about payload encryption policy: use default
+
+	/* short message, forced DRMessage policy -> direct encryption(even if we have more thant one recipient) */
+	dr_multidevice_exchange<Curve>(db_filename,
+			shortMessage,
+			true, true, // check message but use default encryption policy
+			lime::EncryptionPolicy::DRMessage, // check we have direct encryotion
+			lime::EncryptionPolicy::DRMessage); // do nothing about payload encryption policy: use default
+
+	/* long message, forced DRMessage -> direct encryption encryption(we have more thant one recipient) */
+	dr_multidevice_exchange<Curve>(db_filename,
+			longMessage,
+			true, true, // check message but use default encryption policy
+			lime::EncryptionPolicy::DRMessage,// check we have cipher message encryption
+			lime::EncryptionPolicy::DRMessage); // do nothing about payload encryption policy: use default
+
+	/* short message, forced cipherMessage policy -> cipherMessage encryption(even if we have small messages) */
+	dr_multidevice_exchange<Curve>(db_filename,
+			shortMessage,
+			true, true, // check message but use default encryption policy
+			lime::EncryptionPolicy::cipherMessage, // check we have direct encryotion
+			lime::EncryptionPolicy::cipherMessage); // do nothing about payload encryption policy: use default
+
+	/* long message, forced cipherMessage -> cipherMessage encryption encryption */
+	dr_multidevice_exchange<Curve>(db_filename,
+			longMessage,
+			true, true, // check message but use default encryption policy
+			lime::EncryptionPolicy::cipherMessage,// check we have cipher message encryption
+			lime::EncryptionPolicy::cipherMessage); // do nothing about payload encryption policy: use default
+}
+
+static void dr_encryptionType_multidevice(void) {
+#ifdef EC25519_ENABLED
+	dr_encryptionType_multidevice_test<C255>("dr_encryptionType_multidevice_C25519");
+#endif
+#ifdef EC448_ENABLED
+	dr_encryptionType_multidevice_test<C448>("dr_encryptionType_multidevice_C448");
+#endif
+}
+/* Alice send a encrypt a message to Bob, with forced encryption policy but the cipher message is deleted
+ * expect an exeption
+ *
+ * @param DRsession 		Alice and Bob double ratchet initialized sessions
+ * @param localStorage		Alice and Bob database access pointer
+ * @param filename 		ALice and Bob database string(file path) access
+ * @param message		Alice and Bob message to be encrypted and sent
+ * @param setEncryptionType	DRMessage or cipherMessage
+ */
+template <typename Curve>
+static void dr_encryptionType_error_test(std::string db_filename, lime::EncryptionPolicy encryptionPolicy) {
+	std::shared_ptr<DR<Curve>> DRsessionAlice, DRsessionBob;
+	std::shared_ptr<lime::Db> localStorageAlice, localStorageBob;
+	std::string aliceFilename(db_filename);
+	std::string bobFilename(db_filename);
+	aliceFilename.append(".alice.sqlite3");
+	bobFilename.append(".bob.sqlite3");
+
+	// create sessions: alice sender, bob receiver
+	lime_tester::dr_sessionsInit(DRsessionAlice, DRsessionBob, localStorageAlice, localStorageBob, aliceFilename, bobFilename, true, RNG_context);
+	std::vector<uint8_t> aliceCipher, bobCipher;
+
+	// alice encrypt a message
+	std::vector<recipientInfos<Curve>> recipients;
+	recipients.emplace_back("bob",DRsessionAlice);
+	std::vector<uint8_t> plaintextAlice{lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end()};
+	encryptMessage(recipients, plaintextAlice, "bob", "alice", aliceCipher, encryptionPolicy);
+
+	if (encryptionPolicy == lime::EncryptionPolicy::cipherMessage) { // we shall have a cipherMessage, delete it
+		BC_ASSERT_TRUE(aliceCipher.size() > 0);
+		aliceCipher.clear();
+	}
+
+	if (encryptionPolicy == lime::EncryptionPolicy::DRMessage) { // we shall not have a cipherMessage, create one
+		BC_ASSERT_TRUE(aliceCipher.size() == 0);
+		aliceCipher.resize(32, 0xaa); // just create a 0xaa filled buffer, its presence shall prevent the perferctly correct message to be decrypted
+	}
+
+	// bob decrypt it
+	std::vector<shared_ptr<DR<Curve>>> recipientDRSessions{};
+	recipientDRSessions.push_back(DRsessionBob);
+	std::vector<uint8_t> plainBuffer{};
+	// the decryption shall fail because
+	// - in cipher Message mode we deleted the cipherMessage(we will not just decipher the random key and pass it as output)
+	// - in DRMessage mode we created a dummy cipher Message and its presence will cogflict with flag in the message header leading to cancelling the decryption
+	BC_ASSERT_TRUE(decryptMessage("alice", "bob", "bob", recipientDRSessions, recipients[0].cipherHeader, aliceCipher, plainBuffer) == nullptr);
+
+	if (cleanDatabase) {
+		remove(aliceFilename.data());
+		remove(bobFilename.data());
+	}
+}
+
+static void dr_encryptionType_error(void) {
+#ifdef EC25519_ENABLED
+	dr_encryptionType_error_test<C255>("dr_encryptionType_error_C25519", lime::EncryptionPolicy::cipherMessage);
+	dr_encryptionType_error_test<C255>("dr_encryptionType_error_C25519", lime::EncryptionPolicy::DRMessage);
+#endif
+#ifdef EC448_ENABLED
+	dr_encryptionType_error_test<C448>("dr_encryptionType_error_C448", lime::EncryptionPolicy::cipherMessage);
+	dr_encryptionType_error_test<C448>("dr_encryptionType_error_C448", lime::EncryptionPolicy::DRMessage);
+#endif
+}
+
 static test_t tests[] = {
 	TEST_NO_TAG("Basic", dr_basic),
 	TEST_NO_TAG("Long Exchange 1", dr_long_exchange1),
@@ -590,6 +888,9 @@ static test_t tests[] = {
 	TEST_NO_TAG("Skip message", dr_skippedMessages_basic),
 	TEST_NO_TAG("Multidevices", dr_multidevice_basic),
 	TEST_NO_TAG("Skip more messages than limit", dr_skip_too_much),
+	TEST_NO_TAG("Encryption Type basic", dr_encryptionType_basic),
+	TEST_NO_TAG("Encryption Type multidevice", dr_encryptionType_multidevice),
+	TEST_NO_TAG("Wrong Encryption Type", dr_encryptionType_error),
 };
 
 test_suite_t lime_double_ratchet_test_suite = {

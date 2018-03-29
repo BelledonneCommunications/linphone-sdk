@@ -283,19 +283,20 @@ namespace lime {
 	/**
 	 * @brief Encrypt using the double-ratchet algorithm.
 	 *
-	 * @param[in]	plaintext	the input to be encrypted, may actually be a 32 bytes buffer holding the seed used to generate key+IV for a GCM encryption to the actual message
-	 * @param[in]	AD		Associated Data, this buffer shall hold: source GRUU<...> || recipient GRUU<...> || actual message AEAD auth tag
-	 * @param[out]	ciphertext	buffer holding the header, cipher text and auth tag, shall contain the key and IV used to cipher the actual message, auth tag applies on AD || header
+	 * @param[in]	plaintext			the input to be encrypted, may actually be a 32 bytes buffer holding the seed used to generate key+IV for a GCM encryption to the actual message
+	 * @param[in]	AD				Associated Data, this buffer shall hold: source GRUU<...> || recipient GRUU<...> || [ actual message AEAD auth tag OR recipient User Id]
+	 * @param[out]	ciphertext			buffer holding the header, cipher text and auth tag, shall contain the key and IV used to cipher the actual message, auth tag applies on AD || header
+	 * @param[in]	payloadDirectEncryption		A flag to set in message header: set when having payload in the DR message
 	 */
 	template <typename Curve>
-	void DR<Curve>::ratchetEncrypt(const lime::sVector &plaintext, std::vector<uint8_t> &&AD, std::vector<uint8_t> &ciphertext) {
+	void DR<Curve>::ratchetEncrypt(const std::vector<uint8_t> &plaintext, std::vector<uint8_t> &&AD, std::vector<uint8_t> &ciphertext, const bool payloadDirectEncryption) {
 		m_dirty = DRSessionDbStatus::dirty_encrypt; // we're about to modify this session, it won't be in sync anymore with local storage
 		// chain key derivation(also compute message key)
 		DRMKey MK;
 		KDF_CK(m_CKs, MK);
 
 		// build header string in the ciphertext buffer
-		double_ratchet_protocol::buildMessage_header(ciphertext, m_Ns, m_PN, m_DHs.publicKey(), m_X3DH_initMessage);
+		double_ratchet_protocol::buildMessage_header(ciphertext, m_Ns, m_PN, m_DHs.publicKey(), m_X3DH_initMessage, payloadDirectEncryption);
 		auto headerSize = ciphertext.size(); // cipher text holds only the DR header for now
 
 		// increment current sending chain message index
@@ -323,21 +324,31 @@ namespace lime {
 
 	/**
 	 * @brief Decrypt Double Ratchet message
-	 * 
+	 *
+	 * @param[in]	ciphertext			Input to be decrypted, is likely to be a 32 bytes vector holding the crypted version of a random seed
+	 * @param[in]	AD				Associated data authenticated along the encryption (initial session AD and DR message header are append to it)
+	 * @param[out]	plaintext			Decrypted output
+	 * @param[in]	payloadDirectEncryption		A flag to enforce checking on message type: when set we expect to get payload in the message(so message header matching flag must be set)
+	 *
+	 * @return	true on success
 	 */
 	template <typename Curve>
-	bool DR<Curve>::ratchetDecrypt(const std::vector<uint8_t> &ciphertext,const std::vector<uint8_t> &AD, lime::sVector &plaintext) {
+	bool DR<Curve>::ratchetDecrypt(const std::vector<uint8_t> &ciphertext,const std::vector<uint8_t> &AD, std::vector<uint8_t> &plaintext, const bool payloadDirectEncryption) {
 		// parse header
 		double_ratchet_protocol::DRHeader<Curve> header{ciphertext};
 		if (!header.valid()) { // check it is valid otherwise just stop
 			throw BCTBX_EXCEPTION << "DR Session got an invalid message header";
 		}
 
+		// check the header match what we are expecting in the message: actual payload or random seed(it shall be set in the message header)
+		if (payloadDirectEncryption != header.payloadDirectEncryption()) {
+			throw BCTBX_EXCEPTION << "DR packet header direct encryption flag ("<<(header.payloadDirectEncryption()?"true":"false")<<") not in sync with caller request("<<(payloadDirectEncryption?"true":"false")<<")";
+		}
+
 		// build an Associated Data buffer: given AD || shared AD stored in session || header (as in DR spec section 3.4)
 		std::vector<uint8_t> DRAD{AD}; // copy given AD
 		DRAD.insert(DRAD.end(), m_sharedAD.cbegin(), m_sharedAD.cend());
 		DRAD.insert(DRAD.end(), ciphertext.cbegin(), ciphertext.cbegin()+header.size());
-
 
 		DRMKey MK;
 		int maxAllowedDerivation = lime::settings::maxMessageSkip;
@@ -400,56 +411,108 @@ namespace lime {
 #endif
 
 	template <typename Curve>
-	void encryptMessage(std::vector<recipientInfos<Curve>>& recipients, const std::vector<uint8_t>& plaintext, const std::string& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage) {
-		// First generate a key and IV, use it to encrypt the given message, Associated Data are : sourceDeviceId || recipientUserId
-		// generate the random seed
-		auto RNG_context = make_RNG();
+	void encryptMessage(std::vector<recipientInfos<Curve>>& recipients, const std::vector<uint8_t>& plaintext, const std::string& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage, const lime::EncryptionPolicy encryptionPolicy) {
+		// Shall we set the payload in the DR message or in a separate cupher message buffer?
+		bool payloadDirectEncryption;
+		switch (encryptionPolicy) {
+			case lime::EncryptionPolicy::DRMessage:
+				payloadDirectEncryption = true;
+				break;
+
+			case lime::EncryptionPolicy::cipherMessage:
+				payloadDirectEncryption = false;
+				break;
+
+			case lime::EncryptionPolicy::optimizeSize:
+			default: // to make compiler happy but it shal not be necessary
+				// Default encryption policy : go for the optimal output size. All other parts being equal, size of output data is
+				// - DR message policy:     recipients number * plaintext size (plaintext is present encrypted in each recipient message)
+				// - cipher message policy: plaintext size + authentication tag size (the cipher message) + recipients number * random seed size (each DR message holds the random seed as encrypted data)
+				if ( recipients.size()*plaintext.size() <= (plaintext.size() + lime::settings::DRMessageAuthTagSize + (lime::settings::DRrandomSeedSize*recipients.size())) ) {
+					payloadDirectEncryption = true;
+				} else {
+					payloadDirectEncryption = false;
+				}
+				break;
+		}
+
+		/* associated data authenticated by the AEAD scheme used by double ratchet encrypt/decrypt
+		 * - Payload in the cipherMessage: auth tag from cipherMessage || source Device Id || recipient Device Id
+		 * - Payload in the DR message: recipient User Id || source Device Id || recipient Device Id
+		 *   This buffer will store the part common to all recipients and the recipient Device Is is appended when looping on all recipients performing DR encrypt
+		 */
+		std::vector<uint8_t> AD{};
+
+		// used only when payload is not in the DR message
 		lime::sVector randomSeed{}; // this seed is sent in DR message and used to derivate random key + IV to encrypt the actual message
-		randomSeed.resize(lime::settings::DRrandomSeedSize);
-		RNG_context->randomize(randomSeed.data(), randomSeed.size());
 
-		// expansion of randomSeed to 48 bytes: 32 bytes random key + 16 bytes nonce, use HKDF with empty salt
-		std::vector<uint8_t> emptySalt{};
-		emptySalt.clear();
-		lime::sBuffer<lime::settings::DRMessageKeySize+lime::settings::DRMessageIVSize> randomKey{};
-		HMAC_KDF<SHA512>(emptySalt.data(), emptySalt.size(), randomSeed.data(), randomSeed.size(), lime::settings::hkdf_randomSeed_info, randomKey.data(), randomKey.size());
+		if (!payloadDirectEncryption) { // Payload is encrypted in a separate cipher message buffer while the key used to encrypt it is in the DR message
+			// First generate a key and IV, use it to encrypt the given message, Associated Data are : sourceDeviceId || recipientUserId
+			// generate the random seed
+			auto RNG_context = make_RNG();
+			randomSeed.resize(lime::settings::DRrandomSeedSize);
+			RNG_context->randomize(randomSeed.data(), randomSeed.size());
 
-		// resize cipherMessage vector as it is adressed directly by C library: same as plain message + room for the authentication tag
-		cipherMessage.resize(plaintext.size()+lime::settings::DRMessageAuthTagSize);
+			// expansion of randomSeed to 48 bytes: 32 bytes random key + 16 bytes nonce, use HKDF with empty salt
+			std::vector<uint8_t> emptySalt{};
+			emptySalt.clear();
+			lime::sBuffer<lime::settings::DRMessageKeySize+lime::settings::DRMessageIVSize> randomKey{};
+			HMAC_KDF<SHA512>(emptySalt.data(), emptySalt.size(), randomSeed.data(), randomSeed.size(), lime::settings::hkdf_randomSeed_info, randomKey.data(), randomKey.size());
 
-		// AD is source deviceId(gruu) || recipientUserId(sip uri)
-		std::vector<uint8_t> AD{sourceDeviceId.cbegin(),sourceDeviceId.cend()};
-		AD.insert(AD.end(), recipientUserId.cbegin(), recipientUserId.cend());
+			// resize cipherMessage vector as it is adressed directly by C library: same as plain message + room for the authentication tag
+			cipherMessage.resize(plaintext.size()+lime::settings::DRMessageAuthTagSize);
 
-		// encrypt to cipherMessage buffer
-		AEAD_encrypt<AES256GCM>(randomKey.data(), lime::settings::DRMessageKeySize, // key buffer also hold the IV
-			randomKey.data()+lime::settings::DRMessageKeySize, lime::settings::DRMessageIVSize, // IV is stored in the same buffer as key, after it
-			plaintext.data(), plaintext.size(),
-			AD.data(), AD.size(),
-			cipherMessage.data()+plaintext.size(), lime::settings::DRMessageAuthTagSize, // directly store tag after cipher text in the output buffer
-			cipherMessage.data());
+			// AD is source deviceId(gruu) || recipientUserId(sip uri)
+			AD.assign(sourceDeviceId.cbegin(),sourceDeviceId.cend());
+			AD.insert(AD.end(), recipientUserId.cbegin(), recipientUserId.cend());
 
-		// Loop on each session, given Associated Data to Double Ratchet encryption is: auth tag of cipherMessage AEAD || sourceDeviceId || recipient device Id(gruu)
-		// build the common part to AD given to DR Session encryption
-		AD.assign(cipherMessage.cbegin()+plaintext.size(), cipherMessage.cend());
+			// encrypt to cipherMessage buffer
+			AEAD_encrypt<AES256GCM>(randomKey.data(), lime::settings::DRMessageKeySize, // key buffer also hold the IV
+				randomKey.data()+lime::settings::DRMessageKeySize, lime::settings::DRMessageIVSize, // IV is stored in the same buffer as key, after it
+				plaintext.data(), plaintext.size(),
+				AD.data(), AD.size(),
+				cipherMessage.data()+plaintext.size(), lime::settings::DRMessageAuthTagSize, // directly store tag after cipher text in the output buffer
+				cipherMessage.data());
+
+			// Associated Data to Double Ratchet encryption is: auth tag of cipherMessage AEAD || sourceDeviceId || recipient device Id(gruu)
+			// build the common part to AD given to DR Session encryption
+			AD.assign(cipherMessage.cbegin()+plaintext.size(), cipherMessage.cend());
+		} else { // Payload is directly encrypted in the DR message
+			AD.assign(recipientUserId.cbegin(), recipientUserId.cend());
+			cipherMessage.clear(); // be sure no cipherMessage is produced
+		}
+		/* complete AD, it now holds:
+		 * - Payload in the cipherMessage: auth tag from cipherMessage || source Device Id
+		 * - Payload in the DR message: recipient User Id || source Device Id
+		 */
 		AD.insert(AD.end(), sourceDeviceId.cbegin(), sourceDeviceId.cend());
 
 		for(size_t i=0; i<recipients.size(); i++) {
 			std::vector<uint8_t> recipientAD{AD}; // copy AD
 			recipientAD.insert(recipientAD.end(), recipients[i].deviceId.cbegin(), recipients[i].deviceId.cend()); //insert recipient device id(gruu)
 
-			recipients[i].DRSession->ratchetEncrypt(randomSeed, std::move(recipientAD), recipients[i].cipherHeader);
+			recipients[i].DRSession->ratchetEncrypt(payloadDirectEncryption?plaintext:randomSeed, std::move(recipientAD), recipients[i].cipherHeader, payloadDirectEncryption);
 		}
 	}
 
 	template <typename Curve>
 	std::shared_ptr<DR<Curve>> decryptMessage(const std::string& sourceDeviceId, const std::string& recipientDeviceId, const std::string& recipientUserId, std::vector<std::shared_ptr<DR<Curve>>>& DRSessions, const std::vector<uint8_t>& cipherHeader, const std::vector<uint8_t>& cipherMessage, std::vector<uint8_t>& plaintext) {
-		// check cipher Message validity, it must be at least auth tag bytes long
-		if (cipherMessage.size()<lime::settings::DRMessageAuthTagSize) {
-			throw BCTBX_EXCEPTION << "Invalid cipher message - too short";
+		bool payloadDirectEncryption = (cipherMessage.size() == 0); // if we do not have any cipher message, then we must be in payload direct encryption mode: the payload is in the DR message
+		std::vector<uint8_t> AD{}; // the Associated Data authenticated by the AEAD scheme used in DR encrypt/decrypt
+
+		/* Prepare the AD given to ratchet decrypt, is inpacted by message type
+		 * - Payload in the cipherMessage: auth tag from cipherMessage || source Device Id || recipient Device Id
+		 * - Payload in the DR message: recipient User Id || source Device Id || recipient Device Id
+		 */
+		if (!payloadDirectEncryption) { // payload in cipher message
+			// check cipher Message validity, it must be at least auth tag bytes long
+			if (cipherMessage.size()<lime::settings::DRMessageAuthTagSize) {
+				throw BCTBX_EXCEPTION << "Invalid cipher message - too short";
+			}
+			AD.assign(cipherMessage.cend()-lime::settings::DRMessageAuthTagSize, cipherMessage.cend());
+		} else { // payload in DR message
+			AD.assign(recipientUserId.cbegin(), recipientUserId.cend());
 		}
-		// prepare the AD given to ratchet decrypt: auth tag from cipherMessage || source Device Id || recipient Device Id
-		std::vector<uint8_t> AD{cipherMessage.cend()-lime::settings::DRMessageAuthTagSize, cipherMessage.cend()};
 		AD.insert(AD.end(), sourceDeviceId.cbegin(), sourceDeviceId.cend());
 		AD.insert(AD.end(), recipientDeviceId.cbegin(), recipientDeviceId.cend());
 
@@ -459,13 +522,17 @@ namespace lime {
 		for (auto& DRSession : DRSessions) {
 			bool decryptStatus = false;
 			try {
-				decryptStatus = DRSession->ratchetDecrypt(cipherHeader, AD, randomSeed); // ratchetDecrypt will resize randomSeed to correct length
-			} catch (BctbxException &e) { // any bctbx Exception is just considered as decryption failed (it shall occurs only in case of maximum skipped keys reached)
+				// if payload is in the message, got the output directly in the plaintext buffer
+				decryptStatus = DRSession->ratchetDecrypt(cipherHeader, AD, payloadDirectEncryption?plaintext:randomSeed, payloadDirectEncryption); // ratchetDecrypt will resize randomSeed/plaintext to correct length
+			} catch (BctbxException &e) { // any bctbx Exception is just considered as decryption failed (it shall occurs in case of maximum skipped keys reached or inconsistency ib the direct Encryption flag)
 				LIME_LOGW<<"Double Ratchet session failed to decrypt message and raised an exception saying : "<<e.what();
 				decryptStatus = false; // lets keep trying with other sessions if provided
 			}
 
-			if (decryptStatus == true) { // we got the random key correctly deciphered
+			if (decryptStatus == true) { // we got the DR message correctly deciphered
+				if (payloadDirectEncryption) { // we're done, payload was in the DR message
+					return DRSession;
+				}
 				// recompute the AD used for this encryption: source Device Id || recipient User Id
 				std::vector<uint8_t> localAD{sourceDeviceId.cbegin(), sourceDeviceId.cend()};
 				localAD.insert(localAD.end(), recipientUserId.cbegin(), recipientUserId.cend());
@@ -498,11 +565,11 @@ namespace lime {
 
 	/* template instanciations for C25519 and C448 encryption/decryption functions */
 #ifdef EC25519_ENABLED
-	template void encryptMessage<C255>(std::vector<recipientInfos<C255>>& recipients, const std::vector<uint8_t>& plaintext, const std::string& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage);
+	template void encryptMessage<C255>(std::vector<recipientInfos<C255>>& recipients, const std::vector<uint8_t>& plaintext, const std::string& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage, const lime::EncryptionPolicy encryptionPolicy);
 	template std::shared_ptr<DR<C255>> decryptMessage<C255>(const std::string& sourceId, const std::string& recipientDeviceId, const std::string& recipientUserId, std::vector<std::shared_ptr<DR<C255>>>& DRSessions, const std::vector<uint8_t>& cipherHeader, const std::vector<uint8_t>& cipherMessage, std::vector<uint8_t>& plaintext);
 #endif
 #ifdef EC448_ENABLED
-	template void encryptMessage<C448>(std::vector<recipientInfos<C448>>& recipients, const std::vector<uint8_t>& plaintext, const std::string& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage);
+	template void encryptMessage<C448>(std::vector<recipientInfos<C448>>& recipients, const std::vector<uint8_t>& plaintext, const std::string& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage, const lime::EncryptionPolicy encryptionPolicy);
 	template std::shared_ptr<DR<C448>> decryptMessage<C448>(const std::string& sourceId, const std::string& recipientDeviceId, const std::string& recipientUserId, std::vector<std::shared_ptr<DR<C448>>>& DRSessions, const std::vector<uint8_t>& cipherHeader, const std::vector<uint8_t>& cipherMessage, std::vector<uint8_t>& plaintext);
 #endif
 }

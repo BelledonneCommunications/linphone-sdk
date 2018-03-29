@@ -30,6 +30,13 @@ namespace lime {
 	 * so do not modify it or we'll loose sync with existing DB and X3DH server */
 	enum class CurveId : uint8_t {unset=0, c25519=1, c448=2};
 
+	/* enum to manage the encryption policy:
+	 * - DRMessage: the plaintext input is encrypted inside the Double Ratchet message(each recipient get a different encryption): not optimal for messages with numerous recipient
+	 * - cipherMessage: the plaintext input is encrypted with a random key and this random key is encrypted to each participant inside the Double Ratchet message(for a single recipient the overhead is 48 bytes)
+	 * - optimizeSize: optimize output size: encrypt in DR message if plaintext is short enougth to beat the overhead introduced by cipher message scheme, otherwise use cipher message. This is the default policy used
+	 */
+	enum class EncryptionPolicy {DRMessage, cipherMessage, optimizeSize};
+
 	/* Struct used to manage recipient list for encrypt function input: give a recipient GRUU and get it back with the header which must be sent to recipient with the cipher text*/
 	struct recipientData {
 		std::string deviceId; // recipient deviceId (shall be GRUU)

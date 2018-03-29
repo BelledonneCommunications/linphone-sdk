@@ -247,6 +247,15 @@ void dr_devicesInit(std::string dbBaseFilename, std::vector<std::vector<std::vec
 	}
 }
 
+bool DR_message_payloadDirectEncrypt(std::vector<uint8_t> &message) {
+	// checks on length to at least perform more checks
+	if (message.size()<4) return false;
+	//
+	// check protocol version
+	if (message[0] != static_cast<uint8_t>(lime::double_ratchet_protocol::DR_v01)) return false;
+
+	return (message[1]&static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::payload_direct_encryption_flag));
+}
 
 bool DR_message_holdsX3DHInit(std::vector<uint8_t> &message) {
 	bool dummy;
@@ -261,27 +270,48 @@ bool DR_message_holdsX3DHInit(std::vector<uint8_t> &message, bool &haveOPk) {
 	if (message[0] != static_cast<uint8_t>(lime::double_ratchet_protocol::DR_v01)) return false;
 	// check message type: we must have a X3DH init message
 	if (!(message[1]&static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::X3DH_init_flag))) return false;
+	bool payload_direct_encryption = (message[1]&static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::payload_direct_encryption_flag));
 
-	// check packet length, packet is :
-	// header<3 bytes>, X3DH init packet, Ns+PN<4 bytes>, DHs<X<Curve>::keyLength>, Cipher message RandomSeed<32 bytes>, key auth tag<16 bytes> = <55 + X<Curve>::keyLengh + X3DH init size>
+	/* check message length :
+	 * message with payload not included (DR payload is a fixed 32 byte random seed)
+	 * - header<3 bytes>, X3DH init packet, Ns+PN<4 bytes>, DHs<X<Curve>::keyLength>, Cipher message RandomSeed<32 bytes>, key auth tag<16 bytes> = <55 + X<Curve>::keyLengh + X3DH init size>
+	 * message with payload included
+	 * - header<3 bytes>, X3DH init packet, Ns+PN<4 bytes>, DHs<X<Curve>::keyLength>,  Payload<variable size>, key auth tag<16 bytes> = <23 + X<Curve>::keyLengh + X3DH init size>
+	 */
 	// X3DH init size = OPk_flag<1 byte> + selfIK<DSA<Curve>::keyLength> + EK<X<Curve>::keyLenght> + SPk id<4 bytes> + OPk id (if flag is 1)<4 bytes>
 	switch (message[2]) {
 		case static_cast<uint8_t>(lime::CurveId::c25519):
 			if (message[3] == 0x00) { // no OPk in the X3DH init message
-				if (message.size() != (55 + X<C255, lime::Xtype::publicKey>::ssize() + 5 + DSA<C255, lime::DSAtype::publicKey>::ssize() + X<C255, lime::Xtype::publicKey>::ssize())) return false;
+				if (payload_direct_encryption) {
+					if (message.size() <= (23 + X<C255, lime::Xtype::publicKey>::ssize() + 5 + DSA<C255, lime::DSAtype::publicKey>::ssize() + X<C255, lime::Xtype::publicKey>::ssize())) return false;
+				} else {
+					if (message.size() != (55 + X<C255, lime::Xtype::publicKey>::ssize() + 5 + DSA<C255, lime::DSAtype::publicKey>::ssize() + X<C255, lime::Xtype::publicKey>::ssize())) return false;
+				}
 				haveOPk=false;
 			} else { // OPk present in the X3DH init message
-				if (message.size() != (55 + X<C255, lime::Xtype::publicKey>::ssize() + 9 + DSA<C255, lime::DSAtype::publicKey>::ssize() + X<C255, lime::Xtype::publicKey>::ssize())) return false;
+				if (payload_direct_encryption) {
+					if (message.size() <= (23 + X<C255, lime::Xtype::publicKey>::ssize() + 9 + DSA<C255, lime::DSAtype::publicKey>::ssize() + X<C255, lime::Xtype::publicKey>::ssize())) return false;
+				} else {
+					if (message.size() != (55 + X<C255, lime::Xtype::publicKey>::ssize() + 9 + DSA<C255, lime::DSAtype::publicKey>::ssize() + X<C255, lime::Xtype::publicKey>::ssize())) return false;
+				}
 				haveOPk=true;
 			}
 			return true;
 		break;
 		case static_cast<uint8_t>(lime::CurveId::c448):
 			if (message[3] == 0x00) { // no OPk in the X3DH init message
-				if (message.size() != (55 + X<C448, lime::Xtype::publicKey>::ssize() + 5 + DSA<C448, lime::DSAtype::publicKey>::ssize() + X<C448, lime::Xtype::publicKey>::ssize())) return false;
+				if (payload_direct_encryption) {
+					if (message.size() <= (23 + X<C448, lime::Xtype::publicKey>::ssize() + 5 + DSA<C448, lime::DSAtype::publicKey>::ssize() + X<C448, lime::Xtype::publicKey>::ssize())) return false;
+				} else {
+					if (message.size() != (55 + X<C448, lime::Xtype::publicKey>::ssize() + 5 + DSA<C448, lime::DSAtype::publicKey>::ssize() + X<C448, lime::Xtype::publicKey>::ssize())) return false;
+				}
 				haveOPk=false;
 			} else { // OPk present in the X3DH init message
-				if (message.size() != (55 + X<C448, lime::Xtype::publicKey>::ssize() + 9 + DSA<C448, lime::DSAtype::publicKey>::ssize() + X<C448, lime::Xtype::publicKey>::ssize())) return false;
+				if (payload_direct_encryption) {
+					if (message.size() <= (23 + X<C448, lime::Xtype::publicKey>::ssize() + 9 + DSA<C448, lime::DSAtype::publicKey>::ssize() + X<C448, lime::Xtype::publicKey>::ssize())) return false;
+				} else {
+					if (message.size() != (55 + X<C448, lime::Xtype::publicKey>::ssize() + 9 + DSA<C448, lime::DSAtype::publicKey>::ssize() + X<C448, lime::Xtype::publicKey>::ssize())) return false;
+				}
 				haveOPk=true;
 			}
 			return true;

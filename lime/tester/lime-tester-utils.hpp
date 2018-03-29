@@ -76,6 +76,8 @@ struct sessionDetails {
 template <typename Curve>
 void dr_devicesInit(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<Curve>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles, std::shared_ptr<RNG> RNG_context);
 
+/* return true if the message buffer is a DR message wiht the paylod direct encryption flag set */
+bool DR_message_payloadDirectEncrypt(std::vector<uint8_t> &message);
 /* return true if the message buffer is a valid DR message holding a X3DH init one in its header */
 bool DR_message_holdsX3DHInit(std::vector<uint8_t> &message);
 /* this version will set the OPk status in the given bool if a packet is found */

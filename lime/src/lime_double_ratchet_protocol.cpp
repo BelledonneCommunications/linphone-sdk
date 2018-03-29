@@ -179,18 +179,23 @@ namespace lime {
 		 * @brief Build a header string from needed info
 		 *	header is: Protocol Version Number<1 byte> || Message Type <1 byte> || curveId <1 byte> || [X3DH Init message <variable>] || Ns<2 bytes> || PN<2 bytes> || DHs<...>
 		 *
-		 * @param[out]	header			output buffer
-		 * @param[in]	Ns			Index of sending chain
-		 * @param[in]	PN			Index of previous sending chain
-		 * @param[in]	DHs			Current DH public key
-		 * @param[in]	X3DH_initMessage	A buffer holding an X3DH init message to be inserted in header. If empty message type X3DH init flag is not set
+		 * @param[out]	header				the buffer containing header to be sent to recipient
+		 * @param[in]	Ns				Index of sending chain
+		 * @param[in]	PN				Index of previous sending chain
+		 * @param[in]	DHs				Current DH public key
+		 * @param[in]	X3DH_initMessage		A buffer holding an X3DH init message to be inserted in header. If empty message type X3DH init flag is not set
+		 * @param[in]	payloadDirectEncryption		Set the Payload Direct Encryption flag in header
 		 */
 		template <typename Curve>
-		void buildMessage_header(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const X<Curve, lime::Xtype::publicKey> &DHs, const std::vector<uint8_t> X3DH_initMessage) noexcept {
+		void buildMessage_header(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const X<Curve, lime::Xtype::publicKey> &DHs, const std::vector<uint8_t> X3DH_initMessage, const bool payloadDirectEncryption) noexcept {
 			// Header is one buffer composed of:
 			// Version Number<1 byte> || message Type <1 byte> || curve Id <1 byte> || [<x3d init <variable>] || Ns <2 bytes> || PN <2 bytes> || Key type byte Id(1 byte) || self public key<DHKey::size bytes>
 			header.assign(1, static_cast<uint8_t>(double_ratchet_protocol::DR_v01));
 			uint8_t messageType = 0;
+			if (payloadDirectEncryption) { // if requested, turn the payload direct encryption flag on
+				messageType |= static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::payload_direct_encryption_flag); // turn on the flag
+			}
+
 			if (X3DH_initMessage.size()>0) { // we do have an X3DH init message to insert in the header
 				messageType |= static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::X3DH_init_flag); // turn on the flag
 				header.push_back(messageType);
@@ -284,7 +289,7 @@ namespace lime {
 		template void buildMessage_X3DHinit<C255>(std::vector<uint8_t> &message, const DSA<C255, lime::DSAtype::publicKey> &Ik, const X<C255, lime::Xtype::publicKey> &Ek, const uint32_t SPk_id, const uint32_t OPk_id, const bool OPk_flag) noexcept;
 		template void parseMessage_X3DHinit<C255>(const std::vector<uint8_t>message, DSA<C255, lime::DSAtype::publicKey> &Ik, X<C255, lime::Xtype::publicKey> &Ek, uint32_t &SPk_id, uint32_t &OPk_id, bool &OPk_flag) noexcept;
 		template bool parseMessage_get_X3DHinit<C255>(const std::vector<uint8_t> &message, std::vector<uint8_t> &X3DH_initMessage) noexcept;
-		template void buildMessage_header<C255>(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const X<C255, lime::Xtype::publicKey> &DHs, const std::vector<uint8_t> X3DH_initMessage) noexcept;
+		template void buildMessage_header<C255>(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const X<C255, lime::Xtype::publicKey> &DHs, const std::vector<uint8_t> X3DH_initMessage, const bool payloadDirectEncryption) noexcept;
 		template class DRHeader<C255>;
 #endif
 
@@ -292,7 +297,7 @@ namespace lime {
 		template void buildMessage_X3DHinit<C448>(std::vector<uint8_t> &message, const DSA<C448, lime::DSAtype::publicKey> &Ik, const X<C448, lime::Xtype::publicKey> &Ek, const uint32_t SPk_id, const uint32_t OPk_id, const bool OPk_flag) noexcept;
 		template void parseMessage_X3DHinit<C448>(const std::vector<uint8_t>message, DSA<C448, lime::DSAtype::publicKey> &Ik, X<C448, lime::Xtype::publicKey> &Ek, uint32_t &SPk_id, uint32_t &OPk_id, bool &OPk_flag) noexcept;
 		template bool parseMessage_get_X3DHinit<C448>(const std::vector<uint8_t> &message, std::vector<uint8_t> &X3DH_initMessage) noexcept;
-		template void buildMessage_header<C448>(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const X<C448, lime::Xtype::publicKey> &DHs, const std::vector<uint8_t> X3DH_initMessage) noexcept;
+		template void buildMessage_header<C448>(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const X<C448, lime::Xtype::publicKey> &DHs, const std::vector<uint8_t> X3DH_initMessage, const bool payloadDirectEncryption) noexcept;
 		template class DRHeader<C448>;
 #endif
 
