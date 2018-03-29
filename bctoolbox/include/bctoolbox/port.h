@@ -665,4 +665,5 @@ BCTBX_PUBLIC uint64_t bctbx_str_to_uint64(const uint8_t input_string[17]);
 
 #if defined(__ANDROID__)
 int mblen(const char* s, size_t n);
+int wctomb(char *s, wchar_t wc);
 #endif
