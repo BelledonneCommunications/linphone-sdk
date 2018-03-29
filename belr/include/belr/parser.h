@@ -105,7 +105,7 @@ private:
 template <typename _derivedParserElementT, typename _parserElementT>
 class ParserHandler :  public ParserHandlerBase<_parserElementT>{
 public:
-	virtual ~ParserHandler();
+	virtual ~ParserHandler() {}
 
 	ParserHandler(const Parser<_parserElementT> &parser, const std::string &rulename, const std::function<_derivedParserElementT ()> &create)
 		: ParserHandlerBase<_parserElementT>(parser, rulename), mHandlerCreateFunc(create){}
