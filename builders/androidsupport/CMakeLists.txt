@@ -30,10 +30,14 @@ if(CMAKE_ANDROID_NDK_VERSION VERSION_LESS 16)
 	set(SUPPORT_SOURCES
 		"${CMAKE_ANDROID_NDK}/sources/android/support/src/musl-multibyte/wctomb.c"
 	)
-else()
+elseif(CMAKE_ANDROID_NDK_VERSION VERSION_LESS 17)
 	set(SUPPORT_SOURCES
 		"${CMAKE_ANDROID_NDK}/sources/android/support/src/iswblank.cpp"
 	)
+else()
+	set(SUPPORT_SOURCES
+                "${CMAKE_ANDROID_NDK}/sources/android/support/src/locale_support.cpp"
+        )
 endif()
 
 add_library(support STATIC ${SUPPORT_SOURCES})
