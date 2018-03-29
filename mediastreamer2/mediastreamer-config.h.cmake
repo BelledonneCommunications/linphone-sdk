@@ -35,6 +35,7 @@
 #define HAVE_NON_FREE_CODECS ${HAVE_NON_FREE_CODECS}
 
 #cmakedefine HAVE_SRTP
+#cmakedefine SRTP_VERSION ${SRTP_VERSION}
 #cmakedefine HAVE_ZRTP
 #cmakedefine HAVE_DTLS
 

@@ -19,6 +19,10 @@
 #ifndef __SRTP2_H__
 #define __SRTP2_H__
 
+#ifdef HAVE_CONFIG_H
+#include "mediastreamer-config.h"
+#endif
+
 #if defined(MS2_WINDOWS_PHONE)
 // Windows phone doesn't use make install
 #include <srtp.h>
