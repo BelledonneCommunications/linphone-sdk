@@ -19,7 +19,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #ifndef BCTBX_CRYPTO_H
 #define BCTBX_CRYPTO_H
 
-#include <bctoolbox/port.h>
+#include "bctoolbox/port.h"
+#include "bctoolbox/list.h"
 
 /* key agreements settings defines */
 /* Each algo is defined as a bit toggled in a 32 bits integer,
@@ -388,7 +389,15 @@ BCTBX_PUBLIC int32_t bctbx_x509_certificate_get_der(bctbx_x509_certificate_t *ce
  *
  * @return The length of the string written (not including the terminated nul byte), or a negative error code
  */
-BCTBX_PUBLIC int32_t bctbx_x509_certificate_get_subject_dn(bctbx_x509_certificate_t *cert, char *dn, size_t dn_length);
+BCTBX_PUBLIC int32_t bctbx_x509_certificate_get_subject_dn(const bctbx_x509_certificate_t *cert, char *dn, size_t dn_length);
+
+/**
+ * @brief Obtain the certificate subjects (all subjectAltName URIS and DNS + subject CN)
+ *
+ * @param[in]		cert		The x509 certificate
+ * @return a list of allocated strings (char*), to be freed with bctbx_free()
+ */
+BCTBX_PUBLIC bctbx_list_t *bctbx_x509_certificate_get_subjects(const bctbx_x509_certificate_t *cert);
 
 /**
  * @brief Generate certificate fingerprint (hash of the DER format certificate) hexadecimal format in a null terminated string

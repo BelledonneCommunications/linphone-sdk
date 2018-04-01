@@ -221,6 +221,11 @@ int32_t bctbx_x509_certificate_get_subject_dn(bctbx_x509_certificate_t *cert, ch
 	return x509parse_dn_gets(dn, dn_length, &(((x509_cert *)cert)->subject));
 }
 
+bctbx_list_t *bctbx_x509_certificate_get_subjects(const bctbx_x509_certificate_t *cert){
+	bctbx_error("bctbx_x509_certificate_get_subjects(): not implemented for polarssl 1.2.");
+	return NULL;
+}
+
 int32_t bctbx_x509_certificate_generate_selfsigned(const char *subject, bctbx_x509_certificate_t *certificate, bctbx_signing_key_t *pkey, char * pem, size_t pem_length) {
 
 	return BCTBX_ERROR_UNAVAILABLE_FUNCTION;

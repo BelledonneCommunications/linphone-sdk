@@ -45,8 +45,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <mbedtls/net.h>
 #endif
 
-#include <bctoolbox/crypto.h>
+#include "bctoolbox/crypto.h"
 #include "bctoolbox/logging.h"
+
 
 
 static int bctbx_ssl_sendrecv_callback_return_remap(int32_t ret_code) {
@@ -235,12 +236,38 @@ int32_t bctbx_x509_certificate_get_der(bctbx_x509_certificate_t *cert, unsigned 
 	return 0;
 }
 
-int32_t bctbx_x509_certificate_get_subject_dn(bctbx_x509_certificate_t *cert, char *dn, size_t dn_length) {
+int32_t bctbx_x509_certificate_get_subject_dn(const bctbx_x509_certificate_t *cert, char *dn, size_t dn_length) {
 	if (cert==NULL) {
 		return BCTBX_ERROR_INVALID_CERTIFICATE;
 	}
 
 	return mbedtls_x509_dn_gets(dn, dn_length, &(((mbedtls_x509_crt *)cert)->subject));
+}
+
+
+bctbx_list_t *bctbx_x509_certificate_get_subjects(const bctbx_x509_certificate_t *cert){
+	bctbx_list_t *ret = NULL;
+	char subject[1024]={0};
+	const mbedtls_x509_sequence *subjectAltNames = &((mbedtls_x509_crt *)cert)->subject_alt_names;
+	
+	for (; subjectAltNames != NULL; subjectAltNames = subjectAltNames->next){
+		const mbedtls_asn1_buf *buf = &subjectAltNames->buf;
+		if (buf->tag == ( MBEDTLS_ASN1_CONTEXT_SPECIFIC | 2 ) || buf->tag == ( MBEDTLS_ASN1_CONTEXT_SPECIFIC | 2 )){
+			ret = bctbx_list_append(ret, bctbx_strndup((char*)buf->p, buf->len));
+		}
+	}
+	
+	if (bctbx_x509_certificate_get_subject_dn(cert, subject, sizeof(subject)-1) > 0){
+		char *cn = strstr(subject, "CN=");
+		if (cn){
+			char *end;
+			cn += 3;
+			end = strchr(cn, ',');
+			if (end) *end = '\0';
+			ret = bctbx_list_append(ret, bctbx_strdup(cn));
+		}
+	}
+	return ret;
 }
 
 int32_t bctbx_x509_certificate_generate_selfsigned(const char *subject, bctbx_x509_certificate_t *certificate, bctbx_signing_key_t *pkey, char * pem, size_t pem_length) {
