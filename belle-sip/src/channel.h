@@ -246,6 +246,10 @@ struct belle_tls_crypto_config{
 						   BELLE_TLS_VERIFY_CN_MISMATCH ignore Common Name mismatch exception
 						   BELLE_TLS_VERIFY_ANY_REASON(ignore any exception */
 	void *ssl_config; /**< externally provided ssl configuration context, will be casted and given to the underlying crypto library, use only if you really know what you're doing */
+	belle_tls_crypto_config_verify_callback_t verify_cb;
+	void *verify_cb_data;
+	belle_tls_crypto_config_postcheck_callback_t postcheck_cb;
+	void *postcheck_cb_data;
 };
 
 #endif

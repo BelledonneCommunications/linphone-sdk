@@ -51,7 +51,7 @@ void belle_sip_auth_event_destroy(belle_sip_auth_event_t* event) {
 	DESTROY_STRING(event,passwd);
 	DESTROY_STRING(event,ha1);
 	DESTROY_STRING(event,distinguished_name);
-    DESTROY_STRING(event,algorithm);
+	DESTROY_STRING(event,algorithm);
 	if (event->cert) belle_sip_object_unref(event->cert);
 	if (event->key) belle_sip_object_unref(event->key);
 
@@ -168,4 +168,15 @@ unsigned int belle_tls_crypto_config_get_verify_exceptions(const belle_tls_crypt
 void belle_tls_crypto_config_set_ssl_config(belle_tls_crypto_config_t *obj, void *ssl_config) {
 	obj->ssl_config = ssl_config;
 }
+
+void belle_tls_crypto_config_set_verify_callback(belle_tls_crypto_config_t *obj, belle_tls_crypto_config_verify_callback_t cb, void *cb_data){
+	obj->verify_cb = cb;
+	obj->verify_cb_data = cb_data;
+}
+
+void belle_tls_crypto_config_set_postcheck_callback(belle_tls_crypto_config_t *obj, belle_tls_crypto_config_postcheck_callback_t cb, void *cb_data){
+	obj->postcheck_cb = cb;
+	obj->postcheck_cb_data = cb_data;
+}
+
 

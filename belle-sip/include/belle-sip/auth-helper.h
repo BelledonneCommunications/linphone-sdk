@@ -156,7 +156,7 @@ BELLESIP_EXPORT int belle_sip_auth_helper_compute_response_qop_auth_for_algorith
  * Set TLS certificate verification callback
  *
  * @param callback function pointer for callback, or NULL to unset
- *
+ * @deprecated on 2018/03/31 in favor of belle_tls_crypto_config_set_verify_callback()
  * Callback signature is:
  * int (*verify_cb_error_cb_t)(unsigned char* der, int length, int depth, int* flags);
  * der - raw certificate data, in DER format
@@ -164,7 +164,7 @@ BELLESIP_EXPORT int belle_sip_auth_helper_compute_response_qop_auth_for_algorith
  * depth - position of certificate in cert chain, ending at 0 = root or top
  * flags - verification state for CURRENT certificate only
  */
-BELLESIP_EXPORT int belle_sip_tls_set_verify_error_cb(void *callback);
+BELLESIP_DEPRECATED BELLESIP_EXPORT int belle_sip_tls_set_verify_error_cb(void *callback);
 
 /**
  * Format of certificate buffer
@@ -317,6 +317,43 @@ BELLESIP_EXPORT void belle_tls_crypto_config_set_verify_exceptions(belle_tls_cry
  *
  */
 BELLESIP_EXPORT unsigned int belle_tls_crypto_config_get_verify_exceptions(const belle_tls_crypto_config_t *obj);
+
+
+/**
+ * Callback prototype to override certificate check at upper level.
+ * @param user_data the user pointer passed to belle_tls_crypto_config_set_verify_callback()
+ * @param cert the x509 certificate
+ * @param depth depth of certificate in the certificate chain (the callback is called for each certificate of the chain
+ * @param flags i/o parameter containing the error flags reported by the crypto library (BCTBX_CERTIFICATE_VERIFY_* flags). 
+ * 		The application may freely alterate the flags on output, in order to bypass verifications or add new error flags.
+ * 		The flags MUST be set or unset with bctbx_x509_certificate_set_flag() bctbx_x509_certificate_unset_flag()
+**/
+typedef void (*belle_tls_crypto_config_verify_callback_t)(void *user_data, bctbx_x509_certificate_t *cert , int depth, uint32_t *flags);
+
+/**
+ * Set a callback function to call during each TLS handshake in order to override certificate verification.
+ * @param obj the crypto config object
+ * @param cb the application callback
+ * @param cb_data an application data pointer that will be passed to callback when invoked.
+**/
+BELLESIP_EXPORT void belle_tls_crypto_config_set_verify_callback(belle_tls_crypto_config_t *obj, belle_tls_crypto_config_verify_callback_t cb, void *cb_data);
+
+
+/**
+ * Callback prototype to check remote certificate once hanshake is completed (post-check).
+ * @param user_data the user pointer passed to belle_tls_crypto_config_set_postcheck_callback()
+ * @param cert the peer x509 certificate
+ * @return 0 if all is good, -1 otherwise
+**/
+typedef int (*belle_tls_crypto_config_postcheck_callback_t)(void *user_data, const bctbx_x509_certificate_t *cert);
+
+/**
+ * Set the post-check callback function executed upon successfull TLS handshake..
+ * @param obj the crypto config object
+ * @param cb the application callback
+ * @param cb_data an application data pointer that will be passed to callback when invoked.
+**/
+BELLESIP_EXPORT void belle_tls_crypto_config_set_postcheck_callback(belle_tls_crypto_config_t *obj, belle_tls_crypto_config_postcheck_callback_t cb, void *cb_data);
 
 /**
  * Set the pointer to an externally provided ssl configuration for the crypto library

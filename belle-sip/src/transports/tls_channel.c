@@ -329,6 +329,7 @@ char *belle_sip_certificates_chain_get_fingerprint(belle_sip_certificates_chain_
 // length - length of certificate DER data
 // depth - position of certificate in cert chain, ending at 0 = root or top
 // flags - verification state for CURRENT certificate only
+// deprecated
 typedef int (*verify_cb_error_cb_t)(unsigned char* der, int length, int depth, uint32_t* flags);
 static verify_cb_error_cb_t tls_verify_cb_error_cb = NULL;
 
@@ -499,19 +500,41 @@ static int belle_sip_client_certificate_request_callback(void *data, bctbx_ssl_c
 	return 0; /* we couldn't find any certificate, just keep on going, server may decide to abort the handshake */
 }
 
+static int tls_handle_postcheck(belle_sip_tls_channel_t* channel){
+	if (channel->crypto_config && channel->crypto_config->postcheck_cb){
+		const bctbx_x509_certificate_t *cert = bctbx_ssl_get_peer_certificate(channel->sslctx);
+		if (!cert){
+			belle_sip_error("tls_handle_postcheck(): no peer certificate, this should not happen");
+			return -1;
+		}
+		return channel->crypto_config->postcheck_cb(channel->crypto_config->postcheck_cb_data, cert);
+	}
+	return 0;
+}
+
 static int tls_process_handshake(belle_sip_channel_t *obj){
 	belle_sip_tls_channel_t* channel=(belle_sip_tls_channel_t*)obj;
+	char tmp[128];
 	int err=bctbx_ssl_handshake(channel->sslctx);
-	if (err==0){
+	
+	if (err == 0){
 		belle_sip_message("Channel [%p]: SSL handshake finished, SSL version is [%s], selected ciphersuite is [%s]",obj,
 				  bctbx_ssl_get_version(channel->sslctx), bctbx_ssl_get_ciphersuite(channel->sslctx));
+		err = tls_handle_postcheck(channel);
+		if (err != 0) {
+			snprintf(tmp, sizeof(tmp)-1, "%s", "application level post-check failed.");
+		}
+	}
+	
+	if (err==0){
 		belle_sip_source_set_timeout((belle_sip_source_t*)obj,-1);
 		belle_sip_channel_set_ready(obj,(struct sockaddr*)&channel->ss,channel->socklen);
 	}else if (err==BCTBX_ERROR_NET_WANT_READ || err==BCTBX_ERROR_NET_WANT_WRITE){
 		belle_sip_message("Channel [%p]: SSL handshake in progress...",obj);
 	}else{
-		char tmp[128];
-		bctbx_strerror(err,tmp,sizeof(tmp));
+		if (tmp[0] == '\0'){
+			bctbx_strerror(err,tmp,sizeof(tmp));
+		}
 		belle_sip_error("Channel [%p]: SSL handshake failed : %s",obj,tmp);
 		return -1;
 	}
@@ -679,6 +702,7 @@ static int random_generator(void *ctx, unsigned char *ptr, size_t size){
 
 // shim the default certificate handling by adding an external callback
 // see "verify_cb_error_cb_t" for the function signature
+/*deprecated*/
 int belle_sip_tls_set_verify_error_cb(void * callback) {
 
 	if (callback) {
@@ -690,6 +714,7 @@ int belle_sip_tls_set_verify_error_cb(void * callback) {
 	}
 	return 0;
 }
+
 
 //
 // Augment certificate verification with certificates stored outside rootca.pem
@@ -758,6 +783,9 @@ static int belle_sip_ssl_verify(void *data , bctbx_x509_certificate_t *cert , in
 		bctbx_x509_certificate_unset_flag(flags, BCTBX_CERTIFICATE_VERIFY_BADCERT_CN_MISMATCH);
 	}
 
+	if (crypto_config->verify_cb){
+		crypto_config->verify_cb(crypto_config->verify_cb_data, cert, depth, flags);
+	}
 	ret = belle_sip_verify_cb_error_wrapper(cert, depth, flags);
 
 	belle_sip_free(flags_str);
