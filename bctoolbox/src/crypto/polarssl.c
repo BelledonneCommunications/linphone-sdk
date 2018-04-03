@@ -234,7 +234,7 @@ int32_t bctbx_x509_certificate_get_der(bctbx_x509_certificate_t *cert, unsigned 
 	return 0;
 }
 
-int32_t bctbx_x509_certificate_get_subject_dn(bctbx_x509_certificate_t *cert, char *dn, size_t dn_length) {
+int32_t bctbx_x509_certificate_get_subject_dn(const bctbx_x509_certificate_t *cert, char *dn, size_t dn_length) {
 	if (cert==NULL) {
 		return BCTBX_ERROR_INVALID_CERTIFICATE;
 	}
