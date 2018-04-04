@@ -76,6 +76,7 @@ set(IMAGE_FILES
 	images/qrcodesite.jpg
 	images/qrcodesite_screen.jpg
 	images/qrcodesite_inclined.jpg
+	images/qrcodesite_captured.jpg
 )
 
 set(IOS_RESOURCES_FILES
