@@ -1,4 +1,3 @@
-
 ############################################################################
 # CMakeLists.txt
 # Copyright (C) 2017  Belledonne Communications, Grenoble France
@@ -20,9 +19,14 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 ############################################################################
+include(GNUInstallDirs)
+include(CheckSymbolExists)
+include(CheckLibraryExists)
+include(CMakePushCheckState)
+include(CMakePackageConfigHelpers)
 
 cmake_minimum_required(VERSION 3.0)
-project(LIME VERSION 0.0.1 LANGUAGES C CXX)
+project(lime VERSION 0.0.1 LANGUAGES CXX)
 
 set(LIME_SO_VERSION "0")
 
@@ -33,17 +37,12 @@ option(ENABLE_CURVE25519 "Enable support of Curve 25519." YES)
 option(ENABLE_CURVE448 "Enable support of Curve 448(goldilock)." YES)
 option(ENABLE_UNIT_TESTS "Enable compilation of unit tests." YES)
 
-
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 if(NOT CPACK_GENERATOR AND NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
 	set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_FULL_LIBDIR})
 	message(STATUS "Setting install rpath to ${CMAKE_INSTALL_RPATH}")
 endif()
-
-include(GNUInstallDirs)
-include(CheckSymbolExists)
-include(CMakePushCheckState)
 
 if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
 	set(BcToolbox_FIND_COMPONENTS tester)
@@ -69,7 +68,6 @@ set(LIME_INCLUDE_DIRS
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/config.h PROPERTIES GENERATED ON)
-add_definitions("-DHAVE_CONFIG_H")
 
 set(LIME_CPPFLAGS ${BCTOOLBOX_CPPFLAGS})
 if(LIME_CPPFLAGS)
@@ -79,7 +77,6 @@ endif()
 add_definitions("-DLIME_EXPORTS")
 
 set(STRICT_OPTIONS_CPP )
-set(STRICT_OPTIONS_C )
 set(STRICT_OPTIONS_CXX )
 set(STRICT_OPTIONS_OBJC )
 if(MSVC)
@@ -87,10 +84,9 @@ if(MSVC)
 		list(APPEND STRICT_OPTIONS_CPP "/WX")
 	endif()
 else()
-        list(APPEND STRICT_OPTIONS_CXX "-std=c++11 -O2 -g")
+        list(APPEND STRICT_OPTIONS_CXX "-std=c++11 -O2")
         #list(APPEND STRICT_OPTIONS_CPP "-Wall" "-Wuninitialized" "-Wno-error=deprecated-declarations") # turn off deprecated-declaration warning to avoid being flooded by soci.h
 	list(APPEND STRICT_OPTIONS_CPP "-Wall" "-Wuninitialized" "-Wno-deprecated-declarations" "-Wno-missing-field-initializers")
-	list(APPEND STRICT_OPTIONS_C "-Wdeclaration-after-statement" "-Wstrict-prototypes" "-Wno-error=strict-prototypes")
 	if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
 		list(APPEND STRICT_OPTIONS_CPP "-Qunused-arguments" "-Wno-array-bounds")
 	endif()
@@ -104,9 +100,6 @@ else()
 endif()
 if(STRICT_OPTIONS_CPP)
 	list(REMOVE_DUPLICATES STRICT_OPTIONS_CPP)
-endif()
-if(STRICT_OPTIONS_C)
-	list(REMOVE_DUPLICATES STRICT_OPTIONS_C)
 endif()
 
 if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
@@ -132,7 +125,6 @@ if(ENABLE_UNIT_TESTS AND BCTOOLBOX_TESTER_FOUND)
 	add_subdirectory(tester)
 endif()
 
-include(CMakePackageConfigHelpers)
 export(EXPORT ${EXPORT_TARGETS_NAME}Targets
 	FILE "${CMAKE_CURRENT_BINARY_DIR}/LimeTargets.cmake"
 )
@@ -140,7 +132,7 @@ configure_file(cmake/LimeConfig.cmake.in
 	"${CMAKE_CURRENT_BINARY_DIR}/LimeConfig.cmake"
 	@ONLY
 )
-set(ConfigPackageLocation share/Lime/cmake)
+set(ConfigPackageLocation "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/cmake")
 install(EXPORT ${EXPORT_TARGETS_NAME}Targets
 	FILE LimeTargets.cmake
 	DESTINATION ${ConfigPackageLocation}
