@@ -383,6 +383,7 @@ static void dr_simple_exchange(std::shared_ptr<DR<Curve>> &DRsessionAlice, std::
 			BC_ASSERT_EQUAL(bobCipher.size(), 0, size_t, "%ld"); // in direct Encryption mode, cipherMessage is empty
 		} else {
 			BC_ASSERT_FALSE(is_directEncryptionType);
+			BC_ASSERT_NOT_EQUAL(bobCipher.size(), 0, size_t, "%ld"); // in cipher message Encryption mode, cipherMessage is not empty
 		}
 	}
 
@@ -677,56 +678,50 @@ static void dr_encryptionType_basic_test(std::string db_filename) {
 	remove(aliceFilename.data());
 	remove(bobFilename.data());
 
-	std::string aliceShortMessage{"Alice message is short"};
-	std::string bobShortMessage{"Bob message is short"};
-
-	std::string aliceLongMessage{"Alice message is long enough to trigger automatic switch to cipher message mode when enough recipients are involved and we are in default mode"};
-	std::string bobLongMessage{"Bob message is long enough to trigger automatic switch to cipher message mode when enough recipients are involved and we are in default mode"};
-
 	/* short message, default policy -> direct encryption(we have only one recipient)*/
-	dr_simple_exchange(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename, aliceShortMessage, bobShortMessage,
+	dr_simple_exchange(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename, lime_tester::shortMessage, lime_tester::shortMessage,
 			true, false, // check result but do not set policy
 			lime::EncryptionPolicy::DRMessage, lime::EncryptionPolicy::DRMessage, // we expect direct message encryption when we have only one recipient
 			lime::EncryptionPolicy::optimizeSize, lime::EncryptionPolicy::optimizeSize); // and we keep the default behavior
 
 	/* long message, default policy -> direct encryption(we have only one recipient)*/
-	dr_simple_exchange(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename, aliceLongMessage, bobLongMessage,
+	dr_simple_exchange(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename, lime_tester::longMessage, lime_tester::longMessage,
 			true, false, // check result but do not set policy
 			lime::EncryptionPolicy::DRMessage, lime::EncryptionPolicy::DRMessage, // we expect direct message encryption as we have only one recipient even if the message is long
 			lime::EncryptionPolicy::optimizeSize, lime::EncryptionPolicy::optimizeSize); // and we keep the default behavior
 
 	/* short message, force optimizeSize policy -> direct encryption(we have only one recipient)*/
-	dr_simple_exchange(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename, aliceShortMessage, bobShortMessage,
+	dr_simple_exchange(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename, lime_tester::shortMessage, lime_tester::shortMessage,
 			true, true, // check result but do not set policy
 			lime::EncryptionPolicy::DRMessage, lime::EncryptionPolicy::DRMessage, // we expect direct message encryption when we have only one recipient
 			lime::EncryptionPolicy::optimizeSize, lime::EncryptionPolicy::optimizeSize); // and force optimizeSize
 
 	/* long message, force optimizeSize policy -> direct encryption(we have only one recipient)*/
-	dr_simple_exchange(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename, aliceLongMessage, bobLongMessage,
+	dr_simple_exchange(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename, lime_tester::longMessage, lime_tester::longMessage,
 			true, true, // check result but do not set policy
 			lime::EncryptionPolicy::DRMessage, lime::EncryptionPolicy::DRMessage, // we expect direct message encryption as we have only one recipient even if the message is long
 			lime::EncryptionPolicy::optimizeSize, lime::EncryptionPolicy::optimizeSize); // and force optimizeSize
 
 	/* short message, force cipher Message policy -> cipher Message encryption */
-	dr_simple_exchange(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename, aliceShortMessage, bobShortMessage,
+	dr_simple_exchange(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename, lime_tester::shortMessage, lime_tester::shortMessage,
 			true, true, // check result and set policy
 			lime::EncryptionPolicy::cipherMessage, lime::EncryptionPolicy::cipherMessage, // we expect cipher message encryption
 			lime::EncryptionPolicy::cipherMessage, lime::EncryptionPolicy::cipherMessage); // when we force it
 
 	/* long message, force cipher Message policy -> cipher Message encryption */
-	dr_simple_exchange(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename, aliceLongMessage, bobLongMessage,
+	dr_simple_exchange(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename, lime_tester::longMessage, lime_tester::longMessage,
 			true, true, // check result and set policy
 			lime::EncryptionPolicy::cipherMessage, lime::EncryptionPolicy::cipherMessage, // we expect cipher message encryption
 			lime::EncryptionPolicy::cipherMessage, lime::EncryptionPolicy::cipherMessage); // when we force it
 
 	/* short message, force DRMessage policy -> DRMessage encryption */
-	dr_simple_exchange(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename, aliceShortMessage, bobShortMessage,
+	dr_simple_exchange(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename, lime_tester::shortMessage, lime_tester::shortMessage,
 			true, true, // check result and set policy
 			lime::EncryptionPolicy::DRMessage, lime::EncryptionPolicy::DRMessage, // we expect DR message encryption
 			lime::EncryptionPolicy::DRMessage, lime::EncryptionPolicy::DRMessage); // when we force it
 
 	/* long message, force DRMessage policy -> DRMessage encryption */
-	dr_simple_exchange(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename, aliceLongMessage, bobLongMessage,
+	dr_simple_exchange(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename, lime_tester::longMessage, lime_tester::longMessage,
 			true, true, // check result and set policy
 			lime::EncryptionPolicy::DRMessage, lime::EncryptionPolicy::DRMessage, // we expect DR message encryption
 			lime::EncryptionPolicy::DRMessage, lime::EncryptionPolicy::DRMessage); // when we force it
@@ -748,61 +743,59 @@ static void dr_encryptionType_basic(void) {
 
 template <typename Curve>
 static void dr_encryptionType_multidevice_test(std::string db_filename) {
-	std::string shortMessage{"This message is short"};
-	std::string longMessage{"This message is long enough to trigger automatic switch to cipher message mode when several recipients are involved and we are in default mode"};
 
 	/* short message, default policy -> direct encryption(even if we have more thant one recipient) */
 	dr_multidevice_exchange<Curve>(db_filename,
-			shortMessage,
+			lime_tester::shortMessage,
 			true, false, // check message but use default encryption policy
 			lime::EncryptionPolicy::DRMessage, // check we have direct encryotion
 			lime::EncryptionPolicy::optimizeSize); // do nothing about payload encryption policy: use default
 
 	/* long message, default policy -> cipher message  encryption(we have more thant one recipient) */
 	dr_multidevice_exchange<Curve>(db_filename,
-			longMessage,
+			lime_tester::longMessage,
 			true, false, // check message but use default encryption policy
 			lime::EncryptionPolicy::cipherMessage,// check we have cipher message encryption
 			lime::EncryptionPolicy::optimizeSize); // do nothing about payload encryption policy: use default
 
 	/* short message, forced optimizeSize policy(which shall be the default anyway) -> direct encryption(even if we have more thant one recipient) */
 	dr_multidevice_exchange<Curve>(db_filename,
-			shortMessage,
+			lime_tester::shortMessage,
 			true, true, // check message but use default encryption policy
 			lime::EncryptionPolicy::DRMessage, // check we have direct encryotion
 			lime::EncryptionPolicy::optimizeSize); // do nothing about payload encryption policy: use default
 
 	/* long message, forced optimizeSize policy(which shall be the default anyway) -> cipher message  encryption(we have more thant one recipient) */
 	dr_multidevice_exchange<Curve>(db_filename,
-			longMessage,
+			lime_tester::longMessage,
 			true, true, // check message but use default encryption policy
 			lime::EncryptionPolicy::cipherMessage,// check we have cipher message encryption
 			lime::EncryptionPolicy::optimizeSize); // do nothing about payload encryption policy: use default
 
 	/* short message, forced DRMessage policy -> direct encryption(even if we have more thant one recipient) */
 	dr_multidevice_exchange<Curve>(db_filename,
-			shortMessage,
+			lime_tester::shortMessage,
 			true, true, // check message but use default encryption policy
 			lime::EncryptionPolicy::DRMessage, // check we have direct encryotion
 			lime::EncryptionPolicy::DRMessage); // do nothing about payload encryption policy: use default
 
 	/* long message, forced DRMessage -> direct encryption encryption(we have more thant one recipient) */
 	dr_multidevice_exchange<Curve>(db_filename,
-			longMessage,
+			lime_tester::longMessage,
 			true, true, // check message but use default encryption policy
 			lime::EncryptionPolicy::DRMessage,// check we have cipher message encryption
 			lime::EncryptionPolicy::DRMessage); // do nothing about payload encryption policy: use default
 
 	/* short message, forced cipherMessage policy -> cipherMessage encryption(even if we have small messages) */
 	dr_multidevice_exchange<Curve>(db_filename,
-			shortMessage,
+			lime_tester::shortMessage,
 			true, true, // check message but use default encryption policy
 			lime::EncryptionPolicy::cipherMessage, // check we have direct encryotion
 			lime::EncryptionPolicy::cipherMessage); // do nothing about payload encryption policy: use default
 
 	/* long message, forced cipherMessage -> cipherMessage encryption encryption */
 	dr_multidevice_exchange<Curve>(db_filename,
-			longMessage,
+			lime_tester::longMessage,
 			true, true, // check message but use default encryption policy
 			lime::EncryptionPolicy::cipherMessage,// check we have cipher message encryption
 			lime::EncryptionPolicy::cipherMessage); // do nothing about payload encryption policy: use default

@@ -41,6 +41,9 @@ int wait_for_timeout=4000;
 // default value for initial OPk batch size, keep it small so not too many OPks generated
 uint16_t OPkInitialBatchSize=3;
 
+std::string shortMessage{"Short Message"};
+std::string longMessage{"This message is long enough to automatically switch to cipher Message mode when at least two recipients are involved. This message is long enough to automatically switch to cipher Message mode when at least two recipients are involved."};
+
 std::vector<std::string> messages_pattern = {
 	{"Frankly, my dear, I don't give a damn."},
 	{"I'm gonna make him an offer he can't refuse."},

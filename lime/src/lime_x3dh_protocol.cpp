@@ -448,7 +448,7 @@ namespace lime {
 			if (!m_encryption_queue.empty()) {
 				auto userData = m_encryption_queue.front();
 				m_encryption_queue.pop(); // remove it from queue and do it, as there is no more ongoing it shall be processed even if the queue still holds elements
-				encrypt(userData->recipientUserId, userData->recipients, userData->plainMessage, userData->cipherMessage, userData->callback);
+				encrypt(userData->recipientUserId, userData->recipients, userData->plainMessage, userData->encryptionPolicy, userData->cipherMessage, userData->callback);
 			}
 		} else { // its not an encryption, just set userData to null it shall destroy it
 			userData = nullptr;
@@ -544,7 +544,7 @@ namespace lime {
 					}
 
 					// call the encrypt function again, it will call the callback when done, encryption queue won't be processed as still locked by the m_ongoing_encryption member
-					encrypt(userData->recipientUserId, userData->recipients, userData->plainMessage, userData->cipherMessage, callback);
+					encrypt(userData->recipientUserId, userData->recipients, userData->plainMessage, userData->encryptionPolicy, userData->cipherMessage, callback);
 
 					// now we can safely delete the user data, note that this may trigger an other encryption if there is one in queue
 					cleanUserData(userData);

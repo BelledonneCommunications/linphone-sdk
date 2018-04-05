@@ -278,6 +278,306 @@ static void lime_session_establishment(const lime::CurveId curve, const std::str
 	}
 }
 /**
+ * Scenario: create DB, alice and bob devices and then Bob encrypt a message to Alice but we mess with the cipherMessage to
+ * 	get cipherMessage and cipherHeader policy not matching anymore
+ */
+static void lime_encryptionPolicyError_test(const lime::CurveId curve, const std::string &dbBaseFilename, const std::string &x3dh_server_url,
+		const std::string plainMessage, const lime::EncryptionPolicy setEncryptionPolicy) {
+	// create DB
+	std::string dbFilenameAlice = dbBaseFilename;
+	dbFilenameAlice.append(".alice.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
+	std::string dbFilenameBob = dbBaseFilename;
+	dbFilenameBob.append(".bob.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
+
+	remove(dbFilenameAlice.data()); // delete the database file if already exists
+	remove(dbFilenameBob.data()); // delete the database file if already exists
+
+	lime_tester::events_counters_t counters={};
+	int expected_success=0;
+
+	limeCallback callback([&counters](lime::callbackReturn returnCode, std::string anythingToSay) {
+					if (returnCode == lime::callbackReturn::success) {
+						counters.operation_success++;
+					} else {
+						counters.operation_failed++;
+						LIME_LOGE<<"Lime operation failed : "<<anythingToSay;
+					}
+				});
+	try {
+		// create Manager and recipient(s) device for alice
+		std::unique_ptr<LimeManager> aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
+		std::shared_ptr<std::string> aliceDeviceId = lime_tester::makeRandomDeviceName("alice.d");
+		aliceManager->create_user(*aliceDeviceId, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+
+		// Create manager and device for bob
+		std::unique_ptr<LimeManager> bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, X3DHServerPost));
+		std::shared_ptr<std::string> bobDeviceId = lime_tester::makeRandomDeviceName("bob.d");
+		bobManager->create_user(*bobDeviceId, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+
+		// bob encrypt a message to Alice device
+		auto bobRecipients = make_shared<std::vector<recipientData>>();
+		bobRecipients->emplace_back(*aliceDeviceId);
+		auto bobMessage = make_shared<const std::vector<uint8_t>>(plainMessage.begin(), plainMessage.end());
+		auto bobCipherMessage = make_shared<std::vector<uint8_t>>();
+
+		bobManager->encrypt(*bobDeviceId, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback, setEncryptionPolicy);
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+
+		bool is_directEncryptionType = lime_tester::DR_message_payloadDirectEncrypt((*bobRecipients)[0].cipherHeader);
+		if (setEncryptionPolicy == lime::EncryptionPolicy::DRMessage) {
+			BC_ASSERT_TRUE(is_directEncryptionType);
+			BC_ASSERT_EQUAL(bobCipherMessage->size(), 0, size_t, "%ld"); // in direct Encryption mode, cipherMessage is empty
+
+			bobCipherMessage->resize(32, 0xaa); // just create a 0xaa filled buffer, its presence shall prevent the perferctly correct DR message to be decrypted
+		} else {
+			BC_ASSERT_FALSE(is_directEncryptionType);
+			BC_ASSERT_NOT_EQUAL(bobCipherMessage->size(), 0, size_t, "%ld"); // in direct cipher message mode, cipherMessage is not empty
+
+			bobCipherMessage->clear(); // delete the cipher message, the DR decryption will fail and will not return the random seed as plaintext
+		}
+
+		// alice tries to decrypt
+		std::vector<uint8_t> receivedMessage{};
+		BC_ASSERT_FALSE(aliceManager->decrypt(*aliceDeviceId, "alice", *bobDeviceId, (*bobRecipients)[0].cipherHeader, *bobCipherMessage, receivedMessage));
+
+		if (cleanDatabase) {
+			aliceManager->delete_user(*aliceDeviceId, callback);
+			bobManager->delete_user(*bobDeviceId, callback);
+			BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,expected_success+2,lime_tester::wait_for_timeout));
+			remove(dbFilenameAlice.data());
+			remove(dbFilenameBob.data());
+		}
+
+	} catch (BctbxException &e) {
+		BC_FAIL("Session establishment failed");
+		throw;
+	}
+}
+static void lime_encryptionPolicyError() {
+#ifdef EC25519_ENABLED
+	lime_encryptionPolicyError_test(lime::CurveId::c25519, "lime_encryptionPolicyError", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port),
+			lime_tester::shortMessage, lime::EncryptionPolicy::DRMessage);
+	lime_encryptionPolicyError_test(lime::CurveId::c25519, "lime_encryptionPolicyError", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port),
+			lime_tester::shortMessage, lime::EncryptionPolicy::cipherMessage);
+#endif
+#ifdef EC448_ENABLED
+	lime_encryptionPolicyError_test(lime::CurveId::c448, "lime_encryptionPolicyError", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port),
+			lime_tester::shortMessage, lime::EncryptionPolicy::DRMessage);
+	lime_encryptionPolicyError_test(lime::CurveId::c448, "lime_encryptionPolicyError", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port),
+			lime_tester::shortMessage, lime::EncryptionPolicy::cipherMessage);
+#endif
+}
+
+
+/**
+ * Scenario: create DB, alice and bob devices and then Bob encrypt a message to Alice device 1 and 2 using given encryptionPolicy
+ *
+ * parameters allow to control:
+ *  - plaintext message
+ *  - number of recipients (1 or 2)
+ *  - forced encryption policy(with a bool switch)
+ *  - expected message type (must be DRMessage or cipherMessage)
+ */
+static void lime_encryptionPolicy_test(const lime::CurveId curve, const std::string &dbBaseFilename, const std::string &x3dh_server_url,
+		const std::string plainMessage, const bool multipleRecipients,
+		const lime::EncryptionPolicy setEncryptionPolicy, bool forceEncryptionPolicy,
+		const lime::EncryptionPolicy getEncryptionPolicy) {
+	// create DB
+	std::string dbFilenameAlice = dbBaseFilename;
+	dbFilenameAlice.append(".alice.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
+	std::string dbFilenameBob = dbBaseFilename;
+	dbFilenameBob.append(".bob.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
+
+	remove(dbFilenameAlice.data()); // delete the database file if already exists
+	remove(dbFilenameBob.data()); // delete the database file if already exists
+
+	lime_tester::events_counters_t counters={};
+	int expected_success=0;
+
+	limeCallback callback([&counters](lime::callbackReturn returnCode, std::string anythingToSay) {
+					if (returnCode == lime::callbackReturn::success) {
+						counters.operation_success++;
+					} else {
+						counters.operation_failed++;
+						LIME_LOGE<<"Lime operation failed : "<<anythingToSay;
+					}
+				});
+	try {
+		// create Manager and recipient(s) device for alice
+		std::unique_ptr<LimeManager> aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
+		std::shared_ptr<std::string> aliceDevice1Id = lime_tester::makeRandomDeviceName("alice.d1.");
+		aliceManager->create_user(*aliceDevice1Id, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+		// aliceDevice2Id string device id is created anyway for simpler code
+		std::shared_ptr<std::string> aliceDevice2Id = lime_tester::makeRandomDeviceName("alice.d2.");
+		if (multipleRecipients) {
+			aliceManager->create_user(*aliceDevice2Id, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
+			BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+		}
+
+		// Create manager and device for bob
+		std::unique_ptr<LimeManager> bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, X3DHServerPost));
+		std::shared_ptr<std::string> bobDeviceId = lime_tester::makeRandomDeviceName("bob.d");
+		bobManager->create_user(*bobDeviceId, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+
+		// bob encrypt a message to Alice devices 1 and 2
+		auto bobRecipients = make_shared<std::vector<recipientData>>();
+		bobRecipients->emplace_back(*aliceDevice1Id);
+		if (multipleRecipients) {
+			bobRecipients->emplace_back(*aliceDevice2Id);
+		}
+		auto bobMessage = make_shared<const std::vector<uint8_t>>(plainMessage.begin(), plainMessage.end());
+		auto bobCipherMessage = make_shared<std::vector<uint8_t>>();
+
+		if (forceEncryptionPolicy) {
+			bobManager->encrypt(*bobDeviceId, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback, setEncryptionPolicy);
+		} else {
+			bobManager->encrypt(*bobDeviceId, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
+		}
+
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+
+		bool is_directEncryptionType = lime_tester::DR_message_payloadDirectEncrypt((*bobRecipients)[0].cipherHeader);
+		if (multipleRecipients) {
+			// all cipher header must have the same message type
+			BC_ASSERT_TRUE(is_directEncryptionType == lime_tester::DR_message_payloadDirectEncrypt((*bobRecipients)[1].cipherHeader));
+		}
+		if (getEncryptionPolicy == lime::EncryptionPolicy::DRMessage) {
+			BC_ASSERT_TRUE(is_directEncryptionType);
+			BC_ASSERT_EQUAL(bobCipherMessage->size(), 0, size_t, "%ld"); // in direct Encryption mode, cipherMessage is empty
+		} else {
+			BC_ASSERT_FALSE(is_directEncryptionType);
+			BC_ASSERT_NOT_EQUAL(bobCipherMessage->size(), 0, size_t, "%ld"); // in direct cipher message mode, cipherMessage is not empty
+		}
+
+		// alice1 decrypt
+		std::vector<uint8_t> receivedMessage{};
+		BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDevice1Id, "alice", *bobDeviceId, (*bobRecipients)[0].cipherHeader, *bobCipherMessage, receivedMessage));
+		auto receivedMessageString1 = std::string{receivedMessage.begin(), receivedMessage.end()};
+		BC_ASSERT_TRUE(receivedMessageString1 == plainMessage);
+
+		if (multipleRecipients) {
+			// alice2 decrypt
+			receivedMessage.clear();
+			BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDevice2Id, "alice", *bobDeviceId, (*bobRecipients)[1].cipherHeader, *bobCipherMessage, receivedMessage));
+			auto receivedMessageString2 = std::string{receivedMessage.begin(), receivedMessage.end()};
+			BC_ASSERT_TRUE(receivedMessageString2 == plainMessage);
+		}
+
+		if (cleanDatabase) {
+			aliceManager->delete_user(*aliceDevice1Id, callback);
+			if (multipleRecipients) {
+				aliceManager->delete_user(*aliceDevice2Id, callback);
+				expected_success++;
+			}
+			bobManager->delete_user(*bobDeviceId, callback);
+			BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,expected_success+2,lime_tester::wait_for_timeout));
+			remove(dbFilenameAlice.data());
+			remove(dbFilenameBob.data());
+		}
+
+	} catch (BctbxException &e) {
+		BC_FAIL("Session establishment failed");
+		throw;
+	}
+}
+static void lime_encryptionPolicy_suite(lime::CurveId curveId, const std::string &x3dh_server_url ) {
+	/**** Short messages ****/
+	lime_encryptionPolicy_test(curveId, "lime_encryptionPolicy", x3dh_server_url,
+			lime_tester::shortMessage, false, // single recipient
+			lime::EncryptionPolicy::optimizeSize, false, // default policy(->optimizeSize)
+			lime::EncryptionPolicy::DRMessage); // -> DRMessage
+
+	lime_encryptionPolicy_test(curveId, "lime_encryptionPolicy", x3dh_server_url,
+			lime_tester::shortMessage, false, // single recipient
+			lime::EncryptionPolicy::optimizeSize, true, // force to optimizeSize
+			lime::EncryptionPolicy::DRMessage); // -> DRMessage
+
+	lime_encryptionPolicy_test(curveId, "lime_encryptionPolicy", x3dh_server_url,
+			lime_tester::shortMessage, false, // single recipient
+			lime::EncryptionPolicy::DRMessage, true, // force to DRMessage
+			lime::EncryptionPolicy::DRMessage); // -> DRMessage
+
+	lime_encryptionPolicy_test(curveId, "lime_encryptionPolicy", x3dh_server_url,
+			lime_tester::shortMessage, false, // single recipient
+			lime::EncryptionPolicy::cipherMessage, true, // force to DRMessage
+			lime::EncryptionPolicy::cipherMessage); // -> cipherMessage
+
+	lime_encryptionPolicy_test(curveId, "lime_encryptionPolicy", x3dh_server_url,
+			lime_tester::shortMessage, true, //multiple recipient
+			lime::EncryptionPolicy::optimizeSize, false, // default policy(->optimizeSize)
+			lime::EncryptionPolicy::DRMessage); // -> DRMessage
+
+	lime_encryptionPolicy_test(curveId, "lime_encryptionPolicy", x3dh_server_url,
+			lime_tester::shortMessage, true, //multiple recipient
+			lime::EncryptionPolicy::optimizeSize, true, // force to optimizeSize
+			lime::EncryptionPolicy::DRMessage); // -> DRMessage
+
+	lime_encryptionPolicy_test(curveId, "lime_encryptionPolicy", x3dh_server_url,
+			lime_tester::shortMessage, true, //multiple recipient
+			lime::EncryptionPolicy::DRMessage, true, // force to DRMessage
+			lime::EncryptionPolicy::DRMessage); // -> DRMessage
+
+	lime_encryptionPolicy_test(curveId, "lime_encryptionPolicy", x3dh_server_url,
+			lime_tester::shortMessage, true, //multiple recipient
+			lime::EncryptionPolicy::cipherMessage, true, // force to DRMessage
+			lime::EncryptionPolicy::cipherMessage); // -> cipherMessage
+
+	/**** Long messages ****/
+	lime_encryptionPolicy_test(curveId, "lime_encryptionPolicy", x3dh_server_url,
+			lime_tester::longMessage, false, // single recipient
+			lime::EncryptionPolicy::optimizeSize, false, // default policy(->optimizeSize)
+			lime::EncryptionPolicy::DRMessage); // -> DRMessage
+
+	lime_encryptionPolicy_test(curveId, "lime_encryptionPolicy", x3dh_server_url,
+			lime_tester::longMessage, false, // single recipient
+			lime::EncryptionPolicy::optimizeSize, true, // force to optimizeSize
+			lime::EncryptionPolicy::DRMessage); // -> DRMessage
+
+	lime_encryptionPolicy_test(curveId, "lime_encryptionPolicy", x3dh_server_url,
+			lime_tester::longMessage, false, // single recipient
+			lime::EncryptionPolicy::DRMessage, true, // force to DRMessage
+			lime::EncryptionPolicy::DRMessage); // -> DRMessage
+
+	lime_encryptionPolicy_test(curveId, "lime_encryptionPolicy", x3dh_server_url,
+			lime_tester::longMessage, false, // single recipient
+			lime::EncryptionPolicy::cipherMessage, true, // force to DRMessage
+			lime::EncryptionPolicy::cipherMessage); // -> cipherMessage
+
+	lime_encryptionPolicy_test(curveId, "lime_encryptionPolicy", x3dh_server_url,
+			lime_tester::longMessage, true, //multiple recipient
+			lime::EncryptionPolicy::optimizeSize, false, // default policy(->optimizeSize)
+			lime::EncryptionPolicy::cipherMessage); // -> cipherMessage
+
+	lime_encryptionPolicy_test(curveId, "lime_encryptionPolicy", x3dh_server_url,
+			lime_tester::longMessage, true, //multiple recipient
+			lime::EncryptionPolicy::optimizeSize, true, // force to optimizeSize
+			lime::EncryptionPolicy::cipherMessage); // -> cipherMessage
+
+	lime_encryptionPolicy_test(curveId, "lime_encryptionPolicy", x3dh_server_url,
+			lime_tester::longMessage, true, //multiple recipient
+			lime::EncryptionPolicy::DRMessage, true, // force to DRMessage
+			lime::EncryptionPolicy::DRMessage); // -> DRMessage
+
+	lime_encryptionPolicy_test(curveId, "lime_encryptionPolicy", x3dh_server_url,
+			lime_tester::longMessage, true, //multiple recipient
+			lime::EncryptionPolicy::cipherMessage, true, // force to DRMessage
+			lime::EncryptionPolicy::cipherMessage); // -> cipherMessage
+}
+
+static void lime_encryptionPolicy() {
+#ifdef EC25519_ENABLED
+	lime_encryptionPolicy_suite(lime::CurveId::c25519, std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port));
+#endif
+#ifdef EC448_ENABLED
+	lime_encryptionPolicy_suite(lime::CurveId::c448, std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port));
+#endif
+}
+
+/**
  * Scenario:
  * - create Bob and Alice devices
  * - retrieve their respective Identity keys
@@ -2057,7 +2357,9 @@ static test_t tests[] = {
 	TEST_NO_TAG("Update - SPk", lime_update_SPk),
 	TEST_NO_TAG("Update - OPk", lime_update_OPk),
 	TEST_NO_TAG("get self Identity Key", lime_getSelfIk),
-	TEST_NO_TAG("Verified Status", lime_identityVerifiedStatus)
+	TEST_NO_TAG("Verified Status", lime_identityVerifiedStatus),
+	TEST_NO_TAG("Encryption Policy", lime_encryptionPolicy),
+	TEST_NO_TAG("Encryption Policy Error", lime_encryptionPolicyError)
 };
 
 test_suite_t lime_lime_test_suite = {

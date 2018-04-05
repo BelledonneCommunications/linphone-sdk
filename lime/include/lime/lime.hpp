@@ -42,7 +42,7 @@ namespace lime {
 		std::string deviceId; // recipient deviceId (shall be GRUU)
 		bool identityVerified; // after encrypt calls back, it will hold the status of this peer device: identity verified or not
 		std::vector<uint8_t> cipherHeader; // after encrypt calls back, it will hold the header targeted to the specified recipient. This header may contain an X3DH init message.
-		recipientData(std::string deviceId) : deviceId{deviceId}, identityVerified{false}, cipherHeader{} {};
+		recipientData(const std::string deviceId) : deviceId{deviceId}, identityVerified{false}, cipherHeader{} {};
 	};
 
 	/* Enum of what a Lime callback could possibly say */
@@ -143,8 +143,10 @@ namespace lime {
 			 * 					this callback will be called giving the exit status and an error message in case of failure.
 			 * 					It is advised to capture a copy of cipherMessage and recipients shared_ptr in this callback so they can access
 			 * 					the output of encryption as it won't be part of the callback parameters.
+			 * @param[in]		encryptionPolicy	select how to manage the encryption: direct use of Double Ratchet message or encrypt in the cipher message and use the DR message to share the cipher message key
+			 * 						default is optimized output size mode.
 			 */
-			void encrypt(const std::string &localDeviceId, std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<recipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback);
+			void encrypt(const std::string &localDeviceId, std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<recipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback, lime::EncryptionPolicy encryptionPolicy=lime::EncryptionPolicy::optimizeSize);
 
 			/**
 			 * @brief Decrypt the given message

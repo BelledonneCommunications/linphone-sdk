@@ -81,13 +81,13 @@ namespace lime {
 		user->delete_user(managerDeleteCallback);
 	}
 
-	void LimeManager::encrypt(const std::string &localDeviceId, std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<recipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback) {
+	void LimeManager::encrypt(const std::string &localDeviceId, std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<recipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback, const lime::EncryptionPolicy encryptionPolicy) {
 		// Load user object
 		std::shared_ptr<LimeGeneric> user;
 		LimeManager::load_user(user, localDeviceId);
 
 		// call the encryption function
-		user->encrypt(recipientUserId, recipients, plainMessage, cipherMessage, callback);
+		user->encrypt(recipientUserId, recipients, plainMessage, encryptionPolicy, cipherMessage, callback);
 	}
 
 	bool LimeManager::decrypt(const std::string &localDeviceId, const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &cipherHeader, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) {

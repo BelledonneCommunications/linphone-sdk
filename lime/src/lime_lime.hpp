@@ -52,16 +52,17 @@ namespace lime {
 		 *
 		 * 	Note: all parameters are shared pointers as the process being asynchronous, the ownership will be taken internally exempting caller to manage the buffers.
 		 *
-		 * @param[in]		recipientUserId	the Id of intended recipient, shall be a sip:uri of user or conference, is used as associated data to ensure no-one can mess with intended recipient
-		 * @param[in/out]	recipients	a list of recipientData holding: the recipient device Id(GRUU) and an empty buffer to store the cipherHeader which must then be routed to that recipient
-		 * @param[in]		plainMessage	a buffer holding the message to encrypt, can be text or data.
-		 * @param[out]		cipherMessage	points to the buffer to store the encrypted message which must be routed to all recipients
-		 * @param[in]		callback	This operation contact the X3DH server and is thus asynchronous, when server responds,
+		 * @param[in]		recipientUserId		the Id of intended recipient, shall be a sip:uri of user or conference, is used as associated data to ensure no-one can mess with intended recipient
+		 * @param[in/out]	recipients		a list of recipientData holding: the recipient device Id(GRUU) and an empty buffer to store the cipherHeader which must then be routed to that recipient
+		 * @param[in]		plainMessage		a buffer holding the message to encrypt, can be text or data.
+		 * @param[in]		encryptionPolicy	select how to manage the encryption: direct use of Double Ratchet message or encrypt in the cipher message and use the DR message to share the cipher message key
+		 * @param[out]		cipherMessage		points to the buffer to store the encrypted message which must be routed to all recipients
+		 * @param[in]		callback		This operation contact the X3DH server and is thus asynchronous, when server responds,
 		 * 					this callback will be called giving the exit status and an error message in case of failure.
 		 * 					It is advised to capture a copy of cipherMessage and recipients shared_ptr in this callback so they can access
 		 * 					the output of encryption as it won't be part of the callback parameters.
 		*/
-		virtual void encrypt(std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<recipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback) = 0;
+		virtual void encrypt(std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<recipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback) = 0;
 
 		/**
 		 * @brief Decrypt the given message

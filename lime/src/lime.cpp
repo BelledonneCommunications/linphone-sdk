@@ -153,7 +153,7 @@ namespace lime {
 	}
 
 	template <typename Curve>
-	void Lime<Curve>::encrypt(std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<recipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback) {
+	void Lime<Curve>::encrypt(std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<recipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback) {
 		LIME_LOGD<<"encrypt from "<<m_selfDeviceId<<" to "<<recipients->size()<<" recipients";
 		/* Check if we have all the Double Ratchet sessions ready or shall we go for an X3DH */
 		std::vector<std::string> missingPeers; /* vector of deviceId(GRUU) which are requested to perform X3DH before the encryption can occurs */
@@ -181,7 +181,7 @@ namespace lime {
 		/* If we are still missing session we must ask the X3DH server for key bundles */
 		if (missing_devices.size()>0) {
 			// create a new callbackUserData, it shall be then deleted in callback, store in all shared_ptr to input/output values needed to call this encrypt function
-			auto userData = make_shared<callbackUserData<Curve>>(this->shared_from_this(), callback, recipientUserId, recipients, plainMessage, cipherMessage);
+			auto userData = make_shared<callbackUserData<Curve>>(this->shared_from_this(), callback, recipientUserId, recipients, plainMessage, cipherMessage, encryptionPolicy);
 			if (m_ongoing_encryption == nullptr) { // no ongoing asynchronous encryption process it
 				m_ongoing_encryption = userData;
 			} else { // some one else is expecting X3DH server response, enqueue this request
@@ -193,7 +193,7 @@ namespace lime {
 			x3dh_protocol::buildMessage_getPeerBundles<Curve>(X3DHmessage, missing_devices);
 			postToX3DHServer(userData, X3DHmessage);
 		} else { // got everyone, encrypt
-			encryptMessage(internal_recipients, *plainMessage, *recipientUserId, m_selfDeviceId, *cipherMessage);
+			encryptMessage(internal_recipients, *plainMessage, *recipientUserId, m_selfDeviceId, *cipherMessage, encryptionPolicy);
 			// move cipher headers to the input/output structure
 			for (size_t i=0; i<recipients->size(); i++) {
 				(*recipients)[i].cipherHeader = std::move(internal_recipients[i].cipherHeader);
@@ -204,7 +204,7 @@ namespace lime {
 			if (m_ongoing_encryption == nullptr && !m_encryption_queue.empty()) { // may happend when an encryption was queued but session was created by a previously queued encryption request
 				auto userData = m_encryption_queue.front();
 				m_encryption_queue.pop(); // remove it from queue and do it
-				encrypt(userData->recipientUserId, userData->recipients, userData->plainMessage, userData->cipherMessage, userData->callback);
+				encrypt(userData->recipientUserId, userData->recipients, userData->plainMessage, userData->encryptionPolicy, userData->cipherMessage, userData->callback);
 			}
 		}
 	}
