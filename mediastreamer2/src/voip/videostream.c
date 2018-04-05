@@ -31,6 +31,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mediastreamer2/msvideopresets.h"
 #include "mediastreamer2/mseventqueue.h"
 #include "mediastreamer2/mstee.h"
+#include "mediastreamer2/msqrcodereader.h"
 #include "private.h"
 
 #if __APPLE__
@@ -641,9 +642,11 @@ static void configure_decoder(VideoStream *stream, PayloadType *pt){
 	ms_filter_add_notify_callback(stream->ms.decoder, internal_event_cb, stream, TRUE);
 }
 
+#ifdef QRCODE_ENABLED
 static void configure_qrcode_filter(VideoStream *stream) {
 	ms_filter_add_notify_callback(stream->qrcode, event_cb, stream, FALSE);
 }
+#endif
 
 static void video_stream_payload_type_changed(RtpSession *session, void *data){
 	VideoStream *stream = (VideoStream *)data;
@@ -1663,6 +1666,7 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device) {
 		stream->qrcode = ms_factory_create_filter(stream->ms.factory, MS_QRCODE_READER_ID);
 		configure_qrcode_filter(stream);
 		ms_connection_helper_link(&ch, stream->qrcode, 0, 0);
+		ms_filter_call_method(stream->qrcode, MS_QRCODE_READET_SET_DECODER_RECT, &stream->decode_rect);
 #else
 		ms_error("Can't create qrcode decoder, dependency not enabled.");
 #endif
@@ -1685,6 +1689,10 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device) {
 
 void video_preview_enable_qrcode(VideoPreview *stream, bool_t enable) {
 	stream->enable_qrcode_decoder = enable;
+}
+
+void video_preview_set_decode_rect(VideoPreview *stream, MSRect rect) {
+	stream->decode_rect = rect;
 }
 
 bool_t video_preview_qrcode_enabled(VideoPreview *stream) {

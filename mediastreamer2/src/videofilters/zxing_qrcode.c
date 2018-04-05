@@ -146,7 +146,7 @@ static void qrcode_process(MSFilter *f) {
 			qrc->image = new QRCodeImage(newYuvbuf.w, newYuvbuf.h, newYuvbuf.planes[0], newYuvbuf.strides[0]);
 			read_qrcode(f);
 
-			if (mblk) freeb(mblk);
+			if (mblk) freemsg(mblk);
 		}
 		ms_queue_put(f->outputs[0], m);
 	}
