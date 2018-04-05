@@ -137,7 +137,7 @@ namespace lime {
 	 * 						default is optimized output size mode.
 	 */
 	template <typename Curve>
-	void encryptMessage(std::vector<recipientInfos<Curve>>& recipients, const std::vector<uint8_t>& plaintext, const std::string& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage, const lime::EncryptionPolicy encryptionPolicy=lime::EncryptionPolicy::optimizeSize);
+	void encryptMessage(std::vector<recipientInfos<Curve>>& recipients, const std::vector<uint8_t>& plaintext, const std::string& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage, const lime::EncryptionPolicy encryptionPolicy);
 
 	/**
 	 * @brief Decrypt a message
