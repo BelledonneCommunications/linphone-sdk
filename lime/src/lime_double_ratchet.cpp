@@ -92,7 +92,7 @@ namespace lime {
 	 *
 	 */
 	static bool decrypt(const lime::DRMKey &MK, const std::vector<uint8_t> &ciphertext, const size_t headerSize, std::vector<uint8_t> &AD, std::vector<uint8_t> &plaintext) {
-		plaintext.resize(ciphertext.size() - headerSize - lime::settings::DRMessageAuthTagSize); // size of plaintext is: cipher - header - authentication tag
+		plaintext.resize(ciphertext.size() - headerSize - lime::settings::DRMessageAuthTagSize); // size of plaintext is: cipher - header - authentication tag, we're getting a vector, we must resize it
 		return AEAD_decrypt<AES256GCM>(MK.data(), lime::settings::DRMessageKeySize, // MK buffer hold key<DRMessageKeySize bytes>||IV<DRMessageIVSize bytes>
 					MK.data()+lime::settings::DRMessageKeySize, lime::settings::DRMessageIVSize,
 					ciphertext.data()+headerSize, plaintext.size(), // cipher text starts after header, length is the one computed for plaintext
@@ -100,28 +100,14 @@ namespace lime {
 					ciphertext.data()+ciphertext.size() - lime::settings::DRMessageAuthTagSize, lime::settings::DRMessageAuthTagSize, // tag is in the last 16 bytes of buffer
 					plaintext.data());
 	}
-
-	/**
-	 * @brief Encrypt as described is spec section 3.1
-	 *
-	 * @param[in]		MK		A buffer holding key<32 bytes> || IV<16 bytes>
-	 * @param[in]		plaintext	the input message
-	 * @param[in]		AD		Associated data
-	 * @param[in]		headerSize	Size of the header included in ciphertext
-	 * @param[in,out]	ciphertext	buffer holding: header<size depends on DHKey type>, will append to it: ciphertext || auth tag<16 bytes>
-	 *			this vector version need resizing before calling encrypt
-	 *
-	 * @return false if something goes wrong
-	 *
-	 */
-	static void encrypt(const lime::DRMKey &MK, const std::vector<uint8_t> &plaintext, const size_t headerSize, std::vector<uint8_t> &AD, std::vector<uint8_t> &ciphertext) {
-
-		AEAD_encrypt<AES256GCM>(MK.data(), lime::settings::DRMessageKeySize, // MK buffer also hold the IV
-				MK.data()+lime::settings::DRMessageKeySize, lime::settings::DRMessageIVSize, // IV is stored in the same buffer as key, after it
-				plaintext.data(), plaintext.size(),
-				AD.data(), AD.size(),
-				ciphertext.data()+headerSize+plaintext.size(), lime::settings::DRMessageAuthTagSize, // directly store tag after cipher text in the output buffer
-				ciphertext.data()+headerSize);
+	// when plaintext is a fixed size buffer, no need to resize it
+	static bool decrypt(const lime::DRMKey &MK, const std::vector<uint8_t> &ciphertext, const size_t headerSize, std::vector<uint8_t> &AD, sBuffer<lime::settings::DRrandomSeedSize> &plaintext) {
+		return AEAD_decrypt<AES256GCM>(MK.data(), lime::settings::DRMessageKeySize, // MK buffer hold key<DRMessageKeySize bytes>||IV<DRMessageIVSize bytes>
+					MK.data()+lime::settings::DRMessageKeySize, lime::settings::DRMessageIVSize,
+					ciphertext.data()+headerSize, plaintext.size(), // cipher text starts after header, length is the one computed for plaintext
+					AD.data(), AD.size(),
+					ciphertext.data()+ciphertext.size() - lime::settings::DRMessageAuthTagSize, lime::settings::DRMessageAuthTagSize, // tag is in the last 16 bytes of buffer
+					plaintext.data());
 	}
 
 	/****************************************************************************/
@@ -283,13 +269,14 @@ namespace lime {
 	/**
 	 * @brief Encrypt using the double-ratchet algorithm.
 	 *
-	 * @param[in]	plaintext			the input to be encrypted, may actually be a 32 bytes buffer holding the seed used to generate key+IV for a GCM encryption to the actual message
+	 * @param[in]	plaintext			the input to be encrypted, may actually be a 32 bytes buffer holding the seed used to generate key+IV for a AES-GCM encryption to the actual message
 	 * @param[in]	AD				Associated Data, this buffer shall hold: source GRUU<...> || recipient GRUU<...> || [ actual message AEAD auth tag OR recipient User Id]
 	 * @param[out]	ciphertext			buffer holding the header, cipher text and auth tag, shall contain the key and IV used to cipher the actual message, auth tag applies on AD || header
 	 * @param[in]	payloadDirectEncryption		A flag to set in message header: set when having payload in the DR message
 	 */
 	template <typename Curve>
-	void DR<Curve>::ratchetEncrypt(const std::vector<uint8_t> &plaintext, std::vector<uint8_t> &&AD, std::vector<uint8_t> &ciphertext, const bool payloadDirectEncryption) {
+	template <typename inputContainer> // input container can be a sBuffer (fixed size) holding a random seed or std::vector<uint8_t> holding the actual message
+	void DR<Curve>::ratchetEncrypt(const inputContainer &plaintext, std::vector<uint8_t> &&AD, std::vector<uint8_t> &ciphertext, const bool payloadDirectEncryption) {
 		m_dirty = DRSessionDbStatus::dirty_encrypt; // we're about to modify this session, it won't be in sync anymore with local storage
 		// chain key derivation(also compute message key)
 		DRMKey MK;
@@ -310,7 +297,12 @@ namespace lime {
 		// header size + cipher text size + auth tag size
 		ciphertext.resize(ciphertext.size()+plaintext.size()+lime::settings::DRMessageAuthTagSize);
 
-		encrypt(MK, plaintext, headerSize, AD, ciphertext);
+		AEAD_encrypt<AES256GCM>(MK.data(), lime::settings::DRMessageKeySize, // MK buffer also hold the IV
+				MK.data()+lime::settings::DRMessageKeySize, lime::settings::DRMessageIVSize, // IV is stored in the same buffer as key, after it
+				plaintext.data(), plaintext.size(),
+				AD.data(), AD.size(),
+				ciphertext.data()+headerSize+plaintext.size(), lime::settings::DRMessageAuthTagSize, // directly store tag after cipher text in the output buffer
+				ciphertext.data()+headerSize);
 
 		if (m_Ns >= lime::settings::maxSendingChain) { // if we reached maximum encryption wuthout DH ratchet step, session becomes inactive
 			m_active_status = false;
@@ -333,7 +325,8 @@ namespace lime {
 	 * @return	true on success
 	 */
 	template <typename Curve>
-	bool DR<Curve>::ratchetDecrypt(const std::vector<uint8_t> &ciphertext,const std::vector<uint8_t> &AD, std::vector<uint8_t> &plaintext, const bool payloadDirectEncryption) {
+	template <typename outputContainer> // output container can be a sBuffer (fixed size) getting a random seed or std::vector<uint8_t> getting the actual message
+	bool DR<Curve>::ratchetDecrypt(const std::vector<uint8_t> &ciphertext,const std::vector<uint8_t> &AD, outputContainer &plaintext, const bool payloadDirectEncryption) {
 		// parse header
 		double_ratchet_protocol::DRHeader<Curve> header{ciphertext};
 		if (!header.valid()) { // check it is valid otherwise just stop
@@ -441,22 +434,21 @@ namespace lime {
 		 * - Payload in the DR message: recipient User Id || source Device Id || recipient Device Id
 		 *   This buffer will store the part common to all recipients and the recipient Device Is is appended when looping on all recipients performing DR encrypt
 		 */
-		std::vector<uint8_t> AD{};
+		std::vector<uint8_t> AD;
 
 		// used only when payload is not in the DR message
-		lime::sVector randomSeed{}; // this seed is sent in DR message and used to derivate random key + IV to encrypt the actual message
+		lime::sBuffer<lime::settings::DRrandomSeedSize> randomSeed; // this seed is sent in DR message and used to derivate random key + IV to encrypt the actual message
 
 		if (!payloadDirectEncryption) { // Payload is encrypted in a separate cipher message buffer while the key used to encrypt it is in the DR message
 			// First generate a key and IV, use it to encrypt the given message, Associated Data are : sourceDeviceId || recipientUserId
 			// generate the random seed
 			auto RNG_context = make_RNG();
-			randomSeed.resize(lime::settings::DRrandomSeedSize);
 			RNG_context->randomize(randomSeed.data(), randomSeed.size());
 
 			// expansion of randomSeed to 48 bytes: 32 bytes random key + 16 bytes nonce, use HKDF with empty salt
-			std::vector<uint8_t> emptySalt{};
-			emptySalt.clear();
-			lime::sBuffer<lime::settings::DRMessageKeySize+lime::settings::DRMessageIVSize> randomKey{};
+			std::vector<uint8_t> emptySalt;
+			emptySalt.clear(); //just to be sure
+			lime::sBuffer<lime::settings::DRMessageKeySize+lime::settings::DRMessageIVSize> randomKey;
 			HMAC_KDF<SHA512>(emptySalt.data(), emptySalt.size(), randomSeed.data(), randomSeed.size(), lime::settings::hkdf_randomSeed_info, randomKey.data(), randomKey.size());
 
 			// resize cipherMessage vector as it is adressed directly by C library: same as plain message + room for the authentication tag
@@ -491,14 +483,18 @@ namespace lime {
 			std::vector<uint8_t> recipientAD{AD}; // copy AD
 			recipientAD.insert(recipientAD.end(), recipients[i].deviceId.cbegin(), recipients[i].deviceId.cend()); //insert recipient device id(gruu)
 
-			recipients[i].DRSession->ratchetEncrypt(payloadDirectEncryption?plaintext:randomSeed, std::move(recipientAD), recipients[i].cipherHeader, payloadDirectEncryption);
+			if (payloadDirectEncryption) {
+				recipients[i].DRSession->ratchetEncrypt(plaintext, std::move(recipientAD), recipients[i].cipherHeader, payloadDirectEncryption);
+			} else {
+				recipients[i].DRSession->ratchetEncrypt(randomSeed, std::move(recipientAD), recipients[i].cipherHeader, payloadDirectEncryption);
+			}
 		}
 	}
 
 	template <typename Curve>
 	std::shared_ptr<DR<Curve>> decryptMessage(const std::string& sourceDeviceId, const std::string& recipientDeviceId, const std::string& recipientUserId, std::vector<std::shared_ptr<DR<Curve>>>& DRSessions, const std::vector<uint8_t>& cipherHeader, const std::vector<uint8_t>& cipherMessage, std::vector<uint8_t>& plaintext) {
 		bool payloadDirectEncryption = (cipherMessage.size() == 0); // if we do not have any cipher message, then we must be in payload direct encryption mode: the payload is in the DR message
-		std::vector<uint8_t> AD{}; // the Associated Data authenticated by the AEAD scheme used in DR encrypt/decrypt
+		std::vector<uint8_t> AD; // the Associated Data authenticated by the AEAD scheme used in DR encrypt/decrypt
 
 		/* Prepare the AD given to ratchet decrypt, is inpacted by message type
 		 * - Payload in the cipherMessage: auth tag from cipherMessage || source Device Id || recipient Device Id
@@ -517,13 +513,17 @@ namespace lime {
 		AD.insert(AD.end(), recipientDeviceId.cbegin(), recipientDeviceId.cend());
 
 		// buffer to store the random seed used to derive key and IV to decrypt message
-		lime::sVector randomSeed{};
+		lime::sBuffer<lime::settings::DRrandomSeedSize> randomSeed;
 
 		for (auto& DRSession : DRSessions) {
 			bool decryptStatus = false;
 			try {
 				// if payload is in the message, got the output directly in the plaintext buffer
-				decryptStatus = DRSession->ratchetDecrypt(cipherHeader, AD, payloadDirectEncryption?plaintext:randomSeed, payloadDirectEncryption); // ratchetDecrypt will resize randomSeed/plaintext to correct length
+				if (payloadDirectEncryption) {
+					decryptStatus = DRSession->ratchetDecrypt(cipherHeader, AD, plaintext, payloadDirectEncryption);
+				} else {
+					decryptStatus = DRSession->ratchetDecrypt(cipherHeader, AD, randomSeed, payloadDirectEncryption);
+				}
 			} catch (BctbxException &e) { // any bctbx Exception is just considered as decryption failed (it shall occurs in case of maximum skipped keys reached or inconsistency ib the direct Encryption flag)
 				LIME_LOGW<<"Double Ratchet session failed to decrypt message and raised an exception saying : "<<e.what();
 				decryptStatus = false; // lets keep trying with other sessions if provided
@@ -537,14 +537,14 @@ namespace lime {
 				std::vector<uint8_t> localAD{sourceDeviceId.cbegin(), sourceDeviceId.cend()};
 				localAD.insert(localAD.end(), recipientUserId.cbegin(), recipientUserId.cend());
 
-				// resize plaintext vector as it is adressed directly by C library: same as cipher message - authentication tag length
+				// resize plaintext vector: same as cipher message - authentication tag length
 				plaintext.resize(cipherMessage.size()-lime::settings::DRMessageAuthTagSize);
 
 				// rebuild the random key and IV from given seed
 				// use HKDF - RFC 5869 with empty salt
-				std::vector<uint8_t> emptySalt{};
+				std::vector<uint8_t> emptySalt;
 				emptySalt.clear();
-				lime::sBuffer<lime::settings::DRMessageKeySize+lime::settings::DRMessageIVSize> randomKey{};
+				lime::sBuffer<lime::settings::DRMessageKeySize+lime::settings::DRMessageIVSize> randomKey;
 				HMAC_KDF<SHA512>(emptySalt.data(), emptySalt.size(), randomSeed.data(), randomSeed.size(), lime::settings::hkdf_randomSeed_info, randomKey.data(), randomKey.size());
 
 				// use it to decipher message

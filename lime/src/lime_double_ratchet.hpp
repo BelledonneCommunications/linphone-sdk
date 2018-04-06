@@ -112,8 +112,10 @@ namespace lime {
 			DR<Curve> &operator=(DR<Curve> &a) = delete; // can't copy a session
 			~DR();
 
-			void ratchetEncrypt(const std::vector<uint8_t> &plaintext, std::vector<uint8_t> &&AD, std::vector<uint8_t> &ciphertext, const bool payloadDirectEncryption);
-			bool ratchetDecrypt(const std::vector<uint8_t> &cipherText, const std::vector<uint8_t> &AD, std::vector<uint8_t> &plaintext, const bool payloadDirectEncryption);
+			template<typename inputContainer>
+			void ratchetEncrypt(const inputContainer &plaintext, std::vector<uint8_t> &&AD, std::vector<uint8_t> &ciphertext, const bool payloadDirectEncryption);
+			template<typename outputContainer>
+			bool ratchetDecrypt(const std::vector<uint8_t> &cipherText, const std::vector<uint8_t> &AD, outputContainer &plaintext, const bool payloadDirectEncryption);
 			long int dbSessionId(void) const {return m_dbSessionId;}; // retrieve the session's local storage id
 			bool isActive(void) const {return m_active_status;} // return the current status of session
 	};

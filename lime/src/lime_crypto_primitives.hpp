@@ -43,17 +43,9 @@ namespace lime {
 	 */
 	template <size_t T>
 	struct sBuffer : public std::array<uint8_t, T> {
-			/// zeroise all buffer when done
-			~sBuffer() {cleanBuffer(this->data(), T);};
+		/// zeroise all buffer when done
+		~sBuffer() {cleanBuffer(this->data(), T);};
 	};
-	/**
-	 * auto clean flexible size buffer(uint8_t vector based)
-	 */
-	struct sVector : public std::vector<uint8_t> {
-			/// zeroise all buffer when done
-			~sVector() {cleanBuffer(this->data(), this->size());};
-	};
-
 
 	/****************************************************************/
 	/* Key Exchange Data structures                                 */
@@ -62,7 +54,7 @@ namespace lime {
 	 * Base buffer definition for Key Exchange data structure : easy use of array types with correct size
 	 */
 	template <typename Base, lime::Xtype dataType>
-	class X : public std::array<uint8_t, static_cast<size_t>(Base::Xsize(dataType))>{
+	class X : public sBuffer<static_cast<size_t>(Base::Xsize(dataType))>{
 		public :
 			/// provide a static size function to be able to call the function not on an object
 			constexpr static size_t ssize(void) {return Base::Xsize(dataType);};
@@ -71,8 +63,6 @@ namespace lime {
 			X() {};
 			/// copy from a std::vector<uint8_t>
 			void assign(std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, Base::Xsize(dataType), this->begin());}
-			/// zeroise all buffer when done
-			~X() {cleanBuffer(this->data(), Base::Xsize(dataType));};
 	};
 
 	/**
@@ -99,7 +89,7 @@ namespace lime {
 	 * Base buffer definition for DSA data structure : easy use of array types with correct size
 	 */
 	template <typename Base, lime::DSAtype dataType>
-	class DSA : public std::array<uint8_t, static_cast<size_t>(Base::DSAsize(dataType))>{
+	class DSA : public sBuffer<static_cast<size_t>(Base::DSAsize(dataType))>{
 		public :
 			/// provide a static size function to be able to call the function not on an object
 			constexpr static size_t ssize(void) {return Base::DSAsize(dataType);};
@@ -108,8 +98,6 @@ namespace lime {
 			DSA() {};
 			/// copy from a std::vector<uint8_t>
 			void assign(std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, Base::DSAsize(dataType), this->begin());}
-			/// zeroise all buffer when done
-			~DSA() {cleanBuffer(this->data(), Base::DSAsize(dataType));};
 	};
 
 	/**
