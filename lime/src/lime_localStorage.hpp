@@ -24,6 +24,10 @@
 
 namespace lime {
 
+	/**
+	 * Database access class
+	 * relies on SOCI
+	 */
 	class Db {
 	public:
 		// soci connexion to DB

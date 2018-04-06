@@ -48,6 +48,9 @@ namespace lime {
 
 
 /***** Random Number Generator ********/
+/**
+ * A wrapper around the bctoolbox Random Number Generator
+ */
 class bctbx_RNG : public RNG {
 	private :
 		bctbx_rng_context_t *m_context; // the bctoolbox RNG context
@@ -101,6 +104,11 @@ bctbx_EDDSAContext_t *bctbx_EDDSAInit(void) {
 		return bctbx_CreateEDDSAContext(BCTBX_EDDSA_448);
 	}
 #endif // EC448_ENABLED
+
+/**
+ * a wrapper around bctoolbox Signature algorithm.
+ * Provides EdDSA on curves 25519 and 448
+ */
 template <typename Curve>
 class bctbx_EDDSA : public Signature<Curve> {
 	private :
@@ -140,7 +148,7 @@ class bctbx_EDDSA : public Signature<Curve> {
 		}
 
 		/**
-		 * @Brief generate a new random EdDSA key pair
+		 * @brief generate a new random EdDSA key pair
 		 *
 		 * @param[in]	rng	The Random Number Generator to be used to generate the private kay
 		 */
@@ -224,6 +232,10 @@ bctbx_ECDHContext_t *bctbx_ECDHInit(void) {
 	}
 #endif //EC448_ENABLED
 
+/**
+ * a wrapper around bctoolbox key exchange algorithm.
+ * Provides X25519 and X448
+ */
 template <typename Curve>
 class bctbx_ECDH : public keyExchange<Curve> {
 	private :
@@ -327,7 +339,7 @@ class bctbx_ECDH : public keyExchange<Curve> {
 
 
 		/**
-		 * @Brief generate a new random ECDH key pair
+		 * @brief generate a new random ECDH key pair
 		 *
 		 * @param[in]	rng	The Random Number Generator to be used to generate the private kay
 		 */

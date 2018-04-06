@@ -24,24 +24,20 @@
 
 namespace lime {
 
+	/**
+	 * Holds everything found in a key bundle received from X3DH server
+	 */
 	template <typename Curve>
 	struct X3DH_peerBundle {
-		std::string deviceId;
-		DSA<Curve, lime::DSAtype::publicKey> Ik;
-		X<Curve, lime::Xtype::publicKey> SPk;
-		uint32_t SPk_id;
-		DSA<Curve, lime::DSAtype::signature> SPk_sig;
-		bool haveOPk;
-		X<Curve, lime::Xtype::publicKey> OPk;
-		uint32_t OPk_id;
-		// use uint8_t * constructor for all keys/signatures
-		X3DH_peerBundle(std::string &&deviceId, const uint8_t *Ik, const uint8_t *SPk, uint32_t SPk_id, const uint8_t *SPk_sig) :
-		deviceId{deviceId}, Ik{Ik}, SPk{SPk}, SPk_id{SPk_id}, SPk_sig{SPk_sig}, haveOPk{false}, OPk{}, OPk_id{0} {};
+		std::string deviceId; /**< peer device Id */
+		DSA<Curve, lime::DSAtype::publicKey> Ik; /**< peer device public identity key */
+		X<Curve, lime::Xtype::publicKey> SPk; /**< peer device current public pre-signed key */
+		uint32_t SPk_id; /**< id of the peer device current public pre-signed key */
+		DSA<Curve, lime::DSAtype::signature> SPk_sig; /**< signature of the peer device current public pre-signed key */
+		bool haveOPk; /**< flag: is this bundle hold a One Time preKey */
+		X<Curve, lime::Xtype::publicKey> OPk; /**< peer device One Time preKey */
+		uint32_t OPk_id; /**< id of the peer device current public pre-signed key */
 
-		X3DH_peerBundle(std::string &&deviceId, const uint8_t *Ik, const uint8_t *SPk, uint32_t SPk_id, const uint8_t *SPk_sig, const uint8_t *OPk, uint32_t OPk_id) :
-		deviceId{deviceId}, Ik{Ik}, SPk{SPk}, SPk_id{SPk_id}, SPk_sig{SPk_sig}, haveOPk{true}, OPk{OPk}, OPk_id{OPk_id} {};
-
-		// use uint8_t * constructor for all keys/signatures
 		X3DH_peerBundle(std::string &&deviceId, std::vector<uint8_t>::const_iterator Ik, std::vector<uint8_t>::const_iterator SPk, uint32_t SPk_id, std::vector<uint8_t>::const_iterator SPk_sig) :
 		deviceId{deviceId}, Ik{Ik}, SPk{SPk}, SPk_id{SPk_id}, SPk_sig{SPk_sig}, haveOPk{false}, OPk{}, OPk_id{0} {};
 

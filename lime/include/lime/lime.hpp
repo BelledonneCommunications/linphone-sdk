@@ -26,30 +26,45 @@
 
 namespace lime {
 
-	/* This enum identifies the elliptic curve used in lime, the values assigned are used in localStorage and X3DH server
-	 * so do not modify it or we'll loose sync with existing DB and X3DH server */
-	enum class CurveId : uint8_t {unset=0, c25519=1, c448=2};
-
-	/* enum to manage the encryption policy:
-	 * - DRMessage: the plaintext input is encrypted inside the Double Ratchet message(each recipient get a different encryption): not optimal for messages with numerous recipient
-	 * - cipherMessage: the plaintext input is encrypted with a random key and this random key is encrypted to each participant inside the Double Ratchet message(for a single recipient the overhead is 48 bytes)
-	 * - optimizeSize: optimize output size: encrypt in DR message if plaintext is short enougth to beat the overhead introduced by cipher message scheme, otherwise use cipher message. This is the default policy used
+	/** Identifies the elliptic curve used in lime, the values assigned are used in localStorage and X3DH server
+	 * so do not modify it or we'll loose sync with existing DB and X3DH server
 	 */
-	enum class EncryptionPolicy {DRMessage, cipherMessage, optimizeSize};
+	enum class CurveId : uint8_t {
+		unset=0, /**< used as default to detected incorrect behavior */
+		c25519=1, /**< Curve 25519 */
+		c448=2}; /**< Curve 448-goldilocks */
 
-	/* Struct used to manage recipient list for encrypt function input: give a recipient GRUU and get it back with the header which must be sent to recipient with the cipher text*/
+	/** Manage the encryption policy : how is the user's plaintext encrypted */
+	enum class EncryptionPolicy {
+		DRMessage, /**< the plaintext input is encrypted inside the Double Ratchet message(each recipient get a different encryption): not optimal for messages with numerous recipient */
+		cipherMessage, /**< the plaintext input is encrypted with a random key and this random key is encrypted to each participant inside the Double Ratchet message(for a single recipient the overhead is 48 bytes) */
+		optimizeSize /**< optimize output size: encrypt in DR message if plaintext is short enougth to beat the overhead introduced by cipher message scheme, otherwise use cipher message. This is the default policy used */
+	};
+
+	/** Used to manage recipient list for encrypt function input: give a recipient GRUU and get it back with the header which must be sent to recipient with the cipher text*/
 	struct recipientData {
-		std::string deviceId; // recipient deviceId (shall be GRUU)
-		bool identityVerified; // after encrypt calls back, it will hold the status of this peer device: identity verified or not
-		std::vector<uint8_t> cipherHeader; // after encrypt calls back, it will hold the header targeted to the specified recipient. This header may contain an X3DH init message.
+		const std::string deviceId; /**< recipient deviceId (shall be GRUU) */
+		bool identityVerified; /**< after encrypt calls back, it will hold the status of this peer device: identity verified or not */
+		std::vector<uint8_t> cipherHeader; /**< after encrypt calls back, it will hold the header targeted to the specified recipient. This header may contain an X3DH init message. */
+		/**
+		 * recipient data are built giving a recipient id
+		 * @param[in] deviceId	the recipient device Id (its GRUU)
+		 */
 		recipientData(const std::string deviceId) : deviceId{deviceId}, identityVerified{false}, cipherHeader{} {};
 	};
 
-	/* Enum of what a Lime callback could possibly say */
-	enum class callbackReturn : uint8_t {success, fail};
-	// a callback function must return a code and may return a string(could actually be empty) to detail what's happening
-	// callback is used on every operation possibly involving a connection to X3DH server: create_user, delete_user, encrypt
-	using limeCallback = std::function<void(lime::callbackReturn, std::string)>;
+	/** what a Lime callback could possibly say */
+	enum class callbackReturn : uint8_t {
+		success, /**< operation completed successfully */
+		fail /**< operation failed, we shall have an explanation string too */
+	};
+	/** @brief Callback use to give a status on asynchronous operation
+	 *	it returns a code and may return a string(could actually be empty) to detail what's happening
+	 *  	callback is used on every operation possibly involving a connection to X3DH server: create_user, delete_user, encrypt and update
+	 *  @param[in]	status	success or fail
+	 *  @param[in]	message	in case of failure, an explanation, it may be empty
+	 */
+	using limeCallback = std::function<void(const lime::callbackReturn status, const std::string message)>;
 
 	/* X3DH server communication : these functions prototypes are used to post data and get response from/to the X3DH server */
 	/**
@@ -74,7 +89,11 @@ namespace lime {
 	/* Forward declare the class managing one lime user*/
 	class LimeGeneric;
 
-	/* Manage Lime objects(it's one per user), then adressed using their device Id (GRUU) */
+	/** Manage Lime objects
+	 * 	LimeManager is mostly a cache of Lime users, any command get as first parameter the device Id (Lime manage devices only, the link user(sip:uri)<->device(GRUU) is provided by upper level)
+	 *	All interactions should take place through the LimeManager object, any endpoint shall have only one LimeManager object instanciated
+	 */
+
 	class LimeManager {
 		private :
 			std::unordered_map<std::string, std::shared_ptr<LimeGeneric>> m_users_cache; // cache of already opened Lime Session, identified by user Id (GRUU)
@@ -83,7 +102,6 @@ namespace lime {
 			void load_user(std::shared_ptr<LimeGeneric> &user, const std::string &localDeviceId); // helper function, get from m_users_cache of local Storage the requested Lime object
 
 		public :
-			/* LimeManager is mostly a cache of Lime users, any command get as first parameter the device Id (Lime manage devices only, the link user(sip:uri)<->device(GRUU) is provided by upper level) */
 
 			/**
 			 * @brief Create a user in local database and publish it on the given X3DH server
@@ -97,10 +115,14 @@ namespace lime {
 			 * @param[in]	initialOPkBatchSize	Number of OPks in the first batch uploaded to X3DH server
 			 * @param[in]	callback		This operation contact the X3DH server and is thus asynchronous, when server responds,
 			 * 					this callback will be called giving the exit status and an error message in case of failure
+			 * @note
 			 * The initialOPkBatchSize is optionnal, if not used, set to defaults defined in lime::settings
 			 * (not done with param default value as the lime::settings shall not be available in public include)
 			 */
 			void create_user(const std::string &localDeviceId, const std::string &x3dhServerUrl, const lime::CurveId curve, const uint16_t initialOPkBatchSize, const limeCallback &callback);
+			/**
+			 * @overload void create_user(const std::string &localDeviceId, const std::string &x3dhServerUrl, const lime::CurveId curve, const limeCallback &callback)
+			 */
 			void create_user(const std::string &localDeviceId, const std::string &x3dhServerUrl, const lime::CurveId curve, const limeCallback &callback);
 
 			/**
@@ -136,7 +158,7 @@ namespace lime {
 			 *
 			 * @param[in]		localDeviceId	used to identify which local acount to use and also as the identified source of the message, shall be the GRUU
 			 * @param[in]		recipientUserId	the Id of intended recipient, shall be a sip:uri of user or conference, is used as associated data to ensure no-one can mess with intended recipient
-			 * @param[in/out]	recipients	a list of recipientData holding: the recipient device Id(GRUU) and an empty buffer to store the cipherHeader which must then be routed to that recipient
+			 * @param[in,out]	recipients	a list of recipientData holding: the recipient device Id(GRUU) and an empty buffer to store the cipherHeader which must then be routed to that recipient
 			 * @param[in]		plainMessage	a buffer holding the message to encrypt, can be text or data.
 			 * @param[out]		cipherMessage	points to the buffer to store the encrypted message which must be routed to all recipients
 			 * @param[in]		callback	Performing encryption may involve the X3DH server and is thus asynchronous, when the operation is completed,
@@ -155,6 +177,7 @@ namespace lime {
 			 * @param[in]		localDeviceId	used to identify which local acount to use and also as the recipient device ID of the message, shall be the GRUU
 			 * @param[in]		recipientUserId	the Id of intended recipient, shall be a sip:uri of user or conference, is used as associated data to ensure no-one can mess with intended recipient
 			 * 					it is not necessarily the sip:uri base of the GRUU as this could be a message from alice first device intended to bob being decrypted on alice second device
+			 * @param[in]		senderDeviceId	Identify sender Device. This field shall be extracted from signaling data in transport protocol, is used to rebuild the authenticated data associated to the encrypted message
 			 * @param[in]		cipherHeader	the part of cipher which is targeted to current device
 			 * @param[in]		cipherMessage	part of cipher routed to all recipient devices
 			 * @param[out]		plainMessage	the output buffer
@@ -176,11 +199,15 @@ namespace lime {
 			 * @param[in]	OPkServerLowLimit	If server holds less OPk than this limit, generate and upload a batch of OPks
 			 * @param[in]	OPkBatchSize		Number of OPks in a batch uploaded to server
 			 *
+			 * @note
 			 * The last two parameters are optionnal, if not used, set to defaults defined in lime::settings
 			 * (not done with param default value as the lime::settings shall not be available in public include)
 			 */
-			void update(const limeCallback &callback);
 			void update(const limeCallback &callback, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize);
+			/**
+			 * @overload void update(const limeCallback &callback)
+			 */
+			void update(const limeCallback &callback);
 
 			/**
 			 * @brief retrieve self Identity Key, an EdDSA formatted public key

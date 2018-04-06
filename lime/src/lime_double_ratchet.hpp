@@ -45,11 +45,20 @@ namespace lime {
 
 	// Shared Associated Data : stored at session initialisation, given by upper level(X3DH), shall be derived from Identity and Identity keys of sender and recipient, fixed size for storage convenience
 	using SharedADBuffer = std::array<uint8_t, lime::settings::DRSessionSharedADSize>;
-	// Chain storing the DH and MKs associated with Nr(uint16_t map index)
+
+	/**
+	 * Chain storing the DH and MKs associated with Nr(uint16_t map index)
+	 */
 	template <typename Curve>
 	struct receiverKeyChain {
+		/// peer public key identifying this chain
 		X<Curve, lime::Xtype::publicKey> DHr;
+		/// message keys indexed by Nr
 		std::unordered_map<std::uint16_t, DRMKey> messageKeys;
+		/**
+		 * Start a new empty chain
+		 * @param[in]	key	the peer DH public key used on this chain
+		 */
 		receiverKeyChain(X<Curve, lime::Xtype::publicKey> key) :DHr{std::move(key)}, messageKeys{} {};
 	};
 
@@ -110,12 +119,15 @@ namespace lime {
 	};
 
 
+	/**
+	 * Used for internal management of recipientData, includes the Double Ratchet session shared with the recipient
+	 */
 	template <typename Curve>
 	struct recipientInfos {
-		std::shared_ptr<DR<Curve>> DRSession; // Session to reach recipient
-		std::string deviceId; // recipient device Id(gruu)
-		bool identityVerified; // will hold the status of peer: did we already verified his identity
-		std::vector<uint8_t> cipherHeader; // will hold the header targeted to this recipient after encryption
+		std::shared_ptr<DR<Curve>> DRSession; /**< DR Session to reach recipient */
+		std::string deviceId; /**< recipient deviceId (shall be GRUU) */
+		bool identityVerified; /**< after encrypt calls back, it will hold the status of this peer device: identity verified or not */
+		std::vector<uint8_t> cipherHeader; /**< after encrypt calls back, it will hold the header targeted to the specified recipient. This header may contain an X3DH init message. */
 		recipientInfos() : DRSession{nullptr}, deviceId{}, identityVerified{false}, cipherHeader{} {};
 		recipientInfos(std::string deviceId) : DRSession{nullptr}, deviceId{deviceId}, identityVerified{false}, cipherHeader{} {};
 		recipientInfos(std::string deviceId, std::shared_ptr<DR<Curve>> session) : DRSession{session}, deviceId{deviceId}, identityVerified{false}, cipherHeader{} {};
@@ -127,7 +139,7 @@ namespace lime {
 	 *	The plaintext is first encrypted by one randomly generated key using aes-gcm
 	 *	The key and IV are then encrypted with DR Session specific to each device
 	 *
-	 * @param[in/out]	recipients	vector of recipients device id(gruu) and linked DR Session, DR Session are modified by the encryption
+	 * @param[in,out]	recipients	vector of recipients device id(gruu) and linked DR Session, DR Session are modified by the encryption
 	 *					The recipients struct also hold after encryption the encrypted message header targeted to that recipient only
 	 * @param[in]		plaintext	data to be encrypted
 	 * @param[in]		recipientUserId	the recipient ID, not specific to a device(could be a sip-uri) or a user(could be a group sip-uri)
@@ -146,7 +158,7 @@ namespace lime {
 	 * @param[in]		sourceDeviceId		the device Id of sender(gruu)
 	 * @param[in]		recipientDeviceId	the recipient ID, specific to current device(gruu)
 	 * @param[in]		recipientUserId		the recipient ID, not specific to a device(could be a sip-uri) or a user(could be a group sip-uri)
-	 * @param[int/out]	DRSessions		list of DR Sessions linked to sender device, first one shall be the one registered as active
+	 * @param[int,out]	DRSessions		list of DR Sessions linked to sender device, first one shall be the one registered as active
 	 * @param[out]		cipherHeader		message holding the random decryption key encrypted by the DR session
 	 * @param[out]		cipherMessage		message encrypted with a random generated key(and IV)
 	 * @param[out]		plaintext		decrypted message

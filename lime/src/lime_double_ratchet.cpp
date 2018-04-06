@@ -39,7 +39,7 @@ namespace lime {
 	 * @Brief Key Derivation Function used in Root key/Diffie-Hellman Ratchet chain.
 	 *      Use HKDF (see RFC5869) to derive CK and RK in one derivation
 	 *
-	 * @param[in/out]	RK	Input buffer used as salt also to store the 32 first byte of output key material
+	 * @param[in,out]	RK	Input buffer used as salt also to store the 32 first byte of output key material
 	 * @param[out]		CK	Output buffer, last 32 bytes of output key material
 	 * @param[in]		dh_out	Buffer used as input key material
 	 */
@@ -66,7 +66,7 @@ namespace lime {
 	 *		CK = HMAC-SHA512(CK, hkdf_ck_info)
 	 *              hkdf_ck_info and hldf_mk_info being a distincts constants (0x02 and 0x01 as suggested in double ratchet - section 5.2)
 	 *
-	 * @param[in/out]	CK	Input/output buffer used as key to compute MK and then next CK
+	 * @param[in,out]	CK	Input/output buffer used as key to compute MK and then next CK
 	 * @param[out]		MK	Message Key(32 bytes) and IV(16 bytes) computed from HMAC_SHA512 keyed with CK
 	 */
 	static void KDF_CK(DRChainKey &CK, DRMKey &MK) noexcept {
@@ -108,7 +108,7 @@ namespace lime {
 	 * @param[in]		plaintext	the input message
 	 * @param[in]		AD		Associated data
 	 * @param[in]		headerSize	Size of the header included in ciphertext
-	 * @param[in/out]	ciphertext	buffer holding: header<size depends on DHKey type>, will append to it: ciphertext || auth tag<16 bytes>
+	 * @param[in,out]	ciphertext	buffer holding: header<size depends on DHKey type>, will append to it: ciphertext || auth tag<16 bytes>
 	 *			this vector version need resizing before calling encrypt
 	 *
 	 * @return false if something goes wrong

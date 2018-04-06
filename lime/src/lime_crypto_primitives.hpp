@@ -33,38 +33,51 @@ namespace lime {
 	/**
 	 * @brief force a buffer values to zero in a way that shall prevent the compiler from optimizing it out
 	 *
-	 * @param[in/out]	buffer	the buffer to be cleared
+	 * @param[in,out]	buffer	the buffer to be cleared
 	 * @param[in]		size	buffer size
 	 */
 	void cleanBuffer(uint8_t *buffer, size_t size);
-	/****************************************************************/
-	/* auto clean fixed size buffer                                 */
-	/****************************************************************/
+
+	/**
+	 * auto clean fixed size buffer(std::array based)
+	 */
 	template <size_t T>
 	struct sBuffer : public std::array<uint8_t, T> {
-			~sBuffer() {cleanBuffer(this->data(), T);}; // zeroise all buffer when done
+			/// zeroise all buffer when done
+			~sBuffer() {cleanBuffer(this->data(), T);};
 	};
-	/****************************************************************/
-	/* auto clean flexible size buffer(uint8_t vector based)        */
-	/****************************************************************/
+	/**
+	 * auto clean flexible size buffer(uint8_t vector based)
+	 */
 	struct sVector : public std::vector<uint8_t> {
-			~sVector() {cleanBuffer(this->data(), this->size());}; // zeroise all buffer when done
+			/// zeroise all buffer when done
+			~sVector() {cleanBuffer(this->data(), this->size());};
 	};
 
 
 	/****************************************************************/
 	/* Key Exchange Data structures                                 */
 	/****************************************************************/
+	/**
+	 * Base buffer definition for Key Exchange data structure : easy use of array types with correct size
+	 */
 	template <typename Base, lime::Xtype dataType>
 	class X : public std::array<uint8_t, static_cast<size_t>(Base::Xsize(dataType))>{
 		public :
-			constexpr static size_t ssize(void) {return Base::Xsize(dataType);}; // provide a static size function to be able to call the function not on an object
-			X(std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, Base::Xsize(dataType), this->begin());} // construct from a std::vector<uint8_t>
+			/// provide a static size function to be able to call the function not on an object
+			constexpr static size_t ssize(void) {return Base::Xsize(dataType);};
+			/// construct from a std::vector<uint8_t>
+			X(std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, Base::Xsize(dataType), this->begin());}
 			X() {};
-			void assign(std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, Base::Xsize(dataType), this->begin());} // copy from a std::vector<uint8_t>
-			~X() {cleanBuffer(this->data(), Base::Xsize(dataType));}; // zeroise all buffer when done
+			/// copy from a std::vector<uint8_t>
+			void assign(std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, Base::Xsize(dataType), this->begin());}
+			/// zeroise all buffer when done
+			~X() {cleanBuffer(this->data(), Base::Xsize(dataType));};
 	};
 
+	/**
+	 * Key pair structure for key exchange algorithm
+	 */
 	template <typename Base>
 	class Xpair {
 		private:
@@ -82,16 +95,26 @@ namespace lime {
 	/****************************************************************/
 	/* Digital Signature Algorithm data structures                  */
 	/****************************************************************/
+	/**
+	 * Base buffer definition for DSA data structure : easy use of array types with correct size
+	 */
 	template <typename Base, lime::DSAtype dataType>
 	class DSA : public std::array<uint8_t, static_cast<size_t>(Base::DSAsize(dataType))>{
 		public :
-			constexpr static size_t ssize(void) {return Base::DSAsize(dataType);}; // provide a static size function to be able to call the function not on an object
-			DSA(std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, Base::DSAsize(dataType), this->begin());} // contruct from a std::vector<uint8_t>
+			/// provide a static size function to be able to call the function not on an object
+			constexpr static size_t ssize(void) {return Base::DSAsize(dataType);};
+			/// contruct from a std::vector<uint8_t>
+			DSA(std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, Base::DSAsize(dataType), this->begin());}
 			DSA() {};
-			void assign(std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, Base::DSAsize(dataType), this->begin());} // copy from a std::vector<uint8_t>
-			~DSA() {cleanBuffer(this->data(), Base::DSAsize(dataType));}; // zeroise all buffer when done
+			/// copy from a std::vector<uint8_t>
+			void assign(std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, Base::DSAsize(dataType), this->begin());}
+			/// zeroise all buffer when done
+			~DSA() {cleanBuffer(this->data(), Base::DSAsize(dataType));};
 	};
 
+	/**
+	 * Key pair structure for DSA algorithm
+	 */
 	template <typename Base>
 	class DSApair {
 		private:
@@ -110,10 +133,13 @@ namespace lime {
 /********************** Crypto Algo interface ****************************************************/
 /*************************************************************************************************/
 
+/**
+ * Random number generator
+ */
 class RNG {
 	public:
 		/**
-		 * @Brief fill given buffer with Random bytes
+		 * @brief fill given buffer with Random bytes
 		 *
 		 * @param[out]	buffer	point to the beginning of the buffer to be filled with random bytes
 		 * @param[in]	size	size of the buffer to be filled
@@ -121,7 +147,7 @@ class RNG {
 		
 		virtual void randomize(uint8_t *buffer, const size_t size) = 0;
 		/**
-		 * @Brief fill given buffer with Random bytes
+		 * @brief fill given buffer with Random bytes
 		 *
 		 * @param[out]	buffer	vector to be filled with random bytes(based on original vector size)
 		 */
@@ -130,6 +156,11 @@ class RNG {
 		virtual ~RNG() = default;
 }; //class RNG
 
+/**
+ * Key exchange wrapper:
+ *  - shall be able to wrap around any algorithm providing key exchange
+ *  - wrapped in algorithms must support key format convertion function from matching Digital Signature algorithm
+ */
 template <typename Base>
 class keyExchange {
 	public:
@@ -148,7 +179,7 @@ class keyExchange {
 		virtual void set_peerPublic(const DSA<Base, lime::DSAtype::publicKey> &peerPublic) = 0; /**< Peer Public key */
 
 		/**
-		 * @Brief generate a new random key pair
+		 * @brief generate a new random key pair
 		 *
 		 * @param[in]	rng	The Random Number Generator to be used to generate the private kay
 		 */
@@ -166,6 +197,10 @@ class keyExchange {
 		virtual ~keyExchange() = default;
 }; //class keyExchange
 
+/**
+ * Digital Signature wrapper
+ *  - shall be able to wrap around any algorithm providing key exchange
+ */
 template <typename Base>
 class Signature {
 	public:
@@ -177,7 +212,7 @@ class Signature {
 		virtual void set_public(const DSA<Base, lime::DSAtype::publicKey> &publicKey) = 0; /**< Self Public key */
 
 		/**
-		 * @Brief generate a new random EdDSA key pair
+		 * @brief generate a new random EdDSA key pair
 		 *
 		 * @param[in]	rng	The Random Number Generator to be used to generate the private kay
 		 */
@@ -195,6 +230,10 @@ class Signature {
 		 * @param[out]	signature	The signature produced from the message with a key pair previously introduced in the object
 		 */
 		virtual void sign(const std::vector<uint8_t> &message, DSA<Base, lime::DSAtype::signature> &signature) = 0;
+		/*
+		 * @overload virtual void sign(const X<Base, lime::Xtype::publicKey> &message, DSA<Base, lime::DSAtype::signature> &signature)
+		 * a convenience function to directly verify a key exchange public key
+		 */
 		virtual void sign(const X<Base, lime::Xtype::publicKey> &message, DSA<Base, lime::DSAtype::signature> &signature) = 0;
 
 		/**
@@ -206,6 +245,10 @@ class Signature {
 		 * @return	true if the signature is valid, false otherwise
 		 */
 		virtual bool verify(const std::vector<uint8_t> &message, const DSA<Base, lime::DSAtype::signature> &signature) = 0;
+		/*
+		 * @overload virtual bool verify(const X<Base, lime::Xtype::publicKey> &message, const DSA<Base, lime::DSAtype::signature> &signature)
+		 * a convenience function to directly verify a key exchange public key
+		 */
 		virtual bool verify(const X<Base, lime::Xtype::publicKey> &message, const DSA<Base, lime::DSAtype::signature> &signature) = 0;
 
 		virtual ~Signature() = default;
@@ -263,7 +306,7 @@ void HMAC_KDF(const uint8_t *const salt, const size_t saltSize, const uint8_t *c
 /************************ AEAD interface *************************************/
 
 /**
- * @Brief Encrypt and tag using scheme given as template parameter
+ * @brief Encrypt and tag using scheme given as template parameter
  *
  * @param[in]	key		Encryption key
  * @param[in]	keySize		Key buffer length, it must match the selected AEAD scheme or an exception is generated
@@ -283,7 +326,7 @@ void AEAD_encrypt(const uint8_t *const key, const size_t keySize, const uint8_t 
 		uint8_t *tag, const size_t tagSize, uint8_t *cipher);
 
 /**
- * @Brief Authenticate and Decrypt using scheme given as template parameter
+ * @brief Authenticate and Decrypt using scheme given as template parameter
  *
  * @param[in]	key		Encryption key
  * @param[in]	keySize		Key buffer length, it must match the selected AEAD scheme or an exception is generated

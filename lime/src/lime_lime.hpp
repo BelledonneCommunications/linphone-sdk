@@ -26,8 +26,8 @@
 
 namespace lime {
 
-	/* A pure abstract class, implementation used is set by curveId parameter given to insert/load_limeUser function */
-	/* NOTE: never instanciate directly a Lime object, always use the Lime Factory function as Lime object MUST be held by a shared pointer */
+	/** A pure abstract class, implementation used is set by curveId parameter given to insert/load_limeUser function
+	* @note: never instanciate directly a Lime object, always use the Lime Factory function as Lime object MUST be held by a shared pointer */
 	class LimeGeneric {
 
 	public:
@@ -53,7 +53,7 @@ namespace lime {
 		 * 	Note: all parameters are shared pointers as the process being asynchronous, the ownership will be taken internally exempting caller to manage the buffers.
 		 *
 		 * @param[in]		recipientUserId		the Id of intended recipient, shall be a sip:uri of user or conference, is used as associated data to ensure no-one can mess with intended recipient
-		 * @param[in/out]	recipients		a list of recipientData holding: the recipient device Id(GRUU) and an empty buffer to store the cipherHeader which must then be routed to that recipient
+		 * @param[in,out]	recipients		a list of recipientData holding: the recipient device Id(GRUU) and an empty buffer to store the cipherHeader which must then be routed to that recipient
 		 * @param[in]		plainMessage		a buffer holding the message to encrypt, can be text or data.
 		 * @param[in]		encryptionPolicy	select how to manage the encryption: direct use of Double Ratchet message or encrypt in the cipher message and use the DR message to share the cipher message key
 		 * @param[out]		cipherMessage		points to the buffer to store the encrypted message which must be routed to all recipients

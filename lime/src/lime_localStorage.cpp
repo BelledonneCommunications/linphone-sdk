@@ -41,7 +41,7 @@ namespace lime {
  *
  * @param[in]	filename	The path to DB file
  */
-Db::Db(string filename) : sql{sqlite3, filename}{
+Db::Db(std::string filename) : sql{sqlite3, filename}{
 	constexpr int db_module_table_not_holding_lime_row = -1;
 
 	int userVersion=db_module_table_not_holding_lime_row;

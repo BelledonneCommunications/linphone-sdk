@@ -437,7 +437,7 @@ namespace lime {
 	/**
 	 * @brief Clean user data in case of problem or when we're done, it also process the asynchronous encryption queue
 	 *
-	 * @param[in/out] userData	the structure holding the data structure captured by the process response lambda
+	 * @param[in,out] userData	the structure holding the data structure captured by the process response lambda
 	 */
 	template <typename Curve>
 	void Lime<Curve>::cleanUserData(std::shared_ptr<callbackUserData<Curve>> userData) {

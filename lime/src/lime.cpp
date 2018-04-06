@@ -45,7 +45,7 @@ namespace lime {
 	 *  before calling this constructor, user existence in DB is checked and its Uid retrieved
 	 *  just load it into Lime class
 	 *
-	 * @param[in/out]	localStorage			pointer to DB accessor
+	 * @param[in,out]	localStorage			pointer to DB accessor
 	 * @param[in]		deviceId			device Id(shall be GRUU), stored in the structure
 	 * @param[in]		url				URL of the X3DH key server used to publish our keys(retrieved from DB)
 	 * @param[in]		X3DH_post_data			A function used to communicate with the X3DH server
@@ -65,7 +65,7 @@ namespace lime {
 	 * @brief Create user constructor
 	 *  Create a user in DB, if already existing, throw exception
 	 *
-	 * @param[in/out]	localStorage			pointer to DB accessor
+	 * @param[in,out]	localStorage			pointer to DB accessor
 	 * @param[in]		deviceId			device Id(shall be GRUU), stored in the structure
 	 * @param[in]		url				URL of the X3DH key server used to publish our keys
 	 * @param[in]		X3DH_post_data			A function used to communicate with the X3DH server

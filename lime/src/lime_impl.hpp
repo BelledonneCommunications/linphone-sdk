@@ -38,7 +38,7 @@ namespace lime {
 	template <typename Curve>
 	struct callbackUserData;
 
-	/* templated declaration of Lime can be specialised using C255 or C448 according to the elliptic curve we want to use */
+	/** templated declaration of Lime can be specialised using C255 or C448 according to the elliptic curve we want to use */
 	template <typename Curve>
 	class Lime : public LimeGeneric, public std::enable_shared_from_this<Lime<Curve>> {
 		private:
@@ -100,7 +100,7 @@ namespace lime {
 			  * Note: ownership of localStorage pointer is transfered to a shared pointer, private menber of Lime class
 			 */
 			Lime(std::unique_ptr<lime::Db> &&localStorage, const std::string &deviceId, const std::string &url, const limeX3DHServerPostData &X3DH_post_data);
-			Lime(std::unique_ptr<lime::Db> &&localStorage, const std::string &deviceId, const std::string &url, const limeX3DHServerPostData &X3DH_post_data, const long Uid);
+			Lime(std::unique_ptr<lime::Db> &&localStorage, const std::string &deviceId, const std::string &url, const limeX3DHServerPostData &X3DH_post_data, const long int Uid);
 			~Lime();
 			Lime(Lime<Curve> &a) = delete; // can't copy a session, force usage of shared pointers
 			Lime<Curve> &operator=(Lime<Curve> &a) = delete; // can't copy a session
@@ -137,35 +137,48 @@ namespace lime {
 			bool decrypt(const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &cipherHeader, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) override;
 	};
 
-	// structure holding user data during callback
+	/**
+	 * structure holding user data during callback
+	 */
 	template <typename Curve>
 	struct callbackUserData {
-		// always needed
-		std::weak_ptr<Lime<Curve>> limeObj; // Lime is owned by the LimeManager, it shall no be destructed, do not own this with a shared_ptr as Lime obj may own the callbackUserData obj thus creating circular reference
-		const limeCallback callback; // is a lambda closure, not real idea of what is its lifetime but it seems ok to hold it this way
-		// needed for encryption: get a shared ref to keep params alive
+		// limeObj is owned by the LimeManager, it shall no be destructed, do not own this with a shared_ptr as Lime obj may own the callbackUserData obj thus creating circular reference
+		std::weak_ptr<Lime<Curve>> limeObj;
+		/// is a lambda closure, not real idea of what is its lifetime but it seems ok to hold it this way
+		const limeCallback callback;
+		/// Recipient username. Needed for encryption: get a shared ref to keep params alive
 		std::shared_ptr<const std::string> recipientUserId;
+		/// Recipient data vector. Needed for encryption: get a shared ref to keep params alive
 		std::shared_ptr<std::vector<recipientData>> recipients;
+		/// plaintext. Needed for encryption: get a shared ref to keep params alive
 		std::shared_ptr<const std::vector<uint8_t>> plainMessage;
+		/// ciphertext buffer. Needed for encryption: get a shared ref to keep params alive
 		std::shared_ptr<std::vector<uint8_t>> cipherMessage;
-		lime::network_state network_state_machine; /* used to run a simple state machine at user creation to perform sequence of packet sending: registerUser, postSPk, postOPks */
-		lime::EncryptionPolicy encryptionPolicy; /* the encryption policy from the original encryption request(if running an encryption request) */
-		uint16_t OPkServerLowLimit; /* Used when fetching from server self OPk to check if we shall upload more */
+		/// used to run a simple state machine at user creation to perform sequence of packet sending: registerUser, postSPk, postOPks
+		lime::network_state network_state_machine;
+		/// the encryption policy from the original encryption request(if running an encryption request), copy its value instead of holding a shared_ptr on it
+		lime::EncryptionPolicy encryptionPolicy;
+		/// Used when fetching from server self OPk to check if we shall upload more
+		uint16_t OPkServerLowLimit;
+		/// Used when fetching from server self OPk : how many will we upload if needed
 		uint16_t OPkBatchSize;
 
-		// created at user create/delete and keys Post. EncryptionPolicy is not used, set it to the default value anyway
+		/** created at user create/delete and keys Post. EncryptionPolicy is not used, set it to the default value anyway
+		 */
 		callbackUserData(std::weak_ptr<Lime<Curve>> thiz, const limeCallback &callbackRef, uint16_t OPkInitialBatchSize=lime::settings::OPk_initialBatchSize, bool startRegisterUserSequence=false)
 			: limeObj{thiz}, callback{callbackRef},
 			recipientUserId{nullptr}, recipients{nullptr}, plainMessage{nullptr}, cipherMessage{nullptr}, network_state_machine{startRegisterUserSequence?lime::network_state::sendSPk:lime::network_state::done},
 			encryptionPolicy(lime::EncryptionPolicy::optimizeSize), OPkServerLowLimit(0), OPkBatchSize(OPkInitialBatchSize) {};
 
-		// created at update: getSelfOPks. EncryptionPolicy is not used, set it to the default value anyway
+		/** created at update: getSelfOPks. EncryptionPolicy is not used, set it to the default value anyway
+		 */
 		callbackUserData(std::weak_ptr<Lime<Curve>> thiz, const limeCallback &callbackRef, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize)
 			: limeObj{thiz}, callback{callbackRef},
 			recipientUserId{nullptr}, recipients{nullptr}, plainMessage{nullptr}, cipherMessage{nullptr}, network_state_machine{lime::network_state::done},
 			encryptionPolicy(lime::EncryptionPolicy::optimizeSize), OPkServerLowLimit{OPkServerLowLimit}, OPkBatchSize{OPkBatchSize} {};
 
-		// created at encrypt(getPeerBundle)
+		/** created at encrypt(getPeerBundle)
+		 */
 		callbackUserData(std::weak_ptr<Lime<Curve>> thiz, const limeCallback &callbackRef,
 				std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<recipientData>> recipients,
 				std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage,

@@ -32,31 +32,47 @@ namespace lime {
 
 	/* define needed constant for the curves: self identificatio(used in DB and as parameter from lib users, data structures sizes)*/
 	/* These structure are used as template argument to enable support for different key Exchznge and signature Algorithms */
-	struct C255 { // curve 25519, use a 4 chars to identify it to improve code readability
+
+	/**
+	 *  curve 25519 key size definition, use a 4 chars(C255) to identify it to improve code readability
+	 */
+	struct C255 {
 		static constexpr lime::CurveId curveId() {return lime::CurveId::c25519;};
-		// for X25519, public, private and shared secret have the same length: 32 bytes
+		/// for X25519, public, private and shared secret have the same length: 32 bytes
 		static constexpr size_t Xsize(lime::Xtype dataType) {return 32;};
-		// for Ed25519, public and private key have the same length: 32 bytes, signature is 64 bytes long
+		/// for Ed25519, public and private key have the same length: 32 bytes, signature is 64 bytes long
 		static constexpr size_t DSAsize(lime::DSAtype dataType) {return (dataType != lime::DSAtype::signature)?32:64;};
 	};
 
-	struct C448 { // curve 448-goldilocks
+	/**
+	 * curve 448-goldilocks key sizes definition
+	 */
+	struct C448 {
 		static constexpr lime::CurveId curveId() {return lime::CurveId::c448;};
-		// for X448, public, private and shared secret have the same length 56 bytes
+		/// for X448, public, private and shared secret have the same length 56 bytes
 		static constexpr size_t Xsize(lime::Xtype dataType) {return 56;};
-		// for Ed448, public and private key have the same length 57 bytes, signature is 114 bytes long
+		/// for Ed448, public and private key have the same length 57 bytes, signature is 114 bytes long
 		static constexpr size_t DSAsize(lime::DSAtype dataType) {return (dataType != lime::DSAtype::signature)?57:114;};
 	};
 
 	// Hash function defines
+	/**
+	 * SHA512 buffer size define
+	 */
 	struct SHA512 {
-		static constexpr size_t ssize() {return 64;} // maximum output size
+		/// maximum output size for SHA512 is 64 bytes
+		static constexpr size_t ssize() {return 64;}
 	};
 
 	// AEAD function defines
+	/**
+	 * AES256GCM buffers size defines
+	 */
 	struct AES256GCM {
-		static constexpr size_t keySize(void) {return 32;}; // key size is 256 bits
-		static constexpr size_t tagSize(void) {return 16;}; // authentication tag size is 128 bits
+		/// key size is 32 bytes
+		static constexpr size_t keySize(void) {return 32;};
+		/// we use authentication tag size of 16 bytes
+		static constexpr size_t tagSize(void) {return 16;};
 	};
 }
 
