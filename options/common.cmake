@@ -28,3 +28,7 @@ lcb_add_option("Doc" "Enable documentation generation with Doxygen." YES)
 lcb_add_option("SOCI" "Enable SOCI support." "${DEFAULT_VALUE_ENABLE_SOCI}")
 lcb_add_option("Tools" "Enable tools binary compilation." "${DEFAULT_VALUE_ENABLE_TOOLS}")
 lcb_add_option("unmaintained" "Allow inclusion of unmaintained code in the build." OFF)
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT IOS AND NOT ANDROID)
+	lcb_add_option("Sanitizer" "Enable Clang sanitizer" "${DEFAULT_VALUE_ENABLE_SANITIZER}")
+endif()
