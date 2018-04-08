@@ -370,24 +370,16 @@ static void lime_encryptionPolicyError() {
 #endif
 }
 
-
 /**
- * Scenario: create DB, alice and bob devices and then Bob encrypt a message to Alice device 1 and 2 using given encryptionPolicy
- *
- * parameters allow to control:
- *  - plaintext message
- *  - number of recipients (1 or 2)
- *  - forced encryption policy(with a bool switch)
- *  - expected message type (must be DRMessage or cipherMessage)
+ * Helper, create DB, alice with 2 devices and bob devices
  */
-static void lime_encryptionPolicy_test(const lime::CurveId curve, const std::string &dbBaseFilename, const std::string &x3dh_server_url,
-		const std::string plainMessage, const bool multipleRecipients,
-		const lime::EncryptionPolicy setEncryptionPolicy, bool forceEncryptionPolicy,
-		const lime::EncryptionPolicy getEncryptionPolicy) {
+static void lime_session_establishment(const lime::CurveId curve, const std::string &dbBaseFilename, const std::string &x3dh_server_url,
+					std::string &dbFilenameAlice, std::shared_ptr<std::string> &aliceDevice1Id, std::shared_ptr<std::string> &aliceDevice2Id, std::shared_ptr<LimeManager> &aliceManager,
+					std::string &dbFilenameBob, std::shared_ptr<std::string> &bobDeviceId, std::shared_ptr<LimeManager> &bobManager) {
 	// create DB
-	std::string dbFilenameAlice = dbBaseFilename;
+	dbFilenameAlice = dbBaseFilename;
 	dbFilenameAlice.append(".alice.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
-	std::string dbFilenameBob = dbBaseFilename;
+	dbFilenameBob = dbBaseFilename;
 	dbFilenameBob.append(".bob.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
 
 	remove(dbFilenameAlice.data()); // delete the database file if already exists
@@ -405,24 +397,54 @@ static void lime_encryptionPolicy_test(const lime::CurveId curve, const std::str
 					}
 				});
 	try {
-		// create Manager and recipient(s) device for alice
-		std::unique_ptr<LimeManager> aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
-		std::shared_ptr<std::string> aliceDevice1Id = lime_tester::makeRandomDeviceName("alice.d1.");
+		// create Manager and device for alice
+		aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
+		aliceDevice1Id = lime_tester::makeRandomDeviceName("alice.d1.");
 		aliceManager->create_user(*aliceDevice1Id, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
-		// aliceDevice2Id string device id is created anyway for simpler code
-		std::shared_ptr<std::string> aliceDevice2Id = lime_tester::makeRandomDeviceName("alice.d2.");
-		if (multipleRecipients) {
-			aliceManager->create_user(*aliceDevice2Id, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
-			BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
-		}
+		aliceDevice2Id = lime_tester::makeRandomDeviceName("alice.d2.");
+		aliceManager->create_user(*aliceDevice2Id, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		// Create manager and device for bob
-		std::unique_ptr<LimeManager> bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, X3DHServerPost));
-		std::shared_ptr<std::string> bobDeviceId = lime_tester::makeRandomDeviceName("bob.d");
+		bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, X3DHServerPost));
+		bobDeviceId = lime_tester::makeRandomDeviceName("bob.d");
 		bobManager->create_user(*bobDeviceId, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
+	} catch (BctbxException &e) {
+		BC_FAIL("Session establishment failed");
+		throw;
+	}
+}
+
+/**
+ * Scenario: Bob encrypt a message to Alice device 1 and 2 using given encryptionPolicy
+ *
+ * parameters allow to control:
+ *  - plaintext message
+ *  - number of recipients (1 or 2)
+ *  - forced encryption policy(with a bool switch)
+ *  - expected message type (must be DRMessage or cipherMessage)
+ */
+static void lime_encryptionPolicy_test(std::shared_ptr<LimeManager> aliceManager, std::shared_ptr<std::string> aliceDevice1Id, std::shared_ptr<std::string> aliceDevice2Id,
+		std::shared_ptr<LimeManager> bobManager, std::shared_ptr<std::string> bobDeviceId,
+		const std::string plainMessage, const bool multipleRecipients,
+		const lime::EncryptionPolicy setEncryptionPolicy, bool forceEncryptionPolicy,
+		const lime::EncryptionPolicy getEncryptionPolicy) {
+
+	lime_tester::events_counters_t counters={};
+	int expected_success=0;
+
+	limeCallback callback([&counters](lime::callbackReturn returnCode, std::string anythingToSay) {
+					if (returnCode == lime::callbackReturn::success) {
+						counters.operation_success++;
+					} else {
+						counters.operation_failed++;
+						LIME_LOGE<<"Lime operation failed : "<<anythingToSay;
+					}
+				});
+	try {
 		// bob encrypt a message to Alice devices 1 and 2
 		auto bobRecipients = make_shared<std::vector<recipientData>>();
 		bobRecipients->emplace_back(*aliceDevice1Id);
@@ -467,17 +489,6 @@ static void lime_encryptionPolicy_test(const lime::CurveId curve, const std::str
 			BC_ASSERT_TRUE(receivedMessageString2 == plainMessage);
 		}
 
-		if (cleanDatabase) {
-			aliceManager->delete_user(*aliceDevice1Id, callback);
-			if (multipleRecipients) {
-				aliceManager->delete_user(*aliceDevice2Id, callback);
-				expected_success++;
-			}
-			bobManager->delete_user(*bobDeviceId, callback);
-			BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,expected_success+2,lime_tester::wait_for_timeout));
-			remove(dbFilenameAlice.data());
-			remove(dbFilenameBob.data());
-		}
 
 	} catch (BctbxException &e) {
 		BC_FAIL("Session establishment failed");
@@ -485,87 +496,170 @@ static void lime_encryptionPolicy_test(const lime::CurveId curve, const std::str
 	}
 }
 static void lime_encryptionPolicy_suite(lime::CurveId curveId, const std::string &x3dh_server_url ) {
+	std::string dbFilenameAlice;
+	std::shared_ptr<std::string> aliceDevice1Id;
+	std::shared_ptr<std::string> aliceDevice2Id;
+	std::shared_ptr<LimeManager> aliceManager;
+	std::string dbFilenameBob;
+	std::shared_ptr<std::string> bobDeviceId;
+	std::shared_ptr<LimeManager> bobManager;
+
+	lime_tester::events_counters_t counters={};
+	int expected_success=0;
+
+	limeCallback callback([&counters](lime::callbackReturn returnCode, std::string anythingToSay) {
+					if (returnCode == lime::callbackReturn::success) {
+						counters.operation_success++;
+					} else {
+						counters.operation_failed++;
+						LIME_LOGE<<"Lime operation failed : "<<anythingToSay;
+					}
+				});
+
+	// create 2 devices for alice and 1 for bob
+	lime_session_establishment(curveId, "lime_encryptionPolicy", x3dh_server_url,
+				dbFilenameAlice, aliceDevice1Id, aliceDevice2Id, aliceManager,
+				dbFilenameBob, bobDeviceId, bobManager);
+
+	// Bob encrypts to alice and we check result
 	/**** Short messages ****/
-	lime_encryptionPolicy_test(curveId, "lime_encryptionPolicy", x3dh_server_url,
+	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
+			bobManager, bobDeviceId,
 			lime_tester::shortMessage, false, // single recipient
-			lime::EncryptionPolicy::optimizeSize, false, // default policy(->optimizeSize)
+			lime::EncryptionPolicy::optimizeUploadSize, false, // default policy(->optimizeUploadSize)
 			lime::EncryptionPolicy::DRMessage); // -> DRMessage
 
-	lime_encryptionPolicy_test(curveId, "lime_encryptionPolicy", x3dh_server_url,
+	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
+			bobManager, bobDeviceId,
 			lime_tester::shortMessage, false, // single recipient
-			lime::EncryptionPolicy::optimizeSize, true, // force to optimizeSize
+			lime::EncryptionPolicy::optimizeUploadSize, true, // force to optimizeUploadSize
 			lime::EncryptionPolicy::DRMessage); // -> DRMessage
 
-	lime_encryptionPolicy_test(curveId, "lime_encryptionPolicy", x3dh_server_url,
+	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
+			bobManager, bobDeviceId,
+			lime_tester::shortMessage, false, // single recipient
+			lime::EncryptionPolicy::optimizeGlobalBandwidth, true, // force to optimizeGlobalBandwidth
+			lime::EncryptionPolicy::DRMessage); // -> DRMessage
+
+	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
+			bobManager, bobDeviceId,
 			lime_tester::shortMessage, false, // single recipient
 			lime::EncryptionPolicy::DRMessage, true, // force to DRMessage
 			lime::EncryptionPolicy::DRMessage); // -> DRMessage
 
-	lime_encryptionPolicy_test(curveId, "lime_encryptionPolicy", x3dh_server_url,
+	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
+			bobManager, bobDeviceId,
 			lime_tester::shortMessage, false, // single recipient
 			lime::EncryptionPolicy::cipherMessage, true, // force to DRMessage
 			lime::EncryptionPolicy::cipherMessage); // -> cipherMessage
 
-	lime_encryptionPolicy_test(curveId, "lime_encryptionPolicy", x3dh_server_url,
+	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
+			bobManager, bobDeviceId,
 			lime_tester::shortMessage, true, //multiple recipient
-			lime::EncryptionPolicy::optimizeSize, false, // default policy(->optimizeSize)
+			lime::EncryptionPolicy::optimizeUploadSize, false, // default policy(->optimizeUploadSize)
 			lime::EncryptionPolicy::DRMessage); // -> DRMessage
 
-	lime_encryptionPolicy_test(curveId, "lime_encryptionPolicy", x3dh_server_url,
+	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
+			bobManager, bobDeviceId,
 			lime_tester::shortMessage, true, //multiple recipient
-			lime::EncryptionPolicy::optimizeSize, true, // force to optimizeSize
+			lime::EncryptionPolicy::optimizeUploadSize, true, // force to optimizeUploadSize
 			lime::EncryptionPolicy::DRMessage); // -> DRMessage
 
-	lime_encryptionPolicy_test(curveId, "lime_encryptionPolicy", x3dh_server_url,
+	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
+			bobManager, bobDeviceId,
+			lime_tester::shortMessage, true, //multiple recipient
+			lime::EncryptionPolicy::optimizeGlobalBandwidth, true, // force to optimizeGlobalBandwidth
+			lime::EncryptionPolicy::DRMessage); // -> DRMessage
+
+
+	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
+			bobManager, bobDeviceId,
 			lime_tester::shortMessage, true, //multiple recipient
 			lime::EncryptionPolicy::DRMessage, true, // force to DRMessage
 			lime::EncryptionPolicy::DRMessage); // -> DRMessage
 
-	lime_encryptionPolicy_test(curveId, "lime_encryptionPolicy", x3dh_server_url,
+	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
+			bobManager, bobDeviceId,
 			lime_tester::shortMessage, true, //multiple recipient
 			lime::EncryptionPolicy::cipherMessage, true, // force to DRMessage
 			lime::EncryptionPolicy::cipherMessage); // -> cipherMessage
 
-	/**** Long messages ****/
-	lime_encryptionPolicy_test(curveId, "lime_encryptionPolicy", x3dh_server_url,
+	/**** Long or veryLong messages ****/
+	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
+			bobManager, bobDeviceId,
 			lime_tester::longMessage, false, // single recipient
-			lime::EncryptionPolicy::optimizeSize, false, // default policy(->optimizeSize)
+			lime::EncryptionPolicy::optimizeUploadSize, false, // default policy(->optimizeUploadSize)
 			lime::EncryptionPolicy::DRMessage); // -> DRMessage
 
-	lime_encryptionPolicy_test(curveId, "lime_encryptionPolicy", x3dh_server_url,
+	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
+			bobManager, bobDeviceId,
 			lime_tester::longMessage, false, // single recipient
-			lime::EncryptionPolicy::optimizeSize, true, // force to optimizeSize
+			lime::EncryptionPolicy::optimizeUploadSize, true, // force to optimizeUploadSize
 			lime::EncryptionPolicy::DRMessage); // -> DRMessage
 
-	lime_encryptionPolicy_test(curveId, "lime_encryptionPolicy", x3dh_server_url,
+	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
+			bobManager, bobDeviceId,
+			lime_tester::longMessage, false, // single recipient
+			lime::EncryptionPolicy::optimizeGlobalBandwidth, true, // force to optimizeGlobalBandwidth
+			lime::EncryptionPolicy::DRMessage); // -> DRMessage
+
+	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
+			bobManager, bobDeviceId,
 			lime_tester::longMessage, false, // single recipient
 			lime::EncryptionPolicy::DRMessage, true, // force to DRMessage
 			lime::EncryptionPolicy::DRMessage); // -> DRMessage
 
-	lime_encryptionPolicy_test(curveId, "lime_encryptionPolicy", x3dh_server_url,
+	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
+			bobManager, bobDeviceId,
 			lime_tester::longMessage, false, // single recipient
 			lime::EncryptionPolicy::cipherMessage, true, // force to DRMessage
 			lime::EncryptionPolicy::cipherMessage); // -> cipherMessage
 
-	lime_encryptionPolicy_test(curveId, "lime_encryptionPolicy", x3dh_server_url,
+	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
+			bobManager, bobDeviceId,
 			lime_tester::longMessage, true, //multiple recipient
-			lime::EncryptionPolicy::optimizeSize, false, // default policy(->optimizeSize)
+			lime::EncryptionPolicy::optimizeUploadSize, false, // default policy(->optimizeUploadSize)
 			lime::EncryptionPolicy::cipherMessage); // -> cipherMessage
 
-	lime_encryptionPolicy_test(curveId, "lime_encryptionPolicy", x3dh_server_url,
+	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
+			bobManager, bobDeviceId,
 			lime_tester::longMessage, true, //multiple recipient
-			lime::EncryptionPolicy::optimizeSize, true, // force to optimizeSize
+			lime::EncryptionPolicy::optimizeUploadSize, true, // force to optimizeUploadSize
 			lime::EncryptionPolicy::cipherMessage); // -> cipherMessage
 
-	lime_encryptionPolicy_test(curveId, "lime_encryptionPolicy", x3dh_server_url,
+	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
+			bobManager, bobDeviceId,
+			lime_tester::longMessage, true, //multiple recipient
+			lime::EncryptionPolicy::optimizeGlobalBandwidth, true, // force to optimizeGlobalBandwidth
+			lime::EncryptionPolicy::DRMessage); // -> DRMessage (we need a very long message to switch to cipherMessage with that setting)
+
+	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
+			bobManager, bobDeviceId,
+			lime_tester::veryLongMessage, true, //multiple recipient
+			lime::EncryptionPolicy::optimizeGlobalBandwidth, true, // force to optimizeGlobalBandwidth
+			lime::EncryptionPolicy::cipherMessage); // -> cipherMessage (we need a very long message to switch to cipherMessage with that setting)
+
+	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
+			bobManager, bobDeviceId,
 			lime_tester::longMessage, true, //multiple recipient
 			lime::EncryptionPolicy::DRMessage, true, // force to DRMessage
 			lime::EncryptionPolicy::DRMessage); // -> DRMessage
 
-	lime_encryptionPolicy_test(curveId, "lime_encryptionPolicy", x3dh_server_url,
+	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
+			bobManager, bobDeviceId,
 			lime_tester::longMessage, true, //multiple recipient
 			lime::EncryptionPolicy::cipherMessage, true, // force to DRMessage
 			lime::EncryptionPolicy::cipherMessage); // -> cipherMessage
+
+	if (cleanDatabase) {
+		aliceManager->delete_user(*aliceDevice1Id, callback);
+		aliceManager->delete_user(*aliceDevice2Id, callback);
+		bobManager->delete_user(*bobDeviceId, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,expected_success+3,lime_tester::wait_for_timeout));
+		remove(dbFilenameAlice.data());
+		remove(dbFilenameBob.data());
+	}
+
 }
 
 static void lime_encryptionPolicy() {

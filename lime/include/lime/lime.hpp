@@ -38,7 +38,8 @@ namespace lime {
 	enum class EncryptionPolicy {
 		DRMessage, /**< the plaintext input is encrypted inside the Double Ratchet message(each recipient get a different encryption): not optimal for messages with numerous recipient */
 		cipherMessage, /**< the plaintext input is encrypted with a random key and this random key is encrypted to each participant inside the Double Ratchet message(for a single recipient the overhead is 48 bytes) */
-		optimizeSize /**< optimize output size: encrypt in DR message if plaintext is short enougth to beat the overhead introduced by cipher message scheme, otherwise use cipher message. This is the default policy used */
+		optimizeUploadSize, /**< optimize upload size: encrypt in DR message if plaintext is short enougth to beat the overhead introduced by cipher message scheme, otherwise use cipher message. Selection is made on upload size only. This is the default policy used */
+		optimizeGlobalBandwidth /**< optimize bandwith usage: encrypt in DR message if plaintext is short enougth to beat the overhead introduced by cipher message scheme, otherwise use cipher message. Selection is made on uploadand download(from server to recipients) sizes added. */
 	};
 
 	/** Used to manage recipient list for encrypt function input: give a recipient GRUU and get it back with the header which must be sent to recipient with the cipher text*/
@@ -168,7 +169,7 @@ namespace lime {
 			 * @param[in]		encryptionPolicy	select how to manage the encryption: direct use of Double Ratchet message or encrypt in the cipher message and use the DR message to share the cipher message key
 			 * 						default is optimized output size mode.
 			 */
-			void encrypt(const std::string &localDeviceId, std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<recipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback, lime::EncryptionPolicy encryptionPolicy=lime::EncryptionPolicy::optimizeSize);
+			void encrypt(const std::string &localDeviceId, std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<recipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback, lime::EncryptionPolicy encryptionPolicy=lime::EncryptionPolicy::optimizeUploadSize);
 
 			/**
 			 * @brief Decrypt the given message

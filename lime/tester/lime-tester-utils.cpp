@@ -41,8 +41,13 @@ int wait_for_timeout=4000;
 // default value for initial OPk batch size, keep it small so not too many OPks generated
 uint16_t OPkInitialBatchSize=3;
 
+// messages with calibrated length to test the optimize encryption policies
+// with a short one, any optimize policy shall go for the DRmessage encryption
 std::string shortMessage{"Short Message"};
-std::string longMessage{"This message is long enough to automatically switch to cipher Message mode when at least two recipients are involved. This message is long enough to automatically switch to cipher Message mode when at least two recipients are involved."};
+// with a long one(>80 <176) optimizeUploadSzie policy shall go for the cipherMessage encryption, but the optimizeGlobalBandwith stick to DRmessage (with 2 recipients)
+std::string longMessage{"This message is long enough to automatically switch to cipher Message mode when at least two recipients are involved."};
+// with a very long one(>176) all optimize policies shall go for the cipherMessage encryption(with 2 recipients)
+std::string veryLongMessage{"This message is long enough to automatically switch to cipher Message mode when at least two recipients are involved. This message is long enough to automatically switch to cipher Message mode when at least two recipients are involved."};
 
 std::vector<std::string> messages_pattern = {
 	{"Frankly, my dear, I don't give a damn."},

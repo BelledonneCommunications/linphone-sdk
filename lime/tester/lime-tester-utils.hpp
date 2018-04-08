@@ -34,6 +34,7 @@ namespace lime_tester {
 
 extern std::string shortMessage;
 extern std::string longMessage;
+extern std::string veryLongMessage;
 
 extern std::vector<std::string> messages_pattern;
 

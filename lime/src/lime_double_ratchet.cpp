@@ -416,11 +416,28 @@ namespace lime {
 				payloadDirectEncryption = false;
 				break;
 
-			case lime::EncryptionPolicy::optimizeSize:
-			default: // to make compiler happy but it shal not be necessary
-				// Default encryption policy : go for the optimal output size. All other parts being equal, size of output data is
+			case lime::EncryptionPolicy::optimizeGlobalBandwidth:
+				// optimize the global bandwith consumption: upload size to server + donwload size from server to recipient
+				// server is considered to act cleverly and select the DR message to be send to server not just forward everything to the recipient for them to sort out which is their part
+				// - DR message policy: up and down size are recipient number * plaintext size
+				// - cipher message policy : 	up is <plaintext size + authentication tag size>(cipher message size) + recipient number * random seed size
+				// 				down is recipient number * (random seed size + <plaintext size + authentication tag size>(the cipher message))
+				// Note: We are not taking in consideration the fact that being multipart, the message gets an extra multipart boundary when using cipher message mode
+				if ( 2*recipients.size()*plaintext.size() <=
+						(plaintext.size() + lime::settings::DRMessageAuthTagSize + (2*lime::settings::DRrandomSeedSize + plaintext.size() + lime::settings::DRMessageAuthTagSize)*recipients.size()) )  {
+					payloadDirectEncryption = true;
+				} else {
+					payloadDirectEncryption = false;
+				}
+				break;
+
+				break;
+			case lime::EncryptionPolicy::optimizeUploadSize:
+			default: // to make compiler happy but it shall not be necessary
+				// Default encryption policy : go for the optimal upload size. All other parts being equal, size of output data is
 				// - DR message policy:     recipients number * plaintext size (plaintext is present encrypted in each recipient message)
 				// - cipher message policy: plaintext size + authentication tag size (the cipher message) + recipients number * random seed size (each DR message holds the random seed as encrypted data)
+				// Note: We are not taking in consideration the fact that being multipart, the message gets an extra multipart boundary when using cipher message mode
 				if ( recipients.size()*plaintext.size() <= (plaintext.size() + lime::settings::DRMessageAuthTagSize + (lime::settings::DRrandomSeedSize*recipients.size())) ) {
 					payloadDirectEncryption = true;
 				} else {
