@@ -12,6 +12,17 @@
 \usepackage{textcomp}
 \usepackage[nottoc,numbib]{tocbibind}
 
+% New definitions Switch/case
+\algnewcommand\algorithmicswitch{\textbf{switch}}
+\algnewcommand\algorithmiccase{\textbf{case}}
+\algnewcommand\algorithmicassert{\texttt{assert}}
+\algnewcommand\Assert[1]{\State \algorithmicassert(#1)}%
+% New "environments" Switch/case
+\algdef{SE}[SWITCH]{Switch}{EndSwitch}[1]{\algorithmicswitch\ #1\ \algorithmicdo}{\algorithmicend\ \algorithmicswitch}%
+\algdef{SE}[CASE]{Case}{EndCase}[1]{\algorithmiccase\ #1}{\algorithmicend\ \algorithmiccase}%
+\algtext*{EndSwitch}%
+\algtext*{EndCase}%
+
 \let\oldtabular\tabular 
 \renewcommand{\tabular}{\footnotesize\oldtabular}
 
@@ -47,8 +58,8 @@
 \paragraph{}$element[values]$: element value can be one of the values given in a comma-separated list. For example, $type[1,2,3]$ means $type$ equals either 1, 2, or 3.
 
 \section{Brief introduction to Signal protocol specification documents}
-  \subsection{The Double Ratchet Algorithm}\cite{doubleRatchet}
-    \paragraph{}\textquotedblleft \textit{The Double Ratchet algorithm is used by two parties to exchange encrypted
+  \subsection{The Double Ratchet Algorithm}
+    \paragraph{}\textquotedblleft \textit{The Double Ratchet algorithm\cite{doubleRatchet} is used by two parties to exchange encrypted
 messages based on a shared secret key. Typically the parties will use some
 key agreement protocol (such as X3DH\cite{x3dh}) to agree on the shared secret key.
 Following this, the parties will use the Double Ratchet to send and receive
@@ -60,8 +71,8 @@ are mixed into the derived keys so that later keys cannot be calculated from
 earlier ones. These properties give some protection to earlier or later encrypted
 messages in case of a compromise of a party’s keys.}\textquotedblright 
   
-  \subsection{The X3DH Key Agreement Protocol}\cite{x3dh}
-    \paragraph{}\textquotedblleft \textit{\textquotesingle X3DH\textquotesingle   (or  \textquotesingle Extended Triple Diffie-Hellman\textquotesingle  ) key
+  \subsection{The X3DH Key Agreement Protocol}
+    \paragraph{}\textquotedblleft \textit{\textquotesingle X3DH\textquotesingle   (or  \textquotesingle Extended Triple Diffie-Hellman\textquotesingle  )\cite{x3dh} key
 agreement protocol establishes a shared secret key between two parties
 who mutually authenticate each other based on public keys. X3DH provides
 forward secrecy and cryptographic deniability.
@@ -70,8 +81,8 @@ but has published some information to a server. Another user (\textquotesingle A
 use that information to send encrypted data to Bob and also to establish a shared
 secret key for future communication.}\textquotedblright 
 
-  \subsection{The Sesame Algorithm}\cite{sesame}
-    \paragraph{}\textquotedblleft \textit{The Sesame algorithm manages message encryption
+  \subsection{The Sesame Algorithm}
+    \paragraph{}\textquotedblleft \textit{The Sesame algorithm\cite{sesame} manages message encryption
 sessions in an asynchronous and multi-device setting.
 Sesame was designed to manage Double Ratchet sessions\cite{doubleRatchet} created with a X3DH
 key agreement\cite{x3dh}. However, Sesame is a generic algorithm that works with
@@ -91,7 +102,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
     \end{enumerate}
     This mechanism allows an efficient server-side fan-out but loses the break-in recovery property provided by the Double Ratchet mechanism.
     
-    \paragraph*{}Operating in a multi device environment, Lime does not differentiate between single peer recipients and group recipients: every message sent to a peer may be encrypted to several peer devices and several self devices. The implementation principle is:
+    \paragraph*{}Operating in a multi device environment, Lime provides the following mechanism to save bandwith when sending message to multiple devices:
     \begin{enumerate}
       \item Generate a random key and use it to encrypt the message.
       \item Use Double Ratchet sessions to encrypt the random key.
@@ -101,9 +112,10 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \end{center}
       \item Server fans out the messages to recipients mailboxes posting only the appropriate double ratchet encrypted random key and encrypted message.
     \end{enumerate}
+    \paragraph{}This mechanism is optional and the default behavior of the library is to use it when it saves upload bandwidth, using a regular encryption in the Double Ratchet message otherwise.
     \paragraph{}The bandwidth and computational power consumption is greater than the Whisper System implementation but all the exchanges are protected by an actual Double Ratchet; maintaining the break-in recovery property.
     \paragraph{}Silent members/devices (lost devices and users quitting the network are good candidates) may result in weakness in the break-in recovery as no Diffie-Hellman ratchet step is ever performed. This is mitigated by setting a limit to the sending chain length. The sending device would create a new Double Ratchet session fetching keys from X3DH key server if the limit is reached.
-    \paragraph{Note}: The actual implementation generates a 32 bytes random seed derived through HKDF\cite{rfc5869} expansion round into a 32 bytes key and a 16 bytes nonce. The DR session encrypts the 32 bytes random seed using AES256-GCM (with 16 bytes authentication tag); producing a 48 bytes output to transmit the key.
+    \paragraph{Note}: The actual implementation generates a 32 bytes random seed derived through HKDF\cite{rfc5869} into a 32 bytes key and a 16 bytes nonce. The DR session encrypts the 32 bytes random seed using AES256-GCM (with 16 bytes authentication tag); producing a 48 bytes output to transmit the key.
   
   \subsubsection{AEAD encryption scheme: AES256-GCM}
   \paragraph{}The Double Ratchet specification \cite[section 5.2]{doubleRatchet} recommends the use of a SIV based AEAD encryption scheme.
@@ -113,7 +125,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
     \label{subsec:x3dhIk}
     \paragraph{}The X3DH specification uses ECDH keys only in combination with XEdDSA\cite{xeddsa} to provide an EdDSA-compatible signature using its Identity key (Ik) formatted for X25519 or X448 ECDH functions.
     \paragraph{}Lime performs the same signature and ECDH operations but the identity key (Ik) is generated, stored and transmitted in its EdDSA format and then converted into X25519 or X448 format when an ECDH computation is performed on it.
-    \paragraph{}The X3DH $Encode(PK)$ function recommends the usage of a single byte constant to represent the type of curve followed by the encoding specified in \cite{rfc7748}. Lime uses direct encoding specified in \cite{rfc7748} for its ECDH public keys and \cite{rfc8032} for its EdDSA keys.
+    \paragraph{}The X3DH $Encode(PK)$ function recommends the usage of a single byte constant to represent the type of curve followed by the encoding specified in \cite{rfc7748}. Lime uses direct encoding specified in \cite{rfc7748} for its ECDH public keys and \cite{rfc8032} for its EdDSA keys but the type of curve is present in the messages header.
 
   \subsection{Authentication}
   \paragraph*{}X3DH specification mentions \cite[section 4.1]{x3dh} the necessity of an identity authentication mechanism and libsignal\cite{libsignal} implements a key fingerprints comparison to provide it. Lime makes use of a ZRTP\cite{zrtp} call with an oral SAS verification to provide mutual identity authentication. See implementation details in section \ref{subsec:mutualauthentication}
@@ -172,8 +184,9 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \begin{algorithmic}
           \State $recipientDeviceId$: the recipient device Id
           \State $DRsession$: an active Double Ratchet session with the recipient device
-          \State $DRcipher$: encryption output ($header\Arrowvert ciphertext$) for this recipient device
+          \State $DRmessage$: encryption output ($Double\ Ratchet\ Message$) for this recipient device
         \end{algorithmic}
+      \paragraph{}The ouput may be completed by a $Cipher\ Message$ holding the encrypted plain text according to the selected encryption policy,
       \paragraph{}The message is sent from the sender device to one recipient user (with one user Id and one or more associated device Id) but also distributed to other devices registered to the same sender user. Recipient devices in the list must all be linked to this, unique, recipient user Id or to the sender user Id. For example:
       \begin{itemize}
         \item $Alice$, $Bob$ and $Claire$ are users Id. Each of them have several ($nA, nB, nC$) associated devices with devices Id $Alice.1$, $Alice.2$, .., $Alice.nA$
@@ -181,33 +194,131 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \item If $Alice.1$ sends a message to $Bob$, the inputs for the RatchetEncrypt function must include $Bob$ as recipient user and $Bob.1$, .., $Bob.nB$, $Alice.2$, .., $Alice.nA$ as list of recipient devices.
         \item If $Alice.1$ sends a message to $Group$, the inputs for the RatchetEncrypt function must include $Group$ as recipient user and $Bob.1$, .., $Bob.nB$, $Alice.2$, .., $Alice.nA$, $Claire.1$, .., $Claire.nC$ as list of recipient devices.
         \item The Lime library does not perform any check on the link between user Id and device Id and will not generate any error if the RatchetEncrypt arguments are $Bob$ as recipient user and $Bob.1$, .., $Bob.nB$, $Alice.2$, .., $Alice.nA$, $Claire.1$ as list of recipient devices. The error would instead be detected by $Claire.1$ during decryption. See \ref{subsubsec:associatedData} for details on the use of Associated Data to detect mismatching association of user Id and device Id.
+        
       \end{itemize}
-      \paragraph*{}The encryption request performs:
+      \paragraph*{Encryption policy}: As stated in section \ref{subsubsec:groupchat}, the plain message can be:
+      \label{encryptionPolicyMSC}
+      \begin{itemize}
+        \item encrypted directly in the Double Ratchet messages.\textit{(Double Ratchet Message encryption policy)}
+        \item encrypted by a random key in a common cipher message, the random key being encrypted into the Double Ratchet messages.\textit{(Cipher Message encryption policy)}
+      \end{itemize}
+      The two policies are represented on the following diagrams. It is assumed that the server will dispatch only the requested parts to recipients and not the whole upload. Double Ratchet sessions establishment are not shown on the diagram but are assumed to be already completed between all participants. All participants have one device only.\\\newline
+      \begin{msc}{Double Ratchet Message encryption policy}
+        \setlength{\instdist}{3.8cm}
+        \setlength{\instwidth}{1.9cm}
+        \setlength{\actionwidth}{1.7cm}
+        \setlength{\envinstdist}{1.7cm}
+        \declinst{alice}{}{Alice}
+        \declinst{SIP}{}{SIP server}
+        \declinst{bob}{}{Bob}
+        \declinst{claire}{}{Claire}
+        \action{encrypt}{alice}
+        \nextlevel[3]
+        \mess{Bob DR msg$\Arrowvert $Claire DR msg}{alice}{SIP}
+        \nextlevel[2]
+        \mess{Bob DR msg}{SIP}{bob}
+        \nextlevel
+        \mess{Claire DR msg}{SIP}{claire}
+      \end{msc}
+      \\\newline
+      \begin{msc}{Cipher Message encryption policy}
+        \setlength{\instdist}{3.8cm}
+        \setlength{\instwidth}{1.9cm}
+        \setlength{\actionwidth}{1.7cm}
+        \setlength{\envinstdist}{1.9cm}
+        \declinst{alice}{}{Alice}
+        \declinst{SIP}{}{SIP server}
+        \declinst{bob}{}{Bob}
+        \declinst{claire}{}{Claire}
+        \action{encrypt}{alice}
+        \nextlevel[3]
+        \mess{Bob DR msg$\Arrowvert $Claire DR msg$\Arrowvert $cipher Message}{alice}{SIP}
+        \nextlevel[2]
+        \mess{Bob DR msg$\Arrowvert $cipher Message}{SIP}{bob}
+        \nextlevel
+        \mess{Claire DR msg$\Arrowvert $cipher Message}{SIP}{claire}
+      \end{msc}
+      
+      \paragraph*{}Selection of the encryption policy according to policy parameter, recipientLists and plain text characteristics. The policy parameter is given at runtime by caller and default to $optimize\ Upload\ Size$ if omitted. Possible values of this parameter are:
+        \begin{itemize}
+          \item $Double\ Ratchet\ Message$: the plain text is encrypted and embeded in the Double Ratchet message.
+          \item $cipher\ Message$: the plain text is encrypted in a cipher message with a random key, itself encrypted in the DR message.
+          \item $optimize\ Upload\ Size$: for each message, select the mode which minimize the upload size. This is the default policy.
+          \item $optimize\ Global\ Bandwidth$: for each message, select the mode which minimize upload + download size.
+        \end{itemize}
+        \paragraph*{Note}: the optimize modes do not take in consideration the multipart boundary added by the presence of an extra part holding the cipher Message.
         \label{messageEncrypt}
+        
         \begin{algorithmic}
           \Statex
-          \Function{MessageEncrypt}{$recipientList, plain, sourceDeviceId, recipientUserId$}
-            \Comment{Generate a random key and nonce to encrypt the plain, HKDF is called with no salt}
+          \Function{MessageEncrypt}{$recipientList, plain, sourceDeviceId, recipientUserId, policy$}
+            \Switch{$policy$}
+              \Case{$Double Rachet Message$}
+                \State $\Call{DRMessageEncrypt}{recipientList, plain, sourceDeviceId, recipientUserId}$
+              \EndCase
+              \Case{$cipher Message$}
+                \State $\Call{cipherMessageEncrypt}{recipientList, plain, sourceDeviceId, recipientUserId}$
+              \EndCase
+              \Case{$optimize\ Upload\ Size$}
+                \State $n \gets number\ of\ recipients\ in\ the\ recipientList$
+                \State $DRMessageSize \gets n \times plain\ size$
+                \State $cipherMessageSize \gets (plain\ size + authTag\ size) + n\times(randomSeed\ size)$
+                \If{$DRmessageSize \leq cipherMessageSize$}
+                  \State $\Call{DRMessageEncrypt}{recipientList, plain, sourceDeviceId, recipientUserId}$
+                \Else
+                  \State $\Call{cipherMessageEncrypt}{recipientList, plain, sourceDeviceId, recipientUserId}$
+                \EndIf
+              \EndCase
+              \Case{$optimize\ Global\ Bandwidth$}
+                \State $n \gets number\ of\ recipients\ in\ the\ recipientList$
+                \State $DRMessageSize \gets 2\times n \times plain\ size$
+                \State $cipherMessageSize \gets (plain\ size + authTag\ size)$
+                \StatexIndent[9]$+ n\times(2\times randomSeed\ size+plain\ size+authTag\ size)$
+                \If{$DRmessageSize \leq cipherMessageSize$}
+                  \State $\Call{DRMessageEncrypt}{recipientList, plain, sourceDeviceId, recipientUserId}$
+                \Else
+                  \State $\Call{cipherMessageEncrypt}{recipientList, plain, sourceDeviceId, recipientUserId}$
+                \EndIf
+              \EndCase
+
+            \EndSwitch
+          \EndFunction
+        \end{algorithmic}
+        \paragraph*{}with following functions definitions:
+        
+        \begin{algorithmic}
+          \Statex
+          \Function{DRMessageEncrypt}{$recipientList, plain, sourceDeviceId, recipientUserId$}
+            \Comment{Encrypts the plain in the Double Ratchet message}
+            \ForAll{$r \in recipientList$}
+              \State $AD \gets recipientUserId\Arrowvert sourceDeviceId\Arrowvert r.recipientDeviceId$
+              \State $r.DRmessage \gets \Call{RatchetEncrypt}{r.session, plain, AD}$
+            \EndFor
+            \State\Return $recipientList$
+          \EndFunction
+        \end{algorithmic}
+        
+
+        \begin{algorithmic}
+          \Statex
+          \Function{cipherMessageEncrypt}{$recipientList, plain, sourceDeviceId, recipientUserId$}
+            \Comment{Generate a random key and nonce to encrypt the plain}
             \State $randomSeed\langle 32bytes\rangle \gets \Call{RandomSource}{}$
             \State $info \gets \textit{"DR Message Key Derivation"}$
             \State $key\langle 32bytes\rangle\Arrowvert IV\langle 16bytes\rangle \gets \Call{HKDFSha512}{null, randomSeed, info}$
-            \State $cipher\Arrowvert tag\langle 16bytes\rangle  \gets\Call{Encrypt}{key, IV, plain, sourceDeviceId \Arrowvert recipientUserId}$
+            \State $cipherMessage \langle plain size + 16bytes\rangle  \gets\Call{Encrypt}{key, IV, plain, sourceDeviceId \Arrowvert recipientUserId}$
             \Statex
             \Statex
             \Comment{Use Double Ratchet sessions to encrypt the random seed used to encrypt the plain}
             \ForAll{$r \in recipientList$}
               \State $AD \gets tag\Arrowvert sourceDeviceId\Arrowvert r.recipientDeviceId$
-              \State $r.DRcipher \gets \Call{RatchetEncrypt}{r.session, randomSeed, AD}$
+              \State $r.DRmessage \gets \Call{RatchetEncrypt}{r.session, randomSeed, AD}$
             \EndFor
-            \State\Return $recipientList,cipher,tag$
+            \State\Return $recipientList,cipherMessage$
           \EndFunction
         \end{algorithmic}
-      \paragraph*{}with following functions definitions:
+        
         \begin{algorithmic}
-          \Statex
-          \Function{Encrypt}{$key\langle 32 bytes\rangle , IV\langle 16 bytes\rangle , plain, associatedData$}
-            \State\Return AES256-GCM output$\Arrowvert$Auth tag (on plain and associatedData)$\langle 16 bytes\rangle $
-          \EndFunction
           \Statex
           \Function{RatchetEncrypt}{$DRsession, plaintext, AD$}
             \State \textit{\ as described in \cite[section 3.4]{doubleRatchet}:}
@@ -215,37 +326,77 @@ any session-based message encryption algorithm that meets certain conditions.}\t
             \State $header \gets \Call{header}{DHs, PN, Ns}$
             \State $Ns += 1$
             \State\Call{UpdateDRsessionInLocalStorage}{DRsession}
-            \State\Return $header, \Call{Encrypt}{mK, IV, plaintext, AD\Arrowvert X3DH$ $provided$ $AD\Arrowvert header$}
+            \State\Return $header\Arrowvert \Call{Encrypt}{mK, IV, plaintext, AD\Arrowvert X3DH$ $provided$ $AD\Arrowvert header$}
           \EndFunction
           \Statex
         \end{algorithmic}
+        
+        \begin{algorithmic}
+          \Statex
+          \Function{Encrypt}{$key\langle 32 bytes\rangle , IV\langle 16 bytes\rangle , plain, associatedData$}
+            \State\Return AES256-GCM output$\Arrowvert$Auth tag (on plain and associatedData)$\langle 16 bytes\rangle $
+          \EndFunction
+        \end{algorithmic}
+        
       \paragraph{}Header function is specified in section \ref{subsubsec:protocol_doubleratchet_header}
         
     \subsubsection{RatchetDecrypt}
-      \paragraph{}The decryption function described in \cite[section 3.5]{doubleRatchet} is not directly used to decrypt the message. Instead the decryption matches the two steps of encryption: first decrypt the Double Ratchet message to retrieve the random Key and IV, then decrypt the message itself.
+      \paragraph{}The decryption function described in \cite[section 3.5]{doubleRatchet} is not directly used to decrypt the message. Lime first assess the presence of a cipher message and depending on it use directly the Double Ratchet or perform the two steps of encryption: first decrypt the Double Ratchet message to retrieve the random Key and IV, then decrypt the message itself.
       \paragraph*{}The receiving process described in Sesame specifications \cite[section 3.4]{sesame} is partly implemented in the Double Ratchet decryption process: the message decrypt function accepts a list of Double Ratchet sessions and tries them all until one decrypts correctly the message (or all fail).
-      \begin{algorithmic}
+        \begin{algorithmic}
           \Statex
           \Function{MessageDecrypt}{$sourceDeviceId,$
-          \StatexIndent[9] $recipientDeviceId, recipientUserId,$
-          \StatexIndent[9] $DRsessionList, DRcipher,$
-          \StatexIndent[9] $cipher, tag$}
+            \StatexIndent[9] $recipientDeviceId, recipientUserId,$
+            \StatexIndent[9] $DRsessionList, DRmessage, cipherMessage$}
+          
+            \If{$cipherMessage\exists$}
+              \State \Return \Call{cipherMessageDecrypt}{$sourceDeviceId,recipientDeviceId,$
+                \StatexIndent[9] $recipientDeviceId, recipientUserId$
+                \StatexIndent[9] $DRsessionList, DRmessage, cipherMessage$}
+            \Else
+              \State \Return \Call{DRMessageDecrypt}{$sourceDeviceId,recipientDeviceId,$
+                \StatexIndent[9] $recipientDeviceId, recipientUserId$
+                \StatexIndent[9] $DRsessionList, DRmessage$}
+            \EndIf
+          \EndFunction
+        \end{algorithmic}
+          
+        \begin{algorithmic}
           \Statex
-          \State $AD \gets tag\Arrowvert sourceDeviceId\Arrowvert recipientDeviceId$
+          \Function{DRMessageDecrypt}{$sourceDeviceId,$
+          \StatexIndent[9] $recipientDeviceId, recipientUserId,$
+          \StatexIndent[9] $DRsessionList, DRmessage$}
+          \Statex
+          \State $AD \gets recipientUserId\Arrowvert sourceDeviceId\Arrowvert recipientDeviceId$
           \ForAll{$DRsession \in DRsessionList$}
-            \If{$randomSeed \gets\Call{RatchetDecrypt}{DRsession, DRcipher, AD}}$
-              \State $info \gets \textit{"DR Message Key Derivation"}$
-              \State $key\langle 32bytes\rangle\Arrowvert IV\langle 16bytes\rangle \gets \Call{HKDFSha512}{null, randomSeed\langle 32bytes\rangle, info$}
-              \State $plain \gets \Call{Decrypt}{key, IV, cipher, sourceDeviceId\Arrowvert recipientUserId}$
+            \If{$plain \gets\Call{RatchetDecrypt}{DRsession, DRmessage, AD}}$
               \State \Return $plain$
             \EndIf
           \EndFor
           \State \Return \textbf{fail}
-          \EndFunction
-          
+          \EndFunction      
+      \end{algorithmic}
+
+      \begin{algorithmic}
           \Statex
-          
-          \Function{RatchetDecrypt}{$DRsession, header\Arrowvert cipher\Arrowvert tag, AD$}
+          \Function{cipherMessageDecrypt}{$sourceDeviceId,$
+          \StatexIndent[9] $recipientDeviceId, recipientUserId,$
+          \StatexIndent[9] $DRsessionList, DRmessage, cipherMessage}$
+          \Statex
+          \State $AD \gets tag\Arrowvert sourceDeviceId\Arrowvert recipientDeviceId$
+          \ForAll{$DRsession \in DRsessionList$}
+            \If{$randomSeed \gets\Call{RatchetDecrypt}{DRsession, DRmessage, AD}}$
+              \State $info \gets \textit{"DR Message Key Derivation"}$
+              \State $key\langle 32bytes\rangle\Arrowvert IV\langle 16bytes\rangle \gets \Call{HKDFSha512}{null, randomSeed\langle 32bytes\rangle, info$}
+              \State \Return $\Call{AEADDecrypt\&auth}{key, IV, cipher, tag, sourceDeviceId\Arrowvert recipientUserId}$
+            \EndIf
+          \EndFor
+          \State \Return \textbf{fail}
+          \EndFunction
+      \end{algorithmic}
+      
+      \begin{algorithmic}      
+          \Function{RatchetDecrypt}{$DRsession, header\Arrowvert payload\Arrowvert tag, AD$}
             \State\textit{As described in \cite[section 3.5]{doubleRatchet}}
             \State\textit{Associated Data given to AEAD is $AD\Arrowvert X3DH provided AD\Arrowvert header$}
             \If{Success}
@@ -256,12 +407,19 @@ any session-based message encryption algorithm that meets certain conditions.}\t
 
     \subsubsection{Associated Data}
      \label{subsubsec:associatedData}
-     \paragraph{}The double ratchet encryption and decryption AEAD scheme uses Associated Data as recommended is X3DH and Double Ratchet specifications\cite[section 3.3]{x3dh}, \cite[section 3.4]{doubleRatchet}. The Associated Data authenticated is composed of:
+     \paragraph{}The double ratchet encryption and decryption AEAD scheme uses Associated Data as recommended by X3DH and Double Ratchet specifications\cite[section 3.3]{x3dh}, \cite[section 3.4]{doubleRatchet}. The Associated Data authenticated is composed of:
+     \paragraph*{Cipher Message encryption policy}
      \begin{algorithmic}
           \State $Message\ Tag\langle 16bytes\rangle \Arrowvert Source\ deviceId \Arrowvert Recipient\ deviceId \Arrowvert X3DH AD\langle 32bytes\rangle \Arrowvert DR\ Header$
      \end{algorithmic}
+     \paragraph*{Double Ratchet Message encryption policy}
+     \begin{algorithmic}
+          \State $Recipient\ UserId \Arrowvert Source\ deviceId \Arrowvert Recipient\ deviceId \Arrowvert X3DH AD\langle 32bytes\rangle \Arrowvert DR\ Header$
+     \end{algorithmic}
+
      \begin{itemize}
-      \item $Message\ Tag$: AEAD authentication tag computed on plaintext and $Source\ deviceId \Arrowvert Recipient\ UserId$. The inclusion of $Recipient\ UserId$ allows the recipient device to verify the original intended recipient user. The $Recipient\ UserId$ is provided to the recipient device along the message by the routing protocol as it may not be the $UserId$ linked to the recipient device but a group user Id.
+      \item $Message\ Tag$: AEAD authentication tag computed on plaintext and the associated data given to AEAD in cipher Message mode: $Source\ deviceId\Arrowvert Recipient\ UserId$.
+      \item $Recipient\ UserId$: The inclusion of $Recipient\ UserId$ allows the recipient device to verify the original intended recipient user. The $Recipient\ UserId$ is provided to the recipient device along the message by the routing protocol as it may not be the $UserId$ linked to the recipient device but a group user Id.
       \item $Source\ deviceId$ and $Recipient\ deviceId$: Enforce identification of source and recipient device.
       \item $X3DH\ AD$: Associated data computed at session creation by the X3DH protocol, based on both parties Identity keys and devices Id. See \ref{subsubsec:X3DHAD} for details. It is present in the device local storage from the X3DH initialisation completion.
       \item $DR\ Header$: as specified in \cite[section 3.4]{doubleRatchet}. See \ref{subsubsec:protocol_doubleratchet_header} for details.
@@ -310,7 +468,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
    
     \newpage
     \subsubsection{Scenario 1: first encryption, multiple devices}
-    \paragraph{}In the following diagram, Alice1 encrypts a message to Bob for the first time. Alice1 must establish Double Ratchet sessions and, for that, requests key bundles. It is assumed that Alice2 is known to Alice1; so there is no request for an Alice2 key bundle.\\\newline
+    \paragraph{}Alice1 encrypts a message to Bob for the first time. Alice1 must establish Double Ratchet sessions and, for that, requests key bundles. It is assumed that Alice2 is known to Alice1; so there is no request for an Alice2 key bundle. The cipher message encryption policy is used.\\\newline
     \begin{msc}{Alice1 encrypts to Bob for the first time}
     \setlength{\instdist}{2.9cm}
     \setlength{\envinstdist}{0.95cm}
@@ -340,19 +498,19 @@ any session-based message encryption algorithm that meets certain conditions.}\t
     \nextlevel
     \action{encrypt}{aliced1}
     \nextlevel[3]
-    \mess{Alice2, Bob1, Bob2 headers$\Arrowvert $cipher Message}{aliced1}{SIP}
+    \mess{Alice2, Bob1, Bob2 DR msg$\Arrowvert $cipher Message}{aliced1}{SIP}
     \nextlevel[2]
-    \mess{Alice2 header$\Arrowvert $cipher Message}{SIP}{aliced2}
+    \mess{Alice2 DR msg$\Arrowvert $cipher Message}{SIP}{aliced2}
     \nextlevel
-    \mess{Bob1 header$\Arrowvert $cipher Message}{SIP}{bobd1}
+    \mess{Bob1 DR msg$\Arrowvert $cipher Message}{SIP}{bobd1}
     \nextlevel
-    \mess{Bob2 header$\Arrowvert $cipher Message}{SIP}{bobd2}
+    \mess{Bob2 DR msg$\Arrowvert $cipher Message}{SIP}{bobd2}
     \end{msc}
     
     \newpage
-    \subsubsection*{Scenario 2: group chat}
-    \paragraph*{}In the following diagram, Alice sends a first message to a group called Friends composed of Alice, Bob and Carol. Alice's message is dispatched and then Carol posts a message to the group. Carol's message is dispatched and finally Bob sends a message to the group. It is assumed that users did not exchanged any message prior and that they have one device each. User authentication messages to and from X3DH server are not shown for better readability but the users authentication by X3DH server and X3DH server authentication by users must take place.\\\newline
-    \begin{msc}{Group chat establishment, the group $Friends$ is composed of Alice, Bob and Carol}
+    \subsubsection{Scenario 2: group chat}
+    \paragraph*{}Alice sends a first message to a group called Friends composed of Alice, Bob and Carol. Alice's message is dispatched and then Carol posts a message to the group. Carol's message is dispatched and finally Bob sends a message to the group. It is assumed that users did not exchanged any message prior and that they have one device each. User authentication messages to and from X3DH server are not shown for better readability but the users authentication by X3DH server and X3DH server authentication by users must take place. The cipher message encryption policy is used.\\\newline
+    \begin{msc}{Group chat establishment, $Friends$ is composed of Alice, Bob and Carol}
     \setlength{\instdist}{2.9cm}
     \setlength{\envinstdist}{1cm}
     \declinst{alice}{}{Alice}
@@ -370,11 +528,11 @@ any session-based message encryption algorithm that meets certain conditions.}\t
     \nextlevel
     \action{encrypt}{alice}
     \nextlevel[2]
-    \mess{Bob, Carol headers$\Arrowvert $cipher Message}{alice}{SIP}
+    \mess{Bob, Carol DR msg$\Arrowvert $cipher Message}{alice}{SIP}
     \nextlevel
-    \mess{Bob header$\Arrowvert $cipher Message}{SIP}{bob}
+    \mess{Bob DR msg$\Arrowvert $cipher Message}{SIP}{bob}
     \nextlevel
-    \mess{Carol header$\Arrowvert $cipher Message}{SIP}{carol}
+    \mess{Carol DR msg$\Arrowvert $cipher Message}{SIP}{carol}
     \nextlevel[2]
     \mess{get \textit{Friends} device's GRUU}{carol}{SIP}
     \nextlevel
@@ -386,11 +544,11 @@ any session-based message encryption algorithm that meets certain conditions.}\t
     \nextlevel
     \action{encrypt}{carol}
     \nextlevel[3]
-    \mess{Alice, Bob headers$\Arrowvert $cipher Message}{carol}{SIP}
+    \mess{Alice, Bob DR msg$\Arrowvert $cipher Message}{carol}{SIP}
     \nextlevel
-    \mess{Alice header$\Arrowvert $cipher Message}{SIP}{alice}
+    \mess{Alice DR msg$\Arrowvert $cipher Message}{SIP}{alice}
     \nextlevel
-    \mess{Bob header$\Arrowvert $cipher Message}{SIP}{bob}
+    \mess{Bob DR msg$\Arrowvert $cipher Message}{SIP}{bob}
     \nextlevel[2]
     \mess{get \textit{Friends} device's GRUU}{bob}{SIP}
     \nextlevel
@@ -398,11 +556,11 @@ any session-based message encryption algorithm that meets certain conditions.}\t
     \nextlevel
     \action{encrypt}{bob}
     \nextlevel[3]
-    \mess{Alice, Carol headers$\Arrowvert $cipher Message}{bob}{SIP}
+    \mess{Alice, Carol DR msg$\Arrowvert $cipher Message}{bob}{SIP}
     \nextlevel
-    \mess{Alice header$\Arrowvert $cipher Message}{SIP}{alice}
+    \mess{Alice DR msg$\Arrowvert $cipher Message}{SIP}{alice}
     \nextlevel
-    \mess{Carol header$\Arrowvert $cipher Message}{SIP}{carol}
+    \mess{Carol DR msg$\Arrowvert $cipher Message}{SIP}{carol}
     \end{msc}
     
   \subsection{Mutual authentication}
@@ -597,8 +755,8 @@ any session-based message encryption algorithm that meets certain conditions.}\t
     \paragraph{Note}: These libraries are not accessed directly but through the bctoolbox abstraction library.
 
 \section{Protocol specification}
-  This section describes the details of packets structures.
-  \paragraph*{Notes}: Keys are intended as public keys and their size depends on the selected curve indicated in the packets header. The following sizes apply:
+  This section describes the details of messages structures.
+  \paragraph*{Notes}: Keys are intended as public keys and their size depends on the selected curve indicated in the messages header. The following sizes apply:
   \begin{itemize}
     \item Curve 25519 ECDH: 32 bytes
     \item Curve 25519 EdDSA: 32 bytes
@@ -611,13 +769,26 @@ any session-based message encryption algorithm that meets certain conditions.}\t
   Others numeric values (counts, Ids, counters) are unsigned integers in big endian.
   
   \subsection{Double Ratchet message}
-    \paragraph*{}These packets are exchanged among devices. The system runs in asynchronous mode, and packets are sent to and stored by a server and are fetched by final recipients when online. The server in charge of storing/routing the packets shall fan-out to the respective recipients not all the incoming message but only the part addressed to them.
+    \paragraph*{}These messages are exchanged among devices. The system runs in asynchronous mode, and messages are sent to and stored by a server and are fetched by final recipients when online. The server in charge of storing/routing the messages shall fan-out to the respective recipients not all the incoming message but only the part addressed to them.
 
-    \paragraph*{}Double Ratchet messages are composed of headers and the cipher message. Sender produces one header per recipient device and one cipher message common to all recipients.\\
+    \paragraph*{}Double Ratchet messages are composed of header and payload. The payload is the AEAD output (cipher text and authentication tag) of either a random seed used to encrypt the plain message or the plain message itself according to selected encryption policy. The sender produces one Double Ratchet message per recipient device.\\
       Definitions:
       \begin{itemize}
       \item Protocol Version: 0x01.
-      \item Packet Type: [0x01 (no X3DH init in the header), 0x02 (an X3DH init is present in the header)]
+      \item Message Type is a byte with following bit mapping:
+        \begin{itemize}
+          \item bit 7 to 2: not used.
+          \item bit 1: Payload encryption flag:
+            \begin{itemize}
+              \item 1: payload in the DR message
+              \item 0: payload in a cipher message, DR holds the random seed
+            \end{itemize}
+          \item bit 0: X3DH init flag:
+            \begin{itemize}
+              \item 1: (X3DH init in the header)
+              \item 0: (no X3DH init in the header)
+            \end{itemize}
+        \end{itemize}
       \item Curve Id: [0x01 (curve 25519), 0x02 (curve 448)]
       \end{itemize}
 
@@ -628,15 +799,24 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \hline
         \cellcolor[gray]{0.85} byte 0 & \cellcolor[gray]{0.85} byte 1 & \cellcolor[gray]{0.85} byte 2 & \cellcolor[gray]{0.85}byte 3\\
         \hline
-        Protocol Version [0x01] & Packet type [0x01,0x02] & Curve Id [0x01,0x02] & \\
+        Protocol Version [0x01] & Message type & Curve Id [0x01,0x02] & \\
         \cline{1-3}
         \multicolumn{4}{|c|}{X3DH Init $\langle $variable size$\rangle $\{0,1\}}\\
-        \multicolumn{4}{|c|}{This part is present only if Packet type = 0x02}\\
+        \multicolumn{4}{|c|}{This part is present only if Message type X3DH init flag is set}\\
         \hline
         \multicolumn{2}{|c}{Ns}&\multicolumn{2}{|c|}{PN}\\
         \hline
         \multicolumn{4}{|c|}{DHs$\langle 32,56 bytes\rangle $}\\
         \multicolumn{4}{|c|}{...}\\
+        \hline
+      \end{tabular}
+      \end{center}
+
+      \subsubsection{Payload in cipher message encryption policy}
+      \begin{center}
+      \begin{tabular}{ | p{1.4in} | p{1.4in} | p{1.4in} | p{1.4in} |}
+        \hline
+        \cellcolor[gray]{0.85} byte 0 & \cellcolor[gray]{0.85} byte 1 & \cellcolor[gray]{0.85} byte 2 & \cellcolor[gray]{0.85}byte 3\\
         \hline
         \multicolumn{4}{|c|}{Random Seed encrypted using DR session$\langle 32bytes\rangle $}\\
         \multicolumn{4}{|c|}{...}\\
@@ -646,23 +826,22 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \hline
       \end{tabular}
       \end{center}
-      \paragraph{Note}: Header as intended in Double Ratchet specification \cite{doubleRatchet} and in sections \ref{messageEncrypt} and \ref{subsubsec:associatedData} of this document excludes the Random Seed and AEAD authentication tag which, regarding the Double Ratchet specification, are the actual payload.
       
-      \subsubsection{Cipher Message}
+      \subsubsection{Payload in Double Ratchet message encryption policy}
       \begin{center}
       \begin{tabular}{ | p{1.4in} | p{1.4in} | p{1.4in} | p{1.4in} |}
         \hline
         \cellcolor[gray]{0.85} byte 0 & \cellcolor[gray]{0.85} byte 1 & \cellcolor[gray]{0.85} byte 2 & \cellcolor[gray]{0.85}byte 3\\
         \hline
-        \multicolumn{4}{|c|}{Cipher text produced by AEAD using a derivative of Random Seed <variable size>}\\
+        \multicolumn{4}{|c|}{plaintext encrypted using DR session$\langle variable\ size,\ same\ as\ plaintext\rangle $}\\
         \multicolumn{4}{|c|}{...}\\
         \hline
-        \multicolumn{4}{|c|}{AEAD authentication tag$\langle 16bytes\rangle $}\\
+        \multicolumn{4}{|c|}{Double Ratchet AEAD authentication tag$\langle 16bytes\rangle $}\\
         \multicolumn{4}{|c|}{...}\\
         \hline
       \end{tabular}
       \end{center}
-      
+
       \subsubsection{X3DH init}
       \begin{center}
       \begin{tabular}{ | p{1.4in} | p{1.4in} | p{1.4in} | p{1.4in} |}
@@ -683,12 +862,26 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \hline
       \end{tabular}
       \end{center}
-
+      
+  \subsection{Cipher Message}. The cipher message is produced only when selecting the cipher message encryption policy. The sender produces one cipher message common to all recipients. When present, the cipher message is dispatched along the Double Ratchet messages.(see \ref{encryptionPolicyMSC} for details)
+      \begin{center}
+      \begin{tabular}{ | p{1.4in} | p{1.4in} | p{1.4in} | p{1.4in} |}
+        \hline
+        \cellcolor[gray]{0.85} byte 0 & \cellcolor[gray]{0.85} byte 1 & \cellcolor[gray]{0.85} byte 2 & \cellcolor[gray]{0.85}byte 3\\
+        \hline
+        \multicolumn{4}{|c|}{Cipher text produced by AEAD using a derivative of Random Seed <variable size>}\\
+        \multicolumn{4}{|c|}{...}\\
+        \hline
+        \multicolumn{4}{|c|}{AEAD authentication tag$\langle 16bytes\rangle $}\\
+        \multicolumn{4}{|c|}{...}\\
+        \hline
+      \end{tabular}
+      \end{center}
   \subsection{X3DH message}
-    \paragraph{}Theses packets are exchanged between devices and the X3DH key server.
-    \paragraph*{}The packets are sent to the server using the HTTPS protocol. Clients identify themselves to the server by setting their device Id (GRUU) in the HTTPS packet \textit{From} field. Server challenges the client with a nonce and expects a digest of the password of their user account on the SIP server. X3DH server must have access to the SIP register server database to be able to authenticate clients. Communications between clients and X3DH server are assumed to be secure and the details of this assumption are out of the scope of this document.
-    \paragraph*{}X3DH packets are composed of a header and the content:\\*
-    Protocol Version$\langle 1byte\rangle \Arrowvert $ Message Type $\langle 1byte\rangle \Arrowvert $ Curve Id $\langle 1byte\rangle \Arrowvert $ Packet content.
+    \paragraph{}Theses messages are exchanged between devices and the X3DH key server.
+    \paragraph*{}The messages are sent to the server using the HTTPS protocol. Clients identify themselves to the server by setting their device Id (GRUU) in the HTTPS packet \textit{From} field. Server challenges the client with a nonce and expects a digest of the password of their user account on the SIP server. X3DH server must have access to the SIP register server database to be able to authenticate clients. Communications between clients and X3DH server are assumed to be secure and the details of this assumption are out of the scope of this document.
+    \paragraph*{}X3DH messages are composed of a header and the content:\\*
+    Protocol Version$\langle 1byte\rangle \Arrowvert $ Message Type $\langle 1byte\rangle \Arrowvert $ Curve Id $\langle 1byte\rangle \Arrowvert $ Message content.
     Definitions:
       \begin{itemize}
       \item Protocol Version: 0x01.
@@ -709,13 +902,13 @@ any session-based message encryption algorithm that meets certain conditions.}\t
     
     To device generated messages \textit{register User, delete User, post Signed Pre-key} and \textit{post One-time Pre-key}, on success, the X3DH server responds with the original message header:\\*
     Protocol Version $\Arrowvert $ Message type $\Arrowvert $ Curve Id
-    \subsubsection{Register User Packet}
+    \subsubsection{Register User Message}
       \begin{center}
       \begin{tabular}{ | p{1.4in} | p{1.4in} | p{1.4in} | p{1.4in} |}
         \hline
         \cellcolor[gray]{0.85} byte 0 & \cellcolor[gray]{0.85} byte 1 & \cellcolor[gray]{0.85} byte 2 & \cellcolor[gray]{0.85}byte 3\\
         \hline
-        Protocol Version [0x01] & Packet type [0x01] & Curve Id [0x01,0x02] &\\
+        Protocol Version [0x01] & Message type [0x01] & Curve Id [0x01,0x02] &\\
         \cline{1-3}
         \multicolumn{4}{|c|}{EdDSA Identity Key$\langle 32,57bytes\rangle $}\\
         \multicolumn{4}{|c|}{...}\\
@@ -723,24 +916,24 @@ any session-based message encryption algorithm that meets certain conditions.}\t
       \end{tabular}
       \end{center}
     
-    \subsubsection{Delete User Packet}
+    \subsubsection{Delete User Message}
       \begin{center}
       \begin{tabular}{ | p{1.4in} | p{1.4in} | p{1.4in} | p{1.4in} |}
         \hline
         \cellcolor[gray]{0.85} byte 0 & \cellcolor[gray]{0.85} byte 1 & \cellcolor[gray]{0.85} byte 2 & \cellcolor[gray]{0.85}byte 3\\
         \hline
-        Protocol Version [0x01] & Packet type [0x02] & Curve Id [0x01,0x02] & \\
+        Protocol Version [0x01] & Message type [0x02] & Curve Id [0x01,0x02] & \\
         \hline
       \end{tabular}
       \end{center}
 
-    \subsubsection{post Signed Pre-key Packet}
+    \subsubsection{post Signed Pre-key Message}
       \begin{center}
       \begin{tabular}{ | p{1.4in} | p{1.4in} | p{1.4in} | p{1.4in} |}
         \hline
         \cellcolor[gray]{0.85} byte 0 & \cellcolor[gray]{0.85} byte 1 & \cellcolor[gray]{0.85} byte 2 & \cellcolor[gray]{0.85}byte 3\\
         \hline
-        Protocol Version [0x01] & Packet type [0x03] & Curve Id [0x01,0x02] & \\
+        Protocol Version [0x01] & Message type [0x03] & Curve Id [0x01,0x02] & \\
         \cline{1-3}
         \multicolumn{4}{|c|}{ECDH Signed Pre-key$\langle 32,56bytes\rangle $}\\
         \multicolumn{4}{|c|}{...}\\
@@ -748,13 +941,13 @@ any session-based message encryption algorithm that meets certain conditions.}\t
       \end{tabular}
       \end{center}
     
-    \subsubsection{post One-time Pre-key Packet}
+    \subsubsection{post One-time Pre-key Message}
       \begin{center}
       \begin{tabular}{ | p{1.4in} | p{1.4in} | p{1.4in} | p{1.4in} |}
         \hline
         \cellcolor[gray]{0.85} byte 0 & \cellcolor[gray]{0.85} byte 1 & \cellcolor[gray]{0.85} byte 2 & \cellcolor[gray]{0.85}byte 3\\
         \hline
-        Protocol Version [0x04] & Packet type [0x04] & Curve Id [0x01,0x02] & keys Count MSB\\
+        Protocol Version [0x04] & Message type [0x04] & Curve Id [0x01,0x02] & keys Count MSB\\
         \hline
         keys Count LSB & \multicolumn{3}{|c|}{One-time Pre-key bundle$\langle 36,60bytes\rangle $\{keys Count\}}\\
         \cline{1-1}
@@ -772,13 +965,13 @@ any session-based message encryption algorithm that meets certain conditions.}\t
       \end{tabular}
       \end{center}
      
-    \subsubsection{get peers key bundles Packet}
+    \subsubsection{get peers key bundles Message}
       \begin{center}
       \begin{tabular}{ | p{1.4in} | p{1.4in} | p{1.4in} | p{1.4in} |}
         \hline
         \cellcolor[gray]{0.85} byte 0 & \cellcolor[gray]{0.85} byte 1 & \cellcolor[gray]{0.85} byte 2 & \cellcolor[gray]{0.85}byte 3\\
         \hline
-        Protocol Version [0x04] & Packet type [0x05] & Curve Id [0x01,0x02] & request Count MSB\\
+        Protocol Version [0x04] & Message type [0x05] & Curve Id [0x01,0x02] & request Count MSB\\
         \hline
         request Count LSB & \multicolumn{3}{|c|}{request\{request Count\}}\\
         \cline{1-1}
@@ -795,13 +988,13 @@ any session-based message encryption algorithm that meets certain conditions.}\t
       \end{tabular}
       \end{center}
     
-    \subsubsection{peers key bundles Packet}
+    \subsubsection{peers key bundles Message}
       \begin{center}
       \begin{tabular}{ | p{1.4in} | p{1.4in} | p{1.4in} | p{1.4in} |}
         \hline
         \cellcolor[gray]{0.85} byte 0 & \cellcolor[gray]{0.85} byte 1 & \cellcolor[gray]{0.85} byte 2 & \cellcolor[gray]{0.85}byte 3\\
         \hline
-        Protocol Version [0x04] & Packet type [0x06] & Curve Id [0x01,0x02] & bundles Count MSB\\
+        Protocol Version [0x04] & Message type [0x06] & Curve Id [0x01,0x02] & bundles Count MSB\\
         \hline
         bundles Count LSB & \multicolumn{3}{|c|}{key Bundle\{bundles Count\}}\\
         \cline{1-1}
@@ -832,13 +1025,13 @@ any session-based message encryption algorithm that meets certain conditions.}\t
       \end{tabular}
       \end{center}
       
-    \subsubsection{get Self OPks Packet}
+    \subsubsection{get Self OPks Message}
       \begin{center}
       \begin{tabular}{ | p{1.4in} | p{1.4in} | p{1.4in} | p{1.4in} |}
         \hline
         \cellcolor[gray]{0.85} byte 0 & \cellcolor[gray]{0.85} byte 1 & \cellcolor[gray]{0.85} byte 2 & \cellcolor[gray]{0.85}byte 3\\
         \hline
-        Protocol Version [0x04] & Packet type [0x07] & Curve Id [0x01,0x02] & OPk Count MSB\\
+        Protocol Version [0x04] & Message type [0x07] & Curve Id [0x01,0x02] & OPk Count MSB\\
         \hline
         OPk Count LSB & \multicolumn{3}{|c|}{OPk Id$\langle 4bytes\rangle $\{OPk Count\}}\\
         \cline{1-1}
@@ -847,24 +1040,24 @@ any session-based message encryption algorithm that meets certain conditions.}\t
       \end{tabular}
       \end{center}
 
-    \subsubsection{self OPks Packet}
+    \subsubsection{self OPks Message}
       \begin{center}
       \begin{tabular}{ | p{1.4in} | p{1.4in} | p{1.4in} | p{1.4in} |}
         \hline
         \cellcolor[gray]{0.85} byte 0 & \cellcolor[gray]{0.85} byte 1 & \cellcolor[gray]{0.85} byte 2 & \cellcolor[gray]{0.85}byte 3\\
         \hline
-        Protocol Version [0x04] & Packet type [0x08] & Curve Id [0x01,0x02] & \\
+        Protocol Version [0x04] & Message type [0x08] & Curve Id [0x01,0x02] & \\
         \hline
       \end{tabular}
       \end{center}
       
-    \subsubsection{Error Packet}
+    \subsubsection{Error Message}
       \begin{center}
       \begin{tabular}{ | p{1.4in} | p{1.4in} | p{1.4in} | p{1.4in} |}
         \hline
         \cellcolor[gray]{0.85} byte 0 & \cellcolor[gray]{0.85} byte 1 & \cellcolor[gray]{0.85} byte 2 & \cellcolor[gray]{0.85}byte 3\\
         \hline
-        Protocol Version [0x01] & Packet type [0xFF] & Curve Id [0x01,0x02] & Error Code[0x00-0x08]\\
+        Protocol Version [0x01] & Message type [0xFF] & Curve Id [0x01,0x02] & Error Code[0x00-0x08]\\
         \hline
         \multicolumn{4}{|c|}{Optional error message of variable size}\\
         \multicolumn{4}{|c|}{Null terminated ASCII string}\\
@@ -879,7 +1072,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
       \item 0x01: \textbf{bad curve}: client and server curve mismatch.
       \item 0x02: \textbf{missing Sender Id}: HTTPS packet \textit{from} is not set.
       \item 0x03: \textbf{bad protocol version}: client and server X3DH protocol version number mismatch.
-      \item 0x04: \textbf{bad size}: the size of received packet is not the expected one
+      \item 0x04: \textbf{bad size}: the size of received Message is not the expected one
       \item 0x05: \textbf{user already in}: trying to register a user on X3DH server but it is already in the database
       \item 0x06: \textbf{user not found}: an operation concerning a user could not be performed because the user was not found in server database.
       \item 0x07: \textbf{db error}: server encountered problem with its database.
