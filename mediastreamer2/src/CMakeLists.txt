@@ -685,7 +685,11 @@ if(ENABLE_SHARED)
 			PUBLIC_HEADER "${MEDIASTREAMER2_HEADER_FILES}"
 		)
 	endif()
-	if(NOT ANDROID)
+	if(ANDROID)
+                if(ENABLE_VPX)
+                        set_target_properties(mediastreamer_voip PROPERTIES LINK_FLAGS "-Wl,--exclude-libs,libvpx.a")
+                endif()
+        else()
 		# Do not version shared library on Android
 		set_target_properties(mediastreamer_voip PROPERTIES SOVERSION ${MEDIASTREAMER_SO_VERSION})
 	endif()
