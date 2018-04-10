@@ -263,7 +263,7 @@ const char *video_stream_get_default_video_renderer(void){
 
 static void choose_display_name(VideoStream *stream){
 #if defined(__ANDROID__)
-	MSDevicesInfo *devices = ms_factory_get_devices_info(ms_factory_get_fallback());
+	MSDevicesInfo *devices = ms_factory_get_devices_info(stream->ms.factory);
 	SoundDeviceDescription *description = ms_devices_info_get_sound_device_description(devices);
 	if (description->flags & DEVICE_HAS_CRAPPY_OPENGL)
 		stream->display_name = ms_strdup("MSAndroidDisplay");
