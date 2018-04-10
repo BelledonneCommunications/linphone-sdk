@@ -72,7 +72,7 @@ namespace lime {
 			bool create_user();
 			// user load from DB is implemented directly as a Db member function, output of it is passed to Lime<> ctor
 			void get_SelfIdentityKey(); // check our Identity key pair is loaded in Lime object, retrieve it from DB if it isn't
-			void cache_DR_sessions(std::vector<recipientInfos<Curve>> &internal_recipients, std::vector<std::string> &missing_devices); // loop on internal recipient an try to load in DR session cache the one which have no session attached 
+			void cache_DR_sessions(std::vector<RecipientInfos<Curve>> &internal_recipients, std::vector<std::string> &missing_devices); // loop on internal recipient an try to load in DR session cache the one which have no session attached 
 			void get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDRSessionId, std::vector<std::shared_ptr<DR<Curve>>> &DRSessions); // load from local storage in DRSessions all DR session matching the peerDeviceId, ignore the one picked by id in 2nd arg
 			long int store_peerDevice(const std::string &peerDeviceId, const DSA<Curve, lime::DSAtype::publicKey> &Ik); // store given peer Device Id and public identity key, return the Id used in table to store it
 
@@ -133,8 +133,8 @@ namespace lime {
 			 */
 			virtual void get_Ik(std::vector<uint8_t> &Ik) override;
 
-			void encrypt(std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<recipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback) override;
-			bool decrypt(const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &cipherHeader, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) override;
+			void encrypt(std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback) override;
+			bool decrypt(const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) override;
 	};
 
 	/**
@@ -149,7 +149,7 @@ namespace lime {
 		/// Recipient username. Needed for encryption: get a shared ref to keep params alive
 		std::shared_ptr<const std::string> recipientUserId;
 		/// Recipient data vector. Needed for encryption: get a shared ref to keep params alive
-		std::shared_ptr<std::vector<recipientData>> recipients;
+		std::shared_ptr<std::vector<RecipientData>> recipients;
 		/// plaintext. Needed for encryption: get a shared ref to keep params alive
 		std::shared_ptr<const std::vector<uint8_t>> plainMessage;
 		/// ciphertext buffer. Needed for encryption: get a shared ref to keep params alive
@@ -180,7 +180,7 @@ namespace lime {
 		/** created at encrypt(getPeerBundle)
 		 */
 		callbackUserData(std::weak_ptr<Lime<Curve>> thiz, const limeCallback &callbackRef,
-				std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<recipientData>> recipients,
+				std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients,
 				std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage,
 				lime::EncryptionPolicy policy)
 			: limeObj{thiz}, callback{callbackRef},

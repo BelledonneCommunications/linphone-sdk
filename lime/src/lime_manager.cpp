@@ -48,12 +48,12 @@ namespace lime {
 	}
 	void LimeManager::create_user(const std::string &localDeviceId, const std::string &x3dhServerUrl, const lime::CurveId curve, const uint16_t OPkInitialBatchSize, const limeCallback &callback) {
 		auto thiz = this;
-		limeCallback managerCreateCallback([thiz, localDeviceId, callback](lime::callbackReturn returnCode, std::string errorMessage) {
+		limeCallback managerCreateCallback([thiz, localDeviceId, callback](lime::CallbackReturn returnCode, std::string errorMessage) {
 			// first forward the callback
 			callback(returnCode, errorMessage);
 
 			// then check if it went well, if not delete the user from localDB
-			if (returnCode != lime::callbackReturn::success) {
+			if (returnCode != lime::CallbackReturn::success) {
 				auto localStorage = std::unique_ptr<lime::Db>(new lime::Db(thiz->m_db_access));
 				localStorage->delete_LimeUser(localDeviceId);
 				thiz->m_users_cache.erase(localDeviceId);
@@ -65,7 +65,7 @@ namespace lime {
 
 	void LimeManager::delete_user(const std::string &localDeviceId, const limeCallback &callback) {
 		auto thiz = this;
-		limeCallback managerDeleteCallback([thiz, localDeviceId, callback](lime::callbackReturn returnCode, std::string errorMessage) {
+		limeCallback managerDeleteCallback([thiz, localDeviceId, callback](lime::CallbackReturn returnCode, std::string errorMessage) {
 			// first forward the callback
 			callback(returnCode, errorMessage);
 
@@ -81,7 +81,7 @@ namespace lime {
 		user->delete_user(managerDeleteCallback);
 	}
 
-	void LimeManager::encrypt(const std::string &localDeviceId, std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<recipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback, const lime::EncryptionPolicy encryptionPolicy) {
+	void LimeManager::encrypt(const std::string &localDeviceId, std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback, const lime::EncryptionPolicy encryptionPolicy) {
 		// Load user object
 		std::shared_ptr<LimeGeneric> user;
 		LimeManager::load_user(user, localDeviceId);
@@ -90,13 +90,13 @@ namespace lime {
 		user->encrypt(recipientUserId, recipients, plainMessage, encryptionPolicy, cipherMessage, callback);
 	}
 
-	bool LimeManager::decrypt(const std::string &localDeviceId, const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &cipherHeader, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) {
+	bool LimeManager::decrypt(const std::string &localDeviceId, const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) {
 		// Load user object
 		std::shared_ptr<LimeGeneric> user;
 		LimeManager::load_user(user, localDeviceId);
 
 		// call the decryption function
-		return user->decrypt(recipientUserId, senderDeviceId, cipherHeader, cipherMessage, plainMessage);
+		return user->decrypt(recipientUserId, senderDeviceId, DRmessage, cipherMessage, plainMessage);
 	}
 
 	/* This version use default settings */
@@ -118,13 +118,13 @@ namespace lime {
 		//This counter will trace number of callbacks, to trace how many operation did end.
 		// we expect two callback per local user account: one for update SPk, one for get OPk number on server
 		auto callbackCount = make_shared<size_t>(deviceIds.size()*2);
-		auto globalReturnCode = make_shared<lime::callbackReturn>(lime::callbackReturn::success);
+		auto globalReturnCode = make_shared<lime::CallbackReturn>(lime::CallbackReturn::success);
 
 		// this callback will get all callbacks from update OPk and SPk on all users, when everyone is done, call the callback given to LimeManager::update
-		limeCallback managerUpdateCallback([callbackCount, globalReturnCode, callback](lime::callbackReturn returnCode, std::string errorMessage) {
+		limeCallback managerUpdateCallback([callbackCount, globalReturnCode, callback](lime::CallbackReturn returnCode, std::string errorMessage) {
 			(*callbackCount)--;
-			if (returnCode == lime::callbackReturn::fail) {
-				*globalReturnCode = lime::callbackReturn::fail; // if one fail, return fail at the end of it
+			if (returnCode == lime::CallbackReturn::fail) {
+				*globalReturnCode = lime::CallbackReturn::fail; // if one fail, return fail at the end of it
 			}
 
 			if (*callbackCount == 0) {

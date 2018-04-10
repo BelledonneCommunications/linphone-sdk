@@ -43,19 +43,19 @@ namespace lime {
 	};
 
 	/** Used to manage recipient list for encrypt function input: give a recipient GRUU and get it back with the header which must be sent to recipient with the cipher text*/
-	struct recipientData {
-		const std::string deviceId; /**< recipient deviceId (shall be GRUU) */
-		bool identityVerified; /**< after encrypt calls back, it will hold the status of this peer device: identity verified or not */
-		std::vector<uint8_t> cipherHeader; /**< after encrypt calls back, it will hold the header targeted to the specified recipient. This header may contain an X3DH init message. */
+	struct RecipientData {
+		const std::string deviceId; /**< input: recipient deviceId (shall be GRUU) */
+		bool identityVerified; /**< output: after encrypt calls back, it will hold the status of this peer device: identity verified or not */
+		std::vector<uint8_t> DRmessage; /**< output: after encrypt calls back, it will hold the Double Ratchet message targeted to the specified recipient. */
 		/**
 		 * recipient data are built giving a recipient id
 		 * @param[in] deviceId	the recipient device Id (its GRUU)
 		 */
-		recipientData(const std::string deviceId) : deviceId{deviceId}, identityVerified{false}, cipherHeader{} {};
+		RecipientData(const std::string &deviceId) : deviceId{deviceId}, identityVerified{false}, DRmessage{} {};
 	};
 
 	/** what a Lime callback could possibly say */
-	enum class callbackReturn : uint8_t {
+	enum class CallbackReturn : uint8_t {
 		success, /**< operation completed successfully */
 		fail /**< operation failed, we shall have an explanation string too */
 	};
@@ -65,7 +65,7 @@ namespace lime {
 	 *  @param[in]	status	success or fail
 	 *  @param[in]	message	in case of failure, an explanation, it may be empty
 	 */
-	using limeCallback = std::function<void(const lime::callbackReturn status, const std::string message)>;
+	using limeCallback = std::function<void(const lime::CallbackReturn status, const std::string message)>;
 
 	/* X3DH server communication : these functions prototypes are used to post data and get response from/to the X3DH server */
 	/**
@@ -159,9 +159,9 @@ namespace lime {
 			 *
 			 * @param[in]		localDeviceId	used to identify which local acount to use and also as the identified source of the message, shall be the GRUU
 			 * @param[in]		recipientUserId	the Id of intended recipient, shall be a sip:uri of user or conference, is used as associated data to ensure no-one can mess with intended recipient
-			 * @param[in,out]	recipients	a list of recipientData holding: the recipient device Id(GRUU) and an empty buffer to store the cipherHeader which must then be routed to that recipient
+			 * @param[in,out]	recipients	a list of RecipientData holding: the recipient device Id(GRUU) and an empty buffer to store the DRmessage which must then be routed to that recipient
 			 * @param[in]		plainMessage	a buffer holding the message to encrypt, can be text or data.
-			 * @param[out]		cipherMessage	points to the buffer to store the encrypted message which must be routed to all recipients
+			 * @param[out]		cipherMessage	points to the buffer to store the encrypted message which must be routed to all recipients(if one is produced, depends on encryption policy)
 			 * @param[in]		callback	Performing encryption may involve the X3DH server and is thus asynchronous, when the operation is completed,
 			 * 					this callback will be called giving the exit status and an error message in case of failure.
 			 * 					It is advised to capture a copy of cipherMessage and recipients shared_ptr in this callback so they can access
@@ -169,7 +169,7 @@ namespace lime {
 			 * @param[in]		encryptionPolicy	select how to manage the encryption: direct use of Double Ratchet message or encrypt in the cipher message and use the DR message to share the cipher message key
 			 * 						default is optimized output size mode.
 			 */
-			void encrypt(const std::string &localDeviceId, std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<recipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback, lime::EncryptionPolicy encryptionPolicy=lime::EncryptionPolicy::optimizeUploadSize);
+			void encrypt(const std::string &localDeviceId, std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback, lime::EncryptionPolicy encryptionPolicy=lime::EncryptionPolicy::optimizeUploadSize);
 
 			/**
 			 * @brief Decrypt the given message
@@ -179,13 +179,13 @@ namespace lime {
 			 * @param[in]		recipientUserId	the Id of intended recipient, shall be a sip:uri of user or conference, is used as associated data to ensure no-one can mess with intended recipient
 			 * 					it is not necessarily the sip:uri base of the GRUU as this could be a message from alice first device intended to bob being decrypted on alice second device
 			 * @param[in]		senderDeviceId	Identify sender Device. This field shall be extracted from signaling data in transport protocol, is used to rebuild the authenticated data associated to the encrypted message
-			 * @param[in]		cipherHeader	the part of cipher which is targeted to current device
-			 * @param[in]		cipherMessage	part of cipher routed to all recipient devices
+			 * @param[in]		DRmessage	Double Ratchet message targeted to current device
+			 * @param[in]		cipherMessage	part of cipher routed to all recipient devices, may be empty
 			 * @param[out]		plainMessage	the output buffer
 			 *
 			 * @return	true if the decryption is successfull, false otherwise
 			 */
-			bool decrypt(const std::string &localDeviceId, const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &cipherHeader, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage);
+			bool decrypt(const std::string &localDeviceId, const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage);
 
 			/**
 			 * @brief Update: shall be called once a day at least, performs checks, updates and cleaning operations

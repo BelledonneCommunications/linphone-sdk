@@ -132,7 +132,7 @@ namespace lime {
 			x3dh_protocol::buildMessage_publishSPk(X3DHmessage, SPk, SPk_sig, SPk_id);
 			postToX3DHServer(userData, X3DHmessage);
 		} else { // nothing to do but caller expect a callback
-			if (callback) callback(lime::callbackReturn::success, "");
+			if (callback) callback(lime::CallbackReturn::success, "");
 		}
 	}
 
@@ -153,13 +153,13 @@ namespace lime {
 	}
 
 	template <typename Curve>
-	void Lime<Curve>::encrypt(std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<recipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback) {
+	void Lime<Curve>::encrypt(std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback) {
 		LIME_LOGD<<"encrypt from "<<m_selfDeviceId<<" to "<<recipients->size()<<" recipients";
 		/* Check if we have all the Double Ratchet sessions ready or shall we go for an X3DH */
 		std::vector<std::string> missingPeers; /* vector of deviceId(GRUU) which are requested to perform X3DH before the encryption can occurs */
 
 		/* Create the appropriate recipient infos and fill it with sessions found in cache */
-		std::vector<recipientInfos<Curve>> internal_recipients{};
+		std::vector<RecipientInfos<Curve>> internal_recipients{};
 		for (const auto &recipient : *recipients) {
 			auto sessionElem = m_DR_sessions_cache.find(recipient.deviceId);
 			if (sessionElem != m_DR_sessions_cache.end()) { // session is in cache
@@ -194,12 +194,12 @@ namespace lime {
 			postToX3DHServer(userData, X3DHmessage);
 		} else { // got everyone, encrypt
 			encryptMessage(internal_recipients, *plainMessage, *recipientUserId, m_selfDeviceId, *cipherMessage, encryptionPolicy);
-			// move cipher headers to the input/output structure
+			// move DR messages to the input/output structure
 			for (size_t i=0; i<recipients->size(); i++) {
-				(*recipients)[i].cipherHeader = std::move(internal_recipients[i].cipherHeader);
+				(*recipients)[i].DRmessage = std::move(internal_recipients[i].DRmessage);
 				(*recipients)[i].identityVerified = internal_recipients[i].identityVerified;
 			}
-			if (callback) callback(lime::callbackReturn::success, "");
+			if (callback) callback(lime::CallbackReturn::success, "");
 			// is there no one in an asynchronous encryption process and do we have something in encryption queue to process
 			if (m_ongoing_encryption == nullptr && !m_encryption_queue.empty()) { // may happend when an encryption was queued but session was created by a previously queued encryption request
 				auto userData = m_encryption_queue.front();
@@ -210,7 +210,7 @@ namespace lime {
 	}
 
 	template <typename Curve>
-	bool Lime<Curve>::decrypt(const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &cipherHeader, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) {
+	bool Lime<Curve>::decrypt(const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) {
 		LIME_LOGD<<"decrypt from "<<senderDeviceId<<" to "<<recipientUserId;
 		// do we have any session (loaded or not) matching that senderDeviceId ?
 		auto sessionElem = m_DR_sessions_cache.find(senderDeviceId);
@@ -218,7 +218,7 @@ namespace lime {
 		if (sessionElem != m_DR_sessions_cache.end()) { // session is in cache, it is the active one, just give it a try
 			db_sessionIdInCache = sessionElem->second->dbSessionId();
 			std::vector<std::shared_ptr<DR<Curve>>> DRSessions{1, sessionElem->second}; // copy the session pointer into a vector as the decryot function ask for it
-			if (decryptMessage<Curve>(senderDeviceId, m_selfDeviceId, recipientUserId, DRSessions, cipherHeader, cipherMessage, plainMessage) != nullptr) {
+			if (decryptMessage<Curve>(senderDeviceId, m_selfDeviceId, recipientUserId, DRSessions, DRmessage, cipherMessage, plainMessage) != nullptr) {
 				return true; // we manage to decrypt the message with the current active session loaded in cache, nothing else to do
 			} else { // remove session from cache
 				// session in local storage is not modified, so it's still the active one, it will change status to stale when an other active session will be created
@@ -230,7 +230,7 @@ namespace lime {
 		std::vector<std::shared_ptr<DR<Curve>>> DRSessions{};
 		// load in DRSessions all the session found in cache for this peer device, except the one with id db_sessionIdInCache(is ignored if 0) as we already tried it
 		get_DRSessions(senderDeviceId, db_sessionIdInCache, DRSessions);
-		auto usedDRSession = decryptMessage<Curve>(senderDeviceId, m_selfDeviceId, recipientUserId, DRSessions, cipherHeader, cipherMessage, plainMessage);
+		auto usedDRSession = decryptMessage<Curve>(senderDeviceId, m_selfDeviceId, recipientUserId, DRSessions, DRmessage, cipherMessage, plainMessage);
 		if (usedDRSession != nullptr) { // we manage to decrypt with a session
 			m_DR_sessions_cache[senderDeviceId] = std::move(usedDRSession);
 			return true;
@@ -238,7 +238,7 @@ namespace lime {
 
 		// No luck yet, is this message holds a X3DH header - if no we must give up
 		std::vector<uint8_t> X3DH_initMessage{};
-		if (!double_ratchet_protocol::parseMessage_get_X3DHinit<Curve>(cipherHeader, X3DH_initMessage)) {
+		if (!double_ratchet_protocol::parseMessage_get_X3DHinit<Curve>(DRmessage, X3DH_initMessage)) {
 			return false;
 		}
 
@@ -252,7 +252,7 @@ namespace lime {
 			return false;
 		}
 
-		if (decryptMessage<Curve>(senderDeviceId, m_selfDeviceId, recipientUserId, DRSessions, cipherHeader, cipherMessage, plainMessage) != 0) {
+		if (decryptMessage<Curve>(senderDeviceId, m_selfDeviceId, recipientUserId, DRSessions, DRmessage, cipherMessage, plainMessage) != 0) {
 			// we manage to decrypt the message with this session, set it in cache
 			m_DR_sessions_cache[senderDeviceId] = std::move(DRSessions.front());
 			return true;

@@ -210,7 +210,7 @@ namespace lime {
 		}
 
 		// each call to this function is made with a different DHr
-		receiverKeyChain<Curve> newRChain{m_DHr};
+		ReceiverKeyChain<Curve> newRChain{m_DHr};
 		m_mkskipped.push_back(newRChain);
 		auto rChain = &m_mkskipped.back();
 
@@ -404,7 +404,7 @@ namespace lime {
 #endif
 
 	template <typename Curve>
-	void encryptMessage(std::vector<recipientInfos<Curve>>& recipients, const std::vector<uint8_t>& plaintext, const std::string& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage, const lime::EncryptionPolicy encryptionPolicy) {
+	void encryptMessage(std::vector<RecipientInfos<Curve>>& recipients, const std::vector<uint8_t>& plaintext, const std::string& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage, const lime::EncryptionPolicy encryptionPolicy) {
 		// Shall we set the payload in the DR message or in a separate cupher message buffer?
 		bool payloadDirectEncryption;
 		switch (encryptionPolicy) {
@@ -501,15 +501,15 @@ namespace lime {
 			recipientAD.insert(recipientAD.end(), recipients[i].deviceId.cbegin(), recipients[i].deviceId.cend()); //insert recipient device id(gruu)
 
 			if (payloadDirectEncryption) {
-				recipients[i].DRSession->ratchetEncrypt(plaintext, std::move(recipientAD), recipients[i].cipherHeader, payloadDirectEncryption);
+				recipients[i].DRSession->ratchetEncrypt(plaintext, std::move(recipientAD), recipients[i].DRmessage, payloadDirectEncryption);
 			} else {
-				recipients[i].DRSession->ratchetEncrypt(randomSeed, std::move(recipientAD), recipients[i].cipherHeader, payloadDirectEncryption);
+				recipients[i].DRSession->ratchetEncrypt(randomSeed, std::move(recipientAD), recipients[i].DRmessage, payloadDirectEncryption);
 			}
 		}
 	}
 
 	template <typename Curve>
-	std::shared_ptr<DR<Curve>> decryptMessage(const std::string& sourceDeviceId, const std::string& recipientDeviceId, const std::string& recipientUserId, std::vector<std::shared_ptr<DR<Curve>>>& DRSessions, const std::vector<uint8_t>& cipherHeader, const std::vector<uint8_t>& cipherMessage, std::vector<uint8_t>& plaintext) {
+	std::shared_ptr<DR<Curve>> decryptMessage(const std::string& sourceDeviceId, const std::string& recipientDeviceId, const std::string& recipientUserId, std::vector<std::shared_ptr<DR<Curve>>>& DRSessions, const std::vector<uint8_t>& DRmessage, const std::vector<uint8_t>& cipherMessage, std::vector<uint8_t>& plaintext) {
 		bool payloadDirectEncryption = (cipherMessage.size() == 0); // if we do not have any cipher message, then we must be in payload direct encryption mode: the payload is in the DR message
 		std::vector<uint8_t> AD; // the Associated Data authenticated by the AEAD scheme used in DR encrypt/decrypt
 
@@ -537,9 +537,9 @@ namespace lime {
 			try {
 				// if payload is in the message, got the output directly in the plaintext buffer
 				if (payloadDirectEncryption) {
-					decryptStatus = DRSession->ratchetDecrypt(cipherHeader, AD, plaintext, payloadDirectEncryption);
+					decryptStatus = DRSession->ratchetDecrypt(DRmessage, AD, plaintext, payloadDirectEncryption);
 				} else {
-					decryptStatus = DRSession->ratchetDecrypt(cipherHeader, AD, randomSeed, payloadDirectEncryption);
+					decryptStatus = DRSession->ratchetDecrypt(DRmessage, AD, randomSeed, payloadDirectEncryption);
 				}
 			} catch (BctbxException &e) { // any bctbx Exception is just considered as decryption failed (it shall occurs in case of maximum skipped keys reached or inconsistency ib the direct Encryption flag)
 				LIME_LOGW<<"Double Ratchet session failed to decrypt message and raised an exception saying : "<<e.what();
@@ -582,11 +582,11 @@ namespace lime {
 
 	/* template instanciations for C25519 and C448 encryption/decryption functions */
 #ifdef EC25519_ENABLED
-	template void encryptMessage<C255>(std::vector<recipientInfos<C255>>& recipients, const std::vector<uint8_t>& plaintext, const std::string& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage, const lime::EncryptionPolicy encryptionPolicy);
-	template std::shared_ptr<DR<C255>> decryptMessage<C255>(const std::string& sourceId, const std::string& recipientDeviceId, const std::string& recipientUserId, std::vector<std::shared_ptr<DR<C255>>>& DRSessions, const std::vector<uint8_t>& cipherHeader, const std::vector<uint8_t>& cipherMessage, std::vector<uint8_t>& plaintext);
+	template void encryptMessage<C255>(std::vector<RecipientInfos<C255>>& recipients, const std::vector<uint8_t>& plaintext, const std::string& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage, const lime::EncryptionPolicy encryptionPolicy);
+	template std::shared_ptr<DR<C255>> decryptMessage<C255>(const std::string& sourceId, const std::string& recipientDeviceId, const std::string& recipientUserId, std::vector<std::shared_ptr<DR<C255>>>& DRSessions, const std::vector<uint8_t>& DRmessage, const std::vector<uint8_t>& cipherMessage, std::vector<uint8_t>& plaintext);
 #endif
 #ifdef EC448_ENABLED
-	template void encryptMessage<C448>(std::vector<recipientInfos<C448>>& recipients, const std::vector<uint8_t>& plaintext, const std::string& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage, const lime::EncryptionPolicy encryptionPolicy);
-	template std::shared_ptr<DR<C448>> decryptMessage<C448>(const std::string& sourceId, const std::string& recipientDeviceId, const std::string& recipientUserId, std::vector<std::shared_ptr<DR<C448>>>& DRSessions, const std::vector<uint8_t>& cipherHeader, const std::vector<uint8_t>& cipherMessage, std::vector<uint8_t>& plaintext);
+	template void encryptMessage<C448>(std::vector<RecipientInfos<C448>>& recipients, const std::vector<uint8_t>& plaintext, const std::string& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage, const lime::EncryptionPolicy encryptionPolicy);
+	template std::shared_ptr<DR<C448>> decryptMessage<C448>(const std::string& sourceId, const std::string& recipientDeviceId, const std::string& recipientUserId, std::vector<std::shared_ptr<DR<C448>>>& DRSessions, const std::vector<uint8_t>& DRmessage, const std::vector<uint8_t>& cipherMessage, std::vector<uint8_t>& plaintext);
 #endif
 }

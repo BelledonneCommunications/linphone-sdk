@@ -196,21 +196,21 @@ namespace lime {
 			// check message holds at leat a header before trying to read it
 			if (body.size()<X3DH_headerSize) {
 				LIME_LOGE<<"Got an invalid response from X3DH server";
-				if (callback) callback(lime::callbackReturn::fail, "Got an invalid response from X3DH server");
+				if (callback) callback(lime::CallbackReturn::fail, "Got an invalid response from X3DH server");
 				return false;
 			}
 
 			// check X3DH protocol version
 			if (body[0] != static_cast<uint8_t>(X3DH_protocolVersion)) {
 				LIME_LOGE<<"X3DH server runs an other version of X3DH protocol(server "<<int(body[0])<<" - local "<<static_cast<uint8_t>(X3DH_protocolVersion)<<")";
-				if (callback) callback(lime::callbackReturn::fail, "X3DH server and client protocol version mismatch");
+				if (callback) callback(lime::CallbackReturn::fail, "X3DH server and client protocol version mismatch");
 				return false;
 			}
 
 			// check curve id
 			if (body[2] != static_cast<uint8_t>(Curve::curveId())) {
 				LIME_LOGE<<"X3DH server runs curve Id "<<int(body[2])<<" while local is set to "<<static_cast<uint8_t>(Curve::curveId())<<" for this server)";
-				if (callback) callback(lime::callbackReturn::fail, "X3DH server and client curve Id mismatch");
+				if (callback) callback(lime::CallbackReturn::fail, "X3DH server and client curve Id mismatch");
 				return false;
 			}
 
@@ -475,7 +475,7 @@ namespace lime {
 				case x3dh_protocol::x3dh_message_type::unset_type:
 				case x3dh_protocol::x3dh_message_type::getPeerBundle:
 				case x3dh_protocol::x3dh_message_type::getSelfOPks: {
-					if (callback) callback(lime::callbackReturn::fail, "X3DH unexpected message from server");
+					if (callback) callback(lime::CallbackReturn::fail, "X3DH unexpected message from server");
 					cleanUserData(userData);
 				}
 				return;
@@ -493,7 +493,7 @@ namespace lime {
 						x3dh_protocol::buildMessage_publishSPk(X3DHmessage, SPk, SPk_sig, SPk_id);
 						postToX3DHServer(userData, X3DHmessage);
 					} else { // after registering a user, we must post SPk and OPks
-						if (callback) callback(lime::callbackReturn::fail, "Internal Error: we registered a new user on X3DH server but do not plan to post SPk or OPks");
+						if (callback) callback(lime::CallbackReturn::fail, "Internal Error: we registered a new user on X3DH server but do not plan to post SPk or OPks");
 						cleanUserData(userData);
 					}
 				}
@@ -526,7 +526,7 @@ namespace lime {
 					std::vector<X3DH_peerBundle<Curve>> peersBundle;
 					if (!x3dh_protocol::parseMessage_getPeerBundles(responseBody, peersBundle)) { // parsing went wrong
 						LIME_LOGE<<"Got an invalid peerBundle packet from X3DH server";
-						if (callback) callback(lime::callbackReturn::fail, "Got an invalid peerBundle packet from X3DH server");
+						if (callback) callback(lime::CallbackReturn::fail, "Got an invalid peerBundle packet from X3DH server");
 						cleanUserData(userData);
 						return;
 					}
@@ -538,7 +538,7 @@ namespace lime {
 						// when message stop crossing themselves on the network
 						X3DH_init_sender_session(peersBundle);
 					} catch (BctbxException &e) { // something went wrong, go for callback as this function may be called by code not supporting exceptions
-						if (callback) callback(lime::callbackReturn::fail, std::string{"Error during the peer Bundle processing : "}.append(e.what()));
+						if (callback) callback(lime::CallbackReturn::fail, std::string{"Error during the peer Bundle processing : "}.append(e.what()));
 						cleanUserData(userData);
 						return;
 					}
@@ -556,7 +556,7 @@ namespace lime {
 					std::vector<uint32_t> selfOPkIds{};
 					if (!x3dh_protocol::parseMessage_selfOPks<Curve>(responseBody, selfOPkIds)) { // parsing went wrong
 						LIME_LOGE<<"Got an invalid selfOPKs packet from X3DH server";
-						if (callback) callback(lime::callbackReturn::fail, "Got an invalid selfOPKs packet from X3DH server");
+						if (callback) callback(lime::CallbackReturn::fail, "Got an invalid selfOPKs packet from X3DH server");
 						cleanUserData(userData);
 						return;
 					}
@@ -574,7 +574,7 @@ namespace lime {
 						x3dh_protocol::buildMessage_publishOPks(X3DHmessage, OPks, OPk_ids);
 						postToX3DHServer(userData, X3DHmessage);
 					} else { /* nothing to do, just call the callback */
-						if (callback) callback(lime::callbackReturn::success, "");
+						if (callback) callback(lime::CallbackReturn::success, "");
 						cleanUserData(userData);
 					}
 				}
@@ -582,19 +582,19 @@ namespace lime {
 
 				case x3dh_protocol::x3dh_message_type::error: {
 					// error messages are logged inside the parseMessage_getType function, just return failure to callback
-					if (callback) callback(lime::callbackReturn::fail, "X3DH server error");
+					if (callback) callback(lime::CallbackReturn::fail, "X3DH server error");
 					cleanUserData(userData);
 				}
 				return;
 			}
 
 			// we get here only if processing is over and response was the expected one
-			if (callback) callback(lime::callbackReturn::success, "");
+			if (callback) callback(lime::CallbackReturn::success, "");
 			cleanUserData(userData);
 			return;
 
 		} else { // response code is not 200Ok
-			if (callback) callback(lime::callbackReturn::fail, std::string("Got a non Ok response from server : ").append(std::to_string(responseCode)));
+			if (callback) callback(lime::CallbackReturn::fail, std::string("Got a non Ok response from server : ").append(std::to_string(responseCode)));
 			cleanUserData(userData);
 			return;
 		}

@@ -50,7 +50,7 @@ namespace lime {
 	 * Chain storing the DH and MKs associated with Nr(uint16_t map index)
 	 */
 	template <typename Curve>
-	struct receiverKeyChain {
+	struct ReceiverKeyChain {
 		/// peer public key identifying this chain
 		X<Curve, lime::Xtype::publicKey> DHr;
 		/// message keys indexed by Nr
@@ -59,7 +59,7 @@ namespace lime {
 		 * Start a new empty chain
 		 * @param[in]	key	the peer DH public key used on this chain
 		 */
-		receiverKeyChain(X<Curve, lime::Xtype::publicKey> key) :DHr{std::move(key)}, messageKeys{} {};
+		ReceiverKeyChain(X<Curve, lime::Xtype::publicKey> key) :DHr{std::move(key)}, messageKeys{} {};
 	};
 
 	/**
@@ -81,7 +81,7 @@ namespace lime {
 			std::uint16_t m_Ns,m_Nr; // Message index in sending and receiving chain
 			std::uint16_t m_PN; // Number of messages in previous sending chain
 			SharedADBuffer m_sharedAD; // Associated Data derived from self and peer device Identity key, set once at session creation, given by X3DH
-			std::vector<lime::receiverKeyChain<Curve>> m_mkskipped; // list of skipped message indexed by DH receiver public key and Nr, store MK generated during on-going decrypt, lookup is done directly in DB.
+			std::vector<lime::ReceiverKeyChain<Curve>> m_mkskipped; // list of skipped message indexed by DH receiver public key and Nr, store MK generated during on-going decrypt, lookup is done directly in DB.
 
 			/* helpers variables */
 			std::shared_ptr<RNG> m_RNG; // Random Number Generator context
@@ -125,14 +125,13 @@ namespace lime {
 	 * Used for internal management of recipientData, includes the Double Ratchet session shared with the recipient
 	 */
 	template <typename Curve>
-	struct recipientInfos {
+	struct RecipientInfos {
 		std::shared_ptr<DR<Curve>> DRSession; /**< DR Session to reach recipient */
-		std::string deviceId; /**< recipient deviceId (shall be GRUU) */
+		const std::string deviceId; /**< recipient deviceId (shall be GRUU) */
 		bool identityVerified; /**< after encrypt calls back, it will hold the status of this peer device: identity verified or not */
-		std::vector<uint8_t> cipherHeader; /**< after encrypt calls back, it will hold the header targeted to the specified recipient. This header may contain an X3DH init message. */
-		recipientInfos() : DRSession{nullptr}, deviceId{}, identityVerified{false}, cipherHeader{} {};
-		recipientInfos(std::string deviceId) : DRSession{nullptr}, deviceId{deviceId}, identityVerified{false}, cipherHeader{} {};
-		recipientInfos(std::string deviceId, std::shared_ptr<DR<Curve>> session) : DRSession{session}, deviceId{deviceId}, identityVerified{false}, cipherHeader{} {};
+		std::vector<uint8_t> DRmessage; /**< after encrypt calls back, it will hold the DR message targeted to the specified recipient. It may contain an X3DH init message. */
+		RecipientInfos(const std::string &deviceId) : DRSession{nullptr}, deviceId{deviceId}, identityVerified{false}, DRmessage{} {};
+		RecipientInfos(const std::string &deviceId, std::shared_ptr<DR<Curve>> session) : DRSession{session}, deviceId{deviceId}, identityVerified{false}, DRmessage{} {};
 	};
 
 	// helpers function wich are the one to be used to encrypt/decrypt messages
@@ -142,16 +141,16 @@ namespace lime {
 	 *	The key and IV are then encrypted with DR Session specific to each device
 	 *
 	 * @param[in,out]	recipients	vector of recipients device id(gruu) and linked DR Session, DR Session are modified by the encryption
-	 *					The recipients struct also hold after encryption the encrypted message header targeted to that recipient only
+	 *					The recipients struct also hold after encryption the double ratchet message targeted to that particular recipient
 	 * @param[in]		plaintext	data to be encrypted
 	 * @param[in]		recipientUserId	the recipient ID, not specific to a device(could be a sip-uri) or a user(could be a group sip-uri)
 	 * @param[in]		sourceDeviceId	the Id of sender device(gruu)
-	 * @param[out]		cipherMessage	message encrypted with a random generated key(and IV)
+	 * @param[out]		cipherMessage	message encrypted with a random generated key(and IV). May be an empty buffer depending on encryptionPolicy, recipients and plaintext characteristics
 	 * @param[in]		encryptionPolicy	select how to manage the encryption: direct use of Double Ratchet message or encrypt in the cipher message and use the DR message to share the cipher message key
 	 * 						default is optimized output size mode.
 	 */
 	template <typename Curve>
-	void encryptMessage(std::vector<recipientInfos<Curve>>& recipients, const std::vector<uint8_t>& plaintext, const std::string& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage, const lime::EncryptionPolicy encryptionPolicy);
+	void encryptMessage(std::vector<RecipientInfos<Curve>>& recipients, const std::vector<uint8_t>& plaintext, const std::string& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage, const lime::EncryptionPolicy encryptionPolicy);
 
 	/**
 	 * @brief Decrypt a message
@@ -161,14 +160,14 @@ namespace lime {
 	 * @param[in]		recipientDeviceId	the recipient ID, specific to current device(gruu)
 	 * @param[in]		recipientUserId		the recipient ID, not specific to a device(could be a sip-uri) or a user(could be a group sip-uri)
 	 * @param[int,out]	DRSessions		list of DR Sessions linked to sender device, first one shall be the one registered as active
-	 * @param[out]		cipherHeader		message holding the random decryption key encrypted by the DR session
-	 * @param[out]		cipherMessage		message encrypted with a random generated key(and IV)
+	 * @param[out]		DRmessage		Double Ratcher message holding as payload either the encrypted plaintext or the random key used to encrypt it encrypted by the DR session
+	 * @param[out]		cipherMessage		if not zero lenght, plain text encrypted with a random generated key(and IV)
 	 * @param[out]		plaintext		decrypted message
 	 *
 	 * @return a shared pointer towards the session used to decrypt, nullptr if we couldn't find one to do it
 	 */
 	template <typename Curve>
-	std::shared_ptr<DR<Curve>> decryptMessage(const std::string& sourceDeviceId, const std::string& recipientDeviceId, const std::string& recipientUserId, std::vector<std::shared_ptr<DR<Curve>>>& DRSessions, const std::vector<uint8_t>& cipherHeader, const std::vector<uint8_t>& cipherMessage, std::vector<uint8_t>& plaintext);
+	std::shared_ptr<DR<Curve>> decryptMessage(const std::string& sourceDeviceId, const std::string& recipientDeviceId, const std::string& recipientUserId, std::vector<std::shared_ptr<DR<Curve>>>& DRSessions, const std::vector<uint8_t>& DRmessage, const std::vector<uint8_t>& cipherMessage, std::vector<uint8_t>& plaintext);
 
 	/**
 	 * @brief check the message for presence of X3DH init in the header, parse it if there is one
@@ -186,13 +185,13 @@ namespace lime {
 	/* this templates are instanciated once in the lime_double_ratchet.cpp file, explicitly tell anyone including this header that there is no need to re-instanciate them */
 #ifdef EC25519_ENABLED
 	extern template class DR<C255>;
-	extern template void encryptMessage<C255>(std::vector<recipientInfos<C255>>& recipients, const std::vector<uint8_t>& plaintext, const std::string& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage, const lime::EncryptionPolicy encryptionPolicy);
-	extern template std::shared_ptr<DR<C255>> decryptMessage<C255>(const std::string& sourceDeviceId, const std::string& recipientDeviceId, const std::string& recipientUserId, std::vector<std::shared_ptr<DR<C255>>>& DRSessions, const std::vector<uint8_t>& cipherHeader, const std::vector<uint8_t>& cipherMessage, std::vector<uint8_t>& plaintext);
+	extern template void encryptMessage<C255>(std::vector<RecipientInfos<C255>>& recipients, const std::vector<uint8_t>& plaintext, const std::string& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage, const lime::EncryptionPolicy encryptionPolicy);
+	extern template std::shared_ptr<DR<C255>> decryptMessage<C255>(const std::string& sourceDeviceId, const std::string& recipientDeviceId, const std::string& recipientUserId, std::vector<std::shared_ptr<DR<C255>>>& DRSessions, const std::vector<uint8_t>& DRmessage, const std::vector<uint8_t>& cipherMessage, std::vector<uint8_t>& plaintext);
 #endif
 #ifdef EC448_ENABLED
 	extern template class DR<C448>;
-	extern template void encryptMessage<C448>(std::vector<recipientInfos<C448>>& recipients, const std::vector<uint8_t>& plaintext, const std::string& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage, const lime::EncryptionPolicy encryptionPolicy);
-	extern template std::shared_ptr<DR<C448>> decryptMessage<C448>(const std::string& sourceDeviceId, const std::string& recipientDeviceId, const std::string& recipientUserId, std::vector<std::shared_ptr<DR<C448>>>& DRSessions, const std::vector<uint8_t>& cipherHeader, const std::vector<uint8_t>& cipherMessage, std::vector<uint8_t>& plaintext);
+	extern template void encryptMessage<C448>(std::vector<RecipientInfos<C448>>& recipients, const std::vector<uint8_t>& plaintext, const std::string& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage, const lime::EncryptionPolicy encryptionPolicy);
+	extern template std::shared_ptr<DR<C448>> decryptMessage<C448>(const std::string& sourceDeviceId, const std::string& recipientDeviceId, const std::string& recipientUserId, std::vector<std::shared_ptr<DR<C448>>>& DRSessions, const std::vector<uint8_t>& DRmessage, const std::vector<uint8_t>& cipherMessage, std::vector<uint8_t>& plaintext);
 #endif
 
 }

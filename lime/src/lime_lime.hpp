@@ -53,29 +53,29 @@ namespace lime {
 		 * 	Note: all parameters are shared pointers as the process being asynchronous, the ownership will be taken internally exempting caller to manage the buffers.
 		 *
 		 * @param[in]		recipientUserId		the Id of intended recipient, shall be a sip:uri of user or conference, is used as associated data to ensure no-one can mess with intended recipient
-		 * @param[in,out]	recipients		a list of recipientData holding: the recipient device Id(GRUU) and an empty buffer to store the cipherHeader which must then be routed to that recipient
+		 * @param[in,out]	recipients		a list of RecipientData holding: the recipient device Id(GRUU) and an empty buffer to store the DRmessage which must then be routed to that recipient
 		 * @param[in]		plainMessage		a buffer holding the message to encrypt, can be text or data.
 		 * @param[in]		encryptionPolicy	select how to manage the encryption: direct use of Double Ratchet message or encrypt in the cipher message and use the DR message to share the cipher message key
-		 * @param[out]		cipherMessage		points to the buffer to store the encrypted message which must be routed to all recipients
+		 * @param[out]		cipherMessage		points to the buffer to store the encrypted message which must be routed to all recipients(if one is produced, depends on encryption policy)
 		 * @param[in]		callback		This operation contact the X3DH server and is thus asynchronous, when server responds,
 		 * 					this callback will be called giving the exit status and an error message in case of failure.
 		 * 					It is advised to capture a copy of cipherMessage and recipients shared_ptr in this callback so they can access
 		 * 					the output of encryption as it won't be part of the callback parameters.
 		*/
-		virtual void encrypt(std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<recipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback) = 0;
+		virtual void encrypt(std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback) = 0;
 
 		/**
 		 * @brief Decrypt the given message
 		 *
 		 * @param[in]		recipientUserId	the Id of intended recipient, shall be a sip:uri of user or conference, is used as associated data to ensure no-one can mess with intended recipient
 		 * 					it is not necessarily the sip:uri base of the GRUU as this could be a message from alice first device intended to bob being decrypted on alice second device
-		 * @param[in]		cipherHeader	the part of cipher which is targeted to current device
+		 * @param[in]		DRmessage	the Double Ratchet message targeted to current device
 		 * @param[in]		cipherMessage	part of cipher routed to all recipient devices
 		 * @param[out]		plainMessage	the output buffer
 		 *
 		 * @return	true if the decryption is successfull, false otherwise
 		*/
-		virtual bool decrypt(const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &cipherHeader, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) = 0;
+		virtual bool decrypt(const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) = 0;
 
 
 

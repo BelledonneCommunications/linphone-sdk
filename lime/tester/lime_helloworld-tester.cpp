@@ -57,11 +57,11 @@ static int http_after_all(void) {
 }
 
 // this emulate a network transmission: bob got a mailbox (2 buffers actually) where we can post/retrieve data to/from
-static std::vector<uint8_t> bobCipherHeaderMailbox{};
+static std::vector<uint8_t> bobDRmessageMailbox{};
 static std::vector<uint8_t> bobCipherMessageMailbox{};
-static void sendMessageTo(std::string recipient, std::vector<uint8_t> &cipherHeader, std::vector<uint8_t> &cipherMessage) {
+static void sendMessageTo(std::string recipient, std::vector<uint8_t> &DRmessage, std::vector<uint8_t> &cipherMessage) {
 	if (recipient == "bob") {
-		bobCipherHeaderMailbox = cipherHeader;
+		bobDRmessageMailbox = DRmessage;
 		bobCipherMessageMailbox = cipherMessage;
 		return;
 	}
@@ -70,9 +70,9 @@ static void sendMessageTo(std::string recipient, std::vector<uint8_t> &cipherHea
 	BC_FAIL();
 }
 
-static void getMessageFor(std::string recipient, std::vector<uint8_t> &cipherHeader, std::vector<uint8_t> &cipherMessage) {
+static void getMessageFor(std::string recipient, std::vector<uint8_t> &DRmessage, std::vector<uint8_t> &cipherMessage) {
 	if (recipient == "bob") {
-		cipherHeader = bobCipherHeaderMailbox;
+		DRmessage = bobDRmessageMailbox;
 		cipherMessage = bobCipherMessageMailbox;
 		return;
 	}
@@ -193,8 +193,8 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 	// The counters part is for test synchronisation purpose
 	// The returnCode gives the status of command execution.
 	// Encryption make use of a lambda too but it's written directly in the call, see below
-	limeCallback callback([&counters](lime::callbackReturn returnCode, std::string anythingToSay) {
-					if (returnCode == lime::callbackReturn::success) {
+	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {
 						counters.operation_failed++;
@@ -221,8 +221,8 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 		// The OPkInitialBatchSize parameter is optionnal and is used to set how many One-Time pre-keys will be
 		// uploaded to the X3DH server at creation. Default value is set in lime::settings.
 		// Last parameter is a callback accepting as parameters a return code and a string
-		//      - In case of successful operation the return code is lime::callbackReturn::success, and string is empty
-		//      - In case of failure, the return code is lime::callbackReturn::fail and the string shall give details on the failure cause
+		//      - In case of successful operation the return code is lime::CallbackReturn::success, and string is empty
+		//      - In case of failure, the return code is lime::CallbackReturn::fail and the string shall give details on the failure cause
 		auto tmp_aliceDeviceId = *aliceDeviceId; // use a temporary variable as it may be a local variable which get out of scope right after call to create_user
 		aliceManager->create_user(tmp_aliceDeviceId, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
 		tmp_aliceDeviceId.clear(); // deviceId may go out of scope as soon as we come back from call
@@ -241,12 +241,12 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 		//      - one common cipher message which must be sent to all recipient devices
 		//      - a cipher header per recipient device, each recipient device shall receive its specific one
 
-		// Create an empty recipientData vector, in this basic case we will encrypt to one device only but we can do it to any number of recipient devices.
-		// recipientData holds:
+		// Create an empty RecipientData vector, in this basic case we will encrypt to one device only but we can do it to any number of recipient devices.
+		// RecipientData holds:
 		//      - recipient device id (identify the recipient)
 		//      - peer Device identity verified status : output, set to true if this device is a verified one.
-		//      - cipherHeader : output of encryption process targeted to this recipient device only
-		auto recipients = make_shared<std::vector<recipientData>>();
+		//      - DRmessage : output of encryption process targeted to this recipient device only
+		auto recipients = make_shared<std::vector<RecipientData>>();
 		recipients->emplace_back(*bobDeviceId); // we have only one recipient identified by its device id.
 		// Shall we have more recipients (bob can have several devices or be a conference sip:uri, alice other devices must get a copy of the message), we just need to emplace_back some more recipients Device Id (GRUU)
 
@@ -259,15 +259,15 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 		// encrypt, parameters are:
 		//      - localDeviceId to select which of the users managed by the LimeManager we shall use to perform the encryption (in our example we have only one local device). This one doesn't need to be a shared pointer.
 		//      - recipientUser: an id of the recipient user (which can hold several devices), typically its sip:uri
-		//      - recipientData vector (see above), list all recipient devices, will hold their cipher header
+		//      - RecipientData vector (see above), list all recipient devices, will hold their cipher header
 		//      - plain message
 		//      - cipher message (this one must then be distributed to all recipients devices)
-		//      - a callback (prototype: void(lime::callbackReturn, std::string))
+		//      - a callback (prototype: void(lime::CallbackReturn, std::string))
 		{
 		aliceManager->encrypt(*aliceDeviceId, make_shared<const std::string>("bob"), recipients, message, cipherMessage,
 					// lambda to get the results, it captures :
 					// - counter : relative to the test, real application won't need this, it's local and used to wait for completion and can't be destroyed before the call to this closure
-					// - recipients :  It will hold the same list of deviceIds we set as input with their corresponding cipherHeader.
+					// - recipients :  It will hold the same list of deviceIds we set as input with their corresponding DRmessage.
 					// - cipherMessage : It will hold the cipher message to be sent to all recipients devices.
 					// IMPORTANT : recipients and cipherMessage are captured by copy not reference. They are shared_ptr, their original scope is likely to be the function where the encrypt is called.
 					//             they shall then be destroyed when getting out of this function and thus won't be valid anymore when this closure is called. By getting a copy we just increase their
@@ -278,16 +278,16 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 					//             It may be wise to use weak_ptr instead of shared ones so if any problem occurs resulting in callback never being called/destroyed, it won't held this buffer from being destroyed
 					//             In normal operation, the shared_ptrs to recipients and cipherMessage given to encrypt function are internally owned at least until the callback is called.
 					[&counters,
-					recipients, cipherMessage](lime::callbackReturn returnCode, std::string errorMessage){
+					recipients, cipherMessage](lime::CallbackReturn returnCode, std::string errorMessage){
 						// counters is related to this test environment only, not to be considered for real usage
-						if (returnCode == lime::callbackReturn::success) {
+						if (returnCode == lime::CallbackReturn::success) {
 							counters.operation_success++;
 							// here is the code processing the output when all went well.
 							// Send the message to recipient
 							// that function must, before returning, send or copy the data to send them later
 							// recipients and cipherMessage are likely to be be destroyed as soon as we get out of this closure
 							// In this example we know that bodDevice is in recipients[0], real code shall loop on recipients vector
-							sendMessageTo("bob", (*recipients)[0].cipherHeader, *cipherMessage);
+							sendMessageTo("bob", (*recipients)[0].DRmessage, *cipherMessage);
 						} else {
 							counters.operation_failed++;
 							// The encryption failed.
@@ -312,16 +312,16 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 
 		/************** RECIPIENT SIDE CODE **************************/
 		LIME_LOGI<<"Bob decrypt the message"<<endl;
-		// retrieve message, in real situation the server shall fan-out only the part we need or client shall parse in the cipherHeaders to retrieve the one addressed to him.
+		// retrieve message, in real situation the server shall fan-out only the part we need or client shall parse in the DRmessages to retrieve the one addressed to him.
 		// Note: here we just use the aliceDeviceId variable, in real situation, recipient shall extract from incoming message the sender's GRUU
-		std::vector<uint8_t> bobReceivedCipherHeader{};
+		std::vector<uint8_t> bobReceivedDRmessage{};
 		std::vector<uint8_t> bobReceivedCipherMessage{};
-		getMessageFor("bob", bobReceivedCipherHeader, bobReceivedCipherMessage);
+		getMessageFor("bob", bobReceivedDRmessage, bobReceivedCipherMessage);
 
-		if (bobReceivedCipherHeader.size()>0 && bobReceivedCipherMessage.size()>0) {
+		if (bobReceivedDRmessage.size()>0 && bobReceivedCipherMessage.size()>0) {
 
 			std::vector<uint8_t> plainTextMessage{}; // a data vector to store the decrypted message
-			BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "bob", *aliceDeviceId, bobReceivedCipherHeader, bobReceivedCipherMessage, plainTextMessage));
+			BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "bob", *aliceDeviceId, bobReceivedDRmessage, bobReceivedCipherMessage, plainTextMessage));
 
 			// it's a text message, so turn it into a string and compare with the one alice sent
 			std::string plainTextMessageString{plainTextMessage.begin(), plainTextMessage.end()};
@@ -400,8 +400,8 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve, const std:
 	// The counters part is for test synchronisation purpose
 	// The returnCode gives the status of command execution.
 	// Encryption make use of a lambda too but it's written directly in the call, see below
-	limeCallback callback([&counters](lime::callbackReturn returnCode, std::string anythingToSay) {
-					if (returnCode == lime::callbackReturn::success) {
+	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {
 						counters.operation_failed++;
@@ -428,8 +428,8 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve, const std:
 		// The OPkInitialBatchSize parameter is optionnal and is used to set how many One-Time pre-keys will be
 		// uploaded to the X3DH server at creation. Default value is set in lime::settings.
 		// Last parameter is a callback acceptiong as parameters a return code and a string
-		//      - In case of successfull operation the return code is lime::callbackReturn::success, and string is empty
-		//      - In case of failure, the return code is lime::callbackReturn::fail and the string shall give details on the failure cause
+		//      - In case of successfull operation the return code is lime::CallbackReturn::success, and string is empty
+		//      - In case of failure, the return code is lime::CallbackReturn::fail and the string shall give details on the failure cause
 		auto tmp_aliceDeviceId = *aliceDeviceId; // use a temporary variable as it may be a local variable which get out of scope right after call to create_user
 		aliceManager->create_user(tmp_aliceDeviceId, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
 		tmp_aliceDeviceId.clear(); // deviceId may go out of scope as soon as we come back from call
@@ -468,12 +468,12 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve, const std:
 		//      - one common cipher message which must be sent to all recipient devices
 		//      - a cipher header per recipient device, each recipient device shall receive its specific one
 
-		// Create an empty recipientData vector, in this basic case we will encrypt to one device only but we can do it to any number of recipient devices.
-		// recipientData holds:
+		// Create an empty RecipientData vector, in this basic case we will encrypt to one device only but we can do it to any number of recipient devices.
+		// RecipientData holds:
 		//      - recipient device id (identify the recipient)
 		//      - peer Device identity verified status : output, set to true if this device is a verified one.
-		//      - cipherHeader : output of encryption process targeted to this recipient device only
-		auto recipients = make_shared<std::vector<recipientData>>();
+		//      - DRmessage : output of encryption process targeted to this recipient device only
+		auto recipients = make_shared<std::vector<RecipientData>>();
 		recipients->emplace_back(*bobDeviceId); // we have only one recipient identified by its device id.
 		// Shall we have more recipients (bob can have several devices or be a conference sip:uri, alice other devices must get a copy of the message), we just need to emplace_back some more recipients Device Id (GRUU)
 
@@ -486,14 +486,14 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve, const std:
 		// encrypt, parameters are:
 		//      - localDeviceId to select which of the users managed by the LimeManager we shall use to perform the encryption (in our example we have only one local device). This one doesn't need to be a shared pointer.
 		//      - recipientUser: an id of the recipient user (which can hold several devices), typically its sip:uri
-		//      - recipientData vector (see above), list all recipient devices, will hold their cipher header
+		//      - RecipientData vector (see above), list all recipient devices, will hold their cipher header
 		//      - plain message
 		//      - cipher message (this one must then be distributed to all recipients devices)
-		//      - a callback (prototype: void(lime::callbackReturn, std::string))
+		//      - a callback (prototype: void(lime::CallbackReturn, std::string))
 		aliceManager->encrypt(*aliceDeviceId, make_shared<const std::string>("bob"), recipients, message, cipherMessage,
 					// lambda to get the results, it captures :
 					// - counter : relative to the test, real application won't need this, it's local and used to wait for completion and can't be destroyed before the call to this closure
-					// - recipients :  It will hold the same list of deviceIds we set as input with their corresponding cipherHeader.
+					// - recipients :  It will hold the same list of deviceIds we set as input with their corresponding DRmessage.
 					// - cipherMessage : It will hold the cipher message to be sent to all recipients devices.
 					// IMPORTANT : recipients and cipherMessage are captured by copy not reference. They are shared_ptr, their original scope is likely to be the function where the encrypt is called.
 					//             they shall then be destroyed when getting out of this function and thus won't be valid anymore when this closure is called. By getting a copy we just increase their
@@ -504,16 +504,16 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve, const std:
 					//             It may be wise to use weak_ptr instead of shared ones so if any problem occurs resulting in callback never being called/destroyed, it won't held this buffer from being destroyed
 					//             In normal operation, the shared_ptrs to recipients and cipherMessage given to encrypt function are internally owned at least until the callback is called.
 					[&counters,
-					recipients, cipherMessage](lime::callbackReturn returnCode, std::string errorMessage){
+					recipients, cipherMessage](lime::CallbackReturn returnCode, std::string errorMessage){
 						// counters is related to this test environment only, not to be considered for real usage
-						if (returnCode == lime::callbackReturn::success) {
+						if (returnCode == lime::CallbackReturn::success) {
 							counters.operation_success++;
 							// here is the code processing the output when all went well.
 							// Send the message to recipient
 							// that function must, before returning, send or copy the data to send them later
 							// recipients and cipherMessage are likely to be be destroyed as soon as we get out of this closure
 							// In this example we know that bodDevice is in recipients[0], real code shall loop on recipients vector
-							sendMessageTo("bob", (*recipients)[0].cipherHeader, *cipherMessage);
+							sendMessageTo("bob", (*recipients)[0].DRmessage, *cipherMessage);
 							// [verify] now we can also check the trusted status of recipients, as we set as trusted Bob's key, it shall be trusted
 							BC_ASSERT_TRUE((*recipients)[0].identityVerified);
 						} else {
@@ -540,19 +540,19 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve, const std:
 
 		/************** RECIPIENT SIDE CODE **************************/
 		LIME_LOGI<<"Bob decrypt the message"<<endl;
-		// retrieve message, in real situation the server shall fan-out only the part we need or client shall parse in the cipherHeaders to retrieve the one addressed to him.
+		// retrieve message, in real situation the server shall fan-out only the part we need or client shall parse in the DRmessages to retrieve the one addressed to him.
 		// Note: here we just use the aliceDeviceId variable, in real situation, recipient shall extract from incoming message the sender's GRUU
-		std::vector<uint8_t> bobReceivedCipherHeader{};
+		std::vector<uint8_t> bobReceivedDRmessage{};
 		std::vector<uint8_t> bobReceivedCipherMessage{};
-		getMessageFor("bob", bobReceivedCipherHeader, bobReceivedCipherMessage);
+		getMessageFor("bob", bobReceivedDRmessage, bobReceivedCipherMessage);
 
-		if (bobReceivedCipherHeader.size()>0 && bobReceivedCipherMessage.size()>0) {
+		if (bobReceivedDRmessage.size()>0 && bobReceivedCipherMessage.size()>0) {
 
 			// [verify] before decryption we can verify that sender is a trusted peer
 			BC_ASSERT_TRUE(bobManager->get_peerIdentityVerifiedStatus(*aliceDeviceId));
 
 			std::vector<uint8_t> plainTextMessage{}; // a data vector to store the decrypted message
-			BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "bob", *aliceDeviceId, bobReceivedCipherHeader, bobReceivedCipherMessage, plainTextMessage));
+			BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "bob", *aliceDeviceId, bobReceivedDRmessage, bobReceivedCipherMessage, plainTextMessage));
 
 			// it's a text message, so turn it into a string and compare with the one alice sent
 			std::string plainTextMessageString{plainTextMessage.begin(), plainTextMessage.end()};
