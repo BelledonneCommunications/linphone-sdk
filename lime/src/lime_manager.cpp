@@ -99,6 +99,20 @@ namespace lime {
 		return user->decrypt(recipientUserId, senderDeviceId, DRmessage, cipherMessage, plainMessage);
 	}
 
+	// convenience definition, have a decrypt without cipherMessage input for the case we don't have it(DR message encryption policy)
+	// just use an create an empty cipherMessage to be able to call Lime::decrypt which needs the cipherMessage even if empty for code simplicity
+	bool LimeManager::decrypt(const std::string &localDeviceId, const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, std::vector<uint8_t> &plainMessage) {
+		// Load user object
+		std::shared_ptr<LimeGeneric> user;
+		LimeManager::load_user(user, localDeviceId);
+
+		const std::vector<uint8_t> emptyCipherMessage(0);
+
+		// call the decryption function
+		return user->decrypt(recipientUserId, senderDeviceId, DRmessage, emptyCipherMessage, plainMessage);
+	}
+
+
 	/* This version use default settings */
 	void LimeManager::update(const limeCallback &callback) {
 		update(callback, lime::settings::OPk_serverLowLimit, lime::settings::OPk_batchSize);

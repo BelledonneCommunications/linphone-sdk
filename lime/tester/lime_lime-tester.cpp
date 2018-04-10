@@ -477,7 +477,12 @@ static void lime_encryptionPolicy_test(std::shared_ptr<LimeManager> aliceManager
 
 		// alice1 decrypt
 		std::vector<uint8_t> receivedMessage{};
-		BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDevice1Id, "alice", *bobDeviceId, (*bobRecipients)[0].DRmessage, *bobCipherMessage, receivedMessage));
+		if (is_directEncryptionType) { // when having the message in DR message only, use the decrypt interface without cipherMessage
+			BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDevice1Id, "alice", *bobDeviceId, (*bobRecipients)[0].DRmessage, receivedMessage));
+		} else {
+			BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDevice1Id, "alice", *bobDeviceId, (*bobRecipients)[0].DRmessage, *bobCipherMessage, receivedMessage));
+		}
+
 		auto receivedMessageString1 = std::string{receivedMessage.begin(), receivedMessage.end()};
 		BC_ASSERT_TRUE(receivedMessageString1 == plainMessage);
 
