@@ -22,6 +22,7 @@ import java.util.List;
 
 import org.linphone.mediastream.Log;
 import org.linphone.mediastream.Version;
+import org.linphone.mediastream.video.AndroidVideoWindowImpl;
 import org.linphone.mediastream.video.capture.hwconf.AndroidCameraConfiguration;
 import org.linphone.mediastream.video.capture.hwconf.AndroidCameraConfiguration.AndroidCamera;
 
@@ -121,7 +122,7 @@ public class AndroidVideoApi5JniWrapper {
 	public static void setPreviewDisplaySurface(Object cam, Object surf) {
 		Log.d("mediastreamer", "setPreviewDisplaySurface(" + cam + ", " + surf + ")");
 		Camera camera = (Camera) cam;
-		SurfaceView surface = (SurfaceView) surf;
+		SurfaceView surface = (surf instanceof AndroidVideoWindowImpl) ? ((AndroidVideoWindowImpl)surf).getPreviewSurfaceView() : (SurfaceView) surf;
 		try {
 			camera.setPreviewDisplay(surface.getHolder());
 		} catch (Exception exc) {

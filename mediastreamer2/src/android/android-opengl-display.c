@@ -155,9 +155,9 @@ static int android_display_set_zoom(MSFilter* f, void* arg) {
 	return 0;
 }
 
-static MSFilterMethod methods[]={
-	{	MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID , android_display_set_window },
-    	{  	MS_VIDEO_DISPLAY_ZOOM, android_display_set_zoom},
+static MSFilterMethod methods[] = {
+	{	MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID, android_display_set_window},
+    {	MS_VIDEO_DISPLAY_ZOOM, android_display_set_zoom},
 	{	0, NULL}
 };
 

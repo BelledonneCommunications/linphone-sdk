@@ -97,7 +97,7 @@ static void read_qrcode(MSFilter *f) {
 		binarizer = new HybridBinarizer(qrc->image->getLuminanceSource());
 		DecodeHints hints(DecodeHints::DEFAULT_HINT);
 		Ref<BinaryBitmap> binary(new BinaryBitmap(binarizer));
-		Ref<Reader> reader(new MultiFormatReader);
+		Ref<Reader> reader(new QRCodeReader);
 		try {
 			results = vector<Ref<Result>>(1, reader->decode(binary, hints));
 		} catch (ReaderException const& re) {
