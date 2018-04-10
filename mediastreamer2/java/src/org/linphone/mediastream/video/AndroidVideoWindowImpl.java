@@ -164,6 +164,11 @@ public class AndroidVideoWindowImpl {
 			Log.e("View class does not match Video display filter used (you must use a non-GL View)");
 		return mVideoRenderingView.getHolder().getSurface();
 	}
+	public SurfaceView getPreviewSurfaceView(){
+		if (useGLrendering)
+			Log.e("View class does not match Video display filter used (you must use a non-GL View)");
+		return mVideoPreviewView;
+	}
 	public Bitmap getBitmap(){
 		if (useGLrendering)
 			Log.e( "View class does not match Video display filter used (you must use a non-GL View)");

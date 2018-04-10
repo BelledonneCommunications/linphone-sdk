@@ -157,7 +157,8 @@ static void android_display_process(MSFilter *f){
 	ms_filter_unlock(f);
 
 	ms_queue_flush(f->inputs[0]);
-	ms_queue_flush(f->inputs[1]);
+	if (f->inputs[1] != NULL)
+		ms_queue_flush(f->inputs[1]);
 }
 
 static int android_display_set_window(MSFilter *f, void *arg){

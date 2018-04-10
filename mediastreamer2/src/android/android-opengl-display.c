@@ -163,7 +163,7 @@ static MSFilterMethod methods[]={
 
 MSFilterDesc ms_android_opengl_display_desc={
 	.id=MS_ANDROID_DISPLAY_ID,
-	.name="MSAndroidDisplay",
+	.name="MSAndroidOpenGLDisplay",
 	.text="OpenGL-ES2 video display filter for Android.",
 	.category=MS_FILTER_OTHER,
 	.ninputs=2, /*number of inputs*/

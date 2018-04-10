@@ -245,7 +245,7 @@ const char *video_stream_get_default_video_renderer(void){
 #elif defined(MS2_WINDOWS_DESKTOP)
 	return "MSDrawDibDisplay";
 #elif defined(__ANDROID__)
-	return "MSAndroidDisplay";
+	return "MSAndroidOpenGLDisplay";
 #elif __APPLE__ && !TARGET_OS_IPHONE
 	return "MSOSXGLDisplay";
 #elif defined (HAVE_XV)
@@ -262,7 +262,16 @@ const char *video_stream_get_default_video_renderer(void){
 }
 
 static void choose_display_name(VideoStream *stream){
-	stream->display_name=ms_strdup(video_stream_get_default_video_renderer());
+#if defined(__ANDROID__)
+	MSDevicesInfo *devices = ms_factory_get_devices_info(ms_factory_get_fallback());
+	SoundDeviceDescription *description = ms_devices_info_get_sound_device_description(devices);
+	if (description->flags & DEVICE_HAS_CRAPPY_OPENGL)
+		stream->display_name = ms_strdup("MSAndroidDisplay");
+	else
+		stream->display_name = ms_strdup(video_stream_get_default_video_renderer());
+#else
+	stream->display_name = ms_strdup(video_stream_get_default_video_renderer());
+#endif
 }
 
 static float video_stream_get_rtcp_xr_average_quality_rating(void *userdata) {
@@ -422,7 +431,6 @@ void video_stream_set_display_filter_name(VideoStream *s, const char *fname){
 	if (fname!=NULL)
 		s->display_name=ms_strdup(fname);
 }
-
 
 static void ext_display_cb(void *ud, MSFilter* f, unsigned int event, void *eventdata){
 	MSExtDisplayOutput *output=(MSExtDisplayOutput*)eventdata;
