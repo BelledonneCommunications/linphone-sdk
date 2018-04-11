@@ -1620,17 +1620,22 @@ static void configure_video_preview_source(VideoPreview *stream) {
 }
 
 void video_preview_start(VideoPreview *stream, MSWebCam *device) {
-	MSPixFmt format = MS_YUV420P; /* Display format */
-	int mirroring = 1;
-	int corner = -1;
-	MSVideoSize disp_size = stream->sent_vsize;
-	const char *displaytype = stream->display_name;
 	MSConnectionHelper ch;
 
 	stream->source = ms_web_cam_create_reader(device);
 
 	/* configure the filters */
 	configure_video_preview_source(stream);
+
+#if defined(__ANDROID__)
+	// On Android the capture filter doesn't need a display filter to render the preview
+	stream->output2 = ms_factory_create_filter(stream->ms.factory, MS_VOID_SINK_ID);
+#else
+	MSPixFmt format = MS_YUV420P; /* Display format */
+	int mirroring = 1;
+	int corner = -1;
+	MSVideoSize disp_size = stream->sent_vsize;
+	const char *displaytype = stream->display_name;
 
 	if (displaytype) {
 		stream->output2=ms_factory_create_filter_from_name(stream->ms.factory, displaytype);
@@ -1640,6 +1645,7 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device) {
 		ms_filter_call_method(stream->output2, MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE, &corner);
 		/* and then connect all */
 	}
+#endif
 
 	stream->local_jpegwriter = ms_factory_create_filter(stream->ms.factory, MS_JPEG_WRITER_ID);
 	if (stream->local_jpegwriter) {

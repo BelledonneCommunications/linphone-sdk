@@ -87,36 +87,39 @@ public class AndroidVideoWindowImpl {
 	 */
 	public void init() {
 		// register callback for rendering surface events
-		mVideoRenderingView.getHolder().addCallback(new Callback(){
-			public void surfaceChanged(SurfaceHolder holder, int format,
-					int width, int height) {
-				Log.i("Video display surface is being changed.");
-				if (!useGLrendering) {
-					synchronized(AndroidVideoWindowImpl.this){
-						mBitmap=Bitmap.createBitmap(width,height,Config.RGB_565);
-						mSurface=holder.getSurface();
+		if (mVideoRenderingView != null) {
+			mVideoRenderingView.getHolder().addCallback(new Callback() {
+				public void surfaceChanged(SurfaceHolder holder, int format,
+				                           int width, int height) {
+					Log.i("Video display surface is being changed.");
+					if (!useGLrendering) {
+						synchronized (AndroidVideoWindowImpl.this) {
+							mBitmap = Bitmap.createBitmap(width, height, Config.RGB_565);
+							mSurface = holder.getSurface();
+						}
 					}
+					if (mListener != null)
+						mListener.onVideoRenderingSurfaceReady(AndroidVideoWindowImpl.this, mVideoRenderingView);
+					Log.w("Video display surface changed");
 				}
-				if (mListener!=null) mListener.onVideoRenderingSurfaceReady(AndroidVideoWindowImpl.this, mVideoRenderingView);
-				Log.w("Video display surface changed");
-			}
 
-			public void surfaceCreated(SurfaceHolder holder) {
-				Log.w("Video display surface created");
-			}
+				public void surfaceCreated(SurfaceHolder holder) {
+					Log.w("Video display surface created");
+				}
 
-			public void surfaceDestroyed(SurfaceHolder holder) {
-				if (!useGLrendering) {
-					synchronized(AndroidVideoWindowImpl.this){
-						mSurface=null;
-						mBitmap=null;
+				public void surfaceDestroyed(SurfaceHolder holder) {
+					if (!useGLrendering) {
+						synchronized (AndroidVideoWindowImpl.this) {
+							mSurface = null;
+							mBitmap = null;
+						}
 					}
+					if (mListener != null)
+						mListener.onVideoRenderingSurfaceDestroyed(AndroidVideoWindowImpl.this);
+					Log.d("Video display surface destroyed");
 				}
-				if (mListener!=null)
-					mListener.onVideoRenderingSurfaceDestroyed(AndroidVideoWindowImpl.this);
-				Log.d("Video display surface destroyed"); 
-			}
-		});
+			});
+		}
 		// register callback for preview surface events
 		if (mVideoPreviewView != null) {
 			mVideoPreviewView.getHolder().addCallback(new Callback(){
@@ -140,7 +143,7 @@ public class AndroidVideoWindowImpl {
 			});
 		}
 		
-		if (useGLrendering) {
+		if (useGLrendering && mVideoRenderingView != null) {
 			renderer = new Renderer();
 			((GLSurfaceView)mVideoRenderingView).setRenderer(renderer);
 			((GLSurfaceView)mVideoRenderingView).setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
@@ -162,7 +165,7 @@ public class AndroidVideoWindowImpl {
 	public Surface getSurface(){
 		if (useGLrendering)
 			Log.e("View class does not match Video display filter used (you must use a non-GL View)");
-		return mVideoRenderingView.getHolder().getSurface();
+		return mVideoRenderingView != null ? mVideoRenderingView.getHolder().getSurface() : null;
 	}
 	public SurfaceView getPreviewSurfaceView(){
 		if (useGLrendering)
@@ -182,7 +185,7 @@ public class AndroidVideoWindowImpl {
 	}
 	
 	public void requestRender() {
-		((GLSurfaceView)mVideoRenderingView).requestRender();
+		if (mVideoRenderingView != null) ((GLSurfaceView)mVideoRenderingView).requestRender();
 	}
 	
 	//Called by the mediastreamer2 android display filter 
