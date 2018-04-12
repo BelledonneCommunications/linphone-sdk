@@ -233,7 +233,7 @@ void ms_factory_init(MSFactory *obj){
 	tags = ms_factory_get_platform_tags_as_string(obj);
 	ms_message("ms_factory_init() done: platform_tags=%s", tags);
 	ms_free(tags);
-	
+
 	obj->image_resources_dir = bctbx_strdup_printf("%s/images", PACKAGE_DATA_DIR);
 }
 

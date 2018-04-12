@@ -143,7 +143,7 @@ public class AndroidVideoWindowImpl {
 			});
 		}
 
-		if (useGLrendering && (mVideoRenderingView != null || mVideoPreviewView != null)) {
+		if (useGLrendering && mVideoRenderingView != null) {
 			renderer = new Renderer();
 			GLSurfaceView surface = (mVideoRenderingView != null) ? (GLSurfaceView)mVideoRenderingView : (GLSurfaceView)mVideoPreviewView;
 			surface.setRenderer(renderer);
@@ -166,10 +166,11 @@ public class AndroidVideoWindowImpl {
 	public Surface getSurface(){
 		if (useGLrendering)
 			Log.e("View class does not match Video display filter used (you must use a non-GL View)");
-		if (mVideoPreviewView == null) return null;
-		return mVideoRenderingView.getHolder().getSurface();
+		return mVideoRenderingView != null ? mVideoRenderingView.getHolder().getSurface() : null;
 	}
-	public SurfaceView getPreviewSurfaceView() {
+	public SurfaceView getPreviewSurfaceView(){
+		if (useGLrendering)
+			Log.e("View class does not match Video display filter used (you must use a non-GL View)");
 		return mVideoPreviewView;
 	}
 	public Bitmap getBitmap(){
@@ -186,11 +187,7 @@ public class AndroidVideoWindowImpl {
 	}
 
 	public void requestRender() {
-		if (mVideoRenderingView != null) {
-			((GLSurfaceView) mVideoRenderingView).requestRender();
-		} else if (mVideoPreviewView != null) {
-			((GLSurfaceView) mVideoPreviewView).requestRender();
-		}
+		if (mVideoRenderingView != null) ((GLSurfaceView)mVideoRenderingView).requestRender();
 	}
 
 	//Called by the mediastreamer2 android display filter

@@ -122,10 +122,16 @@ public class AndroidVideoApi5JniWrapper {
 	public static void setPreviewDisplaySurface(Object cam, Object surf) {
 		Log.d("mediastreamer", "setPreviewDisplaySurface(" + cam + ", " + surf + ")");
 		Camera camera = (Camera) cam;
-		SurfaceView surface = (surf instanceof AndroidVideoWindowImpl) ? ((AndroidVideoWindowImpl)surf).getPreviewSurfaceView() : (SurfaceView) surf;
 		try {
-			camera.setPreviewDisplay(surface.getHolder());
+			if (surf instanceof  SurfaceView) {
+				SurfaceView surface = (SurfaceView) surf;
+				camera.setPreviewDisplay(surface.getHolder());
+			} else {
+				AndroidVideoWindowImpl avw = (AndroidVideoWindowImpl) surf;
+				camera.setPreviewDisplay(avw.getPreviewSurfaceView().getHolder());
+			}
 		} catch (Exception exc) {
+			Log.e(exc);
 			exc.printStackTrace();
 		}
 	}

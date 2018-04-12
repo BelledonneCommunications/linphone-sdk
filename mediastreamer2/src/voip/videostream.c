@@ -249,7 +249,7 @@ const char *video_stream_get_default_video_renderer(void){
 #elif defined(MS2_WINDOWS_DESKTOP)
 	return "MSDrawDibDisplay";
 #elif defined(__ANDROID__)
-	return "MSAndroidDisplay";
+	return "MSAndroidOpenGLDisplay";
 #elif __APPLE__ && !TARGET_OS_IPHONE
 	return "MSOSXGLDisplay";
 #elif defined (HAVE_XV)
@@ -266,7 +266,16 @@ const char *video_stream_get_default_video_renderer(void){
 }
 
 static void choose_display_name(VideoStream *stream){
-	stream->display_name=ms_strdup(video_stream_get_default_video_renderer());
+#if defined(__ANDROID__)
+	MSDevicesInfo *devices = ms_factory_get_devices_info(stream->ms.factory);
+	SoundDeviceDescription *description = ms_devices_info_get_sound_device_description(devices);
+	if (description->flags & DEVICE_HAS_CRAPPY_OPENGL)
+		stream->display_name = ms_strdup("MSAndroidDisplay");
+	else
+		stream->display_name = ms_strdup(video_stream_get_default_video_renderer());
+#else
+	stream->display_name = ms_strdup(video_stream_get_default_video_renderer());
+#endif
 }
 
 static float video_stream_get_rtcp_xr_average_quality_rating(void *userdata) {
@@ -426,7 +435,6 @@ void video_stream_set_display_filter_name(VideoStream *s, const char *fname){
 	if (fname!=NULL)
 		s->display_name=ms_strdup(fname);
 }
-
 
 static void ext_display_cb(void *ud, MSFilter* f, unsigned int event, void *eventdata){
 	MSExtDisplayOutput *output=(MSExtDisplayOutput*)eventdata;
@@ -1622,17 +1630,22 @@ static void configure_video_preview_source(VideoPreview *stream) {
 }
 
 void video_preview_start(VideoPreview *stream, MSWebCam *device) {
-	MSPixFmt format = MS_YUV420P; /* Display format */
-	int mirroring = 1;
-	int corner = -1;
-	MSVideoSize disp_size = stream->sent_vsize;
-	const char *displaytype = stream->display_name;
 	MSConnectionHelper ch;
 
 	stream->source = ms_web_cam_create_reader(device);
 
 	/* configure the filters */
 	configure_video_preview_source(stream);
+
+#if defined(__ANDROID__)
+	// On Android the capture filter doesn't need a display filter to render the preview
+	stream->output2 = ms_factory_create_filter(stream->ms.factory, MS_VOID_SINK_ID);
+#else
+	MSPixFmt format = MS_YUV420P; /* Display format */
+	int mirroring = 1;
+	int corner = -1;
+	MSVideoSize disp_size = stream->sent_vsize;
+	const char *displaytype = stream->display_name;
 
 	if (displaytype) {
 		stream->output2=ms_factory_create_filter_from_name(stream->ms.factory, displaytype);
@@ -1642,6 +1655,7 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device) {
 		ms_filter_call_method(stream->output2, MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE, &corner);
 		/* and then connect all */
 	}
+#endif
 
 	stream->local_jpegwriter = ms_factory_create_filter(stream->ms.factory, MS_JPEG_WRITER_ID);
 	if (stream->local_jpegwriter) {

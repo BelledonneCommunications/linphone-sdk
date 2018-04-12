@@ -110,6 +110,7 @@ static void create_text_stream(text_stream_tester_t *tst, int payload_type) {
 }
 
 static void destroy_text_stream(text_stream_tester_t *tst) {
+	ortp_ev_queue_destroy(tst->stats.q);
 	text_stream_stop(tst->ts);
 }
 
@@ -125,6 +126,7 @@ static void real_time_text_character_received(void *userdata, struct _MSFilter *
 				ms_fatal("tst->stats.received_chars buffer overflow (number_of_received_char=%i)",
 					tst->stats.number_of_received_char);
 			}
+			ms_free(data);
 		}
 	}
 }

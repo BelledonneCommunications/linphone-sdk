@@ -100,6 +100,7 @@ typedef struct EncState {
 	int last_fir_seq_nr;
 	uint16_t picture_id;
 	uint16_t last_sli_id;
+	vpx_codec_pts_t last_sli_frame_count; /*The current frame count when last received SLI was processed. Used to detect 16 bits rollover*/
 	bool_t force_keyframe;
 	bool_t invalid_frame_reported;
 	bool_t avpf_enabled;
@@ -786,6 +787,7 @@ static int enc_notify_sli(MSFilter *f, void *data) {
 
 	diff=(64 + (int)(most_recent & 0x3F) - (int)(sli->picture_id & 0x3F)) % 64;
 	s->last_sli_id=most_recent-diff;
+	
 	fs=enc_get_most_recent_reference_frame(s,FALSE);
 	ms_message("VP8: receiving SLI with pic id [%i], last-ref=[%i], most recent pic id=[%i]",s->last_sli_id, fs ? (int)fs->picture_id : 0, most_recent);
 	if (s->frames_state.golden.picture_id == s->last_sli_id) {
@@ -800,7 +802,7 @@ static int enc_notify_sli(MSFilter *f, void *data) {
 		/* Last key frame has been lost. */
 		s->force_keyframe = TRUE;
 	} else {
-		if (!fs || PICID_NEWER_THAN(s->last_sli_id,fs->picture_id)) {
+		if (!fs || PICID_NEWER_THAN(s->last_sli_id,fs->picture_id) || (s->frame_count - s->last_sli_frame_count >= 1<<15)) {
 			s->invalid_frame_reported = TRUE;
 		} else {
 #ifdef AVPF_DEBUG
@@ -809,6 +811,7 @@ static int enc_notify_sli(MSFilter *f, void *data) {
 #endif
 		}
 	}
+	s->last_sli_frame_count = s->frame_count;
 	ms_filter_unlock(f);
 	return 0;
 }
