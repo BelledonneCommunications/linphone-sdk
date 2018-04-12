@@ -1641,19 +1641,21 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device) {
 	// On Android the capture filter doesn't need a display filter to render the preview
 	stream->output2 = ms_factory_create_filter(stream->ms.factory, MS_VOID_SINK_ID);
 #else
-	MSPixFmt format = MS_YUV420P; /* Display format */
-	int mirroring = 1;
-	int corner = -1;
-	MSVideoSize disp_size = stream->sent_vsize;
-	const char *displaytype = stream->display_name;
+	{
+		MSPixFmt format = MS_YUV420P; /* Display format */
+		int mirroring = 1;
+		int corner = -1;
+		MSVideoSize disp_size = stream->sent_vsize;
+		const char *displaytype = stream->display_name;
 
-	if (displaytype) {
-		stream->output2=ms_factory_create_filter_from_name(stream->ms.factory, displaytype);
-		ms_filter_call_method(stream->output2, MS_FILTER_SET_PIX_FMT, &format);
-		ms_filter_call_method(stream->output2, MS_FILTER_SET_VIDEO_SIZE, &disp_size);
-		ms_filter_call_method(stream->output2, MS_VIDEO_DISPLAY_ENABLE_MIRRORING, &mirroring);
-		ms_filter_call_method(stream->output2, MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE, &corner);
-		/* and then connect all */
+		if (displaytype) {
+			stream->output2=ms_factory_create_filter_from_name(stream->ms.factory, displaytype);
+			ms_filter_call_method(stream->output2, MS_FILTER_SET_PIX_FMT, &format);
+			ms_filter_call_method(stream->output2, MS_FILTER_SET_VIDEO_SIZE, &disp_size);
+			ms_filter_call_method(stream->output2, MS_VIDEO_DISPLAY_ENABLE_MIRRORING, &mirroring);
+			ms_filter_call_method(stream->output2, MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE, &corner);
+			/* and then connect all */
+		}
 	}
 #endif
 
