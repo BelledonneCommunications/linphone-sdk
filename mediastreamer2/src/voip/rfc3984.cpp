@@ -28,45 +28,45 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 namespace mediastreamer2 {
 
 Rfc3984Context::Rfc3984Context() {
-	ms_queue_init(&this->q);
+	ms_queue_init(&_q);
 }
 
 Rfc3984Context::Rfc3984Context::Rfc3984Context(MSFactory* factory) {
-	ms_queue_init(&this->q);
+	ms_queue_init(&_q);
 	setMaxPayloadSize(ms_factory_get_payload_max_size(factory));
 }
 
 
 Rfc3984Context::~Rfc3984Context() {
-	ms_queue_flush(&this->q);
-	if (this->m != nullptr) freemsg(this->m);
-	if (this->sps != nullptr) freemsg(this->sps);
-	if (this->pps != nullptr) freemsg(this->pps);
-	if (this->last_pps != nullptr) freemsg(this->last_pps);
-	if (this->last_sps != nullptr) freemsg(this->last_sps);
+	ms_queue_flush(&_q);
+	if (_m != nullptr) freemsg(_m);
+	if (_SPS != nullptr) freemsg(_SPS);
+	if (_PPS != nullptr) freemsg(_PPS);
+	if (_lastPPS != nullptr) freemsg(_lastPPS);
+	if (_lastSPS != nullptr) freemsg(_lastSPS);
 }
 
 void Rfc3984Context::setOutOfBandSpsPps(mblk_t *sps, mblk_t *pps){
-	if (this->sps){
-		freemsg(this->sps);
+	if (_SPS){
+		freemsg(_SPS);
 	}
-	if (this->pps){
-		freemsg(this->pps);
+	if (_PPS){
+		freemsg(_PPS);
 	}
-	this->sps = sps;
-	this->pps = pps;
+	_SPS = sps;
+	_PPS = pps;
 }
 
 void Rfc3984Context::pack(MSQueue *naluq, MSQueue *rtpq, uint32_t ts) {
-	switch(this->mode){
+	switch(_mode){
 		case 0:
-			packMode0(naluq, rtpq, ts);
+			_packMode0(naluq, rtpq, ts);
 			break;
 		case 1:
-			packMode1(naluq, rtpq, ts);
+			_packMode1(naluq, rtpq, ts);
 			break;
 		default:
-			ms_error("Bad or unsupported mode %i",this->mode);
+			ms_error("Bad or unsupported mode %i",_mode);
 	}
 }
 
@@ -80,12 +80,12 @@ unsigned int Rfc3984Context::unpack(mblk_t *im, MSQueue *out) {
 
 	//ms_message("Seeing timestamp %u, sequence %u", ts, (int)cseq);
 
-	if (this->last_ts!=ts){
+	if (_lastTs !=ts){
 		/*a new frame is arriving, in case the marker bit was not set in previous frame, output it now,
 		 *	 unless it is a FU-A packet (workaround for buggy implementations)*/
-		this->last_ts=ts;
-		if (this->m==NULL && !ms_queue_empty(&this->q)){
-			ret = outputFrame(out, ((unsigned int)Status::FrameAvailable) | (unsigned int)Status::FrameCorrupted);
+		_lastTs =ts;
+		if (_m ==NULL && !ms_queue_empty(&_q)){
+			ret = _outputFrame(out, ((unsigned int)Status::FrameAvailable) | (unsigned int)Status::FrameCorrupted);
 			ms_warning("Incomplete H264 frame (missing marker bit after seq number %u)",
 					   mblk_get_cseq(ms_queue_peek_last(out)));
 		}
@@ -93,15 +93,15 @@ unsigned int Rfc3984Context::unpack(mblk_t *im, MSQueue *out) {
 
 	if (im->b_cont) msgpullup(im,-1);
 
-	if (!this->initialized_ref_cseq) {
-		this->initialized_ref_cseq = TRUE;
-		this->ref_cseq = cseq;
+	if (!_initializedRefCSeq) {
+		_initializedRefCSeq = TRUE;
+		_refCSeq = cseq;
 	} else {
-		this->ref_cseq++;
-		if (this->ref_cseq != cseq) {
-			ms_message("sequence inconsistency detected (diff=%i)",(int)(cseq - this->ref_cseq));
-			this->ref_cseq = cseq;
-			this->status |= (unsigned int)Status::FrameCorrupted;
+		_refCSeq++;
+		if (_refCSeq != cseq) {
+			ms_message("sequence inconsistency detected (diff=%i)",(int)(cseq - _refCSeq));
+			_refCSeq = cseq;
+			_status |= (unsigned int)Status::FrameCorrupted;
 		}
 	}
 
@@ -126,59 +126,59 @@ unsigned int Rfc3984Context::unpack(mblk_t *im, MSQueue *out) {
 				freemsg(nal);
 				break;
 			}
-			storeNal(nal);
+			_storeNal(nal);
 		}
 		freemsg(im);
 	}else if (type==MSH264NaluTypeFUA){
-		mblk_t *o=aggregateFUA(im);
+		mblk_t *o= _aggregateFUA(im);
 		ms_debug("Receiving FU-A");
-		if (o) storeNal(o);
+		if (o) _storeNal(o);
 	}else{
-		if (this->m){
+		if (_m){
 			/*discontinued FU-A, purge it*/
-			freemsg(this->m);
-			this->m=NULL;
+			freemsg(_m);
+			_m =NULL;
 		}
 		/*single nal unit*/
 		ms_debug("Receiving single NAL");
-		storeNal(im);
+		_storeNal(im);
 	}
 
 	if (marker){
-		this->last_ts=ts;
+		_lastTs =ts;
 		ms_debug("Marker bit set");
-		ret = outputFrame(out, (unsigned int)Status::FrameAvailable);
+		ret = _outputFrame(out, (unsigned int)Status::FrameAvailable);
 	}
 
 	return ret;
 }
 
 // Private methods
-void Rfc3984Context::packMode0(MSQueue *naluq, MSQueue *rtpq, uint32_t ts) {
+void Rfc3984Context::_packMode0(MSQueue *naluq, MSQueue *rtpq, uint32_t ts) {
 	mblk_t *m;
 	bool_t end;
 	int size;
 	while((m=ms_queue_get(naluq))!=NULL){
 		end=ms_queue_empty(naluq);
 		size=(int)(m->b_wptr-m->b_rptr);
-		if (size>this->maxsz){
+		if (size>_maxSize){
 			ms_warning("This H264 packet does not fit into mtu: size=%i",size);
 		}
-		sendPacket(rtpq,ts,m,end);
+		_sendPacket(rtpq,ts,m,end);
 	}
 }
 
-void Rfc3984Context::packMode1(MSQueue *naluq, MSQueue *rtpq, uint32_t ts){
+void Rfc3984Context::_packMode1(MSQueue *naluq, MSQueue *rtpq, uint32_t ts){
 	mblk_t *m,*prevm=NULL;
 	int prevsz=0,sz;
 	bool_t end;
 	while((m=ms_queue_get(naluq))!=NULL){
 		end=ms_queue_empty(naluq);
 		sz=(int)(m->b_wptr-m->b_rptr);
-		if (this->stap_a_allowed){
+		if (_STAPAAllowed){
 			if (prevm!=NULL){
-				if ((prevsz+sz)<(this->maxsz-2)){
-					prevm=concatNalus(prevm,m);
+				if ((prevsz+sz)<(_maxSize -2)){
+					prevm= _concatNalus(prevm,m);
 					m=NULL;
 					prevsz+=sz+2;/*+2 for the stapa size field*/
 					continue;
@@ -189,12 +189,12 @@ void Rfc3984Context::packMode1(MSQueue *naluq, MSQueue *rtpq, uint32_t ts){
 					}else {
 						ms_debug("Sending previous msg as single NAL");
 					}
-					sendPacket(rtpq,ts,prevm,FALSE);
+					_sendPacket(rtpq,ts,prevm,FALSE);
 					prevm=NULL;
 					prevsz=0;
 				}
 			}
-			if (sz<(this->maxsz/2)){
+			if (sz<(_maxSize /2)){
 				/*try to aggregate it with next packet*/
 				prevm=m;
 				prevsz=sz+3; /*STAP-A header + size*/
@@ -202,72 +202,72 @@ void Rfc3984Context::packMode1(MSQueue *naluq, MSQueue *rtpq, uint32_t ts){
 			}else{
 
 				/*send as single nal or FU-A*/
-				if (sz>this->maxsz){
+				if (sz>_maxSize){
 					ms_debug("Sending FU-A packets");
-					fragNaluAndSend(rtpq,ts,m,end, this->maxsz);
+					_fragNaluAndSend(rtpq,ts,m,end, _maxSize);
 				}else{
 					ms_debug("Sending Single NAL");
-					sendPacket(rtpq,ts,m,end);
+					_sendPacket(rtpq,ts,m,end);
 				}
 			}
 		}else{
-			if (sz>this->maxsz){
+			if (sz>_maxSize){
 				ms_debug("Sending FU-A packets");
-				fragNaluAndSend(rtpq,ts,m,end, this->maxsz);
+				_fragNaluAndSend(rtpq,ts,m,end, _maxSize);
 			}else{
 				ms_debug("Sending Single NAL");
-				sendPacket(rtpq,ts,m,end);
+				_sendPacket(rtpq,ts,m,end);
 			}
 		}
 	}
 	if (prevm){
 		ms_debug("Sending Single NAL (2)");
-		sendPacket(rtpq,ts,prevm,TRUE);
+		_sendPacket(rtpq,ts,prevm,TRUE);
 	}
 }
 
-void Rfc3984Context::fragNaluAndSend(MSQueue *rtpq, uint32_t ts, mblk_t *nalu, bool_t marker, int maxsize){
+void Rfc3984Context::_fragNaluAndSend(MSQueue *rtpq, uint32_t ts, mblk_t *nalu, bool_t marker, int maxsize){
 	mblk_t *m;
 	int payload_max_size=maxsize-2;/*minus FUA header*/
 	uint8_t fu_indicator;
 	uint8_t type=ms_h264_nalu_get_type(nalu);
-	uint8_t nri=nalHeaderGetNri(nalu->b_rptr);
+	uint8_t nri= _nalHeaderGetNri(nalu->b_rptr);
 	bool_t start=TRUE;
 
-	nalHeaderInit(&fu_indicator,nri,MSH264NaluTypeFUA);
+	_nalHeaderInit(&fu_indicator,nri,MSH264NaluTypeFUA);
 	while(nalu->b_wptr-nalu->b_rptr>payload_max_size){
 		m=dupb(nalu);
 		nalu->b_rptr+=payload_max_size;
 		m->b_wptr=nalu->b_rptr;
-		m=prependFuIndicatorAndHeader(m,fu_indicator,start,FALSE,type);
-		sendPacket(rtpq,ts,m,FALSE);
+		m= _prependFuIndicatorAndHeader(m,fu_indicator,start,FALSE,type);
+		_sendPacket(rtpq,ts,m,FALSE);
 		start=FALSE;
 	}
 	/*send last packet */
-	m=prependFuIndicatorAndHeader(nalu,fu_indicator,FALSE,TRUE,type);
-	sendPacket(rtpq,ts,m,marker);
+	m= _prependFuIndicatorAndHeader(nalu,fu_indicator,FALSE,TRUE,type);
+	_sendPacket(rtpq,ts,m,marker);
 }
 
-void Rfc3984Context::sendPacket(MSQueue *rtpq, uint32_t ts, mblk_t *m, bool_t marker){
+void Rfc3984Context::_sendPacket(MSQueue *rtpq, uint32_t ts, mblk_t *m, bool_t marker){
 	mblk_set_timestamp_info(m,ts);
 	mblk_set_marker_info(m,marker);
-	mblk_set_cseq(m, this->ref_cseq++);
+	mblk_set_cseq(m, _refCSeq++);
 	ms_queue_put(rtpq,m);
 }
 
-unsigned int Rfc3984Context::outputFrame(MSQueue *out, unsigned int flags){
-	unsigned int res = this->status;
+unsigned int Rfc3984Context::_outputFrame(MSQueue *out, unsigned int flags){
+	unsigned int res = _status;
 
 	if (!ms_queue_empty(out)){
 		ms_warning("rfc3984_unpack: output_frame invoked several times in a row, this should not happen");
 	}
 	res |= flags;
-	if ((res & Status::IsKeyFrame) && this->sps && this->pps){
+	if ((res & Status::IsKeyFrame) && _SPS && _PPS){
 		/*prepend out of band provided sps and pps*/
-		ms_queue_put(out, this->sps);
-		this->sps = NULL;
-		ms_queue_put(out, this->pps);
-		this->pps = NULL;
+		ms_queue_put(out, _SPS);
+		_SPS = NULL;
+		ms_queue_put(out, _PPS);
+		_PPS = NULL;
 	}
 
 	/* Log some bizarre things */
@@ -275,45 +275,45 @@ unsigned int Rfc3984Context::outputFrame(MSQueue *out, unsigned int flags){
 		if ((res & Status::HasSPS) && (res & Status::HasPPS) && !(res & Status::HasIDR) && !(res & Status::IsKeyFrame)){
 			/*some decoders may not be happy with this*/
 			ms_warning("rfc3984_unpack: a frame with SPS+PPS but no IDR was output, starting at seq number %u",
-					   mblk_get_cseq(ms_queue_peek_first(&this->q)));
+					   mblk_get_cseq(ms_queue_peek_first(&_q)));
 		}
 	}
 
-	while(!ms_queue_empty(&this->q)){
-		ms_queue_put(out,ms_queue_get(&this->q));
+	while(!ms_queue_empty(&_q)){
+		ms_queue_put(out,ms_queue_get(&_q));
 	}
 
-	this->status = 0;
+	_status = 0;
 	return res;
 }
 
-void Rfc3984Context::storeNal(mblk_t *nal) {
+void Rfc3984Context::_storeNal(mblk_t *nal) {
 	uint8_t type=ms_h264_nalu_get_type(nal);
 
-	if ((this->status & Status::HasSPS) && (this->status & Status::HasPPS) && type != MSH264NaluTypeIDR && mblk_get_marker_info(nal) && isUniqueISlice(nal->b_rptr+1)){
+	if ((_status & Status::HasSPS) && (_status & Status::HasPPS) && type != MSH264NaluTypeIDR && mblk_get_marker_info(nal) && _isUniqueISlice(nal->b_rptr+1)){
 		ms_warning("Receiving a nal unit which is not IDR but a single I-slice bundled with SPS & PPS - considering it as a key frame.");
-		this->status |= Status::IsKeyFrame;
+		_status |= Status::IsKeyFrame;
 	}
 
 	if (type == MSH264NaluTypeIDR){
-		this->status |= Status::HasIDR;
-		this->status |= Status::IsKeyFrame;
+		_status |= Status::HasIDR;
+		_status |= Status::IsKeyFrame;
 	}else if (type == MSH264NaluTypeSPS){
-		this->status |= Status::HasSPS;
-		if (updateParameterSet(&this->last_sps, nal)) {
-			this->status |= Status::NewSPS;
+		_status |= Status::HasSPS;
+		if (_updateParameterSet(&_lastSPS, nal)) {
+			_status |= Status::NewSPS;
 		}
 	}
 	else if (type == MSH264NaluTypePPS){
-		this->status |= Status::HasPPS;
-		if (updateParameterSet(&this->last_pps, nal)) {
-			this->status |= Status::NewPPS;
+		_status |= Status::HasPPS;
+		if (_updateParameterSet(&_lastPPS, nal)) {
+			_status |= Status::NewPPS;
 		}
 	}
-	ms_queue_put(&this->q,nal);
+	ms_queue_put(&_q,nal);
 }
 
-mblk_t *Rfc3984Context::aggregateFUA(mblk_t *im){
+mblk_t *Rfc3984Context::_aggregateFUA(mblk_t *im){
 	mblk_t *om=NULL;
 	uint8_t fu_header;
 	uint8_t nri,type;
@@ -326,68 +326,68 @@ mblk_t *Rfc3984Context::aggregateFUA(mblk_t *im){
 	end=(fu_header>>6)&0x1;
 	if (start){
 		mblk_t *new_header;
-		nri=nalHeaderGetNri(im->b_rptr);
-		if (this->m!=NULL){
+		nri= _nalHeaderGetNri(im->b_rptr);
+		if (_m !=NULL){
 			ms_error("receiving FU-A start while previous FU-A is not "
 			"finished");
-			freemsg(this->m);
-			this->m=NULL;
+			freemsg(_m);
+			_m =NULL;
 		}
 		im->b_rptr+=2; /*skip the nal header and the fu header*/
 		new_header=allocb(1,0); /* allocate small fragment to put the correct nal header, this is to avoid to write on the buffer
 		which can break processing of other users of the buffers */
-		nalHeaderInit(new_header->b_wptr,nri,type);
+		_nalHeaderInit(new_header->b_wptr,nri,type);
 		new_header->b_wptr++;
 		mblk_meta_copy(im,new_header);
 		concatb(new_header,im);
-		this->m=new_header;
+		_m =new_header;
 	}else{
-		if (this->m!=NULL){
+		if (_m !=NULL){
 			im->b_rptr+=2;
-			concatb(this->m,im);
+			concatb(_m,im);
 		}else{
 			ms_error("Receiving continuation FU packet but no start.");
 			freemsg(im);
 		}
 	}
-	if (end && this->m){
-		msgpullup(this->m,-1);
-		om=this->m;
+	if (end && _m){
+		msgpullup(_m,-1);
+		om=_m;
 		mblk_set_marker_info(om, marker); /*set the marker bit of this aggregated NAL as the last fragment received.*/
-		this->m=NULL;
+		_m =NULL;
 	}
 	return om;
 }
 
 // Private static methods
-mblk_t *Rfc3984Context::concatNalus(mblk_t *m1, mblk_t *m2){
+mblk_t *Rfc3984Context::_concatNalus(mblk_t *m1, mblk_t *m2){
 	mblk_t *l=allocb(2,0);
 	/*eventually append a stap-A header to m1, if not already done*/
 	if (ms_h264_nalu_get_type(m1)!=MSH264NaluTypeSTAPA){
-		m1=prependStapA(m1);
+		m1= _prependStapA(m1);
 	}
-	putNalSize(l,msgdsize(m2));
+	_putNalSize(l,msgdsize(m2));
 	l->b_cont=m2;
 	concatb(m1,l);
 	return m1;
 }
 
-mblk_t *Rfc3984Context::prependStapA(mblk_t *m){
+mblk_t *Rfc3984Context::_prependStapA(mblk_t *m){
 	mblk_t *hm=allocb(3,0);
-	nalHeaderInit(hm->b_wptr,nalHeaderGetNri(m->b_rptr),MSH264NaluTypeSTAPA);
+	_nalHeaderInit(hm->b_wptr, _nalHeaderGetNri(m->b_rptr),MSH264NaluTypeSTAPA);
 	hm->b_wptr+=1;
-	putNalSize(hm,msgdsize(m));
+	_putNalSize(hm,msgdsize(m));
 	hm->b_cont=m;
 	return hm;
 }
 
-void Rfc3984Context::putNalSize(mblk_t *m, size_t sz){
+void Rfc3984Context::_putNalSize(mblk_t *m, size_t sz){
 	uint16_t size=htons((uint16_t)sz);
 	*(uint16_t*)m->b_wptr=size;
 	m->b_wptr+=2;
 }
 
-mblk_t *Rfc3984Context::prependFuIndicatorAndHeader(mblk_t *m, uint8_t indicator, bool_t start, bool_t end, uint8_t type){
+mblk_t *Rfc3984Context::_prependFuIndicatorAndHeader(mblk_t *m, uint8_t indicator, bool_t start, bool_t end, uint8_t type){
 	mblk_t *h=allocb(2,0);
 	h->b_wptr[0]=indicator;
 	h->b_wptr[1]=((start&0x1)<<7)|((end&0x1)<<6)|type;
@@ -397,12 +397,12 @@ mblk_t *Rfc3984Context::prependFuIndicatorAndHeader(mblk_t *m, uint8_t indicator
 		return h;
 }
 
-int Rfc3984Context::isUniqueISlice(const uint8_t *slice_header){
+int Rfc3984Context::_isUniqueISlice(const uint8_t *slice_header){
 	ms_message("is_unique_I_slice: %i", (int)*slice_header);
 	return slice_header[0] == 0x88; /*this corresponds to first_mb_in_slice to zero and slice_type = 7*/
 }
 
-bool_t Rfc3984Context::updateParameterSet(mblk_t **last_parameter_set, mblk_t *new_parameter_set) {
+bool_t Rfc3984Context::_updateParameterSet(mblk_t **last_parameter_set, mblk_t *new_parameter_set) {
 	if (*last_parameter_set != NULL) {
 		size_t last_size = (*last_parameter_set)->b_wptr - (*last_parameter_set)->b_rptr;
 		size_t new_size = new_parameter_set->b_wptr - new_parameter_set->b_rptr;

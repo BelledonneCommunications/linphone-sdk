@@ -47,15 +47,15 @@ public:
 	Rfc3984Context(MSFactory *factory);
 	~Rfc3984Context();
 
-	void setMode(int mode) {this->mode = mode;}
-	int getMode() const {return this->mode;}
+	void setMode(int mode) {this->_mode = mode;}
+	int getMode() const {return this->_mode;}
 
 	// some stupid phones don't decode STAP-A packets ...
-	void enableStapA(bool yesno) {this->stap_a_allowed = yesno;}
-	bool stapAEnabled() const {return this->stap_a_allowed;}
+	void enableStapA(bool yesno) {this->_STAPAAllowed = yesno;}
+	bool stapAEnabled() const {return this->_STAPAAllowed;}
 
-	void setMaxPayloadSize(int size) {this->maxsz = size;}
-	int getMaxPayloadSize() {return this->maxsz;}
+	void setMaxPayloadSize(int size) {this->_maxSize = size;}
+	int getMaxPayloadSize() {return this->_maxSize;}
 
 	void setOutOfBandSpsPps(mblk_t *sps, mblk_t *pps);
 
@@ -73,36 +73,36 @@ public:
 	unsigned int unpack(mblk_t *im, MSQueue *naluq);
 
 private:
-	void packMode0(MSQueue *naluq, MSQueue *rtpq, uint32_t ts);
-	void packMode1(MSQueue *naluq, MSQueue *rtpq, uint32_t ts);
-	void fragNaluAndSend(MSQueue *rtpq, uint32_t ts, mblk_t *nalu, bool_t marker, int maxsize);
-	void sendPacket(MSQueue *rtpq, uint32_t ts, mblk_t *m, bool_t marker);
-	unsigned int outputFrame(MSQueue *out, unsigned int flags);
-	void storeNal(mblk_t *nal);
-	mblk_t *aggregateFUA(mblk_t *im);
+	void _packMode0(MSQueue *naluq, MSQueue *rtpq, uint32_t ts);
+	void _packMode1(MSQueue *naluq, MSQueue *rtpq, uint32_t ts);
+	void _fragNaluAndSend(MSQueue *rtpq, uint32_t ts, mblk_t *nalu, bool_t marker, int maxsize);
+	void _sendPacket(MSQueue *rtpq, uint32_t ts, mblk_t *m, bool_t marker);
+	unsigned int _outputFrame(MSQueue *out, unsigned int flags);
+	void _storeNal(mblk_t *nal);
+	mblk_t *_aggregateFUA(mblk_t *im);
 
-	static mblk_t *concatNalus(mblk_t *m1, mblk_t *m2);
-	static mblk_t *prependStapA(mblk_t *m);
-	static uint8_t nalHeaderGetNri(const uint8_t *h) {return ((*h) >> 5) & 0x3;}
-	static void nalHeaderInit(uint8_t *h, uint8_t nri, uint8_t type) {*h=((nri&0x3)<<5) | (type & ((1<<5)-1));}
-	static void putNalSize(mblk_t *m, size_t sz);
-	static mblk_t *prependFuIndicatorAndHeader(mblk_t *m, uint8_t indicator, bool_t start, bool_t end, uint8_t type);
-	static int isUniqueISlice(const uint8_t *slice_header);
-	static bool_t updateParameterSet(mblk_t **last_parameter_set, mblk_t *new_parameter_set);
+	static mblk_t *_concatNalus(mblk_t *m1, mblk_t *m2);
+	static mblk_t *_prependStapA(mblk_t *m);
+	static uint8_t _nalHeaderGetNri(const uint8_t *h) {return ((*h) >> 5) & 0x3;}
+	static void _nalHeaderInit(uint8_t *h, uint8_t nri, uint8_t type) {*h=((nri&0x3)<<5) | (type & ((1<<5)-1));}
+	static void _putNalSize(mblk_t *m, size_t sz);
+	static mblk_t *_prependFuIndicatorAndHeader(mblk_t *m, uint8_t indicator, bool_t start, bool_t end, uint8_t type);
+	static int _isUniqueISlice(const uint8_t *slice_header);
+	static bool_t _updateParameterSet(mblk_t **last_parameter_set, mblk_t *new_parameter_set);
 
-	MSQueue q;
-	mblk_t *m = nullptr;
-	int maxsz = MS_DEFAULT_MAX_PAYLOAD_SIZE;
-	unsigned int status = 0; // bitmask of Rfc3984Status values
-	mblk_t *sps;
-	mblk_t *pps;
-	mblk_t *last_sps = nullptr;
-	mblk_t *last_pps = nullptr;
-	uint32_t last_ts = 0x943FEA43;
-	uint16_t ref_cseq;
-	uint8_t mode = 0;
-	bool stap_a_allowed = false;
-	bool initialized_ref_cseq;
+	MSQueue _q;
+	mblk_t *_m = nullptr;
+	int _maxSize = MS_DEFAULT_MAX_PAYLOAD_SIZE;
+	unsigned int _status = 0; // bitmask of Rfc3984Status values
+	mblk_t *_SPS;
+	mblk_t *_PPS;
+	mblk_t *_lastSPS = nullptr;
+	mblk_t *_lastPPS = nullptr;
+	uint32_t _lastTs = 0x943FEA43;
+	uint16_t _refCSeq;
+	uint8_t _mode = 0;
+	bool _STAPAAllowed = false;
+	bool _initializedRefCSeq;
 };
 
 unsigned int operator&(unsigned int val1, Rfc3984Context::Status val2);
