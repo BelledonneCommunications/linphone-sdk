@@ -28,26 +28,30 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 typedef struct _MSStreamRegulator MSStreamRegulator;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @brief Create an MSStreamRegulator
  * @param ticker Ticker which will be used to synchronise the mblkt
  * @param clock_rate Clock rate used to encode timestamp in the mblk_t
  * @return The pointer on the created MSStreamRegulator
  */
-extern MSStreamRegulator *ms_stream_regulator_new(MSTicker *ticker, int64_t clock_rate);
+MSStreamRegulator *ms_stream_regulator_new(MSTicker *ticker, int64_t clock_rate);
 
 /**
  * @brief Destroy an MSStreamRegulator
  * @param obj Stream regulator to destroy
  */
-extern void ms_stream_regulator_free(MSStreamRegulator *obj);
+void ms_stream_regulator_free(MSStreamRegulator *obj);
 
 /**
  * @brief Put an mblk_t buffer in the waiting queue of the stream regulator
  * @param obj MSStreamRegulator
  * @param pkt Buffer to store
  */
-extern void ms_stream_regulator_push(MSStreamRegulator *obj, mblk_t *pkt);
+void ms_stream_regulator_push(MSStreamRegulator *obj, mblk_t *pkt);
 
 /**
  * @brief Get the next waiting buffer.
@@ -56,13 +60,17 @@ extern void ms_stream_regulator_push(MSStreamRegulator *obj, mblk_t *pkt);
  * @param obj MSStreamRegulator
  * @return Pointer on the unqueued buffer
  */
-extern mblk_t *ms_stream_regulator_get(MSStreamRegulator *obj);
+mblk_t *ms_stream_regulator_get(MSStreamRegulator *obj);
 
 /**
  * @brief Reset the stream regulator
  * All waiting buffer are destroyed
  * @param obj MSStreamRegulator
  */
-extern void ms_stream_regulator_reset(MSStreamRegulator *obj);
+void ms_stream_regulator_reset(MSStreamRegulator *obj);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

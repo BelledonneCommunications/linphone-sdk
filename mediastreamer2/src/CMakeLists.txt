@@ -203,7 +203,9 @@ set(VOIP_SOURCE_FILES_C
 	voip/ringstream.c
 	voip/stun.c
 )
-set(VOIP_SOURCE_FILES_CXX )
+set(VOIP_SOURCE_FILES_CXX
+	voip/rfc3984.cpp
+)
 set(VOIP_SOURCE_FILES_OBJC )
 set(VOIP_SOURCE_FILES_ASM )
 
@@ -298,7 +300,6 @@ if(ENABLE_VIDEO)
 		voip/msvideo.c
 		voip/nowebcam.h
 		voip/rfc2429.h
-		voip/rfc3984.c
 		voip/video_preset_high_fps.c
 		voip/videostarter.c
 		voip/videostream.c
@@ -392,9 +393,11 @@ if(ENABLE_VIDEO)
 			utils/ffmpeg-priv.c
 			utils/ffmpeg-priv.h
 			utils/swscale.h
-			videofilters/h264dec.c
 			videofilters/videodec.c
 			videofilters/videoenc.c
+		)
+		list(APPEND VOIP_SOURCE_FILES_CXX
+			videofilters/h264dec.cpp
 		)
 		if(NOT TURBOJPEG_FOUND)
 			list(APPEND VOIP_SOURCE_FILES_C
@@ -459,10 +462,11 @@ if(ENABLE_VIDEO)
 endif()
 if(BCMATROSKA2_FOUND)
 	list(APPEND VOIP_SOURCE_FILES_C
-		videofilters/mkv.c
 		utils/mkv_reader.c
 		voip/rfc2429.h
-		voip/rfc3984.c
+	)
+	list(APPEND VOIP_SOURCE_FILES_CXX
+		videofilters/mkv.cpp
 	)
 endif()
 
@@ -742,7 +746,7 @@ if(FFMPEG_FOUND AND NOT WIN32)
 	set(NO_DEPRECATED_DECLARATIONS_SOURCE_FILES
 		videofilters/videoenc.c
 		videofilters/videodec.c
-		videofilters/h264dec.c
+		videofilters/h264dec.cpp
 	)
 	if(NOT TURBOJPEG_FOUND)
 		set(NO_DEPRECATED_DECLARATIONS_SOURCE_FILES

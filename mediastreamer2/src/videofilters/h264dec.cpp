@@ -19,9 +19,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
 #include "mediastreamer2/msfilter.h"
-#include "mediastreamer2/rfc3984.h"
 #include "mediastreamer2/msvideo.h"
 #include "mediastreamer2/msticker.h"
+
+#include "rfc3984.hpp"
 #include "stream_regulator.h"
 
 #if __clang__
@@ -43,11 +44,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "ortp/b64.h"
 
+using namespace mediastreamer2;
+using namespace b64;
 
 typedef struct _DecData{
 	mblk_t *sps,*pps;
 	AVFrame* orig;
-	Rfc3984Context unpacker;
+	Rfc3984Context *unpacker;
 	MSVideoSize vsize;
 	struct SwsContext *sws_ctx;
 	MSAverageFPS fps;
@@ -87,13 +90,13 @@ static void dec_init(MSFilter *f){
 	d->sps=NULL;
 	d->pps=NULL;
 	d->sws_ctx=NULL;
-	rfc3984_init(&d->unpacker);
+	d->unpacker = new Rfc3984Context();
 	d->packet_num=0;
 	dec_open(d);
 	d->vsize.width=0;
 	d->vsize.height=0;
 	d->bitstream_size=65536;
-	d->bitstream=ms_malloc0(d->bitstream_size);
+	d->bitstream=reinterpret_cast<uint8_t *>(ms_malloc0(d->bitstream_size));
 	d->orig = av_frame_alloc();
 	ms_average_fps_init(&d->fps, "ffmpeg H264 decoder: FPS: %f");
 	if (!d->orig) {
@@ -122,7 +125,7 @@ static void dec_postprocess(MSFilter *f) {
 
 static void dec_uninit(MSFilter *f){
 	DecData *d=(DecData*)f->data;
-	rfc3984_uninit(&d->unpacker);
+	delete d->unpacker;
 	avcodec_close(&d->av_context);
 	if (d->sps) freemsg(d->sps);
 	if (d->pps) freemsg(d->pps);
@@ -215,7 +218,7 @@ static bool_t check_pps_change(DecData *d, mblk_t *pps){
 
 static void enlarge_bitstream(DecData *d, int new_size){
 	d->bitstream_size=new_size;
-	d->bitstream=ms_realloc(d->bitstream,d->bitstream_size);
+	d->bitstream=reinterpret_cast<uint8_t *>(ms_realloc(d->bitstream,d->bitstream_size));
 }
 
 static int nalusToFrame(DecData *d, MSQueue *naluq, bool_t *new_sps_pps){
@@ -285,8 +288,8 @@ static void dec_process(MSFilter *f){
 	while((im=ms_queue_get(f->inputs[0]))!=NULL){
 		// Reset all contexts when an empty packet is received
 		if(msgdsize(im) == 0) {
-			rfc3984_uninit(&d->unpacker);
-			rfc3984_init(&d->unpacker);
+			delete d->unpacker;
+			d->unpacker = new Rfc3984Context();
 			dec_reinit(d);
 			ms_stream_regulator_reset(d->regulator);
 			freemsg(im);
@@ -294,13 +297,13 @@ static void dec_process(MSFilter *f){
 		}
 		/*push the sps/pps given in sprop-parameter-sets if any*/
 		if (d->packet_num==0 && d->sps && d->pps){
-			rfc3984_unpack_out_of_band_sps_pps(&d->unpacker, d->sps, d->pps);
+			d->unpacker->setOutOfBandSpsPps(d->sps, d->pps);
 			d->sps=NULL;
 			d->pps=NULL;
 		}
-		ret = rfc3984_unpack2(&d->unpacker,im,&nalus);
+		ret = d->unpacker->unpack(im,&nalus);
 		
-		if (ret & Rfc3984FrameAvailable){
+		if (ret & Rfc3984Context::Status::FrameAvailable){
 			int size;
 			uint8_t *p,*end;
 			bool_t need_reinit=FALSE;
@@ -336,7 +339,7 @@ static void dec_process(MSFilter *f){
 				}
 				p+=len;
 			}
-			if (ret & Rfc3984FrameCorrupted) requestPLI = TRUE;
+			if (ret & Rfc3984Context::Status::FrameCorrupted) requestPLI = TRUE;
 		}
 		d->packet_num++;
 	}
@@ -422,6 +425,9 @@ static MSFilterMethod  h264_dec_methods[]={
 	{	0                                                  ,	NULL              }
 };
 
+
+extern "C" {
+
 #ifndef _MSC_VER
 
 MSFilterDesc ms_h264_dec_desc={
@@ -469,6 +475,8 @@ void __register_ffmpeg_h264_decoder_if_possible(MSFactory *obj) {
 		ms_factory_register_filter(obj, &ms_h264_dec_desc);
 	}
 }
+
+} // extern "C"
 
 #if __clang__
 #pragma clang diagnostic pop

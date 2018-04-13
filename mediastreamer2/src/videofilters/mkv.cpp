@@ -18,9 +18,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
 #define bool_t matroska_bool_t
+extern "C" {
 #include <matroska/matroska.h>
 #include <matroska/matroska_sem.h>
+}
 #undef bool_t
+#undef min
+#undef max
 
 #define bool_t ms_bool_t
 
@@ -33,13 +37,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #ifdef VIDEO_ENABLED
 	#include "mediastreamer2/msvideo.h"
 	#include "vp8rtpfmt.h"
-	#include "mediastreamer2/rfc3984.h"
+	#include "rfc3984.hpp"
 	#include "h264utils.h"
 #endif // ifdef VIDEO_ENABLED
 
 #undef bool_t
 
 #define bool_t ambigous use ms_bool_t or matroska_bool_t
+
+using namespace mediastreamer2;
 
 static int recorder_close(MSFilter *f, void *arg);
 
@@ -165,7 +171,7 @@ static void H264Private_addPPS(H264Private *obj, mblk_t *pps) {
 	if (it == NULL) {
 		obj->pps_list = bctbx_list_append(obj->pps_list, dupmsg(pps));
 	} else if (!_H264Private_msgequal((mblk_t *)it->data, pps)) {
-		freemsg(it->data);
+		freemsg((mblk_t *)it->data);
 		it->data = dupmsg(pps);
 		obj->broken = TRUE;
 	}
@@ -277,22 +283,21 @@ static void H264Private_load(H264Private *obj, const uint8_t *data) {
 
 /* h264 module */
 typedef struct {
-	Rfc3984Context rfc3984Context;
+	Rfc3984Context *rfc3984Context;
 	H264Private *codecPrivate;
 	H264Private *lastCodecPrivate;
 } H264Module;
 
 static void *h264_module_new(MSFactory *factory) {
 	H264Module *mod = bctbx_new0(H264Module, 1);
-	rfc3984_init(&mod->rfc3984Context);
-	mod->rfc3984Context.maxsz = ms_factory_get_payload_max_size(factory);
-	rfc3984_set_mode(&mod->rfc3984Context, 1);
+	mod->rfc3984Context = new Rfc3984Context(factory);
+	mod->rfc3984Context->setMode(1);
 	return mod;
 }
 
 static void h264_module_free(void *data) {
 	H264Module *obj = (H264Module *)data;
-	rfc3984_uninit(&obj->rfc3984Context);
+	delete obj->rfc3984Context;
 	if(obj->codecPrivate != NULL) H264Private_free(obj->codecPrivate);
 	if(obj->lastCodecPrivate != NULL) H264Private_free(obj->lastCodecPrivate);
 	bctbx_free(obj);
@@ -305,7 +310,7 @@ static int h264_module_preprocessing(void *data, MSQueue *input, MSQueue *output
 
 	ms_queue_init(&queue);
 	while((inputBuffer = ms_queue_get(input)) != NULL) {
-		rfc3984_unpack2(&obj->rfc3984Context, inputBuffer, &queue);
+		obj->rfc3984Context->unpack(inputBuffer, &queue);
 		if(!ms_queue_empty(&queue)) {
 			mblk_t *frame = ms_queue_get(&queue);
 			mblk_t *end = frame;
@@ -482,7 +487,7 @@ static void h264_module_reverse(MSFactory* factory, void *data, mblk_t *input, M
 		curBuff->b_cont = NULL;
 		ms_queue_put(&queue, curBuff);
 	}
-	rfc3984_pack(&obj->rfc3984Context, &queue, output, mblk_get_timestamp_info(input));
+	obj->rfc3984Context->pack(&queue, output, mblk_get_timestamp_info(input));
 	freemsg(input);
 }
 
@@ -996,13 +1001,13 @@ static int ebml_reading_profile(ebml_master *head) {
 	tchar_t docType[9];
 	int profile;
 	int64_t docTypeReadVersion;
-	tchar_t *matroska_doc_type =
+	const tchar_t *matroska_doc_type =
 #ifdef UNICODE
 		L"matroska";
 #else
 		"matroska";
 #endif
-	tchar_t *webm_doc_type =
+	const tchar_t *webm_doc_type =
 #ifdef UNICODE
 		L"webm";
 #else
@@ -2032,7 +2037,7 @@ fail:
 }
 
 static void recorder_process(MSFilter *f) {
-	MKVRecorder *obj = f->data;
+	MKVRecorder *obj = reinterpret_cast<MKVRecorder *>(f->data);
 	uint16_t i;
 
 	ms_filter_lock(f);
@@ -2247,6 +2252,9 @@ static MSFilterMethod recorder_methods[] = {
 	{	0                           ,   NULL                       }
 };
 
+
+extern "C" {
+
 #ifdef _MSC_VER
 MSFilterDesc ms_mkv_recorder_desc = {
 	MS_MKV_RECORDER_ID,
@@ -2282,6 +2290,8 @@ MSFilterDesc ms_mkv_recorder_desc = {
 	.flags = 0
 };
 #endif
+
+} // extern "C"
 
 MS_FILTER_DESC_EXPORT(ms_mkv_recorder_desc)
 
@@ -2767,6 +2777,9 @@ static MSFilterMethod player_methods[] = {
 	{	0                                ,	NULL                         }
 };
 
+
+extern "C" {
+
 #ifdef _MSC_VER
 MSFilterDesc ms_mkv_player_desc = {
 	MS_MKV_PLAYER_ID,
@@ -2802,5 +2815,7 @@ MSFilterDesc ms_mkv_player_desc = {
 	.flags = 0
 };
 #endif
+
+} // extern "C"
 
 MS_FILTER_DESC_EXPORT(ms_mkv_player_desc)

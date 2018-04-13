@@ -22,7 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #ifdef __cplusplus
 /*see http://linux.die.net/man/3/uint64_c */
-#define __STDC_CONSTANT_MACROS 1
+//#define __STDC_CONSTANT_MACROS 1
 #endif
 
 #ifdef HAVE_CONFIG_H
@@ -42,6 +42,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include <ortp/port.h>
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #if defined(HAVE_LIBAVCODEC_AVCODEC_H)
 /* new layout */
 # include <libavcodec/avcodec.h>
@@ -52,6 +57,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #if defined(HAVE_LIBSWSCALE_SWSCALE_H)
 /* new layout */
 #  include <libswscale/swscale.h>
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #if defined(HAVE_LIBAVCODEC_AVCODEC_H)

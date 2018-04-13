@@ -27,11 +27,18 @@
  * Enumeration that lists the different type of NAL unit
  */
 typedef enum {
-    MSH264NaluTypeIDR = 5,
+	MSH264NaluTypeIDR = 5,
 	MSH264NaluTypeSEI = 6,
-    MSH264NaluTypeSPS = 7,
-    MSH264NaluTypePPS = 8
+	MSH264NaluTypeSPS = 7,
+	MSH264NaluTypePPS = 8,
+	MSH264NaluTypeSTAPA = 24,
+	MSH264NaluTypeFUA = 28
 } MSH264NaluType;
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * Get the type of a NAL unit
@@ -81,5 +88,9 @@ void ms_h264_stream_to_nalus(const uint8_t *frame, size_t size, MSQueue *nalus, 
  * @return The video size.
  */
 MSVideoSize ms_h264_sps_get_video_size(const mblk_t* sps);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* defined(H264_UTILS_H) */
