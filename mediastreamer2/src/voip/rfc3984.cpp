@@ -17,13 +17,13 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/rfc3984.h"
 
 #include "h264utils.h"
 #include "rfc3984.hpp"
 
+using namespace std;
 
 namespace mediastreamer2 {
 
@@ -441,38 +441,46 @@ unsigned int &operator|=(unsigned int &val1, Rfc3984Context::Status val2) {
 // C wrapper implementation
 //==================================================
 
+
+struct _Rfc3984Context {
+	mediastreamer2::Rfc3984Context cppImpl;
+
+	_Rfc3984Context() = default;
+	_Rfc3984Context(MSFactory *factory): cppImpl(factory) {}
+};
+
 extern "C" {
 
 Rfc3984Context *rfc3984_new(void) {
-	return reinterpret_cast<Rfc3984Context *>(new mediastreamer2::Rfc3984Context());
+	return new _Rfc3984Context();
 }
 
 Rfc3984Context *rfc3984_new_with_factory(MSFactory *factory) {
-	return reinterpret_cast<Rfc3984Context *>(new mediastreamer2::Rfc3984Context(factory));
+	return new _Rfc3984Context(factory);
 }
 
 void rfc3984_destroy(Rfc3984Context *ctx) {
-	delete reinterpret_cast<mediastreamer2::Rfc3984Context *>(ctx);
+	delete ctx;
 }
 
 void rfc3984_set_mode(Rfc3984Context *ctx, int mode) {
-	reinterpret_cast<mediastreamer2::Rfc3984Context *>(ctx)->setMode(mode);
+	ctx->cppImpl.setMode(mode);
 }
 
 void rfc3984_enable_stap_a(Rfc3984Context *ctx, bool_t yesno) {
-	reinterpret_cast<mediastreamer2::Rfc3984Context *>(ctx)->enableStapA(yesno);
+	ctx->cppImpl.enableStapA(yesno);
 }
 
 void rfc3984_pack(Rfc3984Context *ctx, MSQueue *naluq, MSQueue *rtpq, uint32_t ts) {
-	reinterpret_cast<mediastreamer2::Rfc3984Context *>(ctx)->pack(naluq, rtpq, ts);
+	ctx->cppImpl.pack(naluq, rtpq, ts);
 }
 
 void rfc3984_unpack_out_of_band_sps_pps(Rfc3984Context *ctx, mblk_t *sps, mblk_t *pps) {
-	reinterpret_cast<mediastreamer2::Rfc3984Context *>(ctx)->setOutOfBandSpsPps(sps, pps);
+	ctx->cppImpl.setOutOfBandSpsPps(sps, pps);
 }
 
 unsigned int rfc3984_unpack2(Rfc3984Context *ctx, mblk_t *im, MSQueue *naluq) {
-	return reinterpret_cast<mediastreamer2::Rfc3984Context *>(ctx)->unpack(im, naluq);
+	return ctx->cppImpl.unpack(im, naluq);
 }
 
 }

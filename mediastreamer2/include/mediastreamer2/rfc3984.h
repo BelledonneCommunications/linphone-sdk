@@ -43,7 +43,7 @@ typedef enum{
 	Rfc3984HasIDR = 1<<7,
 }Rfc3984Status;
 
-typedef void Rfc3984Context;
+typedef struct _Rfc3984Context Rfc3984Context;
 
 MS2_DEPRECATED MS2_PUBLIC Rfc3984Context *rfc3984_new(void);
 MS2_PUBLIC Rfc3984Context *rfc3984_new_with_factory(MSFactory *factory);
