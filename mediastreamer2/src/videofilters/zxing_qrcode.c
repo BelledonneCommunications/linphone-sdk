@@ -92,19 +92,19 @@ static void read_qrcode(MSFilter *f) {
 	QRCodeReaderStruct *qrc = (QRCodeReaderStruct *)f->data;
 	if (qrc->image) {
 		QRCodeReaderNotifyStruct qrcNotify;
-		vector<Ref<Result>> results;
+		Ref<Result> result;
 		Ref<Binarizer> binarizer;
 		binarizer = new HybridBinarizer(qrc->image->getLuminanceSource());
 		DecodeHints hints(DecodeHints::DEFAULT_HINT);
 		Ref<BinaryBitmap> binary(new BinaryBitmap(binarizer));
 		Ref<Reader> reader(new QRCodeReader);
 		try {
-			results = vector<Ref<Result>>(1, reader->decode(binary, hints));
+			result = reader->decode(binary, hints);
 		} catch (ReaderException const& re) {
 			(void)re;
 			return;
 		}
-		Ref<String> text = results[0]->getText();
+		Ref<String> text = result->getText();
 		snprintf(qrcNotify.resultText, sizeof(qrcNotify.resultText), "%s", text->getText().c_str());
 		qrc->searchQRCode = FALSE;
 		ms_filter_notify(f, MS_QRCODE_READER_QRCODE_FOUND, qrcNotify.resultText);
@@ -145,6 +145,7 @@ static void qrcode_process(MSFilter *f) {
 			if (!mblk) newYuvbuf = yuvBuf;
 			qrc->image = new QRCodeImage(newYuvbuf.w, newYuvbuf.h, newYuvbuf.planes[0], newYuvbuf.strides[0]);
 			read_qrcode(f);
+			delete qrc->image;
 
 			if (mblk) freemsg(mblk);
 		}
