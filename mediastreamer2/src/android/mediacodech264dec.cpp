@@ -17,20 +17,23 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#include "mediastreamer2/msfilter.h"
-#include "mediastreamer2/rfc3984.h"
-#include "mediastreamer2/msvideo.h"
-#include "mediastreamer2/msticker.h"
-#include "android_mediacodec.h"
-#include "h264utils.h"
-
 #include <jni.h>
 #include <media/NdkMediaCodec.h>
 #include <media/NdkMediaFormat.h>
-#include "ortp/b64.h"
+#include <ortp/b64.h>
+
+#include "mediastreamer2/msfilter.h"
+#include "mediastreamer2/msvideo.h"
+#include "mediastreamer2/msticker.h"
+
+#include "android_mediacodec.h"
+#include "h264utils.h"
+#include "rfc3984.hpp"
 
 #define TIMEOUT_US 0
 
+using namespace b64;
+using namespace mediastreamer2;
 
 typedef struct _DecData {
 	mblk_t *sps, *pps;
@@ -38,7 +41,7 @@ typedef struct _DecData {
 	AMediaCodec *codec;
 
 	MSAverageFPS fps;
-	Rfc3984Context unpacker;
+	Rfc3984Context *unpacker;
 	unsigned int packet_num;
 	uint8_t *bitstream;
 	int bitstream_size;
@@ -54,7 +57,7 @@ typedef struct _DecData {
 
 static int dec_init_mediacodec(DecData *d) {
 	AMediaFormat *format;
-	media_status_t status = 0;
+	media_status_t status = AMEDIA_OK;
 
 	if (d->codec == NULL){
 		d->codec = AMediaCodec_createDecoderByType("video/avc");
@@ -99,14 +102,14 @@ static void dec_init(MSFilter *f) {
 	d->codec = NULL;
 	d->sps = NULL;
 	d->pps = NULL;
-	rfc3984_init(&d->unpacker);
+	d->unpacker = new Rfc3984Context();
 	d->packet_num = 0;
 	d->vsize.width = 0;
 	d->vsize.height = 0;
 	d->bitstream_size = 65536;
 	d->avpf_enabled = FALSE;
 	d->freeze_on_error = TRUE;
-	d->bitstream = ms_malloc0(d->bitstream_size);
+	d->bitstream = reinterpret_cast<uint8_t *>(ms_malloc0(d->bitstream_size));
 	d->buf_allocator = ms_yuv_buf_allocator_new();
 	ms_average_fps_init(&d->fps, " H264 decoder: FPS: %f");
 }
@@ -121,7 +124,7 @@ static void dec_postprocess(MSFilter *f) {
 
 static void dec_uninit(MSFilter *f) {
 	DecData *d = (DecData *)f->data;
-	rfc3984_uninit(&d->unpacker);
+	delete d->unpacker;
 	if (d->codec){
 		AMediaCodec_stop(d->codec);
 		AMediaCodec_delete(d->codec);
@@ -192,7 +195,7 @@ static bool_t check_pps_change(DecData *d, mblk_t *pps) {
 
 static void enlarge_bitstream(DecData *d, int new_size) {
 	d->bitstream_size = new_size;
-	d->bitstream = ms_realloc(d->bitstream, d->bitstream_size);
+	d->bitstream = reinterpret_cast<uint8_t *>(ms_realloc(d->bitstream, d->bitstream_size));
 }
 
 static int nalusToFrame(DecData *d, MSQueue *naluq, bool_t *new_sps_pps) {
@@ -283,7 +286,7 @@ static void dec_process(MSFilter *f) {
 	unsigned int unpacking_ret;
 
 	if (d->packet_num == 0 && d->sps && d->pps) {
-		rfc3984_unpack_out_of_band_sps_pps(&d->unpacker, d->sps, d->pps);
+		d->unpacker->setOutOfBandSpsPps(d->sps, d->pps);
 		d->sps = NULL;
 		d->pps = NULL;
 	}
@@ -294,11 +297,11 @@ static void dec_process(MSFilter *f) {
 		int size;
 		uint8_t *buf = NULL;
 		ssize_t iBufidx;
-		unpacking_ret = rfc3984_unpack2(&d->unpacker, im, &nalus);
+		unpacking_ret = d->unpacker->unpack(im, &nalus);
 
-		if (!(unpacking_ret & Rfc3984FrameAvailable)) continue;
+		if (!(unpacking_ret & Rfc3984Context::Status::FrameAvailable)) continue;
 
-		if (unpacking_ret & Rfc3984FrameCorrupted) {
+		if (unpacking_ret & Rfc3984Context::Status::FrameCorrupted) {
 			ms_warning("MSMediaCodecH264Dec: corrupted frame");
 			request_pli = TRUE;
 			if (d->freeze_on_error){
@@ -308,13 +311,13 @@ static void dec_process(MSFilter *f) {
 			}
 		}
 
-		if (d->need_key_frame && !(unpacking_ret & Rfc3984IsKeyFrame)) {
+		if (d->need_key_frame && !(unpacking_ret & Rfc3984Context::Status::IsKeyFrame)) {
 			request_pli = TRUE;
 			ms_queue_flush(&nalus);
 			continue;
 		}
 
-		if (unpacking_ret & Rfc3984IsKeyFrame) ms_message("MSMediaCodecH264Dec: I-frame received");
+		if (unpacking_ret & Rfc3984Context::Status::IsKeyFrame) ms_message("MSMediaCodecH264Dec: I-frame received");
 
 		size = nalusToFrame(d, &nalus, &need_reinit);
 		//Initialise the video size
