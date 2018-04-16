@@ -76,6 +76,10 @@ void ms_h264_bitstream_to_nalus(const uint8_t *bitstream, size_t size, MSQueue *
 	if (begin) push_nalu(begin, p, nalus);
 }
 
+uint8_t ms_h264_nulu_get_nri(const mblk_t *nalu) {
+	return ((*nalu->b_rptr) >> 5) & 0x3;
+}
+
 MSH264NaluType ms_h264_nalu_get_type(const mblk_t *nalu) {
 	return (*nalu->b_rptr) & ((1 << 5) - 1);
 }

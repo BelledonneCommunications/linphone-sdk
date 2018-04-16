@@ -41,6 +41,11 @@ extern "C" {
 #endif
 
 /**
+ * Extract the NRI value from NALu header.
+ */
+uint8_t ms_h264_nulu_get_nri(const mblk_t *nalu);
+
+/**
  * Get the type of a NAL unit
  * @param nalu The NAL unit to analyse
  * @return The nalu type

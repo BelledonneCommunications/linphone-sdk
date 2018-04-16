@@ -110,4 +110,58 @@ unsigned int &operator&=(unsigned int &val1, Rfc3984Context::Status val2);
 unsigned int operator|(unsigned int val1, Rfc3984Context::Status val2);
 unsigned int &operator|=(unsigned int &val1, Rfc3984Context::Status val2);
 
+class Rfc3984Unpacker {
+public:
+	enum class Status {
+		FrameAvailable = 1,
+		FrameCorrupted = 1<<1,
+		IsKeyFrame = 1<<2, // set when a frame has SPS + PPS or IDR (possibly both)
+		NewSPS = 1<<3,
+		NewPPS = 1<<4,
+		HasSPS = 1<<5,
+		HasPPS = 1<<6,
+		HasIDR = 1<<7,
+	};
+
+	Rfc3984Unpacker();
+	~Rfc3984Unpacker();
+
+	void setOutOfBandSpsPps(mblk_t *sps, mblk_t *pps);
+
+	/**
+	 * Process incoming rtp data and output NALUs, whenever possible.
+	 * @param ctx the Rfc3984Context object
+	 * @param im a new H264 packet to process
+	 * @param naluq a MSQueue into which a frame ready to be decoded will be output, in the form of a sequence of NAL units.
+	 * @return a bitmask of Rfc3984Status values.
+	 * The return value is a bitmask of the #Rfc3984Status enum.
+	 **/
+	unsigned int unpack(mblk_t *im, MSQueue *naluq);
+
+private:
+	unsigned int _outputFrame(MSQueue *out, unsigned int flags);
+	void _storeNal(mblk_t *nal);
+	bool_t _updateParameterSet(mblk_t **last_parameter_set, mblk_t *new_parameter_set);
+	mblk_t *_aggregateFUA(mblk_t *im);
+
+	static void _nalHeaderInit(uint8_t *h, uint8_t nri, uint8_t type) {*h=((nri&0x3)<<5) | (type & ((1<<5)-1));}
+	static int _isUniqueISlice(const uint8_t *slice_header);
+
+	MSQueue _q;
+	mblk_t *_m = nullptr;
+	unsigned int _status = 0;
+	mblk_t *_SPS = nullptr;
+	mblk_t *_PPS = nullptr;
+	mblk_t *_lastSPS = nullptr;
+	mblk_t *_lastPPS = nullptr;
+	uint32_t _lastTs = 0x943FEA43;
+	bool _initializedRefCSeq = false;
+	uint16_t _refCSeq = 0;
+};
+
+unsigned int operator&(unsigned int val1, Rfc3984Unpacker::Status val2);
+unsigned int &operator&=(unsigned int &val1, Rfc3984Unpacker::Status val2);
+unsigned int operator|(unsigned int val1, Rfc3984Unpacker::Status val2);
+unsigned int &operator|=(unsigned int &val1, Rfc3984Unpacker::Status val2);
+
 };
