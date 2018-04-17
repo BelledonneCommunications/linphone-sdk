@@ -28,11 +28,11 @@ using namespace std;
 namespace mediastreamer2 {
 
 
-Rfc3984Context::Rfc3984Context::Rfc3984Context(MSFactory* factory) {
+Rfc3984Packer::Rfc3984Packer::Rfc3984Packer(MSFactory* factory) {
 	setMaxPayloadSize(ms_factory_get_payload_max_size(factory));
 }
 
-void Rfc3984Context::pack(MSQueue *naluq, MSQueue *rtpq, uint32_t ts) {
+void Rfc3984Packer::pack(MSQueue *naluq, MSQueue *rtpq, uint32_t ts) {
 	switch(_mode){
 		case 0:
 			_packMode0(naluq, rtpq, ts);
@@ -46,7 +46,7 @@ void Rfc3984Context::pack(MSQueue *naluq, MSQueue *rtpq, uint32_t ts) {
 }
 
 // Private methods
-void Rfc3984Context::_packMode0(MSQueue *naluq, MSQueue *rtpq, uint32_t ts) {
+void Rfc3984Packer::_packMode0(MSQueue *naluq, MSQueue *rtpq, uint32_t ts) {
 	mblk_t *m;
 	bool_t end;
 	int size;
@@ -60,14 +60,14 @@ void Rfc3984Context::_packMode0(MSQueue *naluq, MSQueue *rtpq, uint32_t ts) {
 	}
 }
 
-void Rfc3984Context::_packMode1(MSQueue *naluq, MSQueue *rtpq, uint32_t ts){
+void Rfc3984Packer::_packMode1(MSQueue *naluq, MSQueue *rtpq, uint32_t ts){
 	mblk_t *m,*prevm=NULL;
 	int prevsz=0,sz;
 	bool_t end;
 	while((m=ms_queue_get(naluq))!=NULL){
 		end=ms_queue_empty(naluq);
 		sz=(int)(m->b_wptr-m->b_rptr);
-		if (_STAPAAllowed){
+		if (_stapAAllowed){
 			if (prevm!=NULL){
 				if ((prevsz+sz)<(_maxSize -2)){
 					prevm= _concatNalus(prevm,m);
@@ -118,7 +118,7 @@ void Rfc3984Context::_packMode1(MSQueue *naluq, MSQueue *rtpq, uint32_t ts){
 	}
 }
 
-void Rfc3984Context::_fragNaluAndSend(MSQueue *rtpq, uint32_t ts, mblk_t *nalu, bool_t marker, int maxsize){
+void Rfc3984Packer::_fragNaluAndSend(MSQueue *rtpq, uint32_t ts, mblk_t *nalu, bool_t marker, int maxsize){
 	mblk_t *m;
 	int payload_max_size=maxsize-2;/*minus FUA header*/
 	uint8_t fu_indicator;
@@ -140,7 +140,7 @@ void Rfc3984Context::_fragNaluAndSend(MSQueue *rtpq, uint32_t ts, mblk_t *nalu, 
 	_sendPacket(rtpq,ts,m,marker);
 }
 
-void Rfc3984Context::_sendPacket(MSQueue *rtpq, uint32_t ts, mblk_t *m, bool_t marker){
+void Rfc3984Packer::_sendPacket(MSQueue *rtpq, uint32_t ts, mblk_t *m, bool_t marker){
 	mblk_set_timestamp_info(m,ts);
 	mblk_set_marker_info(m,marker);
 	mblk_set_cseq(m, _refCSeq++);
@@ -148,7 +148,7 @@ void Rfc3984Context::_sendPacket(MSQueue *rtpq, uint32_t ts, mblk_t *m, bool_t m
 }
 
 // Private static methods
-mblk_t *Rfc3984Context::_concatNalus(mblk_t *m1, mblk_t *m2){
+mblk_t *Rfc3984Packer::_concatNalus(mblk_t *m1, mblk_t *m2){
 	mblk_t *l=allocb(2,0);
 	/*eventually append a stap-A header to m1, if not already done*/
 	if (ms_h264_nalu_get_type(m1)!=MSH264NaluTypeSTAPA){
@@ -160,7 +160,7 @@ mblk_t *Rfc3984Context::_concatNalus(mblk_t *m1, mblk_t *m2){
 	return m1;
 }
 
-mblk_t *Rfc3984Context::_prependStapA(mblk_t *m){
+mblk_t *Rfc3984Packer::_prependStapA(mblk_t *m){
 	mblk_t *hm=allocb(3,0);
 	_nalHeaderInit(hm->b_wptr, ms_h264_nalu_get_nri(m),MSH264NaluTypeSTAPA);
 	hm->b_wptr+=1;
@@ -169,13 +169,13 @@ mblk_t *Rfc3984Context::_prependStapA(mblk_t *m){
 	return hm;
 }
 
-void Rfc3984Context::_putNalSize(mblk_t *m, size_t sz){
+void Rfc3984Packer::_putNalSize(mblk_t *m, size_t sz){
 	uint16_t size=htons((uint16_t)sz);
 	*(uint16_t*)m->b_wptr=size;
 	m->b_wptr+=2;
 }
 
-mblk_t *Rfc3984Context::_prependFuIndicatorAndHeader(mblk_t *m, uint8_t indicator, bool_t start, bool_t end, uint8_t type){
+mblk_t *Rfc3984Packer::_prependFuIndicatorAndHeader(mblk_t *m, uint8_t indicator, bool_t start, bool_t end, uint8_t type){
 	mblk_t *h=allocb(2,0);
 	h->b_wptr[0]=indicator;
 	h->b_wptr[1]=((start&0x1)<<7)|((end&0x1)<<6)|type;
@@ -185,7 +185,7 @@ mblk_t *Rfc3984Context::_prependFuIndicatorAndHeader(mblk_t *m, uint8_t indicato
 		return h;
 }
 
-bool_t Rfc3984Context::_updateParameterSet(mblk_t **last_parameter_set, mblk_t *new_parameter_set) {
+bool_t Rfc3984Packer::_updateParameterSet(mblk_t **last_parameter_set, mblk_t *new_parameter_set) {
 	if (*last_parameter_set != NULL) {
 		size_t last_size = (*last_parameter_set)->b_wptr - (*last_parameter_set)->b_rptr;
 		size_t new_size = new_parameter_set->b_wptr - new_parameter_set->b_rptr;
@@ -215,17 +215,17 @@ Rfc3984Unpacker::Rfc3984Unpacker() {
 Rfc3984Unpacker::~Rfc3984Unpacker() {
 	ms_queue_flush(&_q);
 	if (_m != nullptr) freemsg(_m);
-	if (_SPS != nullptr) freemsg(_SPS);
-	if (_PPS != nullptr) freemsg(_PPS);
-	if (_lastPPS != nullptr) freemsg(_lastPPS);
-	if (_lastSPS != nullptr) freemsg(_lastSPS);
+	if (_sps != nullptr) freemsg(_sps);
+	if (_pps != nullptr) freemsg(_pps);
+	if (_lastPps != nullptr) freemsg(_lastPps);
+	if (_lastSps != nullptr) freemsg(_lastSps);
 }
 
 void Rfc3984Unpacker::setOutOfBandSpsPps(mblk_t *sps, mblk_t *pps) {
-	if (_SPS) freemsg(_SPS);
-	if (_PPS) freemsg(_PPS);
-	_SPS = sps;
-	_PPS = pps;
+	if (_sps) freemsg(_sps);
+	if (_pps) freemsg(_pps);
+	_sps = sps;
+	_pps = pps;
 }
 
 unsigned int Rfc3984Unpacker::unpack(mblk_t *im, MSQueue *out) {
@@ -321,12 +321,12 @@ unsigned int Rfc3984Unpacker::_outputFrame(MSQueue *out, unsigned int flags) {
 		ms_warning("rfc3984_unpack: output_frame invoked several times in a row, this should not happen");
 	}
 	res |= flags;
-	if ((res & Status::IsKeyFrame) && _SPS && _PPS) {
+	if ((res & Status::IsKeyFrame) && _sps && _pps) {
 		/*prepend out of band provided sps and pps*/
-		ms_queue_put(out, _SPS);
-		_SPS = NULL;
-		ms_queue_put(out, _PPS);
-		_PPS = NULL;
+		ms_queue_put(out, _sps);
+		_sps = NULL;
+		ms_queue_put(out, _pps);
+		_pps = NULL;
 	}
 
 	/* Log some bizarre things */
@@ -359,12 +359,12 @@ void Rfc3984Unpacker::_storeNal(mblk_t *nal) {
 		_status |= Status::IsKeyFrame;
 	} else if (type == MSH264NaluTypeSPS) {
 		_status |= Status::HasSPS;
-		if (_updateParameterSet(&_lastSPS, nal)) {
+		if (_updateParameterSet(&_lastSps, nal)) {
 			_status |= Status::NewSPS;
 		}
 	} else if (type == MSH264NaluTypePPS) {
 		_status |= Status::HasPPS;
-		if (_updateParameterSet(&_lastPPS, nal)) {
+		if (_updateParameterSet(&_lastPps, nal)) {
 			_status |= Status::NewPPS;
 		}
 	}
@@ -467,7 +467,7 @@ unsigned int &operator|=(unsigned int &val1, Rfc3984Unpacker::Status val2) {
 
 
 struct _Rfc3984Context {
-	mediastreamer2::Rfc3984Context packer;
+	mediastreamer2::Rfc3984Packer packer;
 	mediastreamer2::Rfc3984Unpacker unpacker;
 
 	_Rfc3984Context() = default;

@@ -30,17 +30,17 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 namespace mediastreamer2 {
 
-class Rfc3984Context {
+class Rfc3984Packer {
 public:
-	Rfc3984Context() = default;
-	Rfc3984Context(MSFactory *factory);
+	Rfc3984Packer() = default;
+	Rfc3984Packer(MSFactory *factory);
 
 	void setMode(int mode) {this->_mode = mode;}
 	int getMode() const {return this->_mode;}
 
 	// some stupid phones don't decode STAP-A packets ...
-	void enableStapA(bool yesno) {this->_STAPAAllowed = yesno;}
-	bool stapAEnabled() const {return this->_STAPAAllowed;}
+	void enableStapA(bool yesno) {this->_stapAAllowed = yesno;}
+	bool stapAEnabled() const {return this->_stapAAllowed;}
 
 	void setMaxPayloadSize(int size) {this->_maxSize = size;}
 	int getMaxPayloadSize() {return this->_maxSize;}
@@ -62,9 +62,9 @@ private:
 	static bool_t _updateParameterSet(mblk_t **last_parameter_set, mblk_t *new_parameter_set);
 
 	int _maxSize = MS_DEFAULT_MAX_PAYLOAD_SIZE;
-	uint16_t _refCSeq;
+	uint16_t _refCSeq = 0;
 	uint8_t _mode = 0;
-	bool _STAPAAllowed = false;
+	bool _stapAAllowed = false;
 };
 
 class Rfc3984Unpacker {
@@ -107,10 +107,10 @@ private:
 	MSQueue _q;
 	mblk_t *_m = nullptr;
 	unsigned int _status = 0;
-	mblk_t *_SPS = nullptr;
-	mblk_t *_PPS = nullptr;
-	mblk_t *_lastSPS = nullptr;
-	mblk_t *_lastPPS = nullptr;
+	mblk_t *_sps = nullptr;
+	mblk_t *_pps = nullptr;
+	mblk_t *_lastSps = nullptr;
+	mblk_t *_lastPps = nullptr;
 	uint32_t _lastTs = 0x943FEA43;
 	bool _initializedRefCSeq = false;
 	uint16_t _refCSeq = 0;

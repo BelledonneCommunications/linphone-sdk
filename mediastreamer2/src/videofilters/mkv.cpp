@@ -283,7 +283,7 @@ static void H264Private_load(H264Private *obj, const uint8_t *data) {
 
 /* h264 module */
 typedef struct {
-	Rfc3984Context *rfc3984Context;
+	Rfc3984Packer *packer;
 	Rfc3984Unpacker *unpacker;
 	H264Private *codecPrivate;
 	H264Private *lastCodecPrivate;
@@ -291,15 +291,15 @@ typedef struct {
 
 static void *h264_module_new(MSFactory *factory) {
 	H264Module *mod = bctbx_new0(H264Module, 1);
-	mod->rfc3984Context = new Rfc3984Context(factory);
-	mod->rfc3984Context->setMode(1);
+	mod->packer = new Rfc3984Packer(factory);
+	mod->packer->setMode(1);
 	mod->unpacker = new Rfc3984Unpacker();
 	return mod;
 }
 
 static void h264_module_free(void *data) {
 	H264Module *obj = (H264Module *)data;
-	delete obj->rfc3984Context;
+	delete obj->packer;
 	delete obj->unpacker;
 	if(obj->codecPrivate != NULL) H264Private_free(obj->codecPrivate);
 	if(obj->lastCodecPrivate != NULL) H264Private_free(obj->lastCodecPrivate);
@@ -490,7 +490,7 @@ static void h264_module_reverse(MSFactory* factory, void *data, mblk_t *input, M
 		curBuff->b_cont = NULL;
 		ms_queue_put(&queue, curBuff);
 	}
-	obj->rfc3984Context->pack(&queue, output, mblk_get_timestamp_info(input));
+	obj->packer->pack(&queue, output, mblk_get_timestamp_info(input));
 	freemsg(input);
 }
 
