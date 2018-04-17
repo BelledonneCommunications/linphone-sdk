@@ -28,6 +28,66 @@ using namespace std;
 namespace mediastreamer2 {
 
 
+// =======================
+// H264FUAAggregator class
+// =======================
+void H264FUAAggregator::reset() {
+	if (_m) {
+		freemsg(_m);
+		_m = nullptr;
+	}
+}
+
+mblk_t *H264FUAAggregator::aggregate(mblk_t *im) {
+	mblk_t *om = nullptr;
+	uint8_t fu_header;
+	uint8_t nri, type;
+	bool_t start, end;
+	bool_t marker = mblk_get_marker_info(im);
+
+	fu_header = im->b_rptr[1];
+	type = ms_h264_nalu_get_type(im);
+	start = fu_header >> 7;
+	end = (fu_header >> 6) & 0x1;
+	if (start) {
+		mblk_t *new_header;
+		nri = ms_h264_nalu_get_nri(im);
+		if (_m != nullptr) {
+			ms_error("receiving FU-A start while previous FU-A is not "
+			         "finished");
+			freemsg(_m);
+			_m = nullptr;
+		}
+		im->b_rptr += 2; /*skip the nal header and the fu header*/
+		new_header = allocb(1, 0); /* allocate small fragment to put the correct nal header, this is to avoid to write on the buffer
+		                              which can break processing of other users of the buffers */
+		nalHeaderInit(new_header->b_wptr, nri, type);
+		new_header->b_wptr++;
+		mblk_meta_copy(im, new_header);
+		concatb(new_header, im);
+		_m = new_header;
+	} else {
+		if (_m != nullptr) {
+			im->b_rptr += 2;
+			concatb(_m, im);
+		} else {
+			ms_error("Receiving continuation FU packet but no start.");
+			freemsg(im);
+		}
+	}
+	if (end && _m) {
+		msgpullup(_m, -1);
+		om = _m;
+		mblk_set_marker_info(om, marker); /*set the marker bit of this aggregated NAL as the last fragment received.*/
+		_m = nullptr;
+	}
+	return om;
+}
+
+
+//=================================================
+// Rfc3984Pacer class
+//=================================================
 Rfc3984Packer::Rfc3984Packer::Rfc3984Packer(MSFactory* factory) {
 	setMaxPayloadSize(ms_factory_get_payload_max_size(factory));
 }
@@ -212,7 +272,6 @@ Rfc3984Unpacker::Rfc3984Unpacker() {
 
 Rfc3984Unpacker::~Rfc3984Unpacker() {
 	ms_queue_flush(&_q);
-	if (_m != nullptr) freemsg(_m);
 	if (_sps != nullptr) freemsg(_sps);
 	if (_pps != nullptr) freemsg(_pps);
 	if (_lastPps != nullptr) freemsg(_lastPps);
@@ -240,8 +299,8 @@ unsigned int Rfc3984Unpacker::unpack(mblk_t *im, MSQueue *out) {
 		/*a new frame is arriving, in case the marker bit was not set in previous frame, output it now,
 		 *	 unless it is a FU-A packet (workaround for buggy implementations)*/
 		_lastTs = ts;
-		if (_m == NULL && !ms_queue_empty(&_q)) {
-			ret = outputFrame(out, (Status::FrameAvailable) | Status::FrameCorrupted);
+		if (!_fuaAggregator.isAggregating() && !ms_queue_empty(&_q)) {
+			ret = outputFrame(out, Status::FrameAvailable | Status::FrameCorrupted);
 			ms_warning("Incomplete H264 frame (missing marker bit after seq number %u)",
 			           mblk_get_cseq(ms_queue_peek_last(out)));
 		}
@@ -286,15 +345,11 @@ unsigned int Rfc3984Unpacker::unpack(mblk_t *im, MSQueue *out) {
 		}
 		freemsg(im);
 	} else if (type == MSH264NaluTypeFUA) {
-		mblk_t *o = aggregateFUA(im);
+		mblk_t *o = _fuaAggregator.aggregate(im);
 		ms_debug("Receiving FU-A");
 		if (o) storeNal(o);
 	} else {
-		if (_m) {
-			/*discontinued FU-A, purge it*/
-			freemsg(_m);
-			_m = NULL;
-		}
+		_fuaAggregator.reset();
 		/*single nal unit*/
 		ms_debug("Receiving single NAL");
 		storeNal(im);
@@ -384,52 +439,6 @@ bool_t Rfc3984Unpacker::updateParameterSet(mblk_t **last_parameter_set, mblk_t *
 		*last_parameter_set = dupmsg(new_parameter_set);
 		return TRUE;
 	}
-}
-
-mblk_t *Rfc3984Unpacker::aggregateFUA(mblk_t *im) {
-	mblk_t *om = NULL;
-	uint8_t fu_header;
-	uint8_t nri, type;
-	bool_t start, end;
-	bool_t marker = mblk_get_marker_info(im);
-
-	fu_header = im->b_rptr[1];
-	type = ms_h264_nalu_get_type(im);
-	start = fu_header >> 7;
-	end = (fu_header >> 6) & 0x1;
-	if (start) {
-		mblk_t *new_header;
-		nri = ms_h264_nalu_get_nri(im);
-		if (_m != NULL) {
-			ms_error("receiving FU-A start while previous FU-A is not "
-			         "finished");
-			freemsg(_m);
-			_m = NULL;
-		}
-		im->b_rptr += 2; /*skip the nal header and the fu header*/
-		new_header = allocb(1, 0); /* allocate small fragment to put the correct nal header, this is to avoid to write on the buffer
-		which can break processing of other users of the buffers */
-		nalHeaderInit(new_header->b_wptr, nri, type);
-		new_header->b_wptr++;
-		mblk_meta_copy(im, new_header);
-		concatb(new_header, im);
-		_m = new_header;
-	} else {
-		if (_m != NULL) {
-			im->b_rptr += 2;
-			concatb(_m, im);
-		} else {
-			ms_error("Receiving continuation FU packet but no start.");
-			freemsg(im);
-		}
-	}
-	if (end && _m) {
-		msgpullup(_m, -1);
-		om = _m;
-		mblk_set_marker_info(om, marker); /*set the marker bit of this aggregated NAL as the last fragment received.*/
-		_m = NULL;
-	}
-	return om;
 }
 
 int Rfc3984Unpacker::isUniqueISlice(const uint8_t *slice_header) {

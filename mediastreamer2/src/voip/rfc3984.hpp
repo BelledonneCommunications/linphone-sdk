@@ -30,6 +30,21 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 namespace mediastreamer2 {
 
+class H264FUAAggregator {
+public:
+	~H264FUAAggregator() {if (_m) freemsg(_m);}
+
+	bool isAggregating() const {return _m != nullptr;}
+	void reset();
+
+	mblk_t *aggregate(mblk_t *im);
+
+private:
+	static void nalHeaderInit(uint8_t *h, uint8_t nri, uint8_t type) {*h=((nri&0x3)<<5) | (type & ((1<<5)-1));}
+
+	mblk_t *_m = nullptr;
+};
+
 class Rfc3984Packer {
 public:
 	enum PacketizationMode {
@@ -104,13 +119,11 @@ private:
 	unsigned int outputFrame(MSQueue *out, unsigned int flags);
 	void storeNal(mblk_t *nal);
 	bool_t updateParameterSet(mblk_t **last_parameter_set, mblk_t *new_parameter_set);
-	mblk_t *aggregateFUA(mblk_t *im);
 
-	static void nalHeaderInit(uint8_t *h, uint8_t nri, uint8_t type) {*h=((nri&0x3)<<5) | (type & ((1<<5)-1));}
 	static int isUniqueISlice(const uint8_t *slice_header);
 
 	MSQueue _q;
-	mblk_t *_m = nullptr;
+	H264FUAAggregator _fuaAggregator;
 	unsigned int _status = 0;
 	mblk_t *_sps = nullptr;
 	mblk_t *_pps = nullptr;
