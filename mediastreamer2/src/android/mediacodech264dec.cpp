@@ -41,7 +41,7 @@ typedef struct _DecData {
 	AMediaCodec *codec;
 
 	MSAverageFPS fps;
-	Rfc3984Context *unpacker;
+	Rfc3984Unpacker *unpacker;
 	unsigned int packet_num;
 	uint8_t *bitstream;
 	int bitstream_size;
@@ -102,7 +102,7 @@ static void dec_init(MSFilter *f) {
 	d->codec = NULL;
 	d->sps = NULL;
 	d->pps = NULL;
-	d->unpacker = new Rfc3984Context();
+	d->unpacker = new Rfc3984Unpacker();
 	d->packet_num = 0;
 	d->vsize.width = 0;
 	d->vsize.height = 0;
@@ -299,9 +299,9 @@ static void dec_process(MSFilter *f) {
 		ssize_t iBufidx;
 		unpacking_ret = d->unpacker->unpack(im, &nalus);
 
-		if (!(unpacking_ret & Rfc3984Context::Status::FrameAvailable)) continue;
+		if (!(unpacking_ret & Rfc3984Unpacker::Status::FrameAvailable)) continue;
 
-		if (unpacking_ret & Rfc3984Context::Status::FrameCorrupted) {
+		if (unpacking_ret & Rfc3984Unpacker::Status::FrameCorrupted) {
 			ms_warning("MSMediaCodecH264Dec: corrupted frame");
 			request_pli = TRUE;
 			if (d->freeze_on_error){
@@ -311,16 +311,16 @@ static void dec_process(MSFilter *f) {
 			}
 		}
 
-		if (d->need_key_frame && !(unpacking_ret & Rfc3984Context::Status::IsKeyFrame)) {
+		if (d->need_key_frame && !(unpacking_ret & Rfc3984Unpacker::Status::IsKeyFrame)) {
 			request_pli = TRUE;
 			ms_queue_flush(&nalus);
 			continue;
 		}
 
-		if (unpacking_ret & Rfc3984Context::Status::IsKeyFrame) ms_message("MSMediaCodecH264Dec: I-frame received");
+		if (unpacking_ret & Rfc3984Unpacker::Status::IsKeyFrame) ms_message("MSMediaCodecH264Dec: I-frame received");
 
 		size = nalusToFrame(d, &nalus, &need_reinit);
-		//Initialise the video size
+		//Initialize the video size
 		if((d->codec==NULL) && d->sps) {
 			dec_init_mediacodec(d);
 		}
