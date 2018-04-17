@@ -34,19 +34,17 @@ Rfc3984Packer::Rfc3984Packer::Rfc3984Packer(MSFactory* factory) {
 
 void Rfc3984Packer::pack(MSQueue *naluq, MSQueue *rtpq, uint32_t ts) {
 	switch(_mode){
-		case 0:
-			_packMode0(naluq, rtpq, ts);
+		case SingleNalUnitMode:
+			_packInSingleNalUnitMode(naluq, rtpq, ts);
 			break;
-		case 1:
-			_packMode1(naluq, rtpq, ts);
+		case NonInterleavedMode:
+			_packInNonInterleavedMode(naluq, rtpq, ts);
 			break;
-		default:
-			ms_error("Bad or unsupported mode %i",_mode);
 	}
 }
 
 // Private methods
-void Rfc3984Packer::_packMode0(MSQueue *naluq, MSQueue *rtpq, uint32_t ts) {
+void Rfc3984Packer::_packInSingleNalUnitMode(MSQueue *naluq, MSQueue *rtpq, uint32_t ts) {
 	mblk_t *m;
 	bool_t end;
 	int size;
@@ -60,7 +58,7 @@ void Rfc3984Packer::_packMode0(MSQueue *naluq, MSQueue *rtpq, uint32_t ts) {
 	}
 }
 
-void Rfc3984Packer::_packMode1(MSQueue *naluq, MSQueue *rtpq, uint32_t ts){
+void Rfc3984Packer::_packInNonInterleavedMode(MSQueue *naluq, MSQueue *rtpq, uint32_t ts){
 	mblk_t *m,*prevm=NULL;
 	int prevsz=0,sz;
 	bool_t end;
@@ -243,7 +241,7 @@ unsigned int Rfc3984Unpacker::unpack(mblk_t *im, MSQueue *out) {
 		 *	 unless it is a FU-A packet (workaround for buggy implementations)*/
 		_lastTs = ts;
 		if (_m == NULL && !ms_queue_empty(&_q)) {
-			ret = _outputFrame(out, ((unsigned int)Status::FrameAvailable) | (unsigned int)Status::FrameCorrupted);
+			ret = _outputFrame(out, (Status::FrameAvailable) | Status::FrameCorrupted);
 			ms_warning("Incomplete H264 frame (missing marker bit after seq number %u)",
 			           mblk_get_cseq(ms_queue_peek_last(out)));
 		}
@@ -259,7 +257,7 @@ unsigned int Rfc3984Unpacker::unpack(mblk_t *im, MSQueue *out) {
 		if (_refCSeq != cseq) {
 			ms_message("sequence inconsistency detected (diff=%i)", (int)(cseq - _refCSeq));
 			_refCSeq = cseq;
-			_status |= (unsigned int)Status::FrameCorrupted;
+			_status |= Status::FrameCorrupted;
 		}
 	}
 
@@ -305,7 +303,7 @@ unsigned int Rfc3984Unpacker::unpack(mblk_t *im, MSQueue *out) {
 	if (marker) {
 		_lastTs = ts;
 		ms_debug("Marker bit set");
-		ret = _outputFrame(out, (unsigned int)Status::FrameAvailable);
+		ret = _outputFrame(out, static_cast<unsigned int>(Status::FrameAvailable));
 	}
 
 	return ret;
@@ -439,25 +437,34 @@ int Rfc3984Unpacker::_isUniqueISlice(const uint8_t *slice_header) {
 	return slice_header[0] == 0x88; /*this corresponds to first_mb_in_slice to zero and slice_type = 7*/
 }
 
+}; // end of mediastreamer2 namespace
+
+
+
 //=================================================
 // Global public functions
 //=================================================
-unsigned int operator&(unsigned int val1, Rfc3984Unpacker::Status val2) {
+unsigned int operator&(mediastreamer2::Rfc3984Unpacker::Status val1, mediastreamer2::Rfc3984Unpacker::Status val2) {
+	return static_cast<unsigned int>(val1) & static_cast<unsigned int>(val1);
+}
+
+unsigned int operator|(mediastreamer2::Rfc3984Unpacker::Status val1, mediastreamer2::Rfc3984Unpacker::Status val2) {
+	return static_cast<unsigned int>(val1) & static_cast<unsigned int>(val1);
+}
+
+unsigned int operator&(unsigned int val1, mediastreamer2::Rfc3984Unpacker::Status val2) {
 	return val1 & static_cast<unsigned int>(val2);
 }
 
-unsigned int &operator&=(unsigned int &val1, Rfc3984Unpacker::Status val2) {
+unsigned int &operator&=(unsigned int &val1, mediastreamer2::Rfc3984Unpacker::Status val2) {
 	return val1 &= static_cast<unsigned int>(val2);
 }
-unsigned int operator|(unsigned int val1, Rfc3984Unpacker::Status val2) {
+unsigned int operator|(unsigned int val1, mediastreamer2::Rfc3984Unpacker::Status val2) {
 	return val1 | static_cast<unsigned int>(val2);
 }
-unsigned int &operator|=(unsigned int &val1, Rfc3984Unpacker::Status val2) {
+unsigned int &operator|=(unsigned int &val1, mediastreamer2::Rfc3984Unpacker::Status val2) {
 	return val1 |= static_cast<unsigned int>(val2);
 }
-
-}; // end of mediastreamer2 namespace
-
 
 
 
@@ -489,7 +496,11 @@ void rfc3984_destroy(Rfc3984Context *ctx) {
 }
 
 void rfc3984_set_mode(Rfc3984Context *ctx, int mode) {
-	ctx->packer.setMode(mode);
+	if (mode < 0 || mode > 1) {
+		ms_error("invalid RFC3984 packetization mode [%d]", mode);
+		return;
+	}
+	ctx->packer.setMode(mode == 0 ? mediastreamer2::Rfc3984Packer::SingleNalUnitMode : mediastreamer2::Rfc3984Packer::SingleNalUnitMode);
 }
 
 void rfc3984_enable_stap_a(Rfc3984Context *ctx, bool_t yesno) {

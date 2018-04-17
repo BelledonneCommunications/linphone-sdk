@@ -24,19 +24,24 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mediastreamer2/msfactory.h"
 
 /*
- T h*is file declares an API useful to pack/unpack H264 nals as described in RFC3984
- It is part of the public API to allow external H264 plugins use this api.
+ * This file declares an API useful to pack/unpack H264 nals as described in RFC3984
+ * It is part of the public API to allow external H264 plugins use this api.
  */
 
 namespace mediastreamer2 {
 
 class Rfc3984Packer {
 public:
+	enum PacketizationMode {
+		SingleNalUnitMode,
+		NonInterleavedMode
+	};
+
 	Rfc3984Packer() = default;
 	Rfc3984Packer(MSFactory *factory);
 
-	void setMode(int mode) {this->_mode = mode;}
-	int getMode() const {return this->_mode;}
+	void setMode(PacketizationMode mode) {this->_mode = mode;}
+	PacketizationMode getMode() const {return this->_mode;}
 
 	// some stupid phones don't decode STAP-A packets ...
 	void enableStapA(bool yesno) {this->_stapAAllowed = yesno;}
@@ -49,8 +54,8 @@ public:
 	void pack(MSQueue *naluq, MSQueue *rtpq, uint32_t ts);
 
 private:
-	void _packMode0(MSQueue *naluq, MSQueue *rtpq, uint32_t ts);
-	void _packMode1(MSQueue *naluq, MSQueue *rtpq, uint32_t ts);
+	void _packInSingleNalUnitMode(MSQueue *naluq, MSQueue *rtpq, uint32_t ts);
+	void _packInNonInterleavedMode(MSQueue *naluq, MSQueue *rtpq, uint32_t ts);
 	void _fragNaluAndSend(MSQueue *rtpq, uint32_t ts, mblk_t *nalu, bool_t marker, int maxsize);
 	void _sendPacket(MSQueue *rtpq, uint32_t ts, mblk_t *m, bool_t marker);
 
@@ -63,7 +68,7 @@ private:
 
 	int _maxSize = MS_DEFAULT_MAX_PAYLOAD_SIZE;
 	uint16_t _refCSeq = 0;
-	uint8_t _mode = 0;
+	PacketizationMode _mode = SingleNalUnitMode;
 	bool _stapAAllowed = false;
 };
 
@@ -116,9 +121,11 @@ private:
 	uint16_t _refCSeq = 0;
 };
 
-unsigned int operator&(unsigned int val1, Rfc3984Unpacker::Status val2);
-unsigned int &operator&=(unsigned int &val1, Rfc3984Unpacker::Status val2);
-unsigned int operator|(unsigned int val1, Rfc3984Unpacker::Status val2);
-unsigned int &operator|=(unsigned int &val1, Rfc3984Unpacker::Status val2);
+}; // end of mediastreamer2 namespace
 
-};
+unsigned int operator&(mediastreamer2::Rfc3984Unpacker::Status val1, mediastreamer2::Rfc3984Unpacker::Status val2);
+unsigned int operator|(mediastreamer2::Rfc3984Unpacker::Status val1, mediastreamer2::Rfc3984Unpacker::Status val2);
+unsigned int operator&(unsigned int val1, mediastreamer2::Rfc3984Unpacker::Status val2);
+unsigned int &operator&=(unsigned int &val1, mediastreamer2::Rfc3984Unpacker::Status val2);
+unsigned int operator|(unsigned int val1, mediastreamer2::Rfc3984Unpacker::Status val2);
+unsigned int &operator|=(unsigned int &val1, mediastreamer2::Rfc3984Unpacker::Status val2);
