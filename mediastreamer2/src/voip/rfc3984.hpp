@@ -54,17 +54,17 @@ public:
 	void pack(MSQueue *naluq, MSQueue *rtpq, uint32_t ts);
 
 private:
-	void _packInSingleNalUnitMode(MSQueue *naluq, MSQueue *rtpq, uint32_t ts);
-	void _packInNonInterleavedMode(MSQueue *naluq, MSQueue *rtpq, uint32_t ts);
-	void _fragNaluAndSend(MSQueue *rtpq, uint32_t ts, mblk_t *nalu, bool_t marker, int maxsize);
-	void _sendPacket(MSQueue *rtpq, uint32_t ts, mblk_t *m, bool_t marker);
+	void packInSingleNalUnitMode(MSQueue *naluq, MSQueue *rtpq, uint32_t ts);
+	void packInNonInterleavedMode(MSQueue *naluq, MSQueue *rtpq, uint32_t ts);
+	void fragNaluAndSend(MSQueue *rtpq, uint32_t ts, mblk_t *nalu, bool_t marker, int maxsize);
+	void sendPacket(MSQueue *rtpq, uint32_t ts, mblk_t *m, bool_t marker);
 
-	static mblk_t *_concatNalus(mblk_t *m1, mblk_t *m2);
-	static mblk_t *_prependStapA(mblk_t *m);
-	static void _nalHeaderInit(uint8_t *h, uint8_t nri, uint8_t type) {*h=((nri&0x3)<<5) | (type & ((1<<5)-1));}
-	static void _putNalSize(mblk_t *m, size_t sz);
-	static mblk_t *_prependFuIndicatorAndHeader(mblk_t *m, uint8_t indicator, bool_t start, bool_t end, uint8_t type);
-	static bool_t _updateParameterSet(mblk_t **last_parameter_set, mblk_t *new_parameter_set);
+	static mblk_t *concatNalus(mblk_t *m1, mblk_t *m2);
+	static mblk_t *prependStapA(mblk_t *m);
+	static void nalHeaderInit(uint8_t *h, uint8_t nri, uint8_t type) {*h=((nri&0x3)<<5) | (type & ((1<<5)-1));}
+	static void putNalSize(mblk_t *m, size_t sz);
+	static mblk_t *prependFuIndicatorAndHeader(mblk_t *m, uint8_t indicator, bool_t start, bool_t end, uint8_t type);
+	static bool_t updateParameterSet(mblk_t **last_parameter_set, mblk_t *new_parameter_set);
 
 	int _maxSize = MS_DEFAULT_MAX_PAYLOAD_SIZE;
 	uint16_t _refCSeq = 0;
@@ -101,13 +101,13 @@ public:
 	unsigned int unpack(mblk_t *im, MSQueue *naluq);
 
 private:
-	unsigned int _outputFrame(MSQueue *out, unsigned int flags);
-	void _storeNal(mblk_t *nal);
-	bool_t _updateParameterSet(mblk_t **last_parameter_set, mblk_t *new_parameter_set);
-	mblk_t *_aggregateFUA(mblk_t *im);
+	unsigned int outputFrame(MSQueue *out, unsigned int flags);
+	void storeNal(mblk_t *nal);
+	bool_t updateParameterSet(mblk_t **last_parameter_set, mblk_t *new_parameter_set);
+	mblk_t *aggregateFUA(mblk_t *im);
 
-	static void _nalHeaderInit(uint8_t *h, uint8_t nri, uint8_t type) {*h=((nri&0x3)<<5) | (type & ((1<<5)-1));}
-	static int _isUniqueISlice(const uint8_t *slice_header);
+	static void nalHeaderInit(uint8_t *h, uint8_t nri, uint8_t type) {*h=((nri&0x3)<<5) | (type & ((1<<5)-1));}
+	static int isUniqueISlice(const uint8_t *slice_header);
 
 	MSQueue _q;
 	mblk_t *_m = nullptr;
@@ -124,8 +124,9 @@ private:
 }; // end of mediastreamer2 namespace
 
 unsigned int operator&(mediastreamer2::Rfc3984Unpacker::Status val1, mediastreamer2::Rfc3984Unpacker::Status val2);
-unsigned int operator|(mediastreamer2::Rfc3984Unpacker::Status val1, mediastreamer2::Rfc3984Unpacker::Status val2);
 unsigned int operator&(unsigned int val1, mediastreamer2::Rfc3984Unpacker::Status val2);
 unsigned int &operator&=(unsigned int &val1, mediastreamer2::Rfc3984Unpacker::Status val2);
+
+unsigned int operator|(mediastreamer2::Rfc3984Unpacker::Status val1, mediastreamer2::Rfc3984Unpacker::Status val2);
 unsigned int operator|(unsigned int val1, mediastreamer2::Rfc3984Unpacker::Status val2);
 unsigned int &operator|=(unsigned int &val1, mediastreamer2::Rfc3984Unpacker::Status val2);

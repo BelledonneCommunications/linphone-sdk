@@ -35,16 +35,16 @@ Rfc3984Packer::Rfc3984Packer::Rfc3984Packer(MSFactory* factory) {
 void Rfc3984Packer::pack(MSQueue *naluq, MSQueue *rtpq, uint32_t ts) {
 	switch(_mode){
 		case SingleNalUnitMode:
-			_packInSingleNalUnitMode(naluq, rtpq, ts);
+			packInSingleNalUnitMode(naluq, rtpq, ts);
 			break;
 		case NonInterleavedMode:
-			_packInNonInterleavedMode(naluq, rtpq, ts);
+			packInNonInterleavedMode(naluq, rtpq, ts);
 			break;
 	}
 }
 
 // Private methods
-void Rfc3984Packer::_packInSingleNalUnitMode(MSQueue *naluq, MSQueue *rtpq, uint32_t ts) {
+void Rfc3984Packer::packInSingleNalUnitMode(MSQueue *naluq, MSQueue *rtpq, uint32_t ts) {
 	mblk_t *m;
 	bool_t end;
 	int size;
@@ -54,11 +54,11 @@ void Rfc3984Packer::_packInSingleNalUnitMode(MSQueue *naluq, MSQueue *rtpq, uint
 		if (size>_maxSize){
 			ms_warning("This H264 packet does not fit into mtu: size=%i",size);
 		}
-		_sendPacket(rtpq,ts,m,end);
+		sendPacket(rtpq,ts,m,end);
 	}
 }
 
-void Rfc3984Packer::_packInNonInterleavedMode(MSQueue *naluq, MSQueue *rtpq, uint32_t ts){
+void Rfc3984Packer::packInNonInterleavedMode(MSQueue *naluq, MSQueue *rtpq, uint32_t ts){
 	mblk_t *m,*prevm=NULL;
 	int prevsz=0,sz;
 	bool_t end;
@@ -68,7 +68,7 @@ void Rfc3984Packer::_packInNonInterleavedMode(MSQueue *naluq, MSQueue *rtpq, uin
 		if (_stapAAllowed){
 			if (prevm!=NULL){
 				if ((prevsz+sz)<(_maxSize -2)){
-					prevm= _concatNalus(prevm,m);
+					prevm= concatNalus(prevm,m);
 					m=NULL;
 					prevsz+=sz+2;/*+2 for the stapa size field*/
 					continue;
@@ -79,7 +79,7 @@ void Rfc3984Packer::_packInNonInterleavedMode(MSQueue *naluq, MSQueue *rtpq, uin
 					}else {
 						ms_debug("Sending previous msg as single NAL");
 					}
-					_sendPacket(rtpq,ts,prevm,FALSE);
+					sendPacket(rtpq,ts,prevm,FALSE);
 					prevm=NULL;
 					prevsz=0;
 				}
@@ -94,29 +94,29 @@ void Rfc3984Packer::_packInNonInterleavedMode(MSQueue *naluq, MSQueue *rtpq, uin
 				/*send as single nal or FU-A*/
 				if (sz>_maxSize){
 					ms_debug("Sending FU-A packets");
-					_fragNaluAndSend(rtpq,ts,m,end, _maxSize);
+					fragNaluAndSend(rtpq,ts,m,end, _maxSize);
 				}else{
 					ms_debug("Sending Single NAL");
-					_sendPacket(rtpq,ts,m,end);
+					sendPacket(rtpq,ts,m,end);
 				}
 			}
 		}else{
 			if (sz>_maxSize){
 				ms_debug("Sending FU-A packets");
-				_fragNaluAndSend(rtpq,ts,m,end, _maxSize);
+				fragNaluAndSend(rtpq,ts,m,end, _maxSize);
 			}else{
 				ms_debug("Sending Single NAL");
-				_sendPacket(rtpq,ts,m,end);
+				sendPacket(rtpq,ts,m,end);
 			}
 		}
 	}
 	if (prevm){
 		ms_debug("Sending Single NAL (2)");
-		_sendPacket(rtpq,ts,prevm,TRUE);
+		sendPacket(rtpq,ts,prevm,TRUE);
 	}
 }
 
-void Rfc3984Packer::_fragNaluAndSend(MSQueue *rtpq, uint32_t ts, mblk_t *nalu, bool_t marker, int maxsize){
+void Rfc3984Packer::fragNaluAndSend(MSQueue *rtpq, uint32_t ts, mblk_t *nalu, bool_t marker, int maxsize){
 	mblk_t *m;
 	int payload_max_size=maxsize-2;/*minus FUA header*/
 	uint8_t fu_indicator;
@@ -124,21 +124,21 @@ void Rfc3984Packer::_fragNaluAndSend(MSQueue *rtpq, uint32_t ts, mblk_t *nalu, b
 	uint8_t nri= ms_h264_nalu_get_nri(nalu);
 	bool_t start=TRUE;
 
-	_nalHeaderInit(&fu_indicator,nri,MSH264NaluTypeFUA);
+	nalHeaderInit(&fu_indicator,nri,MSH264NaluTypeFUA);
 	while(nalu->b_wptr-nalu->b_rptr>payload_max_size){
 		m=dupb(nalu);
 		nalu->b_rptr+=payload_max_size;
 		m->b_wptr=nalu->b_rptr;
-		m= _prependFuIndicatorAndHeader(m,fu_indicator,start,FALSE,type);
-		_sendPacket(rtpq,ts,m,FALSE);
+		m= prependFuIndicatorAndHeader(m,fu_indicator,start,FALSE,type);
+		sendPacket(rtpq,ts,m,FALSE);
 		start=FALSE;
 	}
 	/*send last packet */
-	m= _prependFuIndicatorAndHeader(nalu,fu_indicator,FALSE,TRUE,type);
-	_sendPacket(rtpq,ts,m,marker);
+	m= prependFuIndicatorAndHeader(nalu,fu_indicator,FALSE,TRUE,type);
+	sendPacket(rtpq,ts,m,marker);
 }
 
-void Rfc3984Packer::_sendPacket(MSQueue *rtpq, uint32_t ts, mblk_t *m, bool_t marker){
+void Rfc3984Packer::sendPacket(MSQueue *rtpq, uint32_t ts, mblk_t *m, bool_t marker){
 	mblk_set_timestamp_info(m,ts);
 	mblk_set_marker_info(m,marker);
 	mblk_set_cseq(m, _refCSeq++);
@@ -146,34 +146,34 @@ void Rfc3984Packer::_sendPacket(MSQueue *rtpq, uint32_t ts, mblk_t *m, bool_t ma
 }
 
 // Private static methods
-mblk_t *Rfc3984Packer::_concatNalus(mblk_t *m1, mblk_t *m2){
+mblk_t *Rfc3984Packer::concatNalus(mblk_t *m1, mblk_t *m2){
 	mblk_t *l=allocb(2,0);
 	/*eventually append a stap-A header to m1, if not already done*/
 	if (ms_h264_nalu_get_type(m1)!=MSH264NaluTypeSTAPA){
-		m1= _prependStapA(m1);
+		m1= prependStapA(m1);
 	}
-	_putNalSize(l,msgdsize(m2));
+	putNalSize(l,msgdsize(m2));
 	l->b_cont=m2;
 	concatb(m1,l);
 	return m1;
 }
 
-mblk_t *Rfc3984Packer::_prependStapA(mblk_t *m){
+mblk_t *Rfc3984Packer::prependStapA(mblk_t *m){
 	mblk_t *hm=allocb(3,0);
-	_nalHeaderInit(hm->b_wptr, ms_h264_nalu_get_nri(m),MSH264NaluTypeSTAPA);
+	nalHeaderInit(hm->b_wptr, ms_h264_nalu_get_nri(m),MSH264NaluTypeSTAPA);
 	hm->b_wptr+=1;
-	_putNalSize(hm,msgdsize(m));
+	putNalSize(hm,msgdsize(m));
 	hm->b_cont=m;
 	return hm;
 }
 
-void Rfc3984Packer::_putNalSize(mblk_t *m, size_t sz){
+void Rfc3984Packer::putNalSize(mblk_t *m, size_t sz){
 	uint16_t size=htons((uint16_t)sz);
 	*(uint16_t*)m->b_wptr=size;
 	m->b_wptr+=2;
 }
 
-mblk_t *Rfc3984Packer::_prependFuIndicatorAndHeader(mblk_t *m, uint8_t indicator, bool_t start, bool_t end, uint8_t type){
+mblk_t *Rfc3984Packer::prependFuIndicatorAndHeader(mblk_t *m, uint8_t indicator, bool_t start, bool_t end, uint8_t type){
 	mblk_t *h=allocb(2,0);
 	h->b_wptr[0]=indicator;
 	h->b_wptr[1]=((start&0x1)<<7)|((end&0x1)<<6)|type;
@@ -183,7 +183,7 @@ mblk_t *Rfc3984Packer::_prependFuIndicatorAndHeader(mblk_t *m, uint8_t indicator
 		return h;
 }
 
-bool_t Rfc3984Packer::_updateParameterSet(mblk_t **last_parameter_set, mblk_t *new_parameter_set) {
+bool_t Rfc3984Packer::updateParameterSet(mblk_t **last_parameter_set, mblk_t *new_parameter_set) {
 	if (*last_parameter_set != NULL) {
 		size_t last_size = (*last_parameter_set)->b_wptr - (*last_parameter_set)->b_rptr;
 		size_t new_size = new_parameter_set->b_wptr - new_parameter_set->b_rptr;
@@ -241,7 +241,7 @@ unsigned int Rfc3984Unpacker::unpack(mblk_t *im, MSQueue *out) {
 		 *	 unless it is a FU-A packet (workaround for buggy implementations)*/
 		_lastTs = ts;
 		if (_m == NULL && !ms_queue_empty(&_q)) {
-			ret = _outputFrame(out, (Status::FrameAvailable) | Status::FrameCorrupted);
+			ret = outputFrame(out, (Status::FrameAvailable) | Status::FrameCorrupted);
 			ms_warning("Incomplete H264 frame (missing marker bit after seq number %u)",
 			           mblk_get_cseq(ms_queue_peek_last(out)));
 		}
@@ -282,13 +282,13 @@ unsigned int Rfc3984Unpacker::unpack(mblk_t *im, MSQueue *out) {
 				freemsg(nal);
 				break;
 			}
-			_storeNal(nal);
+			storeNal(nal);
 		}
 		freemsg(im);
 	} else if (type == MSH264NaluTypeFUA) {
-		mblk_t *o = _aggregateFUA(im);
+		mblk_t *o = aggregateFUA(im);
 		ms_debug("Receiving FU-A");
-		if (o) _storeNal(o);
+		if (o) storeNal(o);
 	} else {
 		if (_m) {
 			/*discontinued FU-A, purge it*/
@@ -297,13 +297,13 @@ unsigned int Rfc3984Unpacker::unpack(mblk_t *im, MSQueue *out) {
 		}
 		/*single nal unit*/
 		ms_debug("Receiving single NAL");
-		_storeNal(im);
+		storeNal(im);
 	}
 
 	if (marker) {
 		_lastTs = ts;
 		ms_debug("Marker bit set");
-		ret = _outputFrame(out, static_cast<unsigned int>(Status::FrameAvailable));
+		ret = outputFrame(out, static_cast<unsigned int>(Status::FrameAvailable));
 	}
 
 	return ret;
@@ -312,7 +312,7 @@ unsigned int Rfc3984Unpacker::unpack(mblk_t *im, MSQueue *out) {
 
 // Private methods
 // ---------------
-unsigned int Rfc3984Unpacker::_outputFrame(MSQueue *out, unsigned int flags) {
+unsigned int Rfc3984Unpacker::outputFrame(MSQueue *out, unsigned int flags) {
 	unsigned int res = _status;
 
 	if (!ms_queue_empty(out)) {
@@ -344,10 +344,10 @@ unsigned int Rfc3984Unpacker::_outputFrame(MSQueue *out, unsigned int flags) {
 	return res;
 }
 
-void Rfc3984Unpacker::_storeNal(mblk_t *nal) {
+void Rfc3984Unpacker::storeNal(mblk_t *nal) {
 	uint8_t type = ms_h264_nalu_get_type(nal);
 
-	if ((_status & Status::HasSPS) && (_status & Status::HasPPS) && type != MSH264NaluTypeIDR && mblk_get_marker_info(nal) && _isUniqueISlice(nal->b_rptr + 1)) {
+	if ((_status & Status::HasSPS) && (_status & Status::HasPPS) && type != MSH264NaluTypeIDR && mblk_get_marker_info(nal) && isUniqueISlice(nal->b_rptr + 1)) {
 		ms_warning("Receiving a nal unit which is not IDR but a single I-slice bundled with SPS & PPS - considering it as a key frame.");
 		_status |= Status::IsKeyFrame;
 	}
@@ -357,19 +357,19 @@ void Rfc3984Unpacker::_storeNal(mblk_t *nal) {
 		_status |= Status::IsKeyFrame;
 	} else if (type == MSH264NaluTypeSPS) {
 		_status |= Status::HasSPS;
-		if (_updateParameterSet(&_lastSps, nal)) {
+		if (updateParameterSet(&_lastSps, nal)) {
 			_status |= Status::NewSPS;
 		}
 	} else if (type == MSH264NaluTypePPS) {
 		_status |= Status::HasPPS;
-		if (_updateParameterSet(&_lastPps, nal)) {
+		if (updateParameterSet(&_lastPps, nal)) {
 			_status |= Status::NewPPS;
 		}
 	}
 	ms_queue_put(&_q, nal);
 }
 
-bool_t Rfc3984Unpacker::_updateParameterSet(mblk_t **last_parameter_set, mblk_t *new_parameter_set) {
+bool_t Rfc3984Unpacker::updateParameterSet(mblk_t **last_parameter_set, mblk_t *new_parameter_set) {
 	if (*last_parameter_set != NULL) {
 		size_t last_size = (*last_parameter_set)->b_wptr - (*last_parameter_set)->b_rptr;
 		size_t new_size = new_parameter_set->b_wptr - new_parameter_set->b_rptr;
@@ -386,7 +386,7 @@ bool_t Rfc3984Unpacker::_updateParameterSet(mblk_t **last_parameter_set, mblk_t 
 	}
 }
 
-mblk_t *Rfc3984Unpacker::_aggregateFUA(mblk_t *im) {
+mblk_t *Rfc3984Unpacker::aggregateFUA(mblk_t *im) {
 	mblk_t *om = NULL;
 	uint8_t fu_header;
 	uint8_t nri, type;
@@ -409,7 +409,7 @@ mblk_t *Rfc3984Unpacker::_aggregateFUA(mblk_t *im) {
 		im->b_rptr += 2; /*skip the nal header and the fu header*/
 		new_header = allocb(1, 0); /* allocate small fragment to put the correct nal header, this is to avoid to write on the buffer
 		which can break processing of other users of the buffers */
-		_nalHeaderInit(new_header->b_wptr, nri, type);
+		nalHeaderInit(new_header->b_wptr, nri, type);
 		new_header->b_wptr++;
 		mblk_meta_copy(im, new_header);
 		concatb(new_header, im);
@@ -432,7 +432,7 @@ mblk_t *Rfc3984Unpacker::_aggregateFUA(mblk_t *im) {
 	return om;
 }
 
-int Rfc3984Unpacker::_isUniqueISlice(const uint8_t *slice_header) {
+int Rfc3984Unpacker::isUniqueISlice(const uint8_t *slice_header) {
 	ms_message("is_unique_I_slice: %i", (int)*slice_header);
 	return slice_header[0] == 0x88; /*this corresponds to first_mb_in_slice to zero and slice_type = 7*/
 }
@@ -448,10 +448,6 @@ unsigned int operator&(mediastreamer2::Rfc3984Unpacker::Status val1, mediastream
 	return static_cast<unsigned int>(val1) & static_cast<unsigned int>(val1);
 }
 
-unsigned int operator|(mediastreamer2::Rfc3984Unpacker::Status val1, mediastreamer2::Rfc3984Unpacker::Status val2) {
-	return static_cast<unsigned int>(val1) & static_cast<unsigned int>(val1);
-}
-
 unsigned int operator&(unsigned int val1, mediastreamer2::Rfc3984Unpacker::Status val2) {
 	return val1 & static_cast<unsigned int>(val2);
 }
@@ -459,6 +455,11 @@ unsigned int operator&(unsigned int val1, mediastreamer2::Rfc3984Unpacker::Statu
 unsigned int &operator&=(unsigned int &val1, mediastreamer2::Rfc3984Unpacker::Status val2) {
 	return val1 &= static_cast<unsigned int>(val2);
 }
+
+unsigned int operator|(mediastreamer2::Rfc3984Unpacker::Status val1, mediastreamer2::Rfc3984Unpacker::Status val2) {
+	return static_cast<unsigned int>(val1) & static_cast<unsigned int>(val1);
+}
+
 unsigned int operator|(unsigned int val1, mediastreamer2::Rfc3984Unpacker::Status val2) {
 	return val1 | static_cast<unsigned int>(val2);
 }
