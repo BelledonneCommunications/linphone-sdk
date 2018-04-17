@@ -45,6 +45,18 @@ private:
 	mblk_t *_m = nullptr;
 };
 
+class H264StapASpliter {
+public:
+	H264StapASpliter();
+	~H264StapASpliter();
+
+	void feed(mblk_t *im);
+	MSQueue *getNALus() {return &_q;}
+
+private:
+	MSQueue _q;
+};
+
 class Rfc3984Packer {
 public:
 	enum PacketizationMode {
@@ -124,6 +136,7 @@ private:
 
 	MSQueue _q;
 	H264FUAAggregator _fuaAggregator;
+	H264StapASpliter _stapASpliter;
 	unsigned int _status = 0;
 	mblk_t *_sps = nullptr;
 	mblk_t *_pps = nullptr;

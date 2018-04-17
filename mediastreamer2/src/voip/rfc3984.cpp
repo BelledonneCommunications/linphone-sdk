@@ -85,6 +85,38 @@ mblk_t *H264FUAAggregator::aggregate(mblk_t *im) {
 }
 
 
+// =====================
+// H264StapASlicer class
+// =====================
+H264StapASpliter::H264StapASpliter() {
+	ms_queue_init(&_q);
+}
+
+H264StapASpliter::~H264StapASpliter() {
+	ms_queue_flush(&_q);
+}
+
+void H264StapASpliter::feed(mblk_t *im) {
+	uint16_t sz;
+	for (uint8_t *p = im->b_rptr + 1; p < im->b_wptr;) {
+		memcpy(&sz, p, 2);
+		sz = ntohs(sz);
+		mblk_t *nal = dupb(im);
+		p += 2;
+		nal->b_rptr = p;
+		p += sz;
+		nal->b_wptr = p;
+		if (p > im->b_wptr) {
+			ms_error("Malformed STAP-A packet");
+			freemsg(nal);
+			break;
+		}
+		ms_queue_put(&_q, nal);
+	}
+	freemsg(im);
+}
+
+
 //=================================================
 // Rfc3984Pacer class
 //=================================================
@@ -287,7 +319,6 @@ void Rfc3984Unpacker::setOutOfBandSpsPps(mblk_t *sps, mblk_t *pps) {
 
 unsigned int Rfc3984Unpacker::unpack(mblk_t *im, MSQueue *out) {
 	uint8_t type = ms_h264_nalu_get_type(im);
-	uint8_t *p;
 	int marker = mblk_get_marker_info(im);
 	uint32_t ts = mblk_get_timestamp_info(im);
 	uint16_t cseq = mblk_get_cseq(im);
@@ -321,29 +352,11 @@ unsigned int Rfc3984Unpacker::unpack(mblk_t *im, MSQueue *out) {
 	}
 
 	if (type == MSH264NaluTypeSTAPA) {
-		/*split into nalus*/
-		uint16_t sz;
-		uint8_t *buf = (uint8_t *)&sz;
-		mblk_t *nal;
-
 		ms_debug("Receiving STAP-A");
-		for (p = im->b_rptr + 1; p < im->b_wptr;) {
-			buf[0] = p[0];
-			buf[1] = p[1];
-			sz = ntohs(sz);
-			nal = dupb(im);
-			p += 2;
-			nal->b_rptr = p;
-			p += sz;
-			nal->b_wptr = p;
-			if (p > im->b_wptr) {
-				ms_error("Malformed STAP-A packet");
-				freemsg(nal);
-				break;
-			}
-			storeNal(nal);
+		_stapASpliter.feed(im);
+		while ((im = ms_queue_get(_stapASpliter.getNALus()))) {
+			storeNal(im);
 		}
-		freemsg(im);
 	} else if (type == MSH264NaluTypeFUA) {
 		mblk_t *o = _fuaAggregator.aggregate(im);
 		ms_debug("Receiving FU-A");
