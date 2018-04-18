@@ -19,6 +19,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #pragma once
 
+#include <memory>
+
 #include "mediastreamer2/mscommon.h"
 #include "mediastreamer2/msqueue.h"
 #include "mediastreamer2/msfactory.h"
@@ -99,6 +101,46 @@ private:
 	bool _stapAAllowed = false;
 };
 
+class NaluAggregatorInterface {
+public:
+	virtual mblk_t *feedNalu(mblk_t *nalu) = 0;
+	virtual bool isAggregating() const = 0;
+	virtual void reset() = 0;
+};
+
+class NaluSpliterInterface {
+public:
+	virtual void feedNalu(mblk_t *nalu) = 0;
+	virtual MSQueue *getNalus() = 0;
+};
+
+enum class UnpackingStatus {
+	FrameAvailable = 1,
+	FrameCorrupted = 1<<1,
+	IsKeyFrame = 1<<2
+};
+
+class AbstractUnpacker {
+public:
+	~AbstractUnpacker();
+
+	unsigned int unpack(mblk_t *im, MSQueue *out);
+
+protected:
+	unsigned int outputFrame(MSQueue *out, unsigned int flags);
+	void storeNal(mblk_t *nal);
+
+	virtual uint8_t getNaluType(const mblk_t *nalu) const = 0;
+
+	MSQueue _q;
+	unsigned int _status = 0;
+	uint32_t _lastTs = 0x943FEA43;
+	bool _initializedRefCSeq = false;
+	uint16_t _refCSeq = 0;
+	std::unique_ptr<NaluAggregatorInterface> _naluAggregator;
+	std::unique_ptr<NaluSpliterInterface> _naluSpliter;
+};
+
 class Rfc3984Unpacker {
 public:
 	enum class Status {
@@ -148,6 +190,14 @@ private:
 };
 
 }; // end of mediastreamer2 namespace
+
+unsigned int operator&(mediastreamer2::UnpackingStatus val1, mediastreamer2::UnpackingStatus val2);
+unsigned int operator&(unsigned int val1, mediastreamer2::UnpackingStatus val2);
+unsigned int &operator&=(unsigned int &val1, mediastreamer2::UnpackingStatus val2);
+
+unsigned int operator|(mediastreamer2::UnpackingStatus val1, mediastreamer2::UnpackingStatus val2);
+unsigned int operator|(unsigned int val1, mediastreamer2::UnpackingStatus val2);
+unsigned int &operator|=(unsigned int &val1, mediastreamer2::UnpackingStatus val2);
 
 unsigned int operator&(mediastreamer2::Rfc3984Unpacker::Status val1, mediastreamer2::Rfc3984Unpacker::Status val2);
 unsigned int operator&(unsigned int val1, mediastreamer2::Rfc3984Unpacker::Status val2);
