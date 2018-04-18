@@ -40,7 +40,7 @@ typedef enum{
 	Rfc3984NewPPS = 1<<4,
 	Rfc3984HasSPS = 1<<5,
 	Rfc3984HasPPS = 1<<6,
-	Rfc3984HasIDR = 1<<7,
+	Rfc3984HasIDR = 1<<7
 }Rfc3984Status;
 
 typedef struct _Rfc3984Context Rfc3984Context;

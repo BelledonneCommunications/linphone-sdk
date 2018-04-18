@@ -103,6 +103,7 @@ private:
 
 class NaluAggregatorInterface {
 public:
+	virtual ~NaluAggregatorInterface() = default;
 	virtual mblk_t *feedNalu(mblk_t *nalu) = 0;
 	virtual bool isAggregating() const = 0;
 	virtual void reset() = 0;
@@ -110,6 +111,7 @@ public:
 
 class NaluSpliterInterface {
 public:
+	virtual ~NaluSpliterInterface() = default;
 	virtual void feedNalu(mblk_t *nalu) = 0;
 	virtual MSQueue *getNalus() = 0;
 };
