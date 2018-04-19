@@ -300,19 +300,21 @@ AbstractUnpacker::~AbstractUnpacker() {
 	ms_queue_flush(&_q);
 }
 
-unsigned int AbstractUnpacker::unpack(mblk_t *im, MSQueue *out) {
+AbstractUnpacker::Status AbstractUnpacker::unpack(mblk_t *im, MSQueue *out) {
 	uint8_t type = getNaluType(im);
 	int marker = mblk_get_marker_info(im);
 	uint32_t ts = mblk_get_timestamp_info(im);
 	uint16_t cseq = mblk_get_cseq(im);
-	unsigned int ret = 0;
+	Status ret;
 
 	if (_lastTs != ts) {
 		/*a new frame is arriving, in case the marker bit was not set in previous frame, output it now,
 		 *	 unless it is a FU-A packet (workaround for buggy implementations)*/
 		_lastTs = ts;
 		if (!_naluAggregator->isAggregating() && !ms_queue_empty(&_q)) {
-			ret = outputFrame(out, UnpackingStatus::FrameAvailable | UnpackingStatus::FrameCorrupted);
+			Status status;
+			status.set(StatusFlag::FrameAvailable).set(StatusFlag::FrameCorrupted);
+			ret = outputFrame(out, status);
 			ms_warning("Incomplete H264 frame (missing marker bit after seq number %u)",
 					   mblk_get_cseq(ms_queue_peek_last(out)));
 		}
@@ -328,7 +330,7 @@ unsigned int AbstractUnpacker::unpack(mblk_t *im, MSQueue *out) {
 		if (_refCSeq != cseq) {
 			ms_message("sequence inconsistency detected (diff=%i)", (int)(cseq - _refCSeq));
 			_refCSeq = cseq;
-			_status |= UnpackingStatus::FrameCorrupted;
+			_status.set(StatusFlag::FrameCorrupted);
 		}
 	}
 
@@ -352,14 +354,16 @@ unsigned int AbstractUnpacker::unpack(mblk_t *im, MSQueue *out) {
 	if (marker) {
 		_lastTs = ts;
 		ms_debug("Marker bit set");
-		ret = outputFrame(out, static_cast<unsigned int>(UnpackingStatus::FrameAvailable));
+		Status status;
+		status.set(StatusFlag::FrameAvailable);
+		ret = outputFrame(out, status);
 	}
 
 	return ret;
 }
 
-unsigned int AbstractUnpacker::outputFrame(MSQueue *out, unsigned int flags) {
-	unsigned int res = _status;
+AbstractUnpacker::Status AbstractUnpacker::outputFrame(MSQueue *out, Status flags) {
+	Status res = _status;
 	if (!ms_queue_empty(out)) {
 		ms_warning("rfc3984_unpack: output_frame invoked several times in a row, this should not happen");
 	}
@@ -400,12 +404,12 @@ void Rfc3984Unpacker::setOutOfBandSpsPps(mblk_t *sps, mblk_t *pps) {
 	_pps = pps;
 }
 
-unsigned int Rfc3984Unpacker::unpack(mblk_t *im, MSQueue *out) {
+Rfc3984Unpacker::Status Rfc3984Unpacker::unpack(mblk_t *im, MSQueue *out) {
 	uint8_t type = ms_h264_nalu_get_type(im);
 	int marker = mblk_get_marker_info(im);
 	uint32_t ts = mblk_get_timestamp_info(im);
 	uint16_t cseq = mblk_get_cseq(im);
-	unsigned int ret = 0;
+	Status ret;
 
 	//ms_message("Seeing timestamp %u, sequence %u", ts, (int)cseq);
 
@@ -414,7 +418,9 @@ unsigned int Rfc3984Unpacker::unpack(mblk_t *im, MSQueue *out) {
 		 *	 unless it is a FU-A packet (workaround for buggy implementations)*/
 		_lastTs = ts;
 		if (!_fuaAggregator.isAggregating() && !ms_queue_empty(&_q)) {
-			ret = outputFrame(out, Status::FrameAvailable | Status::FrameCorrupted);
+			Status status;
+			status.set(StatusFlag::FrameAvailable).set(StatusFlag::FrameCorrupted);
+			ret = outputFrame(out, status);
 			ms_warning("Incomplete H264 frame (missing marker bit after seq number %u)",
 			           mblk_get_cseq(ms_queue_peek_last(out)));
 		}
@@ -430,7 +436,7 @@ unsigned int Rfc3984Unpacker::unpack(mblk_t *im, MSQueue *out) {
 		if (_refCSeq != cseq) {
 			ms_message("sequence inconsistency detected (diff=%i)", (int)(cseq - _refCSeq));
 			_refCSeq = cseq;
-			_status |= Status::FrameCorrupted;
+			_status.set(StatusFlag::FrameCorrupted);
 		}
 	}
 
@@ -454,7 +460,9 @@ unsigned int Rfc3984Unpacker::unpack(mblk_t *im, MSQueue *out) {
 	if (marker) {
 		_lastTs = ts;
 		ms_debug("Marker bit set");
-		ret = outputFrame(out, static_cast<unsigned int>(Status::FrameAvailable));
+		Status status;
+		status.set(StatusFlag::FrameAvailable);
+		ret = outputFrame(out, status);
 	}
 
 	return ret;
@@ -463,14 +471,14 @@ unsigned int Rfc3984Unpacker::unpack(mblk_t *im, MSQueue *out) {
 
 // Private methods
 // ---------------
-unsigned int Rfc3984Unpacker::outputFrame(MSQueue *out, unsigned int flags) {
-	unsigned int res = _status;
+Rfc3984Unpacker::Status Rfc3984Unpacker::outputFrame(MSQueue *out, const Status &flags) {
+	Status res = _status;
 
 	if (!ms_queue_empty(out)) {
 		ms_warning("rfc3984_unpack: output_frame invoked several times in a row, this should not happen");
 	}
 	res |= flags;
-	if ((res & Status::IsKeyFrame) && _sps && _pps) {
+	if (res.test(StatusFlag::IsKeyFrame) && _sps && _pps) {
 		/*prepend out of band provided sps and pps*/
 		ms_queue_put(out, _sps);
 		_sps = NULL;
@@ -479,8 +487,8 @@ unsigned int Rfc3984Unpacker::outputFrame(MSQueue *out, unsigned int flags) {
 	}
 
 	/* Log some bizarre things */
-	if ((res & Status::FrameCorrupted) == 0) {
-		if ((res & Status::HasSPS) && (res & Status::HasPPS) && !(res & Status::HasIDR) && !(res & Status::IsKeyFrame)) {
+	if (res.test(StatusFlag::FrameCorrupted)) {
+		if (res.test(StatusFlag::HasSPS) && res.test(StatusFlag::HasPPS) && !res.test(StatusFlag::HasIDR) && !res.test(StatusFlag::IsKeyFrame)) {
 			/*some decoders may not be happy with this*/
 			ms_warning("rfc3984_unpack: a frame with SPS+PPS but no IDR was output, starting at seq number %u",
 			           mblk_get_cseq(ms_queue_peek_first(&_q)));
@@ -498,23 +506,23 @@ unsigned int Rfc3984Unpacker::outputFrame(MSQueue *out, unsigned int flags) {
 void Rfc3984Unpacker::storeNal(mblk_t *nal) {
 	uint8_t type = ms_h264_nalu_get_type(nal);
 
-	if ((_status & Status::HasSPS) && (_status & Status::HasPPS) && type != MSH264NaluTypeIDR && mblk_get_marker_info(nal) && isUniqueISlice(nal->b_rptr + 1)) {
+	if (_status.test(StatusFlag::HasSPS) && _status.test(StatusFlag::HasPPS) && type != MSH264NaluTypeIDR && mblk_get_marker_info(nal) && isUniqueISlice(nal->b_rptr + 1)) {
 		ms_warning("Receiving a nal unit which is not IDR but a single I-slice bundled with SPS & PPS - considering it as a key frame.");
-		_status |= Status::IsKeyFrame;
+		_status.set(StatusFlag::IsKeyFrame);
 	}
 
 	if (type == MSH264NaluTypeIDR) {
-		_status |= Status::HasIDR;
-		_status |= Status::IsKeyFrame;
+		_status.set(StatusFlag::HasIDR);
+		_status.set(StatusFlag::IsKeyFrame);
 	} else if (type == MSH264NaluTypeSPS) {
-		_status |= Status::HasSPS;
+		_status.set(StatusFlag::HasSPS);
 		if (updateParameterSet(&_lastSps, nal)) {
-			_status |= Status::NewSPS;
+			_status.set(StatusFlag::NewSPS);
 		}
 	} else if (type == MSH264NaluTypePPS) {
-		_status |= Status::HasPPS;
+		_status.set(StatusFlag::HasPPS);
 		if (updateParameterSet(&_lastPps, nal)) {
-			_status |= Status::NewPPS;
+			_status.set(StatusFlag::NewPPS);
 		}
 	}
 	ms_queue_put(&_q, nal);
@@ -543,58 +551,6 @@ int Rfc3984Unpacker::isUniqueISlice(const uint8_t *slice_header) {
 }
 
 }; // end of mediastreamer2 namespace
-
-
-
-//=================================================
-// Global public functions
-//=================================================
-unsigned int operator&(mediastreamer2::UnpackingStatus val1, mediastreamer2::UnpackingStatus val2) {
-	return static_cast<unsigned int>(val1) & static_cast<unsigned int>(val1);
-}
-
-unsigned int operator&(unsigned int val1, mediastreamer2::UnpackingStatus val2) {
-	return val1 & static_cast<unsigned int>(val2);
-}
-
-unsigned int &operator&=(unsigned int &val1, mediastreamer2::UnpackingStatus val2) {
-	return val1 &= static_cast<unsigned int>(val2);
-}
-
-unsigned int operator|(mediastreamer2::UnpackingStatus val1, mediastreamer2::UnpackingStatus val2) {
-	return static_cast<unsigned int>(val1) & static_cast<unsigned int>(val1);
-}
-
-unsigned int operator|(unsigned int val1, mediastreamer2::UnpackingStatus val2) {
-	return val1 | static_cast<unsigned int>(val2);
-}
-unsigned int &operator|=(unsigned int &val1, mediastreamer2::UnpackingStatus val2) {
-	return val1 |= static_cast<unsigned int>(val2);
-}
-
-unsigned int operator&(mediastreamer2::Rfc3984Unpacker::Status val1, mediastreamer2::Rfc3984Unpacker::Status val2) {
-	return static_cast<unsigned int>(val1) & static_cast<unsigned int>(val1);
-}
-
-unsigned int operator&(unsigned int val1, mediastreamer2::Rfc3984Unpacker::Status val2) {
-	return val1 & static_cast<unsigned int>(val2);
-}
-
-unsigned int &operator&=(unsigned int &val1, mediastreamer2::Rfc3984Unpacker::Status val2) {
-	return val1 &= static_cast<unsigned int>(val2);
-}
-
-unsigned int operator|(mediastreamer2::Rfc3984Unpacker::Status val1, mediastreamer2::Rfc3984Unpacker::Status val2) {
-	return static_cast<unsigned int>(val1) & static_cast<unsigned int>(val1);
-}
-
-unsigned int operator|(unsigned int val1, mediastreamer2::Rfc3984Unpacker::Status val2) {
-	return val1 | static_cast<unsigned int>(val2);
-}
-unsigned int &operator|=(unsigned int &val1, mediastreamer2::Rfc3984Unpacker::Status val2) {
-	return val1 |= static_cast<unsigned int>(val2);
-}
-
 
 
 //==================================================
@@ -645,7 +601,7 @@ extern "C" {
 	}
 
 	unsigned int rfc3984_unpack2(Rfc3984Context *ctx, mblk_t *im, MSQueue *naluq) {
-		return ctx->unpacker.unpack(im, naluq);
+		return ctx->unpacker.unpack(im, naluq).to_ulong();
 	}
 
 }

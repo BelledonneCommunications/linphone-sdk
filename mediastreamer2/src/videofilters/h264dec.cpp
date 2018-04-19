@@ -282,7 +282,6 @@ static void dec_process(MSFilter *f){
 	mblk_t *im, *om;
 	MSQueue nalus;
 	bool_t requestPLI = FALSE;
-	unsigned int ret = 0;
 
 	ms_queue_init(&nalus);
 	while((im=ms_queue_get(f->inputs[0]))!=NULL){
@@ -301,9 +300,9 @@ static void dec_process(MSFilter *f){
 			d->sps=NULL;
 			d->pps=NULL;
 		}
-		ret = d->unpacker->unpack(im,&nalus);
+		Rfc3984Unpacker::Status ret = d->unpacker->unpack(im,&nalus);
 		
-		if (ret & Rfc3984Unpacker::Status::FrameAvailable){
+		if (ret.test(Rfc3984Unpacker::StatusFlag::FrameAvailable)){
 			int size;
 			uint8_t *p,*end;
 			bool_t need_reinit=FALSE;
@@ -339,7 +338,7 @@ static void dec_process(MSFilter *f){
 				}
 				p+=len;
 			}
-			if (ret & Rfc3984Unpacker::Status::FrameCorrupted) requestPLI = TRUE;
+			if (ret.test(Rfc3984Unpacker::StatusFlag::FrameCorrupted)) requestPLI = TRUE;
 		}
 		d->packet_num++;
 	}

@@ -19,6 +19,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #pragma once
 
+#include <bitset>
 #include <memory>
 
 #include "mediastreamer2/mscommon.h"
@@ -116,26 +117,28 @@ public:
 	virtual MSQueue *getNalus() = 0;
 };
 
-enum class UnpackingStatus {
-	FrameAvailable = 1,
-	FrameCorrupted = 1<<1,
-	IsKeyFrame = 1<<2
-};
-
 class AbstractUnpacker {
 public:
+	class StatusFlag {
+	public:
+		static const unsigned int FrameAvailable = 0;
+		static const unsigned int FrameCorrupted = 1;
+		static const unsigned int IsKeyFrame = 2;
+	};
+	typedef std::bitset<32> Status;
+
 	~AbstractUnpacker();
 
-	unsigned int unpack(mblk_t *im, MSQueue *out);
+	Status unpack(mblk_t *im, MSQueue *out);
 
 protected:
-	unsigned int outputFrame(MSQueue *out, unsigned int flags);
+	Status outputFrame(MSQueue *out, Status flags);
 	void storeNal(mblk_t *nal);
 
 	virtual uint8_t getNaluType(const mblk_t *nalu) const = 0;
 
 	MSQueue _q;
-	unsigned int _status = 0;
+	Status _status = 0;
 	uint32_t _lastTs = 0x943FEA43;
 	bool _initializedRefCSeq = false;
 	uint16_t _refCSeq = 0;
@@ -145,16 +148,18 @@ protected:
 
 class Rfc3984Unpacker {
 public:
-	enum class Status {
-		FrameAvailable = 1,
-		FrameCorrupted = 1<<1,
-		IsKeyFrame = 1<<2, // set when a frame has SPS + PPS or IDR (possibly both)
-		NewSPS = 1<<3,
-		NewPPS = 1<<4,
-		HasSPS = 1<<5,
-		HasPPS = 1<<6,
-		HasIDR = 1<<7,
+	class StatusFlag {
+	public:
+		static const size_t FrameAvailable = 0;
+		static const size_t FrameCorrupted = 1;
+		static const size_t IsKeyFrame = 2; // set when a frame has SPS + PPS or IDR (possibly both)
+		static const size_t NewSPS = 3;
+		static const size_t NewPPS = 4;
+		static const size_t HasSPS = 5;
+		static const size_t HasPPS = 6;
+		static const size_t HasIDR = 7;
 	};
+	typedef std::bitset<32> Status;
 
 	Rfc3984Unpacker();
 	~Rfc3984Unpacker();
@@ -169,10 +174,10 @@ public:
 	 * @return a bitmask of Rfc3984Status values.
 	 * The return value is a bitmask of the #Rfc3984Status enum.
 	 **/
-	unsigned int unpack(mblk_t *im, MSQueue *naluq);
+	Status unpack(mblk_t *im, MSQueue *naluq);
 
 private:
-	unsigned int outputFrame(MSQueue *out, unsigned int flags);
+	Status outputFrame(MSQueue *out, const Status &flags);
 	void storeNal(mblk_t *nal);
 	bool_t updateParameterSet(mblk_t **last_parameter_set, mblk_t *new_parameter_set);
 
@@ -181,7 +186,7 @@ private:
 	MSQueue _q;
 	H264FUAAggregator _fuaAggregator;
 	H264StapASpliter _stapASpliter;
-	unsigned int _status = 0;
+	Status _status;
 	mblk_t *_sps = nullptr;
 	mblk_t *_pps = nullptr;
 	mblk_t *_lastSps = nullptr;
@@ -192,19 +197,3 @@ private:
 };
 
 }; // end of mediastreamer2 namespace
-
-unsigned int operator&(mediastreamer2::UnpackingStatus val1, mediastreamer2::UnpackingStatus val2);
-unsigned int operator&(unsigned int val1, mediastreamer2::UnpackingStatus val2);
-unsigned int &operator&=(unsigned int &val1, mediastreamer2::UnpackingStatus val2);
-
-unsigned int operator|(mediastreamer2::UnpackingStatus val1, mediastreamer2::UnpackingStatus val2);
-unsigned int operator|(unsigned int val1, mediastreamer2::UnpackingStatus val2);
-unsigned int &operator|=(unsigned int &val1, mediastreamer2::UnpackingStatus val2);
-
-unsigned int operator&(mediastreamer2::Rfc3984Unpacker::Status val1, mediastreamer2::Rfc3984Unpacker::Status val2);
-unsigned int operator&(unsigned int val1, mediastreamer2::Rfc3984Unpacker::Status val2);
-unsigned int &operator&=(unsigned int &val1, mediastreamer2::Rfc3984Unpacker::Status val2);
-
-unsigned int operator|(mediastreamer2::Rfc3984Unpacker::Status val1, mediastreamer2::Rfc3984Unpacker::Status val2);
-unsigned int operator|(unsigned int val1, mediastreamer2::Rfc3984Unpacker::Status val2);
-unsigned int &operator|=(unsigned int &val1, mediastreamer2::Rfc3984Unpacker::Status val2);
