@@ -33,33 +33,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 namespace mediastreamer2 {
 
-class H264FUAAggregator {
-public:
-	~H264FUAAggregator() {if (_m) freemsg(_m);}
-
-	bool isAggregating() const {return _m != nullptr;}
-	void reset();
-
-	mblk_t *aggregate(mblk_t *im);
-
-private:
-	static void nalHeaderInit(uint8_t *h, uint8_t nri, uint8_t type) {*h=((nri&0x3)<<5) | (type & ((1<<5)-1));}
-
-	mblk_t *_m = nullptr;
-};
-
-class H264StapASpliter {
-public:
-	H264StapASpliter();
-	~H264StapASpliter();
-
-	void feed(mblk_t *im);
-	MSQueue *getNALus() {return &_q;}
-
-private:
-	MSQueue _q;
-};
-
 class Rfc3984Packer {
 public:
 	enum PacketizationMode {
@@ -154,6 +127,30 @@ protected:
 	std::unique_ptr<NaluSpliterInterface> _naluSpliter;
 };
 
+class H264FUAAggregator: public NaluAggregatorInterface {
+public:
+	~H264FUAAggregator() {if (_m) freemsg(_m);}
+	mblk_t *feedNalu(mblk_t *im) override;
+	bool isAggregating() const override {return _m != nullptr;}
+	void reset() override;
+
+private:
+	static void nalHeaderInit(uint8_t *h, uint8_t nri, uint8_t type) {*h=((nri&0x3)<<5) | (type & ((1<<5)-1));}
+
+	mblk_t *_m = nullptr;
+};
+
+class H264StapASpliter: public NaluSpliterInterface {
+public:
+	H264StapASpliter() {ms_queue_init(&_q);}
+	~H264StapASpliter() {ms_queue_flush(&_q);}
+	void feedNalu(mblk_t *im) override;
+	MSQueue *getNalus() override {return &_q;}
+
+private:
+	MSQueue _q;
+};
+
 class Rfc3984Unpacker: public Unpacker {
 public:
 	class StatusFlag {
@@ -165,7 +162,7 @@ public:
 		static const size_t HasIDR = 7;
 	};
 
-	Rfc3984Unpacker() = default;
+	Rfc3984Unpacker();
 	~Rfc3984Unpacker();
 
 	void setOutOfBandSpsPps(mblk_t *sps, mblk_t *pps);

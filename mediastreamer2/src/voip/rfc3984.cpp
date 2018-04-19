@@ -28,95 +28,6 @@ using namespace std;
 namespace mediastreamer2 {
 
 
-// =======================
-// H264FUAAggregator class
-// =======================
-void H264FUAAggregator::reset() {
-	if (_m) {
-		freemsg(_m);
-		_m = nullptr;
-	}
-}
-
-mblk_t *H264FUAAggregator::aggregate(mblk_t *im) {
-	mblk_t *om = nullptr;
-	uint8_t fu_header;
-	uint8_t nri, type;
-	bool_t start, end;
-	bool_t marker = mblk_get_marker_info(im);
-
-	fu_header = im->b_rptr[1];
-	type = ms_h264_nalu_get_type(im);
-	start = fu_header >> 7;
-	end = (fu_header >> 6) & 0x1;
-	if (start) {
-		mblk_t *new_header;
-		nri = ms_h264_nalu_get_nri(im);
-		if (_m != nullptr) {
-			ms_error("receiving FU-A start while previous FU-A is not "
-			         "finished");
-			freemsg(_m);
-			_m = nullptr;
-		}
-		im->b_rptr += 2; /*skip the nal header and the fu header*/
-		new_header = allocb(1, 0); /* allocate small fragment to put the correct nal header, this is to avoid to write on the buffer
-		                              which can break processing of other users of the buffers */
-		nalHeaderInit(new_header->b_wptr, nri, type);
-		new_header->b_wptr++;
-		mblk_meta_copy(im, new_header);
-		concatb(new_header, im);
-		_m = new_header;
-	} else {
-		if (_m != nullptr) {
-			im->b_rptr += 2;
-			concatb(_m, im);
-		} else {
-			ms_error("Receiving continuation FU packet but no start.");
-			freemsg(im);
-		}
-	}
-	if (end && _m) {
-		msgpullup(_m, -1);
-		om = _m;
-		mblk_set_marker_info(om, marker); /*set the marker bit of this aggregated NAL as the last fragment received.*/
-		_m = nullptr;
-	}
-	return om;
-}
-
-
-// =====================
-// H264StapASlicer class
-// =====================
-H264StapASpliter::H264StapASpliter() {
-	ms_queue_init(&_q);
-}
-
-H264StapASpliter::~H264StapASpliter() {
-	ms_queue_flush(&_q);
-}
-
-void H264StapASpliter::feed(mblk_t *im) {
-	uint16_t sz;
-	for (uint8_t *p = im->b_rptr + 1; p < im->b_wptr;) {
-		memcpy(&sz, p, 2);
-		sz = ntohs(sz);
-		mblk_t *nal = dupb(im);
-		p += 2;
-		nal->b_rptr = p;
-		p += sz;
-		nal->b_wptr = p;
-		if (p > im->b_wptr) {
-			ms_error("Malformed STAP-A packet");
-			freemsg(nal);
-			break;
-		}
-		ms_queue_put(&_q, nal);
-	}
-	freemsg(im);
-}
-
-
 //=================================================
 // Rfc3984Pacer class
 //=================================================
@@ -375,12 +286,98 @@ void Unpacker::storeNal(mblk_t *nal) {
 	ms_queue_put(&_q, nal);
 }
 
+// =======================
+// H264FUAAggregator class
+// =======================
+mblk_t *H264FUAAggregator::feedNalu(mblk_t *im) {
+	mblk_t *om = nullptr;
+	uint8_t fu_header;
+	uint8_t nri, type;
+	bool_t start, end;
+	bool_t marker = mblk_get_marker_info(im);
+
+	fu_header = im->b_rptr[1];
+	type = ms_h264_nalu_get_type(im);
+	start = fu_header >> 7;
+	end = (fu_header >> 6) & 0x1;
+	if (start) {
+		mblk_t *new_header;
+		nri = ms_h264_nalu_get_nri(im);
+		if (_m != nullptr) {
+			ms_error("receiving FU-A start while previous FU-A is not "
+			"finished");
+			freemsg(_m);
+			_m = nullptr;
+		}
+		im->b_rptr += 2; /*skip the nal header and the fu header*/
+		new_header = allocb(1, 0); /* allocate small fragment to put the correct nal header, this is to avoid to write on the buffer
+		which can break processing of other users of the buffers */
+		nalHeaderInit(new_header->b_wptr, nri, type);
+		new_header->b_wptr++;
+		mblk_meta_copy(im, new_header);
+		concatb(new_header, im);
+		_m = new_header;
+	} else {
+		if (_m != nullptr) {
+			im->b_rptr += 2;
+			concatb(_m, im);
+		} else {
+			ms_error("Receiving continuation FU packet but no start.");
+			freemsg(im);
+		}
+	}
+	if (end && _m) {
+		msgpullup(_m, -1);
+		om = _m;
+		mblk_set_marker_info(om, marker); /*set the marker bit of this aggregated NAL as the last fragment received.*/
+		_m = nullptr;
+	}
+	return om;
+}
+
+void H264FUAAggregator::reset() {
+	if (_m) {
+		freemsg(_m);
+		_m = nullptr;
+	}
+}
+
+
+// =====================
+// H264StapASlicer class
+// =====================
+
+void H264StapASpliter::feedNalu(mblk_t *im) {
+	uint16_t sz;
+	for (uint8_t *p = im->b_rptr + 1; p < im->b_wptr;) {
+		memcpy(&sz, p, 2);
+		sz = ntohs(sz);
+		mblk_t *nal = dupb(im);
+		p += 2;
+		nal->b_rptr = p;
+		p += sz;
+		nal->b_wptr = p;
+		if (p > im->b_wptr) {
+			ms_error("Malformed STAP-A packet");
+			freemsg(nal);
+			break;
+		}
+		ms_queue_put(&_q, nal);
+	}
+	freemsg(im);
+}
+
 //==================================================
 // Rfc3984Unpacker
 //==================================================
 
 // Public methods
 // --------------
+
+Rfc3984Unpacker::Rfc3984Unpacker(): Unpacker() {
+	_naluAggregator.reset(new H264FUAAggregator());
+	_naluSpliter.reset(new H264StapASpliter());
+}
 
 Rfc3984Unpacker::~Rfc3984Unpacker() {
 	if (_sps != nullptr) freemsg(_sps);
