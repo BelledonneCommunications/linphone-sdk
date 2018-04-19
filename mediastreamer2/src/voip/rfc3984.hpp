@@ -117,7 +117,7 @@ public:
 	virtual MSQueue *getNalus() = 0;
 };
 
-class AbstractUnpacker {
+class Unpacker {
 public:
 	class StatusFlag {
 	public:
@@ -127,7 +127,7 @@ public:
 	};
 	typedef std::bitset<32> Status;
 
-	~AbstractUnpacker();
+	~Unpacker();
 
 	Status unpack(mblk_t *im, MSQueue *out);
 

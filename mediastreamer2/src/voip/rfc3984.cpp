@@ -296,11 +296,11 @@ bool_t Rfc3984Packer::updateParameterSet(mblk_t **last_parameter_set, mblk_t *ne
 // AbstractUnpacker
 // ================
 
-AbstractUnpacker::~AbstractUnpacker() {
+Unpacker::~Unpacker() {
 	ms_queue_flush(&_q);
 }
 
-AbstractUnpacker::Status AbstractUnpacker::unpack(mblk_t *im, MSQueue *out) {
+Unpacker::Status Unpacker::unpack(mblk_t *im, MSQueue *out) {
 	uint8_t type = getNaluType(im);
 	int marker = mblk_get_marker_info(im);
 	uint32_t ts = mblk_get_timestamp_info(im);
@@ -362,7 +362,7 @@ AbstractUnpacker::Status AbstractUnpacker::unpack(mblk_t *im, MSQueue *out) {
 	return ret;
 }
 
-AbstractUnpacker::Status AbstractUnpacker::outputFrame(MSQueue *out, Status flags) {
+Unpacker::Status Unpacker::outputFrame(MSQueue *out, Status flags) {
 	Status res = _status;
 	if (!ms_queue_empty(out)) {
 		ms_warning("rfc3984_unpack: output_frame invoked several times in a row, this should not happen");
@@ -375,7 +375,7 @@ AbstractUnpacker::Status AbstractUnpacker::outputFrame(MSQueue *out, Status flag
 	return res;
 }
 
-void AbstractUnpacker::storeNal(mblk_t *nal) {
+void Unpacker::storeNal(mblk_t *nal) {
 	ms_queue_put(&_q, nal);
 }
 
