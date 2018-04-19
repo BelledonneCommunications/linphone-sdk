@@ -302,7 +302,7 @@ static void dec_process(MSFilter *f){
 		}
 		Rfc3984Unpacker::Status ret = d->unpacker->unpack(im,&nalus);
 		
-		if (ret.test(Rfc3984Unpacker::StatusFlag::FrameAvailable)){
+		if (ret.test(Unpacker::StatusFlag::FrameAvailable)){
 			int size;
 			uint8_t *p,*end;
 			bool_t need_reinit=FALSE;
@@ -338,7 +338,7 @@ static void dec_process(MSFilter *f){
 				}
 				p+=len;
 			}
-			if (ret.test(Rfc3984Unpacker::StatusFlag::FrameCorrupted)) requestPLI = TRUE;
+			if (ret.test(Unpacker::StatusFlag::FrameCorrupted)) requestPLI = TRUE;
 		}
 		d->packet_num++;
 	}

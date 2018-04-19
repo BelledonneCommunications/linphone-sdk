@@ -121,19 +121,27 @@ class Unpacker {
 public:
 	class StatusFlag {
 	public:
-		static const unsigned int FrameAvailable = 0;
-		static const unsigned int FrameCorrupted = 1;
-		static const unsigned int IsKeyFrame = 2;
+		static const size_t FrameAvailable = 0;
+		static const size_t FrameCorrupted = 1;
+		static const size_t IsKeyFrame = 2;
 	};
 	typedef std::bitset<32> Status;
 
-	~Unpacker();
+	virtual ~Unpacker() {ms_queue_flush(&_q);}
 
+	/**
+	 * Process incoming rtp data and output NALUs, whenever possible.
+	 * @param ctx the Rfc3984Context object
+	 * @param im a new H264 packet to process
+	 * @param naluq a MSQueue into which a frame ready to be decoded will be output, in the form of a sequence of NAL units.
+	 * @return a bitmask of Rfc3984Status values.
+	 * The return value is a bitmask of the #Rfc3984Status enum.
+	 **/
 	Status unpack(mblk_t *im, MSQueue *out);
 
 protected:
-	Status outputFrame(MSQueue *out, Status flags);
-	void storeNal(mblk_t *nal);
+	virtual Status outputFrame(MSQueue *out, const Status &flags);
+	virtual void storeNal(mblk_t *nal);
 
 	virtual uint8_t getNaluType(const mblk_t *nalu) const = 0;
 
@@ -146,54 +154,34 @@ protected:
 	std::unique_ptr<NaluSpliterInterface> _naluSpliter;
 };
 
-class Rfc3984Unpacker {
+class Rfc3984Unpacker: public Unpacker {
 public:
 	class StatusFlag {
 	public:
-		static const size_t FrameAvailable = 0;
-		static const size_t FrameCorrupted = 1;
-		static const size_t IsKeyFrame = 2; // set when a frame has SPS + PPS or IDR (possibly both)
 		static const size_t NewSPS = 3;
 		static const size_t NewPPS = 4;
 		static const size_t HasSPS = 5;
 		static const size_t HasPPS = 6;
 		static const size_t HasIDR = 7;
 	};
-	typedef std::bitset<32> Status;
 
-	Rfc3984Unpacker();
+	Rfc3984Unpacker() = default;
 	~Rfc3984Unpacker();
 
 	void setOutOfBandSpsPps(mblk_t *sps, mblk_t *pps);
 
-	/**
-	 * Process incoming rtp data and output NALUs, whenever possible.
-	 * @param ctx the Rfc3984Context object
-	 * @param im a new H264 packet to process
-	 * @param naluq a MSQueue into which a frame ready to be decoded will be output, in the form of a sequence of NAL units.
-	 * @return a bitmask of Rfc3984Status values.
-	 * The return value is a bitmask of the #Rfc3984Status enum.
-	 **/
-	Status unpack(mblk_t *im, MSQueue *naluq);
-
 private:
-	Status outputFrame(MSQueue *out, const Status &flags);
-	void storeNal(mblk_t *nal);
+	uint8_t getNaluType(const mblk_t *nalu) const override;
+	Status outputFrame(MSQueue *out, const Status &flags) override;
+	void storeNal(mblk_t *nal) override;
 	bool_t updateParameterSet(mblk_t **last_parameter_set, mblk_t *new_parameter_set);
 
 	static int isUniqueISlice(const uint8_t *slice_header);
 
-	MSQueue _q;
-	H264FUAAggregator _fuaAggregator;
-	H264StapASpliter _stapASpliter;
-	Status _status;
 	mblk_t *_sps = nullptr;
 	mblk_t *_pps = nullptr;
 	mblk_t *_lastSps = nullptr;
 	mblk_t *_lastPps = nullptr;
-	uint32_t _lastTs = 0x943FEA43;
-	bool _initializedRefCSeq = false;
-	uint16_t _refCSeq = 0;
 };
 
 }; // end of mediastreamer2 namespace
