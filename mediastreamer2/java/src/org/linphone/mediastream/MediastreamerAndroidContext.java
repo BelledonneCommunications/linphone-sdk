@@ -30,6 +30,7 @@ public class MediastreamerAndroidContext {
 	public static final int DEVICE_HAS_BUILTIN_AEC_CRAPPY = 2; // The device has the API to tell us it has a builtin AEC but we shouldn't trust it (so we'll use software AEC)
 	public static final int DEVICE_USE_ANDROID_MIC = 4;
 	public static final int DEVICE_HAS_BUILTIN_OPENSLES_AEC = 8; // The device has a builtin AEC and it is working with OpenSLES (which is uncommon)
+	public static final int DEVICE_USE_ANDROID_CAMCORDER = 512;
 
 	private native void setDeviceFavoriteSampleRate(int samplerate);
 	private native void setDeviceFavoriteBufferSize(int bufferSize);
@@ -52,7 +53,7 @@ public class MediastreamerAndroidContext {
 	}
 
 	@TargetApi(Build.VERSION_CODES.KITKAT)
-	public static void setContext(Object c) {
+	public static void setContext(Object c, org.linphone.mediastream.Factory factory) {
 		if (c == null)
 			return;
 
@@ -69,6 +70,11 @@ public class MediastreamerAndroidContext {
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT)
 		{
 			AudioManager audiomanager = (AudioManager)mContext.getSystemService(Context.AUDIO_SERVICE);
+			//setSpeakerphoneOn for special device to enable choose the audio input source
+			if((factory.getDeviceFlags() & DEVICE_USE_ANDROID_CAMCORDER)!=0) {
+				audiomanager.setSpeakerphoneOn(true);
+			}
+
 			String bufferProperty = audiomanager.getProperty(AudioManager.PROPERTY_OUTPUT_FRAMES_PER_BUFFER);
 			bufferSize = parseInt(bufferProperty, bufferSize);
 			String sampleRateProperty = audiomanager.getProperty(AudioManager.PROPERTY_OUTPUT_SAMPLE_RATE);
