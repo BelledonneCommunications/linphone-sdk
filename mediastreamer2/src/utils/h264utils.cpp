@@ -23,6 +23,8 @@
 
 #include <math.h>
 
+extern "C" {
+
 static void  push_nalu(const uint8_t *begin, const uint8_t *end, MSQueue *nalus) {
 	unsigned ecount = 0;
 	const uint8_t *src = begin;
@@ -81,7 +83,7 @@ uint8_t ms_h264_nalu_get_nri(const mblk_t *nalu) {
 }
 
 MSH264NaluType ms_h264_nalu_get_type(const mblk_t *nalu) {
-	return (*nalu->b_rptr) & ((1 << 5) - 1);
+	return static_cast<MSH264NaluType>((*nalu->b_rptr) & ((1 << 5) - 1));
 }
 
 unsigned int _ms_h264_get_id(const mblk_t *parameter_set, size_t offset, const char *symbol_name) {
@@ -213,3 +215,5 @@ MSVideoSize ms_h264_sps_get_video_size(const mblk_t *sps) {
 	ms_bits_reader_n_bits(&reader, 1, NULL, "vui_parameters_present_flag");
 	return video_size;
 }
+
+};
