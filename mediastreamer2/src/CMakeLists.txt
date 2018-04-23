@@ -286,7 +286,6 @@ endif()
 if(ENABLE_VIDEO)
 	list(APPEND VOIP_SOURCE_FILES_C
 		utils/bits_rw.c
-		utils/h264utils.c
 		utils/h264utils.h
 		videofilters/extdisplay.c
 		videofilters/mire.c
@@ -303,6 +302,9 @@ if(ENABLE_VIDEO)
 		voip/video_preset_high_fps.c
 		voip/videostarter.c
 		voip/videostream.c
+	)
+	list(APPEND VOIP_SOURCE_FILES_CXX
+		utils/h264utils.cpp
 	)
 	if(FFMPEG_FOUND AND NOT TURBOJPEG_FOUND)
 		list(APPEND VOIP_SOURCE_FILES_C
