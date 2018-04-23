@@ -153,15 +153,6 @@ private:
 
 class Rfc3984Unpacker: public Unpacker {
 public:
-	class StatusFlag {
-	public:
-		static const size_t NewSPS = 3;
-		static const size_t NewPPS = 4;
-		static const size_t HasSPS = 5;
-		static const size_t HasPPS = 6;
-		static const size_t HasIDR = 7;
-	};
-
 	Rfc3984Unpacker();
 	~Rfc3984Unpacker();
 
@@ -170,15 +161,9 @@ public:
 private:
 	uint8_t getNaluType(const mblk_t *nalu) const override;
 	Status outputFrame(MSQueue *out, const Status &flags) override;
-	void storeNal(mblk_t *nal) override;
-	bool_t updateParameterSet(mblk_t **last_parameter_set, mblk_t *new_parameter_set);
-
-	static int isUniqueISlice(const uint8_t *slice_header);
 
 	mblk_t *_sps = nullptr;
 	mblk_t *_pps = nullptr;
-	mblk_t *_lastSps = nullptr;
-	mblk_t *_lastPps = nullptr;
 };
 
 }; // end of mediastreamer2 namespace

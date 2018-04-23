@@ -98,4 +98,32 @@ MSVideoSize ms_h264_sps_get_video_size(const mblk_t* sps);
 }
 #endif
 
+#ifdef __cplusplus
+namespace mediastreamer2 {
+
+class H264FrameAnalyser {
+public:
+	struct Info {
+		bool hasSps = false;
+		bool hasPps = false;
+		bool hasIdr = false;
+		bool newSps = false;
+		bool newPps = false;
+
+		unsigned int toUInt() const;
+	};
+
+	~H264FrameAnalyser();
+	Info analyse(const MSQueue *frame);
+
+private:
+	bool updateParameterSet(const mblk_t *new_parameter_set);
+
+	mblk_t *_lastSps = nullptr;
+	mblk_t *_lastPps = nullptr;
+};
+
+};
+#endif
+
 #endif /* defined(H264_UTILS_H) */

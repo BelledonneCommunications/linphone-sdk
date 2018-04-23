@@ -17,11 +17,15 @@
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#include "h264utils.h"
-#include <mediastreamer2/msqueue.h>
-#include "mediastreamer2/bits_rw.h"
-
 #include <math.h>
+
+// #include <ortp/str_utils.h>
+
+#include "mediastreamer2/bits_rw.h"
+#include "mediastreamer2/msqueue.h"
+#include "mediastreamer2/rfc3984.h"
+
+#include "h264utils.h"
 
 extern "C" {
 
@@ -216,4 +220,59 @@ MSVideoSize ms_h264_sps_get_video_size(const mblk_t *sps) {
 	return video_size;
 }
 
-};
+} // extern "C"
+
+
+namespace mediastreamer2 {
+
+unsigned int H264FrameAnalyser::Info::toUInt() const {
+	unsigned int res = 0;
+	if (this->hasIdr) res |= Rfc3984HasIDR;
+	if (this->hasSps) res |= Rfc3984HasSPS;
+	if (this->hasPps) res |= Rfc3984HasPPS;
+	if (this->newSps) res |= Rfc3984NewSPS;
+	if (this->newPps) res |= Rfc3984NewPPS;
+	return res;
+}
+
+H264FrameAnalyser::~H264FrameAnalyser() {
+	if (_lastSps) freemsg(_lastSps);
+	if (_lastPps) freemsg(_lastPps);
+}
+
+H264FrameAnalyser::Info H264FrameAnalyser::analyse(const MSQueue *frame) {
+	Info info;
+	for (const mblk_t *nalu = qbegin(&frame->q); !qend(&frame->q, nalu); nalu = qnext(&frame->q, nalu)) {
+		MSH264NaluType type = ms_h264_nalu_get_type(nalu);
+		if (type == MSH264NaluTypeIDR) {
+			info.hasIdr = true;
+		} else if (type == MSH264NaluTypeSPS) {
+			info.hasSps = true;
+			info.newSps = updateParameterSet(nalu);
+		} else if (type == MSH264NaluTypePPS) {
+			info.hasPps = true;
+			info.newPps = updateParameterSet(nalu);
+		}
+	}
+	return info;
+}
+
+bool H264FrameAnalyser::updateParameterSet(const mblk_t *new_parameter_set) {
+	mblk_t *&last_parameter_set = ms_h264_nalu_get_type(new_parameter_set) == MSH264NaluTypePPS ? _lastPps : _lastSps;
+	if (last_parameter_set != nullptr) {
+		size_t last_size = last_parameter_set->b_wptr - last_parameter_set->b_rptr;
+		size_t new_size = new_parameter_set->b_wptr - new_parameter_set->b_rptr;
+		if (last_size != new_size || memcmp(last_parameter_set->b_rptr, new_parameter_set->b_rptr, new_size) != 0) {
+			freemsg(last_parameter_set);
+			last_parameter_set = copyb(new_parameter_set);
+			return true;
+		} else {
+			return false;
+		}
+	} else {
+		last_parameter_set = copyb(new_parameter_set);
+		return true;
+	}
+}
+
+} // namespace mediastreamer2
