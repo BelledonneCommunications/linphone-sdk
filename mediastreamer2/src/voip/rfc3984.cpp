@@ -147,25 +147,11 @@ void Rfc3984Packer::packInNonInterleavedMode(MSQueue *naluq, MSQueue *rtpq, uint
 }
 
 void Rfc3984Packer::fragNaluAndSend(MSQueue *rtpq, uint32_t ts, mblk_t *nalu, bool_t marker, int maxsize) {
-	mblk_t *m;
-	int payload_max_size = maxsize - 2; /*minus FUA header*/
-	uint8_t fu_indicator;
-	uint8_t type = ms_h264_nalu_get_type(nalu);
-	uint8_t nri = ms_h264_nalu_get_nri(nalu);
-	bool_t start = TRUE;
-
-	H264Tools::nalHeaderInit(&fu_indicator, nri, MSH264NaluTypeFUA);
-	while (nalu->b_wptr - nalu->b_rptr > payload_max_size) {
-		m = dupb(nalu);
-		nalu->b_rptr += payload_max_size;
-		m->b_wptr = nalu->b_rptr;
-		m = H264Tools::prependFuIndicatorAndHeader(m, fu_indicator, start, FALSE, type);
-		sendPacket(rtpq, ts, m, FALSE);
-		start = FALSE;
+	_spliter->feedNalu(nalu);
+	MSQueue *nalus = _spliter->getNalus();
+	while (mblk_t *m = ms_queue_get(nalus)) {
+		sendPacket(rtpq, ts, m, ms_queue_empty(nalus) ? marker : false);
 	}
-	/*send last packet */
-	m = H264Tools::prependFuIndicatorAndHeader(nalu, fu_indicator, FALSE, TRUE, type);
-	sendPacket(rtpq, ts, m, marker);
 }
 
 void Rfc3984Packer::sendPacket(MSQueue *rtpq, uint32_t ts, mblk_t *m, bool_t marker) {

@@ -68,7 +68,7 @@ public:
 		NonInterleavedMode
 	};
 
-	Rfc3984Packer() = default;
+	Rfc3984Packer(): _spliter(new H264NalToFuaSpliter(MS_DEFAULT_MAX_PAYLOAD_SIZE)) {}
 	Rfc3984Packer(MSFactory *factory);
 
 	void setMode(PacketizationMode mode) {_mode = mode;}
@@ -98,6 +98,7 @@ private:
 	uint16_t _refCSeq = 0;
 	PacketizationMode _mode = SingleNalUnitMode;
 	bool _aggregationEnabled = false;
+	std::unique_ptr<H264NalToFuaSpliter> _spliter;
 };
 
 class Unpacker {
