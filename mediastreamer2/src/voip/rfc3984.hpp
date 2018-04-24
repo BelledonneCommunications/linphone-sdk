@@ -33,6 +33,34 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 namespace mediastreamer2 {
 
+class NaluAggregatorInterface {
+public:
+	virtual ~NaluAggregatorInterface() = default;
+	virtual mblk_t *feedNalu(mblk_t *nalu) = 0;
+	virtual bool isAggregating() const = 0;
+	virtual void reset() = 0;
+};
+
+class NaluSpliterInterface {
+public:
+	virtual ~NaluSpliterInterface() = default;
+	virtual void feedNalu(mblk_t *nalu) = 0;
+	virtual MSQueue *getNalus() = 0;
+};
+
+class H264NalToFuaSpliter: public NaluSpliterInterface {
+public:
+	H264NalToFuaSpliter(size_t maxsize): _maxsize(maxsize) {ms_queue_init(&_q);}
+	~H264NalToFuaSpliter() {ms_queue_flush(&_q);}
+
+	void feedNalu(mblk_t *nalu) override;
+	MSQueue *getNalus() override {return &_q;};
+
+private:
+	size_t _maxsize;
+	MSQueue _q;
+};
+
 class Rfc3984Packer {
 public:
 	enum PacketizationMode {
@@ -64,29 +92,12 @@ private:
 
 	static mblk_t *concatNalus(mblk_t *m1, mblk_t *m2);
 	static mblk_t *prependStapA(mblk_t *m);
-	static void nalHeaderInit(uint8_t *h, uint8_t nri, uint8_t type) {*h=((nri&0x3)<<5) | (type & ((1<<5)-1));}
 	static void putNalSize(mblk_t *m, size_t sz);
-	static mblk_t *prependFuIndicatorAndHeader(mblk_t *m, uint8_t indicator, bool_t start, bool_t end, uint8_t type);
 
 	int _maxSize = MS_DEFAULT_MAX_PAYLOAD_SIZE;
 	uint16_t _refCSeq = 0;
 	PacketizationMode _mode = SingleNalUnitMode;
 	bool _aggregationEnabled = false;
-};
-
-class NaluAggregatorInterface {
-public:
-	virtual ~NaluAggregatorInterface() = default;
-	virtual mblk_t *feedNalu(mblk_t *nalu) = 0;
-	virtual bool isAggregating() const = 0;
-	virtual void reset() = 0;
-};
-
-class NaluSpliterInterface {
-public:
-	virtual ~NaluSpliterInterface() = default;
-	virtual void feedNalu(mblk_t *nalu) = 0;
-	virtual MSQueue *getNalus() = 0;
 };
 
 class Unpacker {
@@ -133,6 +144,12 @@ protected:
 	std::unique_ptr<NaluSpliterInterface> _naluSpliter;
 };
 
+class H264Tools {
+public:
+	static void nalHeaderInit(uint8_t *h, uint8_t nri, uint8_t type) {*h=((nri&0x3)<<5) | (type & ((1<<5)-1));}
+	static mblk_t *prependFuIndicatorAndHeader(mblk_t *m, uint8_t indicator, bool_t start, bool_t end, uint8_t type);
+};
+
 class H264FUAAggregator: public NaluAggregatorInterface {
 public:
 	~H264FUAAggregator() {if (_m) freemsg(_m);}
@@ -141,8 +158,6 @@ public:
 	void reset() override;
 
 private:
-	static void nalHeaderInit(uint8_t *h, uint8_t nri, uint8_t type) {*h=((nri&0x3)<<5) | (type & ((1<<5)-1));}
-
 	mblk_t *_m = nullptr;
 };
 

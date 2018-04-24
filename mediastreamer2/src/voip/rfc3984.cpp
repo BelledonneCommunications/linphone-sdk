@@ -29,6 +29,33 @@ namespace mediastreamer2 {
 
 
 //=================================================
+// H264NalToFuaSpliter class
+//=================================================
+
+void H264NalToFuaSpliter::feedNalu(mblk_t *nalu) {
+	mblk_t *m;
+	int payload_max_size = _maxsize - 2; /*minus FUA header*/
+	uint8_t fu_indicator;
+	uint8_t type = ms_h264_nalu_get_type(nalu);
+	uint8_t nri = ms_h264_nalu_get_nri(nalu);
+	bool start = true;
+
+	H264Tools::nalHeaderInit(&fu_indicator, nri, MSH264NaluTypeFUA);
+	while (nalu->b_wptr - nalu->b_rptr > payload_max_size) {
+		m = dupb(nalu);
+		nalu->b_rptr += payload_max_size;
+		m->b_wptr = nalu->b_rptr;
+		m = H264Tools::prependFuIndicatorAndHeader(m, fu_indicator, start, FALSE, type);
+		ms_queue_put(&_q, m);
+		start = false;
+	}
+	/*send last packet */
+	m = H264Tools::prependFuIndicatorAndHeader(nalu, fu_indicator, FALSE, TRUE, type);
+	ms_queue_put(&_q, m);
+}
+
+
+//=================================================
 // Rfc3984Pacer class
 //=================================================
 Rfc3984Packer::Rfc3984Packer::Rfc3984Packer(MSFactory *factory) {
@@ -127,17 +154,17 @@ void Rfc3984Packer::fragNaluAndSend(MSQueue *rtpq, uint32_t ts, mblk_t *nalu, bo
 	uint8_t nri = ms_h264_nalu_get_nri(nalu);
 	bool_t start = TRUE;
 
-	nalHeaderInit(&fu_indicator, nri, MSH264NaluTypeFUA);
+	H264Tools::nalHeaderInit(&fu_indicator, nri, MSH264NaluTypeFUA);
 	while (nalu->b_wptr - nalu->b_rptr > payload_max_size) {
 		m = dupb(nalu);
 		nalu->b_rptr += payload_max_size;
 		m->b_wptr = nalu->b_rptr;
-		m = prependFuIndicatorAndHeader(m, fu_indicator, start, FALSE, type);
+		m = H264Tools::prependFuIndicatorAndHeader(m, fu_indicator, start, FALSE, type);
 		sendPacket(rtpq, ts, m, FALSE);
 		start = FALSE;
 	}
 	/*send last packet */
-	m = prependFuIndicatorAndHeader(nalu, fu_indicator, FALSE, TRUE, type);
+	m = H264Tools::prependFuIndicatorAndHeader(nalu, fu_indicator, FALSE, TRUE, type);
 	sendPacket(rtpq, ts, m, marker);
 }
 
@@ -163,7 +190,7 @@ mblk_t *Rfc3984Packer::concatNalus(mblk_t *m1, mblk_t *m2) {
 
 mblk_t *Rfc3984Packer::prependStapA(mblk_t *m) {
 	mblk_t *hm = allocb(3, 0);
-	nalHeaderInit(hm->b_wptr, ms_h264_nalu_get_nri(m), MSH264NaluTypeSTAPA);
+	H264Tools::nalHeaderInit(hm->b_wptr, ms_h264_nalu_get_nri(m), MSH264NaluTypeSTAPA);
 	hm->b_wptr += 1;
 	putNalSize(hm, msgdsize(m));
 	hm->b_cont = m;
@@ -174,16 +201,6 @@ void Rfc3984Packer::putNalSize(mblk_t *m, size_t sz) {
 	uint16_t size = htons((uint16_t)sz);
 	*(uint16_t *)m->b_wptr = size;
 	m->b_wptr += 2;
-}
-
-mblk_t *Rfc3984Packer::prependFuIndicatorAndHeader(mblk_t *m, uint8_t indicator, bool_t start, bool_t end, uint8_t type) {
-	mblk_t *h = allocb(2, 0);
-	h->b_wptr[0] = indicator;
-	h->b_wptr[1] = ((start & 0x1) << 7) | ((end & 0x1) << 6) | type;
-	h->b_wptr += 2;
-	h->b_cont = m;
-	if (start) m->b_rptr++;/*skip original nalu header */
-	return h;
 }
 
 // ================
@@ -279,6 +296,19 @@ void Unpacker::storeNal(mblk_t *nal) {
 }
 
 // =======================
+// H264Tools class
+// =======================
+mblk_t *H264Tools::prependFuIndicatorAndHeader(mblk_t *m, uint8_t indicator, bool_t start, bool_t end, uint8_t type) {
+	mblk_t *h = allocb(2, 0);
+	h->b_wptr[0] = indicator;
+	h->b_wptr[1] = ((start & 0x1) << 7) | ((end & 0x1) << 6) | type;
+	h->b_wptr += 2;
+	h->b_cont = m;
+	if (start) m->b_rptr++;/*skip original nalu header */
+		return h;
+}
+
+// =======================
 // H264FUAAggregator class
 // =======================
 mblk_t *H264FUAAggregator::feedNalu(mblk_t *im) {
@@ -304,7 +334,7 @@ mblk_t *H264FUAAggregator::feedNalu(mblk_t *im) {
 		im->b_rptr += 2; /*skip the nal header and the fu header*/
 		new_header = allocb(1, 0); /* allocate small fragment to put the correct nal header, this is to avoid to write on the buffer
 		which can break processing of other users of the buffers */
-		nalHeaderInit(new_header->b_wptr, nri, type);
+		H264Tools::nalHeaderInit(new_header->b_wptr, nri, type);
 		new_header->b_wptr++;
 		mblk_meta_copy(im, new_header);
 		concatb(new_header, im);
