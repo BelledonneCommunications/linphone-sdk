@@ -186,23 +186,6 @@ mblk_t *Rfc3984Packer::prependFuIndicatorAndHeader(mblk_t *m, uint8_t indicator,
 	return h;
 }
 
-bool_t Rfc3984Packer::updateParameterSet(mblk_t **last_parameter_set, mblk_t *new_parameter_set) {
-	if (*last_parameter_set != NULL) {
-		size_t last_size = (*last_parameter_set)->b_wptr - (*last_parameter_set)->b_rptr;
-		size_t new_size = new_parameter_set->b_wptr - new_parameter_set->b_rptr;
-		if (last_size != new_size || memcmp((*last_parameter_set)->b_rptr, new_parameter_set->b_rptr, new_size) != 0) {
-			freemsg(*last_parameter_set);
-			*last_parameter_set = dupmsg(new_parameter_set);
-			return TRUE;
-		} else {
-			return FALSE;
-		}
-	} else {
-		*last_parameter_set = dupmsg(new_parameter_set);
-		return TRUE;
-	}
-}
-
 // ================
 // AbstractUnpacker
 // ================

@@ -43,15 +43,15 @@ public:
 	Rfc3984Packer() = default;
 	Rfc3984Packer(MSFactory *factory);
 
-	void setMode(PacketizationMode mode) {this->_mode = mode;}
-	PacketizationMode getMode() const {return this->_mode;}
+	void setMode(PacketizationMode mode) {_mode = mode;}
+	PacketizationMode getMode() const {return _mode;}
 
 	// some stupid phones don't decode STAP-A packets ...
-	void enableStapA(bool yesno) {this->_stapAAllowed = yesno;}
-	bool stapAEnabled() const {return this->_stapAAllowed;}
+	void enableStapA(bool yesno) {_stapAAllowed = yesno;}
+	bool stapAEnabled() const {return _stapAAllowed;}
 
-	void setMaxPayloadSize(int size) {this->_maxSize = size;}
-	int getMaxPayloadSize() {return this->_maxSize;}
+	void setMaxPayloadSize(int size) {_maxSize = size;}
+	int getMaxPayloadSize() {return _maxSize;}
 
 	// process NALUs and pack them into rtp payloads
 	void pack(MSQueue *naluq, MSQueue *rtpq, uint32_t ts);
@@ -67,7 +67,6 @@ private:
 	static void nalHeaderInit(uint8_t *h, uint8_t nri, uint8_t type) {*h=((nri&0x3)<<5) | (type & ((1<<5)-1));}
 	static void putNalSize(mblk_t *m, size_t sz);
 	static mblk_t *prependFuIndicatorAndHeader(mblk_t *m, uint8_t indicator, bool_t start, bool_t end, uint8_t type);
-	static bool_t updateParameterSet(mblk_t **last_parameter_set, mblk_t *new_parameter_set);
 
 	int _maxSize = MS_DEFAULT_MAX_PAYLOAD_SIZE;
 	uint16_t _refCSeq = 0;
