@@ -47,8 +47,8 @@ public:
 	PacketizationMode getMode() const {return _mode;}
 
 	// some stupid phones don't decode STAP-A packets ...
-	void enableStapA(bool yesno) {_stapAAllowed = yesno;}
-	bool stapAEnabled() const {return _stapAAllowed;}
+	void enableAggregation(bool yesno) {_aggregationEnabled = yesno;}
+	bool aggregationEnabled() const {return _aggregationEnabled;}
 
 	void setMaxPayloadSize(int size) {_maxSize = size;}
 	int getMaxPayloadSize() {return _maxSize;}
@@ -71,7 +71,7 @@ private:
 	int _maxSize = MS_DEFAULT_MAX_PAYLOAD_SIZE;
 	uint16_t _refCSeq = 0;
 	PacketizationMode _mode = SingleNalUnitMode;
-	bool _stapAAllowed = false;
+	bool _aggregationEnabled = false;
 };
 
 class NaluAggregatorInterface {

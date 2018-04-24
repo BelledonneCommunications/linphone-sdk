@@ -68,7 +68,7 @@ void Rfc3984Packer::packInNonInterleavedMode(MSQueue *naluq, MSQueue *rtpq, uint
 	while ((m = ms_queue_get(naluq)) != NULL) {
 		end = ms_queue_empty(naluq);
 		sz = (int)(m->b_wptr - m->b_rptr);
-		if (_stapAAllowed) {
+		if (_aggregationEnabled) {
 			if (prevm != NULL) {
 				if ((prevsz + sz) < (_maxSize - 2)) {
 					prevm = concatNalus(prevm, m);
@@ -442,7 +442,7 @@ extern "C" {
 	}
 
 	void rfc3984_enable_stap_a(Rfc3984Context *ctx, bool_t yesno) {
-		ctx->packer.enableStapA(yesno);
+		ctx->packer.enableAggregation(yesno);
 	}
 
 	void rfc3984_pack(Rfc3984Context *ctx, MSQueue *naluq, MSQueue *rtpq, uint32_t ts) {
