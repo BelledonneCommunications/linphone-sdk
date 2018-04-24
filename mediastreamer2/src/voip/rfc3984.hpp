@@ -98,8 +98,9 @@ public:
 		static const size_t FrameCorrupted = 1;
 		static const size_t IsKeyFrame = 2;
 	};
-	typedef std::bitset<32> Status;
+	typedef std::bitset<3> Status;
 
+	Unpacker(NaluAggregatorInterface *aggregator, NaluSpliterInterface *spliter);
 	virtual ~Unpacker() {ms_queue_flush(&_q);}
 
 	/**
@@ -113,10 +114,16 @@ public:
 	Status unpack(mblk_t *im, MSQueue *out);
 
 protected:
+	enum class PacketType {
+		SingleNalUnit,
+		AggregationPacket,
+		FragmentationUnit
+	};
+
 	virtual Status outputFrame(MSQueue *out, const Status &flags);
 	virtual void storeNal(mblk_t *nal);
 
-	virtual uint8_t getNaluType(const mblk_t *nalu) const = 0;
+	virtual PacketType getNaluType(const mblk_t *nalu) const = 0;
 
 	MSQueue _q;
 	Status _status = 0;
@@ -153,13 +160,13 @@ private:
 
 class Rfc3984Unpacker: public Unpacker {
 public:
-	Rfc3984Unpacker();
+	Rfc3984Unpacker(): Unpacker(new H264FUAAggregator(), new H264StapASpliter()) {}
 	~Rfc3984Unpacker();
 
 	void setOutOfBandSpsPps(mblk_t *sps, mblk_t *pps);
 
 private:
-	uint8_t getNaluType(const mblk_t *nalu) const override;
+	Unpacker::PacketType getNaluType(const mblk_t *nalu) const override;
 	Status outputFrame(MSQueue *out, const Status &flags) override;
 
 	mblk_t *_sps = nullptr;

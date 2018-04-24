@@ -207,8 +207,12 @@ bool_t Rfc3984Packer::updateParameterSet(mblk_t **last_parameter_set, mblk_t *ne
 // AbstractUnpacker
 // ================
 
+Unpacker::Unpacker(NaluAggregatorInterface *aggregator, NaluSpliterInterface *spliter): _naluAggregator(aggregator), _naluSpliter(spliter) {
+	ms_queue_init(&_q);
+}
+
 Unpacker::Status Unpacker::unpack(mblk_t *im, MSQueue *out) {
-	uint8_t type = getNaluType(im);
+	PacketType type = getNaluType(im);
 	int marker = mblk_get_marker_info(im);
 	uint32_t ts = mblk_get_timestamp_info(im);
 	uint16_t cseq = mblk_get_cseq(im);
@@ -241,21 +245,26 @@ Unpacker::Status Unpacker::unpack(mblk_t *im, MSQueue *out) {
 		}
 	}
 
-	if (type == MSH264NaluTypeSTAPA) {
-		ms_debug("Receiving STAP-A");
-		_naluSpliter->feedNalu(im);
-		while ((im = ms_queue_get(_naluSpliter->getNalus()))) {
+	switch (type) {
+		case PacketType::SingleNalUnit:
+			_naluAggregator->reset();
+			/*single nal unit*/
+			ms_debug("Receiving single NAL");
 			storeNal(im);
+			break;
+		case PacketType::FragmentationUnit: {
+			ms_debug("Receiving FU-A");
+			mblk_t *o = _naluAggregator->feedNalu(im);
+			if (o) storeNal(o);
+			break;
 		}
-	} else if (type == MSH264NaluTypeFUA) {
-		mblk_t *o = _naluAggregator->feedNalu(im);
-		ms_debug("Receiving FU-A");
-		if (o) storeNal(o);
-	} else {
-		_naluAggregator->reset();
-		/*single nal unit*/
-		ms_debug("Receiving single NAL");
-		storeNal(im);
+		case PacketType::AggregationPacket:
+			ms_debug("Receiving STAP-A");
+			_naluSpliter->feedNalu(im);
+			while ((im = ms_queue_get(_naluSpliter->getNalus()))) {
+				storeNal(im);
+			}
+			break;
 	}
 
 	if (marker) {
@@ -374,11 +383,6 @@ void H264StapASpliter::feedNalu(mblk_t *im) {
 // Public methods
 // --------------
 
-Rfc3984Unpacker::Rfc3984Unpacker(): Unpacker() {
-	_naluAggregator.reset(new H264FUAAggregator());
-	_naluSpliter.reset(new H264StapASpliter());
-}
-
 Rfc3984Unpacker::~Rfc3984Unpacker() {
 	if (_sps != nullptr) freemsg(_sps);
 	if (_pps != nullptr) freemsg(_pps);
@@ -394,8 +398,12 @@ void Rfc3984Unpacker::setOutOfBandSpsPps(mblk_t *sps, mblk_t *pps) {
 
 // Private methods
 // ---------------
-uint8_t Rfc3984Unpacker::getNaluType(const mblk_t *nalu) const {
-	return ms_h264_nalu_get_type(nalu);
+Unpacker::PacketType Rfc3984Unpacker::getNaluType(const mblk_t *nalu) const {
+	switch (ms_h264_nalu_get_type(nalu)) {
+		case MSH264NaluTypeFUA: return PacketType::FragmentationUnit;
+		case MSH264NaluTypeSTAPA: return PacketType::AggregationPacket;
+		default: return PacketType::SingleNalUnit;
+	}
 }
 
 Rfc3984Unpacker::Status Rfc3984Unpacker::outputFrame(MSQueue *out, const Status &flags) {

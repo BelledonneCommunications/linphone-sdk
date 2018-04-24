@@ -27,6 +27,7 @@
  * Enumeration that lists the different type of NAL unit
  */
 typedef enum {
+	MSH264NaluTypeUnknown = -1,
 	MSH264NaluTypeIDR = 5,
 	MSH264NaluTypeSEI = 6,
 	MSH264NaluTypeSPS = 7,
@@ -46,9 +47,15 @@ extern "C" {
 uint8_t ms_h264_nalu_get_nri(const mblk_t *nalu);
 
 /**
- * Get the type of a NAL unit
- * @param nalu The NAL unit to analyse
- * @return The nalu type
+ * @brief Finds out the NALu type corresponding to a given integer according ITU's H264 standard and RFC3984.
+ * @return Returns the type should the integer be mapped to a known type, or #MSH264NaluTypeUnknown if shouldn't.
+ */
+MSH264NaluType ms_h264_int_to_nalu_type(uint8_t val);
+
+/**
+ * Gets the type of a NAL unit.
+ * @param nalu The NAL unit to analyze.
+ * @return The NALu type or #MSH264NaluTypeUnknown if the type of the NALu is unknown.
  */
 MSH264NaluType ms_h264_nalu_get_type(const mblk_t *nalu);
 
