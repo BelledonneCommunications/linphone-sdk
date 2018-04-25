@@ -18,12 +18,6 @@
 
 #include <stdio.h>
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <string.h>
-
 #include "belle-sip/belle-sip.h"
 
 static belle_sip_stack_t *stack;

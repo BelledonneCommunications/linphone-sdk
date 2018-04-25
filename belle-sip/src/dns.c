@@ -112,6 +112,11 @@
 #include <resolv.h>
 #endif
 
+#if defined(HAVE_RESINIT)
+#include <net/if.h>
+#include <ifaddrs.h>
+#endif
+
 #ifdef __ANDROID__
 #include <sys/system_properties.h>
 #endif
@@ -5002,6 +5007,38 @@ int dns_resconf_loadandroid(struct dns_resolv_conf *resconf) {
 #endif
 
 #ifdef HAVE_RESINIT
+
+static int guess_scope_id(void){
+	struct ifaddrs *ifp;
+	struct ifaddrs *ifpstart;
+	int scope_id = -1;
+	
+	if (getifaddrs(&ifpstart) < 0) {
+		return -1;
+	}
+#ifndef __linux
+	#define UP_FLAG IFF_UP /* interface is up */
+#else
+	#define UP_FLAG IFF_RUNNING /* resources allocated */
+#endif
+
+	for (ifp = ifpstart; ifp != NULL; ifp = ifp->ifa_next) {
+		if (ifp->ifa_addr && ifp->ifa_addr->sa_family == AF_INET6
+			&& (ifp->ifa_flags & UP_FLAG) && !(ifp->ifa_flags & IFF_LOOPBACK))
+		{
+			struct sockaddr_in6 *in6 = (struct sockaddr_in6*)ifp->ifa_addr;
+			if (in6->sin6_addr.__u6_addr.__u6_addr16[0] == 0x80fe){
+				scope_id =  in6->sin6_scope_id;
+				belle_sip_warning("Best guess for scope id is %i", scope_id);
+				break;
+			}
+		}
+	}
+	freeifaddrs(ifpstart);
+	
+	return scope_id;
+}
+
 int dns_resconf_loadfromresolv(struct dns_resolv_conf *resconf) {
 	struct __res_state res;
 	union res_sockaddr_union addresses[3];
@@ -5020,8 +5057,16 @@ int dns_resconf_loadfromresolv(struct dns_resolv_conf *resconf) {
 				&&	(addresses[i].sin6.sin6_addr.__u6_addr.__u6_addr16[0] == 0x80fe) /*local link*/
 				&&	(addresses[i].sin6.sin6_scope_id == 0) ) {
 				char ip[32];
+				int scope_id;
 				bctbx_sockaddr_to_printable_ip_address((struct sockaddr*)&addresses[i].sin6, sizeof(struct sockaddr),ip, sizeof (ip));
-				belle_sip_warning("DNS entry [%s] cannot be used without scope id",ip);
+				belle_sip_warning("DNS entry [%s] has no scope id, will try to guess it.",ip);
+				scope_id = guess_scope_id();
+				if (scope_id == 0){
+					belle_sip_error("Could not guess the scope id, dns server [%s] cannot be used.", ip);
+				}else{
+					addresses[i].sin6.sin6_scope_id = scope_id;
+					memcpy(&resconf->nameserver[write_index++],&addresses[i],sizeof(union res_sockaddr_union));
+				}
 			} else {
 				memcpy(&resconf->nameserver[write_index++],&addresses[i],sizeof(union res_sockaddr_union));
 			}
