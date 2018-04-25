@@ -53,7 +53,7 @@ public class MediastreamerAndroidContext {
 	}
 
 	@TargetApi(Build.VERSION_CODES.KITKAT)
-	public static void setContext(Object c, org.linphone.mediastream.Factory factory) {
+	public static void setContext(Object c) {
 		if (c == null)
 			return;
 
@@ -70,10 +70,6 @@ public class MediastreamerAndroidContext {
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT)
 		{
 			AudioManager audiomanager = (AudioManager)mContext.getSystemService(Context.AUDIO_SERVICE);
-			//setSpeakerphoneOn for special device to enable choose the audio input source
-			if((factory.getDeviceFlags() & DEVICE_USE_ANDROID_CAMCORDER)!=0) {
-				audiomanager.setSpeakerphoneOn(true);
-			}
 
 			String bufferProperty = audiomanager.getProperty(AudioManager.PROPERTY_OUTPUT_FRAMES_PER_BUFFER);
 			bufferSize = parseInt(bufferProperty, bufferSize);
@@ -86,7 +82,12 @@ public class MediastreamerAndroidContext {
 			Log.i("Android < 4.4 detected, android context not used.");
 		}
 	}
-	
+
+	public static boolean getSpeakerphoneAlwaysOn(org.linphone.mediastream.Factory factory) {
+		//For special devices, speakerphone always on
+		return ((factory.getDeviceFlags() & DEVICE_USE_ANDROID_CAMCORDER)!=0);
+	}
+
 	private static int parseInt(String value, int defaultValue) {
 		int returnedValue = defaultValue;
 		try {
