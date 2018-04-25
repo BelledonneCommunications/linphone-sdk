@@ -218,7 +218,7 @@ void H264NaluToFuaSpliter::feedNalu(mblk_t *nalu) {
 // Unpacker
 // ========
 
-Unpacker::Unpacker(NaluAggregatorInterface *aggregator, NaluSpliterInterface *spliter): _naluAggregator(aggregator), _naluSpliter(spliter) {
+Unpacker::Unpacker(AggregatorInterface *aggregator, SpliterInterface *spliter): _naluAggregator(aggregator), _naluSpliter(spliter) {
 	ms_queue_init(&_q);
 }
 

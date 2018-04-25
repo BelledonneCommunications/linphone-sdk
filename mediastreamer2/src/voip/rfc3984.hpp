@@ -33,22 +33,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 namespace mediastreamer2 {
 
-class NaluAggregatorInterface {
-public:
-	virtual ~NaluAggregatorInterface() = default;
-	virtual mblk_t *feedNalu(mblk_t *nalu) = 0;
-	virtual bool isAggregating() const = 0;
-	virtual void reset() = 0;
-	virtual mblk_t *completeAggregation() = 0;
-};
-
-class NaluSpliterInterface {
-public:
-	virtual ~NaluSpliterInterface() = default;
-	virtual void feedNalu(mblk_t *nalu) = 0;
-	virtual MSQueue *getNalus() = 0;
-};
-
 class Packer {
 public:
 	enum PacketizationMode {
@@ -170,7 +154,23 @@ public:
 	};
 	typedef std::bitset<3> Status;
 
-	Unpacker(NaluAggregatorInterface *aggregator, NaluSpliterInterface *spliter);
+	class AggregatorInterface {
+	public:
+		virtual ~AggregatorInterface() = default;
+		virtual mblk_t *feedNalu(mblk_t *nalu) = 0;
+		virtual bool isAggregating() const = 0;
+		virtual void reset() = 0;
+		virtual mblk_t *completeAggregation() = 0;
+	};
+
+	class SpliterInterface {
+	public:
+		virtual ~SpliterInterface() = default;
+		virtual void feedNalu(mblk_t *nalu) = 0;
+		virtual MSQueue *getNalus() = 0;
+	};
+
+	Unpacker(AggregatorInterface *aggregator, SpliterInterface *spliter);
 	virtual ~Unpacker() {ms_queue_flush(&_q);}
 
 	/**
@@ -200,8 +200,8 @@ protected:
 	uint32_t _lastTs = 0x943FEA43;
 	bool _initializedRefCSeq = false;
 	uint16_t _refCSeq = 0;
-	std::unique_ptr<NaluAggregatorInterface> _naluAggregator;
-	std::unique_ptr<NaluSpliterInterface> _naluSpliter;
+	std::unique_ptr<AggregatorInterface> _naluAggregator;
+	std::unique_ptr<SpliterInterface> _naluSpliter;
 };
 
 class H264Tools {
@@ -210,7 +210,7 @@ public:
 	static mblk_t *prependFuIndicatorAndHeader(mblk_t *m, uint8_t indicator, bool_t start, bool_t end, uint8_t type);
 };
 
-class H264FUAAggregator: public NaluAggregatorInterface {
+class H264FUAAggregator: public Unpacker::AggregatorInterface {
 public:
 	~H264FUAAggregator() {if (_m) freemsg(_m);}
 	mblk_t *feedNalu(mblk_t *im) override;
@@ -222,7 +222,7 @@ private:
 	mblk_t *_m = nullptr;
 };
 
-class H264StapASpliter: public NaluSpliterInterface {
+class H264StapASpliter: public Unpacker::SpliterInterface {
 public:
 	H264StapASpliter() {ms_queue_init(&_q);}
 	~H264StapASpliter() {ms_queue_flush(&_q);}
