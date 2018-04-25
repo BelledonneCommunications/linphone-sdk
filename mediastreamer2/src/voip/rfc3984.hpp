@@ -49,54 +49,39 @@ public:
 	virtual MSQueue *getNalus() = 0;
 };
 
-class H264NaluToStapAggregator: public NaluAggregatorInterface {
-public:
-	H264NaluToStapAggregator() {}
-	~H264NaluToStapAggregator() {reset();}
-
-	size_t getMaxSize() const {return _maxsize;}
-	void setMaxSize(size_t maxSize);
-
-	mblk_t *feedNalu(mblk_t *nalu) override;
-	bool isAggregating() const override {return bool(_stap);}
-	void reset() override;
-	mblk_t *completeAggregation() override;
-
-private:
-	static mblk_t *concatNalus(mblk_t *m1, mblk_t *m2);
-	static mblk_t *prependStapA(mblk_t *m);
-	static void putNalSize(mblk_t *m, size_t sz);
-
-	mblk_t *_stap = nullptr;
-	size_t _size = 0;
-	size_t _maxsize = MS_DEFAULT_MAX_PAYLOAD_SIZE;
-};
-
-class H264NaluToFuaSpliter: public NaluSpliterInterface {
-public:
-	H264NaluToFuaSpliter() {ms_queue_init(&_q);}
-	~H264NaluToFuaSpliter() {ms_queue_flush(&_q);}
-
-	size_t getMaxSize() const {return _maxsize;}
-	void setMaxSize(size_t maxSize) {_maxsize = maxSize;}
-
-	void feedNalu(mblk_t *nalu) override;
-	MSQueue *getNalus() override {return &_q;};
-
-private:
-	size_t _maxsize = MS_DEFAULT_MAX_PAYLOAD_SIZE;
-	MSQueue _q;
-};
-
-class Rfc3984Packer {
+class Packer {
 public:
 	enum PacketizationMode {
 		SingleNalUnitMode,
 		NonInterleavedMode
 	};
 
-	Rfc3984Packer(): _spliter(new H264NaluToFuaSpliter()), _aggregator(new H264NaluToStapAggregator()) {}
-	Rfc3984Packer(MSFactory *factory);
+	class AggregatorInterface {
+	public:
+		virtual ~AggregatorInterface() = default;
+
+		virtual size_t getMaxSize() const = 0;
+		virtual void setMaxSize(size_t maxSize) = 0;
+
+		virtual mblk_t *feedNalu(mblk_t *nalu) = 0;
+		virtual bool isAggregating() const = 0;
+		virtual void reset() = 0;
+		virtual mblk_t *completeAggregation() = 0;
+	};
+
+	class SpliterInterface {
+	public:
+		virtual ~SpliterInterface() = default;
+
+		virtual size_t getMaxSize() const = 0;
+		virtual void setMaxSize(size_t maxSize) = 0;
+
+		virtual void feedNalu(mblk_t *nalu) = 0;
+		virtual MSQueue *getNalus() = 0;
+	};
+
+	Packer(SpliterInterface *spliter, AggregatorInterface *aggregator) {}
+	Packer(SpliterInterface *spliter, AggregatorInterface *aggregator, MSFactory *factory);
 
 	void setMode(PacketizationMode mode) {_mode = mode;}
 	PacketizationMode getMode() const {return _mode;}
@@ -117,16 +102,62 @@ private:
 	void fragNaluAndSend(MSQueue *rtpq, uint32_t ts, mblk_t *nalu, bool_t marker);
 	void sendPacket(MSQueue *rtpq, uint32_t ts, mblk_t *m, bool_t marker);
 
-	static mblk_t *concatNalus(mblk_t *m1, mblk_t *m2);
-	static mblk_t *prependStapA(mblk_t *m);
-	static void putNalSize(mblk_t *m, size_t sz);
-
 	size_t _maxSize = MS_DEFAULT_MAX_PAYLOAD_SIZE;
 	uint16_t _refCSeq = 0;
 	PacketizationMode _mode = SingleNalUnitMode;
 	bool _aggregationEnabled = false;
-	std::unique_ptr<H264NaluToFuaSpliter> _spliter;
-	std::unique_ptr<H264NaluToStapAggregator> _aggregator;
+	std::unique_ptr<SpliterInterface> _spliter;
+	std::unique_ptr<AggregatorInterface> _aggregator;
+};
+
+class H264NaluToStapAggregator: public Packer::AggregatorInterface {
+public:
+	H264NaluToStapAggregator() {}
+	~H264NaluToStapAggregator() {reset();}
+
+	size_t getMaxSize() const override {return _maxsize;}
+	void setMaxSize(size_t maxSize) override;
+
+	mblk_t *feedNalu(mblk_t *nalu) override;
+	bool isAggregating() const override {return bool(_stap);}
+	void reset() override;
+	mblk_t *completeAggregation() override;
+
+private:
+	static mblk_t *concatNalus(mblk_t *m1, mblk_t *m2);
+	static mblk_t *prependStapA(mblk_t *m);
+	static void putNalSize(mblk_t *m, size_t sz);
+
+	mblk_t *_stap = nullptr;
+	size_t _size = 0;
+	size_t _maxsize = MS_DEFAULT_MAX_PAYLOAD_SIZE;
+};
+
+class H264NaluToFuaSpliter: public Packer::SpliterInterface {
+public:
+	H264NaluToFuaSpliter() {ms_queue_init(&_q);}
+	~H264NaluToFuaSpliter() {ms_queue_flush(&_q);}
+
+	size_t getMaxSize() const override {return _maxsize;}
+	void setMaxSize(size_t maxSize) override {_maxsize = maxSize;}
+
+	void feedNalu(mblk_t *nalu) override;
+	MSQueue *getNalus() override {return &_q;};
+
+private:
+	size_t _maxsize = MS_DEFAULT_MAX_PAYLOAD_SIZE;
+	MSQueue _q;
+};
+
+class Rfc3984Packer: public Packer {
+public:
+	enum PacketizationMode {
+		SingleNalUnitMode,
+		NonInterleavedMode
+	};
+
+	Rfc3984Packer(): Packer(new H264NaluToFuaSpliter(), new H264NaluToStapAggregator()) {}
+	Rfc3984Packer(MSFactory *factory): Packer(new H264NaluToFuaSpliter(), new H264NaluToStapAggregator(), factory) {}
 };
 
 class Unpacker {

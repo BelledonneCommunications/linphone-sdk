@@ -292,7 +292,7 @@ typedef struct {
 static void *h264_module_new(MSFactory *factory) {
 	H264Module *mod = bctbx_new0(H264Module, 1);
 	mod->packer = new Rfc3984Packer(factory);
-	mod->packer->setMode(Rfc3984Packer::NonInterleavedMode);
+	mod->packer->setMode(Packer::NonInterleavedMode);
 	mod->unpacker = new Rfc3984Unpacker();
 	return mod;
 }
