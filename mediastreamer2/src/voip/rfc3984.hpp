@@ -33,42 +33,42 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 namespace mediastreamer2 {
 
-class Packer {
+class NalPacker {
 public:
 	enum PacketizationMode {
 		SingleNalUnitMode,
 		NonInterleavedMode
 	};
 
-	class AggregatorInterface {
+	class NaluAggregatorInterface {
 	public:
-		virtual ~AggregatorInterface() = default;
+		virtual ~NaluAggregatorInterface() = default;
 
 		virtual size_t getMaxSize() const = 0;
 		virtual void setMaxSize(size_t maxSize) = 0;
 
-		virtual mblk_t *feedNalu(mblk_t *nalu) = 0;
+		virtual mblk_t *feed(mblk_t *nalu) = 0;
 		virtual bool isAggregating() const = 0;
 		virtual void reset() = 0;
 		virtual mblk_t *completeAggregation() = 0;
 	};
 
-	class SpliterInterface {
+	class NaluSpliterInterface {
 	public:
-		virtual ~SpliterInterface() = default;
+		virtual ~NaluSpliterInterface() = default;
 
 		virtual size_t getMaxSize() const = 0;
 		virtual void setMaxSize(size_t maxSize) = 0;
 
-		virtual void feedNalu(mblk_t *nalu) = 0;
-		virtual MSQueue *getNalus() = 0;
+		virtual void feed(mblk_t *nalu) = 0;
+		virtual MSQueue *getPackets() = 0;
 	};
 
-	Packer(SpliterInterface *spliter, AggregatorInterface *aggregator) {}
-	Packer(SpliterInterface *spliter, AggregatorInterface *aggregator, MSFactory *factory);
+	NalPacker(NaluSpliterInterface *naluSpliter, NaluAggregatorInterface *naluAggregator): _naluSpliter(naluSpliter), _naluAggregator(naluAggregator) {}
+	NalPacker(NaluSpliterInterface *naluSpliter, NaluAggregatorInterface *naluAggregator, MSFactory *factory);
 
-	void setMode(PacketizationMode mode) {_mode = mode;}
-	PacketizationMode getMode() const {return _mode;}
+	void setPacketizationMode(PacketizationMode packMode) {_packMode = packMode;}
+	PacketizationMode getPacketizationMode() const {return _packMode;}
 
 	// some stupid phones don't decode STAP-A packets ...
 	void enableAggregation(bool yesno) {_aggregationEnabled = yesno;}
@@ -80,7 +80,7 @@ public:
 	// process NALus and pack them into RTP payloads
 	void pack(MSQueue *naluq, MSQueue *rtpq, uint32_t ts);
 
-private:
+protected:
 	void packInSingleNalUnitMode(MSQueue *naluq, MSQueue *rtpq, uint32_t ts);
 	void packInNonInterleavedMode(MSQueue *naluq, MSQueue *rtpq, uint32_t ts);
 	void fragNaluAndSend(MSQueue *rtpq, uint32_t ts, mblk_t *nalu, bool_t marker);
@@ -88,21 +88,21 @@ private:
 
 	size_t _maxSize = MS_DEFAULT_MAX_PAYLOAD_SIZE;
 	uint16_t _refCSeq = 0;
-	PacketizationMode _mode = SingleNalUnitMode;
+	PacketizationMode _packMode = SingleNalUnitMode;
 	bool _aggregationEnabled = false;
-	std::unique_ptr<SpliterInterface> _spliter;
-	std::unique_ptr<AggregatorInterface> _aggregator;
+	std::unique_ptr<NaluSpliterInterface> _naluSpliter;
+	std::unique_ptr<NaluAggregatorInterface> _naluAggregator;
 };
 
-class H264NaluToStapAggregator: public Packer::AggregatorInterface {
+class H264NaluAggregator: public NalPacker::NaluAggregatorInterface {
 public:
-	H264NaluToStapAggregator() {}
-	~H264NaluToStapAggregator() {reset();}
+	H264NaluAggregator() {}
+	~H264NaluAggregator() {reset();}
 
 	size_t getMaxSize() const override {return _maxsize;}
 	void setMaxSize(size_t maxSize) override;
 
-	mblk_t *feedNalu(mblk_t *nalu) override;
+	mblk_t *feed(mblk_t *nalu) override;
 	bool isAggregating() const override {return bool(_stap);}
 	void reset() override;
 	mblk_t *completeAggregation() override;
@@ -117,34 +117,34 @@ private:
 	size_t _maxsize = MS_DEFAULT_MAX_PAYLOAD_SIZE;
 };
 
-class H264NaluToFuaSpliter: public Packer::SpliterInterface {
+class H264NaluSpliter: public NalPacker::NaluSpliterInterface {
 public:
-	H264NaluToFuaSpliter() {ms_queue_init(&_q);}
-	~H264NaluToFuaSpliter() {ms_queue_flush(&_q);}
+	H264NaluSpliter() {ms_queue_init(&_q);}
+	~H264NaluSpliter() {ms_queue_flush(&_q);}
 
 	size_t getMaxSize() const override {return _maxsize;}
 	void setMaxSize(size_t maxSize) override {_maxsize = maxSize;}
 
-	void feedNalu(mblk_t *nalu) override;
-	MSQueue *getNalus() override {return &_q;};
+	void feed(mblk_t *nalu) override;
+	MSQueue *getPackets() override {return &_q;};
 
 private:
 	size_t _maxsize = MS_DEFAULT_MAX_PAYLOAD_SIZE;
 	MSQueue _q;
 };
 
-class Rfc3984Packer: public Packer {
+class H264NalPacker: public NalPacker {
 public:
 	enum PacketizationMode {
 		SingleNalUnitMode,
 		NonInterleavedMode
 	};
 
-	Rfc3984Packer(): Packer(new H264NaluToFuaSpliter(), new H264NaluToStapAggregator()) {}
-	Rfc3984Packer(MSFactory *factory): Packer(new H264NaluToFuaSpliter(), new H264NaluToStapAggregator(), factory) {}
+	H264NalPacker(): NalPacker(new H264NaluSpliter(), new H264NaluAggregator()) {}
+	H264NalPacker(MSFactory *factory): NalPacker(new H264NaluSpliter(), new H264NaluAggregator(), factory) {}
 };
 
-class Unpacker {
+class NalUnpacker {
 public:
 	class StatusFlag {
 	public:
@@ -154,24 +154,24 @@ public:
 	};
 	typedef std::bitset<3> Status;
 
-	class AggregatorInterface {
+	class FuAggregatorInterface {
 	public:
-		virtual ~AggregatorInterface() = default;
-		virtual mblk_t *feedNalu(mblk_t *nalu) = 0;
+		virtual ~FuAggregatorInterface() = default;
+		virtual mblk_t *feed(mblk_t *packet) = 0;
 		virtual bool isAggregating() const = 0;
 		virtual void reset() = 0;
 		virtual mblk_t *completeAggregation() = 0;
 	};
 
-	class SpliterInterface {
+	class ApSpliterInterface {
 	public:
-		virtual ~SpliterInterface() = default;
-		virtual void feedNalu(mblk_t *nalu) = 0;
+		virtual ~ApSpliterInterface() = default;
+		virtual void feed(mblk_t *packet) = 0;
 		virtual MSQueue *getNalus() = 0;
 	};
 
-	Unpacker(AggregatorInterface *aggregator, SpliterInterface *spliter);
-	virtual ~Unpacker() {ms_queue_flush(&_q);}
+	NalUnpacker(FuAggregatorInterface *aggregator, ApSpliterInterface *spliter);
+	virtual ~NalUnpacker() {ms_queue_flush(&_q);}
 
 	/**
 	 * Process incoming rtp data and output NALUs, whenever possible.
@@ -200,8 +200,8 @@ protected:
 	uint32_t _lastTs = 0x943FEA43;
 	bool _initializedRefCSeq = false;
 	uint16_t _refCSeq = 0;
-	std::unique_ptr<AggregatorInterface> _naluAggregator;
-	std::unique_ptr<SpliterInterface> _naluSpliter;
+	std::unique_ptr<FuAggregatorInterface> _fuAggregator;
+	std::unique_ptr<ApSpliterInterface> _apSpliter;
 };
 
 class H264Tools {
@@ -210,10 +210,10 @@ public:
 	static mblk_t *prependFuIndicatorAndHeader(mblk_t *m, uint8_t indicator, bool_t start, bool_t end, uint8_t type);
 };
 
-class H264FUAAggregator: public Unpacker::AggregatorInterface {
+class H264FuaAggregator: public NalUnpacker::FuAggregatorInterface {
 public:
-	~H264FUAAggregator() {if (_m) freemsg(_m);}
-	mblk_t *feedNalu(mblk_t *im) override;
+	~H264FuaAggregator() {if (_m) freemsg(_m);}
+	mblk_t *feed(mblk_t *im) override;
 	bool isAggregating() const override {return _m != nullptr;}
 	void reset() override;
 	mblk_t *completeAggregation() override;
@@ -222,26 +222,26 @@ private:
 	mblk_t *_m = nullptr;
 };
 
-class H264StapASpliter: public Unpacker::SpliterInterface {
+class H264StapaSpliter: public NalUnpacker::ApSpliterInterface {
 public:
-	H264StapASpliter() {ms_queue_init(&_q);}
-	~H264StapASpliter() {ms_queue_flush(&_q);}
-	void feedNalu(mblk_t *im) override;
+	H264StapaSpliter() {ms_queue_init(&_q);}
+	~H264StapaSpliter() {ms_queue_flush(&_q);}
+	void feed(mblk_t *im) override;
 	MSQueue *getNalus() override {return &_q;}
 
 private:
 	MSQueue _q;
 };
 
-class Rfc3984Unpacker: public Unpacker {
+class H264NalUnpacker: public NalUnpacker {
 public:
-	Rfc3984Unpacker(): Unpacker(new H264FUAAggregator(), new H264StapASpliter()) {}
-	~Rfc3984Unpacker();
+	H264NalUnpacker(): NalUnpacker(new H264FuaAggregator(), new H264StapaSpliter()) {}
+	~H264NalUnpacker();
 
 	void setOutOfBandSpsPps(mblk_t *sps, mblk_t *pps);
 
 private:
-	Unpacker::PacketType getNaluType(const mblk_t *nalu) const override;
+	NalUnpacker::PacketType getNaluType(const mblk_t *nalu) const override;
 	Status outputFrame(MSQueue *out, const Status &flags) override;
 
 	mblk_t *_sps = nullptr;

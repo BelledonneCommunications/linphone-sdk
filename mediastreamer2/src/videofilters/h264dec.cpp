@@ -50,7 +50,7 @@ using namespace b64;
 typedef struct _DecData{
 	mblk_t *sps,*pps;
 	AVFrame* orig;
-	Rfc3984Unpacker *unpacker;
+	H264NalUnpacker *unpacker;
 	MSVideoSize vsize;
 	struct SwsContext *sws_ctx;
 	MSAverageFPS fps;
@@ -90,7 +90,7 @@ static void dec_init(MSFilter *f){
 	d->sps=NULL;
 	d->pps=NULL;
 	d->sws_ctx=NULL;
-	d->unpacker = new Rfc3984Unpacker();
+	d->unpacker = new H264NalUnpacker();
 	d->packet_num=0;
 	dec_open(d);
 	d->vsize.width=0;
@@ -288,7 +288,7 @@ static void dec_process(MSFilter *f){
 		// Reset all contexts when an empty packet is received
 		if(msgdsize(im) == 0) {
 			delete d->unpacker;
-			d->unpacker = new Rfc3984Unpacker();
+			d->unpacker = new H264NalUnpacker();
 			dec_reinit(d);
 			ms_stream_regulator_reset(d->regulator);
 			freemsg(im);
@@ -300,9 +300,9 @@ static void dec_process(MSFilter *f){
 			d->sps=NULL;
 			d->pps=NULL;
 		}
-		Rfc3984Unpacker::Status ret = d->unpacker->unpack(im,&nalus);
+		H264NalUnpacker::Status ret = d->unpacker->unpack(im,&nalus);
 		
-		if (ret.test(Unpacker::StatusFlag::FrameAvailable)){
+		if (ret.test(NalUnpacker::StatusFlag::FrameAvailable)){
 			int size;
 			uint8_t *p,*end;
 			bool_t need_reinit=FALSE;
@@ -338,7 +338,7 @@ static void dec_process(MSFilter *f){
 				}
 				p+=len;
 			}
-			if (ret.test(Unpacker::StatusFlag::FrameCorrupted)) requestPLI = TRUE;
+			if (ret.test(NalUnpacker::StatusFlag::FrameCorrupted)) requestPLI = TRUE;
 		}
 		d->packet_num++;
 	}

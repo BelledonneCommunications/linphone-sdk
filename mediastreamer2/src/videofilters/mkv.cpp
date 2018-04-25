@@ -283,17 +283,17 @@ static void H264Private_load(H264Private *obj, const uint8_t *data) {
 
 /* h264 module */
 typedef struct {
-	Rfc3984Packer *packer;
-	Rfc3984Unpacker *unpacker;
+	H264NalPacker *packer;
+	H264NalUnpacker *unpacker;
 	H264Private *codecPrivate;
 	H264Private *lastCodecPrivate;
 } H264Module;
 
 static void *h264_module_new(MSFactory *factory) {
 	H264Module *mod = bctbx_new0(H264Module, 1);
-	mod->packer = new Rfc3984Packer(factory);
-	mod->packer->setMode(Packer::NonInterleavedMode);
-	mod->unpacker = new Rfc3984Unpacker();
+	mod->packer = new H264NalPacker(factory);
+	mod->packer->setPacketizationMode(NalPacker::NonInterleavedMode);
+	mod->unpacker = new H264NalUnpacker();
 	return mod;
 }
 
