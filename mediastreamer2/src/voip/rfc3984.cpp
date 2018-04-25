@@ -17,6 +17,8 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
+#include <exception>
+
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/rfc3984.h"
 
@@ -28,13 +30,79 @@ using namespace std;
 namespace mediastreamer2 {
 
 
+// ========================
+// H264NaluToStapAggregator
+// ========================
+
+void H264NaluToStapAggregator::setMaxSize(size_t maxSize) {
+	if (isAggregating()) {
+		throw logic_error("changing payload size while aggregating NALus into a STAP-A");
+	}
+	_maxsize = maxSize;
+}
+
+mblk_t *H264NaluToStapAggregator::feedNalu(mblk_t *nalu) {
+	size_t size = msgdsize(nalu);
+	if (_stap == nullptr) {
+		_stap = nalu;
+		_size = size + 3; /* STAP-A header + size */
+	} else {
+		if ((_size + size) < (_maxsize - 2)) {
+			_stap = concatNalus(_stap, nalu);
+			_size += (size + 2); /* +2 for the STAP-A size field */
+		} else {
+			return completeAggregation();
+		}
+	}
+	return nullptr;
+}
+
+void H264NaluToStapAggregator::reset() {
+	if (_stap) freemsg(_stap);
+	_size = 0;
+}
+
+mblk_t *H264NaluToStapAggregator::completeAggregation() {
+	mblk_t *res = _stap;
+	_stap = nullptr;
+	reset();
+	return res;
+}
+
+mblk_t *H264NaluToStapAggregator::concatNalus(mblk_t *m1, mblk_t *m2) {
+	mblk_t *l = allocb(2, 0);
+	/*eventually append a STAP-A header to m1, if not already done*/
+	if (ms_h264_nalu_get_type(m1) != MSH264NaluTypeSTAPA) {
+		m1 = prependStapA(m1);
+	}
+	putNalSize(l, msgdsize(m2));
+	l->b_cont = m2;
+	concatb(m1, l);
+	return m1;
+}
+
+mblk_t *H264NaluToStapAggregator::prependStapA(mblk_t *m) {
+	mblk_t *hm = allocb(3, 0);
+	H264Tools::nalHeaderInit(hm->b_wptr, ms_h264_nalu_get_nri(m), MSH264NaluTypeSTAPA);
+	hm->b_wptr += 1;
+	putNalSize(hm, msgdsize(m));
+	hm->b_cont = m;
+	return hm;
+}
+
+void H264NaluToStapAggregator::putNalSize(mblk_t *m, size_t sz) {
+	uint16_t size = htons((uint16_t)sz);
+	*(uint16_t *)m->b_wptr = size;
+	m->b_wptr += 2;
+}
+
 //=================================================
 // H264NalToFuaSpliter class
 //=================================================
 
-void H264NalToFuaSpliter::feedNalu(mblk_t *nalu) {
+void H264NaluToFuaSpliter::feedNalu(mblk_t *nalu) {
 	mblk_t *m;
-	int payload_max_size = _maxsize - 2; /*minus FUA header*/
+	int payload_max_size = _maxsize - 2; /*minus FU-A header*/
 	uint8_t fu_indicator;
 	uint8_t type = ms_h264_nalu_get_type(nalu);
 	uint8_t nri = ms_h264_nalu_get_nri(nalu);
@@ -58,8 +126,15 @@ void H264NalToFuaSpliter::feedNalu(mblk_t *nalu) {
 //=================================================
 // Rfc3984Pacer class
 //=================================================
-Rfc3984Packer::Rfc3984Packer::Rfc3984Packer(MSFactory *factory) {
+
+Rfc3984Packer::Rfc3984Packer(MSFactory *factory): _spliter(new H264NaluToFuaSpliter()), _aggregator(new H264NaluToStapAggregator()) {
 	setMaxPayloadSize(ms_factory_get_payload_max_size(factory));
+}
+
+void Rfc3984Packer::setMaxPayloadSize(size_t size) {
+	_maxSize = size;
+	_spliter->setMaxSize(size);
+	_aggregator->setMaxSize(size);
 }
 
 void Rfc3984Packer::pack(MSQueue *naluq, MSQueue *rtpq, uint32_t ts) {
@@ -75,56 +150,34 @@ void Rfc3984Packer::pack(MSQueue *naluq, MSQueue *rtpq, uint32_t ts) {
 
 // Private methods
 void Rfc3984Packer::packInSingleNalUnitMode(MSQueue *naluq, MSQueue *rtpq, uint32_t ts) {
-	mblk_t *m;
-	bool_t end;
-	int size;
-	while ((m = ms_queue_get(naluq)) != NULL) {
-		end = ms_queue_empty(naluq);
-		size = (int)(m->b_wptr - m->b_rptr);
+	while (mblk_t *m = ms_queue_get(naluq)) {
+		bool end = ms_queue_empty(naluq);
+		size_t size = msgdsize(m);
 		if (size > _maxSize) {
-			ms_warning("This H264 packet does not fit into mtu: size=%i", size);
+			ms_warning("This H264 packet does not fit into MTU: size=%u", static_cast<unsigned int>(size));
 		}
 		sendPacket(rtpq, ts, m, end);
 	}
 }
 
 void Rfc3984Packer::packInNonInterleavedMode(MSQueue *naluq, MSQueue *rtpq, uint32_t ts) {
-	mblk_t *m, *prevm = NULL;
-	int prevsz = 0, sz;
-	bool_t end;
-	while ((m = ms_queue_get(naluq)) != NULL) {
-		end = ms_queue_empty(naluq);
-		sz = (int)(m->b_wptr - m->b_rptr);
+	while (mblk_t *m = ms_queue_get(naluq)) {
+		bool end = ms_queue_empty(naluq);
+		size_t sz = msgdsize(m);
 		if (_aggregationEnabled) {
-			if (prevm != NULL) {
-				if ((prevsz + sz) < (_maxSize - 2)) {
-					prevm = concatNalus(prevm, m);
-					m = NULL;
-					prevsz += sz + 2; /*+2 for the stapa size field*/
-					continue;
-				} else {
-					/*send prevm packet: either single nal or STAP-A*/
-					if (prevm->b_cont != NULL) {
-						ms_debug("Sending STAP-A");
-					} else {
-						ms_debug("Sending previous msg as single NAL");
-					}
-					sendPacket(rtpq, ts, prevm, FALSE);
-					prevm = NULL;
-					prevsz = 0;
-				}
+			if (_aggregator->isAggregating()) {
+				mblk_t *stapPacket = _aggregator->feedNalu(m);
+				if (stapPacket) {
+					sendPacket(rtpq, ts, stapPacket, false);
+				} else continue;
 			}
 			if (sz < (_maxSize / 2)) {
-				/*try to aggregate it with next packet*/
-				prevm = m;
-				prevsz = sz + 3; /*STAP-A header + size*/
-				m = NULL;
+				_aggregator->feedNalu(m);
 			} else {
-
-				/*send as single nal or FU-A*/
+				/*send as single NAL or FU-A*/
 				if (sz > _maxSize) {
 					ms_debug("Sending FU-A packets");
-					fragNaluAndSend(rtpq, ts, m, end, _maxSize);
+					fragNaluAndSend(rtpq, ts, m, end);
 				} else {
 					ms_debug("Sending Single NAL");
 					sendPacket(rtpq, ts, m, end);
@@ -133,20 +186,20 @@ void Rfc3984Packer::packInNonInterleavedMode(MSQueue *naluq, MSQueue *rtpq, uint
 		} else {
 			if (sz > _maxSize) {
 				ms_debug("Sending FU-A packets");
-				fragNaluAndSend(rtpq, ts, m, end, _maxSize);
+				fragNaluAndSend(rtpq, ts, m, end);
 			} else {
 				ms_debug("Sending Single NAL");
 				sendPacket(rtpq, ts, m, end);
 			}
 		}
 	}
-	if (prevm) {
+	if (_aggregator->isAggregating()) {
 		ms_debug("Sending Single NAL (2)");
-		sendPacket(rtpq, ts, prevm, TRUE);
+		sendPacket(rtpq, ts, _aggregator->completeAggregation(), true);
 	}
 }
 
-void Rfc3984Packer::fragNaluAndSend(MSQueue *rtpq, uint32_t ts, mblk_t *nalu, bool_t marker, int maxsize) {
+void Rfc3984Packer::fragNaluAndSend(MSQueue *rtpq, uint32_t ts, mblk_t *nalu, bool_t marker) {
 	_spliter->feedNalu(nalu);
 	MSQueue *nalus = _spliter->getNalus();
 	while (mblk_t *m = ms_queue_get(nalus)) {
@@ -159,34 +212,6 @@ void Rfc3984Packer::sendPacket(MSQueue *rtpq, uint32_t ts, mblk_t *m, bool_t mar
 	mblk_set_marker_info(m, marker);
 	mblk_set_cseq(m, _refCSeq++);
 	ms_queue_put(rtpq, m);
-}
-
-// Private static methods
-mblk_t *Rfc3984Packer::concatNalus(mblk_t *m1, mblk_t *m2) {
-	mblk_t *l = allocb(2, 0);
-	/*eventually append a stap-A header to m1, if not already done*/
-	if (ms_h264_nalu_get_type(m1) != MSH264NaluTypeSTAPA) {
-		m1 = prependStapA(m1);
-	}
-	putNalSize(l, msgdsize(m2));
-	l->b_cont = m2;
-	concatb(m1, l);
-	return m1;
-}
-
-mblk_t *Rfc3984Packer::prependStapA(mblk_t *m) {
-	mblk_t *hm = allocb(3, 0);
-	H264Tools::nalHeaderInit(hm->b_wptr, ms_h264_nalu_get_nri(m), MSH264NaluTypeSTAPA);
-	hm->b_wptr += 1;
-	putNalSize(hm, msgdsize(m));
-	hm->b_cont = m;
-	return hm;
-}
-
-void Rfc3984Packer::putNalSize(mblk_t *m, size_t sz) {
-	uint16_t size = htons((uint16_t)sz);
-	*(uint16_t *)m->b_wptr = size;
-	m->b_wptr += 2;
 }
 
 // ================
@@ -350,6 +375,11 @@ void H264FUAAggregator::reset() {
 	}
 }
 
+mblk_t *H264FUAAggregator::completeAggregation() {
+	mblk_t *res = _m;
+	_m = nullptr;
+	return res;
+}
 
 // =====================
 // H264StapASlicer class

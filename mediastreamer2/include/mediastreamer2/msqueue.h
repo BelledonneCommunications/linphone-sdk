@@ -74,7 +74,7 @@ static MS2_INLINE void ms_queue_remove(MSQueue *q, mblk_t *m){
 	remq(&q->q,m);
 }
 
-static MS2_INLINE bool_t ms_queue_empty(MSQueue *q){
+static MS2_INLINE bool_t ms_queue_empty(const MSQueue *q){
 	return qempty(&q->q);
 }
 
