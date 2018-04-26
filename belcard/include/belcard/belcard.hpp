@@ -94,7 +94,7 @@ namespace belcard {
 		void add(std::list<std::shared_ptr<T>> &property_list, const std::shared_ptr<T> &property);
 
 		template<typename T>
-		void remove(std::list<std::shared_ptr<T>> &property_list, const std::shared_ptr<T> &property);
+		void remove(std::list<std::shared_ptr<T>> &property_list, std::shared_ptr<T> property);
 
 		// The following are for belcard use only, they don't do any check on the value
 		void _setKind(const std::shared_ptr<BelCardKind> &kind);

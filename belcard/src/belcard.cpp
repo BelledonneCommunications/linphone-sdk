@@ -109,7 +109,7 @@ void BelCard::add(list<shared_ptr<T>> &property_list, const shared_ptr<T> &prope
 }
 
 template <typename T>
-void BelCard::remove(list<shared_ptr<T>> &property_list, const shared_ptr<T> &property) {
+void BelCard::remove(list<shared_ptr<T>> &property_list, shared_ptr<T> property) {
 	property_list.remove(property);
 	removeProperty(property);
 }
@@ -197,7 +197,7 @@ bool BelCard::setGender(const shared_ptr<BelCardGender> &gender) {
 const shared_ptr<BelCardGender> &BelCard::getGender() const {
 	return _gender;
 }
-		
+
 void BelCard::_setProductId(const shared_ptr<BelCardProductId> &pid) {
 	set(_pid, pid);
 }
@@ -754,11 +754,11 @@ const list<shared_ptr<BelCardProperty>> &BelCard::getProperties() const {
 void BelCard::serialize(ostream& output) const {
 	output << "BEGIN:VCARD\r\nVERSION:4.0\r\n";
 	for (auto it = getProperties().begin(); it != getProperties().end(); ++it) {
-		output << (**it); 
+		output << (**it);
 	}
 	output << "END:VCARD\r\n";
 }
-		
+
 string& BelCard::toFoldedString() {
 	string temp = toString();
 	_folded_string = belcard_fold(temp);
@@ -769,7 +769,7 @@ bool BelCard::assertRFCCompliance() const {
 	if (!_fn) {
 		return false;
 	}
-	
+
 	return true;
 }
 
@@ -779,7 +779,7 @@ void BelCardList::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *pa
 }
 
 BelCardList::BelCardList() : BelCardGeneric() {
-	
+
 }
 
 void BelCardList::addCard(const shared_ptr<BelCard> &vcard) {
@@ -792,6 +792,6 @@ const list<shared_ptr<BelCard>> &BelCardList::getCards() const {
 
 void BelCardList::serialize(ostream &output) const {
 	for (auto it = getCards().begin(); it != getCards().end(); ++it) {
-		output << (*it)->toFoldedString(); 
+		output << (*it)->toFoldedString();
 	}
 }
