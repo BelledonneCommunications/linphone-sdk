@@ -204,7 +204,6 @@ set(VOIP_SOURCE_FILES_C
 	voip/stun.c
 )
 set(VOIP_SOURCE_FILES_CXX
-	voip/rfc3984.cpp
 )
 set(VOIP_SOURCE_FILES_OBJC )
 set(VOIP_SOURCE_FILES_ASM )
@@ -305,6 +304,11 @@ if(ENABLE_VIDEO)
 	)
 	list(APPEND VOIP_SOURCE_FILES_CXX
 		utils/h264utils.cpp
+		voip/h264-nal-packer.cpp
+		voip/h264-nal-unpacker.cpp
+		voip/nal-packer.cpp
+		voip/nal-unpacker.cpp
+		voip/rfc3984.cpp
 	)
 	if(FFMPEG_FOUND AND NOT TURBOJPEG_FOUND)
 		list(APPEND VOIP_SOURCE_FILES_C

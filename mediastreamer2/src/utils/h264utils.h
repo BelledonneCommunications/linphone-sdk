@@ -106,7 +106,7 @@ MSVideoSize ms_h264_sps_get_video_size(const mblk_t* sps);
 #endif
 
 #ifdef __cplusplus
-namespace mediastreamer2 {
+namespace mediastreamer {
 
 class H264FrameAnalyser {
 public:
@@ -128,6 +128,12 @@ private:
 
 	mblk_t *_lastSps = nullptr;
 	mblk_t *_lastPps = nullptr;
+};
+
+class H264Tools {
+public:
+	static void nalHeaderInit(uint8_t *h, uint8_t nri, uint8_t type) {*h=((nri&0x3)<<5) | (type & ((1<<5)-1));}
+	static mblk_t *prependFuIndicatorAndHeader(mblk_t *m, uint8_t indicator, bool_t start, bool_t end, uint8_t type);
 };
 
 };

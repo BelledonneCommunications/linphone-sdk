@@ -237,7 +237,7 @@ MSVideoSize ms_h264_sps_get_video_size(const mblk_t *sps) {
 } // extern "C"
 
 
-namespace mediastreamer2 {
+namespace mediastreamer {
 
 unsigned int H264FrameAnalyser::Info::toUInt() const {
 	unsigned int res = 0;
@@ -287,6 +287,16 @@ bool H264FrameAnalyser::updateParameterSet(const mblk_t *new_parameter_set) {
 		last_parameter_set = copyb(new_parameter_set);
 		return true;
 	}
+}
+
+mblk_t *H264Tools::prependFuIndicatorAndHeader(mblk_t *m, uint8_t indicator, bool_t start, bool_t end, uint8_t type) {
+	mblk_t *h = allocb(2, 0);
+	h->b_wptr[0] = indicator;
+	h->b_wptr[1] = ((start & 0x1) << 7) | ((end & 0x1) << 6) | type;
+	h->b_wptr += 2;
+	h->b_cont = m;
+	if (start) m->b_rptr++;/*skip original nalu header */
+		return h;
 }
 
 } // namespace mediastreamer2

@@ -37,15 +37,16 @@ extern "C" {
 #ifdef VIDEO_ENABLED
 	#include "mediastreamer2/msvideo.h"
 	#include "vp8rtpfmt.h"
-	#include "rfc3984.hpp"
 	#include "h264utils.h"
+	#include "h264-nal-packer.h"
+	#include "h264-nal-unpacker.h"
 #endif // ifdef VIDEO_ENABLED
 
 #undef bool_t
 
 #define bool_t ambigous use ms_bool_t or matroska_bool_t
 
-using namespace mediastreamer2;
+using namespace mediastreamer;
 
 static int recorder_close(MSFilter *f, void *arg);
 

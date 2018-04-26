@@ -22,7 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mediastreamer2/msvideo.h"
 #include "mediastreamer2/msticker.h"
 
-#include "rfc3984.hpp"
+#include "h264-nal-unpacker.h"
 #include "stream_regulator.h"
 
 #if __clang__
@@ -42,9 +42,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #endif
 
-#include "ortp/b64.h"
+#include <ortp/b64.h>
 
-using namespace mediastreamer2;
+using namespace mediastreamer;
 using namespace b64;
 
 typedef struct _DecData{
