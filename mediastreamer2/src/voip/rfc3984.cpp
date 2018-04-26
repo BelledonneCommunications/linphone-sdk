@@ -17,6 +17,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
+#include <bitset>
 #include <exception>
 
 #include "mediastreamer2/msfilter.h"
@@ -218,6 +219,21 @@ void H264NaluSpliter::feed(mblk_t *nalu) {
 // Unpacker class
 // ==============
 
+NalUnpacker::Status &NalUnpacker::Status::operator|=(const Status &s2) {
+	this->frameAvailable = (this->frameAvailable || s2.frameAvailable);
+	this->frameCorrupted = (this->frameCorrupted || s2.frameCorrupted);
+	this->isKeyFrame = (this->isKeyFrame || s2.isKeyFrame);
+	return *this;
+}
+
+unsigned int NalUnpacker::Status::toUInt() const {
+	bitset<3> flags;
+	if (frameAvailable) flags.set(0);
+	if (frameCorrupted) flags.set(1);
+	if (isKeyFrame) flags.set(2);
+	return flags.to_ulong();
+}
+
 NalUnpacker::NalUnpacker(FuAggregatorInterface *aggregator, ApSpliterInterface *spliter): _fuAggregator(aggregator), _apSpliter(spliter) {
 	ms_queue_init(&_q);
 }
@@ -235,7 +251,8 @@ NalUnpacker::Status NalUnpacker::unpack(mblk_t *im, MSQueue *out) {
 		_lastTs = ts;
 		if (!_fuAggregator->isAggregating() && !ms_queue_empty(&_q)) {
 			Status status;
-			status.set(StatusFlag::FrameAvailable).set(StatusFlag::FrameCorrupted);
+			status.frameAvailable = true;
+			status.frameCorrupted = true;
 			ret = outputFrame(out, status);
 			ms_warning("Incomplete H264 frame (missing marker bit after seq number %u)",
 					   mblk_get_cseq(ms_queue_peek_last(out)));
@@ -252,7 +269,7 @@ NalUnpacker::Status NalUnpacker::unpack(mblk_t *im, MSQueue *out) {
 		if (_refCSeq != cseq) {
 			ms_message("sequence inconsistency detected (diff=%i)", (int)(cseq - _refCSeq));
 			_refCSeq = cseq;
-			_status.set(StatusFlag::FrameCorrupted);
+			_status.frameCorrupted = true;
 		}
 	}
 
@@ -282,7 +299,7 @@ NalUnpacker::Status NalUnpacker::unpack(mblk_t *im, MSQueue *out) {
 		_lastTs = ts;
 		ms_debug("Marker bit set");
 		Status status;
-		status.set(StatusFlag::FrameAvailable);
+		status.frameAvailable = true;
 		ret = outputFrame(out, status);
 	}
 
@@ -298,7 +315,7 @@ NalUnpacker::Status NalUnpacker::outputFrame(MSQueue *out, const Status &flags) 
 	while (!ms_queue_empty(&_q)) {
 		ms_queue_put(out, ms_queue_get(&_q));
 	}
-	_status = 0;
+	_status = Status();
 	return res;
 }
 
@@ -436,16 +453,14 @@ NalUnpacker::PacketType H264NalUnpacker::getNaluType(const mblk_t *nalu) const {
 }
 
 H264NalUnpacker::Status H264NalUnpacker::outputFrame(MSQueue *out, const Status &flags) {
-	Status res = _status;
-	if (res.test(NalUnpacker::StatusFlag::IsKeyFrame) && _sps && _pps) {
+	if (_status.isKeyFrame && _sps && _pps) {
 		/*prepend out of band provided sps and pps*/
 		ms_queue_put(out, _sps);
 		ms_queue_put(out, _pps);
 		_sps = NULL;
 		_pps = NULL;
 	}
-	NalUnpacker::outputFrame(out, flags);
-	return res;
+	return NalUnpacker::outputFrame(out, flags);
 }
 
 }; // end of mediastreamer2 namespace
@@ -502,7 +517,7 @@ extern "C" {
 	unsigned int rfc3984_unpack2(Rfc3984Context *ctx, mblk_t *im, MSQueue *naluq) {
 		MSQueue q;
 		ms_queue_init(&q);
-		unsigned int status = ctx->unpacker.unpack(im, &q).to_ulong();
+		unsigned int status = ctx->unpacker.unpack(im, &q).toUInt();
 		if (status & Rfc3984FrameAvailable) {
 			status |= ctx->analyser.analyse(&q).toUInt();
 			while(mblk_t *m = ms_queue_get(&q)) {

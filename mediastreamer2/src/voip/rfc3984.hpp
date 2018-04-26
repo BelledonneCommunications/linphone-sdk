@@ -19,7 +19,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #pragma once
 
-#include <bitset>
 #include <memory>
 
 #include "mediastreamer2/mscommon.h"
@@ -146,13 +145,14 @@ public:
 
 class NalUnpacker {
 public:
-	class StatusFlag {
-	public:
-		static const size_t FrameAvailable = 0;
-		static const size_t FrameCorrupted = 1;
-		static const size_t IsKeyFrame = 2;
+	struct Status {
+		bool frameAvailable = false;
+		bool frameCorrupted = false;
+		bool isKeyFrame = false;
+
+		Status &operator|=(const Status &s2);
+		unsigned int toUInt() const;
 	};
-	typedef std::bitset<3> Status;
 
 	class FuAggregatorInterface {
 	public:
@@ -196,7 +196,7 @@ protected:
 	virtual PacketType getNaluType(const mblk_t *nalu) const = 0;
 
 	MSQueue _q;
-	Status _status = 0;
+	Status _status;
 	uint32_t _lastTs = 0x943FEA43;
 	bool _initializedRefCSeq = false;
 	uint16_t _refCSeq = 0;

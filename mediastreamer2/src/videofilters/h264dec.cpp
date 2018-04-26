@@ -302,7 +302,7 @@ static void dec_process(MSFilter *f){
 		}
 		H264NalUnpacker::Status ret = d->unpacker->unpack(im,&nalus);
 		
-		if (ret.test(NalUnpacker::StatusFlag::FrameAvailable)){
+		if (ret.frameAvailable){
 			int size;
 			uint8_t *p,*end;
 			bool_t need_reinit=FALSE;
@@ -338,7 +338,7 @@ static void dec_process(MSFilter *f){
 				}
 				p+=len;
 			}
-			if (ret.test(NalUnpacker::StatusFlag::FrameCorrupted)) requestPLI = TRUE;
+			if (ret.frameCorrupted) requestPLI = TRUE;
 		}
 		d->packet_num++;
 	}
