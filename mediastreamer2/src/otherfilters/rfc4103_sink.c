@@ -80,14 +80,14 @@ static void text_stream_hexdump(const uint8_t* data, const size_t s) {
 	const uint8_t* c = data;
 	int pos = 0;
 	int i = 0;
-	
+
 	buf[0] = '\0';
 	while(c < data + s) {
 		pos += snprintf(&buf[pos], 1000 - pos, " ['%c']0x%X", *c > 20 ? *c : 'X', *c);
 		c++;
 		i++;
 	}
-	
+
 	buf[pos] = '\0';
 	ms_debug("%s", buf);
 }
@@ -106,8 +106,8 @@ static int read_t140_data(RealTimeTextSinkData *stream, uint8_t *data, int reads
 	} else if (readsize > buf_size) {
 		readsize = buf_size;
 		ms_warning("reading less characters than in buffer");
-		
-		/*POTENTIAL BUG... if last char is a multi char but just parts of it get 
+
+		/*POTENTIAL BUG... if last char is a multi char but just parts of it get
 		in, next function fails and whole buf is ignored. */
 	}
 	if (readsize > 0) {
@@ -155,7 +155,7 @@ static void process_red_packet(RealTimeTextSinkData *stream, mblk_t *packet) {
 	int redneeded;
 	int readstart;
 	/* check how many is red, also check if its the right payload for the red */
-	
+
 	ms_debug("red seqno:%i", seqno);
 	while ((pos < (int)payloadsize) && (payload[pos] & (1 << 7))) {
 		redgen++;
@@ -165,7 +165,7 @@ static void process_red_packet(RealTimeTextSinkData *stream, mblk_t *packet) {
 		}
 		pos += 4;
 	}
-	
+
 	ms_debug("red redgen:%i",redgen);
 	if ((int)payload[pos] != stream->pt_t140) {
 		ms_warning("invalid red packet");
@@ -180,7 +180,7 @@ static void process_red_packet(RealTimeTextSinkData *stream, mblk_t *packet) {
 		ms_warning("packet arrived out of order");
 		return;
 	}
-	
+
 	ms_debug("red redneeded:%i", redneeded);
 	if (redneeded > redgen) {
 		/* we need more red than we got */
@@ -203,21 +203,21 @@ static void process_red_packet(RealTimeTextSinkData *stream, mblk_t *packet) {
 static bool_t read_text_packet(RealTimeTextSinkData *stream, mblk_t *packet) {
 	stream->inbufpos = stream->inbuf;
 	stream->inbufsize = 0;
-	
+
 	if (packet == NULL) {
 		return FALSE;
 	}
-	
+
 	if (stream->pt_red > 0) {
 		process_red_packet(stream, packet);
 	} else {
 		process_t140_packet(stream, packet);
 	}
-	
+
 	if (!(stream->flags & TS_FLAG_NOTFIRST)) {
 		stream->flags |= TS_FLAG_NOTFIRST;
 	}
-	
+
 	freemsg(packet);
 	return TRUE;
 }
@@ -282,25 +282,26 @@ static void ms_rtt_4103_sink_init(MSFilter *f) {
 }
 
 static void ms_rtt_4103_sink_preprocess(MSFilter *f) {
-	
+
 }
 
 static void ms_rtt_4103_sink_process(MSFilter *f) {
 	RealTimeTextSinkData *s = (RealTimeTextSinkData *)f->data;
 	mblk_t *im;
-	
+
 	ms_filter_lock(f);
 	while((im = ms_queue_get(f->inputs[0])) != NULL) {
 		read_text_packet(s, im);
-		
+
 		while (text_stream_ischar(s)) {
 			uint32_t character = text_stream_getchar32(s);
-			
+
 			if (character != 0) {
 				RealtimeTextReceivedCharacter *data = ms_new0(RealtimeTextReceivedCharacter, 1);
 				data->character = character;
-				ms_debug("Received char 32: %lu", (long unsigned) character);
+				ms_debug("Received char 32: %lu", (long unsigned)character);
 				ms_filter_notify(f, MS_RTT_4103_RECEIVED_CHAR, data);
+				ms_free(data);
 			} else {
 				s->inbufsize = 0; // This will stop the text_stream_ischar
 			}
@@ -310,7 +311,7 @@ static void ms_rtt_4103_sink_process(MSFilter *f) {
 }
 
 static void ms_rtt_4103_sink_postprocess(MSFilter *f) {
-	
+
 }
 
 static void ms_rtt_4103_sink_uninit(MSFilter *f) {
