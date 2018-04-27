@@ -629,6 +629,8 @@ struct _belle_sip_message {
 	belle_sip_object_t base;
 	belle_sip_list_t* header_list;
 	belle_sip_body_handler_t *body_handler;
+
+	char *multipart_body_cache;
 };
 
 struct _belle_sip_request {
