@@ -25,6 +25,10 @@
 
 #include "bctoolbox/exception.hh"
 
+#include <iostream> // ostreamstring to generate incoming/outgoing messages debug trace
+#include <iomanip>
+
+
 using namespace::std;
 using namespace::lime;
 
@@ -193,59 +197,85 @@ namespace lime {
 		 */
 		template <typename Curve>
 		bool parseMessage_getType(const std::vector<uint8_t> &body, x3dh_message_type &message_type, x3dh_error_code &error_code, const limeCallback callback) noexcept {
+			// Trace incoming message parsing their content to display human readable trace
+			ostringstream message_trace;
+			message_trace << hex << setfill('0') << "Incoming X3DH message: "<<endl;
+			// first display the whole message in hexa
+			std::for_each(std::begin(body), std::end(body), [&message_trace] (unsigned int i)
+			{
+				message_trace << setw(2) << i << ", ";
+			});
+
 			// check message holds at leat a header before trying to read it
 			if (body.size()<X3DH_headerSize) {
-				LIME_LOGE<<"Got an invalid response from X3DH server";
+				LIME_LOGE<<"Got an invalid response from X3DH server"<<endl<< message_trace.str()<<endl<<"    Invalid Incoming X3DH message";
 				if (callback) callback(lime::CallbackReturn::fail, "Got an invalid response from X3DH server");
 				return false;
 			}
 
 			// check X3DH protocol version
 			if (body[0] != static_cast<uint8_t>(X3DH_protocolVersion)) {
-				LIME_LOGE<<"X3DH server runs an other version of X3DH protocol(server "<<int(body[0])<<" - local "<<static_cast<uint8_t>(X3DH_protocolVersion)<<")";
+				LIME_LOGE<<"X3DH server runs an other version of X3DH protocol(server "<<static_cast<unsigned int>(body[0])<<" - local "<<static_cast<unsigned int>(X3DH_protocolVersion)<<")"<<endl<<message_trace.str()<<endl<<"    Invalid Incoming X3DH message";
 				if (callback) callback(lime::CallbackReturn::fail, "X3DH server and client protocol version mismatch");
 				return false;
 			}
 
 			// check curve id
 			if (body[2] != static_cast<uint8_t>(Curve::curveId())) {
-				LIME_LOGE<<"X3DH server runs curve Id "<<int(body[2])<<" while local is set to "<<static_cast<uint8_t>(Curve::curveId())<<" for this server)";
+				LIME_LOGE<<"X3DH server runs curve Id "<<static_cast<unsigned int>(body[2])<<" while local is set to "<<static_cast<unsigned int>(Curve::curveId())<<" for this server)"<<endl<<message_trace.str()<<endl<<"    Invalid Incoming X3DH message";
 				if (callback) callback(lime::CallbackReturn::fail, "X3DH server and client curve Id mismatch");
 				return false;
 			}
+
+			// message trace: add the protocol version, message type is appended in the switch
+			message_trace<<endl<<"    Protocol Version is "<<setw(2)<<static_cast<unsigned int>(body[0])<<endl;
 
 			// retrieve message_type from body[1]
 			switch (static_cast<uint8_t>(body[1])) {
 				case static_cast<uint8_t>(x3dh_message_type::registerUser) :
 					message_type = x3dh_message_type::registerUser;
+					message_trace<<"    Message Type is registerUser ("<<setw(2)<<static_cast<unsigned int>(x3dh_message_type::registerUser)<<")";
 					break;
 				case static_cast<uint8_t>(x3dh_message_type::deleteUser) :
 					message_type = x3dh_message_type::deleteUser;
+					message_trace<<"    Message Type is deleteUser ("<<setw(2)<<static_cast<unsigned int>(x3dh_message_type::deleteUser)<<")";
 					break;
 				case static_cast<uint8_t>(x3dh_message_type::postSPk) :
 					message_type = x3dh_message_type::postSPk;
+					message_trace<<"    Message Type is postSPk ("<<setw(2)<<static_cast<unsigned int>(x3dh_message_type::postSPk)<<")";
 					break;
 				case static_cast<uint8_t>(x3dh_message_type::postOPks) :
 					message_type = x3dh_message_type::postOPks;
+					message_trace<<"    Message Type is postOPks ("<<setw(2)<<static_cast<unsigned int>(x3dh_message_type::postOPks)<<")";
 					break;
 				case static_cast<uint8_t>(x3dh_message_type::getPeerBundle) :
 					message_type = x3dh_message_type::getPeerBundle;
+					message_trace<<"    Message Type is getPeerBundle ("<<setw(2)<<static_cast<unsigned int>(x3dh_message_type::getPeerBundle)<<")";
 					break;
 				case static_cast<uint8_t>(x3dh_message_type::peerBundle) :
 					message_type = x3dh_message_type::peerBundle;
+					message_trace<<"    Message Type is peerBundle ("<<setw(2)<<static_cast<unsigned int>(x3dh_message_type::peerBundle)<<")";
 					break;
 				case static_cast<uint8_t>(x3dh_message_type::getSelfOPks) :
 					message_type = x3dh_message_type::getSelfOPks;
+					message_trace<<"    Message Type is getSelfOPks ("<<setw(2)<<static_cast<unsigned int>(x3dh_message_type::getSelfOPks)<<")";
 					break;
 				case static_cast<uint8_t>(x3dh_message_type::selfOPks) :
 					message_type = x3dh_message_type::selfOPks;
+					message_trace<<"    Message Type is selfOPks ("<<setw(2)<<static_cast<unsigned int>(x3dh_message_type::selfOPks)<<")";
 					break;
 				case static_cast<uint8_t>(x3dh_message_type::error) :
 					message_type = x3dh_message_type::error;
+					message_trace<<"    Message Type is error ("<<setw(2)<<static_cast<unsigned int>(x3dh_message_type::error)<<")";
 					break;
 				default: // unknown message type: invalid packet
+					message_trace<<"    Message Type is Unknown ("<<setw(2)<<static_cast<unsigned int>(body[1])<<")"<<endl<<"    Invalid Incoming X3DH message";
+					LIME_LOGE<<message_trace.str()<<endl;
 					return false;
 			}
+
+			// message trace : display also the curve Id so we identify the 3 bytes of message header
+			message_trace<<endl<<"    CurveId is "<<setw(2)<<static_cast<unsigned int>(body[2])<<endl;
 
 			// retrieve the error code if needed
 			if (message_type == x3dh_message_type::error) {
@@ -291,6 +321,8 @@ namespace lime {
 						return false;
 				}
 			}
+			LIME_LOGD<<message_trace.str()<<endl<<"    Valid Incoming X3DH message";
+
 			return true;
 		}
 
@@ -317,11 +349,22 @@ namespace lime {
 		bool parseMessage_getPeerBundles(const std::vector<uint8_t> &body, std::vector<X3DH_peerBundle<Curve>> &peersBundle) noexcept {
 			peersBundle.clear();
 			if (body.size() < X3DH_headerSize+2) { // we must be able to at least have a count of bundles
+				LIME_LOGE<<"Unable to parse content of X3DH peer Bundles message, body size is only "<<static_cast<unsigned int>(body.size());
 				return false;
 			}
 
 			uint16_t peersBundleCount = (static_cast<uint16_t>(body[X3DH_headerSize]))<<8|body[X3DH_headerSize+1];
+
 			size_t index = X3DH_headerSize+2;
+
+			// message trace, display the incoming peer bundles in human readable format:
+			// - number of key bundles in the message
+			// -     device id
+			// -        Ik
+			// -        SPkid, SPk, SPk signature
+			// -        OPkid OPk if any
+			ostringstream message_trace;
+			message_trace << dec << "X3DH Peer Bundles message holds "<<static_cast<unsigned int>(peersBundleCount)<<" key bundles";
 
 			// loop on all expected bundles
 			for (auto i=0; i<peersBundleCount; i++) {
@@ -345,14 +388,24 @@ namespace lime {
 				bool haveOPk = (body[index]==0)?false:true;
 				index += 1;
 
+				// add device Id (and its size) and OPk flag to the trace
+				message_trace << dec << "    Device Id ("<<static_cast<unsigned int>(deviceIdSize)<<" bytes long): "<<deviceId<<(haveOPk?" has ":" does not have ")<<"OPk"<<endl<<"        Ik: ";
 
 				if (body.size() < index + DSA<Curve, lime::DSAtype::publicKey>::ssize() + X<Curve, lime::Xtype::publicKey>::ssize() + DSA<Curve, lime::DSAtype::signature>::ssize() + 4 + (haveOPk?(X<Curve, lime::Xtype::publicKey>::ssize()+4):0) ) {
 					peersBundle.clear();
+					LIME_LOGE<<"Invalid message: size is not what expected, discard without parsing";
 					return false;
 				}
 
 				// retrieve simple pointers to all keys and signature, the X3DH_peerBundle constructor will construct the keys out of them
 				const auto Ik = body.cbegin()+index; index += DSA<Curve, lime::DSAtype::publicKey>::ssize();
+
+				// add Ik to message trace
+				message_trace << hex << setfill('0');
+				std::for_each(Ik, Ik + DSA<Curve, lime::DSAtype::publicKey>::ssize(), [&message_trace] (unsigned int i) {
+					message_trace << setw(2) << i << ", ";
+				});
+
 				const auto SPk = body.cbegin()+index; index += X<Curve, lime::Xtype::publicKey>::ssize();
 				uint32_t SPk_id = static_cast<uint32_t>(body[index])<<24 |
 						static_cast<uint32_t>(body[index+1])<<16 |
@@ -360,6 +413,17 @@ namespace lime {
 						static_cast<uint32_t>(body[index+3]);
 				index += 4;
 				const auto SPk_sig = body.cbegin()+index; index += DSA<Curve, lime::DSAtype::signature>::ssize();
+
+				// add SPk Id, SPk and SPk signature to the trace
+				message_trace <<endl<<"        SPk Id: 0x"<< setw(8) << static_cast<unsigned int>(SPk_id)<<endl<<"        SPk: ";
+				std::for_each(SPk, SPk + X<Curve, lime::Xtype::publicKey>::ssize(), [&message_trace] (unsigned int i) {
+					message_trace << setw(2) << i << ", ";
+				});
+				message_trace <<endl<<"        SPk Signature: ";
+				std::for_each(SPk_sig, SPk_sig + DSA<Curve, lime::DSAtype::signature>::ssize(), [&message_trace] (unsigned int i) {
+					message_trace << setw(2) << i << ", ";
+				});
+
 				if (haveOPk) {
 					const auto OPk = body.cbegin()+index; index += X<Curve, lime::Xtype::publicKey>::ssize();
 					uint32_t OPk_id = static_cast<uint32_t>(body[index])<<24 |
@@ -367,11 +431,19 @@ namespace lime {
 						static_cast<uint32_t>(body[index+2])<<8 |
 						static_cast<uint32_t>(body[index+3]);
 					index += 4;
+
+					// add OPk Id and OPk to the trace
+					message_trace <<endl<<"        OPk Id: 0x" << setw(8) << static_cast<unsigned int>(OPk_id)<<endl<<"        OPk: ";
+					std::for_each(OPk, OPk + X<Curve, lime::Xtype::publicKey>::ssize(), [&message_trace] (unsigned int i) {
+						message_trace << setw(2) << i << ", ";
+					});
+
 					peersBundle.emplace_back(std::move(deviceId), Ik, SPk, SPk_id, SPk_sig, OPk, OPk_id);
 				} else {
 					peersBundle.emplace_back(std::move(deviceId), Ik, SPk, SPk_id, SPk_sig);
 				}
 			}
+			LIME_LOGD<<message_trace.str();
 			return true;
 		}
 
@@ -392,6 +464,7 @@ namespace lime {
 		bool parseMessage_selfOPks(const std::vector<uint8_t> &body, std::vector<uint32_t> &selfOPkIds) noexcept {
 			selfOPkIds.clear();
 			if (body.size() < X3DH_headerSize+2) { // we must be able to at least have a count of bundles
+
 				return false;
 			}
 
@@ -401,15 +474,25 @@ namespace lime {
 				return false;
 			}
 			size_t index = X3DH_headerSize+2;
+
+			// message trace, display the incoming self OPks in human readable format:
+			// - number of OPks in the message
+			// -        OPkid
+			ostringstream message_trace;
+			message_trace << dec << "X3DH self OPks message holds "<<static_cast<unsigned int>(selfOPkIdsCount)<<" OPk Ids"<<endl;
+			message_trace << hex;
+
 			// loop on all OPk Ids
 			for (auto i=0; i<selfOPkIdsCount; i++) { // they are in big endian
-				uint32_t OPkId = static_cast<uint32_t>(body[index])<<24 |
+				uint32_t OPk_id = static_cast<uint32_t>(body[index])<<24 |
 						static_cast<uint32_t>(body[index+1])<<16 |
 						static_cast<uint32_t>(body[index+2])<<8 |
 						static_cast<uint32_t>(body[index+3]);
 				index+=4;
-				selfOPkIds.push_back(OPkId);
+				selfOPkIds.push_back(OPk_id);
+				message_trace <<"    OPk Id: 0x"<< setw(8) << static_cast<unsigned int>(OPk_id)<<endl;
 			}
+			LIME_LOGD<<message_trace.str();
 			return true;
 		}
 
@@ -464,6 +547,7 @@ namespace lime {
 			lime::x3dh_protocol::x3dh_message_type message_type{x3dh_protocol::x3dh_message_type::unset_type};
 			lime::x3dh_protocol::x3dh_error_code error_code{x3dh_protocol::x3dh_error_code::unset_error_code};
 			// check message validity, extract type and error code(if any)
+			LIME_LOGD<<"Parse incoming X3DH message for user "<< this->m_selfDeviceId;
 			if (!x3dh_protocol::parseMessage_getType<Curve>(responseBody, message_type, error_code, callback)) {
 				cleanUserData(userData);
 				return;
