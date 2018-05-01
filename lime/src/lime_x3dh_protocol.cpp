@@ -74,8 +74,7 @@ namespace lime {
 
 		constexpr uint8_t X3DH_protocolVersion = 0x01;
 		constexpr size_t X3DH_headerSize = 3;
-		enum class x3dh_message_type : uint8_t{	unset_type=0x00,
-							registerUser=0x01,
+		enum class x3dh_message_type : uint8_t{	registerUser=0x01,
 							deleteUser=0x02,
 							postSPk=0x03,
 							postOPks=0x04,
@@ -95,21 +94,83 @@ namespace lime {
 							db_error=0x07,
 							bad_request=0x08,
 							unset_error_code=0xff};
-		/* X3DH protocol packets builds */
+		/* X3DH protocol messages builds */
+		/**
+		 * @brief Helper function to get human readable trace of x3dh messages types
+		 *
+		 * @param[in]	message_type	The message type in enum class format
+		 *
+		 * @return	the message type as a human readable string
+		 */
+		static std::string x3dh_messageTypeString(const x3dh_message_type message_type) {
+			switch (message_type) {
+				case x3dh_message_type::registerUser :
+					return "registerUser";
+				case x3dh_message_type::deleteUser :
+					return "deleteUser";
+				case x3dh_message_type::postSPk :
+					return "postSPk";
+				case x3dh_message_type::postOPks :
+					return "postOPks";
+				case x3dh_message_type::getPeerBundle :
+					return "getPeerBundle";
+				case x3dh_message_type::peerBundle :
+					return "peerBundle";
+				case x3dh_message_type::getSelfOPks :
+					return "getSelfOPks";
+				case x3dh_message_type::selfOPks :
+					return "selfOPks";
+				case x3dh_message_type::error :
+					return "error";
+			}
+			LIME_LOGE<<"Internal Error: X3DH message type not part of its own enumeration, the compiler shall have spotted this";
+			return "inconsistent"; // to make compiler happy, there is no reason to end here actually
+		}
+
+		/**
+		 * @brief Build X3DH message header using current protocol Version byte
+		 *
+		 * @param[in]	message_type	The message type we are creating
+		 * @param[in]	curve		The curve Id we're working with
+		 *
+		 * @return	a vector holding the well formed header ready to be expanded to include the message body
+		 */
 		static std::vector<uint8_t> X3DH_makeHeader(const x3dh_message_type message_type, const lime::CurveId curve) noexcept{
+			LIME_LOGD<<hex<<setfill('0')<<"Build outgoing X3DH message:"<<endl
+				<<"    Protocol Version is 0x"<<setw(2)<<static_cast<unsigned int>(X3DH_protocolVersion)<<endl
+				<<"    Message Type is "<<x3dh_messageTypeString(message_type)<<" (0x"<<setw(2)<<static_cast<unsigned int>(message_type)<<")"<<endl
+				<<"    CurveId is 0x"<<setw(2)<<static_cast<unsigned int>(curve);
 			return std::vector<uint8_t> {X3DH_protocolVersion, static_cast<uint8_t>(message_type), static_cast<uint8_t>(curve)};
 		}
 
-		// registerUser : Identity Key<EDDSA Public Key length>
+		/**
+		 * @brief build a registerUser message : Identity Key<EDDSA Public Key length>
+		 *
+		 * @param[in,out]	message		an empty buffer to store the message
+		 * @param[in]		Ik		Self public identity key (formatted for signature algorithm)
+		 */
 		template <typename Curve>
 		void buildMessage_registerUser(std::vector<uint8_t> &message, const DSA<Curve, lime::DSAtype::publicKey> &Ik) noexcept {
 			// create the header
 			message = X3DH_makeHeader(x3dh_message_type::registerUser, Curve::curveId());
 			// append the Ik
 			message.insert(message.end(), Ik.cbegin(), Ik.cend());
+
+			// debug trace
+			ostringstream message_trace;
+			message_trace << hex << setfill('0') << "Outgoing X3DH registerUser message holds:"<<endl<<"    Ik:";
+			std::for_each(Ik.cbegin(), Ik.cend(), [&message_trace] (unsigned int i) {
+				message_trace << setw(2) << i << ", ";
+			});
+			LIME_LOGD<<message_trace.str();
 		}
 
-		// deleteUser : empty message, server retrieves deviceId to delete from authentication header, you cannot delete someone else!
+		/**
+		 * @brief build a deleteUser message
+		 * 	empty message, server retrieves deviceId to delete from authentication header, you cannot delete someone else!
+		 *
+		 * @param[in,out]	message		an empty buffer to store the message
+		 */
 		template <typename Curve>
 		void buildMessage_deleteUser(std::vector<uint8_t> &message) noexcept {
 			// create the header
@@ -117,9 +178,17 @@ namespace lime {
 		}
 
 
-		// postSPk :	SPk<ECDH Public key length> ||
-		//		SPk Signature<Signature Length> ||
-		//		SPk Id < 4 bytes>
+		/**
+		 * @brief build a postSPk message
+		 *		SPk<ECDH Public key length> ||
+		 *		SPk Signature<Signature Length> ||
+		 *		SPk Id < 4 bytes>
+		 *
+		 * @param[in,out]	message		an empty buffer to store the message
+		 * @param[in]		SPk		Public Signed Pre-Key
+		 * @param[in]		Sig		Signature of Public Signed Pre-Key (signed using self Identity key)
+		 * @param[in]		SPk_id		SPk id used to retrieve the SPk from local storage
+		 */
 		template <typename Curve>
 		void buildMessage_publishSPk(std::vector<uint8_t> &message, const X<Curve, lime::Xtype::publicKey> &SPk, const DSA<Curve, lime::DSAtype::signature> &Sig, const uint32_t SPk_id) noexcept {
 			// create the header
@@ -131,19 +200,51 @@ namespace lime {
 			message.push_back(static_cast<uint8_t>((SPk_id>>16)&0xFF));
 			message.push_back(static_cast<uint8_t>((SPk_id>>8)&0xFF));
 			message.push_back(static_cast<uint8_t>((SPk_id)&0xFF));
+
+			// debug trace
+			ostringstream message_trace;
+			message_trace << hex << setfill('0') << "Outgoing X3DH postSPk message holds:"<<endl<<"    SPk:";
+			std::for_each(SPk.cbegin(), SPk.cend(), [&message_trace] (unsigned int i) {
+				message_trace << setw(2) << i << ", ";
+			});
+			message_trace << endl <<"    SPk Signature:";
+			std::for_each(Sig.cbegin(), Sig.cend(), [&message_trace] (unsigned int i) {
+				message_trace << setw(2) << i << ", ";
+			});
+			message_trace << endl <<"    SPk Id: 0x"<< setw(8) << static_cast<unsigned int>(SPk_id);
+			LIME_LOGD<<message_trace.str();
 		}
 
-		// postOPks : 	Keys Count<2 bytes unsigned integer Big endian> ||
-		//		( OPk<ECDH Public key length> || OPk Id <4 bytes>){Keys Count}
+		/**
+		 * #brief build a postOPks message
+		 * 		Keys Count<2 bytes unsigned integer Big endian> ||
+		 * 		( OPk<ECDH Public key length> ||
+		 * 		OPk Id <4 bytes>){Keys Count}
+		 *
+		 * @param[in,out]	message		an empty buffer to store the message
+		 * @param[in]		OPks		a vector of OPks to be published
+		 * @param[in]		OPk_ids		Id vector matching the order of the OPks vector
+		 */
 		template <typename Curve>
 		void buildMessage_publishOPks(std::vector<uint8_t> &message, const std::vector<X<Curve, lime::Xtype::publicKey>> &OPks, const std::vector<uint32_t> &OPk_ids) noexcept {
 			// create the header
 			message = X3DH_makeHeader(x3dh_message_type::postOPks, Curve::curveId());
 
 			auto OPkCount = OPks.size();
+
+			// check we do not try to upload more than 2^16 OPks as the counter is on 2 bytes
+			if (OPkCount > 0xFFFF) {
+				OPkCount = 0xFFFF;
+				LIME_LOGW << "Trying to publish "<<static_cast<unsigned int>(OPks.size())<<" OPks wich is more than the maximum allowed. Actually publish the first 2^!6 and discard the rest";
+			}
+
 			// append OPks number and a sequence of OPk || OPk_id
 			message.push_back(static_cast<uint8_t>(((OPkCount)>>8)&0xFF));
 			message.push_back(static_cast<uint8_t>((OPkCount)&0xFF));
+
+			// debug trace
+			ostringstream message_trace;
+			message_trace << dec << setfill('0') << "Outgoing X3DH postOPks message holds "<< static_cast<unsigned int>(OPkCount)<<" OPks."<< hex;
 
 			for (decltype(OPkCount) i=0; i<OPkCount; i++) {
 				message.insert(message.end(), OPks[i].cbegin(), OPks[i].cend());
@@ -151,11 +252,27 @@ namespace lime {
 				message.push_back(static_cast<uint8_t>((OPk_ids[i]>>16)&0xFF));
 				message.push_back(static_cast<uint8_t>((OPk_ids[i]>>8)&0xFF));
 				message.push_back(static_cast<uint8_t>((OPk_ids[i])&0xFF));
+
+				// debug trace
+				message_trace << endl <<"    OPk id: 0x"<< setw(8) << static_cast<unsigned int>(OPk_ids[i]) <<"    OPk:";
+				std::for_each(OPks[i].cbegin(), OPks[i].cend(), [&message_trace] (unsigned int i) {
+					message_trace << setw(2) << i << ", ";
+				});
 			}
+
+			//debug trace
+			LIME_LOGD<<message_trace.str();
 		}
 
-		// getPeerBundle :	request Count < 2 bytes unsigned Big Endian> ||
-		//			(userId Size <2 bytes unsigned Big Endian> || UserId <...> (the GRUU of user we wan't to send a message)) {request Count}
+		/**
+		 * @brief build a getPeerBundle message
+		 * 		request Count < 2 bytes unsigned Big Endian> ||
+		 * 		(userId Size <2 bytes unsigned Big Endian> ||
+		 * 		UserId <...> (the GRUU of user we wan't to send a message)) {request Count}
+		 *
+		 * @param[in,out]	message		an empty buffer to store the message
+		 * @param[in]	peer_device_ids	a vector of all devices id for wich we request a key bundle
+		 */
 		template <typename Curve>
 		void buildMessage_getPeerBundles(std::vector<uint8_t> &message, std::vector<std::string> &peer_device_ids) noexcept {
 			// create the header
@@ -170,16 +287,34 @@ namespace lime {
 				peer_device_ids.resize(0xFFFF); // resize to max possible value
 			}
 
+			// debug trace
+			ostringstream message_trace;
+			message_trace << dec << setfill('0') << "Outgoing X3DH getPeerBundles message holds "<< static_cast<unsigned int>(peer_device_ids.size())<<" devices id."<< hex;
+
 			// append a sequence of peer device Id size(on 2 bytes) || device id
 			for (const auto &peer_device_id : peer_device_ids) {
 				message.push_back(static_cast<uint8_t>(((peer_device_id.size())>>8)&0xFF));
 				message.push_back(static_cast<uint8_t>((peer_device_id.size())&0xFF));
 				message.insert(message.end(),peer_device_id.cbegin(), peer_device_id.cend());
 				LIME_LOGI<<"Request X3DH keys for device "<<peer_device_id;
+
+				// debug trace
+				message_trace << endl << dec <<"    Device id("<< static_cast<unsigned int>(peer_device_id.size())<<"bytes): "<<peer_device_id<<" HEX:"<<hex;
+				std::for_each(peer_device_id.cbegin(), peer_device_id.cend(), [&message_trace] (unsigned int i) {
+					message_trace << setw(2) << i << ", ";
+				});
 			}
+
+			//debug trace
+			LIME_LOGD<<message_trace.str();
 		}
 
-		// getSelfOPks : empty message, ask server for the OPk Id it still holds for us
+		/**
+		 * @brief build a  getSelfOPks message
+		 * 	empty message, ask server for the OPk Id it still holds for us
+		 *
+		 * @param[in,out]	message		an empty buffer to store the message
+		 */
 		template <typename Curve>
 		void buildMessage_getSelfOPks(std::vector<uint8_t> &message) noexcept {
 			// create the header
@@ -194,6 +329,8 @@ namespace lime {
 		 * @param[out]	message_type	the message type
 		 * @param[out]	error_code	the error code, unchanged if the message type is not error
 		 * @param[in]	callback	in case of error, directly call it giving a meaningfull error message
+		 *
+		 * @return	true if message is well formed(check performed mostly on header value, correct header but not well formed message body are not detected at this point)
 		 */
 		template <typename Curve>
 		bool parseMessage_getType(const std::vector<uint8_t> &body, x3dh_message_type &message_type, x3dh_error_code &error_code, const limeCallback callback) noexcept {
@@ -201,8 +338,7 @@ namespace lime {
 			ostringstream message_trace;
 			message_trace << hex << setfill('0') << "Incoming X3DH message: "<<endl;
 			// first display the whole message in hexa
-			std::for_each(std::begin(body), std::end(body), [&message_trace] (unsigned int i)
-			{
+			std::for_each(body.cbegin(), body.cend(), [&message_trace] (unsigned int i) {
 				message_trace << setw(2) << i << ", ";
 			});
 
@@ -228,54 +364,54 @@ namespace lime {
 			}
 
 			// message trace: add the protocol version, message type is appended in the switch
-			message_trace<<endl<<"    Protocol Version is "<<setw(2)<<static_cast<unsigned int>(body[0])<<endl;
+			message_trace<<endl<<"    Protocol Version is 0x"<<setw(2)<<static_cast<unsigned int>(body[0])<<endl;
 
 			// retrieve message_type from body[1]
 			switch (static_cast<uint8_t>(body[1])) {
 				case static_cast<uint8_t>(x3dh_message_type::registerUser) :
 					message_type = x3dh_message_type::registerUser;
-					message_trace<<"    Message Type is registerUser ("<<setw(2)<<static_cast<unsigned int>(x3dh_message_type::registerUser)<<")";
+					message_trace<<"    Message Type is registerUser (0x"<<setw(2)<<static_cast<unsigned int>(x3dh_message_type::registerUser)<<")";
 					break;
 				case static_cast<uint8_t>(x3dh_message_type::deleteUser) :
 					message_type = x3dh_message_type::deleteUser;
-					message_trace<<"    Message Type is deleteUser ("<<setw(2)<<static_cast<unsigned int>(x3dh_message_type::deleteUser)<<")";
+					message_trace<<"    Message Type is deleteUser (0x"<<setw(2)<<static_cast<unsigned int>(x3dh_message_type::deleteUser)<<")";
 					break;
 				case static_cast<uint8_t>(x3dh_message_type::postSPk) :
 					message_type = x3dh_message_type::postSPk;
-					message_trace<<"    Message Type is postSPk ("<<setw(2)<<static_cast<unsigned int>(x3dh_message_type::postSPk)<<")";
+					message_trace<<"    Message Type is postSPk (0x"<<setw(2)<<static_cast<unsigned int>(x3dh_message_type::postSPk)<<")";
 					break;
 				case static_cast<uint8_t>(x3dh_message_type::postOPks) :
 					message_type = x3dh_message_type::postOPks;
-					message_trace<<"    Message Type is postOPks ("<<setw(2)<<static_cast<unsigned int>(x3dh_message_type::postOPks)<<")";
+					message_trace<<"    Message Type is postOPks (0x"<<setw(2)<<static_cast<unsigned int>(x3dh_message_type::postOPks)<<")";
 					break;
 				case static_cast<uint8_t>(x3dh_message_type::getPeerBundle) :
 					message_type = x3dh_message_type::getPeerBundle;
-					message_trace<<"    Message Type is getPeerBundle ("<<setw(2)<<static_cast<unsigned int>(x3dh_message_type::getPeerBundle)<<")";
+					message_trace<<"    Message Type is getPeerBundle (0x"<<setw(2)<<static_cast<unsigned int>(x3dh_message_type::getPeerBundle)<<")";
 					break;
 				case static_cast<uint8_t>(x3dh_message_type::peerBundle) :
 					message_type = x3dh_message_type::peerBundle;
-					message_trace<<"    Message Type is peerBundle ("<<setw(2)<<static_cast<unsigned int>(x3dh_message_type::peerBundle)<<")";
+					message_trace<<"    Message Type is peerBundle (0x"<<setw(2)<<static_cast<unsigned int>(x3dh_message_type::peerBundle)<<")";
 					break;
 				case static_cast<uint8_t>(x3dh_message_type::getSelfOPks) :
 					message_type = x3dh_message_type::getSelfOPks;
-					message_trace<<"    Message Type is getSelfOPks ("<<setw(2)<<static_cast<unsigned int>(x3dh_message_type::getSelfOPks)<<")";
+					message_trace<<"    Message Type is getSelfOPks (0x"<<setw(2)<<static_cast<unsigned int>(x3dh_message_type::getSelfOPks)<<")";
 					break;
 				case static_cast<uint8_t>(x3dh_message_type::selfOPks) :
 					message_type = x3dh_message_type::selfOPks;
-					message_trace<<"    Message Type is selfOPks ("<<setw(2)<<static_cast<unsigned int>(x3dh_message_type::selfOPks)<<")";
+					message_trace<<"    Message Type is selfOPks (0x"<<setw(2)<<static_cast<unsigned int>(x3dh_message_type::selfOPks)<<")";
 					break;
 				case static_cast<uint8_t>(x3dh_message_type::error) :
 					message_type = x3dh_message_type::error;
-					message_trace<<"    Message Type is error ("<<setw(2)<<static_cast<unsigned int>(x3dh_message_type::error)<<")";
+					message_trace<<"    Message Type is error (0x"<<setw(2)<<static_cast<unsigned int>(x3dh_message_type::error)<<")";
 					break;
 				default: // unknown message type: invalid packet
-					message_trace<<"    Message Type is Unknown ("<<setw(2)<<static_cast<unsigned int>(body[1])<<")"<<endl<<"    Invalid Incoming X3DH message";
+					message_trace<<"    Message Type is Unknown (0x"<<setw(2)<<static_cast<unsigned int>(body[1])<<")"<<endl<<"    Invalid Incoming X3DH message";
 					LIME_LOGE<<message_trace.str()<<endl;
 					return false;
 			}
 
 			// message trace : display also the curve Id so we identify the 3 bytes of message header
-			message_trace<<endl<<"    CurveId is "<<setw(2)<<static_cast<unsigned int>(body[2])<<endl;
+			message_trace<<endl<<"    CurveId is 0x"<<setw(2)<<static_cast<unsigned int>(body[2])<<endl;
 
 			// retrieve the error code if needed
 			if (message_type == x3dh_message_type::error) {
@@ -284,9 +420,9 @@ namespace lime {
 				}
 
 				if (body.size() == X3DH_headerSize+1) {
-					LIME_LOGE<<"X3DH server respond error : code "<<int(body[X3DH_headerSize])<<" (no error message)";
+					LIME_LOGE<<"X3DH server respond error : code "<<static_cast<unsigned int>(body[X3DH_headerSize])<<" (no error message)";
 				} else {
-					LIME_LOGE<<"X3DH server respond error : code "<<int(body[X3DH_headerSize])<<" : "<<std::string(body.cbegin()+X3DH_headerSize+1, body.cend());
+					LIME_LOGE<<"X3DH server respond error : code "<<static_cast<unsigned int>(body[X3DH_headerSize])<<" : "<<std::string(body.cbegin()+X3DH_headerSize+1, body.cend());
 				}
 
 				switch (static_cast<uint8_t>(body[X3DH_headerSize])) {
@@ -326,7 +462,11 @@ namespace lime {
 			return true;
 		}
 
-		/* peerBundle :	bundle Count < 2 bytes unsigned Big Endian> ||
+		/**
+		 * @brief Parse a peerBundles message and populate a vector of peerBundles
+		 * Warning: no checks are done on message type, they are performed before calling this function
+		 *
+		 * peerBundle :	bundle Count < 2 bytes unsigned Big Endian> ||
 		 *	(   deviceId Size < 2 bytes unsigned Big Endian > || deviceId
 		 *	    Flag<1 byte: 0 if no OPK in bundle, 1 if present> ||
 		 *		   Ik <EDDSA Public Key Length> ||
@@ -334,11 +474,6 @@ namespace lime {
 		 *		   SPk_sig <Signature Length> ||
 		 *		   (OPk <ECDH Public Key Length> || OPk id <4 bytes>){0,1 in accordance to flag}
 		 *	) { bundle Count}
-		 */
-
-		/**
-		 * @brief Parse a peerBundles message and populate a vector of peerBundles
-		 * Warning: no checks are done on message type, they are performed before calling this function
 		 *
 		 * @param[in]	body		a buffer holding the message
 		 * @param[out]	peersBundle	a vector to be populated from message content, is empty if none found
@@ -364,7 +499,7 @@ namespace lime {
 			// -        SPkid, SPk, SPk signature
 			// -        OPkid OPk if any
 			ostringstream message_trace;
-			message_trace << dec << "X3DH Peer Bundles message holds "<<static_cast<unsigned int>(peersBundleCount)<<" key bundles";
+			message_trace << dec << "X3DH Peer Bundles message holds "<<static_cast<unsigned int>(peersBundleCount)<<" key bundles"<<setfill('0');
 
 			// loop on all expected bundles
 			for (auto i=0; i<peersBundleCount; i++) {
@@ -389,7 +524,7 @@ namespace lime {
 				index += 1;
 
 				// add device Id (and its size) and OPk flag to the trace
-				message_trace << dec << "    Device Id ("<<static_cast<unsigned int>(deviceIdSize)<<" bytes long): "<<deviceId<<(haveOPk?" has ":" does not have ")<<"OPk"<<endl<<"        Ik: ";
+				message_trace << endl << dec << "    Device Id ("<<static_cast<unsigned int>(deviceIdSize)<<" bytes): "<<deviceId<<(haveOPk?" has ":" does not have ")<<"OPk"<<endl<<"        Ik: ";
 
 				if (body.size() < index + DSA<Curve, lime::DSAtype::publicKey>::ssize() + X<Curve, lime::Xtype::publicKey>::ssize() + DSA<Curve, lime::DSAtype::signature>::ssize() + 4 + (haveOPk?(X<Curve, lime::Xtype::publicKey>::ssize()+4):0) ) {
 					peersBundle.clear();
@@ -447,13 +582,11 @@ namespace lime {
 			return true;
 		}
 
-		/*
-		 * selfOPks : OPk Count <2 bytes unsigned integer Big Endian> ||
-		 *	(OPk id <4 bytes uint32_t big endian>){OPk Count}
-		 */
 		/**
 		 * @brief Parse a selfPk message and populate a self OPk ids
 		 * Warning: no checks are done on message type, they are performed before calling this function
+		 * 	selfOPks : 	OPk Count <2 bytes unsigned integer Big Endian> ||
+		 *			(OPk id <4 bytes uint32_t big endian>){OPk Count}
 		 *
 		 * @param[in]	body		a buffer holding the message
 		 * @param[out]	selfOPkIds	a vector to be populated from message content, is empty if no OPk returned
@@ -538,14 +671,23 @@ namespace lime {
 		}
 	}
 
+	/**
+	 * @brief process response message from X3DH server
+	 *
+	 * @param[in,out]	userData	the structure holding the data structure associated to the current asynchronous operation
+	 * @param[in]		reponseCode	response from X3DH server, communication is done over HTTP(S), so we expect a 200
+	 * 					other code will just lead to cleaning memory
+	 * @param[in]		responseBody	a vector holding the actual response from server to be processed
+	 */
 	template <typename Curve>
 	void Lime<Curve>::process_response(std::shared_ptr<callbackUserData<Curve>> userData, int responseCode, const std::vector<uint8_t> &responseBody) noexcept {
 		auto callback = userData->callback; // get callback
 
 		if (responseCode == 200) { // HTTP server is happy with our packet
 			// check response from X3DH server: header shall be X3DH protocol version || message type || curveId
-			lime::x3dh_protocol::x3dh_message_type message_type{x3dh_protocol::x3dh_message_type::unset_type};
+			lime::x3dh_protocol::x3dh_message_type message_type{x3dh_protocol::x3dh_message_type::error}; // initialise to error type, shall be overridden by the parseMessage_getType function
 			lime::x3dh_protocol::x3dh_error_code error_code{x3dh_protocol::x3dh_error_code::unset_error_code};
+
 			// check message validity, extract type and error code(if any)
 			LIME_LOGD<<"Parse incoming X3DH message for user "<< this->m_selfDeviceId;
 			if (!x3dh_protocol::parseMessage_getType<Curve>(responseBody, message_type, error_code, callback)) {
@@ -555,8 +697,7 @@ namespace lime {
 
 			switch (message_type) {
 				// for registerUser, deleteUser, postSPk and postOPks, on success, server will respond with an identical header
-				// but we cannot get from server unset_type, getPeerBundle or getSelfOPks message
-				case x3dh_protocol::x3dh_message_type::unset_type:
+				// but we cannot get from server getPeerBundle or getSelfOPks message
 				case x3dh_protocol::x3dh_message_type::getPeerBundle:
 				case x3dh_protocol::x3dh_message_type::getSelfOPks: {
 					if (callback) callback(lime::CallbackReturn::fail, "X3DH unexpected message from server");
@@ -684,8 +825,17 @@ namespace lime {
 		}
 	}
 
+	/**
+	 * @brief send a message to X3DH server
+	 * 	this function also binds the response processing to the process_response function capturing the given userData structure
+	 *
+	 * @param[in,out]	userData	the structure holding the data structure associated to the current asynchronous operation
+	 * @param[in]		message		the message to be sent
+	 */
 	template <typename Curve>
 	void Lime<Curve>::postToX3DHServer(std::shared_ptr<callbackUserData<Curve>> userData, const std::vector<uint8_t> &message) {
+		LIME_LOGD<<"Post outgoing X3DH message from user "<<this->m_selfDeviceId;
+
 		// copy capture the shared_ptr to userData
 		m_X3DH_post_data(m_X3DH_Server_URL, m_selfDeviceId, message, [userData](int responseCode, const std::vector<uint8_t> &responseBody) {
 				auto thiz = userData->limeObj.lock(); // get a shared pointer to Lime Object from the weak pointer stored in userData
