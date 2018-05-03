@@ -82,8 +82,6 @@ class ParserHandlerBase : public std::enable_shared_from_this<ParserHandlerBase<
 	friend class HandlerContext<_parserElementT>;
 
 public:
-	virtual ~ParserHandlerBase() {}
-
 	virtual _parserElementT invoke(const std::string &input, size_t begin, size_t count)=0;
 
 	std::shared_ptr<HandlerContext<_parserElementT>> createContext();
@@ -107,6 +105,8 @@ private:
 template <typename _derivedParserElementT, typename _parserElementT>
 class ParserHandler :  public ParserHandlerBase<_parserElementT>{
 public:
+	virtual ~ParserHandler() {}
+
 	ParserHandler(const Parser<_parserElementT> &parser, const std::string &rulename, const std::function<_derivedParserElementT ()> &create)
 		: ParserHandlerBase<_parserElementT>(parser, rulename), mHandlerCreateFunc(create){}
 	ParserHandler(const Parser<_parserElementT> &parser, const std::string &rulename, const std::function<_derivedParserElementT (const std::string &, const std::string &)> &create)
@@ -164,8 +164,8 @@ public:
 	_parserElementT realize(const std::string &input, size_t begin, size_t count);
 	std::shared_ptr<HandlerContext<_parserElementT>> branch();
 	void merge(const std::shared_ptr<HandlerContext<_parserElementT>> &other);
-	ptrdiff_t getLastIterator()const;
-	void undoAssignments(ptrdiff_t pos);
+	size_t getLastIterator()const;
+	void undoAssignments(size_t pos);
 	void recycle();
 
 private:
@@ -174,14 +174,14 @@ private:
 };
 
 struct ParserLocalContext{
-	void set(const std::shared_ptr<HandlerContextBase>& hc, const std::shared_ptr<Recognizer>& rec, ptrdiff_t pos){
+	void set(const std::shared_ptr<HandlerContextBase>& hc, const std::shared_ptr<Recognizer>& rec, size_t pos){
 		mHandlerContext=hc;
 		mRecognizer=rec.get();
 		mAssignmentPos=pos;
 	}
 	std::shared_ptr<HandlerContextBase> mHandlerContext;
 	Recognizer * mRecognizer = nullptr; //not a shared ptr to optimize, the object can't disapear in the context of use of ParserLocalContext.
-	ptrdiff_t mAssignmentPos = 0;
+	size_t mAssignmentPos = 0;
 };
 
 class ParserContextBase{
@@ -405,12 +405,12 @@ void HandlerContext<_parserElementT>::merge(const std::shared_ptr<HandlerContext
 }
 
 template <typename _parserElementT>
-ptrdiff_t HandlerContext<_parserElementT>::getLastIterator()const{
-	return std::distance(mAssignments.cbegin(), mAssignments.cend());
+size_t HandlerContext<_parserElementT>::getLastIterator()const{
+	return mAssignments.size();
 }
 
 template <typename _parserElementT>
-void HandlerContext<_parserElementT>::undoAssignments(ptrdiff_t pos){
+void HandlerContext<_parserElementT>::undoAssignments(size_t pos){
 	mAssignments.erase(mAssignments.begin()+pos,mAssignments.end());
 }
 
