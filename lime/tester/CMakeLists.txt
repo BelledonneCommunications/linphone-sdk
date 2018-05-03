@@ -53,14 +53,5 @@ if(APPLE)
 	set_target_properties(lime_tester PROPERTIES LINK_FLAGS "-stdlib=libc++")
 endif()
 
-# line test suit request a local server to be launched, so keep testing double ratchet only for now
+# lime test suit request a local server to be launched, so keep testing double ratchet only for now
 add_test(NAME double_ratchet COMMAND lime_tester --verbose --resource-dir ${CMAKE_CURRENT_SOURCE_DIR} --suite "double ratchet")
-
-if(NOT IOS)
-	install(TARGETS lime_tester
-		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-	)
-endif()

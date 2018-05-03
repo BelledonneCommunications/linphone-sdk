@@ -24,7 +24,6 @@ include(CheckSymbolExists)
 include(CheckLibraryExists)
 include(CMakePushCheckState)
 include(CMakePackageConfigHelpers)
-include(CPack)
 
 cmake_minimum_required(VERSION 3.0)
 project(lime VERSION 0.0.1 LANGUAGES CXX)
@@ -64,7 +63,7 @@ if(MSVC)
 endif()
 
 set(LIME_INCLUDE_DIRS
-	${BCTOOLBOX_CORE_INCLUDE_DIRS}
+	${PROJECT_SOURCE_DIR}/include
 )
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
@@ -163,4 +162,6 @@ set(CPACK_SOURCE_IGNORE_FILES
         "^${CMAKE_BINARY_DIR}"
         "/\\\\..+"
 )
+
+include(CPack)
 
