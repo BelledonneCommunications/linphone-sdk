@@ -82,6 +82,7 @@ class ParserHandlerBase : public std::enable_shared_from_this<ParserHandlerBase<
 	friend class HandlerContext<_parserElementT>;
 
 public:
+	virtual ~ParserHandlerBase()=default;
 	virtual _parserElementT invoke(const std::string &input, size_t begin, size_t count)=0;
 
 	std::shared_ptr<HandlerContext<_parserElementT>> createContext();
@@ -105,7 +106,6 @@ private:
 template <typename _derivedParserElementT, typename _parserElementT>
 class ParserHandler :  public ParserHandlerBase<_parserElementT>{
 public:
-	virtual ~ParserHandler() {}
 
 	ParserHandler(const Parser<_parserElementT> &parser, const std::string &rulename, const std::function<_derivedParserElementT ()> &create)
 		: ParserHandlerBase<_parserElementT>(parser, rulename), mHandlerCreateFunc(create){}
