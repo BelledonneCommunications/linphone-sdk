@@ -411,7 +411,7 @@ size_t HandlerContext<_parserElementT>::getLastIterator()const{
 
 template <typename _parserElementT>
 void HandlerContext<_parserElementT>::undoAssignments(size_t pos){
-	mAssignments.erase(mAssignments.begin()+pos,mAssignments.end());
+	mAssignments.erase(mAssignments.begin()+(long)pos ,mAssignments.end());
 }
 
 template <typename _parserElementT>
