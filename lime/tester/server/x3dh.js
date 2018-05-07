@@ -466,7 +466,6 @@ https.createServer(digest, options, (req, res) => {
 
 				// first parse the message
 				var bufferIndex = X3DH_headerSize;
-				var bufferIndex = X3DH_headerSize;
 				var peersCount = body.readUInt16BE(bufferIndex); // 2 bytes BE unsigned int : number of devices uri
 
 				if (peersCount == 0) {

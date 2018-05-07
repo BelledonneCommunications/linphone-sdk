@@ -1264,7 +1264,8 @@ static void lime_update_clean_MK_test(const lime::CurveId curve, const std::stri
 
 		if (cleanDatabase) {
 			aliceManager->delete_user(*aliceDeviceId, callback);
-			BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+			bobManager->delete_user(*bobDeviceId, callback);
+			BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,expected_success+2,lime_tester::wait_for_timeout));
 			remove(dbFilenameAlice.data());
 			remove(dbFilenameBob.data());
 		}
