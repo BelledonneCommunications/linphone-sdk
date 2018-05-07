@@ -1,0 +1,51 @@
+version: '2'
+
+services:
+  web:
+    image: nginx:${NGINX_VERSION}
+    ports:
+      - "25519:25519"
+      - "25520:25520"
+    volumes:
+      - ./source:/source
+      - ./site.conf:/etc/nginx/conf.d/default.conf
+    restart: always
+    depends_on:
+      - php
+      - mysqldb
+
+  php:
+    # use nanoninja php image to get mysqli
+    # https://hub.docker.com/r/nanoninja/php-fpm/tags/
+    image: nanoninja/php-fpm:${PHP_VERSION}
+    volumes:
+      - ./source:/source
+      - ./customphp.ini:/usr/local/etc/php/conf.d/custom.ini
+    restart: always
+
+  myadmin:
+    image: phpmyadmin/phpmyadmin:${PHPMYADMIN_VERSION}
+    container_name: phpmyadmin
+    ports:
+      - "8080:80"
+    environment:
+      - PMA_ARBITRARY=1
+      - PMA_HOST=${MYSQL_HOST}
+    restart: always
+    depends_on:
+      - mysqldb
+
+  mysqldb:
+    image: mysql:${MYSQL_VERSION}
+    container_name: ${MYSQL_HOST}
+    restart: always
+    env_file:
+      - ".env"
+    environment:
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+    ports:
+      - "8989:3306"
+    volumes:
+      - "./db/mysql:/var/lib/mysql"
+      - "./db/initdb.d:/docker-entrypoint-initdb.d"
