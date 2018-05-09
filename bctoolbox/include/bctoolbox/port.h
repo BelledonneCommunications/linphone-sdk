@@ -391,6 +391,11 @@ BCTBX_PUBLIC char *bctbx_basename(const char *path);
 BCTBX_PUBLIC int bctbx_file_exist(const char *pathname);
 
 /**
+ * Tests if a directory with given pathname exists. Return 0 if yes, -1 otherwise.
+**/
+BCTBX_PUBLIC int bctbx_directory_exists(const char *pathname);
+
+/**
  * @brief return a timeSpec structure(sec and nsec) containing current time(WARNING: there is no guarantees it is UTC ).
  *        The time returned may refers to UTC or last boot.
  *        Use this function only to compute a time span between two calls

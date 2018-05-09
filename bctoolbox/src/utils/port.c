@@ -158,6 +158,12 @@ int bctbx_file_exist(const char *pathname) {
 	return access(pathname,F_OK);
 }
 
+int bctbx_directory_exists(const char *pathname) {
+	struct stat status;
+	stat(pathname, &status);
+	return (status.st_mode & S_IFDIR);
+}
+
 #if	!defined(_WIN32) && !defined(_WIN32_WCE)
 	/* Use UNIX inet_aton method */
 #else
