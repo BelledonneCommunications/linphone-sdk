@@ -517,6 +517,7 @@ static int tls_process_handshake(belle_sip_channel_t *obj){
 	char tmp[128];
 	int err=bctbx_ssl_handshake(channel->sslctx);
 	
+	memset(tmp, '\0', sizeof(tmp));
 	if (err == 0){
 		belle_sip_message("Channel [%p]: SSL handshake finished, SSL version is [%s], selected ciphersuite is [%s]",obj,
 				  bctbx_ssl_get_version(channel->sslctx), bctbx_ssl_get_ciphersuite(channel->sslctx));
