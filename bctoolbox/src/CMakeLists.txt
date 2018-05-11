@@ -100,6 +100,7 @@ if(ENABLE_SHARED)
 		target_include_directories(bctoolbox PRIVATE ${ICONV_INCLUDE_DIRS})
 		target_link_libraries(bctoolbox PRIVATE ${ICONV_LIBRARIES})
 	endif()
+	#TODO: replace by if(APPLE) when we want to make apple framework on linphone-desktop too
 	if(IOS)
 		if(IOS)
 			set(MIN_OS ${LINPHONE_IOS_DEPLOYMENT_TARGET})
