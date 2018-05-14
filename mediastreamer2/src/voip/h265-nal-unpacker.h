@@ -30,26 +30,16 @@ public:
 private:
 	class FuAggregator: public NalUnpacker::FuAggregatorInterface {
 	public:
-		~FuAggregator() {if (_m != nullptr) freemsg(_m);}
 		mblk_t *feed(mblk_t *packet) override;
 		bool isAggregating() const override {return _m != nullptr;}
 		void reset() override;
 		mblk_t *completeAggregation() override;
-
-	private:
-		mblk_t *_m = nullptr;
 	};
 
 	class ApSpliter: public NalUnpacker::ApSpliterInterface {
 	public:
-		ApSpliter() {ms_queue_init(&_q);}
-		~ApSpliter() {ms_queue_flush(&_q);}
-
 		void feed(mblk_t *packet) override;
 		MSQueue *getNalus() override {return &_q;}
-
-	private:
-		MSQueue _q;
 	};
 };
 

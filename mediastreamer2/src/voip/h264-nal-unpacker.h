@@ -25,25 +25,16 @@ namespace mediastreamer {
 
 class H264FuaAggregator: public NalUnpacker::FuAggregatorInterface {
 public:
-	~H264FuaAggregator() {if (_m) freemsg(_m);}
 	mblk_t *feed(mblk_t *im) override;
 	bool isAggregating() const override {return _m != nullptr;}
 	void reset() override;
 	mblk_t *completeAggregation() override;
-
-private:
-	mblk_t *_m = nullptr;
 };
 
 class H264StapaSpliter: public NalUnpacker::ApSpliterInterface {
 public:
-	H264StapaSpliter() {ms_queue_init(&_q);}
-	~H264StapaSpliter() {ms_queue_flush(&_q);}
 	void feed(mblk_t *im) override;
 	MSQueue *getNalus() override {return &_q;}
-
-private:
-	MSQueue _q;
 };
 
 class H264NalUnpacker: public NalUnpacker {

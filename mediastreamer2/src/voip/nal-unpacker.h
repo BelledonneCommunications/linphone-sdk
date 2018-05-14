@@ -39,24 +39,29 @@ public:
 
 	class FuAggregatorInterface {
 	public:
-		virtual ~FuAggregatorInterface() = default;
+		virtual ~FuAggregatorInterface() {if (_m) freemsg(_m);}
 		virtual mblk_t *feed(mblk_t *packet) = 0;
 		virtual bool isAggregating() const = 0;
 		virtual void reset() = 0;
 		virtual mblk_t *completeAggregation() = 0;
+
+	protected:
+		mblk_t *_m = nullptr;
 	};
 
 	class ApSpliterInterface {
 	public:
-		virtual ~ApSpliterInterface() = default;
+		ApSpliterInterface() {ms_queue_init(&_q);}
+		virtual ~ApSpliterInterface() {ms_queue_flush(&_q);}
 		virtual void feed(mblk_t *packet) = 0;
 		virtual MSQueue *getNalus() = 0;
+
+	protected:
+		MSQueue _q;
 	};
 
 	NalUnpacker(FuAggregatorInterface *aggregator, ApSpliterInterface *spliter);
-	virtual ~NalUnpacker() {
-		ms_queue_flush(&_q);
-	}
+	virtual ~NalUnpacker() {ms_queue_flush(&_q);}
 
 	/**
 	 * Process incoming rtp data and output NALUs, whenever possible.
