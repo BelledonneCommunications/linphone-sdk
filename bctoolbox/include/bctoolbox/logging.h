@@ -74,14 +74,14 @@ BCTBX_PUBLIC void bctbx_init_logger(bool_t create);
  */
 BCTBX_PUBLIC void bctbx_uninit_logger(void);
 
-/* 
+/*
  Default functions to free log handlers
  @param[in] bctbx_log_handler_t* handler : the handler to free
 */
 BCTBX_PUBLIC void bctbx_logv_out_destroy(bctbx_log_handler_t *handler);
 BCTBX_PUBLIC void bctbx_logv_file_destroy(bctbx_log_handler_t *handler);
 
-/* 
+/*
  Function to create a log handler
  @param[in] BctbxLogHandlerFunc func : the function to call to handle a new line of log
  @param[in] BctbxLogHandlerDestroyFunc destroy : the function to call to free this handler particuler its user_info field
@@ -90,7 +90,7 @@ BCTBX_PUBLIC void bctbx_logv_file_destroy(bctbx_log_handler_t *handler);
 */
 BCTBX_PUBLIC bctbx_log_handler_t* bctbx_create_log_handler(BctbxLogHandlerFunc func, BctbxLogHandlerDestroyFunc destroy, void* user_data);
 
-/* 
+/*
  Function to create a file log handler
  @param[in] uint64_t max_size : the maximum size of the log file before rotating to a new one (if 0 then no rotation)
  @param[in] const char* path : the path where to put the log files
@@ -103,10 +103,10 @@ BCTBX_PUBLIC bctbx_log_handler_t* bctbx_create_file_log_handler(uint64_t max_siz
 BCTBX_PUBLIC void bctbx_log_handler_set_domain(bctbx_log_handler_t * log_handler,const char *domain);
 BCTBX_PUBLIC void bctbx_log_handler_set_user_data(bctbx_log_handler_t*, void* user_data);
 BCTBX_PUBLIC void *bctbx_log_handler_get_user_data(const bctbx_log_handler_t* log_handler);
-	
+
 BCTBX_PUBLIC void bctbx_add_log_handler(bctbx_log_handler_t* handler);
 BCTBX_PUBLIC void bctbx_remove_log_handler(bctbx_log_handler_t* handler);
-	
+
 BCTBX_PUBLIC void bctbx_set_log_handler(BctbxLogFunc func);
 /*same as bctbx_set_log_handler but only for a domain. NULL for all*/
 BCTBX_PUBLIC void bctbx_set_log_handler_for_domain(BctbxLogFunc func, const char* domain);
@@ -274,14 +274,18 @@ namespace bctoolbox {
 
 #include <ostream>
 
-struct pumpstream : public std::ostringstream {
-	const std::string mDomain;
-	const BctbxLogLevel level;
-	pumpstream(const std::string &domain, BctbxLogLevel l) : mDomain(domain), level(l) {}
-
+class pumpstream : public std::ostringstream {
+public:
+	pumpstream(const char *domain, BctbxLogLevel level) : mDomain(domain ? domain : ""), mLevel(level) {}
 	~pumpstream() {
-		bctbx_log(mDomain.empty()?NULL:mDomain.c_str(), level, "%s", str().c_str());
+		const char *domain = mDomain.empty() ? nullptr : mDomain.c_str();
+		if (bctbx_log_level_enabled(domain, mLevel))
+			bctbx_log(domain, mLevel, "%s", str().c_str());
 	}
+
+private:
+	const std::string mDomain;
+	const BctbxLogLevel mLevel;
 };
 
 #if (__GNUC__ == 4 && __GNUC_MINOR__ < 5 && __cplusplus > 199711L)
@@ -291,10 +295,7 @@ template <typename _Tp> inline pumpstream &operator<<(pumpstream &&__os, const _
 }
 #endif
 
-#define BCTBX_SLOG(domain, thelevel) \
-\
-if (bctbx_log_level_enabled((domain), (thelevel))) \
-		pumpstream((domain != NULL ? domain : ""), (thelevel))
+#define BCTBX_SLOG(domain, thelevel) pumpstream(domain, thelevel)
 
 #define BCTBX_SLOGD BCTBX_SLOG(BCTBX_LOG_DOMAIN, BCTBX_LOG_DEBUG)
 #define BCTBX_SLOGI BCTBX_SLOG(BCTBX_LOG_DOMAIN, BCTBX_LOG_MESSAGE)
@@ -303,5 +304,3 @@ if (bctbx_log_level_enabled((domain), (thelevel))) \
 
 #endif
 #endif
-
-
