@@ -268,12 +268,8 @@ static int static_image_get_fps(MSFilter *f, void *arg) {
 }
 
 int static_image_set_vsize(MSFilter *f, void* data) {
-#ifndef NO_FFMPEG
 	SIData *d = (SIData*)f->data;
 	d->vsize = *(MSVideoSize*)data;
-#else
-    // no rescaling without ffmpeg
-#endif
 	return 0;
 }
 

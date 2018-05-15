@@ -129,7 +129,7 @@ static mblk_t * cropBeforeDecode(QRCodeReaderStruct *qrc, MSPicture *p, MSPictur
 	return mblk;
 }
 
-static void qrcode_process(MSFilter *f) {
+void qrcode_process(MSFilter *f) {
 	mblk_t *m;
 	MSPicture yuvBuf;
 	QRCodeReaderStruct *qrc = (QRCodeReaderStruct*)f->data;
@@ -145,7 +145,6 @@ static void qrcode_process(MSFilter *f) {
 			if (!mblk) newYuvbuf = yuvBuf;
 			qrc->image = new QRCodeImage(newYuvbuf.w, newYuvbuf.h, newYuvbuf.planes[0], newYuvbuf.strides[0]);
 			read_qrcode(f);
-			delete qrc->image;
 
 			if (mblk) freemsg(mblk);
 		}
