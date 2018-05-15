@@ -45,6 +45,9 @@ public:
 	H265NaluHeader() = default;
 	H265NaluHeader(const uint8_t *header) {parse(header);}
 
+	void setFBit(bool val) {_fBit = val;}
+	bool getFBit() const {return _fBit;}
+
 	void setType(H265NaluType type) {_type = type;}
 	H265NaluType getType() const {return _type;}
 
@@ -57,7 +60,10 @@ public:
 	void parse(const uint8_t *header);
 	mblk_t *forge() const;
 
+	static const size_t length = 2;
+
 private:
+	bool _fBit = false;
 	H265NaluType _type;
 	uint8_t _layerId = 0;
 	uint8_t _tid = 0;
@@ -82,6 +88,8 @@ public:
 
 	void parse(const uint8_t *header);
 	mblk_t *forge() const;
+
+	static const size_t length = 1;
 
 private:
 	Position _pos = Position::Start;

@@ -306,6 +306,7 @@ if(ENABLE_VIDEO)
 		utils/h264utils.cpp
 		utils/h265-utils.cpp
 		voip/h264-nal-packer.cpp
+		voip/h265-nal-packer.cpp
 		voip/h264-nal-unpacker.cpp
 		voip/h265-nal-unpacker.cpp
 		voip/nal-packer.cpp

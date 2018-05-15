@@ -50,10 +50,14 @@ void H265NaluHeader::parse(const uint8_t *header) {
 	_layerId = header2 & 0x3f;
 	header2 >>= 6;
 	_type = header2 & 0x3f;
+	header2 >>= 6;
+	_fBit = (header2 != 0);
 }
 
 mblk_t *H265NaluHeader::forge() const {
-	uint16_t header = _type;
+	uint16_t header = _fBit ? 1 : 0;
+	header <<= 1;
+	header |= _type;
 	header <<= 6;
 	header |= _layerId;
 	header <<= 3;

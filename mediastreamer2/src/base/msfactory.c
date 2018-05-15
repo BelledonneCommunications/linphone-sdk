@@ -76,7 +76,7 @@ static void ms_fmt_descriptor_destroy(MSFmtDescriptor *obj);
 
 #define DEFAULT_MAX_PAYLOAD_SIZE 1440
 
-int ms_factory_get_payload_max_size(MSFactory *factory){
+int ms_factory_get_payload_max_size(const MSFactory *factory) {
 	return factory->max_payload_size;
 }
 
@@ -100,7 +100,7 @@ void ms_factory_set_mtu(MSFactory *obj, int mtu){
 	}
 }
 
-int ms_factory_get_mtu(MSFactory *obj){
+int ms_factory_get_mtu(const MSFactory *obj) {
 	return obj->mtu;
 }
 

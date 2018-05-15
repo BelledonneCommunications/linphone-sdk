@@ -21,7 +21,7 @@
 
 namespace mediastreamer {
 
-NalPacker::NalPacker(NaluSpliterInterface *naluSpliter, NaluAggregatorInterface *naluAggregator, MSFactory *factory): _naluSpliter(naluSpliter), _naluAggregator(naluAggregator) {
+NalPacker::NalPacker(NaluAggregatorInterface *naluAggregator, NaluSpliterInterface *naluSpliter, const MSFactory *factory) {
 	setMaxPayloadSize(ms_factory_get_payload_max_size(factory));
 }
 

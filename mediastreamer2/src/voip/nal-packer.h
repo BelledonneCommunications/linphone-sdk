@@ -56,9 +56,6 @@ public:
 		virtual MSQueue *getPackets() = 0;
 	};
 
-	NalPacker(NaluSpliterInterface *naluSpliter, NaluAggregatorInterface *naluAggregator): _naluSpliter(naluSpliter), _naluAggregator(naluAggregator) {}
-	NalPacker(NaluSpliterInterface *naluSpliter, NaluAggregatorInterface *naluAggregator, MSFactory *factory);
-
 	void setPacketizationMode(PacketizationMode packMode) {_packMode = packMode;}
 	PacketizationMode getPacketizationMode() const {return _packMode;}
 
@@ -73,6 +70,9 @@ public:
 	void pack(MSQueue *naluq, MSQueue *rtpq, uint32_t ts);
 
 protected:
+	NalPacker(NaluAggregatorInterface *naluAggregator, NaluSpliterInterface *naluSpliter): _naluSpliter(naluSpliter), _naluAggregator(naluAggregator) {}
+	NalPacker(NaluAggregatorInterface *naluAggregator, NaluSpliterInterface *naluSpliter, const MSFactory *factory);
+
 	void packInSingleNalUnitMode(MSQueue *naluq, MSQueue *rtpq, uint32_t ts);
 	void packInNonInterleavedMode(MSQueue *naluq, MSQueue *rtpq, uint32_t ts);
 	void fragNaluAndSend(MSQueue *rtpq, uint32_t ts, mblk_t *nalu, bool_t marker);

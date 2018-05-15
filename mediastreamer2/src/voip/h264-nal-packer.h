@@ -69,8 +69,8 @@ public:
 		NonInterleavedMode
 	};
 
-	H264NalPacker(): NalPacker(new H264NaluSpliter(), new H264NaluAggregator()) {}
-	H264NalPacker(MSFactory *factory): NalPacker(new H264NaluSpliter(), new H264NaluAggregator(), factory) {}
+	H264NalPacker(): NalPacker(new H264NaluAggregator(), new H264NaluSpliter()) {}
+	H264NalPacker(MSFactory *factory): NalPacker(new H264NaluAggregator(), new H264NaluSpliter(), factory) {}
 };
 
 } // namespace mediastreamer
