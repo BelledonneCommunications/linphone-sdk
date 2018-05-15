@@ -116,8 +116,10 @@ namespace lime {
 			void ratchetEncrypt(const inputContainer &plaintext, std::vector<uint8_t> &&AD, std::vector<uint8_t> &ciphertext, const bool payloadDirectEncryption);
 			template<typename outputContainer>
 			bool ratchetDecrypt(const std::vector<uint8_t> &cipherText, const std::vector<uint8_t> &AD, outputContainer &plaintext, const bool payloadDirectEncryption);
-			long int dbSessionId(void) const {return m_dbSessionId;}; // retrieve the session's local storage id
-			bool isActive(void) const {return m_active_status;} // return the current status of session
+			/// return the session's local storage id
+			long int dbSessionId(void) const {return m_dbSessionId;};
+			/// return the current status of session
+			bool isActive(void) const {return m_active_status;}
 	};
 
 
@@ -130,8 +132,17 @@ namespace lime {
 		const std::string deviceId; /**< recipient deviceId (shall be GRUU) */
 		bool identityVerified; /**< after encrypt calls back, it will hold the status of this peer device: identity verified or not */
 		std::vector<uint8_t> DRmessage; /**< after encrypt calls back, it will hold the DR message targeted to the specified recipient. It may contain an X3DH init message. */
-		RecipientInfos(const std::string &deviceId) : DRSession{nullptr}, deviceId{deviceId}, identityVerified{false}, DRmessage{} {};
+		/**
+		 * Constructor: the deviceId is a constant and must be provided to the constructor
+		 *
+		 * @param[in]	deviceId	The device Id (GRUU) of this recipient
+		 * @param[in]	session		The double ratchet session linking current device with this recipient.
+		 */
 		RecipientInfos(const std::string &deviceId, std::shared_ptr<DR<Curve>> session) : DRSession{session}, deviceId{deviceId}, identityVerified{false}, DRmessage{} {};
+		/**
+		 * @overload RecipientInfos(const std::string &deviceId)
+		 */
+		RecipientInfos(const std::string &deviceId) : DRSession{nullptr}, deviceId{deviceId}, identityVerified{false}, DRmessage{} {};
 	};
 
 	// helpers function wich are the one to be used to encrypt/decrypt messages

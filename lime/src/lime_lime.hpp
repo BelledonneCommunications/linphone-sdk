@@ -67,11 +67,12 @@ namespace lime {
 		/**
 		 * @brief Decrypt the given message
 		 *
-		 * @param[in]		recipientUserId	the Id of intended recipient, shall be a sip:uri of user or conference, is used as associated data to ensure no-one can mess with intended recipient
-		 * 					it is not necessarily the sip:uri base of the GRUU as this could be a message from alice first device intended to bob being decrypted on alice second device
-		 * @param[in]		DRmessage	the Double Ratchet message targeted to current device
-		 * @param[in]		cipherMessage	part of cipher routed to all recipient devices
-		 * @param[out]		plainMessage	the output buffer
+		 * @param[in]	recipientUserId	the Id of intended recipient, shall be a sip:uri of user or conference, is used as associated data to ensure no-one can mess with intended recipient
+		 * 				it is not necessarily the sip:uri base of the GRUU as this could be a message from alice first device intended to bob being decrypted on alice second device
+		 * @param[in]	senderDeviceId	the device Id (GRUU) of the message sender
+		 * @param[in]	DRmessage	the Double Ratchet message targeted to current device
+		 * @param[in]	cipherMessage	part of cipher routed to all recipient devices(it may be actually empty depending on sender encryption policy and message characteristics)
+		 * @param[out]	plainMessage	the output buffer
 		 *
 		 * @return	true if the decryption is successfull, false otherwise
 		*/
@@ -85,7 +86,7 @@ namespace lime {
 		 * this  will, on success, trigger generation and sending of SPk and OPks for our new user
 		 *
 		 * @param[in]	callback		call when completed
-		 * @param[in]	initialOPkBatchSize	Number of OPks in the first batch uploaded to X3DH server
+		 * @param[in]	OPkInitialBatchSize	Number of OPks in the first batch uploaded to X3DH server
 		*/
 		virtual void publish_user(const limeCallback &callback, const uint16_t OPkInitialBatchSize) = 0;
 

@@ -74,10 +74,14 @@ namespace lime {
 			X<Base, lime::Xtype::publicKey> m_pubKey;
 			X<Base, lime::Xtype::privateKey> m_privKey;
 		public:
+			/// access the private key
 			X<Base, lime::Xtype::privateKey> &privateKey(void) {return m_privKey;};
+			/// access the public key
 			X<Base, lime::Xtype::publicKey> &publicKey(void) {return m_pubKey;};
+			/// copy construct a key pair from public and private keys (no verification on validity of keys is performed)
 			Xpair(X<Base, lime::Xtype::publicKey> &pub, X<Base, lime::Xtype::privateKey> &priv):m_pubKey(pub),m_privKey(priv) {};
 			Xpair() :m_pubKey{},m_privKey{}{};
+			/// == operator assert that public and private keys are the same
 			bool operator==(Xpair<Base> b) const {return (m_privKey==b.privateKey() && m_pubKey==b.publicKey());};
 
 	};
@@ -109,10 +113,14 @@ namespace lime {
 			DSA<Base, lime::DSAtype::publicKey> m_pubKey;
 			DSA<Base, lime::DSAtype::privateKey> m_privKey;
 		public:
+			/// access the private key
 			DSA<Base, lime::DSAtype::privateKey> &privateKey(void) {return m_privKey;};
+			/// access the public key
 			DSA<Base, lime::DSAtype::publicKey> &publicKey(void) {return m_pubKey;};
+			/// copy construct a key pair from public and private keys (no verification on validity of keys is performed)
 			DSApair(DSA<Base, lime::DSAtype::publicKey> &pub, DSA<Base, lime::DSAtype::privateKey> &priv):m_pubKey(pub),m_privKey(priv) {};
 			DSApair() :m_pubKey{},m_privKey{}{};
+			/// == operator assert that public and private keys are the same
 			bool operator==(DSApair<Base> b) const {return (m_privKey==b.privateKey() && m_pubKey==b.publicKey());};
 	};
 
@@ -132,8 +140,8 @@ class RNG {
 		 * @param[out]	buffer	point to the beginning of the buffer to be filled with random bytes
 		 * @param[in]	size	size of the buffer to be filled
 		 */
-		
 		virtual void randomize(uint8_t *buffer, const size_t size) = 0;
+
 		/**
 		 * @brief fill given buffer with Random bytes
 		 *
@@ -218,7 +226,7 @@ class Signature {
 		 * @param[out]	signature	The signature produced from the message with a key pair previously introduced in the object
 		 */
 		virtual void sign(const std::vector<uint8_t> &message, DSA<Base, lime::DSAtype::signature> &signature) = 0;
-		/*
+		/**
 		 * @overload virtual void sign(const X<Base, lime::Xtype::publicKey> &message, DSA<Base, lime::DSAtype::signature> &signature)
 		 * a convenience function to directly verify a key exchange public key
 		 */
@@ -233,7 +241,7 @@ class Signature {
 		 * @return	true if the signature is valid, false otherwise
 		 */
 		virtual bool verify(const std::vector<uint8_t> &message, const DSA<Base, lime::DSAtype::signature> &signature) = 0;
-		/*
+		/**
 		 * @overload virtual bool verify(const X<Base, lime::Xtype::publicKey> &message, const DSA<Base, lime::DSAtype::signature> &signature)
 		 * a convenience function to directly verify a key exchange public key
 		 */

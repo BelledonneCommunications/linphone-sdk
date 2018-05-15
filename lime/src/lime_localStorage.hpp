@@ -30,7 +30,7 @@ namespace lime {
 	 */
 	class Db {
 	public:
-		// soci connexion to DB
+		/// soci connexion to DB
 		soci::session	sql;
 
 		Db()=delete; // we can't create a new DB holder without DB filename
@@ -57,7 +57,7 @@ namespace lime {
 		/**
 		 * @brief if exists, delete user
 		 *
-		 * @param[in]	userId		a string holding the user to look for in DB, shall be its GRUU
+		 * @param[in]	deviceId	a string holding the user to look for in DB, shall be its GRUU
 		 *
 		 */
 		void delete_LimeUser(const std::string &deviceId);

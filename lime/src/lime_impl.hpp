@@ -142,7 +142,7 @@ namespace lime {
 	 */
 	template <typename Curve>
 	struct callbackUserData {
-		// limeObj is owned by the LimeManager, it shall no be destructed, do not own this with a shared_ptr as Lime obj may own the callbackUserData obj thus creating circular reference
+		/// limeObj is owned by the LimeManager, it shall no be destructed, do not own this with a shared_ptr as Lime obj may own the callbackUserData obj thus creating circular reference
 		std::weak_ptr<Lime<Curve>> limeObj;
 		/// is a lambda closure, not real idea of what is its lifetime but it seems ok to hold it this way
 		const limeCallback callback;
@@ -163,22 +163,19 @@ namespace lime {
 		/// Used when fetching from server self OPk : how many will we upload if needed
 		uint16_t OPkBatchSize;
 
-		/** created at user create/delete and keys Post. EncryptionPolicy is not used, set it to the default value anyway
-		 */
+		/// created at user create/delete and keys Post. EncryptionPolicy is not used, set it to the default value anyway
 		callbackUserData(std::weak_ptr<Lime<Curve>> thiz, const limeCallback &callbackRef, uint16_t OPkInitialBatchSize=lime::settings::OPk_initialBatchSize, bool startRegisterUserSequence=false)
 			: limeObj{thiz}, callback{callbackRef},
 			recipientUserId{nullptr}, recipients{nullptr}, plainMessage{nullptr}, cipherMessage{nullptr}, network_state_machine{startRegisterUserSequence?lime::network_state::sendSPk:lime::network_state::done},
 			encryptionPolicy(lime::EncryptionPolicy::optimizeUploadSize), OPkServerLowLimit(0), OPkBatchSize(OPkInitialBatchSize) {};
 
-		/** created at update: getSelfOPks. EncryptionPolicy is not used, set it to the default value anyway
-		 */
+		/// created at update: getSelfOPks. EncryptionPolicy is not used, set it to the default value anyway
 		callbackUserData(std::weak_ptr<Lime<Curve>> thiz, const limeCallback &callbackRef, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize)
 			: limeObj{thiz}, callback{callbackRef},
 			recipientUserId{nullptr}, recipients{nullptr}, plainMessage{nullptr}, cipherMessage{nullptr}, network_state_machine{lime::network_state::done},
 			encryptionPolicy(lime::EncryptionPolicy::optimizeUploadSize), OPkServerLowLimit{OPkServerLowLimit}, OPkBatchSize{OPkBatchSize} {};
 
-		/** created at encrypt(getPeerBundle)
-		 */
+		/// created at encrypt(getPeerBundle)
 		callbackUserData(std::weak_ptr<Lime<Curve>> thiz, const limeCallback &callbackRef,
 				std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients,
 				std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage,
@@ -186,6 +183,7 @@ namespace lime {
 			: limeObj{thiz}, callback{callbackRef},
 			recipientUserId{recipientUserId}, recipients{recipients}, plainMessage{plainMessage}, cipherMessage{cipherMessage}, network_state_machine {lime::network_state::done}, // copy construct all shared_ptr
 			encryptionPolicy(policy), OPkServerLowLimit(0), OPkBatchSize(0) {};
+
 		// do not copy callback data, force passing the pointer around after creation
 		callbackUserData(callbackUserData &a) = delete;
 		callbackUserData operator=(callbackUserData &a) = delete;

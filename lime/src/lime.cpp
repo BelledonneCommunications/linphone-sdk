@@ -94,7 +94,7 @@ namespace lime {
 	 * this  will, on success, trigger generation and sending of SPk and OPks for our new user
 	 *
 	 * @param[in]	callback		call when completed
-	 * @param[in]	initialOPkBatchSize	Number of OPks in the first batch uploaded to X3DH server
+	 * @param[in]	OPkInitialBatchSize	Number of OPks in the first batch uploaded to X3DH server
 	 */
 	template <typename Curve>
 	void Lime<Curve>::publish_user(const limeCallback &callback, const uint16_t OPkInitialBatchSize) {

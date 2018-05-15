@@ -95,12 +95,17 @@ namespace lime {
 				bool m_payload_direct_encryption; // flag to store the message encryption mode: in the double ratchet packet or using a random key to encrypt it separately and encrypt the key in the DR packet
 
 			public:
-				/* data member accessors (read only) */
+				/// read-only accessor to Sender Chain index (Ns)
 				uint16_t Ns(void) const {return m_Ns;}
+				/// read-only accessor to Previous Sender Chain index (PN)
 				uint16_t PN(void) const {return m_PN;}
+				/// read-only accessor to peer Double Ratchet public key
 				const X<Curve, lime::Xtype::publicKey> &DHs(void) const {return m_DHs;}
+				/// is this header valid? (property is set by constructor/parser)
 				bool valid(void) const {return m_valid;}
+				/// what encryption mode is advertised in this header
 				bool payloadDirectEncryption(void) const {return m_payload_direct_encryption;}
+				/// read-only accessor to the size of parsed header
 				size_t size(void) {return m_size;}
 
 				/* ctor/dtor */

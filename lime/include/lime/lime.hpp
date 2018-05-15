@@ -180,13 +180,17 @@ namespace lime {
 			 * 					it is not necessarily the sip:uri base of the GRUU as this could be a message from alice first device intended to bob being decrypted on alice second device
 			 * @param[in]		senderDeviceId	Identify sender Device. This field shall be extracted from signaling data in transport protocol, is used to rebuild the authenticated data associated to the encrypted message
 			 * @param[in]		DRmessage	Double Ratchet message targeted to current device
-			 * @param[in]		cipherMessage	when present(depends on encryption policy) holds a common part of the encrypted message. Can be ignored or set to empty vector if not present.
+			 * @param[in]		cipherMessage	when present(depends on encryption policy) holds a common part of the encrypted message. Can be ignored or set to empty vector if not present in the incoming message.
 			 * @param[out]		plainMessage	the output buffer
 			 *
 			 * @return	true if the decryption is successfull, false otherwise
 			 */
-			bool decrypt(const std::string &localDeviceId, const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, std::vector<uint8_t> &plainMessage);
 			bool decrypt(const std::string &localDeviceId, const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage);
+			/**
+			 * @overload decrypt(const std::string &localDeviceId, const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, std::vector<uint8_t> &plainMessage)
+			 * convenience form to be called when no cipher message is received
+			 */
+			bool decrypt(const std::string &localDeviceId, const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, std::vector<uint8_t> &plainMessage);
 
 			/**
 			 * @brief Update: shall be called once a day at least, performs checks, updates and cleaning operations

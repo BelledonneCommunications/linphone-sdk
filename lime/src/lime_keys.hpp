@@ -37,6 +37,7 @@ namespace lime {
 	 *  curve 25519 key size definition, use a 4 chars(C255) to identify it to improve code readability
 	 */
 	struct C255 {
+		/// the C25519 curve id using the CurveId enumeration
 		static constexpr lime::CurveId curveId() {return lime::CurveId::c25519;};
 		/// for X25519, public, private and shared secret have the same length: 32 bytes
 		static constexpr size_t Xsize(lime::Xtype dataType) {return 32;};
@@ -48,6 +49,7 @@ namespace lime {
 	 * curve 448-goldilocks key sizes definition
 	 */
 	struct C448 {
+		 ///the C448 curve id using the CurveId enumeration
 		static constexpr lime::CurveId curveId() {return lime::CurveId::c448;};
 		/// for X448, public, private and shared secret have the same length 56 bytes
 		static constexpr size_t Xsize(lime::Xtype dataType) {return 56;};

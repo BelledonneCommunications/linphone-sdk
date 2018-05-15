@@ -57,13 +57,31 @@ class bctbx_RNG : public RNG {
 
 	public:
 		/* accessor */
+		/**
+		 * @brief access internal RNG context
+		 * Used internally by the bctoolbox wrapper, is not exposed to the lime_crypto_primitive API.
+		 *
+		 * @return a pointer to the RNG context
+		 */
 		bctbx_rng_context_t *get_context(void) {
 			return m_context;
 		}
 
+		/**
+		 * @brief fill given buffer with Random bytes
+		 *
+		 * @param[out]	buffer	point to the beginning of the buffer to be filled with random bytes
+		 * @param[in]	size	size of the buffer to be filled
+		 */
 		void randomize(uint8_t *buffer, const size_t size) override {
 			bctbx_rng_get(m_context, buffer, size);
 		};
+
+		/**
+		 * @brief fill given buffer with Random bytes
+		 *
+		 * @param[out]	buffer	vector to be filled with random bytes(based on original vector size)
+		 */
 		void randomize(std::vector<uint8_t> buffer) override {
 			randomize(buffer.data(), buffer.size());
 		};
@@ -168,13 +186,16 @@ class bctbx_EDDSA : public Signature<Curve> {
 		 * @brief Sign a message using the key pair previously set in the object
 		 *
 		 * @param[in]	message		The message to be signed
-		 * @param[in]	associatedData	A context for this signature, up to 255 bytes
 		 * @param[out]	signature	The signature produced from the message with a key pair previously introduced in the object
 		 */
 		void sign(const std::vector<uint8_t> &message, DSA<Curve, lime::DSAtype::signature> &signature) override {
 			auto sigSize = signature.size();
 			bctbx_EDDSA_sign(m_context, message.data(), message.size(), nullptr, 0, signature.data(), &sigSize);
 		}
+		/**
+		 * @overload void bctbx_EDDSA::sign(const X<Curve, lime::Xtype::publicKey> &message, DSA<Curve, lime::DSAtype::signature> &signature)
+		 * a convenience function to directly verify a key exchange public key
+		 */
 		void sign(const X<Curve, lime::Xtype::publicKey> &message, DSA<Curve, lime::DSAtype::signature> &signature) override {
 			auto sigSize = signature.size();
 			bctbx_EDDSA_sign(m_context, message.data(), message.ssize(), nullptr, 0, signature.data(), &sigSize);
@@ -191,6 +212,10 @@ class bctbx_EDDSA : public Signature<Curve> {
 		bool verify(const std::vector<uint8_t> &message, const DSA<Curve, lime::DSAtype::signature> &signature) override {
 			return (bctbx_EDDSA_verify(m_context, message.data(), message.size(), nullptr, 0, signature.data(), signature.size()) == BCTBX_VERIFY_SUCCESS);
 		}
+		/**
+		 * @overload bool bctbx_EDDSA::verify(const X<Curve, lime::Xtype::publicKey> &message, const DSA<Curve, lime::DSAtype::signature> &signature)
+		 * a convenience function to directly verify a key exchange public key
+		 */
 		bool verify(const X<Curve, lime::Xtype::publicKey> &message, const DSA<Curve, lime::DSAtype::signature> &signature) override {
 			return (bctbx_EDDSA_verify(m_context, message.data(), message.ssize(), nullptr, 0, signature.data(), signature.ssize()) == BCTBX_VERIFY_SUCCESS);
 		}
