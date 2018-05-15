@@ -28,11 +28,8 @@ public:
 	H264NaluAggregator() {}
 	~H264NaluAggregator() {reset();}
 
-	size_t getMaxSize() const override {return _maxsize;}
-	void setMaxSize(size_t maxSize) override;
-
 	mblk_t *feed(mblk_t *nalu) override;
-	bool isAggregating() const override {return bool(_stap);}
+	bool isAggregating() const override {return _stap != nullptr;}
 	void reset() override;
 	mblk_t *completeAggregation() override;
 
@@ -43,23 +40,11 @@ private:
 
 	mblk_t *_stap = nullptr;
 	size_t _size = 0;
-	size_t _maxsize = MS_DEFAULT_MAX_PAYLOAD_SIZE;
 };
 
 class H264NaluSpliter: public NalPacker::NaluSpliterInterface {
 public:
-	H264NaluSpliter() {ms_queue_init(&_q);}
-	~H264NaluSpliter() {ms_queue_flush(&_q);}
-
-	size_t getMaxSize() const override {return _maxsize;}
-	void setMaxSize(size_t maxSize) override {_maxsize = maxSize;}
-
 	void feed(mblk_t *nalu) override;
-	MSQueue *getPackets() override {return &_q;};
-
-private:
-	size_t _maxsize = MS_DEFAULT_MAX_PAYLOAD_SIZE;
-	MSQueue _q;
 };
 
 class H264NalPacker: public NalPacker {

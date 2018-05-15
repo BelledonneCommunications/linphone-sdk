@@ -17,8 +17,6 @@
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#include <exception>
-
 #include "h264utils.h"
 #include "h264-nal-packer.h"
 
@@ -30,20 +28,13 @@ namespace mediastreamer {
 // H264NaluToStapAggregator
 // ========================
 
-void H264NaluAggregator::setMaxSize(size_t maxSize) {
-	if (isAggregating()) {
-		throw logic_error("changing payload size while aggregating NALus into a STAP-A");
-	}
-	_maxsize = maxSize;
-}
-
 mblk_t *H264NaluAggregator::feed(mblk_t *nalu) {
 	size_t size = msgdsize(nalu);
 	if (_stap == nullptr) {
 		_stap = nalu;
 		_size = size + 3; /* STAP-A header + size */
 	} else {
-		if ((_size + size) < (_maxsize - 2)) {
+		if ((_size + size) < (_maxSize - 2)) {
 			_stap = concatNalus(_stap, nalu);
 			_size += (size + 2); /* +2 for the STAP-A size field */
 		} else {
@@ -99,7 +90,7 @@ void H264NaluAggregator::putNalSize(mblk_t *m, size_t sz) {
 
 void H264NaluSpliter::feed(mblk_t *nalu) {
 	mblk_t *m;
-	int payload_max_size = _maxsize - 2; /*minus FU-A header*/
+	int payload_max_size = _maxSize - 2; /*minus FU-A header*/
 	uint8_t fu_indicator;
 	uint8_t type = ms_h264_nalu_get_type(nalu);
 	uint8_t nri = ms_h264_nalu_get_nri(nalu);

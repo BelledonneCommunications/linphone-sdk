@@ -36,24 +36,32 @@ public:
 	public:
 		virtual ~NaluAggregatorInterface() = default;
 
-		virtual size_t getMaxSize() const = 0;
-		virtual void setMaxSize(size_t maxSize) = 0;
+		size_t getMaxSize() const {return _maxSize;}
+		void setMaxSize(size_t maxSize);
 
 		virtual mblk_t *feed(mblk_t *nalu) = 0;
 		virtual bool isAggregating() const = 0;
 		virtual void reset() = 0;
 		virtual mblk_t *completeAggregation() = 0;
+
+	protected:
+		size_t _maxSize = MS_DEFAULT_MAX_PAYLOAD_SIZE;
 	};
 
 	class NaluSpliterInterface {
 	public:
-		virtual ~NaluSpliterInterface() = default;
+		NaluSpliterInterface() {ms_queue_init(&_q);}
+		virtual ~NaluSpliterInterface() {ms_queue_flush(&_q);}
 
-		virtual size_t getMaxSize() const = 0;
-		virtual void setMaxSize(size_t maxSize) = 0;
+		size_t getMaxSize() const {return _maxSize;}
+		void setMaxSize(size_t maxSize) {_maxSize = maxSize;}
 
 		virtual void feed(mblk_t *nalu) = 0;
-		virtual MSQueue *getPackets() = 0;
+		MSQueue *getPackets() {return &_q;}
+
+	protected:
+		size_t _maxSize = MS_DEFAULT_MAX_PAYLOAD_SIZE;
+		MSQueue _q;
 	};
 
 	void setPacketizationMode(PacketizationMode packMode) {_packMode = packMode;}

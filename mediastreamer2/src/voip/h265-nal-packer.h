@@ -30,9 +30,6 @@ private:
 	public:
 		~NaluAggregator();
 
-		size_t getMaxSize() const override {return _maxSize;}
-		void setMaxSize(size_t maxSize) override {_maxSize = maxSize;}
-
 		mblk_t *feed(mblk_t *nalu) override;
 		bool isAggregating() const override {return _ap != nullptr;}
 		void reset() override;
@@ -42,7 +39,6 @@ private:
 		void placeFirstNalu(mblk_t *nalu);
 		void aggregate(mblk_t *nalu);
 
-		size_t _maxSize = MS_DEFAULT_MAX_PAYLOAD_SIZE;
 		size_t _size = 0;
 		H265NaluHeader _apHeader;
 		mblk_t *_ap = nullptr;
@@ -50,20 +46,10 @@ private:
 
 	class NaluSpliter: public NaluSpliterInterface {
 	public:
-		NaluSpliter() {ms_queue_init(&_q);}
-		~NaluSpliter() {ms_queue_flush(&_q);}
-
-		size_t getMaxSize() const override {return _maxSize;}
-		void setMaxSize(size_t maxSize) override {_maxSize = maxSize;}
-
 		void feed(mblk_t *nalu) override;
-		MSQueue *getPackets() override {return &_q;}
 
 	private:
 		mblk_t *makeFu(const H265NaluHeader &naluHeader, const H265FuHeader &fuHeader, const uint8_t *payload, size_t length);
-
-		size_t _maxSize = MS_DEFAULT_MAX_PAYLOAD_SIZE;
-		MSQueue _q;
 	};
 
 	H265NalPacker(const MSFactory *factory): NalPacker(new NaluAggregator, new NaluSpliter(), factory) {}

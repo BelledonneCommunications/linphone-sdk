@@ -17,9 +17,19 @@
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
+#include <stdexcept>
 #include "nal-packer.h"
 
+using namespace std;
+
 namespace mediastreamer {
+
+void NalPacker::NaluAggregatorInterface::setMaxSize(size_t maxSize) {
+	if (isAggregating()) {
+		throw logic_error("changing payload size while aggregating NALus");
+	}
+	_maxSize = maxSize;
+}
 
 NalPacker::NalPacker(NaluAggregatorInterface *naluAggregator, NaluSpliterInterface *naluSpliter, const MSFactory *factory) {
 	setMaxPayloadSize(ms_factory_get_payload_max_size(factory));
