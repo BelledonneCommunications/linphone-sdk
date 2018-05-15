@@ -160,7 +160,11 @@ int bctbx_file_exist(const char *pathname) {
 
 bool_t bctbx_directory_exists(const char *pathname) {
 	struct stat sb;
-	return (stat(pathname, &sb) == 0 && S_ISDIR(sb.st_mode));
+#ifdef WIN32
+	return stat(pathname, &sb) == 0 && (_S_IFDIR & sb.st_mode);
+#else
+	return stat(pathname, &sb) == 0 && S_ISDIR(sb.st_mode);
+#endif
 }
 
 #if	!defined(_WIN32) && !defined(_WIN32_WCE)
