@@ -52,6 +52,11 @@ void NalPacker::pack(MSQueue *naluq, MSQueue *rtpq, uint32_t ts) {
 	}
 }
 
+void NalPacker::flush() {
+	_naluAggregator->reset();
+	ms_queue_flush(_naluSpliter->getPackets());
+}
+
 // Private methods
 void NalPacker::packInSingleNalUnitMode(MSQueue *naluq, MSQueue *rtpq, uint32_t ts) {
 	while (mblk_t *m = ms_queue_get(naluq)) {

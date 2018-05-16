@@ -30,6 +30,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mediastreamer2/rfc3984.h"
 
 #include "android_mediacodec.h"
+#include "h264-nal-packer.h"
 #include "h264utils.h"
 
 #define MS_MEDIACODECH264_CONF(required_bitrate, bitrate_limit, resolution, fps, ncpus) \
@@ -54,9 +55,11 @@ namespace mediastreamer {
 
 class MediaCodecH264EncoderFilterImpl {
 public:
-	MediaCodecH264EncoderFilterImpl(MSFilter *f): _f(f) {
+	MediaCodecH264EncoderFilterImpl(MSFilter *f): _f(f), _packer(f->factory) {
 		_vconf = ms_video_find_best_configuration_for_size(_vconfList, MS_VIDEO_SIZE_CIF, ms_factory_get_cpu_count(f->factory));
 		ms_video_starter_init(&_starter);
+		_packer.setPacketizationMode(NalPacker::NonInterleavedMode);
+		_packer.enableAggregation(false);
 		/*we shall allocate the MediaCodec encoder the sooner as possible and before the decoder, because
 		 * on some phones hardware encoder and decoders can't be allocated at the same time.
 		 * */
@@ -72,9 +75,6 @@ public:
 
 	void preprocess() {
 		encConfigure();
-		_packer = rfc3984_new_with_factory(_f->factory);
-		rfc3984_set_mode(_packer, _mode);
-		rfc3984_enable_stap_a(_packer, FALSE);
 		ms_video_starter_init(&_starter);
 		ms_iframe_requests_limiter_init(&_iframeLimiter, 1000);
 	}
@@ -221,7 +221,7 @@ public:
 							break;
 					}
 
-					rfc3984_pack(_packer, &nalus, _f->outputs[0], ts);
+					_packer.pack(&nalus, _f->outputs[0], ts);
 
 					if (_framenum == 0) {
 						ms_video_starter_first_frame(&_starter, _f->ticker->time);
@@ -245,10 +245,7 @@ public:
 	}
 
 	void postprocess() {
-		if (_packer){
-			rfc3984_destroy(_packer);
-			_packer = nullptr;
-		}
+		_packer.flush();
 
 		if (_codec) {
 			if (_codecStarted){
@@ -528,9 +525,8 @@ private:
 	AMediaCodec *_codec = nullptr;
 	const MSVideoConfiguration *_vconfList = mediaCodecH264_conf_list;
 	MSVideoConfiguration _vconf;
-	Rfc3984Context *_packer = nullptr;
+	H264NalPacker _packer;
 	uint64_t _framenum = 0;
-	int _mode = 1;
 	MSVideoStarter _starter;
 	MSIFrameRequestsLimiterCtx _iframeLimiter;
 	mblk_t *_sps = nullptr, *_pps = nullptr; /*lastly generated SPS, PPS, in case we need to repeat them*/

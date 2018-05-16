@@ -76,6 +76,7 @@ public:
 
 	// process NALus and pack them into RTP payloads
 	void pack(MSQueue *naluq, MSQueue *rtpq, uint32_t ts);
+	void flush();
 
 protected:
 	NalPacker(NaluAggregatorInterface *naluAggregator, NaluSpliterInterface *naluSpliter): _naluSpliter(naluSpliter), _naluAggregator(naluAggregator) {}
