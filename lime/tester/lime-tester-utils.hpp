@@ -27,6 +27,7 @@
 #include "lime_crypto_primitives.hpp"
 
 #include "soci/sqlite3/soci-sqlite3.h"
+#include <random>
 
 using namespace::lime;
 
@@ -43,6 +44,15 @@ extern int wait_for_timeout;
 
 // default value for initial OPk batch size, keep it small so not too many OPks generated
 extern uint16_t OPkInitialBatchSize;
+
+/**
+ * @brief Simple RNG function, used to generate random values for testing purpose, they do not need to be real random
+ * so use directly std::random_device
+ *
+ * @param[in] buffer	pointer to the begining of the buffer to be filled
+ * @param[in] size	how many random bytes you want
+ */
+void randomize(uint8_t *buffer, const size_t size);
 
 /**
  * @brief Create and initialise the two sessions given in parameter. Alice as sender session and Bob as receiver one

@@ -465,7 +465,7 @@ namespace lime {
 			// First generate a key and IV, use it to encrypt the given message, Associated Data are : sourceDeviceId || recipientUserId
 			// generate the random seed
 			auto RNG_context = make_RNG();
-			RNG_context->randomize(randomSeed.data(), randomSeed.size());
+			RNG_context->randomize(randomSeed);
 
 			// expansion of randomSeed to 48 bytes: 32 bytes random key + 16 bytes nonce, use HKDF with empty salt
 			std::vector<uint8_t> emptySalt;

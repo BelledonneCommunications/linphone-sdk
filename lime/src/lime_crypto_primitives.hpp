@@ -24,6 +24,7 @@
 #include <vector>
 
 #include "lime_keys.hpp"
+#include "lime_defines.hpp"
 
 namespace lime {
 /*************************************************************************************************/
@@ -53,36 +54,36 @@ namespace lime {
 	/**
 	 * Base buffer definition for Key Exchange data structure : easy use of array types with correct size
 	 */
-	template <typename Base, lime::Xtype dataType>
-	class X : public sBuffer<static_cast<size_t>(Base::Xsize(dataType))>{
+	template <typename Curve, lime::Xtype dataType>
+	class X : public sBuffer<static_cast<size_t>(Curve::Xsize(dataType))>{
 		public :
 			/// provide a static size function to be able to call the function not on an object
-			constexpr static size_t ssize(void) {return Base::Xsize(dataType);};
+			constexpr static size_t ssize(void) {return Curve::Xsize(dataType);};
 			/// construct from a std::vector<uint8_t>
-			X(std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, Base::Xsize(dataType), this->begin());}
+			X(std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, Curve::Xsize(dataType), this->begin());}
 			X() {};
 			/// copy from a std::vector<uint8_t>
-			void assign(std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, Base::Xsize(dataType), this->begin());}
+			void assign(std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, Curve::Xsize(dataType), this->begin());}
 	};
 
 	/**
 	 * Key pair structure for key exchange algorithm
 	 */
-	template <typename Base>
+	template <typename Curve>
 	class Xpair {
 		private:
-			X<Base, lime::Xtype::publicKey> m_pubKey;
-			X<Base, lime::Xtype::privateKey> m_privKey;
+			X<Curve, lime::Xtype::publicKey> m_pubKey;
+			X<Curve, lime::Xtype::privateKey> m_privKey;
 		public:
 			/// access the private key
-			X<Base, lime::Xtype::privateKey> &privateKey(void) {return m_privKey;};
+			X<Curve, lime::Xtype::privateKey> &privateKey(void) {return m_privKey;};
 			/// access the public key
-			X<Base, lime::Xtype::publicKey> &publicKey(void) {return m_pubKey;};
+			X<Curve, lime::Xtype::publicKey> &publicKey(void) {return m_pubKey;};
 			/// copy construct a key pair from public and private keys (no verification on validity of keys is performed)
-			Xpair(X<Base, lime::Xtype::publicKey> &pub, X<Base, lime::Xtype::privateKey> &priv):m_pubKey(pub),m_privKey(priv) {};
+			Xpair(X<Curve, lime::Xtype::publicKey> &pub, X<Curve, lime::Xtype::privateKey> &priv):m_pubKey(pub),m_privKey(priv) {};
 			Xpair() :m_pubKey{},m_privKey{}{};
 			/// == operator assert that public and private keys are the same
-			bool operator==(Xpair<Base> b) const {return (m_privKey==b.privateKey() && m_pubKey==b.publicKey());};
+			bool operator==(Xpair<Curve> b) const {return (m_privKey==b.privateKey() && m_pubKey==b.publicKey());};
 
 	};
 
@@ -92,36 +93,36 @@ namespace lime {
 	/**
 	 * Base buffer definition for DSA data structure : easy use of array types with correct size
 	 */
-	template <typename Base, lime::DSAtype dataType>
-	class DSA : public sBuffer<static_cast<size_t>(Base::DSAsize(dataType))>{
+	template <typename Curve, lime::DSAtype dataType>
+	class DSA : public sBuffer<static_cast<size_t>(Curve::DSAsize(dataType))>{
 		public :
 			/// provide a static size function to be able to call the function not on an object
-			constexpr static size_t ssize(void) {return Base::DSAsize(dataType);};
+			constexpr static size_t ssize(void) {return Curve::DSAsize(dataType);};
 			/// contruct from a std::vector<uint8_t>
-			DSA(std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, Base::DSAsize(dataType), this->begin());}
+			DSA(std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, Curve::DSAsize(dataType), this->begin());}
 			DSA() {};
 			/// copy from a std::vector<uint8_t>
-			void assign(std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, Base::DSAsize(dataType), this->begin());}
+			void assign(std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, Curve::DSAsize(dataType), this->begin());}
 	};
 
 	/**
 	 * Key pair structure for DSA algorithm
 	 */
-	template <typename Base>
+	template <typename Curve>
 	class DSApair {
 		private:
-			DSA<Base, lime::DSAtype::publicKey> m_pubKey;
-			DSA<Base, lime::DSAtype::privateKey> m_privKey;
+			DSA<Curve, lime::DSAtype::publicKey> m_pubKey;
+			DSA<Curve, lime::DSAtype::privateKey> m_privKey;
 		public:
 			/// access the private key
-			DSA<Base, lime::DSAtype::privateKey> &privateKey(void) {return m_privKey;};
+			DSA<Curve, lime::DSAtype::privateKey> &privateKey(void) {return m_privKey;};
 			/// access the public key
-			DSA<Base, lime::DSAtype::publicKey> &publicKey(void) {return m_pubKey;};
+			DSA<Curve, lime::DSAtype::publicKey> &publicKey(void) {return m_pubKey;};
 			/// copy construct a key pair from public and private keys (no verification on validity of keys is performed)
-			DSApair(DSA<Base, lime::DSAtype::publicKey> &pub, DSA<Base, lime::DSAtype::privateKey> &priv):m_pubKey(pub),m_privKey(priv) {};
+			DSApair(DSA<Curve, lime::DSAtype::publicKey> &pub, DSA<Curve, lime::DSAtype::privateKey> &priv):m_pubKey(pub),m_privKey(priv) {};
 			DSApair() :m_pubKey{},m_privKey{}{};
 			/// == operator assert that public and private keys are the same
-			bool operator==(DSApair<Base> b) const {return (m_privKey==b.privateKey() && m_pubKey==b.publicKey());};
+			bool operator==(DSApair<Curve> b) const {return (m_privKey==b.privateKey() && m_pubKey==b.publicKey());};
 	};
 
 
@@ -131,23 +132,28 @@ namespace lime {
 
 /**
  * Random number generator
+ * This abstract class is used to hold a RNG object which then is passed to internal crypto primitives
+ * who may need it (and dynamically cast to their need which it must fit)
+ * The only "external" use of RNG is to generate a random seed and some 32 bits id, provide explicit
+ * functions for that.
  */
 class RNG {
 	public:
 		/**
-		 * @brief fill given buffer with Random bytes
+		 * @brief fill the given RandomSeed buffer with Random bytes
 		 *
-		 * @param[out]	buffer	point to the beginning of the buffer to be filled with random bytes
-		 * @param[in]	size	size of the buffer to be filled
+		 * @param[in,out] buffer	point to the beginning of the buffer to be filled with random bytes
 		 */
-		virtual void randomize(uint8_t *buffer, const size_t size) = 0;
+		virtual void randomize(sBuffer<lime::settings::DRrandomSeedSize> &buffer) = 0;
 
 		/**
-		 * @brief fill given buffer with Random bytes
+		 * @brief Generate a 32 bits unsigned integer(used to generate keys Id)
+		 * The MSbit is forced to 0 to avoid dealing with DB misinterpreting unsigned values into signed one
+		 * Our random number is actually on 31 bits.
 		 *
-		 * @param[out]	buffer	vector to be filled with random bytes(based on original vector size)
+		 * @return a random 32 bits unsigned integer
 		 */
-		virtual void randomize(std::vector<uint8_t> buffer) = 0;
+		virtual uint32_t randomize() = 0;
 
 		virtual ~RNG() = default;
 }; //class RNG
@@ -157,22 +163,22 @@ class RNG {
  *  - shall be able to wrap around any algorithm providing key exchange
  *  - wrapped in algorithms must support key format convertion function from matching Digital Signature algorithm
  */
-template <typename Base>
+template <typename Curve>
 class keyExchange {
 	public:
 		/* accessors */
-		virtual const X<Base, lime::Xtype::privateKey> get_secret(void) = 0; /**< Secret key */
-		virtual const X<Base, lime::Xtype::publicKey> get_selfPublic(void) = 0; /**< Self Public key */
-		virtual const X<Base, lime::Xtype::publicKey> get_peerPublic(void) = 0; /**< Peer Public key */
-		virtual const X<Base, lime::Xtype::sharedSecret> get_sharedSecret(void) = 0; /**< ECDH output */
+		virtual const X<Curve, lime::Xtype::privateKey> get_secret(void) = 0; /**< Secret key */
+		virtual const X<Curve, lime::Xtype::publicKey> get_selfPublic(void) = 0; /**< Self Public key */
+		virtual const X<Curve, lime::Xtype::publicKey> get_peerPublic(void) = 0; /**< Peer Public key */
+		virtual const X<Curve, lime::Xtype::sharedSecret> get_sharedSecret(void) = 0; /**< ECDH output */
 
 		/* set keys in context, publics and private keys directly accept Signature formatted keys which are converted to keyExchange format */
-		virtual void set_secret(const X<Base, lime::Xtype::privateKey> &secret) = 0; /**< Secret key */
-		virtual void set_secret(const DSA<Base, lime::DSAtype::privateKey> &secret) = 0; /**< Secret key */
-		virtual void set_selfPublic(const X<Base, lime::Xtype::publicKey> &selfPublic) = 0; /**< Self Public key */
-		virtual void set_selfPublic(const DSA<Base, lime::DSAtype::publicKey> &selfPublic) = 0; /**< Self Public key */
-		virtual void set_peerPublic(const X<Base, lime::Xtype::publicKey> &peerPublic) = 0; /**< Peer Public key */
-		virtual void set_peerPublic(const DSA<Base, lime::DSAtype::publicKey> &peerPublic) = 0; /**< Peer Public key */
+		virtual void set_secret(const X<Curve, lime::Xtype::privateKey> &secret) = 0; /**< Secret key */
+		virtual void set_secret(const DSA<Curve, lime::DSAtype::privateKey> &secret) = 0; /**< Secret key */
+		virtual void set_selfPublic(const X<Curve, lime::Xtype::publicKey> &selfPublic) = 0; /**< Self Public key */
+		virtual void set_selfPublic(const DSA<Curve, lime::DSAtype::publicKey> &selfPublic) = 0; /**< Self Public key */
+		virtual void set_peerPublic(const X<Curve, lime::Xtype::publicKey> &peerPublic) = 0; /**< Peer Public key */
+		virtual void set_peerPublic(const DSA<Curve, lime::DSAtype::publicKey> &peerPublic) = 0; /**< Peer Public key */
 
 		/**
 		 * @brief generate a new random key pair
@@ -197,15 +203,15 @@ class keyExchange {
  * Digital Signature wrapper
  *  - shall be able to wrap around any algorithm providing key exchange
  */
-template <typename Base>
+template <typename Curve>
 class Signature {
 	public:
 		/* accessors */
-		virtual const DSA<Base, lime::DSAtype::privateKey> get_secret(void) = 0; /**< Secret key */
-		virtual const DSA<Base, lime::DSAtype::publicKey> get_public(void) = 0; /**< Self Public key */
+		virtual const DSA<Curve, lime::DSAtype::privateKey> get_secret(void) = 0; /**< Secret key */
+		virtual const DSA<Curve, lime::DSAtype::publicKey> get_public(void) = 0; /**< Self Public key */
 
-		virtual void set_secret(const DSA<Base, lime::DSAtype::privateKey> &secretKey) = 0; /**< Secret key */
-		virtual void set_public(const DSA<Base, lime::DSAtype::publicKey> &publicKey) = 0; /**< Self Public key */
+		virtual void set_secret(const DSA<Curve, lime::DSAtype::privateKey> &secretKey) = 0; /**< Secret key */
+		virtual void set_public(const DSA<Curve, lime::DSAtype::publicKey> &publicKey) = 0; /**< Self Public key */
 
 		/**
 		 * @brief generate a new random EdDSA key pair
@@ -225,12 +231,12 @@ class Signature {
 		 * @param[in]	message		The message to be signed (we can sign any vector or more specifically a key exchange public key)
 		 * @param[out]	signature	The signature produced from the message with a key pair previously introduced in the object
 		 */
-		virtual void sign(const std::vector<uint8_t> &message, DSA<Base, lime::DSAtype::signature> &signature) = 0;
+		virtual void sign(const std::vector<uint8_t> &message, DSA<Curve, lime::DSAtype::signature> &signature) = 0;
 		/**
-		 * @overload virtual void sign(const X<Base, lime::Xtype::publicKey> &message, DSA<Base, lime::DSAtype::signature> &signature)
+		 * @overload virtual void sign(const X<Curve, lime::Xtype::publicKey> &message, DSA<Curve, lime::DSAtype::signature> &signature)
 		 * a convenience function to directly verify a key exchange public key
 		 */
-		virtual void sign(const X<Base, lime::Xtype::publicKey> &message, DSA<Base, lime::DSAtype::signature> &signature) = 0;
+		virtual void sign(const X<Curve, lime::Xtype::publicKey> &message, DSA<Curve, lime::DSAtype::signature> &signature) = 0;
 
 		/**
 		 * @brief Verify a message signature using the public key previously set in the object
@@ -240,12 +246,12 @@ class Signature {
 		 *
 		 * @return	true if the signature is valid, false otherwise
 		 */
-		virtual bool verify(const std::vector<uint8_t> &message, const DSA<Base, lime::DSAtype::signature> &signature) = 0;
+		virtual bool verify(const std::vector<uint8_t> &message, const DSA<Curve, lime::DSAtype::signature> &signature) = 0;
 		/**
-		 * @overload virtual bool verify(const X<Base, lime::Xtype::publicKey> &message, const DSA<Base, lime::DSAtype::signature> &signature)
+		 * @overload virtual bool verify(const X<Curve, lime::Xtype::publicKey> &message, const DSA<Curve, lime::DSAtype::signature> &signature)
 		 * a convenience function to directly verify a key exchange public key
 		 */
-		virtual bool verify(const X<Base, lime::Xtype::publicKey> &message, const DSA<Base, lime::DSAtype::signature> &signature) = 0;
+		virtual bool verify(const X<Curve, lime::Xtype::publicKey> &message, const DSA<Curve, lime::DSAtype::signature> &signature) = 0;
 
 		virtual ~Signature() = default;
 }; //class EdDSA
@@ -359,11 +365,11 @@ template <> bool AEAD_decrypt<AES256GCM>(const uint8_t *const key, const size_t 
 /* Use these to instantiate an object as they will pick the correct undurlying implemenation of virtual classes */
 std::shared_ptr<RNG> make_RNG();
 
-template <typename Base>
-std::shared_ptr<keyExchange<Base>> make_keyExchange();
+template <typename Curve>
+std::shared_ptr<keyExchange<Curve>> make_keyExchange();
 
-template <typename Base>
-std::shared_ptr<Signature<Base>> make_Signature();
+template <typename Curve>
+std::shared_ptr<Signature<Curve>> make_Signature();
 
 /*************************************************************************************************/
 /********************** Template Instanciation ***************************************************/

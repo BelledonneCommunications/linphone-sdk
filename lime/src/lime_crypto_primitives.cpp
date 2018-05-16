@@ -46,7 +46,6 @@ namespace lime {
 	template class DSApair<C448>;
 #endif
 
-
 /***** Random Number Generator ********/
 /**
  * A wrapper around the bctoolbox Random Number Generator
@@ -55,8 +54,10 @@ class bctbx_RNG : public RNG {
 	private :
 		bctbx_rng_context_t *m_context; // the bctoolbox RNG context
 
-	public:
-		/* accessor */
+		/* only bctbx_EDDSA and bctbx_ECDH needs a direct access to the actual RNG context */
+		template <typename Curve> friend class bctbx_EDDSA;
+		template <typename Curve> friend class bctbx_ECDH;
+
 		/**
 		 * @brief access internal RNG context
 		 * Used internally by the bctoolbox wrapper, is not exposed to the lime_crypto_primitive API.
@@ -67,23 +68,30 @@ class bctbx_RNG : public RNG {
 			return m_context;
 		}
 
+	public:
+
+		/* accessor */
 		/**
-		 * @brief fill given buffer with Random bytes
+		 * @brief fill the given RandomSeed buffer with Random bytes
 		 *
-		 * @param[out]	buffer	point to the beginning of the buffer to be filled with random bytes
-		 * @param[in]	size	size of the buffer to be filled
+		 * @param[in,out] buffer	point to the beginning of the buffer to be filled with random bytes
 		 */
-		void randomize(uint8_t *buffer, const size_t size) override {
-			bctbx_rng_get(m_context, buffer, size);
+		void randomize(sBuffer<lime::settings::DRrandomSeedSize> &buffer) override {
+			bctbx_rng_get(m_context, buffer.data(), buffer.size());
 		};
 
 		/**
-		 * @brief fill given buffer with Random bytes
+		 * @brief Generate a 32 bits unsigned integer(used to generate keys Id)
+		 * The MSbit is forced to 0 to avoid dealing with DB misinterpreting unsigned values into signed one
+		 * Our random number is actually on 31 bits.
 		 *
-		 * @param[out]	buffer	vector to be filled with random bytes(based on original vector size)
+		 * @return a random 32 bits unsigned integer
 		 */
-		void randomize(std::vector<uint8_t> buffer) override {
-			randomize(buffer.data(), buffer.size());
+		uint32_t randomize() override {
+			std::array<uint8_t, 4> buffer;
+			bctbx_rng_get(m_context, buffer.data(), buffer.size());
+			// buffer[0] is shifted by 23 instead of 24 to keep the MSb to 0.
+			return (static_cast<uint32_t>(buffer[0])<<23 | static_cast<uint32_t>(buffer[1])<<16 | static_cast<uint32_t>(buffer[2])<<8 | static_cast<uint32_t>(buffer[3]));
 		};
 
 		bctbx_RNG() {
@@ -402,14 +410,14 @@ class bctbx_ECDH : public keyExchange<Curve> {
 
 
 /* Factory functions */
-template <typename Base>
-std::shared_ptr<keyExchange<Base>> make_keyExchange() {
-	return std::make_shared<bctbx_ECDH<Base>>();
+template <typename Curve>
+std::shared_ptr<keyExchange<Curve>> make_keyExchange() {
+	return std::make_shared<bctbx_ECDH<Curve>>();
 }
 
-template <typename Base>
-std::shared_ptr<Signature<Base>> make_Signature() {
-	return std::make_shared<bctbx_EDDSA<Base>>();
+template <typename Curve>
+std::shared_ptr<Signature<Curve>> make_Signature() {
+	return std::make_shared<bctbx_EDDSA<Curve>>();
 }
 
 /* HMAC templates */

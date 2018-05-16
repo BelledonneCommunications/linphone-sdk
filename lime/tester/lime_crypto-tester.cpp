@@ -321,7 +321,7 @@ static void hashMac_KDF_bench(uint64_t runTime_ms, size_t IKMsize) {
 	auto rng_source = make_RNG();
 	/* input lenght is the same used by X3DH */
 	std::vector<uint8_t> IKM(IKMsize, 0);
-	rng_source->randomize(IKM.data(), IKM.size());
+	lime_tester::randomize(IKM.data(), IKM.size());
 	std::string info{"The lime tester info string"};
 	std::vector<uint8_t> salt(SHA512::ssize(), 0); // salt is the same used in X3DH
 	std::array<uint8_t, 64> output;

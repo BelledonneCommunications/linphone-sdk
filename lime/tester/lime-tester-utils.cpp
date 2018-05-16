@@ -35,6 +35,10 @@ using namespace::soci;
 
 namespace lime_tester {
 
+/* for testing purpose RNG, no need to be good one */
+std::random_device rd;
+std::uniform_int_distribution<uint8_t> uniform_dist(0,255);
+
 // default value for the timeout
 int wait_for_timeout=4000;
 
@@ -155,6 +159,15 @@ std::vector<std::string> messages_pattern = {
 };
 
 /**
+ * @brief Simple RNG function, used to generate random values for testing purpose, they do not need to be real random
+ * so use directly std::random_device
+ */
+void randomize(uint8_t *buffer, const size_t size) {
+	for (size_t i=0; i<size; i++) {
+		buffer[i] = lime_tester::uniform_dist(rd);
+	}
+}
+/**
  * @brief Create and initialise the two sessions given in parameter. Alice as sender session and Bob as receiver one
  *	Alice must then send the first message, once bob got it, sessions are fully initialised
  *	if fileName doesn't exists as a DB, it will be created, caller shall then delete it if needed
@@ -177,8 +190,8 @@ void dr_sessionsInit(std::shared_ptr<DR<Curve>> &alice, std::shared_ptr<DR<Curve
 	/* generate a shared secret and AD */
 	lime::DRChainKey SK;
 	lime::SharedADBuffer AD;
-	RNG_context->randomize(SK.data(), SK.size());
-	RNG_context->randomize(AD.data(), AD.size());
+	lime_tester::randomize(SK.data(), SK.size());
+	lime_tester::randomize(AD.data(), AD.size());
 
 	// insert the peer Device (with dummy datas in lime_PeerDevices and lime_LocalUsers tables, not used in the DR tests but needed to satisfy foreign key condition on session insertion)
 	long int aliceUid,bobUid,bobDid,aliceDid;
@@ -495,13 +508,11 @@ const char charset[] =
  */
 std::shared_ptr<std::string> makeRandomDeviceName(const char *basename) {
 	auto ret = make_shared<std::string>(basename);
-	bctbx_rng_context_t *RNG = bctbx_rng_context_new();
 	std::array<uint8_t,6> rnd;
-	bctbx_rng_get(RNG, rnd.data(), rnd.size());
+	lime_tester::randomize(rnd.data(), rnd.size());
 	for (auto x : rnd) {
 		ret->append(1, charset[x%(sizeof(charset)-1)]);
 	}
-	bctbx_rng_context_free(RNG);
 	return ret;
 }
 

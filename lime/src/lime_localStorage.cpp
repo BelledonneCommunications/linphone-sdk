@@ -659,11 +659,9 @@ void Lime<Curve>::X3DH_generate_SPk(X<Curve, lime::Xtype::publicKey> &publicSPk,
 	SPkSign->set_secret(m_Ik.privateKey());
 	SPkSign->sign(publicSPk, SPk_sig);
 
-	// Generate a random SPk Id: Sqlite doesn't really support unsigned value.
-	// Be sure the MSbit is set to zero to avoid problem as even if declared unsigned this Id will be treated by sqlite as signed(but still unsigned in this lib)
-	std::array<uint8_t,4> randomId;
-	m_RNG->randomize(randomId.data(), randomId.size());
-	SPk_id = static_cast<uint32_t>(randomId[0])<<23 | static_cast<uint32_t>(randomId[1])<<16 | static_cast<uint32_t>(randomId[2])<<8 | static_cast<uint32_t>(randomId[3]);
+	// Generate a random SPk Id
+	// Sqlite doesn't really support unsigned value, the randomize function makes sure that the MSbit is set to 0 to not fall into strange bugs with that
+	SPk_id = m_RNG->randomize();
 
 	// insert all this in DB
 	try {
@@ -705,11 +703,9 @@ void Lime<Curve>::X3DH_generate_OPks(std::vector<X<Curve, lime::Xtype::publicKey
 			// Generate a new ECDH Key pair
 			DH->createKeyPair(m_RNG);
 
-			// Generate a random OPk Id: Sqlite doesn't really support unsigned value.
-			// Be sure the MSbit is set to zero to avoid problem as even if declared unsigned this Id will be treated by sqlite as signed(but still unsigned in this lib)
-			std::array<uint8_t,4> randomId;
-			m_RNG->randomize(randomId.data(), randomId.size());
-			OPk_id = static_cast<uint32_t>(randomId[0])<<23 | static_cast<uint32_t>(randomId[1])<<16 | static_cast<uint32_t>(randomId[2])<<8 | static_cast<uint32_t>(randomId[3]);
+			// Generate a random OPk Id
+			// Sqlite doesn't really support unsigned value, the randomize function makes sure that the MSbit is set to 0 to not fall into strange bugs with that
+			OPk_id = m_RNG->randomize();
 
 			// Insert in DB: store Public Key || Private Key
 			OPk.write(0, (const char *)(DH->get_selfPublic().data()), X<Curve, lime::Xtype::publicKey>::ssize());
