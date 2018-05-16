@@ -28,12 +28,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "android_mediacodec.h"
 #include "h264utils.h"
-#include "rfc3984.hpp"
+#include "h264-nal-unpacker.h"
 
 #define TIMEOUT_US 0
 
 using namespace b64;
-using namespace mediastreamer2;
+using namespace mediastreamer;
 
 typedef struct _DecData {
 	mblk_t *sps, *pps;
@@ -41,7 +41,7 @@ typedef struct _DecData {
 	AMediaCodec *codec;
 
 	MSAverageFPS fps;
-	Rfc3984Unpacker *unpacker;
+	H264NalUnpacker *unpacker;
 	unsigned int packet_num;
 	uint8_t *bitstream;
 	int bitstream_size;
@@ -102,7 +102,7 @@ static void dec_init(MSFilter *f) {
 	d->codec = NULL;
 	d->sps = NULL;
 	d->pps = NULL;
-	d->unpacker = new Rfc3984Unpacker();
+	d->unpacker = new H264NalUnpacker();
 	d->packet_num = 0;
 	d->vsize.width = 0;
 	d->vsize.height = 0;
@@ -283,7 +283,7 @@ static void dec_process(MSFilter *f) {
 	bool_t request_pli = FALSE;
 	MSQueue nalus;
 	AMediaCodecBufferInfo info;
-	unsigned int unpacking_ret;
+	H264FrameAnalyser frameAnalyser;
 
 	if (d->packet_num == 0 && d->sps && d->pps) {
 		d->unpacker->setOutOfBandSpsPps(d->sps, d->pps);
@@ -297,11 +297,11 @@ static void dec_process(MSFilter *f) {
 		int size;
 		uint8_t *buf = NULL;
 		ssize_t iBufidx;
-		unpacking_ret = d->unpacker->unpack(im, &nalus);
+		NalUnpacker::Status unpacking_ret = d->unpacker->unpack(im, &nalus);
 
-		if (!(unpacking_ret & Rfc3984Unpacker::Status::FrameAvailable)) continue;
+		if (!unpacking_ret.frameAvailable) continue;
 
-		if (unpacking_ret & Rfc3984Unpacker::Status::FrameCorrupted) {
+		if (unpacking_ret.frameCorrupted) {
 			ms_warning("MSMediaCodecH264Dec: corrupted frame");
 			request_pli = TRUE;
 			if (d->freeze_on_error){
@@ -311,13 +311,14 @@ static void dec_process(MSFilter *f) {
 			}
 		}
 
-		if (d->need_key_frame && !(unpacking_ret & Rfc3984Unpacker::Status::IsKeyFrame)) {
+		H264FrameAnalyser::Info frameInfo = frameAnalyser.analyse(&nalus);
+		if (d->need_key_frame && !frameInfo.hasIdr) {
 			request_pli = TRUE;
 			ms_queue_flush(&nalus);
 			continue;
+		} else if (frameInfo.hasIdr) {
+			ms_message("MSMediaCodecH264Dec: I-frame received");
 		}
-
-		if (unpacking_ret & Rfc3984Unpacker::Status::IsKeyFrame) ms_message("MSMediaCodecH264Dec: I-frame received");
 
 		size = nalusToFrame(d, &nalus, &need_reinit);
 		//Initialize the video size
