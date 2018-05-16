@@ -368,7 +368,6 @@ if(ENABLE_VIDEO)
 	endif()
 	if(ANDROID)
 		list(APPEND VOIP_SOURCE_FILES_C
-			android/mediacodech264enc.c
 			android/android-display.c
 			android/android-opengl-display.c
 			utils/opengl_functions.c
@@ -381,6 +380,7 @@ if(ENABLE_VIDEO)
 		)
 		list(APPEND VOIP_SOURCE_FILES_CXX
 			android/mediacodech264dec.cpp
+			android/mediacodech264enc.cpp
 		)
 		if(CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7-a")
 			list(APPEND VOIP_SOURCE_FILES_ASM

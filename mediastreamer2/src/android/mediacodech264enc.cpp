@@ -79,7 +79,7 @@ static void set_mblk(mblk_t **packet, mblk_t *newone) {
 	*packet = newone;
 }
 
-static int alloc_encoder(EncData *d){
+static media_status_t alloc_encoder(EncData *d){
 	if (!d->codec){
 		d->codec = AMediaCodec_createEncoderByType("video/avc");
 		if (!d->codec) {
@@ -87,7 +87,7 @@ static int alloc_encoder(EncData *d){
 			return AMEDIA_ERROR_UNKNOWN;
 		}
 	}
-	return 0;
+	return AMEDIA_OK;
 }
 
 static void enc_init(MSFilter *f) {
