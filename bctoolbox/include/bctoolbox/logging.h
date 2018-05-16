@@ -278,7 +278,7 @@ class pumpstream : public std::ostringstream {
 public:
 	pumpstream(const char *domain, BctbxLogLevel level) : mDomain(domain ? domain : ""), mLevel(level) {}
 	~pumpstream() {
-		const char *domain = mDomain.empty() ? nullptr : mDomain.c_str();
+		const char *domain = mDomain.empty() ? NULL : mDomain.c_str();
 		if (bctbx_log_level_enabled(domain, mLevel))
 			bctbx_log(domain, mLevel, "%s", str().c_str());
 	}
