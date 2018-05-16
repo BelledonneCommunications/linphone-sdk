@@ -19,8 +19,6 @@
 */
 
 
-
-
 function x3dh_get_db_conn() {
 	$db = mysqli_connect(DB_HOST, DB_USER, DB_PASSWORD, DB_NAME);
 	if (!$db) {
@@ -271,7 +269,7 @@ function x3dh_process_request($userId) {
 			$bufferIndex += keySizes[curveId]['X_pub'];
 			$Sig = substr($request, $bufferIndex, keySizes[curveId]['Sig']);
 			$bufferIndex += keySizes[curveId]['Sig'];
-			$SPk_id = unpack('N', $request, $bufferIndex)[1]; // SPk id is a 32 bits unsigned integer in Big endian
+			$SPk_id = unpack('N', substr($request, $bufferIndex))[1]; // SPk id is a 32 bits unsigned integer in Big endian
 
 			// check we have a matching user in DB
 			$stmt = $db->prepare("SELECT Uid FROM Users WHERE UserId = ? LIMIT 1;");
@@ -311,7 +309,7 @@ function x3dh_process_request($userId) {
 			x3dh_log(LogLevel::MESSAGE,"Got a postOPks Message from ".$userId);
 			// get the OPks number in the first message bytes(unsigned int 16 in big endian)
 			$bufferIndex = X3DH_headerSize;
-			$OPk_number = unpack('n', $request, $bufferIndex)[1];
+			$OPk_number = unpack('n', substr($request, $bufferIndex))[1];
 			$x3dh_expectedSize = 2 + $OPk_number*(keySizes[curveId]['X_pub'] + 4); // expect: OPk count<2bytes> + number of OPks*(public key size + OPk_Id<4 bytes>)
 			if ($requestSize < X3DH_headerSize + $x3dh_expectedSize) {
 				returnError(ErrorCodes::bad_size, "post OPKs packet is expected to be ".(X3DH_headerSize+$x3dh_expectedSize)." bytes, but we got $requestSize bytes");
@@ -345,7 +343,7 @@ function x3dh_process_request($userId) {
 				$OPk = substr($request, $bufferIndex, keySizes[curveId]['X_pub']);
 				$bufferIndex += keySizes[curveId]['X_pub'];
 				$stmt->send_long_data(1,$OPk);
-				$OPk_id = unpack('N', $request, $bufferIndex)[1]; // OPk id is a 32 bits unsigned integer in Big endian
+				$OPk_id = unpack('N', substr($request, $bufferIndex))[1]; // OPk id is a 32 bits unsigned integer in Big endian
 				$bufferIndex += 4;
 
 				if (!$stmt->execute()) {
@@ -379,7 +377,7 @@ function x3dh_process_request($userId) {
 			}
 			// get the peers number in the first message bytes(unsigned int 16 in big endian)
 			$bufferIndex = X3DH_headerSize;
-			$peersCount = unpack('n', $request, $bufferIndex)[1];
+			$peersCount = unpack('n', substr($request, $bufferIndex))[1];
 			if ($peersCount === 0) {
 				returnError(ErrorCodes::bad_request, "Ask for peer Bundles but no device id given");
 			}
@@ -392,7 +390,7 @@ function x3dh_process_request($userId) {
 				if ($requestSize - $bufferIndex<2) {
 					returnError(ErrorCodes::bad_request, "Malformed getPeerBundle request: peers count doesn't match the device id list length");
 				}
-				$idLength = unpack('n', $request, $bufferIndex)[1];
+				$idLength = unpack('n', substr($request, $bufferIndex))[1];
 				$bufferIndex+=2;
 				if ($requestSize - $bufferIndex<$idLength) {
 					returnError(ErrorCodes::bad_request, "Malformed getPeerBundle request: device id given size doesn't match the string length");
