@@ -1,6 +1,6 @@
 <?php
 /*
-	lime_lime-tester.cpp
+	x3dh-25519.php
 	@author Johan Pascal
 	@copyright 	Copyright (C) 2018  Belledonne Communications SARL
 

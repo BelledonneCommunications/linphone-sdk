@@ -1,6 +1,6 @@
 <?php
 /*
-	lime_lime-tester.cpp
+	x3dh.php
 	@author Johan Pascal
 	@copyright 	Copyright (C) 2018  Belledonne Communications SARL
 
@@ -54,7 +54,11 @@ function stringErrorLevel($level) {
 
 function x3dh_log($level, $message) {
 	if (x3dh_logLevel>=$level) {
-		file_put_contents(x3dh_logFile, date("Y-m-d h:m:s")." -".x3dh_logDomain."- ".stringErrorLevel($level)." : $message\n", FILE_APPEND);
+		if ($level === LogLevel::ERROR) { // in ERROR case, add a backtrace
+			file_put_contents(x3dh_logFile, date("Y-m-d h:m:s")." -".x3dh_logDomain."- ".stringErrorLevel($level)." : $message\n".print_r(debug_backtrace(),true), FILE_APPEND);
+		} else {
+			file_put_contents(x3dh_logFile, date("Y-m-d h:m:s")." -".x3dh_logDomain."- ".stringErrorLevel($level)." : $message\n", FILE_APPEND);
+		}
 	}
 }
 
@@ -207,30 +211,36 @@ function x3dh_process_request($userId) {
 			$Ik = substr($request, X3DH_headerSize, $x3dh_expectedSize);
 
 			// Acquire lock on the user table to avoid 2 users being written at the same time with the same name
-			$db->query("LOCK TABLES Users WRITE;");
+			$db->query("LOCK TABLES Users WRITE");
 			// Check that this usedId is not already in base
-			$stmt = $db->prepare("SELECT Uid FROM Users WHERE UserId = ? LIMIT 1;");
+			if (($stmt = $db->prepare("SELECT Uid FROM Users WHERE UserId = ? LIMIT 1")) === FALSE) {
+				x3dh_log(LogLevel::ERROR, "Database appears to be not what we expect");
+				returnError(ErrorCodes::db_error, "Server database not ready");
+			}
 			$stmt->bind_param('s', $userId);
 			$stmt->execute();
 			$result = $stmt->get_result();
 			$stmt->close();
 			if ($result->num_rows !== 0) {
-				$db->query("UNLOCK TABLES;");
+				$db->query("UNLOCK TABLES");
 				returnError(ErrorCodes::user_already_in, "Can't insert user ".$userId." - is already present in base");
 			}
 			// Insert User in DB
 			x3dh_log(LogLevel::DEBUG, "Insert user $userId with Ik :".bin2hex($Ik));
-			$stmt = $db->prepare("INSERT INTO Users(UserId,Ik) VALUES(?,?);");
+			if (($stmt = $db->prepare("INSERT INTO Users(UserId,Ik) VALUES(?,?)")) === FALSE) {
+				x3dh_log(LogLevel::ERROR, "Database appears to be not what we expect");
+				returnError(ErrorCodes::db_error, "Server database not ready");
+			}
 			$null = NULL;
 			$stmt->bind_param('sb', $userId, $null);
 			$stmt->send_long_data(1,$Ik);
 			$status = $stmt->execute();
 			$stmt->close();
-			$db->query("UNLOCK TABLES;");
+			$db->query("UNLOCK TABLES");
 
 			if (!$status) {
 				x3dh_log(LogLevel::ERROR, "User $userId INSERT failed error is ".$db->error);
-				returnError(ErrorCodes::db_error, "Error while trying to insert user "+userId);
+				returnError(ErrorCodes::db_error, "Error while trying to insert user ".userId);
 			}
 
 			// we're done
@@ -240,7 +250,10 @@ function x3dh_process_request($userId) {
 		/* Delete user: message is empty(or at least shall be, anyway, just ignore anything present in the messange and just delete the user given in From header */
 		case MessageTypes::deleteUser:
 			x3dh_log(LogLevel::MESSAGE, "Got a deleteUser Message from ".$userId);
-			$stmt = $db->prepare("DELETE FROM Users WHERE UserId = ?;");
+			if (($stmt = $db->prepare("DELETE FROM Users WHERE UserId = ?")) === FALSE) {
+				x3dh_log(LogLevel::ERROR, "Database appears to be not what we expect");
+				returnError(ErrorCodes::db_error, "Server database not ready");
+			}
 			$stmt->bind_param('s', $userId);
 			$status = $stmt->execute();
 			$stmt->close();
@@ -272,7 +285,10 @@ function x3dh_process_request($userId) {
 			$SPk_id = unpack('N', substr($request, $bufferIndex))[1]; // SPk id is a 32 bits unsigned integer in Big endian
 
 			// check we have a matching user in DB
-			$stmt = $db->prepare("SELECT Uid FROM Users WHERE UserId = ? LIMIT 1;");
+			if (($stmt = $db->prepare("SELECT Uid FROM Users WHERE UserId = ? LIMIT 1")) === FALSE) {
+				x3dh_log(LogLevel::ERROR, "Database appears to be not what we expect");
+				returnError(ErrorCodes::db_error, "Server database not ready");
+			}
 			$stmt->bind_param('s', $userId);
 			$stmt->execute();
 			$result = $stmt->get_result();
@@ -287,7 +303,10 @@ function x3dh_process_request($userId) {
 			$stmt->close();
 
 			// write the SPk
-			$stmt = $db->prepare("UPDATE Users SET SPk = ?, SPk_sig = ?, SPk_id = ? WHERE Uid = ?;");
+			if (($stmt = $db->prepare("UPDATE Users SET SPk = ?, SPk_sig = ?, SPk_id = ? WHERE Uid = ?")) === FALSE) {
+				x3dh_log(LogLevel::ERROR, "Database appears to be not what we expect");
+				returnError(ErrorCodes::db_error, "Server database not ready");
+			}
 			$null = NULL;
 			$stmt->bind_param('bbii', $null, $null, $SPk_id, $Uid);
 			$stmt->send_long_data(0,$SPk);
@@ -319,7 +338,10 @@ function x3dh_process_request($userId) {
 			x3dh_log(LogLevel::DEBUG, "It contains ".$OPk_number." keys");
 
 			// check we have a matching user in DB
-			$stmt = $db->prepare("SELECT Uid FROM Users WHERE UserId = ? LIMIT 1;");
+			if (($stmt = $db->prepare("SELECT Uid FROM Users WHERE UserId = ? LIMIT 1")) === FALSE) {
+				x3dh_log(LogLevel::ERROR, "Database appears to be not what we expect");
+				returnError(ErrorCodes::db_error, "Server database not ready");
+			}
 			$stmt->bind_param('s', $userId);
 			$stmt->execute();
 			$result = $stmt->get_result();
@@ -333,12 +355,19 @@ function x3dh_process_request($userId) {
 			$Uid = $row['Uid'];
 			$stmt->close();
 
-			$query = "INSERT INTO table (link) VALUES (?)";
-			$stmt = $db->prepare("INSERT INTO OPk(Uid, OPk, OPk_id) VALUES(?,?,?);");
+			if (($stmt = $db->prepare("INSERT INTO OPk(Uid, OPk, OPk_id) VALUES(?,?,?)")) === FALSE) {
+				x3dh_log(LogLevel::ERROR, "Database appears to be not what we expect");
+				returnError(ErrorCodes::db_error, "Server database not ready");
+			}
 			$null = NULL;
 			$stmt ->bind_param("ibi", $Uid, $null, $OPk_id);
 
-			$db->begin_transaction(MYSQLI_TRANS_START_READ_WRITE);
+			// before version 5.6.5, begin_transaction doesn't support READ_WRITE flag
+			if ($db->server_version < 50605) {
+				$db->begin_transaction();
+			} else {
+				$db->begin_transaction(MYSQLI_TRANS_START_READ_WRITE);
+			}
 			for ($i = 0; $i<$OPk_number; $i++) {
 				$OPk = substr($request, $bufferIndex, keySizes[curveId]['X_pub']);
 				$bufferIndex += keySizes[curveId]['X_pub'];
@@ -349,7 +378,7 @@ function x3dh_process_request($userId) {
 				if (!$stmt->execute()) {
 					$stmt->close();
 					$db->rollback();
-					returnError(ErrorCodes::db_error, "Error while trying to insert OPk for user ".$userId.". Backend says :"+$db->error);
+					returnError(ErrorCodes::db_error, "Error while trying to insert OPk for user ".$userId.". Backend says :".$db->error);
 				}
 			}
 
@@ -402,11 +431,19 @@ function x3dh_process_request($userId) {
 			x3dh_log(LogLevel::DEBUG, "Found request for ".$peersCount." keys bundles");
 			x3dh_log(LogLevel::DEBUG, print_r($peersBundle, true));
 
-			$db->query("LOCK TABLES Users,OPk WRITE;"); // lock the OPk table so we won't give twice a one-time pre-key
+			$db->query("LOCK TABLES Users,OPk WRITE"); // lock the OPk table so we won't give twice a one-time pre-key
 
-			$db->begin_transaction(MYSQLI_TRANS_START_READ_WRITE);
+			// before version 5.6.5, begin_transaction doesn't support READ_WRITE flag
+			if ($db->server_version < 50605) {
+				$db->begin_transaction();
+			} else {
+				$db->begin_transaction(MYSQLI_TRANS_START_READ_WRITE);
+			}
 
-			$stmt = $db->prepare("SELECT u.Ik as Ik, u.SPk as SPk, u.SPk_id as SPk_id, u.SPk_sig as SPk_sig, o.OPk as OPk, o.OPk_id as OPk_id, o.id as id FROM Users as u LEFT JOIN OPk as o ON u.Uid=o.Uid WHERE UserId = ? AND u.SPk IS NOT NULL LIMIT 1;");
+			if (($stmt = $db->prepare("SELECT u.Ik as Ik, u.SPk as SPk, u.SPk_id as SPk_id, u.SPk_sig as SPk_sig, o.OPk as OPk, o.OPk_id as OPk_id, o.id as id FROM Users as u LEFT JOIN OPk as o ON u.Uid=o.Uid WHERE UserId = ? AND u.SPk IS NOT NULL LIMIT 1")) === FALSE) {
+				x3dh_log(LogLevel::ERROR, "Database appears to be not what we expect");
+				returnError(ErrorCodes::db_error, "Server database not ready");
+			}
 
 			$keyBundleErrors = ''; // an empty string to store error message if any
 			for ($i=0; $i<$peersCount; $i++) {
@@ -420,7 +457,10 @@ function x3dh_process_request($userId) {
 					if ($row['OPk']) { // there is an OPk
 						array_push($peersBundle[$i], $row['OPk'], $row['OPk_id']);
 						// now that we used that one, we MUST delete it
-						$del_stmt = $db->prepare("DELETE FROM OPk WHERE id = ?;");
+						if (($del_stmt = $db->prepare("DELETE FROM OPk WHERE id = ?")) === FALSE) {
+							x3dh_log(LogLevel::ERROR, "Database appears to be not what we expect");
+							returnError(ErrorCodes::db_error, "Server database not ready");
+						}
 						$del_stmt->bind_param('i', $row['id']);
 						if (!$del_stmt->execute()) {
 							$keyBundleErrors .=' ## could not delete OPk key retrieved user '.$peersBundle[$i][0]." err : ".$db->error;
@@ -434,7 +474,7 @@ function x3dh_process_request($userId) {
 			// No errors: commit transition, release lock and build the message out of the key bundles extracted
 			if($keyBundleErrors === '') {
 				$db->commit();
-				$db->query("UNLOCK TABLES;");
+				$db->query("UNLOCK TABLES");
 				$peersBundleMessage = pack("C3n",X3DH_protocolVersion, MessageTypes::peerBundle, curveId, $peersCount); // build the X3DH response header
 				foreach ($peersBundle as $bundle) {
 					$flagOPk = (count($bundle)>5)?1:0;  // elements in bundle array are : deviceId, Ik, SPk, SPk_id, SPk_sig, [OPk, OPk_id] last 2 are optionnal
@@ -453,7 +493,7 @@ function x3dh_process_request($userId) {
 				returnOk($peersBundleMessage);
 			} else { // something went wrong
 				$db->rollback();
-				$db->query("UNLOCK TABLES;");
+				$db->query("UNLOCK TABLES");
 				returnError(ErrorCodes::db_error, "Error while trying to get peers bundles :".$keyBundleErrors);
 			}
 			break;
@@ -463,7 +503,10 @@ function x3dh_process_request($userId) {
 		 */
 		case MessageTypes::getSelfOPks:
 			x3dh_log(LogLevel::MESSAGE, "Process a getSelfOPks Message from ".$userId);
-			$stmt = $db->prepare("SELECT o.OPk_id  as OPk_id FROM Users as u INNER JOIN OPk as o ON u.Uid=o.Uid WHERE UserId = ?;");
+			if (($stmt = $db->prepare("SELECT o.OPk_id  as OPk_id FROM Users as u INNER JOIN OPk as o ON u.Uid=o.Uid WHERE UserId = ?")) === FALSE) {
+				x3dh_log(LogLevel::ERROR, "Database appears to be not what we expect");
+				returnError(ErrorCodes::db_error, "Server database not ready");
+			}
 			$stmt->bind_param('s', $userId);
 			if (!$stmt->execute()) {
 				returnError(ErrorCodes::db_error, " Database error in getSelfOPks by ".$userId." : ".$db->error);
