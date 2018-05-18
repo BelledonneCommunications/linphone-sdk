@@ -126,7 +126,6 @@ static void real_time_text_character_received(void *userdata, struct _MSFilter *
 				ms_fatal("tst->stats.received_chars buffer overflow (number_of_received_char=%i)",
 					tst->stats.number_of_received_char);
 			}
-			ms_free(data);
 		}
 	}
 }
