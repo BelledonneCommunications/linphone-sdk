@@ -83,14 +83,17 @@ unsigned int ms_h264_pps_get_id(const mblk_t *pps);
 void ms_h264_bitstream_to_nalus(const uint8_t *bitstream, size_t size, MSQueue *nalus);
 
 /**
- * Slices a frame into several nal units.
+ * @brief Slices a frame into several nal units.
  *
  * Same as ms_h264_bitstream_to_nalus() except that the stream must be in size-prefixed
  * format i.e. each nalu in the stream must be prefixed by its size encoded on 4 bytes big-endian.
+ *
  * @param frame Buffer containing the stream to slice
  * @param size Size of the buffer
  * @param nalus The queue where produced nal units will be pushed into
  * @param idr_count If not NULL, use the pointer to store the number of IDR nalus found in the stream.
+ *
+ * @deprecated Use mediastreamer::naluStreamToNalus() instead. Deprecated since 2018-05-21.
  */
 void ms_h264_stream_to_nalus(const uint8_t *frame, size_t size, MSQueue *nalus, int *idr_count);
 

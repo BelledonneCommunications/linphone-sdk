@@ -26,60 +26,14 @@
 #include "mediastreamer2/rfc3984.h"
 
 #include "h264utils.h"
+#include "h26x-utils.h"
+
+using namespace mediastreamer;
 
 extern "C" {
 
-static void  push_nalu(const uint8_t *begin, const uint8_t *end, MSQueue *nalus) {
-	unsigned ecount = 0;
-	const uint8_t *src = begin;
-	size_t nalu_len = (end - begin);
-	uint8_t nalu_byte  = *src++;
-
-	mblk_t *m = allocb(nalu_len, 0);
-
-	// Removal of the 3 in a 003x sequence
-	// This emulation prevention byte is normally part of a NAL unit.
-	/* H.264 standard sys in par 7.4.1 page 58
-	 emulation_prevention_three_byte is a byte equal to 0x03.
-	 When an emulation_prevention_three_byte is present in a NAL unit, it shall be discarded by the decoding process.
-	 Within the NAL unit, the following three-byte sequence shall not occur at any byte-aligned position: 0x000000, 0x000001, 0x00002
-	 */
-	*m->b_wptr++ = nalu_byte;
-	while (src < end - 3) {
-		if (src[0] == 0 && src[1] == 0 && src[2] == 3) {
-			*m->b_wptr++ = 0;
-			*m->b_wptr++ = 0;
-			// drop the emulation_prevention_three_byte
-			src += 3;
-			++ecount;
-			continue;
-		}
-		*m->b_wptr++ = *src++;
-	}
-	*m->b_wptr++ = *src++;
-	*m->b_wptr++ = *src++;
-	*m->b_wptr++ = *src++;
-
-	ms_queue_put(nalus, m);
-}
-
 void ms_h264_bitstream_to_nalus(const uint8_t *bitstream, size_t size, MSQueue *nalus) {
-	size_t i;
-	const uint8_t *p, *begin = NULL;
-	int zeroes = 0;
-
-	for (i = 0, p = bitstream; i < size; ++i) {
-		if (*p == 0) {
-			++zeroes;
-		} else if (zeroes >= 2 && *p == 1) {
-			if (begin) {
-				push_nalu(begin, p - zeroes, nalus);
-			}
-			begin = p + 1;
-		} else zeroes = 0;
-		++p;
-	}
-	if (begin) push_nalu(begin, p, nalus);
+	byteStreamToNalus(bitstream, size, nalus);
 }
 
 uint8_t ms_h264_nalu_get_nri(const mblk_t *nalu) {

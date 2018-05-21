@@ -306,9 +306,10 @@ if(ENABLE_VIDEO)
 		utils/h264utils.cpp
 		utils/h265-utils.cpp
 		voip/h264-nal-packer.cpp
-		voip/h265-nal-packer.cpp
 		voip/h264-nal-unpacker.cpp
+		voip/h265-nal-packer.cpp
 		voip/h265-nal-unpacker.cpp
+		voip/h26x-utils.cpp
 		voip/nal-packer.cpp
 		voip/nal-unpacker.cpp
 		voip/rfc3984.cpp
@@ -381,6 +382,7 @@ if(ENABLE_VIDEO)
 		list(APPEND VOIP_SOURCE_FILES_CXX
 			android/mediacodech264dec.cpp
 			android/media-codec-encoder.cpp
+			android/media-codec-h264-encoder.cpp
 		)
 		if(CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7-a")
 			list(APPEND VOIP_SOURCE_FILES_ASM
