@@ -53,9 +53,9 @@ using namespace mediastreamer;
 
 namespace mediastreamer {
 
-class MediaCodecH264EncoderFilterImpl {
+class MediaCodecEncoderFilterImpl {
 public:
-	MediaCodecH264EncoderFilterImpl(MSFilter *f): _f(f), _packer(f->factory) {
+	MediaCodecEncoderFilterImpl(MSFilter *f): _f(f), _packer(f->factory) {
 		_vconf = ms_video_find_best_configuration_for_size(_vconfList, MS_VIDEO_SIZE_CIF, ms_factory_get_cpu_count(f->factory));
 		ms_video_starter_init(&_starter);
 		_packer.setPacketizationMode(NalPacker::NonInterleavedMode);
@@ -66,7 +66,7 @@ public:
 		allocEncoder();
 	}
 
-	~MediaCodecH264EncoderFilterImpl() {
+	~MediaCodecEncoderFilterImpl() {
 		if (_codec) AMediaCodec_delete(_codec);
 	}
 
@@ -311,42 +311,42 @@ public:
 
 
 	static void onFilterInit(MSFilter *f) {
-		f->data = new MediaCodecH264EncoderFilterImpl(f);
+		f->data = new MediaCodecEncoderFilterImpl(f);
 	}
 
 
 
 	static void onFilterPreprocess(MSFilter *f) {
-		static_cast<MediaCodecH264EncoderFilterImpl *>(f->data)->preprocess();
+		static_cast<MediaCodecEncoderFilterImpl *>(f->data)->preprocess();
 	}
 
 
 
 	static void onFilterPostprocess(MSFilter *f) {
-		static_cast<MediaCodecH264EncoderFilterImpl *>(f->data)->postprocess();
+		static_cast<MediaCodecEncoderFilterImpl *>(f->data)->postprocess();
 	}
 
 
 
 	static void onFilterUninit(MSFilter *f) {
-		delete static_cast<MediaCodecH264EncoderFilterImpl *>(f->data);
+		delete static_cast<MediaCodecEncoderFilterImpl *>(f->data);
 	}
 
 
 
 	static void onFilterProcess(MSFilter *f) {
-		static_cast<MediaCodecH264EncoderFilterImpl *>(f->data)->process();
+		static_cast<MediaCodecEncoderFilterImpl *>(f->data)->process();
 	}
 
 	static int onGetBitrateCall(MSFilter *f, void *arg) {
 		int *bitrate = static_cast<int *>(arg);
-		*bitrate = static_cast<MediaCodecH264EncoderFilterImpl *>(f->data)->getBitrate();
+		*bitrate = static_cast<MediaCodecEncoderFilterImpl *>(f->data)->getBitrate();
 		return 0;
 	}
 
 	static int onSetConfigurationCall(MSFilter *f, void *arg) {
 		const MSVideoConfiguration *vconf = static_cast<MSVideoConfiguration *>(arg);
-		static_cast<MediaCodecH264EncoderFilterImpl *>(f->data)->setVideoConfiguration(vconf);
+		static_cast<MediaCodecEncoderFilterImpl *>(f->data)->setVideoConfiguration(vconf);
 		return 0;
 	}
 
@@ -354,59 +354,59 @@ public:
 
 	static int onSetBitrateCall(MSFilter *f, void *arg) {
 		int br = *static_cast<int *>(arg);
-		static_cast<MediaCodecH264EncoderFilterImpl *>(f->data)->setBitrate(br);
+		static_cast<MediaCodecEncoderFilterImpl *>(f->data)->setBitrate(br);
 		return 0;
 	}
 
 	static int onSetFpsCall(MSFilter *f, void *arg) {
 		float fps = *static_cast<float *>(arg);
-		static_cast<MediaCodecH264EncoderFilterImpl *>(f->data)->setFps(fps);
+		static_cast<MediaCodecEncoderFilterImpl *>(f->data)->setFps(fps);
 		return 0;
 	}
 
 	static int onGetFpsCall(MSFilter *f, void *arg) {
 		float *fps = static_cast<float *>(arg);
-		*fps = static_cast<MediaCodecH264EncoderFilterImpl *>(f->data)->getFps();
+		*fps = static_cast<MediaCodecEncoderFilterImpl *>(f->data)->getFps();
 		return 0;
 	}
 
 	static int onGetVideoSizeCall(MSFilter *f, void *arg) {
 		MSVideoSize *vsize = static_cast<MSVideoSize *>(arg);
-		*vsize = static_cast<MediaCodecH264EncoderFilterImpl *>(f->data)->getVideoSize();
+		*vsize = static_cast<MediaCodecEncoderFilterImpl *>(f->data)->getVideoSize();
 		return 0;
 	}
 
 	static int onEnableAvpfCall(MSFilter *f, void *data) {
 		bool_t enable = *static_cast<bool_t *>(data);
-		static_cast<MediaCodecH264EncoderFilterImpl *>(f->data)->enableAvpf(enable);
+		static_cast<MediaCodecEncoderFilterImpl *>(f->data)->enableAvpf(enable);
 		return 0;
 	}
 
 	static int onSetVideoSizeCall(MSFilter *f, void *arg) {
 		const MSVideoSize *vsize = static_cast<MSVideoSize *>(arg);
-		static_cast<MediaCodecH264EncoderFilterImpl *>(f->data)->setVideoSize(*vsize);
+		static_cast<MediaCodecEncoderFilterImpl *>(f->data)->setVideoSize(*vsize);
 		return 0;
 	}
 
 	static int onNotifyPliCall(MSFilter *f, void *data) {
-		static_cast<MediaCodecH264EncoderFilterImpl *>(f->data)->notifyPli();
+		static_cast<MediaCodecEncoderFilterImpl *>(f->data)->notifyPli();
 		return 0;
 	}
 
 	static int onNotifyFirCall(MSFilter *f, void *data) {
-		static_cast<MediaCodecH264EncoderFilterImpl *>(f->data)->notifyFir();
+		static_cast<MediaCodecEncoderFilterImpl *>(f->data)->notifyFir();
 		return 0;
 	}
 
 	static int onGetVideoConfigurationsCall(MSFilter *f, void *data){
 		const MSVideoConfiguration **vconfs = static_cast<const MSVideoConfiguration **>(data);
-		*vconfs = static_cast<MediaCodecH264EncoderFilterImpl *>(f->data)->getVideoConfiguratons();
+		*vconfs = static_cast<MediaCodecEncoderFilterImpl *>(f->data)->getVideoConfiguratons();
 		return 0;
 	}
 
 	static int onSetVideoConfigurationsCall(MSFilter *f, void *data){
 		const MSVideoConfiguration *vconfs = static_cast<const MSVideoConfiguration *>(data);
-		static_cast<MediaCodecH264EncoderFilterImpl *>(f->data)->setVideoConfigurations(vconfs);
+		static_cast<MediaCodecEncoderFilterImpl *>(f->data)->setVideoConfigurations(vconfs);
 		return 0;
 	}
 
@@ -501,18 +501,18 @@ private:
 }
 
 static MSFilterMethod  mediacodec_h264_enc_methods[] = {
-	{ MS_FILTER_SET_FPS                       , MediaCodecH264EncoderFilterImpl::onSetFpsCall                 },
-	{ MS_FILTER_SET_BITRATE                   , MediaCodecH264EncoderFilterImpl::onSetBitrateCall             },
-	{ MS_FILTER_GET_BITRATE                   , MediaCodecH264EncoderFilterImpl::onGetBitrateCall             },
-	{ MS_FILTER_GET_FPS                       , MediaCodecH264EncoderFilterImpl::onGetFpsCall                 },
-	{ MS_FILTER_GET_VIDEO_SIZE                , MediaCodecH264EncoderFilterImpl::onGetVideoSizeCall           },
-	{ MS_VIDEO_ENCODER_NOTIFY_PLI             , MediaCodecH264EncoderFilterImpl::onNotifyPliCall              },
-	{ MS_VIDEO_ENCODER_NOTIFY_FIR             , MediaCodecH264EncoderFilterImpl::onNotifyFirCall              },
-	{ MS_FILTER_SET_VIDEO_SIZE                , MediaCodecH264EncoderFilterImpl::onSetVideoSizeCall           },
-	{ MS_VIDEO_ENCODER_ENABLE_AVPF            , MediaCodecH264EncoderFilterImpl::onEnableAvpfCall             },
-	{ MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST , MediaCodecH264EncoderFilterImpl::onGetVideoConfigurationsCall },
-	{ MS_VIDEO_ENCODER_SET_CONFIGURATION_LIST , MediaCodecH264EncoderFilterImpl::onSetVideoConfigurationsCall },
-	{ MS_VIDEO_ENCODER_SET_CONFIGURATION      , MediaCodecH264EncoderFilterImpl::onSetConfigurationCall       },
+	{ MS_FILTER_SET_FPS                       , MediaCodecEncoderFilterImpl::onSetFpsCall                 },
+	{ MS_FILTER_SET_BITRATE                   , MediaCodecEncoderFilterImpl::onSetBitrateCall             },
+	{ MS_FILTER_GET_BITRATE                   , MediaCodecEncoderFilterImpl::onGetBitrateCall             },
+	{ MS_FILTER_GET_FPS                       , MediaCodecEncoderFilterImpl::onGetFpsCall                 },
+	{ MS_FILTER_GET_VIDEO_SIZE                , MediaCodecEncoderFilterImpl::onGetVideoSizeCall           },
+	{ MS_VIDEO_ENCODER_NOTIFY_PLI             , MediaCodecEncoderFilterImpl::onNotifyPliCall              },
+	{ MS_VIDEO_ENCODER_NOTIFY_FIR             , MediaCodecEncoderFilterImpl::onNotifyFirCall              },
+	{ MS_FILTER_SET_VIDEO_SIZE                , MediaCodecEncoderFilterImpl::onSetVideoSizeCall           },
+	{ MS_VIDEO_ENCODER_ENABLE_AVPF            , MediaCodecEncoderFilterImpl::onEnableAvpfCall             },
+	{ MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST , MediaCodecEncoderFilterImpl::onGetVideoConfigurationsCall },
+	{ MS_VIDEO_ENCODER_SET_CONFIGURATION_LIST , MediaCodecEncoderFilterImpl::onSetVideoConfigurationsCall },
+	{ MS_VIDEO_ENCODER_SET_CONFIGURATION      , MediaCodecEncoderFilterImpl::onSetConfigurationCall       },
 	{ 0                                       , nullptr                                                       }
 };
 
@@ -525,11 +525,11 @@ MSFilterDesc ms_mediacodec_h264_enc_desc = {
 	.enc_fmt = "H264",
 	.ninputs = 1,
 	.noutputs = 1,
-	.init = MediaCodecH264EncoderFilterImpl::onFilterInit,
-	.preprocess = MediaCodecH264EncoderFilterImpl::onFilterPreprocess,
-	.process = MediaCodecH264EncoderFilterImpl::onFilterProcess,
-	.postprocess = MediaCodecH264EncoderFilterImpl::onFilterPostprocess,
-	.uninit = MediaCodecH264EncoderFilterImpl::onFilterUninit,
+	.init = MediaCodecEncoderFilterImpl::onFilterInit,
+	.preprocess = MediaCodecEncoderFilterImpl::onFilterPreprocess,
+	.process = MediaCodecEncoderFilterImpl::onFilterProcess,
+	.postprocess = MediaCodecEncoderFilterImpl::onFilterPostprocess,
+	.uninit = MediaCodecEncoderFilterImpl::onFilterUninit,
 	.methods = mediacodec_h264_enc_methods,
 	.flags = MS_FILTER_IS_PUMP
 };
