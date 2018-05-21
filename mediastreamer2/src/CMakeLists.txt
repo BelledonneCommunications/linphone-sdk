@@ -380,7 +380,7 @@ if(ENABLE_VIDEO)
 			voip/scaler.c
 		)
 		list(APPEND VOIP_SOURCE_FILES_CXX
-			android/mediacodech264dec.cpp
+			android/media-codec-decoder.cpp
 			android/media-codec-encoder.cpp
 			android/media-codec-h264-encoder.cpp
 		)
