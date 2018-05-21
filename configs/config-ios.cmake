@@ -113,7 +113,8 @@ lcb_builder_cmake_options(ms2 "-DENABLE_X11=NO")
 lcb_builder_cmake_options(ms2 "-DENABLE_XV=NO")
 lcb_builder_cmake_options(ms2 "-DENABLE_DOC=NO")
 if(NOT ENABLE_STATIC_ONLY)
-	lcb_builder_linking_type(ms2 "-DENABLE_STATIC=NO" "-DENABLE_SHARED=YES")
+	#needed for mediastreamer2.framework
+	lcb_builder_linking_type(ms2 "-DENABLE_STATIC=YES" "-DENABLE_SHARED=YES")
 	## ms2 plugins
 	lcb_builder_linking_type(mswebrtc "-DENABLE_STATIC=NO" "-DENABLE_SHARED=YES")
 	lcb_builder_linking_type(msamr "-DENABLE_STATIC=NO" "-DENABLE_SHARED=YES")
