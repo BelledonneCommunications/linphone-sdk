@@ -380,7 +380,7 @@ if(ENABLE_VIDEO)
 		)
 		list(APPEND VOIP_SOURCE_FILES_CXX
 			android/mediacodech264dec.cpp
-			android/mediacodech264enc.cpp
+			android/media-codec-encoder.cpp
 		)
 		if(CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7-a")
 			list(APPEND VOIP_SOURCE_FILES_ASM
