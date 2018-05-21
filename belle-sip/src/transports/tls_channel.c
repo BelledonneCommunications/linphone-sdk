@@ -622,7 +622,7 @@ static int tls_process_data(belle_sip_channel_t *obj,unsigned int revents){
 								,strerror(errno));
 				goto process_error;
 			} else if (strstr(response,"407")) {
-				belle_sip_error("Channel [%p]: auth requested, provide user/passwd by http proxy [%s:%i]"
+				belle_sip_error("Channel [%p]: auth requested, provide user/passwd for http proxy [%s:%i]"
 								,channel
 								,obj->stack->http_proxy_host
 								,obj->stack->http_proxy_port);
