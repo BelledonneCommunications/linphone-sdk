@@ -37,16 +37,16 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 	{ required_bitrate, bitrate_limit, { MS_VIDEO_SIZE_ ## resolution ## _W, MS_VIDEO_SIZE_ ## resolution ## _H }, fps, ncpus, nullptr }
 
 static const MSVideoConfiguration mediaCodecH264_conf_list[] = {
-	MS_MEDIACODECH264_CONF(2048000, 	1000000,            UXGA, 25,  2),
-	MS_MEDIACODECH264_CONF(1024000, 	5000000, 	  SXGA_MINUS, 25,  2),
-	MS_MEDIACODECH264_CONF(1024000,  	5000000,   			720P, 30,  2),
-	MS_MEDIACODECH264_CONF(750000, 	2048000,             XGA, 25,  2),
-	MS_MEDIACODECH264_CONF(500000,  	1024000,            SVGA, 15,  2),
-	MS_MEDIACODECH264_CONF(600000,      3000000,             VGA, 30,  2),
-	MS_MEDIACODECH264_CONF(400000,  	 800000,             VGA, 15,  2),
-	MS_MEDIACODECH264_CONF(128000,  	 512000,             CIF, 15,  1),
-	MS_MEDIACODECH264_CONF(100000,  	 380000,            QVGA, 15,  1),
-	MS_MEDIACODECH264_CONF(0,      170000,            QCIF, 10,  1),
+	MS_MEDIACODECH264_CONF(2048000, 1000000,       UXGA, 25,  2),
+	MS_MEDIACODECH264_CONF(1024000, 5000000, SXGA_MINUS, 25,  2),
+	MS_MEDIACODECH264_CONF(1024000, 5000000,       720P, 30,  2),
+	MS_MEDIACODECH264_CONF( 750000, 2048000,        XGA, 25,  2),
+	MS_MEDIACODECH264_CONF( 500000, 1024000,       SVGA, 15,  2),
+	MS_MEDIACODECH264_CONF( 600000, 3000000,        VGA, 30,  2),
+	MS_MEDIACODECH264_CONF( 400000,  800000,        VGA, 15,  2),
+	MS_MEDIACODECH264_CONF( 128000,  512000,        CIF, 15,  1),
+	MS_MEDIACODECH264_CONF( 100000,  380000,       QVGA, 15,  1),
+	MS_MEDIACODECH264_CONF(      0,  170000,       QCIF, 10,  1),
 };
 
 using namespace mediastreamer;
@@ -67,10 +67,7 @@ public:
 	}
 
 	~MediaCodecH264EncoderFilterImpl() {
-		if (_codec){
-			AMediaCodec_delete(_codec);
-			_codec = nullptr;
-		}
+		if (_codec) AMediaCodec_delete(_codec);
 	}
 
 	void preprocess() {
@@ -123,38 +120,17 @@ public:
 					if (ibufidx >= 0) {
 						buf = AMediaCodec_getInputBuffer(_codec, ibufidx, &bufsize);
 						if (buf){
-							if (_useMediaImage) {
-								AMediaImage image;
-
-								if (AMediaCodec_getInputImage(_codec, ibufidx, &image)) {
-									if (image.format == 35 /* YUV_420_888 */) {
-										MSRect src_roi = {0, 0, pic.w, pic.h};
-										int src_pix_strides[4] = {1, 1, 1, 1};
-										ms_yuv_buf_copy_with_pix_strides(pic.planes, pic.strides, src_pix_strides, src_roi, image.buffers, image.row_strides, image.pixel_strides, image.crop_rect);
-										bufsize = image.row_strides[0] * image.height * 3 / 2;
-									} else {
-										ms_error("%s: encoder requires non YUV420 format", _f->desc->name);
-									}
-									AMediaImage_close(&image);
-								}
-							} else {
-								if (_isPlanar) {
-									int ysize = pic.w * pic.h;
-									int usize = ysize / 4;
-									memcpy(buf, pic.planes[0], ysize);
-									memcpy(buf + ysize, pic.planes[1], usize);
-									memcpy(buf + ysize + usize, pic.planes[2], usize);
+							AMediaImage image;
+							if (AMediaCodec_getInputImage(_codec, ibufidx, &image)) {
+								if (image.format == 35 /* YUV_420_888 */) {
+									MSRect src_roi = {0, 0, pic.w, pic.h};
+									int src_pix_strides[4] = {1, 1, 1, 1};
+									ms_yuv_buf_copy_with_pix_strides(pic.planes, pic.strides, src_pix_strides, src_roi, image.buffers, image.row_strides, image.pixel_strides, image.crop_rect);
+									bufsize = image.row_strides[0] * image.height * 3 / 2;
 								} else {
-									int i;
-									size_t size = (size_t) pic.w * pic.h;
-									uint8_t *dst = pic.planes[0];
-									memcpy(buf, dst, size);
-
-									for (i = 0; i < pic.w / 2 * pic.h / 2; i++) {
-										buf[size + 2 * i] = pic.planes[1][i];
-										buf[size + 2 * i + 1] = pic.planes[2][i];
-									}
+									ms_error("%s: encoder requires non YUV420 format", _f->desc->name);
 								}
+								AMediaImage_close(&image);
 							}
 							AMediaCodec_queueInputBuffer(_codec, ibufidx, 0, bufsize, _f->ticker->time * 1000, 0);
 							if (!_firstBufferQueued){
@@ -487,16 +463,8 @@ private:
 		AMediaFormat_setInt32(format, "profile", 1); // AVCProfileBaseline
 		AMediaFormat_setInt32(format, "level", 1024); // AVCLevel32
 
-		if ((_useMediaImage = AMediaImage_isAvailable())) {
-			ms_message("MSMediaCodecH264Enc: AMediaImage is available.");
-			status = tryColorFormat(format, 0x7f420888);/*the new "flexible YUV", appeared in API23*/
-		} else {
-			status = tryColorFormat(format, 21);/*the semi-planar YUV*/
-			if (status != 0){
-				status = tryColorFormat(format, 19); /*basic YUV420P*/
-				if (status == 0) _isPlanar = true;
-			}
-		}
+		ms_message("MSMediaCodecH264Enc: AMediaImage is available.");
+		status = tryColorFormat(format, 0x7f420888);/*the new "flexible YUV", appeared in API23*/
 
 		if (status != 0) {
 			ms_error("MSMediaCodecH264Enc: Could not configure encoder.");
@@ -531,8 +499,6 @@ private:
 	MSIFrameRequestsLimiterCtx _iframeLimiter;
 	mblk_t *_sps = nullptr, *_pps = nullptr; /*lastly generated SPS, PPS, in case we need to repeat them*/
 	bool _avpfEnabled = false;
-	bool _isPlanar = true;
-	bool _useMediaImage = false;
 	bool _firstBufferQueued = false;
 	bool _codecStarted = false;
 	bool _codecLost = false;

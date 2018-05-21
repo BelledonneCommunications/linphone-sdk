@@ -178,9 +178,7 @@ namespace mediastreamer {
 
 			/*secondly try to get decoded frames from the decoder, this is performed every tick*/
 			while (_bufferQueued && (oBufidx = AMediaCodec_dequeueOutputBuffer(_codec, &info, _timeoutUs)) >= 0) {
-				AMediaFormat *format;
 				mblk_t *om = nullptr;
-				int color = 0;
 				uint8_t *buf = AMediaCodec_getOutputBuffer(_codec, oBufidx, &bufsize);
 
 				if (buf == nullptr) {
@@ -188,53 +186,20 @@ namespace mediastreamer {
 					continue;
 				}
 
-				if (_useMediaImage) {
-					AMediaImage image;
+				AMediaImage image;
+				if (AMediaCodec_getOutputImage(_codec, oBufidx, &image)) {
+					int dst_pix_strides[4] = {1, 1, 1, 1};
+					MSRect dst_roi = {0, 0, image.crop_rect.w, image.crop_rect.h};
 
-					if (AMediaCodec_getOutputImage(_codec, oBufidx, &image)) {
-						int dst_pix_strides[4] = {1, 1, 1, 1};
-						MSRect dst_roi = {0, 0, image.crop_rect.w, image.crop_rect.h};
+					_vsize.width = image.crop_rect.w;
+					_vsize.height = image.crop_rect.h;
 
-						_vsize.width = image.crop_rect.w;
-						_vsize.height = image.crop_rect.h;
-
-						om = ms_yuv_buf_allocator_get(_bufAllocator, &pic, _vsize.width, _vsize.height);
-						ms_yuv_buf_copy_with_pix_strides(image.buffers, image.row_strides, image.pixel_strides, image.crop_rect,
-														 pic.planes, pic.strides, dst_pix_strides, dst_roi);
-						AMediaImage_close(&image);
-					}else{
-						ms_error("AMediaCodec_getOutputImage() failed");
-					}
-				} else {
-					int width = 0, height = 0;
-
-					format = AMediaCodec_getOutputFormat(_codec);
-
-					if (format != nullptr) {
-						AMediaFormat_getInt32(format, "width", &width);
-						AMediaFormat_getInt32(format, "height", &height);
-						AMediaFormat_getInt32(format, "color-format", &color);
-
-						AMediaFormat_delete(format);
-					}
-					if (width != 0 && height != 0) {
-						_vsize.width = width;
-						_vsize.height = height;
-						if (color == 19) {
-							//YUV
-							int ysize = width * height;
-							int usize = ysize / 4;
-							om = ms_yuv_buf_allocator_get(_bufAllocator, &pic, width, height);
-							memcpy(pic.planes[0], buf, ysize);
-							memcpy(pic.planes[1], buf + ysize, usize);
-							memcpy(pic.planes[2], buf + ysize + usize, usize);
-						} else {
-							uint8_t *cbcr_src = (uint8_t *)(buf + width * height);
-							om = copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(_bufAllocator, buf, cbcr_src, 0, width, height, width, width, TRUE, FALSE);
-						}
-					} else {
-						ms_error("MSMediaCodecH264Dec: width and height are not known !");
-					}
+					om = ms_yuv_buf_allocator_get(_bufAllocator, &pic, _vsize.width, _vsize.height);
+					ms_yuv_buf_copy_with_pix_strides(image.buffers, image.row_strides, image.pixel_strides, image.crop_rect,
+														pic.planes, pic.strides, dst_pix_strides, dst_roi);
+					AMediaImage_close(&image);
+				}else{
+					ms_error("AMediaCodec_getOutputImage() failed");
 				}
 
 				if (om){
@@ -392,7 +357,7 @@ namespace mediastreamer {
 				AMediaFormat_setInt32(format, "height", initial_size.height);
 			}
 
-			if ((_useMediaImage = AMediaImage_isAvailable())) AMediaFormat_setInt32(format, "color-format", 0x7f420888);
+			AMediaFormat_setInt32(format, "color-format", 0x7f420888);
 
 			if ((status = AMediaCodec_configure(_codec, format, nullptr, nullptr, 0)) != AMEDIA_OK) {
 				ms_error("MSMediaCodecH264Dec: configuration failure: %i", (int)status);
@@ -533,7 +498,6 @@ namespace mediastreamer {
 		bool _avpfEnabled = false;
 		bool _needKeyFrame = false;
 		bool _freezeOnError = true;
-		bool _useMediaImage = false;
 
 		static const unsigned int _timeoutUs = 0;
 	};
