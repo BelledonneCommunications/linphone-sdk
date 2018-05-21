@@ -77,14 +77,6 @@ public:
 	}
 
 	void process() {
-		MSPicture pic = {0};
-		mblk_t *im;
-		long long int ts = _f->ticker->time * 90LL;
-		ssize_t ibufidx, obufidx;
-		AMediaCodecBufferInfo info;
-		size_t bufsize;
-		bool have_seen_sps_pps = false;
-
 		if (_codecLost && (_f->ticker->time % 5000 == 0)){
 			if (encConfigure() != 0){
 				ms_error("MSMediaCodecH264Enc: AMediaCodec_reset() was not sufficient, will recreate the encoder in a moment...");
@@ -100,49 +92,47 @@ public:
 		}
 
 		/*First queue input image*/
-		if ((im = ms_queue_peek_last(_f->inputs[0])) != nullptr) {
+		if (mblk_t *im = ms_queue_peek_last(_f->inputs[0])) {
+			MSPicture pic;
 			if (ms_yuv_buf_init_from_mblk(&pic, im) == 0) {
-				uint8_t *buf;
-
 				if (ms_iframe_requests_limiter_iframe_requested(&_iframeLimiter, _f->ticker->time) ||
-					(!_avpfEnabled && ms_video_starter_need_i_frame(&_starter, _f->ticker->time))) {
+						(!_avpfEnabled && ms_video_starter_need_i_frame(&_starter, _f->ticker->time))) {
 					AMediaFormat *afmt = AMediaFormat_new();
-				/*Force a key-frame*/
-				AMediaFormat_setInt32(afmt, "request-sync", 0);
-				AMediaCodec_setParams(_codec, afmt);
-				AMediaFormat_delete(afmt);
-				ms_error("MSMediaCodecH264Enc: I-frame requested to MediaCodec");
-				ms_iframe_requests_limiter_notify_iframe_sent(&_iframeLimiter, _f->ticker->time);
-					}
+					/*Force a key-frame*/
+					AMediaFormat_setInt32(afmt, "request-sync", 0);
+					AMediaCodec_setParams(_codec, afmt);
+					AMediaFormat_delete(afmt);
+					ms_error("MSMediaCodecH264Enc: I-frame requested to MediaCodec");
+					ms_iframe_requests_limiter_notify_iframe_sent(&_iframeLimiter, _f->ticker->time);
+				}
 
-					ibufidx = AMediaCodec_dequeueInputBuffer(_codec, _timeoutUs);
-
-					if (ibufidx >= 0) {
-						buf = AMediaCodec_getInputBuffer(_codec, ibufidx, &bufsize);
-						if (buf){
-							AMediaImage image;
-							if (AMediaCodec_getInputImage(_codec, ibufidx, &image)) {
-								if (image.format == 35 /* YUV_420_888 */) {
-									MSRect src_roi = {0, 0, pic.w, pic.h};
-									int src_pix_strides[4] = {1, 1, 1, 1};
-									ms_yuv_buf_copy_with_pix_strides(pic.planes, pic.strides, src_pix_strides, src_roi, image.buffers, image.row_strides, image.pixel_strides, image.crop_rect);
-									bufsize = image.row_strides[0] * image.height * 3 / 2;
-								} else {
-									ms_error("%s: encoder requires non YUV420 format", _f->desc->name);
-								}
-								AMediaImage_close(&image);
+				ssize_t ibufidx = AMediaCodec_dequeueInputBuffer(_codec, _timeoutUs);
+				if (ibufidx >= 0) {
+					size_t bufsize;
+					if (uint8_t *buf = AMediaCodec_getInputBuffer(_codec, ibufidx, &bufsize)){
+						AMediaImage image;
+						if (AMediaCodec_getInputImage(_codec, ibufidx, &image)) {
+							if (image.format == 35 /* YUV_420_888 */) {
+								MSRect src_roi = {0, 0, pic.w, pic.h};
+								int src_pix_strides[4] = {1, 1, 1, 1};
+								ms_yuv_buf_copy_with_pix_strides(pic.planes, pic.strides, src_pix_strides, src_roi, image.buffers, image.row_strides, image.pixel_strides, image.crop_rect);
+								bufsize = image.row_strides[0] * image.height * 3 / 2;
+							} else {
+								ms_error("%s: encoder requires non YUV420 format", _f->desc->name);
 							}
-							AMediaCodec_queueInputBuffer(_codec, ibufidx, 0, bufsize, _f->ticker->time * 1000, 0);
-							if (!_firstBufferQueued){
-								_firstBufferQueued = true;
-								ms_message("MSMediaCodecH264Enc: first frame to encode queued (size: %ix%i)", pic.w, pic.h);
-							}
-						}else{
-							ms_error("MSMediaCodecH264Enc: obtained InputBuffer, but no address.");
+							AMediaImage_close(&image);
 						}
-					} else if (ibufidx == AMEDIA_ERROR_UNKNOWN) {
-						ms_error("MSMediaCodecH264Enc: AMediaCodec_dequeueInputBuffer() had an exception");
+						AMediaCodec_queueInputBuffer(_codec, ibufidx, 0, bufsize, _f->ticker->time * 1000, 0);
+						if (!_firstBufferQueued){
+							_firstBufferQueued = true;
+							ms_message("MSMediaCodecH264Enc: first frame to encode queued (size: %ix%i)", pic.w, pic.h);
+						}
+					}else{
+						ms_error("MSMediaCodecH264Enc: obtained InputBuffer, but no address.");
 					}
+				} else if (ibufidx == AMEDIA_ERROR_UNKNOWN) {
+					ms_error("MSMediaCodecH264Enc: AMediaCodec_dequeueInputBuffer() had an exception");
+				}
 			}
 		}
 		ms_queue_flush(_f->inputs[0]);
@@ -151,10 +141,12 @@ public:
 			return;
 
 		/*Second, dequeue possibly pending encoded frames*/
+		AMediaCodecBufferInfo info;
+		ssize_t obufidx;
+		bool have_seen_sps_pps = false;
 		while ((obufidx = AMediaCodec_dequeueOutputBuffer(_codec, &info, _timeoutUs)) >= 0) {
-			uint8_t *buf = AMediaCodec_getOutputBuffer(_codec, obufidx, &bufsize);
-
-			if (buf) {
+			size_t bufsize;
+			if (uint8_t *buf = AMediaCodec_getOutputBuffer(_codec, obufidx, &bufsize)) {
 				mblk_t *m;
 				MSQueue nalus;
 
@@ -197,7 +189,7 @@ public:
 							break;
 					}
 
-					_packer.pack(&nalus, _f->outputs[0], ts);
+					_packer.pack(&nalus, _f->outputs[0], _f->ticker->time * 90LL);
 
 					if (_framenum == 0) {
 						ms_video_starter_first_frame(&_starter, _f->ticker->time);
