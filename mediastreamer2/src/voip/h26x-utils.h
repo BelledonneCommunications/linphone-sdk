@@ -32,4 +32,6 @@ void naluStreamToNalus(const uint8_t *byteStream, size_t size, MSQueue *out);
 void byteStreamToNalus(const std::vector<uint8_t> &byteStream, MSQueue *out);
 void byteStreamToNalus(const uint8_t *byteStream, size_t size, MSQueue *out);
 
+void nalusToByteStream(MSQueue *nalus, std::vector<uint8_t> &bytestream);
+
 }

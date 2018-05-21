@@ -100,4 +100,45 @@ void byteSTreamToNalus(const uint8_t *byteStream, size_t size, MSQueue *out) {
 	if (begin) push_nalu(begin, p, out);
 }
 
+void nalusToByteStream(MSQueue *nalus, std::vector<uint8_t> &bytestream) {
+	bool start_picture = true;
+	bytestream.resize(0);
+	while (mblk_t *im = ms_queue_get(nalus)) {
+		const uint8_t *src = im->b_rptr;
+		if (src[0] == 0 && src[1] == 0 && src[2] == 0 && src[3] == 1) {
+			while (src != im->b_wptr) {
+				bytestream.push_back(*src++);
+			}
+		} else {
+			if (start_picture) {
+				bytestream.push_back(0);
+				start_picture = false;
+			}
+
+			/*prepend nal marker*/
+			bytestream.push_back(0);
+			bytestream.push_back(0);
+			bytestream.push_back(1);
+			bytestream.push_back(*src++);
+
+			while (src < (im->b_wptr - 3)) {
+				if (src[0] == 0 && src[1] == 0 && src[2] < 3) {
+					bytestream.push_back(0);
+					bytestream.push_back(0);
+					bytestream.push_back(3);
+					src += 2;
+				}
+
+				bytestream.push_back(*src++);
+			}
+
+			bytestream.push_back(*src++);
+			bytestream.push_back(*src++);
+			bytestream.push_back(*src++);
+		}
+
+		freemsg(im);
+	}
+}
+
 }

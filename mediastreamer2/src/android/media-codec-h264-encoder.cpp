@@ -26,13 +26,14 @@ namespace mediastreamer {
 class MediaCodecH264EncoderFilterImpl: public MediaCodecEncoderFilterImpl {
 public:
 
-	MediaCodecH264EncoderFilterImpl(MSFilter *f): MediaCodecEncoderFilterImpl(f, new H264NalPacker()) {}
+	MediaCodecH264EncoderFilterImpl(MSFilter *f): MediaCodecEncoderFilterImpl(f, "video/avc", new H264NalPacker()) {}
 	~MediaCodecH264EncoderFilterImpl() {
 		if (_sps) freemsg(_sps);
 		if (_pps) freemsg(_pps);
 	}
 
 	void postprocess() override {
+		MediaCodecEncoderFilterImpl::postprocess();
 		setMblk(&_sps, nullptr);
 		setMblk(&_pps, nullptr);
 	}

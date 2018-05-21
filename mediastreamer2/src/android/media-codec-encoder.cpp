@@ -44,11 +44,14 @@ static const MSVideoConfiguration mediaCodecH264_conf_list[] = {
 };
 
 using namespace mediastreamer;
+using namespace std;
 
 namespace mediastreamer {
 
 // Public methods
-MediaCodecEncoderFilterImpl::MediaCodecEncoderFilterImpl(MSFilter *f, NalPacker *packer): _f(f), _packer(packer) {
+MediaCodecEncoderFilterImpl::MediaCodecEncoderFilterImpl(MSFilter *f, const string &mime, NalPacker *packer):
+	_f(f), _mime(mime), _packer(packer) {
+
 	_vconfList = mediaCodecH264_conf_list;
 	_vconf = ms_video_find_best_configuration_for_size(_vconfList, MS_VIDEO_SIZE_CIF, ms_factory_get_cpu_count(f->factory));
 	ms_video_starter_init(&_starter);

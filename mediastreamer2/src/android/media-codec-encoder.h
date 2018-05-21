@@ -20,6 +20,7 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 #include <media/NdkMediaCodec.h>
 
@@ -33,7 +34,7 @@ namespace mediastreamer {
 
 class MediaCodecEncoderFilterImpl {
 public:
-	MediaCodecEncoderFilterImpl(MSFilter *f, NalPacker *packer);
+	MediaCodecEncoderFilterImpl(MSFilter *f, const std::string &mime, NalPacker *packer);
 	virtual ~MediaCodecEncoderFilterImpl();
 
 	virtual void preprocess();
@@ -64,15 +65,17 @@ protected:
 	media_status_t tryColorFormat(AMediaFormat *format, unsigned value);
 	int encConfigure();
 
-	MSFilter *_f = nullptr;
-	AMediaCodec *_codec = nullptr;
 	const MSVideoConfiguration *_vconfList;
 	MSVideoConfiguration _vconf;
+	bool _avpfEnabled = false;
+
+	MSFilter *_f = nullptr;
+	std::string _mime;
 	std::unique_ptr<NalPacker> _packer;
+	AMediaCodec *_codec = nullptr;
 	uint64_t _framenum = 0;
 	MSVideoStarter _starter;
 	MSIFrameRequestsLimiterCtx _iframeLimiter;
-	bool _avpfEnabled = false;
 	bool _firstBufferQueued = false;
 	bool _codecStarted = false;
 	bool _codecLost = false;
