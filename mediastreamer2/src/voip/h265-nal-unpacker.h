@@ -41,6 +41,8 @@ private:
 		void feed(mblk_t *packet) override;
 		MSQueue *getNalus() override {return &_q;}
 	};
+
+	PacketType getNaluType(const mblk_t *nalu) const override;
 };
 
 } // namespace mediastreamer

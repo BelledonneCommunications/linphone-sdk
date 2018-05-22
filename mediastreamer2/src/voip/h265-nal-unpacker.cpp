@@ -102,4 +102,15 @@ void H265NalUnpacker::ApSpliter::feed(mblk_t *packet) {
 	}
 }
 
+NalUnpacker::PacketType H265NalUnpacker::getNaluType(const mblk_t *nalu) const {
+	H265NaluHeader header(nalu->b_rptr);
+	if (header.getType() == H265NaluType::Ap) {
+		return PacketType::AggregationPacket;
+	} else if (header.getType() == H265NaluType::Fu) {
+		return PacketType::FragmentationUnit;
+	} else {
+		return PacketType::SingleNalUnit;
+	}
+}
+
 } // namespace mediastreamer

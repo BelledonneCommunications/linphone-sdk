@@ -44,6 +44,7 @@ public:
 	MSVideoSize getVideoSize() const;
 	float getFps() const;
 	const MSFmtDescriptor *getOutFmt() const;
+	void addFmtp(const char *fmtp) {}
 
 	void enableAvpf(bool enable);
 	void enableFreezeOnError(bool enable);

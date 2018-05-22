@@ -201,6 +201,8 @@ extern MSWebCamDesc ms_mire_webcam_desc;
 extern MSWebCamDesc ms_android_video_capture_desc;
 extern MSFilterDesc ms_mediacodec_h264_dec_desc;
 extern MSFilterDesc ms_mediacodec_h264_enc_desc;
+extern MSFilterDesc ms_mediacodec_h265_dec_desc;
+extern MSFilterDesc ms_mediacodec_h265_enc_desc;
 extern bool_t AMediaImage_isAvailable(void);
 #endif
 
@@ -273,6 +275,8 @@ void ms_factory_init_voip(MSFactory *obj){
 		ms_factory_register_filter(obj, &ms_mediacodec_h264_dec_desc);
 		ms_factory_register_filter(obj, &ms_mediacodec_h264_enc_desc);
 	}
+	ms_factory_register_filter(obj, &ms_mediacodec_h265_dec_desc);
+	ms_factory_register_filter(obj, &ms_mediacodec_h265_enc_desc);
 #endif
 	
 	/* register builtin VoIP MSFilter's */

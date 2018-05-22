@@ -384,6 +384,8 @@ if(ENABLE_VIDEO)
 			android/media-codec-encoder.cpp
 			android/media-codec-h264-decoder.cpp
 			android/media-codec-h264-encoder.cpp
+			android/media-codec-h265-decoder.cpp
+			android/media-codec-h265-encoder.cpp
 		)
 		if(CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7-a")
 			list(APPEND VOIP_SOURCE_FILES_ASM

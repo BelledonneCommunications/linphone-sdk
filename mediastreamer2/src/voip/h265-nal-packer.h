@@ -24,7 +24,10 @@
 
 namespace mediastreamer {
 
-class H265NalPacker: NalPacker {
+class H265NalPacker: public NalPacker {
+public:
+	H265NalPacker(const MSFactory *factory): NalPacker(new NaluAggregator, new NaluSpliter(), factory) {}
+
 private:
 	class NaluAggregator: public NaluAggregatorInterface {
 	public:
@@ -51,8 +54,6 @@ private:
 	private:
 		mblk_t *makeFu(const H265NaluHeader &naluHeader, const H265FuHeader &fuHeader, const uint8_t *payload, size_t length);
 	};
-
-	H265NalPacker(const MSFactory *factory): NalPacker(new NaluAggregator, new NaluSpliter(), factory) {}
 };
 
 }
