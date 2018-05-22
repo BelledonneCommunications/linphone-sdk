@@ -21,12 +21,31 @@
 #include "h264utils.h"
 #include "media-codec-encoder.h"
 
+#define MS_MEDIACODECH264_CONF(required_bitrate, bitrate_limit, resolution, fps, ncpus) \
+{ required_bitrate, bitrate_limit, { MS_VIDEO_SIZE_ ## resolution ## _W, MS_VIDEO_SIZE_ ## resolution ## _H }, fps, ncpus, nullptr }
+
+static const MSVideoConfiguration _media_codec_h264_conf_list[] = {
+	MS_MEDIACODECH264_CONF(2048000, 1000000,       UXGA, 25,  2),
+	MS_MEDIACODECH264_CONF(1024000, 5000000, SXGA_MINUS, 25,  2),
+	MS_MEDIACODECH264_CONF(1024000, 5000000,       720P, 30,  2),
+	MS_MEDIACODECH264_CONF( 750000, 2048000,        XGA, 25,  2),
+	MS_MEDIACODECH264_CONF( 500000, 1024000,       SVGA, 15,  2),
+	MS_MEDIACODECH264_CONF( 600000, 3000000,        VGA, 30,  2),
+	MS_MEDIACODECH264_CONF( 400000,  800000,        VGA, 15,  2),
+	MS_MEDIACODECH264_CONF( 128000,  512000,        CIF, 15,  1),
+	MS_MEDIACODECH264_CONF( 100000,  380000,       QVGA, 15,  1),
+	MS_MEDIACODECH264_CONF(      0,  170000,       QCIF, 10,  1),
+};
+
 namespace mediastreamer {
 
 class MediaCodecH264EncoderFilterImpl: public MediaCodecEncoderFilterImpl {
 public:
 
-	MediaCodecH264EncoderFilterImpl(MSFilter *f): MediaCodecEncoderFilterImpl(f, "video/avc", new H264NalPacker()) {}
+	MediaCodecH264EncoderFilterImpl(MSFilter *f): MediaCodecEncoderFilterImpl(f, "video/avc", new H264NalPacker()) {
+		_vconfList = _media_codec_h264_conf_list;
+	}
+
 	~MediaCodecH264EncoderFilterImpl() {
 		if (_sps) freemsg(_sps);
 		if (_pps) freemsg(_pps);
@@ -36,6 +55,10 @@ public:
 		MediaCodecEncoderFilterImpl::postprocess();
 		setMblk(&_sps, nullptr);
 		setMblk(&_pps, nullptr);
+	}
+
+	void setVideoConfigurations(const MSVideoConfiguration *vconfs) {
+		_vconfList = vconfs ? vconfs : _media_codec_h264_conf_list;
 	}
 
 	static void onFilterInit(MSFilter *f) {

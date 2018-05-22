@@ -27,22 +27,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "h26x-utils.h"
 #include "media-codec-encoder.h"
 
-#define MS_MEDIACODECH264_CONF(required_bitrate, bitrate_limit, resolution, fps, ncpus) \
-{ required_bitrate, bitrate_limit, { MS_VIDEO_SIZE_ ## resolution ## _W, MS_VIDEO_SIZE_ ## resolution ## _H }, fps, ncpus, nullptr }
-
-static const MSVideoConfiguration mediaCodecH264_conf_list[] = {
-	MS_MEDIACODECH264_CONF(2048000, 1000000,       UXGA, 25,  2),
-	MS_MEDIACODECH264_CONF(1024000, 5000000, SXGA_MINUS, 25,  2),
-	MS_MEDIACODECH264_CONF(1024000, 5000000,       720P, 30,  2),
-	MS_MEDIACODECH264_CONF( 750000, 2048000,        XGA, 25,  2),
-	MS_MEDIACODECH264_CONF( 500000, 1024000,       SVGA, 15,  2),
-	MS_MEDIACODECH264_CONF( 600000, 3000000,        VGA, 30,  2),
-	MS_MEDIACODECH264_CONF( 400000,  800000,        VGA, 15,  2),
-	MS_MEDIACODECH264_CONF( 128000,  512000,        CIF, 15,  1),
-	MS_MEDIACODECH264_CONF( 100000,  380000,       QVGA, 15,  1),
-	MS_MEDIACODECH264_CONF(      0,  170000,       QCIF, 10,  1),
-};
-
 using namespace mediastreamer;
 using namespace std;
 
@@ -52,7 +36,6 @@ namespace mediastreamer {
 MediaCodecEncoderFilterImpl::MediaCodecEncoderFilterImpl(MSFilter *f, const string &mime, NalPacker *packer):
 	_f(f), _mime(mime), _packer(packer) {
 
-	_vconfList = mediaCodecH264_conf_list;
 	_vconf = ms_video_find_best_configuration_for_size(_vconfList, MS_VIDEO_SIZE_CIF, ms_factory_get_cpu_count(f->factory));
 	ms_video_starter_init(&_starter);
 
@@ -266,7 +249,7 @@ const MSVideoConfiguration *MediaCodecEncoderFilterImpl::getVideoConfiguratons()
 }
 
 void MediaCodecEncoderFilterImpl::setVideoConfigurations(const MSVideoConfiguration *vconfs) {
-	_vconfList = vconfs ? vconfs : mediaCodecH264_conf_list;
+	_vconfList = vconfs;
 }
 
 
@@ -275,7 +258,7 @@ void MediaCodecEncoderFilterImpl::setVideoConfigurations(const MSVideoConfigurat
 // Private methods
 media_status_t MediaCodecEncoderFilterImpl::allocEncoder(){
 	if (!_codec){
-		_codec = AMediaCodec_createEncoderByType("video/avc");
+		_codec = AMediaCodec_createEncoderByType(_mime.c_str());
 		if (!_codec) {
 			ms_error("MSMediaCodecH264Enc: could not create MediaCodec");
 			return AMEDIA_ERROR_UNKNOWN;
@@ -301,7 +284,7 @@ int MediaCodecEncoderFilterImpl::encConfigure() {
 	_codecStarted = false;
 
 	AMediaFormat *format = AMediaFormat_new();
-	AMediaFormat_setString(format, "mime", "video/avc");
+	AMediaFormat_setString(format, "mime", _mime.c_str());
 	AMediaFormat_setInt32(format, "width", _vconf.vsize.width);
 	AMediaFormat_setInt32(format, "height", _vconf.vsize.height);
 	AMediaFormat_setInt32(format, "i-frame-interval", 20);
