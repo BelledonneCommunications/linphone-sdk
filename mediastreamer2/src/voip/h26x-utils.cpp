@@ -81,7 +81,7 @@ static void  push_nalu(const uint8_t *begin, const uint8_t *end, MSQueue *nalus)
 	ms_queue_put(nalus, m);
 }
 
-void byteSTreamToNalus(const uint8_t *byteStream, size_t size, MSQueue *out) {
+void byteStreamToNalus(const uint8_t *byteStream, size_t size, MSQueue *out) {
 	size_t i;
 	const uint8_t *p, *begin = NULL;
 	int zeroes = 0;
