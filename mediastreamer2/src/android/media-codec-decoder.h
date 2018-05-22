@@ -63,7 +63,7 @@ protected:
 	std::unique_ptr<NalUnpacker> _unpacker;
 	AMediaCodec *_codec = nullptr;
 	unsigned int _packetNum = 0;
-	std::vector<uint8_t> bitstream;
+	std::vector<uint8_t> _bitstream;
 	MSYuvBufAllocator *_bufAllocator = nullptr;
 	bool _bufferQueued = false;
 	bool _firstImageDecoded = false;

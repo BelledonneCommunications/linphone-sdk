@@ -58,18 +58,11 @@ void MediaCodecDecoderFilterImpl::preprocess() {
 }
 
 void MediaCodecDecoderFilterImpl::process() {
-	MSPicture pic = {0};
-	mblk_t *im = nullptr;
-	ssize_t oBufidx = -1;
-	size_t bufsize;
 	bool request_pli = false;
 	MSQueue nalus;
-	AMediaCodecBufferInfo info;
-
 	ms_queue_init(&nalus);
 
-	while ((im = ms_queue_get(_f->inputs[0])) != nullptr) {
-		int size;
+	while (mblk_t *im = ms_queue_get(_f->inputs[0])) {
 		uint8_t *buf = nullptr;
 		ssize_t iBufidx;
 		NalUnpacker::Status unpacking_ret = _unpacker->unpack(im, &nalus);
@@ -86,8 +79,8 @@ void MediaCodecDecoderFilterImpl::process() {
 			}
 		}
 
-		nalusToByteStream(&nalus, bitstream);
-		size = bitstream.size();
+		nalusToByteStream(&nalus, _bitstream);
+		size_t size = _bitstream.size();
 		//Initialize the video size
 		if (_codec == nullptr) {
 			initMediaCodec();
@@ -100,6 +93,7 @@ void MediaCodecDecoderFilterImpl::process() {
 
 		if (iBufidx >= 0) {
 			struct timespec ts;
+			size_t bufsize;
 			buf = AMediaCodec_getInputBuffer(_codec, iBufidx, &bufsize);
 
 			if (buf == nullptr) {
@@ -108,18 +102,18 @@ void MediaCodecDecoderFilterImpl::process() {
 			}
 			clock_gettime(CLOCK_MONOTONIC, &ts);
 
-			if ((size_t)size > bufsize) {
-				ms_error("Cannot copy the all the bitstream into the input buffer size : %i and bufsize %i", size, (int) bufsize);
-				size = MIN((size_t)size, bufsize);
+			if (size > bufsize) {
+				ms_error("Cannot copy the all the bitstream into the input buffer size : %zu and bufsize %zu", size, bufsize);
+				size = MIN(size, bufsize);
 			}
-			memcpy(buf, bitstream.data(), bitstream.size());
+			memcpy(buf, _bitstream.data(), _bitstream.size());
 
 			if (_needKeyFrame) {
 				ms_message("MSMediaCodecH264Dec: fresh I-frame submitted to the decoder");
 				_needKeyFrame = false;
 			}
 
-			if (AMediaCodec_queueInputBuffer(_codec, iBufidx, 0, (size_t)size, (ts.tv_nsec / 1000) + 10000LL, 0) == 0) {
+			if (AMediaCodec_queueInputBuffer(_codec, iBufidx, 0, size, (ts.tv_nsec / 1000) + 10000LL, 0) == 0) {
 				if (!_bufferQueued) _bufferQueued = true;
 			} else {
 				ms_error("MSMediaCodecH264Dec: AMediaCodec_queueInputBuffer() had an exception");
@@ -147,7 +141,10 @@ void MediaCodecDecoderFilterImpl::process() {
 	}
 
 	/*secondly try to get decoded frames from the decoder, this is performed every tick*/
+	ssize_t oBufidx = -1;
+	AMediaCodecBufferInfo info;
 	while (_bufferQueued && (oBufidx = AMediaCodec_dequeueOutputBuffer(_codec, &info, _timeoutUs)) >= 0) {
+		size_t bufsize;
 		mblk_t *om = nullptr;
 		uint8_t *buf = AMediaCodec_getOutputBuffer(_codec, oBufidx, &bufsize);
 
@@ -164,6 +161,7 @@ void MediaCodecDecoderFilterImpl::process() {
 			_vsize.width = image.crop_rect.w;
 			_vsize.height = image.crop_rect.h;
 
+			MSPicture pic;
 			om = ms_yuv_buf_allocator_get(_bufAllocator, &pic, _vsize.width, _vsize.height);
 			ms_yuv_buf_copy_with_pix_strides(image.buffers, image.row_strides, image.pixel_strides, image.crop_rect,
 			                                 pic.planes, pic.strides, dst_pix_strides, dst_roi);
