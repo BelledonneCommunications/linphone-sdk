@@ -112,7 +112,9 @@ belle_tls_crypto_config_t *belle_tls_crypto_config_new(void){
 	belle_tls_crypto_config_t *obj=belle_sip_object_new(belle_tls_crypto_config_t);
 	
 	/*default to "system" default root ca, wihtout warranty...*/
-#ifdef __linux
+#ifdef __ANDROID__
+       belle_tls_crypto_config_set_root_ca(obj,"/system/etc/security/cacerts");
+#elif __linux
 	belle_tls_crypto_config_set_root_ca(obj,"/etc/ssl/certs");
 #elif defined(__APPLE__)
 	belle_tls_crypto_config_set_root_ca(obj,"/opt/local/share/curl/curl-ca-bundle.crt");
