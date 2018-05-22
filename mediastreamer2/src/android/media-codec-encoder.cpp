@@ -291,8 +291,8 @@ int MediaCodecEncoderFilterImpl::encConfigure() {
 	AMediaFormat_setInt32(format, "bitrate", (_vconf.required_bitrate * 9)/10); /*take a margin*/
 	AMediaFormat_setInt32(format, "frame-rate", _vconf.fps);
 	AMediaFormat_setInt32(format, "bitrate-mode", 1);
-	AMediaFormat_setInt32(format, "profile", 1); // AVCProfileBaseline
-	AMediaFormat_setInt32(format, "level", 1024); // AVCLevel32
+	AMediaFormat_setInt32(format, "profile", _profile);
+	AMediaFormat_setInt32(format, "level", _level);
 
 	ms_message("MSMediaCodecH264Enc: AMediaImage is available.");
 	status = tryColorFormat(format, 0x7f420888);/*the new "flexible YUV", appeared in API23*/

@@ -44,6 +44,8 @@ public:
 
 	MediaCodecH264EncoderFilterImpl(MSFilter *f): MediaCodecEncoderFilterImpl(f, "video/avc", new H264NalPacker()) {
 		_vconfList = _media_codec_h264_conf_list;
+		_profile = 1; // AVCProfileBaseline
+		_level = 1024; // AVCLevel32
 	}
 
 	~MediaCodecH264EncoderFilterImpl() {

@@ -68,6 +68,8 @@ protected:
 	const MSVideoConfiguration *_vconfList;
 	MSVideoConfiguration _vconf;
 	bool _avpfEnabled = false;
+	int _profile = 0;
+	int _level = 0;
 
 	MSFilter *_f = nullptr;
 	std::string _mime;

@@ -24,7 +24,10 @@ namespace mediastreamer {
 
 class MediaCodecH265EncoderFilterImpl: public MediaCodecEncoderFilterImpl {
 public:
-	MediaCodecH265EncoderFilterImpl(MSFilter *f): MediaCodecEncoderFilterImpl(f, "video/hevc", new H265NalPacker(f->factory)) {}
+	MediaCodecH265EncoderFilterImpl(MSFilter *f): MediaCodecEncoderFilterImpl(f, "video/hevc", new H265NalPacker(f->factory)) {
+		_profile = 1; // HEVCProfileMain
+		_level = 256; // HEVCMainTierLevel31
+	}
 
 	static void onFilterInit(MSFilter *f) {
 		f->data = new MediaCodecH265EncoderFilterImpl(f);
