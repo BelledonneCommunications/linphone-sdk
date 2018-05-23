@@ -30,12 +30,12 @@ def int16(x):
 	return int(x, 16)
 	
 def main(argv=None):
-	parser = argparse.ArgumentParser(description='Compute response parameter for a digest authetication. ex %(prog)s --qop-auth --cnonce f1b8598a --nonce-count 2b --userid toto --realm sip.linphone.org --password secret REGISTER sip:sip.linphone.org QPUC2gAAAABufvQmAABDq5AKuv4AAAAA')
+	parser = argparse.ArgumentParser(description='Compute response parameter for a digest authentication. ex %(prog)s --qop-auth --cnonce f1b8598a --nonce-count 2b --userid toto --realm sip.linphone.org --password secret REGISTER sip:sip.linphone.org QPUC2gAAAABufvQmAABDq5AKuv4AAAAA')
 	parser.add_argument('--userid',help='User identifier')
 	parser.add_argument('--realm',help='realm as defined by the server in 401/407')
 	parser.add_argument('--password',help='clear text password')
-	parser.add_argument('method',help='sip method of the challanged request line')
-	parser.add_argument('uri',help='sip uri of the challanged request uri')
+	parser.add_argument('method',help='sip method of the challenged request line')
+	parser.add_argument('uri',help='sip uri of the challenged request uri')
 	parser.add_argument('nonce',help='Nonce param as defined by the server in 401/407')
 	
 	parser.add_argument('--ha1',help='ha1 MD5(username:realm:password)')
@@ -89,7 +89,7 @@ def main(argv=None):
 							+":" + args.cnonce
 							+":auth"
 							+":" + ha2.hexdigest()).encode())
-		print ("responce = "+response.hexdigest());	
+		print ("response = "+response.hexdigest());
 				
 	
 	else:
@@ -101,7 +101,7 @@ def main(argv=None):
 			response = hashlib.sha256()
 		
 		response.update((ha1_value+":"+args.nonce+":"+ha2.hexdigest()).encode())
-		print ("responce = "+response.hexdigest());	
+		print ("response = "+response.hexdigest());
 			
 		
 
