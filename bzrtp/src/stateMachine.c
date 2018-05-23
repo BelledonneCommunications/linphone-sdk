@@ -4,21 +4,21 @@
  @brief The state machine implementing the ZRTP protocol
  each state is defined as u function pointer and on arrival of a new event
  after sanity checks, the state function is called giving the event as parameter
- 
+
  @author Johan Pascal
 
  @copyright Copyright (C) 2014 Belledonne Communications, Grenoble, France
- 
+
  This program is free software; you can redistribute it and/or
  modify it under the terms of the GNU General Public License
  as published by the Free Software Foundation; either version 2
  of the License, or (at your option) any later version.
- 
+
  This program is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  GNU General Public License for more details.
- 
+
  You should have received a copy of the GNU General Public License
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
@@ -38,9 +38,9 @@
 int bzrtp_turnIntoResponder(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, bzrtpPacket_t *zrtpPacket, bzrtpCommitMessage_t *commitMessage);
 int bzrtp_responseToHelloMessage(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, bzrtpPacket_t *zrtpPacket);
 int bzrtp_computeS0DHMMode(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext);
-int bzrtp_computeS0MultiStreamMode(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext); 
+int bzrtp_computeS0MultiStreamMode(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext);
 int bzrtp_deriveKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext);
-int bzrtp_deriveSrtpKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext); 
+int bzrtp_deriveSrtpKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext);
 int bzrtp_updateCachedSecrets(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext);
 
 /*
@@ -96,7 +96,7 @@ int state_discovery_init(bzrtpEvent_t event) {
 	/*** Manage message event ***/
 	if (event.eventType == BZRTP_EVENT_MESSAGE) {
 		bzrtpPacket_t *zrtpPacket = event.bzrtpPacket;
-		
+
 		/* now check the type of packet received, we're expecting either Hello or HelloACK */
 		if ((zrtpPacket->messageType != MSGTYPE_HELLO) && (zrtpPacket->messageType != MSGTYPE_HELLOACK)) {
 			bzrtp_freeZrtpPacket(zrtpPacket);
@@ -124,7 +124,7 @@ int state_discovery_init(bzrtpEvent_t event) {
 			zrtpChannelContext->timer.firingTime = 0;
 			zrtpChannelContext->timer.firingCount = 0;
 			zrtpChannelContext->timer.timerStep = HELLO_BASE_RETRANSMISSION_STEP;
-			
+
 			/* set next state (do not call it as we will just be waiting for a HelloACK packet from peer, nothing to do) */
 			zrtpChannelContext->stateMachine = state_discovery_waitingForHelloAck;
 		}
@@ -178,7 +178,7 @@ int state_discovery_init(bzrtpEvent_t event) {
 /*
  * @brief Arrives in this state coming from init upon reception on Hello ACK, we are now waiting for the Hello packet from peer
  *
- * Arrives from : 
+ * Arrives from :
  *	- state_discovery_init upon HelloACK reception
  * Goes to:
  * 	- state_keyAgreement_sendingCommit upon Hello reception
@@ -200,7 +200,7 @@ int state_discovery_waitingForHello(bzrtpEvent_t event)  {
 		int retval;
 
 		bzrtpPacket_t *zrtpPacket = event.bzrtpPacket;
-		
+
 		/* now check the type of packet received, we're expecting either Hello, HelloACK may arrive but will be discarded as useless now */
 		if (zrtpPacket->messageType != MSGTYPE_HELLO) {
 			bzrtp_freeZrtpPacket(zrtpPacket);
@@ -220,7 +220,7 @@ int state_discovery_waitingForHello(bzrtpEvent_t event)  {
 		if (retval != 0) {
 			return retval;
 		}
-		
+
 		/* set next state state_keyAgreement_sendingCommit */
 		zrtpChannelContext->stateMachine = state_keyAgreement_sendingCommit;
 
@@ -243,14 +243,14 @@ int state_discovery_waitingForHello(bzrtpEvent_t event)  {
 
 
 /*
- * @brief We are now waiting for the HelloACK packet from peer or a Commit packet 
+ * @brief We are now waiting for the HelloACK packet from peer or a Commit packet
  *
  * Arrives from :
  * 	- state_discovery_init upon Hello reception
  * Goes to:
  * 	- state_keyAgreement_sendingCommit upon HelloACK reception
  * 	- state_keyAgreement_responderSendingDHPart1 upon Commit reception in DHM mode
- * 	- state_confirmation_responderSendingConfirm1 upon Commit reception in non DHM mode 
+ * 	- state_confirmation_responderSendingConfirm1 upon Commit reception in non DHM mode
  * Send :
  * 	- Hello until timer's end or transition
  * 	- HelloACK on Hello reception
@@ -265,7 +265,7 @@ int state_discovery_waitingForHelloAck(bzrtpEvent_t event) {
 	/*** Manage message event ***/
 	if (event.eventType == BZRTP_EVENT_MESSAGE) {
 		bzrtpPacket_t *zrtpPacket = event.bzrtpPacket;
-		
+
 		/* we can receive either a Hello, HelloACK or Commit packets, others will be ignored */
 		if ((zrtpPacket->messageType != MSGTYPE_HELLO) && (zrtpPacket->messageType != MSGTYPE_HELLOACK) && (zrtpPacket->messageType != MSGTYPE_COMMIT)) {
 			bzrtp_freeZrtpPacket(zrtpPacket);
@@ -322,7 +322,7 @@ int state_discovery_waitingForHelloAck(bzrtpEvent_t event) {
 		/* packet is valid, set the sequence Number in channel context */
 		zrtpChannelContext->peerSequenceNumber = zrtpPacket->sequenceNumber;
 
-		
+
 		/* if we have an HelloACK packet, transit to state_keyAgreement_sendingCommit and execute it with an init event */
 		if (zrtpPacket->messageType == MSGTYPE_HELLOACK) {
 			bzrtpEvent_t initEvent;
@@ -388,7 +388,7 @@ int state_discovery_waitingForHelloAck(bzrtpEvent_t event) {
 /*
  * @brief For any kind of key agreement (DHM, Mult, PreShared), we keep sending commit.
  *
- * Arrives from : 
+ * Arrives from :
  * 	- state_discovery_waitingForHello upon Hello received
  * 	- state_discovery_waitingForHelloAck upon HelloACK received
  * Goes to:
@@ -442,7 +442,7 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
 	if (event.eventType == BZRTP_EVENT_MESSAGE) {
 		bzrtpEvent_t initEvent;
 		bzrtpPacket_t *zrtpPacket = event.bzrtpPacket;
-		
+
 		/* now check the type of packet received, we're expecting a commit or a DHPart1 or a Confirm1 packet */
 		if ((zrtpPacket->messageType != MSGTYPE_COMMIT) && (zrtpPacket->messageType != MSGTYPE_DHPART1) && (zrtpPacket->messageType != MSGTYPE_CONFIRM1)) {
 			bzrtp_freeZrtpPacket(zrtpPacket);
@@ -476,7 +476,7 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
 
 		/* packet is valid, set the sequence Number in channel context */
 		zrtpChannelContext->peerSequenceNumber = zrtpPacket->sequenceNumber;
-		
+
 		/* create the init event for next state */
 		initEvent.eventType = BZRTP_EVENT_INIT;
 		initEvent.bzrtpPacketString = NULL;
@@ -633,7 +633,7 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
 				if ((peerCommitMessage->keyAgreementAlgo != ZRTP_KEYAGREEMENT_Prsh) && (selfCommitMessage->keyAgreementAlgo == ZRTP_KEYAGREEMENT_Prsh)) {
 					zrtpChannelContext->role = BZRTP_ROLE_RESPONDER;
 				}
-			} else { /* commit have the same mode */ 
+			} else { /* commit have the same mode */
 				bzrtpHelloMessage_t *peerHelloMessage = (bzrtpHelloMessage_t *)zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->messageData;
 				bzrtpHelloMessage_t *selfHelloMessage = (bzrtpHelloMessage_t *)zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID]->messageData;
 
@@ -646,7 +646,7 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
 						if (memcmp(selfCommitMessage->nonce, peerCommitMessage->nonce, 16) < 0) { /* self nonce < peer nonce */
 							zrtpChannelContext->role = BZRTP_ROLE_RESPONDER;
 						}
-	
+
 					} else { /* DHM mode, compare the hvi */
 						if (memcmp(selfCommitMessage->hvi, peerCommitMessage->hvi, 32) < 0) { /* self hvi < peer hvi */
 							zrtpChannelContext->role = BZRTP_ROLE_RESPONDER;
@@ -654,7 +654,7 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
 					}
 				}
 			}
-			
+
 			/* so now check if we are responder - if we are initiator just do nothing, continue sending the commits and ignore the one we just receive */
 			if (zrtpChannelContext->role == BZRTP_ROLE_RESPONDER) {
 				/* free the self commit packet as it is now useless */
@@ -735,14 +735,14 @@ int state_keyAgreement_responderSendingDHPart1(bzrtpEvent_t event) {
 	/*** Manage message event ***/
 	if (event.eventType == BZRTP_EVENT_MESSAGE) {
 		bzrtpPacket_t *zrtpPacket = event.bzrtpPacket;
-		
+
 		/* now check the type of packet received, we're expecting DHPart2 or a Commit packet */
 		if ((zrtpPacket->messageType != MSGTYPE_COMMIT) && (zrtpPacket->messageType != MSGTYPE_DHPART2)) {
 			bzrtp_freeZrtpPacket(zrtpPacket);
 			return BZRTP_PARSER_ERROR_UNEXPECTEDMESSAGE;
 		}
-		
-		
+
+
 		/* we have a Commit, check it is the same as received previously and resend the DHPart1 packet */
 		if(zrtpPacket->messageType == MSGTYPE_COMMIT) {
 			if (zrtpChannelContext->peerPackets[COMMIT_MESSAGE_STORE_ID]->messageLength != zrtpPacket->messageLength) {
@@ -947,7 +947,7 @@ int state_keyAgreement_initiatorSendingDHPart2(bzrtpEvent_t event) {
 		} else {
 			return retval;
 		}
-		
+
 		/* it is the first call to this state function, so we must set the timer for retransmissions */
 		zrtpChannelContext->timer.status = BZRTP_TIMER_ON;
 		zrtpChannelContext->timer.firingTime = zrtpContext->timeReference + NON_HELLO_BASE_RETRANSMISSION_STEP;
@@ -960,7 +960,7 @@ int state_keyAgreement_initiatorSendingDHPart2(bzrtpEvent_t event) {
 	/*** Manage message event ***/
 	if (event.eventType == BZRTP_EVENT_MESSAGE) {
 		bzrtpPacket_t *zrtpPacket = event.bzrtpPacket;
-		
+
 		/* now check the type of packet received, we're expecting a confirm1 packet, DHPart1 packet may arrives, just check they are the same we previously received */
 		if ((zrtpPacket->messageType != MSGTYPE_DHPART1) && (zrtpPacket->messageType != MSGTYPE_CONFIRM1)) {
 			bzrtp_freeZrtpPacket(zrtpPacket);
@@ -968,7 +968,7 @@ int state_keyAgreement_initiatorSendingDHPart2(bzrtpEvent_t event) {
 		}
 
 
-		
+
 		/* we have DHPart1 packet, just check it is the same we received previously and do nothing */
 		if (zrtpPacket->messageType == MSGTYPE_DHPART1) {
 			if (zrtpChannelContext->peerPackets[DHPART_MESSAGE_STORE_ID]->messageLength != zrtpPacket->messageLength) {
@@ -1234,11 +1234,11 @@ int state_confirmation_responderSendingConfirm1(bzrtpEvent_t event) {
 			zrtpChannelContext->peerSequenceNumber = zrtpPacket->sequenceNumber;
 
 			/* compute SAS and srtp secrets */
-			retval = bzrtp_deriveSrtpKeysFromS0(zrtpContext, zrtpChannelContext); 
+			retval = bzrtp_deriveSrtpKeysFromS0(zrtpContext, zrtpChannelContext);
 			if (retval!=0) {
 				return retval;
 			}
-			
+
 			/* compute and update in cache the retained shared secret */
 			bzrtp_updateCachedSecrets(zrtpContext, zrtpChannelContext);
 
@@ -1269,7 +1269,7 @@ int state_confirmation_responderSendingConfirm1(bzrtpEvent_t event) {
 			if (zrtpContext->zrtpCallbacks.bzrtp_srtpSecretsAvailable != NULL) {
 				zrtpContext->zrtpCallbacks.bzrtp_srtpSecretsAvailable(zrtpChannelContext->clientData, &zrtpChannelContext->srtpSecrets, ZRTP_SRTP_SECRETS_FOR_SENDER);
 			}
-			
+
 			/* create the init event for next state */
 			initEvent.eventType = BZRTP_EVENT_INIT;
 			initEvent.bzrtpPacketString = NULL;
@@ -1336,7 +1336,7 @@ int state_confirmation_initiatorSendingConfirm2(bzrtpEvent_t event) {
 		zrtpChannelContext->selfPackets[CONFIRM_MESSAGE_STORE_ID] = confirm2Packet;
 
 		/* compute SAS and SRTP secrets as responder may directly send SRTP packets and non conf2ACK */
-		retval = bzrtp_deriveSrtpKeysFromS0(zrtpContext, zrtpChannelContext); 
+		retval = bzrtp_deriveSrtpKeysFromS0(zrtpContext, zrtpChannelContext);
 		if (retval!=0) {
 			return retval;
 		}
@@ -1409,7 +1409,7 @@ int state_confirmation_initiatorSendingConfirm2(bzrtpEvent_t event) {
 
 			/* stop the retransmission timer */
 			zrtpChannelContext->timer.status = BZRTP_TIMER_OFF;
-			
+
 			/* compute and update in cache the retained shared secret */
 			bzrtp_updateCachedSecrets(zrtpContext, zrtpChannelContext);
 
@@ -1489,7 +1489,7 @@ int state_secure(bzrtpEvent_t event) {
 		}
 		/* turn channel isSecure flag to 1 */
 		zrtpChannelContext->isSecure = 1;
-	
+
 		/* call the environment to signal we're ready to operate */
 		if (zrtpContext->zrtpCallbacks.bzrtp_startSrtpSession!= NULL) {
 			zrtpContext->zrtpCallbacks.bzrtp_startSrtpSession(zrtpChannelContext->clientData, &(zrtpChannelContext->srtpSecrets), zrtpContext->cachedSecret.previouslyVerifiedSas && zrtpContext->peerPVS);
@@ -1595,17 +1595,17 @@ int bzrtp_turnIntoResponder(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *
 				memcpy(tmpBuffer, zrtpChannelContext->initiatorAuxsecretID, 8);
 				memcpy(zrtpChannelContext->initiatorAuxsecretID, zrtpChannelContext->responderAuxsecretID, 8);
 				memcpy(zrtpChannelContext->responderAuxsecretID, tmpBuffer, 8);
-	
+
 				/* responder self DHPart packet is DHPart1, change the type (we created a DHPart2) */
 				zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->messageType = MSGTYPE_DHPART1;
-	
+
 				/* change the shared secret ID to the responder one (we set them by default to the initiator's one) */
 				selfDHPart1Packet = (bzrtpDHPartMessage_t *)zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->messageData;
 				memcpy(selfDHPart1Packet->rs1ID, zrtpContext->responderCachedSecretHash.rs1ID, 8);
 				memcpy(selfDHPart1Packet->rs2ID, zrtpContext->responderCachedSecretHash.rs2ID, 8);
 				memcpy(selfDHPart1Packet->auxsecretID, zrtpChannelContext->responderAuxsecretID, 8);
 				memcpy(selfDHPart1Packet->pbxsecretID, zrtpContext->responderCachedSecretHash.pbxsecretID, 8);
-	
+
 				/* free the packet string and rebuild the packet */
 				free(zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->packetString);
 				zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->packetString = NULL;
@@ -1739,7 +1739,7 @@ int bzrtp_responseToHelloMessage(bzrtpContext_t *zrtpContext, bzrtpChannelContex
 			bctbx_rng_get(zrtpContext->RNGContext, zrtpContext->responderCachedSecretHash.rs2ID, 8);
 		}
 
-		
+
 		if (zrtpContext->cachedSecret.pbxsecret!=NULL) {
 			zrtpChannelContext->hmacFunction(zrtpContext->cachedSecret.pbxsecret, zrtpContext->cachedSecret.pbxsecretLength, (uint8_t *)"Initiator", 9, 8, zrtpContext->initiatorCachedSecretHash.pbxsecretID);
 			zrtpChannelContext->hmacFunction(zrtpContext->cachedSecret.pbxsecret, zrtpContext->cachedSecret.pbxsecretLength, (uint8_t *)"Responder", 9, 8, zrtpContext->responderCachedSecretHash.pbxsecretID);
@@ -1803,9 +1803,15 @@ int bzrtp_responseToHelloMessage(bzrtpContext_t *zrtpContext, bzrtpChannelContex
 	return 0;
 }
 
+/* FIXME: Temporary workaround for -Wcast-function-type. */
+#if __GNUC__ >= 8
+	_Pragma("GCC diagnostic push")
+	_Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
+#endif // if __GNUC__ >= 8
+
 /**
  * @brief After the DHPart1 or DHPart2 arrives from peer, validity check and shared secret computation
- * call this function to compute s0, KDF Context, ZRTPSess, 
+ * call this function to compute s0, KDF Context, ZRTPSess,
  *
  * param[in]	zrtpContext			The context we are operation on(where to find the DHM context with the shared secret ready)
  * param[in]	zrtpChannelContext	The channel context we are operation on
@@ -1822,7 +1828,7 @@ int bzrtp_computeS0DHMMode(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *z
 	uint8_t *ZIDr; /* a pointer to the 12 bytes string responder's ZID */
 
 	uint8_t *totalHash;
-	
+
 	uint8_t *s1=NULL; /* s1 is rs1 if we have it, rs2 otherwise, or null if we do not have rs2 too */
 	uint32_t s1Length=0;
 	uint8_t *s2=NULL; /* s2 is aux secret if we have it, null otherwise */
@@ -1830,7 +1836,7 @@ int bzrtp_computeS0DHMMode(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *z
 	uint8_t *s3=NULL; /* s3 is pbx secret if we have it, null otherwise */
 	uint32_t s3Length=0;
 
-	/* first compute the total_hash as in rfc section 4.4.1.4 
+	/* first compute the total_hash as in rfc section 4.4.1.4
 	 * total_hash = hash(Hello of responder || Commit || DHPart1 || DHPart2)
 	 * total_hash length depends on the agreed hash algo
 	 */
@@ -1839,7 +1845,7 @@ int bzrtp_computeS0DHMMode(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *z
 			+ zrtpChannelContext->peerPackets[COMMIT_MESSAGE_STORE_ID]->messageLength
 			+ zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->messageLength
 			+ zrtpChannelContext->peerPackets[DHPART_MESSAGE_STORE_ID]->messageLength;
-	
+
 		dataToHash = (uint8_t *)malloc(hashDataLength*sizeof(uint8_t));
 		hashDataIndex = 0;
 
@@ -1855,7 +1861,7 @@ int bzrtp_computeS0DHMMode(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *z
 		ZIDr = zrtpContext->selfZID;
 
 	} else { /* we are initiator */
-		
+
 		hashDataLength = zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->messageLength
 			+ zrtpChannelContext->selfPackets[COMMIT_MESSAGE_STORE_ID]->messageLength
 			+ zrtpChannelContext->peerPackets[DHPART_MESSAGE_STORE_ID]->messageLength
@@ -1910,7 +1916,7 @@ int bzrtp_computeS0DHMMode(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *z
 	/* s3 is the pbxsecret */
 	s3 = zrtpContext->cachedSecret.pbxsecret; /* this may be null if no match or no pbx secret where found */
 	s3Length = zrtpContext->cachedSecret.pbxsecretLength; /* this may be 0 if no match or no pbx secret where found */
-	
+
 	hashDataLength = 4/*counter*/ + zrtpChannelContext->keyAgreementLength/*DHResult*/+13/*ZRTP-HMAC-KDF string*/ + 12/*ZIDi*/ + 12/*ZIDr*/ + zrtpChannelContext->hashLength/*total_hash*/ + 4/*len(s1)*/ +s1Length/*s1*/ + 4/*len(s2)*/ +s2Length/*s2*/ + 4/*len(s3)*/ + s3Length/*s3*/;
 
 	dataToHash = (uint8_t *)malloc(hashDataLength*sizeof(uint8_t));
@@ -1920,7 +1926,7 @@ int bzrtp_computeS0DHMMode(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *z
 	dataToHash[2] = 0x00;
 	dataToHash[3] = 0x01;
 	hashDataIndex = 4;
-	
+
 	if (zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_DH2k || zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_DH3k) {
 		bctbx_DHMContext_t *DHMContext = (bctbx_DHMContext_t *)zrtpContext->keyAgreementContext;
 		memcpy(dataToHash+hashDataIndex, DHMContext->key, zrtpChannelContext->keyAgreementLength);
@@ -2025,7 +2031,7 @@ int bzrtp_computeS0MultiStreamMode(bzrtpContext_t *zrtpContext, bzrtpChannelCont
 		hashDataLength = zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID]->messageLength + zrtpChannelContext->peerPackets[COMMIT_MESSAGE_STORE_ID]->messageLength;
 		dataToHash = (uint8_t *)malloc(hashDataLength*sizeof(uint8_t));
 		hashDataIndex = 0;
-	
+
 		memcpy(dataToHash, zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID]->messageLength);
 		hashDataIndex += zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID]->messageLength;
 		memcpy(dataToHash+hashDataIndex, zrtpChannelContext->peerPackets[COMMIT_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[COMMIT_MESSAGE_STORE_ID]->messageLength);
@@ -2036,7 +2042,7 @@ int bzrtp_computeS0MultiStreamMode(bzrtpContext_t *zrtpContext, bzrtpChannelCont
 		hashDataLength = zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->messageLength + zrtpChannelContext->selfPackets[COMMIT_MESSAGE_STORE_ID]->messageLength;
 		dataToHash = (uint8_t *)malloc(hashDataLength*sizeof(uint8_t));
 		hashDataIndex = 0;
-	
+
 		memcpy(dataToHash, zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->messageLength);
 		hashDataIndex += zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->messageLength;
 		memcpy(dataToHash+hashDataIndex, zrtpChannelContext->selfPackets[COMMIT_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->selfPackets[COMMIT_MESSAGE_STORE_ID]->messageLength);
@@ -2049,7 +2055,7 @@ int bzrtp_computeS0MultiStreamMode(bzrtpContext_t *zrtpContext, bzrtpChannelCont
 	zrtpChannelContext->hashFunction(dataToHash, hashDataLength, zrtpChannelContext->hashLength, totalHash);
 
 	free(dataToHash);
-	
+
 	/* compute KDFContext = (ZIDi || ZIDr || total_hash) and set it in the channel context */
 	zrtpChannelContext->KDFContextLength = 24+zrtpChannelContext->hashLength; /* 24 for two 12 bytes ZID */
 	zrtpChannelContext->KDFContext = (uint8_t *)malloc(zrtpChannelContext->KDFContextLength*sizeof(uint8_t));
@@ -2067,7 +2073,7 @@ int bzrtp_computeS0MultiStreamMode(bzrtpContext_t *zrtpContext, bzrtpChannelCont
 		zrtpChannelContext->hashLength,
 		(void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))zrtpChannelContext->hmacFunction,
 		zrtpChannelContext->s0);
-	
+
 	if (retval != 0) {
 		return retval;
 	}
@@ -2098,7 +2104,7 @@ int bzrtp_deriveKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *z
 	/* derive the keys according to rfc section 4.5.3 */
 	/* mackeyi = KDF(s0, "Initiator HMAC key", KDF_Context, negotiated hash length)*/
 	retval = bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"Initiator HMAC key", 18, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, zrtpChannelContext->hashLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))zrtpChannelContext->hmacFunction, zrtpChannelContext->mackeyi);
-	/* mackeyr = KDF(s0, "Responder HMAC key", KDF_Context, negotiated hash length) */ 
+	/* mackeyr = KDF(s0, "Responder HMAC key", KDF_Context, negotiated hash length) */
 	retval += bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"Responder HMAC key", 18, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, zrtpChannelContext->hashLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))zrtpChannelContext->hmacFunction, zrtpChannelContext->mackeyr);
 	/* zrtpkeyi = KDF(s0, "Initiator ZRTP key", KDF_Context, negotiated AES key length) */
 	retval += bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"Initiator ZRTP key", 18, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, zrtpChannelContext->cipherKeyLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))zrtpChannelContext->hmacFunction, zrtpChannelContext->zrtpkeyi);
@@ -2218,7 +2224,7 @@ int bzrtp_updateCachedSecrets(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 	const char *colNames[] = {"rs1", "rs2"};
 	uint8_t *colValues[2] = {NULL, NULL};
 	size_t colLength[2] = {RETAINED_SECRET_LENGTH,0};
-	
+
 	/* if this channel context is in multistream mode, do nothing */
 	if (zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_Mult) {
 		/* destroy s0 */
@@ -2301,3 +2307,7 @@ int bzrtp_updateCachedSecrets(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 
 	return 0;
 }
+
+#if __GNUC__ >= 8
+	_Pragma("GCC diagnostic pop")
+#endif // if __GNUC__ >= 8
