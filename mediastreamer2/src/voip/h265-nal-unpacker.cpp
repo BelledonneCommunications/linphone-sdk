@@ -31,7 +31,7 @@ mblk_t *H265NalUnpacker::FuAggregator::feed(mblk_t *packet) {
 		return nullptr;
 	}
 
-	H265FuHeader fuHeader(packet->b_rptr + 3);
+	H265FuHeader fuHeader(packet->b_rptr + 2);
 	packet->b_rptr += 4;
 
 	if (fuHeader.getPosition() == H265FuHeader::Position::Start && isAggregating()) {
