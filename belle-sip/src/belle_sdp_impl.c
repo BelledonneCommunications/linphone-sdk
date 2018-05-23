@@ -1,6 +1,6 @@
 /*
-	belle-sdp - SIP (RFC4566) library.
-	Copyright (C) 2010  Belledonne Communications SARL
+	belle-sip - SIP (RFC3261) library.
+	Copyright (C) 2010-2018  Belledonne Communications SARL
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -15,6 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+
 #include "belle-sip/belle-sip.h"
 #include "grammars/belle_sdpParser.h"
 #include "grammars/belle_sdpLexer.h"
@@ -1589,4 +1590,3 @@ GET_SET_INT(belle_sdp_mime_parameter,max_ptime,int);
 GET_SET_INT(belle_sdp_mime_parameter,media_format,int);
 GET_SET_STRING(belle_sdp_mime_parameter,type);
 GET_SET_STRING(belle_sdp_mime_parameter,parameters);
-

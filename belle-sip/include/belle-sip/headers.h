@@ -1,19 +1,19 @@
 /*
 	belle-sip - SIP (RFC3261) library.
-    Copyright (C) 2010  Belledonne Communications SARL
+	Copyright (C) 2010-2018  Belledonne Communications SARL
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #ifndef HEADERS_H_
@@ -198,22 +198,22 @@ BELLESIP_EXPORT belle_sip_header_contact_t* belle_sip_header_contact_create (con
    *
    * */
  BELLESIP_EXPORT unsigned int belle_sip_header_contact_not_equals(const belle_sip_header_contact_t* a,const belle_sip_header_contact_t* b);
- 
+
  /**
   * Enable automatic filling of the contact ip, port and transport according to the channel that sends this message.
   * @deprecated use belle_sip_header_address_set_automatic();
  **/
  BELLESIP_EXPORT void belle_sip_header_contact_set_automatic(belle_sip_header_contact_t *a, int enabled);
- 
+
  BELLESIP_EXPORT int belle_sip_header_contact_get_automatic(const belle_sip_header_contact_t *a);
- 
+
  /**
   * Indicates whether a contact in automatic mode (see belle_sip_header_contact_set_automatic()) could be filled properly when the message was sent.
   * If a message is sent through a connection that has just been initiated, public IP and port are unknown, they will be learned after receiving the first response.
   * This can be used by the upper layer to decide to resubmit the request.
  **/
  BELLESIP_EXPORT int belle_sip_header_contact_is_unknown(const belle_sip_header_contact_t *a);
- 
+
 #define BELLE_SIP_RANDOM_TAG ((const char*)-1)
 #define BELLE_SIP_HEADER_CONTACT(t) BELLE_SIP_CAST(t,belle_sip_header_contact_t)
 #define BELLE_SIP_CONTACT "Contact"
@@ -408,8 +408,8 @@ BELLESIP_EXPORT belle_sip_header_record_route_t* belle_sip_header_record_route_p
 BELLESIP_EXPORT belle_sip_header_record_route_t* belle_sip_header_record_route_new_auto_outgoing(void);
 
 BELLESIP_EXPORT unsigned char belle_sip_header_record_route_get_auto_outgoing(const belle_sip_header_record_route_t *a);
- 
- 
+
+
 
 #define BELLE_SIP_HEADER_RECORD_ROUTE(t) BELLE_SIP_CAST(t,belle_sip_header_record_route_t)
 #define BELLE_SIP_RECORD_ROUTE	"Record-route"

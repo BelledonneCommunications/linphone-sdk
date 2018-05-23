@@ -1,23 +1,22 @@
 /*
 	belle-sip - SIP (RFC3261) library.
-    Copyright (C) 2010  Belledonne Communications SARL
+	Copyright (C) 2010-2018  Belledonne Communications SARL
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "belle_sip_internal.h"
-
 
 void belle_sip_listening_point_init(belle_sip_listening_point_t *lp, belle_sip_stack_t *s, const char *address, int port){
 	char *tmp;
@@ -53,7 +52,7 @@ void belle_sip_listening_point_add_channel(belle_sip_listening_point_t *lp, bell
 	chan->lp=lp;
 	belle_sip_channel_add_listener(chan,lp->channel_listener); /*add channel listener*/
 	/*channel is already owned, no ref needed - REVISIT: channel should be initally unowned probably.*/
-	
+
 	/* The channel with names must be treated with higher priority by the get_channel() method so queued on front.
 	 * This is to prevent the UDP listening point to dispatch incoming messages to channels that were created by inbound connection
 	 * where name cannot be determined. When this arrives, there can be 2 channels for the same destination IP and strange problems can occur
@@ -84,7 +83,7 @@ void belle_sip_listening_point_remove_channel(belle_sip_listening_point_t *lp, b
 void belle_sip_listening_point_clean_channels(belle_sip_listening_point_t *lp){
 	int existing_channels = belle_sip_listening_point_get_channel_count(lp);
 	belle_sip_list_t* iterator;
-	
+
 	if (existing_channels > 0) {
 		belle_sip_message("Listening point destroying [%i] channels",existing_channels);
 	}
@@ -101,7 +100,7 @@ int belle_sip_listening_point_get_channel_count(const belle_sip_listening_point_
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_listening_point_t);
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_listening_point_t)
-	{ 
+	{
 		BELLE_SIP_VPTR_INIT(belle_sip_listening_point_t, belle_sip_object_t,FALSE),
 		(belle_sip_object_destroy_t)belle_sip_listening_point_uninit,
 		NULL,
@@ -149,7 +148,7 @@ static int send_keep_alive(belle_sip_channel_t* obj) {
 	const char* crlfcrlf = "\r\n\r\n";
 	size_t size=strlen(crlfcrlf);
 	int err=belle_sip_channel_send(obj,crlfcrlf,size);
-	
+
 	if (err<=0 && !belle_sip_error_code_is_would_block(-err) && err!=-EINTR){
 		belle_sip_error("channel [%p]: could not send [%u] bytes of keep alive from [%s://%s:%i]  to [%s:%i]"	,obj
 			,(unsigned int)size

@@ -1,19 +1,19 @@
 /*
 	belle-sip - SIP (RFC3261) library.
-    Copyright (C) 2010  Belledonne Communications SARL
+	Copyright (C) 2010-2018  Belledonne Communications SARL
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "belle_sip_internal.h"
@@ -215,11 +215,23 @@ static int belle_sip_dialog_schedule_expiration(belle_sip_dialog_t *dialog, bell
 	}
 	belle_sip_message("belle_sip_dialog_schedule_expiration() dialog=%p expires_value=%i", dialog, expires_value);
 	if (expires_value == 0) return BELLE_SIP_STOP;
+
+	/* FIXME: Temporary workaround for -Wcast-function-type. */
+	#if __GNUC__ >= 8
+		_Pragma("GCC diagnostic push")
+		_Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
+	#endif // if __GNUC__ >= 8
+
 	dialog->expiration_timer = belle_sip_main_loop_create_timeout(dialog->provider->stack->ml,
 					(belle_sip_source_func_t) belle_sip_dialog_on_expired,
 					dialog,
 					expires_value * 1000,
 					"Dialog expiration");
+
+	#if __GNUC__ >= 8
+		_Pragma("GCC diagnostic pop")
+	#endif // if __GNUC__ >= 8
+
 	return BELLE_SIP_CONTINUE;
 }
 
@@ -354,6 +366,13 @@ static void belle_sip_dialog_init_200Ok_retrans(belle_sip_dialog_t *obj, belle_s
 		belle_sip_error("dialog [%p] already has a 200ok retransmition timer ! skipping",obj);
 		return;
 	}
+
+	/* FIXME: Temporary workaround for -Wcast-function-type. */
+	#if __GNUC__ >= 8
+		_Pragma("GCC diagnostic push")
+		_Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
+	#endif // if __GNUC__ >= 8
+
 	obj->timer_200Ok=belle_sip_timeout_source_new((belle_sip_source_func_t)dialog_on_200Ok_timer,obj,cfg->T1);
 	belle_sip_object_set_name((belle_sip_object_t*)obj->timer_200Ok,"dialog_200Ok_timer");
 	belle_sip_main_loop_add_source(obj->provider->stack->ml,obj->timer_200Ok);
@@ -361,6 +380,10 @@ static void belle_sip_dialog_init_200Ok_retrans(belle_sip_dialog_t *obj, belle_s
 	obj->timer_200Ok_end=belle_sip_timeout_source_new((belle_sip_source_func_t)dialog_on_200Ok_end,obj,cfg->T1*64);
 	belle_sip_object_set_name((belle_sip_object_t*)obj->timer_200Ok_end,"dialog_200Ok_timer_end");
 	belle_sip_main_loop_add_source(obj->provider->stack->ml,obj->timer_200Ok_end);
+
+	#if __GNUC__ >= 8
+		_Pragma("GCC diagnostic pop")
+	#endif // if __GNUC__ >= 8
 
 	obj->last_200Ok=(belle_sip_response_t*)belle_sip_object_ref(resp);
 }

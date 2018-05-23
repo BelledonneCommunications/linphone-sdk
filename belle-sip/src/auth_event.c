@@ -1,21 +1,20 @@
 /*
-	auth_info.c belle-sip - SIP (RFC3261) library.
-    Copyright (C) 2010  Belledonne Communications SARL
+	belle-sip - SIP (RFC3261) library.
+	Copyright (C) 2010-2018  Belledonne Communications SARL
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-
 
 #include "belle-sip/auth-helper.h"
 #include "belle_sip_internal.h"
@@ -35,7 +34,7 @@ belle_sip_auth_event_t* belle_sip_auth_event_create(belle_sip_object_t *source, 
 	belle_sip_auth_event_t* result = belle_sip_new0(belle_sip_auth_event_t);
 	result->source=source;
 	belle_sip_auth_event_set_realm(result,realm);
-	
+
 	if (from_uri){
 		belle_sip_auth_event_set_username(result,belle_sip_uri_get_user(from_uri));
 		belle_sip_auth_event_set_domain(result,belle_sip_uri_get_host(from_uri));
@@ -110,7 +109,7 @@ BELLE_SIP_INSTANCIATE_VPTR(belle_tls_crypto_config_t,belle_sip_object_t,crypto_c
 
 belle_tls_crypto_config_t *belle_tls_crypto_config_new(void){
 	belle_tls_crypto_config_t *obj=belle_sip_object_new(belle_tls_crypto_config_t);
-	
+
 	/*default to "system" default root ca, wihtout warranty...*/
 #ifdef __ANDROID__
        belle_tls_crypto_config_set_root_ca(obj,"/system/etc/security/cacerts");
@@ -180,5 +179,3 @@ void belle_tls_crypto_config_set_postcheck_callback(belle_tls_crypto_config_t *o
 	obj->postcheck_cb = cb;
 	obj->postcheck_cb_data = cb_data;
 }
-
-

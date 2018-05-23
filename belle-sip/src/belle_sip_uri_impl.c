@@ -1,19 +1,19 @@
 /*
 	belle-sip - SIP (RFC3261) library.
-    Copyright (C) 2010  Belledonne Communications SARL
+	Copyright (C) 2010-2018  Belledonne Communications SARL
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "belle-sip/sip-uri.h"
@@ -244,7 +244,7 @@ static int uri_strcmp(const char*a,const char*b,int case_sensitive) {
 	int result = 0;
 	size_t index_a=0,index_b=0;
 	char char_a,char_b;
-	
+
 	if (a == NULL && b == NULL) {
 		goto end;
 	}
@@ -302,7 +302,7 @@ int belle_sip_uri_equals(const belle_sip_uri_t* uri_a,const belle_sip_uri_t* uri
          defined otherwise.
 */
 	if (!IS_EQUAL(uri_a->user,uri_b->user)) return 0;
-	
+
 /*
       o  The ordering of parameters and header fields is not significant
          in comparing SIP and SIPS URIs.

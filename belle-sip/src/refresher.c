@@ -1,19 +1,19 @@
 /*
 	belle-sip - SIP (RFC3261) library.
-    Copyright (C) 2012  Belledonne Communications SARL
+	Copyright (C) 2010-2018  Belledonne Communications SARL
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <bctoolbox/defs.h>
@@ -275,7 +275,7 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 		switch (response_code) {
 		case 301:
 		case 302:
-			
+
 			if (contact){
 				belle_sip_uri_t *uri=belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(contact));
 				if (uri && belle_sip_refresher_refresh_internal(refresher,refresher->target_expires,TRUE,&refresher->auth_events,uri)==0)
@@ -600,7 +600,7 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher
 
 	/*Dialog may have changed, specially if terminated (I.E timeout). In that case, it will only be autiore-created when response is received from peer, so in the mean time, we reset it*/
 	set_or_update_dialog(refresher, belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(client_transaction)));
-	
+
 	if (belle_sip_client_transaction_send_request_to(client_transaction,requri?requri:preset_route)) { /*send imediatly to requri in case of redirect*/
 		belle_sip_error("Cannot send refresh method [%s] for refresher [%p]"
 				,belle_sip_request_get_method(request)

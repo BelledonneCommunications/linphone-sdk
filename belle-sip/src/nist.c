@@ -1,19 +1,19 @@
 /*
 	belle-sip - SIP (RFC3261) library.
-    Copyright (C) 2010  Belledonne Communications SARL
+	Copyright (C) 2010-2018  Belledonne Communications SARL
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 /**
@@ -49,7 +49,19 @@ static void nist_set_completed(belle_sip_nist_t *obj){
 	if (!belle_sip_channel_is_reliable(base->channel))
 		tval=cfg->T1*64;
 	else tval=0;
+
+	/* FIXME: Temporary workaround for -Wcast-function-type. */
+	#if __GNUC__ >= 8
+		_Pragma("GCC diagnostic push")
+		_Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
+	#endif // if __GNUC__ >= 8
+
 	obj->timer_J=belle_sip_timeout_source_new((belle_sip_source_func_t)nist_on_timer_J,obj,tval);
+
+	#if __GNUC__ >= 8
+		_Pragma("GCC diagnostic pop")
+	#endif // if __GNUC__ >= 8
+
 	belle_sip_transaction_start_timer(base,obj->timer_J);
 	belle_sip_transaction_set_state(base,BELLE_SIP_TRANSACTION_COMPLETED);
 }

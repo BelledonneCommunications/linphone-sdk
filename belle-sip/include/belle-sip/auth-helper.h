@@ -1,19 +1,19 @@
 /*
 	belle-sip - SIP (RFC3261) library.
-    Copyright (C) 2010  Belledonne Communications SARL
+	Copyright (C) 2010-2018  Belledonne Communications SARL
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #ifndef AUTHENTICATION_HELPER_H_
@@ -324,7 +324,7 @@ BELLESIP_EXPORT unsigned int belle_tls_crypto_config_get_verify_exceptions(const
  * @param user_data the user pointer passed to belle_tls_crypto_config_set_verify_callback()
  * @param cert the x509 certificate
  * @param depth depth of certificate in the certificate chain (the callback is called for each certificate of the chain
- * @param flags i/o parameter containing the error flags reported by the crypto library (BCTBX_CERTIFICATE_VERIFY_* flags). 
+ * @param flags i/o parameter containing the error flags reported by the crypto library (BCTBX_CERTIFICATE_VERIFY_* flags).
  * 		The application may freely alterate the flags on output, in order to bypass verifications or add new error flags.
  * 		The flags MUST be set or unset with bctbx_x509_certificate_set_flag() bctbx_x509_certificate_unset_flag()
 **/

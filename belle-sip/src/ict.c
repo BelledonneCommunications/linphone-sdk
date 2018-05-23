@@ -1,19 +1,19 @@
 /*
 	belle-sip - SIP (RFC3261) library.
-    Copyright (C) 2010  Belledonne Communications SARL
+	Copyright (C) 2010-2018  Belledonne Communications SARL
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 /**
@@ -108,6 +108,12 @@ static void ict_on_response(belle_sip_ict_t *obj, belle_sip_response_t *resp){
 			belle_sip_transaction_set_state(base,BELLE_SIP_TRANSACTION_PROCEEDING);
 			BCTBX_NO_BREAK; /*intentionally no break*/
 		case BELLE_SIP_TRANSACTION_PROCEEDING:
+			/* FIXME: Temporary workaround for -Wcast-function-type. */
+			#if __GNUC__ >= 8
+				_Pragma("GCC diagnostic push")
+				_Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
+			#endif // if __GNUC__ >= 8
+
 			if (code>=300){
 				belle_sip_transaction_set_state(base,BELLE_SIP_TRANSACTION_COMPLETED);
 				belle_sip_channel_queue_message(base->channel,(belle_sip_message_t*)make_ack(obj,resp));
@@ -122,6 +128,10 @@ static void ict_on_response(belle_sip_ict_t *obj, belle_sip_response_t *resp){
 			}else if (code>=100){
 				belle_sip_client_transaction_notify_response((belle_sip_client_transaction_t*)obj,resp);
 			}
+
+			#if __GNUC__ >= 8
+				_Pragma("GCC diagnostic pop")
+			#endif // if __GNUC__ >= 8
 		break;
 		case BELLE_SIP_TRANSACTION_ACCEPTED:
 			if (code>=200 && code<300){
@@ -189,6 +199,12 @@ static void ict_send_request(belle_sip_ict_t *obj){
 
 	belle_sip_transaction_set_state(base,BELLE_SIP_TRANSACTION_CALLING);
 
+	/* FIXME: Temporary workaround for -Wcast-function-type. */
+	#if __GNUC__ >= 8
+		_Pragma("GCC diagnostic push")
+		_Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
+	#endif // if __GNUC__ >= 8
+
 	if (!belle_sip_channel_is_reliable(base->channel)){
 		obj->timer_A=belle_sip_timeout_source_new((belle_sip_source_func_t)ict_on_timer_A,obj,cfg->T1);
 		belle_sip_transaction_start_timer(base,obj->timer_A);
@@ -196,6 +212,10 @@ static void ict_send_request(belle_sip_ict_t *obj){
 
 	obj->timer_B=belle_sip_timeout_source_new((belle_sip_source_func_t)ict_on_timer_B,obj,cfg->T1*64);
 	belle_sip_transaction_start_timer(base,obj->timer_B);
+
+	#if __GNUC__ >= 8
+		_Pragma("GCC diagnostic pop")
+	#endif // if __GNUC__ >= 8
 
 	belle_sip_channel_queue_message(base->channel,(belle_sip_message_t*)base->request);
 }

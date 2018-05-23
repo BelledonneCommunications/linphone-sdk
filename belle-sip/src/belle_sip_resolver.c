@@ -1,19 +1,19 @@
 /*
 	belle-sip - SIP (RFC3261) library.
-    Copyright (C) 2010  Belledonne Communications SARL
+	Copyright (C) 2010-2018  Belledonne Communications SARL
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "belle_sip_internal.h"
@@ -691,13 +691,13 @@ static int is_mdns_query(const char *name){
 	char *tmp = NULL;
 	int ret;
 	int len = strlen(name);
-	
+
 	if (len > 0 && name[len-1] == '.'){
 		tmp = belle_sip_strdup(name);
 		tmp[len-1] = '\0';
 		name = tmp;
 	}
-	
+
 	/* Check if name ends with .local to determine if we'll use multicast DNS or not */
 	suffix = strrchr(name, '.');
 	ret = suffix && strcmp(suffix, ".local") == 0;
@@ -716,7 +716,7 @@ static int _resolver_send_query(belle_sip_simple_resolver_context_t *ctx) {
 		return 0;
 	}
 #endif
-	
+
 	if (!ctx->base.stack->resolver_send_error) {
 		error = dns_res_submit(ctx->R, ctx->name, ctx->type, DNS_C_IN);
 		if (error)
@@ -974,7 +974,7 @@ static int _resolver_start_query(belle_sip_simple_resolver_context_t *ctx) {
 			return -1;
 
 		memset(&opts, 0, sizeof opts);
-		
+
 		/* When there are IPv6 nameservers, allow responses to arrive from an IP address that is not the IP address to which the request was sent originally.
 			* Mac' NAT64 network tend to do this sometimes.*/
 		opts.udp_uses_connect = ctx->resconf->iface.ss_family != AF_INET6;
@@ -1282,7 +1282,19 @@ static void process_srv_results(void *data, const char *name, belle_sip_list_t *
 		/* take a ref of each srv_results because the last A resolution may terminate synchronously
 		 and destroy the list before the loop terminate */
 		ctx->srv_results = belle_sip_list_copy(srv_results);
+
+		/* FIXME: Temporary workaround for -Wcast-function-type. */
+		#if __GNUC__ >= 8
+			_Pragma("GCC diagnostic push")
+			_Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
+		#endif // if __GNUC__ >= 8
+
 		belle_sip_list_for_each(srv_results, (void(*)(void *))belle_sip_object_ref);
+
+		#if __GNUC__ >= 8
+			_Pragma("GCC diagnostic pop")
+		#endif // if __GNUC__ >= 8
+
 		for(elem=srv_results;elem!=NULL;elem=elem->next){
 			belle_sip_dns_srv_t *srv=(belle_sip_dns_srv_t*)elem->data;
 			srv_resolve_a(ctx,srv);

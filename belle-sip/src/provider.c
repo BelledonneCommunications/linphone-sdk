@@ -1,6 +1,6 @@
 /*
 	belle-sip - SIP (RFC3261) library.
-	Copyright (C) 2010  Belledonne Communications SARL
+	Copyright (C) 2010-2018  Belledonne Communications SARL
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -164,7 +164,7 @@ static void belle_sip_provider_dispatch_request(belle_sip_provider_t* prov, bell
 				ev.dialog=belle_sip_provider_create_dialog_internal(prov,BELLE_SIP_TRANSACTION(sub),FALSE);
 			}
 		}
-	
+
 		if (prov->unconditional_answer_enabled && strcmp("ACK",method)!=0) { /*always answer predefined value (I.E 480 by default)*/
 			belle_sip_server_transaction_t *tr=belle_sip_provider_create_server_transaction(prov,req);
 			belle_sip_server_transaction_send_response(tr,belle_sip_response_create_from_request(req,prov->unconditional_answer));
@@ -244,7 +244,7 @@ static void belle_sip_provider_dispatch_response(belle_sip_provider_t* p, belle_
 				if (authorization_lst)
 					belle_sip_list_free(authorization_lst);
 			}
-			
+
 	}
 	if (t){ /*In some re-connection case, specially over udp, transaction may be found, but without associated channel*/
 		if (t->base.channel == NULL) {
@@ -258,7 +258,7 @@ static void belle_sip_provider_dispatch_response(belle_sip_provider_t* p, belle_
 			}
 		}
 	}
-		
+
 	/*
 	 * If a transaction is found and have a channel, pass it to the transaction and let it decide what to do.
 	 * Else notifies directly.
@@ -457,7 +457,7 @@ static void fix_automatic_header_address(belle_sip_provider_t *prov, belle_sip_c
 	belle_sip_uri_t* uri;
 	const char *transport;
 	belle_sip_header_contact_t *contact = BELLE_SIP_OBJECT_IS_INSTANCE_OF(addr, belle_sip_header_contact_t) ? (belle_sip_header_contact_t*)addr : NULL;
-	
+
 	if (contact && belle_sip_header_contact_is_wildcard(contact)) return;
 	/* fix the contact if in automatic mode or null uri (for backward compatibility)*/
 	if (!(uri = belle_sip_header_address_get_uri((belle_sip_header_address_t*)addr))) {
@@ -480,15 +480,15 @@ static void fix_automatic_header_address(belle_sip_provider_t *prov, belle_sip_c
 
 	belle_sip_uri_set_host(uri, ip);
 	transport = belle_sip_channel_get_transport_name_lower_case(chan);
-	
+
 	/* Enforce a transport name in "sip" scheme.
 		* RFC3263 (locating SIP servers) says that UDP SHOULD be used in absence of transport parameter,
 		* when port or numeric IP are provided. It is a SHOULD, not a must.
-		* We need in this case that the automatic Contact exactly matches the socket that is going 
+		* We need in this case that the automatic Contact exactly matches the socket that is going
 		* to be used for sending the messages.
 		* TODO: we may need to do the same for sips, but dtls is currently not supported.
 		**/
-	
+
 	if (!belle_sip_uri_is_secure(uri))
 		belle_sip_uri_set_transport_param(uri,transport);
 
@@ -497,7 +497,7 @@ static void fix_automatic_header_address(belle_sip_provider_t *prov, belle_sip_c
 	}else{
 		belle_sip_uri_set_port(uri,0);
 	}
-	
+
 }
 
 static void channel_on_sending(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, belle_sip_message_t *msg){
@@ -525,7 +525,7 @@ static void channel_on_sending(belle_sip_channel_listener_t *obj, belle_sip_chan
 		contact=(belle_sip_header_address_t*)contacts->data;
 		fix_automatic_header_address(prov, chan, contact);
 	}
-	
+
 	refer_to = belle_sip_message_get_header_by_type(msg, belle_sip_header_refer_to_t);
 	if (refer_to) fix_automatic_header_address(prov, chan, (belle_sip_header_address_t*)refer_to);
 /*
@@ -698,11 +698,11 @@ belle_sip_dialog_t * belle_sip_provider_create_dialog_internal(belle_sip_provide
 belle_sip_dialog_t* belle_sip_provider_find_dialog(const belle_sip_provider_t *prov, const char* call_id, const char* local_tag, const char* remote_tag) {
 	belle_sip_list_t* iterator;
 	belle_sip_dialog_t*returned_dialog=NULL;
-	
+
 	if (call_id == NULL || local_tag == NULL || remote_tag == NULL) {
 		return NULL;
 	}
-	
+
 	for(iterator=prov->dialogs;iterator!=NULL;iterator=iterator->next) {
 		belle_sip_dialog_t* dialog=(belle_sip_dialog_t*)iterator->data;
 		dialog=(belle_sip_dialog_t*)iterator->data;
@@ -812,7 +812,7 @@ belle_sip_server_transaction_t *belle_sip_provider_create_server_transaction(bel
 		t=(belle_sip_server_transaction_t*)belle_sip_ist_new(prov,req);
 		/*create a 100 Trying response to immediately stop client retransmissions*/
 		resp=belle_sip_response_create_from_request(req,100);
-		
+
 	}else if (strcmp(belle_sip_request_get_method(req),"ACK")==0){
 		belle_sip_error("Creating a server transaction for an ACK is not a good idea, probably");
 		return NULL;
@@ -1219,7 +1219,7 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_requ
 	/*get authenticates value from response*/
 	if (resp) {
 		belle_sip_list_t *it;
-        
+
 		call_id = belle_sip_message_get_header_by_type(BELLE_SIP_MESSAGE(resp),belle_sip_header_call_id_t);
 		/*searching for authentication headers*/
 		authenticate_lst = belle_sip_list_copy(belle_sip_message_get_headers(BELLE_SIP_MESSAGE(resp),BELLE_SIP_WWW_AUTHENTICATE));
@@ -1259,14 +1259,14 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_requ
 				belle_sip_auth_event_set_userid(auth_event,auth_event->username);
 			}
 			belle_sip_message("Auth info found for [%s] realm [%s]",auth_event->userid,auth_event->realm);
-			
+
 			if (belle_sip_header_call_id_equals(call_id,auth_context->callid)) {
 				/*Same call id so we can make sure auth_context->is_proxy is accurate*/
 				if (auth_context->is_proxy)
 					authorization=BELLE_SIP_HEADER_AUTHORIZATION(belle_sip_header_proxy_authorization_new());
 				else
 					authorization=belle_sip_header_authorization_new();
-				
+
 			} else if (realm
 					   &&strcmp(realm,auth_context->realm)==0
 					   &&from_uri
@@ -1278,7 +1278,7 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_requ
 				/* for other case, it's probably Proxy-Authorization*/
 				authorization=BELLE_SIP_HEADER_AUTHORIZATION(belle_sip_header_proxy_authorization_new());
 			}
-			
+
 			belle_sip_header_authorization_set_scheme(authorization,auth_context->scheme);
 			belle_sip_header_authorization_set_realm(authorization,auth_context->realm);
 			belle_sip_header_authorization_set_username(authorization,auth_event->userid);
@@ -1286,7 +1286,7 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_requ
 			belle_sip_header_authorization_set_qop(authorization,auth_context->qop);
 			belle_sip_header_authorization_set_opaque(authorization,auth_context->opaque);
 			belle_sip_header_authorization_set_algorithm(authorization,auth_context->algorithm);
-            
+
 			belle_sip_header_authorization_set_uri(authorization,(belle_sip_uri_t*)belle_sip_request_get_uri(request));
 			if (auth_context->qop){
 				++auth_context->nonce_count;

@@ -1,19 +1,19 @@
 /*
 	belle-sip - SIP (RFC3261) library.
-    Copyright (C) 2014  Belledonne Communications SARL
+	Copyright (C) 2010-2018  Belledonne Communications SARL
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "belle_sip_internal.h"
@@ -738,52 +738,52 @@ static void belle_sip_multipart_body_handler_recv_chunk(belle_sip_body_handler_t
 }
 
 static int belle_sip_multipart_body_handler_send_chunk(belle_sip_body_handler_t *obj, belle_sip_message_t *msg, off_t offset,
-													   uint8_t *buffer, size_t *size){
+														 uint8_t *buffer, size_t *size){
 	belle_sip_multipart_body_handler_t *obj_multipart=(belle_sip_multipart_body_handler_t*)obj;
-	
+
 	if (obj_multipart->transfer_current_part->data) { /* we have a part, get its content from handler */
 		int retval = BELLE_SIP_STOP;
 		size_t offsetSize = 0; /* used to store size of data added by this function and not given by the body handler of current part */
 		size_t boundary_len = strlen(obj_multipart->boundary);
 		belle_sip_body_handler_t *current_part = (belle_sip_body_handler_t *)obj_multipart->transfer_current_part->data;
 		*size -= strlen(obj_multipart->boundary) + 8; /* just in case it will be the end of the message, ask for less characters than possible in order to be able to add the multipart message termination. 8 is for "\r\n--" and "--\r\n" */
-		
+
 		if (current_part->transfered_size == 0) { /* Nothing transfered yet on this part, include a separator and the header if exists */
 			size_t headersSize = 0;
 			if (current_part != (belle_sip_body_handler_t *)obj_multipart->parts->data) {
 				offsetSize += 2; /*delimiter := CRLF dash-boundary*/
 			}
 			offsetSize += boundary_len + 4;  /* 4 is for "--" and "\r\n" */
-			
+
 			if (current_part->headerStringBuffer != NULL) {
 				headersSize = strlen(current_part->headerStringBuffer);
 			}
-			
+
 			/* check if buffer is large enough to get the whole header + separtor and at least a byte of data */
 			if (*size < headersSize+offsetSize+1) {
 				return BELLE_SIP_BUFFER_OVERFLOW;
 			}
-			
+
 			/* insert separator */
 			if (current_part != (belle_sip_body_handler_t *)obj_multipart->parts->data) {
 				snprintf((char*)buffer, *size, "\r\n--%s\r\n",obj_multipart->boundary); /*delimiter := CRLF dash-boundary*/
 			} else {
 				snprintf((char*)buffer, *size, "--%s\r\n",obj_multipart->boundary);
 			}
-			
+
 			/* insert part header */
 			if (headersSize!=0) {
 				memcpy(buffer+offsetSize, current_part->headerStringBuffer, headersSize);
 				offsetSize += headersSize;
 			}
-			
+
 			*size -=offsetSize; /* decrease data length requested to the current part handler */
 		}
-		
+
 		retval = belle_sip_body_handler_send_chunk(current_part, msg, buffer+offsetSize, size); /* add offsetSize to the buffer address in order to point at the begining of free space (after header if included) */
 		*size +=offsetSize; /* restore total of data given including potential separator and header */
-		
-		
+
+
 		if (retval == BELLE_SIP_CONTINUE) {
 			return BELLE_SIP_CONTINUE; /* there is still data to be sent, continue */
 		} else { /* this part has reach the end, pass to next one if there is one */
@@ -803,6 +803,12 @@ static int belle_sip_multipart_body_handler_send_chunk(belle_sip_body_handler_t 
 	return BELLE_SIP_STOP;
 }
 
+/* FIXME: Temporary workaround for -Wcast-function-type. */
+#if __GNUC__ >= 8
+	_Pragma("GCC diagnostic push")
+	_Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
+#endif // if __GNUC__ >= 8
+
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_multipart_body_handler_t);
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_multipart_body_handler_t)
 	{
@@ -820,6 +826,10 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_multipart_body_handler_t)
 		belle_sip_multipart_body_handler_send_chunk
 	}
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
+
+#if __GNUC__ >= 8
+	_Pragma("GCC diagnostic pop")
+#endif // if __GNUC__ >= 8
 
 static void belle_sip_multipart_body_handler_set_boundary(belle_sip_multipart_body_handler_t *obj, const char *boundary) {
 	if (obj->boundary != NULL) {

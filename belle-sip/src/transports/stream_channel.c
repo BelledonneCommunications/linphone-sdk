@@ -1,19 +1,19 @@
 /*
 	belle-sip - SIP (RFC3261) library.
-    Copyright (C) 2010  Belledonne Communications SARL
+	Copyright (C) 2010-2018  Belledonne Communications SARL
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "belle_sip_internal.h"
@@ -93,7 +93,7 @@ void stream_channel_close(belle_sip_stream_channel_t *obj){
 #if TARGET_OS_IPHONE
 static void stream_channel_enable_ios_background_mode(belle_sip_stream_channel_t *obj){
 	int sock=belle_sip_source_get_socket((belle_sip_source_t*)obj);
-	
+
 	CFStreamCreatePairWithSocket(kCFAllocatorDefault, sock, &obj->read_stream, &obj->write_stream);
 	if (obj->read_stream){
 		if (!CFReadStreamSetProperty (obj->read_stream, kCFStreamNetworkServiceType, kCFStreamNetworkServiceTypeVoIP)){
@@ -105,11 +105,11 @@ static void stream_channel_enable_ios_background_mode(belle_sip_stream_channel_t
 			belle_sip_warning("CFReadStreamSetProperty() could not set VoIP service type on write stream.");
 		}
 	}else belle_sip_warning("CFStreamCreatePairWithSocket() could not create the write stream.");
-	
+
 	if (!CFReadStreamOpen (obj->read_stream)) {
 		belle_sip_warning("CFReadStreamOpen() failed.");
 	}
-	
+
 	if (!CFWriteStreamOpen (obj->write_stream)) {
 		belle_sip_warning("CFWriteStreamOpen() failed.");
 	}
@@ -122,15 +122,15 @@ int stream_channel_connect(belle_sip_stream_channel_t *obj, const struct addrinf
 	int tmp;
 	belle_sip_socket_t sock;
 	tmp=1;
-	
+
 	obj->base.ai_family=ai->ai_family;
 	sock=bctbx_socket(ai->ai_family, SOCK_STREAM, IPPROTO_TCP);
-	
+
 	if (sock==(belle_sip_socket_t)-1){
 		belle_sip_error("Could not create socket: %s",belle_sip_get_socket_error_string());
 		return -1;
 	}
-	
+
 	err=bctbx_setsockopt(sock, IPPROTO_TCP, TCP_NODELAY,(char*)&tmp,sizeof(tmp));
 	if (err!=0){
 		belle_sip_error("bctbx_setsockopt TCP_NODELAY failed: [%s]",belle_sip_get_socket_error_string());
@@ -139,7 +139,7 @@ int stream_channel_connect(belle_sip_stream_channel_t *obj, const struct addrinf
 	if (ai->ai_family==AF_INET6){
 		belle_sip_socket_enable_dual_stack(sock);
 	}
-	
+
 	err = bctbx_connect(sock,ai->ai_addr,(socklen_t)ai->ai_addrlen);
 	if (err != 0 && get_socket_error()!=BELLESIP_EINPROGRESS && get_socket_error()!=BELLESIP_EWOULDBLOCK) {
 		belle_sip_error("stream connect failed %s",belle_sip_get_socket_error_string());
@@ -179,7 +179,7 @@ int finalize_stream_connection(belle_sip_stream_channel_t *obj, unsigned int rev
 	int err, errnum;
 	socklen_t optlen=sizeof(errnum);
 	belle_sip_socket_t sock=belle_sip_source_get_socket((belle_sip_source_t*)obj);
-	
+
 	if (revents==BELLE_SIP_EVENT_TIMEOUT){
 		belle_sip_warning("channel [%p]: user-defined transport timeout.",obj);
 		return -1;
@@ -188,7 +188,7 @@ int finalize_stream_connection(belle_sip_stream_channel_t *obj, unsigned int rev
 		belle_sip_warning("channel [%p]: getting unexpected event while connecting",obj);
 		return -1;
 	}
-	
+
 	err=bctbx_getsockopt(sock,SOL_SOCKET,SO_ERROR,(void*)&errnum,&optlen);
 	if (err!=0){
 		belle_sip_error("Failed to retrieve connection status for fd [%i]: cause [%s]",sock,belle_sip_get_socket_error_string());
@@ -224,7 +224,7 @@ static int stream_channel_process_data(belle_sip_stream_channel_t *obj,unsigned 
 	belle_sip_channel_t *base=(belle_sip_channel_t*)obj;
 
 	/*belle_sip_message("TCP channel process_data");*/
-	
+
 	if (state == BELLE_SIP_CHANNEL_CONNECTING ) {
 		if (finalize_stream_connection(obj,revents,(struct sockaddr*)&ss,&addrlen)) {
 			belle_sip_error("Cannot connect to [%s://%s:%i]",belle_sip_channel_get_transport_name(base),base->peer_name,base->peer_port);
@@ -263,20 +263,20 @@ belle_sip_channel_t * belle_sip_stream_channel_new_child(belle_sip_stack_t *stac
 	belle_sip_stream_channel_t *obj;
 	int err;
 	int optval=1;
-	
+
 	err = bctbx_setsockopt(sock, SOL_SOCKET, SO_REUSEADDR,
 			(char*)&optval, sizeof (optval));
 	if (err == -1){
 		belle_sip_warning ("Fail to set SIP/TCP address reusable: %s.", belle_sip_get_socket_error_string());
 	}
-	
+
 	set_tcp_nodelay(sock);
-	
+
 	if (bctbx_getsockname(sock,(struct sockaddr*)&localaddr,&local_len)==-1){
 		belle_sip_error("bctbx_getsockname() failed: %s",belle_sip_get_socket_error_string());
 		return NULL;
 	}
-	
+
 	obj=belle_sip_object_new(belle_sip_stream_channel_t);
 	belle_sip_channel_init_with_addr((belle_sip_channel_t*)obj,stack,NULL,0,remote_addr,slen);
 	belle_sip_socket_set_nonblocking(sock);
@@ -286,5 +286,3 @@ belle_sip_channel_t * belle_sip_stream_channel_new_child(belle_sip_stack_t *stac
 	belle_sip_main_loop_add_source(stack->ml,(belle_sip_source_t*)obj);
 	return (belle_sip_channel_t*)obj;
 }
-
-

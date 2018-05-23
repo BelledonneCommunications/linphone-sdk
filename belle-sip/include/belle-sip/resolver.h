@@ -1,25 +1,23 @@
 /*
 	belle-sip - SIP (RFC3261) library.
-    Copyright (C) 2010  Belledonne Communications SARL
+	Copyright (C) 2010-2018  Belledonne Communications SARL
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-
 
 #ifndef belle_sip_resolver_h
 #define belle_sip_resolver_h
-
 
 typedef struct belle_sip_dns_srv belle_sip_dns_srv_t;
 #define BELLE_SIP_DNS_SRV(obj) BELLE_SIP_CAST(obj,belle_sip_dns_srv_t)
@@ -97,7 +95,7 @@ BELLESIP_EXPORT void belle_sip_resolver_context_cancel(belle_sip_resolver_contex
  * Lookups the source address from local interface that can be used to connect to a destination address.
  * local_port is only used to be assigned into the result source address.
  * This function always puts something in src and srclen (the loopback address) even if anything fails.
- * The return code is 0 if successful, or -errno if an error was encoutered. Typical error is -ENETUNREACH when IPv6 network is not reachable. 
+ * The return code is 0 if successful, or -errno if an error was encoutered. Typical error is -ENETUNREACH when IPv6 network is not reachable.
 **/
 BELLESIP_EXPORT int belle_sip_get_src_addr_for(const struct sockaddr *dest, socklen_t destlen, struct sockaddr *src, socklen_t *srclen, int local_port);
 

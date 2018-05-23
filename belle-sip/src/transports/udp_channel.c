@@ -1,21 +1,20 @@
 /*
 	belle-sip - SIP (RFC3261) library.
-    Copyright (C) 2010  Belledonne Communications SARL
+	Copyright (C) 2010-2018  Belledonne Communications SARL
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-
 
 #include "belle_sip_internal.h"
 #include "channel.h"
@@ -39,7 +38,7 @@ static int udp_channel_send(belle_sip_channel_t *obj, const void *buf, size_t bu
 	belle_sip_udp_channel_t *chan=(belle_sip_udp_channel_t *)obj;
 	int err;
 	belle_sip_socket_t sock=belle_sip_source_get_socket((belle_sip_source_t*)chan);
-	
+
 	err=(int)bctbx_sendto(sock,buf,buflen,0,obj->current_peer->ai_addr,(socklen_t)obj->current_peer->ai_addrlen);
 	if (err==-1){
 		belle_sip_error("channel [%p]: could not send UDP packet because [%s]",obj,belle_sip_get_socket_error_string());
@@ -55,7 +54,7 @@ static int udp_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen){
 	struct sockaddr_storage addr;
 	socklen_t addrlen=sizeof(addr);
 	belle_sip_socket_t sock=belle_sip_source_get_socket((belle_sip_source_t*)chan);
-	
+
 	err=(int)bctbx_recvfrom(sock,buf,buflen,0,(struct sockaddr*)&addr,&addrlen);
 	errnum = get_socket_error();
 	if (err==-1 && errnum!=BELLESIP_EWOULDBLOCK){
@@ -74,7 +73,7 @@ int udp_channel_connect(belle_sip_channel_t *obj, const struct addrinfo *ai){
 	belle_sip_udp_channel_t *chan=(belle_sip_udp_channel_t *)obj;
 	struct sockaddr_storage laddr={0};
 	socklen_t lslen=sizeof(laddr);
-	
+
 	if (obj->local_ip==NULL){
 		int err = belle_sip_get_src_addr_for(ai->ai_addr,(socklen_t)ai->ai_addrlen,(struct sockaddr*)&laddr,&lslen,obj->local_port);
 		if (err == -BCTBX_ENETUNREACH || err == -BCTBX_EHOSTUNREACH){
@@ -125,4 +124,3 @@ belle_sip_channel_t * belle_sip_channel_new_udp_with_addr(belle_sip_stack_t *sta
 	udp_channel_connect((belle_sip_channel_t*)obj,peer);
 	return (belle_sip_channel_t*)obj;
 }
-

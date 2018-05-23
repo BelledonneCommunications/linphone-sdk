@@ -1,21 +1,20 @@
 /*
 	belle-sip - SIP (RFC3261) library.
-    Copyright (C) 2010  Belledonne Communications SARL
+	Copyright (C) 2010-2018  Belledonne Communications SARL
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-
 
 #include "belle_sip_internal.h"
 #include <limits.h>
@@ -177,8 +176,10 @@ static void fix_incoming_via(belle_sip_request_t *msg, const struct addrinfo* or
 		return;
 	}
 	bctbx_sockaddr_remove_v4_mapping(origin->ai_addr, (struct sockaddr*)&saddr, &slen);
-	err=bctbx_getnameinfo((struct sockaddr*)&saddr,slen,received,sizeof(received),
-	                rport,sizeof(rport),NI_NUMERICHOST|NI_NUMERICSERV);
+	err=bctbx_getnameinfo(
+		(struct sockaddr*)&saddr,slen,received,sizeof(received),
+		rport,sizeof(rport),NI_NUMERICHOST|NI_NUMERICSERV
+	);
 	if (err!=0){
 		belle_sip_error("fix_via: getnameinfo() failed: %s",gai_strerror(errno));
 		return;
@@ -198,10 +199,8 @@ static void fix_incoming_via(belle_sip_request_t *msg, const struct addrinfo* or
 	}
 }
 
-/*token       =  1*(alphanum / "-" / "." / "!" / "%" / "*"
-                     / "_" / "+" / "`" / "'" / "~" )
- *
- * */
+// token =  1*(alphanum / "-" / "." / "!" / "%" / "*" / "_" / "+" / "`" / "'" / "~" )
+
 static int is_token(const char* buff,size_t bufflen ) {
 	size_t i;
 	for (i=0; i<bufflen && buff[i]!='\0';i++) {
@@ -817,13 +816,15 @@ static void channel_remove_listener(belle_sip_channel_t *obj, belle_sip_channel_
 void belle_sip_channel_add_listener(belle_sip_channel_t *obj, belle_sip_channel_listener_t *l){
 
 	if (is_state_only_listener(l)) {
-		obj->state_listeners=belle_sip_list_prepend(obj->state_listeners,
-												   belle_sip_object_weak_ref(l,
-																	   (belle_sip_object_destroy_notify_t)channel_remove_listener,obj));
+		obj->state_listeners=belle_sip_list_prepend(
+			obj->state_listeners,
+			belle_sip_object_weak_ref(l, (belle_sip_object_destroy_notify_t)channel_remove_listener,obj)
+		);
 	} else {
-		obj->full_listeners=belle_sip_list_prepend(obj->full_listeners,
-													belle_sip_object_weak_ref(l,
-																		(belle_sip_object_destroy_notify_t)channel_remove_listener,obj));
+		obj->full_listeners=belle_sip_list_prepend(
+			obj->full_listeners,
+			belle_sip_object_weak_ref(l, (belle_sip_object_destroy_notify_t)channel_remove_listener,obj)
+		);
 	}
 
 }
@@ -1567,7 +1568,19 @@ static void queue_message_delayed(belle_sip_channel_t *obj, belle_sip_message_t 
 	delay_send_t *ctx=belle_sip_malloc(sizeof(delay_send_t));
 	ctx->chan=(belle_sip_channel_t*)belle_sip_object_ref(obj);
 	ctx->msg=(belle_sip_message_t*)belle_sip_object_ref(msg);
+
+	/* FIXME: Temporary workaround for -Wcast-function-type. */
+	#if __GNUC__ >= 8
+		_Pragma("GCC diagnostic push")
+		_Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
+	#endif // if __GNUC__ >= 8
+
 	belle_sip_main_loop_add_timeout(obj->stack->ml,(belle_sip_source_func_t)on_delayed_send_do,ctx,obj->stack->tx_delay);
+
+	#if __GNUC__ >= 8
+		_Pragma("GCC diagnostic pop")
+	#endif // if __GNUC__ >= 8
+
 	belle_sip_message("channel %p: message sending delayed by %i ms",obj,obj->stack->tx_delay);
 }
 
@@ -1635,4 +1648,3 @@ void belle_sip_end_background_task(unsigned long id){
 }
 
 #endif
-

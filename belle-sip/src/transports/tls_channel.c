@@ -1,19 +1,19 @@
 /*
 	belle-sip - SIP (RFC3261) library.
-    Copyright (C) 2013  Belledonne Communications SARL
+	Copyright (C) 2010-2018  Belledonne Communications SARL
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "belle_sip_internal.h"
@@ -403,9 +403,9 @@ static int tls_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen){
 
 static int tls_channel_connect_to(belle_sip_channel_t *obj, const struct addrinfo *ai){
 	int err;
-	
+
 	if (belle_sip_tls_channel_init_bctbx_ssl((belle_sip_tls_channel_t*)obj)==-1) return -1;
-	
+
 	err= stream_channel_connect((belle_sip_stream_channel_t*)obj,ai);
 	if (err==0){
 		belle_sip_source_set_notify((belle_sip_source_t *)obj, (belle_sip_source_func_t)tls_process_data);
@@ -516,7 +516,7 @@ static int tls_process_handshake(belle_sip_channel_t *obj){
 	belle_sip_tls_channel_t* channel=(belle_sip_tls_channel_t*)obj;
 	char tmp[128];
 	int err=bctbx_ssl_handshake(channel->sslctx);
-	
+
 	memset(tmp, '\0', sizeof(tmp));
 	if (err == 0){
 		belle_sip_message("Channel [%p]: SSL handshake finished, SSL version is [%s], selected ciphersuite is [%s]",obj,
@@ -526,7 +526,7 @@ static int tls_process_handshake(belle_sip_channel_t *obj){
 			snprintf(tmp, sizeof(tmp)-1, "%s", "application level post-check failed.");
 		}
 	}
-	
+
 	if (err==0){
 		belle_sip_source_set_timeout((belle_sip_source_t*)obj,-1);
 		belle_sip_channel_set_ready(obj,(struct sockaddr*)&channel->ss,channel->socklen);
@@ -552,7 +552,7 @@ static int tls_process_http_connect(belle_sip_tls_channel_t *obj) {
 	int port;
 	bctbx_addrinfo_to_printable_ip_address(channel->current_peer,url_ipport,sizeof(url_ipport));
 	bctbx_addrinfo_to_ip_address(channel->current_peer,ip,sizeof(ip),&port);
-	
+
 	if (channel->current_peer->ai_family == AF_INET6) {
 		host_ip = belle_sip_strdup_printf("[%s]",ip);
 	} else {
@@ -562,7 +562,7 @@ static int tls_process_http_connect(belle_sip_tls_channel_t *obj) {
 	request = belle_sip_strdup_printf("CONNECT %s HTTP/1.1\r\nProxy-Connection: keep-alive\r\nConnection: keep-alive\r\nHost: %s\r\nUser-Agent: Mozilla/5.0\r\n"
 									  ,url_ipport
 									  ,host_ip);
-	
+
 	belle_sip_free(host_ip);
 
 	if (channel->stack->http_proxy_username && channel->stack->http_proxy_passwd) {
@@ -607,7 +607,7 @@ static int tls_process_data(belle_sip_channel_t *obj,unsigned int revents){
 				belle_sip_message("Channel [%p]: Connected at TCP level, now doing http proxy connect",obj);
 				if (tls_process_http_connect(channel)) goto process_error;
 			} else {
-				belle_sip_message("Channel [%p]: Connected at TCP level, now doing TLS handshake with cname=%s",obj, 
+				belle_sip_message("Channel [%p]: Connected at TCP level, now doing TLS handshake with cname=%s",obj,
 						  obj->peer_cname ? obj->peer_cname : obj->peer_name);
 				if (tls_process_handshake(obj)==-1) goto process_error;
 			}
@@ -855,13 +855,13 @@ static void belle_sip_tls_channel_deinit_bctbx_ssl(belle_sip_tls_channel_t *obj)
 		bctbx_x509_certificate_free(obj->root_ca);
 		obj->root_ca = NULL;
 	}
-	
+
 }
 
 static int belle_sip_tls_channel_init_bctbx_ssl(belle_sip_tls_channel_t *obj){
 	belle_sip_stream_channel_t* super=(belle_sip_stream_channel_t*)obj;
 	belle_tls_crypto_config_t *crypto_config = obj->crypto_config;
-	
+
 	/* create and initialise ssl context and configuration */
 	obj->sslctx = bctbx_ssl_context_new();
 	obj->sslcfg = bctbx_ssl_config_new();

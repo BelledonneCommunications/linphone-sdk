@@ -1,19 +1,19 @@
 /*
 	belle-sip - SIP (RFC3261) library.
-    Copyright (C) 2010  Belledonne Communications SARL
+	Copyright (C) 2010-2018  Belledonne Communications SARL
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "belle_sip_internal.h"
@@ -71,9 +71,9 @@ static void transaction_background_task_ended(belle_sip_transaction_t *obj){
 static void transaction_begin_background_task(belle_sip_transaction_t *obj){
 	if (obj->bg_task_id==0){
 		char *transaction = bctbx_strdup_printf("belle-sip transaction(%p)", obj);
-        obj->bg_task_id=belle_sip_begin_background_task(transaction,(void (*)(void*))transaction_background_task_ended, obj);
-        if (obj->bg_task_id) belle_sip_message("transaction [%p]: starting transaction background task with id=[%lx].",obj,obj->bg_task_id);
-        bctbx_free(transaction);
+		obj->bg_task_id=belle_sip_begin_background_task(transaction,(void (*)(void*))transaction_background_task_ended, obj);
+		if (obj->bg_task_id) belle_sip_message("transaction [%p]: starting transaction background task with id=[%lx].",obj,obj->bg_task_id);
+		bctbx_free(transaction);
 	}
 }
 
@@ -158,6 +158,12 @@ static void on_channel_state_changed(belle_sip_channel_listener_t *l, belle_sip_
 				}
 			}
 
+			/* FIXME: Temporary workaround for -Wcast-function-type. */
+			#if __GNUC__ >= 8
+				_Pragma("GCC diagnostic push")
+				_Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
+			#endif // if __GNUC__ >= 8
+
 			if (!t->timed_out && belle_sip_transaction_state_is_transient(t->state) && BELLE_SIP_OBJECT_IS_INSTANCE_OF(t, belle_sip_ist_t)) {
 				t->call_repair_timer = belle_sip_timeout_source_new((belle_sip_source_func_t)server_transaction_on_call_repair_timer, t, 32 * timercfg->T1);
 				belle_sip_transaction_start_timer(t, t->call_repair_timer);
@@ -167,6 +173,11 @@ static void on_channel_state_changed(belle_sip_channel_listener_t *l, belle_sip_
 			} else {
 				belle_sip_transaction_terminate(t);
 			}
+
+			#if __GNUC__ >= 8
+				_Pragma("GCC diagnostic pop")
+			#endif // if __GNUC__ >= 8
+
 			if (t->channel){
 				belle_sip_channel_remove_listener(t->channel, l);
 				belle_sip_object_unref(t->channel);
@@ -368,11 +379,11 @@ void belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *
 			//add a random to tag
 			belle_sip_header_to_set_tag(to,t->to_tag);
 		}
-		/*12.1 Creation of a Dialog
-		   Dialogs are created through the generation of non-failure responses
-		   to requests with specific methods.  Within this specification, only
-		   2xx and 101-199 responses with a To tag, where the request was
-		   INVITE, will establish a dialog.*/
+		// 12.1 Creation of a Dialog
+		// Dialogs are created through the generation of non-failure responses
+		// to requests with specific methods.  Within this specification, only
+		// 2xx and 101-199 responses with a To tag, where the request was
+		// INVITE, will establish a dialog.
 		if (dialog && status_code>100 && status_code<300){
 			belle_sip_response_fill_for_dialog(resp,base->request);
 		}
@@ -434,21 +445,21 @@ belle_sip_request_t * belle_sip_client_transaction_create_cancel(belle_sip_clien
 	}
 	if ((t->base.state != BELLE_SIP_TRANSACTION_PROCEEDING) && (t->base.state != BELLE_SIP_TRANSACTION_CALLING)) {
 		belle_sip_error("belle_sip_client_transaction_create_cancel() can only be used in state PROCEEDING or CALLING"
-		               " but current transaction state is %s",belle_sip_transaction_state_to_string(t->base.state));
+									 " but current transaction state is %s",belle_sip_transaction_state_to_string(t->base.state));
 		return NULL;
 	}
 	req=belle_sip_request_new();
 	belle_sip_request_set_method(req,"CANCEL");
-/*	9.1 Client Behavior
-	   Since requests other than INVITE are responded to immediately,
-	   sending a CANCEL for a non-INVITE request would always create a
-	   race condition.
-	   The following procedures are used to construct a CANCEL request.  The
-	   Request-URI, Call-ID, To, the numeric part of CSeq, and From header
-	   fields in the CANCEL request MUST be identical to those in the
-	   request being cancelled, including tags.  A CANCEL constructed by a
-	   client MUST have only a single Via header field value matching the
-	   top Via value in the request being cancelled.*/
+	// 9.1 Client Behavior
+	// Since requests other than INVITE are responded to immediately,
+	// sending a CANCEL for a non-INVITE request would always create a
+	// race condition.
+	// The following procedures are used to construct a CANCEL request.  The
+	// Request-URI, Call-ID, To, the numeric part of CSeq, and From header
+	// fields in the CANCEL request MUST be identical to those in the
+	// request being cancelled, including tags.  A CANCEL constructed by a
+	// client MUST have only a single Via header field value matching the
+	// top Via value in the request being cancelled.
 	belle_sip_request_set_uri(req,(belle_sip_uri_t*)belle_sip_object_clone((belle_sip_object_t*)belle_sip_request_get_uri((belle_sip_request_t*)orig)));
 	belle_sip_util_copy_headers(orig,(belle_sip_message_t*)req,"via",FALSE);
 	belle_sip_util_copy_headers(orig,(belle_sip_message_t*)req,"call-id",FALSE);
@@ -456,10 +467,13 @@ belle_sip_request_t * belle_sip_client_transaction_create_cancel(belle_sip_clien
 	belle_sip_util_copy_headers(orig,(belle_sip_message_t*)req,"to",FALSE);
 	belle_sip_util_copy_headers(orig,(belle_sip_message_t*)req,"route",TRUE);
 	belle_sip_util_copy_headers(orig,(belle_sip_message_t*)req,BELLE_SIP_MAX_FORWARDS,FALSE);
-	belle_sip_message_add_header((belle_sip_message_t*)req,
+	belle_sip_message_add_header(
+		(belle_sip_message_t*)req,
 		(belle_sip_header_t*)belle_sip_header_cseq_create(
 			belle_sip_header_cseq_get_seq_number((belle_sip_header_cseq_t*)belle_sip_message_get_header(orig,"cseq")),
-		    "CANCEL"));
+			"CANCEL"
+		)
+	);
 	return req;
 }
 
@@ -705,8 +719,10 @@ belle_sip_request_t* belle_sip_client_transaction_create_authenticated_request(b
 
  */
 
-int belle_sip_client_transaction_is_notify_matching_pending_subscribe(belle_sip_client_transaction_t *trans
-																	  , belle_sip_request_t *notify) {
+int belle_sip_client_transaction_is_notify_matching_pending_subscribe(
+	belle_sip_client_transaction_t *trans,
+	belle_sip_request_t *notify
+) {
 	belle_sip_request_t *subscription;
 	belle_sip_header_event_t *sub_event, *notif_event;
 	belle_sip_header_call_id_t *sub_call_id, *notif_call_id;
@@ -742,4 +758,3 @@ int belle_sip_client_transaction_is_notify_matching_pending_subscribe(belle_sip_
 void belle_sip_client_transaction_stop_retransmissions(belle_sip_client_transaction_t *t){
 	BELLE_SIP_OBJECT_VPTR(t,belle_sip_client_transaction_t)->stop_retransmissions(t);
 }
-

@@ -1,22 +1,20 @@
 /*
 	belle-sip - SIP (RFC3261) library.
-    Copyright (C) 2010  Belledonne Communications SARL
+	Copyright (C) 2010-2018  Belledonne Communications SARL
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-
-
 
 #include "belle-sip/headers.h"
 #include "belle-sip/parameters.h"
@@ -328,7 +326,7 @@ belle_sip_header_address_t* belle_sip_header_address_create2(const char* display
 
 /*fast header address implemenation*/
 typedef belle_sip_header_address_t belle_sip_fast_header_address_t;
-#define belle_sip_fast_header_address_parse belle_sip_header_address_fast_parse  
+#define belle_sip_fast_header_address_parse belle_sip_header_address_fast_parse
 BELLE_SIP_PARSE(fast_header_address)
 
 
@@ -2118,7 +2116,7 @@ static void belle_sip_header_authentication_info_destroy(belle_sip_header_authen
 	DESTROY_STRING(authentication_info,cnonce);
 	DESTROY_STRING(authentication_info,qop);
 	DESTROY_STRING(authentication_info,next_nonce);
-	
+
 }
 
 static void belle_sip_header_authentication_info_clone(	belle_sip_header_authentication_info_t* authentication_info
@@ -2133,7 +2131,7 @@ belle_sip_error_code belle_sip_header_authentication_info_marshal(belle_sip_head
 	char* border="";
 	belle_sip_error_code error=belle_sip_header_marshal(BELLE_SIP_HEADER(authentication_info), buff, buff_size, offset);
 	if (error!=BELLE_SIP_OK) return error;
-	
+
 	if (authentication_info->rsp_auth) {
 		error=belle_sip_snprintf(buff,buff_size,offset,"%srspauth=\"%s\"", border,authentication_info->rsp_auth);
 		border=", ";
@@ -2157,7 +2155,7 @@ belle_sip_error_code belle_sip_header_authentication_info_marshal(belle_sip_head
 		border=", ";
 	}
 	if (error!=BELLE_SIP_OK) return error;
-	
+
 	if (authentication_info->next_nonce) {
 		error=belle_sip_snprintf(buff,buff_size,offset,"%snextnonce=\"%s\"", border, authentication_info->next_nonce);
 	}

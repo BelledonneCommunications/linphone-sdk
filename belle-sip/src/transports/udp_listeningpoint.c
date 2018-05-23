@@ -1,20 +1,21 @@
 /*
 	belle-sip - SIP (RFC3261) library.
-    Copyright (C) 2010  Belledonne Communications SARL
+	Copyright (C) 2010-2018  Belledonne Communications SARL
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+
 #include "belle_sip_internal.h"
 
 struct belle_sip_udp_listening_point{
@@ -69,7 +70,7 @@ static belle_sip_socket_t create_udp_socket(const char *addr, int *port, int *fa
 	belle_sip_socket_t sock;
 	char portnum[10];
 	int optval=1;
-	
+
 	if (*port==-1) *port=0; /*random port for bind()*/
 
 	belle_sip_set_socket_api(NULL);
@@ -100,8 +101,8 @@ static belle_sip_socket_t create_udp_socket(const char *addr, int *port, int *fa
 	if (res->ai_family==AF_INET6){
 		belle_sip_socket_enable_dual_stack(sock);
 	}
-	
-	err=bctbx_bind(sock,res->ai_addr,(socklen_t)res->ai_addrlen);	
+
+	err=bctbx_bind(sock,res->ai_addr,(socklen_t)res->ai_addrlen);
 	if (err==-1){
 		belle_sip_error("udp bind() failed for %s port %i: %s",addr,*port,belle_sip_get_socket_error_string());
 		belle_sip_close_socket(sock);
@@ -210,4 +211,3 @@ belle_sip_listening_point_t * belle_sip_udp_listening_point_new(belle_sip_stack_
 	}
 	return (belle_sip_listening_point_t*)lp;
 }
-

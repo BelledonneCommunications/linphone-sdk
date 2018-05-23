@@ -1,19 +1,19 @@
 /*
 	belle-sip - SIP (RFC3261) library.
-    Copyright (C) 2010  Belledonne Communications SARL
+	Copyright (C) 2010-2018  Belledonne Communications SARL
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "belle-sip/belle-sip.h"
@@ -83,12 +83,12 @@ typedef HANDLE belle_sip_pollfd_t;
 static void belle_sip_source_to_poll(belle_sip_source_t *s, belle_sip_pollfd_t *pfd,int i){
 	s->index=i;
 	pfd[i]=s->fd;
-	
+
 	/*special treatments for windows sockets*/
 	if (s->sock!=(belle_sip_socket_t)-1){
 		int err;
 		long events=0;
-		
+
 		if (s->events & BELLE_SIP_EVENT_READ)
 			events|=FD_READ|FD_ACCEPT;
 		if (s->events & BELLE_SIP_EVENT_WRITE)
@@ -105,7 +105,7 @@ static unsigned int belle_sip_source_get_revents(belle_sip_source_t *s,belle_sip
 	WSANETWORKEVENTS revents={0};
 	int err;
 	unsigned int ret=0;
-	
+
 	if (WaitForSingleObjectEx(s->fd,0,FALSE)==WAIT_OBJECT_0){
 		if (s->sock!=(belle_sip_socket_t)-1){
 			/*special treatments for windows sockets*/
@@ -131,7 +131,7 @@ static unsigned int belle_sip_source_get_revents(belle_sip_source_t *s,belle_sip
 
 static int belle_sip_poll(belle_sip_pollfd_t *pfd, int count, int duration){
 	DWORD ret;
-	
+
 	if (count == 0) {
 		belle_sip_sleep(duration);
 		return 0;
@@ -197,7 +197,7 @@ void belle_sip_socket_source_init(belle_sip_source_t *s, belle_sip_source_func_t
 	else
 		fd=(WSAEVENT)-1;
 	belle_sip_source_init(s,func,data,fd,events,timeout_value_ms);
-	
+
 #else
 	belle_sip_source_init(s,func,data,sock,events,timeout_value_ms);
 #endif
@@ -319,9 +319,9 @@ void belle_sip_main_loop_add_source(belle_sip_main_loop_t *ml, belle_sip_source_
 		belle_sip_fatal("Insane source passed to belle_sip_main_loop_add_source() !");
 		return;
 	}
-	
+
 	source->ml=ml;
-	
+
 	if (source->timeout>=0){
 		belle_sip_object_ref(source);
 		source->expire_ms=belle_sip_time_ms()+source->timeout;
@@ -360,7 +360,7 @@ belle_sip_source_t* belle_sip_main_loop_create_timeout(belle_sip_main_loop_t *ml
 																	  , unsigned int timeout_value_ms
 																	  ,const char* timer_name) {
 	return belle_sip_main_loop_create_timeout_with_remove_cb(ml, func, data, timeout_value_ms,timer_name,NULL);
-	
+
 }
 
 unsigned long belle_sip_main_loop_add_timeout(belle_sip_main_loop_t *ml, belle_sip_source_func_t func, void *data, unsigned int timeout_value_ms){
@@ -370,7 +370,18 @@ unsigned long belle_sip_main_loop_add_timeout(belle_sip_main_loop_t *ml, belle_s
 }
 
 void belle_sip_main_loop_do_later(belle_sip_main_loop_t *ml, belle_sip_callback_t func, void *data){
+	/* FIXME: Temporary workaround for -Wcast-function-type. */
+	#if __GNUC__ >= 8
+		_Pragma("GCC diagnostic push")
+		_Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
+	#endif // if __GNUC__ >= 8
+
 	belle_sip_source_t * s=belle_sip_main_loop_create_timeout(ml,(belle_sip_source_func_t)func,data,0,"defered task");
+
+	#if __GNUC__ >= 8
+		_Pragma("GCC diagnostic pop")
+	#endif // if __GNUC__ >= 8
+
 	s->oneshot=TRUE;
 	belle_sip_object_unref(s);
 }
@@ -409,7 +420,7 @@ void belle_sip_source_cancel(belle_sip_source_t *s){
 		bctbx_iterator_delete(s->it);
 		/*put on front*/
 		s->it = bctbx_map_insert_and_delete_with_returned_it(s->ml->timer_sources, (bctbx_pair_t*)bctbx_pair_ullong_new(0, s));
-		
+
 		bctbx_mutex_unlock(&s->ml->timer_sources_mutex);
 	}
 }
@@ -432,9 +443,9 @@ belle_sip_source_t *belle_sip_main_loop_find_source(belle_sip_main_loop_t *ml, u
 		bctbx_iterator_delete(it);
 	} /*else
 		ret = NULL;*/
-	
+
 	return ret;
-	
+
 }
 
 void belle_sip_main_loop_cancel_source(belle_sip_main_loop_t *ml, unsigned long id){
@@ -452,15 +463,15 @@ static void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	int ret;
 	uint64_t cur;
 	belle_sip_list_t *to_be_notified=NULL;
-	int can_clean=belle_sip_object_pool_cleanable(ml->pool); /*iterate might not be called by the thread that created the main loop*/ 
+	int can_clean=belle_sip_object_pool_cleanable(ml->pool); /*iterate might not be called by the thread that created the main loop*/
 	belle_sip_object_pool_t *tmp_pool=NULL;
 	bctbx_iterator_t *it,*end;
-	
+
 	if (!can_clean){
 		/*Push a temporary pool for the time of the iterate loop*/
 		tmp_pool=belle_sip_object_pool_push();
 	}
-	
+
 	/*Step 1: prepare the pollfd table and get the next timeout value */
 	for(elem=ml->fd_sources;elem!=NULL;elem=next) {
 		next=elem->next;
@@ -484,18 +495,18 @@ static void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 		diff=next_wakeup_time-cur;
 		if (diff>0)
 			duration=MIN((unsigned int)diff,INT_MAX);
-		else 
+		else
 			duration=0;
 		bctbx_iterator_delete(it);
 		it = NULL;
 	}
-	
+
 	/* do the poll */
 	ret=belle_sip_poll(pfd,i,duration);
 	if (ret==-1){
 		goto end;
 	}
-	
+
 	/* Step 2: examine poll results and determine the list of source to be notified */
 	cur=belle_sip_time_ms();
 	for(elem=ml->fd_sources;elem!=NULL;elem=elem->next){
@@ -520,7 +531,7 @@ static void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	}
 
 	/* Step 3: find timeouted sources */
-	
+
 	bctbx_mutex_lock(&ml->timer_sources_mutex); /*iterator chain might be alterated by element insertion*/
 	it = bctbx_map_begin(ml->timer_sources);
 	end = bctbx_map_end(ml->timer_sources);
@@ -536,7 +547,7 @@ static void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 				s->expired=TRUE;
 				to_be_notified=belle_sip_list_append(to_be_notified,belle_sip_object_ref(s));
 			} /*else already in to_be_notified by Step 2*/
-			
+
 			s->revents|=BELLE_SIP_EVENT_TIMEOUT;
 			it=bctbx_iterator_get_next(it);
 		}
@@ -544,20 +555,20 @@ static void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	bctbx_iterator_delete(it);
 	bctbx_iterator_delete(end);
 	bctbx_mutex_unlock(&ml->timer_sources_mutex);
-	
+
 	/* Step 4: notify those to be notified */
 	for(elem=to_be_notified;elem!=NULL;){
 		s=(belle_sip_source_t*)elem->data;
 		next=elem->next;
 		if (!s->cancelled){
-			
+
 			if (s->timeout > 0 && belle_sip_log_level_enabled(BELLE_SIP_LOG_DEBUG)) {
-				/*to avoid too many traces*/ 
+				/*to avoid too many traces*/
 				char *objdesc=belle_sip_object_to_string((belle_sip_object_t*)s);
 				belle_sip_debug("source %s notified revents=%u, timeout=%i",objdesc,revents,s->timeout);
 				belle_sip_free(objdesc);
 			}
-			
+
 			ret=s->notify(s->data,s->revents);
 			if (ret==BELLE_SIP_STOP || s->oneshot){
 				/*this source needs to be removed*/
@@ -594,14 +605,14 @@ static void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 		belle_sip_free(elem); /*free just the element*/
 		elem=next;
 	}
-	
+
 	if (can_clean) belle_sip_object_pool_clean(ml->pool);
 	else if (tmp_pool) {
 		belle_sip_object_unref(tmp_pool);
 		tmp_pool=NULL;
 	}
 end:
-	
+
 	belle_sip_free(pfd);
 }
 
@@ -624,9 +635,19 @@ int belle_sip_main_loop_quit(belle_sip_main_loop_t *ml){
 }
 
 void belle_sip_main_loop_sleep(belle_sip_main_loop_t *ml, int milliseconds){
+	/* FIXME: Temporary workaround for -Wcast-function-type. */
+	#if __GNUC__ >= 8
+		_Pragma("GCC diagnostic push")
+		_Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
+	#endif // if __GNUC__ >= 8
+
 	belle_sip_source_t * s=belle_sip_main_loop_create_timeout(ml,(belle_sip_source_func_t)belle_sip_main_loop_quit,ml,milliseconds,"Main loop sleep timer");
+
+	#if __GNUC__ >= 8
+		_Pragma("GCC diagnostic pop")
+	#endif // if __GNUC__ >= 8
+
 	belle_sip_main_loop_run(ml);
 	belle_sip_main_loop_remove_source(ml,s);
 	belle_sip_object_unref(s);
 }
-

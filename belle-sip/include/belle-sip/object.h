@@ -1,6 +1,6 @@
 /*
 	belle-sip - SIP (RFC3261) library.
-	Copyright (C) 2010  Belledonne Communications SARL
+	Copyright (C) 2010-2018  Belledonne Communications SARL
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -528,4 +528,3 @@ operator<<( std::ostream& __os, const belle_sip_object_t* object)
 }
 #endif
 #endif
-

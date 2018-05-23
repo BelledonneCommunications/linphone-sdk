@@ -1,6 +1,6 @@
 /*
 	belle-sip - SIP (RFC3261) library.
-	Copyright (C) 2013  Belledonne Communications SARL
+	Copyright (C) 2010-2018  Belledonne Communications SARL
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -15,7 +15,6 @@
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-
 
 #include <bctoolbox/defs.h>
 

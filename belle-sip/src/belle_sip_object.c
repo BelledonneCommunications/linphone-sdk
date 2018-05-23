@@ -1,6 +1,6 @@
 /*
 	belle-sip - SIP (RFC3261) library.
-	Copyright (C) 2010  Belledonne Communications SARL
+	Copyright (C) 2010-2018  Belledonne Communications SARL
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -141,7 +141,7 @@ void belle_sip_object_unref(void *ptr){
 		return;
 	}
 
-	
+
 
 	if (obj->vptr->on_last_ref){
 		if ((obj->vptr->initially_unowned && obj->ref==1)
@@ -149,9 +149,9 @@ void belle_sip_object_unref(void *ptr){
 			obj->vptr->on_last_ref(obj);
 		}
 	}
-	
+
 	obj->ref--; /* keep the ref until here to make sure obj is not deleted by obj->vptr->on_last_ref*/
-	
+
 	if (obj->ref == 0){
 		obj->ref = -1;
 		belle_sip_object_delete(obj);
