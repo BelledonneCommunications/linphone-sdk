@@ -18,7 +18,10 @@
 */
 
 #include <bitset>
+#include <stdexcept>
+
 #include "mediastreamer2/msqueue.h"
+
 #include "nal-unpacker.h"
 
 using namespace std;
@@ -87,9 +90,15 @@ NalUnpacker::Status NalUnpacker::unpack(mblk_t *im, MSQueue *out) {
 			storeNal(im);
 			break;
 		case PacketType::FragmentationUnit: {
-			ms_debug("Receiving FU-A");
-			mblk_t *o = _fuAggregator->feed(im);
-			if (o) storeNal(o);
+			try {
+				ms_debug("Receiving FU-A");
+				mblk_t *o = _fuAggregator->feed(im);
+				if (o) storeNal(o);
+			} catch (const invalid_argument &e) {
+				ms_error("%s", e.what());
+				_fuAggregator->reset();
+				_status.frameCorrupted = true;
+			}
 			break;
 		}
 		case PacketType::AggregationPacket:

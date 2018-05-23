@@ -54,10 +54,7 @@ mblk_t *H265NalUnpacker::FuAggregator::feed(mblk_t *packet) {
 	}
 
 	if (fuHeader.getPosition() == H265FuHeader::Position::End) {
-		mblk_t *m = _m;
-		msgpullup(m, -1);
-		_m = nullptr;
-		return m;
+		return completeAggregation();
 	} else return nullptr;
 }
 
@@ -67,7 +64,9 @@ void H265NalUnpacker::FuAggregator::reset() {
 }
 
 mblk_t *H265NalUnpacker::FuAggregator::completeAggregation() {
+	if (!isAggregating()) return nullptr;
 	mblk_t *res = _m;
+	msgpullup(res, -1);
 	_m = nullptr;
 	return res;
 }
