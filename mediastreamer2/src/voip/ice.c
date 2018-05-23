@@ -3001,8 +3001,8 @@ void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, int local_famil
 	taddr.family = local_family;
 	elem = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_find_candidate_from_transport_address, &taddr);
 	if (elem == NULL) {
-		/* Workaround to detect if the local candidate that has not been found has been added by the proxy server.
-			 If that is the case, add it to the local candidates now. */
+		// Workaround to detect if the local candidate that has not been found has been added by the proxy server.
+		// If that is the case, add it to the local candidates now.
 		elem = bctbx_list_find_custom(cl->remote_candidates, (bctbx_compare_func)ice_find_candidate_from_ip_address, local_addr);
 		if (elem != NULL) {
 			tc.componentID = componentID;

@@ -201,8 +201,10 @@ static void audio_stream_configure_resampler(AudioStream *st, MSFilter *resample
 	ms_filter_call_method(resampler,MS_FILTER_SET_OUTPUT_SAMPLE_RATE,&to_rate);
 	ms_filter_call_method(resampler, MS_FILTER_SET_NCHANNELS, &from_channels);
 	ms_filter_call_method(resampler, MS_FILTER_SET_OUTPUT_NCHANNELS, &to_channels);
-	ms_message("configuring %s:%p-->%s:%p from rate [%i] to rate [%i] and from channel [%i] to channel [%i]",
-				 from->desc->name, from, to->desc->name, to, from_rate, to_rate, from_channels, to_channels);
+	ms_message(
+		"configuring %s:%p-->%s:%p from rate [%i] to rate [%i] and from channel [%i] to channel [%i]",
+		from->desc->name, from, to->desc->name, to, from_rate, to_rate, from_channels, to_channels
+	);
 }
 
 static void audio_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
@@ -875,8 +877,8 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 
 	if ((stream->features & AUDIO_STREAM_FEATURE_DTMF) != 0 && (tev_pt == -1)
 		&& ( strcasecmp(pt->mime_type,"pcmu")==0 || strcasecmp(pt->mime_type,"pcma")==0)){
-		/*if no telephone-event payload is usable and pcma or pcmu is used, we will generate
-			inband dtmf*/
+		// If no telephone-event payload is usable and pcma or pcmu is used, we will generate
+		// inband dtmf.
 		stream->dtmfgen_rtp=ms_factory_create_filter (stream->ms.factory, MS_DTMF_GEN_ID);
 
 	} else {
