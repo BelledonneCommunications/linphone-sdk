@@ -26,7 +26,7 @@ namespace mediastreamer {
 
 class H265NalPacker: public NalPacker {
 public:
-	H265NalPacker(const MSFactory *factory): NalPacker(new NaluAggregator, new NaluSpliter(), factory) {}
+	H265NalPacker(const MSFactory *factory): NalPacker(new NaluAggregator(), new NaluSpliter(), factory) {}
 
 private:
 	class NaluAggregator: public NaluAggregatorInterface {

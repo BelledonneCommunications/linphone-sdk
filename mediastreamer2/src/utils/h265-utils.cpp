@@ -78,7 +78,7 @@ void H265FuHeader::parse(const uint8_t *header) {
 	header2 >>= 1;
 	bool start = ((header2 & 0x01) != 0);
 
-	if (start && end) throw runtime_error("parsing an FU header with both start and end flags enabled");
+	if (start && end) throw invalid_argument("parsing an FU header with both start and end flags enabled");
 
 	if (start) {
 		_pos = Position::Start;
@@ -97,8 +97,7 @@ mblk_t *H265FuHeader::forge() const {
 	header |= _type;
 
 	mblk_t *newHeader = allocb(1, 0);
-	*newHeader->b_wptr = header;
-	newHeader++;
+	*newHeader->b_wptr++ = header;
 	return newHeader;
 }
 

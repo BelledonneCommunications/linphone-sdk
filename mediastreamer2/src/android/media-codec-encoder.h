@@ -34,7 +34,6 @@ namespace mediastreamer {
 
 class MediaCodecEncoderFilterImpl {
 public:
-	MediaCodecEncoderFilterImpl(MSFilter *f, const std::string &mime, NalPacker *packer);
 	virtual ~MediaCodecEncoderFilterImpl();
 
 	virtual void preprocess();
@@ -59,21 +58,23 @@ public:
 	void notifyFir();
 
 protected:
+	MediaCodecEncoderFilterImpl(MSFilter *f, const std::string &mime, int profile, int level, NalPacker *packer, const MSVideoConfiguration *vconfs);
+
 	virtual void onFrameEncodedHook(MSQueue *frame) {};
 
 	media_status_t allocEncoder();
 	media_status_t tryColorFormat(AMediaFormat *format, unsigned value);
 	int encConfigure();
 
+	MSFilter *_f = nullptr;
+	std::string _mime;
+	int _profile = 0;
+	int _level = 0;
+	std::unique_ptr<NalPacker> _packer;
 	const MSVideoConfiguration *_vconfList;
 	MSVideoConfiguration _vconf;
 	bool _avpfEnabled = false;
-	int _profile = 0;
-	int _level = 0;
 
-	MSFilter *_f = nullptr;
-	std::string _mime;
-	std::unique_ptr<NalPacker> _packer;
 	AMediaCodec *_codec = nullptr;
 	uint64_t _framenum = 0;
 	MSVideoStarter _starter;

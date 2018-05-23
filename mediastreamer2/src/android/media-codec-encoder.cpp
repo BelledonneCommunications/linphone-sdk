@@ -33,8 +33,8 @@ using namespace std;
 namespace mediastreamer {
 
 // Public methods
-MediaCodecEncoderFilterImpl::MediaCodecEncoderFilterImpl(MSFilter *f, const string &mime, NalPacker *packer):
-	_f(f), _mime(mime), _packer(packer) {
+	MediaCodecEncoderFilterImpl::MediaCodecEncoderFilterImpl(MSFilter *f, const std::string &mime, int profile, int level, NalPacker *packer, const MSVideoConfiguration *vconfs):
+	_f(f), _mime(mime), _profile(profile), _level(level), _packer(packer), _vconfList(vconfs) {
 
 	_vconf = ms_video_find_best_configuration_for_size(_vconfList, MS_VIDEO_SIZE_CIF, ms_factory_get_cpu_count(f->factory));
 	ms_video_starter_init(&_starter);

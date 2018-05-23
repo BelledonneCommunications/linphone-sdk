@@ -20,14 +20,33 @@
 #include "h265-nal-packer.h"
 #include "media-codec-encoder.h"
 
+#define MS_MEDIACODECH265_CONF(required_bitrate, bitrate_limit, resolution, fps, ncpus) \
+{ required_bitrate, bitrate_limit, { MS_VIDEO_SIZE_ ## resolution ## _W, MS_VIDEO_SIZE_ ## resolution ## _H }, fps, ncpus, nullptr }
+
+static const MSVideoConfiguration _media_codec_h265_conf_list[] = {
+	MS_MEDIACODECH265_CONF(2048000, 1000000,       UXGA, 25,  2),
+	MS_MEDIACODECH265_CONF(1024000, 5000000, SXGA_MINUS, 25,  2),
+	MS_MEDIACODECH265_CONF(1024000, 5000000,       720P, 30,  2),
+	MS_MEDIACODECH265_CONF( 750000, 2048000,        XGA, 25,  2),
+	MS_MEDIACODECH265_CONF( 500000, 1024000,       SVGA, 15,  2),
+	MS_MEDIACODECH265_CONF( 600000, 3000000,        VGA, 30,  2),
+	MS_MEDIACODECH265_CONF( 400000,  800000,        VGA, 15,  2),
+	MS_MEDIACODECH265_CONF( 128000,  512000,        CIF, 15,  1),
+	MS_MEDIACODECH265_CONF( 100000,  380000,       QVGA, 15,  1),
+	MS_MEDIACODECH265_CONF(      0,  170000,       QCIF, 10,  1),
+};
+
 namespace mediastreamer {
 
 class MediaCodecH265EncoderFilterImpl: public MediaCodecEncoderFilterImpl {
 public:
-	MediaCodecH265EncoderFilterImpl(MSFilter *f): MediaCodecEncoderFilterImpl(f, "video/hevc", new H265NalPacker(f->factory)) {
-		_profile = 1; // HEVCProfileMain
-		_level = 256; // HEVCMainTierLevel31
-	}
+	MediaCodecH265EncoderFilterImpl(MSFilter *f): MediaCodecEncoderFilterImpl(
+		f,
+		"video/hevc",
+		1, // HEVCProfileMain
+		256, // HEVCMainTierLevel31
+		new H265NalPacker(f->factory),
+		_media_codec_h265_conf_list) {}
 
 	static void onFilterInit(MSFilter *f) {
 		f->data = new MediaCodecH265EncoderFilterImpl(f);
