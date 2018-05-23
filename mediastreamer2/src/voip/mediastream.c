@@ -137,8 +137,20 @@ RtpSession * ms_create_duplex_rtp_session(const char* local_ip, int loc_rtp_port
 	rtp_session_enable_adaptive_jitter_compensation(rtpr, TRUE);
 	rtp_session_set_symmetric_rtp(rtpr, TRUE);
 	rtp_session_set_local_addr(rtpr, local_ip, loc_rtp_port, loc_rtcp_port);
+
+	/* FIXME: Temporary workaround for -Wcast-function-type. */
+	#if __GNUC__ >= 8
+		_Pragma("GCC diagnostic push")
+		_Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
+	#endif // if __GNUC__ >= 8
+
 	rtp_session_signal_connect(rtpr, "timestamp_jump", (RtpCallback)rtp_session_resync, NULL);
 	rtp_session_signal_connect(rtpr, "ssrc_changed", (RtpCallback)rtp_session_resync, NULL);
+
+	#if __GNUC__ >= 8
+		_Pragma("GCC diagnostic pop")
+	#endif // if __GNUC__ >= 8
+
 	rtp_session_set_ssrc_changed_threshold(rtpr, 0);
 	rtp_session_set_rtcp_report_interval(rtpr, 2500);	/* At the beginning of the session send more reports. */
 	rtp_session_set_multicast_loopback(rtpr,TRUE); /*very useful, specially for testing purposes*/
@@ -660,7 +672,7 @@ void update_bitrate_limit_from_tmmbr(MediaStream *obj, int br_limit){
 		MSVideoSize vsize;
 		MSVideoConfiguration vconf1, vconf2;
 		int new_bitrate_limit;
-		
+
 		ms_filter_call_method(obj->encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, &vconf_list);
 
 		if (vconf_list){
