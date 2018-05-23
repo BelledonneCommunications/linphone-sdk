@@ -202,7 +202,7 @@ static void audio_stream_configure_resampler(AudioStream *st, MSFilter *resample
 	ms_filter_call_method(resampler, MS_FILTER_SET_NCHANNELS, &from_channels);
 	ms_filter_call_method(resampler, MS_FILTER_SET_OUTPUT_NCHANNELS, &to_channels);
 	ms_message("configuring %s:%p-->%s:%p from rate [%i] to rate [%i] and from channel [%i] to channel [%i]",
-			   from->desc->name, from, to->desc->name, to, from_rate, to_rate, from_channels, to_channels);
+				 from->desc->name, from, to->desc->name, to, from_rate, to_rate, from_channels, to_channels);
 }
 
 static void audio_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
@@ -263,7 +263,7 @@ void audio_stream_prepare_sound(AudioStream *stream, MSSndCard *playcard, MSSndC
 	} else {
 		stream->ms.voidsink=ms_factory_create_filter(stream->ms.factory,  MS_VOID_SINK_ID);
 		ms_filter_link(stream->dummy,0,stream->ms.voidsink,0);
-		
+
 	}
 	if (stream->ms.sessions.ticker == NULL) media_stream_start_ticker(&stream->ms);
 	ms_ticker_attach(stream->ms.sessions.ticker,stream->dummy);
@@ -813,8 +813,19 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		stream->dtmfgen=ms_factory_create_filter(stream->ms.factory, MS_DTMF_GEN_ID);
 	else
 		stream->dtmfgen=NULL;
+
+	/* FIXME: Temporary workaround for -Wcast-function-type. */
+	#if __GNUC__ >= 8
+		_Pragma("GCC diagnostic push")
+		_Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
+	#endif // if __GNUC__ >= 8
+
 	rtp_session_signal_connect(rtps,"telephone-event",(RtpCallback)on_dtmf_received,stream);
 	rtp_session_signal_connect(rtps,"payload_type_changed",(RtpCallback)audio_stream_payload_type_changed,stream);
+
+	#if __GNUC__ >= 8
+		_Pragma("GCC diagnostic pop")
+	#endif // if __GNUC__ >= 8
 
 	if (stream->ms.state==MSStreamPreparing){
 		/*we were using the dummy preload graph, destroy it but keep sound filters unless no soundcard is given*/
@@ -865,7 +876,7 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 	if ((stream->features & AUDIO_STREAM_FEATURE_DTMF) != 0 && (tev_pt == -1)
 		&& ( strcasecmp(pt->mime_type,"pcmu")==0 || strcasecmp(pt->mime_type,"pcma")==0)){
 		/*if no telephone-event payload is usable and pcma or pcmu is used, we will generate
-		  inband dtmf*/
+			inband dtmf*/
 		stream->dtmfgen_rtp=ms_factory_create_filter (stream->ms.factory, MS_DTMF_GEN_ID);
 
 	} else {
@@ -878,7 +889,7 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		ms_error("Sample rate is unknown for RTP side !");
 		return -1;
 	}
-	
+
 	if (stream->features == 0) {
 		MSPinFormat sndread_format = {0};
 		MSPinFormat rtpsend_format = {0};
@@ -894,7 +905,7 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 	}
 	do_ts_adjustments = !skip_encoder_and_decoder;
 	ms_filter_call_method(stream->ms.rtpsend, MS_RTP_SEND_ENABLE_TS_ADJUSTMENT, &do_ts_adjustments);
-	
+
 	if (!skip_encoder_and_decoder) {
 		stream->ms.encoder=ms_factory_create_encoder(stream->ms.factory, pt->mime_type);
 		stream->ms.decoder=ms_factory_create_decoder(stream->ms.factory, pt->mime_type);
@@ -1003,7 +1014,7 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		if (stream->write_resampler == NULL) stream->write_resampler = ms_factory_create_filter(stream->ms.factory, MS_RESAMPLE_ID);
 		resampler_missing = stream->write_resampler == NULL;
 	}
-	
+
 	if (resampler_missing){
 		ms_fatal("AudioStream: no resampler implementation found, but resampler is required to perform the AudioStream. "
 			"Does mediastreamer2 was compiled with libspeex dependency ?");
@@ -1078,7 +1089,7 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		/*configure equalizer if needed*/
 		MSDevicesInfo *devices = ms_factory_get_devices_info(stream->ms.factory);
 		SoundDeviceDescription *device = ms_devices_info_get_sound_device_description(devices);
-		
+
 		audio_stream_set_mic_gain_db(stream, 0);
 		audio_stream_set_spk_gain_db(stream, 0);
 		if (device && device->hacks) {
@@ -1165,7 +1176,7 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 			if (ms_filter_call_method(stream->ms.decoder, MS_DECODER_ENABLE_PLC, &decoder_enable_plc) != 0) {
 				ms_warning(" MS_DECODER_ENABLE_PLC on stream %p function error ", stream);
 			}
-			
+
 		}
 		stream->plc = NULL;
 	}
@@ -1476,7 +1487,7 @@ AudioStream *audio_stream_new_with_sessions(MSFactory *factory, const MSMediaStr
 
 	stream->ms.type = MSAudio;
 	media_stream_init(&stream->ms,factory, sessions);
-	
+
 	ms_factory_enable_statistics(factory, TRUE);
 	ms_factory_reset_statistics(factory);
 
@@ -1780,10 +1791,23 @@ void audio_stream_stop(AudioStream * stream){
 		}
 	}
 	rtp_session_set_rtcp_xr_media_callbacks(stream->ms.sessions.rtp_session, NULL);
+
+	/* FIXME: Temporary workaround for -Wcast-function-type. */
+	#if __GNUC__ >= 8
+		_Pragma("GCC diagnostic push")
+		_Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
+	#endif // if __GNUC__ >= 8
+
 	rtp_session_signal_disconnect_by_callback(stream->ms.sessions.rtp_session,"telephone-event",(RtpCallback)on_dtmf_received);
 	rtp_session_signal_disconnect_by_callback(stream->ms.sessions.rtp_session,"payload_type_changed",(RtpCallback)audio_stream_payload_type_changed);
-	/*before destroying the filters, pump the event queue so that pending events have a chance to reach their listeners.
-	 * When the filter are destroyed, all their pending events in the event queue will be cancelled*/
+
+	#if __GNUC__ >= 8
+		_Pragma("GCC diagnostic pop")
+	#endif // if __GNUC__ >= 8
+
+	// Before destroying the filters, pump the event queue so that pending events have a chance
+	// to reach their listeners. When the filter are destroyed, all their pending events in the
+	// event queue will be cancelled.
 	evq = ms_factory_get_event_queue(stream->ms.factory);
 	if (evq) ms_event_queue_pump(evq);
 	ms_factory_log_statistics(stream->ms.factory);
@@ -1918,4 +1942,3 @@ void audio_stream_set_audio_route(AudioStream *stream, MSAudioRoute route) {
 		}
 	}
 }
-

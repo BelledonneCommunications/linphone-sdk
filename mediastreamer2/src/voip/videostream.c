@@ -532,9 +532,9 @@ static void configure_video_source(VideoStream *stream){
 #endif
 	}
 	ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_VIDEO_SIZE,&vsize);
-	
+
 	if (stream->ms.target_bitrate > 0) update_bitrate_limit_from_tmmbr(&stream->ms, stream->ms.target_bitrate);
-		
+
 	ms_filter_call_method(stream->ms.encoder,MS_FILTER_GET_FPS,&fps);
 
 	if (is_player){
@@ -844,7 +844,7 @@ static void apply_bitrate_limit(VideoStream *stream, PayloadType *pt) {
 	ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, &vconf_list);
 	if (vconf_list != NULL) {
 		MSVideoConfiguration vconf;
-		
+
 		if (stream->ms.max_target_bitrate > 0) {
 			vconf = ms_video_find_best_configuration_for_bitrate(vconf_list, stream->ms.max_target_bitrate, ms_factory_get_cpu_count(stream->ms.factory));
 			/* Adjust configuration video size to use the user preferred video size if it is lower that the configuration one. */
@@ -913,8 +913,18 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 		rtp_session_set_jitter_compensation(rtps, jitt_comp);
 	}
 
+	/* FIXME: Temporary workaround for -Wcast-function-type. */
+	#if __GNUC__ >= 8
+		_Pragma("GCC diagnostic push")
+		_Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
+	#endif // if __GNUC__ >= 8
+
 	rtp_session_signal_connect(stream->ms.sessions.rtp_session,"payload_type_changed",
 			(RtpCallback)video_stream_payload_type_changed,&stream->ms);
+
+	#if __GNUC__ >= 8
+		_Pragma("GCC diagnostic pop")
+	#endif // if __GNUC__ >= 8
 
 	rtp_session_get_jitter_buffer_params(stream->ms.sessions.rtp_session,&jbp);
 	jbp.max_packets=1000;//needed for high resolution video
@@ -1450,7 +1460,18 @@ static MSFilter* _video_stream_stop(VideoStream * stream, bool_t keep_source)
 		}
 	}
 	rtp_session_set_rtcp_xr_media_callbacks(stream->ms.sessions.rtp_session, NULL);
+
+	/* FIXME: Temporary workaround for -Wcast-function-type. */
+	#if __GNUC__ >= 8
+		_Pragma("GCC diagnostic push")
+		_Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
+	#endif // if __GNUC__ >= 8
+
 	rtp_session_signal_disconnect_by_callback(stream->ms.sessions.rtp_session,"payload_type_changed",(RtpCallback)video_stream_payload_type_changed);
+
+	#if __GNUC__ >= 8
+		_Pragma("GCC diagnostic pop")
+	#endif // if __GNUC__ >= 8
 
 	/*Automatically the video recorder if it was opened previously*/
 	if (stream->recorder_output && ms_filter_implements_interface(stream->recorder_output, MSFilterRecorderInterface)){
