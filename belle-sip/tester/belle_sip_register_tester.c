@@ -23,13 +23,13 @@
 #include "register_tester.h"
 
 
-const char *test_domain="sip2.linphone.org";
+const char *test_domain="fs-test.linphone.org";
 const char *auth_domain="sip.linphone.org";
 const char *client_auth_domain="client.example.org";
-const char *client_auth_outbound_proxy="sips:sip2.linphone.org:5063";
+const char *client_auth_outbound_proxy="sips:fs-test.linphone.org:5063";
 const char *no_server_running_here="sip:test.linphone.org:3;transport=tcp";
 const char *no_response_here="sip:78.220.48.77:3;transport=%s";
-const char *test_domain_tls_to_tcp="sip:sip2.linphone.org:5060;transport=tls";
+const char *test_domain_tls_to_tcp="sip:fs-test.linphone.org:5060;transport=tls";
 const char *test_http_proxy_addr="sip.linphone.org";
 const char *test_with_wrong_cname="sips:rototo.com;maddr=91.121.209.194";
 int test_http_proxy_port = 3128 ;
@@ -695,6 +695,9 @@ static void test_register_client_bad_ciphersuites(void) {
 		authorized_request=NULL;
 		belle_sip_tls_listening_point_t *s = BELLE_SIP_TLS_LISTENING_POINT(belle_sip_provider_get_listening_point(prov, "tls"));
 		belle_tls_crypto_config_t *crypto_config = belle_sip_tls_listening_point_get_crypto_config(s);
+		
+		belle_sip_listening_point_clean_channels((belle_sip_listening_point_t*)s);
+		
 		void *config_ref = crypto_config->ssl_config;
 		int ciphersuites[2] = {bctbx_ssl_get_ciphersuite_id("TLS-RSA-WITH-AES-128-GCM-SHA256"),0};
 
