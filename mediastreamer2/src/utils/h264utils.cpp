@@ -29,6 +29,7 @@
 #include "h26x-utils.h"
 
 using namespace mediastreamer;
+using namespace std;
 
 extern "C" {
 
