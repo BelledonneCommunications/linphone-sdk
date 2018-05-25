@@ -17,41 +17,39 @@
 */
 
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+#import "config.h"
 #endif
 
-#include <algorithm>
-#include <unordered_map>
+#import <Foundation/Foundation.h>
+#import <Foundation/NSString.h>
 
-#include <NSString>
-#include <NSStringEncoding>
-
-#include "bctoolbox/logging.h"
-#include "bctoolbox/port.h"
-#include "bctoolbox/charconv.h"
+#import "bctoolbox/logging.h"
+#import "bctoolbox/port.h"
+#import "bctoolbox/charconv.h"
 
 extern "C" char *bctbx_locale_to_utf8 (const char *str) {
-	NSString *string = [NSString initWithCString:str encoding:defaultCStringEncoding];
-	return bctbx_strdup([string cStringUsingEncoding:defaultCStringEncoding]);
+	NSString *string = [[NSString alloc] initWithCString:str encoding:[NSString defaultCStringEncoding]];
+	return bctbx_strdup([string UTF8String]);
 }
 
 extern "C" char *bctbx_utf8_to_locale (const char *str) {
-	NSString *string = [NSString initWithUTF8String:str];
-	return bctbx_strdup([string UTF8String]);
+	NSString *string = [[NSString alloc] initWithUTF8String:str];
+	return bctbx_strdup([string cStringUsingEncoding:[NSString defaultCStringEncoding]]);
 }
 
 extern "C" char *bctbx_convert_any_to_utf8 (const char *str, const char *encoding) {
 	if (!encoding)
 		return NULL;
 
-	NSString *encodingString = [NSString initWithCString:encoding encoding:defaultCStringEncoding];
-	if (encodingString == kCFStringEncodingInvalidId) {
+	NSString *encodingString = [[NSString alloc] initWithCString:encoding encoding:[NSString defaultCStringEncoding]];
+	CFStringEncoding stringEncoding = CFStringConvertIANACharSetNameToEncoding((CFStringRef) encodingString);
+	if (stringEncoding == kCFStringEncodingInvalidId) {
 		bctbx_error("Error while converting a string from '%s' to 'UTF-8': unknown charset", encoding);
 		return NULL;
 	}
 
-	NSStringEncoding encodingValue = CFStringConvertEncodingToNSStringEncoding(CFStringConvertIANACharSetNameToEncoding((CFStringRef) encodingString));
+	NSStringEncoding encodingValue = CFStringConvertEncodingToNSStringEncoding(stringEncoding);
 
-	NSString *string = [NSString initWithCString:str encoding:encodingValue];
+	NSString *string = [[NSString alloc] initWithCString:str encoding:encodingValue];
 	return bctbx_strdup([string UTF8String]);
 }
