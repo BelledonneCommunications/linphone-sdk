@@ -23,13 +23,13 @@
 #include "register_tester.h"
 
 
-const char *test_domain="fs-test.linphone.org";
+const char *test_domain="sip2.linphone.org";
 const char *auth_domain="sip.linphone.org";
 const char *client_auth_domain="client.example.org";
-const char *client_auth_outbound_proxy="sips:fs-test.linphone.org:5063";
+const char *client_auth_outbound_proxy="sips:sip2.linphone.org:5063";
 const char *no_server_running_here="sip:test.linphone.org:3;transport=tcp";
 const char *no_response_here="sip:78.220.48.77:3;transport=%s";
-const char *test_domain_tls_to_tcp="sip:fs-test.linphone.org:5060;transport=tls";
+const char *test_domain_tls_to_tcp="sip:sip2.linphone.org:5060;transport=tls";
 const char *test_http_proxy_addr="sip.linphone.org";
 const char *test_with_wrong_cname="sips:rototo.com;maddr=91.121.209.194";
 int test_http_proxy_port = 3128 ;
