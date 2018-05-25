@@ -46,6 +46,10 @@ set(SOURCE_FILES_C
 	register_tester.h
 )
 
+set(OTHER_FILES
+	tester_hosts
+)
+
 add_definitions(
 	-DBCTBX_LOG_DOMAIN="belle-sip"
 )
@@ -144,3 +148,5 @@ else()
 	target_link_libraries(belle_sip_parse ${BCTOOLBOX_CORE_LIBRARIES} ${PROJECT_LIBS})
 
 endif()
+
+install(FILES ${OTHER_FILES} DESTINATION "${CMAKE_INSTALL_DATADIR}/belle_sip_tester")

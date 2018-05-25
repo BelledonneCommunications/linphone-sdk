@@ -89,7 +89,7 @@ static void log_handler(int lev, const char *fmt, va_list args) {
 
 void belle_sip_tester_init(void(*ftester_printf)(int level, const char *fmt, va_list args)) {
 	if (ftester_printf == NULL) ftester_printf = log_handler;
-	bc_tester_init(ftester_printf, BELLE_SIP_LOG_MESSAGE, BELLE_SIP_LOG_ERROR, NULL);
+	bc_tester_init(ftester_printf, BELLE_SIP_LOG_MESSAGE, BELLE_SIP_LOG_ERROR, "tester_hosts");
 	belle_sip_init_sockets();
 	belle_sip_object_enable_marshal_check(TRUE);
 	ipv6_available=_belle_sip_tester_ipv6_available();
@@ -196,7 +196,8 @@ int main (int argc, char *argv[]) {
 	int ret;
 	const char *root_ca_path = NULL;
 	const char *env_domain=getenv("TEST_DOMAIN");
-
+	char *default_hosts = NULL;
+	
 	belle_sip_tester_init(NULL);
 
 #ifndef _WIN32   /*this hack doesn't work for argv[0]="c:\blablab\"*/
@@ -256,6 +257,7 @@ int main (int argc, char *argv[]) {
 	ret = bc_tester_start(argv[0]);
 	belle_sip_tester_uninit();
 	bctbx_uninit_logger();
+	if (default_hosts) bc_free(default_hosts);
 	return ret;
 }
 
