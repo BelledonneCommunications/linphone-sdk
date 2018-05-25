@@ -34,8 +34,18 @@ set(BCTOOLBOX_CXX_SOURCE_FILES
 	containers/map.cc
 	crypto/ecc.cc
 	utils/regex.cc
-	utils/charconv.cc
 )
+
+set(BCTOOLBOX_OBJC_SOURCE_FILES)
+if (APPLE)
+	list(APPEND BCTOOLBOX_OBJC_SOURCE_FILES conversion/charconv_apple.mm)
+elseif (ANDROID)
+	list(APPEND BCTOOLBOX_CXX_SOURCE_FILES conversion/charconv_android.cc)
+elseif (WIN32)
+	list(APPEND BCTOOLBOX_CXX_SOURCE_FILES conversion/charconv_windows.cc)
+elseif (UNIX)
+	list(APPEND BCTOOLBOX_CXX_SOURCE_FILES conversion/charconv_linux.cc)
+endif ()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 	list(APPEND STRICT_OPTIONS_CXX "-x c++")
@@ -59,20 +69,17 @@ if(BCUNIT_FOUND)
 	set(BCTOOLBOX_C_TESTER_SOURCE_FILES tester.c)
 endif()
 
-set(BCTOOLBOX_SOURCE_FILES ${BCTOOLBOX_C_SOURCE_FILES} ${BCTOOLBOX_CXX_SOURCE_FILES})
+set(BCTOOLBOX_SOURCE_FILES ${BCTOOLBOX_C_SOURCE_FILES} ${BCTOOLBOX_CXX_SOURCE_FILES} ${BCTOOLBOX_OBJC_SOURCE_FILES})
 set(BCTOOLBOX_TESTER_SOURCE_FILES ${BCTOOLBOX_C_TESTER_SOURCE_FILES})
 
 bc_apply_compile_flags(BCTOOLBOX_C_SOURCE_FILES STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
 bc_apply_compile_flags(BCTOOLBOX_C_TESTER_SOURCE_FILES STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
 bc_apply_compile_flags(BCTOOLBOX_CXX_SOURCE_FILES STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
+bc_apply_compile_flags(BCTOOLBOX_OBJC_SOURCE_FILES STRICT_OPTIONS_CPP STRICT_OPTIONS_OBJC)
 
 if(ENABLE_STATIC)
 	add_library(bctoolbox-static STATIC ${BCTOOLBOX_SOURCE_FILES} ${BCTOOLBOX_HEADER_FILES})
 	target_link_libraries(bctoolbox-static INTERFACE ${CMAKE_THREAD_LIBS_INIT})
-	if(APPLE)
-		target_include_directories(bctoolbox-static PRIVATE ${ICONV_INCLUDE_DIRS})
-		target_link_libraries(bctoolbox-static INTERFACE ${ICONV_LIBRARIES})
-	endif()
 	if(WIN32)
 		target_link_libraries(bctoolbox-static INTERFACE "Winmm" "Ws2_32")
 	endif()
@@ -96,10 +103,6 @@ endif()
 if(ENABLE_SHARED)
 	add_library(bctoolbox SHARED ${BCTOOLBOX_SOURCE_FILES} ${BCTOOLBOX_HEADER_FILES})
 	target_link_libraries(bctoolbox PRIVATE ${CMAKE_THREAD_LIBS_INIT})
-	if(APPLE)
-		target_include_directories(bctoolbox PRIVATE ${ICONV_INCLUDE_DIRS})
-		target_link_libraries(bctoolbox PRIVATE ${ICONV_LIBRARIES})
-	endif()
 	#TODO: replace by if(APPLE) when we want to make apple framework on linphone-desktop too
 	if(IOS)
 		if(IOS)
