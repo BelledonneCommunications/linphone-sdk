@@ -9,8 +9,6 @@
 %define _datadir           %{_datarootdir}
 %define _docdir            %{_datadir}/doc
 
-%define _datasrcdir        %{_prefix}/src
-
 %define build_number @PROJECT_VERSION_BUILD@
 %if %{build_number}
 %define build_number_ext -%{build_number}
@@ -80,7 +78,7 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 %doc AUTHORS ChangeLog COPYING NEWS README.md
 %{_libdir}/*.so.*
-%{_datasrcdir}/vcard_grammar
+%{_datadir}/belr/grammars/vcard_grammar
 
 %files devel
 %defattr(-,root,root)
