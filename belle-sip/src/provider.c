@@ -1113,7 +1113,7 @@ static void  belle_sip_provider_update_or_create_auth_context(belle_sip_provider
 	for (auth_context_it = auth_context_lst = belle_sip_provider_get_auth_context_by_realm_or_call_id(p, call_id, from_uri, realm);
 	     auth_context_it != NULL; auth_context_it = auth_context_it->next) {
 		auth_context = (authorization_context_t *)auth_context_it->data;
-		if ((strcmp(auth_context->realm, belle_sip_header_www_authenticate_get_realm(authenticate)) == 0) && ((auth_context->algorithm == NULL) || strcmp(auth_context->algorithm, belle_sip_header_www_authenticate_get_algorithm(authenticate)) == 0))  {
+		if ((strcmp(auth_context->realm, belle_sip_header_www_authenticate_get_realm(authenticate)) == 0) && ((auth_context->algorithm == NULL) || strcasecmp(auth_context->algorithm, belle_sip_header_www_authenticate_get_algorithm(authenticate)) == 0))  {
 			authorization_context_fill_from_auth(auth_context, authenticate, from_uri);
 			goto end; /*only one realm is supposed to be found for now*/
 		}
@@ -1260,6 +1260,13 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_requ
 			}
 			belle_sip_message("Auth info found for [%s] realm [%s]",auth_event->userid,auth_event->realm);
 
+			algo = auth_context->algorithm;
+			size = belle_sip_auth_define_size(algo);
+			if (!size) {
+				belle_sip_error("Cannot add authorization header for unsupported algo [%s]", algo);
+				continue;
+			}
+			
 			if (belle_sip_header_call_id_equals(call_id,auth_context->callid)) {
 				/*Same call id so we can make sure auth_context->is_proxy is accurate*/
 				if (auth_context->is_proxy)
@@ -1292,12 +1299,7 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_requ
 				++auth_context->nonce_count;
 				belle_sip_header_authorization_set_nonce_count(authorization,auth_context->nonce_count);
 			}
-			algo = belle_sip_header_authorization_get_algorithm(authorization);
-			size = belle_sip_auth_define_size(algo);
-			if (!size) {
-				belle_sip_error("Algorithm [%s] is not correct ", algo);
-				return 0;
-			}
+			
 			if (auth_event->ha1) {
 				ha1=auth_event->ha1;
 			} else {

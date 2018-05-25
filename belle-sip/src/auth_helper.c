@@ -72,18 +72,18 @@ belle_sip_header_proxy_authorization_t* belle_sip_auth_helper_create_proxy_autho
 }
 
 static void belle_sip_auth_choose_method(const char *algo, const char *ask, uint8_t *out, size_t size) {
-	if ((algo == NULL) || (!strcmp(algo, "MD5"))) {
+	if ((algo == NULL) || (!strcasecmp(algo, "MD5"))) {
 		// By default, using MD5 when algorithm is NULL
 		bctbx_md5((const uint8_t *)ask, strlen(ask), out);
-	} else if (!strcmp(algo, "SHA-256")) {
+	} else if (!strcasecmp(algo, "SHA-256")) {
 		bctbx_sha256((const uint8_t *)ask, strlen(ask), (uint8_t)size, out);
 	}
 }
 
 int belle_sip_auth_define_size(const char *algo) {
-	if ((algo == NULL) || (!strcmp(algo, "MD5"))) {
+	if (algo == NULL || strcasecmp(algo, "MD5") == 0) {
 		return 33;
-	} else if (!strcmp(algo, "SHA-256")) {
+	} else if (strcasecmp(algo, "SHA-256") == 0) {
 		return 65;
 	} else {
 		return 0;
@@ -233,7 +233,7 @@ int belle_sip_auth_helper_fill_authorization(belle_sip_header_authorization_t* a
 	const char *algo = belle_sip_header_authorization_get_algorithm(authorization);
 	size_t size = belle_sip_auth_define_size(algo);
 	if (!size) {
-		belle_sip_error("Algorithm [%s] is not correct ", algo);
+		belle_sip_error("Algorithm [%s] is not supported ", algo);
 		return -1;
 	}
 	int auth_mode=0;
@@ -245,13 +245,13 @@ int belle_sip_auth_helper_fill_authorization(belle_sip_header_authorization_t* a
 	response[size-1]=ha2[size-1]='\0';
 
 	if (belle_sip_header_authorization_get_scheme(authorization) != NULL &&
-		strcmp("Digest",belle_sip_header_authorization_get_scheme(authorization))!=0) {
+		strcasecmp("Digest",belle_sip_header_authorization_get_scheme(authorization))!=0) {
 		belle_sip_error("belle_sip_fill_authorization_header, unsupported schema [%s]"
 						,belle_sip_header_authorization_get_scheme(authorization));
 		return -1;
 	}
 	if (belle_sip_header_authorization_get_qop(authorization)
-		&& !(auth_mode=strcmp("auth",belle_sip_header_authorization_get_qop(authorization))==0)) {
+		&& !(auth_mode=strcasecmp("auth",belle_sip_header_authorization_get_qop(authorization))==0)) {
 		belle_sip_error("belle_sip_fill_authorization_header, unsupported qop [%s], use auth or nothing instead"
 								,belle_sip_header_authorization_get_qop(authorization));
 		return -1;
