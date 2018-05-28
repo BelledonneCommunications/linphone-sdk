@@ -86,6 +86,16 @@ if(NOT ENABLE_STATIC_ONLY)
 	lcb_builder_linking_type(bctoolbox "-DENABLE_STATIC=NO" "-DENABLE_SHARED=YES")
 endif()
 
+#belcard
+if(NOT ENABLE_STATIC_ONLY)
+	lcb_builder_linking_type(belcard "-DENABLE_STATIC=NO" "-DENABLE_SHARED=YES")
+endif()
+
+#belcard
+if(NOT ENABLE_STATIC_ONLY)
+	lcb_builder_linking_type(belr "-DENABLE_STATIC=NO" "-DENABLE_SHARED=YES")
+endif()
+
 # linphone
 lcb_builder_cmake_options(linphone "-DENABLE_RELATIVE_PREFIX=YES")
 lcb_builder_cmake_options(linphone "-DENABLE_CONSOLE_UI=NO")
