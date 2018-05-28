@@ -71,7 +71,7 @@ static const char * audio_unit_format_error (OSStatus error) {
 						  ,((char*)&error)[1]
 						  ,((char*)&error)[0]);
 			return "unknown error";
-		} 
+		}
 	}
 
 }
@@ -561,7 +561,7 @@ static void au_read_preprocess(MSFilter *f){
 	au_filter_read_data_t *d= (au_filter_read_data_t*)f->data;
 	au_card_t* card=d->base.card;
 	AVAudioSession *audioSession = [AVAudioSession sharedInstance];
-	NSError *err = nil;;
+	NSError *err = nil;
 	cancel_audio_unit_timer(card);
 	configure_audio_session(card, f->ticker->time);
 
@@ -584,7 +584,7 @@ static void au_read_preprocess(MSFilter *f){
 		default:
 			preferredBufferSize= .015;
 	}
-	[audioSession setPreferredIOBufferDuration:(NSTimeInterval)preferredBufferSize 
+	[audioSession setPreferredIOBufferDuration:(NSTimeInterval)preferredBufferSize
                                error:&err];
 	if(err) ms_error("Unable to change IO buffer duration because : %s", [err localizedDescription].UTF8String);
 	err = nil;
@@ -614,7 +614,7 @@ static void au_read_process(MSFilter *f){
 		read_something = TRUE;
 	}
 	ms_mutex_unlock(&d->mutex);
-	
+
 	if (read_something) ms_ticker_synchronizer_update(d->ticker_synchronizer, d->read_samples, d->base.card->rate);
 }
 
@@ -625,7 +625,8 @@ static void au_read_process(MSFilter *f){
 static void au_write_preprocess(MSFilter *f){
 	ms_debug("au_write_preprocess");
 	OSStatus auresult;
-	NSError *err = nil;;
+	NSError *err = nil;
+	Float32 bufferSizeInSec = 0.02f;
 	au_filter_write_data_t *d= (au_filter_write_data_t*)f->data;
 	au_card_t* card=d->base.card;
 	AVAudioSession *audioSession = [AVAudioSession sharedInstance];
@@ -637,10 +638,11 @@ static void au_write_preprocess(MSFilter *f){
 	}
 	configure_audio_session(card, f->ticker->time);
 
-
 	if (!card->io_unit) create_io_unit(&card->io_unit, card);
 
-
+	[audioSession setPreferredIOBufferDuration:(NSTimeInterval)bufferSizeInSec error:&err];
+	if (err) ms_error("Unable to change IO buffer duration because : %s", [err localizedDescription].UTF8String);
+	err = nil;
 
 	AudioStreamBasicDescription audioFormat;
 	/*card sampling rate is fixed at that time*/
