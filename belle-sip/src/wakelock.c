@@ -128,9 +128,10 @@ unsigned long wake_lock_acquire(const char *tag) {
 			(*env)->DeleteLocalRef(env, tagString);
 			if(lock != NULL) {
 				(*env)->CallVoidMethod(env, lock, ctx.acquireID);
-				lock = (*env)->NewGlobalRef(env, lock);
-				belle_sip_message("bellesip_wake_lock_acquire(): Android wake lock [%s] acquired [ref=%p]", tag, (void *)lock);
-				return (unsigned long)lock;
+				jobject lock2 = (*env)->NewGlobalRef(env, lock);
+				(*env)->DeleteLocalRef(env, lock);
+				belle_sip_message("bellesip_wake_lock_acquire(): Android wake lock [%s] acquired [ref=%p]", tag, (void *)lock2);
+				return (unsigned long)lock2;
 			} else {
 				belle_sip_message("bellesip_wake_lock_acquire(): wake lock creation failed");
 			}
