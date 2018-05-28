@@ -54,6 +54,21 @@ if(ENABLE_SHARED)
 	if(APPLE)
 		set_target_properties(belr PROPERTIES LINK_FLAGS "-stdlib=libc++")
 	endif()
+	#TODO: replace by if(APPLE) when we want to make apple framework on linphone-desktop too
+	if(IOS)
+		if(IOS)
+			set(MIN_OS ${LINPHONE_IOS_DEPLOYMENT_TARGET})
+		else()
+			set(MIN_OS ${CMAKE_OSX_DEPLOYMENT_TARGET})
+		endif()
+		set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/build/osx/")
+		set_target_properties(belr PROPERTIES
+			FRAMEWORK TRUE
+			MACOSX_FRAMEWORK_IDENTIFIER org.linphone.belr
+			MACOSX_FRAMEWORK_INFO_PLIST Info.plist.in
+			PUBLIC_HEADER "${BELR_HEADER_FILES}"
+		)
+	endif()
 	set_target_properties(belr PROPERTIES VERSION ${BELR_SO_VERSION})
 	target_include_directories(belr PUBLIC ${BCTOOLBOX_CORE_INCLUDE_DIRS})
 	target_link_libraries(belr PRIVATE ${LIBS})
@@ -80,6 +95,7 @@ if(ENABLE_SHARED)
 		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+		FRAMEWORK DESTINATION Frameworks
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 	)
 endif()
