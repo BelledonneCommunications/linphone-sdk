@@ -17,6 +17,9 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
+#include <cstring>
+#include <stdexcept>
+
 #include <jni.h>
 #include <ortp/b64.h>
 
@@ -32,145 +35,218 @@ using namespace std;
 
 namespace mediastreamer {
 
+MediaCodecEncoder::MediaCodecEncoder(const std::string &mime, int profile, int level, H26xParameterSetsInserter *psInserter):
+	_mime(mime), _profile(profile), _level(level), _psInserter(psInserter) {
+
+	try {
+		_vsize.width = 0;
+		_vsize.height = 0;
+		// We shall allocate the MediaCodec encoder the sooner as possible and before the decoder, because
+		// some phones hardware encoder and decoders can't be allocated at the same time.
+		createImpl();
+	} catch (const runtime_error &e) {
+		ms_error("MSMediaCodecH264Enc: %s", e.what());
+	}
+}
+
+MediaCodecEncoder::~MediaCodecEncoder() {
+	if (_impl) AMediaCodec_delete(_impl);
+}
+
+void MediaCodecEncoder::setBitrate(int bitrate) {
+	_bitrate = bitrate;
+	if (isRunning() && _impl) {
+		AMediaFormat *afmt = AMediaFormat_new();
+		// update the output bitrate
+		AMediaFormat_setInt32(afmt, "video-bitrate", (_bitrate * 9)/10);
+		AMediaCodec_setParams(_impl, afmt);
+		AMediaFormat_delete(afmt);
+	}
+}
+
+void MediaCodecEncoder::start() {
+	try {
+		if (_isRunning) {
+			ms_warning("MediaCodecEncoder: encoder already started");
+			return;
+		}
+		configureImpl();
+		if (AMediaCodec_start(_impl) != AMEDIA_OK) {
+			throw runtime_error("could not start encoder.");
+		}
+		_firstBufferQueued = false;
+		_isRunning = true;
+		ms_message("MSMediaCodecH264Enc: encoder successfully started");
+	} catch (const runtime_error &e) {
+		ms_error("MSMediaCodecH264Enc: %s", e.what());
+	}
+}
+
+void MediaCodecEncoder::stop() {
+	if (!_isRunning) {
+		ms_warning("MediaCodecEncoder: encoder already stopped");
+		return;
+	}
+	if (_impl) {
+		AMediaCodec_flush(_impl);
+		AMediaCodec_stop(_impl);
+		// It is preferable to reset the encoder, otherwise it may not accept a new configuration while returning in preprocess().
+		// This was observed at least on Moto G2, with qualcomm encoder.
+		AMediaCodec_reset(_impl);
+	}
+	_psInserter->flush();
+	_isRunning = false;
+}
+
+void MediaCodecEncoder::feed(mblk_t *rawData, uint64_t time) {
+	if (!_isRunning) {
+		ms_error("MSMediaCodecH264Enc: encoder not running. Dropping buffer.");
+		freemsg(rawData);
+		return;
+	}
+
+	if (_recoveryMode && time - _lastTryTime >= 5000) {
+		try {
+			if (_impl == nullptr) createImpl();
+			configureImpl();
+			_recoveryMode = false;
+		} catch (const runtime_error &e) {
+			ms_error("MSMediaCodecH264Enc: %s", e.what());
+			ms_error("MSMediaCodecH264Enc: AMediaCodec_reset() was not sufficient, will recreate the encoder in a moment...");
+			AMediaCodec_delete(_impl);
+			_lastTryTime = time;
+		}
+	}
+
+	MSPicture pic;
+	ms_yuv_buf_init_from_mblk(&pic, rawData);
+
+	ssize_t ibufidx = AMediaCodec_dequeueInputBuffer(_impl, _timeoutUs);
+	if (ibufidx < 0) {
+		if (ibufidx == AMEDIA_ERROR_UNKNOWN) ms_error("MSMediaCodecH264Enc: AMediaCodec_dequeueInputBuffer() had an exception");
+		return;
+	}
+
+	size_t bufsize;
+	uint8_t *buf;
+	if ((buf = AMediaCodec_getInputBuffer(_impl, ibufidx, &bufsize)) == nullptr) {
+		ms_error("MSMediaCodecH264Enc: obtained InputBuffer, but no address.");
+		return;
+	}
+
+	AMediaImage image;
+	if (AMediaCodec_getInputImage(_impl, ibufidx, &image)) {
+		if (image.format == 35 /* YUV_420_888 */) {
+			MSRect src_roi = {0, 0, pic.w, pic.h};
+			int src_pix_strides[4] = {1, 1, 1, 1};
+			ms_yuv_buf_copy_with_pix_strides(pic.planes, pic.strides, src_pix_strides, src_roi, image.buffers, image.row_strides, image.pixel_strides, image.crop_rect);
+			bufsize = image.row_strides[0] * image.height * 3 / 2;
+		} else {
+			ms_error("MSMediaCodecH264Enc: encoder requires non YUV420 format");
+		}
+		AMediaImage_close(&image);
+	}
+
+	AMediaCodec_queueInputBuffer(_impl, ibufidx, 0, bufsize, time, 0);
+	if (!_firstBufferQueued) {
+		_firstBufferQueued = true;
+		ms_message("MSMediaCodecH264Enc: first frame to encode queued (size: %ix%i)", pic.w, pic.h);
+	}
+}
+
+void MediaCodecEncoder::fetch(MSQueue *encodedData) {
+	if (!_isRunning || _recoveryMode) return;
+
+	MSQueue outq;
+	ms_queue_init(&outq);
+
+	AMediaCodecBufferInfo info;
+	ssize_t obufidx;
+	while ((obufidx = AMediaCodec_dequeueOutputBuffer(_impl, &info, _timeoutUs)) >= 0) {
+		uint8_t *buf;
+		size_t bufsize;
+		if ((buf = AMediaCodec_getOutputBuffer(_impl, obufidx, &bufsize)) == nullptr) {
+			ms_error("MSMediaCodecH264Enc: AMediaCodec_getOutputBuffer() returned nullptr");
+			break;
+		}
+		byteStreamToNalus(buf + info.offset, info.size, &outq);
+		AMediaCodec_releaseOutputBuffer(_impl, obufidx, FALSE);
+	}
+	if (obufidx == AMEDIA_ERROR_UNKNOWN) {
+		ms_error("MSMediaCodecH264Enc: AMediaCodec_dequeueOutputBuffer() had an exception, MediaCodec is lost");
+		// MediaCodec need to be reset  at this point because it may have become irrevocably crazy.
+		AMediaCodec_reset(_impl);
+		_recoveryMode = true;
+		_lastTryTime = 0;
+	}
+
+	_psInserter->process(&outq, encodedData);
+}
+
+void MediaCodecEncoder::createImpl() {
+	_impl = AMediaCodec_createEncoderByType(_mime.c_str());
+	if (_impl == nullptr) {
+		throw runtime_error("could not create MediaCodec");
+	}
+}
+
+void MediaCodecEncoder::configureImpl() {
+	int32_t colorFormat = 0x7f420888;
+
+	AMediaFormat *format = AMediaFormat_new();
+	AMediaFormat_setString(format, "mime", _mime.c_str());
+	AMediaFormat_setInt32(format, "width", _vsize.width);
+	AMediaFormat_setInt32(format, "height", _vsize.height);
+	AMediaFormat_setInt32(format, "i-frame-interval", 20);
+	AMediaFormat_setInt32(format, "bitrate", (_bitrate * 9)/10); // take a margin
+	AMediaFormat_setInt32(format, "frame-rate", _fps);
+	AMediaFormat_setInt32(format, "bitrate-mode", 1); // VBR mode
+	AMediaFormat_setInt32(format, "profile", _profile);
+	AMediaFormat_setInt32(format, "level", _level);
+	AMediaFormat_setInt32(format, "color-format", colorFormat);
+
+	media_status_t status = AMediaCodec_configure(_impl, format, nullptr, nullptr, AMEDIACODEC_CONFIGURE_FLAG_ENCODE);
+	AMediaFormat_delete(format);
+
+	if (status != 0) {
+		throw runtime_error("could not configure encoder.");
+	}
+
+	ms_message("MSMediaCodecH264Enc: encoder successfully configured. size=%ix%i, color-format=%d",
+				_vsize.width,  _vsize.height, colorFormat);
+}
+
 // Public methods
-	MediaCodecEncoderFilterImpl::MediaCodecEncoderFilterImpl(MSFilter *f, const std::string &mime, int profile, int level, NalPacker *packer, const MSVideoConfiguration *vconfs):
-	_f(f), _mime(mime), _profile(profile), _level(level), _packer(packer), _vconfList(vconfs) {
+MediaCodecEncoderFilterImpl::MediaCodecEncoderFilterImpl(MSFilter *f, MediaCodecEncoder *encoder, NalPacker *packer, const MSVideoConfiguration *vconfs):
+	_f(f), _encoder(encoder), _packer(packer), _vconfList(vconfs) {
 
 	_vconf = ms_video_find_best_configuration_for_size(_vconfList, MS_VIDEO_SIZE_CIF, ms_factory_get_cpu_count(f->factory));
 	ms_video_starter_init(&_starter);
 
 	_packer->setPacketizationMode(NalPacker::NonInterleavedMode);
 	_packer->enableAggregation(false);
-
-	/*we shall allocate the MediaCodec encoder the sooner as possible and before the decoder, because
-		* on some phones hardware encoder and decoders can't be allocated at the same time.
-		* */
-	allocEncoder();
-}
-
-MediaCodecEncoderFilterImpl::~MediaCodecEncoderFilterImpl() {
-	if (_codec) AMediaCodec_delete(_codec);
 }
 
 void MediaCodecEncoderFilterImpl::preprocess() {
-	encConfigure();
+	_encoder->start();
 	ms_video_starter_init(&_starter);
 	ms_iframe_requests_limiter_init(&_iframeLimiter, 1000);
 }
 
 void MediaCodecEncoderFilterImpl::process() {
-	if (_codecLost && (_f->ticker->time % 5000 == 0)){
-		if (encConfigure() != 0){
-			ms_error("MSMediaCodecH264Enc: AMediaCodec_reset() was not sufficient, will recreate the encoder in a moment...");
-			AMediaCodec_delete(_codec);
-			_codec = nullptr;
-			_codecLost = true;
-		}
-	}
-
-	if (!_codecStarted || _codecLost) {
-		ms_queue_flush(_f->inputs[0]);
-		return;
-	}
-
 	/*First queue input image*/
 	if (mblk_t *im = ms_queue_peek_last(_f->inputs[0])) {
-		MSPicture pic;
-		if (ms_yuv_buf_init_from_mblk(&pic, im) == 0) {
-			if (ms_iframe_requests_limiter_iframe_requested(&_iframeLimiter, _f->ticker->time) ||
-					(!_avpfEnabled && ms_video_starter_need_i_frame(&_starter, _f->ticker->time))) {
-				AMediaFormat *afmt = AMediaFormat_new();
-				/*Force a key-frame*/
-				AMediaFormat_setInt32(afmt, "request-sync", 0);
-				AMediaCodec_setParams(_codec, afmt);
-				AMediaFormat_delete(afmt);
-				ms_error("MSMediaCodecH264Enc: I-frame requested to MediaCodec");
-				ms_iframe_requests_limiter_notify_iframe_sent(&_iframeLimiter, _f->ticker->time);
-			}
-
-			ssize_t ibufidx = AMediaCodec_dequeueInputBuffer(_codec, _timeoutUs);
-			if (ibufidx >= 0) {
-				size_t bufsize;
-				if (uint8_t *buf = AMediaCodec_getInputBuffer(_codec, ibufidx, &bufsize)){
-					AMediaImage image;
-					if (AMediaCodec_getInputImage(_codec, ibufidx, &image)) {
-						if (image.format == 35 /* YUV_420_888 */) {
-							MSRect src_roi = {0, 0, pic.w, pic.h};
-							int src_pix_strides[4] = {1, 1, 1, 1};
-							ms_yuv_buf_copy_with_pix_strides(pic.planes, pic.strides, src_pix_strides, src_roi, image.buffers, image.row_strides, image.pixel_strides, image.crop_rect);
-							bufsize = image.row_strides[0] * image.height * 3 / 2;
-						} else {
-							ms_error("%s: encoder requires non YUV420 format", _f->desc->name);
-						}
-						AMediaImage_close(&image);
-					}
-					AMediaCodec_queueInputBuffer(_codec, ibufidx, 0, bufsize, _f->ticker->time * 1000, 0);
-					if (!_firstBufferQueued){
-						_firstBufferQueued = true;
-						ms_message("MSMediaCodecH264Enc: first frame to encode queued (size: %ix%i)", pic.w, pic.h);
-					}
-				}else{
-					ms_error("MSMediaCodecH264Enc: obtained InputBuffer, but no address.");
-				}
-			} else if (ibufidx == AMEDIA_ERROR_UNKNOWN) {
-				ms_error("MSMediaCodecH264Enc: AMediaCodec_dequeueInputBuffer() had an exception");
-			}
-		}
+		_encoder->feed(dupmsg(im), _f->ticker->time);
 	}
 	ms_queue_flush(_f->inputs[0]);
 
-	if (!_firstBufferQueued)
-		return;
-
 	/*Second, dequeue possibly pending encoded frames*/
-	AMediaCodecBufferInfo info;
-	ssize_t obufidx;
-	while ((obufidx = AMediaCodec_dequeueOutputBuffer(_codec, &info, _timeoutUs)) >= 0) {
-		size_t bufsize;
-		if (uint8_t *buf = AMediaCodec_getOutputBuffer(_codec, obufidx, &bufsize)) {
-			MSQueue nalus;
-
-			ms_queue_init(&nalus);
-			byteStreamToNalus(buf + info.offset, info.size, &nalus);
-
-			if (!ms_queue_empty(&nalus)) {
-				onFrameEncodedHook(&nalus);
-				_packer->pack(&nalus, _f->outputs[0], _f->ticker->time * 90LL);
-
-				if (_framenum == 0) {
-					ms_video_starter_first_frame(&_starter, _f->ticker->time);
-				}
-				_framenum++;
-			}else{
-				ms_error("MSMediaCodecH264Enc: no NALUs in buffer obtained from MediaCodec");
-			}
-		}else{
-			ms_error("MSMediaCodecH264Enc: AMediaCodec_getOutputBuffer() returned nullptr");
-		}
-		AMediaCodec_releaseOutputBuffer(_codec, obufidx, FALSE);
-	}
-
-	if (obufidx == AMEDIA_ERROR_UNKNOWN) {
-		ms_error("MSMediaCodecH264Enc: AMediaCodec_dequeueOutputBuffer() had an exception, MediaCodec is lost");
-		/* TODO: the MediaCodec is irrecoverabely crazy at this point. We should probably use AMediacCodec_reset() but this method is not wrapped yet.*/
-		_codecLost = true;
-		AMediaCodec_reset(_codec);
-	}
+	_encoder->fetch(_f->outputs[0]);
 }
 
 void MediaCodecEncoderFilterImpl::postprocess() {
 	_packer->flush();
-
-	if (_codec) {
-		if (_codecStarted){
-			AMediaCodec_flush(_codec);
-			AMediaCodec_stop(_codec);
-			//It is preferable to reset the encoder, otherwise it may not accept a new configuration while returning in preprocess().
-			//This was observed at least on Moto G2, with qualcomm encoder.
-			AMediaCodec_reset(_codec);
-			_codecStarted = false;
-		}
-	}
+	_encoder->stop();
 }
 
 int MediaCodecEncoderFilterImpl::getBitrate() const {
@@ -178,7 +254,7 @@ int MediaCodecEncoderFilterImpl::getBitrate() const {
 }
 
 void MediaCodecEncoderFilterImpl::setBitrate(int br) {
-	if (_codecStarted) {
+	if (_encoder->isRunning()) {
 		/* Encoding is already ongoing, do not change video size, only bitrate. */
 		_vconf.required_bitrate = br;
 		/* apply the new bitrate request to the running MediaCodec*/
@@ -197,15 +273,10 @@ int MediaCodecEncoderFilterImpl::setVideoConfiguration(const MSVideoConfiguratio
 
 	ms_message("Video configuration set: bitrate=%d bits/s, fps=%f, vsize=%dx%d", _vconf.required_bitrate, _vconf.fps, _vconf.vsize.width, _vconf.vsize.height);
 
-	if (_codecStarted){
-		AMediaFormat *afmt = AMediaFormat_new();
-		/*Update the output bitrate*/
-		ms_filter_lock(_f);
-		AMediaFormat_setInt32(afmt, "video-bitrate", _vconf.required_bitrate);
-		AMediaCodec_setParams(_codec, afmt);
-		AMediaFormat_delete(afmt);
-		ms_filter_unlock(_f);
-	}
+	_encoder->setVideoSize(_vconf.vsize);
+	_encoder->setFps(_vconf.fps);
+	_encoder->setBitrate(_vconf.required_bitrate);
+
 	return 0;
 }
 
@@ -250,74 +321,6 @@ const MSVideoConfiguration *MediaCodecEncoderFilterImpl::getVideoConfiguratons()
 
 void MediaCodecEncoderFilterImpl::setVideoConfigurations(const MSVideoConfiguration *vconfs) {
 	_vconfList = vconfs;
-}
-
-
-
-
-// Private methods
-media_status_t MediaCodecEncoderFilterImpl::allocEncoder(){
-	if (!_codec){
-		_codec = AMediaCodec_createEncoderByType(_mime.c_str());
-		if (!_codec) {
-			ms_error("MSMediaCodecH264Enc: could not create MediaCodec");
-			return AMEDIA_ERROR_UNKNOWN;
-		}
-	}
-	return AMEDIA_OK;
-}
-
-media_status_t MediaCodecEncoderFilterImpl::tryColorFormat(AMediaFormat *format, unsigned value) {
-	AMediaFormat_setInt32(format, "color-format", value);
-	media_status_t status = AMediaCodec_configure(_codec, format, nullptr, nullptr, AMEDIACODEC_CONFIGURE_FLAG_ENCODE);
-	if (status != 0){
-		ms_message("AMediaCodec_configure() failed with error %i for format %u", (int)status, value);
-	}
-	return status;
-}
-
-int MediaCodecEncoderFilterImpl::encConfigure() {
-	media_status_t status = allocEncoder();
-	if (status != 0) return status;
-
-	_codecLost = false;
-	_codecStarted = false;
-
-	AMediaFormat *format = AMediaFormat_new();
-	AMediaFormat_setString(format, "mime", _mime.c_str());
-	AMediaFormat_setInt32(format, "width", _vconf.vsize.width);
-	AMediaFormat_setInt32(format, "height", _vconf.vsize.height);
-	AMediaFormat_setInt32(format, "i-frame-interval", 20);
-	AMediaFormat_setInt32(format, "bitrate", (_vconf.required_bitrate * 9)/10); /*take a margin*/
-	AMediaFormat_setInt32(format, "frame-rate", _vconf.fps);
-	AMediaFormat_setInt32(format, "bitrate-mode", 1);
-	AMediaFormat_setInt32(format, "profile", _profile);
-	AMediaFormat_setInt32(format, "level", _level);
-
-	ms_message("MSMediaCodecH264Enc: AMediaImage is available.");
-	status = tryColorFormat(format, 0x7f420888);/*the new "flexible YUV", appeared in API23*/
-
-	if (status != 0) {
-		ms_error("MSMediaCodecH264Enc: Could not configure encoder.");
-	} else {
-		int32_t color_format;
-
-		if (!AMediaFormat_getInt32(format, "color-format", &color_format)) {
-			color_format = -1;
-		}
-		ms_message("MSMediaCodecH264Enc: encoder successfully configured. size=%ix%i, color-format=%d",
-					_vconf.vsize.width,  _vconf.vsize.height, color_format);
-		if ((status = AMediaCodec_start(_codec)) != AMEDIA_OK) {
-			ms_error("MSMediaCodecH264Enc: Could not start encoder.");
-		} else {
-			ms_message("MSMediaCodecH264Enc: encoder successfully started");
-			_codecStarted = true;
-		}
-	}
-
-	AMediaFormat_delete(format);
-	_firstBufferQueued = false;
-	return status;
 }
 
 }

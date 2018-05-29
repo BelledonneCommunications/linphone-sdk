@@ -38,13 +38,16 @@ static const MSVideoConfiguration _media_codec_h265_conf_list[] = {
 
 namespace mediastreamer {
 
+class MediaCodecH265Encoder: public MediaCodecEncoder {
+public:
+	MediaCodecH265Encoder(): MediaCodecEncoder("video/hevc", 1 /* HEVCProfileMain */, 256 /* HEVCMainTierLevel31 */, new H265ParameterSetsInserter()) {}
+};
+
 class MediaCodecH265EncoderFilterImpl: public MediaCodecEncoderFilterImpl {
 public:
 	MediaCodecH265EncoderFilterImpl(MSFilter *f): MediaCodecEncoderFilterImpl(
 		f,
-		"video/hevc",
-		1, // HEVCProfileMain
-		256, // HEVCMainTierLevel31
+		new MediaCodecH265Encoder(),
 		new H265NalPacker(f->factory),
 		_media_codec_h265_conf_list) {}
 

@@ -39,27 +39,19 @@ static const MSVideoConfiguration _media_codec_h264_conf_list[] = {
 
 namespace mediastreamer {
 
+class MediaCodecH264Encoder: public MediaCodecEncoder {
+public:
+	MediaCodecH264Encoder(): MediaCodecEncoder("video/avc", 1 /* AVCProfileBaseline */,  1024 /* AVCLevel32 */, new H264ParameterSetsInserter()) {}
+};
+
 class MediaCodecH264EncoderFilterImpl: public MediaCodecEncoderFilterImpl {
 public:
 
 	MediaCodecH264EncoderFilterImpl(MSFilter *f): MediaCodecEncoderFilterImpl(
 		f,
-		"video/avc",
-		1, // AVCProfileBaseline
-		1024, // AVCLevel32
+		new MediaCodecH264Encoder(),
 		new H264NalPacker(),
 		_media_codec_h264_conf_list) {}
-
-	~MediaCodecH264EncoderFilterImpl() {
-		if (_sps) freemsg(_sps);
-		if (_pps) freemsg(_pps);
-	}
-
-	void postprocess() override {
-		MediaCodecEncoderFilterImpl::postprocess();
-		setMblk(&_sps, nullptr);
-		setMblk(&_pps, nullptr);
-	}
 
 	void setVideoConfigurations(const MSVideoConfiguration *vconfs) {
 		_vconfList = vconfs ? vconfs : _media_codec_h264_conf_list;
@@ -154,52 +146,6 @@ public:
 		static_cast<MediaCodecH264EncoderFilterImpl *>(f->data)->setVideoConfigurations(vconfs);
 		return 0;
 	}
-
-private:
-	void onFrameEncodedHook(MSQueue *frame) override {
-		bool have_seen_sps_pps = false;
-		mblk_t *m = ms_queue_peek_first(frame);
-		switch (ms_h264_nalu_get_type(m)) {
-			case MSH264NaluTypeIDR:
-				if (!have_seen_sps_pps) {
-					ms_message("MSMediaCodecH264Enc: seeing IDR without prior SPS/PPS, so manually adding them.");
-
-					if (_sps && _pps) {
-						ms_queue_insert(frame, m, copyb(_sps));
-						ms_queue_insert(frame, m, copyb(_pps));
-					} else {
-						ms_error("MSMediaCodecH264Enc: SPS or PPS are not known !");
-					}
-				}
-				break;
-
-			case MSH264NaluTypeSPS:
-				ms_message("MSMediaCodecH264Enc: seeing SPS");
-				have_seen_sps_pps = true;
-				setMblk(&_sps, m);
-				m = ms_queue_next(&nalus, m);
-
-				if (!ms_queue_end(frame, m) && ms_h264_nalu_get_type(m) == MSH264NaluTypePPS) {
-					ms_message("MSMediaCodecH264Enc: seeing PPS");
-					setMblk(&_pps, m);
-				}
-				break;
-
-			case MSH264NaluTypePPS:
-				ms_warning("MSMediaCodecH264Enc: unexpecting starting PPS");
-				break;
-			default:
-				break;
-		}
-	}
-
-	static void setMblk(mblk_t **packet, mblk_t *newone) {
-		if (newone) newone = copyb(newone);
-		if (*packet) freemsg(*packet);
-		*packet = newone;
-	}
-
-	mblk_t *_sps = nullptr, *_pps = nullptr; /*lastly generated SPS, PPS, in case we need to repeat them*/
 };
 
 } // mamespace mediastreamer

@@ -254,4 +254,37 @@ mblk_t *H264Tools::prependFuIndicatorAndHeader(mblk_t *m, uint8_t indicator, boo
 		return h;
 }
 
+H264ParameterSetsInserter::~H264ParameterSetsInserter() {
+	flush();
+}
+
+void H264ParameterSetsInserter::process(MSQueue *in, MSQueue *out) {
+	bool psBeforeIdr = false;
+	while (mblk_t *m = ms_queue_get(in)) {
+		MSH264NaluType type = ms_h264_nalu_get_type(m);
+		if (type == MSH264NaluTypeSPS) {
+			psBeforeIdr = true;
+			replaceParameterSet(&_sps, m);
+		} else if (type == MSH264NaluTypePPS) {
+			psBeforeIdr = true;
+			replaceParameterSet(&_pps, m);
+		} else if (type == MSH264NaluTypeIDR) {
+			if (!psBeforeIdr) {
+				ms_queue_put(out, copyb(_sps));
+				ms_queue_put(out, copyb(_pps));
+			} else {
+				psBeforeIdr = false;
+			}
+		} else {
+			psBeforeIdr = false;
+		}
+		ms_queue_put(out, m);
+	}
+}
+
+void H264ParameterSetsInserter::flush() {
+	if (_sps) freemsg(_sps);
+	if (_pps) freemsg(_pps);
+}
+
 } // namespace mediastreamer2

@@ -22,6 +22,8 @@
 #include <cstdint>
 #include <ortp/str_utils.h>
 
+#include "h26x-utils.h"
+
 namespace mediastreamer {
 
 class H265NaluType {
@@ -33,6 +35,11 @@ public:
 
 	bool isVcl() const {return _value < 32;}
 
+	static const H265NaluType IdrWRadl;
+	static const H265NaluType IdrNLp;
+	static const H265NaluType Vps;
+	static const H265NaluType Sps;
+	static const H265NaluType Pps;
 	static const H265NaluType Ap;
 	static const H265NaluType Fu;
 
@@ -94,6 +101,18 @@ public:
 private:
 	Position _pos = Position::Start;
 	H265NaluType _type;
+};
+
+class H265ParameterSetsInserter: public H26xParameterSetsInserter {
+public:
+	~H265ParameterSetsInserter() {flush();}
+	void process(MSQueue *in, MSQueue *out) override;
+	void flush() override;
+
+private:
+	mblk_t *_vps = nullptr;
+	mblk_t *_sps = nullptr;
+	mblk_t *_pps = nullptr;
 };
 
 }

@@ -23,6 +23,10 @@
 #include <mediastreamer2/msqueue.h>
 #include "mediastreamer2/msvideo.h"
 
+#ifdef __cplusplus
+#include "h26x-utils.h"
+#endif
+
 /**
  * Enumeration that lists the different type of NAL unit
  */
@@ -139,7 +143,19 @@ public:
 	static mblk_t *prependFuIndicatorAndHeader(mblk_t *m, uint8_t indicator, bool_t start, bool_t end, uint8_t type);
 };
 
+class H264ParameterSetsInserter: public H26xParameterSetsInserter {
+public:
+	~H264ParameterSetsInserter();
+	void process(MSQueue *in, MSQueue *out) override;
+	void flush() override;
+
+private:
+	mblk_t *_sps = nullptr;
+	mblk_t *_pps = nullptr;
 };
-#endif
+
+} // namespace mediastreamer
+
+#endif // __cplusplus
 
 #endif /* defined(H264_UTILS_H) */

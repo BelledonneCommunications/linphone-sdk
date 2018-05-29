@@ -28,13 +28,78 @@
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msvideo.h"
 
+#include "h26x-utils.h"
 #include "nal-packer.h"
 
 namespace mediastreamer {
 
+class VideoEncoderInterface {
+public:
+	virtual ~VideoEncoderInterface() = default;
+
+	virtual MSVideoSize getVideoSize() const = 0;
+	virtual void setVideoSize(const MSVideoSize &vsize) = 0;
+
+	virtual float getFps() const = 0;
+	virtual void setFps(float fps) = 0;
+
+	virtual int getBitrate() const = 0;
+	virtual void setBitrate(int bitrate) = 0;
+
+	virtual bool isRunning() = 0;
+	virtual void start() = 0;
+	virtual void stop() = 0;
+
+	virtual void feed(mblk_t *rawData, uint64_t time) = 0;
+	virtual void fetch(MSQueue *encodedData) = 0;
+};
+
+class MediaCodecEncoder: public VideoEncoderInterface {
+public:
+	~MediaCodecEncoder();
+
+	const std::string &getMime() const {return _mime;}
+
+	MSVideoSize getVideoSize() const override {return _vsize;}
+	void setVideoSize(const MSVideoSize &vsize) override {_vsize = vsize;}
+
+	float getFps() const override {return _fps;}
+	void setFps(float fps) override {_fps = fps;}
+
+	int getBitrate() const override {return _bitrate;}
+	void setBitrate(int bitrate) override;
+
+	bool isRunning() override {return _isRunning;}
+	void start() override;
+	void stop() override;
+
+	void feed(mblk_t *rawData, uint64_t time) override;
+	void fetch(MSQueue *encodedData) override;
+
+protected:
+	MediaCodecEncoder(const std::string &mime, int profile, int level, H26xParameterSetsInserter *psInserter);
+	void createImpl();
+	void configureImpl();
+	void destroyImpl();
+
+	std::string _mime;
+	int _profile = 0;
+	int _level = 0;
+	std::unique_ptr<H26xParameterSetsInserter> _psInserter;
+	MSVideoSize _vsize;
+	float _fps = 0;
+	int _bitrate = 0;
+	AMediaCodec *_impl = nullptr;
+	uint64_t _lastTryTime = 0;
+	bool _isRunning = false;
+	bool _recoveryMode = false;
+	bool _firstBufferQueued = false;
+	static const int _timeoutUs = 0;
+};
+
 class MediaCodecEncoderFilterImpl {
 public:
-	virtual ~MediaCodecEncoderFilterImpl();
+	virtual ~MediaCodecEncoderFilterImpl() = default;
 
 	virtual void preprocess();
 	virtual void process();
@@ -58,32 +123,19 @@ public:
 	void notifyFir();
 
 protected:
-	MediaCodecEncoderFilterImpl(MSFilter *f, const std::string &mime, int profile, int level, NalPacker *packer, const MSVideoConfiguration *vconfs);
-
-	virtual void onFrameEncodedHook(MSQueue *frame) {};
-
-	media_status_t allocEncoder();
-	media_status_t tryColorFormat(AMediaFormat *format, unsigned value);
-	int encConfigure();
+	MediaCodecEncoderFilterImpl(MSFilter *f, MediaCodecEncoder *encoder, NalPacker *packer, const MSVideoConfiguration *vconfs);
 
 	MSFilter *_f = nullptr;
-	std::string _mime;
-	int _profile = 0;
-	int _level = 0;
+	std::unique_ptr<MediaCodecEncoder> _encoder;
 	std::unique_ptr<NalPacker> _packer;
 	const MSVideoConfiguration *_vconfList;
 	MSVideoConfiguration _vconf;
 	bool _avpfEnabled = false;
 
-	AMediaCodec *_codec = nullptr;
 	uint64_t _framenum = 0;
 	MSVideoStarter _starter;
 	MSIFrameRequestsLimiterCtx _iframeLimiter;
-	bool _firstBufferQueued = false;
-	bool _codecStarted = false;
-	bool _codecLost = false;
-
-	static const int _timeoutUs = 0;
 };
 
 }
+

@@ -30,6 +30,11 @@ H265NaluType::H265NaluType(uint8_t value) {
 	_value = value;
 }
 
+const H265NaluType H265NaluType::IdrWRadl = 19;
+const H265NaluType H265NaluType::IdrNLp = 20;
+const H265NaluType H265NaluType::Vps = 32;
+const H265NaluType H265NaluType::Sps = 33;
+const H265NaluType H265NaluType::Pps = 34;
 const H265NaluType H265NaluType::Ap = 48;
 const H265NaluType H265NaluType::Fu = 49;
 
@@ -99,6 +104,41 @@ mblk_t *H265FuHeader::forge() const {
 	mblk_t *newHeader = allocb(1, 0);
 	*newHeader->b_wptr++ = header;
 	return newHeader;
+}
+
+void H265ParameterSetsInserter::process(MSQueue *in, MSQueue *out) {
+	bool psBeforeIdr = false;
+	H265NaluHeader header;
+	while (mblk_t *m = ms_queue_get(in)) {
+		header.parse(m->b_rptr);
+		if (header.getType() == H265NaluType::Vps) {
+			psBeforeIdr = true;
+			replaceParameterSet(&_vps, m);
+		} else if (header.getType() == H265NaluType::Sps) {
+			psBeforeIdr = true;
+			replaceParameterSet(&_sps, m);
+		} else if (header.getType() == H265NaluType::Pps) {
+			psBeforeIdr = true;
+			replaceParameterSet(&_pps, m);
+		} else if (header.getType() == H265NaluType::IdrWRadl || header.getType() == H265NaluType::IdrNLp) {
+			if (!psBeforeIdr) {
+				ms_queue_put(out, copyb(_vps));
+				ms_queue_put(out, copyb(_sps));
+				ms_queue_put(out, copyb(_pps));
+			} else {
+				psBeforeIdr = false;
+			}
+		} else {
+			psBeforeIdr = false;
+		}
+		ms_queue_put(out, m);
+	}
+}
+
+void H265ParameterSetsInserter::flush() {
+	if (_vps) freemsg(_vps);
+	if (_sps) freemsg(_sps);
+	if (_pps) freemsg(_pps);
 }
 
 }

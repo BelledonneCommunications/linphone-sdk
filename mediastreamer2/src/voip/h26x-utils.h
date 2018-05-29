@@ -34,4 +34,15 @@ void byteStreamToNalus(const uint8_t *byteStream, size_t size, MSQueue *out);
 
 void nalusToByteStream(MSQueue *nalus, std::vector<uint8_t> &bytestream);
 
+
+class H26xParameterSetsInserter {
+public:
+	virtual ~H26xParameterSetsInserter() = default;
+	virtual void process(MSQueue *in, MSQueue *out) = 0;
+	virtual void flush() = 0;
+
+protected:
+	static void replaceParameterSet(mblk_t **ps, mblk_t *newPs);
+};
+
 }
