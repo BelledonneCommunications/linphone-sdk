@@ -85,14 +85,24 @@ static char *convert_from_to (const char *str, const char *from, const char *to)
 	return ptr;
 }
 
-extern "C" char *bctbx_locale_to_utf8 (const char *str) {
-	return convert_from_to(str, "locale", "UTF-8");
+char *bctbx_locale_to_utf8 (const char *str) {
+	const char *default_encoding = bctbx_get_default_encoding();
+
+	if (!strcmp(default_encoding, "UTF-8"))
+		return bctbx_strdup(str);
+
+	return convert_from_to(str, default_encoding, "UTF-8");
 }
 
-extern "C" char *bctbx_utf8_to_locale (const char *str) {
-	return convert_from_to(str, "UTF-8", "locale");
+char *bctbx_utf8_to_locale (const char *str) {
+	const char *default_encoding = bctbx_get_default_encoding();
+
+	if (!strcmp(default_encoding, "UTF-8"))
+		return bctbx_strdup(str);
+
+	return convert_from_to(str, "UTF-8", default_encoding);
 }
 
-extern "C" char *bctbx_convert_any_to_utf8 (const char *str, const char *encoding) {
+char *bctbx_convert_any_to_utf8 (const char *str, const char *encoding) {
 	return convert_from_to(str, encoding, "UTF-8");
 }

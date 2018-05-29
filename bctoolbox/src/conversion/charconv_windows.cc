@@ -113,7 +113,7 @@ static std::string stringToUpper (const std::string &str) {
 	return result;
 }
 
-static char *convert_from_to (const char *str, const char *from, const char *to) {
+static char *convertFromTo (const char *str, const char *from, const char *to) {
 	if (!from || !to)
 		return NULL;
 
@@ -157,14 +157,24 @@ static char *convert_from_to (const char *str, const char *from, const char *to)
 	return convertedStr;
 }
 
-extern "C" char *bctbx_locale_to_utf8 (const char *str) {
-	return convert_from_to(str, "locale", "UTF-8");
+char *bctbx_locale_to_utf8 (const char *str) {
+	const char *defaultEncoding = bctbx_get_default_encoding();
+
+	if (!strcmp(defaultEncoding, "UTF-8"))
+		return bctbx_strdup(str);
+
+	return convertFromTo(str, defaultEncoding, "UTF-8");
 }
 
-extern "C" char *bctbx_utf8_to_locale (const char *str) {
-	return convert_from_to(str, "UTF-8", "locale");
+char *bctbx_utf8_to_locale (const char *str) {
+	const char *defaultEncoding = bctbx_get_default_encoding();
+
+	if (!strcmp(defaultEncoding, "UTF-8"))
+		return bctbx_strdup(str);
+
+	return convertFromTo(str, "UTF-8", defaultEncoding);
 }
 
-extern "C" char *bctbx_convert_any_to_utf8 (const char *str, const char *encoding) {
-	return convert_from_to(str, encoding, "UTF-8");
+char *bctbx_convert_any_to_utf8 (const char *str, const char *encoding) {
+	return convertFromTo(str, encoding, "UTF-8");
 }

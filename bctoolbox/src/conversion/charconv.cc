@@ -20,24 +20,29 @@
 #include "config.h"
 #endif
 
+#ifdef __APPLE__
+   #include "TargetConditionals.h"
+#endif
+
 #include "bctoolbox/logging.h"
 #include "bctoolbox/port.h"
 #include "bctoolbox/charconv.h"
 
-char *bctbx_locale_to_utf8 (const char *str) {
-	// TODO remove this part when the NDK will contain a usable iconv
-	return bctbx_strdup(str);
+namespace {
+	std::string defaultEncoding = "";
 }
 
-char *bctbx_utf8_to_locale (const char *str) {
-	// TODO remove this part when the NDK will contain a usable iconv
-	return bctbx_strdup(str);
+void bctbx_set_default_encoding (const char *encoding) {
+	defaultEncoding = std::string(encoding);
 }
 
-char *bctbx_convert_any_to_utf8 (const char *str, const char *encoding) {
-	if (!encoding)
-		return NULL;
+const char *bctbx_get_default_encoding () {
+	if (!defaultEncoding.empty())
+		return defaultEncoding.c_str();
 
-	// TODO change this part when the NDK will contain a usable iconv
-	return bctbx_strdup(str);
+#if defined(__ANDROID__) || TARGET_OS_IPHONE
+	return "UTF-8";
+#else
+	return "locale";
+#endif
 }
