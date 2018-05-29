@@ -34,7 +34,7 @@ static NSStringEncoding getDefaultStringEncoding (const char *encoding) {
 		defaultEncoding = bctbx_get_default_encoding();
 
 	if (!strcmp(defaultEncoding, "UTF-8"))
-		return [NSString NSUTF8StringEncoding];
+		return NSUTF8StringEncoding;
 
 	if (!strcmp(defaultEncoding, "locale")) {
 		return [NSString defaultCStringEncoding];
