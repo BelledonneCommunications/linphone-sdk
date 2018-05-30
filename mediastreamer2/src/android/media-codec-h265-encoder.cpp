@@ -136,8 +136,8 @@ public:
 	}
 
 	static int onSetVideoConfigurationsCall(MSFilter *f, void *data) {
-		const MSVideoConfiguration *vconfs = static_cast<const MSVideoConfiguration *>(data);
-		static_cast<MediaCodecH265EncoderFilterImpl *>(f->data)->setVideoConfigurations(vconfs);
+		const MSVideoConfiguration * const *vconfs = static_cast<const MSVideoConfiguration * const *>(data);
+		static_cast<MediaCodecH265EncoderFilterImpl *>(f->data)->setVideoConfigurations(*vconfs);
 		return 0;
 	}
 };

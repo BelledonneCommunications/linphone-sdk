@@ -53,10 +53,6 @@ public:
 		new H264NalPacker(),
 		_media_codec_h264_conf_list) {}
 
-	void setVideoConfigurations(const MSVideoConfiguration *vconfs) {
-		_vconfList = vconfs ? vconfs : _media_codec_h264_conf_list;
-	}
-
 	static void onFilterInit(MSFilter *f) {
 		f->data = new MediaCodecH264EncoderFilterImpl(f);
 	}
@@ -142,8 +138,8 @@ public:
 	}
 
 	static int onSetVideoConfigurationsCall(MSFilter *f, void *data) {
-		const MSVideoConfiguration *vconfs = static_cast<const MSVideoConfiguration *>(data);
-		static_cast<MediaCodecH264EncoderFilterImpl *>(f->data)->setVideoConfigurations(vconfs);
+		const MSVideoConfiguration * const *vconfs = static_cast<const MSVideoConfiguration * const *>(data);
+		static_cast<MediaCodecH264EncoderFilterImpl *>(f->data)->setVideoConfigurations(*vconfs);
 		return 0;
 	}
 };

@@ -254,9 +254,10 @@ void MediaCodecEncoder::printMediaFormat() const {
 }
 
 // Public methods
-MediaCodecEncoderFilterImpl::MediaCodecEncoderFilterImpl(MSFilter *f, MediaCodecEncoder *encoder, NalPacker *packer, const MSVideoConfiguration *vconfs):
-	_f(f), _encoder(encoder), _packer(packer), _vconfList(vconfs) {
+MediaCodecEncoderFilterImpl::MediaCodecEncoderFilterImpl(MSFilter *f, MediaCodecEncoder *encoder, NalPacker *packer, const MSVideoConfiguration *defaultVConfList):
+	_f(f), _encoder(encoder), _packer(packer), _defaultVConfList(defaultVConfList) {
 
+	setVideoConfigurations(nullptr);
 	_vconf = ms_video_find_best_configuration_for_size(_vconfList, MS_VIDEO_SIZE_CIF, ms_factory_get_cpu_count(f->factory));
 	ms_video_starter_init(&_starter);
 
@@ -360,7 +361,7 @@ const MSVideoConfiguration *MediaCodecEncoderFilterImpl::getVideoConfiguratons()
 }
 
 void MediaCodecEncoderFilterImpl::setVideoConfigurations(const MSVideoConfiguration *vconfs) {
-	_vconfList = vconfs;
+	_vconfList = vconfs ? vconfs : _defaultVConfList;
 }
 
 }
