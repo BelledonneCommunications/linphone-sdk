@@ -42,7 +42,7 @@ public:
 	virtual void flush() = 0;
 
 protected:
-	static void replaceParameterSet(mblk_t **ps, mblk_t *newPs);
+	static void replaceParameterSet(mblk_t *&ps, mblk_t *newPs);
 };
 
 }

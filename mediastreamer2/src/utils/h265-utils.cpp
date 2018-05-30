@@ -113,13 +113,13 @@ void H265ParameterSetsInserter::process(MSQueue *in, MSQueue *out) {
 		header.parse(m->b_rptr);
 		if (header.getType() == H265NaluType::Vps) {
 			psBeforeIdr = true;
-			replaceParameterSet(&_vps, m);
+			replaceParameterSet(_vps, m);
 		} else if (header.getType() == H265NaluType::Sps) {
 			psBeforeIdr = true;
-			replaceParameterSet(&_sps, m);
+			replaceParameterSet(_sps, m);
 		} else if (header.getType() == H265NaluType::Pps) {
 			psBeforeIdr = true;
-			replaceParameterSet(&_pps, m);
+			replaceParameterSet(_pps, m);
 		} else if (header.getType() == H265NaluType::IdrWRadl || header.getType() == H265NaluType::IdrNLp) {
 			if (!psBeforeIdr) {
 				ms_queue_put(out, copyb(_vps));
@@ -136,9 +136,9 @@ void H265ParameterSetsInserter::process(MSQueue *in, MSQueue *out) {
 }
 
 void H265ParameterSetsInserter::flush() {
-	if (_vps) freemsg(_vps);
-	if (_sps) freemsg(_sps);
-	if (_pps) freemsg(_pps);
+	replaceParameterSet(_vps, nullptr);
+	replaceParameterSet(_sps, nullptr);
+	replaceParameterSet(_pps, nullptr);
 }
 
 }

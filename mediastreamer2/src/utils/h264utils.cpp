@@ -264,10 +264,10 @@ void H264ParameterSetsInserter::process(MSQueue *in, MSQueue *out) {
 		MSH264NaluType type = ms_h264_nalu_get_type(m);
 		if (type == MSH264NaluTypeSPS) {
 			psBeforeIdr = true;
-			replaceParameterSet(&_sps, m);
+			replaceParameterSet(_sps, m);
 		} else if (type == MSH264NaluTypePPS) {
 			psBeforeIdr = true;
-			replaceParameterSet(&_pps, m);
+			replaceParameterSet(_pps, m);
 		} else if (type == MSH264NaluTypeIDR) {
 			if (!psBeforeIdr) {
 				ms_queue_put(out, copyb(_sps));
@@ -283,8 +283,8 @@ void H264ParameterSetsInserter::process(MSQueue *in, MSQueue *out) {
 }
 
 void H264ParameterSetsInserter::flush() {
-	if (_sps) freemsg(_sps);
-	if (_pps) freemsg(_pps);
+	replaceParameterSet(_sps, nullptr);
+	replaceParameterSet(_pps, nullptr);
 }
 
 } // namespace mediastreamer2
