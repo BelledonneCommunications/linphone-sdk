@@ -51,7 +51,7 @@ public:
 	virtual void stop() = 0;
 
 	virtual void feed(mblk_t *rawData, uint64_t time) = 0;
-	virtual void fetch(MSQueue *encodedData) = 0;
+	virtual bool fetch(MSQueue *encodedData) = 0;
 };
 
 class MediaCodecEncoder: public VideoEncoderInterface {
@@ -74,13 +74,13 @@ public:
 	void stop() override;
 
 	void feed(mblk_t *rawData, uint64_t time) override;
-	void fetch(MSQueue *encodedData) override;
+	bool fetch(MSQueue *encodedData) override;
 
 protected:
 	MediaCodecEncoder(const std::string &mime, int profile, int level, H26xParameterSetsInserter *psInserter);
 	void createImpl();
 	void configureImpl();
-	void destroyImpl();
+	void printMediaFormat() const;
 
 	std::string _mime;
 	int _profile = 0;
@@ -91,10 +91,15 @@ protected:
 	int _bitrate = 0;
 	AMediaCodec *_impl = nullptr;
 	uint64_t _lastTryTime = 0;
+	int _pendingFrames = 0;
 	bool _isRunning = false;
 	bool _recoveryMode = false;
 	bool _firstBufferQueued = false;
+
 	static const int _timeoutUs = 0;
+	static const int32_t _colorFormat = 0x7f420888; // COLOR_FormatYUV420Flexible
+	static const int32_t _bitrateMode = 1; // VBR mode
+	static const int32_t _iFrameInterval = 20; // 20 seconds
 };
 
 class MediaCodecEncoderFilterImpl {
@@ -132,7 +137,6 @@ protected:
 	MSVideoConfiguration _vconf;
 	bool _avpfEnabled = false;
 
-	uint64_t _framenum = 0;
 	MSVideoStarter _starter;
 	MSIFrameRequestsLimiterCtx _iframeLimiter;
 };

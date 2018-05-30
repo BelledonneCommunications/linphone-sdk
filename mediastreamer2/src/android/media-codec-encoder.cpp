@@ -17,7 +17,9 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
+#include <cstdint>
 #include <cstring>
+#include <sstream>
 #include <stdexcept>
 
 #include <jni.h>
@@ -96,6 +98,7 @@ void MediaCodecEncoder::stop() {
 	}
 	_psInserter->flush();
 	_isRunning = false;
+	_pendingFrames = 0;
 }
 
 void MediaCodecEncoder::feed(mblk_t *rawData, uint64_t time) {
@@ -128,8 +131,8 @@ void MediaCodecEncoder::feed(mblk_t *rawData, uint64_t time) {
 	}
 
 	size_t bufsize;
-	uint8_t *buf;
-	if ((buf = AMediaCodec_getInputBuffer(_impl, ibufidx, &bufsize)) == nullptr) {
+	uint8_t *buf = AMediaCodec_getInputBuffer(_impl, ibufidx, &bufsize);
+	if (buf == nullptr) {
 		ms_error("MSMediaCodecH264Enc: obtained InputBuffer, but no address.");
 		return;
 	}
@@ -147,40 +150,52 @@ void MediaCodecEncoder::feed(mblk_t *rawData, uint64_t time) {
 		AMediaImage_close(&image);
 	}
 
-	AMediaCodec_queueInputBuffer(_impl, ibufidx, 0, bufsize, time, 0);
+	if (AMediaCodec_queueInputBuffer(_impl, ibufidx, 0, bufsize, time, 0) == AMEDIA_ERROR_BASE) {
+		ms_error("MSMediaCodecH264Enc: error while queuing input buffer");
+		return;
+	}
 	if (!_firstBufferQueued) {
 		_firstBufferQueued = true;
 		ms_message("MSMediaCodecH264Enc: first frame to encode queued (size: %ix%i)", pic.w, pic.h);
 	}
+	_pendingFrames++;
 }
 
-void MediaCodecEncoder::fetch(MSQueue *encodedData) {
-	if (!_isRunning || _recoveryMode) return;
-
+bool MediaCodecEncoder::fetch(MSQueue *encodedData) {
 	MSQueue outq;
+	AMediaCodecBufferInfo info;
+	uint8_t *buf;
+	size_t bufsize;
+
+	if (!_isRunning || _recoveryMode || _pendingFrames <= 0) return false;
+
 	ms_queue_init(&outq);
 
-	AMediaCodecBufferInfo info;
-	ssize_t obufidx;
-	while ((obufidx = AMediaCodec_dequeueOutputBuffer(_impl, &info, _timeoutUs)) >= 0) {
-		uint8_t *buf;
-		size_t bufsize;
-		if ((buf = AMediaCodec_getOutputBuffer(_impl, obufidx, &bufsize)) == nullptr) {
-			ms_error("MSMediaCodecH264Enc: AMediaCodec_getOutputBuffer() returned nullptr");
-			break;
-		}
-		byteStreamToNalus(buf + info.offset, info.size, &outq);
-		AMediaCodec_releaseOutputBuffer(_impl, obufidx, FALSE);
-	}
+	ssize_t obufidx = obufidx = AMediaCodec_dequeueOutputBuffer(_impl, &info, _timeoutUs);
+
 	if (obufidx == AMEDIA_ERROR_UNKNOWN) {
 		ms_error("MSMediaCodecH264Enc: AMediaCodec_dequeueOutputBuffer() had an exception, MediaCodec is lost");
 		// MediaCodec need to be reset  at this point because it may have become irrevocably crazy.
 		AMediaCodec_reset(_impl);
 		_recoveryMode = true;
 		_lastTryTime = 0;
+		return false;
 	}
 
+	if (obufidx < 0) return false;
+
+	if ((buf = AMediaCodec_getOutputBuffer(_impl, obufidx, &bufsize)) == nullptr) {
+		ms_error("MSMediaCodecH264Enc: AMediaCodec_getOutputBuffer() returned nullptr");
+		AMediaCodec_releaseOutputBuffer(_impl, obufidx, FALSE);
+		return false;
+	}
+
+	byteStreamToNalus(buf + info.offset, info.size, &outq);
+
 	_psInserter->process(&outq, encodedData);
+
+	_pendingFrames--;
+	return true;
 }
 
 void MediaCodecEncoder::createImpl() {
@@ -191,19 +206,20 @@ void MediaCodecEncoder::createImpl() {
 }
 
 void MediaCodecEncoder::configureImpl() {
-	int32_t colorFormat = 0x7f420888;
-
 	AMediaFormat *format = AMediaFormat_new();
 	AMediaFormat_setString(format, "mime", _mime.c_str());
-	AMediaFormat_setInt32(format, "width", _vsize.width);
-	AMediaFormat_setInt32(format, "height", _vsize.height);
-	AMediaFormat_setInt32(format, "i-frame-interval", 20);
-	AMediaFormat_setInt32(format, "bitrate", (_bitrate * 9)/10); // take a margin
-	AMediaFormat_setInt32(format, "frame-rate", _fps);
-	AMediaFormat_setInt32(format, "bitrate-mode", 1); // VBR mode
 	AMediaFormat_setInt32(format, "profile", _profile);
 	AMediaFormat_setInt32(format, "level", _level);
-	AMediaFormat_setInt32(format, "color-format", colorFormat);
+	AMediaFormat_setInt32(format, "color-format", _colorFormat);
+	AMediaFormat_setInt32(format, "width", _vsize.width);
+	AMediaFormat_setInt32(format, "height", _vsize.height);
+	AMediaFormat_setInt32(format, "frame-rate", _fps);
+	AMediaFormat_setInt32(format, "bitrate", (_bitrate * 9)/10); // take a margin
+	AMediaFormat_setInt32(format, "bitrate-mode", _bitrateMode);
+	AMediaFormat_setInt32(format, "i-frame-interval", _iFrameInterval);
+
+	ms_message("configuring MediaCodec with the following parameters:");
+	printMediaFormat();
 
 	media_status_t status = AMediaCodec_configure(_impl, format, nullptr, nullptr, AMEDIACODEC_CONFIGURE_FLAG_ENCODE);
 	AMediaFormat_delete(format);
@@ -212,8 +228,29 @@ void MediaCodecEncoder::configureImpl() {
 		throw runtime_error("could not configure encoder.");
 	}
 
-	ms_message("MSMediaCodecH264Enc: encoder successfully configured. size=%ix%i, color-format=%d",
-				_vsize.width,  _vsize.height, colorFormat);
+	ms_message("MSMediaCodecH264Enc: encoder successfully configured.");
+}
+
+void MediaCodecEncoder::printMediaFormat() const {
+	ostringstream os;
+	os << "mime: " << _mime << endl;
+	os << "profile: " << _profile << endl;
+	os << "level: " << _level << endl;
+
+	os.unsetf(ios::basefield);
+	os.setf(ios::hex);
+	os.setf(ios::showbase);
+	os << "color-format: " << _colorFormat << endl;
+	os.unsetf(ios::basefield);
+	os.setf(ios::dec);
+	os.unsetf(ios::showbase);
+
+	os << "video size: " << _vsize.width << "x" << _vsize.height << endl;
+	os << "frame-rate: " << _fps << "fps" << endl;
+	os << "bitrate: " << _bitrate << "b/s" << endl;
+	os << "bitrate-mode: " << _bitrateMode << endl;
+	os << "i-frame-intervale: " << _iFrameInterval << endl << endl;
+	ms_message("MediaCodecEncoder: %s", os.str().c_str());
 }
 
 // Public methods
@@ -241,7 +278,10 @@ void MediaCodecEncoderFilterImpl::process() {
 	ms_queue_flush(_f->inputs[0]);
 
 	/*Second, dequeue possibly pending encoded frames*/
-	_encoder->fetch(_f->outputs[0]);
+	MSQueue nalus;
+	ms_queue_init(&nalus);
+	_encoder->fetch(&nalus);
+	_packer->pack(&nalus, _f->outputs[0], _f->ticker->time);
 }
 
 void MediaCodecEncoderFilterImpl::postprocess() {
