@@ -171,8 +171,7 @@ bool MediaCodecEncoder::fetch(MSQueue *encodedData) {
 
 	ms_queue_init(&outq);
 
-	ssize_t obufidx = obufidx = AMediaCodec_dequeueOutputBuffer(_impl, &info, _timeoutUs);
-
+	ssize_t obufidx = AMediaCodec_dequeueOutputBuffer(_impl, &info, _timeoutUs);
 	if (obufidx == AMEDIA_ERROR_UNKNOWN) {
 		ms_error("MSMediaCodecH264Enc: AMediaCodec_dequeueOutputBuffer() had an exception, MediaCodec is lost");
 		// MediaCodec need to be reset  at this point because it may have become irrevocably crazy.
