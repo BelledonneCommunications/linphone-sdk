@@ -233,24 +233,24 @@ void MediaCodecEncoder::configureImpl() {
 
 void MediaCodecEncoder::printMediaFormat() const {
 	ostringstream os;
-	os << "mime: " << _mime << endl;
-	os << "profile: " << _profile << endl;
-	os << "level: " << _level << endl;
+	os << "\tmime: " << _mime << endl;
+	os << "\tprofile: " << _profile << endl;
+	os << "\tlevel: " << _level << endl;
 
 	os.unsetf(ios::basefield);
 	os.setf(ios::hex);
 	os.setf(ios::showbase);
-	os << "color-format: " << _colorFormat << endl;
+	os << "\tcolor-format: " << _colorFormat << endl;
 	os.unsetf(ios::basefield);
 	os.setf(ios::dec);
 	os.unsetf(ios::showbase);
 
-	os << "video size: " << _vsize.width << "x" << _vsize.height << endl;
-	os << "frame-rate: " << _fps << "fps" << endl;
-	os << "bitrate: " << _bitrate << "b/s" << endl;
-	os << "bitrate-mode: " << _bitrateMode << endl;
-	os << "i-frame-intervale: " << _iFrameInterval << endl << endl;
-	ms_message("MediaCodecEncoder: %s", os.str().c_str());
+	os << "\tvideo size: " << _vsize.width << "x" << _vsize.height << endl;
+	os << "\tframe-rate: " << _fps << "fps" << endl;
+	os << "\tbitrate: " << _bitrate << "b/s" << endl;
+	os << "\tbitrate-mode: " << _bitrateMode << endl;
+	os << "\ti-frame-intervale: " << _iFrameInterval << endl;
+	ms_message("%s", os.str().c_str());
 }
 
 // Public methods
