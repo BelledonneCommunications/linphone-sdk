@@ -119,7 +119,6 @@ void nalusToByteStream(MSQueue *nalus, std::vector<uint8_t> &byteStream) {
 }
 
 void H26xParameterSetsInserter::replaceParameterSet(mblk_t *&ps, mblk_t *newPs) {
-	if (newPs) newPs = copyb(newPs);
 	if (ps) freemsg(ps);
 	ps = newPs;
 }

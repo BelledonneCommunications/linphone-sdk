@@ -34,6 +34,7 @@ public:
 	operator uint8_t() const {return _value;}
 
 	bool isVcl() const {return _value < 32;}
+	bool isParameterSet() const;
 
 	static const H265NaluType IdrWRadl;
 	static const H265NaluType IdrNLp;

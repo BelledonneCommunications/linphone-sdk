@@ -30,6 +30,10 @@ H265NaluType::H265NaluType(uint8_t value) {
 	_value = value;
 }
 
+bool H265NaluType::isParameterSet() const {
+	return *this == Vps || *this == Sps || *this == Pps;
+}
+
 const H265NaluType H265NaluType::IdrWRadl = 19;
 const H265NaluType H265NaluType::IdrNLp = 20;
 const H265NaluType H265NaluType::Vps = 32;
@@ -120,18 +124,15 @@ void H265ParameterSetsInserter::process(MSQueue *in, MSQueue *out) {
 		} else if (header.getType() == H265NaluType::Pps) {
 			psBeforeIdr = true;
 			replaceParameterSet(_pps, m);
-		} else if (header.getType() == H265NaluType::IdrWRadl || header.getType() == H265NaluType::IdrNLp) {
-			if (!psBeforeIdr) {
-				ms_queue_put(out, copyb(_vps));
-				ms_queue_put(out, copyb(_sps));
-				ms_queue_put(out, copyb(_pps));
-			} else {
-				psBeforeIdr = false;
-			}
 		} else {
+			if ((header.getType() == H265NaluType::IdrWRadl || header.getType() == H265NaluType::IdrNLp) && !psBeforeIdr) {
+				ms_queue_put(out, dupmsg(_vps));
+				ms_queue_put(out, dupmsg(_sps));
+				ms_queue_put(out, dupmsg(_pps));
+			}
 			psBeforeIdr = false;
+			ms_queue_put(out, m);
 		}
-		ms_queue_put(out, m);
 	}
 }
 
@@ -141,4 +142,4 @@ void H265ParameterSetsInserter::flush() {
 	replaceParameterSet(_pps, nullptr);
 }
 
-}
+} // namespace mediastreamer
