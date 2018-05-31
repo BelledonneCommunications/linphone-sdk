@@ -76,7 +76,6 @@ void MediaCodecEncoder::start() {
 		if (AMediaCodec_start(_impl) != AMEDIA_OK) {
 			throw runtime_error("could not start encoder.");
 		}
-		_firstBufferQueued = false;
 		_isRunning = true;
 		ms_message("MSMediaCodecH264Enc: encoder successfully started");
 	} catch (const runtime_error &e) {
@@ -98,7 +97,7 @@ void MediaCodecEncoder::stop() {
 	}
 	_psInserter->flush();
 	_isRunning = false;
-	_pendingFrames = 0;
+	_firstBufferQueued = false;
 }
 
 void MediaCodecEncoder::feed(mblk_t *rawData, uint64_t time) {
@@ -129,7 +128,7 @@ void MediaCodecEncoder::feed(mblk_t *rawData, uint64_t time) {
 		if (ibufidx == AMEDIA_ERROR_UNKNOWN) {
 			ms_error("MSMediaCodecH264Enc: AMediaCodec_dequeueInputBuffer() had an exception");
 		} else if (ibufidx == -1) {
-			ms_error("MSMediaCodecH264Enc: no input buffer available. %d pending frames.", _pendingFrames);
+			ms_error("MSMediaCodecH264Enc: no input buffer available.");
 		} else {
 			ms_error("MSMediaCodecH264Enc: unknown error while requesting an input buffer (%zd)", ibufidx);
 		}
@@ -164,7 +163,6 @@ void MediaCodecEncoder::feed(mblk_t *rawData, uint64_t time) {
 		_firstBufferQueued = true;
 		ms_message("MSMediaCodecH264Enc: first frame to encode queued (size: %ix%i)", pic.w, pic.h);
 	}
-	_pendingFrames++;
 }
 
 bool MediaCodecEncoder::fetch(MSQueue *encodedData) {
@@ -173,7 +171,7 @@ bool MediaCodecEncoder::fetch(MSQueue *encodedData) {
 	uint8_t *buf;
 	size_t bufsize;
 
-	if (!_isRunning || _recoveryMode || _pendingFrames <= 0) return false;
+	if (!_isRunning || _recoveryMode || !_firstBufferQueued) return false;
 
 	ms_queue_init(&outq);
 
@@ -184,7 +182,7 @@ bool MediaCodecEncoder::fetch(MSQueue *encodedData) {
 	}
 	if (obufidx < 0) {
 		if (obufidx == -1) {
-			ms_error("MSMediaCodecH264Enc: no output buffer available. %d pending frames.", _pendingFrames);
+			ms_error("MSMediaCodecH264Enc: no output buffer available.");
 		} else if (obufidx == AMEDIA_ERROR_UNKNOWN) {
 			ms_error("MSMediaCodecH264Enc: AMediaCodec_dequeueOutputBuffer() had an exception, MediaCodec is lost");
 			// MediaCodec need to be reset  at this point because it may have become irrevocably crazy.
@@ -204,10 +202,7 @@ bool MediaCodecEncoder::fetch(MSQueue *encodedData) {
 	}
 
 	byteStreamToNalus(buf + info.offset, info.size, &outq);
-
 	_psInserter->process(&outq, encodedData);
-
-	_pendingFrames--;
 	return true;
 }
 
