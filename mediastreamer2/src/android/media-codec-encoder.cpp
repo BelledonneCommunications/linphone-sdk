@@ -107,7 +107,7 @@ void MediaCodecEncoder::feed(mblk_t *rawData, uint64_t time) {
 		return;
 	}
 
-	if (_recoveryMode && time - _lastTryTime >= 5000) {
+	if (_recoveryMode && time % 5000 == 0) {
 		try {
 			if (_impl == nullptr) createImpl();
 			configureImpl();
@@ -116,7 +116,6 @@ void MediaCodecEncoder::feed(mblk_t *rawData, uint64_t time) {
 			ms_error("MSMediaCodecH264Enc: %s", e.what());
 			ms_error("MSMediaCodecH264Enc: AMediaCodec_reset() was not sufficient, will recreate the encoder in a moment...");
 			AMediaCodec_delete(_impl);
-			_lastTryTime = time;
 		}
 	}
 
@@ -186,7 +185,6 @@ bool MediaCodecEncoder::fetch(MSQueue *encodedData) {
 			// MediaCodec need to be reset  at this point because it may have become irrevocably crazy.
 			AMediaCodec_reset(_impl);
 			_recoveryMode = true;
-			_lastTryTime = 0;
 		} else {
 			ms_error("MSMediaCodecH264Enc: unknown error while requesting an output buffer (%zd)", obufidx);
 		}

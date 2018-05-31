@@ -90,7 +90,6 @@ protected:
 	float _fps = 0;
 	int _bitrate = 0;
 	AMediaCodec *_impl = nullptr;
-	uint64_t _lastTryTime = 0;
 	bool _isRunning = false;
 	bool _recoveryMode = false;
 	bool _firstBufferQueued = false;
