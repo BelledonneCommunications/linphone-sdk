@@ -156,7 +156,7 @@ void MediaCodecEncoder::feed(mblk_t *rawData, uint64_t time) {
 		AMediaImage_close(&image);
 	}
 
-	if (AMediaCodec_queueInputBuffer(_impl, ibufidx, 0, bufsize, time, 0) == AMEDIA_ERROR_BASE) {
+	if (AMediaCodec_queueInputBuffer(_impl, ibufidx, 0, bufsize, time * 1000, 0) == AMEDIA_ERROR_BASE) {
 		ms_error("MSMediaCodecH264Enc: error while queuing input buffer");
 		return;
 	}
@@ -224,7 +224,6 @@ void MediaCodecEncoder::configureImpl() {
 	AMediaFormat_setInt32(format, "profile", _profile);
 	AMediaFormat_setInt32(format, "level", _level);
 	AMediaFormat_setInt32(format, "color-format", _colorFormat);
-	AMediaFormat_setInt32(format, "color-range", 1); // COLOR_RANGE_FULL
 	AMediaFormat_setInt32(format, "width", _vsize.width);
 	AMediaFormat_setInt32(format, "height", _vsize.height);
 	AMediaFormat_setInt32(format, "frame-rate", _fps);
