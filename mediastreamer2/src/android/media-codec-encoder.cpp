@@ -181,9 +181,7 @@ bool MediaCodecEncoder::fetch(MSQueue *encodedData) {
 		obufidx = AMediaCodec_dequeueOutputBuffer(_impl, &info, _timeoutUs);
 	}
 	if (obufidx < 0) {
-		if (obufidx == -1) {
-			ms_error("MSMediaCodecH264Enc: no output buffer available.");
-		} else if (obufidx == AMEDIA_ERROR_UNKNOWN) {
+		if (obufidx == AMEDIA_ERROR_UNKNOWN) {
 			ms_error("MSMediaCodecH264Enc: AMediaCodec_dequeueOutputBuffer() had an exception, MediaCodec is lost");
 			// MediaCodec need to be reset  at this point because it may have become irrevocably crazy.
 			AMediaCodec_reset(_impl);
@@ -203,6 +201,8 @@ bool MediaCodecEncoder::fetch(MSQueue *encodedData) {
 
 	byteStreamToNalus(buf + info.offset, info.size, &outq);
 	_psInserter->process(&outq, encodedData);
+
+	AMediaCodec_releaseOutputBuffer(_impl, obufidx, FALSE);
 	return true;
 }
 
@@ -289,8 +289,9 @@ void MediaCodecEncoderFilterImpl::process() {
 	/*Second, dequeue possibly pending encoded frames*/
 	MSQueue nalus;
 	ms_queue_init(&nalus);
-	_encoder->fetch(&nalus);
-	_packer->pack(&nalus, _f->outputs[0], _f->ticker->time);
+	while (_encoder->fetch(&nalus)) {
+		_packer->pack(&nalus, _f->outputs[0], _f->ticker->time);
+	}
 }
 
 void MediaCodecEncoderFilterImpl::postprocess() {
