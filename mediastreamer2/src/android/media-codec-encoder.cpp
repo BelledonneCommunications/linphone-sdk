@@ -129,7 +129,7 @@ void MediaCodecEncoder::feed(mblk_t *rawData, uint64_t time) {
 		if (ibufidx == AMEDIA_ERROR_UNKNOWN) {
 			ms_error("MSMediaCodecH264Enc: AMediaCodec_dequeueInputBuffer() had an exception");
 		} else if (ibufidx == -1) {
-			ms_error("MSMediaCodecH264Enc: no input buffer available");
+			ms_error("MSMediaCodecH264Enc: no input buffer available. %d pending frames.", _pendingFrames);
 		} else {
 			ms_error("MSMediaCodecH264Enc: unknown error while requesting an input buffer (%zd)", ibufidx);
 		}
@@ -178,11 +178,13 @@ bool MediaCodecEncoder::fetch(MSQueue *encodedData) {
 	ms_queue_init(&outq);
 
 	ssize_t obufidx = AMediaCodec_dequeueOutputBuffer(_impl, &info, _timeoutUs);
+	if (obufidx == AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED) {
+		ms_message("MSMediaCodecH264Enc: output format has changed.");
+		obufidx = AMediaCodec_dequeueOutputBuffer(_impl, &info, _timeoutUs);
+	}
 	if (obufidx < 0) {
 		if (obufidx == -1) {
-			ms_error("MSMediaCodecH264Enc: no output buffer available");
-		} else if (obufidx == AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED) {
-			ms_error("MSMediaCodecH264Enc: output format has changed");
+			ms_error("MSMediaCodecH264Enc: no output buffer available. %d pending frames.", _pendingFrames);
 		} else if (obufidx == AMEDIA_ERROR_UNKNOWN) {
 			ms_error("MSMediaCodecH264Enc: AMediaCodec_dequeueOutputBuffer() had an exception, MediaCodec is lost");
 			// MediaCodec need to be reset  at this point because it may have become irrevocably crazy.
