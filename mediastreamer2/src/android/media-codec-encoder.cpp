@@ -126,7 +126,13 @@ void MediaCodecEncoder::feed(mblk_t *rawData, uint64_t time) {
 
 	ssize_t ibufidx = AMediaCodec_dequeueInputBuffer(_impl, _timeoutUs);
 	if (ibufidx < 0) {
-		if (ibufidx == AMEDIA_ERROR_UNKNOWN) ms_error("MSMediaCodecH264Enc: AMediaCodec_dequeueInputBuffer() had an exception");
+		if (ibufidx == AMEDIA_ERROR_UNKNOWN) {
+			ms_error("MSMediaCodecH264Enc: AMediaCodec_dequeueInputBuffer() had an exception");
+		} else if (ibufidx == -1) {
+			ms_error("MSMediaCodecH264Enc: no input buffer available");
+		} else {
+			ms_error("MSMediaCodecH264Enc: unknown error while requesting an input buffer (%zd)", ibufidx);
+		}
 		return;
 	}
 
@@ -172,16 +178,22 @@ bool MediaCodecEncoder::fetch(MSQueue *encodedData) {
 	ms_queue_init(&outq);
 
 	ssize_t obufidx = AMediaCodec_dequeueOutputBuffer(_impl, &info, _timeoutUs);
-	if (obufidx == AMEDIA_ERROR_UNKNOWN) {
-		ms_error("MSMediaCodecH264Enc: AMediaCodec_dequeueOutputBuffer() had an exception, MediaCodec is lost");
-		// MediaCodec need to be reset  at this point because it may have become irrevocably crazy.
-		AMediaCodec_reset(_impl);
-		_recoveryMode = true;
-		_lastTryTime = 0;
+	if (obufidx < 0) {
+		if (obufidx == -1) {
+			ms_error("MSMediaCodecH264Enc: no output buffer available");
+		} else if (obufidx == AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED) {
+			ms_error("MSMediaCodecH264Enc: output format has changed");
+		} else if (obufidx == AMEDIA_ERROR_UNKNOWN) {
+			ms_error("MSMediaCodecH264Enc: AMediaCodec_dequeueOutputBuffer() had an exception, MediaCodec is lost");
+			// MediaCodec need to be reset  at this point because it may have become irrevocably crazy.
+			AMediaCodec_reset(_impl);
+			_recoveryMode = true;
+			_lastTryTime = 0;
+		} else {
+			ms_error("MSMediaCodecH264Enc: unknown error while requesting an output buffer (%zd)", obufidx);
+		}
 		return false;
 	}
-
-	if (obufidx < 0) return false;
 
 	if ((buf = AMediaCodec_getOutputBuffer(_impl, obufidx, &bufsize)) == nullptr) {
 		ms_error("MSMediaCodecH264Enc: AMediaCodec_getOutputBuffer() returned nullptr");
@@ -210,6 +222,7 @@ void MediaCodecEncoder::configureImpl() {
 	AMediaFormat_setInt32(format, "profile", _profile);
 	AMediaFormat_setInt32(format, "level", _level);
 	AMediaFormat_setInt32(format, "color-format", _colorFormat);
+	AMediaFormat_setInt32(format, "color-range", 1); // COLOR_RANGE_FULL
 	AMediaFormat_setInt32(format, "width", _vsize.width);
 	AMediaFormat_setInt32(format, "height", _vsize.height);
 	AMediaFormat_setInt32(format, "frame-rate", _fps);
@@ -245,8 +258,8 @@ void MediaCodecEncoder::printMediaFormat() const {
 	os.unsetf(ios::showbase);
 
 	os << "\tvideo size: " << _vsize.width << "x" << _vsize.height << endl;
-	os << "\tframe-rate: " << _fps << "fps" << endl;
-	os << "\tbitrate: " << _bitrate << "b/s" << endl;
+	os << "\tframe-rate: " << _fps << " fps" << endl;
+	os << "\tbitrate: " << _bitrate << " b/s" << endl;
 	os << "\tbitrate-mode: " << _bitrateMode << endl;
 	os << "\ti-frame-intervale: " << _iFrameInterval << endl;
 	ms_message("%s", os.str().c_str());
