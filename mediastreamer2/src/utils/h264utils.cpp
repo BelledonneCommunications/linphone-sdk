@@ -34,7 +34,7 @@ using namespace std;
 extern "C" {
 
 void ms_h264_bitstream_to_nalus(const uint8_t *bitstream, size_t size, MSQueue *nalus) {
-	byteStreamToNalus(bitstream, size, nalus);
+	H26xUtils::byteStreamToNalus(bitstream, size, nalus);
 }
 
 uint8_t ms_h264_nalu_get_nri(const mblk_t *nalu) {

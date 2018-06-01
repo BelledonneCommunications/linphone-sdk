@@ -197,7 +197,7 @@ bool MediaCodecEncoder::fetch(MSQueue *encodedData) {
 		return false;
 	}
 
-	byteStreamToNalus(buf + info.offset, info.size, &outq);
+	H26xUtils::byteStreamToNalus(buf + info.offset, info.size, &outq);
 	_psInserter->process(&outq, encodedData);
 
 	AMediaCodec_releaseOutputBuffer(_impl, obufidx, FALSE);

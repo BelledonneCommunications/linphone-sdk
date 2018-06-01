@@ -28,11 +28,11 @@ using namespace std;
 
 namespace mediastreamer {
 
-void naluStreamToNalus(const std::vector<uint8_t> &byteStream, MSQueue *out) {
-	naluStreamToNalus(byteStream.data(), byteStream.size(), out);
+void H26xUtils::naluStreamToNalus(const std::vector<uint8_t> &byteStream, MSQueue *out) {
+	H26xUtils::naluStreamToNalus(byteStream.data(), byteStream.size(), out);
 }
 
-void naluStreamToNalus(const uint8_t *bytestream, size_t size, MSQueue *out) {
+void H26xUtils::naluStreamToNalus(const uint8_t *bytestream, size_t size, MSQueue *out) {
 	const uint8_t *ptr = bytestream;
 	while (ptr < bytestream + size) {
 		uint32_t nalu_size;
@@ -48,11 +48,11 @@ void naluStreamToNalus(const uint8_t *bytestream, size_t size, MSQueue *out) {
 	}
 }
 
-void byteStreamToNalus(const std::vector<uint8_t> &byteStream, MSQueue *out) {
-	byteStreamToNalus(byteStream.data(), byteStream.size(), out);
+void H26xUtils::byteStreamToNalus(const std::vector<uint8_t> &byteStream, MSQueue *out) {
+	H26xUtils::byteStreamToNalus(byteStream.data(), byteStream.size(), out);
 }
 
-void byteStreamToNalus(const uint8_t *byteStream, size_t size, MSQueue *out) {
+void H26xUtils::byteStreamToNalus(const uint8_t *byteStream, size_t size, MSQueue *out) {
 	vector<uint8_t> buffer;
 	const uint8_t *end = byteStream + size;
 	for (const uint8_t *it = byteStream; it != end;) {
@@ -86,7 +86,7 @@ void byteStreamToNalus(const uint8_t *byteStream, size_t size, MSQueue *out) {
 	}
 }
 
-void nalusToByteStream(MSQueue *nalus, std::vector<uint8_t> &byteStream) {
+void H26xUtils::nalusToByteStream(MSQueue *nalus, std::vector<uint8_t> &byteStream) {
 	bool startPicture = true;
 	byteStream.resize(0);
 	while (mblk_t *im = ms_queue_get(nalus)) {

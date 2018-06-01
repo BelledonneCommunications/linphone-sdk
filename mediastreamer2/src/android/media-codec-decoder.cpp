@@ -79,7 +79,7 @@ void MediaCodecDecoderFilterImpl::process() {
 			}
 		}
 
-		nalusToByteStream(&nalus, _bitstream);
+		H26xUtils::nalusToByteStream(&nalus, _bitstream);
 		size_t size = _bitstream.size();
 		//Initialize the video size
 		if (_codec == nullptr) {

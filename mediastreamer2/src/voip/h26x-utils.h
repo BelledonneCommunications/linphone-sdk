@@ -26,13 +26,19 @@
 
 namespace mediastreamer {
 
-void naluStreamToNalus(const std::vector<uint8_t> &byteStream, MSQueue *out);
-void naluStreamToNalus(const uint8_t *byteStream, size_t size, MSQueue *out);
 
-void byteStreamToNalus(const std::vector<uint8_t> &byteStream, MSQueue *out);
-void byteStreamToNalus(const uint8_t *byteStream, size_t size, MSQueue *out);
+class H26xUtils {
+public:
+	H26xUtils() = delete;
 
-void nalusToByteStream(MSQueue *nalus, std::vector<uint8_t> &bytestream);
+	static void naluStreamToNalus(const std::vector<uint8_t> &byteStream, MSQueue *out);
+	static void naluStreamToNalus(const uint8_t *byteStream, size_t size, MSQueue *out);
+
+	static void byteStreamToNalus(const std::vector<uint8_t> &byteStream, MSQueue *out);
+	static void byteStreamToNalus(const uint8_t *byteStream, size_t size, MSQueue *out);
+
+	static void nalusToByteStream(MSQueue *nalus, std::vector<uint8_t> &bytestream);
+};
 
 
 class H26xParameterSetsInserter {
