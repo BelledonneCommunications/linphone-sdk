@@ -185,7 +185,7 @@ bool MediaCodecEncoder::fetch(MSQueue *encodedData) {
 			// MediaCodec need to be reset  at this point because it may have become irrevocably crazy.
 			AMediaCodec_reset(_impl);
 			_recoveryMode = true;
-		} else {
+		} else if (obufidx != AMEDIACODEC_INFO_TRY_AGAIN_LATER) {
 			ms_error("MSMediaCodecH264Enc: unknown error while requesting an output buffer (%zd)", obufidx);
 		}
 		return false;
