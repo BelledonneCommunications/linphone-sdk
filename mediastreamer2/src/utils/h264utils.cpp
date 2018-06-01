@@ -269,12 +269,16 @@ void H264ParameterSetsInserter::process(MSQueue *in, MSQueue *out) {
 			psBeforeIdr = true;
 			replaceParameterSet(_pps, m);
 		} else {
-			if (type == MSH264NaluTypeIDR && !psBeforeIdr) {
-				ms_queue_put(out, dupmsg(_sps));
-				ms_queue_put(out, dupmsg(_pps));
+			if (_sps && _pps) {
+				if (type == MSH264NaluTypeIDR && !psBeforeIdr) {
+					ms_queue_put(out, dupmsg(_sps));
+					ms_queue_put(out, dupmsg(_pps));
+				}
+				ms_queue_put(out, m);
+			} else {
+				freemsg(m);
 			}
 			psBeforeIdr = false;
-			ms_queue_put(out, m);
 		}
 	}
 }
