@@ -197,6 +197,7 @@ void MediaCodecDecoderFilterImpl::process() {
 }
 
 void MediaCodecDecoderFilterImpl::postprocess() {
+	_unpacker->reset();
 }
 
 void MediaCodecDecoderFilterImpl::resetFirstImage() {
