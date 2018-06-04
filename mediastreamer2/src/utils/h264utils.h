@@ -27,19 +27,14 @@
 #include "h26x-utils.h"
 #endif
 
-/**
- * Enumeration that lists the different type of NAL unit
- */
-typedef enum {
-	MSH264NaluTypeUnknown = -1,
-	MSH264NaluTypeIDR = 5,
-	MSH264NaluTypeSEI = 6,
-	MSH264NaluTypeSPS = 7,
-	MSH264NaluTypePPS = 8,
-	MSH264NaluTypeSTAPA = 24,
-	MSH264NaluTypeFUA = 28
-} MSH264NaluType;
+typedef int MSH264NaluType;
 
+const MSH264NaluType MSH264NaluTypeIDR = 5;
+const MSH264NaluType MSH264NaluTypeSEI = 6;
+const MSH264NaluType MSH264NaluTypeSPS = 7;
+const MSH264NaluType MSH264NaluTypePPS = 8;
+const MSH264NaluType MSH264NaluTypeSTAPA = 24;
+const MSH264NaluType MSH264NaluTypeFUA = 28;
 
 #ifdef __cplusplus
 extern "C" {
@@ -49,12 +44,6 @@ extern "C" {
  * Extract the NRI value from NALu header.
  */
 uint8_t ms_h264_nalu_get_nri(const mblk_t *nalu);
-
-/**
- * @brief Finds out the NALu type corresponding to a given integer according ITU's H264 standard and RFC3984.
- * @return Returns the type should the integer be mapped to a known type, or #MSH264NaluTypeUnknown if shouldn't.
- */
-MSH264NaluType ms_h264_int_to_nalu_type(uint8_t val);
 
 /**
  * Gets the type of a NAL unit.

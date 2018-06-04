@@ -41,22 +41,8 @@ uint8_t ms_h264_nalu_get_nri(const mblk_t *nalu) {
 	return ((*nalu->b_rptr) >> 5) & 0x3;
 }
 
-MSH264NaluType ms_h264_int_to_nalu_type(uint8_t val) {
-	switch (val) {
-		case MSH264NaluTypeIDR:
-		case MSH264NaluTypeSEI:
-		case MSH264NaluTypeSPS:
-		case MSH264NaluTypePPS:
-		case MSH264NaluTypeSTAPA:
-		case MSH264NaluTypeFUA:
-			return static_cast<MSH264NaluType>(val);
-		default:
-			return MSH264NaluTypeUnknown;
-	}
-}
-
 MSH264NaluType ms_h264_nalu_get_type(const mblk_t *nalu) {
-	return ms_h264_int_to_nalu_type((*nalu->b_rptr) & ((1 << 5) - 1));
+	return (*nalu->b_rptr) & ((1 << 5) - 1);
 }
 
 unsigned int _ms_h264_get_id(const mblk_t *parameter_set, size_t offset, const char *symbol_name) {
