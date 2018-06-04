@@ -100,7 +100,7 @@ void MediaCodecEncoder::stop() {
 	_firstBufferQueued = false;
 }
 
-void MediaCodecEncoder::feed(mblk_t *rawData, uint64_t time) {
+void MediaCodecEncoder::feed(mblk_t *rawData, uint64_t time, bool requestIFrame) {
 	if (!_isRunning) {
 		ms_error("MSMediaCodecH264Enc: encoder not running. Dropping buffer.");
 		freemsg(rawData);
@@ -121,6 +121,15 @@ void MediaCodecEncoder::feed(mblk_t *rawData, uint64_t time) {
 
 	MSPicture pic;
 	ms_yuv_buf_init_from_mblk(&pic, rawData);
+
+	if (requestIFrame) {
+		AMediaFormat *afmt = AMediaFormat_new();
+		/*Force a key-frame*/
+		AMediaFormat_setInt32(afmt, "request-sync", 0);
+		AMediaCodec_setParams(_impl, afmt);
+		AMediaFormat_delete(afmt);
+		ms_error("MSMediaCodecH264Enc: I-frame requested to MediaCodec");
+	}
 
 	ssize_t ibufidx = AMediaCodec_dequeueInputBuffer(_impl, _timeoutUs);
 	if (ibufidx < 0) {
@@ -280,7 +289,13 @@ void MediaCodecEncoderFilterImpl::preprocess() {
 void MediaCodecEncoderFilterImpl::process() {
 	/*First queue input image*/
 	if (mblk_t *im = ms_queue_peek_last(_f->inputs[0])) {
-		_encoder->feed(dupmsg(im), _f->ticker->time);
+		bool requestIFrame = false;
+		if (ms_iframe_requests_limiter_iframe_requested(&_iframeLimiter, _f->ticker->time) ||
+		        (!_avpfEnabled && ms_video_starter_need_i_frame(&_starter, _f->ticker->time))) {
+			requestIFrame = true;
+			ms_iframe_requests_limiter_notify_iframe_sent(&_iframeLimiter, _f->ticker->time);
+		}
+		_encoder->feed(dupmsg(im), _f->ticker->time, requestIFrame);
 	}
 	ms_queue_flush(_f->inputs[0]);
 
@@ -288,7 +303,7 @@ void MediaCodecEncoderFilterImpl::process() {
 	MSQueue nalus;
 	ms_queue_init(&nalus);
 	while (_encoder->fetch(&nalus)) {
-		_packer->pack(&nalus, _f->outputs[0], _f->ticker->time);
+		_packer->pack(&nalus, _f->outputs[0], static_cast<uint32_t>(_f->ticker->time * 90LL));
 	}
 }
 

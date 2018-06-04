@@ -18,13 +18,14 @@
 */
 
 #include "h265-nal-unpacker.h"
+#include "h265-utils.h"
 #include "media-codec-decoder.h"
 
 namespace mediastreamer {
 
 class MediaCodecH265DecoderFilterImpl: public MediaCodecDecoderFilterImpl {
 public:
-	MediaCodecH265DecoderFilterImpl(MSFilter *f): MediaCodecDecoderFilterImpl(f, "video/hevc", new H265NalUnpacker()) {}
+	MediaCodecH265DecoderFilterImpl(MSFilter *f): MediaCodecDecoderFilterImpl(f, "video/hevc", new H265NalUnpacker(), new H265ParameterSetsStore()) {}
 
 	static void onFilterInit(MSFilter *f) {
 		f->data = new MediaCodecH265DecoderFilterImpl(f);
@@ -85,6 +86,22 @@ public:
 		const bool_t *enable = static_cast<bool_t *>(arg);
 		static_cast<MediaCodecH265DecoderFilterImpl *>(f->data)->enableFreezeOnError(enable);
 		return 0;
+	}
+
+private:
+	bool isKeyFrame(const MSQueue *frame) const override {
+		H265NaluHeader header;
+		bool hasIdr = false, hasVps = false, hasSps = false, hasPps = false;
+		MSQueue *q = const_cast<MSQueue *>(frame);
+		for (mblk_t *nalu = ms_queue_peek_first(q); ms_queue_end(q, nalu); nalu = ms_queue_next(q, nalu)) {
+			header.parse(nalu->b_rptr);
+			H265NaluType type = header.getType();
+			if (type == H265NaluType::IdrNLp || type == H265NaluType::IdrWRadl) hasIdr = true;
+			else if (type == H265NaluType::Vps) hasVps = true;
+			else if (type == H265NaluType::Sps) hasSps = true;
+			else if (type == H265NaluType::Pps) hasPps = true;
+		}
+		return hasIdr && hasVps && hasVps && hasPps;
 	}
 };
 

@@ -29,7 +29,7 @@ namespace mediastreamer {
 
 class MediaCodecH264DecoderFilterImpl: public MediaCodecDecoderFilterImpl {
 public:
-	MediaCodecH264DecoderFilterImpl(MSFilter *f): MediaCodecDecoderFilterImpl(f, "video/avc", new H264NalUnpacker()) {}
+	MediaCodecH264DecoderFilterImpl(MSFilter *f): MediaCodecDecoderFilterImpl(f, "video/avc", new H264NalUnpacker(), new H264ParameterSetsStore()) {}
 	~MediaCodecH264DecoderFilterImpl() {
 		if (_sps) freemsg(_sps);
 		if (_pps) freemsg(_pps);
@@ -124,6 +124,12 @@ public:
 	}
 
 private:
+	bool isKeyFrame(const MSQueue *frame) const override {
+		H264FrameAnalyser analyser;
+		H264FrameAnalyser::Info info = analyser.analyse(frame);
+		return info.hasIdr && info.hasSps && info.hasPps;
+	}
+
 	void updateSps(mblk_t *sps) {
 		if (_sps) freemsg(_sps);
 		_sps = dupb(sps);

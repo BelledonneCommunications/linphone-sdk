@@ -20,6 +20,7 @@
 #pragma once
 
 #include <cstdint>
+#include <map>
 #include <vector>
 
 #include "mediastreamer2/msqueue.h"
@@ -49,6 +50,26 @@ public:
 
 protected:
 	static void replaceParameterSet(mblk_t *&ps, mblk_t *newPs);
+};
+
+class H26xParameterSetsStore {
+public:
+	class IlegalStateError: std::logic_error {
+	public:
+		IlegalStateError(const std::string &what_arg): std::logic_error(what_arg) {}
+	};
+
+	H26xParameterSetsStore(const std::initializer_list<int> &psCodes);
+	virtual ~H26xParameterSetsStore();
+
+	virtual void addPs(mblk_t *nalu) = 0;
+	bool psGatheringCompleted() const;
+	void fetchAllPs(MSQueue *outq);
+
+protected:
+	void addPs(int naluType, mblk_t *nalu);
+
+	std::map<int, mblk_t *> _ps;
 };
 
 }

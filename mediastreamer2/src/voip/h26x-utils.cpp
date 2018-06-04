@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <sstream>
 #include <stdexcept>
 #include <vector>
 
@@ -121,6 +122,40 @@ void H26xUtils::nalusToByteStream(MSQueue *nalus, std::vector<uint8_t> &byteStre
 void H26xParameterSetsInserter::replaceParameterSet(mblk_t *&ps, mblk_t *newPs) {
 	if (ps) freemsg(ps);
 	ps = newPs;
+}
+
+H26xParameterSetsStore::H26xParameterSetsStore(const std::initializer_list<int> &psCodes) {
+	for (int psCode : psCodes) {
+		_ps[psCode] = nullptr;
+	}
+}
+
+H26xParameterSetsStore::~H26xParameterSetsStore() {
+	for(auto it = _ps.begin(); it != _ps.end(); it++) {
+		if (it->second) freemsg(it->second);
+	}
+}
+
+bool H26xParameterSetsStore::psGatheringCompleted() const {
+	for(const auto &item : _ps) {
+		if (item.second == nullptr) return false;
+	}
+	return true;
+}
+
+void H26xParameterSetsStore::fetchAllPs(MSQueue *outq) {
+	MSQueue q;
+	ms_queue_init(&q);
+	for(const auto &item : _ps) {
+		if (item.second) {
+			ms_queue_put(outq, dupmsg(item.second));
+		}
+	}
+}
+
+void H26xParameterSetsStore::addPs(int naluType, mblk_t *nalu) {
+	if (_ps[naluType]) freemsg(_ps[naluType]);
+	_ps[naluType] = nalu ? dupmsg(nalu) : nullptr;
 }
 
 } // namespace mediastreamer

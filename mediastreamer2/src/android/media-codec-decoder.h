@@ -34,8 +34,8 @@ namespace mediastreamer {
 
 class MediaCodecDecoderFilterImpl {
 public:
-	MediaCodecDecoderFilterImpl(MSFilter *f, const std::string &mimeType, NalUnpacker *unpacker);
-	~MediaCodecDecoderFilterImpl();
+	MediaCodecDecoderFilterImpl(MSFilter *f, const std::string &mimeType, NalUnpacker *unpacker, H26xParameterSetsStore *psStore);
+	virtual ~MediaCodecDecoderFilterImpl();
 
 	void preprocess();
 	void process();
@@ -54,6 +54,8 @@ protected:
 	media_status_t initMediaCodec();
 	void flush(bool with_reset);
 
+	virtual bool isKeyFrame(const MSQueue *frame) const = 0;
+
 	MSVideoSize _vsize;
 	MSAverageFPS _fps;
 	bool _avpfEnabled = false;
@@ -62,13 +64,14 @@ protected:
 	MSFilter *_f = nullptr;
 	std::string _mimeType;
 	std::unique_ptr<NalUnpacker> _unpacker;
+	std::unique_ptr<H26xParameterSetsStore> _psStore;
 	AMediaCodec *_codec = nullptr;
 	unsigned int _packetNum = 0;
 	std::vector<uint8_t> _bitstream;
 	MSYuvBufAllocator *_bufAllocator = nullptr;
 	bool _bufferQueued = false;
 	bool _firstImageDecoded = false;
-	bool _needKeyFrame = false;
+	bool _needKeyFrame = true;
 
 	static const unsigned int _timeoutUs = 0;
 };

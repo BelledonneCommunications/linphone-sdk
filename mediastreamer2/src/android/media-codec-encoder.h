@@ -50,7 +50,7 @@ public:
 	virtual void start() = 0;
 	virtual void stop() = 0;
 
-	virtual void feed(mblk_t *rawData, uint64_t time) = 0;
+	virtual void feed(mblk_t *rawData, uint64_t time, bool requestIFrame = false) = 0;
 	virtual bool fetch(MSQueue *encodedData) = 0;
 };
 
@@ -73,7 +73,7 @@ public:
 	void start() override;
 	void stop() override;
 
-	void feed(mblk_t *rawData, uint64_t time) override;
+	void feed(mblk_t *rawData, uint64_t time, bool requestIFrame = false) override;
 	bool fetch(MSQueue *encodedData) override;
 
 protected:

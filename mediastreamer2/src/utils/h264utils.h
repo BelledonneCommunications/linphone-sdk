@@ -143,6 +143,12 @@ private:
 	mblk_t *_pps = nullptr;
 };
 
+class H264ParameterSetsStore: public H26xParameterSetsStore {
+public:
+	H264ParameterSetsStore(): H26xParameterSetsStore({MSH264NaluTypeSPS, MSH264NaluTypePPS}) {}
+	void addPs(mblk_t *nalu) override {H26xParameterSetsStore::addPs(ms_h264_nalu_get_type(nalu), nalu);}
+};
+
 } // namespace mediastreamer
 
 #endif // __cplusplus

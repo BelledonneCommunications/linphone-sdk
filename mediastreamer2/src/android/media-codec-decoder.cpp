@@ -35,8 +35,8 @@ using namespace mediastreamer;
 
 namespace mediastreamer {
 
-MediaCodecDecoderFilterImpl::MediaCodecDecoderFilterImpl(MSFilter *f, const std::string &mimeType, NalUnpacker *unpacker):
-	_f(f), _mimeType(mimeType), _unpacker(unpacker) {
+MediaCodecDecoderFilterImpl::MediaCodecDecoderFilterImpl(MSFilter *f, const std::string &mimeType, NalUnpacker *unpacker, H26xParameterSetsStore *psStore):
+	_f(f), _mimeType(mimeType), _unpacker(unpacker), _psStore(psStore) {
 
 	ms_message("MSMediaCodecH264Dec initialization");
 	_vsize.width = 0;
@@ -77,6 +77,13 @@ void MediaCodecDecoderFilterImpl::process() {
 				_needKeyFrame = true;
 				continue;
 			}
+		}
+
+		if (_needKeyFrame && !isKeyFrame(&nalus)) {
+			ms_message("MSMediaCodecH264Dec: waiting for a key frame");
+			request_pli = true;
+			ms_queue_flush(&nalus);
+			continue;
 		}
 
 		H26xUtils::nalusToByteStream(&nalus, _bitstream);
