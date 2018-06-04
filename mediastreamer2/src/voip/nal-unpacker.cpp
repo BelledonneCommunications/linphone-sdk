@@ -121,6 +121,13 @@ NalUnpacker::Status NalUnpacker::unpack(mblk_t *im, MSQueue *out) {
 	return ret;
 }
 
+void NalUnpacker::reset() {
+	ms_queue_flush(&_q);
+	_status = Status();
+	_initializedRefCSeq = false;
+	_fuAggregator->reset();
+}
+
 NalUnpacker::Status NalUnpacker::outputFrame(MSQueue *out, const Status &flags) {
 	Status res = _status;
 	if (!ms_queue_empty(out)) {

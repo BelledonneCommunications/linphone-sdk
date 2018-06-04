@@ -36,7 +36,7 @@ mblk_t *H264FuaAggregator::feed(mblk_t *im) {
 	bool_t marker = mblk_get_marker_info(im);
 
 	fu_header = im->b_rptr[1];
-	type = ms_h264_nalu_get_type(im);
+	type = fu_header & 0x17;
 	start = fu_header >> 7;
 	end = (fu_header >> 6) & 0x1;
 	if (start) {
