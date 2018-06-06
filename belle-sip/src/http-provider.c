@@ -56,7 +56,6 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 	belle_sip_header_www_authenticate_t* authenticate;
 	int ret=0;
 
-
 	if (req->auth_attempt_count>1){
 		req->auth_attempt_count=0;
 		return -1;
@@ -73,7 +72,6 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 		return -1;
 	}
 
-
 	if (strcasecmp("Digest",belle_sip_header_www_authenticate_get_scheme(authenticate)) != 0) {
 		belle_sip_error("Unsupported auth scheme [%s] in response  [%p], cannot authenticate", belle_sip_header_www_authenticate_get_scheme(authenticate),resp);
 		return -1;
@@ -85,9 +83,18 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 		passwd=belle_generic_uri_get_user_password(req->orig_uri);
 	}
 
+	// add from_uri to process_auth_requested event data
+	belle_sip_uri_t *from_uri = NULL;
+	belle_sip_header_t *header = belle_sip_message_get_header(BELLE_SIP_MESSAGE(req), "From");
+
+	if (header) {
+		belle_sip_header_address_t *from_address = belle_sip_header_address_parse(belle_sip_header_get_unparsed_value(header));
+		from_uri = belle_sip_header_address_get_uri(from_address);
+	}
+
 	realm = belle_sip_header_www_authenticate_get_realm(authenticate);
 	if (!username || !passwd) {
-		ev=belle_sip_auth_event_create((belle_sip_object_t*)ctx->provider,realm,NULL);
+		ev=belle_sip_auth_event_create((belle_sip_object_t*)ctx->provider,realm,from_uri);
 		BELLE_HTTP_REQUEST_INVOKE_LISTENER(req,process_auth_requested,ev);
 		username=ev->username;
 		passwd=ev->passwd;
