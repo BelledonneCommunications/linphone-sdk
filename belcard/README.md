@@ -1,3 +1,5 @@
+[![pipeline status](https://gitlab.linphone.org/BC/public/belcard/badges/master/pipeline.svg)](https://gitlab.linphone.org/BC/public/belcard/commits/master)
+
 BelCard
 =======
 
