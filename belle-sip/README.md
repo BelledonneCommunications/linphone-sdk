@@ -1,3 +1,5 @@
+[![pipeline status](https://gitlab.linphone.org/BC/public/belle-sip/badges/master/pipeline.svg)](https://gitlab.linphone.org/BC/public/belle-sip/commits/master)
+
 Belle-sip
 =========
 
