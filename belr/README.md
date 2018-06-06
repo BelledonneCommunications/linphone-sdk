@@ -1,3 +1,5 @@
+[![pipeline status](https://gitlab.linphone.org/BC/public/belr/badges/master/pipeline.svg)](https://gitlab.linphone.org/BC/public/belr/commits/master)
+
 What's Belr
 ===========
 
