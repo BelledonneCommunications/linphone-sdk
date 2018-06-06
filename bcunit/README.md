@@ -1,3 +1,5 @@
+[![pipeline status](https://gitlab.linphone.org/BC/public/bcunit/badges/master/pipeline.svg)](https://gitlab.linphone.org/BC/public/bcunit/commits/master)
+
 # What is BCUnit?
 
 This is BCUnit, a fork of the defunct project CUnit (see below), with several fixes and patches applied.
