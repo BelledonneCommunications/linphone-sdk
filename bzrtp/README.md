@@ -1,3 +1,5 @@
+[![pipeline status](https://gitlab.linphone.org/BC/public/bzrtp/badges/master/pipeline.svg)](https://gitlab.linphone.org/BC/public/bzrtp/commits/master)
+
 BZRTP
 =====
 
