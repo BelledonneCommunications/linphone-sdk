@@ -1,3 +1,4 @@
+
 /*
 	lime_manager.cpp
 	@author Johan Pascal
@@ -90,7 +91,7 @@ namespace lime {
 		user->encrypt(recipientUserId, recipients, plainMessage, encryptionPolicy, cipherMessage, callback);
 	}
 
-	bool LimeManager::decrypt(const std::string &localDeviceId, const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) {
+	lime::PeerDeviceStatus LimeManager::decrypt(const std::string &localDeviceId, const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) {
 		// Load user object
 		std::shared_ptr<LimeGeneric> user;
 		LimeManager::load_user(user, localDeviceId);
@@ -101,7 +102,7 @@ namespace lime {
 
 	// convenience definition, have a decrypt without cipherMessage input for the case we don't have it(DR message encryption policy)
 	// just use an create an empty cipherMessage to be able to call Lime::decrypt which needs the cipherMessage even if empty for code simplicity
-	bool LimeManager::decrypt(const std::string &localDeviceId, const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, std::vector<uint8_t> &plainMessage) {
+	lime::PeerDeviceStatus LimeManager::decrypt(const std::string &localDeviceId, const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, std::vector<uint8_t> &plainMessage) {
 		// Load user object
 		std::shared_ptr<LimeGeneric> user;
 		LimeManager::load_user(user, localDeviceId);
@@ -173,14 +174,14 @@ namespace lime {
 		// open local DB
 		auto localStorage = std::unique_ptr<lime::Db>(new lime::Db(m_db_access));
 
-		localStorage->set_PeerDevicesVerifiedStatus(peerDeviceId, Ik, status);
+		localStorage->set_peerDeviceVerifiedStatus(peerDeviceId, Ik, status);
 	}
 
-	bool LimeManager::get_peerIdentityVerifiedStatus(const std::string &peerDeviceId) {
+	lime::PeerDeviceStatus LimeManager::get_peerDeviceStatus(const std::string &peerDeviceId) {
 		// open local DB
 		auto localStorage = std::unique_ptr<lime::Db>(new lime::Db(m_db_access));
 
-		return localStorage->get_PeerDevicesIdentityVerifiedStatus(peerDeviceId);
+		return localStorage->get_peerDeviceStatus(peerDeviceId);
 	}
 
 } // namespace lime

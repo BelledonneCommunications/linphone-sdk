@@ -42,6 +42,17 @@ namespace lime {
 		optimizeGlobalBandwidth /**< optimize bandwith usage: encrypt in DR message if plaintext is short enougth to beat the overhead introduced by cipher message scheme, otherwise use cipher message. Selection is made on uploadand download(from server to recipients) sizes added. */
 	};
 
+	/**
+	 * A peer device status returned after encrypt, decrypt or when directly asking for the peer device status to spot new devices and give information on our trust on this device
+	 */
+	enum class PeerDeviceStatus {
+		fail, /**< this status is return by decrypt operation only, when we could not decrypt the incoming message */
+		unknown, /**< when returned after encryption or decryption, means it is the first time we communicate with this device(and thus create a DR session with it),
+			   when returned by a get_peerDeviceStatus: this device is not in localStorage */
+		untrusted, /**< we know this device but do not trust it, that information shall be displayed to the end user, a colour code shall be enough */
+		trusted /**< this peer device already got its public identity key validated, that information shall be displayed to the end user too */
+	};
+
 	/** Used to manage recipient list for encrypt function input: give a recipient GRUU and get it back with the header which must be sent to recipient with the cipher text*/
 	struct RecipientData {
 		const std::string deviceId; /**< input: recipient deviceId (shall be GRUU) */
@@ -183,14 +194,14 @@ namespace lime {
 			 * @param[in]		cipherMessage	when present(depends on encryption policy) holds a common part of the encrypted message. Can be ignored or set to empty vector if not present in the incoming message.
 			 * @param[out]		plainMessage	the output buffer
 			 *
-			 * @return	true if the decryption is successfull, false otherwise
+			 * @return	fail if we cannot decrypt the message, newUntrusted when it is the first message we ever receive from the sender device, untrusted for known but untrusted sender device, or trusted if it is
 			 */
-			bool decrypt(const std::string &localDeviceId, const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage);
+			lime::PeerDeviceStatus decrypt(const std::string &localDeviceId, const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage);
 			/**
 			 * @overload decrypt(const std::string &localDeviceId, const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, std::vector<uint8_t> &plainMessage)
 			 * convenience form to be called when no cipher message is received
 			 */
-			bool decrypt(const std::string &localDeviceId, const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, std::vector<uint8_t> &plainMessage);
+			lime::PeerDeviceStatus decrypt(const std::string &localDeviceId, const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, std::vector<uint8_t> &plainMessage);
 
 			/**
 			 * @brief Update: shall be called once a day at least, performs checks, updates and cleaning operations
@@ -238,13 +249,13 @@ namespace lime {
 			void set_peerIdentityVerifiedStatus(const std::string &peerDeviceId, const std::vector<uint8_t> &Ik, bool status);
 
 			/**
-			 * @brief get the identity verified flag for peer device
+			 * @brief get the status of a peer device: unknown, untrusted, trusted
 			 *
 			 * @param[in]	peerDeviceId	The device Id of peer, shall be its GRUU
 			 *
-			 * @return the stored Verified status, false if peer Device is not present in local Storage
+			 * @return unknown if the device is not in localStorage, untrusted or trusted according to the stored value of identity verified flag otherwise
 			 */
-			bool get_peerIdentityVerifiedStatus(const std::string &peerDeviceId);
+			lime::PeerDeviceStatus get_peerDeviceStatus(const std::string &peerDeviceId);
 
 			LimeManager() = delete; // no manager without Database and http provider
 			LimeManager(const LimeManager&) = delete; // no copy constructor

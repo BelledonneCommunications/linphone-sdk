@@ -76,7 +76,7 @@ namespace lime {
 		 *
 		 * @return	true if the decryption is successfull, false otherwise
 		*/
-		virtual bool decrypt(const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) = 0;
+		virtual lime::PeerDeviceStatus decrypt(const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) = 0;
 
 
 

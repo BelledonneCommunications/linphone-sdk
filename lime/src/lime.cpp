@@ -210,7 +210,13 @@ namespace lime {
 	}
 
 	template <typename Curve>
-	bool Lime<Curve>::decrypt(const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) {
+	lime::PeerDeviceStatus Lime<Curve>::decrypt(const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) {
+		// before trying to decrypt, we must check if the sender device is known in the local Storage and if we trust it
+		// a successful decryption will insert it in local storage so we must check first if it is there in order to detect new devices
+		// Note: a device could already be trusted in DB even before the first message (if we established trust before sending the first message)
+		// senderDeviceStatus can only be unknown, untrusted or trusted, if decryption succeed, we will return this status.
+		auto senderDeviceStatus = m_localStorage->get_peerDeviceStatus(senderDeviceId);
+
 		LIME_LOGD<<"decrypt from "<<senderDeviceId<<" to "<<recipientUserId;
 		// do we have any session (loaded or not) matching that senderDeviceId ?
 		auto sessionElem = m_DR_sessions_cache.find(senderDeviceId);
@@ -219,7 +225,8 @@ namespace lime {
 			db_sessionIdInCache = sessionElem->second->dbSessionId();
 			std::vector<std::shared_ptr<DR<Curve>>> DRSessions{1, sessionElem->second}; // copy the session pointer into a vector as the decryot function ask for it
 			if (decryptMessage<Curve>(senderDeviceId, m_selfDeviceId, recipientUserId, DRSessions, DRmessage, cipherMessage, plainMessage) != nullptr) {
-				return true; // we manage to decrypt the message with the current active session loaded in cache, nothing else to do
+				// we manage to decrypt the message with the current active session loaded in cache
+				return senderDeviceStatus;
 			} else { // remove session from cache
 				// session in local storage is not modified, so it's still the active one, it will change status to stale when an other active session will be created
 				m_DR_sessions_cache.erase(sessionElem);
@@ -232,14 +239,14 @@ namespace lime {
 		get_DRSessions(senderDeviceId, db_sessionIdInCache, DRSessions);
 		auto usedDRSession = decryptMessage<Curve>(senderDeviceId, m_selfDeviceId, recipientUserId, DRSessions, DRmessage, cipherMessage, plainMessage);
 		if (usedDRSession != nullptr) { // we manage to decrypt with a session
-			m_DR_sessions_cache[senderDeviceId] = std::move(usedDRSession);
-			return true;
+			m_DR_sessions_cache[senderDeviceId] = std::move(usedDRSession); // store it in cache
+			return senderDeviceStatus;
 		}
 
 		// No luck yet, is this message holds a X3DH header - if no we must give up
 		std::vector<uint8_t> X3DH_initMessage{};
 		if (!double_ratchet_protocol::parseMessage_get_X3DHinit<Curve>(DRmessage, X3DH_initMessage)) {
-			return false;
+			return lime::PeerDeviceStatus::fail;
 		}
 
 		// parse the X3DH init message, get keys from localStorage, compute the shared secrets, create DR_Session and return a shared pointer to it
@@ -249,15 +256,15 @@ namespace lime {
 			DRSessions.push_back(DRSession);
 		} catch (BctbxException &e) {
 			LIME_LOGE<<"Fail to create the DR session from the X3DH init message : "<<e;
-			return false;
+			return lime::PeerDeviceStatus::fail;
 		}
 
 		if (decryptMessage<Curve>(senderDeviceId, m_selfDeviceId, recipientUserId, DRSessions, DRmessage, cipherMessage, plainMessage) != 0) {
 			// we manage to decrypt the message with this session, set it in cache
 			m_DR_sessions_cache[senderDeviceId] = std::move(DRSessions.front());
-			return true;
+			return senderDeviceStatus;
 		}
-		return false;
+		return lime::PeerDeviceStatus::fail;
 	}
 
 	/* instantiate Lime for C255 and C448 */

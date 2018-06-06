@@ -197,7 +197,8 @@ static void lime_exchange_messages(std::shared_ptr<std::string> &aliceDeviceId, 
 
 				// alice decrypt
 				std::vector<uint8_t> receivedMessage{};
-				BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDeviceId, "alice", *bobDeviceId, (*bobRecipients)[0].DRmessage, *bobCipherMessage, receivedMessage));
+				// in that context we cannot know the expected decrypt return value, just check it is not fail
+				BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDeviceId, "alice", *bobDeviceId, (*bobRecipients)[0].DRmessage, *bobCipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
 				auto receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
 				BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[patternIndex]);
 				messageCount++;
@@ -217,7 +218,8 @@ static void lime_exchange_messages(std::shared_ptr<std::string> &aliceDeviceId, 
 				// bob decrypt
 				bobCount++;
 				std::vector<uint8_t> receivedMessage{};
-				BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "bob", *aliceDeviceId, (*aliceRecipients)[0].DRmessage, *aliceCipherMessage, receivedMessage));
+				// in that context we cannot know the expected decrypt return value, just check it is not fail
+				BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "bob", *aliceDeviceId, (*aliceRecipients)[0].DRmessage, *aliceCipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
 				auto receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
 				BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[patternIndex]);
 				messageCount++;
@@ -338,9 +340,9 @@ static void lime_encryptionPolicyError_test(const lime::CurveId curve, const std
 			bobCipherMessage->clear(); // delete the cipher message, the DR decryption will fail and will not return the random seed as plaintext
 		}
 
-		// alice tries to decrypt
+		// alice tries to decrypt, but it shall fail
 		std::vector<uint8_t> receivedMessage{};
-		BC_ASSERT_FALSE(aliceManager->decrypt(*aliceDeviceId, "alice", *bobDeviceId, (*bobRecipients)[0].DRmessage, *bobCipherMessage, receivedMessage));
+		BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDeviceId, "alice", *bobDeviceId, (*bobRecipients)[0].DRmessage, *bobCipherMessage, receivedMessage) == lime::PeerDeviceStatus::fail);
 
 		if (cleanDatabase) {
 			aliceManager->delete_user(*aliceDeviceId, callback);
@@ -478,9 +480,9 @@ static void lime_encryptionPolicy_test(std::shared_ptr<LimeManager> aliceManager
 		// alice1 decrypt
 		std::vector<uint8_t> receivedMessage{};
 		if (is_directEncryptionType) { // when having the message in DR message only, use the decrypt interface without cipherMessage
-			BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDevice1Id, "alice", *bobDeviceId, (*bobRecipients)[0].DRmessage, receivedMessage));
+			BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDevice1Id, "alice", *bobDeviceId, (*bobRecipients)[0].DRmessage, receivedMessage) != lime::PeerDeviceStatus::fail);
 		} else {
-			BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDevice1Id, "alice", *bobDeviceId, (*bobRecipients)[0].DRmessage, *bobCipherMessage, receivedMessage));
+			BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDevice1Id, "alice", *bobDeviceId, (*bobRecipients)[0].DRmessage, *bobCipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
 		}
 
 		auto receivedMessageString1 = std::string{receivedMessage.begin(), receivedMessage.end()};
@@ -489,7 +491,7 @@ static void lime_encryptionPolicy_test(std::shared_ptr<LimeManager> aliceManager
 		if (multipleRecipients) {
 			// alice2 decrypt
 			receivedMessage.clear();
-			BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDevice2Id, "alice", *bobDeviceId, (*bobRecipients)[1].DRmessage, *bobCipherMessage, receivedMessage));
+			BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDevice2Id, "alice", *bobDeviceId, (*bobRecipients)[1].DRmessage, *bobCipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
 			auto receivedMessageString2 = std::string{receivedMessage.begin(), receivedMessage.end()};
 			BC_ASSERT_TRUE(receivedMessageString2 == plainMessage);
 		}
@@ -736,16 +738,16 @@ static void lime_identityVerifiedStatus_test(const lime::CurveId curve, const st
 		aliceManager->get_selfIdentityKey(*aliceDeviceId, aliceIk);
 		bobManager->get_selfIdentityKey(*bobDeviceId, bobIk);
 
-		// check their status
-		BC_ASSERT_FALSE(aliceManager->get_peerIdentityVerifiedStatus(*bobDeviceId));
-		BC_ASSERT_FALSE(bobManager->get_peerIdentityVerifiedStatus(*aliceDeviceId));
+		// check their status: they don't know each other
+		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(*bobDeviceId) == lime::PeerDeviceStatus::unknown);
+		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::unknown);
 
 		// set alice Id key as vertified in Bob's Manager and check it worked
 		bobManager->set_peerIdentityVerifiedStatus(*aliceDeviceId, aliceIk, true);
-		BC_ASSERT_TRUE(bobManager->get_peerIdentityVerifiedStatus(*aliceDeviceId));
-		// reset it and check it worked
+		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::trusted);
+		// reset it and check it worked : now Bob knows alice but he doesn't trust her
 		bobManager->set_peerIdentityVerifiedStatus(*aliceDeviceId, aliceIk, false);
-		BC_ASSERT_FALSE(bobManager->get_peerIdentityVerifiedStatus(*aliceDeviceId));
+		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::untrusted);
 
 	} catch (BctbxException &e) {
 		LIME_LOGE <<e;;
@@ -780,7 +782,7 @@ static void lime_identityVerifiedStatus_test(const lime::CurveId curve, const st
 
 		// set again the key as verified in bob's context
 		bobManager->set_peerIdentityVerifiedStatus(*aliceDeviceId, aliceIk, true);
-		BC_ASSERT_TRUE(bobManager->get_peerIdentityVerifiedStatus(*aliceDeviceId));
+		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::trusted);
 
 		// Bob encrypts a message for Alice, alice identity verified status shall be : verified
 		bobRecipients = make_shared<std::vector<RecipientData>>();
@@ -798,7 +800,7 @@ static void lime_identityVerifiedStatus_test(const lime::CurveId curve, const st
 
 		// alice decrypt but it will fail as the identity key in X3DH init packet is not matching the one we assert as verified
 		std::vector<uint8_t> receivedMessage{};
-		BC_ASSERT_FALSE (aliceManager->decrypt(*aliceDeviceId, "alice", *bobDeviceId, (*bobRecipients)[0].DRmessage, *bobCipherMessage, receivedMessage));
+		BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDeviceId, "alice", *bobDeviceId, (*bobRecipients)[0].DRmessage, *bobCipherMessage, receivedMessage) == lime::PeerDeviceStatus::fail);
 
 		// alice now try to encrypt to Bob but it will fail as key fetched from X3DH server won't match the one we assert as verified
 		auto aliceRecipients = make_shared<std::vector<RecipientData>>();
@@ -967,9 +969,9 @@ static void lime_update_OPk_test(const lime::CurveId curve, const std::string &d
 		// check nothing has changed on our local OPk count
 		BC_ASSERT_EQUAL(lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), 2*lime_tester::OPkInitialBatchSize, size_t, "%ld");
 
-		// decrypt Bob first message
+		// decrypt Bob first message(he is then an unknown device)
 		std::vector<uint8_t> receivedMessage{};
-		BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDeviceId, "alice", *(bobDeviceIds[0]), (*bobRecipients[0])[0].DRmessage, *(bobCipherMessages[0]), receivedMessage));
+		BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDeviceId, "alice", *(bobDeviceIds[0]), (*bobRecipients[0])[0].DRmessage, *(bobCipherMessages[0]), receivedMessage) == lime::PeerDeviceStatus::unknown);
 		auto receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
 		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
 
@@ -985,7 +987,7 @@ static void lime_update_OPk_test(const lime::CurveId curve, const std::string &d
 
 		// try to decrypt Bob's second message, it shall fail as we got rid of the OPk
 		receivedMessage.clear();
-		BC_ASSERT_FALSE(aliceManager->decrypt(*aliceDeviceId, "alice", *(bobDeviceIds[1]), (*bobRecipients[1])[0].DRmessage, *(bobCipherMessages[1]), receivedMessage));
+		BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDeviceId, "alice", *(bobDeviceIds[1]), (*bobRecipients[1])[0].DRmessage, *(bobCipherMessages[1]), receivedMessage) == lime::PeerDeviceStatus::fail);
 
 		if (cleanDatabase) {
 			auto i=0;
@@ -1146,11 +1148,11 @@ static void lime_update_SPk_test(const lime::CurveId curve, const std::string &d
 
 		// Try to decrypt all message: the first message must fail to decrypt as we just deleted the SPk needed to create the session
 		std::vector<uint8_t> receivedMessage{};
-		BC_ASSERT_FALSE(aliceManager->decrypt(*aliceDeviceId, "alice", *(bobDeviceIds[0]), (*bobRecipients[0])[0].DRmessage, *(bobCipherMessages[0]), receivedMessage));
+		BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDeviceId, "alice", *(bobDeviceIds[0]), (*bobRecipients[0])[0].DRmessage, *(bobCipherMessages[0]), receivedMessage) == lime::PeerDeviceStatus::fail);
 		// other shall be Ok.
 		for (size_t i=1; i<bobManagers.size(); i++) {
 			receivedMessage.clear();
-			BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDeviceId, "alice", *(bobDeviceIds[i]), (*bobRecipients[i])[0].DRmessage, *(bobCipherMessages[i]), receivedMessage));
+			BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDeviceId, "alice", *(bobDeviceIds[i]), (*bobRecipients[i])[0].DRmessage, *(bobCipherMessages[i]), receivedMessage) != lime::PeerDeviceStatus::fail);
 			auto receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
 			BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[i%lime_tester::messages_pattern.size()]);
 		}
@@ -1239,9 +1241,9 @@ static void lime_update_clean_MK_test(const lime::CurveId curve, const std::stri
 		/* Check that bob got 2 message key in local Storage */
 		BC_ASSERT_EQUAL(lime_tester::get_StoredMessageKeyCount(dbFilenameBob, *bobDeviceId, *aliceDeviceId), 2, unsigned int, "%d");
 
-		/* decrypt held message 1 */
+		/* decrypt held message 1, we know that device but no trust was ever established */
 		std::vector<uint8_t> receivedMessage{};
-		BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "bob", *aliceDeviceId, (*aliceRecipients1)[0].DRmessage, *aliceCipherMessage1, receivedMessage));
+		BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "bob", *aliceDeviceId, (*aliceRecipients1)[0].DRmessage, *aliceCipherMessage1, receivedMessage) == lime::PeerDeviceStatus::untrusted);
 		auto receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
 		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
 
@@ -1260,7 +1262,7 @@ static void lime_update_clean_MK_test(const lime::CurveId curve, const std::stri
 
 		/* try to decrypt message 2, it shall fail */
 		receivedMessage.clear();
-		BC_ASSERT_FALSE(bobManager->decrypt(*bobDeviceId, "bob", *aliceDeviceId, (*aliceRecipients2)[0].DRmessage, *aliceCipherMessage2, receivedMessage));
+		BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "bob", *aliceDeviceId, (*aliceRecipients2)[0].DRmessage, *aliceCipherMessage2, receivedMessage)  == lime::PeerDeviceStatus::fail);
 
 		if (cleanDatabase) {
 			aliceManager->delete_user(*aliceDeviceId, callback);
@@ -1346,7 +1348,7 @@ static void x3dh_without_OPk_test(const lime::CurveId curve, const std::string &
 			} else { // then the last message shall not convey OPK_id as none were available
 				BC_ASSERT_FALSE(haveOPk);
 			}
-			BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDeviceId, "alice", *bobDeviceId, (*bobRecipients)[0].DRmessage, *bobCipherMessage, receivedMessage));
+			BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDeviceId, "alice", *bobDeviceId, (*bobRecipients)[0].DRmessage, *bobCipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
 			auto receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
 			BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[messagePatternIndex]);
 
@@ -1448,8 +1450,8 @@ static void x3dh_sending_chain_limit_test(const lime::CurveId curve, const std::
 
 		// bob decrypt
 		std::vector<uint8_t> receivedMessage{};
-		BC_ASSERT_TRUE(lime_tester::DR_message_holdsX3DHInit((*aliceRecipients)[0].DRmessage)); // new sessions created, they must convey X3DH init message
-		BC_ASSERT_TRUE(bobManager->decrypt(*bobDevice1, "bob", *aliceDevice1, (*aliceRecipients)[0].DRmessage, *aliceCipherMessage, receivedMessage));
+		BC_ASSERT_TRUE(lime_tester::DR_message_holdsX3DHInit((*aliceRecipients)[0].DRmessage)); // new sessions created, they must convey X3DH init message and peer device is unknown
+		BC_ASSERT_TRUE(bobManager->decrypt(*bobDevice1, "bob", *aliceDevice1, (*aliceRecipients)[0].DRmessage, *aliceCipherMessage, receivedMessage) == lime::PeerDeviceStatus::unknown);
 		std::string receivedMessageString{receivedMessage.begin(), receivedMessage.end()};
 		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
 
@@ -1465,7 +1467,7 @@ static void x3dh_sending_chain_limit_test(const lime::CurveId curve, const std::
 
 		// alice decrypt
 		BC_ASSERT_FALSE(lime_tester::DR_message_holdsX3DHInit((*bobRecipients)[0].DRmessage)); // Bob didn't initiate a new session created, so no X3DH init message
-		BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDevice1, "alice", *bobDevice1, (*bobRecipients)[0].DRmessage, *bobCipherMessage, receivedMessage));
+		BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDevice1, "alice", *bobDevice1, (*bobRecipients)[0].DRmessage, *bobCipherMessage, receivedMessage) == lime::PeerDeviceStatus::untrusted);
 		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
 		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[1]);
 
@@ -1485,7 +1487,7 @@ static void x3dh_sending_chain_limit_test(const lime::CurveId curve, const std::
 			// bob decrypt, it's not really needed here but cannot really hurt, comment if the test is too slow
 /*
 			std::vector<uint8_t> receivedMessage{};
-			BC_ASSERT_TRUE(bobManager->decrypt(*bobDevice1, "bob", *aliceDevice1, (*aliceRecipients)[0].DRmessage, *aliceCipherMessage, receivedMessage));
+			BC_ASSERT_TRUE(bobManager->decrypt(*bobDevice1, "bob", *aliceDevice1, (*aliceRecipients)[0].DRmessage, *aliceCipherMessage, receivedMessage) == lime::PeerDeviceStatus::untrusted);
 			std::string receivedMessageString{receivedMessage.begin(), receivedMessage.end()};
 			BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[i%lime_tester::messages_pattern.size()]);
 */
@@ -1505,8 +1507,8 @@ static void x3dh_sending_chain_limit_test(const lime::CurveId curve, const std::
 
 		// bob decrypt, it's not really needed here but...
 		receivedMessage.clear();
-		BC_ASSERT_TRUE(lime_tester::DR_message_holdsX3DHInit((*aliceRecipients)[0].DRmessage)); // we started a new session
-		BC_ASSERT_TRUE(bobManager->decrypt(*bobDevice1, "bob", *aliceDevice1, (*aliceRecipients)[0].DRmessage, *aliceCipherMessage, receivedMessage));
+		BC_ASSERT_TRUE(lime_tester::DR_message_holdsX3DHInit((*aliceRecipients)[0].DRmessage)); // we started a new session: this is what we really want to check
+		BC_ASSERT_TRUE(bobManager->decrypt(*bobDevice1, "bob", *aliceDevice1, (*aliceRecipients)[0].DRmessage, *aliceCipherMessage, receivedMessage) == lime::PeerDeviceStatus::untrusted);
 		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
 		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
 
@@ -1616,12 +1618,12 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 		// both decrypt the messages, they have crossed on the network
 		std::vector<uint8_t> receivedMessage{};
 		BC_ASSERT_TRUE(lime_tester::DR_message_holdsX3DHInit((*aliceRecipients)[0].DRmessage)); // new sessions created, they must convey X3DH init message
-		BC_ASSERT_TRUE(bobManager->decrypt(*bobDevice1, "bob", *aliceDevice1, (*aliceRecipients)[0].DRmessage, *aliceCipherMessage, receivedMessage));
+		BC_ASSERT_TRUE(bobManager->decrypt(*bobDevice1, "bob", *aliceDevice1, (*aliceRecipients)[0].DRmessage, *aliceCipherMessage, receivedMessage) == lime::PeerDeviceStatus::untrusted); // but we know that device already
 		std::string receivedMessageString{receivedMessage.begin(), receivedMessage.end()};
 		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
 
 		BC_ASSERT_TRUE(lime_tester::DR_message_holdsX3DHInit((*bobRecipients)[0].DRmessage)); // new sessions created, they must convey X3DH init message
-		BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDevice1, "alice", *bobDevice1, (*bobRecipients)[0].DRmessage, *bobCipherMessage, receivedMessage));
+		BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDevice1, "alice", *bobDevice1, (*bobRecipients)[0].DRmessage, *bobCipherMessage, receivedMessage) == lime::PeerDeviceStatus::untrusted); // but we know that device already
 		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
 		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[1]);
 
@@ -1664,7 +1666,7 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 		// alice decrypt the messages it shall set back session 1 to be the active one as bob used this one to encrypt to alice, they have now converged on a session
 		receivedMessage.clear();
 		BC_ASSERT_FALSE(lime_tester::DR_message_holdsX3DHInit((*bobRecipients)[0].DRmessage)); // it is not a new session, no more X3DH message
-		BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDevice1, "alice", *bobDevice1, (*bobRecipients)[0].DRmessage, *bobCipherMessage, receivedMessage));
+		BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDevice1, "alice", *bobDevice1, (*bobRecipients)[0].DRmessage, *bobCipherMessage, receivedMessage) == lime::PeerDeviceStatus::untrusted);
 		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
 		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[2]);
 
@@ -1802,7 +1804,7 @@ static void x3dh_multidev_operation_queue_test(const lime::CurveId curve, const 
 		bobManager->create_user(*bobDevice2, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
 		bobManager->create_user(*bobDevice3, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
 		bobManager->create_user(*bobDevice4, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
-		expected_success +=5; // we have two asynchronous operation on going
+		expected_success +=5; // we have five asynchronous operation on going
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, expected_success,lime_tester::wait_for_timeout));
 		if (counters.operation_failed == 1) return; // skip the end of the test if we can't do this
 
@@ -1844,7 +1846,7 @@ static void x3dh_multidev_operation_queue_test(const lime::CurveId curve, const 
 					lime_tester::DR_message_extractX3DHInit(recipient.DRmessage, X3DH_initMessageBuffer_next);
 					BC_ASSERT_TRUE(X3DH_initMessageBuffer == X3DH_initMessageBuffer_next);
 				}
-				BC_ASSERT_TRUE(bobManager->decrypt(recipient.deviceId, "bob", *aliceDevice1, recipient.DRmessage, *(cipherMessage[i]), receivedMessage));
+				BC_ASSERT_TRUE(bobManager->decrypt(recipient.deviceId, "bob", *aliceDevice1, recipient.DRmessage, *(cipherMessage[i]), receivedMessage) != lime::PeerDeviceStatus::fail);
 				std::string receivedMessageString{receivedMessage.begin(), receivedMessage.end()};
 				BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[i]);
 			}
@@ -1903,30 +1905,30 @@ static void x3dh_multidev_operation_queue_test(const lime::CurveId curve, const 
 		// in recipient[0] we have a message encrypted for bob.d1 and bob.d2
 		std::vector<uint8_t> receivedMessage{};
 		std::string receivedMessageString{};
-		BC_ASSERT_TRUE(bobManager->decrypt((*recipients[0])[0].deviceId, "bob", *aliceDevice1, (*recipients[0])[0].DRmessage, *(cipherMessage[0]), receivedMessage));
+		BC_ASSERT_TRUE(bobManager->decrypt((*recipients[0])[0].deviceId, "bob", *aliceDevice1, (*recipients[0])[0].DRmessage, *(cipherMessage[0]), receivedMessage) != lime::PeerDeviceStatus::fail);
 		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
 		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[messages.size()+0]);
-		BC_ASSERT_TRUE(bobManager->decrypt((*recipients[0])[1].deviceId, "bob", *aliceDevice1, (*recipients[0])[1].DRmessage, *(cipherMessage[0]), receivedMessage));
+		BC_ASSERT_TRUE(bobManager->decrypt((*recipients[0])[1].deviceId, "bob", *aliceDevice1, (*recipients[0])[1].DRmessage, *(cipherMessage[0]), receivedMessage) != lime::PeerDeviceStatus::fail);
 		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
 		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[messages.size()+0]);
 
 		// in recipient[1] we have a message encrypted to bob.d1
-		BC_ASSERT_TRUE(bobManager->decrypt((*recipients[1])[0].deviceId, "bob", *aliceDevice1, (*recipients[1])[0].DRmessage, *(cipherMessage[1]), receivedMessage));
+		BC_ASSERT_TRUE(bobManager->decrypt((*recipients[1])[0].deviceId, "bob", *aliceDevice1, (*recipients[1])[0].DRmessage, *(cipherMessage[1]), receivedMessage) != lime::PeerDeviceStatus::fail);
 		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
 		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[messages.size()+1]);
 
 		// in recipient[2] we have a message encrypted to bob.d2
-		BC_ASSERT_TRUE(bobManager->decrypt((*recipients[2])[0].deviceId, "bob", *aliceDevice1, (*recipients[2])[0].DRmessage, *(cipherMessage[2]), receivedMessage));
+		BC_ASSERT_TRUE(bobManager->decrypt((*recipients[2])[0].deviceId, "bob", *aliceDevice1, (*recipients[2])[0].DRmessage, *(cipherMessage[2]), receivedMessage) != lime::PeerDeviceStatus::fail);
 		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
 		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[messages.size()+2]);
 
 		// in recipient[2] we have a message encrypted to bob.d3
-		BC_ASSERT_TRUE(bobManager->decrypt((*recipients[3])[0].deviceId, "bob", *aliceDevice1, (*recipients[3])[0].DRmessage, *(cipherMessage[3]), receivedMessage));
+		BC_ASSERT_TRUE(bobManager->decrypt((*recipients[3])[0].deviceId, "bob", *aliceDevice1, (*recipients[3])[0].DRmessage, *(cipherMessage[3]), receivedMessage) != lime::PeerDeviceStatus::fail);
 		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
 		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[messages.size()+3]);
 
 		// in recipient[2] we have a message encrypted to bob.d4
-		BC_ASSERT_TRUE(bobManager->decrypt((*recipients[4])[0].deviceId, "bob", *aliceDevice1, (*recipients[4])[0].DRmessage, *(cipherMessage[4]), receivedMessage));
+		BC_ASSERT_TRUE(bobManager->decrypt((*recipients[4])[0].deviceId, "bob", *aliceDevice1, (*recipients[4])[0].DRmessage, *(cipherMessage[4]), receivedMessage) != lime::PeerDeviceStatus::fail);
 		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
 		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[messages.size()+4]);
 
@@ -2044,7 +2046,7 @@ static void x3dh_operation_queue_test(const lime::CurveId curve, const std::stri
 					lime_tester::DR_message_extractX3DHInit(recipient.DRmessage, X3DH_initMessageBuffer_next);
 					BC_ASSERT_TRUE(X3DH_initMessageBuffer == X3DH_initMessageBuffer_next);
 				}
-				BC_ASSERT_TRUE(bobManager->decrypt(recipient.deviceId, "bob", *aliceDevice1, recipient.DRmessage, *(cipherMessage[i]), receivedMessage));
+				BC_ASSERT_TRUE(bobManager->decrypt(recipient.deviceId, "bob", *aliceDevice1, recipient.DRmessage, *(cipherMessage[i]), receivedMessage) != lime::PeerDeviceStatus::fail);
 				std::string receivedMessageString{receivedMessage.begin(), receivedMessage.end()};
 				BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[i]);
 			}
@@ -2149,7 +2151,7 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 		for (auto &recipient : *recipients) {
 			std::vector<uint8_t> receivedMessage{};
 			BC_ASSERT_TRUE(lime_tester::DR_message_holdsX3DHInit(recipient.DRmessage)); // new sessions created, they must convey X3DH init message
-			BC_ASSERT_TRUE(bobManager->decrypt(recipient.deviceId, "bob", *aliceDevice1, recipient.DRmessage, *cipherMessage, receivedMessage));
+			BC_ASSERT_TRUE(bobManager->decrypt(recipient.deviceId, "bob", *aliceDevice1, recipient.DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
 			std::string receivedMessageString{receivedMessage.begin(), receivedMessage.end()};
 			BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
 		}
@@ -2172,7 +2174,7 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 		for (auto &recipient : *recipients) {
 			std::vector<uint8_t> receivedMessage{};
 			BC_ASSERT_TRUE(lime_tester::DR_message_holdsX3DHInit(recipient.DRmessage)); // again X3DH message as no one ever responded to alice.d1
-			BC_ASSERT_TRUE(bobManager->decrypt(recipient.deviceId, "bob", *aliceDevice1, recipient.DRmessage, *cipherMessage, receivedMessage));
+			BC_ASSERT_TRUE(bobManager->decrypt(recipient.deviceId, "bob", *aliceDevice1, recipient.DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
 			std::string receivedMessageString{receivedMessage.begin(), receivedMessage.end()};
 			BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[1]);
 		}
@@ -2195,13 +2197,13 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 		// decrypt it
 		std::vector<uint8_t> receivedMessage{};
 		BC_ASSERT_FALSE(lime_tester::DR_message_holdsX3DHInit((*recipients)[0].DRmessage)); // alice.d1 to bob.d1 already set up the DR Session, we shall not have any  X3DH message here
-		BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDevice1, "alice", *bobDevice1, (*recipients)[0].DRmessage, *cipherMessage, receivedMessage));
+		BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDevice1, "alice", *bobDevice1, (*recipients)[0].DRmessage, *cipherMessage, receivedMessage) == lime::PeerDeviceStatus::untrusted);
 		std::string receivedMessageStringAlice{receivedMessage.begin(), receivedMessage.end()};
 		BC_ASSERT_TRUE(receivedMessageStringAlice == lime_tester::messages_pattern[2]);
 
 		receivedMessage.clear();
 		BC_ASSERT_TRUE(lime_tester::DR_message_holdsX3DHInit((*recipients)[1].DRmessage)); // bob.d1 to bob.d1 is a new session, we must have a X3DH message here
-		BC_ASSERT_TRUE(bobManager->decrypt(*bobDevice2, "alice", *bobDevice1, (*recipients)[1].DRmessage, *cipherMessage, receivedMessage));
+		BC_ASSERT_TRUE(bobManager->decrypt(*bobDevice2, "alice", *bobDevice1, (*recipients)[1].DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
 		std::string receivedMessageStringBob{receivedMessage.begin(), receivedMessage.end()};
 		BC_ASSERT_TRUE(receivedMessageStringBob == lime_tester::messages_pattern[2]);
 
@@ -2222,12 +2224,12 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 		// decrypt it
 		receivedMessage.clear();
 		BC_ASSERT_FALSE(lime_tester::DR_message_holdsX3DHInit((*recipients)[0].DRmessage)); // alice.d1 to bob.d2 already set up the DR Session, we shall not have any  X3DH message here
-		BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDevice1, "alice", *bobDevice2, (*recipients)[0].DRmessage, *cipherMessage, receivedMessage));
+		BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDevice1, "alice", *bobDevice2, (*recipients)[0].DRmessage, *cipherMessage, receivedMessage) == lime::PeerDeviceStatus::untrusted);
 		receivedMessageStringAlice = std::string{receivedMessage.begin(), receivedMessage.end()};
 		BC_ASSERT_TRUE(receivedMessageStringAlice == lime_tester::messages_pattern[3]);
 		receivedMessage.clear();
 		BC_ASSERT_FALSE(lime_tester::DR_message_holdsX3DHInit((*recipients)[1].DRmessage)); // bob.d1 to bob.d2 already set up the DR Session, we shall not have any  X3DH message here
-		BC_ASSERT_TRUE(bobManager->decrypt(*bobDevice1, "alice", *bobDevice2, (*recipients)[1].DRmessage, *cipherMessage, receivedMessage));
+		BC_ASSERT_TRUE(bobManager->decrypt(*bobDevice1, "alice", *bobDevice2, (*recipients)[1].DRmessage, *cipherMessage, receivedMessage) == lime::PeerDeviceStatus::untrusted);
 		receivedMessageStringBob = std::string{receivedMessage.begin(), receivedMessage.end()};
 		BC_ASSERT_TRUE(receivedMessageStringBob == lime_tester::messages_pattern[3]);
 
@@ -2249,7 +2251,7 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 		for (auto &recipient : *recipients) {
 			std::vector<uint8_t> receivedMessage{};
 			BC_ASSERT_FALSE(lime_tester::DR_message_holdsX3DHInit(recipient.DRmessage)); // bob.d1 and d2 both responded, so no more X3DH message shall be sent
-			BC_ASSERT_TRUE(bobManager->decrypt(recipient.deviceId, "bob", *aliceDevice1, recipient.DRmessage, *cipherMessage, receivedMessage));
+			BC_ASSERT_TRUE(bobManager->decrypt(recipient.deviceId, "bob", *aliceDevice1, recipient.DRmessage, *cipherMessage, receivedMessage) == lime::PeerDeviceStatus::untrusted);
 			std::string receivedMessageString{receivedMessage.begin(), receivedMessage.end()};
 			BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[4]);
 		}

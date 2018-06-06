@@ -290,7 +290,7 @@ void Db::get_allLocalDevices(std::vector<std::string> &deviceIds) {
  * throw an exception if given key doesn't match the one present in local storage
  * if peer Device is not present in local storage and status is true, it is added, if status is false, it is just ignored
  */
-void Db::set_PeerDevicesVerifiedStatus(const std::string &peerDeviceId, const std::vector<uint8_t> &Ik, bool status) {
+void Db::set_peerDeviceVerifiedStatus(const std::string &peerDeviceId, const std::vector<uint8_t> &Ik, bool status) {
 	// Do we have this peerDevice in lime_PeerDevices
 	blob Ik_blob(sql);
 	long long id;
@@ -315,24 +315,24 @@ void Db::set_PeerDevicesVerifiedStatus(const std::string &peerDeviceId, const st
 }
 
 /**
- * @brief get the identity verified flag for peer device
+ * @brief get the status of a peer device: unknown, untrusted, trusted
  *
  * @param[in]	peerDeviceId	The device Id of peer, shall be its GRUU
  *
- * @return the stored Verified status, false if peer Device is not present in local Storage
+ * @return unknown if the device is not in localStorage, untrusted or trusted according to the stored value of identity verified flag otherwise
  */
-bool Db::get_PeerDevicesIdentityVerifiedStatus(const std::string &peerDeviceId) {
+lime::PeerDeviceStatus Db::get_peerDeviceStatus(const std::string &peerDeviceId) {
 	int verified;
 	sql<<"SELECT Verified FROM Lime_PeerDevices WHERE DeviceId = :peerDeviceId LIMIT 1;", into(verified), use(peerDeviceId);
 	if (sql.got_data()) { // Found it
-		if (verified == 1) {
-			return true;
+		if (verified == 1) { // and trusted
+			return lime::PeerDeviceStatus::trusted;
 		}
-		return false; // verified is stored as false
+		return lime::PeerDeviceStatus::untrusted; // verified is stored as false
 	}
 
-	// peerDeviceId not found in local storage: return false
-	return false;
+	// peerDeviceId not found in local storage
+	return lime::PeerDeviceStatus::unknown;
 }
 
 /**

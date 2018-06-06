@@ -238,7 +238,7 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 
 		/*** alice encrypt a message to bob, all parameters given to encrypt function are shared_ptr. ***/
 		// The encryption generates:
-		//      - one common cipher message which must be sent to all recipient devices
+		//      - one common cipher message which must be sent to all recipient devices(depends on encryption policy, message length and recipient number, it may be actually empty)
 		//      - a cipher header per recipient device, each recipient device shall receive its specific one
 
 		// Create an empty RecipientData vector, in this basic case we will encrypt to one device only but we can do it to any number of recipient devices.
@@ -321,7 +321,9 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 		if (bobReceivedDRmessage.size()>0 && bobReceivedCipherMessage.size()>0) {
 
 			std::vector<uint8_t> plainTextMessage{}; // a data vector to store the decrypted message
-			BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "bob", *aliceDeviceId, bobReceivedDRmessage, bobReceivedCipherMessage, plainTextMessage));
+			// it is the first time bob's Device is in communication with Alice's one, so the decrypt will return PeerDeviceStatus::unknown
+			// successive messages from Alice shall get a PeerDeviceStatus::untrusted as we did not take care of peer identity validation
+			BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "bob", *aliceDeviceId, bobReceivedDRmessage, bobReceivedCipherMessage, plainTextMessage) == lime::PeerDeviceStatus::unknown);
 
 			// it's a text message, so turn it into a string and compare with the one alice sent
 			std::string plainTextMessageString{plainTextMessage.begin(), plainTextMessage.end()};
@@ -465,8 +467,13 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve, const std:
 
 		/*** alice encrypt a message to bob, all parameters given to encrypt function are shared_ptr. ***/
 		// The encryption generates:
-		//      - one common cipher message which must be sent to all recipient devices
+		//      - one common cipher message which must be sent to all recipient devices(depends on encryption policy, message length and recipient number, it may be actually empty)
 		//      - a cipher header per recipient device, each recipient device shall receive its specific one
+
+		// [verify] before encryption we can verify that recipient identity is a trusted peer(and eventually decide to not perform the encryption if it is not)
+		// This information will be provided by the encrypt function anyway for each recipient device
+		// Here Bob's device is trusted as we just set its identity as verified
+		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(*bobDeviceId) == lime::PeerDeviceStatus::trusted);
 
 		// Create an empty RecipientData vector, in this basic case we will encrypt to one device only but we can do it to any number of recipient devices.
 		// RecipientData holds:
@@ -548,11 +555,14 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve, const std:
 
 		if (bobReceivedDRmessage.size()>0 && bobReceivedCipherMessage.size()>0) {
 
-			// [verify] before decryption we can verify that sender is a trusted peer
-			BC_ASSERT_TRUE(bobManager->get_peerIdentityVerifiedStatus(*aliceDeviceId));
+			// [verify] before decryption we can verify that sender is a trusted peer,
+			// it is not really needed as this information will be provided by the decrypt function anyway
+			BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::trusted);
 
 			std::vector<uint8_t> plainTextMessage{}; // a data vector to store the decrypted message
-			BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "bob", *aliceDeviceId, bobReceivedDRmessage, bobReceivedCipherMessage, plainTextMessage));
+			// [verify] it is the first time bob's Device is in communication with Alice's one via message
+			// but they already exchanged their identity keys so they Bob's device trust Alice's one since the first incoming message
+			BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "bob", *aliceDeviceId, bobReceivedDRmessage, bobReceivedCipherMessage, plainTextMessage) == lime::PeerDeviceStatus::trusted);
 
 			// it's a text message, so turn it into a string and compare with the one alice sent
 			std::string plainTextMessageString{plainTextMessage.begin(), plainTextMessage.end()};
