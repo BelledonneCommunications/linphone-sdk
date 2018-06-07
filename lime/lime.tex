@@ -185,6 +185,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
           \State $recipientDeviceId$: the recipient device Id
           \State $DRsession$: an active Double Ratchet session with the recipient device
           \State $DRmessage$: encryption output ($Double\ Ratchet\ Message$) for this recipient device
+          \State $peerDeviceStatus$: an ouput giving a status on the recipient: unknown(till now thus), untrusted or trusted
         \end{algorithmic}
       \paragraph{}The ouput may be completed by a $Cipher\ Message$ holding the encrypted plain text according to the selected encryption policy,
       \paragraph{}The message is sent from the sender device to one recipient user (with one user Id and one or more associated device Id) but also distributed to other devices registered to the same sender user. Recipient devices in the list must all be linked to this, unique, recipient user Id or to the sender user Id. For example:
@@ -342,7 +343,8 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         
     \subsubsection{RatchetDecrypt}
       \paragraph{}The decryption function described in \cite[section 3.5]{doubleRatchet} is not directly used to decrypt the message. Lime first assess the presence of a cipher message and depending on it use directly the Double Ratchet or perform the two steps of encryption: first decrypt the Double Ratchet message to retrieve the random Key and IV, then decrypt the message itself.
-      \paragraph*{}The receiving process described in Sesame specifications \cite[section 3.4]{sesame} is partly implemented in the Double Ratchet decryption process: the message decrypt function accepts a list of Double Ratchet sessions and tries them all until one decrypts correctly the message (or all fail).
+      \paragraph{}The receiving process described in Sesame specifications \cite[section 3.4]{sesame} is partly implemented in the Double Ratchet decryption process: the message decrypt function accepts a list of Double Ratchet sessions and tries them all until one decrypts correctly the message (or all fail).
+      \paragraph{}The decryption returns the peer device's status(unknown, untrusted or trusted) in case of success or fail in case of failure.
         \begin{algorithmic}
           \Statex
           \Function{MessageDecrypt}{$sourceDeviceId,$
@@ -448,8 +450,9 @@ any session-based message encryption algorithm that meets certain conditions.}\t
             \State $AD\langle 32bytes\rangle  \gets \Call{HKDFSha512}{ZeroBuffer, ADinput, $\textit{"X3DH Associated Data"}}
           \end{algorithmic}
           \textit{initiator} being the device who initiates the session (Alice in the X3DH spec) by fetching a keys bundle on the X3DH server and \textit{receiver} being the recipient device of the first message (Bob in the X3DH spec).
-    \subsubsection{Server}
-      \paragraph*{}An X3DH test server running on nodejs is provided with the Lime library source code. This server is not meant to be used in production and its purpose is for testing only. Open instances of the test server shall be running on https://sip5.linphone.org:25519 (operating with curve 25519) and https://sip5.linphone.org:25520 (operating with curve 448) accepting connection identified as anyone using the credentials:
+    \subsubsection{X3DH test server}
+      \paragraph*{PHP}: An X3DH test server running on nginx/mysql/php docker container is provided with the lime library source code. This server is not meant to be used in production and its purpose is for testing only. This server lacks user authentication layer, which in real use case is provided by the linphone ecosystem.
+      \paragraph*{Nodejs}: An X3DH test server running on nodejs is provided with the Lime library source code. This server is not meant to be used in production and its purpose is for testing only. It includes a basic user authentication(to the purpose of testing the correct implementation of it in a client) but let any authenticated user run commands in the name of others.Open instances of this version of the test server shall be running on https://sip5.linphone.org:25519 (operating with curve 25519) and https://sip5.linphone.org:25520 (operating with curve 448) accepting connection identified as anyone using the credentials:
       \begin{itemize}
         \item username: "alice"
         \item password: "you see the problem is this"
@@ -563,10 +566,15 @@ any session-based message encryption algorithm that meets certain conditions.}\t
     \mess{Carol DR msg$\Arrowvert $cipher Message}{SIP}{carol}
     \end{msc}
     
-  \subsection{Mutual authentication}
+  \subsection{Mutual authentication and peer device status}
     \label{subsec:mutualauthentication}
-    \paragraph{}As stated in \cite[section 4.1]{x3dh}, the parties shall compare their identity public keys otherwise they receive no cryptographic guarantee as to whom they are communicating with.
-    \paragraph{}Lime relies on a ZRTP\cite{zrtp} audio call leveraging the MiTM detection offered by the ZRTP short authentication string to authenticate the peer identity key. ZRTP auxiliary secret is used to compare both parties' identity public keys in the following way:
+    \paragraph{}As stated in \cite[section 4.1]{x3dh}, the parties shall compare their identity public keys otherwise they receive no cryptographic guarantee as to whom they are communicating with. Each peer device has a status available after any encryption or decryption operation which can be:
+   \begin{itemize}
+      \item $unknown$: we had no information about this device in the local storage(before the last encryption or decryption), this status spots a newly encountered device and shall be clearly made available to the end user.
+      \item $untrusted$: it's is not the first interaction with this device, but we never established mutual authentication
+      \item $trusted$: we already performed the mutual authentication ritual with this peer device.
+   \end{itemize}
+    \paragraph{}Lime provides an API to set/get peer devices identity keys and trust level indexed by its device Id. Linphone uses a ZRTP\cite{zrtp} audio call leveraging the MiTM detection offered by the ZRTP short authentication string to authenticate the peer identity key. ZRTP auxiliary secret is used to compare both parties' identity public keys in the following way:
     \begin{itemize}
       \item parties exchange their identity public keys in the signaling channel at call establishment;
       \item parties use $caller\ Ik \Arrowvert receiver\ Ik$ as ZRTP auxiliary secret;
