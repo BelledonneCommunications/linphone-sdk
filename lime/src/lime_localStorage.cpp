@@ -336,6 +336,77 @@ lime::PeerDeviceStatus Db::get_peerDeviceStatus(const std::string &peerDeviceId)
 }
 
 /**
+ * @brief Check peer device information(DeviceId - GRUU -, public Ik, Uid to link it to a user) in local storage
+ *
+ * @param[in] peerDeviceId	The device id to check
+ * @param[in] peerIk		The public EDDSA identity key of this device
+ *
+ * throws an exception if the device is found in local storage but with a different Ik
+ *
+ * @return the id internally used by db to store this row, 0 if this device is not in the local storage
+ */
+template <typename Curve>
+long int Db::check_peerDevice(const std::string &peerDeviceId, const DSA<Curve, lime::DSAtype::publicKey> &peerIk) {
+	try {
+		blob Ik_blob(sql);
+		long int Did=0;
+
+		// make sure this device wasn't already here, if it was, check they have the same Ik
+		sql<<"SELECT Ik,Did FROM lime_PeerDevices WHERE DeviceId = :DeviceId LIMIT 1;", into(Ik_blob), into(Did), use(peerDeviceId);
+		if (sql.got_data()) { // Found one
+			DSA<Curve, lime::DSAtype::publicKey> stored_Ik;
+			if (Ik_blob.get_len() != stored_Ik.size()) { // can't match they are not the same size
+				LIME_LOGE<<"It appears that peer device "<<peerDeviceId<<" was known with an identity key but is trying to use another one now";
+				throw BCTBX_EXCEPTION << "Peer device "<<peerDeviceId<<" changed its Ik";
+			}
+			Ik_blob.read(0, (char *)(stored_Ik.data()), stored_Ik.size()); // Read it to compare it to the given one
+			if (stored_Ik == peerIk) { // they match, so we just return the Did
+				return Did;
+			} else { // Ik are not matching, peer device changed its Ik!?! Reject
+				LIME_LOGE<<"It appears that peer device "<<peerDeviceId<<" was known with an identity key but is trying to use another one now";
+				throw BCTBX_EXCEPTION << "Peer device "<<peerDeviceId<<" changed its Ik";
+			}
+		} else { // not found in local Storage: return 0
+			return 0;
+		}
+	} catch (exception const &e) {
+		throw BCTBX_EXCEPTION << "Peer device "<<peerDeviceId<<" check failed: "<<e.what();
+	}
+
+}
+
+/**
+ * @brief Store peer device information(DeviceId - GRUU -, public Ik, Uid to link it to a user) in local storage
+ *
+ * @param[in] peerDeviceId	The device id to insert
+ * @param[in] peerIk		The public EDDSA identity key of this device
+ *
+ * @return the id internally used by db to store this row
+ */
+template <typename Curve>
+long int Db::store_peerDevice(const std::string &peerDeviceId, const DSA<Curve, lime::DSAtype::publicKey> &peerIk) {
+
+	try {
+		blob Ik_blob(sql);
+		long int Did=0;
+
+		// make sure this device wasn't already here, if it was, check they have the same Ik
+		Did = check_peerDevice(peerDeviceId, peerIk); // perform checks on peer device and returns its Id if found in local storage already
+		if (Did != 0) {
+			return Did;
+		} else { // not found in local Storage
+			Ik_blob.write(0, (char *)(peerIk.data()), peerIk.size());
+			sql<<"INSERT INTO lime_PeerDevices(DeviceId,Ik) VALUES (:deviceId,:Ik) ", use(peerDeviceId), use(Ik_blob);
+			sql<<"select last_insert_rowid()",into(Did);
+			LIME_LOGD<<"store peerDevice "<<peerDeviceId<<" with device id "<<Did;
+			return Did;
+		}
+	} catch (exception const &e) {
+		throw BCTBX_EXCEPTION << "Peer device "<<peerDeviceId<<" insertion failed: "<<e.what();
+	}
+}
+
+/**
  * @brief if exists, delete user
  *
  * @param[in]	deviceId	a string holding the user to look for in DB, shall be its GRUU
@@ -345,6 +416,17 @@ void Db::delete_LimeUser(const std::string &deviceId)
 {
 	sql<<"DELETE FROM lime_LocalUsers WHERE UserId = :userId;", use(deviceId);
 }
+
+/* template instanciations for Curves 25519 and 448 */
+#ifdef EC25519_ENABLED
+	template long int Db::check_peerDevice<C255>(const std::string &peerDeviceId, const DSA<C255, lime::DSAtype::publicKey> &Ik);
+	template long int Db::store_peerDevice<C255>(const std::string &peerDeviceId, const DSA<C255, lime::DSAtype::publicKey> &Ik);
+#endif
+
+#ifdef EC448_ENABLED
+	template long int Db::check_peerDevice<C448>(const std::string &peerDeviceId, const DSA<C448, lime::DSAtype::publicKey> &Ik);
+	template long int Db::store_peerDevice<C448>(const std::string &peerDeviceId, const DSA<C448, lime::DSAtype::publicKey> &Ik);
+#endif
 
 /******************************************************************************/
 /*                                                                            */
@@ -376,8 +458,13 @@ bool DR<DHKey>::session_save() {
 		blob AD(m_localStorage->sql);
 		AD.write(0, (char *)(m_sharedAD.data()), m_sharedAD.size());
 
-		// make sure we have no other session active with this pair local,peer DiD
-		m_localStorage->sql<<"UPDATE DR_sessions SET Status = 0, timeStamp = CURRENT_TIMESTAMP WHERE Did = :Did AND Uid = :Uid", use(m_peerDid), use(m_db_Uid);
+		// Check if we have a peer device already in storage
+		if (m_peerDid == 0) { // no : we must insert it(failure will result in exception being thrown, let it flow up then)
+			m_peerDid = m_localStorage->store_peerDevice(m_peerDeviceId, m_peerIk);
+		} else {
+			// make sure we have no other session active with this pair local,peer DiD
+			m_localStorage->sql<<"UPDATE DR_sessions SET Status = 0, timeStamp = CURRENT_TIMESTAMP WHERE Did = :Did AND Uid = :Uid", use(m_peerDid), use(m_db_Uid);
+		}
 
 		if (m_X3DH_initMessage.size()>0) {
 			blob X3DH_initMessage(m_localStorage->sql);
@@ -799,49 +886,6 @@ void Lime<Curve>::cache_DR_sessions(std::vector<RecipientInfos<Curve>> &internal
 	}
 }
 
-/**
- * @brief Store peer device information(DeviceId - GRUU -, public Ik, Uid to link it to a user) in local storage
- *
- * @param[in] peerDeviceId	The device id to insert
- * @param[in] Ik		The public EDDSA identity key of this device
- *
- * @return the id internally used by db to store this row
- */
-template <typename Curve>
-long int Lime<Curve>::store_peerDevice(const std::string &peerDeviceId, const DSA<Curve, lime::DSAtype::publicKey> &Ik) {
-	blob Ik_blob(m_localStorage->sql);
-
-	try {
-		long int Did=0;
-		// make sure this device wasn't already here, if it was, check they have the same Ik
-		m_localStorage->sql<<"SELECT Ik,Did FROM lime_PeerDevices WHERE DeviceId = :DeviceId LIMIT 1;", into(Ik_blob), into(Did), use(peerDeviceId);
-		if (m_localStorage->sql.got_data()) { // Found one
-			DSA<Curve, lime::DSAtype::publicKey> stored_Ik;
-			if (Ik_blob.get_len() != stored_Ik.size()) { // can't match they are not the same size
-				LIME_LOGE<<"It appears that peer device "<<peerDeviceId<<" was known with an identity key but is trying to use another one now";
-				throw BCTBX_EXCEPTION << "Peer device "<<peerDeviceId<<" changed its Ik";
-			}
-			Ik_blob.read(0, (char *)(stored_Ik.data()), stored_Ik.size()); // Read it to compare it to the given one
-			if (stored_Ik == Ik) { // they match, so we just return the Did
-				return Did;
-			} else { // Ik are not matching, peer device changed its Ik!?! Reject
-				LIME_LOGE<<"It appears that peer device "<<peerDeviceId<<" was known with an identity key but is trying to use another one now";
-				throw BCTBX_EXCEPTION << "Peer device "<<peerDeviceId<<" changed its Ik";
-			}
-		} else { // not found in local Storage
-			transaction tr(m_localStorage->sql);
-			Ik_blob.write(0, (char *)(Ik.data()), Ik.size());
-			m_localStorage->sql<<"INSERT INTO lime_PeerDevices(DeviceId,Ik) VALUES (:deviceId,:Ik) ", use(peerDeviceId), use(Ik_blob);
-			m_localStorage->sql<<"select last_insert_rowid()",into(Did);
-			tr.commit();
-			LIME_LOGD<<"store peerDevice "<<peerDeviceId<<" with device id "<<Did;
-			return Did;
-		}
-	} catch (exception const &e) {
-		throw BCTBX_EXCEPTION << "Peer device "<<peerDeviceId<<" insertion failed. DB backend says : "<<e.what();
-	}
-}
-
 // load from local storage in DRSessions all DR session matching the peerDeviceId, ignore the one picked by id in 2nd arg
 template <typename Curve>
 void Lime<Curve>::get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDRSessionId, std::vector<std::shared_ptr<DR<Curve>>> &DRSessions) {
@@ -940,7 +984,6 @@ void Lime<Curve>::X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds) {
 	template void Lime<C255>::X3DH_generate_SPk(X<C255, lime::Xtype::publicKey> &publicSPk, DSA<C255, DSAtype::signature> &SPk_sig, uint32_t &SPk_id);
 	template void Lime<C255>::X3DH_generate_OPks(std::vector<X<C255, lime::Xtype::publicKey>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number);
 	template void Lime<C255>::cache_DR_sessions(std::vector<RecipientInfos<C255>> &internal_recipients, std::vector<std::string> &missing_devices);
-	template long int Lime<C255>::store_peerDevice(const std::string &peerDeviceId, const DSA<C255, lime::DSAtype::publicKey> &Ik);
 	template void Lime<C255>::get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDBSessionId, std::vector<std::shared_ptr<DR<C255>>> &DRSessions);
 	template void Lime<C255>::X3DH_get_SPk(uint32_t SPk_id, Xpair<C255> &SPk);
 	template bool Lime<C255>::is_currentSPk_valid(void);
@@ -954,7 +997,6 @@ void Lime<Curve>::X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds) {
 	template void Lime<C448>::X3DH_generate_SPk(X<C448, lime::Xtype::publicKey> &publicSPk, DSA<C448, DSAtype::signature> &SPk_sig, uint32_t &SPk_id);
 	template void Lime<C448>::X3DH_generate_OPks(std::vector<X<C448, lime::Xtype::publicKey>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number);
 	template void Lime<C448>::cache_DR_sessions(std::vector<RecipientInfos<C448>> &internal_recipients, std::vector<std::string> &missing_devices);
-	template long int Lime<C448>::store_peerDevice(const std::string &peerDeviceId, const DSA<C448, lime::DSAtype::publicKey> &Ik);
 	template void Lime<C448>::get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDBSessionId, std::vector<std::shared_ptr<DR<C448>>> &DRSessions);
 	template void Lime<C448>::X3DH_get_SPk(uint32_t SPk_id, Xpair<C448> &SPk);
 	template bool Lime<C448>::is_currentSPk_valid(void);

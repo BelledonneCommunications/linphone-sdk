@@ -44,9 +44,9 @@ namespace lime {
 				throw BCTBX_EXCEPTION << "Verify signature on SPk failed for deviceId "<<peerBundle.deviceId;
 			}
 
-			// insert the new peer device Id in Storage, keep the Id used in table to give it to DR_Session which will need it to save itself into DB.
+			// before going on, check if peer informations are ok, if the returned Id is 0, it means this peer was not in storage yet
 			// throw an exception in case of failure, just let it flow up
-			long int peerDid = store_peerDevice(peerBundle.deviceId, peerBundle.Ik);
+			long int peerDid = m_localStorage->check_peerDevice(peerBundle.deviceId, peerBundle.Ik);
 
 			// Initiate HKDF input : We will compute HKDF with a concat of F and all DH computed, see X3DH spec section 2.2 for what is F
 			// use sBuffer of size able to hold also DH$ even if we may not use it
@@ -117,7 +117,8 @@ namespace lime {
 			if (peerBundle.haveOPk) {
 				m_DR_sessions_cache.erase(peerBundle.deviceId); // will just do nothing if this peerDeviceId is not in cache
 			}
-			m_DR_sessions_cache.emplace(peerBundle.deviceId, make_shared<DR<Curve>>(m_localStorage.get(), SK, AD, peerBundle.SPk, peerDid, m_db_Uid, X3DH_initMessage, m_RNG)); // will just do nothing if this peerDeviceId is already in cache
+
+			m_DR_sessions_cache.emplace(peerBundle.deviceId, make_shared<DR<Curve>>(m_localStorage.get(), SK, AD, peerBundle.SPk, peerDid, peerBundle.deviceId, peerBundle.Ik, m_db_Uid, X3DH_initMessage, m_RNG)); // will just do nothing if this peerDeviceId is already in cache
 
 			LIME_LOGI<<"X3DH created session with device "<<peerBundle.deviceId;
 		}
@@ -204,11 +205,10 @@ namespace lime {
 		AD_input.insert(AD_input.end(), m_selfDeviceId.cbegin(), m_selfDeviceId.cend());
 		HMAC_KDF<SHA512>(salt, AD_input, lime::settings::X3DH_AD_info, AD.data(), AD.size()); // use the same salt as for SK computation but a different info string
 
-		// insert the new peer device Id in Storage, keep the Id used in table to give it to DR_Session which will need it to save itself into DB.
-		long int peerDid=0;
-		peerDid = store_peerDevice(senderDeviceId, peerIk);
+		// check the new peer device Id in Storage, if it is not found, the DR session will add it when it saves itself after successful decryption
+		auto peerDid = m_localStorage->check_peerDevice(senderDeviceId, peerIk);
 
-		auto DRSession = make_shared<DR<Curve>>(m_localStorage.get(), SK, AD, SPk, peerDid, m_db_Uid, m_RNG);
+		auto DRSession = make_shared<DR<Curve>>(m_localStorage.get(), SK, AD, SPk, peerDid, senderDeviceId, peerIk, m_db_Uid, m_RNG);
 
 		return DRSession;
 	}

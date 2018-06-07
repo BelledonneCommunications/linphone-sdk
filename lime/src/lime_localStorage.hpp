@@ -21,6 +21,7 @@
 #define lime_localStorage_hpp
 
 #include "soci/soci.h"
+#include "lime_crypto_primitives.hpp"
 
 namespace lime {
 
@@ -107,12 +108,40 @@ namespace lime {
 		 */
 		lime::PeerDeviceStatus get_peerDeviceStatus(const std::string &peerDeviceId);
 
+		/**
+		 * @brief check if the given peer Device information are in the local storage
+		 * raise an exception if a different Ik is found for the given peer Device Id
+		 *
+		 * @param[in]	peerDeviceId	The peer's device Id, shall be its GRUU
+		 * @param[in]	peerIk		The peer's public identity key
+		 *
+		 * @return the Id used internally in local Storage to index the peer device, 0 if not found
+		 */
+		template <typename Curve>
+		long int check_peerDevice(const std::string &peerDeviceId, const DSA<Curve, lime::DSAtype::publicKey> &peerIk);
+
+		/**
+		 * @brief insert the given peer Device information in the local storage
+		 * given data are checked (using check_peerDevice) before insertion
+		 *
+		 * @param[in]	peerDeviceId	The peer's device Id, shall be its GRUU
+		 * @param[in]	peerIk		The peer's public identity key
+		 *
+		 * @return the Id used internally in local Storage to index the peer device
+		 */
+		template <typename Curve>
+		long int store_peerDevice(const std::string &peerDeviceId, const DSA<Curve, lime::DSAtype::publicKey> &peerIk);
 	};
 
+	/* this templates are instanciated once in the lime_localStorage.cpp file, explicitly tell anyone including this header that there is no need to re-instanciate them */
 #ifdef EC25519_ENABLED
+	extern template long int Db::check_peerDevice<C255>(const std::string &peerDeviceId, const DSA<C255, lime::DSAtype::publicKey> &Ik);
+	extern template long int Db::store_peerDevice<C255>(const std::string &peerDeviceId, const DSA<C255, lime::DSAtype::publicKey> &Ik);
 #endif
 
 #ifdef EC448_ENABLED
+	extern template long int Db::check_peerDevice<C448>(const std::string &peerDeviceId, const DSA<C448, lime::DSAtype::publicKey> &Ik);
+	extern template long int Db::store_peerDevice<C448>(const std::string &peerDeviceId, const DSA<C448, lime::DSAtype::publicKey> &Ik);
 #endif
 
 }

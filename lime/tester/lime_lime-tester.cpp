@@ -835,6 +835,204 @@ static void lime_identityVerifiedStatus() {
 }
 
 /**
+ * Scenario
+ * - Create managers and DB for alice, bob, carol and dave
+ * - Get their Identity key and gives alice (apply mutual action with alice's identity key on bob's, carol's and dave's manager)
+ *     - bob's keys as trusted
+ *     - set carol's key as trusted and then untrusted so it is in Alice local storage as untrusted
+ *     - set dave's key as untrusted, as it was not konwn before, it shall not be registered at all in Alice local storage
+ * - Alice encrypts a message to bob, carol and dave. Check that the peerDevice status given after encryption are respectively: trusted, untrusted, unknown
+ * - Recipients decrypt Alice message and check we have the expected return values:
+ *   - Bob: trusted
+ *   - Carol: untrusted
+ *   - Dave: unknown
+ * - Alice encrypts a second message to bob, carol and dave. Check that the peerDevice status given after encryption are respectively: trusted, untrusted, untrusted
+ * - Recipients decrypt Alice message and check we have the expected return values:
+ *   - Bob: trusted
+ *   - Carol: untrusted
+ *   - Dave: untrusted
+ */
+static void lime_peerDeviceStatus_test(const lime::CurveId curve, const std::string &dbBaseFilename, const std::string &x3dh_server_url) {
+	// create DB
+	std::string dbFilenameAlice{dbBaseFilename};
+	std::string dbFilenameBob{dbBaseFilename};
+	std::string dbFilenameCarol{dbBaseFilename};
+	std::string dbFilenameDave{dbBaseFilename};
+
+	dbFilenameAlice.append(".alice.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
+	dbFilenameBob.append(".bob.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
+	dbFilenameCarol.append(".carol.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
+	dbFilenameDave.append(".dave.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
+
+	remove(dbFilenameAlice.data()); // delete the database file if already exists
+	remove(dbFilenameBob.data()); // delete the database file if already exists
+	remove(dbFilenameCarol.data()); // delete the database file if already exists
+	remove(dbFilenameDave.data()); // delete the database file if already exists
+
+	lime_tester::events_counters_t counters={};
+	int expected_success=0;
+
+	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+					if (returnCode == lime::CallbackReturn::success) {
+						counters.operation_success++;
+					} else {
+						counters.operation_failed++;
+						LIME_LOGE<<"Lime operation failed : "<<anythingToSay;
+					}
+				});
+
+	try {
+		// create Manager and devices
+		auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
+		auto aliceDeviceId = lime_tester::makeRandomDeviceName("alice.");
+		aliceManager->create_user(*aliceDeviceId, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
+
+		auto bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, X3DHServerPost));
+		auto bobDeviceId = lime_tester::makeRandomDeviceName("bob.");
+		bobManager->create_user(*bobDeviceId, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
+
+		auto carolManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameCarol, X3DHServerPost));
+		auto carolDeviceId = lime_tester::makeRandomDeviceName("carol.");
+		carolManager->create_user(*carolDeviceId, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
+
+		auto daveManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameDave, X3DHServerPost));
+		auto daveDeviceId = lime_tester::makeRandomDeviceName("dave.");
+		daveManager->create_user(*daveDeviceId, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
+
+		expected_success += 4;
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, expected_success,lime_tester::wait_for_timeout));
+
+		// retrieve their respective Ik
+		std::vector<uint8_t> aliceIk{};
+		std::vector<uint8_t> bobIk{};
+		std::vector<uint8_t> carolIk{};
+		std::vector<uint8_t> daveIk{};
+		aliceManager->get_selfIdentityKey(*aliceDeviceId, aliceIk);
+		bobManager->get_selfIdentityKey(*bobDeviceId, bobIk);
+		carolManager->get_selfIdentityKey(*carolDeviceId, carolIk);
+		daveManager->get_selfIdentityKey(*daveDeviceId, daveIk);
+
+		// exchange trust between alice and bob
+		bobManager->set_peerIdentityVerifiedStatus(*aliceDeviceId, aliceIk, true);
+		aliceManager->set_peerIdentityVerifiedStatus(*bobDeviceId, bobIk, true);
+		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::trusted);
+		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(*bobDeviceId) == lime::PeerDeviceStatus::trusted);
+
+		// alice and carol gets trust and back to not trust so the Ik gets registered in their local storage
+		carolManager->set_peerIdentityVerifiedStatus(*aliceDeviceId, aliceIk, true);
+		aliceManager->set_peerIdentityVerifiedStatus(*carolDeviceId, carolIk, true);
+		carolManager->set_peerIdentityVerifiedStatus(*aliceDeviceId, aliceIk, false);
+		aliceManager->set_peerIdentityVerifiedStatus(*carolDeviceId, carolIk, false);
+		BC_ASSERT_TRUE(carolManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::untrusted);
+		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(*carolDeviceId) == lime::PeerDeviceStatus::untrusted);
+
+		// alice and dave gets just an untrusted setting, as they do not know each other, it shall not affect their respective local storage and they would remain unknown
+		daveManager->set_peerIdentityVerifiedStatus(*aliceDeviceId, aliceIk, false);
+		aliceManager->set_peerIdentityVerifiedStatus(*daveDeviceId, daveIk, false);
+		BC_ASSERT_TRUE(daveManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::unknown);
+		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(*daveDeviceId) == lime::PeerDeviceStatus::unknown);
+
+		// Alice encrypts a message for Bob, Carol and Dave
+		auto aliceRecipients = make_shared<std::vector<RecipientData>>();
+		aliceRecipients->emplace_back(*bobDeviceId);
+		aliceRecipients->emplace_back(*carolDeviceId);
+		aliceRecipients->emplace_back(*daveDeviceId);
+
+		auto aliceMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
+		auto aliceCipherMessage = make_shared<std::vector<uint8_t>>();
+		aliceManager->encrypt(*aliceDeviceId, make_shared<const std::string>("my friends group"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+
+		BC_ASSERT_TRUE((*aliceRecipients)[0].peerStatus == lime::PeerDeviceStatus::trusted); // recipient 0 is Bob: trusted
+		BC_ASSERT_TRUE((*aliceRecipients)[1].peerStatus == lime::PeerDeviceStatus::untrusted); // recipient 1 is Carol: untrusted
+		BC_ASSERT_TRUE((*aliceRecipients)[2].peerStatus == lime::PeerDeviceStatus::unknown); // recipient 2 is Dave: unknown
+
+		// recipients decrypt
+		std::vector<uint8_t> receivedMessage{};
+		// bob shall return trusted
+		BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "my friends group", *aliceDeviceId, (*aliceRecipients)[0].DRmessage, *aliceCipherMessage, receivedMessage) == lime::PeerDeviceStatus::trusted);
+		auto receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
+		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
+
+		receivedMessage.clear();
+		receivedMessageString.clear();
+		// carol shall return untrusted
+		BC_ASSERT_TRUE(carolManager->decrypt(*carolDeviceId, "my friends group", *aliceDeviceId, (*aliceRecipients)[1].DRmessage, *aliceCipherMessage, receivedMessage) == lime::PeerDeviceStatus::untrusted);
+		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
+		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
+
+		receivedMessage.clear();
+		receivedMessageString.clear();
+		// dave shall return unknown
+		BC_ASSERT_TRUE(daveManager->decrypt(*daveDeviceId, "my friends group", *aliceDeviceId, (*aliceRecipients)[2].DRmessage, *aliceCipherMessage, receivedMessage) == lime::PeerDeviceStatus::unknown);
+		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
+		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
+
+		// Alice encrypts a second message for Bob, Carol and Dave
+		aliceRecipients->clear();
+		aliceRecipients->emplace_back(*bobDeviceId);
+		aliceRecipients->emplace_back(*carolDeviceId);
+		aliceRecipients->emplace_back(*daveDeviceId);
+
+		aliceMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[1].begin(), lime_tester::messages_pattern[1].end());
+		aliceCipherMessage->clear();
+		aliceManager->encrypt(*aliceDeviceId, make_shared<const std::string>("my friends group"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+
+		BC_ASSERT_TRUE((*aliceRecipients)[0].peerStatus == lime::PeerDeviceStatus::trusted); // recipient 0 is Bob: trusted
+		BC_ASSERT_TRUE((*aliceRecipients)[1].peerStatus == lime::PeerDeviceStatus::untrusted); // recipient 1 is Carol: untrusted
+		BC_ASSERT_TRUE((*aliceRecipients)[2].peerStatus == lime::PeerDeviceStatus::untrusted); // recipient 2 is Dave: untrusted
+
+		// recipients decrypt
+		receivedMessage.clear();
+		receivedMessageString.clear();
+		// bob shall return trusted
+		BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "my friends group", *aliceDeviceId, (*aliceRecipients)[0].DRmessage, *aliceCipherMessage, receivedMessage) == lime::PeerDeviceStatus::trusted);
+		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
+		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[1]);
+
+		receivedMessage.clear();
+		receivedMessageString.clear();
+		// carol shall return untrusted
+		BC_ASSERT_TRUE(carolManager->decrypt(*carolDeviceId, "my friends group", *aliceDeviceId, (*aliceRecipients)[1].DRmessage, *aliceCipherMessage, receivedMessage) == lime::PeerDeviceStatus::untrusted);
+		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
+		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[1]);
+
+		receivedMessage.clear();
+		receivedMessageString.clear();
+		// dave shall return untrusted now
+		BC_ASSERT_TRUE(daveManager->decrypt(*daveDeviceId, "my friends group", *aliceDeviceId, (*aliceRecipients)[2].DRmessage, *aliceCipherMessage, receivedMessage) == lime::PeerDeviceStatus::untrusted);
+		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
+		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[1]);
+
+		if (cleanDatabase) {
+			aliceManager->delete_user(*aliceDeviceId, callback);
+			bobManager->delete_user(*bobDeviceId, callback);
+			carolManager->delete_user(*carolDeviceId, callback);
+			daveManager->delete_user(*daveDeviceId, callback);
+			BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,expected_success+4,lime_tester::wait_for_timeout));
+			remove(dbFilenameAlice.data());
+			remove(dbFilenameBob.data());
+			remove(dbFilenameCarol.data());
+			remove(dbFilenameDave.data());
+		}
+
+	} catch (BctbxException &e) {
+		LIME_LOGE <<e;;
+		BC_FAIL();
+	}
+}
+
+static void lime_peerDeviceStatus() {
+#ifdef EC25519_ENABLED
+	lime_peerDeviceStatus_test(lime::CurveId::c25519, "lime_peerDeviceStatus", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data());
+#endif
+#ifdef EC448_ENABLED
+	lime_peerDeviceStatus_test(lime::CurveId::c448, "lime_peerDeviceStatus", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data());
+#endif
+}
+
+/**
  * scenario :
  * - check the Ik in pattern_db is retrieved as expected
  * - try asking for an unknown user, we shall get an exception
@@ -2460,6 +2658,7 @@ static test_t tests[] = {
 	TEST_NO_TAG("Update - OPk", lime_update_OPk),
 	TEST_NO_TAG("get self Identity Key", lime_getSelfIk),
 	TEST_NO_TAG("Verified Status", lime_identityVerifiedStatus),
+	TEST_NO_TAG("Peer Device Status", lime_peerDeviceStatus),
 	TEST_NO_TAG("Encryption Policy", lime_encryptionPolicy),
 	TEST_NO_TAG("Encryption Policy Error", lime_encryptionPolicyError)
 };

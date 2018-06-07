@@ -74,7 +74,6 @@ namespace lime {
 			void get_SelfIdentityKey(); // check our Identity key pair is loaded in Lime object, retrieve it from DB if it isn't
 			void cache_DR_sessions(std::vector<RecipientInfos<Curve>> &internal_recipients, std::vector<std::string> &missing_devices); // loop on internal recipient an try to load in DR session cache the one which have no session attached 
 			void get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDRSessionId, std::vector<std::shared_ptr<DR<Curve>>> &DRSessions); // load from local storage in DRSessions all DR session matching the peerDeviceId, ignore the one picked by id in 2nd arg
-			long int store_peerDevice(const std::string &peerDeviceId, const DSA<Curve, lime::DSAtype::publicKey> &Ik); // store given peer Device Id and public identity key, return the Id used in table to store it
 
 			/* X3DH related  - part related to exchange with server or localStorage - implemented in lime_x3dh_protocol.cpp or lime_localStorage.cpp */
 			void X3DH_generate_SPk(X<Curve, lime::Xtype::publicKey> &publicSPk, DSA<Curve, lime::DSAtype::signature> &SPk_sig, uint32_t &SPk_id); // generate a new Signed Pre-Key key pair, store it in DB and set its public key, signature and Id in given params
