@@ -159,6 +159,7 @@ namespace lime {
 		std::vector<std::string> missingPeers; /* vector of deviceId(GRUU) which are requested to perform X3DH before the encryption can occurs */
 
 		/* Create the appropriate recipient infos and fill it with sessions found in cache */
+		// internal_recipients is a vector duplicating the recipients one in the same order(to allow fast copying of relevant information back to recipients when encryption is completed)
 		std::vector<RecipientInfos<Curve>> internal_recipients{};
 		for (const auto &recipient : *recipients) {
 			auto sessionElem = m_DR_sessions_cache.find(recipient.deviceId);
@@ -174,7 +175,7 @@ namespace lime {
 			}
 		}
 
-		/* try to load all the session that are not in cache */
+		/* try to load all the session that are not in cache and set the peer Device status for all recipients*/
 		std::vector<std::string> missing_devices{};
 		cache_DR_sessions(internal_recipients, missing_devices);
 
@@ -197,7 +198,7 @@ namespace lime {
 			// move DR messages to the input/output structure
 			for (size_t i=0; i<recipients->size(); i++) {
 				(*recipients)[i].DRmessage = std::move(internal_recipients[i].DRmessage);
-				(*recipients)[i].identityVerified = internal_recipients[i].identityVerified;
+				(*recipients)[i].peerStatus = internal_recipients[i].peerStatus;
 			}
 			if (callback) callback(lime::CallbackReturn::success, "");
 			// is there no one in an asynchronous encryption process and do we have something in encryption queue to process

@@ -130,19 +130,21 @@ namespace lime {
 	struct RecipientInfos {
 		std::shared_ptr<DR<Curve>> DRSession; /**< DR Session to reach recipient */
 		const std::string deviceId; /**< recipient deviceId (shall be GRUU) */
-		bool identityVerified; /**< after encrypt calls back, it will hold the status of this peer device: identity verified or not */
+		lime::PeerDeviceStatus peerStatus; /**< after encrypt calls back, it will hold the status of this peer device: unknown (first interaction with this device), untrusted or trusted */
 		std::vector<uint8_t> DRmessage; /**< after encrypt calls back, it will hold the DR message targeted to the specified recipient. It may contain an X3DH init message. */
 		/**
 		 * Constructor: the deviceId is a constant and must be provided to the constructor
+		 * At construction, the peerStatus is always set to unknown as this status is then overriden with actual one fetched from DB, the ones not fetched are unknown
 		 *
 		 * @param[in]	deviceId	The device Id (GRUU) of this recipient
 		 * @param[in]	session		The double ratchet session linking current device with this recipient.
+		 *
 		 */
-		RecipientInfos(const std::string &deviceId, std::shared_ptr<DR<Curve>> session) : DRSession{session}, deviceId{deviceId}, identityVerified{false}, DRmessage{} {};
+		RecipientInfos(const std::string &deviceId, std::shared_ptr<DR<Curve>> session) : DRSession{session}, deviceId{deviceId}, peerStatus{lime::PeerDeviceStatus::unknown}, DRmessage{} {};
 		/**
 		 * @overload RecipientInfos(const std::string &deviceId)
 		 */
-		RecipientInfos(const std::string &deviceId) : DRSession{nullptr}, deviceId{deviceId}, identityVerified{false}, DRmessage{} {};
+		RecipientInfos(const std::string &deviceId) : DRSession{nullptr}, deviceId{deviceId}, peerStatus{lime::PeerDeviceStatus::unknown}, DRmessage{} {};
 	};
 
 	// helpers function wich are the one to be used to encrypt/decrypt messages

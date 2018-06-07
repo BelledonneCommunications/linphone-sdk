@@ -726,43 +726,47 @@ void Lime<Curve>::X3DH_generate_OPks(std::vector<X<Curve, lime::Xtype::publicKey
 template <typename Curve>
 void Lime<Curve>::cache_DR_sessions(std::vector<RecipientInfos<Curve>> &internal_recipients, std::vector<std::string> &missing_devices) {
 	// build a user list of missing ones : produce a list ready to be sent to SQL query: 'user','user','user',... also build a map to store shared_ptr to sessions
-	// build also a list of all peer devices used to fetch from DB the ones with identity not verified
+	// build also a list of all peer devices used to fetch from DB their status: unknown, untrusted or trusted
 	std::string sqlString_requestedDevices{""};
 	std::string sqlString_allDevices{""};
 
 	size_t requestedDevicesCount = 0;
 	size_t allDevicesCount = 0;
+	// internal recipients holds all recipients
 	for (const auto &recipient : internal_recipients) {
-		if (recipient.DRSession == nullptr) {
+		if (recipient.DRSession == nullptr) { // query the local storage for those without DR session associated
 			sqlString_requestedDevices.append("'").append(recipient.deviceId).append("',");
 			requestedDevicesCount++;
 		}
-		sqlString_allDevices.append("'").append(recipient.deviceId).append("',");
+		sqlString_allDevices.append("'").append(recipient.deviceId).append("',");  // we also build a query for all devices in the list
 		allDevicesCount++;
 	}
 
-	// fetch devices with identity verified flag to false
 	if (allDevicesCount==0) return; // the device list was empty... this is very strange
 
+	// Fill the peer device status : fetch devices with identity verified flag to false
 	sqlString_allDevices.pop_back(); // remove the last ','
-	// fetch all the verified devices (we don't directly fetch unverified device as some devices may not be in local storage at all)
-	rowset<row> rs_devices = (m_localStorage->sql.prepare << "SELECT d.DeviceId FROM lime_PeerDevices as d WHERE d.Verified = 1 AND d.DeviceId IN ("<<sqlString_allDevices<<");");
-	std::vector<std::string> verifiedDevices{}; // vector of verified deviceId
+	// fetch the verified status for all devices
+	rowset<row> rs_devices = (m_localStorage->sql.prepare << "SELECT d.DeviceId, d.Verified FROM lime_PeerDevices as d WHERE d.DeviceId IN ("<<sqlString_allDevices<<");");
+	std::vector<std::string> knownDevices{}; // vector of known deviceId
+	// loop all the found devices and then find them in the internal_recipient vector by looping it until find, this is not at all efficient but
+	// shall not be a real problem as recipient list won't get massive(and if they do, this part we not be the blocking one)
+	// by default at construction the RecipientInfos object have a peerStatus set to unknown so it will be kept to it for all devices not found in the localStorage
 	for (const auto &r : rs_devices) {
-		verifiedDevices.push_back(r.get<string>(0));
-	}
-
-	// loop on internal recipient and mark the one verified as verified
-	for (auto &recipient : internal_recipients) {
-		recipient.identityVerified = false;
-		for (const auto &verifiedDevice : verifiedDevices) {
-			if (verifiedDevice == recipient.deviceId) {
-				recipient.identityVerified = true;
+		// get the deviceId and verified fields
+		auto deviceId = r.get<string>(0);
+		auto verified = r.get<int>(1);
+		for (auto &recipient : internal_recipients) { //look for it in the list
+			if (recipient.deviceId == deviceId) {
+				if (verified == 1) {
+					recipient.peerStatus = lime::PeerDeviceStatus::trusted;
+				} else {
+					recipient.peerStatus = lime::PeerDeviceStatus::untrusted;
+				}
 				break;
 			}
 		}
 	}
-
 
 	// Now do we have sessions to load?
 	if (requestedDevicesCount==0) return; // we already got them all

@@ -771,27 +771,27 @@ static void lime_identityVerifiedStatus_test(const lime::CurveId curve, const st
 
 
 	try {
-		// Bob encrypts a message for Alice, alice identity verified status shall be : not verified
+		// Bob encrypts a message for Alice, alice device status shall be : untrusted(it is the first message bob sends but he already knows about alice's device)
 		auto bobRecipients = make_shared<std::vector<RecipientData>>();
 		bobRecipients->emplace_back(*aliceDeviceId);
 		auto bobMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
 		auto bobCipherMessage = make_shared<std::vector<uint8_t>>();
 		bobManager->encrypt(*bobDeviceId, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
-		BC_ASSERT_FALSE((*bobRecipients)[0].identityVerified);
+		BC_ASSERT_TRUE((*bobRecipients)[0].peerStatus == lime::PeerDeviceStatus::untrusted);
 
 		// set again the key as verified in bob's context
 		bobManager->set_peerIdentityVerifiedStatus(*aliceDeviceId, aliceIk, true);
 		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::trusted);
 
-		// Bob encrypts a message for Alice, alice identity verified status shall be : verified
+		// Bob encrypts a message for Alice, alice device status shall now be : trusted
 		bobRecipients = make_shared<std::vector<RecipientData>>();
 		bobRecipients->emplace_back(*aliceDeviceId);
 		bobMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[1].begin(), lime_tester::messages_pattern[1].end());
 		bobCipherMessage = make_shared<std::vector<uint8_t>>();
 		bobManager->encrypt(*bobDeviceId, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
-		BC_ASSERT_TRUE((*bobRecipients)[0].identityVerified);
+		BC_ASSERT_TRUE((*bobRecipients)[0].peerStatus == lime::PeerDeviceStatus::trusted);
 
 		// set a fake bob key in alice context(set is as verified otherwise the request is just ignored)
 		std::vector<uint8_t> fakeIk = bobIk;

@@ -56,13 +56,13 @@ namespace lime {
 	/** Used to manage recipient list for encrypt function input: give a recipient GRUU and get it back with the header which must be sent to recipient with the cipher text*/
 	struct RecipientData {
 		const std::string deviceId; /**< input: recipient deviceId (shall be GRUU) */
-		bool identityVerified; /**< output: after encrypt calls back, it will hold the status of this peer device: identity verified or not */
+		lime::PeerDeviceStatus peerStatus; /**< output: after encrypt calls back, it will hold the status of this peer device: unknown (first interaction with this device), untrusted or trusted */
 		std::vector<uint8_t> DRmessage; /**< output: after encrypt calls back, it will hold the Double Ratchet message targeted to the specified recipient. */
 		/**
 		 * recipient data are built giving a recipient id
 		 * @param[in] deviceId	the recipient device Id (its GRUU)
 		 */
-		RecipientData(const std::string &deviceId) : deviceId{deviceId}, identityVerified{false}, DRmessage{} {};
+		RecipientData(const std::string &deviceId) : deviceId{deviceId}, peerStatus{lime::PeerDeviceStatus::unknown}, DRmessage{} {};
 	};
 
 	/** what a Lime callback could possibly say */

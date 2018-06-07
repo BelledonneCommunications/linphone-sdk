@@ -522,7 +522,7 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve, const std:
 							// In this example we know that bodDevice is in recipients[0], real code shall loop on recipients vector
 							sendMessageTo("bob", (*recipients)[0].DRmessage, *cipherMessage);
 							// [verify] now we can also check the trusted status of recipients, as we set as trusted Bob's key, it shall be trusted
-							BC_ASSERT_TRUE((*recipients)[0].identityVerified);
+							BC_ASSERT_TRUE((*recipients)[0].peerStatus == lime::PeerDeviceStatus::trusted);
 						} else {
 							counters.operation_failed++;
 							// The encryption failed.
