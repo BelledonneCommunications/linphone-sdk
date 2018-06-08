@@ -32,7 +32,12 @@
 using namespace::lime;
 
 namespace lime_tester {
+// default url and ports of X3DH servers
+extern std::string test_x3dh_server_url;
+extern std::string test_x3dh_c25519_server_port;
+extern std::string test_x3dh_c448_server_port;
 
+// messages pattern
 extern std::string shortMessage;
 extern std::string longMessage;
 extern std::string veryLongMessage;

@@ -37,10 +37,6 @@
 using namespace::std;
 using namespace::lime;
 
-std::string test_x3dh_server_url{"localhost"};
-std::string test_x3dh_c25519_server_port{"25519"};
-std::string test_x3dh_c448_server_port{"25520"};
-
 static belle_sip_stack_t *stack=NULL;
 static belle_http_provider_t *prov=NULL;
 
@@ -359,15 +355,15 @@ static void lime_encryptionPolicyError_test(const lime::CurveId curve, const std
 }
 static void lime_encryptionPolicyError() {
 #ifdef EC25519_ENABLED
-	lime_encryptionPolicyError_test(lime::CurveId::c25519, "lime_encryptionPolicyError", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port),
+	lime_encryptionPolicyError_test(lime::CurveId::c25519, "lime_encryptionPolicyError", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port),
 			lime_tester::shortMessage, lime::EncryptionPolicy::DRMessage);
-	lime_encryptionPolicyError_test(lime::CurveId::c25519, "lime_encryptionPolicyError", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port),
+	lime_encryptionPolicyError_test(lime::CurveId::c25519, "lime_encryptionPolicyError", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port),
 			lime_tester::shortMessage, lime::EncryptionPolicy::cipherMessage);
 #endif
 #ifdef EC448_ENABLED
-	lime_encryptionPolicyError_test(lime::CurveId::c448, "lime_encryptionPolicyError", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port),
+	lime_encryptionPolicyError_test(lime::CurveId::c448, "lime_encryptionPolicyError", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port),
 			lime_tester::shortMessage, lime::EncryptionPolicy::DRMessage);
-	lime_encryptionPolicyError_test(lime::CurveId::c448, "lime_encryptionPolicyError", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port),
+	lime_encryptionPolicyError_test(lime::CurveId::c448, "lime_encryptionPolicyError", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port),
 			lime_tester::shortMessage, lime::EncryptionPolicy::cipherMessage);
 #endif
 }
@@ -671,10 +667,10 @@ static void lime_encryptionPolicy_suite(lime::CurveId curveId, const std::string
 
 static void lime_encryptionPolicy() {
 #ifdef EC25519_ENABLED
-	lime_encryptionPolicy_suite(lime::CurveId::c25519, std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port));
+	lime_encryptionPolicy_suite(lime::CurveId::c25519, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port));
 #endif
 #ifdef EC448_ENABLED
-	lime_encryptionPolicy_suite(lime::CurveId::c448, std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port));
+	lime_encryptionPolicy_suite(lime::CurveId::c448, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port));
 #endif
 }
 
@@ -827,10 +823,10 @@ static void lime_identityVerifiedStatus_test(const lime::CurveId curve, const st
 
 static void lime_identityVerifiedStatus() {
 #ifdef EC25519_ENABLED
-	lime_identityVerifiedStatus_test(lime::CurveId::c25519, "lime_identityVerifiedStatus", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data());
+	lime_identityVerifiedStatus_test(lime::CurveId::c25519, "lime_identityVerifiedStatus", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data());
 #endif
 #ifdef EC448_ENABLED
-	lime_identityVerifiedStatus_test(lime::CurveId::c448, "lime_identityVerifiedStatus", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data());
+	lime_identityVerifiedStatus_test(lime::CurveId::c448, "lime_identityVerifiedStatus", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
 #endif
 }
 
@@ -1025,10 +1021,10 @@ static void lime_peerDeviceStatus_test(const lime::CurveId curve, const std::str
 
 static void lime_peerDeviceStatus() {
 #ifdef EC25519_ENABLED
-	lime_peerDeviceStatus_test(lime::CurveId::c25519, "lime_peerDeviceStatus", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data());
+	lime_peerDeviceStatus_test(lime::CurveId::c25519, "lime_peerDeviceStatus", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data());
 #endif
 #ifdef EC448_ENABLED
-	lime_peerDeviceStatus_test(lime::CurveId::c448, "lime_peerDeviceStatus", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data());
+	lime_peerDeviceStatus_test(lime::CurveId::c448, "lime_peerDeviceStatus", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
 #endif
 }
 
@@ -1207,10 +1203,10 @@ static void lime_update_OPk_test(const lime::CurveId curve, const std::string &d
 
 static void lime_update_OPk() {
 #ifdef EC25519_ENABLED
-	lime_update_OPk_test(lime::CurveId::c25519, "lime_update_OPk", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data());
+	lime_update_OPk_test(lime::CurveId::c25519, "lime_update_OPk", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data());
 #endif
 #ifdef EC448_ENABLED
-	lime_update_OPk_test(lime::CurveId::c448, "lime_update_OPk", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data());
+	lime_update_OPk_test(lime::CurveId::c448, "lime_update_OPk", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
 #endif
 }
 
@@ -1375,10 +1371,10 @@ static void lime_update_SPk_test(const lime::CurveId curve, const std::string &d
 
 static void lime_update_SPk() {
 #ifdef EC25519_ENABLED
-	lime_update_SPk_test(lime::CurveId::c25519, "lime_update_SPk", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data());
+	lime_update_SPk_test(lime::CurveId::c25519, "lime_update_SPk", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data());
 #endif
 #ifdef EC448_ENABLED
-	lime_update_SPk_test(lime::CurveId::c448, "lime_update_SPk", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data());
+	lime_update_SPk_test(lime::CurveId::c448, "lime_update_SPk", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
 #endif
 }
 
@@ -1477,10 +1473,10 @@ static void lime_update_clean_MK_test(const lime::CurveId curve, const std::stri
 
 static void lime_update_clean_MK() {
 #ifdef EC25519_ENABLED
-	lime_update_clean_MK_test(lime::CurveId::c25519, "lime_update_clean_MK", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data());
+	lime_update_clean_MK_test(lime::CurveId::c25519, "lime_update_clean_MK", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data());
 #endif
 #ifdef EC448_ENABLED
-	lime_update_clean_MK_test(lime::CurveId::c448, "lime_update_clean_MK", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data());
+	lime_update_clean_MK_test(lime::CurveId::c448, "lime_update_clean_MK", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
 #endif
 }
 
@@ -1573,12 +1569,12 @@ static void x3dh_without_OPk_test(const lime::CurveId curve, const std::string &
 }
 static void x3dh_without_OPk() {
 #ifdef EC25519_ENABLED
-	x3dh_without_OPk_test(lime::CurveId::c25519, "lime_x3dh_without_OPk", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data());
-	x3dh_without_OPk_test(lime::CurveId::c25519, "lime_x3dh_without_OPk_clean", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data(), false);
+	x3dh_without_OPk_test(lime::CurveId::c25519, "lime_x3dh_without_OPk", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data());
+	x3dh_without_OPk_test(lime::CurveId::c25519, "lime_x3dh_without_OPk_clean", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data(), false);
 #endif
 #ifdef EC448_ENABLED
-	x3dh_without_OPk_test(lime::CurveId::c448, "lime_x3dh_without_OPk", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data());
-	x3dh_without_OPk_test(lime::CurveId::c448, "lime_x3dh_without_OPk_clean", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data(), false);
+	x3dh_without_OPk_test(lime::CurveId::c448, "lime_x3dh_without_OPk", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
+	x3dh_without_OPk_test(lime::CurveId::c448, "lime_x3dh_without_OPk_clean", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data(), false);
 #endif
 }
 
@@ -1725,12 +1721,12 @@ static void x3dh_sending_chain_limit_test(const lime::CurveId curve, const std::
 }
 static void x3dh_sending_chain_limit() {
 #ifdef EC25519_ENABLED
-	x3dh_sending_chain_limit_test(lime::CurveId::c25519, "lime_x3dh_sending_chain_limit", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data());
-	x3dh_sending_chain_limit_test(lime::CurveId::c25519, "lime_x3dh_sending_chain_limit_clean", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data(), false);
+	x3dh_sending_chain_limit_test(lime::CurveId::c25519, "lime_x3dh_sending_chain_limit", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data());
+	x3dh_sending_chain_limit_test(lime::CurveId::c25519, "lime_x3dh_sending_chain_limit_clean", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data(), false);
 #endif
 #ifdef EC448_ENABLED
-	x3dh_sending_chain_limit_test(lime::CurveId::c448, "lime_x3dh_sending_chain_limit", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data());
-	x3dh_sending_chain_limit_test(lime::CurveId::c448, "lime_x3dh_sending_chain_limit_clean", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data(), false);
+	x3dh_sending_chain_limit_test(lime::CurveId::c448, "lime_x3dh_sending_chain_limit", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
+	x3dh_sending_chain_limit_test(lime::CurveId::c448, "lime_x3dh_sending_chain_limit_clean", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data(), false);
 #endif
 }
 
@@ -1940,12 +1936,12 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 
 static void x3dh_multiple_DRsessions(void) {
 #ifdef EC25519_ENABLED
-	x3dh_multiple_DRsessions_test(lime::CurveId::c25519, "lime_x3dh_multiple_DRsessions", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data());
-	x3dh_multiple_DRsessions_test(lime::CurveId::c25519, "lime_x3dh_multiple_DRsessions", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data(), false);
+	x3dh_multiple_DRsessions_test(lime::CurveId::c25519, "lime_x3dh_multiple_DRsessions", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data());
+	x3dh_multiple_DRsessions_test(lime::CurveId::c25519, "lime_x3dh_multiple_DRsessions", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data(), false);
 #endif
 #ifdef EC448_ENABLED
-	x3dh_multiple_DRsessions_test(lime::CurveId::c448, "lime_x3dh_multiple_DRsessions", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data());
-	x3dh_multiple_DRsessions_test(lime::CurveId::c448, "lime_x3dh_multiple_DRsessions", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data(), false);
+	x3dh_multiple_DRsessions_test(lime::CurveId::c448, "lime_x3dh_multiple_DRsessions", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
+	x3dh_multiple_DRsessions_test(lime::CurveId::c448, "lime_x3dh_multiple_DRsessions", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data(), false);
 #endif
 }
 
@@ -2149,12 +2145,12 @@ static void x3dh_multidev_operation_queue_test(const lime::CurveId curve, const 
 
 static void x3dh_multidev_operation_queue(void) {
 #ifdef EC25519_ENABLED
-	x3dh_multidev_operation_queue_test(lime::CurveId::c25519, "lime_x3dh_multidev_operation_queue", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data());
-	x3dh_multidev_operation_queue_test(lime::CurveId::c25519, "lime_x3dh_multidev_operation_queue", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data(), false);
+	x3dh_multidev_operation_queue_test(lime::CurveId::c25519, "lime_x3dh_multidev_operation_queue", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data());
+	x3dh_multidev_operation_queue_test(lime::CurveId::c25519, "lime_x3dh_multidev_operation_queue", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data(), false);
 #endif
 #ifdef EC448_ENABLED
-	x3dh_multidev_operation_queue_test(lime::CurveId::c448, "lime_x3dh_multidev_operation_queue", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data());
-	x3dh_multidev_operation_queue_test(lime::CurveId::c448, "lime_x3dh_multidev_operation_queue", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data(), false);
+	x3dh_multidev_operation_queue_test(lime::CurveId::c448, "lime_x3dh_multidev_operation_queue", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
+	x3dh_multidev_operation_queue_test(lime::CurveId::c448, "lime_x3dh_multidev_operation_queue", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data(), false);
 #endif
 }
 
@@ -2267,12 +2263,12 @@ static void x3dh_operation_queue_test(const lime::CurveId curve, const std::stri
 
 static void x3dh_operation_queue(void) {
 #ifdef EC25519_ENABLED
-	x3dh_operation_queue_test(lime::CurveId::c25519, "lime_x3dh_operation_queue", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data());
-	x3dh_operation_queue_test(lime::CurveId::c25519, "lime_x3dh_operation_queue", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data(), false);
+	x3dh_operation_queue_test(lime::CurveId::c25519, "lime_x3dh_operation_queue", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data());
+	x3dh_operation_queue_test(lime::CurveId::c25519, "lime_x3dh_operation_queue", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data(), false);
 #endif
 #ifdef EC448_ENABLED
-	x3dh_operation_queue_test(lime::CurveId::c448, "lime_x3dh_operation_queue", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data());
-	x3dh_operation_queue_test(lime::CurveId::c448, "lime_x3dh_operation_queue", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data(), false);
+	x3dh_operation_queue_test(lime::CurveId::c448, "lime_x3dh_operation_queue", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
+	x3dh_operation_queue_test(lime::CurveId::c448, "lime_x3dh_operation_queue", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data(), false);
 #endif
 }
 
@@ -2490,12 +2486,12 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 
 static void x3dh_basic(void) {
 #ifdef EC25519_ENABLED
-	x3dh_basic_test(lime::CurveId::c25519, "lime_x3dh_basic", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data());
-	x3dh_basic_test(lime::CurveId::c25519, "lime_x3dh_basic", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data(), false);
+	x3dh_basic_test(lime::CurveId::c25519, "lime_x3dh_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data());
+	x3dh_basic_test(lime::CurveId::c25519, "lime_x3dh_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data(), false);
 #endif
 #ifdef EC448_ENABLED
-	x3dh_basic_test(lime::CurveId::c448, "lime_x3dh_basic", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data());
-	x3dh_basic_test(lime::CurveId::c448, "lime_x3dh_basic", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data(), false);
+	x3dh_basic_test(lime::CurveId::c448, "lime_x3dh_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
+	x3dh_basic_test(lime::CurveId::c448, "lime_x3dh_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data(), false);
 #endif
 }
 
@@ -2638,10 +2634,10 @@ static void user_management_test(const lime::CurveId curve, const std::string &d
 
 static void user_management(void) {
 #ifdef EC25519_ENABLED
-	user_management_test(lime::CurveId::c25519, "lime_user_management", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data());
+	user_management_test(lime::CurveId::c25519, "lime_user_management", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data());
 #endif
 #ifdef EC448_ENABLED
-	user_management_test(lime::CurveId::c448, "lime_user_management", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data());
+	user_management_test(lime::CurveId::c448, "lime_user_management", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
 #endif
 }
 

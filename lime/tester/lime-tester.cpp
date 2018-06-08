@@ -27,11 +27,6 @@ static const char *log_domain = "lime";
 bool cleanDatabase = true;
 bool bench = false;
 
-// settings used in lime suite
-extern std::string test_x3dh_server_url;
-extern std::string test_x3dh_c25519_server_port;
-extern std::string test_x3dh_c448_server_port;
-
 static void log_handler(int lev, const char *fmt, va_list args) {
 #ifdef _WIN32
 	/* We must use stdio to avoid log formatting (for autocompletion etc.) */
@@ -56,6 +51,7 @@ void lime_tester_init(void(*ftester_printf)(int level, const char *fmt, va_list 
 	bc_tester_add_suite(&lime_crypto_test_suite);
 	bc_tester_add_suite(&lime_double_ratchet_test_suite);
 	bc_tester_add_suite(&lime_lime_test_suite);
+	bc_tester_add_suite(&lime_massive_group_test_suite);
 	bc_tester_add_suite(&lime_helloworld_test_suite);
 }
 
@@ -134,13 +130,13 @@ int main(int argc, char *argv[]) {
 			if (lime_tester_set_log_file(argv[i]) < 0) return -2;
 		} else if (strcmp(argv[i],"--x3dh-server-name")==0){
 			CHECK_ARG("--x3dh-server-name", ++i, argc);
-			test_x3dh_server_url=std::string(argv[i]);
+			lime_tester::test_x3dh_server_url=std::string(argv[i]);
 		} else if (strcmp(argv[i],"--c255-x3dh-server-port")==0){
 			CHECK_ARG("--c255-x3dh-server-port", ++i, argc);
-			test_x3dh_c25519_server_port=std::string(argv[i]);
+			lime_tester::test_x3dh_c25519_server_port=std::string(argv[i]);
 		} else if (strcmp(argv[i],"--c448-x3dh-server-port")==0){
 			CHECK_ARG("--c448-x3dh-server-port", ++i, argc);
-			test_x3dh_c448_server_port=std::string(argv[i]);
+			lime_tester::test_x3dh_c448_server_port=std::string(argv[i]);
 		} else if (strcmp(argv[i],"--operation-timeout")==0){
 			CHECK_ARG("--operation-timeout", ++i, argc);
 			lime_tester::wait_for_timeout=std::atoi(argv[i]);

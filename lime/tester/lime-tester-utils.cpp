@@ -35,6 +35,11 @@ using namespace::soci;
 
 namespace lime_tester {
 
+// default url and ports of X3DH servers
+std::string test_x3dh_server_url{"localhost"};
+std::string test_x3dh_c25519_server_port{"25519"};
+std::string test_x3dh_c448_server_port{"25520"};
+
 /* for testing purpose RNG, no need to be good one */
 std::random_device rd;
 std::uniform_int_distribution<uint8_t> uniform_dist(0,255);

@@ -29,10 +29,6 @@
 using namespace::std;
 using namespace::lime;
 
-extern std::string test_x3dh_server_url;
-extern std::string test_x3dh_c25519_server_port;
-extern std::string test_x3dh_c448_server_port;
-
 static belle_sip_stack_t *stack=NULL;
 static belle_http_provider_t *prov=NULL;
 
@@ -609,20 +605,20 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve, const std:
 static void helloworld_basic(void) {
 	// run the test on Curve25519 and Curve448 based encryption if available
 #ifdef EC25519_ENABLED
-	helloworld_basic_test(lime::CurveId::c25519, "helloworld_basic", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data());
+	helloworld_basic_test(lime::CurveId::c25519, "helloworld_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data());
 #endif
 #ifdef EC448_ENABLED
-	helloworld_basic_test(lime::CurveId::c448, "helloworld_basic", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data());
+	helloworld_basic_test(lime::CurveId::c448, "helloworld_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
 #endif
 }
 
 static void helloworld_verifyIdentity(void) {
 	// run the test on Curve25519 and Curve448 based encryption if available
 #ifdef EC25519_ENABLED
-	helloworld_verifyIdentity_test(lime::CurveId::c25519, "helloworld_basic", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c25519_server_port).data());
+	helloworld_verifyIdentity_test(lime::CurveId::c25519, "helloworld_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data());
 #endif
 #ifdef EC448_ENABLED
-	helloworld_verifyIdentity_test(lime::CurveId::c448, "helloworld_basic", std::string("https://").append(test_x3dh_server_url).append(":").append(test_x3dh_c448_server_port).data());
+	helloworld_verifyIdentity_test(lime::CurveId::c448, "helloworld_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
 #endif
 }
 
