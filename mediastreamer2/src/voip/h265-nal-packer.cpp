@@ -94,14 +94,17 @@ void H265NalPacker::NaluSpliter::feed(mblk_t *nalu) {
 	if (msgdsize(nalu) <= _maxSize) return;
 
 	H265NaluHeader naluHeader(nalu->b_rptr);
+	nalu->b_rptr += H265NaluHeader::length;
+
 	H265FuHeader fuHeader;
 	fuHeader.setType(naluHeader.getType());
 	naluHeader.setType(H265NaluType::Fu);
 
-	while (msgdsize(nalu) > _maxSize) {
-		ms_queue_put(&_q, makeFu(naluHeader, fuHeader, nalu->b_rptr, _maxSize));
+	const size_t maxFuPayloadSize = _maxSize - H265NaluHeader::length - H265FuHeader::length;
+	while (msgdsize(nalu) > maxFuPayloadSize) {
+		ms_queue_put(&_q, makeFu(naluHeader, fuHeader, nalu->b_rptr, maxFuPayloadSize));
 		fuHeader.setPosition(H265FuHeader::Position::Middle);
-		nalu->b_rptr += _maxSize;
+		nalu->b_rptr += maxFuPayloadSize;
 	}
 	fuHeader.setPosition(H265FuHeader::Position::End);
 	ms_queue_put(&_q, makeFu(naluHeader, fuHeader, nalu->b_rptr, msgdsize(nalu)));

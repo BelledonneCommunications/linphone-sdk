@@ -25,14 +25,17 @@ using namespace std;
 namespace mediastreamer {
 
 mblk_t *H265NalUnpacker::FuAggregator::feed(mblk_t *packet) {
-	if (packet->b_wptr - packet->b_rptr < 4) {
+	if (packet->b_wptr - packet->b_rptr < 3) {
 		ms_error("Dropping H265 FU packet smaller that 4 bytes");
 		freemsg(packet);
 		return nullptr;
 	}
 
-	H265FuHeader fuHeader(packet->b_rptr + 2);
-	packet->b_rptr += 4;
+	H265NaluHeader naluHeader(packet->b_rptr);
+	packet->b_rptr += 2;
+
+	H265FuHeader fuHeader(packet->b_rptr++);
+	naluHeader.setType(fuHeader.getType());
 
 	if (fuHeader.getPosition() == H265FuHeader::Position::Start && isAggregating()) {
 		ms_error("receiving start FU packet while aggregating. Dropping the under construction NALu");
@@ -48,10 +51,10 @@ mblk_t *H265NalUnpacker::FuAggregator::feed(mblk_t *packet) {
 	}
 
 	if (fuHeader.getPosition() == H265FuHeader::Position::Start) {
-		_m = packet;
-	} else {
-		_m = concatb(_m, packet);
+		_m = naluHeader.forge();
 	}
+
+	concatb(_m, packet);
 
 	if (fuHeader.getPosition() == H265FuHeader::Position::End) {
 		return completeAggregation();
