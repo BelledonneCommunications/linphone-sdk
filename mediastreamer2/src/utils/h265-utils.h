@@ -65,6 +65,9 @@ public:
 	void setTid(uint8_t tid);
 	uint8_t getTid() const {return _tid;}
 
+	bool operator==(const H265NaluHeader &h2) const;
+	bool operator!=(const H265NaluHeader &h2) const {return !(*this == h2);}
+
 	void parse(const uint8_t *header);
 	mblk_t *forge() const;
 

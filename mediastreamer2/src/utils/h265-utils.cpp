@@ -52,6 +52,10 @@ void H265NaluHeader::setTid(uint8_t tid) {
 	_tid = tid;
 }
 
+bool H265NaluHeader::operator==(const H265NaluHeader &h2) const {
+	return _fBit == h2._fBit && _type == h2._type && _tid == h2._tid && _layerId == h2._layerId;
+}
+
 void H265NaluHeader::parse(const uint8_t *header) {
 	uint16_t header2 = ntohs(*reinterpret_cast<const uint16_t *>(header));
 	_tid = header2 & 0x07;
