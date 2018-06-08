@@ -69,9 +69,10 @@ protected:
 	unsigned int _packetNum = 0;
 	std::vector<uint8_t> _bitstream;
 	MSYuvBufAllocator *_bufAllocator = nullptr;
-	bool _bufferQueued = false;
+	int _pendingFrames = 0;
 	bool _firstImageDecoded = false;
 	bool _needKeyFrame = true;
+
 
 	static const unsigned int _timeoutUs = 0;
 };

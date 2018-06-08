@@ -90,9 +90,9 @@ protected:
 	float _fps = 0;
 	int _bitrate = 0;
 	AMediaCodec *_impl = nullptr;
+	int _pendingFrames = 0;
 	bool _isRunning = false;
 	bool _recoveryMode = false;
-	bool _firstBufferQueued = false;
 
 	static const int _timeoutUs = 0;
 	static const int32_t _colorFormat = 0x7f420888; // COLOR_FormatYUV420Flexible

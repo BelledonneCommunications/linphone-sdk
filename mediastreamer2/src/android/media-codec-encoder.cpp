@@ -97,7 +97,7 @@ void MediaCodecEncoder::stop() {
 	}
 	_psInserter->flush();
 	_isRunning = false;
-	_firstBufferQueued = false;
+	_pendingFrames = 0;
 }
 
 void MediaCodecEncoder::feed(mblk_t *rawData, uint64_t time, bool requestIFrame) {
@@ -167,10 +167,8 @@ void MediaCodecEncoder::feed(mblk_t *rawData, uint64_t time, bool requestIFrame)
 		ms_error("MSMediaCodecH264Enc: error while queuing input buffer");
 		return;
 	}
-	if (!_firstBufferQueued) {
-		_firstBufferQueued = true;
-		ms_message("MSMediaCodecH264Enc: first frame to encode queued (size: %ix%i)", pic.w, pic.h);
-	}
+
+	_pendingFrames++;
 }
 
 bool MediaCodecEncoder::fetch(MSQueue *encodedData) {
@@ -179,7 +177,7 @@ bool MediaCodecEncoder::fetch(MSQueue *encodedData) {
 	uint8_t *buf;
 	size_t bufsize;
 
-	if (!_isRunning || _recoveryMode || !_firstBufferQueued) return false;
+	if (!_isRunning || _recoveryMode || _pendingFrames <= 0) return false;
 
 	ms_queue_init(&outq);
 
@@ -199,6 +197,8 @@ bool MediaCodecEncoder::fetch(MSQueue *encodedData) {
 		}
 		return false;
 	}
+
+	_pendingFrames--;
 
 	if ((buf = AMediaCodec_getOutputBuffer(_impl, obufidx, &bufsize)) == nullptr) {
 		ms_error("MSMediaCodecH264Enc: AMediaCodec_getOutputBuffer() returned nullptr");
@@ -292,6 +292,7 @@ void MediaCodecEncoderFilterImpl::process() {
 		bool requestIFrame = false;
 		if (ms_iframe_requests_limiter_iframe_requested(&_iframeLimiter, _f->ticker->time) ||
 		        (!_avpfEnabled && ms_video_starter_need_i_frame(&_starter, _f->ticker->time))) {
+			ms_message("MSMediaCodecH264Enc: requesting I-frame to the encoder.");
 			requestIFrame = true;
 			ms_iframe_requests_limiter_notify_iframe_sent(&_iframeLimiter, _f->ticker->time);
 		}

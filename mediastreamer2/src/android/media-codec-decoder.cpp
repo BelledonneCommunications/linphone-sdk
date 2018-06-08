@@ -28,6 +28,7 @@
 
 #include "android_mediacodec.h"
 #include "h26x-utils.h"
+#include "h265-utils.h"
 #include "media-codec-decoder.h"
 
 using namespace b64;
@@ -65,6 +66,7 @@ void MediaCodecDecoderFilterImpl::process() {
 	while (mblk_t *im = ms_queue_get(_f->inputs[0])) {
 		uint8_t *buf = nullptr;
 		ssize_t iBufidx;
+
 		NalUnpacker::Status unpacking_ret = _unpacker->unpack(im, &nalus);
 
 		if (!unpacking_ret.frameAvailable) continue;
@@ -85,6 +87,8 @@ void MediaCodecDecoderFilterImpl::process() {
 			ms_queue_flush(&nalus);
 			continue;
 		}
+
+
 
 		H26xUtils::nalusToByteStream(&nalus, _bitstream);
 		size_t size = _bitstream.size();
@@ -121,7 +125,7 @@ void MediaCodecDecoderFilterImpl::process() {
 			}
 
 			if (AMediaCodec_queueInputBuffer(_codec, iBufidx, 0, size, (ts.tv_nsec / 1000) + 10000LL, 0) == 0) {
-				if (!_bufferQueued) _bufferQueued = true;
+				_pendingFrames++;
 			} else {
 				ms_error("MSMediaCodecH264Dec: AMediaCodec_queueInputBuffer() had an exception");
 				flush(false);
@@ -150,11 +154,16 @@ void MediaCodecDecoderFilterImpl::process() {
 	/*secondly try to get decoded frames from the decoder, this is performed every tick*/
 	ssize_t oBufidx = -1;
 	AMediaCodecBufferInfo info;
-	while (_bufferQueued && (oBufidx = AMediaCodec_dequeueOutputBuffer(_codec, &info, _timeoutUs)) >= 0) {
+
+	if (_pendingFrames <= 0) goto end;
+
+	while ((oBufidx = AMediaCodec_dequeueOutputBuffer(_codec, &info, _timeoutUs)) >= 0) {
 		size_t bufsize;
 		mblk_t *om = nullptr;
-		uint8_t *buf = AMediaCodec_getOutputBuffer(_codec, oBufidx, &bufsize);
 
+		_pendingFrames--;
+
+		uint8_t *buf = AMediaCodec_getOutputBuffer(_codec, oBufidx, &bufsize);
 		if (buf == nullptr) {
 			ms_error("MSMediaCodecH264Dec: AMediaCodec_getOutputBuffer() returned NULL");
 			continue;
@@ -198,6 +207,7 @@ void MediaCodecDecoderFilterImpl::process() {
 		request_pli = true;
 	}
 
+end:
 	if (_avpfEnabled && request_pli) {
 		ms_filter_notify_no_arg(_f, MS_VIDEO_DECODER_SEND_PLI);
 	}
@@ -247,10 +257,8 @@ media_status_t MediaCodecDecoderFilterImpl::initMediaCodec() {
 	format = AMediaFormat_new();
 	AMediaFormat_setString(format, "mime", _mimeType.c_str());
 	AMediaFormat_setInt32(format, "color-format", 0x7f420888);
-	AMediaFormat_setInt32(format, "width", 640);
-	AMediaFormat_setInt32(format, "height", 480);
-// 	AMediaFormat_setInt32(format, "profile", 1);
-// 	AMediaFormat_setInt32(format, "level", 256);
+	AMediaFormat_setInt32(format, "width", 1920);
+	AMediaFormat_setInt32(format, "height", 1080);
 
 	if ((status = AMediaCodec_configure(_codec, format, nullptr, nullptr, 0)) != AMEDIA_OK) {
 		ms_error("MSMediaCodecH264Dec: configuration failure: %i", (int)status);
@@ -274,7 +282,7 @@ void MediaCodecDecoderFilterImpl::flush(bool with_reset) {
 		initMediaCodec();
 	}
 	_needKeyFrame = true;
-	_bufferQueued = false;
+	_pendingFrames = 0;
 }
 
 } // namespace mediastreamer
