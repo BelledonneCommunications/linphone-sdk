@@ -26,7 +26,7 @@ namespace mediastreamer {
 
 mblk_t *H265NalUnpacker::FuAggregator::feed(mblk_t *packet) {
 	if (packet->b_wptr - packet->b_rptr < 3) {
-		ms_error("Dropping H265 FU packet smaller that 4 bytes");
+		ms_error("Dropping H265 FU packet smaller than 3 bytes");
 		freemsg(packet);
 		return nullptr;
 	}
