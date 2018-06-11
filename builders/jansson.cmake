@@ -1,6 +1,6 @@
 ############################################################################
-# flexisip.cmake
-# Copyright (C) 2015  Belledonne Communications, Grenoble France
+# jansson.cmake
+# Copyright (C) 2018  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,13 +20,6 @@
 #
 ############################################################################
 
-# Flexisip build options
-
-lcb_add_option("REDIS" "Enable hiredis support." "${DEFAULT_VALUE_ENABLE_REDIS}")
-lcb_add_option("PushNotification" "Enable push notification support." "${DEFAULT_VALUE_ENABLE_PUSHNOTIFICATION}")
-lcb_add_option("Presence" "Enable presence server support." "${DEFAULT_VALUE_ENABLE_PRESENCE}")
-lcb_add_option("Conference" "Enable conference server support." "${DEFAULT_VALUE_ENABLE_CONFERENCE}")
-lcb_add_option("SNMP" "Enable SNMP support." "${DEFAULT_ENABLE_SNMP}")
-lcb_add_option("Transcoder" "Enable transcoder support." "${DEFAULT_ENABLE_TRANSCODER}")
-lcb_add_option("PROTOBUF" "Enable protobuf for REDIS." "${DEFAULT_ENABLE_PROTOBUF}" "ENABLE_PROTOBUF" OFF)
-lcb_add_option("JweAuth" "Enable JweAuth plugin support." "${DEFAULT_VALUE_ENABLE_JWE_AUTH_PLUGIN}")
+lcb_git_repository("git@gitlab.linphone.org:BC/public/external/jansson.git")
+lcb_external_source_paths("externals/jansson")
+lcb_may_be_found_on_system(YES)

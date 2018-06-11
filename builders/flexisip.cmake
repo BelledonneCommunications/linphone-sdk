@@ -46,6 +46,9 @@ endif()
 if(ENABLE_REDIS)
 	lcb_dependencies("hiredis")
 endif()
+if(ENABLE_JWE_AUTH_PLUGIN)
+	lcb_dependencies("jose")
+endif()
 
 lcb_cmake_options(
 	"-DENABLE_TRANSCODER=${ENABLE_TRANSCODER}"
@@ -59,5 +62,5 @@ lcb_cmake_options(
 	"-DENABLE_DOC=${ENABLE_DOC}"
 	"-DENABLE_PROTOBUF=${ENABLE_PROTOBUF}"
 	"-DENABLE_MDNS=${ENABLE_MDNS}"
+	"-DENABLE_JWE_AUTH_PLUGIN=${ENABLE_JWE_AUTH_PLUGIN}"
 )
-
