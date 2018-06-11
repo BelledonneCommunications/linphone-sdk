@@ -84,7 +84,7 @@ void H265NalUnpacker::ApSpliter::feed(mblk_t *packet) {
 	}
 
 	const uint8_t *it;
-	for (it = packet->b_rptr; it < packet->b_wptr;) {
+	for (it = packet->b_rptr+2; it < packet->b_wptr;) {
 		if (packet->b_wptr - it < 2) break;
 		uint16_t naluSize = ntohs(*reinterpret_cast<const uint16_t *>(it));
 		it += 2;
@@ -102,6 +102,8 @@ void H265NalUnpacker::ApSpliter::feed(mblk_t *packet) {
 		ms_error("Dropping H265 aggregation packet containing truncated NALus");
 		ms_queue_flush(&_q);
 	}
+
+	freemsg(packet);
 }
 
 NalUnpacker::PacketType H265NalUnpacker::getNaluType(const mblk_t *nalu) const {
