@@ -23,7 +23,6 @@
 # Flexisip build options
 
 lcb_add_option("Redis" "Enable hiredis support." "${DEFAULT_VALUE_ENABLE_REDIS}")
-lcb_add_option("Push Notification" "Enable push notification support." "${DEFAULT_VALUE_ENABLE_PUSH_NOTIFICATION}")
 lcb_add_option("Presence" "Enable presence server support." "${DEFAULT_VALUE_ENABLE_PRESENCE}")
 lcb_add_option("Conference" "Enable conference server support." "${DEFAULT_VALUE_ENABLE_CONFERENCE}")
 lcb_add_option("SNMP" "Enable SNMP support." "${DEFAULT_ENABLE_SNMP}")

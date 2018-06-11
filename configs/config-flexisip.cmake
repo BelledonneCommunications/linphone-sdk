@@ -21,7 +21,6 @@
 ############################################################################
 
 # Define default values for the flexisip builder options
-set(DEFAULT_VALUE_ENABLE_PUSH_NOTIFICATION ON)
 set(DEFAULT_VALUE_ENABLE_REDIS ON)
 set(DEFAULT_VALUE_ENABLE_UNIT_TESTS OFF)
 set(DEFAULT_VALUE_ENABLE_PRESENCE OFF)
