@@ -62,12 +62,13 @@ public:
 	H26xParameterSetsStore(const std::initializer_list<int> &psCodes);
 	virtual ~H26xParameterSetsStore();
 
-	virtual void addPs(mblk_t *nalu) = 0;
+	void extractAllPs(MSQueue *frame);
 	bool psGatheringCompleted() const;
 	void fetchAllPs(MSQueue *outq);
 
 protected:
 	void addPs(int naluType, mblk_t *nalu);
+	virtual int getNaluType(const mblk_t *nalu) const = 0;
 
 	std::map<int, mblk_t *> _ps;
 };

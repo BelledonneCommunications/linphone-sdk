@@ -143,6 +143,19 @@ bool H26xParameterSetsStore::psGatheringCompleted() const {
 	return true;
 }
 
+void H26xParameterSetsStore::extractAllPs(MSQueue *frame) {
+	for (mblk_t *nalu = ms_queue_peek_first(frame); !ms_queue_end(frame, nalu); nalu = ms_queue_next(frame, nalu)) {
+		int type = getNaluType(nalu);
+		if (_ps.find(type) != _ps.end()) {
+			mblk_t *ps = nalu;
+			nalu = ms_queue_next(frame, nalu);
+			ms_queue_remove(frame, ps);
+			addPs(type, ps);
+			continue;
+		}
+	}
+}
+
 void H26xParameterSetsStore::fetchAllPs(MSQueue *outq) {
 	MSQueue q;
 	ms_queue_init(&q);

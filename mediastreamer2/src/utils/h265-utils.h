@@ -122,7 +122,7 @@ private:
 class H265ParameterSetsStore: public H26xParameterSetsStore {
 public:
 	H265ParameterSetsStore(): H26xParameterSetsStore({H265NaluType::Vps, H265NaluType::Sps, H265NaluType::Pps}) {}
-	void addPs(mblk_t *nalu) override;
+	int getNaluType(const mblk_t *nalu) const override;
 };
 
 }

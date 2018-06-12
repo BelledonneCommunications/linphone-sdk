@@ -150,9 +150,9 @@ void H265ParameterSetsInserter::flush() {
 	replaceParameterSet(_pps, nullptr);
 }
 
-void H265ParameterSetsStore::addPs(mblk_t *nalu) {
+int H265ParameterSetsStore::getNaluType(const mblk_t *nalu) const {
 	H265NaluHeader header(nalu->b_rptr);
-	H26xParameterSetsStore::addPs(header.getType(), nalu);
+	return header.getType();
 }
 
 } // namespace mediastreamer
