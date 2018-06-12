@@ -115,32 +115,28 @@ mblk_t *H265FuHeader::forge() const {
 }
 
 void H265ParameterSetsInserter::process(MSQueue *in, MSQueue *out) {
-	bool psBeforeIdr = false;
 	H265NaluHeader header;
+	bool isKeyFrame = false;
 	while (mblk_t *m = ms_queue_get(in)) {
 		header.parse(m->b_rptr);
 		if (header.getType() == H265NaluType::Vps) {
-			psBeforeIdr = true;
 			replaceParameterSet(_vps, m);
 		} else if (header.getType() == H265NaluType::Sps) {
-			psBeforeIdr = true;
 			replaceParameterSet(_sps, m);
 		} else if (header.getType() == H265NaluType::Pps) {
-			psBeforeIdr = true;
 			replaceParameterSet(_pps, m);
 		} else {
-			if (_vps && _sps && _pps) {
-				if ((header.getType() == H265NaluType::IdrWRadl || header.getType() == H265NaluType::IdrNLp) && !psBeforeIdr) {
-					ms_queue_put(out, dupmsg(_vps));
-					ms_queue_put(out, dupmsg(_sps));
-					ms_queue_put(out, dupmsg(_pps));
-				}
-				ms_queue_put(out, m);
-			} else {
-				freemsg(m);
+			if ((header.getType() == H265NaluType::IdrWRadl || header.getType() == H265NaluType::IdrNLp)) {
+				isKeyFrame = true;
 			}
-			psBeforeIdr = false;
+			ms_queue_put(out, m);
 		}
+	}
+	if (isKeyFrame) {
+		mblk_t *insPoint = ms_queue_peek_first(out);
+		ms_queue_insert(out, insPoint, dupmsg(_vps));
+		ms_queue_insert(out, insPoint, dupmsg(_sps));
+		ms_queue_insert(out, insPoint, dupmsg(_pps));
 	}
 }
 
