@@ -304,6 +304,10 @@ void MediaCodecEncoderFilterImpl::process() {
 	MSQueue nalus;
 	ms_queue_init(&nalus);
 	while (_encoder->fetch(&nalus)) {
+		if (!_firstFrameDecoded) {
+			_firstFrameDecoded = true;
+			ms_video_starter_first_frame(&_starter, _f->ticker->time);
+		}
 		_packer->pack(&nalus, _f->outputs[0], static_cast<uint32_t>(_f->ticker->time * 90LL));
 	}
 }
@@ -311,6 +315,7 @@ void MediaCodecEncoderFilterImpl::process() {
 void MediaCodecEncoderFilterImpl::postprocess() {
 	_packer->flush();
 	_encoder->stop();
+	_firstFrameDecoded = false;
 }
 
 int MediaCodecEncoderFilterImpl::getBitrate() const {
@@ -358,6 +363,7 @@ MSVideoSize MediaCodecEncoderFilterImpl::getVideoSize() const {
 }
 
 void MediaCodecEncoderFilterImpl::enableAvpf(bool enable) {
+	ms_message("MSMediaCodecH264Enc: AVPF %s", enable ? "enabled" : "disabled");
 	_avpfEnabled = enable;
 }
 

@@ -135,6 +135,7 @@ protected:
 	const MSVideoConfiguration *_defaultVConfList = nullptr;
 	MSVideoConfiguration _vconf;
 	bool _avpfEnabled = false;
+	bool _firstFrameDecoded = false;
 
 	MSVideoStarter _starter;
 	MSIFrameRequestsLimiterCtx _iframeLimiter;
