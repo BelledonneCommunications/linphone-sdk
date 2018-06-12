@@ -1232,7 +1232,7 @@ static IceTransaction * ice_create_transaction(IceCheckList *cl, IceCandidatePai
 
 static int ice_find_transaction_from_pair(const IceTransaction *transaction, const IceCandidatePair *pair)
 {
-	return (transaction->pair != pair) && !transaction->canceled;
+	return !((transaction->pair == pair) && !transaction->canceled);
 }
 
 static IceTransaction * ice_find_transaction(const IceCheckList *cl, const IceCandidatePair *pair)
