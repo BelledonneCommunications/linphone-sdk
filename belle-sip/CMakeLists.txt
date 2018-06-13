@@ -79,7 +79,7 @@ cmake_pop_check_state()
 
 find_package(Threads)
 
-find_package(Zlib)
+find_package(ZLIB)
 
 if(ENABLE_RTP_MAP_ALWAYS_IN_SDP)
 	set(BELLE_SDP_FORCE_RTP_MAP 1)
