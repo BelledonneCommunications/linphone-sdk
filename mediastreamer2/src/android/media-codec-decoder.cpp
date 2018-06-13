@@ -28,11 +28,11 @@
 
 #include "android_mediacodec.h"
 #include "h26x-utils.h"
-#include "h265-utils.h"
 #include "media-codec-decoder.h"
 
 using namespace b64;
 using namespace mediastreamer;
+using namespace std;
 
 namespace mediastreamer {
 
