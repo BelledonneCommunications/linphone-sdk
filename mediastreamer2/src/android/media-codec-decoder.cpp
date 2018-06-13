@@ -241,8 +241,8 @@ media_status_t MediaCodecDecoderFilterImpl::initMediaCodec() {
 	format = AMediaFormat_new();
 	AMediaFormat_setString(format, "mime", _mimeType.c_str());
 	AMediaFormat_setInt32(format, "color-format", 0x7f420888);
-	AMediaFormat_setInt32(format, "width", 1920);
-	AMediaFormat_setInt32(format, "height", 1080);
+	AMediaFormat_setInt32(format, "max-width", 1920);
+	AMediaFormat_setInt32(format, "max-height", 1920);
 
 	if ((status = AMediaCodec_configure(_codec, format, nullptr, nullptr, 0)) != AMEDIA_OK) {
 		ms_error("MSMediaCodecH264Dec: configuration failure: %i", (int)status);
