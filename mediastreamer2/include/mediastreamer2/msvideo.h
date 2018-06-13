@@ -241,6 +241,8 @@ typedef msgb_allocator_t MSYuvBufAllocator;
 extern "C"{
 #endif
 
+MS2_PUBLIC bool_t ms_rect_equal(const MSRect *r1, const MSRect *r2);
+
 MS2_PUBLIC const char *ms_pix_fmt_to_string(MSPixFmt fmt);
 MS2_PUBLIC int ms_pix_fmt_to_ffmpeg(MSPixFmt fmt);
 MS2_PUBLIC MSPixFmt ffmpeg_pix_fmt_to_ms(int fmt);
