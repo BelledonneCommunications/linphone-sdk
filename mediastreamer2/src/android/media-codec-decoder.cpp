@@ -82,8 +82,7 @@ void MediaCodecDecoderFilterImpl::process() {
 		}
 
 		H26xUtils::nalusToByteStream(&nalus, _bitstream);
-		size_t size = _bitstream.size();
-		//Initialize the video size
+
 		if (_codec == nullptr) {
 			initMediaCodec();
 		}
@@ -104,11 +103,12 @@ void MediaCodecDecoderFilterImpl::process() {
 			}
 			clock_gettime(CLOCK_MONOTONIC, &ts);
 
+			size_t size = _bitstream.size();
 			if (size > bufsize) {
 				ms_error("Cannot copy the all the bitstream into the input buffer size : %zu and bufsize %zu", size, bufsize);
 				size = MIN(size, bufsize);
 			}
-			memcpy(buf, _bitstream.data(), _bitstream.size());
+			memcpy(buf, _bitstream.data(), size);
 
 			if (_needKeyFrame) {
 				ms_message("MSMediaCodecH264Dec: fresh I-frame submitted to the decoder");
