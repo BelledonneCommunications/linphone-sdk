@@ -17,6 +17,12 @@
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
+#include <algorithm>
+#include <cstdint>
+#include <cstring>
+#include <sstream>
+#include <stdexcept>
+
 #include <jni.h>
 #include <media/NdkMediaFormat.h>
 #include <ortp/b64.h>
@@ -35,6 +41,136 @@ using namespace mediastreamer;
 using namespace std;
 
 namespace mediastreamer {
+
+MediaCodecDecoder::MediaCodecDecoder(const std::string &mime): _vsize({0, 0}) {
+	try {
+		_bufAllocator = ms_yuv_buf_allocator_new();
+		createImpl(mime);
+	} catch (const runtime_error &e) {
+		ms_error("MSMediaCodecH264Dec: %s", e.what());
+	}
+}
+
+MediaCodecDecoder::~MediaCodecDecoder() {
+	if (_impl) AMediaCodec_delete(_impl);
+	ms_yuv_buf_allocator_free(_bufAllocator);
+}
+
+void MediaCodecDecoder::flush() {
+	if (_impl) AMediaCodec_flush(_impl);
+	_pendingFrames = 0;
+}
+
+bool MediaCodecDecoder::feed(const std::vector<uint8_t> &encodedFrame, uint64_t timestamp) {
+	if (_impl == nullptr) return false;
+
+	ssize_t iBufidx = AMediaCodec_dequeueInputBuffer(_impl, _timeoutUs);
+	if (iBufidx < 0) {
+		ms_error("MSMediaCodecH264Dec: %s.", iBufidx == -1 ? "no buffer available for queuing this frame ! Decoder is too slow" : "AMediaCodec_dequeueInputBuffer() had an exception");
+		return false;
+	}
+
+	size_t bufsize;
+	uint8_t *buf = AMediaCodec_getInputBuffer(_impl, iBufidx, &bufsize);
+	if (buf == nullptr) {
+		ms_error("MSMediaCodecH264Dec: AMediaCodec_getInputBuffer() returned NULL");
+		return false;
+	}
+
+	size_t size = encodedFrame.size();
+	if (size > bufsize) {
+		ms_error("Cannot copy the all the bitstream into the input buffer size : %zu and bufsize %zu", size, bufsize);
+		size = min(size, bufsize);
+	}
+	memcpy(buf, encodedFrame.data(), size);
+
+	if (AMediaCodec_queueInputBuffer(_impl, iBufidx, 0, size, timestamp, 0) != 0) {
+		ms_error("MSMediaCodecH264Dec: AMediaCodec_queueInputBuffer() had an exception");
+		return false;
+	}
+	_pendingFrames++;
+
+	return true;
+}
+
+mblk_t *MediaCodecDecoder::fetch() {
+	mblk_t *om = nullptr;
+	AMediaImage image = {0};
+	int dst_pix_strides[4] = {1, 1, 1, 1};
+	MSRect dst_roi = {0};
+	AMediaCodecBufferInfo info;
+	ssize_t oBufidx = -1;
+
+	if (_impl == nullptr || _pendingFrames <= 0) goto end;
+
+	oBufidx = AMediaCodec_dequeueOutputBuffer(_impl, &info, _timeoutUs);
+	if (oBufidx == AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED) {
+		ms_message("MSMediaCodecH264Dec: output format has changed.");
+		oBufidx = AMediaCodec_dequeueOutputBuffer(_impl, &info, _timeoutUs);
+	}
+
+	if (oBufidx < 0) {
+		if (oBufidx == AMEDIA_ERROR_UNKNOWN) {
+			ms_error("MSMediaCodecH264Dec: AMediaCodec_dequeueOutputBuffer() had an exception");
+		} else if (oBufidx != AMEDIACODEC_INFO_TRY_AGAIN_LATER) {
+			ms_error("MSMediaCodecH264Dec: unknown error while dequeueing an output buffer (oBufidx=%zd)", oBufidx);
+		}
+		goto end;
+	}
+
+	_pendingFrames--;
+
+	if (AMediaCodec_getOutputImage(_impl, oBufidx, &image) <= 0) {
+		ms_error("AMediaCodec_getOutputImage() failed");
+		goto end;
+	}
+
+	_vsize.width = dst_roi.w = image.crop_rect.w;
+	_vsize.height = dst_roi.h = image.crop_rect.h;
+
+	MSPicture pic;
+	om = ms_yuv_buf_allocator_get(_bufAllocator, &pic, _vsize.width, _vsize.height);
+	ms_yuv_buf_copy_with_pix_strides(image.buffers, image.row_strides, image.pixel_strides, image.crop_rect,
+										pic.planes, pic.strides, dst_pix_strides, dst_roi);
+	AMediaImage_close(&image);
+
+end:
+	if (oBufidx >= 0) AMediaCodec_releaseOutputBuffer(_impl, oBufidx, FALSE);
+	return om;
+}
+
+void MediaCodecDecoder::createImpl(const std::string &mime) {
+	media_status_t status = AMEDIA_OK;
+	ostringstream errMsg;
+
+	if ((_impl = AMediaCodec_createDecoderByType(mime.c_str())) == nullptr) {
+		throw runtime_error("could not create MediaCodec");
+	}
+
+	AMediaFormat *format = AMediaFormat_new();
+	AMediaFormat_setString(format, "mime", mime.c_str());
+	AMediaFormat_setInt32(format, "color-format", 0x7f420888);
+	AMediaFormat_setInt32(format, "max-width", 1920);
+	AMediaFormat_setInt32(format, "max-height", 1920);
+
+	if ((status = AMediaCodec_configure(_impl, format, nullptr, nullptr, 0)) != AMEDIA_OK) {
+		errMsg << "configuration failure: " << int(status);
+		goto end;
+	}
+
+	if ((status = AMediaCodec_start(_impl)) != AMEDIA_OK) {
+		errMsg << "starting failure: " << int(status);
+		goto end;
+	}
+
+end:
+	AMediaFormat_delete(format);
+	if (status != AMEDIA_OK) {
+		AMediaCodec_delete(_impl);
+		_impl = nullptr;
+		throw runtime_error(errMsg.str());
+	}
+}
 
 MediaCodecDecoderFilterImpl::MediaCodecDecoderFilterImpl(MSFilter *f, const std::string &mimeType, NalUnpacker *unpacker, H26xParameterSetsStore *psStore):
 	_f(f), _mimeType(mimeType), _unpacker(unpacker), _psStore(psStore) {

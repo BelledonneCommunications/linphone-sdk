@@ -32,6 +32,27 @@
 
 namespace mediastreamer {
 
+class MediaCodecDecoder {
+public:
+	MediaCodecDecoder(const std::string &mime);
+	~MediaCodecDecoder();
+
+	void flush();
+
+	bool feed(const std::vector<uint8_t> &encodedFrame, uint64_t timestamp);
+	mblk_t *fetch();
+
+private:
+	void createImpl(const std::string &mime);
+
+	AMediaCodec *_impl = nullptr;
+	int _pendingFrames = 0;
+	MSVideoSize _vsize;
+	MSYuvBufAllocator *_bufAllocator = nullptr;
+
+	static const unsigned int _timeoutUs = 0;
+};
+
 class MediaCodecDecoderFilterImpl {
 public:
 	MediaCodecDecoderFilterImpl(MSFilter *f, const std::string &mimeType, NalUnpacker *unpacker, H26xParameterSetsStore *psStore);
