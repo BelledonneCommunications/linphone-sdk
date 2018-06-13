@@ -81,15 +81,6 @@ void MediaCodecDecoderFilterImpl::process() {
 			}
 		}
 
-		if (_needKeyFrame && !isKeyFrame(&nalus)) {
-			ms_message("MSMediaCodecH264Dec: waiting for a key frame");
-			request_pli = true;
-			ms_queue_flush(&nalus);
-			continue;
-		}
-
-
-
 		H26xUtils::nalusToByteStream(&nalus, _bitstream);
 		size_t size = _bitstream.size();
 		//Initialize the video size
