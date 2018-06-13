@@ -149,18 +149,11 @@ void MediaCodecDecoderFilterImpl::process() {
 	if (_pendingFrames <= 0) goto end;
 
 	while ((oBufidx = AMediaCodec_dequeueOutputBuffer(_codec, &info, _timeoutUs)) >= 0) {
-		size_t bufsize;
 		mblk_t *om = nullptr;
 
 		_pendingFrames--;
 
-		uint8_t *buf = AMediaCodec_getOutputBuffer(_codec, oBufidx, &bufsize);
-		if (buf == nullptr) {
-			ms_error("MSMediaCodecH264Dec: AMediaCodec_getOutputBuffer() returned NULL");
-			continue;
-		}
-
-		AMediaImage image;
+		AMediaImage image = {0};
 		if (AMediaCodec_getOutputImage(_codec, oBufidx, &image)) {
 			int dst_pix_strides[4] = {1, 1, 1, 1};
 			MSRect dst_roi = {0, 0, image.crop_rect.w, image.crop_rect.h};
