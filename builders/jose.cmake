@@ -22,6 +22,7 @@
 
 lcb_git_repository("git@gitlab.linphone.org:BC/public/external/jose.git")
 lcb_external_source_paths("externals/jose")
+lcb_spec_file("jose.spec")
 
 lcb_dependencies("jansson")
 lcb_dependencies("zlib")
