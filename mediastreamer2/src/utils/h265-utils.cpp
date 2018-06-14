@@ -30,10 +30,6 @@ H265NaluType::H265NaluType(uint8_t value) {
 	_value = value;
 }
 
-bool H265NaluType::isParameterSet() const {
-	return *this == Vps || *this == Sps || *this == Pps;
-}
-
 const H265NaluType H265NaluType::IdrWRadl = 19;
 const H265NaluType H265NaluType::IdrNLp = 20;
 const H265NaluType H265NaluType::Vps = 32;

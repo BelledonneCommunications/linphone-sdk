@@ -180,6 +180,47 @@ MSVideoSize ms_h264_sps_get_video_size(const mblk_t *sps) {
 
 namespace mediastreamer {
 
+H264NaluType::H264NaluType(uint8_t value) {
+	if (value & 0xe0) throw out_of_range("H264 NALu type higher than 31");
+	_value = value;
+}
+
+const H264NaluType H264NaluType::Idr = 5;
+const H264NaluType H264NaluType::Sps = 7;
+const H264NaluType H264NaluType::Pps = 8;
+const H264NaluType H264NaluType::StapA = 24;
+const H264NaluType H264NaluType::FuA = 28;
+
+void H264NaluHeader::setNri(uint8_t nri) {
+	if (nri > 3) throw out_of_range("H264 NALu NRI higher than 3");
+	_nri = nri;
+}
+
+bool H264NaluHeader::operator==(const H264NaluHeader &h2) const {
+	return _fBit == h2._fBit && _type == h2._type && _nri == h2._nri;
+}
+
+void H264NaluHeader::parse(const uint8_t *header) {
+	uint8_t h = *header;
+	_type = H264NaluType(h & 0x1f);
+	h >>= 5;
+	_nri = (h & 0x3);
+	h >>= 2;
+	_fBit = (h != 0);
+}
+
+mblk_t *H264NaluHeader::forge() const {
+	uint8_t h = _fBit ? 1 : 0;
+	h <<= 2;
+	h |= _nri;
+	h <<= 5;
+	h |= uint8_t(_type);
+
+	mblk_t *m = allocb(1, 0);
+	*m->b_wptr++ = h;
+	return m;
+}
+
 unsigned int H264FrameAnalyser::Info::toUInt() const {
 	unsigned int res = 0;
 	if (this->hasIdr) res |= Rfc3984HasIDR;

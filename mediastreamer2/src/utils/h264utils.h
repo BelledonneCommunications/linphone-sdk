@@ -104,6 +104,47 @@ MSVideoSize ms_h264_sps_get_video_size(const mblk_t* sps);
 #ifdef __cplusplus
 namespace mediastreamer {
 
+class H264NaluType: public H26xNaluType {
+public:
+	H264NaluType() = default;
+	H264NaluType(uint8_t value);
+
+	bool isVcl() const override {return _value < 6;}
+	bool isParameterSet() const override {return *this == Sps || *this == Pps;}
+
+	static const H264NaluType Idr;
+	static const H264NaluType Sps;
+	static const H264NaluType Pps;
+	static const H264NaluType StapA;
+	static const H264NaluType FuA;
+};
+
+class H264NaluHeader: public H26xNaluHeader {
+public:
+	H264NaluHeader(): H26xNaluHeader() {}
+	H264NaluHeader(const uint8_t *header) {parse(header);}
+
+	void setNri(uint8_t nri);
+	uint8_t getNri() const {return _nri;}
+
+	void setType(H264NaluType type) {_type = type;}
+	H264NaluType getType() const {return _type;}
+
+	const H26xNaluType &getAbsType() const override {return _type;}
+
+	bool operator==(const H264NaluHeader &h2) const;
+	bool operator!=(const H264NaluHeader &h2) const {return !(*this == h2);}
+
+	void parse(const uint8_t *header) override;
+	mblk_t *forge() const override;
+
+	static const size_t length = 1;
+
+private:
+	uint8_t _nri = 0;
+	H264NaluType _type;
+};
+
 class H264FrameAnalyser {
 public:
 	struct Info {

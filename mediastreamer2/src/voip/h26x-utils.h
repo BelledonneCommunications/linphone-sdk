@@ -28,6 +28,38 @@
 namespace mediastreamer {
 
 
+class H26xNaluType {
+public:
+	H26xNaluType() = default;
+	H26xNaluType(uint8_t value);
+	virtual ~H26xNaluType() = default;
+
+	operator uint8_t() const {return _value;}
+
+	virtual bool isVcl() const = 0;
+	virtual bool isParameterSet() const = 0;
+
+protected:
+	uint8_t _value = 0;
+};
+
+class H26xNaluHeader {
+public:
+	H26xNaluHeader() = default;
+	virtual ~H26xNaluHeader() = default;
+
+	void setFBit(bool val) {_fBit = val;}
+	bool getFBit() const {return _fBit;}
+
+	virtual const H26xNaluType &getAbsType() const = 0;
+
+	virtual void parse(const uint8_t *header) = 0;
+	virtual mblk_t *forge() const = 0;
+
+protected:
+	bool _fBit = false;
+};
+
 class H26xUtils {
 public:
 	H26xUtils() = delete;

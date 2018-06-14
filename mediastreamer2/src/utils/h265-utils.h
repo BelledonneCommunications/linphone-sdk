@@ -26,15 +26,13 @@
 
 namespace mediastreamer {
 
-class H265NaluType {
+class H265NaluType: public H26xNaluType {
 public:
 	H265NaluType() = default;
 	H265NaluType(uint8_t value);
 
-	operator uint8_t() const {return _value;}
-
-	bool isVcl() const {return _value < 32;}
-	bool isParameterSet() const;
+	bool isVcl() const override {return _value < 32;}
+	bool isParameterSet() const override {return *this == Vps || *this == Sps || *this == Pps;}
 
 	static const H265NaluType IdrWRadl;
 	static const H265NaluType IdrNLp;
@@ -43,21 +41,17 @@ public:
 	static const H265NaluType Pps;
 	static const H265NaluType Ap;
 	static const H265NaluType Fu;
-
-private:
-	uint8_t _value = 0;
 };
 
-class H265NaluHeader {
+class H265NaluHeader: public H26xNaluHeader {
 public:
-	H265NaluHeader() = default;
+	H265NaluHeader(): H26xNaluHeader() {};
 	H265NaluHeader(const uint8_t *header) {parse(header);}
-
-	void setFBit(bool val) {_fBit = val;}
-	bool getFBit() const {return _fBit;}
 
 	void setType(H265NaluType type) {_type = type;}
 	H265NaluType getType() const {return _type;}
+
+	const H26xNaluType &getAbsType() const override {return _type;}
 
 	void setLayerId(uint8_t layerId);
 	uint8_t getLayerId() const {return _layerId;}
@@ -68,13 +62,12 @@ public:
 	bool operator==(const H265NaluHeader &h2) const;
 	bool operator!=(const H265NaluHeader &h2) const {return !(*this == h2);}
 
-	void parse(const uint8_t *header);
-	mblk_t *forge() const;
+	void parse(const uint8_t *header) override;
+	mblk_t *forge() const override;
 
 	static const size_t length = 2;
 
 private:
-	bool _fBit = false;
 	H265NaluType _type;
 	uint8_t _layerId = 0;
 	uint8_t _tid = 0;
