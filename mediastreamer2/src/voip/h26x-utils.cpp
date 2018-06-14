@@ -119,6 +119,15 @@ void H26xUtils::nalusToByteStream(MSQueue *nalus, std::vector<uint8_t> &byteStre
 	}
 }
 
+void H26xUtils::nalusToByteStream(std::list<mblk_t *> &nalus, std::vector<uint8_t> &bytestream) {
+	MSQueue q;
+	ms_queue_init(&q);
+	for (mblk_t *nalu : nalus) {
+		ms_queue_put(&q, nalu);
+	}
+	nalusToByteStream(&q, bytestream);
+}
+
 void H26xParameterSetsInserter::replaceParameterSet(mblk_t *&ps, mblk_t *newPs) {
 	if (ps) freemsg(ps);
 	ps = newPs;

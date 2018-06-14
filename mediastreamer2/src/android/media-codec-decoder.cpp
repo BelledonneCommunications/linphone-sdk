@@ -62,38 +62,15 @@ MediaCodecDecoder::~MediaCodecDecoder() {
 void MediaCodecDecoder::flush() {
 	if (_impl) AMediaCodec_flush(_impl);
 	_pendingFrames = 0;
+	_lastTs = 0;
+}
+
+void MediaCodecDecoder::setParameterSets(const std::vector<uint8_t> &frame) {
+	feed(frame, _lastTs, true);
 }
 
 bool MediaCodecDecoder::feed(const std::vector<uint8_t> &encodedFrame, uint64_t timestamp) {
-	if (_impl == nullptr) return false;
-
-	ssize_t iBufidx = AMediaCodec_dequeueInputBuffer(_impl, _timeoutUs);
-	if (iBufidx < 0) {
-		ms_error("MSMediaCodecH264Dec: %s.", iBufidx == -1 ? "no buffer available for queuing this frame ! Decoder is too slow" : "AMediaCodec_dequeueInputBuffer() had an exception");
-		return false;
-	}
-
-	size_t bufsize;
-	uint8_t *buf = AMediaCodec_getInputBuffer(_impl, iBufidx, &bufsize);
-	if (buf == nullptr) {
-		ms_error("MSMediaCodecH264Dec: AMediaCodec_getInputBuffer() returned NULL");
-		return false;
-	}
-
-	size_t size = encodedFrame.size();
-	if (size > bufsize) {
-		ms_error("Cannot copy the all the bitstream into the input buffer size : %zu and bufsize %zu", size, bufsize);
-		size = min(size, bufsize);
-	}
-	memcpy(buf, encodedFrame.data(), size);
-
-	if (AMediaCodec_queueInputBuffer(_impl, iBufidx, 0, size, timestamp * 1000ULL, 0) != 0) {
-		ms_error("MSMediaCodecH264Dec: AMediaCodec_queueInputBuffer() had an exception");
-		return false;
-	}
-	_pendingFrames++;
-
-	return true;
+	return feed(encodedFrame, timestamp, false);
 }
 
 mblk_t *MediaCodecDecoder::fetch() {
@@ -175,8 +152,41 @@ end:
 	}
 }
 
-MediaCodecDecoderFilterImpl::MediaCodecDecoderFilterImpl(MSFilter *f, const std::string &mimeType, NalUnpacker *unpacker, H26xParameterSetsStore *psStore):
-_vsize({0, 0}),_f(f),  _unpacker(unpacker), _psStore(psStore), _codec(mimeType) {
+bool MediaCodecDecoder::feed(const std::vector<uint8_t> &encodedFrame, uint64_t timestamp, bool isPs) {
+	if (_impl == nullptr) return false;
+
+	ssize_t iBufidx = AMediaCodec_dequeueInputBuffer(_impl, _timeoutUs);
+	if (iBufidx < 0) {
+		ms_error("MSMediaCodecH264Dec: %s.", iBufidx == -1 ? "no buffer available for queuing this frame ! Decoder is too slow" : "AMediaCodec_dequeueInputBuffer() had an exception");
+		return false;
+	}
+
+	size_t bufsize;
+	uint8_t *buf = AMediaCodec_getInputBuffer(_impl, iBufidx, &bufsize);
+	if (buf == nullptr) {
+		ms_error("MSMediaCodecH264Dec: AMediaCodec_getInputBuffer() returned NULL");
+		return false;
+	}
+
+	size_t size = encodedFrame.size();
+	if (size > bufsize) {
+		ms_error("Cannot copy the all the bitstream into the input buffer size : %zu and bufsize %zu", size, bufsize);
+		size = min(size, bufsize);
+	}
+	memcpy(buf, encodedFrame.data(), size);
+
+	uint32_t flags = isPs ? BufferFlag::CodecConfig : BufferFlag::None;
+	if (AMediaCodec_queueInputBuffer(_impl, iBufidx, 0, size, timestamp * 1000ULL, flags) != 0) {
+		ms_error("MSMediaCodecH264Dec: AMediaCodec_queueInputBuffer() had an exception");
+		return false;
+	}
+	_pendingFrames++;
+
+	return true;
+}
+
+MediaCodecDecoderFilterImpl::MediaCodecDecoderFilterImpl(MSFilter *f, const std::string &mimeType, NalUnpacker *unpacker, H26xParameterSetsStore *psStore, H26xNaluHeader *naluHeader):
+_vsize({0, 0}),_f(f),  _unpacker(unpacker), _psStore(psStore), _naluHeader(naluHeader), _codec(mimeType) {
 
 	ms_message("MSMediaCodecH264Dec initialization");
 	ms_average_fps_init(&_fps, " H264 decoder: FPS: %f");
@@ -209,10 +219,18 @@ void MediaCodecDecoderFilterImpl::process() {
 			}
 		}
 
-		H26xUtils::nalusToByteStream(&nalus, _bitstream);
-
 		clock_gettime(CLOCK_MONOTONIC, &ts);
-		requestPli = !_codec.feed(_bitstream, (ts.tv_nsec / 1000000ULL) + 10ULL);
+		uint64_t tsMs = (ts.tv_nsec / 1000000ULL) + 10ULL;
+
+		list<mblk_t *> ps = extractParameterSets(&nalus);
+		if (!ps.empty()) {
+			H26xUtils::nalusToByteStream(ps, _bitstream);
+			_codec.setParameterSets(_bitstream);
+		}
+		if (!ms_queue_empty(&nalus)) {
+			H26xUtils::nalusToByteStream(&nalus, _bitstream);
+			requestPli = !_codec.feed(_bitstream, tsMs);
+		}
 	}
 
 	mblk_t *om;
@@ -243,6 +261,21 @@ void MediaCodecDecoderFilterImpl::postprocess() {
 
 void MediaCodecDecoderFilterImpl::resetFirstImage() {
 	_firstImageDecoded = false;
+}
+
+std::list<mblk_t *> MediaCodecDecoderFilterImpl::extractParameterSets(MSQueue *frame) {
+	list<mblk_t *> psList;
+	for (mblk_t *nalu = ms_queue_peek_first(frame); !ms_queue_end(frame, nalu); nalu = ms_queue_next(frame, nalu)) {
+		_naluHeader->parse(nalu->b_rptr);
+		if (_naluHeader->getAbsType().isParameterSet()) {
+			mblk_t *ps = nalu;
+			nalu = ms_queue_next(frame, nalu);
+			ms_queue_remove(frame, ps);
+			psList.push_back(ps);
+			continue;
+		}
+	}
+	return psList;
 }
 
 MSVideoSize MediaCodecDecoderFilterImpl::getVideoSize() const {

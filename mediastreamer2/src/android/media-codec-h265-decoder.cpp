@@ -25,7 +25,7 @@ namespace mediastreamer {
 
 class MediaCodecH265DecoderFilterImpl: public MediaCodecDecoderFilterImpl {
 public:
-	MediaCodecH265DecoderFilterImpl(MSFilter *f): MediaCodecDecoderFilterImpl(f, "video/hevc", new H265NalUnpacker(), new H265ParameterSetsStore()) {}
+	MediaCodecH265DecoderFilterImpl(MSFilter *f): MediaCodecDecoderFilterImpl(f, "video/hevc", new H265NalUnpacker(), new H265ParameterSetsStore(), new H265NaluHeader()) {}
 
 	static void onFilterInit(MSFilter *f) {
 		f->data = new MediaCodecH265DecoderFilterImpl(f);

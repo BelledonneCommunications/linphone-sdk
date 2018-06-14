@@ -20,6 +20,7 @@
 #pragma once
 
 #include <cstdint>
+#include <list>
 #include <memory>
 #include <string>
 #include <vector>
@@ -38,24 +39,36 @@ public:
 	~MediaCodecDecoder();
 
 	void flush();
+	void setParameterSets(const std::vector<uint8_t> &frame);
 
 	bool feed(const std::vector<uint8_t> &encodedFrame, uint64_t timestamp);
 	mblk_t *fetch();
 
 private:
+	class BufferFlag {
+	public:
+		static const uint32_t None = 0;
+		static const uint32_t KeyFrame = 1;
+		static const uint32_t CodecConfig = 1<<1;
+		static const uint32_t EndOfStream = 1<<2;
+		static const uint32_t PartialFrame = 1<<3;
+	};
+
 	void createImpl(const std::string &mime);
+	bool feed(const std::vector<uint8_t> &encodedFrame, uint64_t timestamp, bool isPs);
 
 	AMediaCodec *_impl = nullptr;
 	int _pendingFrames = 0;
 	MSVideoSize _vsize;
 	MSYuvBufAllocator *_bufAllocator = nullptr;
+	uint64_t _lastTs = 0;
 
 	static const unsigned int _timeoutUs = 0;
 };
 
 class MediaCodecDecoderFilterImpl {
 public:
-	MediaCodecDecoderFilterImpl(MSFilter *f, const std::string &mimeType, NalUnpacker *unpacker, H26xParameterSetsStore *psStore);
+	MediaCodecDecoderFilterImpl(MSFilter *f, const std::string &mimeType, NalUnpacker *unpacker, H26xParameterSetsStore *psStore, H26xNaluHeader *naluHeader);
 	virtual ~MediaCodecDecoderFilterImpl() = default;
 
 	void preprocess();
@@ -72,6 +85,7 @@ public:
 	void resetFirstImage();
 
 protected:
+	std::list<mblk_t *> extractParameterSets(MSQueue *frame);
 	virtual bool isKeyFrame(const MSQueue *frame) const = 0;
 
 	MSVideoSize _vsize;
@@ -82,6 +96,7 @@ protected:
 	MSFilter *_f = nullptr;
 	std::unique_ptr<NalUnpacker> _unpacker;
 	std::unique_ptr<H26xParameterSetsStore> _psStore;
+	std::unique_ptr<H26xNaluHeader> _naluHeader;
 	MediaCodecDecoder _codec;
 	std::vector<uint8_t> _bitstream;
 	bool _firstImageDecoded = false;
