@@ -36,7 +36,7 @@ public:
 	}
 
 	void process() {
-		if (_packetNum == 0 && _sps && _pps) {
+		if (_sps && _pps) {
 			static_cast<H264NalUnpacker &>(*_unpacker).setOutOfBandSpsPps(_sps, _pps);
 			_sps = nullptr;
 			_pps = nullptr;
