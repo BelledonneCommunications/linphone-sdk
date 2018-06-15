@@ -32,6 +32,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/mseventqueue.h"
+#include "mediastreamer2/mswebcam.h"
 #include "basedescs.h"
 
 #if !defined(_WIN32_WCE)
@@ -995,6 +996,7 @@ void ms_factory_destroy(MSFactory *factory) {
 	if (factory->echo_canceller_filtername) ms_free(factory->echo_canceller_filtername);
 	if (factory->plugins_dir) ms_free(factory->plugins_dir);
 	if (factory->image_resources_dir) ms_free(factory->image_resources_dir);
+	if (factory->wbcmanager) ms_web_cam_manager_destroy(factory->wbcmanager);
 	ms_free(factory);
 	if (factory == fallback_factory) fallback_factory = NULL;
 }
