@@ -1,3 +1,5 @@
+[![pipeline status](https://gitlab.linphone.org/BC/public/mediastreamer2/badges/master/pipeline.svg)](https://gitlab.linphone.org/BC/public/mediastreamer2/commits/master)
+
 Mediastreamer
 =============
 

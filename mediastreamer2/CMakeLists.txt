@@ -575,7 +575,8 @@ set(STRICT_OPTIONS_CPP )
 set(STRICT_OPTIONS_C )
 set(STRICT_OPTIONS_OBJC "-Wno-error")
 if(MSVC)
-	list(APPEND STRICT_OPTIONS_CPP "/wd4142") # Disable "benign redefinition of type" warnings
+	list(APPEND STRICT_OPTIONS_CPP "/wd4142") # Disable "benign redefinition of type" warnings.
+	list(APPEND STRICT_OPTIONS_CPP "/wd4996") # Disable POSIX functions warnings from bctbx.
 	if(ENABLE_STRICT)
 		list(APPEND STRICT_OPTIONS_CPP "/WX")
 	endif()

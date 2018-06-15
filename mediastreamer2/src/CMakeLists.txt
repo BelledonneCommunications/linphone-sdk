@@ -112,7 +112,6 @@ if(ENABLE_SHARED)
 			FRAMEWORK TRUE
 			MACOSX_FRAMEWORK_IDENTIFIER org.linphone.mediastreamerbase
   			MACOSX_FRAMEWORK_INFO_PLIST Info_base.plist.in
-			PUBLIC_HEADER "${MEDIASTREAMER2_HEADER_FILES}"
 		)
 	endif()
 	if(NOT ANDROID)
@@ -693,14 +692,13 @@ if(ENABLE_SHARED)
 			FRAMEWORK TRUE
 			MACOSX_FRAMEWORK_IDENTIFIER org.linphone.mediastreamervoip
   			MACOSX_FRAMEWORK_INFO_PLIST Info_voip.plist.in
-			PUBLIC_HEADER "${MEDIASTREAMER2_HEADER_FILES}"
 		)
 	endif()
 	if(ANDROID)
-                if(ENABLE_VPX)
-                        set_target_properties(mediastreamer_voip PROPERTIES LINK_FLAGS "-Wl,--exclude-libs,libvpx.a")
-                endif()
-        else()
+    if(ENABLE_VPX)
+      set_target_properties(mediastreamer_voip PROPERTIES LINK_FLAGS "-Wl,--exclude-libs,libvpx.a")
+    endif()
+  else()
 		# Do not version shared library on Android
 		set_target_properties(mediastreamer_voip PROPERTIES SOVERSION ${MEDIASTREAMER_SO_VERSION})
 	endif()
@@ -724,6 +722,29 @@ if(ENABLE_SHARED)
 		FRAMEWORK DESTINATION Frameworks
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 	)
+endif()
+if (ENABLE_SHARED AND IOS) 
+	
+	#According to Apple documentation (https://developer.apple.com/library/content/documentation/MacOSX/Conceptual/BPFrameworks/Tasks/IncludingFrameworks.html)
+	#Framework header files must be included in application code using the #include directive using the followin patern: #include <Framework_name/Header_filename.h>. Consequece for medistreamer2 is that the framework must be named mediastreamer2. The final solution is to replace both mediastreamer_voip and mediastreamer_base by mediastreamer2. To preserve backward compatibility, both mediastreamer_voip and mediastreamer_base are kept for now (2018-05-06)
+	add_library(mediastreamer2 SHARED ${MEDIASTREAMER2_HEADER_FILES})
+        set_target_properties(mediastreamer2 PROPERTIES LINKER_LANGUAGE CXX)
+        add_dependencies(mediastreamer2 mediastreamer_voip)
+	target_link_libraries(mediastreamer2 INTERFACE "-framework mediastreamer_base" "-framework mediastreamer_voip" "-framework Foundation" "-framework Foundation" "-framework AVFoundation")
+	set_target_properties(mediastreamer2 PROPERTIES
+                FRAMEWORK TRUE
+                MACOSX_FRAMEWORK_IDENTIFIER org.linphone.mediastreamer
+                MACOSX_FRAMEWORK_INFO_PLIST Info.plist.in
+                PUBLIC_HEADER "${MEDIASTREAMER2_HEADER_FILES}"
+        )
+        install(TARGETS mediastreamer2 EXPORT ${EXPORT_TARGETS_NAME}Targets
+                RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+                LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+                ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+                FRAMEWORK DESTINATION Frameworks
+                PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+        )
+
 endif()
 
 if(FFMPEG_FOUND AND NOT WIN32)
