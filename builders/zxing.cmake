@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-lcb_git_repository("git@github.com:glassechidna/zxing-cpp.git")
+lcb_git_repository("git://git.linphone.org/zxing-cpp.git")
 lcb_external_source_paths("externals/zxing-cpp")
 
 #lcb_linking_type("-DENABLE_STATIC=YES" "-DENABLE_SHARED=NO")
