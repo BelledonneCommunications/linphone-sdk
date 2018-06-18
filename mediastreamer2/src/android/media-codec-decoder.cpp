@@ -286,7 +286,7 @@ void MediaCodecDecoderFilterImpl::resetFirstImage() {
 
 std::list<mblk_t *> MediaCodecDecoderFilterImpl::extractParameterSets(MSQueue *frame) {
 	list<mblk_t *> psList;
-	for (mblk_t *nalu = ms_queue_peek_first(frame); !ms_queue_end(frame, nalu); nalu = ms_queue_next(frame, nalu)) {
+	for (mblk_t *nalu = ms_queue_peek_first(frame); !ms_queue_end(frame, nalu);) {
 		_naluHeader->parse(nalu->b_rptr);
 		if (_naluHeader->getAbsType().isParameterSet()) {
 			mblk_t *ps = nalu;
@@ -295,6 +295,7 @@ std::list<mblk_t *> MediaCodecDecoderFilterImpl::extractParameterSets(MSQueue *f
 			psList.push_back(ps);
 			continue;
 		}
+		nalu = ms_queue_next(frame, nalu);
 	}
 	return psList;
 }
