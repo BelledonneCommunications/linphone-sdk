@@ -63,13 +63,19 @@ void MediaCodecDecoder::flush() {
 	if (_impl) AMediaCodec_flush(_impl);
 	_pendingFrames = 0;
 	_lastTs = 0;
+	setState(State::Reset);
 }
 
 void MediaCodecDecoder::setParameterSets(const std::vector<uint8_t> &frame) {
-	feed(frame, _lastTs, true);
+	if (!feed(frame, _lastTs, true)) {
+		ms_error("MSMediaCodecH264Dec: paramter sets has been refused by the decoder.");
+		return;
+	}
+	setState(State::Ready);
 }
 
 bool MediaCodecDecoder::feed(const std::vector<uint8_t> &encodedFrame, uint64_t timestamp) {
+	if (_state != State::Ready) return true;
 	return feed(encodedFrame, timestamp, false);
 }
 
@@ -183,6 +189,21 @@ bool MediaCodecDecoder::feed(const std::vector<uint8_t> &encodedFrame, uint64_t 
 	_pendingFrames++;
 
 	return true;
+}
+
+void MediaCodecDecoder::setState(State state) {
+	if (state != _state) {
+		State oldState = _state;
+		_state = state;
+		ms_message("MSMediaCodecH264Dec: switching state ('%s' -> '%s').", toString(oldState), toString(state));
+	}
+}
+
+const char *MediaCodecDecoder::toString(State state) {
+	switch (state) {
+		case State::Reset: return "Reset";
+		case State::Ready: return "Ready";
+	}
 }
 
 MediaCodecDecoderFilterImpl::MediaCodecDecoderFilterImpl(MSFilter *f, const std::string &mimeType, NalUnpacker *unpacker, H26xParameterSetsStore *psStore, H26xNaluHeader *naluHeader):

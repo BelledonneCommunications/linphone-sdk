@@ -45,6 +45,11 @@ public:
 	mblk_t *fetch();
 
 private:
+	enum class State {
+		Reset,
+		Ready
+	};
+
 	class BufferFlag {
 	public:
 		static const uint32_t None = 0;
@@ -56,12 +61,15 @@ private:
 
 	void createImpl(const std::string &mime);
 	bool feed(const std::vector<uint8_t> &encodedFrame, uint64_t timestamp, bool isPs);
+	void setState(State state);
+	static const char *toString(State state);
 
 	AMediaCodec *_impl = nullptr;
 	int _pendingFrames = 0;
 	MSVideoSize _vsize;
 	MSYuvBufAllocator *_bufAllocator = nullptr;
 	uint64_t _lastTs = 0;
+	State _state = State::Reset;
 
 	static const unsigned int _timeoutUs = 0;
 };
