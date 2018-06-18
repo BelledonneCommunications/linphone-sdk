@@ -48,7 +48,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define ICE_DEFAULT_TA_DURATION		40	/* In milliseconds */
 #define ICE_DEFAULT_RTO_DURATION	200	/* In milliseconds */
 #define ICE_DEFAULT_KEEPALIVE_TIMEOUT   15	/* In seconds */
-#define ICE_GATHERING_CANDIDATES_TIMEOUT	5000	/* In milliseconds */
+#define ICE_GATHERING_CANDIDATES_TIMEOUT	3500	/* In milliseconds */
 #define ICE_NOMINATION_DELAY		1000	/* In milliseconds */
 #define ICE_MAX_RETRANSMISSIONS		7
 #define ICE_MAX_RETRANSMISSIONS_FOR_NOMINATIONS	5
