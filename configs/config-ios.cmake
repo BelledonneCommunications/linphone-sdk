@@ -159,3 +159,6 @@ lcb_builder_linking_type(vpx "--enable-static" "--disable-shared")
 # x264
 lcb_builder_linking_type(x264 "--enable-static" "--enable-pic")
 lcb_builder_install_target(x264 "install-lib-static")
+
+# zxing
+lcb_builder_linking_type(zxing "-DENABLE_STATIC=YES" "-DENABLE_SHARED=NO")

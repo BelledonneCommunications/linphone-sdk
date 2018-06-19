@@ -21,9 +21,9 @@
 ############################################################################
 
 lcb_git_repository("git://git.linphone.org/zxing-cpp.git")
+lcb_git_tag_latest("bc")
+lcb_git_tag("bc")
 lcb_external_source_paths("externals/zxing-cpp")
 
 #lcb_linking_type("-DENABLE_STATIC=YES" "-DENABLE_SHARED=NO")
-lcb_extra_cflags("-fPIC")
-
-
+#lcb_extra_cflags("-fPIC")
