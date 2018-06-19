@@ -98,6 +98,7 @@ protected:
 	static const int32_t _colorFormat = 0x7f420888; // COLOR_FormatYUV420Flexible
 	static const int32_t _bitrateMode = 1; // VBR mode
 	static const int32_t _iFrameInterval = 20; // 20 seconds
+	static const int32_t _encodingLatency = 1;
 };
 
 class MediaCodecEncoderFilterImpl {

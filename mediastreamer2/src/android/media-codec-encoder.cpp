@@ -232,6 +232,7 @@ void MediaCodecEncoder::configureImpl() {
 	AMediaFormat_setInt32(format, "bitrate", (_bitrate * 9)/10); // take a margin
 	AMediaFormat_setInt32(format, "bitrate-mode", _bitrateMode);
 	AMediaFormat_setInt32(format, "i-frame-interval", _iFrameInterval);
+	AMediaFormat_setInt32(format, "latency", _encodingLatency);
 
 	ms_message("configuring MediaCodec with the following parameters:");
 	printMediaFormat();
@@ -265,6 +266,7 @@ void MediaCodecEncoder::printMediaFormat() const {
 	os << "\tbitrate: " << _bitrate << " b/s" << endl;
 	os << "\tbitrate-mode: " << _bitrateMode << endl;
 	os << "\ti-frame-intervale: " << _iFrameInterval << endl;
+	os << "\tlatency: " << _encodingLatency << endl;
 	ms_message("%s", os.str().c_str());
 }
 
