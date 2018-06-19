@@ -99,6 +99,7 @@ protected:
 	static const int32_t _bitrateMode = 1; // VBR mode
 	static const int32_t _iFrameInterval = 20; // 20 seconds
 	static const int32_t _encodingLatency = 1;
+	static const int32_t _priority = 0; // real-time priority
 };
 
 class MediaCodecEncoderFilterImpl {
