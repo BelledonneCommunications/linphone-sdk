@@ -76,7 +76,9 @@ void MediaCodecDecoder::setParameterSets(const std::vector<uint8_t> &frame) {
 
 bool MediaCodecDecoder::feed(const std::vector<uint8_t> &encodedFrame, uint64_t timestamp) {
 	if (_state != State::Ready) return true;
-	return feed(encodedFrame, timestamp, false);
+	if (!feed(encodedFrame, timestamp, false)) return false;
+	_pendingFrames++;
+	return true;
 }
 
 mblk_t *MediaCodecDecoder::fetch() {
@@ -186,7 +188,6 @@ bool MediaCodecDecoder::feed(const std::vector<uint8_t> &encodedFrame, uint64_t 
 		ms_error("MSMediaCodecH264Dec: AMediaCodec_queueInputBuffer() had an exception");
 		return false;
 	}
-	_pendingFrames++;
 
 	return true;
 }
