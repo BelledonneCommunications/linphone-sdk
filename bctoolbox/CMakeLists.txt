@@ -120,7 +120,7 @@ endif()
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bctoolbox.pc.in ${CMAKE_CURRENT_BINARY_DIR}/bctoolbox.pc)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/bctoolbox.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 
-if(ENABLE_TESTS_COMPONENT AND BCUNIT_FOUND)
+if(ENABLE_TESTS_COMPONENT)
 	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bctoolbox-tester.pc.in ${CMAKE_CURRENT_BINARY_DIR}/bctoolbox-tester.pc)
 	install(FILES ${CMAKE_CURRENT_BINARY_DIR}/bctoolbox-tester.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 endif()
@@ -160,7 +160,7 @@ check_include_file("execinfo.h" HAVE_EXECINFO)
 
 add_subdirectory(include)
 add_subdirectory(src)
-if(ENABLE_TESTS AND ENABLE_TESTS_COMPONENT AND BCUNIT_FOUND)
+if(ENABLE_TESTS AND ENABLE_TESTS_COMPONENT)
 	add_subdirectory(tester)
 endif()
 

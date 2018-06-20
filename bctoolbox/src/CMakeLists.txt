@@ -66,7 +66,7 @@ if(POLARSSL_FOUND)
 		list(APPEND BCTOOLBOX_C_SOURCE_FILES crypto/polarssl1.2.c)
 	endif()
 endif()
-if(BCUNIT_FOUND)
+if(ENABLE_TESTS_COMPONENT)
 	set(BCTOOLBOX_C_TESTER_SOURCE_FILES tester.c)
 endif()
 
@@ -98,7 +98,7 @@ if(ENABLE_STATIC)
 	if(HAVE_LIBDL)
 		target_link_libraries(bctoolbox-static INTERFACE dl)
 	endif()
-	if(BCUNIT_FOUND)
+	if(ENABLE_TESTS_COMPONENT)
 		add_library(bctoolbox-tester-static STATIC ${BCTOOLBOX_TESTER_SOURCE_FILES})
 		set_target_properties(bctoolbox-tester-static PROPERTIES OUTPUT_NAME bctoolbox-tester)
 		target_link_libraries(bctoolbox-tester-static INTERFACE bctoolbox-static)
@@ -153,7 +153,7 @@ if(ENABLE_SHARED)
 	if(HAVE_LIBDL)
 		target_link_libraries(bctoolbox PRIVATE dl)
 	endif()
-	if(BCUNIT_FOUND)
+	if(ENABLE_TESTS_COMPONENT)
 		add_library(bctoolbox-tester SHARED ${BCTOOLBOX_TESTER_SOURCE_FILES})
 		set_target_properties(bctoolbox-tester PROPERTIES LINKER_LANGUAGE "CXX")
 		target_link_libraries(bctoolbox-tester PRIVATE bctoolbox)
@@ -209,7 +209,7 @@ if(DECAF_FOUND)
 	endif()
 endif()
 
-if(BCUNIT_FOUND)
+if(ENABLE_TESTS_COMPONENT)
 	if(ENABLE_STATIC)
 		target_include_directories(bctoolbox-tester-static PUBLIC ${BCUNIT_INCLUDE_DIRS})
 		target_link_libraries(bctoolbox-tester-static INTERFACE bctoolbox-static ${BCUNIT_LIBRARIES})
@@ -234,7 +234,7 @@ if(ENABLE_STATIC)
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 		COMPONENT core
 	)
-	if(BCUNIT_FOUND)
+	if(ENABLE_TESTS_COMPONENT)
 		install(TARGETS bctoolbox-tester-static EXPORT ${EXPORT_TARGETS_NAME}Targets
 			ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
@@ -251,7 +251,7 @@ if(ENABLE_SHARED)
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 		COMPONENT core
 	)
-	if(BCUNIT_FOUND)
+	if(ENABLE_TESTS_COMPONENT)
 		install(TARGETS bctoolbox-tester EXPORT ${EXPORT_TARGETS_NAME}Targets
 			RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 			LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -271,7 +271,7 @@ if(MSVC)
 	if(ENABLE_STATIC)
 		target_compile_options(bctoolbox-static PRIVATE "/wd4996")
 	endif()
-	if(BCUNIT_FOUND)
+	if(ENABLE_TESTS_COMPONENT)
 		target_compile_options(bctoolbox-tester PRIVATE "/wd4996")
 	endif()
 endif()

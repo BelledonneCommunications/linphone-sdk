@@ -26,7 +26,7 @@ else()
 	set(PROJECT_LIBS bctoolbox-static bctoolbox-tester-static)
 endif()
 
-if(BCUNIT_FOUND AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
+if(ENABLE_TESTS AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 	set(TESTER_SOURCES
 		bctoolbox_tester.c
 		bctoolbox_tester.h
