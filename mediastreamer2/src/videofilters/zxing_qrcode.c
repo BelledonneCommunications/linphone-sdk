@@ -143,8 +143,10 @@ void qrcode_process(MSFilter *f) {
 			ms_yuv_buf_init_from_mblk(&yuvBuf,m);
 			mblk = cropBeforeDecode(qrc, &yuvBuf, &newYuvbuf);
 			if (!mblk) newYuvbuf = yuvBuf;
+			// Do not call delete for qrc-image, zxing will automatically delete this after decode.
 			qrc->image = new QRCodeImage(newYuvbuf.w, newYuvbuf.h, newYuvbuf.planes[0], newYuvbuf.strides[0]);
 			read_qrcode(f);
+			qrc->image = NULL;
 
 			if (mblk) freemsg(mblk);
 		}
