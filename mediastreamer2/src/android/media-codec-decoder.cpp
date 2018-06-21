@@ -141,7 +141,6 @@ void MediaCodecDecoder::createImpl(const std::string &mime) {
 	AMediaFormat_setInt32(format, "max-width", 1920);
 	AMediaFormat_setInt32(format, "max-height", 1920);
 	AMediaFormat_setInt32(format, "priority", 0);
-	AMediaFormat_setInt32(format, "operating-rate", 30); // 30fps
 
 	if ((status = AMediaCodec_configure(_impl, format, nullptr, nullptr, 0)) != AMEDIA_OK) {
 		errMsg << "configuration failure: " << int(status);

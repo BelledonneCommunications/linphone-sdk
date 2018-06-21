@@ -223,8 +223,6 @@ void MediaCodecEncoder::createImpl() {
 void MediaCodecEncoder::configureImpl() {
 	AMediaFormat *format = AMediaFormat_new();
 	AMediaFormat_setString(format, "mime", _mime.c_str());
-	AMediaFormat_setInt32(format, "profile", _profile);
-	AMediaFormat_setInt32(format, "level", _level);
 	AMediaFormat_setInt32(format, "color-format", _colorFormat);
 	AMediaFormat_setInt32(format, "width", _vsize.width);
 	AMediaFormat_setInt32(format, "height", _vsize.height);
