@@ -43,7 +43,7 @@ static AudioUnitElement inputBus = 1;
 static AudioUnitElement outputBus = 0;
 
 
-static const char * audio_unit_format_error (OSStatus error) {
+static const char *audio_unit_format_error (OSStatus error) {
 	switch (error) {
 		case kAudioUnitErr_InvalidProperty: return "kAudioUnitErr_InvalidProperty";
 		case kAudioUnitErr_InvalidParameter: return "kAudioUnitErr_InvalidParameter";
@@ -94,7 +94,7 @@ if (au!=0) ms_error("AudioUnit error for %s: ret=%s (%li) (%s:%d)",method, audio
 #endif
 static const char* AU_CARD_RECEIVER = "Audio Unit Receiver";
 static const char* AU_CARD_NOVOICEPROC = "Audio Unit NoVoiceProc";
-static const char* AU_CARD_FAST_IOUNIT = "Audio Unit Fast Receiver"; /*Same as AU_CARD_RECEIVER but whiout audio session handling which are delagated to the application*/
+static const char* AU_CARD_FAST_IOUNIT = "Audio Unit Fast Receiver"; // Same as AU_CARD_RECEIVER but whiout audio session handling which are delegated to the application
 static const char* AU_CARD_SPEAKER = "Audio Unit Speaker";
 static const char* AU_CARD_TESTER = "Audio Unit Tester";
 
@@ -102,11 +102,11 @@ static const char* AU_CARD_TESTER = "Audio Unit Tester";
 static MSFilter *ms_au_read_new(MSSndCard *card);
 static MSFilter *ms_au_write_new(MSSndCard *card);
 
-typedef  struct au_filter_read_data au_filter_read_data_t;
-typedef  struct au_filter_write_data au_filter_write_data_t;
+typedef struct au_filter_read_data au_filter_read_data_t;
+typedef struct au_filter_write_data au_filter_write_data_t;
 
 
-typedef  struct  au_card {
+typedef struct au_card {
 	AudioUnit	io_unit;
 	ms_mutex_t	mutex;
 	unsigned int	rate;
@@ -123,12 +123,13 @@ typedef  struct  au_card {
 	bool_t audio_session_configured;
 	bool_t read_started;
 	bool_t write_started;
-}au_card_t;
+	bool_t is_used;
+} au_card_t;
 
-typedef  struct au_filter_base {
+typedef struct au_filter_base {
 	au_card_t* card;
 	int muted;
-}au_filter_base_t;
+} au_filter_base_t;
 
 struct au_filter_read_data{
 	au_filter_base_t base;
@@ -138,7 +139,7 @@ struct au_filter_read_data{
 	unsigned int n_lost_frame;
 	MSTickerSynchronizer *ticker_synchronizer;
 	uint64_t read_samples;
-} ;
+};
 
 struct au_filter_write_data{
 	au_filter_base_t base;
@@ -147,26 +148,19 @@ struct au_filter_write_data{
 	unsigned int n_lost_frame;
 };
 
-static void  stop_audio_unit (au_card_t* d);
-static void cancel_audio_unit_timer(au_card_t* card);
-
+static void stop_audio_unit (au_card_t* d);
 
 /*
  mediastreamer2 function
  */
 
-static void au_set_level(MSSndCard *card, MSSndCardMixerElem e, int percent)
-{
-}
+static void au_set_level(MSSndCard *card, MSSndCardMixerElem e, int percent) {}
 
-static int au_get_level(MSSndCard *card, MSSndCardMixerElem e)
-{
+static int au_get_level(MSSndCard *card, MSSndCardMixerElem e) {
 	return 0;
 }
 
-static void au_set_source(MSSndCard *card, MSSndCardCapture source)
-{
-}
+static void au_set_source(MSSndCard *card, MSSndCardCapture source) {}
 
 static OSStatus au_render_cb (
 							  void                        *inRefCon,
@@ -257,7 +251,6 @@ static void au_init(MSSndCard *card){
 
 static void au_uninit(MSSndCard *card){
 	au_card_t *d=(au_card_t*)card->data;
-	cancel_audio_unit_timer(d);
 	stop_audio_unit(d);
 	ms_mutex_destroy(&d->mutex);
 	ms_free(d);
@@ -547,7 +540,6 @@ static void au_read_preprocess(MSFilter *f){
 	au_card_t* card=d->base.card;
 	AVAudioSession *audioSession = [AVAudioSession sharedInstance];
 	NSError *err = nil;
-	cancel_audio_unit_timer(card);
 	configure_audio_session(card, f->ticker->time);
 
 	if (!card->io_unit) create_io_unit(&card->io_unit, card);
@@ -615,7 +607,6 @@ static void au_write_preprocess(MSFilter *f){
 	au_filter_write_data_t *d= (au_filter_write_data_t*)f->data;
 	au_card_t* card=d->base.card;
 	AVAudioSession *audioSession = [AVAudioSession sharedInstance];
-	cancel_audio_unit_timer(card);
 
 	if (card->io_unit_started) {
 		ms_message("AudioUnit already started");
