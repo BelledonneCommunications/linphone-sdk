@@ -116,7 +116,6 @@ typedef  struct  au_card {
 	au_filter_read_data_t* read_data;
 	au_filter_write_data_t* write_data;
 	MSSndCard* ms_snd_card;
-	CFRunLoopTimerRef shutdown_timer;
 	bool_t is_ringer;
 	bool_t is_fast;
 	bool_t is_tester;
@@ -124,7 +123,6 @@ typedef  struct  au_card {
 	bool_t audio_session_configured;
 	bool_t read_started;
 	bool_t write_started;
-	bool_t use_shutdowntimer;
 }au_card_t;
 
 typedef  struct au_filter_base {
@@ -250,7 +248,7 @@ static void au_init(MSSndCard *card){
 	d->rate=0; /*not set*/
 	d->nchannels=1;
 	d->ms_snd_card=card;
-	d->use_shutdowntimer=FALSE;
+	d->is_used = TRUE;
 	card->preferred_sample_rate=44100;
 	card->capabilities|=MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER|MS_SND_CARD_CAP_IS_SLOW;
 	ms_mutex_init(&d->mutex,NULL);
@@ -266,27 +264,22 @@ static void au_uninit(MSSndCard *card){
 	card->data = NULL;
 }
 
-static void au_usage_hint(MSSndCard *card, bool_t used){
-	au_card_t *d=(au_card_t*)card->data;
-	if (!used &&d){
-		if(d->io_unit) {
-			if (d->shutdown_timer) {
-				cancel_audio_unit_timer(d);
-				stop_audio_unit(d);
-			} else {
-				d->use_shutdowntimer = FALSE;
-			}
-		} else {
-			d->use_shutdowntimer = FALSE;
-		}
-	} else {
-		if(d) {
-			d->use_shutdowntimer = TRUE;
-		}
-	}
+static void check_unused(au_card_t *card){
+	if (card->read_data || card->write_data)
+		return;
+
+	if (card->is_tester || !card->is_used)
+		stop_audio_unit(card);
 }
 
+static void au_usage_hint(MSSndCard *card, bool_t used){
+	au_card_t *d = (au_card_t*)card->data;
+	if (!d)
+		return;
 
+	d->is_used = used;
+	check_unused(d);
+}
 
 static void au_detect(MSSndCardManager *m);
 static MSSndCard *au_duplicate(MSSndCard *obj);
@@ -545,14 +538,6 @@ static void stop_audio_unit (au_card_t* d) {
 		destroy_audio_unit(d);
 	}
 	d->rate=0; /*uninit*/
-}
-
-static void cancel_audio_unit_timer(au_card_t* card){
-	if (card->shutdown_timer){
-		CFRunLoopRemoveTimer(CFRunLoopGetMain(), card->shutdown_timer,kCFRunLoopCommonModes);
-		CFRunLoopTimerInvalidate(card->shutdown_timer);
-		card->shutdown_timer=NULL;
-	}
 }
 
 /***********************************read function********************/
@@ -847,34 +832,6 @@ static MSFilterMethod au_write_methods[]={
 	{	MS_AUDIO_PLAYBACK_MUTE	 	, set_muted	},
 	{	0				, NULL		}
 };
-
-static void shutdown_timer(CFRunLoopTimerRef timer, void *info){
-	au_card_t *card=(au_card_t*)info;
-	stop_audio_unit(card);
-}
-
-static void check_unused(au_card_t *card){
-	if (card->read_data==NULL && card->write_data==NULL ){
-
-		if (!card->is_tester && card->shutdown_timer==NULL && card->use_shutdowntimer){
-			/*program the shutdown of the audio unit in a few seconds*/
-			CFRunLoopTimerContext ctx={0};
-			ctx.info=card;
-			card->shutdown_timer=CFRunLoopTimerCreate (
-												kCFAllocatorDefault,
-												CFAbsoluteTimeGetCurrent() + 2.5,
-												0,
-												0,
-												0,
-												shutdown_timer,
-												&ctx
-												);
-			CFRunLoopAddTimer(CFRunLoopGetMain(), card->shutdown_timer,kCFRunLoopCommonModes);
-		} else if( card->is_tester ) {
-			stop_audio_unit(card);
-		}
-	}
-}
 
 static void au_read_uninit(MSFilter *f) {
 	au_filter_read_data_t *d=(au_filter_read_data_t*)f->data;
