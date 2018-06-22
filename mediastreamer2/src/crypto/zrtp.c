@@ -682,12 +682,20 @@ void ms_zrtp_sas_verified(MSZrtpContext* ctx){
 	bzrtp_SASVerified(ctx->zrtpContext);
 }
 
+uint8_t ms_zrtp_getAuxiliarySharedSecretMismatch(MSZrtpContext *ctx) {
+	return bzrtp_getAuxiliarySharedSecretMismatch(ctx->zrtpContext);
+}
+
 void ms_zrtp_sas_reset_verified(MSZrtpContext* ctx){
 	bzrtp_resetSASVerified(ctx->zrtpContext);
 }
 
 int ms_zrtp_getHelloHash(MSZrtpContext* ctx, uint8_t *output, size_t outputLength) {
 	return bzrtp_getSelfHelloHash(ctx->zrtpContext, ctx->self_ssrc, output, outputLength);
+}
+
+int ms_zrtp_setAuxiliarySharedSecret(MSZrtpContext *ctx, const uint8_t *auxSharedSecret, size_t auxSharedSecretLength) {
+	return bzrtp_setAuxiliarySharedSecret(ctx->zrtpContext, auxSharedSecret, auxSharedSecretLength);
 }
 
 int ms_zrtp_setPeerHelloHash(MSZrtpContext *ctx, uint8_t *peerHelloHashHexString, size_t peerHelloHashHexStringLength) {
