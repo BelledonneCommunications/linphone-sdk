@@ -419,6 +419,13 @@ BZRTP_EXPORT int bzrtp_getChannelStatus(bzrtpContext_t *zrtpContext, uint32_t se
  */
 BZRTP_EXPORT int bzrtp_setAuxiliarySharedSecret(bzrtpContext_t *zrtpContext, const uint8_t *auxSecret, size_t auxSecretLength);
 
+/**
+ * @brief Get the ZRTP auxiliary shared secret mismatch status
+ * @param[in]		ctx	MSZRTP context
+ * @return 0 on match, 1 otherwise
+ */
+BZRTP_EXPORT uint8_t bzrtp_getAuxiliarySharedSecretMismatch(bzrtpContext_t *zrtpContext);
+
 /*** Cache related functions ***/
 /**
  * @brief Check the given sqlite3 DB and create requested tables if needed
