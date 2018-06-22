@@ -18,13 +18,15 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
+
+#import <AudioToolbox/AudioToolbox.h>
 #import <AVFoundation/AVAudioSession.h>
 #import <Foundation/NSArray.h>
 #import <Foundation/NSString.h>
-#include <AudioToolbox/AudioToolbox.h>
-#include "mediastreamer2/mssndcard.h"
-#include "mediastreamer2/msfilter.h"
-#include "mediastreamer2/msticker.h"
+
+#import "mediastreamer2/mssndcard.h"
+#import "mediastreamer2/msfilter.h"
+#import "mediastreamer2/msticker.h"
 
 static const int flowControlInterval = 5000; // ms
 static const int flowControlThreshold = 40; // ms
@@ -41,7 +43,6 @@ static const int flowControlThreshold = 40; // ms
 
 static AudioUnitElement inputBus = 1;
 static AudioUnitElement outputBus = 0;
-
 
 static const char *audio_unit_format_error (OSStatus error) {
 	switch (error) {
@@ -76,35 +77,26 @@ static const char *audio_unit_format_error (OSStatus error) {
 
 }
 
-
 #define check_au_session_result(au,method) \
 if (au!=AVAudioSessionErrorInsufficientPriority && au!=0) ms_error("AudioSession error for %s: ret=%i (%s:%d)",method, au, __FILE__, __LINE__ )
 
 #define check_au_unit_result(au,method) \
 if (au!=0) ms_error("AudioUnit error for %s: ret=%s (%li) (%s:%d)",method, audio_unit_format_error(au), (long)au, __FILE__, __LINE__ )
 
-
 #define check_session_call(call)   do { OSStatus res = (call); check_au_session_result(res, #call); } while(0)
 #define check_audiounit_call(call) do { OSStatus res = (call); check_au_unit_result(res, #call); } while(0)
 
-
-#if 0
-#undef ms_debug
-#define ms_debug ms_message
-#endif
 static const char* AU_CARD_RECEIVER = "Audio Unit Receiver";
 static const char* AU_CARD_NOVOICEPROC = "Audio Unit NoVoiceProc";
 static const char* AU_CARD_FAST_IOUNIT = "Audio Unit Fast Receiver"; // Same as AU_CARD_RECEIVER but whiout audio session handling which are delegated to the application
 static const char* AU_CARD_SPEAKER = "Audio Unit Speaker";
 static const char* AU_CARD_TESTER = "Audio Unit Tester";
 
-
 static MSFilter *ms_au_read_new(MSSndCard *card);
 static MSFilter *ms_au_write_new(MSSndCard *card);
 
 typedef struct au_filter_read_data au_filter_read_data_t;
 typedef struct au_filter_write_data au_filter_write_data_t;
-
 
 typedef struct au_card {
 	AudioUnit	io_unit;
@@ -214,18 +206,9 @@ static void create_io_unit (AudioUnit* au, au_card_t *card) {
 	ms_message("AudioUnit created with type %s.", subtype==kAudioUnitSubType_RemoteIO ? "kAudioUnitSubType_RemoteIO" : "kAudioUnitSubType_VoiceProcessingIO" );
 }
 
-
 /* the interruption listener is not reliable, it can be overriden by other parts of the application */
 /* as a result, we do nothing with it*/
-static void au_interruption_listener (void     *inClientData, UInt32   inInterruptionState){
-/*
-	if (inInterruptionState==kAudioSessionBeginInterruption){
-		CFRunLoopPerformBlock(CFRunLoopGetMain(), kCFRunLoopCommonModes, ^(void) {
-			stop_audio_unit((au_card_t*)inClientData);
-		});
-	}
-*/
-}
+static void au_interruption_listener (void *inClientData, UInt32 inInterruptionState) {}
 
 static void au_init(MSSndCard *card){
 	ms_debug("au_init");
@@ -518,6 +501,7 @@ static void destroy_audio_unit (au_card_t* d) {
 		ms_message("AudioUnit destroyed");
 	}
 }
+
 static void stop_audio_unit (au_card_t* d) {
 	if (d->io_unit && d->io_unit_started) {
 		check_audiounit_call( AudioOutputUnitStop(d->io_unit) );
@@ -594,8 +578,6 @@ static void au_read_process(MSFilter *f){
 
 	if (read_something) ms_ticker_synchronizer_update(d->ticker_synchronizer, d->read_samples, d->base.card->rate);
 }
-
-
 
 /***********************************write function********************/
 
@@ -742,8 +724,6 @@ static void au_write_postprocess(MSFilter *f){
 	ms_mutex_unlock(&d->mutex);
 }
 
-
-
 static void au_write_process(MSFilter *f){
 	ms_debug("au_write_process");
 	au_filter_write_data_t *d=(au_filter_write_data_t*)f->data;
@@ -778,7 +758,6 @@ static int get_rate(MSFilter *f, void *data){
 	*(int*)data=d->card->rate;
 	return 0;
 }
-
 
 static int read_set_nchannels(MSFilter *f, void *arg){
 	ms_debug("set_nchannels %d", *((int*)arg));
@@ -917,7 +896,6 @@ static MSFilter *ms_au_write_new(MSSndCard *mscard){
 	}
 	return f;
 }
-
 
 MS_FILTER_DESC_EXPORT(au_read_desc)
 MS_FILTER_DESC_EXPORT(au_write_desc)
