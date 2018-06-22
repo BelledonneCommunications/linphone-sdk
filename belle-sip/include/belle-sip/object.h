@@ -211,6 +211,10 @@ BELLESIP_EXPORT int belle_sip_object_get_object_count(void);
 BELLESIP_EXPORT void belle_sip_object_flush_active_objects(void);
 
 BELLESIP_EXPORT void belle_sip_object_dump_active_objects(void);
+/*
+ * Might be used to explicitly remove an object from leak detector.
+*/
+BELLESIP_EXPORT void belle_sip_object_remove_from_leak_detector(belle_sip_object_t *obj);
 
 /**
  * Suspend leak detector from this point. If the leak detector wasn't activated, this function does nothing.

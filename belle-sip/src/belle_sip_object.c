@@ -51,7 +51,7 @@ static void add_new_object(belle_sip_object_t *obj){
 	}
 }
 
-static void remove_free_object(belle_sip_object_t *obj){
+void belle_sip_object_remove_from_leak_detector(belle_sip_object_t *obj){
 	if (belle_sip_leak_detector_enabled && !belle_sip_leak_detector_inhibited){
 		belle_sip_list_t* it;
 		it=belle_sip_list_find(all_objects,obj);
@@ -244,7 +244,7 @@ void belle_sip_object_delete(void *ptr){
 	belle_sip_object_vptr_t *vptr;
 
 	belle_sip_object_loose_weak_refs(obj);
-	remove_free_object(obj);
+	belle_sip_object_remove_from_leak_detector(obj);
 	vptr=obj->vptr;
 	while(vptr!=NULL){
 		if (vptr->destroy) vptr->destroy(obj);
