@@ -169,6 +169,7 @@ void MediaCodecEncoder::feed(mblk_t *rawData, uint64_t time, bool requestIFrame)
 	}
 
 	_pendingFrames++;
+	freemsg(rawData);
 }
 
 bool MediaCodecEncoder::fetch(MSQueue *encodedData) {
