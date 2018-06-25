@@ -38,10 +38,10 @@ public:
 	MediaCodecDecoder(const std::string &mime);
 	~MediaCodecDecoder();
 
+	void setParameterSets(std::list<mblk_t *> &paramterSets);
 	void flush();
-	void setParameterSets(const std::vector<uint8_t> &frame);
 
-	bool feed(const std::vector<uint8_t> &encodedFrame, uint64_t timestamp);
+	bool feed(std::list<mblk_t *> &encodedFrame, uint64_t timestamp);
 	mblk_t *fetch();
 
 private:
@@ -60,7 +60,7 @@ private:
 	};
 
 	void createImpl(const std::string &mime);
-	bool feed(const std::vector<uint8_t> &encodedFrame, uint64_t timestamp, bool isPs);
+	bool feed(std::list<mblk_t *> &encodedFrame, uint64_t timestamp, bool isPs);
 	void setState(State state);
 	static const char *toString(State state);
 
@@ -70,6 +70,7 @@ private:
 	MSYuvBufAllocator *_bufAllocator = nullptr;
 	uint64_t _lastTs = 0;
 	State _state = State::Reset;
+	std::vector<uint8_t> _bitstream;
 
 	static const unsigned int _timeoutUs = 0;
 };
@@ -106,7 +107,6 @@ protected:
 	std::unique_ptr<H26xParameterSetsStore> _psStore;
 	std::unique_ptr<H26xNaluHeader> _naluHeader;
 	MediaCodecDecoder _codec;
-	std::vector<uint8_t> _bitstream;
 	bool _firstImageDecoded = false;
 	bool _needKeyFrame = true;
 

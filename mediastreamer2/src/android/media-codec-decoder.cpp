@@ -66,16 +66,19 @@ void MediaCodecDecoder::flush() {
 	setState(State::Reset);
 }
 
-void MediaCodecDecoder::setParameterSets(const std::vector<uint8_t> &frame) {
-	if (!feed(frame, _lastTs, true)) {
+void MediaCodecDecoder::setParameterSets(std::list<mblk_t *> &paramterSets) {
+	if (!feed(paramterSets, _lastTs, true)) {
 		ms_error("MSMediaCodecH264Dec: paramter sets has been refused by the decoder.");
 		return;
 	}
 	setState(State::Ready);
 }
 
-bool MediaCodecDecoder::feed(const std::vector<uint8_t> &encodedFrame, uint64_t timestamp) {
-	if (_state != State::Ready) return true;
+bool MediaCodecDecoder::feed(std::list<mblk_t *> &encodedFrame, uint64_t timestamp) {
+	if (_state != State::Ready) {
+		ms_error("MSMediaCodecH264Dec: waiting for paramter sets.");
+		return false;
+	}
 	if (!feed(encodedFrame, timestamp, false)) return false;
 	_pendingFrames++;
 	return true;
@@ -161,7 +164,9 @@ end:
 	}
 }
 
-bool MediaCodecDecoder::feed(const std::vector<uint8_t> &encodedFrame, uint64_t timestamp, bool isPs) {
+bool MediaCodecDecoder::feed(std::list<mblk_t *> &encodedFrame, uint64_t timestamp, bool isPs) {
+	H26xUtils::nalusToByteStream(encodedFrame, _bitstream);
+
 	if (_impl == nullptr) return false;
 
 	ssize_t iBufidx = AMediaCodec_dequeueInputBuffer(_impl, _timeoutUs);
@@ -177,12 +182,12 @@ bool MediaCodecDecoder::feed(const std::vector<uint8_t> &encodedFrame, uint64_t 
 		return false;
 	}
 
-	size_t size = encodedFrame.size();
+	size_t size = _bitstream.size();
 	if (size > bufsize) {
 		ms_error("Cannot copy the all the bitstream into the input buffer size : %zu and bufsize %zu", size, bufsize);
 		size = min(size, bufsize);
 	}
-	memcpy(buf, encodedFrame.data(), size);
+	memcpy(buf, _bitstream.data(), size);
 
 	uint32_t flags = isPs ? BufferFlag::CodecConfig : BufferFlag::None;
 	if (AMediaCodec_queueInputBuffer(_impl, iBufidx, 0, size, timestamp * 1000ULL, flags) != 0) {
@@ -226,8 +231,6 @@ void MediaCodecDecoderFilterImpl::process() {
 	ms_queue_init(&nalus);
 
 	while (mblk_t *im = ms_queue_get(_f->inputs[0])) {
-		struct timespec ts;
-
 		NalUnpacker::Status unpacking_ret = _unpacker->unpack(im, &nalus);
 
 		if (!unpacking_ret.frameAvailable) continue;
@@ -242,17 +245,18 @@ void MediaCodecDecoderFilterImpl::process() {
 			}
 		}
 
-		clock_gettime(CLOCK_MONOTONIC, &ts);
-		uint64_t tsMs = (ts.tv_nsec / 1000000ULL) + 10ULL;
-
 		list<mblk_t *> ps = extractParameterSets(&nalus);
-		if (!ps.empty()) {
-			H26xUtils::nalusToByteStream(ps, _bitstream);
-			_codec.setParameterSets(_bitstream);
+		if (!ps.empty()) _codec.setParameterSets(ps);
+
+		list<mblk_t *> frame;
+		while (mblk_t *m = ms_queue_get(&nalus)) {
+			frame.push_back(m);
 		}
-		if (!ms_queue_empty(&nalus)) {
-			H26xUtils::nalusToByteStream(&nalus, _bitstream);
-			requestPli = !_codec.feed(_bitstream, tsMs);
+		if (!frame.empty()) {
+			struct timespec ts;
+			clock_gettime(CLOCK_MONOTONIC, &ts);
+			uint64_t tsMs = (ts.tv_nsec / 1000000ULL) + 10ULL;
+			requestPli = !_codec.feed(frame, tsMs);
 		}
 	}
 
