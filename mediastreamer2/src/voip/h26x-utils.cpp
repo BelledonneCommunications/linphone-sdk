@@ -24,10 +24,18 @@
 #include <vector>
 
 #include "h26x-utils.h"
+#include "h264utils.h"
+#include "h265-utils.h"
 
 using namespace std;
 
 namespace mediastreamer {
+
+H26xNaluHeader *H26xNaluHeader::createFromMime(const std::string &mime) {
+	if (mime == "video/avc") return new H264NaluHeader();
+	else if (mime == "video/hevc") return new H265NaluHeader();
+	else throw invalid_argument("no NALu header parser associated with '" + mime + "' mime");
+}
 
 void H26xUtils::naluStreamToNalus(const std::vector<uint8_t> &byteStream, MSQueue *out) {
 	H26xUtils::naluStreamToNalus(byteStream.data(), byteStream.size(), out);

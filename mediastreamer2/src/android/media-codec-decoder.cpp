@@ -45,6 +45,7 @@ namespace mediastreamer {
 MediaCodecDecoder::MediaCodecDecoder(const std::string &mime): _vsize({0, 0}) {
 	try {
 		_bufAllocator = ms_yuv_buf_allocator_new();
+		_naluHeader.reset(H26xNaluHeader::createFromMime(mime));
 		createImpl(mime);
 	} catch (const runtime_error &e) {
 		ms_error("MSMediaCodecH264Dec: %s", e.what());
@@ -63,6 +64,7 @@ void MediaCodecDecoder::flush() {
 	if (_impl) AMediaCodec_flush(_impl);
 	_pendingFrames = 0;
 	_lastTs = 0;
+	_needKeyFrame = true;
 	setState(State::Reset);
 }
 
@@ -75,13 +77,35 @@ void MediaCodecDecoder::setParameterSets(std::list<mblk_t *> &paramterSets) {
 }
 
 bool MediaCodecDecoder::feed(std::list<mblk_t *> &encodedFrame, uint64_t timestamp) {
+	bool status = false;
 	if (_state != State::Ready) {
 		ms_error("MSMediaCodecH264Dec: waiting for paramter sets.");
-		return false;
+		goto clean;
 	}
-	if (!feed(encodedFrame, timestamp, false)) return false;
+
+	if (_needKeyFrame) {
+		if (!isKeyFrame(encodedFrame)) {
+			ms_error("MSMediaCodecH264Dec: waiting for key frame.");
+			goto clean;
+		}
+		_needKeyFrame = false;
+	}
+
+	if (!feed(encodedFrame, timestamp, false)) {
+		goto clean;
+	}
+
 	_pendingFrames++;
-	return true;
+	status = true;
+
+clean:
+	if (!encodedFrame.empty()) {
+		for (mblk_t *m : encodedFrame) {
+			freemsg(m);
+		}
+		encodedFrame.clear();
+	}
+	return status;
 }
 
 mblk_t *MediaCodecDecoder::fetch() {
@@ -198,6 +222,14 @@ bool MediaCodecDecoder::feed(std::list<mblk_t *> &encodedFrame, uint64_t timesta
 	return true;
 }
 
+bool MediaCodecDecoder::isKeyFrame(const std::list<mblk_t *> &frame) const {
+	for (mblk_t *nalu : frame) {
+		_naluHeader->parse(nalu->b_rptr);
+		if (_naluHeader->getAbsType().isKeyFramePart()) return true;
+	}
+	return false;
+}
+
 void MediaCodecDecoder::setState(State state) {
 	if (state != _state) {
 		State oldState = _state;
@@ -227,6 +259,7 @@ void MediaCodecDecoderFilterImpl::preprocess() {
 void MediaCodecDecoderFilterImpl::process() {
 	bool requestPli = false;
 	MSQueue nalus;
+	list<mblk_t *> frame;
 
 	ms_queue_init(&nalus);
 
@@ -248,7 +281,6 @@ void MediaCodecDecoderFilterImpl::process() {
 		list<mblk_t *> ps = extractParameterSets(&nalus);
 		if (!ps.empty()) _codec.setParameterSets(ps);
 
-		list<mblk_t *> frame;
 		while (mblk_t *m = ms_queue_get(&nalus)) {
 			frame.push_back(m);
 		}

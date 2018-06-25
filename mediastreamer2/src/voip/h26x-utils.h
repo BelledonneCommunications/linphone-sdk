@@ -58,6 +58,8 @@ public:
 	virtual void parse(const uint8_t *header) = 0;
 	virtual mblk_t *forge() const = 0;
 
+	static H26xNaluHeader *createFromMime(const std::string &mime);
+
 protected:
 	bool _fBit = false;
 };

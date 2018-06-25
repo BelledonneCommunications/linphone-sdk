@@ -61,6 +61,7 @@ private:
 
 	void createImpl(const std::string &mime);
 	bool feed(std::list<mblk_t *> &encodedFrame, uint64_t timestamp, bool isPs);
+	bool isKeyFrame(const std::list<mblk_t *> &frame) const;
 	void setState(State state);
 	static const char *toString(State state);
 
@@ -71,6 +72,8 @@ private:
 	uint64_t _lastTs = 0;
 	State _state = State::Reset;
 	std::vector<uint8_t> _bitstream;
+	std::unique_ptr<H26xNaluHeader> _naluHeader;
+	bool _needKeyFrame = true;
 
 	static const unsigned int _timeoutUs = 0;
 };
