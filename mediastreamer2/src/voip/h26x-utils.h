@@ -39,6 +39,7 @@ public:
 
 	virtual bool isVcl() const = 0;
 	virtual bool isParameterSet() const = 0;
+	virtual bool isKeyFramePart() const = 0;
 
 protected:
 	uint8_t _value = 0;

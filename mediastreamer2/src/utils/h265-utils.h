@@ -33,9 +33,11 @@ public:
 
 	bool isVcl() const override {return _value < 32;}
 	bool isParameterSet() const override {return *this == Vps || *this == Sps || *this == Pps;}
+	bool isKeyFramePart() const override {return *this == IdrNLp || *this == IdrWRadl || *this == CraNut;}
 
 	static const H265NaluType IdrWRadl;
 	static const H265NaluType IdrNLp;
+	static const H265NaluType CraNut;
 	static const H265NaluType Vps;
 	static const H265NaluType Sps;
 	static const H265NaluType Pps;

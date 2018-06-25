@@ -111,6 +111,7 @@ public:
 
 	bool isVcl() const override {return _value < 6;}
 	bool isParameterSet() const override {return *this == Sps || *this == Pps;}
+	bool isKeyFramePart() const override {return *this == Idr;}
 
 	static const H264NaluType Idr;
 	static const H264NaluType Sps;

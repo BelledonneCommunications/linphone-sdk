@@ -32,6 +32,7 @@ H265NaluType::H265NaluType(uint8_t value) {
 
 const H265NaluType H265NaluType::IdrWRadl = 19;
 const H265NaluType H265NaluType::IdrNLp = 20;
+const H265NaluType H265NaluType::CraNut = 21;
 const H265NaluType H265NaluType::Vps = 32;
 const H265NaluType H265NaluType::Sps = 33;
 const H265NaluType H265NaluType::Pps = 34;
