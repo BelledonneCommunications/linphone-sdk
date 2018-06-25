@@ -36,18 +36,18 @@ namespace lime {
 
 	/** Manage the encryption policy : how is the user's plaintext encrypted */
 	enum class EncryptionPolicy {
-		DRMessage, /**< the plaintext input is encrypted inside the Double Ratchet message(each recipient get a different encryption): not optimal for messages with numerous recipient */
+		DRMessage, /**< the plaintext input is encrypted inside the Double Ratchet message (each recipient get a different encryption): not optimal for messages with numerous recipient */
 		cipherMessage, /**< the plaintext input is encrypted with a random key and this random key is encrypted to each participant inside the Double Ratchet message(for a single recipient the overhead is 48 bytes) */
 		optimizeUploadSize, /**< optimize upload size: encrypt in DR message if plaintext is short enougth to beat the overhead introduced by cipher message scheme, otherwise use cipher message. Selection is made on upload size only. This is the default policy used */
-		optimizeGlobalBandwidth /**< optimize bandwith usage: encrypt in DR message if plaintext is short enougth to beat the overhead introduced by cipher message scheme, otherwise use cipher message. Selection is made on uploadand download(from server to recipients) sizes added. */
+		optimizeGlobalBandwidth /**< optimize bandwith usage: encrypt in DR message if plaintext is short enougth to beat the overhead introduced by cipher message scheme, otherwise use cipher message. Selection is made on uploadand download (from server to recipients) sizes added. */
 	};
 
 	/**
 	 * A peer device status returned after encrypt, decrypt or when directly asking for the peer device status to spot new devices and give information on our trust on this device
 	 */
 	enum class PeerDeviceStatus {
-		fail, /**< this status is return by decrypt operation only, when we could not decrypt the incoming message */
-		unknown, /**< when returned after encryption or decryption, means it is the first time we communicate with this device(and thus create a DR session with it),
+		fail, /**< this status is returned by decrypt operation only, when we could not decrypt the incoming message */
+		unknown, /**< when returned after encryption or decryption, means it is the first time we communicate with this device (and thus create a DR session with it),
 			   when returned by a get_peerDeviceStatus: this device is not in localStorage */
 		untrusted, /**< we know this device but do not trust it, that information shall be displayed to the end user, a colour code shall be enough */
 		trusted /**< this peer device already got its public identity key validated, that information shall be displayed to the end user too */
@@ -71,7 +71,7 @@ namespace lime {
 		fail /**< operation failed, we shall have an explanation string too */
 	};
 	/** @brief Callback use to give a status on asynchronous operation
-	 *	it returns a code and may return a string(could actually be empty) to detail what's happening
+	 *	it returns a code and may return a string (could actually be empty) to detail what's happening
 	 *  	callback is used on every operation possibly involving a connection to X3DH server: create_user, delete_user, encrypt and update
 	 *  @param[in]	status	success or fail
 	 *  @param[in]	message	in case of failure, an explanation, it may be empty
@@ -92,7 +92,7 @@ namespace lime {
 	 * @brief Post a message to the X3DH server
 	 *
 	 * @param[in]	url			X3DH server's URL
-	 * @param[in]	from			User identification on X3DH server(which shall challenge for password digest, this is not however part of lime)
+	 * @param[in]	from			User identification on X3DH server (which shall challenge for password digest, this is not however part of lime)
 	 * @param[in]	message			The message to post to the X3DH server
 	 * @param[in]	responseProcess		Function to be called with server's response
 	 */
@@ -118,7 +118,7 @@ namespace lime {
 			/**
 			 * @brief Create a user in local database and publish it on the given X3DH server
 			 * 	The Lime user shall be created at the same time the account is created on the device, this function shall not be called again, attempt to re-create an already existing user will fail.
-			 * 	A user is identified by its deviceId(shall be the GRUU) and must at creation select a base Elliptic curve to use, this setting cannot be changed later
+			 * 	A user is identified by its deviceId (shall be the GRUU) and must at creation select a base Elliptic curve to use, this setting cannot be changed later
 			 * 	A user is published on an X3DH key server who must run using the same elliptic curve selected for this user (creation will fail otherwise), the server url cannot be changed later
 			 *
 			 * @param[in]	localDeviceId		Identify the local user acount to use, it must be unique and is also be used as Id on the X3DH key server, it shall be the GRUU
@@ -148,7 +148,7 @@ namespace lime {
 			void delete_user(const std::string &localDeviceId, const limeCallback &callback);
 
 			/**
-			 * @brief Encrypt a buffer(text or file) for a given list of recipient devices
+			 * @brief Encrypt a buffer (text or file) for a given list of recipient devices
 			 * if specified localDeviceId is not found in local Storage, throw an exception
 			 *
 			 * 	Clarification on recipients:
@@ -170,7 +170,7 @@ namespace lime {
 			 *
 			 * @param[in]		localDeviceId	used to identify which local acount to use and also as the identified source of the message, shall be the GRUU
 			 * @param[in]		recipientUserId	the Id of intended recipient, shall be a sip:uri of user or conference, is used as associated data to ensure no-one can mess with intended recipient
-			 * @param[in,out]	recipients	a list of RecipientData holding: the recipient device Id(GRUU) and an empty buffer to store the DRmessage which must then be routed to that recipient
+			 * @param[in,out]	recipients	a list of RecipientData holding: the recipient device Id (GRUU) and an empty buffer to store the DRmessage which must then be routed to that recipient
 			 * @param[in]		plainMessage	a buffer holding the message to encrypt, can be text or data.
 			 * @param[out]		cipherMessage	points to the buffer to store the encrypted message which must be routed to all recipients(if one is produced, depends on encryption policy)
 			 * @param[in]		callback	Performing encryption may involve the X3DH server and is thus asynchronous, when the operation is completed,
@@ -191,10 +191,10 @@ namespace lime {
 			 * 					it is not necessarily the sip:uri base of the GRUU as this could be a message from alice first device intended to bob being decrypted on alice second device
 			 * @param[in]		senderDeviceId	Identify sender Device. This field shall be extracted from signaling data in transport protocol, is used to rebuild the authenticated data associated to the encrypted message
 			 * @param[in]		DRmessage	Double Ratchet message targeted to current device
-			 * @param[in]		cipherMessage	when present(depends on encryption policy) holds a common part of the encrypted message. Can be ignored or set to empty vector if not present in the incoming message.
+			 * @param[in]		cipherMessage	when present (depends on encryption policy) holds a common part of the encrypted message. Can be ignored or set to empty vector if not present in the incoming message.
 			 * @param[out]		plainMessage	the output buffer
 			 *
-			 * @return	fail if we cannot decrypt the message, newUntrusted when it is the first message we ever receive from the sender device, untrusted for known but untrusted sender device, or trusted if it is
+			 * @return	fail if we cannot decrypt the message, unknown when it is the first message we ever receive from the sender device, untrusted for known but untrusted sender device, or trusted if it is
 			 */
 			lime::PeerDeviceStatus decrypt(const std::string &localDeviceId, const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage);
 			/**
@@ -217,7 +217,7 @@ namespace lime {
 			 * @param[in]	OPkBatchSize		Number of OPks in a batch uploaded to server
 			 *
 			 * @note
-			 * The last two parameters are optionnal, if not used, set to defaults defined in lime::settings
+			 * The last two parameters are optional, if not used, set to defaults defined in lime::settings
 			 * (not done with param default value as the lime::settings shall not be available in public include)
 			 */
 			void update(const limeCallback &callback, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize);
