@@ -1340,8 +1340,14 @@ void ms_turn_context_destroy(MSTurnContext *context) {
 }
 
 void ms_turn_context_set_server_addr(MSTurnContext *context, struct sockaddr *addr, socklen_t addrlen) {
-	context->turn_server_addr = addr;
-	context->turn_server_addrlen = addrlen;
+	// The media sockets are bound in IPv6 so convert the TURN server destination address to IPv6
+	// so that we do not get errors on Mac OS X
+	if (addr->sa_family == AF_INET) {
+		bctbx_sockaddr_ipv4_to_ipv6(addr, (struct sockaddr *)&context->turn_server_addr, &context->turn_server_addrlen);
+	} else {
+		memcpy(&context->turn_server_addr, addr, addrlen);
+		context->turn_server_addrlen = addrlen;
+	}
 }
 
 MSTurnContextState ms_turn_context_get_state(const MSTurnContext *context) {
@@ -1565,7 +1571,7 @@ static int ms_turn_rtp_endpoint_sendto(RtpTransport *rtptp, mblk_t *msg, int fla
 				ms_free(buf);
 				context->stats.nb_send_indication++;
 			}
-			to = (const struct sockaddr *)context->turn_server_addr;
+			to = (const struct sockaddr *)&context->turn_server_addr;
 			tolen = context->turn_server_addrlen;
 		}
 		ret = rtp_session_sendto(context->rtp_session, context->type == MS_TURN_CONTEXT_TYPE_RTP, msg, flags, to, tolen);
