@@ -952,6 +952,9 @@ int bzrtp_getSelfHelloHash(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8
  * @param[in]		auxSecretLength	lenght of the previous buffer
  *
  * @return 0 on success, error code otherwise
+ *
+ * @note The auxiliary shared secret mechanic is used by LIMEv2 for encryption security purposes but might be used for its original purpose in a regular
+ * ZRTP session if it becomes necessary in the future, or by another encryption engine for example. In that case the API will need an adaptation work.
  */
 int bzrtp_setAuxiliarySharedSecret(bzrtpContext_t *zrtpContext, const uint8_t *auxSecret, size_t auxSecretLength) {
 	if (zrtpContext == NULL) {
