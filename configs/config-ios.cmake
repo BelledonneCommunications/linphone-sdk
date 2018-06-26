@@ -43,6 +43,7 @@ set(DEFAULT_VALUE_ENABLE_ZRTP ON)
 set(DEFAULT_VALUE_ENABLE_LIME ON)
 set(DEFAULT_VALUE_ENABLE_TOOLS OFF)
 set(DEFAULT_VALUE_ENABLE_STATIC_ONLY OFF)
+set(DEFAULT_VALUE_ENABLE_UPDATE_CHECK ON)
 set(ENABLE_NLS NO CACHE BOOL "" FORCE)
 set(CMAKE_MACOSX_RPATH TRUE)
 set(CMAKE_INSTALL_RPATH "@executable_path/../Frameworks")
@@ -84,6 +85,16 @@ lcb_builder_linking_type(ffmpeg "--enable-static" "--disable-shared" "--enable-p
 # bctoolbox
 if(NOT ENABLE_STATIC_ONLY)
 	lcb_builder_linking_type(bctoolbox "-DENABLE_STATIC=NO" "-DENABLE_SHARED=YES")
+endif()
+
+#belcard
+if(NOT ENABLE_STATIC_ONLY)
+	lcb_builder_linking_type(belcard "-DENABLE_STATIC=NO" "-DENABLE_SHARED=YES")
+endif()
+
+#belcard
+if(NOT ENABLE_STATIC_ONLY)
+	lcb_builder_linking_type(belr "-DENABLE_STATIC=NO" "-DENABLE_SHARED=YES")
 endif()
 
 # linphone
@@ -148,3 +159,6 @@ lcb_builder_linking_type(vpx "--enable-static" "--disable-shared")
 # x264
 lcb_builder_linking_type(x264 "--enable-static" "--enable-pic")
 lcb_builder_install_target(x264 "install-lib-static")
+
+# zxing
+lcb_builder_linking_type(zxing "-DENABLE_STATIC=YES" "-DENABLE_SHARED=NO")

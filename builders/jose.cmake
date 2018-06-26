@@ -1,6 +1,6 @@
 ############################################################################
-# bcg729.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# jose.cmake
+# Copyright (C) 2018  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,12 +20,9 @@
 #
 ############################################################################
 
-lcb_git_repository("git://git.linphone.org/bcg729.git")
-lcb_git_tag_latest("master")
-lcb_git_tag("1.0.2")
-lcb_external_source_paths("bcg729")
-lcb_groupable(YES)
-lcb_sanitizable(YES)
-lcb_package_source(YES)
-lcb_spec_file("bcg729.spec")
+lcb_git_repository("git@gitlab.linphone.org:BC/public/external/jose.git")
+lcb_external_source_paths("externals/jose")
+lcb_spec_file("jose.spec")
 
+lcb_dependencies("jansson")
+lcb_dependencies("zlib")

@@ -36,7 +36,7 @@ set(DEFAULT_VALUE_CMAKE_LINKING_TYPE "-DENABLE_SHARED=YES" "-DENABLE_STATIC=NO")
 
 # Global configuration
 set(LINPHONE_BUILDER_HOST "")
-set(RPM_INSTALL_PREFIX "/opt/belledonne-communications/linphone")
+set(RPM_INSTALL_PREFIX "/opt/com.belledonne-communications/linphone")
 set(LINPHONE_BUILDER_RPMBUILD_PACKAGE_PREFIX "linphone-")
 
 # Adjust PKG_CONFIG_PATH to include install directory
@@ -68,4 +68,3 @@ if(PLATFORM STREQUAL "Debian")
 	# some debians are using dash as shell, which doesn't support "export -n", so we override and use bash
 	set(LINPHONE_BUILDER_RPMBUILD_GLOBAL_OPTIONS "${LINPHONE_BUILDER_RPMBUILD_GLOBAL_OPTIONS} --define '_buildshell /bin/bash'")
 endif()
-

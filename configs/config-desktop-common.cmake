@@ -24,9 +24,6 @@
 lcb_add_option("Theora" "Theora video encoding/decoding support." "${DEFAULT_VALUE_ENABLE_THEORA}")
 lcb_add_option("Static only" "Enable compilation of libraries in static mode." "${DEFAULT_VALUE_ENABLE_STATIC_ONLY}")
 lcb_add_option("Packaging" "Enable packaging" "${DEFAULT_VALUE_ENABLE_PACKAGING}")
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-	lcb_add_option("Sanitizer" "Enable Clang sanitizer" "${DEFAULT_VALUE_ENABLE_SANITIZER}")
-endif()
 lcb_add_option("Source packaging" "Enable source packaging" "${DEFAULT_VALUE_ENABLE_SOURCE_PACKAGING}")
 
 

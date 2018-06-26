@@ -56,6 +56,10 @@ endif()
 include(configs/config-desktop-common.cmake)
 
 
+lcb_builder_cmake_options(belr "-DENABLE_TOOLS=YES")
+lcb_builder_cmake_options(linphone "-DENABLE_TOOLS=YES")
+
+
 # Install GTK and intltool for build with Visual Studio
 if(MSVC AND ENABLE_GTK_UI)
 	if(NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/intltool_win32.zip")

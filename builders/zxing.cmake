@@ -1,6 +1,6 @@
 ############################################################################
-# bcg729.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# zxing.cmake
+# Copyright (C) 2018  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,12 +20,10 @@
 #
 ############################################################################
 
-lcb_git_repository("git://git.linphone.org/bcg729.git")
-lcb_git_tag_latest("master")
-lcb_git_tag("1.0.2")
-lcb_external_source_paths("bcg729")
-lcb_groupable(YES)
-lcb_sanitizable(YES)
-lcb_package_source(YES)
-lcb_spec_file("bcg729.spec")
+lcb_git_repository("git://git.linphone.org/zxing-cpp.git")
+lcb_git_tag_latest("bc")
+lcb_git_tag("bc")
+lcb_external_source_paths("externals/zxing-cpp")
 
+#lcb_linking_type("-DENABLE_STATIC=YES" "-DENABLE_SHARED=NO")
+#lcb_extra_cflags("-fPIC")
