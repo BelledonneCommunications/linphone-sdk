@@ -39,6 +39,7 @@ public:
 	~MediaCodecDecoder();
 
 	void setParameterSets(MSQueue *paramterSets);
+	void waitForKeyFrame() {_needKeyFrame = true;}
 	void flush();
 
 	bool feed(MSQueue *encodedFrame, uint64_t timestamp);
@@ -111,7 +112,6 @@ protected:
 	std::unique_ptr<H26xNaluHeader> _naluHeader;
 	MediaCodecDecoder _codec;
 	bool _firstImageDecoded = false;
-	bool _needKeyFrame = true;
 
 
 	static const unsigned int _timeoutUs = 0;

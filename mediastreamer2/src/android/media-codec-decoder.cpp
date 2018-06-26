@@ -268,7 +268,7 @@ void MediaCodecDecoderFilterImpl::process() {
 			requestPli = true;
 			if (_freezeOnError) {
 				ms_queue_flush(&frame);
-				_needKeyFrame = true;
+				_codec.waitForKeyFrame();
 				continue;
 			}
 		}
