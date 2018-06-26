@@ -340,9 +340,6 @@ void MediaCodecEncoderFilterImpl::setBitrate(int br) {
 int MediaCodecEncoderFilterImpl::setVideoConfiguration(const MSVideoConfiguration *vconf) {
 	if (vconf != &_vconf) memcpy(&_vconf, vconf, sizeof(MSVideoConfiguration));
 
-	if (_vconf.required_bitrate > _vconf.bitrate_limit)
-		_vconf.required_bitrate = _vconf.bitrate_limit;
-
 	ms_message("Video configuration set: bitrate=%d bits/s, fps=%f, vsize=%dx%d", _vconf.required_bitrate, _vconf.fps, _vconf.vsize.width, _vconf.vsize.height);
 
 	_encoder->setVideoSize(_vconf.vsize);
@@ -371,7 +368,7 @@ void MediaCodecEncoderFilterImpl::enableAvpf(bool enable) {
 }
 
 void MediaCodecEncoderFilterImpl::setVideoSize(const MSVideoSize &vsize) {
-	MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_size(_vconfList, vsize, ms_factory_get_cpu_count(_f->factory));
+	MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_size_and_bitrate(_vconfList, vsize, ms_factory_get_cpu_count(_f->factory), _vconf.required_bitrate);
 	_vconf.vsize = vsize;
 	_vconf.fps = best_vconf.fps;
 	_vconf.bitrate_limit = best_vconf.bitrate_limit;
