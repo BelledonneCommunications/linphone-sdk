@@ -74,8 +74,7 @@ public:
 	static void byteStreamToNalus(const std::vector<uint8_t> &byteStream, MSQueue *out);
 	static void byteStreamToNalus(const uint8_t *byteStream, size_t size, MSQueue *out);
 
-	static void nalusToByteStream(MSQueue *nalus, std::vector<uint8_t> &bytestream);
-	static void nalusToByteStream(std::list<mblk_t *> &nalus, std::vector<uint8_t> &bytestream);
+	static void nalusToByteStream(MSQueue *nalus, std::vector<uint8_t> &byteStream);
 };
 
 

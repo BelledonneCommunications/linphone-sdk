@@ -38,10 +38,10 @@ public:
 	MediaCodecDecoder(const std::string &mime);
 	~MediaCodecDecoder();
 
-	void setParameterSets(std::list<mblk_t *> &paramterSets);
+	void setParameterSets(MSQueue *paramterSets);
 	void flush();
 
-	bool feed(std::list<mblk_t *> &encodedFrame, uint64_t timestamp);
+	bool feed(MSQueue *encodedFrame, uint64_t timestamp);
 	mblk_t *fetch();
 
 private:
@@ -60,8 +60,8 @@ private:
 	};
 
 	void createImpl(const std::string &mime);
-	bool feed(std::list<mblk_t *> &encodedFrame, uint64_t timestamp, bool isPs);
-	bool isKeyFrame(const std::list<mblk_t *> &frame) const;
+	bool feed(MSQueue *encodedFrame, uint64_t timestamp, bool isPs);
+	bool isKeyFrame(const MSQueue *frame) const;
 	void setState(State state);
 	static const char *toString(State state);
 
@@ -97,7 +97,7 @@ public:
 	void resetFirstImage();
 
 protected:
-	std::list<mblk_t *> extractParameterSets(MSQueue *frame);
+	void extractParameterSets(MSQueue *frame, MSQueue *paramterSets);
 	virtual bool isKeyFrame(const MSQueue *frame) const = 0;
 
 	MSVideoSize _vsize;

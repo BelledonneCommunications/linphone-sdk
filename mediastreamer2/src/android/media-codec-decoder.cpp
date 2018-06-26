@@ -68,7 +68,7 @@ void MediaCodecDecoder::flush() {
 	setState(State::Reset);
 }
 
-void MediaCodecDecoder::setParameterSets(std::list<mblk_t *> &paramterSets) {
+void MediaCodecDecoder::setParameterSets(MSQueue *paramterSets) {
 	if (!feed(paramterSets, _lastTs, true)) {
 		ms_error("MSMediaCodecH264Dec: paramter sets has been refused by the decoder.");
 		return;
@@ -76,7 +76,7 @@ void MediaCodecDecoder::setParameterSets(std::list<mblk_t *> &paramterSets) {
 	setState(State::Ready);
 }
 
-bool MediaCodecDecoder::feed(std::list<mblk_t *> &encodedFrame, uint64_t timestamp) {
+bool MediaCodecDecoder::feed(MSQueue *encodedFrame, uint64_t timestamp) {
 	bool status = false;
 	if (_state != State::Ready) {
 		ms_error("MSMediaCodecH264Dec: waiting for paramter sets.");
@@ -99,12 +99,7 @@ bool MediaCodecDecoder::feed(std::list<mblk_t *> &encodedFrame, uint64_t timesta
 	status = true;
 
 clean:
-	if (!encodedFrame.empty()) {
-		for (mblk_t *m : encodedFrame) {
-			freemsg(m);
-		}
-		encodedFrame.clear();
-	}
+	ms_queue_flush(encodedFrame);
 	return status;
 }
 
@@ -188,7 +183,7 @@ end:
 	}
 }
 
-bool MediaCodecDecoder::feed(std::list<mblk_t *> &encodedFrame, uint64_t timestamp, bool isPs) {
+bool MediaCodecDecoder::feed(MSQueue *encodedFrame, uint64_t timestamp, bool isPs) {
 	H26xUtils::nalusToByteStream(encodedFrame, _bitstream);
 
 	if (_impl == nullptr) return false;
@@ -222,8 +217,8 @@ bool MediaCodecDecoder::feed(std::list<mblk_t *> &encodedFrame, uint64_t timesta
 	return true;
 }
 
-bool MediaCodecDecoder::isKeyFrame(const std::list<mblk_t *> &frame) const {
-	for (mblk_t *nalu : frame) {
+bool MediaCodecDecoder::isKeyFrame(const MSQueue *frame) const {
+	for (const mblk_t *nalu = ms_queue_peek_first(frame); !ms_queue_end(frame, nalu); nalu = ms_queue_next(frame, nalu)) {
 		_naluHeader->parse(nalu->b_rptr);
 		if (_naluHeader->getAbsType().isKeyFramePart()) return true;
 	}
@@ -258,13 +253,13 @@ void MediaCodecDecoderFilterImpl::preprocess() {
 
 void MediaCodecDecoderFilterImpl::process() {
 	bool requestPli = false;
-	MSQueue nalus;
-	list<mblk_t *> frame;
+	MSQueue frame, parameterSets;
 
-	ms_queue_init(&nalus);
+	ms_queue_init(&frame);
+	ms_queue_init(&parameterSets);
 
 	while (mblk_t *im = ms_queue_get(_f->inputs[0])) {
-		NalUnpacker::Status unpacking_ret = _unpacker->unpack(im, &nalus);
+		NalUnpacker::Status unpacking_ret = _unpacker->unpack(im, &frame);
 
 		if (!unpacking_ret.frameAvailable) continue;
 
@@ -272,24 +267,24 @@ void MediaCodecDecoderFilterImpl::process() {
 			ms_warning("MSMediaCodecH264Dec: corrupted frame");
 			requestPli = true;
 			if (_freezeOnError) {
-				ms_queue_flush(&nalus);
+				ms_queue_flush(&frame);
 				_needKeyFrame = true;
 				continue;
 			}
 		}
 
-		list<mblk_t *> ps = extractParameterSets(&nalus);
-		if (!ps.empty()) _codec.setParameterSets(ps);
+		extractParameterSets(&frame, &parameterSets);
+		if (!ms_queue_empty(&parameterSets)) _codec.setParameterSets(&parameterSets);
 
-		while (mblk_t *m = ms_queue_get(&nalus)) {
-			frame.push_back(m);
-		}
-		if (!frame.empty()) {
+		if (!ms_queue_empty(&frame)) {
 			struct timespec ts;
 			clock_gettime(CLOCK_MONOTONIC, &ts);
 			uint64_t tsMs = (ts.tv_nsec / 1000000ULL) + 10ULL;
-			requestPli = !_codec.feed(frame, tsMs);
+			requestPli = !_codec.feed(&frame, tsMs);
 		}
+
+		ms_queue_flush(&frame);
+		ms_queue_flush(&parameterSets);
 	}
 
 	mblk_t *om;
@@ -322,20 +317,18 @@ void MediaCodecDecoderFilterImpl::resetFirstImage() {
 	_firstImageDecoded = false;
 }
 
-std::list<mblk_t *> MediaCodecDecoderFilterImpl::extractParameterSets(MSQueue *frame) {
-	list<mblk_t *> psList;
+void MediaCodecDecoderFilterImpl::extractParameterSets(MSQueue *frame, MSQueue *parameterSets) {
 	for (mblk_t *nalu = ms_queue_peek_first(frame); !ms_queue_end(frame, nalu);) {
 		_naluHeader->parse(nalu->b_rptr);
 		if (_naluHeader->getAbsType().isParameterSet()) {
 			mblk_t *ps = nalu;
 			nalu = ms_queue_next(frame, nalu);
 			ms_queue_remove(frame, ps);
-			psList.push_back(ps);
+			ms_queue_put(parameterSets, ps);
 			continue;
 		}
 		nalu = ms_queue_next(frame, nalu);
 	}
-	return psList;
 }
 
 MSVideoSize MediaCodecDecoderFilterImpl::getVideoSize() const {
