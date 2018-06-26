@@ -16,18 +16,23 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "bctoolbox/exception.hh"
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
-#if HAVE_EXECINFO
+#ifdef HAVE_EXECINFO
 #include <execinfo.h>
 #endif
+
 #include <unistd.h>
-#include "bctoolbox/logging.h"
-#include "dlfcn.h"
+#include <dlfcn.h>
 #include <cxxabi.h>
 #include <exception>
 #include <iomanip>
 #include <libgen.h>
+
+#include "bctoolbox/exception.hh"
+#include "bctoolbox/logging.h"
 
 using namespace std;
 
