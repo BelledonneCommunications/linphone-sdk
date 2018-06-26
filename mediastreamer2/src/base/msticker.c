@@ -97,8 +97,10 @@ static void ms_ticker_stop(MSTicker *s){
 }
 
 void ms_ticker_set_name(MSTicker *s, const char *name){
+	ms_mutex_lock(&s->lock);
 	if (s->name) ms_free(s->name);
 	s->name=ms_strdup(name);
+	ms_mutex_unlock(&s->lock);
 }
 
 void ms_ticker_set_priority(MSTicker *ticker, MSTickerPrio prio){
@@ -413,12 +415,12 @@ void * ms_ticker_run(void *arg)
 	int precision=2;
 	int late;
 
+	ms_mutex_lock(&s->lock);
+	
 	precision = set_high_prio(s);
 	s->thread_id = ms_thread_self();
 	s->ticks=1;
 	s->orig=s->get_cur_time_ptr(s->get_cur_time_data);
-
-	ms_mutex_lock(&s->lock);
 
 	while(s->run){
 		uint64_t late_tick_time=0;
