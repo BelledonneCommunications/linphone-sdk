@@ -326,12 +326,12 @@ static void lime_encryptionPolicyError_test(const lime::CurveId curve, const std
 		bool is_directEncryptionType = lime_tester::DR_message_payloadDirectEncrypt((*bobRecipients)[0].DRmessage);
 		if (setEncryptionPolicy == lime::EncryptionPolicy::DRMessage) {
 			BC_ASSERT_TRUE(is_directEncryptionType);
-			BC_ASSERT_EQUAL(bobCipherMessage->size(), 0, size_t, "%ld"); // in direct Encryption mode, cipherMessage is empty
+			BC_ASSERT_EQUAL((int)bobCipherMessage->size(), 0, int, "%d"); // in direct Encryption mode, cipherMessage is empty
 
 			bobCipherMessage->resize(32, 0xaa); // just create a 0xaa filled buffer, its presence shall prevent the perferctly correct DR message to be decrypted
 		} else {
 			BC_ASSERT_FALSE(is_directEncryptionType);
-			BC_ASSERT_NOT_EQUAL(bobCipherMessage->size(), 0, size_t, "%ld"); // in direct cipher message mode, cipherMessage is not empty
+			BC_ASSERT_NOT_EQUAL((int)bobCipherMessage->size(), 0, int, "%d"); // in direct cipher message mode, cipherMessage is not empty
 
 			bobCipherMessage->clear(); // delete the cipher message, the DR decryption will fail and will not return the random seed as plaintext
 		}
@@ -467,10 +467,10 @@ static void lime_encryptionPolicy_test(std::shared_ptr<LimeManager> aliceManager
 		}
 		if (getEncryptionPolicy == lime::EncryptionPolicy::DRMessage) {
 			BC_ASSERT_TRUE(is_directEncryptionType);
-			BC_ASSERT_EQUAL(bobCipherMessage->size(), 0, size_t, "%ld"); // in direct Encryption mode, cipherMessage is empty
+			BC_ASSERT_EQUAL((int)bobCipherMessage->size(), 0, int, "%d"); // in direct Encryption mode, cipherMessage is empty
 		} else {
 			BC_ASSERT_FALSE(is_directEncryptionType);
-			BC_ASSERT_NOT_EQUAL(bobCipherMessage->size(), 0, size_t, "%ld"); // in direct cipher message mode, cipherMessage is not empty
+			BC_ASSERT_NOT_EQUAL((int)bobCipherMessage->size(), 0, int, "%d"); // in direct cipher message mode, cipherMessage is not empty
 		}
 
 		// alice1 decrypt
@@ -1111,13 +1111,13 @@ static void lime_update_OPk_test(const lime::CurveId curve, const std::string &d
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		// check we have the expected count of OPk in base : the initial batch
-		BC_ASSERT_EQUAL(lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), lime_tester::OPkInitialBatchSize, size_t, "%ld");
+		BC_ASSERT_EQUAL((int)lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), lime_tester::OPkInitialBatchSize, int, "%d");
 
 		// call the update, set the serverLimit to initialBatch size and upload an other initial batch if needed
 		// As all the keys are still on server, it shall have no effect, check it then
 		aliceManager->update(callback, lime_tester::OPkInitialBatchSize, lime_tester::OPkInitialBatchSize);
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
-		BC_ASSERT_EQUAL(lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), lime_tester::OPkInitialBatchSize, size_t, "%ld");
+		BC_ASSERT_EQUAL((int)lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), lime_tester::OPkInitialBatchSize, int, "%d");
 
 		// We will create a bob device and encrypt for each new epoch
 		std::vector<std::unique_ptr<LimeManager>> bobManagers{};
@@ -1146,14 +1146,14 @@ static void lime_update_OPk_test(const lime::CurveId curve, const std::string &d
 		}
 
 		// check we have the expected count of OPk in base : we shall still have the initial batch
-		BC_ASSERT_EQUAL(lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), lime_tester::OPkInitialBatchSize, size_t, "%ld");
+		BC_ASSERT_EQUAL((int)lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), lime_tester::OPkInitialBatchSize, int, "%d");
 
 		// call the update, set the serverLimit to initialBatch size and upload an other initial batch if needed
 		// As some keys were removed from server this time we shall generate and upload a new batch
 		aliceManager->update(callback, lime_tester::OPkInitialBatchSize, lime_tester::OPkInitialBatchSize);
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 		// we uploaded a new batch but no key were removed from localStorage so we now have 2*batch size keys
-		BC_ASSERT_EQUAL(lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), 2*lime_tester::OPkInitialBatchSize, size_t, "%ld");
+		BC_ASSERT_EQUAL((int)lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), 2*lime_tester::OPkInitialBatchSize, int, "%d");
 
 		// forward time by OPK_limboTime_days
 		aliceManager=nullptr; // destroy manager before modifying DB
@@ -1161,7 +1161,7 @@ static void lime_update_OPk_test(const lime::CurveId curve, const std::string &d
 		aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
 
 		// check nothing has changed on our local OPk count
-		BC_ASSERT_EQUAL(lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), 2*lime_tester::OPkInitialBatchSize, size_t, "%ld");
+		BC_ASSERT_EQUAL((int)lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), 2*lime_tester::OPkInitialBatchSize, int, "%d");
 
 		// decrypt Bob first message(he is then an unknown device)
 		std::vector<uint8_t> receivedMessage{};
@@ -1170,14 +1170,14 @@ static void lime_update_OPk_test(const lime::CurveId curve, const std::string &d
 		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
 
 		// check we have one less key
-		BC_ASSERT_EQUAL(lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), 2*lime_tester::OPkInitialBatchSize - 1, size_t, "%ld");
+		BC_ASSERT_EQUAL((int)lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), 2*lime_tester::OPkInitialBatchSize - 1, int, "%d");
 
 		// call the update, set the serverLimit to 0, we don't want to upload more keys, but too old unused local OPk dispatched by server long ago shall be deleted
 		aliceManager->update(callback, 0, 0);
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		// check the local OPk missing on server for a long time has been deleted
-		BC_ASSERT_EQUAL(lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), 2*lime_tester::OPkInitialBatchSize - 2, size_t, "%ld");
+		BC_ASSERT_EQUAL((int)lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), 2*lime_tester::OPkInitialBatchSize - 2, int, "%d");
 
 		// try to decrypt Bob's second message, it shall fail as we got rid of the OPk
 		receivedMessage.clear();
@@ -1799,12 +1799,12 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 		std::vector<long int> aliceSessionsId{};
 		auto aliceActiveSessionId =  lime_tester::get_DRsessionsId(dbFilenameAlice, *aliceDevice1, *bobDevice1, aliceSessionsId);
 		BC_ASSERT_EQUAL(aliceActiveSessionId, 1, long int, "%ld");
-		BC_ASSERT_EQUAL(aliceSessionsId.size(), 1, size_t, "%ld");
+		BC_ASSERT_EQUAL((int)aliceSessionsId.size(), 1, int, "%d");
 
 		std::vector<long int> bobSessionsId{};
 		auto bobActiveSessionId =  lime_tester::get_DRsessionsId(dbFilenameBob, *bobDevice1, *aliceDevice1, bobSessionsId);
 		BC_ASSERT_EQUAL(bobActiveSessionId, 1, long int, "%ld");
-		BC_ASSERT_EQUAL(bobSessionsId.size(), 1, size_t, "%ld");
+		BC_ASSERT_EQUAL((int)bobSessionsId.size(), 1, int, "%d");
 
 		// destroy and reload the Managers(tests everything is correctly saved/load from local Storage)
 		if (!continuousSession) { managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);}
@@ -1825,12 +1825,12 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 		aliceSessionsId.clear();
 		aliceActiveSessionId =  lime_tester::get_DRsessionsId(dbFilenameAlice, *aliceDevice1, *bobDevice1, aliceSessionsId);
 		BC_ASSERT_EQUAL(aliceActiveSessionId, 2, long int, "%ld");
-		BC_ASSERT_EQUAL(aliceSessionsId.size(), 2, size_t, "%ld");
+		BC_ASSERT_EQUAL((int)aliceSessionsId.size(), 2, int, "%d");
 
 		bobSessionsId.clear();
 		bobActiveSessionId =  lime_tester::get_DRsessionsId(dbFilenameBob, *bobDevice1, *aliceDevice1, bobSessionsId);
 		BC_ASSERT_EQUAL(bobActiveSessionId, 2, long int, "%ld");
-		BC_ASSERT_EQUAL(bobSessionsId.size(), 2, size_t, "%ld");
+		BC_ASSERT_EQUAL((int)bobSessionsId.size(), 2, int, "%d");
 
 		// destroy and reload the Managers(tests everything is correctly saved/load from local Storage)
 		if (!continuousSession) { managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);}
@@ -1850,12 +1850,12 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 		aliceSessionsId.clear();
 		aliceActiveSessionId =  lime_tester::get_DRsessionsId(dbFilenameAlice, *aliceDevice1, *bobDevice1, aliceSessionsId);
 		BC_ASSERT_EQUAL(aliceActiveSessionId, 2, long int, "%ld");
-		BC_ASSERT_EQUAL(aliceSessionsId.size(), 2, size_t, "%ld");
+		BC_ASSERT_EQUAL((int)aliceSessionsId.size(), 2, int, "%d");
 
 		bobSessionsId.clear();
 		bobActiveSessionId =  lime_tester::get_DRsessionsId(dbFilenameBob, *bobDevice1, *aliceDevice1, bobSessionsId);
 		BC_ASSERT_EQUAL(bobActiveSessionId, 2, long int, "%ld");
-		BC_ASSERT_EQUAL(bobSessionsId.size(), 2, size_t, "%ld");
+		BC_ASSERT_EQUAL((int)bobSessionsId.size(), 2, int, "%d");
 
 		// alice decrypt the messages it shall set back session 1 to be the active one as bob used this one to encrypt to alice, they have now converged on a session
 		receivedMessage.clear();
@@ -1868,12 +1868,12 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 		aliceSessionsId.clear();
 		aliceActiveSessionId =  lime_tester::get_DRsessionsId(dbFilenameAlice, *aliceDevice1, *bobDevice1, aliceSessionsId);
 		BC_ASSERT_EQUAL(aliceActiveSessionId, 1, long int, "%ld");
-		BC_ASSERT_EQUAL(aliceSessionsId.size(), 2, size_t, "%ld");
+		BC_ASSERT_EQUAL((int)aliceSessionsId.size(), 2, int, "%d");
 
 		bobSessionsId.clear();
 		bobActiveSessionId =  lime_tester::get_DRsessionsId(dbFilenameBob, *bobDevice1, *aliceDevice1, bobSessionsId);
 		BC_ASSERT_EQUAL(bobActiveSessionId, 2, long int, "%ld");
-		BC_ASSERT_EQUAL(bobSessionsId.size(), 2, size_t, "%ld");
+		BC_ASSERT_EQUAL((int)bobSessionsId.size(), 2, int, "%d");
 
 		// run the update function
 		aliceManager->update(callback, 0, lime_tester::OPkInitialBatchSize);
@@ -1885,12 +1885,12 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 		aliceSessionsId.clear();
 		aliceActiveSessionId =  lime_tester::get_DRsessionsId(dbFilenameAlice, *aliceDevice1, *bobDevice1, aliceSessionsId);
 		BC_ASSERT_EQUAL(aliceActiveSessionId, 1, long int, "%ld");
-		BC_ASSERT_EQUAL(aliceSessionsId.size(), 2, size_t, "%ld");
+		BC_ASSERT_EQUAL((int)aliceSessionsId.size(), 2, int, "%d");
 
 		bobSessionsId.clear();
 		bobActiveSessionId =  lime_tester::get_DRsessionsId(dbFilenameBob, *bobDevice1, *aliceDevice1, bobSessionsId);
 		BC_ASSERT_EQUAL(bobActiveSessionId, 2, long int, "%ld");
-		BC_ASSERT_EQUAL(bobSessionsId.size(), 2, size_t, "%ld");
+		BC_ASSERT_EQUAL((int)bobSessionsId.size(), 2, int, "%d");
 
 		// fast forward enought time to get the session old enough to be cleared by update
 		// actually, move all timeStamps in local base back in time.
@@ -1913,12 +1913,12 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 		aliceSessionsId.clear();
 		aliceActiveSessionId =  lime_tester::get_DRsessionsId(dbFilenameAlice, *aliceDevice1, *bobDevice1, aliceSessionsId);
 		BC_ASSERT_EQUAL(aliceActiveSessionId, 1, long int, "%ld");
-		BC_ASSERT_EQUAL(aliceSessionsId.size(), 1, size_t, "%ld");
+		BC_ASSERT_EQUAL((int)aliceSessionsId.size(), 1, int, "%d");
 
 		bobSessionsId.clear();
 		bobActiveSessionId =  lime_tester::get_DRsessionsId(dbFilenameBob, *bobDevice1, *aliceDevice1, bobSessionsId);
 		BC_ASSERT_EQUAL(bobActiveSessionId, 2, long int, "%ld");
-		BC_ASSERT_EQUAL(bobSessionsId.size(), 1, size_t, "%ld");
+		BC_ASSERT_EQUAL((int)bobSessionsId.size(), 1, int, "%d");
 
 		// delete the users so the remote DB will be clean too
 		if (cleanDatabase) {

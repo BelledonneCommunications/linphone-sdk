@@ -23,6 +23,7 @@
 #include <unordered_map>
 #include <vector>
 #include <functional>
+#include <string>
 
 namespace lime {
 

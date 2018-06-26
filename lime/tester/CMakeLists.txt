@@ -44,15 +44,38 @@ set(SOURCE_FILES_CXX
 
 bc_apply_compile_flags(SOURCE_FILES_CXX STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
 
-include_directories(${BELLESIP_INCLUDE_DIRS})
-add_executable(lime_tester ${SOURCE_FILES_CXX} ${HEADER_FILES_CXX})
-set_target_properties(lime_tester PROPERTIES LINKER_LANGUAGE CXX)
-target_include_directories(lime_tester PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIRS})
-target_link_libraries(lime_tester ${LIME_LIBRARIES_FOR_TESTER} ${BCTOOLBOX_LIBRARIES} ${BCTOOLBOX_TESTER_LIBRARIES} ${BELLESIP_LIBRARIES} ${SOCI_LIBRARIES} ${SOCI_sqlite3_PLUGIN})
+if(ANDROID OR IOS)
+	add_library(limetester SHARED ${HEADER_FILES_CXX} ${SOURCE_FILES_CXX})
+	target_include_directories(limetester PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIRS} ${BELLESIP_INCLUDE_DIRS})
+	target_link_libraries(limetester ${LIME_LIBRARIES_FOR_TESTER} ${BCTOOLBOX_LIBRARIES} ${BCTOOLBOX_TESTER_LIBRARIES} ${BELLESIP_LIBRARIES} ${SOCI_LIBRARIES} ${SOCI_sqlite3_PLUGIN})
+	if(IOS)
+		set_target_properties(limetester PROPERTIES
+			FRAMEWORK TRUE
+			MACOSX_FRAMEWORK_IDENTIFIER com.belledonne-communications.limetester
+			PUBLIC_HEADER "${HEADER_FILES_CXX}"
+		)
+	endif()
+	install(TARGETS limetester
+		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+		FRAMEWORK DESTINATION Frameworks
+		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+		)
+	install(FILES ${HEADER_FILES_CXX}
+		DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/lime
+		PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
+	)
+else()
+	add_executable(lime_tester ${SOURCE_FILES_CXX} ${HEADER_FILES_CXX})
+	set_target_properties(lime_tester PROPERTIES LINKER_LANGUAGE CXX)
+	target_include_directories(lime_tester PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIRS} ${BELLESIP_INCLUDE_DIRS})
+	target_link_libraries(lime_tester ${LIME_LIBRARIES_FOR_TESTER} ${BCTOOLBOX_LIBRARIES} ${BCTOOLBOX_TESTER_LIBRARIES} ${BELLESIP_LIBRARIES} ${SOCI_LIBRARIES} ${SOCI_sqlite3_PLUGIN})
+	if(APPLE)
+		set_target_properties(lime_tester PROPERTIES LINK_FLAGS "-stdlib=libc++")
+	endif()
 
-if(APPLE)
-	set_target_properties(lime_tester PROPERTIES LINK_FLAGS "-stdlib=libc++")
+	# lime test suit request a local server to be launched, so keep testing double ratchet only for now
+	add_test(NAME double_ratchet COMMAND lime_tester --verbose --resource-dir ${CMAKE_CURRENT_SOURCE_DIR} --suite "double ratchet")
 endif()
 
-# lime test suit request a local server to be launched, so keep testing double ratchet only for now
-add_test(NAME double_ratchet COMMAND lime_tester --verbose --resource-dir ${CMAKE_CURRENT_SOURCE_DIR} --suite "double ratchet")

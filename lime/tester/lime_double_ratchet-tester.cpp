@@ -345,7 +345,7 @@ static void dr_simple_exchange(std::shared_ptr<DR<Curve>> &DRsessionAlice, std::
 		bool is_directEncryptionType = lime_tester::DR_message_payloadDirectEncrypt(recipients[0].DRmessage);
 		if (getEncryptionPolicyAlice == lime::EncryptionPolicy::DRMessage) {
 			BC_ASSERT_TRUE(is_directEncryptionType);
-			BC_ASSERT_EQUAL(aliceCipher.size(), 0, size_t, "%ld"); // in direct Encryption mode, cipherMessage is empty
+			BC_ASSERT_EQUAL((int)aliceCipher.size(), 0, int, "%d"); // in direct Encryption mode, cipherMessage is empty
 		} else {
 			BC_ASSERT_FALSE(is_directEncryptionType);
 		}
@@ -371,10 +371,10 @@ static void dr_simple_exchange(std::shared_ptr<DR<Curve>> &DRsessionAlice, std::
 		bool is_directEncryptionType = lime_tester::DR_message_payloadDirectEncrypt(recipients[0].DRmessage);
 		if (getEncryptionPolicyBob == lime::EncryptionPolicy::DRMessage) {
 			BC_ASSERT_TRUE(is_directEncryptionType);
-			BC_ASSERT_EQUAL(bobCipher.size(), 0, size_t, "%ld"); // in direct Encryption mode, cipherMessage is empty
+			BC_ASSERT_EQUAL((int)bobCipher.size(), 0, int, "%d"); // in direct Encryption mode, cipherMessage is empty
 		} else {
 			BC_ASSERT_FALSE(is_directEncryptionType);
-			BC_ASSERT_NOT_EQUAL(bobCipher.size(), 0, size_t, "%ld"); // in cipher message Encryption mode, cipherMessage is not empty
+			BC_ASSERT_NOT_EQUAL((int)bobCipher.size(), 0, int, "%d"); // in cipher message Encryption mode, cipherMessage is not empty
 		}
 	}
 
@@ -477,7 +477,7 @@ static void dr_multidevice_exchange(std::string db_filename,
 		bool is_directEncryptionType = lime_tester::DR_message_payloadDirectEncrypt(recipients[0].DRmessage); // check on recipients[0], they shall all be the same
 		if (getEncryptionPolicy == lime::EncryptionPolicy::DRMessage) {
 			BC_ASSERT_TRUE(is_directEncryptionType);
-			BC_ASSERT_EQUAL(cipherMessage.size(), 0, size_t, "%ld"); // in direct Encryption mode, cipherMessage is empty
+			BC_ASSERT_EQUAL((int)cipherMessage.size(), 0, int, "%d"); // in direct Encryption mode, cipherMessage is empty
 		} else {
 			BC_ASSERT_FALSE(is_directEncryptionType);
 		}
