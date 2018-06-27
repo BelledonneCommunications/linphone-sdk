@@ -285,7 +285,6 @@ endif()
 if(ENABLE_VIDEO)
 	list(APPEND VOIP_SOURCE_FILES_C
 		utils/bits_rw.c
-		utils/h264utils.h
 		videofilters/extdisplay.c
 		videofilters/mire.c
 		videofilters/nowebcam.c
@@ -303,16 +302,16 @@ if(ENABLE_VIDEO)
 		voip/videostream.c
 	)
 	list(APPEND VOIP_SOURCE_FILES_CXX
-		utils/h264utils.cpp
-		utils/h265-utils.cpp
-		voip/h264-nal-packer.cpp
-		voip/h264-nal-unpacker.cpp
-		voip/h265-nal-packer.cpp
-		voip/h265-nal-unpacker.cpp
-		voip/h26x-utils.cpp
-		voip/nal-packer.cpp
-		voip/nal-unpacker.cpp
-		voip/rfc3984.cpp
+		voip/h26x/h264-utils.cpp
+		voip/h26x/h265-utils.cpp
+		voip/h26x/h264-nal-packer.cpp
+		voip/h26x/h264-nal-unpacker.cpp
+		voip/h26x/h265-nal-packer.cpp
+		voip/h26x/h265-nal-unpacker.cpp
+		voip/h26x/h26x-utils.cpp
+		voip/h26x/nal-packer.cpp
+		voip/h26x/nal-unpacker.cpp
+		voip/h26x/rfc3984.cpp
 	)
 	if(FFMPEG_FOUND AND NOT TURBOJPEG_FOUND)
 		list(APPEND VOIP_SOURCE_FILES_C
@@ -380,12 +379,12 @@ if(ENABLE_VIDEO)
 			voip/scaler.c
 		)
 		list(APPEND VOIP_SOURCE_FILES_CXX
-			android/media-codec-decoder.cpp
-			android/media-codec-encoder.cpp
-			android/media-codec-h264-decoder.cpp
-			android/media-codec-h264-encoder.cpp
-			android/media-codec-h265-decoder.cpp
-			android/media-codec-h265-encoder.cpp
+			voip/h26x/media-codec-decoder.cpp
+			voip/h26x/media-codec-encoder.cpp
+			voip/h26x/media-codec-h264-decoder.cpp
+			voip/h26x/media-codec-h264-encoder.cpp
+			voip/h26x/media-codec-h265-decoder.cpp
+			voip/h26x/media-codec-h265-encoder.cpp
 		)
 		if(CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7-a")
 			list(APPEND VOIP_SOURCE_FILES_ASM
