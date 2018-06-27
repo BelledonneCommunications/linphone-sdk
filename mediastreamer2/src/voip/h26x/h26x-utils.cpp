@@ -24,7 +24,7 @@
 #include <vector>
 
 #include "h26x-utils.h"
-#include "h264utils.h"
+#include "h264-utils.h"
 #include "h265-utils.h"
 
 using namespace std;
