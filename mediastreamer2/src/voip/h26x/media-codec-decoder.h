@@ -81,7 +81,7 @@ private:
 
 class MediaCodecDecoderFilterImpl {
 public:
-	MediaCodecDecoderFilterImpl(MSFilter *f, const std::string &mimeType, NalUnpacker *unpacker, H26xParameterSetsStore *psStore, H26xNaluHeader *naluHeader);
+	MediaCodecDecoderFilterImpl(MSFilter *f, const std::string &mime);
 	virtual ~MediaCodecDecoderFilterImpl() = default;
 
 	void preprocess();

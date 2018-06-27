@@ -78,7 +78,7 @@ public:
 	bool fetch(MSQueue *encodedData) override;
 
 protected:
-	MediaCodecEncoder(const std::string &mime, H26xParameterSetsInserter *psInserter);
+	MediaCodecEncoder(const std::string &mime);
 	void createImpl();
 	void configureImpl();
 	virtual AMediaFormat *createMediaFormat() const;

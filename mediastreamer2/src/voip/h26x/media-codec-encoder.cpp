@@ -37,8 +37,9 @@ using namespace std;
 
 namespace mediastreamer {
 
-MediaCodecEncoder::MediaCodecEncoder(const std::string &mime, H26xParameterSetsInserter *psInserter):
-	_mime(mime), _psInserter(psInserter) {
+MediaCodecEncoder::MediaCodecEncoder(const std::string &mime):
+	_mime(mime),
+	_psInserter(H26xToolFactory::get(mime).createParameterSetsInserter()) {
 
 	try {
 		_vsize.width = 0;

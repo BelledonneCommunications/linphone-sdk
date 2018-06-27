@@ -183,4 +183,6 @@ const H26xToolFactory &H26xToolFactory::get(const std::string &mime) {
 	return *instance;
 }
 
+std::unordered_map<std::string, std::unique_ptr<H26xToolFactory>> H26xToolFactory::_instances;
+
 } // namespace mediastreamer

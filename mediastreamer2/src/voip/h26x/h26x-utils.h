@@ -122,7 +122,7 @@ public:
 	virtual H26xNaluHeader *createNaluHeader() const = 0;
 	virtual NalPacker *createNalPacker(MSFactory *factory) const = 0;
 	virtual NalUnpacker *createNalUnpacker() const = 0;
-	virtual H26xParameterSetsInserter *createParamterSetsInserter() const = 0;
+	virtual H26xParameterSetsInserter *createParameterSetsInserter() const = 0;
 	virtual H26xParameterSetsStore *createParameterSetsStore() const = 0;
 
 private:

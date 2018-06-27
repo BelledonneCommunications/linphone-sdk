@@ -17,8 +17,6 @@
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#include "h264-nal-packer.h"
-#include "h264-utils.h"
 #include "media-codec-encoder.h"
 
 #define MS_MEDIACODECH265_CONF(required_bitrate, bitrate_limit, resolution, fps, ncpus) \
@@ -41,7 +39,7 @@ namespace mediastreamer {
 
 class MediaCodecH264Encoder: public MediaCodecEncoder {
 public:
-	MediaCodecH264Encoder(): MediaCodecEncoder("video/avc", new H264ParameterSetsInserter()) {}
+	MediaCodecH264Encoder(): MediaCodecEncoder("video/avc") {}
 
 private:
 	AMediaFormat *createMediaFormat() const override {

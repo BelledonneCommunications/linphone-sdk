@@ -240,8 +240,13 @@ const char *MediaCodecDecoder::toString(State state) {
 	}
 }
 
-MediaCodecDecoderFilterImpl::MediaCodecDecoderFilterImpl(MSFilter *f, const std::string &mimeType, NalUnpacker *unpacker, H26xParameterSetsStore *psStore, H26xNaluHeader *naluHeader):
-_vsize({0, 0}),_f(f),  _unpacker(unpacker), _psStore(psStore), _naluHeader(naluHeader), _codec(mimeType) {
+MediaCodecDecoderFilterImpl::MediaCodecDecoderFilterImpl(MSFilter *f, const std::string &mime):
+	_vsize({0, 0}),
+	_f(f),
+	_unpacker(H26xToolFactory::get(mime).createNalUnpacker()),
+	_psStore(H26xToolFactory::get(mime).createParameterSetsStore()),
+	_naluHeader(H26xToolFactory::get(mime).createNaluHeader()),
+	_codec(mime) {
 
 	ms_message("MSMediaCodecH264Dec initialization");
 	ms_average_fps_init(&_fps, " H264 decoder: FPS: %f");

@@ -164,7 +164,7 @@ NalUnpacker *H265ToolFactory::createNalUnpacker() const {
 	return new H265NalUnpacker();
 }
 
-H26xParameterSetsInserter *H265ToolFactory::createParamterSetsInserter() const {
+H26xParameterSetsInserter *H265ToolFactory::createParameterSetsInserter() const {
 	return new H265ParameterSetsInserter();
 }
 

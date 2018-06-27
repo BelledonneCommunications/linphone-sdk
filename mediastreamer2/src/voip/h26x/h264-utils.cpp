@@ -329,7 +329,7 @@ NalUnpacker *H264ToolFactory::createNalUnpacker() const {
 	return new H264NalUnpacker();
 }
 
-H26xParameterSetsInserter *H264ToolFactory::createParamterSetsInserter() const {
+H26xParameterSetsInserter *H264ToolFactory::createParameterSetsInserter() const {
 	return new H264ParameterSetsInserter();
 }
 

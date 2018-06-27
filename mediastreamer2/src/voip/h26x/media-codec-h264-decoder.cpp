@@ -29,7 +29,7 @@ namespace mediastreamer {
 
 class MediaCodecH264DecoderFilterImpl: public MediaCodecDecoderFilterImpl {
 public:
-	MediaCodecH264DecoderFilterImpl(MSFilter *f): MediaCodecDecoderFilterImpl(f, "video/avc", new H264NalUnpacker(), new H264ParameterSetsStore(), new H264NaluHeader()) {}
+	MediaCodecH264DecoderFilterImpl(MSFilter *f): MediaCodecDecoderFilterImpl(f, "video/avc") {}
 	~MediaCodecH264DecoderFilterImpl() {
 		if (_sps) freemsg(_sps);
 		if (_pps) freemsg(_pps);
