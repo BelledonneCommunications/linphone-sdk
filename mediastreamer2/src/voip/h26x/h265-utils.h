@@ -120,4 +120,13 @@ public:
 	int getNaluType(const mblk_t *nalu) const override;
 };
 
+class H265ToolFactory: public H26xToolFactory {
+public:
+	H26xNaluHeader *createNaluHeader() const override;
+	NalPacker *createNalPacker(MSFactory *factory) const override;
+	NalUnpacker *createNalUnpacker() const override;
+	H26xParameterSetsInserter *createParamterSetsInserter() const override;
+	H26xParameterSetsStore *createParameterSetsStore() const override;
+};
+
 }

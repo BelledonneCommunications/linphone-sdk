@@ -25,6 +25,8 @@
 #include "mediastreamer2/msqueue.h"
 #include "mediastreamer2/rfc3984.h"
 
+#include "h264-nal-packer.h"
+#include "h264-nal-unpacker.h"
 #include "h264-utils.h"
 #include "h26x-utils.h"
 
@@ -313,6 +315,26 @@ void H264ParameterSetsInserter::process(MSQueue *in, MSQueue *out) {
 void H264ParameterSetsInserter::flush() {
 	replaceParameterSet(_sps, nullptr);
 	replaceParameterSet(_pps, nullptr);
+}
+
+H26xNaluHeader *H264ToolFactory::createNaluHeader() const {
+	return new H264NaluHeader();
+}
+
+NalPacker *H264ToolFactory::createNalPacker(MSFactory *factory) const {
+	return new H264NalPacker();
+}
+
+NalUnpacker *H264ToolFactory::createNalUnpacker() const {
+	return new H264NalUnpacker();
+}
+
+H26xParameterSetsInserter *H264ToolFactory::createParamterSetsInserter() const {
+	return new H264ParameterSetsInserter();
+}
+
+H26xParameterSetsStore *H264ToolFactory::createParameterSetsStore() const {
+	return new H264ParameterSetsStore();
 }
 
 } // namespace mediastreamer2

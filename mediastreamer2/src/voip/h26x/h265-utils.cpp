@@ -18,7 +18,11 @@
 */
 
 #include <stdexcept>
+
 #include "mediastreamer2/mscommon.h"
+
+#include "h265-nal-packer.h"
+#include "h265-nal-unpacker.h"
 #include "h265-utils.h"
 
 using namespace std;
@@ -146,6 +150,26 @@ void H265ParameterSetsInserter::flush() {
 int H265ParameterSetsStore::getNaluType(const mblk_t *nalu) const {
 	H265NaluHeader header(nalu->b_rptr);
 	return header.getType();
+}
+
+H26xNaluHeader *H265ToolFactory::createNaluHeader() const {
+	return new H265NaluHeader();
+}
+
+NalPacker *H265ToolFactory::createNalPacker(MSFactory *factory) const {
+	return new H265NalPacker(factory);
+}
+
+NalUnpacker *H265ToolFactory::createNalUnpacker() const {
+	return new H265NalUnpacker();
+}
+
+H26xParameterSetsInserter *H265ToolFactory::createParamterSetsInserter() const {
+	return new H265ParameterSetsInserter();
+}
+
+H26xParameterSetsStore *H265ToolFactory::createParameterSetsStore() const {
+	return new H265ParameterSetsStore();
 }
 
 } // namespace mediastreamer

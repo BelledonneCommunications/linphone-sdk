@@ -22,9 +22,14 @@
 #include <cstdint>
 #include <list>
 #include <map>
+#include <memory>
+#include <unordered_map>
 #include <vector>
 
 #include "mediastreamer2/msqueue.h"
+
+#include "h264-nal-packer.h"
+#include "h264-nal-unpacker.h"
 
 namespace mediastreamer {
 
@@ -57,8 +62,6 @@ public:
 
 	virtual void parse(const uint8_t *header) = 0;
 	virtual mblk_t *forge() const = 0;
-
-	static H26xNaluHeader *createFromMime(const std::string &mime);
 
 protected:
 	bool _fBit = false;
@@ -107,6 +110,23 @@ protected:
 	virtual int getNaluType(const mblk_t *nalu) const = 0;
 
 	std::map<int, mblk_t *> _ps;
+};
+
+class H26xToolFactory {
+public:
+	H26xToolFactory() = default;
+	virtual ~H26xToolFactory() = default;
+
+	static const H26xToolFactory &get(const std::string &mime);
+
+	virtual H26xNaluHeader *createNaluHeader() const = 0;
+	virtual NalPacker *createNalPacker(MSFactory *factory) const = 0;
+	virtual NalUnpacker *createNalUnpacker() const = 0;
+	virtual H26xParameterSetsInserter *createParamterSetsInserter() const = 0;
+	virtual H26xParameterSetsStore *createParameterSetsStore() const = 0;
+
+private:
+	static std::unordered_map<std::string, std::unique_ptr<H26xToolFactory>> _instances;
 };
 
 }

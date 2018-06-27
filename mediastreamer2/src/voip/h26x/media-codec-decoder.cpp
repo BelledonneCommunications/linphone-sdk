@@ -45,7 +45,7 @@ namespace mediastreamer {
 MediaCodecDecoder::MediaCodecDecoder(const std::string &mime): _vsize({0, 0}) {
 	try {
 		_bufAllocator = ms_yuv_buf_allocator_new();
-		_naluHeader.reset(H26xNaluHeader::createFromMime(mime));
+		_naluHeader.reset(H26xToolFactory::get(mime).createNaluHeader());
 		createImpl(mime);
 	} catch (const runtime_error &e) {
 		ms_error("MSMediaCodecH264Dec: %s", e.what());

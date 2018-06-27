@@ -31,12 +31,6 @@ using namespace std;
 
 namespace mediastreamer {
 
-H26xNaluHeader *H26xNaluHeader::createFromMime(const std::string &mime) {
-	if (mime == "video/avc") return new H264NaluHeader();
-	else if (mime == "video/hevc") return new H265NaluHeader();
-	else throw invalid_argument("no NALu header parser associated with '" + mime + "' mime");
-}
-
 void H26xUtils::naluStreamToNalus(const std::vector<uint8_t> &byteStream, MSQueue *out) {
 	H26xUtils::naluStreamToNalus(byteStream.data(), byteStream.size(), out);
 }
@@ -177,6 +171,16 @@ void H26xParameterSetsStore::fetchAllPs(MSQueue *outq) {
 void H26xParameterSetsStore::addPs(int naluType, mblk_t *nalu) {
 	if (_ps[naluType]) freemsg(_ps[naluType]);
 	_ps[naluType] = nalu ? dupmsg(nalu) : nullptr;
+}
+
+const H26xToolFactory &H26xToolFactory::get(const std::string &mime) {
+	unique_ptr<H26xToolFactory> &instance = _instances[mime];
+	if (instance == nullptr) {
+		if (mime == "video/avc") instance.reset(new H264ToolFactory());
+		else if (mime == "video/hevc") instance.reset(new H265ToolFactory());
+		else throw invalid_argument("no H26xToolFactory class associated to '" + mime + "' mime");
+	}
+	return *instance;
 }
 
 } // namespace mediastreamer
