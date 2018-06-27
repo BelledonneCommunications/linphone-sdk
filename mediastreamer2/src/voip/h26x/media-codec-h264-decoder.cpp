@@ -19,8 +19,8 @@
 
 #include <ortp/b64.h>
 
-#include "h264utils.h"
 #include "h264-nal-unpacker.h"
+#include "h264-utils.h"
 #include "media-codec-decoder.h"
 
 using namespace b64;

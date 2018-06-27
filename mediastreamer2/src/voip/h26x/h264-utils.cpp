@@ -25,7 +25,7 @@
 #include "mediastreamer2/msqueue.h"
 #include "mediastreamer2/rfc3984.h"
 
-#include "h264utils.h"
+#include "h264-utils.h"
 #include "h26x-utils.h"
 
 using namespace mediastreamer;

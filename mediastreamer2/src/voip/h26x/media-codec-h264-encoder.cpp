@@ -18,7 +18,7 @@
 */
 
 #include "h264-nal-packer.h"
-#include "h264utils.h"
+#include "h264-utils.h"
 #include "media-codec-encoder.h"
 
 #define MS_MEDIACODECH265_CONF(required_bitrate, bitrate_limit, resolution, fps, ncpus) \

@@ -37,9 +37,9 @@ extern "C" {
 #ifdef VIDEO_ENABLED
 	#include "mediastreamer2/msvideo.h"
 	#include "vp8rtpfmt.h"
-	#include "h264utils.h"
-	#include "h264-nal-packer.h"
-	#include "h264-nal-unpacker.h"
+	#include "h26x/h264-nal-packer.h"
+	#include "h26x/h264-nal-unpacker.h"
+	#include "h26x/h264-utils.h"
 #endif // ifdef VIDEO_ENABLED
 
 #undef bool_t
