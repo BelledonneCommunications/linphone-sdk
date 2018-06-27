@@ -41,7 +41,22 @@ namespace mediastreamer {
 
 class MediaCodecH264Encoder: public MediaCodecEncoder {
 public:
-	MediaCodecH264Encoder(): MediaCodecEncoder("video/avc", 1 /* AVCProfileBaseline */,  1024 /* AVCLevel32 */, new H264ParameterSetsInserter()) {}
+	MediaCodecH264Encoder(): MediaCodecEncoder("video/avc", new H264ParameterSetsInserter()) {}
+
+private:
+	AMediaFormat *createMediaFormat() const override {
+		AMediaFormat *format = MediaCodecEncoder::createMediaFormat();
+		AMediaFormat_setInt32(format, "profile", _profile);
+		return format;
+	}
+
+	std::ostringstream getMediaForamtAsString() const override {
+		std::ostringstream os = MediaCodecEncoder::getMediaForamtAsString();
+		os << "\tprofile: " << _profile << std::endl;
+		return os;
+	}
+
+	static const int32_t _profile = 1; // AVCProfileBaseline
 };
 
 class MediaCodecH264EncoderFilterImpl: public MediaCodecEncoderFilterImpl {

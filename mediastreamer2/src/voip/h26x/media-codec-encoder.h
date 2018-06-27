@@ -20,6 +20,7 @@
 #pragma once
 
 #include <memory>
+#include <sstream>
 #include <string>
 
 #include <media/NdkMediaCodec.h>
@@ -77,14 +78,13 @@ public:
 	bool fetch(MSQueue *encodedData) override;
 
 protected:
-	MediaCodecEncoder(const std::string &mime, int profile, int level, H26xParameterSetsInserter *psInserter);
+	MediaCodecEncoder(const std::string &mime, H26xParameterSetsInserter *psInserter);
 	void createImpl();
 	void configureImpl();
-	void printMediaFormat() const;
+	virtual AMediaFormat *createMediaFormat() const;
+	virtual std::ostringstream getMediaForamtAsString() const;
 
 	std::string _mime;
-	int _profile = 0;
-	int _level = 0;
 	std::unique_ptr<H26xParameterSetsInserter> _psInserter;
 	MSVideoSize _vsize;
 	float _fps = 0;

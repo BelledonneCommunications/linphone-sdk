@@ -40,7 +40,7 @@ namespace mediastreamer {
 
 class MediaCodecH265Encoder: public MediaCodecEncoder {
 public:
-	MediaCodecH265Encoder(): MediaCodecEncoder("video/hevc", 1 /* HEVCProfileMain */, 256 /* HEVCMainTierLevel31 */, new H265ParameterSetsInserter()) {}
+	MediaCodecH265Encoder(): MediaCodecEncoder("video/hevc", new H265ParameterSetsInserter()) {}
 };
 
 class MediaCodecH265EncoderFilterImpl: public MediaCodecEncoderFilterImpl {

@@ -37,8 +37,8 @@ using namespace std;
 
 namespace mediastreamer {
 
-MediaCodecEncoder::MediaCodecEncoder(const std::string &mime, int profile, int level, H26xParameterSetsInserter *psInserter):
-	_mime(mime), _profile(profile), _level(level), _psInserter(psInserter) {
+MediaCodecEncoder::MediaCodecEncoder(const std::string &mime, H26xParameterSetsInserter *psInserter):
+	_mime(mime), _psInserter(psInserter) {
 
 	try {
 		_vsize.width = 0;
@@ -222,20 +222,10 @@ void MediaCodecEncoder::createImpl() {
 }
 
 void MediaCodecEncoder::configureImpl() {
-	AMediaFormat *format = AMediaFormat_new();
-	AMediaFormat_setString(format, "mime", _mime.c_str());
-	AMediaFormat_setInt32(format, "color-format", _colorFormat);
-	AMediaFormat_setInt32(format, "width", _vsize.width);
-	AMediaFormat_setInt32(format, "height", _vsize.height);
-	AMediaFormat_setInt32(format, "frame-rate", _fps);
-	AMediaFormat_setInt32(format, "bitrate", (_bitrate * 9)/10); // take a margin
-	AMediaFormat_setInt32(format, "bitrate-mode", _bitrateMode);
-	AMediaFormat_setInt32(format, "i-frame-interval", _iFrameInterval);
-	AMediaFormat_setInt32(format, "latency", _encodingLatency);
-	AMediaFormat_setInt32(format, "priority", _priority);
+	AMediaFormat *format = createMediaFormat();
 
 	ms_message("configuring MediaCodec with the following parameters:");
-	printMediaFormat();
+	ms_message("%s", getMediaForamtAsString().str().c_str());
 
 	media_status_t status = AMediaCodec_configure(_impl, format, nullptr, nullptr, AMEDIACODEC_CONFIGURE_FLAG_ENCODE);
 	AMediaFormat_delete(format);
@@ -247,11 +237,24 @@ void MediaCodecEncoder::configureImpl() {
 	ms_message("MSMediaCodecH264Enc: encoder successfully configured.");
 }
 
-void MediaCodecEncoder::printMediaFormat() const {
+AMediaFormat *MediaCodecEncoder::createMediaFormat() const {
+	AMediaFormat *format = AMediaFormat_new();
+	AMediaFormat_setString(format, "mime", _mime.c_str());
+	AMediaFormat_setInt32(format, "color-format", _colorFormat);
+	AMediaFormat_setInt32(format, "width", _vsize.width);
+	AMediaFormat_setInt32(format, "height", _vsize.height);
+	AMediaFormat_setInt32(format, "frame-rate", _fps);
+	AMediaFormat_setInt32(format, "bitrate", (_bitrate * 9)/10); // take a margin
+	AMediaFormat_setInt32(format, "bitrate-mode", _bitrateMode);
+	AMediaFormat_setInt32(format, "i-frame-interval", _iFrameInterval);
+	AMediaFormat_setInt32(format, "latency", _encodingLatency);
+	AMediaFormat_setInt32(format, "priority", _priority);
+	return format;
+}
+
+std::ostringstream MediaCodecEncoder::getMediaForamtAsString() const {
 	ostringstream os;
 	os << "\tmime: " << _mime << endl;
-	os << "\tprofile: " << _profile << endl;
-	os << "\tlevel: " << _level << endl;
 
 	os.unsetf(ios::basefield);
 	os.setf(ios::hex);
@@ -268,7 +271,7 @@ void MediaCodecEncoder::printMediaFormat() const {
 	os << "\ti-frame-intervale: " << _iFrameInterval << endl;
 	os << "\tlatency: " << _encodingLatency << endl;
 	os << "\tpriority: " << _priority << endl;
-	ms_message("%s", os.str().c_str());
+	return os;
 }
 
 // Public methods
