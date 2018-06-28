@@ -54,7 +54,7 @@ typedef struct {
 }QRCodeReaderStruct;
 
 typedef struct {
-	char resultText[255];//Can be changed depending on the size of the URL
+	char resultText[512];//Can be changed depending on the size of the URL
 }QRCodeReaderNotifyStruct;
 
 static void qrcode_init(MSFilter *f) {
