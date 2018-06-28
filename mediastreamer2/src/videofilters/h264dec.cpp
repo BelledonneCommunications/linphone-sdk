@@ -22,7 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mediastreamer2/msvideo.h"
 #include "mediastreamer2/msticker.h"
 
-#include "h264-nal-unpacker.h"
+#include "h26x/h264-nal-unpacker.h"
 #include "stream_regulator.h"
 
 #if __clang__
