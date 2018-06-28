@@ -40,6 +40,7 @@ extern test_suite_t video_stream_test_suite;
 extern test_suite_t framework_test_suite;
 extern test_suite_t player_test_suite;
 extern test_suite_t text_stream_test_suite;
+extern test_suite_t h26x_tools_test_suite;
 #ifdef HAVE_PCAP
 extern test_suite_t codec_impl_test_suite;
 extern test_suite_t jitterbuffer_test_suite;
