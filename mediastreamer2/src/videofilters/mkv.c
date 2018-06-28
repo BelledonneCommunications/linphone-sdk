@@ -23,15 +23,20 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #undef bool_t
 
 #define bool_t ms_bool_t
+
 #include "mediastreamer2/msfilter.h"
-#include "mediastreamer2/msvideo.h"
-#include "mediastreamer2/rfc3984.h"
 #include "mediastreamer2/msticker.h"
 #include "waveheader.h"
 #include "mediastreamer2/formats.h"
-#include "vp8rtpfmt.h"
 #include "mkv_reader.h"
-#include "h264utils.h"
+
+#ifdef VIDEO_ENABLED
+	#include "mediastreamer2/msvideo.h"
+	#include "vp8rtpfmt.h"
+	#include "mediastreamer2/rfc3984.h"
+	#include "h264utils.h"
+#endif // ifdef VIDEO_ENABLED
+
 #undef bool_t
 
 #define bool_t ambigous use ms_bool_t or matroska_bool_t
@@ -65,6 +70,8 @@ typedef struct {
 	ModulePrivateDataLoadFunc load_private_data;
 	ModuleIsKeyFrameFunc is_key_frame;
 } ModuleDesc;
+
+#ifdef VIDEO_ENABLED
 
 /*********************************************************************************************
  * h264 module                                                                               *
@@ -123,7 +130,7 @@ static ms_bool_t _H264Private_msgequal(const mblk_t *m1, const mblk_t *m2) {
 	while (m1 != NULL && m2 != NULL) {
 		size_t size1 = m1->b_wptr - m1->b_rptr;
 		size_t size2 = m2->b_wptr - m2->b_rptr;
-		if (size1 != size2 || memcpy(m1->b_rptr, m2->b_rptr, size1) != 0) return FALSE;
+		if (size1 != size2 || memcmp(m1->b_rptr, m2->b_rptr, size1) != 0) return FALSE;
 		m1 = m1->b_cont;
 		m2 = m2->b_cont;
 	}
@@ -334,24 +341,24 @@ static void nalus_to_frame(mblk_t *buffer, mblk_t **frame, bctbx_list_t **spsLis
 
 		curNalu = curNalu->b_cont;
 		buff->b_cont = NULL;
-		
+
 		switch(type) {
 			case MSH264NaluTypeSPS:
 				*spsList = bctbx_list_append(*spsList, copymsg(buff));
 				break;
-			
+
 			case MSH264NaluTypePPS:
 				*ppsList = bctbx_list_append(*ppsList, copymsg(buff));
 				break;
-				
+
 			case MSH264NaluTypeIDR:
 				*isKeyFrame = TRUE;
 				break;
-			
+
 			default:
 				break;
 		}
-		
+
 		bufferSize = htonl((uint32_t)msgdsize(buff));
 		size = allocb(4, 0);
 		memcpy(size->b_wptr, &bufferSize, sizeof(bufferSize));
@@ -376,14 +383,14 @@ static mblk_t *h264_module_processing(void *data, mblk_t *nalus, ms_bool_t *isKe
 	H264Module *obj = (H264Module *)data;
 	mblk_t *frame;
 	bctbx_list_t *spsList, *ppsList;
-	
+
 	*codecPrivateData = NULL;
 	*codecPrivateSize = 0;
 	nalus_to_frame(nalus, &frame, &spsList, &ppsList, isKeyFrame);
 	if(spsList != NULL || ppsList != NULL) {
 		bctbx_list_t *it;
 		H264Private *newCodecPrivate;
-		
+
 		ms_message("MKVRecorder: H264 SPS [%p] or PPS [%p] received", spsList, ppsList);
 		if (obj->lastCodecPrivate != NULL) {
 			newCodecPrivate = H264Private_clone(obj->lastCodecPrivate);
@@ -495,7 +502,6 @@ static void h264_module_load_private_data(void *o, const uint8_t *data, size_t s
 }
 
 /* h264 module description */
-#ifdef _MSC_VER
 static const ModuleDesc h264_module_desc = {
 	"H264",
 	"V_MPEG4/ISO/AVC",
@@ -509,21 +515,6 @@ static const ModuleDesc h264_module_desc = {
 	h264_module_load_private_data,
 	h264_is_key_frame
 };
-#else
-static const ModuleDesc h264_module_desc = {
-	.rfcName = "H264",
-	.codecId = "V_MPEG4/ISO/AVC",
-	.new_module = h264_module_new,
-	.free_module = h264_module_free,
-	.set = NULL,
-	.preprocess = h264_module_preprocessing,
-	.process = h264_module_processing,
-	.reverse = h264_module_reverse,
-	.get_private_data = h264_module_get_private_data,
-	.load_private_data = h264_module_load_private_data,
-	.is_key_frame = h264_is_key_frame
-};
-#endif
 
 /*********************************************************************************************
  * VP8 module                                                                               *
@@ -596,7 +587,6 @@ static ms_bool_t vp8_module_is_keyframe(const mblk_t *frame) {
 }
 
 /* VP8 module description */
-#ifdef _MSC_VER
 static const ModuleDesc vp8_module_desc = {
 	"VP8",
 	"V_VP8",
@@ -610,23 +600,10 @@ static const ModuleDesc vp8_module_desc = {
 	NULL,
 	vp8_module_is_keyframe
 };
-#else
-static const ModuleDesc vp8_module_desc = {
-	.rfcName = "VP8",
-	.codecId = "V_VP8",
-	.new_module = vp8_module_new,
-	.free_module = vp8_module_free,
-	.set = NULL,
-	.preprocess = vp8_module_preprocess,
-	.process = vp8_module_process,
-	.reverse = vp8_module_reverse,
-	.get_private_data = NULL,
-	.load_private_data = NULL,
-	.is_key_frame = vp8_module_is_keyframe
-};
-#endif
 
 #endif /* HAVE_VPX */
+
+#endif // ifdef VIDEO_ENABLED
 
 /*********************************************************************************************
  * µLaw module                                                                               *
@@ -686,8 +663,10 @@ static void mu_law_module_get_private_data(const void *o, uint8_t **data, size_t
 }
 
 static void mu_law_module_load_private(void *o, const uint8_t *data, size_t size) {
-	WavPrivate *obj = (WavPrivate *)o;
-	wav_private_load(obj, data);
+	if (size > 0) {
+		WavPrivate *obj = (WavPrivate *)o;
+		wav_private_load(obj, data);
+	}
 }
 
 /* µLaw module description */
@@ -818,21 +797,14 @@ static const ModuleDesc opus_module_desc = {
 /*********************************************************************************************
  * Modules list                                                                              *
  *********************************************************************************************/
-#if 0
-typedef enum {
-    NONE_ID,
-    H264_MOD_ID,
-    VP8_MOD_ID,
-    MU_LAW_MOD_ID,
-    OPUS_MOD_ID
-} ModuleId;
-#endif
 
 static const ModuleDesc *moduleDescs[] = {
+#ifdef VIDEO_ENABLED
 	&h264_module_desc,
 #ifdef HAVE_VPX
 	&vp8_module_desc,
 #endif /* HAVE_VPX */
+#endif // ifdef VIDEO_ENABLED
 	&mu_law_module_desc,
 	&opus_module_desc,
 	NULL
@@ -987,9 +959,9 @@ static void loadModules(nodemodule *modules) {
 }
 
 typedef enum {
-    MKV_OPEN_CREATE,
-    MKV_OPEN_APPEND,
-    MKV_OPEN_RO
+	MKV_OPEN_CREATE,
+	MKV_OPEN_APPEND,
+	MKV_OPEN_RO
 } MatroskaOpenMode;
 
 typedef struct {
@@ -1137,7 +1109,7 @@ static ms_bool_t matroska_load_file(Matroska *obj) {
 	}
 
 	/* Create an empty MetaSeek table if no has been found and create
-	   the missing entries */
+		 the missing entries */
 	if(obj->metaSeek == NULL) obj->metaSeek = (ebml_master *)EBML_MasterAddElt(obj->segment, &MATROSKA_ContextSeekHead, FALSE);
 	if(obj->infoMeta == NULL) {
 		obj->infoMeta = (matroska_seekpoint *)EBML_MasterAddElt(obj->metaSeek, &MATROSKA_ContextSeek, TRUE);
@@ -1413,9 +1385,11 @@ static int matroska_close_segment(Matroska *obj) {
 
 static ebml_master *matroska_find_track_entry(const Matroska *obj, int trackNum) {
 	ebml_element *trackEntry = NULL;
-	for(trackEntry = EBML_MasterChildren(obj->tracks);
-	        trackEntry != NULL && EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)trackEntry, &MATROSKA_ContextTrackNumber)) != trackNum;
-	        trackEntry = EBML_MasterNext(trackEntry));
+	for(
+		trackEntry = EBML_MasterChildren(obj->tracks);
+		trackEntry != NULL && EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)trackEntry, &MATROSKA_ContextTrackNumber)) != trackNum;
+		trackEntry = EBML_MasterNext(trackEntry)
+	);
 	return (ebml_master *)trackEntry;
 }
 
@@ -1478,9 +1452,11 @@ static timecode_t matroska_current_cluster_timecode(const Matroska *obj) {
 
 static ebml_master *matroska_find_track(const Matroska *obj, int trackNum) {
 	ebml_element *elt = NULL;
-	for(elt = EBML_MasterChildren(obj->tracks);
-	        elt != NULL && EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild(elt, &MATROSKA_ContextTrackNumber)) != trackNum;
-	        elt = EBML_MasterNext(elt));
+	for(
+		elt = EBML_MasterChildren(obj->tracks);
+		elt != NULL && EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild(elt, &MATROSKA_ContextTrackNumber)) != trackNum;
+		elt = EBML_MasterNext(elt)
+	);
 	return (ebml_master *)elt;
 }
 
@@ -1919,7 +1895,7 @@ static matroska_block *write_frame(MKVRecorder *obj, mblk_t *buffer, uint16_t pi
 	block = matroska_write_block(&obj->file, &m_frame, pin + 1, isKeyFrame, isVisible, codecPrivateData, codecPrivateSize);
 	freemsg(frame);
 	if (codecPrivateData != NULL) bctbx_free(codecPrivateData);
-	
+
 	return block;
 }
 

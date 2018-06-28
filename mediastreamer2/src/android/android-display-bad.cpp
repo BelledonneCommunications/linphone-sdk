@@ -43,12 +43,12 @@ struct SurfaceInfo15{
 
 struct SurfaceInfo21 {
 	uint32_t    w;
-        uint32_t    h;
-        uint32_t    s;
-        uint32_t    usage;
-        PixelFormat format;
-        void*       bits;
-        uint32_t    reserved[2];
+	uint32_t    h;
+	uint32_t    s;
+	uint32_t    usage;
+	PixelFormat format;
+	void*       bits;
+	uint32_t    reserved[2];
 };
 
 union SurfaceInfo{

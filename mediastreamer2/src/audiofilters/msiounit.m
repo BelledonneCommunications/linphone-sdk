@@ -18,13 +18,15 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
+
+#import <AudioToolbox/AudioToolbox.h>
 #import <AVFoundation/AVAudioSession.h>
 #import <Foundation/NSArray.h>
 #import <Foundation/NSString.h>
-#include <AudioToolbox/AudioToolbox.h>
-#include "mediastreamer2/mssndcard.h"
-#include "mediastreamer2/msfilter.h"
-#include "mediastreamer2/msticker.h"
+
+#import "mediastreamer2/mssndcard.h"
+#import "mediastreamer2/msfilter.h"
+#import "mediastreamer2/msticker.h"
 
 static const int flowControlInterval = 5000; // ms
 static const int flowControlThreshold = 40; // ms
@@ -42,8 +44,7 @@ static const int flowControlThreshold = 40; // ms
 static AudioUnitElement inputBus = 1;
 static AudioUnitElement outputBus = 0;
 
-
-static const char * audio_unit_format_error (OSStatus error) {
+static const char *audio_unit_format_error (OSStatus error) {
 	switch (error) {
 		case kAudioUnitErr_InvalidProperty: return "kAudioUnitErr_InvalidProperty";
 		case kAudioUnitErr_InvalidParameter: return "kAudioUnitErr_InvalidParameter";
@@ -71,11 +72,10 @@ static const char * audio_unit_format_error (OSStatus error) {
 						  ,((char*)&error)[1]
 						  ,((char*)&error)[0]);
 			return "unknown error";
-		} 
+		}
 	}
 
 }
-
 
 #define check_au_session_result(au,method) \
 if (au!=AVAudioSessionErrorInsufficientPriority && au!=0) ms_error("AudioSession error for %s: ret=%i (%s:%d)",method, au, __FILE__, __LINE__ )
@@ -83,30 +83,22 @@ if (au!=AVAudioSessionErrorInsufficientPriority && au!=0) ms_error("AudioSession
 #define check_au_unit_result(au,method) \
 if (au!=0) ms_error("AudioUnit error for %s: ret=%s (%li) (%s:%d)",method, audio_unit_format_error(au), (long)au, __FILE__, __LINE__ )
 
-
 #define check_session_call(call)   do { OSStatus res = (call); check_au_session_result(res, #call); } while(0)
 #define check_audiounit_call(call) do { OSStatus res = (call); check_au_unit_result(res, #call); } while(0)
 
-
-#if 0
-#undef ms_debug
-#define ms_debug ms_message
-#endif
 static const char* AU_CARD_RECEIVER = "Audio Unit Receiver";
 static const char* AU_CARD_NOVOICEPROC = "Audio Unit NoVoiceProc";
-static const char* AU_CARD_FAST_IOUNIT = "Audio Unit Fast Receiver"; /*Same as AU_CARD_RECEIVER but whiout audio session handling which are delagated to the application*/
+static const char* AU_CARD_FAST_IOUNIT = "Audio Unit Fast Receiver"; // Same as AU_CARD_RECEIVER but whiout audio session handling which are delegated to the application
 static const char* AU_CARD_SPEAKER = "Audio Unit Speaker";
 static const char* AU_CARD_TESTER = "Audio Unit Tester";
-
 
 static MSFilter *ms_au_read_new(MSSndCard *card);
 static MSFilter *ms_au_write_new(MSSndCard *card);
 
-typedef  struct au_filter_read_data au_filter_read_data_t;
-typedef  struct au_filter_write_data au_filter_write_data_t;
+typedef struct au_filter_read_data au_filter_read_data_t;
+typedef struct au_filter_write_data au_filter_write_data_t;
 
-
-typedef  struct  au_card {
+typedef struct au_card {
 	AudioUnit	io_unit;
 	ms_mutex_t	mutex;
 	unsigned int	rate;
@@ -116,7 +108,6 @@ typedef  struct  au_card {
 	au_filter_read_data_t* read_data;
 	au_filter_write_data_t* write_data;
 	MSSndCard* ms_snd_card;
-	CFRunLoopTimerRef shutdown_timer;
 	bool_t is_ringer;
 	bool_t is_fast;
 	bool_t is_tester;
@@ -124,13 +115,13 @@ typedef  struct  au_card {
 	bool_t audio_session_configured;
 	bool_t read_started;
 	bool_t write_started;
-	bool_t use_shutdowntimer;
-}au_card_t;
+	bool_t is_used;
+} au_card_t;
 
-typedef  struct au_filter_base {
+typedef struct au_filter_base {
 	au_card_t* card;
 	int muted;
-}au_filter_base_t;
+} au_filter_base_t;
 
 struct au_filter_read_data{
 	au_filter_base_t base;
@@ -140,7 +131,7 @@ struct au_filter_read_data{
 	unsigned int n_lost_frame;
 	MSTickerSynchronizer *ticker_synchronizer;
 	uint64_t read_samples;
-} ;
+};
 
 struct au_filter_write_data{
 	au_filter_base_t base;
@@ -149,26 +140,19 @@ struct au_filter_write_data{
 	unsigned int n_lost_frame;
 };
 
-static void  stop_audio_unit (au_card_t* d);
-static void cancel_audio_unit_timer(au_card_t* card);
-
+static void stop_audio_unit (au_card_t* d);
 
 /*
  mediastreamer2 function
  */
 
-static void au_set_level(MSSndCard *card, MSSndCardMixerElem e, int percent)
-{
-}
+static void au_set_level(MSSndCard *card, MSSndCardMixerElem e, int percent) {}
 
-static int au_get_level(MSSndCard *card, MSSndCardMixerElem e)
-{
+static int au_get_level(MSSndCard *card, MSSndCardMixerElem e) {
 	return 0;
 }
 
-static void au_set_source(MSSndCard *card, MSSndCardCapture source)
-{
-}
+static void au_set_source(MSSndCard *card, MSSndCardCapture source) {}
 
 static OSStatus au_render_cb (
 							  void                        *inRefCon,
@@ -222,18 +206,9 @@ static void create_io_unit (AudioUnit* au, au_card_t *card) {
 	ms_message("AudioUnit created with type %s.", subtype==kAudioUnitSubType_RemoteIO ? "kAudioUnitSubType_RemoteIO" : "kAudioUnitSubType_VoiceProcessingIO" );
 }
 
-
 /* the interruption listener is not reliable, it can be overriden by other parts of the application */
 /* as a result, we do nothing with it*/
-static void au_interruption_listener (void     *inClientData, UInt32   inInterruptionState){
-/*
-	if (inInterruptionState==kAudioSessionBeginInterruption){
-		CFRunLoopPerformBlock(CFRunLoopGetMain(), kCFRunLoopCommonModes, ^(void) {
-			stop_audio_unit((au_card_t*)inClientData);
-		});
-	}
-*/
-}
+static void au_interruption_listener (void *inClientData, UInt32 inInterruptionState) {}
 
 static void au_init(MSSndCard *card){
 	ms_debug("au_init");
@@ -250,7 +225,7 @@ static void au_init(MSSndCard *card){
 	d->rate=0; /*not set*/
 	d->nchannels=1;
 	d->ms_snd_card=card;
-	d->use_shutdowntimer=FALSE;
+	d->is_used = TRUE;
 	card->preferred_sample_rate=44100;
 	card->capabilities|=MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER|MS_SND_CARD_CAP_IS_SLOW;
 	ms_mutex_init(&d->mutex,NULL);
@@ -259,34 +234,28 @@ static void au_init(MSSndCard *card){
 
 static void au_uninit(MSSndCard *card){
 	au_card_t *d=(au_card_t*)card->data;
-	cancel_audio_unit_timer(d);
 	stop_audio_unit(d);
 	ms_mutex_destroy(&d->mutex);
 	ms_free(d);
 	card->data = NULL;
 }
 
-static void au_usage_hint(MSSndCard *card, bool_t used){
-	au_card_t *d=(au_card_t*)card->data;
-	if (!used &&d){
-		if(d->io_unit) {
-			if (d->shutdown_timer) {
-				cancel_audio_unit_timer(d);
-				stop_audio_unit(d);
-			} else {
-				d->use_shutdowntimer = FALSE;
-			}
-		} else {
-			d->use_shutdowntimer = FALSE;
-		}
-	} else {
-		if(d) {
-			d->use_shutdowntimer = TRUE;
-		}
-	}
+static void check_unused(au_card_t *card){
+	if (card->read_data || card->write_data)
+		return;
+
+	if (card->is_tester || !card->is_used)
+		stop_audio_unit(card);
 }
 
+static void au_usage_hint(MSSndCard *card, bool_t used){
+	au_card_t *d = (au_card_t*)card->data;
+	if (!d)
+		return;
 
+	d->is_used = used;
+	check_unused(d);
+}
 
 static void au_detect(MSSndCardManager *m);
 static MSSndCard *au_duplicate(MSSndCard *obj);
@@ -532,6 +501,7 @@ static void destroy_audio_unit (au_card_t* d) {
 		ms_message("AudioUnit destroyed");
 	}
 }
+
 static void stop_audio_unit (au_card_t* d) {
 	if (d->io_unit && d->io_unit_started) {
 		check_audiounit_call( AudioOutputUnitStop(d->io_unit) );
@@ -547,22 +517,13 @@ static void stop_audio_unit (au_card_t* d) {
 	d->rate=0; /*uninit*/
 }
 
-static void cancel_audio_unit_timer(au_card_t* card){
-	if (card->shutdown_timer){
-		CFRunLoopRemoveTimer(CFRunLoopGetMain(), card->shutdown_timer,kCFRunLoopCommonModes);
-		CFRunLoopTimerInvalidate(card->shutdown_timer);
-		card->shutdown_timer=NULL;
-	}
-}
-
 /***********************************read function********************/
 
 static void au_read_preprocess(MSFilter *f){
 	au_filter_read_data_t *d= (au_filter_read_data_t*)f->data;
 	au_card_t* card=d->base.card;
 	AVAudioSession *audioSession = [AVAudioSession sharedInstance];
-	NSError *err = nil;;
-	cancel_audio_unit_timer(card);
+	NSError *err = nil;
 	configure_audio_session(card, f->ticker->time);
 
 	if (!card->io_unit) create_io_unit(&card->io_unit, card);
@@ -584,7 +545,7 @@ static void au_read_preprocess(MSFilter *f){
 		default:
 			preferredBufferSize= .015;
 	}
-	[audioSession setPreferredIOBufferDuration:(NSTimeInterval)preferredBufferSize 
+	[audioSession setPreferredIOBufferDuration:(NSTimeInterval)preferredBufferSize
                                error:&err];
 	if(err) ms_error("Unable to change IO buffer duration because : %s", [err localizedDescription].UTF8String);
 	err = nil;
@@ -614,22 +575,20 @@ static void au_read_process(MSFilter *f){
 		read_something = TRUE;
 	}
 	ms_mutex_unlock(&d->mutex);
-	
+
 	if (read_something) ms_ticker_synchronizer_update(d->ticker_synchronizer, d->read_samples, d->base.card->rate);
 }
-
-
 
 /***********************************write function********************/
 
 static void au_write_preprocess(MSFilter *f){
 	ms_debug("au_write_preprocess");
 	OSStatus auresult;
-	NSError *err = nil;;
+	NSError *err = nil;
+	Float32 bufferSizeInSec = 0.02f;
 	au_filter_write_data_t *d= (au_filter_write_data_t*)f->data;
 	au_card_t* card=d->base.card;
 	AVAudioSession *audioSession = [AVAudioSession sharedInstance];
-	cancel_audio_unit_timer(card);
 
 	if (card->io_unit_started) {
 		ms_message("AudioUnit already started");
@@ -637,10 +596,11 @@ static void au_write_preprocess(MSFilter *f){
 	}
 	configure_audio_session(card, f->ticker->time);
 
-
 	if (!card->io_unit) create_io_unit(&card->io_unit, card);
 
-
+	[audioSession setPreferredIOBufferDuration:(NSTimeInterval)bufferSizeInSec error:&err];
+	if (err) ms_error("Unable to change IO buffer duration because : %s", [err localizedDescription].UTF8String);
+	err = nil;
 
 	AudioStreamBasicDescription audioFormat;
 	/*card sampling rate is fixed at that time*/
@@ -764,8 +724,6 @@ static void au_write_postprocess(MSFilter *f){
 	ms_mutex_unlock(&d->mutex);
 }
 
-
-
 static void au_write_process(MSFilter *f){
 	ms_debug("au_write_process");
 	au_filter_write_data_t *d=(au_filter_write_data_t*)f->data;
@@ -800,7 +758,6 @@ static int get_rate(MSFilter *f, void *data){
 	*(int*)data=d->card->rate;
 	return 0;
 }
-
 
 static int read_set_nchannels(MSFilter *f, void *arg){
 	ms_debug("set_nchannels %d", *((int*)arg));
@@ -845,34 +802,6 @@ static MSFilterMethod au_write_methods[]={
 	{	MS_AUDIO_PLAYBACK_MUTE	 	, set_muted	},
 	{	0				, NULL		}
 };
-
-static void shutdown_timer(CFRunLoopTimerRef timer, void *info){
-	au_card_t *card=(au_card_t*)info;
-	stop_audio_unit(card);
-}
-
-static void check_unused(au_card_t *card){
-	if (card->read_data==NULL && card->write_data==NULL ){
-
-		if (!card->is_tester && card->shutdown_timer==NULL && card->use_shutdowntimer){
-			/*program the shutdown of the audio unit in a few seconds*/
-			CFRunLoopTimerContext ctx={0};
-			ctx.info=card;
-			card->shutdown_timer=CFRunLoopTimerCreate (
-												kCFAllocatorDefault,
-												CFAbsoluteTimeGetCurrent() + 2.5,
-												0,
-												0,
-												0,
-												shutdown_timer,
-												&ctx
-												);
-			CFRunLoopAddTimer(CFRunLoopGetMain(), card->shutdown_timer,kCFRunLoopCommonModes);
-		} else if( card->is_tester ) {
-			stop_audio_unit(card);
-		}
-	}
-}
 
 static void au_read_uninit(MSFilter *f) {
 	au_filter_read_data_t *d=(au_filter_read_data_t*)f->data;
@@ -967,7 +896,6 @@ static MSFilter *ms_au_write_new(MSSndCard *mscard){
 	}
 	return f;
 }
-
 
 MS_FILTER_DESC_EXPORT(au_read_desc)
 MS_FILTER_DESC_EXPORT(au_write_desc)

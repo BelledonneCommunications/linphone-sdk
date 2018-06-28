@@ -1,6 +1,6 @@
 ############################################################################
-# FindSRTP.txt
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# FindZxing.txt
+# Copyright (C) 2018  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,53 +20,38 @@
 #
 ############################################################################
 #
-# - Find the SRTP include file and library
+# - Find the zxing include file and library
 #
-#  SRTP_FOUND - system has SRTP
-#  SRTP_INCLUDE_DIRS - the SRTP include directory
-#  SRTP_LIBRARIES - The libraries needed to use SRTP
+#  ZXING_FOUND - system has zxing
+#  ZXING_INCLUDE_DIRS - the zxing include directory
+#  ZXING_LIBRARIES - The libraries needed to use zxing
 
-set(_SRTP_ROOT_PATHS
-	${CMAKE_INSTALL_PREFIX}
-)
-
-find_path(SRTP2_INCLUDE_DIRS
-	NAMES srtp2/srtp.h
-	HINTS _SRTP_ROOT_PATHS
+find_path(ZXING_INCLUDE_DIRS
+	NAMES
+		zxing/common/Counted.h
+		zxing/Binarizer.h
+		zxing/MultiFormatReader.h
+		zxing/Result.h
+		zxing/ReaderException.h
+		zxing/common/GlobalHistogramBinarizer.h
+		zxing/common/HybridBinarizer.h
+		zxing/common/IllegalArgumentException.h
+		zxing/BinaryBitmap.h
+		zxing/DecodeHints.h
+		zxing/qrcode/QRCodeReader.h
 	PATH_SUFFIXES include
 )
 
-if(SRTP2_INCLUDE_DIRS)
-	set(HAVE_SRTP_SRTP_H 1)
-	set(SRTP_INCLUDE_DIRS ${SRTP2_INCLUDE_DIRS})
-	set(SRTP_VERSION 2)
-	find_library(SRTP_LIBRARIES
-		NAMES srtp2
-		HINTS ${_SRTP_ROOT_PATHS}
-		PATH_SUFFIXES bin lib
-	)
-else()
-	find_path(SRTP_INCLUDE_DIRS
-		NAMES srtp/srtp.h
-		HINTS _SRTP_ROOT_PATHS
-		PATH_SUFFIXES include
-	)
-	if(SRTP_INCLUDE_DIRS)
-		set(HAVE_SRTP_SRTP_H 1)
-		set(SRTP_VERSION 1)
-	endif()
-	find_library(SRTP_LIBRARIES
-	NAMES srtp
-	HINTS ${_SRTP_ROOT_PATHS}
+find_library(ZXING_LIBRARIES
+	NAMES zxing libzxing
 	PATH_SUFFIXES bin lib
 )
-endif()
-
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(SRTP
+find_package_handle_standard_args(Zxing
 	DEFAULT_MSG
-	SRTP_INCLUDE_DIRS SRTP_LIBRARIES HAVE_SRTP_SRTP_H SRTP_VERSION
+	ZXING_INCLUDE_DIRS ZXING_LIBRARIES
 )
 
-mark_as_advanced(SRTP_INCLUDE_DIRS SRTP_LIBRARIES HAVE_SRTP_SRTP_H SRTP_VERSION)
+mark_as_advanced(ZXING_INCLUDE_DIRS ZXING_LIBRARIES)
+

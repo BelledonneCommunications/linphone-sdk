@@ -59,6 +59,7 @@ typedef struct _MediastreamDatas {
 	bool_t is_verbose;
 	bool_t avpf;
 	char *playback_card;
+	char *display_filter;
 	char *outfile;
 	char *infile;
 	PayloadType *pt;
@@ -89,7 +90,8 @@ const char *usage = "pcap_playback --infile <pcapfile>\n"
                     "--payload <payload type number or payload name like 'audio/pmcu/8000'>\n"
 		    		"--avpf [assume RTP/AVPF profile]\n"
                     "[ --playback-card <name> ]\n"
-					"[ --outfile <name> ] limited to wav file for now\n"
+		    "[ --display-filter <name of the video display filter, for example: MSGLXVideo, MSX11Video> ]\n"
+		    "[ --outfile <name> ] limited to wav file for now\n"
                     "[ --verbose (most verbose messages) ]\n"
 		    "This tool directly renders a pcap file to soundcard or screen (for video), using mediastreamer2 filters.\n"
                     ;
@@ -156,6 +158,9 @@ bool_t parse_args(int argc, char **argv, MediastreamDatas *out)
 		} else if (strcmp(argv[i], "--playback-card") == 0) {
 			i++;
 			out->playback_card = argv[i];
+		} else if (strcmp(argv[i], "--display-filter") == 0) {
+			i++;
+			out->display_filter = argv[i];
 		} else if (strcmp(argv[i], "--infile") == 0) {
 			i++;
 			out->infile = argv[i];
@@ -248,9 +253,9 @@ void setup_media_streams(MediastreamDatas *args) {
 	/*create the rtp session */
 	ortp_init();
 	if (args->is_verbose) {
-		bctbx_set_log_level(BCTBX_LOG_DOMAIN, BCTBX_LOG_DEBUG);
+		bctbx_set_log_level(NULL, BCTBX_LOG_DEBUG);
 	} else {
-		bctbx_set_log_level(BCTBX_LOG_DOMAIN, BCTBX_LOG_MESSAGE);
+		bctbx_set_log_level(NULL, BCTBX_LOG_MESSAGE);
 	}
 
 	rtp_profile_set_payload(&av_profile, 110, &payload_type_speex_nb);
@@ -283,22 +288,28 @@ void setup_media_streams(MediastreamDatas *args) {
 
 	if (args->pt->type == PAYLOAD_VIDEO) {
 #ifdef VIDEO_ENABLED
-		const char *display_name;
+		const char *display_name = args->display_filter;
 		MSPixFmt format;
 		MSVideoSize disp_size;
 		int tmp = 1;
 
+		if (display_name == NULL){
 #if defined(HAVE_GLX)
-		display_name = "MSGLXVideo";
+			display_name = "MSGLXVideo";
 #elif defined(HAVE_XV)
-		display_name = "MSX11Video";
+			display_name = "MSX11Video";
 #elif __APPLE__ && !TARGET_OS_IPHONE
-		display_name ="MSOSXGLDisplay";
+			display_name ="MSOSXGLDisplay";
 #else
-		display_name = "MSVideoOut";
+			display_name = "MSVideoOut";
 #endif
+		}
 		args->read = ms_factory_create_filter(factory, MS_PCAP_FILE_PLAYER_ID);
 		args->write = ms_factory_create_filter_from_name(factory, display_name);
+		if (args->write == NULL){
+			fprintf(stderr, "Could not instanciate display filter '%s'. Maybe it is not included in the build ?", display_name);
+			exit(-1);
+		}
 		args->decoder = ms_factory_create_decoder(factory, args->pt->mime_type);
 		if (args->decoder==NULL){
 			fprintf(stderr,"No decoder available for %s.\n",args->pt->mime_type);

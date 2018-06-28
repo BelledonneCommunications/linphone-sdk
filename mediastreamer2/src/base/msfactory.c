@@ -32,6 +32,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/mseventqueue.h"
+#include "mediastreamer2/mswebcam.h"
 #include "basedescs.h"
 
 #if !defined(_WIN32_WCE)
@@ -233,7 +234,7 @@ void ms_factory_init(MSFactory *obj){
 	tags = ms_factory_get_platform_tags_as_string(obj);
 	ms_message("ms_factory_init() done: platform_tags=%s", tags);
 	ms_free(tags);
-	
+
 	obj->image_resources_dir = bctbx_strdup_printf("%s/images", PACKAGE_DATA_DIR);
 }
 
@@ -719,7 +720,6 @@ struct _MSEventQueue *ms_factory_create_event_queue(MSFactory *obj) {
 }
 
 void ms_factory_destroy_event_queue(MSFactory *obj) {
-	if (obj->image_resources_dir) bctbx_free(obj->image_resources_dir);
 	ms_event_queue_destroy(obj->evq);
 	ms_factory_set_event_queue(obj,NULL);
 }
@@ -995,6 +995,8 @@ void ms_factory_destroy(MSFactory *factory) {
 	factory->platform_tags = bctbx_list_free(factory->platform_tags);
 	if (factory->echo_canceller_filtername) ms_free(factory->echo_canceller_filtername);
 	if (factory->plugins_dir) ms_free(factory->plugins_dir);
+	if (factory->image_resources_dir) ms_free(factory->image_resources_dir);
+	if (factory->wbcmanager) ms_web_cam_manager_destroy(factory->wbcmanager);
 	ms_free(factory);
 	if (factory == fallback_factory) fallback_factory = NULL;
 }

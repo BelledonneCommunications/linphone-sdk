@@ -316,7 +316,7 @@ static int equalizer_set_rate(MSFilter *f, void *data){
 
 static int equalizer_set_active(MSFilter *f, void *data){
 	EqualizerState *s=(EqualizerState*)f->data;
-	s->active=*(int*)data;
+	s->active=*(bool_t*)data;
 	return 0;
 }
 

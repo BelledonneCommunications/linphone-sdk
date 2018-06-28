@@ -49,9 +49,10 @@ struct _MSAudioEndpoint{
 MSAudioConference * ms_audio_conference_new(const MSAudioConferenceParams *params, MSFactory* factory){
 	MSAudioConference *obj=ms_new0(MSAudioConference,1);
 	int tmp=1;
-	obj->ticker=ms_ticker_new();
-	ms_ticker_set_name(obj->ticker,"Audio conference MSTicker");
-	ms_ticker_set_priority(obj->ticker,__ms_get_default_prio(FALSE));
+	MSTickerParams ticker_params = { 0 };
+	ticker_params.name = "Audio conference MSTicker";
+	ticker_params.prio = __ms_get_default_prio(FALSE);
+	obj->ticker = ms_ticker_new_with_params(&ticker_params);
 	obj->mixer = ms_factory_create_filter(factory, MS_AUDIO_MIXER_ID);
 	obj->params=*params;
 	ms_filter_call_method(obj->mixer,MS_AUDIO_MIXER_ENABLE_CONFERENCE_MODE,&tmp);

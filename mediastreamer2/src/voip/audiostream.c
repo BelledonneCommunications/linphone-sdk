@@ -201,8 +201,10 @@ static void audio_stream_configure_resampler(AudioStream *st, MSFilter *resample
 	ms_filter_call_method(resampler,MS_FILTER_SET_OUTPUT_SAMPLE_RATE,&to_rate);
 	ms_filter_call_method(resampler, MS_FILTER_SET_NCHANNELS, &from_channels);
 	ms_filter_call_method(resampler, MS_FILTER_SET_OUTPUT_NCHANNELS, &to_channels);
-	ms_message("configuring %s:%p-->%s:%p from rate [%i] to rate [%i] and from channel [%i] to channel [%i]",
-				 from->desc->name, from, to->desc->name, to, from_rate, to_rate, from_channels, to_channels);
+	ms_message(
+		"configuring %s:%p-->%s:%p from rate [%i] to rate [%i] and from channel [%i] to channel [%i]",
+		from->desc->name, from, to->desc->name, to, from_rate, to_rate, from_channels, to_channels
+	);
 }
 
 static void audio_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
@@ -875,8 +877,8 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 
 	if ((stream->features & AUDIO_STREAM_FEATURE_DTMF) != 0 && (tev_pt == -1)
 		&& ( strcasecmp(pt->mime_type,"pcmu")==0 || strcasecmp(pt->mime_type,"pcma")==0)){
-		/*if no telephone-event payload is usable and pcma or pcmu is used, we will generate
-			inband dtmf*/
+		// If no telephone-event payload is usable and pcma or pcmu is used, we will generate
+		// inband dtmf.
 		stream->dtmfgen_rtp=ms_factory_create_filter (stream->ms.factory, MS_DTMF_GEN_ID);
 
 	} else {
@@ -1438,6 +1440,7 @@ int audio_stream_mixed_record_start(AudioStream *st){
 		mctl.pin=pin;
 		mctl.param.enabled=TRUE;
 		ms_filter_call_method(st->outbound_mixer,MS_AUDIO_MIXER_ENABLE_OUTPUT,&mctl);
+		if (st->videostream) video_stream_enable_recording(st->videostream, TRUE);
 		return 0;
 	}
 	return -1;
@@ -1451,11 +1454,13 @@ int audio_stream_mixed_record_stop(AudioStream *st){
 
 		if (recorder==NULL) return -1;
 		ms_filter_call_method(st->recv_tee,MS_TEE_MUTE,&pin);
+		if (st->videostream) video_stream_enable_recording(st->videostream, FALSE);
 		mctl.pin=pin;
 		mctl.param.enabled=FALSE;
 		ms_filter_call_method(st->outbound_mixer,MS_AUDIO_MIXER_ENABLE_OUTPUT,&mctl);
 		ms_filter_call_method_noarg(recorder,MS_RECORDER_PAUSE);
 		ms_filter_call_method_noarg(recorder,MS_RECORDER_CLOSE);
+
 	}
 	return 0;
 }
@@ -1931,6 +1936,7 @@ void audio_stream_unlink_video(AudioStream *stream, VideoStream *video){
 	stream->videostream=NULL;
 	if (stream->av_recorder.video_input && video->recorder_output){
 		ms_filter_call_method(video->recorder_output,MS_ITC_SINK_CONNECT,NULL);
+		video_stream_enable_recording(video, FALSE);
 	}
 }
 

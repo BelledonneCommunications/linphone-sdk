@@ -136,7 +136,15 @@ RtpSession * ms_create_duplex_rtp_session(const char* local_ip, int loc_rtp_port
 	rtp_session_set_blocking_mode(rtpr, 0);
 	rtp_session_enable_adaptive_jitter_compensation(rtpr, TRUE);
 	rtp_session_set_symmetric_rtp(rtpr, TRUE);
-	rtp_session_set_local_addr(rtpr, local_ip, loc_rtp_port, loc_rtcp_port);
+	if (local_ip) {
+		rtp_session_set_local_addr(rtpr, local_ip, loc_rtp_port, loc_rtcp_port);
+	} else {
+		local_ip = "::0";
+		if (rtp_session_set_local_addr(rtpr, local_ip, loc_rtp_port, loc_rtcp_port) < 0) {
+			local_ip = "0.0.0.0";
+			rtp_session_set_local_addr(rtpr, local_ip, loc_rtp_port, loc_rtcp_port);
+		}
+	}
 
 	/* FIXME: Temporary workaround for -Wcast-function-type. */
 	#if __GNUC__ >= 8
@@ -628,6 +636,8 @@ void video_stream_open_player(VideoStream *stream, MSFilter *sink){
 
 void video_stream_close_player(VideoStream *stream){
 }
+
+void video_stream_enable_recording(VideoStream *stream, bool_t enabled) {}
 
 const char *video_stream_get_default_video_renderer(void){
 	return NULL;

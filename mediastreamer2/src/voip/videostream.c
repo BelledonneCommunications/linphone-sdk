@@ -30,6 +30,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mediastreamer2/zrtp.h"
 #include "mediastreamer2/msvideopresets.h"
 #include "mediastreamer2/mseventqueue.h"
+#include "mediastreamer2/mstee.h"
+#include "mediastreamer2/msqrcodereader.h"
 #include "private.h"
 
 #if __APPLE__
@@ -59,36 +61,39 @@ void video_stream_free(VideoStream *stream) {
 
 	media_stream_free(&stream->ms);
 
-	if (stream->void_source != NULL)
-		ms_filter_destroy(stream->void_source);
-	if (stream->source != NULL)
-		ms_filter_destroy (stream->source);
-	if (stream->output != NULL)
-		ms_filter_destroy (stream->output);
-	if (stream->sizeconv != NULL)
-		ms_filter_destroy (stream->sizeconv);
-	if (stream->pixconv!=NULL)
-		ms_filter_destroy(stream->pixconv);
-	if (stream->tee!=NULL)
-		ms_filter_destroy(stream->tee);
-	if (stream->tee2!=NULL)
-		ms_filter_destroy(stream->tee2);
-	if (stream->jpegwriter!=NULL)
+	if (stream->jpegwriter)
 		ms_filter_destroy(stream->jpegwriter);
-	if (stream->output2!=NULL)
-		ms_filter_destroy(stream->output2);
-	if (stream->tee3)
-		ms_filter_destroy(stream->tee3);
-	if (stream->recorder_output)
-		ms_filter_destroy(stream->recorder_output);
 	if (stream->local_jpegwriter)
 		ms_filter_destroy(stream->local_jpegwriter);
+	if (stream->output)
+		ms_filter_destroy (stream->output);
+	if (stream->output2)
+		ms_filter_destroy(stream->output2);
+	if (stream->pixconv)
+		ms_filter_destroy(stream->pixconv);
+	if (stream->qrcode)
+		ms_filter_destroy(stream->qrcode);
+	if (stream->recorder_output)
+		ms_filter_destroy(stream->recorder_output);
 	if (stream->rtp_io_session)
 		rtp_session_destroy(stream->rtp_io_session);
+	if (stream->sizeconv)
+		ms_filter_destroy (stream->sizeconv);
+	if (stream->source)
+		ms_filter_destroy (stream->source);
+	if (stream->tee)
+		ms_filter_destroy(stream->tee);
+	if (stream->tee2)
+		ms_filter_destroy(stream->tee2);
+	if (stream->tee3)
+		ms_filter_destroy(stream->tee3);
+	if (stream->void_source)
+		ms_filter_destroy(stream->void_source);
 
-	if (stream->display_name!=NULL)
+	if (stream->display_name)
 		ms_free(stream->display_name);
-	if (stream->preset != NULL) ms_free(stream->preset);
+	if (stream->preset)
+		ms_free(stream->preset);
 
 	ms_free(stream);
 }
@@ -244,7 +249,7 @@ const char *video_stream_get_default_video_renderer(void){
 #elif defined(MS2_WINDOWS_DESKTOP)
 	return "MSDrawDibDisplay";
 #elif defined(__ANDROID__)
-	return "MSAndroidDisplay";
+	return "MSAndroidOpenGLDisplay";
 #elif __APPLE__ && !TARGET_OS_IPHONE
 	return "MSOSXGLDisplay";
 #elif defined (HAVE_XV)
@@ -261,7 +266,16 @@ const char *video_stream_get_default_video_renderer(void){
 }
 
 static void choose_display_name(VideoStream *stream){
-	stream->display_name=ms_strdup(video_stream_get_default_video_renderer());
+#if defined(__ANDROID__)
+	MSDevicesInfo *devices = ms_factory_get_devices_info(stream->ms.factory);
+	SoundDeviceDescription *description = ms_devices_info_get_sound_device_description(devices);
+	if (description->flags & DEVICE_HAS_CRAPPY_OPENGL)
+		stream->display_name = ms_strdup("MSAndroidDisplay");
+	else
+		stream->display_name = ms_strdup(video_stream_get_default_video_renderer());
+#else
+	stream->display_name = ms_strdup(video_stream_get_default_video_renderer());
+#endif
 }
 
 static float video_stream_get_rtcp_xr_average_quality_rating(void *userdata) {
@@ -421,7 +435,6 @@ void video_stream_set_display_filter_name(VideoStream *s, const char *fname){
 	if (fname!=NULL)
 		s->display_name=ms_strdup(fname);
 }
-
 
 static void ext_display_cb(void *ud, MSFilter* f, unsigned int event, void *eventdata){
 	MSExtDisplayOutput *output=(MSExtDisplayOutput*)eventdata;
@@ -636,6 +649,12 @@ static void configure_decoder(VideoStream *stream, PayloadType *pt){
 	/* It is important that the internal_event_cb is called synchronously! */
 	ms_filter_add_notify_callback(stream->ms.decoder, internal_event_cb, stream, TRUE);
 }
+
+#ifdef QRCODE_ENABLED
+static void configure_qrcode_filter(VideoStream *stream) {
+	ms_filter_add_notify_callback(stream->qrcode, event_cb, stream, FALSE);
+}
+#endif
 
 static void video_stream_payload_type_changed(RtpSession *session, void *data){
 	VideoStream *stream = (VideoStream *)data;
@@ -1132,6 +1151,7 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 			if (stream->recorder_output){
 				ms_connection_helper_link(&ch,stream->tee3,0,0);
 				ms_filter_link(stream->tee3,1,stream->recorder_output,0);
+				video_stream_enable_recording(stream, FALSE);/*until recorder is started, the tee3 is kept muted on pin 1*/
 				configure_recorder_output(stream);
 			}
 			ms_connection_helper_link(&ch,stream->ms.decoder,0,0);
@@ -1631,11 +1651,6 @@ static void configure_video_preview_source(VideoPreview *stream) {
 }
 
 void video_preview_start(VideoPreview *stream, MSWebCam *device) {
-	MSPixFmt format = MS_YUV420P; /* Display format */
-	int mirroring = 1;
-	int corner = -1;
-	MSVideoSize disp_size = stream->sent_vsize;
-	const char *displaytype = stream->display_name;
 	MSConnectionHelper ch;
 
 	stream->source = ms_web_cam_create_reader(device);
@@ -1643,14 +1658,27 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device) {
 	/* configure the filters */
 	configure_video_preview_source(stream);
 
-	if (displaytype) {
-		stream->output2=ms_factory_create_filter_from_name(stream->ms.factory, displaytype);
-		ms_filter_call_method(stream->output2, MS_FILTER_SET_PIX_FMT, &format);
-		ms_filter_call_method(stream->output2, MS_FILTER_SET_VIDEO_SIZE, &disp_size);
-		ms_filter_call_method(stream->output2, MS_VIDEO_DISPLAY_ENABLE_MIRRORING, &mirroring);
-		ms_filter_call_method(stream->output2, MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE, &corner);
-		/* and then connect all */
+#if defined(__ANDROID__)
+	// On Android the capture filter doesn't need a display filter to render the preview
+	stream->output2 = ms_factory_create_filter(stream->ms.factory, MS_VOID_SINK_ID);
+#else
+	{
+		MSPixFmt format = MS_YUV420P; /* Display format */
+		int mirroring = 1;
+		int corner = -1;
+		MSVideoSize disp_size = stream->sent_vsize;
+		const char *displaytype = stream->display_name;
+
+		if (displaytype) {
+			stream->output2=ms_factory_create_filter_from_name(stream->ms.factory, displaytype);
+			ms_filter_call_method(stream->output2, MS_FILTER_SET_PIX_FMT, &format);
+			ms_filter_call_method(stream->output2, MS_FILTER_SET_VIDEO_SIZE, &disp_size);
+			ms_filter_call_method(stream->output2, MS_VIDEO_DISPLAY_ENABLE_MIRRORING, &mirroring);
+			ms_filter_call_method(stream->output2, MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE, &corner);
+			/* and then connect all */
+		}
 	}
+#endif
 
 	stream->local_jpegwriter = ms_factory_create_filter(stream->ms.factory, MS_JPEG_WRITER_ID);
 	if (stream->local_jpegwriter) {
@@ -1659,14 +1687,26 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device) {
 
 	ms_connection_helper_start(&ch);
 	ms_connection_helper_link(&ch, stream->source, -1, 0);
-	if (stream->pixconv) {
-		ms_connection_helper_link(&ch, stream->pixconv, 0, 0);
-	}
 
 	if (stream->output2) {
 		if (stream->preview_window_id != 0) {
 			video_stream_set_native_preview_window_id(stream, stream->preview_window_id);
 		}
+	}
+
+	if (stream->pixconv) {
+		ms_connection_helper_link(&ch, stream->pixconv, 0, 0);
+	}
+
+	if (stream->enable_qrcode_decoder) {
+#ifdef QRCODE_ENABLED
+		stream->qrcode = ms_factory_create_filter(stream->ms.factory, MS_QRCODE_READER_ID);
+		configure_qrcode_filter(stream);
+		ms_connection_helper_link(&ch, stream->qrcode, 0, 0);
+		ms_filter_call_method(stream->qrcode, MS_QRCODE_READET_SET_DECODER_RECT, &stream->decode_rect);
+#else
+		ms_error("Can't create qrcode decoder, dependency not enabled.");
+#endif
 	}
 
 	if (stream->tee) {
@@ -1684,15 +1724,33 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device) {
 	stream->ms.state = MSStreamStarted;
 }
 
+void video_preview_enable_qrcode(VideoPreview *stream, bool_t enable) {
+	stream->enable_qrcode_decoder = enable;
+}
+
+void video_preview_set_decode_rect(VideoPreview *stream, MSRect rect) {
+	stream->decode_rect = rect;
+}
+
+bool_t video_preview_qrcode_enabled(VideoPreview *stream) {
+	return stream->enable_qrcode_decoder;
+}
+
 static MSFilter* _video_preview_stop( VideoPreview* stream, bool_t keep_source) {
 	MSFilter* source = NULL;
 	MSConnectionHelper ch;
 	ms_ticker_detach(stream->ms.sessions.ticker, stream->source);
 
+	stream->eventcb = NULL;
+	stream->event_pointer = NULL;
+
 	ms_connection_helper_start(&ch);
 	ms_connection_helper_unlink(&ch, stream->source, -1, 0);
 	if (stream->pixconv) {
 		ms_connection_helper_unlink(&ch, stream->pixconv, 0, 0);
+	}
+	if (stream->qrcode) {
+		ms_connection_helper_unlink(&ch, stream->qrcode, 0, 0);
 	}
 	if (stream->tee) {
 		ms_connection_helper_unlink(&ch, stream->tee, 0, 0);
@@ -1739,6 +1797,9 @@ static MSFilter* _video_preview_change_camera(VideoPreview *stream, MSWebCam *ca
 		} else {
 			cur_filter = stream->source;
 		}
+		if (stream->qrcode) {
+			ms_filter_unlink(cur_filter, 0, stream->qrcode, 0);
+		}
 		if (stream->tee) {
 			ms_filter_unlink(cur_filter, 0, stream->tee, 0);
 			if (stream->output2) {
@@ -1755,8 +1816,7 @@ static MSFilter* _video_preview_change_camera(VideoPreview *stream, MSWebCam *ca
 		if (change_source) {
 			if (!keep_old_source) {
 				ms_filter_destroy(stream->source);
-			}
-			else {
+			} else {
 				old_source = stream->source;
 			}
 		}
@@ -1780,6 +1840,9 @@ static MSFilter* _video_preview_change_camera(VideoPreview *stream, MSWebCam *ca
 			cur_filter = stream->pixconv;
 		} else {
 			cur_filter = stream->source;
+		}
+		if (stream->qrcode) {
+			ms_filter_link(cur_filter, 0, stream->qrcode, 0);
 		}
 		if (stream->tee) {
 			ms_filter_link(cur_filter, 0, stream->tee, 0);
@@ -1873,6 +1936,15 @@ const MSWebCam * video_stream_get_camera(const VideoStream *stream) {
 void video_stream_use_video_preset(VideoStream *stream, const char *preset) {
 	if (stream->preset != NULL) ms_free(stream->preset);
 	stream->preset = ms_strdup(preset);
+}
+
+/*this function optimizes the processing by enabling the duplication of video packets to the recorder, which is not required to be done
+ * when the recorder is not recording of course.*/
+void video_stream_enable_recording(VideoStream *stream, bool_t enabled){
+	if (stream->tee3){
+		int pin = 1;
+		ms_filter_call_method(stream->tee3, enabled ? MS_TEE_UNMUTE : MS_TEE_MUTE, &pin);
+	}
 }
 
 MSFilter * video_stream_open_remote_play(VideoStream *stream, const char *filename){

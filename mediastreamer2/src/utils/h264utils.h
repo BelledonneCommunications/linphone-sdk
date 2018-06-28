@@ -21,6 +21,7 @@
 #define H264_UTILS_H
 
 #include <mediastreamer2/msqueue.h>
+#include "mediastreamer2/msvideo.h"
 
 /**
  * Enumeration that lists the different type of NAL unit
@@ -73,5 +74,12 @@ void ms_h264_bitstream_to_nalus(const uint8_t *bitstream, size_t size, MSQueue *
  * @param idr_count If not NULL, use the pointer to store the number of IDR nalus found in the stream.
  */
 void ms_h264_stream_to_nalus(const uint8_t *frame, size_t size, MSQueue *nalus, int *idr_count);
+
+/**
+ * @brief Extract video size from a SPS NALu.
+ * @param sps A mblk_t holding the SPS.
+ * @return The video size.
+ */
+MSVideoSize ms_h264_sps_get_video_size(const mblk_t* sps);
 
 #endif /* defined(H264_UTILS_H) */

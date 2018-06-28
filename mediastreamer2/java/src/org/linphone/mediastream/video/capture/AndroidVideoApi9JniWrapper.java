@@ -61,18 +61,23 @@ public class AndroidVideoApi9JniWrapper {
 
 		for (String focusMode : params.getSupportedFocusModes()) {
 			if (focusMode.equalsIgnoreCase(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO)) {
+				Log.d("FOCUS_MODE_CONTINUOUS_VIDEO is supported, let's use it");
 				params.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
 				break;
 			}
 		}
 		
 		if (params.isVideoStabilizationSupported()) {
+			Log.d("Video stabilization is supported, let's use it");
 			params.setVideoStabilization(true);
 		}
 
 		params.setPreviewSize(width, height);
 		int[] chosenFps = findClosestEnclosingFpsRange(fps*1000, params.getSupportedPreviewFpsRange());
-		params.setPreviewFpsRange(chosenFps[0], chosenFps[1]);
+		if (chosenFps[0] != chosenFps[1]) {
+			// If both values are the same it will most likely break the auto exposure (https://stackoverflow.com/questions/26967490/android-camera-preview-is-dark/28129248#28129248)
+			params.setPreviewFpsRange(chosenFps[0], chosenFps[1]);
+		}
 		camera.setParameters(params);
 
 		int bufferSize = (width * height * ImageFormat.getBitsPerPixel(params.getPreviewFormat())) / 8;
@@ -145,19 +150,17 @@ public class AndroidVideoApi9JniWrapper {
 
 		// init with first element
 		int[] closestRange = fpsRanges.get(0);
-		int measure = Math.abs(closestRange[0] - expectedFps)
-				+ Math.abs(closestRange[1] - expectedFps);
+		int measure = Math.abs(closestRange[0] - expectedFps) + Math.abs(closestRange[1] - expectedFps);
 		for (int[] curRange : fpsRanges) {
 			if (curRange[0] > expectedFps || curRange[1] < expectedFps) continue;
-			int curMeasure = Math.abs(curRange[0] - expectedFps)
-					+ Math.abs(curRange[1] - expectedFps);
-			if (curMeasure < measure) {
-				closestRange=curRange;
+			int curMeasure = Math.abs(curRange[0] - expectedFps) + Math.abs(curRange[1] - expectedFps);
+			if (curMeasure < measure && curRange[0] != curRange[1]) { // If both values are the same it will most likely break the auto exposure (https://stackoverflow.com/questions/26967490/android-camera-preview-is-dark/28129248#28129248)
+				closestRange = curRange;
 				measure = curMeasure;
-				Log.d("a better range has been found: w="+closestRange[0]+",h="+closestRange[1]);
+				Log.d("A better range has been found: w=" + closestRange[0] + ",h=" + closestRange[1]);
 			}
 		}
-		Log.d("The closest fps range is w="+closestRange[0]+",h="+closestRange[1]);
+		Log.d("The closest fps range is w=" + closestRange[0] + ",h=" + closestRange[1]);
 		return closestRange;
 	}
 }

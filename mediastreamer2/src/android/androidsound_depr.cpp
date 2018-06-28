@@ -486,8 +486,6 @@ static void sound_read_postprocess(MSFilter *f){
 	JNIEnv *jni_env = ms_get_jni_env();
 
 	ms_ticker_set_synchronizer(f->ticker, NULL);
-	ms_ticker_synchronizer_destroy(d->ticker_synchronizer);
-	d->read_samples=0;
 
 	//stop recording
 	stop_id = jni_env->GetMethodID(d->audio_record_class,"stop", "()V");
@@ -519,6 +517,11 @@ static void sound_read_postprocess(MSFilter *f){
 	}
 	goto end;
 	end: {
+		if (d->ticker_synchronizer) {
+			ms_ticker_synchronizer_destroy(d->ticker_synchronizer);
+			d->ticker_synchronizer = NULL;
+		}
+		d->read_samples=0;
 		if (d->audio_record) jni_env->DeleteGlobalRef(d->audio_record);
 		jni_env->DeleteGlobalRef(d->audio_record_class);
 		if (d->read_buff) jni_env->DeleteGlobalRef(d->read_buff);

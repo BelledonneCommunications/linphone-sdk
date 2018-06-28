@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mediastreamer2/msvideo.h"
 #include "mediastreamer2/msticker.h"
 #include "android_mediacodec.h"
+#include "h264utils.h"
 
 #include <jni.h>
 #include <media/NdkMediaCodec.h>
@@ -62,12 +63,15 @@ static int dec_init_mediacodec(DecData *d) {
 			return AMEDIA_ERROR_UNKNOWN;
 		}
 	}
-	
+
 	format = AMediaFormat_new();
 	AMediaFormat_setString(format, "mime", "video/avc");
 	//Size mandatory for decoder configuration
-	AMediaFormat_setInt32(format, "width", 1920);
-	AMediaFormat_setInt32(format, "height", 1080);
+	if(d->sps) {
+		MSVideoSize initial_size = ms_h264_sps_get_video_size(d->sps);
+		AMediaFormat_setInt32(format, "width", initial_size.width);
+		AMediaFormat_setInt32(format, "height", initial_size.height);
+	}
 
 	if ((d->useMediaImage = AMediaImage_isAvailable())) AMediaFormat_setInt32(format, "color-format", 0x7f420888);
 
@@ -110,13 +114,6 @@ static void dec_init(MSFilter *f) {
 static void dec_preprocess(MSFilter *f) {
 	DecData *d = (DecData *)f->data;
 	d->first_image_decoded = FALSE;
-	
-	/*we shall allocate the MediaCodec decoder the last as possible and after the encoder, because
-	 * on some phones hardware encoder and decoders can't be allocated at the same time.
-	 * So let's give preference to the encoder.
-	 **/
-	
-	if (d->codec == NULL) dec_init_mediacodec(d);
 }
 
 static void dec_postprocess(MSFilter *f) {
@@ -285,11 +282,6 @@ static void dec_process(MSFilter *f) {
 	AMediaCodecBufferInfo info;
 	unsigned int unpacking_ret;
 
-	if (d->codec == NULL){
-		ms_queue_flush(f->inputs[0]);
-		return;
-	}
-
 	if (d->packet_num == 0 && d->sps && d->pps) {
 		rfc3984_unpack_out_of_band_sps_pps(&d->unpacker, d->sps, d->pps);
 		d->sps = NULL;
@@ -302,7 +294,6 @@ static void dec_process(MSFilter *f) {
 		int size;
 		uint8_t *buf = NULL;
 		ssize_t iBufidx;
-
 		unpacking_ret = rfc3984_unpack2(&d->unpacker, im, &nalus);
 
 		if (!(unpacking_ret & Rfc3984FrameAvailable)) continue;
@@ -326,6 +317,12 @@ static void dec_process(MSFilter *f) {
 		if (unpacking_ret & Rfc3984IsKeyFrame) ms_message("MSMediaCodecH264Dec: I-frame received");
 
 		size = nalusToFrame(d, &nalus, &need_reinit);
+		//Initialise the video size
+		if((d->codec==NULL) && d->sps) {
+			dec_init_mediacodec(d);
+		}
+		
+		if (d->codec == NULL) continue;
 
 		if (need_reinit) {
 			//In case of remote rotation, the decoder needs to flushed in order to restart with the new video size
@@ -398,7 +395,7 @@ static void dec_process(MSFilter *f) {
 
 		if (d->useMediaImage) {
 			AMediaImage image;
-			
+
 			if (AMediaCodec_getOutputImage(d->codec, oBufidx, &image)) {
 				int dst_pix_strides[4] = {1, 1, 1, 1};
 				MSRect dst_roi = {0, 0, image.crop_rect.w, image.crop_rect.h};
@@ -415,7 +412,7 @@ static void dec_process(MSFilter *f) {
 			}
 		} else {
 			int width = 0, height = 0;
-			
+
 			format = AMediaCodec_getOutputFormat(d->codec);
 
 			if (format != NULL) {
@@ -444,6 +441,7 @@ static void dec_process(MSFilter *f) {
 				ms_error("MSMediaCodecH264Dec: width and height are not known !");
 			}
 		}
+		
 		if (om){
 
 			if (!d->first_image_decoded) {

@@ -313,7 +313,7 @@ MS2_PUBLIC MS2_DEPRECATED MSList *ms_filter_lookup_by_interface(MSFilterInterfac
 
 /**
  * Create encoder filter according to codec name.
- 
+
  * @param mime    A string indicating the codec.
  *
  * @return a MSFilter if successfull, NULL otherwise.
@@ -438,7 +438,7 @@ MS2_PUBLIC bool_t ms_filter_has_method(MSFilter *f, unsigned int id);
  * Returns whether a filter implements a given interface.
  * @param f a MSFilter object
  * @param id an interface id.
- * 
+ *
  * Returns TRUE if interface is implemented, FALSE, otherwise.
 **/
 MS2_PUBLIC bool_t ms_filter_implements_interface(MSFilter *f, MSFilterInterfaceId id);
@@ -447,7 +447,7 @@ MS2_PUBLIC bool_t ms_filter_implements_interface(MSFilter *f, MSFilterInterfaceI
  * Returns whether a filter implements a given interface, based on the filter's descriptor.
  * @param f a MSFilter object
  * @param id an interface id.
- * 
+ *
  * Returns TRUE if interface is implemented, FALSE, otherwise.
 **/
 MS2_PUBLIC bool_t ms_filter_desc_implements_interface(MSFilterDesc *desc, MSFilterInterfaceId id);
@@ -626,13 +626,13 @@ the method index (_cnt_) and the argument size */
 #define MS_FILTER_EVENT_NO_ARG(_id_,_count_)\
 	MS_FILTER_METHOD_ID(_id_,_count_,0)
 
-	
+
 #define MS_FILTER_BASE_EVENT(_count_,_argtype_) \
 	MS_FILTER_EVENT(MS_FILTER_BASE_ID,_count_,_argtype_)
 
 #define MS_FILTER_BASE_EVENT_NO_ARG(_count_) \
 	MS_FILTER_EVENT_NO_ARG(MS_FILTER_BASE_ID,_count_)
-	
+
 /**
  *  some MSFilter base generic methods:
  **/
@@ -725,7 +725,7 @@ MS2_PUBLIC void ms_filter_postprocess(MSFilter *f);
 MS2_PUBLIC bool_t ms_filter_inputs_have_data(MSFilter *f);
 MS2_PUBLIC void ms_filter_notify(MSFilter *f, unsigned int id, void *arg);
 MS2_PUBLIC void ms_filter_notify_no_arg(MSFilter *f, unsigned int id);
-void ms_filter_clear_notify_callback(MSFilter *f);
+MS2_PUBLIC void ms_filter_clear_notify_callback(MSFilter *f);
 void ms_filter_clean_pending_events(MSFilter *f);
 #define ms_filter_lock(f)	ms_mutex_lock(&(f)->lock)
 #define ms_filter_unlock(f)	ms_mutex_unlock(&(f)->lock)

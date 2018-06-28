@@ -110,6 +110,7 @@ static void create_text_stream(text_stream_tester_t *tst, int payload_type) {
 }
 
 static void destroy_text_stream(text_stream_tester_t *tst) {
+	ortp_ev_queue_destroy(tst->stats.q);
 	text_stream_stop(tst->ts);
 }
 

@@ -72,9 +72,17 @@ set(SCENARIO_FILES
 	scenarios/poor_jitter_quality_22.pcapng
 )
 
+set(IMAGE_FILES
+	images/qrcodesite.jpg
+	images/qrcodesite_screen.jpg
+	images/qrcodesite_inclined.jpg
+	images/qrcodesite_captured.jpg
+)
+
 set(IOS_RESOURCES_FILES
 	sounds
 	scenarios
+	images
 )
 
 set(SOURCE_FILES_C
@@ -98,6 +106,9 @@ add_definitions(
 
 if(ENABLE_VIDEO)
 	list(APPEND SOURCE_FILES_C mediastreamer2_video_stream_tester.c)
+	if(ENABLE_QRCODE)
+		list(APPEND SOURCE_FILES_C mediastreamer2_qrcode_tester.c)
+	endif()
 	if(ENABLE_PCAP)
 		list(APPEND SOURCE_FILES_C mediastreamer2_codec_impl_testers.c)
 	endif()
@@ -166,6 +177,9 @@ else()
 		)
 		install(FILES ${SOUND_FILES} DESTINATION "${CMAKE_INSTALL_DATADIR}/mediastreamer2_tester/sounds")
 		install(FILES ${SCENARIO_FILES} DESTINATION "${CMAKE_INSTALL_DATADIR}/mediastreamer2_tester/scenarios")
+		if(ENABLE_VIDEO AND ENABLE_QRCODE)
+			install(FILES ${IMAGE_FILES} DESTINATION "${CMAKE_INSTALL_DATADIR}/mediastreamer2_tester/images")
+		endif()
 	endif()
 
 endif()
