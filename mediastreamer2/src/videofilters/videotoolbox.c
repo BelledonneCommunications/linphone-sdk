@@ -20,7 +20,7 @@
 #include <VideoToolbox/VideoToolbox.h>
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msvideo.h"
-#include "h264utils.h"
+#include "h26x/h264-utils.h"
 #include "mediastreamer2/rfc3984.h"
 #include "mediastreamer2/msticker.h"
 #include "mediastreamer2/mscodecutils.h"
@@ -86,7 +86,7 @@ typedef struct _VTH264EncCtx {
 	MSVideoConfiguration conf;
 	MSQueue queue;
 	ms_mutex_t mutex;
-	Rfc3984Context packer_ctx;
+	Rfc3984Context *packer_ctx;
 	const MSFilter *f;
 	const MSVideoConfiguration *video_confs;
 	MSVideoStarter starter;
@@ -152,7 +152,7 @@ static void vth264enc_output_cb(VTH264EncCtx *ctx, void *sourceFrameRefCon, OSSt
 			vth264enc_message("I-frame created");
 		}
 
-		rfc3984_pack(&ctx->packer_ctx, &nalu_queue, &ctx->queue, (uint32_t)(ctx->f->ticker->time * 90));
+		rfc3984_pack(ctx->packer_ctx, &nalu_queue, &ctx->queue, (uint32_t)(ctx->f->ticker->time * 90));
 	}
 	ms_mutex_unlock(&ctx->mutex);
 }
@@ -316,10 +316,9 @@ static void vth264enc_preprocess(MSFilter *f) {
 	VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
 	vth264enc_session_create(ctx);
 
-	rfc3984_init(&ctx->packer_ctx);
-	rfc3984_set_mode(&ctx->packer_ctx, 1);
-	rfc3984_enable_stap_a(&ctx->packer_ctx, FALSE);
-	ctx->packer_ctx.maxsz = ms_factory_get_payload_max_size(f->factory);
+	ctx->packer_ctx = rfc3984_new_with_factory(f->factory);
+	rfc3984_set_mode(ctx->packer_ctx, 1);
+	rfc3984_enable_stap_a(ctx->packer_ctx, FALSE);
 
 	ms_video_starter_init(&ctx->starter);
 	ms_iframe_requests_limiter_init(&ctx->iframe_limiter, 1000);
@@ -412,7 +411,7 @@ static void vth264enc_postprocess(MSFilter *f) {
 		vth264enc_session_destroy(ctx);
 	}
 	ms_queue_flush(&ctx->queue);
-	rfc3984_uninit(&ctx->packer_ctx);
+	rfc3984_destroy(ctx->packer_ctx);
 }
 
 static void vth264enc_uninit(MSFilter *f) {
@@ -608,7 +607,7 @@ static bool_t mblk_equal_to(const mblk_t *msg1, const mblk_t *msg2) {
 typedef struct _VTH264DecCtx {
 	VTDecompressionSessionRef session;
 	CMFormatDescriptionRef format_desc;
-	Rfc3984Context unpacker;
+	Rfc3984Context *unpacker;
 	MSQueue queue;
 	MSYuvBufAllocator *pixbuf_allocator;
 	MSVideoSize vsize;
@@ -797,7 +796,7 @@ static void h264_dec_init(MSFilter *f) {
 	VTH264DecCtx *ctx = ms_new0(VTH264DecCtx, 1);
 	ms_queue_init(&ctx->queue);
 	ctx->pixbuf_allocator = ms_yuv_buf_allocator_new();
-	rfc3984_init(&ctx->unpacker);
+	ctx->unpacker = rfc3984_new_with_factory(f->factory);
 	ctx->vsize = MS_VIDEO_SIZE_UNKNOWN;
 	ms_average_fps_init(&ctx->fps, "VideoToolboxDecoder: decoding at %ffps");
 	ctx->first_image = TRUE;
@@ -859,7 +858,7 @@ static void h264_dec_process(MSFilter *f) {
 		ms_queue_flush(&q_nalus);
 		ms_queue_flush(&q_nalus2);
 
-		unpack_status = rfc3984_unpack2(&ctx->unpacker, pkt, &q_nalus);
+		unpack_status = rfc3984_unpack2(ctx->unpacker, pkt, &q_nalus);
 		if (unpack_status & Rfc3984FrameAvailable) {
 			h264_dec_filter_nalu_stream(ctx, &q_nalus, &q_nalus2);
 		} else continue;
@@ -924,7 +923,7 @@ static void h264_dec_process(MSFilter *f) {
 static void h264_dec_uninit(MSFilter *f) {
 	VTH264DecCtx *ctx = (VTH264DecCtx *)f->data;
 
-	rfc3984_uninit(&ctx->unpacker);
+	rfc3984_destroy(ctx->unpacker);
 	if(ctx->session != NULL) h264_dec_uninit_decoder(ctx);
 	if(ctx->format_desc != NULL) CFRelease(ctx->format_desc);
 	ms_queue_flush(&ctx->queue);
