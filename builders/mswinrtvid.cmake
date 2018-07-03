@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-lcb_git_repository("git://git.linphone.org/mswinrtid.git")
+lcb_git_repository("https://gitlab.linphone.org/BC/public/mswinrtid.git")
 lcb_git_tag_latest("master")
 lcb_git_tag("b067bca955dc170b54fffe019a6a7ce86c781c8a")
 lcb_external_source_paths("mswinrtvid")
