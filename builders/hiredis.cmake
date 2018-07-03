@@ -20,15 +20,12 @@
 #
 ############################################################################
 
-lcb_git_repository("https://github.com/redis/hiredis.git")
+lcb_git_repository("https://gitlab.linphone.org/BC/public/external/hiredis.git")
 lcb_external_source_paths("externals/hiredis")
 lcb_package_source(YES)
 lcb_spec_file("hiredis.spec")
+lcb_git_tag_latest("bc")
+lcb_git_tag("bc")
 
 lcb_dependencies(bctoolbox)
-
-lcb_patch_command("COMMAND" "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/hiredis/CMakeLists.txt" "<SOURCE_DIR>")
-lcb_patch_command("COMMAND" "${CMAKE_COMMAND}" "-E" "make_directory" "<SOURCE_DIR>/build/")
-lcb_patch_command("COMMAND" "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/hiredis/build/CMakeLists.txt" "<SOURCE_DIR>/build/")
-lcb_patch_command("COMMAND" "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/hiredis/build/hiredis.spec.cmake" "<SOURCE_DIR>/build/")
 
