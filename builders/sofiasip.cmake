@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-lcb_git_repository("git://git.linphone.org/sofia-sip.git")
+lcb_git_repository("https://gitlab.linphone.org/BC/public/external/sofia-sip.git")
 lcb_git_tag_latest("bc")
 lcb_git_tag("dcdc8efab5d164ec55c8706f978a827af04459e4")
 lcb_external_source_paths("externals/sofia-sip")

@@ -1,6 +1,6 @@
 ############################################################################
 # flexisip.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# Copyright (C) 2014-2018  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-lcb_git_repository("git://git.linphone.org/flexisip")
+lcb_git_repository("https://gitlab.linphone.org/BC/public/flexisip")
 lcb_git_tag_latest("master")
 lcb_git_tag("cc4e47496600e9b1d3d412ce6e887275c204334b")
 lcb_external_source_paths("<LINPHONE_BUILDER_TOP_DIR>")

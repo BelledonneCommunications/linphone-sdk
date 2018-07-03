@@ -1,6 +1,6 @@
 ############################################################################
 # gsm.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# Copyright (C) 2014-2018  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-lcb_git_repository("git://git.linphone.org/gsm.git")
+lcb_git_repository("https://gitlab.linphone.org/BC/public/external/gsm.git")
 lcb_git_tag_latest("linphone")
 lcb_git_tag("0f8822b5326c76bb9dc4c6b552631f51792c3982")
 lcb_external_source_paths("gsm" "externals/gsm")

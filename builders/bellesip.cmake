@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-lcb_git_repository("git://git.linphone.org/belle-sip.git")
+lcb_git_repository("https://gitlab.linphone.org/BC/public/belle-sip.git")
 lcb_git_tag_latest("master")
 lcb_git_tag("1.5.3")
 lcb_external_source_paths("belle-sip")

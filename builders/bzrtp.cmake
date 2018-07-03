@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-lcb_git_repository("git://git.linphone.org/bzrtp.git")
+lcb_git_repository("https://gitlab.linphone.org/BC/public/bzrtp.git")
 lcb_git_tag_latest("master")
 lcb_git_tag("1.0.4")
 lcb_external_source_paths("bzrtp")

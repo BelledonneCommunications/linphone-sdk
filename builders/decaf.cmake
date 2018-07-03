@@ -1,6 +1,6 @@
 ############################################################################
 # decaf.cmake
-# Copyright (C) 2017  Belledonne Communications, Grenoble France
+# Copyright (C) 2017-2018  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-lcb_git_repository("git://git.linphone.org/decaf.git")
+lcb_git_repository("https://gitlab.linphone.org/BC/public/external/decaf.git")
 lcb_git_tag_latest("master")
 lcb_git_tag("master")
 lcb_external_source_paths("externals/decaf")

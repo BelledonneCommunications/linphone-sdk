@@ -1,6 +1,6 @@
 ############################################################################
 # bcunit.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# Copyright (C) 2014-2018  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-lcb_git_repository("git://git.linphone.org/bcunit.git")
+lcb_git_repository("https://gitlab.linphone.org/BC/public/bcunit.git")
 lcb_git_tag_latest("linphone")
 lcb_git_tag("0a0a9c60f5a1b899ae26b705fa5224ef25377982")
 lcb_external_source_paths("bcunit")

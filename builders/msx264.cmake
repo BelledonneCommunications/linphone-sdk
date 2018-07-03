@@ -1,6 +1,6 @@
 ############################################################################
 # msx264.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# Copyright (C) 2014-2018  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-lcb_git_repository("git://git.linphone.org/msx264.git")
+lcb_git_repository("https://gitlab.linphone.org/BC/public/msx264.git")
 lcb_git_tag_latest("master")
 lcb_git_tag("3a9b5a9ff79ea45b9f8f03d03d4a4a9213dc2c5d")
 lcb_external_source_paths("msx264")

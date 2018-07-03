@@ -1,6 +1,6 @@
 ############################################################################
 # mswp8vid.cmake
-# Copyright (C) 2015  Belledonne Communications, Grenoble France
+# Copyright (C) 2015-2018  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #

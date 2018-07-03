@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-lcb_git_repository("git://git.linphone.org/mediastreamer2.git")
+lcb_git_repository("https://gitlab.linphone.org/BC/public/mediastreamer2.git")
 lcb_git_tag_latest("master")
 lcb_git_tag("2.14.0")
 lcb_external_source_paths("mediastreamer2")

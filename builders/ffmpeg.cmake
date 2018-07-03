@@ -1,6 +1,6 @@
 ############################################################################
 # ffmpeg.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# Copyright (C) 2014-2018  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -40,7 +40,7 @@ else()
 		set(EP_ffmpeg_PATCH_OPTIONS "--binary")
 	endif()
 
-	lcb_git_repository("git://git.linphone.org/ffmpeg.git")
+	lcb_git_repository("https://gitlab.linphone.org/BC/public/external/ffmpeg.git")
 	lcb_git_tag_latest("bc")
 	lcb_git_tag("51aa587f7ddac63c831d73eb360e246765a2675f")
 	lcb_external_source_paths("externals/ffmpeg")

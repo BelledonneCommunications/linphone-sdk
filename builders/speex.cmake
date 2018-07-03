@@ -1,6 +1,6 @@
 ############################################################################
 # speex.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# Copyright (C) 2014-2018  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-lcb_git_repository("git://git.linphone.org/speex.git")
+lcb_git_repository("https://gitlab.linphone.org/BC/public/external/speex.git")
 lcb_git_tag_latest("linphone")
 lcb_git_tag("fc1dd43c3c9d244bca1c300e408ce0373dbd5ed8")
 lcb_external_source_paths("speex" "externals/speex")

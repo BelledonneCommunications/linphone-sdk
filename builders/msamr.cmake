@@ -1,6 +1,6 @@
 ############################################################################
 # msamr.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# Copyright (C) 2014-2018  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-lcb_git_repository("git://git.linphone.org/msamr.git")
+lcb_git_repository("https://gitlab.linphone.org/BC/public/msamr.git")
 lcb_git_tag_latest("master")
 lcb_git_tag("1.1.2")
 lcb_external_source_paths("msamr")

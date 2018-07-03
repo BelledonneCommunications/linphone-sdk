@@ -1,6 +1,6 @@
 ############################################################################
 # turbo-jpeg.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# Copyright (C) 2014-2018  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-lcb_git_repository("git://git.linphone.org/libjpeg-turbo.git")
+lcb_git_repository("https://gitlab.linphone.org/BC/public/external/libjpeg-turbo.git")
 #lcb_git_tag("f6b57f3521404f587f23d79ecd1b6db0dab6a221")
 lcb_external_source_paths("externals/libjpeg-turbo")
 lcb_may_be_found_on_system(YES)

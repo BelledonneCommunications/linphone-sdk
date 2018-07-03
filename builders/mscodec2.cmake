@@ -1,6 +1,6 @@
 ############################################################################
 # mscodec2.cmake
-# Copyright (C) 2016  Belledonne Communications, Grenoble France
+# Copyright (C) 2016-2018  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-lcb_git_repository("git://git.linphone.org/mscodec2.git")
+lcb_git_repository("https://gitlab.linphone.org/BC/public/mscodec2.git")
 lcb_git_tag_latest("master")
 lcb_git_tag("master")
 lcb_external_source_paths("mscodec2")

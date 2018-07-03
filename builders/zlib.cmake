@@ -1,6 +1,6 @@
 ############################################################################
 # zlib.cmake
-# Copyright (C) 2015  Belledonne Communications, Grenoble France
+# Copyright (C) 2015-2018  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-lcb_git_repository("git://git.linphone.org/zlib.git")
+lcb_git_repository("https://gitlab.linphone.org/BC/public/external/zlib.git")
 lcb_git_tag_latest("master")
 lcb_git_tag("91eb77a7c5bfe7b4cc6b722aa96548d7143a9936")
 lcb_external_source_paths("externals/zlib")

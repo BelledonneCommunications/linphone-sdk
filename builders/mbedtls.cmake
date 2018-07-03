@@ -1,6 +1,6 @@
 ############################################################################
 # mbedtls.cmake
-# Copyright (C) 2016  Belledonne Communications, Grenoble France
+# Copyright (C) 2016-2018  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-lcb_git_repository("git://git.linphone.org/mbedtls.git")
+lcb_git_repository("https://gitlab.linphone.org/BC/public/external/mbedtls.git")
 lcb_git_tag_latest("linphone")
 lcb_git_tag("3b88f2749d59e5346de08e121fba1d797c55ddaa")
 lcb_external_source_paths("mbedtls" "externals/mbedtls")

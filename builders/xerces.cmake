@@ -1,6 +1,6 @@
 ############################################################################
 # xerces.cmake
-# Copyright (C) 2017  Belledonne Communications, Grenoble France
+# Copyright (C) 2017-2018  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-lcb_git_repository("git://git.linphone.org/xerces-c.git")
+lcb_git_repository("https://gitlab.linphone.org/BC/public/external/xerces-c.git")
 lcb_external_source_paths("externals/xerces-c")
 lcb_may_be_found_on_system(YES)
 

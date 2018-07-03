@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-lcb_git_repository("git://git.linphone.org/mswebrtc.git")
+lcb_git_repository("https://gitlab.linphone.org/BC/public/mswebrtc.git")
 lcb_git_tag_latest("master")
 lcb_git_tag("88c0fa6ae7ea35fa25eac5ce4b50898e85443ff0")
 lcb_external_source_paths("mswebrtc")

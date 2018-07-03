@@ -1,6 +1,6 @@
 ############################################################################
 # polarssl.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# Copyright (C) 2014-2018  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-lcb_git_repository("git://git.linphone.org/polarssl.git")
+lcb_git_repository("https://gitlab.linphone.org/BC/public/external/polarssl.git")
 lcb_git_tag_latest("linphone-1.4")
 lcb_git_tag("3b7c2443e75e51b7af67a3e5dcb3771ae3120ff3")
 lcb_external_source_paths("polarssl" "externals/polarssl")

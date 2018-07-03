@@ -1,6 +1,6 @@
 ############################################################################
 # mswinrtvid.cmake
-# Copyright (C) 2016  Belledonne Communications, Grenoble France
+# Copyright (C) 2016-2018  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
