@@ -6,9 +6,10 @@ Belle-sip
 Overview
 --------
 
-Belle-sip is a SIP (RFC3261) implementation written in C, with an object oriented API.
-Please check "NEWS" file for an overview of current features.
-Copyright 2012-2014, Belledonne Communications SARL <contact@belledonne-communications.com>, all rights reserved.
+Belle-sip is a modern library implementing SIP (RFC3261) transport, transaction and dialog layers.
+It is written in C, with an object oriented API.
+It also comprises a simple HTTP/HTTPS client implementation.
+Copyright 2012-now, Belledonne Communications SARL <sales@belledonne-communications.com>, all rights reserved.
 
 Belle-sip is distributed to everyone under the GNU GPLv2 (see COPYING file for details).
 Incorporating belle-sip within a closed source project is not possible under the GPL.
@@ -27,13 +28,13 @@ These are required to generate a C sourcefile from SIP grammar using [antlr3](ht
 
 ### Runtime dependencies
 
-- *libantlr3c* version 3.2 or 3.4
+- *libantlr3c* version 3.2 or 3.4 - but its source is included in belle-sip, no need to install it.
 - *bctoolbox* (git://git.linphone.org/bctoolbox.git or <http://www.linphone.org/releases/sources/bctoolbox/>)
 
 
 ### Under Debian/Ubuntu
 
-		apt-get install libantlr3c-dev antlr3
+		apt-get install antlr3
 
 
 ### Under MacOS X using HomeBrew
