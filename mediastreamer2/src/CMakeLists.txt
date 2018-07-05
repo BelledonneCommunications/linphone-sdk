@@ -203,7 +203,8 @@ set(VOIP_SOURCE_FILES_C
 	voip/ringstream.c
 	voip/stun.c
 )
-set(VOIP_SOURCE_FILES_CXX )
+set(VOIP_SOURCE_FILES_CXX
+)
 set(VOIP_SOURCE_FILES_OBJC )
 set(VOIP_SOURCE_FILES_ASM )
 
@@ -284,8 +285,6 @@ endif()
 if(ENABLE_VIDEO)
 	list(APPEND VOIP_SOURCE_FILES_C
 		utils/bits_rw.c
-		utils/h264utils.c
-		utils/h264utils.h
 		videofilters/extdisplay.c
 		videofilters/mire.c
 		videofilters/nowebcam.c
@@ -298,10 +297,21 @@ if(ENABLE_VIDEO)
 		voip/msvideo.c
 		voip/nowebcam.h
 		voip/rfc2429.h
-		voip/rfc3984.c
 		voip/video_preset_high_fps.c
 		voip/videostarter.c
 		voip/videostream.c
+	)
+	list(APPEND VOIP_SOURCE_FILES_CXX
+		voip/h26x/h264-utils.cpp
+		voip/h26x/h265-utils.cpp
+		voip/h26x/h264-nal-packer.cpp
+		voip/h26x/h264-nal-unpacker.cpp
+		voip/h26x/h265-nal-packer.cpp
+		voip/h26x/h265-nal-unpacker.cpp
+		voip/h26x/h26x-utils.cpp
+		voip/h26x/nal-packer.cpp
+		voip/h26x/nal-unpacker.cpp
+		voip/h26x/rfc3984.cpp
 	)
 	if(FFMPEG_FOUND AND NOT TURBOJPEG_FOUND)
 		list(APPEND VOIP_SOURCE_FILES_C
@@ -358,8 +368,6 @@ if(ENABLE_VIDEO)
 	endif()
 	if(ANDROID)
 		list(APPEND VOIP_SOURCE_FILES_C
-			android/mediacodech264dec.c
-			android/mediacodech264enc.c
 			android/android-display.c
 			android/android-opengl-display.c
 			utils/opengl_functions.c
@@ -369,6 +377,14 @@ if(ENABLE_VIDEO)
 			utils/shader_util.c
 			utils/shader_util.h
 			voip/scaler.c
+		)
+		list(APPEND VOIP_SOURCE_FILES_CXX
+			voip/h26x/media-codec-decoder.cpp
+			voip/h26x/media-codec-encoder.cpp
+			voip/h26x/media-codec-h264-decoder.cpp
+			voip/h26x/media-codec-h264-encoder.cpp
+			voip/h26x/media-codec-h265-decoder.cpp
+			voip/h26x/media-codec-h265-encoder.cpp
 		)
 		if(CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7-a")
 			list(APPEND VOIP_SOURCE_FILES_ASM
@@ -392,9 +408,11 @@ if(ENABLE_VIDEO)
 			utils/ffmpeg-priv.c
 			utils/ffmpeg-priv.h
 			utils/swscale.h
-			videofilters/h264dec.c
 			videofilters/videodec.c
 			videofilters/videoenc.c
+		)
+		list(APPEND VOIP_SOURCE_FILES_CXX
+			videofilters/h264dec.cpp
 		)
 		if(NOT TURBOJPEG_FOUND)
 			list(APPEND VOIP_SOURCE_FILES_C
@@ -465,10 +483,11 @@ if(ENABLE_VIDEO)
 endif()
 if(BCMATROSKA2_FOUND)
 	list(APPEND VOIP_SOURCE_FILES_C
-		videofilters/mkv.c
 		utils/mkv_reader.c
 		voip/rfc2429.h
-		voip/rfc3984.c
+	)
+	list(APPEND VOIP_SOURCE_FILES_CXX
+		videofilters/mkv.cpp
 	)
 endif()
 
@@ -695,10 +714,10 @@ if(ENABLE_SHARED)
 		)
 	endif()
 	if(ANDROID)
-    if(ENABLE_VPX)
-      set_target_properties(mediastreamer_voip PROPERTIES LINK_FLAGS "-Wl,--exclude-libs,libvpx.a")
-    endif()
-  else()
+		if(ENABLE_VPX)
+			set_target_properties(mediastreamer_voip PROPERTIES LINK_FLAGS "-Wl,--exclude-libs,libvpx.a")
+		endif()
+	else()
 		# Do not version shared library on Android
 		set_target_properties(mediastreamer_voip PROPERTIES SOVERSION ${MEDIASTREAMER_SO_VERSION})
 	endif()
@@ -751,7 +770,7 @@ if(FFMPEG_FOUND AND NOT WIN32)
 	set(NO_DEPRECATED_DECLARATIONS_SOURCE_FILES
 		videofilters/videoenc.c
 		videofilters/videodec.c
-		videofilters/h264dec.c
+		videofilters/h264dec.cpp
 	)
 	if(NOT TURBOJPEG_FOUND)
 		set(NO_DEPRECATED_DECLARATIONS_SOURCE_FILES

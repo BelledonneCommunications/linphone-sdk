@@ -17,63 +17,30 @@
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#include "h264utils.h"
-#include <mediastreamer2/msqueue.h>
-#include "mediastreamer2/bits_rw.h"
-
 #include <math.h>
 
-static void  push_nalu(const uint8_t *begin, const uint8_t *end, MSQueue *nalus) {
-	unsigned ecount = 0;
-	const uint8_t *src = begin;
-	size_t nalu_len = (end - begin);
-	uint8_t nalu_byte  = *src++;
+// #include <ortp/str_utils.h>
 
-	mblk_t *m = allocb(nalu_len, 0);
+#include "mediastreamer2/bits_rw.h"
+#include "mediastreamer2/msqueue.h"
+#include "mediastreamer2/rfc3984.h"
 
-	// Removal of the 3 in a 003x sequence
-	// This emulation prevention byte is normally part of a NAL unit.
-	/* H.264 standard sys in par 7.4.1 page 58
-	 emulation_prevention_three_byte is a byte equal to 0x03.
-	 When an emulation_prevention_three_byte is present in a NAL unit, it shall be discarded by the decoding process.
-	 Within the NAL unit, the following three-byte sequence shall not occur at any byte-aligned position: 0x000000, 0x000001, 0x00002
-	 */
-	*m->b_wptr++ = nalu_byte;
-	while (src < end - 3) {
-		if (src[0] == 0 && src[1] == 0 && src[2] == 3) {
-			*m->b_wptr++ = 0;
-			*m->b_wptr++ = 0;
-			// drop the emulation_prevention_three_byte
-			src += 3;
-			++ecount;
-			continue;
-		}
-		*m->b_wptr++ = *src++;
-	}
-	*m->b_wptr++ = *src++;
-	*m->b_wptr++ = *src++;
-	*m->b_wptr++ = *src++;
+#include "h264-nal-packer.h"
+#include "h264-nal-unpacker.h"
+#include "h264-utils.h"
+#include "h26x-utils.h"
 
-	ms_queue_put(nalus, m);
-}
+using namespace mediastreamer;
+using namespace std;
+
+extern "C" {
 
 void ms_h264_bitstream_to_nalus(const uint8_t *bitstream, size_t size, MSQueue *nalus) {
-	size_t i;
-	const uint8_t *p, *begin = NULL;
-	int zeroes = 0;
+	H26xUtils::byteStreamToNalus(bitstream, size, nalus);
+}
 
-	for (i = 0, p = bitstream; i < size; ++i) {
-		if (*p == 0) {
-			++zeroes;
-		} else if (zeroes >= 2 && *p == 1) {
-			if (begin) {
-				push_nalu(begin, p - zeroes, nalus);
-			}
-			begin = p + 1;
-		} else zeroes = 0;
-		++p;
-	}
-	if (begin) push_nalu(begin, p, nalus);
+uint8_t ms_h264_nalu_get_nri(const mblk_t *nalu) {
+	return ((*nalu->b_rptr) >> 5) & 0x3;
 }
 
 MSH264NaluType ms_h264_nalu_get_type(const mblk_t *nalu) {
@@ -209,3 +176,165 @@ MSVideoSize ms_h264_sps_get_video_size(const mblk_t *sps) {
 	ms_bits_reader_n_bits(&reader, 1, NULL, "vui_parameters_present_flag");
 	return video_size;
 }
+
+} // extern "C"
+
+
+namespace mediastreamer {
+
+H264NaluType::H264NaluType(uint8_t value) {
+	if (value & 0xe0) throw out_of_range("H264 NALu type higher than 31");
+	_value = value;
+}
+
+const H264NaluType H264NaluType::Idr = 5;
+const H264NaluType H264NaluType::Sps = 7;
+const H264NaluType H264NaluType::Pps = 8;
+const H264NaluType H264NaluType::StapA = 24;
+const H264NaluType H264NaluType::FuA = 28;
+
+void H264NaluHeader::setNri(uint8_t nri) {
+	if (nri > 3) throw out_of_range("H264 NALu NRI higher than 3");
+	_nri = nri;
+}
+
+bool H264NaluHeader::operator==(const H264NaluHeader &h2) const {
+	return _fBit == h2._fBit && _type == h2._type && _nri == h2._nri;
+}
+
+void H264NaluHeader::parse(const uint8_t *header) {
+	uint8_t h = *header;
+	_type = H264NaluType(h & 0x1f);
+	h >>= 5;
+	_nri = (h & 0x3);
+	h >>= 2;
+	_fBit = (h != 0);
+}
+
+mblk_t *H264NaluHeader::forge() const {
+	uint8_t h = _fBit ? 1 : 0;
+	h <<= 2;
+	h |= _nri;
+	h <<= 5;
+	h |= uint8_t(_type);
+
+	mblk_t *m = allocb(1, 0);
+	*m->b_wptr++ = h;
+	return m;
+}
+
+unsigned int H264FrameAnalyser::Info::toUInt() const {
+	unsigned int res = 0;
+	if (this->hasIdr) res |= Rfc3984HasIDR;
+	if (this->hasSps) res |= Rfc3984HasSPS;
+	if (this->hasPps) res |= Rfc3984HasPPS;
+	if (this->newSps) res |= Rfc3984NewSPS;
+	if (this->newPps) res |= Rfc3984NewPPS;
+	return res;
+}
+
+H264FrameAnalyser::~H264FrameAnalyser() {
+	if (_lastSps) freemsg(_lastSps);
+	if (_lastPps) freemsg(_lastPps);
+}
+
+H264FrameAnalyser::Info H264FrameAnalyser::analyse(const MSQueue *frame) {
+	Info info;
+	for (const mblk_t *nalu = qbegin(&frame->q); !qend(&frame->q, nalu); nalu = qnext(&frame->q, nalu)) {
+		MSH264NaluType type = ms_h264_nalu_get_type(nalu);
+		if (type == MSH264NaluTypeIDR) {
+			info.hasIdr = true;
+		} else if (type == MSH264NaluTypeSPS) {
+			info.hasSps = true;
+			info.newSps = updateParameterSet(nalu);
+		} else if (type == MSH264NaluTypePPS) {
+			info.hasPps = true;
+			info.newPps = updateParameterSet(nalu);
+		}
+	}
+	return info;
+}
+
+bool H264FrameAnalyser::updateParameterSet(const mblk_t *new_parameter_set) {
+	mblk_t *&last_parameter_set = ms_h264_nalu_get_type(new_parameter_set) == MSH264NaluTypePPS ? _lastPps : _lastSps;
+	if (last_parameter_set != nullptr) {
+		size_t last_size = last_parameter_set->b_wptr - last_parameter_set->b_rptr;
+		size_t new_size = new_parameter_set->b_wptr - new_parameter_set->b_rptr;
+		if (last_size != new_size || memcmp(last_parameter_set->b_rptr, new_parameter_set->b_rptr, new_size) != 0) {
+			freemsg(last_parameter_set);
+			last_parameter_set = copyb(new_parameter_set);
+			return true;
+		} else {
+			return false;
+		}
+	} else {
+		last_parameter_set = copyb(new_parameter_set);
+		return true;
+	}
+}
+
+mblk_t *H264Tools::prependFuIndicatorAndHeader(mblk_t *m, uint8_t indicator, bool_t start, bool_t end, uint8_t type) {
+	mblk_t *h = allocb(2, 0);
+	h->b_wptr[0] = indicator;
+	h->b_wptr[1] = ((start & 0x1) << 7) | ((end & 0x1) << 6) | type;
+	h->b_wptr += 2;
+	h->b_cont = m;
+	if (start) m->b_rptr++;/*skip original nalu header */
+		return h;
+}
+
+H264ParameterSetsInserter::~H264ParameterSetsInserter() {
+	flush();
+}
+
+void H264ParameterSetsInserter::process(MSQueue *in, MSQueue *out) {
+	bool psBeforeIdr = false;
+	while (mblk_t *m = ms_queue_get(in)) {
+		MSH264NaluType type = ms_h264_nalu_get_type(m);
+		if (type == MSH264NaluTypeSPS) {
+			psBeforeIdr = true;
+			replaceParameterSet(_sps, m);
+		} else if (type == MSH264NaluTypePPS) {
+			psBeforeIdr = true;
+			replaceParameterSet(_pps, m);
+		} else {
+			if (_sps && _pps) {
+				if (type == MSH264NaluTypeIDR && !psBeforeIdr) {
+					ms_queue_put(out, dupmsg(_sps));
+					ms_queue_put(out, dupmsg(_pps));
+				}
+				ms_queue_put(out, m);
+			} else {
+				freemsg(m);
+			}
+			psBeforeIdr = false;
+		}
+	}
+}
+
+void H264ParameterSetsInserter::flush() {
+	replaceParameterSet(_sps, nullptr);
+	replaceParameterSet(_pps, nullptr);
+}
+
+H26xNaluHeader *H264ToolFactory::createNaluHeader() const {
+	return new H264NaluHeader();
+}
+
+NalPacker *H264ToolFactory::createNalPacker(MSFactory *factory) const {
+	return new H264NalPacker();
+}
+
+NalUnpacker *H264ToolFactory::createNalUnpacker() const {
+	return new H264NalUnpacker();
+}
+
+H26xParameterSetsInserter *H264ToolFactory::createParameterSetsInserter() const {
+	return new H264ParameterSetsInserter();
+}
+
+H26xParameterSetsStore *H264ToolFactory::createParameterSetsStore() const {
+	return new H264ParameterSetsStore();
+}
+
+} // namespace mediastreamer2
