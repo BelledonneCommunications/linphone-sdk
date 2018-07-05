@@ -111,6 +111,10 @@ static inline int avcodec_decode_video2(AVCodecContext *avctx, AVFrame *picture,
 #endif
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef HAVE_FUN_avcodec_encode_video2
 int avcodec_encode_video2 (AVCodecContext *avctx, AVPacket *avpkt, const AVFrame *frame, int *got_packet_ptr);
 #endif
@@ -160,6 +164,9 @@ void av_frame_unref (AVFrame *frame);
  *jehan: previous version (55.39.100 at least) might be buggy */
 #endif
 
+#ifdef __cplusplus
+} // extern "C"
+#endif
 
 #endif /*iHAVE_LIBAVCODEC_AVCODEC_H*/
 
