@@ -618,7 +618,6 @@ static void au_write_preprocess(MSFilter *f){
 
 	UInt32 doNotSetProperty    = 0;
 	UInt32 doSetProperty    = 1;
-	Float64 hwsamplerate;
 
 	//enable speaker output
 	auresult =AudioUnitSetProperty (
