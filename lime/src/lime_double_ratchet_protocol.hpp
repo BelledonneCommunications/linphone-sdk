@@ -111,7 +111,7 @@ namespace lime {
 				/* ctor/dtor */
 				DRHeader() = delete;
 				DRHeader(const std::vector<uint8_t> header);
-				~DRHeader() = default;
+				~DRHeader() {};
 		 };
 
 		/* this templates are intanciated in lime_double_ratchet_procotocol.cpp, do not re-instanciate it anywhere else */

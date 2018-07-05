@@ -84,7 +84,7 @@ if(MSVC)
 		list(APPEND STRICT_OPTIONS_CPP "/WX")
 	endif()
 else()
-        list(APPEND STRICT_OPTIONS_CXX "-std=c++11 -O2")
+        list(APPEND STRICT_OPTIONS_CXX "-std=c++11")
         #list(APPEND STRICT_OPTIONS_CPP "-Wall" "-Wuninitialized" "-Wno-error=deprecated-declarations") # turn off deprecated-declaration warning to avoid being flooded by soci.h
 	list(APPEND STRICT_OPTIONS_CPP "-Wall" "-Wuninitialized" "-Wno-deprecated-declarations" "-Wno-missing-field-initializers")
 	if(CMAKE_C_COMPILER_ID STREQUAL "Clang")

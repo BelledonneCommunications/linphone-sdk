@@ -24,7 +24,7 @@
 namespace lime {
 
 /* template instanciations for Curves 25519 and 448, done  */
-#ifdef EC255_ENABLED
+#if EC25519_ENABLED
 	template class X<C255, lime::Xtype::publicKey>;
 	template class X<C255, lime::Xtype::privateKey>;
 	template class X<C255, lime::Xtype::sharedSecret>;
@@ -35,7 +35,7 @@ namespace lime {
 	template class DSApair<C255>;
 #endif
 
-#ifdef EC448_ENABLED
+#if EC448_ENABLED
 	template class X<C448, lime::Xtype::publicKey>;
 	template class X<C448, lime::Xtype::privateKey>;
 	template class X<C448, lime::Xtype::sharedSecret>;
