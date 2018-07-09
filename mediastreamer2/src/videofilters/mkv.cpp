@@ -2475,7 +2475,7 @@ static void mkv_track_player_send_block(MSFactory *f, MKVTrackPlayer *obj, const
 	}
 }
 
-static void mkv_track_player_reset(MKVTrackPlayer *obj) {
+static void mkv_track_player_flush(MKVTrackPlayer *obj) {
 	mkv_block_queue_flush(obj->block_queue);
 	mkv_block_group_maker_reset(obj->group_maker);
 	obj->first_frame = TRUE;
@@ -2497,13 +2497,26 @@ static ms_bool_t mkv_player_seek_ms(MKVPlayer *obj, int position) {
 		ms_error("MKVPlayer: cannot seek. No file open");
 		return FALSE;
 	}
-	obj->time = position>0 ? mkv_reader_seek(obj->reader, position) : 0;
-	for(i = 0; i < 2; i++) {
-		if(obj->players[i]) {
-			if(position == 0) mkv_track_reader_reset(obj->players[i]->track_reader);
-			mkv_track_player_reset(obj->players[i]);
-		}
+	if (position < 0) {
+		ms_error("MKVPlayer: cannot seek to negative position (%d ms)", position);
+		return FALSE;
 	}
+
+	if (position == 0) {
+		obj->time = 0;
+		for(i = 0; i < 2; i++) {
+			if (obj->players[i]) mkv_track_reader_reset(obj->players[i]->track_reader);
+		}
+	} else {
+		int newpos = mkv_reader_seek(obj->reader, position);
+		if (newpos < 0) return FALSE;
+		obj->time = newpos;
+	}
+
+	for(i = 0; i < 2; i++) {
+		if (obj->players[i]) mkv_track_player_flush(obj->players[i]);
+	}
+
 	obj->position_changed = TRUE;
 	return TRUE;
 }
