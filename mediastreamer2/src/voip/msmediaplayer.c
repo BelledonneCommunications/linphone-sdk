@@ -177,6 +177,7 @@ bool_t ms_media_player_open(MSMediaPlayer *obj, const char *filepath) {
 
 void ms_media_player_close(MSMediaPlayer *obj) {
 	if(obj->is_open) {
+		ms_message("MSMediaPlayer: closing file.");
 		ms_ticker_detach(obj->ticker, obj->player);
 		ms_filter_call_method_noarg(obj->player, MS_PLAYER_CLOSE);
 		_unlink_all(obj);
@@ -201,6 +202,7 @@ bool_t ms_media_player_start(MSMediaPlayer *obj) {
 void ms_media_player_stop(MSMediaPlayer *obj) {
 	int seek_pos = 0;
 	if(obj->is_open) {
+		ms_message("MSMediaPlayer: sotping playback.");
 		ms_filter_call_method_noarg(obj->player, MS_PLAYER_PAUSE);
 		ms_filter_call_method(obj->player, MS_PLAYER_SEEK_MS, &seek_pos);
 	}
@@ -208,14 +210,17 @@ void ms_media_player_stop(MSMediaPlayer *obj) {
 
 void ms_media_player_pause(MSMediaPlayer *obj) {
 	if(obj->is_open) {
+		ms_message("MSMediaPlayer: pausing playback.");
 		ms_filter_call_method_noarg(obj->player, MS_PLAYER_PAUSE);
 	}
 }
 
 bool_t ms_media_player_seek(MSMediaPlayer *obj, int seek_pos_ms) {
 	if(obj->is_open) {
+		ms_message("MSMediaPlayer: seek to %d ms", seek_pos_ms);
 		return ms_filter_call_method(obj->player, MS_PLAYER_SEEK_MS, &seek_pos_ms) == 0 ? TRUE : FALSE;
 	} else {
+		ms_message("MSMediaPlayer: cannot seek: no file opened");
 		return FALSE;
 	}
 }
