@@ -177,6 +177,7 @@ bool_t ms_media_player_open(MSMediaPlayer *obj, const char *filepath) {
 
 void ms_media_player_close(MSMediaPlayer *obj) {
 	if(obj->is_open) {
+		ms_message("MSMediaPlayer: closing file.");
 		ms_ticker_detach(obj->ticker, obj->player);
 		ms_filter_call_method_noarg(obj->player, MS_PLAYER_CLOSE);
 		_unlink_all(obj);
@@ -201,6 +202,7 @@ bool_t ms_media_player_start(MSMediaPlayer *obj) {
 void ms_media_player_stop(MSMediaPlayer *obj) {
 	int seek_pos = 0;
 	if(obj->is_open) {
+		ms_message("MSMediaPlayer: sotping playback.");
 		ms_filter_call_method_noarg(obj->player, MS_PLAYER_PAUSE);
 		ms_filter_call_method(obj->player, MS_PLAYER_SEEK_MS, &seek_pos);
 	}
@@ -208,14 +210,17 @@ void ms_media_player_stop(MSMediaPlayer *obj) {
 
 void ms_media_player_pause(MSMediaPlayer *obj) {
 	if(obj->is_open) {
+		ms_message("MSMediaPlayer: pausing playback.");
 		ms_filter_call_method_noarg(obj->player, MS_PLAYER_PAUSE);
 	}
 }
 
 bool_t ms_media_player_seek(MSMediaPlayer *obj, int seek_pos_ms) {
 	if(obj->is_open) {
+		ms_message("MSMediaPlayer: seek to %d ms", seek_pos_ms);
 		return ms_filter_call_method(obj->player, MS_PLAYER_SEEK_MS, &seek_pos_ms) == 0 ? TRUE : FALSE;
 	} else {
+		ms_message("MSMediaPlayer: cannot seek: no file opened");
 		return FALSE;
 	}
 }
@@ -315,7 +320,7 @@ err:
 }
 
 static void _create_decoders(MSMediaPlayer *obj) {
-	int sample_rate, nchannels;
+	int sample_rate = 8000, nchannels = 1;
 	switch(obj->format) {
 	case MS_FILE_FORMAT_WAVE:
 		ms_filter_call_method(obj->player, MS_FILTER_GET_SAMPLE_RATE, &sample_rate);
@@ -357,21 +362,27 @@ static void _create_sinks(MSMediaPlayer *obj) {
 	int sink_sample_rate, sample_rate, sink_nchannels, nchannels;
 	bool_t need_resampler = FALSE;
 	if(obj->audio_pin_fmt.fmt && obj->snd_card) {
-		sample_rate = obj->audio_pin_fmt.fmt->rate;
-		nchannels = obj->audio_pin_fmt.fmt->nchannels;
+		sink_sample_rate = sample_rate = obj->audio_pin_fmt.fmt->rate;
+		sink_nchannels = nchannels = obj->audio_pin_fmt.fmt->nchannels;
 		if((obj->audio_sink = ms_snd_card_create_writer(obj->snd_card))) {
-			if (ms_filter_call_method(obj->audio_sink, MS_FILTER_SET_SAMPLE_RATE, &sample_rate) == -1) {
+			if (ms_filter_call_method(obj->audio_sink, MS_FILTER_SET_SAMPLE_RATE, &sink_sample_rate) == -1) {
 				ms_warning("The sound card (%s) does not support %dHz", obj->snd_card->name, sample_rate);
-				ms_filter_call_method(obj->audio_sink, MS_FILTER_GET_SAMPLE_RATE, &sink_sample_rate);
-				need_resampler = TRUE;
+				if (ms_filter_call_method(obj->audio_sink, MS_FILTER_GET_SAMPLE_RATE, &sink_sample_rate) == -1) {
+					ms_warning("Unable to get the sample rate expected by the sound card. Falling back to 8000Hz.");
+					sink_sample_rate = 8000;
+				}
+				need_resampler = need_resampler || (sink_sample_rate != sample_rate);
 			}
 			if (ms_filter_call_method(obj->audio_sink, MS_FILTER_SET_NCHANNELS, &nchannels) == -1) {
 				ms_warning("The sound card (%s) does not support %d channels", obj->snd_card->name, nchannels);
-				ms_filter_call_method(obj->audio_sink, MS_FILTER_GET_NCHANNELS, &sink_nchannels);
-				need_resampler = TRUE;
+				if (ms_filter_call_method(obj->audio_sink, MS_FILTER_GET_NCHANNELS, &sink_nchannels) == -1) {
+					ms_warning("Unable to get the number of channels expected by the sound card. Falling back to 1 channel.");
+					sink_nchannels = 1;
+				}
+				need_resampler = need_resampler || (sink_nchannels != nchannels);
 			}
-			if (need_resampler == TRUE) {
-				ms_message("Resampling to %dHz", sink_sample_rate);
+			if (need_resampler) {
+				ms_message("Resampling from (%dHz, %dch) to (%dHz, %dch)", sample_rate, nchannels, sink_sample_rate, sink_nchannels);
 				obj->resampler = ms_factory_create_filter(obj->factory, MS_RESAMPLE_ID);
 				ms_filter_call_method(obj->resampler, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
 				ms_filter_call_method(obj->resampler, MS_FILTER_SET_OUTPUT_SAMPLE_RATE, &sink_sample_rate);
