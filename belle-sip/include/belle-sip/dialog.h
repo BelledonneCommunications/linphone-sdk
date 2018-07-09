@@ -34,7 +34,6 @@ BELLESIP_EXPORT const char* belle_sip_dialog_state_to_string(const belle_sip_dia
 
 BELLESIP_EXPORT belle_sip_request_t *belle_sip_dialog_create_ack(belle_sip_dialog_t *dialog, unsigned int cseq);
 
-
 /**
  * Create a request part of this dialog.
 **/
@@ -102,6 +101,8 @@ BELLESIP_EXPORT int belle_sip_dialog_is_server(const belle_sip_dialog_t *dialog)
 BELLESIP_EXPORT int belle_sip_dialog_is_secure(const belle_sip_dialog_t *dialog);
 
 BELLESIP_EXPORT void belle_sip_dialog_send_ack(belle_sip_dialog_t *dialog, belle_sip_request_t *request);
+
+BELLESIP_EXPORT void belle_sip_dialog_send_prack(belle_sip_dialog_t *dialog, belle_sip_request_t *request);
 
 BELLESIP_EXPORT void belle_sip_dialog_terminate_on_bye(belle_sip_dialog_t *dialog, int val);
 /**

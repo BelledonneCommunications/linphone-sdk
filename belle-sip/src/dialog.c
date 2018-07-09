@@ -450,6 +450,84 @@ static void belle_sip_dialog_update_remote_target(belle_sip_dialog_t *obj, belle
 	}
 }
 
+static void belle_sip_dialog_update_local_cseq(belle_sip_dialog_t *obj, const char *method){
+	if (obj->local_cseq==0) obj->local_cseq=110;
+	if (strcmp(method,"ACK")!=0) obj->local_cseq++;
+}
+
+static belle_sip_request_t *belle_sip_dialog_create_prack(belle_sip_dialog_t *dialog, unsigned int rseq, unsigned int cseq, const char* method){
+	belle_sip_request_t *prack;
+	belle_sip_request_t *invite = dialog->last_out_invite;
+	
+	if (!invite){
+		belle_sip_error("No INVITE to PACK.");
+		return NULL;
+	}
+	
+	belle_sip_dialog_update_local_cseq(dialog, "PRACK");
+	prack = create_request(dialog, "PRACK", TRUE);
+	
+	if (prack){
+		//RAck
+		char header[50];
+		snprintf(header,sizeof(header),"%d %d %s", rseq, cseq, method);
+		belle_sip_header_t *rack = belle_sip_header_create("RAck", header);
+		belle_sip_message_add_header(BELLE_SIP_MESSAGE(prack), rack);
+		
+		//Contact
+		belle_sip_header_from_t* from_header = belle_sip_message_get_header_by_type(prack, belle_sip_header_from_t);
+		belle_sip_uri_t* req_uri = belle_sip_header_address_get_uri((belle_sip_header_address_t*)from_header);
+		belle_sip_header_contact_t* contact_header = belle_sip_header_contact_new();
+		belle_sip_header_address_set_uri((belle_sip_header_address_t*)contact_header, belle_sip_uri_new());
+		belle_sip_uri_set_user(belle_sip_header_address_get_uri((belle_sip_header_address_t*)contact_header),belle_sip_uri_get_user(req_uri));
+		belle_sip_message_add_header(BELLE_SIP_MESSAGE(prack),BELLE_SIP_HEADER(contact_header));
+		
+		const belle_sip_list_t *aut = belle_sip_message_get_headers((belle_sip_message_t*)invite, "Authorization");
+		const belle_sip_list_t *prx_aut = belle_sip_message_get_headers((belle_sip_message_t*)invite, "Proxy-Authorization");
+		if (aut)
+			belle_sip_message_add_headers((belle_sip_message_t*)prack, aut);
+		if (prx_aut)
+			belle_sip_message_add_headers((belle_sip_message_t*)prack, prx_aut);
+	}
+	
+	return prack;
+}
+
+static void belle_sip_dialog_process_response_100rel(belle_sip_dialog_t *obj, belle_sip_response_t *resp){
+	belle_sip_message_t* msg = (belle_sip_message_t*)resp;
+	belle_sip_header_cseq_t *header_cseq_resp = belle_sip_message_get_header_by_type(msg, belle_sip_header_cseq_t);
+	if (header_cseq_resp == NULL){
+		belle_sip_message("Message [%p] does not contain CSeq header!", msg);
+	}
+	
+	belle_sip_header_t *header_require = belle_sip_message_get_header(msg, "Require");
+	if (header_require){
+		const char* header_require_value = belle_sip_header_get_unparsed_value(header_require);
+		if (strcmp(header_require_value, "100rel") == 0){
+			belle_sip_message("Found header Require with value 100rel in message [%p].", msg);
+			belle_sip_header_t *header_rseq = belle_sip_message_get_header(msg, "RSeq");
+			if (header_rseq){
+				const char* header_rseq_value = belle_sip_header_get_unparsed_value(header_rseq);
+				long rseq = strtol(header_rseq_value, NULL, 10);
+				unsigned int cseq_resp = belle_sip_header_cseq_get_seq_number(header_cseq_resp);
+				const char* method_resp = belle_sip_header_cseq_get_method(header_cseq_resp);
+				
+				/*send PRACK from callee */
+				belle_sip_request_t *prack = belle_sip_dialog_create_prack(obj, rseq, cseq_resp, method_resp);
+				if (prack){
+					belle_sip_dialog_send_prack(obj, prack);
+				}
+				else {
+					belle_sip_message("Failed to create PRACK message!");
+				}
+			}
+			else {
+				belle_sip_message("Message [%p] does not contain RSeq header! (required be with 100rel)", msg);
+			}
+		}
+	}
+}
+
 /*
  * return 0 if message should be delivered to the next listener, otherwise, its a retransmision, just keep it
  * */
@@ -496,6 +574,9 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 			/*always establish a dialog*/
 			if (code>100 && code<300 && (is_invite || is_subscribe)) {
 				belle_sip_dialog_establish(obj,req,resp);
+				if (code == 180 && !as_uas) {
+					belle_sip_dialog_process_response_100rel(obj, resp);
+				}
 				if (code<200){
 					set_state(obj,BELLE_SIP_DIALOG_EARLY);
 					break;
@@ -531,6 +612,9 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 			if (code < 200 && belle_sip_transaction_get_state(transaction)==BELLE_SIP_TRANSACTION_TERMINATED){
 				/*no response establishing the dialog, and transaction terminated (transport errors)*/
 				delete_dialog=TRUE;
+			}
+			if (code == 183 && !as_uas) {
+				belle_sip_dialog_process_response_100rel(obj, resp);
 			}
 			break;
 		case BELLE_SIP_DIALOG_CONFIRMED:
@@ -710,7 +794,6 @@ belle_sip_dialog_t *belle_sip_dialog_new(belle_sip_transaction_t *t){
 }
 
 belle_sip_request_t *belle_sip_dialog_create_ack(belle_sip_dialog_t *obj, unsigned int cseq){
-	belle_sip_header_cseq_t *cseqh;
 	belle_sip_request_t *invite=obj->last_out_invite;
 	belle_sip_request_t *ack;
 
@@ -718,12 +801,9 @@ belle_sip_request_t *belle_sip_dialog_create_ack(belle_sip_dialog_t *obj, unsign
 		belle_sip_error("No INVITE to ACK.");
 		return NULL;
 	}
-	cseqh=belle_sip_message_get_header_by_type(invite,belle_sip_header_cseq_t);
-	if (belle_sip_header_cseq_get_seq_number(cseqh)!=cseq){
-		belle_sip_error("No INVITE with cseq %i to create ack for.",cseq);
-		return NULL;
-	}
+	
 	ack=create_request(obj,"ACK",TRUE);
+	belle_sip_message_set_header(BELLE_SIP_MESSAGE(ack), BELLE_SIP_HEADER(belle_sip_header_cseq_create(cseq, "ACK")));
 /*
 22 Usage of HTTP Authentication
 22.1 Framework
@@ -817,11 +897,6 @@ belle_sip_request_t * belle_sip_dialog_create_queued_request(belle_sip_dialog_t 
 		req->dialog_queued=TRUE;
 	}
 	return req;
-}
-
-static void belle_sip_dialog_update_local_cseq(belle_sip_dialog_t *obj, const char *method){
-	if (obj->local_cseq==0) obj->local_cseq=110;
-	if (strcmp(method,"ACK")!=0) obj->local_cseq++;
 }
 
 belle_sip_request_t *belle_sip_dialog_create_request(belle_sip_dialog_t *obj, const char *method){
@@ -991,6 +1066,10 @@ void belle_sip_dialog_send_ack(belle_sip_dialog_t *obj, belle_sip_request_t *req
 	}else{
 		belle_sip_error("Why do you want to send an ACK ?");
 	}
+}
+
+void belle_sip_dialog_send_prack(belle_sip_dialog_t *dialog, belle_sip_request_t *request){
+	belle_sip_provider_send_request(dialog->provider, request);
 }
 
 void belle_sip_dialog_terminate_on_bye(belle_sip_dialog_t *obj, int val){

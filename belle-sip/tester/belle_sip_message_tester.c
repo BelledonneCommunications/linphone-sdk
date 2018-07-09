@@ -18,6 +18,7 @@
 
 #include "belle-sip/belle-sip.h"
 #include "belle_sip_tester.h"
+#include "belle_sip_internal.h"
 
 
 static void check_uri_and_headers(belle_sip_message_t* message) {
@@ -97,9 +98,10 @@ static void testInviteMessage(void) {
 							"From: \"Benjamin Cheong\" <sip:bcheong@sip.linphone.org>;tag=7326e5f6\r\n"\
 							"Call-ID: Y2NlNzg0ODc0ZGIxODU1MWI5MzhkNDVkNDZhOTQ4YWU.\r\n"\
 							"CSeq: 1 INVITE\r\n"\
-							"Allow: INVITE, ACK, CANCEL, OPTIONS, BYE, REFER, NOTIFY, MESSAGE, SUBSCRIBE, INFO\r\n"\
+							"Allow: INVITE, ACK, CANCEL, OPTIONS, BYE, REFER, NOTIFY, MESSAGE, SUBSCRIBE, INFO, PRACK\r\n"\
 							"c: application/sdp\r\n"\
 							"Supported: replaces\r\n"\
+							"Supported: 100rel\r\n"\
 							"Authorization: Digest username=\"003332176\", realm=\"sip.ovh.net\", nonce=\"24212965507cde726e8bc37e04686459\", uri=\"sip:sip.ovh.net\", response=\"896e786e9c0525ca3085322c7f1bce7b\", algorithm=MD5, opaque=\"241b9fb347752f2\"\r\n"\
 							"User-Agent: X-Lite 4 release 4.0 stamp 58832\r\n"\
 							"Content-Length: 230\r\n\r\n";
@@ -113,6 +115,23 @@ static void testInviteMessage(void) {
 	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Contact"));
 	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Authorization"));
 	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Content-Type"));
+	
+	belle_sip_header_supported_t* header_support;
+	BC_ASSERT_PTR_NOT_NULL(header_support=BELLE_SIP_HEADER_SUPPORTED(belle_sip_message_get_header(message,"Supported")));
+	if (header_support) {
+		belle_sip_list_t* list;
+		list = belle_sip_header_supported_get_supported(header_support);
+		BC_ASSERT_PTR_NOT_NULL(list);
+		const char* value[] = {"replaces", "100rel"};
+		int num_supported = 2;
+		for(int i = 0; i < num_supported; i++){
+			if (list) {
+				BC_ASSERT_STRING_EQUAL((const char *)(list->data), value[i]);
+				list=list->next;
+			}
+		}
+	}
+	
 	check_uri_and_headers(message);
 	belle_sip_object_unref(message);
 	belle_sip_free(encoded_message);
@@ -388,7 +407,6 @@ static void testMalformedMessageWithWrongStart(void) {
 	belle_sip_message_t* message = belle_sip_message_parse(raw_message);
 	BC_ASSERT_PTR_NULL(message);
 }
-#include "belle_sip_internal.h"
 
 void channel_parser_tester_recovery_from_error_base (const char* prelude,const char* raw_message) {
 

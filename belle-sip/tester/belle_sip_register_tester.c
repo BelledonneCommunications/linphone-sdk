@@ -445,6 +445,80 @@ belle_sip_request_t* register_user(belle_sip_stack_t * stack
 	return register_user_at_domain(stack,prov,transport,use_transaction,username,test_domain,outbound);
 }
 
+belle_sip_client_transaction_t* register_user_with_transaction(belle_sip_stack_t * stack
+								   ,belle_sip_provider_t *prov
+								   ,const char *transport
+								   ,const char* username
+								   ,const char* outbound_proxy) {
+	belle_sip_request_t *req;
+	belle_sip_client_transaction_t *t;
+	char identity[256];
+	char uri[256];
+	int i;
+	char *outbound = NULL;
+	int do_manual_retransmissions = FALSE;
+	
+	number_of_challenge = 0;
+	if (transport)
+		snprintf(uri, sizeof(uri), "sip:%s;transport=%s", test_domain, transport);
+	else
+		snprintf(uri, sizeof(uri), "sip:%s", test_domain);
+	
+	if (transport && strcasecmp("tls",transport) == 0 && belle_sip_provider_get_listening_point(prov,"tls") == NULL){
+		belle_sip_error("No TLS support, test skipped.");
+		return NULL;
+	}
+	
+	if (outbound_proxy){
+		if (strstr(outbound_proxy,"sip:") == NULL && strstr(outbound_proxy,"sips:") == NULL){
+			outbound = belle_sip_strdup_printf("sip:%s",outbound_proxy);
+		}
+		else
+			outbound=belle_sip_strdup(outbound_proxy);
+	}
+	
+	snprintf(identity,sizeof(identity), "Tester <sip:%s@%s>", username, test_domain);
+	
+	req = belle_sip_request_create(
+								 belle_sip_uri_parse(uri),
+								 "REGISTER",
+								 belle_sip_provider_create_call_id(prov),
+								 belle_sip_header_cseq_create(20,"REGISTER"),
+								 belle_sip_header_from_create2(identity,BELLE_SIP_RANDOM_TAG),
+								 belle_sip_header_to_create2(identity,NULL),
+								 belle_sip_header_via_new(),
+								 70);
+	belle_sip_object_ref(req);
+	
+	is_register_ok = 0;
+	io_error_count = 0;
+	using_transaction = 0;
+	
+	belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_HEADER(belle_sip_header_expires_create(600)));
+	belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_HEADER(belle_sip_header_contact_new()));
+	belle_sip_provider_add_sip_listener(prov,l = BELLE_SIP_LISTENER(listener));
+	
+	t = belle_sip_provider_create_client_transaction(prov, req);
+	belle_sip_object_ref(t);
+	belle_sip_client_transaction_send_request_to(t, outbound ? belle_sip_uri_parse(outbound) : NULL);
+
+	for(i = 0; !is_register_ok && i < 20 && io_error_count == 0; i++) {
+		belle_sip_stack_sleep(stack,500);
+		if (do_manual_retransmissions && !is_register_ok) {
+			belle_sip_object_ref(req);
+			belle_sip_provider_send_request(prov, req); /*manage retransmitions*/
+		}
+	}
+	
+	BC_ASSERT_EQUAL(is_register_ok, 1, int, "%d");
+
+	belle_sip_object_unref(req);
+	belle_sip_provider_remove_sip_listener(prov,l);
+	if (outbound) belle_sip_free(outbound);
+	
+	return t;
+}
+
 static void register_with_outbound(const char *transport, int use_transaction,const char* outbound ) {
 	belle_sip_request_t *req;
 
