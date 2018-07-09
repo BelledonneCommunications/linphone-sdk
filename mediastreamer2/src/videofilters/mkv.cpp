@@ -46,7 +46,9 @@ extern "C" {
 
 #define bool_t ambigous use ms_bool_t or matroska_bool_t
 
-using namespace mediastreamer;
+#ifdef VIDEO_ENABLED
+	using namespace mediastreamer;
+#endif // ifdef VIDEO_ENABLED
 
 static int recorder_close(MSFilter *f, void *arg);
 
