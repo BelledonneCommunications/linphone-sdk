@@ -26,7 +26,7 @@
 
 
 struct _belle_generic_uri {
-	belle_sip_object_t object;
+	belle_sip_parameters_t parameters; /*just for parsing maddr*/
 	char* scheme;
 	char* user;
 	char* user_password;
@@ -134,7 +134,7 @@ GET_SET_STRING(belle_generic_uri,path);
 GET_SET_STRING(belle_generic_uri,query);
 GET_SET_STRING(belle_generic_uri,opaque_part);
 GET_SET_INT(belle_generic_uri,port,int)
-BELLE_NEW(belle_generic_uri,belle_sip_object)
+BELLE_NEW(belle_generic_uri,belle_sip_parameters)
 BELLE_PARSE(belle_sip_messageParser,belle_,generic_uri)
 
 

@@ -27,7 +27,7 @@ from subprocess import call
 
 def main():
     print("Deleting old sources...")
-    ret = call("rm ../grammars/belle_sdp*.c ../grammars/belle_sdp*.h ../grammars/belle_sip_message*.c ../grammars/belle_sip_message*.h", shell=True)
+    ret = call("rm -f ../grammars/belle_sdp*.c ../grammars/belle_sdp*.h ../grammars/belle_sip_message*.c ../grammars/belle_sip_message*.h", shell=True)
     if ret != 0:
         print("An error occured while deleting old sources")
         return -1

@@ -51,7 +51,7 @@ static void process_response(void *data, const belle_http_response_event_t *even
 			counters->two_hundred++;
 		else if (code>=300 && code <400)
 			counters->three_hundred++;
-		else if (code>=300 && code <400)
+		else if (code>=400 && code <500)
 			counters->four_hundred++;
 		BC_ASSERT_PTR_NOT_NULL(body);
 	}
@@ -164,6 +164,15 @@ static void one_https_get(void){
 		BC_ASSERT_EQUAL(counters.response_count, 1, int, "%d");
 		BC_ASSERT_EQUAL(counters.io_error_count, 0, int, "%d");
 		BC_ASSERT_EQUAL(counters.two_hundred,1,int,"%d");
+	}
+}
+
+static void one_https_get_with_maddr(void){
+	http_counters_t counters={0};
+	if (one_get("https://blabla.linphone.org;maddr=94.23.19.176/",&counters,&counters.response_count) == 0) {
+		BC_ASSERT_EQUAL(counters.response_count, 1, int, "%d");
+		BC_ASSERT_EQUAL(counters.io_error_count, 0, int, "%d");
+		BC_ASSERT_EQUAL(counters.four_hundred,1,int,"%d");
 	}
 }
 
@@ -351,6 +360,7 @@ test_t http_tests[] = {
 	TEST_NO_TAG("One http GET", one_http_get),
 	TEST_NO_TAG("http GET of empty body", http_get_empty_body),
 	TEST_NO_TAG("One https GET", one_https_get),
+	TEST_NO_TAG("One https GET with maddr", one_https_get_with_maddr),
 	TEST_NO_TAG("One https GET with http proxy", one_https_get_with_proxy),
 	TEST_NO_TAG("http request with io error", http_get_io_error),
 	TEST_NO_TAG("https GET with long body", https_get_long_body),
