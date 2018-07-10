@@ -99,7 +99,6 @@ public:
 
 protected:
 	void extractParameterSets(MSQueue *frame, MSQueue *paramterSets);
-	virtual bool isKeyFrame(const MSQueue *frame) const = 0;
 
 	MSVideoSize _vsize;
 	MSAverageFPS _fps;

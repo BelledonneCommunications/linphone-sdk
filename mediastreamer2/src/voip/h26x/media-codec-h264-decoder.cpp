@@ -124,12 +124,6 @@ public:
 	}
 
 private:
-	bool isKeyFrame(const MSQueue *frame) const override {
-		H264FrameAnalyser analyser;
-		H264FrameAnalyser::Info info = analyser.analyse(frame);
-		return info.hasIdr && info.hasSps && info.hasPps;
-	}
-
 	void updateSps(mblk_t *sps) {
 		if (_sps) freemsg(_sps);
 		_sps = dupb(sps);
