@@ -357,12 +357,10 @@ static belle_sip_request_t* create_registration_request(belle_sip_stack_t * stac
 	,belle_sip_provider_t *prov
 	,const char *transport
 	,const char* username
-	,const char* domain
-	,const char* outbound_proxy) {
+	,const char* domain) {
 	belle_sip_request_t *req;
 	char identity[256];
 	char uri[256];
-	char *outbound=NULL;
 	
 	number_of_challenge=0;
 	if (transport)
@@ -373,12 +371,6 @@ static belle_sip_request_t* create_registration_request(belle_sip_stack_t * stac
 				belle_sip_error("No TLS support, test skipped.");
 				return NULL;
 			}
-	
-	if (outbound_proxy){
-		if (strstr(outbound_proxy,"sip:")==NULL && strstr(outbound_proxy,"sips:")==NULL){
-			outbound=belle_sip_strdup_printf("sip:%s",outbound_proxy);
-		}else outbound=belle_sip_strdup(outbound_proxy);
-	}
 	
 	snprintf(identity,sizeof(identity),"Tester <sip:%s@%s>",username,domain);
 	req=belle_sip_request_create(
@@ -405,11 +397,18 @@ static void execute_registration(belle_sip_stack_t * stack,
 								belle_sip_client_transaction_t *trans,
 								belle_sip_request_t *req,
 								const char *transport,
+								const char* outbound_proxy,
 								int success_expected){
 	int do_manual_retransmissions = FALSE;
 	int use_transaction = trans ? 1 : 0;
 	int i;
 	char *outbound=NULL;
+	
+	if (outbound_proxy){
+		if (strstr(outbound_proxy,"sip:")==NULL && strstr(outbound_proxy,"sips:")==NULL){
+			outbound=belle_sip_strdup_printf("sip:%s",outbound_proxy);
+		}else outbound=belle_sip_strdup(outbound_proxy);
+	}
 	
 	belle_sip_provider_add_sip_listener(prov,l=BELLE_SIP_LISTENER(listener));
 	if (trans){
@@ -443,12 +442,12 @@ belle_sip_request_t* try_register_user_at_domain(belle_sip_stack_t * stack
 	,int success_expected) {
 	belle_sip_request_t *req,*copy = NULL;
 	
-	req = create_registration_request(stack, prov, transport, username, domain, outbound_proxy);
+	req = create_registration_request(stack, prov, transport, username, domain);
 	if (req)
 	{
 		copy = (belle_sip_request_t*)belle_sip_object_ref(belle_sip_object_clone((belle_sip_object_t*)req));
 		belle_sip_client_transaction_t *t = use_transaction ? belle_sip_provider_create_client_transaction(prov,req) : NULL;
-		execute_registration(stack, prov, t, req, transport, success_expected);
+		execute_registration(stack, prov, t, req, transport, outbound_proxy, success_expected);
 		belle_sip_object_unref(req);
 	}
 	
@@ -483,12 +482,12 @@ belle_sip_client_transaction_t* register_user_with_transaction(belle_sip_stack_t
 	belle_sip_request_t *req;
 	belle_sip_client_transaction_t *t = NULL;
 	
-	req = create_registration_request(stack, prov, transport, username, test_domain, outbound_proxy);
+	req = create_registration_request(stack, prov, transport, username, test_domain);
 	if (req)
 	{
 		t = belle_sip_provider_create_client_transaction(prov, req);
 		belle_sip_object_ref(t);
-		execute_registration(stack, prov, t, req, transport, 1);
+		execute_registration(stack, prov, t, req, transport, outbound_proxy, 1);
 	}
 	
 	return t;
