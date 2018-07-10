@@ -102,8 +102,6 @@ BELLESIP_EXPORT int belle_sip_dialog_is_secure(const belle_sip_dialog_t *dialog)
 
 BELLESIP_EXPORT void belle_sip_dialog_send_ack(belle_sip_dialog_t *dialog, belle_sip_request_t *request);
 
-BELLESIP_EXPORT void belle_sip_dialog_send_prack(belle_sip_dialog_t *dialog, belle_sip_request_t *request);
-
 BELLESIP_EXPORT void belle_sip_dialog_terminate_on_bye(belle_sip_dialog_t *dialog, int val);
 /**
  * Give access to the last transaction processed by a dialog. Can be useful to get reason code for dialog terminated before reaching established state

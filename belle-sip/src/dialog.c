@@ -463,9 +463,8 @@ static belle_sip_request_t *belle_sip_dialog_create_prack(belle_sip_dialog_t *di
 		belle_sip_error("No INVITE to PACK.");
 		return NULL;
 	}
-	
-	belle_sip_dialog_update_local_cseq(dialog, "PRACK");
-	prack = create_request(dialog, "PRACK", TRUE);
+
+	prack = belle_sip_dialog_create_request(dialog, "PRACK");
 	
 	if (prack){
 		//RAck
@@ -491,6 +490,10 @@ static belle_sip_request_t *belle_sip_dialog_create_prack(belle_sip_dialog_t *di
 	}
 	
 	return prack;
+}
+
+static void belle_sip_dialog_send_prack(belle_sip_dialog_t *dialog, belle_sip_request_t *request){
+	belle_sip_provider_send_request(dialog->provider, request);
 }
 
 static void belle_sip_dialog_process_response_100rel(belle_sip_dialog_t *obj, belle_sip_response_t *resp){
@@ -574,11 +577,11 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 			/*always establish a dialog*/
 			if (code>100 && code<300 && (is_invite || is_subscribe)) {
 				belle_sip_dialog_establish(obj,req,resp);
-				if (code == 180 && !as_uas) {
-					belle_sip_dialog_process_response_100rel(obj, resp);
-				}
 				if (code<200){
 					set_state(obj,BELLE_SIP_DIALOG_EARLY);
+					if ((code == 180 || code == 183) && !as_uas) {
+						belle_sip_dialog_process_response_100rel(obj, resp);
+					}
 					break;
 				}/* no break  for code >200 because need to call belle_sip_dialog_establish_full*/
 			}
@@ -613,7 +616,7 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 				/*no response establishing the dialog, and transaction terminated (transport errors)*/
 				delete_dialog=TRUE;
 			}
-			if (code == 183 && !as_uas) {
+			if ((code == 180 || code == 183) && !as_uas) {
 				belle_sip_dialog_process_response_100rel(obj, resp);
 			}
 			break;
@@ -796,12 +799,19 @@ belle_sip_dialog_t *belle_sip_dialog_new(belle_sip_transaction_t *t){
 belle_sip_request_t *belle_sip_dialog_create_ack(belle_sip_dialog_t *obj, unsigned int cseq){
 	belle_sip_request_t *invite=obj->last_out_invite;
 	belle_sip_request_t *ack;
+	belle_sip_header_cseq_t* cseqh;
 
 	if (!invite){
 		belle_sip_error("No INVITE to ACK.");
 		return NULL;
 	}
-	
+
+	cseqh=belle_sip_message_get_header_by_type(invite,belle_sip_header_cseq_t);
+	if (belle_sip_header_cseq_get_seq_number(cseqh)!=cseq){
+		belle_sip_error("No INVITE with cseq %i to create ack for.",cseq);
+		return NULL;
+	}
+
 	ack=create_request(obj,"ACK",TRUE);
 	belle_sip_message_set_header(BELLE_SIP_MESSAGE(ack), BELLE_SIP_HEADER(belle_sip_header_cseq_create(cseq, "ACK")));
 /*
@@ -1066,10 +1076,6 @@ void belle_sip_dialog_send_ack(belle_sip_dialog_t *obj, belle_sip_request_t *req
 	}else{
 		belle_sip_error("Why do you want to send an ACK ?");
 	}
-}
-
-void belle_sip_dialog_send_prack(belle_sip_dialog_t *dialog, belle_sip_request_t *request){
-	belle_sip_provider_send_request(dialog->provider, request);
 }
 
 void belle_sip_dialog_terminate_on_bye(belle_sip_dialog_t *obj, int val){
