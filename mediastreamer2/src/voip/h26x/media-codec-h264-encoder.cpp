@@ -45,6 +45,7 @@ private:
 	AMediaFormat *createMediaFormat() const override {
 		AMediaFormat *format = MediaCodecEncoder::createMediaFormat();
 		AMediaFormat_setInt32(format, "profile", _profile);
+		AMediaFormat_setInt32(format, "level", _level);
 		return format;
 	}
 
@@ -55,6 +56,7 @@ private:
 	}
 
 	static const int32_t _profile = 1; // AVCProfileBaseline
+	static const int32_t _level = 512; // AVCLevel31
 };
 
 class MediaCodecH264EncoderFilterImpl: public MediaCodecEncoderFilterImpl {
