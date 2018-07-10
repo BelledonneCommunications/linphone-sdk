@@ -276,7 +276,7 @@ void Db::get_allLocalDevices(std::vector<std::string> &deviceIds) {
 	deviceIds.clear();
 	rowset<row> rs = (sql.prepare << "SELECT UserId FROM lime_LocalUsers;");
 	for (const auto &r : rs) {
-		deviceIds.push_back(r.get<string>(0));
+		deviceIds.push_back(r.get<std::string>(0));
 	}
 }
 
@@ -840,8 +840,7 @@ void Lime<Curve>::cache_DR_sessions(std::vector<RecipientInfos<Curve>> &internal
 	// shall not be a real problem as recipient list won't get massive(and if they do, this part we not be the blocking one)
 	// by default at construction the RecipientInfos object have a peerStatus set to unknown so it will be kept to it for all devices not found in the localStorage
 	for (const auto &r : rs_devices) {
-		// get the deviceId and verified fields
-		auto deviceId = r.get<string>(0);
+		auto deviceId = r.get<std::string>(0);
 		auto verified = r.get<int>(1);
 		for (auto &recipient : internal_recipients) { //look for it in the list
 			if (recipient.deviceId == deviceId) {
@@ -866,7 +865,7 @@ void Lime<Curve>::cache_DR_sessions(std::vector<RecipientInfos<Curve>> &internal
 	std::unordered_map<std::string, std::shared_ptr<DR<Curve>>> requestedDevices; // found session will be loaded and temp stored in this
 	for (const auto &r : rs) {
 		auto sessionId = r.get<int>(0);
-		auto peerDeviceId = r.get<string>(1);
+		auto peerDeviceId = r.get<std::string>(1);
 
 		auto DRsession = std::make_shared<DR<Curve>>(m_localStorage.get(), sessionId, m_RNG); // load session from local storage
 		requestedDevices[peerDeviceId] = DRsession; // store found session in a our temp container
