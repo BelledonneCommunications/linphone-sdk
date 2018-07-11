@@ -749,6 +749,20 @@ BELLESIP_EXPORT belle_sip_list_t* belle_sip_header_supported_get_supported(const
 #define BELLE_SIP_SUPPORTED "Supported"
 
 /******************************
+* Require header object inherent from header
+*
+******************************/
+typedef struct _belle_sip_header_require belle_sip_header_require_t;
+BELLESIP_EXPORT belle_sip_header_require_t* belle_sip_header_require_new(void);
+BELLESIP_EXPORT belle_sip_header_require_t* belle_sip_header_require_parse(const char* require) ;
+BELLESIP_EXPORT belle_sip_header_require_t* belle_sip_header_require_create(const char* require);
+BELLESIP_EXPORT void belle_sip_header_require_add_require(belle_sip_header_require_t* require, const char* value);
+BELLESIP_EXPORT void belle_sip_header_require_set_require(belle_sip_header_require_t* require, belle_sip_list_t* require_values);
+BELLESIP_EXPORT belle_sip_list_t* belle_sip_header_require_get_require(const belle_sip_header_require_t* require);
+#define BELLE_SIP_HEADER_REQUIRE(t) BELLE_SIP_CAST(t,belle_sip_header_require_t)
+#define BELLE_SIP_REQUIRE "Require"
+
+/******************************
  * Content Disposition header object inherent from header
  *
  ******************************/

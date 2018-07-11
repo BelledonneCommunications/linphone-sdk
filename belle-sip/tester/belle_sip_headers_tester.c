@@ -1018,26 +1018,39 @@ static void test_replaces_escaped_header(void) {
 
 }
 
-static void test_require(const char* header_name, const char * header_value) {
-	belle_sip_header_t* L_tmp;
-	belle_sip_header_t* L_require;
-	char header[256];
-	char* l_raw_header = NULL;
-	snprintf(header, sizeof(header), "%s:%s", header_name, header_value);
-	L_require = belle_sip_header_parse(header);
-	l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_require));
+static void test_require(const char* header_name, const char * header_value, const char* values[],size_t number_values){
+	belle_sip_list_t* list;
+	belle_sip_header_require_t* L_tmp;
+	belle_sip_header_require_t* L_require = BELLE_SIP_HEADER_REQUIRE(belle_sip_header_create(header_name,header_value));
+	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_require));
+	size_t i=0;
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_require));
-	L_tmp = belle_sip_header_parse(l_raw_header);
-	L_require = BELLE_SIP_HEADER(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
+	L_tmp = belle_sip_header_require_parse(l_raw_header);
+	L_require = BELLE_SIP_HEADER_REQUIRE(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
+
 	belle_sip_free(l_raw_header);
-	
-	BC_ASSERT_STRING_EQUAL(belle_sip_header_get_unparsed_value(L_require), header_value);
-	belle_sip_object_unref(L_require);
+
+	list = belle_sip_header_require_get_require(L_require);
+
+	for(i=0;i<number_values;i++){
+		BC_ASSERT_PTR_NOT_NULL(list);
+		if (list) {
+			BC_ASSERT_STRING_EQUAL((const char *)(list->data),values[i]);
+			list=list->next;
+		}
+	}
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_require));
+	BC_ASSERT_PTR_NULL(belle_sip_header_require_parse("nimportequoi"));
 }
 
 static void test_header_require(void) {
-	test_require("Require", "100rel");
+	const char* value1[] ={"user","critical"};
+	const char* value2[] ={"id"};
+	const char* value3[] ={"100rel"};
+	test_require("Require","user, critical",value1,2);
+	test_require("Require", "id",value2,1);
+	test_require("Require", "100rel", value3, 1);
 }
 
 #ifndef _WIN32
