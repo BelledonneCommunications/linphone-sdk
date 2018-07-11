@@ -503,10 +503,18 @@ static void belle_sip_dialog_process_response_100rel(belle_sip_dialog_t *obj, be
 		belle_sip_message("Message [%p] does not contain CSeq header!", msg);
 	}
 	
-	belle_sip_header_t *header_require = belle_sip_message_get_header(msg, "Require");
+	belle_sip_header_require_t* header_require = belle_sip_message_get_header_by_type(msg, belle_sip_header_require_t);
 	if (header_require){
-		const char* header_require_value = belle_sip_header_get_unparsed_value(header_require);
-		if (strcmp(header_require_value, "100rel") == 0){
+		belle_sip_list_t* list = belle_sip_header_require_get_require(header_require);
+		int require_100rel = 0;
+		while (list){
+			if (strcmp(list->data, "100rel") == 0){
+				require_100rel = 1;
+				break;
+			}
+			list=list->next;
+		}
+		if (require_100rel){
 			belle_sip_message("Found header Require with value 100rel in message [%p].", msg);
 			belle_sip_header_t *header_rseq = belle_sip_message_get_header(msg, "RSeq");
 			if (header_rseq){
