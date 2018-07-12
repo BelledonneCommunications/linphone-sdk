@@ -26,7 +26,13 @@ namespace mediastreamer {
 class MediaCodecH264Decoder: public MediaCodecDecoder {
 public:
 	MediaCodecH264Decoder(): MediaCodecDecoder("video/avc") {}
+	~MediaCodecH264Decoder();
 	void setParameterSets(MSQueue *parameterSet, uint64_t timestamp) override;
+
+private:
+	bool isNewPps(mblk_t *sps);
+
+	mblk_t *_lastSps = nullptr;
 };
 
 }

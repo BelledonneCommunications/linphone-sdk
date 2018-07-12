@@ -17,6 +17,8 @@
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
+#include <cstring>
+
 #include <ortp/b64.h>
 
 #include "h264-nal-unpacker.h"
@@ -28,18 +30,48 @@ using namespace b64;
 
 namespace mediastreamer {
 
+MediaCodecH264Decoder::~MediaCodecH264Decoder() {
+	if (_lastSps) freemsg(_lastSps);
+}
+
 void MediaCodecH264Decoder::setParameterSets(MSQueue *parameterSet, uint64_t timestamp) {
 	for (mblk_t *m = ms_queue_peek_first(parameterSet); !ms_queue_end(parameterSet, m); m = ms_queue_next(parameterSet, m)) {
 		MSH264NaluType type = ms_h264_nalu_get_type(m);
-		if (type == MSH264NaluTypeSPS) {
+		if (type == MSH264NaluTypeSPS && isNewPps(m)) {
+			int32_t curWidth, curHeight;
+			AMediaFormat_getInt32(_format, "width", &curWidth);
+			AMediaFormat_getInt32(_format, "height", &curHeight);
 			MSVideoSize vsize = ms_h264_sps_get_video_size(m);
-			AMediaFormat_setInt32(_format, "width", vsize.width);
-			AMediaFormat_setInt32(_format, "height", vsize.height);
-			stopImpl();
-			startImpl();
+			if (vsize.width != curWidth || vsize.height != curHeight) {
+				ms_message("MediaCodecH264Decoder: restarting decoder because the video size has changed (%dx%d->%dx%d)",
+					curWidth,
+					curHeight,
+					vsize.width,
+					vsize.height
+				);
+				AMediaFormat_setInt32(_format, "width", vsize.width);
+				AMediaFormat_setInt32(_format, "height", vsize.height);
+				stopImpl();
+				startImpl();
+			}
 		}
 	}
 	MediaCodecDecoder::setParameterSets(parameterSet, timestamp);
+}
+
+bool MediaCodecH264Decoder::isNewPps(mblk_t *sps) {
+	if (_lastSps == nullptr) {
+		_lastSps = dupmsg(sps);
+		return true;
+	}
+	const size_t spsSize = size_t(sps->b_wptr - sps->b_rptr);
+	const size_t lastSpsSize = size_t(_lastSps->b_wptr - _lastSps->b_rptr);
+	if (spsSize != lastSpsSize || memcmp(_lastSps->b_rptr, sps->b_rptr, spsSize) != 0) {
+		freemsg(_lastSps);
+		_lastSps = dupmsg(sps);
+		return true;
+	}
+	return false;
 }
 
 class MediaCodecH264DecoderFilterImpl: public MediaCodecDecoderFilterImpl {

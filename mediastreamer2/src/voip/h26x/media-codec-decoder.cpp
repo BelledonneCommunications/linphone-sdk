@@ -166,6 +166,7 @@ AMediaFormat *MediaCodecDecoder::createFormat(const std::string &mime) const {
 void MediaCodecDecoder::startImpl() {
 	media_status_t status = AMEDIA_OK;
 	ostringstream errMsg;
+	ms_message("MediaCodecDecoder: starting decoder");
 	if ((status = AMediaCodec_configure(_impl, _format, nullptr, nullptr, 0)) != AMEDIA_OK) {
 		errMsg << "configuration failure: " << int(status);
 		throw runtime_error(errMsg.str());
@@ -178,6 +179,7 @@ void MediaCodecDecoder::startImpl() {
 }
 
 void MediaCodecDecoder::stopImpl() {
+	ms_message("MediaCodecDecoder: stopping decoder");
 	AMediaCodec_stop(_impl);
 }
 
