@@ -35,6 +35,8 @@
 #include "android_mediacodec.h"
 #include "h26x-utils.h"
 #include "media-codec-decoder.h"
+#include "media-codec-h264-decoder.h"
+#include "media-codec-h265-decoder.h"
 
 using namespace b64;
 using namespace mediastreamer;
@@ -67,8 +69,8 @@ MediaCodecDecoder::~MediaCodecDecoder() {
 	ms_yuv_buf_allocator_free(_bufAllocator);
 }
 
-void MediaCodecDecoder::setParameterSets(MSQueue *paramterSets, uint64_t timestamp) {
-	if (!feed(paramterSets, timestamp, true)) {
+void MediaCodecDecoder::setParameterSets(MSQueue *parameterSets, uint64_t timestamp) {
+	if (!feed(parameterSets, timestamp, true)) {
 		ms_error("MSMediaCodecH264Dec: paramter sets has been refused by the decoder.");
 		return;
 	}
@@ -143,6 +145,12 @@ mblk_t *MediaCodecDecoder::fetch() {
 end:
 	if (oBufidx >= 0) AMediaCodec_releaseOutputBuffer(_impl, oBufidx, FALSE);
 	return om;
+}
+
+MediaCodecDecoder *MediaCodecDecoder::createDecoder(const std::string &mime) {
+	if (mime == "video/avc") return new MediaCodecH264Decoder();
+	else if (mime == "video/hevc") return new MediaCodecH265Decoder();
+	else throw invalid_argument(mime);
 }
 
 AMediaFormat *MediaCodecDecoder::createFormat(const std::string &mime) const {
@@ -223,7 +231,7 @@ MediaCodecDecoderFilterImpl::MediaCodecDecoderFilterImpl(MSFilter *f, const std:
 	_naluHeader(H26xToolFactory::get(mime).createNaluHeader()) {
 
 	try {
-		_codec.reset(new MediaCodecDecoder(mime));
+		_codec.reset(MediaCodecDecoder::createDecoder(mime));
 		ms_message("MSMediaCodecH264Dec initialization");
 		ms_average_fps_init(&_fps, " H264 decoder: FPS: %f");
 	} catch (const runtime_error &e) {

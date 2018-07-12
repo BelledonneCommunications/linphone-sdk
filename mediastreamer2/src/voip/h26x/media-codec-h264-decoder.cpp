@@ -22,10 +22,25 @@
 #include "h264-nal-unpacker.h"
 #include "h264-utils.h"
 #include "media-codec-decoder.h"
+#include "media-codec-h264-decoder.h"
 
 using namespace b64;
 
 namespace mediastreamer {
+
+void MediaCodecH264Decoder::setParameterSets(MSQueue *parameterSet, uint64_t timestamp) {
+	for (mblk_t *m = ms_queue_peek_first(parameterSet); !ms_queue_end(parameterSet, m); m = ms_queue_next(parameterSet, m)) {
+		MSH264NaluType type = ms_h264_nalu_get_type(m);
+		if (type == MSH264NaluTypeSPS) {
+			MSVideoSize vsize = ms_h264_sps_get_video_size(m);
+			AMediaFormat_setInt32(_format, "width", vsize.width);
+			AMediaFormat_setInt32(_format, "height", vsize.height);
+			stopImpl();
+			startImpl();
+		}
+	}
+	MediaCodecDecoder::setParameterSets(parameterSet, timestamp);
+}
 
 class MediaCodecH264DecoderFilterImpl: public MediaCodecDecoderFilterImpl {
 public:

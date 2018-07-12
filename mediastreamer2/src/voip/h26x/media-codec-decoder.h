@@ -36,16 +36,17 @@ namespace mediastreamer {
 
 class MediaCodecDecoder {
 public:
-	MediaCodecDecoder(const std::string &mime);
-	~MediaCodecDecoder();
+	virtual ~MediaCodecDecoder();
 
-	void setParameterSets(MSQueue *paramterSet, uint64_t timestamp);
+	virtual void setParameterSets(MSQueue *parameterSet, uint64_t timestamp);
 	void waitForKeyFrame() {_needKeyFrame = true;}
 
 	bool feed(MSQueue *encodedFrame, uint64_t timestamp);
 	mblk_t *fetch();
 
-private:
+	static MediaCodecDecoder *createDecoder(const std::string &mime);
+
+protected:
 	class BufferFlag {
 	public:
 		static const uint32_t None = 0;
@@ -55,6 +56,7 @@ private:
 		static const uint32_t PartialFrame = 1<<3;
 	};
 
+	MediaCodecDecoder(const std::string &mime);
 	AMediaFormat *createFormat(const std::string &mime) const;
 	void startImpl();
 	void stopImpl();
