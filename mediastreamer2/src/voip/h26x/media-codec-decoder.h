@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <list>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -38,19 +39,13 @@ public:
 	MediaCodecDecoder(const std::string &mime);
 	~MediaCodecDecoder();
 
-	void setParameterSets(MSQueue *paramterSets);
+	void setParameterSets(MSQueue *paramterSet, uint64_t timestamp);
 	void waitForKeyFrame() {_needKeyFrame = true;}
-	void flush();
 
 	bool feed(MSQueue *encodedFrame, uint64_t timestamp);
 	mblk_t *fetch();
 
 private:
-	enum class State {
-		Reset,
-		Ready
-	};
-
 	class BufferFlag {
 	public:
 		static const uint32_t None = 0;
@@ -60,21 +55,20 @@ private:
 		static const uint32_t PartialFrame = 1<<3;
 	};
 
-	void createImpl(const std::string &mime);
+	AMediaFormat *createFormat(const std::string &mime) const;
+	void startImpl();
+	void stopImpl();
 	bool feed(MSQueue *encodedFrame, uint64_t timestamp, bool isPs);
 	bool isKeyFrame(const MSQueue *frame) const;
-	void setState(State state);
-	static const char *toString(State state);
 
 	AMediaCodec *_impl = nullptr;
-	int _pendingFrames = 0;
-	MSVideoSize _vsize;
+	AMediaFormat *_format = nullptr;
 	MSYuvBufAllocator *_bufAllocator = nullptr;
-	uint64_t _lastTs = 0;
-	State _state = State::Reset;
 	std::vector<uint8_t> _bitstream;
 	std::unique_ptr<H26xNaluHeader> _naluHeader;
+	int _pendingFrames = 0;
 	bool _needKeyFrame = true;
+	bool _needParameters = true;
 
 	static const unsigned int _timeoutUs = 0;
 };
@@ -109,7 +103,7 @@ protected:
 	std::unique_ptr<NalUnpacker> _unpacker;
 	std::unique_ptr<H26xParameterSetsStore> _psStore;
 	std::unique_ptr<H26xNaluHeader> _naluHeader;
-	MediaCodecDecoder _codec;
+	std::unique_ptr<MediaCodecDecoder> _codec;
 	bool _firstImageDecoded = false;
 
 
