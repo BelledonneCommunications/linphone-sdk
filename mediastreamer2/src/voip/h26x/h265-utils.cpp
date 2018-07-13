@@ -147,11 +147,6 @@ void H265ParameterSetsInserter::flush() {
 	replaceParameterSet(_pps, nullptr);
 }
 
-int H265ParameterSetsStore::getNaluType(const mblk_t *nalu) const {
-	H265NaluHeader header(nalu->b_rptr);
-	return header.getType();
-}
-
 H26xNaluHeader *H265ToolFactory::createNaluHeader() const {
 	return new H265NaluHeader();
 }

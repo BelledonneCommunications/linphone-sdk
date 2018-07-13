@@ -116,8 +116,7 @@ private:
 
 class H265ParameterSetsStore: public H26xParameterSetsStore {
 public:
-	H265ParameterSetsStore(): H26xParameterSetsStore({H265NaluType::Vps, H265NaluType::Sps, H265NaluType::Pps}) {}
-	int getNaluType(const mblk_t *nalu) const override;
+	H265ParameterSetsStore(): H26xParameterSetsStore("video/hevc", {H265NaluType::Vps, H265NaluType::Sps, H265NaluType::Pps}) {}
 };
 
 class H265ToolFactory: public H26xToolFactory {

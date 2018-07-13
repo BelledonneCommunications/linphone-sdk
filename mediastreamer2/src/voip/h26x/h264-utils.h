@@ -187,8 +187,7 @@ private:
 
 class H264ParameterSetsStore: public H26xParameterSetsStore {
 public:
-	H264ParameterSetsStore(): H26xParameterSetsStore({MSH264NaluTypeSPS, MSH264NaluTypePPS}) {}
-	int getNaluType(const mblk_t *nalu) const override {return ms_h264_nalu_get_type(nalu);}
+	H264ParameterSetsStore(): H26xParameterSetsStore("video/avc", {MSH264NaluTypeSPS, MSH264NaluTypePPS}) {}
 };
 
 class H264ToolFactory: public H26xToolFactory {
