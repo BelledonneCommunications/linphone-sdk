@@ -34,7 +34,7 @@ MediaCodecH264Decoder::~MediaCodecH264Decoder() {
 	if (_lastSps) freemsg(_lastSps);
 }
 
-void MediaCodecH264Decoder::setParameterSets(MSQueue *parameterSet, uint64_t timestamp) {
+bool MediaCodecH264Decoder::setParameterSets(MSQueue *parameterSet, uint64_t timestamp) {
 	for (mblk_t *m = ms_queue_peek_first(parameterSet); !ms_queue_end(parameterSet, m); m = ms_queue_next(parameterSet, m)) {
 		MSH264NaluType type = ms_h264_nalu_get_type(m);
 		if (type == MSH264NaluTypeSPS && isNewPps(m)) {
@@ -56,7 +56,7 @@ void MediaCodecH264Decoder::setParameterSets(MSQueue *parameterSet, uint64_t tim
 			}
 		}
 	}
-	MediaCodecDecoder::setParameterSets(parameterSet, timestamp);
+	return MediaCodecDecoder::setParameterSets(parameterSet, timestamp);
 }
 
 bool MediaCodecH264Decoder::isNewPps(mblk_t *sps) {

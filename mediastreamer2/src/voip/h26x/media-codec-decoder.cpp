@@ -55,6 +55,7 @@ MediaCodecDecoder::MediaCodecDecoder(const std::string &mime) {
 		_format = createFormat(mime);
 		_bufAllocator = ms_yuv_buf_allocator_new();
 		_naluHeader.reset(H26xToolFactory::get(mime).createNaluHeader());
+		_psStore.reset(H26xToolFactory::get(mime).createParameterSetsStore());
 		startImpl();
 	} catch (const runtime_error &e) {
 		if (_impl) AMediaCodec_delete(_impl);
@@ -69,19 +70,33 @@ MediaCodecDecoder::~MediaCodecDecoder() {
 	ms_yuv_buf_allocator_free(_bufAllocator);
 }
 
-void MediaCodecDecoder::setParameterSets(MSQueue *parameterSets, uint64_t timestamp) {
+bool MediaCodecDecoder::setParameterSets(MSQueue *parameterSets, uint64_t timestamp) {
 	if (!feed(parameterSets, timestamp, true)) {
 		ms_error("MSMediaCodecH264Dec: paramter sets has been refused by the decoder.");
-		return;
+		return false;
 	}
 	_needParameters = false;
+	return true;
 }
 
 bool MediaCodecDecoder::feed(MSQueue *encodedFrame, uint64_t timestamp) {
 	bool status = false;
+
+	_psStore->extractAllPs(encodedFrame);
+	if (_psStore->hasNewParameters()) {
+		ms_message("MSMediaCodecDec: new paramter sets received");
+		_needParameters = true;
+		_psStore->acknowlege();
+	}
+
 	if (_needParameters) {
-		ms_error("MSMediaCodecH264Dec: waiting for paramter sets.");
-		goto clean;
+		MSQueue parameters;
+		ms_queue_init(&parameters);
+		_psStore->fetchAllPs(&parameters);
+		if (!setParameterSets(&parameters, timestamp)) {
+			ms_error("MSMediaCodecH264Dec: waiting for parameter sets.");
+			goto clean;
+		}
 	}
 
 	if (_needKeyFrame) {
@@ -228,9 +243,7 @@ bool MediaCodecDecoder::isKeyFrame(const MSQueue *frame) const {
 MediaCodecDecoderFilterImpl::MediaCodecDecoderFilterImpl(MSFilter *f, const std::string &mime):
 	_vsize({0, 0}),
 	_f(f),
-	_unpacker(H26xToolFactory::get(mime).createNalUnpacker()),
-	_psStore(H26xToolFactory::get(mime).createParameterSetsStore()),
-	_naluHeader(H26xToolFactory::get(mime).createNaluHeader()) {
+	_unpacker(H26xToolFactory::get(mime).createNalUnpacker()) {
 
 	try {
 		_codec.reset(MediaCodecDecoder::createDecoder(mime));
@@ -278,12 +291,7 @@ void MediaCodecDecoderFilterImpl::process() {
 		clock_gettime(CLOCK_MONOTONIC, &ts);
 		uint64_t tsMs = (ts.tv_nsec / 1000000ULL) + 10ULL;
 
-		extractParameterSets(&frame, &parameterSets);
-		if (!ms_queue_empty(&parameterSets)) _codec->setParameterSets(&parameterSets, tsMs);
-
-		if (!ms_queue_empty(&frame)) {
-			requestPli = !_codec->feed(&frame, tsMs);
-		}
+		requestPli = !_codec->feed(&frame, tsMs);
 
 		ms_queue_flush(&frame);
 		ms_queue_flush(&parameterSets);
@@ -317,20 +325,6 @@ void MediaCodecDecoderFilterImpl::postprocess() {
 
 void MediaCodecDecoderFilterImpl::resetFirstImage() {
 	_firstImageDecoded = false;
-}
-
-void MediaCodecDecoderFilterImpl::extractParameterSets(MSQueue *frame, MSQueue *parameterSets) {
-	for (mblk_t *nalu = ms_queue_peek_first(frame); !ms_queue_end(frame, nalu);) {
-		_naluHeader->parse(nalu->b_rptr);
-		if (_naluHeader->getAbsType().isParameterSet()) {
-			mblk_t *ps = nalu;
-			nalu = ms_queue_next(frame, nalu);
-			ms_queue_remove(frame, ps);
-			ms_queue_put(parameterSets, ps);
-			continue;
-		}
-		nalu = ms_queue_next(frame, nalu);
-	}
 }
 
 MSVideoSize MediaCodecDecoderFilterImpl::getVideoSize() const {

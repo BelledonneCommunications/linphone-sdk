@@ -27,7 +27,7 @@ class MediaCodecH264Decoder: public MediaCodecDecoder {
 public:
 	MediaCodecH264Decoder(): MediaCodecDecoder("video/avc") {}
 	~MediaCodecH264Decoder();
-	void setParameterSets(MSQueue *parameterSet, uint64_t timestamp) override;
+	bool setParameterSets(MSQueue *parameterSet, uint64_t timestamp) override;
 
 private:
 	bool isNewPps(mblk_t *sps);

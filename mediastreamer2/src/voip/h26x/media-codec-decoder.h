@@ -38,7 +38,6 @@ class MediaCodecDecoder {
 public:
 	virtual ~MediaCodecDecoder();
 
-	virtual void setParameterSets(MSQueue *parameterSet, uint64_t timestamp);
 	void waitForKeyFrame() {_needKeyFrame = true;}
 
 	bool feed(MSQueue *encodedFrame, uint64_t timestamp);
@@ -57,6 +56,7 @@ protected:
 	};
 
 	MediaCodecDecoder(const std::string &mime);
+	virtual bool setParameterSets(MSQueue *parameterSet, uint64_t timestamp);
 	AMediaFormat *createFormat(const std::string &mime) const;
 	void startImpl();
 	void stopImpl();
@@ -68,6 +68,7 @@ protected:
 	MSYuvBufAllocator *_bufAllocator = nullptr;
 	std::vector<uint8_t> _bitstream;
 	std::unique_ptr<H26xNaluHeader> _naluHeader;
+	std::unique_ptr<H26xParameterSetsStore> _psStore;
 	int _pendingFrames = 0;
 	bool _needKeyFrame = true;
 	bool _needParameters = true;
@@ -94,8 +95,6 @@ public:
 	void resetFirstImage();
 
 protected:
-	void extractParameterSets(MSQueue *frame, MSQueue *paramterSets);
-
 	MSVideoSize _vsize;
 	MSAverageFPS _fps;
 	bool _avpfEnabled = false;
@@ -103,11 +102,8 @@ protected:
 
 	MSFilter *_f = nullptr;
 	std::unique_ptr<NalUnpacker> _unpacker;
-	std::unique_ptr<H26xParameterSetsStore> _psStore;
-	std::unique_ptr<H26xNaluHeader> _naluHeader;
 	std::unique_ptr<MediaCodecDecoder> _codec;
 	bool _firstImageDecoded = false;
-
 
 	static const unsigned int _timeoutUs = 0;
 };
