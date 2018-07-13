@@ -44,7 +44,6 @@ static void log_handler(int lev, const char *fmt, va_list args) {
 	}
 }
 
-
 int mediastreamer2_tester_set_log_file(const char *filename) {
 	if (log_file) {
 		fclose(log_file);
@@ -108,6 +107,7 @@ void mediastreamer2_tester_init(void(*ftester_printf)(int level, const char *fmt
 #endif
 	bc_tester_add_suite(&framework_test_suite);
 	bc_tester_add_suite(&player_test_suite);
+	bc_tester_add_suite(&recorder_test_suite);
 #if MS_HAS_ARM_NEON
 	bc_tester_add_suite(&neon_test_suite);
 #endif

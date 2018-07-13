@@ -109,6 +109,7 @@ set(VOIP_SOURCE_FILES_C
 	voip/mediastream.c
 	voip/msiframerequestslimiter.c
 	voip/msmediaplayer.c
+	voip/msmediarecorder.c
 	voip/msvoip.c
 	voip/private.h
 	voip/qosanalyzer.c

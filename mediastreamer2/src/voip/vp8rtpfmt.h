@@ -123,6 +123,7 @@ extern "C"{
 	typedef struct Vp8RtpFmtPackerCtx {
 		MSQueue *output_queue;
 		MSFactory *factory;
+        uint16_t _refCSeq;
 	} Vp8RtpFmtPackerCtx;
 
 
