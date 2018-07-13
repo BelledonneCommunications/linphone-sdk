@@ -696,9 +696,12 @@ bool Lime<Curve>::create_user()
 
 	// insert in DB
 	try {
-		m_localStorage->sql<<"INSERT INTO lime_LocalUsers(UserId,Ik,server,curveId) VALUES (:userId,:Ik,:server,:curveId) ", use(m_selfDeviceId), use(Ik), use(m_X3DH_Server_URL), use(static_cast<uint8_t>(Curve::curveId()));
+		// Don't create stack variable in the method call directly
+		uint8_t curveId = uint8_t(Curve::curveId());
+
+		m_localStorage->sql<<"INSERT INTO lime_LocalUsers(UserId,Ik,server,curveId) VALUES (:userId,:Ik,:server,:curveId) ", use(m_selfDeviceId), use(Ik), use(m_X3DH_Server_URL), use(curveId);
 	} catch (exception const &e) {
-		throw BCTBX_EXCEPTION << "Lime user insertion failed. DB backend says : "<<e.what();
+		throw BCTBX_EXCEPTION << "Lime user insertion failed. DB backend says: "<<e.what();
 	}
 	// get the Id of inserted row
 	m_localStorage->sql<<"select last_insert_rowid()",into(m_db_Uid);
