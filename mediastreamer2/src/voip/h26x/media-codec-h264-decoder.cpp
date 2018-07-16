@@ -43,7 +43,7 @@ bool MediaCodecH264Decoder::setParameterSets(MSQueue *parameterSet, uint64_t tim
 			AMediaFormat_getInt32(_format, "height", &curHeight);
 			MSVideoSize vsize = ms_h264_sps_get_video_size(m);
 			if (vsize.width != curWidth || vsize.height != curHeight) {
-				ms_message("MediaCodecH264Decoder: restarting decoder because the video size has changed (%dx%d->%dx%d)",
+				ms_message("MediaCodecDecoder: restarting decoder because the video size has changed (%dx%d->%dx%d)",
 					curWidth,
 					curHeight,
 					vsize.width,
@@ -188,12 +188,12 @@ private:
 			ret = (msgdsize(sps) != msgdsize(_sps)) || (memcmp(_sps->b_rptr, sps->b_rptr, msgdsize(sps)) != 0);
 
 			if (ret) {
-				ms_message("SPS changed ! %i,%i", (int)msgdsize(sps), (int)msgdsize(_sps));
+				ms_message("MediaCodecDecoder: SPS changed ! %i,%i", (int)msgdsize(sps), (int)msgdsize(_sps));
 				updateSps(sps);
 				updatePps(nullptr);
 			}
 		} else {
-			ms_message("Receiving first SPS");
+			ms_message("MediaCodecDecoder: receiving first SPS");
 			updateSps(sps);
 		}
 		return ret;
@@ -205,11 +205,11 @@ private:
 			ret = (msgdsize(pps) != msgdsize(_pps)) || (memcmp(_pps->b_rptr, pps->b_rptr, msgdsize(pps)) != 0);
 
 			if (ret) {
-				ms_message("PPS changed ! %i,%i", (int)msgdsize(pps), (int)msgdsize(_pps));
+				ms_message("MediaCodecDecoder: PPS changed ! %i,%i", (int)msgdsize(pps), (int)msgdsize(_pps));
 				updatePps(pps);
 			}
 		} else {
-			ms_message("Receiving first PPS");
+			ms_message("MediaCodecDecoder: receiving first PPS");
 			updatePps(pps);
 		}
 		return ret;

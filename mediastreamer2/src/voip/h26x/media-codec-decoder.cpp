@@ -72,7 +72,7 @@ MediaCodecDecoder::~MediaCodecDecoder() {
 
 bool MediaCodecDecoder::setParameterSets(MSQueue *parameterSets, uint64_t timestamp) {
 	if (!feed(parameterSets, timestamp, true)) {
-		ms_error("MSMediaCodecH264Dec: paramter sets has been refused by the decoder.");
+		ms_error("MediaCodecDecoder: paramter sets has been refused by the decoder.");
 		return false;
 	}
 	_needParameters = false;
@@ -84,7 +84,7 @@ bool MediaCodecDecoder::feed(MSQueue *encodedFrame, uint64_t timestamp) {
 
 	_psStore->extractAllPs(encodedFrame);
 	if (_psStore->hasNewParameters()) {
-		ms_message("MSMediaCodecDec: new paramter sets received");
+		ms_message("MediaCodecDecoder: new paramter sets received");
 		_needParameters = true;
 		_psStore->acknowlege();
 	}
@@ -94,14 +94,14 @@ bool MediaCodecDecoder::feed(MSQueue *encodedFrame, uint64_t timestamp) {
 		ms_queue_init(&parameters);
 		_psStore->fetchAllPs(&parameters);
 		if (!setParameterSets(&parameters, timestamp)) {
-			ms_error("MSMediaCodecH264Dec: waiting for parameter sets.");
+			ms_error("MediaCodecDecoder: waiting for parameter sets.");
 			goto clean;
 		}
 	}
 
 	if (_needKeyFrame) {
 		if (!isKeyFrame(encodedFrame)) {
-			ms_error("MSMediaCodecH264Dec: waiting for key frame.");
+			ms_error("MediaCodecDecoder: waiting for key frame.");
 			goto clean;
 		}
 		_needKeyFrame = false;
@@ -131,15 +131,15 @@ mblk_t *MediaCodecDecoder::fetch() {
 
 	oBufidx = AMediaCodec_dequeueOutputBuffer(_impl, &info, _timeoutUs);
 	if (oBufidx == AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED) {
-		ms_message("MSMediaCodecH264Dec: output format has changed.");
+		ms_message("MediaCodecDecoder: output format has changed.");
 		oBufidx = AMediaCodec_dequeueOutputBuffer(_impl, &info, _timeoutUs);
 	}
 
 	if (oBufidx < 0) {
 		if (oBufidx == AMEDIA_ERROR_UNKNOWN) {
-			ms_error("MSMediaCodecH264Dec: AMediaCodec_dequeueOutputBuffer() had an exception");
+			ms_error("MediaCodecDecoder: AMediaCodec_dequeueOutputBuffer() had an exception");
 		} else if (oBufidx != AMEDIACODEC_INFO_TRY_AGAIN_LATER) {
-			ms_error("MSMediaCodecH264Dec: unknown error while dequeueing an output buffer (oBufidx=%zd)", oBufidx);
+			ms_error("MediaCodecDecoder: unknown error while dequeueing an output buffer (oBufidx=%zd)", oBufidx);
 		}
 		goto end;
 	}
@@ -147,7 +147,7 @@ mblk_t *MediaCodecDecoder::fetch() {
 	_pendingFrames--;
 
 	if (AMediaCodec_getOutputImage(_impl, oBufidx, &image) <= 0) {
-		ms_error("AMediaCodec_getOutputImage() failed");
+		ms_error("MediaCodecDecoder: AMediaCodec_getOutputImage() failed");
 		goto end;
 	}
 
@@ -205,14 +205,14 @@ bool MediaCodecDecoder::feed(MSQueue *encodedFrame, uint64_t timestamp, bool isP
 
 	ssize_t iBufidx = AMediaCodec_dequeueInputBuffer(_impl, _timeoutUs);
 	if (iBufidx < 0) {
-		ms_error("MSMediaCodecH264Dec: %s.", iBufidx == -1 ? "no buffer available for queuing this frame ! Decoder is too slow" : "AMediaCodec_dequeueInputBuffer() had an exception");
+		ms_error("MediaCodecDecoder: %s.", iBufidx == -1 ? "no buffer available for queuing this frame ! Decoder is too slow" : "AMediaCodec_dequeueInputBuffer() had an exception");
 		return false;
 	}
 
 	size_t bufsize;
 	uint8_t *buf = AMediaCodec_getInputBuffer(_impl, iBufidx, &bufsize);
 	if (buf == nullptr) {
-		ms_error("MSMediaCodecH264Dec: AMediaCodec_getInputBuffer() returned NULL");
+		ms_error("MediaCodecDecoder: AMediaCodec_getInputBuffer() returned NULL");
 		return false;
 	}
 
@@ -225,7 +225,7 @@ bool MediaCodecDecoder::feed(MSQueue *encodedFrame, uint64_t timestamp, bool isP
 
 	uint32_t flags = isPs ? BufferFlag::CodecConfig : BufferFlag::None;
 	if (AMediaCodec_queueInputBuffer(_impl, iBufidx, 0, size, timestamp * 1000ULL, flags) != 0) {
-		ms_error("MSMediaCodecH264Dec: AMediaCodec_queueInputBuffer() had an exception");
+		ms_error("MediaCodecDecoder: AMediaCodec_queueInputBuffer() had an exception");
 		return false;
 	}
 
@@ -247,10 +247,10 @@ MediaCodecDecoderFilterImpl::MediaCodecDecoderFilterImpl(MSFilter *f, const std:
 
 	try {
 		_codec.reset(MediaCodecDecoder::createDecoder(mime));
-		ms_message("MSMediaCodecH264Dec initialization");
-		ms_average_fps_init(&_fps, " H264 decoder: FPS: %f");
+		ms_message("MediaCodecDecoder: initialization");
+		ms_average_fps_init(&_fps, " H26x decoder: FPS: %f");
 	} catch (const runtime_error &e) {
-		ms_error("MSMediaCodecH264Dec: %s", e.what());
+		ms_error("MediaCodecDecoder: %s", e.what());
 		_codec.reset(nullptr);
 	}
 }
@@ -278,7 +278,7 @@ void MediaCodecDecoderFilterImpl::process() {
 		if (!unpacking_ret.frameAvailable) continue;
 
 		if (unpacking_ret.frameCorrupted) {
-			ms_warning("MSMediaCodecH264Dec: corrupted frame");
+			ms_warning("MediaCodecDecoder: corrupted frame");
 			requestPli = true;
 			if (_freezeOnError) {
 				ms_queue_flush(&frame);
@@ -305,7 +305,7 @@ void MediaCodecDecoderFilterImpl::process() {
 		_vsize.height = pic.h;
 
 		if (!_firstImageDecoded) {
-			ms_message("First frame decoded %ix%i", _vsize.width, _vsize.height);
+			ms_message("MediaCodecDecoder: first frame decoded %ix%i", _vsize.width, _vsize.height);
 			_firstImageDecoded = true;
 			ms_filter_notify_no_arg(_f, MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
 		}
@@ -345,7 +345,7 @@ void MediaCodecDecoderFilterImpl::enableAvpf(bool enable) {
 
 void MediaCodecDecoderFilterImpl::enableFreezeOnError(bool enable) {
 	_freezeOnError = enable;
-	ms_message("MSMediaCodecH264Dec: freeze on error %s", _freezeOnError ? "enabled" : "disabled");
+	ms_message("MediaCodecDecoder: freeze on error %s", _freezeOnError ? "enabled" : "disabled");
 }
 
 } // namespace mediastreamer
