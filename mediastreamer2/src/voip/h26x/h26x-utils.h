@@ -93,23 +93,22 @@ protected:
 
 class H26xParameterSetsStore {
 public:
-	class IlegalStateError: std::logic_error {
-	public:
-		IlegalStateError(const std::string &what_arg): std::logic_error(what_arg) {}
-	};
-
-	H26xParameterSetsStore(const std::initializer_list<int> &psCodes);
 	virtual ~H26xParameterSetsStore();
+
+	bool hasNewParameters() const {return _newParameters;}
+	void acknowlege() {_newParameters = false;}
 
 	void extractAllPs(MSQueue *frame);
 	bool psGatheringCompleted() const;
 	void fetchAllPs(MSQueue *outq);
 
 protected:
+	H26xParameterSetsStore(const std::string &mime, const std::initializer_list<int> &psCodes);
 	void addPs(int naluType, mblk_t *nalu);
-	virtual int getNaluType(const mblk_t *nalu) const = 0;
 
 	std::map<int, mblk_t *> _ps;
+	std::unique_ptr<H26xNaluHeader> _naluHeader;
+	bool _newParameters = false;
 };
 
 class H26xToolFactory {

@@ -48,7 +48,7 @@ MediaCodecEncoder::MediaCodecEncoder(const std::string &mime):
 		// some phones hardware encoder and decoders can't be allocated at the same time.
 		createImpl();
 	} catch (const runtime_error &e) {
-		ms_error("MSMediaCodecH264Enc: %s", e.what());
+		ms_error("MediaCodecEncoder: %s", e.what());
 	}
 }
 
@@ -78,9 +78,9 @@ void MediaCodecEncoder::start() {
 			throw runtime_error("could not start encoder.");
 		}
 		_isRunning = true;
-		ms_message("MSMediaCodecH264Enc: encoder successfully started");
+		ms_message("MediaCodecEncoder: encoder successfully started");
 	} catch (const runtime_error &e) {
-		ms_error("MSMediaCodecH264Enc: %s", e.what());
+		ms_error("MediaCodecEncoder: %s", e.what());
 	}
 }
 
@@ -103,7 +103,7 @@ void MediaCodecEncoder::stop() {
 
 void MediaCodecEncoder::feed(mblk_t *rawData, uint64_t time, bool requestIFrame) {
 	if (!_isRunning) {
-		ms_error("MSMediaCodecH264Enc: encoder not running. Dropping buffer.");
+		ms_error("MediaCodecEncoder: encoder not running. Dropping buffer.");
 		freemsg(rawData);
 		return;
 	}
@@ -114,8 +114,8 @@ void MediaCodecEncoder::feed(mblk_t *rawData, uint64_t time, bool requestIFrame)
 			configureImpl();
 			_recoveryMode = false;
 		} catch (const runtime_error &e) {
-			ms_error("MSMediaCodecH264Enc: %s", e.what());
-			ms_error("MSMediaCodecH264Enc: AMediaCodec_reset() was not sufficient, will recreate the encoder in a moment...");
+			ms_error("MediaCodecEncoder: %s", e.what());
+			ms_error("MediaCodecEncoder: AMediaCodec_reset() was not sufficient, will recreate the encoder in a moment...");
 			AMediaCodec_delete(_impl);
 		}
 	}
@@ -129,17 +129,17 @@ void MediaCodecEncoder::feed(mblk_t *rawData, uint64_t time, bool requestIFrame)
 		AMediaFormat_setInt32(afmt, "request-sync", 0);
 		AMediaCodec_setParams(_impl, afmt);
 		AMediaFormat_delete(afmt);
-		ms_error("MSMediaCodecH264Enc: I-frame requested to MediaCodec");
+		ms_error("MediaCodecEncoder: I-frame requested to MediaCodec");
 	}
 
 	ssize_t ibufidx = AMediaCodec_dequeueInputBuffer(_impl, _timeoutUs);
 	if (ibufidx < 0) {
 		if (ibufidx == AMEDIA_ERROR_UNKNOWN) {
-			ms_error("MSMediaCodecH264Enc: AMediaCodec_dequeueInputBuffer() had an exception");
+			ms_error("MediaCodecEncoder: AMediaCodec_dequeueInputBuffer() had an exception");
 		} else if (ibufidx == -1) {
-			ms_error("MSMediaCodecH264Enc: no input buffer available.");
+			ms_error("MediaCodecEncoder: no input buffer available.");
 		} else {
-			ms_error("MSMediaCodecH264Enc: unknown error while requesting an input buffer (%zd)", ibufidx);
+			ms_error("MediaCodecEncoder: unknown error while requesting an input buffer (%zd)", ibufidx);
 		}
 		return;
 	}
@@ -147,7 +147,7 @@ void MediaCodecEncoder::feed(mblk_t *rawData, uint64_t time, bool requestIFrame)
 	size_t bufsize;
 	uint8_t *buf = AMediaCodec_getInputBuffer(_impl, ibufidx, &bufsize);
 	if (buf == nullptr) {
-		ms_error("MSMediaCodecH264Enc: obtained InputBuffer, but no address.");
+		ms_error("MediaCodecEncoder: obtained InputBuffer, but no address.");
 		return;
 	}
 
@@ -159,13 +159,13 @@ void MediaCodecEncoder::feed(mblk_t *rawData, uint64_t time, bool requestIFrame)
 			ms_yuv_buf_copy_with_pix_strides(pic.planes, pic.strides, src_pix_strides, src_roi, image.buffers, image.row_strides, image.pixel_strides, image.crop_rect);
 			bufsize = image.row_strides[0] * image.height * 3 / 2;
 		} else {
-			ms_error("MSMediaCodecH264Enc: encoder requires non YUV420 format");
+			ms_error("MediaCodecEncoder: encoder requires non YUV420 format");
 		}
 		AMediaImage_close(&image);
 	}
 
 	if (AMediaCodec_queueInputBuffer(_impl, ibufidx, 0, bufsize, time * 1000, 0) == AMEDIA_ERROR_BASE) {
-		ms_error("MSMediaCodecH264Enc: error while queuing input buffer");
+		ms_error("MediaCodecEncoder: error while queuing input buffer");
 		return;
 	}
 
@@ -185,17 +185,17 @@ bool MediaCodecEncoder::fetch(MSQueue *encodedData) {
 
 	ssize_t obufidx = AMediaCodec_dequeueOutputBuffer(_impl, &info, _timeoutUs);
 	if (obufidx == AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED) {
-		ms_message("MSMediaCodecH264Enc: output format has changed.");
+		ms_message("MediaCodecEncoder: output format has changed.");
 		obufidx = AMediaCodec_dequeueOutputBuffer(_impl, &info, _timeoutUs);
 	}
 	if (obufidx < 0) {
 		if (obufidx == AMEDIA_ERROR_UNKNOWN) {
-			ms_error("MSMediaCodecH264Enc: AMediaCodec_dequeueOutputBuffer() had an exception, MediaCodec is lost");
+			ms_error("MediaCodecEncoder: AMediaCodec_dequeueOutputBuffer() had an exception, MediaCodec is lost");
 			// MediaCodec need to be reset  at this point because it may have become irrevocably crazy.
 			AMediaCodec_reset(_impl);
 			_recoveryMode = true;
 		} else if (obufidx != AMEDIACODEC_INFO_TRY_AGAIN_LATER) {
-			ms_error("MSMediaCodecH264Enc: unknown error while requesting an output buffer (%zd)", obufidx);
+			ms_error("MediaCodecEncoder: unknown error while requesting an output buffer (%zd)", obufidx);
 		}
 		return false;
 	}
@@ -203,7 +203,7 @@ bool MediaCodecEncoder::fetch(MSQueue *encodedData) {
 	_pendingFrames--;
 
 	if ((buf = AMediaCodec_getOutputBuffer(_impl, obufidx, &bufsize)) == nullptr) {
-		ms_error("MSMediaCodecH264Enc: AMediaCodec_getOutputBuffer() returned nullptr");
+		ms_error("MediaCodecEncoder: AMediaCodec_getOutputBuffer() returned nullptr");
 		AMediaCodec_releaseOutputBuffer(_impl, obufidx, FALSE);
 		return false;
 	}
@@ -225,7 +225,7 @@ void MediaCodecEncoder::createImpl() {
 void MediaCodecEncoder::configureImpl() {
 	AMediaFormat *format = createMediaFormat();
 
-	ms_message("configuring MediaCodec with the following parameters:");
+	ms_message("MediaCodecEncoder: configuring MediaCodec with the following parameters:");
 	ms_message("%s", getMediaForamtAsString().str().c_str());
 
 	media_status_t status = AMediaCodec_configure(_impl, format, nullptr, nullptr, AMEDIACODEC_CONFIGURE_FLAG_ENCODE);
@@ -235,7 +235,7 @@ void MediaCodecEncoder::configureImpl() {
 		throw runtime_error("could not configure encoder.");
 	}
 
-	ms_message("MSMediaCodecH264Enc: encoder successfully configured.");
+	ms_message("MediaCodecEncoder: encoder successfully configured.");
 }
 
 AMediaFormat *MediaCodecEncoder::createMediaFormat() const {
@@ -299,7 +299,7 @@ void MediaCodecEncoderFilterImpl::process() {
 		bool requestIFrame = false;
 		if (ms_iframe_requests_limiter_iframe_requested(&_iframeLimiter, _f->ticker->time) ||
 		        (!_avpfEnabled && ms_video_starter_need_i_frame(&_starter, _f->ticker->time))) {
-			ms_message("MSMediaCodecH264Enc: requesting I-frame to the encoder.");
+			ms_message("MediaCodecEncoder: requesting I-frame to the encoder.");
 			requestIFrame = true;
 			ms_iframe_requests_limiter_notify_iframe_sent(&_iframeLimiter, _f->ticker->time);
 		}
@@ -344,7 +344,7 @@ void MediaCodecEncoderFilterImpl::setBitrate(int br) {
 int MediaCodecEncoderFilterImpl::setVideoConfiguration(const MSVideoConfiguration *vconf) {
 	if (vconf != &_vconf) memcpy(&_vconf, vconf, sizeof(MSVideoConfiguration));
 
-	ms_message("Video configuration set: bitrate=%d bits/s, fps=%f, vsize=%dx%d", _vconf.required_bitrate, _vconf.fps, _vconf.vsize.width, _vconf.vsize.height);
+	ms_message("MediaCodecEncoder: video configuration set: bitrate=%d bits/s, fps=%f, vsize=%dx%d", _vconf.required_bitrate, _vconf.fps, _vconf.vsize.width, _vconf.vsize.height);
 
 	_encoder->setVideoSize(_vconf.vsize);
 	_encoder->setFps(_vconf.fps);
@@ -367,7 +367,7 @@ MSVideoSize MediaCodecEncoderFilterImpl::getVideoSize() const {
 }
 
 void MediaCodecEncoderFilterImpl::enableAvpf(bool enable) {
-	ms_message("MSMediaCodecH264Enc: AVPF %s", enable ? "enabled" : "disabled");
+	ms_message("MediaCodecEncoder: AVPF %s", enable ? "enabled" : "disabled");
 	_avpfEnabled = enable;
 }
 
@@ -380,12 +380,12 @@ void MediaCodecEncoderFilterImpl::setVideoSize(const MSVideoSize &vsize) {
 }
 
 void MediaCodecEncoderFilterImpl::notifyPli() {
-	ms_message("MSMediaCodecH264Enc: PLI requested");
+	ms_message("MediaCodecEncoder: PLI requested");
 	ms_iframe_requests_limiter_request_iframe(&_iframeLimiter);
 }
 
 void MediaCodecEncoderFilterImpl::notifyFir() {
-	ms_message("MSMediaCodecH264Enc: FIR requested");
+	ms_message("MediaCodecEncoder: FIR requested");
 	ms_iframe_requests_limiter_request_iframe(&_iframeLimiter);
 }
 

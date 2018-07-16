@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <list>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -35,22 +36,16 @@ namespace mediastreamer {
 
 class MediaCodecDecoder {
 public:
-	MediaCodecDecoder(const std::string &mime);
-	~MediaCodecDecoder();
+	virtual ~MediaCodecDecoder();
 
-	void setParameterSets(MSQueue *paramterSets);
 	void waitForKeyFrame() {_needKeyFrame = true;}
-	void flush();
 
 	bool feed(MSQueue *encodedFrame, uint64_t timestamp);
 	mblk_t *fetch();
 
-private:
-	enum class State {
-		Reset,
-		Ready
-	};
+	static MediaCodecDecoder *createDecoder(const std::string &mime);
 
+protected:
 	class BufferFlag {
 	public:
 		static const uint32_t None = 0;
@@ -60,21 +55,23 @@ private:
 		static const uint32_t PartialFrame = 1<<3;
 	};
 
-	void createImpl(const std::string &mime);
+	MediaCodecDecoder(const std::string &mime);
+	virtual bool setParameterSets(MSQueue *parameterSet, uint64_t timestamp);
+	AMediaFormat *createFormat(const std::string &mime) const;
+	void startImpl();
+	void stopImpl();
 	bool feed(MSQueue *encodedFrame, uint64_t timestamp, bool isPs);
 	bool isKeyFrame(const MSQueue *frame) const;
-	void setState(State state);
-	static const char *toString(State state);
 
 	AMediaCodec *_impl = nullptr;
-	int _pendingFrames = 0;
-	MSVideoSize _vsize;
+	AMediaFormat *_format = nullptr;
 	MSYuvBufAllocator *_bufAllocator = nullptr;
-	uint64_t _lastTs = 0;
-	State _state = State::Reset;
 	std::vector<uint8_t> _bitstream;
 	std::unique_ptr<H26xNaluHeader> _naluHeader;
+	std::unique_ptr<H26xParameterSetsStore> _psStore;
+	int _pendingFrames = 0;
 	bool _needKeyFrame = true;
+	bool _needParameters = true;
 
 	static const unsigned int _timeoutUs = 0;
 };
@@ -98,9 +95,6 @@ public:
 	void resetFirstImage();
 
 protected:
-	void extractParameterSets(MSQueue *frame, MSQueue *paramterSets);
-	virtual bool isKeyFrame(const MSQueue *frame) const = 0;
-
 	MSVideoSize _vsize;
 	MSAverageFPS _fps;
 	bool _avpfEnabled = false;
@@ -108,11 +102,8 @@ protected:
 
 	MSFilter *_f = nullptr;
 	std::unique_ptr<NalUnpacker> _unpacker;
-	std::unique_ptr<H26xParameterSetsStore> _psStore;
-	std::unique_ptr<H26xNaluHeader> _naluHeader;
-	MediaCodecDecoder _codec;
+	std::unique_ptr<MediaCodecDecoder> _codec;
 	bool _firstImageDecoded = false;
-
 
 	static const unsigned int _timeoutUs = 0;
 };

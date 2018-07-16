@@ -126,7 +126,8 @@ void H26xParameterSetsInserter::replaceParameterSet(mblk_t *&ps, mblk_t *newPs) 
 	ps = newPs;
 }
 
-H26xParameterSetsStore::H26xParameterSetsStore(const std::initializer_list<int> &psCodes) {
+H26xParameterSetsStore::H26xParameterSetsStore(const std::string &mime, const std::initializer_list<int> &psCodes) {
+	_naluHeader.reset(H26xToolFactory::get(mime).createNaluHeader());
 	for (int psCode : psCodes) {
 		_ps[psCode] = nullptr;
 	}
@@ -147,7 +148,8 @@ bool H26xParameterSetsStore::psGatheringCompleted() const {
 
 void H26xParameterSetsStore::extractAllPs(MSQueue *frame) {
 	for (mblk_t *nalu = ms_queue_peek_first(frame); !ms_queue_end(frame, nalu); nalu = ms_queue_next(frame, nalu)) {
-		int type = getNaluType(nalu);
+		_naluHeader->parse(nalu->b_rptr);
+		int type = _naluHeader->getAbsType();
 		if (_ps.find(type) != _ps.end()) {
 			mblk_t *ps = nalu;
 			nalu = ms_queue_next(frame, nalu);
@@ -169,8 +171,24 @@ void H26xParameterSetsStore::fetchAllPs(MSQueue *outq) {
 }
 
 void H26xParameterSetsStore::addPs(int naluType, mblk_t *nalu) {
-	if (_ps[naluType]) freemsg(_ps[naluType]);
-	_ps[naluType] = nalu ? dupmsg(nalu) : nullptr;
+	bool replaceParam = false;
+	mblk_t *lastPs = _ps[naluType];
+
+	if (lastPs == nullptr || nalu ==nullptr) {
+		replaceParam = true;
+	} else {
+		ssize_t naluSize = nalu->b_wptr - nalu->b_rptr;
+		ssize_t lastPsSize = lastPs->b_wptr - lastPs->b_rptr;
+		if (naluSize != lastPsSize || memcmp(nalu->b_rptr, lastPs->b_rptr, naluSize) != 0) {
+			replaceParam = true;
+		}
+	}
+
+	if (replaceParam) {
+		if (lastPs) freemsg(lastPs);
+		_ps[naluType] = nalu ? dupmsg(nalu) : nullptr;
+		_newParameters = true;
+	}
 }
 
 const H26xToolFactory &H26xToolFactory::get(const std::string &mime) {

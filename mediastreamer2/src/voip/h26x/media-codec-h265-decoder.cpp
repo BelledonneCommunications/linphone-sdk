@@ -87,22 +87,6 @@ public:
 		static_cast<MediaCodecH265DecoderFilterImpl *>(f->data)->enableFreezeOnError(enable);
 		return 0;
 	}
-
-private:
-	bool isKeyFrame(const MSQueue *frame) const override {
-		H265NaluHeader header;
-		bool hasIdr = false, hasVps = false, hasSps = false, hasPps = false;
-		MSQueue *q = const_cast<MSQueue *>(frame);
-		for (mblk_t *nalu = ms_queue_peek_first(q); !ms_queue_end(q, nalu); nalu = ms_queue_next(q, nalu)) {
-			header.parse(nalu->b_rptr);
-			H265NaluType type = header.getType();
-			if (type == H265NaluType::IdrNLp || type == H265NaluType::IdrWRadl) hasIdr = true;
-			else if (type == H265NaluType::Vps) hasVps = true;
-			else if (type == H265NaluType::Sps) hasSps = true;
-			else if (type == H265NaluType::Pps) hasPps = true;
-		}
-		return hasIdr && hasVps && hasSps && hasPps;
-	}
 };
 
 }

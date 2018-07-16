@@ -17,15 +17,62 @@
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
+#include <cstring>
+
 #include <ortp/b64.h>
 
 #include "h264-nal-unpacker.h"
 #include "h264-utils.h"
 #include "media-codec-decoder.h"
+#include "media-codec-h264-decoder.h"
 
 using namespace b64;
 
 namespace mediastreamer {
+
+MediaCodecH264Decoder::~MediaCodecH264Decoder() {
+	if (_lastSps) freemsg(_lastSps);
+}
+
+bool MediaCodecH264Decoder::setParameterSets(MSQueue *parameterSet, uint64_t timestamp) {
+	for (mblk_t *m = ms_queue_peek_first(parameterSet); !ms_queue_end(parameterSet, m); m = ms_queue_next(parameterSet, m)) {
+		MSH264NaluType type = ms_h264_nalu_get_type(m);
+		if (type == MSH264NaluTypeSPS && isNewPps(m)) {
+			int32_t curWidth, curHeight;
+			AMediaFormat_getInt32(_format, "width", &curWidth);
+			AMediaFormat_getInt32(_format, "height", &curHeight);
+			MSVideoSize vsize = ms_h264_sps_get_video_size(m);
+			if (vsize.width != curWidth || vsize.height != curHeight) {
+				ms_message("MediaCodecDecoder: restarting decoder because the video size has changed (%dx%d->%dx%d)",
+					curWidth,
+					curHeight,
+					vsize.width,
+					vsize.height
+				);
+				AMediaFormat_setInt32(_format, "width", vsize.width);
+				AMediaFormat_setInt32(_format, "height", vsize.height);
+				stopImpl();
+				startImpl();
+			}
+		}
+	}
+	return MediaCodecDecoder::setParameterSets(parameterSet, timestamp);
+}
+
+bool MediaCodecH264Decoder::isNewPps(mblk_t *sps) {
+	if (_lastSps == nullptr) {
+		_lastSps = dupmsg(sps);
+		return true;
+	}
+	const size_t spsSize = size_t(sps->b_wptr - sps->b_rptr);
+	const size_t lastSpsSize = size_t(_lastSps->b_wptr - _lastSps->b_rptr);
+	if (spsSize != lastSpsSize || memcmp(_lastSps->b_rptr, sps->b_rptr, spsSize) != 0) {
+		freemsg(_lastSps);
+		_lastSps = dupmsg(sps);
+		return true;
+	}
+	return false;
+}
 
 class MediaCodecH264DecoderFilterImpl: public MediaCodecDecoderFilterImpl {
 public:
@@ -124,12 +171,6 @@ public:
 	}
 
 private:
-	bool isKeyFrame(const MSQueue *frame) const override {
-		H264FrameAnalyser analyser;
-		H264FrameAnalyser::Info info = analyser.analyse(frame);
-		return info.hasIdr && info.hasSps && info.hasPps;
-	}
-
 	void updateSps(mblk_t *sps) {
 		if (_sps) freemsg(_sps);
 		_sps = dupb(sps);
@@ -147,12 +188,12 @@ private:
 			ret = (msgdsize(sps) != msgdsize(_sps)) || (memcmp(_sps->b_rptr, sps->b_rptr, msgdsize(sps)) != 0);
 
 			if (ret) {
-				ms_message("SPS changed ! %i,%i", (int)msgdsize(sps), (int)msgdsize(_sps));
+				ms_message("MediaCodecDecoder: SPS changed ! %i,%i", (int)msgdsize(sps), (int)msgdsize(_sps));
 				updateSps(sps);
 				updatePps(nullptr);
 			}
 		} else {
-			ms_message("Receiving first SPS");
+			ms_message("MediaCodecDecoder: receiving first SPS");
 			updateSps(sps);
 		}
 		return ret;
@@ -164,11 +205,11 @@ private:
 			ret = (msgdsize(pps) != msgdsize(_pps)) || (memcmp(_pps->b_rptr, pps->b_rptr, msgdsize(pps)) != 0);
 
 			if (ret) {
-				ms_message("PPS changed ! %i,%i", (int)msgdsize(pps), (int)msgdsize(_pps));
+				ms_message("MediaCodecDecoder: PPS changed ! %i,%i", (int)msgdsize(pps), (int)msgdsize(_pps));
 				updatePps(pps);
 			}
 		} else {
-			ms_message("Receiving first PPS");
+			ms_message("MediaCodecDecoder: receiving first PPS");
 			updatePps(pps);
 		}
 		return ret;
