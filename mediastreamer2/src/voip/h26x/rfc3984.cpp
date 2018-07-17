@@ -56,7 +56,7 @@ void rfc3984_set_mode(Rfc3984Context *ctx, int mode) {
 		ms_error("invalid RFC3984 packetization mode [%d]", mode);
 		return;
 	}
-	ctx->packer.setPacketizationMode(mode == 0 ? mediastreamer::NalPacker::SingleNalUnitMode : mediastreamer::NalPacker::SingleNalUnitMode);
+	ctx->packer.setPacketizationMode(mode == 0 ? mediastreamer::NalPacker::SingleNalUnitMode : mediastreamer::NalPacker::NonInterleavedMode);
 }
 
 void rfc3984_enable_stap_a(Rfc3984Context *ctx, bool_t yesno) {
