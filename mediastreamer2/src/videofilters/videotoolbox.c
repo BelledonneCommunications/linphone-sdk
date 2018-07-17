@@ -398,9 +398,7 @@ static void vth264enc_process(MSFilter *f) {
 
 	ms_mutex_lock(&ctx->mutex);
 	while ((frame = ms_queue_get(&ctx->queue))) {
-		ms_mutex_unlock(&ctx->mutex);
 		ms_queue_put(f->outputs[0], frame);
-		ms_mutex_lock(&ctx->mutex);
 	}
 	ms_mutex_unlock(&ctx->mutex);
 }
