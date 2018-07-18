@@ -43,6 +43,14 @@ foreach(LIBNAME ${FLEXISIP_LIBDEPS})
 	check_library(${LIBNAME})
 endforeach()
 
+
+
+find_program(LSB_RELEASE lsb_release)
+execute_process(COMMAND ${LSB_RELEASE} -is OUTPUT_VARIABLE LSB_RELEASE_DISTRO OUTPUT_STRIP_TRAILING_WHITESPACE)
+execute_process(COMMAND ${LSB_RELEASE} -cs OUTPUT_VARIABLE LSB_RELEASE_DISTRO_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+
+
 # Force build of RPM packages
 set(LINPHONE_BUILDER_ENABLE_RPM_PACKAGING YES CACHE BOOL "" FORCE)
 
@@ -51,7 +59,11 @@ set(LINPHONE_BUILDER_USE_SYSTEM_DEPENDENCIES YES CACHE BOOL "" FORCE)
 
 # Define default values for the flexisip builder options
 set(DEFAULT_VALUE_ENABLE_CXX_WRAPPER ON)
-set(DEFAULT_VALUE_ENABLE_MBEDTLS ON)
+if(LSB_RELEASE_DISTRO STREQUAL "Debian" AND LSB_RELEASE_DISTRO_VERSION STREQUAL "wheezy")
+       set(DEFAULT_VALUE_ENABLE_POLARSSL ON)
+else()
+       set(DEFAULT_VALUE_ENABLE_MBEDTLS ON)
+endif()
 set(DEFAULT_VALUE_ENABLE_REDIS ON)
 set(DEFAULT_VALUE_ENABLE_SOCI ON)
 set(DEFAULT_VALUE_ENABLE_UNIT_TESTS OFF)
@@ -75,13 +87,23 @@ endif()
 # Include builders
 include(builders/CMakeLists.txt)
 
-lcb_builder_cmake_options(soci "-DWITH_POSTGRESQL=YES")
-lcb_builder_rpmbuild_options(soci
-	"--with bc"
-	"--with sqlite3"
-	"--with mysql"
-	"--with postgresql"
-)
+if(LSB_RELEASE_DISTRO STREQUAL "Debian" AND LSB_RELEASE_DISTRO_VERSION STREQUAL "wheezy")
+       lcb_builder_cmake_options(soci "-DWITH_POSTGRESQL=OFF")
+       lcb_builder_rpmbuild_options(soci
+               "--with bc"
+               "--with sqlite3"
+               "--with mysql"
+               "--without postgresql"
+       )
+else()
+       lcb_builder_cmake_options(soci "-DWITH_POSTGRESQL=ON")
+       lcb_builder_rpmbuild_options(soci
+               "--with bc"
+               "--with sqlite3"
+               "--with mysql"
+               "--with postgresql"
+       )
+endif()
 
 lcb_builder_cmake_options(linphone
 	"-DENABLE_CONSOLE_UI=NO"
