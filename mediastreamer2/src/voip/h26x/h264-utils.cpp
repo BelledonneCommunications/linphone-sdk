@@ -230,6 +230,7 @@ unsigned int H264FrameAnalyser::Info::toUInt() const {
 	if (this->hasPps) res |= Rfc3984HasPPS;
 	if (this->newSps) res |= Rfc3984NewSPS;
 	if (this->newPps) res |= Rfc3984NewPPS;
+	if (this->hasIdr && this->hasSps && this->hasPps) res |= Rfc3984IsKeyFrame;
 	return res;
 }
 
