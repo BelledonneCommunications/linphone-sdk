@@ -58,8 +58,14 @@ belle_sip_hop_t* belle_sip_hop_new_from_generic_uri(const belle_generic_uri_t *u
 	const char *scheme=belle_generic_uri_get_scheme(uri);
 	int port=belle_generic_uri_get_port(uri);
 	int well_known_port=0;
-
-	host=belle_generic_uri_get_host(uri);
+	const char *cname=NULL;
+	host = belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(uri),"maddr");
+	
+	if (!host)
+		host = belle_generic_uri_get_host(uri);
+	else
+		cname=belle_generic_uri_get_host(uri);
+	
 	if (strcasecmp(scheme,"http")==0) {
 		transport="TCP";
 		well_known_port=80;
@@ -69,7 +75,7 @@ belle_sip_hop_t* belle_sip_hop_new_from_generic_uri(const belle_generic_uri_t *u
 	}
 
 	return belle_sip_hop_new(transport,
-				host,
+				cname,
 				host,
 				port > 0 ? port : well_known_port);
 }

@@ -1,5 +1,6 @@
 belle-sip (Unreleased): Jully  2018
 	* rfc3262 (100rel) support 
+	* add maddr support for http uri
 
 belle_sip-1.6.2 -- July 21th, 2017
 	* Build fix for Windows

@@ -405,7 +405,10 @@ authority_password        :   ( unreserved | escaped | AND | EQUAL | PLUS | DOLL
 authority_hostport[belle_generic_uri_t* uri] 
 scope { belle_generic_uri_t* current; }
 @init {$authority_hostport::current=uri;}
-        :   host ( COLON port {belle_generic_uri_set_port($authority_hostport::current,$port.ret);})? {belle_generic_uri_set_host($authority_hostport::current,$host.ret);};
+        :   host 
+		(( COLON port {belle_generic_uri_set_port($authority_hostport::current,$port.ret);})?
+		(semi  generic_param [BELLE_SIP_PARAMETERS($authority_hostport::current)])*)
+		 {belle_generic_uri_set_host($authority_hostport::current,$host.ret);};
 
 //****************http end**********************/ 
 
