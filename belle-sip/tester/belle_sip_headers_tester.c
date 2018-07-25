@@ -452,6 +452,24 @@ static void test_route_header(void) {
 
 }
 
+static void test_rseq_header()
+{
+	belle_sip_header_t* L_tmp;
+	belle_sip_header_t* L_rseq;
+	char* l_raw_header = NULL;
+	
+	L_rseq = belle_sip_header_parse("RSeq: 3344");
+	l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_rseq));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_rseq));
+	L_tmp = belle_sip_header_parse(l_raw_header);
+	L_rseq = BELLE_SIP_HEADER(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
+	belle_sip_free(l_raw_header);
+	
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_get_unparsed_value(L_rseq), "3344");
+	belle_sip_object_unref(L_rseq);
+}
+
 static void test_service_route_header(void) {
 	belle_sip_header_service_route_t* L_service_route = belle_sip_header_service_route_parse("Service-Route: <sip:orig@scscf.ims.linphone.com:6060;lr>");
 	belle_sip_uri_t* L_uri;
@@ -558,6 +576,23 @@ static void test_proxy_authorization_header(void) {
 	BC_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_nonce(BELLE_SIP_HEADER_AUTHORIZATION(L_authorization)), "c60f3082ee1212b402a21831ae");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_authorization));
 	BC_ASSERT_PTR_NULL(belle_sip_header_proxy_authorization_parse("nimportequoi"));
+}
+
+static void test_rack_header(void ) {
+	belle_sip_header_t* L_tmp;
+	belle_sip_header_t* L_rseq;
+	char* l_raw_header = NULL;
+	
+	L_rseq = belle_sip_header_parse("RAck: 3344 101 INVITE");
+	l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_rseq));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_rseq));
+	L_tmp = belle_sip_header_parse(l_raw_header);
+	L_rseq = BELLE_SIP_HEADER(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
+	belle_sip_free(l_raw_header);
+	
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_get_unparsed_value(L_rseq), "3344 101 INVITE");
+	belle_sip_object_unref(L_rseq);
 }
 
 static void check_header_authenticate(belle_sip_header_www_authenticate_t* authenticate) {
@@ -718,7 +753,7 @@ static void test_expires_header(void) {
 
 static void test_allow_header(void) {
 	belle_sip_header_allow_t* L_tmp;
-	belle_sip_header_allow_t* L_allow = belle_sip_header_allow_parse("Allow:INVITE, ACK, CANCEL, OPTIONS, BYE, REFER, NOTIFY, MESSAGE, SUBSCRIBE, INFO");
+	belle_sip_header_allow_t* L_allow = belle_sip_header_allow_parse("Allow:INVITE, ACK, CANCEL, OPTIONS, BYE, REFER, NOTIFY, MESSAGE, SUBSCRIBE, INFO, PRACK");
 	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_allow));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_allow));
 	L_tmp = belle_sip_header_allow_parse(l_raw_header);
@@ -726,7 +761,7 @@ static void test_allow_header(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
 	belle_sip_free(l_raw_header);
 
-	BC_ASSERT_STRING_EQUAL(belle_sip_header_allow_get_method(L_allow), "INVITE, ACK, CANCEL, OPTIONS, BYE, REFER, NOTIFY, MESSAGE, SUBSCRIBE, INFO");
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_allow_get_method(L_allow), "INVITE, ACK, CANCEL, OPTIONS, BYE, REFER, NOTIFY, MESSAGE, SUBSCRIBE, INFO, PRACK");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_allow));
 	BC_ASSERT_PTR_NULL(belle_sip_header_allow_parse("nimportequoi"));
 }
@@ -983,6 +1018,41 @@ static void test_replaces_escaped_header(void) {
 
 }
 
+static void test_require(const char* header_name, const char * header_value, const char* values[],size_t number_values){
+	belle_sip_list_t* list;
+	belle_sip_header_require_t* L_tmp;
+	belle_sip_header_require_t* L_require = BELLE_SIP_HEADER_REQUIRE(belle_sip_header_create(header_name,header_value));
+	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_require));
+	size_t i=0;
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_require));
+	L_tmp = belle_sip_header_require_parse(l_raw_header);
+	L_require = BELLE_SIP_HEADER_REQUIRE(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
+
+	belle_sip_free(l_raw_header);
+
+	list = belle_sip_header_require_get_require(L_require);
+
+	for(i=0;i<number_values;i++){
+		BC_ASSERT_PTR_NOT_NULL(list);
+		if (list) {
+			BC_ASSERT_STRING_EQUAL((const char *)(list->data),values[i]);
+			list=list->next;
+		}
+	}
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_require));
+	BC_ASSERT_PTR_NULL(belle_sip_header_require_parse("nimportequoi"));
+}
+
+static void test_header_require(void) {
+	const char* value1[] ={"user","critical"};
+	const char* value2[] ={"id"};
+	const char* value3[] ={"100rel"};
+	test_require("Require","user, critical",value1,2);
+	test_require("Require", "id",value2,1);
+	test_require("Require", "100rel", value3, 1);
+}
+
 #ifndef _WIN32
 static void _test_date_header(void){
 	belle_sip_header_date_t *date,*date2;
@@ -1122,11 +1192,14 @@ static void test_supported(const char* header_name, const char * header_value, c
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_supported));
 	BC_ASSERT_PTR_NULL(belle_sip_header_supported_parse("nimportequoi"));
 }
+
 static void test_supported_header(void) {
 	const char* value1[] ={"user","critical"};
 	const char* value2[] ={"id"};
+    const char* value3[] ={"100rel"};
 	test_supported("Supported","user, critical",value1,2);
 	test_supported("Supported", "id",value2,1);
+	test_supported("Supported", "100rel", value3, 1);
 }
 
 static void test_content_disposition_header(void) {
@@ -1276,12 +1349,15 @@ test_t headers_tests[] = {
 	TEST_NO_TAG("P-Preferred-Identity", test_p_preferred_identity_header),
 	TEST_NO_TAG("Proxy-Authenticate", test_proxy_authenticate_header),
 	TEST_NO_TAG("Proxy-Authorization", test_proxy_authorization_header),
+	TEST_NO_TAG("RAck", test_rack_header),
 	TEST_NO_TAG("Record-Route", test_record_route_header),
 	TEST_NO_TAG("Refer-To", test_refer_to_header),
 	TEST_NO_TAG("Referred-By", test_referred_by_header),
 	TEST_NO_TAG("Replaces", test_replaces_header),
 	TEST_NO_TAG("Replaces (Escaped)", test_replaces_escaped_header),
+	TEST_NO_TAG("Require", test_header_require),
 	TEST_NO_TAG("Route", test_route_header),
+	TEST_NO_TAG("RSeq", test_rseq_header),
 	TEST_NO_TAG("Service-Route", test_service_route_header),
 	TEST_NO_TAG("Subscription-State", test_subscription_state_header),
 	TEST_NO_TAG("To", test_to_header),

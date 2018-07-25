@@ -1520,6 +1520,19 @@ catch [ANTLR3_RECOGNITION_EXCEPTION]
 }
 supported_val: token {belle_sip_header_supported_add_supported($header_supported::current,(const char*)$token.text->chars);};
 
+//**********************************Require*******************************//
+header_require  returns [belle_sip_header_require_t* ret]
+scope { belle_sip_header_require_t* current; }
+@init { $header_require::current = belle_sip_header_require_new();$ret = $header_require::current;}
+:   {IS_TOKEN(Require)}? token /*'Require'*/ hcolon require_val (comma require_val)*;
+catch [ANTLR3_RECOGNITION_EXCEPTION]
+{
+	belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+	belle_sip_object_unref($ret);
+	$ret=NULL;
+}
+require_val: token {belle_sip_header_require_add_require($header_require::current,(const char*)$token.text->chars);};
+
 //**********************************Content-Disposition*******************************//
 
 content_disposition_value: token ;

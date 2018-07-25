@@ -79,6 +79,7 @@ static struct header_name_func_pair  header_table[] = {
 	,{PROTO_SIP, 			BELLE_SIP_EVENT,				(header_parse_func)belle_sip_header_event_parse}
 	,{PROTO_SIP, 			BELLE_SIP_SUPPORTED,			(header_parse_func)belle_sip_header_supported_parse}
 	,{PROTO_SIP, 			"k",							(header_parse_func)belle_sip_header_supported_parse}
+	,{PROTO_SIP, 			BELLE_SIP_REQUIRE,				(header_parse_func)belle_sip_header_require_parse}
 	,{PROTO_SIP, 			BELLE_SIP_CONTENT_DISPOSITION,	(header_parse_func)belle_sip_header_content_disposition_parse}
 	,{PROTO_SIP, 			BELLE_SIP_ACCEPT,				(header_parse_func)belle_sip_header_accept_parse}
 	,{PROTO_SIP, 			BELLE_SIP_REASON,				(header_parse_func)belle_sip_header_reason_parse}
@@ -1958,6 +1959,12 @@ belle_sip_header_event_t* belle_sip_header_event_create (const char* package_nam
  *
  ******************************/
 PRIVACY_LIKE_HEADER(supported,BELLE_SIP_SUPPORTED,",")
+
+/******************************
+ * Require header inherits from header
+ *
+ ******************************/
+PRIVACY_LIKE_HEADER(require,BELLE_SIP_REQUIRE,",")
 
 /******************************
  * Content-Disposition header inherits from header

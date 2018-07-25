@@ -34,7 +34,6 @@ BELLESIP_EXPORT const char* belle_sip_dialog_state_to_string(const belle_sip_dia
 
 BELLESIP_EXPORT belle_sip_request_t *belle_sip_dialog_create_ack(belle_sip_dialog_t *dialog, unsigned int cseq);
 
-
 /**
  * Create a request part of this dialog.
 **/

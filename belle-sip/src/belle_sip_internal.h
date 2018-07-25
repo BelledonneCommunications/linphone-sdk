@@ -225,6 +225,7 @@ BELLE_SIP_DECLARE_VPTR(belle_tls_crypto_config_t);
 BELLE_SIP_DECLARE_VPTR(belle_http_header_authorization_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_event_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_supported_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_header_require_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_content_disposition_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_accept_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_reason_t);
