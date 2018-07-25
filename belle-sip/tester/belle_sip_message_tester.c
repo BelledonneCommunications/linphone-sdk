@@ -124,7 +124,8 @@ static void testInviteMessage(void) {
 		BC_ASSERT_PTR_NOT_NULL(list);
 		const char* value[] = {"replaces", "100rel"};
 		int num_supported = 2;
-		for(int i = 0; i < num_supported; i++){
+		int i;
+		for(i = 0; i < num_supported; i++){
 			if (list) {
 				BC_ASSERT_STRING_EQUAL((const char *)(list->data), value[i]);
 				list=list->next;
