@@ -36,6 +36,7 @@ option(ENABLE_STRICT "Build with strict compile options." YES)
 option(ENABLE_CURVE25519 "Enable support of Curve 25519." YES)
 option(ENABLE_CURVE448 "Enable support of Curve 448(goldilock)." YES)
 option(ENABLE_UNIT_TESTS "Enable compilation of unit tests." YES)
+option(ENABLE_PROFILING "Enable profiling, GCC only" NO)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -84,6 +85,9 @@ if(MSVC)
 		list(APPEND STRICT_OPTIONS_CPP "/WX")
 	endif()
 else()
+	if (ENABLE_PROFILING)
+		list(APPEND STRICT_OPTIONS_CXX "-g -pg")
+	endif()
         list(APPEND STRICT_OPTIONS_CXX "-std=c++11")
         #list(APPEND STRICT_OPTIONS_CPP "-Wall" "-Wuninitialized" "-Wno-error=deprecated-declarations") # turn off deprecated-declaration warning to avoid being flooded by soci.h
 	list(APPEND STRICT_OPTIONS_CPP "-Wall" "-Wuninitialized" "-Wno-deprecated-declarations" "-Wno-missing-field-initializers")

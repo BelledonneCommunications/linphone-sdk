@@ -77,5 +77,9 @@ else()
 
 	# lime test suit request a local server to be launched, so keep testing double ratchet only for now
 	add_test(NAME double_ratchet COMMAND lime_tester --verbose --resource-dir ${CMAKE_CURRENT_SOURCE_DIR} --suite "double ratchet")
+
+	if(ENABLE_PROFILING)
+		set_target_properties(lime_tester PROPERTIES LINK_FLAGS "-pg")
+	endif()
 endif()
 
