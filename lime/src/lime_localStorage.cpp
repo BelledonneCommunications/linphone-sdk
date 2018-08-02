@@ -535,6 +535,7 @@ bool DR<DHKey>::session_save() {
 					break;
 			}
 		} catch (...) {
+			tr.rollback();
 			throw;
 		}
 		// updatesert went well, do we have any mkskipped row to modify
@@ -588,6 +589,7 @@ bool DR<DHKey>::session_save() {
 
 template <typename DHKey>
 bool DR<DHKey>::session_load() {
+
 	// blobs to store DR session data
 	blob DHr(m_localStorage->sql);
 	blob DHs(m_localStorage->sql);
@@ -694,6 +696,8 @@ bool Lime<Curve>::create_user()
 	// set the Ik in Lime object?
 	//m_Ik = std::move(KeyPair<ED<Curve>>{EDDSAContext->publicKey, EDDSAContext->secretKey});
 
+	transaction tr(m_localStorage->sql);
+
 	// insert in DB
 	try {
 		// Don't create stack variable in the method call directly
@@ -701,10 +705,13 @@ bool Lime<Curve>::create_user()
 
 		m_localStorage->sql<<"INSERT INTO lime_LocalUsers(UserId,Ik,server,curveId) VALUES (:userId,:Ik,:server,:curveId) ", use(m_selfDeviceId), use(Ik), use(m_X3DH_Server_URL), use(curveId);
 	} catch (exception const &e) {
+		tr.rollback();
 		throw BCTBX_EXCEPTION << "Lime user insertion failed. DB backend says: "<<e.what();
 	}
 	// get the Id of inserted row
 	m_localStorage->sql<<"select last_insert_rowid()",into(m_db_Uid);
+
+	tr.commit();
 	/* WARNING: previous line break portability of DB backend, specific to sqlite3.
 	Following code shall work but consistently returns false and do not set m_db_Uid...*/
 	/*
@@ -807,6 +814,7 @@ void Lime<Curve>::X3DH_generate_OPks(std::vector<X<Curve, lime::Xtype::publicKey
 			OPk_ids.push_back(OPk_id);
 		}
 	} catch (exception &e) {
+		tr.rollback();
 		throw BCTBX_EXCEPTION << "OPK insertion in DB failed. DB backend says : "<<e.what();
 	}
 	// commit changes to DB
