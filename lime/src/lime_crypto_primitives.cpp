@@ -467,10 +467,11 @@ void HMAC_KDF(const uint8_t *const salt, const size_t saltSize, const uint8_t *c
 }
 template <typename hashAlgo, typename infoType>
 void HMAC_KDF(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const infoType &info, uint8_t *output, size_t outputSize) {
-	HMAC_KDF<SHA512>(salt.data(), salt.size(), ikm.data(), ikm.size(), info, output, outputSize);
+	HMAC_KDF<hashAlgo>(salt.data(), salt.size(), ikm.data(), ikm.size(), info, output, outputSize);
 };
 
 /* instanciate HMAC_KDF template with SHA512 and string or vector info */
+template void HMAC<SHA512>(const uint8_t *const key, const size_t keySize, const uint8_t *const input, const size_t inputSize, uint8_t *hash, size_t hashSize);
 template void HMAC_KDF<SHA512, std::vector<uint8_t>>(const uint8_t *const salt, const size_t saltSize, const uint8_t *const ikm, const size_t ikmSize, const std::vector<uint8_t> &info, uint8_t *output, size_t outputSize);
 template void HMAC_KDF<SHA512, std::string>(const uint8_t *const salt, const size_t saltSize, const uint8_t *const ikm, const size_t ikmSize, const std::string &info, uint8_t *output, size_t outputSize);
 template void HMAC_KDF<SHA512, std::vector<uint8_t>>(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const std::vector<uint8_t> &info, uint8_t *output, size_t outputSize);

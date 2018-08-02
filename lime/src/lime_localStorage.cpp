@@ -697,7 +697,7 @@ bool Lime<Curve>::create_user()
 	// insert in DB
 	try {
 		// Don't create stack variable in the method call directly
-		uint8_t curveId = uint8_t(Curve::curveId());
+		uint8_t curveId = static_cast<int8_t>(Curve::curveId());
 
 		m_localStorage->sql<<"INSERT INTO lime_LocalUsers(UserId,Ik,server,curveId) VALUES (:userId,:Ik,:server,:curveId) ", use(m_selfDeviceId), use(Ik), use(m_X3DH_Server_URL), use(curveId);
 	} catch (exception const &e) {
