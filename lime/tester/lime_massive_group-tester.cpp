@@ -245,15 +245,15 @@ static void group_basic_test(const lime::CurveId curve, const std::string &dbBas
 			if (bench) {
 				if (i==0) { // first run shall be the longest as we have deviceNumber-1 sessions to establish
 					span = bctbx_get_cur_time_ms() - startEncrypt;
-					LIME_LOGE<<"first message encrypt(all session to establish) in "<<to_string(span)<<" ms ("<<to_string(span/deviceNumber)<<" ms/recipient)"<<std::endl;
+					LIME_LOGE<<"first message encrypt(all session to establish) in "<<to_string(span)<<" ms ("<<to_string(float(span)/float(deviceNumber))<<" ms/recipient)"<<std::endl;
 				}
 				if (i==1 && senderIndex==0) { // second message in oneTalking mode
 					span = bctbx_get_cur_time_ms() - startEncrypt;
-					LIME_LOGE<<"second message encrypt(no session to establish) in "<<to_string(span)<<" ms ("<<to_string(span/deviceNumber)<<" ms/recipient)"<<std::endl;
+					LIME_LOGE<<"second message encrypt(no session to establish) in "<<to_string(span)<<" ms ("<<to_string(float(span)/float(deviceNumber))<<" ms/recipient)"<<std::endl;
 				}
 				if (i==deviceNumber-1) { // last run shall be the fastest as we have no session to establish
 					span = bctbx_get_cur_time_ms() - startEncrypt;
-					LIME_LOGE<<"last message encrypt(no session to establish) in "<<to_string(span)<<" ms ("<<to_string(span/deviceNumber)<<" ms/recipient)"<<std::endl;
+					LIME_LOGE<<"last message encrypt(no session to establish) in "<<to_string(span)<<" ms ("<<to_string(float(span)/float(deviceNumber))<<" ms/recipient)"<<std::endl;
 				}
 				startEncrypt = bctbx_get_cur_time_ms();
 			}
@@ -276,15 +276,15 @@ static void group_basic_test(const lime::CurveId curve, const std::string &dbBas
 			if (bench) {
 				if (i==0) { // first run shall be the longest as we have deviceNumber-1 sessions to establish
 					span = bctbx_get_cur_time_ms() - startEncrypt;
-					LIME_LOGE<<"first message decrypts in "<<to_string(span)<<" ms ("<<to_string(span/deviceNumber)<<" ms/recipient)"<<std::endl;
+					LIME_LOGE<<"first message decrypts in "<<to_string(span)<<" ms ("<<to_string(float(span)/float(deviceNumber))<<" ms/recipient)"<<std::endl;
 				}
 				if (i==1 && senderIndex==0) { // second message in oneTalking mode
 					span = bctbx_get_cur_time_ms() - startEncrypt;
-					LIME_LOGE<<"second message decrypts in "<<to_string(span)<<" ms ("<<to_string(span/deviceNumber)<<" ms/recipient)"<<std::endl;
+					LIME_LOGE<<"second message decrypts in "<<to_string(span)<<" ms ("<<to_string(float(span)/float(deviceNumber))<<" ms/recipient)"<<std::endl;
 				}
 				if (i==deviceNumber-1) { // last run shall be the shortest as we have no session to establish
 					span = bctbx_get_cur_time_ms() - startEncrypt;
-					LIME_LOGE<<"last message decrypts round in "<<to_string(span)<<" ms ("<<to_string(span/deviceNumber)<<" ms/recipient)"<<std::endl;
+					LIME_LOGE<<"last message decrypts round in "<<to_string(span)<<" ms ("<<to_string(float(span)/float(deviceNumber))<<" ms/recipient)"<<std::endl;
 				}
 			}
 		}
