@@ -67,6 +67,8 @@ Options
 - `ENABLE_STRICT=NO`              : do not build with strict complier flags e.g. `-Wall -Werror`
 - `ENABLE_Curve25519`             : Enable support of Curve 25519.
 - `ENABLE_Curve448`               : Enable support of Curve 448.
+- `ENABLE_PROFILING`              : Enable code profiling for GCC
+
 ------------------
 
 - [1] linphone-desktop: git://git.linphone.org/linphone-desktop.git
