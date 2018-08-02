@@ -159,7 +159,8 @@ Db::Db(std::string filename) : sql{sqlite3, filename}{
 	* - Did : primary key, used to make link with DR_sessions table.
 	* - DeviceId: peer device id (shall be its GRUU)
 	* - Ik : Peer device Identity public key, got it from X3DH server or X3DH init message
-	* - Verified : a flag, 0 : peer identity was not verified, 1 : peer identity confirmed
+	* - Status : a flag, 0 : untrusted, 1 : trusted, 2 : unsafe
+	*   		The mapping is done in lime.hpp by the PeerDeviceStatus enum class definition
 	*
 	* Note: peer device information is shared by all local device, hence they are not linked to particular local devices from lime_LocalUsers table
 	*/
@@ -167,7 +168,7 @@ Db::Db(std::string filename) : sql{sqlite3, filename}{
 				Did INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, \
 				DeviceId TEXT NOT NULL, \
 				Ik BLOB NOT NULL, \
-				Verified UNSIGNED INTEGER DEFAULT 0);";
+				Status UNSIGNED INTEGER DEFAULT 0);";
 
 	/*** X3DH tables ***/
 	/* Signed pre-key :
@@ -281,16 +282,27 @@ void Db::get_allLocalDevices(std::vector<std::string> &deviceIds) {
 }
 
 /**
- * @brief set the identity verified flag for peer device
+ * @brief set the peer device status flag in local storage: unsafe, trusted or untrusted.
  *
  * @param[in]	peerDeviceId	The device Id of peer, shall be its GRUU
  * @param[in]	Ik		the EdDSA peer public identity key, formatted as in RFC8032
- * @param[in]	status		value of flag to set
+ * @param[in]	status		value of flag to set: accepted values are trusted, untrusted, unsafe
  *
  * throw an exception if given key doesn't match the one present in local storage
- * if peer Device is not present in local storage and status is true, it is added, if status is false, it is just ignored
+ * throw an exception if the status flag value is unexpected (not one of trusted, untrusted, unsafe)
+ *
+ * if peer Device is not present in local storage and status is trusted or unsafe, it is added, if status is untrusted, it is just ignored
  */
-void Db::set_peerDeviceVerifiedStatus(const std::string &peerDeviceId, const std::vector<uint8_t> &Ik, bool status) {
+void Db::set_peerDeviceStatus(const std::string &peerDeviceId, const std::vector<uint8_t> &Ik, lime::PeerDeviceStatus status) {
+	// Check the status flag value, accepted values are: trusted, untrusted, unsafe
+	if (status != lime::PeerDeviceStatus::unsafe
+	&& status != lime::PeerDeviceStatus::untrusted
+	&& status != lime::PeerDeviceStatus::trusted) {
+		throw BCTBX_EXCEPTION << "Trying to set a status for peer device "<<peerDeviceId<<" which is not acceptable (differs from unsafe, untrusted or trusted)";
+	}
+
+	uint8_t statusInteger = static_cast<uint8_t>(status);
+
 	// Do we have this peerDevice in lime_PeerDevices
 	blob Ik_blob(sql);
 	long long id;
@@ -301,34 +313,41 @@ void Db::set_peerDeviceVerifiedStatus(const std::string &peerDeviceId, const std
 		storedIk.resize(IkSize);
 		Ik_blob.read(0, (char *)(storedIk.data()), IkSize); // Read the public key
 		if (storedIk == Ik) {
-			sql<<"UPDATE Lime_PeerDevices SET Verified = :Verified WHERE Did = :id;", use((status==true)?1:0), use(id);
+
+			sql<<"UPDATE Lime_PeerDevices SET Status = :Status WHERE Did = :id;", use(statusInteger), use(id);
 		} else { // Ik in local Storage differs than the one given... raise an exception
 			throw BCTBX_EXCEPTION << "Trying to insert an Identity key for peer device "<<peerDeviceId<<" which differs from one already in local storage";
 		}
 	} else { // peer is not in local Storage
-		if (status) { // insert it only if status is true, if false just ignore the request
+		if (status != lime::PeerDeviceStatus::untrusted) { // insert it only if status is trusted or unsafe just ignore the request
 			blob Ik_insert_blob(sql);
 			Ik_insert_blob.write(0, (char *)(Ik.data()), Ik.size());
-			sql<<"INSERT INTO Lime_PeerDevices(DeviceId, Ik, Verified) VALUES(:peerDeviceId, :Ik, 1);", use(peerDeviceId), use(Ik_insert_blob);
+			sql<<"INSERT INTO Lime_PeerDevices(DeviceId, Ik, Status) VALUES(:peerDeviceId, :Ik, :Status);", use(peerDeviceId), use(Ik_insert_blob), use(statusInteger);
 		}
 	}
 }
 
 /**
- * @brief get the status of a peer device: unknown, untrusted, trusted
+ * @brief get the status of a peer device: unknown, untrusted, trusted, unsafe
  *
  * @param[in]	peerDeviceId	The device Id of peer, shall be its GRUU
  *
- * @return unknown if the device is not in localStorage, untrusted or trusted according to the stored value of identity verified flag otherwise
+ * @return unknown if the device is not in localStorage, untrusted, trusted or unsafe according to the stored value of peer device status flag otherwise
  */
 lime::PeerDeviceStatus Db::get_peerDeviceStatus(const std::string &peerDeviceId) {
-	int verified;
-	sql<<"SELECT Verified FROM Lime_PeerDevices WHERE DeviceId = :peerDeviceId LIMIT 1;", into(verified), use(peerDeviceId);
+	int status;
+	sql<<"SELECT Status FROM Lime_PeerDevices WHERE DeviceId = :peerDeviceId LIMIT 1;", into(status), use(peerDeviceId);
 	if (sql.got_data()) { // Found it
-		if (verified == 1) { // and trusted
-			return lime::PeerDeviceStatus::trusted;
+		switch (status) {
+			case static_cast<uint8_t>(lime::PeerDeviceStatus::untrusted) :
+				return lime::PeerDeviceStatus::untrusted;
+			case static_cast<uint8_t>(lime::PeerDeviceStatus::trusted) :
+				return lime::PeerDeviceStatus::trusted;
+			case static_cast<uint8_t>(lime::PeerDeviceStatus::unsafe) :
+				return lime::PeerDeviceStatus::unsafe;
+			default:
+				throw BCTBX_EXCEPTION << "Trying to get the status for peer device "<<peerDeviceId<<" but get an unexpected value "<<status<<" from local storage";
 		}
-		return lime::PeerDeviceStatus::untrusted; // verified is stored as false
 	}
 
 	// peerDeviceId not found in local storage
@@ -842,25 +861,32 @@ void Lime<Curve>::cache_DR_sessions(std::vector<RecipientInfos<Curve>> &internal
 
 	if (allDevicesCount==0) return; // the device list was empty... this is very strange
 
-	// Fill the peer device status : fetch devices with identity verified flag to false
 	sqlString_allDevices.pop_back(); // remove the last ','
-	// fetch the verified status for all devices
-	rowset<row> rs_devices = (m_localStorage->sql.prepare << "SELECT d.DeviceId, d.Verified FROM lime_PeerDevices as d WHERE d.DeviceId IN ("<<sqlString_allDevices<<");");
+	// Fill the peer device status
+	rowset<row> rs_devices = (m_localStorage->sql.prepare << "SELECT d.DeviceId, d.Status FROM lime_PeerDevices as d WHERE d.DeviceId IN ("<<sqlString_allDevices<<");");
 	std::vector<std::string> knownDevices{}; // vector of known deviceId
 	// loop all the found devices and then find them in the internal_recipient vector by looping it until find, this is not at all efficient but
 	// shall not be a real problem as recipient list won't get massive(and if they do, this part we not be the blocking one)
 	// by default at construction the RecipientInfos object have a peerStatus set to unknown so it will be kept to it for all devices not found in the localStorage
 	for (const auto &r : rs_devices) {
 		auto deviceId = r.get<std::string>(0);
-		auto verified = r.get<int>(1);
+		auto status = r.get<int>(1);
 		for (auto &recipient : internal_recipients) { //look for it in the list
 			if (recipient.deviceId == deviceId) {
-				if (verified == 1) {
-					recipient.peerStatus = lime::PeerDeviceStatus::trusted;
-				} else {
-					recipient.peerStatus = lime::PeerDeviceStatus::untrusted;
+				switch (status) {
+					case static_cast<uint8_t>(lime::PeerDeviceStatus::trusted) :
+						recipient.peerStatus = lime::PeerDeviceStatus::trusted;
+						break;
+					case static_cast<uint8_t>(lime::PeerDeviceStatus::untrusted) :
+						recipient.peerStatus = lime::PeerDeviceStatus::untrusted;
+						break;
+					case static_cast<uint8_t>(lime::PeerDeviceStatus::unsafe) :
+						recipient.peerStatus = lime::PeerDeviceStatus::unsafe;
+						break;
+					default : // something is wrong with the local storage
+						throw BCTBX_EXCEPTION << "Trying to get the status for peer device "<<deviceId<<" but get an unexpected value "<<status<<" from local storage";
+
 				}
-				break;
 			}
 		}
 	}

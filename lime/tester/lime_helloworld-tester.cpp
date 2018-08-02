@@ -458,8 +458,8 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve, const std:
 		// This call can be performed before or after the beginning of a Lime conversation, if something is really bad happen, it will generate an exception.
 		// When calling it with true as trusted flag after a SAS validation confirms the peer identity key, if an exception is raised
 		// it MUST be reported to user as it means that all previously established Lime session with that device were actually compromised(or someone broke ZRTP)
-		aliceManager->set_peerIdentityVerifiedStatus(*bobDeviceId, bobIk, true);
-		bobManager->set_peerIdentityVerifiedStatus(*aliceDeviceId, aliceIk, true);
+		aliceManager->set_peerDeviceStatus(*bobDeviceId, bobIk, lime::PeerDeviceStatus::trusted);
+		bobManager->set_peerDeviceStatus(*aliceDeviceId, aliceIk, lime::PeerDeviceStatus::trusted);
 
 		/*** alice encrypt a message to bob, all parameters given to encrypt function are shared_ptr. ***/
 		// The encryption generates:

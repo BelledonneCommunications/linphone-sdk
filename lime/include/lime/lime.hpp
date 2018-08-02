@@ -45,13 +45,16 @@ namespace lime {
 
 	/**
 	 * A peer device status returned after encrypt, decrypt or when directly asking for the peer device status to spot new devices and give information on our trust on this device
+	 * The values explicitely mapped to specific integers(untrusted, trusted, unsafe) are stored in local storage as integer
+	 * Do not modify the mapping or we will loose backward compatibility with existing databases
 	 */
-	enum class PeerDeviceStatus {
+	enum class PeerDeviceStatus : uint8_t {
+		untrusted=0, /**< we know this device but do not trust it, that information shall be displayed to the end user, a colour code shall be enough */
+		trusted=1, /**< this peer device already got its public identity key validated, that information shall be displayed to the end user too */
+		unsafe=2, /**< this status is a helper for the library user. It is used only by the peerDeviceStatus accessor functions */
 		fail, /**< this status is returned by decrypt operation only, when we could not decrypt the incoming message */
-		unknown, /**< when returned after encryption or decryption, means it is the first time we communicate with this device (and thus create a DR session with it),
+		unknown /**< when returned after encryption or decryption, means it is the first time we communicate with this device (and thus create a DR session with it),
 			   when returned by a get_peerDeviceStatus: this device is not in localStorage */
-		untrusted, /**< we know this device but do not trust it, that information shall be displayed to the end user, a colour code shall be enough */
-		trusted /**< this peer device already got its public identity key validated, that information shall be displayed to the end user too */
 	};
 
 	/** Used to manage recipient list for encrypt function input: give a recipient GRUU and get it back with the header which must be sent to recipient with the cipher text*/
@@ -238,23 +241,25 @@ namespace lime {
 			void get_selfIdentityKey(const std::string &localDeviceId, std::vector<uint8_t> &Ik);
 
 			/**
-			 * @brief set the identity verified flag for peer device
+			 * @brief set the peer device status flag in local storage: unsafe, trusted or untrusted.
 			 *
 			 * @param[in]	peerDeviceId	The device Id of peer, shall be its GRUU
 			 * @param[in]	Ik		the EdDSA peer public identity key, formatted as in RFC8032
-			 * @param[in]	status		value of flag to set
+			 * @param[in]	status		value of flag to set: accepted values are trusted, untrusted, unsafe
 			 *
 			 * throw an exception if given key doesn't match the one present in local storage
-			 * if peer Device is not present in local storage and status is true, it is added, if status is false, it is just ignored
+			 * throw an exception if the status flag value is unexpected (not one of trusted, untrusted, unsafe)
+			 *
+			 * if peer Device is not present in local storage and status is trusted or unsafe, it is added, if status is untrusted, it is just ignored
 			 */
-			void set_peerIdentityVerifiedStatus(const std::string &peerDeviceId, const std::vector<uint8_t> &Ik, bool status);
+			void set_peerDeviceStatus(const std::string &peerDeviceId, const std::vector<uint8_t> &Ik, lime::PeerDeviceStatus status);
 
 			/**
-			 * @brief get the status of a peer device: unknown, untrusted, trusted
+			 * @brief get the status of a peer device: unknown, untrusted, trusted, unsafe
 			 *
 			 * @param[in]	peerDeviceId	The device Id of peer, shall be its GRUU
 			 *
-			 * @return unknown if the device is not in localStorage, untrusted or trusted according to the stored value of identity verified flag otherwise
+			 * @return unknown if the device is not in localStorage, untrusted, trusted or unsafe according to the stored value of peer device status flag otherwise
 			 */
 			lime::PeerDeviceStatus get_peerDeviceStatus(const std::string &peerDeviceId);
 

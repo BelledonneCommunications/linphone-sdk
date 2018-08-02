@@ -170,11 +170,11 @@ namespace lime {
 		user->get_Ik(Ik);
 	}
 
-	void LimeManager::set_peerIdentityVerifiedStatus(const std::string &peerDeviceId, const std::vector<uint8_t> &Ik, bool status) {
+	void LimeManager::set_peerDeviceStatus(const std::string &peerDeviceId, const std::vector<uint8_t> &Ik, lime::PeerDeviceStatus status) {
 		// open local DB
 		auto localStorage = std::unique_ptr<lime::Db>(new lime::Db(m_db_access));
 
-		localStorage->set_peerDeviceVerifiedStatus(peerDeviceId, Ik, status);
+		localStorage->set_peerDeviceStatus(peerDeviceId, Ik, status);
 	}
 
 	lime::PeerDeviceStatus LimeManager::get_peerDeviceStatus(const std::string &peerDeviceId) {

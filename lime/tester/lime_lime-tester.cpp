@@ -681,6 +681,9 @@ static void lime_encryptionPolicy() {
  * - check if they are verified -> they shall not be
  * - set alice key as verified in bob's context
  * - check it is now verified
+ * - set it to unsafe and check
+ * - try to set it to unknown, we shall have and exception
+ * - try to set it to fail, we shall have and exception
  * - set it as non verified and check
  * - try to set a different alice identity key in bob's context, we shall have an exception
  * - bob encrypts a message to alice -> check return status give NOT all recipients trusted
@@ -738,11 +741,15 @@ static void lime_identityVerifiedStatus_test(const lime::CurveId curve, const st
 		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(*bobDeviceId) == lime::PeerDeviceStatus::unknown);
 		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::unknown);
 
-		// set alice Id key as vertified in Bob's Manager and check it worked
-		bobManager->set_peerIdentityVerifiedStatus(*aliceDeviceId, aliceIk, true);
+		// set alice Id key as verified in Bob's Manager and check it worked
+		bobManager->set_peerDeviceStatus(*aliceDeviceId, aliceIk, lime::PeerDeviceStatus::trusted);
 		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::trusted);
-		// reset it and check it worked : now Bob knows alice but he doesn't trust her
-		bobManager->set_peerIdentityVerifiedStatus(*aliceDeviceId, aliceIk, false);
+		// set it to unsafe and check it worked
+		bobManager->set_peerDeviceStatus(*aliceDeviceId, aliceIk, lime::PeerDeviceStatus::unsafe);
+		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::unsafe);
+
+		// reset it to untrusted and check it worked : now Bob knows alice but he doesn't trust her
+		bobManager->set_peerDeviceStatus(*aliceDeviceId, aliceIk, lime::PeerDeviceStatus::untrusted);
 		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::untrusted);
 
 	} catch (BctbxException &e) {
@@ -750,14 +757,36 @@ static void lime_identityVerifiedStatus_test(const lime::CurveId curve, const st
 		BC_FAIL();
 	}
 
-	// try to set another key for alice in bob's context, it shall generate an exception
 	auto gotException = false;
+	// set it to unknown, it shall generate an exception
+	try {
+		bobManager->set_peerDeviceStatus(*aliceDeviceId, aliceIk, lime::PeerDeviceStatus::unknown);
+	} catch (BctbxException &e) {
+		BC_PASS();
+		gotException = true;
+	}
+
+	BC_ASSERT_TRUE(gotException);
+	gotException = false;
+
+	// set it to fail, it shall generate an exception
+	try {
+		bobManager->set_peerDeviceStatus(*aliceDeviceId, aliceIk, lime::PeerDeviceStatus::fail);
+	} catch (BctbxException &e) {
+		BC_PASS();
+		gotException = true;
+	}
+
+	BC_ASSERT_TRUE(gotException);
+	gotException = false;
+
+	// try to set another key for alice in bob's context, it shall generate an exception
 	try {
 		// copy alice Ik but modify it
 		std::vector<uint8_t> fakeIk = aliceIk;
 		fakeIk[0] ^= 0xFF;
 
-		bobManager->set_peerIdentityVerifiedStatus(*aliceDeviceId, fakeIk, true);
+		bobManager->set_peerDeviceStatus(*aliceDeviceId, fakeIk, lime::PeerDeviceStatus::trusted);
 	} catch (BctbxException &e) {
 		BC_PASS();
 		gotException = true;
@@ -777,7 +806,7 @@ static void lime_identityVerifiedStatus_test(const lime::CurveId curve, const st
 		BC_ASSERT_TRUE((*bobRecipients)[0].peerStatus == lime::PeerDeviceStatus::untrusted);
 
 		// set again the key as verified in bob's context
-		bobManager->set_peerIdentityVerifiedStatus(*aliceDeviceId, aliceIk, true);
+		bobManager->set_peerDeviceStatus(*aliceDeviceId, aliceIk, lime::PeerDeviceStatus::trusted);
 		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::trusted);
 
 		// Bob encrypts a message for Alice, alice device status shall now be : trusted
@@ -792,7 +821,7 @@ static void lime_identityVerifiedStatus_test(const lime::CurveId curve, const st
 		// set a fake bob key in alice context(set is as verified otherwise the request is just ignored)
 		std::vector<uint8_t> fakeIk = bobIk;
 		fakeIk[0] ^= 0xFF;
-		aliceManager->set_peerIdentityVerifiedStatus(*bobDeviceId, fakeIk, true);
+		aliceManager->set_peerDeviceStatus(*bobDeviceId, fakeIk, lime::PeerDeviceStatus::trusted);
 
 		// alice decrypt but it will fail as the identity key in X3DH init packet is not matching the one we assert as verified
 		std::vector<uint8_t> receivedMessage{};
@@ -909,22 +938,22 @@ static void lime_peerDeviceStatus_test(const lime::CurveId curve, const std::str
 		daveManager->get_selfIdentityKey(*daveDeviceId, daveIk);
 
 		// exchange trust between alice and bob
-		bobManager->set_peerIdentityVerifiedStatus(*aliceDeviceId, aliceIk, true);
-		aliceManager->set_peerIdentityVerifiedStatus(*bobDeviceId, bobIk, true);
+		bobManager->set_peerDeviceStatus(*aliceDeviceId, aliceIk, lime::PeerDeviceStatus::trusted);
+		aliceManager->set_peerDeviceStatus(*bobDeviceId, bobIk, lime::PeerDeviceStatus::trusted);
 		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::trusted);
 		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(*bobDeviceId) == lime::PeerDeviceStatus::trusted);
 
 		// alice and carol gets trust and back to not trust so the Ik gets registered in their local storage
-		carolManager->set_peerIdentityVerifiedStatus(*aliceDeviceId, aliceIk, true);
-		aliceManager->set_peerIdentityVerifiedStatus(*carolDeviceId, carolIk, true);
-		carolManager->set_peerIdentityVerifiedStatus(*aliceDeviceId, aliceIk, false);
-		aliceManager->set_peerIdentityVerifiedStatus(*carolDeviceId, carolIk, false);
+		carolManager->set_peerDeviceStatus(*aliceDeviceId, aliceIk, lime::PeerDeviceStatus::trusted);
+		aliceManager->set_peerDeviceStatus(*carolDeviceId, carolIk, lime::PeerDeviceStatus::trusted);
+		carolManager->set_peerDeviceStatus(*aliceDeviceId, aliceIk, lime::PeerDeviceStatus::untrusted);
+		aliceManager->set_peerDeviceStatus(*carolDeviceId, carolIk, lime::PeerDeviceStatus::untrusted);
 		BC_ASSERT_TRUE(carolManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::untrusted);
 		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(*carolDeviceId) == lime::PeerDeviceStatus::untrusted);
 
 		// alice and dave gets just an untrusted setting, as they do not know each other, it shall not affect their respective local storage and they would remain unknown
-		daveManager->set_peerIdentityVerifiedStatus(*aliceDeviceId, aliceIk, false);
-		aliceManager->set_peerIdentityVerifiedStatus(*daveDeviceId, daveIk, false);
+		daveManager->set_peerDeviceStatus(*aliceDeviceId, aliceIk, lime::PeerDeviceStatus::untrusted);
+		aliceManager->set_peerDeviceStatus(*daveDeviceId, daveIk, lime::PeerDeviceStatus::untrusted);
 		BC_ASSERT_TRUE(daveManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::unknown);
 		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(*daveDeviceId) == lime::PeerDeviceStatus::unknown);
 
