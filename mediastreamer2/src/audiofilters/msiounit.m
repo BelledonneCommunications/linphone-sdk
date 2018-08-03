@@ -417,7 +417,7 @@ static void configure_audio_session (au_card_t* d,uint64_t time) {
 				ms_message("Configuring audio session for playback/record");
     		[audioSession setCategory:AVAudioSessionCategoryPlayAndRecord
     												 mode:AVAudioSessionModeVoiceChat
-                      		options:AVAudioSessionCategoryOptionAllowBluetooth | AVAudioSessionCategoryOptionAllowBluetoothA2DP | AVAudioSessionCategoryOptionMixWithOthers
+                      		options:AVAudioSessionCategoryOptionAllowBluetooth | AVAudioSessionCategoryOptionAllowBluetoothA2DP
                         		error:&err];
 				if(err)
 					ms_error("Unable to change audio session because : %s", [err localizedDescription].UTF8String);
