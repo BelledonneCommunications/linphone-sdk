@@ -682,9 +682,11 @@ static void lime_encryptionPolicy() {
  * - set alice key as verified in bob's context
  * - check it is now verified
  * - set it to unsafe and check
+ * - set it as non verified and check
+ * - set it to unsafe and then untrusted using the alternative API without giving the Ik
+ * - try to set it to trusted using the API without Ik, we shall have and exception
  * - try to set it to unknown, we shall have and exception
  * - try to set it to fail, we shall have and exception
- * - set it as non verified and check
  * - try to set a different alice identity key in bob's context, we shall have an exception
  * - bob encrypts a message to alice -> check return status give NOT all recipients trusted
  * - set alice key as verified in bob's context
@@ -752,12 +754,31 @@ static void lime_identityVerifiedStatus_test(const lime::CurveId curve, const st
 		bobManager->set_peerDeviceStatus(*aliceDeviceId, aliceIk, lime::PeerDeviceStatus::untrusted);
 		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::untrusted);
 
+		// set to unsafe without using alice Ik
+		bobManager->set_peerDeviceStatus(*aliceDeviceId, lime::PeerDeviceStatus::unsafe);
+		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::unsafe);
+
+		// set to untrusted without using alice Ik
+		bobManager->set_peerDeviceStatus(*aliceDeviceId, lime::PeerDeviceStatus::untrusted);
+		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::untrusted);
+
 	} catch (BctbxException &e) {
 		LIME_LOGE <<e;;
 		BC_FAIL();
 	}
 
 	auto gotException = false;
+	// set it to trusted without giving the Ik, it shall generate an exception
+	try {
+		bobManager->set_peerDeviceStatus(*aliceDeviceId, lime::PeerDeviceStatus::trusted);
+	} catch (BctbxException &e) {
+		BC_PASS();
+		gotException = true;
+	}
+
+	BC_ASSERT_TRUE(gotException);
+	gotException = false;
+
 	// set it to unknown, it shall generate an exception
 	try {
 		bobManager->set_peerDeviceStatus(*aliceDeviceId, aliceIk, lime::PeerDeviceStatus::unknown);

@@ -177,6 +177,13 @@ namespace lime {
 		localStorage->set_peerDeviceStatus(peerDeviceId, Ik, status);
 	}
 
+	void LimeManager::set_peerDeviceStatus(const std::string &peerDeviceId, lime::PeerDeviceStatus status) {
+		// open local DB
+		auto localStorage = std::unique_ptr<lime::Db>(new lime::Db(m_db_access));
+
+		localStorage->set_peerDeviceStatus(peerDeviceId, status);
+	}
+
 	lime::PeerDeviceStatus LimeManager::get_peerDeviceStatus(const std::string &peerDeviceId) {
 		// open local DB
 		auto localStorage = std::unique_ptr<lime::Db>(new lime::Db(m_db_access));

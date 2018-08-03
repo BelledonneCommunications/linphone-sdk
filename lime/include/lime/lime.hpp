@@ -255,6 +255,19 @@ namespace lime {
 			void set_peerDeviceStatus(const std::string &peerDeviceId, const std::vector<uint8_t> &Ik, lime::PeerDeviceStatus status);
 
 			/**
+			 * @brief set the peer device status flag in local storage: unsafe or untrusted.
+			 * This variation allows to set a peer Device status to unsafe or untrusted only whithout providing its identity key Ik
+			 *
+			 * @param[in]	peerDeviceId	The device Id of peer, shall be its GRUU
+			 * @param[in]	status		value of flag to set: accepted values are untrusted or unsafe
+			 *
+			 * throw an exception if the status flag value is unexpected (not one of untrusted, unsafe)
+			 *
+			 * if peer Device is not present in local storage, it is just ignored
+			 */
+			void set_peerDeviceStatus(const std::string &peerDeviceId, lime::PeerDeviceStatus status);
+
+			/**
 			 * @brief get the status of a peer device: unknown, untrusted, trusted, unsafe
 			 *
 			 * @param[in]	peerDeviceId	The device Id of peer, shall be its GRUU

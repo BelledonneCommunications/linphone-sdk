@@ -328,6 +328,34 @@ void Db::set_peerDeviceStatus(const std::string &peerDeviceId, const std::vector
 }
 
 /**
+ * @brief set the peer device status flag in local storage: unsafe or untrusted.
+ * This variation allows to set a peer Device status to unsafe or untrusted only whithout providing its identity key Ik
+ *
+ * @param[in]	peerDeviceId	The device Id of peer, shall be its GRUU
+ * @param[in]	status		value of flag to set: accepted values are untrusted or unsafe
+ *
+ * throw an exception if the status flag value is unexpected (not one of untrusted, unsafe)
+ *
+ * if peer Device is not present in local storage, it is just ignored
+ */
+void Db::set_peerDeviceStatus(const std::string &peerDeviceId, lime::PeerDeviceStatus status) {
+	// Check the status flag value, accepted values are: untrusted, unsafe
+	if (status != lime::PeerDeviceStatus::unsafe
+	&& status != lime::PeerDeviceStatus::untrusted) {
+		throw BCTBX_EXCEPTION << "Trying to set a status for peer device "<<peerDeviceId<<" without providing a Ik which is not acceptable (differs from unsafe or untrusted)";
+	}
+
+	uint8_t statusInteger = static_cast<uint8_t>(status);
+
+	// Do we have this peerDevice in lime_PeerDevices
+	long long id;
+	sql<<"SELECT Did FROM Lime_PeerDevices WHERE DeviceId = :peerDeviceId;", into(id), use(peerDeviceId);
+	if (sql.got_data()) { // Found it
+		sql<<"UPDATE Lime_PeerDevices SET Status = :Status WHERE Did = :id;", use(statusInteger), use(id);
+	}
+}
+
+/**
  * @brief get the status of a peer device: unknown, untrusted, trusted, unsafe
  *
  * @param[in]	peerDeviceId	The device Id of peer, shall be its GRUU
