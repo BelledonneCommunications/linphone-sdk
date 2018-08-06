@@ -207,6 +207,9 @@ static void _belle_sip_header_address_clone(belle_sip_header_address_t *addr, co
 	if (belle_sip_header_address_get_absolute_uri(orig)) {
 		belle_sip_header_address_set_absolute_uri(addr,BELLE_GENERIC_URI(belle_sip_object_clone(BELLE_SIP_OBJECT(belle_sip_header_address_get_absolute_uri(orig)))));
 	}
+	if (belle_sip_header_address_get_automatic(orig)) {
+		belle_sip_header_address_set_automatic(addr,belle_sip_header_address_get_automatic(orig));
+	}
 	belle_sip_parameters_copy_parameters_from(&addr->base, &orig->base);
 }
 belle_sip_header_address_t* belle_sip_header_address_clone(const belle_sip_header_address_t* orig) {
