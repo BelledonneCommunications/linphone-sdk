@@ -187,17 +187,30 @@ BELLESIP_EXPORT belle_sip_header_contact_t* belle_sip_header_contact_create (con
  *
  */
  BELLESIP_EXPORT void belle_sip_header_contact_set_wildcard(belle_sip_header_contact_t* contact,unsigned int is_wildcard);
- /** Contact heaader equality function
+
+/** Contact header equality function
   * @return 0 if not equals
   *
   * */
  BELLESIP_EXPORT unsigned int belle_sip_header_contact_equals(const belle_sip_header_contact_t* a,const belle_sip_header_contact_t* b);
 
- /** Contact heaader equality function, same as #belle_sip_header_contact_equals but return 0 if equals, very useful with #belle_sip_list
+/** Contact header equality function, same as #belle_sip_header_contact_equals but return 0 if equals, very useful with #belle_sip_list
    * @return 0 if equals
    *
    * */
  BELLESIP_EXPORT unsigned int belle_sip_header_contact_not_equals(const belle_sip_header_contact_t* a,const belle_sip_header_contact_t* b);
+
+/** Contact header equality function
+  * @return 0 if not equals
+  *
+  * */
+ BELLESIP_EXPORT unsigned int belle_sip_header_contact_equals_with_uri_omitting(const belle_sip_header_contact_t* a,const belle_sip_header_contact_t* b);
+
+/** Contact header equality function, same as #belle_sip_header_contact_equals but return 0 if equals, very useful with #belle_sip_list
+   * @return 0 if equals
+   *
+   * */
+ BELLESIP_EXPORT unsigned int belle_sip_header_contact_not_equals_with_uri_omitting(const belle_sip_header_contact_t* a,const belle_sip_header_contact_t* b);
 
  /**
   * Enable automatic filling of the contact ip, port and transport according to the channel that sends this message.

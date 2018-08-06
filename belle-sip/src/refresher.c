@@ -648,13 +648,13 @@ belle_sip_header_contact_t* belle_sip_refresher_get_contact(const belle_sip_refr
 
 	if (contact_header_list) {
 		contact_header_list = belle_sip_list_find_custom((belle_sip_list_t*)contact_header_list
-					,(belle_sip_compare_func)belle_sip_header_contact_not_equals
+					,(belle_sip_compare_func)belle_sip_header_contact_not_equals_with_uri_omitting
 					, (const void*)fixed_local_contact);
 		if (!contact_header_list) {
 			/*reset header list*/
 			contact_header_list = belle_sip_message_get_headers(BELLE_SIP_MESSAGE(response),BELLE_SIP_CONTACT);
 			contact_header_list = belle_sip_list_find_custom((belle_sip_list_t*)contact_header_list
-							,(belle_sip_compare_func)belle_sip_header_contact_not_equals
+							,(belle_sip_compare_func)belle_sip_header_contact_not_equals_with_uri_omitting
 							,unfixed_local_contact);
 		}
 		if (!contact_header_list) {

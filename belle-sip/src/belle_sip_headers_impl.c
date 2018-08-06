@@ -431,6 +431,7 @@ int belle_sip_header_contact_set_qvalue(belle_sip_header_contact_t* contact, flo
 float	belle_sip_header_contact_get_qvalue(const belle_sip_header_contact_t* contact) {
 	return belle_sip_header_contact_get_q(contact);
 }
+
 unsigned int belle_sip_header_contact_equals(const belle_sip_header_contact_t* a,const belle_sip_header_contact_t* b) {
 	if (!a | !b) return 0;
 	return belle_sip_uri_equals(belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(a))
@@ -438,6 +439,15 @@ unsigned int belle_sip_header_contact_equals(const belle_sip_header_contact_t* a
 }
 unsigned int belle_sip_header_contact_not_equals(const belle_sip_header_contact_t* a,const belle_sip_header_contact_t* b) {
 	return !belle_sip_header_contact_equals(a,b);
+}
+
+unsigned int belle_sip_header_contact_equals_with_uri_omitting(const belle_sip_header_contact_t* a,const belle_sip_header_contact_t* b) {
+	if (!a | !b) return 0;
+	return belle_sip_uri_equals_with_uri_omitting(belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(a))
+								,belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(b)));
+}
+unsigned int belle_sip_header_contact_not_equals_with_uri_omitting(const belle_sip_header_contact_t* a,const belle_sip_header_contact_t* b) {
+	return !belle_sip_header_contact_equals_with_uri_omitting(a,b);
 }
 
 void belle_sip_header_contact_set_automatic(belle_sip_header_contact_t *a, int enabled){

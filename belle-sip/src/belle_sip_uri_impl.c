@@ -284,7 +284,7 @@ end:
    Section 10.3.).  SIP and SIPS URIs are compared for equality
    according to the following rules:
 */
-int belle_sip_uri_equals(const belle_sip_uri_t* uri_a,const belle_sip_uri_t* uri_b) {
+static int belle_sip_uri_equals_with_omission(const belle_sip_uri_t* uri_a,const belle_sip_uri_t* uri_b,bool_t uri_omitting) {
 	const belle_sip_list_t *	params;
 	const char* b_param;
 	const char* a_param;
@@ -319,7 +319,27 @@ int belle_sip_uri_equals(const belle_sip_uri_t* uri_a,const belle_sip_uri_t* uri
 	if (!IS_EQUAL_CASE(uri_a->host,uri_b->host)) {
 		return 0;
 	}
-	if (uri_a->port != uri_b->port) return 0;
+
+	if (uri_omitting) {
+		int port_a = uri_a->port;
+		int port_b = uri_b->port;
+
+		if (port_a == 0) {
+			const char* transport_a = belle_sip_parameters_get_case_parameter((belle_sip_parameters_t*) uri_a, "transport");
+			if (transport_a == NULL) port_a = belle_sip_listening_point_get_well_known_port("UDP");
+			else port_a = belle_sip_listening_point_get_well_known_port(transport_a);
+		}
+		if (port_b == 0) {
+			const char* transport_b = belle_sip_parameters_get_case_parameter((belle_sip_parameters_t*) uri_b, "transport");
+			if (transport_b == NULL) port_b = belle_sip_listening_point_get_well_known_port("UDP");
+			else port_b = belle_sip_listening_point_get_well_known_port(transport_b);
+		}
+
+		if (port_a != port_b) return 0;
+	} else {
+		/* In this case (by default) we respect URI omitting */
+		if (uri_a->port != uri_b->port) return 0;
+	}
 /*
          A URI omitting the user component will not match a URI that
          includes one.  A URI omitting the password component will not
@@ -377,6 +397,15 @@ int belle_sip_uri_equals(const belle_sip_uri_t* uri_a,const belle_sip_uri_t* uri
  */
 	return 1;
 }
+
+int belle_sip_uri_equals(const belle_sip_uri_t* uri_a,const belle_sip_uri_t* uri_b) {
+	return belle_sip_uri_equals_with_omission(uri_a, uri_b, FALSE);
+}
+
+int belle_sip_uri_equals_with_uri_omitting(const belle_sip_uri_t* uri_a, const belle_sip_uri_t* uri_b) {
+	return belle_sip_uri_equals_with_omission(uri_a, uri_b, TRUE);
+}
+
 
 /*uri checker*/
 
