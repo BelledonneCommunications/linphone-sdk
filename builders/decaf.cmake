@@ -21,8 +21,8 @@
 ############################################################################
 
 lcb_git_repository("https://gitlab.linphone.org/BC/public/external/decaf.git")
-lcb_git_tag_latest("master")
-lcb_git_tag("master")
+lcb_git_tag_latest("bc")
+lcb_git_tag("bc")
 lcb_external_source_paths("externals/decaf")
 lcb_groupable(YES)
 lcb_package_source(YES)
