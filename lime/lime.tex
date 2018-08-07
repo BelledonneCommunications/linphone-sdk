@@ -344,7 +344,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
     \subsubsection{RatchetDecrypt}
       \paragraph{}The decryption function described in \cite[section 3.5]{doubleRatchet} is not directly used to decrypt the message. Lime first assess the presence of a cipher message and depending on it use directly the Double Ratchet or perform the two steps of encryption: first decrypt the Double Ratchet message to retrieve the random Key and IV, then decrypt the message itself.
       \paragraph{}The receiving process described in Sesame specifications \cite[section 3.4]{sesame} is partly implemented in the Double Ratchet decryption process: the message decrypt function accepts a list of Double Ratchet sessions and tries them all until one decrypts correctly the message (or all fail).
-      \paragraph{}The decryption returns the peer device's status(unknown, untrusted or trusted) in case of success or fail in case of failure.
+      \paragraph{}The decryption returns the peer device's status(unknown, unsafe, untrusted or trusted) in case of success or fail in case of failure.
         \begin{algorithmic}
           \Statex
           \Function{MessageDecrypt}{$sourceDeviceId,$
@@ -573,6 +573,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
       \item $unknown$: we had no information about this device in the local storage(before the last encryption or decryption), this status spots a newly encountered device and shall be clearly made available to the end user.
       \item $untrusted$: it's is not the first interaction with this device, but we never established mutual authentication
       \item $trusted$: we already performed the mutual authentication ritual with this peer device.
+      \item $unsafe$: we know this device, it has been tagged as unsafe by the application(Linphone).
    \end{itemize}
     \paragraph{}Lime provides an API to set/get peer devices identity keys and trust level indexed by its device Id. Linphone uses a ZRTP\cite{zrtp} audio call leveraging the MiTM detection offered by the ZRTP short authentication string to authenticate the peer identity key. ZRTP auxiliary secret is used to compare both parties' identity public keys in the following way:
     \begin{itemize}
@@ -679,7 +680,13 @@ any session-based message encryption algorithm that meets certain conditions.}\t
       \item $Did$: integer primary key.
       \item $DeviceId$: the peer device Id, it shall be its GRUU.
       \item $Ik$: the peer's public EdDSA identity key.
-      \item $verified$: flag: 0 for peer's identity not verified, 1 for peer's identity verified, see this document section \ref{subsec:mutualauthentication} for usage.
+      \item $Status$: status flag:
+        \begin{itemize}
+          \item 0 for untrusted: peer's identity is not verified(default value)
+          \item 1 for trusted: peer's identity was already verified
+          \item 2 for unsafe: peer's device has been flagged as unsafe
+        \end{itemize}
+        see this document section \ref{subsec:mutualauthentication} for usage.
     \end{itemize}
     
     \subsubsection{X3DH tables}
