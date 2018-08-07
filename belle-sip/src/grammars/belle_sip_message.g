@@ -977,7 +977,14 @@ header_from  returns [belle_sip_header_from_t* ret]
 scope { belle_sip_header_from_t* current; }
 @init { $header_from::current = belle_sip_header_from_new();$ret = $header_from::current; }
         
-  :   from_token/* ( 'From' | 'f' )*/ sp_tab_colon from_spec ;
+  :   from_token/* ( 'From' | 'f' )*/ sp_tab_colon from_spec
+      {
+        if (!belle_sip_header_address_get_uri((belle_sip_header_address_t*)($header_from::current))
+              && !belle_sip_header_address_get_absolute_uri((belle_sip_header_address_t*)($header_from::current))) {
+          belle_sip_object_unref($header_from::current);
+          $ret=NULL;
+        }
+      };
 catch [ANTLR3_RECOGNITION_EXCEPTION]
 {
    belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
@@ -987,7 +994,7 @@ catch [ANTLR3_RECOGNITION_EXCEPTION]
   
 from_spec   
   :   ( name_addr_with_generic_uri[BELLE_SIP_HEADER_ADDRESS($header_from::current)] | paramless_addr_spec_with_generic_uri[BELLE_SIP_HEADER_ADDRESS($header_from::current)] )
-               ( SEMI lws? from_param lws?)*;
+      ( SEMI lws? from_param lws?)* ;
 from_param  
   :   /*tag_param |*/ generic_param [BELLE_SIP_PARAMETERS($header_from::current)];
                        
