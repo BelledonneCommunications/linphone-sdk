@@ -257,6 +257,10 @@ struct belle_sip_main_loop{
 	int run;
 	int in_loop;
 	bctbx_mutex_t timer_sources_mutex;
+#ifndef _WIN32
+	int control_fds[2];
+	unsigned int thread_id;
+#endif
 };
 
 void belle_sip_main_loop_remove_source(belle_sip_main_loop_t *ml, belle_sip_source_t *source){
@@ -297,6 +301,11 @@ static void belle_sip_main_loop_destroy(belle_sip_main_loop_t *ml){
 	}
 	bctbx_mmap_ullong_delete(ml->timer_sources);
 	bctbx_mutex_destroy(&ml->timer_sources_mutex);
+
+#ifndef _WIN32
+	close(ml->control_fds[0]);
+	close(ml->control_fds[1]);
+#endif
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_main_loop_t);
@@ -307,8 +316,18 @@ belle_sip_main_loop_t *belle_sip_main_loop_new(void){
 	m->pool=belle_sip_object_pool_push();
 	m->timer_sources = bctbx_mmap_ullong_new();
 	bctbx_mutex_init(&m->timer_sources_mutex,NULL);
+
+#ifndef _WIN32
+	if (pipe(m->control_fds) == -1){
+		belle_sip_fatal("Cannot create control pipe of main loop thread: %s", strerror(errno));
+	}
+	m->thread_id = 0;
+#endif
+
 	return m;
 }
+
+void belle_sip_main_loop_wake_up(belle_sip_main_loop_t *ml);
 
 void belle_sip_main_loop_add_source(belle_sip_main_loop_t *ml, belle_sip_source_t *source){
 	if (source->node.next || source->node.prev){
@@ -338,6 +357,10 @@ void belle_sip_main_loop_add_source(belle_sip_main_loop_t *ml, belle_sip_source_
 	}
 
 	ml->nsources++;
+#ifndef _WIN32
+	if (ml->thread_id != bctbx_thread_self())
+		belle_sip_main_loop_wake_up(ml);
+#endif
 }
 
 belle_sip_source_t* belle_sip_main_loop_create_timeout_with_remove_cb(  belle_sip_main_loop_t *ml
@@ -454,7 +477,7 @@ void belle_sip_main_loop_cancel_source(belle_sip_main_loop_t *ml, unsigned long 
 }
 
 static void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
-	size_t pfd_size = ml->nsources * sizeof(belle_sip_pollfd_t);
+	size_t pfd_size = (ml->nsources + 1) * sizeof(belle_sip_pollfd_t);
 	belle_sip_pollfd_t *pfd=(belle_sip_pollfd_t*)belle_sip_malloc0(pfd_size);
 	int i=0;
 	belle_sip_source_t *s;
@@ -483,6 +506,11 @@ static void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 			}
 		}
 	}
+#ifndef _WIN32
+	pfd[i].fd = ml->control_fds[0];
+	pfd[i].events = POLLIN;
+	++i;
+#endif
 	/*all source with timeout are in ml->timer_sources*/
 	if (bctbx_map_size(ml->timer_sources) >0) {
 		int64_t diff;
@@ -506,6 +534,13 @@ static void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	if (ret==-1){
 		goto end;
 	}
+#ifndef _WIN32
+	if (pfd[i - 1].revents == POLLIN){
+		char c;
+		if (read(ml->control_fds[0], &c, 1) == -1)
+			belle_sip_fatal("Cannot read control pipe of main loop thread: %s", strerror(errno));
+	}
+#endif
 
 	/* Step 2: examine poll results and determine the list of source to be notified */
 	cur=belle_sip_time_ms();
@@ -617,6 +652,9 @@ end:
 }
 
 void belle_sip_main_loop_run(belle_sip_main_loop_t *ml){
+#ifndef _WIN32
+	ml->thread_id = bctbx_thread_self();
+#endif
 	if (ml->in_loop){
 		belle_sip_warning("belle_sip_main_loop_run(): reentrancy detected, doing nothing");
 		return;
@@ -651,3 +689,11 @@ void belle_sip_main_loop_sleep(belle_sip_main_loop_t *ml, int milliseconds){
 	belle_sip_main_loop_remove_source(ml,s);
 	belle_sip_object_unref(s);
 }
+
+#ifndef _WIN32
+void belle_sip_main_loop_wake_up(belle_sip_main_loop_t *ml) {
+	if (write(ml->control_fds[1], "wake up!", 1) == -1) {
+		belle_sip_fatal("Cannot write to control pipe of main loop thread: %s", strerror(errno));
+	}
+}
+#endif
