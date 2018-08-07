@@ -375,19 +375,10 @@ std::shared_ptr<Signature<Curve>> make_Signature();
 /********************** Template Instanciation ***************************************************/
 /*************************************************************************************************/
 /* this templates are instanciated once in the lime_crypto_primitives.cpp file, explicitly tell anyone including this header that there is no need to re-instanciate them */
-extern template void HMAC<SHA512>(const uint8_t *const key, const size_t keySize, const uint8_t *const input, const size_t inputSize, uint8_t *hash, size_t hashSize);
 extern template void HMAC_KDF<SHA512, std::vector<uint8_t>>(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const std::vector<uint8_t> &info, uint8_t *output, size_t outputSize);
 extern template void HMAC_KDF<SHA512, std::string>(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const std::string &info, uint8_t *output, size_t outputSize);
 extern template void HMAC_KDF<SHA512, std::vector<uint8_t>>(const uint8_t *const salt, const size_t saltSize, const uint8_t *const ikm, const size_t ikmSize, const std::vector<uint8_t> &info, uint8_t *output, size_t outputSize);
 extern template void HMAC_KDF<SHA512, std::string>(const uint8_t *const salt, const size_t saltSize, const uint8_t *const ikm, const size_t ikmSize, const std::string &info, uint8_t *output, size_t outputSize);
-
-extern template void AEAD_encrypt<AES256GCM>(const uint8_t *const key, const size_t keySize, const uint8_t *const IV, const size_t IVSize,
-		const uint8_t *const plain, const size_t plainSize, const uint8_t *const AD, const size_t ADSize,
-		uint8_t *tag, const size_t tagSize, uint8_t *cipher);
-
-extern template bool AEAD_decrypt<AES256GCM>(const uint8_t *const key, const size_t keySize, const uint8_t *const IV, const size_t IVSize,
-		const uint8_t *const cipher, const size_t cipherSize, const uint8_t *const AD, const size_t ADSize,
-		const uint8_t *const tag, const size_t tagSize, uint8_t *plain);
 
 #ifdef EC25519_ENABLED
 	extern template std::shared_ptr<keyExchange<C255>> make_keyExchange();
