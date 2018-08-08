@@ -1032,7 +1032,7 @@ BCTBX_PUBLIC bctbx_aes_gcm_context_t *bctbx_aes_gcm_context_new(const uint8_t *k
  *
  * @param[in/out]	context			a context already initialized using bctbx_aes_gcm_context_new
  * @param[in]		input			buffer holding the input data
- * @param[in]		inputLength		lenght of the input data
+ * @param[in]		inputLength		length of the input data
  * @param[out]		output			buffer to store the output data (same length as input one)
  *
  * @return 0 on success, crypto library error code otherwise
@@ -1121,6 +1121,28 @@ BCTBX_PUBLIC void bctbx_aes256CfbDecrypt(const uint8_t *key,
 		const uint8_t *input,
 		size_t inputLength,
 		uint8_t *output);
+
+/**
+ * @brief encrypt the file in input buffer for linphone encrypted file transfer
+ *
+ * @param[in/out]	cryptoContext	a context already initialized using bctbx_aes_gcm_context_new
+ * @param[in]		key		encryption key
+ * @param[in]		length	buffer size
+ * @param[in]		plain	buffer holding the input data
+ * @param[out]		cipher	buffer to store the output data
+ */
+BCTBX_PUBLIC int bctbx_aes_gcm_encryptFile(void **cryptoContext, unsigned char *key, size_t length, char *plain, char *cipher);
+
+/**
+ * @brief decrypt the file in input buffer for linphone encrypted file transfer
+ *
+ * @param[in/out]	cryptoContext	a context already initialized using bctbx_aes_gcm_context_new
+ * @param[in]		key		encryption key
+ * @param[in]		length	buffer size
+ * @param[out]		plain	buffer holding the output data
+ * @param[int]		cipher	buffer to store the input data
+ */
+BCTBX_PUBLIC int bctbx_aes_gcm_decryptFile(void **cryptoContext, unsigned char *key, size_t length, char *plain, char *cipher);
 
 /*****************************************************************************/
 /***** Cleaning                                                          *****/

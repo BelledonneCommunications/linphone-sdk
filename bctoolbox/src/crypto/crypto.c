@@ -38,3 +38,66 @@ void bctbx_clean(void *buffer, size_t size) {
 	while(size--) *p++ = 0;
 }
 
+/**
+ * @brief encrypt the file in input buffer for linphone encrypted file transfer
+ *
+ * @param[in/out]	cryptoContext	a context already initialized using bctbx_aes_gcm_context_new
+ * @param[in]		key		encryption key
+ * @param[in]		length	buffer size
+ * @param[in]		plain	buffer holding the input data
+ * @param[out]		cipher	buffer to store the output data
+ */
+int bctbx_aes_gcm_encryptFile(void **cryptoContext, unsigned char *key, size_t length, char *plain, char *cipher) {
+	bctbx_aes_gcm_context_t *gcmContext;
+
+	if (key == NULL) return -1;
+
+	if (*cryptoContext == NULL) { /* first call to the function, allocate a crypto context and initialise it */
+		/* key contains 192bits of key || 64 bits of Initialisation Vector, no additional data */
+		gcmContext = bctbx_aes_gcm_context_new(key, 24, NULL, 0, key+24, 8, BCTBX_GCM_ENCRYPT);
+		*cryptoContext = gcmContext;
+	} else { /* this is not the first call, get the context */
+		gcmContext = (bctbx_aes_gcm_context_t *)*cryptoContext;
+	}
+
+	if (length != 0) {
+		bctbx_aes_gcm_process_chunk(gcmContext, (const uint8_t *)plain, length, (uint8_t *)cipher);
+	} else { /* length is 0, finish the stream, no tag to be generated */
+		bctbx_aes_gcm_finish(gcmContext, NULL, 0);
+		*cryptoContext = NULL;
+	}
+
+	return 0;
+}
+
+/**
+ * @brief decrypt the file in input buffer for linphone encrypted file transfer
+ *
+ * @param[in/out]	cryptoContext	a context already initialized using bctbx_aes_gcm_context_new
+ * @param[in]		key		encryption key
+ * @param[in]		length	buffer size
+ * @param[out]		plain	buffer holding the output data
+ * @param[int]		cipher	buffer to store the input data
+ */
+int bctbx_aes_gcm_decryptFile(void **cryptoContext, unsigned char *key, size_t length, char *plain, char *cipher) {
+	bctbx_aes_gcm_context_t *gcmContext;
+
+	if (key == NULL) return -1;
+
+	if (*cryptoContext == NULL) { /* first call to the function, allocate a crypto context and initialise it */
+		/* key contains 192bits of key || 64 bits of Initialisation Vector, no additional data */
+		gcmContext = bctbx_aes_gcm_context_new(key, 24, NULL, 0, key+24, 8, BCTBX_GCM_DECRYPT);
+		*cryptoContext = gcmContext;
+	} else { /* this is not the first call, get the context */
+		gcmContext = (bctbx_aes_gcm_context_t *)*cryptoContext;
+	}
+
+	if (length != 0) {
+		bctbx_aes_gcm_process_chunk(gcmContext, (const unsigned char *)cipher, length, (unsigned char *)plain);
+	} else { /* lenght is 0, finish the stream */
+		bctbx_aes_gcm_finish(gcmContext, NULL, 0);
+		*cryptoContext = NULL;
+	}
+
+	return 0;
+}
