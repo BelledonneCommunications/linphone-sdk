@@ -16,15 +16,23 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "bctoolbox/exception.hh"
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#ifdef HAVE_EXECINFO
 #include <execinfo.h>
+#endif
+
 #include <unistd.h>
-#include "bctoolbox/logging.h"
-#include "dlfcn.h"
+#include <dlfcn.h>
 #include <cxxabi.h>
 #include <exception>
 #include <iomanip>
 #include <libgen.h>
+
+#include "bctoolbox/exception.hh"
+#include "bctoolbox/logging.h"
 
 using namespace std;
 
@@ -42,13 +50,19 @@ static void uncaught_handler() {
 
 
 BctbxException::BctbxException(const char *message) : mOffset(1), mSize(0) {
+#ifdef HAVE_EXECINFO
 	mSize = backtrace(mArray, sizeof(mArray) / sizeof(void *));
+#else
+	mSize = 0;
+#endif
 	if (message)
 		mOs << message;
+#ifdef HAVE_EXECINFO
 #if __clang
 	if (get_terminate() != uncaught_handler)
 #endif
 		set_terminate(uncaught_handler); // invoke in case of uncautch exception for this thread
+#endif
 }
 
 BctbxException::BctbxException(const BctbxException &other) : mOffset(other.mOffset), mSize(other.mSize) {
@@ -62,7 +76,11 @@ BctbxException::BctbxException(const string &msg) : BctbxException(msg.c_str()) 
 }
 #else
 BctbxException::BctbxException(const string &message) : mOffset(2) {
+#ifdef HAVE_EXECINFO
 	mSize = backtrace(mArray, sizeof(mArray) / sizeof(void *));
+#else
+	mSize = 0;
+#endif
 	*this << message;
 	set_terminate(uncaught_handler); // invoke in case of uncautch exception for this thread
 }
@@ -78,17 +96,28 @@ BctbxException::BctbxException() : BctbxException("") {
 }
 #else
 BctbxException::BctbxException() : mOffset(2) {
+#ifdef HAVE_EXECINFO
 	mSize = backtrace(mArray, sizeof(mArray) / sizeof(void *));
+#else
+	mSize = 0;
+#endif
 	*this << "";
+#ifdef HAVE_EXECINFO
 	set_terminate(uncaught_handler); // invoke in case of uncautch exception for this thread
+#endif
 }
 #endif
 
 void BctbxException::printStackTrace() const {
+#ifdef HAVE_EXECINFO
 	backtrace_symbols_fd(mArray + mOffset, mSize - mOffset, STDERR_FILENO);
+#else
+	std::cout << "stack trace not available on this platform";
+#endif
 }
 
 void BctbxException::printStackTrace(std::ostream &os) const {
+#ifdef HAVE_EXECINFO
 	char **bt = backtrace_symbols(mArray, mSize);
 	int position=0;
 	for (unsigned int i = mOffset; i < mSize; ++i) {
@@ -112,6 +141,9 @@ void BctbxException::printStackTrace(std::ostream &os) const {
 		os << std::endl;
 	}
 	free(bt);
+#else
+	os << "stack trace not available on this platform";
+#endif
 }
 
 const std::string &BctbxException::str() const {

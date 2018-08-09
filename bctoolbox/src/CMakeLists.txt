@@ -35,6 +35,7 @@ set(BCTOOLBOX_CXX_SOURCE_FILES
 	conversion/charconv.cc
 	crypto/ecc.cc
 	utils/regex.cc
+	utils/exception.cc
 )
 
 set(BCTOOLBOX_OBJC_SOURCE_FILES)
@@ -50,10 +51,6 @@ endif ()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 	list(APPEND STRICT_OPTIONS_CXX "-x c++")
-endif()
-
-if(HAVE_EXECINFO)
-	list(APPEND BCTOOLBOX_CXX_SOURCE_FILES utils/exception.cc)
 endif()
 
 if(MBEDTLS_FOUND)
