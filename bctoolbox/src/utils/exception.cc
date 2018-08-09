@@ -36,6 +36,7 @@
 
 using namespace std;
 
+#ifdef HAVE_EXECINFO
 static void uncaught_handler() {
 	std::exception_ptr p = current_exception();
 	try {
@@ -47,7 +48,7 @@ static void uncaught_handler() {
 	}
 	abort();
 }
-
+#endif
 
 BctbxException::BctbxException(const char *message) : mOffset(1), mSize(0) {
 #ifdef HAVE_EXECINFO
