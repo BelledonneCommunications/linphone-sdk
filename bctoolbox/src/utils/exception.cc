@@ -50,14 +50,14 @@ static void uncaught_handler() {
 
 
 BctbxException::BctbxException(const char *message) : mOffset(1), mSize(0) {
-#if HAVE_EXECINFO
+#ifdef HAVE_EXECINFO
 	mSize = backtrace(mArray, sizeof(mArray) / sizeof(void *));
 #else
 	mSize = 0;
 #endif
 	if (message)
 		mOs << message;
-#if HAVE_EXECINFO
+#ifdef HAVE_EXECINFO
 #if __clang
 	if (get_terminate() != uncaught_handler)
 #endif
@@ -76,7 +76,7 @@ BctbxException::BctbxException(const string &msg) : BctbxException(msg.c_str()) 
 }
 #else
 BctbxException::BctbxException(const string &message) : mOffset(2) {
-#if HAVE_EXECINFO
+#ifdef HAVE_EXECINFO
 	mSize = backtrace(mArray, sizeof(mArray) / sizeof(void *));
 #else
 	mSize = 0;
@@ -96,20 +96,20 @@ BctbxException::BctbxException() : BctbxException("") {
 }
 #else
 BctbxException::BctbxException() : mOffset(2) {
-#if HAVE_EXECINFO
+#ifdef HAVE_EXECINFO
 	mSize = backtrace(mArray, sizeof(mArray) / sizeof(void *));
 #else
 	mSize = 0;
 #endif
 	*this << "";
-#if HAVE_EXECINFO
+#ifdef HAVE_EXECINFO
 	set_terminate(uncaught_handler); // invoke in case of uncautch exception for this thread
 #endif
 }
 #endif
 
 void BctbxException::printStackTrace() const {
-#if HAVE_EXECINFO
+#ifdef HAVE_EXECINFO
 	backtrace_symbols_fd(mArray + mOffset, mSize - mOffset, STDERR_FILENO);
 #else
 	std::cout << "stack trace not available on this platform";
@@ -117,7 +117,7 @@ void BctbxException::printStackTrace() const {
 }
 
 void BctbxException::printStackTrace(std::ostream &os) const {
-#if HAVE_EXECINFO
+#ifdef HAVE_EXECINFO
 	char **bt = backtrace_symbols(mArray, mSize);
 	int position=0;
 	for (unsigned int i = mOffset; i < mSize; ++i) {
