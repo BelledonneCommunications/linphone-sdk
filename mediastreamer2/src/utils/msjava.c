@@ -35,7 +35,7 @@ void _android_key_cleanup(void *data){
 	JNIEnv *env = (JNIEnv*) data;
 
 	if (env != NULL) {
-		ms_message("Thread end, detaching jvm from current thread");
+		//ms_message("Thread end, detaching jvm from current thread");
 		(*ms2_vm)->DetachCurrentThread(ms2_vm);
 		pthread_setspecific(jnienv_key,NULL);
 	}

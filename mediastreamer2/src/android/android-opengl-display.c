@@ -73,6 +73,7 @@ static void android_display_uninit(MSFilter *f){
 		ms_free(ad->ogl);
 	}
 	if (ad->android_video_window) (*jenv)->DeleteGlobalRef(jenv, ad->android_video_window);
+	ad->android_video_window = NULL;
 
 	ms_free(ad);
 }
