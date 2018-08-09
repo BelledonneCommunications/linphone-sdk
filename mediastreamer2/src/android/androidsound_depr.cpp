@@ -326,7 +326,6 @@ static void* msandroid_read_cb(msandroid_sound_read_data* d) {
 		goto end;
 	}
 	//start recording
-	ms_message("Start recording");
 	jni_env->CallVoidMethod(d->audio_record,record_id);
 
 	// int read (byte[] audioData, int offsetInBytes, int sizeInBytes)

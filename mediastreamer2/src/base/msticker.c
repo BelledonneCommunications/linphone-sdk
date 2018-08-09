@@ -598,7 +598,9 @@ double ms_ticker_synchronizer_set_external_time(MSTickerSynchronizer* ts, const 
 	diff = wc - sound_time;
 	ts->av_skew = (ts->av_skew * (1.0 - clock_coef)) + ((double) diff * clock_coef);
 	if ((++ts->external_time_count) % 100 == 0) {
+#ifndef __ANDROID__
 		ms_message("sound/wall clock skew is average=%f ms", ts->av_skew);
+#endif
 	}
 	return ts->av_skew;
 }
