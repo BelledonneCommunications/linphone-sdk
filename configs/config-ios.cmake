@@ -62,12 +62,10 @@ unset(COMMON_FLAGS)
 
 message(STATUS "Xcode version: ${XCODE_VERSION}")
 
-#XCode7 requires Cmake 3.3.20150815 at least
-if(NOT ${XCODE_VERSION} VERSION_LESS 7)
-	set(CMAKE_MIN_VERSION "3.3.20150815")
-	if(${CMAKE_VERSION} VERSION_LESS ${CMAKE_MIN_VERSION})
-		message(FATAL_ERROR "You need at least CMake version ${CMAKE_MIN_VERSION} but you are currently using ${CMAKE_VERSION}. There is no Cmake release available for it yet, so you must either compile it manually or revert to XCode6 temporary.")
-	endif()
+#Framework generation requires cmake 3.6 at least, otherwise it is completely broken.
+set(CMAKE_MIN_VERSION "3.6.1")
+if(${CMAKE_VERSION} VERSION_LESS ${CMAKE_MIN_VERSION})
+	message(FATAL_ERROR "CMake with version greater than ${CMAKE_MIN_VERSION} is required but you are currently using ${CMAKE_VERSION}.")
 endif()
 
 set(LINPHONE_BUILDER_CXXFLAGS "${LINPHONE_BUILDER_CXXFLAGS} -stdlib=libc++")
