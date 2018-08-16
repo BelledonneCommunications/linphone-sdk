@@ -20,6 +20,5 @@
 #
 ############################################################################
 
-set(CMAKE_SYSTEM_PROCESSOR "i686")
-set(CMAKE_ANDROID_NDK_TOOLCHAIN_VERSION "clang")
+set(ANDROID_ABI "x86")
 include("${CMAKE_CURRENT_LIST_DIR}/android/toolchain-android.cmake")

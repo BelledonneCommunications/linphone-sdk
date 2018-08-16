@@ -20,7 +20,5 @@
 #
 ############################################################################
 
-set(CMAKE_SYSTEM_PROCESSOR "aarch64")
-set(CMAKE_ANDROID_API 21)
-set(CMAKE_ANDROID_NDK_TOOLCHAIN_VERSION "clang")
+set(ANDROID_ABI "arm64-v8a")
 include("${CMAKE_CURRENT_LIST_DIR}/android/toolchain-android.cmake")

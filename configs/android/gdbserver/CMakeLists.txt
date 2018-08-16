@@ -26,4 +26,4 @@ project(gdbserver LANGUAGES) # Dummy project
 configure_file(gdb.setup.in gdb.setup @ONLY)
 
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/gdb.setup" DESTINATION bin)
-install(PROGRAMS "${CMAKE_ANDROID_NDK}/prebuilt/android-${CMAKE_ANDROID_ARCH}/gdbserver/gdbserver" DESTINATION bin)
+install(PROGRAMS "${CMAKE_ANDROID_NDK}/prebuilt/android-${ANDROID_SYSROOT_ABI}/gdbserver/gdbserver" DESTINATION bin)

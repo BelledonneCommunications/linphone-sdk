@@ -20,5 +20,5 @@
 #
 ############################################################################
 
-set(CMAKE_SYSTEM_PROCESSOR "armv5te")
+set(ANDROID_ABI "armeabi")
 include("${CMAKE_CURRENT_LIST_DIR}/android/toolchain-android.cmake")

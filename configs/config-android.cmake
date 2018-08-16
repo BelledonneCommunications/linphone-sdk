@@ -165,24 +165,19 @@ lcb_builder_install_target(x264 "install-lib-static")
 
 
 # Copy c++ library to install prefix
-if(CMAKE_ANDROID_NDK_VERSION VERSION_LESS 16)
-	file(COPY "${CMAKE_ANDROID_NDK}/sources/cxx-stl/gnu-libstdc++/${CMAKE_CXX_ANDROID_TOOLCHAIN_VERSION}/libs/${CMAKE_ANDROID_ARCH_ABI}/libgnustl_shared.so"
-		DESTINATION "${CMAKE_INSTALL_PREFIX}/lib"
-	)
-else()
-	file(COPY "${CMAKE_ANDROID_NDK}/sources/cxx-stl/llvm-libc++/libs/${CMAKE_ANDROID_ARCH_ABI}/libc++_shared.so"
-		DESTINATION "${CMAKE_INSTALL_PREFIX}/lib"
-	)
-	if(ENABLE_SANITIZER)
-		set(SANITIZER_ARCH ${CMAKE_SYSTEM_PROCESSOR})
-		if(SANITIZER_ARCH MATCHES "^arm")
-			set(SANITIZER_ARCH "arm")
-		endif()
-		file(GLOB_RECURSE _clang_rt_library "${CMAKE_ANDROID_NDK}/toolchains/llvm/prebuilt/${CMAKE_ANDROID_NDK_TOOLCHAIN_HOST_TAG}/*/clang/*/lib/linux/libclang_rt.asan-${SANITIZER_ARCH}-android.so")
-		if(_clang_rt_library)
-			file(COPY ${_clang_rt_library} DESTINATION "${CMAKE_INSTALL_PREFIX}/lib")
-			configure_file("${CMAKE_CURRENT_SOURCE_DIR}/configs/android/wrap.sh.cmake" "${CMAKE_INSTALL_PREFIX}/lib/wrap.sh" @ONLY)
-		endif()
+file(COPY "${CMAKE_ANDROID_NDK}/sources/cxx-stl/llvm-libc++/libs/${CMAKE_ANDROID_ARCH_ABI}/libc++_shared.so"
+	DESTINATION "${CMAKE_INSTALL_PREFIX}/lib"
+)
+if(ENABLE_SANITIZER)
+	set(SANITIZER_ARCH ${CMAKE_SYSTEM_PROCESSOR})
+	if(SANITIZER_ARCH MATCHES "^arm")
+		set(SANITIZER_ARCH "arm")
+	endif()
+	file(GLOB_RECURSE _clang_rt_library "${CMAKE_ANDROID_NDK}/toolchains/llvm/prebuilt/${ANDROID_HOST_TAG}/*/clang/*/lib/linux/libclang_rt.asan-${SANITIZER_ARCH}-android.so")
+	if(_clang_rt_library)
+		list(GET _clang_rt_library 0 _clang_rt_library)
+		file(COPY ${_clang_rt_library} DESTINATION "${CMAKE_INSTALL_PREFIX}/lib")
+		configure_file("${CMAKE_CURRENT_SOURCE_DIR}/configs/android/wrap.sh.cmake" "${CMAKE_INSTALL_PREFIX}/lib/wrap.sh" @ONLY)
 	endif()
 endif()
 

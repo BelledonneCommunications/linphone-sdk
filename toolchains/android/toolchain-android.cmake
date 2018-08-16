@@ -33,27 +33,13 @@ file(READ "${CMAKE_ANDROID_NDK}/source.properties" SOURCE_PROPERTIES_CONTENT)
 string(REGEX MATCH "Pkg\\.Revision = ([0-9]+)\\." NDK_VERSION_MATCH "${SOURCE_PROPERTIES_CONTENT}")
 set(CMAKE_ANDROID_NDK_VERSION ${CMAKE_MATCH_1})
 
-set(CMAKE_SYSTEM_NAME "Android")
-if(NOT CMAKE_ANDROID_API)
-	set(CMAKE_ANDROID_API 16)
-endif()
+set(ANDROID_NATIVE_API_LEVEL "android-16")
+set(ANDROID_CPP_FEATURES "rtti exceptions")
+set(ANDROID_STL "c++_shared")
 
-if(CMAKE_ANDROID_NDK_VERSION VERSION_LESS 16)
-	set(CMAKE_ANDROID_STL_TYPE "gnustl_shared")
-else()
-	set(CMAKE_ANDROID_STL_TYPE "c++_shared")
-	set(CMAKE_SHARED_LINKER_FLAGS "-Wl,--exclude-libs,libgcc.a -Wl,--exclude-libs,libatomic.a ${CMAKE_SHARED_LINKER_FLAGS}")
-	set(CMAKE_MODULE_LINKER_FLAGS "-Wl,--exclude-libs,libgcc.a -Wl,--exclude-libs,libatomic.a ${CMAKE_MODULE_LINKER_FLAGS}")
-	set(CMAKE_EXE_LINKER_FLAGS "-Wl,--exclude-libs,libgcc.a -Wl,--exclude-libs,libatomic.a ${CMAKE_EXE_LINKER_FLAGS}")
-endif()
+include("${CMAKE_ANDROID_NDK}/build/cmake/android.toolchain.cmake")
 
 set(CMAKE_FIND_ROOT_PATH "${CMAKE_SYSROOT}" "${CMAKE_INSTALL_PREFIX}")
-# search for programs in the build host directories
-set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
-# for libraries and headers in the target directories
-set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
-set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
-set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
 
 set(CMAKE_CXX_FLAGS_RELEASE "-Os -DNDEBUG")
 set(CMAKE_C_FLAGS_RELEASE "-Os -DNDEBUG")
