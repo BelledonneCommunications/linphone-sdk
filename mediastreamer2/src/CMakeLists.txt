@@ -99,7 +99,7 @@ if(ENABLE_STATIC)
 endif()
 if(ENABLE_SHARED)
 	add_library(mediastreamer_base SHARED ${MEDIASTREAMER2_HEADER_FILES} ${BASE_SOURCE_FILES_C})
-	set_target_properties(mediastreamer_base PROPERTIES LINKER_LANGUAGE C)
+	set_target_properties(mediastreamer_base PROPERTIES LINKER_LANGUAGE CXX)
 	#TODO: replace by if(APPLE) when we want to make apple framework on linphone-desktop too
 	if(IOS)
 		if(IOS)
