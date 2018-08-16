@@ -272,14 +272,8 @@ int register_before_all(void) {
 	belle_sip_listening_point_t *lp;
 	stack = belle_sip_stack_new(NULL);
 	const char *client[2] = {NULL, NULL};
-	char *default_hosts = NULL;
 	
-	if (!userhostsfile){
-		userhostsfile = default_hosts = bc_tester_res("tester_hosts");
-	}
-		
-	belle_sip_stack_set_dns_user_hosts_file(stack, userhostsfile);
-	if (default_hosts) bc_free(default_hosts);
+	belle_sip_tester_set_dns_host_file(stack);
 
 	lp = belle_sip_stack_create_listening_point(stack, "0.0.0.0", 7060, "UDP");
 	prov = belle_sip_stack_create_provider(stack, lp);

@@ -21,6 +21,8 @@
 
 #include <bctoolbox/tester.h>
 
+#include "belle-sip/belle-sip.h"
+
 
 #define MULTIPART_BOUNDARY "---------------------------14737809831466499882746641449"
 
@@ -58,7 +60,7 @@ void belle_sip_tester_uninit(void);
 void belle_sip_tester_before_each(void);
 void belle_sip_tester_after_each(void);
 int belle_sip_tester_set_log_file(const char *filename);
-extern const char *userhostsfile;
+void belle_sip_tester_set_dns_host_file(belle_sip_stack_t *stack);
 
 #ifdef __cplusplus
 };
