@@ -268,18 +268,13 @@ static void process_auth_requested_for_algorithm(void *user_ctx, belle_sip_auth_
 	}
 }
 
+static const char *listener_user_data[2] = {NULL, NULL};
+
 int register_before_all(void) {
 	belle_sip_listening_point_t *lp;
 	stack = belle_sip_stack_new(NULL);
-	const char *client[2] = {NULL, NULL};
-	char *default_hosts = NULL;
 	
-	if (!userhostsfile){
-		userhostsfile = default_hosts = bc_tester_res("tester_hosts");
-	}
-		
-	belle_sip_stack_set_dns_user_hosts_file(stack, userhostsfile);
-	if (default_hosts) bc_free(default_hosts);
+	belle_sip_tester_set_dns_host_file(stack);
 
 	lp = belle_sip_stack_create_listening_point(stack, "0.0.0.0", 7060, "UDP");
 	prov = belle_sip_stack_create_provider(stack, lp);
@@ -305,7 +300,7 @@ int register_before_all(void) {
 	listener_callbacks.process_auth_requested = process_auth_requested_for_algorithm;
 	listener_callbacks.listener_destroyed = NULL;
 
-	listener = belle_sip_listener_create_from_callbacks(&listener_callbacks, (void *)client);
+	listener = belle_sip_listener_create_from_callbacks(&listener_callbacks, (void *)listener_user_data);
 	return 0;
 }
 

@@ -613,8 +613,8 @@ static int tls_process_data(belle_sip_channel_t *obj,unsigned int revents){
 				if (tls_process_handshake(obj)==-1) goto process_error;
 			}
 		} else if (obj->stack->http_proxy_host && !channel->http_proxy_connected) {
-			char response[256];
-			err = stream_channel_recv((belle_sip_stream_channel_t*)obj,response,sizeof(response));
+			char response[256]={0};
+			err = stream_channel_recv((belle_sip_stream_channel_t*)obj,response,sizeof(response)-1);
 			if (err<0 ){
 				belle_sip_error("Channel [%p]: connection refused by http proxy [%s:%i] status [%s]"
 								,channel
