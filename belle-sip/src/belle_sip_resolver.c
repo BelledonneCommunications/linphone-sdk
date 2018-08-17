@@ -192,7 +192,7 @@ int belle_sip_resolver_results_get_ttl(const belle_sip_resolver_results_t *obj){
 	return obj->ttl;
 }
 
-const char *belle_sip_resolver_get_name(const belle_sip_resolver_results_t *obj){
+const char *belle_sip_resolver_results_get_name(const belle_sip_resolver_results_t *obj){
 	return obj->name;
 }
 
