@@ -414,17 +414,18 @@ static int tls_channel_connect_to(belle_sip_channel_t *obj, const struct addrinf
 	return -1;
 }
 
-static void http_proxy_res_done(void *data, const char *name, struct addrinfo *ai_list, uint32_t ttl){
+static void http_proxy_res_done(void *data, belle_sip_resolver_results_t *results){
 	belle_sip_tls_channel_t *obj=(belle_sip_tls_channel_t*)data;
+	const struct addrinfo *ai_list;
 	if (obj->http_proxy_resolver_ctx){
 		belle_sip_object_unref(obj->http_proxy_resolver_ctx);
 		obj->http_proxy_resolver_ctx=NULL;
 	}
+	ai_list = belle_sip_resolver_results_get_addrinfos(results);
 	if (ai_list){
 		tls_channel_connect_to((belle_sip_channel_t *)obj,ai_list);
-		bctbx_freeaddrinfo(ai_list);
 	}else{
-		belle_sip_error("%s: DNS resolution failed for %s", __FUNCTION__, name);
+		belle_sip_error("%s: DNS resolution failed for %s", __FUNCTION__, belle_sip_resolver_results_get_name(results));
 		channel_set_state((belle_sip_channel_t*)obj,BELLE_SIP_CHANNEL_ERROR);
 	}
 }
