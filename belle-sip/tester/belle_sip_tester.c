@@ -183,7 +183,7 @@ void belle_sip_tester_set_dns_host_file(belle_sip_stack_t *stack){
 	if (userhostsfile){
 		belle_sip_stack_set_dns_user_hosts_file(stack, userhostsfile);
 	}else{
-		char *default_hosts = bc_tester_res("test_hosts");
+		char *default_hosts = bc_tester_res("tester_hosts");
 		if (default_hosts){
 			belle_sip_stack_set_dns_user_hosts_file(stack, default_hosts);
 			bc_free(default_hosts);
