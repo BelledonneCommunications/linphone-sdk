@@ -22,22 +22,20 @@
 
 static belle_sip_stack_t *stack;
 
-static void resolver_callback(void *data, const char *queried_name, struct addrinfo *ai_list, unsigned int ttl){
+static void resolver_callback(void *data, belle_sip_resolver_results_t *results){
 	int err;
-	struct addrinfo *ai_it;
+	const struct addrinfo *ai_it;
 	char name[NI_MAXHOST];
 	char port[NI_MAXSERV];
+	const struct addrinfo *ai_list = belle_sip_resolver_results_get_addrinfos(results);
 	
 	for(ai_it=ai_list;ai_it!=NULL;ai_it=ai_it->ai_next){
 		err=bctbx_getnameinfo(ai_it->ai_addr,ai_list->ai_addrlen,name,sizeof(name),port,sizeof(port),NI_NUMERICSERV|NI_NUMERICHOST);
 		if (err!=0){
 			fprintf(stderr,"getnameinfo error: %s",gai_strerror(err));
 		}else{
-			printf("\t%s %s  (ttl:%u)\n",name,port,ttl);
+			printf("\t%s %s  (ttl:%u)\n",name,port,belle_sip_resolver_results_get_ttl(results));
 		}
-	}
-	if (ai_list){
-		bctbx_freeaddrinfo(ai_list);
 	}
 	belle_sip_main_loop_quit(belle_sip_stack_get_main_loop(stack));
 }
