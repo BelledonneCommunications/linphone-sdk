@@ -120,8 +120,39 @@ static void test_from_header(void) {
 	BC_ASSERT_STRING_EQUAL(belle_sip_header_from_get_tag(L_from),"dlfjklcn6545614XX");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_from));
 
+	// Test Domain name RFC1123-2.1
+	L_from = belle_sip_header_from_parse("f:<sip:123jeff;transport=tcp>;tag=dlfjklcn6545614XX");
+	l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_from));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_from));
+	L_tmp = belle_sip_header_from_parse(l_raw_header);
+	L_from = BELLE_SIP_HEADER_FROM(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
+	belle_sip_free(l_raw_header);
 
-	/*test factory*/
+	L_uri = belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(L_from));
+
+	BC_ASSERT_PTR_NULL(belle_sip_uri_get_user(L_uri));
+	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "123jeff");
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_from_get_tag(L_from),"dlfjklcn6545614XX");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_from));
+
+	L_from = belle_sip_header_from_parse("f:<sip:12345678987;transport=tcp>;tag=dlfjklcn6545614XX");
+	l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_from));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_from));
+	L_tmp = belle_sip_header_from_parse(l_raw_header);
+	L_from = BELLE_SIP_HEADER_FROM(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
+	belle_sip_free(l_raw_header);
+
+	L_uri = belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(L_from));
+
+	BC_ASSERT_PTR_NULL(belle_sip_uri_get_user(L_uri));
+	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "12345678987");
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_from_get_tag(L_from),"dlfjklcn6545614XX");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_from));
+
+
+	// Test factory
 	L_from = belle_sip_header_from_create2("super <sip:titi.com:5060;lr;ttl=1;method=INVITE;maddr=192.168.0.1;transport=tcp?header=123>","12345-abc");
 	if (!BC_ASSERT_PTR_NOT_NULL(L_from)) return;
 	L_uri = belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(L_from));
