@@ -873,7 +873,7 @@ static void h264_dec_process(MSFilter *f) {
 		if (ctx->session == NULL) {
 			h264_dec_handle_error(ctx, need_pli);
 		}
-		if (unpack_status & Rfc3984IsKeyFrame) {
+		if (unpack_status & Rfc3984HasIDR) {
 			need_pli = FALSE;
 			ctx->freezed = FALSE;
 		}
