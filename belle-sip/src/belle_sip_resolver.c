@@ -97,10 +97,17 @@ belle_sip_dns_srv_t *belle_sip_mdns_srv_create(short unsigned int priority, shor
 
 belle_sip_dns_srv_t *belle_sip_dns_srv_create(struct dns_srv *srv){
 	belle_sip_dns_srv_t *obj=belle_sip_object_new(belle_sip_dns_srv_t);
+	size_t end_pos;
 	obj->priority=srv->priority;
 	obj->weight=srv->weight;
 	obj->port=srv->port;
 	obj->target=belle_sip_strdup(srv->target);
+	/*remove trailing '.' at the end*/
+	end_pos = strlen(obj->target);
+	if (end_pos > 0){
+		end_pos--;
+		if (obj->target[end_pos] == '.') obj->target[end_pos] = '\0';
+	}
 	return obj;
 }
 
@@ -1332,10 +1339,8 @@ static void combined_resolver_context_check_finished(belle_sip_combined_resolver
 		for(elem=obj->srv_results;elem!=NULL;elem=elem->next){
 			belle_sip_dns_srv_t *srv=(belle_sip_dns_srv_t*)elem->data;
 			final=ai_list_append(final,srv->a_results);
-			srv->a_results=NULL;
+			srv->dont_free_a_results = TRUE;
 		}
-		belle_sip_list_free_with_data(obj->srv_results,belle_sip_object_unref);
-		obj->srv_results=NULL;
 		obj->final_results=final;
 		belle_sip_resolver_context_notify(BELLE_SIP_RESOLVER_CONTEXT(obj));
 	}
