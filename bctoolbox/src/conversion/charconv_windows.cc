@@ -158,21 +158,11 @@ static char *convertFromTo (const char *str, const char *from, const char *to) {
 }
 
 char *bctbx_locale_to_utf8 (const char *str) {
-	const char *defaultEncoding = bctbx_get_default_encoding();
-
-	if (!strcmp(defaultEncoding, "UTF-8"))
-		return bctbx_strdup(str);
-
-	return convertFromTo(str, defaultEncoding, "UTF-8");
+	return convertFromTo(str, "locale", "UTF-8");
 }
 
 char *bctbx_utf8_to_locale (const char *str) {
-	const char *defaultEncoding = bctbx_get_default_encoding();
-
-	if (!strcmp(defaultEncoding, "UTF-8"))
-		return bctbx_strdup(str);
-
-	return convertFromTo(str, "UTF-8", defaultEncoding);
+	return convertFromTo(str, "UTF-8", "locale");
 }
 
 char *bctbx_convert_any_to_utf8 (const char *str, const char *encoding) {

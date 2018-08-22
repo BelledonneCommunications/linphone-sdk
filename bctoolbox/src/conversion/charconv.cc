@@ -20,29 +20,77 @@
 #include "config.h"
 #endif
 
-#ifdef __APPLE__
-   #include "TargetConditionals.h"
-#endif
+#include <errno.h>
+#include <iconv.h>
+#include <langinfo.h>
+#include <locale.h>
+#include <string.h>
 
 #include "bctoolbox/logging.h"
 #include "bctoolbox/port.h"
 #include "bctoolbox/charconv.h"
 
-namespace {
-	std::string defaultEncoding = "";
+static char *convert_from_to (const char *str, const char *from, const char *to) {
+	if (!from || !to)
+		return NULL;
+
+	if (strcasecmp(from, to) == 0)
+		return bctbx_strdup(str);
+
+	char *in_buf = (char *) str;
+	char *out_buf, *ptr;
+	size_t in_left = strlen(str) + 1;
+	size_t out_left = in_left + in_left/10; // leave a marge of 10%
+	iconv_t cd;
+
+	const char* r_from = strcasecmp("locale", from) == 0 ? "" : from;
+	const char* r_to = strcasecmp("locale", to) == 0 ? "" : to;
+
+	if (strcasecmp(r_from, r_to) == 0) {
+		return bctbx_strdup(str);
+	}
+
+	cd = iconv_open(r_to, r_from);
+
+	if (cd != (iconv_t)-1) {
+		size_t ret;
+		size_t out_len = out_left;
+
+		out_buf = (char *) bctbx_malloc(out_left);
+		ptr = out_buf; // Keep a pointer to the beginning of this buffer to be able to realloc
+
+		ret = iconv(cd, &in_buf, &in_left, &out_buf, &out_left);
+		while (ret == (size_t)-1 && errno == E2BIG) {
+			ptr = (char *) bctbx_realloc(ptr, out_len*2);
+			out_left = out_len;
+			out_buf = ptr + out_left;
+			out_len *= 2;
+
+			ret = iconv(cd, &in_buf, &in_left, &out_buf, &out_left);
+		}
+		iconv_close(cd);
+
+		if (ret == (size_t)-1 && errno != E2BIG) {
+			bctbx_error("Error while converting a string from '%s' to '%s': %s", from, to, strerror(errno));
+			bctbx_free(ptr);
+			return NULL;
+		}
+	} else {
+		bctbx_error("Unable to open iconv content descriptor from '%s' to '%s': %s", from, to, strerror(errno));
+		return NULL;
+	}
+
+	return ptr;
 }
 
-void bctbx_set_default_encoding (const char *encoding) {
-	defaultEncoding = std::string(encoding);
+char *bctbx_locale_to_utf8 (const char *str) {
+	return convert_from_to(str, "locale", "UTF-8");
 }
 
-const char *bctbx_get_default_encoding () {
-	if (!defaultEncoding.empty())
-		return defaultEncoding.c_str();
+char *bctbx_utf8_to_locale (const char *str) {
+	return convert_from_to(str, "UTF-8", "locale");
+}
 
-#if defined(__ANDROID__) || TARGET_OS_IPHONE
-	return "UTF-8";
-#else
-	return "locale";
-#endif
+char *bctbx_convert_any_to_utf8 (const char *str, const char *encoding) {
+	return convert_from_to(str, encoding, "UTF-8");
 }
