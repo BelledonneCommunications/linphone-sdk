@@ -262,7 +262,7 @@ void MediaCodecDecoderFilterImpl::preprocess() {
 
 void MediaCodecDecoderFilterImpl::process() {
 	bool requestPli = false;
-	MSQueue frame, parameterSets;
+	MSQueue frame;
 
 	if (_codec == nullptr) {
 		ms_queue_flush(_f->inputs[0]);
@@ -270,7 +270,6 @@ void MediaCodecDecoderFilterImpl::process() {
 	}
 
 	ms_queue_init(&frame);
-	ms_queue_init(&parameterSets);
 
 	while (mblk_t *im = ms_queue_get(_f->inputs[0])) {
 		NalUnpacker::Status unpacking_ret = _unpacker->unpack(im, &frame);
@@ -294,7 +293,6 @@ void MediaCodecDecoderFilterImpl::process() {
 		requestPli = !_codec->feed(&frame, tsMs);
 
 		ms_queue_flush(&frame);
-		ms_queue_flush(&parameterSets);
 	}
 
 	mblk_t *om;
