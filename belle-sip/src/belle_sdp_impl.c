@@ -1054,7 +1054,7 @@ void belle_sdp_media_description_append_values_from_mime_parameter(belle_sdp_med
 		current_ptime=belle_sdp_mime_parameter_get_ptime(mime_parameter);
 	}
 	if (current_ptime>0){
-		char  ptime[10];
+		char  ptime[12];
 		snprintf(ptime,sizeof(ptime),"%i",current_ptime);
 		belle_sdp_media_description_set_attribute_value(media_description,"ptime",ptime);
 	}
@@ -1063,7 +1063,7 @@ void belle_sdp_media_description_append_values_from_mime_parameter(belle_sdp_med
 		current_max_ptime=belle_sdp_mime_parameter_get_max_ptime(mime_parameter);
 	}
 	if (current_max_ptime>0){
-		char  max_ptime[10];
+		char  max_ptime[12];
 		snprintf(max_ptime,sizeof(max_ptime),"%i",current_max_ptime);
 		belle_sdp_media_description_set_attribute_value(media_description,"maxptime",max_ptime);
 	}
