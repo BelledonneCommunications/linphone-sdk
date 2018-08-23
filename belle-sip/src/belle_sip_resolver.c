@@ -50,7 +50,7 @@ struct belle_sip_dns_srv{
 	unsigned short weight;
 	unsigned short port;
 	unsigned char a_done;
-	unsigned char pad;
+	unsigned char dont_free_a_results;
 	int cumulative_weight; /*used only temporarily*/
 	char *target;
 	belle_sip_combined_resolver_context_t *root_resolver;/* used internally to combine SRV and A queries*/
@@ -71,7 +71,7 @@ static void belle_sip_dns_srv_destroy(belle_sip_dns_srv_t *obj){
 		belle_sip_object_unref(obj->a_resolver);
 		obj->a_resolver=NULL;
 	}
-	if (obj->a_results){
+	if (obj->a_results && !obj->dont_free_a_results){
 		bctbx_freeaddrinfo(obj->a_results);
 		obj->a_results=NULL;
 	}
@@ -97,10 +97,17 @@ belle_sip_dns_srv_t *belle_sip_mdns_srv_create(short unsigned int priority, shor
 
 belle_sip_dns_srv_t *belle_sip_dns_srv_create(struct dns_srv *srv){
 	belle_sip_dns_srv_t *obj=belle_sip_object_new(belle_sip_dns_srv_t);
+	size_t end_pos;
 	obj->priority=srv->priority;
 	obj->weight=srv->weight;
 	obj->port=srv->port;
 	obj->target=belle_sip_strdup(srv->target);
+	/*remove trailing '.' at the end*/
+	end_pos = strlen(obj->target);
+	if (end_pos > 0){
+		end_pos--;
+		if (obj->target[end_pos] == '.') obj->target[end_pos] = '\0';
+	}
 	return obj;
 }
 
@@ -123,6 +130,87 @@ unsigned short belle_sip_dns_srv_get_port(const belle_sip_dns_srv_t *obj){
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_dns_srv_t);
 BELLE_SIP_INSTANCIATE_VPTR(belle_sip_dns_srv_t, belle_sip_object_t,belle_sip_dns_srv_destroy, NULL, NULL,TRUE);
 
+
+
+struct belle_sip_resolver_results{
+	belle_sip_object_t base;
+	struct addrinfo *ai_list;
+	bctbx_list_t *srv_list;
+	char *name;
+	uint32_t ttl;
+};
+
+static void belle_sip_resolver_results_destroy(belle_sip_resolver_results_t *obj){
+	if (obj->ai_list) bctbx_freeaddrinfo(obj->ai_list);
+	bctbx_list_free_with_data(obj->srv_list, belle_sip_object_unref);
+	if (obj->name) bctbx_free(obj->name);
+}
+
+BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_resolver_results_t);
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_resolver_results_t, belle_sip_object_t,belle_sip_resolver_results_destroy, NULL, NULL,FALSE);
+
+
+static int addrinfo_in_range(const struct addrinfo *ai, const struct addrinfo *begin, const struct addrinfo *end){
+	const struct addrinfo *it;
+	for (it = begin ; it != end; it = it->ai_next){
+		if (it == NULL){
+			belle_sip_error("addrinfo_in_range(): it == NULL, this should not happen, this is a bug !");
+			break;
+		}
+		if (it == ai){
+			return 1;
+		}
+	}
+	return 0;
+}
+
+static const belle_sip_dns_srv_t * _belle_sip_dns_srv_get_from_addrinfo(const belle_sip_list_t *srv_list, const struct addrinfo *ai){
+	/* We simply iterate on the addrinfo pointed by the srv objects in the srv list until we find "ai".
+	 * This is not very efficient but there is not that much alternatives:
+	 * - there is no user pointer in struct addrinfo
+	 * - there might not be srv record for a domain, in which case the srv_list is empty...
+	 */
+	const bctbx_list_t *elem;
+	
+	for (elem = srv_list; elem != NULL; elem = elem->next){
+		const belle_sip_dns_srv_t *srv = (const belle_sip_dns_srv_t *) elem->data;
+		const belle_sip_dns_srv_t *next_srv = elem->next ? (const belle_sip_dns_srv_t *) elem->next->data : NULL;
+		
+		if (addrinfo_in_range(ai, srv->a_results, next_srv ? next_srv->a_results : NULL)){
+			return srv;
+		}
+	}
+	return NULL;
+}
+
+const belle_sip_dns_srv_t * belle_sip_resolver_results_get_srv_from_addrinfo(const belle_sip_resolver_results_t *obj, const struct addrinfo *ai){
+	return _belle_sip_dns_srv_get_from_addrinfo(obj->srv_list, ai);
+}
+
+const bctbx_list_t *belle_sip_resolver_results_get_srv_records(const belle_sip_resolver_results_t *obj){
+	return obj->srv_list;
+}
+
+const struct addrinfo *belle_sip_resolver_results_get_addrinfos(const belle_sip_resolver_results_t *obj){
+	return obj->ai_list;
+}
+
+int belle_sip_resolver_results_get_ttl(const belle_sip_resolver_results_t *obj){
+	return obj->ttl;
+}
+
+const char *belle_sip_resolver_results_get_name(const belle_sip_resolver_results_t *obj){
+	return obj->name;
+}
+
+belle_sip_resolver_results_t *belle_sip_resolver_results_create(const char *name, struct addrinfo *ai_list, belle_sip_list_t *srv_list, int ttl){
+	belle_sip_resolver_results_t *obj = belle_sip_object_new(belle_sip_resolver_results_t);
+	obj->ai_list = ai_list;
+	obj->srv_list = srv_list;
+	obj->ttl = ttl;
+	obj->name = bctbx_strdup(name);
+	return obj;
+}
 
 struct belle_sip_resolver_context{
 	belle_sip_source_t source;
@@ -466,11 +554,14 @@ static void simple_resolver_context_notify(belle_sip_resolver_context_t *obj) {
 	belle_sip_simple_resolver_context_t *ctx = BELLE_SIP_SIMPLE_RESOLVER_CONTEXT(obj);
 	if ((ctx->type == DNS_T_A) || (ctx->type == DNS_T_AAAA)) {
 		struct addrinfo **ai_list = &ctx->ai_list;
+		belle_sip_resolver_results_t *results;
 #if defined(USE_GETADDRINFO_FALLBACK) || defined(HAVE_MDNS)
 		if (ctx->getaddrinfo_ai_list != NULL) ai_list = &ctx->getaddrinfo_ai_list;
 #endif
-		ctx->cb(ctx->cb_data, ctx->name, *ai_list, BELLE_SIP_RESOLVER_CONTEXT(obj)->min_ttl);
+		results = belle_sip_resolver_results_create(ctx->name, *ai_list, NULL, BELLE_SIP_RESOLVER_CONTEXT(obj)->min_ttl);
+		ctx->cb(ctx->cb_data, results);
 		*ai_list = NULL;
+		belle_sip_object_unref(results);
 	} else if (ctx->type == DNS_T_SRV) {
 		ctx->srv_list = srv_select_by_weight(ctx->srv_list);
 		ctx->srv_cb(ctx->srv_cb_data, ctx->name, ctx->srv_list, BELLE_SIP_RESOLVER_CONTEXT(obj)->min_ttl);
@@ -480,10 +571,13 @@ static void simple_resolver_context_notify(belle_sip_resolver_context_t *obj) {
 static void dual_resolver_context_notify(belle_sip_resolver_context_t *obj) {
 	belle_sip_dual_resolver_context_t *ctx = BELLE_SIP_DUAL_RESOLVER_CONTEXT(obj);
 	struct addrinfo *results = ctx->aaaa_results;
+	belle_sip_resolver_results_t *result_obj;
 	results = ai_list_append(results, ctx->a_results);
 	ctx->a_results = NULL;
 	ctx->aaaa_results = NULL;
-	ctx->cb(ctx->cb_data, ctx->name, results, BELLE_SIP_RESOLVER_CONTEXT(obj)->min_ttl);
+	result_obj = belle_sip_resolver_results_create(ctx->name, results, NULL, BELLE_SIP_RESOLVER_CONTEXT(obj)->min_ttl);
+	ctx->cb(ctx->cb_data, result_obj);
+	belle_sip_object_unref(result_obj);
 }
 
 static void combined_resolver_context_cleanup(belle_sip_combined_resolver_context_t *ctx) {
@@ -501,8 +595,11 @@ static void combined_resolver_context_cleanup(belle_sip_combined_resolver_contex
 
 static void combined_resolver_context_notify(belle_sip_resolver_context_t *obj) {
 	belle_sip_combined_resolver_context_t *ctx = BELLE_SIP_COMBINED_RESOLVER_CONTEXT(obj);
-	ctx->cb(ctx->cb_data, ctx->name, ctx->final_results, BELLE_SIP_RESOLVER_CONTEXT(obj)->min_ttl);
+	belle_sip_resolver_results_t *results = belle_sip_resolver_results_create(ctx->name, ctx->final_results, ctx->srv_results, BELLE_SIP_RESOLVER_CONTEXT(obj)->min_ttl);
+	ctx->cb(ctx->cb_data, results);
+	belle_sip_object_unref(results);
 	ctx->final_results = NULL;
+	ctx->srv_results = NULL;
 	combined_resolver_context_cleanup(ctx);
 }
 
@@ -1217,9 +1314,10 @@ static char * srv_prefix_from_service_and_transport(const char *service, const c
 	return belle_sip_strdup_printf("_%s._udp.", service);
 }
 
-static void process_a_fallback_result(void *data, const char *name, struct addrinfo *ai_list, uint32_t ttl){
+static void process_a_fallback_result(void *data, belle_sip_resolver_results_t *results){
 	belle_sip_combined_resolver_context_t *ctx=(belle_sip_combined_resolver_context_t *)data;
-	ctx->final_results=ai_list;
+	ctx->final_results = results->ai_list;
+	results->ai_list = NULL;
 	belle_sip_resolver_context_notify(BELLE_SIP_RESOLVER_CONTEXT(ctx));
 }
 
@@ -1241,22 +1339,21 @@ static void combined_resolver_context_check_finished(belle_sip_combined_resolver
 		for(elem=obj->srv_results;elem!=NULL;elem=elem->next){
 			belle_sip_dns_srv_t *srv=(belle_sip_dns_srv_t*)elem->data;
 			final=ai_list_append(final,srv->a_results);
-			srv->a_results=NULL;
+			srv->dont_free_a_results = TRUE;
 		}
-		belle_sip_list_free_with_data(obj->srv_results,belle_sip_object_unref);
-		obj->srv_results=NULL;
 		obj->final_results=final;
 		belle_sip_resolver_context_notify(BELLE_SIP_RESOLVER_CONTEXT(obj));
 	}
 }
 
-static void process_a_from_srv(void *data, const char *name, struct addrinfo *ai_list, uint32_t ttl){
+static void process_a_from_srv(void *data, belle_sip_resolver_results_t *results){
 	belle_sip_dns_srv_t *srv=(belle_sip_dns_srv_t*)data;
-	srv->a_results=ai_list;
+	srv->a_results = results->ai_list;
+	results->ai_list = NULL;
 	srv->a_done=TRUE;
 	belle_sip_message("A query finished for srv result [%s]",srv->target);
-	if (ttl < BELLE_SIP_RESOLVER_CONTEXT(srv->root_resolver)->min_ttl) BELLE_SIP_RESOLVER_CONTEXT(srv->root_resolver)->min_ttl = ttl;
-	combined_resolver_context_check_finished(srv->root_resolver, ttl);
+	if (results->ttl < BELLE_SIP_RESOLVER_CONTEXT(srv->root_resolver)->min_ttl) BELLE_SIP_RESOLVER_CONTEXT(srv->root_resolver)->min_ttl = results->ttl;
+	combined_resolver_context_check_finished(srv->root_resolver, results->ttl);
 }
 
 static void srv_resolve_a(belle_sip_combined_resolver_context_t *obj, belle_sip_dns_srv_t *srv){
@@ -1337,8 +1434,10 @@ belle_sip_resolver_context_t * belle_sip_stack_resolve(belle_sip_stack_t *stack,
 		belle_sip_object_unref(ctx);
 		return BELLE_SIP_RESOLVER_CONTEXT(ctx);
 	} else {
-		/* There is no resolve to be done */
-		cb(data, name, res, UINT32_MAX);
+		/* There is no resolution to be done */
+		belle_sip_resolver_results_t *results = belle_sip_resolver_results_create(name, res, NULL, UINT32_MAX);
+		cb(data, results);
+		belle_sip_object_unref(results);
 		return NULL;
 	}
 }
@@ -1376,16 +1475,18 @@ static void dual_resolver_context_check_finished(belle_sip_dual_resolver_context
 	}
 }
 
-static void on_ipv4_results(void *data, const char *name, struct addrinfo *ai_list, uint32_t ttl) {
+static void on_ipv4_results(void *data, belle_sip_resolver_results_t *results) {
 	belle_sip_dual_resolver_context_t *ctx = BELLE_SIP_DUAL_RESOLVER_CONTEXT(data);
-	ctx->a_results = ai_list;
+	ctx->a_results = results->ai_list;
+	results->ai_list = NULL;
 	ctx->a_notified = TRUE;
 	dual_resolver_context_check_finished(ctx);
 }
 
-static void on_ipv6_results(void *data, const char *name, struct addrinfo *ai_list, uint32_t ttl) {
+static void on_ipv6_results(void *data, belle_sip_resolver_results_t *results) {
 	belle_sip_dual_resolver_context_t *ctx = BELLE_SIP_DUAL_RESOLVER_CONTEXT(data);
-	ctx->aaaa_results = ai_list;
+	ctx->aaaa_results = results->ai_list;
+	results->ai_list = NULL;
 	ctx->aaaa_notified = TRUE;
 	dual_resolver_context_check_finished(ctx);
 }
@@ -1430,8 +1531,10 @@ belle_sip_resolver_context_t * belle_sip_stack_resolve_a(belle_sip_stack_t *stac
 				belle_sip_error("belle_sip_stack_resolve_a(): unsupported address family [%i]",family);
 		}
 	} else {
-		/* There is no resolve to be done */
-		cb(data, name, res, UINT32_MAX);
+		/* There is no resolution to be done */
+		belle_sip_resolver_results_t *results = belle_sip_resolver_results_create(name, res, NULL, UINT32_MAX);
+		cb(data, results);
+		belle_sip_object_unref(results);
 	}
 	return NULL;
 }

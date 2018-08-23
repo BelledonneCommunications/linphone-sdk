@@ -94,16 +94,19 @@ struct belle_sip_channel{
 	belle_sip_list_t *state_listeners;
 	belle_sip_list_t *full_listeners;
 	int ai_family;
-	char *peer_cname;
-	char *peer_name;
+	char *peer_cname; /* A or SRV name */
+	char *peer_name; /* A or SRV name */
 	int peer_port;
 	char *local_ip;
 	int local_port;
 	char *public_ip;
 	int public_port;
 	belle_sip_resolver_context_t* resolver_ctx;
-	struct addrinfo *peer_list;
-	struct addrinfo *current_peer;
+	belle_sip_resolver_results_t* resolver_results;
+	struct addrinfo *static_peer_list; /*this is the addrinfo when the channel is instanciated from destination IP address directly (no dns resolution)*/
+	const struct addrinfo *peer_list; /*points to the addrinfo list in resolver_results, or to the static_peer_list*/
+	const struct addrinfo *current_peer; /*points in the currently used element in peer_list */
+	const char *current_peer_cname; /*name of the host we are currently connected to. Set only in SRV case*/
 	belle_sip_list_t *outgoing_messages;
 	belle_sip_message_t *cur_out_message;
 	output_stream_state_t out_state;

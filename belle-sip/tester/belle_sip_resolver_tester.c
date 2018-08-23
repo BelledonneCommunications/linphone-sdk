@@ -41,8 +41,9 @@ typedef struct endpoint {
 	belle_sip_resolver_context_t *resolver_ctx;
 	int resolve_done;
 	int resolve_ko;
-	struct addrinfo *ai_list;
-	belle_sip_list_t *srv_list; /**< List of struct dns_srv pointers */
+	bctbx_list_t *srv_list;
+	belle_sip_resolver_results_t *results;
+	const struct addrinfo *ai_list;
 } endpoint_t;
 
 static unsigned int  wait_for(belle_sip_stack_t *stack, int *current_value, int expected_value, int timeout) {
@@ -68,12 +69,13 @@ static void reset_endpoint(endpoint_t *endpoint) {
 	endpoint->resolver_ctx = 0;
 	endpoint->resolve_done = 0;
 	endpoint->resolve_ko = 0;
-	if (endpoint->ai_list != NULL) {
-		bctbx_freeaddrinfo(endpoint->ai_list);
-		endpoint->ai_list = NULL;
+	if (endpoint->results) {
+		belle_sip_object_unref(endpoint->results);
+		endpoint->results = NULL;
 	}
-	if (endpoint->srv_list != NULL) {
-		belle_sip_list_free_with_data(endpoint->srv_list, belle_sip_object_unref);
+	endpoint->ai_list = NULL;
+	if (endpoint->srv_list){
+		bctbx_list_free_with_data(endpoint->srv_list, belle_sip_object_unref);
 		endpoint->srv_list = NULL;
 	}
 }
@@ -85,12 +87,14 @@ static void destroy_endpoint(endpoint_t *endpoint) {
 	belle_sip_uninit_sockets();
 }
 
-static void a_resolve_done(void *data, const char *name, struct addrinfo *ai_list, uint32_t ttl) {
+static void a_resolve_done(void *data, belle_sip_resolver_results_t *results) {
 	endpoint_t *client = (endpoint_t *)data;
-	BELLESIP_UNUSED(name);
+	
 	client->resolve_done = 1;
-	if (ai_list) {
-		client->ai_list = ai_list;
+	belle_sip_object_ref(results);
+	client->results = results;
+	if (belle_sip_resolver_results_get_addrinfos(results)) {
+		client->ai_list = belle_sip_resolver_results_get_addrinfos(results);
 		client->resolve_done = 1;
 	} else
 		client->resolve_ko = 1;

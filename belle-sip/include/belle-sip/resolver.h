@@ -25,6 +25,9 @@ typedef struct belle_sip_dns_srv belle_sip_dns_srv_t;
 typedef struct belle_sip_resolver_context belle_sip_resolver_context_t;
 #define BELLE_SIP_RESOLVER_CONTEXT(obj) BELLE_SIP_CAST(obj,belle_sip_resolver_context_t)
 
+typedef struct belle_sip_resolver_results belle_sip_resolver_results_t;
+#define BELLE_SIP_RESOLVER_RESULTS(obj) BELLE_SIP_CAST(obj,belle_sip_resolver_results_t)
+
 /**
  * Callback prototype for asynchronous DNS SRV resolution.
  * The srv_list contains struct dns_srv elements that must be taken and (possibly later) freed by the callee, using belle_sip_free().
@@ -33,10 +36,10 @@ typedef void (*belle_sip_resolver_srv_callback_t)(void *data, const char *name, 
 
 /**
  * Callback prototype for asynchronous DNS A and AAAA resolution.
- * The ai_list contains addrinfo elements that must be taken and (possibly later) freed by the callee, using freeaddrinfo().
- * These elements are linked by their ai_next field.
+ * The 'results' object must be acquired (ref'd) in order for being accessed outside of the callback.
+ * The results object provides SRV records list and addrinfo list.
 **/
-typedef void (*belle_sip_resolver_callback_t)(void *data, const char *name, struct addrinfo *ai_list, uint32_t ttl);
+typedef void (*belle_sip_resolver_callback_t)(void *data, belle_sip_resolver_results_t *results);
 
 
 BELLE_SIP_BEGIN_DECLS
@@ -49,6 +52,20 @@ BELLESIP_EXPORT unsigned short belle_sip_dns_srv_get_weight(const belle_sip_dns_
 
 BELLESIP_EXPORT unsigned short belle_sip_dns_srv_get_port(const belle_sip_dns_srv_t *obj);
 
+/**
+ * Find the belle_sip_dns_srv_t object associated with a particular addrinfo.
+ * The srv_list and the addrinfo must be the ones given by the belle_sip_resolver_callback_t callback invoked consecutively to a call
+ * to belle_sip_stack_resolve().
+**/
+BELLESIP_EXPORT const belle_sip_dns_srv_t * belle_sip_resolver_results_get_srv_from_addrinfo(const belle_sip_resolver_results_t *obj, const struct addrinfo *ai);
+
+BELLESIP_EXPORT const bctbx_list_t *belle_sip_resolver_results_get_srv_records(const belle_sip_resolver_results_t *obj);
+
+BELLESIP_EXPORT const struct addrinfo *belle_sip_resolver_results_get_addrinfos(const belle_sip_resolver_results_t *obj);
+
+BELLESIP_EXPORT int belle_sip_resolver_results_get_ttl(const belle_sip_resolver_results_t *obj);
+
+BELLESIP_EXPORT const char * belle_sip_resolver_results_get_name(const belle_sip_resolver_results_t *obj);
 
 /**
  * Asynchronously performs DNS SRV followed A/AAAA query. Automatically fallbacks to A/AAAA if SRV isn't found.

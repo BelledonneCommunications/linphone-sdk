@@ -234,6 +234,7 @@ BELLE_SIP_DECLARE_VPTR(belle_sip_header_authentication_info_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_mdns_source_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_mdns_register_t);
 #endif
+BELLE_SIP_DECLARE_VPTR(belle_sip_resolver_results_t);
 
 
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_resolver_context_t,belle_sip_source_t)

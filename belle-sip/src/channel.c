@@ -109,7 +109,6 @@ static size_t belle_sip_channel_input_stream_get_buff_length(belle_sip_channel_i
 
 static void belle_sip_channel_destroy(belle_sip_channel_t *obj){
 	belle_sip_channel_input_stream_reset(&obj->input_stream);
-	if (obj->peer_list) bctbx_freeaddrinfo(obj->peer_list);
 	if (obj->peer_cname) belle_sip_free(obj->peer_cname);
 	belle_sip_free(obj->peer_name);
 	if (obj->local_ip) belle_sip_free(obj->local_ip);
@@ -120,6 +119,8 @@ static void belle_sip_channel_destroy(belle_sip_channel_t *obj){
 		belle_sip_resolver_context_cancel(obj->resolver_ctx);
 		belle_sip_object_unref(obj->resolver_ctx);
 	}
+	SET_OBJECT_PROPERTY(obj, resolver_results, NULL);
+	if (obj->static_peer_list) bctbx_freeaddrinfo(obj->static_peer_list);
 	if (obj->inactivity_timer){
 		belle_sip_main_loop_remove_source(obj->stack->ml,obj->inactivity_timer);
 		belle_sip_object_unref(obj->inactivity_timer);
@@ -745,7 +746,7 @@ static void update_inactivity_timer(belle_sip_channel_t *obj, int from_recv){
  * locaport locaport to use for binding, can be set to 0 if port doesn't matter
  * peer_cname canonical name of remote host, used for TLS verification
  * peername peer's hostname, either ip address or DNS name
- * pee_port peer's port to connect to.
+ * peer_port peer's port to connect to.
  */
 void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_stack_t *stack,const char *bindip,int localport,const char *peer_cname, const char *peername, int peer_port){
 	/*to initialize our base class:*/
@@ -787,7 +788,7 @@ void belle_sip_channel_init_with_addr(belle_sip_channel_t *obj, belle_sip_stack_
 	ai.ai_addrlen=addrlen;
 	bctbx_addrinfo_to_ip_address(&ai,remoteip,sizeof(remoteip),&peer_port);
 	belle_sip_channel_init(obj,stack,bindip,localport,NULL,remoteip,peer_port);
-	obj->peer_list=obj->current_peer=bctbx_ip_address_to_addrinfo(ai.ai_family, ai.ai_socktype, obj->peer_name,obj->peer_port);
+	obj->peer_list = obj->current_peer = obj->static_peer_list = bctbx_ip_address_to_addrinfo(ai.ai_family, ai.ai_socktype, obj->peer_name,obj->peer_port);
 	obj->ai_family=ai.ai_family;
 }
 
@@ -835,7 +836,8 @@ void belle_sip_channel_remove_listener(belle_sip_channel_t *obj, belle_sip_chann
 }
 
 int belle_sip_channel_matches(const belle_sip_channel_t *obj, const belle_sip_hop_t *hop, const struct addrinfo *addr){
-	if (hop && strcmp(hop->host,obj->peer_name)==0 && (hop->port==obj->peer_port || obj->srv_overrides_port)){
+	if (hop && (strcmp(hop->host,obj->peer_name)==0 || (obj->current_peer_cname && strcmp(hop->host,obj->current_peer_cname)==0))
+		&& (hop->port==obj->peer_port || obj->srv_overrides_port)){
 		if (hop->cname && obj->peer_cname && strcmp(hop->cname,obj->peer_cname)!=0)
 			return 0; /*cname mismatch*/
 		return 1;
@@ -1000,13 +1002,26 @@ static void channel_connect_next(belle_sip_channel_t *obj){
 	belle_sip_object_unref(obj);
 }
 
+static void channel_set_current_peer(belle_sip_channel_t *obj, const struct addrinfo *ai){
+	if (obj->resolver_results){
+		const belle_sip_dns_srv_t *srv = belle_sip_resolver_results_get_srv_from_addrinfo(obj->resolver_results, ai);
+		obj->current_peer_cname = srv ? belle_sip_dns_srv_get_target(srv) : NULL;
+		if (obj->current_peer_cname){
+			belle_sip_message("channel[%p]: current peer hostname is [%s].", obj, obj->current_peer_cname); 
+		}
+	}else{
+		obj->current_peer_cname = NULL;
+	}
+	obj->current_peer = ai;
+}
+
 static void belle_sip_channel_handle_error(belle_sip_channel_t *obj){
 	if (obj->state!=BELLE_SIP_CHANNEL_READY || obj->soft_error){
 		/* Previous connection attempts were failed (channel could not get ready) OR soft error reported*/
 		obj->soft_error = FALSE;
 		/* See if you can retry on an alternate ip address.*/
 		if (obj->current_peer && obj->current_peer->ai_next){ /*obj->current_peer may be null in case of dns error*/
-			obj->current_peer=obj->current_peer->ai_next;
+			channel_set_current_peer(obj, obj->current_peer->ai_next);
 			channel_set_state(obj,BELLE_SIP_CHANNEL_RETRY);
 			belle_sip_channel_close(obj);
 			belle_sip_main_loop_do_later(obj->stack->ml,(belle_sip_callback_t)channel_connect_next,belle_sip_object_ref(obj));
@@ -1440,50 +1455,63 @@ static int channel_dns_ttl_timeout(void *data, unsigned int event) {
 	return BELLE_SIP_STOP;
 }
 
-static bool_t addrinfo_in_list(const struct addrinfo *ai, const struct addrinfo *list) {
+/* returns the addrinfo from list that matches 'ai' in terms of content*/
+static const struct addrinfo* addrinfo_in_list(const struct addrinfo *ai, const struct addrinfo *list) {
 	const struct addrinfo *item = list;
-	bool_t in_list = FALSE;
 	while (item != NULL) {
 		if ((ai->ai_family == item->ai_family) && (bctbx_sockaddr_equals(ai->ai_addr, item->ai_addr))) {
-			in_list = TRUE;
-			break;
+			return item;
 		}
 		item = item->ai_next;
 	}
-	return in_list;
+	return NULL;
 }
 
-static bool_t addrinfo_is_first(const struct addrinfo *ai, const struct addrinfo *list) {
+/* returns the first addrinfo from list, if it is matching 'ai' in terms content*/
+static const struct addrinfo * addrinfo_is_first(const struct addrinfo *ai, const struct addrinfo *list) {
 	if (list != NULL && (ai->ai_family == list->ai_family) && (bctbx_sockaddr_equals(ai->ai_addr, list->ai_addr)))
-		return TRUE;
-	return FALSE;
+		return list;
+	return NULL;
 }
 
-static void channel_res_done(void *data, const char *name, struct addrinfo *ai_list, uint32_t ttl){
+static void channel_res_done(void *data, belle_sip_resolver_results_t *results){
 	belle_sip_channel_t *obj=(belle_sip_channel_t*)data;
+	const struct addrinfo *ai_list = NULL;
+	const char *name = NULL;
+	
 	if (obj->resolver_ctx){
 		belle_sip_object_unref(obj->resolver_ctx);
 		obj->resolver_ctx=NULL;
 	}
+	if (results){
+		ai_list = belle_sip_resolver_results_get_addrinfos(results);
+		SET_OBJECT_PROPERTY(obj, resolver_results, results);
+		name = belle_sip_resolver_results_get_name(results);
+	}
+	
 	if (ai_list){
+		int ttl = belle_sip_resolver_results_get_ttl(results);
+		
+		obj->peer_list = ai_list;
 		if (!obj->current_peer) {
-			obj->peer_list=obj->current_peer=ai_list;
+			channel_set_current_peer(obj, ai_list);
 			channel_set_state(obj,BELLE_SIP_CHANNEL_RES_DONE);
 		} else {
-			bool_t check;
+			const struct addrinfo *existing_peer;
+			
 			if (belle_sip_stack_reconnect_to_primary_asap_enabled(obj->stack)) {
-				check = addrinfo_is_first(obj->current_peer, ai_list);
+				existing_peer = addrinfo_is_first(obj->current_peer, ai_list);
 			} else {
-				check = addrinfo_in_list(obj->current_peer, ai_list);
+				existing_peer = addrinfo_in_list(obj->current_peer, ai_list);
 			}
 
-			if (check) {
+			if (existing_peer) {
 				belle_sip_message("channel[%p]: DNS resolution returned the currently used address, continue using it", obj);
-				obj->peer_list = ai_list;
+				channel_set_current_peer(obj, existing_peer);
 				channel_set_state(obj, BELLE_SIP_CHANNEL_READY);
 			} else {
 				belle_sip_message("channel[%p]: DNS resolution returned an address different than the one being used, reconnect to the new address", obj);
-				obj->peer_list = obj->current_peer = ai_list;
+				channel_set_current_peer(obj, ai_list);
 				belle_sip_channel_close(obj);
 				belle_sip_main_loop_do_later(obj->stack->ml, (belle_sip_callback_t)channel_connect_next, belle_sip_object_ref(obj));
 				channel_set_state(obj, BELLE_SIP_CHANNEL_RETRY);
