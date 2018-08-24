@@ -43,8 +43,15 @@ static char *convert_from_to (const char *str, const char *from, const char *to)
 	size_t out_left = in_left + in_left/10; // leave a marge of 10%
 	iconv_t cd;
 
+#ifdef __APPLE__
 	const char* r_from = strcasecmp("locale", from) == 0 ? "" : from;
 	const char* r_to = strcasecmp("locale", to) == 0 ? "" : to;
+#else
+	setlocale(LC_CTYPE, "");
+
+	const char* r_from = strcasecmp("locale", from) == 0 ? nl_langinfo(CODESET) : from;
+	const char* r_to = strcasecmp("locale", to) == 0 ? nl_langinfo(CODESET) : to;
+#endif
 
 	if (strcasecmp(r_from, r_to) == 0) {
 		return bctbx_strdup(str);
