@@ -24,20 +24,6 @@ extern "C" {
 #endif
 
 /**
- * @brief Set the default encoding for the application.
- *
- * @param[in]		encoding	default encoding, "locale" to set it to the system's locale
- */
-BCTBX_PUBLIC void bctbx_set_default_encoding (const char *encoding);
-
-/**
- * @brief Return the default encoding for the application.
- *
- * @return a pointer to a null-terminated string containing the default encoding.
- */
-BCTBX_PUBLIC const char *bctbx_get_default_encoding ();
-
-/**
  * @brief Convert the given string from system locale to UTF8.
  *
  * @param[in]		str			string to convert
