@@ -147,7 +147,7 @@ bool H26xParameterSetsStore::psGatheringCompleted() const {
 }
 
 void H26xParameterSetsStore::extractAllPs(MSQueue *frame) {
-	for (mblk_t *nalu = ms_queue_peek_first(frame); !ms_queue_end(frame, nalu); nalu = ms_queue_next(frame, nalu)) {
+	for (mblk_t *nalu = ms_queue_peek_first(frame); !ms_queue_end(frame, nalu);) {
 		_naluHeader->parse(nalu->b_rptr);
 		int type = _naluHeader->getAbsType();
 		if (_ps.find(type) != _ps.end()) {
@@ -157,6 +157,7 @@ void H26xParameterSetsStore::extractAllPs(MSQueue *frame) {
 			addPs(type, ps);
 			continue;
 		}
+		nalu = ms_queue_next(frame, nalu);
 	}
 }
 

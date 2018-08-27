@@ -72,7 +72,7 @@ MediaCodecDecoder::~MediaCodecDecoder() {
 
 bool MediaCodecDecoder::setParameterSets(MSQueue *parameterSets, uint64_t timestamp) {
 	if (!feed(parameterSets, timestamp, true)) {
-		ms_error("MediaCodecDecoder: paramter sets has been refused by the decoder.");
+		ms_error("MediaCodecDecoder: parameter sets has been refused by the decoder.");
 		return false;
 	}
 	_needParameters = false;
@@ -199,6 +199,13 @@ void MediaCodecDecoder::stopImpl() {
 }
 
 bool MediaCodecDecoder::feed(MSQueue *encodedFrame, uint64_t timestamp, bool isPs) {
+	unique_ptr<H26xNaluHeader> header;
+	header.reset(H26xToolFactory::get("video/avc").createNaluHeader());
+	for(mblk_t *m = ms_queue_peek_first(encodedFrame); !ms_queue_end(encodedFrame, m); m = ms_queue_next(encodedFrame, m)) {
+		header->parse(m->b_rptr);
+		ms_message("MediaCodecDecoder: nalu type %d", int(header->getAbsType()));
+	}
+
 	H26xUtils::nalusToByteStream(encodedFrame, _bitstream);
 
 	if (_impl == nullptr) return false;
@@ -262,7 +269,7 @@ void MediaCodecDecoderFilterImpl::preprocess() {
 
 void MediaCodecDecoderFilterImpl::process() {
 	bool requestPli = false;
-	MSQueue frame, parameterSets;
+	MSQueue frame;
 
 	if (_codec == nullptr) {
 		ms_queue_flush(_f->inputs[0]);
@@ -270,7 +277,6 @@ void MediaCodecDecoderFilterImpl::process() {
 	}
 
 	ms_queue_init(&frame);
-	ms_queue_init(&parameterSets);
 
 	while (mblk_t *im = ms_queue_get(_f->inputs[0])) {
 		NalUnpacker::Status unpacking_ret = _unpacker->unpack(im, &frame);
@@ -289,12 +295,11 @@ void MediaCodecDecoderFilterImpl::process() {
 
 		struct timespec ts;
 		clock_gettime(CLOCK_MONOTONIC, &ts);
-		uint64_t tsMs = (ts.tv_nsec / 1000000ULL) + 10ULL;
+		uint64_t tsMs = (ts.tv_sec * 1000ULL) + (ts.tv_nsec / 1000000ULL) + 10ULL;
 
 		requestPli = !_codec->feed(&frame, tsMs);
 
 		ms_queue_flush(&frame);
-		ms_queue_flush(&parameterSets);
 	}
 
 	mblk_t *om;
