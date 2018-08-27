@@ -355,7 +355,7 @@ static void vth264enc_process(MSFilter *f) {
 		dst_yuv_frame.w = (int)CVPixelBufferGetWidth(pixbuf);
 		dst_yuv_frame.h = (int)CVPixelBufferGetHeight(pixbuf);
 		for(i=0; i<3; i++) {
-			dst_yuv_frame.planes[i] = CVPixelBufferGetBaseAddressOfPlane(pixbuf, i);
+			dst_yuv_frame.planes[i] = static_cast<uint8_t *>(CVPixelBufferGetBaseAddressOfPlane(pixbuf, i));
 			dst_yuv_frame.strides[i] = (int)CVPixelBufferGetBytesPerRowOfPlane(pixbuf, i);
 		}
 		ms_yuv_buf_copy(src_yuv_frame.planes, src_yuv_frame.strides, dst_yuv_frame.planes, dst_yuv_frame.strides, (MSVideoSize){dst_yuv_frame.w, dst_yuv_frame.h});
@@ -548,7 +548,7 @@ static MSFilterMethod vth264enc_methods[] = {
 	{   0                                       , NULL                                         }
 };
 
-MSFilterDesc ms_vt_h264_enc = {
+extern "C" MSFilterDesc ms_vt_h264_enc = {
 	.id = MS_VT_H264_ENC_ID,
 	.name = VTH264_ENC_NAME,
 	.text = "H264 hardware encoder for iOS and MacOSX",
@@ -672,7 +672,7 @@ static void h264_dec_output_cb(VTH264DecCtx *ctx, void *sourceFrameRefCon,
 
 	CVPixelBufferLockBaseAddress(imageBuffer, kCVPixelBufferLock_ReadOnly);
 	for(i=0; i<3; i++) {
-		src_planes[i] = CVPixelBufferGetBaseAddressOfPlane(imageBuffer, i);
+		src_planes[i] = static_cast<uint8_t *>(CVPixelBufferGetBaseAddressOfPlane(imageBuffer, i));
 		src_strides[i] = (int)CVPixelBufferGetBytesPerRowOfPlane(imageBuffer, i);
 	}
 	ms_yuv_buf_copy(src_planes, src_strides, pixbuf_desc.planes, pixbuf_desc.strides, ctx->vsize);
@@ -991,7 +991,7 @@ static MSFilterMethod h264_dec_methods[] = {
 
 };
 
-MSFilterDesc ms_vt_h264_dec = {
+extern "C" MSFilterDesc ms_vt_h264_dec = {
 	.id = MS_VT_H264_DEC_ID,
 	.name = VTH264_DEC_NAME,
 	.text = "H264 hardware decoder for iOS and MacOSX",
@@ -1012,7 +1012,7 @@ MSFilterDesc ms_vt_h264_dec = {
 #undef vth264dec_error
 #undef vth264dec_log
 
-void _register_videotoolbox_if_supported(MSFactory *factory) {
+extern "C" void _register_videotoolbox_if_supported(MSFactory *factory) {
 #if TARGET_OS_SIMULATOR
 	ms_message("VideoToolbox H264 codec is not supported on simulators");
 #else
