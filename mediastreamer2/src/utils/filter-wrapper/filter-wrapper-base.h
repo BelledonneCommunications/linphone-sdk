@@ -1,0 +1,72 @@
+/*
+ Mediastreamer2 filter-wrapper-base.h
+ Copyright (C) 2018 Belledonne Communications SARL
+
+ This program is free software; you can redistribute it and/or
+ modify it under the terms of the GNU General Public License
+ as published by the Free Software Foundation; either version 2
+ of the License, or (at your option) any later version.
+
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+
+ You should have received a copy of the GNU General Public License
+ along with this program; if not, write to the Free Software
+ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+*/
+
+#pragma once
+
+#include "mediastreamer2/msfilter.h"
+
+namespace mediastreamer {
+
+template <class T>
+class FilterWrapperBase {
+public:
+	static void onFilterInit(MSFilter *f) {
+		f->data = new T(f);
+	}
+
+	static void onFilterUninit(MSFilter *f) {
+		delete static_cast<T *>(f->data);
+	}
+
+	static void onFilterPreProcess(MSFilter *f) {
+		static_cast<T *>(f->data)->preprocess();
+	}
+
+	static void onFilterPostProcess(MSFilter *f) {
+		static_cast<T *>(f->data)->postprocess();
+	}
+
+	static void onFilterProcces(MSFilter *f) {
+		static_cast<T *>(f->data)->process();
+	}
+};
+
+};
+
+
+#define MS_FILTER_WRAPPER_NAME(base_name) FilterWrapperBase
+#define MS_FILTER_WRAPPER_METHODS_NAME(base_name) ms_ ## base_name ## _methods
+
+#define MS_FILTER_WRAPPER_FILTER_DESCRIPTION_BASE(base_name, id, text, category, enc_fmt, ninputs, noutputs, flags) \
+extern "C" MSFilterDesc ms_ ## base_name ## _desc = { \
+	id, \
+	"MS" #base_name, \
+	text, \
+	category, \
+	enc_fmt, \
+	ninputs, \
+	noutputs, \
+	FilterWrapperBase<base_name ## FilterImpl>::onFilterInit, \
+	FilterWrapperBase<base_name ## FilterImpl>::onFilterPreProcess, \
+	FilterWrapperBase<base_name ## FilterImpl>::onFilterProcces, \
+	FilterWrapperBase<base_name ## FilterImpl>::onFilterPostProcess, \
+	FilterWrapperBase<base_name ## FilterImpl>::onFilterUninit, \
+	MS_FILTER_WRAPPER_METHODS_NAME(base_name), \
+	flags \
+}

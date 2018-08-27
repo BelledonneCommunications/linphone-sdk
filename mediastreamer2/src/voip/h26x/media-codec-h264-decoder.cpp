@@ -21,6 +21,7 @@
 
 #include <ortp/b64.h>
 
+#include "filter-wrapper/decoding-filter-wrapper.h"
 #include "h264-nal-unpacker.h"
 #include "h264-utils.h"
 #include "media-codec-decoder.h"
@@ -109,67 +110,6 @@ public:
 		}
 	}
 
-	static void onFilterInit(MSFilter *f) {
-		f->data = new MediaCodecH264DecoderFilterImpl(f);
-	}
-
-	static void onFilterUninit(MSFilter *f) {
-		delete static_cast<MediaCodecH264DecoderFilterImpl *>(f->data);
-	}
-
-	static void onFilterPreProcess(MSFilter *f) {
-		static_cast<MediaCodecH264DecoderFilterImpl *>(f->data)->preprocess();
-	}
-
-	static void onFilterPostProcess(MSFilter *f) {
-		static_cast<MediaCodecH264DecoderFilterImpl *>(f->data)->postprocess();
-	}
-
-	static void onFilterProcces(MSFilter *f) {
-		static_cast<MediaCodecH264DecoderFilterImpl *>(f->data)->process();
-	}
-
-	static int onAddFmtpCall(MSFilter *f, void *arg) {
-		const char *fmtp = static_cast<const char *>(arg);
-		static_cast<MediaCodecH264DecoderFilterImpl *>(f->data)->addFmtp(fmtp);
-		return 0;
-	}
-
-	static int onResetFirstImageCall(MSFilter *f, void *arg) {
-		static_cast<MediaCodecH264DecoderFilterImpl *>(f->data)->resetFirstImage();
-		return 0;
-	}
-
-	static int onGetVideoSizeCall(MSFilter *f, void *arg) {
-		MSVideoSize *vsize = static_cast<MSVideoSize *>(arg);
-		*vsize = static_cast<MediaCodecH264DecoderFilterImpl *>(f->data)->getVideoSize();
-		return 0;
-	}
-
-	static int onGetFpsCall(MSFilter *f, void *arg) {
-		float *fps = static_cast<float *>(arg);
-		*fps = static_cast<MediaCodecH264DecoderFilterImpl *>(f->data)->getFps();
-		return 0;
-	}
-
-	static int onGetOutFmtCall(MSFilter *f, void *arg) {
-		MSPinFormat *pinFormat = static_cast<MSPinFormat *>(arg);
-		pinFormat->fmt = static_cast<MediaCodecH264DecoderFilterImpl *>(f->data)->getOutFmt();
-		return 0;
-	}
-
-	static int onEnableAvpfCall(MSFilter *f, void *arg) {
-		const bool_t *enable = static_cast<bool_t *>(arg);
-		static_cast<MediaCodecH264DecoderFilterImpl *>(f->data)->enableAvpf(enable);
-		return 0;
-	}
-
-	static int onEnableFreezeOnErrorCall(MSFilter *f, void *arg) {
-		const bool_t *enable = static_cast<bool_t *>(arg);
-		static_cast<MediaCodecH264DecoderFilterImpl *>(f->data)->enableFreezeOnError(enable);
-		return 0;
-	}
-
 private:
 	void updateSps(mblk_t *sps) {
 		if (_sps) freemsg(_sps);
@@ -223,31 +163,5 @@ private:
 
 using namespace mediastreamer;
 
-static MSFilterMethod  mediacodec_h264_dec_methods[] = {
-	{	MS_FILTER_ADD_FMTP                                 , MediaCodecH264DecoderFilterImpl::onAddFmtpCall             },
-	{	MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION    , MediaCodecH264DecoderFilterImpl::onResetFirstImageCall     },
-	{	MS_FILTER_GET_VIDEO_SIZE                           , MediaCodecH264DecoderFilterImpl::onGetVideoSizeCall        },
-	{	MS_FILTER_GET_FPS                                  , MediaCodecH264DecoderFilterImpl::onGetFpsCall              },
-	{	MS_FILTER_GET_OUTPUT_FMT                           , MediaCodecH264DecoderFilterImpl::onGetOutFmtCall           },
-	{ 	MS_VIDEO_DECODER_ENABLE_AVPF                       , MediaCodecH264DecoderFilterImpl::onEnableAvpfCall          },
-	{	MS_VIDEO_DECODER_FREEZE_ON_ERROR                   , MediaCodecH264DecoderFilterImpl::onEnableFreezeOnErrorCall },
-	{	0                                                  , nullptr                                                    }
-};
-
-
-extern "C" MSFilterDesc ms_mediacodec_h264_dec_desc = {
-	.id = MS_MEDIACODEC_H264_DEC_ID,
-	.name = "MSMediaCodecH264Dec",
-	.text = "A H264 decoder based on MediaCodec API.",
-	.category = MS_FILTER_DECODER,
-	.enc_fmt = "H264",
-	.ninputs = 1,
-	.noutputs = 1,
-	.init = MediaCodecH264DecoderFilterImpl::onFilterInit,
-	.preprocess = MediaCodecH264DecoderFilterImpl::onFilterPreProcess,
-	.process = MediaCodecH264DecoderFilterImpl::onFilterProcces,
-	.postprocess = MediaCodecH264DecoderFilterImpl::onFilterPostProcess,
-	.uninit = MediaCodecH264DecoderFilterImpl::onFilterUninit,
-	.methods = mediacodec_h264_dec_methods,
-	.flags = MS_FILTER_IS_PUMP
-};
+MS_DECODING_FILTER_WRAPPER_METHODS_DECLARATION(MediaCodecH264Decoder);
+MS_DECODING_FILTER_WRAPPER_DESCRIPTION_DECLARATION(MediaCodecH264Decoder, MS_MEDIACODEC_H264_DEC_ID, "A H264 decoder based on MediaCodec API.", "H264", MS_FILTER_IS_PUMP);
