@@ -364,7 +364,7 @@ if(ENABLE_VIDEO)
 		endif()
 	endif()
 	if(APPLE)
-		list(APPEND VOIP_SOURCE_FILES_C videofilters/videotoolbox.c)
+		list(APPEND VOIP_SOURCE_FILES_CXX videofilters/videotoolbox.cpp)
 	endif()
 	if(ANDROID)
 		list(APPEND VOIP_SOURCE_FILES_C
