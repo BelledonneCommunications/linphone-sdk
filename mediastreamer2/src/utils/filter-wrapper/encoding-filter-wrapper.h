@@ -1,5 +1,5 @@
 /*
- M ediastreamer2 decoding-filter-*wrapper.h
+ Mediastreamer2 encoding-filter-wrapper.h
  Copyright (C) 2018 Belledonne Communications SARL
 
  This program is free software; you can redistribute it and/or
