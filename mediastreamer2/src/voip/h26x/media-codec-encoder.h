@@ -129,7 +129,6 @@ public:
 protected:
 	MediaCodecEncoderFilterImpl(MSFilter *f, MediaCodecEncoder *encoder, NalPacker *packer, const MSVideoConfiguration *defaultVConfList);
 
-	MSFilter *_f = nullptr;
 	std::unique_ptr<MediaCodecEncoder> _encoder;
 	std::unique_ptr<NalPacker> _packer;
 	const MSVideoConfiguration *_vconfList = nullptr;

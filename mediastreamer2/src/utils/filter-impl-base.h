@@ -20,6 +20,7 @@
 #pragma once
 
 #include "mediastreamer2/msfilter.h"
+#include "mediastreamer2/msticker.h"
 
 namespace mediastreamer {
 
@@ -33,6 +34,14 @@ public:
 	virtual void postprocess() = 0;
 
 protected:
+	MSFactory *getFactory() const {return _f->factory;}
+	MSQueue *getInput(int idx) const {return _f->inputs[idx];}
+	MSQueue *getOutput(int idx) const {return _f->outputs[idx];}
+	uint64_t getTime() const {return _f->ticker->time;}
+
+	void notify(unsigned int id) {ms_filter_notify_no_arg(_f, id);}
+
+private:
 	MSFilter *_f = nullptr;
 };
 
