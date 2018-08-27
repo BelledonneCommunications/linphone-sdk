@@ -641,6 +641,7 @@ static void au_read_preprocess(MSFilter *f){
 static void au_read_process(MSFilter *f){
 	AURead *d = (AURead *) f->data;
 	mblk_t *m;
+	
 	while((m=au_read_get(d))!=NULL){
 		d->read_frames += (msgdsize(m) / 2) / d->common.nchannels;
 		ms_queue_put(f->outputs[0],m);
