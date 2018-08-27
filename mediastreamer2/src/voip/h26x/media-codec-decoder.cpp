@@ -295,7 +295,7 @@ void MediaCodecDecoderFilterImpl::process() {
 
 		struct timespec ts;
 		clock_gettime(CLOCK_MONOTONIC, &ts);
-		uint64_t tsMs = (ts.tv_nsec / 1000000ULL) + 10ULL;
+		uint64_t tsMs = (ts.tv_sec * 1000ULL) + (ts.tv_nsec / 1000000ULL) + 10ULL;
 
 		requestPli = !_codec->feed(&frame, tsMs);
 
