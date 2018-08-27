@@ -29,7 +29,7 @@
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msvideo.h"
 
-#include "filter-impl-base.h"
+#include "encoding-filter-impl.h"
 #include "h26x-utils.h"
 #include "nal-packer.h"
 
@@ -103,28 +103,29 @@ protected:
 	static const int32_t _priority = 0; // real-time priority
 };
 
-class MediaCodecEncoderFilterImpl: public FilterImplBase {
+class MediaCodecEncoderFilterImpl: public EncodingFilterImpl {
 public:
 	void preprocess() override;
 	void process() override;
 	void postprocess() override;
 
-	int getBitrate() const;
-	void setBitrate(int br);
+	const MSVideoConfiguration *getVideoConfiguratons() const override;
+	void setVideoConfigurations(const MSVideoConfiguration *vconfs) override;
+	int setVideoConfiguration(const MSVideoConfiguration *vconf) override;
 
-	const MSVideoConfiguration *getVideoConfiguratons() const;
-	void setVideoConfigurations(const MSVideoConfiguration *vconfs);
-	int setVideoConfiguration(const MSVideoConfiguration *vconf);
+	int getBitrate() const override;
+	void setBitrate(int br) override;
 
-	float getFps() const;
-	void setFps(float  fps);
+	float getFps() const override;
+	void setFps(float  fps) override;
 
-	MSVideoSize getVideoSize() const;
-	void setVideoSize(const MSVideoSize &vsize);
+	MSVideoSize getVideoSize() const override;
+	void setVideoSize(const MSVideoSize &vsize) override;
 
-	void enableAvpf(bool enable);
-	void notifyPli();
-	void notifyFir();
+	void enableAvpf(bool enable) override;
+
+	void notifyPli() override;
+	void notifyFir() override;
 
 protected:
 	MediaCodecEncoderFilterImpl(MSFilter *f, MediaCodecEncoder *encoder, NalPacker *packer, const MSVideoConfiguration *defaultVConfList);

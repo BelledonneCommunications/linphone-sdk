@@ -30,7 +30,7 @@
 
 #include "mediastreamer2/msvideo.h"
 
-#include "filter-impl-base.h"
+#include "decoding-filter-impl.h"
 #include "nal-unpacker.h"
 
 namespace mediastreamer {
@@ -77,7 +77,7 @@ protected:
 	static const unsigned int _timeoutUs = 0;
 };
 
-class MediaCodecDecoderFilterImpl: public FilterImplBase {
+class MediaCodecDecoderFilterImpl: public DecodingFilterImpl {
 public:
 	MediaCodecDecoderFilterImpl(MSFilter *f, const std::string &mime);
 
@@ -85,14 +85,14 @@ public:
 	void process() override;
 	void postprocess() override;
 
-	MSVideoSize getVideoSize() const;
-	float getFps() const;
-	const MSFmtDescriptor *getOutFmt() const;
-	void addFmtp(const char *fmtp) {}
+	MSVideoSize getVideoSize() const override;
+	float getFps() const override;
+	const MSFmtDescriptor *getOutFmt() const override;
+	void addFmtp(const char *fmtp)  override {}
 
-	void enableAvpf(bool enable);
-	void enableFreezeOnError(bool enable);
-	void resetFirstImage();
+	void enableAvpf(bool enable) override;
+	void enableFreezeOnError(bool enable) override;
+	void resetFirstImage() override;
 
 protected:
 	MSVideoSize _vsize;
