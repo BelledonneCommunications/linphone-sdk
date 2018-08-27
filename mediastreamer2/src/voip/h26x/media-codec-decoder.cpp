@@ -248,8 +248,8 @@ bool MediaCodecDecoder::isKeyFrame(const MSQueue *frame) const {
 }
 
 MediaCodecDecoderFilterImpl::MediaCodecDecoderFilterImpl(MSFilter *f, const std::string &mime):
+	FilterImplBase(f),
 	_vsize({0, 0}),
-	_f(f),
 	_unpacker(H26xToolFactory::get(mime).createNalUnpacker()) {
 
 	try {

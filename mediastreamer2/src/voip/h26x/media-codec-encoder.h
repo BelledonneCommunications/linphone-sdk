@@ -29,6 +29,7 @@
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msvideo.h"
 
+#include "filter-impl-base.h"
 #include "h26x-utils.h"
 #include "nal-packer.h"
 
@@ -102,13 +103,11 @@ protected:
 	static const int32_t _priority = 0; // real-time priority
 };
 
-class MediaCodecEncoderFilterImpl {
+class MediaCodecEncoderFilterImpl: public FilterImplBase {
 public:
-	virtual ~MediaCodecEncoderFilterImpl() = default;
-
-	virtual void preprocess();
-	virtual void process();
-	virtual void postprocess();
+	void preprocess() override;
+	void process() override;
+	void postprocess() override;
 
 	int getBitrate() const;
 	void setBitrate(int br);
