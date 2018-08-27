@@ -21,29 +21,31 @@
 
 #include "mediastreamer2/msfilter.h"
 
+#include "filter-impl-base.h"
+
 namespace mediastreamer {
 
-template <class T>
 class FilterWrapperBase {
 public:
+	template <class T>
 	static void onFilterInit(MSFilter *f) {
 		f->data = new T(f);
 	}
 
 	static void onFilterUninit(MSFilter *f) {
-		delete static_cast<T *>(f->data);
+		delete static_cast<FilterImplBase *>(f->data);
 	}
 
 	static void onFilterPreProcess(MSFilter *f) {
-		static_cast<T *>(f->data)->preprocess();
+		static_cast<FilterImplBase *>(f->data)->preprocess();
 	}
 
 	static void onFilterPostProcess(MSFilter *f) {
-		static_cast<T *>(f->data)->postprocess();
+		static_cast<FilterImplBase *>(f->data)->postprocess();
 	}
 
 	static void onFilterProcces(MSFilter *f) {
-		static_cast<T *>(f->data)->process();
+		static_cast<FilterImplBase *>(f->data)->process();
 	}
 };
 
@@ -62,11 +64,11 @@ extern "C" MSFilterDesc ms_ ## base_name ## _desc = { \
 	enc_fmt, \
 	ninputs, \
 	noutputs, \
-	FilterWrapperBase<base_name ## FilterImpl>::onFilterInit, \
-	FilterWrapperBase<base_name ## FilterImpl>::onFilterPreProcess, \
-	FilterWrapperBase<base_name ## FilterImpl>::onFilterProcces, \
-	FilterWrapperBase<base_name ## FilterImpl>::onFilterPostProcess, \
-	FilterWrapperBase<base_name ## FilterImpl>::onFilterUninit, \
+	FilterWrapperBase::onFilterInit<base_name ## FilterImpl>, \
+	FilterWrapperBase::onFilterPreProcess, \
+	FilterWrapperBase::onFilterProcces, \
+	FilterWrapperBase::onFilterPostProcess, \
+	FilterWrapperBase::onFilterUninit, \
 	MS_FILTER_WRAPPER_METHODS_NAME(base_name), \
 	flags \
 }

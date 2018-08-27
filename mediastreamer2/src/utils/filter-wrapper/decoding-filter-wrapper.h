@@ -21,51 +21,51 @@
 
 #include "mediastreamer2/msfilter.h"
 
+#include "decoding-filter-impl.h"
 #include "filter-wrapper-base.h"
 
 namespace mediastreamer {
 
-template <class T>
-class DecodingFilterWrapper: public FilterWrapperBase<T> {
+class DecodingFilterWrapper {
 public:
 	static int onAddFmtpCall(MSFilter *f, void *arg) {
 		const char *fmtp = static_cast<const char *>(arg);
-		static_cast<T *>(f->data)->addFmtp(fmtp);
+		static_cast<DecodingFilterImpl *>(f->data)->addFmtp(fmtp);
 		return 0;
 	}
 
 	static int onResetFirstImageCall(MSFilter *f, void *arg) {
-		static_cast<T *>(f->data)->resetFirstImage();
+		static_cast<DecodingFilterImpl *>(f->data)->resetFirstImage();
 		return 0;
 	}
 
 	static int onGetVideoSizeCall(MSFilter *f, void *arg) {
 		MSVideoSize *vsize = static_cast<MSVideoSize *>(arg);
-		*vsize = static_cast<T *>(f->data)->getVideoSize();
+		*vsize = static_cast<DecodingFilterImpl *>(f->data)->getVideoSize();
 		return 0;
 	}
 
 	static int onGetFpsCall(MSFilter *f, void *arg) {
 		float *fps = static_cast<float *>(arg);
-		*fps = static_cast<T *>(f->data)->getFps();
+		*fps = static_cast<DecodingFilterImpl *>(f->data)->getFps();
 		return 0;
 	}
 
 	static int onGetOutFmtCall(MSFilter *f, void *arg) {
 		MSPinFormat *pinFormat = static_cast<MSPinFormat *>(arg);
-		pinFormat->fmt = static_cast<T *>(f->data)->getOutFmt();
+		pinFormat->fmt = static_cast<DecodingFilterImpl *>(f->data)->getOutFmt();
 		return 0;
 	}
 
 	static int onEnableAvpfCall(MSFilter *f, void *arg) {
 		const bool_t *enable = static_cast<bool_t *>(arg);
-		static_cast<T *>(f->data)->enableAvpf(enable);
+		static_cast<DecodingFilterImpl *>(f->data)->enableAvpf(enable);
 		return 0;
 	}
 
 	static int onEnableFreezeOnErrorCall(MSFilter *f, void *arg) {
 		const bool_t *enable = static_cast<bool_t *>(arg);
-		static_cast<T *>(f->data)->enableFreezeOnError(enable);
+		static_cast<DecodingFilterImpl *>(f->data)->enableFreezeOnError(enable);
 		return 0;
 	}
 };
@@ -74,14 +74,14 @@ public:
 
 #define MS_DECODING_FILTER_WRAPPER_METHODS_DECLARATION(base_name) \
 static MSFilterMethod  MS_FILTER_WRAPPER_METHODS_NAME(base_name)[] = { \
-	{	MS_FILTER_ADD_FMTP                                 , DecodingFilterWrapper<base_name ## FilterImpl>::onAddFmtpCall             }, \
-	{	MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION    , DecodingFilterWrapper<base_name ## FilterImpl>::onResetFirstImageCall     }, \
-	{	MS_FILTER_GET_VIDEO_SIZE                           , DecodingFilterWrapper<base_name ## FilterImpl>::onGetVideoSizeCall        }, \
-	{	MS_FILTER_GET_FPS                                  , DecodingFilterWrapper<base_name ## FilterImpl>::onGetFpsCall              }, \
-	{	MS_FILTER_GET_OUTPUT_FMT                           , DecodingFilterWrapper<base_name ## FilterImpl>::onGetOutFmtCall           }, \
-	{ 	MS_VIDEO_DECODER_ENABLE_AVPF                       , DecodingFilterWrapper<base_name ## FilterImpl>::onEnableAvpfCall          }, \
-	{	MS_VIDEO_DECODER_FREEZE_ON_ERROR                   , DecodingFilterWrapper<base_name ## FilterImpl>::onEnableFreezeOnErrorCall }, \
-	{	0                                                  , nullptr                                                             } \
+	{	MS_FILTER_ADD_FMTP                                 , DecodingFilterWrapper::onAddFmtpCall             }, \
+	{	MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION    , DecodingFilterWrapper::onResetFirstImageCall     }, \
+	{	MS_FILTER_GET_VIDEO_SIZE                           , DecodingFilterWrapper::onGetVideoSizeCall        }, \
+	{	MS_FILTER_GET_FPS                                  , DecodingFilterWrapper::onGetFpsCall              }, \
+	{	MS_FILTER_GET_OUTPUT_FMT                           , DecodingFilterWrapper::onGetOutFmtCall           }, \
+	{ 	MS_VIDEO_DECODER_ENABLE_AVPF                       , DecodingFilterWrapper::onEnableAvpfCall          }, \
+	{	MS_VIDEO_DECODER_FREEZE_ON_ERROR                   , DecodingFilterWrapper::onEnableFreezeOnErrorCall }, \
+	{	0                                                  , nullptr                                          } \
 };
 
 #define MS_DECODING_FILTER_WRAPPER_DESCRIPTION_DECLARATION(base_name, id, text, enc_fmt, flags) \

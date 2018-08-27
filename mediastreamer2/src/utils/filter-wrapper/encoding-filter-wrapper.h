@@ -22,80 +22,80 @@
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msvideo.h"
 
+#include "encoding-filter-impl.h"
 #include "filter-wrapper-base.h"
 
 namespace mediastreamer {
 
-template <class T>
-class EncodingFilterWrapper: FilterWrapperBase<T> {
+class EncodingFilterWrapper {
 public:
 	static int onGetBitrateCall(MSFilter *f, void *arg) {
 		int *bitrate = static_cast<int *>(arg);
-		*bitrate = static_cast<T *>(f->data)->getBitrate();
+		*bitrate = static_cast<EncodingFilterImpl *>(f->data)->getBitrate();
 		return 0;
 	}
 
 	static int onSetConfigurationCall(MSFilter *f, void *arg) {
 		const MSVideoConfiguration *vconf = static_cast<MSVideoConfiguration *>(arg);
-		static_cast<T *>(f->data)->setVideoConfiguration(vconf);
+		static_cast<EncodingFilterImpl *>(f->data)->setVideoConfiguration(vconf);
 		return 0;
 	}
 
 	static int onSetBitrateCall(MSFilter *f, void *arg) {
 		int br = *static_cast<int *>(arg);
-		static_cast<T *>(f->data)->setBitrate(br);
+		static_cast<EncodingFilterImpl *>(f->data)->setBitrate(br);
 		return 0;
 	}
 
 	static int onSetFpsCall(MSFilter *f, void *arg) {
 		float fps = *static_cast<float *>(arg);
-		static_cast<T *>(f->data)->setFps(fps);
+		static_cast<EncodingFilterImpl *>(f->data)->setFps(fps);
 		return 0;
 	}
 
 	static int onGetFpsCall(MSFilter *f, void *arg) {
 		float *fps = static_cast<float *>(arg);
-		*fps = static_cast<T *>(f->data)->getFps();
+		*fps = static_cast<EncodingFilterImpl *>(f->data)->getFps();
 		return 0;
 	}
 
 	static int onGetVideoSizeCall(MSFilter *f, void *arg) {
 		MSVideoSize *vsize = static_cast<MSVideoSize *>(arg);
-		*vsize = static_cast<T *>(f->data)->getVideoSize();
+		*vsize = static_cast<EncodingFilterImpl *>(f->data)->getVideoSize();
 		return 0;
 	}
 
 	static int onEnableAvpfCall(MSFilter *f, void *data) {
 		bool_t enable = *static_cast<bool_t *>(data);
-		static_cast<T *>(f->data)->enableAvpf(enable);
+		static_cast<EncodingFilterImpl *>(f->data)->enableAvpf(enable);
 		return 0;
 	}
 
 	static int onSetVideoSizeCall(MSFilter *f, void *arg) {
 		const MSVideoSize *vsize = static_cast<MSVideoSize *>(arg);
-		static_cast<T *>(f->data)->setVideoSize(*vsize);
+		static_cast<EncodingFilterImpl *>(f->data)->setVideoSize(*vsize);
 		return 0;
 	}
 
 	static int onNotifyPliCall(MSFilter *f, void *data) {
-		static_cast<T *>(f->data)->notifyPli();
+		static_cast<EncodingFilterImpl *>(f->data)->notifyPli();
 		return 0;
 	}
 
 	static int onNotifyFirCall(MSFilter *f, void *data) {
-		static_cast<T *>(f->data)->notifyFir();
+		static_cast<EncodingFilterImpl *>(f->data)->notifyFir();
 		return 0;
 	}
 
 	static int onGetVideoConfigurationsCall(MSFilter *f, void *data) {
 		const MSVideoConfiguration **vconfs = static_cast<const MSVideoConfiguration **>(data);
-		*vconfs = static_cast<T *>(f->data)->getVideoConfiguratons();
+		*vconfs = static_cast<EncodingFilterImpl *>(f->data)->getVideoConfiguratons();
 		return 0;
 	}
 
 	static int onSetVideoConfigurationsCall(MSFilter *f, void *data) {
 		const MSVideoConfiguration * const *vconfs = static_cast<const MSVideoConfiguration * const *>(data);
-		static_cast<T *>(f->data)->setVideoConfigurations(*vconfs);
+		static_cast<EncodingFilterImpl *>(f->data)->setVideoConfigurations(*vconfs);
 		return 0;
 	}
 };
@@ -104,19 +104,19 @@ public:
 
 #define MS_ENCODING_FILTER_WRAPPER_METHODS_DECLARATION(base_name) \
 static MSFilterMethod  MS_FILTER_WRAPPER_METHODS_NAME(base_name)[] = { \
-	{ MS_FILTER_SET_FPS                       , EncodingFilterWrapper<base_name ## FilterImpl>::onSetFpsCall                 }, \
-	{ MS_FILTER_SET_BITRATE                   , EncodingFilterWrapper<base_name ## FilterImpl>::onSetBitrateCall             }, \
-	{ MS_FILTER_GET_BITRATE                   , EncodingFilterWrapper<base_name ## FilterImpl>::onGetBitrateCall             }, \
-	{ MS_FILTER_GET_FPS                       , EncodingFilterWrapper<base_name ## FilterImpl>::onGetFpsCall                 }, \
-	{ MS_FILTER_GET_VIDEO_SIZE                , EncodingFilterWrapper<base_name ## FilterImpl>::onGetVideoSizeCall           }, \
-	{ MS_VIDEO_ENCODER_NOTIFY_PLI             , EncodingFilterWrapper<base_name ## FilterImpl>::onNotifyPliCall              }, \
-	{ MS_VIDEO_ENCODER_NOTIFY_FIR             , EncodingFilterWrapper<base_name ## FilterImpl>::onNotifyFirCall              }, \
-	{ MS_FILTER_SET_VIDEO_SIZE                , EncodingFilterWrapper<base_name ## FilterImpl>::onSetVideoSizeCall           }, \
-	{ MS_VIDEO_ENCODER_ENABLE_AVPF            , EncodingFilterWrapper<base_name ## FilterImpl>::onEnableAvpfCall             }, \
-	{ MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST , EncodingFilterWrapper<base_name ## FilterImpl>::onGetVideoConfigurationsCall }, \
-	{ MS_VIDEO_ENCODER_SET_CONFIGURATION_LIST , EncodingFilterWrapper<base_name ## FilterImpl>::onSetVideoConfigurationsCall }, \
-	{ MS_VIDEO_ENCODER_SET_CONFIGURATION      , EncodingFilterWrapper<base_name ## FilterImpl>::onSetConfigurationCall       }, \
-	{ 0                                       , nullptr                                                                      } \
+	{ MS_FILTER_SET_FPS                       , EncodingFilterWrapper::onSetFpsCall                 }, \
+	{ MS_FILTER_SET_BITRATE                   , EncodingFilterWrapper::onSetBitrateCall             }, \
+	{ MS_FILTER_GET_BITRATE                   , EncodingFilterWrapper::onGetBitrateCall             }, \
+	{ MS_FILTER_GET_FPS                       , EncodingFilterWrapper::onGetFpsCall                 }, \
+	{ MS_FILTER_GET_VIDEO_SIZE                , EncodingFilterWrapper::onGetVideoSizeCall           }, \
+	{ MS_VIDEO_ENCODER_NOTIFY_PLI             , EncodingFilterWrapper::onNotifyPliCall              }, \
+	{ MS_VIDEO_ENCODER_NOTIFY_FIR             , EncodingFilterWrapper::onNotifyFirCall              }, \
+	{ MS_FILTER_SET_VIDEO_SIZE                , EncodingFilterWrapper::onSetVideoSizeCall           }, \
+	{ MS_VIDEO_ENCODER_ENABLE_AVPF            , EncodingFilterWrapper::onEnableAvpfCall             }, \
+	{ MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST , EncodingFilterWrapper::onGetVideoConfigurationsCall }, \
+	{ MS_VIDEO_ENCODER_SET_CONFIGURATION_LIST , EncodingFilterWrapper::onSetVideoConfigurationsCall }, \
+	{ MS_VIDEO_ENCODER_SET_CONFIGURATION      , EncodingFilterWrapper::onSetConfigurationCall       }, \
+	{ 0                                       , nullptr                                             } \
 }
 
 #define MS_ENCODING_FILTER_WRAPPER_DESCRIPTION_DECLARATION(base_name, id, text, enc_fmt, flags) \
