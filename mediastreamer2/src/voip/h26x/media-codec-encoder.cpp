@@ -277,7 +277,7 @@ std::ostringstream MediaCodecEncoder::getMediaForamtAsString() const {
 
 // Public methods
 MediaCodecEncoderFilterImpl::MediaCodecEncoderFilterImpl(MSFilter *f, MediaCodecEncoder *encoder, NalPacker *packer, const MSVideoConfiguration *defaultVConfList):
-	_f(f), _encoder(encoder), _packer(packer), _defaultVConfList(defaultVConfList) {
+	EncodingFilterImpl(f), _encoder(encoder), _packer(packer), _defaultVConfList(defaultVConfList) {
 
 	setVideoConfigurations(nullptr);
 	_vconf = ms_video_find_best_configuration_for_size(_vconfList, MS_VIDEO_SIZE_CIF, ms_factory_get_cpu_count(f->factory));
@@ -295,17 +295,17 @@ void MediaCodecEncoderFilterImpl::preprocess() {
 
 void MediaCodecEncoderFilterImpl::process() {
 	/*First queue input image*/
-	if (mblk_t *im = ms_queue_peek_last(_f->inputs[0])) {
+	if (mblk_t *im = ms_queue_peek_last(getInput(0))) {
 		bool requestIFrame = false;
-		if (ms_iframe_requests_limiter_iframe_requested(&_iframeLimiter, _f->ticker->time) ||
-		        (!_avpfEnabled && ms_video_starter_need_i_frame(&_starter, _f->ticker->time))) {
+		if (ms_iframe_requests_limiter_iframe_requested(&_iframeLimiter, getTime()) ||
+		        (!_avpfEnabled && ms_video_starter_need_i_frame(&_starter, getTime()))) {
 			ms_message("MediaCodecEncoder: requesting I-frame to the encoder.");
 			requestIFrame = true;
-			ms_iframe_requests_limiter_notify_iframe_sent(&_iframeLimiter, _f->ticker->time);
+			ms_iframe_requests_limiter_notify_iframe_sent(&_iframeLimiter, getTime());
 		}
-		_encoder->feed(dupmsg(im), _f->ticker->time, requestIFrame);
+		_encoder->feed(dupmsg(im), getTime(), requestIFrame);
 	}
-	ms_queue_flush(_f->inputs[0]);
+	ms_queue_flush(getInput(0));
 
 	/*Second, dequeue possibly pending encoded frames*/
 	MSQueue nalus;
@@ -313,9 +313,9 @@ void MediaCodecEncoderFilterImpl::process() {
 	while (_encoder->fetch(&nalus)) {
 		if (!_firstFrameDecoded) {
 			_firstFrameDecoded = true;
-			ms_video_starter_first_frame(&_starter, _f->ticker->time);
+			ms_video_starter_first_frame(&_starter, getTime());
 		}
-		_packer->pack(&nalus, _f->outputs[0], static_cast<uint32_t>(_f->ticker->time * 90LL));
+		_packer->pack(&nalus, getOutput(0), static_cast<uint32_t>(getTime() * 90LL));
 	}
 }
 
@@ -336,7 +336,7 @@ void MediaCodecEncoderFilterImpl::setBitrate(int br) {
 		/* apply the new bitrate request to the running MediaCodec*/
 		setVideoConfiguration(&_vconf);
 	} else {
-		MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_size_and_bitrate(_vconfList, _vconf.vsize, ms_factory_get_cpu_count(_f->factory),  br);
+		MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_size_and_bitrate(_vconfList, _vconf.vsize, ms_factory_get_cpu_count(getFactory()),  br);
 		setVideoConfiguration(&best_vconf);
 	}
 }
@@ -372,7 +372,7 @@ void MediaCodecEncoderFilterImpl::enableAvpf(bool enable) {
 }
 
 void MediaCodecEncoderFilterImpl::setVideoSize(const MSVideoSize &vsize) {
-	MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_size_and_bitrate(_vconfList, vsize, ms_factory_get_cpu_count(_f->factory), _vconf.required_bitrate);
+	MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_size_and_bitrate(_vconfList, vsize, ms_factory_get_cpu_count(getFactory()), _vconf.required_bitrate);
 	_vconf.vsize = vsize;
 	_vconf.fps = best_vconf.fps;
 	_vconf.bitrate_limit = best_vconf.bitrate_limit;

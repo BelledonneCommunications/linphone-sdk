@@ -30,6 +30,7 @@
 
 #include "mediastreamer2/msvideo.h"
 
+#include "decoding-filter-impl.h"
 #include "nal-unpacker.h"
 
 namespace mediastreamer {
@@ -76,23 +77,22 @@ protected:
 	static const unsigned int _timeoutUs = 0;
 };
 
-class MediaCodecDecoderFilterImpl {
+class MediaCodecDecoderFilterImpl: public DecodingFilterImpl {
 public:
 	MediaCodecDecoderFilterImpl(MSFilter *f, const std::string &mime);
-	virtual ~MediaCodecDecoderFilterImpl() = default;
 
-	void preprocess();
-	void process();
-	void postprocess();
+	void preprocess() override;
+	void process() override;
+	void postprocess() override;
 
-	MSVideoSize getVideoSize() const;
-	float getFps() const;
-	const MSFmtDescriptor *getOutFmt() const;
-	void addFmtp(const char *fmtp) {}
+	MSVideoSize getVideoSize() const override;
+	float getFps() const override;
+	const MSFmtDescriptor *getOutFmt() const override;
+	void addFmtp(const char *fmtp)  override {}
 
-	void enableAvpf(bool enable);
-	void enableFreezeOnError(bool enable);
-	void resetFirstImage();
+	void enableAvpf(bool enable) override;
+	void enableFreezeOnError(bool enable) override;
+	void resetFirstImage() override;
 
 protected:
 	MSVideoSize _vsize;
@@ -100,7 +100,6 @@ protected:
 	bool _avpfEnabled = false;
 	bool _freezeOnError = true;
 
-	MSFilter *_f = nullptr;
 	std::unique_ptr<NalUnpacker> _unpacker;
 	std::unique_ptr<MediaCodecDecoder> _codec;
 	bool _firstImageDecoded = false;

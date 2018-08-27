@@ -1,5 +1,5 @@
 /*
- Mediastreamer2 media-codec-h265-decoder.cpp
+ Mediastreamer2 decoding-filter-wrapper.h
  Copyright (C) 2018 Belledonne Communications SARL
 
  This program is free software; you can redistribute it and/or
@@ -17,21 +17,32 @@
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#include "filter-wrapper/decoding-filter-wrapper.h"
-#include "h265-nal-unpacker.h"
-#include "h265-utils.h"
-#include "media-codec-decoder.h"
+#pragma once
+
+#include "mediastreamer2/msfilter.h"
+#include "mediastreamer2/msticker.h"
 
 namespace mediastreamer {
 
-class MediaCodecH265DecoderFilterImpl: public MediaCodecDecoderFilterImpl {
+class FilterImplBase {
 public:
-	MediaCodecH265DecoderFilterImpl(MSFilter *f): MediaCodecDecoderFilterImpl(f, "video/hevc") {}
+	FilterImplBase(MSFilter *f): _f(f) {}
+	virtual ~FilterImplBase() = default;
+
+	virtual void preprocess() = 0;
+	virtual void process() = 0;
+	virtual void postprocess() = 0;
+
+protected:
+	MSFactory *getFactory() const {return _f->factory;}
+	MSQueue *getInput(int idx) const {return _f->inputs[idx];}
+	MSQueue *getOutput(int idx) const {return _f->outputs[idx];}
+	uint64_t getTime() const {return _f->ticker->time;}
+
+	void notify(unsigned int id) {ms_filter_notify_no_arg(_f, id);}
+
+private:
+	MSFilter *_f = nullptr;
 };
 
-}
-
-using namespace mediastreamer;
-
-MS_DECODING_FILTER_WRAPPER_METHODS_DECLARATION(MediaCodecH265Decoder);
-MS_DECODING_FILTER_WRAPPER_DESCRIPTION_DECLARATION(MediaCodecH265Decoder, MS_MEDIACODEC_H265_DEC_ID, "A H265 decoder based on MediaCodec API.", "H265", MS_FILTER_IS_PUMP);
+} // namespace mediastreamer

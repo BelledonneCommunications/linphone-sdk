@@ -29,6 +29,7 @@
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msvideo.h"
 
+#include "encoding-filter-impl.h"
 #include "h26x-utils.h"
 #include "nal-packer.h"
 
@@ -102,35 +103,33 @@ protected:
 	static const int32_t _priority = 0; // real-time priority
 };
 
-class MediaCodecEncoderFilterImpl {
+class MediaCodecEncoderFilterImpl: public EncodingFilterImpl {
 public:
-	virtual ~MediaCodecEncoderFilterImpl() = default;
+	void preprocess() override;
+	void process() override;
+	void postprocess() override;
 
-	virtual void preprocess();
-	virtual void process();
-	virtual void postprocess();
+	const MSVideoConfiguration *getVideoConfiguratons() const override;
+	void setVideoConfigurations(const MSVideoConfiguration *vconfs) override;
+	int setVideoConfiguration(const MSVideoConfiguration *vconf) override;
 
-	int getBitrate() const;
-	void setBitrate(int br);
+	int getBitrate() const override;
+	void setBitrate(int br) override;
 
-	const MSVideoConfiguration *getVideoConfiguratons() const;
-	void setVideoConfigurations(const MSVideoConfiguration *vconfs);
-	int setVideoConfiguration(const MSVideoConfiguration *vconf);
+	float getFps() const override;
+	void setFps(float  fps) override;
 
-	float getFps() const;
-	void setFps(float  fps);
+	MSVideoSize getVideoSize() const override;
+	void setVideoSize(const MSVideoSize &vsize) override;
 
-	MSVideoSize getVideoSize() const;
-	void setVideoSize(const MSVideoSize &vsize);
+	void enableAvpf(bool enable) override;
 
-	void enableAvpf(bool enable);
-	void notifyPli();
-	void notifyFir();
+	void notifyPli() override;
+	void notifyFir() override;
 
 protected:
 	MediaCodecEncoderFilterImpl(MSFilter *f, MediaCodecEncoder *encoder, NalPacker *packer, const MSVideoConfiguration *defaultVConfList);
 
-	MSFilter *_f = nullptr;
 	std::unique_ptr<MediaCodecEncoder> _encoder;
 	std::unique_ptr<NalPacker> _packer;
 	const MSVideoConfiguration *_vconfList = nullptr;

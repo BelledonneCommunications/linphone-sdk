@@ -248,8 +248,8 @@ bool MediaCodecDecoder::isKeyFrame(const MSQueue *frame) const {
 }
 
 MediaCodecDecoderFilterImpl::MediaCodecDecoderFilterImpl(MSFilter *f, const std::string &mime):
+	DecodingFilterImpl(f),
 	_vsize({0, 0}),
-	_f(f),
 	_unpacker(H26xToolFactory::get(mime).createNalUnpacker()) {
 
 	try {
@@ -272,13 +272,13 @@ void MediaCodecDecoderFilterImpl::process() {
 	MSQueue frame;
 
 	if (_codec == nullptr) {
-		ms_queue_flush(_f->inputs[0]);
+		ms_queue_flush(getInput(0));
 		return;
 	}
 
 	ms_queue_init(&frame);
 
-	while (mblk_t *im = ms_queue_get(_f->inputs[0])) {
+	while (mblk_t *im = ms_queue_get(getInput(0))) {
 		NalUnpacker::Status unpacking_ret = _unpacker->unpack(im, &frame);
 
 		if (!unpacking_ret.frameAvailable) continue;
@@ -312,15 +312,15 @@ void MediaCodecDecoderFilterImpl::process() {
 		if (!_firstImageDecoded) {
 			ms_message("MediaCodecDecoder: first frame decoded %ix%i", _vsize.width, _vsize.height);
 			_firstImageDecoded = true;
-			ms_filter_notify_no_arg(_f, MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
+			notify(MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
 		}
 
-		ms_average_fps_update(&_fps, _f->ticker->time);
-		ms_queue_put(_f->outputs[0], om);
+		ms_average_fps_update(&_fps, getTime());
+		ms_queue_put(getOutput(0), om);
 	}
 
 	if (_avpfEnabled && requestPli) {
-		ms_filter_notify_no_arg(_f, MS_VIDEO_DECODER_SEND_PLI);
+		notify(MS_VIDEO_DECODER_SEND_PLI);
 	}
 }
 
@@ -341,7 +341,7 @@ float MediaCodecDecoderFilterImpl::getFps() const {
 }
 
 const MSFmtDescriptor *MediaCodecDecoderFilterImpl::getOutFmt() const {
-	return ms_factory_get_video_format(_f->factory, "YUV420P", ms_video_size_make(_vsize.width, _vsize.height), 0, nullptr);
+	return ms_factory_get_video_format(getFactory(), "YUV420P", ms_video_size_make(_vsize.width, _vsize.height), 0, nullptr);
 }
 
 void MediaCodecDecoderFilterImpl::enableAvpf(bool enable) {
