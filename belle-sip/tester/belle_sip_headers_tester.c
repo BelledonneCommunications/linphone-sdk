@@ -483,8 +483,7 @@ static void test_route_header(void) {
 
 }
 
-static void test_rseq_header()
-{
+static void test_rseq_header(void) {
 	belle_sip_header_t* L_tmp;
 	belle_sip_header_t* L_rseq;
 	char* l_raw_header = NULL;
