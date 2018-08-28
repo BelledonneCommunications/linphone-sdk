@@ -45,8 +45,8 @@ protected:
 
 	void notify(unsigned int id) {ms_filter_notify_no_arg(_f, id);}
 
-	void lock() {ms_filter_lock(_f);}
-	void unlock() {ms_filter_unlock(_f);}
+	void lock() const {ms_filter_lock(_f);}
+	void unlock() const {ms_filter_unlock(_f);}
 
 private:
 	MSFilter *_f = nullptr;

@@ -340,7 +340,7 @@ float MediaCodecDecoderFilterImpl::getFps() const {
 	return ms_average_fps_get(&_fps);
 }
 
-const MSFmtDescriptor *MediaCodecDecoderFilterImpl::getOutFmt() const {
+const MSFmtDescriptor *MediaCodecDecoderFilterImpl::getOutputFmt() const {
 	return ms_factory_get_video_format(getFactory(), "YUV420P", ms_video_size_make(_vsize.width, _vsize.height), 0, nullptr);
 }
 

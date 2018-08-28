@@ -35,21 +35,23 @@ public:
 	static int onGetOutFmtCall(MSFilter *f, void *arg);
 	static int onEnableAvpfCall(MSFilter *f, void *arg);
 	static int onEnableFreezeOnErrorCall(MSFilter *f, void *arg);
+	static int onFreezeOnErrorEnabledCall(MSFilter *f, void *arg);
 };
 
-};
+}
 
 #define MS_DECODING_FILTER_WRAPPER_METHODS_DECLARATION(base_name) \
 static MSFilterMethod  MS_FILTER_WRAPPER_METHODS_NAME(base_name)[] = { \
-	{	MS_FILTER_ADD_FMTP                                 , DecodingFilterWrapper::onAddFmtpCall             }, \
-	{	MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION    , DecodingFilterWrapper::onResetFirstImageCall     }, \
-	{	MS_FILTER_GET_VIDEO_SIZE                           , DecodingFilterWrapper::onGetVideoSizeCall        }, \
-	{	MS_FILTER_GET_FPS                                  , DecodingFilterWrapper::onGetFpsCall              }, \
-	{	MS_FILTER_GET_OUTPUT_FMT                           , DecodingFilterWrapper::onGetOutFmtCall           }, \
-	{ 	MS_VIDEO_DECODER_ENABLE_AVPF                       , DecodingFilterWrapper::onEnableAvpfCall          }, \
-	{	MS_VIDEO_DECODER_FREEZE_ON_ERROR                   , DecodingFilterWrapper::onEnableFreezeOnErrorCall }, \
-	{	0                                                  , nullptr                                          } \
-};
+	{	MS_FILTER_ADD_FMTP                                 , DecodingFilterWrapper::onAddFmtpCall              }, \
+	{	MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION    , DecodingFilterWrapper::onResetFirstImageCall      }, \
+	{	MS_FILTER_GET_VIDEO_SIZE                           , DecodingFilterWrapper::onGetVideoSizeCall         }, \
+	{	MS_FILTER_GET_FPS                                  , DecodingFilterWrapper::onGetFpsCall               }, \
+	{	MS_FILTER_GET_OUTPUT_FMT                           , DecodingFilterWrapper::onGetOutFmtCall            }, \
+	{ 	MS_VIDEO_DECODER_ENABLE_AVPF                       , DecodingFilterWrapper::onEnableAvpfCall           }, \
+	{	MS_VIDEO_DECODER_FREEZE_ON_ERROR                   , DecodingFilterWrapper::onEnableFreezeOnErrorCall  }, \
+	{	MS_VIDEO_DECODER_FREEZE_ON_ERROR_ENABLED           , DecodingFilterWrapper::onFreezeOnErrorEnabledCall }, \
+	{	0                                                  , nullptr                                           } \
+}
 
 #define MS_DECODING_FILTER_WRAPPER_DESCRIPTION_DECLARATION(base_name, id, text, enc_fmt, flags) \
 	MS_FILTER_WRAPPER_FILTER_DESCRIPTION_BASE(base_name, id, text, MS_FILTER_DECODER, enc_fmt, 1, 1, flags)

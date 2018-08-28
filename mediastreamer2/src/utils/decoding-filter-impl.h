@@ -31,10 +31,11 @@ namespace mediastreamer {
 
 		virtual MSVideoSize getVideoSize() const = 0;
 		virtual float getFps() const = 0;
-		virtual const MSFmtDescriptor *getOutFmt() const = 0;
+		virtual const MSFmtDescriptor *getOutputFmt() const = 0;
 		virtual void addFmtp(const char *fmtp) = 0;
 
 		virtual void enableAvpf(bool enable) = 0;
+		virtual bool freezeOnErrorEnabled() const = 0;
 		virtual void enableFreezeOnError(bool enable) = 0;
 		virtual void resetFirstImage() = 0;
 	};

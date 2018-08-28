@@ -65,7 +65,7 @@ int DecodingFilterWrapper::onGetFpsCall(MSFilter *f, void *arg) {
 int DecodingFilterWrapper::onGetOutFmtCall(MSFilter *f, void *arg) {
 	try {
 		MSPinFormat *pinFormat = static_cast<MSPinFormat *>(arg);
-		pinFormat->fmt = static_cast<DecodingFilterImpl *>(f->data)->getOutFmt();
+		pinFormat->fmt = static_cast<DecodingFilterImpl *>(f->data)->getOutputFmt();
 		return 0;
 	} catch (const DecodingFilterImpl::MethodCallFailed &) {
 		return -1;
@@ -86,6 +86,16 @@ int DecodingFilterWrapper::onEnableFreezeOnErrorCall(MSFilter *f, void *arg) {
 	try {
 		const bool_t *enable = static_cast<bool_t *>(arg);
 		static_cast<DecodingFilterImpl *>(f->data)->enableFreezeOnError(enable);
+		return 0;
+	} catch (const DecodingFilterImpl::MethodCallFailed &) {
+		return -1;
+	}
+}
+
+int DecodingFilterWrapper::onFreezeOnErrorEnabledCall(MSFilter *f, void *arg) {
+	try {
+		bool_t *foeEnabled = static_cast<bool_t *>(arg);
+		*foeEnabled = static_cast<DecodingFilterImpl *>(f->data)->freezeOnErrorEnabled();
 		return 0;
 	} catch (const DecodingFilterImpl::MethodCallFailed &) {
 		return -1;
