@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <exception>
+
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msticker.h"
 
@@ -26,6 +28,8 @@ namespace mediastreamer {
 
 class FilterImplBase {
 public:
+	class MethodCallFailed: public std::exception {};
+
 	FilterImplBase(MSFilter *f): _f(f) {}
 	virtual ~FilterImplBase() = default;
 
@@ -40,6 +44,9 @@ protected:
 	uint64_t getTime() const {return _f->ticker->time;}
 
 	void notify(unsigned int id) {ms_filter_notify_no_arg(_f, id);}
+
+	void lock() {ms_filter_lock(_f);}
+	void unlock() {ms_filter_unlock(_f);}
 
 private:
 	MSFilter *_f = nullptr;

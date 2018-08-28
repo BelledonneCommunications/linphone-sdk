@@ -17,14 +17,21 @@
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#include <VideoToolbox/VideoToolbox.h>
-#include "mediastreamer2/msfilter.h"
-#include "mediastreamer2/msvideo.h"
-#include "h26x/h264-utils.h"
-#include "mediastreamer2/rfc3984.h"
-#include "mediastreamer2/msticker.h"
-#include "mediastreamer2/mscodecutils.h"
+#include <sstream>
+#include <string>
 
+#include <VideoToolbox/VideoToolbox.h>
+
+#include "mediastreamer2/mscodecutils.h"
+#include "mediastreamer2/msfilter.h"
+#include "mediastreamer2/msticker.h"
+#include "mediastreamer2/msvideo.h"
+#include "mediastreamer2/rfc3984.h"
+
+#include "encoding-filter-impl.h"
+#include "filter-wrapper/encoding-filter-wrapper.h"
+#include "filter-wrapper/decoding-filter-wrapper.h"
+#include "h26x/h264-utils.h"
 
 
 #define VTH264_ENC_NAME "VideoToolboxH264Encoder"
@@ -33,38 +40,40 @@
 #define vth264enc_warning(fmt, ...) vth264enc_log(warning, fmt, ##__VA_ARGS__)
 #define vth264enc_error(fmt, ...) vth264enc_log(error, fmt, ##__VA_ARGS__)
 
-static const char *os_status_to_string(OSStatus status) {
-	static char complete_message[1024];
-	const char *message = "";
+using namespace std;
 
+std::string toString(::OSStatus status) {
+	ostringstream message;
 	switch(status) {
 	case noErr:
-		message = "no error";
+		message << "no error";
 		break;
 	case kVTPropertyNotSupportedErr:
-		message = "property not supported";
+		message << "property not supported";
 		break;
 	case kVTVideoDecoderMalfunctionErr:
-		message = "decoder malfunction";
+		message << "decoder malfunction";
 		break;
 	case kVTInvalidSessionErr:
-		message = "invalid session";
+		message << "invalid session";
 		break;
 	case kVTParameterErr:
-		message = "parameter error";
+		message << "parameter error";
 		break;
 	case kCVReturnAllocationFailed:
-		message = "return allocation failed";
+		message << "return allocation failed";
 		break;
 	case kVTVideoDecoderBadDataErr:
-		message = "decoding bad data";
+		message << "decoding bad data";
 		break;
 	default:
 		break;
 	}
-	snprintf(complete_message, sizeof(complete_message), "%s [osstatus=%d]", message, (int)status);
-	return complete_message;
+	message << " [osstatus=" << int(status) << "]";
+	return message.str();
 }
+
+namespace mediastreamer {
 
 const MSVideoConfiguration vth264enc_video_confs[] = {
 	MS_VIDEO_CONF(1536000,  2560000, SXGA_MINUS, 25, 2),
@@ -80,491 +89,417 @@ const MSVideoConfiguration vth264enc_video_confs[] = {
 	MS_VIDEO_CONF(      0,    64000,       QCIF,  5 ,1)
 };
 
-typedef struct _VTH264EncCtx {
-	VTCompressionSessionRef session;
-	CFMutableDictionaryRef frame_properties;
-	MSVideoConfiguration conf;
-	MSQueue queue;
-	ms_mutex_t mutex;
-	Rfc3984Context *packer_ctx;
-	const MSFilter *f;
-	const MSVideoConfiguration *video_confs;
-	MSVideoStarter starter;
-	bool_t enable_avpf;
-	bool_t first_frame;
-	MSIFrameRequestsLimiterCtx iframe_limiter;
-} VTH264EncCtx;
-
-static void vth264enc_output_cb(VTH264EncCtx *ctx, void *sourceFrameRefCon, OSStatus status, VTEncodeInfoFlags infoFlags, CMSampleBufferRef sampleBuffer) {
-	MSQueue nalu_queue;
-	CMBlockBufferRef block_buffer;
-	size_t read_size=0, offset=0, frame_size;
-	bool_t is_keyframe = FALSE;
-	mblk_t *nalu;
-
-	if(sampleBuffer == NULL || status != noErr) {
-		vth264enc_error("could not encode frame: error %d", (int)status);
-		return;
+class VideoToolboxH264EncoderFilterImpl: public EncodingFilterImpl {
+public:
+	VideoToolboxH264EncoderFilterImpl(MSFilter *f): EncodingFilterImpl(f) {
+		ms_mutex_init(&_mutex, NULL);
+		ms_queue_init(&_queue);
+		_videoConfs = vth264enc_video_confs;
+		_conf = ms_video_find_best_configuration_for_size(_videoConfs, MS_VIDEO_SIZE_CIF, ms_factory_get_cpu_count(f->factory));
+		_frameProperties = CFDictionaryCreateMutable(kCFAllocatorDefault, 0, NULL, NULL);
+		CFDictionarySetValue(_frameProperties, kVTEncodeFrameOptionKey_ForceKeyFrame, kCFBooleanFalse);
 	}
 
-	ms_mutex_lock(&ctx->mutex);
-	if(ctx->session) {
-		ms_queue_init(&nalu_queue);
-		block_buffer = CMSampleBufferGetDataBuffer(sampleBuffer);
-		frame_size = CMBlockBufferGetDataLength(block_buffer);
-		while(read_size < frame_size) {
-			char *chunk;
-			size_t chunk_size;
-			int idr_count;
-			OSStatus status = CMBlockBufferGetDataPointer(block_buffer, offset, &chunk_size, NULL, &chunk);
-			if (status != kCMBlockBufferNoErr) {
-				vth264enc_error("error while reading a chunk of encoded frame: %s", os_status_to_string(status));
-				break;
-			}
-			ms_h264_stream_to_nalus((uint8_t *)chunk, chunk_size, &nalu_queue, &idr_count);
-			if(idr_count) is_keyframe = TRUE;
-			read_size += chunk_size;
-			offset += chunk_size;
-		}
+	~VideoToolboxH264EncoderFilterImpl() {
+		CFRelease(_frameProperties);
+	}
 
-		if (read_size < frame_size) {
-			vth264enc_error("error while reading an encoded frame. Dropping it");
-			ms_queue_flush(&nalu_queue);
-			ms_mutex_unlock(&ctx->mutex);
+	void preprocess() override {
+		createEncodingSession();
+
+		_packerCtx = rfc3984_new_with_factory(getFactory());
+		rfc3984_set_mode(_packerCtx, 1);
+		rfc3984_enable_stap_a(_packerCtx, FALSE);
+
+		ms_video_starter_init(&_starter);
+		ms_iframe_requests_limiter_init(&_iframeLimiter, 1000);
+		_firstFrame = TRUE;
+	}
+
+	void process() override {
+		mblk_t *frame;
+		OSStatus err;
+
+		if(_session == NULL) {
+			ms_queue_flush(getInput(0));
 			return;
 		}
 
-		if(is_keyframe) {
-			mblk_t *insertion_point = ms_queue_peek_first(&nalu_queue);
-			const uint8_t *parameter_set;
-			size_t parameter_set_size;
-			size_t parameter_set_count;
-			CMFormatDescriptionRef format_desc = CMSampleBufferGetFormatDescription(sampleBuffer);
-			offset=0;
-			do {
-				CMVideoFormatDescriptionGetH264ParameterSetAtIndex(format_desc, offset, &parameter_set, &parameter_set_size, &parameter_set_count, NULL);
-				nalu = allocb(parameter_set_size, 0);
-				memcpy(nalu->b_wptr, parameter_set, parameter_set_size);
-				nalu->b_wptr += parameter_set_size;
-				ms_queue_insert(&nalu_queue, insertion_point, nalu);
-				offset++;
-			} while(offset < parameter_set_count);
-			vth264enc_message("I-frame created");
-		}
+		if ((frame = ms_queue_peek_last(getInput(0)))) {
+			YuvBuf src_yuv_frame, dst_yuv_frame = {0};
+			CVPixelBufferRef pixbuf;
+			CFMutableDictionaryRef enc_param = NULL;
+			int i, pixbuf_fmt = kCVPixelFormatType_420YpCbCr8Planar;
+			CFNumberRef value;
+			CFMutableDictionaryRef pixbuf_attr;
 
-		rfc3984_pack(ctx->packer_ctx, &nalu_queue, &ctx->queue, (uint32_t)(ctx->f->ticker->time * 90));
-	}
-	ms_mutex_unlock(&ctx->mutex);
-}
+			ms_yuv_buf_init_from_mblk(&src_yuv_frame, frame);
 
-#if 0
-static void print_properties(CFStringRef prop_name, CFDictionaryRef prop_attrs, void *context) {
-	CFShow(prop_name);
-	if (CFDictionaryGetCount(prop_attrs) >0)
-		CFShow(prop_attrs);
+			pixbuf_attr = CFDictionaryCreateMutable(NULL, 0, NULL, NULL);
+			value = CFNumberCreate(NULL, kCFNumberIntType, &pixbuf_fmt);
+			CFDictionarySetValue(pixbuf_attr, kCVPixelBufferPixelFormatTypeKey, value);
+			CVPixelBufferCreate(NULL, _conf.vsize.width, _conf.vsize.height, kCVPixelFormatType_420YpCbCr8Planar, pixbuf_attr,  &pixbuf);
+			CFRelease(pixbuf_attr);
 
-}
-#endif
+			CVPixelBufferLockBaseAddress(pixbuf, 0);
+			dst_yuv_frame.w = (int)CVPixelBufferGetWidth(pixbuf);
+			dst_yuv_frame.h = (int)CVPixelBufferGetHeight(pixbuf);
+			for(i=0; i<3; i++) {
+				dst_yuv_frame.planes[i] = static_cast<uint8_t *>(CVPixelBufferGetBaseAddressOfPlane(pixbuf, i));
+				dst_yuv_frame.strides[i] = (int)CVPixelBufferGetBytesPerRowOfPlane(pixbuf, i);
+			}
+			ms_yuv_buf_copy(src_yuv_frame.planes, src_yuv_frame.strides, dst_yuv_frame.planes, dst_yuv_frame.strides, (MSVideoSize){dst_yuv_frame.w, dst_yuv_frame.h});
+			CVPixelBufferUnlockBaseAddress(pixbuf, 0);
 
-static bool_t vth264enc_session_set_fps(VTCompressionSessionRef session, float fps) {
-	CFNumberRef value = CFNumberCreate(kCFAllocatorDefault, kCFNumberFloatType, &fps);
-	OSStatus status = VTSessionSetProperty(session, kVTCompressionPropertyKey_ExpectedFrameRate, value);
-	CFRelease(value);
-	if (status != noErr) {
-		vth264enc_error("error while setting kVTCompressionPropertyKey_ExpectedFrameRate: %s", os_status_to_string(status));
-		return FALSE;
-	}
-	return TRUE;
-}
-
-static bool_t vth264enc_session_set_bitrate(VTCompressionSessionRef session, int bitrate) {
-	OSStatus status;
-
-	CFNumberRef value = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &bitrate);
-	status = VTSessionSetProperty(session, kVTCompressionPropertyKey_AverageBitRate, value);
-	CFRelease(value);
-	if (status != noErr) {
-		vth264enc_error("error while setting kVTCompressionPropertyKey_AverageBitRate: %s", os_status_to_string(status));
-		return FALSE;
-	}
-
-	int bytes_per_seconds = bitrate/8;
-	int dur = 1;
-	CFNumberRef bytes_value = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &bytes_per_seconds);
-	CFNumberRef duration_value = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &dur);
-	CFMutableArrayRef data_rate_limits = CFArrayCreateMutable(kCFAllocatorDefault, 2, &kCFTypeArrayCallBacks);
-	CFArrayAppendValue(data_rate_limits, bytes_value);
-	CFArrayAppendValue(data_rate_limits, duration_value);
-	status = VTSessionSetProperty(session, kVTCompressionPropertyKey_DataRateLimits, data_rate_limits);
-	CFRelease(bytes_value);
-	CFRelease(duration_value);
-	CFRelease(data_rate_limits);
-	if (status != noErr) {
-		vth264enc_error("error while setting kVTCompressionPropertyKey_DataRateLimits: %s", os_status_to_string(status));
-		return FALSE;
-	}
-
-	return TRUE;
-}
-
-static void vth264enc_session_create(VTH264EncCtx *ctx) {
-	OSStatus err;
-	CFNumberRef value;
-
-	CFMutableDictionaryRef pixbuf_attr = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, NULL, &kCFTypeDictionaryValueCallBacks);
-	int32_t pixel_type = kCVPixelFormatType_420YpCbCr8Planar;
-	value = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &pixel_type);
-	CFDictionarySetValue(pixbuf_attr, kCVPixelBufferPixelFormatTypeKey, value);
-	CFRelease(value);
-
-	CFMutableDictionaryRef session_props = CFDictionaryCreateMutable (kCFAllocatorDefault, 1, NULL, NULL);
-#if !TARGET_OS_IPHONE
-	CFDictionarySetValue(session_props, kVTVideoEncoderSpecification_EnableHardwareAcceleratedVideoEncoder, kCFBooleanTrue);
-#endif
-
-	err = VTCompressionSessionCreate(kCFAllocatorDefault, ctx->conf.vsize.width, ctx->conf.vsize.height, kCMVideoCodecType_H264,
-									session_props, pixbuf_attr, kCFAllocatorDefault, (VTCompressionOutputCallback)vth264enc_output_cb, ctx, &ctx->session);
-	CFRelease(pixbuf_attr);
-	CFRelease(session_props);
-	if(err) {
-		vth264enc_error("could not initialize the VideoToolbox compresson session: %s", os_status_to_string(err));
-		goto fail;
-	}
-
-#if 0 /*for debuging purpose*/
-	CFDictionaryRef dict;
-	err = VTSessionCopySupportedPropertyDictionary (ctx->session, &dict);
-	if (err == noErr) {
-		CFDictionaryApplyFunction (dict,
-								   (CFDictionaryApplierFunction) print_properties, ctx);
-		CFRelease (dict);
-		
-	} else {
-		vth264enc_error("Could not get  VTSessionCopySupportedPropertyDictionary: %s", os_status_to_string(err));
-	}
-#endif
-
-	err = VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_ProfileLevel, kVTProfileLevel_H264_Baseline_AutoLevel);
-	if (err != noErr) {
-		vth264enc_error("could not set H264 profile and level: %s", os_status_to_string(err));
-	}
-
-	err = VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_RealTime, kCFBooleanTrue);
-	if (err != noErr) {
-		vth264enc_warning("could not enable real-time mode: %s", os_status_to_string(err));
-	}
-
-#if 0
-	int delay_count = 0;
-	value = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &delay_count);
-	err = VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_MaxFrameDelayCount, value);
-	CFRelease(value);
-	if (err != noErr) {
-		vth264enc_warning("could not set frame delay: %s", os_status_to_string(err));
-	}
-#endif
-
-	vth264enc_session_set_fps(ctx->session, ctx->conf.fps);
-	vth264enc_session_set_bitrate(ctx->session, ctx->conf.required_bitrate);
-
-	if((err = VTCompressionSessionPrepareToEncodeFrames(ctx->session)) != noErr) {
-		vth264enc_error("could not prepare the VideoToolbox compression session: %s", os_status_to_string(err));
-		goto fail;
-	} else {
-		vth264enc_message("encoder succesfully initialized.");
-#if !TARGET_OS_IPHONE
-		CFBooleanRef hardware_acceleration_enabled;
-		err = VTSessionCopyProperty(ctx->session, kVTCompressionPropertyKey_UsingHardwareAcceleratedVideoEncoder, kCFAllocatorDefault, &hardware_acceleration_enabled);
-		if (err != noErr) {
-			vth264enc_error("could not read kVTCompressionPropertyKey_UsingHardwareAcceleratedVideoEncoder property: %s", os_status_to_string(err));
-		} else {
-			if (hardware_acceleration_enabled != NULL && CFBooleanGetValue(hardware_acceleration_enabled)) {
-				vth264enc_message("hardware acceleration enabled");
+			lock();
+			if(ms_iframe_requests_limiter_iframe_requested(&_iframeLimiter, getTime())) {
+				vth264enc_message("I-frame requested (time=%llu)", getTime());
+				CFDictionarySetValue(_frameProperties, kVTEncodeFrameOptionKey_ForceKeyFrame, kCFBooleanTrue);
+				ms_iframe_requests_limiter_notify_iframe_sent(&_iframeLimiter, getTime());
 			} else {
-				vth264enc_warning("hardware acceleration not enabled");
+				CFDictionarySetValue(_frameProperties, kVTEncodeFrameOptionKey_ForceKeyFrame, kCFBooleanFalse);
 			}
+			unlock();
+
+			if(!_enableAvpf) {
+				if(_firstFrame) {
+					ms_video_starter_first_frame(&_starter, getTime());
+				}
+				if(ms_video_starter_need_i_frame(&_starter, getTime())) {
+					CFDictionarySetValue(_frameProperties, kVTEncodeFrameOptionKey_ForceKeyFrame, kCFBooleanTrue);
+				}
+			}
+
+			CMTime p_time = CMTimeMake(getTime(), 1000);
+			if((err = VTCompressionSessionEncodeFrame(_session, pixbuf, p_time, kCMTimeInvalid, _frameProperties, NULL, NULL)) != noErr) {
+				vth264enc_error("could not pass a pixbuf to the encoder: %s", toString(err).c_str());
+				if (err == kVTInvalidSessionErr) {
+					destroyEncodingSession();
+					createEncodingSession();
+				}
+			}
+			CFRelease(pixbuf);
+
+			_firstFrame = FALSE;
+
+			if(enc_param) CFRelease(enc_param);
 		}
-		if (hardware_acceleration_enabled != NULL) CFRelease(hardware_acceleration_enabled);
-#endif
-	}
-	return;
+		ms_queue_flush(getInput(0));
 
-fail:
-	if(ctx->session != NULL) CFRelease(ctx->session);
-}
-
-static void vth264enc_session_destroy(VTH264EncCtx *ctx) {
-	vth264enc_message("destroying the encoding session");
-	VTCompressionSessionInvalidate(ctx->session);
-	CFRelease(ctx-> session);
-	ctx->session = NULL;
-}
-
-static void vth264enc_init(MSFilter *f) {
-	VTH264EncCtx *ctx = (VTH264EncCtx *)ms_new0(VTH264EncCtx, 1);
-	ms_mutex_init(&ctx->mutex, NULL);
-	ms_queue_init(&ctx->queue);
-	ctx->f = f;
-	ctx->video_confs = vth264enc_video_confs;
-	ctx->conf = ms_video_find_best_configuration_for_size(ctx->video_confs, MS_VIDEO_SIZE_CIF, ms_factory_get_cpu_count(f->factory));
-	ctx->frame_properties = CFDictionaryCreateMutable(kCFAllocatorDefault, 0, NULL, NULL);
-	CFDictionarySetValue(ctx->frame_properties, kVTEncodeFrameOptionKey_ForceKeyFrame, kCFBooleanFalse);
-	f->data = ctx;
-}
-
-static void vth264enc_preprocess(MSFilter *f) {
-	VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
-	vth264enc_session_create(ctx);
-
-	ctx->packer_ctx = rfc3984_new_with_factory(f->factory);
-	rfc3984_set_mode(ctx->packer_ctx, 1);
-	rfc3984_enable_stap_a(ctx->packer_ctx, FALSE);
-
-	ms_video_starter_init(&ctx->starter);
-	ms_iframe_requests_limiter_init(&ctx->iframe_limiter, 1000);
-	ctx->first_frame = TRUE;
-}
-
-static void vth264enc_process(MSFilter *f) {
-	VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
-	mblk_t *frame;
-	OSStatus err;
-
-	if(ctx->session == NULL) {
-		ms_queue_flush(f->inputs[0]);
-		return;
+		lock();
+		while ((frame = ms_queue_get(&_queue))) {
+			ms_queue_put(getOutput(0), frame);
+		}
+		unlock();
 	}
 
-	if ((frame = ms_queue_peek_last(f->inputs[0]))) {
-		YuvBuf src_yuv_frame, dst_yuv_frame = {0};
-		CVPixelBufferRef pixbuf;
-		CFMutableDictionaryRef enc_param = NULL;
-		int i, pixbuf_fmt = kCVPixelFormatType_420YpCbCr8Planar;
-		CFNumberRef value;
-		CFMutableDictionaryRef pixbuf_attr;
-
-		ms_yuv_buf_init_from_mblk(&src_yuv_frame, frame);
-
-		pixbuf_attr = CFDictionaryCreateMutable(NULL, 0, NULL, NULL);
-		value = CFNumberCreate(NULL, kCFNumberIntType, &pixbuf_fmt);
-		CFDictionarySetValue(pixbuf_attr, kCVPixelBufferPixelFormatTypeKey, value);
-		CVPixelBufferCreate(NULL, ctx->conf.vsize.width, ctx->conf.vsize.height, kCVPixelFormatType_420YpCbCr8Planar, pixbuf_attr,  &pixbuf);
-		CFRelease(pixbuf_attr);
-
-		CVPixelBufferLockBaseAddress(pixbuf, 0);
-		dst_yuv_frame.w = (int)CVPixelBufferGetWidth(pixbuf);
-		dst_yuv_frame.h = (int)CVPixelBufferGetHeight(pixbuf);
-		for(i=0; i<3; i++) {
-			dst_yuv_frame.planes[i] = static_cast<uint8_t *>(CVPixelBufferGetBaseAddressOfPlane(pixbuf, i));
-			dst_yuv_frame.strides[i] = (int)CVPixelBufferGetBytesPerRowOfPlane(pixbuf, i);
+	void postprocess() override {
+		if(_session != NULL) {
+			destroyEncodingSession();
 		}
-		ms_yuv_buf_copy(src_yuv_frame.planes, src_yuv_frame.strides, dst_yuv_frame.planes, dst_yuv_frame.strides, (MSVideoSize){dst_yuv_frame.w, dst_yuv_frame.h});
-		CVPixelBufferUnlockBaseAddress(pixbuf, 0);
+		ms_queue_flush(&_queue);
+		rfc3984_destroy(_packerCtx);
+	}
 
-		ms_filter_lock(f);
-		if(ms_iframe_requests_limiter_iframe_requested(&ctx->iframe_limiter, f->ticker->time)) {
-			vth264enc_message("I-frame requested (time=%llu)", f->ticker->time);
-			CFDictionarySetValue(ctx->frame_properties, kVTEncodeFrameOptionKey_ForceKeyFrame, kCFBooleanTrue);
-			ms_iframe_requests_limiter_notify_iframe_sent(&ctx->iframe_limiter, f->ticker->time);
+	MSVideoSize getVideoSize() const override {
+		return _conf.vsize;
+	}
+
+	void setVideoSize(const MSVideoSize &vsize) override {
+		MSVideoConfiguration conf;
+		vth264enc_message("requested video size: %dx%d", vsize.width, vsize.height);
+		if(_session != NULL) {
+			vth264enc_error("could not set video size: encoder is running");
+			throw MethodCallFailed();
+		}
+		conf = ms_video_find_best_configuration_for_size(_videoConfs, vsize, getFactory()->cpu_count);
+		_conf.vsize = conf.vsize;
+		_conf.fps = conf.fps;
+		_conf.bitrate_limit = conf.bitrate_limit;
+		if(_conf.required_bitrate > _conf.bitrate_limit) {
+			_conf.required_bitrate = _conf.bitrate_limit;
+		}
+		vth264enc_message("selected video conf: size=%dx%d, framerate=%ffps, bitrate=%dbit/s",
+				   _conf.vsize.width, _conf.vsize.height, _conf.fps, _conf.required_bitrate);
+	}
+
+	int getBitrate() const override {
+		return _conf.required_bitrate;
+	}
+
+	void setBitrate(int bitrate) override {
+		vth264enc_message("requested bitrate: %d bits/s", bitrate);
+		if(_session == NULL) {
+			_conf = ms_video_find_best_configuration_for_size_and_bitrate(_videoConfs, _conf.vsize, ms_factory_get_cpu_count(getFactory()), bitrate);
+			vth264enc_message("selected video conf: size=%dx%d, framerate=%ffps", _conf.vsize.width, _conf.vsize.height, _conf.fps);
 		} else {
-			CFDictionarySetValue(ctx->frame_properties, kVTEncodeFrameOptionKey_ForceKeyFrame, kCFBooleanFalse);
+			lock();
+			_conf.required_bitrate = bitrate;
+			setEncodingSessionBItrate(_session, bitrate);
+			unlock();
 		}
-		ms_filter_unlock(f);
+	}
 
-		if(!ctx->enable_avpf) {
-			if(ctx->first_frame) {
-				ms_video_starter_first_frame(&ctx->starter, f->ticker->time);
-			}
-			if(ms_video_starter_need_i_frame(&ctx->starter, f->ticker->time)) {
-				CFDictionarySetValue(ctx->frame_properties, kVTEncodeFrameOptionKey_ForceKeyFrame, kCFBooleanTrue);
-			}
+	float getFps() const override {
+		return _conf.fps;
+	}
+
+	void setFps(float fps) override {
+		lock();
+		_conf.fps = fps;
+		if(_session != NULL) {
+			setEncodingSessionFps(_session, fps);
+		}
+		unlock();
+		vth264enc_message("new frame rate target (%ffps)", _conf.fps);
+	}
+
+	void requestVfu() override {
+		lock();
+		ms_video_starter_deactivate(&_starter);
+		ms_iframe_requests_limiter_request_iframe(&_iframeLimiter);
+		unlock();
+	}
+
+	void notifyFir() override {
+		requestVfu();
+	}
+
+	void notifyPli() override {
+		requestVfu();
+	}
+
+	void notifySli() override {
+		requestVfu();
+	}
+
+	void enableAvpf(bool enable_avpf) override {
+		if(_session != NULL) {
+			vth264enc_error("could not %s AVPF: encoder is running", enable_avpf ? "enable" : "disable");
+			throw MethodCallFailed();
+		}
+		vth264enc_message("%s AVPF", enable_avpf ? "enabling" : "disabling");
+		_enableAvpf = enable_avpf;
+	}
+
+	const MSVideoConfiguration *getVideoConfigurations() const override {
+		return _videoConfs;
+	}
+
+	void setVideoConfigurations(const MSVideoConfiguration *conf_list) override {
+		_videoConfs = conf_list ? conf_list : vth264enc_video_confs;
+		_conf = ms_video_find_best_configuration_for_size(_videoConfs, _conf.vsize, getFactory()->cpu_count);
+		vth264enc_message("new video settings: %dx%d, %dbit/s, %ffps",
+				   _conf.vsize.width, _conf.vsize.height,
+				   _conf.required_bitrate, _conf.fps);
+	}
+
+	void setVideoConfiguration(const MSVideoConfiguration *conf) override {
+		lock();
+		_conf = *conf;
+		if(_session != NULL) {
+			setEncodingSessionBItrate(_session, _conf.required_bitrate);
+			setEncodingSessionFps(_session, _conf.fps);
+		}
+		unlock();
+		vth264enc_message("new video settings: %dx%d, %dbit/s, %ffps",
+				   _conf.vsize.width, _conf.vsize.height,
+				   _conf.required_bitrate, _conf.fps);
+	}
+
+private:
+	static void outputCb(VideoToolboxH264EncoderFilterImpl *ctx, void *sourceFrameRefCon, OSStatus status, VTEncodeInfoFlags infoFlags, CMSampleBufferRef sampleBuffer) {
+		MSQueue nalu_queue;
+		CMBlockBufferRef block_buffer;
+		size_t read_size=0, offset=0, frame_size;
+		bool_t is_keyframe = FALSE;
+		mblk_t *nalu;
+
+		if(sampleBuffer == NULL || status != noErr) {
+			vth264enc_error("could not encode frame: error %d", (int)status);
+			return;
 		}
 
-		CMTime p_time = CMTimeMake(f->ticker->time, 1000);
-		if((err = VTCompressionSessionEncodeFrame(ctx->session, pixbuf, p_time, kCMTimeInvalid, ctx->frame_properties, NULL, NULL)) != noErr) {
-			vth264enc_error("could not pass a pixbuf to the encoder: %s", os_status_to_string(err));
-			if (err == kVTInvalidSessionErr) {
-				vth264enc_session_destroy(ctx);
-				vth264enc_session_create(ctx);
+		ms_mutex_lock(&ctx->_mutex);
+		if(ctx->_session) {
+			ms_queue_init(&nalu_queue);
+			block_buffer = CMSampleBufferGetDataBuffer(sampleBuffer);
+			frame_size = CMBlockBufferGetDataLength(block_buffer);
+			while(read_size < frame_size) {
+				char *chunk;
+				size_t chunk_size;
+				int idr_count;
+				OSStatus status = CMBlockBufferGetDataPointer(block_buffer, offset, &chunk_size, NULL, &chunk);
+				if (status != kCMBlockBufferNoErr) {
+					vth264enc_error("error while reading a chunk of encoded frame: %s", toString(status).c_str());
+					break;
+				}
+				ms_h264_stream_to_nalus((uint8_t *)chunk, chunk_size, &nalu_queue, &idr_count);
+				if(idr_count) is_keyframe = TRUE;
+				read_size += chunk_size;
+				offset += chunk_size;
 			}
+
+			if (read_size < frame_size) {
+				vth264enc_error("error while reading an encoded frame. Dropping it");
+				ms_queue_flush(&nalu_queue);
+				ms_mutex_unlock(&ctx->_mutex);
+				return;
+			}
+
+			if(is_keyframe) {
+				mblk_t *insertion_point = ms_queue_peek_first(&nalu_queue);
+				const uint8_t *parameter_set;
+				size_t parameter_set_size;
+				size_t parameter_set_count;
+				CMFormatDescriptionRef format_desc = CMSampleBufferGetFormatDescription(sampleBuffer);
+				offset=0;
+				do {
+					CMVideoFormatDescriptionGetH264ParameterSetAtIndex(format_desc, offset, &parameter_set, &parameter_set_size, &parameter_set_count, NULL);
+					nalu = allocb(parameter_set_size, 0);
+					memcpy(nalu->b_wptr, parameter_set, parameter_set_size);
+					nalu->b_wptr += parameter_set_size;
+					ms_queue_insert(&nalu_queue, insertion_point, nalu);
+					offset++;
+				} while(offset < parameter_set_count);
+				vth264enc_message("I-frame created");
+			}
+
+			rfc3984_pack(ctx->_packerCtx, &nalu_queue, &ctx->_queue, (uint32_t)(ctx->getTime() * 90));
 		}
-		CFRelease(pixbuf);
-
-		ctx->first_frame = FALSE;
-
-		if(enc_param) CFRelease(enc_param);
+		ms_mutex_unlock(&ctx->_mutex);
 	}
-	ms_queue_flush(f->inputs[0]);
 
-	ms_mutex_lock(&ctx->mutex);
-	while ((frame = ms_queue_get(&ctx->queue))) {
-		ms_queue_put(f->outputs[0], frame);
+	static bool setEncodingSessionFps(VTCompressionSessionRef session, float fps) {
+		CFNumberRef value = CFNumberCreate(kCFAllocatorDefault, kCFNumberFloatType, &fps);
+		OSStatus status = VTSessionSetProperty(session, kVTCompressionPropertyKey_ExpectedFrameRate, value);
+		CFRelease(value);
+		if (status != noErr) {
+			vth264enc_error("error while setting kVTCompressionPropertyKey_ExpectedFrameRate: %s", toString(status).c_str());
+			return false;
+		}
+		return true;
 	}
-	ms_mutex_unlock(&ctx->mutex);
-}
 
-static void vth264enc_postprocess(MSFilter *f) {
-	VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
-	if(ctx->session != NULL) {
-		vth264enc_session_destroy(ctx);
+	static bool setEncodingSessionBItrate(VTCompressionSessionRef session, int bitrate) {
+		OSStatus status;
+
+		CFNumberRef value = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &bitrate);
+		status = VTSessionSetProperty(session, kVTCompressionPropertyKey_AverageBitRate, value);
+		CFRelease(value);
+		if (status != noErr) {
+			vth264enc_error("error while setting kVTCompressionPropertyKey_AverageBitRate: %s", toString(status).c_str());
+			return false;
+		}
+
+		int bytes_per_seconds = bitrate/8;
+		int dur = 1;
+		CFNumberRef bytes_value = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &bytes_per_seconds);
+		CFNumberRef duration_value = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &dur);
+		CFMutableArrayRef data_rate_limits = CFArrayCreateMutable(kCFAllocatorDefault, 2, &kCFTypeArrayCallBacks);
+		CFArrayAppendValue(data_rate_limits, bytes_value);
+		CFArrayAppendValue(data_rate_limits, duration_value);
+		status = VTSessionSetProperty(session, kVTCompressionPropertyKey_DataRateLimits, data_rate_limits);
+		CFRelease(bytes_value);
+		CFRelease(duration_value);
+		CFRelease(data_rate_limits);
+		if (status != noErr) {
+			vth264enc_error("error while setting kVTCompressionPropertyKey_DataRateLimits: %s", toString(status).c_str());
+			return false;
+		}
+
+		return true;
 	}
-	ms_queue_flush(&ctx->queue);
-	rfc3984_destroy(ctx->packer_ctx);
-}
 
-static void vth264enc_uninit(MSFilter *f) {
-	CFRelease(((VTH264EncCtx *)f->data)->frame_properties);
-	ms_free(f->data);
-}
+	void createEncodingSession() {
+		OSStatus err;
+		CFNumberRef value;
 
-static int vth264enc_get_video_size(MSFilter *f, MSVideoSize *vsize) {
-	*vsize = ((VTH264EncCtx *)f->data)->conf.vsize;
-	return 0;
-}
+		CFMutableDictionaryRef pixbuf_attr = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, NULL, &kCFTypeDictionaryValueCallBacks);
+		int32_t pixel_type = kCVPixelFormatType_420YpCbCr8Planar;
+		value = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &pixel_type);
+		CFDictionarySetValue(pixbuf_attr, kCVPixelBufferPixelFormatTypeKey, value);
+		CFRelease(value);
 
-static int vth264enc_set_video_size(MSFilter *f, const MSVideoSize *vsize) {
-	VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
-	MSVideoConfiguration conf;
-	vth264enc_message("requested video size: %dx%d", vsize->width, vsize->height);
-	if(ctx->session != NULL) {
-		vth264enc_error("could not set video size: encoder is running");
-		return -1;
+		CFMutableDictionaryRef session_props = CFDictionaryCreateMutable (kCFAllocatorDefault, 1, NULL, NULL);
+	#if !TARGET_OS_IPHONE
+		CFDictionarySetValue(session_props, kVTVideoEncoderSpecification_EnableHardwareAcceleratedVideoEncoder, kCFBooleanTrue);
+	#endif
+
+		err = VTCompressionSessionCreate(kCFAllocatorDefault, _conf.vsize.width, _conf.vsize.height, kCMVideoCodecType_H264,
+										session_props, pixbuf_attr, kCFAllocatorDefault, (VTCompressionOutputCallback)outputCb, this, &_session);
+		CFRelease(pixbuf_attr);
+		CFRelease(session_props);
+		if(err) {
+			vth264enc_error("could not initialize the VideoToolbox compresson session: %s", toString(err).c_str());
+			goto fail;
+		}
+
+		err = VTSessionSetProperty(_session, kVTCompressionPropertyKey_ProfileLevel, kVTProfileLevel_H264_Baseline_AutoLevel);
+		if (err != noErr) {
+			vth264enc_error("could not set H264 profile and level: %s", toString(err).c_str());
+		}
+
+		err = VTSessionSetProperty(_session, kVTCompressionPropertyKey_RealTime, kCFBooleanTrue);
+		if (err != noErr) {
+			vth264enc_warning("could not enable real-time mode: %s", toString(err).c_str());
+		}
+
+		setEncodingSessionFps(_session, _conf.fps);
+		setEncodingSessionBItrate(_session, _conf.required_bitrate);
+
+		if((err = VTCompressionSessionPrepareToEncodeFrames(_session)) != noErr) {
+			vth264enc_error("could not prepare the VideoToolbox compression session: %s", toString(err).c_str());
+			goto fail;
+		} else {
+			vth264enc_message("encoder succesfully initialized.");
+	#if !TARGET_OS_IPHONE
+			CFBooleanRef hardware_acceleration_enabled;
+			err = VTSessionCopyProperty(_session, kVTCompressionPropertyKey_UsingHardwareAcceleratedVideoEncoder, kCFAllocatorDefault, &hardware_acceleration_enabled);
+			if (err != noErr) {
+				vth264enc_error("could not read kVTCompressionPropertyKey_UsingHardwareAcceleratedVideoEncoder property: %s", toString(err).c_str());
+			} else {
+				if (hardware_acceleration_enabled != NULL && CFBooleanGetValue(hardware_acceleration_enabled)) {
+					vth264enc_message("hardware acceleration enabled");
+				} else {
+					vth264enc_warning("hardware acceleration not enabled");
+				}
+			}
+			if (hardware_acceleration_enabled != NULL) CFRelease(hardware_acceleration_enabled);
+	#endif
+		}
+		return;
+
+	fail:
+		if(_session != NULL) CFRelease(_session);
 	}
-	conf = ms_video_find_best_configuration_for_size(ctx->video_confs, *vsize, f->factory->cpu_count);
-	ctx->conf.vsize = conf.vsize;
-	ctx->conf.fps = conf.fps;
-	ctx->conf.bitrate_limit = conf.bitrate_limit;
-	if(ctx->conf.required_bitrate > ctx->conf.bitrate_limit) {
-		ctx->conf.required_bitrate = ctx->conf.bitrate_limit;
+
+	void destroyEncodingSession() {
+		vth264enc_message("destroying the encoding session");
+		VTCompressionSessionInvalidate(_session);
+		CFRelease( _session);
+		_session = NULL;
 	}
-	vth264enc_message("selected video conf: size=%dx%d, framerate=%ffps, bitrate=%dbit/s",
-			   ctx->conf.vsize.width, ctx->conf.vsize.height, ctx->conf.fps, ctx->conf.required_bitrate);
-	return 0;
-}
 
-static int vth264enc_get_bitrate(MSFilter *f, int *bitrate) {
-	*bitrate = ((VTH264EncCtx *)f->data)->conf.required_bitrate;
-	return 0;
-}
-
-static int vth264enc_set_bitrate(MSFilter *f, const int *bitrate) {
-	VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
-	vth264enc_message("requested bitrate: %d bits/s", *bitrate);
-	if(ctx->session == NULL) {
-		ctx->conf = ms_video_find_best_configuration_for_size_and_bitrate(ctx->video_confs, ctx->conf.vsize, ms_factory_get_cpu_count(f->factory), *bitrate);
-		vth264enc_message("selected video conf: size=%dx%d, framerate=%ffps", ctx->conf.vsize.width, ctx->conf.vsize.height, ctx->conf.fps);
-	} else {
-		ms_filter_lock(f);
-		ctx->conf.required_bitrate = *bitrate;
-		vth264enc_session_set_bitrate(ctx->session, *bitrate);
-		ms_filter_unlock(f);
-	}
-	return 0;
-}
-
-static int vth264enc_get_fps(MSFilter *f, float *fps) {
-	*fps = ((VTH264EncCtx *)f->data)->conf.fps;
-	return 0;
-}
-
-static int vth264enc_set_fps(MSFilter *f, const float *fps) {
-	VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
-	ms_filter_lock(f);
-	ctx->conf.fps = *fps;
-	if(ctx->session != NULL) {
-		vth264enc_session_set_fps(ctx->session, *fps);
-	}
-	ms_filter_unlock(f);
-	vth264enc_message("new frame rate target (%ffps)", ctx->conf.fps);
-	return 0;
-}
-
-static int vth264enc_req_vfu(MSFilter *f, void *ptr) {
-	VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
-	ms_filter_lock(f);
-	ms_video_starter_deactivate(&ctx->starter);
-	ms_iframe_requests_limiter_request_iframe(&ctx->iframe_limiter);
-	ms_filter_unlock(f);
-	return 0;
-}
-
-static int vth264enc_enable_avpf(MSFilter *f, const bool_t *enable_avpf) {
-	VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
-	if(ctx->session != NULL) {
-		vth264enc_error("could not %s AVPF: encoder is running", *enable_avpf ? "enable" : "disable");
-		return -1;
-	}
-	vth264enc_message("%s AVPF", *enable_avpf ? "enabling" : "disabling");
-	ctx->enable_avpf = *enable_avpf;
-	return 0;
-}
-
-static int vth264enc_get_config_list(MSFilter *f, const MSVideoConfiguration **conf_list) {
-	*conf_list = ((VTH264EncCtx *)f->data)->video_confs;
-	return 0;
-}
-
-static int vth264enc_set_config_list(MSFilter *f, const MSVideoConfiguration **conf_list) {
-	VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
-	ctx->video_confs = *conf_list ? *conf_list : vth264enc_video_confs;
-	ctx->conf = ms_video_find_best_configuration_for_size(ctx->video_confs, ctx->conf.vsize, f->factory->cpu_count);
-	vth264enc_message("new video settings: %dx%d, %dbit/s, %ffps",
-			   ctx->conf.vsize.width, ctx->conf.vsize.height,
-			   ctx->conf.required_bitrate, ctx->conf.fps);
-	return 0;
-}
-
-static int vth264enc_set_config(MSFilter *f, const MSVideoConfiguration *conf) {
-	VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
-	ms_filter_lock(f);
-	ctx->conf = *conf;
-	if(ctx->session != NULL) {
-		vth264enc_session_set_bitrate(ctx->session, ctx->conf.required_bitrate);
-		vth264enc_session_set_fps(ctx->session, ctx->conf.fps);
-	}
-	ms_filter_unlock(f);
-	vth264enc_message("new video settings: %dx%d, %dbit/s, %ffps",
-			   ctx->conf.vsize.width, ctx->conf.vsize.height,
-			   ctx->conf.required_bitrate, ctx->conf.fps);
-	return 0;
-}
-
-static MSFilterMethod vth264enc_methods[] = {
-	{   MS_FILTER_GET_VIDEO_SIZE                , (MSFilterMethodFunc)vth264enc_get_video_size  },
-	{   MS_FILTER_SET_VIDEO_SIZE                , (MSFilterMethodFunc)vth264enc_set_video_size  },
-	{   MS_FILTER_GET_BITRATE                   , (MSFilterMethodFunc)vth264enc_get_bitrate     },
-	{   MS_FILTER_SET_BITRATE                   , (MSFilterMethodFunc)vth264enc_set_bitrate     },
-	{   MS_FILTER_GET_FPS                       , (MSFilterMethodFunc)vth264enc_get_fps         },
-	{   MS_FILTER_SET_FPS                       , (MSFilterMethodFunc)vth264enc_set_fps         },
-	{   MS_FILTER_REQ_VFU                       , (MSFilterMethodFunc)vth264enc_req_vfu         },
-	{   MS_VIDEO_ENCODER_REQ_VFU                , (MSFilterMethodFunc)vth264enc_req_vfu         },
-	{	MS_VIDEO_ENCODER_NOTIFY_FIR             , (MSFilterMethodFunc)vth264enc_req_vfu         },
-	{	MS_VIDEO_ENCODER_NOTIFY_PLI             , (MSFilterMethodFunc)vth264enc_req_vfu         },
-	{	MS_VIDEO_ENCODER_NOTIFY_SLI             , (MSFilterMethodFunc)vth264enc_req_vfu         },
-	{   MS_VIDEO_ENCODER_ENABLE_AVPF            , (MSFilterMethodFunc)vth264enc_enable_avpf     },
-	{   MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST , (MSFilterMethodFunc)vth264enc_get_config_list },
-	{   MS_VIDEO_ENCODER_SET_CONFIGURATION_LIST , (MSFilterMethodFunc)vth264enc_set_config_list },
-	{   MS_VIDEO_ENCODER_SET_CONFIGURATION      , (MSFilterMethodFunc)vth264enc_set_config      },
-	{   0                                       , NULL                                         }
+	VTCompressionSessionRef _session = nullptr;
+	CFMutableDictionaryRef _frameProperties = nullptr;
+	MSVideoConfiguration _conf;
+	MSQueue _queue;
+	ms_mutex_t _mutex;
+	Rfc3984Context *_packerCtx = nullptr;
+	const MSVideoConfiguration *_videoConfs = nullptr;
+	MSVideoStarter _starter;
+	bool_t _enableAvpf = false;
+	bool_t _firstFrame = false;
+	MSIFrameRequestsLimiterCtx _iframeLimiter;
 };
 
-extern "C" MSFilterDesc ms_vt_h264_enc = {
-	.id = MS_VT_H264_ENC_ID,
-	.name = VTH264_ENC_NAME,
-	.text = "H264 hardware encoder for iOS and MacOSX",
-	.category = MS_FILTER_ENCODER,
-	.enc_fmt = "H264",
-	.ninputs = 1,
-	.noutputs = 1,
-	.init = vth264enc_init,
-	.preprocess = vth264enc_preprocess,
-	.process = vth264enc_process,
-	.postprocess = vth264enc_postprocess,
-	.uninit = vth264enc_uninit,
-	.methods = vth264enc_methods,
-	.flags = MS_FILTER_IS_PUMP  /*<PUMP flag is necessary because video toolbox is asynchronous. We may have frames to output while there is no
-					incoming frame to encode*/
-};
+} // namespace mediastreamer
+
+using namespace mediastreamer;
+
+MS_ENCODING_FILTER_WRAPPER_METHODS_DECLARATION(VideoToolboxH264Encoder);
+MS_ENCODING_FILTER_WRAPPER_DESCRIPTION_DECLARATION(VideoToolboxH264Encoder, MS_VT_H264_ENC_ID, "H264 hardware encoder for iOS and MacOSX", "H264", MS_FILTER_IS_PUMP);
 
 /* Undefine encoder log message macro to avoid to use them in decoder code */
 #undef vth264enc_message
@@ -656,7 +591,7 @@ static void h264_dec_output_cb(VTH264DecCtx *ctx, void *sourceFrameRefCon,
 	size_t i;
 
 	if(status != noErr || imageBuffer == NULL) {
-		vth264dec_error("fail to decode one frame: %s", os_status_to_string(status));
+		vth264dec_error("fail to decode one frame: %s", toString(status).c_str());
 		if(ctx->enable_avpf) {
 			ms_filter_notify_no_arg(ctx->f, MS_VIDEO_DECODER_SEND_PLI);
 		}else{
@@ -708,14 +643,14 @@ static bool_t h264_dec_init_decoder(VTH264DecCtx *ctx) {
 	CFRelease(pixel_parameters);
 	CFRelease(decoder_params);
 	if(status != noErr) {
-		vth264dec_error("could not create the decoding context: %s", os_status_to_string(status));
+		vth264dec_error("could not create the decoding context: %s", toString(status).c_str());
 		return FALSE;
 	} else {
 #if !TARGET_OS_IPHONE
 		CFBooleanRef hardware_acceleration;
 		status = VTSessionCopyProperty(ctx->session, kVTDecompressionPropertyKey_UsingHardwareAcceleratedVideoDecoder, kCFAllocatorDefault, &hardware_acceleration);
 		if (status != noErr) {
-			vth264dec_error("could not read kVTDecompressionPropertyKey_UsingHardwareAcceleratedVideoDecoder property: %s", os_status_to_string(status));
+			vth264dec_error("could not read kVTDecompressionPropertyKey_UsingHardwareAcceleratedVideoDecoder property: %s", toString(status).c_str());
 		} else {
 			if (hardware_acceleration != NULL && CFBooleanGetValue(hardware_acceleration)) {
 				vth264dec_message("hardware acceleration enabled");
@@ -729,7 +664,7 @@ static bool_t h264_dec_init_decoder(VTH264DecCtx *ctx) {
 #if TARGET_OS_IPHONE // kVTDecompressionPropertyKey_RealTime is only available on MacOSX after 10.10 version
 		status = VTSessionSetProperty(ctx->session, kVTDecompressionPropertyKey_RealTime, kCFBooleanTrue);
 		if (status != noErr) {
-			vth264dec_warning("could not be able to switch to real-time mode: %s", os_status_to_string(status));
+			vth264dec_warning("could not be able to switch to real-time mode: %s", toString(status).c_str());
 		}
 #endif
 
@@ -781,7 +716,7 @@ static OSStatus h264_dec_decode_frame(VTH264DecCtx *ctx, MSQueue *frame) {
 		status = VTDecompressionSessionDecodeFrame(ctx->session, sample, kVTDecodeFrame_EnableAsynchronousDecompression | kVTDecodeFrame_1xRealTimePlayback, NULL, NULL);
 		CFRelease(sample);
 		if(status != noErr) {
-			vth264dec_error("error while passing encoded frames to the decoder: %s", os_status_to_string(status));
+			vth264dec_error("error while passing encoded frames to the decoder: %s", toString(status).c_str());
 			CFRelease(stream);
 			return status;
 		}
@@ -881,7 +816,7 @@ static void h264_dec_process(MSFilter *f) {
 		if (!ctx->freezed && !ms_queue_empty(&q_nalus2)) {
 			OSStatus status = h264_dec_decode_frame(ctx, &q_nalus2);
 			if (status != noErr) {
-				vth264dec_error("fail to decode one frame: %s", os_status_to_string(status));
+				vth264dec_error("fail to decode one frame: %s", toString(status).c_str());
 				if (status == kVTInvalidSessionErr) {
 					h264_dec_uninit_decoder(ctx);
 				}
@@ -1023,7 +958,7 @@ extern "C" void _register_videotoolbox_if_supported(MSFactory *factory) {
 	if (kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber10_8) {
 #endif
 		ms_message("Registering VideoToobox H264 codec");
-		ms_factory_register_filter(factory, &ms_vt_h264_enc);
+		ms_factory_register_filter(factory, &ms_VideoToolboxH264Encoder_desc);
 		ms_factory_register_filter(factory, &ms_vt_h264_dec);
 	} else {
 		ms_message("Cannot register VideoToolbox H264 codec. That "

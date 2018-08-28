@@ -29,9 +29,9 @@ class EncodingFilterImpl: public FilterImplBase {
 public:
 	EncodingFilterImpl(MSFilter *f): FilterImplBase(f) {}
 
-	virtual const MSVideoConfiguration *getVideoConfiguratons() const = 0;
+	virtual const MSVideoConfiguration *getVideoConfigurations() const = 0;
 	virtual void setVideoConfigurations(const MSVideoConfiguration *vconfs) = 0;
-	virtual int setVideoConfiguration(const MSVideoConfiguration *vconf) = 0;
+	virtual void setVideoConfiguration(const MSVideoConfiguration *vconf) = 0;
 
 	virtual int getBitrate() const = 0;
 	virtual void setBitrate(int br) = 0;
@@ -44,8 +44,10 @@ public:
 
 	virtual void enableAvpf(bool enable) = 0;
 
+	virtual void requestVfu() = 0;
 	virtual void notifyPli() = 0;
 	virtual void notifyFir() = 0;
+	virtual void notifySli() = 0;
 };
 
 } // namespace mediastreamer
