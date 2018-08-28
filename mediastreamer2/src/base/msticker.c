@@ -416,7 +416,7 @@ void * ms_ticker_run(void *arg)
 	int late;
 
 	ms_mutex_lock(&s->lock);
-	
+
 	precision = set_high_prio(s);
 	s->thread_id = ms_thread_self();
 	s->ticks=1;
@@ -424,7 +424,7 @@ void * ms_ticker_run(void *arg)
 
 	while(s->run){
 		uint64_t late_tick_time=0;
-		
+
 		s->ticks++;
 		/*Step 1: run the graphs*/
 		{
@@ -612,9 +612,9 @@ double ms_ticker_synchronizer_update(MSTickerSynchronizer *ts, uint64_t nb_sampl
 	   Imagine that the soundcard stops for some reason: without this check the msticker would stop as well.
 	*/
 	if (nb_samples > ts->current_nsamples || ts->offset == 0){
-		ts->current_nsamples = nb_samples;
 		uint64_t ms = ((1000 * nb_samples) / (uint64_t)sample_rate);
 		MSTimeSpec timespec;
+		ts->current_nsamples = nb_samples;
 		timespec.tv_nsec = (ms % 1000) * 1000000LL;
 		timespec.tv_sec = ms / 1000LL;
 		return ms_ticker_synchronizer_set_external_time(ts, &timespec);
