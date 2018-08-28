@@ -430,7 +430,7 @@ if(ENABLE_VIDEO)
 	endif()
 	if(ZXING_FOUND)
 		list(APPEND VOIP_SOURCE_FILES_CXX
-			videofilters/zxing_qrcode.c
+			videofilters/zxing_qrcode.cpp
 			utils/qrcode_image.cpp
 		)
 	endif()
