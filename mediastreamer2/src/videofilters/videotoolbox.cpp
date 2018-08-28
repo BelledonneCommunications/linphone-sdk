@@ -42,6 +42,22 @@
 
 using namespace std;
 
+namespace mediastreamer {
+
+const MSVideoConfiguration vth264enc_video_confs[] = {
+	MS_VIDEO_CONF(1536000,  2560000, SXGA_MINUS, 25, 2),
+	MS_VIDEO_CONF( 800000,  2000000,       720P, 25, 2),
+	MS_VIDEO_CONF( 800000,  1536000,        XGA, 25, 2),
+	MS_VIDEO_CONF( 600000,  1024000,       SVGA, 25, 2),
+	MS_VIDEO_CONF( 800000,  3000000,        VGA, 30, 2),
+	MS_VIDEO_CONF( 400000,   800000,        VGA, 15, 1),
+	MS_VIDEO_CONF( 200000,   350000,        CIF, 18, 1),
+	MS_VIDEO_CONF( 150000,   200000,       QVGA, 15, 1),
+	MS_VIDEO_CONF( 100000,   150000,       QVGA, 10, 1),
+	MS_VIDEO_CONF(  64000,   100000,       QCIF, 12, 1),
+	MS_VIDEO_CONF(      0,    64000,       QCIF,  5 ,1)
+};
+
 std::string toString(::OSStatus status) {
 	ostringstream message;
 	switch(status) {
@@ -72,22 +88,6 @@ std::string toString(::OSStatus status) {
 	message << " [osstatus=" << int(status) << "]";
 	return message.str();
 }
-
-namespace mediastreamer {
-
-const MSVideoConfiguration vth264enc_video_confs[] = {
-	MS_VIDEO_CONF(1536000,  2560000, SXGA_MINUS, 25, 2),
-	MS_VIDEO_CONF( 800000,  2000000,       720P, 25, 2),
-	MS_VIDEO_CONF( 800000,  1536000,        XGA, 25, 2),
-	MS_VIDEO_CONF( 600000,  1024000,       SVGA, 25, 2),
-	MS_VIDEO_CONF( 800000,  3000000,        VGA, 30, 2),
-	MS_VIDEO_CONF( 400000,   800000,        VGA, 15, 1),
-	MS_VIDEO_CONF( 200000,   350000,        CIF, 18, 1),
-	MS_VIDEO_CONF( 150000,   200000,       QVGA, 15, 1),
-	MS_VIDEO_CONF( 100000,   150000,       QVGA, 10, 1),
-	MS_VIDEO_CONF(  64000,   100000,       QCIF, 12, 1),
-	MS_VIDEO_CONF(      0,    64000,       QCIF,  5 ,1)
-};
 
 class VideoToolboxH264EncoderFilterImpl: public EncodingFilterImpl {
 public:
