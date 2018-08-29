@@ -32,29 +32,9 @@
 #include "encoding-filter-impl.h"
 #include "h26x-utils.h"
 #include "nal-packer.h"
+#include "video-encoder-interface.h"
 
 namespace mediastreamer {
-
-class VideoEncoderInterface {
-public:
-	virtual ~VideoEncoderInterface() = default;
-
-	virtual MSVideoSize getVideoSize() const = 0;
-	virtual void setVideoSize(const MSVideoSize &vsize) = 0;
-
-	virtual float getFps() const = 0;
-	virtual void setFps(float fps) = 0;
-
-	virtual int getBitrate() const = 0;
-	virtual void setBitrate(int bitrate) = 0;
-
-	virtual bool isRunning() = 0;
-	virtual void start() = 0;
-	virtual void stop() = 0;
-
-	virtual void feed(mblk_t *rawData, uint64_t time, bool requestIFrame = false) = 0;
-	virtual bool fetch(MSQueue *encodedData) = 0;
-};
 
 class MediaCodecEncoder: public VideoEncoderInterface {
 public:
