@@ -40,6 +40,13 @@
 #define vth264enc_warning(fmt, ...) vth264enc_log(warning, fmt, ##__VA_ARGS__)
 #define vth264enc_error(fmt, ...) vth264enc_log(error, fmt, ##__VA_ARGS__)
 
+#define VTH264_DEC_NAME "VideoToolboxH264Decoder"
+#define vth264dec_log(level, fmt, ...) ms_##level(VTH264_DEC_NAME ": " fmt, ##__VA_ARGS__)
+#define vth264dec_message(fmt, ...) vth264dec_log(message, fmt, ##__VA_ARGS__)
+#define vth264dec_warning(fmt, ...) vth264dec_log(warning, fmt, ##__VA_ARGS__)
+#define vth264dec_error(fmt, ...) vth264dec_log(error, fmt, ##__VA_ARGS__)
+#define vth264dec_debug(fmt, ...) vth264dec_log(debug, fmt, ##__VA_ARGS__)
+
 using namespace std;
 
 namespace mediastreamer {
@@ -501,22 +508,6 @@ using namespace mediastreamer;
 MS_ENCODING_FILTER_WRAPPER_METHODS_DECLARATION(VideoToolboxH264Encoder);
 MS_ENCODING_FILTER_WRAPPER_DESCRIPTION_DECLARATION(VideoToolboxH264Encoder, MS_VT_H264_ENC_ID, "H264 hardware encoder for iOS and MacOSX", "H264", MS_FILTER_IS_PUMP);
 
-/* Undefine encoder log message macro to avoid to use them in decoder code */
-#undef vth264enc_message
-#undef vth264enc_warning
-#undef vth264enc_error
-#undef vth264enc_log
-
-
-
-#define H264_NALU_HEAD_SIZE 4
-
-#define VTH264_DEC_NAME "VideoToolboxH264Decoder"
-#define vth264dec_log(level, fmt, ...) ms_##level(VTH264_DEC_NAME ": " fmt, ##__VA_ARGS__)
-#define vth264dec_message(fmt, ...) vth264dec_log(message, fmt, ##__VA_ARGS__)
-#define vth264dec_warning(fmt, ...) vth264dec_log(warning, fmt, ##__VA_ARGS__)
-#define vth264dec_error(fmt, ...) vth264dec_log(error, fmt, ##__VA_ARGS__)
-#define vth264dec_debug(fmt, ...) vth264dec_log(debug, fmt, ##__VA_ARGS__)
 
 
 #define h264_dec_handle_error(need_pli) \
@@ -559,7 +550,7 @@ public:
 		MSQueue q_nalus;
 		MSQueue q_nalus2;
 		MSPicture pixbuf_desc;
-		bool_t need_pli = FALSE;
+		bool need_pli = false;
 
 		ms_queue_init(&q_nalus);
 		ms_queue_init(&q_nalus2);
@@ -588,8 +579,8 @@ public:
 				h264_dec_handle_error(need_pli);
 			}
 			if (unpack_status & Rfc3984HasIDR) {
-				need_pli = FALSE;
-				_freezed = FALSE;
+				need_pli = false;
+				_freezed = false;
 			}
 
 			if (!_freezed && !ms_queue_empty(&q_nalus2)) {
@@ -617,7 +608,7 @@ public:
 			ms_average_fps_update(&_fps, (uint32_t)getTime());
 			if(_firstImage) {
 				notify(MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
-				_firstImage = FALSE;
+				_firstImage = false;
 			}
 			ms_queue_put(getOutput(0), pixbuf);
 		}
@@ -697,7 +688,7 @@ private:
 		ps_ptrs[1] = _pps->b_rptr;
 		ps_sizes[1] = _pps->b_wptr - _pps->b_rptr;
 
-		status = CMVideoFormatDescriptionCreateFromH264ParameterSets(NULL, ps_count, ps_ptrs, ps_sizes, H264_NALU_HEAD_SIZE, &format_desc);
+		status = CMVideoFormatDescriptionCreateFromH264ParameterSets(NULL, ps_count, ps_ptrs, ps_sizes, _naluSizeLength, &format_desc);
 		if(status != noErr) {
 			vth264dec_error("could not find out the input format: %d", (int)status);
 			return false;
@@ -822,12 +813,12 @@ private:
 		}
 		while((nalu = ms_queue_get(frame))) {
 			CMBlockBufferRef nalu_block;
-			size_t nalu_block_size = msgdsize(nalu) + H264_NALU_HEAD_SIZE;
+			size_t nalu_block_size = msgdsize(nalu) + _naluSizeLength;
 			uint32_t nalu_size = htonl(msgdsize(nalu));
 
 			CMBlockBufferCreateWithMemoryBlock(NULL, NULL, nalu_block_size, NULL, NULL, 0, nalu_block_size, kCMBlockBufferAssureMemoryNowFlag, &nalu_block);
-			CMBlockBufferReplaceDataBytes(&nalu_size, nalu_block, 0, H264_NALU_HEAD_SIZE);
-			CMBlockBufferReplaceDataBytes(nalu->b_rptr, nalu_block, H264_NALU_HEAD_SIZE, msgdsize(nalu));
+			CMBlockBufferReplaceDataBytes(&nalu_size, nalu_block, 0, _naluSizeLength);
+			CMBlockBufferReplaceDataBytes(nalu->b_rptr, nalu_block, _naluSizeLength, msgdsize(nalu));
 			CMBlockBufferAppendBufferReference(stream, nalu_block, 0, nalu_block_size, 0);
 			CFRelease(nalu_block);
 			freemsg(nalu);
@@ -894,6 +885,8 @@ private:
 	bool _freezed = true;
 	mblk_t *_sps = nullptr;
 	mblk_t *_pps = nullptr;
+
+	static const int _naluSizeLength = 4;
 };
 
 } // namespace mediastreamer
@@ -901,12 +894,6 @@ private:
 
 MS_DECODING_FILTER_WRAPPER_METHODS_DECLARATION(VideoToolboxH264Decoder);
 MS_DECODING_FILTER_WRAPPER_DESCRIPTION_DECLARATION(VideoToolboxH264Decoder, MS_VT_H264_DEC_ID, "H264 hardware decoder for iOS and MacOSX", "H264", MS_FILTER_IS_PUMP);
-
-/* Undefine decoder log message macros to avoid to use them in other code */
-#undef vth264dec_message
-#undef vth264dec_warning
-#undef vth264dec_error
-#undef vth264dec_log
 
 extern "C" void _register_videotoolbox_if_supported(MSFactory *factory) {
 #if TARGET_OS_SIMULATOR
