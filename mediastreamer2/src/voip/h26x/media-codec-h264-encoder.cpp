@@ -18,6 +18,7 @@
 */
 
 #include "filter-wrapper/encoding-filter-wrapper.h"
+#include "h26x/h26x-encoder-impl.h"
 #include "media-codec-encoder.h"
 
 #define MS_MEDIACODECH265_CONF(required_bitrate, bitrate_limit, resolution, fps, ncpus) \
@@ -60,10 +61,9 @@ private:
 	static const int32_t _level = 512; // AVCLevel31
 };
 
-class MediaCodecH264EncoderFilterImpl: public MediaCodecEncoderFilterImpl {
+class MediaCodecH264EncoderFilterImpl: public H26xEncoderFilterImpl {
 public:
-
-	MediaCodecH264EncoderFilterImpl(MSFilter *f): MediaCodecEncoderFilterImpl(
+	MediaCodecH264EncoderFilterImpl(MSFilter *f): H26xEncoderFilterImpl(
 		f,
 		new MediaCodecH264Encoder(),
 		new H264NalPacker(),

@@ -20,18 +20,11 @@
 #pragma once
 
 #include <memory>
-#include <sstream>
 #include <string>
 
 #include <media/NdkMediaCodec.h>
 
-#include "mediastreamer2/mscodecutils.h"
-#include "mediastreamer2/msfilter.h"
-#include "mediastreamer2/msvideo.h"
-
-#include "encoding-filter-impl.h"
 #include "h26x-utils.h"
-#include "nal-packer.h"
 #include "video-encoder-interface.h"
 
 namespace mediastreamer {
@@ -81,45 +74,6 @@ protected:
 	static const int32_t _iFrameInterval = 20; // 20 seconds
 	static const int32_t _encodingLatency = 1;
 	static const int32_t _priority = 0; // real-time priority
-};
-
-class MediaCodecEncoderFilterImpl: public EncodingFilterImpl {
-public:
-	void preprocess() override;
-	void process() override;
-	void postprocess() override;
-
-	const MSVideoConfiguration *getVideoConfiguratons() const override;
-	void setVideoConfigurations(const MSVideoConfiguration *vconfs) override;
-	int setVideoConfiguration(const MSVideoConfiguration *vconf) override;
-
-	int getBitrate() const override;
-	void setBitrate(int br) override;
-
-	float getFps() const override;
-	void setFps(float  fps) override;
-
-	MSVideoSize getVideoSize() const override;
-	void setVideoSize(const MSVideoSize &vsize) override;
-
-	void enableAvpf(bool enable) override;
-
-	void notifyPli() override;
-	void notifyFir() override;
-
-protected:
-	MediaCodecEncoderFilterImpl(MSFilter *f, MediaCodecEncoder *encoder, NalPacker *packer, const MSVideoConfiguration *defaultVConfList);
-
-	std::unique_ptr<MediaCodecEncoder> _encoder;
-	std::unique_ptr<NalPacker> _packer;
-	const MSVideoConfiguration *_vconfList = nullptr;
-	const MSVideoConfiguration *_defaultVConfList = nullptr;
-	MSVideoConfiguration _vconf;
-	bool _avpfEnabled = false;
-	bool _firstFrameDecoded = false;
-
-	MSVideoStarter _starter;
-	MSIFrameRequestsLimiterCtx _iframeLimiter;
 };
 
 }
