@@ -1478,22 +1478,25 @@ static void channel_res_done(void *data, belle_sip_resolver_results_t *results){
 	belle_sip_channel_t *obj=(belle_sip_channel_t*)data;
 	const struct addrinfo *ai_list = NULL;
 	const char *name = NULL;
+	belle_sip_resolver_results_t *prev_dns_results = obj->resolver_results;
 	
 	if (obj->resolver_ctx){
 		belle_sip_object_unref(obj->resolver_ctx);
 		obj->resolver_ctx=NULL;
 	}
 	if (results){
-		ai_list = belle_sip_resolver_results_get_addrinfos(results);
-		SET_OBJECT_PROPERTY(obj, resolver_results, results);
+		/*update current resolver_results, peer_list. current_peer still points to an element of the old list, if it exists*/
+		obj->peer_list = ai_list = belle_sip_resolver_results_get_addrinfos(results);
+		belle_sip_object_ref(results);
 		name = belle_sip_resolver_results_get_name(results);
 	}
+	obj->resolver_results = results;
 	
 	if (ai_list){
 		int ttl = belle_sip_resolver_results_get_ttl(results);
-		
-		obj->peer_list = ai_list;
+		/* setup now our current_peer. It can be initialized for the first time, kept as before, or changed*/
 		if (!obj->current_peer) {
+			/*first time we connect*/
 			channel_set_current_peer(obj, ai_list);
 			channel_set_state(obj,BELLE_SIP_CHANNEL_RES_DONE);
 		} else {
@@ -1502,6 +1505,7 @@ static void channel_res_done(void *data, belle_sip_resolver_results_t *results){
 			if (belle_sip_stack_reconnect_to_primary_asap_enabled(obj->stack)) {
 				existing_peer = addrinfo_is_first(obj->current_peer, ai_list);
 			} else {
+				/*find if the current_peer we had is still existing in the new list. If yes, we will keep it*/
 				existing_peer = addrinfo_in_list(obj->current_peer, ai_list);
 			}
 
@@ -1529,6 +1533,8 @@ static void channel_res_done(void *data, belle_sip_resolver_results_t *results){
 		belle_sip_error("%s: DNS resolution failed for %s", __FUNCTION__, name);
 		channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
 	}
+	/*now free the old resolver results if any, since we don't need the old current_peer*/
+	if (prev_dns_results) belle_sip_object_unref(prev_dns_results);
 }
 
 void belle_sip_channel_resolve(belle_sip_channel_t *obj){
