@@ -783,7 +783,7 @@ private:
 	#endif
 
 	#if TARGET_OS_IPHONE // kVTDecompressionPropertyKey_RealTime is only available on MacOSX after 10.10 version
-			status = VTSessionSetProperty(ctx->session, kVTDecompressionPropertyKey_RealTime, kCFBooleanTrue);
+			status = VTSessionSetProperty(_session, kVTDecompressionPropertyKey_RealTime, kCFBooleanTrue);
 			if (status != noErr) {
 				vth264dec_warning("could not be able to switch to real-time mode: %s", toString(status).c_str());
 			}
