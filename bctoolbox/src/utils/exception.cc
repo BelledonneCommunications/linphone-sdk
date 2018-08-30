@@ -17,19 +17,16 @@
 */
 
 #ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+	#include "config.h"
+#endif // ifdef HAVE_CONFIG_H
 
 #ifdef HAVE_EXECINFO
-#include <execinfo.h>
+	#include <execinfo.h>
+	#include <dlfcn.h>
+	#include <cxxabi.h>
+	#include <libgen.h>
+	#include <iomanip>
 #endif
-
-#include <unistd.h>
-#include <dlfcn.h>
-#include <cxxabi.h>
-#include <exception>
-#include <iomanip>
-#include <libgen.h>
 
 #include "bctoolbox/exception.hh"
 #include "bctoolbox/logging.h"
@@ -50,13 +47,13 @@ static void uncaught_handler() {
 }
 #endif
 
-BctbxException::BctbxException(const char *message) : mOffset(1), mSize(0) {
+BctbxException::BctbxException(const std::string &message) : mSize(0) {
 #ifdef HAVE_EXECINFO
 	mSize = backtrace(mArray, sizeof(mArray) / sizeof(void *));
 #else
 	mSize = 0;
 #endif
-	if (message)
+	if (!message.empty())
 		mOs << message;
 #ifdef HAVE_EXECINFO
 #if __clang
@@ -66,54 +63,16 @@ BctbxException::BctbxException(const char *message) : mOffset(1), mSize(0) {
 #endif
 }
 
-BctbxException::BctbxException(const BctbxException &other) : mOffset(other.mOffset), mSize(other.mSize) {
+BctbxException::BctbxException(const BctbxException &other) : mSize(other.mSize) {
 	memcpy(mArray, other.mArray, sizeof(mArray));
 	mOs << other.str();
 }
 
-#if __cplusplus > 199711L
-BctbxException::BctbxException(const string &msg) : BctbxException(msg.c_str()) {
-	mOffset++;
-}
-#else
-BctbxException::BctbxException(const string &message) : mOffset(2) {
-#ifdef HAVE_EXECINFO
-	mSize = backtrace(mArray, sizeof(mArray) / sizeof(void *));
-#else
-	mSize = 0;
-#endif
-	*this << message;
-	set_terminate(uncaught_handler); // invoke in case of uncautch exception for this thread
-}
-#endif
-
-BctbxException::~BctbxException() throw() {
-	// nop
-}
-
-#if __cplusplus > 199711L
-BctbxException::BctbxException() : BctbxException("") {
-	mOffset++;
-}
-#else
-BctbxException::BctbxException() : mOffset(2) {
-#ifdef HAVE_EXECINFO
-	mSize = backtrace(mArray, sizeof(mArray) / sizeof(void *));
-#else
-	mSize = 0;
-#endif
-	*this << "";
-#ifdef HAVE_EXECINFO
-	set_terminate(uncaught_handler); // invoke in case of uncautch exception for this thread
-#endif
-}
-#endif
-
 void BctbxException::printStackTrace() const {
 #ifdef HAVE_EXECINFO
-	backtrace_symbols_fd(mArray + mOffset, mSize - mOffset, STDERR_FILENO);
+	backtrace_symbols_fd(mArray + 1, mSize - 1, STDERR_FILENO);
 #else
-	std::cout << "stack trace not available on this platform";
+	std::cerr << "stack trace not available on this platform" << std::endl;
 #endif
 }
 
@@ -121,7 +80,7 @@ void BctbxException::printStackTrace(std::ostream &os) const {
 #ifdef HAVE_EXECINFO
 	char **bt = backtrace_symbols(mArray, mSize);
 	int position=0;
-	for (unsigned int i = mOffset; i < mSize; ++i) {
+	for (unsigned int i = 1; i < mSize; ++i) {
 		Dl_info info;
 		char *demangled = NULL;
 		int status = -1;
@@ -147,15 +106,10 @@ void BctbxException::printStackTrace(std::ostream &os) const {
 #endif
 }
 
-const std::string &BctbxException::str() const {
-	mMessage = mOs.str(); // avoid returning a reference to temporary
-	return mMessage;
-}
-const char *BctbxException::what() const throw() {
+const char *BctbxException::what() const noexcept {
 	return str().c_str();
 }
 
-// Class BctbxException
 std::ostream &operator<<(std::ostream &__os, const BctbxException &e) {
 	__os << e.str() << std::endl;
 	e.printStackTrace(__os);

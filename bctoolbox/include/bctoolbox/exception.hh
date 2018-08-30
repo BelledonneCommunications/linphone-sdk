@@ -20,55 +20,50 @@
 #define exception_h
 
 #include <exception>
-#include <string>
-#include <iostream>
 #include <sstream>
-#include <ostream>
 
-
-  /**
-  * @brief General pupose exception saving backtrace.
-  *
-  * sample of use:
-  * try {
-  *		throw BCTBX_EXCEPTION << "Hello, this is my exception";
-  * } catch (BctbxException e&) {
-  *    BCTOOLBOX_SLOGD("mylogdomain") << "Exception cauth"<< e;
-  * }
-  *
-  *
-  */
+/**
+* @brief General pupose exception saving backtrace.
+*
+* sample of use:
+* try {
+*		throw BCTBX_EXCEPTION << "Hello, this is my exception";
+* } catch (BctbxException e&) {
+*    BCTOOLBOX_SLOGD("mylogdomain") << "Exception cauth"<< e;
+* }
+*
+*
+*/
 class BctbxException : public std::exception {
 public:
-	BctbxException();
-	BctbxException(const std::string &message);
-	BctbxException(const char *message);
-	virtual ~BctbxException() throw();
+	BctbxException(const std::string &message = "");
 	BctbxException(const BctbxException &other);
+	virtual ~BctbxException() = default;
+
 	/**
 	 * print stack strace to stderr
 	 * */
 	void printStackTrace() const;
-	
+
 	void printStackTrace(std::ostream &os) const;
-	
-	const char *what() const throw();
-	const std::string &str() const;
-	
+
+	const char *what() const noexcept override;
+
+	std::string str() const {
+		return mOs.str();
+	}
+
 	/* same as osstringstream, but as osstream does not have cp contructor, BctbxException can't inherit from
 	 * osstream*/
 	template <typename T2> BctbxException &operator<<(const T2 &val) {
 		mOs << val;
 		return *this;
 	}
-	
-protected:
-	int mOffset; /*to hide last stack traces*/
+
 private:
 	void *mArray[20];
 	size_t mSize;
 	std::ostringstream mOs;
-	mutable std::string mMessage;
 };
 std::ostream &operator<<(std::ostream &__os, const BctbxException &e);
 
