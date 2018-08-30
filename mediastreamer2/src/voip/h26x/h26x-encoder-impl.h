@@ -31,9 +31,9 @@ public:
 	void process() override;
 	void postprocess() override;
 
-	const MSVideoConfiguration *getVideoConfiguratons() const override;
+	const MSVideoConfiguration *getVideoConfigurations() const override;
 	void setVideoConfigurations(const MSVideoConfiguration *vconfs) override;
-	int setVideoConfiguration(const MSVideoConfiguration *vconf) override;
+	void setVideoConfiguration(const MSVideoConfiguration *vconf) override;
 
 	int getBitrate() const override;
 	void setBitrate(int br) override;
@@ -46,8 +46,10 @@ public:
 
 	void enableAvpf(bool enable) override;
 
+	void requestVfu() override;
 	void notifyPli() override;
 	void notifyFir() override;
+	void notifySli() override;
 
 protected:
 	H26xEncoderFilterImpl(MSFilter *f, VideoEncoderInterface *encoder, NalPacker *packer, const MSVideoConfiguration *defaultVConfList);

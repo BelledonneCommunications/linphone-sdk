@@ -88,16 +88,12 @@ void H26xEncoderFilterImpl::setBitrate(int br) {
 	}
 }
 
-int H26xEncoderFilterImpl::setVideoConfiguration(const MSVideoConfiguration *vconf) {
+void H26xEncoderFilterImpl::setVideoConfiguration(const MSVideoConfiguration *vconf) {
 	if (vconf != &_vconf) memcpy(&_vconf, vconf, sizeof(MSVideoConfiguration));
-
 	ms_message("MediaCodecEncoder: video configuration set: bitrate=%d bits/s, fps=%f, vsize=%dx%d", _vconf.required_bitrate, _vconf.fps, _vconf.vsize.width, _vconf.vsize.height);
-
 	_encoder->setVideoSize(_vconf.vsize);
 	_encoder->setFps(_vconf.fps);
 	_encoder->setBitrate(_vconf.required_bitrate);
-
-	return 0;
 }
 
 void H26xEncoderFilterImpl::setFps(float  fps) {
@@ -126,6 +122,11 @@ void H26xEncoderFilterImpl::setVideoSize(const MSVideoSize &vsize) {
 	setVideoConfiguration(&_vconf);
 }
 
+void H26xEncoderFilterImpl::requestVfu() {
+	ms_message("MediaCodecEncoder: VFU requested");
+	ms_iframe_requests_limiter_request_iframe(&_iframeLimiter);
+}
+
 void H26xEncoderFilterImpl::notifyPli() {
 	ms_message("MediaCodecEncoder: PLI requested");
 	ms_iframe_requests_limiter_request_iframe(&_iframeLimiter);
@@ -136,7 +137,12 @@ void H26xEncoderFilterImpl::notifyFir() {
 	ms_iframe_requests_limiter_request_iframe(&_iframeLimiter);
 }
 
-const MSVideoConfiguration *H26xEncoderFilterImpl::getVideoConfiguratons() const {
+void H26xEncoderFilterImpl::notifySli() {
+	ms_message("MediaCodecEncoder: SLI requested");
+	ms_iframe_requests_limiter_request_iframe(&_iframeLimiter);
+}
+
+const MSVideoConfiguration *H26xEncoderFilterImpl::getVideoConfigurations() const {
 	return _vconfList;
 }
 

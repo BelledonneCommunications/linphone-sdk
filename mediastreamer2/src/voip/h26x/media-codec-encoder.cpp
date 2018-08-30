@@ -274,3 +274,5 @@ std::ostringstream MediaCodecEncoder::getMediaForamtAsString() const {
 	os << "\tpriority: " << _priority << endl;
 	return os;
 }
+
+} // namespace mediastreamer

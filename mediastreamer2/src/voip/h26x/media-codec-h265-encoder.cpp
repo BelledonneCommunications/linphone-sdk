@@ -18,7 +18,7 @@
 */
 
 #include "filter-wrapper/encoding-filter-wrapper.h"
-#include "h26x/h26x-encoder-impl.h"
+#include "h26x-encoder-impl.h"
 #include "h265-nal-packer.h"
 #include "media-codec-encoder.h"
 

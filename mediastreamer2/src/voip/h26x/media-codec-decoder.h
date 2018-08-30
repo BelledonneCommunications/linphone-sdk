@@ -91,7 +91,10 @@ public:
 	void addFmtp(const char *fmtp)  override {}
 
 	void enableAvpf(bool enable) override;
+
+	bool freezeOnErrorEnabled() const override {return _freezeOnError;}
 	void enableFreezeOnError(bool enable) override;
+
 	void resetFirstImage() override;
 
 protected:
