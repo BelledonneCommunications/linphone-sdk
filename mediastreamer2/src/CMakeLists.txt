@@ -369,6 +369,7 @@ if(ENABLE_VIDEO)
 	if(APPLE)
 		list(APPEND VOIP_SOURCE_FILES_CXX
 			videofilters/videotoolbox.cpp
+			voip/h26x/videotoolbox-decoder.cpp
 			voip/h26x/videotoolbox-encoder.cpp
 		)
 	endif()

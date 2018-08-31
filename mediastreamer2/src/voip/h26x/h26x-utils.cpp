@@ -175,7 +175,7 @@ void H26xParameterSetsStore::addPs(int naluType, mblk_t *nalu) {
 	bool replaceParam = false;
 	mblk_t *lastPs = _ps[naluType];
 
-	if (lastPs == nullptr || nalu ==nullptr) {
+	if (lastPs == nullptr || nalu == nullptr) {
 		replaceParam = true;
 	} else {
 		ssize_t naluSize = nalu->b_wptr - nalu->b_rptr;
