@@ -67,7 +67,7 @@ protected:
 	bool _fBit = false;
 };
 
-class H26xUtils {
+class MS2_PUBLIC H26xUtils {
 public:
 	H26xUtils() = delete;
 
@@ -116,7 +116,7 @@ public:
 	H26xToolFactory() = default;
 	virtual ~H26xToolFactory() = default;
 
-	static const H26xToolFactory &get(const std::string &mime);
+	MS2_PUBLIC static const H26xToolFactory &get(const std::string &mime);
 
 	virtual H26xNaluHeader *createNaluHeader() const = 0;
 	virtual NalPacker *createNalPacker(MSFactory *factory) const = 0;

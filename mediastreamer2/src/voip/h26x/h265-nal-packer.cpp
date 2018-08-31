@@ -81,7 +81,7 @@ void H265NalPacker::NaluAggregator::aggregate(mblk_t *nalu) {
 
 	mblk_t *size = allocb(2, 0);
 	uint16_t *sizePtr = reinterpret_cast<uint16_t *>(size->b_wptr);
-	*sizePtr = htons(msgdsize(nalu));
+	*sizePtr = htons(uint16_t(msgdsize(nalu)));
 	size->b_wptr += 2;
 
 	_size += (msgdsize(size) + msgdsize(nalu)); // warning: this line must remain before 'concatb()' invocations.
