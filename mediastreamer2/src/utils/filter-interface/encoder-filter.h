@@ -1,5 +1,5 @@
 /*
- * Mediastreamer2 encoding-filter-impl.h
+ * Mediastreamer2 encoder-filter.h
  * Copyright (C) 2018 Belledonne Communications SARL
  *
  * This program is free software; you can redistribute it and/or
@@ -21,13 +21,13 @@
 
 #include "mediastreamer2/msvideo.h"
 
-#include "filter-impl-base.h"
+#include "filter-base.h"
 
 namespace mediastreamer {
 
-class EncodingFilterImpl: public FilterImplBase {
+class EncoderFilter: public FilterBase {
 public:
-	EncodingFilterImpl(MSFilter *f): FilterImplBase(f) {}
+	EncoderFilter(MSFilter *f): FilterBase(f) {}
 
 	virtual const MSVideoConfiguration *getVideoConfigurations() const = 0;
 	virtual void setVideoConfigurations(const MSVideoConfiguration *vconfs) = 0;

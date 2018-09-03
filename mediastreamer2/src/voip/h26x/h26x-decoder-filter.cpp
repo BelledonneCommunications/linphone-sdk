@@ -1,5 +1,5 @@
 /*
- Mediastreamer2 h26x-decoder-impl.cpp
+ Mediastreamer2 h26x-decoder-filter.cpp
  Copyright (C) 2018 Belledonne Communications SARL
 
  This program is free software; you can redistribute it and/or
@@ -19,14 +19,14 @@
 
 #include "h26x-utils.h"
 
-#include "h26x-decoder-impl.h"
+#include "h26x-decoder-filter.h"
 
 using namespace std;
 
 namespace mediastreamer {
 
-H26xDecoderFilterImpl::H26xDecoderFilterImpl(MSFilter *f, const std::string &mime, VideoDecoderInterface *decoder):
-	DecodingFilterImpl(f),
+H26xDecoderFilter::H26xDecoderFilter(MSFilter *f, const std::string &mime, VideoDecoder *decoder):
+	DecoderFilter(f),
 	_vsize({0, 0}),
 	_unpacker(H26xToolFactory::get(mime).createNalUnpacker()),
 	_codec(decoder) {
@@ -34,12 +34,12 @@ H26xDecoderFilterImpl::H26xDecoderFilterImpl(MSFilter *f, const std::string &mim
 	ms_average_fps_init(&_fps, " H26x decoder: FPS: %f");
 }
 
-void H26xDecoderFilterImpl::preprocess() {
+void H26xDecoderFilter::preprocess() {
 	_firstImageDecoded = false;
 	if (_codec) _codec->waitForKeyFrame();
 }
 
-void H26xDecoderFilterImpl::process() {
+void H26xDecoderFilter::process() {
 	bool requestPli = false;
 	MSQueue frame;
 
@@ -75,9 +75,9 @@ void H26xDecoderFilterImpl::process() {
 	}
 
 	mblk_t *om;
-	VideoDecoderInterface::Status status;
-	while ((status = _codec->fetch(om)) != VideoDecoderInterface::Status::noFrameAvailable) {
-		if (status == VideoDecoderInterface::decodingFailure) {
+	VideoDecoder::Status status;
+	while ((status = _codec->fetch(om)) != VideoDecoder::Status::noFrameAvailable) {
+		if (status == VideoDecoder::decodingFailure) {
 			ms_error("MediaCodecDecoder: decoding failure");
 			requestPli = true;
 			continue;
@@ -104,31 +104,31 @@ void H26xDecoderFilterImpl::process() {
 	}
 }
 
-void H26xDecoderFilterImpl::postprocess() {
+void H26xDecoderFilter::postprocess() {
 	_unpacker->reset();
 }
 
-void H26xDecoderFilterImpl::resetFirstImage() {
+void H26xDecoderFilter::resetFirstImage() {
 	_firstImageDecoded = false;
 }
 
-MSVideoSize H26xDecoderFilterImpl::getVideoSize() const {
+MSVideoSize H26xDecoderFilter::getVideoSize() const {
 	return _firstImageDecoded ? _vsize : MS_VIDEO_SIZE_UNKNOWN;
 }
 
-float H26xDecoderFilterImpl::getFps() const {
+float H26xDecoderFilter::getFps() const {
 	return ms_average_fps_get(&_fps);
 }
 
-const MSFmtDescriptor *H26xDecoderFilterImpl::getOutputFmt() const {
+const MSFmtDescriptor *H26xDecoderFilter::getOutputFmt() const {
 	return ms_factory_get_video_format(getFactory(), "YUV420P", ms_video_size_make(_vsize.width, _vsize.height), 0, nullptr);
 }
 
-void H26xDecoderFilterImpl::enableAvpf(bool enable) {
+void H26xDecoderFilter::enableAvpf(bool enable) {
 	_avpfEnabled = enable;
 }
 
-void H26xDecoderFilterImpl::enableFreezeOnError(bool enable) {
+void H26xDecoderFilter::enableFreezeOnError(bool enable) {
 	_freezeOnError = enable;
 	ms_message("MediaCodecDecoder: freeze on error %s", _freezeOnError ? "enabled" : "disabled");
 }

@@ -21,6 +21,8 @@
 #include <stdexcept>
 
 #include "h26x/h264-utils.h"
+#include "videotoolbox-utils.h"
+
 #include "videotoolbox-encoder.h"
 
 #define VTH264_ENC_NAME "VideoToolboxH264Encoder"

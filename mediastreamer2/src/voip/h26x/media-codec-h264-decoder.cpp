@@ -22,7 +22,7 @@
 #include <ortp/b64.h>
 
 #include "filter-wrapper/decoding-filter-wrapper.h"
-#include "h26x-decoder-impl.h"
+#include "h26x-decoder-filter.h"
 #include "h264-nal-unpacker.h"
 #include "h264-utils.h"
 #include "media-codec-h264-decoder.h"
@@ -75,9 +75,9 @@ bool MediaCodecH264Decoder::isNewPps(mblk_t *sps) {
 	return false;
 }
 
-class MediaCodecH264DecoderFilterImpl: public H26xDecoderFilterImpl {
+class MediaCodecH264DecoderFilterImpl: public H26xDecoderFilter {
 public:
-	MediaCodecH264DecoderFilterImpl(MSFilter *f): H26xDecoderFilterImpl(f, "video/avc", new MediaCodecH264Decoder()) {}
+	MediaCodecH264DecoderFilterImpl(MSFilter *f): H26xDecoderFilter(f, "video/avc", new MediaCodecH264Decoder()) {}
 	~MediaCodecH264DecoderFilterImpl() {
 		if (_sps) freemsg(_sps);
 		if (_pps) freemsg(_pps);
@@ -89,7 +89,7 @@ public:
 			_sps = nullptr;
 			_pps = nullptr;
 		}
-		H26xDecoderFilterImpl::process();
+		H26xDecoderFilter::process();
 	}
 
 	void addFmtp(const char *fmtp) {

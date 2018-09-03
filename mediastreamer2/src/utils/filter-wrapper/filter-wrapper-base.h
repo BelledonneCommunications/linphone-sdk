@@ -21,7 +21,7 @@
 
 #include "mediastreamer2/msfilter.h"
 
-#include "filter-impl-base.h"
+#include "filter-interface/filter-base.h"
 
 namespace mediastreamer {
 
@@ -33,19 +33,19 @@ public:
 	}
 
 	static void onFilterUninit(MSFilter *f) {
-		delete static_cast<FilterImplBase *>(f->data);
+		delete static_cast<FilterBase *>(f->data);
 	}
 
 	static void onFilterPreProcess(MSFilter *f) {
-		static_cast<FilterImplBase *>(f->data)->preprocess();
+		static_cast<FilterBase *>(f->data)->preprocess();
 	}
 
 	static void onFilterPostProcess(MSFilter *f) {
-		static_cast<FilterImplBase *>(f->data)->postprocess();
+		static_cast<FilterBase *>(f->data)->postprocess();
 	}
 
 	static void onFilterProcces(MSFilter *f) {
-		static_cast<FilterImplBase *>(f->data)->process();
+		static_cast<FilterBase *>(f->data)->process();
 	}
 };
 

@@ -1,5 +1,5 @@
 /*
- Mediastreamer2 video-decoder-interface.h
+ Mediastreamer2 video-encoder.h
  Copyright (C) 2018 Belledonne Communications SARL
 
  This program is free software; you can redistribute it and/or
@@ -19,28 +19,29 @@
 
 #pragma once
 
-#include <cstdint>
-
-#include <ortp/str_utils.h>
-
-#include "mediastreamer2/msqueue.h"
+#include "mediastreamer2/msvideo.h"
 
 namespace mediastreamer {
 
-class VideoDecoderInterface {
+class VideoEncoder {
 public:
-	enum Status {
-		noError,
-		noFrameAvailable,
-		decodingFailure
-	};
+	virtual ~VideoEncoder() = default;
 
-	virtual ~VideoDecoderInterface() = default;
+	virtual MSVideoSize getVideoSize() const = 0;
+	virtual void setVideoSize(const MSVideoSize &vsize) = 0;
 
-	virtual void waitForKeyFrame() = 0;
+	virtual float getFps() const = 0;
+	virtual void setFps(float fps) = 0;
 
-	virtual bool feed(MSQueue *encodedFrame, uint64_t timestamp) = 0;
-	virtual Status fetch(mblk_t *&frame) = 0;
+	virtual int getBitrate() const = 0;
+	virtual void setBitrate(int bitrate) = 0;
+
+	virtual bool isRunning() = 0;
+	virtual void start() = 0;
+	virtual void stop() = 0;
+
+	virtual void feed(mblk_t *rawData, uint64_t time, bool requestIFrame = false) = 0;
+	virtual bool fetch(MSQueue *encodedData) = 0;
 };
 
-} // namespace mediastreamer
+}

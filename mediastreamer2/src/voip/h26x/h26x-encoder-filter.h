@@ -1,5 +1,5 @@
 /*
- Mediastreamer2 h26x-encoder-impl.h
+ Mediastreamer2 h26x-encoder-filter.h
  Copyright (C) 2018 Belledonne Communications SARL
 
  This program is free software; you can redistribute it and/or
@@ -19,13 +19,13 @@
 
 #pragma once
 
-#include "encoding-filter-impl.h"
+#include "filter-interface/encoder-filter.h"
 #include "nal-packer.h"
-#include "video-encoder-interface.h"
+#include "video-encoder.h"
 
 namespace mediastreamer {
 
-class H26xEncoderFilterImpl: public EncodingFilterImpl {
+class H26xEncoderFilter: public EncoderFilter {
 public:
 	void preprocess() override;
 	void process() override;
@@ -52,9 +52,9 @@ public:
 	void notifySli() override;
 
 protected:
-	H26xEncoderFilterImpl(MSFilter *f, VideoEncoderInterface *encoder, NalPacker *packer, const MSVideoConfiguration *defaultVConfList);
+	H26xEncoderFilter(MSFilter *f, VideoEncoder *encoder, NalPacker *packer, const MSVideoConfiguration *defaultVConfList);
 
-	std::unique_ptr<VideoEncoderInterface> _encoder;
+	std::unique_ptr<VideoEncoder> _encoder;
 	std::unique_ptr<NalPacker> _packer;
 	const MSVideoConfiguration *_vconfList = nullptr;
 	const MSVideoConfiguration *_defaultVConfList = nullptr;

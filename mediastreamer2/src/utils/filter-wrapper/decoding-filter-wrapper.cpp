@@ -26,18 +26,18 @@ namespace mediastreamer {
 int DecodingFilterWrapper::onAddFmtpCall(MSFilter *f, void *arg) {
 	try {
 		const char *fmtp = static_cast<const char *>(arg);
-		static_cast<DecodingFilterImpl *>(f->data)->addFmtp(fmtp);
+		static_cast<DecoderFilter *>(f->data)->addFmtp(fmtp);
 		return 0;
-	} catch (const DecodingFilterImpl::MethodCallFailed &) {
+	} catch (const DecoderFilter::MethodCallFailed &) {
 		return -1;
 	}
 }
 
 int DecodingFilterWrapper::onResetFirstImageCall(MSFilter *f, void *arg) {
 	try {
-		static_cast<DecodingFilterImpl *>(f->data)->resetFirstImage();
+		static_cast<DecoderFilter *>(f->data)->resetFirstImage();
 		return 0;
-	} catch (const DecodingFilterImpl::MethodCallFailed &) {
+	} catch (const DecoderFilter::MethodCallFailed &) {
 		return -1;
 	}
 }
@@ -45,9 +45,9 @@ int DecodingFilterWrapper::onResetFirstImageCall(MSFilter *f, void *arg) {
 int DecodingFilterWrapper::onGetVideoSizeCall(MSFilter *f, void *arg) {
 	try {
 		MSVideoSize *vsize = static_cast<MSVideoSize *>(arg);
-		*vsize = static_cast<DecodingFilterImpl *>(f->data)->getVideoSize();
+		*vsize = static_cast<DecoderFilter *>(f->data)->getVideoSize();
 		return 0;
-	} catch (const DecodingFilterImpl::MethodCallFailed &) {
+	} catch (const DecoderFilter::MethodCallFailed &) {
 		return -1;
 	}
 }
@@ -55,9 +55,9 @@ int DecodingFilterWrapper::onGetVideoSizeCall(MSFilter *f, void *arg) {
 int DecodingFilterWrapper::onGetFpsCall(MSFilter *f, void *arg) {
 	try {
 		float *fps = static_cast<float *>(arg);
-		*fps = static_cast<DecodingFilterImpl *>(f->data)->getFps();
+		*fps = static_cast<DecoderFilter *>(f->data)->getFps();
 		return 0;
-	} catch (const DecodingFilterImpl::MethodCallFailed &) {
+	} catch (const DecoderFilter::MethodCallFailed &) {
 		return -1;
 	}
 }
@@ -65,9 +65,9 @@ int DecodingFilterWrapper::onGetFpsCall(MSFilter *f, void *arg) {
 int DecodingFilterWrapper::onGetOutFmtCall(MSFilter *f, void *arg) {
 	try {
 		MSPinFormat *pinFormat = static_cast<MSPinFormat *>(arg);
-		pinFormat->fmt = static_cast<DecodingFilterImpl *>(f->data)->getOutputFmt();
+		pinFormat->fmt = static_cast<DecoderFilter *>(f->data)->getOutputFmt();
 		return 0;
-	} catch (const DecodingFilterImpl::MethodCallFailed &) {
+	} catch (const DecoderFilter::MethodCallFailed &) {
 		return -1;
 	}
 }
@@ -75,9 +75,9 @@ int DecodingFilterWrapper::onGetOutFmtCall(MSFilter *f, void *arg) {
 int DecodingFilterWrapper::onEnableAvpfCall(MSFilter *f, void *arg) {
 	try {
 		const bool_t *enable = static_cast<bool_t *>(arg);
-		static_cast<DecodingFilterImpl *>(f->data)->enableAvpf(enable);
+		static_cast<DecoderFilter *>(f->data)->enableAvpf(enable);
 		return 0;
-	} catch (const DecodingFilterImpl::MethodCallFailed &) {
+	} catch (const DecoderFilter::MethodCallFailed &) {
 		return -1;
 	}
 }
@@ -85,9 +85,9 @@ int DecodingFilterWrapper::onEnableAvpfCall(MSFilter *f, void *arg) {
 int DecodingFilterWrapper::onEnableFreezeOnErrorCall(MSFilter *f, void *arg) {
 	try {
 		const bool_t *enable = static_cast<bool_t *>(arg);
-		static_cast<DecodingFilterImpl *>(f->data)->enableFreezeOnError(enable);
+		static_cast<DecoderFilter *>(f->data)->enableFreezeOnError(enable);
 		return 0;
-	} catch (const DecodingFilterImpl::MethodCallFailed &) {
+	} catch (const DecoderFilter::MethodCallFailed &) {
 		return -1;
 	}
 }
@@ -95,9 +95,9 @@ int DecodingFilterWrapper::onEnableFreezeOnErrorCall(MSFilter *f, void *arg) {
 int DecodingFilterWrapper::onFreezeOnErrorEnabledCall(MSFilter *f, void *arg) {
 	try {
 		bool_t *foeEnabled = static_cast<bool_t *>(arg);
-		*foeEnabled = static_cast<DecodingFilterImpl *>(f->data)->freezeOnErrorEnabled();
+		*foeEnabled = static_cast<DecoderFilter *>(f->data)->freezeOnErrorEnabled();
 		return 0;
-	} catch (const DecodingFilterImpl::MethodCallFailed &) {
+	} catch (const DecoderFilter::MethodCallFailed &) {
 		return -1;
 	}
 }

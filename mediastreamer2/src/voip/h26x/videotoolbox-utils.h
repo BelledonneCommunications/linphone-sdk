@@ -1,5 +1,5 @@
 /*
- Mediastreamer2 video-encoder-interface.h
+ Mediastreamer2 videotoolbox-utils.h
  Copyright (C) 2018 Belledonne Communications SARL
 
  This program is free software; you can redistribute it and/or
@@ -19,29 +19,12 @@
 
 #pragma once
 
-#include "mediastreamer2/msvideo.h"
+#include <string>
+
+#include <VideoToolbox/VideoToolbox.h>
 
 namespace mediastreamer {
 
-class VideoEncoderInterface {
-public:
-	virtual ~VideoEncoderInterface() = default;
+std::string toString(OSStatus status);
 
-	virtual MSVideoSize getVideoSize() const = 0;
-	virtual void setVideoSize(const MSVideoSize &vsize) = 0;
-
-	virtual float getFps() const = 0;
-	virtual void setFps(float fps) = 0;
-
-	virtual int getBitrate() const = 0;
-	virtual void setBitrate(int bitrate) = 0;
-
-	virtual bool isRunning() = 0;
-	virtual void start() = 0;
-	virtual void stop() = 0;
-
-	virtual void feed(mblk_t *rawData, uint64_t time, bool requestIFrame = false) = 0;
-	virtual bool fetch(MSQueue *encodedData) = 0;
-};
-
-}
+} // namespace mediastreamer

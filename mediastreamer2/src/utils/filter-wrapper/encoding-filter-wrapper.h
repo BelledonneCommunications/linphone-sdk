@@ -22,7 +22,7 @@
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msvideo.h"
 
-#include "encoding-filter-impl.h"
+#include "filter-interface/encoder-filter.h"
 #include "filter-wrapper-base.h"
 
 namespace mediastreamer {

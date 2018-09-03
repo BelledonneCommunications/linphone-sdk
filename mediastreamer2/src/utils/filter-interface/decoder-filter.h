@@ -1,5 +1,5 @@
 /*
- * Mediastreamer2 decoding-filter-impl.h
+ * Mediastreamer2 decoder-filter.h
  * Copyright (C) 2018 Belledonne Communications SARL
  *
  * This program is free software; you can redistribute it and/or
@@ -21,13 +21,13 @@
 
 #include "mediastreamer2/msvideo.h"
 
-#include "filter-impl-base.h"
+#include "filter-base.h"
 
 namespace mediastreamer {
 
-	class DecodingFilterImpl: public FilterImplBase {
+	class DecoderFilter: public FilterBase {
 	public:
-		DecodingFilterImpl(MSFilter *f): FilterImplBase(f) {}
+		DecoderFilter(MSFilter *f): FilterBase(f) {}
 
 		virtual MSVideoSize getVideoSize() const = 0;
 		virtual float getFps() const = 0;

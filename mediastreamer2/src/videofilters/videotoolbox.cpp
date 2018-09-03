@@ -15,15 +15,12 @@
  You should have received a copy of the GNU General Public License
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
- */
-
-#include <sstream>
-#include <string>
+*/
 
 #include "filter-wrapper/encoding-filter-wrapper.h"
 #include "filter-wrapper/decoding-filter-wrapper.h"
-#include "h26x/h26x-decoder-impl.h"
-#include "h26x/h26x-encoder-impl.h"
+#include "h26x/h26x-decoder-filter.h"
+#include "h26x/h26x-encoder-filter.h"
 #include "h26x/videotoolbox-decoder.h"
 #include "h26x/videotoolbox-encoder.h"
 
@@ -45,45 +42,14 @@ const MSVideoConfiguration vth264enc_video_confs[] = {
 	MS_VIDEO_CONF(      0,    64000,       QCIF,  5 ,1)
 };
 
-std::string toString(::OSStatus status) {
-	ostringstream message;
-	switch(status) {
-	case noErr:
-		message << "no error";
-		break;
-	case kVTPropertyNotSupportedErr:
-		message << "property not supported";
-		break;
-	case kVTVideoDecoderMalfunctionErr:
-		message << "decoder malfunction";
-		break;
-	case kVTInvalidSessionErr:
-		message << "invalid session";
-		break;
-	case kVTParameterErr:
-		message << "parameter error";
-		break;
-	case kCVReturnAllocationFailed:
-		message << "return allocation failed";
-		break;
-	case kVTVideoDecoderBadDataErr:
-		message << "decoding bad data";
-		break;
-	default:
-		break;
-	}
-	message << " [osstatus=" << int(status) << "]";
-	return message.str();
-}
-
-class VideoToolboxH264EncoderFilterImpl: public H26xEncoderFilterImpl {
+class VideoToolboxH264EncoderFilterImpl: public H26xEncoderFilter {
 public:
-	VideoToolboxH264EncoderFilterImpl(MSFilter *f): H26xEncoderFilterImpl(f, new VideoToolboxEncoder(), new H264NalPacker(), vth264enc_video_confs) {}
+	VideoToolboxH264EncoderFilterImpl(MSFilter *f): H26xEncoderFilter(f, new VideoToolboxEncoder(), new H264NalPacker(), vth264enc_video_confs) {}
 };
 
-class VideoToolboxH264DecoderFilterImpl: public H26xDecoderFilterImpl {
+class VideoToolboxH264DecoderFilterImpl: public H26xDecoderFilter {
 public:
-	VideoToolboxH264DecoderFilterImpl(MSFilter *f): H26xDecoderFilterImpl(f, "video/avc", new VideoToolboxDecoder()) {}
+	VideoToolboxH264DecoderFilterImpl(MSFilter *f): H26xDecoderFilter(f, "video/avc", new VideoToolboxDecoder()) {}
 };
 
 } // namespace mediastreamer

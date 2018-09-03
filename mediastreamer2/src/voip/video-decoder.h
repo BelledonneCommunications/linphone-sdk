@@ -1,5 +1,5 @@
 /*
- Mediastreamer2 filter-impl-base.h
+ Mediastreamer2 video-decoder.h
  Copyright (C) 2018 Belledonne Communications SARL
 
  This program is free software; you can redistribute it and/or
@@ -19,37 +19,28 @@
 
 #pragma once
 
-#include <exception>
+#include <cstdint>
 
-#include "mediastreamer2/msfilter.h"
-#include "mediastreamer2/msticker.h"
+#include <ortp/str_utils.h>
+
+#include "mediastreamer2/msqueue.h"
 
 namespace mediastreamer {
 
-class FilterImplBase {
+class VideoDecoder {
 public:
-	class MethodCallFailed: public std::exception {};
+	enum Status {
+		noError,
+		noFrameAvailable,
+		decodingFailure
+	};
 
-	FilterImplBase(MSFilter *f): _f(f) {}
-	virtual ~FilterImplBase() = default;
+	virtual ~VideoDecoder() = default;
 
-	virtual void preprocess() = 0;
-	virtual void process() = 0;
-	virtual void postprocess() = 0;
+	virtual void waitForKeyFrame() = 0;
 
-protected:
-	MSFactory *getFactory() const {return _f->factory;}
-	MSQueue *getInput(int idx) const {return _f->inputs[idx];}
-	MSQueue *getOutput(int idx) const {return _f->outputs[idx];}
-	uint64_t getTime() const {return _f->ticker->time;}
-
-	void notify(unsigned int id) {ms_filter_notify_no_arg(_f, id);}
-
-	void lock() const {ms_filter_lock(_f);}
-	void unlock() const {ms_filter_unlock(_f);}
-
-private:
-	MSFilter *_f = nullptr;
+	virtual bool feed(MSQueue *encodedFrame, uint64_t timestamp) = 0;
+	virtual Status fetch(mblk_t *&frame) = 0;
 };
 
 } // namespace mediastreamer

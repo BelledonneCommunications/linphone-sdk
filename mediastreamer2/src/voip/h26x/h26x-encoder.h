@@ -1,5 +1,5 @@
 /*
- Mediastreamer2 media-codec-h265-decoder.cpp
+ Mediastreamer2 h26x-encoder.h
  Copyright (C) 2018 Belledonne Communications SARL
 
  This program is free software; you can redistribute it and/or
@@ -17,22 +17,12 @@
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#include "filter-wrapper/decoding-filter-wrapper.h"
-#include "h26x-decoder-filter.h"
-#include "media-codec-decoder.h"
+#pragma once
 
-#include "media-codec-h265-decoder.h"
+#include "video-encoder.h"
 
 namespace mediastreamer {
 
-class MediaCodecH265DecoderFilterImpl: public H26xDecoderFilter {
-public:
-	MediaCodecH265DecoderFilterImpl(MSFilter *f): H26xDecoderFilter(f, "video/hevc", new MediaCodecH265Decoder()) {}
-};
+class H26xEncoder: public VideoEncoder {};
 
-}
-
-using namespace mediastreamer;
-
-MS_DECODING_FILTER_WRAPPER_METHODS_DECLARATION(MediaCodecH265Decoder);
-MS_DECODING_FILTER_WRAPPER_DESCRIPTION_DECLARATION(MediaCodecH265Decoder, MS_MEDIACODEC_H265_DEC_ID, "A H265 decoder based on MediaCodec API.", "H265", MS_FILTER_IS_PUMP);
+} // namespace mediastreamer

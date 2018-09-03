@@ -27,13 +27,11 @@
 #include "mediastreamer2/mscommon.h"
 #include "mediastreamer2/msqueue.h"
 
-#include "video-encoder-interface.h"
+#include "h26x-encoder.h"
 
 namespace mediastreamer {
 
-std::string toString(OSStatus status);
-
-class VideoToolboxEncoder: public VideoEncoderInterface {
+class VideoToolboxEncoder: public H26xEncoder {
 public:
 	VideoToolboxEncoder();
 	~VideoToolboxEncoder() {if (_session) CFRelease(_session);}
