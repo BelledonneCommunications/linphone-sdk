@@ -31,20 +31,20 @@
 #include "mediastreamer2/msvideo.h"
 
 #include "decoding-filter-impl.h"
+#include "h26x-utils.h"
 #include "nal-unpacker.h"
+#include "video-decoder-interface.h"
 
 namespace mediastreamer {
 
-class MediaCodecDecoder {
+class MediaCodecDecoder: public VideoDecoderInterface {
 public:
 	virtual ~MediaCodecDecoder();
 
-	void waitForKeyFrame() {_needKeyFrame = true;}
+	void waitForKeyFrame()  override {_needKeyFrame = true;}
 
-	bool feed(MSQueue *encodedFrame, uint64_t timestamp);
-	mblk_t *fetch();
-
-	static MediaCodecDecoder *createDecoder(const std::string &mime);
+	bool feed(MSQueue *encodedFrame, uint64_t timestamp) override;
+	Status fetch(mblk_t *&frame) override;
 
 protected:
 	class BufferFlag {

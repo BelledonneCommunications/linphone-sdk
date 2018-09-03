@@ -119,15 +119,20 @@ clean:
 	return status;
 }
 
-mblk_t *MediaCodecDecoder::fetch() {
-	mblk_t *om = nullptr;
+MediaCodecDecoder::Status MediaCodecDecoder::fetch(mblk_t *&frame) {
 	AMediaImage image = {0};
 	int dst_pix_strides[4] = {1, 1, 1, 1};
 	MSRect dst_roi = {0};
 	AMediaCodecBufferInfo info;
 	ssize_t oBufidx = -1;
+	Status status = Status::noError;
 
-	if (_impl == nullptr || _pendingFrames <= 0) goto end;
+	frame = nullptr;
+
+	if (_impl == nullptr || _pendingFrames <= 0) {
+		status = Status::noFrameAvailable;
+		goto end;
+	}
 
 	oBufidx = AMediaCodec_dequeueOutputBuffer(_impl, &info, _timeoutUs);
 	if (oBufidx == AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED) {
@@ -138,8 +143,10 @@ mblk_t *MediaCodecDecoder::fetch() {
 	if (oBufidx < 0) {
 		if (oBufidx == AMEDIA_ERROR_UNKNOWN) {
 			ms_error("MediaCodecDecoder: AMediaCodec_dequeueOutputBuffer() had an exception");
+			status = Status::decodingFailure;
 		} else if (oBufidx != AMEDIACODEC_INFO_TRY_AGAIN_LATER) {
 			ms_error("MediaCodecDecoder: unknown error while dequeueing an output buffer (oBufidx=%zd)", oBufidx);
+			status = Status::noFrameAvailable;
 		}
 		goto end;
 	}
@@ -148,24 +155,19 @@ mblk_t *MediaCodecDecoder::fetch() {
 
 	if (AMediaCodec_getOutputImage(_impl, oBufidx, &image) <= 0) {
 		ms_error("MediaCodecDecoder: AMediaCodec_getOutputImage() failed");
+		status = Status::decodingFailure;
 		goto end;
 	}
 
 	MSPicture pic;
-	om = ms_yuv_buf_allocator_get(_bufAllocator, &pic, image.crop_rect.w, image.crop_rect.h);
+	frame = ms_yuv_buf_allocator_get(_bufAllocator, &pic, image.crop_rect.w, image.crop_rect.h);
 	ms_yuv_buf_copy_with_pix_strides(image.buffers, image.row_strides, image.pixel_strides, image.crop_rect,
 										pic.planes, pic.strides, dst_pix_strides, dst_roi);
 	AMediaImage_close(&image);
 
 end:
 	if (oBufidx >= 0) AMediaCodec_releaseOutputBuffer(_impl, oBufidx, FALSE);
-	return om;
-}
-
-MediaCodecDecoder *MediaCodecDecoder::createDecoder(const std::string &mime) {
-	if (mime == "video/avc") return new MediaCodecH264Decoder();
-	else if (mime == "video/hevc") return new MediaCodecH265Decoder();
-	else throw invalid_argument(mime);
+	return status;
 }
 
 AMediaFormat *MediaCodecDecoder::createFormat(const std::string &mime) const {
