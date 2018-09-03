@@ -77,37 +77,4 @@ protected:
 	static const unsigned int _timeoutUs = 0;
 };
 
-class MediaCodecDecoderFilterImpl: public DecodingFilterImpl {
-public:
-	MediaCodecDecoderFilterImpl(MSFilter *f, const std::string &mime);
-
-	void preprocess() override;
-	void process() override;
-	void postprocess() override;
-
-	MSVideoSize getVideoSize() const override;
-	float getFps() const override;
-	const MSFmtDescriptor *getOutputFmt() const override;
-	void addFmtp(const char *fmtp)  override {}
-
-	void enableAvpf(bool enable) override;
-
-	bool freezeOnErrorEnabled() const override {return _freezeOnError;}
-	void enableFreezeOnError(bool enable) override;
-
-	void resetFirstImage() override;
-
-protected:
-	MSVideoSize _vsize;
-	MSAverageFPS _fps;
-	bool _avpfEnabled = false;
-	bool _freezeOnError = true;
-
-	std::unique_ptr<NalUnpacker> _unpacker;
-	std::unique_ptr<MediaCodecDecoder> _codec;
-	bool _firstImageDecoded = false;
-
-	static const unsigned int _timeoutUs = 0;
-};
-
 }

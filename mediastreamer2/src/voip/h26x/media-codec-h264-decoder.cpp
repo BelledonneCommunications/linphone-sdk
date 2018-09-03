@@ -75,9 +75,9 @@ bool MediaCodecH264Decoder::isNewPps(mblk_t *sps) {
 	return false;
 }
 
-class MediaCodecH264DecoderFilterImpl: public MediaCodecDecoderFilterImpl {
+class MediaCodecH264DecoderFilterImpl: public H26xDecoderFilterImpl {
 public:
-	MediaCodecH264DecoderFilterImpl(MSFilter *f): MediaCodecDecoderFilterImpl(f, "video/avc") {}
+	MediaCodecH264DecoderFilterImpl(MSFilter *f): H26xDecoderFilterImpl(f, "video/avc", new MediaCodecH264Decoder()) {}
 	~MediaCodecH264DecoderFilterImpl() {
 		if (_sps) freemsg(_sps);
 		if (_pps) freemsg(_pps);
@@ -89,7 +89,7 @@ public:
 			_sps = nullptr;
 			_pps = nullptr;
 		}
-		MediaCodecDecoderFilterImpl::process();
+		H26xDecoderFilterImpl::process();
 	}
 
 	void addFmtp(const char *fmtp) {

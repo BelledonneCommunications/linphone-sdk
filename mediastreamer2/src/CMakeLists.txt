@@ -207,6 +207,7 @@ set(VOIP_SOURCE_FILES_CXX
 	utils/filter-wrapper/decoding-filter-wrapper.cpp
 	utils/filter-wrapper/encoding-filter-wrapper.cpp
 	voip/h26x/h26x-encoder-impl.cpp
+	voip/h26x/h26x-decoder-impl.cpp
 )
 set(VOIP_SOURCE_FILES_OBJC )
 set(VOIP_SOURCE_FILES_ASM )
