@@ -573,7 +573,6 @@ static void au_read_process(MSFilter *f){
 	while((m = getq(&d->rq)) != NULL){
 		d->read_samples += (msgdsize(m) / 2) / d->base.card->nchannels;
 		ms_queue_put(f->outputs[0],m);
-		read_something = TRUE;
 	}
 	ms_mutex_unlock(&d->mutex);
 
