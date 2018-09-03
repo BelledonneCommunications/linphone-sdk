@@ -21,7 +21,7 @@
 
 #include "mediastreamer2/msfilter.h"
 
-#include "decoding-filter-impl.h"
+#include "filter-interface/decoder-filter.h"
 #include "filter-wrapper-base.h"
 
 namespace mediastreamer {

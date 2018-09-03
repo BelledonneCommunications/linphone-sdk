@@ -18,16 +18,16 @@
 */
 
 #include "filter-wrapper/decoding-filter-wrapper.h"
-#include "h26x-decoder-impl.h"
+#include "h26x-decoder-filter.h"
 #include "media-codec-decoder.h"
 
 #include "media-codec-h265-decoder.h"
 
 namespace mediastreamer {
 
-class MediaCodecH265DecoderFilterImpl: public H26xDecoderFilterImpl {
+class MediaCodecH265DecoderFilterImpl: public H26xDecoderFilter {
 public:
-	MediaCodecH265DecoderFilterImpl(MSFilter *f): H26xDecoderFilterImpl(f, "video/hevc", new MediaCodecH265Decoder()) {}
+	MediaCodecH265DecoderFilterImpl(MSFilter *f): H26xDecoderFilter(f, "video/hevc", new MediaCodecH265Decoder()) {}
 };
 
 }

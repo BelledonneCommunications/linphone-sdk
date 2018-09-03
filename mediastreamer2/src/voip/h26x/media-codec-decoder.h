@@ -30,14 +30,13 @@
 
 #include "mediastreamer2/msvideo.h"
 
-#include "decoding-filter-impl.h"
+#include "h26x-decoder.h"
 #include "h26x-utils.h"
 #include "nal-unpacker.h"
-#include "video-decoder-interface.h"
 
 namespace mediastreamer {
 
-class MediaCodecDecoder: public VideoDecoderInterface {
+class MediaCodecDecoder: public H26xDecoder {
 public:
 	virtual ~MediaCodecDecoder();
 

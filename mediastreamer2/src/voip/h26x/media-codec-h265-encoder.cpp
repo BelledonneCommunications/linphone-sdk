@@ -18,7 +18,7 @@
 */
 
 #include "filter-wrapper/encoding-filter-wrapper.h"
-#include "h26x-encoder-impl.h"
+#include "h26x-encoder-filter.h"
 #include "h265-nal-packer.h"
 #include "media-codec-encoder.h"
 
@@ -45,9 +45,9 @@ public:
 	MediaCodecH265Encoder(): MediaCodecEncoder("video/hevc") {}
 };
 
-class MediaCodecH265EncoderFilterImpl: public H26xEncoderFilterImpl {
+class MediaCodecH265EncoderFilterImpl: public H26xEncoderFilter {
 public:
-	MediaCodecH265EncoderFilterImpl(MSFilter *f): H26xEncoderFilterImpl(
+	MediaCodecH265EncoderFilterImpl(MSFilter *f): H26xEncoderFilter(
 		f,
 		new MediaCodecH265Encoder(),
 		new H265NalPacker(f->factory),

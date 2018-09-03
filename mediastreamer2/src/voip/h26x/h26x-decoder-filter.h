@@ -1,5 +1,5 @@
 /*
- Mediastreamer2 h26x-decoder-impl.h
+ Mediastreamer2 h26x-decoder-filter.h
  Copyright (C) 2018 Belledonne Communications SARL
 
  This program is free software; you can redistribute it and/or
@@ -25,15 +25,15 @@
 #include "mediastreamer2/msvideo.h"
 
 #include "nal-unpacker.h"
-#include "video-decoder-interface.h"
+#include "video-decoder.h"
 
-#include "decoding-filter-impl.h"
+#include "filter-interface/decoder-filter.h"
 
 namespace mediastreamer {
 
-class H26xDecoderFilterImpl: public DecodingFilterImpl {
+class H26xDecoderFilter: public DecoderFilter {
 public:
-	H26xDecoderFilterImpl(MSFilter *f, const std::string &mime, VideoDecoderInterface *decoder);
+	H26xDecoderFilter(MSFilter *f, const std::string &mime, VideoDecoder *decoder);
 
 	void preprocess() override;
 	void process() override;
@@ -58,7 +58,7 @@ protected:
 	bool _freezeOnError = true;
 
 	std::unique_ptr<NalUnpacker> _unpacker;
-	std::unique_ptr<VideoDecoderInterface> _codec;
+	std::unique_ptr<VideoDecoder> _codec;
 	bool _firstImageDecoded = false;
 
 	static const unsigned int _timeoutUs = 0;

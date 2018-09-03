@@ -1,5 +1,5 @@
 /*
- Mediastreamer2 video-decoder-interface.h
+ Mediastreamer2 video-decoder.h
  Copyright (C) 2018 Belledonne Communications SARL
 
  This program is free software; you can redistribute it and/or
@@ -27,7 +27,7 @@
 
 namespace mediastreamer {
 
-class VideoDecoderInterface {
+class VideoDecoder {
 public:
 	enum Status {
 		noError,
@@ -35,7 +35,7 @@ public:
 		decodingFailure
 	};
 
-	virtual ~VideoDecoderInterface() = default;
+	virtual ~VideoDecoder() = default;
 
 	virtual void waitForKeyFrame() = 0;
 

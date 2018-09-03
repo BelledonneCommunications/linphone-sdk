@@ -206,8 +206,8 @@ set(VOIP_SOURCE_FILES_C
 set(VOIP_SOURCE_FILES_CXX
 	utils/filter-wrapper/decoding-filter-wrapper.cpp
 	utils/filter-wrapper/encoding-filter-wrapper.cpp
-	voip/h26x/h26x-encoder-impl.cpp
-	voip/h26x/h26x-decoder-impl.cpp
+	voip/h26x/h26x-encoder-filter.cpp
+	voip/h26x/h26x-decoder-filter.cpp
 )
 set(VOIP_SOURCE_FILES_OBJC )
 set(VOIP_SOURCE_FILES_ASM )
@@ -372,6 +372,7 @@ if(ENABLE_VIDEO)
 			videofilters/videotoolbox.cpp
 			voip/h26x/videotoolbox-decoder.cpp
 			voip/h26x/videotoolbox-encoder.cpp
+			voip/h26x/videotoolbox-utils.cpp
 		)
 	endif()
 	if(ANDROID)

@@ -28,14 +28,12 @@
 #include "mediastreamer2/mscommon.h"
 #include "mediastreamer2/msvideo.h"
 
+#include "h26x-decoder.h"
 #include "h26x-utils.h"
-#include "video-decoder-interface.h"
 
 namespace mediastreamer {
 
-std::string toString(OSStatus status);
-
-class VideoToolboxDecoder: public VideoDecoderInterface {
+class VideoToolboxDecoder: public H26xDecoder {
 public:
 	VideoToolboxDecoder();
 	~VideoToolboxDecoder();

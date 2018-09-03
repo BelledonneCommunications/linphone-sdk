@@ -1,5 +1,5 @@
 /*
- Mediastreamer2 video-encoder-interface.h
+ Mediastreamer2 video-encoder.h
  Copyright (C) 2018 Belledonne Communications SARL
 
  This program is free software; you can redistribute it and/or
@@ -23,9 +23,9 @@
 
 namespace mediastreamer {
 
-class VideoEncoderInterface {
+class VideoEncoder {
 public:
-	virtual ~VideoEncoderInterface() = default;
+	virtual ~VideoEncoder() = default;
 
 	virtual MSVideoSize getVideoSize() const = 0;
 	virtual void setVideoSize(const MSVideoSize &vsize) = 0;

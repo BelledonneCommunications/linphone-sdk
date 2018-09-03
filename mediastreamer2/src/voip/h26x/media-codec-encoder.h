@@ -24,12 +24,12 @@
 
 #include <media/NdkMediaCodec.h>
 
+#include "h26x-encoder.h"
 #include "h26x-utils.h"
-#include "video-encoder-interface.h"
 
 namespace mediastreamer {
 
-class MediaCodecEncoder: public VideoEncoderInterface {
+class MediaCodecEncoder: public H26xEncoder {
 public:
 	~MediaCodecEncoder();
 

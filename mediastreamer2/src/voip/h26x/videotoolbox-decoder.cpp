@@ -22,6 +22,7 @@
 #include "mediastreamer2/msvideo.h"
 
 #include "h264-utils.h"
+#include "videotoolbox-utils.h"
 
 #include "videotoolbox-decoder.h"
 
@@ -72,7 +73,7 @@ bool VideoToolboxDecoder::feed(MSQueue *encodedFrame, uint64_t timestamp) {
 	return decodeFrame(encodedFrame, timestamp);
 }
 
-VideoDecoderInterface::Status VideoToolboxDecoder::fetch(mblk_t *&frame) {
+VideoDecoder::Status VideoToolboxDecoder::fetch(mblk_t *&frame) {
 	if (_queue.empty()) {
 		frame = nullptr;
 		return noFrameAvailable;

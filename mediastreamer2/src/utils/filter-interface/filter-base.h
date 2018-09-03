@@ -1,5 +1,5 @@
 /*
- Mediastreamer2 filter-impl-base.h
+ Mediastreamer2 filter-base.h
  Copyright (C) 2018 Belledonne Communications SARL
 
  This program is free software; you can redistribute it and/or
@@ -26,12 +26,12 @@
 
 namespace mediastreamer {
 
-class FilterImplBase {
+class FilterBase {
 public:
 	class MethodCallFailed: public std::exception {};
 
-	FilterImplBase(MSFilter *f): _f(f) {}
-	virtual ~FilterImplBase() = default;
+	FilterBase(MSFilter *f): _f(f) {}
+	virtual ~FilterBase() = default;
 
 	virtual void preprocess() = 0;
 	virtual void process() = 0;
