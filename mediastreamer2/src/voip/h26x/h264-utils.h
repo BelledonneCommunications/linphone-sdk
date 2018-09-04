@@ -92,7 +92,7 @@ void ms_h264_stream_to_nalus(const uint8_t *frame, size_t size, MSQueue *nalus, 
 
 /**
  * @brief Extract video size from a SPS NALu.
- * @param sps A mblk_t holding the SPS.
+ * @param sps A mblk_t holding the SPS.
  * @return The video size.
  */
 MSVideoSize ms_h264_sps_get_video_size(const mblk_t* sps);
@@ -114,6 +114,7 @@ public:
 	bool isKeyFramePart() const override {return *this == Idr;}
 
 	static const H264NaluType Idr;
+	static const H264NaluType Sei;
 	static const H264NaluType Sps;
 	static const H264NaluType Pps;
 	static const H264NaluType StapA;

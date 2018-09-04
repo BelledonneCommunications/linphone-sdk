@@ -188,6 +188,7 @@ H264NaluType::H264NaluType(uint8_t value) {
 }
 
 const H264NaluType H264NaluType::Idr = 5;
+const H264NaluType H264NaluType::Sei = 6;
 const H264NaluType H264NaluType::Sps = 7;
 const H264NaluType H264NaluType::Pps = 8;
 const H264NaluType H264NaluType::StapA = 24;

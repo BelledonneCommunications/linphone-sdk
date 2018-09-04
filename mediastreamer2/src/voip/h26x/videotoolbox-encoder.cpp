@@ -21,6 +21,7 @@
 #include <stdexcept>
 
 #include "h26x/h264-utils.h"
+#include "h26x/h26x-utils.h"
 #include "videotoolbox-utils.h"
 
 #include "videotoolbox-encoder.h"
@@ -238,9 +239,6 @@ void VideoToolboxEncoder::applyBitrate() {
 }
 
 void VideoToolboxEncoder::outputCb(void *outputCallbackRefCon, void *sourceFrameRefCon, OSStatus status, VTEncodeInfoFlags infoFlags, CMSampleBufferRef sampleBuffer) {
-	size_t read_size=0, offset=0;
-	bool is_keyframe = false;
-
 	VideoToolboxEncoder *ctx = static_cast<VideoToolboxEncoder *>(outputCallbackRefCon);
 
 	if(sampleBuffer == nullptr || status != noErr) {
@@ -251,25 +249,22 @@ void VideoToolboxEncoder::outputCb(void *outputCallbackRefCon, void *sourceFrame
 	if(ctx->_session) {
 		Frame encodedFrame;
 		CMBlockBufferRef block_buffer = CMSampleBufferGetDataBuffer(sampleBuffer);
-		size_t frame_size = CMBlockBufferGetDataLength(block_buffer);
+		const size_t frame_size = CMBlockBufferGetDataLength(block_buffer);
+		size_t read_size = 0;
+		bool is_keyframe = false;
+
 		while(read_size < frame_size) {
 			char *chunk;
 			size_t chunk_size;
 			int idr_count;
-			OSStatus status = CMBlockBufferGetDataPointer(block_buffer, offset, &chunk_size, NULL, &chunk);
+			OSStatus status = CMBlockBufferGetDataPointer(block_buffer, read_size, &chunk_size, NULL, &chunk);
 			if (status != kCMBlockBufferNoErr) {
 				vth264enc_error("error while reading a chunk of encoded frame: %s", toString(status).c_str());
-				break;
+				return;
 			}
 			ms_h264_stream_to_nalus(reinterpret_cast<uint8_t *>(chunk), chunk_size, encodedFrame.getQueue(), &idr_count);
-			if(idr_count) is_keyframe = true;
+			is_keyframe = (idr_count > 0);
 			read_size += chunk_size;
-			offset += chunk_size;
-		}
-
-		if (read_size < frame_size) {
-			vth264enc_error("error while reading an encoded frame. Dropping it");
-			return;
 		}
 
 		if(is_keyframe) {
@@ -278,7 +273,7 @@ void VideoToolboxEncoder::outputCb(void *outputCallbackRefCon, void *sourceFrame
 			size_t parameter_set_size;
 			size_t parameter_set_count;
 			CMFormatDescriptionRef format_desc = CMSampleBufferGetFormatDescription(sampleBuffer);
-			offset=0;
+			size_t offset = 0;
 			do {
 				CMVideoFormatDescriptionGetH264ParameterSetAtIndex(format_desc, offset, &parameter_set, &parameter_set_size, &parameter_set_count, NULL);
 				mblk_t *nalu = allocb(parameter_set_size, 0);
