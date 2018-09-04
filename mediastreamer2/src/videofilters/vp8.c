@@ -673,6 +673,13 @@ static int enc_set_configuration(MSFilter *f, void *data) {
 	return 0;
 }
 
+static int enc_get_configuration(MSFilter *f, void *data) {
+	EncState *s = (EncState *)f->data;
+	MSVideoConfiguration *vconf = (MSVideoConfiguration *)data;
+	memcpy(vconf, &s->vconf, sizeof(MSVideoConfiguration));
+	return 0;
+}
+
 static int enc_set_vsize(MSFilter *f, void *data) {
 	MSVideoConfiguration best_vconf;
 	MSVideoSize *vs = (MSVideoSize *)data;
@@ -873,6 +880,7 @@ static MSFilterMethod enc_methods[] = {
 	{ MS_VIDEO_ENCODER_NOTIFY_RPSI,            enc_notify_rpsi            },
 	{ MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, enc_get_configuration_list },
 	{ MS_VIDEO_ENCODER_SET_CONFIGURATION_LIST, enc_set_configuration_list },
+	{ MS_VIDEO_ENCODER_GET_CONFIGURATION,      enc_get_configuration      },
 	{ MS_VIDEO_ENCODER_SET_CONFIGURATION,      enc_set_configuration      },
 	{ MS_VIDEO_ENCODER_ENABLE_AVPF,            enc_enable_avpf            },
 	{ 0,                                       NULL                       }

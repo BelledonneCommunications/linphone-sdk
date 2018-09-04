@@ -285,6 +285,8 @@ typedef enum _MSRecorderState MSRecorderState;
 	MS_FILTER_METHOD(MSFilterVideoEncoderInterface, 9, const MSVideoConfiguration *)
 #define MS_VIDEO_ENCODER_IS_HARDWARE_ACCELERATED \
 	MS_FILTER_METHOD(MSFilterVideoEncoderInterface, 10, bool_t)
+#define MS_VIDEO_ENCODER_GET_CONFIGURATION \
+	MS_FILTER_METHOD(MSFilterVideoEncoderInterface, 11, MSVideoConfiguration )
 
 /** Interface definitions for audio capture */
 /* Start numbering from the end for hacks */
