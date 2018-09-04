@@ -32,9 +32,11 @@ if(ENABLE_TESTS AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 		bctoolbox_tester.h
 		containers.cc
 		port.c
-		crypto.c
 		parser.c
 	)
+	if(MBEDTLS_FOUND OR POLARSSL_FOUND)
+        	list(APPEND TESTER_SOURCES crypto.c)
+	endif()
 
 	string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
 

@@ -27,7 +27,6 @@ set(BCTOOLBOX_C_SOURCE_FILES
 	vfs.c
 	vconnect.c
 	parser.c
-	crypto/crypto.c
 )
 
 set(BCTOOLBOX_CXX_SOURCE_FILES
@@ -48,7 +47,9 @@ endif()
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 	list(APPEND STRICT_OPTIONS_CXX "-x c++")
 endif()
-
+if(MBEDTLS_FOUND OR POLARSSL_FOUND)
+	list(APPEND BCTOOLBOX_C_SOURCE_FILES crypto/crypto.c)
+endif()
 if(MBEDTLS_FOUND)
 	list(APPEND BCTOOLBOX_C_SOURCE_FILES crypto/mbedtls.c)
 endif()

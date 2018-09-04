@@ -46,7 +46,9 @@ void bctoolbox_tester_init(void(*ftester_printf)(int level, const char *fmt, va_
 	bc_tester_init(log_handler,BCTBX_LOG_ERROR, 0,NULL);
 	bc_tester_add_suite(&containers_test_suite);
 	bc_tester_add_suite(&utils_test_suite);
+#if (HAVE_MBEDTLS | HAVE_POLARSSL)
 	bc_tester_add_suite(&crypto_test_suite);
+#endif
 	bc_tester_add_suite(&parser_test_suite);
 }
 
