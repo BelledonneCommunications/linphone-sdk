@@ -479,7 +479,6 @@ static MSVideoSize get_with_same_orientation_and_ratio(MSVideoSize size, MSVideo
 
 static void configure_video_source(VideoStream *stream){
 	MSVideoSize cam_vsize;
-	MSVideoConfiguration *vconf_list = NULL;
 	MSVideoConfiguration vconf;
 	MSPixFmt format=MS_PIX_FMT_UNKNOWN;
 	MSVideoEncoderPixFmt encoder_supports_source_format;
@@ -548,15 +547,6 @@ static void configure_video_source(VideoStream *stream){
 			ms_warning("Camera video size greater than encoder one. A scaling filter will be used!");
 		}
 #endif
-	}
-
-	ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, &vconf_list);
-	if (vconf_list){
-		MSVideoConfiguration best_vconf;
-		best_vconf = ms_video_find_best_configuration_for_size_and_bitrate(vconf_list, vconf.vsize, ms_factory_get_cpu_count(stream->ms.factory), vconf.required_bitrate);
-		vconf.fps = best_vconf.fps;
-		vconf.bitrate_limit = best_vconf.bitrate_limit;
-		vconf.required_bitrate = best_vconf.bitrate_limit < vconf.required_bitrate ? best_vconf.bitrate_limit : vconf.required_bitrate;
 	}
 
 	if (stream->ms.target_bitrate > 0) {
