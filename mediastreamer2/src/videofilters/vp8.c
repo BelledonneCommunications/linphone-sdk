@@ -680,41 +680,6 @@ static int enc_get_configuration(MSFilter *f, void *data) {
 	return 0;
 }
 
-static int enc_set_vsize(MSFilter *f, void *data) {
-	MSVideoConfiguration best_vconf;
-	MSVideoSize *vs = (MSVideoSize *)data;
-	EncState *s = (EncState *)f->data;
-	best_vconf = ms_video_find_best_configuration_for_size_and_bitrate(s->vconf_list, *vs, ms_factory_get_cpu_count(f->factory), s->vconf.required_bitrate);
-	s->vconf.vsize = *vs;
-	s->vconf.fps = best_vconf.fps;
-	s->vconf.bitrate_limit = best_vconf.bitrate_limit;
-	s->vconf.required_bitrate = best_vconf.bitrate_limit < s->vconf.required_bitrate ? best_vconf.bitrate_limit : s->vconf.required_bitrate;
-	enc_set_configuration(f, &s->vconf);
-	return 0;
-}
-
-static int enc_get_vsize(MSFilter *f, void *data) {
-	EncState *s = (EncState *)f->data;
-	MSVideoSize *vs = (MSVideoSize *)data;
-	*vs = s->vconf.vsize;
-	return 0;
-}
-
-static int enc_set_fps(MSFilter *f, void *data) {
-	EncState *s = (EncState *)f->data;
-	float *fps = (float *)data;
-	s->vconf.fps = *fps;
-	enc_set_configuration(f, &s->vconf);
-	return 0;
-}
-
-static int enc_get_fps(MSFilter *f, void *data) {
-	EncState *s = (EncState *)f->data;
-	float *fps = (float *)data;
-	*fps = s->vconf.fps;
-	return 0;
-}
-
 static int enc_get_br(MSFilter *f, void *data) {
 	EncState *s = (EncState *)f->data;
 	*(int *)data = s->vconf.required_bitrate;
