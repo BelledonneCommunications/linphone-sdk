@@ -21,7 +21,6 @@
 
 #include "mediastreamer2/msvideo.h"
 
-#include "h264-utils.h"
 #include "videotoolbox-utils.h"
 
 #include "videotoolbox-decoder.h"

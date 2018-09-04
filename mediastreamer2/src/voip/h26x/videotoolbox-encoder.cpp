@@ -20,7 +20,6 @@
 #include <sstream>
 #include <stdexcept>
 
-#include "h26x/h264-utils.h"
 #include "h26x/h26x-utils.h"
 #include "videotoolbox-utils.h"
 
@@ -43,7 +42,7 @@ VideoToolboxEncoder::Frame::Frame(Frame &&src) {
 	}
 }
 
-VideoToolboxEncoder::VideoToolboxEncoder() {
+VideoToolboxEncoder::VideoToolboxEncoder(const string &mime): _mime(mime) {
 	_vsize.width = 0;
 	_vsize.height = 0;
 	ms_mutex_init(&_mutex, nullptr);
@@ -251,23 +250,30 @@ void VideoToolboxEncoder::outputCb(void *outputCallbackRefCon, void *sourceFrame
 		CMBlockBufferRef block_buffer = CMSampleBufferGetDataBuffer(sampleBuffer);
 		const size_t frame_size = CMBlockBufferGetDataLength(block_buffer);
 		size_t read_size = 0;
-		bool is_keyframe = false;
 
 		while(read_size < frame_size) {
 			char *chunk;
 			size_t chunk_size;
-			int idr_count;
 			OSStatus status = CMBlockBufferGetDataPointer(block_buffer, read_size, &chunk_size, NULL, &chunk);
 			if (status != kCMBlockBufferNoErr) {
 				vth264enc_error("error while reading a chunk of encoded frame: %s", toString(status).c_str());
 				return;
 			}
-			ms_h264_stream_to_nalus(reinterpret_cast<uint8_t *>(chunk), chunk_size, encodedFrame.getQueue(), &idr_count);
-			is_keyframe = (idr_count > 0);
+			H26xUtils::naluStreamToNalus(reinterpret_cast<uint8_t *>(chunk), chunk_size, encodedFrame.getQueue());
 			read_size += chunk_size;
 		}
 
-		if(is_keyframe) {
+		bool isKeyFrame = false;
+		unique_ptr<H26xNaluHeader> header(H26xToolFactory::get(ctx->_mime).createNaluHeader());
+		for (const mblk_t *nalu = ms_queue_peek_first(encodedFrame.getQueue()); !ms_queue_end(encodedFrame.getQueue(), nalu); nalu = ms_queue_next(encodedFrame.getQueue(), nalu)) {
+			header->parse(nalu->b_rptr);
+			if (header->getAbsType().isKeyFramePart()) {
+				isKeyFrame = true;
+				break;
+			}
+		}
+
+		if(isKeyFrame) {
 			mblk_t *insertion_point = ms_queue_peek_first(encodedFrame.getQueue());
 			const uint8_t *parameter_set;
 			size_t parameter_set_size;

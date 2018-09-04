@@ -33,7 +33,7 @@ namespace mediastreamer {
 
 class VideoToolboxEncoder: public H26xEncoder {
 public:
-	VideoToolboxEncoder();
+	VideoToolboxEncoder(const std::string &mime);
 	~VideoToolboxEncoder() {if (_session) CFRelease(_session);}
 
 	MSVideoSize getVideoSize() const override {return _vsize;}
@@ -72,6 +72,7 @@ private:
 	void applyBitrate();
 	static void outputCb(void *outputCallbackRefCon, void *sourceFrameRefCon, OSStatus status, VTEncodeInfoFlags infoFlags, CMSampleBufferRef sampleBuffer);
 
+	std::string _mime;
 	MSVideoSize _vsize;
 	float _framerate = 0.0f;
 	int _bitrate = 0;

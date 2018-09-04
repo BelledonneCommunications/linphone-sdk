@@ -28,8 +28,9 @@
 #include "mediastreamer2/mscommon.h"
 #include "mediastreamer2/msvideo.h"
 
-#include "h26x-decoder.h"
 #include "h26x-utils.h"
+
+#include "h26x-decoder.h"
 
 namespace mediastreamer {
 
