@@ -72,7 +72,6 @@ private:
 	void applyBitrate();
 	static void outputCb(void *outputCallbackRefCon, void *sourceFrameRefCon, OSStatus status, VTEncodeInfoFlags infoFlags, CMSampleBufferRef sampleBuffer);
 
-	std::string _mime;
 	MSVideoSize _vsize;
 	float _framerate = 0.0f;
 	int _bitrate = 0;

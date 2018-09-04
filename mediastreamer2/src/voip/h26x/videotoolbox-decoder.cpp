@@ -36,10 +36,10 @@ using namespace std;
 
 namespace mediastreamer {
 
-VideoToolboxDecoder::VideoToolboxDecoder() {
+VideoToolboxDecoder::VideoToolboxDecoder(const string &mime): H26xDecoder(mime) {
 	_pixbufAllocator = ms_yuv_buf_allocator_new();
 	ms_mutex_init(&_mutex, nullptr);
-	const H26xToolFactory &factory = H26xToolFactory::get("video/avc");
+	const H26xToolFactory &factory = H26xToolFactory::get(mime);
 	_psStore.reset(factory.createParameterSetsStore());
 	_naluHeader.reset(factory.createNaluHeader());
 }

@@ -42,7 +42,7 @@ VideoToolboxEncoder::Frame::Frame(Frame &&src) {
 	}
 }
 
-VideoToolboxEncoder::VideoToolboxEncoder(const string &mime): _mime(mime) {
+VideoToolboxEncoder::VideoToolboxEncoder(const string &mime): H26xEncoder(mime) {
 	_vsize.width = 0;
 	_vsize.height = 0;
 	ms_mutex_init(&_mutex, nullptr);

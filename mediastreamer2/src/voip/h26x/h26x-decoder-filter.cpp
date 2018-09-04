@@ -25,10 +25,10 @@ using namespace std;
 
 namespace mediastreamer {
 
-H26xDecoderFilter::H26xDecoderFilter(MSFilter *f, const std::string &mime, VideoDecoder *decoder):
+H26xDecoderFilter::H26xDecoderFilter(MSFilter *f, H26xDecoder *decoder):
 	DecoderFilter(f),
 	_vsize({0, 0}),
-	_unpacker(H26xToolFactory::get(mime).createNalUnpacker()),
+	_unpacker(H26xToolFactory::get(decoder->getMime()).createNalUnpacker()),
 	_codec(decoder) {
 
 	ms_average_fps_init(&_fps, " H26x decoder: FPS: %f");

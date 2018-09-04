@@ -20,8 +20,8 @@
 #pragma once
 
 #include "filter-interface/encoder-filter.h"
+#include "h26x-encoder.h"
 #include "nal-packer.h"
-#include "video-encoder.h"
 
 namespace mediastreamer {
 
@@ -52,9 +52,9 @@ public:
 	void notifySli() override;
 
 protected:
-	H26xEncoderFilter(MSFilter *f, VideoEncoder *encoder, NalPacker *packer, const MSVideoConfiguration *defaultVConfList);
+	H26xEncoderFilter(MSFilter *f, H26xEncoder *encoder, const MSVideoConfiguration *defaultVConfList);
 
-	std::unique_ptr<VideoEncoder> _encoder;
+	std::unique_ptr<H26xEncoder> _encoder;
 	std::unique_ptr<NalPacker> _packer;
 	const MSVideoConfiguration *_vconfList = nullptr;
 	const MSVideoConfiguration *_defaultVConfList = nullptr;

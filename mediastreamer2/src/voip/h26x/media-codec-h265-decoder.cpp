@@ -27,7 +27,7 @@ namespace mediastreamer {
 
 class MediaCodecH265DecoderFilterImpl: public H26xDecoderFilter {
 public:
-	MediaCodecH265DecoderFilterImpl(MSFilter *f): H26xDecoderFilter(f, "video/hevc", new MediaCodecH265Decoder()) {}
+	MediaCodecH265DecoderFilterImpl(MSFilter *f): H26xDecoderFilter(f, new MediaCodecH265Decoder()) {}
 };
 
 }

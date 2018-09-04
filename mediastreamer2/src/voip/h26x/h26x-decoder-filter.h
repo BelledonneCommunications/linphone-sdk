@@ -24,8 +24,8 @@
 
 #include "mediastreamer2/msvideo.h"
 
+#include "h26x-decoder.h"
 #include "nal-unpacker.h"
-#include "video-decoder.h"
 
 #include "filter-interface/decoder-filter.h"
 
@@ -33,7 +33,7 @@ namespace mediastreamer {
 
 class H26xDecoderFilter: public DecoderFilter {
 public:
-	H26xDecoderFilter(MSFilter *f, const std::string &mime, VideoDecoder *decoder);
+	H26xDecoderFilter(MSFilter *f, H26xDecoder *decoder);
 
 	void preprocess() override;
 	void process() override;
@@ -58,7 +58,7 @@ protected:
 	bool _freezeOnError = true;
 
 	std::unique_ptr<NalUnpacker> _unpacker;
-	std::unique_ptr<VideoDecoder> _codec;
+	std::unique_ptr<H26xDecoder> _codec;
 	bool _firstImageDecoded = false;
 
 	static const unsigned int _timeoutUs = 0;

@@ -44,12 +44,12 @@ const MSVideoConfiguration vth264enc_video_confs[] = {
 
 class VideoToolboxH264EncoderFilterImpl: public H26xEncoderFilter {
 public:
-	VideoToolboxH264EncoderFilterImpl(MSFilter *f): H26xEncoderFilter(f, new VideoToolboxEncoder("video/avc"), new H264NalPacker(), vth264enc_video_confs) {}
+	VideoToolboxH264EncoderFilterImpl(MSFilter *f): H26xEncoderFilter(f, new VideoToolboxEncoder("video/avc"), vth264enc_video_confs) {}
 };
 
 class VideoToolboxH264DecoderFilterImpl: public H26xDecoderFilter {
 public:
-	VideoToolboxH264DecoderFilterImpl(MSFilter *f): H26xDecoderFilter(f, "video/avc", new VideoToolboxDecoder()) {}
+	VideoToolboxH264DecoderFilterImpl(MSFilter *f): H26xDecoderFilter(f, new VideoToolboxDecoder("video/avc")) {}
 };
 
 } // namespace mediastreamer

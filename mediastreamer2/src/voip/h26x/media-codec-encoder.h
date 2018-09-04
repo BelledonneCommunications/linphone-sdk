@@ -58,7 +58,6 @@ protected:
 	virtual AMediaFormat *createMediaFormat() const;
 	virtual std::ostringstream getMediaForamtAsString() const;
 
-	std::string _mime;
 	std::unique_ptr<H26xParameterSetsInserter> _psInserter;
 	MSVideoSize _vsize;
 	float _fps = 0;

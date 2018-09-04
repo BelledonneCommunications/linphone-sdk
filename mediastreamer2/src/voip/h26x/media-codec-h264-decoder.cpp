@@ -77,7 +77,7 @@ bool MediaCodecH264Decoder::isNewPps(mblk_t *sps) {
 
 class MediaCodecH264DecoderFilterImpl: public H26xDecoderFilter {
 public:
-	MediaCodecH264DecoderFilterImpl(MSFilter *f): H26xDecoderFilter(f, "video/avc", new MediaCodecH264Decoder()) {}
+	MediaCodecH264DecoderFilterImpl(MSFilter *f): H26xDecoderFilter(f, new MediaCodecH264Decoder()) {}
 	~MediaCodecH264DecoderFilterImpl() {
 		if (_sps) freemsg(_sps);
 		if (_pps) freemsg(_pps);

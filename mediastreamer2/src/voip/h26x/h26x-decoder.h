@@ -19,10 +19,20 @@
 
 #pragma once
 
+#include <string>
+
 #include "video-decoder.h"
 
 namespace mediastreamer {
 
-class H26xDecoder: public VideoDecoder {};
+class H26xDecoder: public VideoDecoder {
+public:
+	H26xDecoder(const std::string &mime): _mime(mime) {}
+
+	const std::string &getMime() const {return _mime;}
+
+protected:
+	std::string _mime;
+};
 
 } // namespcae mediastreamer

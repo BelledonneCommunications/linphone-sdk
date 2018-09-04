@@ -44,7 +44,7 @@ using namespace std;
 
 namespace mediastreamer {
 
-MediaCodecDecoder::MediaCodecDecoder(const std::string &mime) {
+MediaCodecDecoder::MediaCodecDecoder(const std::string &mime): H26xDecoder(mime) {
 	try {
 		_impl = AMediaCodec_createDecoderByType(mime.c_str());
 		if (_impl == nullptr) {

@@ -17,19 +17,22 @@
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
+#include "h26x-utils.h"
+
 #include "h26x-encoder-filter.h"
 
 using namespace std;
 
 namespace mediastreamer {
 
-H26xEncoderFilter::H26xEncoderFilter(MSFilter *f, VideoEncoder *encoder, NalPacker *packer, const MSVideoConfiguration *defaultVConfList):
-	EncoderFilter(f), _encoder(encoder), _packer(packer), _defaultVConfList(defaultVConfList) {
+H26xEncoderFilter::H26xEncoderFilter(MSFilter *f, H26xEncoder *encoder, const MSVideoConfiguration *defaultVConfList):
+	EncoderFilter(f), _encoder(encoder), _defaultVConfList(defaultVConfList) {
 
 	setVideoConfigurations(nullptr);
 	_vconf = ms_video_find_best_configuration_for_size(_vconfList, MS_VIDEO_SIZE_CIF, ms_factory_get_cpu_count(f->factory));
 	ms_video_starter_init(&_starter);
 
+	_packer.reset(H26xToolFactory::get(_encoder->getMime()).createNalPacker(f->factory));
 	_packer->setPacketizationMode(NalPacker::NonInterleavedMode);
 	_packer->enableAggregation(false);
 }

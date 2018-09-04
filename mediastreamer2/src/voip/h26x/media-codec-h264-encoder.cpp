@@ -63,11 +63,7 @@ private:
 
 class MediaCodecH264EncoderFilterImpl: public H26xEncoderFilter {
 public:
-	MediaCodecH264EncoderFilterImpl(MSFilter *f): H26xEncoderFilter(
-		f,
-		new MediaCodecH264Encoder(),
-		new H264NalPacker(),
-		_media_codec_h264_conf_list) {}
+	MediaCodecH264EncoderFilterImpl(MSFilter *f): H26xEncoderFilter(f, new MediaCodecH264Encoder(), _media_codec_h264_conf_list) {}
 };
 
 } // mamespace mediastreamer

@@ -47,11 +47,7 @@ public:
 
 class MediaCodecH265EncoderFilterImpl: public H26xEncoderFilter {
 public:
-	MediaCodecH265EncoderFilterImpl(MSFilter *f): H26xEncoderFilter(
-		f,
-		new MediaCodecH265Encoder(),
-		new H265NalPacker(f->factory),
-		_media_codec_h265_conf_list) {}
+	MediaCodecH265EncoderFilterImpl(MSFilter *f): H26xEncoderFilter(f, new MediaCodecH265Encoder(), _media_codec_h265_conf_list) {}
 };
 
 }

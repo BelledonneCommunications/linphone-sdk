@@ -36,7 +36,7 @@ namespace mediastreamer {
 
 class VideoToolboxDecoder: public H26xDecoder {
 public:
-	VideoToolboxDecoder();
+	VideoToolboxDecoder(const std::string &mime);
 	~VideoToolboxDecoder();
 
 	bool feed(MSQueue *encodedFrame, uint64_t timestamp) override;
