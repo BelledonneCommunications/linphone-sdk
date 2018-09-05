@@ -228,33 +228,6 @@ void MSOpenH264Encoder::uninitialize()
 	mInitialized = false;
 }
 
-void MSOpenH264Encoder::setFPS(float fps)
-{
-	mVConf.fps = fps;
-	setConfiguration(mVConf);
-}
-
-void MSOpenH264Encoder::setBitrate(int bitrate)
-{
-	if (isInitialized()) {
-		// Encoding is already ongoing, do not change video size, only bitrate.
-		mVConf.required_bitrate = bitrate;
-		setConfiguration(mVConf);
-	} else {
-		MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_bitrate(mVConfList, bitrate, ms_factory_get_cpu_count(mFilter->factory));
-		setConfiguration(best_vconf);
-	}
-}
-
-void MSOpenH264Encoder::setSize(MSVideoSize size)
-{
-	MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_size(mVConfList, size, ms_factory_get_cpu_count(mFilter->factory));
-	mVConf.vsize = size;
-	mVConf.fps = best_vconf.fps;
-	mVConf.bitrate_limit = best_vconf.bitrate_limit;
-	setConfiguration(mVConf);
-}
-
 void MSOpenH264Encoder::addFmtp(const char *fmtp)
 {
 	char value[12];
@@ -278,10 +251,15 @@ void MSOpenH264Encoder::setConfigurationList(const MSVideoConfiguration *confLis
 
 void MSOpenH264Encoder::setConfiguration(MSVideoConfiguration conf)
 {
+	MSVideoSize vsize = mVConf.vsize;
+
 	mVConf = conf;
 	if (mVConf.required_bitrate > mVConf.bitrate_limit)
 		mVConf.required_bitrate = mVConf.bitrate_limit;
 	if (isInitialized()) {
+		/* Do not change video size if encoder is running */
+		mVConf.vsize = vsize;
+
 		ms_filter_lock(mFilter);
 		applyBitrate();
 		ms_filter_unlock(mFilter);

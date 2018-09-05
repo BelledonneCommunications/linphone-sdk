@@ -34,16 +34,11 @@ public:
 	bool isInitialized() const { return mInitialized; }
 	void feed();
 	void uninitialize();
-	void setFPS(float fps);
-	float getFPS() const { return mVConf.fps; }
-	void setBitrate(int bitrate);
-	int getBitrate() const { return mVConf.required_bitrate; }
-	void setSize(MSVideoSize size);
-	MSVideoSize getSize() const { return mVConf.vsize; }
 	void addFmtp(const char *fmtp);
 	const MSVideoConfiguration *getConfigurationList() const { return mVConfList; }
 	void setConfigurationList(const MSVideoConfiguration *confList);
 	void setConfiguration(MSVideoConfiguration conf);
+	MSVideoConfiguration getConfiguration() { return mVConf; }
 	void requestVFU();
 	void enableAVPF(bool enable) { mAVPFEnabled = enable; }
 	void notifyPLI();

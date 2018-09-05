@@ -171,48 +171,6 @@ static void msopenh264_enc_uninit(MSFilter *f) {
  * Methods to configure the encoder                                           *
  *****************************************************************************/
 
-static int msopenh264_enc_set_fps(MSFilter *f, void *arg) {
-	MSOpenH264Encoder *e = static_cast<MSOpenH264Encoder *>(f->data);
-	float *fps = static_cast<float *>(arg);
-	e->setFPS(*fps);
-	return 0;
-}
-
-static int msopenh264_enc_get_fps(MSFilter *f, void *arg) {
-	MSOpenH264Encoder *e = static_cast<MSOpenH264Encoder *>(f->data);
-	float *fps = static_cast<float *>(arg);
-	*fps = e->getFPS();
-	return 0;
-}
-
-static int msopenh264_enc_set_bitrate(MSFilter *f, void *arg) {
-	MSOpenH264Encoder *e = static_cast<MSOpenH264Encoder *>(f->data);
-	int *bitrate = static_cast<int *>(arg);
-	e->setBitrate(*bitrate);
-	return 0;
-}
-
-static int msopenh264_enc_get_bitrate(MSFilter *f, void *arg) {
-	MSOpenH264Encoder *e = static_cast<MSOpenH264Encoder *>(f->data);
-	int *bitrate = static_cast<int *>(arg);
-	*bitrate = e->getBitrate();
-	return 0;
-}
-
-static int msopenh264_enc_set_vsize(MSFilter *f, void *arg) {
-	MSOpenH264Encoder *e = static_cast<MSOpenH264Encoder *>(f->data);
-	MSVideoSize *vsize = static_cast<MSVideoSize *>(arg);
-	e->setSize(*vsize);
-	return 0;
-}
-
-static int msopenh264_enc_get_vsize(MSFilter *f, void *arg) {
-	MSOpenH264Encoder *e = static_cast<MSOpenH264Encoder *>(f->data);
-	MSVideoSize *vsize = static_cast<MSVideoSize *>(arg);
-	*vsize = e->getSize();
-	return 0;
-}
-
 static int msopenh264_enc_add_fmtp(MSFilter *f, void *arg) {
 	MSOpenH264Encoder *e = static_cast<MSOpenH264Encoder *>(f->data);
 	const char *fmtp = static_cast<const char *>(arg);
@@ -260,6 +218,13 @@ static int msopenh264_enc_set_configuration_list(MSFilter *f, void *arg) {
 	return 0;
 }
 
+static int msopenh264_enc_get_configuration(MSFilter *f, void *arg) {
+	MSOpenH264Encoder *e = static_cast<MSOpenH264Encoder *>(f->data);
+	MSVideoConfiguration *vconf = static_cast<MSVideoConfiguration *>(arg);
+	*vconf = e->getConfiguration();
+	return 0;
+}
+
 static int msopenh264_enc_set_configuration(MSFilter *f, void *arg) {
 	MSOpenH264Encoder *e = static_cast<MSOpenH264Encoder *>(f->data);
 	MSVideoConfiguration *vconf = static_cast<MSVideoConfiguration *>(arg);
@@ -268,12 +233,6 @@ static int msopenh264_enc_set_configuration(MSFilter *f, void *arg) {
 }
 
 static MSFilterMethod msopenh264_enc_methods[] = {
-	{ MS_FILTER_SET_FPS,                       msopenh264_enc_set_fps                },
-	{ MS_FILTER_GET_FPS,                       msopenh264_enc_get_fps                },
-	{ MS_FILTER_SET_BITRATE,                   msopenh264_enc_set_bitrate            },
-	{ MS_FILTER_GET_BITRATE,                   msopenh264_enc_get_bitrate            },
-	{ MS_FILTER_SET_VIDEO_SIZE,                msopenh264_enc_set_vsize              },
-	{ MS_FILTER_GET_VIDEO_SIZE,                msopenh264_enc_get_vsize              },
 	{ MS_FILTER_ADD_FMTP,                      msopenh264_enc_add_fmtp               },
 	{ MS_FILTER_REQ_VFU,                       msopenh264_enc_req_vfu                },
 	{ MS_VIDEO_ENCODER_REQ_VFU,                msopenh264_enc_req_vfu                },
@@ -282,6 +241,7 @@ static MSFilterMethod msopenh264_enc_methods[] = {
 	{ MS_VIDEO_ENCODER_ENABLE_AVPF,            msopenh264_enc_enable_avpf            },
 	{ MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, msopenh264_enc_get_configuration_list },
 	{ MS_VIDEO_ENCODER_SET_CONFIGURATION_LIST, msopenh264_enc_set_configuration_list },
+	{ MS_VIDEO_ENCODER_GET_CONFIGURATION,      msopenh264_enc_get_configuration      },
 	{ MS_VIDEO_ENCODER_SET_CONFIGURATION,      msopenh264_enc_set_configuration      },
 	{ 0,                                       NULL                                  }
 };
