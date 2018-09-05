@@ -15,20 +15,14 @@
  You should have received a copy of the GNU General Public License
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
- */
-
-#include <math.h>
-
-// #include <ortp/str_utils.h>
+*/
 
 #include "mediastreamer2/bits_rw.h"
-#include "mediastreamer2/msqueue.h"
 #include "mediastreamer2/rfc3984.h"
 
 #include "h264-nal-packer.h"
 #include "h264-nal-unpacker.h"
 #include "h264-utils.h"
-#include "h26x-utils.h"
 
 using namespace mediastreamer;
 using namespace std;

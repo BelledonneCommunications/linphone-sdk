@@ -20,12 +20,8 @@
 #pragma once
 
 #include <list>
-#include <string>
 
 #include <VideoToolbox/VTCompressionSession.h>
-
-#include "mediastreamer2/mscommon.h"
-#include "mediastreamer2/msqueue.h"
 
 #include "h26x-encoder.h"
 

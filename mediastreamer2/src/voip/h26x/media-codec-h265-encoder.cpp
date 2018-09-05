@@ -19,7 +19,6 @@
 
 #include "filter-wrapper/encoding-filter-wrapper.h"
 #include "h26x-encoder-filter.h"
-#include "h265-nal-packer.h"
 #include "media-codec-encoder.h"
 
 #define MS_MEDIACODECH265_CONF(required_bitrate, bitrate_limit, resolution, fps, ncpus) \

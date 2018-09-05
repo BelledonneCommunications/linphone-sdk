@@ -19,20 +19,12 @@
 
 #pragma once
 
-#include <cstdint>
-#include <list>
-#include <memory>
-#include <stdexcept>
-#include <string>
 #include <vector>
 
-#include <media/NdkMediaCodec.h>
-
-#include "mediastreamer2/msvideo.h"
+#include "h26x-utils.h"
+#include "media/NdkMediaCodec.h"
 
 #include "h26x-decoder.h"
-#include "h26x-utils.h"
-#include "nal-unpacker.h"
 
 namespace mediastreamer {
 

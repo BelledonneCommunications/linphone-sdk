@@ -20,7 +20,6 @@
 #pragma once
 
 #include <cstdint>
-#include <list>
 #include <map>
 #include <memory>
 #include <unordered_map>
@@ -28,8 +27,8 @@
 
 #include "mediastreamer2/msqueue.h"
 
-#include "h264-nal-packer.h"
-#include "h264-nal-unpacker.h"
+#include "nal-packer.h"
+#include "nal-unpacker.h"
 
 namespace mediastreamer {
 

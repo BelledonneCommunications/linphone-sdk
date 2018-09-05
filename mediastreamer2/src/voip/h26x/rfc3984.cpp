@@ -17,11 +17,11 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#include "mediastreamer2/rfc3984.h"
-
 #include "h264-nal-packer.h"
 #include "h264-nal-unpacker.h"
 #include "h264-utils.h"
+
+#include "mediastreamer2/rfc3984.h"
 
 
 //==================================================

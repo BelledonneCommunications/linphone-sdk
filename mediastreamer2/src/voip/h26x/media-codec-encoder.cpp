@@ -17,19 +17,8 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#include <cstdint>
-#include <cstring>
-#include <sstream>
-#include <stdexcept>
-
-#include <jni.h>
-#include <ortp/b64.h>
-
-#include "mediastreamer2/msjava.h"
-#include "mediastreamer2/msticker.h"
-
 #include "android_mediacodec.h"
-#include "h26x-utils.h"
+
 #include "media-codec-encoder.h"
 
 using namespace mediastreamer;

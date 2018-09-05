@@ -17,28 +17,11 @@
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#include <algorithm>
-#include <cstdint>
-#include <cstring>
-#include <sstream>
-#include <stdexcept>
-
-#include <jni.h>
-#include <media/NdkMediaFormat.h>
-#include <ortp/b64.h>
-#include <ortp/str_utils.h>
-
-#include "mediastreamer2/formats.h"
-#include "mediastreamer2/msfilter.h"
-#include "mediastreamer2/msticker.h"
 
 #include "android_mediacodec.h"
-#include "h26x-utils.h"
-#include "media-codec-decoder.h"
-#include "media-codec-h264-decoder.h"
-#include "media-codec-h265-decoder.h"
 
-using namespace b64;
+#include "media-codec-decoder.h"
+
 using namespace mediastreamer;
 using namespace std;
 

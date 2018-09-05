@@ -20,7 +20,7 @@
 #ifndef H264_UTILS_H
 #define H264_UTILS_H
 
-#include <mediastreamer2/msqueue.h>
+#include "mediastreamer2/msqueue.h"
 #include "mediastreamer2/msvideo.h"
 
 #ifdef __cplusplus

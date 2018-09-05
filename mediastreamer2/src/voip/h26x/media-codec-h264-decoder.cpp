@@ -17,14 +17,13 @@
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#include <cstring>
-
 #include <ortp/b64.h>
 
 #include "filter-wrapper/decoding-filter-wrapper.h"
 #include "h26x-decoder-filter.h"
 #include "h264-nal-unpacker.h"
 #include "h264-utils.h"
+
 #include "media-codec-h264-decoder.h"
 
 using namespace b64;

@@ -20,12 +20,11 @@
 #pragma once
 
 #include <memory>
-#include <string>
 
-#include <media/NdkMediaCodec.h>
+#include "h26x-utils.h"
+#include "media/NdkMediaCodec.h"
 
 #include "h26x-encoder.h"
-#include "h26x-utils.h"
 
 namespace mediastreamer {
 

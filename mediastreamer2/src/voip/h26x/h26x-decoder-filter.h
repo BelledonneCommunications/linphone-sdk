@@ -20,7 +20,6 @@
 #pragma once
 
 #include <memory>
-#include <string>
 
 #include "mediastreamer2/msvideo.h"
 

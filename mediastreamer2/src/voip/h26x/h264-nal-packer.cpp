@@ -17,8 +17,9 @@
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#include "h264-nal-packer.h"
 #include "h264-utils.h"
+
+#include "h264-nal-packer.h"
 
 using namespace std;
 

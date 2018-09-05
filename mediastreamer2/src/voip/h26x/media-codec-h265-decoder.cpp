@@ -19,8 +19,6 @@
 
 #include "filter-wrapper/decoding-filter-wrapper.h"
 #include "h26x-decoder-filter.h"
-#include "media-codec-decoder.h"
-
 #include "media-codec-h265-decoder.h"
 
 namespace mediastreamer {

@@ -17,8 +17,6 @@
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#include <algorithm>
-#include <cstring>
 #include "h265-nal-packer.h"
 
 using namespace std;

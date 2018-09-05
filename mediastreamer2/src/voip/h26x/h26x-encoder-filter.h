@@ -19,9 +19,12 @@
 
 #pragma once
 
-#include "filter-interface/encoder-filter.h"
+#include <memory>
+
 #include "h26x-encoder.h"
 #include "nal-packer.h"
+
+#include "filter-interface/encoder-filter.h"
 
 namespace mediastreamer {
 

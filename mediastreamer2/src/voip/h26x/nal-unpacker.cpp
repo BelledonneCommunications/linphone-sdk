@@ -17,11 +17,6 @@
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#include <bitset>
-#include <stdexcept>
-
-#include "mediastreamer2/msqueue.h"
-
 #include "nal-unpacker.h"
 
 using namespace std;

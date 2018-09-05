@@ -17,9 +17,6 @@
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#include <sstream>
-#include <stdexcept>
-
 #include "h26x/h26x-utils.h"
 #include "videotoolbox-utils.h"
 
