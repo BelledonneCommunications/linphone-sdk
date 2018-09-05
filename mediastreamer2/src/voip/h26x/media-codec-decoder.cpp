@@ -192,13 +192,6 @@ void MediaCodecDecoder::stopImpl() {
 }
 
 bool MediaCodecDecoder::feed(MSQueue *encodedFrame, uint64_t timestamp, bool isPs) {
-	unique_ptr<H26xNaluHeader> header;
-	header.reset(H26xToolFactory::get("video/avc").createNaluHeader());
-	for(mblk_t *m = ms_queue_peek_first(encodedFrame); !ms_queue_end(encodedFrame, m); m = ms_queue_next(encodedFrame, m)) {
-		header->parse(m->b_rptr);
-		ms_message("MediaCodecDecoder: nalu type %d", int(header->getAbsType()));
-	}
-
 	H26xUtils::nalusToByteStream(encodedFrame, _bitstream);
 
 	if (_impl == nullptr) return false;
