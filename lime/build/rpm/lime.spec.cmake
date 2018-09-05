@@ -87,8 +87,8 @@ rm -rf $RPM_BUILD_ROOT
 %if @ENABLE_SHARED@
 %{_libdir}/liblime.so
 %endif
-%{_datadir}/Lime/cmake/LimeConfig*.cmake
-%{_datadir}/Lime/cmake/LimeTargets*.cmake
+%{_datadir}/lime/cmake/LimeConfig*.cmake
+%{_datadir}/lime/cmake/LimeTargets*.cmake
 
 %changelog
 * Wed Jul 19 2017 jehan.monnier <jehan.monnier@linphone.org>
