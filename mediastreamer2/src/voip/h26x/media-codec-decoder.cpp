@@ -44,12 +44,12 @@ MediaCodecDecoder::MediaCodecDecoder(const std::string &mime): H26xDecoder(mime)
 		if (_impl) AMediaCodec_delete(_impl);
 		if (_format) AMediaFormat_delete(_format);
 		if (_bufAllocator) ms_yuv_buf_allocator_free(_bufAllocator);
-		throw e;
+		_impl = nullptr;
 	}
 }
 
 MediaCodecDecoder::~MediaCodecDecoder() {
-	AMediaCodec_delete(_impl);
+	if (_impl) AMediaCodec_delete(_impl);
 	ms_yuv_buf_allocator_free(_bufAllocator);
 }
 
@@ -64,6 +64,11 @@ bool MediaCodecDecoder::setParameterSets(MSQueue *parameterSets, uint64_t timest
 
 bool MediaCodecDecoder::feed(MSQueue *encodedFrame, uint64_t timestamp) {
 	bool status = false;
+
+	if (_impl == nullptr) {
+		ms_queue_flush(encodedFrame);
+		return true;
+	}
 
 	_psStore->extractAllPs(encodedFrame);
 	if (_psStore->hasNewParameters()) {

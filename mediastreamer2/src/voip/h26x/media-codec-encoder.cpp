@@ -55,6 +55,10 @@ void MediaCodecEncoder::setBitrate(int bitrate) {
 
 void MediaCodecEncoder::start() {
 	try {
+		if (_impl == nullptr) {
+			ms_error("MediaCodecEncoder: starting failed. No MediaCodec instance.");
+			return;
+		}
 		if (_isRunning) {
 			ms_warning("MediaCodecEncoder: encoder already started");
 			return;
@@ -71,6 +75,7 @@ void MediaCodecEncoder::start() {
 }
 
 void MediaCodecEncoder::stop() {
+	if (_impl == nullptr) return;
 	if (!_isRunning) {
 		ms_warning("MediaCodecEncoder: encoder already stopped");
 		return;
@@ -88,6 +93,11 @@ void MediaCodecEncoder::stop() {
 }
 
 void MediaCodecEncoder::feed(mblk_t *rawData, uint64_t time, bool requestIFrame) {
+	if (_impl == nullptr) {
+		freemsg(rawData);
+		return;
+	}
+
 	if (!_isRunning) {
 		ms_error("MediaCodecEncoder: encoder not running. Dropping buffer.");
 		freemsg(rawData);
@@ -165,7 +175,7 @@ bool MediaCodecEncoder::fetch(MSQueue *encodedData) {
 	uint8_t *buf;
 	size_t bufsize;
 
-	if (!_isRunning || _recoveryMode || _pendingFrames <= 0) return false;
+	if (_impl == nullptr || !_isRunning || _recoveryMode || _pendingFrames <= 0) return false;
 
 	ms_queue_init(&outq);
 
