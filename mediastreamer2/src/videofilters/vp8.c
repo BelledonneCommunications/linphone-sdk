@@ -657,12 +657,17 @@ static void enc_postprocess(MSFilter *f) {
 static int enc_set_configuration(MSFilter *f, void *data) {
 	EncState *s = (EncState *)f->data;
 	const MSVideoConfiguration *vconf = (const MSVideoConfiguration *)data;
+	MSVideoSize vsize = s->vconf.vsize;
+
 	if (vconf != &s->vconf) memcpy(&s->vconf, vconf, sizeof(MSVideoConfiguration));
 
 	s->cfg.rc_target_bitrate = (unsigned int)(((float)s->vconf.required_bitrate) * 0.92f / 1024.0f); //0.92=take into account IP/UDP/RTP overhead, in average.
 	s->cfg.g_timebase.num = 1;
 	s->cfg.g_timebase.den = (int)s->vconf.fps;
 	if (s->ready) {
+		/* Do not change video size if encoder is running */
+		s->vconf.vsize = vsize;
+
 		ms_filter_lock(f);
 		vpx_codec_enc_config_set(&s->codec, &s->cfg);
 		ms_filter_unlock(f);
