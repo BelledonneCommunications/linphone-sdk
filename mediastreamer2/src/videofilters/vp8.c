@@ -680,26 +680,6 @@ static int enc_get_configuration(MSFilter *f, void *data) {
 	return 0;
 }
 
-static int enc_get_br(MSFilter *f, void *data) {
-	EncState *s = (EncState *)f->data;
-	*(int *)data = s->vconf.required_bitrate;
-	return 0;
-}
-
-static int enc_set_br(MSFilter *f, void *data) {
-	EncState *s = (EncState *)f->data;
-	int br = *(int *)data;
-	if (s->ready) {
-		/* Encoding is already ongoing, do not change video size, only bitrate. */
-		s->vconf.required_bitrate = br;
-		enc_set_configuration(f, &s->vconf);
-	} else {
-		MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_size_and_bitrate(s->vconf_list, s->vconf.vsize, ms_factory_get_cpu_count(f->factory), br);
-		enc_set_configuration(f, &best_vconf);
-	}
-	return 0;
-}
-
 static int enc_req_vfu(MSFilter *f, void *unused) {
 	EncState *s = (EncState *)f->data;
 	s->force_keyframe = TRUE;
@@ -831,8 +811,6 @@ static int enc_enable_avpf(MSFilter *f, void *data) {
 }
 
 static MSFilterMethod enc_methods[] = {
-	{ MS_FILTER_SET_BITRATE,                   enc_set_br                 },
-	{ MS_FILTER_GET_BITRATE,                   enc_get_br                 },
 	{ MS_FILTER_REQ_VFU,                       enc_req_vfu                },
 	{ MS_VIDEO_ENCODER_REQ_VFU,                enc_req_vfu                },
 	{ MS_VIDEO_ENCODER_NOTIFY_PLI,             enc_notify_pli             },
