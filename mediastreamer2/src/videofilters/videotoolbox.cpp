@@ -47,9 +47,19 @@ public:
 	VideoToolboxH264EncoderFilterImpl(MSFilter *f): H26xEncoderFilter(f, new VideoToolboxEncoder("video/avc"), vth264enc_video_confs) {}
 };
 
+class VideoToolboxH265EncoderFilterImpl: public H26xEncoderFilter {
+public:
+	VideoToolboxH265EncoderFilterImpl(MSFilter *f): H26xEncoderFilter(f, new VideoToolboxEncoder("video/hevc"), vth264enc_video_confs) {}
+};
+
 class VideoToolboxH264DecoderFilterImpl: public H26xDecoderFilter {
 public:
 	VideoToolboxH264DecoderFilterImpl(MSFilter *f): H26xDecoderFilter(f, new VideoToolboxDecoder("video/avc")) {}
+};
+
+class VideoToolboxH265DecoderFilterImpl: public H26xDecoderFilter {
+public:
+	VideoToolboxH265DecoderFilterImpl(MSFilter *f): H26xDecoderFilter(f, new VideoToolboxDecoder("video/hevc")) {}
 };
 
 } // namespace mediastreamer
@@ -59,8 +69,14 @@ using namespace mediastreamer;
 MS_ENCODING_FILTER_WRAPPER_METHODS_DECLARATION(VideoToolboxH264Encoder);
 MS_ENCODING_FILTER_WRAPPER_DESCRIPTION_DECLARATION(VideoToolboxH264Encoder, MS_VT_H264_ENC_ID, "H264 hardware encoder for iOS and MacOSX", "H264", MS_FILTER_IS_PUMP);
 
+MS_ENCODING_FILTER_WRAPPER_METHODS_DECLARATION(VideoToolboxH265Encoder);
+MS_ENCODING_FILTER_WRAPPER_DESCRIPTION_DECLARATION(VideoToolboxH265Encoder, MS_VT_H265_ENC_ID, "H265 hardware encoder for iOS and MacOSX", "H265", MS_FILTER_IS_PUMP);
+
 MS_DECODING_FILTER_WRAPPER_METHODS_DECLARATION(VideoToolboxH264Decoder);
 MS_DECODING_FILTER_WRAPPER_DESCRIPTION_DECLARATION(VideoToolboxH264Decoder, MS_VT_H264_DEC_ID, "H264 hardware decoder for iOS and MacOSX", "H264", MS_FILTER_IS_PUMP);
+
+MS_DECODING_FILTER_WRAPPER_METHODS_DECLARATION(VideoToolboxH265Decoder);
+MS_DECODING_FILTER_WRAPPER_DESCRIPTION_DECLARATION(VideoToolboxH265Decoder, MS_VT_H265_DEC_ID, "H265 hardware decoder for iOS and MacOSX", "H265", MS_FILTER_IS_PUMP);
 
 extern "C" void _register_videotoolbox_if_supported(MSFactory *factory) {
 #if TARGET_OS_SIMULATOR
@@ -72,9 +88,13 @@ extern "C" void _register_videotoolbox_if_supported(MSFactory *factory) {
 #else
 	if (kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber10_8) {
 #endif
-		ms_message("Registering VideoToobox H264 codec");
+		ms_message("Registering VideoToolbox H264 codec");
 		ms_factory_register_filter(factory, &ms_VideoToolboxH264Encoder_desc);
 		ms_factory_register_filter(factory, &ms_VideoToolboxH264Decoder_desc);
+
+		ms_message("Registering VideoToolbox H265 codec");
+		ms_factory_register_filter(factory, &ms_VideoToolboxH265Encoder_desc);
+		ms_factory_register_filter(factory, &ms_VideoToolboxH265Decoder_desc);
 	} else {
 		ms_message("Cannot register VideoToolbox H264 codec. That "
 			"requires iOS 8 or MacOSX 10.8");
