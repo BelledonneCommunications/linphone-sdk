@@ -23,66 +23,6 @@ using namespace std;
 
 namespace mediastreamer {
 
-int EncodingFilterWrapper::onGetBitrateCall(MSFilter *f, void *arg) {
-	try {
-		int *bitrate = static_cast<int *>(arg);
-		*bitrate = static_cast<EncoderFilter *>(f->data)->getBitrate();
-		return 0;
-	} catch (const EncoderFilter::MethodCallFailed &) {
-		return -1;
-	}
-}
-
-int EncodingFilterWrapper::onSetBitrateCall(MSFilter *f, void *arg) {
-	try {
-		int br = *static_cast<int *>(arg);
-		static_cast<EncoderFilter *>(f->data)->setBitrate(br);
-		return 0;
-	} catch (const EncoderFilter::MethodCallFailed &) {
-		return -1;
-	}
-}
-
-int EncodingFilterWrapper::onGetFpsCall(MSFilter *f, void *arg) {
-	try {
-		float *fps = static_cast<float *>(arg);
-		*fps = static_cast<EncoderFilter *>(f->data)->getFps();
-		return 0;
-	} catch (const EncoderFilter::MethodCallFailed &) {
-		return -1;
-	}
-}
-
-int EncodingFilterWrapper::onSetFpsCall(MSFilter *f, void *arg) {
-	try {
-		float fps = *static_cast<float *>(arg);
-		static_cast<EncoderFilter *>(f->data)->setFps(fps);
-		return 0;
-	} catch (const EncoderFilter::MethodCallFailed &) {
-		return -1;
-	}
-}
-
-int EncodingFilterWrapper::onGetVideoSizeCall(MSFilter *f, void *arg) {
-	try {
-		MSVideoSize *vsize = static_cast<MSVideoSize *>(arg);
-		*vsize = static_cast<EncoderFilter *>(f->data)->getVideoSize();
-		return 0;
-	} catch (const EncoderFilter::MethodCallFailed &) {
-		return -1;
-	}
-}
-
-int EncodingFilterWrapper::onSetVideoSizeCall(MSFilter *f, void *arg) {
-	try {
-		const MSVideoSize *vsize = static_cast<MSVideoSize *>(arg);
-		static_cast<EncoderFilter *>(f->data)->setVideoSize(*vsize);
-		return 0;
-	} catch (const EncoderFilter::MethodCallFailed &) {
-		return -1;
-	}
-}
-
 int EncodingFilterWrapper::onGetVideoConfigurationsCall(MSFilter *f, void *arg) {
 	try {
 		const MSVideoConfiguration **vconfs = static_cast<const MSVideoConfiguration **>(arg);
@@ -93,10 +33,10 @@ int EncodingFilterWrapper::onGetVideoConfigurationsCall(MSFilter *f, void *arg) 
 	}
 }
 
-int EncodingFilterWrapper::onSetVideoConfigurationsCall(MSFilter *f, void *arg) {
+int EncodingFilterWrapper::onGetConfigurationCall(MSFilter *f, void *arg) {
 	try {
-		const MSVideoConfiguration * const *vconfs = static_cast<const MSVideoConfiguration * const *>(arg);
-		static_cast<EncoderFilter *>(f->data)->setVideoConfigurations(*vconfs);
+		MSVideoConfiguration *vconf = static_cast<MSVideoConfiguration *>(arg);
+		*vconf = static_cast<const EncoderFilter *>(f->data)->getVideoConfiguration();
 		return 0;
 	} catch (const EncoderFilter::MethodCallFailed &) {
 		return -1;
@@ -106,7 +46,7 @@ int EncodingFilterWrapper::onSetVideoConfigurationsCall(MSFilter *f, void *arg) 
 int EncodingFilterWrapper::onSetConfigurationCall(MSFilter *f, void *arg) {
 	try {
 		const MSVideoConfiguration *vconf = static_cast<MSVideoConfiguration *>(arg);
-		static_cast<EncoderFilter *>(f->data)->setVideoConfiguration(vconf);
+		static_cast<EncoderFilter *>(f->data)->setVideoConfiguration(*vconf);
 		return 0;
 	} catch (const EncoderFilter::MethodCallFailed &) {
 		return -1;

@@ -30,17 +30,9 @@ public:
 	EncoderFilter(MSFilter *f): FilterBase(f) {}
 
 	virtual const MSVideoConfiguration *getVideoConfigurations() const = 0;
-	virtual void setVideoConfigurations(const MSVideoConfiguration *vconfs) = 0;
-	virtual void setVideoConfiguration(const MSVideoConfiguration *vconf) = 0;
 
-	virtual int getBitrate() const = 0;
-	virtual void setBitrate(int br) = 0;
-
-	virtual float getFps() const = 0;
-	virtual void setFps(float  fps) = 0;
-
-	virtual MSVideoSize getVideoSize() const = 0;
-	virtual void setVideoSize(const MSVideoSize &vsize) = 0;
+	virtual const MSVideoConfiguration &getVideoConfiguration() const = 0;
+	virtual void setVideoConfiguration(MSVideoConfiguration vconf) = 0;
 
 	virtual void enableAvpf(bool enable) = 0;
 

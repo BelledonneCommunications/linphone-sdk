@@ -433,6 +433,7 @@ void AMediaCodec_setParams(AMediaCodec *codec, const AMediaFormat * fmt) {
 
 	putToBundle(env, codec, jbundle, (AMediaFormat *)fmt, "request-sync");
 	putToBundle(env, codec, jbundle, (AMediaFormat *)fmt, "video-bitrate");
+	putToBundle(env, codec, jbundle, (AMediaFormat *)fmt, "frame-rate");
 
 	env->CallVoidMethod(codec->jcodec, codec->setParameters, jbundle);
 	handle_java_exception();

@@ -42,6 +42,16 @@ MediaCodecEncoder::~MediaCodecEncoder() {
 	if (_impl) AMediaCodec_delete(_impl);
 }
 
+void MediaCodecEncoder::setFps(float fps) {
+	_fps = fps;
+	if (isRunning() && _impl) {
+		AMediaFormat *afmt = AMediaFormat_new();
+		AMediaFormat_setInt32(afmt, "frame-rate", int32_t(_fps));
+		AMediaCodec_setParams(_impl, afmt);
+		AMediaFormat_delete(afmt);
+	}
+}
+
 void MediaCodecEncoder::setBitrate(int bitrate) {
 	_bitrate = bitrate;
 	if (isRunning() && _impl) {

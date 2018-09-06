@@ -25,10 +25,9 @@ using namespace std;
 
 namespace mediastreamer {
 
-H26xEncoderFilter::H26xEncoderFilter(MSFilter *f, H26xEncoder *encoder, const MSVideoConfiguration *defaultVConfList):
-	EncoderFilter(f), _encoder(encoder), _defaultVConfList(defaultVConfList) {
+H26xEncoderFilter::H26xEncoderFilter(MSFilter *f, H26xEncoder *encoder, const MSVideoConfiguration *vconfList):
+	EncoderFilter(f), _encoder(encoder), _vconfList(vconfList) {
 
-	setVideoConfigurations(nullptr);
 	_vconf = ms_video_find_best_configuration_for_size(_vconfList, MS_VIDEO_SIZE_CIF, ms_factory_get_cpu_count(f->factory));
 	ms_video_starter_init(&_starter);
 
@@ -75,54 +74,22 @@ void H26xEncoderFilter::postprocess() {
 	_firstFrameDecoded = false;
 }
 
-int H26xEncoderFilter::getBitrate() const {
-	return _vconf.required_bitrate;
-}
-
-void H26xEncoderFilter::setBitrate(int br) {
+void H26xEncoderFilter::setVideoConfiguration(MSVideoConfiguration vconf) {
 	if (_encoder->isRunning()) {
-		/* Encoding is already ongoing, do not change video size, only bitrate. */
-		_vconf.required_bitrate = br;
-		/* apply the new bitrate request to the running MediaCodec*/
-		setVideoConfiguration(&_vconf);
+		ms_warning("H26xEncoderFilter: ignoring video size change because the encoder is started");
+		vconf.vsize = _encoder->getVideoSize();
 	} else {
-		MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_size_and_bitrate(_vconfList, _vconf.vsize, ms_factory_get_cpu_count(getFactory()),  br);
-		setVideoConfiguration(&best_vconf);
+		_encoder->setVideoSize(vconf.vsize);
 	}
-}
-
-void H26xEncoderFilter::setVideoConfiguration(const MSVideoConfiguration *vconf) {
-	if (vconf != &_vconf) memcpy(&_vconf, vconf, sizeof(MSVideoConfiguration));
+	_encoder->setFps(vconf.fps);
+	_encoder->setBitrate(vconf.required_bitrate);
+	_vconf = vconf;
 	ms_message("MediaCodecEncoder: video configuration set: bitrate=%d bits/s, fps=%f, vsize=%dx%d", _vconf.required_bitrate, _vconf.fps, _vconf.vsize.width, _vconf.vsize.height);
-	_encoder->setVideoSize(_vconf.vsize);
-	_encoder->setFps(_vconf.fps);
-	_encoder->setBitrate(_vconf.required_bitrate);
-}
-
-void H26xEncoderFilter::setFps(float  fps) {
-	_vconf.fps = fps;
-	setVideoConfiguration(&_vconf);
-}
-
-float H26xEncoderFilter::getFps() const {
-	return _vconf.fps;
-}
-
-MSVideoSize H26xEncoderFilter::getVideoSize() const {
-	return _vconf.vsize;
 }
 
 void H26xEncoderFilter::enableAvpf(bool enable) {
 	ms_message("MediaCodecEncoder: AVPF %s", enable ? "enabled" : "disabled");
 	_avpfEnabled = enable;
-}
-
-void H26xEncoderFilter::setVideoSize(const MSVideoSize &vsize) {
-	MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_size_and_bitrate(_vconfList, vsize, ms_factory_get_cpu_count(getFactory()), _vconf.required_bitrate);
-	_vconf.vsize = vsize;
-	_vconf.fps = best_vconf.fps;
-	_vconf.bitrate_limit = best_vconf.bitrate_limit;
-	setVideoConfiguration(&_vconf);
 }
 
 void H26xEncoderFilter::requestVfu() {
@@ -147,10 +114,6 @@ void H26xEncoderFilter::notifySli() {
 
 const MSVideoConfiguration *H26xEncoderFilter::getVideoConfigurations() const {
 	return _vconfList;
-}
-
-void H26xEncoderFilter::setVideoConfigurations(const MSVideoConfiguration *vconfs) {
-	_vconfList = vconfs ? vconfs : _defaultVConfList;
 }
 
 } // namespace mediastreamer

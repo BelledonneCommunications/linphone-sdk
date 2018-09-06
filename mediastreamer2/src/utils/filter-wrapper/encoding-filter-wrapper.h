@@ -29,17 +29,9 @@ namespace mediastreamer {
 
 class EncodingFilterWrapper {
 public:
-	static int onGetBitrateCall(MSFilter *f, void *arg);
-	static int onSetBitrateCall(MSFilter *f, void *arg);
-
-	static int onGetFpsCall(MSFilter *f, void *arg);
-	static int onSetFpsCall(MSFilter *f, void *arg);
-
-	static int onGetVideoSizeCall(MSFilter *f, void *arg);
-	static int onSetVideoSizeCall(MSFilter *f, void *arg);
-
 	static int onGetVideoConfigurationsCall(MSFilter *f, void *arg);
-	static int onSetVideoConfigurationsCall(MSFilter *f, void *arg);
+
+	static int onGetConfigurationCall(MSFilter *f, void *arg);
 	static int onSetConfigurationCall(MSFilter *f, void *arg);
 
 	static int onEnableAvpfCall(MSFilter *f, void *arg);
@@ -54,12 +46,6 @@ public:
 
 #define MS_ENCODING_FILTER_WRAPPER_METHODS_DECLARATION(base_name) \
 static MSFilterMethod  MS_FILTER_WRAPPER_METHODS_NAME(base_name)[] = { \
-	{ MS_FILTER_GET_BITRATE                   , EncodingFilterWrapper::onGetBitrateCall             }, \
-	{ MS_FILTER_SET_BITRATE                   , EncodingFilterWrapper::onSetBitrateCall             }, \
-	{ MS_FILTER_GET_FPS                       , EncodingFilterWrapper::onGetFpsCall                 }, \
-	{ MS_FILTER_SET_FPS                       , EncodingFilterWrapper::onSetFpsCall                 }, \
-	{ MS_FILTER_GET_VIDEO_SIZE                , EncodingFilterWrapper::onGetVideoSizeCall           }, \
-	{ MS_FILTER_SET_VIDEO_SIZE                , EncodingFilterWrapper::onSetVideoSizeCall           }, \
 	{ MS_FILTER_REQ_VFU                       , EncodingFilterWrapper::onRequestVfuCall             }, \
 	{ MS_VIDEO_ENCODER_REQ_VFU                , EncodingFilterWrapper::onRequestVfuCall             }, \
 	{ MS_VIDEO_ENCODER_NOTIFY_PLI             , EncodingFilterWrapper::onNotifyPliCall              }, \
@@ -67,7 +53,7 @@ static MSFilterMethod  MS_FILTER_WRAPPER_METHODS_NAME(base_name)[] = { \
 	{ MS_VIDEO_ENCODER_NOTIFY_SLI             , EncodingFilterWrapper::onNotifySliCall              }, \
 	{ MS_VIDEO_ENCODER_ENABLE_AVPF            , EncodingFilterWrapper::onEnableAvpfCall             }, \
 	{ MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST , EncodingFilterWrapper::onGetVideoConfigurationsCall }, \
-	{ MS_VIDEO_ENCODER_SET_CONFIGURATION_LIST , EncodingFilterWrapper::onSetVideoConfigurationsCall }, \
+	{ MS_VIDEO_ENCODER_GET_CONFIGURATION      , EncodingFilterWrapper::onGetConfigurationCall       }, \
 	{ MS_VIDEO_ENCODER_SET_CONFIGURATION      , EncodingFilterWrapper::onSetConfigurationCall       }, \
 	{ 0                                       , nullptr                                             } \
 }

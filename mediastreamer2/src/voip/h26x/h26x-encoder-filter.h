@@ -35,17 +35,8 @@ public:
 	void postprocess() override;
 
 	const MSVideoConfiguration *getVideoConfigurations() const override;
-	void setVideoConfigurations(const MSVideoConfiguration *vconfs) override;
-	void setVideoConfiguration(const MSVideoConfiguration *vconf) override;
-
-	int getBitrate() const override;
-	void setBitrate(int br) override;
-
-	float getFps() const override;
-	void setFps(float  fps) override;
-
-	MSVideoSize getVideoSize() const override;
-	void setVideoSize(const MSVideoSize &vsize) override;
+	const MSVideoConfiguration &getVideoConfiguration() const override {return _vconf;}
+	void setVideoConfiguration(MSVideoConfiguration vconf) override;
 
 	void enableAvpf(bool enable) override;
 
@@ -55,12 +46,11 @@ public:
 	void notifySli() override;
 
 protected:
-	H26xEncoderFilter(MSFilter *f, H26xEncoder *encoder, const MSVideoConfiguration *defaultVConfList);
+	H26xEncoderFilter(MSFilter *f, H26xEncoder *encoder, const MSVideoConfiguration *vconfList);
 
 	std::unique_ptr<H26xEncoder> _encoder;
 	std::unique_ptr<NalPacker> _packer;
 	const MSVideoConfiguration *_vconfList = nullptr;
-	const MSVideoConfiguration *_defaultVConfList = nullptr;
 	MSVideoConfiguration _vconf;
 	bool _avpfEnabled = false;
 	bool _firstFrameDecoded = false;

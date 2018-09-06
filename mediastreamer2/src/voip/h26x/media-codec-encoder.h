@@ -38,7 +38,7 @@ public:
 	void setVideoSize(const MSVideoSize &vsize) override {_vsize = vsize;}
 
 	float getFps() const override {return _fps;}
-	void setFps(float fps) override {_fps = fps;}
+	void setFps(float fps) override;
 
 	int getBitrate() const override {return _bitrate;}
 	void setBitrate(int bitrate) override;
