@@ -72,7 +72,6 @@ MSOpenH264Encoder::MSOpenH264Encoder(MSFilter *f)
 	if (ret != 0) {
 		ms_error("OpenH264 encoder: Failed to create encoder: %li", ret);
 	}
-	setConfigurationList(NULL);
 }
 
 MSOpenH264Encoder::~MSOpenH264Encoder()
@@ -236,17 +235,6 @@ void MSOpenH264Encoder::addFmtp(const char *fmtp)
 		mPacketisationModeSet = true;
 		ms_message("packetization-mode set to %i", mPacketisationMode);
 	}
-}
-
-void MSOpenH264Encoder::setConfigurationList(const MSVideoConfiguration *confList) {
-	MSVideoSize vsize;
-	if (confList == NULL) {
-		mVConfList = openh264_conf_list;
-	} else {
-		mVConfList = confList;
-	}
-	MS_VIDEO_SIZE_ASSIGN(vsize, CIF);
-	mVConf = ms_video_find_best_configuration_for_size(mVConfList, vsize, ms_factory_get_cpu_count(mFilter->factory));
 }
 
 void MSOpenH264Encoder::setConfiguration(MSVideoConfiguration conf)

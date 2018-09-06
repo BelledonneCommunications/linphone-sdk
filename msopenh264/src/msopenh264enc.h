@@ -36,7 +36,6 @@ public:
 	void uninitialize();
 	void addFmtp(const char *fmtp);
 	const MSVideoConfiguration *getConfigurationList() const { return mVConfList; }
-	void setConfigurationList(const MSVideoConfiguration *confList);
 	void setConfiguration(MSVideoConfiguration conf);
 	MSVideoConfiguration getConfiguration() { return mVConf; }
 	void requestVFU();
