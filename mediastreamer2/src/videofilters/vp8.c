@@ -801,17 +801,6 @@ static int enc_get_configuration_list(MSFilter *f, void *data) {
 	return 0;
 }
 
-static int enc_set_configuration_list(MSFilter *f, void *data) {
-	EncState *s = (EncState *)f->data;
-	const MSVideoConfiguration **vconf_list = (const MSVideoConfiguration **)data;
-	if (*vconf_list == NULL) {
-		s->vconf_list = &vp8_conf_list[0];
-	} else {
-		s->vconf_list = *vconf_list;
-	}
-	return 0;
-}
-
 static int enc_enable_avpf(MSFilter *f, void *data) {
 	EncState *s = (EncState *)f->data;
 	s->avpf_enabled = *((bool_t *)data) ? TRUE : FALSE;
@@ -826,7 +815,6 @@ static MSFilterMethod enc_methods[] = {
 	{ MS_VIDEO_ENCODER_NOTIFY_SLI,             enc_notify_sli             },
 	{ MS_VIDEO_ENCODER_NOTIFY_RPSI,            enc_notify_rpsi            },
 	{ MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, enc_get_configuration_list },
-	{ MS_VIDEO_ENCODER_SET_CONFIGURATION_LIST, enc_set_configuration_list },
 	{ MS_VIDEO_ENCODER_GET_CONFIGURATION,      enc_get_configuration      },
 	{ MS_VIDEO_ENCODER_SET_CONFIGURATION,      enc_set_configuration      },
 	{ MS_VIDEO_ENCODER_ENABLE_AVPF,            enc_enable_avpf            },
