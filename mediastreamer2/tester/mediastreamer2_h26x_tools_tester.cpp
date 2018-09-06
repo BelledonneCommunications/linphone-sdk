@@ -140,12 +140,14 @@ static test_t tests[] = {
 	TEST_NO_TAG("H265 Packing/Unpacking - i-frame", packing_unpacking_test_h265_iframe)
 };
 
-test_suite_t h26x_tools_test_suite = {
-	.name = "H26x Tools",
-	.before_all = initMSFactory,
-	.after_all = releaseMSFactory,
-	.before_each = nullptr,
-	.after_each = nullptr,
-	.nb_tests = sizeof(tests)/sizeof(test_t),
-	.tests = tests
-};
+extern "C" {
+	test_suite_t h26x_tools_test_suite = {
+		"H26x Tools",
+		initMSFactory,
+		releaseMSFactory,
+		nullptr,
+		nullptr,
+		sizeof(tests)/sizeof(test_t),
+		tests
+	};
+}

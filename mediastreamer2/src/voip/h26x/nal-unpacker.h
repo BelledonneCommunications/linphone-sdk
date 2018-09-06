@@ -72,7 +72,7 @@ public:
 	 * @return a bitmask of Rfc3984Status values.
 	 * The return value is a bitmask of the #Rfc3984Status enum.
 	 **/
-	Status unpack(mblk_t *im, MSQueue *out);
+	MS2_PUBLIC Status unpack(mblk_t *im, MSQueue *out);
 	void reset();
 
 protected:

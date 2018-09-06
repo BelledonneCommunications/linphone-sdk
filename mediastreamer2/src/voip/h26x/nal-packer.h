@@ -77,7 +77,7 @@ public:
 	size_t getMaxPayloadSize() {return _maxSize;}
 
 	// process NALus and pack them into RTP payloads
-	void pack(MSQueue *naluq, MSQueue *rtpq, uint32_t ts);
+	MS2_PUBLIC void pack(MSQueue *naluq, MSQueue *rtpq, uint32_t ts);
 	void flush();
 
 protected:

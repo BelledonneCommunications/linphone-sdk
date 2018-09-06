@@ -219,7 +219,8 @@ static void video_stream_track_fps_changes(VideoStream *stream){
 		if (curtime > late_ev.time + 2000){
 			if (stream->source && stream->ms.encoder &&
 				ms_filter_has_method(stream->source,MS_FILTER_GET_FPS) &&
-				ms_filter_has_method(stream->ms.encoder,MS_FILTER_SET_FPS)){
+				ms_filter_has_method(stream->ms.encoder,MS_VIDEO_ENCODER_GET_CONFIGURATION) &&
+				ms_filter_has_method(stream->ms.encoder,MS_VIDEO_ENCODER_SET_CONFIGURATION)){
 				float fps=0;
 
 				if (ms_filter_call_method(stream->source,MS_FILTER_GET_FPS,&fps)==0 && fps!=0){
@@ -227,7 +228,11 @@ static void video_stream_track_fps_changes(VideoStream *stream){
 						ms_warning("Measured and target fps significantly different (%f<->%f), updating encoder.",
 							fps,stream->configured_fps);
 						stream->real_fps=fps;
-						ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_FPS,&stream->real_fps);
+
+						MSVideoConfiguration vconf;
+						ms_filter_call_method(stream->ms.encoder,MS_VIDEO_ENCODER_GET_CONFIGURATION,&vconf);
+						vconf.fps = stream->real_fps;
+						ms_filter_call_method(stream->ms.encoder,MS_VIDEO_ENCODER_SET_CONFIGURATION,&vconf);
 					}
 				}
 			}
@@ -349,6 +354,7 @@ VideoStream *video_stream_new_with_sessions(MSFactory* factory, const MSMediaStr
 	rtp_session_set_rtcp_xr_media_callbacks(stream->ms.sessions.rtp_session, &rtcp_xr_media_cbs);
 
 	stream->staticimage_webcam_fps_optimization = TRUE;
+	stream->vconf_list = NULL;
 
 	return stream;
 }
@@ -368,12 +374,12 @@ void video_stream_set_fps(VideoStream *stream, float fps){
 }
 
 MSVideoSize video_stream_get_sent_video_size(const VideoStream *stream) {
-	MSVideoSize vsize;
-	MS_VIDEO_SIZE_ASSIGN(vsize, UNKNOWN);
+	MSVideoConfiguration vconf;
+	MS_VIDEO_SIZE_ASSIGN(vconf.vsize, UNKNOWN);
 	if (stream->ms.encoder != NULL) {
-		ms_filter_call_method(stream->ms.encoder, MS_FILTER_GET_VIDEO_SIZE, &vsize);
+		ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION, &vconf);
 	}
-	return vsize;
+	return vconf.vsize;
 }
 
 MSVideoSize video_stream_get_received_video_size(const VideoStream *stream) {
@@ -473,9 +479,8 @@ static MSVideoSize get_with_same_orientation_and_ratio(MSVideoSize size, MSVideo
 #endif
 
 static void configure_video_source(VideoStream *stream){
-	MSVideoSize vsize,cam_vsize;
-	float fps=15;
-	int bitrate;
+	MSVideoSize cam_vsize;
+	MSVideoConfiguration vconf;
 	MSPixFmt format=MS_PIX_FMT_UNKNOWN;
 	MSVideoEncoderPixFmt encoder_supports_source_format;
 	int ret;
@@ -494,19 +499,19 @@ static void configure_video_source(VideoStream *stream){
 	if (stream->preview_window_id!=0){
 		video_stream_set_native_preview_window_id(stream, stream->preview_window_id);
 	}
-	ms_filter_call_method(stream->ms.encoder, MS_FILTER_GET_BITRATE, &bitrate);
-	if (bitrate == 0) {
-		bitrate = ms_factory_get_expected_bandwidth(stream->ms.factory);
-		ms_message("Encoder current bitrate is 0, using expected bandwidth %i", bitrate);
-		ms_filter_call_method(stream->ms.encoder, MS_FILTER_SET_BITRATE, &bitrate);
+
+	ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION, &vconf);
+
+	if (vconf.required_bitrate == 0) {
+		vconf.required_bitrate = ms_factory_get_expected_bandwidth(stream->ms.factory);
+		ms_message("Encoder current bitrate is 0, using expected bandwidth %i", vconf.required_bitrate);
 	}
 
-	ms_filter_call_method(stream->ms.encoder,MS_FILTER_GET_VIDEO_SIZE,&vsize);
-	vsize=get_compatible_size(vsize,stream->sent_vsize);
+	vconf.vsize=get_compatible_size(vconf.vsize,stream->sent_vsize);
 	if (stream->preview_vsize.width!=0){
 		preview_vsize=stream->preview_vsize;
 	}else{
-		preview_vsize=vsize;
+		preview_vsize=vconf.vsize;
 	}
 
 	if (is_player){
@@ -524,49 +529,51 @@ static void configure_video_source(VideoStream *stream){
 		ms_filter_call_method(stream->source,MS_FILTER_GET_VIDEO_SIZE,&cam_vsize);
 	}
 
-	if (cam_vsize.width*cam_vsize.height<=vsize.width*vsize.height){
-		vsize=cam_vsize;
-		ms_message("Output video size adjusted to match camera resolution (%ix%i)",vsize.width,vsize.height);
+	if (cam_vsize.width*cam_vsize.height<=vconf.vsize.width*vconf.vsize.height){
+		vconf.vsize=cam_vsize;
+		ms_message("Output video size adjusted to match camera resolution (%ix%i)",vconf.vsize.width,vconf.vsize.height);
 	} else {
 #if TARGET_IPHONE_SIMULATOR || defined(MS_HAS_ARM) || defined(MS2_WINDOWS_UNIVERSAL)
 		ms_error("Camera is proposing a size bigger than encoder's suggested size (%ix%i > %ix%i) "
 				   "Using the camera size as fallback because cropping or resizing is not implemented for this device.",
-				   cam_vsize.width,cam_vsize.height,vsize.width,vsize.height);
-		vsize=cam_vsize;
+				   cam_vsize.width,cam_vsize.height,vconf.vsize.width,vconf.vsize.height);
+		vconf.vsize=cam_vsize;
 #else
-		MSVideoSize resized=get_with_same_orientation_and_ratio(vsize,cam_vsize);
+		MSVideoSize resized=get_with_same_orientation_and_ratio(vconf.vsize,cam_vsize);
 		if (resized.width & 0x1 || resized.height & 0x1){
 			ms_warning("Resizing avoided because downsizing to an odd number of pixels (%ix%i)",resized.width,resized.height);
-			vsize=cam_vsize;
+			vconf.vsize=cam_vsize;
 		}else{
-			vsize=resized;
+			vconf.vsize=resized;
 			ms_warning("Camera video size greater than encoder one. A scaling filter will be used!");
 		}
 #endif
 	}
-	ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_VIDEO_SIZE,&vsize);
 
-	if (stream->ms.target_bitrate > 0) update_bitrate_limit_from_tmmbr(&stream->ms, stream->ms.target_bitrate);
-
-	ms_filter_call_method(stream->ms.encoder,MS_FILTER_GET_FPS,&fps);
+	if (stream->ms.target_bitrate > 0) {
+		/* We need to set the configuration now since update_bitrate_limit_from_tmmbr will retrieve it */
+		ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_SET_CONFIGURATION, &vconf);
+		update_bitrate_limit_from_tmmbr(&stream->ms, stream->ms.target_bitrate);
+		ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION, &vconf);
+	}
 
 	if (is_player){
-		fps=pf.fmt->fps;
-		if (fps==0) fps=15;
-		ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_FPS,&fps);
+		vconf.fps=pf.fmt->fps;
+		if (vconf.fps==0) vconf.fps=15;
 	}else{
 		if (stream->forced_fps!=0)
-			fps=stream->forced_fps;
-		ms_message("Setting sent vsize=%ix%i, fps=%f",vsize.width,vsize.height,fps);
+			vconf.fps=stream->forced_fps;
+		ms_message("Setting sent vsize=%ix%i, fps=%f",vconf.vsize.width,vconf.vsize.height,vconf.fps);
 		/* configure the filters */
 		if (ms_filter_get_id(stream->source)!=MS_STATIC_IMAGE_ID || !stream->staticimage_webcam_fps_optimization) {
-			ms_filter_call_method(stream->source,MS_FILTER_SET_FPS,&fps);
+			ms_filter_call_method(stream->source,MS_FILTER_SET_FPS,&vconf.fps);
 		}
-		ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_FPS,&fps);
 		/* get the output format for webcam reader */
 		ms_filter_call_method(stream->source,MS_FILTER_GET_PIX_FMT,&format);
 	}
-	stream->configured_fps=fps;
+	stream->configured_fps=vconf.fps;
+
+	ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_SET_CONFIGURATION, &vconf);
 
 	encoder_supports_source_format.supported = FALSE;
 	encoder_supports_source_format.pixfmt = format;
@@ -599,7 +606,7 @@ static void configure_video_source(VideoStream *stream){
 			ms_filter_call_method(stream->pixconv,MS_FILTER_SET_VIDEO_SIZE,&cam_vsize);
 		}
 		stream->sizeconv=ms_factory_create_filter(stream->ms.factory, MS_SIZE_CONV_ID);
-		ms_filter_call_method(stream->sizeconv,MS_FILTER_SET_VIDEO_SIZE,&vsize);
+		ms_filter_call_method(stream->sizeconv,MS_FILTER_SET_VIDEO_SIZE,&vconf.vsize);
 	}
 	if (stream->ms.rc){
 		ms_bitrate_controller_destroy(stream->ms.rc);
@@ -840,14 +847,14 @@ static void apply_video_preset(VideoStream *stream, PayloadType *pt) {
 	}
 	if (conf == NULL) {
 		ms_message("Using the default video configuration list");
+		if (ms_filter_has_method(stream->ms.encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST) == TRUE) {
+			ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, &conf);
+		}
 	}
-	if (ms_filter_has_method(stream->ms.encoder, MS_VIDEO_ENCODER_SET_CONFIGURATION_LIST) == TRUE) {
-		ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_SET_CONFIGURATION_LIST, &conf);
-	}
+	stream->vconf_list = conf;
 }
 
 static void apply_bitrate_limit(VideoStream *stream, PayloadType *pt) {
-	MSVideoConfiguration *vconf_list = NULL;
 	int target_upload_bandwidth = 0;
 
 	if (stream->ms.max_target_bitrate <= 0) {
@@ -860,25 +867,29 @@ static void apply_bitrate_limit(VideoStream *stream, PayloadType *pt) {
 	}
 
 	ms_message("Limiting bitrate of video encoder to %i bits/s for stream [%p]",stream->ms.max_target_bitrate,stream);
-	ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, &vconf_list);
-	if (vconf_list != NULL) {
+	if (stream->vconf_list != NULL) {
 		MSVideoConfiguration vconf;
 
 		if (stream->ms.max_target_bitrate > 0) {
-			vconf = ms_video_find_best_configuration_for_bitrate(vconf_list, stream->ms.max_target_bitrate, ms_factory_get_cpu_count(stream->ms.factory));
+			vconf = ms_video_find_best_configuration_for_bitrate(stream->vconf_list, stream->ms.max_target_bitrate, ms_factory_get_cpu_count(stream->ms.factory));
 			/* Adjust configuration video size to use the user preferred video size if it is lower that the configuration one. */
 			if ((stream->sent_vsize.height * stream->sent_vsize.width) < (vconf.vsize.height * vconf.vsize.width)) {
 				vconf.vsize = stream->sent_vsize;
 			}
 		} else {
 			/* We retrieve the lowest configuration for that vsize since the bandwidth estimator will increase quality if possible */
-			vconf = ms_video_find_worst_configuration_for_size(vconf_list, stream->sent_vsize, ms_factory_get_cpu_count(stream->ms.factory));
+			vconf = ms_video_find_worst_configuration_for_size(stream->vconf_list, stream->sent_vsize, ms_factory_get_cpu_count(stream->ms.factory));
 			/*If the lower config is found, required_bitrate will be 0. In this case, use the bitrate_limit*/
 			target_upload_bandwidth = vconf.required_bitrate > 0 ? vconf.required_bitrate : vconf.bitrate_limit;
 		}
 		ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_SET_CONFIGURATION, &vconf);
 	} else {
-		ms_filter_call_method(stream->ms.encoder, MS_FILTER_SET_BITRATE, &stream->ms.max_target_bitrate);
+		MSVideoConfiguration vconf;
+		/* Get current video configuration and change only bitrate */
+		ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION, &vconf);
+
+		vconf.required_bitrate = stream->ms.max_target_bitrate;
+		ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_SET_CONFIGURATION, &vconf);
 	}
 	rtp_session_set_target_upload_bandwidth(stream->ms.sessions.rtp_session, target_upload_bandwidth != 0 ? target_upload_bandwidth : stream->ms.max_target_bitrate);
 }

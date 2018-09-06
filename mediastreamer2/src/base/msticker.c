@@ -416,7 +416,7 @@ void * ms_ticker_run(void *arg)
 	int late;
 
 	ms_mutex_lock(&s->lock);
-	
+
 	precision = set_high_prio(s);
 	s->thread_id = ms_thread_self();
 	s->ticks=1;
@@ -424,7 +424,7 @@ void * ms_ticker_run(void *arg)
 
 	while(s->run){
 		uint64_t late_tick_time=0;
-		
+
 		s->ticks++;
 		/*Step 1: run the graphs*/
 		{
@@ -606,11 +606,20 @@ double ms_ticker_synchronizer_set_external_time(MSTickerSynchronizer* ts, const 
 }
 
 double ms_ticker_synchronizer_update(MSTickerSynchronizer *ts, uint64_t nb_samples, unsigned int sample_rate) {
-	uint64_t ms = ((1000 * nb_samples) / (uint64_t)sample_rate);
-	MSTimeSpec timespec;
-	timespec.tv_nsec = (ms % 1000) * 1000000LL;
-	timespec.tv_sec = ms / 1000LL;
-	return ms_ticker_synchronizer_set_external_time(ts, &timespec);
+	/* It is important that the average clock skew is updated ONLY if the user notifies that nb_samples has changed.
+	   Indeed, the fact that the soundcard didn't delivered samples during a period of time doesn't mean that the time has stopped or slowed.
+	   What we need is that each time we get new samples, we correlate them with system time to make a correction on the msticker timer.
+	   Imagine that the soundcard stops for some reason: without this check the msticker would stop as well.
+	*/
+	if (nb_samples > ts->current_nsamples || ts->offset == 0){
+		uint64_t ms = ((1000 * nb_samples) / (uint64_t)sample_rate);
+		MSTimeSpec timespec;
+		ts->current_nsamples = nb_samples;
+		timespec.tv_nsec = (ms % 1000) * 1000000LL;
+		timespec.tv_sec = ms / 1000LL;
+		return ms_ticker_synchronizer_set_external_time(ts, &timespec);
+	}
+	return ts->av_skew;
 }
 
 uint64_t ms_ticker_round(uint64_t ms) {

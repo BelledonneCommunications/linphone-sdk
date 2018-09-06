@@ -60,7 +60,7 @@ void rfc3984_set_mode(Rfc3984Context *ctx, int mode) {
 }
 
 void rfc3984_enable_stap_a(Rfc3984Context *ctx, bool_t yesno) {
-	ctx->packer.enableAggregation(yesno);
+	ctx->packer.enableAggregation(!!yesno);
 }
 
 void rfc3984_pack(Rfc3984Context *ctx, MSQueue *naluq, MSQueue *rtpq, uint32_t ts) {

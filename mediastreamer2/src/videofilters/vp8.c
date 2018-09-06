@@ -657,12 +657,20 @@ static void enc_postprocess(MSFilter *f) {
 static int enc_set_configuration(MSFilter *f, void *data) {
 	EncState *s = (EncState *)f->data;
 	const MSVideoConfiguration *vconf = (const MSVideoConfiguration *)data;
+	MSVideoSize vsize = s->vconf.vsize;
+
 	if (vconf != &s->vconf) memcpy(&s->vconf, vconf, sizeof(MSVideoConfiguration));
 
 	s->cfg.rc_target_bitrate = (unsigned int)(((float)s->vconf.required_bitrate) * 0.92f / 1024.0f); //0.92=take into account IP/UDP/RTP overhead, in average.
 	s->cfg.g_timebase.num = 1;
 	s->cfg.g_timebase.den = (int)s->vconf.fps;
 	if (s->ready) {
+		/* Do not change video size if encoder is running */
+		if (!ms_video_size_equal(s->vconf.vsize, vsize)) {
+			ms_warning("Video configuration: cannot change video size when encoder is running, actual=%dx%d, wanted=%dx%d", vsize.width, vsize.height, s->vconf.vsize.width, s->vconf.vsize.height);
+			s->vconf.vsize = vsize;
+		}
+
 		ms_filter_lock(f);
 		vpx_codec_enc_config_set(&s->codec, &s->cfg);
 		ms_filter_unlock(f);
@@ -673,58 +681,10 @@ static int enc_set_configuration(MSFilter *f, void *data) {
 	return 0;
 }
 
-static int enc_set_vsize(MSFilter *f, void *data) {
-	MSVideoConfiguration best_vconf;
-	MSVideoSize *vs = (MSVideoSize *)data;
+static int enc_get_configuration(MSFilter *f, void *data) {
 	EncState *s = (EncState *)f->data;
-	best_vconf = ms_video_find_best_configuration_for_size_and_bitrate(s->vconf_list, *vs, ms_factory_get_cpu_count(f->factory), s->vconf.required_bitrate);
-	s->vconf.vsize = *vs;
-	s->vconf.fps = best_vconf.fps;
-	s->vconf.bitrate_limit = best_vconf.bitrate_limit;
-	s->vconf.required_bitrate = best_vconf.bitrate_limit < s->vconf.required_bitrate ? best_vconf.bitrate_limit : s->vconf.required_bitrate;
-	enc_set_configuration(f, &s->vconf);
-	return 0;
-}
-
-static int enc_get_vsize(MSFilter *f, void *data) {
-	EncState *s = (EncState *)f->data;
-	MSVideoSize *vs = (MSVideoSize *)data;
-	*vs = s->vconf.vsize;
-	return 0;
-}
-
-static int enc_set_fps(MSFilter *f, void *data) {
-	EncState *s = (EncState *)f->data;
-	float *fps = (float *)data;
-	s->vconf.fps = *fps;
-	enc_set_configuration(f, &s->vconf);
-	return 0;
-}
-
-static int enc_get_fps(MSFilter *f, void *data) {
-	EncState *s = (EncState *)f->data;
-	float *fps = (float *)data;
-	*fps = s->vconf.fps;
-	return 0;
-}
-
-static int enc_get_br(MSFilter *f, void *data) {
-	EncState *s = (EncState *)f->data;
-	*(int *)data = s->vconf.required_bitrate;
-	return 0;
-}
-
-static int enc_set_br(MSFilter *f, void *data) {
-	EncState *s = (EncState *)f->data;
-	int br = *(int *)data;
-	if (s->ready) {
-		/* Encoding is already ongoing, do not change video size, only bitrate. */
-		s->vconf.required_bitrate = br;
-		enc_set_configuration(f, &s->vconf);
-	} else {
-		MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_size_and_bitrate(s->vconf_list, s->vconf.vsize, ms_factory_get_cpu_count(f->factory), br);
-		enc_set_configuration(f, &best_vconf);
-	}
+	MSVideoConfiguration *vconf = (MSVideoConfiguration *)data;
+	memcpy(vconf, &s->vconf, sizeof(MSVideoConfiguration));
 	return 0;
 }
 
@@ -841,17 +801,6 @@ static int enc_get_configuration_list(MSFilter *f, void *data) {
 	return 0;
 }
 
-static int enc_set_configuration_list(MSFilter *f, void *data) {
-	EncState *s = (EncState *)f->data;
-	const MSVideoConfiguration **vconf_list = (const MSVideoConfiguration **)data;
-	if (*vconf_list == NULL) {
-		s->vconf_list = &vp8_conf_list[0];
-	} else {
-		s->vconf_list = *vconf_list;
-	}
-	return 0;
-}
-
 static int enc_enable_avpf(MSFilter *f, void *data) {
 	EncState *s = (EncState *)f->data;
 	s->avpf_enabled = *((bool_t *)data) ? TRUE : FALSE;
@@ -859,12 +808,6 @@ static int enc_enable_avpf(MSFilter *f, void *data) {
 }
 
 static MSFilterMethod enc_methods[] = {
-	{ MS_FILTER_SET_VIDEO_SIZE,                enc_set_vsize              },
-	{ MS_FILTER_SET_FPS,                       enc_set_fps                },
-	{ MS_FILTER_GET_VIDEO_SIZE,                enc_get_vsize              },
-	{ MS_FILTER_GET_FPS,                       enc_get_fps                },
-	{ MS_FILTER_SET_BITRATE,                   enc_set_br                 },
-	{ MS_FILTER_GET_BITRATE,                   enc_get_br                 },
 	{ MS_FILTER_REQ_VFU,                       enc_req_vfu                },
 	{ MS_VIDEO_ENCODER_REQ_VFU,                enc_req_vfu                },
 	{ MS_VIDEO_ENCODER_NOTIFY_PLI,             enc_notify_pli             },
@@ -872,7 +815,7 @@ static MSFilterMethod enc_methods[] = {
 	{ MS_VIDEO_ENCODER_NOTIFY_SLI,             enc_notify_sli             },
 	{ MS_VIDEO_ENCODER_NOTIFY_RPSI,            enc_notify_rpsi            },
 	{ MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, enc_get_configuration_list },
-	{ MS_VIDEO_ENCODER_SET_CONFIGURATION_LIST, enc_set_configuration_list },
+	{ MS_VIDEO_ENCODER_GET_CONFIGURATION,      enc_get_configuration      },
 	{ MS_VIDEO_ENCODER_SET_CONFIGURATION,      enc_set_configuration      },
 	{ MS_VIDEO_ENCODER_ENABLE_AVPF,            enc_enable_avpf            },
 	{ 0,                                       NULL                       }

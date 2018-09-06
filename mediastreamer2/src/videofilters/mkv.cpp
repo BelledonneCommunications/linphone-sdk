@@ -938,22 +938,24 @@ static const timecode_t MKV_TIMECODE_SCALE = 1000000;
 static const int MKV_DOCTYPE_VERSION = 4;
 static const int MKV_DOCTYPE_READ_VERSION = 2;
 
-extern const nodemeta LangStr_Class[];
-extern const nodemeta UrlPart_Class[];
-extern const nodemeta BufStream_Class[];
-extern const nodemeta MemStream_Class[];
-extern const nodemeta Streams_Class[];
-extern const nodemeta File_Class[];
-extern const nodemeta Stdio_Class[];
-extern const nodemeta Matroska_Class[];
-extern const nodemeta EBMLElement_Class[];
-extern const nodemeta EBMLMaster_Class[];
-extern const nodemeta EBMLBinary_Class[];
-extern const nodemeta EBMLString_Class[];
-extern const nodemeta EBMLInteger_Class[];
-extern const nodemeta EBMLCRC_Class[];
-extern const nodemeta EBMLDate_Class[];
-extern const nodemeta EBMLVoid_Class[];
+extern "C" {
+	extern const nodemeta LangStr_Class[];
+	extern const nodemeta UrlPart_Class[];
+	extern const nodemeta BufStream_Class[];
+	extern const nodemeta MemStream_Class[];
+	extern const nodemeta Streams_Class[];
+	extern const nodemeta File_Class[];
+	extern const nodemeta Stdio_Class[];
+	extern const nodemeta Matroska_Class[];
+	extern const nodemeta EBMLElement_Class[];
+	extern const nodemeta EBMLMaster_Class[];
+	extern const nodemeta EBMLBinary_Class[];
+	extern const nodemeta EBMLString_Class[];
+	extern const nodemeta EBMLInteger_Class[];
+	extern const nodemeta EBMLCRC_Class[];
+	extern const nodemeta EBMLDate_Class[];
+	extern const nodemeta EBMLVoid_Class[];
+}
 
 static void loadModules(nodemodule *modules) {
 	NodeRegisterClassEx(modules, Streams_Class);

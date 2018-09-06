@@ -60,7 +60,7 @@ void NalPacker::flush() {
 // Private methods
 void NalPacker::packInSingleNalUnitMode(MSQueue *naluq, MSQueue *rtpq, uint32_t ts) {
 	while (mblk_t *m = ms_queue_get(naluq)) {
-		bool end = ms_queue_empty(naluq);
+		bool end = !!ms_queue_empty(naluq);
 		size_t size = msgdsize(m);
 		if (size > _maxSize) {
 			ms_warning("This H264 packet does not fit into MTU: size=%u", static_cast<unsigned int>(size));
@@ -71,7 +71,7 @@ void NalPacker::packInSingleNalUnitMode(MSQueue *naluq, MSQueue *rtpq, uint32_t 
 
 void NalPacker::packInNonInterleavedMode(MSQueue *naluq, MSQueue *rtpq, uint32_t ts) {
 	while (mblk_t *m = ms_queue_get(naluq)) {
-		bool end = ms_queue_empty(naluq);
+		bool end = !!ms_queue_empty(naluq);
 		size_t sz = msgdsize(m);
 		if (_aggregationEnabled) {
 			if (_naluAggregator->isAggregating()) {
