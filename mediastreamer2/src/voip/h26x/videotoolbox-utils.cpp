@@ -18,6 +18,7 @@
 */
 
 #include <sstream>
+#include <unordered_map>
 
 #include "videotoolbox-utils.h"
 
@@ -25,32 +26,23 @@ using namespace std;
 
 namespace mediastreamer {
 
+static unordered_map<OSStatus, string> _errorMsg = {
+	{ noErr                         , "no error"                 },
+	{ kVTPropertyNotSupportedErr    , "property not supported"   },
+	{ kVTVideoDecoderMalfunctionErr , "decoder malfunction"      },
+	{ kVTInvalidSessionErr          , "invalid session"          },
+	{ kVTParameterErr               , "parameter error"          },
+	{ kCVReturnAllocationFailed     , "return allocation failed" },
+	{ kVTVideoDecoderBadDataErr     , "decoding bad data"        }
+};
+
 std::string toString(::OSStatus status) {
 	ostringstream message;
-	switch(status) {
-	case noErr:
-		message << "no error";
-		break;
-	case kVTPropertyNotSupportedErr:
-		message << "property not supported";
-		break;
-	case kVTVideoDecoderMalfunctionErr:
-		message << "decoder malfunction";
-		break;
-	case kVTInvalidSessionErr:
-		message << "invalid session";
-		break;
-	case kVTParameterErr:
-		message << "parameter error";
-		break;
-	case kCVReturnAllocationFailed:
-		message << "return allocation failed";
-		break;
-	case kVTVideoDecoderBadDataErr:
-		message << "decoding bad data";
-		break;
-	default:
-		break;
+	unordered_map<OSStatus, string>::const_iterator it = _errorMsg.find(status);
+	if (it != _errorMsg.cend()) {
+		message << it->second;
+	} else {
+		message << "unknown error";
 	}
 	message << " [osstatus=" << int(status) << "]";
 	return message.str();
