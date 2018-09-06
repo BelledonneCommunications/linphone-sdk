@@ -259,6 +259,7 @@ void ms_factory_register_filter(MSFactory* factory, MSFilterDesc* desc ) {
 			if (methods[i].id==MS_FILTER_GET_BITRATE || methods[i].id==MS_FILTER_SET_BITRATE
 				|| methods[i].id==MS_FILTER_GET_VIDEO_SIZE || methods[i].id==MS_FILTER_SET_VIDEO_SIZE
 				|| methods[i].id==MS_FILTER_GET_FPS || methods[i].id==MS_FILTER_SET_FPS
+				|| methods[i].id==MS_VIDEO_ENCODER_SET_CONFIGURATION_LIST
 			) {
 				ms_error("MSFilter %s is using a deprecated method (id=%i)",desc->name,methods[i].id);
 				return;
