@@ -246,7 +246,10 @@ void MSOpenH264Encoder::setConfiguration(MSVideoConfiguration conf)
 		mVConf.required_bitrate = mVConf.bitrate_limit;
 	if (isInitialized()) {
 		/* Do not change video size if encoder is running */
-		mVConf.vsize = vsize;
+		if (!ms_video_size_equal(mVConf.vsize, vsize)) {
+			ms_warning("Video configuration: cannot change video size when encoder is running, actual=%dx%d, wanted=%dx%d", vsize.width, vsize.height, mVConf.vsize.width, mVConf.vsize.height);
+			mVConf.vsize = vsize;
+		}
 
 		ms_filter_lock(mFilter);
 		applyBitrate();
