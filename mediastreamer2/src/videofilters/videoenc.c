@@ -895,7 +895,10 @@ static int enc_set_configuration(MSFilter *f, void *data) {
 		s->vconf.required_bitrate = s->vconf.bitrate_limit;
 	if (s->av_context.codec != NULL) {
 		/* Do not change video size if encoder is running */
-		s->vconf.vsize = vsize;
+		if (!ms_video_size_equal(s->vconf.vsize, vsize)) {
+			ms_warning("Video configuration: cannot change video size when encoder is running, actual=%dx%d, wanted=%dx%d", vsize.width, vsize.height, s->vconf.vsize.width, s->vconf.vsize.height);
+			s->vconf.vsize = vsize;
+		}
 
 		/* When we are processing, apply new settings immediately */
 		ms_filter_lock(f);

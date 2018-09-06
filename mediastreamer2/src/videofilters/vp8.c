@@ -666,7 +666,10 @@ static int enc_set_configuration(MSFilter *f, void *data) {
 	s->cfg.g_timebase.den = (int)s->vconf.fps;
 	if (s->ready) {
 		/* Do not change video size if encoder is running */
-		s->vconf.vsize = vsize;
+		if (!ms_video_size_equal(s->vconf.vsize, vsize)) {
+			ms_warning("Video configuration: cannot change video size when encoder is running, actual=%dx%d, wanted=%dx%d", vsize.width, vsize.height, s->vconf.vsize.width, s->vconf.vsize.height);
+			s->vconf.vsize = vsize;
+		}
 
 		ms_filter_lock(f);
 		vpx_codec_enc_config_set(&s->codec, &s->cfg);
