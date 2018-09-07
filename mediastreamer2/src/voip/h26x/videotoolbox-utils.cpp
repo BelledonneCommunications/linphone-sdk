@@ -27,13 +27,39 @@ using namespace std;
 namespace mediastreamer {
 
 static unordered_map<OSStatus, string> _errorMsg = {
-	{ noErr                         , "no error"                 },
-	{ kVTPropertyNotSupportedErr    , "property not supported"   },
-	{ kVTVideoDecoderMalfunctionErr , "decoder malfunction"      },
-	{ kVTInvalidSessionErr          , "invalid session"          },
-	{ kVTParameterErr               , "parameter error"          },
-	{ kCVReturnAllocationFailed     , "return allocation failed" },
-	{ kVTVideoDecoderBadDataErr     , "decoding bad data"        }
+	{ noErr                                     , "no error"                                },
+	{ kCVReturnAllocationFailed                 , "return allocation failed"                },
+	{ kVTPropertyNotSupportedErr                , "property not supported"                  },
+	{ kVTPropertyReadOnlyErr                    , "read only error"                         },
+	{ kVTParameterErr                           , "parameter error"                         },
+	{ kVTInvalidSessionErr                      , "invalid session"                         },
+	{ kVTAllocationFailedErr		            , "allocation failed"                       },
+	{ kVTPixelTransferNotSupportedErr           , "pixel transfer not supported"            },
+	{ kVTCouldNotFindVideoDecoderErr            , "could not find video decoder"            },
+	{ kVTCouldNotCreateInstanceErr              , "could not create instance"               },
+	{ kVTCouldNotFindVideoEncoderErr            , "could not find video encoder"            },
+	{ kVTVideoDecoderBadDataErr                 , "bad data"                                },
+	{ kVTVideoDecoderUnsupportedDataFormatErr   , "unsupported data format"                 },
+	{ kVTVideoDecoderMalfunctionErr             , "decoder malfunction"                     },
+	{ kVTVideoEncoderMalfunctionErr             , "encoder mulfunction"                     },
+	{ kVTVideoDecoderNotAvailableNowErr         , "decoder not available now"               },
+	{ kVTImageRotationNotSupportedErr           , "image rotation not supported"            },
+	{ kVTVideoEncoderNotAvailableNowErr         , "encoder not available now"               },
+	{ kVTFormatDescriptionChangeNotSupportedErr , "format description change not supported" },
+	{ kVTInsufficientSourceColorDataErr         , "insufficient source color data"          },
+	{ kVTCouldNotCreateColorCorrectionDataErr   , "could not create color correction data"  },
+	{ kVTColorSyncTransformConvertFailedErr     , "color sync transform convert failed"     },
+	{ kVTVideoDecoderAuthorizationErr           , "video decoder authorization error"       },
+	{ kVTVideoEncoderAuthorizationErr           , "video encoder authorization error"       },
+	{ kVTColorCorrectionPixelTransferFailedErr  , "color correction pixel transfer failed"  },
+	{ kVTMultiPassStorageIdentifierMismatchErr  , "multi-pass storage identifier mismatch"  },
+	{ kVTMultiPassStorageInvalidErr             , "multi-pass storage invalid"              },
+	{ kVTFrameSiloInvalidTimeStampErr           , "frame silo invalid timestamp"            },
+	{ kVTFrameSiloInvalidTimeRangeErr           , "frame silo invalid time range"           },
+	{ kVTCouldNotFindTemporalFilterErr          , "could not find temporal filter"          },
+	{ kVTPixelTransferNotPermittedErr           , "pixel transfer not permitted"            },
+	{ kVTColorCorrectionImageRotationFailedErr  , "color correction image rotation failed"  },
+	{ kVTVideoDecoderRemovedErr                 , "video decoder removed"                   }
 };
 
 std::string toString(::OSStatus status) {
@@ -44,7 +70,7 @@ std::string toString(::OSStatus status) {
 	} else {
 		message << "unknown error";
 	}
-	message << " [osstatus=" << int(status) << "]";
+	message << " [osstatus=" << status << "]";
 	return message.str();
 }
 
