@@ -68,72 +68,73 @@ void VideoToolboxEncoder::setBitrate(int bitrate) {
 }
 
 void VideoToolboxEncoder::start() {
-	OSStatus err;
-	CFNumberRef value;
+	try {
+		OSStatus err;
+		CFNumberRef value;
 
-	CFMutableDictionaryRef pixbuf_attr = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, NULL, &kCFTypeDictionaryValueCallBacks);
-	int32_t pixel_type = kCVPixelFormatType_420YpCbCr8Planar;
-	value = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &pixel_type);
-	CFDictionarySetValue(pixbuf_attr, kCVPixelBufferPixelFormatTypeKey, value);
-	CFRelease(value);
+		CFMutableDictionaryRef pixbuf_attr = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, NULL, &kCFTypeDictionaryValueCallBacks);
+		int32_t pixel_type = kCVPixelFormatType_420YpCbCr8Planar;
+		value = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &pixel_type);
+		CFDictionarySetValue(pixbuf_attr, kCVPixelBufferPixelFormatTypeKey, value);
+		CFRelease(value);
 
-	CFMutableDictionaryRef session_props = CFDictionaryCreateMutable (kCFAllocatorDefault, 1, NULL, NULL);
+		CFMutableDictionaryRef session_props = CFDictionaryCreateMutable (kCFAllocatorDefault, 1, NULL, NULL);
 #if !TARGET_OS_IPHONE
-	CFDictionarySetValue(session_props, kVTVideoEncoderSpecification_EnableHardwareAcceleratedVideoEncoder, kCFBooleanTrue);
+		CFDictionarySetValue(session_props, kVTVideoEncoderSpecification_EnableHardwareAcceleratedVideoEncoder, kCFBooleanTrue);
 #endif
 
-	err = VTCompressionSessionCreate(kCFAllocatorDefault, _vsize.width, _vsize.height, kCMVideoCodecType_H264,
-									 session_props, pixbuf_attr, kCFAllocatorDefault, outputCb, this, &_session);
-	CFRelease(pixbuf_attr);
-	CFRelease(session_props);
-	if(err) {
-		vth264enc_error("could not initialize the VideoToolbox compresson session: %s", toString(err).c_str());
-		goto fail;
-	}
+		CMVideoCodecType codecType = (_mime == "video/avc" ? kCMVideoCodecType_H264 : kCMVideoCodecType_HEVC);
+		err = VTCompressionSessionCreate(kCFAllocatorDefault, _vsize.width, _vsize.height, codecType,
+										 session_props, pixbuf_attr, kCFAllocatorDefault, outputCb, this, &_session);
+		CFRelease(pixbuf_attr);
+		CFRelease(session_props);
+		if(err) throw runtime_error("could not initialize the VideoToolbox compresson session: " + toString(err));
 
-	err = VTSessionSetProperty(_session, kVTCompressionPropertyKey_ProfileLevel, kVTProfileLevel_H264_Baseline_AutoLevel);
-	if (err != noErr) {
-		vth264enc_error("could not set H264 profile and level: %s", toString(err).c_str());
-	}
-
-	err = VTSessionSetProperty(_session, kVTCompressionPropertyKey_RealTime, kCFBooleanTrue);
-	if (err != noErr) {
-		vth264enc_warning("could not enable real-time mode: %s", toString(err).c_str());
-	}
-
-	applyFramerate();
-	applyBitrate();
-
-	if((err = VTCompressionSessionPrepareToEncodeFrames(_session)) != noErr) {
-		vth264enc_error("could not prepare the VideoToolbox compression session: %s", toString(err).c_str());
-		goto fail;
-	}
-
-	vth264enc_message("encoder succesfully initialized.");
-#if !TARGET_OS_IPHONE
-	CFBooleanRef hardware_acceleration_enabled;
-	err = VTSessionCopyProperty(_session, kVTCompressionPropertyKey_UsingHardwareAcceleratedVideoEncoder, kCFAllocatorDefault, &hardware_acceleration_enabled);
-	if (err != noErr) {
-		vth264enc_error("could not read kVTCompressionPropertyKey_UsingHardwareAcceleratedVideoEncoder property: %s", toString(err).c_str());
-	} else {
-		if (hardware_acceleration_enabled != nullptr && CFBooleanGetValue(hardware_acceleration_enabled)) {
-			vth264enc_message("hardware acceleration enabled");
-		} else {
-			vth264enc_warning("hardware acceleration not enabled");
+		CFTypeRef profileLevel = (_mime == "video/avc" ? kVTProfileLevel_H264_Baseline_AutoLevel : kVTProfileLevel_HEVC_Main_AutoLevel);
+		err = VTSessionSetProperty(_session, kVTCompressionPropertyKey_ProfileLevel, profileLevel);
+		if (err != noErr) {
+			vth264enc_error("could not set H264 profile and level: %s", toString(err).c_str());
 		}
-	}
-	if (hardware_acceleration_enabled) CFRelease(hardware_acceleration_enabled);
-#endif
-	return;
 
-fail:
-	if(_session) {
-		CFRelease(_session);
-		_session = nullptr;
+		err = VTSessionSetProperty(_session, kVTCompressionPropertyKey_RealTime, kCFBooleanTrue);
+		if (err != noErr) {
+			vth264enc_warning("could not enable real-time mode: %s", toString(err).c_str());
+		}
+
+		applyFramerate();
+		applyBitrate();
+
+		if((err = VTCompressionSessionPrepareToEncodeFrames(_session)) != noErr) {
+			throw runtime_error("could not prepare the VideoToolbox compression session: " + toString(err));
+		}
+
+		vth264enc_message("encoder succesfully initialized.");
+#if !TARGET_OS_IPHONE
+		CFBooleanRef hardware_acceleration_enabled;
+		err = VTSessionCopyProperty(_session, kVTCompressionPropertyKey_UsingHardwareAcceleratedVideoEncoder, kCFAllocatorDefault, &hardware_acceleration_enabled);
+		if (err != noErr) {
+			vth264enc_error("could not read kVTCompressionPropertyKey_UsingHardwareAcceleratedVideoEncoder property: %s", toString(err).c_str());
+		} else {
+			if (hardware_acceleration_enabled != nullptr && CFBooleanGetValue(hardware_acceleration_enabled)) {
+				vth264enc_message("hardware acceleration enabled");
+			} else {
+				vth264enc_warning("hardware acceleration not enabled");
+			}
+		}
+		if (hardware_acceleration_enabled) CFRelease(hardware_acceleration_enabled);
+#endif
+		return;
+	} catch (const runtime_error &e) {
+		vth264enc_error("%s", e.what());
+		if(_session) {
+			CFRelease(_session);
+			_session = nullptr;
+		}
 	}
 }
 
 void VideoToolboxEncoder::stop() {
+	if (_session == nullptr) return;
 	vth264enc_message("destroying the encoding session");
 	VTCompressionSessionInvalidate(_session);
 	CFRelease( _session);
@@ -272,18 +273,21 @@ void VideoToolboxEncoder::outputCb(void *outputCallbackRefCon, void *sourceFrame
 
 		if(isKeyFrame) {
 			mblk_t *insertion_point = ms_queue_peek_first(encodedFrame.getQueue());
-			const uint8_t *parameter_set;
-			size_t parameter_set_size;
-			size_t parameter_set_count;
 			CMFormatDescriptionRef format_desc = CMSampleBufferGetFormatDescription(sampleBuffer);
 			size_t offset = 0;
+			size_t parameter_set_count;
 			do {
-				CMVideoFormatDescriptionGetH264ParameterSetAtIndex(format_desc, offset, &parameter_set, &parameter_set_size, &parameter_set_count, NULL);
+				const uint8_t *parameter_set;
+				size_t parameter_set_size;
+				if (ctx->_mime == "video/avc") {
+					CMVideoFormatDescriptionGetH264ParameterSetAtIndex(format_desc, offset++, &parameter_set, &parameter_set_size, &parameter_set_count, nullptr);
+				} else {
+					CMVideoFormatDescriptionGetHEVCParameterSetAtIndex(format_desc, offset++, &parameter_set, &parameter_set_size, &parameter_set_count, nullptr);
+				}
 				mblk_t *nalu = allocb(parameter_set_size, 0);
 				memcpy(nalu->b_wptr, parameter_set, parameter_set_size);
 				nalu->b_wptr += parameter_set_size;
 				ms_queue_insert(encodedFrame.getQueue(), insertion_point, nalu);
-				offset++;
 			} while(offset < parameter_set_count);
 			vth264enc_message("I-frame created");
 		}

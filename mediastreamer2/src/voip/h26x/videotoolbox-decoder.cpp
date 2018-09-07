@@ -197,7 +197,13 @@ bool VideoToolboxDecoder::formatDescFromSpsPps() {
 	}
 
 	CMFormatDescriptionRef format_desc;
-	OSStatus status = CMVideoFormatDescriptionCreateFromH264ParameterSets(NULL, ptrs.size(), ptrs.data(), sizes.data(), _naluSizeLength, &format_desc);
+	OSStatus status;
+	if (_mime == "video/avc") {
+		status = CMVideoFormatDescriptionCreateFromH264ParameterSets(nullptr, ptrs.size(), ptrs.data(), sizes.data(), _naluSizeLength, &format_desc);
+	} else {
+		status = CMVideoFormatDescriptionCreateFromHEVCParameterSets(nullptr, ptrs.size(), ptrs.data(), sizes.data(), _naluSizeLength, nullptr, &format_desc);
+	}
+
 	ms_queue_flush(&parameterSets);
 	if(status != noErr) {
 		vth264dec_error("could not find out the input format: %d", int(status));
