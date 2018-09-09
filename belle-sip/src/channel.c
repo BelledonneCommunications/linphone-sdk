@@ -1530,6 +1530,7 @@ static void channel_res_done(void *data, belle_sip_resolver_results_t *results){
 			belle_sip_main_loop_add_source(obj->stack->ml, obj->dns_ttl_timer);
 		}
 	}else{
+		channel_set_current_peer(obj, NULL);
 		belle_sip_error("%s: DNS resolution failed for %s", __FUNCTION__, name);
 		channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
 	}
