@@ -56,6 +56,7 @@ private:
 		~Frame() {ms_queue_flush(&_nalus);}
 
 		void put(mblk_t *m) {ms_queue_put(&_nalus, m);}
+		void insert(MSQueue *q);
 		mblk_t *get() {return ms_queue_get(&_nalus);}
 
 		MSQueue *getQueue() {return &_nalus;}

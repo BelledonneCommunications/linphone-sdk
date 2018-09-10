@@ -368,13 +368,14 @@ if(ENABLE_VIDEO)
 		endif()
 	endif()
 	if (APPLE AND (ENABLE_VT_H265 OR ENABLE_VT_H264))
-		set(VIDEOTOOLBOX_CODEC_SOURCE_FILES
+		list(APPEND VOIP_SOURCE_FILES_CXX
 			videofilters/videotoolbox.cpp
 			voip/h26x/videotoolbox-decoder.cpp
 			voip/h26x/videotoolbox-encoder.cpp
+			voip/h26x/videotoolbox-h264-utilities.cpp
+			voip/h26x/videotoolbox-h265-utilities.cpp
 			voip/h26x/videotoolbox-utils.cpp
 		)
-		list(APPEND VOIP_SOURCE_FILES_CXX ${VIDEOTOOLBOX_CODEC_SOURCE_FILES})
 	endif()
 	if(ANDROID)
 		list(APPEND VOIP_SOURCE_FILES_C
@@ -541,8 +542,8 @@ bc_apply_compile_flags(VOIP_SOURCE_FILES_OBJC STRICT_OPTIONS_CPP STRICT_OPTIONS_
 if(VOIP_SOURCE_FILES_CXX)
 	set_source_files_properties(${VOIP_SOURCE_FILES_CXX} PROPERTIES LANGUAGE CXX)
 	bc_apply_compile_flags(VOIP_SOURCE_FILES_CXX STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
-	if(IOS AND VIDEOTOOLBOX_CODEC_SOURCE_FILES)
-		set_source_files_properties(${VIDEOTOOLBOX_CODEC_SOURCE_FILES}
+	if(IOS)
+		set_source_files_properties(voip/h26x/videotoolbox-h265-utilities.cpp
 			PROPERTIES COMPILE_FLAGS "-miphoneos-version-min=11.0"
 		)
 	endif()

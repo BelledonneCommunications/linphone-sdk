@@ -55,10 +55,10 @@ private:
 		mblk_t *_data = nullptr;
 	};
 
-	bool createDecoder();
+	void createDecoder();
 	void destroyDecoder();
 	bool decodeFrame(MSQueue *encodedFrame, uint64_t timestamp);
-	bool formatDescFromSpsPps();
+	void formatDescFromSpsPps();
 
 	static void outputCb(void *decompressionOutputRefCon, void *sourceFrameRefCon, OSStatus status,
 						 VTDecodeInfoFlags infoFlags, CVImageBufferRef imageBuffer,

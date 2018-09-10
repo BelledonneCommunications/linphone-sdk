@@ -91,16 +91,19 @@ extern "C" void _register_videotoolbox_if_supported(MSFactory *factory) {
 		ms_message("Registering VideoToolbox H264 codec");
 		ms_factory_register_filter(factory, &ms_VideoToolboxH264Encoder_desc);
 		ms_factory_register_filter(factory, &ms_VideoToolboxH264Decoder_desc);
+	} else {
+		ms_message("Cannot register VideoToolbox H264 codec. That "
+			"requires iOS 8 or MacOS 10.8");
+	}
 
+	if (kCFCoreFoundationVersionNumber >= 1400) { // MacOS >= 10.13 or iOS >= 11.0
 		ms_message("Registering VideoToolbox H265 codec");
 		ms_factory_register_filter(factory, &ms_VideoToolboxH265Encoder_desc);
 		ms_factory_register_filter(factory, &ms_VideoToolboxH265Decoder_desc);
 	} else {
-		ms_message("Cannot register VideoToolbox H264 codec. That "
-			"requires iOS 8 or MacOSX 10.8");
+		ms_message("Cannot register VideoToolbox H265 codec. That "
+                        "requires iOS 11.0 or MacOS 10.13");
 	}
-	
 #endif
 }
-
 

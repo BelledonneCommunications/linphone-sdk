@@ -46,26 +46,29 @@ VideoToolboxDecoder::~VideoToolboxDecoder() {
 }
 
 bool VideoToolboxDecoder::feed(MSQueue *encodedFrame, uint64_t timestamp) {
-	_psStore->extractAllPs(encodedFrame);
-	if (_psStore->hasNewParameters()) {
-		_psStore->acknowlege();
-		if (_session) destroyDecoder();
-	}
-	if (ms_queue_empty(encodedFrame)) return true;
-	if (!_psStore->psGatheringCompleted()) {
-		vth264dec_message("decoding failed because some parameter sets haven't been received yet");
+	try {
+		_psStore->extractAllPs(encodedFrame);
+		if (_psStore->hasNewParameters()) {
+			_psStore->acknowlege();
+			if (_session) destroyDecoder();
+		}
+		if (ms_queue_empty(encodedFrame)) return true;
+		if (!_psStore->psGatheringCompleted()) throw runtime_error("need more parameter sets");
+		if (_session == nullptr) createDecoder();
+		for (const mblk_t *nalu = ms_queue_peek_first(encodedFrame); !ms_queue_end(encodedFrame, nalu); nalu = ms_queue_next(encodedFrame, nalu)) {
+			_naluHeader->parse(nalu->b_rptr);
+			if (_naluHeader->getAbsType().isKeyFramePart()) {
+				_freeze = false;
+				break;
+			}
+		}
+		if (_freeze) return true;
+		return decodeFrame(encodedFrame, timestamp);
+	} catch (const runtime_error &e) {
+		ms_error("VideoToolboxDecoder: %s", e.what());
+		ms_error("VideoToolboxDecoder: feeding failed");
 		return false;
 	}
-	if (_session == nullptr && !createDecoder()) return false;
-	for (const mblk_t *nalu = ms_queue_peek_first(encodedFrame); !ms_queue_end(encodedFrame, nalu); nalu = ms_queue_next(encodedFrame, nalu)) {
-		_naluHeader->parse(nalu->b_rptr);
-		if (_naluHeader->getAbsType().isKeyFramePart()) {
-			_freeze = false;
-			break;
-		}
-	}
-	if (_freeze) return true;
-	return decodeFrame(encodedFrame, timestamp);
 }
 
 VideoDecoder::Status VideoToolboxDecoder::fetch(mblk_t *&frame) {
@@ -79,15 +82,13 @@ VideoDecoder::Status VideoToolboxDecoder::fetch(mblk_t *&frame) {
 	}
 }
 
-bool VideoToolboxDecoder::createDecoder() {
+void VideoToolboxDecoder::createDecoder() {
 	OSStatus status;
 	VTDecompressionOutputCallbackRecord dec_cb = {outputCb, this};
 
 	vth264dec_message("creating a decoding session");
 
-	if (!formatDescFromSpsPps()) {
-		return false;
-	}
+	formatDescFromSpsPps();
 
 	CFMutableDictionaryRef decoder_params = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, NULL, NULL);
 #if !TARGET_OS_IPHONE
@@ -104,8 +105,7 @@ bool VideoToolboxDecoder::createDecoder() {
 	CFRelease(pixel_parameters);
 	CFRelease(decoder_params);
 	if(status != noErr) {
-		vth264dec_error("could not create the decoding context: %s", toString(status).c_str());
-		return false;
+		throw runtime_error("could not create the decoding context: " + toString(status));
 	} else {
 #if !TARGET_OS_IPHONE
 		CFBooleanRef hardware_acceleration;
@@ -128,8 +128,6 @@ bool VideoToolboxDecoder::createDecoder() {
 			vth264dec_warning("could not be able to switch to real-time mode: %s", toString(status).c_str());
 		}
 #endif
-
-		return true;
 	}
 }
 
@@ -184,37 +182,17 @@ bool VideoToolboxDecoder::decodeFrame(MSQueue *encodedFrame, uint64_t timestamp)
 	return true;
 }
 
-bool VideoToolboxDecoder::formatDescFromSpsPps() {
-	MSQueue parameterSets;
-	ms_queue_init(&parameterSets);
-	_psStore->fetchAllPs(&parameterSets);
-
-	vector<const uint8_t *> ptrs;
-	vector<size_t> sizes;
-	for (const mblk_t *ps = ms_queue_peek_first(&parameterSets); !ms_queue_end(&parameterSets, ps); ps = ms_queue_next(&parameterSets, ps)) {
-		ptrs.push_back(ps->b_rptr);
-		sizes.push_back(msgdsize(ps));
+void VideoToolboxDecoder::formatDescFromSpsPps() {
+	try {
+		unique_ptr<VideoToolboxUtilities> utils(VideoToolboxUtilities::create(_mime));
+		CMFormatDescriptionRef format_desc = utils->createFormatDescription(*_psStore);
+		CMVideoDimensions vsize = CMVideoFormatDescriptionGetDimensions(format_desc);
+		vth264dec_message("new video format %dx%d", int(vsize.width), int(vsize.height));
+		if (_formatDesc) CFRelease(_formatDesc);
+		_formatDesc = format_desc;
+	} catch (const AppleOSError &e) {
+		throw runtime_error(string("cannot create format description: ") + e.what());
 	}
-
-	CMFormatDescriptionRef format_desc;
-	OSStatus status;
-	if (_mime == "video/avc") {
-		status = CMVideoFormatDescriptionCreateFromH264ParameterSets(nullptr, ptrs.size(), ptrs.data(), sizes.data(), _naluSizeLength, &format_desc);
-	} else {
-		status = CMVideoFormatDescriptionCreateFromHEVCParameterSets(nullptr, ptrs.size(), ptrs.data(), sizes.data(), _naluSizeLength, nullptr, &format_desc);
-	}
-
-	ms_queue_flush(&parameterSets);
-	if(status != noErr) {
-		vth264dec_error("could not find out the input format: %d", int(status));
-		return false;
-	}
-
-	CMVideoDimensions vsize = CMVideoFormatDescriptionGetDimensions(format_desc);
-	vth264dec_message("new video format %dx%d", int(vsize.width), int(vsize.height));
-	if (_formatDesc) CFRelease(_formatDesc);
-	_formatDesc = format_desc;
-	return true;
 }
 
 void VideoToolboxDecoder::outputCb(void *decompressionOutputRefCon, void *sourceFrameRefCon, OSStatus status,

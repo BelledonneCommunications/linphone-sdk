@@ -99,7 +99,7 @@ public:
 
 	void extractAllPs(MSQueue *frame);
 	bool psGatheringCompleted() const;
-	void fetchAllPs(MSQueue *outq);
+	void fetchAllPs(MSQueue *outq) const;
 
 protected:
 	H26xParameterSetsStore(const std::string &mime, const std::initializer_list<int> &psCodes);

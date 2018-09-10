@@ -20,6 +20,9 @@
 #include <sstream>
 #include <unordered_map>
 
+#include "videotoolbox-h264-utilities.h"
+#include "videotoolbox-h265-utilities.h"
+
 #include "videotoolbox-utils.h"
 
 using namespace std;
@@ -72,6 +75,54 @@ std::string toString(::OSStatus status) {
 	}
 	message << " [osstatus=" << status << "]";
 	return message.str();
+}
+
+void VideoToolboxUtilities::getParameterSets(const CMFormatDescriptionRef format, MSQueue *outPs) const {
+	size_t offset = 0;
+	size_t parameterSetsCount;
+	do {
+		const uint8_t *parameterSet;
+		size_t parameterSetSize;
+		getParameterSet(format, offset++, parameterSet, parameterSetSize, parameterSetsCount);
+
+		mblk_t *nalu = allocb(parameterSetSize, 0);
+		memcpy(nalu->b_wptr, parameterSet, parameterSetSize);
+		nalu->b_wptr += parameterSetSize;
+		ms_queue_put(outPs, nalu);
+	} while(offset < parameterSetsCount);
+}
+
+CMFormatDescriptionRef VideoToolboxUtilities::createFormatDescription(const H26xParameterSetsStore &psStore) const {
+	MSQueue parameterSets;
+	ms_queue_init(&parameterSets);
+
+	try {
+		psStore.fetchAllPs(&parameterSets);
+
+		vector<const uint8_t *> ptrs;
+		vector<size_t> sizes;
+		for (const mblk_t *ps = ms_queue_peek_first(&parameterSets); !ms_queue_end(&parameterSets, ps); ps = ms_queue_next(&parameterSets, ps)) {
+			ptrs.push_back(ps->b_rptr);
+			sizes.push_back(msgdsize(ps));
+		}
+
+		CMFormatDescriptionRef formatDesc = createFormatDescription(ptrs.size(), ptrs.data(), sizes.data());
+		ms_queue_flush(&parameterSets);
+		return formatDesc;
+	} catch (const AppleOSError &e) {
+		ms_queue_flush(&parameterSets);
+		throw;
+	}
+}
+
+VideoToolboxUtilities *VideoToolboxUtilities::create(const std::string &mime) {
+	if (mime == "video/avc") {
+		return new VideoToolboxH264Utilities();
+	} else if (mime == "video/hevc") {
+		return new VideoToolboxH265Utilities();
+	} else {
+		throw invalid_argument(mime + " not supported");
+	}
 }
 
 } // namespace mediastreamer

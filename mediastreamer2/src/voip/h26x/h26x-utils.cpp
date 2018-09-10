@@ -158,7 +158,7 @@ void H26xParameterSetsStore::extractAllPs(MSQueue *frame) {
 	}
 }
 
-void H26xParameterSetsStore::fetchAllPs(MSQueue *outq) {
+void H26xParameterSetsStore::fetchAllPs(MSQueue *outq) const {
 	MSQueue q;
 	ms_queue_init(&q);
 	for(const auto &item : _ps) {
