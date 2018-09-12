@@ -21,7 +21,7 @@
 #include <unordered_map>
 
 #include "videotoolbox-h264-utilities.h"
-#ifdef H265_SUPPORTED
+#ifdef ENABLE_H265
 #include "videotoolbox-h265-utilities.h"
 #endif
 
@@ -121,7 +121,7 @@ VideoToolboxUtilities *VideoToolboxUtilities::create(const std::string &mime) {
 	if (mime == "video/avc") {
 		return new VideoToolboxH264Utilities();
 	}
-#ifdef H265_SUPPORTED
+#ifdef ENABLE_H265
 	else if (mime == "video/hevc") {
 		return new VideoToolboxH265Utilities();
 	}

@@ -548,8 +548,10 @@ if(VOIP_SOURCE_FILES_CXX)
 		set_source_files_properties(voip/h26x/videotoolbox-h265-utilities.cpp
 			PROPERTIES COMPILE_FLAGS "-miphoneos-version-min=11.0"
 		)
-		set_source_files_properties(voip/h26x/videotoolbox-utils.cpp
-			PROPERTIES COMPILE_DEFINITIONS "H265_SUPPORTED"
+		set_source_files_properties(
+			voip/h26x/videotoolbox-utils.cpp
+			videofilters/videotoolbox.cpp
+			PROPERTIES COMPILE_DEFINITIONS "ENABLE_H265"
 		)
 	endif()
 endif()
