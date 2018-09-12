@@ -373,9 +373,11 @@ if(ENABLE_VIDEO)
 			voip/h26x/videotoolbox-decoder.cpp
 			voip/h26x/videotoolbox-encoder.cpp
 			voip/h26x/videotoolbox-h264-utilities.cpp
-			voip/h26x/videotoolbox-h265-utilities.cpp
 			voip/h26x/videotoolbox-utils.cpp
 		)
+		if(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+			list(APPEND VOIP_SOURCE_FILES_CXX voip/h26x/videotoolbox-h265-utilities.cpp)
+		endif()
 	endif()
 	if(ANDROID)
 		list(APPEND VOIP_SOURCE_FILES_C
@@ -542,9 +544,12 @@ bc_apply_compile_flags(VOIP_SOURCE_FILES_OBJC STRICT_OPTIONS_CPP STRICT_OPTIONS_
 if(VOIP_SOURCE_FILES_CXX)
 	set_source_files_properties(${VOIP_SOURCE_FILES_CXX} PROPERTIES LANGUAGE CXX)
 	bc_apply_compile_flags(VOIP_SOURCE_FILES_CXX STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
-	if(IOS)
+	if(IOS AND (CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64"))
 		set_source_files_properties(voip/h26x/videotoolbox-h265-utilities.cpp
 			PROPERTIES COMPILE_FLAGS "-miphoneos-version-min=11.0"
+		)
+		set_source_files_properties(voip/h26x/videotoolbox-utils.cpp
+			PROPERTIES COMPILE_DEFINITIONS "H265_SUPPORTED"
 		)
 	endif()
 endif()
