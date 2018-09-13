@@ -206,8 +206,6 @@ set(VOIP_SOURCE_FILES_C
 set(VOIP_SOURCE_FILES_CXX
 	utils/filter-wrapper/decoding-filter-wrapper.cpp
 	utils/filter-wrapper/encoding-filter-wrapper.cpp
-	voip/h26x/h26x-encoder-filter.cpp
-	voip/h26x/h26x-decoder-filter.cpp
 )
 set(VOIP_SOURCE_FILES_OBJC )
 set(VOIP_SOURCE_FILES_ASM )
@@ -305,18 +303,6 @@ if(ENABLE_VIDEO)
 		voip/videostarter.c
 		voip/videostream.c
 	)
-	list(APPEND VOIP_SOURCE_FILES_CXX
-		voip/h26x/h264-utils.cpp
-		voip/h26x/h265-utils.cpp
-		voip/h26x/h264-nal-packer.cpp
-		voip/h26x/h264-nal-unpacker.cpp
-		voip/h26x/h265-nal-packer.cpp
-		voip/h26x/h265-nal-unpacker.cpp
-		voip/h26x/h26x-utils.cpp
-		voip/h26x/nal-packer.cpp
-		voip/h26x/nal-unpacker.cpp
-		voip/h26x/rfc3984.cpp
-	)
 	if(FFMPEG_FOUND AND NOT TURBOJPEG_FOUND)
 		list(APPEND VOIP_SOURCE_FILES_C
 			videofilters/ffmpegnowebcam.c
@@ -367,18 +353,6 @@ if(ENABLE_VIDEO)
 			)
 		endif()
 	endif()
-	if (APPLE AND (ENABLE_VT_H265 OR ENABLE_VT_H264))
-		list(APPEND VOIP_SOURCE_FILES_CXX
-			videofilters/videotoolbox.cpp
-			voip/h26x/videotoolbox-decoder.cpp
-			voip/h26x/videotoolbox-encoder.cpp
-			voip/h26x/videotoolbox-h264-utilities.cpp
-			voip/h26x/videotoolbox-utils.cpp
-		)
-		if(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
-			list(APPEND VOIP_SOURCE_FILES_CXX voip/h26x/videotoolbox-h265-utilities.cpp)
-		endif()
-	endif()
 	if(ANDROID)
 		list(APPEND VOIP_SOURCE_FILES_C
 			android/android-display.c
@@ -390,14 +364,6 @@ if(ENABLE_VIDEO)
 			utils/shader_util.c
 			utils/shader_util.h
 			voip/scaler.c
-		)
-		list(APPEND VOIP_SOURCE_FILES_CXX
-			voip/h26x/media-codec-decoder.cpp
-			voip/h26x/media-codec-encoder.cpp
-			voip/h26x/media-codec-h264-decoder.cpp
-			voip/h26x/media-codec-h264-encoder.cpp
-			voip/h26x/media-codec-h265-decoder.cpp
-			voip/h26x/media-codec-h265-encoder.cpp
 		)
 		if(CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7-a")
 			list(APPEND VOIP_SOURCE_FILES_ASM
@@ -539,18 +505,22 @@ if(APPLE OR ANDROID OR OPENGL_FOUND OR GLX_FOUND OR QTANGLE_FOUND)
 	)
 endif()
 
+if (ENABLE_VT_H264 OR ENALBLE_VT_H265 OR ANDROID)
+	add_subdirectory(voip/h26x)
+endif()
+
 bc_apply_compile_flags(VOIP_SOURCE_FILES_C STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
 bc_apply_compile_flags(VOIP_SOURCE_FILES_OBJC STRICT_OPTIONS_CPP STRICT_OPTIONS_OBJC)
 if(VOIP_SOURCE_FILES_CXX)
 	set_source_files_properties(${VOIP_SOURCE_FILES_CXX} PROPERTIES LANGUAGE CXX)
 	bc_apply_compile_flags(VOIP_SOURCE_FILES_CXX STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
-	if(IOS AND (CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64"))
+	if (IOS AND ENABLE_VT_H265 AND (CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64"))
 		set_source_files_properties(voip/h26x/videotoolbox-h265-utilities.cpp
 			PROPERTIES COMPILE_FLAGS "-miphoneos-version-min=11.0"
 		)
 		set_source_files_properties(
 			voip/h26x/videotoolbox-utils.cpp
-			videofilters/videotoolbox.cpp
+			voip/h26x/videotoolbox.cpp
 			PROPERTIES COMPILE_DEFINITIONS "ENABLE_H265"
 		)
 	endif()
