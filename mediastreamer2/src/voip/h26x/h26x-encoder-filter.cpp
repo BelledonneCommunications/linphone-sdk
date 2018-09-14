@@ -48,7 +48,7 @@ void H26xEncoderFilter::process() {
 		bool requestIFrame = false;
 		if (ms_iframe_requests_limiter_iframe_requested(&_iframeLimiter, getTime()) ||
 				(!_avpfEnabled && ms_video_starter_need_i_frame(&_starter, getTime()))) {
-			ms_message("MediaCodecEncoder: requesting I-frame to the encoder.");
+			ms_message("H26xEncoder: requesting I-frame to the encoder.");
 			requestIFrame = true;
 			ms_iframe_requests_limiter_notify_iframe_sent(&_iframeLimiter, getTime());
 		}
@@ -84,31 +84,31 @@ void H26xEncoderFilter::setVideoConfiguration(MSVideoConfiguration vconf) {
 	_encoder->setFps(vconf.fps);
 	_encoder->setBitrate(vconf.required_bitrate);
 	_vconf = vconf;
-	ms_message("MediaCodecEncoder: video configuration set: bitrate=%d bits/s, fps=%f, vsize=%dx%d", _vconf.required_bitrate, _vconf.fps, _vconf.vsize.width, _vconf.vsize.height);
+	ms_message("H26xEncoder: video configuration set: bitrate=%d bits/s, fps=%f, vsize=%dx%d", _vconf.required_bitrate, _vconf.fps, _vconf.vsize.width, _vconf.vsize.height);
 }
 
 void H26xEncoderFilter::enableAvpf(bool enable) {
-	ms_message("MediaCodecEncoder: AVPF %s", enable ? "enabled" : "disabled");
+	ms_message("H26xEncoder: AVPF %s", enable ? "enabled" : "disabled");
 	_avpfEnabled = enable;
 }
 
 void H26xEncoderFilter::requestVfu() {
-	ms_message("MediaCodecEncoder: VFU requested");
+	ms_message("H26xEncoder: VFU requested");
 	ms_iframe_requests_limiter_request_iframe(&_iframeLimiter);
 }
 
 void H26xEncoderFilter::notifyPli() {
-	ms_message("MediaCodecEncoder: PLI requested");
+	ms_message("H26xEncoder: PLI requested");
 	ms_iframe_requests_limiter_request_iframe(&_iframeLimiter);
 }
 
 void H26xEncoderFilter::notifyFir() {
-	ms_message("MediaCodecEncoder: FIR requested");
+	ms_message("H26xEncoder: FIR requested");
 	ms_iframe_requests_limiter_request_iframe(&_iframeLimiter);
 }
 
 void H26xEncoderFilter::notifySli() {
-	ms_message("MediaCodecEncoder: SLI requested");
+	ms_message("H26xEncoder: SLI requested");
 	ms_iframe_requests_limiter_request_iframe(&_iframeLimiter);
 }
 

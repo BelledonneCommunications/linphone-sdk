@@ -56,7 +56,7 @@ void H26xDecoderFilter::process() {
 		if (!unpacking_ret.frameAvailable) continue;
 
 		if (unpacking_ret.frameCorrupted) {
-			ms_warning("MediaCodecDecoder: corrupted frame");
+			ms_warning("H26xDecoder: corrupted frame");
 			requestPli = true;
 			if (_freezeOnError) {
 				ms_queue_flush(&frame);
@@ -78,7 +78,7 @@ void H26xDecoderFilter::process() {
 	VideoDecoder::Status status;
 	while ((status = _codec->fetch(om)) != VideoDecoder::Status::noFrameAvailable) {
 		if (status == VideoDecoder::decodingFailure) {
-			ms_error("MediaCodecDecoder: decoding failure");
+			ms_error("H26xDecoder: decoding failure");
 			requestPli = true;
 			continue;
 		}
@@ -89,7 +89,7 @@ void H26xDecoderFilter::process() {
 		_vsize.height = pic.h;
 
 		if (!_firstImageDecoded) {
-			ms_message("MediaCodecDecoder: first frame decoded %ix%i", _vsize.width, _vsize.height);
+			ms_message("H26xDecoder: first frame decoded %ix%i", _vsize.width, _vsize.height);
 			_firstImageDecoded = true;
 			notify(MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
 		}
@@ -130,7 +130,7 @@ void H26xDecoderFilter::enableAvpf(bool enable) {
 
 void H26xDecoderFilter::enableFreezeOnError(bool enable) {
 	_freezeOnError = enable;
-	ms_message("MediaCodecDecoder: freeze on error %s", _freezeOnError ? "enabled" : "disabled");
+	ms_message("H26xDecoder: freeze on error %s", _freezeOnError ? "enabled" : "disabled");
 }
 
 } // namespace mediastreamer
