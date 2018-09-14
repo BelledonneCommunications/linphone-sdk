@@ -95,7 +95,7 @@ extern "C" void _register_videotoolbox_if_supported(MSFactory *factory) {
 			"requires iOS 8 or MacOS 10.8");
 	}
 
-#ifdef ENABLE_H265
+#if TARGET_OS_IPHONE && defined(ENABLE_H265)
 	if (kCFCoreFoundationVersionNumber >= 1400) { // MacOS >= 10.13 or iOS >= 11.0
 		ms_message("Registering VideoToolbox H265 codec");
 		ms_factory_register_filter(factory, &ms_VideoToolboxH265Encoder_desc);
@@ -104,7 +104,7 @@ extern "C" void _register_videotoolbox_if_supported(MSFactory *factory) {
 		ms_message("Cannot register VideoToolbox H265 codec. That "
                         "requires iOS 11.0 or MacOS 10.13");
 	}
-#endif // ENABLE_H265
+#endif // TARGET_OS_IPHONE && defined(ENABLE_H265)
 #endif // !TARGET_OS_SIMULATOR
 }
 
