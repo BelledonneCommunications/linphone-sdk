@@ -75,7 +75,7 @@ int DecodingFilterWrapper::onGetOutFmtCall(MSFilter *f, void *arg) {
 int DecodingFilterWrapper::onEnableAvpfCall(MSFilter *f, void *arg) {
 	try {
 		const bool_t *enable = static_cast<bool_t *>(arg);
-		static_cast<DecoderFilter *>(f->data)->enableAvpf(enable);
+		static_cast<DecoderFilter *>(f->data)->enableAvpf(*enable);
 		return 0;
 	} catch (const DecoderFilter::MethodCallFailed &) {
 		return -1;
@@ -85,7 +85,7 @@ int DecodingFilterWrapper::onEnableAvpfCall(MSFilter *f, void *arg) {
 int DecodingFilterWrapper::onEnableFreezeOnErrorCall(MSFilter *f, void *arg) {
 	try {
 		const bool_t *enable = static_cast<bool_t *>(arg);
-		static_cast<DecoderFilter *>(f->data)->enableFreezeOnError(enable);
+		static_cast<DecoderFilter *>(f->data)->enableFreezeOnError(*enable);
 		return 0;
 	} catch (const DecoderFilter::MethodCallFailed &) {
 		return -1;

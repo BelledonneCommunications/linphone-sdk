@@ -99,8 +99,8 @@ void H26xDecoderFilter::process() {
 		requestPli = false;
 	}
 
-	if (_avpfEnabled && requestPli) {
-		notify(MS_VIDEO_DECODER_SEND_PLI);
+	if (requestPli) {
+		notify(_avpfEnabled ? MS_VIDEO_DECODER_SEND_PLI : MS_VIDEO_DECODER_DECODING_ERRORS);
 	}
 }
 
@@ -125,6 +125,7 @@ const MSFmtDescriptor *H26xDecoderFilter::getOutputFmt() const {
 }
 
 void H26xDecoderFilter::enableAvpf(bool enable) {
+	ms_message("H26xDecoder: %s AVPF mode", enable ? "enabling" : "disabling");
 	_avpfEnabled = enable;
 }
 
