@@ -69,7 +69,7 @@ void H26xDecoderFilter::process() {
 		clock_gettime(CLOCK_MONOTONIC, &ts);
 		uint64_t tsMs = (ts.tv_sec * 1000ULL) + (ts.tv_nsec / 1000000ULL) + 10ULL;
 
-		requestPli = !_codec->feed(&frame, tsMs);
+		if (!_codec->feed(&frame, tsMs)) requestPli = true;
 
 		ms_queue_flush(&frame);
 	}
@@ -96,7 +96,6 @@ void H26xDecoderFilter::process() {
 
 		ms_average_fps_update(&_fps, getTime());
 		ms_queue_put(getOutput(0), om);
-		requestPli = false;
 	}
 
 	if (requestPli) {
