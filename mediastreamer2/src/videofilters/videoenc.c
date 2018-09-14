@@ -877,15 +877,29 @@ static void enc_process(MSFilter *f){
 	ms_filter_unlock(f);
 }
 
+static int enc_get_configuration(MSFilter *f, void *data) {
+	EncState *s = (EncState *)f->data;
+	MSVideoConfiguration *vconf = (MSVideoConfiguration *)data;
+	memcpy(vconf, &s->vconf, sizeof(MSVideoConfiguration));
+	return 0;
+}
 
 static int enc_set_configuration(MSFilter *f, void *data) {
 	EncState *s = (EncState *)f->data;
 	const MSVideoConfiguration *vconf = (const MSVideoConfiguration *)data;
+	MSVideoSize vsize = s->vconf.vsize;
+
 	if (vconf != &s->vconf) memcpy(&s->vconf, vconf, sizeof(MSVideoConfiguration));
 
 	if (s->vconf.required_bitrate > s->vconf.bitrate_limit)
 		s->vconf.required_bitrate = s->vconf.bitrate_limit;
 	if (s->av_context.codec != NULL) {
+		/* Do not change video size if encoder is running */
+		if (!ms_video_size_equal(s->vconf.vsize, vsize)) {
+			ms_warning("Video configuration: cannot change video size when encoder is running, actual=%dx%d, wanted=%dx%d", vsize.width, vsize.height, s->vconf.vsize.width, s->vconf.vsize.height);
+			s->vconf.vsize = vsize;
+		}
+
 		/* When we are processing, apply new settings immediately */
 		ms_filter_lock(f);
 		enc_postprocess(f);
@@ -905,60 +919,9 @@ static int enc_set_configuration(MSFilter *f, void *data) {
 	return 0;
 }
 
-static int enc_set_fps(MSFilter *f, void *arg){
-	EncState *s=(EncState*)f->data;
-	s->vconf.fps=*(float*)arg;
-	enc_set_configuration(f, &s->vconf);
-	return 0;
-}
-
-static int enc_get_fps(MSFilter *f, void *arg){
-	EncState *s=(EncState*)f->data;
-	*(float*)arg=s->vconf.fps;
-	return 0;
-}
-
-static int enc_set_vsize(MSFilter *f, void *arg) {
-	MSVideoConfiguration best_vconf;
-	MSVideoSize *vs = (MSVideoSize *)arg;
-	EncState *s=(EncState*)f->data;
-	best_vconf = ms_video_find_best_configuration_for_size(s->vconf_list, *vs, ms_factory_get_cpu_count(f->factory));
-	s->vconf.vsize = *vs;
-	s->vconf.fps = best_vconf.fps;
-	s->vconf.bitrate_limit = best_vconf.bitrate_limit;
-	enc_set_configuration(f, &s->vconf);
-	return 0;
-}
-
-static int enc_get_vsize(MSFilter *f,void *arg){
-	EncState *s=(EncState*)f->data;
-	*(MSVideoSize*)arg=s->vconf.vsize;
-	return 0;
-}
-
 static int enc_set_mtu(MSFilter *f,void *arg){
 	EncState *s=(EncState*)f->data;
 	s->mtu=*(int*)arg;
-	return 0;
-}
-
-static int enc_get_br(MSFilter *f, void *arg){
-	EncState *s=(EncState*)f->data;
-	*(int*)arg=s->vconf.required_bitrate;
-	return 0;
-}
-
-static int enc_set_br(MSFilter *f, void *arg) {
-	EncState *s = (EncState *)f->data;
-	int br = *(int *)arg;
-	if (s->av_context.codec != NULL) {
-		/* Encoding is already ongoing, do not change video size, only bitrate. */
-		s->vconf.required_bitrate = br;
-		enc_set_configuration(f, &s->vconf);
-	} else {
-		MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_bitrate(s->vconf_list, br, ms_factory_get_cpu_count(f->factory));
-		enc_set_configuration(f, &best_vconf);
-	}
 	return 0;
 }
 
@@ -971,17 +934,12 @@ static int enc_get_configuration_list(MSFilter *f, void *data) {
 
 
 static MSFilterMethod methods[] = {
-	{ MS_FILTER_SET_FPS,                       enc_set_fps                },
-	{ MS_FILTER_GET_FPS,                       enc_get_fps                },
-	{ MS_FILTER_SET_VIDEO_SIZE,                enc_set_vsize              },
-	{ MS_FILTER_GET_VIDEO_SIZE,                enc_get_vsize              },
 	{ MS_FILTER_ADD_FMTP,                      enc_add_fmtp               },
-	{ MS_FILTER_SET_BITRATE,                   enc_set_br                 },
-	{ MS_FILTER_GET_BITRATE,                   enc_get_br                 },
 	{ MS_FILTER_SET_MTU,                       enc_set_mtu                },
 	{ MS_FILTER_REQ_VFU,                       enc_req_vfu                },
 	{ MS_VIDEO_ENCODER_REQ_VFU,                enc_req_vfu                },
 	{ MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, enc_get_configuration_list },
+	{ MS_VIDEO_ENCODER_GET_CONFIGURATION,      enc_get_configuration      },
 	{ MS_VIDEO_ENCODER_SET_CONFIGURATION,      enc_set_configuration      },
 	{ 0,                                       NULL                       }
 };

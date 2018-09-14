@@ -17,19 +17,8 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#include <cstdint>
-#include <cstring>
-#include <sstream>
-#include <stdexcept>
-
-#include <jni.h>
-#include <ortp/b64.h>
-
-#include "mediastreamer2/msjava.h"
-#include "mediastreamer2/msticker.h"
-
 #include "android_mediacodec.h"
-#include "h26x-utils.h"
+
 #include "media-codec-encoder.h"
 
 using namespace mediastreamer;
@@ -37,10 +26,7 @@ using namespace std;
 
 namespace mediastreamer {
 
-MediaCodecEncoder::MediaCodecEncoder(const std::string &mime):
-	_mime(mime),
-	_psInserter(H26xToolFactory::get(mime).createParameterSetsInserter()) {
-
+MediaCodecEncoder::MediaCodecEncoder(const std::string &mime): H26xEncoder(mime), _psInserter(H26xToolFactory::get(mime).createParameterSetsInserter()) {
 	try {
 		_vsize.width = 0;
 		_vsize.height = 0;
@@ -56,6 +42,16 @@ MediaCodecEncoder::~MediaCodecEncoder() {
 	if (_impl) AMediaCodec_delete(_impl);
 }
 
+void MediaCodecEncoder::setFps(float fps) {
+	_fps = fps;
+	if (isRunning() && _impl) {
+		AMediaFormat *afmt = AMediaFormat_new();
+		AMediaFormat_setInt32(afmt, "frame-rate", int32_t(_fps));
+		AMediaCodec_setParams(_impl, afmt);
+		AMediaFormat_delete(afmt);
+	}
+}
+
 void MediaCodecEncoder::setBitrate(int bitrate) {
 	_bitrate = bitrate;
 	if (isRunning() && _impl) {
@@ -69,6 +65,10 @@ void MediaCodecEncoder::setBitrate(int bitrate) {
 
 void MediaCodecEncoder::start() {
 	try {
+		if (_impl == nullptr) {
+			ms_error("MediaCodecEncoder: starting failed. No MediaCodec instance.");
+			return;
+		}
 		if (_isRunning) {
 			ms_warning("MediaCodecEncoder: encoder already started");
 			return;
@@ -85,6 +85,7 @@ void MediaCodecEncoder::start() {
 }
 
 void MediaCodecEncoder::stop() {
+	if (_impl == nullptr) return;
 	if (!_isRunning) {
 		ms_warning("MediaCodecEncoder: encoder already stopped");
 		return;
@@ -102,6 +103,11 @@ void MediaCodecEncoder::stop() {
 }
 
 void MediaCodecEncoder::feed(mblk_t *rawData, uint64_t time, bool requestIFrame) {
+	if (_impl == nullptr) {
+		freemsg(rawData);
+		return;
+	}
+
 	if (!_isRunning) {
 		ms_error("MediaCodecEncoder: encoder not running. Dropping buffer.");
 		freemsg(rawData);
@@ -179,7 +185,7 @@ bool MediaCodecEncoder::fetch(MSQueue *encodedData) {
 	uint8_t *buf;
 	size_t bufsize;
 
-	if (!_isRunning || _recoveryMode || _pendingFrames <= 0) return false;
+	if (_impl == nullptr || !_isRunning || _recoveryMode || _pendingFrames <= 0) return false;
 
 	ms_queue_init(&outq);
 
@@ -275,126 +281,4 @@ std::ostringstream MediaCodecEncoder::getMediaForamtAsString() const {
 	return os;
 }
 
-// Public methods
-MediaCodecEncoderFilterImpl::MediaCodecEncoderFilterImpl(MSFilter *f, MediaCodecEncoder *encoder, NalPacker *packer, const MSVideoConfiguration *defaultVConfList):
-	_f(f), _encoder(encoder), _packer(packer), _defaultVConfList(defaultVConfList) {
-
-	setVideoConfigurations(nullptr);
-	_vconf = ms_video_find_best_configuration_for_size(_vconfList, MS_VIDEO_SIZE_CIF, ms_factory_get_cpu_count(f->factory));
-	ms_video_starter_init(&_starter);
-
-	_packer->setPacketizationMode(NalPacker::NonInterleavedMode);
-	_packer->enableAggregation(false);
-}
-
-void MediaCodecEncoderFilterImpl::preprocess() {
-	_encoder->start();
-	ms_video_starter_init(&_starter);
-	ms_iframe_requests_limiter_init(&_iframeLimiter, 1000);
-}
-
-void MediaCodecEncoderFilterImpl::process() {
-	/*First queue input image*/
-	if (mblk_t *im = ms_queue_peek_last(_f->inputs[0])) {
-		bool requestIFrame = false;
-		if (ms_iframe_requests_limiter_iframe_requested(&_iframeLimiter, _f->ticker->time) ||
-		        (!_avpfEnabled && ms_video_starter_need_i_frame(&_starter, _f->ticker->time))) {
-			ms_message("MediaCodecEncoder: requesting I-frame to the encoder.");
-			requestIFrame = true;
-			ms_iframe_requests_limiter_notify_iframe_sent(&_iframeLimiter, _f->ticker->time);
-		}
-		_encoder->feed(dupmsg(im), _f->ticker->time, requestIFrame);
-	}
-	ms_queue_flush(_f->inputs[0]);
-
-	/*Second, dequeue possibly pending encoded frames*/
-	MSQueue nalus;
-	ms_queue_init(&nalus);
-	while (_encoder->fetch(&nalus)) {
-		if (!_firstFrameDecoded) {
-			_firstFrameDecoded = true;
-			ms_video_starter_first_frame(&_starter, _f->ticker->time);
-		}
-		_packer->pack(&nalus, _f->outputs[0], static_cast<uint32_t>(_f->ticker->time * 90LL));
-	}
-}
-
-void MediaCodecEncoderFilterImpl::postprocess() {
-	_packer->flush();
-	_encoder->stop();
-	_firstFrameDecoded = false;
-}
-
-int MediaCodecEncoderFilterImpl::getBitrate() const {
-	return _vconf.required_bitrate;
-}
-
-void MediaCodecEncoderFilterImpl::setBitrate(int br) {
-	if (_encoder->isRunning()) {
-		/* Encoding is already ongoing, do not change video size, only bitrate. */
-		_vconf.required_bitrate = br;
-		/* apply the new bitrate request to the running MediaCodec*/
-		setVideoConfiguration(&_vconf);
-	} else {
-		MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_size_and_bitrate(_vconfList, _vconf.vsize, ms_factory_get_cpu_count(_f->factory),  br);
-		setVideoConfiguration(&best_vconf);
-	}
-}
-
-int MediaCodecEncoderFilterImpl::setVideoConfiguration(const MSVideoConfiguration *vconf) {
-	if (vconf != &_vconf) memcpy(&_vconf, vconf, sizeof(MSVideoConfiguration));
-
-	ms_message("MediaCodecEncoder: video configuration set: bitrate=%d bits/s, fps=%f, vsize=%dx%d", _vconf.required_bitrate, _vconf.fps, _vconf.vsize.width, _vconf.vsize.height);
-
-	_encoder->setVideoSize(_vconf.vsize);
-	_encoder->setFps(_vconf.fps);
-	_encoder->setBitrate(_vconf.required_bitrate);
-
-	return 0;
-}
-
-void MediaCodecEncoderFilterImpl::setFps(float  fps) {
-	_vconf.fps = fps;
-	setVideoConfiguration(&_vconf);
-}
-
-float MediaCodecEncoderFilterImpl::getFps() const {
-	return _vconf.fps;
-}
-
-MSVideoSize MediaCodecEncoderFilterImpl::getVideoSize() const {
-	return _vconf.vsize;
-}
-
-void MediaCodecEncoderFilterImpl::enableAvpf(bool enable) {
-	ms_message("MediaCodecEncoder: AVPF %s", enable ? "enabled" : "disabled");
-	_avpfEnabled = enable;
-}
-
-void MediaCodecEncoderFilterImpl::setVideoSize(const MSVideoSize &vsize) {
-	MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_size_and_bitrate(_vconfList, vsize, ms_factory_get_cpu_count(_f->factory), _vconf.required_bitrate);
-	_vconf.vsize = vsize;
-	_vconf.fps = best_vconf.fps;
-	_vconf.bitrate_limit = best_vconf.bitrate_limit;
-	setVideoConfiguration(&_vconf);
-}
-
-void MediaCodecEncoderFilterImpl::notifyPli() {
-	ms_message("MediaCodecEncoder: PLI requested");
-	ms_iframe_requests_limiter_request_iframe(&_iframeLimiter);
-}
-
-void MediaCodecEncoderFilterImpl::notifyFir() {
-	ms_message("MediaCodecEncoder: FIR requested");
-	ms_iframe_requests_limiter_request_iframe(&_iframeLimiter);
-}
-
-const MSVideoConfiguration *MediaCodecEncoderFilterImpl::getVideoConfiguratons() const {
-	return _vconfList;
-}
-
-void MediaCodecEncoderFilterImpl::setVideoConfigurations(const MSVideoConfiguration *vconfs) {
-	_vconfList = vconfs ? vconfs : _defaultVConfList;
-}
-
-}
+} // namespace mediastreamer

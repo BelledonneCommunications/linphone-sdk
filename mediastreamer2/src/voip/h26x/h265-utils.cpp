@@ -17,12 +17,9 @@
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#include <stdexcept>
-
-#include "mediastreamer2/mscommon.h"
-
 #include "h265-nal-packer.h"
 #include "h265-nal-unpacker.h"
+
 #include "h265-utils.h"
 
 using namespace std;

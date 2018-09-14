@@ -1,5 +1,6 @@
 mediastreamer2 (Unreleased):
-	* H265 codec based of MediaCodec API (Android only)
+	* H265 codec based on MediaCodec API (Android only)
+	* H265 codec based on VideoToolbox API (iOS only)
 
 mediastreamer2-2.16.1: July 21th, 2017
 	* Build fix for Windows

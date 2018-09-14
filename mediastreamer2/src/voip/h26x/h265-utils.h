@@ -19,9 +19,6 @@
 
 #pragma once
 
-#include <cstdint>
-#include <ortp/str_utils.h>
-
 #include "h26x-utils.h"
 
 namespace mediastreamer {

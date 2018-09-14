@@ -21,6 +21,8 @@
 
 #include <memory>
 
+#include <ortp/str_utils.h>
+
 #include "mediastreamer2/msqueue.h"
 
 namespace mediastreamer {

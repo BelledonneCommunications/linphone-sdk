@@ -19,31 +19,23 @@
 
 #pragma once
 
-#include <cstdint>
-#include <list>
-#include <memory>
-#include <stdexcept>
-#include <string>
 #include <vector>
 
-#include <media/NdkMediaCodec.h>
+#include "h26x-utils.h"
+#include "media/NdkMediaCodec.h"
 
-#include "mediastreamer2/msvideo.h"
-
-#include "nal-unpacker.h"
+#include "h26x-decoder.h"
 
 namespace mediastreamer {
 
-class MediaCodecDecoder {
+class MediaCodecDecoder: public H26xDecoder {
 public:
 	virtual ~MediaCodecDecoder();
 
-	void waitForKeyFrame() {_needKeyFrame = true;}
+	void waitForKeyFrame()  override {_needKeyFrame = true;}
 
-	bool feed(MSQueue *encodedFrame, uint64_t timestamp);
-	mblk_t *fetch();
-
-	static MediaCodecDecoder *createDecoder(const std::string &mime);
+	bool feed(MSQueue *encodedFrame, uint64_t timestamp) override;
+	Status fetch(mblk_t *&frame) override;
 
 protected:
 	class BufferFlag {
@@ -72,38 +64,6 @@ protected:
 	int _pendingFrames = 0;
 	bool _needKeyFrame = true;
 	bool _needParameters = true;
-
-	static const unsigned int _timeoutUs = 0;
-};
-
-class MediaCodecDecoderFilterImpl {
-public:
-	MediaCodecDecoderFilterImpl(MSFilter *f, const std::string &mime);
-	virtual ~MediaCodecDecoderFilterImpl() = default;
-
-	void preprocess();
-	void process();
-	void postprocess();
-
-	MSVideoSize getVideoSize() const;
-	float getFps() const;
-	const MSFmtDescriptor *getOutFmt() const;
-	void addFmtp(const char *fmtp) {}
-
-	void enableAvpf(bool enable);
-	void enableFreezeOnError(bool enable);
-	void resetFirstImage();
-
-protected:
-	MSVideoSize _vsize;
-	MSAverageFPS _fps;
-	bool _avpfEnabled = false;
-	bool _freezeOnError = true;
-
-	MSFilter *_f = nullptr;
-	std::unique_ptr<NalUnpacker> _unpacker;
-	std::unique_ptr<MediaCodecDecoder> _codec;
-	bool _firstImageDecoded = false;
 
 	static const unsigned int _timeoutUs = 0;
 };

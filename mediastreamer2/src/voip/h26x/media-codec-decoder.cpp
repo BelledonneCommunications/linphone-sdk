@@ -17,34 +17,17 @@
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#include <algorithm>
-#include <cstdint>
-#include <cstring>
-#include <sstream>
-#include <stdexcept>
-
-#include <jni.h>
-#include <media/NdkMediaFormat.h>
-#include <ortp/b64.h>
-#include <ortp/str_utils.h>
-
-#include "mediastreamer2/formats.h"
-#include "mediastreamer2/msfilter.h"
-#include "mediastreamer2/msticker.h"
 
 #include "android_mediacodec.h"
-#include "h26x-utils.h"
-#include "media-codec-decoder.h"
-#include "media-codec-h264-decoder.h"
-#include "media-codec-h265-decoder.h"
 
-using namespace b64;
+#include "media-codec-decoder.h"
+
 using namespace mediastreamer;
 using namespace std;
 
 namespace mediastreamer {
 
-MediaCodecDecoder::MediaCodecDecoder(const std::string &mime) {
+MediaCodecDecoder::MediaCodecDecoder(const std::string &mime): H26xDecoder(mime) {
 	try {
 		_impl = AMediaCodec_createDecoderByType(mime.c_str());
 		if (_impl == nullptr) {
@@ -61,12 +44,12 @@ MediaCodecDecoder::MediaCodecDecoder(const std::string &mime) {
 		if (_impl) AMediaCodec_delete(_impl);
 		if (_format) AMediaFormat_delete(_format);
 		if (_bufAllocator) ms_yuv_buf_allocator_free(_bufAllocator);
-		throw e;
+		_impl = nullptr;
 	}
 }
 
 MediaCodecDecoder::~MediaCodecDecoder() {
-	AMediaCodec_delete(_impl);
+	if (_impl) AMediaCodec_delete(_impl);
 	ms_yuv_buf_allocator_free(_bufAllocator);
 }
 
@@ -81,6 +64,11 @@ bool MediaCodecDecoder::setParameterSets(MSQueue *parameterSets, uint64_t timest
 
 bool MediaCodecDecoder::feed(MSQueue *encodedFrame, uint64_t timestamp) {
 	bool status = false;
+
+	if (_impl == nullptr) {
+		ms_queue_flush(encodedFrame);
+		return true;
+	}
 
 	_psStore->extractAllPs(encodedFrame);
 	if (_psStore->hasNewParameters()) {
@@ -119,15 +107,20 @@ clean:
 	return status;
 }
 
-mblk_t *MediaCodecDecoder::fetch() {
-	mblk_t *om = nullptr;
+MediaCodecDecoder::Status MediaCodecDecoder::fetch(mblk_t *&frame) {
 	AMediaImage image = {0};
 	int dst_pix_strides[4] = {1, 1, 1, 1};
 	MSRect dst_roi = {0};
 	AMediaCodecBufferInfo info;
 	ssize_t oBufidx = -1;
+	Status status = noError;
 
-	if (_impl == nullptr || _pendingFrames <= 0) goto end;
+	frame = nullptr;
+
+	if (_impl == nullptr || _pendingFrames <= 0) {
+		status = noFrameAvailable;
+		goto end;
+	}
 
 	oBufidx = AMediaCodec_dequeueOutputBuffer(_impl, &info, _timeoutUs);
 	if (oBufidx == AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED) {
@@ -138,8 +131,13 @@ mblk_t *MediaCodecDecoder::fetch() {
 	if (oBufidx < 0) {
 		if (oBufidx == AMEDIA_ERROR_UNKNOWN) {
 			ms_error("MediaCodecDecoder: AMediaCodec_dequeueOutputBuffer() had an exception");
-		} else if (oBufidx != AMEDIACODEC_INFO_TRY_AGAIN_LATER) {
+			status = decodingFailure;
+		} else if (oBufidx == AMEDIACODEC_INFO_TRY_AGAIN_LATER) {
+			ms_error("MediaCodecDecoder: decoder isn't ready");
+			status = noFrameAvailable;
+		} else {
 			ms_error("MediaCodecDecoder: unknown error while dequeueing an output buffer (oBufidx=%zd)", oBufidx);
+			status = noFrameAvailable;
 		}
 		goto end;
 	}
@@ -148,24 +146,19 @@ mblk_t *MediaCodecDecoder::fetch() {
 
 	if (AMediaCodec_getOutputImage(_impl, oBufidx, &image) <= 0) {
 		ms_error("MediaCodecDecoder: AMediaCodec_getOutputImage() failed");
+		status = decodingFailure;
 		goto end;
 	}
 
 	MSPicture pic;
-	om = ms_yuv_buf_allocator_get(_bufAllocator, &pic, image.crop_rect.w, image.crop_rect.h);
+	frame = ms_yuv_buf_allocator_get(_bufAllocator, &pic, image.crop_rect.w, image.crop_rect.h);
 	ms_yuv_buf_copy_with_pix_strides(image.buffers, image.row_strides, image.pixel_strides, image.crop_rect,
 										pic.planes, pic.strides, dst_pix_strides, dst_roi);
 	AMediaImage_close(&image);
 
 end:
 	if (oBufidx >= 0) AMediaCodec_releaseOutputBuffer(_impl, oBufidx, FALSE);
-	return om;
-}
-
-MediaCodecDecoder *MediaCodecDecoder::createDecoder(const std::string &mime) {
-	if (mime == "video/avc") return new MediaCodecH264Decoder();
-	else if (mime == "video/hevc") return new MediaCodecH265Decoder();
-	else throw invalid_argument(mime);
+	return status;
 }
 
 AMediaFormat *MediaCodecDecoder::createFormat(const std::string &mime) const {
@@ -199,13 +192,6 @@ void MediaCodecDecoder::stopImpl() {
 }
 
 bool MediaCodecDecoder::feed(MSQueue *encodedFrame, uint64_t timestamp, bool isPs) {
-	unique_ptr<H26xNaluHeader> header;
-	header.reset(H26xToolFactory::get("video/avc").createNaluHeader());
-	for(mblk_t *m = ms_queue_peek_first(encodedFrame); !ms_queue_end(encodedFrame, m); m = ms_queue_next(encodedFrame, m)) {
-		header->parse(m->b_rptr);
-		ms_message("MediaCodecDecoder: nalu type %d", int(header->getAbsType()));
-	}
-
 	H26xUtils::nalusToByteStream(encodedFrame, _bitstream);
 
 	if (_impl == nullptr) return false;
@@ -245,112 +231,6 @@ bool MediaCodecDecoder::isKeyFrame(const MSQueue *frame) const {
 		if (_naluHeader->getAbsType().isKeyFramePart()) return true;
 	}
 	return false;
-}
-
-MediaCodecDecoderFilterImpl::MediaCodecDecoderFilterImpl(MSFilter *f, const std::string &mime):
-	_vsize({0, 0}),
-	_f(f),
-	_unpacker(H26xToolFactory::get(mime).createNalUnpacker()) {
-
-	try {
-		_codec.reset(MediaCodecDecoder::createDecoder(mime));
-		ms_message("MediaCodecDecoder: initialization");
-		ms_average_fps_init(&_fps, " H26x decoder: FPS: %f");
-	} catch (const runtime_error &e) {
-		ms_error("MediaCodecDecoder: %s", e.what());
-		_codec.reset(nullptr);
-	}
-}
-
-void MediaCodecDecoderFilterImpl::preprocess() {
-	_firstImageDecoded = false;
-	if (_codec) _codec->waitForKeyFrame();
-}
-
-void MediaCodecDecoderFilterImpl::process() {
-	bool requestPli = false;
-	MSQueue frame;
-
-	if (_codec == nullptr) {
-		ms_queue_flush(_f->inputs[0]);
-		return;
-	}
-
-	ms_queue_init(&frame);
-
-	while (mblk_t *im = ms_queue_get(_f->inputs[0])) {
-		NalUnpacker::Status unpacking_ret = _unpacker->unpack(im, &frame);
-
-		if (!unpacking_ret.frameAvailable) continue;
-
-		if (unpacking_ret.frameCorrupted) {
-			ms_warning("MediaCodecDecoder: corrupted frame");
-			requestPli = true;
-			if (_freezeOnError) {
-				ms_queue_flush(&frame);
-				_codec->waitForKeyFrame();
-				continue;
-			}
-		}
-
-		struct timespec ts;
-		clock_gettime(CLOCK_MONOTONIC, &ts);
-		uint64_t tsMs = (ts.tv_sec * 1000ULL) + (ts.tv_nsec / 1000000ULL) + 10ULL;
-
-		requestPli = !_codec->feed(&frame, tsMs);
-
-		ms_queue_flush(&frame);
-	}
-
-	mblk_t *om;
-	while ((om = _codec->fetch()) != nullptr) {
-		MSPicture pic;
-		ms_yuv_buf_init_from_mblk(&pic, om);
-		_vsize.width = pic.w;
-		_vsize.height = pic.h;
-
-		if (!_firstImageDecoded) {
-			ms_message("MediaCodecDecoder: first frame decoded %ix%i", _vsize.width, _vsize.height);
-			_firstImageDecoded = true;
-			ms_filter_notify_no_arg(_f, MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
-		}
-
-		ms_average_fps_update(&_fps, _f->ticker->time);
-		ms_queue_put(_f->outputs[0], om);
-	}
-
-	if (_avpfEnabled && requestPli) {
-		ms_filter_notify_no_arg(_f, MS_VIDEO_DECODER_SEND_PLI);
-	}
-}
-
-void MediaCodecDecoderFilterImpl::postprocess() {
-	_unpacker->reset();
-}
-
-void MediaCodecDecoderFilterImpl::resetFirstImage() {
-	_firstImageDecoded = false;
-}
-
-MSVideoSize MediaCodecDecoderFilterImpl::getVideoSize() const {
-	return _firstImageDecoded ? _vsize : MS_VIDEO_SIZE_UNKNOWN;
-}
-
-float MediaCodecDecoderFilterImpl::getFps() const {
-	return ms_average_fps_get(&_fps);
-}
-
-const MSFmtDescriptor *MediaCodecDecoderFilterImpl::getOutFmt() const {
-	return ms_factory_get_video_format(_f->factory, "YUV420P", ms_video_size_make(_vsize.width, _vsize.height), 0, nullptr);
-}
-
-void MediaCodecDecoderFilterImpl::enableAvpf(bool enable) {
-	_avpfEnabled = enable;
-}
-
-void MediaCodecDecoderFilterImpl::enableFreezeOnError(bool enable) {
-	_freezeOnError = enable;
-	ms_message("MediaCodecDecoder: freeze on error %s", _freezeOnError ? "enabled" : "disabled");
 }
 
 } // namespace mediastreamer

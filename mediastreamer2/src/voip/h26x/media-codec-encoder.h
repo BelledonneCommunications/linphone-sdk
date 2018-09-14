@@ -20,42 +20,15 @@
 #pragma once
 
 #include <memory>
-#include <sstream>
-#include <string>
-
-#include <media/NdkMediaCodec.h>
-
-#include "mediastreamer2/mscodecutils.h"
-#include "mediastreamer2/msfilter.h"
-#include "mediastreamer2/msvideo.h"
 
 #include "h26x-utils.h"
-#include "nal-packer.h"
+#include "media/NdkMediaCodec.h"
+
+#include "h26x-encoder.h"
 
 namespace mediastreamer {
 
-class VideoEncoderInterface {
-public:
-	virtual ~VideoEncoderInterface() = default;
-
-	virtual MSVideoSize getVideoSize() const = 0;
-	virtual void setVideoSize(const MSVideoSize &vsize) = 0;
-
-	virtual float getFps() const = 0;
-	virtual void setFps(float fps) = 0;
-
-	virtual int getBitrate() const = 0;
-	virtual void setBitrate(int bitrate) = 0;
-
-	virtual bool isRunning() = 0;
-	virtual void start() = 0;
-	virtual void stop() = 0;
-
-	virtual void feed(mblk_t *rawData, uint64_t time, bool requestIFrame = false) = 0;
-	virtual bool fetch(MSQueue *encodedData) = 0;
-};
-
-class MediaCodecEncoder: public VideoEncoderInterface {
+class MediaCodecEncoder: public H26xEncoder {
 public:
 	~MediaCodecEncoder();
 
@@ -65,7 +38,7 @@ public:
 	void setVideoSize(const MSVideoSize &vsize) override {_vsize = vsize;}
 
 	float getFps() const override {return _fps;}
-	void setFps(float fps) override {_fps = fps;}
+	void setFps(float fps) override;
 
 	int getBitrate() const override {return _bitrate;}
 	void setBitrate(int bitrate) override;
@@ -84,7 +57,6 @@ protected:
 	virtual AMediaFormat *createMediaFormat() const;
 	virtual std::ostringstream getMediaForamtAsString() const;
 
-	std::string _mime;
 	std::unique_ptr<H26xParameterSetsInserter> _psInserter;
 	MSVideoSize _vsize;
 	float _fps = 0;
@@ -100,47 +72,6 @@ protected:
 	static const int32_t _iFrameInterval = 20; // 20 seconds
 	static const int32_t _encodingLatency = 1;
 	static const int32_t _priority = 0; // real-time priority
-};
-
-class MediaCodecEncoderFilterImpl {
-public:
-	virtual ~MediaCodecEncoderFilterImpl() = default;
-
-	virtual void preprocess();
-	virtual void process();
-	virtual void postprocess();
-
-	int getBitrate() const;
-	void setBitrate(int br);
-
-	const MSVideoConfiguration *getVideoConfiguratons() const;
-	void setVideoConfigurations(const MSVideoConfiguration *vconfs);
-	int setVideoConfiguration(const MSVideoConfiguration *vconf);
-
-	float getFps() const;
-	void setFps(float  fps);
-
-	MSVideoSize getVideoSize() const;
-	void setVideoSize(const MSVideoSize &vsize);
-
-	void enableAvpf(bool enable);
-	void notifyPli();
-	void notifyFir();
-
-protected:
-	MediaCodecEncoderFilterImpl(MSFilter *f, MediaCodecEncoder *encoder, NalPacker *packer, const MSVideoConfiguration *defaultVConfList);
-
-	MSFilter *_f = nullptr;
-	std::unique_ptr<MediaCodecEncoder> _encoder;
-	std::unique_ptr<NalPacker> _packer;
-	const MSVideoConfiguration *_vconfList = nullptr;
-	const MSVideoConfiguration *_defaultVConfList = nullptr;
-	MSVideoConfiguration _vconf;
-	bool _avpfEnabled = false;
-	bool _firstFrameDecoded = false;
-
-	MSVideoStarter _starter;
-	MSIFrameRequestsLimiterCtx _iframeLimiter;
 };
 
 }

@@ -17,15 +17,12 @@
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#include <cstdint>
-#include <cstring>
-#include <sstream>
 #include <stdexcept>
-#include <vector>
 
-#include "h26x-utils.h"
 #include "h264-utils.h"
 #include "h265-utils.h"
+
+#include "h26x-utils.h"
 
 using namespace std;
 
@@ -161,7 +158,7 @@ void H26xParameterSetsStore::extractAllPs(MSQueue *frame) {
 	}
 }
 
-void H26xParameterSetsStore::fetchAllPs(MSQueue *outq) {
+void H26xParameterSetsStore::fetchAllPs(MSQueue *outq) const {
 	MSQueue q;
 	ms_queue_init(&q);
 	for(const auto &item : _ps) {
@@ -175,7 +172,7 @@ void H26xParameterSetsStore::addPs(int naluType, mblk_t *nalu) {
 	bool replaceParam = false;
 	mblk_t *lastPs = _ps[naluType];
 
-	if (lastPs == nullptr || nalu ==nullptr) {
+	if (lastPs == nullptr || nalu == nullptr) {
 		replaceParam = true;
 	} else {
 		ssize_t naluSize = nalu->b_wptr - nalu->b_rptr;

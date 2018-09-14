@@ -17,9 +17,9 @@
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#include "mediastreamer2/msqueue.h"
-#include "h264-nal-unpacker.h"
 #include "h264-utils.h"
+
+#include "h264-nal-unpacker.h"
 
 using namespace std;
 

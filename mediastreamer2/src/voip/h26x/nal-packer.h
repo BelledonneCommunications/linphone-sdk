@@ -20,7 +20,10 @@
 #pragma once
 
 #include <memory>
-#include <mediastreamer2/msfactory.h>
+
+#include <ortp/str_utils.h>
+
+#include "mediastreamer2/msfactory.h"
 
 namespace mediastreamer {
 

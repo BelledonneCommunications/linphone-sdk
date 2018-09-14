@@ -15,20 +15,14 @@
  You should have received a copy of the GNU General Public License
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
- */
-
-#include <math.h>
-
-// #include <ortp/str_utils.h>
+*/
 
 #include "mediastreamer2/bits_rw.h"
-#include "mediastreamer2/msqueue.h"
 #include "mediastreamer2/rfc3984.h"
 
 #include "h264-nal-packer.h"
 #include "h264-nal-unpacker.h"
 #include "h264-utils.h"
-#include "h26x-utils.h"
 
 using namespace mediastreamer;
 using namespace std;
@@ -188,6 +182,7 @@ H264NaluType::H264NaluType(uint8_t value) {
 }
 
 const H264NaluType H264NaluType::Idr = 5;
+const H264NaluType H264NaluType::Sei = 6;
 const H264NaluType H264NaluType::Sps = 7;
 const H264NaluType H264NaluType::Pps = 8;
 const H264NaluType H264NaluType::StapA = 24;
