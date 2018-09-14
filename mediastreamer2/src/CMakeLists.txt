@@ -514,10 +514,12 @@ bc_apply_compile_flags(VOIP_SOURCE_FILES_OBJC STRICT_OPTIONS_CPP STRICT_OPTIONS_
 if(VOIP_SOURCE_FILES_CXX)
 	set_source_files_properties(${VOIP_SOURCE_FILES_CXX} PROPERTIES LANGUAGE CXX)
 	bc_apply_compile_flags(VOIP_SOURCE_FILES_CXX STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
-	if (IOS AND ENABLE_VT_H265 AND (CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64"))
-		set_source_files_properties(voip/h26x/videotoolbox-h265-utilities.cpp
-			PROPERTIES COMPILE_FLAGS "-miphoneos-version-min=11.0"
-		)
+	if (APPLE AND ENABLE_VT_H265 AND (CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64"))
+		if (IOS)
+			set_source_files_properties(voip/h26x/videotoolbox-h265-utilities.cpp
+				PROPERTIES COMPILE_FLAGS "-miphoneos-version-min=11.0"
+			)
+		endif()
 		set_source_files_properties(
 			voip/h26x/videotoolbox-utils.cpp
 			voip/h26x/videotoolbox.cpp
