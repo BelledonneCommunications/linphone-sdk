@@ -72,7 +72,6 @@ MSOpenH264Encoder::MSOpenH264Encoder(MSFilter *f)
 	if (ret != 0) {
 		ms_error("OpenH264 encoder: Failed to create encoder: %li", ret);
 	}
-	setConfigurationList(NULL);
 }
 
 MSOpenH264Encoder::~MSOpenH264Encoder()
@@ -228,33 +227,6 @@ void MSOpenH264Encoder::uninitialize()
 	mInitialized = false;
 }
 
-void MSOpenH264Encoder::setFPS(float fps)
-{
-	mVConf.fps = fps;
-	setConfiguration(mVConf);
-}
-
-void MSOpenH264Encoder::setBitrate(int bitrate)
-{
-	if (isInitialized()) {
-		// Encoding is already ongoing, do not change video size, only bitrate.
-		mVConf.required_bitrate = bitrate;
-		setConfiguration(mVConf);
-	} else {
-		MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_bitrate(mVConfList, bitrate, ms_factory_get_cpu_count(mFilter->factory));
-		setConfiguration(best_vconf);
-	}
-}
-
-void MSOpenH264Encoder::setSize(MSVideoSize size)
-{
-	MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_size(mVConfList, size, ms_factory_get_cpu_count(mFilter->factory));
-	mVConf.vsize = size;
-	mVConf.fps = best_vconf.fps;
-	mVConf.bitrate_limit = best_vconf.bitrate_limit;
-	setConfiguration(mVConf);
-}
-
 void MSOpenH264Encoder::addFmtp(const char *fmtp)
 {
 	char value[12];
@@ -265,23 +237,20 @@ void MSOpenH264Encoder::addFmtp(const char *fmtp)
 	}
 }
 
-void MSOpenH264Encoder::setConfigurationList(const MSVideoConfiguration *confList) {
-	MSVideoSize vsize;
-	if (confList == NULL) {
-		mVConfList = openh264_conf_list;
-	} else {
-		mVConfList = confList;
-	}
-	MS_VIDEO_SIZE_ASSIGN(vsize, CIF);
-	mVConf = ms_video_find_best_configuration_for_size(mVConfList, vsize, ms_factory_get_cpu_count(mFilter->factory));
-}
-
 void MSOpenH264Encoder::setConfiguration(MSVideoConfiguration conf)
 {
+	MSVideoSize vsize = mVConf.vsize;
+
 	mVConf = conf;
 	if (mVConf.required_bitrate > mVConf.bitrate_limit)
 		mVConf.required_bitrate = mVConf.bitrate_limit;
 	if (isInitialized()) {
+		/* Do not change video size if encoder is running */
+		if (!ms_video_size_equal(mVConf.vsize, vsize)) {
+			ms_warning("Video configuration: cannot change video size when encoder is running, actual=%dx%d, wanted=%dx%d", vsize.width, vsize.height, mVConf.vsize.width, mVConf.vsize.height);
+			mVConf.vsize = vsize;
+		}
+
 		ms_filter_lock(mFilter);
 		applyBitrate();
 		ms_filter_unlock(mFilter);
