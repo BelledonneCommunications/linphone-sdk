@@ -22,11 +22,10 @@
 
 #include "videotoolbox-encoder.h"
 
-#define VTH264_ENC_NAME "VideoToolboxH264Encoder"
-#define vth264enc_log(level, fmt, ...) ms_##level(VTH264_ENC_NAME ": " fmt, ##__VA_ARGS__)
-#define vth264enc_message(fmt, ...) vth264enc_log(message, fmt, ##__VA_ARGS__)
-#define vth264enc_warning(fmt, ...) vth264enc_log(warning, fmt, ##__VA_ARGS__)
-#define vth264enc_error(fmt, ...) vth264enc_log(error, fmt, ##__VA_ARGS__)
+#define vt_enc_log(level, fmt, ...) ms_##level("VideoToolboxEncoder: " fmt, ##__VA_ARGS__)
+#define vt_enc_message(fmt, ...) vt_enc_log(message, fmt, ##__VA_ARGS__)
+#define vt_enc_warning(fmt, ...) vt_enc_log(warning, fmt, ##__VA_ARGS__)
+#define vt_enc_error(fmt, ...) vt_enc_log(error, fmt, ##__VA_ARGS__)
 
 using namespace std;
 
@@ -100,12 +99,12 @@ void VideoToolboxEncoder::start() {
 
 		err = VTSessionSetProperty(_session, kVTCompressionPropertyKey_ProfileLevel, utils->getDefaultProfileLevel());
 		if (err != noErr) {
-			vth264enc_error("could not set H264 profile and level: %s", toString(err).c_str());
+			vt_enc_error("could not set profile and level: %s", toString(err).c_str());
 		}
 
 		err = VTSessionSetProperty(_session, kVTCompressionPropertyKey_RealTime, kCFBooleanTrue);
 		if (err != noErr) {
-			vth264enc_warning("could not enable real-time mode: %s", toString(err).c_str());
+			vt_enc_warning("could not enable real-time mode: %s", toString(err).c_str());
 		}
 
 		applyFramerate();
@@ -115,24 +114,24 @@ void VideoToolboxEncoder::start() {
 			throw runtime_error("could not prepare the VideoToolbox compression session: " + toString(err));
 		}
 
-		vth264enc_message("encoder succesfully initialized.");
+		vt_enc_message("encoder succesfully initialized.");
 #if !TARGET_OS_IPHONE
 		CFBooleanRef hardware_acceleration_enabled;
 		err = VTSessionCopyProperty(_session, kVTCompressionPropertyKey_UsingHardwareAcceleratedVideoEncoder, kCFAllocatorDefault, &hardware_acceleration_enabled);
 		if (err != noErr) {
-			vth264enc_error("could not read kVTCompressionPropertyKey_UsingHardwareAcceleratedVideoEncoder property: %s", toString(err).c_str());
+			vt_enc_error("could not read kVTCompressionPropertyKey_UsingHardwareAcceleratedVideoEncoder property: %s", toString(err).c_str());
 		} else {
 			if (hardware_acceleration_enabled != nullptr && CFBooleanGetValue(hardware_acceleration_enabled)) {
-				vth264enc_message("hardware acceleration enabled");
+				vt_enc_message("hardware acceleration enabled");
 			} else {
-				vth264enc_warning("hardware acceleration not enabled");
+				vt_enc_warning("hardware acceleration not enabled");
 			}
 		}
 		if (hardware_acceleration_enabled) CFRelease(hardware_acceleration_enabled);
 #endif
 		return;
 	} catch (const runtime_error &e) {
-		vth264enc_error("%s", e.what());
+		vt_enc_error("%s", e.what());
 		if(_session) {
 			CFRelease(_session);
 			_session = nullptr;
@@ -142,7 +141,7 @@ void VideoToolboxEncoder::start() {
 
 void VideoToolboxEncoder::stop() {
 	if (_session == nullptr) return;
-	vth264enc_message("destroying the encoding session");
+	vt_enc_message("destroying the encoding session");
 	VTCompressionSessionInvalidate(_session);
 	CFRelease( _session);
 	_session = nullptr;
@@ -177,7 +176,7 @@ void VideoToolboxEncoder::feed(mblk_t *rawData, uint64_t time, bool requestIFram
 
 	OSStatus err;
 	if((err = VTCompressionSessionEncodeFrame(_session, pixbuf, p_time, kCMTimeInvalid, frameProperties, nullptr, nullptr)) != noErr) {
-		vth264enc_error("could not pass a pixbuf to the encoder: %s", toString(err).c_str());
+		vt_enc_error("could not pass a pixbuf to the encoder: %s", toString(err).c_str());
 		if (err == kVTInvalidSessionErr) {
 			stop();
 			start();

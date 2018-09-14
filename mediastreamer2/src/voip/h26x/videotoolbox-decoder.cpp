@@ -21,12 +21,11 @@
 
 #include "videotoolbox-decoder.h"
 
-#define VTH264_DEC_NAME "VideoToolboxH264Decoder"
-#define vth264dec_log(level, fmt, ...) ms_##level(VTH264_DEC_NAME ": " fmt, ##__VA_ARGS__)
-#define vth264dec_message(fmt, ...) vth264dec_log(message, fmt, ##__VA_ARGS__)
-#define vth264dec_warning(fmt, ...) vth264dec_log(warning, fmt, ##__VA_ARGS__)
-#define vth264dec_error(fmt, ...) vth264dec_log(error, fmt, ##__VA_ARGS__)
-#define vth264dec_debug(fmt, ...) vth264dec_log(debug, fmt, ##__VA_ARGS__)
+#define vt_dec_log(level, fmt, ...) ms_##level("VideoToolboxDecoder: " fmt, ##__VA_ARGS__)
+#define vt_dec_message(fmt, ...) vt_dec_log(message, fmt, ##__VA_ARGS__)
+#define vt_dec_warning(fmt, ...) vt_dec_log(warning, fmt, ##__VA_ARGS__)
+#define vt_dec_error(fmt, ...) vt_dec_log(error, fmt, ##__VA_ARGS__)
+#define vt_dec_debug(fmt, ...) vt_dec_log(debug, fmt, ##__VA_ARGS__)
 
 using namespace std;
 
@@ -86,7 +85,7 @@ void VideoToolboxDecoder::createDecoder() {
 	OSStatus status;
 	VTDecompressionOutputCallbackRecord dec_cb = {outputCb, this};
 
-	vth264dec_message("creating a decoding session");
+	vt_dec_message("creating a decoding session");
 
 	formatDescFromSpsPps();
 
@@ -111,12 +110,12 @@ void VideoToolboxDecoder::createDecoder() {
 		CFBooleanRef hardware_acceleration;
 		status = VTSessionCopyProperty(_session, kVTDecompressionPropertyKey_UsingHardwareAcceleratedVideoDecoder, kCFAllocatorDefault, &hardware_acceleration);
 		if (status != noErr) {
-			vth264dec_error("could not read kVTDecompressionPropertyKey_UsingHardwareAcceleratedVideoDecoder property: %s", toString(status).c_str());
+			vt_dec_error("could not read kVTDecompressionPropertyKey_UsingHardwareAcceleratedVideoDecoder property: %s", toString(status).c_str());
 		} else {
 			if (hardware_acceleration != NULL && CFBooleanGetValue(hardware_acceleration)) {
-				vth264dec_message("hardware acceleration enabled");
+				vt_dec_message("hardware acceleration enabled");
 			} else {
-				vth264dec_warning("hardware acceleration not enabled");
+				vt_dec_warning("hardware acceleration not enabled");
 			}
 		}
 		if (hardware_acceleration != NULL) CFRelease(hardware_acceleration);
@@ -125,14 +124,14 @@ void VideoToolboxDecoder::createDecoder() {
 #if TARGET_OS_IPHONE // kVTDecompressionPropertyKey_RealTime is only available on MacOSX after 10.10 version
 		status = VTSessionSetProperty(_session, kVTDecompressionPropertyKey_RealTime, kCFBooleanTrue);
 		if (status != noErr) {
-			vth264dec_warning("could not be able to switch to real-time mode: %s", toString(status).c_str());
+			vt_dec_warning("could not be able to switch to real-time mode: %s", toString(status).c_str());
 		}
 #endif
 	}
 }
 
 void VideoToolboxDecoder::destroyDecoder() {
-	vth264dec_message("destroying decoder");
+	vt_dec_message("destroying decoder");
 	VTDecompressionSessionInvalidate(_session);
 	CFRelease(_session);
 	CFRelease(_formatDesc);
@@ -144,7 +143,7 @@ bool VideoToolboxDecoder::decodeFrame(MSQueue *encodedFrame, uint64_t timestamp)
 	CMBlockBufferRef stream = nullptr;
 	OSStatus status = CMBlockBufferCreateEmpty(kCFAllocatorDefault, 0, kCMBlockBufferAssureMemoryNowFlag, &stream);
 	if (status != kCMBlockBufferNoErr) {
-		vth264dec_error("failure while creating input buffer for decoder");
+		vt_dec_error("failure while creating input buffer for decoder");
 		return false;
 	}
 	while(mblk_t *nalu = ms_queue_get(encodedFrame)) {
@@ -173,7 +172,7 @@ bool VideoToolboxDecoder::decodeFrame(MSQueue *encodedFrame, uint64_t timestamp)
 		status = VTDecompressionSessionDecodeFrame(_session, sample, kVTDecodeFrame_EnableAsynchronousDecompression | kVTDecodeFrame_1xRealTimePlayback, NULL, NULL);
 		CFRelease(sample);
 		if(status != noErr) {
-			vth264dec_error("error while passing encoded frames to the decoder: %s", toString(status).c_str());
+			vt_dec_error("error while passing encoded frames to the decoder: %s", toString(status).c_str());
 			CFRelease(stream);
 			return false;
 		}
@@ -187,7 +186,7 @@ void VideoToolboxDecoder::formatDescFromSpsPps() {
 		unique_ptr<VideoToolboxUtilities> utils(VideoToolboxUtilities::create(_mime));
 		CMFormatDescriptionRef format_desc = utils->createFormatDescription(*_psStore);
 		CMVideoDimensions vsize = CMVideoFormatDescriptionGetDimensions(format_desc);
-		vth264dec_message("new video format %dx%d", int(vsize.width), int(vsize.height));
+		vt_dec_message("new video format %dx%d", int(vsize.width), int(vsize.height));
 		if (_formatDesc) CFRelease(_formatDesc);
 		_formatDesc = format_desc;
 	} catch (const AppleOSError &e) {
@@ -203,7 +202,7 @@ void VideoToolboxDecoder::outputCb(void *decompressionOutputRefCon, void *source
 	ms_mutex_lock(&ctx->_mutex);
 
 	if(status != noErr || imageBuffer == nullptr) {
-		vth264dec_error("fail to decode one frame: %s", toString(status).c_str());
+		vt_dec_error("fail to decode one frame: %s", toString(status).c_str());
 		ctx->_queue.push_back(Frame());
 		ms_mutex_unlock(&ctx->_mutex);
 		return;
