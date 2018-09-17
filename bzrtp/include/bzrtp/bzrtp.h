@@ -117,9 +117,13 @@ typedef struct bzrtpSrtpSecrets_struct  {
 	uint8_t keyAgreementAlgo; /**< The key agreement algo selected during ZRTP negotiation */
 	uint8_t sasAlgo; /**< The SAS rendering algo selected during ZRTP negotiation */
 	uint8_t cacheMismatch; /**< Flag set to 1 in case of ZRTP cache mismatch, may occurs only on first channel(the one computing SAS) */
-	uint8_t auxSecretMismatch; /**< Flag set to 1 in case of auxiliary secret mismatch, may occurs only on first channel(the one computing SAS), in case of mismatch it is just ignored and we can still validate the SAS */
+	uint8_t auxSecretMismatch; /**< Flag set to BZRTP_AUXSECRET_MATCH, BZRTP_AUXSECRET_MISMATCH or BZRTP_AUXSECRET_UNSET, may occurs only on first channel(the one computing SAS), in case of mismatch it may be ignored and we can still validate the SAS */
 } bzrtpSrtpSecrets_t;
 
+/* define auxSecretMismatch flag codes */
+#define BZRTP_AUXSECRET_MATCH		0x00
+#define BZRTP_AUXSECRET_MISMATCH	0x01
+#define BZRTP_AUXSECRET_UNSET		0x02
 
 /* define message levels */
 #define BZRTP_MESSAGE_ERROR	0x00

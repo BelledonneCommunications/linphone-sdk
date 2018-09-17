@@ -532,13 +532,13 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
 
 			/* if we have an aux secret check it match peer's one */
 			if (zrtpContext->cachedSecret.auxsecret!=NULL) {
-				if (memcmp(zrtpChannelContext->responderAuxsecretID, dhPart1Message->auxsecretID,8) != 0) { // they do not match, set flag to 1, delete the aux secret as we must not use it
+				if (memcmp(zrtpChannelContext->responderAuxsecretID, dhPart1Message->auxsecretID,8) != 0) { // they do not match, set flag to MISMATCH, delete the aux secret as we must not use it
 					free(zrtpContext->cachedSecret.auxsecret);
 					zrtpContext->cachedSecret.auxsecret= NULL;
 					zrtpContext->cachedSecret.auxsecretLength = 0;
-					zrtpChannelContext->srtpSecrets.auxSecretMismatch=1;
-				} else { // they do match, set the flag to 0 (default is 2)
-					zrtpChannelContext->srtpSecrets.auxSecretMismatch=0;
+					zrtpChannelContext->srtpSecrets.auxSecretMismatch = BZRTP_AUXSECRET_MISMATCH;
+				} else { // they do match, set the flag to MATCH  (default is UNSET)
+					zrtpChannelContext->srtpSecrets.auxSecretMismatch = BZRTP_AUXSECRET_MATCH;
 				}
 			}
 
@@ -837,13 +837,13 @@ int state_keyAgreement_responderSendingDHPart1(bzrtpEvent_t event) {
 
 			/* if we have an auxiliary secret, check it match peer's one */
 			if (zrtpContext->cachedSecret.auxsecret!=NULL) {
-				if (memcmp(zrtpChannelContext->initiatorAuxsecretID, dhPart2Message->auxsecretID,8) != 0) {  // they do not match, set flag to 1, delete the aux secret as we must not use it
+				if (memcmp(zrtpChannelContext->initiatorAuxsecretID, dhPart2Message->auxsecretID,8) != 0) {  // they do not match, set flag to MISMATCH, delete the aux secret as we must not use it
 					free(zrtpContext->cachedSecret.auxsecret);
 					zrtpContext->cachedSecret.auxsecret= NULL;
 					zrtpContext->cachedSecret.auxsecretLength = 0;
-					zrtpChannelContext->srtpSecrets.auxSecretMismatch=1;
-				} else { // they do match, set the flag to 0 (default is 2)
-					zrtpChannelContext->srtpSecrets.auxSecretMismatch=0;
+					zrtpChannelContext->srtpSecrets.auxSecretMismatch = BZRTP_AUXSECRET_MISMATCH;
+				} else { // they do match, set the flag to MATCH (default is UNSET)
+					zrtpChannelContext->srtpSecrets.auxSecretMismatch = BZRTP_AUXSECRET_MATCH;
 				}
 			}
 

@@ -982,7 +982,7 @@ int bzrtp_setAuxiliarySharedSecret(bzrtpContext_t *zrtpContext, const uint8_t *a
  * @brief Get the ZRTP auxiliary shared secret mismatch status
  *
  * @param[in]		zrtpContext			The ZRTP context we're dealing with
- * @return	0 on match, 1 on mismatch, 2 if auxiliary shared secret is unused
+ * @return	BZRTP_AUXSECRET_MATCH on match, BZRTP_AUXSECRET_MISMATCH on mismatch, BZRTP_AUXSECRET_UNSET if auxiliary shared secret is unused
  */
 uint8_t bzrtp_getAuxiliarySharedSecretMismatch(bzrtpContext_t *zrtpContext) {
 	return zrtpContext->channelContext[0]->srtpSecrets.auxSecretMismatch;
@@ -1140,7 +1140,7 @@ static int bzrtp_initChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelCon
 	zrtpChannelContext->srtpSecrets.keyAgreementAlgo = ZRTP_UNSET_ALGO;
 	zrtpChannelContext->srtpSecrets.sasAlgo = ZRTP_UNSET_ALGO;
 	zrtpChannelContext->srtpSecrets.cacheMismatch = 0;
-	zrtpChannelContext->srtpSecrets.auxSecretMismatch = 2; /* default is 2, explicitely set it to 0 if we have a match or 1 if we have a mismatch */
+	zrtpChannelContext->srtpSecrets.auxSecretMismatch = BZRTP_AUXSECRET_UNSET;
 
 	/* create the Hello packet and store it */
 	helloPacket = bzrtp_createZrtpPacket(zrtpContext, zrtpChannelContext, MSGTYPE_HELLO, &retval);

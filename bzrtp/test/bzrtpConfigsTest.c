@@ -1081,7 +1081,7 @@ static void test_cache_sas_not_confirmed(void) {
 #endif /* ZIDCACHE_ENABLED */
 }
 
-static int test_auxiliary_secret_params(uint8_t *aliceAuxSecret, size_t aliceAuxSecretLength, uint8_t *bobAuxSecret, size_t bobAuxSecretLength, uint8_t expectedAuxSecretMismatch, uint8_t badTimingFlag) {
+static int test_auxiliary_secret_params(uint8_t *aliceAuxSecret, size_t aliceAuxSecretLength, uint8_t *bobAuxSecret, size_t bobAuxSecretLength, uint8_t aliceExpectedAuxSecretMismatch, uint8_t bobExpectedAuxSecretMismatch, uint8_t badTimingFlag) {
 	int retval;
 	clientContext_t Alice,Bob;
 	uint64_t initialTime=0;
@@ -1206,12 +1206,22 @@ static int test_auxiliary_secret_params(uint8_t *aliceAuxSecret, size_t aliceAux
 
 	// check aux secrets mismatch flag, they must be in sync
 	if (Alice.secrets->auxSecretMismatch != Bob.secrets->auxSecretMismatch) {
-		BC_FAIL("computed auxSecretMismatch flags differ from Alice to Bob");
-		return -1;
+		// if one is unset(AuxSecret is null so flag is at unset) then other can be unset(caught by previous if) or mismatch(this one)
+		if (!( 	(Alice.secrets->auxSecretMismatch == BZRTP_AUXSECRET_UNSET
+				&& aliceAuxSecret == NULL
+				&& Bob.secrets->auxSecretMismatch == BZRTP_AUXSECRET_MISMATCH)
+			|| (Bob.secrets->auxSecretMismatch == BZRTP_AUXSECRET_UNSET
+				&& bobAuxSecret == NULL
+				&& Alice.secrets->auxSecretMismatch == BZRTP_AUXSECRET_MISMATCH)))
+		{
+			BC_FAIL("computed auxSecretMismatch flags differ from Alice to Bob");
+			return -1;
+		}
 	}
 
-	// Do we have a mismatch on aux secret
-	BC_ASSERT_EQUAL(Alice.secrets->auxSecretMismatch, expectedAuxSecretMismatch, uint8_t, "%d");
+	// Do we have the expected mismatch on aux secret
+	BC_ASSERT_EQUAL(Alice.secrets->auxSecretMismatch, aliceExpectedAuxSecretMismatch, uint8_t, "%d");
+	BC_ASSERT_EQUAL(Bob.secrets->auxSecretMismatch, bobExpectedAuxSecretMismatch, uint8_t, "%d");
 
 	/*** Destroy Contexts ***/
 	while (bzrtp_destroyBzrtpContext(Alice.bzrtpContext, aliceSSRC)>0 && aliceSSRC>=ALICE_SSRC_BASE) {
@@ -1231,21 +1241,21 @@ static void test_auxiliary_secret() {
 	resetGlobalParams();
 
 	// matching cases (expect mismatch flag to be 0)
-	BC_ASSERT_EQUAL(test_auxiliary_secret_params(secret1, sizeof(secret1), secret1, sizeof(secret1), 0, 0), 0, int, "%d");
-	BC_ASSERT_EQUAL(test_auxiliary_secret_params(secret2, sizeof(secret2), secret2, sizeof(secret2), 0, 0), 0, int, "%d");
+	BC_ASSERT_EQUAL(test_auxiliary_secret_params(secret1, sizeof(secret1), secret1, sizeof(secret1), BZRTP_AUXSECRET_MATCH, BZRTP_AUXSECRET_MATCH, 0), 0, int, "%d");
+	BC_ASSERT_EQUAL(test_auxiliary_secret_params(secret2, sizeof(secret2), secret2, sizeof(secret2), BZRTP_AUXSECRET_MATCH, BZRTP_AUXSECRET_MATCH, 0), 0, int, "%d");
 
 	// mismatching cases (expect mismatch flag to be 1)
 	// different secrets
-	BC_ASSERT_EQUAL(test_auxiliary_secret_params(secret1, sizeof(secret1), secret2, sizeof(secret2), 1, 0), 0, int, "%d");
+	BC_ASSERT_EQUAL(test_auxiliary_secret_params(secret1, sizeof(secret1), secret2, sizeof(secret2), BZRTP_AUXSECRET_MISMATCH, BZRTP_AUXSECRET_MISMATCH, 0), 0, int, "%d");
 	// only one side has a secret
-	BC_ASSERT_EQUAL(test_auxiliary_secret_params(secret1, sizeof(secret1), NULL, 0, 1, 0), 0, int, "%d");
+	BC_ASSERT_EQUAL(test_auxiliary_secret_params(secret1, sizeof(secret1), NULL, 0, BZRTP_AUXSECRET_MISMATCH, BZRTP_AUXSECRET_UNSET, 0), 0, int, "%d");
 	// no one has a secret
-	BC_ASSERT_EQUAL(test_auxiliary_secret_params(NULL, 0, NULL, 0, 1, 0), 0, int, "%d");
+	BC_ASSERT_EQUAL(test_auxiliary_secret_params(NULL, 0, NULL, 0, BZRTP_AUXSECRET_UNSET, BZRTP_AUXSECRET_UNSET, 0), 0, int, "%d");
 	// same secret but one is one byte shorter
-	BC_ASSERT_EQUAL(test_auxiliary_secret_params(secret1, sizeof(secret1)-1, secret1, sizeof(secret1), 1, 0), 0, int, "%d");
+	BC_ASSERT_EQUAL(test_auxiliary_secret_params(secret1, sizeof(secret1)-1, secret1, sizeof(secret1), BZRTP_AUXSECRET_MISMATCH, BZRTP_AUXSECRET_MISMATCH, 0), 0, int, "%d");
 
-	// matching secret, but inserted to late(last param is a flag to do that)
-	BC_ASSERT_EQUAL(test_auxiliary_secret_params(secret1, sizeof(secret1), secret1, sizeof(secret1), 1, 1), 0, int, "%d");
+	// matching secret, but inserted to late(last param is a flag to do that) so we expect unset
+	BC_ASSERT_EQUAL(test_auxiliary_secret_params(secret1, sizeof(secret1), secret1, sizeof(secret1), BZRTP_AUXSECRET_UNSET, BZRTP_AUXSECRET_UNSET, 1), 0, int, "%d");
 };
 
 /**
