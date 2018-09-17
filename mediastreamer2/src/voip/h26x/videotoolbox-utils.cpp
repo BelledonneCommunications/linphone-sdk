@@ -64,7 +64,7 @@ static unordered_map<OSStatus, string> _errorMsg = {
 	{ kVTCouldNotFindTemporalFilterErr          , "could not find temporal filter"          },
 	{ kVTPixelTransferNotPermittedErr           , "pixel transfer not permitted"            },
 	{ kVTColorCorrectionImageRotationFailedErr  , "color correction image rotation failed"  },
-	{ kVTVideoDecoderRemovedErr                 , "video decoder removed"                   }
+	{ -17690 /* kVTVideoDecoderRemovedErr */    , "video decoder removed"                   }
 };
 
 std::string toString(::OSStatus status) {
