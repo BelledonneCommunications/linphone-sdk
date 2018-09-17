@@ -1699,12 +1699,12 @@ int bzrtp_responseToHelloMessage(bzrtpContext_t *zrtpContext, bzrtpChannelContex
 	*/
 	/* This is BZRTP in its old version */
 	if ((strncmp(ZRTP_CLIENT_IDENTIFIERv1_0a, (char *)helloMessage->clientIdentifier, 16)==0) || (strncmp(ZRTP_CLIENT_IDENTIFIERv1_0b, (char *)helloMessage->clientIdentifier, 16)==0)){
-		zrtpContext->peerBzrtpVersion=10000;
+		zrtpContext->peerBzrtpVersion=0x010000;
 		if (zrtpContext->zrtpCallbacks.bzrtp_statusMessage!=NULL && zrtpContext->zrtpCallbacks.bzrtp_messageLevel>=BZRTP_MESSAGE_WARNING) { /* use warning level as the client may really wants to know this */
 				zrtpContext->zrtpCallbacks.bzrtp_statusMessage(zrtpChannelContext->clientData, BZRTP_MESSAGE_WARNING, BZRTP_MESSAGE_PEERVERSIONOBSOLETE, (const char *)helloMessage->clientIdentifier);
 		}
 	} else if (strncmp(ZRTP_CLIENT_IDENTIFIERv1_1, (char *)helloMessage->clientIdentifier, 16)==0) { /* peer has the current version, everything is Ok */
-		zrtpContext->peerBzrtpVersion=10100;
+		zrtpContext->peerBzrtpVersion=0x010100;
 	} else { /* peer uses another lib, we're probably not LIME compliant, log it */
 		zrtpContext->peerBzrtpVersion=0;
 		if (zrtpContext->zrtpCallbacks.bzrtp_statusMessage!=NULL && zrtpContext->zrtpCallbacks.bzrtp_messageLevel>=BZRTP_MESSAGE_LOG) {

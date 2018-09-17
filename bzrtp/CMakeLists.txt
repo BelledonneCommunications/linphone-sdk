@@ -30,6 +30,7 @@ option(ENABLE_STATIC "Build static library." YES)
 option(ENABLE_ZIDCACHE "Turn on compilation of ZID cache, request sqlite" YES)
 option(ENABLE_STRICT "Build with strict compile options." YES)
 option(ENABLE_TESTS "Enable compilation of unit tests." NO)
+option(ENABLE_EXPORTEDKEY_V1_0_RETROCOMPATIBILITY "Enable support for Limev1 with older version of bzrtp(before v1.06)" YES)
 
 
 if(NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
@@ -105,6 +106,9 @@ if(ENABLE_ZIDCACHE)
 	endif()
 endif()
 
+if (ENABLE_EXPORTEDKEY_V1_0_RETROCOMPATIBILITY)
+	add_definitions("-DSUPPORT_EXPORTEDKEY_V010000")
+endif()
 
 if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
 	set(EXPORT_TARGETS_NAME "LinphoneBuilder")
