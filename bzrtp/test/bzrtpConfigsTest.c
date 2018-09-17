@@ -60,7 +60,8 @@ typedef struct cryptoParams_struct {
 	uint8_t sasNb;
 	uint8_t authtag[MAX_CRYPTO_ALG] ;
 	uint8_t authtagNb;
-	uint8_t dontValidateSASflag; /**< if set, SAS will not be validated even if matching peer **/
+	uint8_t dontValidateSASflag; /**< if set to 1, SAS will not be validated even if matching peer **/
+	                             /**< if set to 2, SAS will be reset even if matching peer **/
 } cryptoParams_t;
 
 
@@ -93,6 +94,15 @@ cryptoParams_t *defaultCryptoAlgoSelectionNoSASValidation(void) {
 		return &withX255noSAS;
 	}
 	return &withoutX255noSAS;
+}
+
+static cryptoParams_t withoutX255resetSAS = {{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH3k},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,2};
+static cryptoParams_t withX255resetSAS = {{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_X255},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,2};
+cryptoParams_t *defaultCryptoAlgoSelectionResetSAS(void) {
+	if (bctbx_key_agreement_algo_list()&BCTBX_ECDH_X25519) {
+		return &withX255resetSAS;
+	}
+	return &withoutX255resetSAS;
 }
 
 /* static global settings and their reset function */
@@ -443,15 +453,26 @@ uint32_t multichannel_exchange_pvs_params(cryptoParams_t *aliceCryptoParams, cry
 
 	if ((retval=compareSecrets(Alice.secrets, Bob.secrets, TRUE))!=0) {
 		BC_ASSERT_EQUAL(retval, 0, int, "%d");
+		if (aliceCache != NULL && bobCache != NULL) {
+			bzrtp_resetSASVerified(Alice.bzrtpContext);
+			bzrtp_resetSASVerified(Bob.bzrtpContext);
+		}
 		return retval;
 	} else { /* SAS comparison is Ok, if we have a cache, confirm it */
 		if (aliceCache != NULL && bobCache != NULL) {
+			/* Confirm only when the cryptoParam->dontValidateSASflag is not present or set to 0 */
 			if (aliceCryptoParams==NULL || aliceCryptoParams->dontValidateSASflag == 0) {
 				bzrtp_SASVerified(Alice.bzrtpContext);
+			} else if (aliceCryptoParams!=NULL && aliceCryptoParams->dontValidateSASflag == 2) { /* if flag is set to 2 reset the SAS */
+				bzrtp_resetSASVerified(Alice.bzrtpContext);
 			}
+			/* Confirm only when the cryptoParam->dontValidateSASflag is not present or set to 0 */
 			if (bobCryptoParams==NULL || bobCryptoParams->dontValidateSASflag == 0) {
 				bzrtp_SASVerified(Bob.bzrtpContext);
+			} else if (bobCryptoParams!=NULL && bobCryptoParams->dontValidateSASflag == 2) { /* if flag is set to 2 reset the SAS */
+				bzrtp_resetSASVerified(Bob.bzrtpContext);
 			}
+			/* if flag is set to 1 just ignore the SAS validation */
 		}
 	}
 
@@ -1318,8 +1339,112 @@ static void test_abort_retry(void) {
 	sqlite3_close(bobDB);
 
 	/* clean temporary files */
-	remove("tmpZIDAlice_simpleCache.sqlite");
-	remove("tmpZIDBob_simpleCache.sqlite");
+	remove("tmpZIDAlice_abortRetry.sqlite");
+	remove("tmpZIDBob_abortRetry.sqlite");
+
+#endif /* ZIDCACHE_ENABLED */
+}
+
+static void test_active_flag(void) {
+#ifdef ZIDCACHE_ENABLED
+	sqlite3 *aliceDB=NULL;
+	sqlite3 *bob1DB=NULL;
+	sqlite3 *bob2DB=NULL;
+	sqlite3 *bob3DB=NULL;
+	sqlite3 *claire1DB=NULL;
+	sqlite3 *claire2DB=NULL;
+
+	resetGlobalParams();
+
+	/* create tempory DB files, just try to clean them from dir before, just in case  */
+	remove("tmpZIDAlice_activeFlag.sqlite");
+	/* bob has 3 devices */
+	remove("tmpZIDBob1_activeFlag.sqlite");
+	remove("tmpZIDBob2_activeFlag.sqlite");
+	remove("tmpZIDBob3_activeFlag.sqlite");
+	/* claire has 2 devices */
+	remove("tmpZIDClaire1_activeFlag.sqlite");
+	remove("tmpZIDClaire2_activeFlag.sqlite");
+	bzrtptester_sqlite3_open(bc_tester_file("tmpZIDAlice_activeFlag.sqlite"), &aliceDB);
+	bzrtptester_sqlite3_open(bc_tester_file("tmpZIDBob1_activeFlag.sqlite"), &bob1DB);
+	bzrtptester_sqlite3_open(bc_tester_file("tmpZIDBob2_activeFlag.sqlite"), &bob2DB);
+	bzrtptester_sqlite3_open(bc_tester_file("tmpZIDBob3_activeFlag.sqlite"), &bob3DB);
+	bzrtptester_sqlite3_open(bc_tester_file("tmpZIDClaire1_activeFlag.sqlite"), &claire1DB);
+	bzrtptester_sqlite3_open(bc_tester_file("tmpZIDClaire2_activeFlag.sqlite"), &claire2DB);
+
+	/* make a first exchange alice <-> bob1, validate the SAS */
+	BC_ASSERT_EQUAL(multichannel_exchange(NULL, NULL, defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bob1DB, "bob@sip.linphone.org"), 0, int, "%x");
+	/* ask alice what is the pvs status of the active bob uri: bob@sip.linphone.org, it shall be valid(bob1 is active) */
+	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus(aliceDB, "bob@sip.linphone.org"), BZRTP_CACHE_PEER_STATUS_VALID, int, "%x");
+
+	/* make an exchange, alice <-> bob2, alice is instructed to not validate the SAS nor invalidate it */
+	BC_ASSERT_EQUAL(multichannel_exchange(defaultCryptoAlgoSelectionNoSASValidation(), defaultCryptoAlgoSelection(), defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bob2DB, "bob@sip.linphone.org"), 0, int, "%x");
+	/* ask alice what is the pvs status of the active bob uri: bob@sip.linphone.org, it shall be unknown(as it is the first exchange with bob2 which is now active) */
+	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus(aliceDB, "bob@sip.linphone.org"), BZRTP_CACHE_PEER_STATUS_UNKNOWN, int, "%x");
+
+	/* make an exchange, alice <-> bob1, alice is instructed to not validate the SAS nor invalidate it */
+	BC_ASSERT_EQUAL(multichannel_exchange(defaultCryptoAlgoSelectionNoSASValidation(), defaultCryptoAlgoSelection(), defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bob1DB, "bob@sip.linphone.org"), 0, int, "%x");
+	/* ask alice what is the pvs status of the active bob uri: bob@sip.linphone.org, it shall be valid(bob1 is now active) */
+	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus(aliceDB, "bob@sip.linphone.org"), BZRTP_CACHE_PEER_STATUS_VALID, int, "%x");
+
+	/* make an exchange, alice <-> bob1, alice is instructed to reset the SAS */
+	BC_ASSERT_EQUAL(multichannel_exchange(defaultCryptoAlgoSelectionResetSAS(), defaultCryptoAlgoSelection(), defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bob1DB, "bob@sip.linphone.org"), 0, int, "%x");
+	/* ask alice what is the pvs status of the active bob uri: bob@sip.linphone.org, it shall be invalid(bob1 is still active) */
+	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus(aliceDB, "bob@sip.linphone.org"), BZRTP_CACHE_PEER_STATUS_INVALID, int, "%x");
+
+	/* make an exchange, alice <-> bob2, alice is instructed to not validate the SAS nor invalidate it */
+	BC_ASSERT_EQUAL(multichannel_exchange(defaultCryptoAlgoSelectionNoSASValidation(), defaultCryptoAlgoSelection(), defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bob2DB, "bob@sip.linphone.org"), 0, int, "%x");
+	/* ask alice what is the pvs status of the active bob uri: bob@sip.linphone.org, it shall be unknown(as it is the first exchange with bob2 which is now active) */
+	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus(aliceDB, "bob@sip.linphone.org"), BZRTP_CACHE_PEER_STATUS_UNKNOWN, int, "%x");
+
+	/* make an exchange alice <-> bob2, validate the SAS */
+	BC_ASSERT_EQUAL(multichannel_exchange(NULL, NULL, defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bob2DB, "bob@sip.linphone.org"), 0, int, "%x");
+	/* ask alice what is the pvs status of the active bob uri: bob@sip.linphone.org, it shall be valid (bob2 is now active) */
+	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus(aliceDB, "bob@sip.linphone.org"), BZRTP_CACHE_PEER_STATUS_VALID, int, "%x");
+
+	/* make an exchange, alice <-> bob1, alice is instructed to not validate the SAS nor invalidate it */
+	BC_ASSERT_EQUAL(multichannel_exchange(defaultCryptoAlgoSelectionNoSASValidation(), defaultCryptoAlgoSelection(), defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bob1DB, "bob@sip.linphone.org"), 0, int, "%x");
+	/* ask alice what is the pvs status of the active bob uri: bob@sip.linphone.org, it shall be invalid(bob1 is now active) */
+	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus(aliceDB, "bob@sip.linphone.org"), BZRTP_CACHE_PEER_STATUS_INVALID, int, "%x");
+
+	/* make an exchange, alice <-> bob3, alice is instructed to not validate the SAS nor invalidate it */
+	BC_ASSERT_EQUAL(multichannel_exchange(defaultCryptoAlgoSelectionNoSASValidation(), defaultCryptoAlgoSelection(), defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bob3DB, "bob@sip.linphone.org"), 0, int, "%x");
+	/* ask alice what is the pvs status of the active bob uri: bob@sip.linphone.org, it shall be unknown(as it is the first exchange with bob3 which is now active) */
+	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus(aliceDB, "bob@sip.linphone.org"), BZRTP_CACHE_PEER_STATUS_UNKNOWN, int, "%x");
+
+
+	/* introducing Claire */
+	/* ask alice what is the pvs status of the active claire uri: claire@sip.linphone.org, it shall still be unknown as alice never heard about clairee yet */
+	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus(aliceDB, "claire@sip.linphone.org"), BZRTP_CACHE_PEER_STATUS_UNKNOWN, int, "%x");
+
+	/* make an exchange, alice <-> claire1, alice is instructed to reset the SAS */
+	BC_ASSERT_EQUAL(multichannel_exchange(defaultCryptoAlgoSelectionResetSAS(), defaultCryptoAlgoSelection(), defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", claire1DB, "claire@sip.linphone.org"), 0, int, "%x");
+	/* ask alice what is the pvs status of the active bob uri: bob@sip.linphone.org, it shall still be unknown(bob3 is still active) */
+	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus(aliceDB, "bob@sip.linphone.org"), BZRTP_CACHE_PEER_STATUS_UNKNOWN, int, "%x");
+	/* ask alice what is the pvs status of the active claire uri: claire@sip.linphone.org, it shall still be invalid */
+	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus(aliceDB, "claire@sip.linphone.org"), BZRTP_CACHE_PEER_STATUS_INVALID, int, "%x");
+
+	/* make a first exchange alice <-> claire2, validate the SAS */
+	BC_ASSERT_EQUAL(multichannel_exchange(NULL, NULL, defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", claire2DB, "claire@sip.linphone.org"), 0, int, "%x");
+	/* ask alice what is the pvs status of the active bob uri: bob@sip.linphone.org, it shall still be unknown(bob3 is still active) */
+	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus(aliceDB, "bob@sip.linphone.org"), BZRTP_CACHE_PEER_STATUS_UNKNOWN, int, "%x");
+	/* ask alice what is the pvs status of the active claire uri: claire@sip.linphone.org, it shall still be valid */
+	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus(aliceDB, "claire@sip.linphone.org"), BZRTP_CACHE_PEER_STATUS_VALID, int, "%x");
+
+	/* make an exchange, alice <-> bob1, alice is instructed to not validate the SAS nor invalidate it */
+	BC_ASSERT_EQUAL(multichannel_exchange(defaultCryptoAlgoSelectionNoSASValidation(), defaultCryptoAlgoSelection(), defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bob1DB, "bob@sip.linphone.org"), 0, int, "%x");
+	/* ask alice what is the pvs status of the active bob uri: bob@sip.linphone.org, it shall be invalid(bob1 is now active) */
+	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus(aliceDB, "bob@sip.linphone.org"), BZRTP_CACHE_PEER_STATUS_INVALID, int, "%x");
+	/* ask alice what is the pvs status of the active claire uri: claire@sip.linphone.org, it shall still be valid */
+	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus(aliceDB, "claire@sip.linphone.org"), BZRTP_CACHE_PEER_STATUS_VALID, int, "%x");
+
+	/* clean temporary files */
+	remove("tmpZIDAlice_activeFlag.sqlite");
+	remove("tmpZIDBob1_activeFlag.sqlite");
+	remove("tmpZIDBob2_activeFlag.sqlite");
+	remove("tmpZIDBob3_activeFlag.sqlite");
+	remove("tmpZIDClaire1_activeFlag.sqlite");
+	remove("tmpZIDClaire2_activeFlag.sqlite");
 
 #endif /* ZIDCACHE_ENABLED */
 }
@@ -1331,7 +1456,8 @@ static test_t key_exchange_tests[] = {
 	TEST_NO_TAG("Loosy network", test_loosy_network),
 	TEST_NO_TAG("Cached PVS", test_cache_sas_not_confirmed),
 	TEST_NO_TAG("Auxiliary Secret", test_auxiliary_secret),
-	TEST_NO_TAG("Abort and retry", test_abort_retry)
+	TEST_NO_TAG("Abort and retry", test_abort_retry),
+	TEST_NO_TAG("Active flag", test_active_flag)
 };
 
 test_suite_t key_exchange_test_suite = {

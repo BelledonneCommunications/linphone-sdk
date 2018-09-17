@@ -45,8 +45,12 @@
 #endif
 
 /* define a version number for the DB schema as an interger MMmmpp */
-/* current version is 0.0.1 */
-#define ZIDCACHE_DBSCHEMA_VERSION_NUMBER 000001
+/* current version is 0.0.2 */
+/* Changelog:
+ * version 0.0.2 : Add a the active flag in the ziduri table
+ * version 0.0.1 : Initial version
+ */
+#define ZIDCACHE_DBSCHEMA_VERSION_NUMBER 0x000002
 
 static int callback_getSelfZID(void *data, int argc, char **argv, char **colName){
 	uint8_t **selfZID = (uint8_t **)data;
@@ -70,9 +74,32 @@ static int callback_getUserVersion(void *data, int argc, char **argv, char **col
 	return 0;
 }
 
+/**
+ * @brief Update the database schema from version 0.0.1 to version 0.0.2
+ *
+ * Add an integer field 'active' defaulting to 0 in the ziduri table
+ *
+ * @param[in/out]	db	The sqlite pointer to the table to be updated
+ *
+ * @return 0 on success, BZRTP_ZIDCACHE_UNABLETOUPDATE otherwise
+ */
+static int bzrtp_cache_update_000001_to_000002(sqlite3 *db) {
+/* create the ziduri table */
+	int ret;
+	char* errmsg=NULL;
+	ret=sqlite3_exec(db,"ALTER TABLE ziduri ADD COLUMN active INTEGER DEFAULT 0;", 0, 0, &errmsg);
+	if(ret != SQLITE_OK) {
+		sqlite3_free(errmsg);
+		return BZRTP_ZIDCACHE_UNABLETOUPDATE;
+	}
+
+	return 0;
+}
+
 /* ZID cache is split in several tables
- * ziduri : zuid(unique key) | ZID | selfuri | peeruri
- *         zuid(ZID/URI binding id) will be used for fastest access to the cache, it binds a local user(self uri/self ZID) to a peer identified both by URI and ZID 
+ * ziduri : zuid(unique key) | ZID | selfuri | peeruri | active
+ *         zuid(ZID/URI binding id) will be used for fastest access to the cache, it binds a local user(self uri/self ZID) to a peer identified both by URI and ZID
+ *         active is a flag set to spot the last active peer device associated to an URI. Each time a ZRTP exchange takes place, the active flag is set to one and all other rows with the same peeruri are set to zero
  *         self ZID is stored in this table too in a record having 'self' as peer uri, each local user(uri) has a different ZID 
  *
  * All values except zuid in the following tables are blob, actual integers are split and stored in big endian by callers
@@ -106,7 +133,21 @@ int bzrtp_initCache(void *dbPointer) {
 		if (userVersion > ZIDCACHE_DBSCHEMA_VERSION_NUMBER) { /* nothing to do if we encounter a superior version number than expected, just hope it is compatible */
 			//TODO: Log this event
 		} else { /* Perform update if needed */
+			switch ( userVersion ) {
+				case 0x000000 :
+					/* nothing to do this is base creation */
+					break;
+				case 0x000001 :
+					ret = bzrtp_cache_update_000001_to_000002(db);
+					if (ret != 0) {
+						return ret;
+					}
+					break;
+				default : /* nothing particular to do but it shall not append and we shall warn the dev: db schema version was upgraded but no migration function is executed */
+					break;
+			}
 			/* update the schema version in DB metadata */
+
 			sql = sqlite3_mprintf("PRAGMA user_version = %d;",ZIDCACHE_DBSCHEMA_VERSION_NUMBER);
 			ret = sqlite3_prepare(db, sql, -1, &stmt, NULL);
 			sqlite3_free(sql);
@@ -139,12 +180,18 @@ int bzrtp_initCache(void *dbPointer) {
 	}
 	sqlite3_finalize(stmt);
 
-	/* check/create the ziduri table */
+	/* if we have an update, we can exit now */
+	if (retval == BZRTP_CACHE_UPDATE) {
+		return BZRTP_CACHE_UPDATE;
+	}
+
+	/* create the ziduri table */
 	ret=sqlite3_exec(db,"CREATE TABLE IF NOT EXISTS ziduri ("
-							"zuid          INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,"
+							"zuid		INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,"
 							"zid		BLOB NOT NULL DEFAULT '000000000000',"
-							"selfuri	 TEXT NOT NULL DEFAULT 'unset',"
-							"peeruri	 TEXT NOT NULL DEFAULT 'unset'"
+							"selfuri	TEXT NOT NULL DEFAULT 'unset',"
+							"peeruri	TEXT NOT NULL DEFAULT 'unset',"
+							"active		INTEGER DEFAULT 0"
 						");",
 			0,0,&errmsg);
 	if(ret != SQLITE_OK) {
@@ -572,6 +619,101 @@ int bzrtp_cache_write(void *dbPointer, int zuid, const char *tableName, const ch
 }
 
 /**
+ * @brief This is a convenience wrapper to the bzrtp_cache_write function which will also take care of
+ *        setting the ziduri table 'active' flag to one for the current row and reset all other rows with matching peeruri
+ *
+ * Write(insert or update) data in cache, adressing it by zuid (ZID/URI binding id used in cache)
+ * 		Get arrays of column names, values to be inserted, lengths of theses values
+ *		All three arrays must be the same lenght: columnsCount
+ * 		If the row isn't present in the given table, it will be inserted
+ *
+ * @param[in/out]	dbPointer	Pointer to an already opened sqlite db
+ * @param[in]		zuid		The DB internal id to adress the correct row(binding between local uri and peer ZID+URI)
+ * @param[in]		tableName	The name of the table to write in the db, must already exists. Null terminated string
+ * @param[in]		columns		An array of null terminated strings containing the name of the columns to update
+ * @param[in]		values		An array of buffers containing the values to insert/update matching the order of columns array
+ * @param[in]		lengths		An array of integer containing the lengths of values array buffer matching the order of columns array
+ * @param[in]		columnsCount	length common to columns,values and lengths arrays
+ *
+ * @return 0 on succes, error code otherwise
+ */
+int bzrtp_cache_write_active(void *dbPointer, int zuid, const char *tableName, const char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount) {
+	char *stmt=NULL;
+	int ret;
+	const unsigned char *peeruri=NULL;
+	int activeFlag=0;
+
+	sqlite3_stmt *sqlStmt = NULL;
+	sqlite3 *db = (sqlite3 *)dbPointer;
+
+	/* initial checks */
+	if (dbPointer == NULL) { /* we are running cacheless */
+		return BZRTP_ZIDCACHE_RUNTIME_CACHELESS;
+	}
+
+	if (zuid == 0) { /* we're giving an invalid zuid, means we were not able to retrieve it previously, just do nothing */
+		return BZRTP_ERROR_CACHE_PEERNOTFOUND;
+	}
+
+	/* Retrieve the peerUri and active flag from ziduri table */
+	stmt = sqlite3_mprintf("SELECT peeruri, active FROM ziduri WHERE zuid=? LIMIT 1;");
+	ret = sqlite3_prepare_v2(db, stmt, -1, &sqlStmt, NULL);
+	sqlite3_free(stmt);
+	if (ret != SQLITE_OK) {
+		return BZRTP_ZIDCACHE_UNABLETOREAD;
+	}
+
+	sqlite3_bind_int(sqlStmt, 1, zuid);
+
+	ret = sqlite3_step(sqlStmt);
+
+	if (ret!=SQLITE_ROW) { /* We didn't found this zuid in the DB -> we would not be able to write */
+		sqlite3_finalize(sqlStmt);
+		return BZRTP_ZIDCACHE_UNABLETOUPDATE;
+	}
+
+	/* retrieve values 0:peeruri, 1:active */
+	peeruri = sqlite3_column_text(sqlStmt, 0); /* warning: finalize the statement will invalidate peeruri pointer */
+	activeFlag = sqlite3_column_int(sqlStmt, 1);
+
+	/* if active flag is already set, just do nothing otherwise set it and reset all others with the same peeruri(active device is shared among local users) */
+	if (activeFlag == 0) {
+		sqlite3_stmt *sqlStmtActive = NULL;
+		/* reset all active flags with this peeruri */
+		stmt = sqlite3_mprintf("UPDATE ziduri SET active=0 WHERE active<>0 AND zuid<>? AND peeruri=?;");
+		ret = sqlite3_prepare_v2(db, stmt, -1, &sqlStmtActive, NULL);
+		sqlite3_free(stmt);
+		if (ret != SQLITE_OK) {
+			sqlite3_finalize(sqlStmt);
+			sqlite3_finalize(sqlStmtActive);
+			return BZRTP_ZIDCACHE_UNABLETOREAD;
+		}
+		sqlite3_bind_int(sqlStmtActive, 1, zuid);
+		sqlite3_bind_text(sqlStmtActive, 2, (const char *)peeruri, -1, SQLITE_TRANSIENT);
+		ret = sqlite3_step(sqlStmtActive);
+		sqlite3_finalize(sqlStmtActive);
+		/* set to 1 the active flag four current row */
+		stmt = sqlite3_mprintf("UPDATE ziduri SET active=1 WHERE zuid=? LIMIT 1;");
+		ret = sqlite3_prepare_v2(db, stmt, -1, &sqlStmtActive, NULL);
+		sqlite3_free(stmt);
+		if (ret != SQLITE_OK) {
+			sqlite3_finalize(sqlStmt);
+			sqlite3_finalize(sqlStmtActive);
+			return BZRTP_ZIDCACHE_UNABLETOREAD;
+		}
+		sqlite3_bind_int(sqlStmtActive, 1, zuid);
+		ret = sqlite3_step(sqlStmtActive);
+		sqlite3_finalize(sqlStmtActive);
+	}
+
+	sqlite3_finalize(sqlStmt);
+
+	/* and perform the actual writing */
+	return bzrtp_cache_write(dbPointer, zuid, tableName, columns, values, lengths, columnsCount);
+}
+
+
+/**
  * @brief Read data from specified table/columns from cache adressing it by zuid (ZID/URI binding id used in cache)
  * 		Get arrays of column names, values to be read, and the number of colums to be read
  *		Produce an array of values(uint8_t arrays) and a array of corresponding lengths
@@ -835,6 +977,79 @@ int bzrtp_cache_migration(void *cacheXmlPtr, void *cacheSqlite, const char *self
 #endif /* HAVE_LIBXML2 */
 }
 
+/*
+ * @brief Retrieve from bzrtp cache the trust status(based on the previously verified flag) of a peer URI
+ *
+ * This function will return the SAS validation status of the active device
+ * associated to the given peerURI.
+ *
+ * Important note about the active device:
+ * - any ZRTP exchange with a peer device will set it to be the active one for its sip:uri
+ * - the concept of active device is shared between local accounts if there are several of them, it means that :
+ *       - if you have several local users on your device, each of them may have an entry in the ZRTP cache with a particular peer sip:uri (if they ever got in contact with it) but only one of this entry is set to active
+ *       - this function will return the status associated to the last updated entry without any consideration for the local users it is associated with
+ * - any call where the SAS was neither accepted or rejected will not update the trust status but will set as active device for the peer sip:uri the one involved in the call
+ *
+ * This function is intended for use in a mono-device environment.
+ *
+ * @param[in]	dbPointer	Pointer to an already opened sqlite db
+ * @param[in]	peerURI		The peer sip:uri we're interested in
+ *
+ * @return one of:
+ *  - BZRTP_CACHE_PEER_STATUS_UNKNOWN : this uri is not present in cache OR during calls with the active device, SAS never was validated or rejected
+ *  	Note: once the SAS has been validated or rejected, the status will never return to UNKNOWN(unless you delete your cache)
+ *  - BZRTP_CACHE_PEER_STATUS_VALID : the active device status is set to valid
+ *  - BZRTP_CACHE_PEER_STATUS_INVALID : the active peer device status is set to invalid
+ *
+ */
+int bzrtp_cache_getPeerStatus(void *dbPointer, const char *peerURI) {
+	char *stmt=NULL;
+	int ret,retval = BZRTP_CACHE_PEER_STATUS_UNKNOWN;
+
+	sqlite3_stmt *sqlStmt = NULL;
+	sqlite3 *db = (sqlite3 *)dbPointer;
+
+	/* initial checks */
+	if (dbPointer == NULL) { /* we are running cacheless */
+		return BZRTP_ZIDCACHE_RUNTIME_CACHELESS;
+	}
+
+	/* Retrieve the pvs flag from zrtp table for the given peerURI
+	 * Order by active desc so we get the row with the active flag set to 1
+	 * if there is no such row(just after migration from version 0.0.1 of DB schema
+	 * we will get the last device inserted for this peer, it is the most likely to be the active one in the context of a mono-device environment) */
+	stmt = sqlite3_mprintf("SELECT z.pvs FROM ziduri as zu INNER JOIN zrtp as z ON z.zuid=zu.zuid WHERE zu.peeruri=? ORDER BY zu.active DESC,zu.zuid DESC LIMIT 1;");
+	ret = sqlite3_prepare_v2(db, stmt, -1, &sqlStmt, NULL);
+	sqlite3_free(stmt);
+	if (ret != SQLITE_OK) {
+		return BZRTP_ZIDCACHE_UNABLETOREAD;
+	}
+
+	sqlite3_bind_text(sqlStmt, 1, peerURI, -1, SQLITE_TRANSIENT);
+
+	ret = sqlite3_step(sqlStmt);
+
+	if (ret==SQLITE_ROW) { /* We found the peerURI in the DB */
+		/* pvs is stored as blob in memory, just get the first byte(length shall be one anyway) */
+		/* it may be NULL -> return UNKNOWN */
+		int length = sqlite3_column_bytes(sqlStmt, 0);
+		if (length!=1) { /* value is NULL(or we have something that is not 0x01 or 0x00) in db, we do not know the status of this device */
+			retval = BZRTP_CACHE_PEER_STATUS_UNKNOWN;
+		} else {
+			if (*((uint8_t *)sqlite3_column_blob(sqlStmt, 0)) == 0x01) {
+				retval = BZRTP_CACHE_PEER_STATUS_VALID;
+			} else {
+				retval = BZRTP_CACHE_PEER_STATUS_INVALID;
+			}
+		}
+	} else { /* the peerURI was not found in DB */
+		retval = BZRTP_CACHE_PEER_STATUS_UNKNOWN;
+	}
+
+	sqlite3_finalize(sqlStmt);
+	return retval;
+}
+
 #else /* ZIDCACHE_ENABLED */
 
 int bzrtp_getSelfZID(void *dbPointer, const char *selfURI, uint8_t selfZID[12], bctbx_rng_context_t *RNGContext) {
@@ -870,6 +1085,10 @@ int bzrtp_getPeerAssociatedSecrets(bzrtpContext_t *context, uint8_t peerZID[12])
 	return 0;
 }
 
+int bzrtp_cache_write_active(void *dbPointer, int zuid, const char *tableName, const char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount) {
+	return BZRTP_ERROR_CACHEDISABLED;
+}
+
 int bzrtp_cache_write(void *dbPointer, int zuid, const char *tableName, const char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount) {
 	return BZRTP_ERROR_CACHEDISABLED;
 }
@@ -880,5 +1099,9 @@ int bzrtp_cache_read(void *dbPointer, int zuid, const char *tableName, const cha
 
 int bzrtp_cache_migration(xmlDocPtr cacheXml, void *cacheSqlite, const char *selfURI) {
 	return BZRTP_ERROR_CACHEDISABLED;
+}
+
+int bzrtp_cache_getPeerStatus(void *dbPointer, const char *peerURI) {
+	return BZRTP_CACHE_PEER_STATUS_UNKNOWN;
 }
 #endif /* ZIDCACHE_ENABLED */

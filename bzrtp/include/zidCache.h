@@ -29,12 +29,6 @@
 
 #include "typedef.h"
 
-#define BZRTP_ZIDCACHE_INVALID_CONTEXT	0x2001
-#define BZRTP_ZIDCACHE_INVALID_CACHE	0x2002
-#define BZRTP_ZIDCACHE_UNABLETOUPDATE	0x2003
-#define BZRTP_ZIDCACHE_UNABLETOREAD	0x2004
-#define BZRTP_ZIDCACHE_BADINPUTDATA	0x2005
-#define BZRTP_ZIDCACHE_RUNTIME_CACHELESS	0x2010
 
 /**
  * @brief Parse the cache to find secrets associated to the given ZID, set them and their length in the context if they are found 
@@ -67,5 +61,26 @@ BZRTP_EXPORT int bzrtp_getPeerAssociatedSecrets(bzrtpContext_t *context, uint8_t
 #define BZRTP_ZIDCACHE_DONT_INSERT_ZUID	0
 #define BZRTP_ZIDCACHE_INSERT_ZUID	1
 BZRTP_EXPORT int bzrtp_cache_getZuid(void *dbPointer, const char *selfURI, const char *peerURI, const uint8_t peerZID[12], const uint8_t insertFlag, int *zuid);
+
+/**
+ * @brief This is a convenience wrapper to the bzrtp_cache_write function which will also take care of
+ *        setting the ziduri table 'active' flag to one for the current row and reset all other rows with matching peeruri
+ *
+ * Write(insert or update) data in cache, adressing it by zuid (ZID/URI binding id used in cache)
+ * 		Get arrays of column names, values to be inserted, lengths of theses values
+ *		All three arrays must be the same lenght: columnsCount
+ * 		If the row isn't present in the given table, it will be inserted
+ *
+ * @param[in/out]	dbPointer	Pointer to an already opened sqlite db
+ * @param[in]		zuid		The DB internal id to adress the correct row(binding between local uri and peer ZID+URI)
+ * @param[in]		tableName	The name of the table to write in the db, must already exists. Null terminated string
+ * @param[in]		columns		An array of null terminated strings containing the name of the columns to update
+ * @param[in]		values		An array of buffers containing the values to insert/update matching the order of columns array
+ * @param[in]		lengths		An array of integer containing the lengths of values array buffer matching the order of columns array
+ * @param[in]		columnsCount	length common to columns,values and lengths arrays
+ *
+ * @return 0 on succes, error code otherwise
+ */
+BZRTP_EXPORT int bzrtp_cache_write_active(void *dbPointer, int zuid, const char *tableName, const char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount);
 
 #endif /* ZIDCACHE_H */

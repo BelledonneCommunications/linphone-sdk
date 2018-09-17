@@ -187,6 +187,18 @@ typedef struct bzrtpCallbacks_struct {
 #define BZRTP_CACHE_SETUP		0x2000
 #define BZRTP_CACHE_UPDATE		0x2001
 #define BZRTP_CACHE_DATA_NOTFOUND	0x2002
+#define BZRTP_CACHE_PEER_STATUS_UNKNOWN 0x2010
+#define BZRTP_CACHE_PEER_STATUS_VALID   0x2011
+#define BZRTP_CACHE_PEER_STATUS_INVALID 0x2012
+
+/* cache function error codes */
+#define BZRTP_ZIDCACHE_INVALID_CONTEXT		0x2101
+#define BZRTP_ZIDCACHE_INVALID_CACHE		0x2102
+#define BZRTP_ZIDCACHE_UNABLETOUPDATE		0x2103
+#define BZRTP_ZIDCACHE_UNABLETOREAD		0x2104
+#define BZRTP_ZIDCACHE_BADINPUTDATA		0x2105
+#define BZRTP_ZIDCACHE_RUNTIME_CACHELESS	0x2110
+
 /**
  * @brief bzrtpContext_t The ZRTP engine context
  * Store current state, timers, HMAC and encryption keys
@@ -495,6 +507,33 @@ BZRTP_EXPORT int bzrtp_cache_migration(void *cacheXmlPtr, void *cacheSqlite, con
  * @return 0 on succes, error code otherwise
  */
 BZRTP_EXPORT int bzrtp_exportKey(bzrtpContext_t *zrtpContext, char *label, size_t labelLength, uint8_t *derivedKey, size_t *derivedKeyLength);
+
+/**
+ * @brief Retrieve from bzrtp cache the trust status(based on the previously verified flag) of a peer URI
+ *
+ * This function will return the SAS validation status of the active device
+ * associated to the given peerURI.
+ *
+ * Important note about the active device:
+ * - any ZRTP exchange with a peer device will set it to be the active one for its sip:uri
+ * - the concept of active device is shared between local accounts if there are several of them, it means that :
+ *       - if you have several local users on your device, each of them may have an entry in the ZRTP cache with a particular peer sip:uri (if they ever got in contact with it) but only one of this entry is set to active
+ *       - this function will return the status associated to the last updated entry without any consideration for the local users it is associated with
+ * - any call where the SAS was neither accepted or rejected will not update the trust status but will set as active device for the peer sip:uri the one involved in the call
+ *
+ * This function is intended for use in a mono-device environment.
+ *
+ * @param[in]	dbPointer	Pointer to an already opened sqlite db
+ * @param[in]	peerURI		The peer sip:uri we're interested in
+ *
+ * @return one of:
+ *  - BZRTP_CACHE_PEER_STATUS_UNKNOWN : this uri is not present in cache OR during calls with the active device, SAS never was validated or rejected
+ *  	Note: once the SAS has been validated or rejected, the status will never return to UNKNOWN(unless you delete your cache)
+ *  - BZRTP_CACHE_PEER_STATUS_VALID : the active device status is set to valid
+ *  - BZRTP_CACHE_PEER_STATUS_INVALID : the active peer device status is set to invalid
+ *
+ */
+BZRTP_EXPORT int bzrtp_cache_getPeerStatus(void *dbPointer, const char *peerURI);
 
 #ifdef __cplusplus
 }
