@@ -225,11 +225,11 @@ static void video_stream_track_fps_changes(VideoStream *stream){
 
 				if (ms_filter_call_method(stream->source,MS_FILTER_GET_FPS,&fps)==0 && fps!=0){
 					if (fabsf(fps-stream->configured_fps)/stream->configured_fps>0.2){
+						MSVideoConfiguration vconf;
 						ms_warning("Measured and target fps significantly different (%f<->%f), updating encoder.",
 							fps,stream->configured_fps);
 						stream->real_fps=fps;
 
-						MSVideoConfiguration vconf;
 						ms_filter_call_method(stream->ms.encoder,MS_VIDEO_ENCODER_GET_CONFIGURATION,&vconf);
 						vconf.fps = stream->real_fps;
 						ms_filter_call_method(stream->ms.encoder,MS_VIDEO_ENCODER_SET_CONFIGURATION,&vconf);
