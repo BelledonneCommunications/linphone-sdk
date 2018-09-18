@@ -87,12 +87,15 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 	belle_sip_uri_t *from_uri = NULL;
 	belle_sip_header_t *header = belle_sip_message_get_header(BELLE_SIP_MESSAGE(req), "From");
 
+    realm = belle_sip_header_www_authenticate_get_realm(authenticate);
+    
 	if (header) {
 		belle_sip_header_address_t *from_address = belle_sip_header_address_parse(belle_sip_header_get_unparsed_value(header));
 		from_uri = belle_sip_header_address_get_uri(from_address);
-	}
-
-	realm = belle_sip_header_www_authenticate_get_realm(authenticate);
+    } else if (username && !passwd) {
+        from_uri = belle_sip_uri_create(username,realm);
+    }
+	
 	if (!username || !passwd) {
 		ev=belle_sip_auth_event_create((belle_sip_object_t*)ctx->provider,realm,from_uri);
 		BELLE_HTTP_REQUEST_INVOKE_LISTENER(req,process_auth_requested,ev);
