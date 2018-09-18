@@ -691,7 +691,6 @@ void ms_zrtp_sas_reset_verified(MSZrtpContext* ctx){
 }
 
 int ms_zrtp_get_peer_status(void *db, const char *peerUri){
-	printf("ms_zrtp_get_peer_status\n");
 	return bzrtp_cache_getPeerStatus(db, peerUri);
 }
 
