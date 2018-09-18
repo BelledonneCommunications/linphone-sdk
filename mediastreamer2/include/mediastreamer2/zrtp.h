@@ -166,6 +166,17 @@ MS2_PUBLIC void ms_zrtp_sas_verified(MSZrtpContext* ctx);
 MS2_PUBLIC void ms_zrtp_sas_reset_verified(MSZrtpContext* ctx);
 
 /**
+ * Get the zrtp sas validation status for a peer uri.
+ * Once the SAS has been validated or rejected, the status will never return to UNKNOWN (unless you delete your cache)
+ * @param[in/out]	db	Pointer to the sqlite3 db open connection
+ * 					Use a void * to keep this API when building cacheless
+ * @return  - BZRTP_CACHE_PEER_STATUS_UNKNOWN: this uri is not present in cache OR during calls with the active device, SAS never was validated or rejected
+ *  		- BZRTP_CACHE_PEER_STATUS_VALID: the active device status is set to valid
+ *  		- BZRTP_CACHE_PEER_STATUS_INVALID: the active peer device status is set to invalid
+ */
+MS2_PUBLIC int ms_zrtp_get_peer_status(void *db, const char *peerUri);
+
+/**
  * Get the ZRTP Hello Hash from the given context
  * @param[in]	ctx	MSZRTP context
  * @param[out]	The Zrtp Hello Hash as defined in RFC6189 section 8

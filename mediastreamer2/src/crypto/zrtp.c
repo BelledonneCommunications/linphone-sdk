@@ -690,6 +690,11 @@ void ms_zrtp_sas_reset_verified(MSZrtpContext* ctx){
 	bzrtp_resetSASVerified(ctx->zrtpContext);
 }
 
+int ms_zrtp_get_peer_status(void *db, const char *peerUri){
+	printf("ms_zrtp_get_peer_status\n");
+	return bzrtp_cache_getPeerStatus(db, peerUri);
+}
+
 int ms_zrtp_getHelloHash(MSZrtpContext* ctx, uint8_t *output, size_t outputLength) {
 	return bzrtp_getSelfHelloHash(ctx->zrtpContext, ctx->self_ssrc, output, outputLength);
 }
@@ -766,6 +771,7 @@ int ms_zrtp_channel_start(MSZrtpContext *ctx) { return 0;}
 bool_t ms_zrtp_available(){return FALSE;}
 void ms_zrtp_sas_verified(MSZrtpContext* ctx){}
 void ms_zrtp_sas_reset_verified(MSZrtpContext* ctx){}
+int ms_zrtp_get_peer_status(MSZrtpContext* ctx) {return 0;}
 void ms_zrtp_context_destroy(MSZrtpContext *ctx){}
 void ms_zrtp_reset_transmition_timer(MSZrtpContext* ctx) {};
 int ms_zrtp_transport_modifier_new(MSZrtpContext* ctx, RtpTransportModifier **rtpt, RtpTransportModifier **rtcpt ) {return 0;}
