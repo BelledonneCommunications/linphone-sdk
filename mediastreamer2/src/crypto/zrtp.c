@@ -690,8 +690,18 @@ void ms_zrtp_sas_reset_verified(MSZrtpContext* ctx){
 	bzrtp_resetSASVerified(ctx->zrtpContext);
 }
 
-int ms_zrtp_get_peer_status(void *db, const char *peerUri){
-	return bzrtp_cache_getPeerStatus(db, peerUri);
+MSZrtpPeerStatus ms_zrtp_get_peer_status(void *db, const char *peerUri){
+	int status = bzrtp_cache_getPeerStatus(db, peerUri);
+	switch (status) {
+		case BZRTP_CACHE_PEER_STATUS_UNKNOWN:
+			return MS_ZRTP_PEER_STATUS_UNKNOWN;
+		case BZRTP_CACHE_PEER_STATUS_INVALID:
+			return MS_ZRTP_PEER_STATUS_INVALID;
+		case BZRTP_CACHE_PEER_STATUS_VALID:
+			return MS_ZRTP_PEER_STATUS_VALID;
+		default:
+			return MS_ZRTP_PEER_STATUS_UNKNOWN;
+	}
 }
 
 int ms_zrtp_getHelloHash(MSZrtpContext* ctx, uint8_t *output, size_t outputLength) {
