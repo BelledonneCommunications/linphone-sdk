@@ -132,6 +132,7 @@ void VideoToolboxDecoder::createDecoder() {
 
 void VideoToolboxDecoder::destroyDecoder() {
 	vt_dec_message("destroying decoder");
+	VTDecompressionSessionWaitForAsynchronousFrames(_session);
 	VTDecompressionSessionInvalidate(_session);
 	CFRelease(_session);
 	CFRelease(_formatDesc);
