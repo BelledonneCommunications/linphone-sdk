@@ -1194,6 +1194,15 @@ static void test_event_header(void) {
 	BC_ASSERT_STRING_EQUAL(belle_sip_header_event_get_package_name(L_event), "presence");
 	BC_ASSERT_STRING_EQUAL(belle_sip_header_event_get_id(L_event), "blabla1");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_event));
+
+	L_event = belle_sip_header_event_parse("o: presence;id=blabla1");
+	BC_ASSERT_PTR_NOT_NULL(L_event);
+	if (L_event) {
+		BC_ASSERT_STRING_EQUAL(belle_sip_header_event_get_package_name(L_event), "presence");
+		BC_ASSERT_STRING_EQUAL(belle_sip_header_event_get_id(L_event), "blabla1");
+		belle_sip_object_unref(BELLE_SIP_OBJECT(L_event));
+	}
+
 	BC_ASSERT_PTR_NULL(belle_sip_header_event_parse("nimportequoi"));
 }
 
