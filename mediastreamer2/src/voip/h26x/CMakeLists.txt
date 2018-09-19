@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2018 Belledonne Communications, Grenoble France
+# Copyright (C) 2010-2018 Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -35,26 +35,18 @@ list(APPEND VOIP_SOURCE_FILES_CXX
 	${CMAKE_CURRENT_SOURCE_DIR}/rfc3984.cpp
 )
 
-if (APPLE)
+if(APPLE)
 	list(APPEND VOIP_SOURCE_FILES_CXX
 		${CMAKE_CURRENT_SOURCE_DIR}/videotoolbox.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/videotoolbox-decoder.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/videotoolbox-encoder.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/videotoolbox-utils.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/videotoolbox-h264-utilities.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/videotoolbox-h265-utilities.cpp
 	)
-	if (ENABLE_VT_H264)
-		list(APPEND VOIP_SOURCE_FILES_CXX
-			${CMAKE_CURRENT_SOURCE_DIR}/videotoolbox-h264-utilities.cpp
-		)
-	endif()
-	if(ENABLE_VT_H265 AND APPLE AND (CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64"))
-		list(APPEND VOIP_SOURCE_FILES_CXX
-			${CMAKE_CURRENT_SOURCE_DIR}/videotoolbox-h265-utilities.cpp
-		)
-	endif()
 endif()
 
-if (ANDROID)
+if(ANDROID)
 	list(APPEND VOIP_SOURCE_FILES_CXX
 		${CMAKE_CURRENT_SOURCE_DIR}/media-codec-decoder.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/media-codec-encoder.cpp
@@ -66,3 +58,4 @@ if (ANDROID)
 endif()
 
 set(VOIP_SOURCE_FILES_CXX ${VOIP_SOURCE_FILES_CXX} PARENT_SCOPE)
+
