@@ -118,11 +118,9 @@ CMFormatDescriptionRef VideoToolboxUtilities::createFormatDescription(const H26x
 VideoToolboxUtilities *VideoToolboxUtilities::create(const std::string &mime) {
 	if (mime == "video/avc") {
 		return new VideoToolboxH264Utilities();
-	}
-	else if (mime == "video/hevc") {
+	} else if (mime == "video/hevc") {
 		return new VideoToolboxH265Utilities();
-	}
-	else {
+	} else {
 		throw invalid_argument(mime + " not supported");
 	}
 }
