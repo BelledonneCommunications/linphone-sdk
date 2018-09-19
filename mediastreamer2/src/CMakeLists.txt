@@ -505,7 +505,7 @@ if(APPLE OR ANDROID OR OPENGL_FOUND OR GLX_FOUND OR QTANGLE_FOUND)
 	)
 endif()
 
-if (ENABLE_VT_H264 OR ENALBLE_VT_H265 OR ANDROID)
+if(ENABLE_VIDEO)
 	add_subdirectory(voip/h26x)
 endif()
 
@@ -514,13 +514,6 @@ bc_apply_compile_flags(VOIP_SOURCE_FILES_OBJC STRICT_OPTIONS_CPP STRICT_OPTIONS_
 if(VOIP_SOURCE_FILES_CXX)
 	set_source_files_properties(${VOIP_SOURCE_FILES_CXX} PROPERTIES LANGUAGE CXX)
 	bc_apply_compile_flags(VOIP_SOURCE_FILES_CXX STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
-	if (APPLE AND ENABLE_VT_H265 AND (CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64"))
-		set_source_files_properties(
-			voip/h26x/videotoolbox-utils.cpp
-			voip/h26x/videotoolbox.cpp
-			PROPERTIES COMPILE_DEFINITIONS "ENABLE_H265"
-		)
-	endif()
 endif()
 
 
