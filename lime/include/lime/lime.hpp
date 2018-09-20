@@ -248,9 +248,25 @@ namespace lime {
 			 * @param[in]	status		value of flag to set: accepted values are trusted, untrusted, unsafe
 			 *
 			 * throw an exception if given key doesn't match the one present in local storage
-			 * throw an exception if the status flag value is unexpected (not one of trusted, untrusted, unsafe)
+			 * if the status flag value is unexpected (not one of trusted, untrusted, unsafe), ignore the call
+			 * if the status flag is unsafe or untrusted, ignore the value of Ik and call the version of this function without it
 			 *
 			 * if peer Device is not present in local storage and status is trusted or unsafe, it is added, if status is untrusted, it is just ignored
+			 *
+			 * General algorithm followed by the set_peerDeviceStatus functions
+			 * - Status is valid? (not one of trusted, untrusted, unsafe)? No: return
+			 * - status is trusted
+			 *       - We have Ik? -> No: return
+			 *       - Device is already in storage but Ik differs from the given one : exception
+			 *       - Insert/update in local storage
+			 * - status is untrusted
+			 *       - Ik is ignored
+			 *       - Device already in storage? No: return
+			 *       - Device already in storage but current status is unsafe? Yes: return
+			 *       - update in local storage
+			 * -status is unsafe
+			 *       - ignore Ik
+			 *       - insert/update the status. If inserted, insert an invalid Ik
 			 */
 			void set_peerDeviceStatus(const std::string &peerDeviceId, const std::vector<uint8_t> &Ik, lime::PeerDeviceStatus status);
 
@@ -261,9 +277,11 @@ namespace lime {
 			 * @param[in]	peerDeviceId	The device Id of peer, shall be its GRUU
 			 * @param[in]	status		value of flag to set: accepted values are untrusted or unsafe
 			 *
-			 * throw an exception if the status flag value is unexpected (not one of untrusted, unsafe)
+			 * if the status flag value is unexpected (not one of untrusted, unsafe), ignore the call
 			 *
-			 * if peer Device is not present in local storage, it is just ignored
+			 * if peer Device is not present in local storage, it is inserted if status is unsafe and call is ignored if status is untrusted
+			 * if the status is untrusted but the current status in local storage is unsafe, ignore the call
+			 * Any call to the other form of the function with a status to unsafe or untrusted is rerouted to this function
 			 */
 			void set_peerDeviceStatus(const std::string &peerDeviceId, lime::PeerDeviceStatus status);
 
@@ -275,6 +293,15 @@ namespace lime {
 			 * @return unknown if the device is not in localStorage, untrusted, trusted or unsafe according to the stored value of peer device status flag otherwise
 			 */
 			lime::PeerDeviceStatus get_peerDeviceStatus(const std::string &peerDeviceId);
+
+			/**
+			 * @delete a peerDevice from local storage
+			 *
+			 * @param[in]	peerDeviceId	The device Id to be removed from local storage, shall be its GRUU
+			 *
+			 * Call is silently ignored if the device is not found in local storage
+			 */
+			void delete_peerDevice(const std::string &peerDeviceId);
 
 			LimeManager() = delete; // no manager without Database and http provider
 			LimeManager(const LimeManager&) = delete; // no copy constructor

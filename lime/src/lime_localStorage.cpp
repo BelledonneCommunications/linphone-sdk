@@ -163,6 +163,10 @@ Db::Db(std::string filename) : sql{sqlite3, filename}{
 	*   		The mapping is done in lime.hpp by the PeerDeviceStatus enum class definition
 	*
 	* Note: peer device information is shared by all local device, hence they are not linked to particular local devices from lime_LocalUsers table
+	*
+	* Note2: The Ik field should be able to be NULL but it is not for historical reason.
+	*        When a peer device is inserted without Ik(through the set_peerDeviceStatus with a unsafe status is the only way to do that)
+	*        it will be given an Ik set to invalid_Ik (one byte at 0x00) with the purpose of being unable to match a real Ik as NULL would have done
 	*/
 	sql<<"CREATE TABLE lime_PeerDevices( \
 				Did INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, \
@@ -289,16 +293,37 @@ void Db::get_allLocalDevices(std::vector<std::string> &deviceIds) {
  * @param[in]	status		value of flag to set: accepted values are trusted, untrusted, unsafe
  *
  * throw an exception if given key doesn't match the one present in local storage
- * throw an exception if the status flag value is unexpected (not one of trusted, untrusted, unsafe)
+ * if the status flag value is unexpected (not one of trusted, untrusted, unsafe), ignore the call
+ * if the status flag is unsafe or untrusted, ignore the value of Ik and call the version of this function without it
  *
  * if peer Device is not present in local storage and status is trusted or unsafe, it is added, if status is untrusted, it is just ignored
+ *
+ * General algorithm followed by the set_peerDeviceStatus functions
+ * - Status is valid? (not one of trusted, untrusted, unsafe)? No: return
+ * - status is trusted
+ *       - We have Ik? -> No: return
+ *       - Device is already in storage but Ik differs from the given one : exception
+ *       - Insert/update in local storage
+ * - status is untrusted
+ *       - Ik is ignored
+ *       - Device already in storage? No: return
+ *       - Device already in storage but current status is unsafe? Yes: return
+ *       - update in local storage
+ * -status is unsafe
+ *       - ignore Ik
+ *       - insert/update the status. If inserted, insert an invalid Ik
  */
 void Db::set_peerDeviceStatus(const std::string &peerDeviceId, const std::vector<uint8_t> &Ik, lime::PeerDeviceStatus status) {
-	// Check the status flag value, accepted values are: trusted, untrusted, unsafe
-	if (status != lime::PeerDeviceStatus::unsafe
-	&& status != lime::PeerDeviceStatus::untrusted
-	&& status != lime::PeerDeviceStatus::trusted) {
-		throw BCTBX_EXCEPTION << "Trying to set a status for peer device "<<peerDeviceId<<" which is not acceptable (differs from unsafe, untrusted or trusted)";
+	// if status is unsafe or untrusted, call the variant without Ik
+	if (status == lime::PeerDeviceStatus::unsafe || status == lime::PeerDeviceStatus::untrusted) {
+		this->set_peerDeviceStatus(peerDeviceId, status);
+		return;
+	}
+
+	// Check the status flag value, accepted values are: trusted (unsafe and untrusted are already managed)
+	if (status != lime::PeerDeviceStatus::trusted) {
+		LIME_LOGE<< "Trying to set a status for peer device "<<peerDeviceId<<" which is not acceptable (differs from unsafe, untrusted or trusted), ignore that";
+		return;
 	}
 
 	uint8_t statusInteger = static_cast<uint8_t>(status);
@@ -334,24 +359,52 @@ void Db::set_peerDeviceStatus(const std::string &peerDeviceId, const std::vector
  * @param[in]	peerDeviceId	The device Id of peer, shall be its GRUU
  * @param[in]	status		value of flag to set: accepted values are untrusted or unsafe
  *
- * throw an exception if the status flag value is unexpected (not one of untrusted, unsafe)
+ * if the status flag value is unexpected (not one of untrusted, unsafe), ignore the call
  *
- * if peer Device is not present in local storage, it is just ignored
+ * if peer Device is not present in local storage, it is inserted if status is unsafe and call is ignored if status is untrusted
+ * if the status is untrusted but the current status in local storage is unsafe, ignore the call
+ * Any call to the other form of the function with a status to unsafe or untrusted is rerouted to this function
  */
 void Db::set_peerDeviceStatus(const std::string &peerDeviceId, lime::PeerDeviceStatus status) {
 	// Check the status flag value, accepted values are: untrusted, unsafe
 	if (status != lime::PeerDeviceStatus::unsafe
 	&& status != lime::PeerDeviceStatus::untrusted) {
-		throw BCTBX_EXCEPTION << "Trying to set a status for peer device "<<peerDeviceId<<" without providing a Ik which is not acceptable (differs from unsafe or untrusted)";
+		LIME_LOGE << "Trying to set a status for peer device "<<peerDeviceId<<" without providing a Ik which is not acceptable (differs from unsafe or untrusted)";
+		return;
 	}
 
 	uint8_t statusInteger = static_cast<uint8_t>(status);
 
-	// Do we have this peerDevice in lime_PeerDevices
+	// is this peerDevice already in local storage?
+	bool inLocalStorage = false;
 	long long id;
-	sql<<"SELECT Did FROM Lime_PeerDevices WHERE DeviceId = :peerDeviceId;", into(id), use(peerDeviceId);
-	if (sql.got_data()) { // Found it
+	int currentStatus;
+	sql<<"SELECT Did, Status FROM Lime_PeerDevices WHERE DeviceId = :peerDeviceId;", into(id), into(currentStatus), use(peerDeviceId);
+	inLocalStorage = sql.got_data();
+
+	// if status is untrusted
+	if (status == lime::PeerDeviceStatus::untrusted) {
+		// and we do not already have that device in local storage -> log it and ignore the call
+		if (!inLocalStorage) {
+			LIME_LOGW << "Trying to set a status untrusted for peer device "<<peerDeviceId<<" not present in local storage, ignore that call)";
+			return;
+		}
+		// and the current status in local storage is unsafe, keep unsafe
+		if (currentStatus == static_cast<uint8_t>(lime::PeerDeviceStatus::unsafe)) {
+			LIME_LOGW << "Trying to set a status untrusted for peer device "<<peerDeviceId<<" but its current status is unsafe, ignore that call)";
+			return;
+		}
+	}
+
+	// update or insert
+	if (inLocalStorage) {
 		sql<<"UPDATE Lime_PeerDevices SET Status = :Status WHERE Did = :id;", use(statusInteger), use(id);
+	} else {
+		// this constant is set into lime_peerDevices table, Ik field when it is not provided by set_peerDeviceStatus as this field can't be set to NULL in older version of the database
+		constexpr uint8_t invalid_Ik = 0x00;
+		blob Ik_insert_blob(sql);
+		Ik_insert_blob.write(0, (char *)(&invalid_Ik), sizeof(invalid_Ik));
+		sql<<"INSERT INTO Lime_PeerDevices(DeviceId, Ik, Status) VALUES(:peerDeviceId, :Ik, :Status);", use(peerDeviceId), use(Ik_insert_blob), use(statusInteger);
 	}
 }
 
@@ -380,6 +433,17 @@ lime::PeerDeviceStatus Db::get_peerDeviceStatus(const std::string &peerDeviceId)
 
 	// peerDeviceId not found in local storage
 	return lime::PeerDeviceStatus::unknown;
+}
+
+/**
+ * @delete a peerDevice from local storage
+ *
+ * @param[in]	peerDeviceId	The device Id to be removed from local storage, shall be its GRUU
+ *
+ * Call is silently ignored if the device is not found in local storage
+ */
+void Db::delete_peerDevice(const std::string &peerDeviceId) {
+	sql<<"DELETE FROM lime_peerDevices WHERE DeviceId = :peerDeviceId;", use(peerDeviceId);
 }
 
 /**

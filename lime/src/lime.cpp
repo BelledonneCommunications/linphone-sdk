@@ -118,6 +118,11 @@ namespace lime {
 	}
 
 	template <typename Curve>
+	void Lime<Curve>::delete_peerDevice(const std::string &peerDeviceId) {
+		m_DR_sessions_cache.erase(peerDeviceId); // remove session from cache if any
+	}
+
+	template <typename Curve>
 	void Lime<Curve>::update_SPk(const limeCallback &callback) {
 		// Do we need to update the SPk
 		if (!is_currentSPk_valid()) {

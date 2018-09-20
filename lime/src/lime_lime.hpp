@@ -97,6 +97,13 @@ namespace lime {
 		 */
 		virtual void delete_user(const limeCallback &callback) = 0;
 
+		/**
+		 * @brief Purge cached sessions for a given peer Device (used when a peer device is being deleted)
+		 *
+		 * @param[in]	peerDeviceId	The peer device to remove from cache
+		 */
+		virtual void delete_peerDevice(const std::string &peerDeviceId) = 0;
+
 
 
 		// User keys management

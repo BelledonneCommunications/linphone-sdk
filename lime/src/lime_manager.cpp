@@ -191,4 +191,17 @@ namespace lime {
 		return localStorage->get_peerDeviceStatus(peerDeviceId);
 	}
 
+	void LimeManager::delete_peerDevice(const std::string &peerDeviceId) {
+		// loop on all local users in cache to destroy any cached session linked to that user
+		for (auto userElem : m_users_cache) {
+			userElem.second->delete_peerDevice(peerDeviceId);
+		}
+
+		// open local DB
+		auto localStorage = std::unique_ptr<lime::Db>(new lime::Db(m_db_access));
+
+		localStorage->delete_peerDevice(peerDeviceId);
+	}
+
+
 } // namespace lime

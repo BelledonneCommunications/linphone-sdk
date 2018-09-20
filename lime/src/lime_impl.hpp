@@ -106,6 +106,7 @@ namespace lime {
 
 			void publish_user(const limeCallback &callback, const uint16_t OPkInitialBatchSize) override;
 			void delete_user(const limeCallback &callback) override;
+			void delete_peerDevice(const std::string &peerDeviceId) override;
 
 			/**
 			 * @brief Check if the current SPk needs to be updated, if yes, generate a new one and publish it on server
