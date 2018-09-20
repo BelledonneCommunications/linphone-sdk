@@ -480,6 +480,8 @@ long int Db::check_peerDevice(const std::string &peerDeviceId, const DSA<Curve, 
 		} else { // not found in local Storage: return 0
 			return 0;
 		}
+	} catch (BctbxException const &e) {
+		throw BCTBX_EXCEPTION << "Peer device "<<peerDeviceId<<" check failed: "<<e.str();
 	} catch (exception const &e) {
 		throw BCTBX_EXCEPTION << "Peer device "<<peerDeviceId<<" check failed: "<<e.what();
 	}

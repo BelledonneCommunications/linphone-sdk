@@ -563,7 +563,7 @@ namespace lime {
 					decryptStatus = DRSession->ratchetDecrypt(DRmessage, AD, randomSeed, payloadDirectEncryption);
 				}
 			} catch (BctbxException &e) { // any bctbx Exception is just considered as decryption failed (it shall occurs in case of maximum skipped keys reached or inconsistency ib the direct Encryption flag)
-				LIME_LOGW<<"Double Ratchet session failed to decrypt message and raised an exception saying : "<<e.what();
+				LIME_LOGW<<"Double Ratchet session failed to decrypt message and raised an exception saying : "<<e;
 				decryptStatus = false; // lets keep trying with other sessions if provided
 			}
 

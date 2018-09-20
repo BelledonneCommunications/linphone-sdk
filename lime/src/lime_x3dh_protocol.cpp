@@ -763,7 +763,7 @@ namespace lime {
 						// when message stop crossing themselves on the network
 						X3DH_init_sender_session(peersBundle);
 					} catch (BctbxException &e) { // something went wrong, go for callback as this function may be called by code not supporting exceptions
-						if (callback) callback(lime::CallbackReturn::fail, std::string{"Error during the peer Bundle processing : "}.append(e.what()));
+						if (callback) callback(lime::CallbackReturn::fail, std::string{"Error during the peer Bundle processing : "}.append(e.str()));
 						cleanUserData(userData);
 						return;
 					}
