@@ -133,7 +133,7 @@ MediaCodecDecoder::Status MediaCodecDecoder::fetch(mblk_t *&frame) {
 			ms_error("MediaCodecDecoder: AMediaCodec_dequeueOutputBuffer() had an exception");
 			status = decodingFailure;
 		} else if (oBufidx == AMEDIACODEC_INFO_TRY_AGAIN_LATER) {
-			ms_error("MediaCodecDecoder: decoder isn't ready");
+			ms_debug("MediaCodecDecoder: no output picture available");
 			status = noFrameAvailable;
 		} else {
 			ms_error("MediaCodecDecoder: unknown error while dequeueing an output buffer (oBufidx=%zd)", oBufidx);
