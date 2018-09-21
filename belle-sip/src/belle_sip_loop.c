@@ -259,7 +259,7 @@ struct belle_sip_main_loop{
 	bctbx_mutex_t timer_sources_mutex;
 #ifndef _WIN32
 	int control_fds[2];
-	unsigned int thread_id;
+	unsigned long thread_id;
 #endif
 };
 
