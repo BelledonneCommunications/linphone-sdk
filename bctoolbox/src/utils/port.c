@@ -1340,7 +1340,54 @@ static struct addrinfo * _bctbx_name_to_addrinfo(int family, int socktype, const
 }
 
 struct addrinfo * bctbx_name_to_addrinfo(int family, int socktype, const char *name, int port){
-	return _bctbx_name_to_addrinfo(family, socktype, name, port, FALSE);
+	struct addrinfo * res = NULL;
+#if defined(__ANDROID__)
+	// This is to workaround possible ANR on Android
+	/*"main" prio=5 tid=1 Native
+  	| group="main" sCount=1 dsCount=0 obj=0x75d55258 self=0x231c03fa00
+  	| sysTid=27931 nice=-10 cgrp=default sched=0/0 handle=0x2320165a98
+  	| state=S schedstat=( 0 0 0 ) utm=303 stm=69 core=1 HZ=100
+  	| stack=0x48ae2c5000-0x48ae2c7000 stackSize=8MB
+  	| held mutexes=
+  	kernel: __switch_to+0x70/0x7c
+  	kernel: unix_stream_recvmsg+0x254/0x6f8
+  	kernel: sock_aio_read.part.9+0xe4/0x110
+  	kernel: sock_aio_read+0x20/0x30
+  	kernel: do_sync_read+0x70/0xa8
+  	kernel: vfs_read+0xb0/0x140
+  	kernel: SyS_read+0x54/0xa4
+  	kernel: el0_svc_naked+0x24/0x28
+  	native: #00 pc 000000000006b6e4  /system/lib64/libc.so (read+4)
+  	native: #01 pc 00000000000731f8  /system/lib64/libc.so (__sread+44)
+  	native: #02 pc 0000000000076fac  /system/lib64/libc.so (__srefill+260)
+  	native: #03 pc 0000000000076e00  /system/lib64/libc.so (fread+272)
+  	native: #04 pc 000000000002fcf0  /system/lib64/libc.so (android_getaddrinfofornetcontext+2356)
+  	native: #05 pc 000000000002f33c  /system/lib64/libc.so (getaddrinfo+56)
+  	native: #06 pc 000000000001e754  /data/app/com.meetme-1/lib/arm64/libbctoolbox.so (bctbx_getaddrinfo+164)
+  	native: #07 pc 000000000001ecb4  /data/app/com.meetme-1/lib/arm64/libbctoolbox.so (???)
+  	native: #08 pc 0000000000018edc  /data/app/com.meetme-1/lib/arm64/libortp.so (???)
+  	native: #09 pc 000000000009dd10  /data/app/com.meetme-1/lib/arm64/libmediastreamer_voip.so (audio_stream_start_from_io+132)
+  	native: #10 pc 00000000007948d0  /data/app/com.meetme-1/lib/arm64/liblinphone.so (_ZN15LinphonePrivate19MediaSessionPrivate16startAudioStreamENS_11CallSession5StateEb+3508)
+  	native: #11 pc 00000000007956e8  /data/app/com.meetme-1/lib/arm64/liblinphone.so (_ZN15LinphonePrivate19MediaSessionPrivate12startStreamsENS_11CallSession5StateE+944)
+  	native: #12 pc 00000000007839cc  /data/app/com.meetme-1/lib/arm64/liblinphone.so (_ZN15LinphonePrivate19MediaSessionPrivate13updateStreamsEP19SalMediaDescriptionNS_11CallSession5StateE+692)
+  	native: #13 pc 000000000078513c  /data/app/com.meetme-1/lib/arm64/liblinphone.so (_ZN15LinphonePrivate19MediaSessionPrivate13remoteRingingEv+932)
+  	native: #14 pc 0000000000852f9c  /data/app/com.meetme-1/lib/arm64/liblinphone.so (???)
+  	native: #15 pc 00000000007d79c4  /data/app/com.meetme-1/lib/arm64/liblinphone.so (_ZN15LinphonePrivate9SalCallOp17processResponseCbEPvPK24belle_sip_response_event+788)
+  	native: #16 pc 00000000007e4bb4  /data/app/com.meetme-1/lib/arm64/liblinphone.so (_ZN15LinphonePrivate3Sal22processResponseEventCbEPvPK24belle_sip_response_event+1092)
+  	native: #17 pc 00000000008fdd2c  /data/app/com.meetme-1/lib/arm64/liblinphone.so (belle_sip_client_transaction_notify_response+520)
+  	native: #18 pc 00000000008f7494  /data/app/com.meetme-1/lib/arm64/liblinphone.so (belle_sip_provider_dispatch_message+1376)
+	native: #19 pc 00000000008e0760  /data/app/com.meetme-1/lib/arm64/liblinphone.so (???)
+  	native: #20 pc 00000000008dee1c  /data/app/com.meetme-1/lib/arm64/liblinphone.so (belle_sip_channel_process_data+344)
+  	native: #21 pc 00000000008d5b10  /data/app/com.meetme-1/lib/arm64/liblinphone.so (belle_sip_main_loop_run+772)
+  	native: #22 pc 00000000008d5d54  /data/app/com.meetme-1/lib/arm64/liblinphone.so (belle_sip_main_loop_sleep+72)
+	native: #23 pc 000000000086b9f8  /data/app/com.meetme-1/lib/arm64/liblinphone.so (linphone_core_iterate+540)
+  	native: #24 pc 00000000000743c8  /data/app/com.meetme-1/oat/arm64/base.odex (Java_org_linphone_core_CoreImpl_iterate__J+132)*/
+	res = _bctbx_name_to_addrinfo(family, socktype, name, port, TRUE);
+#endif
+	if (res == NULL) {
+		res = _bctbx_name_to_addrinfo(family, socktype, name, port, FALSE);
+	}
+	return res;
 }
 
 struct addrinfo * bctbx_ip_address_to_addrinfo(int family, int socktype, const char *name, int port){
