@@ -541,6 +541,28 @@ bool_t AMediaImage_isAvailable(void) {
 	return ms_get_android_sdk_version() >= 22;
 }
 
+bool_t AMediaCodec_checkCodecAvailability(const char *mime) {
+	bool_t res = TRUE;
+	AMediaCodec *encoder = NULL, *decoder = NULL;
+
+	encoder = AMediaCodec_createEncoderByType(mime);
+	if (encoder) {
+		AMediaCodec_delete(encoder);
+	} else {
+		ms_warning("MediaCodec: '%s' format not supported for encoding", mime);
+		res = FALSE;
+	}
+	decoder = AMediaCodec_createDecoderByType(mime);
+	if (decoder) {
+		AMediaCodec_delete(decoder);
+	} else {
+		ms_warning("MediaCodec: '%s' format not supported for decoding", mime);
+		res = FALSE;
+	}
+	if (res) ms_message("MediaCodec: '%s' format supported", mime);
+	return res;
+}
+
 
 ////////////////////////////////////////////////////
 //                                                //

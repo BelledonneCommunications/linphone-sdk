@@ -61,6 +61,7 @@ extern void _register_videotoolbox_if_supported(MSFactory *factory);
 
 #ifdef __ANDROID__
 #include <android/log.h>
+#include "android_mediacodec.h"
 #endif
 
 
@@ -203,7 +204,6 @@ extern MSFilterDesc ms_MediaCodecH264Decoder_desc;
 extern MSFilterDesc ms_MediaCodecH264Encoder_desc;
 extern MSFilterDesc ms_MediaCodecH265Decoder_desc;
 extern MSFilterDesc ms_MediaCodecH265Encoder_desc;
-extern bool_t AMediaImage_isAvailable(void);
 #endif
 
 #if TARGET_OS_IPHONE && !TARGET_IPHONE_SIMULATOR
@@ -272,11 +272,15 @@ void ms_factory_init_voip(MSFactory *obj){
 
 #if defined(__ANDROID__) && defined(VIDEO_ENABLED)
 	if (AMediaImage_isAvailable()) {
-		ms_factory_register_filter(obj, &ms_MediaCodecH264Decoder_desc);
-		ms_factory_register_filter(obj, &ms_MediaCodecH264Encoder_desc);
+		if (AMediaCodec_checkCodecAvailability("video/avc")) {
+			ms_factory_register_filter(obj, &ms_MediaCodecH264Decoder_desc);
+			ms_factory_register_filter(obj, &ms_MediaCodecH264Encoder_desc);
+		}
+		if (AMediaCodec_checkCodecAvailability("video/hevc")) {
+			ms_factory_register_filter(obj, &ms_MediaCodecH265Decoder_desc);
+			ms_factory_register_filter(obj, &ms_MediaCodecH265Encoder_desc);
+		}
 	}
-	ms_factory_register_filter(obj, &ms_MediaCodecH265Decoder_desc);
-	ms_factory_register_filter(obj, &ms_MediaCodecH265Encoder_desc);
 #endif
 	
 	/* register builtin VoIP MSFilter's */
