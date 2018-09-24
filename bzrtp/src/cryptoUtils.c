@@ -124,11 +124,11 @@ uint8_t bzrtpUtils_getMandatoryCryptoTypes(uint8_t algoType, uint8_t mandatoryTy
 	}
 }
 
-int bzrtp_keyDerivationFunction(uint8_t *key, uint16_t keyLength,
-		uint8_t *label, uint16_t labelLength,
-		uint8_t *context, uint16_t contextLength,
-		uint16_t hmacLength,
-		void (*hmacFunction)(uint8_t *, uint8_t, uint8_t *, uint32_t, uint8_t, uint8_t *),
+int bzrtp_keyDerivationFunction(const uint8_t *key, const size_t keyLength,
+		const uint8_t *label, const size_t labelLength,
+		const uint8_t *context, const size_t contextLength,
+		const uint16_t hmacLength,
+		void (*hmacFunction)(const uint8_t *, size_t, const uint8_t *, size_t, uint8_t, uint8_t *),
 		uint8_t *output) {
 
 	/* get the total length (in bytes) of the data to be hashed */

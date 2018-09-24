@@ -1805,12 +1805,6 @@ int bzrtp_responseToHelloMessage(bzrtpContext_t *zrtpContext, bzrtpChannelContex
 	return 0;
 }
 
-/* FIXME: Temporary workaround for -Wcast-function-type. */
-#if __GNUC__ >= 8
-	_Pragma("GCC diagnostic push")
-	_Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
-#endif // if __GNUC__ >= 8
-
 /**
  * @brief After the DHPart1 or DHPart2 arrives from peer, validity check and shared secret computation
  * call this function to compute s0, KDF Context, ZRTPSess,
@@ -1990,7 +1984,7 @@ int bzrtp_computeS0DHMMode(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *z
 		(uint8_t *)"ZRTP Session Key", 16,
 		zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength,
 		zrtpChannelContext->hashLength,
-		(void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))zrtpChannelContext->hmacFunction,
+		zrtpChannelContext->hmacFunction,
 		zrtpContext->ZRTPSess);
 
 	/* clean the DHM context (secret and key shall be erased by this operation) */
@@ -2073,7 +2067,7 @@ int bzrtp_computeS0MultiStreamMode(bzrtpContext_t *zrtpContext, bzrtpChannelCont
 		(uint8_t *)"ZRTP MSK", 8,
 		zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength,
 		zrtpChannelContext->hashLength,
-		(void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))zrtpChannelContext->hmacFunction,
+		zrtpChannelContext->hmacFunction,
 		zrtpChannelContext->s0);
 
 	if (retval != 0) {
@@ -2105,13 +2099,13 @@ int bzrtp_deriveKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *z
 
 	/* derive the keys according to rfc section 4.5.3 */
 	/* mackeyi = KDF(s0, "Initiator HMAC key", KDF_Context, negotiated hash length)*/
-	retval = bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"Initiator HMAC key", 18, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, zrtpChannelContext->hashLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))zrtpChannelContext->hmacFunction, zrtpChannelContext->mackeyi);
+	retval = bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"Initiator HMAC key", 18, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, zrtpChannelContext->hashLength, zrtpChannelContext->hmacFunction, zrtpChannelContext->mackeyi);
 	/* mackeyr = KDF(s0, "Responder HMAC key", KDF_Context, negotiated hash length) */
-	retval += bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"Responder HMAC key", 18, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, zrtpChannelContext->hashLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))zrtpChannelContext->hmacFunction, zrtpChannelContext->mackeyr);
+	retval += bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"Responder HMAC key", 18, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, zrtpChannelContext->hashLength, zrtpChannelContext->hmacFunction, zrtpChannelContext->mackeyr);
 	/* zrtpkeyi = KDF(s0, "Initiator ZRTP key", KDF_Context, negotiated AES key length) */
-	retval += bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"Initiator ZRTP key", 18, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, zrtpChannelContext->cipherKeyLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))zrtpChannelContext->hmacFunction, zrtpChannelContext->zrtpkeyi);
+	retval += bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"Initiator ZRTP key", 18, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, zrtpChannelContext->cipherKeyLength, zrtpChannelContext->hmacFunction, zrtpChannelContext->zrtpkeyi);
 	/* zrtpkeyr = KDF(s0, "Responder ZRTP key", KDF_Context, negotiated AES key length) */
-	retval += bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"Responder ZRTP key", 18, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, zrtpChannelContext->cipherKeyLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))zrtpChannelContext->hmacFunction, zrtpChannelContext->zrtpkeyr);
+	retval += bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"Responder ZRTP key", 18, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, zrtpChannelContext->cipherKeyLength, zrtpChannelContext->hmacFunction, zrtpChannelContext->zrtpkeyr);
 
 	return retval;
 }
@@ -2136,14 +2130,14 @@ int bzrtp_deriveSrtpKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelContext_
 	uint8_t *srtpsaltr = (uint8_t *)malloc(14*sizeof(uint8_t));/* salt length is defined to be 112 bits(14 bytes) in rfc section 4.5.3 */
 	/* compute keys and salts according to rfc section 4.5.3 */
 	/* srtpkeyi = KDF(s0, "Initiator SRTP master key", KDF_Context, negotiated AES key length) */
-	retval = bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"Initiator SRTP master key", 25, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, zrtpChannelContext->cipherKeyLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))zrtpChannelContext->hmacFunction, srtpkeyi);
+	retval = bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"Initiator SRTP master key", 25, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, zrtpChannelContext->cipherKeyLength, zrtpChannelContext->hmacFunction, srtpkeyi);
 	/* srtpsalti = KDF(s0, "Initiator SRTP master salt", KDF_Context, 112) */
-	retval += bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"Initiator SRTP master salt", 26, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, 14, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))zrtpChannelContext->hmacFunction, srtpsalti);
+	retval += bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"Initiator SRTP master salt", 26, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, 14, zrtpChannelContext->hmacFunction, srtpsalti);
 
 	/* srtpkeyr = KDF(s0, "Responder SRTP master key", KDF_Context, negotiated AES key length) */
-	retval += bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"Responder SRTP master key", 25, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, zrtpChannelContext->cipherKeyLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))zrtpChannelContext->hmacFunction, srtpkeyr);
+	retval += bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"Responder SRTP master key", 25, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, zrtpChannelContext->cipherKeyLength, zrtpChannelContext->hmacFunction, srtpkeyr);
 	/* srtpsaltr = KDF(s0, "Responder SRTP master salt", KDF_Context, 112) */
-	retval += bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"Responder SRTP master salt", 26, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, 14, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))zrtpChannelContext->hmacFunction, srtpsaltr);
+	retval += bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"Responder SRTP master salt", 26, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, 14, zrtpChannelContext->hmacFunction, srtpsaltr);
 
 	if (retval!=0) {
 		free(srtpkeyi);
@@ -2192,7 +2186,7 @@ int bzrtp_deriveSrtpKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelContext_
 				(uint8_t *)"SAS", 3,
 				zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength,
 				32,
-				(void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))zrtpChannelContext->hmacFunction,
+				zrtpChannelContext->hmacFunction,
 				sasHash);
 		if (retval!=0) {
 			return retval;
@@ -2253,7 +2247,7 @@ int bzrtp_updateCachedSecrets(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 	zrtpContext->cachedSecret.rs1 = (uint8_t *)malloc(RETAINED_SECRET_LENGTH); /* Allocate a new buffer for rs1, the old one if exists if still pointed at by colValues[1] */
 	zrtpContext->cachedSecret.rs1Length = RETAINED_SECRET_LENGTH;
 
-	bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"retained secret", 15, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, RETAINED_SECRET_LENGTH, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))zrtpChannelContext->hmacFunction, zrtpContext->cachedSecret.rs1);
+	bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"retained secret", 15, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, RETAINED_SECRET_LENGTH, zrtpChannelContext->hmacFunction, zrtpContext->cachedSecret.rs1);
 
 	colValues[0]=zrtpContext->cachedSecret.rs1;
 
@@ -2309,7 +2303,3 @@ int bzrtp_updateCachedSecrets(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 
 	return 0;
 }
-
-#if __GNUC__ >= 8
-	_Pragma("GCC diagnostic pop")
-#endif // if __GNUC__ >= 8

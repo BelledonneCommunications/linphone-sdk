@@ -568,12 +568,6 @@ void bzrtp_resetSASVerified(bzrtpContext_t *zrtpContext) {
 	}
 }
 
-/* FIXME: Temporary workaround for -Wcast-function-type. */
-#if __GNUC__ >= 8
-	_Pragma("GCC diagnostic push")
-	_Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
-#endif // if __GNUC__ >= 8
-
 /*
  * @brief  Allow client to compute an exported according to RFC section 4.5.2
  *		Check the context is ready(we already have a master exported key and KDF context)
@@ -604,7 +598,7 @@ int bzrtp_exportKey(bzrtpContext_t *zrtpContext, char *label, size_t labelLength
 			*derivedKeyLength = zrtpChannelContext->hashLength;
 		}
 
-		bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)label, labelLength, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, *derivedKeyLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))zrtpChannelContext->hmacFunction, derivedKey);
+		bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)label, labelLength, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, *derivedKeyLength, zrtpChannelContext->hmacFunction, derivedKey);
 #else /* SUPPORT_EXPORTEDKEY_V010000 */
 		/* We do not support anymore backward compatibility, just do nothing but send an error message*/
 		if (zrtpContext->zrtpCallbacks.bzrtp_statusMessage!=NULL && zrtpContext->zrtpCallbacks.bzrtp_messageLevel>=BZRTP_MESSAGE_ERROR) { /* use error level as we explicitely compile with no support for older version */
@@ -620,7 +614,7 @@ int bzrtp_exportKey(bzrtpContext_t *zrtpContext, char *label, size_t labelLength
 		if (zrtpContext->exportedKey == NULL) {
 			zrtpContext->exportedKeyLength = zrtpChannelContext->hashLength;
 			zrtpContext->exportedKey = (uint8_t *)malloc(zrtpContext->exportedKeyLength*sizeof(uint8_t));
-			bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"Exported key", 12, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, zrtpContext->exportedKeyLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))zrtpChannelContext->hmacFunction, zrtpContext->exportedKey);
+			bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"Exported key", 12, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, zrtpContext->exportedKeyLength, zrtpChannelContext->hmacFunction, zrtpContext->exportedKey);
 		}
 
 		/* We derive a maximum of hashLength bytes */
@@ -628,15 +622,11 @@ int bzrtp_exportKey(bzrtpContext_t *zrtpContext, char *label, size_t labelLength
 			*derivedKeyLength = zrtpChannelContext->hashLength;
 		}
 
-		bzrtp_keyDerivationFunction(zrtpContext->exportedKey, zrtpChannelContext->hashLength, (uint8_t *)label, labelLength, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, *derivedKeyLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))zrtpChannelContext->hmacFunction, derivedKey);
+		bzrtp_keyDerivationFunction(zrtpContext->exportedKey, zrtpChannelContext->hashLength, (uint8_t *)label, labelLength, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, *derivedKeyLength, zrtpChannelContext->hmacFunction, derivedKey);
 
 	}
 	return 0;
 }
-
-#if __GNUC__ >= 8
-	_Pragma("GCC diagnostic pop")
-#endif // if __GNUC__ >= 8
 
 /*
  * @brief Reset the retransmission timer of a given channel.
