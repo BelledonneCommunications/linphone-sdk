@@ -77,7 +77,7 @@ bool MediaCodecDecoder::feed(MSQueue *encodedFrame, uint64_t timestamp) {
 		_psStore->acknowlege();
 	}
 
-	if (_needParameters) {
+	if (_needParameters && _psStore->psGatheringCompleted()) {
 		MSQueue parameters;
 		ms_queue_init(&parameters);
 		_psStore->fetchAllPs(&parameters);
@@ -85,6 +85,11 @@ bool MediaCodecDecoder::feed(MSQueue *encodedFrame, uint64_t timestamp) {
 			ms_error("MediaCodecDecoder: waiting for parameter sets.");
 			goto clean;
 		}
+	}
+
+	if (_needParameters) {
+		ms_error("MediaCodecDecoder: missing parameter sets");
+		goto clean;
 	}
 
 	if (_needKeyFrame) {
