@@ -129,21 +129,17 @@ MediaCodecDecoder::Status MediaCodecDecoder::fetch(mblk_t *&frame) {
 	}
 
 	oBufidx = AMediaCodec_dequeueOutputBuffer(_impl, &info, _timeoutUs);
-	if (oBufidx == AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED) {
-		ms_message("MediaCodecDecoder: output format has changed.");
+	if (oBufidx == AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED || oBufidx == AMEDIACODEC_INFO_OUTPUT_BUFFERS_CHANGED) {
+		ms_message("MediaCodecDecoder: %s", codecInfoToString(oBufidx).c_str());
 		oBufidx = AMediaCodec_dequeueOutputBuffer(_impl, &info, _timeoutUs);
 	}
 
 	if (oBufidx < 0) {
-		if (oBufidx == AMEDIA_ERROR_UNKNOWN) {
-			ms_error("MediaCodecDecoder: AMediaCodec_dequeueOutputBuffer() had an exception");
-			status = decodingFailure;
-		} else if (oBufidx == AMEDIACODEC_INFO_TRY_AGAIN_LATER) {
-			ms_debug("MediaCodecDecoder: no output picture available");
-			status = noFrameAvailable;
+		if (oBufidx == AMEDIACODEC_INFO_TRY_AGAIN_LATER) {
+			return noFrameAvailable;
 		} else {
-			ms_error("MediaCodecDecoder: unknown error while dequeueing an output buffer (oBufidx=%zd)", oBufidx);
-			status = noFrameAvailable;
+			ms_error("MediaCodecDecoder: error while dequeueing an output buffer: %s", codecInfoToString(oBufidx).c_str());
+			return decodingFailure;
 		}
 		goto end;
 	}
@@ -237,6 +233,28 @@ bool MediaCodecDecoder::isKeyFrame(const MSQueue *frame) const {
 		if (_naluHeader->getAbsType().isKeyFramePart()) return true;
 	}
 	return false;
+}
+
+std::string MediaCodecDecoder::codecInfoToString(ssize_t codecStatusCode) {
+	switch (codecStatusCode) {
+		case AMEDIA_ERROR_UNKNOWN:
+			return "MediaCodec had an exception";
+		case AMEDIACODEC_INFO_OUTPUT_BUFFERS_CHANGED:
+			return "output buffers has changed";
+		case AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED:
+			return "output format has changed";
+		case AMEDIACODEC_INFO_TRY_AGAIN_LATER:
+			return "no output buffer available";
+		default:
+			break;
+	}
+	ostringstream os;
+	if (codecStatusCode >= 0) {
+		os << "unqueued buffer (index=" << codecStatusCode << ")";
+	} else {
+		os << "unknown error (" << codecStatusCode << ")";
+	}
+	return os.str();
 }
 
 } // namespace mediastreamer
