@@ -97,6 +97,7 @@ bool MediaCodecDecoder::feed(MSQueue *encodedFrame, uint64_t timestamp) {
 			ms_error("MediaCodecDecoder: waiting for key frame.");
 			goto clean;
 		}
+		ms_error("MediaCodecDecoder: key frame received");
 		_needKeyFrame = false;
 	}
 
