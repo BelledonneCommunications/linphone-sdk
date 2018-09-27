@@ -693,7 +693,7 @@ int bzrtp_cache_write_active(void *dbPointer, int zuid, const char *tableName, c
 		ret = sqlite3_step(sqlStmtActive);
 		sqlite3_finalize(sqlStmtActive);
 		/* set to 1 the active flag four current row */
-		stmt = sqlite3_mprintf("UPDATE ziduri SET active=1 WHERE zuid=? LIMIT 1;");
+		stmt = sqlite3_mprintf("UPDATE ziduri SET active=1 WHERE zuid=?;");
 		ret = sqlite3_prepare_v2(db, stmt, -1, &sqlStmtActive, NULL);
 		sqlite3_free(stmt);
 		if (ret != SQLITE_OK) {
