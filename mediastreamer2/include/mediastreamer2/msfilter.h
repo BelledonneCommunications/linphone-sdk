@@ -694,7 +694,6 @@ typedef struct _MSPinFormat{
 **/
 #define MS_FILTER_OUTPUT_FMT_CHANGED MS_FILTER_BASE_EVENT_NO_ARG(0) /**<triggered whenever a filter decides to change its output format for one or more more output pins*/
 
-
 /* DEPRECATED  specific methods: to be moved into implementation specific header files - DO NOT USE IN NEW CODE*/
 #define MS_FILTER_SET_FILTERLENGTH 	MS_FILTER_BASE_METHOD(12,int)
 #define MS_FILTER_SET_OUTPUT_SAMPLE_RATE MS_FILTER_BASE_METHOD(13,int)

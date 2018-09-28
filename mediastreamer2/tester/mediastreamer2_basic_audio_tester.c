@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mediastreamer2/msfilerec.h"
 #include "mediastreamer2/msrtp.h"
 #include "mediastreamer2/mstonedetector.h"
+#include "mediastreamer2/msvolume.h"
 #include "mediastreamer2_tester.h"
 #include "mediastreamer2_tester_private.h"
 #include "private.h"
@@ -48,6 +49,89 @@ static void tone_detected_cb(void *data, MSFilter *f, unsigned int event_id, MST
 	MS_UNUSED(data), MS_UNUSED(f), MS_UNUSED(event_id), MS_UNUSED(ev);
 	ms_tester_tone_detected = TRUE;
 }
+
+#if 0 //Remove this test until we found a good implem of VAD
+#ifdef HAVE_SPEEXDSP
+
+#define TEST_SILENCE_VOICE_FILE_NAME	"sounds/test_silence_voice.wav"
+
+typedef struct struct_silence_callback_data {
+	int voice_detected_number;
+} silence_callback_data;
+
+static void silence_detected_cb(void *data, MSFilter *f, unsigned int event_id, void *arg) {
+	if (event_id == MS_VOLUME_EVENT_SILENCE_DETECTED) {
+		silence_callback_data *silence = (silence_callback_data *)data;
+		silence->voice_detected_number++;
+	}
+}
+
+typedef struct struct_player_callback_data {
+	int end_of_file;
+} player_callback_data;
+
+static void player_cb(void *data, MSFilter *f, unsigned int event_id, void *arg) {
+	if (event_id == MS_FILE_PLAYER_EOF) {
+		player_callback_data *player = (player_callback_data *)data;
+		player->end_of_file = TRUE;
+	}
+}
+
+static void silence_detection(void) {
+	MSConnectionHelper h;
+	silence_callback_data silence_data;
+	player_callback_data player_data;
+	MSFilter *voice_detector;
+	unsigned int filter_mask = FILTER_MASK_FILEPLAY | FILTER_MASK_VOIDSINK;
+	char* recorded_file = bc_tester_res(TEST_SILENCE_VOICE_FILE_NAME);
+	unsigned int enable_silence = 1;
+	unsigned int duration_threshold = 1000;
+	silence_data.voice_detected_number = 0;
+	player_data.end_of_file = FALSE;
+
+	ms_factory_reset_statistics(msFactory);
+	ms_tester_create_ticker();
+	ms_tester_create_filters(filter_mask, msFactory);
+
+	voice_detector = ms_factory_create_filter(msFactory, MS_VOLUME_ID);
+	ms_filter_add_notify_callback(voice_detector, silence_detected_cb, &silence_data, TRUE);
+	ms_filter_add_notify_callback(ms_tester_fileplay, player_cb, &player_data, TRUE);
+
+	ms_filter_call_method(ms_tester_fileplay, MS_FILE_PLAYER_OPEN, recorded_file);
+	ms_filter_call_method_noarg(ms_tester_fileplay, MS_FILE_PLAYER_START);
+
+	ms_filter_call_method(voice_detector, MS_VOLUME_ENABLE_SILENCE_DETECTION, (void*)&enable_silence);
+	ms_filter_call_method(voice_detector, MS_VOLUME_SET_SILENCE_DURATION_THRESHOLD, (void*)&duration_threshold);
+
+	ms_connection_helper_start(&h);
+	ms_connection_helper_link(&h, ms_tester_fileplay, -1, 0);
+	ms_connection_helper_link(&h, voice_detector, 0, 0);
+	ms_connection_helper_link(&h, ms_tester_voidsink, 0, -1);
+	ms_ticker_attach(ms_tester_ticker, ms_tester_fileplay);
+
+	BC_ASSERT_TRUE(wait_for_until(NULL, NULL, &player_data.end_of_file, TRUE, 26000));
+	// TODO Choice better example and check how many silence should be detected
+	BC_ASSERT_EQUAL(silence_data.voice_detected_number, 2, int, "%d");
+
+	ms_filter_call_method_noarg(ms_tester_fileplay, MS_FILE_PLAYER_CLOSE);
+	ms_ticker_detach(ms_tester_ticker, ms_tester_fileplay);
+
+	ms_connection_helper_start(&h);
+
+	ms_connection_helper_unlink(&h, ms_tester_fileplay, -1, 0);
+	ms_connection_helper_unlink(&h, voice_detector, 0, 0);
+	ms_connection_helper_unlink(&h, ms_tester_voidsink, 0, -1);
+
+	ms_factory_log_statistics(msFactory);
+
+	if (voice_detector) ms_filter_destroy(voice_detector);
+	ms_tester_destroy_filters(filter_mask);
+	ms_tester_destroy_ticker();
+
+	ms_free(recorded_file);
+}
+#endif
+#endif //if 0
 
 static void dtmfgen_tonedet(void) {
 	MSConnectionHelper h;
@@ -400,11 +484,16 @@ static void dtmfgen_filerec_fileplay_tonedet(void) {
 	ms_tester_destroy_filters(filter_mask);
 	ms_tester_destroy_ticker();
 	unlink(recorded_file);
-    free(recorded_file);
+	free(recorded_file);
 }
 
 
 test_t basic_audio_tests[] = {
+#if 0 //Remove this test until we found a good implem of VAD
+#ifdef HAVE_SPEEXDSP
+	TEST_NO_TAG("silence detection", silence_detection),
+#endif
+#endif
 	TEST_NO_TAG("dtmfgen-tonedet", dtmfgen_tonedet),
 	TEST_NO_TAG("dtmfgen-enc-dec-tonedet-bv16", dtmfgen_enc_dec_tonedet_bv16),
 	TEST_NO_TAG("dtmfgen-enc-dec-tonedet-pcmu", dtmfgen_enc_dec_tonedet_pcmu),

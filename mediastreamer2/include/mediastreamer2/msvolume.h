@@ -81,6 +81,21 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #define MS_VOLUME_DB_LOWEST		(-120)	/*arbitrary value returned when linear volume is 0*/
 
+/**
+ * Enable/disable silence detection
+**/
+#define MS_VOLUME_ENABLE_SILENCE_DETECTION MS_FILTER_METHOD(MS_VOLUME_ID,20,int)
+
+/**
+ * Set threshold duration in millisec
+**/
+#define MS_VOLUME_SET_SILENCE_DURATION_THRESHOLD MS_FILTER_METHOD(MS_VOLUME_ID,21,unsigned int)
+
+/**
+ * Triggered when we detect a silence during a specified time
+**/
+#define MS_VOLUME_EVENT_SILENCE_DETECTED MS_FILTER_EVENT_NO_ARG(MS_VOLUME_ID,0)
+
 extern MSFilterDesc ms_volume_desc;
 
 #endif
