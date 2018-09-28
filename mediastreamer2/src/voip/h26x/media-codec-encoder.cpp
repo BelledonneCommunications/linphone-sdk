@@ -150,13 +150,7 @@ void MediaCodecEncoder::feed(mblk_t *rawData, uint64_t time, bool requestIFrame)
 		return;
 	}
 
-	size_t bufsize;
-	uint8_t *buf = AMediaCodec_getInputBuffer(_impl, ibufidx, &bufsize);
-	if (buf == nullptr) {
-		ms_error("MediaCodecEncoder: obtained InputBuffer, but no address.");
-		return;
-	}
-
+	size_t bufsize = 0;
 	AMediaImage image;
 	if (AMediaCodec_getInputImage(_impl, ibufidx, &image)) {
 		if (image.format == 35 /* YUV_420_888 */) {
