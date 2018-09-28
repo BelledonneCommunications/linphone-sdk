@@ -131,6 +131,11 @@ MediaCodecDecoder::Status MediaCodecDecoder::fetch(mblk_t *&frame) {
 	oBufidx = AMediaCodec_dequeueOutputBuffer(_impl, &info, _timeoutUs);
 	if (oBufidx == AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED || oBufidx == AMEDIACODEC_INFO_OUTPUT_BUFFERS_CHANGED) {
 		ms_message("MediaCodecDecoder: %s", codecInfoToString(oBufidx).c_str());
+		if (oBufidx == AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED) {
+			AMediaFormat *format = AMediaCodec_getOutputFormat(_impl);
+			ms_message("MediaCodecDecoder: new format:\n%s", AMediaFormat_toString(format));
+			AMediaFormat_delete(format);
+		}
 		oBufidx = AMediaCodec_dequeueOutputBuffer(_impl, &info, _timeoutUs);
 	}
 
@@ -176,7 +181,7 @@ AMediaFormat *MediaCodecDecoder::createFormat(const std::string &mime) const {
 void MediaCodecDecoder::startImpl() {
 	media_status_t status = AMEDIA_OK;
 	ostringstream errMsg;
-	ms_message("MediaCodecDecoder: starting decoder");
+	ms_message("MediaCodecDecoder: starting decoder with following parameters:\n%s", AMediaFormat_toString(_format));
 	if ((status = AMediaCodec_configure(_impl, _format, nullptr, nullptr, 0)) != AMEDIA_OK) {
 		errMsg << "configuration failure: " << int(status);
 		throw runtime_error(errMsg.str());
@@ -186,6 +191,8 @@ void MediaCodecDecoder::startImpl() {
 		errMsg << "starting failure: " << int(status);
 		throw runtime_error(errMsg.str());
 	}
+
+	ms_message("MediaCodecDecoder: decoder successfully started. In-force parameters:\n%s", AMediaFormat_toString(_format));
 }
 
 void MediaCodecDecoder::stopImpl() {

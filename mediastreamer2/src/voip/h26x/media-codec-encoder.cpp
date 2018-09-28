@@ -192,6 +192,9 @@ bool MediaCodecEncoder::fetch(MSQueue *encodedData) {
 	ssize_t obufidx = AMediaCodec_dequeueOutputBuffer(_impl, &info, _timeoutUs);
 	if (obufidx == AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED) {
 		ms_message("MediaCodecEncoder: output format has changed.");
+		AMediaFormat *format = AMediaCodec_getOutputFormat(_impl);
+		ms_message("MediaCodecEncoder: new output format:\n%s", AMediaFormat_toString(format));
+		AMediaFormat_delete(format);
 		obufidx = AMediaCodec_dequeueOutputBuffer(_impl, &info, _timeoutUs);
 	}
 	if (obufidx < 0) {
@@ -231,8 +234,7 @@ void MediaCodecEncoder::createImpl() {
 void MediaCodecEncoder::configureImpl() {
 	AMediaFormat *format = createMediaFormat();
 
-	ms_message("MediaCodecEncoder: configuring MediaCodec with the following parameters:");
-	ms_message("%s", getMediaForamtAsString().str().c_str());
+	ms_message("MediaCodecEncoder: configuring MediaCodec with the following parameters:\n%s", AMediaFormat_toString(format));
 
 	media_status_t status = AMediaCodec_configure(_impl, format, nullptr, nullptr, AMEDIACODEC_CONFIGURE_FLAG_ENCODE);
 	AMediaFormat_delete(format);
@@ -241,7 +243,9 @@ void MediaCodecEncoder::configureImpl() {
 		throw runtime_error("could not configure encoder.");
 	}
 
-	ms_message("MediaCodecEncoder: encoder successfully configured.");
+	format = AMediaCodec_getOutputFormat(_impl);
+	ms_message("MediaCodecEncoder: encoder successfully configured. In-force parameters:\n%s", AMediaFormat_toString(format));
+	AMediaFormat_delete(format);
 }
 
 AMediaFormat *MediaCodecEncoder::createMediaFormat() const {
@@ -257,28 +261,6 @@ AMediaFormat *MediaCodecEncoder::createMediaFormat() const {
 	AMediaFormat_setInt32(format, "latency", _encodingLatency);
 	AMediaFormat_setInt32(format, "priority", _priority);
 	return format;
-}
-
-std::ostringstream MediaCodecEncoder::getMediaForamtAsString() const {
-	ostringstream os;
-	os << "\tmime: " << _mime << endl;
-
-	os.unsetf(ios::basefield);
-	os.setf(ios::hex);
-	os.setf(ios::showbase);
-	os << "\tcolor-format: " << _colorFormat << endl;
-	os.unsetf(ios::basefield);
-	os.setf(ios::dec);
-	os.unsetf(ios::showbase);
-
-	os << "\tvideo size: " << _vsize.width << "x" << _vsize.height << endl;
-	os << "\tframe-rate: " << _fps << " fps" << endl;
-	os << "\tbitrate: " << _bitrate << " b/s" << endl;
-	os << "\tbitrate-mode: " << _bitrateMode << endl;
-	os << "\ti-frame-intervale: " << _iFrameInterval << endl;
-	os << "\tlatency: " << _encodingLatency << endl;
-	os << "\tpriority: " << _priority << endl;
-	return os;
 }
 
 } // namespace mediastreamer

@@ -51,12 +51,6 @@ private:
 		return format;
 	}
 
-	std::ostringstream getMediaForamtAsString() const override {
-		std::ostringstream os = MediaCodecEncoder::getMediaForamtAsString();
-		os << "\tprofile: " << _profile << std::endl;
-		return os;
-	}
-
 	static const int32_t _profile = 1; // AVCProfileBaseline
 	static const int32_t _level = 512; // AVCLevel31
 };
