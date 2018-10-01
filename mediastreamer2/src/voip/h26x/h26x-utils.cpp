@@ -107,8 +107,7 @@ void H26xUtils::nalusToByteStream(MSQueue *nalus, std::vector<uint8_t> &byteStre
 				byteStream.push_back(0);
 				byteStream.push_back(0);
 				byteStream.push_back(3); // emulation prevention three byte
-				byteStream.push_back(src[2]);
-				src += 3;
+				src += 2;
 			} else {
 				byteStream.push_back(*src++);
 			}
