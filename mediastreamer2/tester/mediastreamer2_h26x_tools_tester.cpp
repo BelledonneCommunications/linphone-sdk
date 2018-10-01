@@ -64,9 +64,7 @@ static std::vector<uint8_t> loadFrameByteStream(const std::string &frame) {
 	return byteStream;
 }
 
-static void bytestream_transcoding_test(const std::string &frame) {
-	vector<uint8_t> byteStream = loadFrameByteStream(frame);
-
+static void bytestream_transcoding_test(const std::vector<uint8_t> &byteStream) {
 	MSQueue nalus;
 	ms_queue_init(&nalus);
 	H26xUtils::byteStreamToNalus(byteStream, &nalus);
@@ -81,14 +79,21 @@ static void bytestream_transcoding_test(const std::string &frame) {
 }
 
 static void paramter_sets_bytestream_transcoding_test() {
-	bytestream_transcoding_test("h265-parameter-sets-frame");
+	vector<uint8_t> byteStream = loadFrameByteStream("h265-parameter-sets-frame");
+	bytestream_transcoding_test(byteStream);
 }
 
 static void iframe_bytestream_transcoding_test() {
-	bytestream_transcoding_test("h265-iframe");
+	vector<uint8_t> byteStream = loadFrameByteStream("h265-iframe");
+	bytestream_transcoding_test(byteStream);
 }
 
-static void packing_unpacking_test(const std::string &frame, const std::string &mime) {
+static void bytestream_transcoding_two_consecutive_prevention_thee_bytes() {
+	vector<uint8_t> byteStream = {0, 0, 0, 1, 0, 0, 3, 0, 0, 3, 0};
+	bytestream_transcoding_test(byteStream);
+}
+
+static void packing_unpacking_test(const std::vector<uint8_t> &byteStream, const std::string &mime) {
 	MSQueue nalus, rtp;
 
 	ms_queue_init(&nalus);
@@ -100,7 +105,6 @@ static void packing_unpacking_test(const std::string &frame, const std::string &
 	packer->setPacketizationMode(NalPacker::NonInterleavedMode);
 	packer->enableAggregation(true);
 
-	vector<uint8_t> byteStream = loadFrameByteStream(frame);
 	H26xUtils::byteStreamToNalus(byteStream, &nalus);
 	packer->pack(&nalus, &rtp, 0);
 
@@ -126,16 +130,19 @@ static void packing_unpacking_test(const std::string &frame, const std::string &
 }
 
 static void packing_unpacking_test_h265_ps() {
-	packing_unpacking_test("h265-parameter-sets-frame", "video/hevc");
+	vector<uint8_t> byteStream = loadFrameByteStream("h265-parameter-sets-frame");
+	packing_unpacking_test(byteStream, "video/hevc");
 }
 
 static void packing_unpacking_test_h265_iframe() {
-	packing_unpacking_test("h265-iframe", "video/hevc");
+	vector<uint8_t> byteStream = loadFrameByteStream("h265-iframe");
+	packing_unpacking_test(byteStream, "video/hevc");
 }
 
 static test_t tests[] = {
 	TEST_NO_TAG("Bytestream transcoding - paramter sets frame", paramter_sets_bytestream_transcoding_test),
 	TEST_NO_TAG("Bytestream transcoding - i-frame", iframe_bytestream_transcoding_test),
+	TEST_NO_TAG("Bytestream transcoding - two consecutive prevention three bytes", bytestream_transcoding_two_consecutive_prevention_thee_bytes),
 	TEST_NO_TAG("H265 Packing/Unpacking - paramter sets frame", packing_unpacking_test_h265_ps),
 	TEST_NO_TAG("H265 Packing/Unpacking - i-frame", packing_unpacking_test_h265_iframe)
 };
