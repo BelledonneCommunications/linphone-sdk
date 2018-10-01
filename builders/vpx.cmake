@@ -57,6 +57,7 @@ else()
 		"--disable-debug-libs"
 		"--disable-examples"
 		"--disable-unit-tests"
+		"--disable-tools"
 		"--as=yasm"
 	)
 	string(FIND "${CMAKE_C_COMPILER_LAUNCHER}" "ccache" CCACHE_ENABLED)
