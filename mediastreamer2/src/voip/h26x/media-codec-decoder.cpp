@@ -220,7 +220,7 @@ bool MediaCodecDecoder::feed(MSQueue *encodedFrame, uint64_t timestamp, bool isP
 
 	size_t size = _bitstream.size();
 	if (size > bufsize) {
-		ms_error("Cannot copy the all the bitstream into the input buffer size : %zu and bufsize %zu", size, bufsize);
+		ms_error("MediaCodecDecoder: cannot copy the all the bitstream into the input buffer size : %zu and bufsize %zu", size, bufsize);
 		size = min(size, bufsize);
 	}
 	memcpy(buf, _bitstream.data(), size);
