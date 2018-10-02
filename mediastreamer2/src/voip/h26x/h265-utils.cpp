@@ -124,7 +124,7 @@ void H265ParameterSetsInserter::process(MSQueue *in, MSQueue *out) {
 		} else if (header.getType() == H265NaluType::Pps) {
 			replaceParameterSet(_pps, m);
 		} else {
-			if ((header.getType() == H265NaluType::IdrWRadl || header.getType() == H265NaluType::IdrNLp)) {
+			if (header.getType().isKeyFramePart()) {
 				isKeyFrame = true;
 			}
 			ms_queue_put(out, m);
