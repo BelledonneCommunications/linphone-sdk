@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <memory>
 #include <vector>
 
 #include "h26x-utils.h"
@@ -54,6 +55,7 @@ protected:
 	void stopImpl();
 	bool feed(MSQueue *encodedFrame, uint64_t timestamp, bool isPs);
 	bool isKeyFrame(const MSQueue *frame) const;
+	static std::string codecInfoToString(ssize_t codecStatusCode);
 
 	AMediaCodec *_impl = nullptr;
 	AMediaFormat *_format = nullptr;

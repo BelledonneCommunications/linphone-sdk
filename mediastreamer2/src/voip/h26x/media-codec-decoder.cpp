@@ -77,7 +77,7 @@ bool MediaCodecDecoder::feed(MSQueue *encodedFrame, uint64_t timestamp) {
 		_psStore->acknowlege();
 	}
 
-	if (_needParameters) {
+	if (_needParameters && _psStore->psGatheringCompleted()) {
 		MSQueue parameters;
 		ms_queue_init(&parameters);
 		_psStore->fetchAllPs(&parameters);
@@ -87,11 +87,17 @@ bool MediaCodecDecoder::feed(MSQueue *encodedFrame, uint64_t timestamp) {
 		}
 	}
 
+	if (_needParameters) {
+		ms_error("MediaCodecDecoder: missing parameter sets");
+		goto clean;
+	}
+
 	if (_needKeyFrame) {
 		if (!isKeyFrame(encodedFrame)) {
 			ms_error("MediaCodecDecoder: waiting for key frame.");
 			goto clean;
 		}
+		ms_error("MediaCodecDecoder: key frame received");
 		_needKeyFrame = false;
 	}
 
@@ -123,21 +129,22 @@ MediaCodecDecoder::Status MediaCodecDecoder::fetch(mblk_t *&frame) {
 	}
 
 	oBufidx = AMediaCodec_dequeueOutputBuffer(_impl, &info, _timeoutUs);
-	if (oBufidx == AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED) {
-		ms_message("MediaCodecDecoder: output format has changed.");
+	if (oBufidx == AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED || oBufidx == AMEDIACODEC_INFO_OUTPUT_BUFFERS_CHANGED) {
+		ms_message("MediaCodecDecoder: %s", codecInfoToString(oBufidx).c_str());
+		if (oBufidx == AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED) {
+			AMediaFormat *format = AMediaCodec_getOutputFormat(_impl);
+			ms_message("MediaCodecDecoder: new format:\n%s", AMediaFormat_toString(format));
+			AMediaFormat_delete(format);
+		}
 		oBufidx = AMediaCodec_dequeueOutputBuffer(_impl, &info, _timeoutUs);
 	}
 
 	if (oBufidx < 0) {
-		if (oBufidx == AMEDIA_ERROR_UNKNOWN) {
-			ms_error("MediaCodecDecoder: AMediaCodec_dequeueOutputBuffer() had an exception");
-			status = decodingFailure;
-		} else if (oBufidx == AMEDIACODEC_INFO_TRY_AGAIN_LATER) {
-			ms_debug("MediaCodecDecoder: no output picture available");
-			status = noFrameAvailable;
+		if (oBufidx == AMEDIACODEC_INFO_TRY_AGAIN_LATER) {
+			return noFrameAvailable;
 		} else {
-			ms_error("MediaCodecDecoder: unknown error while dequeueing an output buffer (oBufidx=%zd)", oBufidx);
-			status = noFrameAvailable;
+			ms_error("MediaCodecDecoder: error while dequeueing an output buffer: %s", codecInfoToString(oBufidx).c_str());
+			return decodingFailure;
 		}
 		goto end;
 	}
@@ -174,7 +181,7 @@ AMediaFormat *MediaCodecDecoder::createFormat(const std::string &mime) const {
 void MediaCodecDecoder::startImpl() {
 	media_status_t status = AMEDIA_OK;
 	ostringstream errMsg;
-	ms_message("MediaCodecDecoder: starting decoder");
+	ms_message("MediaCodecDecoder: starting decoder with following parameters:\n%s", AMediaFormat_toString(_format));
 	if ((status = AMediaCodec_configure(_impl, _format, nullptr, nullptr, 0)) != AMEDIA_OK) {
 		errMsg << "configuration failure: " << int(status);
 		throw runtime_error(errMsg.str());
@@ -184,6 +191,8 @@ void MediaCodecDecoder::startImpl() {
 		errMsg << "starting failure: " << int(status);
 		throw runtime_error(errMsg.str());
 	}
+
+	ms_message("MediaCodecDecoder: decoder successfully started. In-force parameters:\n%s", AMediaFormat_toString(_format));
 }
 
 void MediaCodecDecoder::stopImpl() {
@@ -211,7 +220,7 @@ bool MediaCodecDecoder::feed(MSQueue *encodedFrame, uint64_t timestamp, bool isP
 
 	size_t size = _bitstream.size();
 	if (size > bufsize) {
-		ms_error("Cannot copy the all the bitstream into the input buffer size : %zu and bufsize %zu", size, bufsize);
+		ms_error("MediaCodecDecoder: cannot copy the all the bitstream into the input buffer size : %zu and bufsize %zu", size, bufsize);
 		size = min(size, bufsize);
 	}
 	memcpy(buf, _bitstream.data(), size);
@@ -231,6 +240,28 @@ bool MediaCodecDecoder::isKeyFrame(const MSQueue *frame) const {
 		if (_naluHeader->getAbsType().isKeyFramePart()) return true;
 	}
 	return false;
+}
+
+std::string MediaCodecDecoder::codecInfoToString(ssize_t codecStatusCode) {
+	switch (codecStatusCode) {
+		case AMEDIA_ERROR_UNKNOWN:
+			return "MediaCodec had an exception";
+		case AMEDIACODEC_INFO_OUTPUT_BUFFERS_CHANGED:
+			return "output buffers has changed";
+		case AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED:
+			return "output format has changed";
+		case AMEDIACODEC_INFO_TRY_AGAIN_LATER:
+			return "no output buffer available";
+		default:
+			break;
+	}
+	ostringstream os;
+	if (codecStatusCode >= 0) {
+		os << "unqueued buffer (index=" << codecStatusCode << ")";
+	} else {
+		os << "unknown error (" << codecStatusCode << ")";
+	}
+	return os.str();
 }
 
 } // namespace mediastreamer

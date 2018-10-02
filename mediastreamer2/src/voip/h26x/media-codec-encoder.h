@@ -55,7 +55,6 @@ protected:
 	void createImpl();
 	void configureImpl();
 	virtual AMediaFormat *createMediaFormat() const;
-	virtual std::ostringstream getMediaForamtAsString() const;
 
 	std::unique_ptr<H26xParameterSetsInserter> _psInserter;
 	MSVideoSize _vsize;
