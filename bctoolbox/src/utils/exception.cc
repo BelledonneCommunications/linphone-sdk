@@ -110,6 +110,11 @@ const char *BctbxException::what() const noexcept {
 	return str().c_str();
 }
 
+const std::string& BctbxException::str() const {
+	mMessage = mOs.str();
+	return mMessage;
+}
+
 std::ostream &operator<<(std::ostream &__os, const BctbxException &e) {
 	__os << e.str() << std::endl;
 	e.printStackTrace(__os);

@@ -49,10 +49,7 @@ public:
 
 	const char *what() const noexcept override;
 
-	std::string str() const {
-		mMessage = mOs.str();
-		return mMessage;
-	}
+	const std::string& str() const;
 
 	/* same as osstringstream, but as osstream does not have cp contructor, BctbxException can't inherit from
 	 * osstream*/
