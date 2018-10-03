@@ -89,12 +89,10 @@ static void process_auth_requested (void *data, belle_sip_auth_event_t *event){
 	// and set it as username to retrieve the correct credentials and send them back
 	LIME_LOGI<<"Accessing credentials for user "<<std::string(userData->username.data());
 
-	// for test purpose we use a server which accept commands in name of any user using credentials of the only one user active on it
-	// so we will set the username with the one test server accepts but real life example shall use the correct credentials
-	belle_sip_auth_event_set_username(event, lime_tester::test_server_user_name.data());
-
-	// In real world we shall provide the password for the requested user as below
-	belle_sip_auth_event_set_passwd(event, lime_tester::test_server_user_password.data());
+	// for test purpose we use a server which accept commands in name of any user without credentials
+	// just do nothing here while we shall put password and username
+	// belle_sip_auth_event_set_username(event, <place here the username>);
+	// belle_sip_auth_event_set_passwd(event, <place here the user password>);
 }
 
 static void process_io_error(void *data, const belle_sip_io_error_event_t *event) noexcept{

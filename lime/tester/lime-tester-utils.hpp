@@ -164,13 +164,6 @@ int wait_for(belle_sip_stack_t*s1,int* counter,int value,int timeout);
 	extern template void dr_sessionsInit<C448>(std::shared_ptr<DR<C448>> &alice, std::shared_ptr<DR<C448>> &bob, std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob, std::string dbFilenameAlice, std::string dbFilenameBob, bool initStorage,  std::shared_ptr<RNG> RNG_context); 
 	extern template void dr_devicesInit<C448>(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<C448>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles,  std::shared_ptr<RNG> RNG_context);
 #endif
-
-// the test server has only one user registered but accept commands from any users using this credentials
-// a real server would obviously not do that and execute commands based on the username given as credentials
-// not based on the From field of HTPP packets
-const std::string test_server_user_name{"alice"};
-const std::string test_server_user_password{"you see the problem is this"};
-
 } // namespace lime_tester
 
 #endif

@@ -75,11 +75,6 @@ const yargs = require('yargs')
 	.argv;
 
 const https = require('https');
-const auth = require('http-auth');
-var digest = auth.digest({
-	realm: "limeTester",
-	file: yargs.resource_dir+"/"+yargs.passwords
-});
 const fs = require('fs');
 const sqlite3 = require('sqlite3').verbose();
 const ReadWriteLock = require('rwlock');
@@ -201,7 +196,7 @@ function deleteUser(userId) {
 
 // start https server
 console.log("X3DH server on, listening port "+yargs.port);
-https.createServer(digest, options, (req, res) => {
+https.createServer(options, (req, res) => {
   function returnError(code, errorMessage) {
 	console.log("return an error message code "+code+" : "+errorMessage);
 	var errorBuffer = Buffer.from([X3DH_protocolVersion, enum_messageTypes.error, curveId, code]); // build the X3DH response header, append the error code

@@ -61,18 +61,6 @@ static int http_after_all(void) {
 	return 0;
 }
 
-/* This is the callback used for authentication on the test server.
- * Test server holds only one user which is used for all connections(which MUST not work on a real server)
- */
-static void process_auth_requested (void *data, belle_sip_auth_event_t *event){
-	// for test purpose we use a server which accept commands in name of any user using credential of the only one user active on it
-	// so we will crash the username with the one test server accepts
-	belle_sip_auth_event_set_username(event, lime_tester::test_server_user_name.data());
-
-	// In real world we shall provide the password for the requested user as below
-	belle_sip_auth_event_set_passwd(event, lime_tester::test_server_user_password.data());
-}
-
 struct C_Callback_userData {
 	const limeX3DHServerResponseProcess responseProcess;
 	const std::string username; // the username sending message, used for logs
@@ -134,7 +122,6 @@ static limeX3DHServerPostData X3DHServerPost([](const std::string &url, const st
 	belle_sip_message_set_body_handler(BELLE_SIP_MESSAGE(req),BELLE_SIP_BODY_HANDLER(bh));
 	cbs.process_response=process_response;
 	cbs.process_io_error=process_io_error;
-	cbs.process_auth_requested=process_auth_requested;
 	// store a reference to the responseProcess function in a wrapper as belle-sip request C-style callbacks with a void * user data parameter, C++ implementation shall
 	// use lambda and capture the function.
 	C_Callback_userData *userData = new C_Callback_userData(responseProcess, from); // create on the heap a copy of the responseProcess closure so it's available when we're called back by belle-sip

@@ -6,7 +6,7 @@ Sesame, double ratchet and X3DH. https://signal.org/docs/
 
 Lime can run the Signal Protocol using elliptic curve 25519 or curve 448-goldilocks.
 
-It is designed to work jointly with *Linphone*[1]
+It is designed to work jointly with *Linphone*[1] in a multiple devices per user and multiple users per device environment.
 
 Dependencies
 ------------
@@ -44,12 +44,6 @@ Testing
 
  - A php/mysql (on docker) version of UNSECURE X3DH server is provided in *tester/server/php*
  See README from this directory for instructions.
-
-A test instance of the nodejs X3DH server shall be running on sip5.linphone.org.
-
-The main difference between the two versions of test server is that nodejs will
-request user authentification (accepting any command with some test credentials)
-while the PHP version is not performing any sort of user authentication.
 
 Library settings
 ----------------

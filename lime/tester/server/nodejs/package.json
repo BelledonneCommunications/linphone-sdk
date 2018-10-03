@@ -5,10 +5,9 @@
   "main": "x3dh.js",
   "dependencies": {
     "rwlock": "^5.0.0",
-    "sqlite3": "^3.1.13",
+    "sqlite3": "^4.0.2",
     "yargs": "^9.0.1",
-    "http-auth": "^3.2.3"
-  },
+  ,
   "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

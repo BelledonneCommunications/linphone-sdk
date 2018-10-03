@@ -13,14 +13,8 @@ Requirements
 - sqlite3
 - certificate(default x3dh-cert.pem)
 - associated private key(default x3dh-key.pem)
-- password file(htpasswd)
 
 The certificate must also be accessible to tester client.
-Tester client must connect using the credentials in password file.
-Default credentials are:
-username : "alice"
-password : "you see the problem is this"
-
 
 Install
 -------
