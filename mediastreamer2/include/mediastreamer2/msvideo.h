@@ -158,7 +158,7 @@ typedef struct _MSVideoConfiguration MSVideoConfiguration;
 #ifdef __cplusplus
 	#define MS_VIDEO_SIZE_TYPE MSVideoSize
 #else
-	#define MS_VIDEO_SIZE_TYPE
+	#define MS_VIDEO_SIZE_TYPE (MSVideoSize)
 #endif // ifdef __cplusplus
 
 #define MS_VIDEO_SIZE_UNKNOWN MS_VIDEO_SIZE_TYPE{ MS_VIDEO_SIZE_UNKNOWN_W, MS_VIDEO_SIZE_UNKNOWN_H }
