@@ -296,11 +296,11 @@ static void automated_test_start_message_handler(const CU_pTest pTest, const CU_
 
     if (bJUnitXmlOutput == CU_TRUE) {
       fprintf(f_pTestResultFile,
-              "  <testsuite errors=\"%u\" tests=\"%u\" name=\"%s\" failures=\"%u\" errors=\"0\" skipped=\"0\"> \n",
-              0 , /* Errors */
-              pSuite->uiNumberOfTests, /* Tests */
+              "  <testsuite name=\"%s\" tests=\"%u\" time=\"0\" failures=\"%u\" errors=\"%u\" skipped=\"0\"> \n",
               (NULL != szTempName) ? szTempName : "", /* Name */
-              pSuite->uiNumberOfTestsFailed);
+              pSuite->uiNumberOfTests, /* Tests */
+              pSuite->uiNumberOfTestsFailed, /* Tests failure */
+              0); /* Errors */
     } else {
       fprintf(f_pTestResultFile,
               "    <BCUNIT_RUN_SUITE> \n"
