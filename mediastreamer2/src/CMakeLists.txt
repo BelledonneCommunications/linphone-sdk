@@ -21,6 +21,10 @@
 ############################################################################
 
 find_library(LIBM NAMES m)
+
+# See: https://cmake.org/cmake/help/v3.12/policy/CMP0072.html
+cmake_policy(SET CMP0072 NEW)
+
 if(ANDROID)
 	find_library(ANDROID_CPU_FEATURES_LIBRARY NAMES cpufeatures)
 	find_library(ANDROID_SUPPORT_LIBRARY NAMES support)
