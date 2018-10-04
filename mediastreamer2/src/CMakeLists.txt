@@ -731,8 +731,8 @@ if(ENABLE_SHARED)
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 	)
 endif()
-if (ENABLE_SHARED AND IOS) 
-	
+if (ENABLE_SHARED AND IOS)
+
 	#According to Apple documentation (https://developer.apple.com/library/content/documentation/MacOSX/Conceptual/BPFrameworks/Tasks/IncludingFrameworks.html)
 	#Framework header files must be included in application code using the #include directive using the followin patern: #include <Framework_name/Header_filename.h>. Consequece for medistreamer2 is that the framework must be named mediastreamer2. The final solution is to replace both mediastreamer_voip and mediastreamer_base by mediastreamer2. To preserve backward compatibility, both mediastreamer_voip and mediastreamer_base are kept for now (2018-05-06)
 	add_library(mediastreamer2 SHARED ${MEDIASTREAMER2_HEADER_FILES})

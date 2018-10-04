@@ -27,7 +27,7 @@ namespace mediastreamer {
 
 H26xDecoderFilter::H26xDecoderFilter(MSFilter *f, H26xDecoder *decoder):
 	DecoderFilter(f),
-	_vsize({0, 0}),
+	_vsize{ 0, 0 },
 	_unpacker(H26xToolFactory::get(decoder->getMime()).createNalUnpacker()),
 	_codec(decoder) {
 

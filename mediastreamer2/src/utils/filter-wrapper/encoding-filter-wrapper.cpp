@@ -55,8 +55,7 @@ int EncodingFilterWrapper::onSetConfigurationCall(MSFilter *f, void *arg) {
 
 int EncodingFilterWrapper::onEnableAvpfCall(MSFilter *f, void *arg) {
 	try {
-		const bool_t *enable = static_cast<bool_t *>(arg);
-		static_cast<EncoderFilter *>(f->data)->enableAvpf(*enable);
+		static_cast<EncoderFilter *>(f->data)->enableAvpf(*static_cast<bool *>(arg));
 		return 0;
 	} catch (const EncoderFilter::MethodCallFailed &) {
 		return -1;
