@@ -31,6 +31,7 @@ set(BCTOOLBOX_C_SOURCE_FILES
 
 set(BCTOOLBOX_CXX_SOURCE_FILES
 	containers/map.cc
+	conversion/charconv_encoding.cc
 	crypto/ecc.cc
 	utils/regex.cc
 	utils/exception.cc
@@ -75,6 +76,7 @@ if(ENABLE_STATIC)
 	add_library(bctoolbox-static STATIC ${BCTOOLBOX_SOURCE_FILES} ${BCTOOLBOX_HEADER_FILES})
 	target_link_libraries(bctoolbox-static INTERFACE ${CMAKE_THREAD_LIBS_INIT})
 	if(APPLE)
+		target_link_libraries(bctoolbox-static INTERFACE "-framework Foundation" "-framework AVFoundation")
 		target_include_directories(bctoolbox-static PRIVATE ${ICONV_INCLUDE_DIRS})
 		target_link_libraries(bctoolbox-static INTERFACE ${ICONV_LIBRARIES})
 	endif()
@@ -117,6 +119,7 @@ if(ENABLE_SHARED)
 		)
 	endif()
 	if(APPLE)
+		target_link_libraries(bctoolbox PRIVATE "-framework Foundation" "-framework AVFoundation")
 		target_include_directories(bctoolbox PRIVATE ${ICONV_INCLUDE_DIRS})
 		target_link_libraries(bctoolbox PRIVATE ${ICONV_LIBRARIES})
 	endif()

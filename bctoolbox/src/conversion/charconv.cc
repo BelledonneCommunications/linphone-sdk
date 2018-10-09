@@ -1,20 +1,21 @@
 /*
-	bctoolbox
-	Copyright (C) 2016  Belledonne Communications SARL
-
-	This program is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 2 of the License, or
-	(at your option) any later version.
-
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ * charconv.cc
+ * Copyright (C) 2010-2018 Belledonne Communications SARL
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -26,9 +27,9 @@
 #include <locale.h>
 #include <string.h>
 
+#include "bctoolbox/charconv.h"
 #include "bctoolbox/logging.h"
 #include "bctoolbox/port.h"
-#include "bctoolbox/charconv.h"
 
 static char *convert_from_to (const char *str, const char *from, const char *to) {
 	if (!from || !to)
@@ -43,15 +44,10 @@ static char *convert_from_to (const char *str, const char *from, const char *to)
 	size_t out_left = in_left + in_left/10; // leave a marge of 10%
 	iconv_t cd;
 
-#ifdef __APPLE__
-	const char* r_from = strcasecmp("locale", from) == 0 ? "" : from;
-	const char* r_to = strcasecmp("locale", to) == 0 ? "" : to;
-#else
 	setlocale(LC_CTYPE, "");
 
 	const char* r_from = strcasecmp("locale", from) == 0 ? nl_langinfo(CODESET) : from;
 	const char* r_to = strcasecmp("locale", to) == 0 ? nl_langinfo(CODESET) : to;
-#endif
 
 	if (strcasecmp(r_from, r_to) == 0) {
 		return bctbx_strdup(str);
@@ -80,22 +76,34 @@ static char *convert_from_to (const char *str, const char *from, const char *to)
 		if (ret == (size_t)-1 && errno != E2BIG) {
 			bctbx_error("Error while converting a string from '%s' to '%s': %s", from, to, strerror(errno));
 			bctbx_free(ptr);
-			return NULL;
+
+			return bctbx_strdup(str);
 		}
 	} else {
 		bctbx_error("Unable to open iconv content descriptor from '%s' to '%s': %s", from, to, strerror(errno));
-		return NULL;
+
+		return bctbx_strdup(str);
 	}
 
 	return ptr;
 }
 
 char *bctbx_locale_to_utf8 (const char *str) {
-	return convert_from_to(str, "locale", "UTF-8");
+	const char *default_encoding = bctbx_get_default_encoding();
+
+	if (!strcmp(default_encoding, "UTF-8"))
+		return bctbx_strdup(str);
+
+	return convert_from_to(str, default_encoding, "UTF-8");
 }
 
 char *bctbx_utf8_to_locale (const char *str) {
-	return convert_from_to(str, "UTF-8", "locale");
+	const char *default_encoding = bctbx_get_default_encoding();
+
+	if (!strcmp(default_encoding, "UTF-8"))
+		return bctbx_strdup(str);
+
+	return convert_from_to(str, "UTF-8", default_encoding);
 }
 
 char *bctbx_convert_any_to_utf8 (const char *str, const char *encoding) {
