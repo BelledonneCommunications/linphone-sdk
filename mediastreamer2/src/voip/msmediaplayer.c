@@ -87,8 +87,6 @@ static MSFileFormat four_cc_to_file_format(const FourCC four_cc) {
 
 MSMediaPlayer *ms_media_player_new(MSFactory* factory, MSSndCard *snd_card, const char *video_display_name, void *window_id) {
 	MSMediaPlayer *obj = (MSMediaPlayer *)ms_new0(MSMediaPlayer, 1);
-	obj->ticker = ms_ticker_new();
-	ms_ticker_set_name(obj->ticker, "Player");
 	ms_mutex_init(&obj->cb_access, NULL);
 	obj->snd_card = snd_card;
 	if(video_display_name != NULL && strlen(video_display_name) > 0) {
@@ -102,7 +100,6 @@ MSMediaPlayer *ms_media_player_new(MSFactory* factory, MSSndCard *snd_card, cons
 
 void ms_media_player_free(MSMediaPlayer *obj) {
 	ms_media_player_close(obj);
-	ms_ticker_destroy(obj->ticker);
 	ms_free_if_not_null(obj->video_display);
 	ms_free(obj);
 }
@@ -169,6 +166,8 @@ bool_t ms_media_player_open(MSMediaPlayer *obj, const char *filepath) {
 	}
 	ms_filter_add_notify_callback(obj->player, _eof_filter_notify_cb, obj, TRUE);
 	ms_filter_call_method(obj->player, MS_PLAYER_SET_LOOP, &obj->loop_interval);
+	obj->ticker = ms_ticker_new();
+	ms_ticker_set_name(obj->ticker, "Player");
 	ms_ticker_attach(obj->ticker, obj->player);
 	obj->is_open = TRUE;
 	obj->filename = ms_strdup(filepath);
@@ -179,6 +178,7 @@ void ms_media_player_close(MSMediaPlayer *obj) {
 	if(obj->is_open) {
 		ms_message("MSMediaPlayer: closing file.");
 		ms_ticker_detach(obj->ticker, obj->player);
+		ms_ticker_destroy(obj->ticker);
 		ms_filter_call_method_noarg(obj->player, MS_PLAYER_CLOSE);
 		_unlink_all(obj);
 		_destroy_graph(obj);
