@@ -505,6 +505,11 @@ static void configure_video_source(VideoStream *stream){
 	if (vconf.required_bitrate == 0) {
 		vconf.required_bitrate = ms_factory_get_expected_bandwidth(stream->ms.factory);
 		ms_message("Encoder current bitrate is 0, using expected bandwidth %i", vconf.required_bitrate);
+		if (vconf.required_bitrate == 0) {
+			const MSVideoConfiguration *vconf_list = NULL;
+			ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, &vconf_list);
+			vconf = ms_video_find_best_configuration_for_size(vconf_list, vconf.vsize, stream->ms.factory->cpu_count);
+		}
 	}
 
 	vconf.vsize=get_compatible_size(vconf.vsize,stream->sent_vsize);
