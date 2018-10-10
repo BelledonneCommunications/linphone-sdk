@@ -42,6 +42,7 @@ typedef struct packetDatas_struct {
 typedef struct clientContext_struct {
 	uint8_t id;
 	bzrtpContext_t *bzrtpContext;
+	bctbx_mutex_t zidCacheMutex;
 	bzrtpSrtpSecrets_t *secrets;
 	int32_t pvs;
 	uint8_t haveCacheMismatch;
@@ -206,7 +207,7 @@ int computeExportedKeys(void *clientData, int zuid, uint8_t role) {
 	return 0;
 }
 
-static int setUpClientContext(clientContext_t *clientContext, uint8_t clientID, uint32_t SSRC, void *zidCache, char *selfURI, char *peerURI, cryptoParams_t *cryptoParams) {
+static int setUpClientContext(clientContext_t *clientContext, uint8_t clientID, uint32_t SSRC, void *zidCache, bctbx_mutex_t *zidCacheMutex, char *selfURI, char *peerURI, cryptoParams_t *cryptoParams) {
 	int retval;
 	bzrtpCallbacks_t cbs={0} ;
 
@@ -225,11 +226,15 @@ static int setUpClientContext(clientContext_t *clientContext, uint8_t clientID, 
 	/* check cache */
 	if (zidCache != NULL) {
 #ifdef ZIDCACHE_ENABLED
-	retval = bzrtp_setZIDCache(clientContext->bzrtpContext, zidCache, selfURI, peerURI);
-	if (retval != 0 && retval != BZRTP_CACHE_SETUP) { /* return value is BZRTP_CACHE_SETUP if the cache is populated by this call */
-		bzrtp_message("ERROR: bzrtp_setZIDCache %0x, client id is %d\n", retval, clientID);
-		return -2;
-	}
+		if (zidCacheMutex == NULL) {
+			zidCacheMutex = &(clientContext->zidCacheMutex);
+			bctbx_mutex_init(zidCacheMutex, NULL);
+		}
+		retval = bzrtp_setZIDCache_lock(clientContext->bzrtpContext, zidCache, selfURI, peerURI, zidCacheMutex);
+		if (retval != 0 && retval != BZRTP_CACHE_SETUP) { /* return value is BZRTP_CACHE_SETUP if the cache is populated by this call */
+			bzrtp_message("ERROR: bzrtp_setZIDCache %0x, client id is %d\n", retval, clientID);
+			return -2;
+		}
 #else
 		bzrtp_message("ERROR: asking for cache but not enabled at compile time\n");
 		return -2;
@@ -354,8 +359,11 @@ static int compareAlgoList(bzrtpSrtpSecrets_t *secrets, cryptoParams_t *cryptoPa
 /* defines return values bit flags(on 16 bits, use 32 to return status for Bob(16 MSB) and Alice(16 LSB)) */
 #define RET_CACHE_MISMATCH 0x0001
 
-
-uint32_t multichannel_exchange_pvs_params(cryptoParams_t *aliceCryptoParams, cryptoParams_t *bobCryptoParams, cryptoParams_t *expectedCryptoParams, void *aliceCache, char *aliceURI, void *bobCache, char *bobURI, uint8_t checkPVS, uint8_t expectedAlicePVS, uint8_t expectedBobPVS) {
+/*
+ * Never call directly this function in tests, its purpose is to have a flexible API according to future needs
+ * use a variant or create a new one, see after this function
+ */
+uint32_t multichannel_exchange_full_params(cryptoParams_t *aliceCryptoParams, cryptoParams_t *bobCryptoParams, cryptoParams_t *expectedCryptoParams, void *aliceCache, bctbx_mutex_t *aliceCacheMutex, char *aliceURI, void *bobCache, bctbx_mutex_t *bobCacheMutex, char *bobURI, uint8_t checkPVS, uint8_t expectedAlicePVS, uint8_t expectedBobPVS) {
 
 	int retval,channelNumber;
 	clientContext_t Alice,Bob;
@@ -366,13 +374,13 @@ uint32_t multichannel_exchange_pvs_params(cryptoParams_t *aliceCryptoParams, cry
 	uint32_t ret=0;
 
 	/*** Create the main channel */
-	if ((retval=setUpClientContext(&Alice, ALICE, aliceSSRC, aliceCache, aliceURI, bobURI, aliceCryptoParams))!=0) {
+	if ((retval=setUpClientContext(&Alice, ALICE, aliceSSRC, aliceCache, aliceCacheMutex, aliceURI, bobURI, aliceCryptoParams))!=0) {
 		bzrtp_message("ERROR: can't init setup client context id %d\n", ALICE);
 		BC_ASSERT_EQUAL(retval, 0, uint32_t, "0x%08x");
 		return retval;
 	}
 
-	if ((retval=setUpClientContext(&Bob, BOB, bobSSRC, bobCache, bobURI, aliceURI, bobCryptoParams))!=0) {
+	if ((retval=setUpClientContext(&Bob, BOB, bobSSRC, bobCache, bobCacheMutex, bobURI, aliceURI, bobCryptoParams))!=0) {
 		bzrtp_message("ERROR: can't init setup client context id %d\n", BOB);
 		BC_ASSERT_EQUAL(retval, 0, uint32_t, "0x%08x");
 		return retval;
@@ -394,15 +402,16 @@ uint32_t multichannel_exchange_pvs_params(cryptoParams_t *aliceCryptoParams, cry
 		/* check the message queue */
 		for (i=0; i<aliceQueueIndex; i++) {
 			retval = bzrtp_processMessage(Alice.bzrtpContext, aliceSSRC, aliceQueue[i].packetString, aliceQueue[i].packetLength);
-			//bzrtp_message("%d Alice processed a %.8s and returns %x\n", msSTC, (aliceQueue[i].packetString)+16, retval);
+			//bzrtp_message("%ld Alice processed a %.8s and returns %x\n", msSTC, (aliceQueue[i].packetString)+16, retval);
 			memset(aliceQueue[i].packetString, 0, MAX_PACKET_LENGTH); /* destroy the packet after sending it to the ZRTP engine */
 			lastPacketSentTime=getSimulatedTime();
 		}
 		aliceQueueIndex = 0;
 
 		for (i=0; i<bobQueueIndex; i++) {
+
 			retval = bzrtp_processMessage(Bob.bzrtpContext, bobSSRC, bobQueue[i].packetString, bobQueue[i].packetLength);
-			//bzrtp_message("%d Bob processed a %.8s and returns %x\n",msSTC, (bobQueue[i].packetString)+16, retval);
+			//bzrtp_message("%ld Bob processed a %.8s and returns %x\n",msSTC, (bobQueue[i].packetString)+16, retval);
 			memset(bobQueue[i].packetString, 0, MAX_PACKET_LENGTH); /* destroy the packet after sending it to the ZRTP engine */
 			lastPacketSentTime=getSimulatedTime();
 		}
@@ -428,8 +437,14 @@ uint32_t multichannel_exchange_pvs_params(cryptoParams_t *aliceCryptoParams, cry
 	/* when timeOutLimit is set to this specific value, our intention is to start a negotiation but not to finish it, so just return without errors */
 	if (timeOutLimit == ABORT_NEGOTIATION_TIMEOUT) {
 		/*** Destroy Contexts ***/
+		if (aliceCache != NULL && aliceCacheMutex == NULL) { /* mutex was not provided externally, so we set up ours, destroy it */
+			bctbx_mutex_destroy(&(Alice.zidCacheMutex));
+		}
 		while (bzrtp_destroyBzrtpContext(Alice.bzrtpContext, aliceSSRC)>0 && aliceSSRC>=ALICE_SSRC_BASE) {
 			aliceSSRC--;
+		}
+		if (bobCache != NULL && bobCacheMutex == NULL) { /* mutex was not provided externally, so we set up ours, destroy it */
+			bctbx_mutex_destroy(&(Bob.zidCacheMutex));
 		}
 		while (bzrtp_destroyBzrtpContext(Bob.bzrtpContext, bobSSRC)>0 && bobSSRC>=BOB_SSRC_BASE) {
 			bobSSRC--;
@@ -561,8 +576,14 @@ uint32_t multichannel_exchange_pvs_params(cryptoParams_t *aliceCryptoParams, cry
 	}
 
 	/*** Destroy Contexts ***/
+	if (aliceCache != NULL && aliceCacheMutex == NULL) { /* mutex was not provided externally, so we set up ours, destroy it */
+		bctbx_mutex_destroy(&(Alice.zidCacheMutex));
+	}
 	while (bzrtp_destroyBzrtpContext(Alice.bzrtpContext, aliceSSRC)>0 && aliceSSRC>=ALICE_SSRC_BASE) {
 		aliceSSRC--;
+	}
+	if (bobCache != NULL && bobCacheMutex == NULL) { /* mutex was not provided externally, so we set up ours, destroy it */
+		bctbx_mutex_destroy(&(Bob.zidCacheMutex));
 	}
 	while (bzrtp_destroyBzrtpContext(Bob.bzrtpContext, bobSSRC)>0 && bobSSRC>=BOB_SSRC_BASE) {
 		bobSSRC--;
@@ -579,8 +600,17 @@ uint32_t multichannel_exchange_pvs_params(cryptoParams_t *aliceCryptoParams, cry
 	return ret;
 }
 
+/* Variants of the exchange function with less parameter : never call directly the full params one but use one of these */
+uint32_t multichannel_exchange_pvs_params(cryptoParams_t *aliceCryptoParams, cryptoParams_t *bobCryptoParams, cryptoParams_t *expectedCryptoParams, void *aliceCache, char *aliceURI, void *bobCache, char *bobURI, uint8_t checkPVS, uint8_t expectedAlicePVS, uint8_t expectedBobPVS) {
+	return multichannel_exchange_full_params(aliceCryptoParams, bobCryptoParams, expectedCryptoParams, aliceCache, NULL, aliceURI, bobCache, NULL, bobURI, checkPVS, expectedAlicePVS, expectedBobPVS);
+}
+
 uint32_t multichannel_exchange(cryptoParams_t *aliceCryptoParams, cryptoParams_t *bobCryptoParams, cryptoParams_t *expectedCryptoParams, void *aliceCache, char *aliceURI, void *bobCache, char *bobURI) {
-	return multichannel_exchange_pvs_params(aliceCryptoParams, bobCryptoParams, expectedCryptoParams, aliceCache, aliceURI, bobCache, bobURI, FALSE, 0, 0);
+	return multichannel_exchange_full_params(aliceCryptoParams, bobCryptoParams, expectedCryptoParams, aliceCache, NULL, aliceURI, bobCache, NULL, bobURI, FALSE, 0, 0);
+}
+
+uint32_t multichannel_exchange_mutex(cryptoParams_t *aliceCryptoParams, cryptoParams_t *bobCryptoParams, cryptoParams_t *expectedCryptoParams, void *aliceCache, bctbx_mutex_t *aliceCacheMutex, char *aliceURI, void *bobCache, bctbx_mutex_t *bobCacheMutex, char *bobURI) {
+	return multichannel_exchange_full_params(aliceCryptoParams, bobCryptoParams, expectedCryptoParams, aliceCache, aliceCacheMutex, aliceURI, bobCache, bobCacheMutex, bobURI, FALSE, 0, 0);
 }
 
 
@@ -729,28 +759,30 @@ static void test_cache_enabled_exchange(void) {
 	uint8_t *colValuesBob[3];
 	size_t colLengthBob[3];
 	int i;
+	char *aliceTesterFile = bc_tester_file("tmpZIDAlice_simpleCache.sqlite");
+	char *bobTesterFile = bc_tester_file("tmpZIDBob_simpleCache.sqlite");
 
 	resetGlobalParams();
 
 	/* create tempory DB files, just try to clean them from dir before, just in case  */
-	remove("tmpZIDAlice_simpleCache.sqlite");
-	remove("tmpZIDBob_simpleCache.sqlite");
-	bzrtptester_sqlite3_open(bc_tester_file("tmpZIDAlice_simpleCache.sqlite"), &aliceDB);
-	bzrtptester_sqlite3_open(bc_tester_file("tmpZIDBob_simpleCache.sqlite"), &bobDB);
+	remove(aliceTesterFile);
+	remove(bobTesterFile);
+	bzrtptester_sqlite3_open(aliceTesterFile, &aliceDB);
+	bzrtptester_sqlite3_open(bobTesterFile, &bobDB);
 
 	/* make a first exchange */
 	BC_ASSERT_EQUAL(multichannel_exchange(NULL, NULL, defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bobDB, "bob@sip.linphone.org"), 0, int, "%x");
 
 	/* after the first exchange we shall have both pvs values at 1 and both rs1 identical and rs2 null, retrieve them from cache and check it */
 	/* first get each ZIDs, note give NULL as RNG context may lead to segfault in case of error(caches were not created correctly)*/
-	BC_ASSERT_EQUAL(bzrtp_getSelfZID((void *)aliceDB, "alice@sip.linphone.org", selfZIDalice, NULL), 0, int, "%x");
-	BC_ASSERT_EQUAL(bzrtp_getSelfZID((void *)bobDB, "bob@sip.linphone.org", selfZIDbob, NULL), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_getSelfZID_lock((void *)aliceDB, "alice@sip.linphone.org", selfZIDalice, NULL, NULL), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_getSelfZID_lock((void *)bobDB, "bob@sip.linphone.org", selfZIDbob, NULL, NULL), 0, int, "%x");
 	/* then get the matching zuid in cache */
-	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)aliceDB, "alice@sip.linphone.org", "bob@sip.linphone.org", selfZIDbob, BZRTP_ZIDCACHE_DONT_INSERT_ZUID, &zuidAlice), 0, int, "%x");
-	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)bobDB, "bob@sip.linphone.org", "alice@sip.linphone.org", selfZIDalice, BZRTP_ZIDCACHE_DONT_INSERT_ZUID, &zuidBob), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)aliceDB, "alice@sip.linphone.org", "bob@sip.linphone.org", selfZIDbob, BZRTP_ZIDCACHE_DONT_INSERT_ZUID, &zuidAlice, NULL), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)bobDB, "bob@sip.linphone.org", "alice@sip.linphone.org", selfZIDalice, BZRTP_ZIDCACHE_DONT_INSERT_ZUID, &zuidBob, NULL), 0, int, "%x");
 	/* retrieve the values */
-	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 3), 0, int, "%x");
-	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)bobDB, zuidBob, "zrtp", colNames, colValuesBob, colLengthBob, 3), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_read_lock((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 3, NULL), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_read_lock((void *)bobDB, zuidBob, "zrtp", colNames, colValuesBob, colLengthBob, 3, NULL), 0, int, "%x");
 	/* and compare to expected */
 	/* rs1 is set and they are both the same */
 	BC_ASSERT_EQUAL(colLengthAlice[0], 32, int, "%d");
@@ -776,7 +808,7 @@ static void test_cache_enabled_exchange(void) {
 	/* make a second exchange */
 	BC_ASSERT_EQUAL(multichannel_exchange(NULL, NULL, defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bobDB, "bob@sip.linphone.org"), 0, int, "%x");
 	/* read new values in cache, ZIDs and zuids must be identical, read alice first to be able to check rs2 with old rs1 */
-	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 3), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_read_lock((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 3, NULL), 0, int, "%x");
 	/* check what is now rs2 is the old rs1 */
 	BC_ASSERT_EQUAL(colLengthAlice[0], 32, int, "%d");
 	BC_ASSERT_EQUAL(colLengthAlice[1], 32, int, "%d");
@@ -789,7 +821,7 @@ static void test_cache_enabled_exchange(void) {
 		colValuesBob[i]=NULL;
 	}
 	/* so read bob updated values and compare rs1, rs2 and check pvs is still at 1 */
-	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)bobDB, zuidBob, "zrtp", colNames, colValuesBob, colLengthBob, 3), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_read_lock((void *)bobDB, zuidBob, "zrtp", colNames, colValuesBob, colLengthBob, 3, NULL), 0, int, "%x");
 	BC_ASSERT_EQUAL(colLengthBob[0], 32, int, "%d");
 	BC_ASSERT_EQUAL(colLengthBob[1], 32, int, "%d");
 	BC_ASSERT_EQUAL(colLengthBob[2], 1, int, "%d");
@@ -807,9 +839,12 @@ static void test_cache_enabled_exchange(void) {
 	sqlite3_close(bobDB);
 
 	/* clean temporary files */
-	remove("tmpZIDAlice_simpleCache.sqlite");
-	remove("tmpZIDBob_simpleCache.sqlite");
-
+	remove(aliceTesterFile);
+	remove(bobTesterFile);
+	bc_free(aliceTesterFile);
+	bc_free(bobTesterFile);
+#else /* ZIDCACHE_ENABLED */
+	bzrtp_message("Test skipped as ZID cache is disabled\n");
 #endif /* ZIDCACHE_ENABLED */
 }
 
@@ -827,28 +862,30 @@ static void test_cache_mismatch_exchange(void) {
 	uint8_t *colValuesBob[3];
 	size_t colLengthBob[3];
 	int i;
+	char *aliceTesterFile = bc_tester_file("tmpZIDAlice_cacheMismatch.sqlite");
+	char *bobTesterFile = bc_tester_file("tmpZIDBob_cacheMismatch.sqlite");
 
 	resetGlobalParams();
 
 	/* create tempory DB files, just try to clean them from dir before, just in case  */
-	remove("tmpZIDAlice_cacheMismtach.sqlite");
-	remove("tmpZIDBob_cacheMismatch.sqlite");
-	bzrtptester_sqlite3_open(bc_tester_file("tmpZIDAlice_cacheMismatch.sqlite"), &aliceDB);
-	bzrtptester_sqlite3_open(bc_tester_file("tmpZIDBob_cacheMismatch.sqlite"), &bobDB);
+	remove(aliceTesterFile);
+	remove(bobTesterFile);
+	bzrtptester_sqlite3_open(aliceTesterFile, &aliceDB);
+	bzrtptester_sqlite3_open(bobTesterFile, &bobDB);
 
 	/* make a first exchange */
 	BC_ASSERT_EQUAL(multichannel_exchange(NULL, NULL, defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bobDB, "bob@sip.linphone.org"), 0, int, "%x");
 
 	/* after the first exchange we shall have both pvs values at 1 and both rs1 identical and rs2 null, retrieve them from cache and check it */
 	/* first get each ZIDs, note give NULL as RNG context may lead to segfault in case of error(caches were not created correctly)*/
-	BC_ASSERT_EQUAL(bzrtp_getSelfZID((void *)aliceDB, "alice@sip.linphone.org", selfZIDalice, NULL), 0, int, "%x");
-	BC_ASSERT_EQUAL(bzrtp_getSelfZID((void *)bobDB, "bob@sip.linphone.org", selfZIDbob, NULL), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_getSelfZID_lock((void *)aliceDB, "alice@sip.linphone.org", selfZIDalice, NULL, NULL), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_getSelfZID_lock((void *)bobDB, "bob@sip.linphone.org", selfZIDbob, NULL, NULL), 0, int, "%x");
 	/* then get the matching zuid in cache */
-	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)aliceDB, "alice@sip.linphone.org", "bob@sip.linphone.org", selfZIDbob, BZRTP_ZIDCACHE_DONT_INSERT_ZUID, &zuidAlice), 0, int, "%x");
-	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)bobDB, "bob@sip.linphone.org", "alice@sip.linphone.org", selfZIDalice, BZRTP_ZIDCACHE_DONT_INSERT_ZUID, &zuidBob), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)aliceDB, "alice@sip.linphone.org", "bob@sip.linphone.org", selfZIDbob, BZRTP_ZIDCACHE_DONT_INSERT_ZUID, &zuidAlice, NULL), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)bobDB, "bob@sip.linphone.org", "alice@sip.linphone.org", selfZIDalice, BZRTP_ZIDCACHE_DONT_INSERT_ZUID, &zuidBob, NULL), 0, int, "%x");
 	/* retrieve the values */
-	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 3), 0, int, "%x");
-	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)bobDB, zuidBob, "zrtp", colNames, colValuesBob, colLengthBob, 3), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_read_lock((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 3, NULL), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_read_lock((void *)bobDB, zuidBob, "zrtp", colNames, colValuesBob, colLengthBob, 3, NULL), 0, int, "%x");
 	/* and compare to expected */
 	/* rs1 is set and they are both the same */
 	BC_ASSERT_EQUAL(colLengthAlice[0], 32, int, "%d");
@@ -867,7 +904,7 @@ static void test_cache_mismatch_exchange(void) {
 
 	/* Modify Alice cache rs1 first byte value, it will cause a cache mismatch at next exchange */
 	colValuesAlice[0][0] += 1;
-	BC_ASSERT_EQUAL(bzrtp_cache_write((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 1), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_write_lock((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 1, NULL), 0, int, "%x");
 
 	/* free buffers */
 	for (i=0; i<3; i++) {
@@ -882,8 +919,8 @@ static void test_cache_mismatch_exchange(void) {
 	/* rs1 will be in sync has the SAS comparison will succeed and pvs will be set to 1*/
 	BC_ASSERT_EQUAL(multichannel_exchange(NULL, NULL, defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bobDB, "bob@sip.linphone.org"), RET_CACHE_MISMATCH<<16|RET_CACHE_MISMATCH, int, "%x");
 
-	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)bobDB, zuidBob, "zrtp", colNames, colValuesBob, colLengthBob, 3), 0, int, "%x");
-	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 3), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_read_lock((void *)bobDB, zuidBob, "zrtp", colNames, colValuesBob, colLengthBob, 3, NULL), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_read_lock((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 3, NULL), 0, int, "%x");
 
 	BC_ASSERT_EQUAL(colLengthAlice[0], 32, int, "%d");
 	BC_ASSERT_EQUAL(colLengthAlice[1], 0, int, "%d");
@@ -902,7 +939,7 @@ static void test_cache_mismatch_exchange(void) {
 	colValuesAlice[0] = NULL;
 	colLengthAlice[0] = 0;
 	colValuesAlice[2][0] = 0; /* reset pvs to 0 */
-	BC_ASSERT_EQUAL(bzrtp_cache_write((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 3), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_write_lock((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 3, NULL), 0, int, "%x");
 
 	/* free buffers */
 	for (i=0; i<3; i++) {
@@ -916,8 +953,8 @@ static void test_cache_mismatch_exchange(void) {
 	/* rs1 will be in sync has the SAS comparison will succeed and pvs will be set to 1*/
 	BC_ASSERT_EQUAL(multichannel_exchange(NULL, NULL, defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bobDB, "bob@sip.linphone.org"), RET_CACHE_MISMATCH<<16, int, "%x");
 
-	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)bobDB, zuidBob, "zrtp", colNames, colValuesBob, colLengthBob, 3), 0, int, "%x");
-	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 3), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_read_lock((void *)bobDB, zuidBob, "zrtp", colNames, colValuesBob, colLengthBob, 3, NULL), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_read_lock((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 3, NULL), 0, int, "%x");
 
 	BC_ASSERT_EQUAL(colLengthAlice[0], 32, int, "%d");
 	BC_ASSERT_EQUAL(colLengthAlice[1], 0, int, "%d");
@@ -939,9 +976,12 @@ static void test_cache_mismatch_exchange(void) {
 	sqlite3_close(bobDB);
 
 	/* clean temporary files */
-	remove("tmpZIDAlice_cacheMismatch.sqlite");
-	remove("tmpZIDBob_cacheMismatch.sqlite");
-
+	remove(aliceTesterFile);
+	remove(bobTesterFile);
+	bc_free(aliceTesterFile);
+	bc_free(bobTesterFile);
+#else /* ZIDCACHE_ENABLED */
+	bzrtp_message("Test skipped as ZID cache is disabled\n");
 #endif /* ZIDCACHE_ENABLED */
 }
 
@@ -958,6 +998,8 @@ static void test_cache_sas_not_confirmed(void) {
 	uint8_t *colValuesBob[3];
 	size_t colLengthBob[3];
 	int i;
+	char *aliceTesterFile = bc_tester_file("tmpZIDAlice_cacheSASNotConfirmed.sqlite");
+	char *bobTesterFile = bc_tester_file("tmpZIDBob_cacheSasNotConfirmed.sqlite");
 
 	resetGlobalParams();
 
@@ -968,24 +1010,24 @@ static void test_cache_sas_not_confirmed(void) {
 	}
 
 	/* create tempory DB files, just try to clean them from dir before, just in case  */
-	remove("tmpZIDAlice_simpleCache.sqlite");
-	remove("tmpZIDBob_simpleCache.sqlite");
-	bzrtptester_sqlite3_open(bc_tester_file("tmpZIDAlice_simpleCache.sqlite"), &aliceDB);
-	bzrtptester_sqlite3_open(bc_tester_file("tmpZIDBob_simpleCache.sqlite"), &bobDB);
+	remove(aliceTesterFile);
+	remove(bobTesterFile);
+	bzrtptester_sqlite3_open(aliceTesterFile, &aliceDB);
+	bzrtptester_sqlite3_open(bobTesterFile, &bobDB);
 
 	/* make a first exchange, Alice is instructed to not validate the SAS */
 	BC_ASSERT_EQUAL(multichannel_exchange_pvs_params(defaultCryptoAlgoSelectionNoSASValidation(), defaultCryptoAlgoSelection(), defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bobDB, "bob@sip.linphone.org", TRUE, 0, 0), 0, int, "%x");
 
 	/* after the first exchange we shall have alice pvs at 0 and bob at 1 and both rs1 identical and rs2 null, retrieve them from cache and check it */
 	/* first get each ZIDs, note give NULL as RNG context may lead to segfault in case of error(caches were not created correctly)*/
-	BC_ASSERT_EQUAL(bzrtp_getSelfZID((void *)aliceDB, "alice@sip.linphone.org", selfZIDalice, NULL), 0, int, "%x");
-	BC_ASSERT_EQUAL(bzrtp_getSelfZID((void *)bobDB, "bob@sip.linphone.org", selfZIDbob, NULL), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_getSelfZID_lock((void *)aliceDB, "alice@sip.linphone.org", selfZIDalice, NULL, NULL), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_getSelfZID_lock((void *)bobDB, "bob@sip.linphone.org", selfZIDbob, NULL, NULL), 0, int, "%x");
 	/* then get the matching zuid in cache */
-	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)aliceDB, "alice@sip.linphone.org", "bob@sip.linphone.org", selfZIDbob, BZRTP_ZIDCACHE_DONT_INSERT_ZUID, &zuidAlice), 0, int, "%x");
-	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)bobDB, "bob@sip.linphone.org", "alice@sip.linphone.org", selfZIDalice, BZRTP_ZIDCACHE_DONT_INSERT_ZUID, &zuidBob), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)aliceDB, "alice@sip.linphone.org", "bob@sip.linphone.org", selfZIDbob, BZRTP_ZIDCACHE_DONT_INSERT_ZUID, &zuidAlice, NULL), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)bobDB, "bob@sip.linphone.org", "alice@sip.linphone.org", selfZIDalice, BZRTP_ZIDCACHE_DONT_INSERT_ZUID, &zuidBob, NULL), 0, int, "%x");
 	/* retrieve the values */
-	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 3), 0, int, "%x");
-	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)bobDB, zuidBob, "zrtp", colNames, colValuesBob, colLengthBob, 3), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_read_lock((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 3, NULL), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_read_lock((void *)bobDB, zuidBob, "zrtp", colNames, colValuesBob, colLengthBob, 3, NULL), 0, int, "%x");
 	/* and compare to expected */
 	/* rs1 is set and they are both the same */
 	BC_ASSERT_EQUAL(colLengthAlice[0], 32, int, "%d");
@@ -1011,7 +1053,7 @@ static void test_cache_sas_not_confirmed(void) {
 	/* but let them both validate this one */
 	BC_ASSERT_EQUAL(multichannel_exchange_pvs_params(NULL, NULL, defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bobDB, "bob@sip.linphone.org", TRUE, 0, 0), 0, int, "%x");
 	/* read new values in cache, ZIDs and zuids must be identical, read alice first to be able to check rs2 with old rs1 */
-	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 3), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_read_lock((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 3, NULL), 0, int, "%x");
 	/* check what is now rs2 is the old rs1 */
 	BC_ASSERT_EQUAL(colLengthAlice[0], 32, int, "%d");
 	BC_ASSERT_EQUAL(colLengthAlice[1], 32, int, "%d");
@@ -1025,7 +1067,7 @@ static void test_cache_sas_not_confirmed(void) {
 	}
 
 	/* so read bob updated values and compare rs1, rs2 and check pvs is at 1 */
-	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)bobDB, zuidBob, "zrtp", colNames, colValuesBob, colLengthBob, 3), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_read_lock((void *)bobDB, zuidBob, "zrtp", colNames, colValuesBob, colLengthBob, 3, NULL), 0, int, "%x");
 	BC_ASSERT_EQUAL(colLengthBob[0], 32, int, "%d");
 	BC_ASSERT_EQUAL(colLengthBob[1], 32, int, "%d");
 	BC_ASSERT_EQUAL(colLengthBob[2], 1, int, "%d");
@@ -1043,7 +1085,7 @@ static void test_cache_sas_not_confirmed(void) {
 	/* make a third exchange, the PVS flag returned by both side shall be 1 */
 	BC_ASSERT_EQUAL(multichannel_exchange_pvs_params(NULL, NULL, defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bobDB, "bob@sip.linphone.org", TRUE, 1, 1), 0, int, "%x");
 	/* read new values in cache, ZIDs and zuids must be identical, read alice first to be able to check rs2 with old rs1 */
-	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 3), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_read_lock((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 3, NULL), 0, int, "%x");
 	/* check what is now rs2 is the old rs1 */
 	BC_ASSERT_EQUAL(colLengthAlice[0], 32, int, "%d");
 	BC_ASSERT_EQUAL(colLengthAlice[1], 32, int, "%d");
@@ -1057,7 +1099,7 @@ static void test_cache_sas_not_confirmed(void) {
 	}
 	/* so read bob updated values and compare rs1, rs2 and check pvs is at 1 */
 	/* so read bob updated values and compare rs1, rs2 and check pvs is still at 1 */
-	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)bobDB, zuidBob, "zrtp", colNames, colValuesBob, colLengthBob, 3), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_read_lock((void *)bobDB, zuidBob, "zrtp", colNames, colValuesBob, colLengthBob, 3, NULL), 0, int, "%x");
 	BC_ASSERT_EQUAL(colLengthBob[0], 32, int, "%d");
 	BC_ASSERT_EQUAL(colLengthBob[1], 32, int, "%d");
 	BC_ASSERT_EQUAL(colLengthBob[2], 1, int, "%d");
@@ -1075,9 +1117,12 @@ static void test_cache_sas_not_confirmed(void) {
 	sqlite3_close(bobDB);
 
 	/* clean temporary files */
-	remove("tmpZIDAlice_simpleCache.sqlite");
-	remove("tmpZIDBob_simpleCache.sqlite");
-
+	remove(aliceTesterFile);
+	remove(bobTesterFile);
+	bc_free(aliceTesterFile);
+	bc_free(bobTesterFile);
+#else /* ZIDCACHE_ENABLED */
+	bzrtp_message("Test skipped as ZID cache is disabled\n");
 #endif /* ZIDCACHE_ENABLED */
 }
 
@@ -1091,13 +1136,13 @@ static int test_auxiliary_secret_params(uint8_t *aliceAuxSecret, size_t aliceAux
 	uint8_t setAuxSecretFlag=0; // switch to 1 once we've set the aux secret
 
 	/*** Create the main channel */
-	if ((retval=setUpClientContext(&Alice, ALICE, aliceSSRC, NULL, NULL, NULL, NULL))!=0) {
+	if ((retval=setUpClientContext(&Alice, ALICE, aliceSSRC, NULL, NULL, NULL, NULL, NULL))!=0) {
 		bzrtp_message("ERROR: can't init setup client context id %d\n", ALICE);
 		BC_ASSERT_EQUAL(retval, 0, uint32_t, "0x%08x");
 		return -1;
 	}
 
-	if ((retval=setUpClientContext(&Bob, BOB, bobSSRC, NULL, NULL, NULL, NULL))!=0) {
+	if ((retval=setUpClientContext(&Bob, BOB, bobSSRC, NULL, NULL, NULL, NULL, NULL))!=0) {
 		bzrtp_message("ERROR: can't init setup client context id %d\n", BOB);
 		BC_ASSERT_EQUAL(retval, 0, uint32_t, "0x%08x");
 		return -1;
@@ -1277,14 +1322,17 @@ static void test_abort_retry(void) {
 	uint8_t *colValuesBob[3];
 	size_t colLengthBob[3];
 	int i;
+	char *aliceTesterFile = bc_tester_file("tmpZIDAlice_abortRetry.sqlite");
+	char *bobTesterFile = bc_tester_file("tmpZIDBob_abortRetry.sqlite");
+
 
 	resetGlobalParams();
 
 	/* create tempory DB files, just try to clean them from dir before, just in case  */
-	remove("tmpZIDAlice_abortRetry.sqlite");
-	remove("tmpZIDBob_abortRetry.sqlite");
-	bzrtptester_sqlite3_open(bc_tester_file("tmpZIDAlice_abortRetry.sqlite"), &aliceDB);
-	bzrtptester_sqlite3_open(bc_tester_file("tmpZIDBob_abortRetry.sqlite"), &bobDB);
+	remove(aliceTesterFile);
+	remove(bobTesterFile);
+	bzrtptester_sqlite3_open(aliceTesterFile, &aliceDB);
+	bzrtptester_sqlite3_open(bobTesterFile, &bobDB);
 
 	/* make a first exchange but abort it */
 	timeOutLimit = ABORT_NEGOTIATION_TIMEOUT; /* set timeout to ABORT_NEGOTIATION_TIMEOUT aborts an ongoing negotiation without errors */
@@ -1292,11 +1340,11 @@ static void test_abort_retry(void) {
 
 	/* after the first exchange we shall have only self ZID, peer ZID must not be inserted in cache */
 	/* first get each ZIDs, note give NULL as RNG context may lead to segfault in case of error(caches were not created correctly)*/
-	BC_ASSERT_EQUAL(bzrtp_getSelfZID((void *)aliceDB, "alice@sip.linphone.org", selfZIDalice, NULL), 0, int, "%x");
-	BC_ASSERT_EQUAL(bzrtp_getSelfZID((void *)bobDB, "bob@sip.linphone.org", selfZIDbob, NULL), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_getSelfZID_lock((void *)aliceDB, "alice@sip.linphone.org", selfZIDalice, NULL, NULL), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_getSelfZID_lock((void *)bobDB, "bob@sip.linphone.org", selfZIDbob, NULL, NULL), 0, int, "%x");
 	/* try to get the matching zuid in cache: it shall not be there as the negotiation didn't completed */
-	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)aliceDB, "alice@sip.linphone.org", "bob@sip.linphone.org", selfZIDbob, BZRTP_ZIDCACHE_DONT_INSERT_ZUID, &zuidAlice), BZRTP_ERROR_CACHE_PEERNOTFOUND, int, "%x");
-	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)bobDB, "bob@sip.linphone.org", "alice@sip.linphone.org", selfZIDalice, BZRTP_ZIDCACHE_DONT_INSERT_ZUID, &zuidBob), BZRTP_ERROR_CACHE_PEERNOTFOUND, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)aliceDB, "alice@sip.linphone.org", "bob@sip.linphone.org", selfZIDbob, BZRTP_ZIDCACHE_DONT_INSERT_ZUID, &zuidAlice, NULL), BZRTP_ERROR_CACHE_PEERNOTFOUND, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)bobDB, "bob@sip.linphone.org", "alice@sip.linphone.org", selfZIDalice, BZRTP_ZIDCACHE_DONT_INSERT_ZUID, &zuidBob, NULL), BZRTP_ERROR_CACHE_PEERNOTFOUND, int, "%x");
 
 	/* make a second exchange */
 	resetGlobalParams(); /* this one goes to the end of it */
@@ -1305,8 +1353,8 @@ static void test_abort_retry(void) {
 	/* after the exchange we shall have both pvs values at 1 and both rs1 identical and rs2 null, retrieve them from cache and check it */
 	/* first get each ZIDs, note give NULL as RNG context may lead to segfault in case of error(caches were not created correctly)*/
 	/* get the matching zuid in cache */
-	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)aliceDB, "alice@sip.linphone.org", "bob@sip.linphone.org", selfZIDbob, BZRTP_ZIDCACHE_DONT_INSERT_ZUID, &zuidAlice), 0, int, "%x");
-	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)bobDB, "bob@sip.linphone.org", "alice@sip.linphone.org", selfZIDalice, BZRTP_ZIDCACHE_DONT_INSERT_ZUID, &zuidBob), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)aliceDB, "alice@sip.linphone.org", "bob@sip.linphone.org", selfZIDbob, BZRTP_ZIDCACHE_DONT_INSERT_ZUID, &zuidAlice, NULL), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)bobDB, "bob@sip.linphone.org", "alice@sip.linphone.org", selfZIDalice, BZRTP_ZIDCACHE_DONT_INSERT_ZUID, &zuidBob, NULL), 0, int, "%x");
 
 	if (zuidAlice==0 || zuidBob==0) {//abort if we didn't retrieve valid zuid values, keep tmp sqlite files for inspection
 		sqlite3_close(aliceDB);
@@ -1316,8 +1364,8 @@ static void test_abort_retry(void) {
 	}
 
 	/* retrieve the values */
-	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 3), 0, int, "%x");
-	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)bobDB, zuidBob, "zrtp", colNames, colValuesBob, colLengthBob, 3), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_read_lock((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 3, NULL), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_read_lock((void *)bobDB, zuidBob, "zrtp", colNames, colValuesBob, colLengthBob, 3, NULL), 0, int, "%x");
 	/* and compare to expected */
 	/* rs1 is set and they are both the same */
 	BC_ASSERT_EQUAL(colLengthAlice[0], 32, int, "%d");
@@ -1349,9 +1397,12 @@ static void test_abort_retry(void) {
 	sqlite3_close(bobDB);
 
 	/* clean temporary files */
-	remove("tmpZIDAlice_abortRetry.sqlite");
-	remove("tmpZIDBob_abortRetry.sqlite");
-
+	remove(aliceTesterFile);
+	remove(bobTesterFile);
+	bc_free(aliceTesterFile);
+	bc_free(bobTesterFile);
+#else /* ZIDCACHE_ENABLED */
+	bzrtp_message("Test skipped as ZID cache is disabled\n");
 #endif /* ZIDCACHE_ENABLED */
 }
 
@@ -1363,101 +1414,225 @@ static void test_active_flag(void) {
 	sqlite3 *bob3DB=NULL;
 	sqlite3 *claire1DB=NULL;
 	sqlite3 *claire2DB=NULL;
+	char *aliceTesterFile = bc_tester_file("tmpZIDAlice_activeFlag.sqlite");
+	char *bob1TesterFile = bc_tester_file("tmpZIDBob1_activeFlag.sqlite");
+	char *bob2TesterFile = bc_tester_file("tmpZIDBob2_activeFlag.sqlite");
+	char *bob3TesterFile = bc_tester_file("tmpZIDBob3_activeFlag.sqlite");
+	char *claire1TesterFile = bc_tester_file("tmpZIDClaire1_activeFlag.sqlite");
+	char *claire2TesterFile = bc_tester_file("tmpZIDClaire2_activeFlag.sqlite");
 
 	resetGlobalParams();
 
 	/* create tempory DB files, just try to clean them from dir before, just in case  */
-	remove("tmpZIDAlice_activeFlag.sqlite");
-	/* bob has 3 devices */
-	remove("tmpZIDBob1_activeFlag.sqlite");
-	remove("tmpZIDBob2_activeFlag.sqlite");
-	remove("tmpZIDBob3_activeFlag.sqlite");
-	/* claire has 2 devices */
-	remove("tmpZIDClaire1_activeFlag.sqlite");
-	remove("tmpZIDClaire2_activeFlag.sqlite");
-	bzrtptester_sqlite3_open(bc_tester_file("tmpZIDAlice_activeFlag.sqlite"), &aliceDB);
-	bzrtptester_sqlite3_open(bc_tester_file("tmpZIDBob1_activeFlag.sqlite"), &bob1DB);
-	bzrtptester_sqlite3_open(bc_tester_file("tmpZIDBob2_activeFlag.sqlite"), &bob2DB);
-	bzrtptester_sqlite3_open(bc_tester_file("tmpZIDBob3_activeFlag.sqlite"), &bob3DB);
-	bzrtptester_sqlite3_open(bc_tester_file("tmpZIDClaire1_activeFlag.sqlite"), &claire1DB);
-	bzrtptester_sqlite3_open(bc_tester_file("tmpZIDClaire2_activeFlag.sqlite"), &claire2DB);
+	remove(aliceTesterFile);
+	remove(bob1TesterFile);
+	remove(bob2TesterFile);
+	remove(bob3TesterFile);
+	remove(claire1TesterFile);
+	remove(claire2TesterFile);
+	bzrtptester_sqlite3_open(aliceTesterFile, &aliceDB);
+	bzrtptester_sqlite3_open(bob1TesterFile, &bob1DB);
+	bzrtptester_sqlite3_open(bob2TesterFile, &bob2DB);
+	bzrtptester_sqlite3_open(bob3TesterFile, &bob3DB);
+	bzrtptester_sqlite3_open(claire1TesterFile, &claire1DB);
+	bzrtptester_sqlite3_open(claire2TesterFile, &claire2DB);
 
 	/* make a first exchange alice <-> bob1, validate the SAS */
 	BC_ASSERT_EQUAL(multichannel_exchange(NULL, NULL, defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bob1DB, "bob@sip.linphone.org"), 0, int, "%x");
 	/* ask alice what is the pvs status of the active bob uri: bob@sip.linphone.org, it shall be valid(bob1 is active) */
-	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus(aliceDB, "bob@sip.linphone.org"), BZRTP_CACHE_PEER_STATUS_VALID, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus_lock(aliceDB, "bob@sip.linphone.org", NULL), BZRTP_CACHE_PEER_STATUS_VALID, int, "%x");
 
 	/* make an exchange, alice <-> bob2, alice is instructed to not validate the SAS nor invalidate it */
 	BC_ASSERT_EQUAL(multichannel_exchange(defaultCryptoAlgoSelectionNoSASValidation(), defaultCryptoAlgoSelection(), defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bob2DB, "bob@sip.linphone.org"), 0, int, "%x");
 	/* ask alice what is the pvs status of the active bob uri: bob@sip.linphone.org, it shall be unknown(as it is the first exchange with bob2 which is now active) */
-	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus(aliceDB, "bob@sip.linphone.org"), BZRTP_CACHE_PEER_STATUS_UNKNOWN, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus_lock(aliceDB, "bob@sip.linphone.org", NULL), BZRTP_CACHE_PEER_STATUS_UNKNOWN, int, "%x");
 
 	/* make an exchange, alice <-> bob1, alice is instructed to not validate the SAS nor invalidate it */
 	BC_ASSERT_EQUAL(multichannel_exchange(defaultCryptoAlgoSelectionNoSASValidation(), defaultCryptoAlgoSelection(), defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bob1DB, "bob@sip.linphone.org"), 0, int, "%x");
 	/* ask alice what is the pvs status of the active bob uri: bob@sip.linphone.org, it shall be valid(bob1 is now active) */
-	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus(aliceDB, "bob@sip.linphone.org"), BZRTP_CACHE_PEER_STATUS_VALID, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus_lock(aliceDB, "bob@sip.linphone.org", NULL), BZRTP_CACHE_PEER_STATUS_VALID, int, "%x");
 
 	/* make an exchange, alice <-> bob1, alice is instructed to reset the SAS */
 	BC_ASSERT_EQUAL(multichannel_exchange(defaultCryptoAlgoSelectionResetSAS(), defaultCryptoAlgoSelection(), defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bob1DB, "bob@sip.linphone.org"), 0, int, "%x");
 	/* ask alice what is the pvs status of the active bob uri: bob@sip.linphone.org, it shall be invalid(bob1 is still active) */
-	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus(aliceDB, "bob@sip.linphone.org"), BZRTP_CACHE_PEER_STATUS_INVALID, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus_lock(aliceDB, "bob@sip.linphone.org", NULL), BZRTP_CACHE_PEER_STATUS_INVALID, int, "%x");
 
 	/* make an exchange, alice <-> bob2, alice is instructed to not validate the SAS nor invalidate it */
 	BC_ASSERT_EQUAL(multichannel_exchange(defaultCryptoAlgoSelectionNoSASValidation(), defaultCryptoAlgoSelection(), defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bob2DB, "bob@sip.linphone.org"), 0, int, "%x");
 	/* ask alice what is the pvs status of the active bob uri: bob@sip.linphone.org, it shall be unknown(as it is the first exchange with bob2 which is now active) */
-	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus(aliceDB, "bob@sip.linphone.org"), BZRTP_CACHE_PEER_STATUS_UNKNOWN, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus_lock(aliceDB, "bob@sip.linphone.org", NULL), BZRTP_CACHE_PEER_STATUS_UNKNOWN, int, "%x");
 
 	/* make an exchange alice <-> bob2, validate the SAS */
 	BC_ASSERT_EQUAL(multichannel_exchange(NULL, NULL, defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bob2DB, "bob@sip.linphone.org"), 0, int, "%x");
 	/* ask alice what is the pvs status of the active bob uri: bob@sip.linphone.org, it shall be valid (bob2 is now active) */
-	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus(aliceDB, "bob@sip.linphone.org"), BZRTP_CACHE_PEER_STATUS_VALID, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus_lock(aliceDB, "bob@sip.linphone.org", NULL), BZRTP_CACHE_PEER_STATUS_VALID, int, "%x");
 
 	/* make an exchange, alice <-> bob1, alice is instructed to not validate the SAS nor invalidate it */
 	BC_ASSERT_EQUAL(multichannel_exchange(defaultCryptoAlgoSelectionNoSASValidation(), defaultCryptoAlgoSelection(), defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bob1DB, "bob@sip.linphone.org"), 0, int, "%x");
 	/* ask alice what is the pvs status of the active bob uri: bob@sip.linphone.org, it shall be invalid(bob1 is now active) */
-	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus(aliceDB, "bob@sip.linphone.org"), BZRTP_CACHE_PEER_STATUS_INVALID, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus_lock(aliceDB, "bob@sip.linphone.org", NULL), BZRTP_CACHE_PEER_STATUS_INVALID, int, "%x");
 
 	/* make an exchange, alice <-> bob3, alice is instructed to not validate the SAS nor invalidate it */
 	BC_ASSERT_EQUAL(multichannel_exchange(defaultCryptoAlgoSelectionNoSASValidation(), defaultCryptoAlgoSelection(), defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bob3DB, "bob@sip.linphone.org"), 0, int, "%x");
 	/* ask alice what is the pvs status of the active bob uri: bob@sip.linphone.org, it shall be unknown(as it is the first exchange with bob3 which is now active) */
-	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus(aliceDB, "bob@sip.linphone.org"), BZRTP_CACHE_PEER_STATUS_UNKNOWN, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus_lock(aliceDB, "bob@sip.linphone.org", NULL), BZRTP_CACHE_PEER_STATUS_UNKNOWN, int, "%x");
 
 
 	/* introducing Claire */
 	/* ask alice what is the pvs status of the active claire uri: claire@sip.linphone.org, it shall still be unknown as alice never heard about clairee yet */
-	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus(aliceDB, "claire@sip.linphone.org"), BZRTP_CACHE_PEER_STATUS_UNKNOWN, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus_lock(aliceDB, "claire@sip.linphone.org", NULL), BZRTP_CACHE_PEER_STATUS_UNKNOWN, int, "%x");
 
 	/* make an exchange, alice <-> claire1, alice is instructed to reset the SAS */
 	BC_ASSERT_EQUAL(multichannel_exchange(defaultCryptoAlgoSelectionResetSAS(), defaultCryptoAlgoSelection(), defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", claire1DB, "claire@sip.linphone.org"), 0, int, "%x");
 	/* ask alice what is the pvs status of the active bob uri: bob@sip.linphone.org, it shall still be unknown(bob3 is still active) */
-	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus(aliceDB, "bob@sip.linphone.org"), BZRTP_CACHE_PEER_STATUS_UNKNOWN, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus_lock(aliceDB, "bob@sip.linphone.org", NULL), BZRTP_CACHE_PEER_STATUS_UNKNOWN, int, "%x");
 	/* ask alice what is the pvs status of the active claire uri: claire@sip.linphone.org, it shall still be invalid */
-	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus(aliceDB, "claire@sip.linphone.org"), BZRTP_CACHE_PEER_STATUS_INVALID, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus_lock(aliceDB, "claire@sip.linphone.org", NULL), BZRTP_CACHE_PEER_STATUS_INVALID, int, "%x");
 
 	/* make a first exchange alice <-> claire2, validate the SAS */
 	BC_ASSERT_EQUAL(multichannel_exchange(NULL, NULL, defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", claire2DB, "claire@sip.linphone.org"), 0, int, "%x");
 	/* ask alice what is the pvs status of the active bob uri: bob@sip.linphone.org, it shall still be unknown(bob3 is still active) */
-	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus(aliceDB, "bob@sip.linphone.org"), BZRTP_CACHE_PEER_STATUS_UNKNOWN, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus_lock(aliceDB, "bob@sip.linphone.org", NULL), BZRTP_CACHE_PEER_STATUS_UNKNOWN, int, "%x");
 	/* ask alice what is the pvs status of the active claire uri: claire@sip.linphone.org, it shall still be valid */
-	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus(aliceDB, "claire@sip.linphone.org"), BZRTP_CACHE_PEER_STATUS_VALID, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus_lock(aliceDB, "claire@sip.linphone.org", NULL), BZRTP_CACHE_PEER_STATUS_VALID, int, "%x");
 
 	/* make an exchange, alice <-> bob1, alice is instructed to not validate the SAS nor invalidate it */
 	BC_ASSERT_EQUAL(multichannel_exchange(defaultCryptoAlgoSelectionNoSASValidation(), defaultCryptoAlgoSelection(), defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bob1DB, "bob@sip.linphone.org"), 0, int, "%x");
 	/* ask alice what is the pvs status of the active bob uri: bob@sip.linphone.org, it shall be invalid(bob1 is now active) */
-	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus(aliceDB, "bob@sip.linphone.org"), BZRTP_CACHE_PEER_STATUS_INVALID, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus_lock(aliceDB, "bob@sip.linphone.org", NULL), BZRTP_CACHE_PEER_STATUS_INVALID, int, "%x");
 	/* ask alice what is the pvs status of the active claire uri: claire@sip.linphone.org, it shall still be valid */
-	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus(aliceDB, "claire@sip.linphone.org"), BZRTP_CACHE_PEER_STATUS_VALID, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus_lock(aliceDB, "claire@sip.linphone.org", NULL), BZRTP_CACHE_PEER_STATUS_VALID, int, "%x");
+
+	sqlite3_close(aliceDB);
+	sqlite3_close(bob1DB);
+	sqlite3_close(bob2DB);
+	sqlite3_close(bob3DB);
+	sqlite3_close(claire1DB);
+	sqlite3_close(claire2DB);
 
 	/* clean temporary files */
-	remove("tmpZIDAlice_activeFlag.sqlite");
-	remove("tmpZIDBob1_activeFlag.sqlite");
-	remove("tmpZIDBob2_activeFlag.sqlite");
-	remove("tmpZIDBob3_activeFlag.sqlite");
-	remove("tmpZIDClaire1_activeFlag.sqlite");
-	remove("tmpZIDClaire2_activeFlag.sqlite");
-
+	remove(aliceTesterFile);
+	remove(bob1TesterFile);
+	remove(bob2TesterFile);
+	remove(bob3TesterFile);
+	remove(claire1TesterFile);
+	remove(claire2TesterFile);
+	bc_free(aliceTesterFile);
+	bc_free(bob1TesterFile);
+	bc_free(bob2TesterFile);
+	bc_free(bob3TesterFile);
+	bc_free(claire1TesterFile);
+	bc_free(claire2TesterFile);
+#else /* ZIDCACHE_ENABLED */
+	bzrtp_message("Test skipped as ZID cache is disabled\n");
 #endif /* ZIDCACHE_ENABLED */
 }
+
+
+
+/*
+ * Scenario:
+ * - one thread runs exchanges
+ * - one thread requests peerStatus
+ */
+#ifdef ZIDCACHE_ENABLED
+struct thread_argument {
+	sqlite3 *db;
+	bctbx_mutex_t *dbMutex;
+	char *peerUri;
+	int expectedStatus;
+	uint64_t timeout;
+};
+
+
+static void *test_cache_concurrent_access_getPeerStatus(void *arg) {
+	struct thread_argument *param = arg;
+
+	while (getSimulatedTime()<param->timeout) {
+		BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus_lock(param->db, param->peerUri, param->dbMutex), param->expectedStatus, int, "%x");
+	}
+	return NULL;
+}
+#endif /* ZIDCACHE_ENABLED */
+
+static void test_cache_concurrent_access(void) {
+#ifdef ZIDCACHE_ENABLED
+	sqlite3 *aliceDB=NULL;
+	sqlite3 *bobDB=NULL;
+	sqlite3 *aliceDB2=NULL;
+	sqlite3 *bobDB2=NULL;
+	uint64_t timeout = 20000; // run a 20s simulation
+	bctbx_mutex_t aliceMutex, bobMutex;
+	struct thread_argument aliceParams,bobParams;
+	bctbx_thread_t aliceThreadId, bobThreadId;
+	char *aliceTesterFile = bc_tester_file("tmpZIDAlice_concurrentAccess.sqlite");
+	char *bobTesterFile = bc_tester_file("tmpZIDBob1_concurrentAccess.sqlite");
+	void *res;
+
+	resetGlobalParams();
+
+	/* create tempory DB files, just try to clean them from dir before, just in case  */
+	remove(aliceTesterFile);
+	remove(bobTesterFile);
+	/* open 2 connections on each file */
+	bzrtptester_sqlite3_open(aliceTesterFile, &aliceDB);
+	bzrtptester_sqlite3_open(aliceTesterFile, &aliceDB2);
+	bzrtptester_sqlite3_open(bobTesterFile, &bobDB);
+	bzrtptester_sqlite3_open(bobTesterFile, &bobDB2);
+
+	/* init mutex */
+	bctbx_mutex_init(&aliceMutex, NULL);
+	bctbx_mutex_init(&bobMutex, NULL);
+
+	/* set alice parameter to start a thread checking for bob status */
+	aliceParams.db = aliceDB2;
+	aliceParams.dbMutex = &aliceMutex;
+	//aliceParams.dbMutex = NULL;
+	aliceParams.peerUri = "bob@sip.linphone.org";
+	aliceParams.expectedStatus = BZRTP_CACHE_PEER_STATUS_VALID;
+	aliceParams.timeout = timeout;
+
+	/* set alice parameter to start a thread checking for bob status */
+	bobParams.db = bobDB2;
+	bobParams.dbMutex = &bobMutex;
+	//bobParams.dbMutex = NULL;
+	bobParams.peerUri = "alice@sip.linphone.org";
+	bobParams.expectedStatus = BZRTP_CACHE_PEER_STATUS_VALID;
+	bobParams.timeout = timeout;
+
+	/* make a first exchange alice <-> bob, validate the SAS */
+	BC_ASSERT_EQUAL(multichannel_exchange_mutex(NULL, NULL, defaultCryptoAlgoSelection(), aliceDB, &aliceMutex, "alice@sip.linphone.org", bobDB, &bobMutex, "bob@sip.linphone.org"), 0, int, "%x");
+
+	/* launch get_peerStatus thread */
+	bctbx_thread_create(&bobThreadId, NULL, &test_cache_concurrent_access_getPeerStatus, &bobParams);
+	bctbx_thread_create(&aliceThreadId, NULL, &test_cache_concurrent_access_getPeerStatus, &aliceParams);
+
+	/* run more exchanges */
+	while (getSimulatedTime()<timeout) {
+		BC_ASSERT_EQUAL(multichannel_exchange_mutex(NULL, NULL, defaultCryptoAlgoSelection(), aliceDB, &aliceMutex, "alice@sip.linphone.org", bobDB, &bobMutex, "bob@sip.linphone.org"), 0, int, "%x");
+	}
+
+	bctbx_thread_join(aliceThreadId, &res);
+	bctbx_thread_join(bobThreadId, &res);
+
+	bctbx_mutex_destroy(&aliceMutex);
+	bctbx_mutex_destroy(&bobMutex);
+
+	sqlite3_close(aliceDB);
+	sqlite3_close(bobDB);
+	sqlite3_close(aliceDB2);
+	sqlite3_close(bobDB2);
+
+	/* clean temporary files */
+	remove(aliceTesterFile);
+	remove(bobTesterFile);
+	bc_free(aliceTesterFile);
+	bc_free(bobTesterFile);
+#else /* ZIDCACHE_ENABLED */
+	bzrtp_message("Test skipped as ZID cache is disabled\n");
+#endif /* ZIDCACHE_ENABLED */
+}
+
 
 static test_t key_exchange_tests[] = {
 	TEST_NO_TAG("Cacheless multi channel", test_cacheless_exchange),
@@ -1467,7 +1642,8 @@ static test_t key_exchange_tests[] = {
 	TEST_NO_TAG("Cached PVS", test_cache_sas_not_confirmed),
 	TEST_NO_TAG("Auxiliary Secret", test_auxiliary_secret),
 	TEST_NO_TAG("Abort and retry", test_abort_retry),
-	TEST_NO_TAG("Active flag", test_active_flag)
+	TEST_NO_TAG("Active flag", test_active_flag),
+	TEST_NO_TAG("Cache concurrent access", test_cache_concurrent_access),
 };
 
 test_suite_t key_exchange_test_suite = {

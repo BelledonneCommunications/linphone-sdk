@@ -26,27 +26,36 @@
 
 #include <stdint.h>
 #include "bctoolbox/crypto.h"
+#include "bctoolbox/port.h"
 
 #ifdef _MSC_VER
 	#ifdef BZRTP_STATIC
 		#define BZRTP_EXPORT
-	#else
+	#else /* BZRTP_STATIC */
 		#ifdef BZRTP_EXPORTS
 			#define BZRTP_EXPORT __declspec(dllexport)
-		#else
+		#else /* BZRTP_EXPORTS */
 			#define BZRTP_EXPORT __declspec(dllimport)
-		#endif
-	#endif
-#else
+		#endif /* BZRTP_EXPORTS */
+	#endif /* BZRTP_STATIC */
+
+	#ifndef BZRTP_DEPRECATED
+		#define BZRTP_DEPRECATED __declspec(deprecated)
+	#endif /* BZRTP_DEPRECATED */
+#else /* _MSC_VER*/
 	#define BZRTP_EXPORT __attribute__ ((visibility ("default")))
-#endif
+
+	#ifndef BZRTP_DEPRECATED
+		#define BZRTP_DEPRECATED __attribute__ ((deprecated))
+	#endif /* BZRTP_DEPRECATED */
+#endif /* _MSC_VER*/
 
 /**
  * Define different types of crypto functions */
 #define ZRTP_HASH_TYPE			0x01
-#define ZRTP_CIPHERBLOCK_TYPE 	0x02
+#define ZRTP_CIPHERBLOCK_TYPE 		0x02
 #define ZRTP_AUTHTAG_TYPE		0x04
-#define ZRTP_KEYAGREEMENT_TYPE	0x08
+#define ZRTP_KEYAGREEMENT_TYPE		0x08
 #define ZRTP_SAS_TYPE			0x10
 
 /**
@@ -253,6 +262,19 @@ BZRTP_EXPORT int bzrtp_destroyBzrtpContext(bzrtpContext_t *context, uint32_t sel
 BZRTP_EXPORT int bzrtp_setCallbacks(bzrtpContext_t *context, const bzrtpCallbacks_t *cbs);
 
 /**
+ * @brief Set the pointer allowing cache access,
+ * this version of the function get a mutex to lock the cache when accessing it
+ *
+ * @param[in]	zidCachePointer		Used by internal function to access cache: turn into a sqlite3 pointer if cache is enabled
+ * @param[in]   selfURI			Local URI used for this communication, needed to perform cache operation, NULL terminated string, duplicated by this function
+ * @param[in]   peerURI			Peer URI used for this communication, needed to perform cache operation, NULL terminated string, duplicated by this function
+ * @param[in]   zidCacheMutex		Points to a mutex used to lock zidCache database access
+ *
+ * @return 0 or BZRTP_CACHE_SETUP(if cache is populated by this call) on success, error code otherwise
+*/
+BZRTP_EXPORT int bzrtp_setZIDCache_lock(bzrtpContext_t *context, void *zidCache, const char *selfURI, const char *peerURI, bctbx_mutex_t *zidCacheMutex);
+
+/**
  * @brief Set the pointer allowing cache access
  *
  * @param[in]	zidCachePointer		Used by internal function to access cache: turn into a sqlite3 pointer if cache is enabled
@@ -442,7 +464,21 @@ BZRTP_EXPORT uint8_t bzrtp_getAuxiliarySharedSecretMismatch(bzrtpContext_t *zrtp
  *
  * @return 0 on success, BZRTP_CACHE_SETUP if cache was empty, BZRTP_CACHE_UPDATE if db structure was updated, error code otherwise
  */
-BZRTP_EXPORT int bzrtp_initCache(void *db);
+BZRTP_EXPORT BZRTP_DEPRECATED int bzrtp_initCache(void *db);
+
+/**
+ * @brief Check the given sqlite3 DB and create requested tables if needed
+ * 	Also manage DB schema upgrade
+ *
+ * this version of the function gets a mutex to lock the cache when accessing it
+ *
+ * @param[in/out]	db	Pointer to the sqlite3 db open connection
+ * 				Use a void * to keep this API when building cacheless
+ * @param[in]   zidCacheMutex	Points to a mutex used to lock zidCache database access, ignored if NULL
+ *
+ * @return 0 on success, BZRTP_CACHE_SETUP if cache was empty, BZRTP_CACHE_UPDATE if db structure was updated, error code otherwise
+ */
+BZRTP_EXPORT int bzrtp_initCache_lock(void *db, bctbx_mutex_t *zidCacheMutex);
 
 /**
  * @brief : retrieve ZID from cache
@@ -457,7 +493,24 @@ BZRTP_EXPORT int bzrtp_initCache(void *db);
  *
  * @return		0 on success, or BZRTP_CACHE_DATA_NOTFOUND if no ZID matching the URI was found and no RNGContext is given to generate one
  */
-BZRTP_EXPORT int bzrtp_getSelfZID(void *db, const char *selfURI, uint8_t selfZID[12], bctbx_rng_context_t *RNGContext);
+BZRTP_EXPORT BZRTP_DEPRECATED int bzrtp_getSelfZID(void *db, const char *selfURI, uint8_t selfZID[12], bctbx_rng_context_t *RNGContext);
+
+/**
+ * @brief : retrieve ZID from cache
+ * ZID is randomly generated if cache is empty or inexistant
+ * ZID is randomly generated in case of cacheless implementation(db argument is NULL)
+ * this version of the function gets a mutex to lock the cache when accessing it
+ *
+ * @param[in/out] 	db		sqlite3 database(or NULL if we don't use cache at runtime)
+ * 					Use a void * to keep this API when building cacheless
+ * @param[in]		selfURI		the sip uri of local user, NULL terminated string
+ * @param[out]		selfZID		the ZID, retrieved from cache or randomly generated
+ * @param[in]		RNGContext	A RNG context used to generate ZID if needed
+ * @param[in]  		zidCacheMutex	Points to a mutex used to lock zidCache database access, ignored if NULL
+ *
+ * @return		0 on success, or BZRTP_CACHE_DATA_NOTFOUND if no ZID matching the URI was found and no RNGContext is given to generate one
+ */
+BZRTP_EXPORT int bzrtp_getSelfZID_lock(void *db, const char *selfURI, uint8_t selfZID[12], bctbx_rng_context_t *RNGContext, bctbx_mutex_t *zidCacheMutex);
 
 /**
  * @brief Write(insert or update) data in cache, adressing it by zuid (ZID/URI binding id used in cache)
@@ -475,7 +528,27 @@ BZRTP_EXPORT int bzrtp_getSelfZID(void *db, const char *selfURI, uint8_t selfZID
  *
  * @return 0 on succes, error code otherwise
  */
-BZRTP_EXPORT int bzrtp_cache_write(void *dbPointer, int zuid, const char *tableName, const char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount);
+BZRTP_EXPORT BZRTP_DEPRECATED int bzrtp_cache_write(void *dbPointer, int zuid, const char *tableName, const char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount);
+
+/**
+ * @brief Write(insert or update) data in cache, adressing it by zuid (ZID/URI binding id used in cache)
+ * 		Get arrays of column names, values to be inserted, lengths of theses values
+ *		All three arrays must be the same lenght: columnsCount
+ * 		If the row isn't present in the given table, it will be inserted
+ * this version of the function gets a mutex to lock the cache when accessing it
+ *
+ * @param[in/out]	dbPointer	Pointer to an already opened sqlite db
+ * @param[in]		zuid		The DB internal id to adress the correct row(binding between local uri and peer ZID+URI)
+ * @param[in]		tableName	The name of the table to write in the db, must already exists. Null terminated string
+ * @param[in]		columns		An array of null terminated strings containing the name of the columns to update
+ * @param[in]		values		An array of buffers containing the values to insert/update matching the order of columns array
+ * @param[in]		lengths		An array of integer containing the lengths of values array buffer matching the order of columns array
+ * @param[in]		columnsCount	length common to columns,values and lengths arrays
+ * @param[in]		zidCacheMutex	Points to a mutex used to lock zidCache database access, ignored if NULL
+ *
+ * @return 0 on succes, error code otherwise
+ */
+BZRTP_EXPORT int bzrtp_cache_write_lock(void *dbPointer, int zuid, const char *tableName, const char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount, bctbx_mutex_t *zidCacheMutex);
 
 /**
  * @brief Read data from specified table/columns from cache adressing it by zuid (ZID/URI binding id used in cache)
@@ -493,7 +566,27 @@ BZRTP_EXPORT int bzrtp_cache_write(void *dbPointer, int zuid, const char *tableN
  *
  * @return 0 on succes, error code otherwise
  */
-BZRTP_EXPORT int bzrtp_cache_read(void *dbPointer, int zuid, const char *tableName, const char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount);
+BZRTP_EXPORT BZRTP_DEPRECATED int bzrtp_cache_read(void *dbPointer, int zuid, const char *tableName, const char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount);
+
+/**
+ * @brief Read data from specified table/columns from cache adressing it by zuid (ZID/URI binding id used in cache)
+ * 		Get arrays of column names, values to be read, and the number of colums to be read
+ *		Produce an array of values(uint8_t arrays) and a array of corresponding lengths
+ *		Values memory is allocated by this function and must be freed by caller
+ * this version of the function gets a mutex to lock the cache when accessing it
+ *
+ * @param[in/out]	dbPointer	Pointer to an already opened sqlite db
+ * @param[in]		zuid		The DB internal id to adress the correct row(binding between local uri and peer ZID+URI)
+ * @param[in]		tableName	The name of the table to read in the db. Null terminated string
+ * @param[in]		columns		An array of null terminated strings containing the name of the columns to read, the array's length  is columnsCount
+ * @param[out]		values		An array of uint8_t pointers, each one will be allocated to the read value and they must be freed by caller
+ * @param[out]		lengths		An array of integer containing the lengths of values array buffer read
+ * @param[in]		columnsCount	length common to columns,values and lengths arrays
+ * @param[in]		zidCacheMutex	Points to a mutex used to lock zidCache database access, ignored if NULL
+ *
+ * @return 0 on succes, error code otherwise
+ */
+BZRTP_EXPORT int bzrtp_cache_read_lock(void *dbPointer, int zuid, const char *tableName, const char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount, bctbx_mutex_t *zidCacheMutex);
 
 /**
  * @brief Perform migration from xml version to sqlite3 version of cache
@@ -539,6 +632,7 @@ BZRTP_EXPORT int bzrtp_exportKey(bzrtpContext_t *zrtpContext, char *label, size_
  *
  * @param[in]	dbPointer	Pointer to an already opened sqlite db
  * @param[in]	peerURI		The peer sip:uri we're interested in
+ * @param[in]	zidCacheMutex	Points to a mutex used to lock zidCache database access, ignored if NULL
  *
  * @return one of:
  *  - BZRTP_CACHE_PEER_STATUS_UNKNOWN : this uri is not present in cache OR during calls with the active device, SAS never was validated or rejected
@@ -547,7 +641,7 @@ BZRTP_EXPORT int bzrtp_exportKey(bzrtpContext_t *zrtpContext, char *label, size_
  *  - BZRTP_CACHE_PEER_STATUS_INVALID : the active peer device status is set to invalid
  *
  */
-BZRTP_EXPORT int bzrtp_cache_getPeerStatus(void *dbPointer, const char *peerURI);
+BZRTP_EXPORT int bzrtp_cache_getPeerStatus_lock(void *dbPointer, const char *peerURI, bctbx_mutex_t *zidCacheMutex);
 
 #ifdef __cplusplus
 }

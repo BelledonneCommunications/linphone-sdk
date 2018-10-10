@@ -87,6 +87,7 @@ bzrtpContext_t *bzrtp_createBzrtpContext(void) {
 
 	/* initialise cached secret buffer to null */
 	context->zidCache = NULL; /* a pointer to the sqlite3 db accessor, can be NULL if running cacheless */
+	context->zidCacheMutex = NULL; /* a pointer to a mutex provided by the environment to lock database during access, ignored if NULL */
 	context->zuid = 0;
 	context->peerBzrtpVersion = 0;
 	context->selfURI = NULL;
@@ -118,6 +119,8 @@ bzrtpContext_t *bzrtp_createBzrtpContext(void) {
  * @brief Set the pointer allowing cache access
  *
  * @param[in]	zidCachePointer		Used by internal function to access cache: turn into a sqlite3 pointer if cache is enabled
+ * @param[in]   selfURI			Local URI used for this communication, needed to perform cache operation, NULL terminated string, duplicated by this function
+ * @param[in]   peerURI			Peer URI used for this communication, needed to perform cache operation, NULL terminated string, duplicated by this function
  *
  * @return 0 or BZRTP_CACHE_SETUP(if cache is populated by this call) on success, error code otherwise
 */
@@ -141,7 +144,36 @@ int bzrtp_setZIDCache(bzrtpContext_t *context, void *zidCache, const char *selfU
 	context->peerURI = strdup(peerURI);
 
 	/* and init the cache(create needed tables if they don't exist) */
-	return bzrtp_initCache(context->zidCache);
+	return bzrtp_initCache_lock(context->zidCache, context->zidCacheMutex);
+#else /* ZIDCACHE_ENABLED */
+	return BZRTP_ERROR_CACHEDISABLED;
+#endif /* ZIDCACHE_ENABLED */
+}
+
+/**
+ * @brief Set the pointer allowing cache access, this version of the function get a mutex to lock the cache when accessing it
+ *
+ * Note: bzrtp does not manage the given mutex pointer, it has to be already initialized
+ *       and shall be destroyed by environment after the BZRTP session is completed.
+ *
+ * @param[in]	zidCachePointer		Used by internal function to access cache: turn into a sqlite3 pointer if cache is enabled
+ * @param[in]   selfURI			Local URI used for this communication, needed to perform cache operation, NULL terminated string, duplicated by this function
+ * @param[in]   peerURI			Peer URI used for this communication, needed to perform cache operation, NULL terminated string, duplicated by this function
+ * @param[in]   zidCacheMutex		Points to a mutex used to lock zidCache database access. Can be NULL, the zidcache is then non locked.
+ *
+ * @return 0 or BZRTP_CACHE_SETUP(if cache is populated by this call) on success, error code otherwise
+*/
+int bzrtp_setZIDCache_lock(bzrtpContext_t *context, void *zidCache, const char *selfURI, const char *peerURI, bctbx_mutex_t *zidCacheMutex) {
+#ifdef ZIDCACHE_ENABLED
+	/* is zrtp context valid */
+	if (context==NULL) {
+		return BZRTP_ERROR_INVALIDCONTEXT;
+	}
+
+	context->zidCacheMutex = zidCacheMutex;
+
+	/* have the non lockable function finish the job */
+	return  bzrtp_setZIDCache(context, zidCache, selfURI, peerURI);
 #else /* ZIDCACHE_ENABLED */
 	return BZRTP_ERROR_CACHEDISABLED;
 #endif /* ZIDCACHE_ENABLED */
@@ -166,7 +198,7 @@ int bzrtp_initBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC) {
 	}
 
 	/* initialise self ZID. Randomly generated if no ZID is found in cache or no cache found */
-	bzrtp_getSelfZID(context->zidCache, context->selfURI, context->selfZID, context->RNGContext);
+	bzrtp_getSelfZID_lock(context->zidCache, context->selfURI, context->selfZID, context->RNGContext, context->zidCacheMutex);
 	context->isInitialised = 1;
 
 	/* allocate 1 channel context, set all the others pointers to NULL */
@@ -548,7 +580,7 @@ void bzrtp_SASVerified(bzrtpContext_t *zrtpContext) {
 			zrtpContext->cacheMismatchFlag  = 0;
 			bzrtp_updateCachedSecrets(zrtpContext, zrtpContext->channelContext[0]); /* channel[0] is the only one in DHM mode, so the only one able to have a cache mismatch */
 		}
-		bzrtp_cache_write(zrtpContext->zidCache, zrtpContext->zuid, "zrtp", colNames, colValues, colLength, 1);
+		bzrtp_cache_write_lock(zrtpContext->zidCache, zrtpContext->zuid, "zrtp", colNames, colValues, colLength, 1, zrtpContext->zidCacheMutex);
 	}
 }
 
@@ -564,7 +596,7 @@ void bzrtp_resetSASVerified(bzrtpContext_t *zrtpContext) {
 		const char *colNames[] = {"pvs"};
 		uint8_t *colValues[] = {&pvsFlag};
 		size_t colLength[] = {1};
-		bzrtp_cache_write(zrtpContext->zidCache, zrtpContext->zuid, "zrtp", colNames, colValues, colLength, 1);
+		bzrtp_cache_write_lock(zrtpContext->zidCache, zrtpContext->zuid, "zrtp", colNames, colValues, colLength, 1, zrtpContext->zidCacheMutex);
 	}
 }
 

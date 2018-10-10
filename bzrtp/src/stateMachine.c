@@ -558,7 +558,7 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
 				size_t colLength[] = {1};
 
 				zrtpContext->cachedSecret.previouslyVerifiedSas = 0;
-				bzrtp_cache_write_active(zrtpContext->zidCache, zrtpContext->zuid, "zrtp", colNames, colValues, colLength, 1);
+				bzrtp_cache_write_active(zrtpContext, "zrtp", colNames, colValues, colLength, 1);
 
 				/* if we have a statusMessage callback, use it to warn user */
 				if (zrtpContext->zrtpCallbacks.bzrtp_statusMessage!=NULL && zrtpContext->zrtpCallbacks.bzrtp_messageLevel>=BZRTP_MESSAGE_ERROR) { /* use error level as this one MUST (RFC section 4.3.2) be warned */
@@ -863,7 +863,7 @@ int state_keyAgreement_responderSendingDHPart1(bzrtpEvent_t event) {
 				size_t colLength[] = {1};
 
 				zrtpContext->cachedSecret.previouslyVerifiedSas = 0;
-				bzrtp_cache_write_active(zrtpContext->zidCache, zrtpContext->zuid, "zrtp", colNames, colValues, colLength, 1);
+				bzrtp_cache_write_active(zrtpContext, "zrtp", colNames, colValues, colLength, 1);
 
 				/* if we have a statusMessage callback, use it to warn user */
 				if (zrtpContext->zrtpCallbacks.bzrtp_statusMessage!=NULL && zrtpContext->zrtpCallbacks.bzrtp_messageLevel>=BZRTP_MESSAGE_ERROR) { /* use error level as this one MUST (RFC section 4.3.2) be warned */
@@ -2253,10 +2253,10 @@ int bzrtp_updateCachedSecrets(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 
 	/* before writing into cache, we must check we have the zuid correctly set, if not (it's our first successfull exchange with peer), insert it*/
 	if (zrtpContext->zuid==0) {
-		bzrtp_cache_getZuid((void *)zrtpContext->zidCache, zrtpContext->selfURI, zrtpContext->peerURI, zrtpContext->peerZID, BZRTP_ZIDCACHE_INSERT_ZUID, &zrtpContext->zuid);
+		bzrtp_cache_getZuid((void *)zrtpContext->zidCache, zrtpContext->selfURI, zrtpContext->peerURI, zrtpContext->peerZID, BZRTP_ZIDCACHE_INSERT_ZUID, &zrtpContext->zuid, zrtpContext->zidCacheMutex);
 	}
 
-	bzrtp_cache_write_active(zrtpContext->zidCache, zrtpContext->zuid, "zrtp", colNames, colValues, colLength, 2);
+	bzrtp_cache_write_active(zrtpContext, "zrtp", colNames, colValues, colLength, 2);
 
 	/* if exist, call the callback function to perform custom cache operation that may use s0(writing exported key into cache) */
 	if (zrtpContext->zrtpCallbacks.bzrtp_contextReadyForExportedKeys != NULL) {

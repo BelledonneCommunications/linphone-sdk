@@ -196,9 +196,13 @@ void test_parser_param(uint8_t hvi_trick) {
 		/* Check also the zrtp hello hash */
 		if (zrtpPacket->messageType==MSGTYPE_HELLO) {
 			if (patternZRTPMetaData[i][2]==0x87654321) {
+				bzrtp_freeZrtpPacket(context12345678->channelContext[0]->peerPackets[HELLO_MESSAGE_STORE_ID]);
+				bzrtp_freeZrtpPacket(context87654321->channelContext[0]->selfPackets[HELLO_MESSAGE_STORE_ID]);
 				context12345678->channelContext[0]->peerPackets[HELLO_MESSAGE_STORE_ID] = zrtpPacket;
 				context87654321->channelContext[0]->selfPackets[HELLO_MESSAGE_STORE_ID] = zrtpPacket;
 			} else {
+				bzrtp_freeZrtpPacket(context87654321->channelContext[0]->peerPackets[HELLO_MESSAGE_STORE_ID]);
+				bzrtp_freeZrtpPacket(context12345678->channelContext[0]->selfPackets[HELLO_MESSAGE_STORE_ID]);
 				context87654321->channelContext[0]->peerPackets[HELLO_MESSAGE_STORE_ID] = zrtpPacket;
 				context12345678->channelContext[0]->selfPackets[HELLO_MESSAGE_STORE_ID] = zrtpPacket;
 
@@ -648,6 +652,7 @@ static void test_parserComplete() {
 	memcpy(bob_DHPart1->auxsecretID, contextBob->channelContext[0]->responderAuxsecretID, 8);
 	memcpy(bob_DHPart1->pbxsecretID, contextBob->responderCachedSecretHash.pbxsecretID, 8);
 
+	free(contextBob->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID]->packetString);
 	retval +=bzrtp_packetBuild(contextBob, contextBob->channelContext[0], contextBob->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID],contextBob->channelContext[0]->selfSequenceNumber);
 	if (retval == 0) {
 		contextBob->channelContext[0]->selfSequenceNumber++;
@@ -1239,11 +1244,13 @@ static void test_parserComplete() {
 	alice_Hello = bzrtp_createZrtpPacket(contextAlice, contextAlice->channelContext[1], MSGTYPE_HELLO, &retval);
 	if (bzrtp_packetBuild(contextAlice, contextAlice->channelContext[1], alice_Hello, contextAlice->channelContext[1]->selfSequenceNumber) ==0) {
 		contextAlice->channelContext[1]->selfSequenceNumber++;
+		bzrtp_freeZrtpPacket(contextAlice->channelContext[1]->selfPackets[HELLO_MESSAGE_STORE_ID]);
 		contextAlice->channelContext[1]->selfPackets[HELLO_MESSAGE_STORE_ID] = alice_Hello;
 	}
 	bob_Hello = bzrtp_createZrtpPacket(contextBob, contextBob->channelContext[1], MSGTYPE_HELLO, &retval);
 	if (bzrtp_packetBuild(contextBob, contextBob->channelContext[1], bob_Hello, contextBob->channelContext[1]->selfSequenceNumber) ==0) {
 		contextBob->channelContext[1]->selfSequenceNumber++;
+		bzrtp_freeZrtpPacket(contextBob->channelContext[1]->selfPackets[HELLO_MESSAGE_STORE_ID]);
 		contextBob->channelContext[1]->selfPackets[HELLO_MESSAGE_STORE_ID] = bob_Hello;
 	}
 

@@ -423,7 +423,6 @@ int bzrtp_packetParser(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpC
 
 				/* allocate a DHPart message structure and pv */
 				messageData = (bzrtpDHPartMessage_t *)malloc(sizeof(bzrtpDHPartMessage_t));
-				messageData->pv = (uint8_t *)malloc(pvLength*sizeof(uint8_t));
 
 				/* fill the structure */
 				memcpy(messageData->H1, messageContent, 32);
@@ -508,6 +507,9 @@ int bzrtp_packetParser(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpC
 					}
 
 				}
+
+				/* alloc pv once all check are passed */
+				messageData->pv = (uint8_t *)malloc(pvLength*sizeof(uint8_t));
 
 				memcpy(messageData->rs1ID, messageContent, 8);
 				messageContent +=8;

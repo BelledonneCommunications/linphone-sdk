@@ -48,10 +48,12 @@
 typedef struct bzrtpChannelContext_struct bzrtpChannelContext_t;
 
 #include <bctoolbox/crypto.h>
+#include <bctoolbox/port.h>
 #include "packetParser.h"
 #include "stateMachine.h"
 
 /* logging */
+/* log domain is defined in CMakeList */
 #include "bctoolbox/logging.h"
 
 #ifdef _WIN32
@@ -237,6 +239,7 @@ struct bzrtpContext_struct {
 #else
 	void *zidCache; /**< an empty pointer always set to NULL when cache is disabled **/
 #endif /* ZIDCACHE_ENABLED */
+	bctbx_mutex_t *zidCacheMutex; /**< lock access to the cache if provided **/
 	int zuid; /**< internal id used to address zid cache SIP/ZID pair binding **/
 	char *selfURI; /**< a null terminated string storing the local user URI **/
 	uint8_t selfZID[12]; /**< The ZRTP Identifier of this ZRTP end point - a random if running cache less */

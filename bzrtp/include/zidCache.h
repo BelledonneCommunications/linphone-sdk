@@ -55,12 +55,13 @@ BZRTP_EXPORT int bzrtp_getPeerAssociatedSecrets(bzrtpContext_t *context, uint8_t
  * 					- BZRTP_ZIDCACHE_INSERT_ZUID : if not found, insert a new row in ziduri table and return newly inserted zuid
  * @param[out]		zuid		the internal db reference to the data row matching this particular pair of correspondant
  * 					if identity binding is not found and insertFlag set to 0, this value is set to 0
+ * @param[in]		zidCacheMutex	Points to a mutex used to lock zidCache database access, ignored if NULL
  *
  * @return 0 on success, BZRTP_ERROR_CACHE_PEERNOTFOUND if peer was not in and the insert flag is not set to BZRTP_ZIDCACHE_INSERT_ZUID, error code otherwise
  */
 #define BZRTP_ZIDCACHE_DONT_INSERT_ZUID	0
 #define BZRTP_ZIDCACHE_INSERT_ZUID	1
-BZRTP_EXPORT int bzrtp_cache_getZuid(void *dbPointer, const char *selfURI, const char *peerURI, const uint8_t peerZID[12], const uint8_t insertFlag, int *zuid);
+BZRTP_EXPORT int bzrtp_cache_getZuid(void *dbPointer, const char *selfURI, const char *peerURI, const uint8_t peerZID[12], const uint8_t insertFlag, int *zuid, bctbx_mutex_t *zidCacheMutex);
 
 /**
  * @brief This is a convenience wrapper to the bzrtp_cache_write function which will also take care of
@@ -71,8 +72,7 @@ BZRTP_EXPORT int bzrtp_cache_getZuid(void *dbPointer, const char *selfURI, const
  *		All three arrays must be the same lenght: columnsCount
  * 		If the row isn't present in the given table, it will be inserted
  *
- * @param[in/out]	dbPointer	Pointer to an already opened sqlite db
- * @param[in]		zuid		The DB internal id to adress the correct row(binding between local uri and peer ZID+URI)
+ * @param[in/out]	context		the current context, used to get the cache db pointer, zuid and cache mutex
  * @param[in]		tableName	The name of the table to write in the db, must already exists. Null terminated string
  * @param[in]		columns		An array of null terminated strings containing the name of the columns to update
  * @param[in]		values		An array of buffers containing the values to insert/update matching the order of columns array
@@ -81,6 +81,6 @@ BZRTP_EXPORT int bzrtp_cache_getZuid(void *dbPointer, const char *selfURI, const
  *
  * @return 0 on succes, error code otherwise
  */
-BZRTP_EXPORT int bzrtp_cache_write_active(void *dbPointer, int zuid, const char *tableName, const char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount);
+BZRTP_EXPORT int bzrtp_cache_write_active(bzrtpContext_t *context, const char *tableName, const char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount);
 
 #endif /* ZIDCACHE_H */

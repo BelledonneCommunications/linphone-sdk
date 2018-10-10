@@ -106,7 +106,7 @@ static int bzrtp_cache_update_000001_to_000002(sqlite3 *db) {
  * zrtp : zuid(as foreign key) | rs1 | rs2 | aux secret | pbx secret | pvs flag
  * lime : zuid(as foreign key) | sndKey | rcvKey | sndSId | rcvSId | snd Index | rcv Index | valid
  */
-int bzrtp_initCache(void *dbPointer) {
+static int bzrtp_initCache_impl(void *dbPointer) {
 	char* errmsg=NULL;
 	int ret;
 	char *sql;
@@ -239,7 +239,33 @@ int bzrtp_initCache(void *dbPointer) {
 	return retval;
 }
 
-int bzrtp_getSelfZID(void *dbPointer, const char *selfURI, uint8_t selfZID[12], bctbx_rng_context_t *RNGContext) {
+/* non locking database version of the previous function, is deprecated but kept for compatibility */
+int bzrtp_initCache(void *dbPointer) {
+	return bzrtp_initCache_impl(dbPointer);
+}
+
+/* locking database version of the previous function */
+int bzrtp_initCache_lock(void *dbPointer, bctbx_mutex_t *zidCacheMutex) {
+	int retval;
+
+	if (dbPointer != NULL && zidCacheMutex != NULL) {
+		bctbx_mutex_lock(zidCacheMutex);
+		sqlite3_exec((sqlite3 *)dbPointer, "BEGIN TRANSACTION;", NULL, NULL, NULL);
+		retval = bzrtp_initCache_impl(dbPointer);
+		if (retval == 0 || retval == BZRTP_CACHE_UPDATE || retval == BZRTP_CACHE_SETUP) {
+			sqlite3_exec((sqlite3 *)dbPointer, "COMMIT;", NULL, NULL, NULL);
+		} else {
+			sqlite3_exec((sqlite3 *)dbPointer, "ROLLBACK;", NULL, NULL, NULL);
+		}
+		bctbx_mutex_unlock(zidCacheMutex);
+		return retval;
+	}
+	else {
+		return bzrtp_initCache_impl(dbPointer);
+	}
+}
+
+static int bzrtp_getSelfZID_impl(void *dbPointer, const char *selfURI, uint8_t selfZID[12], bctbx_rng_context_t *RNGContext) {
 	char* errmsg=NULL;
 	int ret;
 	char *stmt;
@@ -300,6 +326,31 @@ int bzrtp_getSelfZID(void *dbPointer, const char *selfURI, uint8_t selfZID[12], 
 
 	return 0;
 }
+/* non locking database version of the previous function, is deprecated but kept for compatibility */
+int bzrtp_getSelfZID(void *dbPointer, const char *selfURI, uint8_t selfZID[12], bctbx_rng_context_t *RNGContext) {
+	return bzrtp_getSelfZID_impl(dbPointer, selfURI, selfZID, RNGContext);
+}
+/* locking database version of the previous function */
+int bzrtp_getSelfZID_lock(void *dbPointer, const char *selfURI, uint8_t selfZID[12], bctbx_rng_context_t *RNGContext, bctbx_mutex_t *zidCacheMutex) {
+	int retval;
+
+	if (dbPointer != NULL && zidCacheMutex != NULL) {
+		bctbx_mutex_lock(zidCacheMutex);
+		sqlite3_exec((sqlite3 *)dbPointer, "BEGIN TRANSACTION;", NULL, NULL, NULL);
+		retval = bzrtp_getSelfZID_impl(dbPointer, selfURI, selfZID, RNGContext);
+		if (retval == 0) {
+			sqlite3_exec((sqlite3 *)dbPointer, "COMMIT;", NULL, NULL, NULL);
+		} else {
+			sqlite3_exec((sqlite3 *)dbPointer, "ROLLBACK;", NULL, NULL, NULL);
+		}
+		bctbx_mutex_unlock(zidCacheMutex);
+		return retval;
+	}
+	else {
+		return bzrtp_getSelfZID_impl(dbPointer, selfURI, selfZID, RNGContext);
+	}
+}
+
 
 /**
  * @brief Parse the cache to find secrets associated to the given ZID, set them and their length in the context if they are found 
@@ -339,11 +390,18 @@ int bzrtp_getPeerAssociatedSecrets(bzrtpContext_t *context, uint8_t peerZID[12])
 		return BZRTP_ZIDCACHE_RUNTIME_CACHELESS;
 	}
 
+	if (context->zidCacheMutex != NULL) {
+		bctbx_mutex_lock(context->zidCacheMutex);
+	}
+
 	/* get all secrets from zrtp table, ORDER BY is just to ensure consistent return in case of inconsistent table) */
 	stmt = sqlite3_mprintf("SELECT z.zuid, z.rs1, z.rs2, z.aux, z.pbx, z.pvs FROM ziduri as zu INNER JOIN zrtp as z ON z.zuid=zu.zuid WHERE zu.selfuri=? AND zu.peeruri=? AND zu.zid=? ORDER BY zu.zuid LIMIT 1;");
 	ret = sqlite3_prepare_v2(context->zidCache, stmt, -1, &sqlStmt, NULL);
 	sqlite3_free(stmt);
 	if (ret != SQLITE_OK) {
+		if (context->zidCacheMutex != NULL) {
+			bctbx_mutex_unlock(context->zidCacheMutex);
+		}
 		return BZRTP_ZIDCACHE_UNABLETOREAD;
 	}
 	sqlite3_bind_text(sqlStmt, 1, context->selfURI,-1,SQLITE_TRANSIENT);
@@ -355,10 +413,15 @@ int bzrtp_getPeerAssociatedSecrets(bzrtpContext_t *context, uint8_t peerZID[12])
 	if (ret!=SQLITE_ROW) {
 		sqlite3_finalize(sqlStmt);
 		if (ret == SQLITE_DONE) {/* not found in cache, just leave cached secrets reset, but retrieve zuid, do not insert new peer ZID at this step, it must be done only when negotiation succeeds */
-			return bzrtp_cache_getZuid((void *)context->zidCache, context->selfURI, context->peerURI, context->peerZID, BZRTP_ZIDCACHE_DONT_INSERT_ZUID, &context->zuid);
+			/* last param is NULL as we already hold the lock on database */
+			ret = bzrtp_cache_getZuid((void *)context->zidCache, context->selfURI, context->peerURI, context->peerZID, BZRTP_ZIDCACHE_DONT_INSERT_ZUID, &context->zuid, NULL);
 		} else { /* we had an error querying the DB... */
-			return BZRTP_ZIDCACHE_UNABLETOREAD;
+			ret = BZRTP_ZIDCACHE_UNABLETOREAD;
 		}
+		if (context->zidCacheMutex != NULL) {
+			bctbx_mutex_unlock(context->zidCacheMutex);
+		}
+		return ret;
 	}
 
 	/* get zuid from column 0 */
@@ -407,6 +470,10 @@ int bzrtp_getPeerAssociatedSecrets(bzrtpContext_t *context, uint8_t peerZID[12])
 	}
 
 	sqlite3_finalize(sqlStmt);
+
+	if (context->zidCacheMutex != NULL) {
+		bctbx_mutex_unlock(context->zidCacheMutex);
+	}
 	return 0;
 }
 
@@ -425,10 +492,11 @@ int bzrtp_getPeerAssociatedSecrets(bzrtpContext_t *context, uint8_t peerZID[12])
  * 					- BZRTP_ZIDCACHE_INSERT_ZUID : if not found, insert a new row in ziduri table and return newly inserted zuid
  * @param[out]		zuid		the internal db reference to the data row matching this particular pair of correspondant
  * 					if identity binding is not found and insertFlag set to BZRTP_ZIDCACHE_DONT_INSERT_ZUID, this value is set to 0
+ * @param[in]		zidCacheMutex	Points to a mutex used to lock zidCache database access, ignored if NULL
  *
  * @return 0 on success, BZRTP_ERROR_CACHE_PEERNOTFOUND if peer was not in and the insert flag is not set to BZRTP_ZIDCACHE_INSERT_ZUID, error code otherwise
  */
-int bzrtp_cache_getZuid(void *dbPointer, const char *selfURI, const char *peerURI, const uint8_t peerZID[12], const uint8_t insertFlag, int *zuid) {
+int bzrtp_cache_getZuid(void *dbPointer, const char *selfURI, const char *peerURI, const uint8_t peerZID[12], const uint8_t insertFlag, int *zuid, bctbx_mutex_t *zidCacheMutex) {
 	char *stmt=NULL;
 	int ret;
 	sqlite3_stmt *sqlStmt = NULL;
@@ -438,11 +506,18 @@ int bzrtp_cache_getZuid(void *dbPointer, const char *selfURI, const char *peerUR
 		return BZRTP_ZIDCACHE_RUNTIME_CACHELESS;
 	}
 
+	if (zidCacheMutex != NULL) {
+		bctbx_mutex_lock(zidCacheMutex);
+	}
+
 	/* Try to fetch the requested zuid */
 	stmt = sqlite3_mprintf("SELECT zuid FROM ziduri WHERE selfuri=? AND peeruri=? AND zid=? ORDER BY zuid LIMIT 1;");
 	ret = sqlite3_prepare_v2(db, stmt, -1, &sqlStmt, NULL);
 	sqlite3_free(stmt);
 	if (ret != SQLITE_OK) {
+		if (zidCacheMutex != NULL) {
+			bctbx_mutex_unlock(zidCacheMutex);
+		}
 		return BZRTP_ZIDCACHE_UNABLETOREAD;
 	}
 
@@ -466,16 +541,25 @@ int bzrtp_cache_getZuid(void *dbPointer, const char *selfURI, const char *peerUR
 				sqlite3_free(stmt);
 				if (ret != SQLITE_OK) {
 					sqlite3_free(errmsg);
+					if (zidCacheMutex != NULL) {
+						bctbx_mutex_unlock(zidCacheMutex);
+					}
 					return BZRTP_ZIDCACHE_UNABLETOREAD;
 				}
 
 				if (localZID==NULL) { /* this sip URI is not in our DB, do not create an association with the peer ZID/URI binding */
+					if (zidCacheMutex != NULL) {
+						bctbx_mutex_unlock(zidCacheMutex);
+					}
 					return BZRTP_ZIDCACHE_BADINPUTDATA;
 				} else { /* yes we know this URI on local device, add a row in the ziduri table */
 					free(localZID);
 					stmt = sqlite3_mprintf("INSERT INTO ziduri (zid,selfuri,peeruri) VALUES(?,?,?);");
 					ret = sqlite3_prepare_v2(db, stmt, -1, &sqlStmt, NULL);
 					if (ret != SQLITE_OK) {
+						if (zidCacheMutex != NULL) {
+							bctbx_mutex_unlock(zidCacheMutex);
+						}
 						return BZRTP_ZIDCACHE_UNABLETOUPDATE;
 					}
 					sqlite3_free(stmt);
@@ -486,18 +570,30 @@ int bzrtp_cache_getZuid(void *dbPointer, const char *selfURI, const char *peerUR
 
 					ret = sqlite3_step(sqlStmt);
 					if (ret!=SQLITE_DONE) {
+						if (zidCacheMutex != NULL) {
+							bctbx_mutex_unlock(zidCacheMutex);
+						}
 						return BZRTP_ZIDCACHE_UNABLETOUPDATE;
 					}
 					sqlite3_finalize(sqlStmt);
 					/* get the zuid created */
 					*zuid = (int)sqlite3_last_insert_rowid(db);
+					if (zidCacheMutex != NULL) {
+						bctbx_mutex_unlock(zidCacheMutex);
+					}
 					return 0;
 				}
 			} else { /* no found and not inserted */
 				*zuid = 0;
+				if (zidCacheMutex != NULL) {
+					bctbx_mutex_unlock(zidCacheMutex);
+				}
 				return BZRTP_ERROR_CACHE_PEERNOTFOUND;
 			}
 		} else { /* we had an error querying the DB... */
+			if (zidCacheMutex != NULL) {
+				bctbx_mutex_unlock(zidCacheMutex);
+			}
 			return BZRTP_ZIDCACHE_UNABLETOREAD;
 		}
 	}
@@ -505,6 +601,10 @@ int bzrtp_cache_getZuid(void *dbPointer, const char *selfURI, const char *peerUR
 	/* retrieve value in column 0 */
 	*zuid = sqlite3_column_int(sqlStmt, 0);
 	sqlite3_finalize(sqlStmt);
+
+	if (zidCacheMutex != NULL) {
+		bctbx_mutex_unlock(zidCacheMutex);
+	}
 
 	return 0;
 }
@@ -525,7 +625,7 @@ int bzrtp_cache_getZuid(void *dbPointer, const char *selfURI, const char *peerUR
  *
  * @return 0 on succes, error code otherwise
  */
-int bzrtp_cache_write(void *dbPointer, int zuid, const char *tableName, const char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount) {
+static int bzrtp_cache_write_impl(void *dbPointer, int zuid, const char *tableName, const char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount) {
 	char *stmt=NULL;
 	int ret,i,j;
 	sqlite3_stmt *sqlStmt = NULL;
@@ -618,6 +718,34 @@ int bzrtp_cache_write(void *dbPointer, int zuid, const char *tableName, const ch
 	return 0;
 }
 
+/* non locking database version of the previous function, is deprecated but kept for compatibility */
+int bzrtp_cache_write(void *dbPointer, int zuid, const char *tableName, const char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount) {
+	return bzrtp_cache_write_impl(dbPointer, zuid, tableName, columns, values, lengths, columnsCount);
+}
+
+/* locking database version of the previous function */
+int bzrtp_cache_write_lock(void *dbPointer, int zuid, const char *tableName, const char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount, bctbx_mutex_t *zidCacheMutex) {
+	int retval;
+
+
+	if (dbPointer != NULL && zidCacheMutex != NULL) {
+		bctbx_mutex_lock(zidCacheMutex);
+		sqlite3_exec((sqlite3 *)dbPointer, "BEGIN TRANSACTION;", NULL, NULL, NULL);
+		retval = bzrtp_cache_write_impl(dbPointer, zuid, tableName, columns, values, lengths, columnsCount);
+		if (retval == 0) {
+			sqlite3_exec((sqlite3 *)dbPointer, "COMMIT;", NULL, NULL, NULL);
+		} else {
+			sqlite3_exec((sqlite3 *)dbPointer, "ROLLBACK;", NULL, NULL, NULL);
+		}
+		bctbx_mutex_unlock(zidCacheMutex);
+		return retval;
+	}
+	else {
+		return bzrtp_cache_write_impl(dbPointer, zuid, tableName, columns, values, lengths, columnsCount);
+	}
+}
+
+
 /**
  * @brief This is a convenience wrapper to the bzrtp_cache_write function which will also take care of
  *        setting the ziduri table 'active' flag to one for the current row and reset all other rows with matching peeruri
@@ -627,8 +755,7 @@ int bzrtp_cache_write(void *dbPointer, int zuid, const char *tableName, const ch
  *		All three arrays must be the same lenght: columnsCount
  * 		If the row isn't present in the given table, it will be inserted
  *
- * @param[in/out]	dbPointer	Pointer to an already opened sqlite db
- * @param[in]		zuid		The DB internal id to adress the correct row(binding between local uri and peer ZID+URI)
+ * @param[in/out]	context		the current context, used to get the cache db pointer, zuid and cache mutex
  * @param[in]		tableName	The name of the table to write in the db, must already exists. Null terminated string
  * @param[in]		columns		An array of null terminated strings containing the name of the columns to update
  * @param[in]		values		An array of buffers containing the values to insert/update matching the order of columns array
@@ -637,38 +764,50 @@ int bzrtp_cache_write(void *dbPointer, int zuid, const char *tableName, const ch
  *
  * @return 0 on succes, error code otherwise
  */
-int bzrtp_cache_write_active(void *dbPointer, int zuid, const char *tableName, const char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount) {
+int bzrtp_cache_write_active(bzrtpContext_t *context, const char *tableName, const char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount) {
 	char *stmt=NULL;
 	int ret;
 	const unsigned char *peeruri=NULL;
 	int activeFlag=0;
 
 	sqlite3_stmt *sqlStmt = NULL;
-	sqlite3 *db = (sqlite3 *)dbPointer;
 
 	/* initial checks */
-	if (dbPointer == NULL) { /* we are running cacheless */
+	if (context->zidCache == NULL) { /* we are running cacheless */
 		return BZRTP_ZIDCACHE_RUNTIME_CACHELESS;
 	}
 
-	if (zuid == 0) { /* we're giving an invalid zuid, means we were not able to retrieve it previously, just do nothing */
+	if (context->zuid == 0) { /* we're giving an invalid zuid, means we were not able to retrieve it previously, just do nothing */
 		return BZRTP_ERROR_CACHE_PEERNOTFOUND;
 	}
 
+	if (context->zidCacheMutex != NULL) {
+		bctbx_mutex_lock(context->zidCacheMutex);
+	}
+	sqlite3_exec(context->zidCache, "BEGIN TRANSACTION;", NULL, NULL, NULL);
+
 	/* Retrieve the peerUri and active flag from ziduri table */
 	stmt = sqlite3_mprintf("SELECT peeruri, active FROM ziduri WHERE zuid=? LIMIT 1;");
-	ret = sqlite3_prepare_v2(db, stmt, -1, &sqlStmt, NULL);
+	ret = sqlite3_prepare_v2(context->zidCache, stmt, -1, &sqlStmt, NULL);
 	sqlite3_free(stmt);
 	if (ret != SQLITE_OK) {
+		sqlite3_exec(context->zidCache, "ROLLBACK;", NULL, NULL, NULL);
+		if (context->zidCacheMutex != NULL) {
+			bctbx_mutex_unlock(context->zidCacheMutex);
+		}
 		return BZRTP_ZIDCACHE_UNABLETOREAD;
 	}
 
-	sqlite3_bind_int(sqlStmt, 1, zuid);
+	sqlite3_bind_int(sqlStmt, 1, context->zuid);
 
 	ret = sqlite3_step(sqlStmt);
 
 	if (ret!=SQLITE_ROW) { /* We didn't found this zuid in the DB -> we would not be able to write */
 		sqlite3_finalize(sqlStmt);
+		sqlite3_exec(context->zidCache, "ROLLBACK;", NULL, NULL, NULL);
+		if (context->zidCacheMutex != NULL) {
+			bctbx_mutex_unlock(context->zidCacheMutex);
+		}
 		return BZRTP_ZIDCACHE_UNABLETOUPDATE;
 	}
 
@@ -681,27 +820,35 @@ int bzrtp_cache_write_active(void *dbPointer, int zuid, const char *tableName, c
 		sqlite3_stmt *sqlStmtActive = NULL;
 		/* reset all active flags with this peeruri */
 		stmt = sqlite3_mprintf("UPDATE ziduri SET active=0 WHERE active<>0 AND zuid<>? AND peeruri=?;");
-		ret = sqlite3_prepare_v2(db, stmt, -1, &sqlStmtActive, NULL);
+		ret = sqlite3_prepare_v2(context->zidCache, stmt, -1, &sqlStmtActive, NULL);
 		sqlite3_free(stmt);
 		if (ret != SQLITE_OK) {
 			sqlite3_finalize(sqlStmt);
 			sqlite3_finalize(sqlStmtActive);
+			sqlite3_exec(context->zidCache, "ROLLBACK;", NULL, NULL, NULL);
+			if (context->zidCacheMutex != NULL) {
+				bctbx_mutex_unlock(context->zidCacheMutex);
+			}
 			return BZRTP_ZIDCACHE_UNABLETOREAD;
 		}
-		sqlite3_bind_int(sqlStmtActive, 1, zuid);
+		sqlite3_bind_int(sqlStmtActive, 1, context->zuid);
 		sqlite3_bind_text(sqlStmtActive, 2, (const char *)peeruri, -1, SQLITE_TRANSIENT);
 		ret = sqlite3_step(sqlStmtActive);
 		sqlite3_finalize(sqlStmtActive);
 		/* set to 1 the active flag four current row */
 		stmt = sqlite3_mprintf("UPDATE ziduri SET active=1 WHERE zuid=?;");
-		ret = sqlite3_prepare_v2(db, stmt, -1, &sqlStmtActive, NULL);
+		ret = sqlite3_prepare_v2(context->zidCache, stmt, -1, &sqlStmtActive, NULL);
 		sqlite3_free(stmt);
 		if (ret != SQLITE_OK) {
 			sqlite3_finalize(sqlStmt);
 			sqlite3_finalize(sqlStmtActive);
+			sqlite3_exec(context->zidCache, "ROLLBACK;", NULL, NULL, NULL);
+			if (context->zidCacheMutex != NULL) {
+				bctbx_mutex_unlock(context->zidCacheMutex);
+			}
 			return BZRTP_ZIDCACHE_UNABLETOREAD;
 		}
-		sqlite3_bind_int(sqlStmtActive, 1, zuid);
+		sqlite3_bind_int(sqlStmtActive, 1, context->zuid);
 		ret = sqlite3_step(sqlStmtActive);
 		sqlite3_finalize(sqlStmtActive);
 	}
@@ -709,7 +856,19 @@ int bzrtp_cache_write_active(void *dbPointer, int zuid, const char *tableName, c
 	sqlite3_finalize(sqlStmt);
 
 	/* and perform the actual writing */
-	return bzrtp_cache_write(dbPointer, zuid, tableName, columns, values, lengths, columnsCount);
+	ret = bzrtp_cache_write_impl(context->zidCache, context->zuid, tableName, columns, values, lengths, columnsCount);
+
+	if (ret == 0) {
+		sqlite3_exec(context->zidCache, "COMMIT;", NULL, NULL, NULL);
+	} else {
+		sqlite3_exec(context->zidCache, "ROLLBACK;", NULL, NULL, NULL);
+	}
+
+	if (context->zidCacheMutex != NULL) {
+		bctbx_mutex_unlock(context->zidCacheMutex);
+	}
+
+	return ret;
 }
 
 
@@ -729,7 +888,7 @@ int bzrtp_cache_write_active(void *dbPointer, int zuid, const char *tableName, c
  *
  * @return 0 on succes, error code otherwise
  */
-int bzrtp_cache_read(void *dbPointer, int zuid, const char *tableName, const char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount) {
+static int bzrtp_cache_read_impl(void *dbPointer, int zuid, const char *tableName, const char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount) {
 	char *stmt=NULL;
 	int ret,i,j;
 	sqlite3_stmt *sqlStmt = NULL;
@@ -787,6 +946,24 @@ int bzrtp_cache_read(void *dbPointer, int zuid, const char *tableName, const cha
 	sqlite3_finalize(sqlStmt);
 
 	return 0;
+}
+/* non locking database version of the previous function, is deprecated but kept for compatibility */
+int bzrtp_cache_read(void *dbPointer, int zuid, const char *tableName, const char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount) {
+	return bzrtp_cache_read_impl(dbPointer, zuid, tableName, columns, values, lengths, columnsCount);
+}
+/* locking database version of the previous function */
+int bzrtp_cache_read_lock(void *dbPointer, int zuid, const char *tableName, const char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount, bctbx_mutex_t *zidCacheMutex) {
+	int retval;
+
+	if (dbPointer != NULL && zidCacheMutex != NULL) {
+		bctbx_mutex_lock(zidCacheMutex);
+		retval = bzrtp_cache_read_impl(dbPointer, zuid, tableName, columns, values, lengths, columnsCount);
+		bctbx_mutex_unlock(zidCacheMutex);
+		return retval;
+	}
+	else {
+		return bzrtp_cache_read_impl(dbPointer, zuid, tableName, columns, values, lengths, columnsCount);
+	}
 }
 
 /**
@@ -950,10 +1127,10 @@ int bzrtp_cache_migration(void *cacheXmlPtr, void *cacheSqlite, const char *self
 						peerUri[i]=NULL;
 
 						/* now insert data in the zrtp and lime table, keep going even if it fails */
-						if ((ret=bzrtp_cache_write(db, zuid, "zrtp", zrtpColNames, zrtpColValues, zrtpColLengths, 3)) != 0) {
+						if ((ret=bzrtp_cache_write_impl(db, zuid, "zrtp", zrtpColNames, zrtpColValues, zrtpColLengths, 3)) != 0) {
 							bctbx_error("ZRTP/LIME cache migration: could not insert data in zrtp table, return value %x", ret);
 						}
-						if ((ret=bzrtp_cache_write(db, zuid, "lime", limeColNames, limeColValues, limeColLengths, 7)) != 0) {
+						if ((ret=bzrtp_cache_write_impl(db, zuid, "lime", limeColNames, limeColValues, limeColLengths, 7)) != 0) {
 							bctbx_error("ZRTP/LIME cache migration: could not insert data in lime table, return value %x", ret);
 						}
 					}
@@ -1002,7 +1179,7 @@ int bzrtp_cache_migration(void *cacheXmlPtr, void *cacheSqlite, const char *self
  *  - BZRTP_CACHE_PEER_STATUS_INVALID : the active peer device status is set to invalid
  *
  */
-int bzrtp_cache_getPeerStatus(void *dbPointer, const char *peerURI) {
+int bzrtp_cache_getPeerStatus_lock(void *dbPointer, const char *peerURI, bctbx_mutex_t *zidCacheMutex) {
 	char *stmt=NULL;
 	int ret,retval = BZRTP_CACHE_PEER_STATUS_UNKNOWN;
 
@@ -1014,6 +1191,10 @@ int bzrtp_cache_getPeerStatus(void *dbPointer, const char *peerURI) {
 		return BZRTP_ZIDCACHE_RUNTIME_CACHELESS;
 	}
 
+	if (zidCacheMutex != NULL) {
+		bctbx_mutex_lock(zidCacheMutex);
+	}
+
 	/* Retrieve the pvs flag from zrtp table for the given peerURI
 	 * Order by active desc so we get the row with the active flag set to 1
 	 * if there is no such row(just after migration from version 0.0.1 of DB schema
@@ -1022,6 +1203,9 @@ int bzrtp_cache_getPeerStatus(void *dbPointer, const char *peerURI) {
 	ret = sqlite3_prepare_v2(db, stmt, -1, &sqlStmt, NULL);
 	sqlite3_free(stmt);
 	if (ret != SQLITE_OK) {
+		if (zidCacheMutex != NULL) {
+			bctbx_mutex_unlock(zidCacheMutex);
+		}
 		return BZRTP_ZIDCACHE_UNABLETOREAD;
 	}
 
@@ -1043,16 +1227,25 @@ int bzrtp_cache_getPeerStatus(void *dbPointer, const char *peerURI) {
 			}
 		}
 	} else { /* the peerURI was not found in DB */
+		/* Note: if ret != SQLITE_DONE, we had an error when accessing the database,
+		 * we just swallow it and return unknown status but signal it in traces */
+		if (ret != SQLITE_DONE) {
+			bctbx_warning("Querying DB for peer(%s) status returned an sqlite error code %d\n", peerURI, ret);
+		}
 		retval = BZRTP_CACHE_PEER_STATUS_UNKNOWN;
 	}
 
 	sqlite3_finalize(sqlStmt);
+
+	if (zidCacheMutex != NULL) {
+		bctbx_mutex_unlock(zidCacheMutex);
+	}
 	return retval;
 }
 
 #else /* ZIDCACHE_ENABLED */
 
-int bzrtp_getSelfZID(void *dbPointer, const char *selfURI, uint8_t selfZID[12], bctbx_rng_context_t *RNGContext) {
+static int bzrtp_getSelfZID_impl(void *dbPointer, const char *selfURI, uint8_t selfZID[12], bctbx_rng_context_t *RNGContext) {
 	/* we are running cacheless, return a random number */
 	if (RNGContext != NULL) {
 		bctbx_rng_get(RNGContext, selfZID, 12);
@@ -1060,6 +1253,12 @@ int bzrtp_getSelfZID(void *dbPointer, const char *selfURI, uint8_t selfZID[12], 
 		return BZRTP_CACHE_DATA_NOTFOUND;
 	}
 	return 0; 
+}
+int bzrtp_getSelfZID(void *dbPointer, const char *selfURI, uint8_t selfZID[12], bctbx_rng_context_t *RNGContext) {
+	return bzrtp_getSelfZID_impl(dbPointer, selfURI, selfZID, RNGContext);
+}
+int bzrtp_getSelfZID_lock(void *dbPointer, const char *selfURI, uint8_t selfZID[12], bctbx_rng_context_t *RNGContext, bctbx_mutex_t *zidCacheMutex) {
+	return bzrtp_getSelfZID_impl(dbPointer, selfURI, selfZID, RNGContext);
 }
 
 int bzrtp_getPeerAssociatedSecrets(bzrtpContext_t *context, uint8_t peerZID[12]) {
@@ -1085,7 +1284,7 @@ int bzrtp_getPeerAssociatedSecrets(bzrtpContext_t *context, uint8_t peerZID[12])
 	return 0;
 }
 
-int bzrtp_cache_write_active(void *dbPointer, int zuid, const char *tableName, const char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount) {
+int bzrtp_cache_write_active(bzrtpContext_t *context, const char *tableName, const char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount) {
 	return BZRTP_ERROR_CACHEDISABLED;
 }
 
@@ -1093,15 +1292,27 @@ int bzrtp_cache_write(void *dbPointer, int zuid, const char *tableName, const ch
 	return BZRTP_ERROR_CACHEDISABLED;
 }
 
+int bzrtp_cache_write_lock(void *dbPointer, int zuid, const char *tableName, const char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount, bctbx_mutex_t *zidCacheMutex) {
+	return BZRTP_ERROR_CACHEDISABLED;
+}
+
 int bzrtp_cache_read(void *dbPointer, int zuid, const char *tableName, const char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount) {
 	return BZRTP_ERROR_CACHEDISABLED;
 }
 
-int bzrtp_cache_migration(xmlDocPtr cacheXml, void *cacheSqlite, const char *selfURI) {
+int bzrtp_cache_read_lock(void *dbPointer, int zuid, const char *tableName, const char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount, bctbx_mutex_t *zidCacheMutex) {
 	return BZRTP_ERROR_CACHEDISABLED;
 }
 
-int bzrtp_cache_getPeerStatus(void *dbPointer, const char *peerURI) {
+int bzrtp_cache_migration(void *cacheXml, void *cacheSqlite, const char *selfURI) {
+	return BZRTP_ERROR_CACHEDISABLED;
+}
+
+int bzrtp_cache_getPeerStatus_lock(void *dbPointer, const char *peerURI, bctbx_mutex_t *zidCacheMutex) {
 	return BZRTP_CACHE_PEER_STATUS_UNKNOWN;
+}
+
+int bzrtp_cache_getZuid(void *dbPointer, const char *selfURI, const char *peerURI, const uint8_t peerZID[12], const uint8_t insertFlag, int *zuid, bctbx_mutex_t *zidCacheMutex) {
+	return BZRTP_ERROR_CACHEDISABLED;
 }
 #endif /* ZIDCACHE_ENABLED */

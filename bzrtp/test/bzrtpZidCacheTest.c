@@ -63,49 +63,50 @@ static void test_cache_getSelfZID(void) {
 	uint8_t *readValues[] = {NULL, NULL, NULL,NULL};
 	size_t readLength[4];
 	int i;
+	char *aliceCacheFile = bc_tester_file("tmpZIDAlice.sqlite");;
 
 	/* we need a bzrtp context */
 	aliceContext = bzrtp_createBzrtpContext();
 
 	/* create a new DB file */
-	remove("tmpZIDAlice.sqlite");
-	bzrtptester_sqlite3_open(bc_tester_file("tmpZIDAlice.sqlite"), &aliceDB);
+	remove(aliceCacheFile);
+	bzrtptester_sqlite3_open(aliceCacheFile, &aliceDB);
 	/* check what happend if we try to run cacheless */
 	BC_ASSERT_EQUAL(bzrtp_setZIDCache(aliceContext, NULL, "alice@sip.linphone.org", "bob@sip.linphone.org"),BZRTP_ZIDCACHE_RUNTIME_CACHELESS, int, "%x");
 	/* add real cache data into context using the dedicated function */
 	BC_ASSERT_EQUAL(bzrtp_setZIDCache(aliceContext, (void *)aliceDB, "alice@sip.linphone.org", "bob@sip.linphone.org"), BZRTP_CACHE_SETUP,int,"%x");
 	sqlite3_close(aliceDB); /* close the DB and reopen/init it, check the return value is now 0*/
-	bzrtptester_sqlite3_open(bc_tester_file("tmpZIDAlice.sqlite"), &aliceDB);
+	bzrtptester_sqlite3_open(aliceCacheFile, &aliceDB);
 	BC_ASSERT_EQUAL(bzrtp_setZIDCache(aliceContext, (void *)aliceDB, "alice@sip.linphone.org", "bob@sip.linphone.org"), 0,int,"%x");
 	/* call to get selfZID, it will create the ZID for alice@sip.linphone.org. */
 	/* Note: in regular use we must call bzrtp_initBzrtpContext but here we are just testing the getSelfZID */
-	BC_ASSERT_EQUAL(bzrtp_getSelfZID(aliceContext->zidCache, aliceContext->selfURI, aliceContext->selfZID, aliceContext->RNGContext), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_getSelfZID_lock(aliceContext->zidCache, aliceContext->selfURI, aliceContext->selfZID, aliceContext->RNGContext, NULL), 0, int, "%x");
 	/* get it again, in another buffer and compare */
-	BC_ASSERT_EQUAL(bzrtp_getSelfZID(aliceDB, "alice@sip.linphone.org", selfZIDalice, aliceContext->RNGContext), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_getSelfZID_lock(aliceDB, "alice@sip.linphone.org", selfZIDalice, aliceContext->RNGContext, NULL), 0, int, "%x");
 	BC_ASSERT_EQUAL(memcmp(selfZIDalice, aliceContext->selfZID, 12), 0, int, "%d");
 
 	/* fetch a ZID for an other adress on the same cache, it shall create a new one */
-	BC_ASSERT_EQUAL(bzrtp_getSelfZID(aliceDB, "ecila@sip.linphone.org", aliceContext->selfZID, aliceContext->RNGContext), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_getSelfZID_lock(aliceDB, "ecila@sip.linphone.org", aliceContext->selfZID, aliceContext->RNGContext, NULL), 0, int, "%x");
 	BC_ASSERT_NOT_EQUAL(memcmp(selfZIDalice, aliceContext->selfZID,12), 0, int, "%d"); /* check it is a different one */
 	/* fetch it again and compare */
-	BC_ASSERT_EQUAL(bzrtp_getSelfZID(aliceDB, "ecila@sip.linphone.org", selfZIDecila, aliceContext->RNGContext), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_getSelfZID_lock(aliceDB, "ecila@sip.linphone.org", selfZIDecila, aliceContext->RNGContext, NULL), 0, int, "%x");
 	BC_ASSERT_EQUAL(memcmp(selfZIDecila, aliceContext->selfZID, 12), 0, int, "%d");
 	/* fetch again the first one and compare */
-	BC_ASSERT_EQUAL(bzrtp_getSelfZID(aliceDB, "alice@sip.linphone.org", aliceContext->selfZID, aliceContext->RNGContext), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_getSelfZID_lock(aliceDB, "alice@sip.linphone.org", aliceContext->selfZID, aliceContext->RNGContext, NULL), 0, int, "%x");
 	BC_ASSERT_EQUAL(memcmp(selfZIDalice, aliceContext->selfZID, 12), 0, int, "%d");
 
 	/* try to get a zuid on alice/bob+patternZIDbob, at first the row shall be created */
-	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)aliceDB, "alice@sip.linphone.org", "bob@sip.linphone.org", patternZIDbob, BZRTP_ZIDCACHE_INSERT_ZUID, &zuidalicebob), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)aliceDB, "alice@sip.linphone.org", "bob@sip.linphone.org", patternZIDbob, BZRTP_ZIDCACHE_INSERT_ZUID, &zuidalicebob, NULL), 0, int, "%x");
 	/* ask for it again and check they are the same */
-	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)aliceDB, "alice@sip.linphone.org", "bob@sip.linphone.org", patternZIDbob, BZRTP_ZIDCACHE_DONT_INSERT_ZUID, &zuidCheck), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)aliceDB, "alice@sip.linphone.org", "bob@sip.linphone.org", patternZIDbob, BZRTP_ZIDCACHE_DONT_INSERT_ZUID, &zuidCheck, NULL), 0, int, "%x");
 	BC_ASSERT_EQUAL(zuidalicebob, zuidCheck, int, "%d");
 
 	/* Then write in cache zrtp table */
-	BC_ASSERT_EQUAL(bzrtp_cache_write((void *)aliceDB, zuidalicebob, "zrtp", patternColNames, (uint8_t **)patternColValues, patternColValuesLength, patternLength), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_write_lock((void *)aliceDB, zuidalicebob, "zrtp", patternColNames, (uint8_t **)patternColValues, patternColValuesLength, patternLength, NULL), 0, int, "%x");
 	/* Try to write a zuid row in zrtp table while zuid is not present in ziduri table: it shall fail */
-	BC_ASSERT_EQUAL(bzrtp_cache_write((void *)aliceDB, zuidalicebob+10, "zrtp", patternColNames, (uint8_t **)patternColValues, patternColValuesLength, patternLength), BZRTP_ZIDCACHE_UNABLETOUPDATE, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_write_lock((void *)aliceDB, zuidalicebob+10, "zrtp", patternColNames, (uint8_t **)patternColValues, patternColValuesLength, patternLength, NULL), BZRTP_ZIDCACHE_UNABLETOUPDATE, int, "%x");
 	/* Now read the data and check they're the same */
-	BC_ASSERT_EQUAL(bzrtp_cache_read((void *)aliceDB, zuidalicebob, "zrtp", patternColNames, readValues, readLength, patternLength+1), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_read_lock((void *)aliceDB, zuidalicebob, "zrtp", patternColNames, readValues, readLength, patternLength+1, NULL), 0, int, "%x");
 	for (i=0; i<patternLength; i++) {
 		BC_ASSERT_EQUAL(readLength[i], patternColValuesLength[i], int, "%d");
 		BC_ASSERT_EQUAL(memcmp(readValues[i], patternColValues[i], patternColValuesLength[i]), 0, int, "%d");
@@ -116,24 +117,25 @@ static void test_cache_getSelfZID(void) {
 
 	sqlite3_close(aliceDB);
 
-	remove("tmpZIDAlice.sqlite");
+	remove(aliceCacheFile);
+	bc_free(aliceCacheFile);
 
 	/* read ZIDs from pattern file and check they match expected */
 	sprintf(patternFilename, "%s/patternZIDAlice.sqlite", resource_dir);
-	BC_ASSERT_EQUAL((ret = bzrtptester_sqlite3_open(bc_tester_file(patternFilename), &aliceDB)), SQLITE_OK, int, "0x%x");
+	BC_ASSERT_EQUAL((ret = bzrtptester_sqlite3_open(patternFilename, &aliceDB)), SQLITE_OK, int, "0x%x");
 	if (ret != SQLITE_OK) {
 		bzrtp_message("Error: unable to find patternZIDAlice.sqlite file. Did you set correctly the --resource-dir argument(current set: %s)", resource_dir==NULL?"NULL":resource_dir);
 		return;
 	}
 
-	BC_ASSERT_EQUAL(bzrtp_getSelfZID(aliceDB, "alice@sip.linphone.org", selfZIDalice, aliceContext->RNGContext), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_getSelfZID_lock(aliceDB, "alice@sip.linphone.org", selfZIDalice, aliceContext->RNGContext, NULL), 0, int, "%x");
 	BC_ASSERT_EQUAL(memcmp(selfZIDalice, patternZIDalice, 12), 0, int, "%x");
 
 	/* test the getZuid function */
-	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)aliceDB, "alice@sip.linphone.org", "bob@sip.linphone.org", patternZIDbob, BZRTP_ZIDCACHE_DONT_INSERT_ZUID, &zuidalicebob), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_cache_getZuid((void *)aliceDB, "alice@sip.linphone.org", "bob@sip.linphone.org", patternZIDbob, BZRTP_ZIDCACHE_DONT_INSERT_ZUID, &zuidalicebob, NULL), 0, int, "%x");
 	BC_ASSERT_EQUAL(zuidalicebob, 5, int, "%d"); /* from the pattern DB: the zuid for alice/bob+provided ZID is 5 */
 
-	BC_ASSERT_EQUAL(bzrtp_getSelfZID(aliceDB, "ecila@sip.linphone.org", selfZIDecila, aliceContext->RNGContext), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_getSelfZID_lock(aliceDB, "ecila@sip.linphone.org", selfZIDecila, aliceContext->RNGContext, NULL), 0, int, "%x");
 	BC_ASSERT_EQUAL(memcmp(selfZIDecila, patternZIDecila, 12), 0, int, "%x");
 
 	bzrtp_destroyBzrtpContext(aliceContext, 0); /* note: we didn't initialised any channel, so just give 0 to destroy, it will destroy the bzrtp context itself */
@@ -166,7 +168,7 @@ static void test_cache_zrtpSecrets(void) {
 
 	/* open the pattern file and set it in the zrtp context as zidcache db */
 	sprintf(patternFilename, "%s/patternZIDAlice.sqlite", resource_dir);
-	BC_ASSERT_EQUAL((ret = bzrtptester_sqlite3_open(bc_tester_file(patternFilename), &aliceDB)), SQLITE_OK, int, "0x%x");
+	BC_ASSERT_EQUAL((ret = bzrtptester_sqlite3_open(patternFilename, &aliceDB)), SQLITE_OK, int, "0x%x");
 	if (ret != SQLITE_OK) {
 		bzrtp_message("Error: unable to find patternZIDAlice.sqlite file. Did you set correctly the --resource-dir argument(current set: %s)", resource_dir==NULL?"NULL":resource_dir);
 		return;
@@ -212,27 +214,32 @@ static void test_cache_migration(void) {
 #ifdef HAVE_LIBXML2
 	uint8_t pattern_selfZIDalice[12] = {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb};
 	uint8_t selfZIDalice[12];
+	char *aliceCacheFile = bc_tester_file("tmpZIDAlice_cache_migration.sqlite");;
 
 	sqlite3 *aliceDB=NULL;
 	/* Parse the xmlCache */
 	xmlDocPtr cacheXml = xmlParseDoc((xmlChar*)xmlCacheMigration);
 
 	/* create a new DB file */
-	remove("tmpZIDAlice.sqlite");
-	bzrtptester_sqlite3_open(bc_tester_file("tmpZIDAlice.sqlite"), &aliceDB);
-	BC_ASSERT_EQUAL(bzrtp_initCache((void *)aliceDB), BZRTP_CACHE_SETUP, int, "%x");
+	remove(aliceCacheFile);
+	bzrtptester_sqlite3_open(aliceCacheFile, &aliceDB);
+	BC_ASSERT_EQUAL(bzrtp_initCache_lock((void *)aliceDB, NULL), BZRTP_CACHE_SETUP, int, "%x");
 
 	/* perform migration */
 	BC_ASSERT_EQUAL(bzrtp_cache_migration((void *)cacheXml, (void *)aliceDB, "sip:alice@sip.linphone.org"), 0, int, "%x");
 
 	/* check values in new cache */
-	BC_ASSERT_EQUAL(bzrtp_getSelfZID(aliceDB, "sip:alice@sip.linphone.org", selfZIDalice, NULL), 0, int, "%x");
+	BC_ASSERT_EQUAL(bzrtp_getSelfZID_lock(aliceDB, "sip:alice@sip.linphone.org", selfZIDalice, NULL, NULL), 0, int, "%x");
 	BC_ASSERT_EQUAL(memcmp(pattern_selfZIDalice, selfZIDalice, 12), 0, int, "%d");
 	/* TODO: read values from sql cache lime and zrtp tables and check they are the expected ones */
 
 	/* cleaning */
 	sqlite3_close(aliceDB);
-	xmlFree(cacheXml);
+	xmlFreeDoc(cacheXml);
+	xmlCleanupParser();
+	remove(aliceCacheFile);
+	bc_free(aliceCacheFile);
+
 #else /* HAVE_LIBXML2 */
 	bzrtp_message("Test skipped as LibXML2 not present\n");
 #endif /* HAVE_LIBXML2 */
