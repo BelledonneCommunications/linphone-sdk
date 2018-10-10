@@ -22,7 +22,7 @@
 
 lcb_git_repository("https://gitlab.linphone.org/BC/public/external/codec2.git")
 lcb_git_tag_latest("linphone")
-lcb_external_source_paths("externals/codec2")
+lcb_external_source_paths("externals/codec2" "external/codec2")
 
 lcb_cmake_options("-DBUILD_SHARED_LIBS=NO")
 lcb_extra_cflags("-include ${CMAKE_CURRENT_LIST_DIR}/codec2/codec2_prefixed_symbols.h")

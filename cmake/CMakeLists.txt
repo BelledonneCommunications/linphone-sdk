@@ -20,9 +20,8 @@
 #
 ############################################################################
 
-include(CMakeDependentOption)
 include(ExternalProject)
-include(FeatureSummary)
+include(${CMAKE_CURRENT_LIST_DIR}/LinphoneOptions.cmake)
 
 set(ep_base "${LINPHONE_BUILDER_WORK_DIR}/${CONFIG_NAME}")
 set_property(DIRECTORY PROPERTY EP_BASE ${ep_base})
@@ -140,34 +139,6 @@ if(CMAKE_TOOLCHAIN_FILE)
 	list(APPEND LINPHONE_BUILDER_EP_VARS CMAKE_TOOLCHAIN_FILE:PATH)
 endif()
 
-
-# This macro can be used to add an option. Give it option name and description,
-# default value and optionally dependent predicate and value
-macro(lcb_add_dependent_option NAME DESCRIPTION DEFAULT_VALUE CONDITION CONDITION_VALUE)
-	string(TOUPPER ${NAME} UPPERCASE_NAME)
-	string(REGEX REPLACE  " " "_" UPPERCASE_NAME ${UPPERCASE_NAME})
-	string(REGEX REPLACE  "\\+" "P" UPPERCASE_NAME ${UPPERCASE_NAME})
-	cmake_dependent_option(ENABLE_${UPPERCASE_NAME} "${DESCRIPTION}" "${DEFAULT_VALUE}" "${CONDITION}" "${CONDITION_VALUE}")
-	add_feature_info("${NAME}" "ENABLE_${UPPERCASE_NAME}" "${DESCRIPTION}")
-endmacro()
-
-macro(lcb_add_strict_dependent_option NAME DESCRIPTION DEFAULT_VALUE CONDITION CONDITION_VALUE STRICT_CONDITION ERROR_MSG)
-	lcb_add_dependent_option("${NAME}" "${DESCRIPTION}" "${DEFAULT_VALUE}" "${CONDITION}" "${CONDITION_VALUE}")
-	string(TOUPPER ${NAME} UPPERCASE_NAME)
-	string(REGEX REPLACE  " " "_" UPPERCASE_NAME ${UPPERCASE_NAME})
-	string(REGEX REPLACE  "\\+" "P" UPPERCASE_NAME ${UPPERCASE_NAME})
-	if(${ENABLE_${UPPERCASE_NAME}} AND NOT ${STRICT_CONDITION})
-		message(FATAL_ERROR "Trying to enable ${NAME} but ${ERROR_MSG}")
-	endif()
-endmacro()
-
-macro(lcb_add_option NAME DESCRIPTION DEFAULT_VALUE)
-	string(TOUPPER ${NAME} UPPERCASE_NAME)
-	string(REGEX REPLACE  " " "_" UPPERCASE_NAME ${UPPERCASE_NAME})
-	string(REGEX REPLACE  "\\+" "P" UPPERCASE_NAME ${UPPERCASE_NAME})
-	option(ENABLE_${UPPERCASE_NAME} "Enable ${NAME}: ${DESCRIPTION}" "${DEFAULT_VALUE}")
-	add_feature_info("${NAME}" "ENABLE_${UPPERCASE_NAME}" "${DESCRIPTION}")
-endmacro()
 
 macro(linphone_builder_get_autotools_configuration)
 	if(MSVC)

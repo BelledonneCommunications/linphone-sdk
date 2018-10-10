@@ -23,7 +23,7 @@
 lcb_git_repository("https://gitlab.linphone.org/BC/public/external/speex.git")
 lcb_git_tag_latest("linphone")
 lcb_git_tag("fc1dd43c3c9d244bca1c300e408ce0373dbd5ed8")
-lcb_external_source_paths("speex" "externals/speex")
+lcb_external_source_paths("speex" "externals/speex" "external/speex")
 lcb_may_be_found_on_system(YES)
 lcb_ignore_warnings(YES)
 

@@ -23,6 +23,6 @@
 lcb_git_repository("https://gitlab.linphone.org/BC/public/external/srtp.git")
 lcb_git_tag_latest("master")
 lcb_git_tag("befc23777e07efba36ffd7bda73f22c92d4e2475")
-lcb_external_source_paths("srtp" "externals/srtp")
+lcb_external_source_paths("srtp" "externals/srtp" "external/srtp")
 lcb_may_be_found_on_system(YES)
 lcb_ignore_warnings(YES)

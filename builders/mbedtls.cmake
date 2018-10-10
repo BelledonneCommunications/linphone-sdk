@@ -23,7 +23,7 @@
 lcb_git_repository("https://gitlab.linphone.org/BC/public/external/mbedtls.git")
 lcb_git_tag_latest("linphone")
 lcb_git_tag("3b88f2749d59e5346de08e121fba1d797c55ddaa")
-lcb_external_source_paths("mbedtls" "externals/mbedtls")
+lcb_external_source_paths("mbedtls" "externals/mbedtls" "external/mbedtls")
 lcb_may_be_found_on_system(YES)
 lcb_ignore_warnings(YES)
 

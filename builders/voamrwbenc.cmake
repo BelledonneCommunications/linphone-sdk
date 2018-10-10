@@ -35,7 +35,7 @@ if(VOAMRWBENC_PREBUILT)
 else()
 	lcb_url("http://downloads.sourceforge.net/project/opencore-amr/vo-amrwbenc/vo-amrwbenc-0.1.3.tar.gz")
 	lcb_url_hash("MD5=f63bb92bde0b1583cb3cb344c12922e0")
-	lcb_external_source_paths("externals/vo-amrwbenc" "vo-amrwbenc")
+	lcb_external_source_paths("externals/vo-amrwbenc" "vo-amrwbenc" "external/vo-amrwbenc")
 	lcb_ignore_warnings(YES)
 
 	lcb_dependencies("opencoreamr")

@@ -22,7 +22,7 @@
 
 lcb_git_repository("https://gitlab.linphone.org/BC/public/external/sqlite3.git")
 lcb_git_tag_latest("master")
-lcb_external_source_paths("externals/sqlite3")
+lcb_external_source_paths("externals/sqlite3" "external/sqlite3")
 lcb_may_be_found_on_system(YES)
 lcb_ignore_warnings(YES)
 

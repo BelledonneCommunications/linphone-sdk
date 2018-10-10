@@ -21,7 +21,7 @@
 ############################################################################
 
 lcb_git_repository("https://gitlab.linphone.org/BC/public/external/soci.git")
-lcb_external_source_paths("externals/soci")
+lcb_external_source_paths("externals/soci" "external/soci")
 if(NOT APPLE)
 	# Do not build sqlite3 on Apple systems (Mac OS X and iOS), it is provided by the system
 	lcb_dependencies("sqlite3")

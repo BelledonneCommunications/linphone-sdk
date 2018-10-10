@@ -21,6 +21,6 @@
 ############################################################################
 
 lcb_git_repository("https://gitlab.linphone.org/BC/public/external/libxsd.git")
-lcb_external_source_paths("externals/libxsd")
+lcb_external_source_paths("externals/libxsd" "external/libxsd")
 lcb_dependencies("xerces")
 lcb_may_be_found_on_system(YES)

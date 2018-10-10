@@ -35,7 +35,7 @@ if(OPENCOREAMR_PREBUILT)
 else()
 	lcb_url("http://downloads.sourceforge.net/project/opencore-amr/opencore-amr/opencore-amr-0.1.3.tar.gz")
 	lcb_url_hash("MD5=09d2c5dfb43a9f6e9fec8b1ae678e725")
-	lcb_external_source_paths("externals/opencore-amr" "opencore-amr")
+	lcb_external_source_paths("externals/opencore-amr" "opencore-amr" "external/opencore-amr")
 	lcb_ignore_warnings(YES)
 
 	lcb_patch_command("${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/opencoreamr/CMakeLists.txt" "<SOURCE_DIR>")

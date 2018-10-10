@@ -38,7 +38,7 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 else()
 	lcb_url("http://storage.googleapis.com/downloads.webmproject.org/releases/webm/libvpx-1.5.0.tar.bz2")
 	lcb_url_hash("MD5=49e59dd184caa255886683facea56fca")
-	lcb_external_source_paths("externals/libvpx")
+	lcb_external_source_paths("externals/libvpx" "external/libvpx")
 	lcb_may_be_found_on_system(YES)
 	lcb_ignore_warnings(YES)
 

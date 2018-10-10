@@ -23,5 +23,5 @@
 lcb_git_repository("https://gitlab.linphone.org/BC/public/external/bv16-floatingpoint.git")
 lcb_git_tag_latest("linphone")
 lcb_git_tag("6899f2759c7b19d5402335d3a937c53020abfeca")
-lcb_external_source_paths("externals/bv16-floatingpoint")
+lcb_external_source_paths("externals/bv16-floatingpoint" "external/bv16-floatingpoint")
 lcb_spec_file("bv16.spec")

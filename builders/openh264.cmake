@@ -39,7 +39,7 @@ else()
 	set(OPENH264_VERSION "1.8.0")	# Keep this variable, it is used for packaging to know the version to download from Cisco
 	lcb_git_repository("https://github.com/cisco/openh264")
 	lcb_git_tag("openh264v${OPENH264_VERSION}")
-	lcb_external_source_paths("externals/openh264")
+	lcb_external_source_paths("externals/openh264" "external/openh264")
 	lcb_ignore_warnings(YES)
 
 	lcb_build_method("custom")

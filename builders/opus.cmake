@@ -35,7 +35,7 @@ if(OPUS_PREBUILT)
 else()
 	lcb_url("http://downloads.xiph.org/releases/opus/opus-1.1.1.tar.gz")
 	lcb_url_hash("MD5=cfb354d4c65217ca32a762f8ab15f2ac")
-	lcb_external_source_paths("opus" "externals/opus")
+	lcb_external_source_paths("opus" "externals/opus" "external/opus")
 	lcb_may_be_found_on_system(YES)
 	lcb_ignore_warnings(YES)
 

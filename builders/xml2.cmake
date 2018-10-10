@@ -35,7 +35,7 @@ if(XML2_PREBUILT)
 else()
 	lcb_git_repository("https://gitlab.linphone.org/BC/public/external/libxml2")
 	lcb_git_tag("v2.8.0")
-	lcb_external_source_paths("libxml2" "xml2" "externals/libxml2")
+	lcb_external_source_paths("libxml2" "xml2" "externals/libxml2" "external/libxml2")
 	lcb_may_be_found_on_system(YES)
 	lcb_ignore_warnings(YES)
 

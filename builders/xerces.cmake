@@ -21,6 +21,6 @@
 ############################################################################
 
 lcb_git_repository("https://gitlab.linphone.org/BC/public/external/xerces-c.git")
-lcb_external_source_paths("externals/xerces-c")
+lcb_external_source_paths("externals/xerces-c" "external/xerces-c")
 lcb_may_be_found_on_system(YES)
 

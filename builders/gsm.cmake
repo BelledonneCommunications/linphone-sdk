@@ -23,6 +23,6 @@
 lcb_git_repository("https://gitlab.linphone.org/BC/public/external/gsm.git")
 lcb_git_tag_latest("linphone")
 lcb_git_tag("0f8822b5326c76bb9dc4c6b552631f51792c3982")
-lcb_external_source_paths("gsm" "externals/gsm")
+lcb_external_source_paths("gsm" "externals/gsm" "external/gsm")
 lcb_may_be_found_on_system(YES)
 lcb_ignore_warnings(YES)
