@@ -45,6 +45,7 @@ lcb_add_option("ISAC"  "ISAC audio encoding/decoding support." "${DEFAULT_VALUE_
 lcb_add_option("OPUS"  "OPUS audio encoding/decoding support." "${DEFAULT_VALUE_ENABLE_OPUS}")
 lcb_add_option("Silk"  "Silk audio encoding/decoding support." "${DEFAULT_VALUE_ENABLE_SILK}")
 lcb_add_option("Speex"  "Speex audio encoding/decoding support." "${DEFAULT_VALUE_ENABLE_SPEEX}")
+lcb_add_option("WebRTC VAD"  "WebRTC voice activation detector support." "${DEFAULT_VALUE_ENABLE_WEBRTC_VAD}")
 lcb_add_option("BV16"  "BroadVoice 16 audio encoding/decoding support." "${DEFAULT_VALUE_ENABLE_BV16}")
 #video options and codecs
 lcb_add_option("Video" "Ability to capture and display video." "${DEFAULT_VALUE_ENABLE_VIDEO}")
