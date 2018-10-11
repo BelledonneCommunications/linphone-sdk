@@ -22,6 +22,7 @@
 
 #include <ortp/rtpsession.h>
 #include "mediastreamer2/mscommon.h"
+#include <bctoolbox/port.h>
 
 #ifdef __cplusplus
 extern "C"{
@@ -98,6 +99,7 @@ typedef enum _MSZrtpPeerStatus{
 
 typedef struct MSZrtpParams {
 	void *zidCacheDB; /**< a pointer to an sqlite database holding all zrtp related information */
+	bctbx_mutex_t *zidCacheDBMutex; /**< pointer to a mutex used to lock cache access */
 	const char *selfUri; /* our sip URI, needed for zrtp Cache */
 	const char *peerUri; /* the sip URI of correspondant, needed for zrtp Cache */
 	uint32_t limeKeyTimeSpan; /**< amount in seconds of the lime key life span, set to 0 for infinite life span **/
@@ -175,12 +177,15 @@ MS2_PUBLIC void ms_zrtp_sas_reset_verified(MSZrtpContext* ctx);
  * Get the zrtp sas validation status for a peer uri.
  * Once the SAS has been validated or rejected, the status will never return to UNKNOWN (unless you delete your cache)
  * @param[in/out]	db	Pointer to the sqlite3 db open connection
- * 					Use a void * to keep this API when building cacheless
+ * 				Use a void * to keep this API when building cacheless
+ * @param[in]		peerUri	the sip uri of the peer device we're querying status
+ * @param[in]		dbMutex	a mutex to synchronise zrtp cache database operation. Ignored if NULL
+ *
  * @return  - MS_ZRTP_PEER_STATUS_UNKNOWN: this uri is not present in cache OR during calls with the active device, SAS never was validated or rejected
  *  		- MS_ZRTP_PEER_STATUS_INVALID: the active device status is set to valid
  *  		- MS_ZRTP_PEER_STATUS_VALID: the active peer device status is set to invalid
  */
-MS2_PUBLIC MSZrtpPeerStatus ms_zrtp_get_peer_status(void *db, const char *peerUri);
+MS2_PUBLIC MSZrtpPeerStatus ms_zrtp_get_peer_status(void *db, const char *peerUri, bctbx_mutex_t *dbMutex);
 
 /**
  * Get the ZRTP Hello Hash from the given context
@@ -234,10 +239,11 @@ MS2_PUBLIC const char* ms_zrtp_sas_type_to_string(const MSZrtpSasType sasType);
  * 	Also manage DB schema upgrade
  * @param[in/out]	db	Pointer to the sqlite3 db open connection
  * 				Use a void * to keep this API when building cacheless
+ * @param[in]		dbMutex	a mutex to synchronise zrtp cache database operation. Ignored if NULL
  *
  * @return	0 on success, MSZRTP_CACHE_SETUP if cache was empty, MSZRTP_CACHE_UPDATE if db structure was updated error code otherwise
  */
-MS2_PUBLIC int ms_zrtp_initCache(void *db);
+MS2_PUBLIC int ms_zrtp_initCache(void *db, bctbx_mutex_t *dbMutex);
 
 /**
  * @brief Perform migration from xml version to sqlite3 version of cache

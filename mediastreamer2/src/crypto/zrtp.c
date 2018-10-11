@@ -39,6 +39,7 @@ struct _MSZrtpContext{
 	/* cache related data */
 	uint32_t limeKeyTimeSpan; /**< amount in seconds of the lime key life span */
 	void *cacheDB; /**< pointer to an already open sqlite db holding the zid cache */
+	bctbx_mutex_t *cacheDBMutex; /**< pointer to a mutex used to lock cache access */
 };
 
 /***********************************************/
@@ -363,7 +364,7 @@ static int ms_zrtp_addExportedKeysInZidCache(void *clientData, int zuid, uint8_t
 	colValues[5][0] &= 0x7F;
 
 	/* then insert all in cache */
-	ret = bzrtp_cache_write(userData->cacheDB, zuid, "lime", colNames, colValues, colLength, 7);
+	ret = bzrtp_cache_write_lock(userData->cacheDB, zuid, "lime", colNames, colValues, colLength, 7, userData->cacheDBMutex);
 
 	for (i=0; i<7; i++) {
 		ms_free(colValues[i]);
@@ -596,7 +597,7 @@ MSZrtpContext* ms_zrtp_context_new(MSMediaStreamSessions *sessions, MSZrtpParams
 
 	if (params->zidCacheDB != NULL && params->selfUri != NULL && params->peerUri) { /* to enable cache we need a self and peer uri and a pointer to the sqlite cache DB */
 		/*enabling cache*/
-		bzrtp_setZIDCache(context, params->zidCacheDB, params->selfUri, params->peerUri);
+		bzrtp_setZIDCache_lock(context, params->zidCacheDB, params->selfUri, params->peerUri, params->zidCacheDBMutex);
 		cbs.bzrtp_contextReadyForExportedKeys=ms_zrtp_addExportedKeysInZidCache;
 	}
 
@@ -626,7 +627,8 @@ MSZrtpContext* ms_zrtp_context_new(MSMediaStreamSessions *sessions, MSZrtpParams
 	userData->self_ssrc = sessions->rtp_session->snd.ssrc;
 
 	userData->limeKeyTimeSpan = params->limeKeyTimeSpan;
-	userData->cacheDB = params->zidCacheDB; /* add a link to the ZidCache to be able to free it when we will destroy this context */
+	userData->cacheDB = params->zidCacheDB; /* add a link to the ZidCache and mutex to be able to access it from callbacks */
+	userData->cacheDBMutex = params->zidCacheDBMutex;
 
 	bzrtp_setClientData(context, sessions->rtp_session->snd.ssrc, (void *)userData);
 
@@ -690,8 +692,8 @@ void ms_zrtp_sas_reset_verified(MSZrtpContext* ctx){
 	bzrtp_resetSASVerified(ctx->zrtpContext);
 }
 
-MSZrtpPeerStatus ms_zrtp_get_peer_status(void *db, const char *peerUri){
-	int status = bzrtp_cache_getPeerStatus(db, peerUri);
+MSZrtpPeerStatus ms_zrtp_get_peer_status(void *db, const char *peerUri, bctbx_mutex_t *dbMutex){
+	int status = bzrtp_cache_getPeerStatus_lock(db, peerUri, dbMutex);
 	switch (status) {
 		case BZRTP_CACHE_PEER_STATUS_UNKNOWN:
 			return MS_ZRTP_PEER_STATUS_UNKNOWN;
@@ -721,11 +723,12 @@ int ms_zrtp_setPeerHelloHash(MSZrtpContext *ctx, uint8_t *peerHelloHashHexString
  * 	Also manage DB schema upgrade
  * @param[in/out]	db	Pointer to the sqlite3 db open connection
  * 				Use a void * to keep this API when building cacheless
+ * @param[in]		dbMutex	a mutex to synchronise zrtp cache database operation. Ignored if NULL
  *
  * @return 0 on succes, MSZRTP_CACHE_SETUP if cache was empty, MSZRTP_CACHE_UPDATE if db structure was updated error code otherwise
  */
-int ms_zrtp_initCache(void *db) {
-	int ret = bzrtp_initCache(db);
+int ms_zrtp_initCache(void *db, bctbx_mutex_t *dbMutex) {
+	int ret = bzrtp_initCache_lock(db, dbMutex);
 	switch (ret) {
 		case BZRTP_CACHE_SETUP:
 			return MSZRTP_CACHE_SETUP;
@@ -764,7 +767,7 @@ int ms_zrtp_cache_migration(void *cacheXmlPtr, void *cacheSqlite, const char *se
 	}
 }
 
-#else
+#else /* HAVE_ZRTP */
 
 MSZrtpContext* ms_zrtp_context_new(MSMediaStreamSessions *sessions, MSZrtpParams *params){
 	ms_message("ZRTP is disabled");
@@ -780,7 +783,7 @@ int ms_zrtp_channel_start(MSZrtpContext *ctx) { return 0;}
 bool_t ms_zrtp_available(){return FALSE;}
 void ms_zrtp_sas_verified(MSZrtpContext* ctx){}
 void ms_zrtp_sas_reset_verified(MSZrtpContext* ctx){}
-int ms_zrtp_get_peer_status(MSZrtpContext* ctx) {return 0;}
+MSZrtpPeerStatus ms_zrtp_get_peer_status(void *db, const char *peerUri, bctbx_mutex_t *dbMutex) {return MS_ZRTP_PEER_STATUS_UNKNOWN;}
 void ms_zrtp_context_destroy(MSZrtpContext *ctx){}
 void ms_zrtp_reset_transmition_timer(MSZrtpContext* ctx) {};
 int ms_zrtp_transport_modifier_new(MSZrtpContext* ctx, RtpTransportModifier **rtpt, RtpTransportModifier **rtcpt ) {return 0;}
@@ -788,9 +791,9 @@ void ms_zrtp_transport_modifier_destroy(RtpTransportModifier *tp)  {}
 void ms_zrtp_set_stream_sessions(MSZrtpContext *zrtp_context, MSMediaStreamSessions *stream_sessions) {}
 int ms_zrtp_getHelloHash(MSZrtpContext* ctx, uint8_t *output, size_t outputLength) {return 0;}
 int ms_zrtp_setPeerHelloHash(MSZrtpContext *ctx, uint8_t *peerHelloHashHexString, size_t peerHelloHashHexStringLength) {return 0;}
-int ms_zrtp_initCache(void *db){return 0;}
+int ms_zrtp_initCache(void *db, bctbx_mutex_t *dbMutex){return 0;}
 int ms_zrtp_cache_migration(void *cacheXmlPtr, void *cacheSqlite, const char *selfURI) {return 0;}
-#endif
+#endif /* HAVE_ZRTP */
 
 #define STRING_COMPARE_RETURN(string, value)\
 	if (strcmp(string,#value) == 0) return value
