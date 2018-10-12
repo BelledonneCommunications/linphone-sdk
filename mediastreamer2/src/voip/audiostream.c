@@ -1868,12 +1868,18 @@ void audio_stream_set_spk_gain_db(AudioStream *stream, float gain_db) {
 	}
 #endif
 
-	audio_stream_set_spk_gain(stream, gain);
+	if (stream->volrecv)
+		ms_filter_call_method(stream->volrecv, MS_VOLUME_SET_DB_GAIN, &gain);
+	else
+		ms_warning(
+			"Could not apply gain on received RTP packet: gain control wasn't activated. "
+			"Use audio_stream_enable_gain_control() before starting the stream."
+		);
 }
 
 void audio_stream_set_spk_gain(AudioStream *stream, float gain) {
 	if (stream->volrecv)
-		ms_filter_call_method(stream->volrecv, MS_VOLUME_SET_DB_GAIN, &gain);
+		ms_filter_call_method(stream->volrecv, MS_VOLUME_SET_GAIN, &gain);
 	else
 		ms_warning(
 			"Could not apply gain on received RTP packet: gain control wasn't activated. "
