@@ -342,7 +342,7 @@ MS2_PUBLIC bool_t ms_media_resource_is_consistent(const MSMediaResource *r);
 #define ms_media_resource_get_file(r)		(((r)->type == MSResourceFile) ? (r)->file : NULL)
 #define ms_media_resource_get_rtp_session(r)	(((r)->type == MSResourceRtp) ? (r)->session : NULL)
 #define ms_media_resource_get_camera(r)		(((r)->type == MSResourceCamera) ? (r)->camera : NULL)
-#define ms_media_resource_get_soundcard(r)	(((r)->type == MSResourceSoundcard) ? (r)->souncard : NULL)
+#define ms_media_resource_get_soundcard(r)	(((r)->type == MSResourceSoundcard) ? (r)->soundcard : NULL)
 /**
  * Structure describing the input/output of a MediaStream.
  * Input and output are described as MSMediaResource.
