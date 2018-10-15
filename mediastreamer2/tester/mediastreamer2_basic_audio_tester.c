@@ -50,19 +50,24 @@ static void tone_detected_cb(void *data, MSFilter *f, unsigned int event_id, MST
 	ms_tester_tone_detected = TRUE;
 }
 
-#if 0 //Remove this test until we found a good implem of VAD
-#ifdef HAVE_SPEEXDSP
-
-#define TEST_SILENCE_VOICE_FILE_NAME	"sounds/test_silence_voice.wav"
+#define TEST_SILENCE_VOICE_48000_FILE_NAME	"sounds/test_silence_voice_48000.wav"
+#define TEST_SILENCE_VOICE_44100_FILE_NAME	"sounds/test_silence_voice_44100.wav"
+#define TEST_SILENCE_VOICE_32000_FILE_NAME	"sounds/test_silence_voice_32000.wav"
+#define TEST_SILENCE_VOICE_16000_FILE_NAME	"sounds/test_silence_voice_16000.wav"
+#define TEST_SILENCE_VOICE_8000_FILE_NAME	"sounds/test_silence_voice_8000.wav"
+#define MSWEBRTC_VAD_FILTER_NAME	"MSWebRtcVADDec"
 
 typedef struct struct_silence_callback_data {
 	int voice_detected_number;
+	uint64_t silence_duration[10];
 } silence_callback_data;
 
 static void silence_detected_cb(void *data, MSFilter *f, unsigned int event_id, void *arg) {
-	if (event_id == MS_VOLUME_EVENT_SILENCE_DETECTED) {
-		silence_callback_data *silence = (silence_callback_data *)data;
+	silence_callback_data *silence = (silence_callback_data *)data;
+	if (event_id == MS_VAD_EVENT_SILENCE_DETECTED) {
 		silence->voice_detected_number++;
+	} else if (event_id == MS_VAD_EVENT_SILENCE_ENDED) {
+		silence->silence_duration[silence->voice_detected_number-1] = *(uint64_t*)arg;
 	}
 }
 
@@ -77,15 +82,23 @@ static void player_cb(void *data, MSFilter *f, unsigned int event_id, void *arg)
 	}
 }
 
-static void silence_detection(void) {
+// Waiting time in ms
+static void _silence_detection(const char* filename, unsigned int duration_threshold, uint64_t* silence_duration, uint64_t delay, int vad_mode, int number_detection, int waiting_time) {
+	int sample_rate;
 	MSConnectionHelper h;
 	silence_callback_data silence_data;
 	player_callback_data player_data;
 	MSFilter *voice_detector;
 	unsigned int filter_mask = FILTER_MASK_FILEPLAY | FILTER_MASK_VOIDSINK;
-	char* recorded_file = bc_tester_res(TEST_SILENCE_VOICE_FILE_NAME);
 	unsigned int enable_silence = 1;
-	unsigned int duration_threshold = 1000;
+	char* recorded_file = bc_tester_res(filename);
+	MSFilterDesc *vad_desc = ms_factory_lookup_filter_by_name(msFactory, MSWEBRTC_VAD_FILTER_NAME);
+
+	if (!recorded_file) return;
+
+	//Skip test if mswebrtc vad plugin not loaded
+	if (vad_desc == NULL) goto end;
+
 	silence_data.voice_detected_number = 0;
 	player_data.end_of_file = FALSE;
 
@@ -93,15 +106,18 @@ static void silence_detection(void) {
 	ms_tester_create_ticker();
 	ms_tester_create_filters(filter_mask, msFactory);
 
-	voice_detector = ms_factory_create_filter(msFactory, MS_VOLUME_ID);
+	voice_detector = ms_factory_create_filter_from_desc(msFactory, vad_desc);
 	ms_filter_add_notify_callback(voice_detector, silence_detected_cb, &silence_data, TRUE);
 	ms_filter_add_notify_callback(ms_tester_fileplay, player_cb, &player_data, TRUE);
 
 	ms_filter_call_method(ms_tester_fileplay, MS_FILE_PLAYER_OPEN, recorded_file);
 	ms_filter_call_method_noarg(ms_tester_fileplay, MS_FILE_PLAYER_START);
+	ms_filter_call_method(ms_tester_fileplay, MS_FILTER_GET_SAMPLE_RATE, &sample_rate);
 
-	ms_filter_call_method(voice_detector, MS_VOLUME_ENABLE_SILENCE_DETECTION, (void*)&enable_silence);
-	ms_filter_call_method(voice_detector, MS_VOLUME_SET_SILENCE_DURATION_THRESHOLD, (void*)&duration_threshold);
+	ms_filter_call_method(voice_detector, MS_VAD_ENABLE_SILENCE_DETECTION, (void*)&enable_silence);
+	ms_filter_call_method(voice_detector, MS_VAD_SET_SILENCE_DURATION_THRESHOLD, (void*)&duration_threshold);
+	ms_filter_call_method(voice_detector, MS_FILTER_SET_SAMPLE_RATE, (void*)&sample_rate);
+	ms_filter_call_method(voice_detector, MS_VAD_SET_MODE, (void*)&vad_mode);
 
 	ms_connection_helper_start(&h);
 	ms_connection_helper_link(&h, ms_tester_fileplay, -1, 0);
@@ -109,9 +125,15 @@ static void silence_detection(void) {
 	ms_connection_helper_link(&h, ms_tester_voidsink, 0, -1);
 	ms_ticker_attach(ms_tester_ticker, ms_tester_fileplay);
 
-	BC_ASSERT_TRUE(wait_for_until(NULL, NULL, &player_data.end_of_file, TRUE, 26000));
-	// TODO Choice better example and check how many silence should be detected
-	BC_ASSERT_EQUAL(silence_data.voice_detected_number, 2, int, "%d");
+	BC_ASSERT_TRUE(wait_for_until(NULL, NULL, &player_data.end_of_file, TRUE, waiting_time));
+
+	BC_ASSERT_EQUAL(silence_data.voice_detected_number, number_detection, int, "%d");
+	if (number_detection > 0 && number_detection == silence_data.voice_detected_number) {
+		for (int i = 0 ; i < number_detection-1 ; i++) {
+			BC_ASSERT_LOWER_STRICT((unsigned long long)silence_data.silence_duration[i], (unsigned long long)(silence_duration[i] + delay), unsigned long long, "%llu");
+			BC_ASSERT_GREATER_STRICT((unsigned long long)silence_data.silence_duration[i], (unsigned long long)(silence_duration[i] - delay), unsigned long long, "%llu");
+		}
+	}
 
 	ms_filter_call_method_noarg(ms_tester_fileplay, MS_FILE_PLAYER_CLOSE);
 	ms_ticker_detach(ms_tester_ticker, ms_tester_fileplay);
@@ -128,10 +150,33 @@ static void silence_detection(void) {
 	ms_tester_destroy_filters(filter_mask);
 	ms_tester_destroy_ticker();
 
+	end:
 	ms_free(recorded_file);
 }
-#endif
-#endif //if 0
+
+static void silence_detection_48000(void) {
+	uint64_t duration[5] = {3710, 2210, 1780, 5290};
+	_silence_detection(TEST_SILENCE_VOICE_48000_FILE_NAME, 1000, duration, 50, 3, 5, 26000);
+}
+
+static void silence_detection_44100(void) {
+	_silence_detection(TEST_SILENCE_VOICE_44100_FILE_NAME, 1000, NULL, 0, 3, 0, 26000);
+}
+
+static void silence_detection_32000(void) {
+	uint64_t duration[6] = {3710, 2210, 1780, 1050, 5290};
+	_silence_detection(TEST_SILENCE_VOICE_32000_FILE_NAME, 1000, duration, 50, 3, 6, 26000);
+}
+
+static void silence_detection_16000(void) {
+	uint64_t duration[6] = {3710, 2210, 1780, 1050, 5290};
+	_silence_detection(TEST_SILENCE_VOICE_16000_FILE_NAME, 1000, duration, 50, 3, 6, 26000);
+}
+
+static void silence_detection_8000(void) {
+	uint64_t duration[6] = {3710, 2210, 1780, 1050, 5290};
+	_silence_detection(TEST_SILENCE_VOICE_8000_FILE_NAME, 1000, duration, 50, 3, 6, 26000);
+}
 
 static void dtmfgen_tonedet(void) {
 	MSConnectionHelper h;
@@ -489,11 +534,11 @@ static void dtmfgen_filerec_fileplay_tonedet(void) {
 
 
 test_t basic_audio_tests[] = {
-#if 0 //Remove this test until we found a good implem of VAD
-#ifdef HAVE_SPEEXDSP
-	TEST_NO_TAG("silence detection", silence_detection),
-#endif
-#endif
+	TEST_ONE_TAG("silence detection 48000", silence_detection_48000, "VAD"),
+	TEST_ONE_TAG("silence detection 44100", silence_detection_44100, "VAD"),
+	TEST_ONE_TAG("silence detection 32000", silence_detection_32000, "VAD"),
+	TEST_ONE_TAG("silence detection 16000", silence_detection_16000, "VAD"),
+	TEST_ONE_TAG("silence detection 8000", silence_detection_8000, "VAD"),
 	TEST_NO_TAG("dtmfgen-tonedet", dtmfgen_tonedet),
 	TEST_NO_TAG("dtmfgen-enc-dec-tonedet-bv16", dtmfgen_enc_dec_tonedet_bv16),
 	TEST_NO_TAG("dtmfgen-enc-dec-tonedet-pcmu", dtmfgen_enc_dec_tonedet_pcmu),

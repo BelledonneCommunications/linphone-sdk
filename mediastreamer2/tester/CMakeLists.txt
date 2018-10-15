@@ -48,7 +48,11 @@ set(SOUND_FILES
 	sounds/sintel_trailer_opus_h264.mkv
 	sounds/sintel_trailer_opus_vp8.mkv
 	sounds/sintel_trailer_pcmu_h264.mkv
-	sounds/test_silence_voice.wav
+	sounds/test_silence_voice_48000.wav
+	sounds/test_silence_voice_44100.wav
+	sounds/test_silence_voice_32000.wav
+	sounds/test_silence_voice_16000.wav
+	sounds/test_silence_voice_8000.wav
 )
 
 set(SCENARIO_FILES

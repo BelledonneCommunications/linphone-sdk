@@ -85,6 +85,7 @@ enum _MSFilterInterfaceId{
 	MSFilterAudioCaptureInterface,/**<Interface for audio capture filters*/
 	MSFilterAudioPlaybackInterface,/**Interface for audio playback filters.*/
 	MSFilterAudioEncoderInterface,/**<Video encoder interface*/
+	MSFilterVADInterface,/**<Voice activity detection interface*/
 	MSFilterVoidInterface,/**<Void source/sink interface*/
 };
 
