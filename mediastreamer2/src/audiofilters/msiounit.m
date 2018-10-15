@@ -411,22 +411,27 @@ static void configure_audio_session (au_card_t* d,uint64_t time) {
 				err = nil;
     		[audioSession setMode:AVAudioSessionModeDefault error:&err];
     		if(err)
-					ms_error("Unable to change audio session mode because : %s", [err localizedDescription].UTF8String);
-				err = nil;
-			} else {
-				ms_message("Configuring audio session for playback/record");
-    		[audioSession setCategory:AVAudioSessionCategoryPlayAndRecord
-    												 mode:AVAudioSessionModeVoiceChat
-                      		options:AVAudioSessionCategoryOptionAllowBluetooth | AVAudioSessionCategoryOptionAllowBluetoothA2DP
-                        		error:&err];
-				if(err)
-					ms_error("Unable to change audio session because : %s", [err localizedDescription].UTF8String);
+			ms_error("Unable to change audio session mode because : %s", [err localizedDescription].UTF8String);
+			err = nil;
+		} else {
+			ms_message("Configuring audio session for playback/record");
+    	
+			[audioSession   setCategory:AVAudioSessionCategoryPlayAndRecord
+					withOptions:AVAudioSessionCategoryOptionAllowBluetooth| AVAudioSessionCategoryOptionAllowBluetoothA2DP
+					      error:&err];
+			if (err) {
+				ms_error("Unable to change audio category because : %s", [err localizedDescription].UTF8String);
 				err = nil;
 			}
-
-			[audioSession setActive:TRUE error:&err];
-			if(err)
-				ms_error("Unable to activate audio session because : %s", [err localizedDescription].UTF8String);
+			[audioSession setMode:AVAudioSessionModeVoiceChat error:&err];
+			if (err) {
+				ms_error("Unable to change audio mode because : %s", [err localizedDescription].UTF8String);
+				err = nil;
+			}			
+		}
+		[audioSession setActive:TRUE error:&err];
+		if(err)
+			ms_error("Unable to activate audio session because : %s", [err localizedDescription].UTF8String);
 			err = nil;
 		} else
 			ms_message("Audio session already correctly configured.");
