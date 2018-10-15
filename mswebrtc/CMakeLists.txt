@@ -40,6 +40,7 @@ option(ENABLE_AEC "Enable the WebRTC echo canceller support." YES)
 option(ENABLE_AECM "Enable the WebRTC echo canceller for mobile support." YES)
 option(ENABLE_ISAC "Enable the ISAC audio codec support." YES)
 option(ENABLE_ILBC "Build iLBC codec filter" YES)
+option(ENABLE_VAD "Build the WebRTC VAD support" YES)
 set(ISAC_FLAVOUR "fix" CACHE STRING "ISAC audio codec flavour.")
 set_property(CACHE ISAC_FLAVOUR PROPERTY STRINGS "fix" "main")
 
@@ -80,6 +81,9 @@ if(ENABLE_ISAC)
 endif()
 if(ENABLE_ILBC)
 	set(BUILD_ILBC 1)
+endif()
+if(ENABLE_VAD)
+	set(BUILD_VAD 1)
 endif()
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 
@@ -199,7 +203,7 @@ if(ENABLE_AEC)
 			-DWEBRTC_ARCH_ARM64=1
 		)
 	endif()
-	
+
 	if(SYSTEM_PROCESSOR MATCHES "^arm.*" OR SYSTEM_PROCESSOR MATCHES "^aarch64.*")
 		list(APPEND AEC_SRCS
 			${AEC_SRC_DIR}/aec_core_neon.c
@@ -368,6 +372,20 @@ if(ENABLE_ILBC)
 	include_directories(${ILBC_SRC_DIR}/include)
 endif()
 
+if(ENABLE_VAD)
+	set(VAD_SRC_DIR ${WEBRTC_SRC_DIR}/common_audio/vad)
+	set(VAD_SRCS
+		vad.cc
+		${VAD_SRC_DIR}/vad.cc
+		${VAD_SRC_DIR}/vad_core.c
+		${VAD_SRC_DIR}/vad_filterbank.c
+		${VAD_SRC_DIR}/vad_gmm.c
+		${VAD_SRC_DIR}/vad_sp.c
+		${VAD_SRC_DIR}/webrtc_vad.c
+	)
+	include_directories(${VAD_SRC_DIR}/include)
+endif()
+
 set(SOURCE_FILES
 	mswebrtc.c
 	${WEBRTC_COMMON_SRCS}
@@ -385,11 +403,14 @@ endif()
 if(ENABLE_ILBC)
 	list(APPEND SOURCE_FILES ${ILBC_SRCS})
 endif()
+if(ENABLE_VAD)
+	list(APPEND SOURCE_FILES ${VAD_SRCS})
+endif()
 
 set(LIBS ${MEDIASTREAMER2_LIBRARIES} ${ORTP_LIBRARIES} ${BCTOOLBOX_CORE_LIBRARIES})
 
 if(LIBM)
-    list(APPEND LIBS ${LIBM})
+	list(APPEND LIBS ${LIBM})
 endif()
 
 if(ENABLE_STATIC)
@@ -416,8 +437,8 @@ if(ENABLE_SHARED)
 		set_target_properties(mswebrtc PROPERTIES
 			FRAMEWORK TRUE
 			MACOSX_FRAMEWORK_IDENTIFIER org.linphone.mswebrtc
-  			MACOSX_FRAMEWORK_INFO_PLIST Info.plist.in
-		) 
+			MACOSX_FRAMEWORK_INFO_PLIST Info.plist.in
+		)
 	endif()
 	if(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")

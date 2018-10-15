@@ -35,3 +35,4 @@
 #cmakedefine BUILD_AECM
 #cmakedefine BUILD_ISAC
 #cmakedefine BUILD_ILBC
+#cmakedefine BUILD_VAD
