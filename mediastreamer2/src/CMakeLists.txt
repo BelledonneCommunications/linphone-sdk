@@ -65,13 +65,6 @@ endif()
 
 bc_git_version(ms2 ${PROJECT_VERSION})
 
-add_custom_target(ms2-basedescs-header
-	COMMAND ${CMAKE_COMMAND} -DAWK_PROGRAM=${AWK_PROGRAM} -DAWK_SCRIPTS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../"
-		-DINPUT_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
-		-DTYPE=base -DSOURCE_FILES="${BASE_SOURCE_FILES_C}"
-		-P "${CMAKE_CURRENT_SOURCE_DIR}/generate_descs_header.cmake"
-	BYPRODUCTS "${CMAKE_CURRENT_BINARY_DIR}/basedescs.h")
-
 add_definitions(
 	-D_TRUE_TIME
 	-DMS2_EXPORTS
@@ -79,71 +72,6 @@ add_definitions(
 	-DMS2_FILTERS
 	-DBCTBX_LOG_DOMAIN="mediastreamer"
 )
-
-set(BASE_LIBS
-	${BCTOOLBOX_CORE_LIBRARIES} ${ORTP_LIBRARIES}
-)
-if(WIN32 AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone" AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
-	list(APPEND BASE_LIBS ${LIBGCC} ${LIBMINGWEX} ole32 oleaut32 uuid Winmm Ws2_32)
-endif()
-if(HAVE_DLOPEN)
-	list(APPEND BASE_LIBS dl)
-endif()
-
-bc_apply_compile_flags(BASE_SOURCE_FILES_C STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
-
-if(ENABLE_STATIC)
-	add_library(mediastreamer_base-static STATIC ${MEDIASTREAMER2_HEADER_FILES} ${BASE_SOURCE_FILES_C})
-	set_target_properties(mediastreamer_base-static PROPERTIES OUTPUT_NAME mediastreamer_base)
-	target_include_directories(mediastreamer_base-static PUBLIC ${MEDIASTREAMER2_INCLUDE_DIRS})
-	target_link_libraries(mediastreamer_base-static INTERFACE ${BASE_LIBS})
-	add_dependencies(mediastreamer_base-static ms2-git-version ms2-basedescs-header)
-	install(TARGETS mediastreamer_base-static EXPORT ${EXPORT_TARGETS_NAME}Targets
-		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-	)
-endif()
-if(ENABLE_SHARED)
-	add_library(mediastreamer_base SHARED ${MEDIASTREAMER2_HEADER_FILES} ${BASE_SOURCE_FILES_C})
-	set_target_properties(mediastreamer_base PROPERTIES LINKER_LANGUAGE CXX)
-	#TODO: replace by if(APPLE) when we want to make apple framework on linphone-desktop too
-	if(IOS)
-		if(IOS)
-			set(MIN_OS ${LINPHONE_IOS_DEPLOYMENT_TARGET})
-		else()
-			set(MIN_OS ${CMAKE_OSX_DEPLOYMENT_TARGET})
-		endif()
-		set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/build/osx/")
-		set_target_properties(mediastreamer_base PROPERTIES
-			FRAMEWORK TRUE
-			MACOSX_FRAMEWORK_IDENTIFIER org.linphone.mediastreamerbase
-  			MACOSX_FRAMEWORK_INFO_PLIST Info_base.plist.in
-		)
-	endif()
-	if(NOT ANDROID)
-		# Do not version shared library on Android
-		set_target_properties(mediastreamer_base PROPERTIES SOVERSION ${MEDIASTREAMER_SO_VERSION})
-	endif()
-	target_include_directories(mediastreamer_base PUBLIC ${MEDIASTREAMER2_INCLUDE_DIRS})
-	target_link_libraries(mediastreamer_base PRIVATE ${BASE_LIBS})
-	add_dependencies(mediastreamer_base ms2-git-version ms2-basedescs-header)
-	if(MSVC)
-		if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
-			install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/mediastreamer_base.pdb
-				DESTINATION ${CMAKE_INSTALL_BINDIR}
-				PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-			)
-		endif()
-	endif()
-	install(TARGETS mediastreamer_base EXPORT ${EXPORT_TARGETS_NAME}Targets
-		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-		FRAMEWORK DESTINATION Frameworks
-		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-	)
-endif()
-
 
 
 set(VOIP_SOURCE_FILES_C
@@ -479,7 +407,20 @@ endif()
 if(PCAP_FOUND)
 	list(APPEND VOIP_SOURCE_FILES_C otherfilters/mspcapfileplayer.c)
 endif()
-set(VOIP_SOURCE_FILES_ALL ${VOIP_SOURCE_FILES_C} ${VOIP_SOURCE_FILES_CXX} ${VOIP_SOURCE_FILES_OBJC})
+
+if(ENABLE_VIDEO)
+	add_subdirectory(voip/h26x)
+endif()
+
+set(VOIP_SOURCE_FILES_ALL ${VOIP_SOURCE_FILES_C} ${VOIP_SOURCE_FILES_CXX} ${VOIP_SOURCE_FILES_OBJC} ${VOIP_SOURCE_FILES_ASM})
+set(SOURCE_FILES_ALL ${BASE_SOURCE_FILES_C} ${VOIP_SOURCE_FILES_ALL})
+
+add_custom_target(ms2-basedescs-header
+	COMMAND ${CMAKE_COMMAND} -DAWK_PROGRAM=${AWK_PROGRAM} -DAWK_SCRIPTS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../"
+		-DINPUT_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
+		-DTYPE=base -DSOURCE_FILES="${BASE_SOURCE_FILES_C}"
+		-P "${CMAKE_CURRENT_SOURCE_DIR}/generate_descs_header.cmake"
+	BYPRODUCTS "${CMAKE_CURRENT_BINARY_DIR}/basedescs.h")
 
 add_custom_target(ms2-voipdescs-header
 	COMMAND ${CMAKE_COMMAND} -DAWK_PROGRAM=${AWK_PROGRAM} -DAWK_SCRIPTS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../"
@@ -511,10 +452,7 @@ if(APPLE OR ANDROID OR OPENGL_FOUND OR GLX_FOUND OR QTANGLE_FOUND)
 	)
 endif()
 
-if(ENABLE_VIDEO)
-	add_subdirectory(voip/h26x)
-endif()
-
+bc_apply_compile_flags(BASE_SOURCE_FILES_C STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
 bc_apply_compile_flags(VOIP_SOURCE_FILES_C STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
 bc_apply_compile_flags(VOIP_SOURCE_FILES_OBJC STRICT_OPTIONS_CPP STRICT_OPTIONS_OBJC)
 if(VOIP_SOURCE_FILES_CXX)
@@ -661,33 +599,33 @@ if(BCG729_FOUND)
 	endif()
 	list(APPEND VOIP_LIBS ${BCG729_LIBRARIES})
 endif()
-set(MS2_VOIP_DEPENDENCIES ms2-git-version ms2-voipdescs-header)
+set(MS2_DEPENDENCIES ms2-git-version ms2-basedescs-header ms2-voipdescs-header)
 if(APPLE OR ANDROID OR OPENGL_FOUND OR GLX_FOUND OR QTANGLE_FOUND)
-	list(APPEND MS2_VOIP_DEPENDENCIES ms2-yuv2rgb-fs-header ms2-yuv2rgb-vs-header)
+	list(APPEND MS2_DEPENDENCIES ms2-yuv2rgb-fs-header ms2-yuv2rgb-vs-header)
 endif()
 
 string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
 if(ENABLE_STATIC)
-	add_library(mediastreamer_voip-static STATIC ${MEDIASTREAMER2_HEADER_FILES} ${VOIP_SOURCE_FILES_C} ${VOIP_SOURCE_FILES_CXX} ${VOIP_SOURCE_FILES_OBJC} ${VOIP_SOURCE_FILES_ASM})
-	set_target_properties(mediastreamer_voip-static PROPERTIES OUTPUT_NAME mediastreamer_voip)
+	add_library(mediastreamer-static STATIC ${MEDIASTREAMER2_HEADER_FILES} ${SOURCE_FILES_ALL})
+	set_target_properties(mediastreamer-static PROPERTIES OUTPUT_NAME mediastreamer)
 	if(LINK_FLAGS_STR)
-		set_target_properties(mediastreamer_voip-static PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
+		set_target_properties(mediastreamer-static PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
-	add_dependencies(mediastreamer_voip-static ${MS2_VOIP_DEPENDENCIES})
-	target_include_directories(mediastreamer_voip-static PUBLIC ${MEDIASTREAMER2_INCLUDE_DIRS})
-	target_link_libraries(mediastreamer_voip-static INTERFACE mediastreamer_base-static ${VOIP_LIBS})
-	install(TARGETS mediastreamer_voip-static EXPORT ${EXPORT_TARGETS_NAME}Targets
+	add_dependencies(mediastreamer-static ${MS2_DEPENDENCIES})
+	target_include_directories(mediastreamer-static PUBLIC ${MEDIASTREAMER2_INCLUDE_DIRS})
+	target_link_libraries(mediastreamer-static INTERFACE ${VOIP_LIBS})
+	install(TARGETS mediastreamer-static EXPORT ${EXPORT_TARGETS_NAME}Targets
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 	)
 endif()
 if(ENABLE_SHARED)
-	add_library(mediastreamer_voip SHARED ${MEDIASTREAMER2_HEADER_FILES} ${VOIP_SOURCE_FILES_C} ${VOIP_SOURCE_FILES_CXX} ${VOIP_SOURCE_FILES_OBJC} ${VOIP_SOURCE_FILES_ASM})
-	set_target_properties(mediastreamer_voip PROPERTIES LINKER_LANGUAGE CXX)
+	add_library(mediastreamer SHARED ${MEDIASTREAMER2_HEADER_FILES} ${SOURCE_FILES_ALL})
+	set_target_properties(mediastreamer PROPERTIES LINKER_LANGUAGE CXX)
 	if(LINK_FLAGS_STR)
-		set_target_properties(mediastreamer_voip PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
+		set_target_properties(mediastreamer PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
-	add_dependencies(mediastreamer_voip ${MS2_VOIP_DEPENDENCIES})
+	add_dependencies(mediastreamer ${MS2_DEPENDENCIES})
 	#TODO: replace by if(APPLE) when we want to make apple framework on linphone-desktop too
 	if(IOS)
 		if(IOS)
@@ -696,63 +634,45 @@ if(ENABLE_SHARED)
 			set(MIN_OS ${CMAKE_OSX_DEPLOYMENT_TARGET})
 		endif()
 		set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/build/osx/")
-		set_target_properties(mediastreamer_voip PROPERTIES
+		# According to Apple documentation (https://developer.apple.com/library/content/documentation/MacOSX/Conceptual/BPFrameworks/Tasks/IncludingFrameworks.html),
+		# framework header files must be included in application code using the #include directive using the followin patern: #include <Framework_name/Header_filename.h>,
+		# so name the framework mediastreamer2 instead of mediastreamer.
+		set_target_properties(mediastreamer PROPERTIES OUTPUT_NAME mediastreamer2)
+		set_target_properties(mediastreamer PROPERTIES
 			FRAMEWORK TRUE
-			MACOSX_FRAMEWORK_IDENTIFIER org.linphone.mediastreamervoip
-  			MACOSX_FRAMEWORK_INFO_PLIST Info_voip.plist.in
+			MACOSX_FRAMEWORK_IDENTIFIER org.linphone.mediastreamer2
+  			MACOSX_FRAMEWORK_INFO_PLIST Info.plist.in
+			PUBLIC_HEADER "${MEDIASTREAMER2_HEADER_FILES}"
 		)
 	endif()
 	if(ANDROID)
 		if(ENABLE_VPX)
-			set_target_properties(mediastreamer_voip PROPERTIES LINK_FLAGS "-Wl,--exclude-libs,libvpx.a")
+			set_target_properties(mediastreamer PROPERTIES LINK_FLAGS "-Wl,--exclude-libs,libvpx.a")
 		endif()
 	else()
 		# Do not version shared library on Android
-		set_target_properties(mediastreamer_voip PROPERTIES SOVERSION ${MEDIASTREAMER_SO_VERSION})
+		set_target_properties(mediastreamer PROPERTIES SOVERSION ${MEDIASTREAMER_SO_VERSION})
 	endif()
-	target_include_directories(mediastreamer_voip PUBLIC ${MEDIASTREAMER2_INCLUDE_DIRS})
-	target_link_libraries(mediastreamer_voip PRIVATE mediastreamer_base ${VOIP_LIBS})
+	target_include_directories(mediastreamer PUBLIC ${MEDIASTREAMER2_INCLUDE_DIRS})
+	target_link_libraries(mediastreamer PRIVATE ${VOIP_LIBS})
 	if(IOS)
-		target_link_libraries(mediastreamer_voip INTERFACE "-framework Foundation" "-framework AVFoundation")
+		target_link_libraries(mediastreamer INTERFACE "-framework Foundation" "-framework AVFoundation")
 	endif()
 	if(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
-			install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/mediastreamer_voip.pdb
+			install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/mediastreamer.pdb
 				DESTINATION ${CMAKE_INSTALL_BINDIR}
 				PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 			)
 		endif()
 	endif()
-	install(TARGETS mediastreamer_voip EXPORT ${EXPORT_TARGETS_NAME}Targets
+	install(TARGETS mediastreamer EXPORT ${EXPORT_TARGETS_NAME}Targets
 		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 		FRAMEWORK DESTINATION Frameworks
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 	)
-endif()
-if (ENABLE_SHARED AND IOS)
-
-	#According to Apple documentation (https://developer.apple.com/library/content/documentation/MacOSX/Conceptual/BPFrameworks/Tasks/IncludingFrameworks.html)
-	#Framework header files must be included in application code using the #include directive using the followin patern: #include <Framework_name/Header_filename.h>. Consequece for medistreamer2 is that the framework must be named mediastreamer2. The final solution is to replace both mediastreamer_voip and mediastreamer_base by mediastreamer2. To preserve backward compatibility, both mediastreamer_voip and mediastreamer_base are kept for now (2018-05-06)
-	add_library(mediastreamer2 SHARED ${MEDIASTREAMER2_HEADER_FILES})
-        set_target_properties(mediastreamer2 PROPERTIES LINKER_LANGUAGE CXX)
-        add_dependencies(mediastreamer2 mediastreamer_voip)
-	target_link_libraries(mediastreamer2 INTERFACE "-framework mediastreamer_base" "-framework mediastreamer_voip" "-framework Foundation" "-framework Foundation" "-framework AVFoundation")
-	set_target_properties(mediastreamer2 PROPERTIES
-                FRAMEWORK TRUE
-                MACOSX_FRAMEWORK_IDENTIFIER org.linphone.mediastreamer
-                MACOSX_FRAMEWORK_INFO_PLIST Info.plist.in
-                PUBLIC_HEADER "${MEDIASTREAMER2_HEADER_FILES}"
-        )
-        install(TARGETS mediastreamer2 EXPORT ${EXPORT_TARGETS_NAME}Targets
-                RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-                LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-                ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-                FRAMEWORK DESTINATION Frameworks
-                PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-        )
-
 endif()
 
 if(FFMPEG_FOUND AND NOT WIN32)

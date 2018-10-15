@@ -21,9 +21,9 @@
 ############################################################################
 
 if(ENABLE_SHARED)
-	set(MS2_LIBS_FOR_TESTER mediastreamer_voip mediastreamer_base)
+	set(MS2_LIBS_FOR_TESTER mediastreamer)
 else()
-	set(MS2_LIBS_FOR_TESTER mediastreamer_voip-static mediastreamer_base-static)
+	set(MS2_LIBS_FOR_TESTER mediastreamer-static)
 	if(XV_FOUND)
 		list(APPEND MS2_LIBS_FOR_TESTER Xext)
 	endif()
