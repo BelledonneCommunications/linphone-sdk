@@ -29,6 +29,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mediastreamer2_tester_private.h"
 #include "private.h"
 
+#include <sys/stat.h>
+
 static MSFactory *msFactory = NULL;
 static int basic_audio_tester_before_all(void) {
 
@@ -532,6 +534,105 @@ static void dtmfgen_filerec_fileplay_tonedet(void) {
 	free(recorded_file);
 }
 
+#define SOUND_TEST_1 "sounds/hello8000.wav"
+#define SOUND_TEST_2 "sounds/arpeggio_8000_mono.wav"
+#define RECORD_SOUND "sounds/mixed_file.wav"
+
+static void two_mono_into_one_stereo(void) {
+	//struct stat sound_file1, sound_file2, sound_record;
+	//unsigned int max_sound_size;
+	player_callback_data player1_data, player2_data;
+	MSFilter *mixer_mono, *player1, *player2;
+	unsigned int filter_mask = FILTER_MASK_FILEREC;
+	int sample_rate1, sample_rate2, nb_channels = 2;
+	char* played_file1 = bc_tester_res(SOUND_TEST_1);
+	char* played_file2 = bc_tester_res(SOUND_TEST_2);
+	char* recorded_file = bc_tester_res(RECORD_SOUND);
+
+	player1_data.end_of_file = FALSE;
+	player2_data.end_of_file = FALSE;
+
+	ms_factory_reset_statistics(msFactory);
+	ms_tester_create_ticker();
+	ms_tester_create_filters(filter_mask, msFactory);
+
+	player1 = ms_factory_create_filter(msFactory, MS_FILE_PLAYER_ID);
+	player2 = ms_factory_create_filter(msFactory, MS_FILE_PLAYER_ID);
+	mixer_mono = ms_factory_create_filter(msFactory, MS_CHANNEL_ADAPTER_ID);
+
+	ms_filter_add_notify_callback(player1, player_cb, &player1_data, TRUE);
+	ms_filter_add_notify_callback(player2, player_cb, &player2_data, TRUE);
+
+	ms_filter_call_method(mixer_mono, MS_FILTER_SET_NCHANNELS, &nb_channels);
+
+	ms_filter_call_method(player1, MS_FILE_PLAYER_OPEN, played_file1);
+	ms_filter_call_method(player2, MS_FILE_PLAYER_OPEN, played_file2);
+
+	ms_filter_call_method(player1, MS_FILTER_GET_SAMPLE_RATE, &sample_rate1);
+	ms_filter_call_method(player2, MS_FILTER_GET_SAMPLE_RATE, &sample_rate2);
+
+	BC_ASSERT_EQUAL(sample_rate1, sample_rate2, int, "%i");
+	if (sample_rate1 != sample_rate2) {
+		ms_error("The two sounds do not have the same sample rate");
+		ms_filter_call_method_noarg(player1, MS_FILE_PLAYER_CLOSE);
+		ms_filter_call_method_noarg(player2, MS_FILE_PLAYER_CLOSE);
+		goto end;
+	}
+
+	ms_filter_call_method(mixer_mono, MS_FILTER_SET_SAMPLE_RATE, &sample_rate1);
+
+	ms_filter_call_method(ms_tester_filerec, MS_FILE_REC_OPEN, recorded_file);
+	ms_filter_call_method(ms_tester_filerec, MS_FILTER_SET_SAMPLE_RATE, &sample_rate1);
+	ms_filter_call_method(ms_tester_filerec, MS_FILTER_SET_NCHANNELS, &nb_channels);
+
+	ms_filter_link(player1, 0, mixer_mono, 0);
+	ms_filter_link(player2, 0, mixer_mono, 1);
+	ms_filter_link(mixer_mono, 0, ms_tester_filerec, 0);
+
+	ms_filter_call_method_noarg(player1, MS_FILE_PLAYER_START);
+	ms_filter_call_method_noarg(player2, MS_FILE_PLAYER_START);
+	ms_filter_call_method_noarg(ms_tester_filerec, MS_FILE_REC_START);
+
+	ms_ticker_attach(ms_tester_ticker, player1);
+
+	BC_ASSERT_TRUE(wait_for_until(NULL, NULL, &player1_data.end_of_file, TRUE, 15000));
+	BC_ASSERT_TRUE(wait_for_until(NULL, NULL, &player2_data.end_of_file, TRUE, 15000));
+
+	ms_filter_call_method_noarg(player1, MS_FILE_PLAYER_CLOSE);
+	ms_filter_call_method_noarg(player2, MS_FILE_PLAYER_CLOSE);
+	ms_filter_call_method_noarg(ms_tester_filerec, MS_FILE_REC_STOP);
+	ms_filter_call_method_noarg(ms_tester_filerec, MS_FILE_REC_CLOSE);
+
+	ms_ticker_detach(ms_tester_ticker, player1);
+
+	ms_filter_unlink(player1, 0, mixer_mono, 0);
+	ms_filter_unlink(player2, 0, mixer_mono, 1);
+	ms_filter_unlink(mixer_mono, 0, ms_tester_filerec, 0);
+
+	/* TODO
+	stat(SOUND_TEST_1, &sound_file1);
+	stat(SOUND_TEST_2, &sound_file2);
+	stat(RECORD_SOUND, &sound_record);
+
+	max_sound_size = (sound_file1.st_size > sound_file2.st_size) ? sound_file1.st_size : sound_file2.st_size;
+
+	BC_ASSERT_EQUAL((unsigned long long)sound_record.st_size, ((unsigned long long)max_sound_size) * 2 - 44, unsigned long long, "%llu");
+	*/
+
+	end:
+	ms_factory_log_statistics(msFactory);
+
+	if (player1) ms_filter_destroy(player1);
+	if (player2) ms_filter_destroy(player2);
+	if (mixer_mono) ms_filter_destroy(mixer_mono);
+
+	ms_tester_destroy_filters(filter_mask);
+	ms_tester_destroy_ticker();
+
+	if (recorded_file) ms_free(recorded_file);
+	if (played_file1) ms_free(played_file1);
+	if (played_file2) ms_free(played_file2);
+}
 
 test_t basic_audio_tests[] = {
 	TEST_ONE_TAG("silence detection 48000", silence_detection_48000, "VAD"),
@@ -547,7 +648,8 @@ test_t basic_audio_tests[] = {
 	TEST_NO_TAG("dtmfgen-enc-dec-tonedet-opus", dtmfgen_enc_dec_tonedet_opus),
 #endif
 	TEST_NO_TAG("dtmfgen-enc-rtp-dec-tonedet", dtmfgen_enc_rtp_dec_tonedet),
-	TEST_NO_TAG("dtmfgen-filerec-fileplay-tonedet", dtmfgen_filerec_fileplay_tonedet)
+	TEST_NO_TAG("dtmfgen-filerec-fileplay-tonedet", dtmfgen_filerec_fileplay_tonedet),
+	TEST_NO_TAG("Mixe two mono file into one stereo file", two_mono_into_one_stereo)
 };
 
 test_suite_t basic_audio_test_suite = {

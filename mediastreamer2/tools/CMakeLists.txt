@@ -36,7 +36,7 @@ else()
 	endif()
 endif()
 
-set(simple_executables bench ring mtudiscover tones)
+set(simple_executables bench ring mtudiscover tones msaudiocmp)
 if(ENABLE_VIDEO)
 	list(APPEND simple_executables videodisplay)
 	if(X11_FOUND)
@@ -69,7 +69,7 @@ if(PCAP_FOUND)
                 set(SOURCE_FILES_OBJC pcap_player_cocoa.m)
         endif()
 	bc_apply_compile_flags(SOURCE_FILES_OBJC STRICT_OPTIONS_CPP STRICT_OPTIONS_OBJC)
-	
+
 	set(PCAP_PLAYBACK_SOURCE_FILES pcap_playback.c common.c)
 	bc_apply_compile_flags(PCAP_PLAYBACK_SOURCE_FILES STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
 	add_executable(pcap_playback ${USE_BUNDLE} ${PCAP_PLAYBACK_SOURCE_FILES} ${SOURCE_FILES_OBJC})

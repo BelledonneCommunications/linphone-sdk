@@ -52,3 +52,4 @@ git-clang-format.diff
 tools/mkvstream
 .bc_tester_utils.tmp
 **/.gradle
+tester/sounds/mixed_file.wav
