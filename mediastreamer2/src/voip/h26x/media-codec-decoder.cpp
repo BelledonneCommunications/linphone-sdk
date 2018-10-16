@@ -97,7 +97,7 @@ bool MediaCodecDecoder::feed(MSQueue *encodedFrame, uint64_t timestamp) {
 			ms_error("MediaCodecDecoder: waiting for key frame.");
 			goto clean;
 		}
-		ms_error("MediaCodecDecoder: key frame received");
+		ms_message("MediaCodecDecoder: key frame received");
 		_needKeyFrame = false;
 	}
 
@@ -129,7 +129,7 @@ MediaCodecDecoder::Status MediaCodecDecoder::fetch(mblk_t *&frame) {
 	}
 
 	oBufidx = AMediaCodec_dequeueOutputBuffer(_impl, &info, _timeoutUs);
-	if (oBufidx == AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED || oBufidx == AMEDIACODEC_INFO_OUTPUT_BUFFERS_CHANGED) {
+	while (oBufidx == AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED || oBufidx == AMEDIACODEC_INFO_OUTPUT_BUFFERS_CHANGED) {
 		ms_message("MediaCodecDecoder: %s", codecInfoToString(oBufidx).c_str());
 		if (oBufidx == AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED) {
 			AMediaFormat *format = AMediaCodec_getOutputFormat(_impl);
@@ -144,6 +144,16 @@ MediaCodecDecoder::Status MediaCodecDecoder::fetch(mblk_t *&frame) {
 			return noFrameAvailable;
 		} else {
 			ms_error("MediaCodecDecoder: error while dequeueing an output buffer: %s", codecInfoToString(oBufidx).c_str());
+			if (oBufidx == AMEDIA_ERROR_UNKNOWN) {
+				try {
+					ms_message("MdeiaCodecDecoder: restarting decoding session");
+					stopImpl();
+					startImpl();
+				} catch (const runtime_error &e) {
+					ms_error("MediaCodecDecoder: session restart failed. %s", e.what());
+					ms_error("MediaCodecDecoder: the session is definitively lost !");
+				}
+			}
 			return decodingFailure;
 		}
 		goto end;
