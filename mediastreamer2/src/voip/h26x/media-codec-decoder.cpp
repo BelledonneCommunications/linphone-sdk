@@ -144,6 +144,16 @@ MediaCodecDecoder::Status MediaCodecDecoder::fetch(mblk_t *&frame) {
 			return noFrameAvailable;
 		} else {
 			ms_error("MediaCodecDecoder: error while dequeueing an output buffer: %s", codecInfoToString(oBufidx).c_str());
+			if (oBufidx == AMEDIA_ERROR_UNKNOWN) {
+				try {
+					ms_message("MdeiaCodecDecoder: restarting decoding session");
+					stopImpl();
+					startImpl();
+				} catch (const runtime_error &e) {
+					ms_error("MediaCodecDecoder: session restart failed. %s", e.what());
+					ms_error("MediaCodecDecoder: the session is definitively lost !");
+				}
+			}
 			return decodingFailure;
 		}
 		goto end;
