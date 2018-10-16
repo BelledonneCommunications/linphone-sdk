@@ -129,7 +129,7 @@ MediaCodecDecoder::Status MediaCodecDecoder::fetch(mblk_t *&frame) {
 	}
 
 	oBufidx = AMediaCodec_dequeueOutputBuffer(_impl, &info, _timeoutUs);
-	if (oBufidx == AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED || oBufidx == AMEDIACODEC_INFO_OUTPUT_BUFFERS_CHANGED) {
+	while (oBufidx == AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED || oBufidx == AMEDIACODEC_INFO_OUTPUT_BUFFERS_CHANGED) {
 		ms_message("MediaCodecDecoder: %s", codecInfoToString(oBufidx).c_str());
 		if (oBufidx == AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED) {
 			AMediaFormat *format = AMediaCodec_getOutputFormat(_impl);
