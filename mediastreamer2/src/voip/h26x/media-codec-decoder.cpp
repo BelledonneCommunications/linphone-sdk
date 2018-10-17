@@ -146,12 +146,10 @@ MediaCodecDecoder::Status MediaCodecDecoder::fetch(mblk_t *&frame) {
 			ms_error("MediaCodecDecoder: error while dequeueing an output buffer: %s", codecInfoToString(oBufidx).c_str());
 			if (oBufidx == AMEDIA_ERROR_UNKNOWN) {
 				try {
-					ms_message("MdeiaCodecDecoder: restarting decoding session");
-					stopImpl();
+					resetImpl();
 					startImpl();
 				} catch (const runtime_error &e) {
-					ms_error("MediaCodecDecoder: session restart failed. %s", e.what());
-					ms_error("MediaCodecDecoder: the session is definitively lost !");
+					ms_error("MediaCodecDecoder: decoding session couldn't been started. The session is definitively lost !");
 				}
 			}
 			return decodingFailure;
@@ -205,9 +203,19 @@ void MediaCodecDecoder::startImpl() {
 	ms_message("MediaCodecDecoder: decoder successfully started. In-force parameters:\n%s", AMediaFormat_toString(_format));
 }
 
-void MediaCodecDecoder::stopImpl() {
+void MediaCodecDecoder::stopImpl() noexcept {
 	ms_message("MediaCodecDecoder: stopping decoder");
 	AMediaCodec_stop(_impl);
+}
+
+void MediaCodecDecoder::resetImpl() noexcept {
+	ms_message("MediaCodecDecoder: reseting decoder");
+	if (AMediaCodec_reset(_impl) != AMEDIA_OK) {
+		ms_error("MediaCodecDecoder: decoder couldn't been reset. Throwing decoding session out");
+		AMediaCodec_delete(_impl);
+		_impl = AMediaCodec_createDecoderByType(_mime.c_str());
+		if (_impl == nullptr) ms_error("MediaCodecDecoder: couldn't recreate decoding session. The decoding session is definitively lost !");
+	}
 }
 
 bool MediaCodecDecoder::feed(MSQueue *encodedFrame, uint64_t timestamp, bool isPs) {

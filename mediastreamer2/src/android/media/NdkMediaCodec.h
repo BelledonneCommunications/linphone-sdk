@@ -79,7 +79,7 @@ AMediaCodec* AMediaCodec_createEncoderByType(const char *mime_type);
 /**
  * delete the codec and free its resources
  */
-media_status_t AMediaCodec_delete(AMediaCodec*);
+void AMediaCodec_delete(AMediaCodec*);
 
 /**
  * Configure the codec. For decoding you would typically get the format from an extractor.

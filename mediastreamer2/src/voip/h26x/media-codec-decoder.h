@@ -52,7 +52,8 @@ protected:
 	virtual bool setParameterSets(MSQueue *parameterSet, uint64_t timestamp);
 	AMediaFormat *createFormat(const std::string &mime) const;
 	void startImpl();
-	void stopImpl();
+	void stopImpl() noexcept;
+	void resetImpl() noexcept;
 	bool feed(MSQueue *encodedFrame, uint64_t timestamp, bool isPs);
 	bool isKeyFrame(const MSQueue *frame) const;
 	static std::string codecInfoToString(ssize_t codecStatusCode);

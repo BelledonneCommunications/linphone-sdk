@@ -250,14 +250,11 @@ media_status_t AMediaCodec_configure(AMediaCodec *codec, const AMediaFormat* for
 	return (handle_java_exception() == -1) ? AMEDIA_ERROR_BASE : AMEDIA_OK;
 }
 
-media_status_t AMediaCodec_delete(AMediaCodec *codec) {
+void AMediaCodec_delete(AMediaCodec *codec) {
 	JNIEnv *env = ms_get_jni_env();
-
 	env->CallVoidMethod(codec->jcodec, codec->release);
 	env->DeleteGlobalRef(codec->jcodec);
 	ms_free(codec);
-
-	return (handle_java_exception() == -1) ? AMEDIA_ERROR_BASE : AMEDIA_OK;
 }
 
 media_status_t AMediaCodec_start(AMediaCodec *codec) {
@@ -401,10 +398,11 @@ media_status_t AMediaCodec_releaseOutputBuffer(AMediaCodec *codec, size_t idx, b
 	return (handle_java_exception() == -1) ? AMEDIA_ERROR_BASE : AMEDIA_OK;
 }
 
-void AMediaCodec_reset(AMediaCodec *codec) {
+media_status_t AMediaCodec_reset(AMediaCodec *codec) {
 	JNIEnv *env = ms_get_jni_env();
 	env->CallVoidMethod(codec->jcodec, codec->reset);
-	handle_java_exception();
+	if (handle_java_exception() != 0) return AMEDIA_ERROR_UNKNOWN;
+	return AMEDIA_OK;
 }
 
 static void putToBundle(JNIEnv *env, AMediaCodec *codec, jobject jbundle, AMediaFormat *fmt, const char *key){
