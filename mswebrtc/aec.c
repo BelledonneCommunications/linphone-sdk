@@ -383,7 +383,7 @@ static int webrtc_aec_set_sr(MSFilter *f, void *arg) {
 	}
 	if (sr != requested_sr)
 		ms_message("Webrtc %s does not support sampling rate %i, using %i instead", ((s->aec_type == WebRTCAECTypeNormal)?"aec":"aecm"),requested_sr, sr);
-	 
+
 	s->samplerate = sr;
 	configure_flow_controlled_bufferizer(s);
 	return 0;
@@ -444,7 +444,8 @@ static MSFilterMethod webrtc_aec_methods[] = {
 	{	MS_ECHO_CANCELLER_SET_BYPASS_MODE	,	webrtc_aec_set_bypass_mode	},
 	{	MS_ECHO_CANCELLER_GET_BYPASS_MODE	,	webrtc_aec_get_bypass_mode	},
 	{	MS_ECHO_CANCELLER_GET_STATE_STRING	,	webrtc_aec_get_state		},
-	{	MS_ECHO_CANCELLER_SET_STATE_STRING	,	webrtc_aec_set_state		}
+	{	MS_ECHO_CANCELLER_SET_STATE_STRING	,	webrtc_aec_set_state		},
+	{	0,	NULL }
 };
 
 
