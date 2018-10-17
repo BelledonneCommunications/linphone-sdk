@@ -26,8 +26,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
 typedef struct AdapterState {
-	int inputchans;
-	int outputchans;
+	int inputchans; // means the number of channels but not the number of filter input
+	int outputchans; // means the number of channels but not the number of filter output
 	int sample_rate;
 	size_t buffer_size;
 	uint8_t *buffer1;
@@ -63,8 +63,8 @@ static void adapter_preprocess(MSFilter *f) {
 static void adapter_process(MSFilter *f) {
 	AdapterState *s = (AdapterState*)f->data;
 
-	// Two mono input t stereo output
-	if (s->inputchans == 2 && s->outputchans == 1) {
+	// Two mono input to stereo output
+	if (f->inputs[0] != NULL && f->inputs[1] != NULL) {
 		size_t buffer_size1, buffer_size2;
 
 		ms_bufferizer_put_from_queue(&s->input_buffer1, f->inputs[0]);
@@ -73,7 +73,7 @@ static void adapter_process(MSFilter *f) {
 		buffer_size1 = ms_bufferizer_get_avail(&s->input_buffer1);
 		buffer_size2 = ms_bufferizer_get_avail(&s->input_buffer2);
 
-		while (buffer_size1 >= s->buffer_size || buffer_size2 >= s->buffer_size) {
+		if (buffer_size1 >= s->buffer_size || buffer_size2 >= s->buffer_size) {
 			mblk_t *om;
 
 			if (buffer_size1 < s->buffer_size) memset(s->buffer1, 0, s->buffer_size);
@@ -104,9 +104,17 @@ static void adapter_process(MSFilter *f) {
 			} else if (s->outputchans == 2) {
 				msgsize = msgdsize(im) * 2;
 				om = allocb(msgsize, 0);
-				for (;im->b_rptr < im->b_wptr ; im->b_rptr += 2 ,om->b_wptr += 4){
+				for (;im->b_rptr < im->b_wptr ; im->b_rptr += 2 , om->b_wptr += 4) {
 					((int16_t*)om->b_wptr)[0] = *(int16_t*)im->b_rptr;
 					((int16_t*)om->b_wptr)[1] = *(int16_t*)im->b_rptr;
+				}
+				ms_queue_put(f->outputs[0], om);
+				freemsg(im);
+			} else if (s->inputchans == 2) {
+				msgsize = msgdsize(im)/2;
+				om = allocb(msgsize,0);
+				for (;im->b_rptr < im->b_wptr ; im->b_rptr += 4 , om->b_wptr += 2) {
+					*(int16_t*)om->b_wptr = *(int16_t*)im->b_rptr;
 				}
 				ms_queue_put(f->outputs[0], om);
 				freemsg(im);
