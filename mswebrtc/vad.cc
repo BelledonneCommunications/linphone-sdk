@@ -124,7 +124,7 @@ static MSFilterMethod vad_methods[]={
 };
 
 
-MSFilterDesc ms_webrtc_vad_desc={
+extern "C" MSFilterDesc ms_webrtc_vad_desc = {
 	MS_FILTER_PLUGIN_ID,
 	"MSWebRtcVADDec",
 	"WebRtc's VAD",
