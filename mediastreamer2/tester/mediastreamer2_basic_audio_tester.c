@@ -95,6 +95,7 @@ static void _silence_detection(const char* filename, unsigned int duration_thres
 	unsigned int enable_silence = 1;
 	char* recorded_file = bc_tester_res(filename);
 	MSFilterDesc *vad_desc = ms_factory_lookup_filter_by_name(msFactory, MSWEBRTC_VAD_FILTER_NAME);
+	int i;
 
 	if (!recorded_file) return;
 
@@ -131,7 +132,7 @@ static void _silence_detection(const char* filename, unsigned int duration_thres
 
 	BC_ASSERT_EQUAL(silence_data.voice_detected_number, number_detection, int, "%d");
 	if (number_detection > 0 && number_detection == silence_data.voice_detected_number) {
-		for (int i = 0 ; i < number_detection-1 ; i++) {
+		for (i = 0 ; i < number_detection-1 ; i++) {
 			BC_ASSERT_LOWER_STRICT((unsigned long long)silence_data.silence_duration[i], (unsigned long long)(silence_duration[i] + delay), unsigned long long, "%llu");
 			BC_ASSERT_GREATER_STRICT((unsigned long long)silence_data.silence_duration[i], (unsigned long long)(silence_duration[i] - delay), unsigned long long, "%llu");
 		}

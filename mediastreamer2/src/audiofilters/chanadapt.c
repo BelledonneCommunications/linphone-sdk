@@ -75,6 +75,7 @@ static void adapter_process(MSFilter *f) {
 
 		if (buffer_size1 >= s->buffer_size || buffer_size2 >= s->buffer_size) {
 			mblk_t *om;
+			unsigned int i;
 
 			if (buffer_size1 < s->buffer_size) memset(s->buffer1, 0, s->buffer_size);
 			if (buffer_size2 < s->buffer_size) memset(s->buffer2, 0, s->buffer_size);
@@ -84,7 +85,7 @@ static void adapter_process(MSFilter *f) {
 
 			om = allocb(s->buffer_size * 2, 0);
 
-			for (unsigned int i = 0 ; i < s->buffer_size / sizeof(int16_t) ; i++ , om->b_wptr += 4) {
+			for (i = 0 ; i < s->buffer_size / sizeof(int16_t) ; i++ , om->b_wptr += 4) {
 				((int16_t*)om->b_wptr)[0] = ((int16_t*)s->buffer1)[i];
 				((int16_t*)om->b_wptr)[1] = ((int16_t*)s->buffer2)[i];
 			}
