@@ -23,7 +23,11 @@
 set(ABS_SOURCE_FILES )
 string(REPLACE " " ";" SOURCE_FILES ${SOURCE_FILES})
 foreach(SOURCE_FILE ${SOURCE_FILES})
-	list(APPEND ABS_SOURCE_FILES "${INPUT_DIR}/${SOURCE_FILE}")
+	if(IS_ABSOLUTE ${SOURCE_FILE})
+		list(APPEND ABS_SOURCE_FILES "${SOURCE_FILE}")
+	else()
+		list(APPEND ABS_SOURCE_FILES "${INPUT_DIR}/${SOURCE_FILE}")
+	endif()
 endforeach()
 
 execute_process(
