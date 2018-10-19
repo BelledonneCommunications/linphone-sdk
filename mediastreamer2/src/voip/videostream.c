@@ -254,7 +254,7 @@ const char *video_stream_get_default_video_renderer(void){
 #elif defined(MS2_WINDOWS_DESKTOP)
 	return "MSDrawDibDisplay";
 #elif defined(__ANDROID__)
-	return "MSAndroidOpenGLDisplay";
+	return "MSAndroidTextureDisplay";
 #elif __APPLE__ && !TARGET_OS_IPHONE
 	return "MSOSXGLDisplay";
 #elif defined (HAVE_XV)

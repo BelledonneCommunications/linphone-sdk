@@ -45,6 +45,7 @@ extern void ms_ffmpeg_check_init(void);
 extern bool_t libmsandroiddisplay_init(MSFactory *factory);
 extern void libmsandroiddisplaybad_init(MSFactory *factory);
 extern void libmsandroidopengldisplay_init(MSFactory *factory);
+extern void libmsandroidtexturedisplay_init(MSFactory *factory);
 
 #if defined(__APPLE__) && defined(VIDEO_ENABLED)
 extern void _register_videotoolbox_if_supported(MSFactory *factory);
@@ -322,6 +323,7 @@ void ms_factory_init_voip(MSFactory *obj){
 			libmsandroiddisplaybad_init(obj);
 		}
 		libmsandroidopengldisplay_init(obj);
+		libmsandroidtexturedisplay_init(obj);
 	}
 #endif
 	obj->voip_initd=TRUE;

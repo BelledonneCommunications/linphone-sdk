@@ -286,6 +286,7 @@ if(ENABLE_VIDEO)
 		list(APPEND VOIP_SOURCE_FILES_C
 			android/android-display.c
 			android/android-opengl-display.c
+			android/android-texture-display.c
 			utils/opengl_functions.c
 			utils/opengl_functions.h
 			utils/opengles_display.c
@@ -498,7 +499,7 @@ if(ANDROID_SUPPORT_LIBRARY)
 	list(APPEND VOIP_LIBS ${ANDROID_SUPPORT_LIBRARY})
 endif()
 if(ANDROID AND ENABLE_VIDEO)
-	list(APPEND VOIP_LIBS GLESv2)
+	list(APPEND VOIP_LIBS EGL GLESv2 android)
 endif()
 if(HAVE_DLOPEN)
 	list(APPEND VOIP_LIBS dl)

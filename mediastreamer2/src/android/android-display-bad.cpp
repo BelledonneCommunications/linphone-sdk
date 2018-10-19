@@ -234,7 +234,7 @@ static MSFilterMethod methods[]={
 };
 
 static MSFilterDesc ms_android_display_bad_desc={
-	MS_ANDROID_DISPLAY_ID,
+	MS_ANDROID_DISPLAY_BAD_ID,
 	"MSAndroidDisplay",
 	"Video display filter for Android (unofficial)",
 	MS_FILTER_OTHER,
