@@ -1,0 +1,8 @@
+image: bc-dev-android-r17b
+
+build:
+  script:
+    - mkdir build-android
+    - cd build-android
+    - cmake .. -DLINPHONESDK_PLATFORM=Android
+    - cmake --build . --target sdk
