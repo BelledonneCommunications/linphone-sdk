@@ -1,0 +1,44 @@
+FROM debian:stretch
+
+MAINTAINER Ghislain MARY <ghislain.mary@belledonne-communications.com>
+
+ENV SHELL=/bin/bash
+#ENV PS1='\[\e[33m\]\u@bc-dev-debian9>\[\e[0m\] '
+
+# Install common general tools
+RUN apt-get update && \
+    apt-get install -y nano sudo vim && \
+    apt-get clean
+
+# Install development tools
+RUN apt-get update && \
+    apt-get install -y autoconf ccache clang cmake doxygen g++ gdb git graphviz intltool libtool make nasm ninja-build patch python-pip python-pystache python-six yasm && \
+    apt-get clean && \
+    pip install sphinx javasphinx sphinx_csharp
+
+# Install jenkins dependencies
+#RUN apt-get update && \
+#    apt-get install -y default-jre-headless openssh-server && \
+#    apt-get clean && \
+#    mkdir -p /var/run/sshd
+
+# Install linphone dependencies development packages
+RUN apt-get update && \
+    apt-get install -y libasound2-dev libavcodec-dev libavutil-dev libbsd-dev libegl1-mesa-dev libglew-dev libgsm1-dev libmbedtls-dev libopus-dev libpulse-dev libspeex-dev libspeexdsp-dev libsqlite3-dev libsrtp2-dev libssl-dev libswscale-dev libturbojpeg0-dev libv4l-dev libvpx-dev libxerces-c-dev libxml2-dev libxv-dev && \
+    apt-get clean
+
+# Configure user bc
+RUN useradd -ms /bin/bash bc && \
+    echo 'bc:cotcot' | chpasswd && \
+    echo 'bc ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+#EXPOSE 22
+EXPOSE 5060/udp
+EXPOSE 5060/tcp
+EXPOSE 5061
+
+#CMD ["/usr/sbin/sshd", "-D"]
+
+USER bc
+WORKDIR /home/bc
+CMD bash
