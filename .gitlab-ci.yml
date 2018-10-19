@@ -1,8 +1,9 @@
-image: bc-dev-android-r17b
+job-android:
 
-tags: docker
+  image: bc-dev-android-r17b
 
-build:
+  tags: [ "docker" ]
+
   script:
     - mkdir build-android
     - cd build-android
