@@ -1,5 +1,7 @@
 image: bc-dev-android-r17b
 
+tags: docker
+
 build:
   script:
     - mkdir build-android
