@@ -114,7 +114,3 @@ if(ENABLE_ZRTP)
 	lcb_dependencies("bzrtp")
 endif()
 
-if(ENABLE_V4L)
-	lcb_dependencies("v4l")
-endif()
-

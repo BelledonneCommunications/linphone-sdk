@@ -60,7 +60,6 @@ file(GLOB FILES_TO_DELETE
 	"${LINPHONE_SDK_TMP}/bin/ir-*"
 	"${LINPHONE_SDK_TMP}/bin/ivtv*"
 	"${LINPHONE_SDK_TMP}/bin/rds-*"
-	"${LINPHONE_SDK_TMP}/bin/v4l*"
 )
 file(REMOVE ${FILES_TO_DELETE})
 

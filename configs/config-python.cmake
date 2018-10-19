@@ -120,9 +120,6 @@ endif()
 # polarssl
 lcb_builder_linking_type(polarssl "-DUSE_SHARED_POLARSSL_LIBRARY=NO")
 
-# v4l
-lcb_builder_linking_type(v4l "--enable-static" "--disable-shared" "--with-pic")
-
 # vpx
 lcb_builder_linking_type(vpx "--enable-static" "--disable-shared" "--enable-pic")
 
