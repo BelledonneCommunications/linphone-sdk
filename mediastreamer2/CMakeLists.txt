@@ -23,6 +23,10 @@
 cmake_minimum_required(VERSION 3.0)
 project(mediastreamer2 VERSION 2.16.1 LANGUAGES C CXX)
 
+# See: https://cmake.org/cmake/help/v3.12/policy/CMP0072.html
+if(POLICY CMP0072)
+	cmake_policy(SET CMP0072 NEW)
+endif()
 
 set(MEDIASTREAMER_MAJOR_VERSION ${PROJECT_VERSION_MAJOR})
 set(MEDIASTREAMER_MINOR_VERSION ${PROJECT_VERSION_MINOR})
