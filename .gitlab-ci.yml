@@ -1,23 +1,28 @@
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+
+
+cache:
+  key: ${CI_JOB_NAME}
+  paths:
+    - ccache/
+
+before_script:
+  - mkdir -p ccache
+  - export CCACHE_BASEDIR=${PWD}
+  - export CCACHE_DIR=${PWD}/ccache
+
+
 job-android:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17b
-
   tags: [ "docker" ]
-
-  cache:
-    paths:
-      - ccache/
-
-  before_script:
-    - mkdir -p ccache
-    - export CCACHE_BASEDIR=${PWD}
-    - export CCACHE_DIR=${PWD}/ccache
 
   script:
     - sdkmanager
     - mkdir build-android
     - cd build-android
-    - cmake .. -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS="arm64, armv7, x86, x86_64"
+    - cmake .. -G "Unix Makefiles" -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS="arm64, armv7, x86, x86_64"
     - cmake --build . --target sdk >> build_log.txt 2>&1
 
   artifacts:
@@ -28,29 +33,187 @@ job-android:
     when: always
     expire_in: 1 week
 
+
 job-ios:
 
   tags: [ "macosx" ]
 
-  cache:
-    paths:
-      - ccache/
-
-  before_script:
-    - mkdir -p ccache
-    - export CCACHE_BASEDIR=${PWD}
-    - export CCACHE_DIR=${PWD}/ccache
-
   script:
     - mkdir build-ios
     - cd build-ios
-    - cmake .. -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="arm64, armv7, i386, x86_64"
-    - cmake --build . --target sdk >> build_log.txt 2>&1
+    - cmake .. -G "Unix Makefiles" -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="arm64, armv7, i386, x86_64"
+    - cmake --build . --target sdk -- -j2 >> build_log.txt 2>&1
 
   artifacts:
     paths:
       - build-ios/build_log.txt
       - build-ios/linphone-sdk-*.zip
       - build-ios/linphone-sdk.podspec
+    when: always
+    expire_in: 1 week
+
+
+.job-linux-desktop-template: &job-linux-desktop-definition
+
+  script:
+    - export CC=$CC
+    - export CXX=$CXX
+    - mkdir build-desktop
+    - cd build-desktop
+    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop
+    - cmake --build . --target sdk >> build_log.txt 2>&1
+
+  artifacts:
+    paths:
+      - build-desktop/build_log.txt
+    when: always
+    expire_in: 1 week
+
+
+job-centos7-makefile-gcc:
+
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
+  tags: [ "docker" ]
+  variables:
+    CMAKE_GENERATOR: Unix Makefiles
+    CC: gcc
+    CXX: g++
+  <<: *job-linux-desktop-definition
+
+
+job-debian8-makefile-gcc:
+
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
+  tags: [ "docker" ]
+  variables:
+    CMAKE_GENERATOR: Unix Makefiles
+    CC: gcc
+    CXX: g++
+  <<: *job-linux-desktop-definition
+
+
+job-debian9-makefile-gcc:
+
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
+  tags: [ "docker" ]
+  variables:
+    CMAKE_GENERATOR: Unix Makefiles
+    CC: gcc
+    CXX: g++
+  <<: *job-linux-desktop-definition
+
+
+job-centos7-ninja-gcc:
+
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
+  tags: [ "docker" ]
+  variables:
+    CMAKE_GENERATOR: Ninja
+    CC: gcc
+    CXX: g++
+  <<: *job-linux-desktop-definition
+
+
+job-debian8-ninja-gcc:
+
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
+  tags: [ "docker" ]
+  variables:
+    CMAKE_GENERATOR: Ninja
+    CC: gcc
+    CXX: g++
+  <<: *job-linux-desktop-definition
+
+
+job-debian9-ninja-gcc:
+
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
+  tags: [ "docker" ]
+  variables:
+    CMAKE_GENERATOR: Ninja
+    CC: gcc
+    CXX: g++
+  <<: *job-linux-desktop-definition
+
+
+job-centos7-makefile-clang:
+
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
+  tags: [ "docker" ]
+  variables:
+    CMAKE_GENERATOR: Unix Makefiles
+    CC: clang
+    CXX: clang++
+  <<: *job-linux-desktop-definition
+
+
+job-debian8-makefile-clang:
+
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
+  tags: [ "docker" ]
+  variables:
+    CMAKE_GENERATOR: Unix Makefiles
+    CC: clang
+    CXX: clang++
+  <<: *job-linux-desktop-definition
+
+
+job-debian9-makefile-clang:
+
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
+  tags: [ "docker" ]
+  variables:
+    CMAKE_GENERATOR: Unix Makefiles
+    CC: clang
+    CXX: clang++
+  <<: *job-linux-desktop-definition
+
+
+job-centos7-ninja-clang:
+
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
+  tags: [ "docker" ]
+  variables:
+    CMAKE_GENERATOR: Ninja
+    CC: clang
+    CXX: clang++
+  <<: *job-linux-desktop-definition
+
+
+job-debian8-ninja-clang:
+
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
+  tags: [ "docker" ]
+  variables:
+    CMAKE_GENERATOR: Ninja
+    CC: clang
+    CXX: clang++
+  <<: *job-linux-desktop-definition
+
+
+job-debian9-ninja-clang:
+
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
+  tags: [ "docker" ]
+  variables:
+    CMAKE_GENERATOR: Ninja
+    CC: clang
+    CXX: clang++
+  <<: *job-linux-desktop-definition
+
+
+job-macosx-makefile:
+
+  tags: [ "macosx" ]
+
+  script:
+    - mkdir build-desktop
+    - cd build-desktop
+    - cmake .. -G "Unix Makefiles" -DLINPHONESDK_PLATFORM=Desktop
+    - cmake --build . --target sdk -- -j2 >> build_log.txt 2>&1
+
+  artifacts:
+    paths:
+      - build-desktop/build_log.txt
     when: always
     expire_in: 1 week
