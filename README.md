@@ -2,7 +2,7 @@
 
 Meta repository holding all the dependencies to build a full Linphone SDK.
 
-The currently supported platforms are Android and iOS.
+The currently supported platforms are Android, iOS, Desktop (Linux, Windows, Mac OS X) and UWP (Universal Windows Platform).
 
 ## Building and customizing the SDK
 
@@ -11,14 +11,14 @@ The build system is based on CMake, so you need to install it first if you don't
 The steps to build the SDK are:
 
  1. Create and go inside a directory where the SDK will be built:
- `mkdir build-android && cd build-android`
+ `mkdir build-desktop && cd build-desktop`
  2. Execute CMake to configure the project:
  `cmake ..`
  3. Build the SDK:
  `cmake --build . --target sdk`
 
 You can pass some options to CMake at the second step to configure the SDK as you want.
-For instance, to build an iOS SDK (the default being Android):
+For instance, to build an iOS SDK (the default being Desktop):
  `cmake .. -DLINPHONESDK_PLATFORM=IOS`
 
 ## Upgrading your SDK
@@ -40,6 +40,7 @@ Some customization are particularly important:
  3. `LINPHONESDK_ANDROID_ARCHS`: A comma-separated list of the architectures for which you want to build the Android Linphone SDK for.
  4. `LINPHONESDK_IOS_ARCHS`: Same as `LINPHONESDK_ANDROID_ARCHS` but for an iOS build.
  5. `LINPHONESDK_IOS_BASE_URL`: The base of the URL that will be used to download the zip file of the SDK.
+ 6. `LINPHONESDK_UWP_ARCHS`: Same as `LINPHONESDK_ANDROID_ARCHS` but for an UWP build.
 
 ## Licensing: GPL third parties versus non GPL third parties
 
