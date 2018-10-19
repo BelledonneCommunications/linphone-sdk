@@ -43,8 +43,8 @@ if(ENABLE_TUNNEL)
 endif()
 
 
-set(LINPHONESDK_PLATFORM "Android" CACHE STRING "Platform to build")
-set_property(CACHE LINPHONESDK_PLATFORM PROPERTY STRINGS "Android" "IOS")
+set(LINPHONESDK_PLATFORM "Desktop" CACHE STRING "Platform to build")
+set_property(CACHE LINPHONESDK_PLATFORM PROPERTY STRINGS "Android" "Desktop" "IOS" "UWP")
 
 
 # TODO: This will be deletable once we get rid of cmake-builder
