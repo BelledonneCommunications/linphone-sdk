@@ -1,0 +1,23 @@
+FROM microsoft/windowsservercore
+
+RUN @"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -InputFormat None -ExecutionPolicy Bypass -Command "iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))" && SET "PATH=%PATH%;%ALLUSERSPROFILE%\chocolatey\bin"
+
+SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
+
+# Install build tools
+#--params "/GitAndUnixToolsOnPath /NoAutoCrlf /WindowsTerminal /NoShellIntegration /NoCredentialManager /NoGitLfs /SChannel"
+RUN choco install git.portable --version 2.18.0 -y; \
+	choco install doxygen.install -y; \
+	choco install python2 -y; \
+	choco install 7zip -y; \
+	choco install yasm -y; \
+	choco install visualcpp-build-tools --version 14.0.25420.1 -y
+
+ENV PYTHONIOENCODING="UTF-8"
+RUN pip install pystache pip
+
+RUN choco feature enable -n=allowGlobalConfirmation; \
+	choco install cmake --installargs 'ADD_CMAKE_TO_PATH=""System""'
+
+# Default to PowerShell if no other command specified.
+CMD ["powershell.exe", "-NoLogo", "-ExecutionPolicy", "Bypass"]

@@ -5,7 +5,7 @@ MAINTAINER Ghislain MARY <ghislain.mary@belledonne-communications.com>
 #RUN localedef -i en_US -f UTF-8 en_US.UTF-8
 
 # Define environment
-ENV ANDROID_NDK r17b
+ENV ANDROID_NDK r16b
 ENV ANDROID_SDK 25.2.5
 ENV ANDROID_HOME /opt/android-sdk-linux
 #ENV LANG en_US.UTF-8
@@ -52,5 +52,5 @@ RUN useradd -ms /bin/bash bc && \
 
 USER bc
 WORKDIR /home/bc
-ENV PS1='\[\e[34m\]\u@bc-dev-android-r17b>\[\e[0m\] '
+ENV PS1='\[\e[34m\]\u@bc-dev-android-r16b>\[\e[0m\] '
 CMD bash
