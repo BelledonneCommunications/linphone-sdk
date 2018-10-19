@@ -28,4 +28,8 @@ configure_file("${LINPHONESDK_DIR}/cmake/Android/gradle/LinphoneSdkManifest.xml.
 execute_process(
 	COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "clean"
 	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
+	RESULT_VARIABLE _gradle_clean_result
 )
+if(_gradle_clean_result)
+	message(FATAL_ERROR "Gradle clean failed")
+endif()
