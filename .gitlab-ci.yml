@@ -1,11 +1,9 @@
-job-android:
+job-ios:
 
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17b
-
-  tags: [ "docker" ]
+  tags: [ "macosx" ]
 
   script:
-    - mkdir build-android
-    - cd build-android
-    - cmake .. -DLINPHONESDK_PLATFORM=Android
+    - mkdir build-ios
+    - cd build-ios
+    - cmake .. -DLINPHONESDK_PLATFORM=IOS
     - cmake --build . --target sdk
