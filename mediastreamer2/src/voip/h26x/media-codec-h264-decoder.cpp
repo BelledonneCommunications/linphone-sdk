@@ -17,6 +17,10 @@
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
+#include <cstring>
+
+#include <sys/system_properties.h>
+
 #include <ortp/b64.h>
 
 #include "filter-wrapper/decoding-filter-wrapper.h"
@@ -27,36 +31,60 @@
 #include "media-codec-h264-decoder.h"
 
 using namespace b64;
+using namespace std;
 
 namespace mediastreamer {
+
+MediaCodecH264Decoder::MediaCodecH264Decoder(): MediaCodecDecoder("video/avc") {
+	DeviceInfo info = getDeviceInfo();
+	ms_message("MediaCodecH264Decoder: got device info: %s", info.toString().c_str());
+	if (info == DeviceInfo({"rockchip", "X9-LX", "rk3288"})) {
+		ms_message("MediaCodecH264Decoder: enabling reset on new SPS/PPS mode");
+		_resetOnPsReceiving = true;
+	}
+}
 
 MediaCodecH264Decoder::~MediaCodecH264Decoder() {
 	if (_lastSps) freemsg(_lastSps);
 }
 
 bool MediaCodecH264Decoder::setParameterSets(MSQueue *parameterSet, uint64_t timestamp) {
-	for (mblk_t *m = ms_queue_peek_first(parameterSet); !ms_queue_end(parameterSet, m); m = ms_queue_next(parameterSet, m)) {
-		MSH264NaluType type = ms_h264_nalu_get_type(m);
-		if (type == MSH264NaluTypeSPS && isNewPps(m)) {
-			int32_t curWidth, curHeight;
-			AMediaFormat_getInt32(_format, "width", &curWidth);
-			AMediaFormat_getInt32(_format, "height", &curHeight);
-			MSVideoSize vsize = ms_h264_sps_get_video_size(m);
-			if (vsize.width != curWidth || vsize.height != curHeight) {
-				ms_message("MediaCodecDecoder: restarting decoder because the video size has changed (%dx%d->%dx%d)",
-					curWidth,
-					curHeight,
-					vsize.width,
-					vsize.height
-				);
-				AMediaFormat_setInt32(_format, "width", vsize.width);
-				AMediaFormat_setInt32(_format, "height", vsize.height);
-				stopImpl();
-				startImpl();
+	if (_resetOnPsReceiving) {
+		for (mblk_t *m = ms_queue_peek_first(parameterSet); !ms_queue_end(parameterSet, m); m = ms_queue_next(parameterSet, m)) {
+			MSH264NaluType type = ms_h264_nalu_get_type(m);
+			if (type == MSH264NaluTypeSPS && isNewPps(m)) {
+				int32_t curWidth, curHeight;
+				AMediaFormat_getInt32(_format, "width", &curWidth);
+				AMediaFormat_getInt32(_format, "height", &curHeight);
+				MSVideoSize vsize = ms_h264_sps_get_video_size(m);
+				if (vsize.width != curWidth || vsize.height != curHeight) {
+					ms_message("MediaCodecDecoder: restarting decoder because the video size has changed (%dx%d->%dx%d)",
+					           curWidth,
+					           curHeight,
+					           vsize.width,
+					           vsize.height
+					          );
+					AMediaFormat_setInt32(_format, "width", vsize.width);
+					AMediaFormat_setInt32(_format, "height", vsize.height);
+					stopImpl();
+					startImpl();
+				}
 			}
 		}
 	}
 	return MediaCodecDecoder::setParameterSets(parameterSet, timestamp);
+}
+
+bool MediaCodecH264Decoder::DeviceInfo::operator==(const DeviceInfo &info) {
+	return this->manufacturer == info.manufacturer
+		&& this->model == info.model
+		&& this->platform == info.platform;
+}
+
+std::string MediaCodecH264Decoder::DeviceInfo::toString() const {
+	ostringstream os;
+	os << "{ '" << this->manufacturer << "', '" << this->model << "', '" << this->platform << "' }";
+	return os.str();
 }
 
 bool MediaCodecH264Decoder::isNewPps(mblk_t *sps) {
@@ -72,6 +100,19 @@ bool MediaCodecH264Decoder::isNewPps(mblk_t *sps) {
 		return true;
 	}
 	return false;
+}
+
+MediaCodecH264Decoder::DeviceInfo MediaCodecH264Decoder::getDeviceInfo() {
+	const size_t propSize = 256;
+	char manufacturer[propSize];
+	char model[propSize];
+	char platform[propSize];
+
+	if (__system_property_get("ro.product.manufacturer", manufacturer) < 0) manufacturer[0] = '\0';
+	if (__system_property_get("ro.product.model", model) < 0) model[0] = '\0';
+	if (__system_property_get("ro.board.platform", platform) < 0) platform[0] = '\0';
+
+	return DeviceInfo({manufacturer, model, platform});
 }
 
 class MediaCodecH264DecoderFilterImpl: public H26xDecoderFilter {

@@ -25,14 +25,25 @@ namespace mediastreamer {
 
 class MediaCodecH264Decoder: public MediaCodecDecoder {
 public:
-	MediaCodecH264Decoder(): MediaCodecDecoder("video/avc") {}
+	MediaCodecH264Decoder();
 	~MediaCodecH264Decoder();
 	bool setParameterSets(MSQueue *parameterSet, uint64_t timestamp) override;
 
 private:
+	struct DeviceInfo {
+		std::string manufacturer;
+		std::string model;
+		std::string platform;
+
+		bool operator==(const DeviceInfo &info);
+		std::string toString() const;
+	};
+
 	bool isNewPps(mblk_t *sps);
+	static DeviceInfo getDeviceInfo();
 
 	mblk_t *_lastSps = nullptr;
+	bool _resetOnPsReceiving = false;
 };
 
 }
