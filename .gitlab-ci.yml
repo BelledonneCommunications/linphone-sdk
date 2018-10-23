@@ -1,3 +1,8 @@
+variables:
+  GIT_STRATEGY: clone
+  GIT_SUBMODULE_STRATEGY: recursive
+
+
 job-android:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17b
@@ -28,6 +33,7 @@ job-android:
     when: always
     expire_in: 1 week
 
+
 job-ios:
 
   tags: [ "macosx" ]
@@ -54,6 +60,7 @@ job-ios:
       - build-ios/linphone-sdk.podspec
     when: always
     expire_in: 1 week
+
 
 job-debian9:
 
