@@ -17,12 +17,14 @@ job-android:
     - mkdir build-android
     - cd build-android
     - cmake .. -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS="arm64, armv7, x86, x86_64"
-    - cmake --build . --target sdk -- -j2
+    - cmake --build . --target sdk -- -j2 >> build_log.txt 2>&1
 
   artifacts:
     paths:
+      - build-android/build_log.txt
       - build-android/linphone-sdk/bin/outputs/aar/*.aar
       - build-android/linphone-sdk/bin/distributions/linphone-sdk-*.zip
+    expire_in: 1 week
 
 job-ios:
 
@@ -41,9 +43,11 @@ job-ios:
     - mkdir build-ios
     - cd build-ios
     - cmake .. -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="arm64, armv7, i386, x86_64"
-    - cmake --build . --target sdk -- -j2
+    - cmake --build . --target sdk -- -j2 >> build_log.txt 2>&1
 
   artifacts:
     paths:
+      - build-ios/build_log.txt
       - build-ios/linphone-sdk/linphone-sdk-*.zip
       - build-ios/linphone-sdk/linphone-sdk.podspec
+    expire_in: 1 week
