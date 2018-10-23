@@ -1,7 +1,10 @@
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+
+
 job-android:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17b
-
   tags: [ "docker" ]
 
   cache:
@@ -27,6 +30,7 @@ job-android:
       - build-android/linphone-sdk/bin/distributions/linphone-sdk-*.zip
     when: always
     expire_in: 1 week
+
 
 job-ios:
 
@@ -55,11 +59,8 @@ job-ios:
     when: always
     expire_in: 1 week
 
-job-debian9:
 
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
-
-  tags: [ "docker" ]
+.job-desktop-template: &job-desktop-definition
 
   cache:
     paths:
@@ -81,3 +82,30 @@ job-debian9:
       - build-desktop/build_log.txt
     when: always
     expire_in: 1 week
+
+
+job-centos7:
+
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
+  tags: [ "docker" ]
+  <<: *job-desktop-definition
+
+
+job-debian8:
+
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
+  tags: [ "docker" ]
+  <<: *job-desktop-definition
+
+
+job-debian9:
+
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
+  tags: [ "docker" ]
+  <<: *job-desktop-definition
+
+
+job-macosx:
+
+  tags: [ "macosx" ]
+  <<: *job-desktop-definition
