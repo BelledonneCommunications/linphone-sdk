@@ -14,6 +14,7 @@ job-android:
     - export CCACHE_DIR=${PWD}/ccache
 
   script:
+    - sdkmanager
     - mkdir build-android
     - cd build-android
     - cmake .. -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS="arm64, armv7, x86, x86_64"
@@ -48,6 +49,6 @@ job-ios:
   artifacts:
     paths:
       - build-ios/build_log.txt
-      - build-ios/linphone-sdk/linphone-sdk-*.zip
-      - build-ios/linphone-sdk/linphone-sdk.podspec
+      - build-ios/linphone-sdk-*.zip
+      - build-ios/linphone-sdk.podspec
     expire_in: 1 week
