@@ -1342,7 +1342,7 @@ void ms_turn_context_destroy(MSTurnContext *context) {
 void ms_turn_context_set_server_addr(MSTurnContext *context, struct sockaddr *addr, socklen_t addrlen) {
 	// The media sockets are bound in IPv6 so convert the TURN server destination address to IPv6
 	// so that we do not get errors on Mac OS X
-	if (addr->sa_family == AF_INET) {
+	if ((addr->sa_family == AF_INET) && (context->rtp_session->rtp.gs.sockfamily == AF_INET6)) {
 		bctbx_sockaddr_ipv4_to_ipv6(addr, (struct sockaddr *)&context->turn_server_addr, &context->turn_server_addrlen);
 	} else {
 		memcpy(&context->turn_server_addr, addr, addrlen);
