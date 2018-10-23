@@ -55,7 +55,7 @@ if(UNIX)
 		set(ENABLE_X11_DEFAULT_VALUE YES)
 	endif()
 endif()
-if(UNIX AND NOT APPLE)
+if(UNIX AND NOT APPLE AND NOT ANDROID)
 	set(LINUX_OR_BSD 1)
 endif()
 
