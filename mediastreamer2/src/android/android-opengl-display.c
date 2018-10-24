@@ -73,6 +73,7 @@ static void android_display_uninit(MSFilter *f){
 		ms_free(ad->ogl);
 	}
 	if (ad->android_video_window) (*jenv)->DeleteGlobalRef(jenv, ad->android_video_window);
+	ad->android_video_window = NULL;
 
 	ms_free(ad);
 }
@@ -162,7 +163,7 @@ static MSFilterMethod methods[] = {
 };
 
 MSFilterDesc ms_android_opengl_display_desc={
-	.id=MS_ANDROID_DISPLAY_ID,
+	.id=MS_ANDROID_OPENGL_DISPLAY_ID,
 	.name="MSAndroidOpenGLDisplay",
 	.text="OpenGL-ES2 video display filter for Android.",
 	.category=MS_FILTER_OTHER,

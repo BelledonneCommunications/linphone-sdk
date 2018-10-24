@@ -314,13 +314,13 @@ MS2_PUBLIC struct _MSEventQueue * ms_factory_get_event_queue(MSFactory *obj);
 
 MS2_PUBLIC void ms_factory_set_event_queue(MSFactory *obj,struct _MSEventQueue *q);
 
-MS2_PUBLIC int ms_factory_get_payload_max_size(MSFactory *factory);
+MS2_PUBLIC int ms_factory_get_payload_max_size(const MSFactory *factory);
 
 MS2_PUBLIC void ms_factory_set_payload_max_size(MSFactory *obj, int size);
 	
 MS2_PUBLIC void ms_factory_set_mtu(MSFactory *obj, int mtu);
 
-MS2_PUBLIC int ms_factory_get_mtu(MSFactory *obj);
+MS2_PUBLIC int ms_factory_get_mtu(const MSFactory *obj);
 
 /**
  * Set the name of the echo canceller filter to use.

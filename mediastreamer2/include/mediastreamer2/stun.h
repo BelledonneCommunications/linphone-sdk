@@ -212,7 +212,7 @@ typedef struct {
 	MSTurnContextState state;
 	MSTurnContextType type;
 	MSStunAddress relay_addr;
-	struct sockaddr *turn_server_addr;
+	struct sockaddr_storage turn_server_addr;
 	socklen_t turn_server_addrlen;
 	bool_t force_rtp_sending_via_relay;
 	MSTurnContextStatistics stats;

@@ -83,6 +83,11 @@ typedef struct {
 
 typedef struct _MKVTrackReader MKVTrackReader;
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @brief Open a MKV file for reading
  * @param filename Name of the file to open
@@ -162,5 +167,9 @@ void mkv_track_reader_destroy(MKVTrackReader *reader);
  * @param block MKV block to free
  */
 void mkv_block_free(MKVBlock *block);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

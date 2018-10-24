@@ -342,7 +342,7 @@ MS2_PUBLIC bool_t ms_media_resource_is_consistent(const MSMediaResource *r);
 #define ms_media_resource_get_file(r)		(((r)->type == MSResourceFile) ? (r)->file : NULL)
 #define ms_media_resource_get_rtp_session(r)	(((r)->type == MSResourceRtp) ? (r)->session : NULL)
 #define ms_media_resource_get_camera(r)		(((r)->type == MSResourceCamera) ? (r)->camera : NULL)
-#define ms_media_resource_get_soundcard(r)	(((r)->type == MSResourceSoundcard) ? (r)->souncard : NULL)
+#define ms_media_resource_get_soundcard(r)	(((r)->type == MSResourceSoundcard) ? (r)->soundcard : NULL)
 /**
  * Structure describing the input/output of a MediaStream.
  * Input and output are described as MSMediaResource.
@@ -410,7 +410,7 @@ struct _AudioStream
 	bool_t use_ec;
 	bool_t use_gc;
 	bool_t use_agc;
-	
+
 	bool_t mic_eq_active;
 	bool_t spk_eq_active;
 	bool_t use_ng;/*noise gate*/
@@ -491,7 +491,7 @@ MS2_PUBLIC void audio_stream_play_received_dtmfs(AudioStream *st, bool_t yesno);
  * @param loc_rtp_port the local UDP port to listen for RTP packets.
  * @param loc_rtcp_port the local UDP port to listen for RTCP packets
  * @param ipv6 TRUE if ipv6 must be used.
- * @param factory 
+ * @param factory
  * @return a new AudioStream.
 **/
 MS2_PUBLIC AudioStream *audio_stream_new(MSFactory* factory, int loc_rtp_port, int loc_rtcp_port, bool_t ipv6);
@@ -620,7 +620,7 @@ static MS2_INLINE void audio_stream_enable_adaptive_jittcomp(AudioStream *stream
  * of the sound card nor the system mixer one. If you intends
  * to control the volume gain at sound card level, you should
  * use audio_stream_set_sound_card_input_gain() instead.
- * 
+ *
  * @param stream The stream.
  * @param gain_db Gain to apply in dB.
  */
@@ -630,9 +630,9 @@ MS2_PUBLIC void audio_stream_set_mic_gain_db(AudioStream *stream, float gain_db)
 /**
  * Like audio_stream_set_mic_gain_db() excepted that the gain is specified
  * in percentage.
- * 
+ *
  * @param stream The stream.
- * @param gain Gain to apply in percetage of the max supported gain.
+ * @param gain Gain to apply in percentage of the max supported gain.
  */
 MS2_PUBLIC void audio_stream_set_mic_gain(AudioStream *stream, float gain);
 
@@ -649,11 +649,20 @@ MS2_PUBLIC void audio_stream_mute_rtp(AudioStream *stream, bool_t val);
 MS2_PUBLIC void audio_stream_set_spk_gain_db(AudioStream *stream, float gain_db);
 
 /**
+ * Like audio_stream_set_spk_gain_db() excepted that the gain is specified
+ * in percentage.
+ *
+ * @param stream The stream.
+ * @param gain Gain to apply in percentage of the max supported gain.
+ */
+MS2_PUBLIC void audio_stream_set_spk_gain(AudioStream *stream, float gain);
+
+/**
  * Set microphone volume gain.
  * If the sound backend supports it, the set volume gain will be synchronized
  * with the host system mixer. If you intended to apply a static software gain,
  * you should use audio_stream_set_mic_gain_db() or audio_stream_set_mic_gain().
- * 
+ *
  * @param stream The audio stream.
  * @param gain Percentage of the max supported volume gain. Valid values are in [0.0 : 1.0].
  */
@@ -836,6 +845,7 @@ struct _VideoStream
 	MSWebCam *cam;
 	RtpSession *rtp_io_session; /**< The RTP session used for RTP input/output. */
 	char *preset;
+	MSVideoConfiguration *vconf_list;
 	int device_orientation; /* warning: meaning of this variable depends on the platform (Android, iOS, ...) */
 	uint64_t last_reported_decoding_error_time;
 	uint64_t last_fps_check;
@@ -845,7 +855,7 @@ struct _VideoStream
 	bool_t freeze_on_error;
 	bool_t display_filter_auto_rotate_enabled;
 	bool_t source_performs_encoding;
-	
+
 	bool_t output_performs_decoding;
 	bool_t player_active;
 	bool_t staticimage_webcam_fps_optimization; /* if TRUE, the StaticImage webcam will ignore the fps target in order to save CPU time. Default is TRUE */
@@ -854,7 +864,7 @@ struct _VideoStream
 typedef struct _VideoStream VideoStream;
 
 
-    
+
 MS2_PUBLIC VideoStream *video_stream_new(MSFactory* factory, int loc_rtp_port, int loc_rtcp_port, bool_t use_ipv6);
 /**
  * Creates a VideoStream object listening on a RTP port for a dedicated address.
@@ -878,7 +888,7 @@ MS2_PUBLIC void video_stream_set_event_callback(VideoStream *s, VideoStreamEvent
 MS2_PUBLIC void video_stream_set_display_filter_name(VideoStream *s, const char *fname);
 MS2_PUBLIC int video_stream_start_with_source(VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
 		const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, MSWebCam* cam, MSFilter* source);
-MS2_PUBLIC int video_stream_start(VideoStream * stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port, const char *rem_rtcp_ip, 
+MS2_PUBLIC int video_stream_start(VideoStream * stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port, const char *rem_rtcp_ip,
 				  int rem_rtcp_port, int payload, int jitt_comp, MSWebCam *device);
 MS2_PUBLIC int video_stream_start_with_files(VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
         const char *rem_rtcp_ip, int rem_rtcp_port, int payload_type, const char *play_file, const char *record_file);
@@ -1250,7 +1260,7 @@ typedef struct _TextStream TextStream;
  * @param loc_rtp_port the local UDP port to listen for RTP packets.
  * @param loc_rtcp_port the local UDP port to listen for RTCP packets
  * @param ipv6 TRUE if ipv6 must be used.
- * @param factory 
+ * @param factory
  * @return a new TextStream.
 **/
 MS2_PUBLIC TextStream *text_stream_new(MSFactory *factory, int loc_rtp_port, int loc_rtcp_port, bool_t ipv6);
@@ -1268,7 +1278,7 @@ MS2_PUBLIC TextStream *text_stream_new_with_sessions(MSFactory *factory, const M
  * @param loc_ip the local ip to listen for RTP packets. Can be ::, O.O.O.O or any ip4/6 addresses
  * @param [in] loc_rtp_port the local UDP port to listen for RTP packets.
  * @param [in] loc_rtcp_port the local UDP port to listen for RTCP packets
- * @param factory 
+ * @param factory
  * @return a new TextStream.
 **/
 MS2_PUBLIC TextStream *text_stream_new2(MSFactory *factory, const char* ip, int loc_rtp_port, int loc_rtcp_port);
@@ -1296,14 +1306,14 @@ MS2_PUBLIC void text_stream_stop (TextStream * stream);
 /**
  * Executes background low priority tasks related to text processing (RTP statistics analysis).
  * It should be called periodically, for example with an interval of 100 ms or so.
- * 
+ *
  * @param[in] stream TextStream object previously created with text_stream_new().
  */
 MS2_PUBLIC void text_stream_iterate(TextStream *stream);
 
 /**
  * Writes a character to stream in UTF-32 format.
- * 
+ *
  * @param[in] stream TextStream object previously created with text_stream_new().
  * @param[in] i the Char in UTF-32 format.
  **/

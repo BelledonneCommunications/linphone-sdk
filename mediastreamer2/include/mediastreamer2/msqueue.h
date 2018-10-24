@@ -56,17 +56,17 @@ static MS2_INLINE void ms_queue_insert(MSQueue *q, mblk_t *em, mblk_t *m) {
     return;
 }
 
-static MS2_INLINE mblk_t * ms_queue_peek_last(MSQueue *q){
+static MS2_INLINE mblk_t * ms_queue_peek_last(const MSQueue *q){
 	return qlast(&q->q);
 }
 
-static MS2_INLINE mblk_t *ms_queue_peek_first(MSQueue *q){
+static MS2_INLINE mblk_t *ms_queue_peek_first(const MSQueue *q){
 	return qbegin(&q->q);
 }
 
 #define ms_queue_next(q, m) (m)->b_next
 
-static MS2_INLINE bool_t ms_queue_end(MSQueue *q, mblk_t *m){
+static MS2_INLINE bool_t ms_queue_end(const MSQueue *q, const mblk_t *m){
 	return qend(&q->q,m);
 }
 
@@ -74,7 +74,7 @@ static MS2_INLINE void ms_queue_remove(MSQueue *q, mblk_t *m){
 	remq(&q->q,m);
 }
 
-static MS2_INLINE bool_t ms_queue_empty(MSQueue *q){
+static MS2_INLINE bool_t ms_queue_empty(const MSQueue *q){
 	return qempty(&q->q);
 }
 

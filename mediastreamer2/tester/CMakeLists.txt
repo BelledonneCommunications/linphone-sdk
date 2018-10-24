@@ -21,9 +21,9 @@
 ############################################################################
 
 if(ENABLE_SHARED)
-	set(MS2_LIBS_FOR_TESTER mediastreamer_voip mediastreamer_base)
+	set(MS2_LIBS_FOR_TESTER mediastreamer)
 else()
-	set(MS2_LIBS_FOR_TESTER mediastreamer_voip-static mediastreamer_base-static)
+	set(MS2_LIBS_FOR_TESTER mediastreamer-static)
 	if(XV_FOUND)
 		list(APPEND MS2_LIBS_FOR_TESTER Xext)
 	endif()
@@ -48,6 +48,11 @@ set(SOUND_FILES
 	sounds/sintel_trailer_opus_h264.mkv
 	sounds/sintel_trailer_opus_vp8.mkv
 	sounds/sintel_trailer_pcmu_h264.mkv
+	sounds/test_silence_voice_48000.wav
+	sounds/test_silence_voice_44100.wav
+	sounds/test_silence_voice_32000.wav
+	sounds/test_silence_voice_16000.wav
+	sounds/test_silence_voice_8000.wav
 )
 
 set(SCENARIO_FILES
@@ -79,6 +84,11 @@ set(IMAGE_FILES
 	images/qrcodesite_captured.jpg
 )
 
+set(RAW_FILES
+	raw/h265-iframe
+	raw/h265-parameter-sets-frame
+)
+
 set(IOS_RESOURCES_FILES
 	sounds
 	scenarios
@@ -98,6 +108,7 @@ set(SOURCE_FILES_C
 	mediastreamer2_text_stream_tester.c
 	mediastreamer2_jitterbuffer_tester.c
 )
+set(SOURCE_FILES_CXX mediastreamer2_h26x_tools_tester.cpp)
 set(SOURCE_FILES_OBJC )
 
 add_definitions(
@@ -122,11 +133,12 @@ if(APPLE)
 endif()
 
 bc_apply_compile_flags(SOURCE_FILES_C STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
+bc_apply_compile_flags(SOURCE_FILES_CXX STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
 bc_apply_compile_flags(SOURCE_FILES_OBJC STRICT_OPTIONS_CPP STRICT_OPTIONS_OBJC)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 
-	add_library(mediastreamer2_tester_static STATIC ${SOURCE_FILES_C})
+	add_library(mediastreamer2_tester_static STATIC ${SOURCE_FILES_C} ${SOURCE_FILES_CXX})
 	target_include_directories(mediastreamer2_tester_static PUBLIC ${BCTOOLBOX_INCLUDE_DIRS} ${ORTP_INCLUDE_DIRS})
 	target_link_libraries(mediastreamer2_tester_static ${MS2_LIBS_FOR_TESTER} ${BCTOOLBOX_LIBRARIES} ${ORTP_LIBRARIES})
 
@@ -158,9 +170,9 @@ if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 else()
 	if(IOS)
 		set_source_files_properties(${IOS_RESOURCES_FILES} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
-		add_executable(mediastreamer2_tester MACOSX_BUNDLE ${IOS_RESOURCES_FILES} ${SOURCE_FILES_C} ${SOURCE_FILES_OBJC})
+		add_executable(mediastreamer2_tester MACOSX_BUNDLE ${IOS_RESOURCES_FILES} ${SOURCE_FILES_C} ${SOURCE_FILES_CXX} ${SOURCE_FILES_OBJC})
 	else()
-		add_executable(mediastreamer2_tester ${SOURCE_FILES_C} ${SOURCE_FILES_OBJC})
+		add_executable(mediastreamer2_tester ${SOURCE_FILES_C} ${SOURCE_FILES_CXX} ${SOURCE_FILES_OBJC})
 	endif()
 	target_include_directories(mediastreamer2_tester PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIRS})
 	target_link_libraries(mediastreamer2_tester ${MS2_LIBS_FOR_TESTER} ${BCTOOLBOX_TESTER_LIBRARIES} ${BCTOOLBOX_LIBRARIES} ${ORTP_LIBRARIES})
@@ -177,6 +189,7 @@ else()
 		)
 		install(FILES ${SOUND_FILES} DESTINATION "${CMAKE_INSTALL_DATADIR}/mediastreamer2_tester/sounds")
 		install(FILES ${SCENARIO_FILES} DESTINATION "${CMAKE_INSTALL_DATADIR}/mediastreamer2_tester/scenarios")
+		install(FILES ${RAW_FILES} DESTINATION "${CMAKE_INSTALL_DATADIR}/mediastreamer2_tester/raw")
 		if(ENABLE_VIDEO AND ENABLE_QRCODE)
 			install(FILES ${IMAGE_FILES} DESTINATION "${CMAKE_INSTALL_DATADIR}/mediastreamer2_tester/images")
 		endif()

@@ -56,7 +56,7 @@ static void _decode_qr_code(const char *_image_path, bool_t want_decode, MSRect 
 	char* image_path, *image_res_path;
 	MSFilter *nowebcam_qrcode = NULL;
 	MSFilter *zxing_qrcode = NULL;
-	MSFilter *void_sing = NULL;
+	MSFilter *void_sink = NULL;
 	qrcode_callback_data qrcode_cb_data;
 	MSFactory* _factory = NULL;
 
@@ -77,7 +77,7 @@ static void _decode_qr_code(const char *_image_path, bool_t want_decode, MSRect 
 	nowebcam_qrcode = ms_web_cam_create_reader(camera);
 	ms_filter_notify(nowebcam_qrcode, MS_STATIC_IMAGE_SET_IMAGE, image_res_path);
 	zxing_qrcode = ms_factory_create_filter(_factory, MS_QRCODE_READER_ID);
-	void_sing = ms_factory_create_filter(_factory, MS_VOID_SINK_ID);
+	void_sink = ms_factory_create_filter(_factory, MS_VOID_SINK_ID);
 	ms_filter_add_notify_callback(zxing_qrcode, (MSFilterNotifyFunc)qrcode_found_cb, &qrcode_cb_data, TRUE);
 	if (capture_rect) {
 		MSVideoSize size;
@@ -90,7 +90,7 @@ static void _decode_qr_code(const char *_image_path, bool_t want_decode, MSRect 
 	ms_connection_helper_start(&h);
 	ms_connection_helper_link(&h, nowebcam_qrcode, -1, 0);
 	ms_connection_helper_link(&h, zxing_qrcode, 0, 0);
-	ms_connection_helper_link(&h, void_sing, 0, -1);
+	ms_connection_helper_link(&h, void_sink, 0, -1);
 	ms_ticker_attach(ms_tester_ticker, nowebcam_qrcode);
 
 	while(number_of_run-- > 0) {
@@ -120,14 +120,14 @@ static void _decode_qr_code(const char *_image_path, bool_t want_decode, MSRect 
 	ms_connection_helper_start(&h);
 	ms_connection_helper_unlink(&h, nowebcam_qrcode, -1, 0);
 	ms_connection_helper_unlink(&h, zxing_qrcode, 0, 0);
-	ms_connection_helper_unlink(&h, void_sing, 0, -1);
+	ms_connection_helper_unlink(&h, void_sink, 0, -1);
 	ms_factory_log_statistics(_factory);
 
 	if (image_path) ms_free(image_path);
 	if (image_res_path) ms_free(image_res_path);
 	if (nowebcam_qrcode) ms_filter_destroy(nowebcam_qrcode);
 	if (zxing_qrcode) ms_filter_destroy(zxing_qrcode);
-	if (void_sing) ms_filter_destroy(void_sing);
+	if (void_sink) ms_filter_destroy(void_sink);
 	if (_factory) ms_factory_destroy(_factory);
 	ms_tester_destroy_ticker();
 }

@@ -651,6 +651,7 @@ MSWebCamDesc *ms_mire_webcam_desc_get(void){
 
 
 void update_bitrate_limit_from_tmmbr(MediaStream *obj, int br_limit){
+	MSVideoConfiguration vconf;
 	int previous_br_limit = rtp_session_get_target_upload_bandwidth(obj->sessions.rtp_session);
 	if (!obj->encoder){
 		ms_warning("TMMBR not applicable because no encoder for this stream.");
@@ -667,7 +668,10 @@ void update_bitrate_limit_from_tmmbr(MediaStream *obj, int br_limit){
 		return;
 	}
 
-	if (ms_filter_call_method(obj->encoder,MS_FILTER_SET_BITRATE, &br_limit) != 0){
+	ms_filter_call_method(obj->encoder,MS_VIDEO_ENCODER_GET_CONFIGURATION,&vconf);
+	vconf.required_bitrate = br_limit;
+
+	if (ms_filter_call_method(obj->encoder,MS_VIDEO_ENCODER_SET_CONFIGURATION, &vconf) != 0){
 		ms_warning("Failed to apply bitrate constraint to %s", obj->encoder->desc->name);
 	}
 
@@ -677,27 +681,28 @@ void update_bitrate_limit_from_tmmbr(MediaStream *obj, int br_limit){
 #ifdef VIDEO_ENABLED
 	if (obj->type == MSVideo) {
 		MSVideoConfiguration *vconf_list = NULL;
-		MSVideoSize vsize;
 		MSVideoConfiguration vconf1, vconf2;
 		int new_bitrate_limit;
 
 		ms_filter_call_method(obj->encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, &vconf_list);
 
 		if (vconf_list){
-			ms_filter_call_method(obj->encoder, MS_FILTER_GET_VIDEO_SIZE, &vsize);
+			ms_filter_call_method(obj->encoder,MS_VIDEO_ENCODER_GET_CONFIGURATION,&vconf);
 
-			vconf1 = ms_video_find_best_configuration_for_size_and_bitrate(vconf_list, vsize, ms_factory_get_cpu_count(obj->factory), previous_br_limit);
-			vconf2 = ms_video_find_best_configuration_for_size_and_bitrate(vconf_list, vsize, ms_factory_get_cpu_count(obj->factory), br_limit);
+			vconf1 = ms_video_find_best_configuration_for_size_and_bitrate(vconf_list, vconf.vsize, ms_factory_get_cpu_count(obj->factory), previous_br_limit);
+			vconf2 = ms_video_find_best_configuration_for_size_and_bitrate(vconf_list, vconf.vsize, ms_factory_get_cpu_count(obj->factory), br_limit);
 			if (!ms_video_configuratons_equal(&vconf1, &vconf2)) {
 				ms_message("VideoStream[%p]: bitrate update will change fps", obj);
-				ms_filter_call_method(obj->encoder, MS_FILTER_SET_FPS, &vconf2.fps);
+				vconf.fps = vconf2.fps;
 				ms_filter_call_method(((VideoStream*)obj)->source, MS_FILTER_SET_FPS, &vconf2.fps);
 				((VideoStream*)obj)->configured_fps = vconf2.fps;
 			}
 			new_bitrate_limit = br_limit < vconf2.bitrate_limit ? br_limit : vconf2.bitrate_limit;
 			ms_message("VideoStream[%p]: changing video encoder's output bitrate to %i", obj, new_bitrate_limit);
-			if (ms_filter_call_method(obj->encoder,MS_FILTER_SET_BITRATE, &new_bitrate_limit) != 0){
-				ms_warning("Failed to apply bitrate constraint to %s", obj->encoder->desc->name);
+			vconf.required_bitrate = new_bitrate_limit;
+
+			if (ms_filter_call_method(obj->encoder,MS_VIDEO_ENCODER_SET_CONFIGURATION, &vconf) != 0){
+				ms_warning("Failed to apply fps and bitrate constraint to %s", obj->encoder->desc->name);
 			}
 		}else ms_warning("Video encoder doesn't implement MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, TMMBR not applied.");
 	}

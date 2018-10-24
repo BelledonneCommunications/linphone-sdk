@@ -27,6 +27,12 @@
 
 #include <vector>
 
+#if defined(__clang__) || ((__GNUC__ == 4 && __GNUC_MINOR__ >= 6) || __GNUC__ > 4)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsuggest-override"
+#pragma GCC diagnostic ignored "-Woverloaded-virtual"
+#endif
+
 #include <zxing/Binarizer.h>
 #include <zxing/MultiFormatReader.h>
 #include <zxing/Result.h>
@@ -38,6 +44,10 @@
 #include <zxing/BinaryBitmap.h>
 #include <zxing/DecodeHints.h>
 #include <zxing/qrcode/QRCodeReader.h>
+
+#if defined(__clang__) || ((__GNUC__ == 4 && __GNUC_MINOR__ >= 6) || __GNUC__ > 4)
+#pragma GCC diagnostic pop
+#endif
 
 
 using namespace std;
@@ -54,7 +64,7 @@ typedef struct {
 }QRCodeReaderStruct;
 
 typedef struct {
-	char resultText[255];//Can be changed depending on the size of the URL
+	char resultText[512];//Can be changed depending on the size of the URL
 }QRCodeReaderNotifyStruct;
 
 static void qrcode_init(MSFilter *f) {
@@ -155,9 +165,7 @@ void qrcode_process(MSFilter *f) {
 	ms_filter_unlock(f);
 }
 
-#ifdef __cplusplus
 extern "C" {
-#endif
 
 static MSFilterMethod qrcode_methods[] = {
 	{MS_QRCODE_READER_RESET_SEARCH, reset_search},
@@ -183,6 +191,4 @@ MSFilterDesc ms_qrcode_reader_desc = {
 
 MS_FILTER_DESC_EXPORT(ms_qrcode_reader_desc)
 
-#ifdef __cplusplus
 }
-#endif

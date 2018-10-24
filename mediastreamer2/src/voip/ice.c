@@ -961,6 +961,7 @@ static bool_t ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *
 			bctbx_sockaddr_to_ip_address(sa, cl->rtp_session->rtp.gs.loc_addrlen, source_addr_str, sizeof(source_addr_str), &source_port);
 			request = ice_stun_server_request_new(cl, cl->rtp_turn_context, rtptp, sa->sa_family, source_addr_str, source_port,
 				cl->session->turn_enabled ? MS_TURN_METHOD_ALLOCATE : MS_STUN_METHOD_BINDING);
+			if (!request) goto error;
 			request->gathering = TRUE;
 			if (si->index == 0) {
 				IceStunServerRequestTransaction *transaction = NULL;
@@ -988,6 +989,7 @@ static bool_t ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *
 			bctbx_sockaddr_to_ip_address(sa, cl->rtp_session->rtcp.gs.loc_addrlen, source_addr_str, sizeof(source_addr_str), &source_port);
 			request = ice_stun_server_request_new(cl, cl->rtcp_turn_context, rtptp, sa->sa_family, source_addr_str, source_port,
 				cl->session->turn_enabled ? MS_TURN_METHOD_ALLOCATE : MS_STUN_METHOD_BINDING);
+			if (!request) goto error;
 			request->gathering = TRUE;
 			request->next_transmission_time = ice_add_ms(curtime, 2 * si->index * ICE_DEFAULT_TA_DURATION + ICE_DEFAULT_TA_DURATION);
 			ice_check_list_add_stun_server_request(cl, request);
@@ -1002,6 +1004,10 @@ static bool_t ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *
 		}
 	}
 
+	return cl->gathering_candidates;
+	
+error:
+	cl->gathering_candidates = FALSE;
 	return cl->gathering_candidates;
 }
 
@@ -1260,6 +1266,11 @@ static IceStunServerRequest * ice_stun_server_request_new(IceCheckList *cl, MSTu
 	request->turn_context = turn_context;
 	request->rtptp = rtptp;
 	request->source_ai = bctbx_ip_address_to_addrinfo(family, SOCK_DGRAM, srcaddr, srcport);
+	if (request->source_ai == NULL){
+		ms_error("ice_stun_server_request_new(): source address not defined");
+		ms_free(request);
+		return NULL;
+	}
 	request->stun_method = stun_method;
 	return request;
 }
@@ -2384,6 +2395,7 @@ static void ice_schedule_turn_allocation_refresh(IceCheckList *cl, int component
 	memset(source_addr_str, 0, sizeof(source_addr_str));
 	bctbx_sockaddr_to_ip_address(sa, stream->loc_addrlen, source_addr_str, sizeof(source_addr_str), &source_port);
 	request = ice_stun_server_request_new(cl, turn_context, rtptp, sa->sa_family, source_addr_str, source_port, MS_TURN_METHOD_REFRESH);
+	if (!request) return;
 	if (cl->session->short_turn_refresh == TRUE) ms = 5000; /* 5 seconds */
 	request->next_transmission_time = ice_add_ms(ice_current_time(), ms);
 	ice_check_list_add_stun_server_request(cl, request);
@@ -2406,6 +2418,7 @@ static void ice_schedule_turn_permission_refresh(IceCheckList *cl, int component
 	memset(source_addr_str, 0, sizeof(source_addr_str));
 	bctbx_sockaddr_to_ip_address(sa, stream->loc_addrlen, source_addr_str, sizeof(source_addr_str), &source_port);
 	request = ice_stun_server_request_new(cl, turn_context, rtptp, sa->sa_family, source_addr_str, source_port, MS_TURN_METHOD_CREATE_PERMISSION);
+	if (!request) return;
 	request->peer_address = peer_address;
 	if (cl->session->short_turn_refresh == TRUE) ms = 5000; /* 5 seconds */
 	request->next_transmission_time = ice_add_ms(ice_current_time(), ms);
@@ -2429,6 +2442,7 @@ static void ice_schedule_turn_channel_bind_refresh(IceCheckList *cl, int compone
 	memset(source_addr_str, 0, sizeof(source_addr_str));
 	bctbx_sockaddr_to_ip_address(sa, stream->loc_addrlen, source_addr_str, sizeof(source_addr_str), &source_port);
 	request = ice_stun_server_request_new(cl, turn_context, rtptp, sa->sa_family, source_addr_str, source_port, MS_TURN_METHOD_CHANNEL_BIND);
+	if (!request) return;
 	request->channel_number = channel_number;
 	request->peer_address = peer_address;
 	if (cl->session->short_turn_refresh == TRUE) ms = 5000; /* 5 seconds */
@@ -2950,11 +2964,13 @@ IceCandidate * ice_add_remote_candidate(IceCheckList *cl, const char *type, int 
 				else peer_address.ip.v4.port = 0;
 				request = ice_stun_server_request_new(cl, ice_get_turn_context_from_check_list_componentID(cl, componentID), rtptp,
 					local_candidate->taddr.family, local_candidate->taddr.ip, local_candidate->taddr.port, MS_TURN_METHOD_CREATE_PERMISSION);
-				request->peer_address = peer_address;
-				request->next_transmission_time = ice_add_ms(ice_current_time(), ICE_DEFAULT_RTO_DURATION);
-				transaction = ice_send_stun_server_request(request, (struct sockaddr *)&cl->session->ss, cl->session->ss_len);
-				ice_stun_server_request_add_transaction(request, transaction);
-				ice_check_list_add_stun_server_request(cl, request);
+				if (request) {
+					request->peer_address = peer_address;
+					request->next_transmission_time = ice_add_ms(ice_current_time(), ICE_DEFAULT_RTO_DURATION);
+					transaction = ice_send_stun_server_request(request, (struct sockaddr *)&cl->session->ss, cl->session->ss_len);
+					ice_stun_server_request_add_transaction(request, transaction);
+					ice_check_list_add_stun_server_request(cl, request);
+				}
 			}
 		}
 	}
@@ -3769,6 +3785,7 @@ static void ice_check_list_create_turn_channel(IceCheckList *cl, RtpTransport *r
 
 	bctbx_sockaddr_to_ip_address(local_addr, local_addrlen, local_ip, sizeof(local_ip), &local_port);
 	request = ice_stun_server_request_new(cl, turn_context, rtptp, local_addr->sa_family, local_ip, local_port, MS_TURN_METHOD_CHANNEL_BIND);
+	if (!request) return;
 	request->peer_address = peer_address;
 	request->channel_number = 0x4000 | componentID;
 	ms_turn_context_set_channel_number(turn_context, request->channel_number);

@@ -45,6 +45,7 @@ extern void ms_ffmpeg_check_init(void);
 extern bool_t libmsandroiddisplay_init(MSFactory *factory);
 extern void libmsandroiddisplaybad_init(MSFactory *factory);
 extern void libmsandroidopengldisplay_init(MSFactory *factory);
+extern void libmsandroidtexturedisplay_init(MSFactory *factory);
 
 #if defined(__APPLE__) && defined(VIDEO_ENABLED)
 extern void _register_videotoolbox_if_supported(MSFactory *factory);
@@ -61,6 +62,7 @@ extern void _register_videotoolbox_if_supported(MSFactory *factory);
 
 #ifdef __ANDROID__
 #include <android/log.h>
+#include "android_mediacodec.h"
 #endif
 
 
@@ -199,9 +201,10 @@ extern MSWebCamDesc static_image_desc;
 extern MSWebCamDesc ms_mire_webcam_desc;
 #ifdef __ANDROID__
 extern MSWebCamDesc ms_android_video_capture_desc;
-extern MSFilterDesc ms_mediacodec_h264_dec_desc;
-extern MSFilterDesc ms_mediacodec_h264_enc_desc;
-extern bool_t AMediaImage_isAvailable(void);
+extern MSFilterDesc ms_MediaCodecH264Decoder_desc;
+extern MSFilterDesc ms_MediaCodecH264Encoder_desc;
+extern MSFilterDesc ms_MediaCodecH265Decoder_desc;
+extern MSFilterDesc ms_MediaCodecH265Encoder_desc;
 #endif
 
 #if TARGET_OS_IPHONE && !TARGET_IPHONE_SIMULATOR
@@ -270,8 +273,14 @@ void ms_factory_init_voip(MSFactory *obj){
 
 #if defined(__ANDROID__) && defined(VIDEO_ENABLED)
 	if (AMediaImage_isAvailable()) {
-		ms_factory_register_filter(obj, &ms_mediacodec_h264_dec_desc);
-		ms_factory_register_filter(obj, &ms_mediacodec_h264_enc_desc);
+		if (AMediaCodec_checkCodecAvailability("video/avc")) {
+			ms_factory_register_filter(obj, &ms_MediaCodecH264Decoder_desc);
+			ms_factory_register_filter(obj, &ms_MediaCodecH264Encoder_desc);
+		}
+		if (AMediaCodec_checkCodecAvailability("video/hevc")) {
+			ms_factory_register_filter(obj, &ms_MediaCodecH265Decoder_desc);
+			ms_factory_register_filter(obj, &ms_MediaCodecH265Encoder_desc);
+		}
 	}
 #endif
 	
@@ -314,6 +323,7 @@ void ms_factory_init_voip(MSFactory *obj){
 			libmsandroiddisplaybad_init(obj);
 		}
 		libmsandroidopengldisplay_init(obj);
+		libmsandroidtexturedisplay_init(obj);
 	}
 #endif
 	obj->voip_initd=TRUE;

@@ -26,9 +26,11 @@ import org.linphone.mediastream.video.AndroidVideoWindowImpl;
 import org.linphone.mediastream.video.capture.hwconf.AndroidCameraConfiguration;
 import org.linphone.mediastream.video.capture.hwconf.AndroidCameraConfiguration.AndroidCamera;
 
+import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
 import android.hardware.Camera.Parameters;
 import android.view.SurfaceView;
+import android.view.TextureView;
 
 /**
  * Wrapper for Android Camera API. Used by Mediastreamer to record
@@ -126,6 +128,10 @@ public class AndroidVideoApi5JniWrapper {
 			if (surf instanceof  SurfaceView) {
 				SurfaceView surface = (SurfaceView) surf;
 				camera.setPreviewDisplay(surface.getHolder());
+			} else if (surf instanceof TextureView && ((TextureView) surf).isAvailable()) {
+				camera.setPreviewTexture(((TextureView) surf).getSurfaceTexture());
+			} else if (surf instanceof SurfaceTexture) {
+				camera.setPreviewTexture((SurfaceTexture) surf);
 			} else {
 				AndroidVideoWindowImpl avw = (AndroidVideoWindowImpl) surf;
 				camera.setPreviewDisplay(avw.getPreviewSurfaceView().getHolder());

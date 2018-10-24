@@ -25,7 +25,6 @@
 #include "mediastreamer2/ms_srtp.h"
 #include "mediastreamer2/mediastream.h"
 
-
 #ifdef HAVE_SRTP
 
 /*srtp defines all this stuff*/
@@ -46,6 +45,8 @@ typedef struct _MSSrtpStreamContext {
 	bool_t secured;
 	bool_t mandatory_enabled;
 	bool_t is_rtp;
+	/*fixed: for rtcp-mux*/
+	struct _MSSrtpStreamContext *other_rtp;
 } MSSrtpStreamContext;
 
 struct _MSSrtpCtx {
@@ -64,6 +65,13 @@ MSSrtpCtx* ms_srtp_context_new(void) {
 	ctx->recv_rtp_context.is_rtp=TRUE;
 	ms_mutex_init(&ctx->recv_rtp_context.mutex, NULL);
 	ms_mutex_init(&ctx->recv_rtcp_context.mutex, NULL);
+
+	/*fixed: for rtcp-mux*/
+	ctx->send_rtp_context.other_rtp = &ctx->send_rtcp_context;
+	ctx->send_rtcp_context.other_rtp = &ctx->send_rtp_context;
+	ctx->recv_rtp_context.other_rtp = &ctx->recv_rtcp_context;
+	ctx->recv_rtcp_context.other_rtp = &ctx->recv_rtp_context;
+
 	return ctx;
 }
 void ms_srtp_context_delete(MSSrtpCtx* session) {
@@ -99,6 +107,12 @@ static int _process_on_send(RtpSession* session,MSSrtpStreamContext *ctx, mblk_t
 	rtp_header_t *rtp_header=is_rtp?(rtp_header_t*)m->b_rptr:NULL;
 	rtcp_common_header_t *rtcp_header=!is_rtp?(rtcp_common_header_t*)m->b_rptr:NULL;
 	slen=(int)msgdsize(m);
+
+	/* fixed: when rtcp-mux is on and we need to send RTCP packet, we need to use same srtp context as used for RTP stream */
+	if (!is_rtp && session->rtcp_mux) {
+		if (ctx->other_rtp)
+			ctx = ctx->other_rtp;
+	}
 
 	if (rtp_header && (slen>RTP_FIXED_HEADER_SIZE && rtp_header->version==2)) {
 		ms_mutex_lock(&ctx->mutex);
@@ -148,6 +162,12 @@ static int _process_on_receive(RtpSession* session,MSSrtpStreamContext *ctx, mbl
 	int slen;
 	err_status_t srtp_err;
 	bool_t is_rtp=ctx->is_rtp;
+
+	/* fixed: when rtcp-mux is on and we receive RTCP packet, we need to use same srtp context as used for RTP stream */
+	if (!is_rtp && session->rtcp_mux) {
+		if (ctx->other_rtp)
+			ctx = ctx->other_rtp;
+	}
 
 	/* keep NON-RTP data unencrypted */
 	if (is_rtp){
@@ -283,29 +303,51 @@ static int ms_set_srtp_crypto_policy(MSCryptoSuite suite, crypto_policy_t *polic
 	return 0;
 }
 
-static int ms_add_srtp_stream(srtp_t srtp, MSCryptoSuite suite, uint32_t ssrc, const char* key, size_t key_length, bool_t is_send, bool_t is_rtp)
-{
+static int ms_add_srtp_stream(srtp_t srtp, MSCryptoSuite suite, uint32_t ssrc, const char *key, size_t key_length, bool_t is_send, bool_t is_rtp, bool_t is_rtcp_mux /* fixed add value*/) {
 	srtp_policy_t policy;
 	err_status_t err;
 	ssrc_t ssrc_conf;
 
 	memset(&policy,0,sizeof(policy));
 
-	if (is_rtp) {
+	/* fixed init both if  rtcp_mux = true*/
+	if (is_rtcp_mux) {
+		// init both streams RTP
+		if (ms_set_srtp_crypto_policy(suite, &policy.rtp) != 0) {
+			return -1;
+		}
+		if ((int)key_length != policy.rtp.cipher_key_len) {
+			ms_error("Key size (%i) doesn't match the selected srtp profile (required %d)", (int)key_length,
+					 policy.rtp.cipher_key_len);
+			return -1;
+		}
+		// and RTCP stream
+		if (ms_set_srtp_crypto_policy(suite, &policy.rtcp) != 0) {
+			return -1;
+		}
+		if ((int)key_length != policy.rtcp.cipher_key_len) {
+			ms_error("Key size (%i) doesn't match the selected srtp profile (required %d)", (int)key_length,
+					 policy.rtcp.cipher_key_len);
+			return -1;
+		}
+
+	} else if (is_rtp) {
 		if (ms_set_srtp_crypto_policy(suite, &policy.rtp) != 0) {
 			return -1;
 		}
 		/* check if key length match given policy */
 		if ((int)key_length != policy.rtp.cipher_key_len) {
-			ms_error("Key size (%i) doesn't match the selected srtp profile (required %d)", (int)key_length, policy.rtp.cipher_key_len);	
+			ms_error("Key size (%i) doesn't match the selected srtp profile (required %d)", (int)key_length,
+					 policy.rtp.cipher_key_len);
 			return -1;
 		}
-	}else {
+	} else {
 		if (ms_set_srtp_crypto_policy(suite, &policy.rtcp) != 0) {
 			return -1;
 		}
 		if ((int)key_length != policy.rtcp.cipher_key_len) {
-			ms_error("Key size (%i) doesn't match the selected srtp profile (required %d)", (int)key_length, policy.rtcp.cipher_key_len);	
+			ms_error("Key size (%i) doesn't match the selected srtp profile (required %d)", (int)key_length,
+					 policy.rtcp.cipher_key_len);
 			return -1;
 		}
 	}
@@ -374,7 +416,7 @@ static int ms_media_stream_sessions_set_srtp_key_base(MSMediaStreamSessions *ses
 		return error;
 	}
 
-	if ((error = ms_add_srtp_stream(stream_ctx->srtp,suite, ssrc, key, key_length, is_send, is_rtp))) {
+	if ((error = ms_add_srtp_stream(stream_ctx->srtp, suite, ssrc, key, key_length, is_send, is_rtp, sessions->rtp_session->rtcp_mux/* fixed rtcp_mux */))) {
 		stream_ctx->secured=FALSE;
 		return error;
 	}

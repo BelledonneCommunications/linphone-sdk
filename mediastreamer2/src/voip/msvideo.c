@@ -35,6 +35,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define INT32_MAX 017777777777
 #endif
 
+bool_t ms_rect_equal(const MSRect *r1, const MSRect *r2) {
+	return r1->x == r2->x && r1->y == r2->y && r1->w == r2->w && r1->h == r2->h;
+}
+
 const char *ms_pix_fmt_to_string(MSPixFmt fmt){
 	switch(fmt){
 		case MS_YUV420P: return "MS_YUV420P";
@@ -178,7 +182,7 @@ static void plane_copy(const uint8_t *src_plane, size_t src_row_stride, size_t s
 	const uint8_t *r_ptr = src_plane + (src_roi->y * src_row_stride + src_roi->x * src_pix_stride);
 	uint8_t *w_ptr = dst_plane + (dst_roi->y * dst_row_stride + dst_roi->x * dst_pix_stride);
 
-	if (src_row_stride == dst_row_stride && src_pix_stride == 1 && dst_pix_stride == 1 && src_roi == dst_roi) {
+	if (src_row_stride == dst_row_stride && src_pix_stride == 1 && dst_pix_stride == 1 && ms_rect_equal(src_roi, dst_roi)) {
 		memcpy(w_ptr, r_ptr, dst_row_stride * dst_roi->h);
 	} else {
 		int i;

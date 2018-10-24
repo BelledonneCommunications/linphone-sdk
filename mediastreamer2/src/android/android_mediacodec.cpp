@@ -83,6 +83,8 @@ struct AMediaFormat {
 	jmethodID getInteger;
 	jmethodID setString;
 	jmethodID containsKey;
+	jmethodID toString;
+	std::string description;
 };
 
 int handle_java_exception() {
@@ -433,6 +435,7 @@ void AMediaCodec_setParams(AMediaCodec *codec, const AMediaFormat * fmt) {
 
 	putToBundle(env, codec, jbundle, (AMediaFormat *)fmt, "request-sync");
 	putToBundle(env, codec, jbundle, (AMediaFormat *)fmt, "video-bitrate");
+	putToBundle(env, codec, jbundle, (AMediaFormat *)fmt, "frame-rate");
 
 	env->CallVoidMethod(codec->jcodec, codec->setParameters, jbundle);
 	handle_java_exception();
@@ -540,6 +543,28 @@ bool_t AMediaImage_isAvailable(void) {
 	return ms_get_android_sdk_version() >= 22;
 }
 
+bool_t AMediaCodec_checkCodecAvailability(const char *mime) {
+	bool_t res = TRUE;
+	AMediaCodec *encoder = NULL, *decoder = NULL;
+
+	encoder = AMediaCodec_createEncoderByType(mime);
+	if (encoder) {
+		AMediaCodec_delete(encoder);
+	} else {
+		ms_warning("MediaCodec: '%s' format not supported for encoding", mime);
+		res = FALSE;
+	}
+	decoder = AMediaCodec_createDecoderByType(mime);
+	if (decoder) {
+		AMediaCodec_delete(decoder);
+	} else {
+		ms_warning("MediaCodec: '%s' format not supported for decoding", mime);
+		res = FALSE;
+	}
+	if (res) ms_message("MediaCodec: '%s' format supported", mime);
+	return res;
+}
+
 
 ////////////////////////////////////////////////////
 //                                                //
@@ -566,6 +591,7 @@ bool AMediaFormat_loadMethodID(AMediaFormat * format) {
 	success &= _getMethodID(env, mediaFormatClass, "getInteger", "(Ljava/lang/String;)I", &(format->getInteger));
 	success &= _getMethodID(env, mediaFormatClass, "setString", "(Ljava/lang/String;Ljava/lang/String;)V", &(format->setString));
 	success &= _getMethodID(env, mediaFormatClass, "containsKey", "(Ljava/lang/String;)Z", &(format->containsKey));
+	success &= _getMethodID(env, mediaFormatClass, "toString", "()Ljava/lang/String;", &(format->toString));
 	if(!success) {
 		ms_error("%s(): one method or field could not be found", __FUNCTION__);
 		goto error;
@@ -609,6 +635,17 @@ media_status_t AMediaFormat_delete(AMediaFormat* format) {
 	ms_free(format);
 
 	return AMEDIA_OK;
+}
+
+const char *AMediaFormat_toString(AMediaFormat *format) {
+	JNIEnv *env = ms_get_jni_env();
+	jstring jdescription = static_cast<jstring>(env->CallObjectMethod(format->jformat, format->toString));
+	if (handle_java_exception() != 0) return nullptr;
+	const char *description = env->GetStringUTFChars(jdescription, nullptr);
+	format->description = description;
+	env->ReleaseStringUTFChars(jdescription, description);
+	env->DeleteLocalRef(jdescription);
+	return format->description.c_str();
 }
 
 bool AMediaFormat_getInt32(AMediaFormat *format, const char *name, int32_t *out){

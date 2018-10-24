@@ -139,7 +139,7 @@ static void ms_audio_flow_control_process(MSFilter *f) {
 }
 
 static void ms_audio_flow_control_postprocess(MSFilter *f) {
-	
+
 }
 
 static void ms_audio_flow_control_uninit(MSFilter *f) {
@@ -191,7 +191,8 @@ static MSFilterMethod ms_audio_flow_control_methods[] = {
 	{ MS_FILTER_SET_SAMPLE_RATE, ms_audio_flow_control_set_sample_rate },
 	{ MS_FILTER_GET_SAMPLE_RATE, ms_audio_flow_control_get_sample_rate },
 	{ MS_FILTER_SET_NCHANNELS,   ms_audio_flow_control_set_nchannels   },
-	{ MS_FILTER_GET_NCHANNELS,   ms_audio_flow_control_get_nchannels   }
+	{ MS_FILTER_GET_NCHANNELS,   ms_audio_flow_control_get_nchannels   },
+	{ 0, NULL }
 };
 
 

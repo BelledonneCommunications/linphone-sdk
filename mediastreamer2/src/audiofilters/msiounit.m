@@ -222,7 +222,7 @@ static void au_init(MSSndCard *card){
 		d->is_tester=TRUE;
 	}
 	d->bits=16;
-	d->rate=0; /*not set*/
+	d->rate=AVAudioSession.sharedInstance.sampleRate; /*not set*/
 	d->nchannels=1;
 	d->ms_snd_card=card;
 	d->is_used = TRUE;
@@ -386,8 +386,6 @@ static OSStatus au_write_cb (
 
 /****************config**************/
 static void configure_audio_session (au_card_t* d,uint64_t time) {
-	NSString *audioCategory;
-	NSString *audioMode;
 	NSError *err = nil;;
 	//UInt32 audioCategorySize=sizeof(audioCategory);
 	AVAudioSession *audioSession = [AVAudioSession sharedInstance];
@@ -397,37 +395,46 @@ static void configure_audio_session (au_card_t* d,uint64_t time) {
 
 		if (d->audio_session_configured){
 			/*check that category wasn't changed*/
-			audioCategory = audioSession.category;
+			NSString *audioCategory = audioSession.category;
 
 			changed=(audioCategory!=AVAudioSessionCategoryAmbient && d->is_ringer)
 			||(audioCategory!=AVAudioSessionCategoryPlayAndRecord && !d->is_ringer);
 		}
 
 		if (!d->audio_session_configured || changed) {
-			[audioSession setActive:TRUE error:&err];
-			if(err) ms_error("Unable to activate audio session because : %s", [err localizedDescription].UTF8String);
-			err = nil;
-
 			if (d->is_ringer && kCFCoreFoundationVersionNumber > kCFCoreFoundationVersionNumber10_6 /*I.E is >=OS4*/) {
-				audioCategory = AVAudioSessionCategoryAmbient;
-				audioMode = AVAudioSessionModeDefault;
 				ms_message("Configuring audio session for playback");
-			} else {
-				audioCategory = AVAudioSessionCategoryPlayAndRecord;
-				audioMode = AVAudioSessionModeVoiceChat;
-				ms_message("Configuring audio session for playback/record");
+    		[audioSession setCategory:AVAudioSessionCategoryAmbient
+                        		error:&err];
+    		if(err)
+					ms_error("Unable to change audio session category because : %s", [err localizedDescription].UTF8String);
+				err = nil;
+    		[audioSession setMode:AVAudioSessionModeDefault error:&err];
+    		if(err)
+			ms_error("Unable to change audio session mode because : %s", [err localizedDescription].UTF8String);
+			err = nil;
+		} else {
+			ms_message("Configuring audio session for playback/record");
+    	
+			[audioSession   setCategory:AVAudioSessionCategoryPlayAndRecord
+					withOptions:AVAudioSessionCategoryOptionAllowBluetooth| AVAudioSessionCategoryOptionAllowBluetoothA2DP
+					      error:&err];
+			if (err) {
+				ms_error("Unable to change audio category because : %s", [err localizedDescription].UTF8String);
+				err = nil;
 			}
-
-			[audioSession setCategory:audioCategory error:&err];
-			if(err) ms_error("Unable to change audio category because : %s", [err localizedDescription].UTF8String);
-			err = nil;
-
-			[audioSession setMode:audioMode error:&err];
-			if(err) ms_error("Unable to change audio mode because : %s", [err localizedDescription].UTF8String);
-			err = nil;
-		}else{
-			ms_message("Audio session already correctly configured.");
+			[audioSession setMode:AVAudioSessionModeVoiceChat error:&err];
+			if (err) {
+				ms_error("Unable to change audio mode because : %s", [err localizedDescription].UTF8String);
+				err = nil;
+			}			
 		}
+		[audioSession setActive:TRUE error:&err];
+		if(err)
+			ms_error("Unable to activate audio session because : %s", [err localizedDescription].UTF8String);
+			err = nil;
+		} else
+			ms_message("Audio session already correctly configured.");
 		d->audio_session_configured=TRUE;
 	} else {
 		ms_message("Fast iounit mode, audio session configuration must be done at application level.");
@@ -514,7 +521,6 @@ static void stop_audio_unit (au_card_t* d) {
 		check_audiounit_call( AudioUnitUninitialize(d->io_unit) );
 		destroy_audio_unit(d);
 	}
-	d->rate=0; /*uninit*/
 }
 
 /***********************************read function********************/
@@ -563,7 +569,7 @@ static void au_read_postprocess(MSFilter *f){
 static void au_read_process(MSFilter *f){
 	au_filter_read_data_t *d=(au_filter_read_data_t*)f->data;
 	mblk_t *m;
-	bool_t read_something = FALSE;
+	
 	if (!(d->base.card->read_started=d->base.card->io_unit_started)) {
 		//make sure audio unit is started
 		start_audio_unit((au_filter_base_t*)d,f->ticker->time);
@@ -572,11 +578,10 @@ static void au_read_process(MSFilter *f){
 	while((m = getq(&d->rq)) != NULL){
 		d->read_samples += (msgdsize(m) / 2) / d->base.card->nchannels;
 		ms_queue_put(f->outputs[0],m);
-		read_something = TRUE;
 	}
 	ms_mutex_unlock(&d->mutex);
 
-	if (read_something) ms_ticker_synchronizer_update(d->ticker_synchronizer, d->read_samples, d->base.card->rate);
+	ms_ticker_synchronizer_update(d->ticker_synchronizer, d->read_samples, d->base.card->rate);
 }
 
 /***********************************write function********************/
@@ -596,10 +601,12 @@ static void au_write_preprocess(MSFilter *f){
 	}
 	configure_audio_session(card, f->ticker->time);
 
-	if (!card->io_unit) create_io_unit(&card->io_unit, card);
+	if (!card->io_unit)
+		create_io_unit(&card->io_unit, card);
 
 	[audioSession setPreferredIOBufferDuration:(NSTimeInterval)bufferSizeInSec error:&err];
-	if (err) ms_error("Unable to change IO buffer duration because : %s", [err localizedDescription].UTF8String);
+	if (err)
+		ms_error("Unable to change IO buffer duration because : %s", err.localizedDescription.UTF8String);
 	err = nil;
 
 	AudioStreamBasicDescription audioFormat;
@@ -615,7 +622,6 @@ static void au_write_preprocess(MSFilter *f){
 
 	UInt32 doNotSetProperty    = 0;
 	UInt32 doSetProperty    = 1;
-	Float64 hwsamplerate;
 
 	//enable speaker output
 	auresult =AudioUnitSetProperty (
@@ -684,36 +690,6 @@ static void au_write_preprocess(MSFilter *f){
 								   sizeof (renderCallbackStruct)
 								   );
 	check_au_unit_result(auresult,"kAudioUnitProperty_SetRenderCallback,kAudioUnitScope_Input");
-	hwsamplerate = audioSession.sampleRate;
-
-	/*
-	 * Bluetooth bug: on iphone5s at least, some low end BT headset create a bug in iOS when requesting 48khz hardware sampling rate.
-	 * These headset don't support this frequency, which result in the hardware sampling rate finally set to 8khz by iOS.
-	 * The bug traduces in no audio chunks that can be pushed or pulled from the AudioUnit.
-	 *
-	 * Apparently the driver doesn't recover from this situation.
-	 * The workaround is then to request 44100 Hz instead of 48khz.
-	 */
-	if(card->rate == 8000 && (floor(NSFoundationVersionNumber) >= NSFoundationVersionNumber_iOS_9_x_Max)) {
-		hwsamplerate=48000;
-		[audioSession setPreferredSampleRate:hwsamplerate error:&err];
-		if(err) ms_error("Unable to change sample rate because : %s", [err localizedDescription].UTF8String);
-		err = nil;
-		return;
-	}
-
-	if( hwsamplerate != card->rate) {
-		if(card->rate <= 44100 || (floor(NSFoundationVersionNumber) >= NSFoundationVersionNumber_iOS_9_x_Max)){
-			hwsamplerate=card->rate;
-			[audioSession setPreferredSampleRate:hwsamplerate error:&err];
-			if(err) ms_error("Unable to change sample rate because : %s", [err localizedDescription].UTF8String);
-			err = nil;
-		} else {
-			ms_message("Not applying PreferredSampleRate because asked rate is too high [%i]",((int)hwsamplerate));
-		}
-	} else {
-		ms_message("Not applying PreferredSampleRate because HW rate already correct [%i]",((int)hwsamplerate));
-	}
 }
 
 static void au_write_postprocess(MSFilter *f){
@@ -742,11 +718,25 @@ static void au_write_process(MSFilter *f){
 	ms_mutex_unlock(&d->mutex);
 }
 
-static int set_rate(MSFilter *f, void *arg){
+static int read_set_rate(MSFilter *f, void *arg){
 	int proposed_rate = *((int*)arg);
 	ms_debug("set_rate %d",proposed_rate);
-	au_filter_base_t *d=(au_filter_base_t*)f->data;
-	if (proposed_rate != d->card->rate){
+	au_filter_read_data_t *d=(au_filter_read_data_t*)f->data;
+	d->base.card->rate = AVAudioSession.sharedInstance.sampleRate;
+	if ((unsigned int)proposed_rate != d->base.card->rate){
+		return -1;//only support 1 rate
+	} else {
+		return 0;
+	}
+}
+
+static int write_set_rate(MSFilter *f, void *arg){
+	int proposed_rate = *((int*)arg);
+	ms_debug("set_rate %d",proposed_rate);
+	au_filter_write_data_t *d=(au_filter_write_data_t*)f->data;
+	d->base.card->rate = AVAudioSession.sharedInstance.sampleRate;
+	ms_flow_controlled_bufferizer_set_samplerate(d->bufferizer, d->base.card->rate);
+	if ((unsigned int)proposed_rate != d->base.card->rate){
 		return -1;//only support 1 rate
 	} else {
 		return 0;
@@ -787,7 +777,7 @@ static int set_muted(MSFilter *f, void *data){
 }
 
 static MSFilterMethod au_read_methods[]={
-	{	MS_FILTER_SET_SAMPLE_RATE	, set_rate	},
+	{	MS_FILTER_SET_SAMPLE_RATE	, read_set_rate	},
 	{	MS_FILTER_GET_SAMPLE_RATE	, get_rate	},
 	{	MS_FILTER_SET_NCHANNELS		, read_set_nchannels	},
 	{	MS_FILTER_GET_NCHANNELS		, get_nchannels	},
@@ -795,7 +785,7 @@ static MSFilterMethod au_read_methods[]={
 };
 
 static MSFilterMethod au_write_methods[]={
-	{	MS_FILTER_SET_SAMPLE_RATE	, set_rate	},
+	{	MS_FILTER_SET_SAMPLE_RATE	, write_set_rate	},
 	{	MS_FILTER_GET_SAMPLE_RATE	, get_rate	},
 	{	MS_FILTER_SET_NCHANNELS		, write_set_nchannels	},
 	{	MS_FILTER_GET_NCHANNELS		, get_nchannels	},
@@ -889,11 +879,6 @@ static MSFilter *ms_au_write_new(MSSndCard *mscard){
 	d->base.card=card;
 	card->write_data=d;
 	f->data=d;
-
-	if (card->rate == 0){ /*iounit stopped set initial value*/
-		card->rate=ms_snd_card_get_preferred_sample_rate(card->ms_snd_card);
-		ms_flow_controlled_bufferizer_set_samplerate(d->bufferizer, card->rate);
-	}
 	return f;
 }
 

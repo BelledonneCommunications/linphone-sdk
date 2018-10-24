@@ -85,6 +85,7 @@ enum _MSFilterInterfaceId{
 	MSFilterAudioCaptureInterface,/**<Interface for audio capture filters*/
 	MSFilterAudioPlaybackInterface,/**Interface for audio playback filters.*/
 	MSFilterAudioEncoderInterface,/**<Video encoder interface*/
+	MSFilterVADInterface,/**<Voice activity detection interface*/
 	MSFilterVoidInterface,/**<Void source/sink interface*/
 };
 
@@ -693,7 +694,6 @@ typedef struct _MSPinFormat{
  * MSFilter generic events
 **/
 #define MS_FILTER_OUTPUT_FMT_CHANGED MS_FILTER_BASE_EVENT_NO_ARG(0) /**<triggered whenever a filter decides to change its output format for one or more more output pins*/
-
 
 /* DEPRECATED  specific methods: to be moved into implementation specific header files - DO NOT USE IN NEW CODE*/
 #define MS_FILTER_SET_FILTERLENGTH 	MS_FILTER_BASE_METHOD(12,int)

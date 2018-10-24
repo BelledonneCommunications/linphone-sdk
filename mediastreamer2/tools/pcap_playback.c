@@ -210,7 +210,7 @@ static void video_decoder_callback(void *user_data, MSFilter *f, unsigned int ev
 }
 #endif
 
-static 	MSFactory *factory;
+static 	MSFactory *msFactory;
 
 static void configure_resampler(MSFilter *resampler,MSFilter *from, MSFilter *to) {
 	int from_rate = 0, to_rate = 0;
@@ -274,9 +274,9 @@ void setup_media_streams(MediastreamDatas *args) {
 #endif
 	args->profile = rtp_profile_clone_full(&av_profile);
 
-	factory = ms_factory_new_with_voip();
-	ms_factory_enable_statistics(factory, TRUE);
-	ms_factory_reset_statistics(factory);
+	msFactory = ms_factory_new_with_voip();
+	ms_factory_enable_statistics(msFactory, TRUE);
+	ms_factory_reset_statistics(msFactory);
 
 	signal(SIGINT, stop_handler);
 	if (args->pt==NULL)
@@ -304,13 +304,13 @@ void setup_media_streams(MediastreamDatas *args) {
 			display_name = "MSVideoOut";
 #endif
 		}
-		args->read = ms_factory_create_filter(factory, MS_PCAP_FILE_PLAYER_ID);
-		args->write = ms_factory_create_filter_from_name(factory, display_name);
+		args->read = ms_factory_create_filter(msFactory, MS_PCAP_FILE_PLAYER_ID);
+		args->write = ms_factory_create_filter_from_name(msFactory, display_name);
 		if (args->write == NULL){
 			fprintf(stderr, "Could not instanciate display filter '%s'. Maybe it is not included in the build ?", display_name);
 			exit(-1);
 		}
-		args->decoder = ms_factory_create_decoder(factory, args->pt->mime_type);
+		args->decoder = ms_factory_create_decoder(msFactory, args->pt->mime_type);
 		if (args->decoder==NULL){
 			fprintf(stderr,"No decoder available for %s.\n",args->pt->mime_type);
 			exit(-1);
@@ -350,10 +350,10 @@ void setup_media_streams(MediastreamDatas *args) {
 		printf("Error: video support not compiled.\n");
 #endif
 	} else {
-		MSSndCardManager *manager = ms_factory_get_snd_card_manager(factory);
+		MSSndCardManager *manager = ms_factory_get_snd_card_manager(msFactory);
 		MSSndCard *play =NULL;
 		if (args->outfile) {
-			args->write=ms_factory_create_filter(factory, MS_FILE_REC_ID);
+			args->write=ms_factory_create_filter(msFactory, MS_FILE_REC_ID);
 			if (ms_filter_call_method(args->write, MS_FILE_REC_OPEN, args->outfile)) {
 				ms_error("Cannot open file [%s] in write mode",args->outfile);
 				exit(-1);
@@ -365,9 +365,9 @@ void setup_media_streams(MediastreamDatas *args) {
 			args->write = ms_snd_card_create_writer(play);
 
 		}
-		args->read = ms_factory_create_filter(factory, MS_PCAP_FILE_PLAYER_ID);
-		args->decoder = ms_factory_create_decoder(factory, args->pt->mime_type);
-		args->resampler = ms_factory_create_filter(factory, MS_RESAMPLE_ID);
+		args->read = ms_factory_create_filter(msFactory, MS_PCAP_FILE_PLAYER_ID);
+		args->decoder = ms_factory_create_decoder(msFactory, args->pt->mime_type);
+		args->resampler = ms_factory_create_filter(msFactory, MS_RESAMPLE_ID);
 		ms_filter_call_method_noarg(args->read, MS_PLAYER_CLOSE);
 		ms_filter_call_method(args->read, MS_PLAYER_OPEN, args->infile);
 		ms_filter_call_method_noarg(args->read, MS_PLAYER_START);
@@ -440,7 +440,7 @@ void clear_mediastreams(MediastreamDatas *args)
 	}
 	rtp_profile_destroy(args->profile);
 
-	ms_factory_destroy(factory);
+	ms_factory_destroy(msFactory);
 }
 
 // HELPER METHODS

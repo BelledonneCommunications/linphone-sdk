@@ -18,7 +18,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 #include "mediastreamer2/mscommon.h"
 #include "mediastreamer2/msvideo.h"
-#include <media/NdkMediaCodec.h>
+#include "media/NdkMediaCodec.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -43,6 +43,10 @@ bool AMediaCodec_getInputImage(AMediaCodec *codec, int index, AMediaImage *image
 bool AMediaCodec_getOutputImage(AMediaCodec *codec, int index, AMediaImage *image);
 void AMediaImage_close(AMediaImage *image);
 bool_t AMediaImage_isAvailable(void);
+
+
+bool_t AMediaCodec_checkCodecAvailability(const char *mime);
+
 
 #ifdef __cplusplus
 } // extern "C"

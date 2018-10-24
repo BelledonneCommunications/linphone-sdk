@@ -32,6 +32,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/mseventqueue.h"
+#include "mediastreamer2/msvideo.h"
 #include "mediastreamer2/mswebcam.h"
 #include "basedescs.h"
 
@@ -70,14 +71,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <sys/syspage.h>
 #endif
 
-
 MS2_DEPRECATED static MSFactory *fallback_factory=NULL;
 
 static void ms_fmt_descriptor_destroy(MSFmtDescriptor *obj);
 
 #define DEFAULT_MAX_PAYLOAD_SIZE 1440
 
-int ms_factory_get_payload_max_size(MSFactory *factory){
+int ms_factory_get_payload_max_size(const MSFactory *factory) {
 	return factory->max_payload_size;
 }
 
@@ -101,7 +101,7 @@ void ms_factory_set_mtu(MSFactory *obj, int mtu){
 	}
 }
 
-int ms_factory_get_mtu(MSFactory *obj){
+int ms_factory_get_mtu(const MSFactory *obj) {
 	return obj->mtu;
 }
 
@@ -251,6 +251,22 @@ void ms_factory_register_filter(MSFactory* factory, MSFilterDesc* desc ) {
 	if (desc->id==MS_FILTER_NOT_SET_ID){
 		ms_fatal("MSFilterId for %s not set !",desc->name);
 	}
+
+	if (ms_filter_desc_implements_interface(desc, MSFilterVideoEncoderInterface)) {
+		MSFilterMethod *methods=desc->methods;
+		int i;
+		for(i=0;methods!=NULL && methods[i].method!=NULL; i++) {
+			if (methods[i].id==MS_FILTER_GET_BITRATE || methods[i].id==MS_FILTER_SET_BITRATE
+				|| methods[i].id==MS_FILTER_GET_VIDEO_SIZE || methods[i].id==MS_FILTER_SET_VIDEO_SIZE
+				|| methods[i].id==MS_FILTER_GET_FPS || methods[i].id==MS_FILTER_SET_FPS
+				|| methods[i].id==MS_VIDEO_ENCODER_SET_CONFIGURATION_LIST
+			) {
+				ms_error("MSFilter %s is using a deprecated method (id=%i)",desc->name,methods[i].id);
+				return;
+			}
+		}
+	}
+
 	desc->flags|=MS_FILTER_IS_ENABLED; /*by default a registered filter is enabled*/
 
 	/*lastly registered encoder/decoders may replace older ones*/

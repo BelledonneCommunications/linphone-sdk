@@ -163,15 +163,18 @@ static int volume_get_linear(MSFilter *f, void *arg){
 	*farg = v->energy;
 	return 0;
 }
+
 // use our builtin agc
 #if 0
-static float volume_agc_process(Volume *v, mblk_t *om){
+static float volume_agc_process(MSFilter *f, mblk_t *om){
+	Volume *v = (Volume*) f->data;
 	speex_preprocess_run(v->speex_pp,(int16_t*)om->b_rptr);
 	return 1;
 }
 #else
 
-static float volume_agc_process(Volume *v, mblk_t *om) {
+static float volume_agc_process(MSFilter *f, mblk_t *om) {
+	Volume *v = (Volume*) f->data;
 	static int counter;
 	// target is: 1
 	float gain_reduct = (agc_threshold + v->level_pk) / 1;
@@ -180,6 +183,7 @@ static float volume_agc_process(Volume *v, mblk_t *om) {
 		ms_debug("_level=%f, gain reduction=%f, gain=%f, ng_gain=%f %f %f",
 				v->level_pk, gain_reduct, v->gain, v->ng_gain, v->ng_threshold, v->static_gain);
 	}
+
 	return gain_reduct;
 }
 
@@ -460,22 +464,22 @@ static void volume_preprocess(MSFilter *f){
 	Volume *v=(Volume*)f->data;
 	/*process agc by chunks of 10 ms*/
 	v->nsamples=(int)(0.01*(float)v->sample_rate);
-	if (v->agc_enabled){
+
+	if (v->agc_enabled) {
 		ms_message("AGC is enabled.");
-#if defined HAVE_SPEEXDSP && !defined MS_FIXED_POINT
-		if (v->speex_pp==NULL){
-			int tmp=1;
-			v->speex_pp=speex_preprocess_state_init(v->nsamples,v->sample_rate);
-			if (speex_preprocess_ctl(v->speex_pp,SPEEX_PREPROCESS_SET_AGC,&tmp)==-1){
-				ms_warning("Speex AGC is not available.");
-			}
-			tmp=0;
-			speex_preprocess_ctl(v->speex_pp,SPEEX_PREPROCESS_SET_VAD,&tmp);
-			speex_preprocess_ctl(v->speex_pp,SPEEX_PREPROCESS_SET_DENOISE,&tmp);
-			speex_preprocess_ctl(v->speex_pp,SPEEX_PREPROCESS_SET_DEREVERB,&tmp);
-		}
-#endif
 	}
+#if defined HAVE_SPEEXDSP && !defined MS_FIXED_POINT
+	if (v->speex_pp==NULL && v->agc_enabled){
+		int tmp=1;
+		v->speex_pp=speex_preprocess_state_init(v->nsamples,v->sample_rate);
+		if (v->agc_enabled && speex_preprocess_ctl(v->speex_pp,SPEEX_PREPROCESS_SET_AGC,&tmp)==-1){
+			ms_warning("Speex AGC is not available.");
+		}
+		tmp=0;
+		speex_preprocess_ctl(v->speex_pp,SPEEX_PREPROCESS_SET_DENOISE,&tmp);
+		speex_preprocess_ctl(v->speex_pp,SPEEX_PREPROCESS_SET_DEREVERB,&tmp);
+	}
+#endif
 	ortp_extremum_reset(&v->min);
 	ortp_extremum_reset(&v->max);
 }
@@ -490,29 +494,27 @@ static void volume_process(MSFilter *f){
 	 * override this target gain, and order must be well thought out
 	 */
 	if (v->agc_enabled || v->peer!=NULL){
-		mblk_t *om;
 		size_t nbytes=(size_t)(v->nsamples*2);
 		ms_bufferizer_put_from_queue(v->buffer,f->inputs[0]);
 		while(ms_bufferizer_get_avail(v->buffer)>=nbytes){
-			om=allocb(nbytes,0);
-			ms_bufferizer_read(v->buffer,om->b_wptr,nbytes);
-			om->b_wptr+=nbytes;
-			update_energy(v,(int16_t*)om->b_rptr, v->nsamples, f->ticker->time);
+			m=allocb(nbytes,0);
+			ms_bufferizer_read(v->buffer,m->b_wptr,nbytes);
+			m->b_wptr+=nbytes;
+			update_energy(v,(int16_t*)m->b_rptr, v->nsamples, f->ticker->time);
 			target_gain = v->static_gain;
 
 			if (v->peer)  /* this ptr set = echo limiter enable flag */
-				target_gain = volume_echo_avoider_process(v, om);
+				target_gain = volume_echo_avoider_process(v, m);
 
 			/* Multiply with gain from echo limiter, not "choose smallest". Why?
 			 * Remote talks, local echo suppress via mic path, but still audible in
 			 * remote speaker. AGC operates fully, too (local speaker close to local mic!);
 			 * having agc gain reduction also contribute to total reduction makes sense.
 			 */
-			if (v->agc_enabled) target_gain/= volume_agc_process(v, om);
-			if (v->noise_gate_enabled)
-				volume_noise_gate_process(v, v->instant_energy, om);
-			apply_gain(v, om, target_gain);
-			ms_queue_put(f->outputs[0],om);
+			if (v->agc_enabled) target_gain/= volume_agc_process(f, m);
+			if (v->noise_gate_enabled) volume_noise_gate_process(v, v->instant_energy, m);
+			apply_gain(v, m, target_gain);
+			ms_queue_put(f->outputs[0],m);
 		}
 	}else{
 		/*light processing: no agc. Work in place in the input buffer*/
@@ -520,8 +522,7 @@ static void volume_process(MSFilter *f){
 			update_energy(v,(int16_t*)m->b_rptr, (int)((m->b_wptr - m->b_rptr) / 2), f->ticker->time);
 			target_gain = v->static_gain;
 
-			if (v->noise_gate_enabled)
-				volume_noise_gate_process(v, v->instant_energy, m);
+			if (v->noise_gate_enabled) volume_noise_gate_process(v, v->instant_energy, m);
 			apply_gain(v, m, target_gain);
 			ms_queue_put(f->outputs[0],m);
 		}
