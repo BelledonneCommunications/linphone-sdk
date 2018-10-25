@@ -37,17 +37,23 @@ linphone_sdk_get_inherited_cmake_args()
 linphone_sdk_get_enable_cmake_args()
 list(APPEND _cmake_args ${_enable_cmake_args})
 
+if(WIN32)
+	set(_install_command "${CMAKE_SOURCE_DIR}/cmake/dummy.bat")
+else()
+	set(_install_command "${CMAKE_SOURCE_DIR}/cmake/dummy.sh")
+endif()
+
 ExternalProject_Add(sdk
 	${_ep_depends}
 	SOURCE_DIR "${CMAKE_SOURCE_DIR}/cmake-builder"
-	BINARY_DIR "${CMAKE_BINARY_DIR}/android-${_arch}"
+	BINARY_DIR "${CMAKE_BINARY_DIR}/desktop"
 	CMAKE_GENERATOR "${CMAKE_GENERATOR}"
 	CMAKE_ARGS ${_cmake_args}
 	CMAKE_CACHE_ARGS ${_inherited_cmake_args}
-	INSTALL_COMMAND "${CMAKE_SOURCE_DIR}/cmake/dummy.sh"
+	INSTALL_COMMAND ${_install_command}
 )
 ExternalProject_Add_Step(sdk force_build
-	COMMENT "Forcing build for 'android-${_arch}'"
+	COMMENT "Forcing build for 'desktop'"
 	DEPENDEES configure
 	DEPENDERS build
 	ALWAYS 1
