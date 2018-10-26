@@ -50,6 +50,13 @@ static void android_texture_display_destroy_opengl(AndroidTextureDisplay *ad) {
 		ms_free(ad->ogl);
 		ad->ogl = NULL;
 	}
+	if (ad->gl_surface) {
+		if (ad->gl_display) {
+			eglDestroySurface(ad->gl_display, ad->gl_surface);
+			ad->gl_surface = NULL;
+			ad->gl_display = NULL;
+		}
+	}
 	if (ad->window) {
 		ANativeWindow_release(ad->window);
 		ad->window = NULL;
@@ -122,10 +129,6 @@ static void android_texture_display_uninit(MSFilter *f) {
 	ms_free(ad);
 }
 
-static void android_texture_display_preprocess(MSFilter *f) {
-
-}
-
 static void android_texture_display_process(MSFilter *f) {
 	AndroidTextureDisplay *ad = (AndroidTextureDisplay*)f->data;
 	MSPicture pic;
@@ -133,7 +136,7 @@ static void android_texture_display_process(MSFilter *f) {
 
 	ms_filter_lock(f);
 	if (ad->surface != NULL) {
-		if (!ad->window) {
+		if (!ad->ogl) {
 			android_texture_display_init_opengl(ad);
 		}
 
@@ -169,7 +172,6 @@ static int android_texture_display_set_window(MSFilter *f, void *arg) {
 			android_texture_display_destroy_opengl(ad);
 		}
 		ad->surface = surface;
-		ad->window = NULL;
 	}
 	ms_filter_unlock(f);
 	return 0;
@@ -188,7 +190,6 @@ MSFilterDesc ms_android_texture_display_desc = {
 	.ninputs=2, /*number of inputs*/
 	.noutputs=0, /*number of outputs*/
 	.init=android_texture_display_init,
-	.preprocess=android_texture_display_preprocess,
 	.process=android_texture_display_process,
 	.uninit=android_texture_display_uninit,
 	.methods=methods
