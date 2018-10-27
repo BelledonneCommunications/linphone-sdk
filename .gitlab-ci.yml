@@ -53,12 +53,14 @@ job-ios:
     expire_in: 1 week
 
 
-.job-linux-desktop-template: &job-desktop-definition
+.job-linux-desktop-template: &job-linux-desktop-definition
 
   script:
+    - export CC=$CC
+    - export CXX=$CXX
     - mkdir build-desktop
     - cd build-desktop
-    - cmake .. -G "$GENERATOR" -DLINPHONESDK_PLATFORM=Desktop
+    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop
     - cmake --build . --target sdk >> build_log.txt 2>&1
 
   artifacts:
@@ -73,8 +75,10 @@ job-centos7-makefile-gcc:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
   tags: [ "docker" ]
   variables:
-    GENERATOR: Unix Makefiles
-  <<: *job-desktop-definition
+    CMAKE_GENERATOR: Unix Makefiles
+    CC: gcc
+    CXX: g++
+  <<: *job-linux-desktop-definition
 
 
 job-debian8-makefile-gcc:
@@ -82,8 +86,10 @@ job-debian8-makefile-gcc:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
   tags: [ "docker" ]
   variables:
-    GENERATOR: Unix Makefiles
-  <<: *job-desktop-definition
+    CMAKE_GENERATOR: Unix Makefiles
+    CC: gcc
+    CXX: g++
+  <<: *job-linux-desktop-definition
 
 
 job-debian9-makefile-gcc:
@@ -91,8 +97,10 @@ job-debian9-makefile-gcc:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
   tags: [ "docker" ]
   variables:
-    GENERATOR: Unix Makefiles
-  <<: *job-desktop-definition
+    CMAKE_GENERATOR: Unix Makefiles
+    CC: gcc
+    CXX: g++
+  <<: *job-linux-desktop-definition
 
 
 job-centos7-ninja-gcc:
@@ -100,8 +108,10 @@ job-centos7-ninja-gcc:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
   tags: [ "docker" ]
   variables:
-    GENERATOR: Ninja
-  <<: *job-desktop-definition
+    CMAKE_GENERATOR: Ninja
+    CC: gcc
+    CXX: g++
+  <<: *job-linux-desktop-definition
 
 
 job-debian8-ninja-gcc:
@@ -109,8 +119,10 @@ job-debian8-ninja-gcc:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
   tags: [ "docker" ]
   variables:
-    GENERATOR: Ninja
-  <<: *job-desktop-definition
+    CMAKE_GENERATOR: Ninja
+    CC: gcc
+    CXX: g++
+  <<: *job-linux-desktop-definition
 
 
 job-debian9-ninja-gcc:
@@ -118,8 +130,76 @@ job-debian9-ninja-gcc:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
   tags: [ "docker" ]
   variables:
-    GENERATOR: Ninja
-  <<: *job-desktop-definition
+    CMAKE_GENERATOR: Ninja
+    CC: gcc
+    CXX: g++
+  <<: *job-linux-desktop-definition
+
+
+job-centos7-makefile-clang:
+
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
+  tags: [ "docker" ]
+  variables:
+    CMAKE_GENERATOR: Unix Makefiles
+    CC: clang
+    CXX: clang++
+  <<: *job-linux-desktop-definition
+
+
+job-debian8-makefile-clang:
+
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
+  tags: [ "docker" ]
+  variables:
+    CMAKE_GENERATOR: Unix Makefiles
+    CC: clang
+    CXX: clang++
+  <<: *job-linux-desktop-definition
+
+
+job-debian9-makefile-clang:
+
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
+  tags: [ "docker" ]
+  variables:
+    CMAKE_GENERATOR: Unix Makefiles
+    CC: clang
+    CXX: clang++
+  <<: *job-linux-desktop-definition
+
+
+job-centos7-ninja-clang:
+
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
+  tags: [ "docker" ]
+  variables:
+    CMAKE_GENERATOR: Ninja
+    CC: clang
+    CXX: clang++
+  <<: *job-linux-desktop-definition
+
+
+job-debian8-ninja-clang:
+
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
+  tags: [ "docker" ]
+  variables:
+    CMAKE_GENERATOR: Ninja
+    CC: clang
+    CXX: clang++
+  <<: *job-linux-desktop-definition
+
+
+job-debian9-ninja-clang:
+
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
+  tags: [ "docker" ]
+  variables:
+    CMAKE_GENERATOR: Ninja
+    CC: clang
+    CXX: clang++
+  <<: *job-linux-desktop-definition
 
 
 job-macosx-makefile:
@@ -137,4 +217,3 @@ job-macosx-makefile:
       - build-desktop/build_log.txt
     when: always
     expire_in: 1 week
-
