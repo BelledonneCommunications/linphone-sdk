@@ -19,11 +19,13 @@ job-android:
   tags: [ "docker" ]
 
   script:
+    - ccache -s
     - sdkmanager
     - mkdir build-android
     - cd build-android
     - cmake .. -G "Unix Makefiles" -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS="arm64, armv7, x86, x86_64"
     - cmake --build . --target sdk >> build_log.txt 2>&1
+    - ccache -s
 
   artifacts:
     paths:
@@ -39,10 +41,12 @@ job-ios:
   tags: [ "macosx" ]
 
   script:
+    - ccache -s
     - mkdir build-ios
     - cd build-ios
     - cmake .. -G "Unix Makefiles" -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="arm64, armv7, i386, x86_64"
     - cmake --build . --target sdk -- -j2 >> build_log.txt 2>&1
+    - ccache -s
 
   artifacts:
     paths:
@@ -58,10 +62,12 @@ job-ios:
   script:
     - export CC=$CC
     - export CXX=$CXX
+    - ccache -s
     - mkdir build-desktop
     - cd build-desktop
     - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop
     - cmake --build . --target sdk >> build_log.txt 2>&1
+    - ccache -s
 
   artifacts:
     paths:
@@ -207,10 +213,12 @@ job-macosx-makefile:
   tags: [ "macosx" ]
 
   script:
+    - ccache -s
     - mkdir build-desktop
     - cd build-desktop
     - cmake .. -G "Unix Makefiles" -DLINPHONESDK_PLATFORM=Desktop
     - cmake --build . --target sdk -- -j2 >> build_log.txt 2>&1
+    - ccache -s
 
   artifacts:
     paths:
