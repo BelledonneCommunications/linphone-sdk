@@ -2,19 +2,21 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
 
 
+cache:
+  key: ${CI_JOB_NAME}
+  paths:
+    - ccache/
+
+before_script:
+  - mkdir -p ccache
+  - export CCACHE_BASEDIR=${PWD}
+  - export CCACHE_DIR=${PWD}/ccache
+
+
 job-android:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17b
   tags: [ "docker" ]
-
-  cache:
-    paths:
-      - ccache/
-
-  before_script:
-    - mkdir -p ccache
-    - export CCACHE_BASEDIR=${PWD}
-    - export CCACHE_DIR=${PWD}/ccache
 
   script:
     - sdkmanager
@@ -36,15 +38,6 @@ job-ios:
 
   tags: [ "macosx" ]
 
-  cache:
-    paths:
-      - ccache/
-
-  before_script:
-    - mkdir -p ccache
-    - export CCACHE_BASEDIR=${PWD}
-    - export CCACHE_DIR=${PWD}/ccache
-
   script:
     - mkdir build-ios
     - cd build-ios
@@ -61,15 +54,6 @@ job-ios:
 
 
 .job-desktop-template: &job-desktop-definition
-
-  cache:
-    paths:
-      - ccache/
-
-  before_script:
-    - mkdir -p ccache
-    - export CCACHE_BASEDIR=${PWD}
-    - export CCACHE_DIR=${PWD}/ccache
 
   script:
     - mkdir build-desktop
