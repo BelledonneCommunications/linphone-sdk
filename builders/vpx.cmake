@@ -169,5 +169,8 @@ else()
                 	"--prefix=${CMAKE_INSTALL_PREFIX}"
         	)
 	endif()
+	if(CMAKE_C_COMPILER_ID MATCHES "Clang" AND CMAKE_C_COMPILER_VERSION VERSION_LESS "4.0")
+		lcb_configure_options("--disable-avx512")
+	endif()
 	lcb_configure_env("CC=$CC_NO_LAUNCHER LD=$CC_NO_LAUNCHER ASFLAGS=$ASFLAGS CFLAGS=$CFLAGS LDFLAGS=$LDFLAGS")
 endif()
