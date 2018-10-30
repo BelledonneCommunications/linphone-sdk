@@ -93,3 +93,6 @@ if(ENABLE_CONFERENCE)
 		"-DENABLE_UNIT_TESTS=${ENABLE_UNIT_TESTS}"
 	)
 endif()
+
+# soci
+lcb_builder_cmake_options(soci "-DWITH_MYSQL=ON")

@@ -87,27 +87,14 @@ endif()
 # Include builders
 include(builders/CMakeLists.txt)
 
-if(LSB_RELEASE_DISTRO STREQUAL "Debian" AND LSB_RELEASE_DISTRO_VERSION STREQUAL "wheezy")
-       lcb_builder_cmake_options(soci "-DWITH_POSTGRESQL=OFF")
-       lcb_builder_rpmbuild_options(soci
-               "--with bc"
-               "--with sqlite3"
-               "--with mysql"
-               "--without postgresql"
-       )
-else()
-       lcb_builder_cmake_options(soci "-DWITH_POSTGRESQL=ON")
-       lcb_builder_rpmbuild_options(soci
-               "--with bc"
-               "--with sqlite3"
-               "--with mysql"
-               "--with postgresql"
-       )
-endif()
-
 lcb_builder_cmake_options(linphone
 	"-DENABLE_CONSOLE_UI=NO"
 	"-DENABLE_DAEMON=NO"
+)
+
+lcb_builder_cmake_options(soci
+	"-DWITH_MYSQL=ON"
+	"-DWITH_POSTGRESQL=ON"
 )
 
 # prepare the RPMBUILD options that we need to pass

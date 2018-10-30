@@ -29,14 +29,6 @@ endif()
 
 lcb_cmake_options(
 	"-DSOCI_TESTS=NO"
-	"-DSOCI_EMPTY=NO"
-
-	"-DWITH_DB2=NO"
-	"-DWITH_FIREBIRD=NO"
-	"-DWITH_MYSQL=YES"
-	"-DWITH_ODBC=NO"
-	"-DWITH_ORACLE=NO"
-	"-DWITH_POSTGRESQL=NO"
 	"-DWITH_SQLITE3=YES"
 )
 lcb_package_source(YES)
