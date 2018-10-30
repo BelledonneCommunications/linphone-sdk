@@ -9,5 +9,5 @@ job-windows:
   script:
     - mkdir build-desktop
     - cd build-desktop
-    - cmake .. -G "Visual Studio 14 2015" -DLINPHONESDK_PLATFORM=Desktop
-    - cmake --build . --target sdk --config RelWithDebInfo
+    - cmake .. -G "Visual Studio 14 2015" -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_BUILD_TYPE=Release
+    - cmake --build . --target sdk --config Release
