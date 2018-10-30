@@ -1,5 +1,5 @@
 ############################################################################
-# config-win10.cmake
+# config-uwp.cmake
 # Copyright (C) 2015  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -20,33 +20,7 @@
 #
 ############################################################################
 
-# Define default values for the linphone builder options
-set(DEFAULT_VALUE_ENABLE_CSHARP_WRAPPER ON)
-set(DEFAULT_VALUE_ENABLE_FFMPEG OFF)
-set(DEFAULT_VALUE_ENABLE_GPL_THIRD_PARTIES ON)
-set(DEFAULT_VALUE_ENABLE_G729 ${DEFAULT_VALUE_ENABLE_GPL_THIRD_PARTIES})
-set(DEFAULT_VALUE_ENABLE_G729B_CNG OFF)
-set(DEFAULT_VALUE_ENABLE_GPL_THIRD_PARTIES ON)
-set(DEFAULT_VALUE_ENABLE_GSM ON)
-set(DEFAULT_VALUE_ENABLE_JPEG ON)
-set(DEFAULT_VALUE_ENABLE_LIME ON)
-set(DEFAULT_VALUE_ENABLE_MBEDTLS ON)
-set(DEFAULT_VALUE_ENABLE_MKV ON)
-set(DEFAULT_VALUE_ENABLE_OPUS ON)
-set(DEFAULT_VALUE_ENABLE_SPEEX ON)
-set(DEFAULT_VALUE_ENABLE_SRTP ON)
-set(DEFAULT_VALUE_ENABLE_TOOLS OFF)
-set(DEFAULT_VALUE_ENABLE_UNIT_TESTS ON)
-set(DEFAULT_VALUE_ENABLE_VCARD ON)
-set(DEFAULT_VALUE_ENABLE_VIDEO ON)
-set(DEFAULT_VALUE_ENABLE_VPX ON)
-set(DEFAULT_VALUE_ENABLE_WASAPI ON)
-set(DEFAULT_VALUE_ENABLE_WEBRTC_AEC ON)
-set(DEFAULT_VALUE_ENABLE_WEBRTC_AECM ON)
-set(DEFAULT_VALUE_ENABLE_ZRTP ON)
-set(ENABLE_NLS NO CACHE BOOL "" FORCE)
-
-set(DEFAULT_VALUE_CMAKE_LINKING_TYPE "-DENABLE_STATIC=NO")
+include(${CMAKE_CURRENT_LIST_DIR}/options-uwp.cmake)
 
 
 # Global configuration
