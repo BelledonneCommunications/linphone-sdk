@@ -238,3 +238,16 @@ job-windows-vs2015:
     - cd build-desktop
     - cmake .. -G "Visual Studio 14 2015" -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_BUILD_TYPE=Release
     - cmake --build . --target sdk --config Release
+
+
+job-uwp-vs2017:
+
+  tags: [ "windows" ]
+
+  before_script:
+
+  script:
+    - mkdir build-uwp
+    - cd build-uwp
+    - cmake .. -G "Visual Studio 15 2017" -DLINPHONESDK_PLATFORM=UWP -DCMAKE_BUILD_TYPE=Release
+    - cmake --build . --config Release
