@@ -4,8 +4,7 @@ variables:
 
 job-windows:
 
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-windows:vs2015
-  tags: [ "docker-windows" ]
+  tags: [ "windows" ]
 
   script:
     - mkdir build-desktop
