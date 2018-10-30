@@ -232,6 +232,7 @@ job-windows-vs2015:
   tags: [ "windows" ]
 
   before_script:
+    - mkdir -p ccache
 
   script:
     - mkdir build-desktop
@@ -245,6 +246,7 @@ job-uwp-vs2017:
   tags: [ "windows" ]
 
   before_script:
+    - mkdir -p ccache
 
   script:
     - mkdir build-uwp
