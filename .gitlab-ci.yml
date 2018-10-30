@@ -251,5 +251,5 @@ job-uwp-vs2017:
   script:
     - mkdir build-uwp
     - cd build-uwp
-    - cmake .. -G "Visual Studio 15 2017" -DLINPHONESDK_PLATFORM=UWP -DCMAKE_BUILD_TYPE=Release
+    - cmake .. -G "Visual Studio 15 2017" -DLINPHONESDK_PLATFORM=UWP -DCMAKE_BUILD_TYPE=Release -DENABLE_FFMPEG=NO -DENABLE_VPX=NO
     - cmake --build . --config Release
