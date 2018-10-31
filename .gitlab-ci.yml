@@ -84,7 +84,7 @@ job-android-ninja-r17c:
     - ccache -s
     - mkdir build-ios
     - cd build-ios
-    - cmake .. -G "$GENERATOR" -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="arm64, armv7, i386, x86_64"
+    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="arm64, armv7, i386, x86_64"
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS >> build_log.txt 2>&1
     - ccache -s
 
