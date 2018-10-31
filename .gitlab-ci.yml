@@ -16,6 +16,8 @@ variables:
 
 .job-android-template: &job-android-definition
 
+  tags: [ "docker" ]
+
   <<: *linux-ccache-definition
 
   script:
@@ -39,7 +41,6 @@ variables:
 job-android-makefile-r16b:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r16b
-  tags: [ "docker" ]
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     ADDITIONAL_BUILD_OPTIONS: -j2
@@ -50,7 +51,6 @@ job-android-makefile-r16b:
 job-android-ninja-r16b:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r16b
-  tags: [ "docker" ]
   variables:
     CMAKE_GENERATOR: Ninja
 
@@ -60,7 +60,6 @@ job-android-ninja-r16b:
 job-android-makefile-r17c:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
-  tags: [ "docker" ]
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     ADDITIONAL_BUILD_OPTIONS: -j2
@@ -71,14 +70,13 @@ job-android-makefile-r17c:
 job-android-ninja-r17c:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
-  tags: [ "docker" ]
   variables:
     CMAKE_GENERATOR: Ninja
 
   <<: *job-android-definition
 
 
-job-ios:
+.job-ios-template: &job-ios-definition
 
   tags: [ "macosx" ]
 
@@ -86,8 +84,8 @@ job-ios:
     - ccache -s
     - mkdir build-ios
     - cd build-ios
-    - cmake .. -G "Unix Makefiles" -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="arm64, armv7, i386, x86_64"
-    - cmake --build . --target sdk -- -j2 >> build_log.txt 2>&1
+    - cmake .. -G "$GENERATOR" -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="arm64, armv7, i386, x86_64"
+    - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS >> build_log.txt 2>&1
     - ccache -s
 
   artifacts:
@@ -99,7 +97,34 @@ job-ios:
     expire_in: 1 week
 
 
+job-ios-makefile:
+
+  variables:
+    CMAKE_GENERATOR: Unix Makefiles
+    ADDITIONAL_BUILD_OPTIONS: -j2
+
+  <<: *job-ios-definition
+
+
+job-ios-ninja:
+
+  variables:
+    CMAKE_GENERATOR: Ninja
+
+  <<: *job-ios-definition
+
+
+job-ios-xcode:
+
+  variables:
+    CMAKE_GENERATOR: Xcode
+
+  <<: *job-ios-definition
+
+
 .job-linux-desktop-template: &job-linux-desktop-definition
+
+  tags: [ "docker" ]
 
   <<: *linux-ccache-definition
 
@@ -123,19 +148,16 @@ job-ios:
 job-centos7-makefile-gcc:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
-  tags: [ "docker" ]
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: gcc
     CXX: g++
-    ADDITIONAL_BUILD_OPTIONS: -j2
   <<: *job-linux-desktop-definition
 
 
 job-debian8-makefile-gcc:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
-  tags: [ "docker" ]
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: gcc
@@ -147,7 +169,6 @@ job-debian8-makefile-gcc:
 job-debian9-makefile-gcc:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
-  tags: [ "docker" ]
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: gcc
@@ -159,7 +180,6 @@ job-debian9-makefile-gcc:
 job-centos7-ninja-gcc:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
-  tags: [ "docker" ]
   variables:
     CMAKE_GENERATOR: Ninja
     CC: gcc
@@ -170,7 +190,6 @@ job-centos7-ninja-gcc:
 job-debian8-ninja-gcc:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
-  tags: [ "docker" ]
   variables:
     CMAKE_GENERATOR: Ninja
     CC: gcc
@@ -181,7 +200,6 @@ job-debian8-ninja-gcc:
 job-debian9-ninja-gcc:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
-  tags: [ "docker" ]
   variables:
     CMAKE_GENERATOR: Ninja
     CC: gcc
@@ -192,19 +210,16 @@ job-debian9-ninja-gcc:
 job-centos7-makefile-clang:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
-  tags: [ "docker" ]
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: clang
     CXX: clang++
-    ADDITIONAL_BUILD_OPTIONS: -j2
   <<: *job-linux-desktop-definition
 
 
 job-debian8-makefile-clang:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
-  tags: [ "docker" ]
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: clang
@@ -216,7 +231,6 @@ job-debian8-makefile-clang:
 job-debian9-makefile-clang:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
-  tags: [ "docker" ]
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: clang
@@ -228,7 +242,6 @@ job-debian9-makefile-clang:
 job-centos7-ninja-clang:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
-  tags: [ "docker" ]
   variables:
     CMAKE_GENERATOR: Ninja
     CC: clang
@@ -239,7 +252,6 @@ job-centos7-ninja-clang:
 job-debian8-ninja-clang:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
-  tags: [ "docker" ]
   variables:
     CMAKE_GENERATOR: Ninja
     CC: clang
@@ -250,7 +262,6 @@ job-debian8-ninja-clang:
 job-debian9-ninja-clang:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
-  tags: [ "docker" ]
   variables:
     CMAKE_GENERATOR: Ninja
     CC: clang
@@ -289,6 +300,13 @@ job-macosx-ninja:
 
   variables:
     CMAKE_GENERATOR: Ninja
+  <<: *job-macosx-desktop-definition
+
+
+job-macosx-xcode:
+
+  variables:
+    CMAKE_GENERATOR: Xcode
   <<: *job-macosx-desktop-definition
 
 
