@@ -280,8 +280,9 @@ class Preparator:
             ret |= not self.check_cmake_version()
 
         if submodule_directory_to_check is None:
-            submodule_directory_to_check = "submodules/linphone/include"
-        if not os.path.isdir(submodule_directory_to_check):
+            submodule_directory_to_check1 = "submodules/linphone/include"
+            submodule_directory_to_check2 = "linphone-sdk/linphone/include"
+        if not os.path.isdir(submodule_directory_to_check1) and not os.path.isdir(submodule_directory_to_check2):
             error("Missing some git submodules. Did you run:\n\tgit submodule update --init --recursive")
             ret = 1
 
