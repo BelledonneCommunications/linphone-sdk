@@ -23,6 +23,6 @@
 lcb_git_repository("https://gitlab.linphone.org/BC/public/external/zlib.git")
 lcb_git_tag_latest("master")
 lcb_git_tag("91eb77a7c5bfe7b4cc6b722aa96548d7143a9936")
-lcb_external_source_paths("externals/zlib")
+lcb_external_source_paths("externals/zlib" "external/zlib")
 lcb_may_be_found_on_system(YES)
 lcb_ignore_warnings(YES)

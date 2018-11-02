@@ -139,3 +139,8 @@ endif()
 if(WIN32)
 	lcb_builder_linking_type(vpx "--enable-static" "--disable-shared" "--enable-pic")
 endif()
+
+# zlib
+lcb_builder_linking_type(zlib "-DENABLE_SHARED=NO" "-DENABLE_STATIC=YES")
+lcb_builder_extra_cflags(zlib "-fPIC")
+
