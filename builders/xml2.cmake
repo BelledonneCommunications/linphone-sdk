@@ -38,15 +38,4 @@ else()
 	lcb_external_source_paths("libxml2" "xml2" "externals/libxml2" "external/libxml2")
 	lcb_may_be_found_on_system(YES)
 	lcb_ignore_warnings(YES)
-
-	lcb_patch_command(
-		"${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/xml2/CMakeLists.txt" "<SOURCE_DIR>"
-		"COMMAND"
-		"${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/xml2/config.h.cmake" "<SOURCE_DIR>"
-	)
-	if(CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone")
-		lcb_patch_command("COMMAND" "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/xml2/windowsphone_port.h" "<SOURCE_DIR>")
-	elseif(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
-		lcb_patch_command("COMMAND" "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/xml2/universal_windows_port.h" "<SOURCE_DIR>")
-	endif()
 endif()
