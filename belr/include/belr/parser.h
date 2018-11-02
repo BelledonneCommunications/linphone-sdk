@@ -283,16 +283,11 @@ public:
 	BELR_PUBLIC std::shared_ptr<DebugElement> parseInput(const std::string &rulename, const std::string &input, size_t *parsed_size);
 };
 
-//Utility functions for	handlers/collectors objects instantiation and properties accessors
-template <typename _retT>
-	std::function< _retT ()> make_fn() {
-	return std::bind(&std::make_shared<_retT>);
-}
 
- template <typename _retT>
-	 std::function< _retT ()> make_fn(_retT (*arg)()){
-	 return std::function<_retT ()>(arg);
- }
+template <typename _retT>
+std::function< _retT ()> make_fn(_retT (*arg)()){
+	return std::function<_retT ()>(arg);
+}
 
 
 template <typename _retT, typename _arg1T, typename _arg2T>
