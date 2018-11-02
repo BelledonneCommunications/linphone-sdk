@@ -23,6 +23,9 @@
 include(${CMAKE_CURRENT_LIST_DIR}/options-ios.cmake)
 
 
+set(DEFAULT_VALUE_CMAKE_LINKING_TYPE "-DENABLE_STATIC=YES" "-DENABLE_SHARED=NO")
+
+
 set(CMAKE_MACOSX_RPATH TRUE)
 set(CMAKE_INSTALL_RPATH "@executable_path/../Frameworks")
 

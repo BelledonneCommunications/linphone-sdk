@@ -23,6 +23,9 @@
 include(${CMAKE_CURRENT_LIST_DIR}/options-uwp.cmake)
 
 
+set(DEFAULT_VALUE_CMAKE_LINKING_TYPE "-DENABLE_SHARED=YES" "-DENABLE_STATIC=NO")
+
+
 # Global configuration
 set(LINPHONE_BUILDER_CPPFLAGS "-D_ALLOW_KEYWORD_MACROS -D_CRT_SECURE_NO_WARNINGS -D_WINSOCK_DEPRECATED_NO_WARNINGS")
 
@@ -47,4 +50,4 @@ lcb_builder_cmake_options(ms2 "-DENABLE_RELATIVE_PREFIX=YES")
 # opus
 lcb_builder_cmake_options(opus "-DENABLE_ASM=NO")
 lcb_builder_cmake_options(opus "-DENABLE_FIXED_POINT=YES")
-set(EP_opus_LINKING_TYPE "-DENABLE_STATIC=YES")
+lcb_builder_linking_type(opus "-DENABLE_SHARED=NO" "-DENABLE_STATIC=YES")
