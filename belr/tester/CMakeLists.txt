@@ -56,9 +56,6 @@ if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 	set_target_properties(belle_sip_tester PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 endif()
 
-if(APPLE)
-	set_target_properties(belr_tester PROPERTIES LINK_FLAGS "-stdlib=libc++")
-endif()
 if(NOT IOS)
 	install(TARGETS belr_tester
 		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}

@@ -32,11 +32,8 @@ foreach(EXECUTABLE belr-parse belr-demo belr-compiler)
 	add_executable(${EXECUTABLE} ${SOURCE_FILES_CXX})
 	set_target_properties(${EXECUTABLE} PROPERTIES LINKER_LANGUAGE CXX)
 	target_link_libraries(${EXECUTABLE} ${BELR_LIBRARIES_FOR_TOOLS} ${BCTOOLBOX_CORE_LIBRARIES})
-	if(APPLE)
-		set_target_properties(${EXECUTABLE} PROPERTIES LINK_FLAGS "-stdlib=libc++")
-	endif()
-
 endforeach()
+
 if(NOT IOS)
 	install(TARGETS belr-parse belr-compiler
 		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
