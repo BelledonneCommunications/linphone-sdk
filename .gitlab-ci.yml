@@ -307,6 +307,7 @@ job-macosx-xcode:
 
   variables:
     CMAKE_GENERATOR: Xcode
+    ADDITIONAL_BUILD_OPTIONS: -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=2
   <<: *job-macosx-desktop-definition
 
 
