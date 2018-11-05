@@ -56,9 +56,6 @@ set_target_properties(belcard_tester PROPERTIES LINKER_LANGUAGE CXX)
 target_include_directories(belcard_tester PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIRS})
 target_link_libraries(belcard_tester ${BELCARD_LIBRARIES_FOR_TESTER} ${BCTOOLBOX_TESTER_LIBRARIES})
 
-if(APPLE)
-	set_target_properties(belcard_tester PROPERTIES LINK_FLAGS "-stdlib=libc++")
-endif()
 if(NOT IOS)
 	install(TARGETS belcard_tester
 		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
