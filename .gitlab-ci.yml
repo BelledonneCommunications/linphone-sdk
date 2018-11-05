@@ -38,14 +38,14 @@ variables:
     expire_in: 1 week
 
 
-job-android-makefile-r16b:
-
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r16b
-  variables:
-    CMAKE_GENERATOR: Unix Makefiles
-    ADDITIONAL_BUILD_OPTIONS: -j2
-
-  <<: *job-android-definition
+#job-android-makefile-r16b:
+#
+#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r16b
+#  variables:
+#    CMAKE_GENERATOR: Unix Makefiles
+#    ADDITIONAL_BUILD_OPTIONS: -j2
+#
+#  <<: *job-android-definition
 
 
 job-android-ninja-r16b:
@@ -57,14 +57,14 @@ job-android-ninja-r16b:
   <<: *job-android-definition
 
 
-job-android-makefile-r17c:
-
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
-  variables:
-    CMAKE_GENERATOR: Unix Makefiles
-    ADDITIONAL_BUILD_OPTIONS: -j2
-
-  <<: *job-android-definition
+#job-android-makefile-r17c:
+#
+#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
+#  variables:
+#    CMAKE_GENERATOR: Unix Makefiles
+#    ADDITIONAL_BUILD_OPTIONS: -j2
+#
+#  <<: *job-android-definition
 
 
 job-android-ninja-r17c:
@@ -97,13 +97,13 @@ job-android-ninja-r17c:
     expire_in: 1 week
 
 
-job-ios-makefile:
-
-  variables:
-    CMAKE_GENERATOR: Unix Makefiles
-    ADDITIONAL_BUILD_OPTIONS: -j2
-
-  <<: *job-ios-definition
+#job-ios-makefile:
+#
+#  variables:
+#    CMAKE_GENERATOR: Unix Makefiles
+#    ADDITIONAL_BUILD_OPTIONS: -j2
+#
+#  <<: *job-ios-definition
 
 
 job-ios-ninja:
@@ -114,12 +114,12 @@ job-ios-ninja:
   <<: *job-ios-definition
 
 
-job-ios-xcode:
-
-  variables:
-    CMAKE_GENERATOR: Xcode
-
-  <<: *job-ios-definition
+#job-ios-xcode:
+#
+#  variables:
+#    CMAKE_GENERATOR: Xcode
+#
+#  <<: *job-ios-definition
 
 
 .job-linux-desktop-template: &job-linux-desktop-definition
@@ -145,36 +145,36 @@ job-ios-xcode:
     expire_in: 1 week
 
 
-job-centos7-makefile-gcc:
-
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
-  variables:
-    CMAKE_GENERATOR: Unix Makefiles
-    CC: gcc
-    CXX: g++
-  <<: *job-linux-desktop-definition
-
-
-job-debian8-makefile-gcc:
-
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
-  variables:
-    CMAKE_GENERATOR: Unix Makefiles
-    CC: gcc
-    CXX: g++
-    ADDITIONAL_BUILD_OPTIONS: -j2
-  <<: *job-linux-desktop-definition
+#job-centos7-makefile-gcc:
+#
+#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
+#  variables:
+#    CMAKE_GENERATOR: Unix Makefiles
+#    CC: gcc
+#    CXX: g++
+#  <<: *job-linux-desktop-definition
 
 
-job-debian9-makefile-gcc:
+#job-debian8-makefile-gcc:
+#
+#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
+#  variables:
+#    CMAKE_GENERATOR: Unix Makefiles
+#    CC: gcc
+#    CXX: g++
+#    ADDITIONAL_BUILD_OPTIONS: -j2
+#  <<: *job-linux-desktop-definition
 
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
-  variables:
-    CMAKE_GENERATOR: Unix Makefiles
-    CC: gcc
-    CXX: g++
-    ADDITIONAL_BUILD_OPTIONS: -j2
-  <<: *job-linux-desktop-definition
+
+#job-debian9-makefile-gcc:
+#
+#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
+#  variables:
+#    CMAKE_GENERATOR: Unix Makefiles
+#    CC: gcc
+#    CXX: g++
+#    ADDITIONAL_BUILD_OPTIONS: -j2
+#  <<: *job-linux-desktop-definition
 
 
 job-centos7-ninja-gcc:
@@ -207,36 +207,36 @@ job-debian9-ninja-gcc:
   <<: *job-linux-desktop-definition
 
 
-job-centos7-makefile-clang:
-
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
-  variables:
-    CMAKE_GENERATOR: Unix Makefiles
-    CC: clang
-    CXX: clang++
-  <<: *job-linux-desktop-definition
-
-
-job-debian8-makefile-clang:
-
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
-  variables:
-    CMAKE_GENERATOR: Unix Makefiles
-    CC: clang
-    CXX: clang++
-    ADDITIONAL_BUILD_OPTIONS: -j2
-  <<: *job-linux-desktop-definition
+#job-centos7-makefile-clang:
+#
+#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
+#  variables:
+#    CMAKE_GENERATOR: Unix Makefiles
+#    CC: clang
+#    CXX: clang++
+#  <<: *job-linux-desktop-definition
 
 
-job-debian9-makefile-clang:
+#job-debian8-makefile-clang:
+#
+#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
+#  variables:
+#    CMAKE_GENERATOR: Unix Makefiles
+#    CC: clang
+#    CXX: clang++
+#    ADDITIONAL_BUILD_OPTIONS: -j2
+#  <<: *job-linux-desktop-definition
 
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
-  variables:
-    CMAKE_GENERATOR: Unix Makefiles
-    CC: clang
-    CXX: clang++
-    ADDITIONAL_BUILD_OPTIONS: -j2
-  <<: *job-linux-desktop-definition
+
+#job-debian9-makefile-clang:
+#
+#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
+#  variables:
+#    CMAKE_GENERATOR: Unix Makefiles
+#    CC: clang
+#    CXX: clang++
+#    ADDITIONAL_BUILD_OPTIONS: -j2
+#  <<: *job-linux-desktop-definition
 
 
 job-centos7-ninja-clang:
@@ -288,12 +288,12 @@ job-debian9-ninja-clang:
     expire_in: 1 week
 
 
-job-macosx-makefile:
-
-  variables:
-    CMAKE_GENERATOR: Unix Makefiles
-    ADDITIONAL_BUILD_OPTIONS: -j2
-  <<: *job-macosx-desktop-definition
+#job-macosx-makefile:
+#
+#  variables:
+#    CMAKE_GENERATOR: Unix Makefiles
+#    ADDITIONAL_BUILD_OPTIONS: -j2
+#  <<: *job-macosx-desktop-definition
 
 
 job-macosx-ninja:
@@ -318,4 +318,4 @@ job-windows-vs2015:
     - mkdir build-desktop
     - cd build-desktop
     - cmake .. -G "Visual Studio 14 2015" -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_BUILD_TYPE=Release
-    - cmake --build . --target sdk --config Release
+    - cmake --build . --target sdk --config Release -- /maxcpucount
