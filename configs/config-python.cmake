@@ -61,9 +61,8 @@ if (UNIX)
 			)
 			list(GET MAC_PLATFORM 0 CMAKE_OSX_DEPLOYMENT_TARGET)
 		endif()
-		if(CMAKE_OSX_DEPLOYMENT_TARGET VERSION_LESS "10.8")
-			# Resolve conflict between c++ libraries when building C++11 libraries on Mac OS X 10.7
-			set(LINPHONE_BUILDER_CXXFLAGS "-stdlib=libc++")
+		if(CMAKE_OSX_DEPLOYMENT_TARGET VERSION_LESS "10.9")
+			message(FATAL_ERROR "Minimal OS X deployment target of 10.9 required!")
 		endif()
 		set(CMAKE_OSX_ARCHITECTURES "x86_64")
 
