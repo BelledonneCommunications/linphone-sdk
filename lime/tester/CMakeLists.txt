@@ -71,9 +71,6 @@ else()
 	set_target_properties(lime_tester PROPERTIES LINKER_LANGUAGE CXX)
 	target_include_directories(lime_tester PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIRS} ${BELLESIP_INCLUDE_DIRS})
 	target_link_libraries(lime_tester ${LIME_LIBRARIES_FOR_TESTER} ${BCTOOLBOX_LIBRARIES} ${BCTOOLBOX_TESTER_LIBRARIES} ${BELLESIP_LIBRARIES} ${SOCI_LIBRARIES} ${SOCI_sqlite3_PLUGIN})
-	if(APPLE)
-		set_target_properties(lime_tester PROPERTIES LINK_FLAGS "-stdlib=libc++")
-	endif()
 
 	# lime test suit request a local server to be launched, so keep testing double ratchet only for now
 	add_test(NAME double_ratchet COMMAND lime_tester --verbose --resource-dir ${CMAKE_CURRENT_SOURCE_DIR} --suite "double ratchet")
