@@ -32,9 +32,6 @@ foreach(EXECTUABLE belcard-folder belcard-unfolder belcard-parser)
 	add_executable(${EXECTUABLE} ${SOURCE_FILES_CXX})
 	set_target_properties(${EXECTUABLE} PROPERTIES LINKER_LANGUAGE CXX)
 	target_link_libraries(${EXECTUABLE} ${BELCARD_LIBRARIES_FOR_TOOLS} ${BELR_LIBRARIES})
-	if(APPLE)
-		set_target_properties(${EXECTUABLE} PROPERTIES LINK_FLAGS "-stdlib=libc++")
-	endif()
 if(NOT IOS)
 	install(TARGETS ${EXECTUABLE}
 		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
