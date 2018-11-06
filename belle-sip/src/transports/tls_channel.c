@@ -563,7 +563,7 @@ static int tls_process_http_connect(belle_sip_tls_channel_t *obj) {
 	request = belle_sip_strdup_printf("CONNECT %s HTTP/1.1\r\nProxy-Connection: keep-alive\r\nConnection: keep-alive\r\nHost: %s\r\nUser-Agent: Mozilla/5.0\r\n"
 									  ,url_ipport
 									  ,host_ip);
-
+	belle_sip_message("HTTP request is\n%s", request);
 	belle_sip_free(host_ip);
 
 	if (channel->stack->http_proxy_username && channel->stack->http_proxy_passwd) {
