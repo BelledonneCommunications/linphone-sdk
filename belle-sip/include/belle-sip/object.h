@@ -236,6 +236,10 @@ BELLESIP_EXPORT belle_sip_object_t * belle_sip_object_ref(void *obj);
 **/
 BELLESIP_EXPORT void belle_sip_object_unref(void *obj);
 
+/**
+ * Decrements the reference counter. When it drops to zero, the object is destroyed and returns TRUE. Otherwise returns FALSE.
+**/
+BELLESIP_EXPORT bool_t belle_sip_object_unref_2(void *obj);
 
 typedef void (*belle_sip_object_destroy_notify_t)(void *userpointer, belle_sip_object_t *obj_being_destroyed);
 /**
