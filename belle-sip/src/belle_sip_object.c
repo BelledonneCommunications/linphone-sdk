@@ -127,14 +127,14 @@ void belle_sip_object_unref(void *ptr) {
 	belle_sip_object_unref_2(ptr);
 }
 
-bool_t belle_sip_object_unref_2(void *ptr) {
+int belle_sip_object_unref_2(void *ptr) {
 	belle_sip_object_t *obj=BELLE_SIP_OBJECT(ptr);
 	if (obj->ref <= -1) {
 		belle_sip_error("Object [%p] freed twice or corrupted !",obj);
 		if (obj->vptr && obj->vptr->type_name) belle_sip_error("Object type might be [%s]",obj->vptr->type_name);
 		if (obj->name) belle_sip_error("Object name might be [%s]",obj->name);
 		belle_sip_fatal("Fatal object error encountered, aborting.");
-		return TRUE;
+		return 1;
 	}
 
 	if (obj->vptr->initially_unowned && obj->ref==0){
@@ -142,7 +142,7 @@ bool_t belle_sip_object_unref_2(void *ptr) {
 			belle_sip_object_pool_remove(obj->pool,obj);
 		obj->ref=-1;
 		belle_sip_object_delete(obj);
-		return TRUE;
+		return 1;
 	}
 
 
@@ -159,9 +159,9 @@ bool_t belle_sip_object_unref_2(void *ptr) {
 	if (obj->ref == 0){
 		obj->ref = -1;
 		belle_sip_object_delete(obj);
-		return TRUE;
+		return 1;
 	}
-	return FALSE;
+	return 0;
 }
 
 static weak_ref_t *weak_ref_new(belle_sip_object_destroy_notify_t destroy_notify, void *userpointer){
