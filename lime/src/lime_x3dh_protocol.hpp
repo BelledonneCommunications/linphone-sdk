@@ -24,19 +24,28 @@
 
 namespace lime {
 
+	/** Set possible values for a flag in the keyBundle X3DH packet
+	 * so do not modify values or we'll loose sync with existing X3DH server
+	 */
+	enum class X3DHKeyBundleFlag : uint8_t {
+		noOPk=0, /**< This bundle does not contain an OPk */
+		OPk=1, /**< This bundle contains an OPk */
+		noBundle=2}; /**< This bundle is empty(just a deviceId) as this user was not found on X3DH server */
+
 	/**
 	 * Holds everything found in a key bundle received from X3DH server
+	 * @note Data members are set once by constructor and then the object is used to pass this data around, so they all are const
 	 */
 	template <typename Curve>
 	struct X3DH_peerBundle {
-		std::string deviceId; /**< peer device Id */
-		DSA<Curve, lime::DSAtype::publicKey> Ik; /**< peer device public identity key */
-		X<Curve, lime::Xtype::publicKey> SPk; /**< peer device current public pre-signed key */
-		uint32_t SPk_id; /**< id of the peer device current public pre-signed key */
-		DSA<Curve, lime::DSAtype::signature> SPk_sig; /**< signature of the peer device current public pre-signed key */
-		bool haveOPk; /**< flag: is this bundle hold a One Time preKey */
-		X<Curve, lime::Xtype::publicKey> OPk; /**< peer device One Time preKey */
-		uint32_t OPk_id; /**< id of the peer device current public pre-signed key */
+		const std::string deviceId; /**< peer device Id */
+		const DSA<Curve, lime::DSAtype::publicKey> Ik; /**< peer device public identity key */
+		const X<Curve, lime::Xtype::publicKey> SPk; /**< peer device current public pre-signed key */
+		const uint32_t SPk_id; /**< id of the peer device current public pre-signed key */
+		const DSA<Curve, lime::DSAtype::signature> SPk_sig; /**< signature of the peer device current public pre-signed key */
+		const lime::X3DHKeyBundleFlag bundleFlag; /**< Flag this bundle as empty and if not if it holds an OPk, possible values */
+		const X<Curve, lime::Xtype::publicKey> OPk; /**< peer device One Time preKey */
+		const uint32_t OPk_id; /**< id of the peer device current public pre-signed key */
 
 		/**
 		 * Constructor gets vector<uint8_t> iterators to all needed data and copy them into correct data types
@@ -50,14 +59,19 @@ namespace lime {
 		 * @param[in]	OPk_id		id of the One-time Pre-key - this parameter is optionnal
 		 */
 		X3DH_peerBundle(std::string &&deviceId, std::vector<uint8_t>::const_iterator Ik, std::vector<uint8_t>::const_iterator SPk, uint32_t SPk_id, std::vector<uint8_t>::const_iterator SPk_sig, std::vector<uint8_t>::const_iterator OPk, uint32_t OPk_id) :
-		deviceId{deviceId}, Ik{Ik}, SPk{SPk}, SPk_id{SPk_id}, SPk_sig{SPk_sig}, haveOPk{true}, OPk{OPk}, OPk_id{OPk_id} {};
+		deviceId{deviceId}, Ik{Ik}, SPk{SPk}, SPk_id{SPk_id}, SPk_sig{SPk_sig}, bundleFlag{lime::X3DHKeyBundleFlag::OPk}, OPk{OPk}, OPk_id{OPk_id} {};
 		/**
 		 * @overload
 		 * construct without OPk when not present in the parsed bundle
 		 */
 		X3DH_peerBundle(std::string &&deviceId, std::vector<uint8_t>::const_iterator Ik, std::vector<uint8_t>::const_iterator SPk, uint32_t SPk_id, std::vector<uint8_t>::const_iterator SPk_sig) :
-		deviceId{deviceId}, Ik{Ik}, SPk{SPk}, SPk_id{SPk_id}, SPk_sig{SPk_sig}, haveOPk{false}, OPk{}, OPk_id{0} {};
-
+		deviceId{deviceId}, Ik{Ik}, SPk{SPk}, SPk_id{SPk_id}, SPk_sig{SPk_sig}, bundleFlag{lime::X3DHKeyBundleFlag::noOPk}, OPk{}, OPk_id{0} {};
+		/**
+		 * @overload
+		 * construct without bundle when not present in the parsed server response
+		 */
+		X3DH_peerBundle(std::string &&deviceId) :
+		deviceId{deviceId}, Ik{}, SPk{}, SPk_id{0}, SPk_sig{}, bundleFlag{lime::X3DHKeyBundleFlag::noBundle}, OPk{}, OPk_id{0} {};
 	};
 
 	namespace x3dh_protocol {

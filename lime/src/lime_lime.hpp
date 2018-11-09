@@ -34,6 +34,7 @@ namespace lime {
 		// Encrypt/Decrypt
 		/**
 		 * @brief Encrypt a buffer(text or file) for a given list of recipient devices
+		 * if specified localDeviceId is not found in local Storage, throw an exception
 		 *
 		 * 	Clarification on recipients:
 		 *
@@ -50,10 +51,16 @@ namespace lime {
 		 *
 		 * 	In all cases, the identified source of the message will be the localDeviceId
 		 *
-		 * 	Note: all parameters are shared pointers as the process being asynchronous, the ownership will be taken internally exempting caller to manage the buffers.
+		 * 	If the X3DH server can't provide keys for a peer device, its status is set to fail and its DRmessage is empty. Other devices get their encrypted message
+		 * 	If no peer device could get encrypted for all of them are missing keys on the X3DH server, the callback will still be called with success exit status
+		 *
+		 * @note all parameters are shared pointers as the process being asynchronous, the ownership will be taken internally exempting caller to manage the buffers.
 		 *
 		 * @param[in]		recipientUserId		the Id of intended recipient, shall be a sip:uri of user or conference, is used as associated data to ensure no-one can mess with intended recipient
-		 * @param[in,out]	recipients		a list of RecipientData holding: the recipient device Id(GRUU) and an empty buffer to store the DRmessage which must then be routed to that recipient
+		 * @param[in,out]	recipients		a list of RecipientData holding:
+		 * 						- the recipient device Id(GRUU)
+		 * 						- an empty buffer to store the DRmessage which must then be routed to that recipient
+		 * 						- the peer Status. If peerStatus is set to fail, this entry is ignored otherwise the peerStatus is set by the encrypt, see PeerDeviceStatus definition for details
 		 * @param[in]		plainMessage		a buffer holding the message to encrypt, can be text or data.
 		 * @param[in]		encryptionPolicy	select how to manage the encryption: direct use of Double Ratchet message or encrypt in the cipher message and use the DR message to share the cipher message key
 		 * @param[out]		cipherMessage		points to the buffer to store the encrypted message which must be routed to all recipients(if one is produced, depends on encryption policy)

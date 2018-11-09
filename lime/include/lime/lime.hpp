@@ -52,7 +52,8 @@ namespace lime {
 		untrusted=0, /**< we know this device but do not trust it, that information shall be displayed to the end user, a colour code shall be enough */
 		trusted=1, /**< this peer device already got its public identity key validated, that information shall be displayed to the end user too */
 		unsafe=2, /**< this status is a helper for the library user. It is used only by the peerDeviceStatus accessor functions */
-		fail, /**< this status is returned by decrypt operation only, when we could not decrypt the incoming message */
+		fail, /**< when returned by decrypt : we could not decrypt the incoming message
+			when returned by encrypt in the peerStatus: we could not encrypt to this recipient(probably because it does not published keys on the X3DH° server) */
 		unknown /**< when returned after encryption or decryption, means it is the first time we communicate with this device (and thus create a DR session with it),
 			   when returned by a get_peerDeviceStatus: this device is not in localStorage */
 	};
@@ -170,11 +171,17 @@ namespace lime {
 			 *
 			 * 	In all cases, the identified source of the message will be the localDeviceId
 			 *
-			 * 	Note: nearly all parameters are shared pointers as the process being asynchronous, the ownership will be taken internally exempting caller to manage the buffers.
+			 * 	If the X3DH server can't provide keys for a peer device, its status is set to fail and its DRmessage is empty. Other devices get their encrypted message
+			 * 	If no peer device could get encrypted for all of them are missing keys on the X3DH server, the callback will still be called with success exit status
+			 *
+			 * @note nearly all parameters are shared pointers as the process being asynchronous, the ownership will be taken internally exempting caller to manage the buffers.
 			 *
 			 * @param[in]		localDeviceId	used to identify which local acount to use and also as the identified source of the message, shall be the GRUU
 			 * @param[in]		recipientUserId	the Id of intended recipient, shall be a sip:uri of user or conference, is used as associated data to ensure no-one can mess with intended recipient
-			 * @param[in,out]	recipients	a list of RecipientData holding: the recipient device Id (GRUU) and an empty buffer to store the DRmessage which must then be routed to that recipient
+			 * @param[in,out]	recipients	a list of RecipientData holding:
+			 * 					- the recipient device Id(GRUU)
+			 * 					- an empty buffer to store the DRmessage which must then be routed to that recipient
+			 * 					- the peer Status. If peerStatus is set to fail, this entry is ignored otherwise the peerStatus is set by the encrypt, see PeerDeviceStatus definition for details
 			 * @param[in]		plainMessage	a buffer holding the message to encrypt, can be text or data.
 			 * @param[out]		cipherMessage	points to the buffer to store the encrypted message which must be routed to all recipients(if one is produced, depends on encryption policy)
 			 * @param[in]		callback	Performing encryption may involve the X3DH server and is thus asynchronous, when the operation is completed,
@@ -295,7 +302,7 @@ namespace lime {
 			lime::PeerDeviceStatus get_peerDeviceStatus(const std::string &peerDeviceId);
 
 			/**
-			 * @delete a peerDevice from local storage
+			 * @brief delete a peerDevice from local storage
 			 *
 			 * @param[in]	peerDeviceId	The device Id to be removed from local storage, shall be its GRUU
 			 *

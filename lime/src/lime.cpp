@@ -164,19 +164,24 @@ namespace lime {
 		std::vector<std::string> missingPeers; /* vector of deviceId(GRUU) which are requested to perform X3DH before the encryption can occurs */
 
 		/* Create the appropriate recipient infos and fill it with sessions found in cache */
-		// internal_recipients is a vector duplicating the recipients one in the same order(to allow fast copying of relevant information back to recipients when encryption is completed)
+		// internal_recipients is a vector duplicating the recipients one in the same order (ignoring the one with peerStatus set to fail)
+		// This allows fast copying of relevant information back to recipients when encryption is completed
 		std::vector<RecipientInfos<Curve>> internal_recipients{};
 		for (const auto &recipient : *recipients) {
-			auto sessionElem = m_DR_sessions_cache.find(recipient.deviceId);
-			if (sessionElem != m_DR_sessions_cache.end()) { // session is in cache
-				if (sessionElem->second->isActive()) { // the session in cache is active
-					internal_recipients.emplace_back(recipient.deviceId, sessionElem->second);
-				} else { // session in cache is not active(may append if last encryption reach sending chain symmetric ratchet usage)
+			// if the input recipient peerStatus is fail we must ignore it
+			// most likely: we're in a call after a key bundle fetch and this peer device does not have keys on the X3DH server
+			if (recipient.peerStatus != lime::PeerDeviceStatus::fail) {
+				auto sessionElem = m_DR_sessions_cache.find(recipient.deviceId);
+				if (sessionElem != m_DR_sessions_cache.end()) { // session is in cache
+					if (sessionElem->second->isActive()) { // the session in cache is active
+						internal_recipients.emplace_back(recipient.deviceId, sessionElem->second);
+					} else { // session in cache is not active(may append if last encryption reach sending chain symmetric ratchet usage)
+						internal_recipients.emplace_back(recipient.deviceId);
+						m_DR_sessions_cache.erase(recipient.deviceId); // remove unactive session from cache
+					}
+				} else { // session is not in cache, just create it and the session ptr will be a nullptr
 					internal_recipients.emplace_back(recipient.deviceId);
-					m_DR_sessions_cache.erase(recipient.deviceId); // remove unactive session from cache
 				}
-			} else { // session is not in cache, just create it and the session ptr will be a nullptr
-				internal_recipients.emplace_back(recipient.deviceId);
 			}
 		}
 
@@ -200,10 +205,15 @@ namespace lime {
 			postToX3DHServer(userData, X3DHmessage);
 		} else { // got everyone, encrypt
 			encryptMessage(internal_recipients, *plainMessage, *recipientUserId, m_selfDeviceId, *cipherMessage, encryptionPolicy);
-			// move DR messages to the input/output structure
-			for (size_t i=0; i<recipients->size(); i++) {
-				(*recipients)[i].DRmessage = std::move(internal_recipients[i].DRmessage);
-				(*recipients)[i].peerStatus = internal_recipients[i].peerStatus;
+			// move DR messages to the input/output structure, ignoring again the input with peerStatus set to fail
+			// so the index on the internal_recipients still matches the way we created it from recipients
+			size_t i=0;
+			for (auto &recipient : *recipients) {
+				if (recipient.peerStatus != lime::PeerDeviceStatus::fail) {
+					recipient.DRmessage = std::move(internal_recipients[i].DRmessage);
+					recipient.peerStatus = internal_recipients[i].peerStatus;
+					i++;
+				}
 			}
 			if (callback) callback(lime::CallbackReturn::success, "");
 			// is there no one in an asynchronous encryption process and do we have something in encryption queue to process

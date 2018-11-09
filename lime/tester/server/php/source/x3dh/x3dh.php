@@ -105,6 +105,14 @@ abstract class ErrorCodes {
 	const server_failure = 0x09;
 };
 
+// emulate simple enumeration with abstract class
+abstract class KeyBundleFlag {
+	const noOPk = 0x00;
+	const OPk = 0x01;
+	const noBundle = 0x02;
+}
+
+
 
 // define keys and signature size in bytes based on the curve used
 const keySizes = array(
@@ -390,7 +398,7 @@ function x3dh_process_request($userId) {
 
 		/* peerBundle :	bundle Count < 2 bytes unsigned Big Endian> |
 		 *	(   deviceId Size < 2 bytes unsigned Big Endian > | deviceId
-		 *	    Flag<1 byte: 0 if no OPK in bundle, 1 if present> |
+		 *	    Flag<1 byte: 0 if no OPK in bundle, 1 if OPk is present, 2 when no bundle was found for this device> |
 		 *	    Ik <EDDSA Public Key Length> |
 		 *	    SPk <ECDH Public Key Length> | SPK id <4 bytes>
 		 *	    SPk_sig <Signature Length> |
@@ -451,7 +459,7 @@ function x3dh_process_request($userId) {
 				$stmt->execute();
 				$row = $stmt->get_result()->fetch_assoc();
 				if (!$row) {
-					$keyBundleErrors .=' ## bundle not found for user '.$peersBundle[$i][0];
+					x3dh_log(LogLevel::DEBUG, "User ".$peersBundle[$i][0]." not found");
 				} else {
 					array_push($peersBundle[$i], $row['Ik'], $row['SPk'], $row['SPk_id'], $row['SPk_sig']);
 					if ($row['OPk']) { // there is an OPk
@@ -477,17 +485,22 @@ function x3dh_process_request($userId) {
 				$db->query("UNLOCK TABLES");
 				$peersBundleMessage = pack("C3n",X3DH_protocolVersion, MessageTypes::peerBundle, curveId, $peersCount); // build the X3DH response header
 				foreach ($peersBundle as $bundle) {
-					$flagOPk = (count($bundle)>5)?1:0;  // elements in bundle array are : deviceId, Ik, SPk, SPk_id, SPk_sig, [OPk, OPk_id] last 2 are optionnal
+					// elements in bundle array are : deviceId, [Ik, SPk, SPk_id, SPk_sig, [OPk, OPk_id]]
 					$peersBundleMessage .= pack("n", strlen($bundle[0])); // size of peer Device Id, 2 bytes in big endian
 					$peersBundleMessage .= $bundle[0]; // peer Device Id
-					$peersBundleMessage .= pack("C", $flagOPk); // 1 byte : the flag for OPk presence
-					$peersBundleMessage .= $bundle[1]; // Ik
-					$peersBundleMessage .= $bundle[2]; // SPk
-					$peersBundleMessage .= pack("N", $bundle[3]); // SPk Id : 4 bytes in big endian
-					$peersBundleMessage .= $bundle[4]; // SPk Signature
-					if ($flagOPk == 1) {
-						$peersBundleMessage .= $bundle[5]; // OPk
-						$peersBundleMessage .= pack("N", $bundle[6]); // OPk Id : 4 bytes in big endian
+					if (count($bundle)==1) { // we have no keys for this device
+						$peersBundleMessage .= pack("C", KeyBundleFlag::noBundle); // 1 byte : the key bundle flag
+					} else {
+						$flagOPk = (count($bundle)>5)?(KeyBundleFlag::OPk):(KeyBundleFlag::noOPk); // does the bundle hold an OPk?
+						$peersBundleMessage .= pack("C", $flagOPk); // 1 byte : the key bundle flag
+						$peersBundleMessage .= $bundle[1]; // Ik
+						$peersBundleMessage .= $bundle[2]; // SPk
+						$peersBundleMessage .= pack("N", $bundle[3]); // SPk Id : 4 bytes in big endian
+						$peersBundleMessage .= $bundle[4]; // SPk Signature
+						if ($flagOPk == KeyBundleFlag::OPk) {
+							$peersBundleMessage .= $bundle[5]; // OPk
+							$peersBundleMessage .= pack("N", $bundle[6]); // OPk Id : 4 bytes in big endian
+						}
 					}
 				}
 				returnOk($peersBundleMessage);

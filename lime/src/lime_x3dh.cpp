@@ -35,6 +35,10 @@ namespace lime {
 	template <typename Curve>
 	void Lime<Curve>::X3DH_init_sender_session(const std::vector<X3DH_peerBundle<Curve>> &peersBundle) {
 		for (const auto &peerBundle : peersBundle) {
+			// do we have a key bundle to build this message from ?
+			if (peerBundle.bundleFlag == lime::X3DHKeyBundleFlag::noBundle) {
+				continue;
+			}
 			// Verifify SPk_signature, throw an exception if it fails
 			auto SPkVerify = make_Signature<Curve>();
 			SPkVerify->set_public(peerBundle.Ik);
@@ -81,7 +85,7 @@ namespace lime {
 			HKDF_input_index += 2*DH_out.size();
 
 			// Compute DH4 = DH(Ek, peer OPk) (if any OPk in bundle)
-			if (peerBundle.haveOPk) {
+			if (peerBundle.bundleFlag == lime::X3DHKeyBundleFlag::OPk) {
 				DH->set_peerPublic(peerBundle.OPk);
 				DH->computeSharedSecret();
 				DH_out = DH->get_sharedSecret();
@@ -97,7 +101,7 @@ namespace lime {
 
 			// Generate X3DH init message: as in X3DH spec section 3.3:
 			std::vector<uint8_t> X3DH_initMessage{};
-			double_ratchet_protocol::buildMessage_X3DHinit(X3DH_initMessage, m_Ik.publicKey(), DH->get_selfPublic(), peerBundle.SPk_id, peerBundle.haveOPk?peerBundle.OPk_id:0, peerBundle.haveOPk);
+			double_ratchet_protocol::buildMessage_X3DHinit(X3DH_initMessage, m_Ik.publicKey(), DH->get_selfPublic(), peerBundle.SPk_id, peerBundle.OPk_id, (peerBundle.bundleFlag == lime::X3DHKeyBundleFlag::OPk));
 
 			DH = nullptr; // be sure to destroy and clean the keyExchange object as soon as we do not need it anymore
 
@@ -114,7 +118,7 @@ namespace lime {
 			// in that case just keep on building our new session so the peer device knows it must get rid of the OPk, sessions will eventually converge into only one when messages
 			// stop crossing themselves on the network.
 			// If the fetch bundle doesn't hold OPk, just ignore our newly built session, and use existing one
-			if (peerBundle.haveOPk) {
+			if (peerBundle.bundleFlag == lime::X3DHKeyBundleFlag::OPk) {
 				m_DR_sessions_cache.erase(peerBundle.deviceId); // will just do nothing if this peerDeviceId is not in cache
 			}
 

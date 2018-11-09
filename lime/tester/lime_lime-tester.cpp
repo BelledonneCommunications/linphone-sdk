@@ -2412,7 +2412,6 @@ static void x3dh_operation_queue(void) {
 #endif
 }
 
-
  /* A simple test with alice having 1 device and bob 2
  * - Alice and Bob(d1 and d2) register themselves on X3DH server
  * - Alice send message to Bob (d1 and d2)
@@ -2420,7 +2419,6 @@ static void x3dh_operation_queue(void) {
  * - Bob d1 respond to Alice(with bob d2 in copy)
  * - Bob d2 respond to Alice(with bob d1 in copy)
  * - Alice send another message to Bob(d1 and d2)
- * - Alice try to send a message to an inexistant device (bob.d3) -> X3DH server send an error back
  * - Delete Alice and Bob devices to leave distant server base clean
  *
  * At each message check that the X3DH init is present or not in the DR header
@@ -2596,19 +2594,6 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 		cipherMessage->clear();
 		if (!continuousSession) { managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);}
 
-		// try to encrypt to an unknown user, it must fail in callback
-		recipients->emplace_back("bob.d3");
-		message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[5].begin(), lime_tester::messages_pattern[5].end());
-
-		aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
-		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_failed,1,lime_tester::wait_for_timeout));
-
-		// cleaning
-		recipients->clear();
-		message = nullptr;
-		cipherMessage->clear();
-		if (!continuousSession) { managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);}
-
 		// delete the users
 		if (cleanDatabase) {
 			aliceManager->delete_user(*aliceDevice1, callback);
@@ -2632,6 +2617,193 @@ static void x3dh_basic(void) {
 #ifdef EC448_ENABLED
 	x3dh_basic_test(lime::CurveId::c448, "lime_x3dh_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
 	x3dh_basic_test(lime::CurveId::c448, "lime_x3dh_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data(), false);
+#endif
+}
+
+ /* A simple test with alice having 1 device and bob 2
+ * - Alice and Bob(d1 and d2) register themselves on X3DH server
+ * - Alice send another message to Bob non existing device d3, it shall fail without exception
+ * - Alice send another message to Bob (d1 and d2) and try to send to an non existing device d3, d1 and d2 shall work
+ * - repeat with the unknown device at the begining and in the middle of the recipients list
+ * - Delete Alice and Bob devices to leave distant server base clean
+ *
+ * At each message check that the X3DH init is present or not in the DR header
+ * if continuousSession is set to false, delete and recreate LimeManager before each new operation to force relying on local Storage
+ * Note: no asynchronous operation will start before the previous is over(callback returns)
+ */
+static void x3dh_user_not_found_test(const lime::CurveId curve, const std::string &dbBaseFilename, const std::string &x3dh_server_url, bool continuousSession=true) {
+	// create DB
+	std::string dbFilenameAlice{dbBaseFilename};
+	dbFilenameAlice.append(".alice.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
+	std::string dbFilenameBob{dbBaseFilename};
+	dbFilenameBob.append(".bob.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
+
+	remove(dbFilenameAlice.data()); // delete the database file if already exists
+	remove(dbFilenameBob.data()); // delete the database file if already exists
+
+	lime_tester::events_counters_t counters={};
+	int expected_success=0;
+
+	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+					if (returnCode == lime::CallbackReturn::success) {
+						counters.operation_success++;
+					} else {
+						counters.operation_failed++;
+						LIME_LOGE<<"Lime operation failed : "<<anythingToSay;
+					}
+				});
+
+	try {
+		// create Manager
+		auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
+		auto bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, X3DHServerPost));
+
+		// create Random devices names
+		auto aliceDevice1 = lime_tester::makeRandomDeviceName("alice.d1.");
+		auto bobDevice1 = lime_tester::makeRandomDeviceName("bob.d1.");
+		auto bobDevice2 = lime_tester::makeRandomDeviceName("bob.d2.");
+		auto bobDevice3 = lime_tester::makeRandomDeviceName("bob.d3."); // for this one we won't create the user nor register it on the X3DH server
+
+		// create users
+		aliceManager->create_user(*aliceDevice1, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+		bobManager->create_user(*bobDevice1, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+		bobManager->create_user(*bobDevice2, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+		if (counters.operation_failed == 1) return; // skip the end of the test if we can't do this
+
+		/* destroy and reload the Managers(tests everything is correctly saved/load from local Storage) */
+		if (!continuousSession) { managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);}
+
+		// alice send a message to bob d3
+		auto recipients = make_shared<std::vector<RecipientData>>();
+		recipients->emplace_back(*bobDevice3);
+		auto message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
+		auto cipherMessage = make_shared<std::vector<uint8_t>>();
+
+		aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
+		// The encryption shall run without error
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+		// but the status of the recipient disclose the failure on that one
+		BC_ASSERT_TRUE((*recipients)[0].peerStatus == lime::PeerDeviceStatus::fail);
+
+		// cleaning
+		recipients->clear();
+		message = nullptr;
+		cipherMessage->clear();
+		if (!continuousSession) { managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);}
+
+		// encrypt another one, for d1, d2 and d3. The first two shall be ok and d3 shall have a failed status
+		recipients->emplace_back(*bobDevice1);
+		recipients->emplace_back(*bobDevice2);
+		recipients->emplace_back(*bobDevice3);
+		message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[1].begin(), lime_tester::messages_pattern[1].end());
+
+		aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+
+		// loop on cipher message and decrypt with bob Manager
+		for (auto &recipient : *recipients) {
+			if (recipient.deviceId == *bobDevice3) {
+				BC_ASSERT_TRUE(recipient.peerStatus == lime::PeerDeviceStatus::fail);
+			} else {
+				std::vector<uint8_t> receivedMessage{};
+				BC_ASSERT_TRUE(recipient.peerStatus == lime::PeerDeviceStatus::unknown); // it is the first time alice has contact with bob's d1 and d2 devices
+				BC_ASSERT_TRUE(lime_tester::DR_message_holdsX3DHInit(recipient.DRmessage)); // first communication holds a X3DH message
+				BC_ASSERT_TRUE(bobManager->decrypt(recipient.deviceId, "bob", *aliceDevice1, recipient.DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+				std::string receivedMessageString{receivedMessage.begin(), receivedMessage.end()};
+				BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[1]);
+			}
+		}
+
+		// cleaning
+		recipients->clear();
+		message = nullptr;
+		cipherMessage->clear();
+		if (!continuousSession) { managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);}
+
+		// encrypt another one, for d3, d2 and d1.
+		recipients->emplace_back(*bobDevice3);
+		recipients->emplace_back(*bobDevice2);
+		recipients->emplace_back(*bobDevice1);
+		message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[2].begin(), lime_tester::messages_pattern[2].end());
+
+		aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+
+		// loop on cipher message and decrypt with bob Manager
+		for (auto &recipient : *recipients) {
+			if (recipient.deviceId == *bobDevice3) {
+				BC_ASSERT_TRUE(recipient.peerStatus == lime::PeerDeviceStatus::fail);
+			} else {
+				std::vector<uint8_t> receivedMessage{};
+				BC_ASSERT_TRUE(recipient.peerStatus == lime::PeerDeviceStatus::untrusted);
+				BC_ASSERT_TRUE(lime_tester::DR_message_holdsX3DHInit(recipient.DRmessage)); // first communication holds a X3DH message
+				BC_ASSERT_TRUE(bobManager->decrypt(recipient.deviceId, "bob", *aliceDevice1, recipient.DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+				std::string receivedMessageString{receivedMessage.begin(), receivedMessage.end()};
+				BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[2]);
+			}
+		}
+
+		// cleaning
+		recipients->clear();
+		message = nullptr;
+		cipherMessage->clear();
+		if (!continuousSession) { managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);}
+
+		// encrypt another one, for d2, d3 and d1.
+		recipients->emplace_back(*bobDevice2);
+		recipients->emplace_back(*bobDevice3);
+		recipients->emplace_back(*bobDevice1);
+		message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[3].begin(), lime_tester::messages_pattern[3].end());
+
+		aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+
+		// loop on cipher message and decrypt with bob Manager
+		for (auto &recipient : *recipients) {
+			if (recipient.deviceId == *bobDevice3) {
+				BC_ASSERT_TRUE(recipient.peerStatus == lime::PeerDeviceStatus::fail);
+			} else {
+				std::vector<uint8_t> receivedMessage{};
+				BC_ASSERT_TRUE(recipient.peerStatus == lime::PeerDeviceStatus::untrusted);
+				BC_ASSERT_TRUE(lime_tester::DR_message_holdsX3DHInit(recipient.DRmessage)); // first communication holds a X3DH message
+				BC_ASSERT_TRUE(bobManager->decrypt(recipient.deviceId, "bob", *aliceDevice1, recipient.DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+				std::string receivedMessageString{receivedMessage.begin(), receivedMessage.end()};
+				BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[3]);
+			}
+		}
+
+		// cleaning
+		recipients->clear();
+		message = nullptr;
+		cipherMessage->clear();
+		if (!continuousSession) { managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);}
+
+		// delete the users
+		if (cleanDatabase) {
+			aliceManager->delete_user(*aliceDevice1, callback);
+			bobManager->delete_user(*bobDevice1, callback);
+			bobManager->delete_user(*bobDevice2, callback);
+			BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,expected_success+3,lime_tester::wait_for_timeout));
+			remove(dbFilenameAlice.data());
+			remove(dbFilenameBob.data());
+		}
+	} catch (BctbxException &e) {
+		LIME_LOGE <<e;;
+		BC_FAIL();
+	}
+}
+
+static void x3dh_user_not_found(void) {
+#ifdef EC25519_ENABLED
+	x3dh_user_not_found_test(lime::CurveId::c25519, "lime_x3dh_user_not_found", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data());
+	x3dh_user_not_found_test(lime::CurveId::c25519, "lime_x3dh_user_not_found", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data(), false);
+#endif
+#ifdef EC448_ENABLED
+	x3dh_user_not_found_test(lime::CurveId::c448, "lime_x3dh_user_not_found", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
+	x3dh_user_not_found_test(lime::CurveId::c448, "lime_x3dh_user_not_found", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data(), false);
 #endif
 }
 
@@ -2784,6 +2956,7 @@ static void user_management(void) {
 static test_t tests[] = {
 	TEST_NO_TAG("User Management", user_management),
 	TEST_NO_TAG("Basic", x3dh_basic),
+	TEST_NO_TAG("User not found", x3dh_user_not_found),
 	TEST_NO_TAG("Queued encryption", x3dh_operation_queue),
 	TEST_NO_TAG("Multi devices queued encryption", x3dh_multidev_operation_queue),
 	TEST_NO_TAG("Multiple sessions", x3dh_multiple_DRsessions),

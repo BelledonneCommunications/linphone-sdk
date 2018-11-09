@@ -468,7 +468,7 @@ namespace lime {
 		 *
 		 * peerBundle :	bundle Count < 2 bytes unsigned Big Endian> ||
 		 *	(   deviceId Size < 2 bytes unsigned Big Endian > || deviceId
-		 *	    Flag<1 byte: 0 if no OPK in bundle, 1 if present> ||
+		 *	    Flag<1 byte: 0 if no OPK in bundle, 1 if present, 2 no key bundle found on server> ||
 		 *		   Ik <EDDSA Public Key Length> ||
 		 *		   SPk <ECDH Public Key Length> || SPK id <4 bytes>
 		 *		   SPk_sig <Signature Length> ||
@@ -505,6 +505,7 @@ namespace lime {
 			for (auto i=0; i<peersBundleCount; i++) {
 				if (body.size() < index + 2) { // check we have at least a device size to read
 					peersBundle.clear();
+					LIME_LOGE<<"Invalid message: size is not what expected, discard without parsing";
 					return false;
 				}
 
@@ -512,18 +513,45 @@ namespace lime {
 				uint16_t deviceIdSize = (static_cast<uint16_t>(body[index]))<<8|body[index+1];
 				index += 2;
 
-				if (body.size() < index + deviceIdSize + 1) { // check we have at enough data to read: device size and the following OPk flag
+				if (body.size() < index + deviceIdSize + 1) { // check we have at enough data to read: device size and the following flag
 					peersBundle.clear();
+					LIME_LOGE<<"Invalid message: size is not what expected, discard without parsing";
 					return false;
 				}
 				std::string deviceId{body.cbegin()+index, body.cbegin()+index+deviceIdSize};
 				index += deviceIdSize;
 
-				// check if we have an OPk
-				bool haveOPk = (body[index]==0)?false:true;
+				// check if we have a key bundle and an OPk. Possible flag values: 0 no OPk, 1 OPk, 2 no key bundle at all
+				// parse the key bundle flag
+				lime::X3DHKeyBundleFlag keyBundleFlag = lime::X3DHKeyBundleFlag::noBundle;
+				switch (body[index]) {
+					case static_cast<uint8_t>(lime::X3DHKeyBundleFlag::noBundle):
+						keyBundleFlag = lime::X3DHKeyBundleFlag::noBundle;
+						break;
+					case static_cast<uint8_t>(lime::X3DHKeyBundleFlag::noOPk):
+						keyBundleFlag = lime::X3DHKeyBundleFlag::noOPk;
+						break;
+					case static_cast<uint8_t>(lime::X3DHKeyBundleFlag::OPk):
+						keyBundleFlag = lime::X3DHKeyBundleFlag::OPk;
+						break;
+					default:
+						LIME_LOGE<<"Invalid X3DH message: unexpected flag value "<<body[index]<<" in "<<deviceId<<" key bundle";
+						peersBundle.clear();
+						return false;
+				}
+
+				// if there is no bundle, just skip to the next one
+				if (keyBundleFlag == lime::X3DHKeyBundleFlag::noBundle) {
+					// add device Id (and its size) to the trace
+					message_trace << endl << dec << "    Device Id ("<<static_cast<unsigned int>(deviceIdSize)<<" bytes): "<<deviceId<<" has no key bundle"<<endl;
+					peersBundle.emplace_back(std::move(deviceId));
+					continue; // skip to next one
+				}
+
+				bool haveOPk = (keyBundleFlag == lime::X3DHKeyBundleFlag::OPk);
 				index += 1;
 
-				// add device Id (and its size) and OPk flag to the trace
+				// add device Id (and its size) and flag to the trace
 				message_trace << endl << dec << "    Device Id ("<<static_cast<unsigned int>(deviceIdSize)<<" bytes): "<<deviceId<<(haveOPk?" has ":" does not have ")<<"OPk"<<endl<<"        Ik: ";
 
 				if (body.size() < index + DSA<Curve, lime::DSAtype::publicKey>::ssize() + X<Curve, lime::Xtype::publicKey>::ssize() + DSA<Curve, lime::DSAtype::signature>::ssize() + 4 + (haveOPk?(X<Curve, lime::Xtype::publicKey>::ssize()+4):0) ) {
@@ -766,6 +794,19 @@ namespace lime {
 						if (callback) callback(lime::CallbackReturn::fail, std::string{"Error during the peer Bundle processing : "}.append(e.str()));
 						cleanUserData(userData);
 						return;
+					}
+
+					// tweak the userData->recipients to set to fail those wo didn't get a key bundle
+					for (const auto &peerBundle:peersBundle) {
+						// get all the bundless peer Devices
+						if (peerBundle.bundleFlag == lime::X3DHKeyBundleFlag::noBundle) {
+							for (auto &recipient:*(userData->recipients)) {
+								// and set their recipient status to fail so the encrypt function would ignore them
+								if (recipient.deviceId == peerBundle.deviceId) {
+									recipient.peerStatus = lime::PeerDeviceStatus::fail;
+								}
+							}
+						}
 					}
 
 					// call the encrypt function again, it will call the callback when done, encryption queue won't be processed as still locked by the m_ongoing_encryption member

@@ -122,6 +122,12 @@ const enum_errorCodes = {
 	bad_request : 0x08
 };
 
+const enum_keyBundleFlag = {
+	noOPk : 0x00,
+	OPk : 0x01,
+	noBundle : 0x02
+};
+
 const keySizes = { // 1 is for enum_curveId.CURVE25519, 2 is for enum_curveId.CURVE448
 	1 : {X_pub : 32, X_priv : 32, ED_pub : 32, ED_priv : 32, Sig : 64},
 	2 : {X_pub : 56, X_priv : 56, ED_pub : 57, ED_priv : 57, Sig : 114}
@@ -421,7 +427,7 @@ https.createServer(options, (req, res) => {
 
 			/* peerBundle :	bundle Count < 2 bytes unsigned Big Endian> |
 			 *	(   deviceId Size < 2 bytes unsigned Big Endian > | deviceId
-			 *	    Flag<1 byte: 0 if no OPK in bundle, 1 if present> |
+			 *	    Flag<1 byte: 0 if no OPK in bundle, 1 if present | 2 no key bundle is present> |
 			 *	    Ik <EDDSA Public Key Length> |
 			 *	    SPk <ECDH Public Key Length> | SPK id <4 bytes>
 			 *	    SPk_sig <Signature Length> |
@@ -440,16 +446,26 @@ https.createServer(options, (req, res) => {
 						let userId = peersBundle[i][0];
 						let haveOPk = (peersBundle[i].length>5)?1:0; // elements in peersBundle[i] are : deviceId, Ik, SPk, SPk_id, SPk_sig, [OPk, OPk_id] last 2 are optionnal
 						let peerBundle = Buffer.allocUnsafe(2);
-						peerBundle.writeUInt16BE(userId.length, 0); // peers bundle count on 2 bytes in Big Endian
+						peerBundle.writeUInt16BE(userId.length, 0); // device Id size on 2 bytes in Big Endian
 						let flagBuffer = Buffer.allocUnsafe(1);
-						flagBuffer.writeUInt8(haveOPk,0);
-						let SPk_idBuffer = Buffer.allocUnsafe(4);
-						SPk_idBuffer.writeUInt32BE(peersBundle[i][3], 0); // SPk id on 4 bytes in Big Endian
-						peerBundle = Buffer.concat([peerBundle, Buffer.from(userId), flagBuffer, peersBundle[i][1], peersBundle[i][2], SPk_idBuffer, peersBundle[i][4]]);
-						if (haveOPk) {
-							let OPk_idBuffer = Buffer.allocUnsafe(4);
-							OPk_idBuffer.writeUInt32BE(peersBundle[i][6], 0); // OPk id on 4 bytes in Big Endian
-							peerBundle = Buffer.concat([peerBundle, peersBundle[i][5], OPk_idBuffer]);
+						if (peersBundle[i].length==1) { // We do not have any key bundle, user was not found
+							flagBuffer.writeUInt8(enum_keyBundleFlag.noBundle,0);
+							peerBundle = Buffer.concat([peerBundle, Buffer.from(userId), flagBuffer]); // bundle is just the id and the flag set to 2
+						} else { /* we do have a peer bundle, insert it*/
+							/* set the flag */
+							if (haveOPk) {
+								flagBuffer.writeUInt8(enum_keyBundleFlag.OPk,0);
+							} else {
+								flagBuffer.writeUInt8(enum_keyBundleFlag.noOPk,0);
+							}
+							let SPk_idBuffer = Buffer.allocUnsafe(4);
+							SPk_idBuffer.writeUInt32BE(peersBundle[i][3], 0); // SPk id on 4 bytes in Big Endian
+							peerBundle = Buffer.concat([peerBundle, Buffer.from(userId), flagBuffer, peersBundle[i][1], peersBundle[i][2], SPk_idBuffer, peersBundle[i][4]]);
+							if (haveOPk) {
+								let OPk_idBuffer = Buffer.allocUnsafe(4);
+								OPk_idBuffer.writeUInt32BE(peersBundle[i][6], 0); // OPk id on 4 bytes in Big Endian
+								peerBundle = Buffer.concat([peerBundle, peersBundle[i][5], OPk_idBuffer]);
+							}
 						}
 						peersBundleBuffer = Buffer.concat([peersBundleBuffer, peerBundle]);
 					}
@@ -496,7 +512,8 @@ https.createServer(options, (req, res) => {
 									return;
 								}
 								if (row == undefined) { // user not found in DB
-									queries_err_message +=' ## bundle not found for user '+peersBundle[i];
+									console.log("user "+peersBundle[i][0]+" not found");
+									queries_success++;
 								} else {
 									console.log("Ok push on peersBundle array "+i);
 									console.dir(peersBundle[i]);
