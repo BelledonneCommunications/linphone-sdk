@@ -369,7 +369,8 @@ BCTBX_PUBLIC char *bctbx_strdup_printf(const char *fmt,...);
 BCTBX_PUBLIC char *bctbx_strdup_vprintf(const char *fmt, va_list ap);
 BCTBX_PUBLIC char *bctbx_strcat_printf(char *dst, const char *fmt,...);
 BCTBX_PUBLIC char *bctbx_strcat_vprintf(char *dst, const char *fmt, va_list ap);
-BCTBX_PUBLIC char *bctbx_concat (const char *str, ...) ;
+BCTBX_PUBLIC char *bctbx_concat(const char *str, ...);
+BCTBX_PUBLIC char *bctbx_replace(char *str, char c, char n);
 
 /**
  * Portable version of the dirname function from libgen.h

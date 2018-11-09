@@ -1472,6 +1472,18 @@ void bctbx_sockaddr_ipv4_to_ipv6(const struct sockaddr *v4, struct sockaddr *res
 	}
 }
 
+char *bctbx_replace(char *str, char c, char n) {
+	char *s = str;
+
+	while (*s) {
+		if (*s == c) {
+			*s = n;
+		}
+		++s;
+	}
+	return str;
+}
+
 char * bctbx_concat(const char *str, ...) {
 	va_list ap;
 	size_t allocated = 100;
