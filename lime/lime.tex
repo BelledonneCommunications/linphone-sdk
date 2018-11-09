@@ -957,12 +957,13 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \hline
         \cellcolor[gray]{0.85} byte 0 & \cellcolor[gray]{0.85} byte 1 & \cellcolor[gray]{0.85} byte 2 & \cellcolor[gray]{0.85}byte 3\\
         \hline
-        Protocol Version [0x04] & Message type [0x04] & Curve Id [0x01,0x02] & keys Count MSB\\
+        Protocol Version [0x01] & Message type [0x04] & Curve Id [0x01,0x02] & keys Count MSB\\
         \hline
         keys Count LSB & \multicolumn{3}{|c|}{One-time Pre-key bundle$\langle 36,60bytes\rangle $\{keys Count\}}\\
         \cline{1-1}
         \multicolumn{4}{|c|}{...}\\
         \hline
+        \multicolumn{4}{c}{}\\
         \multicolumn{4}{c}{with One-time Pre-key bundle:}\\
         \hline
         \cellcolor[gray]{0.95} byte 0 & \cellcolor[gray]{0.95} byte 1 & \cellcolor[gray]{0.95} byte 2 & \cellcolor[gray]{0.95}byte 3\\
@@ -981,12 +982,13 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \hline
         \cellcolor[gray]{0.85} byte 0 & \cellcolor[gray]{0.85} byte 1 & \cellcolor[gray]{0.85} byte 2 & \cellcolor[gray]{0.85}byte 3\\
         \hline
-        Protocol Version [0x04] & Message type [0x05] & Curve Id [0x01,0x02] & request Count MSB\\
+        Protocol Version [0x01] & Message type [0x05] & Curve Id [0x01,0x02] & request Count MSB\\
         \hline
         request Count LSB & \multicolumn{3}{|c|}{request\{request Count\}}\\
         \cline{1-1}
         \multicolumn{4}{|c|}{...}\\
         \hline
+        \multicolumn{4}{c}{}\\
         \multicolumn{4}{c}{with request:}\\
         \hline
         \cellcolor[gray]{0.95} byte 0 & \cellcolor[gray]{0.95} byte 1 & \cellcolor[gray]{0.95} byte 2 & \cellcolor[gray]{0.95}byte 3\\
@@ -1004,17 +1006,22 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \hline
         \cellcolor[gray]{0.85} byte 0 & \cellcolor[gray]{0.85} byte 1 & \cellcolor[gray]{0.85} byte 2 & \cellcolor[gray]{0.85}byte 3\\
         \hline
-        Protocol Version [0x04] & Message type [0x06] & Curve Id [0x01,0x02] & bundles Count MSB\\
+        Protocol Version [0x01] & Message type [0x06] & Curve Id [0x01,0x02] & bundles Count MSB\\
         \hline
         bundles Count LSB & \multicolumn{3}{|c|}{key Bundle\{bundles Count\}}\\
         \cline{1-1}
         \multicolumn{4}{|c|}{...}\\
         \hline
-        \multicolumn{4}{c}{with key Bundle:}\\
+        \multicolumn{4}{c}{}\\
+        \multicolumn{4}{c}{with key Bundle(if a the device has published keys on the server):}\\
         \hline
         \cellcolor[gray]{0.95} byte 0 & \cellcolor[gray]{0.95} byte 1 & \cellcolor[gray]{0.95} byte 2 & \cellcolor[gray]{0.95}byte 3\\
         \hline
-        OPk flag [0x00,0x01] & \multicolumn{3}{|c|}{}\\
+        \multicolumn{2}{|c|}{Device Id size}&\multicolumn{2}{|c|}{Device Id$\langle$variable size$\rangle$...}\\
+        \hline
+        \multicolumn{4}{|c|}{...Device Id$\langle$variable size$\rangle$}\\
+        \hline
+        bundle flag [0x00,0x01] & \multicolumn{3}{|c|}{}\\
         \cline{1-1}
         \multicolumn{4}{|c|}{EdDSA Identity Key$\langle 32,57bytes\rangle $}\\
         \multicolumn{4}{|c|}{...}\\
@@ -1027,11 +1034,22 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \multicolumn{4}{|c|}{ECDH Signed Pre-key Signature$\langle 64,114bytes\rangle $}\\
         \multicolumn{4}{|c|}{...}\\
         \hline
-        \multicolumn{4}{|c|}{ECDH One-Time Pre-key$\langle 32,56bytes\rangle $\{0,1\} only if OPk flag = 0x01}\\
+        \multicolumn{4}{|c|}{ECDH One-Time Pre-key$\langle 32,56bytes\rangle $\{0,1\} only if bundle flag = 0x01}\\
         \multicolumn{4}{|c|}{...}\\
         \hline
-        \multicolumn{4}{|c|}{One-Time Pre-key Id\{0,1\} only if OPk flag = 0x01}\\
+        \multicolumn{4}{|c|}{One-Time Pre-key Id\{0,1\} only if bundle flag = 0x01}\\
         \hline
+        \multicolumn{4}{c}{}\\
+        \multicolumn{4}{c}{or key Bundle(if a the device has not published keys on the server):}\\
+        \hline
+        \cellcolor[gray]{0.95} byte 0 & \cellcolor[gray]{0.95} byte 1 & \cellcolor[gray]{0.95} byte 2 & \cellcolor[gray]{0.95}byte 3\\
+        \hline
+        \multicolumn{2}{|c|}{Device Id size}&\multicolumn{2}{|c|}{Device Id$\langle$variable size$\rangle$...}\\
+        \hline
+        \multicolumn{4}{|c|}{...Device Id$\langle$variable size$\rangle$}\\
+        \hline
+        bundle flag [0x02]\\
+        \cline{1-1}
       \end{tabular}
       \end{center}
       
@@ -1041,7 +1059,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \hline
         \cellcolor[gray]{0.85} byte 0 & \cellcolor[gray]{0.85} byte 1 & \cellcolor[gray]{0.85} byte 2 & \cellcolor[gray]{0.85}byte 3\\
         \hline
-        Protocol Version [0x04] & Message type [0x07] & Curve Id [0x01,0x02] & OPk Count MSB\\
+        Protocol Version [0x01] & Message type [0x07] & Curve Id [0x01,0x02] & OPk Count MSB\\
         \hline
         OPk Count LSB & \multicolumn{3}{|c|}{OPk Id$\langle 4bytes\rangle $\{OPk Count\}}\\
         \cline{1-1}
@@ -1056,7 +1074,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \hline
         \cellcolor[gray]{0.85} byte 0 & \cellcolor[gray]{0.85} byte 1 & \cellcolor[gray]{0.85} byte 2 & \cellcolor[gray]{0.85}byte 3\\
         \hline
-        Protocol Version [0x04] & Message type [0x08] & Curve Id [0x01,0x02] & \\
+        Protocol Version [0x01] & Message type [0x08] & Curve Id [0x01,0x02] & \\
         \hline
       \end{tabular}
       \end{center}
@@ -1089,7 +1107,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
       \item 0x08: \textbf{bad request}: malformed peer bundle request.
     \end{itemize}
 \section{IPR}
-  \paragraph*{}Copyright\textcopyright 2017 Belledonne Communications.  All rights reserved.
+  \paragraph*{}Copyright\textcopyright 2018 Belledonne Communications.  All rights reserved.
 \newpage
 \begin{thebibliography}{99}
 
