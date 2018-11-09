@@ -87,7 +87,51 @@ static void log_handler(int lev, const char *fmt, va_list args) {
 	}
 }
 
+int silent_arg_func(const char *arg) {
+	belle_sip_set_log_level(BELLE_SIP_LOG_FATAL);
+	bctbx_set_log_level(BCTBX_LOG_DOMAIN, BCTBX_LOG_FATAL);
+	return 0;
+}
+
+int verbose_arg_func(const char *arg) {
+	belle_sip_set_log_level(BELLE_SIP_LOG_DEBUG);
+	bctbx_set_log_level(BCTBX_LOG_DOMAIN, BCTBX_LOG_DEBUG);
+	return 0;
+}
+
+int logfile_arg_func(const char *arg) {
+	bctbx_set_log_handler(NULL);/*remove default log handler*/
+	if (belle_sip_tester_set_log_file(arg) < 0) return -2;
+	return 0;
+}
+
+int belle_sip_tester_set_log_file(const char *filename) {
+	bctbx_log_handler_t *filehandler;
+	char* dir;
+	char* base;
+
+	if (log_file) {
+		fclose(log_file);
+	}
+	log_file = fopen(filename, "w");
+	if (!log_file) {
+		belle_sip_error("Cannot open file [%s] for writing logs because [%s]", filename, strerror(errno));
+		return -1;
+	}
+	dir = bctbx_dirname(filename);
+	base = bctbx_basename(filename);
+	belle_sip_message("Redirecting traces to file [%s]", filename);
+	filehandler = bctbx_create_file_log_handler(0, dir, base, log_file);
+	bctbx_add_log_handler(filehandler);
+	if (dir) bctbx_free(dir);
+	if (base) bctbx_free(base);
+	return 0;
+}
+
 void belle_sip_tester_init(void(*ftester_printf)(int level, const char *fmt, va_list args)) {
+	bc_tester_set_silent_func(silent_arg_func);
+	bc_tester_set_verbose_func(verbose_arg_func);
+	bc_tester_set_logfile_func(logfile_arg_func);
 	if (ftester_printf == NULL) ftester_printf = log_handler;
 	bc_tester_init(ftester_printf, BELLE_SIP_LOG_MESSAGE, BELLE_SIP_LOG_ERROR, "tester_hosts");
 	belle_sip_init_sockets();
@@ -157,28 +201,6 @@ void belle_sip_tester_after_each(void) {
 	}
 }
 
-int belle_sip_tester_set_log_file(const char *filename) {
-	bctbx_log_handler_t *filehandler;
-	char* dir;
-	char* base;
-	if (log_file) {
-		fclose(log_file);
-	}
-	log_file = fopen(filename, "w");
-	if (!log_file) {
-		belle_sip_error("Cannot open file [%s] for writing logs because [%s]", filename, strerror(errno));
-		return -1;
-	}
-	dir = bctbx_dirname(filename);
-	base = bctbx_basename(filename);
-	belle_sip_message("Redirecting traces to file [%s]", filename);
-	filehandler = bctbx_create_file_log_handler(0, dir, base, log_file);
-	bctbx_add_log_handler(filehandler);
-	if (dir) bctbx_free(dir);
-	if (base) bctbx_free(base);
-	return 0;
-}
-
 void belle_sip_tester_set_dns_host_file(belle_sip_stack_t *stack){
 	if (userhostsfile){
 		belle_sip_stack_set_dns_user_hosts_file(stack, userhostsfile);
@@ -195,9 +217,6 @@ void belle_sip_tester_set_dns_host_file(belle_sip_stack_t *stack){
 #if !defined(__ANDROID__) && !defined(TARGET_OS_IPHONE) && !(defined(BELLE_SIP_WINDOWS_PHONE) || defined(BELLE_SIP_WINDOWS_UNIVERSAL))
 
 static const char* belle_sip_helper =
-		"\t\t\t--verbose\n"
-		"\t\t\t--silent\n"
-		"\t\t\t--log-file <output log file path>\n"
 		"\t\t\t--domain <test sip domain>\n"
 		"\t\t\t--auth-domain <test auth domain>\n"
 		"\t\t\t--root-ca <root ca file path>\n"
@@ -209,7 +228,7 @@ int main (int argc, char *argv[]) {
 	const char *root_ca_path = NULL;
 	const char *env_domain=getenv("TEST_DOMAIN");
 	char *default_hosts = NULL;
-	
+
 	belle_sip_tester_init(NULL);
 
 #ifndef _WIN32   /*this hack doesn't work for argv[0]="c:\blablab\"*/
@@ -228,31 +247,21 @@ int main (int argc, char *argv[]) {
 		test_domain=env_domain;
 	}
 	bctbx_init_logger(TRUE);
-	
-	for(i=1;i<argc;++i){
-		if (strcmp(argv[i],"--verbose")==0){
-			belle_sip_set_log_level(BELLE_SIP_LOG_DEBUG);
-			bctbx_set_log_level(BCTBX_LOG_DOMAIN,BCTBX_LOG_DEBUG);
-		} else if (strcmp(argv[i],"--silent")==0){
-			belle_sip_set_log_level(BELLE_SIP_LOG_FATAL);
-			bctbx_set_log_level(BCTBX_LOG_DOMAIN,BCTBX_LOG_FATAL);
-		} else if (strcmp(argv[i],"--log-file")==0){
-			CHECK_ARG("--log-file", ++i, argc);
-			bctbx_set_log_handler(NULL);/*remove default log handler*/
-			if (belle_sip_tester_set_log_file(argv[i]) < 0) return -2;
-		} else if (strcmp(argv[i],"--domain")==0){
+
+	for(i=1;i<argc;++i) {
+		if (strcmp(argv[i],"--domain")==0){
 			CHECK_ARG("--domain", ++i, argc);
 			test_domain=argv[i];
-		}else if (strcmp(argv[i],"--auth-domain")==0){
+		} else if (strcmp(argv[i],"--auth-domain")==0){
 			CHECK_ARG("--auth-domain", ++i, argc);
 			auth_domain=argv[i];
 		} else if (strcmp(argv[i], "--root-ca") == 0) {
 			CHECK_ARG("--root-ca", ++i, argc);
 			root_ca_path = argv[i];
-		}else if (strcmp(argv[i],"--dns-hosts")==0){
+		} else if (strcmp(argv[i],"--dns-hosts")==0){
 			CHECK_ARG("--dns-hosts", ++i, argc);
 			userhostsfile=argv[i];
-		}else {
+		} else {
 			int ret = bc_tester_parse_args(argc, argv, i);
 			if (ret>0) {
 				i += ret - 1;
