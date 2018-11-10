@@ -26,8 +26,11 @@
 
 namespace lime {
 
-	/** A pure abstract class, implementation used is set by curveId parameter given to insert/load_limeUser function
-	* @note: never instanciate directly a Lime object, always use the Lime Factory function as Lime object MUST be held by a shared pointer */
+	/** @brief A pure abstract class defining the API to encrypt/decrypt/manage user and its keys
+	 *
+	 * underlying implementation is templated to be able to use C25519 or C448, it is selected by the curveId parameter given to insert/load_limeUser function
+	 * @note: never instanciate directly a Lime object, always use the Lime Factory function as Lime object MUST be held by a shared pointer
+	 */
 	class LimeGeneric {
 
 	public:
@@ -60,7 +63,7 @@ namespace lime {
 		 * @param[in,out]	recipients		a list of RecipientData holding:
 		 * 						- the recipient device Id(GRUU)
 		 * 						- an empty buffer to store the DRmessage which must then be routed to that recipient
-		 * 						- the peer Status. If peerStatus is set to fail, this entry is ignored otherwise the peerStatus is set by the encrypt, see PeerDeviceStatus definition for details
+		 * 						- the peer Status. If peerStatus is set to fail, this entry is ignored otherwise the peerStatus is set by the encrypt, see ::PeerDeviceStatus definition for details
 		 * @param[in]		plainMessage		a buffer holding the message to encrypt, can be text or data.
 		 * @param[in]		encryptionPolicy	select how to manage the encryption: direct use of Double Ratchet message or encrypt in the cipher message and use the DR message to share the cipher message key
 		 * @param[out]		cipherMessage		points to the buffer to store the encrypted message which must be routed to all recipients(if one is produced, depends on encryption policy)
@@ -144,32 +147,9 @@ namespace lime {
 
 	/* Lime Factory functions : return a pointer to the implementation using the specified elliptic curve. Two functions: one for creation, one for loading from local storage */
 
-	/**
-	 * @brief : Insert user in database and return a pointer to the control class instanciating the appropriate Lime children class
-	 *	Once created a user cannot be modified, insertion of existing deviceId will raise an exception.
-	 *
-	 * @param[in]	dbFilename			Path to filename to use
-	 * @param[in]	deviceId			User to create in DB, deviceId shall be the GRUU
-	 * @param[in]	url				URL of X3DH key server to be used to publish our keys
-	 * @param[in]	curve				Which curve shall we use for this account, select the implemenation to instanciate when using this user
-	 * @param[in]	initialOPkBatchSize		Number of OPks in the first batch uploaded to X3DH server
-	 * @param[in]	X3DH_post_data			A function to communicate with x3dh key server
-	 * @param[in]	callback			To provide caller the operation result
-	 *
-	 * @return a pointer to the LimeGeneric class allowing access to API declared in lime.hpp
-	 */
 	std::shared_ptr<LimeGeneric> insert_LimeUser(const std::string &dbFilename, const std::string &deviceId, const std::string &url, const lime::CurveId curve, const uint16_t OPkInitialBatchSize,
 			const limeX3DHServerPostData &X3DH_post_data, const limeCallback &callback);
 
-	/**
-	 * @brief Load a local user from database
-	 *
-	 * @param[in]	dbFilename			path to the database to be used
-	 * @param[in]	deviceId			a unique identifier to a local user, if not already present in base it will be inserted. Recommended value: device's GRUU
-	 * @param[in]	X3DH_post_data			A function to communicate with x3dh key server
-	 *
-	 * @return	a unique pointer to the object to be used by this user for any Lime operations
-	 */
 	std::shared_ptr<LimeGeneric> load_LimeUser(const std::string &dbFilename, const std::string &deviceId, const limeX3DHServerPostData &X3DH_post_data);
 
 }

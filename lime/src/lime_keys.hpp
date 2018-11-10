@@ -27,14 +27,24 @@
 
 namespace lime {
 	// Data structure type enumerations
-	enum class Xtype {publicKey, privateKey, sharedSecret}; // key Echange has public key, private key and shared secret
-	enum class DSAtype {publicKey, privateKey, signature}; // Signature has public key, private key and signature
+	/** @brief List of data types used by key Echange algorithm
+	 *
+	 * public key, private key and shared secret
+	 * */
+	enum class Xtype {publicKey, privateKey, sharedSecret};
+	/** @brief List of data types used by Signature algorithm
+	 *
+	 * public key, private key and signature
+	 * */
+	enum class DSAtype {publicKey, privateKey, signature};
 
 	/* define needed constant for the curves: self identificatio(used in DB and as parameter from lib users, data structures sizes)*/
 	/* These structure are used as template argument to enable support for different key Exchznge and signature Algorithms */
 
 	/**
-	 *  curve 25519 key size definition, use a 4 chars(C255) to identify it to improve code readability
+	 *  @brief curve 25519 data types size definition
+	 *
+	 *  use a 4 chars(C255) to identify it to improve code readability
 	 */
 	struct C255 {
 		/// the C25519 curve id using the CurveId enumeration
@@ -46,7 +56,7 @@ namespace lime {
 	};
 
 	/**
-	 * curve 448-goldilocks key sizes definition
+	 * @brief curve 448-goldilocks data types size definition
 	 */
 	struct C448 {
 		 ///the C448 curve id using the CurveId enumeration
@@ -59,7 +69,7 @@ namespace lime {
 
 	// Hash function defines
 	/**
-	 * SHA512 buffer size define
+	 * @brief SHA512 buffer size definition
 	 */
 	struct SHA512 {
 		/// maximum output size for SHA512 is 64 bytes
@@ -68,7 +78,7 @@ namespace lime {
 
 	// AEAD function defines
 	/**
-	 * AES256GCM buffers size defines
+	 * @brief AES256GCM buffers size definition
 	 */
 	struct AES256GCM {
 		/// key size is 32 bytes

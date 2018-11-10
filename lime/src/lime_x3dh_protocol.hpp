@@ -24,8 +24,9 @@
 
 namespace lime {
 
-	/** Set possible values for a flag in the keyBundle X3DH packet
-	 * so do not modify values or we'll loose sync with existing X3DH server
+	/** @brief Set possible values for a flag in the keyBundle X3DH packet
+	 *
+	 *  @note Do not modify values or we'll loose sync with existing X3DH server
 	 */
 	enum class X3DHKeyBundleFlag : uint8_t {
 		noOPk=0, /**< This bundle does not contain an OPk */
@@ -33,7 +34,7 @@ namespace lime {
 		noBundle=2}; /**< This bundle is empty(just a deviceId) as this user was not found on X3DH server */
 
 	/**
-	 * Holds everything found in a key bundle received from X3DH server
+	 * @brief Holds everything found in a key bundle received from X3DH server
 	 * @note Data members are set once by constructor and then the object is used to pass this data around, so they all are const
 	 */
 	template <typename Curve>

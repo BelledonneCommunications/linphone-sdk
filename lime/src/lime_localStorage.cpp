@@ -246,10 +246,12 @@ void Db::load_LimeUser(const std::string &deviceId, long int &Uid, lime::CurveId
 
 /**
  * @brief Delete old stale sessions and old stored message key. Apply to all users in localStorage
+ *
  * 	- DR Session in stale status for more than DRSession_limboTime are deleted
  * 	- MessageKey stored linked to a session who received more than maxMessagesReceivedAfterSkip are deleted
- * 	Note : The messagekeys count is on a chain, so if we have in a chain
- * 	Received1 Skip1 Skip2 Received2 Received3 Skip3 Received4
+ *
+ * @note : The messagekeys count is on a chain, so if we have in a chain\n
+ * 	Received1 Skip1 Skip2 Received2 Received3 Skip3 Received4\n
  * 	The counter will be reset to 0 when we insert Skip3 (when Received4 arrives) so Skip1 and Skip2 won't be deleted until we got the counter above max on this chain
  * 	Once we moved to next chain(as soon as peer got an answer from us and replies), the count won't be reset anymore
  */
@@ -264,7 +266,8 @@ void Db::clean_DRSessions() {
 
 /**
  * @brief Delete old stale SPk. Apply to all users in localStorage
- * 	- SPk in stale status for more than SPK_limboTime_days are deleted
+ *
+ * SPk in stale status for more than SPK_limboTime_days are deleted
  */
 void Db::clean_SPk() {
 	// WARNING: not sure this code is portable it may work with sqlite3 only
@@ -292,23 +295,28 @@ void Db::get_allLocalDevices(std::vector<std::string> &deviceIds) {
  * @param[in]	Ik		the EdDSA peer public identity key, formatted as in RFC8032
  * @param[in]	status		value of flag to set: accepted values are trusted, untrusted, unsafe
  *
- * throw an exception if given key doesn't match the one present in local storage
+ * @throw 	BCTBX_EXCEPTION	if given key doesn't match the one present in local storage
+ *
  * if the status flag value is unexpected (not one of trusted, untrusted, unsafe), ignore the call
+ *
  * if the status flag is unsafe or untrusted, ignore the value of Ik and call the version of this function without it
  *
  * if peer Device is not present in local storage and status is trusted or unsafe, it is added, if status is untrusted, it is just ignored
  *
  * General algorithm followed by the set_peerDeviceStatus functions
  * - Status is valid? (not one of trusted, untrusted, unsafe)? No: return
+ *
  * - status is trusted
  *       - We have Ik? -> No: return
  *       - Device is already in storage but Ik differs from the given one : exception
  *       - Insert/update in local storage
+ *
  * - status is untrusted
  *       - Ik is ignored
  *       - Device already in storage? No: return
  *       - Device already in storage but current status is unsafe? Yes: return
  *       - update in local storage
+ *
  * -status is unsafe
  *       - ignore Ik
  *       - insert/update the status. If inserted, insert an invalid Ik
@@ -353,17 +361,9 @@ void Db::set_peerDeviceStatus(const std::string &peerDeviceId, const std::vector
 }
 
 /**
- * @brief set the peer device status flag in local storage: unsafe or untrusted.
- * This variation allows to set a peer Device status to unsafe or untrusted only whithout providing its identity key Ik
+ * @overload
  *
- * @param[in]	peerDeviceId	The device Id of peer, shall be its GRUU
- * @param[in]	status		value of flag to set: accepted values are untrusted or unsafe
- *
- * if the status flag value is unexpected (not one of untrusted, unsafe), ignore the call
- *
- * if peer Device is not present in local storage, it is inserted if status is unsafe and call is ignored if status is untrusted
- * if the status is untrusted but the current status in local storage is unsafe, ignore the call
- * Any call to the other form of the function with a status to unsafe or untrusted is rerouted to this function
+ * Calls with status unsafe or untrusted are executed by this function as they do not need Ik.
  */
 void Db::set_peerDeviceStatus(const std::string &peerDeviceId, lime::PeerDeviceStatus status) {
 	// Check the status flag value, accepted values are: untrusted, unsafe
@@ -436,7 +436,7 @@ lime::PeerDeviceStatus Db::get_peerDeviceStatus(const std::string &peerDeviceId)
 }
 
 /**
- * @delete a peerDevice from local storage
+ * @brief delete a peerDevice from local storage
  *
  * @param[in]	peerDeviceId	The device Id to be removed from local storage, shall be its GRUU
  *
@@ -452,7 +452,7 @@ void Db::delete_peerDevice(const std::string &peerDeviceId) {
  * @param[in] peerDeviceId	The device id to check
  * @param[in] peerIk		The public EDDSA identity key of this device
  *
- * throws an exception if the device is found in local storage but with a different Ik
+ * @throws	BCTBX_EXCEPTION	if the device is found in local storage but with a different Ik
  *
  * @return the id internally used by db to store this row, 0 if this device is not in the local storage
  */

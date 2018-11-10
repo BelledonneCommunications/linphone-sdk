@@ -28,13 +28,6 @@ using namespace::std;
 
 namespace lime {
 
-
-	/****************************************************************************/
-	/*                                                                          */
-	/* Members helpers functions (privates)                                     */
-	/*                                                                          */
-	/****************************************************************************/
-
 	/****************************************************************************/
 	/*                                                                          */
 	/* Constructors                                                             */
@@ -42,6 +35,7 @@ namespace lime {
 	/****************************************************************************/
 	/**
 	 * @brief Load user constructor
+	 *
 	 *  before calling this constructor, user existence in DB is checked and its Uid retrieved
 	 *  just load it into Lime class
 	 *
@@ -50,6 +44,8 @@ namespace lime {
 	 * @param[in]		url				URL of the X3DH key server used to publish our keys(retrieved from DB)
 	 * @param[in]		X3DH_post_data			A function used to communicate with the X3DH server
 	 * @param[in]		Uid				the DB internal Id for this user, speed up DB operations by holding it in DB
+	 *
+	 * @note: ownership of localStorage pointer is transfered to a shared pointer, private menber of Lime class
 	 */
 	template <typename Curve>
 	Lime<Curve>::Lime(std::unique_ptr<lime::Db> &&localStorage, const std::string &deviceId, const std::string &url, const limeX3DHServerPostData &X3DH_post_data, const long int Uid)
@@ -63,12 +59,15 @@ namespace lime {
 
 	/**
 	 * @brief Create user constructor
-	 *  Create a user in DB, if already existing, throw exception
+	 *
+	 *  Create a user in DB, if already existing, throw an exception
 	 *
 	 * @param[in,out]	localStorage			pointer to DB accessor
 	 * @param[in]		deviceId			device Id(shall be GRUU), stored in the structure
 	 * @param[in]		url				URL of the X3DH key server used to publish our keys
 	 * @param[in]		X3DH_post_data			A function used to communicate with the X3DH server
+	 *
+	 * @note: ownership of localStorage pointer is transfered to a shared pointer, private menber of Lime class
 	 */
 	template <typename Curve>
 	Lime<Curve>::Lime(std::unique_ptr<lime::Db> &&localStorage, const std::string &deviceId, const std::string &url, const limeX3DHServerPostData &X3DH_post_data)
@@ -86,16 +85,10 @@ namespace lime {
 
 	/****************************************************************************/
 	/*                                                                          */
-	/* Public API                                                               */
+	/* Public API implenenting the virtual class LimeGeneric                    */
+	/* API documentation is in lime_lime.hpp                                    */
 	/*                                                                          */
 	/****************************************************************************/
-	/**
-	 * @brief Publish on X3DH server the user, it is performed just after creation in local storage
-	 * this  will, on success, trigger generation and sending of SPk and OPks for our new user
-	 *
-	 * @param[in]	callback		call when completed
-	 * @param[in]	OPkInitialBatchSize	Number of OPks in the first batch uploaded to X3DH server
-	 */
 	template <typename Curve>
 	void Lime<Curve>::publish_user(const limeCallback &callback, const uint16_t OPkInitialBatchSize) {
 		auto userData = make_shared<callbackUserData<Curve>>(this->shared_from_this(), callback, OPkInitialBatchSize, true);
@@ -299,17 +292,18 @@ namespace lime {
 	/****************************************************************************/
 	/**
 	 * @brief : Insert user in database and return a pointer to the control class instanciating the appropriate Lime children class
+	 *
 	 *	Once created a user cannot be modified, insertion of existing deviceId will raise an exception.
 	 *
 	 * @param[in]	dbFilename			Path to filename to use
 	 * @param[in]	deviceId			User to create in DB, deviceId shall be the GRUU
 	 * @param[in]	url				URL of X3DH key server to be used to publish our keys
 	 * @param[in]	curve				Which curve shall we use for this account, select the implemenation to instanciate when using this user
-	 * @param[in]	initialOPkBatchSize		Number of OPks in the first batch uploaded to X3DH server
+	 * @param[in]	OPkInitialBatchSize		Number of OPks in the first batch uploaded to X3DH server
 	 * @param[in]	X3DH_post_data			A function used to communicate with the X3DH server
 	 * @param[in]	callback			To provide caller the operation result
 	 *
-	 * @return a pointer to the LimeGeneric class allowing access to API declared in lime.hpp
+	 * @return a pointer to the LimeGeneric class allowing access to API declared in lime_lime.hpp
 	 */
 	std::shared_ptr<LimeGeneric> insert_LimeUser(const std::string &dbFilename, const std::string &deviceId, const std::string &url, const lime::CurveId curve, const uint16_t OPkInitialBatchSize,
 			const limeX3DHServerPostData &X3DH_post_data, const limeCallback &callback) {
@@ -366,13 +360,14 @@ namespace lime {
 
 	/**
 	 * @brief : Load user from database and return a pointer to the control class instanciating the appropriate Lime children class
+	 *
 	 *	Fail to find the user will raise an exception
 	 *
 	 * @param[in]	dbFilename			Path to filename to use
 	 * @param[in]	deviceId			User to lookup in DB, deviceId shall be the GRUU
 	 * @param[in]	X3DH_post_data			A function used to communicate with the X3DH server
 	 *
-	 * @return a pointer to the LimeGeneric class allowing access to API declared in lime.hpp
+	 * @return a pointer to the LimeGeneric class allowing access to API declared in lime_lime.hpp
 	 */
 	std::shared_ptr<LimeGeneric> load_LimeUser(const std::string &dbFilename, const std::string &deviceId, const limeX3DHServerPostData &X3DH_post_data) {
 

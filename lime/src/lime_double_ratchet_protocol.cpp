@@ -25,36 +25,49 @@ using namespace::std;
 using namespace::lime;
 
 namespace lime {
-	// Group in this namespace all the functions related to building or parsing double ratchet packets
+	/** @brief Group in this namespace all the functions related to building or parsing double ratchet packets
+	 *
+	 * Implemented version of the DR session protocol (provide a way to handle future/alternative packets formats/crypto algorithm)
+	 * Supported version description :
+	 *
+	 * @par Version 0x01:
+	 *
+	 *	DRHeader is: Protocol Version Number<1 byte> || Message Type <1 byte> || curveId <1 byte> || [X3DH Init message < variable >] || Ns<2 bytes> || PN<2 bytes> || DHs<...>
+	 *
+	 *	Message is : DRheader<...> || cipherMessageKeyK<32 bytes> || Key auth tag<16 bytes> || cipherText<...> || Message auth tag<16 bytes>
+	 *
+	 *	Associated Data are transmitted separately: ADk for the Key auth tag, and ADm for the Message auth tag
+	 *
+	 *	Message AEAD on : (ADm, message plain text) keyed by message Key(include IV)
+	 *
+	 *	Key AEAD on : (ADk || Message auth tag || header, Message Key) keyed by Double Ratchet generated key/IV
+	 *
+	 *	ADm is : source GRUU<...> || recipient sip-uri(can be a group uri)<...>
+	 *
+	 *	ADk is : source GRUU<...> || recipient GRUU<...>
+	 *	@note: ADk is used with session stored AD provided by X3DH at session creation which is HKDF(initiator Ik || receiver Ik || initiator device Id || receiver device Id)
+	 *
+	 *	Diffie-Hellman support: X25519 or X448 (not mixed, specified by X3DH server and client setting which must match)
+	 *
+	 *	Packets types are : regular or x3dhinit
+	 *	    - regular packet does not contain x3dh init message
+	 *	    - x3dh init packet includes x3dh init message in the header as follow:\n
+	 *		haveOPk <flag 1 byte> ||\n
+	 *		self Ik < DSA<Curve, lime::DSAtype::publicKey>::ssize() bytes > ||\n
+	 *		Ek < X<Curve, lime::Xtype::publicKey>::keyLenght() bytes> ||\n
+	 *		peer SPk id < 4 bytes > ||\n
+	 *		[peer OPk id(if flag is set)<4bytes>]
+	 *
+	*/
+
 	namespace double_ratchet_protocol {
-		/* Implemented version of the DR session protocol (provide a way to handle future/alternative packets formats/crypto algorithm)
-		 * Supported version description :
-		 *
-		 * Version 0x01:
-		 *	DRHeader is: Protocol Version Number<1 byte> || Message Type <1 byte> || curveId <1 byte> || [X3DH Init message <variable>] || Ns<2 bytes> || PN<2 bytes> || DHs<...>
-		 *	Message is : DRheader<...> || cipherMessageKeyK<32 bytes> || Key auth tag<16 bytes> || cipherText<...> || Message auth tag<16 bytes>
-		 *
-		 *	Associated Data are transmitted separately: ADk for the Key auth tag, and ADm for the Message auth tag
-		 *	Message AEAD on : (ADm, message plain text) keyed by message Key(include IV)
-		 *	Key AEAD on : (ADk || Message auth tag || header, Message Key) keyed by Double Ratchet generated key/IV
-		 *
-		 *	ADm is : source GRUU<...> || recipient sip-uri(can be a group uri)<...>
-		 *	ADk is : source GRUU<...> || recipient GRUU<...>
-		 *		Note: ADk is used with session stored AD provided by X3DH at session creation which is HKDF(initiator Ik || receiver Ik || initiator device Id || receiver device Id)
-		 *
-		 *	Diffie-Hellman support: X25519 or X448 (not mixed, specified by X3DH server and client setting which must match)
-		 *
-		 *	Packets types are : regular or x3dhinit
-		 *	    - regular packet does not contain x3dh init message
-		 *	    - x3dh init packet includes x3dh init message in the header as follow:
-		 *		haveOPk <flag 1 byte> || self Ik < DSA<Curve, lime::DSAtype::publicKey>::ssize() bytes > || Ek < X<Curve, lime::Xtype::publicKey>::keyLenght() bytes> || peer SPk id < 4 bytes > || [peer OPk id(if flag is set)<4bytes>]
-		 *
-		*/
 
 		/**
 		 * @brief return the size of the double ratchet packet header
-		 * header is: Protocol Version Number<1 byte> || Message Type <1 byte> || curveId <1 byte> || [X3DH Init message <variable>] || Ns<2 bytes> || PN<2 bytes> || DHs<...>
-		 * This function return the size without optionnal X3DH init packet
+		 *
+		 * header is: Protocol Version Number<1 byte> || Message Type <1 byte> || curveId <1 byte> || [X3DH Init message < variable >] || Ns<2 bytes> || PN<2 bytes> || DHs<...>
+		 *
+		 * @return	the header size without optionnal X3DH init packet
 		 */
 		template <typename Curve>
 		constexpr size_t headerSize() {
@@ -63,7 +76,12 @@ namespace lime {
 
 		/**
 		 * @brief  build an X3DH init message to insert in DR header
-		 *	haveOPk <flag 1 byte> || self Ik < DSA<Curve, lime::DSAtype::publicKey>::ssize() bytes > || Ek < X<Curve, lime::Xtype::publicKey>::keyLenght() bytes> || peer SPk id < 4 bytes > || [peer OPk id(if flag is set)<4bytes>]
+		 *
+		 *	haveOPk <flag 1 byte> ||\n
+		 *	self Ik < DSA<Curve, lime::DSAtype::publicKey>::ssize() bytes > ||\n
+		 *	Ek < X<Curve, lime::Xtype::publicKey>::keyLenght() bytes> ||\n
+		 *	peer SPk id < 4 bytes > ||\n
+		 *	[peer OPk id(if flag is set)<4bytes>]
 		 *
 		 * @param[out]	message		the X3DH init message
 		 * @param[in]	Ik		self public identity key
@@ -95,7 +113,12 @@ namespace lime {
 
 		/**
 		 * @brief Parse the X3DH init message and extract peer Ik, peer Ek, self SPk id and seld OPk id if present
-		 * 	usedOPk <flag on one byte> || peer Ik || peer Ek || self SPk id || self OPk id(if flag is set)
+		 *
+		 * 	usedOPk < flag on one byte > ||\n
+		 * 	peer Ik ||\n
+		 * 	peer Ek ||\n
+		 * 	self SPk id ||\n
+		 * 	self OPk id(if flag is set)
 		 *
 		 * When this function is called, we already parsed the DR message to extract the X3DH_initMessage
 		 * all checks were already performed by the Double Ratchet packet parser, just grab the data
@@ -135,8 +158,8 @@ namespace lime {
 		/**
 		 * @brief check the message for presence of X3DH init in the header, extract it if there is one
 		 *
-		 * @param[in] message		A buffer holding the message, it shall be DR header || DR message. If there is a X3DH init message it is in the DR header
-		 * @param[out] x3dhInitMessage  A buffer holding the X3DH input message
+		 * @param[in]	message			A buffer holding the message, it shall be DR header || DR message. If there is a X3DH init message it is in the DR header
+		 * @param[out]	X3DH_initMessage 	A buffer holding the X3DH input message
 		 *
 		 * @return true if a X3DH init message was found, false otherwise (also in case of invalid packet)
 		 */
@@ -177,7 +200,16 @@ namespace lime {
 
 		/**
 		 * @brief Build a header string from needed info
-		 *	header is: Protocol Version Number<1 byte> || Message Type <1 byte> || curveId <1 byte> || [X3DH Init message <variable>] || Ns<2 bytes> || PN<2 bytes> || DHs<...>
+		 *
+		 *	header is:
+		 *
+		 *	Protocol Version Number<1 byte> ||\n
+		 *	Message Type <1 byte> ||\n
+		 *	curveId <1 byte> ||\n
+		 *	[X3DH Init message < variable >] ||\n
+		 *	Ns<2 bytes> ||\n
+		 *	PN<2 bytes> ||\n
+		 *	DHs<...>
 		 *
 		 * @param[out]	header				the buffer containing header to be sent to recipient
 		 * @param[in]	Ns				Index of sending chain
@@ -214,9 +246,10 @@ namespace lime {
 		 }
 
 		/**
-		 * @brief DRHeader ctor parse a buffer to find a header at the begining of it
+		 * @brief parse a buffer to find a header at the begining of it
+		 *
 		 *	it perform some check on DR version byte and key id byte
-		 *	The _valid flag is set if a valid header is found in input buffer
+		 *	The valid flag is set if a valid header is found in input buffer
 		 */
 		template <typename Curve>
 		DRHeader<Curve>::DRHeader(const std::vector<uint8_t> header) : m_Ns{0},m_PN{0},m_DHs{},m_valid{false},m_size{0}{ // init valid to false and check during parsing if all is ok

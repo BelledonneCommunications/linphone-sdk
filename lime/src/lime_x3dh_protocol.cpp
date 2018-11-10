@@ -33,47 +33,52 @@ using namespace::std;
 using namespace::lime;
 
 namespace lime {
-	// Group in this namespace all the functions related to building or parsing x3dh packets
+	/** @brief Group in this namespace all the functions related to building or parsing x3dh packets
+	 * @par Protocol Version 0x01:
+	 *	Header is : Protccol Version Number<1 byte> || Message type<1 byte> || Curve id<1 byte>
+	 *	Messages are : header<3 bytes> || Message content
+	 *
+	 *	If not an error the server responds with a message holding just a header of the same message type
+	 *	except for getPeerBundle which shall be answered with a peerBundle message
+	 *
+	 *	Message types description :
+	 *		- registerUser : Identity Key<EDDSA Public Key length>
+	 *		- deleteUser : empty message, user to delete is retrieved from header From
+	 *
+	 *		- postSPk :	SPk< ECDH Public key length > ||
+	 *				SPk Signature< Signature Length > ||
+	 *				SPk Id < 4 bytes>
+	 *
+	 *		- postOPks : 	Keys Count<2 bytes unsigned integer Big endian> ||\n
+	 *				( OPk< ECDH Public key length > || OPk Id <4 bytes>){Keys Count}
+	 *
+	 *		- getPeerBundle : request Count < 2 bytes unsigned Big Endian> ||\n
+	 *				(userId Size <2 bytes unsigned Big Endian> || UserId <...> (the GRUU of user we wan't to send a message)) {request Count}
+	 *
+	 *		- peerBundle :	bundle Count < 2 bytes unsigned Big Endian> ||\n
+	 *				(   deviceId Size < 2 bytes unsigned Big Endian > || deviceId
+	 *				    Flag<1 byte: 0 if no OPK in bundle, 1 if OPk is the bundle, 2 if no key bundle is associated to this device> ||
+	 *				    Ik < EDDSA Public Key Length > ||
+	 *				    SPk < ECDH Public Key Length > || SPK id <4 bytes>
+	 *				    SPk_sig < Signature Length > ||
+	 *				    (OPk < ECDH Public Key Length > || OPk id <4 bytes>){0,1 in accordance to flag}
+	 *				) { bundle Count}
+	 *
+	 *		- getSelfOPks : empty message, ask server for the OPk Id it still holds for us
+	 *
+	 *		- selfOPks : OPk Count <2 bytes unsigned integer Big Endian> ||\n
+	 *				(OPk id <4 bytes uint32_t big endian>){OPk Count}
+	 *
+	 *		- error :	errorCode<1 byte> || (errorMessage<...>){0,1}
+	 */
 	namespace x3dh_protocol {
-		/* Version 0x01:
-		 *	Header is : Protccol Version Number<1 byte> || Message type<1 byte> || Curve id<1 byte>
-		 *	Messages are : header<3 bytes> || Message content
-		 *
-		 *	If not an error the server responds with a message holding just a header of the same message type
-		 *	except for getPeerBundle which shall be answered with a peerBundle message
-		 *
-		 *	Message types description :
-		 *		- registerUser : Identity Key<EDDSA Public Key length>
-		 *		- deleteUser : empty message, user to delete is retrieved from header From
-		 *
-		 *		- postSPk :	SPk<ECDH Public key length> ||
-		 *				SPk Signature<Signature Length> ||
-		 *				SPk Id < 4 bytes>
-		 *
-		 *		- postOPks : 	Keys Count<2 bytes unsigned integer Big endian> ||
-		 *				( OPk<ECDH Public key length> || OPk Id <4 bytes>){Keys Count}
-		 *
-		 *		- getPeerBundle : request Count < 2 bytes unsigned Big Endian> ||
-		 *				(userId Size <2 bytes unsigned Big Endian> || UserId <...> (the GRUU of user we wan't to send a message)) {request Count}
-		 *
-		 *		- peerBundle :	bundle Count < 2 bytes unsigned Big Endian> ||
-		 *				(   Flag<1 byte: 0 if no OPK in bundle, 1 if present> ||
-		 *				    Ik <EDDSA Public Key Length> ||
-		 *				    SPk <ECDH Public Key Length> || SPK id <4 bytes>
-		 *				    SPk_sig <Signature Length> ||
-		 *				    (OPk <ECDH Public Key Length> || OPk id <4 bytes>){0,1 in accordance to flag}
-		 *				) { bundle Count}
-		 *
-		 *		- getSelfOPks : empty message, ask server for the OPk Id it still holds for us
-		 *
-		 *		- selfOPks : OPk Count <2 bytes unsigned integer Big Endian> ||
-		 *				(OPk id <4 bytes uint32_t big endian>){OPk Count}
-		 *
-		 *		- error :	errorCode<1 byte> || (errorMessage<...>){0,1}
-		 */
 
 		constexpr uint8_t X3DH_protocolVersion = 0x01;
 		constexpr size_t X3DH_headerSize = 3;
+		/**
+		 * @brief the x3dh message type exchanged with the X3DH server
+		 * @note Do not change the mapped values as they must be synced with X3DH server definition
+		 */
 		enum class x3dh_message_type : uint8_t{	registerUser=0x01,
 							deleteUser=0x02,
 							postSPk=0x03,
@@ -84,6 +89,10 @@ namespace lime {
 							selfOPks=0x08,
 							error=0xff};
 
+		/**
+		 * @brief the error codes included in the x3dh error message received from the X3DH server
+		 * @note Do not change the mapped values as they must be synced with X3DH server definition
+		 */
 		enum class x3dh_error_code : uint8_t{	bad_content_type=0x00,
 							bad_curve=0x01,
 							missing_senderId=0x02,
@@ -167,6 +176,7 @@ namespace lime {
 
 		/**
 		 * @brief build a deleteUser message
+		 *
 		 * 	empty message, server retrieves deviceId to delete from authentication header, you cannot delete someone else!
 		 *
 		 * @param[in,out]	message		an empty buffer to store the message
@@ -180,8 +190,9 @@ namespace lime {
 
 		/**
 		 * @brief build a postSPk message
-		 *		SPk<ECDH Public key length> ||
-		 *		SPk Signature<Signature Length> ||
+		 *
+		 *		SPk< ECDH Public key length > ||
+		 *		SPk Signature< Signature Length > ||
 		 *		SPk Id < 4 bytes>
 		 *
 		 * @param[in,out]	message		an empty buffer to store the message
@@ -216,9 +227,10 @@ namespace lime {
 		}
 
 		/**
-		 * #brief build a postOPks message
-		 * 		Keys Count<2 bytes unsigned integer Big endian> ||
-		 * 		( OPk<ECDH Public key length> ||
+		 * @brief build a postOPks message
+		 *
+		 * 		Keys Count<2 bytes unsigned integer Big endian> ||\n
+		 * 		( OPk< ECDH Public key length > ||
 		 * 		OPk Id <4 bytes>){Keys Count}
 		 *
 		 * @param[in,out]	message		an empty buffer to store the message
@@ -266,7 +278,8 @@ namespace lime {
 
 		/**
 		 * @brief build a getPeerBundle message
-		 * 		request Count < 2 bytes unsigned Big Endian> ||
+		 *
+		 * 		request Count < 2 bytes unsigned Big Endian> ||\n
 		 * 		(userId Size <2 bytes unsigned Big Endian> ||
 		 * 		UserId <...> (the GRUU of user we wan't to send a message)) {request Count}
 		 *
@@ -311,6 +324,7 @@ namespace lime {
 
 		/**
 		 * @brief build a  getSelfOPks message
+		 *
 		 * 	empty message, ask server for the OPk Id it still holds for us
 		 *
 		 * @param[in,out]	message		an empty buffer to store the message
@@ -464,15 +478,16 @@ namespace lime {
 
 		/**
 		 * @brief Parse a peerBundles message and populate a vector of peerBundles
+		 *
 		 * Warning: no checks are done on message type, they are performed before calling this function
 		 *
-		 * peerBundle :	bundle Count < 2 bytes unsigned Big Endian> ||
+		 * peerBundle :	bundle Count < 2 bytes unsigned Big Endian> ||\n
 		 *	(   deviceId Size < 2 bytes unsigned Big Endian > || deviceId
 		 *	    Flag<1 byte: 0 if no OPK in bundle, 1 if present, 2 no key bundle found on server> ||
-		 *		   Ik <EDDSA Public Key Length> ||
-		 *		   SPk <ECDH Public Key Length> || SPK id <4 bytes>
-		 *		   SPk_sig <Signature Length> ||
-		 *		   (OPk <ECDH Public Key Length> || OPk id <4 bytes>){0,1 in accordance to flag}
+		 *		   Ik < EDDSA Public Key Length > ||
+		 *		   SPk < ECDH Public Key Length > || SPK id <4 bytes>
+		 *		   SPk_sig < Signature Length > ||
+		 *		   (OPk < ECDH Public Key Length > || OPk id <4 bytes>){0,1 in accordance to flag}
 		 *	) { bundle Count}
 		 *
 		 * @param[in]	body		a buffer holding the message
@@ -611,9 +626,10 @@ namespace lime {
 		}
 
 		/**
-		 * @brief Parse a selfPk message and populate a self OPk ids
-		 * Warning: no checks are done on message type, they are performed before calling this function
-		 * 	selfOPks : 	OPk Count <2 bytes unsigned integer Big Endian> ||
+		 * @brief Parse a selfOPk message and populate a self OPk ids
+		 *
+		 * Warning: no checks are done on message type, they are performed before calling this function\n
+		 * 	selfOPks : 	OPk Count <2 bytes unsigned integer Big Endian> ||\n
 		 *			(OPk id <4 bytes uint32_t big endian>){OPk Count}
 		 *
 		 * @param[in]	body		a buffer holding the message
@@ -868,6 +884,7 @@ namespace lime {
 
 	/**
 	 * @brief send a message to X3DH server
+	 *
 	 * 	this function also binds the response processing to the process_response function capturing the given userData structure
 	 *
 	 * @param[in,out]	userData	the structure holding the data structure associated to the current asynchronous operation
@@ -888,9 +905,6 @@ namespace lime {
 				thiz->process_response(userData, responseCode, responseBody);
 			});
 	}
-
-
-	/* X3DH Messages building functions */
 
 	/* Instanciate templated member functions */
 #ifdef EC25519_ENABLED

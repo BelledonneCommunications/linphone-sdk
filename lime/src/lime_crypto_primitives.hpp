@@ -31,16 +31,12 @@ namespace lime {
 /********************** Data Structures **********************************************************/
 /*************************************************************************************************/
 
-	/**
-	 * @brief force a buffer values to zero in a way that shall prevent the compiler from optimizing it out
-	 *
-	 * @param[in,out]	buffer	the buffer to be cleared
-	 * @param[in]		size	buffer size
-	 */
 	void cleanBuffer(uint8_t *buffer, size_t size);
 
 	/**
-	 * auto clean fixed size buffer(std::array based)
+	 * @brief auto clean fixed size buffer(std::array based)
+	 *
+	 * Buffers are cleaned when destroyed, use this to store any sensitive data
 	 */
 	template <size_t T>
 	struct sBuffer : public std::array<uint8_t, T> {
@@ -52,7 +48,9 @@ namespace lime {
 	/* Key Exchange Data structures                                 */
 	/****************************************************************/
 	/**
-	 * Base buffer definition for Key Exchange data structure : easy use of array types with correct size
+	 * @brief Base buffer definition for Key Exchange data structure
+	 *
+	 * easy use of array types with correct size
 	 */
 	template <typename Curve, lime::Xtype dataType>
 	class X : public sBuffer<static_cast<size_t>(Curve::Xsize(dataType))>{
@@ -67,7 +65,7 @@ namespace lime {
 	};
 
 	/**
-	 * Key pair structure for key exchange algorithm
+	 * @brief Key pair structure for key exchange algorithm
 	 */
 	template <typename Curve>
 	class Xpair {
@@ -91,7 +89,9 @@ namespace lime {
 	/* Digital Signature Algorithm data structures                  */
 	/****************************************************************/
 	/**
-	 * Base buffer definition for DSA data structure : easy use of array types with correct size
+	 * @brief Base buffer definition for DSA data structure
+	 *
+	 * easy use of array types with correct size
 	 */
 	template <typename Curve, lime::DSAtype dataType>
 	class DSA : public sBuffer<static_cast<size_t>(Curve::DSAsize(dataType))>{
@@ -106,7 +106,7 @@ namespace lime {
 	};
 
 	/**
-	 * Key pair structure for DSA algorithm
+	 * @brief Key pair structure for DSA algorithm
 	 */
 	template <typename Curve>
 	class DSApair {
@@ -131,7 +131,8 @@ namespace lime {
 /*************************************************************************************************/
 
 /**
- * Random number generator
+ * @brief Random number generator interface
+ *
  * This abstract class is used to hold a RNG object which then is passed to internal crypto primitives
  * who may need it (and dynamically cast to their need which it must fit)
  * The only "external" use of RNG is to generate a random seed and some 32 bits id, provide explicit
@@ -159,26 +160,46 @@ class RNG {
 }; //class RNG
 
 /**
- * Key exchange wrapper:
- *  - shall be able to wrap around any algorithm providing key exchange
- *  - wrapped in algorithms must support key format convertion function from matching Digital Signature algorithm
+ * @brief Key exchange interface
+ *
+ * shall be able to provide an interface to any algorithm implementing key exchange
+ * @note wrapped in algorithms must support key format convertion function from matching Digital Signature algorithm
  */
 template <typename Curve>
 class keyExchange {
 	public:
 		/* accessors */
-		virtual const X<Curve, lime::Xtype::privateKey> get_secret(void) = 0; /**< Secret key */
-		virtual const X<Curve, lime::Xtype::publicKey> get_selfPublic(void) = 0; /**< Self Public key */
-		virtual const X<Curve, lime::Xtype::publicKey> get_peerPublic(void) = 0; /**< Peer Public key */
-		virtual const X<Curve, lime::Xtype::sharedSecret> get_sharedSecret(void) = 0; /**< ECDH output */
+		/// get Secret key
+		virtual const X<Curve, lime::Xtype::privateKey> get_secret(void) = 0;
+		/// get Self Public key
+		virtual const X<Curve, lime::Xtype::publicKey> get_selfPublic(void) = 0;
+		/// get Peer Public key
+		virtual const X<Curve, lime::Xtype::publicKey> get_peerPublic(void) = 0;
+		/// get shared secret when exchange is completed
+		virtual const X<Curve, lime::Xtype::sharedSecret> get_sharedSecret(void) = 0;
 
 		/* set keys in context, publics and private keys directly accept Signature formatted keys which are converted to keyExchange format */
-		virtual void set_secret(const X<Curve, lime::Xtype::privateKey> &secret) = 0; /**< Secret key */
-		virtual void set_secret(const DSA<Curve, lime::DSAtype::privateKey> &secret) = 0; /**< Secret key */
-		virtual void set_selfPublic(const X<Curve, lime::Xtype::publicKey> &selfPublic) = 0; /**< Self Public key */
-		virtual void set_selfPublic(const DSA<Curve, lime::DSAtype::publicKey> &selfPublic) = 0; /**< Self Public key */
-		virtual void set_peerPublic(const X<Curve, lime::Xtype::publicKey> &peerPublic) = 0; /**< Peer Public key */
-		virtual void set_peerPublic(const DSA<Curve, lime::DSAtype::publicKey> &peerPublic) = 0; /**< Peer Public key */
+		/// set Secret key
+		virtual void set_secret(const X<Curve, lime::Xtype::privateKey> &secret) = 0;
+		/** @overload
+		 *
+		 * give a DSA formatted key, this set function will convert its format to the key exchange one
+		 */
+		virtual void set_secret(const DSA<Curve, lime::DSAtype::privateKey> &secret) = 0;
+		/// set Self Public key
+		virtual void set_selfPublic(const X<Curve, lime::Xtype::publicKey> &selfPublic) = 0; /** Self Public key */
+		/** @overload
+		 *
+		 * give a DSA formatted key, this set function will convert its format to the key exchange one
+		 */
+		virtual void set_selfPublic(const DSA<Curve, lime::DSAtype::publicKey> &selfPublic) = 0;
+		/// set Peer Public key
+		virtual void set_peerPublic(const X<Curve, lime::Xtype::publicKey> &peerPublic) = 0; /** Peer Public key */
+		/** @overload
+		 *
+		 * give a DSA formatted key, this set function will convert its format to the key exchange one
+		 */
+		virtual void set_peerPublic(const DSA<Curve, lime::DSAtype::publicKey> &peerPublic) = 0;
 
 		/**
 		 * @brief generate a new random key pair
@@ -200,18 +221,23 @@ class keyExchange {
 }; //class keyExchange
 
 /**
- * Digital Signature wrapper
- *  - shall be able to wrap around any algorithm providing key exchange
+ * @brief Digital Signature interface
+ *
+ * shall be able to provide an interface to any algorithm implementing digital signature
  */
 template <typename Curve>
 class Signature {
 	public:
 		/* accessors */
-		virtual const DSA<Curve, lime::DSAtype::privateKey> get_secret(void) = 0; /**< Secret key */
-		virtual const DSA<Curve, lime::DSAtype::publicKey> get_public(void) = 0; /**< Self Public key */
+		/// Secret key
+		virtual const DSA<Curve, lime::DSAtype::privateKey> get_secret(void) = 0;
+		/// Public key
+		virtual const DSA<Curve, lime::DSAtype::publicKey> get_public(void) = 0;
 
-		virtual void set_secret(const DSA<Curve, lime::DSAtype::privateKey> &secretKey) = 0; /**< Secret key */
-		virtual void set_public(const DSA<Curve, lime::DSAtype::publicKey> &publicKey) = 0; /**< Self Public key */
+		/// Secret key
+		virtual void set_secret(const DSA<Curve, lime::DSAtype::privateKey> &secretKey) = 0;
+		/// Public key
+		virtual void set_public(const DSA<Curve, lime::DSAtype::publicKey> &publicKey) = 0;
 
 		/**
 		 * @brief generate a new random EdDSA key pair
@@ -258,14 +284,15 @@ class Signature {
 
 /**
  * @brief templated HMAC
- *	template parameter is the hash algorithm used (SHA512 available for now)
  *
- * @parameter[in]	key
- * @parameter[in]	keySize		previous buffer size
- * @parameter[in]	input
- * @parameter[in]	inputSize	previous buffer size
- * @parameter[out]	hash		pointer to the output, this buffer must be able to hold as much data as requested
- * @parameter[in]	hashSize	amount of expected data, if more than selected Hash algorithm can compute, silently ignored and maximum output size is generated
+ * @tparam	hashAlgo	the hash algorithm used (only SHA512 available for now)
+ *
+ * @param[in]	key		HMAC key
+ * @param[in]	keySize		previous buffer size
+ * @param[in]	input		HMAC input
+ * @param[in]	inputSize	previous buffer size
+ * @param[out]	hash		pointer to the output, this buffer must be able to hold as much data as requested
+ * @param[in]	hashSize	amount of expected data, if more than selected Hash algorithm can compute, silently ignored and maximum output size is generated
  *
  */
 template <typename hashAlgo>
@@ -275,10 +302,8 @@ template <> void HMAC<SHA512>(const uint8_t *const key, const size_t keySize, co
 
 /**
  * @brief HKDF as described in RFC5869
- *	template parameters:
- *	hashAlgo: the hash algorithm to use (SHA512 available for now)
- *	infoType: the info parameter can be passed as a string or a std::vector<uint8_t>
- *	Compute:
+ *	@par Compute:
+ *	@code{.unparsed}
  *		PRK = HMAC-Hash(salt, IKM)
  *
  *		N = ceil(L/HashLen)
@@ -291,6 +316,10 @@ template <> void HMAC<SHA512>(const uint8_t *const key, const size_t keySize, co
  *		T(2) = HMAC-Hash(PRK, T(1) | info | 0x02)
  *		T(3) = HMAC-Hash(PRK, T(2) | info | 0x03)
  *		...
+ *	@endcode
+ *
+ * @tparam	hashAlgo	the hash algorithm to use (SHA512 available for now)
+ * @tparam	infoType	the info parameter can be passed as a string or a std::vector<uint8_t>
  *
  * @param[in]	salt 		salt
  * @param[in]	ikm		input key material
@@ -301,6 +330,10 @@ template <> void HMAC<SHA512>(const uint8_t *const key, const size_t keySize, co
  */
 template <typename hashAlgo, typename infoType>
 void HMAC_KDF(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const infoType &info, uint8_t *okm, size_t okmSize);
+/**
+ * @overload
+ * use pointer to uint8_t and size arguments instead of std::vector<uint8_t>
+ */
 template <typename hashAlgo, typename infoType>
 void HMAC_KDF(const uint8_t *const salt, const size_t saltSize, const uint8_t *const ikm, const size_t ikmSize, const infoType &info, uint8_t *output, size_t outputSize);
 
@@ -334,8 +367,8 @@ void AEAD_encrypt(const uint8_t *const key, const size_t keySize, const uint8_t 
  * @param[in]	keySize		Key buffer length, it must match the selected AEAD scheme or an exception is generated
  * @param[in]	IV		Buffer holding the initialisation vector
  * @param[in]	IVSize		Initialisation vector length in bytes
- * @param[in]	cipher		Buffer holding the data to be decipherd
- * @param[in]	plainSize	Length in bytes of buffer to be encrypted
+ * @param[in]	cipher		Buffer holding the data to be decrypted
+ * @param[in]	cipherSize	Length in bytes of buffer to be decrypted
  * @param[in]	AD		Buffer holding additional data to be used in tag computation
  * @param[in]	ADSize		Additional data length in bytes
  * @param[in]	tag		Buffer holding the authentication tag

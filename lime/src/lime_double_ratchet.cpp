@@ -36,7 +36,8 @@ namespace lime {
 	/****************************************************************************/
 	/* Key derivation functions : KDF_RK (root key derivation function, for DH ratchet) and KDF_CK(chain key derivation function, for symmetric ratchet) */
 	/**
-	 * @Brief Key Derivation Function used in Root key/Diffie-Hellman Ratchet chain.
+	 * @brief Key Derivation Function used in Root key/Diffie-Hellman Ratchet chain.
+	 *
 	 *      Use HKDF (see RFC5869) to derive CK and RK in one derivation
 	 *
 	 * @param[in,out]	RK	Input buffer used as salt also to store the 32 first byte of output key material
@@ -55,16 +56,20 @@ namespace lime {
 		std::copy_n(HKDFoutput.cbegin()+lime::settings::DRChainKeySize, lime::settings::DRChainKeySize, CK.begin());
 	}
 
-	/* Set of constants used as input of HKDF like function, see double ratchet spec section 5.2 - KDF_CK */
+	/** constant used as input of HKDF like function, see double ratchet spec section 5.2 - KDF_CK */
 	const std::array<std::uint8_t,1> hkdf_ck_info{{0x02}};
+	/** constant used as input of HKDF like function, see double ratchet spec section 5.2 - KDF_CK */
 	const std::array<std::uint8_t,1> hkdf_mk_info{{0x01}};
 
 	/**
-	 * @Brief Key Derivation Function used in Symmetric key ratchet chain.
-	 *      Implemented according to DR spec section 5.2 using HMAC-SHA512
+	 * @brief Key Derivation Function used in Symmetric key ratchet chain.
+	 *
+	 *      Implemented according to Double Ratchet spec section 5.2 using HMAC-SHA512
+	 *      @code{.unparsed}
 	 *		MK = HMAC-SHA512(CK, hkdf_mk_info) // get 48 bytes of it: first 32 to be key and last 16 to be IV
 	 *		CK = HMAC-SHA512(CK, hkdf_ck_info)
 	 *              hkdf_ck_info and hldf_mk_info being a distincts constants (0x02 and 0x01 as suggested in double ratchet - section 5.2)
+	 *      @endcode
 	 *
 	 * @param[in,out]	CK	Input/output buffer used as key to compute MK and then next CK
 	 * @param[out]		MK	Message Key(32 bytes) and IV(16 bytes) computed from HMAC_SHA512 keyed with CK
@@ -100,7 +105,12 @@ namespace lime {
 					ciphertext.data()+ciphertext.size() - lime::settings::DRMessageAuthTagSize, lime::settings::DRMessageAuthTagSize, // tag is in the last 16 bytes of buffer
 					plaintext.data());
 	}
-	// when plaintext is a fixed size buffer, no need to resize it
+	/**
+	 * @overload
+	 *
+	 * used when the ouput is a fixed buffer: we decrypt the random seed used to generate the cipherMessage keys
+	 * No need to resize the plaintext buffer when it has a fixed size.
+	 */
 	static bool decrypt(const lime::DRMKey &MK, const std::vector<uint8_t> &ciphertext, const size_t headerSize, std::vector<uint8_t> &AD, sBuffer<lime::settings::DRrandomSeedSize> &plaintext) {
 		return AEAD_decrypt<AES256GCM>(MK.data(), lime::settings::DRMessageKeySize, // MK buffer hold key<DRMessageKeySize bytes>||IV<DRMessageIVSize bytes>
 					MK.data()+lime::settings::DRMessageKeySize, lime::settings::DRMessageIVSize,
@@ -192,7 +202,8 @@ namespace lime {
 	}
 
 	/**
-	 *  @brief Create a new DR session to be loaded from db,
+	 *  @brief Create a new DR session to be loaded from db
+	 *
 	 *  m_dirty is already set to clean and DHR_valid to true as we won't save a session if no successfull sending or reception was performed
 	 *  if loading fails, caller should destroy the session
 	 *
@@ -214,12 +225,13 @@ namespace lime {
 
 	/**
 	 * @brief Derive chain keys until reaching the requested Id. Handling unordered messages
+	 *
 	 *	Store the derived but not used keys in a list indexed by peer DH and Nr
 	 *
-	 *	@param[in]	until	index we must reach in that chain key
-	 *	@param[in]	limit	maximum number of allowed derivations
+	 * @param[in]	until	index we must reach in that chain key
+	 * @param[in]	limit	maximum number of allowed derivations
 	 *
-	 *	@throws		when we try to overpass the maximum number of key derivation since last valid message
+	 * @throws	BCTBX_EXCEPTION when we try to overpass the maximum number of key derivation since last valid message
 	 */
 	template <typename Curve>
 	void DR<Curve>::skipMessageKeys(const uint16_t until, const int limit) {
@@ -290,6 +302,10 @@ namespace lime {
 	/**
 	 * @brief Encrypt using the double-ratchet algorithm.
 	 *
+	 * @tparam	inputContainer			is used with
+	 * 						- sBuffer: the input is a random seed used to decrypt the cipher message
+	 * 						- std::vector<uint8_t>: the input is directly the plaintext message
+	 *
 	 * @param[in]	plaintext			the input to be encrypted, may actually be a 32 bytes buffer holding the seed used to generate key+IV for a AES-GCM encryption to the actual message
 	 * @param[in]	AD				Associated Data, this buffer shall hold: source GRUU<...> || recipient GRUU<...> || [ actual message AEAD auth tag OR recipient User Id]
 	 * @param[out]	ciphertext			buffer holding the header, cipher text and auth tag, shall contain the key and IV used to cipher the actual message, auth tag applies on AD || header
@@ -337,6 +353,10 @@ namespace lime {
 
 	/**
 	 * @brief Decrypt Double Ratchet message
+	 *
+	 * @tparam	outputContainer			is used with
+	 * 						- sBuffer: the ouput is a random seed used to decrypt the cipher message
+	 * 						- std::vector<uint8_t>: the output is directly the plaintext message
 	 *
 	 * @param[in]	ciphertext			Input to be decrypted, is likely to be a 32 bytes vector holding the crypted version of a random seed
 	 * @param[in]	AD				Associated data authenticated along the encryption (initial session AD and DR message header are append to it)
@@ -423,7 +443,21 @@ namespace lime {
 #ifdef EC448_ENABLED
 	template class DR<C448>;
 #endif
-
+	/**
+	 * @brief Encrypt a message to all recipients, identified by their device id
+	 *
+	 *	The plaintext is first encrypted by one randomly generated key using aes-gcm
+	 *	The key and IV are then encrypted with DR Session specific to each device
+	 *
+	 * @param[in,out]	recipients	vector of recipients device id(gruu) and linked DR Session, DR Session are modified by the encryption\n
+	 *					The recipients struct also hold after encryption the double ratchet message targeted to that particular recipient
+	 * @param[in]		plaintext	data to be encrypted
+	 * @param[in]		recipientUserId	the recipient ID, not specific to a device(could be a sip-uri) or a user(could be a group sip-uri)
+	 * @param[in]		sourceDeviceId	the Id of sender device(gruu)
+	 * @param[out]		cipherMessage	message encrypted with a random generated key(and IV). May be an empty buffer depending on encryptionPolicy, recipients and plaintext characteristics
+	 * @param[in]		encryptionPolicy	select how to manage the encryption: direct use of Double Ratchet message or encrypt in the cipher message and use the DR message to share the cipher message key\n
+	 * 						default is optimized output size mode.
+	 */
 	template <typename Curve>
 	void encryptMessage(std::vector<RecipientInfos<Curve>>& recipients, const std::vector<uint8_t>& plaintext, const std::string& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage, const lime::EncryptionPolicy encryptionPolicy) {
 		// Shall we set the payload in the DR message or in a separate cupher message buffer?
@@ -529,6 +563,21 @@ namespace lime {
 		}
 	}
 
+	/**
+	 * @brief Decrypt a message
+	 *
+	 *	Decrypts the DR message and if applicable and the DR message was successfully decrypted, decrypt the cipherMessage
+	 *
+	 * @param[in]		sourceDeviceId		the device Id of sender(gruu)
+	 * @param[in]		recipientDeviceId	the recipient ID, specific to current device(gruu)
+	 * @param[in]		recipientUserId		the recipient ID, not specific to a device(could be a sip-uri) or a user(could be a group sip-uri)
+	 * @param[in,out]	DRSessions		list of DR Sessions linked to sender device, first one shall be the one registered as active
+	 * @param[out]		DRmessage		Double Ratcher message holding as payload either the encrypted plaintext or the random key used to encrypt it encrypted by the DR session
+	 * @param[out]		cipherMessage		if not zero lenght, plain text encrypted with a random generated key(and IV)
+	 * @param[out]		plaintext		decrypted message
+	 *
+	 * @return a shared pointer towards the session used to decrypt, nullptr if we couldn't find one to do it
+	 */
 	template <typename Curve>
 	std::shared_ptr<DR<Curve>> decryptMessage(const std::string& sourceDeviceId, const std::string& recipientDeviceId, const std::string& recipientUserId, std::vector<std::shared_ptr<DR<Curve>>>& DRSessions, const std::vector<uint8_t>& DRmessage, const std::vector<uint8_t>& cipherMessage, std::vector<uint8_t>& plaintext) {
 		bool payloadDirectEncryption = (cipherMessage.size() == 0); // if we do not have any cipher message, then we must be in payload direct encryption mode: the payload is in the DR message

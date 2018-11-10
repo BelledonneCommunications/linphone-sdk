@@ -38,7 +38,9 @@ namespace lime {
 	template <typename Curve>
 	struct callbackUserData;
 
-	/** templated declaration of Lime can be specialised using C255 or C448 according to the elliptic curve we want to use */
+	/** @brief Implement the abstract class LimeGeneric
+	 *  @tparam Curve	The elliptic curve to use: C255 or C448
+	 */
 	template <typename Curve>
 	class Lime : public LimeGeneric, public std::enable_shared_from_this<Lime<Curve>> {
 		private:
@@ -91,54 +93,24 @@ namespace lime {
 			void process_response(std::shared_ptr<callbackUserData<Curve>> userData, int responseCode, const std::vector<uint8_t> &responseBody) noexcept; // callback on server response
 			void cleanUserData(std::shared_ptr<callbackUserData<Curve>> userData); // clean user data
 
-		public: /* Implement API defined in lime.hpp in factory abstract class */
-			/**
-			 * @brief Constructors:
-			  * - one would create a new user in localStorage and assign it a server and curve id
-			  * - one to load the user from db based on provided user Id(which shall be GRUU)
-			  * Note: ownership of localStorage pointer is transfered to a shared pointer, private menber of Lime class
-			 */
+		public: /* Implement API defined in lime_lime.hpp in LimeGeneric abstract class */
 			Lime(std::unique_ptr<lime::Db> &&localStorage, const std::string &deviceId, const std::string &url, const limeX3DHServerPostData &X3DH_post_data);
 			Lime(std::unique_ptr<lime::Db> &&localStorage, const std::string &deviceId, const std::string &url, const limeX3DHServerPostData &X3DH_post_data, const long int Uid);
 			~Lime();
 			Lime(Lime<Curve> &a) = delete; // can't copy a session, force usage of shared pointers
 			Lime<Curve> &operator=(Lime<Curve> &a) = delete; // can't copy a session
-
 			void publish_user(const limeCallback &callback, const uint16_t OPkInitialBatchSize) override;
 			void delete_user(const limeCallback &callback) override;
 			void delete_peerDevice(const std::string &peerDeviceId) override;
-
-			/**
-			 * @brief Check if the current SPk needs to be updated, if yes, generate a new one and publish it on server
-			 *
-			 * @param[in] callback 	Called with success or failure when operation is completed.
-			*/
 			void update_SPk(const limeCallback &callback) override;
-
-			/**
-			 * @brief check if we shall upload more OPks on X3DH server
-			 * - ask server four our keys (returns the count and all their Ids)
-			 * - check if it's under the low limit, if yes, generate a batch of keys and upload them
-			 *
-			 * @param[in]	callback 		Called with success or failure when operation is completed.
-			 * @param[in]	OPkServerLowLimit	If server holds less OPk than this limit, generate and upload a batch of OPks
-			 * @param[in]	OPkBatchSize		Number of OPks in a batch uploaded to server
-			*/
 			void update_OPk(const limeCallback &callback, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize) override;
-
-			/**
-			 * @brief Retrieve self public Identity key
-			 *
-			 * @param[out]	Ik	the public EdDSA formatted Identity key
-			 */
-			virtual void get_Ik(std::vector<uint8_t> &Ik) override;
-
+			void get_Ik(std::vector<uint8_t> &Ik) override;
 			void encrypt(std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback) override;
 			lime::PeerDeviceStatus decrypt(const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) override;
 	};
 
 	/**
-	 * structure holding user data during callback
+	 * @brief structure holding user data while waiting for callback from X3DH server response processing
 	 */
 	template <typename Curve>
 	struct callbackUserData {
@@ -184,8 +156,9 @@ namespace lime {
 			recipientUserId{recipientUserId}, recipients{recipients}, plainMessage{plainMessage}, cipherMessage{cipherMessage}, network_state_machine {lime::network_state::done}, // copy construct all shared_ptr
 			encryptionPolicy(policy), OPkServerLowLimit(0), OPkBatchSize(0) {};
 
-		// do not copy callback data, force passing the pointer around after creation
+		/// do not copy callback data, force passing the pointer around after creation
 		callbackUserData(callbackUserData &a) = delete;
+		/// do not copy callback data, force passing the pointer around after creation
 		callbackUserData operator=(callbackUserData &a) = delete;
 	};
 

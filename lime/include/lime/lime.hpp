@@ -33,7 +33,8 @@ namespace lime {
 	enum class CurveId : uint8_t {
 		unset=0, /**< used as default to detected incorrect behavior */
 		c25519=1, /**< Curve 25519 */
-		c448=2}; /**< Curve 448-goldilocks */
+		c448=2 /**< Curve 448-goldilocks */
+	};
 
 	/** Manage the encryption policy : how is the user's plaintext encrypted */
 	enum class EncryptionPolicy {
@@ -52,16 +53,23 @@ namespace lime {
 		untrusted=0, /**< we know this device but do not trust it, that information shall be displayed to the end user, a colour code shall be enough */
 		trusted=1, /**< this peer device already got its public identity key validated, that information shall be displayed to the end user too */
 		unsafe=2, /**< this status is a helper for the library user. It is used only by the peerDeviceStatus accessor functions */
-		fail, /**< when returned by decrypt : we could not decrypt the incoming message
-			when returned by encrypt in the peerStatus: we could not encrypt to this recipient(probably because it does not published keys on the X3DH° server) */
-		unknown /**< when returned after encryption or decryption, means it is the first time we communicate with this device (and thus create a DR session with it),
+		fail, /**< when returned by decrypt : we could not decrypt the incoming message\n
+			when returned by encrypt in the peerStatus: we could not encrypt to this recipient(probably because it does not published keys on the X3DH server) */
+		unknown /**< when returned after encryption or decryption, means it is the first time we communicate with this device (and thus create a DR session with it)\n
 			   when returned by a get_peerDeviceStatus: this device is not in localStorage */
 	};
 
-	/** Used to manage recipient list for encrypt function input: give a recipient GRUU and get it back with the header which must be sent to recipient with the cipher text*/
+	/** @brief The encrypt function input/output data structure
+	 *
+	 * give a recipient GRUU and get it back with the header which must be sent to recipient with the cipher text
+	 */
 	struct RecipientData {
 		const std::string deviceId; /**< input: recipient deviceId (shall be GRUU) */
-		lime::PeerDeviceStatus peerStatus; /**< output: after encrypt calls back, it will hold the status of this peer device: unknown (first interaction with this device), untrusted or trusted */
+		lime::PeerDeviceStatus peerStatus; /**< output: after encrypt calls back, it will hold the status of this peer device:\n
+						     - unknown: first interaction with this device)
+						     - untrusted: device is kown but we never confirmed its identity public key
+						     - trusted: we already confirmed this device identity public key
+						     - fail: we could not encrypt for this device, probably because it never published its keys on the X3DH server */
 		std::vector<uint8_t> DRmessage; /**< output: after encrypt calls back, it will hold the Double Ratchet message targeted to the specified recipient. */
 		/**
 		 * recipient data are built giving a recipient id
@@ -76,6 +84,7 @@ namespace lime {
 		fail /**< operation failed, we shall have an explanation string too */
 	};
 	/** @brief Callback use to give a status on asynchronous operation
+	 *
 	 *	it returns a code and may return a string (could actually be empty) to detail what's happening
 	 *  	callback is used on every operation possibly involving a connection to X3DH server: create_user, delete_user, encrypt and update
 	 *  @param[in]	status	success or fail
@@ -106,7 +115,8 @@ namespace lime {
 	/* Forward declare the class managing one lime user*/
 	class LimeGeneric;
 
-	/** Manage Lime objects
+	/** @brief Manage several Lime objects(one is needed for each local user).
+	 *
 	 * 	LimeManager is mostly a cache of Lime users, any command get as first parameter the device Id (Lime manage devices only, the link user(sip:uri)<->device(GRUU) is provided by upper level)
 	 *	All interactions should take place through the LimeManager object, any endpoint shall have only one LimeManager object instanciated
 	 */
@@ -122,6 +132,7 @@ namespace lime {
 
 			/**
 			 * @brief Create a user in local database and publish it on the given X3DH server
+			 *
 			 * 	The Lime user shall be created at the same time the account is created on the device, this function shall not be called again, attempt to re-create an already existing user will fail.
 			 * 	A user is identified by its deviceId (shall be the GRUU) and must at creation select a base Elliptic curve to use, this setting cannot be changed later
 			 * 	A user is published on an X3DH key server who must run using the same elliptic curve selected for this user (creation will fail otherwise), the server url cannot be changed later
@@ -129,14 +140,14 @@ namespace lime {
 			 * @param[in]	localDeviceId		Identify the local user acount to use, it must be unique and is also be used as Id on the X3DH key server, it shall be the GRUU
 			 * @param[in]	x3dhServerUrl		The complete url(including port) of the X3DH key server. It must connect using HTTPS. Example: https://sip5.linphone.org:25519
 			 * @param[in]	curve			Choice of elliptic curve to use as base for ECDH and EdDSA operation involved. Can be CurveId::c25519 or CurveId::c448.
-			 * @param[in]	initialOPkBatchSize	Number of OPks in the first batch uploaded to X3DH server
+			 * @param[in]	OPkInitialBatchSize	Number of OPks in the first batch uploaded to X3DH server
 			 * @param[in]	callback		This operation contact the X3DH server and is thus asynchronous, when server responds,
 			 * 					this callback will be called giving the exit status and an error message in case of failure
 			 * @note
-			 * The initialOPkBatchSize is optionnal, if not used, set to defaults defined in lime::settings
+			 * The OPkInitialBatchSize is optionnal, if not used, set to defaults defined in lime::settings
 			 * (not done with param default value as the lime::settings shall not be available in public include)
 			 */
-			void create_user(const std::string &localDeviceId, const std::string &x3dhServerUrl, const lime::CurveId curve, const uint16_t initialOPkBatchSize, const limeCallback &callback);
+			void create_user(const std::string &localDeviceId, const std::string &x3dhServerUrl, const lime::CurveId curve, const uint16_t OPkInitialBatchSize, const limeCallback &callback);
 			/**
 			 * @overload void create_user(const std::string &localDeviceId, const std::string &x3dhServerUrl, const lime::CurveId curve, const limeCallback &callback)
 			 */
@@ -144,6 +155,7 @@ namespace lime {
 
 			/**
 			 * @brief Delete a user from local database and from the X3DH server
+			 *
 			 * if specified localDeviceId is not found in local Storage, throw an exception
 			 *
 			 * @param[in]	localDeviceId	Identify the local user acount to use, it must be unique and is also be used as Id on the X3DH key server, it shall be the GRUU
@@ -154,6 +166,7 @@ namespace lime {
 
 			/**
 			 * @brief Encrypt a buffer (text or file) for a given list of recipient devices
+			 *
 			 * if specified localDeviceId is not found in local Storage, throw an exception
 			 *
 			 * 	Clarification on recipients:
@@ -181,7 +194,7 @@ namespace lime {
 			 * @param[in,out]	recipients	a list of RecipientData holding:
 			 * 					- the recipient device Id(GRUU)
 			 * 					- an empty buffer to store the DRmessage which must then be routed to that recipient
-			 * 					- the peer Status. If peerStatus is set to fail, this entry is ignored otherwise the peerStatus is set by the encrypt, see PeerDeviceStatus definition for details
+			 * 					- the peer Status. If peerStatus is set to fail, this entry is ignored otherwise the peerStatus is set by the encrypt, see ::PeerDeviceStatus definition for details
 			 * @param[in]		plainMessage	a buffer holding the message to encrypt, can be text or data.
 			 * @param[out]		cipherMessage	points to the buffer to store the encrypted message which must be routed to all recipients(if one is produced, depends on encryption policy)
 			 * @param[in]		callback	Performing encryption may involve the X3DH server and is thus asynchronous, when the operation is completed,
@@ -195,6 +208,7 @@ namespace lime {
 
 			/**
 			 * @brief Decrypt the given message
+			 *
 			 * if specified localDeviceId is not found in local Storage, throw an exception
 			 *
 			 * @param[in]		localDeviceId	used to identify which local acount to use and also as the recipient device ID of the message, shall be the GRUU
@@ -216,6 +230,7 @@ namespace lime {
 
 			/**
 			 * @brief Update: shall be called once a day at least, performs checks, updates and cleaning operations
+			 *
 			 *  - check if we shall update a new SPk to X3DH server(SPk lifetime is set in settings)
 			 *  - check if we need to upload OPks to X3DH server
 			 *  - remove old SPks, clean double ratchet sessions (remove staled, clean their stored keys for skipped messages)
@@ -239,6 +254,7 @@ namespace lime {
 
 			/**
 			 * @brief retrieve self Identity Key, an EdDSA formatted public key
+			 *
 			 * if specified localDeviceId is not found in local Storage, throw an exception
 			 *
 			 *
@@ -279,6 +295,7 @@ namespace lime {
 
 			/**
 			 * @brief set the peer device status flag in local storage: unsafe or untrusted.
+			 *
 			 * This variation allows to set a peer Device status to unsafe or untrusted only whithout providing its identity key Ik
 			 *
 			 * @param[in]	peerDeviceId	The device Id of peer, shall be its GRUU

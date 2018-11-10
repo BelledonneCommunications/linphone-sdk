@@ -21,9 +21,15 @@
 #define lime_defines_hpp
 
 namespace lime {
-// this namespace hold constants definition used as settings in all components of the lime library
-// the constants defined in this file cannot be modified without some work on the source code
-// unless you really know what you're doing, just leave them alone
+/** @brief Hold constants definition used as settings in all components of the lime library
+ *
+ * in lime_setting.hpp: you can tweak the behavior of the library.
+ * No compatibility break between clients shall result by modifying this definitions
+ * @note : you can tweak values but not the types, uint16_t values are intended to be bounded by 2^16 -1.
+ *
+ * in lime_defines.hpp: the constants defined cannot be modified without some work on the source code
+ * unless you really know what you're doing, just leave them alone
+ */
 namespace settings {
 
 /******************************************************************************/
@@ -32,20 +38,30 @@ namespace settings {
 /*                                                                            */
 /******************************************************************************/
 
-	// Sending, Receiving and Root key chain use 32 bytes keys (spec 3.2)
+	/// Sending, Receiving and Root key chain use 32 bytes keys (spec 3.2)
 	constexpr size_t DRChainKeySize=32;
-	const std::string hkdf_DRChainKey_info{"DR Root Chain Key Derivation"}; // String used as info in the root key derivation
+	/// String used as info in the root key derivation
+	const std::string hkdf_DRChainKey_info{"DR Root Chain Key Derivation"};
 
-	// DR Message Key are composed of a 32 bytes key and 16 bytes of IV
+	/// DR Message Key are composed of a 32 bytes key and 16 bytes of IV
 	constexpr size_t DRMessageKeySize=32;
+	/// DR Message Key are composed of a 32 bytes key and 16 bytes of IV
 	constexpr size_t DRMessageIVSize=16;
 
-	// Message Key is based on a message seed(sent in the DR message)
-	// Message key and nonce are derived from this seed and have the same length as DR Message Key
+	/** Size of the random seed used to generate the cipherMessage key
+	 *
+	 * Message Key is based on a message seed(sent in the DR message)
+	 * Message key and nonce are derived(HKDF) from this seed and have the same length as DR Message Key
+	 */
 	constexpr size_t DRrandomSeedSize=32;
+	/** info string used in the derivation(HKDF) of random seed into the key used to encrypt the cipherMessage key
+	 *
+	 * Message Key is based on a message seed(sent in the DR message)
+	 * Message key and nonce are derived(HKDF) from this seed and have the same length as DR Message Key
+	 */
 	const std::string hkdf_randomSeed_info{"DR Message Key Derivation"};
 
-	// AEAD generates tag 16 bytes long
+	/// AEAD generates tag 16 bytes long
 	constexpr size_t DRMessageAuthTagSize=16;
 
 /******************************************************************************/
@@ -53,8 +69,10 @@ namespace settings {
 /* Local Storage related definitions                                          */
 /*                                                                            */
 /******************************************************************************/
-	/* define a version number for the DB schema as an integer 0xMMmmpp */
-	/* current version is 0.0.1 */
+	/** define a version number for the DB schema as an integer 0xMMmmpp
+	 *
+	 * current version is 0.0.1
+	 */
 	constexpr int DBuserVersion=0x000001;
 
 /******************************************************************************/
@@ -62,8 +80,10 @@ namespace settings {
 /* X3DH related definitions                                                   */
 /*                                                                            */
 /******************************************************************************/
-	const std::string X3DH_SK_info{"Lime"}; // shall be an ASCII string identifying the application (X3DH spec section 2.1)
-	const std::string X3DH_AD_info{"X3DH Associated Data"}; // used to generate a shared AD based on Ik and deviceID
+	/// shall be an ASCII string identifying the application (X3DH spec section 2.1)
+	const std::string X3DH_SK_info{"Lime"};
+	/// used to generate a shared AD based on Ik and deviceID
+	const std::string X3DH_AD_info{"X3DH Associated Data"};
 } // namespace settings
 
 } // namespace lime

@@ -21,10 +21,15 @@
 #define lime_settings_hpp
 
 namespace lime {
-// this namespace hold constants definition used as settings in all components of the lime library
-// Here you can tweak the behavior of the library
-// No compatibility break between clients shall result by modifying this definitions
-// Note : you can tweak values but not the types, uint16_t values are intended to be bounded by 2^16 -1.
+/** @brief Hold constants definition used as settings in all components of the lime library
+ *
+ * in lime_setting.hpp: you can tweak the behavior of the library.
+ * No compatibility break between clients shall result by modifying this definitions
+ * @note : you can tweak values but not the types, uint16_t values are intended to be bounded by 2^16 -1.
+ *
+ * in lime_defines.hpp: the constants defined cannot be modified without some work on the source code
+ * unless you really know what you're doing, just leave them alone
+ */
 namespace settings {
 
 /******************************************************************************/
@@ -33,24 +38,30 @@ namespace settings {
 /*                                                                            */
 /******************************************************************************/
 
-	// Each session stores a shared AD given at built and derived from Identity keys of sender and receiver
-	// SharedAD is computed by HKDF-Sha511(session Initiator Ik || session receiver Ik || session Initiator device Id || session receiver device Id)
+	/** Each DR session stores a shared AD given at built and derived from Identity keys of sender and receiver\n
+	 * SharedAD is computed by HKDF-Sha512(session Initiator Ik || session receiver Ik || session Initiator device Id || session receiver device Id)
+	 */
 	constexpr size_t DRSessionSharedADSize=32;
+
 	static_assert(DRSessionSharedADSize<64, "Shared AD is generated through HKDF-Sha512 with only one round implemented so its size can't be more than Sha512 max output size");
 
-	// Maximum number of Message we can skip(and store their keys) at reception of one message
+	/** Maximum number of Message we can skip(and store their keys) at reception of one message */
 	constexpr std::uint16_t maxMessageSkip=1024;
 
-	// after a message key is stored, count how many messages we can receive from peer before deleting the key at next update
-	// Note: implemented by receiving key chain, so any new skipped message in a chain will reset the counter to 0
+	/** after a message key is stored, count how many messages we can receive from peer before deleting the key at next update
+	 * @note: implemented by receiving key chain, so any new skipped message in a chain will reset the counter to 0
+	 */
 	constexpr std::uint16_t maxMessagesReceivedAfterSkip = 128;
 
-	// Maximum length of Sending chain: is this count is reached without any return from peer,
-	// the DR session is set to stale and we must create another one to send messages
-	// Can't be more than 2^16 as message number is send on 2 bytes
+	/** @brief Maximum length of Sending chain
+	 *
+	 * when this count is reached without any return from peer
+	 * the DR session is set to stale and we must create another one to send messages
+	 * Can't be more than 2^16 as message number is send on 2 bytes
+	 */
 	constexpr std::uint16_t maxSendingChain=1000;
 
-	// Lifetime of a session once not active anymore, unit is day
+	/** Lifetime of a session once not active anymore, unit is day */
 	constexpr unsigned int DRSession_limboTime_days=30;
 
 /******************************************************************************/
@@ -58,15 +69,20 @@ namespace settings {
 /* X3DH related definitions                                                   */
 /*                                                                            */
 /******************************************************************************/
-	constexpr unsigned int SPK_lifeTime_days=7; // in days, Life time of a signed pre-key, it will be set to stale after that period
-	constexpr unsigned int SPK_limboTime_days=30; // in days, How long shall we keep a signed pre-key once it has been replaced by a new one
+	/// in days, Life time of a signed pre-key, it will be set to stale after that period
+	constexpr unsigned int SPK_lifeTime_days=7;
+	/// in days, How long shall we keep a signed pre-key once it has been replaced by a new one
+	constexpr unsigned int SPK_limboTime_days=30;
 
 	// Note: the three following values can be overriden by call parameters when creating the user or calling update
-	constexpr uint16_t OPk_batchSize = 25; // default batch size when uploading OPks to X3DH server
-	constexpr uint16_t OPk_initialBatchSize = 4*OPk_batchSize; // default batch size when creating a new user
-	constexpr uint16_t OPk_serverLowLimit = 100; // default limit for keys on server to trigger generation/upload of a new batch of OPks
-
-	constexpr unsigned int OPk_limboTime_days=SPK_lifeTime_days+SPK_limboTime_days; // in days, How long shall we keep an OPk in localStorage once we've noticed X3DH server dispatched it
+	/// default batch size when uploading OPks to X3DH server
+	constexpr uint16_t OPk_batchSize = 25;
+	/// default batch size when creating a new user
+	constexpr uint16_t OPk_initialBatchSize = 4*OPk_batchSize;
+	/// default limit for keys on server to trigger generation/upload of a new batch of OPks
+	constexpr uint16_t OPk_serverLowLimit = 100;
+	/// in days, How long shall we keep an OPk in localStorage once we've noticed X3DH server dispatched it
+	constexpr unsigned int OPk_limboTime_days=SPK_lifeTime_days+SPK_limboTime_days;
 
 } // namespace settings
 
