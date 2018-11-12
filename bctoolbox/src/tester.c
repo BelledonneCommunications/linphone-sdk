@@ -475,7 +475,6 @@ void merge_log_files(const char *base_logfile_name) {
 	bctbx_file_close(dst_file);
 }
 
-
 //Number of test suites to run concurrently
 //TODO better default or add cli option ?
 int bc_tester_get_max_parallel_processes(void) {
@@ -490,6 +489,14 @@ void kill_sub_processes(int *pids) {
 		}
 	}
 }
+
+#ifdef _WIN32
+int start_sub_process(const char *suite_name) {
+	//TODO Windows support
+	return 0;
+}
+
+#else
 
 //Start	test subprocess for the given suite
 int start_sub_process(const char *suite_name) {
@@ -520,6 +527,8 @@ int start_sub_process(const char *suite_name) {
 	return execv(argv[0], (char **) argv);
 }
 
+#endif
+
 //For parallel tests only - handle anormally exited test suites
 //Remove previously generated XML suite file if exited anormally (could cause unusable final JUnit XML)
 //And mark all tests for the suite as failed
@@ -541,7 +550,13 @@ int handle_sub_process_error(int pid, int exitStatus, int *suitesPids) {
 	return exitStatus;
 }
 
-//TODO cross-platform (i.e. Windows support ?)
+#ifdef _WIN32
+//TODO Windows support
+int bc_tester_run_parallel() {
+	return 0;
+}
+#else
+
 int bc_tester_run_parallel() {
 	int suitesPids[nb_test_suites];
 	uint64_t time_start = bctbx_get_cur_time_ms(), elapsed, print_timer = time_start;
@@ -609,6 +624,8 @@ int bc_tester_run_parallel() {
 	bc_tester_printf(bc_printf_verbosity_info, "All suites ended.");
 	return ret;
 }
+
+#endif
 
 int bc_tester_run_tests(const char *suite_name, const char *test_name, const char *tag_name) {
 
