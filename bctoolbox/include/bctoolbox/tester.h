@@ -81,6 +81,10 @@ BCTBX_PUBLIC void bc_tester_set_resource_dir_prefix(const char *name);
 BCTBX_PUBLIC const char * bc_tester_get_writable_dir_prefix(void);
 BCTBX_PUBLIC void bc_tester_set_writable_dir_prefix(const char *name);
 
+BCTBX_PUBLIC void bc_tester_set_silent_func(int (*func)(const char*));
+BCTBX_PUBLIC void bc_tester_set_verbose_func(int (*func)(const char*));
+BCTBX_PUBLIC void bc_tester_set_logfile_func(int (*func)(const char*));
+
 BCTBX_PUBLIC int bc_tester_nb_suites(void);
 BCTBX_PUBLIC int bc_tester_nb_tests(const char* name);
 BCTBX_PUBLIC void bc_tester_list_suites(void);
@@ -100,6 +104,7 @@ BCTBX_PUBLIC void bc_free(void *ptr);
 
 BCTBX_PUBLIC unsigned int bc_get_number_of_failures(void);
 BCTBX_PUBLIC void bc_set_trace_handler(void(*handler)(int, const char*, va_list));
+
 /**
  * Get full path to the given resource
  *
