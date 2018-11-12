@@ -277,7 +277,7 @@ job-debian9-ninja-clang:
     - ccache -s
     - mkdir -p build-desktop
     - cd build-desktop
-    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop
+    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS >> build_log.txt 2>&1
     - ccache -s
 
