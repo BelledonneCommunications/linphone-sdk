@@ -536,11 +536,19 @@ int handle_sub_process_error(int pid, int exitStatus, int *suitesPids) {
 	if (abs(exitStatus) > 1) {
 		for (int i = 0; i < nb_test_suites; ++i) {
 			if (suitesPids[i] == pid) {
+				ssize_t offset;
 				char *suite_file_name = get_junit_xml_file_name(test_suite[i]->name, "-Results.xml");
 				bctbx_vfs_file_t* bctbx_file = bctbx_file_open(bctbx_vfs_get_default(), suite_file_name, "w+");
 				truncate(suite_file_name, 0);
-				//TODO check if it is valid JUnit XML -- check jenkins report status
-				bctbx_file_fprintf(bctbx_file, 0, "\n<testsuite name=\"%s\" tests=\"%d\" time=\"0\" failures=\"%d\" errors=\"0\" skipped=\"0\" />\n", test_suite[i]->name, test_suite[i]->nb_tests, test_suite[i]->nb_tests);
+
+
+				offset = bctbx_file_fprintf(bctbx_file, 0, "\n<testsuite name=\"%s\" tests=\"%d\" time=\"0\" failures=\"%d\" errors=\"0\" skipped=\"0\">\n", test_suite[i]->name, test_suite[i]->nb_tests, test_suite[i]->nb_tests);
+				for (int j=0; j < test_suite[i]->nb_tests; ++j) {
+					offset += bctbx_file_fprintf(bctbx_file, offset, "\t<testcase classname=\"%s\" name=\"%s\">\n", test_suite[i]->name, test_suite[i]->tests[j].name);
+					offset += bctbx_file_fprintf(bctbx_file, offset, "\t\t<failure message=\"\" type=\"Failure\">\n\t\tGlobal suite failure\n");
+					offset += bctbx_file_fprintf(bctbx_file, offset, "\t\t</failure>\n\t</testcase>\n");
+				}
+				bctbx_file_fprintf(bctbx_file, offset, "\n</testsuite>\n");
 				bc_tester_printf(bc_printf_verbosity_info, "Suite '%s' ended in error. Marking all tests as failed", test_suite[i]->name);
 				bctbx_file_close(bctbx_file);
 				free(suite_file_name);
