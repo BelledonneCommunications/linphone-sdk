@@ -42,7 +42,7 @@ These are required to generate a C sourcefile from SIP grammar using [antlr3](ht
 		brew install libantlr3.4c homebrew/versions/antlr3
 
 
-Building bctoolbox with CMake
+Building belle-sip with CMake
 -----------------------------
 
 		cmake . -DCMAKE_INSTALL_PREFIX=<prefix> -DCMAKE_PREFIX_PATH=<search_prefix>
