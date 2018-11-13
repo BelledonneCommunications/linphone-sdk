@@ -26,12 +26,11 @@ variables:
     - mkdir -p build-android
     - cd build-android
     - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS="arm64, armv7, x86, x86_64"
-    - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS >> build_log.txt 2>&1
+    - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     - ccache -s
 
   artifacts:
     paths:
-      - build-android/build_log.txt
       - build-android/linphone-sdk/bin/outputs/aar/*.aar
       - build-android/linphone-sdk/bin/distributions/linphone-sdk-*.zip
     when: always
@@ -85,12 +84,11 @@ job-android-ninja-r17c:
     - mkdir -p build-ios
     - cd build-ios
     - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="arm64, armv7, i386, x86_64"
-    - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS >> build_log.txt 2>&1
+    - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     - ccache -s
 
   artifacts:
     paths:
-      - build-ios/build_log.txt
       - build-ios/linphone-sdk-*.zip
       - build-ios/linphone-sdk.podspec
     when: always
@@ -135,14 +133,8 @@ job-ios-ninja:
     - mkdir -p build-desktop
     - cd build-desktop
     - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop
-    - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS >> build_log.txt 2>&1
+    - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     - ccache -s
-
-  artifacts:
-    paths:
-      - build-desktop/build_log.txt
-    when: always
-    expire_in: 1 week
 
 
 #job-centos7-makefile-gcc:
@@ -278,14 +270,8 @@ job-debian9-ninja-clang:
     - mkdir -p build-desktop
     - cd build-desktop
     - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9
-    - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS >> build_log.txt 2>&1
+    - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     - ccache -s
-
-  artifacts:
-    paths:
-      - build-desktop/build_log.txt
-    when: always
-    expire_in: 1 week
 
 
 #job-macosx-makefile:
@@ -305,10 +291,13 @@ job-macosx-ninja:
 
 job-macosx-xcode:
 
-  variables:
-    CMAKE_GENERATOR: Xcode
-    ADDITIONAL_BUILD_OPTIONS: -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=2
-  <<: *job-macosx-desktop-definition
+  tags: [ "macosx" ]
+
+  script:
+    - mkdir -p build-desktop
+    - cd build-desktop
+    - cmake .. -G Xcode -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9
+    - cmake --build . --target sdk -- -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=`sysctl -n hw.ncpu`
 
 
 job-windows-vs2015:
@@ -320,3 +309,14 @@ job-windows-vs2015:
     - cd build-desktop
     - cmake .. -G "Visual Studio 14 2015" -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_BUILD_TYPE=Release
     - cmake --build . --target sdk --config Release -- /maxcpucount
+
+
+#job-uwp-vs2017:
+#
+#  tags: [ "windows" ]
+#
+#  script:
+#    - mkdir build-uwp
+#    - cd build-uwp
+#    - cmake .. -G "Visual Studio 15 2017" -DLINPHONESDK_PLATFORM=UWP -DCMAKE_BUILD_TYPE=Release -DENABLE_FFMPEG=NO -DENABLE_VPX=NO
+#    - cmake --build . --config Release
