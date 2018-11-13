@@ -25,7 +25,7 @@ if(NOT PYTHONINTERP_FOUND)
 	message(FATAL_ERROR "Could not find python!")
 endif()
 
-linphone_sdk_check_is_installed(git)
+linphone_sdk_check_git()
 
 if(ENABLE_CSHARP_WRAPPER OR ENABLE_CXX_WRAPPER OR ENABLE_DOC OR ENABLE_JAVA_WRAPPER)
 	linphone_sdk_check_is_installed(doxygen)

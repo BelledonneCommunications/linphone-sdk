@@ -24,17 +24,17 @@ list(APPEND CMAKE_MODULE_PATH "${LINPHONESDK_DIR}/cmake")
 include(LinphoneSdkUtils)
 
 
-linphone_sdk_check_is_installed(git)
+linphone_sdk_check_git()
 
 
 if(IS_DIRECTORY "${LINPHONESDK_DIR}/tunnel")
 	execute_process(
-		COMMAND "${LINPHONESDK_GIT_PROGRAM}" "pull"
+		COMMAND "${GIT_EXECUTABLE}" "pull"
 		WORKING_DIRECTORY "${LINPHONESDK_DIR}/tunnel"
 	)
 else()
 	execute_process(
-		COMMAND "${LINPHONESDK_GIT_PROGRAM}" "clone" "git@gitlab.linphone.org:BC/private/tunnel.git" "tunnel"
+		COMMAND "${GIT_EXECUTABLE}" "clone" "git@gitlab.linphone.org:BC/private/tunnel.git" "tunnel"
 		WORKING_DIRECTORY "${LINPHONESDK_DIR}"
 	)
 endif()

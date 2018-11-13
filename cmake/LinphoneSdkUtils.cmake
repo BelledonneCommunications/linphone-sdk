@@ -60,15 +60,55 @@ macro(linphone_sdk_convert_comma_separated_list_to_cmake_list INPUT OUTPUT)
 	string(REPLACE "," ";" ${OUTPUT} "${${OUTPUT}}")
 endmacro()
 
+macro(linphone_sdk_check_git)
+	find_package(Git 1.7.10)
+endmacro()
+
 function(linphone_sdk_git_submodule_update)
 	if(NOT EXISTS "${LINPHONESDK_DIR}/linphone/CMakeLists.txt")
-		linphone_sdk_check_is_installed(git)
+		linphone_sdk_check_git()
 		execute_process(
-			COMMAND "${LINPHONESDK_GIT_PROGRAM}" "submodule" "update" "--recursive" "--init"
+			COMMAND "${GIT_EXECUTABLE}" "submodule" "update" "--recursive" "--init"
 			WORKING_DIRECTORY "${LINPHONESDK_DIR}"
 		)
 	endif()
 endfunction()
+
+macro(linphone_sdk_compute_full_version OUTPUT_VERSION)
+	linphone_sdk_check_git()
+	if(GIT_EXECUTABLE)
+		execute_process(
+			COMMAND "${GIT_EXECUTABLE}" "describe"
+			OUTPUT_VARIABLE ${OUTPUT_VERSION}
+			OUTPUT_STRIP_TRAILING_WHITESPACE
+			ERROR_QUIET
+			WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+		)
+		message("${OUTPUT_VERSION}: ${${OUTPUT_VERSION}}")
+		if(${OUTPUT_VERSION})
+			execute_process(
+				COMMAND "${GIT_EXECUTABLE}" "describe" "--abbrev=0"
+				OUTPUT_VARIABLE PROJECT_GIT_TAG
+				OUTPUT_STRIP_TRAILING_WHITESPACE
+				ERROR_QUIET
+				WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+			)
+			if(NOT PROJECT_GIT_TAG VERSION_EQUAL PROJECT_VERSION)
+				message(FATAL_ERROR "Project version (${PROJECT_VERSION}) and git tag (${PROJECT_GIT_TAG}) differ! Please synchronize them.")
+			endif()
+			unset(PROJECT_GIT_TAG)
+		else()
+			execute_process(
+				COMMAND "${GIT_EXECUTABLE}" "rev-parse" "HEAD"
+				OUTPUT_VARIABLE PROJECT_GIT_REVISION
+				OUTPUT_STRIP_TRAILING_WHITESPACE
+				ERROR_QUIET
+				WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+			)
+			set(${OUTPUT_VERSION} "${PROJECT_VERSION}-g${PROJECT_GIT_REVISION}")
+		endif()
+	endif()
+endmacro()
 
 macro(linphone_sdk_check_is_installed EXECUTABLE_NAME)
 	string(TOUPPER "${EXECUTABLE_NAME}" _upper_executable_name)

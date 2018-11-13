@@ -23,7 +23,7 @@
 cmake_minimum_required(VERSION 3.2)
 
 
-project(linphone-sdk VERSION 0.0.1 LANGUAGES NONE)
+project(linphone-sdk VERSION 4.1 LANGUAGES NONE)
 
 
 set(LINPHONESDK_DIR "${CMAKE_CURRENT_LIST_DIR}")
@@ -32,6 +32,7 @@ include(LinphoneSdkUtils)
 
 
 linphone_sdk_git_submodule_update()
+linphone_sdk_compute_full_version(LINPHONESDK_VERSION)
 
 
 set(LINPHONESDK_PREBUILD_DEPENDENCIES)
