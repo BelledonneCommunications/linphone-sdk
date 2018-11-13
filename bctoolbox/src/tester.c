@@ -108,6 +108,7 @@ int parallel_suites = 0;
 
 //To keep record of the process name who started and args
 char **origin_argv = NULL;
+int origin_argc = 0;
 
 //Custom cli arguments handlers	for end tests implementations
 static int (*verbose_arg_func)(const char *arg) = NULL;
@@ -501,11 +502,10 @@ int start_sub_process(const char *suite_name) {
 //Start	test subprocess for the given suite
 int start_sub_process(const char *suite_name) {
 	int argc = 0;
-	const char *argv[20]; //Assume -safely- 19 maximum cli params for subprocess
+	const char *argv[origin_argc + 10]; //Assume safey 10 more parameters
 
-	//Keep original known parameters
 	argv[argc++] = origin_argv[0];
-	for (int i = 0;	origin_argv[i]; ++i) {
+	for (int i = 1;	origin_argv[i]; ++i) {
 		if (strcmp(origin_argv[i], "--verbose") == 0) {
 			argv[argc++] = origin_argv[i];
 		} else if (strcmp(origin_argv[i], "--silent") == 0) {
@@ -517,9 +517,13 @@ int start_sub_process(const char *suite_name) {
 		} else if (strcmp(origin_argv[i], "--xml-file") == 0) {
 			argv[argc++] = origin_argv[i];
 			argv[argc++] = origin_argv[i + 1];
+		} else if (strcmp(origin_argv[i], "--parallel") == 0) {
+			argv[argc++] = origin_argv[i];
+		} else {
+			//Keep unknown parameters
+			argv[argc++] = origin_argv[i];
 		}
 	}
-	argv[argc++] = "--parallel";
 	argv[argc++] = "--xml";
 	argv[argc++] = "--suite";
 	argv[argc++] = suite_name;
@@ -985,7 +989,10 @@ int bc_tester_parse_args(int argc, char **argv, int argid)
 		xml_enabled = 1;
 	} else if (strcmp(argv[i], "--parallel") == 0) {
 		//Keep record of cli args for subprocesses
-		if (!origin_argv) origin_argv = argv;
+		if (!origin_argv) {
+			origin_argv = argv;
+			origin_argc = argc;
+		}
 		//Defaults to JUnit report if parallel is enabled
 		xml_enabled = 1;
 		parallel_suites = 1;
