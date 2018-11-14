@@ -2,7 +2,7 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
 
 
-.linux-ccache-template: &linux-ccache-definition
+.linux-ccache:
   cache:
     key: $CI_JOB_NAME
     paths:
@@ -14,11 +14,11 @@ variables:
     - export CCACHE_DIR=${PWD}/ccache
 
 
-.job-android-template: &job-android-definition
+.job-android:
 
   tags: [ "docker" ]
 
-  <<: *linux-ccache-definition
+  extends: .linux-ccache
 
   script:
     - ccache -s
@@ -37,14 +37,19 @@ variables:
     expire_in: 1 week
 
 
-#job-android-makefile-r16b:
-#
-#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r16b
-#  variables:
-#    CMAKE_GENERATOR: Unix Makefiles
-#    ADDITIONAL_BUILD_OPTIONS: -j2
-#
-#  <<: *job-android-definition
+.scheduled-job-android:
+  extends: .job-android
+  only:
+    - schedules
+
+
+job-android-makefile-r16b:
+
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r16b
+  variables:
+    CMAKE_GENERATOR: Unix Makefiles
+    ADDITIONAL_BUILD_OPTIONS: -j2
+  extends: .scheduled-job-android
 
 
 job-android-ninja-r16b:
@@ -52,18 +57,16 @@ job-android-ninja-r16b:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r16b
   variables:
     CMAKE_GENERATOR: Ninja
+  extends: .job-android
 
-  <<: *job-android-definition
 
+job-android-makefile-r17c:
 
-#job-android-makefile-r17c:
-#
-#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
-#  variables:
-#    CMAKE_GENERATOR: Unix Makefiles
-#    ADDITIONAL_BUILD_OPTIONS: -j2
-#
-#  <<: *job-android-definition
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
+  variables:
+    CMAKE_GENERATOR: Unix Makefiles
+    ADDITIONAL_BUILD_OPTIONS: -j2
+  extends: .scheduled-job-android
 
 
 job-android-ninja-r17c:
@@ -71,11 +74,10 @@ job-android-ninja-r17c:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
   variables:
     CMAKE_GENERATOR: Ninja
+  extends: .job-android
 
-  <<: *job-android-definition
 
-
-.job-ios-template: &job-ios-definition
+.job-ios:
 
   tags: [ "macosx" ]
 
@@ -95,36 +97,50 @@ job-android-ninja-r17c:
     expire_in: 1 week
 
 
-#job-ios-makefile:
-#
-#  variables:
-#    CMAKE_GENERATOR: Unix Makefiles
-#    ADDITIONAL_BUILD_OPTIONS: -j2
-#
-#  <<: *job-ios-definition
+.scheduled-job-ios:
+  extends: .job-ios
+  only:
+    - schedules
+
+
+job-ios-makefile:
+
+  variables:
+    CMAKE_GENERATOR: Unix Makefiles
+    ADDITIONAL_BUILD_OPTIONS: -j2
+  extends: .scheduled-job-ios
 
 
 job-ios-ninja:
 
   variables:
     CMAKE_GENERATOR: Ninja
-
-  <<: *job-ios-definition
-
-
-#job-ios-xcode:
-#
-#  variables:
-#    CMAKE_GENERATOR: Xcode
-#
-#  <<: *job-ios-definition
+  extends: .job-ios
 
 
-.job-linux-desktop-template: &job-linux-desktop-definition
+job-ios-xcode:
+
+  tags: [ "macosx" ]
+
+  script:
+    - mkdir -p build-ios
+    - cd build-ios
+    - cmake .. -G Xcode -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="arm64, armv7, i386, x86_64"
+    - cmake --build . --target sdk -- -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=`sysctl -n hw.ncpu`
+
+  artifacts:
+    paths:
+      - build-ios/linphone-sdk-*.zip
+      - build-ios/linphone-sdk.podspec
+    when: always
+    expire_in: 1 week
+
+
+.job-linux-desktop:
 
   tags: [ "docker" ]
 
-  <<: *linux-ccache-definition
+  extends: .linux-ccache
 
   script:
     - export CC=$CC
@@ -137,36 +153,42 @@ job-ios-ninja:
     - ccache -s
 
 
-#job-centos7-makefile-gcc:
-#
-#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
-#  variables:
-#    CMAKE_GENERATOR: Unix Makefiles
-#    CC: gcc
-#    CXX: g++
-#  <<: *job-linux-desktop-definition
+.scheduled-job-linux-desktop:
+  extends: .job-linux-desktop
+  only:
+    - schedules
 
 
-#job-debian8-makefile-gcc:
-#
-#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
-#  variables:
-#    CMAKE_GENERATOR: Unix Makefiles
-#    CC: gcc
-#    CXX: g++
-#    ADDITIONAL_BUILD_OPTIONS: -j2
-#  <<: *job-linux-desktop-definition
+job-centos7-makefile-gcc:
+
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
+  variables:
+    CMAKE_GENERATOR: Unix Makefiles
+    CC: gcc
+    CXX: g++
+  extends: .scheduled-job-linux-desktop
 
 
-#job-debian9-makefile-gcc:
-#
-#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
-#  variables:
-#    CMAKE_GENERATOR: Unix Makefiles
-#    CC: gcc
-#    CXX: g++
-#    ADDITIONAL_BUILD_OPTIONS: -j2
-#  <<: *job-linux-desktop-definition
+job-debian8-makefile-gcc:
+
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
+  variables:
+    CMAKE_GENERATOR: Unix Makefiles
+    CC: gcc
+    CXX: g++
+    ADDITIONAL_BUILD_OPTIONS: -j2
+  extends: .scheduled-job-linux-desktop
+
+
+job-debian9-makefile-gcc:
+
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
+  variables:
+    CMAKE_GENERATOR: Unix Makefiles
+    CC: gcc
+    CXX: g++
+    ADDITIONAL_BUILD_OPTIONS: -j2
+  extends: .scheduled-job-linux-desktop
 
 
 job-centos7-ninja-gcc:
@@ -176,7 +198,7 @@ job-centos7-ninja-gcc:
     CMAKE_GENERATOR: Ninja
     CC: gcc
     CXX: g++
-  <<: *job-linux-desktop-definition
+  extends: .job-linux-desktop
 
 
 job-debian8-ninja-gcc:
@@ -186,7 +208,7 @@ job-debian8-ninja-gcc:
     CMAKE_GENERATOR: Ninja
     CC: gcc
     CXX: g++
-  <<: *job-linux-desktop-definition
+  extends: .job-linux-desktop
 
 
 job-debian9-ninja-gcc:
@@ -196,39 +218,39 @@ job-debian9-ninja-gcc:
     CMAKE_GENERATOR: Ninja
     CC: gcc
     CXX: g++
-  <<: *job-linux-desktop-definition
+  extends: .job-linux-desktop
 
 
-#job-centos7-makefile-clang:
-#
-#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
-#  variables:
-#    CMAKE_GENERATOR: Unix Makefiles
-#    CC: clang
-#    CXX: clang++
-#  <<: *job-linux-desktop-definition
+job-centos7-makefile-clang:
+
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
+  variables:
+    CMAKE_GENERATOR: Unix Makefiles
+    CC: clang
+    CXX: clang++
+  extends: .scheduled-job-linux-desktop
 
 
-#job-debian8-makefile-clang:
-#
-#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
-#  variables:
-#    CMAKE_GENERATOR: Unix Makefiles
-#    CC: clang
-#    CXX: clang++
-#    ADDITIONAL_BUILD_OPTIONS: -j2
-#  <<: *job-linux-desktop-definition
+job-debian8-makefile-clang:
+
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
+  variables:
+    CMAKE_GENERATOR: Unix Makefiles
+    CC: clang
+    CXX: clang++
+    ADDITIONAL_BUILD_OPTIONS: -j2
+  extends: .scheduled-job-linux-desktop
 
 
-#job-debian9-makefile-clang:
-#
-#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
-#  variables:
-#    CMAKE_GENERATOR: Unix Makefiles
-#    CC: clang
-#    CXX: clang++
-#    ADDITIONAL_BUILD_OPTIONS: -j2
-#  <<: *job-linux-desktop-definition
+job-debian9-makefile-clang:
+
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
+  variables:
+    CMAKE_GENERATOR: Unix Makefiles
+    CC: clang
+    CXX: clang++
+    ADDITIONAL_BUILD_OPTIONS: -j2
+  extends: .scheduled-job-linux-desktop
 
 
 job-centos7-ninja-clang:
@@ -238,7 +260,7 @@ job-centos7-ninja-clang:
     CMAKE_GENERATOR: Ninja
     CC: clang
     CXX: clang++
-  <<: *job-linux-desktop-definition
+  extends: .job-linux-desktop
 
 
 job-debian8-ninja-clang:
@@ -248,7 +270,7 @@ job-debian8-ninja-clang:
     CMAKE_GENERATOR: Ninja
     CC: clang
     CXX: clang++
-  <<: *job-linux-desktop-definition
+  extends: .job-linux-desktop
 
 
 job-debian9-ninja-clang:
@@ -258,10 +280,10 @@ job-debian9-ninja-clang:
     CMAKE_GENERATOR: Ninja
     CC: clang
     CXX: clang++
-  <<: *job-linux-desktop-definition
+  extends: .job-linux-desktop
 
 
-.job-macosx-desktop-template: &job-macosx-desktop-definition
+.job-macosx-desktop:
 
   tags: [ "macosx" ]
 
@@ -274,25 +296,29 @@ job-debian9-ninja-clang:
     - ccache -s
 
 
-#job-macosx-makefile:
-#
-#  variables:
-#    CMAKE_GENERATOR: Unix Makefiles
-#    ADDITIONAL_BUILD_OPTIONS: -j2
-#  <<: *job-macosx-desktop-definition
+job-macosx-makefile:
+
+  only:
+    - schedules
+  variables:
+    CMAKE_GENERATOR: Unix Makefiles
+    ADDITIONAL_BUILD_OPTIONS: -j2
+  extends: .job-macosx-desktop
 
 
 job-macosx-ninja:
 
   variables:
     CMAKE_GENERATOR: Ninja
-  <<: *job-macosx-desktop-definition
+  extends: .job-macosx-desktop
 
 
 job-macosx-xcode:
 
   tags: [ "macosx" ]
 
+  only:
+    - schedules
   script:
     - mkdir -p build-desktop
     - cd build-desktop
