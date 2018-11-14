@@ -62,17 +62,7 @@ namespace lime {
 
 	namespace double_ratchet_protocol {
 
-		/**
-		 * @brief return the size of the double ratchet packet header
-		 *
-		 * header is: Protocol Version Number<1 byte> || Message Type <1 byte> || curveId <1 byte> || [X3DH Init message < variable >] || Ns<2 bytes> || PN<2 bytes> || DHs<...>
-		 *
-		 * @return	the header size without optionnal X3DH init packet
-		 */
-		template <typename Curve>
-		constexpr size_t headerSize() {
-			return 7 + X<Curve, lime::Xtype::publicKey>::ssize();
-		}
+
 
 		/**
 		 * @brief  build an X3DH init message to insert in DR header
@@ -177,11 +167,12 @@ namespace lime {
 					if (message[2] != static_cast<uint8_t>(Curve::curveId()) || !(message[1]&static_cast<uint8_t>(DR_message_type::X3DH_init_flag))) {
 						return false;
 					}
-					// check length
-					size_t x3dh_initMessageSize = 1 + DSA<Curve, lime::DSAtype::publicKey>::ssize() + X<Curve, lime::Xtype::publicKey>::ssize() + 4; // size of X3DH init message without OPk
-					if (message[3] == 1) { // there is an OPk
-						x3dh_initMessageSize += 4;
-					}
+					// check length, message[3] holds the OPk flag of the X3DH init message
+					size_t x3dh_initMessageSize = X3DHinitSize<Curve>(message[3] == 1);
+//					size_t x3dh_initMessageSize = 1 + DSA<Curve, lime::DSAtype::publicKey>::ssize() + X<Curve, lime::Xtype::publicKey>::ssize() + 4; // size of X3DH init message without OPk
+//					if (message[3] == 1) { // there is an OPk
+//						x3dh_initMessageSize += 4;
+//					}
 
 					//header shall be actually longer because buffer passed is the whole message
 					if (message.size() <  x3dh_initMessageSize + headerSize<Curve>()) {
@@ -319,6 +310,8 @@ namespace lime {
 
 		/* Instanciate templated functions */
 #ifdef EC25519_ENABLED
+		//template size_t headerSize<C255>() noexcept;
+		//template size_t X3DHinitSize<C255>(bool haveOPk) noexcept;
 		template void buildMessage_X3DHinit<C255>(std::vector<uint8_t> &message, const DSA<C255, lime::DSAtype::publicKey> &Ik, const X<C255, lime::Xtype::publicKey> &Ek, const uint32_t SPk_id, const uint32_t OPk_id, const bool OPk_flag) noexcept;
 		template void parseMessage_X3DHinit<C255>(const std::vector<uint8_t>message, DSA<C255, lime::DSAtype::publicKey> &Ik, X<C255, lime::Xtype::publicKey> &Ek, uint32_t &SPk_id, uint32_t &OPk_id, bool &OPk_flag) noexcept;
 		template bool parseMessage_get_X3DHinit<C255>(const std::vector<uint8_t> &message, std::vector<uint8_t> &X3DH_initMessage) noexcept;
@@ -327,6 +320,8 @@ namespace lime {
 #endif
 
 #ifdef EC448_ENABLED
+		//template size_t headerSize<C448>() noexcept;
+		//template size_t X3DHinitSize<C448>(bool haveOPk) noexcept;
 		template void buildMessage_X3DHinit<C448>(std::vector<uint8_t> &message, const DSA<C448, lime::DSAtype::publicKey> &Ik, const X<C448, lime::Xtype::publicKey> &Ek, const uint32_t SPk_id, const uint32_t OPk_id, const bool OPk_flag) noexcept;
 		template void parseMessage_X3DHinit<C448>(const std::vector<uint8_t>message, DSA<C448, lime::DSAtype::publicKey> &Ik, X<C448, lime::Xtype::publicKey> &Ek, uint32_t &SPk_id, uint32_t &OPk_id, bool &OPk_flag) noexcept;
 		template bool parseMessage_get_X3DHinit<C448>(const std::vector<uint8_t> &message, std::vector<uint8_t> &X3DH_initMessage) noexcept;

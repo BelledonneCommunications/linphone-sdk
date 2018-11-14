@@ -26,7 +26,7 @@ include(CMakePushCheckState)
 include(CMakePackageConfigHelpers)
 
 cmake_minimum_required(VERSION 3.0)
-project(lime VERSION 0.0.1 LANGUAGES CXX)
+project(lime VERSION 0.0.1 LANGUAGES CXX C)
 
 set(LIME_SO_VERSION "0")
 
@@ -37,6 +37,7 @@ option(ENABLE_CURVE25519 "Enable support of Curve 25519." YES)
 option(ENABLE_CURVE448 "Enable support of Curve 448(goldilock)." YES)
 option(ENABLE_UNIT_TESTS "Enable compilation of unit tests." YES)
 option(ENABLE_PROFILING "Enable profiling, GCC only" NO)
+option(ENABLE_C_INTERFACE "Enable support of C function foreign interface" NO)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -77,6 +78,7 @@ if(LIME_CPPFLAGS)
 endif()
 add_definitions("-DLIME_EXPORTS")
 
+set(STRICT_OPTIONS_C)
 set(STRICT_OPTIONS_CPP )
 set(STRICT_OPTIONS_CXX )
 set(STRICT_OPTIONS_OBJC )
@@ -91,6 +93,9 @@ else()
         list(APPEND STRICT_OPTIONS_CXX "-std=c++11")
         #list(APPEND STRICT_OPTIONS_CPP "-Wall" "-Wuninitialized" "-Wno-error=deprecated-declarations") # turn off deprecated-declaration warning to avoid being flooded by soci.h
 	list(APPEND STRICT_OPTIONS_CPP "-Wall" "-Wuninitialized" "-Wno-deprecated-declarations" "-Wno-missing-field-initializers")
+	if(ENABLE_C_INTERFACE)
+		list(APPEND STRICT_OPTIONS_C "-std=c99")
+	endif()
 	if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
 		list(APPEND STRICT_OPTIONS_CPP "-Qunused-arguments" "-Wno-array-bounds")
 	endif()
@@ -119,6 +124,11 @@ endif()
 if (ENABLE_CURVE448)
 	add_definitions("-DEC448_ENABLED")
 	message(STATUS "Support Curve 448")
+endif()
+
+if(ENABLE_C_INTERFACE)
+	add_definitions("-DFFI_ENABLED")
+	message(STATUS "Provide C89 interface")
 endif()
 
 add_subdirectory(include)

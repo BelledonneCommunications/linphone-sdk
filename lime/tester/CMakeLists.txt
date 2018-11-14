@@ -42,10 +42,15 @@ set(SOURCE_FILES_CXX
 	lime_massive_group-tester.cpp
 )
 
+set(SOURCE_FILES_C
+	lime_ffi-tester.c
+)
+
+bc_apply_compile_flags(SOURCE_FILES_C STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
 bc_apply_compile_flags(SOURCE_FILES_CXX STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
 
 if(ANDROID OR IOS)
-	add_library(limetester SHARED ${HEADER_FILES_CXX} ${SOURCE_FILES_CXX})
+	add_library(limetester SHARED ${HEADER_FILES_CXX} ${SOURCE_FILES_CXX} ${SOURCE_FILES_C} )
 	target_include_directories(limetester PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIRS} ${BELLESIP_INCLUDE_DIRS})
 	target_link_libraries(limetester ${LIME_LIBRARIES_FOR_TESTER} ${BCTOOLBOX_LIBRARIES} ${BCTOOLBOX_TESTER_LIBRARIES} ${BELLESIP_LIBRARIES} ${SOCI_LIBRARIES} ${SOCI_sqlite3_PLUGIN})
 	if(IOS)
@@ -68,7 +73,7 @@ if(ANDROID OR IOS)
 		PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
 	)
 else()
-	add_executable(lime_tester ${SOURCE_FILES_CXX} ${HEADER_FILES_CXX})
+	add_executable(lime_tester ${SOURCE_FILES_CXX} ${HEADER_FILES_CXX} ${SOURCE_FILES_C} )
 	set_target_properties(lime_tester PROPERTIES LINKER_LANGUAGE CXX)
 	target_include_directories(lime_tester PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIRS} ${BELLESIP_INCLUDE_DIRS})
 	target_link_libraries(lime_tester ${LIME_LIBRARIES_FOR_TESTER} ${BCTOOLBOX_LIBRARIES} ${BCTOOLBOX_TESTER_LIBRARIES} ${BELLESIP_LIBRARIES} ${SOCI_LIBRARIES} ${SOCI_sqlite3_PLUGIN})

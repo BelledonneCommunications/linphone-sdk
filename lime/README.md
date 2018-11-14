@@ -47,7 +47,13 @@ Testing
 
 Library settings
 ----------------
-Some mostly harmless settings are available in src/lime_settings.hpp
+Some mostly harmless settings are available in *src/lime_settings.hpp*
+
+Library API
+-----------
+The C++11 API is available in *include/lime/lime.hpp*
+
+if enabled (see Options), a C89 FFI is provided by *include/lime/lime_ffi.h*
 
 
 Options
@@ -62,6 +68,7 @@ Options
 - `ENABLE_Curve25519`             : Enable support of Curve 25519.
 - `ENABLE_Curve448`               : Enable support of Curve 448.
 - `ENABLE_PROFILING`              : Enable code profiling for GCC
+- `ENABLE_C_INTERFACE`            : Enable support of C89 function foreign interface
 
 ------------------
 

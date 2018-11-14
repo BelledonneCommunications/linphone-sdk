@@ -253,7 +253,7 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 		// encrypt, parameters are:
 		//      - localDeviceId to select which of the users managed by the LimeManager we shall use to perform the encryption (in our example we have only one local device). This one doesn't need to be a shared pointer.
 		//      - recipientUser: an id of the recipient user (which can hold several devices), typically its sip:uri
-		//      - RecipientData vector (see above), list all recipient devices, will hold their cipher header
+		//      - RecipientData vector (see above), list all recipient devices, will hold their DR message
 		//      - plain message
 		//      - cipher message (this one must then be distributed to all recipients devices)
 		//      - a callback (prototype: void(lime::CallbackReturn, std::string))
@@ -487,7 +487,7 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve, const std:
 		// encrypt, parameters are:
 		//      - localDeviceId to select which of the users managed by the LimeManager we shall use to perform the encryption (in our example we have only one local device). This one doesn't need to be a shared pointer.
 		//      - recipientUser: an id of the recipient user (which can hold several devices), typically its sip:uri
-		//      - RecipientData vector (see above), list all recipient devices, will hold their cipher header
+		//      - RecipientData vector (see above), list all recipient devices, will hold their DR message
 		//      - plain message
 		//      - cipher message (this one must then be distributed to all recipients devices)
 		//      - a callback (prototype: void(lime::CallbackReturn, std::string))

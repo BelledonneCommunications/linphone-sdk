@@ -24,6 +24,31 @@
 
 namespace lime {
 	namespace double_ratchet_protocol {
+		/**
+		 * @brief return the size of the double ratchet packet header
+		 *
+		 * header is: Protocol Version Number<1 byte> || Message Type <1 byte> || curveId <1 byte> || [X3DH Init message < variable >] || Ns<2 bytes> || PN<2 bytes> || DHs< DH public key size >
+		 *
+		 * @return	the header size without optionnal X3DH init packet
+		 */
+		template <typename Curve>
+		constexpr size_t headerSize() noexcept {
+			return 7 + X<Curve, lime::Xtype::publicKey>::ssize();
+		}
+
+		/**
+		 * @brief return the size of the X3DH init packet included in the double ratchet packet header
+		 *
+		 * X3DH init packet is : OPk flag<1 byte> || Ik < DSA public key size > || Ek < DH public key size > || SPk Id <4 bytes> || [OPk Id <4 bytes>]
+		 *
+		 * @return	the header size without optionnal X3DH init packet
+		 */
+		template <typename Curve>
+		constexpr size_t X3DHinitSize(bool haveOPk) noexcept {
+			return 1 + DSA<Curve, lime::DSAtype::publicKey>::ssize() + X<Curve, lime::Xtype::publicKey>::ssize() + 4 // size of X3DH init message without OPk
+				+ (haveOPk?4:0); // if there is an OPk, we must add 4 for the OPk id
+		}
+
 		template <typename Curve>
 		void buildMessage_X3DHinit(std::vector<uint8_t> &message, const DSA<Curve, lime::DSAtype::publicKey> &Ik, const X<Curve, lime::Xtype::publicKey> &Ek, const uint32_t SPk_id, const uint32_t OPk_id, const bool OPk_flag) noexcept;
 		template <typename Curve>
