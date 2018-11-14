@@ -59,13 +59,16 @@ include(cmake-builder/options/ms2.cmake)
 include(cmake-builder/options/linphone.cmake)
 
 
-include(LinphoneSdkPlatform${LINPHONESDK_PLATFORM})
-
-
 # Give a feature summary
 include(FeatureSummary)
+feature_summary(FILENAME "${CMAKE_BINARY_DIR}/enabled_features.txt" WHAT ENABLED_FEATURES DESCRIPTION "Enabled features:")
 feature_summary(WHAT ENABLED_FEATURES DESCRIPTION "Enabled features:")
+feature_summary(FILENAME "${CMAKE_BINARY_DIR}/disabled_features.txt" WHAT ENABLED_FEATURES DESCRIPTION "Enabled features:")
 feature_summary(WHAT DISABLED_FEATURES DESCRIPTION "Disabled features:")
+
+
+include(LinphoneSdkPlatform${LINPHONESDK_PLATFORM})
+
 
 if(ENABLE_GPL_THIRD_PARTIES)
 	message(WARNING "

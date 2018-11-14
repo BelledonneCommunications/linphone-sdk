@@ -84,7 +84,6 @@ macro(linphone_sdk_compute_full_version OUTPUT_VERSION)
 			ERROR_QUIET
 			WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 		)
-		message("${OUTPUT_VERSION}: ${${OUTPUT_VERSION}}")
 		if(${OUTPUT_VERSION})
 			execute_process(
 				COMMAND "${GIT_EXECUTABLE}" "describe" "--abbrev=0"
