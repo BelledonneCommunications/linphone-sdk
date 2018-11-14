@@ -39,6 +39,7 @@ execute_process(
 list(GET _archs 0 _first_arch)
 execute_process(
 	COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "linphone-sdk/${_first_arch}-apple-darwin.ios/Frameworks" "linphone-sdk/apple-darwin/Frameworks"
+	COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "linphone-sdk/${_first_arch}-apple-darwin.ios/share/liblinphone_tester" "linphone-sdk/apple-darwin/Resources/liblinphone_tester"
 	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 )
 file(GLOB _frameworks "linphone-sdk/${_first_arch}-apple-darwin.ios/Frameworks/*.framework")
