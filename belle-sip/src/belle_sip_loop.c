@@ -263,7 +263,11 @@ struct belle_sip_main_loop{
 #endif
 };
 
-void belle_sip_main_loop_remove_source(belle_sip_main_loop_t *ml, belle_sip_source_t *source){
+static void belle_sip_main_loop_remove_source_internal(
+	belle_sip_main_loop_t *ml,
+	belle_sip_source_t *source,
+	bool_t destroy_timer_sources
+) {
 	int unrefs = 0;
 	if (source->node.next || source->node.prev || &source->node==ml->fd_sources)  {
 		ml->fd_sources=belle_sip_list_remove_link(ml->fd_sources,&source->node);
@@ -271,7 +275,8 @@ void belle_sip_main_loop_remove_source(belle_sip_main_loop_t *ml, belle_sip_sour
 	}
 	if (source->it) {
 		bctbx_mutex_lock(&ml->timer_sources_mutex);
-		bctbx_map_erase(ml->timer_sources, source->it);
+		if (destroy_timer_sources)
+			bctbx_map_erase(ml->timer_sources, source->it);
 		bctbx_iterator_delete(source->it);
 		bctbx_mutex_unlock(&ml->timer_sources_mutex);
 
@@ -291,14 +296,33 @@ void belle_sip_main_loop_remove_source(belle_sip_main_loop_t *ml, belle_sip_sour
 	}
 }
 
+void belle_sip_main_loop_remove_source(belle_sip_main_loop_t *ml, belle_sip_source_t *source) {
+	belle_sip_main_loop_remove_source_internal(ml, source, TRUE);
+}
 
 static void belle_sip_main_loop_destroy(belle_sip_main_loop_t *ml){
+	bctbx_iterator_t *it = bctbx_map_ullong_begin(ml->timer_sources);
+	bctbx_iterator_t *end = bctbx_map_ullong_end(ml->timer_sources);
+
+	while (!bctbx_iterator_ullong_equals(it, end)) {
+		belle_sip_main_loop_remove_source_internal(
+			ml,
+			(belle_sip_source_t *)bctbx_pair_ullong_get_second(bctbx_iterator_ullong_get_pair(it)),
+			FALSE
+		);
+		it = bctbx_iterator_ullong_get_next(it);
+	}
+
+	bctbx_iterator_ullong_delete(it);
+	bctbx_iterator_ullong_delete(end);
+
 	while (ml->fd_sources){
 		belle_sip_main_loop_remove_source(ml,(belle_sip_source_t*)ml->fd_sources->data);
 	}
 	if (belle_sip_object_pool_cleanable(ml->pool)){
 		belle_sip_object_unref(ml->pool);
 	}
+
 	bctbx_mmap_ullong_delete(ml->timer_sources);
 	bctbx_mutex_destroy(&ml->timer_sources_mutex);
 
