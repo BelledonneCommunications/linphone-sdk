@@ -54,6 +54,7 @@ void mediastreamer2_tester_init(void(*ftester_printf)(int level, const char *fmt
 	bc_tester_add_suite(&audio_stream_test_suite);
 #ifdef VIDEO_ENABLED
 	bc_tester_add_suite(&video_stream_test_suite);
+	bc_tester_add_suite(&h26x_tools_test_suite);
 #endif
 #ifdef QRCODE_ENABLED
 	bc_tester_add_suite(&qrcode_test_suite);
@@ -68,7 +69,6 @@ void mediastreamer2_tester_init(void(*ftester_printf)(int level, const char *fmt
 	bc_tester_add_suite(&codec_impl_test_suite);
 	bc_tester_add_suite(&jitterbuffer_test_suite);
 #endif
-	bc_tester_add_suite(&h26x_tools_test_suite);
 }
 
 void mediastreamer2_tester_uninit(void) {
