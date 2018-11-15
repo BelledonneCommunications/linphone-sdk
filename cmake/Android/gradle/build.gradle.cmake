@@ -142,7 +142,7 @@ task sdkZip(type: Zip) {
 
 task copyAssets(type: Sync) {
     from rootSdk
-    into "${buildDir}/sdk-assets/assets/org.linphone.sdk"
+    into "${buildDir}/sdk-assets/assets/org.linphone.core"
     include '**/*.png'
     include '**/*.pem'
     include '**/*.mkv'
