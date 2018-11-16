@@ -41,7 +41,7 @@
 		#define BCTBX_DISABLE_UBSAN
 	#endif // __has_attribute(no_sanitize)
 #elif defined(__GNUC__) && !defined(__MINGW32__) && GCC_VERSION >= 40900
-	#define BCTBX_DISABLE_UBSAN __attribute__((no_sanitize("undefined")))
+	#define BCTBX_DISABLE_UBSAN __attribute__((no_sanitize_undefined))
 #else
 	#define BCTBX_DISABLE_UBSAN
 #endif // ifdef __has_attribute
