@@ -18,8 +18,6 @@
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#include <iostream>
-
 #include "lime/lime_ffi.h"
 #include "lime/lime.hpp"
 #include "lime_log.hpp"
@@ -226,8 +224,8 @@ int lime_ffi_encryptOutBuffersMaximumSize(const size_t plainMessageSize, const e
 	*cipherMessageSize = plainMessageSize + lime::settings::DRMessageAuthTagSize;
 
 	/* DRmessage maximum size is :
-	 * DRmessage header size + X3DH init size + plain message size + auth tag size */
-	*DRmessageSize = plainMessageSize + lime::settings::DRMessageAuthTagSize;
+	 * DRmessage header size + X3DH init size + MAX(plain message size, RandomSeed Size) + auth tag size */
+	*DRmessageSize = std::max(plainMessageSize, lime::settings::DRrandomSeedSize) + lime::settings::DRMessageAuthTagSize;
 
 	switch (curve) {
 		case lime_ffi_CurveId_c25519:
