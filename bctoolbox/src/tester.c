@@ -512,7 +512,7 @@ int start_sub_process(const char *suite_name) {
 			argv[argc++] = origin_argv[i];
 		} else if (strcmp(origin_argv[i], "--log-file") == 0) {
 			//Create a specific log file for this suite
-			argv[argc++] = origin_argv[i];
+			argv[argc++] = origin_argv[i++];
 			argv[argc++] = get_logfile_name(log_file_name, suite_name);
 		} else if (strcmp(origin_argv[i], "--xml-file") == 0) {
 			argv[argc++] = origin_argv[i];
