@@ -144,10 +144,6 @@ if(ENABLE_STATIC)
 	list(APPEND BCTOOLBOX_CPPFLAGS "-DBCTBX_STATIC")
 endif()
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
-set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/config.h PROPERTIES GENERATED ON)
-add_definitions("-DHAVE_CONFIG_H")
-
 bc_init_compilation_flags(STRICT_OPTIONS_CPP STRICT_OPTIONS_C STRICT_OPTIONS_CXX ENABLE_STRICT)
 if(CMAKE_VERSION VERSION_LESS 3.1 AND NOT APPLE AND NOT MSVC)
 	list(APPEND STRICT_OPTIONS_CXX "-std=c++11")
@@ -162,6 +158,10 @@ endif()
 check_library_exists("rt" "clock_gettime" "" HAVE_LIBRT)
 check_library_exists("dl" "dladdr" "" HAVE_LIBDL)
 check_include_file("execinfo.h" HAVE_EXECINFO)
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
+set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/config.h PROPERTIES GENERATED ON)
+add_definitions("-DHAVE_CONFIG_H")
 
 add_subdirectory(include)
 add_subdirectory(src)
