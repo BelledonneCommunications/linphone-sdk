@@ -23,6 +23,8 @@
 #include "register_tester.h"
 
 
+const int RANDOM_PORT = -1;
+
 const char *test_domain="sip2.linphone.org";
 const char *auth_domain="sip.linphone.org";
 const char *client_auth_domain="client.example.org";
@@ -32,7 +34,8 @@ const char *no_response_here="sip:78.220.48.77:3;transport=%s";
 const char *test_domain_tls_to_tcp="sip:sip2.linphone.org:5060;transport=tls";
 const char *test_http_proxy_addr="sip.linphone.org";
 const char *test_with_wrong_cname="sips:rototo.com;maddr=91.121.209.194";
-int test_http_proxy_port = 3128 ;
+int test_http_proxy_port = 3128;
+
 
 static int is_register_ok;
 static int number_of_challenge;
@@ -276,12 +279,12 @@ int register_before_all(void) {
 	
 	belle_sip_tester_set_dns_host_file(stack);
 
-	lp = belle_sip_stack_create_listening_point(stack, "0.0.0.0", 7060, "UDP");
+	lp = belle_sip_stack_create_listening_point(stack, "0.0.0.0", RANDOM_PORT, "UDP");
 	prov = belle_sip_stack_create_provider(stack, lp);
 
-	lp = belle_sip_stack_create_listening_point(stack, "0.0.0.0", 7060, "TCP");
+	lp = belle_sip_stack_create_listening_point(stack, "0.0.0.0", RANDOM_PORT, "TCP");
 	belle_sip_provider_add_listening_point(prov, lp);
-	lp = belle_sip_stack_create_listening_point(stack, "0.0.0.0", 7061, "TLS");
+	lp = belle_sip_stack_create_listening_point(stack, "0.0.0.0", RANDOM_PORT, "TLS");
 	if (lp) {
 		belle_tls_crypto_config_t *crypto_config = belle_tls_crypto_config_new();
 
