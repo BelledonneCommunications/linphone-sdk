@@ -68,7 +68,7 @@ Options
 - `ENABLE_Curve25519`             : Enable support of Curve 25519.
 - `ENABLE_Curve448`               : Enable support of Curve 448.
 - `ENABLE_PROFILING`              : Enable code profiling for GCC
-- `ENABLE_C_INTERFACE`            : Enable support of C89 function foreign interface
+- `ENABLE_C_INTERFACE`            : Enable support of C89 foreign function interface
 
 ------------------
 

@@ -37,7 +37,7 @@ option(ENABLE_CURVE25519 "Enable support of Curve 25519." YES)
 option(ENABLE_CURVE448 "Enable support of Curve 448(goldilock)." YES)
 option(ENABLE_UNIT_TESTS "Enable compilation of unit tests." YES)
 option(ENABLE_PROFILING "Enable profiling, GCC only" NO)
-option(ENABLE_C_INTERFACE "Enable support of C function foreign interface" NO)
+option(ENABLE_C_INTERFACE "Enable support of C89 foreign function interface" NO)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 

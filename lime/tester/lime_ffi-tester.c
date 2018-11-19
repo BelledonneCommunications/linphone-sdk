@@ -1,5 +1,5 @@
 /**
-	@file lime_ffi-tester.cpp
+	@file lime_ffi-tester.c
 
 	@author Johan Pascal
 
@@ -18,12 +18,28 @@
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-	@note: this file is compliant with c89 but the belle-sip.h include is not...
+	@note: this file is compliant with c89 but the belle-sip.h header is not so flag is set to c99.
 */
 
 #include <bctoolbox/tester.h>
+/* Variable defined to get the arguments of the test command line,
+ * they are duplicate of pre-existing C++ buffers defined in lime_tester-utils.cpp
+ * but it is easier to implement this way as code is more readable
+ *
+ * They are defined outside the test on FFI_ENABLE to avoid crippling the lime-tester.cpp code with ifdef
+ * So they are set even if the FFI is not enabled
+ */
+
+/* default url and ports of X3DH servers, buffers have fixed length that shall be enough for usage*/
+char ffi_test_x3dh_server_url[512] = "localhost";
+char ffi_test_x3dh_c25519_server_port[16] = "25519";
+char ffi_test_x3dh_c448_server_port[16] = "25520";
+
+/* default value for the timeout */
+int ffi_wait_for_timeout=4000;
 
 #ifdef FFI_ENABLED
+extern uint8_t ffi_cleanDatabase;
 
 #include "lime/lime_ffi.h"
 #include <belle-sip/belle-sip.h>
@@ -70,10 +86,13 @@ static int success_counter;
 static int failure_counter;
 
 /* message */
-const char message_pattern[] = "I have come here to chew bubble gum and kick ass, and I'm all out of bubble gum.";
+static const char *message_pattern[] = {
+	"I have come here to chew bubble gum and kick ass, and I'm all out of bubble gum.",
+	"short message"
+};
 
 /* wait for a counter to reach a value or timeout to occur, gives ticks to the belle-sip stack every SLEEP_TIME */
-int wait_for(belle_sip_stack_t*s1,int* counter,int value,int timeout) {
+static int wait_for(belle_sip_stack_t*s1,int* counter,int value,int timeout) {
 	int retry=0;
 #define SLEEP_TIME 50
 	while (*counter!=value && retry++ <(timeout/SLEEP_TIME)) {
@@ -84,7 +103,6 @@ int wait_for(belle_sip_stack_t*s1,int* counter,int value,int timeout) {
 }
 
 /* default value for the timeout */
-static const int ffi_wait_for_timeout=4000;
 static const int ffi_defaultInitialOPkBatchSize=5;
 
 /* get random names for devices */
@@ -93,7 +111,7 @@ static const char ffi_charset[] =
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
         "abcdefghijklmnopqrstuvwxyz";
 
-char *makeRandomDeviceName(const char *basename) {
+static char *makeRandomDeviceName(const char *basename) {
 	char *ret = malloc(strlen(basename)+7);
 	size_t i;
 	strcpy(ret, basename);
@@ -211,7 +229,7 @@ static void X3DHServerPost(void *userData, lime_ffi_data_t limeData, const char 
  * - when no user data is passed: just increase the success or failure global counter(we are doing a create/delete user)
  * - when user data is set: we are doing an encryption and it holds pointers to retrieve the encryption output
  */
-static void statusCallback(void *userData, const enum lime_ffi_CallbackReturn status, const char *message) {
+static void statusCallbackPostMessage(void *userData, const enum lime_ffi_CallbackReturn status, const char *message) {
 	if (status == lime_ffi_CallbackReturn_success) {
 		success_counter++;
 		/* if we have user data we're calling back from encrypt (real code shall use two different callback functions) */
@@ -245,17 +263,32 @@ static void statusCallback(void *userData, const enum lime_ffi_CallbackReturn st
 		failure_counter++;
 	}
 }
- /* Basic usage scenario
+
+/* the status callback :
+ * just increase the success or failure global counter(we are doing a create/delete user)
+ */
+static void statusCallback(void *userData, const enum lime_ffi_CallbackReturn status, const char *message) {
+	if (status == lime_ffi_CallbackReturn_success) {
+		success_counter++;
+	} else {
+		bctbx_error("status callback got a fail: %s", message);
+		failure_counter++;
+	}
+}
+
+ /* Test scenario
  * - Alice and Bob register themselves on X3DH server(use randomized device Ids to allow test server to run several test in parallel)
- * - Alice encrypt a message for Bob (this will fetch Bob's key from server)
- * - Bob decrypt alice message
+ * - Alice and Bob exchange their public Identity Keys and set them as trusted in their local storage
+ * - Alice encrypt a message for Bob (this will fetch Bob's key from server). Encryption peerStatus reflect the fact that bob's device is trusted
+ * - Bob decrypt alice message, decryption return status reflect the fact that Alice is trusted
+ * - Delete Alice and Bob devices
  *
  *   @param[in] curve		Lime can run with cryptographic operations based on curve25519 or curve448, set by this parameter in this test.
  *   				One X3DH server runs on one type of key and all clients must use the same
  *   @param[in]	dbBaseFilename	The local filename for users will be this base.<alice/bob>.<curve type>.sqlite3
  *   @param[x3dh_server_url]	The URL (including port) of the X3DH server
  */
-static void ffi_helloworld_basic_test(const enum lime_ffi_CurveId curve, const char *dbBaseFilename, const char *x3dh_server_url) {
+static void ffi_helloworld_test(const enum lime_ffi_CurveId curve, const char *dbBaseFilename, const char *x3dh_server_url) {
 	/* users databases names: baseFilename.<alice/bob>.<curve id>.sqlite3 */
 	char dbFilenameAlice[512];
 	char dbFilenameBob[512];
@@ -340,7 +373,7 @@ static void ffi_helloworld_basic_test(const enum lime_ffi_CurveId curve, const c
 	size_t DRmessageSize = 0;
 	size_t cipherMessageSize = 0;
 	/* get maximum buffer size. The returned values are maximum and both won't be reached at the same time */
-	size_t message_patternSize = strlen(message_pattern)+1; /* get the NULL termination char too */
+	size_t message_patternSize = strlen(message_pattern[0])+1; /* get the NULL termination char too */
 	lime_ffi_encryptOutBuffersMaximumSize(message_patternSize, curve, &DRmessageSize, &cipherMessageSize);
 
 	/* these buffer must be allocated and not local variables as we must be able to retrieve it from the callback which would be out of the scope of this function */
@@ -362,7 +395,7 @@ static void ffi_helloworld_basic_test(const enum lime_ffi_CurveId curve, const c
 	userData->cipherMessageSize = cipherMessageSize;
 
 	/* encrypt, the plain message here is char * but passed as a uint8_t *, it can hold any binary content(including '\0') its size is given by a separate parameter */
-	BC_ASSERT_EQUAL(lime_ffi_encrypt(aliceManager, aliceDeviceId, "bob", recipients, 1, (const uint8_t *const)message_pattern, message_patternSize, cipherMessage, &cipherMessageSize, statusCallback, userData, lime_ffi_EncryptionPolicy_cipherMessage), LIME_FFI_SUCCESS, int, "%d");
+	BC_ASSERT_EQUAL(lime_ffi_encrypt(aliceManager, aliceDeviceId, "bob", recipients, 1, (const uint8_t *const)message_pattern[0], message_patternSize, cipherMessage, &cipherMessageSize, statusCallbackPostMessage, userData, lime_ffi_EncryptionPolicy_cipherMessage), LIME_FFI_SUCCESS, int, "%d");
 
 	/* in real sending situation, the local instance of pointers are destroyed by exiting the function where they've been declared
 	 * and where we called the encrypt function. (The lime_ffi_manager_t shall instead never be destroyed until the application terminates)
@@ -407,7 +440,7 @@ static void ffi_helloworld_basic_test(const enum lime_ffi_CurveId curve, const c
 
 		/* check we got the original message back */
 		BC_ASSERT_EQUAL(message_patternSize, decryptedMessageSize, int, "%d");
-		BC_ASSERT_TRUE(strncmp(message_pattern, (char *)decryptedMessage, (message_patternSize<decryptedMessageSize)?message_patternSize:decryptedMessageSize)==0);
+		BC_ASSERT_TRUE(strncmp(message_pattern[0], (char *)decryptedMessage, (message_patternSize<decryptedMessageSize)?message_patternSize:decryptedMessageSize)==0);
 
 		free(decryptedMessage);
 	} else { /* we didn't got any message for Bob */
@@ -437,11 +470,14 @@ static void ffi_helloworld_basic_test(const enum lime_ffi_CurveId curve, const c
 	/******* end of Users maintenance ****************************/
 
 	/******* cleaning                   *************************/
-	/* delete users */
-	lime_ffi_delete_user(aliceManager, aliceDeviceId, statusCallback, NULL);
-	lime_ffi_delete_user(bobManager, bobDeviceId, statusCallback, NULL);
-	expected_success += 2;
-	BC_ASSERT_TRUE(wait_for(stack, &success_counter, expected_success, ffi_wait_for_timeout));
+	if (ffi_cleanDatabase != 0) {
+		lime_ffi_delete_user(aliceManager, aliceDeviceId, statusCallback, NULL);
+		lime_ffi_delete_user(bobManager, bobDeviceId, statusCallback, NULL);
+		expected_success += 2;
+		BC_ASSERT_TRUE(wait_for(stack, &success_counter, expected_success, ffi_wait_for_timeout));
+		remove(dbFilenameAlice);
+		remove(dbFilenameBob);
+	}
 
 	lime_ffi_manager_destroy(aliceManager);
 	lime_ffi_manager_destroy(bobManager);
@@ -450,23 +486,298 @@ static void ffi_helloworld_basic_test(const enum lime_ffi_CurveId curve, const c
 	free(bobDeviceId);
 }
 
-static void ffi_helloworld_basic(void) {
-	/* TODO: get the server and port from command line arguments */
-	char serverURL[512];
-	sprintf(serverURL, "https://%s:%s", "localhost", "25519");
+static void ffi_helloworld(void) {
+	char serverURL[1024];
+	sprintf(serverURL, "https://%s:%s", ffi_test_x3dh_server_url, ffi_test_x3dh_c25519_server_port);
 	/* run the test on Curve25519 and Curve448 based encryption if available */
 #ifdef EC25519_ENABLED
-	ffi_helloworld_basic_test(lime_ffi_CurveId_c25519, "ffi_helloworld_basic", serverURL);
+	ffi_helloworld_test(lime_ffi_CurveId_c25519, "ffi_helloworld", serverURL);
 #endif
 #ifdef EC448_ENABLED
-	sprintf(serverURL, "https://%s:%s", "localhost", "25520");
-	ffi_helloworld_basic_test(lime_ffi_CurveId_c448, "ffi_helloworld_basic", serverURL);
+	sprintf(serverURL, "https://%s:%s", ffi_test_x3dh_server_url, ffi_test_x3dh_c448_server_port);
+	ffi_helloworld_test(lime_ffi_CurveId_c448, "ffi_helloworld", serverURL);
+#endif
+}
+
+/* This function will destroy and recreate manager given in parameter, force deleting all internal cache and start back from what is in local Storage */
+static void managerClean(lime_manager_t *manager, char *db) {
+	lime_ffi_manager_destroy(*manager);
+	lime_ffi_manager_init(manager, db, X3DHServerPost, NULL);
+}
+
+/*
+ * Allocate and set values of the lime_ffi_RecipientData_t structure
+ *
+ * @param[in]	DRmessageSize	size of the DRmessage to be allocated in the RecipientData structure
+ * @param[in]	deviceIds	array of null terminated strings holding the recipients peer devices Id
+ * @param[in]	deviceIdsSize	number of peer devices to encrypt to
+ *
+ * @return	the structure to be passed to encrypt
+ */
+static lime_ffi_RecipientData_t *allocatedRecipientBuffers(size_t DRmessageSize, char **deviceIds, size_t deviceIdsSize) {
+	size_t i=0;
+
+	lime_ffi_RecipientData_t *recipients = malloc (deviceIdsSize*sizeof(lime_ffi_RecipientData_t));
+
+	for (i=0; i<deviceIdsSize; i++) {
+		recipients[i].deviceId = malloc(strlen(deviceIds[i])+1);
+		strcpy(recipients[i].deviceId, deviceIds[i]);
+		recipients[i].peerStatus = lime_ffi_PeerDeviceStatus_unknown; /* be sure this value is not lime_ffi_PeerDeviceStatus_fail or this device will be ignored */
+		recipients[i].DRmessage = malloc(DRmessageSize);
+		recipients[i].DRmessageSize = DRmessageSize;
+	}
+	return recipients;
+}
+
+/**
+ * free the recipients buffers
+ */
+static void freeRecipientBuffers(lime_ffi_RecipientData_t *recipients, size_t recipientsSize) {
+	size_t i=0;
+	for (i=0; i<recipientsSize; i++) {
+		free(recipients[i].deviceId);
+		free(recipients[i].DRmessage);
+	}
+	free(recipients);
+}
+/* Scenario
+ * - create alice.d1, bob.d1 and bob.d2
+ * - alice send 2 messages to Bob
+ * - bob decrypt
+ * - alice delete bob.d1 from known peers
+ * - alice send a message to Bob
+ *
+ * if continuousSession is set to false, delete and recreate LimeManager before each new operation to force relying on local Storage
+ */
+static void ffi_basic_test(const enum lime_ffi_CurveId curve, const char *dbBaseFilename, const char *x3dh_server_url, const uint8_t continuousSession) {
+	/* users databases names: baseFilename.<alice/bob>.<curve id>.sqlite3 */
+	char dbFilenameAlice[512];
+	char dbFilenameBob1[512];
+	char dbFilenameBob2[512];
+	sprintf(dbFilenameAlice, "%s.alice.%s.sqlite3", dbBaseFilename, (curve == lime_ffi_CurveId_c25519)?"C25519":"C448");
+	sprintf(dbFilenameBob1, "%s.bob1.%s.sqlite3", dbBaseFilename, (curve == lime_ffi_CurveId_c25519)?"C25519":"C448");
+	sprintf(dbFilenameBob2, "%s.bob2.%s.sqlite3", dbBaseFilename, (curve == lime_ffi_CurveId_c25519)?"C25519":"C448");
+
+	remove(dbFilenameAlice); /* delete the database file if already exists */
+	remove(dbFilenameBob1); /* delete the database file if already exists */
+	remove(dbFilenameBob2); /* delete the database file if already exists */
+
+	/* reset counters */
+	success_counter = 0;
+	failure_counter = 0;
+	int expected_success=0;
+
+	/* create Random devices names (in case we use a shared test server, devices id shall be the GRUU, X3DH/Lime does not connect user (sip:uri) and device (gruu)
+	 * From Lime perspective, only devices exists and they must be uniquely identifies on the X3DH server.
+	 */
+	char *aliceDeviceId = makeRandomDeviceName("alice.");
+	char *bobDeviceId1 = makeRandomDeviceName("bob.d1.");
+	char *bobDeviceId2 = makeRandomDeviceName("bob.d2.");
+
+	/* create Managers : they will open/create the database given in first parameter, and use the function given in second one to communicate with server.
+	 * Any application using Lime shall create one LimeManager only, even in case of multiple users managed by the application.
+	 */
+	lime_manager_t aliceManager, bobManager1, bobManager2;
+	lime_ffi_manager_init(&aliceManager, dbFilenameAlice, X3DHServerPost, NULL);
+	lime_ffi_manager_init(&bobManager1, dbFilenameBob1, X3DHServerPost, NULL);
+	lime_ffi_manager_init(&bobManager2, dbFilenameBob2, X3DHServerPost, NULL);
+
+	/*** create users ***/
+	lime_ffi_create_user(aliceManager, aliceDeviceId, x3dh_server_url, curve, ffi_defaultInitialOPkBatchSize, statusCallback, NULL);
+	lime_ffi_create_user(bobManager1, bobDeviceId1, x3dh_server_url, curve, ffi_defaultInitialOPkBatchSize, statusCallback, NULL);
+	lime_ffi_create_user(bobManager2, bobDeviceId2, x3dh_server_url, curve, ffi_defaultInitialOPkBatchSize, statusCallback, NULL);
+	expected_success +=3;
+	BC_ASSERT_TRUE(wait_for(stack, &success_counter, expected_success, ffi_wait_for_timeout));
+
+
+	/* respawn managers from cache if requested */
+	if (!continuousSession) {
+		managerClean(&aliceManager, dbFilenameAlice);
+		managerClean(&bobManager1, dbFilenameBob1);
+		managerClean(&bobManager2, dbFilenameBob2);
+	}
+
+
+	/*** encrypt 2 messages to Bob at the same time, do not wait for one to be finished to encrypt the second one ***/
+	/*  prepare the data: alloc memory for the recipients data */
+	size_t DRmessageSize = 0;
+	size_t cipherMessageSize1 = 0;
+	/* get maximum buffer size. The returned values are maximum and both won't be reached at the same time */
+	size_t message_patternSize1 = strlen(message_pattern[0])+1; /* get the NULL termination char too */
+	lime_ffi_encryptOutBuffersMaximumSize(message_patternSize1, curve, &DRmessageSize, &cipherMessageSize1);
+	char *recipientsDeviceId[] = {bobDeviceId1, bobDeviceId2};
+	/* allocate recipient data buffer */
+	lime_ffi_RecipientData_t *recipients1 = allocatedRecipientBuffers(DRmessageSize, recipientsDeviceId, 2);
+	uint8_t *cipherMessage1 = malloc(cipherMessageSize1);
+
+	/* same thing for the second message */
+	size_t cipherMessageSize2 = 0;
+	size_t message_patternSize2 = strlen(message_pattern[1])+1; /* get the NULL termination char too */
+	lime_ffi_encryptOutBuffersMaximumSize(message_patternSize2, curve, &DRmessageSize, &cipherMessageSize2);
+	/* allocate recipient data buffer */
+	lime_ffi_RecipientData_t *recipients2 = allocatedRecipientBuffers(DRmessageSize, recipientsDeviceId, 2);
+	uint8_t *cipherMessage2 = malloc(cipherMessageSize2);
+
+	/* here we do not need user data for the status callback as we get directly the output buffer in the same function */
+	BC_ASSERT_EQUAL(lime_ffi_encrypt(aliceManager, aliceDeviceId, "bob", recipients1, 2, (const uint8_t *const)message_pattern[0], message_patternSize1, cipherMessage1, &cipherMessageSize1, statusCallback, NULL, lime_ffi_EncryptionPolicy_DRMessage), LIME_FFI_SUCCESS, int, "%d");
+	BC_ASSERT_EQUAL(lime_ffi_encrypt(aliceManager, aliceDeviceId, "bob", recipients2, 2, (const uint8_t *const)message_pattern[1], message_patternSize2, cipherMessage2, &cipherMessageSize2, statusCallback, NULL, lime_ffi_EncryptionPolicy_cipherMessage), LIME_FFI_SUCCESS, int, "%d");
+
+	expected_success +=2;
+	BC_ASSERT_TRUE(wait_for(stack, &success_counter, expected_success, ffi_wait_for_timeout));
+
+	/* check peer status output, they shall both be set to unknown */
+	BC_ASSERT_EQUAL(recipients1[0].peerStatus, lime_ffi_PeerDeviceStatus_unknown, int, "%d" );
+	BC_ASSERT_EQUAL(recipients1[1].peerStatus, lime_ffi_PeerDeviceStatus_unknown, int, "%d" );
+	/* the second encrypts needs access to sessions created by the first one (as they have the same recipients
+	 * so it is put in queue waiting for the first one to complete
+	 * recipients are thus no more unknown but untrusted */
+	BC_ASSERT_EQUAL(recipients2[0].peerStatus, lime_ffi_PeerDeviceStatus_untrusted, int, "%d" );
+	BC_ASSERT_EQUAL(recipients2[1].peerStatus, lime_ffi_PeerDeviceStatus_untrusted, int, "%d" );
+
+
+	/* respawn managers from cache if requested */
+	if (!continuousSession) {
+		managerClean(&aliceManager, dbFilenameAlice);
+		managerClean(&bobManager1, dbFilenameBob1);
+		managerClean(&bobManager2, dbFilenameBob2);
+	}
+
+
+	/***
+	 * Bob devices decrypt the messages.
+	 *
+	 * DRmessages and Cipher Message are directly sent to bob by sharing the output buffer in the same function,
+	 * hello world test is more realistic as it simulates a network transmission
+	 */
+	/* Bob device 1 decrypts first message */
+	size_t decryptedMessageSize = (cipherMessageSize1>recipients1[0].DRmessageSize)?cipherMessageSize1:recipients1[0].DRmessageSize; /* actual ciphered message is either in cipherMessage or DRmessage, just allocated a buffer the size of the largest one of the two.*/
+	uint8_t *decryptedMessage = malloc(decryptedMessageSize);
+	BC_ASSERT_TRUE(lime_ffi_decrypt(bobManager1, bobDeviceId1, "bob", aliceDeviceId, recipients1[0].DRmessage, recipients1[0].DRmessageSize, cipherMessage1, cipherMessageSize1, decryptedMessage, &decryptedMessageSize) == lime_ffi_PeerDeviceStatus_unknown);
+	/* check we got the original message back */
+	BC_ASSERT_EQUAL(message_patternSize1, decryptedMessageSize, int, "%d");
+	BC_ASSERT_TRUE(strncmp(message_pattern[0], (char *)decryptedMessage, (message_patternSize1<decryptedMessageSize)?message_patternSize1:decryptedMessageSize)==0);
+	free(decryptedMessage);
+
+	/* Bob device 1 decrypts second message */
+	decryptedMessageSize = (cipherMessageSize2>recipients2[0].DRmessageSize)?cipherMessageSize2:recipients2[0].DRmessageSize;
+	decryptedMessage = malloc(decryptedMessageSize);
+	BC_ASSERT_TRUE(lime_ffi_decrypt(bobManager1, bobDeviceId1, "bob", aliceDeviceId, recipients2[0].DRmessage, recipients2[0].DRmessageSize, cipherMessage2, cipherMessageSize2, decryptedMessage, &decryptedMessageSize) == lime_ffi_PeerDeviceStatus_untrusted);
+	/* check we got the original message back */
+	BC_ASSERT_EQUAL(message_patternSize2, decryptedMessageSize, int, "%d");
+	BC_ASSERT_TRUE(strncmp(message_pattern[1], (char *)decryptedMessage, (message_patternSize2<decryptedMessageSize)?message_patternSize2:decryptedMessageSize)==0);
+	free(decryptedMessage);
+
+	/* Bob's device 2 decrypts first the second message and then the first */
+	/* Bob device 2 decrypts second message */
+	decryptedMessageSize = (cipherMessageSize2>recipients2[1].DRmessageSize)?cipherMessageSize2:recipients2[1].DRmessageSize;
+	decryptedMessage = malloc(decryptedMessageSize);
+	BC_ASSERT_TRUE(lime_ffi_decrypt(bobManager2, bobDeviceId2, "bob", aliceDeviceId, recipients2[1].DRmessage, recipients2[1].DRmessageSize, cipherMessage2, cipherMessageSize2, decryptedMessage, &decryptedMessageSize) == lime_ffi_PeerDeviceStatus_unknown);
+	/* check we got the original message back */
+	BC_ASSERT_EQUAL(message_patternSize2, decryptedMessageSize, int, "%d");
+	BC_ASSERT_TRUE(strncmp(message_pattern[1], (char *)decryptedMessage, (message_patternSize2<decryptedMessageSize)?message_patternSize2:decryptedMessageSize)==0);
+	free(decryptedMessage);
+
+	/* Bob device 2 decrypts first message */
+	decryptedMessageSize = (cipherMessageSize1>recipients1[1].DRmessageSize)?cipherMessageSize1:recipients1[1].DRmessageSize;
+	decryptedMessage = malloc(decryptedMessageSize);
+	BC_ASSERT_TRUE(lime_ffi_decrypt(bobManager2, bobDeviceId2, "bob", aliceDeviceId, recipients1[1].DRmessage, recipients1[1].DRmessageSize, cipherMessage1, cipherMessageSize1, decryptedMessage, &decryptedMessageSize) == lime_ffi_PeerDeviceStatus_untrusted);
+	/* check we got the original message back */
+	BC_ASSERT_EQUAL(message_patternSize1, decryptedMessageSize, int, "%d");
+	BC_ASSERT_TRUE(strncmp(message_pattern[0], (char *)decryptedMessage, (message_patternSize1<decryptedMessageSize)?message_patternSize1:decryptedMessageSize)==0);
+	free(decryptedMessage);
+
+	/* free buffers */
+	freeRecipientBuffers(recipients1, 2);
+	freeRecipientBuffers(recipients2, 2);
+	free(cipherMessage1);
+	free(cipherMessage2);
+
+
+	/* respawn managers from cache if requested */
+	if (!continuousSession) {
+		managerClean(&aliceManager, dbFilenameAlice);
+		managerClean(&bobManager1, dbFilenameBob1);
+		managerClean(&bobManager2, dbFilenameBob2);
+	}
+
+
+	/*** alice delete bob's device 1 from known peers ***/
+	BC_ASSERT_EQUAL(lime_ffi_delete_peerDevice(aliceManager, bobDeviceId1),  LIME_FFI_SUCCESS, int, "%d");
+
+	/*** check it worked ***/
+	BC_ASSERT_EQUAL(lime_ffi_get_peerDeviceStatus(aliceManager, bobDeviceId1),  lime_ffi_PeerDeviceStatus_unknown, int, "%d");
+
+	/*** Encrypt again to bob's device 1 and 2 to check the status is back to unknown on the first one */
+	DRmessageSize = 0;
+	cipherMessageSize1 = 0;
+	/* get maximum buffer size. The returned values are maximum and both won't be reached at the same time */
+	message_patternSize1 = strlen(message_pattern[0])+1; /* get the NULL termination char too */
+	lime_ffi_encryptOutBuffersMaximumSize(message_patternSize1, curve, &DRmessageSize, &cipherMessageSize1);
+	/* allocate recipient data buffer */
+	recipients1 = allocatedRecipientBuffers(DRmessageSize, recipientsDeviceId, 2);
+	cipherMessage1 = malloc(cipherMessageSize1);
+
+	BC_ASSERT_EQUAL(lime_ffi_encrypt(aliceManager, aliceDeviceId, "bob", recipients1, 2, (const uint8_t *const)message_pattern[0], message_patternSize1, cipherMessage1, &cipherMessageSize1, statusCallback, NULL, lime_ffi_EncryptionPolicy_DRMessage), LIME_FFI_SUCCESS, int, "%d");
+	BC_ASSERT_TRUE(wait_for(stack, &success_counter, ++expected_success, ffi_wait_for_timeout));
+	/* check peer status output, they shall both be set to unknown */
+	BC_ASSERT_EQUAL(recipients1[0].peerStatus, lime_ffi_PeerDeviceStatus_unknown, int, "%d" );
+	BC_ASSERT_EQUAL(recipients1[1].peerStatus, lime_ffi_PeerDeviceStatus_untrusted, int, "%d" );
+
+	/* free buffers */
+	freeRecipientBuffers(recipients1, 2);
+	free(cipherMessage1);
+
+
+	/* respawn managers from cache if requested */
+	if (!continuousSession) {
+		managerClean(&aliceManager, dbFilenameAlice);
+		managerClean(&bobManager1, dbFilenameBob1);
+		managerClean(&bobManager2, dbFilenameBob2);
+	}
+
+
+	/******* cleaning                   *************************/
+	if (ffi_cleanDatabase != 0) {
+		lime_ffi_delete_user(aliceManager, aliceDeviceId, statusCallback, NULL);
+		lime_ffi_delete_user(bobManager1, bobDeviceId1, statusCallback, NULL);
+		lime_ffi_delete_user(bobManager2, bobDeviceId2, statusCallback, NULL);
+		expected_success += 3;
+		BC_ASSERT_TRUE(wait_for(stack, &success_counter, expected_success, ffi_wait_for_timeout));
+		remove(dbFilenameAlice);
+		remove(dbFilenameBob1);
+		remove(dbFilenameBob2);
+	}
+
+	lime_ffi_manager_destroy(aliceManager);
+	lime_ffi_manager_destroy(bobManager1);
+	lime_ffi_manager_destroy(bobManager2);
+
+	free(aliceDeviceId);
+	free(bobDeviceId1);
+	free(bobDeviceId2);
+}
+
+
+static void ffi_basic(void) {
+	char serverURL[1024];
+	sprintf(serverURL, "https://%s:%s", ffi_test_x3dh_server_url, ffi_test_x3dh_c25519_server_port);
+	/* run the test on Curve25519 and Curve448 based encryption if available */
+#ifdef EC25519_ENABLED
+	ffi_basic_test(lime_ffi_CurveId_c25519, "ffi_basic", serverURL, 1);
+	ffi_basic_test(lime_ffi_CurveId_c25519, "ffi_basic", serverURL, 0);
+#endif
+#ifdef EC448_ENABLED
+	sprintf(serverURL, "https://%s:%s", ffi_test_x3dh_server_url, ffi_test_x3dh_c448_server_port);
+	ffi_basic_test(lime_ffi_CurveId_c448, "ffi_basic", serverURL, 1);
+	ffi_basic_test(lime_ffi_CurveId_c448, "ffi_basic", serverURL, 0);
 #endif
 }
 
 
+
 static test_t tests[] = {
-	TEST_NO_TAG("FFI Hello World", ffi_helloworld_basic),
+	TEST_NO_TAG("FFI Hello World", ffi_helloworld),
+	TEST_NO_TAG("FFI Basic", ffi_basic)
 };
 
 test_suite_t lime_ffi_test_suite = {

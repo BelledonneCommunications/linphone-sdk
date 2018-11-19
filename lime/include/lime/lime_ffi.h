@@ -144,6 +144,7 @@ typedef void (*lime_ffi_X3DHServerPostData)(void *userData, lime_ffi_data_t lime
  * @param[in]	response	binary buffered server response
  * @param[in]	response_size	size of previous buffer
  *
+ * @return LIME_FFI_SUCCESS or a negative error code
  */
 int lime_ffi_processX3DHServerResponse(lime_ffi_data_t limeData, const int code, const uint8_t *response, const size_t response_size);
 
@@ -154,6 +155,8 @@ int lime_ffi_processX3DHServerResponse(lime_ffi_data_t limeData, const int code,
  * @param[in]	db		string used to access DB (shall be filename for sqlite3), directly forwarded to SOCI session opening
  * @param[in]	X3DH_post_data	A function to send data to the X3DH server. The server response must be forwarded to lime using the lime_ffi_processX3DHServerResponse function
  * @param[in]	userData	pointer passed back to the X3DH_post_data callback
+ *
+ * @return LIME_FFI_SUCCESS or a negative error code
  */
 int lime_ffi_manager_init(lime_manager_t * const manager, const char *db, const lime_ffi_X3DHServerPostData X3DH_post_data, void *userData);
 
@@ -161,6 +164,8 @@ int lime_ffi_manager_init(lime_manager_t * const manager, const char *db, const 
  * @brief Destroy the internal structure used to interact with lime
  *
  * @param[in,out]	manager		pointer to the opaque structure used to interact with lime
+ *
+ * @return LIME_FFI_SUCCESS or a negative error code
  */
 int lime_ffi_manager_destroy(lime_manager_t manager);
 
@@ -177,6 +182,7 @@ int lime_ffi_manager_destroy(lime_manager_t manager);
  * 					this callback will be called giving the exit status and an error message in case of failure
  * @param[in]	callbackUserData	this pointer will be forwarded to the callback as first parameter
  *
+ * @return LIME_FFI_SUCCESS or a negative error code
  */
 int lime_ffi_create_user(lime_manager_t manager, const char *localDeviceId,
 		const char *x3dhServerUrl, const enum lime_ffi_CurveId curve, const uint16_t OPkInitialBatchSize,
@@ -193,6 +199,7 @@ int lime_ffi_create_user(lime_manager_t manager, const char *localDeviceId,
  * 				this callback will be called giving the exit status and an error message in case of failure
  * @param[in]	callbackUserData	this pointer will be forwarded to the callback as first parameter
  *
+ * @return LIME_FFI_SUCCESS or a negative error code
  */
 int lime_ffi_delete_user(lime_manager_t manager, const char *localDeviceId, const lime_ffi_Callback callback, void *callbackUserData);
 
@@ -204,6 +211,8 @@ int lime_ffi_delete_user(lime_manager_t manager, const char *localDeviceId, cons
  * @param[in]	curve			Choice of elliptic curve to use as base for ECDH and EdDSA operation involved. Can be lime_ffi_CurveId_c25519 or lime_ffi_CurveId_c448.
  * @param[out]	DRmessageSize		maximum size of the DRmessage produced by the encrypt function
  * @param[out]	cipherMessageSize	maximum size of the cipherMessage produced by the encrypt function
+ *
+ * @return LIME_FFI_SUCCESS or a negative error code
  */
 int lime_ffi_encryptOutBuffersMaximumSize(const size_t plainMessageSize,  const enum lime_ffi_CurveId curve, size_t *DRmessageSize, size_t *cipherMessageSize);
 
@@ -250,6 +259,8 @@ int lime_ffi_encryptOutBuffersMaximumSize(const size_t plainMessageSize,  const 
  * @param[in]		callbackUserData	this pointer will be forwarded to the callback as first parameter
  * @param[in]		encryptionPolicy	select how to manage the encryption: direct use of Double Ratchet message or encrypt in the cipher message and use the DR message to share the cipher message key
  * 						default is optimized output size mode.
+ *
+ * @return LIME_FFI_SUCCESS or a negative error code
  */
 int lime_ffi_encrypt(lime_manager_t manager, const char *localDeviceId,
 		const char *recipientUserId, lime_ffi_RecipientData_t *const recipients, const size_t recipientsSize,
@@ -298,6 +309,8 @@ enum lime_ffi_PeerDeviceStatus lime_ffi_decrypt(lime_manager_t manager, const ch
  * @param[in]		localDeviceId	used to identify which local account we're dealing with, shall be the GRUU
  * @param[out]		Ik		the EdDSA public identity key, formatted as in RFC8032
  * @param[in,out]	IkSize		size of the previous buffer, updated with the size of data actually written
+ *
+ * @return LIME_FFI_SUCCESS or a negative error code
  */
 int lime_ffi_get_selfIdentityKey(lime_manager_t manager, const char *localDeviceId, uint8_t *const Ik, size_t *IkSize);
 
@@ -330,6 +343,8 @@ int lime_ffi_get_selfIdentityKey(lime_manager_t manager, const char *localDevice
  * -status is unsafe
  *       - ignore Ik
  *       - insert/update the status. If inserted, insert an invalid Ik
+ *
+ * @return LIME_FFI_SUCCESS or a negative error code
  */
 int lime_ffi_set_peerDeviceStatus(lime_manager_t manager, const char *peerDeviceId, const uint8_t *const Ik, const size_t IkSize, enum lime_ffi_PeerDeviceStatus status);
 
@@ -351,6 +366,8 @@ enum lime_ffi_PeerDeviceStatus lime_ffi_get_peerDeviceStatus(lime_manager_t mana
  * @param[in]	peerDeviceId	The device Id to be removed from local storage, shall be its GRUU
  *
  * Call is silently ignored if the device is not found in local storage
+ *
+ * @return LIME_FFI_SUCCESS or a negative error code
  */
 int lime_ffi_delete_peerDevice(lime_manager_t manager, const char *peerDeviceId);
 
@@ -370,6 +387,7 @@ int lime_ffi_delete_peerDevice(lime_manager_t manager, const char *peerDeviceId)
  * @param[in]	OPkServerLowLimit	If server holds less OPk than this limit, generate and upload a batch of OPks
  * @param[in]	OPkBatchSize		Number of OPks in a batch uploaded to server
  *
+ * @return LIME_FFI_SUCCESS or a negative error code
  */
 int lime_ffi_update(lime_manager_t manager,  const lime_ffi_Callback callback, void *callbackUserData, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize);
 
