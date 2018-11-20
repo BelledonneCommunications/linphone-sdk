@@ -43,7 +43,6 @@ Options:
                        key files                        [string] [default: "./"]
   --lifetime, -l       lifetime of a user in seconds, 0 is forever.
                                                          [number] [default: 300]
-  --passwords, -h      the htpassword file        [string] [default: "htpasswd"]
 
 Script
 ------
