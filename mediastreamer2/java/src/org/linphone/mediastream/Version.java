@@ -56,6 +56,8 @@ public class Version {
 	public static final int API24_NOUGAT_70 = 24;
 	public static final int API25_NOUGAT_71 = 25;
 	public static final int API26_O_80 = 26;
+	public static final int API27_OREO_81 = 27;
+	public static final int API28_PIE_90 = 28;
 
 	private static native boolean nativeHasZrtp();
 	private static native boolean nativeHasNeon();
