@@ -1,5 +1,6 @@
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
+  DEFAULT_CMAKE_OPTIONS: -DENABLE_LIME=OFF -DENABLE_LIME_X3DH=ON
 
 
 .linux-ccache:
@@ -25,7 +26,7 @@ variables:
     - sdkmanager
     - mkdir -p build-android
     - cd build-android
-    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS="arm64, armv7, x86, x86_64" $CMAKE_OPTIONS
+    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS="arm64, armv7, x86, x86_64" $DEFAULT_CMAKE_OPTIONS $CMAKE_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     - ccache -s
 
@@ -103,7 +104,7 @@ job-android-ninja-r17c-novideo:
     - ccache -s
     - mkdir -p build-ios
     - cd build-ios
-    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="arm64, armv7, i386, x86_64" $CMAKE_OPTIONS
+    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="arm64, armv7, i386, x86_64" $DEFAULT_CMAKE_OPTIONS $CMAKE_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     - ccache -s
 
@@ -154,7 +155,7 @@ job-ios-xcode:
   script:
     - mkdir -p build-ios
     - cd build-ios
-    - cmake .. -G Xcode -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="arm64, armv7, i386, x86_64" $CMAKE_OPTIONS
+    - cmake .. -G Xcode -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="arm64, armv7, i386, x86_64" $DEFAULT_CMAKE_OPTIONS $CMAKE_OPTIONS
     - cmake --build . --target sdk -- -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=`sysctl -n hw.ncpu`
 
   artifacts:
@@ -177,7 +178,7 @@ job-ios-xcode:
     - ccache -s
     - mkdir -p build-desktop
     - cd build-desktop
-    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop $CMAKE_OPTIONS
+    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop $DEFAULT_CMAKE_OPTIONS $CMAKE_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     - ccache -s
 
@@ -374,7 +375,7 @@ job-debian9-ninja-clang-novideo:
     - ccache -s
     - mkdir -p build-desktop
     - cd build-desktop
-    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9 $CMAKE_OPTIONS
+    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9 $DEFAULT_CMAKE_OPTIONS $CMAKE_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     - ccache -s
 
@@ -414,7 +415,7 @@ job-macosx-xcode:
   script:
     - mkdir -p build-desktop
     - cd build-desktop
-    - cmake .. -G Xcode -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9 $CMAKE_OPTIONS
+    - cmake .. -G Xcode -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9 $DEFAULT_CMAKE_OPTIONS $CMAKE_OPTIONS
     - cmake --build . --target sdk -- -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=`sysctl -n hw.ncpu`
 
 
@@ -425,7 +426,7 @@ job-windows-vs2015:
   script:
     - mkdir build-desktop
     - cd build-desktop
-    - cmake .. -G "Visual Studio 14 2015" -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_BUILD_TYPE=Release %CMAKE_OPTIONS%
+    - cmake .. -G "Visual Studio 14 2015" -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_BUILD_TYPE=Release %DEFAULT_CMAKE_OPTIONS% %CMAKE_OPTIONS%
     - cmake --build . --target sdk --config Release -- /maxcpucount
 
 
