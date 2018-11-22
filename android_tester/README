@@ -1,0 +1,2 @@
+To run all the tests:
+./gradlew connectAndroidTest
