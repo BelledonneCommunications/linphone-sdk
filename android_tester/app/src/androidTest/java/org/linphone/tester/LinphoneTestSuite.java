@@ -1,7 +1,7 @@
 package org.linphone.tester;
 
 /*
- SuitesActivity.java
+ LinphoneTestSuite.java
  Copyright (C) 2018  Belledonne Communications, Grenoble, France
 
  This program is free software; you can redistribute it and/or
@@ -19,29 +19,22 @@ package org.linphone.tester;
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-import android.Manifest;
-import android.app.Activity;
-import android.os.Bundle;
 import java.util.ArrayList;
+import java.util.List;
 
-public class SuitesActivity extends Activity {
+public class LinphoneTestSuite extends Tester {
+    private List<String> mList;
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_suites);
+    protected LinphoneTestSuite() {
+        mList = new ArrayList<>();
     }
 
-    @Override
-    protected void onStart() {
-        super.onStart();
+    public void printLog(final int level, final String message) {
+        super.printLog(level, message);
+        mList.add(message);
+    }
 
-        ArrayList<String> permissionsList = new ArrayList<>();
-        permissionsList.add(Manifest.permission.READ_EXTERNAL_STORAGE);
-        permissionsList.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
-
-        String[] permissions = new String[permissionsList.size()];
-        permissions = permissionsList.toArray(permissions);
-        requestPermissions(permissions, 0);
+    public List<String> getList() {
+        return mList;
     }
 }

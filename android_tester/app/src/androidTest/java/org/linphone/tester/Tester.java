@@ -1,27 +1,40 @@
 package org.linphone.tester;
 
+/*
+ Tester.java
+ Copyright (C) 2018  Belledonne Communications, Grenoble, France
+
+ This program is free software; you can redistribute it and/or
+ modify it under the terms of the GNU General Public License
+ as published by the Free Software Foundation; either version 2
+ of the License, or (at your option) any later version.
+
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+
+ You should have received a copy of the GNU General Public License
+ along with this program; if not, write to the Free Software
+ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
+
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;
-import android.support.test.filters.LargeTest;
-import android.support.test.runner.AndroidJUnit4;
+
+import junit.framework.TestSuite;
 
 import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.AllTests;
 import org.linphone.core.Factory;
-import org.linphone.core.LogCollectionState;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
-@RunWith(AndroidJUnit4.class)
-@LargeTest
+@RunWith(AllTests.class)
 public class Tester {
     public native void setApplicationContext(Context ct);
     public native void removeApplicationContext();
@@ -33,14 +46,58 @@ public class Tester {
 
     private Context mContext;
 
-    @Before
+    private static Tester instance;
+
+    public static Tester getInstance() {
+        if (instance == null) {
+            instance = new Tester();
+        }
+        return instance;
+    }
+
+    protected Tester() {
+        try {
+            setUp();
+        } catch (IOException ioe) {
+
+        }
+    }
+
+    public int runTestInSuite(String suite, String test) {
+        List<String> list = new LinkedList<>(Arrays.asList(new String[] {
+                "tester",
+                "--verbose",
+                "--resource-dir", mContext.getFilesDir().getAbsolutePath(),
+                "--writable-dir", mContext.getCacheDir().getPath(),
+                "--suite", suite,
+                "--test", test
+        }));
+        String[] array = list.toArray(new String[list.size()]);
+        return run(array);
+    }
+
+    public static TestSuite suite() {
+        TestSuite testSuites = new TestSuite();
+        testSuites.setName("All suites");
+
+        LinphoneTestSuite suitesList = new LinphoneTestSuite();
+        suitesList.run(new String[]{"tester", "--list-suites"});
+        for (String suiteName : suitesList.getList()) {
+            LinphoneTestSuite testsList = new LinphoneTestSuite();
+            testsList.run(new String[]{"tester", "--list-tests", suiteName});
+            for (String testName: testsList.getList()) {
+                LinphoneTest test = new LinphoneTest(suiteName, testName);
+                testSuites.addTest(test);
+            }
+        }
+        return testSuites;
+    }
+
     public void setUp() throws IOException {
-        Factory.instance().enableLogCollection(LogCollectionState.Enabled);
         Factory.instance().setDebugMode(true, "LibLinphoneTester");
         System.loadLibrary("bctoolbox-tester");
         System.loadLibrary("linphonetester");
 
-        printLog(0, "Setting up...");
         keepAccounts(true);
         mContext = InstrumentationRegistry.getTargetContext();
         setApplicationContext(mContext);
@@ -48,21 +105,8 @@ public class Tester {
         org.linphone.core.tools.AndroidPlatformHelper.copyAssetsFromPackage(mContext,"config_files", ".");
     }
 
-    @Test
-    public void runTests() {
-        List<String> list = new LinkedList<>(Arrays.asList(new String[] {
-                "tester",
-                "--verbose",
-                "--resource-dir", mContext.getFilesDir().getAbsolutePath(),
-                "--writable-dir", mContext.getCacheDir().getPath()
-        }));
-        String[] array = list.toArray(new String[list.size()]);
-        run(array);
-    }
-
     @After
     public void tearDown() {
-        printLog(0, "Tearing down...");
         clearAccounts();
     }
 
