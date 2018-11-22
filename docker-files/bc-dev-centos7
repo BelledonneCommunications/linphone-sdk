@@ -12,20 +12,16 @@ RUN yum install -y epel-release && \
     yum clean all
 
 # Install development tools
-RUN yum install -y ccache clang cmake doxygen gcc-c++ gdb gettext-devel git graphviz libtool make nasm ninja-build patch pystache python-six python2-pip rpm-build yasm && \
-    curl -o cmake.tar.gz https://cmake.org/files/v3.2/cmake-3.2.3.tar.gz && \
-    tar xvzf cmake.tar.gz && rm cmake.tar.gz && cd cmake-3.2.3 && cmake . && make -j5 install && cd .. && rm -rf cmake-3.2.3 && \
-    yum erase -y cmake && \
+RUN yum install -y at bison ccache clang cmake3 doxygen gcc-c++ gdb gettext-devel git graphviz libtool make nasm ninja-build patch pystache python-six python2-pip redhat-lsb-core rpm-build yasm && \
     yum clean all && \
-    pip install sphinx javasphinx sphinx_csharp
+    pip install sphinx javasphinx sphinx_csharp && \
+    ln -s /usr/bin/ccmake3 /usr/bin/ccmake && \
+    ln -s /usr/bin/cmake3 /usr/bin/cmake && \
+    ln -s /usr/bin/cpack3 /usr/bin/cpack && \
+    ln -s /usr/bin/ctest3 /usr/bin/ctest
 
-# Install jenkins dependencies
-#RUN yum install -y java-1.8.0-openjdk openssh-server && \
-#    yum clean all && \
-#    mkdir -p /var/run/sshd
-
-# Install linphone dependencies development packages
-RUN yum install -y alsa-lib-devel ffmpeg-devel glew-devel gsm-devel libbsd-devel libsrtp-devel libv4l-devel libvpx-devel libXv-devel libxml2-devel mbedtls-devel mesa-libEGL-devel openssl-devel opus-devel pulseaudio-libs-devel speex-devel sqlite-devel xerces-c-devel && \
+# Install linphone & flexisp dependencies development packages
+RUN yum install -y alsa-lib-devel ffmpeg-devel glew-devel gsm-devel jansson-devel libbsd-devel libsrtp-devel libv4l-devel libvpx-devel libXv-devel libxml2-devel mariadb-devel mbedtls-devel mesa-libEGL-devel net-snmp-devel openssl-devel opus-devel postgresql-devel protobuf-devel pulseaudio-libs-devel speex-devel sqlite-devel xerces-c-devel xsd && \
     yum clean all
 
 # Install linphone runtime dependencies
@@ -40,13 +36,6 @@ RUN yum install -y mesa-dri-drivers && \
 RUN useradd -ms /bin/bash bc && \
     echo 'bc:cotcot' | chpasswd && \
     echo 'bc ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
-
-#EXPOSE 22
-EXPOSE 5060/udp
-EXPOSE 5060/tcp
-EXPOSE 5061
-
-#CMD ["/usr/sbin/sshd", "-D"]
 
 USER bc
 WORKDIR /home/bc
