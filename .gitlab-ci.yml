@@ -1,5 +1,6 @@
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
+  DEFAULT_CMAKE_OPTIONS: -DENABLE_LIME=OFF -DENABLE_LIME_X3DH=ON
 
 
 .linux-ccache:
@@ -25,7 +26,7 @@ variables:
     - sdkmanager
     - mkdir -p build-android
     - cd build-android
-    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS="arm64, armv7, x86, x86_64"
+    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS="arm64, armv7, x86, x86_64" $DEFAULT_CMAKE_OPTIONS $CMAKE_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     - ccache -s
 
@@ -60,6 +61,15 @@ job-android-ninja-r16b:
   extends: .job-android
 
 
+job-android-ninja-r16b-novideo:
+
+  only:
+    - schedules
+  variables:
+    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+  extends: job-android-ninja-r16b
+
+
 job-android-makefile-r17c:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
@@ -77,6 +87,15 @@ job-android-ninja-r17c:
   extends: .job-android
 
 
+job-android-ninja-r17c-novideo:
+
+  only:
+    - schedules
+  variables:
+    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+  extends: job-android-ninja-r17c
+
+
 .job-ios:
 
   tags: [ "macosx" ]
@@ -85,7 +104,7 @@ job-android-ninja-r17c:
     - ccache -s
     - mkdir -p build-ios
     - cd build-ios
-    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="arm64, armv7, i386, x86_64"
+    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="arm64, armv7, i386, x86_64" $DEFAULT_CMAKE_OPTIONS $CMAKE_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     - ccache -s
 
@@ -118,6 +137,15 @@ job-ios-ninja:
   extends: .job-ios
 
 
+job-ios-ninja-novideo:
+
+  only:
+    - schedules
+  variables:
+    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+  extends: job-ios-ninja
+
+
 job-ios-xcode:
 
   tags: [ "macosx" ]
@@ -127,7 +155,7 @@ job-ios-xcode:
   script:
     - mkdir -p build-ios
     - cd build-ios
-    - cmake .. -G Xcode -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="arm64, armv7, i386, x86_64"
+    - cmake .. -G Xcode -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="arm64, armv7, i386, x86_64" $DEFAULT_CMAKE_OPTIONS $CMAKE_OPTIONS
     - cmake --build . --target sdk -- -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=`sysctl -n hw.ncpu`
 
   artifacts:
@@ -150,7 +178,7 @@ job-ios-xcode:
     - ccache -s
     - mkdir -p build-desktop
     - cd build-desktop
-    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop
+    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop $DEFAULT_CMAKE_OPTIONS $CMAKE_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     - ccache -s
 
@@ -203,6 +231,15 @@ job-centos7-ninja-gcc:
   extends: .job-linux-desktop
 
 
+job-centos7-ninja-gcc-novideo:
+
+  only:
+    - schedules
+  variables:
+    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+  extends: job-centos7-ninja-gcc
+
+
 job-debian8-ninja-gcc:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
@@ -213,6 +250,15 @@ job-debian8-ninja-gcc:
   extends: .job-linux-desktop
 
 
+job-debian8-ninja-gcc-novideo:
+
+  only:
+    - schedules
+  variables:
+    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+  extends: job-debian8-ninja-gcc
+
+
 job-debian9-ninja-gcc:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
@@ -221,6 +267,15 @@ job-debian9-ninja-gcc:
     CC: gcc
     CXX: g++
   extends: .job-linux-desktop
+
+
+job-debian9-ninja-gcc-novideo:
+
+  only:
+    - schedules
+  variables:
+    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+  extends: job-debian9-ninja-gcc
 
 
 job-centos7-makefile-clang:
@@ -265,6 +320,15 @@ job-centos7-ninja-clang:
   extends: .job-linux-desktop
 
 
+job-centos7-ninja-clang-novideo:
+
+  only:
+    - schedules
+  variables:
+    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+  extends: job-centos7-ninja-clang
+
+
 job-debian8-ninja-clang:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
@@ -273,6 +337,15 @@ job-debian8-ninja-clang:
     CC: clang
     CXX: clang++
   extends: .job-linux-desktop
+
+
+job-debian8-ninja-clang-novideo:
+
+  only:
+    - schedules
+  variables:
+    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+  extends: job-debian8-ninja-clang
 
 
 job-debian9-ninja-clang:
@@ -285,6 +358,15 @@ job-debian9-ninja-clang:
   extends: .job-linux-desktop
 
 
+job-debian9-ninja-clang-novideo:
+
+  only:
+    - schedules
+  variables:
+    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+  extends: job-debian9-ninja-clang
+
+
 .job-macosx-desktop:
 
   tags: [ "macosx" ]
@@ -293,7 +375,7 @@ job-debian9-ninja-clang:
     - ccache -s
     - mkdir -p build-desktop
     - cd build-desktop
-    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9
+    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9 $DEFAULT_CMAKE_OPTIONS $CMAKE_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     - ccache -s
 
@@ -315,6 +397,15 @@ job-macosx-ninja:
   extends: .job-macosx-desktop
 
 
+job-macosx-ninja-novideo:
+
+  only:
+    - schedules
+  variables:
+    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+  extends: job-macosx-ninja
+
+
 job-macosx-xcode:
 
   tags: [ "macosx" ]
@@ -324,7 +415,7 @@ job-macosx-xcode:
   script:
     - mkdir -p build-desktop
     - cd build-desktop
-    - cmake .. -G Xcode -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9
+    - cmake .. -G Xcode -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9 $DEFAULT_CMAKE_OPTIONS $CMAKE_OPTIONS
     - cmake --build . --target sdk -- -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=`sysctl -n hw.ncpu`
 
 
@@ -335,8 +426,17 @@ job-windows-vs2015:
   script:
     - mkdir build-desktop
     - cd build-desktop
-    - cmake .. -G "Visual Studio 14 2015" -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_BUILD_TYPE=Release
+    - cmake .. -G "Visual Studio 14 2015" -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_BUILD_TYPE=Release %DEFAULT_CMAKE_OPTIONS% %CMAKE_OPTIONS%
     - cmake --build . --target sdk --config Release -- /maxcpucount
+
+
+job-windows-vs2015-novideo:
+
+  only:
+    - schedules
+  variables:
+    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+  extends: job-windows-vs2015
 
 
 #job-uwp-vs2017:

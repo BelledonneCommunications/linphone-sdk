@@ -12,22 +12,16 @@ RUN apt-get update && \
 
 # Install development tools
 RUN apt-get update && \
-    apt-get install -y autoconf ccache clang cmake doxygen g++ gdb git graphviz intltool libtool make nasm ninja-build patch python-lxml python-pip python-pystache python-six yasm && \
+    apt-get install -y alien at autoconf bison ccache clang cmake doxygen elfutils g++ gdb git graphviz intltool libtool lsb-release make nasm ninja-build patch python-lxml python-pip python-pystache python-six yasm && \
     curl -o cmake.tar.gz https://cmake.org/files/v3.2/cmake-3.2.3.tar.gz && \
     tar xvzf cmake.tar.gz && rm cmake.tar.gz && cd cmake-3.2.3 && cmake . && make -j5 install && cd .. && rm -rf cmake-3.2.3 && \
     apt-get purge -y cmake && \
     apt-get clean && \
     pip install sphinx javasphinx sphinx_csharp
 
-# Install jenkins dependencies
-#RUN apt-get update && \
-#    apt-get install -y default-jre-headless openssh-server && \
-#    apt-get clean && \
-#    mkdir -p /var/run/sshd
-
-# Install linphone dependencies development packages
+# Install linphone & flexisip dependencies development packages
 RUN apt-get update && \
-    apt-get install -y libasound2-dev libavcodec-dev libavutil-dev libbsd-dev libegl1-mesa-dev libglew-dev libgsm1-dev libopus-dev libpolarssl-dev libpulse-dev libspeex-dev libspeexdsp-dev libsqlite3-dev libsrtp0-dev libssl-dev libswscale-dev libv4l-dev libvpx-dev libxerces-c-dev libxml2-dev libxv-dev && \
+    apt-get install -y libasound2-dev libavcodec-dev libavutil-dev libbsd-dev libegl1-mesa-dev libglew-dev libgsm1-dev libjansson-dev libmysqlclient-dev libopus-dev libpolarssl-dev libpq-dev libprotobuf-dev libpulse-dev libsnmp-dev libspeex-dev libspeexdsp-dev libsqlite3-dev libsrtp0-dev libssl-dev libswscale-dev libv4l-dev libvpx-dev libxerces-c-dev libxml2-dev libxv-dev protobuf-compiler xsdcxx && \
     apt-get clean
 
 # Configure user bc
@@ -35,13 +29,8 @@ RUN useradd -ms /bin/bash bc && \
     echo 'bc:cotcot' | chpasswd && \
     echo 'bc ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
-#EXPOSE 22
-EXPOSE 5060/udp
-EXPOSE 5060/tcp
-EXPOSE 5061
-
-#CMD ["/usr/sbin/sshd", "-D"]
-
 USER bc
 WORKDIR /home/bc
+COPY --chown=bc rpmmacros /home/bc/.rpmmacros
 CMD bash
+

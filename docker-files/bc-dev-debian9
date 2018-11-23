@@ -12,19 +12,13 @@ RUN apt-get update && \
 
 # Install development tools
 RUN apt-get update && \
-    apt-get install -y autoconf ccache clang cmake doxygen g++ gdb git graphviz intltool libtool make nasm ninja-build patch python-pip python-pystache python-six yasm && \
+    apt-get install -y alien at autoconf bison ccache clang cmake doxygen elfutils g++ gdb git graphviz intltool libtool lsb-release make nasm ninja-build patch python-pip python-pystache python-six yasm && \
     apt-get clean && \
     pip install sphinx javasphinx sphinx_csharp
 
-# Install jenkins dependencies
-#RUN apt-get update && \
-#    apt-get install -y default-jre-headless openssh-server && \
-#    apt-get clean && \
-#    mkdir -p /var/run/sshd
-
-# Install linphone dependencies development packages
+# Install linphone & flexisip dependencies development packages
 RUN apt-get update && \
-    apt-get install -y libasound2-dev libavcodec-dev libavutil-dev libbsd-dev libegl1-mesa-dev libglew-dev libgsm1-dev libmbedtls-dev libopus-dev libpulse-dev libspeex-dev libspeexdsp-dev libsqlite3-dev libsrtp2-dev libssl-dev libswscale-dev libturbojpeg0-dev libv4l-dev libvpx-dev libxerces-c-dev libxml2-dev libxv-dev && \
+    apt-get install -y libasound2-dev libavcodec-dev libavutil-dev libbsd-dev libegl1-mesa-dev libglew-dev libgsm1-dev libjansson-dev libmariadb-dev-compat libmbedtls-dev libopus-dev libpq-dev libprotobuf-dev libpulse-dev libsnmp-dev libspeex-dev libspeexdsp-dev libsqlite3-dev libsrtp2-dev libssl-dev libswscale-dev libturbojpeg0-dev libv4l-dev libvpx-dev libxerces-c-dev libxml2-dev libxv-dev protobuf-compiler xsdcxx && \
     apt-get clean
 
 # Install qt5
@@ -43,13 +37,8 @@ RUN useradd -ms /bin/bash bc && \
 ENV Qt5_DIR=/opt/Qt/5.11.0/gcc_64/lib/cmake
 ENV PATH=$PATH:/opt/Qt/5.11.0/gcc_64/bin
 
-#EXPOSE 22
-EXPOSE 5060/udp
-EXPOSE 5060/tcp
-EXPOSE 5061
-
-#CMD ["/usr/sbin/sshd", "-D"]
-
 USER bc
 WORKDIR /home/bc
+COPY --chown=bc rpmmacros /home/bc/.rpmmacros
 CMD bash
+

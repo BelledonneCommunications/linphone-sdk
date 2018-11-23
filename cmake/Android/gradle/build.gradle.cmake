@@ -58,6 +58,7 @@ android {
         buildToolsVersion "28.0.0"
         multiDexEnabled true
         setProperty("archivesBaseName", "linphone-sdk-android")
+        consumerProguardFiles "${buildDir}/proguard.txt"
     }
 
     // Signing
@@ -72,6 +73,8 @@ android {
     buildTypes {
         release {
             signingConfig signingConfigs.release
+            minifyEnabled true
+            useProguard true
         }
         packaged {
             initWith release
@@ -139,6 +142,12 @@ task sdkZip(type: Zip) {
     archiveName "linphone-sdk-android-@LINPHONESDK_VERSION@.zip"
 }
 
+task copyProguard(type: Copy) {
+    from rootSdk + '/share/linphonej/'
+    into "${buildDir}"
+    include 'proguard.txt'
+}
+
 task copyAssets(type: Sync) {
     from rootSdk
     into "${buildDir}/sdk-assets/assets/org.linphone.core"
@@ -162,3 +171,4 @@ task copyAssets(type: Sync) {
 }
 
 project.tasks['preBuild'].dependsOn 'copyAssets'
+project.tasks['preBuild'].dependsOn 'copyProguard'
