@@ -22,11 +22,7 @@ package org.linphone.tester;
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;
 
-import junit.framework.TestSuite;
-
 import org.junit.After;
-import org.junit.runner.RunWith;
-import org.junit.runners.AllTests;
 import org.linphone.core.Factory;
 
 import java.io.IOException;
