@@ -1,33 +1,19 @@
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
-
-
-.linux-ccache:
-  cache:
-    key: $CI_JOB_NAME
-    paths:
-      - ccache/
-
-  before_script:
-    - mkdir -p ccache
-    - export CCACHE_BASEDIR=${PWD}
-    - export CCACHE_DIR=${PWD}/ccache
+  MAKEFILE_JOBS: 5
+  DEFAULT_LINUX_CMAKE_OPTIONS: -DCMAKE_C_COMPILER_LAUNCHER= -DCMAKE_CXX_COMPILER_LAUNCHER=
 
 
 .job-android:
 
   tags: [ "docker" ]
 
-  extends: .linux-ccache
-
   script:
-    - ccache -s
     - sdkmanager
     - mkdir -p build-android
     - cd build-android
-    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS="arm64, armv7, x86, x86_64" $CMAKE_OPTIONS
+    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS="arm64, armv7, x86, x86_64" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
-    - ccache -s
 
   artifacts:
     paths:
@@ -48,7 +34,7 @@ job-android-makefile-r16b:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r16b
   variables:
     CMAKE_GENERATOR: Unix Makefiles
-    ADDITIONAL_BUILD_OPTIONS: -j2
+    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
   extends: .scheduled-job-android
 
 
@@ -74,7 +60,7 @@ job-android-makefile-r17c:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
   variables:
     CMAKE_GENERATOR: Unix Makefiles
-    ADDITIONAL_BUILD_OPTIONS: -j2
+    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
   extends: .scheduled-job-android
 
 
@@ -125,7 +111,7 @@ job-ios-makefile:
 
   variables:
     CMAKE_GENERATOR: Unix Makefiles
-    ADDITIONAL_BUILD_OPTIONS: -j2
+    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
   extends: .scheduled-job-ios
 
 
@@ -169,17 +155,13 @@ job-ios-xcode:
 
   tags: [ "docker" ]
 
-  extends: .linux-ccache
-
   script:
     - export CC=$CC
     - export CXX=$CXX
-    - ccache -s
     - mkdir -p build-desktop
     - cd build-desktop
-    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop $CMAKE_OPTIONS
+    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
-    - ccache -s
 
 
 .scheduled-job-linux-desktop:
@@ -205,7 +187,7 @@ job-debian8-makefile-gcc:
     CMAKE_GENERATOR: Unix Makefiles
     CC: gcc
     CXX: g++
-    ADDITIONAL_BUILD_OPTIONS: -j2
+    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
   extends: .scheduled-job-linux-desktop
 
 
@@ -216,7 +198,7 @@ job-debian9-makefile-gcc:
     CMAKE_GENERATOR: Unix Makefiles
     CC: gcc
     CXX: g++
-    ADDITIONAL_BUILD_OPTIONS: -j2
+    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
   extends: .scheduled-job-linux-desktop
 
 
@@ -294,7 +276,7 @@ job-debian8-makefile-clang:
     CMAKE_GENERATOR: Unix Makefiles
     CC: clang
     CXX: clang++
-    ADDITIONAL_BUILD_OPTIONS: -j2
+    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
   extends: .scheduled-job-linux-desktop
 
 
@@ -305,7 +287,7 @@ job-debian9-makefile-clang:
     CMAKE_GENERATOR: Unix Makefiles
     CC: clang
     CXX: clang++
-    ADDITIONAL_BUILD_OPTIONS: -j2
+    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
   extends: .scheduled-job-linux-desktop
 
 
@@ -385,7 +367,7 @@ job-macosx-makefile:
     - schedules
   variables:
     CMAKE_GENERATOR: Unix Makefiles
-    ADDITIONAL_BUILD_OPTIONS: -j2
+    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
   extends: .job-macosx-desktop
 
 
