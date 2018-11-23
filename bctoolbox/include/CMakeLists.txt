@@ -23,7 +23,6 @@
 set(HEADER_FILES
 	charconv.h
 	compiler.h
-	crypto.h
 	defs.h
 	exception.hh
 	list.h
@@ -35,6 +34,11 @@ set(HEADER_FILES
 	vconnect.h
 	vfs.h
 )
+
+if(MBEDTLS_FOUND OR POLARSSL_FOUND)
+	list(APPEND HEADER_FILES crypto.h)
+endif()
+
 if(ENABLE_TESTS_COMPONENT)
 	list(APPEND HEADER_FILES tester.h)
 endif()

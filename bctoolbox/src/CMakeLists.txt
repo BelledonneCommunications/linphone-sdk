@@ -23,18 +23,17 @@
 set(BCTOOLBOX_C_SOURCE_FILES
 	containers/list.c
 	logging/logging.c
-	utils/port.c
-	vfs.c
-	vconnect.c
 	parser.c
+	utils/port.c
+	vconnect.c
+	vfs.c
 )
 
 set(BCTOOLBOX_CXX_SOURCE_FILES
 	containers/map.cc
 	conversion/charconv_encoding.cc
-	crypto/ecc.cc
-	utils/regex.cc
 	utils/exception.cc
+	utils/regex.cc
 )
 
 if(ANDROID)
@@ -50,6 +49,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 if(MBEDTLS_FOUND OR POLARSSL_FOUND)
 	list(APPEND BCTOOLBOX_C_SOURCE_FILES crypto/crypto.c)
+	list(APPEND BCTOOLBOX_CXX_SOURCE_FILES crypto/ecc.cc)
 endif()
 if(MBEDTLS_FOUND)
 	list(APPEND BCTOOLBOX_C_SOURCE_FILES crypto/mbedtls.c)
