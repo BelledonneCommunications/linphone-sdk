@@ -2,6 +2,7 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
   MAKEFILE_JOBS: 5
   DEFAULT_LINUX_CMAKE_OPTIONS: -DCMAKE_C_COMPILER_LAUNCHER= -DCMAKE_CXX_COMPILER_LAUNCHER=
+  ALL_CODECS: -DENABLE_GPL_THIRD_PARTIES=YES -DENABLE_NON_FREE_CODECS=YES -DENABLE_AMRNB=YES -DENABLE_AMRWB=YES -DENABLE_BV16=YES -DENABLE_CODEC2=YES -DENABLE_G729=YES -DENABLE_GSM=YES -DENABLE_ILBC=YES -DENABLE_ISAC=YES -DENABLE_OPUS=YES -DENABLE_SILK=YES -DENABLE_SPEEX=YES -DENABLE_FFMPEG=YES -DENABLE_H263=YES -DENABLE_H263P=YES -DENABLE_MPEG4=YES -DENABLE_OPENH264=YES -DENABLE_VPX=YES
 
 
 .job-android:
@@ -54,6 +55,14 @@ job-android-ninja-r16b-novideo:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-android-ninja-r16b
 
+job-android-ninja-r16b-all-codecs:
+
+  only:
+    - schedules
+  variables:
+    CMAKE_OPTIONS: $ALL_CODECS
+  extends: job-android-ninja-r16b
+
 
 job-android-makefile-r17c:
 
@@ -78,6 +87,15 @@ job-android-ninja-r17c-novideo:
     - schedules
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+  extends: job-android-ninja-r17c
+
+
+job-android-ninja-r17c-all-codecs:
+
+  only:
+    - schedules
+  variables:
+    CMAKE_OPTIONS: $ALL_CODECS
   extends: job-android-ninja-r17c
 
 
@@ -128,6 +146,15 @@ job-ios-ninja-novideo:
     - schedules
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+  extends: job-ios-ninja
+
+
+job-ios-ninja-all-codecs:
+
+  only:
+    - schedules
+  variables:
+    CMAKE_OPTIONS: $ALL_CODECS
   extends: job-ios-ninja
 
 
@@ -259,6 +286,15 @@ job-debian9-ninja-gcc-novideo:
   extends: job-debian9-ninja-gcc
 
 
+job-debian9-ninja-gcc-all-codecs:
+
+  only:
+    - schedules
+  variables:
+    CMAKE_OPTIONS: $ALL_CODECS
+  extends: job-debian9-ninja-gcc
+
+
 job-centos7-makefile-clang:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
@@ -348,6 +384,15 @@ job-debian9-ninja-clang-novideo:
   extends: job-debian9-ninja-clang
 
 
+job-debian9-ninja-clang-all-codecs:
+
+  only:
+    - schedules
+  variables:
+    CMAKE_OPTIONS: $ALL_CODECS
+  extends: job-debian9-ninja-clang
+
+
 .job-macosx-desktop:
 
   tags: [ "macosx" ]
@@ -387,6 +432,15 @@ job-macosx-ninja-novideo:
   extends: job-macosx-ninja
 
 
+job-macosx-ninja-all-codecs:
+
+  only:
+    - schedules
+  variables:
+    CMAKE_OPTIONS: $ALL_CODECS
+  extends: job-macosx-ninja
+
+
 job-macosx-xcode:
 
   tags: [ "macosx" ]
@@ -420,6 +474,13 @@ job-windows-vs2015-novideo:
   extends: job-windows-vs2015
 
 
+job-windows-vs2015-all-codecs:
+
+  only:
+    - schedules
+  variables:
+    CMAKE_OPTIONS: $ALL_CODECS
+  extends: job-windows-vs2015
 #job-uwp-vs2017:
 #
 #  tags: [ "windows" ]
