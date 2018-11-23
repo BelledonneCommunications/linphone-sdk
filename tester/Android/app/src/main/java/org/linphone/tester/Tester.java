@@ -34,7 +34,6 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
-@RunWith(AllTests.class)
 public class Tester {
     public native void setApplicationContext(Context ct);
     public native void removeApplicationContext();
@@ -74,23 +73,6 @@ public class Tester {
         }));
         String[] array = list.toArray(new String[list.size()]);
         return run(array);
-    }
-
-    public static TestSuite suite() {
-        TestSuite testSuites = new TestSuite();
-        testSuites.setName("All suites");
-
-        LinphoneTestSuite suitesList = new LinphoneTestSuite();
-        suitesList.run(new String[]{"tester", "--list-suites"});
-        for (String suiteName : suitesList.getList()) {
-            LinphoneTestSuite testsList = new LinphoneTestSuite();
-            testsList.run(new String[]{"tester", "--list-tests", suiteName});
-            for (String testName: testsList.getList()) {
-                LinphoneTest test = new LinphoneTest(suiteName, testName);
-                testSuites.addTest(test);
-            }
-        }
-        return testSuites;
     }
 
     public void setUp() throws IOException {
