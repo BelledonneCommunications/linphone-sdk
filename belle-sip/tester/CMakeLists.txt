@@ -98,6 +98,7 @@ else()
 	endif()
 
 	add_executable(belle_sip_tester ${USE_BUNDLE} ${SOURCE_FILES_C} ${SOURCE_FILES_OBJC})
+	set_target_properties(belle_sip_tester PROPERTIES LINKER_LANGUAGE CXX)
 
 	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 		set_target_properties(belle_sip_tester PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
@@ -126,7 +127,7 @@ else()
 		set_target_properties(belle_sip_object_describe PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
 	target_link_libraries(belle_sip_object_describe ${BCTOOLBOX_CORE_LIBRARIES} ${PROJECT_LIBS})
-	
+
 	set(OBJECT_RESOLVE_SOURCES resolve.c)
 	bc_apply_compile_flags(OBJECT_DESCRIBE_SOURCES STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
 	add_executable(belle_sip_resolve ${USE_BUNDLE} ${OBJECT_RESOLVE_SOURCES})
