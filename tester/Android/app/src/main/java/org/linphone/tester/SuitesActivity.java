@@ -22,6 +22,9 @@ package org.linphone.tester;
 import android.Manifest;
 import android.app.Activity;
 import android.os.Bundle;
+
+import org.linphone.mediastream.Version;
+
 import java.util.ArrayList;
 
 public class SuitesActivity extends Activity {
@@ -36,12 +39,14 @@ public class SuitesActivity extends Activity {
     protected void onStart() {
         super.onStart();
 
-        ArrayList<String> permissionsList = new ArrayList<>();
-        permissionsList.add(Manifest.permission.READ_EXTERNAL_STORAGE);
-        permissionsList.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        if (Version.sdkAboveOrEqual(23)) {
+            ArrayList<String> permissionsList = new ArrayList<>();
+            permissionsList.add(Manifest.permission.READ_EXTERNAL_STORAGE);
+            permissionsList.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
 
-        String[] permissions = new String[permissionsList.size()];
-        permissions = permissionsList.toArray(permissions);
-        requestPermissions(permissions, 0);
+            String[] permissions = new String[permissionsList.size()];
+            permissions = permissionsList.toArray(permissions);
+            requestPermissions(permissions, 0);
+        }
     }
 }
