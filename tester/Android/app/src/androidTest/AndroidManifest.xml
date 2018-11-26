@@ -7,7 +7,7 @@
         android:targetPackage="org.linphone.tester">
         <meta-data
             android:name="class"
-            android:value="org.linphone.tester.Tester" />
+            android:value="org.linphone.tester.AllTests" />
     </instrumentation>
 
 </manifest>
