@@ -70,29 +70,6 @@ BELLESIP_EXPORT void belle_sip_stack_enable_dns_search(belle_sip_stack_t *stack,
 **/
 BELLESIP_EXPORT void belle_sip_stack_set_dns_servers(belle_sip_stack_t *stack, const belle_sip_list_t *servers);
 
-/**
- * Can be used to simulate network transmission delays, for tests.
-**/
-BELLESIP_EXPORT void belle_sip_stack_set_tx_delay(belle_sip_stack_t *stack, int delay_ms);
-/**
- * Can be used to simulate network sending error, for tests.
- * @param stack
- * @param send_error if <0, will cause channel error to be reported
-**/
-
-BELLESIP_EXPORT void belle_sip_stack_set_send_error(belle_sip_stack_t *stack, int send_error);
-
-/**
- * Can be used to simulate network transmission delays, for tests.
-**/
-BELLESIP_EXPORT void belle_sip_stack_set_resolver_tx_delay(belle_sip_stack_t *stack, int delay_ms);
-
-/**
- * Can be used to simulate network sending error, for tests.
- * @param stack
- * @param send_error if <0, will cause the resolver to fail with this error code.
-**/
-BELLESIP_EXPORT void belle_sip_stack_set_resolver_send_error(belle_sip_stack_t *stack, int send_error);
 
 /**
  * Get the additional DNS hosts file.
@@ -186,6 +163,47 @@ BELLESIP_EXPORT void belle_sip_stack_enable_reconnect_to_primary_asap(belle_sip_
  * @see belle_sip_provider_enable_reconnect_to_primary_asap()
 **/
 BELLESIP_EXPORT int belle_sip_stack_reconnect_to_primary_asap_enabled(const belle_sip_stack_t *stack);
+
+
+/*
+ * The following functions are for testing (non regression tests) ONLY
+ */
+
+/**
+ * Can be used to simulate network transmission delays, for tests.
+**/
+BELLESIP_EXPORT void belle_sip_stack_set_tx_delay(belle_sip_stack_t *stack, int delay_ms);
+/**
+ * Can be used to simulate network sending error, for tests.
+ * @param stack
+ * @param send_error if <0, will cause channel error to be reported
+**/
+
+BELLESIP_EXPORT void belle_sip_stack_set_send_error(belle_sip_stack_t *stack, int send_error);
+
+/**
+ * Can be used to simulate network transmission delays, for tests.
+**/
+BELLESIP_EXPORT void belle_sip_stack_set_resolver_tx_delay(belle_sip_stack_t *stack, int delay_ms);
+
+/**
+ * Can be used to simulate network sending error, for tests.
+ * @param stack
+ * @param send_error if <0, will cause the resolver to fail with this error code.
+**/
+BELLESIP_EXPORT void belle_sip_stack_set_resolver_send_error(belle_sip_stack_t *stack, int send_error);
+
+
+/**
+ * Requests TCP/TLS client connection to bind a on specific port. This is for test ONLY.
+**/
+BELLESIP_EXPORT void belle_sip_stack_set_client_bind_port(belle_sip_stack_t *stack, int port);
+
+
+/*
+ * End of test functions.
+ */
+
 
 BELLE_SIP_END_DECLS
 

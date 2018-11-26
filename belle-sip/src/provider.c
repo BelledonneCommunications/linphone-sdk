@@ -1357,9 +1357,12 @@ void belle_sip_provider_enable_nat_helper(belle_sip_provider_t *prov, int enable
 int belle_sip_provider_nat_helper_enabled(const belle_sip_provider_t *prov){
 	return prov->nat_helper;
 }
+
 void belle_sip_provider_enable_unconditional_answer(belle_sip_provider_t *prov, int enable) {
 	prov->unconditional_answer_enabled=enable;
 }
+
 void belle_sip_provider_set_unconditional_answer(belle_sip_provider_t *prov, unsigned short code) {
 	prov->unconditional_answer=code;
 }
+

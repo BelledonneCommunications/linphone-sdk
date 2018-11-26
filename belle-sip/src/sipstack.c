@@ -332,3 +332,8 @@ void belle_sip_stack_enable_reconnect_to_primary_asap(belle_sip_stack_t *stack, 
 int belle_sip_stack_reconnect_to_primary_asap_enabled(const belle_sip_stack_t *stack) {
 	return stack->reconnect_to_primary_asap;
 }
+
+void belle_sip_stack_set_client_bind_port(belle_sip_stack_t *stack, int port){
+	stack->test_bind_port = port;
+}
+

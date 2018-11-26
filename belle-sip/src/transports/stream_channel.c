@@ -121,6 +121,7 @@ int stream_channel_connect(belle_sip_stream_channel_t *obj, const struct addrinf
 	int err;
 	int tmp;
 	belle_sip_socket_t sock;
+	belle_sip_stack_t *stack = obj->base.stack;
 	tmp=1;
 
 	obj->base.ai_family=ai->ai_family;
@@ -130,13 +131,31 @@ int stream_channel_connect(belle_sip_stream_channel_t *obj, const struct addrinf
 		belle_sip_error("Could not create socket: %s",belle_sip_get_socket_error_string());
 		return -1;
 	}
-
+	tmp = 1;
+	err=bctbx_setsockopt(sock, SOL_SOCKET, SO_REUSEADDR,(char*)&tmp,sizeof(tmp));
+	if (err!=0){
+		belle_sip_error("bctbx_setsockopt SO_REUSEADDR failed: [%s]",belle_sip_get_socket_error_string());
+	}
+	
+	if (stack->test_bind_port != 0){
+		struct addrinfo *bind_ai = bctbx_ip_address_to_addrinfo(ai->ai_family, SOCK_STREAM, ai->ai_family == AF_INET6 ? "::0" : "0.0.0.0", stack->test_bind_port); 
+		
+		err = bctbx_bind(sock, bind_ai->ai_addr, bind_ai->ai_addrlen);
+		if (err != 0){
+			belle_sip_error("bctbx_bind failed: [%s]",belle_sip_get_socket_error_string());
+			belle_sip_close_socket(sock);
+			return -1;
+		}else bctbx_message("bind() on port [%i] successful", stack->test_bind_port);
+		bctbx_freeaddrinfo(bind_ai);
+	}
+	
+	tmp = 1;
 	err=bctbx_setsockopt(sock, IPPROTO_TCP, TCP_NODELAY,(char*)&tmp,sizeof(tmp));
 	if (err!=0){
 		belle_sip_error("bctbx_setsockopt TCP_NODELAY failed: [%s]",belle_sip_get_socket_error_string());
 	}
 	belle_sip_socket_set_nonblocking(sock);
-	if (ai->ai_family==AF_INET6){
+	if (ai->ai_family==AF_INET6 && stack->test_bind_port == 0){
 		belle_sip_socket_enable_dual_stack(sock);
 	}
 

@@ -540,6 +540,7 @@ struct belle_sip_stack{
 	int send_error; /* used to simulate network error. if <0, channel_send will return this value*/
 	int resolver_tx_delay; /*used to simulate network transmission delay, for tests*/
 	int resolver_send_error;	/* used to simulate network error*/
+	int test_bind_port;
 	int dscp;
 	char *dns_user_hosts_file; /* used to load additional hosts file for tests */
 	char *dns_resolv_conf; /*used to load custom resolv.conf, for tests*/
@@ -575,10 +576,10 @@ struct belle_sip_provider{
 	belle_sip_list_t *server_transactions;
 	belle_sip_list_t *dialogs;
 	belle_sip_list_t *auth_contexts;
+	unsigned short unconditional_answer;
 	unsigned char rport_enabled; /*0 if rport should not be set in via header*/
 	unsigned char nat_helper;
 	unsigned char unconditional_answer_enabled;
-	unsigned short unconditional_answer;
 };
 
 BELLESIP_EXPORT belle_sip_provider_t *belle_sip_provider_new(belle_sip_stack_t *s, belle_sip_listening_point_t *lp);

@@ -69,29 +69,6 @@ BELLESIP_EXPORT void belle_sip_provider_clean_channels(belle_sip_provider_t *p);
 BELLESIP_EXPORT int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_request_t* request,belle_sip_response_t *resp, belle_sip_uri_t *from_uri, belle_sip_list_t** auth_infos, const char* realm);
 
 /**
- * Can be used to simulate network recv error, for tests.
- * @param prov
- * @param recv_error if <=0, will cause channel error to be reported
-**/
-BELLESIP_EXPORT void belle_sip_provider_set_recv_error(belle_sip_provider_t *prov, int recv_error);
-
-/**
- * Can be used to unconditionally answer to incoming sip messages. By  default 480 is answered.
- * Can be enhanced by a new method belle_sip_provider_set_unconditional_answer to allows user to provide answer code
- * @param prov
- * @param enable 0 to disable
-**/
-BELLESIP_EXPORT void belle_sip_provider_enable_unconditional_answer(belle_sip_provider_t *prov, int enable);
-
-/**
- * Can be used to choose unconditionally answer to incoming sip messages.
- * use belle_sip_provider_enable_unconditional_answer to enable/disable
- * @param prov
- * @param code 0 to sip response code
- **/
-BELLESIP_EXPORT void belle_sip_provider_set_unconditional_answer(belle_sip_provider_t *prov, unsigned short code);
-
-/**
  * Provides access to a specific dialog
  * @param prov object
  * @param call_if of the dialog
@@ -130,6 +107,39 @@ BELLESIP_EXPORT void belle_sip_provider_enable_nat_helper(belle_sip_provider_t *
  * @see belle_sip_provider_enable_nat_helper()
 **/
 BELLESIP_EXPORT int belle_sip_provider_nat_helper_enabled(const belle_sip_provider_t *prov);
+
+
+/*
+ * Following functions are used for tests ONLY
+ */
+
+/**
+ * Can be used to simulate network recv error, for tests.
+ * @param prov
+ * @param recv_error if <=0, will cause channel error to be reported
+**/
+BELLESIP_EXPORT void belle_sip_provider_set_recv_error(belle_sip_provider_t *prov, int recv_error);
+
+/**
+ * Can be used to unconditionally answer to incoming sip messages. By  default 480 is answered.
+ * Can be enhanced by a new method belle_sip_provider_set_unconditional_answer to allows user to provide answer code
+ * @param prov
+ * @param enable 0 to disable
+**/
+BELLESIP_EXPORT void belle_sip_provider_enable_unconditional_answer(belle_sip_provider_t *prov, int enable);
+
+/**
+ * Can be used to choose unconditionally answer to incoming sip messages.
+ * use belle_sip_provider_enable_unconditional_answer to enable/disable
+ * @param prov
+ * @param code 0 to sip response code
+ **/
+BELLESIP_EXPORT void belle_sip_provider_set_unconditional_answer(belle_sip_provider_t *prov, unsigned short code);
+
+/*
+ * End of test features.
+ */
+
 
 BELLE_SIP_END_DECLS
 
