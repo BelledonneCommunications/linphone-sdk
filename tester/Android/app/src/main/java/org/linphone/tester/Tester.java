@@ -65,7 +65,8 @@ public class Tester {
                 "--resource-dir", mContext.getFilesDir().getAbsolutePath(),
                 "--writable-dir", mContext.getCacheDir().getPath(),
                 "--suite", suite,
-                "--test", test
+                "--test", test,
+                "--no-ipv6"
         }));
         String[] array = list.toArray(new String[list.size()]);
         return run(array);

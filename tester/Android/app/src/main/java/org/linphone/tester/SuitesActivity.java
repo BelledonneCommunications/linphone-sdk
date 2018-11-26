@@ -19,13 +19,8 @@ package org.linphone.tester;
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-import android.Manifest;
 import android.app.Activity;
 import android.os.Bundle;
-
-import org.linphone.mediastream.Version;
-
-import java.util.ArrayList;
 
 public class SuitesActivity extends Activity {
 
@@ -33,20 +28,5 @@ public class SuitesActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_suites);
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-
-        if (Version.sdkAboveOrEqual(23)) {
-            ArrayList<String> permissionsList = new ArrayList<>();
-            permissionsList.add(Manifest.permission.READ_EXTERNAL_STORAGE);
-            permissionsList.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
-
-            String[] permissions = new String[permissionsList.size()];
-            permissions = permissionsList.toArray(permissions);
-            requestPermissions(permissions, 0);
-        }
     }
 }
