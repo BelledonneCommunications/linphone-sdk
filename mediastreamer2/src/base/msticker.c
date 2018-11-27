@@ -55,6 +55,7 @@ static void ms_ticker_start(MSTicker *s){
 static void ms_ticker_init(MSTicker *ticker, const MSTickerParams *params)
 {
 	ms_mutex_init(&ticker->lock,NULL);
+	ms_mutex_init(&ticker->cur_time_lock, NULL);
 	ticker->execution_list=NULL;
 	ticker->task_list=NULL;
 	ticker->ticks=1;
@@ -112,6 +113,7 @@ static void ms_ticker_uninit(MSTicker *ticker)
 	ms_ticker_stop(ticker);
 	ms_free(ticker->name);
 	ms_mutex_destroy(&ticker->lock);
+	ms_mutex_destroy(&ticker->cur_time_lock);
 }
 
 void ms_ticker_destroy(MSTicker *ticker){
@@ -394,7 +396,10 @@ static int wait_next_tick(void *data, uint64_t virt_ticker_time){
 	int late;
 
 	while(1){
+		ms_mutex_lock(&s->cur_time_lock);
 		realtime=s->get_cur_time_ptr(s->get_cur_time_data)-s->orig;
+		ms_mutex_unlock(&s->cur_time_lock);
+		
 		diff=s->time-realtime;
 		if (diff>0){
 			/* sleep until next tick */
@@ -420,7 +425,9 @@ void * ms_ticker_run(void *arg)
 	precision = set_high_prio(s);
 	s->thread_id = ms_thread_self();
 	s->ticks=1;
+	ms_mutex_lock(&s->cur_time_lock);
 	s->orig=s->get_cur_time_ptr(s->get_cur_time_data);
+	ms_mutex_unlock(&s->cur_time_lock);
 
 	while(s->run){
 		uint64_t late_tick_time=0;
@@ -469,12 +476,14 @@ void * ms_ticker_run(void *arg)
 
 void ms_ticker_set_time_func(MSTicker *ticker, MSTickerTimeFunc func, void *user_data){
 	if (func==NULL) func=get_cur_time_ms;
-
+	
+	ms_mutex_lock(&ticker->cur_time_lock);
 	ticker->get_cur_time_ptr=func;
 	ticker->get_cur_time_data=user_data;
 	/*re-set the origin to take in account that previous function ptr and the
 	new one may return different times*/
 	ticker->orig=func(user_data)-ticker->time;
+	ms_mutex_unlock(&ticker->cur_time_lock);
 
 	ms_message("ms_ticker_set_time_func: ticker's time method updated.");
 }

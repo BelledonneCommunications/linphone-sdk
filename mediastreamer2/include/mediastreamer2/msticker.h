@@ -72,7 +72,7 @@ typedef struct _MSTickerLateEvent MSTickerLateEvent;
 
 struct _MSTicker
 {
-	ms_mutex_t lock;
+	ms_mutex_t lock; /*main lock protecting the filter execution list */
 	ms_cond_t cond;
 	MSList *execution_list;     /* the list of source filters to be executed.*/
 	MSList *task_list; /* list of tasks (see ms_filter_postpone_task())*/
@@ -84,6 +84,7 @@ struct _MSTicker
 	uint64_t orig; /* a relative time to take in account difference between time base given by consecutive get_cur_time_ptr() functions.*/
 	MSTickerTimeFunc get_cur_time_ptr;
 	void *get_cur_time_data;
+	ms_mutex_t cur_time_lock; /*mutex protecting the get_cur_time_ptr/get_cur_time_data which can be changed at any time*/
 	char *name;
 	double av_load;	/*average load of the ticker */
 	MSTickerPrio prio;
