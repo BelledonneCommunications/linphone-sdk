@@ -1,2 +1,5 @@
 To run all the tests:
 ./gradlew connectAndroidTest
+
+To run a specific suite:
+adb shell am instrument -w -r -e debug false -e class 'org.linphone.tester.<suite name>Tests' org.linphone.tester.test/android.support.test.runner.AndroidJUnitRunner

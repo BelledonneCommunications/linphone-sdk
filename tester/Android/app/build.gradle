@@ -16,6 +16,17 @@ android {
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
 
+    testOptions {
+        // Changes the directory where Gradle saves test reports. By default, Gradle saves test reports
+        // in the path_to_your_project/module_name/build/outputs/reports/ directory.
+        // '$rootDir' sets the path relative to the root directory of the current project.
+        reportDir "$rootDir/"
+        // Changes the directory where Gradle saves test results. By default, Gradle saves test results
+        // in the path_to_your_project/module_name/build/outputs/test-results/ directory.
+        // '$rootDir' sets the path relative to the root directory of the current project.
+        resultsDir "$rootDir/"
+    }
+
     sourceSets {
         main {
             packagingOptions {

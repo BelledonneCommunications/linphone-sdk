@@ -23,6 +23,18 @@ import android.app.Activity;
 import android.os.Bundle;
 
 public class SuitesActivity extends Activity {
+    private static String[] sSuites = {"Setup", "Register", "Tunnel", "Offer-answer", "Single Call",
+            "Video Call", "Audio Bypass", "Multi call", "Message", "Presence",
+            "Presence using server", "Account creator", "Stun", "Event", "Conference event",
+            "Contents", "Flexisip", "RemoteProvisioning", "QualityReporting", "LogCollection",
+            "Player", "DTMF", "Cpim", "Multipart", "ClonableObject", "MainDb", "PropertyContainer",
+            "Video", "Multicast Call", "Proxy config", "VCard", "Group Chat", "Utils", "Setup",
+            "Register", "Tunnel", "Offer-answer", "Single Call", "Video Call", "Audio Bypass",
+            "Multi call", "Message", "Presence", "Presence using server", "Account creator", "Stun",
+            "Event", "Conference event", "Contents", "Flexisip", "RemoteProvisioning",
+            "QualityReporting", "LogCollection", "Player", "DTMF", "Cpim", "Multipart",
+            "ClonableObject", "MainDb", "PropertyContainer", "Video", "Multicast Call",
+            "Proxy config", "VCard", "Group Chat", "Utils"};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

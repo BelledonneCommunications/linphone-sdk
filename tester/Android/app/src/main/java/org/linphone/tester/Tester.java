@@ -40,6 +40,7 @@ public class Tester {
     public static String TAG = "LibLinphoneTester";
 
     private Context mContext;
+    private boolean mHasBeenSetUp = false;
 
     private static Tester instance;
 
@@ -51,28 +52,40 @@ public class Tester {
     }
 
     protected Tester() {
-        try {
-            setUp();
-        } catch (IOException ioe) {
 
+    }
+
+    public void installTester() {
+        if (!mHasBeenSetUp) {
+            try {
+                setUp();
+                mHasBeenSetUp = true;
+            } catch (IOException ioe) {
+
+            }
         }
     }
 
+    public boolean isReady() {
+        return mHasBeenSetUp;
+    }
+
     public int runTestInSuite(String suite, String test) {
+        installTester();
+
         List<String> list = new LinkedList<>(Arrays.asList(new String[] {
                 "tester",
                 "--verbose",
                 "--resource-dir", mContext.getFilesDir().getAbsolutePath(),
                 "--writable-dir", mContext.getCacheDir().getPath(),
                 "--suite", suite,
-                "--test", test,
-                "--no-ipv6"
+                "--test", test
         }));
         String[] array = list.toArray(new String[list.size()]);
         return run(array);
     }
 
-    public void setUp() throws IOException {
+    private void setUp() throws IOException {
         Factory.instance().setDebugMode(true, "LibLinphoneTester");
         System.loadLibrary("bctoolbox-tester");
         System.loadLibrary("linphonetester");

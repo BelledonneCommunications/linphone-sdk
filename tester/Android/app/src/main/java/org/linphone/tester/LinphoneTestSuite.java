@@ -27,6 +27,9 @@ public class LinphoneTestSuite extends Tester {
 
     protected LinphoneTestSuite() {
         mList = new ArrayList<>();
+        if (!Tester.getInstance().isReady()) {
+            Tester.getInstance().installTester();
+        }
     }
 
     public void printLog(final int level, final String message) {
