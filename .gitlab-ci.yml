@@ -4,9 +4,24 @@ variables:
   DEFAULT_LINUX_CMAKE_OPTIONS: -DCMAKE_C_COMPILER_LAUNCHER= -DCMAKE_CXX_COMPILER_LAUNCHER=
 
 
+.linux-ccache:
+
+  before_script:
+    - mkdir -p .ccache
+    - echo "max_size = 1G" > .ccache/ccache.conf
+    - export CCACHE_BASEDIR=${PWD}
+    - export CCACHE_DIR=${PWD}/.ccache
+    - ccache -s
+
+  after_script:
+    - ccache -s
+
+
 .job-android:
 
   tags: [ "docker" ]
+
+  extends: .linux-ccache
 
   script:
     - sdkmanager
@@ -154,6 +169,8 @@ job-ios-xcode:
 .job-linux-desktop:
 
   tags: [ "docker" ]
+
+  extends: .linux-ccache
 
   script:
     - export CC=$CC
