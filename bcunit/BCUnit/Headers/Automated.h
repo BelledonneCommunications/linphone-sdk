@@ -85,6 +85,8 @@ CU_EXPORT void CU_set_output_filename(const char* szFilenameRoot);
 
 void CU_automated_enable_junit_xml(CU_BOOL bFlag);
 
+void CU_automated_enable_partial_junit(CU_BOOL bFlag);
+
 void CU_automated_package_name_set(const char *pName);
 
 const char *CU_automated_package_name_get(void);
