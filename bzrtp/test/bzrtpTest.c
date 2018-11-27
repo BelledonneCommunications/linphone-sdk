@@ -46,7 +46,30 @@ static void log_handler(int lev, const char *fmt, va_list args) {
 	}
 }
 
+int silent_arg_func(const char *arg) {
+	bctbx_set_log_level(log_domain, BCTBX_LOG_FATAL);
+	bctbx_set_log_level(BCTBX_LOG_DOMAIN, BCTBX_LOG_FATAL);
+	verbose = 0;
+	return 0;
+}
+
+int verbose_arg_func(const char *arg) {
+	bctbx_set_log_level(log_domain, BCTBX_LOG_DEBUG);
+	bctbx_set_log_level(BCTBX_LOG_DOMAIN,BCTBX_LOG_DEBUG);
+	verbose = 1;
+	return 0;
+}
+
+int logfile_arg_func(const char *arg) {
+	if (bzrtp_tester_set_log_file(argv[i]) < 0) return -2;
+	return 0;
+}
+
+
 void bzrtp_tester_init(void(*ftester_printf)(int level, const char *fmt, va_list args)) {
+	bc_tester_set_silent_func(silent_arg_func);
+	bc_tester_set_verbose_func(verbose_arg_func);
+	bc_tester_set_logfile_func(logfile_arg_func);
 	if (ftester_printf == NULL) ftester_printf = log_handler;
 	bc_tester_init(ftester_printf, BCTBX_LOG_MESSAGE, BCTBX_LOG_ERROR, NULL);
 
@@ -84,10 +107,7 @@ int bzrtp_tester_set_log_file(const char *filename) {
 
 #if !defined(__ANDROID__) && !(defined(BCTBX_WINDOWS_PHONE) || defined(BCTBX_WINDOWS_UNIVERSAL))
 
-static const char* lime_helper =
-		"\t\t\t--verbose\n"
-		"\t\t\t--silent\n"
-		"\t\t\t--log-file <output log file path>\n";
+static const char* lime_helper = "";
 
 int main(int argc, char *argv[]) {
 	int i;
@@ -104,27 +124,14 @@ int main(int argc, char *argv[]) {
 	}
 
 	for(i = 1; i < argc; ++i) {
-		if (strcmp(argv[i],"--verbose")==0){
-			bctbx_set_log_level(log_domain, BCTBX_LOG_DEBUG);
-			bctbx_set_log_level(BCTBX_LOG_DOMAIN,BCTBX_LOG_DEBUG);
-			verbose = 1;
-		} else if (strcmp(argv[i],"--silent")==0){
-			bctbx_set_log_level(log_domain, BCTBX_LOG_FATAL);
-			bctbx_set_log_level(BCTBX_LOG_DOMAIN, BCTBX_LOG_FATAL);
-			verbose = 0;
-		} else if (strcmp(argv[i],"--log-file")==0){
-			CHECK_ARG("--log-file", ++i, argc);
-			if (bzrtp_tester_set_log_file(argv[i]) < 0) return -2;
-		}else {
-			int ret = bc_tester_parse_args(argc, argv, i);
-			if (ret>0) {
-				i += ret - 1;
-				continue;
-			} else if (ret<0) {
-				bc_tester_helper(argv[0], lime_helper);
-			}
-			return ret;
+		int ret = bc_tester_parse_args(argc, argv, i);
+		if (ret>0) {
+			i += ret - 1;
+			continue;
+		} else if (ret<0) {
+			bc_tester_helper(argv[0], lime_helper);
 		}
+		return ret;
 	}
 	ret = bc_tester_start(argv[0]);
 	bzrtp_tester_uninit();
