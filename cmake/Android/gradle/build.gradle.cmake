@@ -81,6 +81,9 @@ android {
             signingConfig null
             //matchingFallbacks = ['debug', 'release']
         }
+        debug {
+            debuggable true
+        }
     }
 
     lintOptions {
