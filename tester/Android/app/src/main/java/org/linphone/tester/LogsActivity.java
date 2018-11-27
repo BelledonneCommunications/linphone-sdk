@@ -20,6 +20,8 @@ public class LogsActivity extends Activity implements TesterLogListener {
 
         mSuite = getIntent().getStringExtra("Suite");
         mTest = getIntent().getStringExtra("Test");
+
+        Tester.getInstance().setContext(getApplicationContext());
     }
 
     @Override

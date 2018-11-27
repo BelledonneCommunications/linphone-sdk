@@ -19,12 +19,19 @@ package org.linphone.tester;
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+import android.Manifest;
+import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.v4.app.ActivityCompat;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
+
+import org.linphone.mediastream.Version;
+
+import java.util.ArrayList;
 
 public class SuitesActivity extends Activity implements View.OnClickListener {
     @Override
@@ -57,5 +64,27 @@ public class SuitesActivity extends Activity implements View.OnClickListener {
         Intent intent = new Intent(this, TestsActivity.class);
         intent.putExtra("Suite", (String)v.getTag());
         startActivity(intent);
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if (Version.sdkAboveOrEqual(Version.API23_MARSHMALLOW_60)) {
+            askForPermissions();
+        }
+    }
+
+    @TargetApi(23)
+    private void askForPermissions() {
+        ArrayList<String> permissionsList = new ArrayList<>();
+        permissionsList.add(Manifest.permission.RECORD_AUDIO);
+        permissionsList.add(Manifest.permission.CAMERA);
+        permissionsList.add(Manifest.permission.READ_PHONE_STATE);
+        permissionsList.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        if (permissionsList.size() > 0) {
+            String[] permissions = new String[permissionsList.size()];
+            permissions = permissionsList.toArray(permissions);
+            requestPermissions(permissions, 0);
+        }
     }
 }

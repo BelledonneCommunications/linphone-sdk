@@ -56,3 +56,18 @@ dependencies {
     implementation 'com.android.support.constraint:constraint-layout:1.1.3'
     implementation 'com.android.support:design:28.0.0'
 }
+
+// Grant permissions
+task grantPermissions {
+    def adb = android.getAdbExecutable().toString()
+    "${adb} devices".execute().text.eachLine {
+        if(it.endsWith("device")){
+            def device = it.split()[0]
+            println "Granting permissions on devices ${device}"
+            "${adb} shell pm grant ${android.defaultConfig.applicationId} android.permission.RECORD_AUDIO".execute()
+            "${adb} shell pm grant ${android.defaultConfig.applicationId} android.permission.WRITE_EXTERNAL_STORAGE".execute()
+            "${adb} shell pm grant ${android.defaultConfig.applicationId} android.permission.CAMERA".execute()
+            "${adb} shell pm grant ${android.defaultConfig.applicationId} android.permission.WRITE_EXTERNAL_STORAGE".execute()
+        }
+    }
+}

@@ -16,6 +16,8 @@ public class TestsActivity extends Activity implements View.OnClickListener {
         setContentView(R.layout.activity_tests);
         LinearLayout testsLayout = findViewById(R.id.testsLayout);
 
+        Tester.getInstance().setContext(getApplicationContext());
+
         String suiteName = getIntent().getStringExtra("Suite");
         if (suiteName.equals("All")) {
             Intent intent = new Intent(this, LogsActivity.class);
