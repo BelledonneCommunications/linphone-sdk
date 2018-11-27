@@ -2,11 +2,36 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
   MAKEFILE_JOBS: 5
   DEFAULT_LINUX_CMAKE_OPTIONS: -DCMAKE_C_COMPILER_LAUNCHER= -DCMAKE_CXX_COMPILER_LAUNCHER=
+  CCACHE_SIZE: 2G
+
+
+.linux-ccache:
+
+  cache:
+    key: $CI_JOB_NAME
+    paths:
+      - ccache/
+
+  before_script:
+    - mkdir -p ccache
+    - echo "max_size = $CCACHE_SIZE" > ccache/ccache.conf
+    - export CCACHE_BASEDIR=${PWD}
+    - export CCACHE_DIR=${PWD}/ccache
+    - ccache -s
+
+  after_script:
+    - export CCACHE_DIR=${PWD}/ccache
+    - ccache -s
 
 
 .job-android:
 
-  tags: [ "docker" ]
+  tags: [ "docker-android" ]
+
+  variables:
+    CCACHE_SIZE: 4G
+
+  extends: .linux-ccache
 
   script:
     - sdkmanager
@@ -153,7 +178,7 @@ job-ios-xcode:
 
 .job-linux-desktop:
 
-  tags: [ "docker" ]
+  extends: .linux-ccache
 
   script:
     - export CC=$CC
@@ -172,6 +197,7 @@ job-ios-xcode:
 
 job-centos7-makefile-gcc:
 
+  tags: [ "docker-centos7" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
   variables:
     CMAKE_GENERATOR: Unix Makefiles
@@ -182,6 +208,7 @@ job-centos7-makefile-gcc:
 
 job-debian8-makefile-gcc:
 
+  tags: [ "docker-debian8" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
   variables:
     CMAKE_GENERATOR: Unix Makefiles
@@ -193,6 +220,7 @@ job-debian8-makefile-gcc:
 
 job-debian9-makefile-gcc:
 
+  tags: [ "docker-debian9" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
   variables:
     CMAKE_GENERATOR: Unix Makefiles
@@ -204,6 +232,7 @@ job-debian9-makefile-gcc:
 
 job-centos7-ninja-gcc:
 
+  tags: [ "docker-centos7" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
   variables:
     CMAKE_GENERATOR: Ninja
@@ -214,6 +243,7 @@ job-centos7-ninja-gcc:
 
 job-centos7-ninja-gcc-novideo:
 
+  tags: [ "docker-centos7" ]
   only:
     - schedules
   variables:
@@ -223,6 +253,7 @@ job-centos7-ninja-gcc-novideo:
 
 job-debian8-ninja-gcc:
 
+  tags: [ "docker-debian8" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
   variables:
     CMAKE_GENERATOR: Ninja
@@ -242,6 +273,7 @@ job-debian8-ninja-gcc-novideo:
 
 job-debian9-ninja-gcc:
 
+  tags: [ "docker-debian9" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
   variables:
     CMAKE_GENERATOR: Ninja
@@ -261,6 +293,7 @@ job-debian9-ninja-gcc-novideo:
 
 job-centos7-makefile-clang:
 
+  tags: [ "docker-centos7" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
   variables:
     CMAKE_GENERATOR: Unix Makefiles
@@ -271,6 +304,7 @@ job-centos7-makefile-clang:
 
 job-debian8-makefile-clang:
 
+  tags: [ "docker-debian8" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
   variables:
     CMAKE_GENERATOR: Unix Makefiles
@@ -282,6 +316,7 @@ job-debian8-makefile-clang:
 
 job-debian9-makefile-clang:
 
+  tags: [ "docker-debian9" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
   variables:
     CMAKE_GENERATOR: Unix Makefiles
@@ -293,6 +328,7 @@ job-debian9-makefile-clang:
 
 job-centos7-ninja-clang:
 
+  tags: [ "docker-centos7" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
   variables:
     CMAKE_GENERATOR: Ninja
@@ -312,6 +348,7 @@ job-centos7-ninja-clang-novideo:
 
 job-debian8-ninja-clang:
 
+  tags: [ "docker-debian8" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
   variables:
     CMAKE_GENERATOR: Ninja
@@ -331,6 +368,7 @@ job-debian8-ninja-clang-novideo:
 
 job-debian9-ninja-clang:
 
+  tags: [ "docker-debian9" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
   variables:
     CMAKE_GENERATOR: Ninja
