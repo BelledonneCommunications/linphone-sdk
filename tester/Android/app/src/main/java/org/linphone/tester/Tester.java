@@ -86,7 +86,8 @@ public class Tester {
                 "tester",
                 "--verbose",
                 "--resource-dir", mContext.getFilesDir().getAbsolutePath(),
-                "--writable-dir", mContext.getCacheDir().getPath()
+                "--writable-dir", mContext.getCacheDir().getPath(),
+                "--no-ipv6"
         }));
 
         if (suite != null) {
