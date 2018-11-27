@@ -41,6 +41,7 @@ public class Tester {
 
     private Context mContext;
     private boolean mHasBeenSetUp = false;
+    private TesterLogListener mListener;
 
     private static Tester instance;
 
@@ -53,6 +54,10 @@ public class Tester {
 
     protected Tester() {
 
+    }
+
+    public void setContext(Context context) {
+        mContext = context;
     }
 
     public void installTester() {
@@ -70,6 +75,10 @@ public class Tester {
         return mHasBeenSetUp;
     }
 
+    public void setListener(TesterLogListener listener) {
+        mListener = listener;
+    }
+
     public int runTestInSuite(String suite, String test) {
         installTester();
 
@@ -77,10 +86,18 @@ public class Tester {
                 "tester",
                 "--verbose",
                 "--resource-dir", mContext.getFilesDir().getAbsolutePath(),
-                "--writable-dir", mContext.getCacheDir().getPath(),
-                "--suite", suite,
-                "--test", test
+                "--writable-dir", mContext.getCacheDir().getPath()
         }));
+
+        if (suite != null) {
+            list.add("--suite");
+            list.add(suite);
+            if (test != null) {
+                list.add("--test");
+                list.add(test);
+            }
+        }
+
         String[] array = list.toArray(new String[list.size()]);
         return run(array);
     }
@@ -91,7 +108,9 @@ public class Tester {
         System.loadLibrary("linphonetester");
 
         keepAccounts(true);
-        mContext = InstrumentationRegistry.getTargetContext();
+        if (mContext == null) {
+            mContext = InstrumentationRegistry.getTargetContext();
+        }
         setApplicationContext(mContext);
 
         org.linphone.core.tools.AndroidPlatformHelper.copyAssetsFromPackage(mContext,"config_files", ".");
@@ -106,9 +125,15 @@ public class Tester {
         switch(level) {
             case 0:
                 android.util.Log.i(TAG, message);
+                if (mListener != null) {
+                    mListener.onMessage(message);
+                }
                 break;
             case 1:
                 android.util.Log.e(TAG, message);
+                if (mListener != null) {
+                    mListener.onError(message);
+                }
                 break;
         }
     }

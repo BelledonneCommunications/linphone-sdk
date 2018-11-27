@@ -22,7 +22,7 @@ package org.linphone.tester;
 import java.util.ArrayList;
 import java.util.List;
 
-public class LinphoneTestSuite extends Tester {
+public class LinphoneTestSuite implements TesterLogListener {
     private List<String> mList;
 
     protected LinphoneTestSuite() {
@@ -30,14 +30,24 @@ public class LinphoneTestSuite extends Tester {
         if (!Tester.getInstance().isReady()) {
             Tester.getInstance().installTester();
         }
-    }
-
-    public void printLog(final int level, final String message) {
-        super.printLog(level, message);
-        mList.add(message);
+        Tester.getInstance().setListener(this);
     }
 
     public List<String> getList() {
         return mList;
+    }
+
+    public void run(String[] args) {
+        Tester.getInstance().run(args);
+    }
+
+    @Override
+    public void onMessage(String message) {
+        mList.add(message);
+    }
+
+    @Override
+    public void onError(String message) {
+
     }
 }

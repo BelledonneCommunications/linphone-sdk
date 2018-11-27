@@ -20,25 +20,42 @@ package org.linphone.tester;
  */
 
 import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
+import android.widget.LinearLayout;
 
-public class SuitesActivity extends Activity {
-    private static String[] sSuites = {"Setup", "Register", "Tunnel", "Offer-answer", "Single Call",
-            "Video Call", "Audio Bypass", "Multi call", "Message", "Presence",
-            "Presence using server", "Account creator", "Stun", "Event", "Conference event",
-            "Contents", "Flexisip", "RemoteProvisioning", "QualityReporting", "LogCollection",
-            "Player", "DTMF", "Cpim", "Multipart", "ClonableObject", "MainDb", "PropertyContainer",
-            "Video", "Multicast Call", "Proxy config", "VCard", "Group Chat", "Utils", "Setup",
-            "Register", "Tunnel", "Offer-answer", "Single Call", "Video Call", "Audio Bypass",
-            "Multi call", "Message", "Presence", "Presence using server", "Account creator", "Stun",
-            "Event", "Conference event", "Contents", "Flexisip", "RemoteProvisioning",
-            "QualityReporting", "LogCollection", "Player", "DTMF", "Cpim", "Multipart",
-            "ClonableObject", "MainDb", "PropertyContainer", "Video", "Multicast Call",
-            "Proxy config", "VCard", "Group Chat", "Utils"};
-
+public class SuitesActivity extends Activity implements View.OnClickListener {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_suites);
+        LinearLayout suitesLayout = findViewById(R.id.suitesLayout);
+
+        Tester.getInstance().setContext(getApplicationContext());
+
+        Button button = new Button(this);
+        button.setText("All");
+        button.setTag("All");
+        suitesLayout.addView(button);
+        button.setOnClickListener(this);
+
+        LinphoneTestSuite suitesList = new LinphoneTestSuite();
+        suitesList.run(new String[]{"tester", "--list-suites"});
+        for (String suite : suitesList.getList()) {
+            button = new Button(this);
+            button.setText(suite);
+            button.setTag(suite);
+            suitesLayout.addView(button);
+            button.setOnClickListener(this);
+        }
+    }
+
+    @Override
+    public void onClick(View v) {
+        Intent intent = new Intent(this, TestsActivity.class);
+        intent.putExtra("Suite", (String)v.getTag());
+        startActivity(intent);
     }
 }
