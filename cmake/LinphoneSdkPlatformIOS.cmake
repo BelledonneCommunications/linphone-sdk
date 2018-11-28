@@ -24,7 +24,7 @@ include(LinphoneSdkPlatformCommon)
 include(LinphoneSdkCheckBuildToolsIOS)
 
 
-set(LINPHONESDK_IOS_ARCHS "arm64, armv7, x86_64" CACHE STRING "Android architectures to build for: comma-separated list of values in [arm64, armv7, i386, x86_64]")
+set(LINPHONESDK_IOS_ARCHS "arm64, armv7, x86_64" CACHE STRING "Android architectures to build for: comma-separated list of values in [arm64, armv7, x86_64]")
 set(LINPHONESDK_IOS_BASE_URL "https://www.linphone.org/releases/ios/" CACHE STRING "URL of the repository where the iOS SDK zip files are located")
 
 
