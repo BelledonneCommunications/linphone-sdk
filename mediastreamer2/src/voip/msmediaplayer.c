@@ -164,7 +164,7 @@ bool_t ms_media_player_open(MSMediaPlayer *obj, const char *filepath) {
 		_destroy_graph(obj);
 		return FALSE;
 	}
-	ms_filter_add_notify_callback(obj->player, _eof_filter_notify_cb, obj, TRUE);
+	ms_filter_add_notify_callback(obj->player, _eof_filter_notify_cb, obj, FALSE);
 	ms_filter_call_method(obj->player, MS_PLAYER_SET_LOOP, &obj->loop_interval);
 	obj->ticker = ms_ticker_new();
 	ms_ticker_set_name(obj->ticker, "Player");
