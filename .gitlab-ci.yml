@@ -2,6 +2,7 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
   MAKEFILE_JOBS: 5
   DEFAULT_LINUX_CMAKE_OPTIONS: -DCMAKE_C_COMPILER_LAUNCHER= -DCMAKE_CXX_COMPILER_LAUNCHER=
+  CCACHE_SIZE: 2G
 
 
 .linux-ccache:
@@ -13,7 +14,7 @@ variables:
 
   before_script:
     - mkdir -p ccache
-    - echo "max_size = 2G" > ccache/ccache.conf
+    - echo "max_size = $CCACHE_SIZE" > ccache/ccache.conf
     - export CCACHE_BASEDIR=${PWD}
     - export CCACHE_DIR=${PWD}/ccache
     - ccache -s
@@ -26,6 +27,9 @@ variables:
 .job-android:
 
   tags: [ "docker-android" ]
+
+  variables:
+    CCACHE_SIZE: 4G
 
   extends: .linux-ccache
 
