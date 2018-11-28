@@ -6,8 +6,8 @@
   "dependencies": {
     "rwlock": "^5.0.0",
     "sqlite3": "^4.0.2",
-    "yargs": "^9.0.1",
-  ,
+    "yargs": "^9.0.1"
+  },
   "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

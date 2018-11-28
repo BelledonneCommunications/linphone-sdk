@@ -66,12 +66,6 @@ const yargs = require('yargs')
 		type : 'number',
 		default : 300
 	})
-	.option('passwords', {
-		alias : 'h',
-		describe : 'the htpassword file',
-		type : 'string',
-		default : 'htpasswd'
-	})
 	.argv;
 
 const https = require('https');
