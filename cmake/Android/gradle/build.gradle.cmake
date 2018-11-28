@@ -44,7 +44,6 @@ def excludePackage = []
 
 excludePackage.add('**/gdb.*')
 excludePackage.add('**/libopenh264**')
-excludePackage.add('**/**tester**')
 excludePackage.add('**/LICENSE.txt')
 
 android {
