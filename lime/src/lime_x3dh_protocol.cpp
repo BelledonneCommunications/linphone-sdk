@@ -520,7 +520,8 @@ namespace lime {
 			for (auto i=0; i<peersBundleCount; i++) {
 				if (body.size() < index + 2) { // check we have at least a device size to read
 					peersBundle.clear();
-					LIME_LOGE<<"Invalid message: size is not what expected, discard without parsing";
+					LIME_LOGE<<"Invalid message: size is not what expected, cannot read device size, discard without parsing";
+					LIME_LOGD<<"message_trace so far: "<<message_trace.str();
 					return false;
 				}
 
@@ -530,7 +531,8 @@ namespace lime {
 
 				if (body.size() < index + deviceIdSize + 1) { // check we have at enough data to read: device size and the following flag
 					peersBundle.clear();
-					LIME_LOGE<<"Invalid message: size is not what expected, discard without parsing";
+					LIME_LOGE<<"Invalid message: size is not what expected, cannot read device id(size is"<<int(deviceIdSize)<<"), discard without parsing";
+					LIME_LOGD<<"message_trace so far: "<<message_trace.str();
 					return false;
 				}
 				std::string deviceId{body.cbegin()+index, body.cbegin()+index+deviceIdSize};
@@ -551,6 +553,7 @@ namespace lime {
 						break;
 					default:
 						LIME_LOGE<<"Invalid X3DH message: unexpected flag value "<<body[index]<<" in "<<deviceId<<" key bundle";
+						LIME_LOGD<<"message_trace so far: "<<message_trace.str();
 						peersBundle.clear();
 						return false;
 				}
@@ -560,6 +563,7 @@ namespace lime {
 					// add device Id (and its size) to the trace
 					message_trace << endl << dec << "    Device Id ("<<static_cast<unsigned int>(deviceIdSize)<<" bytes): "<<deviceId<<" has no key bundle"<<endl;
 					peersBundle.emplace_back(std::move(deviceId));
+					index += 1;
 					continue; // skip to next one
 				}
 
@@ -571,7 +575,8 @@ namespace lime {
 
 				if (body.size() < index + DSA<Curve, lime::DSAtype::publicKey>::ssize() + X<Curve, lime::Xtype::publicKey>::ssize() + DSA<Curve, lime::DSAtype::signature>::ssize() + 4 + (haveOPk?(X<Curve, lime::Xtype::publicKey>::ssize()+4):0) ) {
 					peersBundle.clear();
-					LIME_LOGE<<"Invalid message: size is not what expected, discard without parsing";
+					LIME_LOGE<<"Invalid message: size is not what expected, not enough buffer to hold keys bundle, discard without parsing";
+					LIME_LOGD<<"message_trace so far: "<<message_trace.str();
 					return false;
 				}
 
