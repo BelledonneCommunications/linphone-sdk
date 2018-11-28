@@ -54,7 +54,7 @@ static int get_next_buf(const RealTimeTextSourceData *stream, const int cur) {
 }
 
 static uint32_t get_red_subheader(int pt, int offset, size_t length) {
-	return (1 << 31) | ((0x7F & pt) << 24) | ((0x3FFF & offset) << 10) | (0x3FF & (int)length);
+	return ((uint32_t)1 << 31) | ((0x7F & pt) << 24) | ((0x3FFF & offset) << 10) | (0x3FF & (int)length);
 }
 
 static mblk_t *realtime_text_stream_generate_red_packet(RealTimeTextSourceData *stream) {

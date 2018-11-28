@@ -940,14 +940,18 @@ static void android_snd_write_postprocess(MSFilter *obj) {
 	SLresult result;
 	OpenSLESOutputContext *octx = (OpenSLESOutputContext*)obj->data;
 
-	result = (*octx->playerPlay)->SetPlayState(octx->playerPlay, SL_PLAYSTATE_STOPPED);
-	if (result != SL_RESULT_SUCCESS) {
-		ms_error("OpenSLES Error %u while stopping player", result);
+	if (octx->playerPlay){
+		result = (*octx->playerPlay)->SetPlayState(octx->playerPlay, SL_PLAYSTATE_STOPPED);
+		if (result != SL_RESULT_SUCCESS) {
+			ms_error("OpenSLES Error %u while stopping player", result);
+		}
 	}
 
-	result = (*octx->playerBufferQueue)->Clear(octx->playerBufferQueue);
-	if (result != SL_RESULT_SUCCESS) {
-		ms_error("OpenSLES Error %u while clearing player buffer queue", result);
+	if (octx->playerBufferQueue){
+		result = (*octx->playerBufferQueue)->Clear(octx->playerBufferQueue);
+		if (result != SL_RESULT_SUCCESS) {
+			ms_error("OpenSLES Error %u while clearing player buffer queue", result);
+		}
 	}
 
 	if (octx->playerObject != NULL) {

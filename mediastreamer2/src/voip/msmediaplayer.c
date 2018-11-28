@@ -164,7 +164,7 @@ bool_t ms_media_player_open(MSMediaPlayer *obj, const char *filepath) {
 		_destroy_graph(obj);
 		return FALSE;
 	}
-	ms_filter_add_notify_callback(obj->player, _eof_filter_notify_cb, obj, TRUE);
+	ms_filter_add_notify_callback(obj->player, _eof_filter_notify_cb, obj, FALSE);
 	ms_filter_call_method(obj->player, MS_PLAYER_SET_LOOP, &obj->loop_interval);
 	obj->ticker = ms_ticker_new();
 	ms_ticker_set_name(obj->ticker, "Player");
@@ -249,7 +249,7 @@ int ms_media_player_get_duration(MSMediaPlayer *obj) {
 }
 
 int ms_media_player_get_current_position(MSMediaPlayer *obj) {
-	int position;
+	int64_t position;
 	if(!obj->is_open) {
 		ms_error("Could not get position. No file is open");
 		return -1;

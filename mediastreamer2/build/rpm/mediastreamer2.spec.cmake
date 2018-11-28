@@ -34,7 +34,7 @@ real-time streaming and processing. Written in pure C, it is based
 upon the oRTP library.
 
 
-BuildRequires: 
+BuildRequires:
 
 %package devel
 Summary:       Development libraries for mediastreamer
@@ -61,7 +61,7 @@ develop programs using the mediastreamer2 library.
 %setup -n %{name}-%{version}%{?build_number_ext}
 
 %build
-%{expand:%%%cmake_name} . -DCMAKE_BUILD_TYPE=@CMAKE_BUILD_TYPE@ -DCMAKE_INSTALL_LIBDIR=%{_lib} -DCMAKE_PREFIX_PATH:PATH=%{_prefix} @RPM_ALL_CMAKE_OPTIONS@
+%{expand:%%%cmake_name} . -DCMAKE_BUILD_TYPE=@CMAKE_BUILD_TYPE@ -DCMAKE_PREFIX_PATH:PATH=%{_prefix} @RPM_ALL_CMAKE_OPTIONS@
 make %{?_smp_mflags}
 
 %install
@@ -104,7 +104,12 @@ rm -rf $RPM_BUILD_ROOT
 %endif
 
 %changelog
+
+* Tue Nov 27 2018 ronan.abhamon <ronan.abhamon@belledonne-communications.com>
+- Do not set CMAKE_INSTALL_LIBDIR.
+
 * Thu Jul 13 2017 jehan.monnier <jehan.monnier@linphone.org>
 - cmake port
+
 * Mon Aug 19 2013 jehan.monnier <jehan.monnier@linphone.org>
 - Initial RPM release.

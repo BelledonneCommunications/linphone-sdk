@@ -108,7 +108,7 @@ set(SOURCE_FILES_C
 	mediastreamer2_text_stream_tester.c
 	mediastreamer2_jitterbuffer_tester.c
 )
-set(SOURCE_FILES_CXX mediastreamer2_h26x_tools_tester.cpp)
+set(SOURCE_FILES_CXX )
 set(SOURCE_FILES_OBJC )
 
 add_definitions(
@@ -117,6 +117,7 @@ add_definitions(
 
 if(ENABLE_VIDEO)
 	list(APPEND SOURCE_FILES_C mediastreamer2_video_stream_tester.c)
+	list(APPEND SOURCE_FILES_CXX mediastreamer2_h26x_tools_tester.cpp)
 	if(ENABLE_QRCODE)
 		list(APPEND SOURCE_FILES_C mediastreamer2_qrcode_tester.c)
 	endif()

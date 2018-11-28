@@ -19,6 +19,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 #include <mediastreamer2/stun.h>
+#include <bctoolbox/compiler.h>
 #include <bctoolbox/crypto.h>
 #include <bctoolbox/port.h>
 
@@ -359,7 +360,7 @@ static uint32_t decode32(StunMessageDecoder *decoder) {
 	return value;
 }
 
-static uint64_t decode64(StunMessageDecoder *decoder) {
+BCTBX_DISABLE_UBSAN static uint64_t decode64(StunMessageDecoder *decoder) {
 	uint64_t value = ntohq(*((uint64_t *)decoder->ptr));
 	decoder->ptr += sizeof(uint64_t);
 	decoder->remaining -= sizeof(uint64_t);
