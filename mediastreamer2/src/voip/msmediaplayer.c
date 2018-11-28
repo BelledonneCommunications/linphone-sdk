@@ -249,7 +249,7 @@ int ms_media_player_get_duration(MSMediaPlayer *obj) {
 }
 
 int ms_media_player_get_current_position(MSMediaPlayer *obj) {
-	int position;
+	int64_t position;
 	if(!obj->is_open) {
 		ms_error("Could not get position. No file is open");
 		return -1;
