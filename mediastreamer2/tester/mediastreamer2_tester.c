@@ -44,6 +44,33 @@ static void log_handler(int lev, const char *fmt, va_list args) {
 	}
 }
 
+
+int mediastreamer2_tester_set_log_file(const char *filename) {
+	if (log_file) {
+		fclose(log_file);
+	}
+	log_file = fopen(filename, "w");
+	if (!log_file) {
+		ms_error("Cannot open file [%s] for writing logs because [%s]", filename, strerror(errno));
+		return -1;
+	}
+	ms_message("Redirecting traces to file [%s]", filename);
+#if defined(__clang__) || ((__GNUC__ == 4 && __GNUC_MINOR__ >= 6) || __GNUC__ > 4)
+#pragma GCC diagnostic push
+#endif
+#if defined(__clang__) || defined(__GNUC__)
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#ifdef _MSC_VER
+#pragma deprecated(message_state_changed_cb)
+#endif
+	bctbx_set_log_file(log_file);
+#if defined(__clang__) || ((__GNUC__ == 4 && __GNUC_MINOR__ >= 6) || __GNUC__ > 4)
+#pragma GCC diagnostic pop
+#endif
+	return 0;
+}
+
 int silent_arg_func(const char *arg) {
 	ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_FATAL);
 	return 0;
@@ -91,32 +118,6 @@ void mediastreamer2_tester_init(void(*ftester_printf)(int level, const char *fmt
 
 void mediastreamer2_tester_uninit(void) {
 	bc_tester_uninit();
-}
-
-int mediastreamer2_tester_set_log_file(const char *filename) {
-	if (log_file) {
-		fclose(log_file);
-	}
-	log_file = fopen(filename, "w");
-	if (!log_file) {
-		ms_error("Cannot open file [%s] for writing logs because [%s]", filename, strerror(errno));
-		return -1;
-	}
-	ms_message("Redirecting traces to file [%s]", filename);
-#if defined(__clang__) || ((__GNUC__ == 4 && __GNUC_MINOR__ >= 6) || __GNUC__ > 4)
-#pragma GCC diagnostic push
-#endif
-#if defined(__clang__) || defined(__GNUC__)
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-#ifdef _MSC_VER
-#pragma deprecated(message_state_changed_cb)
-#endif
-	bctbx_set_log_file(log_file);
-#if defined(__clang__) || ((__GNUC__ == 4 && __GNUC_MINOR__ >= 6) || __GNUC__ > 4)
-#pragma GCC diagnostic pop
-#endif
-	return 0;
 }
 
 #if defined(_WIN32) && !defined(MS2_WINDOWS_DESKTOP)

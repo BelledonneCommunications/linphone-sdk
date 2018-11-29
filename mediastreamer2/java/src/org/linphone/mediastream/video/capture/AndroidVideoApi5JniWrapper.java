@@ -42,6 +42,11 @@ public class AndroidVideoApi5JniWrapper {
 
 	public static native void putImage(long nativePtr, byte[] buffer);
 
+	static public int detectCamerasCount() {
+		AndroidCamera[] cameras = AndroidCameraConfiguration.retrieveCameras();
+		return cameras.length;
+	}
+
 	static public int detectCameras(int[] indexes, int[] frontFacing, int[] orientation) {
 		Log.d("detectCameras\n");
 		AndroidCamera[] cameras = AndroidCameraConfiguration.retrieveCameras();

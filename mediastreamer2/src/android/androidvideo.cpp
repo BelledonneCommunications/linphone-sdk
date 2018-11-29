@@ -425,16 +425,17 @@ static void video_capture_detect(MSWebCamManager *obj){
 	JNIEnv *env = ms_get_jni_env();
 	jclass helperClass = getHelperClassGlobalRef(env);
 
-	if (helperClass==NULL) return;
+	if (helperClass == NULL) return;
 
-	// create 3 int arrays - assuming 2 webcams at most
-	jintArray indexes = (jintArray)env->NewIntArray(2);
-	jintArray frontFacing = (jintArray)env->NewIntArray(2);
-	jintArray orientation = (jintArray)env->NewIntArray(2);
+	jmethodID countMethod = env->GetStaticMethodID(helperClass,"detectCamerasCount", "()I");
+	int count = env->CallStaticIntMethod(helperClass, countMethod);
+
+	jintArray indexes = (jintArray)env->NewIntArray(count);
+	jintArray frontFacing = (jintArray)env->NewIntArray(count);
+	jintArray orientation = (jintArray)env->NewIntArray(count);
 
 	jmethodID method = env->GetStaticMethodID(helperClass,"detectCameras", "([I[I[I)I");
-
-	int count = env->CallStaticIntMethod(helperClass, method, indexes, frontFacing, orientation);
+	env->CallStaticIntMethod(helperClass, method, indexes, frontFacing, orientation);
 
 	ms_message("%d cards detected", count);
 	for(int i=0; i<count; i++) {
