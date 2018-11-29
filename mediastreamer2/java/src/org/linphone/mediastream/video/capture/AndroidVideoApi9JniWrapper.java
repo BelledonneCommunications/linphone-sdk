@@ -58,7 +58,7 @@ public class AndroidVideoApi9JniWrapper {
 	}
 
 	public static Object startRecording(int cameraId, int width, int height, int fps, int rotation, final long nativePtr) {
-		Log.d("startRecording(" + cameraId + ", " + width + ", " + height + ", " + fps + ", " + rotation + ", " + nativePtr + ")");
+		Log.i("startRecording(" + cameraId + ", " + width + ", " + height + ", " + fps + ", " + rotation + ", " + nativePtr + ")");
 		try {
 		Camera camera = Camera.open(cameraId);
 		Parameters params = camera.getParameters();
@@ -66,14 +66,14 @@ public class AndroidVideoApi9JniWrapper {
 
 		for (String focusMode : params.getSupportedFocusModes()) {
 			if (focusMode.equalsIgnoreCase(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO)) {
-				Log.d("FOCUS_MODE_CONTINUOUS_VIDEO is supported, let's use it");
+				Log.i("FOCUS_MODE_CONTINUOUS_VIDEO is supported, let's use it");
 				params.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
 				break;
 			}
 		}
 		
 		if (params.isVideoStabilizationSupported()) {
-			Log.d("Video stabilization is supported, let's use it");
+			Log.i("Video stabilization is supported, let's use it");
 			params.setVideoStabilization(true);
 		}
 
@@ -107,7 +107,7 @@ public class AndroidVideoApi9JniWrapper {
 		});
 
 		setCameraDisplayOrientation(rotation, cameraId, camera);
-		camera.startPreview();
+
 		AndroidVideoApi5JniWrapper.isRecording = true;
 		Log.d("Returning camera object: " + camera);
 		return camera;
@@ -124,6 +124,9 @@ public class AndroidVideoApi9JniWrapper {
 
 	public static void setPreviewDisplaySurface(Object cam, Object surf) {
 		AndroidVideoApi5JniWrapper.setPreviewDisplaySurface(cam, surf);
+        //start preview is delayed to workaround autofocus issues on Samsung devices
+		((Camera)cam).startPreview();
+        Log.i("Camera ["+((Camera)cam) +"] preview started");
 	}
 
 	private static void setCameraDisplayOrientation(int rotationDegrees, int cameraId, Camera camera) {

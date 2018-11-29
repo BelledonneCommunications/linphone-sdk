@@ -189,6 +189,8 @@ struct AndroidSndWriteData{
 		stype = AUDIO_STREAM_VOICE_CALL;
 		if (type == MS_SND_CARD_STREAM_RING) {
 			stype = AUDIO_STREAM_RING;
+		} else if (type == MS_SND_CARD_STREAM_MEDIA) {
+			stype = AUDIO_STREAM_MUSIC;
 		}
 	}
 	void setCard(AndroidNativeSndCardData *card){

@@ -3645,6 +3645,7 @@ static void ice_check_list_perform_nominations(IceCheckList *cl, bool_t nominati
 	bctbx_list_free(best_valid_list);
 }
 
+
 static void ice_remove_waiting_and_frozen_pairs_from_list(bctbx_list_t **list, uint16_t componentID)
 {
 	IceCandidatePair *pair;

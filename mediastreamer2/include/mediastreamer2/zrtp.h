@@ -22,6 +22,7 @@
 
 #include <ortp/rtpsession.h>
 #include "mediastreamer2/mscommon.h"
+#include <bctoolbox/port.h>
 
 #ifdef __cplusplus
 extern "C"{
@@ -90,8 +91,15 @@ typedef enum _MSZrtpSasType{
 	MS_ZRTP_SAS_B256
 } MSZrtpSasType;
 
+typedef enum _MSZrtpPeerStatus{
+	MS_ZRTP_PEER_STATUS_UNKNOWN,
+	MS_ZRTP_PEER_STATUS_INVALID,
+	MS_ZRTP_PEER_STATUS_VALID
+} MSZrtpPeerStatus;
+
 typedef struct MSZrtpParams {
 	void *zidCacheDB; /**< a pointer to an sqlite database holding all zrtp related information */
+	bctbx_mutex_t *zidCacheDBMutex; /**< pointer to a mutex used to lock cache access */
 	const char *selfUri; /* our sip URI, needed for zrtp Cache */
 	const char *peerUri; /* the sip URI of correspondant, needed for zrtp Cache */
 	uint32_t limeKeyTimeSpan; /**< amount in seconds of the lime key life span, set to 0 for infinite life span **/
@@ -113,7 +121,7 @@ typedef struct _MSZrtpContext MSZrtpContext ;
 
 /**
  * check if ZRTP is available
- * @return TRUE if it is available, FALSE if not
+ * @return	TRUE if it is available, FALSE if not
  */
 MS2_PUBLIC bool_t ms_zrtp_available(void);
 
@@ -133,10 +141,10 @@ MS2_PUBLIC MSZrtpContext* ms_zrtp_context_new(struct _MSMediaStreamSessions *str
  */
 MS2_PUBLIC MSZrtpContext* ms_zrtp_multistream_new(struct _MSMediaStreamSessions *stream_sessions, MSZrtpContext* activeContext);
 
-/***
+/**
  * Start a previously created ZRTP channel, ZRTP engine will start sending Hello packets
  * @param[in]	ctx		Context previously created using ms_zrtp_context_new or ms_zrtp_multistream_new
- * @return 0 on success
+ * @return	0 on success
  */
 MS2_PUBLIC int ms_zrtp_channel_start(MSZrtpContext *ctx);
 
@@ -148,7 +156,7 @@ MS2_PUBLIC int ms_zrtp_channel_start(MSZrtpContext *ctx);
 MS2_PUBLIC void ms_zrtp_context_destroy(MSZrtpContext *ctx);
 
 /**
- * can be used to give more time for establishing zrtp session
+ * Can be used to give more time for establishing zrtp session
  * @param[in] ctx	The MSZRTP context
  * */
 MS2_PUBLIC void ms_zrtp_reset_transmition_timer(MSZrtpContext* ctx);
@@ -166,6 +174,20 @@ MS2_PUBLIC void ms_zrtp_sas_verified(MSZrtpContext* ctx);
 MS2_PUBLIC void ms_zrtp_sas_reset_verified(MSZrtpContext* ctx);
 
 /**
+ * Get the zrtp sas validation status for a peer uri.
+ * Once the SAS has been validated or rejected, the status will never return to UNKNOWN (unless you delete your cache)
+ * @param[in/out]	db	Pointer to the sqlite3 db open connection
+ * 				Use a void * to keep this API when building cacheless
+ * @param[in]		peerUri	the sip uri of the peer device we're querying status
+ * @param[in]		dbMutex	a mutex to synchronise zrtp cache database operation. Ignored if NULL
+ *
+ * @return  - MS_ZRTP_PEER_STATUS_UNKNOWN: this uri is not present in cache OR during calls with the active device, SAS never was validated or rejected
+ *  		- MS_ZRTP_PEER_STATUS_INVALID: the active device status is set to valid
+ *  		- MS_ZRTP_PEER_STATUS_VALID: the active peer device status is set to invalid
+ */
+MS2_PUBLIC MSZrtpPeerStatus ms_zrtp_get_peer_status(void *db, const char *peerUri, bctbx_mutex_t *dbMutex);
+
+/**
  * Get the ZRTP Hello Hash from the given context
  * @param[in]	ctx	MSZRTP context
  * @param[out]	The Zrtp Hello Hash as defined in RFC6189 section 8
@@ -173,12 +195,27 @@ MS2_PUBLIC void ms_zrtp_sas_reset_verified(MSZrtpContext* ctx);
 MS2_PUBLIC int ms_zrtp_getHelloHash(MSZrtpContext* ctx, uint8_t *output, size_t outputLength);
 
 /**
+ * Set the optional ZRTP auxiliary shared secret
+ * @param[in]	ctx	MSZRTP context
+ * @param[in]	The ZRTP auxiliary shared secret
+ * @param[in]	The size of the auxiliary shared secret
+ * @return	0 on success, error code otherwise
+ */
+MS2_PUBLIC int ms_zrtp_setAuxiliarySharedSecret(MSZrtpContext *ctx, const uint8_t *auxSharedSecret, size_t auxSharedSecretLength);
+
+/**
+ * Get the ZRTP auxiliary shared secret mismatch status
+ * @param[in]	ctx	MSZRTP context
+ * @return	0 on match, 1 otherwise
+ */
+MS2_PUBLIC uint8_t ms_zrtp_getAuxiliarySharedSecretMismatch(MSZrtpContext *ctx);
+
+/**
  * Set the peer ZRTP Hello Hash to the given context
  * @param[in]	ctx	MSZRTP context
  * @param[in]	The Zrtp Hello Hash as defined in RFC6189 section 8
  * @param[in]	The Zrtp Hello Hash length
- *
- * @return 0 on succes, Error code otherwise
+ * @return	0 on success, error code otherwise
  */
 MS2_PUBLIC int ms_zrtp_setPeerHelloHash(MSZrtpContext *ctx, uint8_t *peerHelloHashHexString, size_t peerHelloHashHexStringLength);
 
@@ -202,10 +239,11 @@ MS2_PUBLIC const char* ms_zrtp_sas_type_to_string(const MSZrtpSasType sasType);
  * 	Also manage DB schema upgrade
  * @param[in/out]	db	Pointer to the sqlite3 db open connection
  * 				Use a void * to keep this API when building cacheless
+ * @param[in]		dbMutex	a mutex to synchronise zrtp cache database operation. Ignored if NULL
  *
- * @return 0 on succes, MSZRTP_CACHE_SETUP if cache was empty, MSZRTP_CACHE_UPDATE if db structure was updated error code otherwise
+ * @return	0 on success, MSZRTP_CACHE_SETUP if cache was empty, MSZRTP_CACHE_UPDATE if db structure was updated error code otherwise
  */
-MS2_PUBLIC int ms_zrtp_initCache(void *db);
+MS2_PUBLIC int ms_zrtp_initCache(void *db, bctbx_mutex_t *dbMutex);
 
 /**
  * @brief Perform migration from xml version to sqlite3 version of cache

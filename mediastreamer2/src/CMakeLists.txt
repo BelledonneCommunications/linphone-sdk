@@ -68,7 +68,6 @@ add_definitions(
 	-DBCTBX_LOG_DOMAIN="mediastreamer"
 )
 
-
 set(VOIP_SOURCE_FILES_C
 	audiofilters/alaw.c
 	audiofilters/audiomixer.c
