@@ -4,6 +4,11 @@ variables:
   CCACHE_SIZE: 2G
 
 
+stages:
+ - build
+ - deploy
+
+
 .linux-ccache:
 
   cache:
@@ -25,6 +30,7 @@ variables:
 
 .job-android:
 
+  stage: build
   tags: [ "docker-android" ]
 
   variables:
@@ -107,13 +113,14 @@ job-android-ninja-r17c-novideo:
 
 .job-ios:
 
+  stage: build
   tags: [ "macosx" ]
 
   script:
     - ccache -s
     - mkdir -p build-ios
     - cd build-ios
-    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="arm64, armv7, i386, x86_64" $CMAKE_OPTIONS
+    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="arm64, armv7, x86_64" $CMAKE_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     - ccache -s
 
@@ -157,6 +164,7 @@ job-ios-ninja-novideo:
 
 job-ios-xcode:
 
+  stage: build
   tags: [ "macosx" ]
 
   only:
@@ -164,7 +172,7 @@ job-ios-xcode:
   script:
     - mkdir -p build-ios
     - cd build-ios
-    - cmake .. -G Xcode -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="arm64, armv7, i386, x86_64" $CMAKE_OPTIONS
+    - cmake .. -G Xcode -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="arm64, armv7, x86_64" -DLINPHONESDK_IOS_BASE_URL=$IOS_SNAPSHOTS_URL $CMAKE_OPTIONS
     - cmake --build . --target sdk -- -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=`sysctl -n hw.ncpu`
 
   artifacts:
@@ -175,8 +183,28 @@ job-ios-xcode:
     expire_in: 1 week
 
 
+job-ios-upload:
+
+  stage: deploy
+  tags: [ "deploy" ]
+
+  only:
+    - schedules
+  dependencies:
+    - job-ios-xcode
+
+  script:
+    - scp build-ios/linphone-sdk-*.zip $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/ios/
+    - pod repo remove linphone-sdk || true
+    - pod repo add linphone-sdk git@gitlab.linphone.org:BC/public/podspec.git $CI_COMMIT_REF_NAME
+    - pod repo push linphone-sdk build-ios/linphone-sdk.podspec --skip-import-validation --local-only --verbose
+    - cd ~/.cocoapods/repos/linphone-sdk && git push origin $CI_COMMIT_REF_NAME && cd -
+    - pod repo remove linphone-sdk
+
+
 .job-linux-desktop:
 
+  stage: build
   extends: .linux-ccache
 
   script:
@@ -387,6 +415,7 @@ job-debian9-ninja-clang-novideo:
 
 .job-macosx-desktop:
 
+  stage: build
   tags: [ "macosx" ]
 
   script:
@@ -426,6 +455,7 @@ job-macosx-ninja-novideo:
 
 job-macosx-xcode:
 
+  stage: build
   tags: [ "macosx" ]
 
   only:
@@ -439,6 +469,7 @@ job-macosx-xcode:
 
 job-windows-vs2015:
 
+  stage: build
   tags: [ "windows" ]
 
   script:
@@ -459,6 +490,7 @@ job-windows-vs2015-novideo:
 
 #job-uwp-vs2017:
 #
+#  stage: build
 #  tags: [ "windows" ]
 #
 #  script:
