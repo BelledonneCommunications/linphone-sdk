@@ -164,6 +164,8 @@ struct OpenSLESOutputContext {
 		streamType = SL_ANDROID_STREAM_VOICE;
 		if (type == MS_SND_CARD_STREAM_RING) {
 			streamType = SL_ANDROID_STREAM_RING;
+		} else if (type == MS_SND_CARD_STREAM_MEDIA) {
+			streamType = SL_ANDROID_STREAM_MEDIA;
 		}
 	}
 

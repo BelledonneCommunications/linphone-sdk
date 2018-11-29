@@ -131,7 +131,8 @@ typedef struct _MSSndCard MSSndCard;
 
 enum _MSSndCardStreamType{
 	MS_SND_CARD_STREAM_VOICE,
-	MS_SND_CARD_STREAM_RING
+	MS_SND_CARD_STREAM_RING,
+	MS_SND_CARD_STREAM_MEDIA
 };
 
 /**
