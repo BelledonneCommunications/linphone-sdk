@@ -24,7 +24,7 @@ include(LinphoneSdkPlatformCommon)
 include(LinphoneSdkCheckBuildToolsIOS)
 
 
-set(LINPHONESDK_IOS_ARCHS "arm64, armv7, x86_64" CACHE STRING "Android architectures to build for: comma-separated list of values in [arm64, armv7, i386, x86_64]")
+set(LINPHONESDK_IOS_ARCHS "arm64, armv7, x86_64" CACHE STRING "Android architectures to build for: comma-separated list of values in [arm64, armv7, x86_64]")
 set(LINPHONESDK_IOS_BASE_URL "https://www.linphone.org/releases/ios/" CACHE STRING "URL of the repository where the iOS SDK zip files are located")
 
 
@@ -103,7 +103,7 @@ add_custom_target(lipo ALL
 )
 
 add_custom_target(sdk
-	"${CMAKE_COMMAND}" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_BUILD_DIR=${CMAKE_BINARY_DIR}" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}" "-DLINPHONESDK_ENABLED_FEATURES_FILENAME=${CMAKE_BINARY_DIR}/enabled_features.txt" "-DLINPHONESDK_IOS_BASE_URL=${LINPHONESDK_IOS_BASE_URL}" "-P" "${LINPHONESDK_DIR}/cmake/IOS/GenerateSDK.cmake"
+	"${CMAKE_COMMAND}" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_BUILD_DIR=${CMAKE_BINARY_DIR}" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}" "-DLINPHONESDK_ENABLED_FEATURES_FILENAME=${CMAKE_BINARY_DIR}/enabled_features.txt" "-DLINPHONESDK_IOS_ARCHS=${LINPHONESDK_IOS_ARCHS}" "-DLINPHONESDK_IOS_BASE_URL=${LINPHONESDK_IOS_BASE_URL}" "-P" "${LINPHONESDK_DIR}/cmake/IOS/GenerateSDK.cmake"
 	COMMENT "Generating the SDK (zip file and podspec)"
 	DEPENDS lipo
 )

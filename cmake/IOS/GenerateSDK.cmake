@@ -21,6 +21,10 @@
 ############################################################################
 
 
+list(APPEND CMAKE_MODULE_PATH "${LINPHONESDK_DIR}/cmake")
+include(LinphoneSdkUtils)
+
+
 # Create the zip file of the SDK
 execute_process(
 	COMMAND "${CMAKE_COMMAND}" "-E" "remove_directory" "linphone-sdk/apple-darwin/Tools"
@@ -33,5 +37,8 @@ execute_process(
 
 
 # Generate podspec file
+file(READ "${LINPHONESDK_DIR}/COPYING" LINPHONESDK_LICENSE)
+linphone_sdk_convert_comma_separated_list_to_cmake_list("${LINPHONESDK_IOS_ARCHS}" VALID_ARCHS)
+string(REPLACE ";" " " VALID_ARCHS "${VALID_ARCHS}")
 file(READ "${LINPHONESDK_ENABLED_FEATURES_FILENAME}" LINPHONESDK_ENABLED_FEATURES)
 configure_file("${LINPHONESDK_DIR}/cmake/IOS/linphone-sdk.podspec.cmake" "${LINPHONESDK_BUILD_DIR}/linphone-sdk.podspec" @ONLY)
