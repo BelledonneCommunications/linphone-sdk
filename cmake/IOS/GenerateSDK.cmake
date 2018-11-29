@@ -23,6 +23,7 @@
 
 # Create the zip file of the SDK
 execute_process(
+	COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${LINPHONESDK_DIR}/COPYING" "linphone-sdk/LICENSE.txt"
 	COMMAND "${CMAKE_COMMAND}" "-E" "remove_directory" "linphone-sdk/apple-darwin/Tools"
 	COMMAND "${CMAKE_COMMAND}" "-E" "make_directory" "linphone-sdk/apple-darwin/Tools"
 	COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${LINPHONESDK_DIR}/cmake/IOS/Tools/deploy.sh" "linphone-sdk/apple-darwin/Tools"
