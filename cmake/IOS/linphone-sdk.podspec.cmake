@@ -6,11 +6,12 @@ Pod::Spec.new do |s|
   s.description  = <<-PODSPEC_DESC
 @LINPHONESDK_ENABLED_FEATURES@PODSPEC_DESC
   s.homepage     = "https://github.com/BelledonneCommunications/linphone-iphone"
-  s.license      = "GNU GPL 2"
+  s.license      = { :type => "GNU GPL 2", :file => "linphone-sdk/LICENSE.txt" }
   s.author       = "employees@belledonne-communications.com" 
   s.platform     = :ios, "9.0"
   s.source       = { :http => "@LINPHONESDK_IOS_BASE_URL@/linphone-sdk-ios-@LINPHONESDK_VERSION@.zip" }
   s.vendored_frameworks = "linphone-sdk/apple-darwin/Frameworks/**"
   s.resource = "linphone-sdk/apple-darwin/Resources/**"
+  s.pod_target_xcconfig = { 'VALID_ARCHS' => "@VALID_ARCHS@" }
 
 end

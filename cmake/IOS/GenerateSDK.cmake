@@ -21,17 +21,24 @@
 ############################################################################
 
 
+list(APPEND CMAKE_MODULE_PATH "${LINPHONESDK_DIR}/cmake")
+include(LinphoneSdkUtils)
+
+
 # Create the zip file of the SDK
 execute_process(
+	COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${LINPHONESDK_DIR}/COPYING" "linphone-sdk/LICENSE.txt"
 	COMMAND "${CMAKE_COMMAND}" "-E" "remove_directory" "linphone-sdk/apple-darwin/Tools"
 	COMMAND "${CMAKE_COMMAND}" "-E" "make_directory" "linphone-sdk/apple-darwin/Tools"
 	COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${LINPHONESDK_DIR}/cmake/IOS/Tools/deploy.sh" "linphone-sdk/apple-darwin/Tools"
 	COMMAND "${CMAKE_COMMAND}" "-E" "remove" "-f" "linphone-sdk-ios-${LINPHONESDK_VERSION}.zip"
-	COMMAND "zip" "-r" "linphone-sdk-ios-${LINPHONESDK_VERSION}.zip" "linphone-sdk/apple-darwin"
+	COMMAND "zip" "-r" "linphone-sdk-ios-${LINPHONESDK_VERSION}.zip" "linphone-sdk" "--exclude" "linphone-sdk/*-apple-darwin.ios/*"
 	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 )
 
 
 # Generate podspec file
+linphone_sdk_convert_comma_separated_list_to_cmake_list("${LINPHONESDK_IOS_ARCHS}" VALID_ARCHS)
+string(REPLACE ";" " " VALID_ARCHS "${VALID_ARCHS}")
 file(READ "${LINPHONESDK_ENABLED_FEATURES_FILENAME}" LINPHONESDK_ENABLED_FEATURES)
 configure_file("${LINPHONESDK_DIR}/cmake/IOS/linphone-sdk.podspec.cmake" "${LINPHONESDK_BUILD_DIR}/linphone-sdk.podspec" @ONLY)
