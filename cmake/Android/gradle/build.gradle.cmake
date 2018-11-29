@@ -2,6 +2,7 @@
 buildDir = 'linphone-sdk/bin'
 
 def versionName = "4.1"
+def versionType = ""
 
 buildscript {
     repositories {
@@ -87,6 +88,7 @@ android {
         }
         debug {
             debuggable true
+            versionType = "-debug"
         }
     }
 
@@ -188,7 +190,7 @@ uploadArchives {
             pom.project {
                 groupId 'org.linphone'
                 artifactId 'linphone-sdk-android'
-		version versionName
+		version versionName + versionType
             }
         }
     }
