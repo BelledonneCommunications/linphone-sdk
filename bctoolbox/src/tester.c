@@ -80,11 +80,11 @@ static char *bc_tester_writable_dir_prefix = NULL;
 static char *bc_current_suite_name = NULL;
 static char *bc_current_test_name = NULL;
 
-char *log_file_name = NULL;
+static char *log_file_name = NULL;
 static FILE *log_file = NULL;
 
-int bc_printf_verbosity_info;
-int bc_printf_verbosity_error;
+static int bc_printf_verbosity_info;
+static int bc_printf_verbosity_error;
 
 static test_suite_t **test_suite = NULL;
 static int nb_test_suites = 0;
@@ -94,21 +94,21 @@ static int nb_test_suites = 0;
 static unsigned char curses = 0;
 #endif
 
-char * const default_xml_file = "BCUnitAutomated";
-char *xml_file = default_xml_file;
-int   xml_enabled = 0;
-char * suite_name = NULL;
-char * test_name = NULL;
-char * tag_name = NULL;
-char * expected_res = NULL;
+static const char default_xml_file[] = "BCUnitAutomated";
+static const char * xml_file = default_xml_file;
+static int xml_enabled = 0;
+static char * suite_name = NULL;
+static char * test_name = NULL;
+static char * tag_name = NULL;
+static char * expected_res = NULL;
 static size_t max_vm_kb = 0;
-int run_skipped_tests = 0;
+static int run_skipped_tests = 0;
 //0 if deactivated, or > 0, representing the maximum number of subprocesses to launch
-int parallel_suites = 0;
+static int parallel_suites = 0;
 
 //To keep record of the process name who started and args
-char **origin_argv = NULL;
-int origin_argc = 0;
+static char **origin_argv = NULL;
+static int origin_argc = 0;
 
 //Custom cli arguments handlers	for end tests implementations
 static int (*verbose_arg_func)(const char *arg) = NULL;
@@ -402,14 +402,15 @@ void merge_junit_xml_files(const char *dst_file_name) {
 	ssize_t	total_size = 0;
 	char *file_name;
 	bctbx_vfs_file_t* bctbx_file;
+	ssize_t read_bytes = 0, file_size = 0, offset = 0;
 
 	for (int i = 0; i < nb_test_suites; i++) {
 		file_name = get_junit_xml_file_name(test_suite[i]->name, "-Results.xml");
 		bctbx_file = bctbx_file_open2(bctbx_vfs_get_default(), file_name, O_RDONLY);
 		if (bctbx_file != NULL) {
-			ssize_t file_size = bctbx_file_size(bctbx_file);
+			file_size = bctbx_file_size(bctbx_file);
 			suite_junit_xml_results[i] = malloc(file_size + 1);
-			ssize_t read_bytes = bctbx_file_read(bctbx_file, (void *)suite_junit_xml_results[i], file_size, 0);
+			read_bytes = bctbx_file_read(bctbx_file, (void *)suite_junit_xml_results[i], file_size, 0);
 			if (read_bytes == file_size) {
 				total_size += file_size;
 				suite_junit_xml_results[i][file_size] = '\0';
@@ -429,7 +430,7 @@ void merge_junit_xml_files(const char *dst_file_name) {
 	//Empty the destination file
 	truncate(dst_file_name, 0);
 	bctbx_file = bctbx_file_open(bctbx_vfs_get_default(), dst_file_name, "w+");
-	ssize_t offset = bctbx_file_fprintf(bctbx_file, 0, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<testsuites>\n");
+	offset = bctbx_file_fprintf(bctbx_file, 0, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<testsuites>\n");
 	for (int i = 0; i < nb_test_suites; i++) {
 		if (suite_junit_xml_results[i] != NULL) {
 			offset += bctbx_file_fprintf(bctbx_file, offset, suite_junit_xml_results[i]);
@@ -446,7 +447,7 @@ void merge_log_files(const char *base_logfile_name) {
 	bctbx_vfs_file_t* dst_file;
 	bctbx_vfs_file_t* bctbx_file;
 	void *buf;
-	ssize_t	offset = 0;
+	ssize_t	offset = 0, file_size = 0, read_bytes = 0;
 
 	dst_file = bctbx_file_open(bctbx_vfs_get_default(), base_logfile_name, "w+");
 	if (!dst_file) {
@@ -461,9 +462,9 @@ void merge_log_files(const char *base_logfile_name) {
 			bc_tester_printf(bc_printf_verbosity_error, "Could not open log file '%s' to merge into '%s'", suite_logfile_name, base_logfile_name);
 			continue;
 		}
-		ssize_t file_size = bctbx_file_size(bctbx_file);
+		file_size = bctbx_file_size(bctbx_file);
 		buf = malloc(file_size);
-		ssize_t read_bytes = bctbx_file_read(bctbx_file, buf, file_size, 0);
+		read_bytes = bctbx_file_read(bctbx_file, buf, file_size, 0);
 		if (read_bytes == file_size) {
 			offset += bctbx_file_write(dst_file, buf, file_size, offset);
 		} else {
@@ -564,12 +565,12 @@ int handle_sub_process_error(int pid, int exitStatus, int *suitesPids) {
 
 #ifdef _WIN32
 //TODO Windows support
-int bc_tester_run_parallel() {
+int bc_tester_run_parallel(void) {
 	return 0;
 }
 #else
 
-int bc_tester_run_parallel() {
+int bc_tester_run_parallel(void) {
 	int suitesPids[nb_test_suites];
 	uint64_t time_start = bctbx_get_cur_time_ms(), elapsed, print_timer = time_start;
 	uint64_t timeout = time_start + (40 * 60 * 1000); //Assume there is a problem if a child is still running after 40mn. TODO make timeout	a cli parameter ?
@@ -947,20 +948,21 @@ void bc_tester_helper(const char *name, const char* additionnal_helper) {
 
 int bc_tester_parse_args(int argc, char **argv, int argid)
 {
+	int ret = 0;
 	int i = argid;
 
 	if (strcmp(argv[i],"--help")==0){
 		return -1;
 	} else if (strcmp(argv[i],"--log-file")==0) {
 		CHECK_ARG("--log-file", ++i, argc);
-		int ret = logfile_arg_func(argv[i]);
+		ret = logfile_arg_func(argv[i]);
 		if (ret < 0) return ret;
 		log_file_name =	argv[i];
 	} else if (strcmp(argv[i],"--silent")==0) {
-		int ret = silent_arg_func(argv[i]);
+		ret = silent_arg_func(argv[i]);
 		if (ret < 0) return ret;
 	} else if (strcmp(argv[i],"--verbose")==0) {
-		int ret = verbose_arg_func(argv[i]);
+		ret = verbose_arg_func(argv[i]);
 		if (ret < 0) return ret;
 	} else if (strcmp(argv[i],"--test")==0){
 		CHECK_ARG("--test", ++i, argc);
