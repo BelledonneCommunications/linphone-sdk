@@ -1,6 +1,8 @@
 // Project information
 buildDir = 'linphone-sdk/bin'
 
+def versionName = "4.1"
+
 buildscript {
     repositories {
         jcenter()
@@ -186,7 +188,7 @@ uploadArchives {
             pom.project {
                 groupId 'org.linphone'
                 artifactId 'linphone-sdk-android'
-                version project.hasProperty("debug") ? "4.1-DEBUG": "4.1"
+		version versionName
             }
         }
     }
