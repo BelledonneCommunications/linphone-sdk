@@ -87,24 +87,6 @@ static void log_handler(int lev, const char *fmt, va_list args) {
 	}
 }
 
-int silent_arg_func(const char *arg) {
-	belle_sip_set_log_level(BELLE_SIP_LOG_FATAL);
-	bctbx_set_log_level(BCTBX_LOG_DOMAIN, BCTBX_LOG_FATAL);
-	return 0;
-}
-
-int verbose_arg_func(const char *arg) {
-	belle_sip_set_log_level(BELLE_SIP_LOG_DEBUG);
-	bctbx_set_log_level(BCTBX_LOG_DOMAIN, BCTBX_LOG_DEBUG);
-	return 0;
-}
-
-int logfile_arg_func(const char *arg) {
-	bctbx_set_log_handler(NULL);/*remove default log handler*/
-	if (belle_sip_tester_set_log_file(arg) < 0) return -2;
-	return 0;
-}
-
 int belle_sip_tester_set_log_file(const char *filename) {
 	bctbx_log_handler_t *filehandler;
 	char* dir;
@@ -125,6 +107,24 @@ int belle_sip_tester_set_log_file(const char *filename) {
 	bctbx_add_log_handler(filehandler);
 	if (dir) bctbx_free(dir);
 	if (base) bctbx_free(base);
+	return 0;
+}
+
+int silent_arg_func(const char *arg) {
+	belle_sip_set_log_level(BELLE_SIP_LOG_FATAL);
+	bctbx_set_log_level(BCTBX_LOG_DOMAIN, BCTBX_LOG_FATAL);
+	return 0;
+}
+
+int verbose_arg_func(const char *arg) {
+	belle_sip_set_log_level(BELLE_SIP_LOG_DEBUG);
+	bctbx_set_log_level(BCTBX_LOG_DOMAIN, BCTBX_LOG_DEBUG);
+	return 0;
+}
+
+int logfile_arg_func(const char *arg) {
+	bctbx_set_log_handler(NULL);/*remove default log handler*/
+	if (belle_sip_tester_set_log_file(arg) < 0) return -2;
 	return 0;
 }
 
