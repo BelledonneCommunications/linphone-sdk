@@ -1,7 +1,6 @@
 // Project information
 buildDir = 'linphone-sdk/bin'
 
-def versionName = "4.1"
 def versionType = ""
 
 buildscript {
@@ -182,6 +181,15 @@ task copyAssets(type: Sync) {
 project.tasks['preBuild'].dependsOn 'copyAssets'
 project.tasks['preBuild'].dependsOn 'copyProguard'
 
+def gitVersion = new ByteArrayOutputStream()
+
+task getGitVersion {
+    exec {
+      commandLine 'git', 'describe', '--always'
+      standardOutput = gitVersion
+    }
+}
+
 uploadArchives {
     repositories {
         mavenDeployer {
@@ -190,9 +198,10 @@ uploadArchives {
             pom.project {
                 groupId 'org.linphone'
                 artifactId 'linphone-sdk-android'
-		version versionName + versionType
+		version gitVersion.toString().trim() + versionType
             }
         }
     }
 }
 
+project.tasks['uploadArchives'].dependsOn 'getGitVersion'
