@@ -403,8 +403,9 @@ void merge_junit_xml_files(const char *dst_file_name) {
 	char *file_name;
 	bctbx_vfs_file_t* bctbx_file;
 	ssize_t read_bytes = 0, file_size = 0, offset = 0;
+	int i;
 
-	for (int i = 0; i < nb_test_suites; i++) {
+	for (i = 0; i < nb_test_suites; i++) {
 		file_name = get_junit_xml_file_name(test_suite[i]->name, "-Results.xml");
 		bctbx_file = bctbx_file_open2(bctbx_vfs_get_default(), file_name, O_RDONLY);
 		if (bctbx_file != NULL) {
@@ -431,7 +432,7 @@ void merge_junit_xml_files(const char *dst_file_name) {
 	truncate(dst_file_name, 0);
 	bctbx_file = bctbx_file_open(bctbx_vfs_get_default(), dst_file_name, "w+");
 	offset = bctbx_file_fprintf(bctbx_file, 0, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<testsuites>\n");
-	for (int i = 0; i < nb_test_suites; i++) {
+	for (i = 0; i < nb_test_suites; i++) {
 		if (suite_junit_xml_results[i] != NULL) {
 			offset += bctbx_file_fprintf(bctbx_file, offset, suite_junit_xml_results[i]);
 			free(suite_junit_xml_results[i]);
@@ -448,13 +449,14 @@ void merge_log_files(const char *base_logfile_name) {
 	bctbx_vfs_file_t* bctbx_file;
 	void *buf;
 	ssize_t	offset = 0, file_size = 0, read_bytes = 0;
+	int i;
 
 	dst_file = bctbx_file_open(bctbx_vfs_get_default(), base_logfile_name, "w+");
 	if (!dst_file) {
 		bc_tester_printf(bc_printf_verbosity_error, "Failed to create target log file '%s'", base_logfile_name);
 		return;
 	}
-	for (int i = 0; i < nb_test_suites; ++i) {
+	for (i = 0; i < nb_test_suites; ++i) {
 		char *suite_logfile_name = get_logfile_name(log_file_name, test_suite[i]->name);
 		bctbx_file = bctbx_file_open2(bctbx_vfs_get_default(), suite_logfile_name, O_RDONLY);
 
@@ -485,7 +487,8 @@ int bc_tester_get_max_parallel_processes(void) {
 
 //If there was an error, kill zombies
 void kill_sub_processes(int *pids) {
-	for (int i = 0; i < nb_test_suites; ++i) {
+	int i;
+	for (i = 0; i < nb_test_suites; ++i) {
 		if (pids[i] > 0) {
 			kill(pids[i], SIGTERM);
 		}
@@ -503,10 +506,11 @@ int start_sub_process(const char *suite_name) {
 //Start	test subprocess for the given suite
 int start_sub_process(const char *suite_name) {
 	int argc = 0;
+	int i;
 	const char *argv[origin_argc + 10]; //Assume safey 10 more parameters
 
 	argv[argc++] = origin_argv[0];
-	for (int i = 1;	origin_argv[i]; ++i) {
+	for (i = 1;	origin_argv[i]; ++i) {
 		if (strcmp(origin_argv[i], "--verbose") == 0) {
 			argv[argc++] = origin_argv[i];
 		} else if (strcmp(origin_argv[i], "--silent") == 0) {
@@ -539,7 +543,8 @@ int start_sub_process(const char *suite_name) {
 //And mark all tests for the suite as failed
 int handle_sub_process_error(int pid, int exitStatus, int *suitesPids) {
 	if (abs(exitStatus) > 1) {
-		for (int i = 0; i < nb_test_suites; ++i) {
+		int i, j;
+		for (i = 0; i < nb_test_suites; ++i) {
 			if (suitesPids[i] == pid) {
 				ssize_t offset;
 				char *suite_file_name = get_junit_xml_file_name(test_suite[i]->name, "-Results.xml");
@@ -548,7 +553,7 @@ int handle_sub_process_error(int pid, int exitStatus, int *suitesPids) {
 
 
 				offset = bctbx_file_fprintf(bctbx_file, 0, "\n<testsuite name=\"%s\" tests=\"%d\" time=\"0\" failures=\"%d\" errors=\"0\" skipped=\"0\">\n", test_suite[i]->name, test_suite[i]->nb_tests, test_suite[i]->nb_tests);
-				for (int j=0; j < test_suite[i]->nb_tests; ++j) {
+				for (j=0; j < test_suite[i]->nb_tests; ++j) {
 					offset += bctbx_file_fprintf(bctbx_file, offset, "\t<testcase classname=\"%s\" name=\"%s\">\n", test_suite[i]->name, test_suite[i]->tests[j].name);
 					offset += bctbx_file_fprintf(bctbx_file, offset, "\t\t<failure message=\"\" type=\"Failure\">\n\t\tGlobal suite failure\n");
 					offset += bctbx_file_fprintf(bctbx_file, offset, "\t\t</failure>\n\t</testcase>\n");
@@ -1038,7 +1043,8 @@ int bc_tester_start(const char* prog_name) {
 		}
 		bc_tester_register_suite(test_suite[suiteIdx], tag_name);
 	} else {
-		for (int i = 0; i < nb_test_suites; i++) {
+		int i;
+		for (i = 0; i < nb_test_suites; i++) {
 			bc_tester_register_suite(test_suite[i], tag_name);
 		}
 	}
