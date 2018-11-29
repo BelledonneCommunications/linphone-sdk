@@ -19,20 +19,22 @@ allprojects {
         jcenter()
         mavenCentral()
         mavenLocal()
+        maven { url "https://raw.github.com/synergian/wagon-git/releases"}
     }
 }
 
 configurations {
     javadocDeps
+    deployerJars
 }
 
-
-
 apply plugin: 'com.android.library'
+apply plugin: 'maven'
 
 dependencies {
     implementation 'org.apache.commons:commons-compress:1.16.1'
     javadocDeps 'org.apache.commons:commons-compress:1.16.1'
+    deployerJars "ar.com.synergian:wagon-git:0.2.5"
 }
 
 def rootSdk = '@LINPHONESDK_BUILD_DIR@/linphone-sdk/android-@LINPHONESDK_FIRST_ARCH@'
@@ -175,3 +177,18 @@ task copyAssets(type: Sync) {
 
 project.tasks['preBuild'].dependsOn 'copyAssets'
 project.tasks['preBuild'].dependsOn 'copyProguard'
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            configuration = configurations.deployerJars
+            repository(url: 'git:snapshots://git@gitlab.linphone.org:BC/public/maven_repository.git')
+            pom.project {
+                groupId 'org.linphone'
+                artifactId 'linphone-sdk-android'
+                version project.hasProperty("debug") ? "4.1-DEBUG": "4.1"
+            }
+        }
+    }
+}
+
