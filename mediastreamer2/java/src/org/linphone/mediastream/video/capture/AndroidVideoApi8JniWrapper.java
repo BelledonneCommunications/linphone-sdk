@@ -24,6 +24,11 @@ import android.graphics.ImageFormat;
 import android.hardware.Camera;
  
 public class AndroidVideoApi8JniWrapper {
+
+	static public int detectCamerasCount() {
+		return AndroidVideoApi5JniWrapper.detectCamerasCount();
+	}
+
 	static public int detectCameras(int[] indexes, int[] frontFacing, int[] orientation) {
 		return AndroidVideoApi5JniWrapper.detectCameras(indexes, frontFacing, orientation);
 	}
