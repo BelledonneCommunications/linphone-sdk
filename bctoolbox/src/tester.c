@@ -577,7 +577,7 @@ int bc_tester_run_parallel(void) {
 
 int bc_tester_run_parallel(void) {
 	int suitesPids[nb_test_suites];
-	uint64_t time_start = bctbx_get_cur_time_ms(), elapsed, print_timer = time_start;
+	uint64_t time_start = bctbx_get_cur_time_ms(), elapsed = time_start, print_timer = time_start;
 	uint64_t timeout = time_start + (40 * 60 * 1000); //Assume there is a problem if a child is still running after 40mn. TODO make timeout	a cli parameter ?
 	int maxProcess = bc_tester_get_max_parallel_processes();
 	int nextSuite = 0; //Next suite id to be exec'd
