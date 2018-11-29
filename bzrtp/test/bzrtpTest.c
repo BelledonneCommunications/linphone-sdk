@@ -46,43 +46,6 @@ static void log_handler(int lev, const char *fmt, va_list args) {
 	}
 }
 
-int silent_arg_func(const char *arg) {
-	bctbx_set_log_level(log_domain, BCTBX_LOG_FATAL);
-	bctbx_set_log_level(BCTBX_LOG_DOMAIN, BCTBX_LOG_FATAL);
-	verbose = 0;
-	return 0;
-}
-
-int verbose_arg_func(const char *arg) {
-	bctbx_set_log_level(log_domain, BCTBX_LOG_DEBUG);
-	bctbx_set_log_level(BCTBX_LOG_DOMAIN,BCTBX_LOG_DEBUG);
-	verbose = 1;
-	return 0;
-}
-
-int logfile_arg_func(const char *arg) {
-	if (bzrtp_tester_set_log_file(argv[i]) < 0) return -2;
-	return 0;
-}
-
-
-void bzrtp_tester_init(void(*ftester_printf)(int level, const char *fmt, va_list args)) {
-	bc_tester_set_silent_func(silent_arg_func);
-	bc_tester_set_verbose_func(verbose_arg_func);
-	bc_tester_set_logfile_func(logfile_arg_func);
-	if (ftester_printf == NULL) ftester_printf = log_handler;
-	bc_tester_init(ftester_printf, BCTBX_LOG_MESSAGE, BCTBX_LOG_ERROR, NULL);
-
-	bc_tester_add_suite(&crypto_utils_test_suite);
-	bc_tester_add_suite(&packet_parser_test_suite);
-	bc_tester_add_suite(&key_exchange_test_suite);
-	bc_tester_add_suite(&zidcache_test_suite);
-}
-
-void bzrtp_tester_uninit(void) {
-	bc_tester_uninit();
-}
-
 int bzrtp_tester_set_log_file(const char *filename) {
 	bctbx_log_handler_t* filehandler;
 	char* dir;
@@ -103,6 +66,43 @@ int bzrtp_tester_set_log_file(const char *filename) {
 	if (dir) bctbx_free(dir);
 	if (base) bctbx_free(base);
 	return 0;
+}
+
+int silent_arg_func(const char *arg) {
+	bctbx_set_log_level(log_domain, BCTBX_LOG_FATAL);
+	bctbx_set_log_level(BCTBX_LOG_DOMAIN, BCTBX_LOG_FATAL);
+	verbose = 0;
+	return 0;
+}
+
+int verbose_arg_func(const char *arg) {
+	bctbx_set_log_level(log_domain, BCTBX_LOG_DEBUG);
+	bctbx_set_log_level(BCTBX_LOG_DOMAIN,BCTBX_LOG_DEBUG);
+	verbose = 1;
+	return 0;
+}
+
+int logfile_arg_func(const char *arg) {
+	if (bzrtp_tester_set_log_file(arg) < 0) return -2;
+	return 0;
+}
+
+
+void bzrtp_tester_init(void(*ftester_printf)(int level, const char *fmt, va_list args)) {
+	bc_tester_set_silent_func(silent_arg_func);
+	bc_tester_set_verbose_func(verbose_arg_func);
+	bc_tester_set_logfile_func(logfile_arg_func);
+	if (ftester_printf == NULL) ftester_printf = log_handler;
+	bc_tester_init(ftester_printf, BCTBX_LOG_MESSAGE, BCTBX_LOG_ERROR, NULL);
+
+	bc_tester_add_suite(&crypto_utils_test_suite);
+	bc_tester_add_suite(&packet_parser_test_suite);
+	bc_tester_add_suite(&key_exchange_test_suite);
+	bc_tester_add_suite(&zidcache_test_suite);
+}
+
+void bzrtp_tester_uninit(void) {
+	bc_tester_uninit();
 }
 
 #if !defined(__ANDROID__) && !(defined(BCTBX_WINDOWS_PHONE) || defined(BCTBX_WINDOWS_UNIVERSAL))
