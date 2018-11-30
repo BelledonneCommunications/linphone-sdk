@@ -196,6 +196,22 @@ int bc_tester_register_suite(test_suite_t *suite, const char *tag_name) {
 	return 0;
 }
 
+//Allows to register directly to BCUnit by name. Wrap bc_tester_register_suite
+int bc_tester_register_suite_by_name(const char *suite_name) {
+	int suiteIdx = -1;
+
+	suiteIdx = bc_tester_suite_index(suite_name);
+	if (suiteIdx != -1) {
+		if (!CU_registry_initialized()) {
+			if (CUE_SUCCESS != CU_initialize_registry())
+				return CU_get_error();
+		}
+		return bc_tester_register_suite(test_suite[suiteIdx], NULL);
+	}
+	return -1;
+}
+
+
 const char * bc_tester_suite_name(int suite_index) {
 	if (suite_index >= nb_test_suites) return NULL;
 	return test_suite[suite_index]->name;
@@ -1032,20 +1048,15 @@ int bc_tester_parse_args(int argc, char **argv, int argid)
 	return i - argid + 1;
 }
 
-int bc_tester_start(const char* prog_name) {
-	int ret;
-
-	if (expected_res)
-		detect_res_prefix(prog_name);
-
-	if (max_vm_kb)
-		bc_tester_set_max_vm(max_vm_kb);
-
-	/* initialize the BCUnit test registry */
+//Init BCUnit and register suites and/or tests into internal BCUnit registry before actual BCUnit test launch
+int bc_tester_register_suites(void) {
+	//Assume everything is already setup if BCUnit registry exists
+	if (CU_registry_initialized()) {
+		return 0;
+	}
 	if (CUE_SUCCESS != CU_initialize_registry())
 		return CU_get_error();
 
-	//Register suites and/or tests into internal BCUnit registry before actual BCUnit test launch
 	if (suite_name != NULL) {
 		int suiteIdx = bc_tester_suite_index(suite_name);
 		if (suiteIdx == -1) {
@@ -1059,7 +1070,21 @@ int bc_tester_start(const char* prog_name) {
 			bc_tester_register_suite(test_suite[i], tag_name);
 		}
 	}
+	return 0;
+}
 
+int bc_tester_start(const char* prog_name) {
+	int ret;
+
+	if (expected_res)
+		detect_res_prefix(prog_name);
+
+	if (max_vm_kb)
+		bc_tester_set_max_vm(max_vm_kb);
+
+	if ((ret = bc_tester_register_suites()) != 0) {
+		return ret;
+	}
 	ret = bc_tester_run_tests(suite_name, test_name, tag_name);
 
 	return ret;
