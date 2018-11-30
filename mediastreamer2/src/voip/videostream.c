@@ -1749,7 +1749,11 @@ void video_preview_set_decode_rect(VideoPreview *stream, MSRect rect) {
 }
 
 bool_t video_preview_qrcode_enabled(VideoPreview *stream) {
+#ifdef QRCODE_ENABLED
 	return stream->enable_qrcode_decoder;
+#else
+	return FALSE;
+#endif
 }
 
 static MSFilter* _video_preview_stop( VideoPreview* stream, bool_t keep_source) {
