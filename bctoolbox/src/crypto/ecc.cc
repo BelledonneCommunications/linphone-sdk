@@ -343,7 +343,7 @@ void bctbx_DestroyEDDSAContext(bctbx_EDDSAContext_t *context) {
  * @param[in/out]	signatureLength		The size of the signature buffer as input, the size of the actual signature as output
  *
  */
-void bctbx_EDDSA_sign(bctbx_EDDSAContext_t *context, const uint8_t *message, const size_t messageLength, const uint8_t *associatedData, const size_t associatedDataLength, uint8_t *signature, size_t *signatureLength) {
+void bctbx_EDDSA_sign(bctbx_EDDSAContext_t *context, const uint8_t *message, const size_t messageLength, const uint8_t *associatedData, const uint8_t associatedDataLength, uint8_t *signature, size_t *signatureLength) {
 	if (context!=NULL) {
 		switch (context->algo) {
 			case BCTBX_EDDSA_25519:
@@ -422,7 +422,7 @@ void bctbx_EDDSA_setSecretKey(bctbx_EDDSAContext_t *context, const uint8_t *secr
  *
  * @return BCTBX_VERIFY_SUCCESS or BCTBX_VERIFY_FAILED
  */
-int bctbx_EDDSA_verify(bctbx_EDDSAContext_t *context, const uint8_t *message, size_t messageLength, const uint8_t *associatedData, const size_t associatedDataLength, const uint8_t *signature, size_t signatureLength) {
+int bctbx_EDDSA_verify(bctbx_EDDSAContext_t *context, const uint8_t *message, size_t messageLength, const uint8_t *associatedData, const uint8_t associatedDataLength, const uint8_t *signature, size_t signatureLength) {
 	int ret = BCTBX_VERIFY_FAILED;
 	if (context!=NULL) {
 		decaf_error_t retDecaf = DECAF_FAILURE;
@@ -536,10 +536,10 @@ bctbx_EDDSAContext_t *bctbx_CreateEDDSAContext(uint8_t EDDSAAlgo) {return NULL;}
 void bctbx_EDDSACreateKeyPair(bctbx_EDDSAContext_t *context, int (*rngFunction)(void *, uint8_t *, size_t), void *rngContext) {return;}
 void bctbx_EDDSADerivePublicKey(bctbx_EDDSAContext_t *context) {return;}
 void bctbx_DestroyEDDSAContext(bctbx_EDDSAContext_t *context) {return;}
-void bctbx_EDDSA_sign(bctbx_EDDSAContext_t *context, const uint8_t *message, const size_t messageLength, const uint8_t *associatedData, const size_t associatedDataLength, uint8_t *signature, size_t *signatureLength) {return;}
+void bctbx_EDDSA_sign(bctbx_EDDSAContext_t *context, const uint8_t *message, const size_t messageLength, const uint8_t *associatedData, const uint8_t associatedDataLength, uint8_t *signature, size_t *signatureLength) {return;}
 void bctbx_EDDSA_setPublicKey(bctbx_EDDSAContext_t *context, const uint8_t *publicKey, const size_t publicKeyLength) {return;}
 void bctbx_EDDSA_setSecretKey(bctbx_EDDSAContext_t *context, const uint8_t *secretKey, const size_t secretKeyLength) {return;}
-int bctbx_EDDSA_verify(bctbx_EDDSAContext_t *context, const uint8_t *message, size_t messageLength, const uint8_t *associatedData, const size_t associatedDataLength, const uint8_t *signature, size_t signatureLength) {return BCTBX_VERIFY_FAILED;}
+int bctbx_EDDSA_verify(bctbx_EDDSAContext_t *context, const uint8_t *message, size_t messageLength, const uint8_t *associatedData, const uint8_t associatedDataLength, const uint8_t *signature, size_t signatureLength) {return BCTBX_VERIFY_FAILED;}
 void bctbx_EDDSA_ECDH_privateKeyConversion(const bctbx_EDDSAContext_t *ed, bctbx_ECDHContext_t *x) {return;}
 void bctbx_EDDSA_ECDH_publicKeyConversion(const bctbx_EDDSAContext_t *ed, bctbx_ECDHContext_t *x, uint8_t isSelf) {return;}
 #endif

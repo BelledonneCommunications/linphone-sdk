@@ -398,18 +398,19 @@ char *get_junit_xml_file_name(const char *suite_name, const char *suffix) {
 //In case tests are started in parallel.
 //Merge partial JUnit suites reports into the final XML file
 void merge_junit_xml_files(const char *dst_file_name) {
-	char *suite_junit_xml_results[nb_test_suites];
+	char **suite_junit_xml_results;
 	ssize_t	total_size = 0;
 	char *file_name;
 	bctbx_vfs_file_t* bctbx_file;
 	ssize_t read_bytes = 0, file_size = 0, offset = 0;
 	int i;
 
+	suite_junit_xml_results = malloc(sizeof(char *) * nb_test_suites);
 	for (i = 0; i < nb_test_suites; i++) {
 		file_name = get_junit_xml_file_name(test_suite[i]->name, "-Results.xml");
 		bctbx_file = bctbx_file_open2(bctbx_vfs_get_default(), file_name, O_RDONLY);
 		if (bctbx_file != NULL) {
-			file_size = bctbx_file_size(bctbx_file);
+			file_size = (ssize_t)bctbx_file_size(bctbx_file);
 			suite_junit_xml_results[i] = malloc(file_size + 1);
 			read_bytes = bctbx_file_read(bctbx_file, (void *)suite_junit_xml_results[i], file_size, 0);
 			if (read_bytes == file_size) {
@@ -429,8 +430,8 @@ void merge_junit_xml_files(const char *dst_file_name) {
 		free(file_name);
 	}
 	//Empty the destination file
-	truncate(dst_file_name, 0);
 	bctbx_file = bctbx_file_open(bctbx_vfs_get_default(), dst_file_name, "w+");
+	bctbx_file_truncate(bctbx_file, 0);
 	offset = bctbx_file_fprintf(bctbx_file, 0, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<testsuites>\n");
 	for (i = 0; i < nb_test_suites; i++) {
 		if (suite_junit_xml_results[i] != NULL) {
@@ -440,6 +441,7 @@ void merge_junit_xml_files(const char *dst_file_name) {
 	}
 	bctbx_file_fprintf(bctbx_file, offset, "</testsuites>\n");
 	bctbx_file_close(bctbx_file);
+	free(suite_junit_xml_results);
 }
 
 //In case tests are started in parallel AND --log-file was given
@@ -464,7 +466,7 @@ void merge_log_files(const char *base_logfile_name) {
 			bc_tester_printf(bc_printf_verbosity_error, "Could not open log file '%s' to merge into '%s'", suite_logfile_name, base_logfile_name);
 			continue;
 		}
-		file_size = bctbx_file_size(bctbx_file);
+		file_size = (ssize_t)bctbx_file_size(bctbx_file);
 		buf = malloc(file_size);
 		read_bytes = bctbx_file_read(bctbx_file, buf, file_size, 0);
 		if (read_bytes == file_size) {
@@ -485,6 +487,14 @@ int bc_tester_get_max_parallel_processes(void) {
 	return (nb_test_suites / 2) + 1;
 }
 
+#ifdef _WIN32
+
+void kill_sub_processes(int *pids) {
+	// TODO: Windows support
+}
+
+#else
+
 //If there was an error, kill zombies
 void kill_sub_processes(int *pids) {
 	int i;
@@ -494,6 +504,8 @@ void kill_sub_processes(int *pids) {
 		}
 	}
 }
+
+#endif
 
 #ifdef _WIN32
 int start_sub_process(const char *suite_name) {
@@ -549,8 +561,7 @@ int handle_sub_process_error(int pid, int exitStatus, int *suitesPids) {
 				ssize_t offset;
 				char *suite_file_name = get_junit_xml_file_name(test_suite[i]->name, "-Results.xml");
 				bctbx_vfs_file_t* bctbx_file = bctbx_file_open(bctbx_vfs_get_default(), suite_file_name, "w+");
-				truncate(suite_file_name, 0);
-
+				bctbx_file_truncate(bctbx_file, 0);
 
 				offset = bctbx_file_fprintf(bctbx_file, 0, "\n<testsuite name=\"%s\" tests=\"%d\" time=\"0\" failures=\"%d\" errors=\"0\" skipped=\"0\">\n", test_suite[i]->name, test_suite[i]->nb_tests, test_suite[i]->nb_tests);
 				for (j=0; j < test_suite[i]->nb_tests; ++j) {

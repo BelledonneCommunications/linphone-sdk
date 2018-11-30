@@ -22,6 +22,13 @@
 #include <exception>
 #include <sstream>
 
+#include "bctoolbox/port.h"
+
+#ifdef _WIN32
+#pragma warning (push)
+#pragma warning (disable : 4275 4251)
+#endif
+
 /**
 * @brief General pupose exception saving backtrace.
 *
@@ -34,7 +41,7 @@
 *
 *
 */
-class BctbxException : public std::exception {
+class BCTBX_PUBLIC BctbxException : public std::exception {
 public:
 	BctbxException(const std::string &message = "");
 	BctbxException(const BctbxException &other);
@@ -64,8 +71,13 @@ private:
 	std::ostringstream mOs;
 	mutable std::string mMessage;
 };
-std::ostream &operator<<(std::ostream &__os, const BctbxException &e);
+
+BCTBX_PUBLIC std::ostream &operator<<(std::ostream &__os, const BctbxException &e);
 
 #define BCTBX_EXCEPTION BctbxException() << " " << __FILE__ << ":" << __LINE__ << " "
+
+#ifdef _WIN32
+#pragma warning (pop)
+#endif
 
 #endif /* exception_h */

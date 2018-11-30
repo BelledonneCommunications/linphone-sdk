@@ -47,40 +47,40 @@ static void bytes_to_from_hexa_strings(void) {
 	BC_ASSERT_EQUAL(bctbx_byte_to_char(0x0e), "e"[0], char, "%c");
 
 	bctbx_str_to_uint8(outputBytes, a55aString, 4);
-	BC_ASSERT_NSTRING_EQUAL(outputBytes, a55aBytes, 2);
+	BC_ASSERT_NSTRING_EQUAL((char *)outputBytes, (char *)a55aBytes, 2);
 	bctbx_str_to_uint8(outputBytes, upString, 16);
-	BC_ASSERT_NSTRING_EQUAL(outputBytes, upBytes, 8);
+	BC_ASSERT_NSTRING_EQUAL((char *)outputBytes, (char *)upBytes, 8);
 	bctbx_str_to_uint8(outputBytes, downString, 16);
-	BC_ASSERT_NSTRING_EQUAL(outputBytes, downBytes, 8);
+	BC_ASSERT_NSTRING_EQUAL((char *)outputBytes, (char *)downBytes, 8);
 
 	bctbx_int8_to_str(outputString, a55aBytes, 2);
-	BC_ASSERT_NSTRING_EQUAL(outputString, a55aString, 4);
+	BC_ASSERT_NSTRING_EQUAL((char *)outputString, (char *)a55aString, 4);
 	bctbx_int8_to_str(outputString, upBytes, 8);
-	BC_ASSERT_NSTRING_EQUAL(outputString, upString, 16);
+	BC_ASSERT_NSTRING_EQUAL((char *)outputString, (char *)upString, 16);
 	bctbx_int8_to_str(outputString, downBytes, 8);
-	BC_ASSERT_NSTRING_EQUAL(outputString, downString, 16);
+	BC_ASSERT_NSTRING_EQUAL((char *)outputString, (char *)downString, 16);
 
 	bctbx_uint32_to_str(outputString, 0x5aa5c376);
-	BC_ASSERT_NSTRING_EQUAL(outputString, "5aa5c376", 8);
+	BC_ASSERT_NSTRING_EQUAL((char *)outputString, "5aa5c376", 8);
 	bctbx_uint32_to_str(outputString, 0x01234567);
-	BC_ASSERT_NSTRING_EQUAL(outputString, "01234567", 8);
+	BC_ASSERT_NSTRING_EQUAL((char *)outputString, "01234567", 8);
 	bctbx_uint32_to_str(outputString, 0xfedcba98);
-	BC_ASSERT_NSTRING_EQUAL(outputString, "fedcba98", 8);
+	BC_ASSERT_NSTRING_EQUAL((char *)outputString, "fedcba98", 8);
 
-	BC_ASSERT_EQUAL(bctbx_str_to_uint32("5aa5c376"), 0x5aa5c376, uint32_t, "0x%08x");
-	BC_ASSERT_EQUAL(bctbx_str_to_uint32("01234567"), 0x01234567, uint32_t, "0x%08x");
-	BC_ASSERT_EQUAL(bctbx_str_to_uint32("fedcba98"), 0xfedcba98, uint32_t, "0x%08x");
+	BC_ASSERT_EQUAL((char *)(bctbx_str_to_uint32("5aa5c376")), 0x5aa5c376, uint32_t, "0x%08x");
+	BC_ASSERT_EQUAL((char *)(bctbx_str_to_uint32("01234567")), 0x01234567, uint32_t, "0x%08x");
+	BC_ASSERT_EQUAL((char *)(bctbx_str_to_uint32("fedcba98")), 0xfedcba98, uint32_t, "0x%08x");
 
 	bctbx_uint64_to_str(outputString, 0xfa5c37643cde8de0);
-	BC_ASSERT_NSTRING_EQUAL(outputString, "fa5c37643cde8de0", 16);
+	BC_ASSERT_NSTRING_EQUAL((char *)outputString, "fa5c37643cde8de0", 16);
 	bctbx_uint64_to_str(outputString, 0x0123456789abcdef);
-	BC_ASSERT_NSTRING_EQUAL(outputString, "0123456789abcdef", 16);
+	BC_ASSERT_NSTRING_EQUAL((char *)outputString, "0123456789abcdef", 16);
 	bctbx_uint64_to_str(outputString, 0xfedcba9876543210);
-	BC_ASSERT_NSTRING_EQUAL(outputString, "fedcba9876543210", 16);
+	BC_ASSERT_NSTRING_EQUAL((char *)outputString, "fedcba9876543210", 16);
 
-	BC_ASSERT_EQUAL(bctbx_str_to_uint64("fa5c37643cde8de0"), 0xfa5c37643cde8de0, uint64_t, "0x%" PRIx64);
-	BC_ASSERT_EQUAL(bctbx_str_to_uint64("0123456789abcdef"), 0x0123456789abcdef, uint64_t, "0x%" PRIx64);
-	BC_ASSERT_EQUAL(bctbx_str_to_uint64("fedcba9876543210"), 0xfedcba9876543210, uint64_t, "0x%" PRIx64);
+	BC_ASSERT_EQUAL((char *)(bctbx_str_to_uint64("fa5c37643cde8de0")), 0xfa5c37643cde8de0, uint64_t, "0x%" PRIx64);
+	BC_ASSERT_EQUAL((char *)(bctbx_str_to_uint64("0123456789abcdef")), 0x0123456789abcdef, uint64_t, "0x%" PRIx64);
+	BC_ASSERT_EQUAL((char *)(bctbx_str_to_uint64("fedcba9876543210")), 0xfedcba9876543210, uint64_t, "0x%" PRIx64);
 }
 
 static void time_functions(void) {

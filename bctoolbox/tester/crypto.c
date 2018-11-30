@@ -404,23 +404,23 @@ static void EdDSA(void) {
 		bctbx_EDDSACreateKeyPair(james,  (int (*)(void *, unsigned char *, size_t))bctbx_rng_get, RNG);
 
 		/* james sign the important message */
-		bctbx_EDDSA_sign(james, importantMessage1, strlen(importantMessage1), context, 250, signature, &signatureLength);
+		bctbx_EDDSA_sign(james, (uint8_t *)importantMessage1, strlen(importantMessage1), context, 250, signature, &signatureLength);
 		BC_ASSERT_NOT_EQUAL(signatureLength, 0, int, "%d");
 
 		/* world get james public key */
 		bctbx_EDDSA_setPublicKey(world, james->publicKey, james->pointCoordinateLength);
 
 		/* world verifies that the important message was signed by james */
-		BC_ASSERT_EQUAL(bctbx_EDDSA_verify(world, importantMessage1, strlen(importantMessage1), context, 250, signature, signatureLength), BCTBX_VERIFY_SUCCESS, int, "%d");
+		BC_ASSERT_EQUAL(bctbx_EDDSA_verify(world, (uint8_t *)importantMessage1, strlen(importantMessage1), context, 250, signature, signatureLength), BCTBX_VERIFY_SUCCESS, int, "%d");
 
 		/* twist the signature to get it wrong and verify again, it shall fail */
 		signature[0] ^=0xFF;
-		BC_ASSERT_EQUAL(bctbx_EDDSA_verify(world, importantMessage1, strlen(importantMessage1), context, 250, signature, signatureLength), BCTBX_VERIFY_FAILED, int, "%d");
+		BC_ASSERT_EQUAL(bctbx_EDDSA_verify(world, (uint8_t *)importantMessage1, strlen(importantMessage1), context, 250, signature, signatureLength), BCTBX_VERIFY_FAILED, int, "%d");
 
 		/* twist the context to get it wrong and verify again, it shall fail */
 		signature[0] ^=0xFF;
 		context[0] ^=0xFF;
-		BC_ASSERT_EQUAL(bctbx_EDDSA_verify(world, importantMessage1, strlen(importantMessage1), context, 250, signature, signatureLength), BCTBX_VERIFY_FAILED, int, "%d");
+		BC_ASSERT_EQUAL(bctbx_EDDSA_verify(world, (uint8_t *)importantMessage1, strlen(importantMessage1), context, 250, signature, signatureLength), BCTBX_VERIFY_FAILED, int, "%d");
 
 		/* cleaning */
 		bctbx_DestroyEDDSAContext(james);
@@ -509,9 +509,9 @@ static void sign_and_key_exchange(void) {
 		bctbx_rng_get(RNG, context2, 250);
 
 		/* sign a message */
-		bctbx_EDDSA_sign(aliceEDDSA, importantMessage1, strlen(importantMessage1), context1, 250, signature1, &signatureLength1);
+		bctbx_EDDSA_sign(aliceEDDSA, (uint8_t *)importantMessage1, strlen(importantMessage1), context1, 250, signature1, &signatureLength1);
 		BC_ASSERT_NOT_EQUAL(signatureLength1, 0, int, "%d");
-		bctbx_EDDSA_sign(bobEDDSA, importantMessage2, strlen(importantMessage2), context2, 250, signature2, &signatureLength2);
+		bctbx_EDDSA_sign(bobEDDSA, (uint8_t *)importantMessage2, strlen(importantMessage2), context2, 250, signature2, &signatureLength2);
 		BC_ASSERT_NOT_EQUAL(signatureLength2, 0, int, "%d");
 
 		/* exchange EDDSA keys: Warning: reuse the original EDDSA context, it means we will loose our self EDDSA public key */
@@ -523,8 +523,8 @@ static void sign_and_key_exchange(void) {
 		bctbx_EDDSA_ECDH_publicKeyConversion(bobEDDSA, bobECDH, BCTBX_ECDH_ISPEER);
 
 		/* Verify signed messages */
-		BC_ASSERT_EQUAL(bctbx_EDDSA_verify(bobEDDSA, importantMessage1, strlen(importantMessage1), context1, 250, signature1, signatureLength1), BCTBX_VERIFY_SUCCESS, int, "%d");
-		BC_ASSERT_EQUAL(bctbx_EDDSA_verify(aliceEDDSA, importantMessage2, strlen(importantMessage2), context2, 250, signature2, signatureLength2), BCTBX_VERIFY_SUCCESS, int, "%d");
+		BC_ASSERT_EQUAL(bctbx_EDDSA_verify(bobEDDSA, (uint8_t *)importantMessage1, strlen(importantMessage1), context1, 250, signature1, signatureLength1), BCTBX_VERIFY_SUCCESS, int, "%d");
+		BC_ASSERT_EQUAL(bctbx_EDDSA_verify(aliceEDDSA, (uint8_t *)importantMessage2, strlen(importantMessage2), context2, 250, signature2, signatureLength2), BCTBX_VERIFY_SUCCESS, int, "%d");
 
 		/* Compute shared secret and compare them */
 		bctbx_ECDHComputeSecret(aliceECDH, NULL, NULL);
@@ -563,13 +563,13 @@ static void hash_test(void) {
 
 	uint8_t outputBuffer[64];
 
-	bctbx_sha256(sha_input, strlen(sha_input), 32, outputBuffer);
+	bctbx_sha256((uint8_t *)sha_input, strlen(sha_input), 32, outputBuffer);
 	BC_ASSERT_TRUE(memcmp(outputBuffer, sha256_pattern, 32)==0);
 
-	bctbx_sha384(sha_input, strlen(sha_input), 48, outputBuffer);
+	bctbx_sha384((uint8_t *)sha_input, strlen(sha_input), 48, outputBuffer);
 	BC_ASSERT_TRUE(memcmp(outputBuffer, sha384_pattern, 48)==0);
 
-	bctbx_sha512(sha_input, strlen(sha_input), 64, outputBuffer);
+	bctbx_sha512((uint8_t *)sha_input, strlen(sha_input), 64, outputBuffer);
 	BC_ASSERT_TRUE(memcmp(outputBuffer, sha512_pattern, 64)==0);
 
 	bctbx_hmacSha256(hmac_sha_key, sizeof(hmac_sha_key), hmac_sha_data, sizeof(hmac_sha_data), 32, outputBuffer);
