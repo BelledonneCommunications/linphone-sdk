@@ -1,8 +1,6 @@
 // Project information
 buildDir = 'linphone-sdk/bin'
 
-def versionType = ""
-
 buildscript {
     repositories {
         jcenter()
@@ -87,7 +85,6 @@ android {
         }
         debug {
             debuggable true
-            versionType = "-debug"
         }
     }
 
@@ -182,11 +179,16 @@ project.tasks['preBuild'].dependsOn 'copyAssets'
 project.tasks['preBuild'].dependsOn 'copyProguard'
 
 def gitVersion = new ByteArrayOutputStream()
+def gitBranch = new ByteArrayOutputStream()
 
 task getGitVersion {
     exec {
-      commandLine 'git', 'describe', '--always'
-      standardOutput = gitVersion
+        commandLine 'git', 'describe', '--always'
+        standardOutput = gitVersion
+    }
+    exec {
+        commandLine 'git', 'symbolic-ref', '--short', 'HEAD'
+        standardOutput = gitBranch
     }
 }
 
@@ -194,11 +196,11 @@ uploadArchives {
     repositories {
         mavenDeployer {
             configuration = configurations.deployerJars
-            repository(url: 'git:snapshots://git@gitlab.linphone.org:BC/public/maven_repository.git')
+            repository(url: 'git:' + gitBranch.toString().trim() + '://git@gitlab.linphone.org:BC/public/maven_repository.git')
             pom.project {
                 groupId 'org.linphone'
                 artifactId 'linphone-sdk-android'
-		version gitVersion.toString().trim() + versionType
+		        version gitVersion.toString().trim()
             }
         }
     }
