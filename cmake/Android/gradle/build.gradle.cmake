@@ -169,7 +169,7 @@ task copyAssets(type: Sync) {
     }
     doFirst {
         println("Syncing sdk assets into root dir ${destinationDir}")
-	}
+    }
     // do not copy those
     includeEmptyDirs = false
 
@@ -187,8 +187,18 @@ task getGitVersion {
         standardOutput = gitVersion
     }
     exec {
-        commandLine 'git', 'symbolic-ref', '--short', 'HEAD'
+        commandLine 'git', 'name-rev', '--name-only', 'HEAD'
         standardOutput = gitBranch
+    }
+    doLast {
+        def branchSplit = gitBranch.toString().trim().split('/')
+        def splitLen = branchSplit.length
+        if (splitLen == 4) {
+            gitBranch = branchSplit[2] + '/' + branchSplit[3]
+            println("Local repository seems to be in detached head state, using last 2 segments of Git branch: " + gitBranch.toString().trim())
+        } else {
+            println("Git branch: " + gitBranch.toString().trim())
+        }
     }
 }
 
@@ -200,7 +210,7 @@ uploadArchives {
             pom.project {
                 groupId 'org.linphone'
                 artifactId 'linphone-sdk-android'
-		        version gitVersion.toString().trim()
+                version gitVersion.toString().trim()
             }
         }
     }
