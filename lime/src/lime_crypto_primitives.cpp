@@ -375,7 +375,7 @@ void HMAC(const uint8_t *const key, const size_t keySize, const uint8_t *const i
 
 /* HMAC specialized template for SHA512 */
 template <> void HMAC<SHA512>(const uint8_t *const key, const size_t keySize, const uint8_t *const input, const size_t inputSize, uint8_t *hash, size_t hashSize) {
-	bctbx_hmacSha512(key, keySize, input, inputSize, std::min(SHA512::ssize(),hashSize), hash);
+	bctbx_hmacSha512(key, keySize, input, inputSize, static_cast<uint8_t>(std::min(SHA512::ssize(),hashSize)), hash);
 }
 
 /* generic implementation, of HKDF RFC-5869 */

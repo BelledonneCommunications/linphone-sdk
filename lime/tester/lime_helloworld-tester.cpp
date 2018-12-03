@@ -63,7 +63,7 @@ static void sendMessageTo(std::string recipient, std::vector<uint8_t> &DRmessage
 	}
 
 	LIME_LOGE<<"sending a message to unknown user "<<recipient;
-	BC_FAIL();
+	BC_FAIL("");
 }
 
 static void getMessageFor(std::string recipient, std::vector<uint8_t> &DRmessage, std::vector<uint8_t> &cipherMessage) {
@@ -74,7 +74,7 @@ static void getMessageFor(std::string recipient, std::vector<uint8_t> &DRmessage
 	}
 
 	LIME_LOGE<<"getting a message to unknown user "<<recipient;
-	BC_FAIL();
+	BC_FAIL("");
 }
 
 struct C_Callback_userData {
@@ -356,8 +356,8 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 			remove(dbFilenameBob.data());
 		}
 	} catch (BctbxException &e) {
-		LIME_LOGE <<e;;
-		BC_FAIL();
+		LIME_LOGE << e;
+		BC_FAIL("");
 	}
 }
 
@@ -595,8 +595,8 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve, const std:
 			remove(dbFilenameBob.data());
 		}
 	} catch (BctbxException &e) {
-		LIME_LOGE <<e;;
-		BC_FAIL();
+		LIME_LOGE << e;
+		BC_FAIL("");
 	}
 }
 

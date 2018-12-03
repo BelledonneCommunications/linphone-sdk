@@ -278,10 +278,48 @@ namespace lime {
 
 	/* instantiate Lime for C255 and C448 */
 #ifdef EC25519_ENABLED
+	/* These extern templates are defines in lime_localStorage.cpp */
+	extern template bool Lime<C255>::create_user();
+	extern template void Lime<C255>::get_SelfIdentityKey();
+	extern template void Lime<C255>::X3DH_generate_SPk(X<C255, lime::Xtype::publicKey> &publicSPk, DSA<C255, DSAtype::signature> &SPk_sig, uint32_t &SPk_id);
+	extern template void Lime<C255>::X3DH_generate_OPks(std::vector<X<C255, lime::Xtype::publicKey>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number);
+	extern template void Lime<C255>::cache_DR_sessions(std::vector<RecipientInfos<C255>> &internal_recipients, std::vector<std::string> &missing_devices);
+	extern template void Lime<C255>::get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDBSessionId, std::vector<std::shared_ptr<DR<C255>>> &DRSessions);
+	extern template void Lime<C255>::X3DH_get_SPk(uint32_t SPk_id, Xpair<C255> &SPk);
+	extern template bool Lime<C255>::is_currentSPk_valid(void);
+	extern template void Lime<C255>::X3DH_get_OPk(uint32_t OPk_id, Xpair<C255> &SPk);
+	extern template void Lime<C255>::X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds);
+	/* These extern templates are defined in lime_x3dh.cpp*/
+	extern template void Lime<C255>::X3DH_init_sender_session(const std::vector<X3DH_peerBundle<C255>> &peerBundle);
+	extern template std::shared_ptr<DR<C255>> Lime<C255>::X3DH_init_receiver_session(const std::vector<uint8_t> X3DH_initMessage, const std::string &peerDeviceId);
+	/* These extern templates are defined in lime_x3dh_protocol.cpp*/
+	extern template void Lime<C255>::postToX3DHServer(std::shared_ptr<callbackUserData<C255>> userData, const std::vector<uint8_t> &message);
+	extern template void Lime<C255>::process_response(std::shared_ptr<callbackUserData<C255>> userData, int responseCode, const std::vector<uint8_t> &responseBody) noexcept;
+	extern template void Lime<C255>::cleanUserData(std::shared_ptr<callbackUserData<C255>> userData);
+
 	template class Lime<C255>;
 #endif
 
 #ifdef EC448_ENABLED
+	/* These extern templates are defines in lime_localStorage.cpp */
+	extern template bool Lime<C448>::create_user();
+	extern template void Lime<C448>::get_SelfIdentityKey();
+	extern template void Lime<C448>::X3DH_generate_SPk(X<C448, lime::Xtype::publicKey> &publicSPk, DSA<C448, DSAtype::signature> &SPk_sig, uint32_t &SPk_id);
+	extern template void Lime<C448>::X3DH_generate_OPks(std::vector<X<C448, lime::Xtype::publicKey>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number);
+	extern template void Lime<C448>::cache_DR_sessions(std::vector<RecipientInfos<C448>> &internal_recipients, std::vector<std::string> &missing_devices);
+	extern template void Lime<C448>::get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDBSessionId, std::vector<std::shared_ptr<DR<C448>>> &DRSessions);
+	extern template void Lime<C448>::X3DH_get_SPk(uint32_t SPk_id, Xpair<C448> &SPk);
+	extern template bool Lime<C448>::is_currentSPk_valid(void);
+	extern template void Lime<C448>::X3DH_get_OPk(uint32_t OPk_id, Xpair<C448> &SPk);
+	extern template void Lime<C448>::X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds);
+	/* These extern templates are defined in lime_x3dh.cpp*/
+	extern template void Lime<C448>::X3DH_init_sender_session(const std::vector<X3DH_peerBundle<C448>> &peerBundle);
+	extern template std::shared_ptr<DR<C448>> Lime<C448>::X3DH_init_receiver_session(const std::vector<uint8_t> X3DH_initMessage, const std::string &peerDeviceId);
+	/* These extern templates are defined in lime_x3dh_protocol.cpp*/
+	extern template void Lime<C448>::postToX3DHServer(std::shared_ptr<callbackUserData<C448>> userData, const std::vector<uint8_t> &message);
+	extern template void Lime<C448>::process_response(std::shared_ptr<callbackUserData<C448>> userData, int responseCode, const std::vector<uint8_t> &responseBody) noexcept;
+	extern template void Lime<C448>::cleanUserData(std::shared_ptr<callbackUserData<C448>> userData);
+
 	template class Lime<C448>;
 #endif
 
@@ -352,7 +390,7 @@ namespace lime {
 					throw BCTBX_EXCEPTION << "Cannot create lime user "<<deviceId;//<<". Unsupported curve (id <<"static_cast<uint8_t>(curve)") requested";
 				break;
 			}
-		} catch (BctbxException &e) {
+		} catch (BctbxException &) {
 			throw; // just forward the exceptions raised by constructor
 		}
 		return nullptr;
@@ -413,7 +451,7 @@ namespace lime {
 					throw BCTBX_EXCEPTION << "Cannot create load user "<<deviceId;//<<". Unsupported curve (id <<"static_cast<uint8_t>(curve)") requested";
 				break;
 			}
-		} catch (BctbxException &e) {
+		} catch (BctbxException &) {
 			throw;
 		}
 		return nullptr;

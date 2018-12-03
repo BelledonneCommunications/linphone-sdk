@@ -86,6 +86,8 @@ if(MSVC)
 	if(ENABLE_STRICT)
 		list(APPEND STRICT_OPTIONS_CPP "/WX")
 	endif()
+	# avoid conflicts with std::min and std::max
+	add_definitions("-DNOMINMAX")
 else()
 	if (ENABLE_PROFILING)
 		list(APPEND STRICT_OPTIONS_CXX "-g -pg")

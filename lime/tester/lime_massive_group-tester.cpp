@@ -292,8 +292,8 @@ static void group_basic_test(const lime::CurveId curve, const std::string &dbBas
 		}
 
 	} catch (BctbxException &e) {
-		LIME_LOGE <<e;;
-		BC_FAIL();
+		LIME_LOGE << e;
+		BC_FAIL("");
 	}
 }
 
@@ -319,7 +319,7 @@ static void group_one_talking_bench() {
 		// time spent in test is more or less linear to the device number, try to reach the one wich lead to a maximunBenchTime execution
 		span = bctbx_get_cur_time_ms() - start;
 		LIME_LOGE<<"Curve 25519 group chat test with "<<to_string(deviceNumber)<<" devices ran in "<<to_string(span)<<" ms"<<std::endl;
-		deviceNumber *= std::max(float(maximumBenchTime)/float(span), 1.0f) * 1.2;
+		deviceNumber *= int(std::max(float(maximumBenchTime)/float(span), 1.0f) * 1.2);
 	}
 #endif
 #ifdef EC448_ENABLED
@@ -332,7 +332,7 @@ static void group_one_talking_bench() {
 		// time spent in test is more or less linear to the device number, try to reach the one wich lead to a maximunBenchTime execution
 		span = bctbx_get_cur_time_ms() - start;
 		LIME_LOGE<<"Curve 448 group chat test with "<<to_string(deviceNumber)<<" devices ran in "<<to_string(span)<<" ms"<<std::endl;
-		deviceNumber *= std::max(float(maximumBenchTime)/float(span), 1.0f) * 1.2;
+		deviceNumber *= int(std::max(float(maximumBenchTime)/float(span), 1.0f) * 1.2);
 	}
 #endif
 }
@@ -357,7 +357,7 @@ static void group_all_talking_bench() {
 		// time spent in test is more or less linear to the square of device number, try to reach the one wich lead to a maximunBenchTime execution
 		span = bctbx_get_cur_time_ms() - start;
 		LIME_LOGE<<"Curve 25519 group chat test with "<<to_string(deviceNumber)<<" devices ran in "<<to_string(span)<<" ms"<<std::endl;
-		deviceNumber *= std::sqrt(std::max(float(maximumBenchTime)/float(span), 1.0f)) * 1.2;
+		deviceNumber *= int(std::sqrt(std::max(float(maximumBenchTime)/float(span), 1.0f)) * 1.2);
 	}
 #endif
 #ifdef EC448_ENABLED
@@ -370,7 +370,7 @@ static void group_all_talking_bench() {
 		// time spent in test is more or less linear to the square of device number, try to reach the one wich lead to a maximunBenchTime execution
 		span = bctbx_get_cur_time_ms() - start;
 		LIME_LOGE<<"Curve 448 group chat test with "<<to_string(deviceNumber)<<" devices ran in "<<to_string(span)<<" ms"<<std::endl;
-		deviceNumber *= std::sqrt(std::max(float(maximumBenchTime)/float(span), 1.0f)) * 1.2;
+		deviceNumber *= int(std::sqrt(std::max(float(maximumBenchTime)/float(span), 1.0f)) * 1.2);
 	}
 #endif
 }
