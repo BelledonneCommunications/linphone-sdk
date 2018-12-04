@@ -58,6 +58,10 @@ android {
     defaultConfig {
         compileSdkVersion 28
         buildToolsVersion "28.0.0"
+        minSdkVersion 16
+        targetSdkVersion 28
+        versionCode 4100
+        versionName "4.1"
         multiDexEnabled true
         setProperty("archivesBaseName", "linphone-sdk-android")
         consumerProguardFiles "${buildDir}/proguard.txt"
@@ -77,6 +81,7 @@ android {
             signingConfig signingConfigs.release
             minifyEnabled true
             useProguard true
+            proguardFiles "${buildDir}/proguard.txt"
         }
         packaged {
             initWith release
