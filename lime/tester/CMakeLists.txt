@@ -55,9 +55,11 @@ if(ANDROID OR IOS)
 	target_link_libraries(limetester ${LIME_LIBRARIES_FOR_TESTER} ${BCTOOLBOX_LIBRARIES} ${BCTOOLBOX_TESTER_LIBRARIES} ${BELLESIP_LIBRARIES} ${SOCI_LIBRARIES} ${SOCI_sqlite3_PLUGIN})
 	if(IOS)
 		target_link_libraries(limetester sqlite3)
+		set(MIN_OS ${LINPHONE_IOS_DEPLOYMENT_TARGET})
 		set_target_properties(limetester PROPERTIES
 			FRAMEWORK TRUE
 			MACOSX_FRAMEWORK_IDENTIFIER com.belledonne-communications.limetester
+			MACOSX_FRAMEWORK_INFO_PLIST "${CMAKE_SOURCE_DIR}/build/osx/Info.plist.in"
 			PUBLIC_HEADER "${HEADER_FILES_CXX}"
 		)
 	endif()

@@ -64,6 +64,20 @@ if(ENABLE_SHARED)
 	set_target_properties(lime PROPERTIES VERSION ${LIME_SO_VERSION})
 	target_include_directories(lime PUBLIC ${BCTOOLBOX_INCLUDE_DIRS} ${SOCI_INCLUDE_DIRS} ${SOCI_INCLUDE_DIRS}/soci)
 	target_link_libraries(lime PRIVATE ${BCTOOLBOX_CORE_LIBRARIES} ${SOCI_LIBRARIES} ${SOCI_sqlite3_PLUGIN})
+	# TODO: replace by if(APPLE) when we want to make apple framework on linphone-desktop too
+	if(IOS)
+		if(IOS)
+			set(MIN_OS ${LINPHONE_IOS_DEPLOYMENT_TARGET})
+		else()
+			set(MIN_OS ${CMAKE_OSX_DEPLOYMENT_TARGET})
+		endif()
+		set_target_properties(lime PROPERTIES
+			FRAMEWORK TRUE
+			MACOSX_FRAMEWORK_IDENTIFIER com.belledonne-communications.lime
+			MACOSX_FRAMEWORK_INFO_PLIST "${CMAKE_SOURCE_DIR}/build/osx/Info.plist.in"
+			PUBLIC_HEADER "${LIME_HEADER_FILES}"
+		)
+	endif()
 	if(WIN32)
 		set_target_properties(lime PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
 	endif()
@@ -90,6 +104,7 @@ if(ENABLE_SHARED)
 		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+		FRAMEWORK DESTINATION Frameworks
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 	)
 endif()
