@@ -48,6 +48,32 @@ excludePackage.add('**/gdb.*')
 excludePackage.add('**/libopenh264**')
 excludePackage.add('**/LICENSE.txt')
 
+def gitVersion = new ByteArrayOutputStream()
+def gitBranch = new ByteArrayOutputStream()
+
+task getGitVersion {
+    exec {
+        commandLine 'git', 'describe', '--always'
+        standardOutput = gitVersion
+    }
+    exec {
+        commandLine 'git', 'name-rev', '--name-only', 'HEAD'
+        standardOutput = gitBranch
+    }
+    doLast {
+        def branchSplit = gitBranch.toString().trim().split('/')
+        def splitLen = branchSplit.length
+        if (splitLen == 4) {
+            gitBranch = branchSplit[2] + '/' + branchSplit[3]
+            println("Local repository seems to be in detached head state, using last 2 segments of Git branch: " + gitBranch.toString().trim())
+        } else {
+            println("Git branch: " + gitBranch.toString().trim())
+        }
+    }
+}
+
+project.tasks['preBuild'].dependsOn 'getGitVersion'
+
 android {
 
     buildTypes {
@@ -82,6 +108,8 @@ android {
             minifyEnabled true
             useProguard true
             proguardFiles "${buildDir}/proguard.txt"
+            resValue "string", "linphone_sdk_version", gitVersion.toString().trim()
+            resValue "string", "linphone_sdk_branch", gitBranch.toString().trim()
         }
         packaged {
             initWith release
@@ -90,6 +118,8 @@ android {
         }
         debug {
             debuggable true
+            resValue "string", "linphone_sdk_version", gitVersion.toString().trim() + "-debug"
+            resValue "string", "linphone_sdk_branch", gitBranch.toString().trim()
         }
     }
 
@@ -182,30 +212,6 @@ task copyAssets(type: Sync) {
 
 project.tasks['preBuild'].dependsOn 'copyAssets'
 project.tasks['preBuild'].dependsOn 'copyProguard'
-
-def gitVersion = new ByteArrayOutputStream()
-def gitBranch = new ByteArrayOutputStream()
-
-task getGitVersion {
-    exec {
-        commandLine 'git', 'describe', '--always'
-        standardOutput = gitVersion
-    }
-    exec {
-        commandLine 'git', 'name-rev', '--name-only', 'HEAD'
-        standardOutput = gitBranch
-    }
-    doLast {
-        def branchSplit = gitBranch.toString().trim().split('/')
-        def splitLen = branchSplit.length
-        if (splitLen == 4) {
-            gitBranch = branchSplit[2] + '/' + branchSplit[3]
-            println("Local repository seems to be in detached head state, using last 2 segments of Git branch: " + gitBranch.toString().trim())
-        } else {
-            println("Git branch: " + gitBranch.toString().trim())
-        }
-    }
-}
 
 uploadArchives {
     repositories {
