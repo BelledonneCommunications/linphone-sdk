@@ -40,8 +40,8 @@ constexpr uint64_t BENCH_TIMING_MS=200;
 
 /* Function */
 static void snprintSI(std::string &output, double x, const char *unit, const char *spacer = " ") {
-	const char *small[] = {" ","m","µ","n","p"};
-	const char *big[] = {" ","k","M","G","T"};
+	const char *_small[] = {" ","m","µ","n","p"};
+	const char *_big[] = {" ","k","M","G","T"};
 
 	constexpr size_t tempBufferSize = 100;
 	char tempBuffer[tempBufferSize]; // hoping no one will use this function to print more than 100 chars...
@@ -52,16 +52,16 @@ static void snprintSI(std::string &output, double x, const char *unit, const cha
 
 	if (x < 1) {
 		unsigned di=0;
-		for (di=0; di<sizeof(small)/sizeof(*small)-1 && x && x < 1; di++) {
+		for (di=0; di<sizeof(_small)/sizeof(*_small)-1 && x && x < 1; di++) {
 			x *= 1000.0;
 		}
-		snprintf(tempBuffer, sizeof(tempBuffer), "%6.2f%s%s%s", x, spacer, small[di], unit);
+		snprintf(tempBuffer, sizeof(tempBuffer), "%6.2f%s%s%s", x, spacer, _small[di], unit);
 	} else {
 		unsigned di=0;
-		for (di=0; di<sizeof(big)/sizeof(*big)-1 && x && x >= 1000; di++) {
+		for (di=0; di<sizeof(_big)/sizeof(*_big)-1 && x && x >= 1000; di++) {
 			x /= 1000.0;
 		}
-		snprintf(tempBuffer, sizeof(tempBuffer), "%6.2f%s%s%s", x, spacer, big[di], unit);
+		snprintf(tempBuffer, sizeof(tempBuffer), "%6.2f%s%s%s", x, spacer, _big[di], unit);
 	}
 
 	output = tempBuffer;

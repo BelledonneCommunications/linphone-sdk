@@ -17,14 +17,15 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <bctoolbox/exception.hh>
+#include <soci/soci.h>
+
 #include "lime_log.hpp"
 #include "lime/lime.hpp"
 #include "lime_localStorage.hpp"
 #include "lime_double_ratchet.hpp"
 #include "lime_impl.hpp"
-#include "bctoolbox/exception.hh"
 
-#include "soci/sqlite3/soci-sqlite3.h"
 using namespace::std;
 using namespace::soci;
 using namespace::lime;
@@ -41,7 +42,7 @@ namespace lime {
  *
  * @param[in]	filename	The path to DB file
  */
-Db::Db(std::string filename) : sql{sqlite3, filename}{
+Db::Db(std::string filename) : sql{"sqlite3", filename}{
 	constexpr int db_module_table_not_holding_lime_row = -1;
 
 	int userVersion=db_module_table_not_holding_lime_row;

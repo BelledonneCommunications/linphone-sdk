@@ -437,10 +437,16 @@ namespace lime {
 
 	/* template instanciations for DHKeyX25519 and DHKeyX448 */
 #ifdef EC25519_ENABLED
+	extern template bool DR<C255>::session_load();
+	extern template bool DR<C255>::session_save();
+	extern template bool DR<C255>::trySkippedMessageKeys(const uint16_t Nr, const X<C255, lime::Xtype::publicKey> &DHr, DRMKey &MK);
 	template class DR<C255>;
 #endif
 
 #ifdef EC448_ENABLED
+	extern template bool DR<C448>::session_load();
+	extern template bool DR<C448>::session_save();
+	extern template bool DR<C448>::trySkippedMessageKeys(const uint16_t Nr, const X<C448, lime::Xtype::publicKey> &DHr, DRMKey &MK);
 	template class DR<C448>;
 #endif
 	/**

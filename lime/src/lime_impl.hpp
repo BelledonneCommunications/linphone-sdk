@@ -88,7 +88,7 @@ namespace lime {
 			void X3DH_init_sender_session(const std::vector<X3DH_peerBundle<Curve>> &peersBundle); // compute a sender X3DH using the data from peer bundle, then create and load the DR_Session
 			std::shared_ptr<DR<Curve>> X3DH_init_receiver_session(const std::vector<uint8_t> X3DH_initMessage, const std::string &senderDeviceId); // from received X3DH init packet, try to compute the shared secrets, then create the DR_Session
 
-			/* network related */
+			/* network related, implemented in lime_x3dh_protocol.cpp */
 			void postToX3DHServer(std::shared_ptr<callbackUserData<Curve>> userData, const std::vector<uint8_t> &message); // send a request to X3DH server
 			void process_response(std::shared_ptr<callbackUserData<Curve>> userData, int responseCode, const std::vector<uint8_t> &responseBody) noexcept; // callback on server response
 			void cleanUserData(std::shared_ptr<callbackUserData<Curve>> userData); // clean user data

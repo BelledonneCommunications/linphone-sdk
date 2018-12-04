@@ -133,15 +133,15 @@ int main(int argc, char *argv[]) {
 		} else if (strcmp(argv[i],"--x3dh-server-name")==0){
 			CHECK_ARG("--x3dh-server-name", ++i, argc);
 			lime_tester::test_x3dh_server_url=std::string(argv[i]);
-			strncpy(ffi_test_x3dh_server_url, argv[i], sizeof(ffi_test_x3dh_server_url));
+			strncpy(ffi_test_x3dh_server_url, argv[i], sizeof(ffi_test_x3dh_server_url)-1);
 		} else if (strcmp(argv[i],"--c255-x3dh-server-port")==0){
 			CHECK_ARG("--c255-x3dh-server-port", ++i, argc);
 			lime_tester::test_x3dh_c25519_server_port=std::string(argv[i]);
-			strncpy(ffi_test_x3dh_c25519_server_port, argv[i], sizeof(ffi_test_x3dh_c25519_server_port));
+			strncpy(ffi_test_x3dh_c25519_server_port, argv[i], sizeof(ffi_test_x3dh_c25519_server_port)-1);
 		} else if (strcmp(argv[i],"--c448-x3dh-server-port")==0){
 			CHECK_ARG("--c448-x3dh-server-port", ++i, argc);
 			lime_tester::test_x3dh_c448_server_port=std::string(argv[i]);
-			strncpy(ffi_test_x3dh_c448_server_port, argv[i], sizeof(ffi_test_x3dh_c448_server_port));
+			strncpy(ffi_test_x3dh_c448_server_port, argv[i], sizeof(ffi_test_x3dh_c448_server_port)-1);
 		} else if (strcmp(argv[i],"--operation-timeout")==0){
 			CHECK_ARG("--operation-timeout", ++i, argc);
 			lime_tester::wait_for_timeout=std::atoi(argv[i]);

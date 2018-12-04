@@ -25,11 +25,11 @@
 #include "lime_keys.hpp"
 #include "lime_crypto_primitives.hpp"
 #include "lime_double_ratchet_protocol.hpp"
-#include "bctoolbox/exception.hh"
 #include "lime-tester-utils.hpp"
 
-#include "soci/soci.h"
-#include "soci/sqlite3/soci-sqlite3.h"
+#include <bctoolbox/exception.hh>
+#include <soci/soci.h>
+
 using namespace::std;
 using namespace::soci;
 
@@ -42,7 +42,7 @@ std::string test_x3dh_c448_server_port{"25520"};
 
 /* for testing purpose RNG, no need to be good one */
 std::random_device rd;
-std::uniform_int_distribution<uint8_t> uniform_dist(0,255);
+std::uniform_int_distribution<int> uniform_dist(0,255);
 
 // default value for the timeout
 int wait_for_timeout=4000;
@@ -169,7 +169,7 @@ std::vector<std::string> messages_pattern = {
  */
 void randomize(uint8_t *buffer, const size_t size) {
 	for (size_t i=0; i<size; i++) {
-		buffer[i] = lime_tester::uniform_dist(rd);
+		buffer[i] = (uint8_t)lime_tester::uniform_dist(rd);
 	}
 }
 /**
@@ -281,7 +281,7 @@ bool DR_message_payloadDirectEncrypt(std::vector<uint8_t> &message) {
 	// check protocol version
 	if (message[0] != static_cast<uint8_t>(lime::double_ratchet_protocol::DR_v01)) return false;
 
-	return (message[1]&static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::payload_direct_encryption_flag));
+	return !!(message[1]&static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::payload_direct_encryption_flag));
 }
 
 bool DR_message_holdsX3DHInit(std::vector<uint8_t> &message) {
@@ -297,7 +297,7 @@ bool DR_message_holdsX3DHInit(std::vector<uint8_t> &message, bool &haveOPk) {
 	if (message[0] != static_cast<uint8_t>(lime::double_ratchet_protocol::DR_v01)) return false;
 	// check message type: we must have a X3DH init message
 	if (!(message[1]&static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::X3DH_init_flag))) return false;
-	bool payload_direct_encryption = (message[1]&static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::payload_direct_encryption_flag));
+	bool payload_direct_encryption = !!(message[1]&static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::payload_direct_encryption_flag));
 
 	/* check message length :
 	 * message with payload not included (DR payload is a fixed 32 byte random seed)
@@ -398,7 +398,7 @@ long int get_DRsessionsId(const std::string &dbFilename, const std::string &self
 	sessionsId.resize(25); // no more than 25 sessions id fetched
 	std::vector<int> status(25);
 	try {
-		soci::session sql(sqlite3, dbFilename); // open the DB
+		soci::session sql("sqlite3", dbFilename); // open the DB
 		soci::statement st = (sql.prepare << "SELECT s.sessionId, s.Status FROM DR_sessions as s INNER JOIN lime_PeerDevices as d on s.Did = d.Did INNER JOIN lime_LocalUsers as u on u.Uid = s.Uid WHERE u.UserId = :selfId AND d.DeviceId = :peerId ORDER BY s.Status DESC, s.Did;", into(sessionsId), into(status), use(selfDeviceId), use(peerDeviceId));
 		st.execute();
 		if (st.fetch()) { // all retrieved session shall fit in the arrays no need to go on several fetch
@@ -427,7 +427,7 @@ long int get_DRsessionsId(const std::string &dbFilename, const std::string &self
  */
 unsigned int get_StoredMessageKeyCount(const std::string &dbFilename, const std::string &selfDeviceId, const std::string &peerDeviceId) noexcept{
 	try {
-		soci::session sql(sqlite3, dbFilename); // open the DB
+		soci::session sql("sqlite3", dbFilename); // open the DB
 		unsigned int mkCount=0;
 		sql<< "SELECT count(m.MK) FROM DR_sessions as s INNER JOIN lime_PeerDevices as d on s.Did = d.Did INNER JOIN lime_LocalUsers as u on u.Uid = s.Uid INNER JOIN DR_MSk_DHr as c on c.sessionId = s.sessionId INNER JOIN DR_MSk_Mk as m ON m.DHid=c.DHid WHERE u.UserId = :selfId AND d.DeviceId = :peerId ORDER BY s.Status DESC, s.Did;", into(mkCount), use(selfDeviceId), use(peerDeviceId);
 		if (sql.got_data()) {
@@ -447,7 +447,7 @@ unsigned int get_StoredMessageKeyCount(const std::string &dbFilename, const std:
  */
 bool get_SPks(const std::string &dbFilename, const std::string &selfDeviceId, size_t &count, uint32_t &activeId) noexcept{
 	try {
-		soci::session sql(sqlite3, dbFilename); // open the DB
+		soci::session sql("sqlite3", dbFilename); // open the DB
 		count=0;
 		sql<< "SELECT count(SPKid) FROM X3DH_SPK as s INNER JOIN lime_LocalUsers as u on u.Uid = s.Uid WHERE u.UserId = :selfId;", into(count), use(selfDeviceId);
 		if (sql.got_data()) {
@@ -471,7 +471,7 @@ bool get_SPks(const std::string &dbFilename, const std::string &selfDeviceId, si
  */
 size_t get_OPks(const std::string &dbFilename, const std::string &selfDeviceId) noexcept {
 	try {
-		soci::session sql(sqlite3, dbFilename); // open the DB
+		soci::session sql("sqlite3", dbFilename); // open the DB
 		auto count=0;
 		sql<< "SELECT count(OPKid) FROM X3DH_OPK as o INNER JOIN lime_LocalUsers as u on u.Uid = o.Uid WHERE u.UserId = :selfId;", into(count), use(selfDeviceId);
 		if (sql.got_data()) {
@@ -491,7 +491,7 @@ size_t get_OPks(const std::string &dbFilename, const std::string &selfDeviceId) 
  */
 void forwardTime(const std::string &dbFilename, int days) noexcept {
 	try {
-		soci::session sql(sqlite3, dbFilename); // open the DB
+		soci::session sql("sqlite3", dbFilename); // open the DB
 		/* move back by days all timeStamp, we have some in DR_sessions and X3DH_SPk tables */
 		sql<<"UPDATE DR_sessions SET timeStamp = date (timeStamp, '-"<<days<<" day');";
 		sql<<"UPDATE X3DH_SPK SET timeStamp = date (timeStamp, '-"<<days<<" day');";

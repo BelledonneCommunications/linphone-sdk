@@ -208,7 +208,7 @@ static void lime_exchange_messages(std::shared_ptr<std::string> &aliceDeviceId, 
 				messageCount++;
 			}
 		}
-	} catch (BctbxException &e) {
+	} catch (BctbxException &) {
 		BC_FAIL("Message Exchange failed");
 		throw;
 	}
@@ -257,7 +257,7 @@ static void lime_session_establishment(const lime::CurveId curve, const std::str
 
 		lime_exchange_messages(aliceDeviceId, aliceManager, bobDeviceId, bobManager, 1, 1);
 
-	} catch (BctbxException &e) {
+	} catch (BctbxException &) {
 		BC_FAIL("Session establishment failed");
 		throw;
 	}
@@ -335,7 +335,7 @@ static void lime_encryptionPolicyError_test(const lime::CurveId curve, const std
 			remove(dbFilenameBob.data());
 		}
 
-	} catch (BctbxException &e) {
+	} catch (BctbxException &) {
 		BC_FAIL("Session establishment failed");
 		throw;
 	}
@@ -397,7 +397,7 @@ static void lime_session_establishment(const lime::CurveId curve, const std::str
 		bobManager->create_user(*bobDeviceId, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
-	} catch (BctbxException &e) {
+	} catch (BctbxException &) {
 		BC_FAIL("Session establishment failed");
 		throw;
 	}
@@ -480,7 +480,7 @@ static void lime_encryptionPolicy_test(std::shared_ptr<LimeManager> aliceManager
 		}
 
 
-	} catch (BctbxException &e) {
+	} catch (BctbxException &) {
 		BC_FAIL("Session establishment failed");
 		throw;
 	}
@@ -788,8 +788,8 @@ static void lime_identityVerifiedStatus_test(const lime::CurveId curve, const st
 		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::trusted);
 
 	} catch (BctbxException &e) {
-		LIME_LOGE <<e;;
-		BC_FAIL();
+		LIME_LOGE << e;
+		BC_FAIL("");
 	}
 
 	auto gotException = false;
@@ -797,8 +797,8 @@ static void lime_identityVerifiedStatus_test(const lime::CurveId curve, const st
 	try {
 		// try to set another key for alice in bob's context, it shall generate an exception
 		bobManager->set_peerDeviceStatus(*aliceDeviceId, fakeIk, lime::PeerDeviceStatus::trusted);
-	} catch (BctbxException &e) {
-		BC_PASS();
+	} catch (BctbxException &) {
+		BC_PASS("");
 		gotException = true;
 
 		// Now delete the alice device from Bob's cache and check its status is now back to unknown
@@ -820,8 +820,8 @@ static void lime_identityVerifiedStatus_test(const lime::CurveId curve, const st
 	try {
 		// try to set it to trusted, still using the fake Ik, it shall generate an exception as the Ik is invalid in storage
 		bobManager->set_peerDeviceStatus(*aliceDeviceId, fakeIk, lime::PeerDeviceStatus::trusted);
-	} catch (BctbxException &e) {
-		BC_PASS();
+	} catch (BctbxException &) {
+		BC_PASS("");
 		gotException = true;
 	}
 
@@ -831,8 +831,8 @@ static void lime_identityVerifiedStatus_test(const lime::CurveId curve, const st
 	try {
 		// same than above but using the actual key : try to set it to trusted, still using the fake Ik, it shall generate an exception as the Ik is invalid in storage
 		bobManager->set_peerDeviceStatus(*aliceDeviceId, aliceIk, lime::PeerDeviceStatus::trusted);
-	} catch (BctbxException &e) {
-		BC_PASS();
+	} catch (BctbxException &) {
+		BC_PASS("");
 		gotException = true;
 
 		// Now delete the alice device from Bob's cache and check its status is now back to unknown
@@ -956,8 +956,8 @@ static void lime_identityVerifiedStatus_test(const lime::CurveId curve, const st
 		}
 
 	} catch (BctbxException &e) {
-		LIME_LOGE <<e;;
-		BC_FAIL();
+		LIME_LOGE << e;
+		BC_FAIL("");
 	}
 }
 
@@ -1154,8 +1154,8 @@ static void lime_peerDeviceStatus_test(const lime::CurveId curve, const std::str
 		}
 
 	} catch (BctbxException &e) {
-		LIME_LOGE <<e;;
-		BC_FAIL();
+		LIME_LOGE << e;
+		BC_FAIL("");
 	}
 }
 
@@ -1185,17 +1185,17 @@ static void lime_getSelfIk_test(const lime::CurveId curve, const std::string &db
 
 		BC_ASSERT_TRUE((Ik==pattern));
 	} catch (BctbxException &e) {
-		LIME_LOGE <<e;;
-		BC_FAIL();
+		LIME_LOGE << e;
+		BC_FAIL("");
 		return;
 	}
 
 	// try to get the Ik of a user not in there, we shall get an exception
 	try {
 		aliceManager->get_selfIdentityKey("bob", Ik);
-	} catch (BctbxException &e) {
+	} catch (BctbxException &) {
 		// just swallow it
-		BC_PASS();
+		BC_PASS("");
 		return;
 	}
 	BC_FAIL("Get the Ik of a user not in local Storage didn't throw an exception");
@@ -1336,8 +1336,8 @@ static void lime_update_OPk_test(const lime::CurveId curve, const std::string &d
 			remove(dbFilenameBob.data());
 		}
 	} catch (BctbxException &e) {
-		LIME_LOGE <<e;;
-		BC_FAIL();
+		LIME_LOGE << e;
+		BC_FAIL("");
 	}
 }
 
@@ -1504,8 +1504,8 @@ static void lime_update_SPk_test(const lime::CurveId curve, const std::string &d
 			remove(dbFilenameBob.data());
 		}
 	} catch (BctbxException &e) {
-		LIME_LOGE <<e;;
-		BC_FAIL();
+		LIME_LOGE << e;
+		BC_FAIL("");
 	}
 }
 
@@ -1606,8 +1606,8 @@ static void lime_update_clean_MK_test(const lime::CurveId curve, const std::stri
 			remove(dbFilenameBob.data());
 		}
 	} catch (BctbxException &e) {
-		LIME_LOGE <<e;;
-		BC_FAIL();
+		LIME_LOGE << e;
+		BC_FAIL("");
 	}
 }
 
@@ -1703,8 +1703,8 @@ static void x3dh_without_OPk_test(const lime::CurveId curve, const std::string &
 			remove(dbFilenameBob.data());
 		}
 	} catch (BctbxException &e) {
-		LIME_LOGE <<e;;
-		BC_FAIL();
+		LIME_LOGE << e;
+		BC_FAIL("");
 	}
 }
 static void x3dh_without_OPk() {
@@ -1855,8 +1855,8 @@ static void x3dh_sending_chain_limit_test(const lime::CurveId curve, const std::
 			remove(dbFilenameBob.data());
 		}
 	} catch (BctbxException &e) {
-		LIME_LOGE <<e;;
-		BC_FAIL();
+		LIME_LOGE << e;
+		BC_FAIL("");
 	}
 }
 static void x3dh_sending_chain_limit() {
@@ -2069,8 +2069,8 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 			remove(dbFilenameBob.data()); // delete the database file if already exists
 		}
 	} catch (BctbxException &e) {
-		LIME_LOGE <<e;;
-		BC_FAIL();
+		LIME_LOGE << e;
+		BC_FAIL("");
 	}
 }
 
@@ -2278,8 +2278,8 @@ static void x3dh_multidev_operation_queue_test(const lime::CurveId curve, const 
 			remove(dbFilenameBob.data());
 		}
 	} catch (BctbxException &e) {
-		LIME_LOGE <<e;;
-		BC_FAIL();
+		LIME_LOGE << e;
+		BC_FAIL("");
 	}
 }
 
@@ -2397,7 +2397,7 @@ static void x3dh_operation_queue_test(const lime::CurveId curve, const std::stri
 		}
 	} catch (BctbxException &e) {
 		LIME_LOGE << e;
-		BC_FAIL();
+		BC_FAIL("");
 	}
 }
 
@@ -2604,8 +2604,8 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 			remove(dbFilenameBob.data());
 		}
 	} catch (BctbxException &e) {
-		LIME_LOGE <<e;;
-		BC_FAIL();
+		LIME_LOGE << e;
+		BC_FAIL("");
 	}
 }
 
@@ -2890,8 +2890,8 @@ static void x3dh_user_not_found_test(const lime::CurveId curve, const std::strin
 			remove(dbFilenameBob.data());
 		}
 	} catch (BctbxException &e) {
-		LIME_LOGE <<e;;
-		BC_FAIL();
+		LIME_LOGE << e;
+		BC_FAIL("");
 	}
 }
 
@@ -2954,8 +2954,8 @@ static void user_management_test(const lime::CurveId curve, const std::string &d
 		auto alice = load_LimeUser(dbFilenameAlice, *aliceDeviceName, X3DHServerPost);
 		/* no need to wait here, it shall load alice immediately */
 	} catch (BctbxException &e) {
-		LIME_LOGE <<e;;
-		BC_FAIL();
+		LIME_LOGE << e;
+		BC_FAIL("");
 	}
 
 	bool gotExpectedException = false;
@@ -2963,7 +2963,7 @@ static void user_management_test(const lime::CurveId curve, const std::string &d
 	try {
 		auto alice = insert_LimeUser(dbFilenameAlice, *aliceDeviceName, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, X3DHServerPost, callback);
 		/* no need to wait here, it must fail immediately */
-	} catch (BctbxException &e) {
+	} catch (BctbxException &) {
 		gotExpectedException = true;
 	}
 	if (!gotExpectedException) {
@@ -2977,7 +2977,7 @@ static void user_management_test(const lime::CurveId curve, const std::string &d
 	try {
 		auto alice = load_LimeUser(dbFilenameAlice, "bob", X3DHServerPost);
 		/* no need to wait here, it must fail immediately */
-	} catch (BctbxException &e) {
+	} catch (BctbxException &) {
 		gotExpectedException = true;
 	}
 	if (!gotExpectedException) {
@@ -3001,7 +3001,7 @@ static void user_management_test(const lime::CurveId curve, const std::string &d
 	try {
 		// delete bob which is not there, it shall raise an exception and never get to the callback
 		Manager->delete_user("bob", callback);
-	} catch (BctbxException &e) {
+	} catch (BctbxException &) {
 		gotExpectedException = true;
 	}
 	if (!gotExpectedException) {
@@ -3038,8 +3038,8 @@ static void user_management_test(const lime::CurveId curve, const std::string &d
 			remove(dbFilenameAliceTmp.data()); // delete the database file
 		}
 	} catch (BctbxException &e) {
-		LIME_LOGE <<e;
-		BC_FAIL();
+		LIME_LOGE << e;
+		BC_FAIL("");
 	}
 }
 

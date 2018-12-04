@@ -166,6 +166,8 @@ int wait_for(belle_sip_stack_t*s1,int* counter,int value,int timeout);
 #endif
 } // namespace lime_tester
 
+extern "C" {
+
 /* some shared variable defined in lime_ff-tester, used only when FFI is enabled
  * and they are duplicate of command line arguments variable already existing in C++ from lime_tester-utils.cpp
  * but it's easier to read and implement this way */
@@ -176,5 +178,7 @@ extern char ffi_test_x3dh_c448_server_port[16];
 
 // ffi default value for the timeout
 extern int ffi_wait_for_timeout;
+
+}
 
 #endif //lime_tester_utils_hpp
