@@ -612,7 +612,7 @@ int bc_tester_run_parallel(void) {
 	int testsFinished = 0;
 	int ret = 0; //Global return status;
 
-	memset(suitesPids, 0, nb_test_suites);
+	memset(suitesPids, 0, sizeof(suitesPids));
 	do {
 		if (nextSuite < nb_test_suites && runningSuites < maxProcess) {
 			int pid = fork();
@@ -673,6 +673,11 @@ int bc_tester_run_parallel(void) {
 #endif
 
 int bc_tester_run_tests(const char *suite_name, const char *test_name, const char *tag_name) {
+	int ret = 0;
+
+	if ((ret = bc_tester_register_suites()) != 0) {
+		return ret;
+	}
 
 #ifdef HAVE_CU_GET_SUITE
 	CU_set_suite_start_handler(suite_start_message_handler);
@@ -697,7 +702,7 @@ int bc_tester_run_tests(const char *suite_name, const char *test_name, const cha
 				free(xml_file_name);
 				CU_automated_run_tests();
 			} else { //Starting registered suites in parallel
-				int ret = bc_tester_run_parallel();
+				ret = bc_tester_run_parallel();
 				xml_file_name = get_junit_xml_file_name(NULL, "-Results.xml");
 				merge_junit_xml_files(xml_file_name);
 				free(xml_file_name);
@@ -1060,7 +1065,8 @@ int bc_tester_register_suites(void) {
 	if (suite_name != NULL) {
 		int suiteIdx = bc_tester_suite_index(suite_name);
 		if (suiteIdx == -1) {
-			bc_tester_printf(bc_printf_verbosity_error, "Suite with name \"%s\" not found", suite_name);
+			bc_tester_printf(bc_printf_verbosity_error, "Suite with name \"%s\" not found. Available suites are: ", suite_name);
+			bc_tester_list_suites();
 			return -1;
 		}
 		bc_tester_register_suite(test_suite[suiteIdx], tag_name);
@@ -1082,9 +1088,6 @@ int bc_tester_start(const char* prog_name) {
 	if (max_vm_kb)
 		bc_tester_set_max_vm(max_vm_kb);
 
-	if ((ret = bc_tester_register_suites()) != 0) {
-		return ret;
-	}
 	ret = bc_tester_run_tests(suite_name, test_name, tag_name);
 
 	return ret;

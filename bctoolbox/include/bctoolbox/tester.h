@@ -73,6 +73,8 @@ BCTBX_PUBLIC void bc_tester_init(void (*ftester_printf)(int level, const char *f
 BCTBX_PUBLIC void bc_tester_helper(const char *name, const char* additionnal_helper);
 BCTBX_PUBLIC int bc_tester_parse_args(int argc, char** argv, int argid);
 BCTBX_PUBLIC int bc_tester_start(const char* prog_name);
+BCTBX_PUBLIC int bc_tester_register_suites(void);
+
 BCTBX_PUBLIC int bc_tester_register_suite_by_name(const char *suite_name);
 BCTBX_PUBLIC void bc_tester_add_suite(test_suite_t *suite);
 BCTBX_PUBLIC void bc_tester_uninit(void);
