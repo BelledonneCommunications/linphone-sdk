@@ -41,7 +41,7 @@ struct belle_sip_refresher {
 	belle_sip_refresher_listener_t listener;
 	belle_sip_source_t* timer;
 	belle_sip_client_transaction_t* transaction;
-	belle_sip_request_t* first_acknoleged_request; /*store first request sucessfully acknoleged, usefull to re-build a dialog iff needed*/
+	belle_sip_request_t* first_acknowledged_request; /*store first request sucessfully acknowledged, usefull to re-build a dialog if needed*/
 	belle_sip_dialog_t* dialog; /*Cannot rely on transaction to store dialog because of belle_sip_transaction_reset_dialog*/
 	char* realm;
 	int target_expires;
@@ -259,8 +259,8 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 		}
 
 		if (refresher->state==started) {
-			if (!refresher->first_acknoleged_request)
-				belle_sip_object_ref(refresher->first_acknoleged_request = request);
+			if (!refresher->first_acknowledged_request)
+				belle_sip_object_ref(refresher->first_acknowledged_request = request);
 			if (is_contact_address_acurate(refresher,request)
 				|| (!belle_sip_provider_nat_helper_enabled(client_transaction->base.provider) || (contact && belle_sip_parameters_has_parameter(BELLE_SIP_PARAMETERS(contact), "pub-gruu"))) ) { /*Disable nat helper in gruu case. Might not be the best fix, maybe better to make reflesh is not mandatory*/
 				schedule_timer(refresher); /*re-arm timer*/
@@ -407,7 +407,7 @@ static void destroy(belle_sip_refresher_t *refresher){
 	refresher->transaction=NULL;
 	if (refresher->realm) belle_sip_free(refresher->realm);
 	if (refresher->auth_events) refresher->auth_events=belle_sip_list_free_with_data(refresher->auth_events,(void (*)(void*))belle_sip_auth_event_destroy);
-	if (refresher->first_acknoleged_request) belle_sip_object_unref(refresher->first_acknoleged_request);
+	if (refresher->first_acknowledged_request) belle_sip_object_unref(refresher->first_acknowledged_request);
 	if (refresher->dialog) belle_sip_object_unref(refresher->dialog);
 }
 
@@ -528,9 +528,9 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher
 				break;
 			}
 			case BELLE_SIP_DIALOG_TERMINATED: {
-				if (refresher->first_acknoleged_request) {
+				if (refresher->first_acknowledged_request) {
 					belle_sip_message("Dialog [%p] is in state terminated, recreating a new one for refresher [%p]",dialog,refresher);
-					request = refresher->first_acknoleged_request;
+					request = refresher->first_acknowledged_request;
 					belle_sip_header_cseq_set_seq_number(belle_sip_message_get_header_by_type(request,belle_sip_header_cseq_t)
 														 ,20);
 					belle_sip_parameters_remove_parameter(BELLE_SIP_PARAMETERS(belle_sip_message_get_header_by_type(request,belle_sip_header_to_t)),"tag");
@@ -578,9 +578,9 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher
 	client_transaction = belle_sip_provider_create_client_transaction(prov,request);
 	client_transaction->base.is_internal=1;
 
-	if (request ==  refresher->first_acknoleged_request) { /*request is now ref by transaction so no need to keepo it*/
-		belle_sip_object_unref(refresher->first_acknoleged_request);
-		refresher->first_acknoleged_request = NULL;
+	if (request ==  refresher->first_acknowledged_request) { /*request is now ref by transaction so no need to keepo it*/
+		belle_sip_object_unref(refresher->first_acknowledged_request);
+		refresher->first_acknowledged_request = NULL;
 	}
 
 	switch (belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(refresher->transaction))) {
@@ -789,6 +789,11 @@ belle_sip_refresher_t* belle_sip_refresher_new(belle_sip_client_transaction_t* t
 
 	if (belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(transaction))) {
 		set_or_update_dialog(refresher, belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(transaction)));
+		/*if dialog is already in state confirmed, store initial request to be able to re-create dialog in case of expired when trying to refresh again*/
+		if (belle_sip_dialog_get_state(belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(transaction))) == BELLE_SIP_DIALOG_CONFIRMED) {
+			if (!refresher->first_acknowledged_request)
+				belle_sip_object_ref(refresher->first_acknowledged_request = request);
+		}
 	}
 	belle_sip_provider_add_internal_sip_listener(transaction->base.provider,BELLE_SIP_LISTENER(refresher), is_register);
 	if (set_expires_from_trans(refresher)==-1){
