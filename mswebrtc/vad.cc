@@ -85,7 +85,7 @@ static void vad_process(MSFilter *f) {
 	mblk_t *im;
 	MSWebRTCVAD *vad = static_cast<MSWebRTCVAD*>(f->data);
 	while ((im = ms_queue_get(f->inputs[0]))) {
-		if (vad->enable && vad->instance && vad->silence_duration > 0) {
+		if (vad->silence_detection_enabled && vad->enable && vad->instance && vad->silence_duration > 0) {
 			// Voice detected
 			if (WebRtcVad_Process(vad->instance, vad->sample_rate, (int16_t*)im->b_rptr, msgdsize(im)/2)) {
 				if (vad->silence_event_send) {
@@ -102,6 +102,9 @@ static void vad_process(MSFilter *f) {
 				}
 				vad->silence_event_send = 1;
 			}
+		} else {
+			// As long as vad detection disabled we update time until next activation
+			vad->last_voice_detection = f->ticker->time;
 		}
 		ms_queue_put(f->outputs[0], im);
 	}
