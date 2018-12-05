@@ -1,9 +1,16 @@
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
-  DEFAULT_CMAKE_OPTIONS: -DENABLE_LIME=OFF -DENABLE_LIME_X3DH=ON
+  MAKEFILE_JOBS: 5
+  CCACHE_SIZE: 2G
+
+
+stages:
+ - build
+ - deploy
 
 
 .linux-ccache:
+
   cache:
     key: $CI_JOB_NAME
     paths:
@@ -11,24 +18,32 @@ variables:
 
   before_script:
     - mkdir -p ccache
+    - echo "max_size = $CCACHE_SIZE" > ccache/ccache.conf
     - export CCACHE_BASEDIR=${PWD}
     - export CCACHE_DIR=${PWD}/ccache
+    - ccache -s
+
+  after_script:
+    - export CCACHE_DIR=${PWD}/ccache
+    - ccache -s
 
 
 .job-android:
 
-  tags: [ "docker" ]
+  stage: build
+  tags: [ "docker-android" ]
+
+  variables:
+    CCACHE_SIZE: 4G
 
   extends: .linux-ccache
 
   script:
-    - ccache -s
     - sdkmanager
     - mkdir -p build-android
     - cd build-android
-    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS="arm64, armv7, x86, x86_64" $DEFAULT_CMAKE_OPTIONS $CMAKE_OPTIONS
+    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS="arm64, armv7, x86, x86_64" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
-    - ccache -s
 
   artifacts:
     paths:
@@ -49,7 +64,7 @@ job-android-makefile-r16b:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r16b
   variables:
     CMAKE_GENERATOR: Unix Makefiles
-    ADDITIONAL_BUILD_OPTIONS: -j2
+    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
   extends: .scheduled-job-android
 
 
@@ -75,7 +90,7 @@ job-android-makefile-r17c:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
   variables:
     CMAKE_GENERATOR: Unix Makefiles
-    ADDITIONAL_BUILD_OPTIONS: -j2
+    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
   extends: .scheduled-job-android
 
 
@@ -98,13 +113,14 @@ job-android-ninja-r17c-novideo:
 
 .job-ios:
 
+  stage: build
   tags: [ "macosx" ]
 
   script:
     - ccache -s
     - mkdir -p build-ios
     - cd build-ios
-    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="arm64, armv7, i386, x86_64" $DEFAULT_CMAKE_OPTIONS $CMAKE_OPTIONS
+    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="arm64, armv7, x86_64" $CMAKE_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     - ccache -s
 
@@ -126,7 +142,7 @@ job-ios-makefile:
 
   variables:
     CMAKE_GENERATOR: Unix Makefiles
-    ADDITIONAL_BUILD_OPTIONS: -j2
+    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
   extends: .scheduled-job-ios
 
 
@@ -148,6 +164,7 @@ job-ios-ninja-novideo:
 
 job-ios-xcode:
 
+  stage: build
   tags: [ "macosx" ]
 
   only:
@@ -155,7 +172,7 @@ job-ios-xcode:
   script:
     - mkdir -p build-ios
     - cd build-ios
-    - cmake .. -G Xcode -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="arm64, armv7, i386, x86_64" $DEFAULT_CMAKE_OPTIONS $CMAKE_OPTIONS
+    - cmake .. -G Xcode -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="arm64, armv7, x86_64" -DLINPHONESDK_IOS_BASE_URL=$IOS_SNAPSHOTS_URL $CMAKE_OPTIONS
     - cmake --build . --target sdk -- -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=`sysctl -n hw.ncpu`
 
   artifacts:
@@ -166,21 +183,37 @@ job-ios-xcode:
     expire_in: 1 week
 
 
+job-ios-upload:
+
+  stage: deploy
+  tags: [ "deploy" ]
+
+  only:
+    - schedules
+  dependencies:
+    - job-ios-xcode
+
+  script:
+    - scp build-ios/linphone-sdk-*.zip $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/ios/
+    - pod repo remove linphone-sdk || true
+    - pod repo add linphone-sdk git@gitlab.linphone.org:BC/public/podspec.git $CI_COMMIT_REF_NAME
+    - pod repo push linphone-sdk build-ios/linphone-sdk.podspec --skip-import-validation --local-only --verbose
+    - cd ~/.cocoapods/repos/linphone-sdk && git push origin $CI_COMMIT_REF_NAME && cd -
+    - pod repo remove linphone-sdk
+
+
 .job-linux-desktop:
 
-  tags: [ "docker" ]
-
+  stage: build
   extends: .linux-ccache
 
   script:
     - export CC=$CC
     - export CXX=$CXX
-    - ccache -s
     - mkdir -p build-desktop
     - cd build-desktop
-    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop $DEFAULT_CMAKE_OPTIONS $CMAKE_OPTIONS
+    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
-    - ccache -s
 
 
 .scheduled-job-linux-desktop:
@@ -191,6 +224,7 @@ job-ios-xcode:
 
 job-centos7-makefile-gcc:
 
+  tags: [ "docker-centos7" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
   variables:
     CMAKE_GENERATOR: Unix Makefiles
@@ -201,28 +235,31 @@ job-centos7-makefile-gcc:
 
 job-debian8-makefile-gcc:
 
+  tags: [ "docker-debian8" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: gcc
     CXX: g++
-    ADDITIONAL_BUILD_OPTIONS: -j2
+    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
   extends: .scheduled-job-linux-desktop
 
 
 job-debian9-makefile-gcc:
 
+  tags: [ "docker-debian9" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: gcc
     CXX: g++
-    ADDITIONAL_BUILD_OPTIONS: -j2
+    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
   extends: .scheduled-job-linux-desktop
 
 
 job-centos7-ninja-gcc:
 
+  tags: [ "docker-centos7" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
   variables:
     CMAKE_GENERATOR: Ninja
@@ -233,6 +270,7 @@ job-centos7-ninja-gcc:
 
 job-centos7-ninja-gcc-novideo:
 
+  tags: [ "docker-centos7" ]
   only:
     - schedules
   variables:
@@ -242,6 +280,7 @@ job-centos7-ninja-gcc-novideo:
 
 job-debian8-ninja-gcc:
 
+  tags: [ "docker-debian8" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
   variables:
     CMAKE_GENERATOR: Ninja
@@ -261,6 +300,7 @@ job-debian8-ninja-gcc-novideo:
 
 job-debian9-ninja-gcc:
 
+  tags: [ "docker-debian9" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
   variables:
     CMAKE_GENERATOR: Ninja
@@ -280,6 +320,7 @@ job-debian9-ninja-gcc-novideo:
 
 job-centos7-makefile-clang:
 
+  tags: [ "docker-centos7" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
   variables:
     CMAKE_GENERATOR: Unix Makefiles
@@ -290,28 +331,31 @@ job-centos7-makefile-clang:
 
 job-debian8-makefile-clang:
 
+  tags: [ "docker-debian8" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: clang
     CXX: clang++
-    ADDITIONAL_BUILD_OPTIONS: -j2
+    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
   extends: .scheduled-job-linux-desktop
 
 
 job-debian9-makefile-clang:
 
+  tags: [ "docker-debian9" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: clang
     CXX: clang++
-    ADDITIONAL_BUILD_OPTIONS: -j2
+    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
   extends: .scheduled-job-linux-desktop
 
 
 job-centos7-ninja-clang:
 
+  tags: [ "docker-centos7" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
   variables:
     CMAKE_GENERATOR: Ninja
@@ -331,6 +375,7 @@ job-centos7-ninja-clang-novideo:
 
 job-debian8-ninja-clang:
 
+  tags: [ "docker-debian8" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
   variables:
     CMAKE_GENERATOR: Ninja
@@ -350,6 +395,7 @@ job-debian8-ninja-clang-novideo:
 
 job-debian9-ninja-clang:
 
+  tags: [ "docker-debian9" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
   variables:
     CMAKE_GENERATOR: Ninja
@@ -369,6 +415,7 @@ job-debian9-ninja-clang-novideo:
 
 .job-macosx-desktop:
 
+  stage: build
   tags: [ "macosx" ]
 
   script:
@@ -386,7 +433,7 @@ job-macosx-makefile:
     - schedules
   variables:
     CMAKE_GENERATOR: Unix Makefiles
-    ADDITIONAL_BUILD_OPTIONS: -j2
+    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
   extends: .job-macosx-desktop
 
 
@@ -408,6 +455,7 @@ job-macosx-ninja-novideo:
 
 job-macosx-xcode:
 
+  stage: build
   tags: [ "macosx" ]
 
   only:
@@ -421,6 +469,7 @@ job-macosx-xcode:
 
 job-windows-vs2015:
 
+  stage: build
   tags: [ "windows" ]
 
   script:
@@ -441,6 +490,7 @@ job-windows-vs2015-novideo:
 
 #job-uwp-vs2017:
 #
+#  stage: build
 #  tags: [ "windows" ]
 #
 #  script:
