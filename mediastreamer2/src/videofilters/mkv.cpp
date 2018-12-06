@@ -2487,7 +2487,7 @@ static void mkv_track_player_flush(MKVTrackPlayer *obj) {
 typedef struct {
 	MKVReader *reader;
 	MSPlayerState state;
-	timecode_t time;
+	int time;
 	MKVTrackPlayer *players[2];
 	ms_bool_t position_changed;
 	int loop_pause_interval, time_before_next_loop;
@@ -2775,7 +2775,7 @@ static int player_get_current_position(MSFilter *f, void *arg) {
 		ms_error("MKVPlayer: cannot get current duration. No file is open");
 		goto fail;
 	}
-	*(int64_t *)arg = (int64_t)obj->time;
+	*(int *)arg = obj->time;
 	ms_filter_unlock(f);
 	return 0;
 
