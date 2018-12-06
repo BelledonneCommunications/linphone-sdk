@@ -37,6 +37,10 @@ linphone_sdk_get_inherited_cmake_args()
 linphone_sdk_get_enable_cmake_args()
 list(APPEND _cmake_args ${_enable_cmake_args})
 
+if(LINPHONESDK_PREBUILD_DEPENDENCIES)
+	set(_ep_depends DEPENDS ${LINPHONESDK_PREBUILD_DEPENDENCIES})
+endif()
+
 if(WIN32)
 	set(_install_command "${CMAKE_SOURCE_DIR}/cmake/dummy.bat")
 else()
