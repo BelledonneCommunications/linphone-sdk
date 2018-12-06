@@ -29,6 +29,7 @@ cmake_minimum_required(VERSION 3.0)
 project(lime VERSION 0.0.1 LANGUAGES CXX C)
 
 set(LIME_SO_VERSION "0")
+set(LIME_VERSION ${PROJECT_VERSION})
 
 option(ENABLE_SHARED "Build shared library." ON)
 option(ENABLE_STATIC "Build static library." ON)
