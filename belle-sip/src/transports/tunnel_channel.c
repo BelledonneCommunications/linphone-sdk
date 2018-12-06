@@ -117,7 +117,7 @@ static void tunnel_channel_uninit(belle_sip_channel_t *obj) {
 	}
 }
 
-static int tunnel_polling_timer(belle_sip_tunnel_channel_t *chan) {
+static int tunnel_polling_timer(belle_sip_tunnel_channel_t *chan, unsigned int events) {
 	if ((chan->tunnelsocket != NULL) && tunnel_socket_has_data(chan->tunnelsocket)) {
 		belle_sip_channel_process_data((belle_sip_channel_t *)chan, BELLE_SIP_EVENT_READ);
 	}
