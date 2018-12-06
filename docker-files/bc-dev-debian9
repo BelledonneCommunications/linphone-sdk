@@ -2,6 +2,15 @@ FROM debian:stretch
 
 MAINTAINER Ghislain MARY <ghislain.mary@belledonne-communications.com>
 
+
+# Configure locale
+RUN apt-get update && \
+    apt-get install -y locales && \
+    apt-get clean && \
+    echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
+    locale-gen
+ENV LANG='en_US.UTF-8' LANGUAGE='en_US:en' LC_ALL='en_US.UTF-8'
+
 ENV SHELL=/bin/bash
 #ENV PS1='\[\e[33m\]\u@bc-dev-debian9>\[\e[0m\] '
 
