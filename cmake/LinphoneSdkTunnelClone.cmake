@@ -27,6 +27,9 @@ include(LinphoneSdkUtils)
 linphone_sdk_check_git()
 
 
+set(TUNNEL_REVISION "05f359e6b3c8775fb96ca8be52f4456a22d3a912")
+
+
 if(IS_DIRECTORY "${LINPHONESDK_DIR}/tunnel")
 	execute_process(
 		COMMAND "${GIT_EXECUTABLE}" "pull"
@@ -38,3 +41,8 @@ else()
 		WORKING_DIRECTORY "${LINPHONESDK_DIR}"
 	)
 endif()
+
+execute_process(
+	COMMAND "${GIT_EXECUTABLE}" "checkout" "${TUNNEL_REVISION}"
+	WORKING_DIRECTORY "${LINPHONESDK_DIR}/tunnel"
+)

@@ -2,15 +2,21 @@ FROM debian:stretch
 
 MAINTAINER Ghislain MARY <ghislain.mary@belledonne-communications.com>
 
-#RUN localedef -i en_US -f UTF-8 en_US.UTF-8
+
+# Configure locale
+RUN apt-get update && \
+    apt-get install -y locales && \
+    apt-get clean && \
+    echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
+    locale-gen
+ENV LANG='en_US.UTF-8' LANGUAGE='en_US:en' LC_ALL='en_US.UTF-8'
+
+ENV SHELL=/bin/bash
 
 # Define environment
 ENV ANDROID_NDK r17c
 ENV ANDROID_SDK 25.2.5
 ENV ANDROID_HOME /opt/android-sdk-linux
-#ENV LANG en_US.UTF-8
-#ENV LC_ALL en_US.UTF-8
-ENV SHELL=/bin/bash
 
 # Install common general tools
 RUN apt-get update && \
