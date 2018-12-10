@@ -58,7 +58,7 @@ job-centos7-makefile-gcc:
     CXX: g++
   extends: .job-linux-desktop
   script:
-    -ls -la
-    -cd ..
-    -ls -la
+    - ls -la
+    - cd ..
+    - ls -la
 #uploading the artifacts for the next stage    
