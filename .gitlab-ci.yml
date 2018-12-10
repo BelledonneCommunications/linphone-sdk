@@ -42,10 +42,10 @@ stages:
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
 
 
-.scheduled-job-linux-desktop:
-  extends: .job-linux-desktop
-  only:
-    - schedules
+#.scheduled-job-linux-desktop:
+#  extends: .job-linux-desktop
+#  only:
+#    - schedules
 
 
 job-centos7-makefile-gcc:
@@ -56,7 +56,7 @@ job-centos7-makefile-gcc:
     CMAKE_GENERATOR: Unix Makefiles
     CC: gcc
     CXX: g++
-  extends: .scheduled-job-linux-desktop
+  extends: .job-linux-desktop
   script:
     -ls -la
     -cd ..
