@@ -61,4 +61,6 @@ job-centos7-makefile-gcc:
     - ls -la
     - cd belle-sip
     - ls -la
+    - cd tester
+    - ls -la
 #uploading the artifacts for the next stage    
