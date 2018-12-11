@@ -47,10 +47,12 @@ job-linux-desktop:
     - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     - find . -name "tester_hosts"
-    - cd linphone-sdk/desktop/share/belle_sip_tester
+    - cd linphone-sdk/desktop/bin
     - ls -la
-    #- ./belle_sip_tester --verbose --xml
-    #- ls -la
+    - ./belle_sip_tester --verbose --xml --resource-dir ../share/
+    - ls -la
+    - cd ..
+    - ls -la
 
 
 #.scheduled-job-linux-desktop:
