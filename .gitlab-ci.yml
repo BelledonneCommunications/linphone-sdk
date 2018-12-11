@@ -40,6 +40,11 @@ stages:
     - cd build-desktop
     - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
+    - ls -la
+    - cd belle-sip
+    - ls -la
+    - cd tester
+    - ls -la
 
 
 #.scheduled-job-linux-desktop:
