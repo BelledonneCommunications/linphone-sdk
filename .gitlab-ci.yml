@@ -30,6 +30,12 @@ stages:
 
 .job-linux-desktop:
 
+  tags: [ "docker-centos7" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
+  variables:
+    CMAKE_GENERATOR: Unix Makefiles
+    CC: gcc
+    CXX: g++
   stage: build
   extends: .linux-ccache
 
@@ -53,19 +59,19 @@ stages:
 #    - schedules
 
 
-job-centos7-makefile-gcc:
+#job-centos7-makefile-gcc:
 
-  tags: [ "docker-centos7" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
-  variables:
-    CMAKE_GENERATOR: Unix Makefiles
-    CC: gcc
-    CXX: g++
-  extends: .job-linux-desktop
-  script:
-    - ls -la
-    - cd belle-sip
-    - ls -la
-    - cd tester
-    - ls -la
+ # tags: [ "docker-centos7" ]
+  #image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
+  #variables:
+  #  CMAKE_GENERATOR: Unix Makefiles
+    #CC: gcc
+   # CXX: g++
+  #extends: .job-linux-desktop
+  #script:
+   # - ls -la
+    #- cd belle-sip
+#    - ls -la
+#    - cd tester
+#    - ls -la
 #uploading the artifacts for the next stage    
