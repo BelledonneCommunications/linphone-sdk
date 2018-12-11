@@ -47,8 +47,6 @@ job-linux-desktop:
     - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     - ls -la
-    - cd linphone-sdk
-    - ls -la
     - cd desktop
     - ls -la
 
