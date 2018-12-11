@@ -59,6 +59,6 @@ job-centos7-makefile-gcc:
   extends: .job-linux-desktop
   script:
     - ls -la
-    - cd ..
+    - cd belle-sip
     - ls -la
 #uploading the artifacts for the next stage    
