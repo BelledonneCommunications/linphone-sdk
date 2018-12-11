@@ -26,6 +26,9 @@ stages:
   after_script:
     - export CCACHE_DIR=${PWD}/ccache
     - ccache -s
+    - ls -la
+    - cd ..
+    - ls -la
 
 #fixed dot for visible job
 job-linux-desktop:
@@ -50,9 +53,6 @@ job-linux-desktop:
     - cd linphone-sdk/desktop/bin
     - ls -la
     - ./belle_sip_tester --verbose --xml --resource-dir ../share/
-    - ls -la
-    - cd ..
-    - ls -la
 
 
 #.scheduled-job-linux-desktop:
