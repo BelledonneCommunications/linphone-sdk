@@ -46,7 +46,7 @@ job-linux-desktop:
     - cd build-desktop
     - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
-    - sudo apt-get update && sudo apt-get install find
+    - sudo yum install find
     - find . -name 'belle_sip_tester'
     - ls -la
     - cd desktop
