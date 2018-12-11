@@ -26,6 +26,7 @@ stages:
   after_script:
     - export CCACHE_DIR=${PWD}/ccache
     - ccache -s
+    - find . -name "bstest-Results.xml"
     - ls -la
     - cd ..
     - ls -la
@@ -52,7 +53,7 @@ job-linux-desktop:
     - find . -name "tester_hosts"
     - cd linphone-sdk/desktop/bin
     - ls -la
-    - ./belle_sip_tester --verbose --xml --resource-dir ../share/
+    - ./belle_sip_tester --verbose --resource-dir ../share/ -xml-file bstest
 
 
 #.scheduled-job-linux-desktop:
