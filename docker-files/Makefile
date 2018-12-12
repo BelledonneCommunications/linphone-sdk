@@ -15,4 +15,7 @@ debian8:
 debian9:
 	docker build -f bc-dev-debian9 -t $(BASE_NAME)/bc-dev-debian:9 --rm .
 
-.PHONY: android-r16b android-r17c centos7 debian8 debian9
+ubuntu-rolling:
+	docker build -f bc-dev-ubuntu-rolling -t $(BASE_NAME)/bc-dev-ubuntu:rolling --rm .
+
+.PHONY: android-r16b android-r17c centos7 debian8 debian9 ubuntu-rolling
