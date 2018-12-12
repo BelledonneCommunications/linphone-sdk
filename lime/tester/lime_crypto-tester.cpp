@@ -317,8 +317,6 @@ static void signAndVerify(void) {
 
 static void hashMac_KDF_bench(uint64_t runTime_ms, size_t IKMsize) {
 	size_t batch_size = 500;
-	/* Generate random input and info */
-	auto rng_source = make_RNG();
 	/* input lenght is the same used by X3DH */
 	std::vector<uint8_t> IKM(IKMsize, 0);
 	lime_tester::randomize(IKM.data(), IKM.size());
@@ -611,13 +609,64 @@ static void AEAD(void) {
 	BC_ASSERT_TRUE(plain==pattern_plain);
 }
 
+/**
+ * @brief Test the Random Number Generator used to generate keys Id
+ * The Id generation gives a 31 bits unsigned integer, is used when RNG->randomize function returns an uint32_t value
+ * This test doesn't really test the quality of the RNG, just to point obvious mistakes in the implementation
+ * It computes the mean and standard deviation of the generated number
+ * Being a discrete uniform distribution, standard deviation is supposed to be
+ * (max-min)/sqrt(12), in our case (0x7FFFFFFF - 0)/sqrt(12).
+ * To get an more readable perspective, mean and sqrt are divided by 0x7FFFFFFF
+ * and result are tested agains 0.5 and 1/sqrt(12)
+ *
+ */
+static void RNG_test(void) {
+	constexpr size_t NB_INT31_TESTED=10000;
 
+	/* init the RNG */
+	auto rng_source = make_RNG();
+	uint32_t random_uint31 = rng_source->randomize();
+
+	long double m0=static_cast<long double>(random_uint31),
+	     s0=0.0,
+	     m1=0.0;
+
+	size_t i=2;
+	for (; i<=NB_INT31_TESTED; i++) {
+		random_uint31 = rng_source->randomize();
+		auto random_double = static_cast<long double>(random_uint31);
+		m1 = m0 + (random_double - m0)/static_cast<long double>(i);
+		s0 +=  (random_double - m0)*(random_double  - m1);
+		m0 = m1;
+	}
+
+	/* mean/0x7FFFFFFF shall be around 0.5 */
+	m0 = m0/(long double)0x7FFFFFFF;
+	if (m0>0.49 && m0<0.51) {
+		BC_PASS("RNG mean value ok");
+	} else {
+		LIME_LOGE << NB_INT31_TESTED << " 31 bits unsigned integers generated Mean " << m0 <<" expected around 0.5" <<std::endl;
+		BC_FAIL("RNG mean value incorrect");
+	}
+
+	/* sigma value/0x7FFFFFFF shall be around 1/sqrt(12)[0.288675]*/
+	s0 = std::sqrt(s0/i-1)/(long double)0x7FFFFFFF;
+	if (s0>0.278 && s0<0.299) {
+		BC_PASS("RNG sigma value ok");
+	} else {
+		LIME_LOGE << NB_INT31_TESTED << " 31 bits unsigned integers generated Sigma " << s0 <<" expected around 0.288675"<<std::endl;
+		BC_FAIL("RNG sigma value incorrect");
+	}
+
+	LIME_LOGD << NB_INT31_TESTED << " 31 bits unsigned integers generated Mean " << m0 << " Sigma "<<s0<<std::endl;
+}
 
 static test_t tests[] = {
 	TEST_NO_TAG("Key Exchange", exchange),
 	TEST_NO_TAG("Signature", signAndVerify),
 	TEST_NO_TAG("HKDF", hashMac_KDF),
 	TEST_NO_TAG("AEAD", AEAD),
+	TEST_NO_TAG("RNG", RNG_test),
 };
 
 test_suite_t lime_crypto_test_suite = {

@@ -19,6 +19,7 @@
 
 #include <bctoolbox/exception.hh>
 #include <soci/soci.h>
+#include <set>
 
 #include "lime_log.hpp"
 #include "lime/lime.hpp"
@@ -897,8 +898,31 @@ template <typename Curve>
 void Lime<Curve>::X3DH_generate_OPks(std::vector<X<Curve, lime::Xtype::publicKey>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number) {
 
 	// make room for OPk and OPk ids
+	OPk_ids.clear();
+	publicOPks.clear();
 	publicOPks.reserve(OPk_number);
 	OPk_ids.reserve(OPk_number);
+
+	// OPkIds must be random but unique, prepare them before insertion
+	std::set<uint32_t> activeOPkIds{};
+
+	// fetch existing OPk ids from DB (OPKid is unique on all users, so really get them all, do not restrict with m_db_Uid)
+	rowset<row> rs = (m_localStorage->sql.prepare << "SELECT OPKid FROM X3DH_OPK");
+	for (const auto &r : rs) {
+		auto OPk_id = static_cast<uint32_t>(r.get<int>(0));
+		activeOPkIds.insert(OPk_id);
+	}
+
+	// we must create OPk_number new Ids
+	while (OPk_ids.size() < OPk_number){
+		// Generate a random OPk Id
+		// Sqlite doesn't really support unsigned value, the randomize function makes sure that the MSbit is set to 0 to not fall into strange bugs with that
+		uint32_t OPk_id = m_RNG->randomize();
+
+		if (activeOPkIds.insert(OPk_id).second) { // if this one wasn't in the set
+			OPk_ids.push_back(OPk_id);
+		}
+	}
 
 	// Prepare DB statement
 	transaction tr(m_localStorage->sql);
@@ -910,24 +934,22 @@ void Lime<Curve>::X3DH_generate_OPks(std::vector<X<Curve, lime::Xtype::publicKey
 	auto DH = make_keyExchange<Curve>();
 
 	try {
-		for (uint16_t i=0; i<OPk_number; i++) {
+		for (auto id : OPk_ids) { // loop on all ids
 			// Generate a new ECDH Key pair
 			DH->createKeyPair(m_RNG);
-
-			// Generate a random OPk Id
-			// Sqlite doesn't really support unsigned value, the randomize function makes sure that the MSbit is set to 0 to not fall into strange bugs with that
-			OPk_id = m_RNG->randomize();
 
 			// Insert in DB: store Public Key || Private Key
 			OPk.write(0, (const char *)(DH->get_selfPublic().data()), X<Curve, lime::Xtype::publicKey>::ssize());
 			OPk.write(X<Curve, lime::Xtype::publicKey>::ssize(), (const char *)(DH->get_secret().data()), X<Curve, lime::Xtype::privateKey>::ssize());
+			OPk_id = id; // store also the key id
 			st.execute(true);
 
-			// set in output vectors
+			// set in output vector
 			publicOPks.emplace_back(DH->get_selfPublic());
-			OPk_ids.push_back(OPk_id);
 		}
 	} catch (exception &e) {
+		OPk_ids.clear();
+		publicOPks.clear();
 		tr.rollback();
 		throw BCTBX_EXCEPTION << "OPK insertion in DB failed. DB backend says : "<<e.what();
 	}

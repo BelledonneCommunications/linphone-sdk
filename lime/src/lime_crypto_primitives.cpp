@@ -76,8 +76,8 @@ class bctbx_RNG : public RNG {
 
 		uint32_t randomize() override {
 			std::array<uint8_t, 4> buffer;
-			bctbx_rng_get(m_context, buffer.data(), buffer.size());
 			buffer[0] = 0; // just to be sure it's properly set to 0
+			bctbx_rng_get(m_context, buffer.data(), buffer.size());
 			// buffer[0] is shifted by 23 instead of 24 to keep the MSb to 0.
 			// as we must (see RNG interface definition) keep the uint32_t MSb set to 0
 			return (static_cast<uint32_t>(buffer[0])<<23 | static_cast<uint32_t>(buffer[1])<<16 | static_cast<uint32_t>(buffer[2])<<8 | static_cast<uint32_t>(buffer[3]));
