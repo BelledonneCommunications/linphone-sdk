@@ -18,7 +18,7 @@
 
 #ifndef STREAM_CHANNEL_H_
 #define STREAM_CHANNEL_H_
-#ifdef __APPLE_
+#ifdef __APPLE__
 #include "TargetConditionals.h"
 #endif
 
