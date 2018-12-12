@@ -58,6 +58,9 @@ job-linux-desktop:
     when: always
     paths:
       - build-desktop/linphone-sdk/desktop/*
+    reports:
+      junit:
+        - build-desktop/linphone-sdk/desktop/bin/bstest-Results.xml
 
 
 
