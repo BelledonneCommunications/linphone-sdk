@@ -55,6 +55,7 @@ job-linux-desktop:
     - ls -la
     - ./belle_sip_tester --verbose --resource-dir ../share/ --xml-file bstest
   artifacts:
+    when: always
     paths:
       - build-desktop/linphone-sdk/desktop/*
 
