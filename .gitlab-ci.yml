@@ -6,7 +6,7 @@ variables:
 
 stages:
  - build
- #- test
+ - test
 
 
 .linux-ccache:
@@ -26,14 +26,9 @@ stages:
   after_script:
     - export CCACHE_DIR=${PWD}/ccache
     - ccache -s
-    - find . -name "bstest-Results.xml"
-    - ls -la
-    - cd ..
-    - ls -la
 
 #fixed dot for visible job
-job-linux-desktop:
-
+build-sdk:
   tags: [ "docker-centos7" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
   variables:
@@ -51,16 +46,10 @@ job-linux-desktop:
     - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     #- find . -name "tester_hosts"
-    - cd linphone-sdk/desktop/bin
-    - ls -la
-    - ./belle_sip_tester --verbose --resource-dir ../share/ --xml-file bstest
   artifacts:
     when: always
     paths:
       - build-desktop/linphone-sdk/desktop/*
-    reports:
-      junit:
-        - build-desktop/linphone-sdk/desktop/bin/bstest-Results.xml
 
 
 
@@ -70,19 +59,19 @@ job-linux-desktop:
 #    - schedules
 
 
-#job-centos7-makefile-gcc:
-
- # tags: [ "docker-centos7" ]
-  #image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
-  #variables:
-  #  CMAKE_GENERATOR: Unix Makefiles
-    #CC: gcc
-   # CXX: g++
-  #extends: .job-linux-desktop
-  #script:
-   # - ls -la
-    #- cd belle-sip
-#    - ls -la
-#    - cd tester
-#    - ls -la
-#uploading the artifacts for the next stage    
+test-bellesip:
+  tags: [ "docker-centos7" ]
+  variables:
+    GIT_STRATEGY: none
+    GIT_CHECKOUT: "false"
+  stage: test
+  script:
+    - cd /build-desktop/linphone-sdk/desktop/bin
+    - ls -la
+    - ./belle_sip_tester --verbose --resource-dir ../share/ --xml-file bstest
+#uploading the artifacts for the next stage
+  artifacts:
+    when: always
+    reports:
+      junit:
+        - build-desktop/linphone-sdk/desktop/bin/bstest-Results.xml
