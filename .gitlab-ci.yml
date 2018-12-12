@@ -47,9 +47,9 @@ build-sdk:
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     #- find . -name "tester_hosts"
   artifacts:
-    when: always
     paths:
       - build-desktop/linphone-sdk/desktop/*
+    expire_in: 1 week
 
 
 
@@ -66,7 +66,8 @@ test-bellesip:
     GIT_CHECKOUT: "false"
   stage: test
   script:
-    - cd /build-desktop/linphone-sdk/desktop/bin
+    - find . -name "belle_sip_tester"
+    - cd build-desktop/linphone-sdk/desktop/bin
     - ls -la
     - ./belle_sip_tester --verbose --resource-dir ../share/ --xml-file bstest
 #uploading the artifacts for the next stage
