@@ -53,7 +53,7 @@ job-linux-desktop:
     #- find . -name "tester_hosts"
     - cd linphone-sdk/desktop/bin
     - ls -la
-    - ./belle_sip_tester --verbose --resource-dir ../share/ -xml-file bstest
+    - ./belle_sip_tester --verbose --resource-dir ../share/ --xml-file bstest
   artifacts:
     paths:
       - build-desktop/linphone-sdk/desktop/*
