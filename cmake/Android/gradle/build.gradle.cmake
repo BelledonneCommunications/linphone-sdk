@@ -19,20 +19,22 @@ allprojects {
         jcenter()
         mavenCentral()
         mavenLocal()
+        maven { url "https://raw.github.com/synergian/wagon-git/releases"}
     }
 }
 
 configurations {
     javadocDeps
+    deployerJars
 }
 
-
-
 apply plugin: 'com.android.library'
+apply plugin: 'maven'
 
 dependencies {
     implementation 'org.apache.commons:commons-compress:1.16.1'
     javadocDeps 'org.apache.commons:commons-compress:1.16.1'
+    deployerJars "ar.com.synergian:wagon-git:0.2.5"
 }
 
 def rootSdk = '@LINPHONESDK_BUILD_DIR@/linphone-sdk/android-@LINPHONESDK_FIRST_ARCH@'
@@ -44,8 +46,33 @@ def excludePackage = []
 
 excludePackage.add('**/gdb.*')
 excludePackage.add('**/libopenh264**')
-excludePackage.add('**/**tester**')
 excludePackage.add('**/LICENSE.txt')
+
+def gitVersion = new ByteArrayOutputStream()
+def gitBranch = new ByteArrayOutputStream()
+
+task getGitVersion {
+    exec {
+        commandLine 'git', 'describe', '--always'
+        standardOutput = gitVersion
+    }
+    exec {
+        commandLine 'git', 'name-rev', '--name-only', 'HEAD'
+        standardOutput = gitBranch
+    }
+    doLast {
+        def branchSplit = gitBranch.toString().trim().split('/')
+        def splitLen = branchSplit.length
+        if (splitLen == 4) {
+            gitBranch = branchSplit[2] + '/' + branchSplit[3]
+            println("Local repository seems to be in detached head state, using last 2 segments of Git branch: " + gitBranch.toString().trim())
+        } else {
+            println("Git branch: " + gitBranch.toString().trim())
+        }
+    }
+}
+
+project.tasks['preBuild'].dependsOn 'getGitVersion'
 
 android {
 
@@ -57,6 +84,10 @@ android {
     defaultConfig {
         compileSdkVersion 28
         buildToolsVersion "28.0.0"
+        minSdkVersion 16
+        targetSdkVersion 28
+        versionCode 4100
+        versionName "4.1"
         multiDexEnabled true
         setProperty("archivesBaseName", "linphone-sdk-android")
         consumerProguardFiles "${buildDir}/proguard.txt"
@@ -76,11 +107,19 @@ android {
             signingConfig signingConfigs.release
             minifyEnabled true
             useProguard true
+            proguardFiles "${buildDir}/proguard.txt"
+            resValue "string", "linphone_sdk_version", gitVersion.toString().trim()
+            resValue "string", "linphone_sdk_branch", gitBranch.toString().trim()
         }
         packaged {
             initWith release
             signingConfig null
             //matchingFallbacks = ['debug', 'release']
+        }
+        debug {
+            debuggable true
+            resValue "string", "linphone_sdk_version", gitVersion.toString().trim() + "-debug"
+            resValue "string", "linphone_sdk_branch", gitBranch.toString().trim()
         }
     }
 
@@ -165,7 +204,7 @@ task copyAssets(type: Sync) {
     }
     doFirst {
         println("Syncing sdk assets into root dir ${destinationDir}")
-	}
+    }
     // do not copy those
     includeEmptyDirs = false
 
@@ -173,3 +212,19 @@ task copyAssets(type: Sync) {
 
 project.tasks['preBuild'].dependsOn 'copyAssets'
 project.tasks['preBuild'].dependsOn 'copyProguard'
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            configuration = configurations.deployerJars
+            repository(url: 'git:' + gitBranch.toString().trim() + '://git@gitlab.linphone.org:BC/public/maven_repository.git')
+            pom.project {
+                groupId 'org.linphone'
+                artifactId 'linphone-sdk-android'
+                version gitVersion.toString().trim()
+            }
+        }
+    }
+}
+
+project.tasks['uploadArchives'].dependsOn 'getGitVersion'
