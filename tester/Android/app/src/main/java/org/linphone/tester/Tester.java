@@ -36,6 +36,7 @@ public class Tester {
     public native int run(String args[]);
     public native void keepAccounts(boolean keep);
     public native void clearAccounts();
+    public native String getFailedAsserts();
 
     public static String TAG = "LibLinphoneTester";
 
