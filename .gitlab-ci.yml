@@ -65,7 +65,7 @@ test-bctoolbox:
     GIT_CHECKOUT: "false"
   stage: test
   script:
-    - find . -name "bctoolbox_tester"
+    - find ../../.. -name "bctoolbox_tester"
     - cd linphone-sdk/build-desktop/WORK/desktop/Build/bctoolbox/tester
     - ls -la
     - ./bctoolbox_tester --verbose --xml-file bcttest
