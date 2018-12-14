@@ -65,16 +65,16 @@ test-bctoolbox:
     GIT_CHECKOUT: "false"
   stage: test
   script:
-    - find . -name "belle_sip_tester"
-    - cd build-desktop/WORK/desktop/Build/bctoolbox/tester
+    - find . -name "bctoolbox_tester"
+    - cd linphone-sdk/build-desktop/WORK/desktop/Build/bctoolbox/tester
     - ls -la
-    - ./belle_sip_tester --verbose --xml-file bstest
+    - ./bctoolbox_tester --verbose --xml-file bcttest
 #uploading the artifacts for the next stage
   artifacts:
     when: always
     reports:
       junit:
-        - build-desktop/linphone-sdk/desktop/bin/bstest-Results.xml
+        - build-desktop/linphone-sdk/desktop/bin/bcttest-Results.xml
 
 test-bellesip:
   tags: [ "docker-centos7" ]
@@ -101,7 +101,7 @@ test-mediastreamer:
     GIT_CHECKOUT: "false"
   stage: test
   script:
-    - yum install alsa-utils pulseaudio
+    - sudo yum install -y alsa-utils pulseaudio
     - pulseaudio -D -L module-virtual-source --exit-idle-time=-1
     - cd build-desktop/linphone-sdk/desktop/bin
     - ./mediastreamer2_tester --verbose --xml-file mstest
