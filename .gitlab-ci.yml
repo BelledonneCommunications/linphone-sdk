@@ -59,7 +59,7 @@ build-sdk:
 #    - schedules
 
 test-bctoolbox:
-  tags: [ "docker-centos7" ]
+  tags: [ "docker-test-centos7" ]
   variables:
     GIT_STRATEGY: none
     GIT_CHECKOUT: "false"
@@ -77,7 +77,7 @@ test-bctoolbox:
         - build-desktop/WORK/desktop/Build/bctoolbox/tester/bcttest-Results.xml
 
 test-bellesip:
-  tags: [ "docker-centos7" ]
+  tags: [ "docker-test-centos7" ]
   variables:
     GIT_STRATEGY: none
     GIT_CHECKOUT: "false"
@@ -95,7 +95,7 @@ test-bellesip:
         - build-desktop/linphone-sdk/desktop/bin/bstest-Results.xml
         
 test-mediastreamer:
-  tags: [ "docker-centos7" ]
+  tags: [ "docker-test-centos7" ]
   variables:
     GIT_STRATEGY: none
     GIT_CHECKOUT: "false"
