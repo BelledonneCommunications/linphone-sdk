@@ -101,10 +101,12 @@ BCTBX_PUBLIC const char * bc_tester_current_suite_name(void);
 BCTBX_PUBLIC const char * bc_tester_current_test_name(void);
 BCTBX_PUBLIC const char ** bc_tester_current_test_tags(void);
 
+
 BCTBX_PUBLIC char* bc_sprintfva(const char* format, va_list args);
 BCTBX_PUBLIC char* bc_sprintf(const char* format, ...);
 BCTBX_PUBLIC void bc_free(void *ptr);
 
+BCTBX_PUBLIC char * bc_tester_get_failed_asserts(void);
 BCTBX_PUBLIC unsigned int bc_get_number_of_failures(void);
 BCTBX_PUBLIC void bc_set_trace_handler(void(*handler)(int, const char*, va_list));
 

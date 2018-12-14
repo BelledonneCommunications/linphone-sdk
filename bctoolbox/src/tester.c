@@ -289,6 +289,29 @@ void bc_tester_list_tests(const char *suite_name) {
 	}
 }
 
+char *bc_tester_get_failed_asserts(void) {
+	int i;
+	CU_pFailureRecord pFailure = NULL;
+	char *buffer = "";
+
+	pFailure = CU_get_failure_list();
+
+	if (pFailure) {
+		for (i = 1; (NULL != pFailure); pFailure = pFailure->pNext, i++) {
+			buffer = bc_sprintf("%s\n    %d. %s:%u  - %s",
+					    buffer,
+					    i,
+					    (NULL != pFailure->strFileName) ? pFailure->strFileName : "",
+					    pFailure->uiLineNumber,
+					    (NULL != pFailure->strCondition) ? pFailure->strCondition : "");
+			if (i != 1) {
+				free(buffer);
+			}
+		}
+	}
+	return buffer;
+}
+
 static void all_complete_message_handler(const CU_pFailureRecord pFailure) {
 #ifdef HAVE_CU_GET_SUITE
 	char * results = CU_get_run_results_string();
