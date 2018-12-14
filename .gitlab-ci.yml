@@ -48,7 +48,7 @@ build-sdk:
     #- find . -name "tester_hosts"
   artifacts:
     paths:
-      - build-desktop/linphone-sdk/desktop/*
+      - build-desktop/*
     expire_in: 1 week
 
 
@@ -66,7 +66,7 @@ test-bctoolbox:
   stage: test
   script:
     - find ../../.. -name "bctoolbox_tester"
-    - cd linphone-sdk/build-desktop/WORK/desktop/Build/bctoolbox/tester
+    - cd linphone-sdk/desktop/linphone-sdk/build-desktop/WORK/desktop/Build/bctoolbox/tester
     - ls -la
     - ./bctoolbox_tester --verbose --xml-file bcttest
 #uploading the artifacts for the next stage
@@ -74,7 +74,7 @@ test-bctoolbox:
     when: always
     reports:
       junit:
-        - build-desktop/linphone-sdk/desktop/bin/bcttest-Results.xml
+        - linphone-sdk/desktop/build-desktop/linphone-sdk/desktop/bin/bcttest-Results.xml
 
 test-bellesip:
   tags: [ "docker-centos7" ]
@@ -84,7 +84,7 @@ test-bellesip:
   stage: test
   script:
     - find . -name "belle_sip_tester"
-    - cd build-desktop/linphone-sdk/desktop/bin
+    - cd linphone-sdk/desktop/build-desktop/linphone-sdk/desktop/bin
     - ls -la
     - ./belle_sip_tester --verbose --resource-dir ../share/ --xml-file bstest
 #uploading the artifacts for the next stage
@@ -92,7 +92,7 @@ test-bellesip:
     when: always
     reports:
       junit:
-        - build-desktop/linphone-sdk/desktop/bin/bstest-Results.xml
+        - linphone-sdk/desktop/build-desktop/linphone-sdk/desktop/bin/bstest-Results.xml
         
 test-mediastreamer:
   tags: [ "docker-centos7" ]
@@ -103,11 +103,11 @@ test-mediastreamer:
   script:
     - sudo yum install -y alsa-utils pulseaudio
     - pulseaudio -D -L module-virtual-source --exit-idle-time=-1
-    - cd build-desktop/linphone-sdk/desktop/bin
+    - cd linphone-sdk/desktop/build-desktop/linphone-sdk/desktop/bin
     - ./mediastreamer2_tester --verbose --xml-file mstest
 #uploading the artifacts for the next stage
   artifacts:
     when: always
     reports:
       junit:
-        - build-desktop/linphone-sdk/desktop/bin/mstest-Results.xml
+        - linphone-sdk/desktop/build-desktop/linphone-sdk/desktop/bin/mstest-Results.xml
