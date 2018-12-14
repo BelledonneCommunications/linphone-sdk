@@ -36,6 +36,9 @@ public class LinphoneTest extends TestCase {
     @Override
     public void runTest() {
         mResult = Tester.getInstance().runTestInSuite(mSuite, mTest);
-        Assert.assertEquals(mResult, 0);
+        if (mResult != 0) {
+            String failedAsserts = Tester.getInstance().getFailedAsserts();
+            Assert.fail(failedAsserts);
+        }
     }
 }
