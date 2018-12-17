@@ -80,6 +80,7 @@ set(FRAMEWORK_SYMBOLS "
 	CU_get_test_pos_by_name
 	CU_get_test_start_handler
 	CU_initialize_registry
+	CU_registry_initialized
 	CU_is_test_running
 	CU_print_run_results
 	CU_register_nsuites
