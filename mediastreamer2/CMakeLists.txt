@@ -111,7 +111,7 @@ cmake_dependent_option(ENABLE_VPX "Build mediastreamer2 with VPX codec." YES "EN
 option(ENABLE_MKV "Enable support of MKV files reading and writing." YES)
 cmake_dependent_option(ENABLE_QNX "Build medistreamer2 with BB10 filters." NO "ENABLE_VIDEO" NO)
 option(ENABLE_JPEG "Enable JPEG support" YES)
-option(ENABLE_QRCODE "Enable QRCode support" YES)
+cmake_dependent_option(ENABLE_QRCODE "Enable QRCode support" YES "ENABLE_VIDEO" NO)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_EXTENSIONS NO)
