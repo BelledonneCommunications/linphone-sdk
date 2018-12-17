@@ -1040,12 +1040,13 @@ void belle_sip_provider_remove_server_transaction(belle_sip_provider_t *prov, be
 
 
 static void authorization_context_fill_from_auth(authorization_context_t* auth_context,belle_sip_header_www_authenticate_t* authenticate,belle_sip_uri_t *from_uri) {
+	const char *nonce = belle_sip_header_www_authenticate_get_nonce(authenticate);
 	authorization_context_set_realm(auth_context,belle_sip_header_www_authenticate_get_realm(authenticate));
-	if (auth_context->nonce && strcmp(belle_sip_header_www_authenticate_get_nonce(authenticate),auth_context->nonce)!=0) {
+	if (auth_context->nonce && nonce && strcmp(nonce, auth_context->nonce) != 0) {
 		/*new nonce, resetting nounce_count*/
 		auth_context->nonce_count=0;
+		authorization_context_set_nonce(auth_context, nonce);
 	}
-	authorization_context_set_nonce(auth_context,belle_sip_header_www_authenticate_get_nonce(authenticate));
 	authorization_context_set_algorithm(auth_context,belle_sip_header_www_authenticate_get_algorithm(authenticate));
 	authorization_context_set_qop(auth_context,belle_sip_header_www_authenticate_get_qop_first(authenticate));
 	authorization_context_set_scheme(auth_context,belle_sip_header_www_authenticate_get_scheme(authenticate));
@@ -1266,7 +1267,7 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_requ
 				belle_sip_error("Cannot add authorization header for unsupported algo [%s]", algo);
 				continue;
 			}
-			
+
 			if (belle_sip_header_call_id_equals(call_id,auth_context->callid)) {
 				/*Same call id so we can make sure auth_context->is_proxy is accurate*/
 				if (auth_context->is_proxy)
@@ -1299,7 +1300,7 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_requ
 				++auth_context->nonce_count;
 				belle_sip_header_authorization_set_nonce_count(authorization,auth_context->nonce_count);
 			}
-			
+
 			if (auth_event->ha1) {
 				ha1=auth_event->ha1;
 			} else {
