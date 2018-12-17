@@ -1045,6 +1045,8 @@ static void authorization_context_fill_from_auth(authorization_context_t* auth_c
 	if (auth_context->nonce && nonce && strcmp(nonce, auth_context->nonce) != 0) {
 		/*new nonce, resetting nounce_count*/
 		auth_context->nonce_count=0;
+	}
+	if (nonce) {
 		authorization_context_set_nonce(auth_context, nonce);
 	}
 	authorization_context_set_algorithm(auth_context,belle_sip_header_www_authenticate_get_algorithm(authenticate));
