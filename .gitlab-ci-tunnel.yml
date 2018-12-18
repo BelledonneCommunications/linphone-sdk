@@ -6,6 +6,7 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
   MAKEFILE_JOBS: 5
   CCACHE_SIZE: 2G
+  CMAKE_OPTIONS: -DENABLE_TUNNEL=YES
 
 
 #################################################
@@ -25,9 +26,7 @@ include:
   - '.gitlab-ci-files/job-linux-desktop-ubuntu-rolling.yml'
   - '.gitlab-ci-files/job-macosx.yml'
   - '.gitlab-ci-files/job-windows.yml'
-  - '.gitlab-ci-files/job-uploads.yml'
 
 
 stages:
  - build
- - deploy
