@@ -1,0 +1,91 @@
+.job-android:
+
+  stage: build
+  tags: [ "docker-android" ]
+
+  variables:
+    CCACHE_SIZE: 4G
+
+  extends: .linux-prepare
+
+  script:
+    - sdkmanager
+    - mkdir -p build-android
+    - cd build-android
+    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS="arm64, armv7, x86, x86_64" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS
+    - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
+
+  artifacts:
+    paths:
+      - build-android/linphone-sdk/bin/outputs/aar/*.aar
+      - build-android/linphone-sdk/bin/distributions/linphone-sdk-*.zip
+    when: always
+    expire_in: 1 week
+
+
+.scheduled-job-android:
+  extends: .job-android
+  only:
+    - schedules
+
+
+#################################################
+# Makefile
+#################################################
+
+
+job-android-makefile-r16b:
+
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r16b
+  variables:
+    CMAKE_GENERATOR: Unix Makefiles
+    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
+  extends: .scheduled-job-android
+
+
+job-android-makefile-r17c:
+
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
+  variables:
+    CMAKE_GENERATOR: Unix Makefiles
+    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
+  extends: .scheduled-job-android
+
+
+#################################################
+# Ninja
+#################################################
+
+
+job-android-ninja-r16b:
+
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r16b
+  variables:
+    CMAKE_GENERATOR: Ninja
+  extends: .job-android
+
+
+job-android-ninja-r16b-novideo:
+
+  only:
+    - schedules
+  variables:
+    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+  extends: job-android-ninja-r16b
+
+
+job-android-ninja-r17c:
+
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
+  variables:
+    CMAKE_GENERATOR: Ninja
+  extends: .job-android
+
+
+job-android-ninja-r17c-novideo:
+
+  only:
+    - schedules
+  variables:
+    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+  extends: job-android-ninja-r17c
