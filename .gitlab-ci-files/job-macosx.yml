@@ -1,0 +1,67 @@
+.job-macosx-desktop:
+
+  stage: build
+  tags: [ "macosx" ]
+
+  script:
+    - ccache -s
+    - mkdir -p build-desktop
+    - cd build-desktop
+    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9 $DEFAULT_CMAKE_OPTIONS $CMAKE_OPTIONS
+    - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
+    - ccache -s
+
+
+#################################################
+# Makefile
+#################################################
+
+
+job-macosx-makefile:
+
+  only:
+    - schedules
+  variables:
+    CMAKE_GENERATOR: Unix Makefiles
+    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
+  extends: .job-macosx-desktop
+
+
+#################################################
+# Ninja
+#################################################
+
+
+job-macosx-ninja:
+
+  variables:
+    CMAKE_GENERATOR: Ninja
+  extends: .job-macosx-desktop
+
+
+job-macosx-ninja-novideo:
+
+  only:
+    - schedules
+  variables:
+    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+  extends: job-macosx-ninja
+
+
+#################################################
+# XCode
+#################################################
+
+
+job-macosx-xcode:
+
+  stage: build
+  tags: [ "macosx" ]
+
+  only:
+    - schedules
+  script:
+    - mkdir -p build-desktop
+    - cd build-desktop
+    - cmake .. -G Xcode -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9 $DEFAULT_CMAKE_OPTIONS $CMAKE_OPTIONS
+    - cmake --build . --target sdk -- -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=`sysctl -n hw.ncpu`
