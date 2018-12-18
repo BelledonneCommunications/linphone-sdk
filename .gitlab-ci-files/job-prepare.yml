@@ -1,0 +1,21 @@
+.linux-prepare:
+
+  cache:
+    key: $CI_JOB_NAME
+    paths:
+      - ccache/
+
+  before_script:
+    - if ! [ -z ${TUNNEL_USER_NAME+x} ]; then git config --global user.name "$TUNNEL_USER_NAME"; fi
+    - if ! [ -z ${TUNNEL_USER_MAIL+x} ]; then git config --global user.email "$TUNNEL_USER_MAIL"; fi
+    - if ! [ -z ${TUNNEL_USER_KEY+x} ]; then mkdir -p ~/.ssh && echo $TUNNEL_USER_KEY > ~/.ssh/id_rsa && chmod 600 ~/.ssh/id_rsa; fi
+    - mkdir -p ccache
+    - echo "max_size = $CCACHE_SIZE" > ccache/ccache.conf
+    - export CCACHE_BASEDIR=${PWD}
+    - export CCACHE_DIR=${PWD}/ccache
+    - ccache -s
+
+  after_script:
+    - if ! [ -z ${TUNNEL_USER_KEY+x} ]; then rm ~/.ssh/id_rsa || true; fi
+    - export CCACHE_DIR=${PWD}/ccache
+    - ccache -s
