@@ -25,7 +25,7 @@ import org.junit.Assert;
 
 public class LinphoneTest extends TestCase {
     private String mSuite, mTest;
-    private int mResult;
+    private String mResult;
 
     public LinphoneTest(String suite, String test) {
         mSuite = suite;
@@ -36,9 +36,8 @@ public class LinphoneTest extends TestCase {
     @Override
     public void runTest() {
         mResult = Tester.getInstance().runTestInSuite(mSuite, mTest);
-        if (mResult != 0) {
-            String failedAsserts = Tester.getInstance().getFailedAsserts();
-            Assert.fail(failedAsserts);
+        if (mResult != null) {
+            Assert.fail(mResult);
         }
     }
 }

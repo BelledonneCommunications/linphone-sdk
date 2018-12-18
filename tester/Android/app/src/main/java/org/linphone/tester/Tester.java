@@ -23,6 +23,7 @@ import android.content.Context;
 import android.support.test.InstrumentationRegistry;
 
 import org.junit.After;
+import org.junit.Before;
 import org.linphone.core.Factory;
 
 import java.io.IOException;
@@ -34,6 +35,7 @@ public class Tester {
     public native void setApplicationContext(Context ct);
     public native void removeApplicationContext();
     public native int run(String args[]);
+    public native String run2(String args[]);
     public native void keepAccounts(boolean keep);
     public native void clearAccounts();
     public native String getFailedAsserts();
@@ -80,7 +82,7 @@ public class Tester {
         mListener = listener;
     }
 
-    public int runTestInSuite(String suite, String test) {
+    public String runTestInSuite(String suite, String test) {
         installTester();
 
         List<String> list = new LinkedList<>(Arrays.asList(new String[] {
@@ -101,7 +103,7 @@ public class Tester {
         }
 
         String[] array = list.toArray(new String[list.size()]);
-        return run(array);
+        return run2(array);
     }
 
     private void setUp() throws IOException {
@@ -109,7 +111,9 @@ public class Tester {
         System.loadLibrary("bctoolbox-tester");
         System.loadLibrary("linphonetester");
 
-        keepAccounts(true);
+        keepAccounts(false);
+        //keepAccounts(true);
+
         if (mContext == null) {
             mContext = InstrumentationRegistry.getTargetContext();
         }
@@ -118,9 +122,18 @@ public class Tester {
         org.linphone.core.tools.AndroidPlatformHelper.copyAssetsFromPackage(mContext,"config_files", ".");
     }
 
+    @Before
+    public void initTest() {
+        if (mContext == null) {
+            mContext = InstrumentationRegistry.getTargetContext();
+        }
+        setApplicationContext(mContext);
+    }
+
     @After
     public void tearDown() {
-        clearAccounts();
+        //clearAccounts();
+        removeApplicationContext();
     }
 
     public void printLog(final int level, final String message) {
