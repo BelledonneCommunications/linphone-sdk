@@ -1,0 +1,18 @@
+.job-linux-desktop:
+
+  stage: build
+  extends: .linux-prepare
+
+  script:
+    - export CC=$CC
+    - export CXX=$CXX
+    - mkdir -p build-desktop
+    - cd build-desktop
+    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS
+    - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
+
+
+.scheduled-job-linux-desktop:
+  extends: .job-linux-desktop
+  only:
+    - schedules
