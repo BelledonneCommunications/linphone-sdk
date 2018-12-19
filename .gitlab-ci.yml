@@ -77,12 +77,16 @@ test-bctoolbox:
         - build-desktop/WORK/desktop/Build/bctoolbox/tester/bcttest-Results.xml
 
 test-bellesip:
-  tags: [ "docker-test-centos7" ]
+  tags: [ "peio" ]
   variables:
     GIT_STRATEGY: none
     GIT_CHECKOUT: "false"
   stage: test
   script:
+    - ping6 ipv6.google.com
+    - sleep 6
+    - ping sip.linphone.org
+    - ping sip2.linphone.org
     - find . -name "belle_sip_tester"
     - cd build-desktop/linphone-sdk/desktop/bin
     - ls -la
