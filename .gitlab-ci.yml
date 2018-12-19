@@ -112,3 +112,35 @@ test-mediastreamer:
     reports:
       junit:
         - build-desktop/linphone-sdk/desktop/bin/mstest-Results.xml
+        
+test-belr:
+  tags: [ "docker-test-centos7" ]
+  variables:
+    GIT_STRATEGY: none
+    GIT_CHECKOUT: "false"
+  stage: test
+  script:
+    - cd build-desktop/linphone-sdk/desktop/bin
+    - ./belr_tester --verbose --resource-dir ../share/belr-tester --xml-file blrtest
+#uploading the artifacts for the next stage
+  artifacts:
+    when: always
+    reports:
+      junit:
+        - build-desktop/linphone-sdk/desktop/bin/blrtest-Results.xml
+        
+test-belcard:
+  tags: [ "docker-test-centos7" ]
+  variables:
+    GIT_STRATEGY: none
+    GIT_CHECKOUT: "false"
+  stage: test
+  script:
+    - cd build-desktop/linphone-sdk/desktop/bin
+    - ./belcard_tester --verbose --xml-file belcardtest
+#uploading the artifacts for the next stage
+  artifacts:
+    when: always
+    reports:
+      junit:
+        - build-desktop/linphone-sdk/desktop/bin/belcardtest-Results.xml
