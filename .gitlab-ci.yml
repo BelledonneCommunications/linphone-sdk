@@ -77,7 +77,7 @@ test-bctoolbox:
         - build-desktop/WORK/desktop/Build/bctoolbox/tester/bcttest-Results.xml
 
 test-bellesip:
-  tags: [ "peio" ]
+  tags: [ "docker-test-centos7" ]
   variables:
     GIT_STRATEGY: none
     GIT_CHECKOUT: "false"
