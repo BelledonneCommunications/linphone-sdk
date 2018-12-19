@@ -65,7 +65,6 @@ test-bctoolbox:
     GIT_CHECKOUT: "false"
   stage: test
   script:
-    - find . -name "bctoolbox_tester"
     - cd build-desktop/WORK/desktop/Build/bctoolbox/tester
     - ls -la
     - ./bctoolbox_tester --verbose --xml-file bcttest
@@ -83,11 +82,9 @@ test-bellesip:
     GIT_CHECKOUT: "false"
   stage: test
   script:
-    - ping6 ipv6.google.com
-    - sleep 6
-    - ping sip.linphone.org
-    - ping sip2.linphone.org
-    - find . -name "belle_sip_tester"
+    - ip -6 a
+    - ip -6 n
+    - ip -6 r
     - cd build-desktop/linphone-sdk/desktop/bin
     - ls -la
     - ./belle_sip_tester --verbose --resource-dir ../share/ --xml-file bstest
@@ -107,7 +104,6 @@ test-mediastreamer:
   script:
     - sudo yum install -y alsa-utils pulseaudio
     - pulseaudio -D -L module-virtual-source --exit-idle-time=-1
-    - find . -name "mediastreamer2_tester"
     - cd build-desktop/linphone-sdk/desktop/bin
     - ./mediastreamer2_tester --verbose --xml-file mstest
 #uploading the artifacts for the next stage
