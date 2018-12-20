@@ -69,7 +69,7 @@ build-centos7:
 
 test-bctoolbox:
   tags: [ "docker-test-centos7" ]
-  extends: test
+  extends: .test
   script:
     - cd build-desktop/WORK/desktop/Build/bctoolbox/tester
     - ls -la
@@ -86,7 +86,7 @@ test-bctoolbox:
 
 test-bellesip:
   tags: [ "docker-test-centos7" ]
-  extends: test
+  extends: .test
   script:
     - ip -6 a
     - ip -6 n
@@ -106,7 +106,7 @@ test-bellesip:
 
 test-mediastreamer:
   tags: [ "docker-test-centos7" ]
-  extends: test
+  extends: .test
   script:
     - sudo yum install -y alsa-utils pulseaudio
     - pulseaudio -D -L module-virtual-source --exit-idle-time=-1
@@ -124,7 +124,7 @@ test-mediastreamer:
 
 test-belr:
   tags: [ "docker-test-centos7" ]
-  extends: test
+  extends: .test
   script:
     - cd build-desktop/linphone-sdk/desktop/bin
     - ./belr_tester --verbose --resource-dir ../share/belr-tester --xml-file blrtest
@@ -140,7 +140,7 @@ test-belr:
 
 test-belcard:
   tags: [ "docker-test-centos7" ]
-  extends: test
+  extends: .test
   script:
     - cd build-desktop/linphone-sdk/desktop/bin
     - ./belcard_tester --verbose --xml-file belcardtest
@@ -156,7 +156,7 @@ test-belcard:
 
 test-bzrtp:
   tags: [ "docker-test-centos7" ]
-  extends: test
+  extends: .test
   script:
     - cd build-desktop/WORK/desktop/Build/bzrtp/test
     - ls -la
@@ -176,7 +176,7 @@ test-bzrtp:
 #commented until we can test with a proper server instead of blindly executing
 #test-lime:
 #  tags: [ "docker-test-centos7" ]
-#  extends: test
+#  extends: .test
 #  script:
 #    - ls -la .
 #    - pwd
