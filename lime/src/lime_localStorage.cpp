@@ -873,7 +873,19 @@ void Lime<Curve>::X3DH_generate_SPk(X<Curve, lime::Xtype::publicKey> &publicSPk,
 
 	// Generate a random SPk Id
 	// Sqlite doesn't really support unsigned value, the randomize function makes sure that the MSbit is set to 0 to not fall into strange bugs with that
+	// SPkIds must be random but unique, get one not already in
+	std::set<uint32_t> activeSPkIds{};
+	// fetch existing SPk ids from DB (SPKid is unique on all users, so really get them all, do not restrict with m_db_Uid)
+	rowset<row> rs = (m_localStorage->sql.prepare << "SELECT SPKid FROM X3DH_SPK");
+	for (const auto &r : rs) {
+		auto activeSPkId = static_cast<uint32_t>(r.get<int>(0));
+		activeSPkIds.insert(activeSPkId);
+	}
+
 	SPk_id = m_RNG->randomize();
+	while (activeSPkIds.insert(SPk_id).second == false) { // This one was already in
+		SPk_id = m_RNG->randomize();
+	}
 
 	// insert all this in DB
 	try {
