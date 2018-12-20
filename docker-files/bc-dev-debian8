@@ -21,7 +21,7 @@ RUN apt-get update && \
 
 # Install development tools
 RUN apt-get update && \
-    apt-get install -y alien at autoconf bison ccache clang cmake doxygen elfutils g++ gdb git graphviz intltool libtool lsb-release make nasm ninja-build patch python-lxml python-pip python-pystache python-six yasm && \
+    apt-get install -y alien at autoconf bison ccache clang cmake doxygen elfutils g++ gdb git graphviz intltool libtool lsb-release make nasm ninja-build openssh-client patch python-lxml python-pip python-pystache python-six yasm && \
     curl -o cmake.tar.gz https://cmake.org/files/v3.2/cmake-3.2.3.tar.gz && \
     tar xvzf cmake.tar.gz && rm cmake.tar.gz && cd cmake-3.2.3 && cmake . && make -j5 install && cd .. && rm -rf cmake-3.2.3 && \
     apt-get purge -y cmake && \

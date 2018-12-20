@@ -21,7 +21,7 @@ RUN yum install -y at bison ccache clang cmake3 doxygen gcc-c++ gdb gettext-deve
     ln -s /usr/bin/ctest3 /usr/bin/ctest
 
 # Install linphone & flexisp dependencies development packages
-RUN yum install -y alsa-lib-devel ffmpeg-devel glew-devel gsm-devel jansson-devel libbsd-devel libsrtp-devel libv4l-devel libvpx-devel libXv-devel libxml2-devel mariadb-devel mbedtls-devel mesa-libEGL-devel net-snmp-devel openssl-devel opus-devel postgresql-devel protobuf-devel pulseaudio-libs-devel speex-devel sqlite-devel xerces-c-devel xsd && \
+RUN yum install -y alsa-lib-devel ffmpeg-devel glew-devel gsm-devel jansson-devel libbsd-devel libsrtp-devel libv4l-devel libvpx-devel libXv-devel libxml2-devel mariadb-devel mbedtls-devel mesa-libEGL-devel net-snmp-devel openssh openssh-clients openssl-devel opus-devel postgresql-devel protobuf-devel pulseaudio-libs-devel speex-devel sqlite-devel xerces-c-devel xsd && \
     yum clean all
 
 # Install linphone runtime dependencies

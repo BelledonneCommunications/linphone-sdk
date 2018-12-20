@@ -18,7 +18,7 @@ RUN pacman --noconfirm --noprogressbar -Syu && \
 
 # Install development tools
 RUN pacman --noconfirm --noprogressbar -Syu && \
-    pacman --noconfirm --noprogressbar -S at autoconf automake bison ccache clang cmake doxygen elfutils gcc gdb git graphviz intltool libtool lsb-release make nasm ninja patch pkgconf python-pip python-six yasm && \
+    pacman --noconfirm --noprogressbar -S at autoconf automake bison ccache clang cmake doxygen elfutils gcc gdb git graphviz intltool libtool lsb-release make nasm ninja openssh patch pkgconf python-pip python-six yasm && \
     pacman -Scc && \
     pip install pystache javasphinx sphinx sphinx_csharp
 
