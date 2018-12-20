@@ -1322,8 +1322,10 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_requ
 			/*stored to give user information on realm/username which requires authentications*/
 			*auth_infos=belle_sip_list_append(*auth_infos,auth_event);
 			belle_sip_list_t* elem=belle_sip_list_find_double_events(*auth_infos,auth_event);
-			if(elem!=NULL)
+			if(elem!=NULL) {
+				belle_sip_auth_event_destroy(bctbx_list_get_data(elem));
 				*auth_infos=belle_sip_list_delete_link(*auth_infos,elem);
+			}
 		} else {
 			belle_sip_auth_event_destroy(auth_event);
 		}
