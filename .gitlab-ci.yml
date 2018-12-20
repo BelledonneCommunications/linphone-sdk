@@ -179,7 +179,9 @@ test-lime:
     - ls -la ./lime
     - cd build-desktop/WORK/desktop/Build/lime/tester
     - ls -la
-    - ./lime_tester --verbose --xml-file limetest --resource-dir ~/lime/tester/
+    
+    #path to source dir /builds/BC/public/linphone-sdk/lime
+    - ./lime_tester --verbose --xml-file limetest --resource-dir ../../../../../../lime/tester
 #uploading the artifacts for the next stage
   artifacts:
     when: always
