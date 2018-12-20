@@ -96,12 +96,15 @@ build-debian8:
     expire_in: 4 week
     
 test-bctoolbox-debian8:
+  extends: .test-bctoolbox
   tags: [ "docker-test-debian8" ]
   
 test-bctoolbox-debian9:
+  extends: .test-bctoolbox
   tags: [ "docker-test-debian9" ]
   
 test-bctoolbox-centos7:
+  extends: .test-bctoolbox
   tags: [ "docker-test-centos7" ]
   
 
@@ -127,12 +130,15 @@ test-bctoolbox-centos7:
     expire_in: 4 week
     
 test-bellesip-debian8:
+  extends: .test-bellesip
   tags: [ "docker-test-debian8" ]
   
 test-bellesip-debian9:
+  extends: .test-bellesip
   tags: [ "docker-test-debian9" ]
   
 test-bellesip-centos7:
+  extends: .test-bellesip
   tags: [ "docker-test-centos7" ]
 
 test-mediastreamer:
@@ -156,7 +162,6 @@ test-mediastreamer:
     expire_in: 4 week
 
 .test-belr:
-  tags: [ "docker-test-centos7" ]
   extends: .test
   dependencies:
     - build-centos7
@@ -174,12 +179,15 @@ test-mediastreamer:
     expire_in: 4 week
     
 test-belr-debian8:
+  extends: .test-belr
   tags: [ "docker-test-debian8" ]
   
 test-belr-debian9:
+  extends: .test-belr
   tags: [ "docker-test-debian9" ]
   
 test-belr-centos7:
+  extends: .test-belr
   tags: [ "docker-test-centos7" ]
 
 .test-belcard:
@@ -200,16 +208,18 @@ test-belr-centos7:
     expire_in: 4 week
     
 test-belcard-debian8:
+  extends: .test-belcard
   tags: [ "docker-test-debian8" ]
   
 test-belcard-debian9:
+  extends: .test-belcard
   tags: [ "docker-test-debian9" ]
   
 test-belcard-centos7:
+  extends: .test-belcard
   tags: [ "docker-test-centos7" ]
 
 .test-bzrtp:
-  tags: [ "docker-test-centos7" ]
   extends: .test
   dependencies:
     - build-centos7
@@ -230,12 +240,15 @@ test-belcard-centos7:
     expire_in: 4 week
     
 test-bzrtp-debian8:
+  extends: .test-bzrtp
   tags: [ "docker-test-debian8" ]
   
 test-bzrtp-debian9:
+  extends: .test-bzrtp
   tags: [ "docker-test-debian9" ]
   
 test-bzrtp-centos7:
+  extends: .test-bzrtp
   tags: [ "docker-test-centos7" ]
 
 #commented until we can test with a proper server instead of blindly executing
