@@ -144,3 +144,37 @@ test-belcard:
     reports:
       junit:
         - build-desktop/linphone-sdk/desktop/bin/belcardtest-Results.xml
+        
+test-bzrtp:
+  tags: [ "docker-test-centos7" ]
+  variables:
+    GIT_STRATEGY: none
+    GIT_CHECKOUT: "false"
+  stage: test
+  script:
+    - cd build-desktop/WORK/desktop/Build/bzrtp/test
+    - ls -la
+    - ./bzrtpTest --verbose --xml-file bzrtptest
+#uploading the artifacts for the next stage
+  artifacts:
+    when: always
+    reports:
+      junit:
+        - build-desktop/WORK/desktop/Build/bzrtp/test/bzrtptest-Results.xml
+        
+test-lime:
+  tags: [ "docker-test-centos7" ]
+  variables:
+    GIT_STRATEGY: none
+    GIT_CHECKOUT: "false"
+  stage: test
+  script:
+    - cd build-desktop/WORK/desktop/Build/lime/tester
+    - ls -la
+    - ./lime_tester --verbose --xml-file limetest --resource-dir ~/linphone-sdk/lime/tester
+#uploading the artifacts for the next stage
+  artifacts:
+    when: always
+    reports:
+      junit:
+        - build-desktop/WORK/desktop/Build/lime/tester/limetest-Results.xml
