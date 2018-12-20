@@ -176,7 +176,8 @@ test-lime:
   script:
     - cd build-desktop/WORK/desktop/Build/lime/tester
     - ls -la
-    - ls -la ~/lime/tester
+    - ls -la ~
+    - ls -la ~/lime
     - ./lime_tester --verbose --xml-file limetest --resource-dir ~/lime/tester/
 #uploading the artifacts for the next stage
   artifacts:
