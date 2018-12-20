@@ -73,6 +73,7 @@ test-bctoolbox:
     - ./bctoolbox_tester --verbose --xml-file bcttest
 #uploading the artifacts for the next stage
   artifacts:
+    path: build-desktop/WORK/desktop/Build/bctoolbox/tester/bcttest-Results.xml
     when: always
     reports:
       junit:
@@ -93,11 +94,12 @@ test-bellesip:
     - ./belle_sip_tester --verbose --resource-dir ../share/ --xml-file bstest
 #uploading the artifacts for the next stage
   artifacts:
+    path: build-desktop/linphone-sdk/desktop/bin/bstest-Results.xml
     when: always
     reports:
       junit:
         - build-desktop/linphone-sdk/desktop/bin/bstest-Results.xml
-        
+
 test-mediastreamer:
   tags: [ "docker-test-centos7" ]
   variables:
@@ -111,11 +113,12 @@ test-mediastreamer:
     - ./mediastreamer2_tester --verbose --xml-file mstest
 #uploading the artifacts for the next stage
   artifacts:
+    path: build-desktop/linphone-sdk/desktop/bin/mstest-Results.xml
     when: always
     reports:
       junit:
         - build-desktop/linphone-sdk/desktop/bin/mstest-Results.xml
-        
+
 test-belr:
   tags: [ "docker-test-centos7" ]
   variables:
@@ -127,11 +130,12 @@ test-belr:
     - ./belr_tester --verbose --resource-dir ../share/belr-tester --xml-file blrtest
 #uploading the artifacts for the next stage
   artifacts:
+    path : build-desktop/linphone-sdk/desktop/bin/blrtest-Results.xml
     when: always
     reports:
       junit:
         - build-desktop/linphone-sdk/desktop/bin/blrtest-Results.xml
-        
+
 test-belcard:
   tags: [ "docker-test-centos7" ]
   variables:
@@ -143,11 +147,12 @@ test-belcard:
     - ./belcard_tester --verbose --xml-file belcardtest
 #uploading the artifacts for the next stage
   artifacts:
+    path : build-desktop/linphone-sdk/desktop/bin/belcardtest-Results.xml
     when: always
     reports:
       junit:
         - build-desktop/linphone-sdk/desktop/bin/belcardtest-Results.xml
-        
+
 test-bzrtp:
   tags: [ "docker-test-centos7" ]
   variables:
@@ -162,29 +167,32 @@ test-bzrtp:
     - ./bzrtpTest --verbose --xml-file bzrtptest --resource-dir .
 #uploading the artifacts for the next stage
   artifacts:
+    path : build-desktop/WORK/desktop/Build/bzrtp/test/bzrtptest-Results.xml
     when: always
     reports:
       junit:
         - build-desktop/WORK/desktop/Build/bzrtp/test/bzrtptest-Results.xml
-        
-test-lime:
-  tags: [ "docker-test-centos7" ]
-  variables:
-    GIT_STRATEGY: none
-    GIT_CHECKOUT: "false"
-  stage: test
-  script:
-    - ls -la .
-    - pwd
-    - ls -la ./lime
-    - cd build-desktop/WORK/desktop/Build/lime/tester
-    - ls -la
-    
+
+#commented until we can test with a proper server instead of blindly executing
+#test-lime:
+#  tags: [ "docker-test-centos7" ]
+#  variables:
+#    GIT_STRATEGY: none
+#    GIT_CHECKOUT: "false"
+#  stage: test
+#  script:
+#    - ls -la .
+#    - pwd
+#    - ls -la ./lime
+#    - cd build-desktop/WORK/desktop/Build/lime/tester
+#    - ls -la
+
     #path to source dir /builds/BC/public/linphone-sdk/lime
-    - ./lime_tester --verbose --xml-file limetest --resource-dir ../../../../../../lime/tester
+#    - ./lime_tester --verbose --xml-file limetest --resource-dir ../../../../../../lime/tester
 #uploading the artifacts for the next stage
-  artifacts:
-    when: always
-    reports:
-      junit:
-        - build-desktop/WORK/desktop/Build/lime/tester/limetest-Results.xml
+#  artifacts:
+#    path: build-desktop/WORK/desktop/Build/lime/tester/limetest-Results.xml
+#    when: always
+#    reports:
+#      junit:
+#        - build-desktop/WORK/desktop/Build/lime/tester/limetest-Results.xml
