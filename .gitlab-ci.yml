@@ -51,7 +51,7 @@ build-sdk:
       - build-desktop/*
       #TRÈS SALE ! Le dossier data de lime n'est pas installé au bon endroit
       #Nous sommes obligés d'aller le chercher dans les sources des tests
-      - lime/tester/data
+      - lime/tester/*
     expire_in: 1 week
 
 
@@ -176,7 +176,7 @@ test-lime:
   script:
     - cd build-desktop/WORK/desktop/Build/lime/tester
     - ls -la
-    - ./lime_tester --verbose --xml-file limetest --resource-dir ../../../../../../lime/tester/
+    - ./lime_tester --verbose --xml-file limetest --resource-dir ~/linphone-sdk/lime/tester/
 #uploading the artifacts for the next stage
   artifacts:
     when: always
