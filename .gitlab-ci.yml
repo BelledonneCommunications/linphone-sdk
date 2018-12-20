@@ -55,6 +55,16 @@ build-centos7:
   tags: [ "docker-centos7" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
   extends: .build-sdk
+  
+build-debian9:
+  tags: [ "docker-debian9" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
+  extends: .build-sdk
+
+build-debian8:
+  tags: [ "docker-debian8" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
+  extends: .build-sdk
 
 
 #.scheduled-job-linux-desktop:
@@ -67,9 +77,10 @@ build-centos7:
     GIT_CHECKOUT: "false"
   stage: test
 
-test-bctoolbox:
-  tags: [ "docker-test-centos7" ]
+.test-bctoolbox:
   extends: .test
+  dependencies:
+    - build-centos7
   script:
     - cd build-desktop/WORK/desktop/Build/bctoolbox/tester
     - ls -la
@@ -83,10 +94,21 @@ test-bctoolbox:
       junit:
         - build-desktop/WORK/desktop/Build/bctoolbox/tester/bcttest-Results.xml
     expire_in: 4 week
-
-test-bellesip:
+    
+test-bctoolbox-debian8:
+  tags: [ "docker-test-debian8" ]
+  
+test-bctoolbox-debian9:
+  tags: [ "docker-test-debian9" ]
+  
+test-bctoolbox-centos7:
   tags: [ "docker-test-centos7" ]
+  
+
+.test-bellesip:
   extends: .test
+  dependencies:
+    - build-centos7
   script:
     - ip -6 a
     - ip -6 n
@@ -103,10 +125,21 @@ test-bellesip:
       junit:
         - build-desktop/linphone-sdk/desktop/bin/bstest-Results.xml
     expire_in: 4 week
+    
+test-bellesip-debian8:
+  tags: [ "docker-test-debian8" ]
+  
+test-bellesip-debian9:
+  tags: [ "docker-test-debian9" ]
+  
+test-bellesip-centos7:
+  tags: [ "docker-test-centos7" ]
 
 test-mediastreamer:
   tags: [ "docker-test-centos7" ]
   extends: .test
+  dependencies:
+    - build-centos7
   script:
     - sudo yum install -y alsa-utils pulseaudio
     - pulseaudio -D -L module-virtual-source --exit-idle-time=-1
@@ -122,9 +155,11 @@ test-mediastreamer:
         - build-desktop/linphone-sdk/desktop/bin/mstest-Results.xml
     expire_in: 4 week
 
-test-belr:
+.test-belr:
   tags: [ "docker-test-centos7" ]
   extends: .test
+  dependencies:
+    - build-centos7
   script:
     - cd build-desktop/linphone-sdk/desktop/bin
     - ./belr_tester --verbose --resource-dir ../share/belr-tester --xml-file blrtest
@@ -137,10 +172,20 @@ test-belr:
       junit:
         - build-desktop/linphone-sdk/desktop/bin/blrtest-Results.xml
     expire_in: 4 week
-
-test-belcard:
+    
+test-belr-debian8:
+  tags: [ "docker-test-debian8" ]
+  
+test-belr-debian9:
+  tags: [ "docker-test-debian9" ]
+  
+test-belr-centos7:
   tags: [ "docker-test-centos7" ]
+
+.test-belcard:
   extends: .test
+  dependencies:
+    - build-centos7
   script:
     - cd build-desktop/linphone-sdk/desktop/bin
     - ./belcard_tester --verbose --xml-file belcardtest
@@ -153,10 +198,21 @@ test-belcard:
       junit:
         - build-desktop/linphone-sdk/desktop/bin/belcardtest-Results.xml
     expire_in: 4 week
+    
+test-belcard-debian8:
+  tags: [ "docker-test-debian8" ]
+  
+test-belcard-debian9:
+  tags: [ "docker-test-debian9" ]
+  
+test-belcard-centos7:
+  tags: [ "docker-test-centos7" ]
 
-test-bzrtp:
+.test-bzrtp:
   tags: [ "docker-test-centos7" ]
   extends: .test
+  dependencies:
+    - build-centos7
   script:
     - cd build-desktop/WORK/desktop/Build/bzrtp/test
     - ls -la
@@ -172,11 +228,22 @@ test-bzrtp:
       junit:
         - build-desktop/WORK/desktop/Build/bzrtp/test/bzrtptest-Results.xml
     expire_in: 4 week
+    
+test-bzrtp-debian8:
+  tags: [ "docker-test-debian8" ]
+  
+test-bzrtp-debian9:
+  tags: [ "docker-test-debian9" ]
+  
+test-bzrtp-centos7:
+  tags: [ "docker-test-centos7" ]
 
 #commented until we can test with a proper server instead of blindly executing
 #test-lime:
 #  tags: [ "docker-test-centos7" ]
 #  extends: .test
+#  dependencies:
+#    - build-centos7
 #  script:
 #    - ls -la .
 #    - pwd
