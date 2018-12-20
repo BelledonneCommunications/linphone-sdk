@@ -10,7 +10,7 @@ stages:
 
 
 .linux-ccache:
-
+  
   cache:
     key: $CI_JOB_NAME
     paths:
@@ -27,10 +27,7 @@ stages:
     - export CCACHE_DIR=${PWD}/ccache
     - ccache -s
 
-#fixed dot for visible job
-build-sdk:
-  tags: [ "docker-centos7" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
+.build-sdk:
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: gcc
@@ -54,26 +51,32 @@ build-sdk:
       - lime/tester/*
     expire_in: 1 week
 
+build-centos7:
+  tags: [ "docker-centos7" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
+  extends: .build-sdk
 
 
 #.scheduled-job-linux-desktop:
 #  extends: .job-linux-desktop
 #  only:
 #    - schedules
-
-test-bctoolbox:
-  tags: [ "docker-test-centos7" ]
+.test:
   variables:
     GIT_STRATEGY: none
     GIT_CHECKOUT: "false"
   stage: test
+
+test-bctoolbox:
+  tags: [ "docker-test-centos7" ]
+  extends: test
   script:
     - cd build-desktop/WORK/desktop/Build/bctoolbox/tester
     - ls -la
     - ./bctoolbox_tester --verbose --xml-file bcttest
 #uploading the artifacts for the next stage
   artifacts:
-    paths: 
+    paths:
       - build-desktop/WORK/desktop/Build/bctoolbox/tester/bcttest-Results.xml
     when: always
     reports:
@@ -83,10 +86,7 @@ test-bctoolbox:
 
 test-bellesip:
   tags: [ "docker-test-centos7" ]
-  variables:
-    GIT_STRATEGY: none
-    GIT_CHECKOUT: "false"
-  stage: test
+  extends: test
   script:
     - ip -6 a
     - ip -6 n
@@ -96,7 +96,7 @@ test-bellesip:
     - ./belle_sip_tester --verbose --resource-dir ../share/ --xml-file bstest
 #uploading the artifacts for the next stage
   artifacts:
-    paths: 
+    paths:
       - build-desktop/linphone-sdk/desktop/bin/bstest-Results.xml
     when: always
     reports:
@@ -106,10 +106,7 @@ test-bellesip:
 
 test-mediastreamer:
   tags: [ "docker-test-centos7" ]
-  variables:
-    GIT_STRATEGY: none
-    GIT_CHECKOUT: "false"
-  stage: test
+  extends: test
   script:
     - sudo yum install -y alsa-utils pulseaudio
     - pulseaudio -D -L module-virtual-source --exit-idle-time=-1
@@ -117,7 +114,7 @@ test-mediastreamer:
     - ./mediastreamer2_tester --verbose --xml-file mstest
 #uploading the artifacts for the next stage
   artifacts:
-    paths: 
+    paths:
       - build-desktop/linphone-sdk/desktop/bin/mstest-Results.xml
     when: always
     reports:
@@ -127,16 +124,13 @@ test-mediastreamer:
 
 test-belr:
   tags: [ "docker-test-centos7" ]
-  variables:
-    GIT_STRATEGY: none
-    GIT_CHECKOUT: "false"
-  stage: test
+  extends: test
   script:
     - cd build-desktop/linphone-sdk/desktop/bin
     - ./belr_tester --verbose --resource-dir ../share/belr-tester --xml-file blrtest
 #uploading the artifacts for the next stage
   artifacts:
-    paths : 
+    paths :
       - build-desktop/linphone-sdk/desktop/bin/blrtest-Results.xml
     when: always
     reports:
@@ -146,16 +140,13 @@ test-belr:
 
 test-belcard:
   tags: [ "docker-test-centos7" ]
-  variables:
-    GIT_STRATEGY: none
-    GIT_CHECKOUT: "false"
-  stage: test
+  extends: test
   script:
     - cd build-desktop/linphone-sdk/desktop/bin
     - ./belcard_tester --verbose --xml-file belcardtest
 #uploading the artifacts for the next stage
   artifacts:
-    paths : 
+    paths :
       - build-desktop/linphone-sdk/desktop/bin/belcardtest-Results.xml
     when: always
     reports:
@@ -165,10 +156,7 @@ test-belcard:
 
 test-bzrtp:
   tags: [ "docker-test-centos7" ]
-  variables:
-    GIT_STRATEGY: none
-    GIT_CHECKOUT: "false"
-  stage: test
+  extends: test
   script:
     - cd build-desktop/WORK/desktop/Build/bzrtp/test
     - ls -la
@@ -177,7 +165,7 @@ test-bzrtp:
     - ./bzrtpTest --verbose --xml-file bzrtptest --resource-dir .
 #uploading the artifacts for the next stage
   artifacts:
-    paths : 
+    paths :
       - build-desktop/WORK/desktop/Build/bzrtp/test/bzrtptest-Results.xml
     when: always
     reports:
@@ -188,10 +176,7 @@ test-bzrtp:
 #commented until we can test with a proper server instead of blindly executing
 #test-lime:
 #  tags: [ "docker-test-centos7" ]
-#  variables:
-#    GIT_STRATEGY: none
-#    GIT_CHECKOUT: "false"
-#  stage: test
+#  extends: test
 #  script:
 #    - ls -la .
 #    - pwd
@@ -203,7 +188,7 @@ test-bzrtp:
 #    - ./lime_tester --verbose --xml-file limetest --resource-dir ../../../../../../lime/tester
 #uploading the artifacts for the next stage
 #  artifacts:
-#    paths: 
+#    paths:
 #      - build-desktop/WORK/desktop/Build/lime/tester/limetest-Results.xml
 #    when: always
 #    reports:
