@@ -175,6 +175,7 @@ test-lime:
   stage: test
   script:
     - ls -la .
+    - pwd
     - ls -la ./lime
     - cd build-desktop/WORK/desktop/Build/lime/tester
     - ls -la
