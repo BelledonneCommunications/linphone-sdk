@@ -1046,9 +1046,7 @@ static void authorization_context_fill_from_auth(authorization_context_t* auth_c
 		/*new nonce, resetting nounce_count*/
 		auth_context->nonce_count=0;
 	}
-	if (nonce) {
-		authorization_context_set_nonce(auth_context, nonce);
-	}
+	authorization_context_set_nonce(auth_context, nonce);
 	authorization_context_set_algorithm(auth_context,belle_sip_header_www_authenticate_get_algorithm(authenticate));
 	authorization_context_set_qop(auth_context,belle_sip_header_www_authenticate_get_qop_first(authenticate));
 	authorization_context_set_scheme(auth_context,belle_sip_header_www_authenticate_get_scheme(authenticate));
