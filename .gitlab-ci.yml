@@ -251,7 +251,7 @@ test-bzrtp-centos7:
   extends: .test-bzrtp
   tags: [ "docker-test-centos7" ]
 
-commented until we can test with a proper server instead of blindly executing
+#commented until we can test with a proper server instead of blindly executing
 test-lime:
   tags: [ "docker-test-centos7" ]
   extends: .test
