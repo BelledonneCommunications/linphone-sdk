@@ -251,26 +251,32 @@ test-bzrtp-centos7:
   extends: .test-bzrtp
   tags: [ "docker-test-centos7" ]
 
-#commented until we can test with a proper server instead of blindly executing
-#test-lime:
-#  tags: [ "docker-test-centos7" ]
-#  extends: .test
-#  dependencies:
-#    - build-centos7
-#  script:
-#    - ls -la .
-#    - pwd
-#    - ls -la ./lime
-#    - cd build-desktop/WORK/desktop/Build/lime/tester
-#    - ls -la
+commented until we can test with a proper server instead of blindly executing
+test-lime:
+  tags: [ "docker-test-centos7" ]
+  extends: .test
+  dependencies:
+    - build-centos7
+  script:
+    - curl -sL https://rpm.nodesource.com/setup_10.x | sudo bash -
+    - sudo yum -y install npm nodejs
+    - sudo npm -g install
+    - ls -la .
+    - pwd
+    - ls -la ./lime
+    - cd /builds/BC/public/linphone-sdk/lime/tester/nodejs/
+    - ./localServerStart.sh & #On l'arrête comment proprement ????
+    - cd /builds/BC/public/linphone-sdk
+    - cd build-desktop/WORK/desktop/Build/lime/tester
+    - ls -la
 
     #path to source dir /builds/BC/public/linphone-sdk/lime
-#    - ./lime_tester --verbose --xml-file limetest --resource-dir ../../../../../../lime/tester
-#uploading the artifacts for the next stage
-#  artifacts:
-#    paths:
-#      - build-desktop/WORK/desktop/Build/lime/tester/limetest-Results.xml
-#    when: always
-#    reports:
-#      junit:
-#        - build-desktop/WORK/desktop/Build/lime/tester/limetest-Results.xml
+    - ./lime_tester --verbose --xml-file limetest --resource-dir ../../../../../../lime/tester
+#uploading the artifacts
+  artifacts:
+    paths:
+      - build-desktop/WORK/desktop/Build/lime/tester/limetest-Results.xml
+    when: always
+    reports:
+      junit:
+        - build-desktop/WORK/desktop/Build/lime/tester/limetest-Results.xml
