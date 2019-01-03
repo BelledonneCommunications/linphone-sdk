@@ -259,7 +259,7 @@ test-lime:
     - build-centos7
   script:
     - curl -sL https://rpm.nodesource.com/setup_10.x | sudo bash -
-    - sudo yum -y install npm nodejs
+    - sudo yum -y install nodejs npm
     - sudo npm -g install
     - ls -la .
     - pwd
