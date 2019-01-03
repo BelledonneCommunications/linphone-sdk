@@ -61,10 +61,11 @@ build-debian9:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
   extends: .build-sdk
 
-build-debian8:
-  tags: [ "docker-debian8" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
-  extends: .build-sdk
+#Commented until pref fix of debian8 runner 
+#build-debian8:
+ # tags: [ "docker-debian8" ]
+  #image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
+  #extends: .build-sdk
 
 
 #.scheduled-job-linux-desktop:
@@ -95,9 +96,10 @@ build-debian8:
         - build-desktop/WORK/desktop/Build/bctoolbox/tester/bcttest-Results.xml
     expire_in: 4 week
     
-test-bctoolbox-debian8:
-  extends: .test-bctoolbox
-  tags: [ "docker-test-debian8" ]
+#Commented until pref fix of debian8 runner 
+#test-bctoolbox-debian8:
+ # extends: .test-bctoolbox
+  #tags: [ "docker-test-debian8" ]
   
 test-bctoolbox-debian9:
   extends: .test-bctoolbox
@@ -128,10 +130,11 @@ test-bctoolbox-centos7:
       junit:
         - build-desktop/linphone-sdk/desktop/bin/bstest-Results.xml
     expire_in: 4 week
-    
-test-bellesip-debian8:
-  extends: .test-bellesip
-  tags: [ "docker-test-debian8" ]
+
+#Commented until pref fix of debian8 runner     
+#test-bellesip-debian8:
+ # extends: .test-bellesip
+  #tags: [ "docker-test-debian8" ]
   
 test-bellesip-debian9:
   extends: .test-bellesip
@@ -177,10 +180,11 @@ test-mediastreamer:
       junit:
         - build-desktop/linphone-sdk/desktop/bin/blrtest-Results.xml
     expire_in: 4 week
-    
-test-belr-debian8:
-  extends: .test-belr
-  tags: [ "docker-test-debian8" ]
+
+#Commented until pref fix of debian8 runner     
+#test-belr-debian8:
+ # extends: .test-belr
+  "tags: [ "docker-test-debian8" ]
   
 test-belr-debian9:
   extends: .test-belr
@@ -207,9 +211,10 @@ test-belr-centos7:
         - build-desktop/linphone-sdk/desktop/bin/belcardtest-Results.xml
     expire_in: 4 week
     
-test-belcard-debian8:
-  extends: .test-belcard
-  tags: [ "docker-test-debian8" ]
+   #Commented until pref fix of debian8 runner 
+#test-belcard-debian8:
+ # extends: .test-belcard
+  #tags: [ "docker-test-debian8" ]
   
 test-belcard-debian9:
   extends: .test-belcard
@@ -260,7 +265,8 @@ test-lime:
   script:
     - curl -sL https://rpm.nodesource.com/setup_10.x | sudo bash -
     - sudo yum -y install nodejs npm --skip-broken
-    - sudo npm -g install
+    #- sudo npm -g install
+    - npm install -g yarn sqlite3
     - ls -la .
     - pwd
     - ls -la ./lime
