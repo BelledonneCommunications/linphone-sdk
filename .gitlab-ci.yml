@@ -266,7 +266,7 @@ test-lime:
     - curl -sL https://rpm.nodesource.com/setup_10.x | sudo bash -
     - sudo yum -y install nodejs npm --skip-broken
     #- sudo npm -g install
-    - sudo npm install -g yarn sqlite3
+    - npm install yarn sqlite3
     - ls -la .
     - pwd
     - ls -la ./lime
