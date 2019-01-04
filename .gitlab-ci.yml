@@ -264,9 +264,10 @@ test-lime:
     - build-centos7
   script:
     - curl -sL https://rpm.nodesource.com/setup_10.x | sudo bash -
-    - sudo yum -y install nodejs npm --skip-broken
+    - sudo yum -y install nodejs 
+    #npm --skip-broken
     #- sudo npm -g install
-    - npm install yarn sqlite3
+    - npm install yargs sqlite3 rwlock
     - ls -la .
     - pwd
     - ls -la ./lime
