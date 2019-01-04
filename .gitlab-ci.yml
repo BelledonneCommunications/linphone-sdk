@@ -96,7 +96,7 @@ build-debian8:
         - build-desktop/WORK/desktop/Build/bctoolbox/tester/bcttest-Results.xml
     expire_in: 4 week
     
-Commented until perf fix of debian8 runner 
+#Commented until perf fix of debian8 runner 
 test-bctoolbox-debian8:
   extends: .test-bctoolbox
   tags: [ "docker-test-debian8" ]
