@@ -72,8 +72,8 @@ build-ubuntu:
   extends: .build-sdk
   
 build-arch:
-tags: [ "docker-archlinux-latest" ]
-extends: .build-sdk
+  tags: [ "docker-archlinux-latest" ]
+  extends: .build-sdk
   
 
 
@@ -120,11 +120,11 @@ test-bctoolbox-centos7:
  
 test-bctoolbox-ubuntu:
   extends: .test-bctoolbox
- tags: [ "docker-ubuntu-rolling" ]
+  tags: [ "docker-ubuntu-rolling" ]
  
  test-bctoolbox-arch:
   extends: .test-bctoolbox
- tags: [ "docker-archlinux-lastest" ] 
+  tags: [ "docker-archlinux-lastest" ] 
 
 .test-bellesip:
   extends: .test
@@ -161,12 +161,12 @@ test-bellesip-centos7:
   tags: [ "docker-test-centos7" ]
   
 test-bctoolbox-ubuntu:
-extends: .test-bellesip
-tags: [ "docker-ubuntu-rolling" ]
+  extends: .test-bellesip
+  tags: [ "docker-ubuntu-rolling" ]
 
 test-bellesip-arch:
-extends: .test-bellesip
-tags: [ "docker-archlinux-lastest" ] 
+  extends: .test-bellesip
+  tags: [ "docker-archlinux-lastest" ] 
 
 test-mediastreamer:
   tags: [ "docker-test-centos7" ]
@@ -219,12 +219,12 @@ test-belr-centos7:
   tags: [ "docker-test-centos7" ]
   
 test-belr-ubuntu:
-extends: .test-belr
-tags: [ "docker-ubuntu-rolling" ]
+  extends: .test-belr
+  tags: [ "docker-ubuntu-rolling" ]
 
 test-belr-arch:
-extends: .test-belr
-tags: [ "docker-archlinux-lastest" ] 
+  extends: .test-belr
+  tags: [ "docker-archlinux-lastest" ] 
 
 .test-belcard:
   extends: .test
@@ -257,12 +257,12 @@ test-belcard-centos7:
   tags: [ "docker-test-centos7" ]
   
 test-belcard-ubuntu:
-extends: .test-belcard
-tags: [ "docker-ubuntu-rolling" ]
+  extends: .test-belcard
+  tags: [ "docker-ubuntu-rolling" ]
 
 test-belcard-arch:
-extends: .test-belcard
-tags: [ "docker-archlinux-lastest" ] 
+  extends: .test-belcard
+  tags: [ "docker-archlinux-lastest" ] 
 
 .test-bzrtp:
   extends: .test
@@ -298,11 +298,11 @@ test-bzrtp-centos7:
   
 test-bzrtp-ubuntu:
   extends: .test-bzrtp
- tags: [ "docker-ubuntu-rolling" ]
+  tags: [ "docker-ubuntu-rolling" ]
  
  test-bzrtp-arch:
   extends: .test-bzrtp
- tags: [ "docker-archlinux-lastest" ] 
+  tags: [ "docker-archlinux-lastest" ] 
 
 #commented until we can test with a proper server instead of blindly executing
 test-lime:
