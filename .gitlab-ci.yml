@@ -90,7 +90,7 @@ build-arch:
 .test-bctoolbox:
   extends: .test
   dependencies:
-    - build-centos7
+    - build-sdk
   script:
     - cd build-desktop/WORK/desktop/Build/bctoolbox/tester
     - ls -la
@@ -129,11 +129,11 @@ test-bctoolbox-arch:
 .test-bellesip:
   extends: .test
   dependencies:
-    - build-centos7
+    - build-sdk
   script:
-    - ip -6 a
-    - ip -6 n
-    - ip -6 r
+    #- ip -6 a
+    #- ip -6 n
+    #- ip -6 r
     - cd build-desktop/linphone-sdk/desktop/bin
     - ls -la
     - ./belle_sip_tester --verbose --resource-dir ../share/ --xml-file bstest
