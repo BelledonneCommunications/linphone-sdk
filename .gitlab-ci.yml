@@ -122,7 +122,7 @@ test-bctoolbox-ubuntu:
   extends: .test-bctoolbox
   tags: [ "docker-ubuntu-rolling" ]
  
- test-bctoolbox-arch:
+test-bctoolbox-arch:
   extends: .test-bctoolbox
   tags: [ "docker-archlinux-latest" ] 
 
@@ -300,7 +300,7 @@ test-bzrtp-ubuntu:
   extends: .test-bzrtp
   tags: [ "docker-ubuntu-rolling" ]
  
- test-bzrtp-arch:
+test-bzrtp-arch:
   extends: .test-bzrtp
   tags: [ "docker-archlinux-latest" ] 
 
