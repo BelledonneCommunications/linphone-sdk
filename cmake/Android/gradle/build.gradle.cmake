@@ -41,6 +41,12 @@ def rootSdk = '@LINPHONESDK_BUILD_DIR@/linphone-sdk/android-@LINPHONESDK_FIRST_A
 def srcDir = ['@LINPHONESDK_DIR@/mediastreamer2/java/src']
 srcDir += [rootSdk + '/share/linphonej/java/org/linphone/core/']
 srcDir += ['@LINPHONESDK_DIR@/linphone/wrappers/java/classes/']
+def csharpSdk = '@LINPHONESDK_BUILD_DIR@/linphone-sdk/android-@LINPHONESDK_FIRST_ARCH@/share/linphonecs/'
+
+static def csharpWrapperFound() {
+    File csWrapper = new File('@LINPHONESDK_BUILD_DIR@/linphone-sdk/android-@LINPHONESDK_FIRST_ARCH@/share/linphonecs/LinphoneWrapper.cs')
+    return csWrapper.exists()
+}
 
 def excludePackage = []
 
@@ -207,11 +213,21 @@ task copyAssets(type: Sync) {
     }
     // do not copy those
     includeEmptyDirs = false
+}
 
+task copyCsharpWrapper(type: Copy) {
+    from csharpSdk
+    into "${buildDir}/sdk-assets/assets/org.linphone.core"
+    include 'LinphoneWrapper.cs'
+
+    includeEmptyDirs = false
 }
 
 project.tasks['preBuild'].dependsOn 'copyAssets'
 project.tasks['preBuild'].dependsOn 'copyProguard'
+if (csharpWrapperFound()) {
+    project.tasks['preBuild'].dependsOn 'copyCsharpWrapper'
+}
 
 uploadArchives {
     repositories {
