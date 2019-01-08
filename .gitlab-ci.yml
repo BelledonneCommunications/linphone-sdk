@@ -66,6 +66,15 @@ build-debian8:
   tags: [ "docker-debian8" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
   extends: .build-sdk
+  
+build-ubuntu:
+  tags: [ "docker-ubuntu-rolling" ]
+  extends: .build-sdk
+  
+build-arch:
+tags: [ "docker-archlinux-latest" ]
+extends: .build-sdk
+  
 
 
 #.scheduled-job-linux-desktop:
@@ -108,7 +117,14 @@ test-bctoolbox-debian9:
 test-bctoolbox-centos7:
   extends: .test-bctoolbox
   tags: [ "docker-test-centos7" ]
-  
+ 
+test-bctoolbox-ubuntu:
+  extends: .test-bctoolbox
+ tags: [ "docker-ubuntu-rolling" ]
+ 
+ test-bctoolbox-arch:
+  extends: .test-bctoolbox
+ tags: [ "docker-archlinux-lastest" ] 
 
 .test-bellesip:
   extends: .test
@@ -143,6 +159,14 @@ test-bellesip-debian9:
 test-bellesip-centos7:
   extends: .test-bellesip
   tags: [ "docker-test-centos7" ]
+  
+test-bctoolbox-ubuntu:
+extends: .test-bellesip
+tags: [ "docker-ubuntu-rolling" ]
+
+test-bellesip-arch:
+extends: .test-bellesip
+tags: [ "docker-archlinux-lastest" ] 
 
 test-mediastreamer:
   tags: [ "docker-test-centos7" ]
@@ -193,6 +217,14 @@ test-belr-debian9:
 test-belr-centos7:
   extends: .test-belr
   tags: [ "docker-test-centos7" ]
+  
+test-belr-ubuntu:
+extends: .test-belr
+tags: [ "docker-ubuntu-rolling" ]
+
+test-belr-arch:
+extends: .test-belr
+tags: [ "docker-archlinux-lastest" ] 
 
 .test-belcard:
   extends: .test
@@ -223,6 +255,14 @@ test-belcard-debian9:
 test-belcard-centos7:
   extends: .test-belcard
   tags: [ "docker-test-centos7" ]
+  
+test-belcard-ubuntu:
+extends: .test-belcard
+tags: [ "docker-ubuntu-rolling" ]
+
+test-belcard-arch:
+extends: .test-belcard
+tags: [ "docker-archlinux-lastest" ] 
 
 .test-bzrtp:
   extends: .test
@@ -255,6 +295,14 @@ test-bzrtp-debian9:
 test-bzrtp-centos7:
   extends: .test-bzrtp
   tags: [ "docker-test-centos7" ]
+  
+test-bzrtp-ubuntu:
+  extends: .test-bzrtp
+ tags: [ "docker-ubuntu-rolling" ]
+ 
+ test-bzrtp-arch:
+  extends: .test-bzrtp
+ tags: [ "docker-archlinux-lastest" ] 
 
 #commented until we can test with a proper server instead of blindly executing
 test-lime:
