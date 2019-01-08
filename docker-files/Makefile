@@ -8,6 +8,9 @@ android-r17c:
 
 centos7:
 	docker build -f bc-dev-centos7 -t $(BASE_NAME)/bc-dev-centos:7 --rm .
+	
+centos7-lime:
+	docker build -f bc-dev-centos7-test-lime -t $(BASE_NAME)/bc-dev-centos-test-lime:7 --rm .
 
 debian8:
 	docker build -f bc-dev-debian8 -t $(BASE_NAME)/bc-dev-debian:8 --rm .
@@ -15,4 +18,4 @@ debian8:
 debian9:
 	docker build -f bc-dev-debian9 -t $(BASE_NAME)/bc-dev-debian:9 --rm .
 
-.PHONY: android-r16b android-r17c centos7 debian8 debian9
+.PHONY: android-r16b android-r17c centos7 centos7-lime debian8 debian9
