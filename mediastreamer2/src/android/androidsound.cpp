@@ -227,19 +227,7 @@ static MSFilter *android_snd_card_create_writer(MSSndCard *card){
 	return f;
 }
 
-static int get_sdk_version(){
-	static int sdk_version = 0;
-	if (sdk_version==0){
-		/* Get Android SDK version. */
-		JNIEnv *jni_env = ms_get_jni_env();
-		jclass version_class = jni_env->FindClass("android/os/Build$VERSION");
-		jfieldID fid = jni_env->GetStaticFieldID(version_class, "SDK_INT", "I");
-		sdk_version = jni_env->GetStaticIntField(version_class, fid);
-		ms_message("SDK version [%i] detected", sdk_version);
-		jni_env->DeleteLocalRef(version_class);
-	}
-	return sdk_version;
-}
+
 
 static void android_snd_card_detect(MSSndCardManager *m) {
 	bool audio_record_loaded = false;
@@ -251,13 +239,13 @@ static void android_snd_card_detect(MSSndCardManager *m) {
 	SoundDeviceDescription *d = NULL;
 	MSDevicesInfo *devices = NULL;
 
-	if (get_sdk_version() > 19) {
+	if (ms2_android_get_sdk_version() > 19) {
 		/*it is actually working well on android 5 on Nexus 4 but crashes on Samsung S5, due to, maybe
 		 * calling convention of C++ method being different. Arguments received by AudioTrack constructor do not match the arguments
 		 * sent by the caller (TransferType maps to uid argument!).
 		 * Until we find a rational explanation to this, the native module is disabled on Android 5.
 		**/
-		ms_message("Native android sound support not tested on SDK [%i], disabled.",get_sdk_version());
+		ms_message("Native android sound support not tested on SDK [%i], disabled.",ms2_android_get_sdk_version());
 		return;
 	}
 	
@@ -697,7 +685,7 @@ static void android_snd_write_cb(int event, void *user, void * p_info){
 static int channel_mask_for_audio_track(int nchannels) {
 	int channel_mask;
 	channel_mask = audio_channel_out_mask_from_count(nchannels);
-	if (get_sdk_version() < 14) {
+	if (ms2_android_get_sdk_version() < 14) {
 		ms_message("Android version older than ICS, apply audio channel hack for AudioTrack");
 		if ((channel_mask & AUDIO_CHANNEL_OUT_MONO) == AUDIO_CHANNEL_OUT_MONO) {
 			channel_mask = 0x4;

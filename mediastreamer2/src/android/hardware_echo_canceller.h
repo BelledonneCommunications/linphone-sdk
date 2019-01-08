@@ -18,9 +18,22 @@
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#include <mediastreamer2/msfilter.h>
+#ifndef hardware_echo_canceller_h
+#define hardware_echo_canceller_h
 
+#include <mediastreamer2/msfilter.h>
 #include <jni.h>
+
+#ifdef __cplusplus
+extern "C"{
+#endif
 
 jobject enable_hardware_echo_canceller(JNIEnv *env, int sessionId);
 void delete_hardware_echo_canceller(JNIEnv *env, jobject aec);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+

@@ -85,3 +85,5 @@ jobject enable_hardware_echo_canceller(JNIEnv *env, int sessionId) {
 void delete_hardware_echo_canceller(JNIEnv *env, jobject aec) {
 	env->DeleteGlobalRef(aec);
 }
+
+

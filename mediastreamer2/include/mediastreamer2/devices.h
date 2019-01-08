@@ -1,5 +1,5 @@
 /*
- * android_echo.h -Android echo cancellation utilities.
+ * devices.h - Audio device workarounds for various hardware defects.
  *
  * Copyright (C) 2009-2012  Belledonne Communications, Grenoble, France
  *
@@ -70,11 +70,15 @@ MSDevicesInfo *ms_devices_info_new(void);
 
 void ms_devices_info_free(MSDevicesInfo *devices_info);
 
+int ms2_android_get_sdk_version(void);
+
 MS2_PUBLIC void ms_devices_info_add(MSDevicesInfo *devices_info, const char *manufacturer, const char *model, const char *platform, unsigned int flags, int delay, int recommended_rate);
 
 MS2_PUBLIC SoundDeviceDescription* ms_devices_info_lookup_device(MSDevicesInfo *devices_info, const char *manufacturer, const char* model, const char *platform);
 
 MS2_PUBLIC SoundDeviceDescription* ms_devices_info_get_sound_device_description(MSDevicesInfo *devices_info);
+
+
 
 #ifdef __cplusplus
 }

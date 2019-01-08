@@ -30,6 +30,23 @@
 
 
 #ifdef __ANDROID__
+
+int ms2_android_get_sdk_version(void){
+	static int sdk_version = 0;
+	if (sdk_version==0){
+		/* Get Android SDK version. */
+		JNIEnv *jni_env = ms_get_jni_env();
+		jclass version_class = (*jni_env)->FindClass(jni_env, "android/os/Build$VERSION");
+		jfieldID fid = (*jni_env)->GetStaticFieldID(jni_env, version_class, "SDK_INT", "I");
+		sdk_version = (*jni_env)->GetStaticIntField(jni_env, version_class, fid);
+		ms_message("SDK version [%i] detected", sdk_version);
+		(*jni_env)->DeleteLocalRef(jni_env, version_class);
+	}
+	return sdk_version;
+}
+
+
+
 /*
  * 1st column: list of triplet frequency, gain, width
  * 2nd column: mic gain in db
@@ -204,6 +221,9 @@ static SoundDeviceDescription devices[]={
 	{	NULL, 					NULL,					NULL,			0, 	0,	0}
 };
 
+/*On android >= 8 we assume that AEC is builtin and usable with opensles api*/
+SoundDeviceDescription genericSoundDeviceDescriptorAboveAndroid8 = { "Generic", "Generic", "Generic", DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0, 0};
+
 SoundDeviceDescription genericSoundDeviceDescriptor={"Generic", "Generic", "Generic", 0, 250, 0, 0};
 
 JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerAndroidContext_addSoundDeviceDescription(JNIEnv* env, jobject thiz, jstring jmanufacturer, jstring jmodel, jstring jplatform, jint flags, jint delay, jint rate) {
@@ -358,7 +378,14 @@ SoundDeviceDescription* ms_devices_info_get_sound_device_description(MSDevicesIn
 	d = ms_devices_info_lookup_device(devices_info, manufacturer, model, platform);
 	if (!d) {
 		ms_message("No information available for [%s/%s/%s],", manufacturer, model, platform);
+#ifdef __ANDROID__
+		if (ms2_android_get_sdk_version() >= 26){
+			d = &genericSoundDeviceDescriptorAboveAndroid8;
+			ms_message("Using android >= 8 sound device descriptor.");
+		}else d = &genericSoundDeviceDescriptor;
+#else
 		d = &genericSoundDeviceDescriptor;
+#endif
 	} else {
 		ms_message("Found information for [%s/%s/%s] from internal table", manufacturer, model, platform);
 		exact_match = TRUE;
@@ -380,3 +407,4 @@ SoundDeviceDescription* ms_devices_info_get_sound_device_description(MSDevicesIn
 				manufacturer, model, platform, (d->flags & DEVICE_HAS_BUILTIN_AEC) ? "yes" : "no", d->delay);
 	return d;
 }
+
