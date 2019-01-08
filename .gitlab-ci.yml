@@ -90,7 +90,7 @@ build-arch:
 .test-bctoolbox:
   extends: .test
   dependencies:
-    - build-sdk
+    - .build-sdk
   script:
     - cd build-desktop/WORK/desktop/Build/bctoolbox/tester
     - ls -la
@@ -129,7 +129,7 @@ test-bctoolbox-arch:
 .test-bellesip:
   extends: .test
   dependencies:
-    - build-sdk
+    - .build-sdk
   script:
     #- ip -6 a
     #- ip -6 n
@@ -191,7 +191,7 @@ test-mediastreamer:
 .test-belr:
   extends: .test
   dependencies:
-    - build-centos7
+    - .build-sdk
   script:
     - cd build-desktop/linphone-sdk/desktop/bin
     - ./belr_tester --verbose --resource-dir ../share/belr-tester --xml-file blrtest
@@ -229,7 +229,7 @@ test-belr-arch:
 .test-belcard:
   extends: .test
   dependencies:
-    - build-centos7
+    - .build-sdk
   script:
     - cd build-desktop/linphone-sdk/desktop/bin
     - ./belcard_tester --verbose --xml-file belcardtest
@@ -267,7 +267,7 @@ test-belcard-arch:
 .test-bzrtp:
   extends: .test
   dependencies:
-    - build-centos7
+    - .build-sdk
   script:
     - cd build-desktop/WORK/desktop/Build/bzrtp/test
     - ls -la
