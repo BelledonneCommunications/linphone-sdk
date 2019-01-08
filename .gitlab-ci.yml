@@ -124,7 +124,7 @@ test-bctoolbox-ubuntu:
  
  test-bctoolbox-arch:
   extends: .test-bctoolbox
-  tags: [ "docker-archlinux-lastest" ] 
+  tags: [ "docker-archlinux-latest" ] 
 
 .test-bellesip:
   extends: .test
@@ -166,7 +166,7 @@ test-bctoolbox-ubuntu:
 
 test-bellesip-arch:
   extends: .test-bellesip
-  tags: [ "docker-archlinux-lastest" ] 
+  tags: [ "docker-archlinux-latest" ] 
 
 test-mediastreamer:
   tags: [ "docker-test-centos7" ]
@@ -224,7 +224,7 @@ test-belr-ubuntu:
 
 test-belr-arch:
   extends: .test-belr
-  tags: [ "docker-archlinux-lastest" ] 
+  tags: [ "docker-archlinux-latest" ] 
 
 .test-belcard:
   extends: .test
@@ -262,7 +262,7 @@ test-belcard-ubuntu:
 
 test-belcard-arch:
   extends: .test-belcard
-  tags: [ "docker-archlinux-lastest" ] 
+  tags: [ "docker-archlinux-latest" ] 
 
 .test-bzrtp:
   extends: .test
@@ -302,7 +302,7 @@ test-bzrtp-ubuntu:
  
  test-bzrtp-arch:
   extends: .test-bzrtp
-  tags: [ "docker-archlinux-lastest" ] 
+  tags: [ "docker-archlinux-latest" ] 
 
 #commented until we can test with a proper server instead of blindly executing
 test-lime:
