@@ -130,7 +130,7 @@ test-bctoolbox-ubuntu:
  
 test-bctoolbox-arch:
   extends: .test-bctoolbox
-    dependencies:
+  dependencies:
     - build-arch
   tags: [ "docker-archlinux-latest" ] 
 
