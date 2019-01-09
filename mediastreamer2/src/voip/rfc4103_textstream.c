@@ -175,7 +175,6 @@ void text_stream_prepare_text(TextStream *stream){
 	text_stream_unprepare_text(stream);
 	stream->ms.rtprecv = ms_factory_create_filter(stream->ms.factory, MS_RTP_RECV_ID);
 	rtp_session_set_payload_type(stream->ms.sessions.rtp_session, 0);
-	rtp_session_enable_rtcp(stream->ms.sessions.rtp_session, FALSE);
 	ms_filter_call_method(stream->ms.rtprecv, MS_RTP_RECV_SET_SESSION, stream->ms.sessions.rtp_session);
 	stream->ms.voidsink = ms_factory_create_filter(stream->ms.factory, MS_VOID_SINK_ID);
 	ms_filter_link(stream->ms.rtprecv, 0, stream->ms.voidsink, 0);
