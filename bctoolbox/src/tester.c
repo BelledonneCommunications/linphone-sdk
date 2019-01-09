@@ -292,31 +292,123 @@ void bc_tester_list_tests(const char *suite_name) {
 char *bc_tester_get_failed_asserts(void) {
 	int i;
 	CU_pFailureRecord pFailure = NULL;
-	char *buffer = "";
+	char *buffer = "", *tmp;
 
 	pFailure = CU_get_failure_list();
 
 	if (pFailure) {
 		for (i = 1; (NULL != pFailure); pFailure = pFailure->pNext, i++) {
-			buffer = bc_sprintf("%s\n    %d. %s:%u  - %s",
+			tmp = bc_sprintf("%s\n    %d. %s:%u  - %s",
 					    buffer,
 					    i,
 					    (NULL != pFailure->strFileName) ? pFailure->strFileName : "",
 					    pFailure->uiLineNumber,
 					    (NULL != pFailure->strCondition) ? pFailure->strCondition : "");
 			if (i != 1) {
-				free(buffer);
+				bctbx_free(buffer);
 			}
+			buffer = tmp;
 		}
 	}
 	return buffer;
 }
 
+#ifdef _WIN32
+
+void write_suite_result_file(char *suite_name, char *results_string) {
+	(void)suite_name;
+	(void)results_string;
+	//TODO Windows support
+}
+
+void merge_and_print_results_files(void) {
+	//TODO Windows support
+}
+
+#else
+
+void write_suite_result_file(char *suite_name, char *results_string) {
+	bctbx_vfs_file_t* bctbx_file;
+	char *suite_name_wo_spaces, *file_name;
+
+
+	suite_name_wo_spaces = bctbx_replace(bctbx_strdup(suite_name), ' ', '_');
+	file_name = bc_sprintf("%s.result", suite_name_wo_spaces);
+	bctbx_file = bctbx_file_open(bctbx_vfs_get_default(), file_name, "w+");
+	if (bctbx_file) {
+		bctbx_file_truncate(bctbx_file, 0);
+		bctbx_file_fprintf(bctbx_file, 0, results_string);
+		bctbx_file_close(bctbx_file);
+	}
+	bctbx_free(suite_name_wo_spaces);
+	bctbx_free(file_name);
+}
+
+void merge_and_print_results_files(void) {
+	bctbx_vfs_file_t* bctbx_file;
+	int i;
+	ssize_t file_size, read_bytes;
+	char *buffer, *tmp;
+	char *suite_name_wo_spaces, *file_name;
+	char *results = NULL;
+
+	for (i = 0; i < nb_test_suites; i++) {
+		suite_name_wo_spaces = bctbx_replace(bctbx_strdup(test_suite[i]->name), ' ', '_');
+		file_name = bc_sprintf("%s.result", suite_name_wo_spaces);
+		bctbx_file = bctbx_file_open2(bctbx_vfs_get_default(), file_name, O_RDONLY);
+
+		if (bctbx_file) {
+			file_size = (int64_t) bctbx_file_size(bctbx_file);
+			if (file_size > 0) {
+				buffer = malloc(file_size + 1);
+				read_bytes = bctbx_file_read(bctbx_file, (void *)buffer, file_size, 0);
+				if (read_bytes == file_size) {
+					buffer[read_bytes] = '\0';
+
+					if (results == NULL) {
+						results = bctbx_concat("Suite '", test_suite[i]->name, "' results:\n", buffer, NULL);
+					} else {
+						tmp = bctbx_concat(results, "\nSuite '", test_suite[i]->name, "' results:\n", buffer, NULL);
+						bctbx_free(results);
+						results = tmp;
+					}
+				} else {
+					bc_tester_printf(bc_printf_verbosity_error, "Failed to read suite results file '%s'", file_name);
+				}
+				bctbx_free(buffer);
+			} else {
+				bc_tester_printf(bc_printf_verbosity_error, "Empty suite results file '%s'", file_name);
+			}
+			remove(file_name);
+		} else {
+			bc_tester_printf(bc_printf_verbosity_error, "Failed to open suite results file '%s'", file_name);
+		}
+		bctbx_free(suite_name_wo_spaces);
+		bctbx_free(file_name);
+	}
+	if (results) {
+		bc_tester_printf(bc_printf_verbosity_info, "Tests suites results: \n%s", results);
+		bctbx_free(results);
+	}
+}
+
+#endif
+
 static void all_complete_message_handler(const CU_pFailureRecord pFailure) {
 #ifdef HAVE_CU_GET_SUITE
-	char * results = CU_get_run_results_string();
-	bc_tester_printf(bc_printf_verbosity_info,"\n%s",results);
-	CU_FREE(results);
+	if (parallel_suites != 0) {
+		if (suite_name) {
+			char *results = CU_get_run_results_string();
+			write_suite_result_file(suite_name, results);
+			CU_FREE(results);
+		} else {
+			merge_and_print_results_files();
+		}
+	} else {
+		char *results = CU_get_run_results_string();
+		bc_tester_printf(bc_printf_verbosity_info,"\n%s", results);
+		CU_FREE(results);
+	}
 #endif
 }
 
@@ -364,13 +456,13 @@ static void test_complete_message_handler(const CU_pTest pTest, const CU_pSuite 
 					    (NULL != pFailure->strFileName) ? pFailure->strFileName : "",
 					    pFailure->uiLineNumber,
 					    (NULL != pFailure->strCondition) ? pFailure->strCondition : "");
-			free(result);
+			bctbx_free(result);
 			result = buffer;
 		}
 	}
 
 	bc_tester_printf(bc_printf_verbosity_info,"%s", result);
-	free(result);
+	bctbx_free(result);
 
 	//insert empty line
 	bc_tester_printf(bc_printf_verbosity_info,"");
@@ -404,7 +496,7 @@ char *get_logfile_name(const char *base_name, const char *suite_name) {
 	if (suite_name) {
 		char *name_wo_spaces = bctbx_replace(bctbx_strdup(suite_name), ' ', '_');
 		char *ret = bc_sprintf("%s_%s.log", base_name, name_wo_spaces);
-		free(name_wo_spaces);
+		bctbx_free(name_wo_spaces);
 		return ret;
 	} else {
 		return strdup(base_name);
@@ -457,7 +549,7 @@ void merge_junit_xml_files(const char *dst_file_name) {
 				suite_junit_xml_results[i][file_size] = '\0';
 			} else {
 				bc_tester_printf(bc_printf_verbosity_error, "Could not read JUnit XML file '%s' to merge", file_name);
-				free(suite_junit_xml_results[i]);
+				bctbx_free(suite_junit_xml_results[i]);
 				suite_junit_xml_results[i] = NULL;
 			}
 		} else {
@@ -466,7 +558,7 @@ void merge_junit_xml_files(const char *dst_file_name) {
 		bctbx_file_close(bctbx_file);
 		//Also remove the file
 		remove(file_name);
-		free(file_name);
+		bctbx_free(file_name);
 	}
 	//Empty the destination file
 	bctbx_file = bctbx_file_open(bctbx_vfs_get_default(), dst_file_name, "w+");
@@ -475,12 +567,12 @@ void merge_junit_xml_files(const char *dst_file_name) {
 	for (i = 0; i < nb_test_suites; i++) {
 		if (suite_junit_xml_results[i] != NULL) {
 			offset += bctbx_file_fprintf(bctbx_file, offset, suite_junit_xml_results[i]);
-			free(suite_junit_xml_results[i]);
+			bctbx_free(suite_junit_xml_results[i]);
 		}
 	}
 	bctbx_file_fprintf(bctbx_file, offset, "</testsuites>\n");
 	bctbx_file_close(bctbx_file);
-	free(suite_junit_xml_results);
+	bctbx_free(suite_junit_xml_results);
 }
 
 //In case tests are started in parallel AND --log-file was given
@@ -514,8 +606,8 @@ void merge_log_files(const char *base_logfile_name) {
 			bc_tester_printf(bc_printf_verbosity_error, "Could not read log file '%s' to merge into '%s'", suite_logfile_name, base_logfile_name);
 		}
 		bctbx_file_close(bctbx_file);
-		free(suite_logfile_name);
-		free(buf);
+		bctbx_free(suite_logfile_name);
+		bctbx_free(buf);
 	}
 	bctbx_file_close(dst_file);
 }
@@ -561,7 +653,7 @@ int start_sub_process(const char *suite_name) {
 	const char *argv[origin_argc + 10]; //Assume safey 10 more parameters
 
 	argv[argc++] = origin_argv[0];
-	for (i = 1;	origin_argv[i]; ++i) {
+	for (i = 1; origin_argv[i]; ++i) {
 		if (strcmp(origin_argv[i], "--verbose") == 0) {
 			argv[argc++] = origin_argv[i];
 		} else if (strcmp(origin_argv[i], "--silent") == 0) {
@@ -611,7 +703,7 @@ int handle_sub_process_error(int pid, int exitStatus, int *suitesPids) {
 				bctbx_file_fprintf(bctbx_file, offset, "\n</testsuite>\n");
 				bc_tester_printf(bc_printf_verbosity_info, "Suite '%s' ended in error. Marking all tests as failed", test_suite[i]->name);
 				bctbx_file_close(bctbx_file);
-				free(suite_file_name);
+				bctbx_free(suite_file_name);
 			}
 		}
 	}
@@ -690,6 +782,7 @@ int bc_tester_run_parallel(void) {
 		kill_sub_processes(suitesPids);
 	}
 	bc_tester_printf(bc_printf_verbosity_info, "All suites ended.");
+	all_complete_message_handler(NULL);
 	return ret;
 }
 
@@ -722,13 +815,13 @@ int bc_tester_run_tests(const char *suite_name, const char *test_name, const cha
 				CU_automated_enable_partial_junit(TRUE);
 				xml_file_name = get_junit_xml_file_name(suite_name, NULL);
 				CU_set_output_filename(xml_file_name);
-				free(xml_file_name);
+				bctbx_free(xml_file_name);
 				CU_automated_run_tests();
 			} else { //Starting registered suites in parallel
 				ret = bc_tester_run_parallel();
 				xml_file_name = get_junit_xml_file_name(NULL, "-Results.xml");
 				merge_junit_xml_files(xml_file_name);
-				free(xml_file_name);
+				bctbx_free(xml_file_name);
 				if (log_file_name) {
 					merge_log_files(log_file_name);
 				}
@@ -738,7 +831,7 @@ int bc_tester_run_tests(const char *suite_name, const char *test_name, const cha
 			xml_file_name = get_junit_xml_file_name(NULL, NULL);
 			CU_set_output_filename(xml_file_name);
 			CU_automated_run_tests();
-			free(xml_file_name);
+			bctbx_free(xml_file_name);
 		}
 		return CU_get_number_of_tests_failed() != 0;
 	}
@@ -806,7 +899,7 @@ int bc_tester_run_tests(const char *suite_name, const char *test_name, const cha
 static int file_exists(const char* root_path) {
 	char * res_path = bc_sprintf("%s/%s", root_path, expected_res);
 	int err = bctbx_file_exist(res_path);
-	free(res_path);
+	bctbx_free(res_path);
 	return err == 0;
 }
 #endif
@@ -860,13 +953,13 @@ static void detect_res_prefix(const char* prog) {
 			} else if (file_exists(progpath2)) {
 				prefix = strdup(progpath2);
 			}
-			free(progpath2);
+			bctbx_free(progpath2);
 		}
-		if (installed_resources_path != NULL) free(installed_resources_path);
+		if (installed_resources_path != NULL) bctbx_free(installed_resources_path);
 
 		if (bc_tester_resource_dir_prefix != NULL && !file_exists(bc_tester_resource_dir_prefix)) {
 			bc_tester_printf(bc_printf_verbosity_error, "Invalid provided resource directory: could not find expected resources '%s' in '%s'.", expected_res, bc_tester_resource_dir_prefix);
-			free(bc_tester_resource_dir_prefix);
+			bctbx_free(bc_tester_resource_dir_prefix);
 			bc_tester_resource_dir_prefix = NULL;
 		}
 
@@ -880,7 +973,7 @@ static void detect_res_prefix(const char* prog) {
 				bc_tester_printf(bc_printf_verbosity_error, "Writable directory set to %s", prefix);
 				bc_tester_set_writable_dir_prefix(prefix);
 			}
-			free(prefix);
+			bctbx_free(prefix);
 		}
 	}
 #endif
@@ -892,7 +985,7 @@ static void detect_res_prefix(const char* prog) {
 		if (writable_file) {
 			fclose(writable_file);
 		}
-		free(writable_file_path);
+		bctbx_free(writable_file_path);
 	}
 	if (bc_tester_resource_dir_prefix == NULL || writable_file == NULL) {
 		if (bc_tester_resource_dir_prefix == NULL) {
@@ -905,10 +998,10 @@ static void detect_res_prefix(const char* prog) {
 	}
 
 	if (progpath != NULL) {
-		free(progpath);
+		bctbx_free(progpath);
 	}
 	if(progname) {
-		free(progname);
+		bctbx_free(progname);
 	}
 }
 
@@ -1142,23 +1235,23 @@ void bc_tester_uninit(void) {
 	bc_tester_printf(bc_printf_verbosity_info,"");
 
 	if (test_suite != NULL) {
-		free(test_suite);
+		bctbx_free(test_suite);
 		test_suite = NULL;
 		nb_test_suites = 0;
 	}
 
 	if (bc_tester_resource_dir_prefix != NULL) {
-		free(bc_tester_resource_dir_prefix);
+		bctbx_free(bc_tester_resource_dir_prefix);
 		bc_tester_resource_dir_prefix = NULL;
 	}
 	if (bc_tester_writable_dir_prefix != NULL) {
-		free(bc_tester_writable_dir_prefix);
+		bctbx_free(bc_tester_writable_dir_prefix);
 		bc_tester_writable_dir_prefix = NULL;
 	}
 }
 
 static void bc_tester_set_dir_prefix(char **prefix, const char *name) {
-	if (*prefix != NULL) free(*prefix);
+	if (*prefix != NULL) bctbx_free(*prefix);
 	*prefix = strdup(name);
 }
 
@@ -1225,7 +1318,7 @@ char* bc_sprintfva(const char* format, va_list args) {
 				size *= 2;	/* twice the old size */
 			if ((np = realloc (p, size)) == NULL)
 				{
-					free(p);
+					bctbx_free(p);
 					return NULL;
 				}
 			else
