@@ -654,7 +654,7 @@ MS_PLUGIN_DECLARE(void) libmsaaudio_init(MSFactory* factory) {
 		d = ms_devices_info_get_sound_device_description(devices);
 		MSSndCardManager *m = ms_factory_get_snd_card_manager(factory);
 		MSSndCard *card = android_snd_card_new(m);
-		ms_snd_card_manager_add_card(m, card);
+		ms_snd_card_manager_prepend_card(m, card);
 		ms_message("[AAudio] Soundcard created");
 	} else {
 		ms_warning("[AAudio] Failed to dlopen libAAudio, AAudio MS soundcard unavailable");
