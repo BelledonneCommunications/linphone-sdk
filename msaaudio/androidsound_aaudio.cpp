@@ -41,6 +41,7 @@ extern "C" {
 #endif
 JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerAndroidContext_setAAudioDeviceFavoriteSampleRate(JNIEnv* env, jclass thiz, jint samplerate) {
 	DeviceFavoriteSampleRate = (int)samplerate;
+	ms_message("[Device] Output sample rates: %i for AAudio MS sound card.", samplerate);
 }
 #ifdef __cplusplus
 }
@@ -158,7 +159,7 @@ static void android_snd_card_detect(MSSndCardManager *m) {
 		devices = ms_factory_get_devices_info(m->factory);
 		d = ms_devices_info_get_sound_device_description(devices);
 		MSSndCard *card = android_snd_card_new(m);
-		ms_snd_card_manager_add_card(m, card);
+		ms_snd_card_manager_prepend_card(m, card);
 	} else {
 		ms_warning("Failed to dlopen libAAudio, AAudio MS soundcard unavailable");
 	}
