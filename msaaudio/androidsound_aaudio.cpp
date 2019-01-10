@@ -36,17 +36,6 @@ static const int flowControlThresholdMs = 40;
 
 static int DeviceFavoriteSampleRate = 44100;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerAndroidContext_setAAudioDeviceFavoriteSampleRate(JNIEnv* env, jclass thiz, jint samplerate) {
-	DeviceFavoriteSampleRate = (int)samplerate;
-	ms_message("[Device] Output sample rates: %i for AAudio MS sound card.", samplerate);
-}
-#ifdef __cplusplus
-}
-#endif
-
 static MSSndCard *android_snd_card_new(MSSndCardManager *m);
 static MSFilter *ms_android_snd_read_new(MSFactory *factory);
 static MSFilter *ms_android_snd_write_new(MSFactory* factory);
@@ -137,7 +126,7 @@ int initAAudio() {
 	void *handle;
 
 	if ((handle = dlopen("libaaudio.so", RTLD_NOW)) == NULL){
-		ms_warning("Fail to load libAAudio : %s", dlerror());
+		ms_warning("[AAudio] Fail to load libAAudio : %s", dlerror());
 		result = -1;
 	} else {
 		dlerror(); // Clear previous message if present
@@ -161,7 +150,7 @@ static void android_snd_card_detect(MSSndCardManager *m) {
 		MSSndCard *card = android_snd_card_new(m);
 		ms_snd_card_manager_prepend_card(m, card);
 	} else {
-		ms_warning("Failed to dlopen libAAudio, AAudio MS soundcard unavailable");
+		ms_warning("[AAudio] Failed to dlopen libAAudio, AAudio MS soundcard unavailable");
 	}
 }
 
@@ -171,7 +160,7 @@ static void android_native_snd_card_init(MSSndCard *card) {
 
 static void android_native_snd_card_uninit(MSSndCard *card) {
 	AAudioContext *ctx = (AAudioContext*)card->data;
-	ms_warning("Deletion of AAudio context [%p]", ctx);
+	ms_warning("[AAudio] Deletion of AAudio context [%p]", ctx);
 }
 
 static AAudioInputContext* aaudio_input_context_init() {
@@ -314,7 +303,7 @@ static void android_snd_read_process(MSFilter *obj) {
 	}
 	ms_mutex_unlock(&ictx->mutex);
 	if (obj->ticker->time % 5000 == 0) {
-		ms_message("sound/wall clock skew is average=%g ms", ictx->mAvSkew);
+		ms_message("[AAudio] sound/wall clock skew is average=%g ms", ictx->mAvSkew);
 	}
 }
 
@@ -644,7 +633,19 @@ MS_PLUGIN_DECLARE(void) libmsaaudio_init(MSFactory* factory) {
 	ms_factory_register_filter(factory, &android_snd_aaudio_write_desc);
 	ms_factory_register_filter(factory, &android_snd_aaudio_read_desc);
 	
-	ms_message("libmsaaudio plugin loaded");
+	ms_message("[AAudio] libmsaaudio plugin loaded");
+
+	JNIEnv *env = ms_get_jni_env();
+	jclass mediastreamerAndroidContextClass = env->FindClass("org/linphone/mediastream/MediastreamerAndroidContext");
+	if (mediastreamerAndroidContextClass != NULL) {
+		jmethodID getSampleRate = env->GetStaticMethodID(mediastreamerAndroidContextClass, "getDeviceFavoriteSampleRate", "()I");
+		if (getSampleRate != NULL) {
+				jint ret = env->CallStaticIntMethod(mediastreamerAndroidContextClass, getSampleRate);
+				DeviceFavoriteSampleRate = (int)ret;
+				ms_message("[AAudio] Using %i for sample rate value", DeviceFavoriteSampleRate);
+		}
+		env->DeleteLocalRef(mediastreamerAndroidContextClass);
+	}
 
 	SoundDeviceDescription* d = NULL;
 	MSDevicesInfo *devices = NULL;
@@ -654,8 +655,8 @@ MS_PLUGIN_DECLARE(void) libmsaaudio_init(MSFactory* factory) {
 		MSSndCardManager *m = ms_factory_get_snd_card_manager(factory);
 		MSSndCard *card = android_snd_card_new(m);
 		ms_snd_card_manager_add_card(m, card);
-		ms_message("AAudio soundcard added");
+		ms_message("[AAudio] Soundcard created");
 	} else {
-		ms_warning("Failed to dlopen libAAudio, AAudio MS soundcard unavailable");
+		ms_warning("[AAudio] Failed to dlopen libAAudio, AAudio MS soundcard unavailable");
 	}
 }
