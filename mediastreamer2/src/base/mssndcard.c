@@ -122,6 +122,12 @@ void ms_snd_card_manager_add_card(MSSndCardManager *m, MSSndCard *c){
 	m->cards=bctbx_list_append(m->cards,c);
 }
 
+void ms_snd_card_manager_prepend_card(MSSndCardManager *m, MSSndCard *c){
+	ms_snd_card_set_manager(m,c);
+	ms_message("Card '%s' prepended with capabilities [%s]",ms_snd_card_get_string_id(c), cap_to_string(c->capabilities));
+	m->cards=bctbx_list_prepend(m->cards,c);
+}
+
 void ms_snd_card_manager_prepend_cards(MSSndCardManager *m, bctbx_list_t *l) {
 	bctbx_list_t *elem;
 	bctbx_list_t *lcopy = bctbx_list_copy(l);

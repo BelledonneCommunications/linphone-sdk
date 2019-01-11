@@ -32,10 +32,9 @@ public class MediastreamerAndroidContext {
 	public static final int DEVICE_HAS_BUILTIN_OPENSLES_AEC = 8; // The device has a builtin AEC and it is working with OpenSLES (which is uncommon)
 	public static final int DEVICE_USE_ANDROID_CAMCORDER = 512;
 
-	private native void setDeviceFavoriteSampleRate(int samplerate);
-	private native void setDeviceFavoriteBufferSize(int bufferSize);
-
 	private static Context mContext;
+	private static int mDeviceFavoriteSampleRate = 44100;
+	private static int mDeviceFavoriteBufferSize = 256;
 
 	private MediastreamerAndroidContext() {
 	}
@@ -50,6 +49,14 @@ public class MediastreamerAndroidContext {
 
 	public static Context getContext(){
 		return mContext;
+	}
+
+	public static int getDeviceFavoriteSampleRate() {
+		return mDeviceFavoriteSampleRate;
+	}
+
+	public static int getDeviceFavoriteBufferSize() {
+		return mDeviceFavoriteBufferSize;
 	}
 
 	@TargetApi(Build.VERSION_CODES.KITKAT)
@@ -75,9 +82,9 @@ public class MediastreamerAndroidContext {
 			bufferSize = parseInt(bufferProperty, bufferSize);
 			String sampleRateProperty = audiomanager.getProperty(AudioManager.PROPERTY_OUTPUT_SAMPLE_RATE);
 			sampleRate = parseInt(sampleRateProperty, sampleRate);
-			Log.i("[Device] Output frames per buffer: " + bufferSize + ", output sample rates: " + sampleRate + " for OpenSLES MS sound card.");
-			mac.setDeviceFavoriteSampleRate(sampleRate);
-			mac.setDeviceFavoriteBufferSize(bufferSize);
+			Log.i("[Device] Output frames per buffer: " + bufferSize + ", output sample rate: " + sampleRate + ".");
+			mDeviceFavoriteSampleRate = sampleRate;
+			mDeviceFavoriteBufferSize = bufferSize;
 		} else {
 			Log.i("Android < 4.4 detected, android context not used.");
 		}
