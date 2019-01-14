@@ -20,3 +20,22 @@ job-ios-upload:
     - pod repo push linphone-sdk build-ios/linphone-sdk.podspec --skip-import-validation --local-only --verbose
     - cd ~/.cocoapods/repos/linphone-sdk && git push origin $CI_COMMIT_REF_NAME && cd -
     - pod repo remove linphone-sdk
+
+
+#################################################
+# Android
+#################################################
+
+
+job-android-upload:
+
+  stage: deploy
+  tags: [ "deploy" ]
+
+  only:
+    - schedules
+  dependencies:
+    - job-android-ninja-r17c
+
+  script:
+    - cd build-android && ../cmake/Android/gradlew uploadArchives
