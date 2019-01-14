@@ -23,14 +23,13 @@
 #include <mediastreamer2/msticker.h>
 #include <mediastreamer2/mssndcard.h>
 #include <mediastreamer2/devices.h>
+#include <mediastreamer2/android_utils.h>
 
 #include "AudioTrack.h"
 #include "AudioRecord.h"
 #include "String8.h"
 
 #include <jni.h>
-
-#include "hardware_echo_canceller.h"
 
 #define NATIVE_USE_HARDWARE_RATE 1
 //#define TRACE_SND_WRITE_TIMINGS
@@ -385,7 +384,7 @@ static void android_snd_read_activate_hardware_aec(MSFilter *obj){
 		return;
 	}
 	
-	ad->aec = enable_hardware_echo_canceller(env, sessionId);
+	ad->aec = ms_android_enable_hardware_echo_canceller(env, sessionId);
 }
 
 static void android_snd_read_preprocess(MSFilter *obj){
@@ -434,7 +433,7 @@ static void android_snd_read_postprocess(MSFilter *obj){
 		ad->rec->stop();
 		if (ad->aec){
 			JNIEnv *env=ms_get_jni_env();
-			delete_hardware_echo_canceller(env, ad->aec);
+			ms_android_delete_hardware_echo_canceller(env, ad->aec);
 			ad->aec = NULL;
 		}
 		ad->rec=0;

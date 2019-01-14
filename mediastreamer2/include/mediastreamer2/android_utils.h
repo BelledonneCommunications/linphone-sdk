@@ -1,7 +1,7 @@
 /*
- * hardware_echo_canceller.h -Utility methods to manage hardware echo canceller on Android
+ * android_utils.h - Utility methods to manage hardware echo canceller on Android
  *
- * Copyright (C) 2014  Belledonne Communications, Grenoble, France
+ * Copyright (C) 2019 Belledonne Communications, Grenoble, France
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#ifndef hardware_echo_canceller_h
-#define hardware_echo_canceller_h
+#ifndef android_utils_h
+#define android_utils_h
 
 #include <mediastreamer2/msfilter.h>
 #include <jni.h>
@@ -28,12 +28,20 @@
 extern "C"{
 #endif
 
-jobject enable_hardware_echo_canceller(JNIEnv *env, int sessionId);
-void delete_hardware_echo_canceller(JNIEnv *env, jobject aec);
+/**
+ * Creates an AcousticEchoCanceler java object for the given session ID so the sound card uses the device's hardware echo canceller if available.
+ * Currently only AndroidSound, AndroidSoundDepr and AAudio sound cards support it.
+**/
+MS2_PUBLIC jobject ms_android_enable_hardware_echo_canceller(JNIEnv *env, int sessionId);
+
+/**
+ * Deletes the AcousticEchoCanceler created by ms_android_enable_hardware_echo_canceller.
+**/
+MS2_PUBLIC void ms_android_delete_hardware_echo_canceller(JNIEnv *env, jobject aec);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif
+#endif // android_utils_h
 

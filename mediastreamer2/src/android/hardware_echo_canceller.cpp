@@ -18,9 +18,9 @@
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#include "hardware_echo_canceller.h"
+#include <mediastreamer2/android_utils.h>
 
-jobject enable_hardware_echo_canceller(JNIEnv *env, int sessionId) {
+jobject ms_android_enable_hardware_echo_canceller(JNIEnv *env, int sessionId) {
 	jobject aec = NULL;
 	jclass aecClass = env->FindClass("android/media/audiofx/AcousticEchoCanceler");
 	if (aecClass==NULL){
@@ -82,7 +82,7 @@ jobject enable_hardware_echo_canceller(JNIEnv *env, int sessionId) {
 	return aec;
 }
 
-void delete_hardware_echo_canceller(JNIEnv *env, jobject aec) {
+void ms_android_delete_hardware_echo_canceller(JNIEnv *env, jobject aec) {
 	env->DeleteGlobalRef(aec);
 }
 

@@ -22,6 +22,7 @@
 
 set(HEADER_FILES
 	allfilters.h
+	android_utils.h
 	bitratecontrol.h
 	bits_rw.h
 	devices.h

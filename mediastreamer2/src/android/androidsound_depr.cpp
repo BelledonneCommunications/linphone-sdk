@@ -24,6 +24,7 @@
 #include "mediastreamer2/msticker.h"
 #include "mediastreamer2/msjava.h"
 #include "mediastreamer2/devices.h"
+#include "mediastreamer2/android_utils.h"
 #include <jni.h>
 
 #include <sys/time.h>
@@ -32,7 +33,6 @@
 #include "mediastreamer2/zrtp.h"
 #include <cpu-features.h>
 
-#include "hardware_echo_canceller.h"
 
 #define USE_HARDWARE_RATE 1
 
@@ -473,7 +473,7 @@ static void sound_read_preprocess(MSFilter *f){
 		if (sessionId==-1) {
 			return;
 		}
-		d->aec = enable_hardware_echo_canceller(env, sessionId);
+		d->aec = ms_android_enable_hardware_echo_canceller(env, sessionId);
 	}
 }
 
@@ -511,7 +511,7 @@ static void sound_read_postprocess(MSFilter *f){
 		jni_env->CallVoidMethod(d->audio_record,release_id);
 	}
 	if (d->aec) {
-		delete_hardware_echo_canceller(jni_env, d->aec);
+		ms_android_delete_hardware_echo_canceller(jni_env, d->aec);
 		d->aec = NULL;
 	}
 	goto end;
