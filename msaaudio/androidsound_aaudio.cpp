@@ -23,6 +23,7 @@
 #include <mediastreamer2/msticker.h>
 #include <mediastreamer2/mssndcard.h>
 #include <mediastreamer2/devices.h>
+#include <mediastreamer2/android_utils.h>
 
 #include <sys/types.h>
 #include <string.h>
@@ -59,6 +60,10 @@ struct AAudioInputContext {
 		ms_mutex_init(&stream_mutex, NULL);
 		mTickerSynchronizer = NULL;
 		mAvSkew = 0;
+		deviceId = AAUDIO_UNSPECIFIED;
+		session_id = AAUDIO_SESSION_ID_NONE;
+		soundCard = NULL;
+		aec = NULL;
 	}
 
 	~AAudioInputContext() {
@@ -78,10 +83,14 @@ struct AAudioInputContext {
 	queue_t q;
 	ms_mutex_t mutex;
 	MSTickerSynchronizer *mTickerSynchronizer;
+	MSSndCard *soundCard;
 	MSFilter *mFilter;
 	int64_t read_samples;
 	int32_t samplesPerFrame;
 	double mAvSkew;
+	int32_t deviceId;
+	aaudio_session_id_t session_id;
+	jobject aec;
 };
 
 struct AAudioOutputContext {
@@ -90,6 +99,10 @@ struct AAudioOutputContext {
 		ms_flow_controlled_bufferizer_init(&buffer, f, DeviceFavoriteSampleRate, 1);
 		ms_mutex_init(&mutex, NULL);
 		ms_mutex_init(&stream_mutex, NULL);
+		deviceId = AAUDIO_UNSPECIFIED;
+		soundCard = NULL;
+		usage = AAUDIO_USAGE_VOICE_COMMUNICATION;
+		content_type = AAUDIO_CONTENT_TYPE_SPEECH;
 	}
 
 	~AAudioOutputContext() {
@@ -106,14 +119,35 @@ struct AAudioOutputContext {
 		ms_flow_controlled_bufferizer_set_flow_control_interval_ms(&buffer, flowControlIntervalMs);
 	}
 
+	void updateStreamTypeFromMsSndCard() {
+		MSSndCardStreamType type = ms_snd_card_get_stream_type(soundCard);
+		if (type == MS_SND_CARD_STREAM_RING) {
+			usage = AAUDIO_USAGE_NOTIFICATION_RINGTONE;
+			content_type = AAUDIO_CONTENT_TYPE_SONIFICATION;
+			ms_message("[AAudio] Using RING mode");
+		} else if (type == MS_SND_CARD_STREAM_MEDIA) {
+			usage = AAUDIO_USAGE_MEDIA;
+			content_type = AAUDIO_CONTENT_TYPE_MUSIC;
+			ms_message("[AAudio] Using MEDIA mode");
+		} else {
+			usage = AAUDIO_USAGE_VOICE_COMMUNICATION;
+			content_type = AAUDIO_CONTENT_TYPE_SPEECH;
+			ms_message("[AAudio] Using COMMUNICATION mode");
+		}
+	}
+
 	AAudioContext *aaudio_context;
 	AAudioStream *stream;
 	ms_mutex_t stream_mutex;
 
+	MSSndCard *soundCard;
 	MSFilter *mFilter;
 	MSFlowControlledBufferizer buffer;
 	int32_t samplesPerFrame;
 	ms_mutex_t mutex;
+	aaudio_usage_t usage;
+	aaudio_content_type_t content_type;
+	int32_t deviceId;
 };
 
 static AAudioContext* aaudio_context_init() {
@@ -134,7 +168,7 @@ int initAAudio() {
 		AAudioStreamBuilder *builder;
 		aaudio_result_t result = AAudio_createStreamBuilder(&builder);
 		if (result != AAUDIO_OK && !builder) {
-			ms_error("[AAudio] Couldn't create stream builder: %i", result);
+			ms_error("[AAudio] Couldn't create stream builder: %i / %s", result, AAudio_convertResultToText(result));
 			result += 1;
 		}
 	}
@@ -206,10 +240,10 @@ static void aaudio_recorder_init(AAudioInputContext *ictx) {
 	AAudioStreamBuilder *builder;
 	aaudio_result_t result = AAudio_createStreamBuilder(&builder);
 	if (result != AAUDIO_OK && !builder) {
-		ms_error("[AAudio] Couldn't create stream builder for recorder: %i", result);
+		ms_error("[AAudio] Couldn't create stream builder for recorder: %i / %s", result, AAudio_convertResultToText(result));
 	}
 
-	AAudioStreamBuilder_setDeviceId(builder, AAUDIO_UNSPECIFIED); // Default recorder
+	AAudioStreamBuilder_setDeviceId(builder, ictx->deviceId);
 	AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_INPUT);
 	AAudioStreamBuilder_setSampleRate(builder, ictx->aaudio_context->samplerate);
 	AAudioStreamBuilder_setDataCallback(builder, aaudio_recorder_callback, ictx);
@@ -218,11 +252,22 @@ static void aaudio_recorder_init(AAudioInputContext *ictx) {
 	AAudioStreamBuilder_setSharingMode(builder, AAUDIO_SHARING_MODE_EXCLUSIVE); // If EXCLUSIVE mode isn't available the builder will fall back to SHARED mode.
 	AAudioStreamBuilder_setPerformanceMode(builder, AAUDIO_PERFORMANCE_MODE_LOW_LATENCY);
 	AAudioStreamBuilder_setErrorCallback(builder, aaudio_recorder_callback_error, ictx);
+	AAudioStreamBuilder_setInputPreset(builder, AAUDIO_INPUT_PRESET_VOICE_COMMUNICATION); // Requires NDK build target of 28 instead of 26 !
+	AAudioStreamBuilder_setUsage(builder, AAUDIO_USAGE_VOICE_COMMUNICATION); // Requires NDK build target of 28 instead of 26 !
+	AAudioStreamBuilder_setContentType(builder, AAUDIO_CONTENT_TYPE_SPEECH); // Requires NDK build target of 28 instead of 26 !
+
+	if (ictx->soundCard->capabilities & MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER) {
+		ms_message("[AAudio] Asking for a session ID so we can use echo canceller");
+		AAudioStreamBuilder_setSessionId(builder, AAUDIO_SESSION_ID_ALLOCATE);
+	}
+
 	ms_message("[AAudio] Record stream configured with samplerate %i and %i channels", ictx->aaudio_context->samplerate, ictx->aaudio_context->nchannels);
 	
 	result = AAudioStreamBuilder_openStream(builder, &(ictx->stream));
 	if (result != AAUDIO_OK && !ictx->stream) {
-		ms_error("[AAudio] Open stream for recorder failed: %i", result);
+		ms_error("[AAudio] Open stream for recorder failed: %i / %s", result, AAudio_convertResultToText(result));
+		AAudioStreamBuilder_delete(builder);
+		return;
 	} else {
 		ms_message("[AAudio] Recorder stream opened");
 	}
@@ -234,9 +279,14 @@ static void aaudio_recorder_init(AAudioInputContext *ictx) {
 
 	result = AAudioStream_requestStart(ictx->stream);
 	if (result != AAUDIO_OK) {
-		ms_error("[AAudio] Start stream for recorder failed: %i", result);
+		ms_error("[AAudio] Start stream for recorder failed: %i / %s", result, AAudio_convertResultToText(result));
 	} else {
 		ms_message("[AAudio] Recorder stream started");
+	}
+
+	if (ictx->soundCard->capabilities & MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER) {
+		ictx->session_id = AAudioStream_getSessionId(ictx->stream);
+		ms_message("[AAudio] Session ID is %i, hardware echo canceller can be enabled", ictx->session_id);
 	}
 
 	AAudioStreamBuilder_delete(builder);
@@ -247,14 +297,14 @@ static void aaudio_recorder_close(AAudioInputContext *ictx) {
 	if (ictx->stream) {
 		aaudio_result_t result = AAudioStream_requestStop(ictx->stream);
 		if (result != AAUDIO_OK) {
-			ms_error("[AAudio] Recorder stream stop failed: %i", result);
+			ms_error("[AAudio] Recorder stream stop failed: %i / %s", result, AAudio_convertResultToText(result));
 		} else {
 			ms_message("[AAudio] Recorder stream stopped");
 		}
 
 		result = AAudioStream_close(ictx->stream);
 		if (result != AAUDIO_OK) {
-			ms_error("[AAudio] Recorder stream close failed: %i", result);
+			ms_error("[AAudio] Recorder stream close failed: %i / %s", result, AAudio_convertResultToText(result));
 		} else {
 			ms_message("[AAudio] Recorder stream closed");
 		}
@@ -263,9 +313,9 @@ static void aaudio_recorder_close(AAudioInputContext *ictx) {
 	ms_mutex_unlock(&ictx->stream_mutex);
 }
 
-static void aaudio_recorder_callback_error(AAudioStream *stream, void *userData, aaudio_result_t error) {
+static void aaudio_recorder_callback_error(AAudioStream *stream, void *userData, aaudio_result_t result) {
 	AAudioInputContext *ictx = (AAudioInputContext *)userData;
-	ms_error("[AAudio] aaudio_recorder_callback_error has result: %i", error);
+	ms_error("[AAudio] aaudio_recorder_callback_error has result: %i / %s", result, AAudio_convertResultToText(result));
 
 	aaudio_stream_state_t streamState = AAudioStream_getState(stream);
 	if (streamState == AAUDIO_STREAM_STATE_DISCONNECTED) {
@@ -284,7 +334,17 @@ static void android_snd_read_preprocess(MSFilter *obj) {
 	AAudioInputContext *ictx = (AAudioInputContext*) obj->data;
 	ictx->mFilter = obj;
 	ictx->read_samples = 0;
-	aaudio_recorder_init(ictx);	
+	aaudio_recorder_init(ictx);
+
+	if (ictx->soundCard->capabilities & MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER) {
+		if (ictx->session_id != AAUDIO_SESSION_ID_NONE) {
+			JNIEnv *env = ms_get_jni_env();
+			ictx->aec = ms_android_enable_hardware_echo_canceller(env, ictx->session_id);
+			ms_message("[AAudio] Hardware echo canceller enabled");
+		} else {
+			ms_warning("[AAudio] Session ID is AAUDIO_SESSION_ID_NONE, can't enable hardware echo canceller");
+		}
+	}
 }
 
 static void android_snd_read_process(MSFilter *obj) {
@@ -315,6 +375,14 @@ static void android_snd_read_postprocess(MSFilter *obj) {
 	ms_mutex_lock(&ictx->mutex);
 	ms_ticker_synchronizer_destroy(ictx->mTickerSynchronizer);
 	ictx->mTickerSynchronizer = NULL;
+
+	if (ictx->aec) {
+		JNIEnv *env = ms_get_jni_env();
+		ms_android_delete_hardware_echo_canceller(env, ictx->aec);
+		ictx->aec = NULL;
+		ms_message("[AAudio] Hardware echo canceller deleted");
+	}
+
 	ms_mutex_unlock(&ictx->mutex);
 }
 
@@ -385,6 +453,7 @@ static MSFilter* ms_android_snd_read_new(MSFactory *factory) {
 static MSFilter *android_snd_card_create_reader(MSSndCard *card) {
 	MSFilter *f = ms_android_snd_read_new(ms_snd_card_get_factory(card));
 	AAudioInputContext *ictx = static_cast<AAudioInputContext*>(f->data);
+	ictx->soundCard = card;
 	ictx->setContext((AAudioContext*)card->data);
 	return f;
 }
@@ -392,6 +461,7 @@ static MSFilter *android_snd_card_create_reader(MSSndCard *card) {
 static MSFilter *android_snd_card_create_writer(MSSndCard *card) {
 	MSFilter *f = ms_android_snd_write_new(ms_snd_card_get_factory(card));
 	AAudioOutputContext *octx = static_cast<AAudioOutputContext*>(f->data);
+	octx->soundCard = card;
 	octx->setContext((AAudioContext*)card->data);
 	return f;
 }
@@ -461,10 +531,11 @@ static void aaudio_player_init(AAudioOutputContext *octx) {
 	AAudioStreamBuilder *builder;
 	aaudio_result_t result = AAudio_createStreamBuilder(&builder);
 	if (result != AAUDIO_OK && !builder) {
-		ms_error("[AAudio] Couldn't create stream builder for player: %i", result);
+		ms_error("[AAudio] Couldn't create stream builder for player: %i / %s", result, AAudio_convertResultToText(result));
 	}
 
-	AAudioStreamBuilder_setDeviceId(builder, AAUDIO_UNSPECIFIED); // Default speaker
+	octx->updateStreamTypeFromMsSndCard();
+	AAudioStreamBuilder_setDeviceId(builder, octx->deviceId);
 	AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_OUTPUT);
 	AAudioStreamBuilder_setSampleRate(builder, octx->aaudio_context->samplerate);
 	AAudioStreamBuilder_setDataCallback(builder, aaudio_player_callback, octx);
@@ -473,11 +544,15 @@ static void aaudio_player_init(AAudioOutputContext *octx) {
 	AAudioStreamBuilder_setSharingMode(builder, AAUDIO_SHARING_MODE_EXCLUSIVE); // If EXCLUSIVE mode isn't available the builder will fall back to SHARED mode.
 	AAudioStreamBuilder_setPerformanceMode(builder, AAUDIO_PERFORMANCE_MODE_LOW_LATENCY);
 	AAudioStreamBuilder_setErrorCallback(builder, aaudio_player_callback_error, octx);
+	AAudioStreamBuilder_setUsage(builder, octx->usage); // Requires NDK build target of 28 instead of 26 !
+	AAudioStreamBuilder_setContentType(builder, octx->content_type); // Requires NDK build target of 28 instead of 26 !
 	ms_message("[AAudio] Player stream configured with samplerate %i and %i channels", octx->aaudio_context->samplerate, octx->aaudio_context->nchannels);
 	
 	result = AAudioStreamBuilder_openStream(builder, &(octx->stream));
 	if (result != AAUDIO_OK && !octx->stream) {
-		ms_error("[AAudio] Open stream for player failed: %i", result);
+		ms_error("[AAudio] Open stream for player failed: %i / %s", result, AAudio_convertResultToText(result));
+		AAudioStreamBuilder_delete(builder);
+		return;
 	} else {
 		ms_message("[AAudio] Player stream opened");
 	}
@@ -488,7 +563,7 @@ static void aaudio_player_init(AAudioOutputContext *octx) {
 
 	result = AAudioStream_requestStart(octx->stream);
 	if (result != AAUDIO_OK) {
-		ms_error("[AAudio] Start stream for player failed: %i", result);
+		ms_error("[AAudio] Start stream for player failed: %i / %s", result, AAudio_convertResultToText(result));
 	} else {
 		ms_message("[AAudio] Player stream started");
 	}
@@ -501,14 +576,14 @@ static void aaudio_player_close(AAudioOutputContext *octx) {
 	if (octx->stream) {
 		aaudio_result_t result = AAudioStream_requestStop(octx->stream);
 		if (result != AAUDIO_OK) {
-			ms_error("[AAudio] Player stream stop failed: %i", result);
+			ms_error("[AAudio] Player stream stop failed: %i / %s", result, AAudio_convertResultToText(result));
 		} else {
 			ms_message("[AAudio] Player stream stopped");
 		}
 
 		result = AAudioStream_close(octx->stream);
 		if (result != AAUDIO_OK) {
-			ms_error("[AAudio] Player stream close failed: %i", result);
+			ms_error("[AAudio] Player stream close failed: %i / %s", result, AAudio_convertResultToText(result));
 		} else {
 			ms_message("[AAudio] Player stream closed");
 		}
@@ -517,9 +592,9 @@ static void aaudio_player_close(AAudioOutputContext *octx) {
 	ms_mutex_unlock(&octx->stream_mutex);
 }
 
-static void aaudio_player_callback_error(AAudioStream *stream, void *userData, aaudio_result_t error) {
+static void aaudio_player_callback_error(AAudioStream *stream, void *userData, aaudio_result_t result) {
 	AAudioOutputContext *octx = (AAudioOutputContext *)userData;
-	ms_error("[AAudio] aaudio_player_callback_error has result: %i", error);
+	ms_error("[AAudio] aaudio_player_callback_error has result: %i / %s", result, AAudio_convertResultToText(result));
 
 	aaudio_stream_state_t streamState = AAudioStream_getState(stream);
 	if (streamState == AAUDIO_STREAM_STATE_DISCONNECTED) {
@@ -613,7 +688,7 @@ static MSSndCard* android_snd_card_new(MSSndCardManager *m) {
 	d = ms_devices_info_get_sound_device_description(devices);
 
 	AAudioContext *context = aaudio_context_init();
-	card->capabilities |= MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER; // Let's test is AAudio supports hardware AEC
+	if (d->flags & DEVICE_HAS_BUILTIN_AEC) card->capabilities |= MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER;
 	context->builtin_aec = true;
 	card->latency = d->delay;
 	card->data = context;
