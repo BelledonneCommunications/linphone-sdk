@@ -38,4 +38,4 @@ job-android-upload:
     - job-android-ninja-r17c
 
   script:
-    - cd build-android && ../cmake/Android/gradlew uploadArchives
+    - ./cmake/Android/gradlew -p build-android/ uploadArchives -i
