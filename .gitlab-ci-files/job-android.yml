@@ -84,7 +84,7 @@ job-android-ninja-r17c:
     paths:
       - build-android/build.gradle
       - build-android/gradle.properties
-      - build-android/linphone-sdk
+      - build-android/linphone-sdk/bin
       - build-android/LinphoneSdkManifest.xml
     when: on_success
     expire_in: 1 day
