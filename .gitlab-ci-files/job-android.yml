@@ -80,6 +80,11 @@ job-android-ninja-r17c:
   variables:
     CMAKE_GENERATOR: Ninja
   extends: .job-android
+  artifacts:
+    paths:
+      - build-android/*
+    when: schedules
+    expire_in: 1 day
 
 
 job-android-ninja-r17c-novideo:
