@@ -83,7 +83,7 @@ job-android-ninja-r17c:
   artifacts:
     paths:
       - build-android/*
-    when: schedules
+    when: on_success
     expire_in: 1 day
 
 
