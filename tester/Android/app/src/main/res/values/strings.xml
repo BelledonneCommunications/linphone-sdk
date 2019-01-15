@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">LibLinphoneTester</string>
+    <string name="title_activity_tests">TestsActivity</string>
+    <string name="title_activity_logs">LogsActivity</string>
+</resources>

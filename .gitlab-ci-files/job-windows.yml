@@ -1,0 +1,23 @@
+#################################################
+# VS2015
+#################################################
+
+job-windows-vs2015:
+
+  stage: build
+  tags: [ "windows" ]
+
+  script:
+    - mkdir build-desktop
+    - cd build-desktop
+    - cmake .. -G "Visual Studio 14 2015" -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_BUILD_TYPE=Release %DEFAULT_CMAKE_OPTIONS% %CMAKE_OPTIONS%
+    - cmake --build . --target sdk --config Release -- /maxcpucount
+
+
+job-windows-vs2015-novideo:
+
+  only:
+    - schedules
+  variables:
+    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+  extends: job-windows-vs2015

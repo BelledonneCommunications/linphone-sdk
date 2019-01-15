@@ -1,8 +1,11 @@
+#################################################
+# Base configuration
+#################################################
+
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
   MAKEFILE_JOBS: 5
   CCACHE_SIZE: 2G
-
 
 stages:
  - build
