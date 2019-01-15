@@ -38,4 +38,6 @@ job-android-upload:
     - job-android-ninja-r17c
 
   script:
+    - export ANDROID_HOME=$ANDROID_HOME_MAC
+    - export ANDROID_NDK_HOME=$ANDROID_NDK_HOME_MAC
     - ./cmake/Android/gradlew -p build-android/ uploadArchives -i
