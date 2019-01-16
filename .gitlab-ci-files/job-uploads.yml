@@ -32,8 +32,12 @@ job-android-upload:
   stage: deploy
   tags: [ "deploy" ]
 
-#  only:
-#    - schedules
+  variables:
+    CMAKE_GENERATOR: Ninja
+    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
+
+  only:
+    - schedules
   dependencies:
     - job-android-ninja-r17c
 
