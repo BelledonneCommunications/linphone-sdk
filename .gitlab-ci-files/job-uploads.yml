@@ -32,10 +32,23 @@ job-android-upload:
   stage: deploy
   tags: [ "deploy" ]
 
+  variables:
+    CMAKE_GENERATOR: Ninja
+    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
+
   only:
     - schedules
   dependencies:
     - job-android-ninja-r17c
 
+# Currently we can't use artifact to upload this so we rebuild all android project
   script:
-    - cd build-android && ../cmake/Android/gradlew uploadArchives
+    - export ANDROID_HOME=$ANDROID_HOME_MAC
+    - export ANDROID_NDK_HOME=$ANDROID_NDK_HOME_MAC
+    - ccache -s
+    - mkdir -p build-android
+    - cd build-android
+    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS="arm64, armv7" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS
+    - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
+    - ../cmake/Android/gradlew uploadArchives -i
+    - ccache -s
