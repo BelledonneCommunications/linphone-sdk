@@ -37,7 +37,14 @@ job-android-upload:
   dependencies:
     - job-android-ninja-r17c
 
+# Currently we can't use artifact to upload this so we rebuild all android project
   script:
     - export ANDROID_HOME=$ANDROID_HOME_MAC
     - export ANDROID_NDK_HOME=$ANDROID_NDK_HOME_MAC
-    - ./cmake/Android/gradlew -p build-android/ uploadArchives -i
+    - ccache -s
+    - mkdir -p build-android
+    - cd build-android
+    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS="$ANDROID_ARCHS" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS
+    - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
+    - ../cmake/Android/gradlew uploadArchives -i
+    - ccache -s
