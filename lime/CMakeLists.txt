@@ -26,7 +26,7 @@ include(CMakePushCheckState)
 include(CMakePackageConfigHelpers)
 
 cmake_minimum_required(VERSION 3.0)
-project(lime VERSION 0.0.1 LANGUAGES CXX C)
+project(lime VERSION 0.0.1 LANGUAGES CXX C Java)
 
 set(LIME_SO_VERSION "0")
 set(LIME_VERSION ${PROJECT_VERSION})
@@ -39,6 +39,7 @@ option(ENABLE_CURVE448 "Enable support of Curve 448(goldilock)." YES)
 option(ENABLE_UNIT_TESTS "Enable compilation of unit tests." YES)
 option(ENABLE_PROFILING "Enable profiling, GCC only" NO)
 option(ENABLE_C_INTERFACE "Enable support of C89 foreign function interface" NO)
+option(ENABLE_JNI "Enable support of Java foreign function interface" NO)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -93,7 +94,7 @@ else()
 	if (ENABLE_PROFILING)
 		list(APPEND STRICT_OPTIONS_CXX "-g -pg")
 	endif()
-        list(APPEND STRICT_OPTIONS_CXX "-std=c++11")
+        list(APPEND STRICT_OPTIONS_CXX "-std=c++14")
         #list(APPEND STRICT_OPTIONS_CPP "-Wall" "-Wuninitialized" "-Wno-error=deprecated-declarations") # turn off deprecated-declaration warning to avoid being flooded by soci.h
 	list(APPEND STRICT_OPTIONS_CPP "-Wall" "-Wuninitialized" "-Wno-deprecated-declarations" "-Wno-missing-field-initializers")
 	if(ENABLE_C_INTERFACE)
@@ -132,6 +133,15 @@ endif()
 if(ENABLE_C_INTERFACE)
 	add_definitions("-DFFI_ENABLED")
 	message(STATUS "Provide C89 interface")
+endif()
+
+if(ENABLE_JNI)
+	find_package(JNI REQUIRED)
+
+	if (JNI_FOUND)
+	    message (STATUS "JNI_INCLUDE_DIRS=${JNI_INCLUDE_DIRS}")
+	    message (STATUS "JNI_LIBRARIES=${JNI_LIBRARIES}")
+	endif()
 endif()
 
 add_subdirectory(include)

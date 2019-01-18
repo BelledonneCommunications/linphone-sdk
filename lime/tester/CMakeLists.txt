@@ -80,11 +80,20 @@ else()
 	target_include_directories(lime_tester PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIRS} ${BELLESIP_INCLUDE_DIRS})
 	target_link_libraries(lime_tester ${LIME_LIBRARIES_FOR_TESTER} ${BCTOOLBOX_LIBRARIES} ${BCTOOLBOX_TESTER_LIBRARIES} ${BELLESIP_LIBRARIES} ${SOCI_LIBRARIES} ${SOCI_sqlite3_PLUGIN})
 
-	# lime test suit request a local server to be launched, so keep testing double ratchet only for now
+	# Some tests suite need a local X3DH server running in default config, so run them suite by suite to at least be able to pass some if no server can be found
+	add_test(NAME crypto COMMAND lime_tester --verbose --resource-dir ${CMAKE_CURRENT_SOURCE_DIR} --suite "Crypto")
 	add_test(NAME double_ratchet COMMAND lime_tester --verbose --resource-dir ${CMAKE_CURRENT_SOURCE_DIR} --suite "double ratchet")
+	add_test(NAME hello_world COMMAND lime_tester --verbose --resource-dir ${CMAKE_CURRENT_SOURCE_DIR} --suite "Hello World")
+	add_test(NAME lime COMMAND lime_tester --verbose --resource-dir ${CMAKE_CURRENT_SOURCE_DIR} --suite "lime")
+	if (ENABLE_C_INTERFACE)
+		add_test(NAME C_ffi COMMAND lime_tester --verbose --resource-dir ${CMAKE_CURRENT_SOURCE_DIR} --suite "FFI")
+	endif()
 
 	if(ENABLE_PROFILING)
 		set_target_properties(lime_tester PROPERTIES LINK_FLAGS "-pg")
 	endif()
 endif()
 
+if (ENABLE_JNI)
+	add_subdirectory(java)
+endif()
