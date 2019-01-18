@@ -35,6 +35,7 @@ job-android-upload:
   variables:
     CMAKE_GENERATOR: Ninja
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
+    GIT_STRATEGY: clone
 
   only:
     - schedules
