@@ -3,7 +3,7 @@
 #################################################
 
 
-job-debian8-makefile-gcc:
+build-debian8-makefile-gcc:
 
   tags: [ "docker-debian8" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
@@ -12,10 +12,10 @@ job-debian8-makefile-gcc:
     CC: gcc
     CXX: g++
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-  extends: .scheduled-job-linux-desktop
+  extends: .scheduled-build-linux-desktop
 
 
-job-debian8-makefile-clang:
+build-debian8-makefile-clang:
 
   tags: [ "docker-debian8" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
@@ -24,7 +24,7 @@ job-debian8-makefile-clang:
     CC: clang
     CXX: clang++
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-  extends: .scheduled-job-linux-desktop
+  extends: .scheduled-build-linux-desktop
 
 
 #################################################
@@ -32,7 +32,7 @@ job-debian8-makefile-clang:
 #################################################
 
 
-job-debian8-ninja-gcc:
+build-debian8-ninja-gcc:
 
   tags: [ "docker-debian8" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
@@ -40,19 +40,19 @@ job-debian8-ninja-gcc:
     CMAKE_GENERATOR: Ninja
     CC: gcc
     CXX: g++
-  extends: .job-linux-desktop
+  extends: .build-linux-desktop
 
 
-job-debian8-ninja-gcc-novideo:
+build-debian8-ninja-gcc-novideo:
 
   only:
     - schedules
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
-  extends: job-debian8-ninja-gcc
+  extends: build-debian8-ninja-gcc
 
 
-job-debian8-ninja-clang:
+build-debian8-ninja-clang:
 
   tags: [ "docker-debian8" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
@@ -60,13 +60,13 @@ job-debian8-ninja-clang:
     CMAKE_GENERATOR: Ninja
     CC: clang
     CXX: clang++
-  extends: .job-linux-desktop
+  extends: .build-linux-desktop
 
 
-job-debian8-ninja-clang-novideo:
+build-debian8-ninja-clang-novideo:
 
   only:
     - schedules
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
-  extends: job-debian8-ninja-clang
+  extends: build-debian8-ninja-clang

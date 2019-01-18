@@ -3,7 +3,7 @@
 #################################################
 
 
-job-ubuntu-rolling-makefile-gcc:
+build-ubuntu-rolling-makefile-gcc:
 
   tags: [ "docker-ubuntu-rolling" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rolling
@@ -12,10 +12,10 @@ job-ubuntu-rolling-makefile-gcc:
     CC: gcc
     CXX: g++
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-  extends: .scheduled-job-linux-desktop
+  extends: .scheduled-build-linux-desktop
 
 
-job-ubuntu-rolling-makefile-clang:
+build-ubuntu-rolling-makefile-clang:
 
   tags: [ "docker-ubuntu-rolling" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rolling
@@ -24,7 +24,7 @@ job-ubuntu-rolling-makefile-clang:
     CC: clang
     CXX: clang++
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-  extends: .scheduled-job-linux-desktop
+  extends: .scheduled-build-linux-desktop
 
 
 #################################################
@@ -32,7 +32,7 @@ job-ubuntu-rolling-makefile-clang:
 #################################################
 
 
-job-ubuntu-rolling-ninja-gcc:
+build-ubuntu-rolling-ninja-gcc:
 
   tags: [ "docker-ubuntu-rolling" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rolling
@@ -40,19 +40,19 @@ job-ubuntu-rolling-ninja-gcc:
     CMAKE_GENERATOR: Ninja
     CC: gcc
     CXX: g++
-  extends: .job-linux-desktop
+  extends: .build-linux-desktop
 
 
-job-ubuntu-rolling-ninja-gcc-novideo:
+build-ubuntu-rolling-ninja-gcc-novideo:
 
   only:
     - schedules
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
-  extends: job-ubuntu-rolling-ninja-gcc
+  extends: build-ubuntu-rolling-ninja-gcc
 
 
-job-ubuntu-rolling-ninja-clang:
+build-ubuntu-rolling-ninja-clang:
 
   tags: [ "docker-ubuntu-rolling" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rolling
@@ -60,13 +60,13 @@ job-ubuntu-rolling-ninja-clang:
     CMAKE_GENERATOR: Ninja
     CC: clang
     CXX: clang++
-  extends: .job-linux-desktop
+  extends: .build-linux-desktop
 
 
-job-ubuntu-rolling-ninja-clang-novideo:
+build-ubuntu-rolling-ninja-clang-novideo:
 
   only:
     - schedules
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
-  extends: job-ubuntu-rolling-ninja-clang
+  extends: build-ubuntu-rolling-ninja-clang

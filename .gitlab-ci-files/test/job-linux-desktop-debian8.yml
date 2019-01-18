@@ -1,0 +1,38 @@
+#################################################
+# Makefile
+#################################################
+
+#Commented until fix for ipv6 for debian 8/9
+#test-bctoolbox-debian8:
+#  extends: .test-bctoolbox
+#  dependencies:
+#    - build-debian8
+#  tags: [ "docker-test-debian8" ]
+
+test-bellesip-debian8:
+  extends: .test-bellesip
+  dependencies:
+    - build-debian8
+  tags: [ "docker-test-debian8" ]
+
+#test mediastreamer
+
+test-belr-debian8:
+  extends: .test-belr
+  dependencies:
+    - build-debian8
+  tags: [ "docker-test-debian8" ]
+
+test-belcard-debian8:
+  extends: .test-belcard
+  dependencies:
+    - build-debian8
+  tags: [ "docker-test-debian8" ]
+
+test-bzrtp-debian8:
+  extends: .test-bzrtp
+  dependencies:
+    - build-debian8
+  tags: [ "docker-test-debian8" ]
+
+#tests lime

@@ -1,0 +1,35 @@
+#################################################
+# Makefile
+#################################################
+
+test-bctoolbox-arch:
+  extends: .test-bctoolbox
+  dependencies:
+    - build-arch
+  tags: [ "docker-archlinux-latest" ] 
+
+test-bellesip-arch:
+  extends: .test-bellesip
+  dependencies:
+    - build-arch
+  tags: [ "docker-archlinux-latest" ] 
+
+test-belr-arch:
+  extends: .test-belr
+  dependencies:
+    - build-arch
+  tags: [ "docker-archlinux-latest" ] 
+
+test-belcard-arch:
+  extends: .test-belcard
+  dependencies:
+    - build-arch
+  tags: [ "docker-archlinux-latest" ] 
+
+test-bzrtp-arch:
+  extends: .test-bzrtp
+  dependencies:
+    - build-arch
+  tags: [ "docker-archlinux-latest" ] 
+
+#test lime

@@ -3,7 +3,7 @@
 #################################################
 
 
-job-centos7-makefile-gcc:
+build-centos7-makefile-gcc:
 
   tags: [ "docker-centos7" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
@@ -11,10 +11,10 @@ job-centos7-makefile-gcc:
     CMAKE_GENERATOR: Unix Makefiles
     CC: gcc
     CXX: g++
-  extends: .scheduled-job-linux-desktop
+  extends: .scheduled-build-linux-desktop
 
 
-job-centos7-makefile-clang:
+build-centos7-makefile-clang:
 
   tags: [ "docker-centos7" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
@@ -22,7 +22,7 @@ job-centos7-makefile-clang:
     CMAKE_GENERATOR: Unix Makefiles
     CC: clang
     CXX: clang++
-  extends: .scheduled-job-linux-desktop
+  extends: .scheduled-build-linux-desktop
 
 
 #################################################
@@ -30,7 +30,7 @@ job-centos7-makefile-clang:
 #################################################
 
 
-job-centos7-ninja-gcc:
+build-centos7-ninja-gcc:
 
   tags: [ "docker-centos7" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
@@ -38,20 +38,20 @@ job-centos7-ninja-gcc:
     CMAKE_GENERATOR: Ninja
     CC: gcc
     CXX: g++
-  extends: .job-linux-desktop
+  extends: .build-linux-desktop
 
 
-job-centos7-ninja-gcc-novideo:
+build-centos7-ninja-gcc-novideo:
 
   tags: [ "docker-centos7" ]
   only:
     - schedules
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
-  extends: job-centos7-ninja-gcc
+  extends: build-centos7-ninja-gcc
 
 
-job-centos7-ninja-clang:
+build-centos7-ninja-clang:
 
   tags: [ "docker-centos7" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
@@ -59,13 +59,13 @@ job-centos7-ninja-clang:
     CMAKE_GENERATOR: Ninja
     CC: clang
     CXX: clang++
-  extends: .job-linux-desktop
+  extends: .build-linux-desktop
 
 
-job-centos7-ninja-clang-novideo:
+build-centos7-ninja-clang-novideo:
 
   only:
     - schedules
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
-  extends: job-centos7-ninja-clang
+  extends: build-centos7-ninja-clang

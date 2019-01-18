@@ -1,4 +1,4 @@
-.job-macosx-desktop:
+.test-macosx-desktop:
 
   stage: build
   tags: [ "macosx" ]
@@ -17,14 +17,14 @@
 #################################################
 
 
-job-macosx-makefile:
+test-macosx-makefile:
 
   only:
     - schedules
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-  extends: .job-macosx-desktop
+  extends: .test-macosx-desktop
 
 
 #################################################
@@ -32,20 +32,20 @@ job-macosx-makefile:
 #################################################
 
 
-job-macosx-ninja:
+test-macosx-ninja:
 
   variables:
     CMAKE_GENERATOR: Ninja
-  extends: .job-macosx-desktop
+  extends: .test-macosx-desktop
 
 
-job-macosx-ninja-novideo:
+test-macosx-ninja-novideo:
 
   only:
     - schedules
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
-  extends: job-macosx-ninja
+  extends: test-macosx-ninja
 
 
 #################################################
@@ -53,7 +53,7 @@ job-macosx-ninja-novideo:
 #################################################
 
 
-job-macosx-xcode:
+test-macosx-xcode:
 
   stage: build
   tags: [ "macosx" ]

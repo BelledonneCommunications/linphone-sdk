@@ -1,4 +1,4 @@
-.job-android:
+.build-android:
 
   stage: build
   tags: [ "docker-android" ]
@@ -23,8 +23,8 @@
     expire_in: 1 week
 
 
-.scheduled-job-android:
-  extends: .job-android
+.scheduled-build-android:
+  extends: .build-android
   only:
     - schedules
 
@@ -34,22 +34,22 @@
 #################################################
 
 
-job-android-makefile-r16b:
+build-android-makefile-r16b:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r16b
   variables:
     CMAKE_GENERATOR: Unix Makefiles
-    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-  extends: .scheduled-job-android
+    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_buildS
+  extends: .scheduled-build-android
 
 
-job-android-makefile-r17c:
+build-android-makefile-r17c:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
   variables:
     CMAKE_GENERATOR: Unix Makefiles
-    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-  extends: .scheduled-job-android
+    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_buildS
+  extends: .scheduled-build-android
 
 
 #################################################
@@ -57,35 +57,35 @@ job-android-makefile-r17c:
 #################################################
 
 
-job-android-ninja-r16b:
+build-android-ninja-r16b:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r16b
   variables:
     CMAKE_GENERATOR: Ninja
-  extends: .job-android
+  extends: .build-android
 
 
-job-android-ninja-r16b-novideo:
+build-android-ninja-r16b-novideo:
 
   only:
     - schedules
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
-  extends: job-android-ninja-r16b
+  extends: build-android-ninja-r16b
 
 
-job-android-ninja-r17c:
+build-android-ninja-r17c:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
   variables:
     CMAKE_GENERATOR: Ninja
-  extends: .job-android
+  extends: .build-android
 
 
-job-android-ninja-r17c-novideo:
+build-android-ninja-r17c-novideo:
 
   only:
     - schedules
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
-  extends: job-android-ninja-r17c
+  extends: build-android-ninja-r17c

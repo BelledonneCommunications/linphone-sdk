@@ -1,0 +1,36 @@
+#################################################
+# Makefile
+#################################################
+test-bctoolbox-centos7:
+  extends: .test-bctoolbox
+  dependencies:
+    - build-centos7
+  tags: [ "docker-test-centos7" ]
+
+test-bellesip-centos7:
+  extends: .test-bellesip
+  dependencies:
+    - build-centos7
+  tags: [ "docker-test-centos7" ]
+
+#test mediastreamer à rajouter ici
+
+test-belr-centos7:
+  extends: .test-belr
+  dependencies:
+    - build-centos7
+  tags: [ "docker-test-centos7" ]
+
+test-belcard-centos7:
+  extends: .test-belcard
+  dependencies:
+    - build-centos7
+  tags: [ "docker-test-centos7" ]
+
+test-bzrtp-centos7:
+  extends: .test-bzrtp
+  dependencies:
+    - build-centos7
+  tags: [ "docker-test-centos7" ]
+
+#ajouter test lime ici

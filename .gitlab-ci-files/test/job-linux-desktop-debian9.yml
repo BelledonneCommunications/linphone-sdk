@@ -1,0 +1,38 @@
+#################################################
+# Makefile
+#################################################
+
+#Commented until ip fix
+#test-bctoolbox-debian9:
+#  extends: .test-bctoolbox
+#  dependencies:
+#    - build-debian9
+#  tags: [ "docker-test-debian9" ]
+
+test-bellesip-debian9:
+  extends: .test-bellesip
+  dependencies:
+    - build-debian9
+  tags: [ "docker-test-debian9" ]
+
+#test mediastreamer
+
+test-belr-debian9:
+  extends: .test-belr
+  dependencies:
+    - build-debian9
+  tags: [ "docker-test-debian9" ]
+
+test-belcard-debian9:
+  extends: .test-belcard
+  dependencies:
+    - build-debian9
+  tags: [ "docker-test-debian9" ]
+
+test-bzrtp-debian9:
+  extends: .test-bzrtp
+  dependencies:
+    - build-debian9
+  tags: [ "docker-test-debian9" ]
+
+#test lime

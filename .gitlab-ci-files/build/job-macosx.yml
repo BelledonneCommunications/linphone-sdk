@@ -1,28 +1,15 @@
-.job-ios:
+.build-macosx-desktop:
 
   stage: build
   tags: [ "macosx" ]
 
   script:
     - ccache -s
-    - mkdir -p build-ios
-    - cd build-ios
-    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="arm64, armv7, x86_64" $CMAKE_OPTIONS
+    - mkdir -p build-desktop
+    - cd build-desktop
+    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9 $DEFAULT_CMAKE_OPTIONS $CMAKE_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     - ccache -s
-
-  artifacts:
-    paths:
-      - build-ios/linphone-sdk-*.zip
-      - build-ios/linphone-sdk.podspec
-    when: always
-    expire_in: 1 week
-
-
-.scheduled-job-ios:
-  extends: .job-ios
-  only:
-    - schedules
 
 
 #################################################
@@ -30,12 +17,14 @@
 #################################################
 
 
-job-ios-makefile:
+build-macosx-makefile:
 
+  only:
+    - schedules
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-  extends: .scheduled-job-ios
+  extends: .build-macosx-desktop
 
 
 #################################################
@@ -43,20 +32,20 @@ job-ios-makefile:
 #################################################
 
 
-job-ios-ninja:
+build-macosx-ninja:
 
   variables:
     CMAKE_GENERATOR: Ninja
-  extends: .job-ios
+  extends: .build-macosx-desktop
 
 
-job-ios-ninja-novideo:
+build-macosx-ninja-novideo:
 
   only:
     - schedules
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
-  extends: job-ios-ninja
+  extends: build-macosx-ninja
 
 
 #################################################
@@ -64,7 +53,7 @@ job-ios-ninja-novideo:
 #################################################
 
 
-job-ios-xcode:
+build-macosx-xcode:
 
   stage: build
   tags: [ "macosx" ]
@@ -72,14 +61,7 @@ job-ios-xcode:
   only:
     - schedules
   script:
-    - mkdir -p build-ios
-    - cd build-ios
-    - cmake .. -G Xcode -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="arm64, armv7, x86_64" -DLINPHONESDK_IOS_BASE_URL=$IOS_SNAPSHOTS_URL $CMAKE_OPTIONS
+    - mkdir -p build-desktop
+    - cd build-desktop
+    - cmake .. -G Xcode -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9 $DEFAULT_CMAKE_OPTIONS $CMAKE_OPTIONS
     - cmake --build . --target sdk -- -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=`sysctl -n hw.ncpu`
-
-  artifacts:
-    paths:
-      - build-ios/linphone-sdk-*.zip
-      - build-ios/linphone-sdk.podspec
-    when: always
-    expire_in: 1 week

@@ -3,7 +3,7 @@
 #################################################
 
 
-job-ios-upload:
+test-ios-upload:
 
   stage: deploy
   tags: [ "deploy" ]
@@ -11,7 +11,7 @@ job-ios-upload:
   only:
     - schedules
   dependencies:
-    - job-ios-xcode
+    - test-ios-xcode
 
   script:
     - scp build-ios/linphone-sdk-*.zip $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/ios/
@@ -27,7 +27,7 @@ job-ios-upload:
 #################################################
 
 
-job-android-upload:
+test-android-upload:
 
   stage: deploy
   tags: [ "deploy" ]
@@ -35,7 +35,7 @@ job-android-upload:
   only:
     - schedules
   dependencies:
-    - job-android-ninja-r17c
+    - test-android-ninja-r17c
 
   script:
     - cd build-android && ../cmake/Android/gradlew uploadArchives

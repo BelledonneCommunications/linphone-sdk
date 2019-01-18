@@ -1,0 +1,39 @@
+#################################################
+# Makefile
+#################################################
+
+test-bctoolbox-ubuntu:
+  extends: .test-bctoolbox
+  dependencies:
+    - build-ubuntu
+  tags: [ "docker-ubuntu-rolling" ]
+
+test-bellesip-ubuntu:
+  extends: .test-bellesip
+  dependencies:
+    - build-ubuntu
+  tags: [ "docker-ubuntu-rolling" ]
+
+#test mediastreamer
+
+test-belr-ubuntu:
+  extends: .test-belr
+  dependencies:
+    - build-ubuntu
+  tags: [ "docker-ubuntu-rolling" ]
+
+test-belcard-ubuntu:
+  extends: .test-belcard
+  dependencies:
+    - build-ubuntu
+  tags: [ "docker-ubuntu-rolling" ]
+
+test-bzrtp-ubuntu:
+  extends: .test-bzrtp
+  dependencies:
+    - build-ubuntu
+  tags: [ "docker-ubuntu-rolling" ]
+
+#test lime
+
+

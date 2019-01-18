@@ -3,7 +3,7 @@
 #################################################
 
 
-job-debian9-makefile-gcc:
+build-debian9-makefile-gcc:
 
   tags: [ "docker-debian9" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
@@ -12,10 +12,10 @@ job-debian9-makefile-gcc:
     CC: gcc
     CXX: g++
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-  extends: .scheduled-job-linux-desktop
+  extends: .scheduled-build-linux-desktop
 
 
-job-debian9-makefile-clang:
+build-debian9-makefile-clang:
 
   tags: [ "docker-debian9" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
@@ -24,7 +24,7 @@ job-debian9-makefile-clang:
     CC: clang
     CXX: clang++
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-  extends: .scheduled-job-linux-desktop
+  extends: .scheduled-build-linux-desktop
 
 
 #################################################
@@ -32,7 +32,7 @@ job-debian9-makefile-clang:
 #################################################
 
 
-job-debian9-ninja-gcc:
+build-debian9-ninja-gcc:
 
   tags: [ "docker-debian9" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
@@ -40,19 +40,19 @@ job-debian9-ninja-gcc:
     CMAKE_GENERATOR: Ninja
     CC: gcc
     CXX: g++
-  extends: .job-linux-desktop
+  extends: .build-linux-desktop
 
 
-job-debian9-ninja-gcc-novideo:
+build-debian9-ninja-gcc-novideo:
 
   only:
     - schedules
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
-  extends: job-debian9-ninja-gcc
+  extends: build-debian9-ninja-gcc
 
 
-job-debian9-ninja-clang:
+build-debian9-ninja-clang:
 
   tags: [ "docker-debian9" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
@@ -60,15 +60,15 @@ job-debian9-ninja-clang:
     CMAKE_GENERATOR: Ninja
     CC: clang
     CXX: clang++
-  extends: .job-linux-desktop
+  extends: .build-linux-desktop
 
 
-job-debian9-ninja-clang-novideo:
+build-debian9-ninja-clang-novideo:
 
   only:
     - schedules
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
-  extends: job-debian9-ninja-clang
+  extends: build-debian9-ninja-clang
 
 

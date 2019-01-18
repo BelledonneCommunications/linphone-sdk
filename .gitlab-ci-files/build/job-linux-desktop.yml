@@ -1,4 +1,4 @@
-.job-linux-desktop:
+.build-linux-desktop:
 
   stage: build
   extends: .linux-prepare
@@ -12,7 +12,7 @@
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
 
 
-.scheduled-job-linux-desktop:
-  extends: .job-linux-desktop
+.scheduled-build-linux-desktop:
+  extends: .build-linux-desktop
   only:
     - schedules
