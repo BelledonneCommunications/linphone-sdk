@@ -30,7 +30,7 @@ set (LIME_SOURCE_FILES_JAVA
 	org/linphone/lime/LimeCallbackReturn.java
 	org/linphone/lime/LimeStatusCallback.java
 	org/linphone/lime/RecipientData.java
-	org/linphone/lime/PostToX3DH.java
+	org/linphone/lime/LimePostToX3DH.java
 	org/linphone/lime/LimeManager.java
 )
 

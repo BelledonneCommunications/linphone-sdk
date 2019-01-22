@@ -6,6 +6,11 @@ import java.security.cert.X509Certificate;
 
 import java.io.File;
 
+import java.net.URL;
+import javax.net.ssl.HttpsURLConnection;
+import java.io.DataOutputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 /**
  * @brief For testing purpose, we just count the success and fail received
  */
@@ -35,6 +40,54 @@ class LimeStatusCallbackImpl implements LimeStatusCallback {
 
 	public LimeStatusCallbackImpl() {
 		resetStatus();
+	}
+}
+
+class LimePostToX3DH_Sync implements LimePostToX3DH {
+	/** @brief Function call by native side to post a message to an X3DH server.
+	 * The connection is synchronous so this function also collect the answer
+	 * and send it back to the native library using the process_response native method
+	 */
+	public void postToX3DHServer(long ptr, String url, String from, byte[] message) {
+		try {
+			// connect to the given URL
+			String local_url = new String(url.toCharArray());
+			URL obj = new URL(local_url);
+			HttpsURLConnection con = (HttpsURLConnection) obj.openConnection();
+
+			// set request header
+			con.setRequestMethod("POST");
+			con.setRequestProperty("User-Agent", "lime");
+			con.setRequestProperty("Content-type", "x3dh/octet-stream");
+			con.setRequestProperty("From", from);
+
+			// Send post request
+			con.setDoOutput(true);
+			DataOutputStream wr = new DataOutputStream(con.getOutputStream());
+			wr.write(message, 0, message.length);
+			wr.flush();
+			wr.close();
+
+			// wait for a response
+			int responseCode = con.getResponseCode();
+			InputStream in = con.getInputStream();
+			ByteArrayOutputStream response = new ByteArrayOutputStream( );
+
+			byte[] buffer = new byte[256];
+			int bufferLength;
+
+			while ((bufferLength = in.read(buffer)) != -1){
+				response.write(buffer, 0, bufferLength);
+			}
+			in.close();
+
+			// call response process native function
+			LimeManager.process_X3DHresponse(ptr, responseCode, response.toByteArray());
+			response.close();
+		}
+		catch (Exception e) {
+			System.out.println("Exception during HTTPS connection" + e.getMessage());
+		}
 	}
 }
 
@@ -78,13 +131,15 @@ public class LimeTester {
 		int expected_success = 0;
 		int expected_fail = 0;
 
+		LimeStatusCallbackImpl statusCallback = new LimeStatusCallbackImpl();
+		LimePostToX3DH_Sync postObj = new LimePostToX3DH_Sync();
+
 		String AliceDeviceId = "alice"+UUID.randomUUID().toString();
 		String BobDeviceId = "bob"+UUID.randomUUID().toString();
-		LimeManager aliceManager = new LimeManager("testdb_Alice.sqlite3");
-		LimeManager bobManager = new LimeManager("testdb_Bob.sqlite3");
+		LimeManager aliceManager = new LimeManager("testdb_Alice.sqlite3", postObj);
+		LimeManager bobManager = new LimeManager("testdb_Bob.sqlite3", postObj);
 
 		expected_success+= 2;
-		LimeStatusCallbackImpl statusCallback = new LimeStatusCallbackImpl();
 		aliceManager.create_user(AliceDeviceId, "https://localhost:25519", LimeCurveId.C25519, statusCallback);
 		bobManager.create_user(BobDeviceId, "https://localhost:25519", LimeCurveId.C25519, 10, statusCallback);
 		assert (statusCallback.success == expected_success);

@@ -162,45 +162,25 @@ static lime::CurveId j2cCurveId(jni::jint curveId) {
 extern "C" JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void*) {
 
 // java classes we would need to access
-struct jPostToX3DH { static constexpr auto Name() { return "org/linphone/lime/PostToX3DH"; } };
+struct jPostToX3DH { static constexpr auto Name() { return "org/linphone/lime/LimePostToX3DH"; } };
 struct jStatusCallback { static constexpr auto Name() { return "org/linphone/lime/LimeStatusCallback"; } };
 struct jRecipientData { static constexpr auto Name() { return "org/linphone/lime/RecipientData"; } };
 struct jLimeOutputBuffer { static constexpr auto Name() { return "org/linphone/lime/LimeOutputBuffer"; } };
 
 jni::JNIEnv& env { jni::GetEnv(*vm) };
 
-/**
- * @brief process response from X3DH server
- * This function is bind to a java PostToX3DH object process_response method
- * It :
- * - converts from jbytes(signed char) to unsigned char the response array
- * - retrieves from the given back responseHolder pointer the closure pointer to callback the line lib and call it
- */
-auto process_response = [](jni::JNIEnv &env, jni::Class<jPostToX3DH>& , jni::jlong processPtr, jni::jint responseCode, jni::Array<jni::jbyte> &response) {
-	// turn the response array into a vector of jbytes(signed char)
-	auto responseVector = std::make_shared<std::vector<uint8_t>>();
-	jbyteArray2uin8_tVector(env, response, responseVector);
-
-	// retrieve the statefull closure pointer to response processing provided by the lime lib
-	auto responseHolderPtr = reinterpret_cast<responseHolder *>(processPtr);
-	responseHolderPtr->process(responseCode, *responseVector);
-
-	delete(responseHolderPtr);
-};
-
-// bind the process_response to the java PostToX3DH.process_response method
-jni::RegisterNatives(env, *jni::Class<jPostToX3DH>::Find(env), jni::MakeNativeMethod("process_response", process_response));
 
 struct jLimeManager {
 	static constexpr auto Name() { return "org/linphone/lime/LimeManager"; } // bind this class to the java LimeManager Class
 
-	std::unique_ptr<lime::LimeManager> m_manager; // a unique pointer to the actual lime manager
+	std::unique_ptr<lime::LimeManager> m_manager; /**< a unique pointer to the actual lime manager */
+	jni::Global<jni::Object<jPostToX3DH>, jni::EnvGettingDeleter> jGlobalPostObj; /**< a global reference to the java postToX3DH object. TODO: unclear if EnvIgnoringDeleter is not a better fit here. */
 
 	/** @brief Constructor
 	 * unlike the native lime manager constructor, this one get only one argument has cpp closure cannot be passed easily to java
 	 * @param[in]	db_access	the database access path
 	 */
-	jLimeManager(JNIEnv &env, const jni::String &db_access) {
+	jLimeManager(JNIEnv &env, const jni::String &db_access, jni::Object<jPostToX3DH> &jpostObj) : jGlobalPostObj{jni::NewGlobal<jni::EnvGettingDeleter>(env, jpostObj)} {
 		// turn the argument into a cpp string
 		std::string cpp_db_access = jni::Make<std::string>(env, db_access);
 
@@ -208,24 +188,21 @@ struct jLimeManager {
 		JavaVM *c_vm;
 		env.GetJavaVM(&c_vm);
 
-		m_manager = std::make_unique<lime::LimeManager>(cpp_db_access, [c_vm](const std::string &url, const std::string &from, const std::vector<uint8_t> &message, const lime::limeX3DHServerResponseProcess &responseProcess){
+		// closure must capture pointer to current object to be able to access the jGlobalPostObj field
+		auto thiz = this;
+
+		m_manager = std::make_unique<lime::LimeManager>(cpp_db_access, [c_vm, thiz](const std::string &url, const std::string &from, const std::vector<uint8_t> &message, const lime::limeX3DHServerResponseProcess &responseProcess){
 			//  (TODO? make sure the current process is attached?)
 			jni::JNIEnv& g_env { jni::GetEnv(*c_vm)};
-
 			// Create a Cpp object to hold the reponseProcess closure (cannot give a stateful function to the java side)
 			auto process = new responseHolder(responseProcess);
-
-			// Instantiate a java postToX3DH object
+			// retrieve the postToX3DHServer  method
 			auto PostClass = jni::Class<jPostToX3DH>::Find(g_env);
-			auto PostClassCtr  = PostClass.GetConstructor<jni::jlong>(g_env);
-			auto PostObj = PostClass.New(g_env, PostClassCtr, jni::jlong(process)); // give it a pointer(casted to jlong) to the responseHolder object
-
-			// retrieve the postToX3DHServer method
 			auto PostMethod = PostClass.GetMethod<void (jni::jlong, jni::String, jni::String, jni::Array<jni::jbyte>)>(g_env, "postToX3DHServer");
-			// Call the postToX3DHServer method on our object
-			PostObj.Call(g_env, PostMethod, jni::jlong(process), jni::Make<jni::String>(g_env, url), jni::Make<jni::String>(g_env, from), jni::Make<jni::Array<jni::jbyte>>(g_env, reinterpret_cast<const std::vector<int8_t>&>(message)));
-		});
 
+			// Call the postToX3DHServer method passing it our pointer holding the response process object
+			thiz->jGlobalPostObj.Call(g_env, PostMethod, jni::jlong(process), jni::Make<jni::String>(g_env, url), jni::Make<jni::String>(g_env, from), jni::Make<jni::Array<jni::jbyte>>(g_env, reinterpret_cast<const std::vector<int8_t>&>(message)));
+		});
 	}
 
 	jLimeManager(const jLimeManager&) = delete; // noncopyable
@@ -235,21 +212,23 @@ struct jLimeManager {
 	}
 
 
-	void create_user(jni::JNIEnv &env, const jni::String &localDeviceId, const jni::String &serverUrl, const jni::jint jcurveId, const jni::jint jOPkInitialBatchSize, jni::Object<jStatusCallback> &statusObj ) {
+	void create_user(jni::JNIEnv &env, const jni::String &localDeviceId, const jni::String &serverUrl, const jni::jint jcurveId, const jni::jint jOPkInitialBatchSize, jni::Object<jStatusCallback> &jstatusObj ) {
 		LIME_LOGD<<"JNI create_user user "<<jni::Make<std::string>(env, localDeviceId)<<" url "<<jni::Make<std::string>(env, serverUrl);
 		JavaVM *c_vm;
 		env.GetJavaVM(&c_vm);
 
-		m_manager->create_user( jni::Make<std::string>(env, localDeviceId),
-				jni::Make<std::string>(env, serverUrl),
-				j2cCurveId(jcurveId), jOPkInitialBatchSize, [c_vm, &statusObj](const lime::CallbackReturn status, const std::string message){
+		auto callback_lambda = [c_vm, &jstatusObj ](const lime::CallbackReturn status, const std::string message){
 					// get the env from VM, and retrieve the callback method on StatusCallback class
 					jni::JNIEnv& g_env { jni::GetEnv(*c_vm)};
 					auto StatusClass = jni::Class<jStatusCallback>::Find(g_env);
 					auto StatusMethod = StatusClass.GetMethod<void (jni::jint, jni::String)>(g_env, "callback");
 					// call the callback on the statusObj we got in param when calling create_user
-					statusObj.Call(g_env, StatusMethod, c2jCallbackReturn(status), jni::Make<jni::String>(g_env, message));
-				});
+					jstatusObj.Call(g_env, StatusMethod, c2jCallbackReturn(status), jni::Make<jni::String>(g_env, message));
+				};
+
+		m_manager->create_user( jni::Make<std::string>(env, localDeviceId),
+				jni::Make<std::string>(env, serverUrl),
+				j2cCurveId(jcurveId), jOPkInitialBatchSize, std::move(callback_lambda));
 	}
 
 	void delete_user(jni::JNIEnv &env, const jni::String &localDeviceId, jni::Object<jStatusCallback> &statusObj ) {
@@ -347,6 +326,8 @@ struct jLimeManager {
 			jni::Array<jni::jbyte> &jcipherMessage,
 			jni::Object<jLimeOutputBuffer> &jplainMessage) {
 
+		LIME_LOGD<<"JNI Decrypt from "<<(jni::Make<std::string>(env, jsenderDeviceId))<<" for user "<<(jni::Make<std::string>(env, jrecipientUserId))<<" (device : "<<(jni::Make<std::string>(env, jlocalDeviceId))<<")"<<std::endl;
+
 		// turn the DR and cipher message java byte array into a vector of uint8_t
 		auto DRmessage = std::make_shared<std::vector<uint8_t>>();
 		jbyteArray2uin8_tVector(env, jDRmessage, DRmessage);
@@ -378,6 +359,8 @@ struct jLimeManager {
 		JavaVM *c_vm;
 		env.GetJavaVM(&c_vm);
 
+		LIME_LOGD<<"JNI update";
+
 		m_manager->update([c_vm, &statusObj] (const lime::CallbackReturn status, const std::string message)
 				{
 					// get the env from VM
@@ -392,12 +375,14 @@ struct jLimeManager {
 				},
 				jOPkServerLowLimit, jOPkBatchSize);
 	}
+
+
 };
 
 #define METHOD(MethodPtr, name) jni::MakeNativePeerMethod<decltype(MethodPtr), (MethodPtr)>(name)
 
-jni::RegisterNativePeer<jLimeManager>(env, jni::Class<jLimeManager>::Find(env), "peer",
-	jni::MakePeer<jLimeManager, jni::String &>,
+jni::RegisterNativePeer<jLimeManager>(env, jni::Class<jLimeManager>::Find(env), "nativePtr",
+	jni::MakePeer<jLimeManager, jni::String &, jni::Object<jPostToX3DH> &>,
 	"initialize",
 	"finalize",
 	METHOD(&jLimeManager::create_user, "n_create_user"),
@@ -406,6 +391,27 @@ jni::RegisterNativePeer<jLimeManager>(env, jni::Class<jLimeManager>::Find(env), 
 	METHOD(&jLimeManager::decrypt, "n_decrypt"),
 	METHOD(&jLimeManager::update, "n_update")
 	);
+
+// bind the process_response to the static java LimeManager.process_response method
+// This is not done in the previous RegisterNativePeer because the method is static
+/**
+ * @brief process response from X3DH server
+ * This function is bind to a java PostToX3DH object process_response method
+ * It :
+ * - converts from jbytes(signed char) to unsigned char the response array
+ * - retrieves from the given back responseHolder pointer the closure pointer to callback the line lib and call it
+ */
+auto process_X3DHresponse= [](jni::JNIEnv &env, jni::Class<jLimeManager>&, jni::jlong processPtr, jni::jint responseCode, jni::Array<jni::jbyte> &response) {
+	// turn the response array into a vector of jbytes(signed char)
+	auto responseVector = std::make_shared<std::vector<uint8_t>>();
+	jbyteArray2uin8_tVector(env, response, responseVector);
+		// retrieve the statefull closure pointer to response processing provided by the lime lib
+	auto responseHolderPtr = reinterpret_cast<responseHolder *>(processPtr);
+	responseHolderPtr->process(responseCode, *responseVector);
+		delete(responseHolderPtr);
+	};
+
+jni::RegisterNatives(env, *jni::Class<jLimeManager>::Find(env), jni::MakeNativeMethod("process_X3DHresponse", process_X3DHresponse));
 
 return jni::Unwrap(jni::jni_version_1_2);
 } // JNI_OnLoad

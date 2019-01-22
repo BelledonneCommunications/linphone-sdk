@@ -19,14 +19,14 @@
 package org.linphone.lime;
 
 public class LimeManager {
+	private long nativePtr; // stores the native object pointer
 
-	public LimeManager(String db_access) {
-	    initialize(db_access);
-	}
-
-	private long peer;
-	protected native void initialize(String db_access);
+	protected native void initialize(String db_access, LimePostToX3DH postObj);
 	protected native void finalize() throws Throwable;
+
+	public LimeManager(String db_access, LimePostToX3DH postObj) {
+		initialize(db_access, postObj);
+	}
 
 	// Native functions involving enumerated paremeters not public
 	// Enumeration translation is done on java side
@@ -35,7 +35,6 @@ public class LimeManager {
 
 	private native void n_create_user(String localDeviceId, String serverURL, int curveId, int OPkInitialBatchSize, LimeStatusCallback statusObj);
 	private native void n_update(LimeStatusCallback statusObj, int OPkServerLowLimit, int OPkBatchSize);
-
 
 	/* default value for OPkInitialBatchSize is 100 */
 	public void create_user(String localDeviceId, String serverURL, LimeCurveId curveId, LimeStatusCallback statusObj) {
@@ -156,4 +155,16 @@ public class LimeManager {
 	public void update(LimeStatusCallback statusObj) {
 		this.n_update(statusObj, 100, 25);
 	}
+
+	/**
+	 * @brief native function to process the X3DH server response
+	 *
+	 * This function must be called by the response handler to forward the response (and http answer code)
+	 *
+	 * @param[in]	ptr		a native object pointer passed to the postToX3DH method
+	 * @param[in]	responseCode	the HTTP server response code
+	 * @param[in]	response	the binary X3DH server response
+	 *
+	 */
+	public static native void process_X3DHresponse(long ptr, int responseCode, byte[] response);
 }
