@@ -44,28 +44,31 @@ typedef struct AndroidTextureDisplay {
 } AndroidTextureDisplay;
 
 static void android_texture_display_destroy_opengl(AndroidTextureDisplay *ad) {
-	ms_debug("Destroying context");
+	ms_message("[TextureView Display] Destroying context");
 	if (ad->ogl) {
 		ogl_display_uninit(ad->ogl, FALSE);
 		ms_free(ad->ogl);
 		ad->ogl = NULL;
+		ms_message("[TextureView Display] OGL context destroyed");
 	}
 	if (ad->gl_surface) {
 		if (ad->gl_display) {
 			eglDestroySurface(ad->gl_display, ad->gl_surface);
 			ad->gl_surface = NULL;
 			ad->gl_display = NULL;
+			ms_message("[TextureView Display] OGL surface and display destroyed");
 		}
 	}
 	if (ad->window) {
 		ANativeWindow_release(ad->window);
 		ad->window = NULL;
+		ms_message("[TextureView Display] Window released");
 	}
 }
 
 static void android_texture_display_init_opengl(AndroidTextureDisplay *ad) {
    	JNIEnv *jenv = ms_get_jni_env();
-	ms_debug("Initializing context");
+	ms_message("[TextureView Display] Initializing context");
 
 	EGLint attribs [] = {
 		EGL_RED_SIZE, 5,
@@ -88,7 +91,7 @@ static void android_texture_display_init_opengl(AndroidTextureDisplay *ad) {
 
 	eglGetConfigAttrib(display, config, EGL_NATIVE_VISUAL_ID, &format);
 
-	ms_debug("Chosen format is %i", format);
+	ms_message("[TextureView Display] Chosen format is %i", format);
 
 	ad->window = ANativeWindow_fromSurface(jenv, ad->surface);
 	ANativeWindow_setBuffersGeometry(ad->window, 0, 0, format);
@@ -97,7 +100,7 @@ static void android_texture_display_init_opengl(AndroidTextureDisplay *ad) {
 
 	eglQuerySurface(display, surface, EGL_WIDTH, &w);
 	eglQuerySurface(display, surface, EGL_HEIGHT, &h);
-	ms_debug("Surface size is %ix%i", w, h);
+	ms_message("[TextureView Display] Surface size is %ix%i", w, h);
 
 	EGLint contextAttrs[] = {
 		EGL_CONTEXT_CLIENT_VERSION, 2,
@@ -106,7 +109,7 @@ static void android_texture_display_init_opengl(AndroidTextureDisplay *ad) {
 	context = eglCreateContext(display, config, NULL, contextAttrs);
 
 	if (eglMakeCurrent(display, surface, surface, context) == EGL_FALSE) {         
-		ms_debug("Unable to eglMakeCurrent");
+		ms_error("[TextureView Display] Unable to eglMakeCurrent");
 		return;
 	}
 
@@ -137,6 +140,7 @@ static void android_texture_display_process(MSFilter *f) {
 	ms_filter_lock(f);
 	if (ad->surface != NULL) {
 		if (!ad->ogl) {
+			ms_warning("[TextureView Display] processing with a surface but without an OGL context, let's init it");
 			android_texture_display_init_opengl(ad);
 		}
 
@@ -146,6 +150,8 @@ static void android_texture_display_process(MSFilter *f) {
 					ogl_display_set_yuv_to_display(ad->ogl, m);
 					ogl_display_render(ad->ogl, 0);
 					eglSwapBuffers(ad->gl_display, ad->gl_surface);
+				} else {
+					ms_error("[TextureView Display] processing without an OGL context !");
 				}
 			}
 		}
@@ -163,6 +169,7 @@ static int android_texture_display_set_window(MSFilter *f, void *arg) {
 
 	unsigned long id = *(unsigned long *)arg;
 	jobject surface = (jobject)id;
+	ms_message("[TextureView Display] new window jobject ptr is %p, current one is %p", surface, ad->surface);
 	ms_filter_lock(f);
 	if (id == 0) {
 		ad->surface = NULL;
