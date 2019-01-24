@@ -52,6 +52,24 @@ job-android-makefile-r17c:
   extends: .scheduled-job-android
 
 
+job-android-makefile-r18b:
+
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r18b
+  variables:
+    CMAKE_GENERATOR: Unix Makefiles
+    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
+  extends: .scheduled-job-android
+
+
+job-android-makefile-r19:
+
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r19
+  variables:
+    CMAKE_GENERATOR: Unix Makefiles
+    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
+  extends: .scheduled-job-android
+
+
 #################################################
 # Ninja
 #################################################
@@ -89,3 +107,19 @@ job-android-ninja-r17c-novideo:
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-android-ninja-r17c
+
+
+job-android-ninja-r18b:
+
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r18b
+  variables:
+    CMAKE_GENERATOR: Ninja
+  extends: .job-android
+
+
+job-android-ninja-r19:
+
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r19
+  variables:
+    CMAKE_GENERATOR: Ninja
+  extends: .job-android
