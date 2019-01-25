@@ -26,6 +26,7 @@ job-ios-upload:
 # Android
 #################################################
 
+
 job-android-liblinphone-tester:
 
   stage: deploy
@@ -51,7 +52,7 @@ job-android-liblinphone-tester:
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     - cd tester/Android && ./gradlew assembleDebugAndroidTest
     - ccache -s
- 
+
 
 job-android-upload:
 
