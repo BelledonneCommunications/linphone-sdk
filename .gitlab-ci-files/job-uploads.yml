@@ -51,8 +51,6 @@ job-android-liblinphone-tester:
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     - cd tester/Android && ./gradlew assembleDebugAndroidTest
     - ccache -s
-
-  script:
  
 job-android-upload:
 
