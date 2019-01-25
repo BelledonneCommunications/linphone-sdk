@@ -31,6 +31,7 @@ job-android-liblinphone-tester:
 
   stage: deploy
   tags: [ "deploy" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
 
   variables:
     CMAKE_GENERATOR: Ninja
@@ -39,8 +40,7 @@ job-android-liblinphone-tester:
 
   only:
     - schedules
-  dependencies:
-    - job-android-ninja-r17c
+  extends: .job-android
 
   script:
     - export ANDROID_HOME=$ANDROID_HOME_MAC
