@@ -52,12 +52,14 @@ job-android-liblinphone-tester:
     - cd tester/Android && ./gradlew assembleDebugAndroidTest
     - ccache -s
  
- 
+
 job-android-upload:
 
   stage: deploy
   tags: [ "deploy" ]
 
+  only:
+    - schedules
   dependencies:
     - job-android-liblinphone-tester
 
