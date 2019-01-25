@@ -238,8 +238,10 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 		// Create an empty RecipientData vector, in this basic case we will encrypt to one device only but we can do it to any number of recipient devices.
 		// RecipientData holds:
 		//      - recipient device id (identify the recipient)
-		//      - peer Device identity verified status : output, set to true if this device is a verified one.
-		//      - DRmessage : output of encryption process targeted to this recipient device only
+		//      - peer Device status :
+		//          - input : if explicitely set to lime::PeerDeviceStatus::fail, this entry is ignored
+		//          - output : the current status of this device in local database. See lime::PeerDeviceStatus definition(in lime.hpp) for details
+		//      - Double Ratchet message : output of encryption process targeted to this recipient device only
 		auto recipients = make_shared<std::vector<RecipientData>>();
 		recipients->emplace_back(*bobDeviceId); // we have only one recipient identified by its device id.
 		// Shall we have more recipients (bob can have several devices or be a conference sip:uri, alice other devices must get a copy of the message), we just need to emplace_back some more recipients Device Id (GRUU)
@@ -472,8 +474,10 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve, const std:
 		// Create an empty RecipientData vector, in this basic case we will encrypt to one device only but we can do it to any number of recipient devices.
 		// RecipientData holds:
 		//      - recipient device id (identify the recipient)
-		//      - peer Device identity verified status : output, set to true if this device is a verified one.
-		//      - DRmessage : output of encryption process targeted to this recipient device only
+		//      - peer Device status :
+		//          - input : if explicitely set to lime::PeerDeviceStatus::fail, this entry is ignored
+		//          - output : the current status of this device in local database. See lime::PeerDeviceStatus definition(in lime.hpp) for details
+		//      - Double Ratchet message : output of encryption process targeted to this recipient device only
 		auto recipients = make_shared<std::vector<RecipientData>>();
 		recipients->emplace_back(*bobDeviceId); // we have only one recipient identified by its device id.
 		// Shall we have more recipients (bob can have several devices or be a conference sip:uri, alice other devices must get a copy of the message), we just need to emplace_back some more recipients Device Id (GRUU)

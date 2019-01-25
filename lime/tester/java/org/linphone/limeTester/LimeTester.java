@@ -196,117 +196,6 @@ class LimePostToX3DH_Async implements LimePostToX3DH {
 }
 
 public class LimeTester {
-	/**
-	 * Test Scenario:
-	 * - Create Alice and Bob users
-	 * - Alice encrypts to Bob who decrypts and check it matches the original
-	 * - Bob encryps to Alice who decrypts and check it matches the original
-	 * - Alice and Bob call the update function
-	 */
-	public static void hello_world(LimeCurveId curveId, String dbBasename, String x3dhServerUrl, LimePostToX3DH postObj) {
-		int expected_success = 0;
-		int expected_fail = 0;
-
-		// Create a callback
-		LimeStatusCallbackImpl statusCallback = new LimeStatusCallbackImpl();
-
-		// Create random device id for alice and bob
-		String AliceDeviceId = "alice"+UUID.randomUUID().toString();
-		String BobDeviceId = "bob"+UUID.randomUUID().toString();
-
-		// Create db filenames and delete potential existing ones
-		String curveIdString;
-		if (curveId == LimeCurveId.C25519) {
-			curveIdString = ".C25519.";
-		} else {
-			curveIdString = ".C448.";
-		}
-		String aliceDbFilename = "alice."+dbBasename+curveIdString+".sqlite3";
-		String bobDbFilename = "bob."+dbBasename+curveIdString+".sqlite3";
-		File file = new File(aliceDbFilename);
-		file.delete();
-		file = new File(bobDbFilename);
-		file.delete();
-
-		// Create bob and alice lime managers
-		LimeManager aliceManager = new LimeManager(aliceDbFilename, postObj);
-		LimeManager bobManager = new LimeManager(bobDbFilename, postObj);
-
-		// Use this managers to create users
-		expected_success+= 2;
-		aliceManager.create_user(AliceDeviceId, x3dhServerUrl, curveId, statusCallback);
-		bobManager.create_user(BobDeviceId, x3dhServerUrl, curveId, 10, statusCallback);
-		assert (statusCallback.wait_for_success(expected_success));
-		assert (statusCallback.fail == expected_fail);
-
-		// prepare for encrypt: An array of RecipientData, one element for each recipient device
-		// encrypted output will be stored in it
-		RecipientData[] recipients = new RecipientData[1]; // 1 target for the encrypt
-		String plainMessage = "Moi je connais un ami il s'appelle Alceste";
-		recipients[0] = new RecipientData(BobDeviceId);
-		LimeOutputBuffer cipherMessage = new LimeOutputBuffer();
-
-		// encrypts, the plain message is a byte array so we can encrypt anything
-		// this call is asynchronous (unless you use an synchronous connection to the X3DH server)
-		// and the statusCallback.callback function will be called when the encryption is done
-		expected_success+= 1;
-		aliceManager.encrypt(AliceDeviceId, "bob", recipients, plainMessage.getBytes(), cipherMessage, statusCallback);
-		// here we wait for the status callback to be called but a full asynchronous process would
-		// store references to recipients and cipherMessage in the statusCallback object and process
-		// them from the callback method.
-		assert (statusCallback.wait_for_success(expected_success));
-		assert (recipients[0].getPeerStatus() == LimePeerDeviceStatus.UNKNOWN):"Encryption status for Bob is expected to be UNKNOWN"; // Bob is unknown in Alice's base
-		assert (cipherMessage.buffer.length==0):"Default encryption policy implies no cipherMessage for one recipient only";
-		assert (statusCallback.fail == expected_fail);
-
-		LimeOutputBuffer decodedMessage = new LimeOutputBuffer();
-		// decrypt and check we get back to the original
-		// decryption is synchronous, no callback on this one
-		LimePeerDeviceStatus status = bobManager.decrypt(BobDeviceId, "bob", AliceDeviceId, recipients[0].DRmessage, decodedMessage);
-		String s = new String(decodedMessage.buffer);
-		assert (s.equals(plainMessage)):"Decoded message is not the encoded one";
-		assert (status == LimePeerDeviceStatus.UNKNOWN):"decrypt status was expected to be unknown but is not";
-
-		// encrypt another message
-		recipients = new RecipientData[1]; // 1 target for the encrypt
-		plainMessage = "Nous, on l'appelle Zantrop c'est note ami Zantrop";
-		recipients[0] = new RecipientData(AliceDeviceId);
-		cipherMessage = new LimeOutputBuffer();
-
-		expected_success+= 1;
-		bobManager.encrypt(BobDeviceId, "alice", recipients, plainMessage.getBytes(), cipherMessage, statusCallback, LimeEncryptionPolicy.CIPHERMESSAGE);
-		assert (statusCallback.wait_for_success(expected_success));
-		assert (recipients[0].getPeerStatus() == LimePeerDeviceStatus.UNTRUSTED):"Encryption status for Alice is expected to be UNTRUSTED"; // Alice status is untrusted in Bob's base
-		assert (cipherMessage.buffer.length>0):"Forced cipherMessage encryption policy must produce a cipherMessage even for one recipient only";
-		assert (statusCallback.fail == expected_fail);
-
-
-		decodedMessage = new LimeOutputBuffer();
-		// decrypt and check we get back to the original
-		status = aliceManager.decrypt(AliceDeviceId, "alice", BobDeviceId, recipients[0].DRmessage, cipherMessage.buffer, decodedMessage);
-		s = new String(decodedMessage.buffer);
-		assert (s.equals(plainMessage)):"Decoded message is not the encoded one";
-		assert (status == LimePeerDeviceStatus.UNTRUSTED):"decrypt status was expected to be untrusted but is not";
-
-		expected_success+= 2;
-		aliceManager.update(statusCallback);
-		bobManager.update(statusCallback);
-		assert (statusCallback.wait_for_success(expected_success));
-		assert (statusCallback.fail == expected_fail);
-
-		// clean db
-		expected_success+= 2;
-		aliceManager.delete_user(AliceDeviceId, statusCallback);
-		bobManager.delete_user(BobDeviceId, statusCallback);
-		assert (statusCallback.wait_for_success(expected_success));
-		assert (statusCallback.fail == expected_fail);
-
-		// Force garbage collection to be sure the native object destructor is called
-		aliceManager = null;
-		bobManager = null;
-		System.gc();
-	}
-
 	public static void main(String[] args) {
 		// Load lime library
 		try {
@@ -344,12 +233,12 @@ public class LimeTester {
 		 * Run it synchronous and asynchronous on both curves.
 		 */
 		LimePostToX3DH_Sync sync_postObj = new LimePostToX3DH_Sync();
-		hello_world(LimeCurveId.C25519, "hello_world", "https://localhost:25519", sync_postObj);
-		hello_world(LimeCurveId.C448, "hello_world", "https://localhost:25520", sync_postObj);
+		HelloWorld.hello_world(LimeCurveId.C25519, "hello_world", "https://localhost:25519", sync_postObj);
+		HelloWorld.hello_world(LimeCurveId.C448, "hello_world", "https://localhost:25520", sync_postObj);
 
 		LimePostToX3DH_Async async_postObj = new LimePostToX3DH_Async();
-		hello_world(LimeCurveId.C25519, "hello_world", "https://localhost:25519", async_postObj);
-		hello_world(LimeCurveId.C448, "hello_world", "https://localhost:25520", async_postObj);
+		HelloWorld.hello_world(LimeCurveId.C25519, "hello_world", "https://localhost:25519", async_postObj);
+		HelloWorld.hello_world(LimeCurveId.C448, "hello_world", "https://localhost:25520", async_postObj);
 
 		System.exit(0);
 	}
