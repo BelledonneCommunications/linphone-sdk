@@ -217,39 +217,49 @@ struct jLimeManager {
 		JavaVM *c_vm;
 		env.GetJavaVM(&c_vm);
 
-		auto callback_lambda = [c_vm, &jstatusObj ](const lime::CallbackReturn status, const std::string message){
+		// Here we create a global java reference on our object so we won't loose it even if this is called after the current java call
+		// This global java reference is given in a unique pointer(why??), so just turn it into a shared one so we can copy it into the closure
+		// We could move it to the closure, but it is itself copied into the create_user argument so it would fail
+		// Another solution would be to modify the create_user to have it moving the closure and not copying it, it will be used just once anyway
+		auto jstatusObjRef = std::make_shared<jni::Global<jni::Object<jStatusCallback>, jni::EnvGettingDeleter>>(jni::NewGlobal<jni::EnvGettingDeleter>(env, jstatusObj));
+
+		auto callback_lambda = [c_vm, jstatusObjRef](const lime::CallbackReturn status, const std::string message){
 					// get the env from VM, and retrieve the callback method on StatusCallback class
 					jni::JNIEnv& g_env { jni::GetEnv(*c_vm)};
 					auto StatusClass = jni::Class<jStatusCallback>::Find(g_env);
 					auto StatusMethod = StatusClass.GetMethod<void (jni::jint, jni::String)>(g_env, "callback");
 					// call the callback on the statusObj we got in param when calling create_user
-					jstatusObj.Call(g_env, StatusMethod, c2jCallbackReturn(status), jni::Make<jni::String>(g_env, message));
+					jstatusObjRef->Call(g_env, StatusMethod, c2jCallbackReturn(status), jni::Make<jni::String>(g_env, message));
 				};
 
 		m_manager->create_user( jni::Make<std::string>(env, localDeviceId),
 				jni::Make<std::string>(env, serverUrl),
-				j2cCurveId(jcurveId), jOPkInitialBatchSize, std::move(callback_lambda));
+				j2cCurveId(jcurveId), jOPkInitialBatchSize, callback_lambda);
 	}
 
-	void delete_user(jni::JNIEnv &env, const jni::String &localDeviceId, jni::Object<jStatusCallback> &statusObj ) {
+	void delete_user(jni::JNIEnv &env, const jni::String &localDeviceId, jni::Object<jStatusCallback> &jstatusObj ) {
 		LIME_LOGD<<"JNI delete_user user "<<jni::Make<std::string>(env, localDeviceId)<<std::endl;
 		JavaVM *c_vm;
 		env.GetJavaVM(&c_vm);
+
+		// see create_user for details on this
+		auto jstatusObjRef = std::make_shared<jni::Global<jni::Object<jStatusCallback>, jni::EnvGettingDeleter>>(jni::NewGlobal<jni::EnvGettingDeleter>(env, jstatusObj));
+
 		m_manager->delete_user( jni::Make<std::string>(env, localDeviceId),
-				[c_vm, &statusObj](const lime::CallbackReturn status, const std::string message){
+				[c_vm, jstatusObjRef](const lime::CallbackReturn status, const std::string message){
 					// get the env from VM, and retrieve the callback method on StatusCallback class
 					jni::JNIEnv& g_env { jni::GetEnv(*c_vm)};
 					auto StatusClass = jni::Class<jStatusCallback>::Find(g_env);
 					auto StatusMethod = StatusClass.GetMethod<void (jni::jint, jni::String)>(g_env, "callback");
 					// call the callback on the statusObj we got in param when calling create_user
-					statusObj.Call(g_env, StatusMethod, c2jCallbackReturn(status), jni::Make<jni::String>(g_env, message));
+					jstatusObjRef->Call(g_env, StatusMethod, c2jCallbackReturn(status), jni::Make<jni::String>(g_env, message));
 				});
 	}
 
 	void encrypt(jni::JNIEnv &env,  const jni::String &jlocalDeviceId,  const jni::String &jrecipientUserId, jni::Array<jni::Object<jRecipientData>> &jrecipients,
 			jni::Array<jni::jbyte> &jplainMessage,
 			jni::Object<jLimeOutputBuffer> &jcipherMessage,
-			jni::Object<jStatusCallback> &statusObj,
+			jni::Object<jStatusCallback> &jstatusObj,
 			jni::jint encryptionPolicy) {
 
 		JavaVM *c_vm;
@@ -279,12 +289,17 @@ struct jLimeManager {
 		// we must have shared_pointer for recipientUserId
 		auto recipientUserId = std::make_shared<std::string>(jni::Make<std::string>(env, jrecipientUserId));
 
+		// see create_user for details on this
+		auto jstatusObjRef = std::make_shared<jni::Global<jni::Object<jStatusCallback>, jni::EnvGettingDeleter>>(jni::NewGlobal<jni::EnvGettingDeleter>(env, jstatusObj));
+		auto jrecipientsRef = std::make_shared<jni::Global<jni::Array<jni::Object<jRecipientData>>, jni::EnvGettingDeleter>>(jni::NewGlobal<jni::EnvGettingDeleter>(env, jrecipients));
+		auto jcipherMessageRef = std::make_shared<jni::Global<jni::Object<jLimeOutputBuffer>, jni::EnvGettingDeleter>>(jni::NewGlobal<jni::EnvGettingDeleter>(env, jcipherMessage));
+
 		m_manager->encrypt(jni::Make<std::string>(env, jlocalDeviceId),
 			recipientUserId,
 			recipients,
 			plainMessage,
 			cipherMessage,
-			[c_vm, &statusObj, &jrecipients, &jcipherMessage, recipients, cipherMessage] (const lime::CallbackReturn status, const std::string message) {
+			[c_vm, jstatusObjRef, jrecipientsRef, jcipherMessageRef, recipients, cipherMessage] (const lime::CallbackReturn status, const std::string message) {
 				// get the env from VM
 				jni::JNIEnv& g_env { jni::GetEnv(*c_vm)};
 
@@ -295,7 +310,7 @@ struct jLimeManager {
 
 				// retrieve the cpp recipients vector and copy back to the jrecipients the peerStatus and DRmessage(if any)
 				for (size_t i=0; i<recipients->size(); i++) {
-					auto jrecipient = jrecipients.Get(g_env, i); // recipient is the recipientData javaObject
+					auto jrecipient = jrecipientsRef->Get(g_env, i); // recipient is the recipientData javaObject
 					jrecipient.Set(g_env, RecipientDataPeerStatusField, c2jPeerDeviceStatus((*recipients)[i].peerStatus));
 					auto jDRmessage = jni::Make<jni::Array<jni::jbyte>>(g_env, reinterpret_cast<const std::vector<int8_t>&>((*recipients)[i].DRmessage));
 					jrecipient.Set(g_env, RecipientDataDRmessageField, jDRmessage);
@@ -305,17 +320,18 @@ struct jLimeManager {
 				auto LimeOutputBufferClass = jni::Class<jLimeOutputBuffer>::Find(g_env);
 				auto LimeOutputBufferField = LimeOutputBufferClass.GetField<jni::Array<jni::jbyte>>(g_env, "buffer");
 
+
 				// get the cipherMessage out
 				// Can't use directly a byte[] in parameter (as we must create it from c++ code) so use an dedicated class encapsulating a byte[]
 				auto jcipherMessageArray = jni::Make<jni::Array<jni::jbyte>>(g_env, reinterpret_cast<const std::vector<int8_t>&>(*cipherMessage));
-				jcipherMessage.Set(g_env, LimeOutputBufferField, jcipherMessageArray);
+				jcipherMessageRef->Set(g_env, LimeOutputBufferField, jcipherMessageArray);
 
 				// retrieve the callback method on StatusCallback class
 				auto StatusClass = jni::Class<jStatusCallback>::Find(g_env);
 				auto StatusMethod = StatusClass.GetMethod<void (jni::jint, jni::String)>(g_env, "callback");
 
 				// call the callback on the statusObj we got in param when calling create_user
-				statusObj.Call(g_env, StatusMethod, c2jCallbackReturn(status), jni::Make<jni::String>(g_env, message));
+				jstatusObjRef->Call(g_env, StatusMethod, c2jCallbackReturn(status), jni::Make<jni::String>(g_env, message));
 			},
 			j2cEncryptionPolicy(encryptionPolicy)
 		);
@@ -355,13 +371,16 @@ struct jLimeManager {
 		return c2jPeerDeviceStatus(status);
 	}
 
-	void update(jni::JNIEnv &env, jni::Object<jStatusCallback> &statusObj, jni::jint jOPkServerLowLimit, jni::jint jOPkBatchSize) {
+	void update(jni::JNIEnv &env, jni::Object<jStatusCallback> &jstatusObj, jni::jint jOPkServerLowLimit, jni::jint jOPkBatchSize) {
 		JavaVM *c_vm;
 		env.GetJavaVM(&c_vm);
 
 		LIME_LOGD<<"JNI update";
 
-		m_manager->update([c_vm, &statusObj] (const lime::CallbackReturn status, const std::string message)
+		// see create_user for details on this
+		auto jstatusObjRef = std::make_shared<jni::Global<jni::Object<jStatusCallback>, jni::EnvGettingDeleter>>(jni::NewGlobal<jni::EnvGettingDeleter>(env, jstatusObj));
+
+		m_manager->update([c_vm, jstatusObjRef] (const lime::CallbackReturn status, const std::string message)
 				{
 					// get the env from VM
 					jni::JNIEnv& g_env { jni::GetEnv(*c_vm)};
@@ -371,7 +390,7 @@ struct jLimeManager {
 					auto StatusMethod = StatusClass.GetMethod<void (jni::jint, jni::String)>(g_env, "callback");
 
 					// call the callback on the statusObj we got in param when calling create_user
-					statusObj.Call(g_env, StatusMethod, c2jCallbackReturn(status), jni::Make<jni::String>(g_env, message));
+					jstatusObjRef->Call(g_env, StatusMethod, c2jCallbackReturn(status), jni::Make<jni::String>(g_env, message));
 				},
 				jOPkServerLowLimit, jOPkBatchSize);
 	}
@@ -405,7 +424,7 @@ auto process_X3DHresponse= [](jni::JNIEnv &env, jni::Class<jLimeManager>&, jni::
 	// turn the response array into a vector of jbytes(signed char)
 	auto responseVector = std::make_shared<std::vector<uint8_t>>();
 	jbyteArray2uin8_tVector(env, response, responseVector);
-		// retrieve the statefull closure pointer to response processing provided by the lime lib
+	// retrieve the statefull closure pointer to response processing provided by the lime lib
 	auto responseHolderPtr = reinterpret_cast<responseHolder *>(processPtr);
 	responseHolderPtr->process(responseCode, *responseVector);
 		delete(responseHolderPtr);

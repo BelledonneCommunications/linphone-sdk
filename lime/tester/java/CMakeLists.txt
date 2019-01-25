@@ -23,7 +23,7 @@ find_package(Java REQUIRED)
 include(UseJava)
 
 set (LIMETESTER_SOURCE_FILES_JAVA
-	LimeTester.java
+	org/linphone/limeTester/LimeTester.java
 )
 
 set (LIME_JAR_FILE ${CMAKE_BINARY_DIR}/src/java/Lime.jar)
@@ -33,4 +33,4 @@ add_jar(LimeTester ${LIMETESTER_SOURCE_FILES_JAVA} INCLUDE_JARS ${LIME_JAR_FILE}
 
 get_target_property(Tester_jarFile LimeTester JAR_FILE)
 
-add_test(NAME JNI COMMAND ${Java_JAVA_EXECUTABLE} -Djava.library.path=${CMAKE_BINARY_DIR}/src -cp ${Tester_jarFile}:${LIME_JAR_FILE} -Xcheck:jni -ea LimeTester)
+add_test(NAME JNI COMMAND ${Java_JAVA_EXECUTABLE} -Djava.library.path=${CMAKE_BINARY_DIR}/src -cp ${Tester_jarFile}:${LIME_JAR_FILE} -Xcheck:jni -ea org/linphone/limeTester/LimeTester)
