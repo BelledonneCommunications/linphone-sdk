@@ -28,9 +28,9 @@ public enum LimeCurveId {
 	 * @brief get the native value (used to give input parameter values)
 	 * @return the native value associated
 	 */
-	public int getNative() {return native_val;}
+	protected int getNative() {return native_val;}
 
-	LimeCurveId(int val) {
+	private LimeCurveId(int val) {
 		native_val = val;
 	}
 }

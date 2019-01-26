@@ -38,7 +38,7 @@ public enum LimePeerDeviceStatus {
 	 * @brief get the native value (used to give input parameter values)
 	 * @return the native value associated
 	 */
-	public int getNative() {return native_val;}
+	protected int getNative() {return native_val;}
 
 	/**
 	 * @brief static method to get an enum value from the native jni integer(used as returned value by native function)
@@ -47,7 +47,7 @@ public enum LimePeerDeviceStatus {
 	 *
 	 * @return one of the enumeration value, unknown input will silently default to UNKNOWN
 	 */
-	public static LimePeerDeviceStatus fromNative(int val) {
+	protected static LimePeerDeviceStatus fromNative(int val) {
 		switch (val) {
 			case 0:
 				return LimePeerDeviceStatus.UNTRUSTED;

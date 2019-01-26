@@ -249,7 +249,9 @@ public class HelloWorld {
 		assert (statusCallback.wait_for_success(expected_success));
 		assert (statusCallback.fail == expected_fail);
 
-
+		// Do not forget do deallocate the native ressources
+		aliceManager.nativeDestructor();
+		bobManager.nativeDestructor();
 		aliceManager = null;
 		bobManager = null;
 	}

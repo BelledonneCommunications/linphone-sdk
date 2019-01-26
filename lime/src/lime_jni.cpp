@@ -43,8 +43,6 @@ static void jbyteArray2uin8_tVector(jni::JNIEnv &env, const jni::Array<jni::jbyt
 	for (auto &sb : signedResponseVector) {
 		out->push_back(reinterpret_cast<uint8_t &>(sb));
 	}
-
-
 }
 
 /**
@@ -208,7 +206,8 @@ struct jLimeManager {
 	jLimeManager(const jLimeManager&) = delete; // noncopyable
 
 	~jLimeManager() {
-		m_manager = nullptr; // destroy lime manager object
+		// ressources allocated are held by unique ptr, they self delete.
+		LIME_LOGD<<"JNI destructs native ressources";
 	}
 
 
@@ -320,7 +319,6 @@ struct jLimeManager {
 				auto LimeOutputBufferClass = jni::Class<jLimeOutputBuffer>::Find(g_env);
 				auto LimeOutputBufferField = LimeOutputBufferClass.GetField<jni::Array<jni::jbyte>>(g_env, "buffer");
 
-
 				// get the cipherMessage out
 				// Can't use directly a byte[] in parameter (as we must create it from c++ code) so use an dedicated class encapsulating a byte[]
 				auto jcipherMessageArray = jni::Make<jni::Array<jni::jbyte>>(g_env, reinterpret_cast<const std::vector<int8_t>&>(*cipherMessage));
@@ -395,7 +393,33 @@ struct jLimeManager {
 				jOPkServerLowLimit, jOPkBatchSize);
 	}
 
+	void get_selfIdentityKey(jni::JNIEnv &env, const jni::String &jlocalDeviceId, jni::Object<jLimeOutputBuffer> &jIk) {
+		// retrieve the LimeOutputBuffer class
+		auto LimeOutputBufferClass = jni::Class<jLimeOutputBuffer>::Find(env);
+		auto LimeOutputBufferField = LimeOutputBufferClass.GetField<jni::Array<jni::jbyte>>(env, "buffer");
 
+		// get the Ik
+		std::vector<uint8_t> Ik{};
+		m_manager->get_selfIdentityKey(jni::Make<std::string>(env, jlocalDeviceId), Ik);
+		auto jIkArray = jni::Make<jni::Array<jni::jbyte>>(env, reinterpret_cast<const std::vector<int8_t>&>(Ik));
+		jIk.Set(env, LimeOutputBufferField, jIkArray);
+	}
+
+	void set_peerDeviceStatus_Ik(jni::JNIEnv &env, const jni::String &jpeerDeviceId, const jni::Array<jni::jbyte> &jIk, const jni::jint jstatus) {
+		// turn the Ik byte array into a vector of uint8_t
+		auto Ik = std::make_shared<std::vector<uint8_t>>();
+		jbyteArray2uin8_tVector(env, jIk, Ik);
+
+		m_manager->set_peerDeviceStatus(jni::Make<std::string>(env, jpeerDeviceId), *Ik, j2cPeerDeviceStatus(jstatus));
+	}
+
+	void set_peerDeviceStatus(jni::JNIEnv &env, const jni::String &jpeerDeviceId, const jni::jint jstatus) {
+		m_manager->set_peerDeviceStatus(jni::Make<std::string>(env, jpeerDeviceId), j2cPeerDeviceStatus(jstatus));
+	}
+
+	jni::jint get_peerDeviceStatus(jni::JNIEnv &env, const jni::String &jpeerDeviceId) {
+		return c2jPeerDeviceStatus(m_manager->get_peerDeviceStatus(jni::Make<std::string>(env, jpeerDeviceId)));
+	}
 };
 
 #define METHOD(MethodPtr, name) jni::MakeNativePeerMethod<decltype(MethodPtr), (MethodPtr)>(name)
@@ -403,12 +427,16 @@ struct jLimeManager {
 jni::RegisterNativePeer<jLimeManager>(env, jni::Class<jLimeManager>::Find(env), "nativePtr",
 	jni::MakePeer<jLimeManager, jni::String &, jni::Object<jPostToX3DH> &>,
 	"initialize",
-	"finalize",
+	"nativeDestructor",
 	METHOD(&jLimeManager::create_user, "n_create_user"),
 	METHOD(&jLimeManager::delete_user, "delete_user"),
 	METHOD(&jLimeManager::encrypt, "n_encrypt"),
 	METHOD(&jLimeManager::decrypt, "n_decrypt"),
-	METHOD(&jLimeManager::update, "n_update")
+	METHOD(&jLimeManager::update, "n_update"),
+	METHOD(&jLimeManager::get_selfIdentityKey, "get_selfIdentityKey"),
+	METHOD(&jLimeManager::set_peerDeviceStatus_Ik, "n_set_peerDeviceStatus_Ik"),
+	METHOD(&jLimeManager::set_peerDeviceStatus, "n_set_peerDeviceStatus"),
+	METHOD(&jLimeManager::get_peerDeviceStatus, "n_get_peerDeviceStatus")
 	);
 
 // bind the process_response to the static java LimeManager.process_response method

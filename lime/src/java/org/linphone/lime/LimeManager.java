@@ -21,12 +21,8 @@ package org.linphone.lime;
 public class LimeManager {
 	private long nativePtr; // stores the native object pointer
 
+	// Call the native constructor -> do it when the object is created
 	protected native void initialize(String db_access, LimePostToX3DH postObj);
-	protected native void finalize() throws Throwable;
-
-	public LimeManager(String db_access, LimePostToX3DH postObj) {
-		initialize(db_access, postObj);
-	}
 
 	// Native functions involving enumerated paremeters not public
 	// Enumeration translation is done on java side
@@ -36,14 +32,64 @@ public class LimeManager {
 	private native void n_create_user(String localDeviceId, String serverURL, int curveId, int OPkInitialBatchSize, LimeStatusCallback statusObj);
 	private native void n_update(LimeStatusCallback statusObj, int OPkServerLowLimit, int OPkBatchSize);
 
-	/* default value for OPkInitialBatchSize is 100 */
-	public void create_user(String localDeviceId, String serverURL, LimeCurveId curveId, LimeStatusCallback statusObj) {
-		this.n_create_user(localDeviceId, serverURL, curveId.getNative(), 100, statusObj);
+	private native void n_set_peerDeviceStatus_Ik(String peerDeviceId, byte[] Ik, int status);
+	private native void n_set_peerDeviceStatus(String peerDeviceId, int status);
+
+	private native int n_get_peerDeviceStatus(String peerDeviceId);
+
+
+	/**
+	 * @brief Lime Manager constructor
+	 *
+	 * @param[in]	db_access	string used to access DB: can be filename for sqlite3 or access params for mysql, directly forwarded to SOCI session opening
+	 * @param[in]	X3DH_post_data	A function to send data to the X3DH server, parameters includes a callback to transfer back the server response
+	 */
+	public LimeManager(String db_access, LimePostToX3DH postObj) {
+		initialize(db_access, postObj);
 	}
+
+	/**
+	 * @brief Native ressource destructor
+	 * We cannot rely on finalize (deprecated since java9), it must explicitely be called before the object is destroyed
+	 * by the java environment
+	 */
+	public native void nativeDestructor();
+
+	/**
+	 * @brief Create a user in local database and publish it on the given X3DH server
+	 *
+	 * 	The Lime user shall be created at the same time the account is created on the device, this function shall not be called again, attempt to re-create an already existing user will fail.
+	 * 	A user is identified by its deviceId (shall be the GRUU) and must at creation select a base Elliptic curve to use, this setting cannot be changed later
+	 * 	A user is published on an X3DH key server who must run using the same elliptic curve selected for this user (creation will fail otherwise), the server url cannot be changed later
+	 *
+	 * @param[in]	localDeviceId		Identify the local user acount to use, it must be unique and is also be used as Id on the X3DH key server, it shall be the GRUU
+	 * @param[in]	serverUrl		The complete url(including port) of the X3DH key server. It must connect using HTTPS. Example: https://sip5.linphone.org:25519
+	 * @param[in]	curveId			Choice of elliptic curve to use as base for ECDH and EdDSA operation involved. Can be CurveId::c25519 or CurveId::c448.
+	 * @param[in]	OPkInitialBatchSize	Number of OPks in the first batch uploaded to X3DH server
+	 * @param[in]	statusObj		This operation contact the X3DH server and is thus asynchronous, when server responds,
+	 * 					the statusObj.callback will be called giving the exit status and an error message in case of failure
+	 * @note
+	 * The OPkInitialBatchSize is optionnal, if not used, set to defaults 100
+	 */
 	public void create_user(String localDeviceId, String serverURL, LimeCurveId curveId, int OPkInitialBatchSize, LimeStatusCallback statusObj) {
 		this.n_create_user(localDeviceId, serverURL, curveId.getNative(), OPkInitialBatchSize, statusObj);
 	}
+	/**
+	 * @overload  void create_user(String localDeviceId, String serverURL, LimeCurveId curveId, LimeStatusCallback statusObj)
+	 */
+	public void create_user(String localDeviceId, String serverURL, LimeCurveId curveId, LimeStatusCallback statusObj) {
+		this.n_create_user(localDeviceId, serverURL, curveId.getNative(), 100, statusObj);
+	}
 
+	/**
+	 * @brief Delete a user from local database and from the X3DH server
+	 *
+	 * if specified localDeviceId is not found in local Storage, throw an exception
+	 *
+	 * @param[in]	localDeviceId	Identify the local user acount to use, it must be unique and is also be used as Id on the X3DH key server, it shall be the GRUU
+	 * @param[in]	statusObj	This operation contact the X3DH server and is thus asynchronous, when server responds,
+	 *				the statusObj.callback will be called giving the exit status and an error message in case of failure
+	 */
 	public native void delete_user(String localDeviceId, LimeStatusCallback statusObj);
 
 	/**
@@ -154,6 +200,77 @@ public class LimeManager {
 	 */
 	public void update(LimeStatusCallback statusObj) {
 		this.n_update(statusObj, 100, 25);
+	}
+
+	/**
+	 * @brief retrieve self Identity Key, an EdDSA formatted public key
+	 *
+	 * if specified localDeviceId is not found in local Storage, throw an exception
+	 *
+	 * @param[in]	localDeviceId	used to identify which local account we're dealing with, shall be the GRUU
+	 * @param[out]	Ik		the EdDSA public identity key, formatted as in RFC8032
+	 */
+	public native void get_selfIdentityKey(String localDeviceId, LimeOutputBuffer Ik);
+
+	/**
+	 * @brief set the peer device status flag in local storage: unsafe, trusted or untrusted.
+	 *
+	 * @param[in]	peerDeviceId	The device Id of peer, shall be its GRUU
+	 * @param[in]	Ik		the EdDSA peer public identity key, formatted as in RFC8032
+	 * @param[in]	status		value of flag to set: accepted values are trusted, untrusted, unsafe
+	 *
+	 * throw an exception if given key doesn't match the one present in local storage
+	 * if the status flag value is unexpected (not one of trusted, untrusted, unsafe), ignore the call
+	 * if the status flag is unsafe or untrusted, ignore the value of Ik and call the version of this function without it
+	 *
+	 * if peer Device is not present in local storage and status is trusted or unsafe, it is added, if status is untrusted, it is just ignored
+	 *
+	 * General algorithm followed by the set_peerDeviceStatus functions
+	 * - Status is valid? (not one of trusted, untrusted, unsafe)? No: return
+	 * - status is trusted
+	 *       - We have Ik? -> No: return
+	 *       - Device is already in storage but Ik differs from the given one : exception
+	 *       - Insert/update in local storage
+	 * - status is untrusted
+	 *       - Ik is ignored
+	 *       - Device already in storage? No: return
+	 *       - Device already in storage but current status is unsafe? Yes: return
+	 *       - update in local storage
+	 * -status is unsafe
+	 *       - ignore Ik
+	 *       - insert/update the status. If inserted, insert an invalid Ik
+	 */
+	public void set_peerDeviceStatus(String peerDeviceId, byte[] Ik, LimePeerDeviceStatus status) {
+		this.n_set_peerDeviceStatus_Ik(peerDeviceId, Ik, status.getNative());
+	}
+
+	/**
+	 * @brief set the peer device status flag in local storage: unsafe or untrusted.
+	 *
+	 * This variation allows to set a peer Device status to unsafe or untrusted only whithout providing its identity key Ik
+	 *
+	 * @param[in]	peerDeviceId	The device Id of peer, shall be its GRUU
+	 * @param[in]	status		value of flag to set: accepted values are untrusted or unsafe
+	 *
+	 * if the status flag value is unexpected (not one of untrusted, unsafe), ignore the call
+	 *
+	 * if peer Device is not present in local storage, it is inserted if status is unsafe and call is ignored if status is untrusted
+	 * if the status is untrusted but the current status in local storage is unsafe, ignore the call
+	 * Any call to the other form of the function with a status to unsafe or untrusted is rerouted to this function
+	 */
+	public void set_peerDeviceStatus(String peerDeviceId, LimePeerDeviceStatus status) {
+		this.n_set_peerDeviceStatus(peerDeviceId, status.getNative());
+	}
+
+	/**
+	 * @brief get the status of a peer device: unknown, untrusted, trusted, unsafe
+	 *
+	 * @param[in]	peerDeviceId	The device Id of peer, shall be its GRUU
+	 *
+	 * @return unknown if the device is not in localStorage, untrusted, trusted or unsafe according to the stored value of peer device status flag otherwise
+	 */
+	public LimePeerDeviceStatus get_peerDeviceStatus(String peerDeviceId) {
+		return LimePeerDeviceStatus.fromNative(this.n_get_peerDeviceStatus(peerDeviceId));
 	}
 
 	/**
