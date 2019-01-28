@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-set(LIME_HEADER_FILES
+set(LIME_PRIVATE_HEADER_FILES
 	lime_settings.hpp
 	lime_defines.hpp
 	lime_keys.hpp
@@ -51,7 +51,7 @@ endif()
 bc_apply_compile_flags(LIME_SOURCE_FILES_CXX STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
 
 if(ENABLE_STATIC)
-	add_library(lime-static STATIC ${LIME_HEADER_FILES} ${LIME_SOURCE_FILES_CXX})
+	add_library(lime-static STATIC ${LIME_PRIVATE_HEADER_FILES} ${LIME_SOURCE_FILES_CXX})
 	set_target_properties(lime-static PROPERTIES OUTPUT_NAME lime)
 	target_include_directories(lime-static PUBLIC ${BCTOOLBOX_INCLUDE_DIRS} ${SOCI_INCLUDE_DIRS} ${SOCI_INCLUDE_DIRS}/soci)
 	target_link_libraries(lime-static INTERFACE ${BCTOOLBOX_CORE_LIBRARIES} ${SOCI_LIBRARIES} ${SOCI_sqlite3_PLUGIN})
@@ -60,7 +60,7 @@ if(ENABLE_STATIC)
 	endif()
 endif()
 if(ENABLE_SHARED)
-	add_library(lime SHARED ${LIME_HEADER_FILES} ${LIME_SOURCE_FILES_CXX})
+	add_library(lime SHARED ${LIME_PRIVATE_HEADER_FILES} ${LIME_HEADER_FILES} ${LIME_SOURCE_FILES_CXX})
 	set_target_properties(lime PROPERTIES VERSION ${LIME_SO_VERSION})
 	target_include_directories(lime PUBLIC ${BCTOOLBOX_INCLUDE_DIRS} ${SOCI_INCLUDE_DIRS} ${SOCI_INCLUDE_DIRS}/soci)
 	target_link_libraries(lime PRIVATE ${BCTOOLBOX_CORE_LIBRARIES} ${SOCI_LIBRARIES} ${SOCI_sqlite3_PLUGIN})
