@@ -65,7 +65,8 @@ namespace lime {
 	 */
 	struct RecipientData {
 		const std::string deviceId; /**< input: recipient deviceId (shall be GRUU) */
-		lime::PeerDeviceStatus peerStatus; /**< output: after encrypt calls back, it will hold the status of this peer device:\n
+		lime::PeerDeviceStatus peerStatus; /**< input: if set to fail, this entry will be ignored by the encrypt function\n
+						output: after encrypt calls back, it will hold the status of this peer device:\n
 						     - unknown: first interaction with this device)
 						     - untrusted: device is kown but we never confirmed its identity public key
 						     - trusted: we already confirmed this device identity public key

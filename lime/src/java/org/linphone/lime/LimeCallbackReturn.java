@@ -28,7 +28,7 @@ public enum LimeCallbackReturn {
 
 	private int native_val; /* Store the native(used by jni) integer value */
 
-	LimeCallbackReturn(int val) {
+	private LimeCallbackReturn(int val) {
 		native_val = val;
 	}
 

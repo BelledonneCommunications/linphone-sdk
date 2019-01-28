@@ -1,20 +1,30 @@
+/*
+	HelloWorld.java
+	@author Johan Pascal
+	@copyright 	Copyright (C) 2019  Belledonne Communications SARL
+
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 package org.linphone.limeTester;
 
 import org.linphone.lime.*;
 
-import javax.net.ssl.*;
 import java.util.UUID;
-import java.security.cert.X509Certificate;
 
 import java.io.File;
 
-import java.net.URL;
-import javax.net.ssl.HttpsURLConnection;
-import java.io.DataOutputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
-
-import java.util.concurrent.*;
 /**
  * @brief For testing purpose
  * Simulate a network transmission, is actually just two static buffer used to
@@ -39,7 +49,7 @@ class mailBox {
  * @brief For testing purpose
  * This callback store reference to the input/ouput buffers recipients and cipherMessage
  * passed to the encrypt function.
- * The callback function is called when encryption is completed. It then post the
+ * The callback function is called when encryption is completed.
  */
 class LimeStatusCallbackImpl_Mailbox implements LimeStatusCallback {
 	public int success;
@@ -105,12 +115,10 @@ class LimeStatusCallbackImpl_Mailbox implements LimeStatusCallback {
 
 
 public class HelloWorld {
-	/**
+	/*
 	 * Test Scenario:
 	 * - Create Alice and Bob users
 	 * - Alice encrypts to Bob who decrypts and check it matches the original
-	 * - Bob encryps to Alice who decrypts and check it matches the original
-	 * - Alice and Bob call the update function
 	 */
 	public static void hello_world(LimeCurveId curveId, String dbBasename, String x3dhServerUrl, LimePostToX3DH postObj) {
 		int expected_success = 0;
@@ -254,5 +262,11 @@ public class HelloWorld {
 		bobManager.nativeDestructor();
 		aliceManager = null;
 		bobManager = null;
+
+		// Remove database files
+		file = new File(aliceDbFilename);
+		file.delete();
+		file = new File(bobDbFilename);
+		file.delete();
 	}
 }

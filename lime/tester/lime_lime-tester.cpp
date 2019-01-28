@@ -2534,7 +2534,7 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 		BC_ASSERT_TRUE(receivedMessageStringAlice == lime_tester::messages_pattern[2]);
 
 		receivedMessage.clear();
-		BC_ASSERT_TRUE(lime_tester::DR_message_holdsX3DHInit((*recipients)[1].DRmessage)); // bob.d1 to bob.d1 is a new session, we must have a X3DH message here
+		BC_ASSERT_TRUE(lime_tester::DR_message_holdsX3DHInit((*recipients)[1].DRmessage)); // bob.d1 to bob.d2 is a new session, we must have a X3DH message here
 		BC_ASSERT_TRUE(bobManager->decrypt(*bobDevice2, "alice", *bobDevice1, (*recipients)[1].DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
 		std::string receivedMessageStringBob{receivedMessage.begin(), receivedMessage.end()};
 		BC_ASSERT_TRUE(receivedMessageStringBob == lime_tester::messages_pattern[2]);
@@ -2545,7 +2545,7 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 		cipherMessage->clear();
 		if (!continuousSession) { managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);}
 
-		// Now do bob.d2 to alice and bob.d1 every one has an open session towards everyo
+		// Now do bob.d2 to alice and bob.d1 every one has an open session towards everyone
 		recipients->emplace_back(*aliceDevice1);
 		recipients->emplace_back(*bobDevice1);
 		message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[3].begin(), lime_tester::messages_pattern[3].end());

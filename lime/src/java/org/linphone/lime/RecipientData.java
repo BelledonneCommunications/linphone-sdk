@@ -18,11 +18,20 @@
 */
 package org.linphone.lime;
 
+/** @brief The encrypt function input/output data structure
+ *
+ * give a recipient GRUU and get it back with the header which must be sent to recipient with the cipher text
+ */
 public class RecipientData {
-	public String deviceId;
-	private int peerStatus; // peer Status is stored in native enumeration, so native code can access it easily
-
-	public byte[] DRmessage;
+	public String deviceId; /**< The recipient device id(shall be its GRUU)*/
+	private int peerStatus; /**< peer Status is stored in native enumeration, so native code can access it easily, it is thus access through methods translating to LimePeerDeviceStatus java enum\n
+					input: if set to FAIL, this entry will be ignored by the encrypt function\n
+					output: after encrypt calls back, it will hold the status of this peer device:\n
+						     - UNKNOWN: first interaction with this device)
+						     - UNTRUSTED: device is kown but we never confirmed its identity public key
+						     - TRUSTED: we already confirmed this device identity public key
+						     - FAIL: we could not encrypt for this device, probably because it never published its keys on the X3DH server */
+	public byte[] DRmessage; /**< after encrypt calls back, it will hold the Double Ratchet message targeted to the specified recipient. */
 
 	public LimePeerDeviceStatus getPeerStatus() {
 		return LimePeerDeviceStatus.fromNative(peerStatus);

@@ -1,199 +1,30 @@
+/*
+	LimeTester.java
+	@author Johan Pascal
+	@copyright 	Copyright (C) 2019  Belledonne Communications SARL
+
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 package org.linphone.limeTester;
 
 import org.linphone.lime.*;
 
 import javax.net.ssl.*;
-import java.util.UUID;
 import java.security.cert.X509Certificate;
 
-import java.io.File;
-
-import java.net.URL;
 import javax.net.ssl.HttpsURLConnection;
-import java.io.DataOutputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
-
-import java.util.concurrent.*;
-
-/**
- * @brief For testing purpose, we just count the success and fail received
- * This only mandatory method to implement is callback
- * Note: in real situation you may want to implements several variants of
- * this interface :
- *  - dedicated to encrypt call would store reference to in/out buffers
- *  - used on create_user, delete_user, update would only need to process the
- *  status.
- */
-class LimeStatusCallbackImpl implements LimeStatusCallback {
-	public int success;
-	public int fail;
-	public int timeout;
-
-	/**
-	 * @brief Function called by native code when asynchronous processing is completed
-	 *
-	 * @param[in]	status	an integer mapped lime:CallbackReturn, use LimeCallbackReturn.fromNative to turn it into a java enumeration
-	 * @param[in]	message	a string message giving some details in case of failure
-	 */
-	public void callback(int cstatus, String message) {
-		LimeCallbackReturn status = LimeCallbackReturn.fromNative(cstatus);
-		if (status == LimeCallbackReturn.SUCCESS) {
-			success++;
-		} else { // status is LimeCallbackReturn.FAIL
-			fail++;
-		}
-	}
-
-	public void resetStatus() {
-		success = 0;
-		fail = 0;
-		timeout = 4000;
-	}
-
-	public LimeStatusCallbackImpl() {
-		resetStatus();
-	}
-
-	public boolean wait_for_success(int expected_success) {
-		try {
-			int time = 0;
-			while (time<timeout && success<expected_success) {
-				time += 25;
-				Thread.sleep(25);
-			}
-		}
-		catch (InterruptedException e) {
-			System.out.println("Interrupt exception in wait for success");
-			return false;
-		}
-
-		if (expected_success == success) {
-			return true;
-		} else {
-			return false;
-		}
-	}
-}
-
-class LimePostToX3DH_Sync implements LimePostToX3DH {
-	/** @brief Function call by native side to post a message to an X3DH server.
-	 * The connection is synchronous so this function also collect the answer
-	 * and send it back to the native library using the LimeManager.process_response native method
-	 */
-	public void postToX3DHServer(long ptr, String url, String from, byte[] message) {
-		try {
-			// connect to the given URL
-			String local_url = new String(url.toCharArray());
-			URL obj = new URL(local_url);
-			HttpsURLConnection con = (HttpsURLConnection) obj.openConnection();
-
-			// set request header
-			con.setRequestMethod("POST");
-			con.setRequestProperty("User-Agent", "lime");
-			con.setRequestProperty("Content-type", "x3dh/octet-stream");
-			con.setRequestProperty("From", from);
-
-
-			// Send post request
-			con.setDoOutput(true);
-			DataOutputStream wr = new DataOutputStream(con.getOutputStream());
-			wr.write(message, 0, message.length);
-			wr.flush();
-			wr.close();
-
-			// wait for a response
-			int responseCode = con.getResponseCode();
-			InputStream in = con.getInputStream();
-			ByteArrayOutputStream response = new ByteArrayOutputStream( );
-
-			byte[] buffer = new byte[256];
-			int bufferLength;
-
-			while ((bufferLength = in.read(buffer)) != -1){
-				response.write(buffer, 0, bufferLength);
-			}
-			in.close();
-
-			// call response process native function
-			LimeManager.process_X3DHresponse(ptr, responseCode, response.toByteArray());
-			response.close();
-		}
-		catch (Exception e) {
-			System.out.println("Exception during HTTPS connection" + e.getMessage());
-		}
-	}
-}
-
-class RunnablePostToHttp implements Runnable {
-	private Thread t;
-	private long m_ptr;
-	private String m_url;
-	private String m_from;
-	private byte[] m_message;
-
-	RunnablePostToHttp( long ptr, String url, String from, byte[] message) {
-		m_ptr = ptr;
-		m_url = url;
-		m_from = from;
-		m_message = message;
-	}
-
-
-	public void run() {
-		try {
-			// connect to the given URL
-			String local_url = new String(m_url.toCharArray());
-			URL obj = new URL(local_url);
-			HttpsURLConnection con = (HttpsURLConnection) obj.openConnection();
-
-			// set request header
-			con.setRequestMethod("POST");
-			con.setRequestProperty("User-Agent", "lime");
-			con.setRequestProperty("Content-type", "x3dh/octet-stream");
-			con.setRequestProperty("From", m_from);
-
-			// Send post request
-			con.setDoOutput(true);
-			DataOutputStream wr = new DataOutputStream(con.getOutputStream());
-			wr.write(m_message, 0, m_message.length);
-			wr.flush();
-			wr.close();
-
-			// wait for a response
-			int responseCode = con.getResponseCode();
-			InputStream in = con.getInputStream();
-			ByteArrayOutputStream response = new ByteArrayOutputStream( );
-
-			byte[] buffer = new byte[256];
-			int bufferLength;
-
-			while ((bufferLength = in.read(buffer)) != -1){
-				response.write(buffer, 0, bufferLength);
-			}
-			in.close();
-
-			// call response process native function
-			LimeManager.process_X3DHresponse(m_ptr, responseCode, response.toByteArray());
-			response.close();
-		}
-		catch (Exception e) {
-			System.out.println("Thread interrupted : "+ e.getMessage());
-		}
-	}
-}
-
-class LimePostToX3DH_Async implements LimePostToX3DH {
-	/** @brief Function call by native side to post a message to an X3DH server.
-	 * The connection is asynchronous : when called the post function starts a new thread
-	 * and makes it request in it, then collect the answer
-	 * and send it back to the native library using the LimeManager.process_response native method
-	 */
-	public void postToX3DHServer(long ptr, String url, String from, byte[] message) {
-		RunnablePostToHttp poster = new RunnablePostToHttp(ptr, url, from, message);
-		new Thread(poster).start();
-	}
-}
 
 public class LimeTester {
 	public static void main(String[] args) {
@@ -227,10 +58,12 @@ public class LimeTester {
 		}
 		// End of INSECURE CODE - USED FOR TESTING ONLY - DO NOT USE THIS IN REAL SITUATION
 
-		/**
+		/*
 		 * Hello World test:
-		 * - mostly a code demo. More details in the c++ hello world test, but it is a good start
-		 * Run it synchronous and asynchronous on both curves.
+		 * Mostly a code demo, see HelloWorld.java for details.
+		 * Run it with synchronous and asynchronous X3DH server access(leading to synchronous or asynchronous lime operations).
+		 * Synchronous is just for simple code example, real situation is much more likely to be asynchronous
+		 * HelloWorld code is meant to be run with asynchronous X3DH server access but is anyway able to run synchronous.
 		 */
 		LimePostToX3DH_Sync sync_postObj = new LimePostToX3DH_Sync();
 		HelloWorld.hello_world(LimeCurveId.C25519, "hello_world", "https://localhost:25519", sync_postObj);
@@ -240,6 +73,11 @@ public class LimeTester {
 		HelloWorld.hello_world(LimeCurveId.C25519, "hello_world", "https://localhost:25519", async_postObj);
 		HelloWorld.hello_world(LimeCurveId.C448, "hello_world", "https://localhost:25520", async_postObj);
 
+		/*
+		 * Lime Basic test
+		 */
+		LimeLimeTester.basic(LimeCurveId.C25519, "lime_basic", "https://localhost:25519", async_postObj);
+		LimeLimeTester.basic(LimeCurveId.C448, "lime_basic", "https://localhost:25520", async_postObj);
 		System.exit(0);
 	}
 }

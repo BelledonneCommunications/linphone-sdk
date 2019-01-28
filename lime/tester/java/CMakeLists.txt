@@ -23,7 +23,9 @@ find_package(Java REQUIRED)
 include(UseJava)
 
 set (LIMETESTER_SOURCE_FILES_JAVA
+	org/linphone/limeTester/LimeTesterUtils.java
 	org/linphone/limeTester/HelloWorld.java
+	org/linphone/limeTester/LimeLimeTester.java
 	org/linphone/limeTester/LimeTester.java
 )
 
