@@ -182,6 +182,119 @@ public class LimeLimeTester {
 			assert (s.equals(LimeTesterUtils.patterns[4])):"Decoded message is not the encoded one";
 		}
 
+		// clean db: delete users
+		expected_success+= 3;
+		aliceManager.delete_user(AliceDeviceId, statusCallback);
+		bobManager.delete_user(BobDeviceId1, statusCallback);
+		bobManager.delete_user(BobDeviceId2, statusCallback);
+		assert (statusCallback.wait_for_success(expected_success));
+		assert (statusCallback.fail == expected_fail);
+
+		// Do not forget do deallocate the native ressources
+		aliceManager.nativeDestructor();
+		bobManager.nativeDestructor();
+		aliceManager = null;
+		bobManager = null;
+
+		// Remove database files
+		file = new File(aliceDbFilename);
+		file.delete();
+		file = new File(bobDbFilename);
+		file.delete();
+	}
+
+	 /* A simple test with alice having 1 device and bob 2
+	 * - Alice and Bob(d1 and d2) register themselves on X3DH server
+	 * - Alice send another message to Bob non existing device d3, it shall fail without exception
+	 * - Alice send another message to Bob (d1 and d2) and try to send to an non existing device d3, d1 and d2 shall work
+	 * - Delete Alice and Bob devices to leave distant server base clean
+	 *
+	 * Note: no asynchronous operation will start before the previous is over(callback returns)
+	 */
+	public static void user_not_found(LimeCurveId curveId, String dbBasename, String x3dhServerUrl, LimePostToX3DH postObj) {
+		int expected_success = 0;
+		int expected_fail = 0;
+
+		LimeTesterUtils TesterUtils = new LimeTesterUtils();
+
+		// Create a callback, this one will be used for all operations
+		// which does not produce encrypted output(all except encryptions)
+		LimeStatusCallbackImpl statusCallback = new LimeStatusCallbackImpl();
+
+		// Create db filenames and delete potential existing ones
+		String curveIdString;
+		if (curveId == LimeCurveId.C25519) {
+			curveIdString = ".C25519";
+		} else {
+			curveIdString = ".C448";
+		}
+		String aliceDbFilename = "alice."+dbBasename+curveIdString+".sqlite3";
+		String bobDbFilename = "bob."+dbBasename+curveIdString+".sqlite3";
+		File file = new File(aliceDbFilename);
+		file.delete();
+		file = new File(bobDbFilename);
+		file.delete();
+
+		// Create bob and alice lime managers
+		LimeManager aliceManager = new LimeManager(aliceDbFilename, postObj);
+		LimeManager bobManager = new LimeManager(bobDbFilename, postObj);
+
+		// Create random device id for alice and bob
+		String AliceDeviceId = "alice."+UUID.randomUUID().toString();
+		String BobDeviceId1 = "bob.d1."+UUID.randomUUID().toString();
+		String BobDeviceId2 = "bob.d2."+UUID.randomUUID().toString();
+		String BobDeviceId3 = "bob.d3."+UUID.randomUUID().toString(); // we just get a random device name but we will not create it
+
+		aliceManager.create_user(AliceDeviceId, x3dhServerUrl, curveId, 10, statusCallback);
+		expected_success+= 1;
+		assert (statusCallback.wait_for_success(expected_success));
+		bobManager.create_user(BobDeviceId1, x3dhServerUrl, curveId, 10, statusCallback);
+		expected_success+= 1;
+		assert (statusCallback.wait_for_success(expected_success)); // We cannot create both bob's device at the same time as they use the same database
+		bobManager.create_user(BobDeviceId2, x3dhServerUrl, curveId, 10, statusCallback);
+		expected_success+= 1;
+		assert (statusCallback.wait_for_success(expected_success));
+		assert (statusCallback.fail == expected_fail);
+
+		// Alice sends a message to bob.d3 devices, non existent
+		RecipientData[] recipients = new RecipientData[1];
+		recipients[0] = new RecipientData(BobDeviceId3);
+
+		LimeOutputBuffer cipherMessage = new LimeOutputBuffer();
+		aliceManager.encrypt(AliceDeviceId, "bob", recipients, LimeTesterUtils.patterns[0].getBytes(), cipherMessage, statusCallback);
+		expected_success+= 1;
+		assert (statusCallback.wait_for_success(expected_success));
+		assert (recipients[0].getPeerStatus() == LimePeerDeviceStatus.FAIL); // the device is unknown, so it shall fail
+
+		// Alice sends a message to bob 3 devices, one is non existent
+		recipients = new RecipientData[3];
+		recipients[0] = new RecipientData(BobDeviceId1);
+		recipients[1] = new RecipientData(BobDeviceId2);
+		recipients[2] = new RecipientData(BobDeviceId3);
+
+		cipherMessage = new LimeOutputBuffer();
+		aliceManager.encrypt(AliceDeviceId, "bob", recipients, LimeTesterUtils.patterns[0].getBytes(), cipherMessage, statusCallback);
+		expected_success+= 1;
+		assert (statusCallback.wait_for_success(expected_success));
+
+		// decrypt with bob Manager
+		// bob.d1
+		LimeOutputBuffer decodedMessage = new LimeOutputBuffer();
+		assert(TesterUtils.DR_message_holdsX3DHInit(recipients[0].DRmessage).holdsX3DHInit);  // new sessions created, they must convey X3DH init message
+		assert(bobManager.decrypt(recipients[0].deviceId, "bob", AliceDeviceId, recipients[0].DRmessage, cipherMessage.buffer, decodedMessage) != LimePeerDeviceStatus.FAIL);
+		String s = new String(decodedMessage.buffer);
+		assert (s.equals(LimeTesterUtils.patterns[0])):"Decoded message is not the encoded one";
+
+		// bob.d2
+		decodedMessage = new LimeOutputBuffer();
+		assert(TesterUtils.DR_message_holdsX3DHInit(recipients[1].DRmessage).holdsX3DHInit);  // new sessions created, they must convey X3DH init message
+		assert(bobManager.decrypt(recipients[1].deviceId, "bob", AliceDeviceId, recipients[1].DRmessage, cipherMessage.buffer, decodedMessage) != LimePeerDeviceStatus.FAIL);
+		s = new String(decodedMessage.buffer);
+		assert (s.equals(LimeTesterUtils.patterns[0])):"Decoded message is not the encoded one";
+
+		// bob.d3
+		assert (recipients[2].getPeerStatus() == LimePeerDeviceStatus.FAIL); // the device is unknown, so it shall fail
+		assert (recipients[2].DRmessage.length == 0); // encrypt produced no DRmessage for non existent device
 
 		// clean db: delete users
 		expected_success+= 3;

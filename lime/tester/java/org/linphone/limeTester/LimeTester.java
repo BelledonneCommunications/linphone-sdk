@@ -78,6 +78,16 @@ public class LimeTester {
 		 */
 		LimeLimeTester.basic(LimeCurveId.C25519, "lime_basic", "https://localhost:25519", async_postObj);
 		LimeLimeTester.basic(LimeCurveId.C448, "lime_basic", "https://localhost:25520", async_postObj);
+
+		/*
+		 * Lime User not found test
+		 */
+		LimeLimeTester.user_not_found(LimeCurveId.C25519, "lime_basic", "https://localhost:25519", async_postObj);
+		LimeLimeTester.user_not_found(LimeCurveId.C448, "lime_basic", "https://localhost:25520", async_postObj);
+
+
+
+
 		System.exit(0);
 	}
 }
