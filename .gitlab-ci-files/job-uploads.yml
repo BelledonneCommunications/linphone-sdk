@@ -20,3 +20,36 @@ job-ios-upload:
     - pod repo push linphone-sdk build-ios/linphone-sdk.podspec --skip-import-validation --local-only --verbose
     - cd ~/.cocoapods/repos/linphone-sdk && git push origin $CI_COMMIT_REF_NAME && cd -
     - pod repo remove linphone-sdk
+
+
+#################################################
+# Android
+#################################################
+
+
+job-android-upload:
+
+  stage: deploy
+  tags: [ "deploy" ]
+
+  variables:
+    CMAKE_GENERATOR: Ninja
+    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
+    GIT_STRATEGY: clone
+
+  only:
+    - schedules
+  dependencies:
+    - job-android-ninja-r17c
+
+# Currently we can't use artifact to upload this so we rebuild all android project
+  script:
+    - export ANDROID_HOME=$ANDROID_HOME_MAC
+    - export ANDROID_NDK_HOME=$ANDROID_NDK_HOME_MAC
+    - ccache -s
+    - mkdir -p build-android
+    - cd build-android
+    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS="arm64, armv7" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS
+    - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
+    - ../cmake/Android/gradlew uploadArchives -i
+    - ccache -s

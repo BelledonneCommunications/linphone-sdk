@@ -43,7 +43,9 @@ public class LinphoneTestSuite implements TesterLogListener {
 
     @Override
     public void onMessage(String message) {
-        mList.add(message);
+        if (message != null && message.length() > 0) {
+            mList.add(message);
+        }
     }
 
     @Override
