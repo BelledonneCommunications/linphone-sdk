@@ -25,7 +25,7 @@ RUN apt-get update && \
 
 # Install development tools
 RUN apt-get update && \
-    apt-get install -y ccache doxygen git make nasm ninja-build openjdk-8-jdk-headless openssh-client pkg-config python-pystache python-six yasm && \
+    apt-get install -y ccache doxygen git make nasm ninja-build openjdk-8-jdk-headless openssh-client pkg-config python-pystache python-six yasm graphviz && \
     apt-get clean
 
 # Install CMake (version from the debian repository is too old)
