@@ -12,7 +12,7 @@ RUN apt-get update && \
 ENV LANG='en_US.UTF-8' LANGUAGE='en_US:en' LC_ALL='en_US.UTF-8'
 
 ENV SHELL=/bin/bash
-#ENV PS1='\[\e[33m\]\u@bc-dev-ubuntu-rolling>\[\e[0m\] '
+#ENV PS1='\[\e[33m\]\u@bc-dev-ubuntu-18.04>\[\e[0m\] '
 
 # Install common general tools
 RUN apt-get update && \
