@@ -49,6 +49,7 @@ job-android-makefile-r17c:
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
+    CMAKE_OPTIONS: -DENABLE_AAUDIO=ON
   extends: .scheduled-job-android
 
 
@@ -97,6 +98,7 @@ job-android-ninja-r17c:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
   variables:
     CMAKE_GENERATOR: Ninja
+    CMAKE_OPTIONS: -DENABLE_AAUDIO=ON
   extends: .job-android
 
 
@@ -105,7 +107,7 @@ job-android-ninja-r17c-novideo:
   only:
     - schedules
   variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+    CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_AAUDIO=ON
   extends: job-android-ninja-r17c
 
 
@@ -114,6 +116,7 @@ job-android-ninja-r18b:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r18b
   variables:
     CMAKE_GENERATOR: Ninja
+    CMAKE_OPTIONS: -DENABLE_AAUDIO=ON
   extends: .job-android
 
 
@@ -122,4 +125,5 @@ job-android-ninja-r19:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r19
   variables:
     CMAKE_GENERATOR: Ninja
+    CMAKE_OPTIONS: -DENABLE_AAUDIO=ON
   extends: .job-android
