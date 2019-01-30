@@ -93,10 +93,10 @@ public class Tester {
                 "--no-ipv6"
         }));
 
-        if (suite != null) {
+        if (suite != null && suite.length() > 0) {
             list.add("--suite");
             list.add(suite);
-            if (test != null) {
+            if (test != null && test.length() > 0) {
                 list.add("--test");
                 list.add(test);
             }
