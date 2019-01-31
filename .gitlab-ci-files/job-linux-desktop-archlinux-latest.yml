@@ -38,14 +38,12 @@ job-archlinux-latest-ninja-gcc:
     CMAKE_GENERATOR: Ninja
     CC: gcc
     CXX: g++
-  extends: .job-linux-desktop
+  extends: .scheduled-job-linux-desktop
 
 
 job-archlinux-latest-ninja-gcc-novideo:
 
   tags: [ "docker-archlinux-latest" ]
-  only:
-    - schedules
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-archlinux-latest-ninja-gcc

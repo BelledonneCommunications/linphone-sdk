@@ -81,7 +81,7 @@ job-android-ninja-r16b:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r16b
   variables:
     CMAKE_GENERATOR: Ninja
-  extends: .job-android
+  extends: .scheduled-job-android
 
 
 job-android-ninja-r16b-novideo:
@@ -117,7 +117,7 @@ job-android-ninja-r18b:
   variables:
     CMAKE_GENERATOR: Ninja
     CMAKE_OPTIONS: -DENABLE_AAUDIO=ON
-  extends: .job-android
+  extends: .scheduled-job-android
 
 
 job-android-ninja-r19:
@@ -126,4 +126,4 @@ job-android-ninja-r19:
   variables:
     CMAKE_GENERATOR: Ninja
     CMAKE_OPTIONS: -DENABLE_AAUDIO=ON
-  extends: .job-android
+  extends: .scheduled-job-android
