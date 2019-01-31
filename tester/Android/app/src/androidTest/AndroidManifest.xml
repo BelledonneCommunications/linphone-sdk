@@ -3,7 +3,7 @@
     android:sharedUserId="org.linphone.tester">
 
     <instrumentation
-        android:name="android.support.test.runner.AndroidJUnitRunner"
+        android:name="androidx.test.runner.AndroidJUnitRunner"
         android:targetPackage="org.linphone.tester">
         <meta-data
             android:name="class"
