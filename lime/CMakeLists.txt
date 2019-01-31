@@ -83,6 +83,12 @@ set(STRICT_OPTIONS_C)
 set(STRICT_OPTIONS_CPP )
 set(STRICT_OPTIONS_CXX )
 set(STRICT_OPTIONS_OBJC )
+
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+set(CMAKE_C_STANDARD 99)
+
 if(MSVC)
 	if(ENABLE_STRICT)
 		list(APPEND STRICT_OPTIONS_CPP "/WX")
@@ -93,12 +99,9 @@ else()
 	if (ENABLE_PROFILING)
 		list(APPEND STRICT_OPTIONS_CXX "-g -pg")
 	endif()
-        list(APPEND STRICT_OPTIONS_CXX "-std=c++11")
         #list(APPEND STRICT_OPTIONS_CPP "-Wall" "-Wuninitialized" "-Wno-error=deprecated-declarations") # turn off deprecated-declaration warning to avoid being flooded by soci.h
 	list(APPEND STRICT_OPTIONS_CPP "-Wall" "-Wuninitialized" "-Wno-deprecated-declarations" "-Wno-missing-field-initializers")
-	if(ENABLE_C_INTERFACE)
-		list(APPEND STRICT_OPTIONS_C "-std=c99")
-	endif()
+	
 	if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
 		list(APPEND STRICT_OPTIONS_CPP "-Qunused-arguments" "-Wno-array-bounds")
 	endif()
