@@ -59,13 +59,11 @@ job-centos7-ninja-clang:
     CMAKE_GENERATOR: Ninja
     CC: clang
     CXX: clang++
-  extends: .job-linux-desktop
+  extends: .scheduled-job-linux-desktop
 
 
 job-centos7-ninja-clang-novideo:
 
-  only:
-    - schedules
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-centos7-ninja-clang
