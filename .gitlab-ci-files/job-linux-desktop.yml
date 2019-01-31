@@ -16,3 +16,307 @@
   extends: .job-linux-desktop
   only:
     - schedules
+
+.test:
+  variables:
+    GIT_STRATEGY: none
+    GIT_CHECKOUT: "false"
+  stage: test
+  allow_failure: true
+
+.test-bctoolbox:
+  extends: .test
+  script:
+    - cd build-desktop/WORK/desktop/Build/bctoolbox/tester
+    - ls -la
+    - ./bctoolbox_tester --verbose --xml-file bcttest
+#uploading the artifacts for the next stage
+  artifacts:
+    paths:
+      - build-desktop/WORK/desktop/Build/bctoolbox/tester/bcttest-Results.xml
+    when: always
+    reports:
+      junit:
+        - build-desktop/WORK/desktop/Build/bctoolbox/tester/bcttest-Results.xml
+    expire_in: 4 week
+    
+#Commented until fix for ipv6 for debian 8/9
+#test-bctoolbox-debian8:
+#  extends: .test-bctoolbox
+#  dependencies:
+#    - build-debian8
+#  tags: [ "docker-test-debian8" ]
+  
+#test-bctoolbox-debian9:
+#  extends: .test-bctoolbox
+#  dependencies:
+#    - build-debian9
+#  tags: [ "docker-test-debian9" ]
+  
+test-bctoolbox-centos7:
+  extends: .test-bctoolbox
+  dependencies:
+    - build-centos7
+  tags: [ "docker-test-centos7" ]
+ 
+test-bctoolbox-ubuntu:
+  extends: .test-bctoolbox
+  dependencies:
+    - build-ubuntu
+  tags: [ "docker-ubuntu-rolling" ]
+ 
+test-bctoolbox-arch:
+  extends: .test-bctoolbox
+  dependencies:
+    - build-arch
+  tags: [ "docker-archlinux-latest" ] 
+
+.test-bellesip:
+  extends: .test
+  dependencies:
+    - .build-sdk
+  script:
+    #- ip -6 a
+    #- ip -6 n
+    #- ip -6 r
+    - cd build-desktop/linphone-sdk/desktop/bin
+    - ls -la
+    - ./belle_sip_tester --verbose --resource-dir ../share/ --xml-file bstest
+#uploading the artifacts for the next stage
+  artifacts:
+    paths:
+      - build-desktop/linphone-sdk/desktop/bin/bstest-Results.xml
+    when: always
+    reports:
+      junit:
+        - build-desktop/linphone-sdk/desktop/bin/bstest-Results.xml
+    expire_in: 4 week
+
+#Commented until pref fix of debian8 runner     
+test-bellesip-debian8:
+  extends: .test-bellesip
+  dependencies:
+    - build-debian8
+  tags: [ "docker-test-debian8" ]
+  
+test-bellesip-debian9:
+  extends: .test-bellesip
+  dependencies:
+    - build-debian9
+  tags: [ "docker-test-debian9" ]
+  
+test-bellesip-centos7:
+  extends: .test-bellesip
+  dependencies:
+    - build-centos7
+  tags: [ "docker-test-centos7" ]
+  
+test-bellesip-ubuntu:
+  extends: .test-bellesip
+  dependencies:
+    - build-ubuntu
+  tags: [ "docker-ubuntu-rolling" ]
+
+test-bellesip-arch:
+  extends: .test-bellesip
+  dependencies:
+    - build-arch
+  tags: [ "docker-archlinux-latest" ] 
+
+test-mediastreamer:
+  tags: [ "docker-test-centos7" ]
+  extends: .test
+  dependencies:
+    - build-centos7
+  script:
+    - sudo yum install -y alsa-utils pulseaudio
+    - pulseaudio -D -L module-virtual-source --exit-idle-time=-1
+    - cd build-desktop/linphone-sdk/desktop/bin
+    - ./mediastreamer2_tester --verbose --xml-file mstest
+#uploading the artifacts for the next stage
+  artifacts:
+    paths:
+      - build-desktop/linphone-sdk/desktop/bin/mstest-Results.xml
+    when: always
+    reports:
+      junit:
+        - build-desktop/linphone-sdk/desktop/bin/mstest-Results.xml
+    expire_in: 4 week
+
+.test-belr:
+  extends: .test
+  dependencies:
+    - .build-sdk
+  script:
+    - cd build-desktop/linphone-sdk/desktop/bin
+    - ./belr_tester --verbose --resource-dir ../share/belr-tester --xml-file blrtest
+#uploading the artifacts for the next stage
+  artifacts:
+    paths :
+      - build-desktop/linphone-sdk/desktop/bin/blrtest-Results.xml
+    when: always
+    reports:
+      junit:
+        - build-desktop/linphone-sdk/desktop/bin/blrtest-Results.xml
+    expire_in: 4 week
+
+#Commented until pref fix of debian8 runner     
+test-belr-debian8:
+  extends: .test-belr
+  dependencies:
+    - build-debian8
+  tags: [ "docker-test-debian8" ]
+  
+test-belr-debian9:
+  extends: .test-belr
+  dependencies:
+    - build-debian9
+  tags: [ "docker-test-debian9" ]
+  
+test-belr-centos7:
+  extends: .test-belr
+  dependencies:
+    - build-centos7
+  tags: [ "docker-test-centos7" ]
+  
+test-belr-ubuntu:
+  extends: .test-belr
+  dependencies:
+    - build-ubuntu
+  tags: [ "docker-ubuntu-rolling" ]
+
+test-belr-arch:
+  extends: .test-belr
+  dependencies:
+    - build-arch
+  tags: [ "docker-archlinux-latest" ] 
+
+.test-belcard:
+  extends: .test
+  dependencies:
+    - .build-sdk
+  script:
+    - cd build-desktop/linphone-sdk/desktop/bin
+    - ./belcard_tester --verbose --xml-file belcardtest
+#uploading the artifacts for the next stage
+  artifacts:
+    paths :
+      - build-desktop/linphone-sdk/desktop/bin/belcardtest-Results.xml
+    when: always
+    reports:
+      junit:
+        - build-desktop/linphone-sdk/desktop/bin/belcardtest-Results.xml
+    expire_in: 4 week
+    
+   #Commented until pref fix of debian8 runner 
+test-belcard-debian8:
+  extends: .test-belcard
+  dependencies:
+    - build-debian8
+  tags: [ "docker-test-debian8" ]
+  
+test-belcard-debian9:
+  extends: .test-belcard
+  dependencies:
+    - build-debian9
+  tags: [ "docker-test-debian9" ]
+  
+test-belcard-centos7:
+  extends: .test-belcard
+  dependencies:
+    - build-centos7
+  tags: [ "docker-test-centos7" ]
+  
+test-belcard-ubuntu:
+  extends: .test-belcard
+  dependencies:
+    - build-ubuntu
+  tags: [ "docker-ubuntu-rolling" ]
+
+test-belcard-arch:
+  extends: .test-belcard
+  dependencies:
+    - build-arch
+  tags: [ "docker-archlinux-latest" ] 
+
+.test-bzrtp:
+  extends: .test
+  dependencies:
+    - .build-sdk
+  script:
+    - cd build-desktop/WORK/desktop/Build/bzrtp/test
+    - ls -la
+    #obligé de lui préciser que les ressources qu'il cherche sont dans son dossier
+    #comportement différent des autres testers
+    - ./bzrtpTest --verbose --xml-file bzrtptest --resource-dir .
+#uploading the artifacts for the next stage
+  artifacts:
+    paths :
+      - build-desktop/WORK/desktop/Build/bzrtp/test/bzrtptest-Results.xml
+    when: always
+    reports:
+      junit:
+        - build-desktop/WORK/desktop/Build/bzrtp/test/bzrtptest-Results.xml
+    expire_in: 4 week
+    
+test-bzrtp-debian8:
+  extends: .test-bzrtp
+  dependencies:
+    - build-debian8
+  tags: [ "docker-test-debian8" ]
+  
+test-bzrtp-debian9:
+  extends: .test-bzrtp
+  dependencies:
+    - build-debian9
+  tags: [ "docker-test-debian9" ]
+  
+test-bzrtp-centos7:
+  extends: .test-bzrtp
+  dependencies:
+    - build-centos7
+  tags: [ "docker-test-centos7" ]
+  
+test-bzrtp-ubuntu:
+  extends: .test-bzrtp
+  dependencies:
+    - build-ubuntu
+  tags: [ "docker-ubuntu-rolling" ]
+ 
+test-bzrtp-arch:
+  extends: .test-bzrtp
+  dependencies:
+    - build-arch
+  tags: [ "docker-archlinux-latest" ] 
+
+#commented until we can test with a proper server instead of blindly executing
+test-lime:
+  tags: [ "docker-test-centos7-lime" ]
+  extends: .test
+  dependencies:
+    - build-centos7
+  script:
+    #- curl -sL https://rpm.nodesource.com/setup_10.x | sudo bash -
+    #- sudo yum -y install nodejs 
+    #npm --skip-broken
+    #- sudo npm -g install
+    #- npm install yargs sqlite3 rwlock
+    - ls -la .
+    - pwd
+    - ls -la ./lime
+    - cd /builds/BC/public/linphone-sdk/lime/tester/server/nodejs
+    - ./localServerStart.sh & #On l'arrête comment proprement ????
+    - cd /builds/BC/public/linphone-sdk
+    - cd build-desktop/WORK/desktop/Build/lime/tester
+    - ls -la
+
+    #path to source dir /builds/BC/public/linphone-sdk/lime
+    - ./lime_tester --verbose --xml-file limetest --resource-dir ../../../../../../lime/tester
+#uploading the artifacts
+  artifacts:
+    paths:
+      - build-desktop/WORK/desktop/Build/lime/tester/limetest-Results.xml
+    when: always
+    reports:
+      junit:
+        - build-desktop/WORK/desktop/Build/lime/tester/limetest-Results.xml
