@@ -40,13 +40,11 @@ job-debian8-ninja-gcc:
     CMAKE_GENERATOR: Ninja
     CC: gcc
     CXX: g++
-  extends: .job-linux-desktop
+  extends: .scheduled-job-linux-desktop
 
 
 job-debian8-ninja-gcc-novideo:
 
-  only:
-    - schedules
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-debian8-ninja-gcc
