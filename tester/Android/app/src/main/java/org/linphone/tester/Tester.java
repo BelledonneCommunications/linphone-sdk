@@ -20,7 +20,7 @@ package org.linphone.tester;
  */
 
 import android.content.Context;
-import android.support.test.InstrumentationRegistry;
+import androidx.test.InstrumentationRegistry;
 
 import org.junit.After;
 import org.junit.Before;
@@ -89,8 +89,7 @@ public class Tester {
                 "tester",
                 "--verbose",
                 "--resource-dir", mContext.getFilesDir().getAbsolutePath(),
-                "--writable-dir", mContext.getCacheDir().getPath(),
-                "--no-ipv6"
+                "--writable-dir", mContext.getCacheDir().getPath()
         }));
 
         if (suite != null && suite.length() > 0) {
