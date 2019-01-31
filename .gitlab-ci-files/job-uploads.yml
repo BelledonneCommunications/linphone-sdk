@@ -50,7 +50,8 @@ job-android-liblinphone-tester:
     - cd build-android
     - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS="arm64, armv7" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
-    - cd tester/Android && ./gradlew assembleDebugAndroidTest
+    - cd ../tester/Android 
+    - ./gradlew assembleDebugAndroidTest
 
 
 job-android-upload:
