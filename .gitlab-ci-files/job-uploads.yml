@@ -39,7 +39,7 @@ job-android-upload:
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
     GIT_STRATEGY: clone
 
-  extends: .job-android
+  extends: .scheduled-job-android
 
   dependencies:
     - job-android-ninja-r17c
@@ -57,3 +57,6 @@ job-android-upload:
     - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS="arm64, armv7" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     - ../cmake/Android/gradlew uploadArchives -i
+
+  after_script:
+    - rm -rf ~/.ssh || true
