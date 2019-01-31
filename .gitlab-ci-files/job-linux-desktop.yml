@@ -24,6 +24,10 @@
   stage: test
   allow_failure: true
 
+.test-centos7:
+    dependencies:
+      -  
+
 .test-bctoolbox:
   extends: .test
   script:
@@ -44,31 +48,31 @@
 #test-bctoolbox-debian8:
 #  extends: .test-bctoolbox
 #  dependencies:
-#    - build-debian8
+#    - job-debian8-ninja-clang
 #  tags: [ "docker-test-debian8" ]
   
 #test-bctoolbox-debian9:
 #  extends: .test-bctoolbox
 #  dependencies:
-#    - build-debian9
+#    - job-debian9-ninja-clang
 #  tags: [ "docker-test-debian9" ]
   
 test-bctoolbox-centos7:
   extends: .test-bctoolbox
   dependencies:
-    - build-centos7
+    - job-centos7-ninja-clang
   tags: [ "docker-test-centos7" ]
  
 test-bctoolbox-ubuntu:
   extends: .test-bctoolbox
   dependencies:
-    - build-ubuntu
+    - job-ubuntu-rolling-ninja-clang
   tags: [ "docker-ubuntu-rolling" ]
  
 test-bctoolbox-arch:
   extends: .test-bctoolbox
   dependencies:
-    - build-arch
+    - job-archlinux-latest-ninja-clang
   tags: [ "docker-archlinux-latest" ] 
 
 .test-bellesip:
@@ -96,38 +100,38 @@ test-bctoolbox-arch:
 test-bellesip-debian8:
   extends: .test-bellesip
   dependencies:
-    - build-debian8
+    - job-debian8-ninja-clang
   tags: [ "docker-test-debian8" ]
   
 test-bellesip-debian9:
   extends: .test-bellesip
   dependencies:
-    - build-debian9
+    - job-debian9-ninja-clang
   tags: [ "docker-test-debian9" ]
   
 test-bellesip-centos7:
   extends: .test-bellesip
   dependencies:
-    - build-centos7
+    - job-centos7-ninja-clang
   tags: [ "docker-test-centos7" ]
   
 test-bellesip-ubuntu:
   extends: .test-bellesip
   dependencies:
-    - build-ubuntu
+    - job-ubuntu-rolling-ninja-clang
   tags: [ "docker-ubuntu-rolling" ]
 
 test-bellesip-arch:
   extends: .test-bellesip
   dependencies:
-    - build-arch
+    - job-archlinux-latest-ninja-clang
   tags: [ "docker-archlinux-latest" ] 
 
 test-mediastreamer:
   tags: [ "docker-test-centos7" ]
   extends: .test
   dependencies:
-    - build-centos7
+    - job-centos7-ninja-clang
   script:
     - sudo yum install -y alsa-utils pulseaudio
     - pulseaudio -D -L module-virtual-source --exit-idle-time=-1
@@ -164,31 +168,31 @@ test-mediastreamer:
 test-belr-debian8:
   extends: .test-belr
   dependencies:
-    - build-debian8
+    - job-debian8-ninja-clang
   tags: [ "docker-test-debian8" ]
   
 test-belr-debian9:
   extends: .test-belr
   dependencies:
-    - build-debian9
+    - job-debian9-ninja-clang
   tags: [ "docker-test-debian9" ]
   
 test-belr-centos7:
   extends: .test-belr
   dependencies:
-    - build-centos7
+    - job-centos7-ninja-clang
   tags: [ "docker-test-centos7" ]
   
 test-belr-ubuntu:
   extends: .test-belr
   dependencies:
-    - build-ubuntu
+    - job-ubuntu-rolling-ninja-clang
   tags: [ "docker-ubuntu-rolling" ]
 
 test-belr-arch:
   extends: .test-belr
   dependencies:
-    - build-arch
+    - job-archlinux-latest-ninja-clang
   tags: [ "docker-archlinux-latest" ] 
 
 .test-belcard:
@@ -212,31 +216,31 @@ test-belr-arch:
 test-belcard-debian8:
   extends: .test-belcard
   dependencies:
-    - build-debian8
+    - job-debian8-ninja-clang
   tags: [ "docker-test-debian8" ]
   
 test-belcard-debian9:
   extends: .test-belcard
   dependencies:
-    - build-debian9
+    - job-debian9-ninja-clang
   tags: [ "docker-test-debian9" ]
   
 test-belcard-centos7:
   extends: .test-belcard
   dependencies:
-    - build-centos7
+    - job-centos7-ninja-clang
   tags: [ "docker-test-centos7" ]
   
 test-belcard-ubuntu:
   extends: .test-belcard
   dependencies:
-    - build-ubuntu
+    - job-ubuntu-rolling-ninja-clang
   tags: [ "docker-ubuntu-rolling" ]
 
 test-belcard-arch:
   extends: .test-belcard
   dependencies:
-    - build-arch
+    - job-archlinux-latest-ninja-clang
   tags: [ "docker-archlinux-latest" ] 
 
 .test-bzrtp:
@@ -262,31 +266,31 @@ test-belcard-arch:
 test-bzrtp-debian8:
   extends: .test-bzrtp
   dependencies:
-    - build-debian8
+    - job-debian8-ninja-clang
   tags: [ "docker-test-debian8" ]
   
 test-bzrtp-debian9:
   extends: .test-bzrtp
   dependencies:
-    - build-debian9
+    - job-debian9-ninja-clang
   tags: [ "docker-test-debian9" ]
   
 test-bzrtp-centos7:
   extends: .test-bzrtp
   dependencies:
-    - build-centos7
+    - job-centos7-ninja-clang
   tags: [ "docker-test-centos7" ]
   
 test-bzrtp-ubuntu:
   extends: .test-bzrtp
   dependencies:
-    - build-ubuntu
+    - job-ubuntu-rolling-ninja-clang
   tags: [ "docker-ubuntu-rolling" ]
  
 test-bzrtp-arch:
   extends: .test-bzrtp
   dependencies:
-    - build-arch
+    - job-archlinux-latest-ninja-clang
   tags: [ "docker-archlinux-latest" ] 
 
 #commented until we can test with a proper server instead of blindly executing
@@ -294,7 +298,7 @@ test-lime:
   tags: [ "docker-test-centos7-lime" ]
   extends: .test
   dependencies:
-    - build-centos7
+    - job-centos7-ninja-clang
   script:
     #- curl -sL https://rpm.nodesource.com/setup_10.x | sudo bash -
     #- sudo yum -y install nodejs 
