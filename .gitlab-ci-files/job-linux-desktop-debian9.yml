@@ -70,6 +70,11 @@ job-debian9-ninja-clang-novideo:
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-debian9-ninja-clang
+  
+#################################################
+# TESTS
+#################################################
+
 
 #Commented until fix for ipv6 for debian 8/9
 #test-bctoolbox-debian9:
