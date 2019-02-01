@@ -32,17 +32,13 @@
   stage: test
   allow_failure: true
 
-.test-centos7:
-    dependencies:
-      -  
-
 .test-bctoolbox:
   extends: .test
   script:
     - cd build-desktop/WORK/desktop/Build/bctoolbox/tester
     - ls -la
     - ./bctoolbox_tester --verbose --xml-file bcttest
-#uploading the artifacts for the next stage
+  #uploading the artifacts for the next stage
   artifacts:
     paths:
       - build-desktop/WORK/desktop/Build/bctoolbox/tester/bcttest-Results.xml
@@ -52,37 +48,6 @@
         - build-desktop/WORK/desktop/Build/bctoolbox/tester/bcttest-Results.xml
     expire_in: 4 week
     
-#Commented until fix for ipv6 for debian 8/9
-#test-bctoolbox-debian8:
-#  extends: .test-bctoolbox
-#  dependencies:
-#    - job-debian8-ninja-clang
-#  tags: [ "docker-test-debian8" ]
-  
-#test-bctoolbox-debian9:
-#  extends: .test-bctoolbox
-#  dependencies:
-#    - job-debian9-ninja-clang
-#  tags: [ "docker-test-debian9" ]
-  
-test-bctoolbox-centos7:
-  extends: .test-bctoolbox
-  dependencies:
-    - job-centos7-ninja-clang
-  tags: [ "docker-test-centos7" ]
- 
-test-bctoolbox-ubuntu:
-  extends: .test-bctoolbox
-  dependencies:
-    - job-ubuntu-rolling-ninja-clang
-  tags: [ "docker-ubuntu-rolling" ]
- 
-test-bctoolbox-arch:
-  extends: .test-bctoolbox
-  dependencies:
-    - job-archlinux-latest-ninja-clang
-  tags: [ "docker-archlinux-latest" ] 
-
 .test-bellesip:
   extends: .test
   dependencies:
@@ -94,7 +59,7 @@ test-bctoolbox-arch:
     - cd build-desktop/linphone-sdk/desktop/bin
     - ls -la
     - ./belle_sip_tester --verbose --resource-dir ../share/ --xml-file bstest
-#uploading the artifacts for the next stage
+  #uploading the artifacts for the next stage
   artifacts:
     paths:
       - build-desktop/linphone-sdk/desktop/bin/bstest-Results.xml
@@ -103,37 +68,6 @@ test-bctoolbox-arch:
       junit:
         - build-desktop/linphone-sdk/desktop/bin/bstest-Results.xml
     expire_in: 4 week
-
-#Commented until pref fix of debian8 runner     
-test-bellesip-debian8:
-  extends: .test-bellesip
-  dependencies:
-    - job-debian8-ninja-clang
-  tags: [ "docker-test-debian8" ]
-  
-test-bellesip-debian9:
-  extends: .test-bellesip
-  dependencies:
-    - job-debian9-ninja-clang
-  tags: [ "docker-test-debian9" ]
-  
-test-bellesip-centos7:
-  extends: .test-bellesip
-  dependencies:
-    - job-centos7-ninja-clang
-  tags: [ "docker-test-centos7" ]
-  
-test-bellesip-ubuntu:
-  extends: .test-bellesip
-  dependencies:
-    - job-ubuntu-rolling-ninja-clang
-  tags: [ "docker-ubuntu-rolling" ]
-
-test-bellesip-arch:
-  extends: .test-bellesip
-  dependencies:
-    - job-archlinux-latest-ninja-clang
-  tags: [ "docker-archlinux-latest" ] 
 
 test-mediastreamer:
   tags: [ "docker-test-centos7" ]
@@ -145,7 +79,7 @@ test-mediastreamer:
     - pulseaudio -D -L module-virtual-source --exit-idle-time=-1
     - cd build-desktop/linphone-sdk/desktop/bin
     - ./mediastreamer2_tester --verbose --xml-file mstest
-#uploading the artifacts for the next stage
+  #uploading the artifacts for the next stage
   artifacts:
     paths:
       - build-desktop/linphone-sdk/desktop/bin/mstest-Results.xml
@@ -162,7 +96,7 @@ test-mediastreamer:
   script:
     - cd build-desktop/linphone-sdk/desktop/bin
     - ./belr_tester --verbose --resource-dir ../share/belr-tester --xml-file blrtest
-#uploading the artifacts for the next stage
+  #uploading the artifacts for the next stage
   artifacts:
     paths :
       - build-desktop/linphone-sdk/desktop/bin/blrtest-Results.xml
@@ -172,37 +106,6 @@ test-mediastreamer:
         - build-desktop/linphone-sdk/desktop/bin/blrtest-Results.xml
     expire_in: 4 week
 
-#Commented until pref fix of debian8 runner     
-test-belr-debian8:
-  extends: .test-belr
-  dependencies:
-    - job-debian8-ninja-clang
-  tags: [ "docker-test-debian8" ]
-  
-test-belr-debian9:
-  extends: .test-belr
-  dependencies:
-    - job-debian9-ninja-clang
-  tags: [ "docker-test-debian9" ]
-  
-test-belr-centos7:
-  extends: .test-belr
-  dependencies:
-    - job-centos7-ninja-clang
-  tags: [ "docker-test-centos7" ]
-  
-test-belr-ubuntu:
-  extends: .test-belr
-  dependencies:
-    - job-ubuntu-rolling-ninja-clang
-  tags: [ "docker-ubuntu-rolling" ]
-
-test-belr-arch:
-  extends: .test-belr
-  dependencies:
-    - job-archlinux-latest-ninja-clang
-  tags: [ "docker-archlinux-latest" ] 
-
 .test-belcard:
   extends: .test
   dependencies:
@@ -210,7 +113,7 @@ test-belr-arch:
   script:
     - cd build-desktop/linphone-sdk/desktop/bin
     - ./belcard_tester --verbose --xml-file belcardtest
-#uploading the artifacts for the next stage
+  #uploading the artifacts for the next stage
   artifacts:
     paths :
       - build-desktop/linphone-sdk/desktop/bin/belcardtest-Results.xml
@@ -220,37 +123,6 @@ test-belr-arch:
         - build-desktop/linphone-sdk/desktop/bin/belcardtest-Results.xml
     expire_in: 4 week
     
-   #Commented until pref fix of debian8 runner 
-test-belcard-debian8:
-  extends: .test-belcard
-  dependencies:
-    - job-debian8-ninja-clang
-  tags: [ "docker-test-debian8" ]
-  
-test-belcard-debian9:
-  extends: .test-belcard
-  dependencies:
-    - job-debian9-ninja-clang
-  tags: [ "docker-test-debian9" ]
-  
-test-belcard-centos7:
-  extends: .test-belcard
-  dependencies:
-    - job-centos7-ninja-clang
-  tags: [ "docker-test-centos7" ]
-  
-test-belcard-ubuntu:
-  extends: .test-belcard
-  dependencies:
-    - job-ubuntu-rolling-ninja-clang
-  tags: [ "docker-ubuntu-rolling" ]
-
-test-belcard-arch:
-  extends: .test-belcard
-  dependencies:
-    - job-archlinux-latest-ninja-clang
-  tags: [ "docker-archlinux-latest" ] 
-
 .test-bzrtp:
   extends: .test
   dependencies:
@@ -258,10 +130,10 @@ test-belcard-arch:
   script:
     - cd build-desktop/WORK/desktop/Build/bzrtp/test
     - ls -la
-    #obligé de lui préciser que les ressources qu'il cherche sont dans son dossier
-    #comportement différent des autres testers
+    #We must tell it that the ressources he wants are in its own folder
+    #different behaviour from other testers
     - ./bzrtpTest --verbose --xml-file bzrtptest --resource-dir .
-#uploading the artifacts for the next stage
+  #uploading the artifacts for the next stage
   artifacts:
     paths :
       - build-desktop/WORK/desktop/Build/bzrtp/test/bzrtptest-Results.xml
@@ -271,37 +143,8 @@ test-belcard-arch:
         - build-desktop/WORK/desktop/Build/bzrtp/test/bzrtptest-Results.xml
     expire_in: 4 week
     
-test-bzrtp-debian8:
-  extends: .test-bzrtp
-  dependencies:
-    - job-debian8-ninja-clang
-  tags: [ "docker-test-debian8" ]
-  
-test-bzrtp-debian9:
-  extends: .test-bzrtp
-  dependencies:
-    - job-debian9-ninja-clang
-  tags: [ "docker-test-debian9" ]
-  
-test-bzrtp-centos7:
-  extends: .test-bzrtp
-  dependencies:
-    - job-centos7-ninja-clang
-  tags: [ "docker-test-centos7" ]
-  
-test-bzrtp-ubuntu:
-  extends: .test-bzrtp
-  dependencies:
-    - job-ubuntu-rolling-ninja-clang
-  tags: [ "docker-ubuntu-rolling" ]
- 
-test-bzrtp-arch:
-  extends: .test-bzrtp
-  dependencies:
-    - job-archlinux-latest-ninja-clang
-  tags: [ "docker-archlinux-latest" ] 
 
-#commented until we can test with a proper server instead of blindly executing
+#need to fix the yum slowdowns causing the job to fail, and to update the dockerfile
 test-lime:
   tags: [ "docker-test-centos7-lime" ]
   extends: .test

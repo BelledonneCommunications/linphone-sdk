@@ -71,4 +71,33 @@ job-debian9-ninja-clang-novideo:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-debian9-ninja-clang
 
+#Commented until fix for ipv6 for debian 8/9
+#test-bctoolbox-debian9:
+#  extends: .test-bctoolbox
+#  dependencies:
+#    - job-debian9-ninja-clang
+#  tags: [ "docker-test-debian9" ]
 
+test-bellesip-debian9:
+  extends: .test-bellesip
+  dependencies:
+    - job-debian9-ninja-clang
+  tags: [ "docker-test-debian9" ]
+  
+test-belr-debian9:
+  extends: .test-belr
+  dependencies:
+    - job-debian9-ninja-clang
+  tags: [ "docker-test-debian9" ]
+  
+test-belcard-debian9:
+  extends: .test-belcard
+  dependencies:
+    - job-debian9-ninja-clang
+  tags: [ "docker-test-debian9" ]
+  
+test-bzrtp-debian9:
+  extends: .test-bzrtp
+  dependencies:
+    - job-debian9-ninja-clang
+  tags: [ "docker-test-debian9" ]

@@ -69,3 +69,34 @@ job-centos7-ninja-clang-novideo:
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-centos7-ninja-clang
+  
+  
+test-bctoolbox-centos7:
+  extends: .test-bctoolbox
+  dependencies:
+    - job-centos7-ninja-clang
+  tags: [ "docker-test-centos7" ]
+  
+test-bellesip-centos7:
+  extends: .test-bellesip
+  dependencies:
+    - job-centos7-ninja-clang
+  tags: [ "docker-test-centos7" ]
+  
+test-belr-centos7:
+  extends: .test-belr
+  dependencies:
+    - job-centos7-ninja-clang
+  tags: [ "docker-test-centos7" ]
+  
+test-belcard-centos7:
+  extends: .test-belcard
+  dependencies:
+    - job-centos7-ninja-clang
+  tags: [ "docker-test-centos7" ]
+  
+test-bzrtp-centos7:
+  extends: .test-bzrtp
+  dependencies:
+    - job-centos7-ninja-clang
+  tags: [ "docker-test-centos7" ]
