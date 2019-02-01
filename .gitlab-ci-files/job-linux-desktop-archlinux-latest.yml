@@ -67,3 +67,33 @@ job-archlinux-latest-ninja-clang-novideo:
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-archlinux-latest-ninja-clang
+
+test-bctoolbox-arch:
+  extends: .test-bctoolbox
+  dependencies:
+    - job-archlinux-latest-ninja-clang
+  tags: [ "docker-archlinux-latest" ] 
+  
+test-bellesip-arch:
+  extends: .test-bellesip
+  dependencies:
+    - job-archlinux-latest-ninja-clang
+  tags: [ "docker-archlinux-latest" ]
+  
+test-belr-arch:
+  extends: .test-belr
+  dependencies:
+    - job-archlinux-latest-ninja-clang
+  tags: [ "docker-archlinux-latest" ] 
+  
+test-belcard-arch:
+  extends: .test-belcard
+  dependencies:
+    - job-archlinux-latest-ninja-clang
+  tags: [ "docker-archlinux-latest" ] 
+  
+test-bzrtp-arch:
+  extends: .test-bzrtp
+  dependencies:
+    - job-archlinux-latest-ninja-clang
+  tags: [ "docker-archlinux-latest" ] 
