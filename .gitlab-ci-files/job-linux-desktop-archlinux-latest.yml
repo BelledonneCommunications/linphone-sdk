@@ -67,6 +67,12 @@ job-archlinux-latest-ninja-clang-novideo:
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-archlinux-latest-ninja-clang
+  
+  
+#################################################
+# TESTS
+#################################################
+
 
 test-bctoolbox-arch:
   extends: .test-bctoolbox
