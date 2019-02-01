@@ -1719,7 +1719,7 @@ static void x3dh_without_OPk() {
 }
 
 
-/* Alice encrypt to bob, bob replies so session is fully established, then alice encrypt more tjan maxSendingChain message so we must start a new session with bob
+/* Alice encrypt to bob, bob replies so session is fully established, then alice encrypt more than maxSendingChain message so we must start a new session with bob
  * - alice.d1 and bob.d1 exchange messages
  * - alice encrypt maxSendingChain messages, bob never reply, no real need to decryp them, just check they are not holding X3DH init message
  * - alice encrypt one more message, it shall trigger new session creation so message will hold an X3DH init, decrypt it just to check bob can hold the session change
@@ -2189,7 +2189,6 @@ static void x3dh_multidev_operation_queue_test(const lime::CurveId curve, const 
 		// destroy and reload the Managers(tests everything is correctly saved/load from local Storage)
 		if (!continuousSession) { managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);}
 
-		// now alice will request encryption of message without waiting for callback to:
 		// clean previously used buffer
 		for (size_t i=0; i<messages.size(); i++) {
 			cipherMessage[i] = make_shared<std::vector<uint8_t>>();
@@ -2198,6 +2197,7 @@ static void x3dh_multidev_operation_queue_test(const lime::CurveId curve, const 
 			messages[i] = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[messages.size()+i].begin(), lime_tester::messages_pattern[messages.size()+i].end());
 		}
 
+		// now alice will request encryption of message without waiting for callback to:
 		//  bob.d1,bob.d2 -> this one shall trigger a X3DH request to acquire bob.d2 key bundle
 		recipients[0]->emplace_back(*bobDevice1);
 		recipients[0]->emplace_back(*bobDevice2);
@@ -2256,12 +2256,12 @@ static void x3dh_multidev_operation_queue_test(const lime::CurveId curve, const 
 		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
 		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[messages.size()+2]);
 
-		// in recipient[2] we have a message encrypted to bob.d3
+		// in recipient[3] we have a message encrypted to bob.d3
 		BC_ASSERT_TRUE(bobManager->decrypt((*recipients[3])[0].deviceId, "bob", *aliceDevice1, (*recipients[3])[0].DRmessage, *(cipherMessage[3]), receivedMessage) != lime::PeerDeviceStatus::fail);
 		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
 		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[messages.size()+3]);
 
-		// in recipient[2] we have a message encrypted to bob.d4
+		// in recipient[4] we have a message encrypted to bob.d4
 		BC_ASSERT_TRUE(bobManager->decrypt((*recipients[4])[0].deviceId, "bob", *aliceDevice1, (*recipients[4])[0].DRmessage, *(cipherMessage[4]), receivedMessage) != lime::PeerDeviceStatus::fail);
 		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
 		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[messages.size()+4]);
@@ -2411,7 +2411,130 @@ static void x3dh_operation_queue(void) {
 	x3dh_operation_queue_test(lime::CurveId::c448, "lime_x3dh_operation_queue", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data(), false);
 #endif
 }
+ /* Test Scenario
+ * - Alice and Bob register themselves on X3DH server
+ * - Alice send message to Bob
+ * - Bob deletes himself and create a user with the same DeviceId (but different Ik)
+ * - Bob encrypts a message to Alice
+ * - Alice tries to decrypt it, it shall fail
+ */
+static void lime_identity_theft_test(const lime::CurveId curve, const std::string &dbBaseFilename, const std::string &x3dh_server_url) {
+	// create DB
+	std::string dbFilenameAlice{dbBaseFilename};
+	dbFilenameAlice.append(".alice.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
+	std::string dbFilenameBob{dbBaseFilename};
+	dbFilenameBob.append(".bob.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
 
+	remove(dbFilenameAlice.data()); // delete the database file if already exists
+	remove(dbFilenameBob.data()); // delete the database file if already exists
+
+	lime_tester::events_counters_t counters={};
+	int expected_success=0;
+
+	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+					if (returnCode == lime::CallbackReturn::success) {
+						counters.operation_success++;
+					} else {
+						counters.operation_failed++;
+						LIME_LOGE<<"Lime operation failed : "<<anythingToSay;
+					}
+				});
+
+	try {
+		auto recipients = make_shared<std::vector<RecipientData>>();
+		auto cipherMessage = make_shared<std::vector<uint8_t>>();
+
+		// create Manager
+		auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
+		auto bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, X3DHServerPost));
+
+		// create Random devices names
+		auto aliceDevice = lime_tester::makeRandomDeviceName("alice.");
+		auto bobDevice = lime_tester::makeRandomDeviceName("bob.");
+
+		// create users
+		aliceManager->create_user(*aliceDevice, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+		bobManager->create_user(*bobDevice, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+		if (counters.operation_failed > 0) return; // skip the end of the test if we can't do this
+
+		// alice encrypts a message to bob
+		recipients->emplace_back(*bobDevice);
+		auto message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
+
+		aliceManager->encrypt(*aliceDevice, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+
+		// we don't need to decrypt, it only matters that Alice registered Bob's device Ik
+		// Bob deletes its user and create it again (with the same deviceId)
+		bobManager->delete_user(*bobDevice, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+		bobManager->create_user(*bobDevice, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+
+		// cleaning
+		recipients->clear();
+		message = nullptr;
+		cipherMessage->clear();
+
+		// Bob encrypts a message to Alice
+		recipients->emplace_back(*aliceDevice);
+		message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[1].begin(), lime_tester::messages_pattern[1].end());
+
+		bobManager->encrypt(*bobDevice, make_shared<const std::string>("alice"), recipients, message, cipherMessage, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+
+		// alice tries decrypt it, it shall fail as Bob changed Ik!
+		std::vector<uint8_t> receivedMessage{};
+		BC_ASSERT(aliceManager->decrypt(*aliceDevice, "alice", *bobDevice, (*recipients)[0].DRmessage, *cipherMessage, receivedMessage) == lime::PeerDeviceStatus::fail);
+
+		// cleaning
+		recipients->clear();
+		cipherMessage->clear();
+
+		// Alice encrypts maxSendingChain messages to bob, she does it with its old Ik
+		for (auto i=0; i<lime::settings::maxSendingChain-1; i++) { // -1 as we already encrypted one message to bob
+			// alice encrypt
+			cipherMessage->clear();
+			recipients->clear();
+			recipients->emplace_back(*bobDevice);
+			aliceManager->encrypt(*aliceDevice, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
+			BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+			BC_ASSERT_TRUE((*recipients)[0].peerStatus == lime::PeerDeviceStatus::untrusted);
+		}
+
+		// update belle-sip stack processing possible incoming messages from server
+		belle_sip_stack_sleep(stack,0);
+
+		// now we've ran the maximum number of messages, Alice shall ask for a new key bundle for bob, but it will fail because it will come with a new Ik
+		recipients->clear();
+		recipients->emplace_back(*bobDevice);
+		aliceManager->encrypt(*aliceDevice, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_failed,1,lime_tester::wait_for_timeout));
+
+		// delete the users
+		if (cleanDatabase) {
+			aliceManager->delete_user(*aliceDevice, callback);
+			bobManager->delete_user(*bobDevice, callback);
+			BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,expected_success+2,lime_tester::wait_for_timeout));
+			remove(dbFilenameAlice.data());
+			remove(dbFilenameBob.data());
+		}
+	} catch (BctbxException &e) {
+		LIME_LOGE << e;
+		BC_FAIL("");
+	}
+}
+
+static void lime_identity_theft(void) {
+#ifdef EC25519_ENABLED
+	lime_identity_theft_test(lime::CurveId::c25519, "lime_x3dh_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data());
+#endif
+#ifdef EC448_ENABLED
+	lime_identity_theft_test(lime::CurveId::c448, "lime_x3dh_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
+#endif
+}
  /* A simple test with alice having 1 device and bob 2
  * - Alice and Bob(d1 and d2) register themselves on X3DH server
  * - Alice send message to Bob (d1 and d2)
@@ -3068,7 +3191,8 @@ static test_t tests[] = {
 	TEST_NO_TAG("Verified Status", lime_identityVerifiedStatus),
 	TEST_NO_TAG("Peer Device Status", lime_peerDeviceStatus),
 	TEST_NO_TAG("Encryption Policy", lime_encryptionPolicy),
-	TEST_NO_TAG("Encryption Policy Error", lime_encryptionPolicyError)
+	TEST_NO_TAG("Encryption Policy Error", lime_encryptionPolicyError),
+	TEST_NO_TAG("Identity theft", lime_identity_theft)
 };
 
 test_suite_t lime_lime_test_suite = {

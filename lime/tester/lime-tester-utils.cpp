@@ -361,7 +361,7 @@ bool DR_message_extractX3DHInit(std::vector<uint8_t> &message, std::vector<uint8
 		X3DH_length += DSA<C448, lime::DSAtype::publicKey>::ssize() + X<C448, lime::Xtype::publicKey>::ssize();
 	}
 
-	if (message[3] == 0x00) { // there is an OPk id
+	if (message[3] == 0x01) { // there is an OPk id
 		X3DH_length += 4;
 	}
 
