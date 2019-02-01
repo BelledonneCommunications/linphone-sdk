@@ -1,3 +1,7 @@
+#################################################
+# BUILD
+#################################################
+
 .job-linux-desktop:
 
   stage: build
@@ -29,6 +33,10 @@
   extends: .job-linux-desktop
   only:
     - schedules
+    
+#################################################
+# TESTS
+#################################################
 
 .test:
   variables:
@@ -43,7 +51,7 @@
     - cd build-desktop/WORK/desktop/Build/bctoolbox/tester
     - ls -la
     - ./bctoolbox_tester --verbose --xml-file bcttest
-  #uploading the artifacts for the next stage
+  #uploading the artifacts
   artifacts:
     paths:
       - build-desktop/WORK/desktop/Build/bctoolbox/tester/bcttest-Results.xml
@@ -64,7 +72,7 @@
     - cd build-desktop/linphone-sdk/desktop/bin
     - ls -la
     - ./belle_sip_tester --verbose --resource-dir ../share/ --xml-file bstest
-  #uploading the artifacts for the next stage
+  #uploading the artifacts
   artifacts:
     paths:
       - build-desktop/linphone-sdk/desktop/bin/bstest-Results.xml
@@ -84,7 +92,7 @@ test-mediastreamer:
     - pulseaudio -D -L module-virtual-source --exit-idle-time=-1
     - cd build-desktop/linphone-sdk/desktop/bin
     - ./mediastreamer2_tester --verbose --xml-file mstest
-  #uploading the artifacts for the next stage
+  #uploading the artifacts
   artifacts:
     paths:
       - build-desktop/linphone-sdk/desktop/bin/mstest-Results.xml
@@ -101,7 +109,7 @@ test-mediastreamer:
   script:
     - cd build-desktop/linphone-sdk/desktop/bin
     - ./belr_tester --verbose --resource-dir ../share/belr-tester --xml-file blrtest
-  #uploading the artifacts for the next stage
+  #uploading the artifacts
   artifacts:
     paths :
       - build-desktop/linphone-sdk/desktop/bin/blrtest-Results.xml
@@ -118,7 +126,7 @@ test-mediastreamer:
   script:
     - cd build-desktop/linphone-sdk/desktop/bin
     - ./belcard_tester --verbose --xml-file belcardtest
-  #uploading the artifacts for the next stage
+  #uploading the artifacts
   artifacts:
     paths :
       - build-desktop/linphone-sdk/desktop/bin/belcardtest-Results.xml
@@ -135,10 +143,10 @@ test-mediastreamer:
   script:
     - cd build-desktop/WORK/desktop/Build/bzrtp/test
     - ls -la
-    #We must tell it that the ressources he wants are in its own folder
+    #We must tell it that the ressources it wants are in its own folder
     #different behaviour from other testers
     - ./bzrtpTest --verbose --xml-file bzrtptest --resource-dir .
-  #uploading the artifacts for the next stage
+  #uploading the artifacts
   artifacts:
     paths :
       - build-desktop/WORK/desktop/Build/bzrtp/test/bzrtptest-Results.xml
@@ -172,7 +180,7 @@ test-lime:
 
     #path to source dir /builds/BC/public/linphone-sdk/lime
     - ./lime_tester --verbose --xml-file limetest --resource-dir ../../../../../../lime/tester
-#uploading the artifacts
+  #uploading the artifacts
   artifacts:
     paths:
       - build-desktop/WORK/desktop/Build/lime/tester/limetest-Results.xml

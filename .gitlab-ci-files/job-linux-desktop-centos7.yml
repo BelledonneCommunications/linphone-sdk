@@ -69,6 +69,11 @@ job-centos7-ninja-clang-novideo:
   extends: job-centos7-ninja-clang
   
   
+#################################################
+# TESTS
+#################################################
+  
+  
 test-bctoolbox-centos7:
   extends: .test-bctoolbox
   dependencies:
