@@ -30,26 +30,33 @@ job-ios-upload:
 job-android-upload:
 
   stage: deploy
-  tags: [ "deploy" ]
+  tags: [ "docker-android" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
 
   variables:
+    CCACHE_SIZE: 4G
     CMAKE_GENERATOR: Ninja
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
     GIT_STRATEGY: clone
 
-  only:
-    - schedules
+  extends: .scheduled-job-android
+
   dependencies:
     - job-android-ninja-r17c
 
+  before_script:
+    - eval $(ssh-agent -s)
+    - echo "$DEPLOY_USER_KEY" | tr -d '\r' | ssh-add - > /dev/null
+    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+    - echo -e "Host gitlab.linphone.org\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
+
 # Currently we can't use artifact to upload this so we rebuild all android project
   script:
-    - export ANDROID_HOME=$ANDROID_HOME_MAC
-    - export ANDROID_NDK_HOME=$ANDROID_NDK_HOME_MAC
-    - ccache -s
     - mkdir -p build-android
     - cd build-android
     - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS="arm64, armv7" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     - ../cmake/Android/gradlew uploadArchives -i
-    - ccache -s
+
+  after_script:
+    - rm -rf ~/.ssh || true
