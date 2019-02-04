@@ -13,6 +13,8 @@ variables:
 #################################################
 
 .job-prepare:
+  variables:
+    ALL_JOB_VARIABLE: ""
 
 include:
   - '.gitlab-ci-files/job-prepare.yml'
