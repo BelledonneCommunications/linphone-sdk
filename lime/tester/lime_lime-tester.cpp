@@ -540,7 +540,7 @@ static void lime_encryptionPolicy_suite(lime::CurveId curveId, const std::string
 	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
 			bobManager, bobDeviceId,
 			lime_tester::shortMessage, false, // single recipient
-			lime::EncryptionPolicy::cipherMessage, true, // force to DRMessage
+			lime::EncryptionPolicy::cipherMessage, true, // force to cipherMessage
 			lime::EncryptionPolicy::cipherMessage); // -> cipherMessage
 
 	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
@@ -602,7 +602,7 @@ static void lime_encryptionPolicy_suite(lime::CurveId curveId, const std::string
 	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
 			bobManager, bobDeviceId,
 			lime_tester::longMessage, false, // single recipient
-			lime::EncryptionPolicy::cipherMessage, true, // force to DRMessage
+			lime::EncryptionPolicy::cipherMessage, true, // force to cipherMessage
 			lime::EncryptionPolicy::cipherMessage); // -> cipherMessage
 
 	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
@@ -638,7 +638,7 @@ static void lime_encryptionPolicy_suite(lime::CurveId curveId, const std::string
 	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
 			bobManager, bobDeviceId,
 			lime_tester::longMessage, true, //multiple recipient
-			lime::EncryptionPolicy::cipherMessage, true, // force to DRMessage
+			lime::EncryptionPolicy::cipherMessage, true, // force to cipherMessage
 			lime::EncryptionPolicy::cipherMessage); // -> cipherMessage
 
 	if (cleanDatabase) {
