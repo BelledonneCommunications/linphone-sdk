@@ -23,6 +23,7 @@ find_package(Java REQUIRED)
 include(UseJava)
 
 set (LIME_SOURCE_FILES_JAVA
+	org/linphone/lime/LimeException.java
 	org/linphone/lime/LimeCurveId.java
 	org/linphone/lime/LimeEncryptionPolicy.java
 	org/linphone/lime/LimeOutputBuffer.java

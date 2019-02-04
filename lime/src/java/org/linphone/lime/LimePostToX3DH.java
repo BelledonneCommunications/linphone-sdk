@@ -29,7 +29,7 @@ public interface LimePostToX3DH {
 	 * @param[in]	from	shall be included in the from field of HTTPS packet sent to the server(holds the local device Id of message sender)
 	 * @param[in]	message	the binary content of the message to be sent
 	 *
-	 * @Note: To forward the server's response, call the LimeManager.process_response static method
+	 * @note: To forward the server's response, call the LimeManager.process_response static method giving back the native object pointer
 	 */
 	public void postToX3DHServer(long ptr, String url, String from, byte[] message);
 }

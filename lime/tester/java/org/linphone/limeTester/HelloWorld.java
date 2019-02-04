@@ -84,7 +84,7 @@ class LimeStatusCallbackImpl_Mailbox implements LimeStatusCallback {
 	public void resetStatus() {
 		success = 0;
 		fail = 0;
-		timeout = 4000;
+		timeout = 5000;
 		recipients = null;
 	}
 
@@ -146,122 +146,127 @@ public class HelloWorld {
 		file = new File(bobDbFilename);
 		file.delete();
 
-		// Create bob and alice lime managers
-		// Any application using Lime shall instantiate one LimeManager only, even in case of multiple users managed by the application.
-		// Here we use two managers to simulate two separated devices (one manager is associated to one database
-		LimeManager aliceManager = new LimeManager(aliceDbFilename, postObj);
-		LimeManager bobManager = new LimeManager(bobDbFilename, postObj);
+		try {
+			// Create bob and alice lime managers
+			// Any application using Lime shall instantiate one LimeManager only, even in case of multiple users managed by the application.
+			// Here we use two managers to simulate two separated devices (one manager is associated to one database
+			LimeManager aliceManager = new LimeManager(aliceDbFilename, postObj);
+			LimeManager bobManager = new LimeManager(bobDbFilename, postObj);
 
-		// create users, this operation is asynchronous (as the user is also created on X3DH server)
-		// The OPkInitialBatchSize parameter is optionnal and is used to set how many One-Time pre-keys will be
-		// uploaded to the X3DH server at creation. Default value is set in lime_jni.cpp to 100.
-		// Last parameter is a callback object implementing the LimeStatusCallback interface
-		// At user creation we would only need to retrieve the status and message(in case of failure only)
-		//      - In case of successful operation the return code is an int translating to LimeCallbackReturn.SUCCESS, and message is empty
-		//      - In case of failure, the return code is an int translating to LimeCallbackReturn.FAIL and the message shall give details on the failure cause
-		aliceManager.create_user(AliceDeviceId, x3dhServerUrl, curveId, statusCallback);
-		bobManager.create_user(BobDeviceId, x3dhServerUrl, curveId, 10, statusCallback);
-		// wait for the operations to complete
-		expected_success+= 2;
-		assert (statusCallback.wait_for_success(expected_success));
-		assert (statusCallback.fail == expected_fail);
+			// create users, this operation is asynchronous (as the user is also created on X3DH server)
+			// The OPkInitialBatchSize parameter is optionnal and is used to set how many One-Time pre-keys will be
+			// uploaded to the X3DH server at creation. Default value is set in lime_jni.cpp to 100.
+			// Last parameter is a callback object implementing the LimeStatusCallback interface
+			// At user creation we would only need to retrieve the status and message(in case of failure only)
+			//      - In case of successful operation the return code is an int translating to LimeCallbackReturn.SUCCESS, and message is empty
+			//      - In case of failure, the return code is an int translating to LimeCallbackReturn.FAIL and the message shall give details on the failure cause
+			aliceManager.create_user(AliceDeviceId, x3dhServerUrl, curveId, statusCallback);
+			bobManager.create_user(BobDeviceId, x3dhServerUrl, curveId, 10, statusCallback);
+			// wait for the operations to complete
+			expected_success+= 2;
+			assert (statusCallback.wait_for_success(expected_success));
+			assert (statusCallback.fail == expected_fail);
 
-		/************** SENDER SIDE CODE *****************************/
-		/*** alice encrypt a message to bob, all parameters given to encrypt function are shared_ptr. ***/
-		// The encryption generates:
-		//      - one common cipher message which must be sent to all recipient devices(depends on encryption policy, message length and recipient number, it may be actually empty)
-		//      - a cipher header per recipient device, each recipient device shall receive its specific one
+			/************** SENDER SIDE CODE *****************************/
+			/*** alice encrypt a message to bob, all parameters given to encrypt function are shared_ptr. ***/
+			// The encryption generates:
+			//      - one common cipher message which must be sent to all recipient devices(depends on encryption policy, message length and recipient number, it may be actually empty)
+			//      - a cipher header per recipient device, each recipient device shall receive its specific one
 
-		// Create a RecipientData array, in this basic case we will encrypt to one device only but we can do it to any number of recipient devices.
-		// RecipientData holds:
-		//      - recipient device id (identify the recipient)
-		//      - peer Device status :
-		//           - input: if set to LimePeerDeviceStatus.FAIL : this entry will be ignored and no message would be encrypted for this device
-		//           - ouput: the current status of this device in local database. See LimePeerDeviceStatus definition for details
-		//      - Double Ratchet message : output of encryption process targeted to this recipient device only.
-		RecipientData[] recipients = new RecipientData[1]; // 1 target for the encrypt
-		String plainMessage = "Moi je connais un ami il s'appelle Alceste"; // here we define the plain text as a string but the input is a byte array so we can encrypt anything
-		recipients[0] = new RecipientData(BobDeviceId);
-		// Shall we have more recipients (bob can have several devices or be a conference sip:uri, alice other devices must get a copy of the message), we just need to create some more RecipientData with their respective Device Id (GRUU) and set them in the recipients array
+			// Create a RecipientData array, in this basic case we will encrypt to one device only but we can do it to any number of recipient devices.
+			// RecipientData holds:
+			//      - recipient device id (identify the recipient)
+			//      - peer Device status :
+			//           - input: if set to LimePeerDeviceStatus.FAIL : this entry will be ignored and no message would be encrypted for this device
+			//           - ouput: the current status of this device in local database. See LimePeerDeviceStatus definition for details
+			//      - Double Ratchet message : output of encryption process targeted to this recipient device only.
+			RecipientData[] recipients = new RecipientData[1]; // 1 target for the encrypt
+			String plainMessage = "Moi je connais un ami il s'appelle Alceste"; // here we define the plain text as a string but the input is a byte array so we can encrypt anything
+			recipients[0] = new RecipientData(BobDeviceId);
+			// Shall we have more recipients (bob can have several devices or be a conference sip:uri, alice other devices must get a copy of the message), we just need to create some more RecipientData with their respective Device Id (GRUU) and set them in the recipients array
 
-		// This is a buffer to store the cipherMessage which shall be distributed to all recipient in addition to their specific message
-		// A reference is passed to the jni and another one stored in the callback object
-		LimeOutputBuffer cipherMessage = new LimeOutputBuffer();
+			// This is a buffer to store the cipherMessage which shall be distributed to all recipient in addition to their specific message
+			// A reference is passed to the jni and another one stored in the callback object
+			LimeOutputBuffer cipherMessage = new LimeOutputBuffer();
 
-		// Instanciate a mailbox callback to manage the encryption output
-		// It act the same than the regular callback and provide a wait_for function to be able to synchronise
-		// the program flow ( for the purpose of this test only, not in a real situation)
-		LimeStatusCallbackImpl_Mailbox alice_encryptCallback = new LimeStatusCallbackImpl_Mailbox();
-		// the mailbox callback store references to the output buffer so it would be able to access the encryption output
-		// this would be required in real situation
-		alice_encryptCallback.recipients = recipients;
-		alice_encryptCallback.cipherMessage = cipherMessage;
+			// Instanciate a mailbox callback to manage the encryption output
+			// It act the same than the regular callback and provide a wait_for function to be able to synchronise
+			// the program flow ( for the purpose of this test only, not in a real situation)
+			LimeStatusCallbackImpl_Mailbox alice_encryptCallback = new LimeStatusCallbackImpl_Mailbox();
+			// the mailbox callback store references to the output buffer so it would be able to access the encryption output
+			// this would be required in real situation
+			alice_encryptCallback.recipients = recipients;
+			alice_encryptCallback.cipherMessage = cipherMessage;
 
-		// encrypts, the plain message is a byte array so we can encrypt anything
-		// this call is asynchronous (unless you use an synchronous connection to the X3DH server)
-		// and the statusCallback.callback function will be called when the encryption is done
-		// encrypt, parameters are:
-		//      - localDeviceId to select which of the users managed by the LimeManager we shall use to perform the encryption (in our example we have only one local device).
-		//      - recipientUser: an id of the recipient user (which can hold several devices), typically its sip:uri
-		//      - RecipientData vector (see above), list all recipient devices, will hold their DR message
-		//      - plain message
-		//      - cipher message (this one must then be distributed to all recipients devices but may be empty, see EncryptionPolicy for details)
-		//      - a status callback object implenting the LimeStatusCallback interface
-		aliceManager.encrypt(AliceDeviceId, "bob", recipients, plainMessage.getBytes(), cipherMessage, alice_encryptCallback);
+			// encrypts, the plain message is a byte array so we can encrypt anything
+			// this call is asynchronous (unless you use an synchronous connection to the X3DH server)
+			// and the statusCallback.callback function will be called when the encryption is done
+			// encrypt, parameters are:
+			//      - localDeviceId to select which of the users managed by the LimeManager we shall use to perform the encryption (in our example we have only one local device).
+			//      - recipientUser: an id of the recipient user (which can hold several devices), typically its sip:uri
+			//      - RecipientData vector (see above), list all recipient devices, will hold their DR message
+			//      - plain message
+			//      - cipher message (this one must then be distributed to all recipients devices but may be empty, see EncryptionPolicy for details)
+			//      - a status callback object implenting the LimeStatusCallback interface
+			aliceManager.encrypt(AliceDeviceId, "bob", recipients, plainMessage.getBytes(), cipherMessage, alice_encryptCallback);
 
-		// in real sending situation, the local references of the recipients and cipherMessage are destroyed by exiting the function where they've been declared
-		// and where we called the encrypt function. (The LimeManager shall instead never be destroyed until the application terminates)
-		// They would be accessed directly via their reference stored in the callback object
-		recipients = null;
-		cipherMessage = null;
+			// in real sending situation, the local references of the recipients and cipherMessage are destroyed by exiting the function where they've been declared
+			// and where we called the encrypt function. (The LimeManager shall instead never be destroyed until the application terminates)
+			// They would be accessed directly via their reference stored in the callback object
+			recipients = null;
+			cipherMessage = null;
 
-		/************** SYNCHRO **************************************/
-		// Here we wait for the status callback
-		assert (alice_encryptCallback.wait_for_success(1)); // this is a new status callback so we expect 1 success
-		assert (alice_encryptCallback.fail == 0); // to check if we has a fail or a real timeout in case of failure
-		alice_encryptCallback = null; // we do not need this object anymore
-		/************** End of SYNCHRO *******************************/
+			/************** SYNCHRO **************************************/
+			// Here we wait for the status callback
+			assert (alice_encryptCallback.wait_for_success(1)); // this is a new status callback so we expect 1 success
+			assert (alice_encryptCallback.fail == 0); // to check if we has a fail or a real timeout in case of failure
+			alice_encryptCallback = null; // we do not need this object anymore
+			/************** End of SYNCHRO *******************************/
 
-		/************** RECIPIENT SIDE CODE **************************/
-		// Get recipients and cipher message from the mailbox (simulate sending over a network))
-		byte[] receivedDRmessage = mailBox.getDRMessage();
-		byte[] receivedCipherMessage = mailBox.getCipherMessage();
+			/************** RECIPIENT SIDE CODE **************************/
+			// Get recipients and cipher message from the mailbox (simulate sending over a network))
+			byte[] receivedDRmessage = mailBox.getDRMessage();
+			byte[] receivedCipherMessage = mailBox.getCipherMessage();
 
-		// using the default encryption policy and encrypting to on recipient, we shall not have any cipherMessage
-		assert (receivedCipherMessage.length == 0):"Default encryption policy implies no cipherMessage for one recipient only";
+			// using the default encryption policy and encrypting to on recipient, we shall not have any cipherMessage
+			assert (receivedCipherMessage.length == 0):"Default encryption policy implies no cipherMessage for one recipient only";
 
-		LimeOutputBuffer decodedMessage = new LimeOutputBuffer();
-		// decrypt and check we get back to the original
-		// decryption is synchronous, no callback on this one
-		// We do not have any cipher message, so use the decrypt method version without it
-		// decrypt, parameters are:
-		//      - localDeviceId to select which of the users managed by the LimeManager we shall use to perform the encryption (in our example we have only one local device).
-		//      - recipientUser: an id of the recipient user (which can hold several devices), typically its sip:uri
-		//      - senderDeviceId: identify the device who sent the message
-		//      - Recipient DR message
-		//      - cipher message (this one must then be distributed to all recipients devices but may be empty, see EncryptionPolicy for details)
-		//      - output: the plain message
-		//
-		// decrypt return the current status of sending peer in the local database or LimePeerDeviceStatus.FAIL in case of decryption failure
-		LimePeerDeviceStatus status = bobManager.decrypt(BobDeviceId, "bob", AliceDeviceId, receivedDRmessage, decodedMessage);
-		String s = new String(decodedMessage.buffer);
-		assert (status == LimePeerDeviceStatus.UNKNOWN):"decrypt status was expected to be unknown but is not";
-		assert (s.equals(plainMessage)):"Decoded message is not the encoded one";
-		/************** End of RECIPIENT SIDE CODE *******************/
+			LimeOutputBuffer decodedMessage = new LimeOutputBuffer();
+			// decrypt and check we get back to the original
+			// decryption is synchronous, no callback on this one
+			// We do not have any cipher message, so use the decrypt method version without it
+			// decrypt, parameters are:
+			//      - localDeviceId to select which of the users managed by the LimeManager we shall use to perform the encryption (in our example we have only one local device).
+			//      - recipientUser: an id of the recipient user (which can hold several devices), typically its sip:uri
+			//      - senderDeviceId: identify the device who sent the message
+			//      - Recipient DR message
+			//      - cipher message (this one must then be distributed to all recipients devices but may be empty, see EncryptionPolicy for details)
+			//      - output: the plain message
+			//
+			// decrypt return the current status of sending peer in the local database or LimePeerDeviceStatus.FAIL in case of decryption failure
+			LimePeerDeviceStatus status = bobManager.decrypt(BobDeviceId, "bob", AliceDeviceId, receivedDRmessage, decodedMessage);
+			String s = new String(decodedMessage.buffer);
+			assert (status == LimePeerDeviceStatus.UNKNOWN):"decrypt status was expected to be unknown but is not";
+			assert (s.equals(plainMessage)):"Decoded message is not the encoded one";
+			/************** End of RECIPIENT SIDE CODE *******************/
 
 
-		// clean db: delete users
-		expected_success+= 2;
-		aliceManager.delete_user(AliceDeviceId, statusCallback);
-		bobManager.delete_user(BobDeviceId, statusCallback);
-		assert (statusCallback.wait_for_success(expected_success));
-		assert (statusCallback.fail == expected_fail);
+			// clean db: delete users
+			expected_success+= 2;
+			aliceManager.delete_user(AliceDeviceId, statusCallback);
+			bobManager.delete_user(BobDeviceId, statusCallback);
+			assert (statusCallback.wait_for_success(expected_success));
+			assert (statusCallback.fail == expected_fail);
 
-		// Do not forget do deallocate the native ressources
-		aliceManager.nativeDestructor();
-		bobManager.nativeDestructor();
-		aliceManager = null;
-		bobManager = null;
+			// Do not forget do deallocate the native ressources
+			aliceManager.nativeDestructor();
+			bobManager.nativeDestructor();
+			aliceManager = null;
+			bobManager = null;
+		}
+		catch (LimeException e) {
+			assert(false):"Got an unexpected exception during Hello World test: "+e.getMessage();
+		}
 
 		// Remove database files
 		file = new File(aliceDbFilename);

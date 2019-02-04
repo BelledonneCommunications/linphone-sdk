@@ -36,4 +36,19 @@ add_jar(LimeTester ${LIMETESTER_SOURCE_FILES_JAVA} INCLUDE_JARS ${LIME_JAR_FILE}
 
 get_target_property(Tester_jarFile LimeTester JAR_FILE)
 
-add_test(NAME JNI COMMAND ${Java_JAVA_EXECUTABLE} -Djava.library.path=${CMAKE_BINARY_DIR}/src -cp ${Tester_jarFile}:${LIME_JAR_FILE} -Xcheck:jni -ea org/linphone/limeTester/LimeTester)
+configure_file(../data/pattern_getSelfIk.C25519.sqlite3 ${CMAKE_CURRENT_BINARY_DIR}/pattern_getSelfIk.C25519.sqlite3 COPYONLY)
+configure_file(../data/pattern_getSelfIk.C448.sqlite3 ${CMAKE_CURRENT_BINARY_DIR}/pattern_getSelfIk.C448.sqlite3 COPYONLY)
+
+if (ENABLE_CURVE25519)
+	set (JAVA_CURVE25519_OPTION -DenableC25519=true)
+else ()
+	set (JAVA_CURVE25519_OPTION -DenableC25519=false)
+endif()
+
+if (ENABLE_CURVE448)
+	set (JAVA_CURVE448_OPTION -DenableC448=true)
+else ()
+	set (JAVA_CURVE448_OPTION -DenableC448=false)
+endif()
+
+add_test(NAME JNI COMMAND ${Java_JAVA_EXECUTABLE} ${JAVA_CURVE25519_OPTION} ${JAVA_CURVE448_OPTION} -Djava.library.path=${CMAKE_BINARY_DIR}/src -cp ${Tester_jarFile}:${LIME_JAR_FILE} -Xcheck:jni -ea org/linphone/limeTester/LimeTester)

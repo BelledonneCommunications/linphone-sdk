@@ -18,6 +18,13 @@
 */
 package org.linphone.lime;
 
+/**
+ * @brief A java wrapper around the native Lime Manager interface
+ *
+ * To use this wrapper you must implement the interfaces
+ * - LimePostToX3DH to communicate with the X3DH Https server
+ * - LimeStatusCallback to manage the lime response to asynchronous operations: create/delete users, encrypt, update
+ */
 public class LimeManager {
 	private long nativePtr; // stores the native object pointer
 
@@ -42,7 +49,7 @@ public class LimeManager {
 	 * @brief Lime Manager constructor
 	 *
 	 * @param[in]	db_access	string used to access DB: can be filename for sqlite3 or access params for mysql, directly forwarded to SOCI session opening
-	 * @param[in]	X3DH_post_data	A function to send data to the X3DH server, parameters includes a callback to transfer back the server response
+	 * @param[in]	postObj		An object used to send data to the X3DH server
 	 */
 	public LimeManager(String db_access, LimePostToX3DH postObj) {
 		initialize(db_access, postObj);
@@ -63,7 +70,7 @@ public class LimeManager {
 	 * 	A user is published on an X3DH key server who must run using the same elliptic curve selected for this user (creation will fail otherwise), the server url cannot be changed later
 	 *
 	 * @param[in]	localDeviceId		Identify the local user acount to use, it must be unique and is also be used as Id on the X3DH key server, it shall be the GRUU
-	 * @param[in]	serverUrl		The complete url(including port) of the X3DH key server. It must connect using HTTPS. Example: https://sip5.linphone.org:25519
+	 * @param[in]	serverURL		The complete url(including port) of the X3DH key server. It must connect using HTTPS. Example: https://sip5.linphone.org:25519
 	 * @param[in]	curveId			Choice of elliptic curve to use as base for ECDH and EdDSA operation involved. Can be CurveId::c25519 or CurveId::c448.
 	 * @param[in]	OPkInitialBatchSize	Number of OPks in the first batch uploaded to X3DH server
 	 * @param[in]	statusObj		This operation contact the X3DH server and is thus asynchronous, when server responds,
@@ -71,14 +78,14 @@ public class LimeManager {
 	 * @note
 	 * The OPkInitialBatchSize is optionnal, if not used, set to defaults 100
 	 */
-	public void create_user(String localDeviceId, String serverURL, LimeCurveId curveId, int OPkInitialBatchSize, LimeStatusCallback statusObj) {
+	public void create_user(String localDeviceId, String serverURL, LimeCurveId curveId, int OPkInitialBatchSize, LimeStatusCallback statusObj) throws LimeException {
 		this.n_create_user(localDeviceId, serverURL, curveId.getNative(), OPkInitialBatchSize, statusObj);
 	}
 	/**
 	 * @overload  void create_user(String localDeviceId, String serverURL, LimeCurveId curveId, LimeStatusCallback statusObj)
 	 */
-	public void create_user(String localDeviceId, String serverURL, LimeCurveId curveId, LimeStatusCallback statusObj) {
-		this.n_create_user(localDeviceId, serverURL, curveId.getNative(), 100, statusObj);
+	public void create_user(String localDeviceId, String serverURL, LimeCurveId curveId, LimeStatusCallback statusObj) throws LimeException {
+			this.n_create_user(localDeviceId, serverURL, curveId.getNative(), 100, statusObj);
 	}
 
 	/**
@@ -90,7 +97,7 @@ public class LimeManager {
 	 * @param[in]	statusObj	This operation contact the X3DH server and is thus asynchronous, when server responds,
 	 *				the statusObj.callback will be called giving the exit status and an error message in case of failure
 	 */
-	public native void delete_user(String localDeviceId, LimeStatusCallback statusObj);
+	public native void delete_user(String localDeviceId, LimeStatusCallback statusObj) throws LimeException;
 
 	/**
 	 * @brief Encrypt a buffer (text or file) for a given list of recipient devices
@@ -122,12 +129,12 @@ public class LimeManager {
 	 * @param[in,out]	recipients	a list of RecipientData holding:
 	 * 					- the recipient device Id(GRUU)
 	 * 					- an empty buffer to store the DRmessage which must then be routed to that recipient
-	 * 					- the peer Status. If peerStatus is set to fail, this entry is ignored otherwise the peerStatus is set by the encrypt, see ::PeerDeviceStatus definition for details
+	 * 					- the peer Status. If peerStatus is set to fail, this entry is ignored otherwise the peerStatus is set by the encrypt, see LimePeerDeviceStatus definition for details
 	 * @param[in]		plainMessage	a buffer holding the message to encrypt, can be text or data.
 	 * @param[out]		cipherMessage	points to the buffer to store the encrypted message which must be routed to all recipients(if one is produced, depends on encryption policy)
-	 * @param[in]		callback	Performing encryption may involve the X3DH server and is thus asynchronous, when the operation is completed,
-	 * 					this callback will be called giving the exit status and an error message in case of failure.
-	 * 					It is advised to capture a copy of cipherMessage and recipients shared_ptr in this callback so they can access
+	 * @param[in]		statusObj	Performing encryption may involve the X3DH server and is thus asynchronous, when the operation is completed,
+	 * 					this statusObj.callback will be called giving the exit status and an error message in case of failure.
+	 * 					It is advised to store a reference to cipherMessage and recipients in this object so they can access
 	 * 					the output of encryption as it won't be part of the callback parameters.
 	 * @param[in]		encryptionPolicy	select how to manage the encryption: direct use of Double Ratchet message or encrypt in the cipher message and use the DR message to share the cipher message key
 	 * 						default is optimized output size mode.
@@ -182,8 +189,8 @@ public class LimeManager {
 	 *
 	 *  Is performed for all users founds in local storage
 	 *
-	 * @param[in]	callback		This operation may contact the X3DH server and is thus asynchronous, when server responds,
-	 * 					this callback will be called giving the exit status and an error message in case of failure.
+	 * @param[in]	statusObj		This operation may contact the X3DH server and is thus asynchronous, when server responds,
+	 * 					this statusObj.callback will be called giving the exit status and an error message in case of failure.
 	 * @param[in]	OPkServerLowLimit	If server holds less OPk than this limit, generate and upload a batch of OPks
 	 * @param[in]	OPkBatchSize		Number of OPks in a batch uploaded to server
 	 *
@@ -210,7 +217,7 @@ public class LimeManager {
 	 * @param[in]	localDeviceId	used to identify which local account we're dealing with, shall be the GRUU
 	 * @param[out]	Ik		the EdDSA public identity key, formatted as in RFC8032
 	 */
-	public native void get_selfIdentityKey(String localDeviceId, LimeOutputBuffer Ik);
+	public native void get_selfIdentityKey(String localDeviceId, LimeOutputBuffer Ik) throws LimeException;
 
 	/**
 	 * @brief set the peer device status flag in local storage: unsafe, trusted or untrusted.
@@ -240,7 +247,7 @@ public class LimeManager {
 	 *       - ignore Ik
 	 *       - insert/update the status. If inserted, insert an invalid Ik
 	 */
-	public void set_peerDeviceStatus(String peerDeviceId, byte[] Ik, LimePeerDeviceStatus status) {
+	public void set_peerDeviceStatus(String peerDeviceId, byte[] Ik, LimePeerDeviceStatus status) throws LimeException{
 		this.n_set_peerDeviceStatus_Ik(peerDeviceId, Ik, status.getNative());
 	}
 
@@ -272,6 +279,15 @@ public class LimeManager {
 	public LimePeerDeviceStatus get_peerDeviceStatus(String peerDeviceId) {
 		return LimePeerDeviceStatus.fromNative(this.n_get_peerDeviceStatus(peerDeviceId));
 	}
+
+	/**
+	 * @brief delete a peerDevice from local storage
+	 *
+	 * @param[in]	peerDeviceId	The device Id to be removed from local storage, shall be its GRUU
+	 *
+	 * Call is silently ignored if the device is not found in local storage
+	 */
+	public native void delete_peerDevice(String peerDeviceId);
 
 	/**
 	 * @brief native function to process the X3DH server response

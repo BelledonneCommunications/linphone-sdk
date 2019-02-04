@@ -203,7 +203,7 @@ namespace lime {
 			 * 					It is advised to capture a copy of cipherMessage and recipients shared_ptr in this callback so they can access
 			 * 					the output of encryption as it won't be part of the callback parameters.
 			 * @param[in]		encryptionPolicy	select how to manage the encryption: direct use of Double Ratchet message or encrypt in the cipher message and use the DR message to share the cipher message key
-			 * 						default is optimized output size mode.
+			 * 						default is optimized upload size mode.
 			 */
 			void encrypt(const std::string &localDeviceId, std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback, lime::EncryptionPolicy encryptionPolicy=lime::EncryptionPolicy::optimizeUploadSize);
 

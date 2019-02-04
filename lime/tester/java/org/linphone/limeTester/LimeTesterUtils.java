@@ -26,6 +26,7 @@ import java.io.DataOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.util.concurrent.*;
+import java.util.Arrays;
 
 /**
  * @brief For testing purpose, we just count the success and fail received
@@ -85,6 +86,27 @@ class LimeStatusCallbackImpl implements LimeStatusCallback {
 			return false;
 		}
 	}
+
+	public boolean wait_for_fail(int expected_fail) {
+		try {
+			int time = 0;
+			while (time<timeout && fail<expected_fail) {
+				time += 25;
+				Thread.sleep(25);
+			}
+		}
+		catch (InterruptedException e) {
+			System.out.println("Interrupt exception in wait for fail");
+			return false;
+		}
+
+		if (expected_fail == fail) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+
 }
 
 class LimePostToX3DH_Sync implements LimePostToX3DH {
@@ -213,6 +235,12 @@ public class LimeTesterUtils {
 	public final static byte PayloadEncryptionFlagbit = 0x02;
 	public final static byte C25519 = 1;
 	public final static byte C448 = 2;
+
+	public final static String shortMessage = "Short Message";
+	// with a long one(>80 <176) optimizeUploadSzie policy shall go for the cipherMessage encryption, but the optimizeGlobalBandwith stick to DRmessage (with 2 recipients)
+	public final static String longMessage = "This message is long enough to automatically switch to cipher Message mode when at least two recipients are involved.";
+	// with a very long one(>176) all optimize policies shall go for the cipherMessage encryption(with 2 recipients)
+	public final static String veryLongMessage = "This message is long enough to automatically switch to cipher Message mode when at least two recipients are involved. This message is long enough to automatically switch to cipher Message mode when at least two recipients are involved.";
 
 	public final static String[] patterns = {
 		"Frankly, my dear, I don't give a damn.",
@@ -395,4 +423,48 @@ public class LimeTesterUtils {
 				return retObj;
 		}
 	}
+
+	byte[] DR_message_extractX3DHInit(byte[] message) {
+		// check if we actually have an X3DH init message to return
+		if (DR_message_holdsX3DHInit(message).holdsX3DHInit == false) {
+			return new byte[0];
+		}
+
+		// compute size
+		int X3DH_length = 5;
+		if (message[2] == C25519) {
+			X3DH_length += 32 + 32;
+		} else { // curve 448
+			X3DH_length += 57 + 56;
+		}
+
+		if (message[3] == 0x01) { // there is an OPk id
+			X3DH_length += 4;
+		}
+
+		// copy it in buffer
+		return Arrays.copyOfRange(message, 3, 3+X3DH_length);
+	}
+
+	private final static char[] hexArray = "0123456789ABCDEF".toCharArray();
+	public static String bytesToHex(byte[] bytes) {
+		char[] hexChars = new char[bytes.length * 2];
+		for ( int j = 0; j < bytes.length; j++ ) {
+			int v = bytes[j] & 0xFF;
+			hexChars[j * 2] = hexArray[v >>> 4];
+			hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+		}
+		return new String(hexChars);
+	}
+
+	boolean DR_message_payloadDirectEncrypt(byte[] message) {
+		// checks on length to at least perform more checks
+		if (message.length<4) return false;
+
+		// check protocol version
+		if (message[0] != DR_v01) return false;
+
+		return ((message[1]&PayloadEncryptionFlagbit)==PayloadEncryptionFlagbit);
+	}
+
 }

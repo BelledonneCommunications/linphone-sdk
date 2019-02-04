@@ -22,6 +22,7 @@
 
 #include "lime_log.hpp"
 #include <lime/lime.hpp>
+#include "bctoolbox/exception.hh"
 
 /**
  * @brief Holds a stateful function pointer to be called to process the X3DH server response
@@ -101,7 +102,7 @@ static jni::jint c2jPeerDeviceStatus(lime::PeerDeviceStatus peerStatus) {
  * mapping in java is :
  * 	SUCCESS(0) FAIL(1)
  *
- * @param[in]	peerStatus	the c++ enumerated peer Device Status
+ * @param[in]	status	the c++ enumerated peer Device Status
  * @return the java enumerated peer device status (silently default to 1:FAIL)
  */
 static jni::jint c2jCallbackReturn(lime::CallbackReturn status) {
@@ -121,7 +122,7 @@ static jni::jint c2jCallbackReturn(lime::CallbackReturn status) {
  * 	DRMESSAGE(0) CIPHERMESSAGE(1) OPTIMIZEUPLOADSIZE(2) OPTIMIZEGLOBALBANDWIDTH(3)
  *
  * @param[in]	encryptionPolicy	The java mapped integer to an encryption policy enum
- * @return the c++ enumerated encryption policy (silently default to optimizeGlobalBandwidth)
+ * @return the c++ enumerated encryption policy (silently default to optimizeUploadSize)
  */
 static lime::EncryptionPolicy j2cEncryptionPolicy(jni::jint encryptionPolicy) {
 	switch (encryptionPolicy) {
@@ -130,10 +131,10 @@ static lime::EncryptionPolicy j2cEncryptionPolicy(jni::jint encryptionPolicy) {
 		case 1:
 			return lime::EncryptionPolicy::cipherMessage;
 		case 3:
-			return lime::EncryptionPolicy::optimizeUploadSize;
+			return lime::EncryptionPolicy::optimizeGlobalBandwidth;
 		case 2:
 		default:
-			return lime::EncryptionPolicy::optimizeGlobalBandwidth;
+			return lime::EncryptionPolicy::optimizeUploadSize;
 	}
 }
 
@@ -164,6 +165,7 @@ struct jPostToX3DH { static constexpr auto Name() { return "org/linphone/lime/Li
 struct jStatusCallback { static constexpr auto Name() { return "org/linphone/lime/LimeStatusCallback"; } };
 struct jRecipientData { static constexpr auto Name() { return "org/linphone/lime/RecipientData"; } };
 struct jLimeOutputBuffer { static constexpr auto Name() { return "org/linphone/lime/LimeOutputBuffer"; } };
+struct jLimeException { static constexpr auto Name() { return "org/linphone/lime/LimeException"; } };
 
 jni::JNIEnv& env { jni::GetEnv(*vm) };
 
@@ -173,6 +175,11 @@ struct jLimeManager {
 
 	std::unique_ptr<lime::LimeManager> m_manager; /**< a unique pointer to the actual lime manager */
 	jni::Global<jni::Object<jPostToX3DH>, jni::EnvGettingDeleter> jGlobalPostObj; /**< a global reference to the java postToX3DH object. TODO: unclear if EnvIgnoringDeleter is not a better fit here. */
+
+	inline void ThrowJavaLimeException(JNIEnv& env, const std::string &message) {
+		auto LimeExceptionClass = env.FindClass("org/linphone/lime/LimeException");
+		env.ThrowNew(LimeExceptionClass, message.data());
+	}
 
 	/** @brief Constructor
 	 * unlike the native lime manager constructor, this one get only one argument has cpp closure cannot be passed easily to java
@@ -231,9 +238,15 @@ struct jLimeManager {
 					jstatusObjRef->Call(g_env, StatusMethod, c2jCallbackReturn(status), jni::Make<jni::String>(g_env, message));
 				};
 
-		m_manager->create_user( jni::Make<std::string>(env, localDeviceId),
-				jni::Make<std::string>(env, serverUrl),
-				j2cCurveId(jcurveId), jOPkInitialBatchSize, callback_lambda);
+		try {
+			m_manager->create_user( jni::Make<std::string>(env, localDeviceId),
+					jni::Make<std::string>(env, serverUrl),
+					j2cCurveId(jcurveId), jOPkInitialBatchSize, callback_lambda);
+		} catch (BctbxException const &e) {
+			ThrowJavaLimeException(env, e.str());
+		} catch (std::exception const &e) { // catch anything
+			ThrowJavaLimeException(env, e.what());
+		}
 	}
 
 	void delete_user(jni::JNIEnv &env, const jni::String &localDeviceId, jni::Object<jStatusCallback> &jstatusObj ) {
@@ -244,15 +257,22 @@ struct jLimeManager {
 		// see create_user for details on this
 		auto jstatusObjRef = std::make_shared<jni::Global<jni::Object<jStatusCallback>, jni::EnvGettingDeleter>>(jni::NewGlobal<jni::EnvGettingDeleter>(env, jstatusObj));
 
-		m_manager->delete_user( jni::Make<std::string>(env, localDeviceId),
-				[c_vm, jstatusObjRef](const lime::CallbackReturn status, const std::string message){
+		auto callback_lambda = [c_vm, jstatusObjRef](const lime::CallbackReturn status, const std::string message){
 					// get the env from VM, and retrieve the callback method on StatusCallback class
 					jni::JNIEnv& g_env { jni::GetEnv(*c_vm)};
 					auto StatusClass = jni::Class<jStatusCallback>::Find(g_env);
 					auto StatusMethod = StatusClass.GetMethod<void (jni::jint, jni::String)>(g_env, "callback");
 					// call the callback on the statusObj we got in param when calling create_user
 					jstatusObjRef->Call(g_env, StatusMethod, c2jCallbackReturn(status), jni::Make<jni::String>(g_env, message));
-				});
+				};
+
+		try {
+			m_manager->delete_user( jni::Make<std::string>(env, localDeviceId), callback_lambda);
+		} catch (BctbxException const &e) {
+			ThrowJavaLimeException(env, e.str());
+		} catch (std::exception const &e) { // catch anything
+			ThrowJavaLimeException(env, e.what());
+		}
 	}
 
 	void encrypt(jni::JNIEnv &env,  const jni::String &jlocalDeviceId,  const jni::String &jrecipientUserId, jni::Array<jni::Object<jRecipientData>> &jrecipients,
@@ -394,23 +414,35 @@ struct jLimeManager {
 	}
 
 	void get_selfIdentityKey(jni::JNIEnv &env, const jni::String &jlocalDeviceId, jni::Object<jLimeOutputBuffer> &jIk) {
-		// retrieve the LimeOutputBuffer class
-		auto LimeOutputBufferClass = jni::Class<jLimeOutputBuffer>::Find(env);
-		auto LimeOutputBufferField = LimeOutputBufferClass.GetField<jni::Array<jni::jbyte>>(env, "buffer");
+		try {
+			// retrieve the LimeOutputBuffer class
+			auto LimeOutputBufferClass = jni::Class<jLimeOutputBuffer>::Find(env);
+			auto LimeOutputBufferField = LimeOutputBufferClass.GetField<jni::Array<jni::jbyte>>(env, "buffer");
 
-		// get the Ik
-		std::vector<uint8_t> Ik{};
-		m_manager->get_selfIdentityKey(jni::Make<std::string>(env, jlocalDeviceId), Ik);
-		auto jIkArray = jni::Make<jni::Array<jni::jbyte>>(env, reinterpret_cast<const std::vector<int8_t>&>(Ik));
-		jIk.Set(env, LimeOutputBufferField, jIkArray);
+			// get the Ik
+			std::vector<uint8_t> Ik{};
+			m_manager->get_selfIdentityKey(jni::Make<std::string>(env, jlocalDeviceId), Ik);
+			auto jIkArray = jni::Make<jni::Array<jni::jbyte>>(env, reinterpret_cast<const std::vector<int8_t>&>(Ik));
+			jIk.Set(env, LimeOutputBufferField, jIkArray);
+		} catch (BctbxException const &e) {
+			ThrowJavaLimeException(env, e.str());
+		} catch (std::exception const &e) { // catch anything
+			ThrowJavaLimeException(env, e.what());
+		}
 	}
 
 	void set_peerDeviceStatus_Ik(jni::JNIEnv &env, const jni::String &jpeerDeviceId, const jni::Array<jni::jbyte> &jIk, const jni::jint jstatus) {
-		// turn the Ik byte array into a vector of uint8_t
-		auto Ik = std::make_shared<std::vector<uint8_t>>();
-		jbyteArray2uin8_tVector(env, jIk, Ik);
+		try {
+			// turn the Ik byte array into a vector of uint8_t
+			auto Ik = std::make_shared<std::vector<uint8_t>>();
+			jbyteArray2uin8_tVector(env, jIk, Ik);
 
-		m_manager->set_peerDeviceStatus(jni::Make<std::string>(env, jpeerDeviceId), *Ik, j2cPeerDeviceStatus(jstatus));
+			m_manager->set_peerDeviceStatus(jni::Make<std::string>(env, jpeerDeviceId), *Ik, j2cPeerDeviceStatus(jstatus));
+		} catch (BctbxException const &e) {
+			ThrowJavaLimeException(env, e.str());
+		} catch (std::exception const &e) { // catch anything
+			ThrowJavaLimeException(env, e.what());
+		}
 	}
 
 	void set_peerDeviceStatus(jni::JNIEnv &env, const jni::String &jpeerDeviceId, const jni::jint jstatus) {
@@ -419,6 +451,10 @@ struct jLimeManager {
 
 	jni::jint get_peerDeviceStatus(jni::JNIEnv &env, const jni::String &jpeerDeviceId) {
 		return c2jPeerDeviceStatus(m_manager->get_peerDeviceStatus(jni::Make<std::string>(env, jpeerDeviceId)));
+	}
+
+	void delete_peerDevice(jni::JNIEnv &env, const jni::String &jpeerDeviceId) {
+		m_manager->delete_peerDevice(jni::Make<std::string>(env, jpeerDeviceId));
 	}
 };
 
@@ -436,7 +472,8 @@ jni::RegisterNativePeer<jLimeManager>(env, jni::Class<jLimeManager>::Find(env), 
 	METHOD(&jLimeManager::get_selfIdentityKey, "get_selfIdentityKey"),
 	METHOD(&jLimeManager::set_peerDeviceStatus_Ik, "n_set_peerDeviceStatus_Ik"),
 	METHOD(&jLimeManager::set_peerDeviceStatus, "n_set_peerDeviceStatus"),
-	METHOD(&jLimeManager::get_peerDeviceStatus, "n_get_peerDeviceStatus")
+	METHOD(&jLimeManager::get_peerDeviceStatus, "n_get_peerDeviceStatus"),
+	METHOD(&jLimeManager::delete_peerDevice, "delete_peerDevice")
 	);
 
 // bind the process_response to the static java LimeManager.process_response method

@@ -1,5 +1,5 @@
 /*
-	LimeStatusCallback.java
+	LimeException.java
 	@author Johan Pascal
 	@copyright	Copyright (C) 2019  Belledonne Communications SARL
 
@@ -18,16 +18,8 @@
 */
 package org.linphone.lime;
 
-/** @brief Define an interface for the status callback
- * The native code will call this callback function on
- * the LimeStatusCallback object passed as parameter to it.
- */
-public interface LimeStatusCallback {
-	/**
-	 * @brief Function called by native code when asynchronous processing is completed
-	 *
-	 * @param[in]	status	an integer mapped lime:CallbackReturn, use LimeCallbackReturn.fromNative to turn it into a java enumeration, do not use it directly
-	 * @param[in]	message	a string message giving some details in case of failure
-	 */
-	public void callback(int status, String message);
+public class LimeException extends Exception {
+	public LimeException(String message) {
+		super(message);
+	}
 }
