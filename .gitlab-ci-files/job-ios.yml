@@ -1,8 +1,13 @@
 .job-ios:
 
   stage: build
-  extends: .linux-prepare
   tags: [ "macosx" ]
+
+  variables:
+    CCACHE_SIZE: 4G
+    CMAKE_OPTIONS: -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+
+  extends: .linux-prepare
 
   script:
     - mkdir -p build-ios
