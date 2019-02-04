@@ -5,6 +5,8 @@
     paths:
       - ccache/
 
+  extends: .job-prepare
+
   before_script:
     ##
     ## If a TUNNEL_USER_KEY is defined then start ssh-agent and add the key

@@ -12,6 +12,9 @@ variables:
 # Platforms to test
 #################################################
 
+.job-prepare:
+  variables:
+    ALL_JOB_VARIABLE: ""
 
 include:
   - '.gitlab-ci-files/job-prepare.yml'
@@ -26,7 +29,6 @@ include:
   - '.gitlab-ci-files/job-macosx.yml'
   - '.gitlab-ci-files/job-windows.yml'
   - '.gitlab-ci-files/job-uploads.yml'
-
 
 stages:
  - build
