@@ -449,7 +449,7 @@ static bool_t stream_connect(Stream *s) {
 			volume_ptr,
 			NULL);
 	} else {
-		err=pa_stream_connect_record(s->stream,s->dev,&attr, PA_STREAM_ADJUST_LATENCY);
+		err=pa_stream_connect_record(s->stream,s->dev,&attr, PA_STREAM_ADJUST_LATENCY | PA_STREAM_START_CORKED);
 	}
 	pa_threaded_mainloop_unlock(the_pa_loop);
 	if(err < 0 || !stream_wait_for_state(s, PA_STREAM_READY, PA_STREAM_FAILED)) {
@@ -587,7 +587,15 @@ static void pulse_read_process(MSFilter *f){
 		ms_error("Record stream not connected");
 		return;
 	}
+
 	pa_threaded_mainloop_lock(the_pa_loop);
+
+	/*
+	 * This needs to be done at the first process to get rid of staled data.
+	 * Without this, the estimation of the clock skew could be wrong.
+	 */
+	if (pa_stream_is_corked(s->stream)) pa_stream_cork(s->stream, 0, NULL, NULL);
+
 	while(pa_stream_readable_size(s->stream) > 0) {
 		if(pa_stream_peek(s->stream, &buffer, &nbytes) >= 0) {
 			if(buffer != NULL) {

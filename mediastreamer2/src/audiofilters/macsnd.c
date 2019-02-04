@@ -115,6 +115,7 @@ typedef struct AURead{
 	queue_t rq;
 	MSTickerSynchronizer *ticker_synchronizer;
 	uint64_t read_frames;
+	bool_t first_process;
 }AURead;
 
 typedef struct AUWrite{
@@ -599,15 +600,6 @@ static void audio_unit_close(AUCommon *d){
 	d->au=NULL;
 }
 
-
-static mblk_t *au_read_get(AURead *d){
-	mblk_t *m;
-	ms_mutex_lock(&d->common.mutex);
-	m=getq(&d->rq);
-	ms_mutex_unlock(&d->common.mutex);
-	return m;
-}
-
 static void au_write_put(AUWrite *d, mblk_t *m){
 	ms_mutex_lock(&d->common.mutex);
 	ms_flow_controlled_bufferizer_put(d->buffer,m);
@@ -636,17 +628,30 @@ static void au_read_preprocess(MSFilter *f){
 	AURead *d = (AURead *) f->data;
 	ms_ticker_set_synchronizer(f->ticker, d->ticker_synchronizer);
 	audio_unit_open(&d->common,TRUE);
+	d->first_process = TRUE;
 }
 
 static void au_read_process(MSFilter *f){
 	AURead *d = (AURead *) f->data;
 	mblk_t *m;
 	
-	while((m=au_read_get(d))!=NULL){
-		d->read_frames += (msgdsize(m) / 2) / d->common.nchannels;
-		ms_queue_put(f->outputs[0],m);
+	ms_mutex_lock(&d->common.mutex);
+	if (d->first_process) {
+		/* The read queue must be flushed on first
+		 * process() call because it contains samples
+		 * that has been produced since the ticker
+		 * was attached. Do not skiped this data would
+		 * make the clock skew estimation to be wrong. */
+		d->first_process = FALSE;
+		flushq(&d->rq, 0);
+	} else {
+		while((m=getq(&d->rq))!=NULL){
+			d->read_frames += (msgdsize(m) / 2) / d->common.nchannels;
+			ms_queue_put(f->outputs[0],m);
+			ms_ticker_synchronizer_update(d->ticker_synchronizer, d->read_frames, d->common.rate);
+		}
 	}
-	ms_ticker_synchronizer_update(d->ticker_synchronizer, d->read_frames, d->common.rate);
+	ms_mutex_unlock(&d->common.mutex);
 }
 
 static void au_read_postprocess(MSFilter *f){

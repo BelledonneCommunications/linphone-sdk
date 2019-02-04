@@ -182,8 +182,8 @@ void ms_flow_controlled_bufferizer_set_nchannels(MSFlowControlledBufferizer *obj
 }
 
 static uint32_t update_min_size(MSFlowControlledBufferizer *obj){
-	uint32_t accumulated_ms = (uint32_t)((obj->base.size * 1000) / obj->samplerate) / obj->nchannels;
-	if ((accumulated_ms < obj->min_size_ms_during_interval) || (obj->min_size_ms_during_interval == UINT32_MAX)) {
+	uint32_t accumulated_ms = (uint32_t)((obj->base.size * 1000) / obj->samplerate / 2) / obj->nchannels;
+	if (accumulated_ms < obj->min_size_ms_during_interval) {
 		obj->min_size_ms_during_interval = accumulated_ms;
 	}
 	return accumulated_ms;
