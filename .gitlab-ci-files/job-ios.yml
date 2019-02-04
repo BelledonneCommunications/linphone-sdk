@@ -1,15 +1,14 @@
 .job-ios:
 
   stage: build
+  extends: .linux-prepare
   tags: [ "macosx" ]
 
   script:
-    - ccache -s
     - mkdir -p build-ios
     - cd build-ios
     - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="$IOS_ARCHS" $CMAKE_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
-    - ccache -s
 
   artifacts:
     paths:

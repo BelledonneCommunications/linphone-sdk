@@ -1,15 +1,14 @@
 .job-macosx-desktop:
 
   stage: build
+  extends: .linux-prepare
   tags: [ "macosx" ]
 
   script:
-    - ccache -s
     - mkdir -p build-desktop
     - cd build-desktop
     - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9 $DEFAULT_CMAKE_OPTIONS $CMAKE_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
-    - ccache -s
 
 
 #################################################
