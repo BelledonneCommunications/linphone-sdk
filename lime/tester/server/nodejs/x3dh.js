@@ -130,6 +130,7 @@ const keySizes = { // 1 is for enum_curveId.CURVE25519, 2 is for enum_curveId.CU
 // open DataBase
 var db = new sqlite3.Database(yargs.resource_dir+yargs.database);
 db.run("PRAGMA foreign_keys = ON;"); // enable foreign keys
+db.run("PRAGMA synchronous = OFF;"); // WARNING: huge performance boost be DON'T DO THAT ON A REAL SERVER.
 //db.on('trace', function(query) {console.log(query);});
 //db.on('profile', function(query,time) {console.log("Profile Sqlite "); console.log(query); console.log(time);});
 
@@ -203,6 +204,7 @@ https.createServer(options, (req, res) => {
 	var errorString = Buffer.from(errorMessage); // encode the errorMessage in UTF8 in a buffer
 	errorBuffer = Buffer.concat([errorBuffer, errorString]);
 	res.writeHead(200, {'Content-type' : 'x3dh/octet-stream'});
+	console.log("returned message ("+errorBuffer.length+" bytes):"+errorBuffer.toString('hex'));
 	res.end(errorBuffer);
   }
 
