@@ -311,8 +311,8 @@ static void group_one_talking() {
 static void group_one_talking_bench() {
 	if (!bench) return;
 	int deviceNumber=10;
-#ifdef EC25519_ENABLED
 	uint64_t span=0,start = bctbx_get_cur_time_ms();
+#ifdef EC25519_ENABLED
 	while (span < maximumBenchTime) {
 		start = bctbx_get_cur_time_ms();
 		group_basic_test(lime::CurveId::c25519, "group_one_talking", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data(), deviceNumber, true);
@@ -349,8 +349,8 @@ static void group_all_talking() {
 static void group_all_talking_bench() {
 	if (!bench) return;
 	int deviceNumber=10;
-#ifdef EC25519_ENABLED
 	uint64_t span=0,start = bctbx_get_cur_time_ms();
+#ifdef EC25519_ENABLED
 	while (span < maximumBenchTime) {
 		start = bctbx_get_cur_time_ms();
 		group_basic_test(lime::CurveId::c25519, "group_all_talking", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data(), deviceNumber);
