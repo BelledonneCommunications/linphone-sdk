@@ -13,6 +13,9 @@ variables:
 # Platforms to test
 #################################################
 
+.job-prepare:
+  only:
+    - schedules
 
 include:
   - '.gitlab-ci-files/job-prepare.yml'
@@ -26,7 +29,6 @@ include:
 #  - '.gitlab-ci-files/job-linux-desktop-ubuntu-rolling.yml'
   - '.gitlab-ci-files/job-macosx.yml'
 #  - '.gitlab-ci-files/job-windows.yml'
-
 
 stages:
  - build

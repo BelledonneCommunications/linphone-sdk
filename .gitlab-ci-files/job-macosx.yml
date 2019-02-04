@@ -1,5 +1,6 @@
 .job-macosx-desktop:
 
+  extends: .job-prepare
   stage: build
   tags: [ "macosx" ]
 
