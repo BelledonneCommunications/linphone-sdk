@@ -143,11 +143,14 @@ if(ENABLE_C_INTERFACE)
 endif()
 
 if(ENABLE_JNI)
-	find_package(JNI REQUIRED)
+	message(STATUS "Provide JNI interface")
+	if (NOT ANDROID)
+		find_package(JNI REQUIRED)
 
-	if (JNI_FOUND)
-	    message (STATUS "JNI_INCLUDE_DIRS=${JNI_INCLUDE_DIRS}")
-	    message (STATUS "JNI_LIBRARIES=${JNI_LIBRARIES}")
+		if (JNI_FOUND)
+			message (STATUS "JNI_INCLUDE_DIRS=${JNI_INCLUDE_DIRS}")
+			message (STATUS "JNI_LIBRARIES=${JNI_LIBRARIES}")
+		endif()
 	endif()
 endif()
 
