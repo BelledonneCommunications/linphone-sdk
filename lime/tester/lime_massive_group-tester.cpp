@@ -35,7 +35,7 @@
 using namespace::std;
 using namespace::lime;
 
-static belle_sip_stack_t *stack=NULL;
+static belle_sip_stack_t *bc_stack=NULL;
 static belle_http_provider_t *prov=NULL;
 
 // maximum runtime target for a bench run, the group size will be adjusted to match it
@@ -43,9 +43,9 @@ static belle_http_provider_t *prov=NULL;
 uint64_t maximumBenchTime = 120000; // in ms
 
 static int http_before_all(void) {
-	stack=belle_sip_stack_new(NULL);
+	bc_stack=belle_sip_stack_new(NULL);
 
-	prov=belle_sip_stack_create_http_provider(stack,"0.0.0.0");
+	prov=belle_sip_stack_create_http_provider(bc_stack,"0.0.0.0");
 
 	belle_tls_crypto_config_t *crypto_config=belle_tls_crypto_config_new();
 
@@ -57,7 +57,7 @@ static int http_before_all(void) {
 
 static int http_after_all(void) {
 	belle_sip_object_unref(prov);
-	belle_sip_object_unref(stack);
+	belle_sip_object_unref(bc_stack);
 	return 0;
 }
 
@@ -191,7 +191,7 @@ static void group_basic_test(const lime::CurveId curve, const std::string &dbBas
 			// create user
 			manager->create_user(deviceId, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize+i, callback); // give them at least <index> OPk at creation
 			expected_success++;
-			BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success, expected_success,lime_tester::wait_for_timeout));
+			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, expected_success,lime_tester::wait_for_timeout));
 		}
 
 		if (bench) {
@@ -227,7 +227,7 @@ static void group_basic_test(const lime::CurveId curve, const std::string &dbBas
 			//encrypt
 			auto cipherMessage = make_shared<std::vector<uint8_t>>();
 			manager->encrypt(*(devicesId[senderIndex]), groupName, recipients, message, cipherMessage, callback);
-			BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 			if (bench) {
 				if (i==0) { // first run shall be the longest as we have deviceNumber-1 sessions to establish
@@ -283,7 +283,7 @@ static void group_basic_test(const lime::CurveId curve, const std::string &dbBas
 				manager = std::unique_ptr<LimeManager>(new LimeManager(dbFilename[i], X3DHServerPost));
 				manager->delete_user(*(devicesId[i]), callback);
 				expected_success++;
-				BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,expected_success,lime_tester::wait_for_timeout));
+				BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success,lime_tester::wait_for_timeout));
 			}
 
 			for (auto i=0; i<deviceNumber; i++) {
