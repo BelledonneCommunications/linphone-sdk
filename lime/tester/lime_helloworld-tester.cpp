@@ -29,14 +29,14 @@
 using namespace::std;
 using namespace::lime;
 
-static belle_sip_stack_t *stack=NULL;
+static belle_sip_stack_t *bc_stack=NULL;
 static belle_http_provider_t *prov=NULL;
 
 
 static int http_before_all(void) {
-	stack=belle_sip_stack_new(NULL);
+	bc_stack=belle_sip_stack_new(NULL);
 
-	prov=belle_sip_stack_create_http_provider(stack,"0.0.0.0");
+	prov=belle_sip_stack_create_http_provider(bc_stack,"0.0.0.0");
 
 	belle_tls_crypto_config_t *crypto_config=belle_tls_crypto_config_new();
 
@@ -48,7 +48,7 @@ static int http_before_all(void) {
 
 static int http_after_all(void) {
 	belle_sip_object_unref(prov);
-	belle_sip_object_unref(stack);
+	belle_sip_object_unref(bc_stack);
 	return 0;
 }
 
@@ -221,13 +221,13 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 		aliceManager->create_user(tmp_aliceDeviceId, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
 		tmp_aliceDeviceId.clear(); // deviceId may go out of scope as soon as we come back from call
 		// wait for the operation to complete
-		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		auto tmp_bobDeviceId = *bobDeviceId; // use a temporary variable as it may be a local variable which get out of scope right after call to create_user
 		bobManager->create_user(tmp_bobDeviceId, x3dh_server_url, curve, callback);
 		tmp_bobDeviceId.clear(); // deviceId may go out of scope as soon as we come back from call
 		// wait for the operation to complete
-		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 
 		/*** alice encrypt a message to bob, all parameters given to encrypt function are shared_ptr. ***/
@@ -238,8 +238,10 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 		// Create an empty RecipientData vector, in this basic case we will encrypt to one device only but we can do it to any number of recipient devices.
 		// RecipientData holds:
 		//      - recipient device id (identify the recipient)
-		//      - peer Device identity verified status : output, set to true if this device is a verified one.
-		//      - DRmessage : output of encryption process targeted to this recipient device only
+		//      - peer Device status :
+		//          - input : if explicitely set to lime::PeerDeviceStatus::fail, this entry is ignored
+		//          - output : the current status of this device in local database. See lime::PeerDeviceStatus definition(in lime.hpp) for details
+		//      - Double Ratchet message : output of encryption process targeted to this recipient device only
 		auto recipients = make_shared<std::vector<RecipientData>>();
 		recipients->emplace_back(*bobDeviceId); // we have only one recipient identified by its device id.
 		// Shall we have more recipients (bob can have several devices or be a conference sip:uri, alice other devices must get a copy of the message), we just need to emplace_back some more recipients Device Id (GRUU)
@@ -299,7 +301,7 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 		/************** SYNCHRO **************************************/
 		// this is just waiting for the callback to increase the operation_success field in counters
 		// sending ticks to the belle-sip stack in order to process messages
-		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 		LIME_LOGI<<"Alice encrypt the message, callback Ok or timeout reached"<<endl;
 		/****** end of  SYNCHRO **************************************/
 
@@ -345,13 +347,13 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 		expected_success+=2;
 		/******* end of Users maintenance ****************************/
 		// wait for updates to complete
-		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,expected_success,lime_tester::wait_for_timeout));
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success,lime_tester::wait_for_timeout));
 
 		// delete the users
 		if (cleanDatabase) {
 			aliceManager->delete_user(*aliceDeviceId, callback);
 			bobManager->delete_user(*bobDeviceId, callback);
-			BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,expected_success+2,lime_tester::wait_for_timeout)); // we must get a callback saying all went well
+			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success+2,lime_tester::wait_for_timeout)); // we must get a callback saying all went well
 			remove(dbFilenameAlice.data());
 			remove(dbFilenameBob.data());
 		}
@@ -430,13 +432,13 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve, const std:
 		aliceManager->create_user(tmp_aliceDeviceId, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
 		tmp_aliceDeviceId.clear(); // deviceId may go out of scope as soon as we come back from call
 		// wait for the operation to complete
-		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		auto tmp_bobDeviceId = *bobDeviceId; // use a temporary variable as it may be a local variable which get out of scope right after call to create_user
 		bobManager->create_user(tmp_bobDeviceId, x3dh_server_url, curve, callback);
 		tmp_bobDeviceId.clear(); // deviceId may go out of scope as soon as we come back from call
 		// wait for the operation to complete
-		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		// [verify] Retrieve from Managers Bob and Alice device Identity Key
 		std::vector<uint8_t> aliceIk{};
@@ -472,8 +474,10 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve, const std:
 		// Create an empty RecipientData vector, in this basic case we will encrypt to one device only but we can do it to any number of recipient devices.
 		// RecipientData holds:
 		//      - recipient device id (identify the recipient)
-		//      - peer Device identity verified status : output, set to true if this device is a verified one.
-		//      - DRmessage : output of encryption process targeted to this recipient device only
+		//      - peer Device status :
+		//          - input : if explicitely set to lime::PeerDeviceStatus::fail, this entry is ignored
+		//          - output : the current status of this device in local database. See lime::PeerDeviceStatus definition(in lime.hpp) for details
+		//      - Double Ratchet message : output of encryption process targeted to this recipient device only
 		auto recipients = make_shared<std::vector<RecipientData>>();
 		recipients->emplace_back(*bobDeviceId); // we have only one recipient identified by its device id.
 		// Shall we have more recipients (bob can have several devices or be a conference sip:uri, alice other devices must get a copy of the message), we just need to emplace_back some more recipients Device Id (GRUU)
@@ -534,7 +538,7 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve, const std:
 		/************** SYNCHRO **************************************/
 		// this is just waiting for the callback to increase the operation_success field in counters
 		// sending ticks to the belle-sip stack in order to process messages
-		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 		LIME_LOGI<<"Alice encrypt the message, callback Ok or timeout reached"<<endl;
 		/****** end of  SYNCHRO **************************************/
 
@@ -584,13 +588,13 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve, const std:
 		expected_success+=2;
 		/******* end of Users maintenance ****************************/
 		// wait for updates to complete
-		BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,expected_success,lime_tester::wait_for_timeout));
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success,lime_tester::wait_for_timeout));
 
 		// delete the users
 		if (cleanDatabase) {
 			aliceManager->delete_user(*aliceDeviceId, callback);
 			bobManager->delete_user(*bobDeviceId, callback);
-			BC_ASSERT_TRUE(lime_tester::wait_for(stack,&counters.operation_success,expected_success+2,lime_tester::wait_for_timeout)); // we must get a callback saying all went well
+			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success+2,lime_tester::wait_for_timeout)); // we must get a callback saying all went well
 			remove(dbFilenameAlice.data());
 			remove(dbFilenameBob.data());
 		}
