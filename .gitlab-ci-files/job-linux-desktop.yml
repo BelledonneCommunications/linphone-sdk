@@ -45,7 +45,7 @@
   script:
     - cd build-desktop/WORK/desktop/Build/bctoolbox/tester
     - ls -la
-    - ./bctoolbox_tester --verbose --parallel --xml-file bcttest
+    - ./bctoolbox_tester --verbose --parallel #--xml-file bcttest
   #uploading the artifacts
   artifacts:
     paths:
@@ -66,7 +66,7 @@
     #- ip -6 r
     - cd build-desktop/linphone-sdk/desktop/bin
     - ls -la
-    - ./belle_sip_tester --verbose --parallel --resource-dir ../share/ --xml-file bstest
+    - ./belle_sip_tester --verbose --parallel --resource-dir ../share/ #--xml-file bstest
   #uploading the artifacts
   artifacts:
     paths:
@@ -120,7 +120,7 @@ test-mediastreamer:
     - .build-sdk
   script:
     - cd build-desktop/linphone-sdk/desktop/bin
-    - ./belcard_tester --verbose --parallel --xml-file belcardtest
+    - ./belcard_tester --verbose --parallel #--xml-file belcardtest
   #uploading the artifacts
   artifacts:
     paths :
@@ -140,7 +140,7 @@ test-mediastreamer:
     - ls -la
     #We must tell it that the ressources it wants are in its own folder
     #different behaviour from other testers
-    - ./bzrtpTest --verbose --parallel --xml-file bzrtptest --resource-dir .
+    - ./bzrtpTest --verbose --parallel --resource-dir . #--xml-file bzrtptest 
   #uploading the artifacts
   artifacts:
     paths :
