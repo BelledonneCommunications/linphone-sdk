@@ -56,6 +56,8 @@ job-android-upload:
     - cd build-android
     - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS="arm64, armv7" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
+    - git config --global user.email "gitlab@belledonne-communications.com"
+    - git config --global user.name "Gitlab"
     - ../cmake/Android/gradlew uploadArchives -i
 
   after_script:
