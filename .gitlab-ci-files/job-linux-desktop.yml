@@ -103,7 +103,7 @@ test-mediastreamer:
     - .build-sdk
   script:
     - cd build-desktop/linphone-sdk/desktop/bin
-    - ./belr_tester --verbose --parallel --resource-dir ../share/belr-tester --xml-file blrtest
+    - ./belr_tester --verbose --parallel --resource-dir ../share/belr-tester #--xml-file blrtest
   #uploading the artifacts
   artifacts:
     paths :
