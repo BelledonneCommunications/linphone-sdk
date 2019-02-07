@@ -134,6 +134,9 @@ typedef struct weak_ref{
 	void *userpointer;
 }weak_ref_t;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 void *belle_sip_object_get_interface_methods(belle_sip_object_t *obj, belle_sip_interface_id_t ifid);
 /*used internally by unref()*/
@@ -141,6 +144,11 @@ void belle_sip_object_delete(void *obj);
 void belle_sip_object_pool_add(belle_sip_object_pool_t *pool, belle_sip_object_t *obj);
 void belle_sip_object_pool_remove(belle_sip_object_pool_t *pool, belle_sip_object_t *obj);
 
+
+
+belle_sip_object_t * _belle_sip_object_init(belle_sip_object_t *obj, belle_sip_object_vptr_t *vptr);
+void belle_sip_cpp_object_delete(belle_sip_object_t *obj);
+void belle_sip_object_uninit(belle_sip_object_t *obj);
 #define belle_sip_object_init(obj)		/*nothing*/
 
 
@@ -1098,5 +1106,8 @@ belle_sip_list_t *belle_sip_parse_directory(const char *path, const char *file_t
 typedef struct authorization_context authorization_context_t;
 BELLESIP_EXPORT void belle_sip_authorization_destroy(authorization_context_t* object);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif

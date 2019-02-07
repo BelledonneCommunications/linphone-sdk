@@ -91,9 +91,7 @@ void belle_sip_object_dump_active_objects(void){
 	}else belle_sip_warning("No objects leaked.");
 }
 
-belle_sip_object_t * _belle_sip_object_new(size_t objsize, belle_sip_object_vptr_t *vptr){
-	belle_sip_object_t *obj=(belle_sip_object_t *)belle_sip_malloc0(vptr->size);
-
+belle_sip_object_t * _belle_sip_object_init(belle_sip_object_t *obj, belle_sip_object_vptr_t *vptr){
 	obj->vptr = vptr;
 
 	obj->ref = vptr->initially_unowned ? 0 : 1;
@@ -105,6 +103,12 @@ belle_sip_object_t * _belle_sip_object_new(size_t objsize, belle_sip_object_vptr
 	add_new_object(obj);
 	return obj;
 }
+
+belle_sip_object_t * _belle_sip_object_new(size_t objsize, belle_sip_object_vptr_t *vptr){
+	belle_sip_object_t *obj=(belle_sip_object_t *)belle_sip_malloc0(vptr->size);
+	return _belle_sip_object_init(obj, vptr);	
+}
+
 
 int belle_sip_object_is_initially_unowned(const belle_sip_object_t *obj){
 	return obj->vptr->initially_unowned;
@@ -245,18 +249,29 @@ belle_sip_object_vptr_t *belle_sip_object_t_vptr_get(void){
 	return &belle_sip_object_t_vptr;
 }
 
-void belle_sip_object_delete(void *ptr){
-	belle_sip_object_t *obj=BELLE_SIP_OBJECT(ptr);
+void belle_sip_object_uninit(belle_sip_object_t *obj){
 	belle_sip_object_vptr_t *vptr;
 
 	belle_sip_object_loose_weak_refs(obj);
 	belle_sip_object_remove_from_leak_detector(obj);
-	vptr=obj->vptr;
+	vptr = obj->vptr;
 	while(vptr!=NULL){
 		if (vptr->destroy) vptr->destroy(obj);
 		vptr=vptr->get_parent();
 	}
 	belle_sip_object_data_clear(obj);
+}
+
+void belle_sip_object_delete(void *ptr){
+	belle_sip_object_t *obj=BELLE_SIP_OBJECT(ptr);
+
+	if (obj->vptr->is_cpp){
+		/*This will call delete which calls the destructor chain*/
+		belle_sip_cpp_object_delete(obj);
+		return;
+	}
+	/*otherwise we're in C, call the destructor chain and free the memory*/
+	belle_sip_object_uninit(obj);
 	belle_sip_free(obj);
 }
 
@@ -553,10 +568,10 @@ belle_sip_error_code belle_sip_object_marshal(belle_sip_object_t* obj, char* buf
 }
 
 
-static char * belle_sip_object_to_alloc_string(belle_sip_object_t *obj, int size_hint){
+static char * belle_sip_object_to_alloc_string(const belle_sip_object_t *obj, int size_hint){
 	char *buf=belle_sip_malloc(size_hint);
 	size_t offset=0;
-	belle_sip_error_code error = belle_sip_object_marshal(obj,buf,size_hint-1,&offset);
+	belle_sip_error_code error = belle_sip_object_marshal((belle_sip_object_t *)obj,buf,size_hint-1,&offset);
 	obj->vptr->tostring_bufsize_hint=size_hint;
 	if (error==BELLE_SIP_BUFFER_OVERFLOW){
 		belle_sip_message("belle_sip_object_to_alloc_string(): hint buffer was too short while doing to_string() for %s, retrying", obj->vptr->type_name);
@@ -574,14 +589,14 @@ static int get_hint_size(int size){
 	return size;
 }
 
-char* belle_sip_object_to_string(void* _obj) {
-	belle_sip_object_t *obj=BELLE_SIP_OBJECT(_obj);
+char* belle_sip_object_to_string(const void* _obj) {
+	const belle_sip_object_t *obj=BELLE_SIP_OBJECT(_obj);
 	if (obj->vptr->tostring_bufsize_hint!=0){
 		return belle_sip_object_to_alloc_string(obj,obj->vptr->tostring_bufsize_hint);
 	}else{
 		char buff[BELLE_SIP_MAX_TO_STRING_SIZE];
 		size_t offset=0;
-		belle_sip_error_code error = belle_sip_object_marshal(obj,buff,sizeof(buff)-1,&offset);
+		belle_sip_error_code error = belle_sip_object_marshal((belle_sip_object_t *)obj,buff,sizeof(buff)-1,&offset);
 		if (error==BELLE_SIP_BUFFER_OVERFLOW){
 			belle_sip_message("belle_sip_object_to_string(): temporary buffer is too short while doing to_string() for %s, retrying", obj->vptr->type_name);
 			return belle_sip_object_to_alloc_string(obj,get_hint_size(2*(int)offset));

@@ -84,7 +84,7 @@ typedef unsigned int belle_sip_type_id_t;
 		(belle_sip_object_get_vptr_t)BELLE_SIP_OBJECT_GET_VPTR_FUNC(parent_type), \
 		(belle_sip_interface_desc_t**)object_type##interfaces_table
 
-#define BELLE_SIP_INSTANCIATE_VPTR2(object_type,parent_type,destroy,clone,marshal,on_first_ref,on_last_ref,unowned) \
+#define BELLE_SIP_INSTANCIATE_VPTR3(object_type,parent_type,destroy,clone,marshal,on_first_ref,on_last_ref,unowned,is_cpp) \
 static BELLE_SIP_OBJECT_VPTR_TYPE(object_type) BELLE_SIP_OBJECT_VPTR_NAME(object_type)={ \
 	BELLE_SIP_VPTR_INIT(object_type,parent_type,unowned), \
 	(belle_sip_object_destroy_t)destroy,	\
@@ -92,11 +92,15 @@ static BELLE_SIP_OBJECT_VPTR_TYPE(object_type) BELLE_SIP_OBJECT_VPTR_NAME(object
 	(belle_sip_object_marshal_t)marshal,\
 	(belle_sip_object_on_first_ref_t)on_first_ref,\
 	(belle_sip_object_on_last_ref_t)on_last_ref,\
-	BELLE_SIP_DEFAULT_BUFSIZE_HINT\
+	BELLE_SIP_DEFAULT_BUFSIZE_HINT,\
+	is_cpp, 0\
 	}; \
 	BELLE_SIP_OBJECT_VPTR_TYPE(object_type) * BELLE_SIP_OBJECT_GET_VPTR_FUNC(object_type)(void){\
 		return &BELLE_SIP_OBJECT_VPTR_NAME(object_type); \
 	}
+
+#define BELLE_SIP_INSTANCIATE_VPTR2(object_type,parent_type,destroy,clone,marshal,on_first_ref,on_last_ref,unowned) \
+	BELLE_SIP_INSTANCIATE_VPTR3(object_type,parent_type,destroy,clone,marshal,on_first_ref,on_last_ref,unowned,FALSE)
 
 
 #define BELLE_SIP_INSTANCIATE_VPTR(object_type,parent_type,destroy,clone,marshal,unowned) \
@@ -141,6 +145,7 @@ static BELLE_SIP_OBJECT_VPTR_TYPE(object_type) BELLE_SIP_OBJECT_VPTR_NAME(object
  * when they no longer need it. This rule must be strictly followed by developers doing things inside belle-sip.
 **/
 typedef struct _belle_sip_object belle_sip_object_t;
+typedef struct _belle_sip_cpp_object belle_sip_cpp_object_t;
 
 
 typedef void (*belle_sip_object_destroy_t)(belle_sip_object_t*);
@@ -163,6 +168,8 @@ struct _belle_sip_object_vptr{
 	belle_sip_object_on_first_ref_t on_first_ref; /*called when object is ref'd for the first time*/
 	belle_sip_object_on_last_ref_t on_last_ref; /*called in unref() when the last reference of the object remains*/
 	int tostring_bufsize_hint; /*optimization: you can suggest here the typical size for a to_string() result.*/
+	int is_cpp; /*indicates whether this object kind is defined in c++*/
+	int cpp_offset; /*offset to apply to the belle_sip_object_t to find the pointer to the corresponding bellesip::Object, if any*/
 };
 
 typedef struct _belle_sip_object_vptr belle_sip_object_vptr_t;
@@ -369,7 +376,7 @@ BELLESIP_EXPORT void *belle_sip_object_cast(belle_sip_object_t *obj, belle_sip_t
  * WHen the object is a sip header, uri or message, this is the textual representation of the header, uri or message.
  * This function internally calls belle_sip_object_marshal().
 **/
-BELLESIP_EXPORT char* belle_sip_object_to_string(void* obj);
+BELLESIP_EXPORT char* belle_sip_object_to_string(const void* obj);
 
 /**
  * Writes a string representation of the object into the supplied buffer.

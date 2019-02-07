@@ -152,6 +152,7 @@ void belle_sip_tester_init(void(*ftester_printf)(int level, const char *fmt, va_
 	bc_tester_add_suite(&dialog_test_suite);
 	bc_tester_add_suite(&refresher_test_suite);
 	bc_tester_add_suite(&http_test_suite);
+	bc_tester_add_suite(&object_test_suite);
 }
 
 void belle_sip_tester_uninit(void) {

@@ -160,6 +160,8 @@ if(ANDROID)
 endif()
 set(BELLE_SIP_SOURCE_FILES_CXX
 	${TUNNEL_SOURCE_FILES_CXX}
+	object++.cc
+	cpp_utils.cc
 )
 if(APPLE)
 	set(BELLE_SIP_SOURCE_FILES_OBJC
@@ -200,6 +202,7 @@ string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
 if(ENABLE_STATIC)
 	add_library(bellesip-static STATIC ${BELLE_SIP_HEADER_FILES} ${BELLE_SIP_SOURCE_FILES_C} ${BELLE_SIP_SOURCE_FILES_CXX} ${BELLE_SIP_SOURCE_FILES_OBJC} ${ANTLR3C_SOURCE_FILES})
 	set_target_properties(bellesip-static PROPERTIES OUTPUT_NAME bellesip)
+	set_target_properties(bellesip-static PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON)
 	target_include_directories(bellesip-static PUBLIC ${PUBLIC_INCLUDE_DIRS} PRIVATE ${PRIVATE_INCLUDE_DIRS})
 	target_link_libraries(bellesip-static INTERFACE ${LIBS})
 	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
@@ -215,6 +218,7 @@ if(ENABLE_SHARED)
 	add_library(bellesip SHARED ${BELLE_SIP_HEADER_FILES} ${BELLE_SIP_SOURCE_FILES_C} ${BELLE_SIP_SOURCE_FILES_CXX} ${BELLE_SIP_SOURCE_FILES_OBJC} ${ANTLR3C_SOURCE_FILES})
 	set_target_properties(bellesip PROPERTIES SOVERSION 0)
 	set_target_properties(bellesip PROPERTIES LINKER_LANGUAGE CXX)
+	set_target_properties(bellesip PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON)
 	target_include_directories(bellesip PUBLIC ${PUBLIC_INCLUDE_DIRS} PRIVATE ${PRIVATE_INCLUDE_DIRS})
 	target_link_libraries(bellesip PRIVATE ${LIBS})
 	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")

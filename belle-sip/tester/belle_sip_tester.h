@@ -46,6 +46,7 @@ extern test_suite_t register_test_suite;
 extern test_suite_t dialog_test_suite;
 extern test_suite_t refresher_test_suite;
 extern test_suite_t http_test_suite;
+extern test_suite_t object_test_suite;
 
 extern const char* belle_sip_tester_client_cert;
 extern const char* belle_sip_tester_client_cert_fingerprint;
