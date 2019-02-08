@@ -183,6 +183,8 @@ void VideoToolboxEncoder::feed(mblk_t *rawData, uint64_t time, bool requestIFram
 		}
 	}
 	CFRelease(pixbuf);
+    CFRelease(frameProperties);
+    freemsg(rawData);
 }
 
 bool VideoToolboxEncoder::fetch(MSQueue *encodedData) {
