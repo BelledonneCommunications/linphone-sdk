@@ -23,6 +23,7 @@
 #include "h26x/h26x-encoder-filter.h"
 #include "h26x/videotoolbox-decoder.h"
 #include "h26x/videotoolbox-encoder.h"
+#include "h26x/videotoolbox-utils.h"
 
 using namespace std;
 
@@ -83,9 +84,14 @@ extern "C" void _register_videotoolbox_if_supported(MSFactory *factory) {
 	ms_message("VideoToolbox H264 codec is not supported on simulators");
 #else
 	if (kCFCoreFoundationVersionNumber >= 744.00) { // MacOS >= 10.8 or iOS >= 8.0
-		ms_message("Registering VideoToolbox H264 codec");
-		ms_factory_register_filter(factory, &ms_VideoToolboxH264Encoder_desc);
-		ms_factory_register_filter(factory, &ms_VideoToolboxH264Decoder_desc);
+		unique_ptr<VideoToolboxUtilities> codecInfo(VideoToolboxUtilities::create("video/avc"));
+		if (codecInfo->encoderIsAvailable()) {
+			ms_message("Registering VideoToolbox H264 codec");
+			ms_factory_register_filter(factory, &ms_VideoToolboxH264Encoder_desc);
+			ms_factory_register_filter(factory, &ms_VideoToolboxH264Decoder_desc);
+		} else {
+			ms_message("No H264 encoder found on this device");
+		}
 	} else {
 		ms_message("Cannot register VideoToolbox H264 codec. That "
 			"requires iOS 8 or MacOS 10.8");
@@ -93,9 +99,14 @@ extern "C" void _register_videotoolbox_if_supported(MSFactory *factory) {
 
 #if TARGET_OS_IPHONE
 	if (kCFCoreFoundationVersionNumber >= 1400) { // MacOS >= 10.13 or iOS >= 11.0
-		ms_message("Registering VideoToolbox H265 codec");
-		ms_factory_register_filter(factory, &ms_VideoToolboxH265Encoder_desc);
-		ms_factory_register_filter(factory, &ms_VideoToolboxH265Decoder_desc);
+		unique_ptr<VideoToolboxUtilities> codecInfo(VideoToolboxUtilities::create("video/hevc"));
+		if (codecInfo->encoderIsAvailable()) {
+			ms_message("Registering VideoToolbox H265 codec");
+			ms_factory_register_filter(factory, &ms_VideoToolboxH265Encoder_desc);
+			ms_factory_register_filter(factory, &ms_VideoToolboxH265Decoder_desc);
+		} else {
+			ms_message("No H265 encoder found on this device");
+		}
 	} else {
 		ms_message("Cannot register VideoToolbox H265 codec. That "
                         "requires iOS 11.0 or MacOS 10.13");

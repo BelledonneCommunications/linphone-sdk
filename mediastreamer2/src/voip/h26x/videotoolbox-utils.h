@@ -48,6 +48,7 @@ public:
 	virtual CMVideoCodecType getCodecType() const = 0;
 	virtual CFStringRef getDefaultProfileLevel() const = 0;
 
+	bool encoderIsAvailable() const;
 	void getParameterSets(const CMFormatDescriptionRef format, MSQueue *outPs) const;
 	CMFormatDescriptionRef createFormatDescription(const H26xParameterSetsStore &psStore) const;
 
@@ -56,6 +57,10 @@ public:
 protected:
 	virtual void getParameterSet(const CMFormatDescriptionRef format, size_t offset, const uint8_t *&parameterSet, size_t &parameterSetSize, size_t &parameterSetsCount) const = 0;
 	virtual CMFormatDescriptionRef createFormatDescription(size_t parameterSetsCount, const uint8_t *parameterSets[], const size_t parameterSetSizes[]) const = 0;
+
+	static void loadCodecAvailability();
+
+	static std::map<CMVideoCodecType,bool> _codecAvailability;
 };
 
 } // namespace mediastreamer

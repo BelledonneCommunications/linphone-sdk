@@ -17,8 +17,11 @@
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
+#include <array>
 #include <sstream>
 #include <unordered_map>
+
+#include <VideoToolbox/VTVideoEncoderList.h>
 
 #include "videotoolbox-h264-utilities.h"
 #include "videotoolbox-h265-utilities.h"
@@ -77,6 +80,11 @@ std::string toString(::OSStatus status) {
 	return message.str();
 }
 
+bool VideoToolboxUtilities::encoderIsAvailable() const {
+	if (_codecAvailability.empty()) loadCodecAvailability();
+	return _codecAvailability.at(getCodecType());
+}
+
 void VideoToolboxUtilities::getParameterSets(const CMFormatDescriptionRef format, MSQueue *outPs) const {
 	size_t offset = 0;
 	size_t parameterSetsCount;
@@ -124,5 +132,27 @@ VideoToolboxUtilities *VideoToolboxUtilities::create(const std::string &mime) {
 		throw invalid_argument(mime + " not supported");
 	}
 }
+
+void VideoToolboxUtilities::loadCodecAvailability() {
+	array<CMVideoCodecType,2> codecTypes = { kCMVideoCodecType_H264, kCMVideoCodecType_HEVC };
+	CFArrayRef encoderLists = nullptr;
+	VTCopyVideoEncoderList(nullptr, &encoderLists);
+	for (auto codecType : codecTypes) {
+		_codecAvailability[codecType] = false;
+		for (CFIndex i = 0; i < CFArrayGetCount(encoderLists); i++) {
+			CMVideoCodecType codecType2;
+			auto dict = static_cast<const CFDictionaryRef>(CFArrayGetValueAtIndex(encoderLists, i));
+			auto codecTypeNumber = static_cast<const CFNumberRef>(CFDictionaryGetValue(dict, kVTVideoEncoderList_CodecType));
+			CFNumberGetValue(codecTypeNumber, kCFNumberIntType, &codecType2);
+			if (codecType == codecType2) {
+				_codecAvailability[codecType] = true;
+				break;
+			}
+		}
+	}
+	CFRelease(encoderLists);
+}
+
+std::map<CMVideoCodecType,bool> VideoToolboxUtilities::_codecAvailability;
 
 } // namespace mediastreamer
