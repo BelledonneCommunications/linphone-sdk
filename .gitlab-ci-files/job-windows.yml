@@ -8,6 +8,11 @@ job-windows-vs2015:
   stage: build
   tags: [ "windows" ]
 
+  except:
+    variables:
+      - $DEPLOY_RUN_ANDROID
+      - $DEPLOY_RUN_IOS
+
   script:
     - mkdir build-desktop
     - cd build-desktop

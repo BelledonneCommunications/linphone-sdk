@@ -4,6 +4,11 @@
   stage: build
   tags: [ "macosx" ]
 
+  except:
+    variables:
+      - $DEPLOY_RUN_ANDROID
+      - $DEPLOY_RUN_IOS
+
   script:
     - ccache -s
     - mkdir -p build-desktop
@@ -58,6 +63,11 @@ job-macosx-xcode:
 
   stage: build
   tags: [ "macosx" ]
+
+  except:
+    variables:
+      - $DEPLOY_RUN_ANDROID
+      - $DEPLOY_RUN_IOS
 
   only:
     - schedules
