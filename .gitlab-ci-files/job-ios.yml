@@ -54,6 +54,7 @@ job-ios-ninja:
   except:
     variables:
       - $DEPLOY_RUN_ANDROID
+      - $DEPLOY_RUN_IOS
 
   variables:
     CMAKE_GENERATOR: Ninja
@@ -87,7 +88,6 @@ job-ios-xcode:
   except:
     variables:
       - $DEPLOY_RUN_ANDROID
-      - $DEPLOY_RUN_IOS
 
   only:
     - schedules
