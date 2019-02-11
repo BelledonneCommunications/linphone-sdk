@@ -20,7 +20,6 @@ package org.linphone.tester;
  */
 
 import android.content.Context;
-import androidx.test.InstrumentationRegistry;
 
 import org.junit.After;
 import org.junit.Before;
@@ -30,6 +29,8 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+
+import androidx.test.platform.app.InstrumentationRegistry;
 
 public class Tester {
     public native void setApplicationContext(Context ct);
@@ -110,11 +111,11 @@ public class Tester {
         System.loadLibrary("bctoolbox-tester");
         System.loadLibrary("linphonetester");
 
-        keepAccounts(false);
-        //keepAccounts(true);
+        //keepAccounts(false);
+        keepAccounts(true);
 
         if (mContext == null) {
-            mContext = InstrumentationRegistry.getTargetContext();
+            mContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
         }
         setApplicationContext(mContext);
 
@@ -124,14 +125,14 @@ public class Tester {
     @Before
     public void initTest() {
         if (mContext == null) {
-            mContext = InstrumentationRegistry.getTargetContext();
+            mContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
         }
         setApplicationContext(mContext);
     }
 
     @After
     public void tearDown() {
-        //clearAccounts();
+        clearAccounts();
         removeApplicationContext();
     }
 
