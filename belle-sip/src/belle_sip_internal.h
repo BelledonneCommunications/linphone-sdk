@@ -1106,6 +1106,10 @@ belle_sip_list_t *belle_sip_parse_directory(const char *path, const char *file_t
 typedef struct authorization_context authorization_context_t;
 BELLESIP_EXPORT void belle_sip_authorization_destroy(authorization_context_t* object);
 
+/**
+ * Generate a random unsigned int
+ */
+uint32_t belle_sip_random(void);
 #ifdef __cplusplus
 }
 #endif

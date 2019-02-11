@@ -22,6 +22,7 @@
 #include <sys/stat.h>
 #include "belle_sip_internal.h"
 #include "bctoolbox/parser.h"
+#include "bctoolbox/crypto.h"
 
 #include "clock_gettime.h" /*for apple*/
 
@@ -196,66 +197,14 @@ char *belle_sip_unquote_strdup(const char *str){
 	return belle_sip_strdup(str);
 }
 
-#if defined(_WIN32) && !defined(_MSC_VER)
-#include <wincrypt.h>
-static int belle_sip_wincrypto_random(unsigned int *rand_number){
-	static HCRYPTPROV hProv=(HCRYPTPROV)-1;
-	static int initd=0;
+uint32_t belle_sip_random(void){
+	unsigned char rand_buffer[4];
+	belle_sip_random_bytes(rand_buffer, 4);
+	return ((((uint32_t)rand_buffer[0])<<24) |
+		(((uint32_t)rand_buffer[1])<<16) |
+		(((uint32_t)rand_buffer[2])<<8) |
+		(((uint32_t)rand_buffer[3])<<0));
 
-	if (!initd){
-		if (!CryptAcquireContext(&hProv,NULL,NULL,PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)){
-			belle_sip_error("Could not acquire a windows crypto context");
-			return -1;
-		}
-		initd=TRUE;
-	}
-	if (hProv==(HCRYPTPROV)-1)
-		return -1;
-
-	if (!CryptGenRandom(hProv,4,(BYTE*)rand_number)){
-		belle_sip_error("CryptGenRandom() failed.");
-		return -1;
-	}
-	return 0;
-}
-#endif
-
-unsigned int belle_sip_random(void){
-#if  defined(__linux) || defined(__APPLE__)
-	static int fd=-1;
-	if (fd==-1) fd=open("/dev/urandom",O_RDONLY);
-	if (fd!=-1){
-		unsigned int tmp;
-		if (read(fd,&tmp,4)!=4){
-			belle_sip_error("Reading /dev/urandom failed.");
-		}else return tmp;
-	}else belle_sip_error("Could not open /dev/urandom");
-#elif defined(_WIN32)
-	static int initd=0;
-	unsigned int ret;
-#ifdef _MSC_VER
-	/*rand_s() is pretty nice and simple function but is not wrapped by mingw.*/
-
-	if (rand_s(&ret)==0){
-		return ret;
-	}
-#else
-	if (belle_sip_wincrypto_random(&ret)==0){
-		return ret;
-	}
-#endif
-	/* Windows's rand() is unsecure but is used as a fallback*/
-	if (!initd) {
-		srand((unsigned int)belle_sip_time_ms());
-		initd=1;
-		belle_sip_warning("Random generator is using rand(), this is unsecure !");
-	}
-	return rand()<<16 | rand();
-#endif
-	/*fallback to UNIX random()*/
-#ifndef _WIN32
-	return (unsigned int) random();
-#endif
 }
 
 
@@ -270,13 +219,10 @@ static const char *symbols="aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ
  * Write a random text token of supplied size.
 **/
 char * belle_sip_random_token(char *ret, size_t size){
-	unsigned int val=0;
 	unsigned int i;
-
+	belle_sip_random_bytes((unsigned char *)ret, size-1);
 	for(i=0;i<size-1;++i){
-		if (i%5==0) val=belle_sip_random();
-		ret[i]=symbols[val & 63];
-		val=val>>6;
+		ret[i]=symbols[ret[i] & 63];
 	}
 	ret[i]=0;
 	return ret;
@@ -286,13 +232,15 @@ char * belle_sip_random_token(char *ret, size_t size){
  * Write random bytes of supplied size.
 **/
 unsigned char * belle_sip_random_bytes(unsigned char *ret, size_t size){
-	unsigned int val=0;
-	unsigned int i;
-	for(i=0;i<size;++i){
-		if (i%4==0) val=belle_sip_random();
-		ret[i]=val & 0xff;
-		val=val>>8;
-	}
+	// create a rng context
+	bctbx_rng_context_t *RNG = bctbx_rng_context_new();
+
+	// get the requested bytes
+	bctbx_rng_get(RNG, ret, size);
+
+	// delete rng context
+	bctbx_rng_context_free(RNG);
+
 	return ret;
 }
 

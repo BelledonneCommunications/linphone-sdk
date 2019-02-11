@@ -126,8 +126,6 @@ BELLESIP_EXPORT char *belle_sip_unquote_strdup(const char *str);
 
 BELLESIP_EXPORT uint64_t belle_sip_time_ms(void);
 
-BELLESIP_EXPORT unsigned int belle_sip_random(void);
-
 /** Connect API */
 BELLESIP_EXPORT void belle_sip_set_socket_api(bctbx_vsocket_api_t* my_api);
 
