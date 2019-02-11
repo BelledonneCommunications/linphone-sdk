@@ -134,7 +134,7 @@ VideoToolboxUtilities *VideoToolboxUtilities::create(const std::string &mime) {
 }
 
 void VideoToolboxUtilities::loadCodecAvailability() {
-	array<CMVideoCodecType,2> codecTypes = { kCMVideoCodecType_H264, kCMVideoCodecType_HEVC };
+	array<CMVideoCodecType,2> codecTypes = {{ kCMVideoCodecType_H264, kCMVideoCodecType_HEVC }};
 	CFArrayRef encoderLists = nullptr;
 	VTCopyVideoEncoderList(nullptr, &encoderLists);
 	for (auto codecType : codecTypes) {
