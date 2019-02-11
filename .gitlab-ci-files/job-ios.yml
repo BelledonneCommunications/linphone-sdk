@@ -33,6 +33,11 @@
 
 job-ios-makefile:
 
+  except:
+    variables:
+      - $DEPLOY_RUN_ANDROID
+      - $DEPLOY_RUN_IOS
+
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
@@ -46,12 +51,22 @@ job-ios-makefile:
 
 job-ios-ninja:
 
+  except:
+    variables:
+      - $DEPLOY_RUN_ANDROID
+      - $DEPLOY_RUN_IOS
+
   variables:
     CMAKE_GENERATOR: Ninja
   extends: .job-ios
 
 
 job-ios-ninja-novideo:
+
+  except:
+    variables:
+      - $DEPLOY_RUN_ANDROID
+      - $DEPLOY_RUN_IOS
 
   only:
     - schedules
@@ -69,6 +84,10 @@ job-ios-xcode:
 
   stage: build
   tags: [ "macosx" ]
+
+  except:
+    variables:
+      - $DEPLOY_RUN_ANDROID
 
   only:
     - schedules

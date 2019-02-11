@@ -3,6 +3,11 @@
   stage: build
   extends: .linux-prepare
 
+  except:
+    variables:
+      - $DEPLOY_RUN_ANDROID
+      - $DEPLOY_RUN_IOS
+
   script:
     - export CC=$CC
     - export CXX=$CXX
