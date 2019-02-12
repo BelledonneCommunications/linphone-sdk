@@ -21,26 +21,31 @@
 ############################################################################
 
 set(HEADER_FILES
-	crypto.h
+	charconv.h
+	compiler.h
 	defs.h
+	exception.hh
 	list.h
 	logging.h
 	map.h
-	port.h
-	vfs.h
-	vconnect.h
 	parser.h
+	port.h
 	regex.h
-	charconv.h
-	exception.hh
+	vconnect.h
+	vfs.h
 )
+
+if(MBEDTLS_FOUND OR POLARSSL_FOUND)
+	list(APPEND HEADER_FILES crypto.h)
+endif()
+
 if(ENABLE_TESTS_COMPONENT)
 	list(APPEND HEADER_FILES tester.h)
 endif()
 
 set(BCTOOLBOX_HEADER_FILES )
 foreach(HEADER_FILE ${HEADER_FILES})
-        list(APPEND BCTOOLBOX_HEADER_FILES "${CMAKE_CURRENT_LIST_DIR}/bctoolbox/${HEADER_FILE}")
+	list(APPEND BCTOOLBOX_HEADER_FILES "${CMAKE_CURRENT_LIST_DIR}/bctoolbox/${HEADER_FILE}")
 endforeach()
 set(BCTOOLBOX_HEADER_FILES ${BCTOOLBOX_HEADER_FILES} PARENT_SCOPE)
 

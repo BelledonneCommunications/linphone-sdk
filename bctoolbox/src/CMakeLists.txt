@@ -23,17 +23,17 @@
 set(BCTOOLBOX_C_SOURCE_FILES
 	containers/list.c
 	logging/logging.c
-	utils/port.c
-	vfs.c
-	vconnect.c
 	parser.c
+	utils/port.c
+	vconnect.c
+	vfs.c
 )
 
 set(BCTOOLBOX_CXX_SOURCE_FILES
 	containers/map.cc
-	crypto/ecc.cc
-	utils/regex.cc
+	conversion/charconv_encoding.cc
 	utils/exception.cc
+	utils/regex.cc
 )
 
 if(ANDROID)
@@ -49,6 +49,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 if(MBEDTLS_FOUND OR POLARSSL_FOUND)
 	list(APPEND BCTOOLBOX_C_SOURCE_FILES crypto/crypto.c)
+	list(APPEND BCTOOLBOX_CXX_SOURCE_FILES crypto/ecc.cc)
 endif()
 if(MBEDTLS_FOUND)
 	list(APPEND BCTOOLBOX_C_SOURCE_FILES crypto/mbedtls.c)
@@ -75,6 +76,7 @@ if(ENABLE_STATIC)
 	add_library(bctoolbox-static STATIC ${BCTOOLBOX_SOURCE_FILES} ${BCTOOLBOX_HEADER_FILES})
 	target_link_libraries(bctoolbox-static INTERFACE ${CMAKE_THREAD_LIBS_INIT})
 	if(APPLE)
+		target_link_libraries(bctoolbox-static INTERFACE "-framework Foundation" "-framework AVFoundation")
 		target_include_directories(bctoolbox-static PRIVATE ${ICONV_INCLUDE_DIRS})
 		target_link_libraries(bctoolbox-static INTERFACE ${ICONV_LIBRARIES})
 	endif()
@@ -108,15 +110,15 @@ if(ENABLE_SHARED)
 		else()
 			set(MIN_OS ${CMAKE_OSX_DEPLOYMENT_TARGET})
 		endif()
-		set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/build/osx/")
 		set_target_properties(bctoolbox PROPERTIES
 			FRAMEWORK TRUE
 			MACOSX_FRAMEWORK_IDENTIFIER org.linphone.bctoolbox
-			MACOSX_FRAMEWORK_INFO_PLIST Info.plist.in
+			MACOSX_FRAMEWORK_INFO_PLIST "${CMAKE_SOURCE_DIR}/build/osx/Info.plist.in"
 			PUBLIC_HEADER "${BCTOOLBOX_HEADER_FILES}"
 		)
 	endif()
 	if(APPLE)
+		target_link_libraries(bctoolbox PRIVATE "-framework Foundation" "-framework AVFoundation")
 		target_include_directories(bctoolbox PRIVATE ${ICONV_INCLUDE_DIRS})
 		target_link_libraries(bctoolbox PRIVATE ${ICONV_LIBRARIES})
 	endif()
@@ -216,6 +218,7 @@ if(ENABLE_TESTS_COMPONENT)
 			set_target_properties(bctoolbox-tester PROPERTIES
 				FRAMEWORK TRUE
 				MACOSX_FRAMEWORK_IDENTIFIER com.belledonne-communications.bctoolbox-tester
+				MACOSX_FRAMEWORK_INFO_PLIST "${CMAKE_SOURCE_DIR}/build/osx/Info.plist.in"
 				PUBLIC_HEADER "${BCTOOLBOX_HEADER_FILES}"
 			)
 		endif()

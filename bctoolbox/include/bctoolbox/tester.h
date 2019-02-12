@@ -73,6 +73,9 @@ BCTBX_PUBLIC void bc_tester_init(void (*ftester_printf)(int level, const char *f
 BCTBX_PUBLIC void bc_tester_helper(const char *name, const char* additionnal_helper);
 BCTBX_PUBLIC int bc_tester_parse_args(int argc, char** argv, int argid);
 BCTBX_PUBLIC int bc_tester_start(const char* prog_name);
+BCTBX_PUBLIC int bc_tester_register_suites(void);
+
+BCTBX_PUBLIC int bc_tester_register_suite_by_name(const char *suite_name);
 BCTBX_PUBLIC void bc_tester_add_suite(test_suite_t *suite);
 BCTBX_PUBLIC void bc_tester_uninit(void);
 BCTBX_PUBLIC void bc_tester_printf(int level, const char *fmt, ...);
@@ -80,6 +83,10 @@ BCTBX_PUBLIC const char * bc_tester_get_resource_dir_prefix(void);
 BCTBX_PUBLIC void bc_tester_set_resource_dir_prefix(const char *name);
 BCTBX_PUBLIC const char * bc_tester_get_writable_dir_prefix(void);
 BCTBX_PUBLIC void bc_tester_set_writable_dir_prefix(const char *name);
+
+BCTBX_PUBLIC void bc_tester_set_silent_func(int (*func)(const char*));
+BCTBX_PUBLIC void bc_tester_set_verbose_func(int (*func)(const char*));
+BCTBX_PUBLIC void bc_tester_set_logfile_func(int (*func)(const char*));
 
 BCTBX_PUBLIC int bc_tester_nb_suites(void);
 BCTBX_PUBLIC int bc_tester_nb_tests(const char* name);
@@ -94,12 +101,15 @@ BCTBX_PUBLIC const char * bc_tester_current_suite_name(void);
 BCTBX_PUBLIC const char * bc_tester_current_test_name(void);
 BCTBX_PUBLIC const char ** bc_tester_current_test_tags(void);
 
+
 BCTBX_PUBLIC char* bc_sprintfva(const char* format, va_list args);
 BCTBX_PUBLIC char* bc_sprintf(const char* format, ...);
 BCTBX_PUBLIC void bc_free(void *ptr);
 
+BCTBX_PUBLIC char * bc_tester_get_failed_asserts(void);
 BCTBX_PUBLIC unsigned int bc_get_number_of_failures(void);
 BCTBX_PUBLIC void bc_set_trace_handler(void(*handler)(int, const char*, va_list));
+
 /**
  * Get full path to the given resource
  *

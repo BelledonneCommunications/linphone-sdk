@@ -35,7 +35,7 @@ if(ENABLE_TESTS AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 		parser.c
 	)
 	if(MBEDTLS_FOUND OR POLARSSL_FOUND)
-        	list(APPEND TESTER_SOURCES crypto.c)
+		list(APPEND TESTER_SOURCES crypto.c)
 	endif()
 
 	string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")

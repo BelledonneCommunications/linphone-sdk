@@ -772,7 +772,7 @@ BCTBX_PUBLIC void bctbx_DestroyEDDSAContext(bctbx_EDDSAContext_t *context);
  * @param[in/out]	signatureLength		The size of the signature buffer as input, the size of the actual signature as output
  *
  */
-BCTBX_PUBLIC void bctbx_EDDSA_sign(bctbx_EDDSAContext_t *context, const uint8_t *message, const size_t messageLength, const uint8_t *AssociatedData, const size_t associatedDataLength, uint8_t *signature, size_t *signatureLength);
+BCTBX_PUBLIC void bctbx_EDDSA_sign(bctbx_EDDSAContext_t *context, const uint8_t *message, const size_t messageLength, const uint8_t *AssociatedData, const uint8_t associatedDataLength, uint8_t *signature, size_t *signatureLength);
 
 /**
  *
@@ -808,7 +808,7 @@ BCTBX_PUBLIC void bctbx_EDDSA_setSecretKey(bctbx_EDDSAContext_t *context, const 
  *
  * @return BCTBX_VERIFY_SUCCESS or BCTBX_VERIFY_FAILED
  */
-BCTBX_PUBLIC int bctbx_EDDSA_verify(bctbx_EDDSAContext_t *context, const uint8_t *message, size_t messageLength, const uint8_t *associatedData, const size_t associatedDataLength, const uint8_t *signature, size_t signatureLength);
+BCTBX_PUBLIC int bctbx_EDDSA_verify(bctbx_EDDSAContext_t *context, const uint8_t *message, size_t messageLength, const uint8_t *associatedData, const uint8_t associatedDataLength, const uint8_t *signature, size_t signatureLength);
 
 
 /**
