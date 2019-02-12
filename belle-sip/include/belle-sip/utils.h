@@ -113,6 +113,8 @@ BELLESIP_EXPORT char * belle_sip_random_token(char *ret, size_t size);
 
 BELLESIP_EXPORT unsigned char * belle_sip_random_bytes(unsigned char *ret, size_t size);
 
+BELLESIP_EXPORT uint32_t belle_sip_random(void);
+
 BELLESIP_EXPORT char * belle_sip_octets_to_text(const unsigned char *hash, size_t hash_len, char *ret, size_t size);
 
 BELLESIP_EXPORT char * belle_sip_create_tag(char *ret, size_t size);
