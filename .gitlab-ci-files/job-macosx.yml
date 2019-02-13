@@ -209,6 +209,7 @@ test-liblinphone-macosx:
     - cp $LOG_PATTERN* ${CI_PROJECT_DIR}/results
     # cleaning the extracted files
     - rm -rf ${CI_PROJECT_DIR}/build-desktop/
+
   artifacts:
     paths:
       - results/*

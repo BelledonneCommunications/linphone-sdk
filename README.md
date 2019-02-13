@@ -183,6 +183,11 @@ The nuget package will be in linphone-sdk/packages
 The generated package can keep the same file name between each generations on the same git version. Visual studio keep a cache of the Nuget and you need to delete its internal folder to takke account any newer version for the same name.
 The folder can be found in your system path at <User>/.nuget/packages/linphonesdk
 
+
+### Raspberry pi
+
+Use the following command to build directly on a raspberry pi: `cmake .. -DENABLE_MKV=NO -DENABLE_OPUS=NO -DENABLE_VPX=NO -DENABLE_WEBRTC_AEC=NO`.
+
 ## Upgrading your SDK
 
 Simply re-invoking `cmake --build .` in your build directory should update your SDK. If compilation fails, you may need to rebuilding everything by erasing your build directory and restarting your build as explained above.
