@@ -140,6 +140,12 @@ job-windows-vs2017-ninja-win32:
     CMAKE_C_COMPILER : cl.exe
     CMAKE_CXX_COMPILER : cl.exe
     CMAKE_RC_COMPILER : rc.exe
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_PYTHON_WRAPPER=ON
+  #after_script:
+    #- dir build-desktop\linphone-sdk\desktop\
+    #- pip3 install build-desktop\linphone-sdk\desktop\*.whl --user
+    #- python3 -c "import linphone; print (linphone.Core.get_version())"
+    #- pip3 uninstall pylinphone
 
 ######################################################
 # NIGHTLY
@@ -152,6 +158,7 @@ job-windows-vs2017-win32-scheduled:
   extends: .job-windows-vs2017-scheduled
   variables:
     CMAKE_ARCHITECTURE : -A Win32
+    #CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_FFMPEG=ON -DENABLE_OPENH264=ON -DENABLE_NON_FREE_CODECS=ON -DENABLE_PYTHON_WRAPPER=ON
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_FFMPEG=ON -DENABLE_OPENH264=ON -DENABLE_NON_FREE_CODECS=ON
 
 job-windows-vs2017-win32-novideo:
