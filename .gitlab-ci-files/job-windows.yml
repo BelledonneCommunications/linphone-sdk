@@ -78,7 +78,7 @@
       - $DOCKER_UPDATE
       - $SKIP_WINDOWS
   variables:
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_PYTHON_WRAPPER=ON
   script:
     #handling the case of previous job cancellation
     - call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat"
@@ -140,6 +140,7 @@ job-windows-vs2017-ninja-win32:
     CMAKE_C_COMPILER : cl.exe
     CMAKE_CXX_COMPILER : cl.exe
     CMAKE_RC_COMPILER : rc.exe
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_PYTHON_WRAPPER=ON
 
 ######################################################
 # NIGHTLY
@@ -152,7 +153,7 @@ job-windows-vs2017-win32-scheduled:
   extends: .job-windows-vs2017-scheduled
   variables:
     CMAKE_ARCHITECTURE : -A Win32
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_FFMPEG=ON -DENABLE_OPENH264=ON -DENABLE_NON_FREE_CODECS=ON
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_FFMPEG=ON -DENABLE_OPENH264=ON -DENABLE_NON_FREE_CODECS=ON -DENABLE_PYTHON_WRAPPER=ON
 
 job-windows-vs2017-win32-novideo:
   extends: job-windows-vs2017-win32-scheduled
