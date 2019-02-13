@@ -94,6 +94,10 @@ Please note that the Xcode backend is very slow: about one hour of build time, c
  - make sure that RelWithDebInfo mode is selected unless you specified -DCMAKE_BUILD_TYPE=Debug to cmake (see customization options below).
  - use `Build solution` to build.
 
+### Raspberry pi
+
+Use the following command to build directly on a raspberry pi: `cmake .. -DENABLE_MKV=NO -DENABLE_OPUS=NO -DENABLE_VPX=NO -DENABLE_WEBRTC_AEC=OFF`.
+
 ## Upgrading your SDK
 
 Simply re-invoking `cmake --build .` in your build directory should update your SDK. If compilation fails, you may need to rebuilding everything by erasing your build directory and restarting your build as explained above.
