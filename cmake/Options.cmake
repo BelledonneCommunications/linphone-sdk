@@ -178,6 +178,7 @@ linphonesdk_dependent_option("GoClear" "Build with ZRTP GoClear message support 
 # Activation of wrappers
 linphonesdk_option("CSharp wrapper" "Build the C# wrapper from Liblinphone." OFF)
 linphonesdk_option("CXX wrapper" "Build the C++ wrapper for Liblinphone." OFF)
+linphonesdk_option("Python wrapper" "Build the Python wrapper from Liblinphone." OFF)
 linphonesdk_option("Java wrapper" "Build the Java wrapper from Liblinphone." OFF)
 linphonesdk_option("Swift wrapper" "Build the Swift wrapper sources from Liblinphone." OFF)
 linphonesdk_dependent_option("Swift wrapper compilation" "Compile and package the swift wrapper framework (needs ENABLE_SWIFT_WRAPPER=ON)." OFF "ENABLE_SWIFT_WRAPPER" OFF)

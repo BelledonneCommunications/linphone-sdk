@@ -36,6 +36,41 @@ debian-doc-upload:
     - rsync -rlv build/default/linphone-sdk/desktop/share/doc/liblinphone-$LIBLINPHONE_VERSION*/c/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/c
     - rsync -rlv build/default/linphone-sdk/desktop/share/doc/liblinphone-$LIBLINPHONE_VERSION*/cpp/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/c++
 
+debian-python-doc-upload:
+  stage: deploy
+  tags: [ "deploy" ]
+
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_PYTHON != null && $SKIP_DEPLOY == null
+
+  variables:
+    GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
+    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
+
+  needs:
+    - debian12-ninja-gcc-python-wheel
+
+  script:
+
+    #git -C executes the git command in specified directory
+    #grep options:
+    #-o means print only matched pattern instead of whole line
+    #-E means extended regexp, see https://en.wikibooks.org/wiki/Regular_Expressions/POSIX-Extended_Regular_Expressions
+
+    #getting the version number to push the right version of the doc
+    - DESCRIBE=$(git -C liblinphone describe)
+    - echo $DESCRIBE
+
+    - LIBLINPHONE_VERSION=$(echo $DESCRIBE| grep -o -E '^[0-9]+\.[0-9]+')
+
+    - echo $LIBLINPHONE_VERSION
+
+    - !reference [.choose_upload_dir, script]
+
+    # Create the directories if they do not exist
+    - ssh $DEPLOY_SERVER mkdir -p $UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/python
+    - scp build/default/linphone-sdk/desktop/pylinphone.html $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/python/index.html
+
 #################################################
 # Bzrtp doc upload
 #################################################

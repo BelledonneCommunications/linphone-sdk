@@ -120,6 +120,15 @@ debian12-ninja-clang-pqc:
     CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON -DENABLE_LDAP=OFF
   extends: debian12-ninja-clang
 
+debian12-ninja-gcc-python-wheel:
+  tags: [ "docker" ]
+  image: !reference [.debian12_image_version, image]
+  variables:
+    CMAKE_GENERATOR: Ninja
+    CC: clang
+    CXX: clang++
+  extends: .linux-desktop-python
+
 #################################################
 # TESTS
 #################################################

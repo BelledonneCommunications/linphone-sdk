@@ -144,3 +144,7 @@ endif()
 if(LINPHONESDK_PACKAGER STREQUAL "Nuget")
 	include(LinphoneSdkPackager)
 endif()
+
+if(ENABLE_PYTHON_WRAPPER)
+   include("cmake/python/GenerateWheel.cmake")
+endif()

@@ -25,7 +25,7 @@
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian11-test-liblinphone:20230706_add_deps_for_av1
 
 .debian12_image_version:
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12:20231031_add_jq_for_cache_improvements
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12:20240212_python_wrapper_tools
 
 .debian12_test_libl_image_version:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12-test-liblinphone:20230706_add_deps_for_av1

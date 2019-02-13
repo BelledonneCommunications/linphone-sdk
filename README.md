@@ -213,6 +213,12 @@ The Linphone SDK is available as a `.nuget` package for .NET applications (Windo
 
 See the [`cmake/NuGet`](cmake/NuGet/README.md) folder for build instructions.
 
+### Python wrapper & wheel packaging
+
+To build the python wrapper, you first need to install `cython` tool using pip. If you want to build the documentation, also install `pdoc` tool. Finally install `wheel` tool to be able to build a .whl package.
+
+Then build the SDK with `-DENABLE_PYTHON_WRAPPER=ON` and optionally `-DENABLE_DOC=ON`.
+To generate the wheel package, use `wheel` target.
 
 ## Upgrading your SDK
 
