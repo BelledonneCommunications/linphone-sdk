@@ -68,8 +68,13 @@ job-macosx-ninja:
 
   variables:
     CMAKE_GENERATOR: Ninja
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_PYTHON_WRAPPER=ON -DPYTHON_EXECUTABLE=python3
   extends: .job-macosx-desktop
+  after_script:
+    - ls -lh build-desktop/linphone-sdk/desktop/*.whl
+    - pip3 install build-desktop/linphone-sdk/desktop/*.whl --user
+    - python3 -c "import linphone; print (linphone.Core.get_version())"
+    - pip3 uninstall pylinphone
 
 
 job-macosx-ninja-novideo:
@@ -93,12 +98,20 @@ job-macosx-xcode:
     XCODE_OPTIONS: -DLINPHONESDK_MACOS_BASE_URL=$MACOS_RELEASES_URL
     CMAKE_GENERATOR: Xcode
     ADDITIONAL_BUILD_OPTIONS: -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=$MAX_NUMBER_TASK
+    CMAKE_OPTIONS: -DENABLE_PYTHON_WRAPPER=ON
 
   only:
     variables:
       - $NIGHTLY_MASTER
       - $NIGHTLY_RELEASE
       - $DEPLOY_RUN_MACOSX
+
+  after_script:
+    - ls -lh build-desktop/linphone-sdk/desktop/*.whl
+    - pip3 install build-desktop/linphone-sdk/desktop/*.whl --user
+    - python3 -c "import linphone; print (linphone.Core.get_version())"
+    - pip3 uninstall pylinphone
+
 
 test-linphone-macosx:
   stage: test
@@ -150,6 +163,7 @@ test-linphone-macosx:
     - cp $LOG_PATTERN* ${CI_PROJECT_DIR}/results
     # cleaning the extracted files
     - rm -rf ${CI_PROJECT_DIR}/build-desktop/
+
   artifacts:
     paths:
       - results/*
