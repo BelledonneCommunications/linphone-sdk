@@ -1036,7 +1036,7 @@ int32_t bctbx_ssl_get_dtls_srtp_key_material(bctbx_ssl_context_t *ssl_ctx, char 
 		return BCTBX_ERROR_INVALID_SSL_CONTEXT;
 	}
 
-	ret = mbedtls_ssl_get_dtls_srtp_key_material(&(ssl_ctx->ssl_ctx), (unsigned char *)output, output_length);
+	ret = mbedtls_ssl_get_dtls_srtp_key_material(&(ssl_ctx->ssl_ctx), (unsigned char *)output, *output_length, output_length);
 
 	/* remap the output error code */
 	if (ret == MBEDTLS_ERR_SSL_BUFFER_TOO_SMALL) {
