@@ -26,12 +26,15 @@ RUN mkdir $CMAKE3_HOME && \
 RUN dnf updateinfo -y && dnf install -y at bison ccache clang doxygen gcc-c++ gdb gettext-devel git libtool make nasm ninja-build patch redhat-lsb-core rpm-build yasm
 
 # Install python3 and python modules
-RUN dnf install -y python2-pip python3 python3-pip && \
+RUN dnf install -y python2-pip python3 python3-pip python3-devel && \
     python2 -m pip install six && \
     python2 -m pip install pystache && \
     python2 -m pip install graphviz && \
     python3 -m pip install six && \
     python3 -m pip install pystache && \
+    python3 -m pip install cython && \
+    python3 -m pip install wheel && \
+    python3 -m pip install pdoc && \
     python3 -m pip install graphviz
 
 # Install linphone & flexisp dependencies development packages
