@@ -159,13 +159,13 @@ test-lime:
   dependencies:
     - job-centos7-ninja-clang
   script:
-    - sudo yum --noplugins -y check-update
-    - sudo yum --noplugins -y update
-    - sudo yum --noplugins install gcc-c++ snap
-    - sudo snap install node --classic --channel=10
+    #- sudo yum --noplugins -y check-update
+    #- sudo yum --noplugins -y update
+    #- sudo yum --noplugins install gcc-c++ snap
+    #- sudo snap install node --classic --channel=10
     #- npm --skip-broken
-    - sudo npm -g install
-    - npm install yargs sqlite3 rwlock
+    #- sudo npm -g install
+    #- npm install yargs sqlite3 rwlock
     - ls -la .
     - pwd
     - ls -la ./lime
