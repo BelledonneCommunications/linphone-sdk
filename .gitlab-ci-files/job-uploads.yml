@@ -171,6 +171,8 @@ job-macosx-upload:
     - pod repo push linphone-sdk-macosx build-desktop/linphone-sdk.podspec --skip-import-validation --local-only --verbose
     - cd ~/.cocoapods/repos/linphone-sdk-macosx && git push origin master && cd -
     - pod repo remove linphone-sdk-macosx
+    # Upload python wheel
+    - rsync -rlv build-desktop/linphone-sdk/desktop/*.whl $DEPLOY_SERVER:$DEPLOY_RELEASES_DIRECTORY/linphone-python/macosx/
 
 #################################################
 # Windows
@@ -187,6 +189,34 @@ job-windows-vs2017-win32-upload:
     - job-windows-vs2017-win32-scheduled
   script:
     - scp build-desktop/linphone-sdk-*.zip "%DEPLOY_SERVER%:%DEPLOY_SNAPSHOTS_ROOT_DIRECTORY%/windows/sdk/"
+    # Upload python wheel
+    - scp build-desktop/linphone-sdk/desktop/*.whl "%DEPLOY_SERVER%:%DEPLOY_SNAPSHOTS_ROOT_DIRECTORY%/linphone-python/win32/"
+
+#################################################
+# Centos 8 Python wrapper
+#################################################
+
+job-centos-python-wrapper-upload:
+  stage: deploy
+  tags: [ "deploy" ]
+
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+
+  dependencies:
+    - job-centos8-ninja-gcc
+
+  script:
+    #getting the version number to push the right version of the doc
+    - LIBLINPHONE_VERSION=$(git -C liblinphone describe | sed -e 's/-.*//g')
+    - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY
+    - |
+        if [[ $(git -C liblinphone describe) =~ .*(alpha|beta).* ]];
+        then UPLOAD_ROOT_DIRECTORY=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY
+        fi
+    # Upload python wheel
+    - rsync -rlv build-desktop/linphone-sdk/desktop/*.whl $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/linphone-python/linux-x86_64/
 
 #################################################
 # Debian doc upload
