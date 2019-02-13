@@ -5,6 +5,9 @@ MAINTAINER Peio Rigaux <peio.rigaux@belledonne-communications.com>
 #ENV RPM_BUILD_NCPUS=5
 ENV SHELL=/bin/bash
 
+#Getting rid of "Failed to download metadata for repo 'c8-media-BaseOS'"
+RUN rm -f /etc/yum.repos.d/CentOS-Media.repo
+
 # Configure additional repositories and install common general tools
 RUN dnf install -y https://download.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm  && dnf install -y https://download1.rpmfusion.org/free/el/rpmfusion-free-release-8.noarch.rpm && dnf install -y https://download1.rpmfusion.org/nonfree/el/rpmfusion-nonfree-release-8.noarch.rpm && rpm --import http://li.nux.ro/download/nux/RPM-GPG-KEY-nux.ro && rpm -Uvh http://li.nux.ro/download/nux/dextop/el7/x86_64/nux-dextop-release-0-5.el7.nux.noarch.rpm && \
   dnf install -y nano sudo which
@@ -14,16 +17,13 @@ RUN dnf install -y --enablerepo="*" at bison ccache clang cmake3 doxygen gcc-c++
 #    dnf clean all && \
     pip2 install pystache six
 
-#Getting rid of "Failed to download metadata for repo 'c8-media-BaseOS'"
-RUN rm -f /etc/yum.repos.d/CentOS-Media.repo
-
 #Need to install dnf utils to enable repos and to enable Powertools for doxygen, nasm, yaml and ninja-build
 
 RUN dnf updateinfo -y && dnf install -y dnf-plugins-core && dnf config-manager --enable PowerTools
 
 # Install development tools
 RUN dnf updateinfo -y && dnf install -y at bison ccache clang cmake3 doxygen gcc-c++ gdb gettext-devel git graphviz libtool make nasm ninja-build patch python2-pip redhat-lsb-core rpm-build yasm && \
-    pip2 install sphinx javasphinx sphinx_csharp pystache six
+    pip2 install sphinx javasphinx sphinx_csharp
 
 #    ln -s /usr/bin/ccmake3 /usr/bin/ccmake && \
 #    ln -s /usr/bin/cmake3 /usr/bin/cmake && \
@@ -39,6 +39,11 @@ RUN dnf updateinfo -y && dnf install -y ffmpeg-devel
 # Install linphone runtime dependencies
 RUN dnf updateinfo -y && dnf install -y mesa-dri-drivers && \
     dbus-uuidgen > /var/lib/dbus/machine-id
+
+# Install python3 wrapper build dependencies
+RUN dnf updateinfo -y && dnf install -y python3 python3-pip
+RUN alternatives --set python /usr/bin/python3
+RUN pip3 install pystache six cython wheel
 
 # Configure user bc
 RUN useradd -ms /bin/bash bc && \
