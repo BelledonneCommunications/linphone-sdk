@@ -5,6 +5,9 @@ MAINTAINER Peio Rigaux <peio.rigaux@belledonne-communications.com>
 #ENV RPM_BUILD_NCPUS=5
 ENV SHELL=/bin/bash
 
+#Getting rid of "Failed to download metadata for repo 'c8-media-BaseOS'"
+RUN rm -f /etc/yum.repos.d/CentOS-Media.repo
+
 # Configure additional repositories and install common general tools
 RUN dnf install -y https://download.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm  && dnf install -y https://download1.rpmfusion.org/free/el/rpmfusion-free-release-8.noarch.rpm && dnf install -y https://download1.rpmfusion.org/nonfree/el/rpmfusion-nonfree-release-8.noarch.rpm && rpm --import http://li.nux.ro/download/nux/RPM-GPG-KEY-nux.ro && rpm -Uvh http://li.nux.ro/download/nux/dextop/el7/x86_64/nux-dextop-release-0-5.el7.nux.noarch.rpm && \
   dnf install -y nano sudo which
@@ -15,6 +18,13 @@ RUN rm -f /etc/yum.repos.d/CentOS-Media.repo && \
 
 RUN dnf updateinfo -y && dnf install -y dnf-plugins-core && dnf config-manager --enable powertools
 
+# Install development tools
+#RUN dnf install -y --enablerepo="*" at bison ccache clang cmake3 doxygen gcc-c++ gdb gettext-devel git graphviz libtool make nasm ninja-build patch python2-pip redhat-lsb-core rpm-build yasm && \
+#    dnf clean all && \
+#    pip2 install pystache six
+
+#Need to install dnf utils to enable repos and to enable Powertools for doxygen, nasm, yaml and ninja-build
+
 # Install CMake from the tar.gz as it is not packaged anymore in EPEL
 ENV CMAKE3_HOME /opt/cmake3
 RUN mkdir $CMAKE3_HOME && \
@@ -24,6 +34,8 @@ RUN mkdir $CMAKE3_HOME && \
 
 # Install development tools
 RUN dnf updateinfo -y && dnf install -y at bison ccache clang doxygen gcc-c++ gdb gettext-devel git libtool make nasm ninja-build patch redhat-lsb-core rpm-build yasm
+#RUN dnf updateinfo -y && dnf install -y at bison ccache clang cmake3 doxygen gcc-c++ gdb gettext-devel git graphviz libtool make nasm ninja-build patch python2-pip redhat-lsb-core rpm-build yasm && \
+#	pip2 install sphinx javasphinx sphinx_csharp
 
 # Install python3 and python modules
 RUN dnf install -y python2-pip python3 python3-pip && \
@@ -43,6 +55,11 @@ RUN dnf updateinfo -y && dnf install -y ffmpeg-devel
 # Install linphone runtime dependencies
 RUN dnf updateinfo -y && dnf install -y mesa-dri-drivers && \
     dbus-uuidgen > /var/lib/dbus/machine-id
+
+# Install python3 wrapper build dependencies
+RUN dnf updateinfo -y && dnf install -y python3 python3-pip python3-devel
+RUN alternatives --set python /usr/bin/python3
+RUN pip3 install pystache six cython wheel
 
 # Configure user bc
 RUN useradd -ms /bin/bash bc && \

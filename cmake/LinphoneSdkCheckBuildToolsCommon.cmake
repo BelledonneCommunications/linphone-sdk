@@ -24,10 +24,34 @@ find_package(PythonInterp 3 REQUIRED)
 
 linphone_sdk_check_git()
 
-if(ENABLE_CSHARP_WRAPPER OR ENABLE_CXX_WRAPPER OR ENABLE_DOC OR ENABLE_JAVA_WRAPPER)
+if(ENABLE_CSHARP_WRAPPER OR ENABLE_CXX_WRAPPER OR ENABLE_DOC OR ENABLE_JAVA_WRAPPER OR ENABLE_PYTHON_WRAPPER)
 	linphone_sdk_check_is_installed(doxygen)
 	linphone_sdk_check_python_module_is_installed(pystache)
 	linphone_sdk_check_python_module_is_installed(six)
+	if (ENABLE_PYTHON_WRAPPER)
+		execute_process(
+			COMMAND "${PYTHON_EXECUTABLE}" "--version"
+			OUTPUT_VARIABLE PYTHON_VERSION
+			OUTPUT_STRIP_TRAILING_WHITESPACE
+		)
+		if (PYTHON_VERSION MATCHES "^Python 3[.]([0-9]+)[.]([0-9]+)$")
+			linphone_sdk_check_python_module_is_installed(cython)
+			linphone_sdk_check_python_module_is_installed(wheel)
+
+			if (ENABLE_DOC)
+				linphone_sdk_check_python_module_is_installed(pdoc)
+			endif()
+		else()
+			find_package(Python3 REQUIRED)
+			linphone_sdk_check_python3_module_is_installed(pystache)
+			linphone_sdk_check_python3_module_is_installed(cython)
+			linphone_sdk_check_python3_module_is_installed(wheel)
+			
+			if (ENABLE_DOC)
+				linphone_sdk_check_python3_module_is_installed(pdoc)
+			endif()
+		endif()
+	endif()
 endif()
 if(ENABLE_OPENH264)
 	linphone_sdk_check_is_installed(nasm)

@@ -306,6 +306,35 @@ job-windows-cs-doc-upload:
     - scp -pr build-desktop/linphone-sdk/desktop/share/doc/liblinphone-%LINPHONE_VERSION%/cs/* %DEPLOY_SERVER%:%UPLOAD_ROOT_DIRECTORY%/docs/liblinphone/%STRIPPED_LINPHONE_VERSION%/cs
 
 #################################################
+# Centos 8 Python wrapper
+#################################################
+
+job-centos-python-wrapper-upload:
+  stage: deploy
+  tags: [ "deploy" ]
+
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+
+  dependencies:
+    - job-centos8-ninja-gcc
+
+  script:
+    #getting the version number to push the right version of the doc
+    - LIBLINPHONE_VERSION=$(git -C liblinphone describe | sed -e 's/-.*//g')
+    - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY
+    - |
+        if [[ $(git -C liblinphone describe) =~ .*(alpha|beta).* ]];
+        then UPLOAD_ROOT_DIRECTORY=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY
+        fi
+    # Upload python wheel
+    - rsync -rlv build-desktop/linphone-sdk/desktop/*.whl $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/linphone-python/linux-x86_64/
+    # Upload python doc
+    - ssh $DEPLOY_SERVER mkdir -p $UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/python
+    - scp build-desktop/linphone-sdk/desktop/linphone_doc.html $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/python/index.html
+
+#################################################
 # Debian doc upload
 #################################################
 
