@@ -217,6 +217,8 @@ job-debian-doc-upload:
     # Using rsync with following options (verbose, keeping symbolic links, and copy recursively)
     - rsync -rlv build-desktop/linphone-sdk/desktop/share/doc/liblinphone-$LIBLINPHONE_VERSION/c/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/c
     - rsync -rlv build-desktop/linphone-sdk/desktop/share/doc/liblinphone-$LIBLINPHONE_VERSION/cpp/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/c++
+    # Upload python wheel
+    - rsync -rlv build-desktop/linphone-sdk/desktop/*.whl $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/linphone-python/linux-x86_64/
 
 #################################################
 # Bzrtp doc upload

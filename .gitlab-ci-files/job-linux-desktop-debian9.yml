@@ -58,11 +58,15 @@ job-debian9-ninja-gcc:
       - $DOCKER_UPDATE
       - $SKIP_LINUX
   variables:
-    CMAKE_OPTIONS: -DENABLE_DOC=ON
+    CMAKE_OPTIONS: -DENABLE_DOC=ON -DENABLE_PYTHON_WRAPPER=ON
     CMAKE_GENERATOR: Ninja
     CC: gcc
     CXX: g++
   extends: .job-linux-desktop
+  after_script:
+    - ls -lh build-desktop/linphone-sdk/desktop/*.whl
+    - pip3 install build-desktop/linphone-sdk/desktop/*.whl
+    - python3 -c "import linphone; print (linphone.Core.get_version())"
 
 
 #job-debian9-ninja-gcc-novideo:

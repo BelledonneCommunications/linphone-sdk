@@ -24,14 +24,21 @@ RUN apt-get update && \
 
 # Install development tools
 RUN apt-get update && \
-    apt-get install -y alien at autoconf bison ccache clang doxygen elfutils g++ gdb git graphviz intltool libtool lsb-release make nasm ninja-build openssh-client patch python-pip python-pystache python-six yasm && \
-	apt-get -t=stretch-backports install -y cmake && \
+    apt-get install -y alien at autoconf bison ccache clang cmake doxygen elfutils g++ gdb git graphviz intltool libtool lsb-release make nasm ninja-build openssh-client patch yasm && \
     apt-get clean
 
 # Install linphone & flexisip dependencies development packages
 RUN apt-get update && \
     apt-get install -y libasound2-dev libavcodec-dev libavutil-dev libbsd-dev libegl1-mesa-dev libglew-dev libgsm1-dev libjansson-dev libmariadbclient-dev libmbedtls-dev libopus-dev libpq-dev libprotobuf-dev libpulse-dev libsnmp-dev libspeex-dev libspeexdsp-dev libsqlite3-dev libsrtp2-dev libssl-dev libswscale-dev libturbojpeg0-dev libv4l-dev libvpx-dev libxerces-c-dev libxml2-dev libxv-dev protobuf-compiler xsdcxx && \
     apt-get clean
+
+# Install python3, set it as defaut and install wrapper dependencies
+RUN apt-get update && \
+    apt-get install -y python3 python3-pip python3-pystache python3-six && \
+    apt-get clean	
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python2.7 1
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.5 2
+RUN pip3 install cython wheel
 
 # Build qt5.10
 RUN git clone https://gitlab.linphone.org/BC/public/linphone-desktop.git && \
