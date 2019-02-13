@@ -100,7 +100,6 @@ typedef struct EncState {
 	int last_fir_seq_nr;
 	uint16_t picture_id;
 	uint16_t last_sli_id;
-	vpx_codec_pts_t last_sli_frame_count; /*The current frame count when last received SLI was processed. Used to detect 16 bits rollover*/
 	bool_t force_keyframe;
 	bool_t invalid_frame_reported;
 	bool_t avpf_enabled;
@@ -770,7 +769,9 @@ static int enc_notify_sli(MSFilter *f, void *data) {
 		/* Last key frame has been lost. */
 		s->force_keyframe = TRUE;
 	} else {
-		if (!fs || PICID_NEWER_THAN(s->last_sli_id,fs->picture_id) || (s->frame_count - s->last_sli_frame_count >= 1<<15)) {
+		/* If no reference frame known, OR sli is for a frame that comes after the last reference frame transmitted
+		 * OR last reference frame is older than last 16 bit picture id half cycle. */
+		if (!fs || PICID_NEWER_THAN(s->last_sli_id,fs->picture_id) || (s->frame_count - fs->count >= 1<<15)) {
 			s->invalid_frame_reported = TRUE;
 		} else {
 #ifdef AVPF_DEBUG
@@ -779,7 +780,6 @@ static int enc_notify_sli(MSFilter *f, void *data) {
 #endif
 		}
 	}
-	s->last_sli_frame_count = s->frame_count;
 	ms_filter_unlock(f);
 	return 0;
 }

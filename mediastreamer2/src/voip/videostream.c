@@ -602,7 +602,7 @@ static void configure_video_source(VideoStream *stream){
 			if (stream->pixconv == NULL){
 				ms_error("Could not create mjpeg decoder, check your build options.");
 			}
-		}else if (format==MS_PIX_FMT_UNKNOWN){
+		}else if (format==MS_PIX_FMT_UNKNOWN && pf.fmt != NULL){
 			stream->pixconv = ms_factory_create_decoder(stream->ms.factory, pf.fmt->encoding);
 		}else{
 			stream->pixconv = ms_factory_create_filter(stream->ms.factory, MS_PIX_CONV_ID);
