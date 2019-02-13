@@ -100,6 +100,7 @@ job-macosx-xcode:
       - $NIGHTLY_RELEASE
       - $DEPLOY_RUN_MACOSX
 
+
 test-linphone-macosx:
   stage: test
   extends: .job-prepare
@@ -150,6 +151,7 @@ test-linphone-macosx:
     - cp $LOG_PATTERN* ${CI_PROJECT_DIR}/results
     # cleaning the extracted files
     - rm -rf ${CI_PROJECT_DIR}/build-desktop/
+
   artifacts:
     paths:
       - results/*
