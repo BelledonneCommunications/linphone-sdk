@@ -7,6 +7,9 @@ job-debian8-makefile-gcc:
 
   tags: [ "docker-debian8" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
+  except:
+    variables:
+      - $FAST_LINUX_TESTS
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: gcc
@@ -19,6 +22,9 @@ job-debian8-makefile-clang:
 
   tags: [ "docker-debian8" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
+  except:
+    variables:
+      - $FAST_LINUX_TESTS
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: clang
@@ -36,6 +42,9 @@ job-debian8-ninja-gcc:
 
   tags: [ "docker-debian8" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
+  except:
+    variables:
+      - $FAST_LINUX_TESTS
   variables:
     CMAKE_GENERATOR: Ninja
     CC: gcc
@@ -45,6 +54,9 @@ job-debian8-ninja-gcc:
 
 job-debian8-ninja-gcc-novideo:
 
+  except:
+    variables:
+      - $FAST_LINUX_TESTS
   only:
     - schedules
   variables:
@@ -65,6 +77,9 @@ job-debian8-ninja-clang:
 
 job-debian8-ninja-clang-novideo:
 
+  except:
+    variables:
+      - $FAST_LINUX_TESTS
   only:
     - schedules
   variables:

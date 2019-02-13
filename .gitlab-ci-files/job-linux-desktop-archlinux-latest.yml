@@ -7,6 +7,9 @@ job-archlinux-latest-makefile-gcc:
 
   tags: [ "docker-archlinux-latest" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:latest
+  except:
+    variables:
+      - $FAST_LINUX_TESTS
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: gcc
@@ -18,6 +21,9 @@ job-archlinux-latest-makefile-clang:
 
   tags: [ "docker-archlinux-latest" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:latest
+  except:
+    variables:
+      - $FAST_LINUX_TESTS
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: clang
@@ -34,6 +40,9 @@ job-archlinux-latest-ninja-gcc:
 
   tags: [ "docker-archlinux-latest" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:latest
+  except:
+    variables:
+      - $FAST_LINUX_TESTS
   variables:
     CMAKE_GENERATOR: Ninja
     CC: gcc
@@ -44,6 +53,9 @@ job-archlinux-latest-ninja-gcc:
 job-archlinux-latest-ninja-gcc-novideo:
 
   tags: [ "docker-archlinux-latest" ]
+  except:
+    variables:
+      - $FAST_LINUX_TESTS
   only:
     - schedules
   variables:
@@ -64,6 +76,9 @@ job-archlinux-latest-ninja-clang:
 
 job-archlinux-latest-ninja-clang-novideo:
 
+  except:
+    variables:
+      - $FAST_LINUX_TESTS
   only:
     - schedules
   variables:

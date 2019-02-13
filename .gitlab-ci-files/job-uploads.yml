@@ -7,6 +7,9 @@ job-ios-upload:
 
   stage: deploy
   tags: [ "deploy" ]
+  except:
+    variables:
+      - $FAST_LINUX_TESTS
 
   only:
     - schedules
@@ -32,6 +35,9 @@ job-android-upload:
   stage: deploy
   tags: [ "docker-android" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
+  except:
+    variables:
+      - $FAST_LINUX_TESTS
 
   variables:
     CCACHE_SIZE: 4G
