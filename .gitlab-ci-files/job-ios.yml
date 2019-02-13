@@ -35,9 +35,13 @@ job-ios-makefile:
 
   except:
     variables:
+<<<<<<< HEAD
       - $DEPLOY_RUN_ANDROID
       - $DEPLOY_RUN_IOS
 
+=======
+      - $FAST_LINUX_TESTS
+>>>>>>> e5cb70a... added conditionnal schedule to run only the needed jobs
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
@@ -53,9 +57,13 @@ job-ios-ninja:
 
   except:
     variables:
+<<<<<<< HEAD
       - $DEPLOY_RUN_ANDROID
       - $DEPLOY_RUN_IOS
 
+=======
+      - $FAST_LINUX_TESTS
+>>>>>>> e5cb70a... added conditionnal schedule to run only the needed jobs
   variables:
     CMAKE_GENERATOR: Ninja
   extends: .job-ios
@@ -65,9 +73,13 @@ job-ios-ninja-novideo:
 
   except:
     variables:
+<<<<<<< HEAD
       - $DEPLOY_RUN_ANDROID
       - $DEPLOY_RUN_IOS
 
+=======
+      - $FAST_LINUX_TESTS
+>>>>>>> e5cb70a... added conditionnal schedule to run only the needed jobs
   only:
     - schedules
   variables:
@@ -84,6 +96,10 @@ job-ios-xcode:
 
   stage: build
   tags: [ "macosx" ]
+  
+  except:
+    variables:
+      - $FAST_LINUX_TESTS
 
   except:
     variables:
