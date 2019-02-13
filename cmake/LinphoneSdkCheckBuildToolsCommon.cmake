@@ -24,10 +24,20 @@ find_package(PythonInterp 3 REQUIRED)
 
 linphone_sdk_check_git()
 
-if(ENABLE_CSHARP_WRAPPER OR ENABLE_CXX_WRAPPER OR ENABLE_DOC OR ENABLE_JAVA_WRAPPER)
+if(ENABLE_CSHARP_WRAPPER OR ENABLE_CXX_WRAPPER OR ENABLE_DOC OR ENABLE_JAVA_WRAPPER OR ENABLE_PYTHON_WRAPPER)
 	linphone_sdk_check_is_installed(doxygen)
 	linphone_sdk_check_python_module_is_installed(pystache)
 	linphone_sdk_check_python_module_is_installed(six)
+
+	if (ENABLE_PYTHON_WRAPPER)
+		linphone_sdk_check_python_module_is_installed(cython)
+		linphone_sdk_check_python_module_is_installed(wheel)
+
+		if (ENABLE_DOC)
+			linphone_sdk_check_python_module_is_installed(pdoc)
+		endif()
+	endif()
+	
 endif()
 if(ENABLE_OPENH264)
 	linphone_sdk_check_is_installed(nasm)
