@@ -58,6 +58,7 @@ job-debian9-ninja-gcc:
       - $DOCKER_UPDATE
       - $SKIP_LINUX
   variables:
+#    CMAKE_OPTIONS: -DENABLE_DOC=ON -DENABLE_PYTHON_WRAPPER=ON
     CMAKE_OPTIONS: -DENABLE_DOC=ON
     CMAKE_GENERATOR: Ninja
     CC: gcc
