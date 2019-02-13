@@ -7,6 +7,9 @@ job-windows-vs2015:
   extends: .job-prepare
   stage: build
   tags: [ "windows" ]
+  except:
+    variables:
+      - $FAST_LINUX_TESTS
 
   except:
     variables:
@@ -24,6 +27,9 @@ job-windows-vs2015-novideo:
 
   only:
     - schedules
+  except:
+    variables:
+      - $FAST_LINUX_TESTS
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-windows-vs2015
