@@ -172,7 +172,11 @@ test-lime:
     - cd /builds/BC/public/linphone-sdk/lime/tester/server/nodejs
     - ./localServerStart.sh & #On l'arrête comment proprement ????
     - cd /builds/BC/public/linphone-sdk
-    - cd build-desktop/WORK/desktop/Build/lime/tester
+    - cd build-desktop/WORK/desktop/Build/
+    - ls -la
+    - cd lime
+    - ls-la
+    - cd tester
     - ls -la
 
     #path to source dir /builds/BC/public/linphone-sdk/lime
