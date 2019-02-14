@@ -53,14 +53,10 @@ job-archlinux-latest-ninja-gcc:
 job-archlinux-latest-ninja-gcc-novideo:
 
   tags: [ "docker-archlinux-latest" ]
-<<<<<<< HEAD
-=======
   except:
     variables:
       - $FAST_LINUX_TESTS
-  only:
-    - schedules
->>>>>>> e5cb70a... added conditionnal schedule to run only the needed jobs
+
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-archlinux-latest-ninja-gcc
