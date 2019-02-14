@@ -68,9 +68,6 @@ job-ubuntu-rolling-ninja-clang:
 
   tags: [ "docker-ubuntu-rolling" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rolling
-  except:
-    variables:
-      - $FAST_LINUX_TESTS
   variables:
     CMAKE_GENERATOR: Ninja
     CC: clang
