@@ -39,12 +39,10 @@ job-android-makefile-r16b:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r16b
   except:
     variables:
-<<<<<<< HEAD
       - $DEPLOY_RUN_ANDROID
       - $DEPLOY_RUN_IOS
-=======
       - $FAST_LINUX_TESTS
->>>>>>> e5cb70a... added conditionnal schedule to run only the needed jobs
+
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
@@ -56,12 +54,10 @@ job-android-makefile-r17c:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
   except:
     variables:
-<<<<<<< HEAD
       - $DEPLOY_RUN_ANDROID
       - $DEPLOY_RUN_IOS
-=======
       - $FAST_LINUX_TESTS
->>>>>>> e5cb70a... added conditionnal schedule to run only the needed jobs
+
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
@@ -74,12 +70,10 @@ job-android-makefile-r18b:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r18b
   except:
     variables:
-<<<<<<< HEAD
       - $DEPLOY_RUN_ANDROID
       - $DEPLOY_RUN_IOS
-=======
       - $FAST_LINUX_TESTS
->>>>>>> e5cb70a... added conditionnal schedule to run only the needed jobs
+
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
@@ -91,12 +85,11 @@ job-android-makefile-r19:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r19
   except:
     variables:
-<<<<<<< HEAD
+
       - $DEPLOY_RUN_ANDROID
       - $DEPLOY_RUN_IOS
-=======
       - $FAST_LINUX_TESTS
->>>>>>> e5cb70a... added conditionnal schedule to run only the needed jobs
+
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
@@ -113,12 +106,10 @@ job-android-ninja-r16b:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r16b
   except:
     variables:
-<<<<<<< HEAD
       - $DEPLOY_RUN_ANDROID
       - $DEPLOY_RUN_IOS
-=======
       - $FAST_LINUX_TESTS
->>>>>>> e5cb70a... added conditionnal schedule to run only the needed jobs
+
   variables:
     CMAKE_GENERATOR: Ninja
   extends: .scheduled-job-android
@@ -128,8 +119,6 @@ job-android-ninja-r16b-novideo:
   except:
     variables:
       - $FAST_LINUX_TESTS
-  only:
-    - schedules
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-android-ninja-r16b
@@ -140,11 +129,9 @@ job-android-ninja-r17c:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
   except:
     variables:
-<<<<<<< HEAD
       - $DEPLOY_RUN_IOS
-=======
       - $FAST_LINUX_TESTS
->>>>>>> e5cb70a... added conditionnal schedule to run only the needed jobs
+
   variables:
     CMAKE_GENERATOR: Ninja
     CMAKE_OPTIONS: -DENABLE_AAUDIO=ON
@@ -171,12 +158,10 @@ job-android-ninja-r18b:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r18b
   except:
     variables:
-<<<<<<< HEAD
       - $DEPLOY_RUN_ANDROID
       - $DEPLOY_RUN_IOS
-=======
       - $FAST_LINUX_TESTS
->>>>>>> e5cb70a... added conditionnal schedule to run only the needed jobs
+
   variables:
     CMAKE_GENERATOR: Ninja
     CMAKE_OPTIONS: -DENABLE_AAUDIO=ON
@@ -188,12 +173,10 @@ job-android-ninja-r19:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r19
   except:
     variables:
-<<<<<<< HEAD
       - $DEPLOY_RUN_ANDROID
       - $DEPLOY_RUN_IOS
-=======
       - $FAST_LINUX_TESTS
->>>>>>> e5cb70a... added conditionnal schedule to run only the needed jobs
+
   variables:
     CMAKE_GENERATOR: Ninja
     CMAKE_OPTIONS: -DENABLE_AAUDIO=ON
