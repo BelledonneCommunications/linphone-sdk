@@ -1,0 +1,5 @@
+To run all the tests:
+
+1. Build iOS sdk
+2. Pod install
+3. Open LinphoneTester.xcworkspace
