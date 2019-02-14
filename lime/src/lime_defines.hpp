@@ -74,6 +74,8 @@ namespace settings {
 	 * current version is 0.0.1
 	 */
 	constexpr int DBuserVersion=0x000001;
+	constexpr uint16_t DBInactiveUserBit = 0x0100;
+	constexpr uint16_t DBCurveIdByte = 0x00FF;
 
 /******************************************************************************/
 /*                                                                            */

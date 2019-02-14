@@ -93,7 +93,7 @@ const X3DH_headerSize = 3;
 
 const enum_messageTypes = {
 	unset_type:0x00,
-	registerUser:0x01,
+	deprecated_registerUser:0x01,
 	deleteUser:0x02,
 	postSPk:0x03,
 	postOPks:0x04,
@@ -101,6 +101,7 @@ const enum_messageTypes = {
 	peerBundle:0x06,
 	getSelfOPks:0x07,
 	selfOPks:0x08,
+	registerUser:0x09,
 	error:0xff
 };
 
@@ -263,9 +264,9 @@ https.createServer(options, (req, res) => {
 
 		var returnHeader = Buffer.from([protocolVersion, messageType, message_curveId]); // acknowledge message by sending an empty message with same header (modified in case of getPeerBundle request)
 		switch (messageType) {
-			/* Register User Identity Key : Identity Key <EDDSA Public key size >*/
-			case enum_messageTypes.registerUser:
-				console.log("Got a registerUser Message from "+userId);
+			/* Deprecated Register User Identity Key : Identity Key <EDDSA Public key size >*/
+			case enum_messageTypes.deprecated_registerUser:
+				console.log("Got a deprecated registerUser Message from "+userId);
 				var x3dh_expectedSize = keySizes[curveId]['ED_pub'];
 				if (body.length<X3DH_headerSize + x3dh_expectedSize) {
 					returnError(enum_errorCodes.bad_size, "Register Identity packet is expexted to be "+(X3DH_headerSize+x3dh_expectedSize)+" bytes, but we got "+body.length+" bytes");
@@ -296,6 +297,109 @@ https.createServer(options, (req, res) => {
 						});
 				});
 			break;
+
+			/* Register User Identity Key :
+			 * Identity Key <EDDSA Public key size > |
+			 * Signed Pre Key <ECDH public key size> | SPk Signature <Signature length> | SPk id <uint32_t big endian: 4 bytes>
+			 * OPk number < uint16_t big endian: 2 bytes> | (OPk <ECDH public key size> | OPk id <uint32_t big endian: 4 bytes> ){OPk number} */
+			case enum_messageTypes.registerUser:
+				console.log("Got a registerUser Message from "+userId);
+				// check we have at least Ik, SPk, SPk_sig, SPk_Id and OPk_count
+				var x3dh_expectedSize = keySizes[curveId]['ED_pub']  // Ik
+					+ keySizes[curveId]['X_pub'] + keySizes[curveId]['Sig'] + 4 //SPk, SPk_Sig, SPk_id
+					+2; // OPk count
+
+				if (body.length<X3DH_headerSize + x3dh_expectedSize) {
+					returnError(enum_errorCodes.bad_size, "Register User packet is expected to be at least(without OPk) "+(X3DH_headerSize+x3dh_expectedSize)+" bytes, but we got "+body.length+" bytes");
+					return;
+				}
+				// Now get the OPk count
+				var bufferIndex = X3DH_headerSize;
+				var OPk_number = body.readUInt16BE(bufferIndex+x3dh_expectedSize-2);
+				// And check again the size with OPks
+				x3dh_expectedSize += OPk_number*(keySizes[curveId]['X_pub'] + 4);
+				if (body.length<X3DH_headerSize + x3dh_expectedSize) {
+					returnError(enum_errorCodes.bad_size, "Register User packet is expected to be (with "+OPk_number+" OPks) "+(X3DH_headerSize+x3dh_expectedSize)+" bytes, but we got "+body.length+" bytes");
+					return;
+				}
+
+				// Read Ik
+				var Ik = body.slice(bufferIndex, bufferIndex + keySizes[curveId]['ED_pub']);
+				bufferIndex += keySizes[curveId]['ED_pub'];
+				// SPk
+				var SPk = body.slice(bufferIndex, bufferIndex + keySizes[curveId]['X_pub']);
+				bufferIndex += keySizes[curveId]['X_pub'];
+				// SPk Sig
+				var Sig = body.slice(bufferIndex, bufferIndex + keySizes[curveId]['Sig']);
+				bufferIndex += keySizes[curveId]['Sig'];
+				// SPk Id
+				var SPk_id = body.readUInt32BE(bufferIndex); // SPk id is a 32 bits unsigned integer in Big endian
+				bufferIndex += 6; // 4 from SPk_id and 2 from OPk count.
+				// all OPks
+				var OPks_param = [];
+				for (let i = 0; i < OPk_number; i++) {
+					var OPk = body.slice(bufferIndex, bufferIndex + keySizes[curveId]['X_pub']);
+					bufferIndex += keySizes[curveId]['X_pub'];
+					var OPk_id = body.readUInt32BE(bufferIndex); // SPk id is a 32 bits unsigned integer in Big endian
+					bufferIndex += 4;
+					OPks_param.push([OPk, OPk_id]);
+				}
+
+
+
+				lock.writeLock(function (release) {
+					// check it is not already present in DB
+					db.get("SELECT Uid FROM Users WHERE UserId = ?;", userId , function (err, row) {
+							if (row != undefined) { // usedId is already present in base
+								release();
+								returnError(enum_errorCodes.user_already_in, "Can't insert user "+userId+" - is already present in base");
+							} else {
+								db.run("begin transaction");
+								db.run("INSERT INTO Users(UserId,Ik,SPk,SPk_sig,SPk_id) VALUES(?,?,?,?,?);", [userId, Ik, SPk, Sig, SPk_id], function(errInsert){
+									if (errInsert == null) {
+										// Now bulk insert the OPks
+										var Uid = this.lastID;
+										var stmt_ran = 0;
+										var stmt_success = 0;
+										var stmt_err_message = '';
+										var stmt = db.prepare("INSERT INTO OPk(Uid, OPk, OPk_id) VALUES(?,?,?);")
+										for (let i=0; i<OPks_param.length; i++) {
+											param = OPks_param[i];
+											stmt.run([Uid, param[0], param[1]], function(stmt_err, stmt_res){ // callback is called for each insertion, so we shall count errors and success
+												stmt_ran++;
+												if (stmt_err) {
+													stmt_err_message +=' ## '+stmt_err;
+												} else {
+													stmt_success++;
+												}
+												if (stmt_ran == OPk_number) { // and react only when we reach correct count
+													if (stmt_ran != stmt_success) {
+														db.run("rollback")
+														release();
+														returnError(enum_errorCodes.db_error, "Error while trying to insert OPk for user "+userId+". Backend says :"+stmt_err);
+													} else {
+														db.run("commit")
+														release();
+														if (yargs.lifetime!=0) {
+															console.log("User inserted will be deleted in "+yargs.lifetime*1000);
+															setTimeout(deleteUser, yargs.lifetime*1000, userId);
+														}
+														returnOk(returnHeader);
+													}
+												}
+											});
+										}
+									} else {
+										release();
+										console.log("INSERT failed err is "); console.log(errInsert);
+										returnError(enum_errorCodes.db_error, "Error while trying to insert user "+userId);
+									}
+								});
+							}
+						});
+				});
+			break;
+
 
 			/* Delete user: message is empty(or at least shall be, anyway, just ignore anything present in the messange and just delete the user given in From header */
 			case enum_messageTypes.deleteUser:
@@ -363,7 +467,7 @@ https.createServer(options, (req, res) => {
 				var OPk_number = body.readUInt16BE(bufferIndex);
 				var x3dh_expectedSize = 2 + OPk_number*(keySizes[curveId]['X_pub'] + 4); // read the public key
 				if (body.length<X3DH_headerSize + x3dh_expectedSize) {
-					returnError(enum_errorCodes.bad_size, "post SPK packet is expexted to be "+(X3DH_headerSize+x3dh_expectedSize)+" bytes, but we got "+body.length+" bytes");
+					returnError(enum_errorCodes.bad_size, "post OPK packet is expexted to be "+(X3DH_headerSize+x3dh_expectedSize)+" bytes, but we got "+body.length+" bytes");
 					return;
 				}
 				bufferIndex+=2; // point to the beginning of first key

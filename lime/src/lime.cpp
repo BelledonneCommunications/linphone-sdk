@@ -91,10 +91,21 @@ namespace lime {
 	/****************************************************************************/
 	template <typename Curve>
 	void Lime<Curve>::publish_user(const limeCallback &callback, const uint16_t OPkInitialBatchSize) {
-		auto userData = make_shared<callbackUserData<Curve>>(this->shared_from_this(), callback, OPkInitialBatchSize, true);
+		auto userData = make_shared<callbackUserData<Curve>>(this->shared_from_this(), callback, OPkInitialBatchSize);
 		get_SelfIdentityKey(); // make sure our Ik is loaded in object
+		/* Generate the SPk */
+		X<Curve, lime::Xtype::publicKey> SPk{};
+		DSA<Curve, lime::DSAtype::signature> SPk_sig{};
+		uint32_t SPk_id=0;
+		X3DH_generate_SPk(SPk, SPk_sig, SPk_id);
+		// Generate the OPks
+		std::vector<X<Curve, lime::Xtype::publicKey>> OPks{};
+		std::vector<uint32_t> OPk_ids{};
+		X3DH_generate_OPks(OPks, OPk_ids, OPkInitialBatchSize);
+
+		// Build and post the message to server
 		std::vector<uint8_t> X3DHmessage{};
-		x3dh_protocol::buildMessage_registerUser<Curve>(X3DHmessage, m_Ik.publicKey());
+		x3dh_protocol::buildMessage_registerUser<Curve>(X3DHmessage, m_Ik.publicKey(),  SPk, SPk_sig, SPk_id, OPks, OPk_ids);
 		postToX3DHServer(userData, X3DHmessage);
 	}
 
@@ -448,7 +459,7 @@ namespace lime {
 
 				case lime::CurveId::unset :
 				default: // asking for an unsupported type
-					throw BCTBX_EXCEPTION << "Cannot create load user "<<deviceId;//<<". Unsupported curve (id <<"static_cast<uint8_t>(curve)") requested";
+					throw BCTBX_EXCEPTION << "Cannot create load user "<<deviceId;
 				break;
 			}
 		} catch (BctbxException &) {

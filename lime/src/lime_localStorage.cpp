@@ -148,7 +148,10 @@ Db::Db(std::string filename) : sql{"sqlite3", filename}{
 	*  - User Id : shall be the GRUU
 	*  - Ik : public||private indentity key (EdDSA key)
 	*  - server : the URL of key Server
-	*  - curveId : identifies the curve used by this user - MUST be in sync with server
+	*  - curveId : identifies the curve used by this user - MUST be in sync with server. This integer stores also the activation byte.
+	*  		Mapping is: <Activation byte>||<CurveId byte>
+	*  		Activation byte is: 0x00 Active, 0x01 inactive
+	*  		CurveId byte: as set in lime.hpp
 	*/
 	sql<<"CREATE TABLE lime_LocalUsers( \
 				Uid INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, \
@@ -223,11 +226,17 @@ Db::Db(std::string filename) : sql{"sqlite3", filename}{
 void Db::load_LimeUser(const std::string &deviceId, long int &Uid, lime::CurveId &curveId, std::string &url)
 {
 	int curve=0;
-	sql<<"SELECT Uid,CurveId,server FROM lime_LocalUsers WHERE UserId = :userId LIMIT 1;", into(Uid), into(curve), into(url), use(deviceId);
+	sql<<"SELECT Uid,curveId,server FROM lime_LocalUsers WHERE UserId = :userId LIMIT 1;", into(Uid), into(curve), into(url), use(deviceId);
 
 	if (sql.got_data()) { // we found someone
+		// Check if the user has been activated
+		if (curve&lime::settings::DBInactiveUserBit) { // user is inactive
+			Uid = 0; // be sure to reset the db_Uid to 0
+			throw BCTBX_EXCEPTION << "Lime User "<<deviceId<<" is in DB but has not been activated yet, call create_user again to try to activate";
+		}
+
 		// turn back integer value retrieved from DB into a lime::CurveId
-		switch (curve) {
+		switch (curve&lime::settings::DBCurveIdByte) {
 			case static_cast<uint8_t>(lime::CurveId::c25519):
 				curveId=lime::CurveId::c25519;
 				break;
@@ -781,8 +790,9 @@ bool DR<Curve>::trySkippedMessageKeys(const uint16_t Nr, const X<Curve, lime::Xt
 /******************************************************************************/
 /**
  * @brief Create a new local user based on its userId(GRUU) from table lime_LocalUsers
+ * The user will be activated only after being published successfully on X3DH server
  *
- * use m_selfDeviceId as input, use m_X3DH_Server as input
+ * use m_selfDeviceId as input
  * populate m_db_Uid
  *
  * @return true if user was created successfully, exception is thrown otherwise.
@@ -793,9 +803,11 @@ template <typename Curve>
 bool Lime<Curve>::create_user()
 {
 	// check if the user is not already in the DB
-	int dummy_Uid;
-	m_localStorage->sql<<"SELECT Uid FROM lime_LocalUsers WHERE UserId = :userId LIMIT 1;", into(dummy_Uid), use(m_selfDeviceId);
+	int Uid;
+
+	m_localStorage->sql<<"SELECT Uid,curveId FROM lime_LocalUsers WHERE UserId = :userId LIMIT 1;", into(Uid), use(m_selfDeviceId);
 	if (m_localStorage->sql.got_data()) {
+		// TODO: if already there but not active, try to publish it.
 		throw BCTBX_EXCEPTION << "Lime user "<<m_selfDeviceId<<" cannot be created: it is already in Database - delete it before if you really want to replace it";
 	}
 
@@ -816,7 +828,8 @@ bool Lime<Curve>::create_user()
 	// insert in DB
 	try {
 		// Don't create stack variable in the method call directly
-		uint8_t curveId = static_cast<int8_t>(Curve::curveId());
+		// set the inactive user bit on, user is not active until X3DH server's confirmation
+		int curveId = lime::settings::DBInactiveUserBit | static_cast<uint16_t>(Curve::curveId());
 
 		m_localStorage->sql<<"INSERT INTO lime_LocalUsers(UserId,Ik,server,curveId) VALUES (:userId,:Ik,:server,:curveId) ", use(m_selfDeviceId), use(Ik), use(m_X3DH_Server_URL), use(curveId);
 	} catch (exception const &e) {
@@ -837,6 +850,46 @@ bool Lime<Curve>::create_user()
 	/* all went fine set the Ik loaded flag */
 	//m_Ik_loaded = true;
 
+
+	return true;
+}
+
+/**
+ * @brief Create a new local user based on its userId(GRUU) from table lime_LocalUsers
+ * The user will be activated only after being published successfully on X3DH server
+ *
+ * use m_selfDeviceId as input
+ * populate m_db_Uid
+ *
+ * @return true if user was activated successfully.
+ *
+ * @exception BCTBX_EXCEPTION	thrown if user is not found in base
+ */
+template <typename Curve>
+bool Lime<Curve>::activate_user() {
+	// check if the user is the DB
+	int Uid = 0;
+	int curveId = 0;
+	m_localStorage->sql<<"SELECT Uid,curveId FROM lime_LocalUsers WHERE UserId = :userId LIMIT 1;", into(Uid), into(curveId), use(m_selfDeviceId);
+	if (!m_localStorage->sql.got_data()) {
+		throw BCTBX_EXCEPTION << "Lime user "<<m_selfDeviceId<<" cannot be activated, it is not present in local storage";
+	}
+
+	transaction tr(m_localStorage->sql);
+
+	// update in DB
+	try {
+		// Don't create stack variable in the method call directly
+		uint8_t curveId = static_cast<int8_t>(Curve::curveId());
+
+		m_localStorage->sql<<"UPDATE lime_LocalUsers SET curveId = :curveId WHERE Uid = :Uid;", use(curveId), use(Uid);
+	} catch (exception const &e) {
+		tr.rollback();
+		throw BCTBX_EXCEPTION << "Lime user activation failed. DB backend says: "<<e.what();
+	}
+	m_db_Uid = Uid;
+
+	tr.commit();
 
 	return true;
 }
@@ -1145,6 +1198,7 @@ void Lime<Curve>::X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds) {
 /* template instanciations for Curves 25519 and 448 */
 #ifdef EC25519_ENABLED
 	template bool Lime<C255>::create_user();
+	template bool Lime<C255>::activate_user();
 	template void Lime<C255>::get_SelfIdentityKey();
 	template void Lime<C255>::X3DH_generate_SPk(X<C255, lime::Xtype::publicKey> &publicSPk, DSA<C255, DSAtype::signature> &SPk_sig, uint32_t &SPk_id);
 	template void Lime<C255>::X3DH_generate_OPks(std::vector<X<C255, lime::Xtype::publicKey>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number);
@@ -1158,6 +1212,7 @@ void Lime<Curve>::X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds) {
 
 #ifdef EC448_ENABLED
 	template bool Lime<C448>::create_user();
+	template bool Lime<C448>::activate_user();
 	template void Lime<C448>::get_SelfIdentityKey();
 	template void Lime<C448>::X3DH_generate_SPk(X<C448, lime::Xtype::publicKey> &publicSPk, DSA<C448, DSAtype::signature> &SPk_sig, uint32_t &SPk_id);
 	template void Lime<C448>::X3DH_generate_OPks(std::vector<X<C448, lime::Xtype::publicKey>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number);

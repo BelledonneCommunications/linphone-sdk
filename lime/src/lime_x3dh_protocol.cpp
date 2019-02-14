@@ -42,7 +42,13 @@ namespace lime {
 	 *	except for getPeerBundle which shall be answered with a peerBundle message
 	 *
 	 *	Message types description :
-	 *		- registerUser : Identity Key<EDDSA Public Key length>
+	 *		- registerUser : Identity Key<EDDSA Public Key length>\n
+	 *				SPk< ECDH Public key length > ||\n
+	 *				SPk Signature< Signature Length > ||\n
+	 *				SPk Id < 4 bytes>\n
+	 *				OPk Keys Count<2 bytes unsigned integer Big endian> ||\n
+	 *				( OPk< ECDH Public key length > || OPk Id <4 bytes>){Keys Count}
+	 *
 	 *		- deleteUser : empty message, user to delete is retrieved from header From
 	 *
 	 *		- postSPk :	SPk< ECDH Public key length > ||
@@ -79,7 +85,7 @@ namespace lime {
 		 * @brief the x3dh message type exchanged with the X3DH server
 		 * @note Do not change the mapped values as they must be synced with X3DH server definition
 		 */
-		enum class x3dh_message_type : uint8_t{	registerUser=0x01,
+		enum class x3dh_message_type : uint8_t{	deprecated_registerUser=0x01, // The usage of this value is deprecated, but kept in the define so it is not recycled.
 							deleteUser=0x02,
 							postSPk=0x03,
 							postOPks=0x04,
@@ -87,6 +93,7 @@ namespace lime {
 							peerBundle=0x06,
 							getSelfOPks=0x07,
 							selfOPks=0x08,
+							registerUser=0x09,
 							error=0xff};
 
 		/**
@@ -113,6 +120,8 @@ namespace lime {
 		 */
 		static std::string x3dh_messageTypeString(const x3dh_message_type message_type) {
 			switch (message_type) {
+				case x3dh_message_type::deprecated_registerUser :
+					return "deprecated_registerUser";
 				case x3dh_message_type::registerUser :
 					return "registerUser";
 				case x3dh_message_type::deleteUser :
@@ -159,11 +168,29 @@ namespace lime {
 		 * @param[in]		Ik		Self public identity key (formatted for signature algorithm)
 		 */
 		template <typename Curve>
-		void buildMessage_registerUser(std::vector<uint8_t> &message, const DSA<Curve, lime::DSAtype::publicKey> &Ik) noexcept {
+		void buildMessage_registerUser(std::vector<uint8_t> &message, const DSA<Curve, lime::DSAtype::publicKey> &Ik, const X<Curve, lime::Xtype::publicKey> &SPk, const DSA<Curve, lime::DSAtype::signature> &Sig, const uint32_t SPk_id, const std::vector<X<Curve, lime::Xtype::publicKey>> &OPks, const std::vector<uint32_t> &OPk_ids) noexcept {
 			// create the header
 			message = X3DH_makeHeader(x3dh_message_type::registerUser, Curve::curveId());
 			// append the Ik
 			message.insert(message.end(), Ik.cbegin(), Ik.cend());
+			// append SPk, Signature and SPkId
+			message.insert(message.end(), SPk.cbegin(), SPk.cend());
+			message.insert(message.end(), Sig.cbegin(), Sig.cend());
+			message.push_back(static_cast<uint8_t>((SPk_id>>24)&0xFF));
+			message.push_back(static_cast<uint8_t>((SPk_id>>16)&0xFF));
+			message.push_back(static_cast<uint8_t>((SPk_id>>8)&0xFF));
+			message.push_back(static_cast<uint8_t>((SPk_id)&0xFF));
+
+			// check we do not try to upload more than 2^16 OPks as the counter is on 2 bytes
+			auto OPkCount = OPks.size();
+			if (OPkCount > 0xFFFF) {
+				OPkCount = 0xFFFF;
+				LIME_LOGW << "Trying to publish "<<static_cast<unsigned int>(OPks.size())<<" OPks wich is more than the maximum allowed. Actually publish the first 2^16 and discard the rest";
+			}
+
+			// append OPks number and a sequence of OPk || OPk_id
+			message.push_back(static_cast<uint8_t>(((OPkCount)>>8)&0xFF));
+			message.push_back(static_cast<uint8_t>((OPkCount)&0xFF));
 
 			// debug trace
 			ostringstream message_trace;
@@ -171,6 +198,33 @@ namespace lime {
 			std::for_each(Ik.cbegin(), Ik.cend(), [&message_trace] (unsigned int i) {
 				message_trace << setw(2) << i << ", ";
 			});
+
+			message_trace <<endl<<"    SPk:";
+			std::for_each(SPk.cbegin(), SPk.cend(), [&message_trace] (unsigned int i) {
+				message_trace << setw(2) << i << ", ";
+			});
+			message_trace << endl <<"    SPk Signature:";
+			std::for_each(Sig.cbegin(), Sig.cend(), [&message_trace] (unsigned int i) {
+				message_trace << setw(2) << i << ", ";
+			});
+			message_trace << endl <<"    SPk Id: 0x"<< setw(8) << static_cast<unsigned int>(SPk_id);
+
+			message_trace << endl << dec << setfill('0') << "    " << static_cast<unsigned int>(OPkCount)<<" OPks."<< hex;
+
+			for (decltype(OPkCount) i=0; i<OPkCount; i++) {
+				message.insert(message.end(), OPks[i].cbegin(), OPks[i].cend());
+				message.push_back(static_cast<uint8_t>((OPk_ids[i]>>24)&0xFF));
+				message.push_back(static_cast<uint8_t>((OPk_ids[i]>>16)&0xFF));
+				message.push_back(static_cast<uint8_t>((OPk_ids[i]>>8)&0xFF));
+				message.push_back(static_cast<uint8_t>((OPk_ids[i])&0xFF));
+
+				// debug trace
+				message_trace << endl <<"        OPk id: 0x"<< setw(8) << static_cast<unsigned int>(OPk_ids[i]) <<"        OPk:";
+				std::for_each(OPks[i].cbegin(), OPks[i].cend(), [&message_trace] (unsigned int i) {
+					message_trace << setw(2) << i << ", ";
+				});
+			}
+
 			LIME_LOGD<<message_trace.str();
 		}
 
@@ -681,7 +735,7 @@ namespace lime {
 
 		/* Instanciate templated functions */
 #ifdef EC25519_ENABLED
-		template void buildMessage_registerUser<C255>(std::vector<uint8_t> &message, const DSA<C255, lime::DSAtype::publicKey> &Ik) noexcept;
+		template void buildMessage_registerUser<C255>(std::vector<uint8_t> &message, const DSA<C255, lime::DSAtype::publicKey> &Ik, const X<C255, lime::Xtype::publicKey> &SPk, const DSA<C255, lime::DSAtype::signature> &Sig, const uint32_t SPk_id, const std::vector<X<C255, lime::Xtype::publicKey>> &OPks, const std::vector<uint32_t> &OPk_ids) noexcept;
 		template void buildMessage_deleteUser<C255>(std::vector<uint8_t> &message) noexcept;
 		template void buildMessage_publishSPk<C255>(std::vector<uint8_t> &message, const X<C255, lime::Xtype::publicKey> &SPk, const DSA<C255, lime::DSAtype::signature> &Sig, const uint32_t SPk_id) noexcept;
 		template void buildMessage_publishOPks<C255>(std::vector<uint8_t> &message, const std::vector<X<C255, lime::Xtype::publicKey>> &OPks, const std::vector<uint32_t> &OPk_ids) noexcept;
@@ -690,7 +744,7 @@ namespace lime {
 #endif
 
 #ifdef EC448_ENABLED
-		template void buildMessage_registerUser<C448>(std::vector<uint8_t> &message, const DSA<C448, lime::DSAtype::publicKey> &Ik) noexcept;
+		template void buildMessage_registerUser<C448>(std::vector<uint8_t> &message, const DSA<C448, lime::DSAtype::publicKey> &Ik, const X<C448, lime::Xtype::publicKey> &SPk, const DSA<C448, lime::DSAtype::signature> &Sig, const uint32_t SPk_id, const std::vector<X<C448, lime::Xtype::publicKey>> &OPks, const std::vector<uint32_t> &OPk_ids) noexcept;
 		template void buildMessage_deleteUser<C448>(std::vector<uint8_t> &message) noexcept;
 		template void buildMessage_publishSPk<C448>(std::vector<uint8_t> &message, const X<C448, lime::Xtype::publicKey> &SPk, const DSA<C448, lime::DSAtype::signature> &Sig, const uint32_t SPk_id) noexcept;
 		template void buildMessage_publishOPks<C448>(std::vector<uint8_t> &message, const std::vector<X<C448, lime::Xtype::publicKey>> &OPks, const std::vector<uint32_t> &OPk_ids) noexcept;
@@ -745,53 +799,24 @@ namespace lime {
 			}
 
 			switch (message_type) {
-				// for registerUser, deleteUser, postSPk and postOPks, on success, server will respond with an identical header
-				// but we cannot get from server getPeerBundle or getSelfOPks message
-				case x3dh_protocol::x3dh_message_type::getPeerBundle:
-				case x3dh_protocol::x3dh_message_type::getSelfOPks: {
-					if (callback) callback(lime::CallbackReturn::fail, "X3DH unexpected message from server");
-					cleanUserData(userData);
-				}
-				return;
-
 				case x3dh_protocol::x3dh_message_type::registerUser: {
-					// server response to a registerUser, we shall have the network state machine set to next action: sendSPk, just check it
-					if (userData->network_state_machine == lime::network_state::sendSPk) {
-						userData->network_state_machine = lime::network_state::sendOPk;
-						// generate and publish the SPk
-						X<Curve, lime::Xtype::publicKey> SPk{};
-						DSA<Curve, lime::DSAtype::signature> SPk_sig{};
-						uint32_t SPk_id=0;
-						X3DH_generate_SPk(SPk, SPk_sig, SPk_id);
-						std::vector<uint8_t> X3DHmessage{};
-						x3dh_protocol::buildMessage_publishSPk(X3DHmessage, SPk, SPk_sig, SPk_id);
-						postToX3DHServer(userData, X3DHmessage);
-					} else { // after registering a user, we must post SPk and OPks
-						if (callback) callback(lime::CallbackReturn::fail, "Internal Error: we registered a new user on X3DH server but do not plan to post SPk or OPks");
+					// server response to a registerUser
+					// activate the local user
+					try {
+						activate_user();
+					} catch (BctbxException const &e) {
+						LIME_LOGE<<"Cannot activate user "<< m_selfDeviceId << ". Backend says: "<< e.str();
+						if (callback) callback(lime::CallbackReturn::fail, std::string{"Cannot activate user : "}.append(e.str()));
 						cleanUserData(userData);
-					}
-				}
-				return;
-
-				case x3dh_protocol::x3dh_message_type::postSPk: {
-					// server response to a post SPk, if we are at user creation, the state machine is set to next action post OPk, do it
-					if (userData->network_state_machine == lime::network_state::sendOPk) {
-						userData->network_state_machine = lime::network_state::done;
-						// generate and publish the OPks
-						std::vector<X<Curve, lime::Xtype::publicKey>> OPks{};
-						std::vector<uint32_t> OPk_ids{};
-						X3DH_generate_OPks(OPks, OPk_ids, userData->OPkBatchSize);
-						std::vector<uint8_t> X3DHmessage{};
-						x3dh_protocol::buildMessage_publishOPks(X3DHmessage, OPks, OPk_ids);
-						postToX3DHServer(userData, X3DHmessage);
 						return;
 					}
 				}
 				break;
 
+				case x3dh_protocol::x3dh_message_type::postSPk:
 				case x3dh_protocol::x3dh_message_type::deleteUser:
 				case x3dh_protocol::x3dh_message_type::postOPks:
-					// server response to deleteUser or postOPks, nothing to do really
+					// server response to deleteUser, postSPk or postOPks, nothing to do really
 					// success callback is the common behavior, performed after the switch
 				break;
 
@@ -873,6 +898,17 @@ namespace lime {
 					cleanUserData(userData);
 				}
 				return;
+
+				// for registerUser, deleteUser, postSPk and postOPks, on success, server will respond with an identical header
+				// but we cannot get from server getPeerBundle or getSelfOPks message
+				case x3dh_protocol::x3dh_message_type::deprecated_registerUser:
+				case x3dh_protocol::x3dh_message_type::getPeerBundle:
+				case x3dh_protocol::x3dh_message_type::getSelfOPks: {
+					if (callback) callback(lime::CallbackReturn::fail, "X3DH unexpected message from server");
+					cleanUserData(userData);
+				}
+				return;
+
 			}
 
 			// we get here only if processing is over and response was the expected one
