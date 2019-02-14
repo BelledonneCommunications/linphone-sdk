@@ -56,9 +56,6 @@ job-debian8-ninja-gcc-novideo:
   except:
     variables:
       - $FAST_LINUX_TESTS
-  only:
-    - schedules
-
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-debian8-ninja-gcc

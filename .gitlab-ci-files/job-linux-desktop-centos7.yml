@@ -71,7 +71,9 @@ job-centos7-ninja-clang:
     CMAKE_GENERATOR: Ninja
     CC: clang
     CXX: clang++
+    CMAKE_OPTIONS: -DENABLE_LIME=ON
   extends: .scheduled-job-linux-desktop
+
 
 
 job-centos7-ninja-clang-novideo:
