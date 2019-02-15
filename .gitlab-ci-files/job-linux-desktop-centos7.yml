@@ -71,7 +71,6 @@ job-centos7-ninja-clang:
     CMAKE_GENERATOR: Ninja
     CC: clang
     CXX: clang++
-    DEFAULT_LINUX_CMAKE_OPTIONS: -DENABLE_LIME=YES
   extends: .job-linux-desktop
 
 
