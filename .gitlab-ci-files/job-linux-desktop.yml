@@ -159,18 +159,13 @@ test-lime:
   dependencies:
     - job-centos7-ninja-clang
   script:
-    #- sudo yum --noplugins -y check-update
-    #- sudo yum --noplugins -y update
-    #- sudo yum --noplugins install gcc-c++ snap
-    #- sudo snap install node --classic --channel=10
-    #- npm --skip-broken
-    #- sudo npm -g install
-    #- npm install yargs sqlite3 rwlock
     - ls -la .
     - pwd
     - ls -la ./lime
     - cd /builds/BC/public/linphone-sdk/lime/tester/server/nodejs
-    - ./localServerStart.sh & #On l'arrête comment proprement ????
+    #installing here since the tester cannot find globally installed packages
+    - npm install yargs sqlite3 rwlock
+    - ./localServerStart.sh & #How do we stop it properly ????
     - cd /builds/BC/public/linphone-sdk
     - cd build-desktop/WORK/desktop/Build/
     - ls -la
