@@ -72,7 +72,6 @@ job-centos7-ninja-clang:
     CC: clang
     CXX: clang++
     CMAKE_OPTIONS: -DENABLE_LIME=ON
-
   extends: .job-linux-desktop
 
 
