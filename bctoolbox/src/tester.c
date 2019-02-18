@@ -663,8 +663,8 @@ int start_sub_process(const char *suite_name) {
 			argv[argc++] = origin_argv[i++];
 			argv[argc++] = get_logfile_name(log_file_name, suite_name);
 		} else if (strcmp(origin_argv[i], "--xml-file") == 0) {
+			argv[argc++] = origin_argv[i++];
 			argv[argc++] = origin_argv[i];
-			argv[argc++] = origin_argv[i + 1];
 		} else if (strcmp(origin_argv[i], "--parallel") == 0) {
 			argv[argc++] = origin_argv[i];
 		} else {
