@@ -140,27 +140,32 @@ void bctbx_log_handler_set_domain(bctbx_log_handler_t * log_handler,const char *
 	
 }
 bctbx_log_handler_t* bctbx_create_file_log_handler(uint64_t max_size, const char* path, const char* name, FILE* f) {
-	bctbx_log_handler_t* handler = (bctbx_log_handler_t*)bctbx_malloc0(sizeof(bctbx_log_handler_t));
-	bctbx_file_log_handler_t* filehandler = (bctbx_file_log_handler_t*)bctbx_malloc0(sizeof(bctbx_file_log_handler_t));
-	char *full_name = bctbx_strdup_printf("%s/%s",
-									path,
-									name);
-	struct stat buf;
-	memset(&buf, 0, sizeof(buf));
-	handler->func=bctbx_logv_file;
-	handler->destroy=bctbx_logv_file_destroy;
-	filehandler->max_size = max_size;
-	// init with actual file size
-	if(!f && stat(full_name, &buf) != 0) {
-		fprintf(stderr,"Error while creating file log handler. \n");
-		return NULL;
+	bctbx_log_handler_t *handler = NULL;
+	bctbx_file_log_handler_t *filehandler = NULL;
+	char *full_name = bctbx_strdup_printf("%s/%s", path, name);
+	int res;
+	struct stat buf = {0};
+
+	res = stat(full_name, &buf);
+	if (!f && res != 0) {
+		fprintf(stderr, "Error while creating file log handler. \n");
+		goto end;
 	}
-	bctbx_free(full_name);
+
+	filehandler = bctbx_new0(bctbx_file_log_handler_t, 1);
+	filehandler->max_size = max_size;
 	filehandler->size = buf.st_size;
 	filehandler->path = bctbx_strdup(path);
 	filehandler->name = bctbx_strdup(name);
 	filehandler->file = f;
-	handler->user_info=(void*) filehandler;
+
+	handler = bctbx_new0(bctbx_log_handler_t, 1);
+	handler->func = bctbx_logv_file;
+	handler->destroy = bctbx_logv_file_destroy;
+	handler->user_info = filehandler;
+
+end:
+	bctbx_free(full_name);
 	return handler;
 }
 
