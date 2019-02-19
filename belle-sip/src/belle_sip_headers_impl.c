@@ -51,6 +51,8 @@ static struct header_name_func_pair  header_table[] = {
 	,{PROTO_SIP, 			BELLE_SIP_DIVERSION,			(header_parse_func)belle_sip_header_diversion_parse}
 	,{PROTO_SIP, 			"i",							(header_parse_func)belle_sip_header_call_id_parse}
 	,{PROTO_SIP, 			BELLE_SIP_CALL_ID,				(header_parse_func)belle_sip_header_call_id_parse}
+	,{PROTO_SIP, 			"r",							(header_parse_func)belle_sip_header_retry_after_parse}
+	,{PROTO_SIP, 			BELLE_SIP_RETRY_AFTER,			(header_parse_func)belle_sip_header_retry_after_parse}
 	,{PROTO_SIP, 			"l",							(header_parse_func)belle_sip_header_content_length_parse}
 	,{PROTO_SIP|PROTO_HTTP, BELLE_SIP_CONTENT_LENGTH,		(header_parse_func)belle_sip_header_content_length_parse}
 	,{PROTO_SIP, 			"c",							(header_parse_func)belle_sip_header_content_type_parse}
@@ -901,6 +903,41 @@ unsigned int belle_sip_header_call_id_equals(const belle_sip_header_call_id_t* a
 BELLE_SIP_NEW_HEADER(header_call_id,header,BELLE_SIP_CALL_ID)
 BELLE_SIP_PARSE(header_call_id)
 GET_SET_STRING(belle_sip_header_call_id,call_id);
+/**************************
+* retry-after header object inherits from object
+****************************
+*/
+struct _belle_sip_header_retry_after  {
+	belle_sip_header_t header;
+	int retry_after;
+};
+
+static void belle_sip_header_retry_after_destroy(belle_sip_header_retry_after_t* retry_after) {
+}
+
+static void belle_sip_header_retry_after_clone(belle_sip_header_retry_after_t* retry_after,const belle_sip_header_retry_after_t *orig){
+	retry_after->retry_after = orig->retry_after;
+}
+
+belle_sip_error_code belle_sip_header_retry_after_marshal(belle_sip_header_retry_after_t* retry_after, char* buff, size_t buff_size, size_t *offset) {
+	belle_sip_error_code error=belle_sip_header_marshal(BELLE_SIP_HEADER(retry_after), buff, buff_size, offset);
+	if (error!=BELLE_SIP_OK) return error;
+	if (retry_after->retry_after > 0) {
+		error=belle_sip_snprintf(buff,buff_size,offset,"%i",retry_after->retry_after);
+		if (error!=BELLE_SIP_OK) return error;
+	}
+	return error;
+}
+
+BELLE_SIP_NEW_HEADER(header_retry_after,header,BELLE_SIP_RETRY_AFTER)
+BELLE_SIP_PARSE(header_retry_after)
+GET_SET_INT(belle_sip_header_retry_after,retry_after,int);
+belle_sip_header_retry_after_t* belle_sip_header_retry_after_create (int retry_after)  {
+	belle_sip_header_retry_after_t* obj;
+	obj = belle_sip_header_retry_after_new();
+	belle_sip_header_retry_after_set_retry_after(obj,retry_after);
+	return obj;
+}
 /**************************
 * cseq header object inherent from object
 ****************************

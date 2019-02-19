@@ -171,6 +171,7 @@ BELLE_SIP_DECLARE_VPTR(belle_sip_request_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_response_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_parameters_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_call_id_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_header_retry_after_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_cseq_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_content_type_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_route_t);

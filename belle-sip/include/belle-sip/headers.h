@@ -351,6 +351,20 @@ unsigned int belle_sip_header_call_id_equals(const belle_sip_header_call_id_t* a
 #define BELLE_SIP_HEADER_CALL_ID(t) BELLE_SIP_CAST(t,belle_sip_header_call_id_t)
 #define BELLE_SIP_CALL_ID "Call-ID"
 /******************************
+ * Retry-After object inherent from object
+ *
+ ******************************/
+typedef struct _belle_sip_header_retry_after belle_sip_header_retry_after_t;
+
+BELLESIP_EXPORT belle_sip_header_retry_after_t* belle_sip_header_retry_after_new(void);
+BELLESIP_EXPORT belle_sip_header_retry_after_t* belle_sip_header_retry_after_create (int retry_after);
+BELLESIP_EXPORT belle_sip_header_retry_after_t* belle_sip_header_retry_after_parse (const char *retry_after) ;
+BELLESIP_EXPORT int belle_sip_header_retry_after_get_retry_after(const belle_sip_header_retry_after_t* retry_after);
+BELLESIP_EXPORT void belle_sip_header_retry_after_set_retry_after(belle_sip_header_retry_after_t* retry_after,int second);
+
+#define BELLE_SIP_HEADER_RETRY_AFTER(t) BELLE_SIP_CAST(t,belle_sip_header_retry_after_t)
+#define BELLE_SIP_RETRY_AFTER "Retry-After"
+/******************************
  * cseq object inherent from object
  *
  ******************************/

@@ -153,6 +153,7 @@ message_header [belle_sip_message_t* message]
 //                |  authorization
 //                |  header_call_id {belle_sip_message_add_header(message,BELLE_SIP_HEADER($header_call_id.ret));}/*
 //                |  call_info
+//                |  header_retry_after {belle_sip_message_add_header(message,BELLE_SIP_HEADER($header_retry_after.ret));}/*
 //                |  header_contact {belle_sip_message_add_header(message,BELLE_SIP_HEADER($header_contact.ret));}
 //                |  content_disposition
 //                |  content_encoding
@@ -630,6 +631,21 @@ info_param
   :   ( 'purpose' EQUAL ( 'icon' | 'info'
                | 'card' | token ) ) | generic_param;
 */
+/*retry-after header*/
+retry_after_token: {IS_HEADER_NAMED(Retry-After,r)}? token;
+
+header_retry_after  returns [belle_sip_header_retry_after_t* ret]
+scope { belle_sip_header_retry_after_t* current; }
+@init {$header_retry_after::current = belle_sip_header_retry_after_new(); $ret=$header_retry_after::current; }
+:  retry_after_token /*( 'Retry-After' | 'r' )*/ hcolon retry_after{belle_sip_header_retry_after_set_retry_after($header_retry_after::current,atoi((const char*) $retry_after.text->chars)); };
+catch [ANTLR3_RECOGNITION_EXCEPTION]
+{
+belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+belle_sip_object_unref($header_retry_after::current);
+$ret=NULL;
+}
+retry_after
+:   DIGIT+;
 /* contact header */
 contact_token: {IS_HEADER_NAMED(Contact,m)}? token;
 
