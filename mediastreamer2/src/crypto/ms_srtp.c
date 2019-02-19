@@ -303,54 +303,34 @@ static int ms_set_srtp_crypto_policy(MSCryptoSuite suite, crypto_policy_t *polic
 	return 0;
 }
 
-static int ms_add_srtp_stream(srtp_t srtp, MSCryptoSuite suite, uint32_t ssrc, const char *key, size_t key_length, bool_t is_send, bool_t is_rtp, bool_t is_rtcp_mux /* fixed add value*/) {
+static int ms_add_srtp_stream(srtp_t srtp, MSCryptoSuite suite, uint32_t ssrc, const char *key, size_t key_length, bool_t is_send, bool_t is_rtp) {
 	srtp_policy_t policy;
 	err_status_t err;
 	ssrc_t ssrc_conf;
 
 	memset(&policy,0,sizeof(policy));
 
-	/* fixed init both if  rtcp_mux = true*/
-	if (is_rtcp_mux) {
-		// init both streams RTP
-		if (ms_set_srtp_crypto_policy(suite, &policy.rtp) != 0) {
-			return -1;
-		}
-		if ((int)key_length != policy.rtp.cipher_key_len) {
-			ms_error("Key size (%i) doesn't match the selected srtp profile (required %d)", (int)key_length,
-					 policy.rtp.cipher_key_len);
-			return -1;
-		}
-		// and RTCP stream
-		if (ms_set_srtp_crypto_policy(suite, &policy.rtcp) != 0) {
-			return -1;
-		}
-		if ((int)key_length != policy.rtcp.cipher_key_len) {
-			ms_error("Key size (%i) doesn't match the selected srtp profile (required %d)", (int)key_length,
-					 policy.rtcp.cipher_key_len);
-			return -1;
-		}
-
-	} else if (is_rtp) {
-		if (ms_set_srtp_crypto_policy(suite, &policy.rtp) != 0) {
-			return -1;
-		}
-		/* check if key length match given policy */
-		if ((int)key_length != policy.rtp.cipher_key_len) {
-			ms_error("Key size (%i) doesn't match the selected srtp profile (required %d)", (int)key_length,
-					 policy.rtp.cipher_key_len);
-			return -1;
-		}
-	} else {
-		if (ms_set_srtp_crypto_policy(suite, &policy.rtcp) != 0) {
-			return -1;
-		}
-		if ((int)key_length != policy.rtcp.cipher_key_len) {
-			ms_error("Key size (%i) doesn't match the selected srtp profile (required %d)", (int)key_length,
-					 policy.rtcp.cipher_key_len);
-			return -1;
-		}
+	/* Init both RTP and RTCP policies, even if this srtp_t is used for one of them.
+	 * Indeed the key derivation algorithm that computes the SRTCP auth key depends on parameters 
+	 * of the SRTP stream.*/
+	if (ms_set_srtp_crypto_policy(suite, &policy.rtp) != 0) {
+		return -1;
 	}
+	if ((int)key_length != policy.rtp.cipher_key_len) {
+		ms_error("Key size (%i) doesn't match the selected srtp profile (required %d)", (int)key_length,
+					policy.rtp.cipher_key_len);
+		return -1;
+	}
+	// and RTCP stream
+	if (ms_set_srtp_crypto_policy(suite, &policy.rtcp) != 0) {
+		return -1;
+	}
+	if ((int)key_length != policy.rtcp.cipher_key_len) {
+		ms_error("Key size (%i) doesn't match the selected srtp profile (required %d)", (int)key_length,
+					policy.rtcp.cipher_key_len);
+		return -1;
+	}
+
 
 	if (is_send)
 		policy.allow_repeat_tx=1; /*necessary for telephone-events*/
@@ -416,7 +396,7 @@ static int ms_media_stream_sessions_set_srtp_key_base(MSMediaStreamSessions *ses
 		return error;
 	}
 
-	if ((error = ms_add_srtp_stream(stream_ctx->srtp, suite, ssrc, key, key_length, is_send, is_rtp, sessions->rtp_session->rtcp_mux/* fixed rtcp_mux */))) {
+	if ((error = ms_add_srtp_stream(stream_ctx->srtp, suite, ssrc, key, key_length, is_send, is_rtp))) {
 		stream_ctx->secured=FALSE;
 		return error;
 	}
