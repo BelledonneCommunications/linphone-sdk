@@ -530,6 +530,20 @@ static void test_content_length_header(void) {
 	BC_ASSERT_PTR_NULL(belle_sip_header_content_length_parse("nimportequoi"));
 }
 
+static void test_retry_after_header(void) {
+	belle_sip_header_retry_after_t* L_tmp;
+	belle_sip_header_retry_after_t* L_retry_after = belle_sip_header_retry_after_parse("Retry-After: 120");
+	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_retry_after));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_retry_after));
+	L_tmp = belle_sip_header_retry_after_parse(l_raw_header);
+	L_retry_after = BELLE_SIP_HEADER_RETRY_AFTER(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
+	belle_sip_free(l_raw_header);
+	BC_ASSERT_EQUAL((unsigned int)belle_sip_header_retry_after_get_retry_after(L_retry_after), 120, int, "%i");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_retry_after));
+	BC_ASSERT_PTR_NULL(belle_sip_header_retry_after_parse("nimportequoi"));
+}
+
 static belle_sip_header_t* test_header_extension(const char* name,const char* value) {
 	belle_sip_header_t* L_tmp;
 	belle_sip_header_t* L_extension;
@@ -1377,6 +1391,7 @@ test_t headers_tests[] = {
 	TEST_NO_TAG("Contact (Complex)", test_complex_contact_header),
 	TEST_NO_TAG("Contact (Param-less address spec)", test_contact_header_with_paramless_address_spec),
 	TEST_NO_TAG("Content-Length", test_content_length_header),
+	TEST_NO_TAG("Retry-After", test_retry_after_header),
 	TEST_NO_TAG("Content-Type", test_content_type_header),
 	TEST_NO_TAG("CSeq", test_cseq_header),
 	TEST_NO_TAG("Date", test_date_header),
