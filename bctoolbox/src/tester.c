@@ -105,6 +105,7 @@ static size_t max_vm_kb = 0;
 static int run_skipped_tests = 0;
 //0 if deactivated, or > 0, representing the maximum number of subprocesses to launch
 static int parallel_suites = 0;
+static uint64_t globalTimeout = 0;
 
 //To keep record of the process name who started and args
 static char **origin_argv = NULL;
@@ -720,7 +721,15 @@ int bc_tester_run_parallel(void) {
 int bc_tester_run_parallel(void) {
 	int suitesPids[nb_test_suites];
 	uint64_t time_start = bctbx_get_cur_time_ms(), elapsed = time_start, print_timer = time_start;
-	uint64_t timeout = time_start + (40 * 60 * 1000); //Assume there is a problem if a child is still running after 40mn. TODO make timeout	a cli parameter ?
+
+	//Assume there is a problem if a suite is still running 60mn after the start of the tester. TODO make timeout	a cli parameter ?
+	uint64_t timeout = 0;
+	if (globalTimeout <= 0) {
+			globalTimeout = 60;
+	}
+	timeout = time_start + (globalTimeout * 60 * 1000);
+
+
 	int maxProcess = bc_tester_get_max_parallel_processes();
 	int nextSuite = 0; //Next suite id to be exec'd
 	int runningSuites = 0; //Number of currently running suites
@@ -1093,6 +1102,7 @@ void bc_tester_helper(const char *name, const char* additionnal_helper) {
 			 "\t\t\t--max-alloc <size in ko> (maximum amount of memory obtained via malloc allocator)\n"
 			 "\t\t\t--max-alloc <size in ko> (maximum amount of memory obtained via malloc allocator)\n"
 			 "\t\t\t--parallel (Execute tests concurrently and with JUnit report)\n"
+			 "\t\t\t--timeout <timeout in minutes> (sets the global timeout when used alongside to the parallel option, the default value is 60)\n"
 			 "And additionally:\n"
 			 "%s",
 			 name,
@@ -1151,6 +1161,9 @@ int bc_tester_parse_args(int argc, char **argv, int argid)
 		//Defaults to JUnit report if parallel is enabled
 		xml_enabled = 1;
 		parallel_suites = 1;
+	} else if (strcmp(argv[i], "--timeout") == 0) {
+		CHECK_ARG("--timeout", ++i, argc);
+		globalTimeout = atoi(argv[i]);
 	} else if (strcmp(argv[i], "--max-alloc") == 0) {
 		CHECK_ARG("--max-alloc", ++i, argc);
 		max_vm_kb = atol(argv[i]);
