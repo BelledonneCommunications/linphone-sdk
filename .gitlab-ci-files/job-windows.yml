@@ -22,7 +22,7 @@
 #    - mkdir build-desktop
 #    - cd build-desktop
 #    - cmake .. -G "Visual Studio 14 2015" -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_BUILD_TYPE=Release %DEFAULT_CMAKE_OPTIONS% %CMAKE_OPTIONS%
- #   - cmake --build . --target sdk --config Release -- /maxcpucount
+#   - cmake --build . --target sdk --config Release -- /maxcpucount
 
 .job-windows-vs2017:
   extends: .job-prepare
