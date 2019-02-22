@@ -12,7 +12,7 @@
   script:
     - mkdir build-desktop
     - cd build-desktop
-    - cmake .. -G "$VISUAL_STUDIO_VERSION" -DLINPHONESDK_PLATFORM=Desktop -DENABLE_CSHARP_WRAPPER=YES -DCMAKE_BUILD_TYPE=Release %DEFAULT_CMAKE_OPTIONS% %CMAKE_OPTIONS%
+    - cmake .. -G "%VISUAL_STUDIO_VERSION%" -DLINPHONESDK_PLATFORM=Desktop -DENABLE_CSHARP_WRAPPER=YES -DCMAKE_BUILD_TYPE=Release %DEFAULT_CMAKE_OPTIONS% %CMAKE_OPTIONS%
     - cmake --build . --target sdk --config Release -- /maxcpucount
 
 #################################################
