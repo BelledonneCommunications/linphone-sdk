@@ -1,8 +1,4 @@
-#################################################
-# VS2015
-#################################################
-
-job-windows-vs2015:
+.job-windows:
 
   extends: .job-prepare
   stage: build
@@ -16,8 +12,17 @@ job-windows-vs2015:
   script:
     - mkdir build-desktop
     - cd build-desktop
-    - cmake .. -G "Visual Studio 15 2017" -DLINPHONESDK_PLATFORM=Desktop -DENABLE_CSHARP_WRAPPER=YES -DCMAKE_BUILD_TYPE=Release %DEFAULT_CMAKE_OPTIONS% %CMAKE_OPTIONS%
+    - cmake .. -G "$VISUAL_STUDIO_VERSION" -DLINPHONESDK_PLATFORM=Desktop -DENABLE_CSHARP_WRAPPER=YES -DCMAKE_BUILD_TYPE=Release %DEFAULT_CMAKE_OPTIONS% %CMAKE_OPTIONS%
     - cmake --build . --target sdk --config Release -- /maxcpucount
+
+#################################################
+# VS2015
+#################################################
+
+job-windows-vs2015:
+  extends: .job-windows
+  variables:
+    VISUAL_STUDIO_VERSION: Visual Studio 14 2015
 
 job-windows-vs2015-novideo:
 
@@ -26,3 +31,20 @@ job-windows-vs2015-novideo:
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-windows-vs2015
+
+#################################################
+# VS2017
+#################################################
+
+job-windows-vs2017:
+  extends: .job-windows
+  variables:
+    VISUAL_STUDIO_VERSION: Visual Studio 15 2017
+
+job-windows-vs2017-novideo:
+
+  only:
+    - schedules
+  variables:
+    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+  extends: job-windows-vs2017
