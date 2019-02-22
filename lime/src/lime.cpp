@@ -152,7 +152,7 @@ namespace lime {
 
 	template <typename Curve>
 	void Lime<Curve>::encrypt(std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback) {
-		LIME_LOGD<<"encrypt from "<<m_selfDeviceId<<" to "<<recipients->size()<<" recipients";
+		LIME_LOGI<<"encrypt from "<<m_selfDeviceId<<" to "<<recipients->size()<<" recipients";
 		/* Check if we have all the Double Ratchet sessions ready or shall we go for an X3DH */
 		std::vector<std::string> missingPeers; /* vector of deviceId(GRUU) which are requested to perform X3DH before the encryption can occurs */
 
@@ -226,7 +226,7 @@ namespace lime {
 		// senderDeviceStatus can only be unknown, untrusted or trusted, if decryption succeed, we will return this status.
 		auto senderDeviceStatus = m_localStorage->get_peerDeviceStatus(senderDeviceId);
 
-		LIME_LOGD<<"decrypt from "<<senderDeviceId<<" to "<<recipientUserId;
+		LIME_LOGI<<"decrypt from "<<senderDeviceId<<" to "<<recipientUserId;
 		// do we have any session (loaded or not) matching that senderDeviceId ?
 		auto sessionElem = m_DR_sessions_cache.find(senderDeviceId);
 		auto db_sessionIdInCache = 0; // this would be the db_sessionId of the session stored in cache if there is one, no session has the Id 0
