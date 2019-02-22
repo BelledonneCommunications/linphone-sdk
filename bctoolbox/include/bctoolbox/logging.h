@@ -279,6 +279,10 @@ public:
 	pumpstream(const char *domain, BctbxLogLevel level) : mDomain(domain ? domain : ""), mLevel(level) {}
 	~pumpstream() {
 		const char *domain = mDomain.empty() ? NULL : mDomain.c_str();
+#ifndef BCTBX_DEBUG_MODE
+		if (mLevel == BCTBX_LOG_DEBUG)
+			return; //silently discard debug to be inlined with bctbx_debug
+#endif
 		if (bctbx_log_level_enabled(domain, mLevel))
 			bctbx_log(domain, mLevel, "%s", str().c_str());
 	}
