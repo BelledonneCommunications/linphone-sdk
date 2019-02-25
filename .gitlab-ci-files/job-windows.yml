@@ -74,11 +74,12 @@ job-windows-vs2017-scheduled:
 #    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
 #  extends: job-windows-vs2015
   
+
 job-windows-vs2017-novideo:
   extends: .job-windows-vs2017-scheduled
   variables:
     CMAKE_OPTIONS: -DENABLE_LIME_X3DH=NO -DENABLE_VIDEO=NO
-    
+
 job-windows-vs2017-package:
   stage: package
   tags: [ "windows" ]
