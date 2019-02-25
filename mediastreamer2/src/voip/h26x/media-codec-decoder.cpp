@@ -41,16 +41,16 @@ MediaCodecDecoder::MediaCodecDecoder(const std::string &mime): H26xDecoder(mime)
 		_psStore.reset(H26xToolFactory::get(mime).createParameterSetsStore());
 		startImpl();
 	} catch (const runtime_error &e) {
+		ms_error("MediaCodecDecoder: %s. Dumping decoding context", e.what());
 		if (_impl) AMediaCodec_delete(_impl);
-		if (_format) AMediaFormat_delete(_format);
-		if (_bufAllocator) ms_yuv_buf_allocator_free(_bufAllocator);
 		_impl = nullptr;
 	}
 }
 
 MediaCodecDecoder::~MediaCodecDecoder() {
 	if (_impl) AMediaCodec_delete(_impl);
-	ms_yuv_buf_allocator_free(_bufAllocator);
+	if (_format) AMediaFormat_delete(_format);
+	if (_bufAllocator) ms_yuv_buf_allocator_free(_bufAllocator);
 }
 
 bool MediaCodecDecoder::setParameterSets(MSQueue *parameterSets, uint64_t timestamp) {
