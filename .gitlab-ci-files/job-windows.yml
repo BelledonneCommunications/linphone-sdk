@@ -24,7 +24,7 @@ job-windows-vs2015:
   only:
     - schedules
   variables:
-    CSHARP_WRAPPER: NO
+    CSHARP_WRAPPER: "NO"
     VISUAL_STUDIO_VERSION: Visual Studio 14 2015
 
 job-windows-vs2015-novideo:
@@ -39,7 +39,7 @@ job-windows-vs2015-novideo:
 job-windows-vs2017:
   extends: .job-windows
   variables:
-    CSHARP_WRAPPER: YES
+    CSHARP_WRAPPER: "YES"
     VISUAL_STUDIO_VERSION: Visual Studio 15 2017
   artifacts:
     paths:
