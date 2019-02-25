@@ -12,7 +12,7 @@
   script:
     - mkdir build-desktop
     - cd build-desktop
-    - cmake .. -G "%VISUAL_STUDIO_VERSION%" -DLINPHONESDK_PLATFORM=Desktop -DENABLE_CSHARP_WRAPPER=YES -DCMAKE_BUILD_TYPE=Release %DEFAULT_CMAKE_OPTIONS% %CMAKE_OPTIONS%
+    - cmake .. -G "%VISUAL_STUDIO_VERSION%" -DLINPHONESDK_PLATFORM=Desktop  -DENABLE_CSHARP_WRAPPER=%CSHARP_WRAPPER% -DCMAKE_BUILD_TYPE=Release %DEFAULT_CMAKE_OPTIONS% %CMAKE_OPTIONS%
     - cmake --build . --target sdk --config Release -- /maxcpucount
 
 #################################################
@@ -21,13 +21,13 @@
 
 job-windows-vs2015:
   extends: .job-windows
+  only:
+    - schedules
   variables:
+    CSHARP_WRAPPER: NO
     VISUAL_STUDIO_VERSION: Visual Studio 14 2015
 
 job-windows-vs2015-novideo:
-
-  only:
-    - schedules
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-windows-vs2015
@@ -39,12 +39,28 @@ job-windows-vs2015-novideo:
 job-windows-vs2017:
   extends: .job-windows
   variables:
+    CSHARP_WRAPPER: YES
     VISUAL_STUDIO_VERSION: Visual Studio 15 2017
+  artifacts:
+    paths:
+      - build-desktop/linphone-sdk/desktop/
+    when: always
+    expire_in: 1 day
 
 job-windows-vs2017-novideo:
-
   only:
     - schedules
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-windows-vs2017
+
+job-windows-vs2017-package:
+  stage: package
+  tags: [ "windows" ]
+  dependencies:
+    - job-windows-vs2017
+  script:
+    - cp build-desktop\linphone-sdk\desktop\share\linphonecs\LinphoneWrapper.cs .\cmake\Windows\
+    - cd .\cmake\Windows\
+    - msbuild -t:restore CsWrapper.csproj
+    - msbuild CsWrapper.csproj /p:MDILCompile=true /p:Platform="x86" /t:build /p:Configuration=Release
