@@ -15,6 +15,9 @@ centos7:
 centos7-mediastreamer:
 	docker build -f bc-dev-centos7-test-mediastreamer -t $(BASE_NAME)/bc-dev-centos-test-mediastreamer:7 --rm .
 
+centos7-liblinphone:
+	docker build -f bc-dev-centos7-test-liblinphone -t $(BASE_NAME)/bc-dev-centos-test-liblinphone:7 --rm .
+
 centos7-lime:
 	docker build -f bc-dev-centos7-test-lime -t $(BASE_NAME)/bc-dev-centos-test-lime:7 --rm .
 
@@ -27,4 +30,4 @@ debian9:
 ubuntu-rolling:
 	docker build -f bc-dev-ubuntu-rolling -t $(BASE_NAME)/bc-dev-ubuntu:rolling --rm .
 
-.PHONY: android-r16b android-r17c archlinux-latest centos7 centos7-mediastreamer centos7-lime debian8 debian9 ubuntu-rolling
+.PHONY: android-r16b android-r17c archlinux-latest centos7 centos7-mediastreamer centos7-lime centos7-liblinphone debian8 debian9 ubuntu-rolling
