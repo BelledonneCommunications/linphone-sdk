@@ -16,7 +16,9 @@ variables:
 .job-prepare:
   only:
     - schedules
-    - master
+  except:
+    variables:
+      - $FAST_LINUX_TESTS
 
 include:
   - '.gitlab-ci-files/job-prepare.yml'
