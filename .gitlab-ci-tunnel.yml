@@ -13,6 +13,11 @@ variables:
 # Platforms to test
 #################################################
 
+.job-prepare:
+  only:
+    - schedules
+  except:
+    - feature/peioMergeCi
 
 include:
   - '.gitlab-ci-files/job-prepare.yml'
