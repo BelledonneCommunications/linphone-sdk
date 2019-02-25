@@ -111,7 +111,8 @@ test-liblinphone:
     - Xvfb :99 &
     - export DISPLAY=:99
     - cd build-desktop/linphone-sdk/desktop/bin
-    - ./liblinphone_tester --verbose --parallel --dns-hosts /builds/BC/public/linphone-sdk/linphone/tester/tester_hosts --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt
+    - pwd
+    #- ./liblinphone_tester --verbose --parallel --dns-hosts /builds/BC/public/linphone-sdk/linphone/tester/tester_hosts --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt
   #uploading the artifacts
   artifacts:
     paths:
