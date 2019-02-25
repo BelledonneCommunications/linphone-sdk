@@ -49,11 +49,11 @@
   #uploading the artifacts
   artifacts:
     paths:
-      - build-desktop/WORK/desktop/Build/bctoolbox/tester/bcttest-Results.xml
+      - build-desktop/WORK/desktop/Build/bctoolbox/tester/BCUnitAutomated-Results.xml
     when: always
     reports:
       junit:
-        - build-desktop/WORK/desktop/Build/bctoolbox/tester/bcttest-Results.xml
+        - build-desktop/WORK/desktop/Build/bctoolbox/tester/BCUnitAutomated-Results.xml
     expire_in: 4 week
     
 .test-bellesip:
@@ -70,20 +70,19 @@
   #uploading the artifacts
   artifacts:
     paths:
-      - build-desktop/linphone-sdk/desktop/bin/bstest-Results.xml
+      - build-desktop/linphone-sdk/desktop/bin/BCUnitAutomated-Results.xml
     when: always
     reports:
       junit:
-        - build-desktop/linphone-sdk/desktop/bin/bstest-Results.xml
+        - build-desktop/linphone-sdk/desktop/bin/BCUnitAutomated-Results.xml
     expire_in: 4 week
 
 test-mediastreamer:
-  tags: [ "docker-test-centos7" ]
+  tags: [ "docker-test-centos7-mediastreamer" ]
   extends: .test
   dependencies:
     - job-centos7-ninja-clang
   script:
-    - sudo yum install -y alsa-utils pulseaudio
     - pulseaudio -D -L module-virtual-source --exit-idle-time=-1
     - cd build-desktop/linphone-sdk/desktop/bin
     - ./mediastreamer2_tester --verbose --xml-file mstest
@@ -96,6 +95,28 @@ test-mediastreamer:
       junit:
         - build-desktop/linphone-sdk/desktop/bin/mstest-Results.xml
     expire_in: 4 week
+    
+ test-liblinphone:
+  tags: [ "docker-test-centos7-liblinphone" ]
+  extends: .test
+  dependencies:
+    - job-centos7-ninja-clang
+  script:
+    # xvfb = émulation X dans un docker
+    - Xvfb :99 &
+    - export DISPLAY=:99
+    - cd build-desktop/linphone-sdk/desktop/bin
+    - ./liblinphone_tester --verbose --parallel --dns-hosts /builds/BC/public/linphone-sdk/linphone/tester/tester_hosts --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt
+  #uploading the artifacts
+  artifacts:
+    paths:
+      - build-desktop/linphone-sdk/desktop/bin/BCUnitAutomated*
+      - build-desktop/linphone-sdk/desktop/bin/logLiblinphoneAllParThIpv6*
+    when: always
+    reports:
+      junit:
+        - build-desktop/linphone-sdk/desktop/bin/BCUnitAutomated-Results.xml
+    expire_in: 4 week
 
 .test-belr:
   extends: .test
@@ -107,11 +128,11 @@ test-mediastreamer:
   #uploading the artifacts
   artifacts:
     paths :
-      - build-desktop/linphone-sdk/desktop/bin/blrtest-Results.xml
+      - build-desktop/linphone-sdk/desktop/bin/BCUnitAutomated-Results.xml
     when: always
     reports:
       junit:
-        - build-desktop/linphone-sdk/desktop/bin/blrtest-Results.xml
+        - build-desktop/linphone-sdk/desktop/bin/BCUnitAutomated-Results.xml
     expire_in: 4 week
 
 .test-belcard:
@@ -124,11 +145,11 @@ test-mediastreamer:
   #uploading the artifacts
   artifacts:
     paths :
-      - build-desktop/linphone-sdk/desktop/bin/belcardtest-Results.xml
+      - build-desktop/linphone-sdk/desktop/bin/BCUnitAutomated-Results.xml
     when: always
     reports:
       junit:
-        - build-desktop/linphone-sdk/desktop/bin/belcardtest-Results.xml
+        - build-desktop/linphone-sdk/desktop/bin/BCUnitAutomated-Results.xml
     expire_in: 4 week
     
 .test-bzrtp:
@@ -144,11 +165,11 @@ test-mediastreamer:
   #uploading the artifacts
   artifacts:
     paths :
-      - build-desktop/WORK/desktop/Build/bzrtp/test/bzrtptest-Results.xml
+      - build-desktop/WORK/desktop/Build/bzrtp/test/BCUnitAutomated-Results.xml
     when: always
     reports:
       junit:
-        - build-desktop/WORK/desktop/Build/bzrtp/test/bzrtptest-Results.xml
+        - build-desktop/WORK/desktop/Build/bzrtp/test/BCUnitAutomated-Results.xml
     expire_in: 4 week
     
 
