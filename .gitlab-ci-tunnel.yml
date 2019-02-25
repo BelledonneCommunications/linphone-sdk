@@ -14,11 +14,15 @@ variables:
 #################################################
 
 .job-prepare:
+  before_script:
+    - if [ "{$CI_COMMIT_REF_NAME}" == "master" ]; then exit 0; fi
   only:
     - schedules
-  except:
-    variables:
-      - $FAST_LINUX_TESTS
+  
+  #not working for some reason
+  #except:
+  #  variables:
+  #    - $FAST_LINUX_TESTS
 
 include:
   - '.gitlab-ci-files/job-prepare.yml'
