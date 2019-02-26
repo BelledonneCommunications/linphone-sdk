@@ -13,7 +13,7 @@
     - mkdir build-desktop
     - cd build-desktop
     - cmake .. -G "%VISUAL_STUDIO_VERSION%" -DLINPHONESDK_PLATFORM=Desktop  -DENABLE_CSHARP_WRAPPER=%CSHARP_WRAPPER% -DCMAKE_BUILD_TYPE=Release %DEFAULT_CMAKE_OPTIONS% %CMAKE_OPTIONS%
-    - cmake --build . --target sdk --config Release -- /m /p:BuildInParallel=true /p:CreateHardLinksForCopyLocalIfPossible=true /p:CreateHardLinksForCopyFilesToOutputDirectoryIfPossible=true /p:CreateHardLinksForCopyAdditionalFilesIfPossible=true /p:CreateHardLinksForPublishFilesIfPossible=true
+    - cmake --build . --target sdk --config Release -- /m:%NUMBER_OF_PROCESSORS% /p:BuildInParallel=true /p:CreateHardLinksForCopyLocalIfPossible=true /p:CreateHardLinksForCopyFilesToOutputDirectoryIfPossible=true /p:CreateHardLinksForCopyAdditionalFilesIfPossible=true /p:CreateHardLinksForPublishFilesIfPossible=true
 
 #################################################
 # VS2015
