@@ -60,7 +60,7 @@ job-windows-vs2017-package:
   dependencies:
     - job-windows-vs2017
   script:
-    - "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat"
+    - call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat"
     - copy build-desktop\linphone-sdk\desktop\share\linphonecs\LinphoneWrapper.cs .\cmake\Windows\
     - cd .\cmake\Windows\
     - msbuild -t:restore CsWrapper.csproj
