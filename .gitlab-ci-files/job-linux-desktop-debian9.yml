@@ -98,23 +98,23 @@ job-debian9-ninja-clang-novideo:
 test-bellesip-debian9:
   extends: .test-bellesip
   dependencies:
-    - job-debian9-ninja-clang
+    - job-debian9-ninja-gcc
   tags: [ "docker-test-debian9" ]
   
 test-belr-debian9:
   extends: .test-belr
   dependencies:
-    - job-debian9-ninja-clang
+    - job-debian9-ninja-gcc
   tags: [ "docker-test-debian9" ]
   
 test-belcard-debian9:
   extends: .test-belcard
   dependencies:
-    - job-debian9-ninja-clang
+    - job-debian9-ninja-gcc
   tags: [ "docker-test-debian9" ]
   
 test-bzrtp-debian9:
   extends: .test-bzrtp
   dependencies:
-    - job-debian9-ninja-clang
+    - job-debian9-ninja-gcc
   tags: [ "docker-test-debian9" ]
