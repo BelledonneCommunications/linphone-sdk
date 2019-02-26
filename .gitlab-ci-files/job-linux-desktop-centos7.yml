@@ -122,3 +122,44 @@ test-bzrtp-centos7:
   dependencies:
     - job-centos7-ninja-clang
   tags: [ "docker-test-centos7" ]
+  
+test-mediastreamer:
+  tags: [ "docker-test-centos7-mediastreamer" ]
+  extends: .test
+  dependencies:
+    - job-centos7-ninja-clang
+  script:
+    - pulseaudio -D -L module-virtual-source --exit-idle-time=-1
+    - cd build-desktop/linphone-sdk/desktop/bin
+    - ./mediastreamer2_tester --verbose --xml-file mstest
+  #uploading the artifacts
+  artifacts:
+    paths:
+      - build-desktop/linphone-sdk/desktop/bin/mstest-Results.xml
+    when: always
+    reports:
+      junit:
+        - build-desktop/linphone-sdk/desktop/bin/mstest-Results.xml
+    expire_in: 4 week
+    
+test-liblinphone:
+  tags: [ "docker-test-centos7-liblinphone" ]
+  extends: .test
+  dependencies:
+    - job-centos7-ninja-clang
+  script:
+    # xvfb = émulation X dans un docker
+    - Xvfb :99 &
+    - export DISPLAY=:99
+    - cd build-desktop/linphone-sdk/desktop/bin
+    - ./liblinphone_tester --verbose --parallel --dns-hosts /builds/BC/public/linphone-sdk/linphone/tester/tester_hosts --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt
+  #uploading the artifacts
+  artifacts:
+    paths:
+      - build-desktop/linphone-sdk/desktop/bin/BCUnitAutomated*
+      - build-desktop/linphone-sdk/desktop/bin/logLiblinphoneAllParThIpv6*
+    when: always
+    reports:
+      junit:
+        - build-desktop/linphone-sdk/desktop/bin/BCUnitAutomated-Results.xml
+    expire_in: 4 week
