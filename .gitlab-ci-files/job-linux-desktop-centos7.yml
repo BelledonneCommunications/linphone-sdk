@@ -152,7 +152,8 @@ test-liblinphone:
     - Xvfb :99 &
     - export DISPLAY=:99
     - cd build-desktop/linphone-sdk/desktop/bin
-    - ./liblinphone_tester --verbose --parallel --dns-hosts /builds/BC/public/linphone-sdk/linphone/tester/tester_hosts --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt
+    # using gdb to display the stacktrace in a case of a coredump (to improve)
+    - gdb --args ./liblinphone_tester --verbose --parallel --dns-hosts /builds/BC/public/linphone-sdk/linphone/tester/tester_hosts --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt -ex "thread apply all bt"
   #uploading the artifacts
   artifacts:
     paths:
