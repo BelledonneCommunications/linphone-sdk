@@ -155,7 +155,7 @@ test-liblinphone:
     # using gdb to display the stacktrace in a case of a coredump
     # need to add this to config files while we don't find simple cli arguments instead
     - echo "r" >> .gdbinit && echo "thread apply all bt" >> .gdbinit
-    - echo add-auto-load-safe-path /builds/BC/public/linphone-sdk/build-desktop/linphone-sdk/desktop/bin/.gdbinit >> /builds/BC/public/.gdbinit
+    - echo add-auto-load-safe-path /builds/BC/public/linphone-sdk/build-desktop/linphone-sdk/desktop/bin/.gdbinit >> /home/bc/.gdbinit
     - gdb --args ./liblinphone_tester --verbose --parallel --dns-hosts /builds/BC/public/linphone-sdk/linphone/tester/tester_hosts --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt
   #uploading the artifacts
   artifacts:
