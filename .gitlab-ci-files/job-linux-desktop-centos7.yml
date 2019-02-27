@@ -151,9 +151,12 @@ test-liblinphone:
     # xvfb = émulation X dans un docker
     - Xvfb :99 &
     - export DISPLAY=:99
-    - cd build-desktop/linphone-sdk/desktop/bin
-    # using gdb to display the stacktrace in a case of a coredump (to improve)
-    - gdb --args ./liblinphone_tester --verbose --parallel --dns-hosts /builds/BC/public/linphone-sdk/linphone/tester/tester_hosts --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt -ex "run" -ex "thread apply all bt"
+    - cd build-desktop/linphone-sdk/desktop/bingit push
+    # using gdb to display the stacktrace in a case of a coredump
+    # need to add this to config files while we don't find simple cli arguments instead
+    - echo "r" >> .gdbinit && echo "thread apply all bt" >> .gdbinit
+    - echo add-auto-load-safe-path /builds/BC/public/linphone-sdk/build-desktop/linphone-sdk/desktop/bin/.gdbinit >> /builds/BC/public/.gdbinit
+    - gdb --args ./liblinphone_tester --verbose --parallel --dns-hosts /builds/BC/public/linphone-sdk/linphone/tester/tester_hosts --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt
   #uploading the artifacts
   artifacts:
     paths:
