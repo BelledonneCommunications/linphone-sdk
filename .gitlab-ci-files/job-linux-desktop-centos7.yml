@@ -151,7 +151,7 @@ test-liblinphone:
     # xvfb = émulation X dans un docker
     - Xvfb :99 &
     - export DISPLAY=:99
-    - cd build-desktop/linphone-sdk/desktop/bingit push
+    - cd build-desktop/linphone-sdk/desktop/bin
     # using gdb to display the stacktrace in a case of a coredump
     # need to add this to config files while we don't find simple cli arguments instead
     - echo "r" >> .gdbinit && echo "thread apply all bt" >> .gdbinit
