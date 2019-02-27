@@ -222,7 +222,7 @@ int bc_tester_suite_index(const char *suite_name) {
 	int i;
 
 	for (i = 0; i < nb_test_suites; i++) {
-		if (strcmp(suite_name, test_suite[i]->name) == 0) {
+		if (strcasecmp(suite_name, test_suite[i]->name) == 0) {
 			return i;
 		}
 	}
@@ -235,7 +235,7 @@ int bc_tester_test_index(test_suite_t *suite, const char *test_name) {
 	int i;
 
 	for (i = 0; i < suite->nb_tests; i++) {
-		if (strcmp(test_name, suite->tests[i].name) == 0) {
+		if (strcasecmp(test_name, suite->tests[i].name) == 0) {
 			return i;
 		}
 	}
