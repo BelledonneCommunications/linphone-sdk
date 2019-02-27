@@ -153,7 +153,7 @@ test-liblinphone:
     - export DISPLAY=:99
     - cd build-desktop/linphone-sdk/desktop/bin
     # using gdb to display the stacktrace in a case of a coredump (to improve)
-    - gdb --args ./liblinphone_tester --verbose --parallel --dns-hosts /builds/BC/public/linphone-sdk/linphone/tester/tester_hosts --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt -ex "thread apply all bt"
+    - gdb --args ./liblinphone_tester --verbose --parallel --dns-hosts /builds/BC/public/linphone-sdk/linphone/tester/tester_hosts --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt -ex "run" -ex "thread apply all bt"
   #uploading the artifacts
   artifacts:
     paths:
