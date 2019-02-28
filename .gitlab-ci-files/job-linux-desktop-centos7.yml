@@ -185,6 +185,7 @@ debug-liblinphone:
     - echo "thread apply all bt" >> .gdbinit
     - echo add-auto-load-safe-path /builds/BC/public/linphone-sdk/build-desktop/linphone-sdk/desktop/bin/.gdbinit >> /home/bc/.gdbinit
     # searching for core files and if there are some, launch gdb on all of it
+    - cd build-desktop/linphone-sdk/desktop/bin
     - ls | grep core
     - find . -type f -name "core*" | xargs gdb core  
     
