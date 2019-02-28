@@ -162,6 +162,8 @@ test-liblinphone:
   artifacts:
     paths:
       - build-desktop/linphone-sdk/desktop/bin/core*
+      - build-desktop/linphone-sdk/desktop/lib/*
+      - build-desktop/linphone-sdk/desktop/lib64/*
       - build-desktop/linphone-sdk/desktop/bin/liblinphone_tester
       - build-desktop/linphone-sdk/desktop/bin/BCUnitAutomated*
       - build-desktop/linphone-sdk/desktop/bin/logLiblinphoneAllParThIpv6*
@@ -182,10 +184,10 @@ debug-liblinphone:
     - sudo debuginfo-install systemd-debuginfo
     # using gdb to display the stacktrace in a case of a coredump
     # need to add this to config files while we don't find simple cli arguments instead
-    - echo "thread apply all bt" >> .gdbinit
+    - cd build-desktop/linphone-sdk/desktop/bin
+    - echo "thread apply all bt" > .gdbinit
     - echo add-auto-load-safe-path /builds/BC/public/linphone-sdk/build-desktop/linphone-sdk/desktop/bin/.gdbinit >> /home/bc/.gdbinit
     # searching for core files and if there are some, launch gdb on all of it
-    - cd build-desktop/linphone-sdk/desktop/bin
     - ls | grep core
     - find . -type f -name "core*" | xargs gdb liblinphone_tester
     
