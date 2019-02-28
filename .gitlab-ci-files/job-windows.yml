@@ -10,6 +10,8 @@ job-windows-vs2015:
   except:
     variables:
       - $FAST_LINUX_TESTS
+    refs:
+      - /feature/peioMergeCi
 
   except:
     variables:

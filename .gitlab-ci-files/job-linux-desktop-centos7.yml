@@ -151,21 +151,18 @@ test-liblinphone:
     # xvfb = X emulation in docker
     - Xvfb :99 &
     - export DISPLAY=:99
-    - cd build-desktop/linphone-sdk/desktop/bin
-    # using gdb to display the stacktrace in a case of a coredump
-    # need to add this to config files while we don't find simple cli arguments instead
-    - sudo debuginfo-install systemd-debuginfo
-    - echo "thread apply all bt" >> .gdbinit
-    - echo add-auto-load-safe-path /builds/BC/public/linphone-sdk/build-desktop/linphone-sdk/desktop/bin/.gdbinit >> /home/bc/.gdbinit
+    - cd build-desktop/linphone-sdk/desktop/bin    
     - ./liblinphone_tester --verbose --parallel --dns-hosts /builds/BC/public/linphone-sdk/linphone/tester/tester_hosts --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt
     # searching for core files and if there are some, launch gdb on all of it
-    - ls | grep core
-    - find . -type f -name "core*"
-    - if [[ -n $(find . -type f -name "core*") ]]; then find . -type f -name "core*" | xargs gdb core; fi
-
+    #- ls | grep core
+    #- find . -type f -name "core*"
+    #- if [[ -n $(find . -type f -name "core*") ]]; then find . -type f -name "core*" | xargs gdb core; fi
+    
   #uploading the artifacts
   artifacts:
     paths:
+      - build-desktop/linphone-sdk/desktop/bin/core*
+      - build-desktop/linphone-sdk/desktop/bin/liblinphone_tester
       - build-desktop/linphone-sdk/desktop/bin/BCUnitAutomated*
       - build-desktop/linphone-sdk/desktop/bin/logLiblinphoneAllParThIpv6*
     when: always
@@ -173,6 +170,24 @@ test-liblinphone:
       junit:
         - build-desktop/linphone-sdk/desktop/bin/BCUnitAutomated-Results.xml
     expire_in: 4 week
+    
+debug-liblinphone:
+  tags: [ "docker-test-centos7-liblinphone" ]
+  stage: debug
+  dependencies:
+    - test-liblinphone
+  script:
+    # temp, see if it's useful
+    - sudo debuginfo-install systemd-debuginfo
+    # using gdb to display the stacktrace in a case of a coredump
+    # need to add this to config files while we don't find simple cli arguments instead
+    - echo "thread apply all bt" >> .gdbinit
+    - echo add-auto-load-safe-path /builds/BC/public/linphone-sdk/build-desktop/linphone-sdk/desktop/bin/.gdbinit >> /home/bc/.gdbinit
+    # searching for core files and if there are some, launch gdb on all of it
+    - ls | grep core
+    - find . -type f -name "core*" | xargs gdb core
+  when: on_failure
+  
     
 #need to fix the yum slowdowns causing the job to fail, and to update the dockerfile
 test-lime:
