@@ -154,11 +154,13 @@ test-liblinphone:
     - cd build-desktop/linphone-sdk/desktop/bin
     # using gdb to display the stacktrace in a case of a coredump
     # need to add this to config files while we don't find simple cli arguments instead
+    - sudo debuginfo-install systemd-debuginfo
     - echo "thread apply all bt" >> .gdbinit
     - echo add-auto-load-safe-path /builds/BC/public/linphone-sdk/build-desktop/linphone-sdk/desktop/bin/.gdbinit >> /home/bc/.gdbinit
-    - sudo yum install -y xargs find
+#    - sudo yum install -y xargs find
     - ./liblinphone_tester --verbose --parallel --dns-hosts /builds/BC/public/linphone-sdk/linphone/tester/tester_hosts --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt
-    - find . -type f -name "core*" | xargs gdb core
+    - find . -type f -name "core*" | xargs gdb liblinphone_tester
+
   #uploading the artifacts
   artifacts:
     paths:
