@@ -148,7 +148,7 @@ test-liblinphone:
   dependencies:
     - job-centos7-ninja-clang
   script:
-    # xvfb = émulation X dans un docker
+    # xvfb = X emulation in docker
     - Xvfb :99 &
     - export DISPLAY=:99
     - cd build-desktop/linphone-sdk/desktop/bin
@@ -157,9 +157,9 @@ test-liblinphone:
     - sudo debuginfo-install systemd-debuginfo
     - echo "thread apply all bt" >> .gdbinit
     - echo add-auto-load-safe-path /builds/BC/public/linphone-sdk/build-desktop/linphone-sdk/desktop/bin/.gdbinit >> /home/bc/.gdbinit
-#    - sudo yum install -y xargs find
     - ./liblinphone_tester --verbose --parallel --dns-hosts /builds/BC/public/linphone-sdk/linphone/tester/tester_hosts --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt
-    - find . -type f -name "core*" | xargs gdb liblinphone_tester
+    # searching for core files and if there are some, launch gdb on all of it
+    - if [[ -n $(find . -type f -name "core*") ]]; then find . -type f -name "core*" | xargs gdb core; fi
 
   #uploading the artifacts
   artifacts:
