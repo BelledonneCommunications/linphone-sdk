@@ -9,7 +9,7 @@ job-windows-vs2015:
   tags: [ "windows" ]
   except:
     refs:
-      - /feature/peioMergeCi
+      - feature/peioMergeCi
 
   except:
     variables:
