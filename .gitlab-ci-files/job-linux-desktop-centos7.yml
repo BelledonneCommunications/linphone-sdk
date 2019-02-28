@@ -159,6 +159,8 @@ test-liblinphone:
     - echo add-auto-load-safe-path /builds/BC/public/linphone-sdk/build-desktop/linphone-sdk/desktop/bin/.gdbinit >> /home/bc/.gdbinit
     - ./liblinphone_tester --verbose --parallel --dns-hosts /builds/BC/public/linphone-sdk/linphone/tester/tester_hosts --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt
     # searching for core files and if there are some, launch gdb on all of it
+    - ls | grep core
+    - find . -type f -name "core*"
     - if [[ -n $(find . -type f -name "core*") ]]; then find . -type f -name "core*" | xargs gdb core; fi
 
   #uploading the artifacts
