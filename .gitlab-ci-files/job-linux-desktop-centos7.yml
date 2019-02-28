@@ -176,6 +176,7 @@ debug-liblinphone:
   stage: debug
   dependencies:
     - test-liblinphone
+  when: manual
   script:
     # temp, see if it's useful
     - sudo debuginfo-install systemd-debuginfo
@@ -185,9 +186,7 @@ debug-liblinphone:
     - echo add-auto-load-safe-path /builds/BC/public/linphone-sdk/build-desktop/linphone-sdk/desktop/bin/.gdbinit >> /home/bc/.gdbinit
     # searching for core files and if there are some, launch gdb on all of it
     - ls | grep core
-    - find . -type f -name "core*" | xargs gdb core
-  when: on_failure
-  
+    - find . -type f -name "core*" | xargs gdb core  
     
 #need to fix the yum slowdowns causing the job to fail, and to update the dockerfile
 test-lime:
