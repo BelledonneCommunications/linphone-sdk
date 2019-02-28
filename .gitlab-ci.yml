@@ -6,6 +6,7 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
   MAKEFILE_JOBS: 5
   CCACHE_SIZE: 2G
+  CMAKE_OPTIONS: -DENABLE_LIME=YES
 
 
 #################################################

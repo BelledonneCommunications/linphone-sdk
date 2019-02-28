@@ -8,8 +8,6 @@ job-windows-vs2015:
   stage: build
   tags: [ "windows" ]
   except:
-    variables:
-      - $FAST_LINUX_TESTS
     refs:
       - /feature/peioMergeCi
 
