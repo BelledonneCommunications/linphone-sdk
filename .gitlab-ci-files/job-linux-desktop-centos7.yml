@@ -72,7 +72,7 @@ job-centos7-ninja-clang:
     CC: clang
     CXX: clang++
     CMAKE_OPTIONS: -DENABLE_LIME=ON
-  extends: .job-linux-desktop
+  extends: .scheduled-job-linux-desktop
 
 
 job-centos7-ninja-clang-novideo:
@@ -96,38 +96,38 @@ job-centos7-ninja-clang-novideo:
 test-bctoolbox-centos7:
   extends: .test-bctoolbox
   dependencies:
-    - job-centos7-ninja-clang
+    - job-centos7-ninja-gcc
   tags: [ "docker-test-centos7" ]
   
 test-bellesip-centos7:
   extends: .test-bellesip
   dependencies:
-    - job-centos7-ninja-clang
+    - job-centos7-ninja-gcc
   tags: [ "docker-test-centos7" ]
   
 test-belr-centos7:
   extends: .test-belr
   dependencies:
-    - job-centos7-ninja-clang
+    - job-centos7-ninja-gcc
   tags: [ "docker-test-centos7" ]
   
 test-belcard-centos7:
   extends: .test-belcard
   dependencies:
-    - job-centos7-ninja-clang
+    - job-centos7-ninja-gcc
   tags: [ "docker-test-centos7" ]
   
 test-bzrtp-centos7:
   extends: .test-bzrtp
   dependencies:
-    - job-centos7-ninja-clang
+    - job-centos7-ninja-gcc
   tags: [ "docker-test-centos7" ]
   
 test-mediastreamer:
   tags: [ "docker-test-centos7-mediastreamer" ]
   extends: .test
   dependencies:
-    - job-centos7-ninja-clang
+    - job-centos7-ninja-gcc
   script:
     - pulseaudio -D -L module-virtual-source --exit-idle-time=-1
     - cd build-desktop/linphone-sdk/desktop/bin
@@ -146,7 +146,7 @@ test-liblinphone:
   tags: [ "docker-test-centos7-liblinphone" ]
   extends: .test
   dependencies:
-    - job-centos7-ninja-clang
+    - job-centos7-ninja-gcc
   script:
     # xvfb = X emulation in docker
     - Xvfb :99 &
@@ -187,14 +187,14 @@ debug-liblinphone:
     # searching for core files and if there are some, launch gdb on all of it
     - cd build-desktop/linphone-sdk/desktop/bin
     - ls | grep core
-    - find . -type f -name "core*" | xargs gdb core  
+    - find . -type f -name "core*" | xargs gdb liblinphone_tester core  
     
 #need to fix the yum slowdowns causing the job to fail, and to update the dockerfile
 test-lime:
   tags: [ "docker-test-centos7-lime" ]
   extends: .test
   dependencies:
-    - job-centos7-ninja-clang
+    - job-centos7-ninja-gcc
   script:
     - ls -la .
     - pwd
