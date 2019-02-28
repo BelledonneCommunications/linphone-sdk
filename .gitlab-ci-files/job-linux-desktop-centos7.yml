@@ -162,6 +162,8 @@ test-liblinphone:
   artifacts:
     paths:
       - build-desktop/linphone-sdk/desktop/bin/core*
+      - build-desktop/linphone-sdk/desktop/lib/*
+      - build-desktop/linphone-sdk/desktop/lib64/*
       - build-desktop/linphone-sdk/desktop/bin/liblinphone_tester
       - build-desktop/linphone-sdk/desktop/bin/BCUnitAutomated*
       - build-desktop/linphone-sdk/desktop/bin/logLiblinphoneAllParThIpv6*
