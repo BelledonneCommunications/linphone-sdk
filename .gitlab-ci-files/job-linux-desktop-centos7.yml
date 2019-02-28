@@ -187,7 +187,7 @@ debug-liblinphone:
     # searching for core files and if there are some, launch gdb on all of it
     - cd build-desktop/linphone-sdk/desktop/bin
     - ls | grep core
-    - find . -type f -name "core*" | xargs gdb liblinphone_tester core  
+    - find . -type f -name "core*" | xargs gdb liblinphone_tester
     
 #need to fix the yum slowdowns causing the job to fail, and to update the dockerfile
 test-lime:
