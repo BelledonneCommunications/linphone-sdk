@@ -154,6 +154,7 @@ test-liblinphone:
     - cd build-desktop/linphone-sdk/desktop/bin    
     - ./liblinphone_tester --verbose --parallel --dns-hosts /builds/BC/public/linphone-sdk/linphone/tester/tester_hosts --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt
     # moving artifacts to simplify browsing
+  after_script:
     - sudo mkdir ~/results
     - cp -r build-desktop/linphone-sdk/desktop/bin/core* ~/results
     - cp -r build-desktop/linphone-sdk/desktop/lib/* ~/results
@@ -161,6 +162,12 @@ test-liblinphone:
     - cp -r build-desktop/linphone-sdk/desktop/bin/liblinphone_tester ~/results
     - cp -r build-desktop/linphone-sdk/desktop/bin/BCUnitAutomated* ~/results
     - cp -r build-desktop/linphone-sdk/desktop/bin/logLiblinphoneAllParThIpv6* ~/results
+    - cd ~/results
+    - echo "thread apply all bt" > .gdbinit
+    - echo add-auto-load-safe-path /home/bc/results/.gdbinit >> /home/bc/.gdbinit
+    # searching for core files and if there are some, launch gdb on all of it
+    - ls | grep core
+    - find . -type f -name "core*" | xargs gdb liblinphone_tester
     
   #uploading the artifacts
   artifacts:
@@ -171,22 +178,6 @@ test-liblinphone:
       junit:
         - build-desktop/linphone-sdk/desktop/bin/BCUnitAutomated-Results.xml
     expire_in: 4 week
-    
-debug-liblinphone:
-  tags: [ "docker-test-centos7-liblinphone" ]
-  stage: debug
-  dependencies:
-    - test-liblinphone
-  script:
-    # temp, see if it's useful
-    # using gdb to display the stacktrace in a case of a coredump
-    # need to add this to config files while we don't find simple cli arguments instead
-    - cd ~/results
-    - echo "thread apply all bt" > .gdbinit
-    - echo add-auto-load-safe-path /home/bc/results/.gdbinit >> /home/bc/.gdbinit
-    # searching for core files and if there are some, launch gdb on all of it
-    - ls | grep core
-    - find . -type f -name "core*" | xargs gdb liblinphone_tester
     
 #need to fix the yum slowdowns causing the job to fail, and to update the dockerfile
 test-lime:
