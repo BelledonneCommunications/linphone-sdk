@@ -153,20 +153,19 @@ test-liblinphone:
     - export DISPLAY=:99
     - cd build-desktop/linphone-sdk/desktop/bin    
     - ./liblinphone_tester --verbose --parallel --dns-hosts /builds/BC/public/linphone-sdk/linphone/tester/tester_hosts --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt
-    # searching for core files and if there are some, launch gdb on all of it
-    #- ls | grep core
-    #- find . -type f -name "core*"
-    #- if [[ -n $(find . -type f -name "core*") ]]; then find . -type f -name "core*" | xargs gdb core; fi
+    # moving artifacts to simplify browsing
+    - sudo mkdir ~/results
+    - cp -r build-desktop/linphone-sdk/desktop/bin/core* ~/results
+    - cp -r build-desktop/linphone-sdk/desktop/lib/* ~/results
+    - cp -r build-desktop/linphone-sdk/desktop/lib/* ~/results
+    - cp -r build-desktop/linphone-sdk/desktop/bin/liblinphone_tester ~/results
+    - cp -r build-desktop/linphone-sdk/desktop/bin/BCUnitAutomated* ~/results
+    - cp -r build-desktop/linphone-sdk/desktop/bin/logLiblinphoneAllParThIpv6* ~/results
     
   #uploading the artifacts
   artifacts:
     paths:
-      - build-desktop/linphone-sdk/desktop/bin/core*
-      - build-desktop/linphone-sdk/desktop/lib/*
-      - build-desktop/linphone-sdk/desktop/lib64/*
-      - build-desktop/linphone-sdk/desktop/bin/liblinphone_tester
-      - build-desktop/linphone-sdk/desktop/bin/BCUnitAutomated*
-      - build-desktop/linphone-sdk/desktop/bin/logLiblinphoneAllParThIpv6*
+      - ~/results/*
     when: always
     reports:
       junit:
@@ -178,15 +177,13 @@ debug-liblinphone:
   stage: debug
   dependencies:
     - test-liblinphone
-  when: manual
   script:
     # temp, see if it's useful
-    - sudo debuginfo-install systemd-debuginfo
     # using gdb to display the stacktrace in a case of a coredump
     # need to add this to config files while we don't find simple cli arguments instead
-    - cd build-desktop/linphone-sdk/desktop/bin
+    - cd ~/results
     - echo "thread apply all bt" > .gdbinit
-    - echo add-auto-load-safe-path /builds/BC/public/linphone-sdk/build-desktop/linphone-sdk/desktop/bin/.gdbinit >> /home/bc/.gdbinit
+    - echo add-auto-load-safe-path /home/bc/results/.gdbinit >> /home/bc/.gdbinit
     # searching for core files and if there are some, launch gdb on all of it
     - ls | grep core
     - find . -type f -name "core*" | xargs gdb liblinphone_tester
