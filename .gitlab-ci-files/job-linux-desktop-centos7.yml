@@ -167,7 +167,10 @@ test-liblinphone:
     - echo add-auto-load-safe-path /builds/BC/public/linphone-sdk/desktop/bin/.gdbinit | sudo tee -a /home/bc/.gdbinit
     # searching for core files and if there are some, launch gdb on all of it
     - ls | grep core
-    - if [[ -n $(find . -type f -name "core*") ]]; then find . -type f -name "core*" | xargs -L1 gdb liblinphone_tester; fi
+    
+    #- if [[ -n $(find . -type f -name "core*") ]]; then 
+    - find . -type f -name "core*" | xargs -L1 gdb liblinphone_tester#; fi
+    
     - sudo mkdir /builds/BC/public/linphone-sdk/results
     - sudo chmod 777 /builds/BC/public/linphone-sdk/results
     - cp -r build-desktop/linphone-sdk/desktop/bin/BCUnitAutomated* /builds/BC/public/linphone-sdk/results
