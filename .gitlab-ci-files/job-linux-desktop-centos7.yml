@@ -131,11 +131,18 @@ test-mediastreamer:
   script:
     - pulseaudio -D -L module-virtual-source --exit-idle-time=-1
     - cd build-desktop/linphone-sdk/desktop/bin
-    - ./mediastreamer2_tester --verbose --xml-file mstest
+    - ./mediastreamer2_tester --verbose --parallel --log-file logMediastreamerAllPar.txt
+    
+  after_script:
+    - sudo mkdir /builds/BC/public/results
+    - chmod 777 /builds/BC/public/results
+    - cp -r build-desktop/linphone-sdk/desktop/bin/BCUnitAutomated* /builds/BC/public/results
+    - cp -r build-desktop/linphone-sdk/desktop/bin/core* /builds/BC/public/results
+    - cp -r build-desktop/linphone-sdk/desktop/bin/logMediastreamerAllPar.txt /builds/BC/public/results
   #uploading the artifacts
   artifacts:
     paths:
-      - build-desktop/linphone-sdk/desktop/bin/mstest-Results.xml
+      - results/*
     when: always
     reports:
       junit:
@@ -155,59 +162,61 @@ test-liblinphone:
     - ./liblinphone_tester --verbose --parallel --dns-hosts /builds/BC/public/linphone-sdk/linphone/tester/tester_hosts --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt
     # moving artifacts to simplify browsing
   after_script:
-    - sudo mkdir ~/results
-    - cp -r build-desktop/linphone-sdk/desktop/bin/core* ~/results
-    - cp -r build-desktop/linphone-sdk/desktop/lib/* ~/results
-    - cp -r build-desktop/linphone-sdk/desktop/lib/* ~/results
-    - cp -r build-desktop/linphone-sdk/desktop/bin/liblinphone_tester ~/results
-    - cp -r build-desktop/linphone-sdk/desktop/bin/BCUnitAutomated* ~/results
-    - cp -r build-desktop/linphone-sdk/desktop/bin/logLiblinphoneAllParThIpv6* ~/results
-    - cd ~/results
-    - echo "thread apply all bt" > .gdbinit
-    - echo add-auto-load-safe-path /home/bc/results/.gdbinit >> /home/bc/.gdbinit
+    - sudo mkdir /builds/BC/public/results
+    - sudo chmod 777 /builds/BC/public/results
+    - cp -r build-desktop/linphone-sdk/desktop/bin/core* /builds/BC/public/results
+    - cp -r build-desktop/linphone-sdk/desktop/lib/* /builds/BC/public/results
+    - cp -r build-desktop/linphone-sdk/desktop/lib/* /builds/BC/public/results
+    - cp -r build-desktop/linphone-sdk/desktop/bin/liblinphone_tester /builds/BC/public/results
+    - cp -r build-desktop/linphone-sdk/desktop/bin/BCUnitAutomated* /builds/BC/public/results
+    - cp -r build-desktop/linphone-sdk/desktop/bin/logLiblinphoneAllParThIpv6* /builds/BC/public/results
+    - cd /builds/BC/public/results
+    - echo "thread apply all bt" | sudo tee .gdbinit
+    - echo add-auto-load-safe-path /builds/BC/public/results/.gdbinit | sudo tee -a /home/bc/.gdbinit
     # searching for core files and if there are some, launch gdb on all of it
     - ls | grep core
-    - find . -type f -name "core*" | xargs gdb liblinphone_tester
+    
+    - find . -type f -name "core*" | xargs -L1 gdb liblinphone_tester
     
   #uploading the artifacts
   artifacts:
     paths:
-      - ~/results/*
+      - results/*
     when: always
     reports:
       junit:
         - build-desktop/linphone-sdk/desktop/bin/BCUnitAutomated-Results.xml
     expire_in: 4 week
     
-#need to fix the yum slowdowns causing the job to fail, and to update the dockerfile
-test-lime:
-  tags: [ "docker-test-centos7-lime" ]
-  extends: .test
-  dependencies:
-    - job-centos7-ninja-gcc
-  script:
-    - ls -la .
-    - pwd
-    - ls -la ./lime
-    - cd /builds/BC/public/linphone-sdk/lime/tester/server/nodejs
-    #installing here since the tester cannot find globally installed packages
-    - npm install yargs sqlite3 rwlock
-    - ./localServerStart.sh & #How do we stop it properly ????
-    - cd /builds/BC/public/linphone-sdk
-    - cd build-desktop/WORK/desktop/Build/
-    - ls -la
-    - cd lime
-    - ls-la
-    - cd tester
-    - ls -la
-
-    #path to source dir /builds/BC/public/linphone-sdk/lime
-    - ./lime_tester --verbose --xml-file limetest --resource-dir ../../../../../../lime/tester
-  #uploading the artifacts
-  artifacts:
-    paths:
-      - build-desktop/WORK/desktop/Build/lime/tester/limetest-Results.xml
-    when: always
-    reports:
-      junit:
-        - build-desktop/WORK/desktop/Build/lime/tester/limetest-Results.xml
+#apparently there is no more standalone lime tester
+#test-lime:
+#  tags: [ "docker-test-centos7-lime" ]
+#  extends: .test
+#  dependencies:
+#    - job-centos7-ninja-gcc
+#  script:
+#    - ls -la .
+#    - pwd
+#    - ls -la ./lime
+#    - cd /builds/BC/public/linphone-sdk/lime/tester/server/nodejs
+#    #installing here since the tester cannot find globally installed packages
+#    - npm install yargs sqlite3 rwlock
+#    - ./localServerStart.sh & #How do we stop it properly ????
+#    - cd /builds/BC/public/linphone-sdk
+#    - cd build-desktop/WORK/desktop/Build/
+#    - ls -la
+#    - cd lime
+#    - ls-la
+#    - cd tester
+#    - ls -la
+#
+#    #path to source dir /builds/BC/public/linphone-sdk/lime
+#    - ./lime_tester --verbose --xml-file limetest --resource-dir ../../../../../../lime/tester
+#  #uploading the artifacts
+#  artifacts:
+#    paths:
+#      - build-desktop/WORK/desktop/Build/lime/tester/limetest-Results.xml
+#    when: always
+#    reports:
+#      junit:
+#        - build-desktop/WORK/desktop/Build/lime/tester/limetest-Results.xml
