@@ -169,9 +169,7 @@ test-liblinphone:
     # searching for core files and if there are some, launch gdb on all of it
     - ls | grep core
     
-    #- if [[ -n $(find . -type f -name "core*") ]]; then ; fi
-    - find . -type f -name "core*" | xargs -L1 gdb liblinphone_tester
-    
+    - if [[ -n $(find . -type f -name "core*") ]]; then find . -type f -name "core*" | xargs -L1 gdb liblinphone_tester; fi
     - sudo mkdir /builds/BC/public/linphone-sdk/results
     - sudo chmod 777 /builds/BC/public/linphone-sdk/results
     - cp -r BCUnitAutomated* /builds/BC/public/linphone-sdk/results
