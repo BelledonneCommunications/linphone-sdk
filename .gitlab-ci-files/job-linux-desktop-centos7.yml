@@ -174,8 +174,8 @@ test-liblinphone:
     
     - sudo mkdir /builds/BC/public/linphone-sdk/results
     - sudo chmod 777 /builds/BC/public/linphone-sdk/results
-    - cp -r build-desktop/linphone-sdk/desktop/bin/BCUnitAutomated* /builds/BC/public/linphone-sdk/results
-    - cp -r build-desktop/linphone-sdk/desktop/bin/logLiblinphoneAllParThIpv6* /builds/BC/public/linphone-sdk/results
+    - cp -r BCUnitAutomated* /builds/BC/public/linphone-sdk/results
+    - cp -r logLiblinphoneAllParThIpv6* /builds/BC/public/linphone-sdk/results
     
   #uploading the artifacts
   artifacts:
