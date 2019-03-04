@@ -61,15 +61,18 @@ job-windows-vs2017-package:
     - job-windows-vs2017
   script:
     - call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat"
-    - chdir
-    - copy .\build-desktop\linphone-sdk\desktop\share\linphonecs\LinphoneWrapper.cs .\cmake\Windows\wrapper\
-    - cd .\cmake\Windows\wrapper\
+    - cd build-desktop
+    - chdir > chdir_sdk.temp
+    - set /p OUTPUT_SDK_BUILD=<chdir_sdk.temp
+    - cd ..\cmake\Windows\wrapper\
+    - chdir > chdir_wrapper.temp
+    - set /p OUTPUT_WRAPPER_BUILD=<chdir_wrapper.temp
     - msbuild -t:restore CsWrapper.csproj
-    - msbuild CsWrapper.csproj /p:MDILCompile=true /p:Platform="x86" /t:build /p:Configuration=Release
+    - msbuild CsWrapper.csproj /p:MDILCompile=true /p:Platform="x86" /t:build /p:Configuration=Release /p:OutputSdkBuild=%OUTPUT_SDK_BUILD%
     - cd ..\nuget
-    - git describe > temp.txt
-    - set /p DESCRIBE=<temp.txt
-    - msbuild NuGetLinphoneSDK.vcxproj /p:VersionNumber=%DESCRIBE%
+    - git describe > describe.temp
+    - set /p DESCRIBE=<describe.temp
+    - msbuild NuGetLinphoneSDK.vcxproj /p:VersionNumber=%DESCRIBE% /p:OutputSdkBuild=%OUTPUT_SDK_BUILD% /p:OutputWrapperBuild=%OUTPUT_WRAPPER_BUILD%
   artifacts:
     paths:
       - cmake\Windows\nuget\*.nupkg
