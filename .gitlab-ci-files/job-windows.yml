@@ -90,5 +90,5 @@ job-windows-vs2017-package:
     - chdir
     - copy .\build-desktop\linphone-sdk\desktop\share\linphonecs\LinphoneWrapper.cs .\cmake\Windows\wrapper\
     - cd .\cmake\Windows\wrapper\
-    - msbuild -t:restore CsWrapper.csproj -t:RestorePackagesPath="C:\Windows\SysWOW64\config\systemprofile\.nuget\packages\"
+    - msbuild -t:restore CsWrapper.csproj
     - msbuild CsWrapper.csproj /p:MDILCompile=true /p:Platform="x86" /t:build /p:Configuration=Release
