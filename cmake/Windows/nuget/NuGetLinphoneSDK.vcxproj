@@ -40,7 +40,7 @@
       <Message>Generating NuGet package for LinphoneSDK</Message>
       <Command>setlocal
 chdir
-python.exe .\nuget.py -s ..\..\..\build-desktop -w .\NuGetLinphoneSDK -cs ..\wrapper -t LinphoneSDK
+python.exe .\nuget.py -s ..\..\..\build-desktop -v $(VersionNumber) -w .\NuGetLinphoneSDK -cs ..\wrapper -t LinphoneSDK
 if %errorlevel% neq 0 goto :cmEnd
 .\nuget.exe pack .\NuGetLinphoneSDK\LinphoneSDK.nuspec
 :cmEnd

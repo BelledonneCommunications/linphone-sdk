@@ -92,3 +92,13 @@ job-windows-vs2017-package:
     - cd .\cmake\Windows\wrapper\
     - msbuild -t:restore CsWrapper.csproj
     - msbuild CsWrapper.csproj /p:MDILCompile=true /p:Platform="x86" /t:build /p:Configuration=Release
+    - cd ..\nuget
+    - git describe > temp.txt
+    - set /p DESCRIBE=<temp.txt
+    - msbuild NuGetLinphoneSDK.vcxproj /p:VersionNumber=%DESCRIBE%
+  artifacts:
+    paths:
+      - cmake\Windows\nuget\*.nupkg
+    when: always
+    expire_in: 1 week
+ 
