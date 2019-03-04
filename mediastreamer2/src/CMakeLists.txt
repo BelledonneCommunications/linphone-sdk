@@ -225,6 +225,7 @@ if(ENABLE_VIDEO)
 		voip/msvideo_neon.c
 		voip/msvideo_neon.h
 		voip/msvideo.c
+		voip/msvideoqualitycontroller.c
 		voip/nowebcam.h
 		voip/rfc2429.h
 		voip/video_preset_high_fps.c

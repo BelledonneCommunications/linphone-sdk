@@ -456,14 +456,14 @@ void video_stream_set_direction(VideoStream *vs, MediaStreamDir dir){
 	vs->dir=dir;
 }
 
-static MSVideoSize get_compatible_size(MSVideoSize maxsize, MSVideoSize wished_size){
-	int max_area=maxsize.width*maxsize.height;
-	int whished_area=wished_size.width*wished_size.height;
-	if (whished_area>max_area){
-		return maxsize;
-	}
-	return wished_size;
-}
+// static MSVideoSize get_compatible_size(MSVideoSize maxsize, MSVideoSize wished_size){
+// 	int max_area=maxsize.width*maxsize.height;
+// 	int whished_area=wished_size.width*wished_size.height;
+// 	if (whished_area>max_area){
+// 		return maxsize;
+// 	}
+// 	return wished_size;
+// }
 
 #if !TARGET_IPHONE_SIMULATOR && !defined(MS_HAS_ARM)
 static MSVideoSize get_with_same_orientation_and_ratio(MSVideoSize size, MSVideoSize refsize){
@@ -478,7 +478,7 @@ static MSVideoSize get_with_same_orientation_and_ratio(MSVideoSize size, MSVideo
 }
 #endif
 
-static void configure_video_source(VideoStream *stream){
+static void configure_video_source(VideoStream *stream, bool_t skip_bitrate){
 	MSVideoSize cam_vsize;
 	MSVideoConfiguration vconf;
 	MSPixFmt format=MS_PIX_FMT_UNKNOWN;
@@ -512,7 +512,7 @@ static void configure_video_source(VideoStream *stream){
 		}
 	}
 
-	vconf.vsize=get_compatible_size(vconf.vsize,stream->sent_vsize);
+	vconf.vsize=stream->sent_vsize;// get_compatible_size(vconf.vsize,stream->sent_vsize);
 	if (stream->preview_vsize.width!=0){
 		preview_vsize=stream->preview_vsize;
 	}else{
@@ -555,7 +555,7 @@ static void configure_video_source(VideoStream *stream){
 #endif
 	}
 
-	if (stream->ms.target_bitrate > 0) {
+	if (!skip_bitrate && stream->ms.target_bitrate > 0) {
 		/* We need to set the configuration now since update_bitrate_limit_from_tmmbr will retrieve it */
 		ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_SET_CONFIGURATION, &vconf);
 		update_bitrate_limit_from_tmmbr(&stream->ms, stream->ms.target_bitrate);
@@ -1017,7 +1017,7 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 					stream->output2=ms_factory_create_filter_from_name(stream->ms.factory, stream->display_name);
 				}
 			}
-			configure_video_source(stream);
+			configure_video_source(stream, FALSE);
 		}
 
 		/* and then connect all */
@@ -1269,7 +1269,7 @@ void video_stream_update_video_params(VideoStream *stream){
  *
  * @return NULL if keep_old_source is FALSE, or the previous source filter if keep_old_source is TRUE
  */
-static MSFilter* _video_stream_change_camera(VideoStream *stream, MSWebCam *cam, MSFilter* new_source, MSFilter *sink, bool_t keep_old_source, bool_t skip_payload_config){
+static MSFilter* _video_stream_change_camera(VideoStream *stream, MSWebCam *cam, MSFilter* new_source, MSFilter *sink, bool_t keep_old_source, bool_t skip_payload_config, bool_t skip_bitrate){
 	MSFilter* old_source = NULL;
 	bool_t new_src_different = (new_source && new_source != stream->source);
 	bool_t use_player        = (sink && !stream->player_active) || (!sink && stream->player_active);
@@ -1340,10 +1340,10 @@ static MSFilter* _video_stream_change_camera(VideoStream *stream, MSWebCam *cam,
 				ms_filter_call_method(stream->source, MS_FILTER_SET_PIX_FMT, &format);
 			}
 			apply_video_preset(stream, pt);
-			apply_bitrate_limit(stream ,pt);
+			if (!skip_bitrate) apply_bitrate_limit(stream ,pt);
 		}
 
-		configure_video_source(stream);
+		configure_video_source(stream, skip_bitrate);
 
 		if (encoder_has_builtin_converter || (stream->source_performs_encoding == TRUE)) {
 			ms_filter_link (stream->source, 0, stream->tee, 0);
@@ -1365,24 +1365,28 @@ static MSFilter* _video_stream_change_camera(VideoStream *stream, MSWebCam *cam,
 }
 
 void video_stream_change_camera(VideoStream *stream, MSWebCam *cam){
-	_video_stream_change_camera(stream, cam, NULL, NULL, FALSE, FALSE);
+	_video_stream_change_camera(stream, cam, NULL, NULL, FALSE, FALSE, FALSE);
+}
+
+void video_stream_change_camera_skip_bitrate(VideoStream *stream, MSWebCam *cam) {
+	_video_stream_change_camera(stream, cam, NULL, NULL, FALSE, FALSE, TRUE);
 }
 
 MSFilter* video_stream_change_camera_keep_previous_source(VideoStream *stream, MSWebCam *cam){
-	return _video_stream_change_camera(stream, cam, NULL, NULL, TRUE, FALSE);
+	return _video_stream_change_camera(stream, cam, NULL, NULL, TRUE, FALSE, FALSE);
 }
 
 MSFilter* video_stream_change_source_filter(VideoStream *stream, MSWebCam* cam, MSFilter* filter, bool_t keep_previous ){
-	return _video_stream_change_camera(stream, cam, filter, NULL, keep_previous, FALSE);
+	return _video_stream_change_camera(stream, cam, filter, NULL, keep_previous, FALSE, FALSE);
 }
 
 void video_stream_open_player(VideoStream *stream, MSFilter *sink){
 	ms_message("video_stream_open_player(): sink=%p",sink);
-	_video_stream_change_camera(stream, stream->cam, NULL, sink, FALSE, FALSE);
+	_video_stream_change_camera(stream, stream->cam, NULL, sink, FALSE, FALSE, FALSE);
 }
 
 void video_stream_close_player(VideoStream *stream){
-	_video_stream_change_camera(stream,stream->cam, NULL, NULL, FALSE, FALSE);
+	_video_stream_change_camera(stream,stream->cam, NULL, NULL, FALSE, FALSE, FALSE);
 }
 
 void video_stream_send_fir(VideoStream *stream) {

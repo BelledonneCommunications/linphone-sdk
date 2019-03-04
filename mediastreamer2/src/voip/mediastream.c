@@ -231,6 +231,7 @@ void media_stream_free(MediaStream *stream) {
 	if (stream->decoder != NULL) ms_filter_destroy(stream->decoder);
 	if (stream->voidsink != NULL) ms_filter_destroy(stream->voidsink);
 	if (stream->qi) ms_quality_indicator_destroy(stream->qi);
+	if (stream->video_quality_controller) ms_video_quality_controller_destroy(stream->video_quality_controller);
 }
 
 bool_t media_stream_started(MediaStream *stream) {
@@ -718,6 +719,17 @@ static void tmmbr_received(const OrtpEventData *evd, void *user_pointer) {
 			ms_message("MediaStream[%p]: received a TMMBR for bitrate %i kbits/s"
 						, ms, (int)(tmmbr_mxtbr/1000));
 			update_bitrate_limit_from_tmmbr(ms, tmmbr_mxtbr);
+
+
+#ifdef VIDEO_ENABLED
+			if (ms->type == MSVideo) {
+				if (!ms->video_quality_controller) {
+					ms->video_quality_controller = ms_video_quality_controller_new((VideoStream*)ms);
+				}
+
+				ms_video_quality_controller_update_from_tmmbr(ms->video_quality_controller, tmmbr_mxtbr);
+			}
+#endif
 			break;
 		}
 		default:
