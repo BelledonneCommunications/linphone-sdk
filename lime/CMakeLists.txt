@@ -26,10 +26,6 @@ include(CMakePushCheckState)
 include(CMakePackageConfigHelpers)
 
 cmake_minimum_required(VERSION 3.0)
-project(lime VERSION 0.0.1 LANGUAGES CXX C)
-
-set(LIME_SO_VERSION "0")
-set(LIME_VERSION ${PROJECT_VERSION})
 
 option(ENABLE_SHARED "Build shared library." YES)
 option(ENABLE_STATIC "Build static library." YES)
@@ -40,6 +36,20 @@ option(ENABLE_UNIT_TESTS "Enable compilation of unit tests." YES)
 option(ENABLE_PROFILING "Enable profiling, GCC only" NO)
 option(ENABLE_C_INTERFACE "Enable support of C89 foreign function interface" NO)
 option(ENABLE_JNI "Enable support of Java foreign function interface" NO)
+
+set (LANGUAGES_LIST CXX)
+if (ENABLE_C_INTERFACE)
+	set (LANGUAGES_LIST ${LANGUAGES_LIST} C)
+endif()
+if (ENABLE_JNI)
+	set (LANGUAGES_LIST ${LANGUAGES_LIST} Java)
+endif()
+
+project(lime VERSION 0.0.1 LANGUAGES ${LANGUAGES_LIST})
+
+set(LIME_SO_VERSION "0")
+set(LIME_VERSION ${PROJECT_VERSION})
+
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
