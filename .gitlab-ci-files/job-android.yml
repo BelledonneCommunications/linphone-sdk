@@ -116,6 +116,8 @@ job-android-ninja-r16b:
 
 
 job-android-ninja-r16b-novideo:
+  only:
+    - schedules
   except:
     variables:
       - $FAST_LINUX_TESTS
