@@ -276,10 +276,11 @@ static void channel_state_changed(belle_sip_channel_listener_t *obj, belle_sip_c
 		case BELLE_SIP_CHANNEL_RETRY:
 			break;
 		case BELLE_SIP_CHANNEL_ERROR:
+		case BELLE_SIP_CHANNEL_DISCONNECTED: //disconnect can also be seen as an io error, specially if transaction are pending
 			http_channel_context_handle_io_error(ctx, chan);
-			BCTBX_NO_BREAK; /*intentionally no break*/
-		case BELLE_SIP_CHANNEL_DISCONNECTED:
-			if (!chan->force_close) provider_remove_channel(ctx->provider,chan);
+			if (!chan->force_close) {
+				provider_remove_channel(ctx->provider,chan);
+			}
 			break;
 	}
 }
