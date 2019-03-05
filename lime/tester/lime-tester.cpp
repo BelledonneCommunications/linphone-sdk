@@ -25,7 +25,9 @@
 static FILE * log_file = NULL;
 static const char *log_domain = "lime";
 bool cleanDatabase = true;
+#ifdef FFI_ENABLED
 uint8_t ffi_cleanDatabase = 1;
+#endif
 bool bench = false;
 
 static void log_handler(int lev, const char *fmt, va_list args) {
@@ -54,7 +56,9 @@ void lime_tester_init(void(*ftester_printf)(int level, const char *fmt, va_list 
 	bc_tester_add_suite(&lime_lime_test_suite);
 	bc_tester_add_suite(&lime_massive_group_test_suite);
 	bc_tester_add_suite(&lime_helloworld_test_suite);
+#ifdef FFI_ENABLED
 	bc_tester_add_suite(&lime_ffi_test_suite);
+#endif
 }
 
 void lime_tester_uninit(void) {
@@ -133,22 +137,32 @@ int main(int argc, char *argv[]) {
 		} else if (strcmp(argv[i],"--x3dh-server-name")==0){
 			CHECK_ARG("--x3dh-server-name", ++i, argc);
 			lime_tester::test_x3dh_server_url=std::string(argv[i]);
+#ifdef FFI_ENABLED
 			strncpy(ffi_test_x3dh_server_url, argv[i], sizeof(ffi_test_x3dh_server_url)-1);
+#endif
 		} else if (strcmp(argv[i],"--c255-x3dh-server-port")==0){
 			CHECK_ARG("--c255-x3dh-server-port", ++i, argc);
 			lime_tester::test_x3dh_c25519_server_port=std::string(argv[i]);
+#ifdef FFI_ENABLED
 			strncpy(ffi_test_x3dh_c25519_server_port, argv[i], sizeof(ffi_test_x3dh_c25519_server_port)-1);
+#endif
 		} else if (strcmp(argv[i],"--c448-x3dh-server-port")==0){
 			CHECK_ARG("--c448-x3dh-server-port", ++i, argc);
 			lime_tester::test_x3dh_c448_server_port=std::string(argv[i]);
+#ifdef FFI_ENABLED
 			strncpy(ffi_test_x3dh_c448_server_port, argv[i], sizeof(ffi_test_x3dh_c448_server_port)-1);
+#endif
 		} else if (strcmp(argv[i],"--operation-timeout")==0){
 			CHECK_ARG("--operation-timeout", ++i, argc);
 			lime_tester::wait_for_timeout=std::atoi(argv[i]);
+#ifdef FFI_ENABLED
 			ffi_wait_for_timeout=lime_tester::wait_for_timeout;
+#endif
 		} else if (strcmp(argv[i],"--keep-tmp-db")==0){
 			cleanDatabase=false;
+#ifdef FFI_ENABLED
 			ffi_cleanDatabase=0;
+#endif
 		} else if (strcmp(argv[i],"--bench")==0){
 			bench=true;
 		}else {
