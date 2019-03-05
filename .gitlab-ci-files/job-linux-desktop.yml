@@ -42,6 +42,8 @@
 .test:
   stage: test
   allow_failure: true
+  only:
+    - $NIGHTLY_MASTER
   
   script:
     - cd $PATH_TO_TESTER
