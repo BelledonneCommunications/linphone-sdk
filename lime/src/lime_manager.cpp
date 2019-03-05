@@ -27,11 +27,11 @@
 using namespace::std;
 
 namespace lime {
-	void LimeManager::load_user(std::shared_ptr<LimeGeneric> &user, const std::string &localDeviceId) {
+	void LimeManager::load_user(std::shared_ptr<LimeGeneric> &user, const std::string &localDeviceId, const bool allStatus) {
 		// Load user object
 		auto userElem = m_users_cache.find(localDeviceId);
 		if (userElem == m_users_cache.end()) { // not in cache, load it from DB
-			user = load_LimeUser(m_db_access, localDeviceId, m_X3DH_post_data);
+			user = load_LimeUser(m_db_access, localDeviceId, m_X3DH_post_data, allStatus);
 			m_users_cache[localDeviceId]=user;
 		} else {
 			user = userElem->second;
@@ -77,7 +77,7 @@ namespace lime {
 
 		// Load user object
 		std::shared_ptr<LimeGeneric> user;
-		LimeManager::load_user(user, localDeviceId);
+		LimeManager::load_user(user, localDeviceId, true); // load user even if inactive as we are deleting it anyway
 
 		user->delete_user(managerDeleteCallback);
 	}

@@ -259,7 +259,6 @@ namespace lime {
 					} else {
 						m_payload_direct_encryption = false;
 					}
-
 					if (messageType & static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::X3DH_init_flag)) {
 						// header is :	Version<1 byte> ||
 						// 		message type <1 byte> ||
@@ -292,7 +291,7 @@ namespace lime {
 						// 		curve id <1 byte> ||
 						// 		Ns<2 bytes> || PN <2 bytes> ||
 						// 		DHs < X<Curve, lime::Xtype::publicKey>::ssize() >
-						m_size = headerSize<Curve>(); // headerSize is the size when no X3DJ init is present
+						m_size = headerSize<Curve>(); // headerSize is the size when no X3DH init is present
 						if (header.size() >=  m_size) { //header shall be actually longer because buffer pass is the whole message
 							m_Ns = header[3]<<8|header[4];
 							m_PN = header[5]<<8|header[6];

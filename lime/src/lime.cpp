@@ -93,15 +93,15 @@ namespace lime {
 	void Lime<Curve>::publish_user(const limeCallback &callback, const uint16_t OPkInitialBatchSize) {
 		auto userData = make_shared<callbackUserData<Curve>>(this->shared_from_this(), callback, OPkInitialBatchSize);
 		get_SelfIdentityKey(); // make sure our Ik is loaded in object
-		/* Generate the SPk */
+		/* Generate (or load if they already are in base when publishing an inactive user) the SPk */
 		X<Curve, lime::Xtype::publicKey> SPk{};
 		DSA<Curve, lime::DSAtype::signature> SPk_sig{};
 		uint32_t SPk_id=0;
-		X3DH_generate_SPk(SPk, SPk_sig, SPk_id);
-		// Generate the OPks
+		X3DH_generate_SPk(SPk, SPk_sig, SPk_id, true);
+		// Generate (or load if they already are in base when publishing an inactive user) the OPks
 		std::vector<X<Curve, lime::Xtype::publicKey>> OPks{};
 		std::vector<uint32_t> OPk_ids{};
-		X3DH_generate_OPks(OPks, OPk_ids, OPkInitialBatchSize);
+		X3DH_generate_OPks(OPks, OPk_ids, OPkInitialBatchSize, true);
 
 		// Build and post the message to server
 		std::vector<uint8_t> X3DHmessage{};
@@ -243,7 +243,7 @@ namespace lime {
 		auto db_sessionIdInCache = 0; // this would be the db_sessionId of the session stored in cache if there is one, no session has the Id 0
 		if (sessionElem != m_DR_sessions_cache.end()) { // session is in cache, it is the active one, just give it a try
 			db_sessionIdInCache = sessionElem->second->dbSessionId();
-			std::vector<std::shared_ptr<DR<Curve>>> DRSessions{1, sessionElem->second}; // copy the session pointer into a vector as the decryot function ask for it
+			std::vector<std::shared_ptr<DR<Curve>>> DRSessions{1, sessionElem->second}; // copy the session pointer into a vector as the decrypt function ask for it
 			if (decryptMessage<Curve>(senderDeviceId, m_selfDeviceId, recipientUserId, DRSessions, DRmessage, cipherMessage, plainMessage) != nullptr) {
 				// we manage to decrypt the message with the current active session loaded in cache
 				return senderDeviceStatus;
@@ -292,8 +292,8 @@ namespace lime {
 	/* These extern templates are defines in lime_localStorage.cpp */
 	extern template bool Lime<C255>::create_user();
 	extern template void Lime<C255>::get_SelfIdentityKey();
-	extern template void Lime<C255>::X3DH_generate_SPk(X<C255, lime::Xtype::publicKey> &publicSPk, DSA<C255, DSAtype::signature> &SPk_sig, uint32_t &SPk_id);
-	extern template void Lime<C255>::X3DH_generate_OPks(std::vector<X<C255, lime::Xtype::publicKey>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number);
+	extern template void Lime<C255>::X3DH_generate_SPk(X<C255, lime::Xtype::publicKey> &publicSPk, DSA<C255, DSAtype::signature> &SPk_sig, uint32_t &SPk_id, const bool load);
+	extern template void Lime<C255>::X3DH_generate_OPks(std::vector<X<C255, lime::Xtype::publicKey>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number, const bool load);
 	extern template void Lime<C255>::cache_DR_sessions(std::vector<RecipientInfos<C255>> &internal_recipients, std::vector<std::string> &missing_devices);
 	extern template void Lime<C255>::get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDBSessionId, std::vector<std::shared_ptr<DR<C255>>> &DRSessions);
 	extern template void Lime<C255>::X3DH_get_SPk(uint32_t SPk_id, Xpair<C255> &SPk);
@@ -315,8 +315,8 @@ namespace lime {
 	/* These extern templates are defines in lime_localStorage.cpp */
 	extern template bool Lime<C448>::create_user();
 	extern template void Lime<C448>::get_SelfIdentityKey();
-	extern template void Lime<C448>::X3DH_generate_SPk(X<C448, lime::Xtype::publicKey> &publicSPk, DSA<C448, DSAtype::signature> &SPk_sig, uint32_t &SPk_id);
-	extern template void Lime<C448>::X3DH_generate_OPks(std::vector<X<C448, lime::Xtype::publicKey>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number);
+	extern template void Lime<C448>::X3DH_generate_SPk(X<C448, lime::Xtype::publicKey> &publicSPk, DSA<C448, DSAtype::signature> &SPk_sig, uint32_t &SPk_id, const bool load);
+	extern template void Lime<C448>::X3DH_generate_OPks(std::vector<X<C448, lime::Xtype::publicKey>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number, const bool load);
 	extern template void Lime<C448>::cache_DR_sessions(std::vector<RecipientInfos<C448>> &internal_recipients, std::vector<std::string> &missing_devices);
 	extern template void Lime<C448>::get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDBSessionId, std::vector<std::shared_ptr<DR<C448>>> &DRSessions);
 	extern template void Lime<C448>::X3DH_get_SPk(uint32_t SPk_id, Xpair<C448> &SPk);
@@ -411,14 +411,16 @@ namespace lime {
 	 * @brief : Load user from database and return a pointer to the control class instanciating the appropriate Lime children class
 	 *
 	 *	Fail to find the user will raise an exception
+	 *	If allStatus flag is set to false (default value), raise an exception on inactive users otherwise load inactive user.
 	 *
 	 * @param[in]	dbFilename			Path to filename to use
 	 * @param[in]	deviceId			User to lookup in DB, deviceId shall be the GRUU
 	 * @param[in]	X3DH_post_data			A function used to communicate with the X3DH server
+	 * @param[in]	allStatus			allow loading of inactive user if set to true
 	 *
 	 * @return a pointer to the LimeGeneric class allowing access to API declared in lime_lime.hpp
 	 */
-	std::shared_ptr<LimeGeneric> load_LimeUser(const std::string &dbFilename, const std::string &deviceId, const limeX3DHServerPostData &X3DH_post_data) {
+	std::shared_ptr<LimeGeneric> load_LimeUser(const std::string &dbFilename, const std::string &deviceId, const limeX3DHServerPostData &X3DH_post_data, const bool allStatus) {
 
 		/* open DB and load user */
 		auto localStorage = std::unique_ptr<lime::Db>(new lime::Db(dbFilename)); // create as unique ptr, ownership is then passed to the Lime structure when instanciated
@@ -426,7 +428,7 @@ namespace lime {
 		long int Uid=0;
 		std::string x3dh_server_url;
 
-		localStorage->load_LimeUser(deviceId, Uid, curve, x3dh_server_url); // this one will throw an exception if user is not found, just let it rise
+		localStorage->load_LimeUser(deviceId, Uid, curve, x3dh_server_url, allStatus); // this one will throw an exception if user is not found, just let it rise
 		LIME_LOGI<<"Load Lime user "<<deviceId;
 
 		/* check the curve id retrieved from DB is instanciable and return an exception if not */

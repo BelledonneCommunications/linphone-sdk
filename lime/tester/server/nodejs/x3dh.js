@@ -184,9 +184,6 @@ db.get("PRAGMA user_version;", function(err, row) {
 	}
 });
 
-// close connection, open one for each client connection
-//db.close();
-
 function deleteUser(userId) {
 	lock.writeLock(function (release) {
 		db.run("DELETE FROM Users WHERE UserId = ?;", [userId], function(errDelete){
@@ -196,6 +193,10 @@ function deleteUser(userId) {
 	})
 }
 
+// Helper function to compare two byte arrays
+function arrayEquals(array1, array2) {
+	return (array1.length === array2.length && array1.every(function(value, index) { return value === array2[index]}));
+}
 // start https server
 console.log("X3DH server on, listening port "+yargs.port);
 https.createServer(options, (req, res) => {
@@ -349,10 +350,17 @@ https.createServer(options, (req, res) => {
 
 				lock.writeLock(function (release) {
 					// check it is not already present in DB
-					db.get("SELECT Uid FROM Users WHERE UserId = ?;", userId , function (err, row) {
+					db.get("SELECT Uid,Ik,SPk,SPk_sig,SPk_id FROM Users WHERE UserId = ?;", userId , function (err, row) {
 							if (row != undefined) { // usedId is already present in base
-								release();
-								returnError(enum_errorCodes.user_already_in, "Can't insert user "+userId+" - is already present in base");
+								// Check that Ik, SPk, SPk_sig match the content of the message
+								if (arrayEquals(row['Ik'], Ik) && arrayEquals(row['SPk'], SPk) && arrayEquals(row['SPk_sig'], Sig) && SPk_id === row['SPk_id']) {
+									console.log("User "+userId+" was already in db, reinsertion with same Ik and SPk required, do nothing and return Ok");
+									returnOk(returnHeader);
+									release();
+								} else {
+									release();
+									returnError(enum_errorCodes.user_already_in, "Can't insert user "+userId+" - is already present in base and we try to insert a new one with differents Keys");
+								}
 							} else {
 								db.run("begin transaction");
 								db.run("INSERT INTO Users(UserId,Ik,SPk,SPk_sig,SPk_id) VALUES(?,?,?,?,?);", [userId, Ik, SPk, Sig, SPk_id], function(errInsert){

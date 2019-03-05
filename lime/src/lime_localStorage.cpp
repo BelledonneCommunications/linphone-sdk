@@ -218,21 +218,24 @@ Db::Db(std::string filename) : sql{"sqlite3", filename}{
  * @brief Check for existence, retrieve Uid for local user based on its userId (GRUU) and curve from table lime_LocalUsers
  *
  * @param[in]	deviceId	a string holding the user to look for in DB, shall be its GRUU
- * @param[out]	Uid		the DB internal Id matching given userId (if find in DB, 0 otherwise)
+ * @param[out]	Uid		the DB internal Id matching given userId (if find in DB, 0 if not find, -1 if found but not active)
  * @param[out]	curveId		the curve selected at user creation
  * @param[out]	url		the url of the X3DH server this user is registered on
+ * @param[in]	allStatus	allow loading of inactive user if set to true(default is false)
  *
  */
-void Db::load_LimeUser(const std::string &deviceId, long int &Uid, lime::CurveId &curveId, std::string &url)
+void Db::load_LimeUser(const std::string &deviceId, long int &Uid, lime::CurveId &curveId, std::string &url, const bool allStatus)
 {
 	int curve=0;
 	sql<<"SELECT Uid,curveId,server FROM lime_LocalUsers WHERE UserId = :userId LIMIT 1;", into(Uid), into(curve), into(url), use(deviceId);
 
 	if (sql.got_data()) { // we found someone
-		// Check if the user has been activated
-		if (curve&lime::settings::DBInactiveUserBit) { // user is inactive
-			Uid = 0; // be sure to reset the db_Uid to 0
-			throw BCTBX_EXCEPTION << "Lime User "<<deviceId<<" is in DB but has not been activated yet, call create_user again to try to activate";
+		if (allStatus == false) { // do not allow inactive users to be loaded
+			// Check if the user has been activated
+			if (curve&lime::settings::DBInactiveUserBit) { // user is inactive
+				Uid = -1; // be sure to reset the db_Uid to -1
+				throw BCTBX_EXCEPTION << "Lime User "<<deviceId<<" is in DB but has not been activated yet, call create_user again to try to activate";
+			}
 		}
 
 		// turn back integer value retrieved from DB into a lime::CurveId
@@ -350,7 +353,7 @@ void Db::set_peerDeviceStatus(const std::string &peerDeviceId, const std::vector
 	// Do we have this peerDevice in lime_PeerDevices
 	blob Ik_blob(sql);
 	long long id;
-	sql<<"SELECT Did, Ik FROM Lime_PeerDevices WHERE DeviceId = :peerDeviceId;", into(id), into(Ik_blob), use(peerDeviceId);
+	sql<<"SELECT Did, Ik FROM Lime_PeerDevices WHERE DeviceId = :peerDeviceId LIMIT 1;", into(id), into(Ik_blob), use(peerDeviceId);
 	if (sql.got_data()) { // Found it
 		auto IkSize = Ik_blob.get_len();
 		std::vector<uint8_t> storedIk;
@@ -679,7 +682,7 @@ bool DR<DHKey>::session_save() {
 		blob DHr(m_localStorage->sql);
 		DHr.write(0, (char *)(rChain.DHr.data()), rChain.DHr.size());
 		long DHid=0;
-		m_localStorage->sql<<"SELECT DHid FROM DR_MSk_DHr WHERE sessionId = :sessionId AND DHr = :DHr LIMIT 1",into(DHid), use(m_dbSessionId), use(DHr);
+		m_localStorage->sql<<"SELECT DHid FROM DR_MSk_DHr WHERE sessionId = :sessionId AND DHr = :DHr LIMIT 1;",into(DHid), use(m_dbSessionId), use(DHr);
 		if (!m_localStorage->sql.got_data()) { // There is no row in DR_MSk_DHr matching this key, we must add it
 			m_localStorage->sql<<"INSERT INTO DR_MSk_DHr(sessionId, DHr) VALUES(:sessionId, :DHr)", use(m_dbSessionId), use(DHr);
 			m_localStorage->sql<<"select last_insert_rowid()",into(DHid); // WARNING: unportable code, sqlite3 only, see above for more details on similar issue
@@ -797,18 +800,23 @@ bool DR<Curve>::trySkippedMessageKeys(const uint16_t Nr, const X<Curve, lime::Xt
  *
  * @return true if user was created successfully, exception is thrown otherwise.
  *
- * @exception BCTBX_EXCEPTION	thrown if user already exists in the database
+ * @exception BCTBX_EXCEPTION	thrown if user already exists and is active in the database
  */
 template <typename Curve>
 bool Lime<Curve>::create_user()
 {
-	// check if the user is not already in the DB
 	int Uid;
+	int curve;
 
-	m_localStorage->sql<<"SELECT Uid,curveId FROM lime_LocalUsers WHERE UserId = :userId LIMIT 1;", into(Uid), use(m_selfDeviceId);
+	// check if the user is not already in the DB
+	m_localStorage->sql<<"SELECT Uid,curveId FROM lime_LocalUsers WHERE UserId = :userId LIMIT 1;", into(Uid), into(curve), use(m_selfDeviceId);
 	if (m_localStorage->sql.got_data()) {
-		// TODO: if already there but not active, try to publish it.
-		throw BCTBX_EXCEPTION << "Lime user "<<m_selfDeviceId<<" cannot be created: it is already in Database - delete it before if you really want to replace it";
+		if (curve&lime::settings::DBInactiveUserBit) { // user is there but inactive, just return true, the insert_LimeUser will try to publish it again
+			m_db_Uid = Uid;
+			return true;
+		} else {
+			throw BCTBX_EXCEPTION << "Lime user "<<m_selfDeviceId<<" cannot be created: it is already in Database - delete it before if you really want to replace it";
+		}
 	}
 
 	// generate an identity Signature key pair
@@ -908,10 +916,34 @@ void Lime<Curve>::get_SelfIdentityKey() {
 }
 
 
+/**
+ * @brief Generate (or load) a SPk and its signature by Ik.
+ * The generated SPk is stored in local storage with active Status, any exiting SPk are set to inactive.
+ *
+ * @param[out]	publicSPk	The generated (or loaded) active SPk public key
+ * @param[out]	SPk_sig		The signature by Ik of the SPk public key
+ * @param[out]	SPk_id		The SPk id
+ * @param[in]	load		Flag, if set first try to load key from storage to return them and if none is found, generate it
+ */
 template <typename Curve>
-void Lime<Curve>::X3DH_generate_SPk(X<Curve, lime::Xtype::publicKey> &publicSPk, DSA<Curve, lime::DSAtype::signature> &SPk_sig, uint32_t &SPk_id) {
+void Lime<Curve>::X3DH_generate_SPk(X<Curve, lime::Xtype::publicKey> &publicSPk, DSA<Curve, lime::DSAtype::signature> &SPk_sig, uint32_t &SPk_id, const bool load) {
 	// check Identity key is loaded in Lime object context
 	get_SelfIdentityKey();
+
+	// if the load flag is on, try to load a existing active key instead of generating it
+	if (load) {
+		blob SPk_blob(m_localStorage->sql);
+		m_localStorage->sql<<"SELECT SPk, SPKid  FROM X3DH_SPk WHERE Uid = :Uid AND Status = 1 LIMIT 1;", into(SPk_blob), into(SPk_id), use(m_db_Uid);
+		if (m_localStorage->sql.got_data()) { // Found it, it is stored in one buffer Public || Private
+			SPk_blob.read(0, (char *)(publicSPk.data()), publicSPk.size()); // Read the public key
+			// Sign the public key with our identity key
+			auto SPkSign = make_Signature<Curve>();
+			SPkSign->set_public(m_Ik.publicKey());
+			SPkSign->set_secret(m_Ik.privateKey());
+			SPkSign->sign(publicSPk, SPk_sig);
+			return;
+		}
+	}
 
 	// Generate a new ECDH Key pair
 	auto DH = make_keyExchange<Curve>();
@@ -959,8 +991,16 @@ void Lime<Curve>::X3DH_generate_SPk(X<Curve, lime::Xtype::publicKey> &publicSPk,
 	}
 }
 
+/**
+ * @brief Generate (or load) a batch of OPks, store them in local storage and return their public keys with their ids.
+ *
+ * @param[out]	publicOPks	A vector of all the generated (or loaded) OPks public keys, length shall be OPk_number unless keys are loaded from storage
+ * @param[out]	OPk_ids		A vector of all keys ids, order match the one of the previous vector
+ * @param[in]	OPk_number	How many keys shall we generate. This parameter is ignored if the load flag is set and we find some keys to load
+ * @param[in]	load		Flag, if set first try to load keys from storage to return them and if none found just generate the requested amount
+ */
 template <typename Curve>
-void Lime<Curve>::X3DH_generate_OPks(std::vector<X<Curve, lime::Xtype::publicKey>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number) {
+void Lime<Curve>::X3DH_generate_OPks(std::vector<X<Curve, lime::Xtype::publicKey>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number, const bool load) {
 
 	// make room for OPk and OPk ids
 	OPk_ids.clear();
@@ -976,6 +1016,29 @@ void Lime<Curve>::X3DH_generate_OPks(std::vector<X<Curve, lime::Xtype::publicKey
 	for (const auto &r : rs) {
 		auto OPk_id = static_cast<uint32_t>(r.get<int>(0));
 		activeOPkIds.insert(OPk_id);
+	}
+
+	// Shall we try to just load OPks before generating them?
+	if (load) {
+		blob OPk_blob(m_localStorage->sql);
+		uint32_t OPk_id;
+		// Prepare DB statement: add a filter on current user Id as we'll target all retrieved OPk_ids (soci doesn't allow rowset and blob usage together)
+		statement st = (m_localStorage->sql.prepare << "SELECT OPk FROM X3DH_OPK WHERE Uid = :Uid AND OPKid = :OPkId;", into(OPk_blob), use(m_db_Uid), use(OPk_id));
+
+		for (uint32_t id : activeOPkIds) { // We already have all the active OPK ids, loop on them
+			OPk_id = id; // copy the id into the bind variable
+			st.execute(true);
+			if (m_localStorage->sql.got_data()) {
+				OPk_ids.push_back(OPk_id);
+				X<Curve, lime::Xtype::publicKey> OPk;
+				OPk_blob.read(0, (char *)(OPk.data()), OPk.size()); // Read the public key
+				publicOPks.push_back(OPk);
+			}
+		}
+
+		if (OPk_ids.size()>0) { // We found some OPks, all set then
+			return;
+		}
 	}
 
 	// we must create OPk_number new Ids
@@ -1200,8 +1263,8 @@ void Lime<Curve>::X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds) {
 	template bool Lime<C255>::create_user();
 	template bool Lime<C255>::activate_user();
 	template void Lime<C255>::get_SelfIdentityKey();
-	template void Lime<C255>::X3DH_generate_SPk(X<C255, lime::Xtype::publicKey> &publicSPk, DSA<C255, DSAtype::signature> &SPk_sig, uint32_t &SPk_id);
-	template void Lime<C255>::X3DH_generate_OPks(std::vector<X<C255, lime::Xtype::publicKey>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number);
+	template void Lime<C255>::X3DH_generate_SPk(X<C255, lime::Xtype::publicKey> &publicSPk, DSA<C255, DSAtype::signature> &SPk_sig, uint32_t &SPk_id, const bool load);
+	template void Lime<C255>::X3DH_generate_OPks(std::vector<X<C255, lime::Xtype::publicKey>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number, const bool load);
 	template void Lime<C255>::cache_DR_sessions(std::vector<RecipientInfos<C255>> &internal_recipients, std::vector<std::string> &missing_devices);
 	template void Lime<C255>::get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDBSessionId, std::vector<std::shared_ptr<DR<C255>>> &DRSessions);
 	template void Lime<C255>::X3DH_get_SPk(uint32_t SPk_id, Xpair<C255> &SPk);
@@ -1214,8 +1277,8 @@ void Lime<Curve>::X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds) {
 	template bool Lime<C448>::create_user();
 	template bool Lime<C448>::activate_user();
 	template void Lime<C448>::get_SelfIdentityKey();
-	template void Lime<C448>::X3DH_generate_SPk(X<C448, lime::Xtype::publicKey> &publicSPk, DSA<C448, DSAtype::signature> &SPk_sig, uint32_t &SPk_id);
-	template void Lime<C448>::X3DH_generate_OPks(std::vector<X<C448, lime::Xtype::publicKey>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number);
+	template void Lime<C448>::X3DH_generate_SPk(X<C448, lime::Xtype::publicKey> &publicSPk, DSA<C448, DSAtype::signature> &SPk_sig, uint32_t &SPk_id, const bool load);
+	template void Lime<C448>::X3DH_generate_OPks(std::vector<X<C448, lime::Xtype::publicKey>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number, const bool load);
 	template void Lime<C448>::cache_DR_sessions(std::vector<RecipientInfos<C448>> &internal_recipients, std::vector<std::string> &missing_devices);
 	template void Lime<C448>::get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDBSessionId, std::vector<std::shared_ptr<DR<C448>>> &DRSessions);
 	template void Lime<C448>::X3DH_get_SPk(uint32_t SPk_id, Xpair<C448> &SPk);

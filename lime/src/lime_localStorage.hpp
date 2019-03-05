@@ -45,7 +45,7 @@ namespace lime {
 		Db(std::string filename);
 		~Db(){sql.close();};
 
-		void load_LimeUser(const std::string &deviceId, long int &Uid, lime::CurveId &curveId, std::string &url);
+		void load_LimeUser(const std::string &deviceId, long int &Uid, lime::CurveId &curveId, std::string &url, const bool allStatus=false);
 		void delete_LimeUser(const std::string &deviceId);
 		void clean_DRSessions();
 		void clean_SPk();
