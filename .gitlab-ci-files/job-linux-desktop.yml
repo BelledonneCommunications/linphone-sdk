@@ -41,98 +41,87 @@
 
 .test:
   variables:
-    GIT_STRATEGY: none
-    GIT_CHECKOUT: "false"
+    - TESTER_BIN
+    - LOG_PATTERN
+    - PATH_TO_TESTER
+    - RESOURCES_DIR
   stage: test
   allow_failure: true
-
-.test-bctoolbox:
-  extends: .test
+  
   script:
-    - cd build-desktop/WORK/desktop/Build/bctoolbox/tester
+    - cd $PATH_TO_TESTER
     - ls -la
-    - ./bctoolbox_tester --verbose --parallel #--xml-file bcttest
-  #uploading the artifacts
+    - ./$TESTER_BIN --verbose --parallel $RESOURCE_DIR --log-file $LOG_PATTERN.txt
+  
+  after_script:
+    - pwd
+    - cd $PATH_TO_TESTER
+    - echo "thread apply all bt" | sudo tee .gdbinit
+    - echo add-auto-load-safe-path $PATH_TO_TESTER/.gdbinit | sudo tee -a /home/bc/.gdbinit
+    # searching for core files and if there are some, launch gdb on all of it
+    - ls | grep core
+    - if [[ -n $(find . -type f -name "core*") ]]; then find . -type f -name "core*" | xargs -L1 gdb $TESTER_BIN; fi
+    - sudo mkdir /builds/BC/public/linphone-sdk/results
+    - sudo chmod 777 /builds/BC/public/linphone-sdk/results
+    - cp -r BCUnitAutomated* /builds/BC/public/linphone-sdk/results
+    - cp -r $LOG_PATTERN* /builds/BC/public/linphone-sdk/results
+    
   artifacts:
     paths:
-      - build-desktop/WORK/desktop/Build/bctoolbox/tester/BCUnitAutomated-Results.xml
+      - results/*
     when: always
     reports:
       junit:
-        - build-desktop/WORK/desktop/Build/bctoolbox/tester/BCUnitAutomated-Results.xml
+        - $PATH_TO_TESTER/BCUnitAutomated-Results.xml
     expire_in: 4 week
+
+.test-bctoolbox:
+  extends: .test
+  dependencies:
+    - .build-sdk
+  variables:
+    - TESTER_BIN: "bctoolbox_tester"
+    - LOG_PATTERN: "logBctoolboxAllPar"
+    - PATH_TO_TESTER: "/builds/BC/public/linphone-sdk/build-desktop/WORK/desktop/Build/bctoolbox/tester"
     
 .test-bellesip:
   extends: .test
   dependencies:
     - .build-sdk
-  script:
-    #- ip -6 a
-    #- ip -6 n
-    #- ip -6 r
-    - cd build-desktop/linphone-sdk/desktop/bin
-    - ls -la
-    - ./belle_sip_tester --verbose --parallel --resource-dir ../share/ #--xml-file bstest
-  #uploading the artifacts
-  artifacts:
-    paths:
-      - build-desktop/linphone-sdk/desktop/bin/BCUnitAutomated-Results.xml
-    when: always
-    reports:
-      junit:
-        - build-desktop/linphone-sdk/desktop/bin/BCUnitAutomated-Results.xml
-    expire_in: 4 week
+  variables:
+    - TESTER_BIN: "belle_sip_tester"
+    - LOG_PATTERN: "logBellesipAllPar"
+    - PATH_TO_TESTER: "/builds/BC/public/linphone-sdk/build-desktop/linphone-sdk/desktop/bin"
+    - RESOURCES_DIR: "--resource-dir ../share/"
+
 
 .test-belr:
   extends: .test
   dependencies:
     - .build-sdk
-  script:
-    - cd build-desktop/linphone-sdk/desktop/bin
-    - ./belr_tester --verbose --parallel --resource-dir ../share/belr-tester #--xml-file blrtest
-  #uploading the artifacts
-  artifacts:
-    paths :
-      - build-desktop/linphone-sdk/desktop/bin/BCUnitAutomated-Results.xml
-    when: always
-    reports:
-      junit:
-        - build-desktop/linphone-sdk/desktop/bin/BCUnitAutomated-Results.xml
-    expire_in: 4 week
+  variables:
+    - TESTER_BIN: "belr_tester"
+    - LOG_PATTERN: "logBelrAllPar"
+    - PATH_TO_TESTER: "/builds/BC/public/linphone-sdk/build-desktop/linphone-sdk/desktop/bin"
+    - RESOURCES_DIR: "--resource-dir ../share/belr-tester"
 
 .test-belcard:
   extends: .test
   dependencies:
     - .build-sdk
-  script:
-    - cd build-desktop/linphone-sdk/desktop/bin
-    - ./belcard_tester --verbose --parallel #--xml-file belcardtest
-  #uploading the artifacts
-  artifacts:
-    paths :
-      - build-desktop/linphone-sdk/desktop/bin/BCUnitAutomated-Results.xml
-    when: always
-    reports:
-      junit:
-        - build-desktop/linphone-sdk/desktop/bin/BCUnitAutomated-Results.xml
-    expire_in: 4 week
+  variables:
+    - TESTER_BIN: "belcard_tester"
+    - LOG_PATTERN: "logBelcardAllPar"
+    - PATH_TO_TESTER: "/builds/BC/public/linphone-sdk/build-desktop/linphone-sdk/desktop/bin"
     
 .test-bzrtp:
   extends: .test
   dependencies:
     - .build-sdk
-  script:
-    - cd build-desktop/WORK/desktop/Build/bzrtp/test
-    - ls -la
+  variables:
+    - TESTER_BIN: "bzrtpTest"
+    - LOG_PATTERN: "logBzrtpAllPar"
+    - PATH_TO_TESTER: "/builds/BC/public/linphone-sdk/build-desktop/WORK/desktop/Build/bzrtp/test"
     #We must tell it that the ressources it wants are in its own folder
     #different behaviour from other testers
-    - ./bzrtpTest --verbose --parallel --resource-dir . #--xml-file bzrtptest 
-  #uploading the artifacts
-  artifacts:
-    paths :
-      - build-desktop/WORK/desktop/Build/bzrtp/test/BCUnitAutomated-Results.xml
-    when: always
-    reports:
-      junit:
-        - build-desktop/WORK/desktop/Build/bzrtp/test/BCUnitAutomated-Results.xml
-    expire_in: 4 week
+    - RESOURCES_DIR: "--resource-dir ."
