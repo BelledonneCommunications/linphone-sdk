@@ -62,7 +62,6 @@
     - echo "thread apply all bt" | sudo tee .gdbinit
     - echo add-auto-load-safe-path $PATH_TO_TESTER/.gdbinit | sudo tee -a /home/bc/.gdbinit
     # searching for core files and if there are some, launch gdb on all of it
-    - ls | grep core
     # "true ||" is used here to continue the script even if the find fails
     - true || if [[ -n $(find . -type f -name "core*") ]]; then find . -type f -name "core*" | xargs -L1 gdb $TESTER_BIN; fi
     - sudo mkdir /builds/BC/public/linphone-sdk/results
