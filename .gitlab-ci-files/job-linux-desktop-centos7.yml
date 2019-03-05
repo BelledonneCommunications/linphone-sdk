@@ -165,7 +165,7 @@ test-liblinphone:
     - pwd
     - cd build-desktop/linphone-sdk/desktop/bin
     - echo "thread apply all bt" | sudo tee .gdbinit
-    - echo add-auto-load-safe-path /builds/BC/public/linphone-sdk/desktop/bin/.gdbinit | sudo tee -a /home/bc/.gdbinit
+    - echo add-auto-load-safe-path /builds/BC/public/linphone-sdk/build-desktop/linphone-sdk/desktop/bin/.gdbinit | sudo tee -a /home/bc/.gdbinit
     # searching for core files and if there are some, launch gdb on all of it
     - ls | grep core
     
