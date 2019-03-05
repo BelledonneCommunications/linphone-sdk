@@ -128,68 +128,25 @@ test-mediastreamer:
   extends: .test
   dependencies:
     - job-centos7-ninja-gcc
-  script:
-    - pulseaudio -D -L module-virtual-source --exit-idle-time=-1
-    - cd build-desktop/linphone-sdk/desktop/bin
-    - ./mediastreamer2_tester --verbose --parallel --log-file logMediastreamerAllPar.txt
+  variables:
+    TESTER_BIN: "mediastreamer2_tester"
+    PULSEAUDIO: "pulseaudio -D -L module-virtual-source --exit-idle-time=-1"
+    LOG_PATTERN: "logMediastreamerAllPar"
+    PATH_TO_TESTER: "/builds/BC/public/linphone-sdk/build-desktop/linphone-sdk/desktop/bin"
     
-  after_script:
-    - pwd
-    - cd build-desktop/linphone-sdk/desktop/bin
-    - echo "thread apply all bt" | sudo tee .gdbinit
-    - echo add-auto-load-safe-path /builds/BC/public/linphone-sdk/build-desktop/linphone-sdk/desktop/bin/.gdbinit | sudo tee -a /home/bc/.gdbinit
-    # searching for core files and if there are some, launch gdb on all of it
-    - ls | grep core
-    - if [[ -n $(find . -type f -name "core*") ]]; then find . -type f -name "core*" | xargs -L1 gdb mediastreamer2_tester; fi
-    - sudo mkdir /builds/BC/public/linphone-sdk/results
-    - sudo chmod 777 /builds/BC/public/linphone-sdk/results
-    - cp -r BCUnitAutomated* /builds/BC/public/linphone-sdk/results
-    - cp -r logMediastreamerAllPar* /builds/BC/public/linphone-sdk/results
-  #uploading the artifacts
-  artifacts:
-    paths:
-      - results/*
-    when: always
-    reports:
-      junit:
-        - build-desktop/linphone-sdk/desktop/bin/mstest-Results.xml
-    expire_in: 4 week
     
 test-liblinphone:
   tags: [ "docker-test-centos7-liblinphone" ]
   extends: .test
   dependencies:
     - job-centos7-ninja-gcc
-  script:
-    # xvfb = X emulation in docker
-    - Xvfb :99 &
-    - export DISPLAY=:99
-    - cd build-desktop/linphone-sdk/desktop/bin    
-    - ./liblinphone_tester --verbose --parallel --dns-hosts /builds/BC/public/linphone-sdk/linphone/tester/tester_hosts --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt
-    # moving artifacts to simplify browsing
-  after_script:
-    - pwd
-    - cd build-desktop/linphone-sdk/desktop/bin
-    - echo "thread apply all bt" | sudo tee .gdbinit
-    - echo add-auto-load-safe-path /builds/BC/public/linphone-sdk/build-desktop/linphone-sdk/desktop/bin/.gdbinit | sudo tee -a /home/bc/.gdbinit
-    # searching for core files and if there are some, launch gdb on all of it
-    - ls | grep core
-    
-    - if [[ -n $(find . -type f -name "core*") ]]; then find . -type f -name "core*" | xargs -L1 gdb liblinphone_tester; fi
-    - sudo mkdir /builds/BC/public/linphone-sdk/results
-    - sudo chmod 777 /builds/BC/public/linphone-sdk/results
-    - cp -r BCUnitAutomated* /builds/BC/public/linphone-sdk/results
-    - cp -r logLiblinphoneAllParThIpv6* /builds/BC/public/linphone-sdk/results
-    
-  #uploading the artifacts
-  artifacts:
-    paths:
-      - results/*
-    when: always
-    reports:
-      junit:
-        - build-desktop/linphone-sdk/desktop/bin/BCUnitAutomated-Results.xml
-    expire_in: 4 week
+  variables:
+    TESTER_BIN: "liblinphone_tester"
+    XVFB: "Xvfb :99 &"
+    EXPORT_DISPLAY: "export DISPLAY=:99"
+    LOG_PATTERN: "logLiblinphoneAllParThIpv6"
+    PATH_TO_TESTER: "/builds/BC/public/linphone-sdk/build-desktop/linphone-sdk/desktop/bin"
+    ADDITIONNAL_OPTIONS: "--dns-hosts /builds/BC/public/linphone-sdk/linphone/tester/tester_hosts --show-account-manager-logs"
     
 #apparently there is no more standalone lime tester
 #test-lime:

@@ -45,8 +45,16 @@
   
   script:
     - cd $PATH_TO_TESTER
+    
+    #pulseaudio launch for mediastreamer
+    - $PULSEAUDIO
+    
+    #X emulation for linphone
+    - $XVFB
+    - $EXPORT_DISPLAY
+    
     - ls -la
-    - ./$TESTER_BIN --verbose --parallel $RESOURCE_DIR --log-file $LOG_PATTERN.txt
+    - ./$TESTER_BIN --verbose --parallel $RESOURCE_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt
   
   after_script:
     - pwd
