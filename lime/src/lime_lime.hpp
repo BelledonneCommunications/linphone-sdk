@@ -142,6 +142,20 @@ namespace lime {
 		*/
 		virtual void get_Ik(std::vector<uint8_t> &Ik) = 0;
 
+		/**
+		 * @brief Set the X3DH key server URL for this identified user
+		 *
+		 * @param[in]	x3dhServerUrl		The complete url(including port) of the X3DH key server
+		 */
+		virtual void set_x3dhServerUrl(const std::string &x3dhServerUrl) = 0;
+
+		/**
+		 * @brief Get the X3DH key server URL for this identified user
+		 *
+		 * @return The complete url(including port) of the X3DH key server
+		 */
+		virtual std::string get_x3dhServerUrl() = 0;
+
 		virtual ~LimeGeneric() {};
 	};
 

@@ -1258,6 +1258,23 @@ void Lime<Curve>::X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds) {
 	m_localStorage->sql << "DELETE FROM X3DH_OPK WHERE Uid = :Uid AND Status = 0 AND timeStamp < date('now', '-"<<lime::settings::OPk_limboTime_days<<" day');", use(m_db_Uid);
 }
 
+template <typename Curve>
+void Lime<Curve>::set_x3dhServerUrl(const std::string &x3dhServerUrl) {
+	transaction tr(m_localStorage->sql);
+
+	// update in DB, do not check presence as we're called after a load_user who already ensure that
+	try {
+		m_localStorage->sql<<"UPDATE lime_LocalUsers SET server = :server WHERE UserId = :userId;", use(x3dhServerUrl), use(m_selfDeviceId);
+	} catch (exception const &e) {
+		tr.rollback();
+		throw BCTBX_EXCEPTION << "Cannot set the X3DH server url for user "<<m_selfDeviceId<<". DB backend says: "<<e.what();
+	}
+	// update in the Lime object
+	m_X3DH_Server_URL = x3dhServerUrl;
+
+	tr.commit();
+}
+
 /* template instanciations for Curves 25519 and 448 */
 #ifdef EC25519_ENABLED
 	template bool Lime<C255>::create_user();
@@ -1271,6 +1288,7 @@ void Lime<Curve>::X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds) {
 	template bool Lime<C255>::is_currentSPk_valid(void);
 	template void Lime<C255>::X3DH_get_OPk(uint32_t OPk_id, Xpair<C255> &SPk);
 	template void Lime<C255>::X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds);
+	template void Lime<C255>::set_x3dhServerUrl(const std::string &x3dhServerUrl);
 #endif
 
 #ifdef EC448_ENABLED
@@ -1285,6 +1303,7 @@ void Lime<Curve>::X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds) {
 	template bool Lime<C448>::is_currentSPk_valid(void);
 	template void Lime<C448>::X3DH_get_OPk(uint32_t OPk_id, Xpair<C448> &SPk);
 	template void Lime<C448>::X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds);
+	template void Lime<C448>::set_x3dhServerUrl(const std::string &x3dhServerUrl);
 #endif
 
 

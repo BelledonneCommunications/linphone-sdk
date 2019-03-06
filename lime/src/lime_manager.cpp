@@ -203,5 +203,22 @@ namespace lime {
 		localStorage->delete_peerDevice(peerDeviceId);
 	}
 
+	void LimeManager::set_x3dhServerUrl(const std::string &localDeviceId, const std::string &x3dhServerUrl) {
+		// load user (generate an exception if not found, let it flow up)
+		std::shared_ptr<LimeGeneric> user;
+		LimeManager::load_user(user, localDeviceId);
+
+		user->set_x3dhServerUrl(x3dhServerUrl);
+
+	}
+
+	std::string LimeManager::get_x3dhServerUrl(const std::string &localDeviceId) {
+		// load user (generate an exception if not found, let it flow up)
+		std::shared_ptr<LimeGeneric> user;
+		LimeManager::load_user(user, localDeviceId);
+
+		return user->get_x3dhServerUrl();
+	}
+
 
 } // namespace lime

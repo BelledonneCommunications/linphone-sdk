@@ -143,7 +143,7 @@ public class LimeManager {
 		this.n_encrypt(localDeviceId, recipientUserId, recipients, plainMessage, cipherMessage, statusObj, encryptionPolicy.getNative());
 	}
 	/**
-	* @overload encrypt(String localDeviceId, String recipientUserId, RecipientData[] recipients, byte[] plainMessage, LimeOutputBuffer cipherMessage, LimeStatusCallback statusObj
+	* @overload encrypt(String localDeviceId, String recipientUserId, RecipientData[] recipients, byte[] plainMessage, LimeOutputBuffer cipherMessage, LimeStatusCallback statusObj)
 	* convenience form using LimeEncryptionPolicy.OPTIMIZEUPLOADSIZE as default policy
 	*/
 	public void encrypt(String localDeviceId, String recipientUserId, RecipientData[] recipients, byte[] plainMessage, LimeOutputBuffer cipherMessage, LimeStatusCallback statusObj) {
@@ -288,6 +288,25 @@ public class LimeManager {
 	 * Call is silently ignored if the device is not found in local storage
 	 */
 	public native void delete_peerDevice(String peerDeviceId);
+
+	/**
+	 * @brief Set the X3DH key server URL for this identified user
+	 * if specified localDeviceId is not found in local Storage, throw an exception
+	 *
+	 * @param[in]	localDeviceId		Identify the local user acount to use, it must be unique and is also be used as Id on the X3DH key server, it shall be the GRUU
+	 * @param[in]	serverURL		The complete url(including port) of the X3DH key server. It must connect using HTTPS. Example: https://sip5.linphone.org:25519
+	 */
+	public native void set_x3dhServerUrl(String localDeviceId, String serverURL) throws LimeException;
+
+	/**
+	 * @brief Get the X3DH key server URL for this identified user
+	 * if specified localDeviceId is not found in local Storage, throw an exception
+	 *
+	 * @param[in]	localDeviceId		Identify the local user acount to use, it must be unique and is also be used as Id on the X3DH key server, it shall be the GRUU
+	 *
+	 * @return	serverURL		The complete url(including port) of the X3DH key server.
+	 */
+	public native String get_x3dhServerUrl(String localDeviceId) throws LimeException;
 
 	/**
 	 * @brief native function to process the X3DH server response

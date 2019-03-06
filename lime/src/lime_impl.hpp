@@ -109,6 +109,8 @@ namespace lime {
 			void get_Ik(std::vector<uint8_t> &Ik) override;
 			void encrypt(std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback) override;
 			lime::PeerDeviceStatus decrypt(const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) override;
+			void set_x3dhServerUrl(const std::string &x3dhServerUrl) override;
+			std::string get_x3dhServerUrl() override;
 	};
 
 	/**

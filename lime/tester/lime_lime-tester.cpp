@@ -3112,6 +3112,19 @@ static void user_management_test(const lime::CurveId curve, const std::string &d
 		/* load alice from from DB */
 		auto alice = load_LimeUser(dbFilenameAlice, *aliceDeviceName, X3DHServerPost);
 		/* no need to wait here, it shall load alice immediately */
+
+		// Get alice x3dh server url
+		BC_ASSERT_TRUE(Manager->get_x3dhServerUrl(*aliceDeviceName) == x3dh_server_url);
+
+		// Set the X3DH URL server to something else and check it worked
+		Manager->set_x3dhServerUrl(*aliceDeviceName, "https://testing.testing:12345");
+		BC_ASSERT_TRUE(Manager->get_x3dhServerUrl(*aliceDeviceName) == "https://testing.testing:12345");
+		// Force a reload of data from local storage just to be sure the modification was perform correctly
+		Manager = nullptr;
+		Manager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
+		BC_ASSERT_TRUE(Manager->get_x3dhServerUrl(*aliceDeviceName) == "https://testing.testing:12345");
+		// Set it back to the regular one to be able to complete the test
+		Manager->set_x3dhServerUrl(*aliceDeviceName, x3dh_server_url);
 	} catch (BctbxException &e) {
 		LIME_LOGE << e;
 		BC_FAIL("");

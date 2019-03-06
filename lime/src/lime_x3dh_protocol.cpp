@@ -166,6 +166,11 @@ namespace lime {
 		 *
 		 * @param[in,out]	message		an empty buffer to store the message
 		 * @param[in]		Ik		Self public identity key (formatted for signature algorithm)
+		 * @param[in]		SPk		public signed pre-key (ECDH format)
+		 * @param[in]		Sig		SPk signed using Ik
+		 * @param[in]		SPk_id		SPk Id in local storage
+		 * @param[in]		OPks		Vector of one time pre-keys
+		 * @param[in]		OPk_ids		Ids of the OPk hold by previous vector(in matching indexes)
 		 */
 		template <typename Curve>
 		void buildMessage_registerUser(std::vector<uint8_t> &message, const DSA<Curve, lime::DSAtype::publicKey> &Ik, const X<Curve, lime::Xtype::publicKey> &SPk, const DSA<Curve, lime::DSAtype::signature> &Sig, const uint32_t SPk_id, const std::vector<X<Curve, lime::Xtype::publicKey>> &OPks, const std::vector<uint32_t> &OPk_ids) noexcept {

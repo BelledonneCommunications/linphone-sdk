@@ -389,7 +389,30 @@ int lime_ffi_delete_peerDevice(lime_manager_t manager, const char *peerDeviceId)
  *
  * @return LIME_FFI_SUCCESS or a negative error code
  */
-int lime_ffi_update(lime_manager_t manager,  const lime_ffi_Callback callback, void *callbackUserData, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize);
+int lime_ffi_update(lime_manager_t manager, const lime_ffi_Callback callback, void *callbackUserData, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize);
+
+/**
+ * @brief Set the X3DH key server URL for this identified user
+ *
+ * @param[in]	manager			pointer to the opaque structure used to interact with lime
+ * @param[in]	localDeviceId		Identify the local user account, it must be unique and is also be used as Id on the X3DH key server, it shall be the GRUU
+ * @param[in]	x3dhServerUrl		The complete url(including port) of the X3DH key server. It must connect using HTTPS. Example: https://sip5.linphone.org:25519
+ *
+ * @return LIME_FFI_SUCCESS or a negative error code
+ */
+int lime_ffi_set_x3dhServerUrl(lime_manager_t manager, const char *localDeviceId, const char *x3dhServerUrl);
+
+/**
+ * @brief Get the X3DH key server URL for this identified user
+ *
+ * @param[in]		manager			pointer to the opaque structure used to interact with lime
+ * @param[in]		localDeviceId		Identify the local user account, it must be unique and is also be used as Id on the X3DH key server, it shall be the GRUU, in a NULL terminated string
+ * @param[in]		x3dhServerUrl		The complete url(including port) of the X3DH key server in a NULL terminated string
+ * @param[in/out]	x3dhServerUrlSize	Size of the previous buffer, is updated with actual size of data written(without the '\0', would give the same result as strlen.)
+ *
+ * @return LIME_FFI_SUCCESS or a negative error code
+ */
+int lime_ffi_get_x3dhServerUrl(lime_manager_t manager, const char *localDeviceId, char *x3dhServerUrl, size_t *x3dhServerUrlSize);
 
 #ifdef __cplusplus
 }
