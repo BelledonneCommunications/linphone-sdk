@@ -36,7 +36,7 @@
 \hypersetup{colorlinks=true, linkcolor=black, citecolor=black, urlcolor=olive}
 
 \title{Linphone Instant Message Encryption v2.0 (Lime v2.0)}
-\date{\today\\Draft}
+\date{\today\\Version 1.0}
 \author{Johan Pascal}
 
 \begin{document}
@@ -51,12 +51,14 @@
 \paragraph*{}Lime is written in C\nolinebreak\hspace{-.05em}\raisebox{.4ex}{\tiny\bf +}\nolinebreak\hspace{-.10em}\raisebox{.4ex}{\tiny\bf +}11 and the library uses templates to provide support for Curve25519- and Curve448-based cryptographic algorithms. The library supports one or both curves according to build settings.\\*A users network (all clients and keys server) must commit to using either Curve25519 or Curve448, but a device may host several users communicating on separate users' networks; using different curves.
 \paragraph{Note:} Lime v1.0 was based on \href{https://en.wikipedia.org/wiki/Silent_Circle_Instant_Messaging_Protocol}{SCIMP}. This document presents Lime v2.0, which is neither related to nor compatible with Lime v1.0. In this document the use of the term Lime refers to Lime v2.0.
 
+\newpage
 \section{Notations}
 \paragraph{}$A\Arrowvert B$ denotes the concatenation of byte sequences $A$ and $B$
 \paragraph{}$A\langle value\rangle$ the bytes sequence $A$ size is $value$. For example, $key\langle 32bytes\rangle $ denotes a 32 bytes long buffer called $key$. Several values may be included in a comma-separated list, indicating that several sizes are possible.
 \paragraph{}$element\{ instances\}$ denotes the number of occurrences of a given $element$. $Instances$ may be a number, a range or a comma-separated list of possible values. For example, $key\{ 4\}$ means 4 $keys$, $key\{ 0,1\}$ means either 0 or 1 $key$.
 \paragraph{}$element[values]$: element value can be one of the values given in a comma-separated list. For example, $type[1,2,3]$ means $type$ equals either 1, 2, or 3.
 
+\newpage
 \section{Brief introduction to Signal protocol specification documents}
   \subsection{The Double Ratchet Algorithm}
     \paragraph{}\textquotedblleft \textit{The Double Ratchet algorithm\cite{doubleRatchet} is used by two parties to exchange encrypted
@@ -88,7 +90,7 @@ Sesame was designed to manage Double Ratchet sessions\cite{doubleRatchet} create
 key agreement\cite{x3dh}. However, Sesame is a generic algorithm that works with
 any session-based message encryption algorithm that meets certain conditions.}\textquotedblright 
 
-
+\newpage
 \section{Major discrepancies between Lime v2.0 and Signal protocol}
 \paragraph{}This section will not go into the details of the Signal protocol specification but will focus only on the points where the Lime v2.0 implementation does not follow the Signal specification documentation\cite{doubleRatchet}\cite{x3dh}\cite{sesame}. A prior knowledge of these specs is essential to understand the possible effects of such discrepancies.
 
@@ -136,6 +138,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
       \item Session expiration as in \cite[section 4.2]{sesame} but a related mechanism is implemented: A Double Ratchet session expires after encrypting a certain number of messages without performing any Diffie-Hellman ratchet step.
     \end{itemize}
 
+\newpage
 \section{Implementation details}
   \subsection{Preliminaries}
     \paragraph{}For clarity, the different terms used in this document are defined here:
@@ -451,7 +454,6 @@ any session-based message encryption algorithm that meets certain conditions.}\t
           \end{algorithmic}
           \textit{initiator} being the device who initiates the session (Alice in the X3DH spec) by fetching a keys bundle on the X3DH server and \textit{receiver} being the recipient device of the first message (Bob in the X3DH spec).
     \subsubsection{X3DH test server}
-      \paragraph*{PHP}: An X3DH test server running on nginx/mysql/php docker container is provided with the lime library source code. This server is not meant to be used in production and its purpose is for testing only. This server lacks user authentication layer, which in real use case is provided by the linphone ecosystem.
       \paragraph*{Nodejs}: An X3DH test server running on nodejs is provided with the Lime library source code. This server is not meant to be used in production and its purpose is for testing only. This server lacks user authentication layer, which in real use case is provided by the linphone ecosystem.
   \subsection{Sesame}
     \paragraph{}The Sesame requirements are fulfilled as follow:
@@ -666,7 +668,11 @@ any session-based message encryption algorithm that meets certain conditions.}\t
       \item $UserId$: the device Id provided by linphone, it shall be the GRUU.
       \item $Ik$: Identity key, an EdDSA key stored as public key $\Arrowvert $ private key.
       \item $server$: the X3DH server URL to be used by this user.
-      \item $curveId$: 0x01 for Curve 25519 or 0x02 for Curve 448. This value must match the X3DH server setting.
+      \item $curveId$: An unsigned integer, mapped as following:
+        \begin{itemize}
+          \item LSB(bit 7 to 0) stores the curve id mapped to integers: 0x01 for Curve 25519 or 0x02 for Curve 448. This value must match the X3DH server setting.
+          \item bit 8 is the active flag : 0 for active user, 1 for inactive user
+        \end{itemize}
     \end{itemize}
     
     \paragraph*{lime\_PeerDevices}
@@ -764,6 +770,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
     \paragraph{}Hash (HmacSha512) and encryption (AES256-GCM) are provided by mbedtls library\cite{libmbedtls}. Version 2.1 or above.
     \paragraph{Note}: These libraries are not accessed directly but through the bctoolbox abstraction library.
 
+\newpage
 \section{Protocol specification}
   This section describes the details of messages structures.
   \paragraph*{Notes}: Keys are intended as public keys and their size depends on the selected curve indicated in the messages header. The following sizes apply:
@@ -897,7 +904,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
       \item Protocol Version: 0x01.
       \item Message Type:
         \begin{itemize}
-          \item \textit{0x01: register User}: a device registers its Id and Identity key on X3DH server.
+          \item \textit{0x01: deprecated register User}: a device registers its Id and Identity key on X3DH server, this message holds the Ik only and shall be supported for retro-compatibility with old clients only.
           \item \textit{0x02: delete User}: a device deletes its Id and Identity key from X3DH server.
           \item \textit{0x03: post Signed Pre-key}: a device publishes a Signed Pre-key on X3DH server.
           \item \textit{0x04: post One-time Pre-keys}: a device publishes a batch of One-time Pre-keys on X3DH server.
@@ -905,12 +912,13 @@ any session-based message encryption algorithm that meets certain conditions.}\t
           \item \textit{0x06: peers key bundles}: X3DH server responds to device with the list of requested key bundles.
           \item \textit{0x07: get self One-time Pre-keys}: ask server for self One-time Pre-keys Ids available.
           \item \textit{0x08: self One-time Pre-keys}: server response with a count and list of all One-time Pre-keys Ids available.          
-          \item \textit{0xFF: error}: something went wrong on server side during processing of client message, server respond with details on failure
+          \item \textit{0x09: register User}: a device registers its Id and Identity key, Signed Pre-key and a batch of One-time Pre-keys on X3DH server.
+          \item \textit{0xFF: error}: something went wrong on server side during processing of client message, server respond with details on failure.
         \end{itemize}
       \item Curve Id: [0x01 (curve 25519), 0x02 (curve 448)]
       \end{itemize}
     
-    To device generated messages \textit{register User, delete User, post Signed Pre-key} and \textit{post One-time Pre-key}, on success, the X3DH server responds with the original message header:\\*
+    To device generated messages \textit{(deprecated) register User, delete User, post Signed Pre-key} and \textit{post One-time Pre-key}, on success, the X3DH server responds with the original message header:\\*
     Protocol Version $\Arrowvert $ Message type $\Arrowvert $ Curve Id
     \subsubsection{Register User Message}
       \begin{center}
@@ -918,10 +926,32 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \hline
         \cellcolor[gray]{0.85} byte 0 & \cellcolor[gray]{0.85} byte 1 & \cellcolor[gray]{0.85} byte 2 & \cellcolor[gray]{0.85}byte 3\\
         \hline
-        Protocol Version [0x01] & Message type [0x01] & Curve Id [0x01,0x02] &\\
+        Protocol Version [0x01] & Message type [0x09] & Curve Id [0x01,0x02] &\\
         \cline{1-3}
         \multicolumn{4}{|c|}{EdDSA Identity Key$\langle 32,57bytes\rangle $}\\
         \multicolumn{4}{|c|}{...}\\
+        \hline
+        \multicolumn{4}{|c|}{ECDH Signed Pre-key$\langle 32,56bytes\rangle $}\\
+        \multicolumn{4}{|c|}{...}\\
+        \hline
+        \multicolumn{4}{|c|}{ECDH Signed Pre-key Signature$\langle 64,114bytes\rangle $}\\
+        \multicolumn{4}{|c|}{...}\\
+        \hline
+        \multicolumn{4}{|c|}{Signed Pre-key Id}\\
+        \hline
+        \multicolumn{2}{|c}{keys Count} & \multicolumn{2}{|c|}{One-time Pre-key bundle$\langle 36,60bytes\rangle $\{keys Count\}}\\
+        \cline{1-2}
+        \multicolumn{4}{|c|}{...}\\
+        \hline
+        \multicolumn{4}{c}{}\\
+        \multicolumn{4}{c}{with One-time Pre-key bundle:}\\
+        \hline
+        \cellcolor[gray]{0.95} byte 0 & \cellcolor[gray]{0.95} byte 1 & \cellcolor[gray]{0.95} byte 2 & \cellcolor[gray]{0.95}byte 3\\
+        \hline
+        \multicolumn{4}{|c|}{ECDH One-Time Pre-key$\langle 32,56bytes\rangle$}\\
+        \multicolumn{4}{|c|}{...}\\
+        \hline
+        \multicolumn{4}{|c|}{One-Time Pre-key Id}\\
         \hline
       \end{tabular}
       \end{center}
@@ -948,6 +978,11 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \multicolumn{4}{|c|}{ECDH Signed Pre-key$\langle 32,56bytes\rangle $}\\
         \multicolumn{4}{|c|}{...}\\
         \hline
+        \multicolumn{4}{|c|}{ECDH Signed Pre-key Signature$\langle 64,114bytes\rangle $}\\
+        \multicolumn{4}{|c|}{...}\\
+        \hline
+        \multicolumn{4}{|c|}{Signed Pre-key Id}\\
+        \hline
       \end{tabular}
       \end{center}
     
@@ -959,7 +994,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \hline
         Protocol Version [0x01] & Message type [0x04] & Curve Id [0x01,0x02] & keys Count MSB\\
         \hline
-        keys Count LSB & \multicolumn{3}{|c|}{One-time Pre-key bundle$\langle 36,60bytes\rangle $\{keys Count\}}\\
+        keys Count LSB & \multicolumn{3}{c|}{One-time Pre-key bundle$\langle 36,60bytes\rangle $\{keys Count\}}\\
         \cline{1-1}
         \multicolumn{4}{|c|}{...}\\
         \hline
@@ -984,7 +1019,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \hline
         Protocol Version [0x01] & Message type [0x05] & Curve Id [0x01,0x02] & request Count MSB\\
         \hline
-        request Count LSB & \multicolumn{3}{|c|}{request\{request Count\}}\\
+        request Count LSB & \multicolumn{3}{c|}{request\{request Count\}}\\
         \cline{1-1}
         \multicolumn{4}{|c|}{...}\\
         \hline
@@ -993,7 +1028,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \hline
         \cellcolor[gray]{0.95} byte 0 & \cellcolor[gray]{0.95} byte 1 & \cellcolor[gray]{0.95} byte 2 & \cellcolor[gray]{0.95}byte 3\\
         \hline
-        \multicolumn{2}{|c|}{Device Id size}&\multicolumn{2}{|c|}{Device Id$\langle$variable size$\rangle$...}\\
+        \multicolumn{2}{|c}{Device Id size}&\multicolumn{2}{|c|}{Device Id$\langle$variable size$\rangle$...}\\
         \hline
         \multicolumn{4}{|c|}{...Device Id$\langle$variable size$\rangle$}\\
         \hline
@@ -1008,7 +1043,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \hline
         Protocol Version [0x01] & Message type [0x06] & Curve Id [0x01,0x02] & bundles Count MSB\\
         \hline
-        bundles Count LSB & \multicolumn{3}{|c|}{key Bundle\{bundles Count\}}\\
+        bundles Count LSB & \multicolumn{3}{c|}{key Bundle\{bundles Count\}}\\
         \cline{1-1}
         \multicolumn{4}{|c|}{...}\\
         \hline
@@ -1017,11 +1052,11 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \hline
         \cellcolor[gray]{0.95} byte 0 & \cellcolor[gray]{0.95} byte 1 & \cellcolor[gray]{0.95} byte 2 & \cellcolor[gray]{0.95}byte 3\\
         \hline
-        \multicolumn{2}{|c|}{Device Id size}&\multicolumn{2}{|c|}{Device Id$\langle$variable size$\rangle$...}\\
+        \multicolumn{2}{|c|}{Device Id size}&\multicolumn{2}{c|}{Device Id$\langle$variable size$\rangle$...}\\
         \hline
         \multicolumn{4}{|c|}{...Device Id$\langle$variable size$\rangle$}\\
         \hline
-        bundle flag [0x00,0x01] & \multicolumn{3}{|c|}{}\\
+        bundle flag [0x00,0x01] & \multicolumn{3}{c|}{}\\
         \cline{1-1}
         \multicolumn{4}{|c|}{EdDSA Identity Key$\langle 32,57bytes\rangle $}\\
         \multicolumn{4}{|c|}{...}\\
@@ -1044,7 +1079,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \hline
         \cellcolor[gray]{0.95} byte 0 & \cellcolor[gray]{0.95} byte 1 & \cellcolor[gray]{0.95} byte 2 & \cellcolor[gray]{0.95}byte 3\\
         \hline
-        \multicolumn{2}{|c|}{Device Id size}&\multicolumn{2}{|c|}{Device Id$\langle$variable size$\rangle$...}\\
+        \multicolumn{2}{|c|}{Device Id size}&\multicolumn{2}{c|}{Device Id$\langle$variable size$\rangle$...}\\
         \hline
         \multicolumn{4}{|c|}{...Device Id$\langle$variable size$\rangle$}\\
         \hline
@@ -1059,11 +1094,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \hline
         \cellcolor[gray]{0.85} byte 0 & \cellcolor[gray]{0.85} byte 1 & \cellcolor[gray]{0.85} byte 2 & \cellcolor[gray]{0.85}byte 3\\
         \hline
-        Protocol Version [0x01] & Message type [0x07] & Curve Id [0x01,0x02] & OPk Count MSB\\
-        \hline
-        OPk Count LSB & \multicolumn{3}{|c|}{OPk Id$\langle 4bytes\rangle $\{OPk Count\}}\\
-        \cline{1-1}
-        \multicolumn{4}{|c|}{...}\\
+        Protocol Version [0x01] & Message type [0x07] & Curve Id [0x01,0x02] & \\
         \hline
       \end{tabular}
       \end{center}
@@ -1074,11 +1105,15 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \hline
         \cellcolor[gray]{0.85} byte 0 & \cellcolor[gray]{0.85} byte 1 & \cellcolor[gray]{0.85} byte 2 & \cellcolor[gray]{0.85}byte 3\\
         \hline
-        Protocol Version [0x01] & Message type [0x08] & Curve Id [0x01,0x02] & \\
+        Protocol Version [0x01] & Message type [0x08] & Curve Id [0x01,0x02] & OPk Count MSB\\
+        \hline
+        OPk Count LSB & \multicolumn{3}{c|}{OPk Id$\langle 4bytes\rangle $\{OPk Count\}}\\
+        \cline{1-1}
+        \multicolumn{4}{|c|}{...}\\
         \hline
       \end{tabular}
       \end{center}
-      
+
     \subsubsection{Error Message}
       \begin{center}
       \begin{tabular}{ | p{1.4in} | p{1.4in} | p{1.4in} | p{1.4in} |}
@@ -1106,8 +1141,25 @@ any session-based message encryption algorithm that meets certain conditions.}\t
       \item 0x07: \textbf{db error}: server encountered problem with its database.
       \item 0x08: \textbf{bad request}: malformed peer bundle request.
     \end{itemize}
+
+    \subsubsection{Deprecated Register User Message}
+      \begin{center}
+      \begin{tabular}{ | p{1.4in} | p{1.4in} | p{1.4in} | p{1.4in} |}
+        \hline
+        \cellcolor[gray]{0.85} byte 0 & \cellcolor[gray]{0.85} byte 1 & \cellcolor[gray]{0.85} byte 2 & \cellcolor[gray]{0.85}byte 3\\
+        \hline
+        Protocol Version [0x01] & Message type [0x01] & Curve Id [0x01,0x02] &\\
+        \cline{1-3}
+        \multicolumn{4}{|c|}{EdDSA Identity Key$\langle 32,57bytes\rangle $}\\
+        \multicolumn{4}{|c|}{...}\\
+        \hline
+      \end{tabular}
+      \end{center}
+
+\newpage
 \section{IPR}
   \paragraph*{}Copyright\textcopyright 2018 Belledonne Communications.  All rights reserved.
+
 \newpage
 \begin{thebibliography}{99}
 
@@ -1136,7 +1188,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
   Trevor Perrin (editor)
   \textit{\: "The XEdDSA and VXEdDSA Signature Schemes"},
   Revision 1,
-  2017-10-20.
+  2016-10-20.
   \href{https://signal.org/docs/specifications/xeddsa/}{https://signal.org/docs/specifications/xeddsa/}
 
 \bibitem{rfc7748}
