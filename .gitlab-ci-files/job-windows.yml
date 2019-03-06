@@ -15,8 +15,6 @@ job-windows-vs2015:
     variables:
       - $DEPLOY_RUN_ANDROID
       - $DEPLOY_RUN_IOS
-  variables:
-    CMAKE_OPTIONS: -DENABLE_LIME_X3DH=NO
 
   script:
     - mkdir build-desktop
