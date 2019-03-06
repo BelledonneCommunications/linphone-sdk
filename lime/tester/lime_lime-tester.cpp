@@ -100,7 +100,7 @@ static void process_response(void *data, const belle_http_response_event_t *even
  * @param[in] responseProcess	The function to be called when response from server arrives. Function prototype is defined in lime.hpp: (void)(int responseCode, std::vector<uint8_t>response)
  */
 static limeX3DHServerPostData X3DHServerPost([](const std::string &url, const std::string &from, const std::vector<uint8_t> &message, const limeX3DHServerResponseProcess &responseProcess){
-	belle_http_request_listener_callbacks_t cbs={};
+	belle_http_request_listener_callbacks_t cbs={ 0 };
 	belle_http_request_listener_t *l;
 	belle_generic_uri_t *uri;
 	belle_http_request_t *req;
