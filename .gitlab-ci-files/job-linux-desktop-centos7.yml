@@ -7,6 +7,9 @@ job-centos7-makefile-gcc:
 
   tags: [ "docker-centos7" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
+  except:
+    variables:
+      - $FAST_LINUX_TESTS
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: gcc
@@ -18,6 +21,9 @@ job-centos7-makefile-clang:
 
   tags: [ "docker-centos7" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
+  except:
+    variables:
+      - $FAST_LINUX_TESTS
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: clang
@@ -34,6 +40,9 @@ job-centos7-ninja-gcc:
 
   tags: [ "docker-centos7" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
+  except:
+    variables:
+      - $FAST_LINUX_TESTS
   variables:
     CMAKE_GENERATOR: Ninja
     CC: gcc
@@ -44,6 +53,9 @@ job-centos7-ninja-gcc:
 job-centos7-ninja-gcc-novideo:
 
   tags: [ "docker-centos7" ]
+  except:
+    variables:
+      - $FAST_LINUX_TESTS
   only:
     - schedules
   variables:
@@ -59,11 +71,112 @@ job-centos7-ninja-clang:
     CMAKE_GENERATOR: Ninja
     CC: clang
     CXX: clang++
+    CMAKE_OPTIONS: -DENABLE_LIME=ON
   extends: .scheduled-job-linux-desktop
 
 
 job-centos7-ninja-clang-novideo:
 
+  except:
+    variables:
+      - $FAST_LINUX_TESTS
+  only:
+    - schedules
+    
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-centos7-ninja-clang
+  
+  
+#################################################
+# TESTS
+#################################################
+  
+  
+test-bctoolbox-centos7:
+  extends: .test-bctoolbox
+  dependencies:
+    - job-centos7-ninja-gcc
+  tags: [ "docker-test-centos7" ]
+  
+test-bellesip-centos7:
+  extends: .test-bellesip
+  dependencies:
+    - job-centos7-ninja-gcc
+  tags: [ "docker-test-centos7" ]
+  
+test-belr-centos7:
+  extends: .test-belr
+  dependencies:
+    - job-centos7-ninja-gcc
+  tags: [ "docker-test-centos7" ]
+  
+test-belcard-centos7:
+  extends: .test-belcard
+  dependencies:
+    - job-centos7-ninja-gcc
+  tags: [ "docker-test-centos7" ]
+  
+test-bzrtp-centos7:
+  extends: .test-bzrtp
+  dependencies:
+    - job-centos7-ninja-gcc
+  tags: [ "docker-test-centos7" ]
+  
+test-mediastreamer:
+  tags: [ "docker-test-centos7-mediastreamer" ]
+  extends: .test
+  dependencies:
+    - job-centos7-ninja-gcc
+  variables:
+    TESTER_BIN: "mediastreamer2_tester"
+    PULSEAUDIO: "pulseaudio -D -L module-virtual-source --exit-idle-time=-1"
+    LOG_PATTERN: "logMediastreamerAllPar"
+    PATH_TO_TESTER: "/builds/BC/public/linphone-sdk/build-desktop/linphone-sdk/desktop/bin"
+    
+    
+test-liblinphone:
+  tags: [ "docker-test-centos7-liblinphone" ]
+  extends: .test
+  dependencies:
+    - job-centos7-ninja-gcc
+  variables:
+    TESTER_BIN: "liblinphone_tester"
+    XVFB: "Xvfb :99"
+    EXPORT_DISPLAY: "export DISPLAY=:99"
+    LOG_PATTERN: "logLiblinphoneAllParThIpv6"
+    PATH_TO_TESTER: "/builds/BC/public/linphone-sdk/build-desktop/linphone-sdk/desktop/bin"
+    ADDITIONNAL_OPTIONS: "--dns-hosts /builds/BC/public/linphone-sdk/linphone/tester/tester_hosts --show-account-manager-logs"
+    
+#apparently there is no more standalone lime tester
+#test-lime:
+#  tags: [ "docker-test-centos7-lime" ]
+#  extends: .test
+#  dependencies:
+#    - job-centos7-ninja-gcc
+#  script:
+#    - ls -la .
+#    - pwd
+#    - ls -la ./lime
+#    - cd /builds/BC/public/linphone-sdk/lime/tester/server/nodejs
+#    #installing here since the tester cannot find globally installed packages
+#    - npm install yargs sqlite3 rwlock
+#    - ./localServerStart.sh & #How do we stop it properly ????
+#    - cd /builds/BC/public/linphone-sdk
+#    - cd build-desktop/WORK/desktop/Build/
+#    - ls -la
+#    - cd lime
+#    - ls-la
+#    - cd tester
+#    - ls -la
+#
+#    #path to source dir /builds/BC/public/linphone-sdk/lime
+#    - ./lime_tester --verbose --xml-file limetest --resource-dir ../../../../../../lime/tester
+#  #uploading the artifacts
+#  artifacts:
+#    paths:
+#      - build-desktop/WORK/desktop/Build/lime/tester/limetest-Results.xml
+#    when: always
+#    reports:
+#      junit:
+#        - build-desktop/WORK/desktop/Build/lime/tester/limetest-Results.xml

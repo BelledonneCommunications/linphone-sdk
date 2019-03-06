@@ -3,6 +3,9 @@
   extends: .job-prepare
   stage: build
   tags: [ "macosx" ]
+  except:
+    variables:
+      - $FAST_LINUX_TESTS
 
   except:
     variables:
@@ -25,6 +28,9 @@
 
 job-macosx-makefile:
 
+  except:
+    variables:
+      - $FAST_LINUX_TESTS
   only:
     - schedules
   variables:
@@ -40,6 +46,9 @@ job-macosx-makefile:
 
 job-macosx-ninja:
 
+  except:
+    variables:
+      - $FAST_LINUX_TESTS
   variables:
     CMAKE_GENERATOR: Ninja
   extends: .job-macosx-desktop
@@ -47,6 +56,9 @@ job-macosx-ninja:
 
 job-macosx-ninja-novideo:
 
+  except:
+    variables:
+      - $FAST_LINUX_TESTS
   only:
     - schedules
   variables:
@@ -68,6 +80,7 @@ job-macosx-xcode:
     variables:
       - $DEPLOY_RUN_ANDROID
       - $DEPLOY_RUN_IOS
+      - $FAST_LINUX_TESTS
 
   only:
     - schedules

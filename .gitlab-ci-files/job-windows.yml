@@ -7,11 +7,16 @@ job-windows-vs2015:
   extends: .job-prepare
   stage: build
   tags: [ "windows" ]
+  except:
+    refs:
+      - feature/peioMergeCi
 
   except:
     variables:
       - $DEPLOY_RUN_ANDROID
       - $DEPLOY_RUN_IOS
+  variables:
+    CMAKE_OPTIONS: -DENABLE_LIME_X3DH=NO
 
   script:
     - mkdir build-desktop
@@ -24,6 +29,9 @@ job-windows-vs2015-novideo:
 
   only:
     - schedules
+  except:
+    variables:
+      - $FAST_LINUX_TESTS
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-windows-vs2015

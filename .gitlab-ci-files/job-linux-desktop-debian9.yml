@@ -7,6 +7,9 @@ job-debian9-makefile-gcc:
 
   tags: [ "docker-debian9" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
+  except:
+    variables:
+      - $FAST_LINUX_TESTS
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: gcc
@@ -19,6 +22,9 @@ job-debian9-makefile-clang:
 
   tags: [ "docker-debian9" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
+  except:
+    variables:
+      - $FAST_LINUX_TESTS
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: clang
@@ -36,6 +42,9 @@ job-debian9-ninja-gcc:
 
   tags: [ "docker-debian9" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
+  except:
+    variables:
+      - $FAST_LINUX_TESTS
   variables:
     CMAKE_GENERATOR: Ninja
     CC: gcc
@@ -45,6 +54,9 @@ job-debian9-ninja-gcc:
 
 job-debian9-ninja-gcc-novideo:
 
+  except:
+    variables:
+      - $FAST_LINUX_TESTS
   only:
     - schedules
   variables:
@@ -64,9 +76,45 @@ job-debian9-ninja-clang:
 
 
 job-debian9-ninja-clang-novideo:
-
+  except:
+    variables:
+      - $FAST_LINUX_TESTS
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-debian9-ninja-clang
+  
+#################################################
+# TESTS
+#################################################
 
 
+#Commented until fix for ipv6 for debian 8/9
+#test-bctoolbox-debian9:
+#  extends: .test-bctoolbox
+#  dependencies:
+#    - job-debian9-ninja-clang
+#  tags: [ "docker-test-debian9" ]
+
+test-bellesip-debian9:
+  extends: .test-bellesip
+  dependencies:
+    - job-debian9-ninja-gcc
+  tags: [ "docker-test-debian9" ]
+  
+test-belr-debian9:
+  extends: .test-belr
+  dependencies:
+    - job-debian9-ninja-gcc
+  tags: [ "docker-test-debian9" ]
+  
+test-belcard-debian9:
+  extends: .test-belcard
+  dependencies:
+    - job-debian9-ninja-gcc
+  tags: [ "docker-test-debian9" ]
+  
+test-bzrtp-debian9:
+  extends: .test-bzrtp
+  dependencies:
+    - job-debian9-ninja-gcc
+  tags: [ "docker-test-debian9" ]

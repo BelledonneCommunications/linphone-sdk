@@ -7,6 +7,9 @@ job-debian8-makefile-gcc:
 
   tags: [ "docker-debian8" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
+  except:
+    variables:
+      - $FAST_LINUX_TESTS
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: gcc
@@ -19,6 +22,9 @@ job-debian8-makefile-clang:
 
   tags: [ "docker-debian8" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
+  except:
+    variables:
+      - $FAST_LINUX_TESTS
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: clang
@@ -36,6 +42,9 @@ job-debian8-ninja-gcc:
 
   tags: [ "docker-debian8" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
+  except:
+    variables:
+      - $FAST_LINUX_TESTS
   variables:
     CMAKE_GENERATOR: Ninja
     CC: gcc
@@ -44,7 +53,9 @@ job-debian8-ninja-gcc:
 
 
 job-debian8-ninja-gcc-novideo:
-
+  except:
+    variables:
+      - $FAST_LINUX_TESTS
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-debian8-ninja-gcc
@@ -63,8 +74,47 @@ job-debian8-ninja-clang:
 
 job-debian8-ninja-clang-novideo:
 
+  except:
+    variables:
+      - $FAST_LINUX_TESTS
   only:
     - schedules
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-debian8-ninja-clang
+  
+  
+#################################################
+# TESTS
+#################################################
+
+#Commented until fix for broken ipv6
+#test-bctoolbox-debian8:
+#  extends: .test-bctoolbox
+#  dependencies:
+#    - job-debian8-ninja-clang
+#  tags: [ "docker-test-debian8" ]
+
+test-bellesip-debian8:
+  extends: .test-bellesip
+  dependencies:
+    - job-debian8-ninja-clang
+  tags: [ "docker-test-debian8" ]
+  
+test-belr-debian8:
+  extends: .test-belr
+  dependencies:
+    - job-debian8-ninja-clang
+  tags: [ "docker-test-debian8" ]
+  
+test-belcard-debian8:
+  extends: .test-belcard
+  dependencies:
+    - job-debian8-ninja-clang
+  tags: [ "docker-test-debian8" ]
+  
+test-bzrtp-debian8:
+  extends: .test-bzrtp
+  dependencies:
+    - job-debian8-ninja-clang
+  tags: [ "docker-test-debian8" ]
