@@ -7,10 +7,20 @@ job-windows-vs2015:
   extends: .job-prepare
   stage: build
   tags: [ "windows" ]
-  except:
-    refs:
-      - feature/peioMergeCi
-
+  
+  cache:
+    key: $CI_JOB_NAME
+    paths:
+      - clcache/
+      
+  before_script:
+    - mkdir -p clcache
+    - set CLCACHE_DIR=%cd%\clcache
+    - echo repertoire courant %CLCACHE_DIR%
+    - set CC=clcache
+    - set CXX=clcache
+    - clcache -s
+    
   except:
     variables:
       - $DEPLOY_RUN_ANDROID
@@ -23,6 +33,9 @@ job-windows-vs2015:
     - cd build-desktop
     - cmake .. -G "Visual Studio 14 2015" -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_BUILD_TYPE=Release %DEFAULT_CMAKE_OPTIONS% %CMAKE_OPTIONS%
     - cmake --build . --target sdk --config Release -- /maxcpucount
+    
+  after_script:
+    - clcache -s
 
 
 job-windows-vs2015-novideo:
