@@ -105,8 +105,10 @@ static void init_pulse_context(void){
 static void uninit_pulse_context(void){
 	the_pa_ref--;
 	if (the_pa_ref == 0){
+		pa_threaded_mainloop_lock(the_pa_loop);
 		pa_context_disconnect(the_pa_context);
 		pa_context_unref(the_pa_context);
+		pa_threaded_mainloop_unlock(the_pa_loop);
 		pa_threaded_mainloop_stop(the_pa_loop);
 		pa_threaded_mainloop_free(the_pa_loop);
 		the_pa_context = NULL;
@@ -421,24 +423,25 @@ static bool_t stream_connect(Stream *s) {
 	attr.minreq = -1;
 	attr.prebuf = -1;
 
-	if(s->init_volume >= 0.0) {
-		pa_volume_t value = scale_to_volume(s->init_volume);
-		volume_ptr = pa_cvolume_init(&volume);
-		pa_cvolume_set(&volume, s->sampleSpec.channels, value);
-	}
-
 
 	if (the_pa_context==NULL) {
 		ms_error("No PulseAudio context");
 		return FALSE;
 	}
+	pa_threaded_mainloop_lock(the_pa_loop);
+	if(s->init_volume >= 0.0) {
+		pa_volume_t value = scale_to_volume(s->init_volume);
+		volume_ptr = pa_cvolume_init(&volume);
+		pa_cvolume_set(&volume, s->sampleSpec.channels, value);
+	}
 	s->stream=pa_stream_new(the_pa_context,"phone",&s->sampleSpec,NULL);
 	if (s->stream==NULL){
+		pa_threaded_mainloop_unlock(the_pa_loop);
 		ms_error("fails to create PulseAudio stream");
 		return FALSE;
 	}
 	pa_stream_set_state_callback(s->stream, stream_state_notify_cb, s);
-	pa_threaded_mainloop_lock(the_pa_loop);
+	
 	if(s->type == STREAM_TYPE_PLAYBACK) {
 		pa_stream_set_write_callback(s->stream, stream_write_request_cb, s);
 		pa_stream_set_overflow_callback(s->stream, stream_buffer_overflow_notification, s);
@@ -476,6 +479,7 @@ static void stream_disconnect(Stream *s) {
 			ms_error("pa_stream_disconnect() failed. err=%d", err);
 		}
 		pa_stream_unref(s->stream);
+		
 		s->stream = NULL;
 		s->state = PA_STREAM_UNCONNECTED;
 		s->init_volume = -1.0;
