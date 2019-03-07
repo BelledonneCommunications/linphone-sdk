@@ -44,26 +44,47 @@ void ms_video_quality_controller_destroy(MSVideoQualityController *obj) {
 	ms_free(obj);
 }
 
-static void update_video_quality_from_bitrate(MSVideoQualityController *obj, int bitrate) {
+static void update_video_quality_from_bitrate(MSVideoQualityController *obj, int bitrate, float bitrate_threshold, bool_t update_only_fps) {
 	MSVideoConfiguration *vconf_list = NULL;
-	MSVideoConfiguration current_vconf, best_vconf;
+	MSVideoConfiguration current_vconf, best_vconf, vconf;
+	int new_bitrate_limit;
 
 	ms_filter_call_method(obj->stream->ms.encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, &vconf_list);
 
 	if (vconf_list != NULL) {
 		ms_filter_call_method(obj->stream->ms.encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION, &current_vconf);
 
-		best_vconf = ms_video_find_best_configuration_for_bitrate(vconf_list, bitrate, ms_factory_get_cpu_count(obj->stream->ms.factory));
+		if (!update_only_fps) {
+			/* tmmbr >= required_bitrate * [Threshold] is the same as tmmbr / [Threshold] >= required_bitrate */
+			best_vconf = ms_video_find_best_configuration_for_bitrate(vconf_list, bitrate / bitrate_threshold, ms_factory_get_cpu_count(obj->stream->ms.factory));
 
-		// TODO: Maybe change FPS here instead of mediastream.c
+			if (best_vconf.vsize.width * best_vconf.vsize.height != current_vconf.vsize.width * current_vconf.vsize.height) {
+				ms_message("MSVideoQualityController [%p]: Changing video definition to %dx%d at %f fps", obj->stream, best_vconf.vsize.width, best_vconf.vsize.height, best_vconf.fps);
 
-		if (best_vconf.vsize.width * best_vconf.vsize.height != current_vconf.vsize.width * current_vconf.vsize.height) {
-			ms_message("MSVideoQualityController [%p]: Changing video definition to %dx%d at %f fps", obj->stream, best_vconf.vsize.width, best_vconf.vsize.height, best_vconf.fps);
+				obj->stream->sent_vsize = best_vconf.vsize;
+				obj->stream->preview_vsize = best_vconf.vsize;
+				obj->stream->forced_fps = best_vconf.fps;
+				video_stream_change_camera_skip_bitrate(obj->stream, obj->stream->cam);
 
-			obj->stream->sent_vsize = best_vconf.vsize;
-			obj->stream->preview_vsize = best_vconf.vsize;
-			obj->stream->forced_fps = best_vconf.fps;
-			video_stream_change_camera_skip_bitrate(obj->stream, obj->stream->cam);
+				return;
+			}
+		}
+
+		vconf = ms_video_find_best_configuration_for_size_and_bitrate(vconf_list, current_vconf.vsize, ms_factory_get_cpu_count(obj->stream->ms.factory), bitrate);
+
+		if (current_vconf.fps != vconf.fps) {
+			ms_message("MSVideoQualityController [%p]: Bitrate update will change fps", obj);
+			current_vconf.fps = vconf.fps;
+			ms_filter_call_method(obj->stream->source, MS_FILTER_SET_FPS, &vconf.fps);
+			obj->stream->configured_fps = vconf.fps;
+		}
+
+		new_bitrate_limit = bitrate < vconf.bitrate_limit ? bitrate : vconf.bitrate_limit;
+		ms_message("MSVideoQualityController [%p]: Changing video encoder's output bitrate to %i", obj, new_bitrate_limit);
+		current_vconf.required_bitrate = new_bitrate_limit;
+
+		if (ms_filter_call_method(obj->stream->ms.encoder,MS_VIDEO_ENCODER_SET_CONFIGURATION, &current_vconf) != 0){
+			ms_warning("MSVideoQualityController [%p]: Failed to apply fps and bitrate constraint to %s", obj, obj->stream->ms.encoder->desc->name);
 		}
 	}
 }
@@ -76,8 +97,7 @@ void *increase_timer_run(void* user_data) {
 		if (current_time - obj->increase_timer_start >= INCREASE_TIMER_DELAY) {
 			ms_message("MSVideoQualityController [%p]: No further TMMBR (%f kbit/s) received after %d seconds, increasing video quality...", obj->stream, obj->last_tmmbr*1e-3, INCREASE_TIMER_DELAY);
 			
-			/* tmmbr >= required_bitrate * [Threshold] is the same as tmmbr / [Threshold] >= required_bitrate */
-			update_video_quality_from_bitrate(obj, obj->last_tmmbr / INCREASE_BITRATE_THRESHOLD);
+			update_video_quality_from_bitrate(obj, obj->last_tmmbr, INCREASE_BITRATE_THRESHOLD, FALSE);
 			
 			obj->increase_timer_running = FALSE;
 			break;
@@ -97,14 +117,16 @@ void ms_video_quality_controller_update_from_tmmbr(MSVideoQualityController *obj
 			obj->increase_timer_running = TRUE;
 			ms_thread_create(&obj->increase_timer_thread, NULL, increase_timer_run, obj);
 		}
-	} else {
+
+		update_video_quality_from_bitrate(obj, tmmbr, 1.0, TRUE);
+	} else if (tmmbr < obj->last_tmmbr) {
 		if (obj->increase_timer_running) {
 			obj->increase_timer_running = FALSE;
 			ms_thread_join(obj->increase_timer_thread, NULL);
 		}
 
 		ms_message("MSVideoQualityController [%p]: Congestion detected (%f kbit/s), reducing video quality...", obj->stream, tmmbr*1e-3);
-		update_video_quality_from_bitrate(obj, tmmbr);
+		update_video_quality_from_bitrate(obj, tmmbr, 1.0, FALSE);
 	}
 
 	obj->last_tmmbr = tmmbr;
