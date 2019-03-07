@@ -157,7 +157,7 @@ static void sendMessageTo(const char *recipient, const uint8_t *DRmessage, const
 		return;
 	}
 
-	BC_FAIL();
+	BC_FAIL("recipient isn't the expected bob ???");
 }
 
 static void getMessageFor(const char *recipient, uint8_t *DRmessage, size_t *DRmessageSize, uint8_t *cipherMessage, size_t *cipherMessageSize) {
@@ -171,7 +171,7 @@ static void getMessageFor(const char *recipient, uint8_t *DRmessage, size_t *DRm
 		return;
 	}
 
-	BC_FAIL();
+	BC_FAIL("recipient isn't expected bob ???");
 }
 
 /** @brief holds the data buffers where encryption output would be written
@@ -444,7 +444,7 @@ static void ffi_helloworld_test(const enum lime_ffi_CurveId curve, const char *d
 
 		free(decryptedMessage);
 	} else { /* we didn't got any message for Bob */
-		BC_FAIL();
+		BC_FAIL("we didn't got any message for Bob");
 	}
 	/******* end of RECIPIENT SIDE CODE **************************/
 
