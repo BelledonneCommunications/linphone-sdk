@@ -1168,6 +1168,12 @@ MS2_PUBLIC void audio_stream_unlink_video(AudioStream *stream, VideoStream *vide
  */
 MS2_PUBLIC void video_stream_use_video_preset(VideoStream *stream, const char *preset);
 
+/**
+ * Returns the name of the video preset used for the video stream.
+ * @param[in] stream VideoStream object
+ */
+MS2_PUBLIC const char* video_stream_get_video_preset(VideoStream *stream);
+
 
 /**
  * Open a player to play a video file (mkv) to remote end.

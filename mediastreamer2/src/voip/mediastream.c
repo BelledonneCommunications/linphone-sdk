@@ -723,8 +723,11 @@ static void tmmbr_received(const OrtpEventData *evd, void *user_pointer) {
 
 #ifdef VIDEO_ENABLED
 			if (ms->type == MSVideo) {
+				const char* preset = video_stream_get_video_preset((VideoStream*) ms);
+				if (preset && strcmp(preset, "custom") == 0) break;
+
 				if (!ms->video_quality_controller) {
-					ms->video_quality_controller = ms_video_quality_controller_new((VideoStream*)ms);
+					ms->video_quality_controller = ms_video_quality_controller_new((VideoStream*) ms);
 				}
 
 				ms_video_quality_controller_update_from_tmmbr(ms->video_quality_controller, tmmbr_mxtbr);

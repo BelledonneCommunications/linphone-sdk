@@ -1962,6 +1962,10 @@ void video_stream_use_video_preset(VideoStream *stream, const char *preset) {
 	stream->preset = ms_strdup(preset);
 }
 
+const char* video_stream_get_video_preset(VideoStream *stream) {
+	return stream->preset;
+}
+
 /*this function optimizes the processing by enabling the duplication of video packets to the recorder, which is not required to be done
  * when the recorder is not recording of course.*/
 void video_stream_enable_recording(VideoStream *stream, bool_t enabled){
