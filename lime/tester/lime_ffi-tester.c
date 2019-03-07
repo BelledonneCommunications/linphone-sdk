@@ -199,12 +199,13 @@ typedef struct {
  * Note: we do not use userData here as we access directly the http provider from a global variable but otherwise we should retrieve it using that pointer
  */
 static void X3DHServerPost(void *userData, lime_ffi_data_t limeData, const char *url, const char *from, const uint8_t *message, const size_t message_size) {
-	belle_http_request_listener_callbacks_t cbs={ 0 };
+	belle_http_request_listener_callbacks_t cbs;
 	belle_http_request_listener_t *l;
 	belle_generic_uri_t *uri;
 	belle_http_request_t *req;
 	belle_sip_memory_body_handler_t *bh;
 
+  memset(&cbs,0,sizeof(belle_http_request_listener_callbacks_t));
 	bh = belle_sip_memory_body_handler_new_copy_from_buffer(message, message_size, NULL, NULL);
 
 	uri=belle_generic_uri_parse(url);
