@@ -5,9 +5,6 @@
     <instrumentation
         android:name="androidx.test.runner.AndroidJUnitRunner"
         android:targetPackage="org.linphone.tester">
-        <meta-data
-            android:name="class"
-            android:value="org.linphone.tester.AllTests" />
     </instrumentation>
 
 </manifest>
