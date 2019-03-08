@@ -7,6 +7,10 @@
     CCACHE_SIZE: 4G
 
   extends: .linux-prepare
+  
+  except:
+    refs:
+      - feature/windows_runner_cache
 
   script:
     - sdkmanager
