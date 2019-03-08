@@ -11,6 +11,8 @@
     variables:
       - $DEPLOY_RUN_ANDROID
       - $DEPLOY_RUN_IOS
+    refs:
+      - feature/windows_runner_cache
 
   script:
     - ccache -s
