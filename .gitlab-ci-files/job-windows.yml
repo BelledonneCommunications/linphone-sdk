@@ -19,6 +19,7 @@ job-windows-vs2015:
     - echo repertoire courant %CLCACHE_DIR%
     - set CC=clcache
     - set CXX=clcache
+    - true || if ! [[ clcache -s) ]]; then pip install git+https://github.com/frerich/clcache.git; fi
     - clcache -s
     
   except:
