@@ -670,6 +670,7 @@ struct belle_http_request{
 	int auth_attempt_count;
 	int background_task_id;
 	int cancelled;
+	int resubmitted; /* Indicates whether this request has been resubmitted to a new channel after the first one was closed by the server.*/
 };
 
 void belle_http_request_set_listener(belle_http_request_t *req, belle_http_request_listener_t *l);

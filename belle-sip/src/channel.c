@@ -1409,11 +1409,11 @@ static void channel_process_queue(belle_sip_channel_t *obj){
 	belle_sip_message_t *msg;
 	belle_sip_object_ref(obj);/* we need to ref ourself because code below may trigger our destruction*/
 
-	if (obj->out_state!=OUTPUT_STREAM_IDLE) {
+	if (obj->out_state != OUTPUT_STREAM_IDLE) {
 		_send_message(obj);
 	}
 
-	while((msg=channel_pop_outgoing(obj))!=NULL && obj->state==BELLE_SIP_CHANNEL_READY && obj->out_state==OUTPUT_STREAM_IDLE) {
+	while (obj->state==BELLE_SIP_CHANNEL_READY && obj->out_state==OUTPUT_STREAM_IDLE && ((msg = channel_pop_outgoing(obj)) != NULL)) {
 		send_message(obj, msg);
 		belle_sip_object_unref(msg);
 	}
@@ -1637,6 +1637,7 @@ belle_sip_channel_t *belle_sip_channel_find_from_list_with_addrinfo(belle_sip_li
 
 	for(elem=l;elem!=NULL;elem=elem->next){
 		chan=(belle_sip_channel_t*)elem->data;
+		if (chan->state == BELLE_SIP_CHANNEL_DISCONNECTED || chan->state == BELLE_SIP_CHANNEL_ERROR) continue;
 		if (!chan->about_to_be_closed && belle_sip_channel_matches(chan,hop,addr)){
 			return chan;
 		}

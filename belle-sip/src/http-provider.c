@@ -87,14 +87,14 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 	belle_sip_uri_t *from_uri = NULL;
 	belle_sip_header_t *header = belle_sip_message_get_header(BELLE_SIP_MESSAGE(req), "From");
 
-    realm = belle_sip_header_www_authenticate_get_realm(authenticate);
+	realm = belle_sip_header_www_authenticate_get_realm(authenticate);
     
 	if (header) {
 		belle_sip_header_address_t *from_address = belle_sip_header_address_parse(belle_sip_header_get_unparsed_value(header));
 		from_uri = belle_sip_header_address_get_uri(from_address);
-    } else if (username && !passwd) {
-        from_uri = belle_sip_uri_create(username,realm);
-    }
+	} else if (username && !passwd) {
+		from_uri = belle_sip_uri_create(username,realm);
+	}
 	
 	if (!username || !passwd) {
 		ev=belle_sip_auth_event_create((belle_sip_object_t*)ctx->provider,realm,from_uri);
@@ -159,6 +159,14 @@ static void http_channel_context_handle_response_headers(belle_http_channel_cont
 	}
 }
 
+static void release_background_task(belle_http_request_t *req){
+	if( req->background_task_id ){
+		belle_sip_message("HTTP request finished: ending bg task id=[%x]", req->background_task_id);
+		belle_sip_end_background_task(req->background_task_id);
+		req->background_task_id = 0;
+	}
+}
+
 static void http_channel_context_handle_response(belle_http_channel_context_t *ctx , belle_sip_channel_t *chan, belle_http_response_t *response){
 	belle_http_request_t *req=NULL;
 	belle_http_response_event_t ev={0};
@@ -188,18 +196,24 @@ static void http_channel_context_handle_response(belle_http_channel_context_t *c
 		ev.request=req;
 		ev.response=response;
 		BELLE_HTTP_REQUEST_INVOKE_LISTENER(req,process_response,&ev);
-		if( req->background_task_id ){
-			belle_sip_warning("HTTP request finished: ending bg task id=[%x]", req->background_task_id);
-			belle_sip_end_background_task(req->background_task_id);
-			req->background_task_id = 0;
-		}
+		release_background_task(req);
 	}
 	belle_sip_object_unref(req);
 }
 
+static void http_channel_notify_io_error(belle_http_channel_context_t *ctx, belle_sip_channel_t *chan, belle_http_request_t *req){
+	belle_sip_io_error_event_t ev={0};
+	/*TODO: would be nice to put the message in the event*/
+	ev.source=(belle_sip_object_t*)ctx->provider;
+	ev.host=chan->peer_cname;
+	ev.port=chan->peer_port;
+	ev.transport=belle_sip_channel_get_transport_name(chan);
+	BELLE_HTTP_REQUEST_INVOKE_LISTENER(req,process_io_error,&ev);
+	release_background_task(req);
+}
+
 static void http_channel_context_handle_io_error(belle_http_channel_context_t *ctx, belle_sip_channel_t *chan){
 	belle_http_request_t *req=NULL;
-	belle_sip_io_error_event_t ev={0};
 	belle_sip_list_t *elem;
 
 	/*if the error happens before attempting to send the message, the pending_requests is empty*/
@@ -208,20 +222,35 @@ static void http_channel_context_handle_io_error(belle_http_channel_context_t *c
 	/*pop the requests for which this error is reported*/
 	for(;elem!=NULL;elem=elem->next){
 		req=(belle_http_request_t *)elem->data;
-		/*else notify the app about the response received*/
-		/*TODO: would be nice to put the message in the event*/
-		ev.source=(belle_sip_object_t*)ctx->provider;
-		ev.host=chan->peer_cname;
-		ev.port=chan->peer_port;
-		ev.transport=belle_sip_channel_get_transport_name(chan);
-		BELLE_HTTP_REQUEST_INVOKE_LISTENER(req,process_io_error,&ev);
-		if( req->background_task_id ){
-			belle_sip_warning("IO Error on HTTP request: ending bg task id=[%x]", req->background_task_id);
-			belle_sip_end_background_task(req->background_task_id);
-			req->background_task_id = 0;
+		http_channel_notify_io_error(ctx, chan, req);
+	}
+}
+
+static void http_channel_context_handle_disconnection(belle_http_channel_context_t *ctx, belle_sip_channel_t *chan){
+	belle_sip_list_t *elem;
+	belle_http_request_t *req=NULL;
+	belle_sip_list_t *to_be_resubmitted = NULL;
+	
+	for (elem = chan->outgoing_messages ; elem != NULL ; elem = elem->next){
+		to_be_resubmitted = bctbx_list_append(to_be_resubmitted, elem->data);
+	}
+	for (elem = ctx->pending_requests ; elem != NULL ; elem = elem->next){
+		if (bctbx_list_find(to_be_resubmitted, elem->data) == NULL){
+			to_be_resubmitted = bctbx_list_append(to_be_resubmitted, elem->data);
 		}
 	}
-
+	for (elem = to_be_resubmitted; elem != NULL; elem = elem->next){
+		req = (belle_http_request_t *)elem->data;
+		if (req->resubmitted == 0){
+			req->resubmitted = 1;
+			belle_sip_message("Resubmitting http request.");
+			belle_http_provider_send_request(ctx->provider, req, NULL /*keep the listener as it is already*/);
+		}else{
+			belle_sip_warning("Http request has already been resubmitted after a server disconnection. Treating this as an error now.");
+			http_channel_notify_io_error(ctx, chan, req);
+		}
+	}
+	bctbx_list_free(to_be_resubmitted);
 }
 
 /* we are called here by the channel when receiving a message for which a body is expected.
@@ -276,12 +305,20 @@ static void channel_state_changed(belle_sip_channel_listener_t *obj, belle_sip_c
 		case BELLE_SIP_CHANNEL_RETRY:
 			break;
 		case BELLE_SIP_CHANNEL_ERROR:
-		case BELLE_SIP_CHANNEL_DISCONNECTED: //disconnect can also be seen as an io error, specially if transaction are pending
 			http_channel_context_handle_io_error(ctx, chan);
 			if (!chan->force_close) {
 				provider_remove_channel(ctx->provider,chan);
 			}
 			break;
+		case BELLE_SIP_CHANNEL_DISCONNECTED:
+			if (!chan->force_close) {
+				/* This may happen while there is a pending requests, typically when the client decides to send a new request while the server
+				* decides to close the connection because of inactivity timeout. Handle this case by re-submitting the pending request(s). */
+				http_channel_context_handle_disconnection(ctx, chan);
+				provider_remove_channel(ctx->provider,chan);
+			}
+			break;
+			
 	}
 }
 
@@ -308,7 +345,7 @@ belle_http_channel_context_t * belle_http_channel_context_new(belle_sip_channel_
 
 int belle_http_channel_is_busy(belle_sip_channel_t *obj) {
 	belle_sip_list_t *it;
-	if (obj->incoming_messages != NULL || obj->outgoing_messages != NULL) {
+	if (obj->outgoing_messages != NULL) {
 		return 1;
 	}
 	/*fixme, a litle bit intrusive*/
