@@ -17,9 +17,17 @@ job-windows-vs2015:
     - mkdir -p clcache
     - set CLCACHE_DIR=%cd%\clcache
     - echo repertoire courant %CLCACHE_DIR%
+    - echo %Path%
+    - echo %path%
+    #- set path="C:\Program Files\Python37\Scripts;%path%"
+    - echo %Path%
+    - echo %path%
+    - cd C:\Program Files\Python37\Scripts
+    - pip install git+https://github.com/frerich/clcache.git
+    - cd %CLCACHE_DIR%/..
+    - echo %cd%
     - set CC=clcache
     - set CXX=clcache
-    - clcache -s
     
   except:
     variables:
@@ -29,14 +37,15 @@ job-windows-vs2015:
     CMAKE_OPTIONS: -DENABLE_LIME_X3DH=NO
 
   script:
+    #checking if "NUL" exists to check if the directory exists without generating %errorlevel% when it's the case
+    #- if not exists build-desktop\ 
+    - set CLCACHE_DIR=%cd%\clcache
+    - set CC=clcache
+    - set CXX=clcache
     - mkdir build-desktop
     - cd build-desktop
     - cmake .. -G "Visual Studio 14 2015" -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_BUILD_TYPE=Release %DEFAULT_CMAKE_OPTIONS% %CMAKE_OPTIONS%
     - cmake --build . --target sdk --config Release -- /maxcpucount
-    
-  after_script:
-    - clcache -s
-
 
 job-windows-vs2015-novideo:
 
