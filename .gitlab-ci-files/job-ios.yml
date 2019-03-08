@@ -3,6 +3,10 @@
   extends: .job-prepare
   stage: build
   tags: [ "macosx" ]
+  
+  except:
+    refs:
+      - feature/windows_runner_cache
 
   script:
     - ccache -s
