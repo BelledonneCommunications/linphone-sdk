@@ -1114,7 +1114,7 @@ int _belle_sip_dialog_match(belle_sip_dialog_t *obj, const char *call_id, const 
 	dcid=belle_sip_header_call_id_get_call_id(obj->call_id);
 	return strcmp(dcid,call_id)==0
 		&& strcmp(obj->local_tag,local_tag)==0
-		&& obj->remote_tag /* handle 180 without to tag */ && strcmp(obj->remote_tag,remote_tag)==0;
+		&& obj->remote_tag /* handle 180 without to tag */ && remote_tag && strcmp(obj->remote_tag,remote_tag)==0;
 }
 
 void belle_sip_dialog_check_ack_sent(belle_sip_dialog_t*obj){

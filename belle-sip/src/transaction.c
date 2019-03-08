@@ -569,13 +569,17 @@ int belle_sip_client_transaction_send_request_to(belle_sip_client_transaction_t 
 	return result;
 }
 
-static unsigned int should_dialog_be_created(belle_sip_client_transaction_t *t, belle_sip_response_t *resp){
+/**
+ * The client transaction may create a dialog in NULL state upon receiving their first provisionnal response (ie without to-tag defined) for convenience of upper layer.
+ * The dialog will transition to early state as soon as a new provisional response with to-tag is received.
+**/
+static unsigned int should_dialog_be_created(belle_sip_client_transaction_t *t, belle_sip_response_t *resp, int to_tag_required){
 	belle_sip_request_t* req = belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(t));
 	const char* method = belle_sip_request_get_method(req);
 	int status_code = belle_sip_response_get_status_code(resp);
 	belle_sip_header_to_t *to = belle_sip_message_get_header_by_type((belle_sip_message_t*)resp, belle_sip_header_to_t);
 	return status_code>=101 && status_code<300 && (strcmp(method,"INVITE")==0 || strcmp(method,"SUBSCRIBE")==0)
-		&& to && belle_sip_header_to_get_tag(to);
+		&& to && (!to_tag_required || belle_sip_header_to_get_tag(to));
 }
 
 void belle_sip_client_transaction_notify_response(belle_sip_client_transaction_t *t, belle_sip_response_t *resp){
@@ -596,13 +600,13 @@ void belle_sip_client_transaction_notify_response(belle_sip_client_transaction_t
 			/*make sure this response matches the current dialog, or creates a new one*/
 			if (!belle_sip_dialog_match(dialog,(belle_sip_message_t*)resp,FALSE)){
 				dialog=belle_sip_provider_find_dialog_from_message(t->base.provider,(belle_sip_message_t*)resp,FALSE);
-				if (!dialog && should_dialog_be_created(t, resp)){
+				if (!dialog && should_dialog_be_created(t, resp, TRUE)){
 					dialog=belle_sip_provider_create_dialog_internal(t->base.provider,BELLE_SIP_TRANSACTION(t),FALSE);/*belle_sip_dialog_new(base);*/
 					belle_sip_message("Handling response creating a new dialog !");
 				}
 			}
 		}
-	} else if (should_dialog_be_created(t,resp)) {
+	} else if (should_dialog_be_created(t, resp, FALSE)) {
 		dialog=belle_sip_provider_create_dialog_internal(t->base.provider,BELLE_SIP_TRANSACTION(t),FALSE);
 	}
 
