@@ -1023,7 +1023,8 @@ void Lime<Curve>::X3DH_generate_OPks(std::vector<X<Curve, lime::Xtype::publicKey
 		blob OPk_blob(m_localStorage->sql);
 		uint32_t OPk_id;
 		// Prepare DB statement: add a filter on current user Id as we'll target all retrieved OPk_ids (soci doesn't allow rowset and blob usage together)
-		statement st = (m_localStorage->sql.prepare << "SELECT OPk FROM X3DH_OPK WHERE Uid = :Uid AND OPKid = :OPkId;", into(OPk_blob), use(m_db_Uid), use(OPk_id));
+		// Get Keys matching the currend user and that are not set as dispatched yet (Status = 1)
+		statement st = (m_localStorage->sql.prepare << "SELECT OPk FROM X3DH_OPK WHERE Uid = :Uid AND Status = 1 AND OPKid = :OPkId;", into(OPk_blob), use(m_db_Uid), use(OPk_id));
 
 		for (uint32_t id : activeOPkIds) { // We already have all the active OPK ids, loop on them
 			OPk_id = id; // copy the id into the bind variable

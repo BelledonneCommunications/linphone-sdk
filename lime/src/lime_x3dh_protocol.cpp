@@ -886,7 +886,8 @@ namespace lime {
 						// generate and publish the OPks
 						std::vector<X<Curve, lime::Xtype::publicKey>> OPks{};
 						std::vector<uint32_t> OPk_ids{};
-						X3DH_generate_OPks(OPks, OPk_ids, userData->OPkBatchSize);
+						// Generate OPks OPkBatchSize (or more if we need more to reach ServerLowLimit)
+						X3DH_generate_OPks(OPks, OPk_ids, std::max(userData->OPkBatchSize, static_cast<uint16_t>(userData->OPkServerLowLimit - selfOPkIds.size())) );
 						std::vector<uint8_t> X3DHmessage{};
 						x3dh_protocol::buildMessage_publishOPks(X3DHmessage, OPks, OPk_ids);
 						postToX3DHServer(userData, X3DHmessage);
@@ -899,8 +900,18 @@ namespace lime {
 
 				case x3dh_protocol::x3dh_message_type::error: {
 					// error messages are logged inside the parseMessage_getType function, just return failure to callback
-					if (callback) callback(lime::CallbackReturn::fail, "X3DH server error");
-					cleanUserData(userData);
+					// Check if the error message is a user_not_found and we were trying to get our self OPks(OPkServerLowLimit > 0)
+					if (error_code == lime::x3dh_protocol::x3dh_error_code::user_not_found && userData->OPkServerLowLimit > 0) {
+						// We must republish the user, something went terribly wrong on server side and we're not there anymore
+						LIME_LOGW<<"Something went terribly wrong on server "<<m_X3DH_Server_URL<<". Republish user "<<m_selfDeviceId;
+						X3DH_updateOPkStatus(std::vector<uint32_t>{}); // set all OPks to dispatched status as we don't know if some of them where dispatched or not
+						// republish the user, it will keep same Ik and SPk but generate new OPks as we just set all our OPk to dispatched
+						publish_user(callback, userData->OPkServerLowLimit);
+						cleanUserData(userData);
+					} else {
+						if (callback) callback(lime::CallbackReturn::fail, "X3DH server error");
+						cleanUserData(userData);
+					}
 				}
 				return;
 

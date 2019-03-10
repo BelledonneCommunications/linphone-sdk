@@ -1656,6 +1656,103 @@ static void lime_update_clean_MK() {
 #endif
 }
 
+/**
+ * Scenario:
+ * - Create Alice and Bob users
+ * - Backup local Alice DB.
+ * - Delete Alice user (so it is not anymore on the server)
+ * - restore local Alice DB and do an update, it shall republish the user on server(using new OPks)
+ * - Bob encrypt a message to Alice, it shall work as the user has been republished
+ * - Alice decrypt just to be sure we're good with the OPks
+ */
+static void lime_update_republish_test(const lime::CurveId curve, const std::string &dbBaseFilename, const std::string &x3dh_server_url) {
+	// create DB
+	std::string dbFilenameAlice{dbBaseFilename};
+	std::string dbFilenameAliceBackup{dbBaseFilename};
+	dbFilenameAlice.append(".alice.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
+	dbFilenameAliceBackup.append(".alice.backup.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
+	std::string dbFilenameBob{dbBaseFilename};
+	dbFilenameBob.append(".bob.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
+
+	remove(dbFilenameAlice.data()); // delete the database file if already exists
+	remove(dbFilenameAliceBackup.data()); // delete the database file if already exists
+	remove(dbFilenameBob.data()); // delete the database file if already exists
+
+	lime_tester::events_counters_t counters={};
+	int expected_success=0;
+
+	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+					if (returnCode == lime::CallbackReturn::success) {
+						counters.operation_success++;
+					} else {
+						counters.operation_failed++;
+						LIME_LOGE<<"Lime operation failed : "<<anythingToSay;
+					}
+				});
+
+	try {
+		// create Managers and devices for alice and Bob
+		auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
+		auto aliceDeviceId = lime_tester::makeRandomDeviceName("alice.");
+		aliceManager->create_user(*aliceDeviceId, x3dh_server_url, curve,  lime_tester::OPkInitialBatchSize, callback);
+		auto bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, X3DHServerPost));
+		auto bobDeviceId = lime_tester::makeRandomDeviceName("bob.");
+		bobManager->create_user(*bobDeviceId, x3dh_server_url, curve,  lime_tester::OPkInitialBatchSize, callback);
+		expected_success += 2;
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, expected_success,lime_tester::wait_for_timeout));
+
+		// Backup Alice Database
+		std::ifstream  src(dbFilenameAlice, std::ios::binary);
+		std::ofstream  dst(dbFilenameAliceBackup,   std::ios::binary);
+		dst << src.rdbuf();
+		src.close();
+		dst.close();
+
+		// Delete Alice user
+		aliceManager->delete_user(*aliceDeviceId, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+		// Start a new manager using the backuped local base, so the user is present in local but no more on remote
+		aliceManager = nullptr;
+		aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAliceBackup, X3DHServerPost));
+		// Update: that shall set all current OPk as dispatched, create a new batch of default creation size and republish the user on server
+		aliceManager->update(callback, lime_tester::OPkInitialBatchSize, lime_tester::OPkInitialBatchSize);
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+		// Bob encrypt a message to Alice, it will fetch keys from server
+		auto bobRecipients = make_shared<std::vector<RecipientData>>();
+		bobRecipients->emplace_back(*aliceDeviceId);
+		auto bobMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
+		auto bobCipherMessage = make_shared<std::vector<uint8_t>>();
+		bobManager->encrypt(*bobDeviceId, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+		// Alice decrypt
+		std::vector<uint8_t> receivedMessage{};
+		BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDeviceId, "alice", *bobDeviceId, (*bobRecipients)[0].DRmessage, *bobCipherMessage, receivedMessage) == lime::PeerDeviceStatus::unknown);
+		auto receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
+		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
+
+		if (cleanDatabase) {
+			aliceManager->delete_user(*aliceDeviceId, callback);
+			bobManager->delete_user(*bobDeviceId, callback);
+			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success+2,lime_tester::wait_for_timeout));
+			remove(dbFilenameAlice.data());
+			remove(dbFilenameAliceBackup.data());
+			remove(dbFilenameBob.data());
+		}
+	} catch (BctbxException &e) {
+		LIME_LOGE << e;
+		BC_FAIL("");
+	}
+}
+
+
+static void lime_update_republish() {
+#ifdef EC25519_ENABLED
+	lime_update_republish_test(lime::CurveId::c25519, "lime_update_republish", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data());
+#endif
+#ifdef EC448_ENABLED
+	lime_update_republish_test(lime::CurveId::c448, "lime_update_republish", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
+#endif
+}
 /** Scenario
  * - Create one device for alice
  * - Create OPk_batch_size devices for bob, they will all fetch a key and encrypt a messaage to alice, server shall not have anymore OPks
@@ -3401,6 +3498,7 @@ static test_t tests[] = {
 	TEST_NO_TAG("Update - clean MK", lime_update_clean_MK),
 	TEST_NO_TAG("Update - SPk", lime_update_SPk),
 	TEST_NO_TAG("Update - OPk", lime_update_OPk),
+	TEST_NO_TAG("Update - Republish", lime_update_republish),
 	TEST_NO_TAG("get self Identity Key", lime_getSelfIk),
 	TEST_NO_TAG("Verified Status", lime_identityVerifiedStatus),
 	TEST_NO_TAG("Peer Device Status", lime_peerDeviceStatus),

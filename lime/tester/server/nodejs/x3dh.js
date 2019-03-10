@@ -679,31 +679,38 @@ https.createServer(options, (req, res) => {
 			 */
 			case enum_messageTypes.getSelfOPks:
 				console.log("Process a getSelfOPks Message from "+userId);
-				db.all("SELECT o.OPk_id  as OPk_id FROM Users as u INNER JOIN OPk as o ON u.Uid=o.Uid WHERE UserId = ?;", userId, function (err, rows) {
-					if (err) {
-						returnError(enum_errorCodes.db_error, " Database error in getSelfOPks by "+userId+" : "+err);
-						return;
-					}
-
-					// create the return message
-					let selfOPKsBuffer = Buffer.allocUnsafe(X3DH_headerSize+2);
-					selfOPKsBuffer.writeUInt8(X3DH_protocolVersion, 0);
-					selfOPKsBuffer.writeUInt8(enum_messageTypes.selfOPks, 1);
-					selfOPKsBuffer.writeUInt8(curveId, 2);
-
-					if (rows == undefined || rows.length == 0) { // no Id founds
-						selfOPKsBuffer.writeUInt16BE(0, 3); // peers bundle count on 2 bytes in Big Endian
-
+				// check we have a matching user in DB
+				db.get("SELECT Uid FROM Users WHERE UserId = ?;", userId , function (errU, row) {
+					if (row == undefined) { // user not found in DB
+						returnError(enum_errorCodes.user_not_found, "Get Self OPks but "+userId+" not found in db");
 					} else {
-						selfOPKsBuffer.writeUInt16BE(rows.length, 3); // peers bundle count on 2 bytes in Big Endian
 
-						for (let i=0; i<rows.length; i++) {
-							let OPk_idBuffer = Buffer.allocUnsafe(4);
-							OPk_idBuffer.writeUInt32BE(rows[i]['OPk_id'], 0); // OPk id on 4 bytes in Big Endian
-							selfOPKsBuffer = Buffer.concat([selfOPKsBuffer, OPk_idBuffer]);
-						}
+						db.all("SELECT o.OPk_id  as OPk_id FROM Users as u INNER JOIN OPk as o ON u.Uid=o.Uid WHERE UserId = ?;", userId, function (err, rows) {
+							if (err) {
+								returnError(enum_errorCodes.db_error, " Database error in getSelfOPks by "+userId+" : "+err);
+								return;
+							}
+
+							// create the return message
+							let selfOPKsBuffer = Buffer.allocUnsafe(X3DH_headerSize+2);
+							selfOPKsBuffer.writeUInt8(X3DH_protocolVersion, 0);
+							selfOPKsBuffer.writeUInt8(enum_messageTypes.selfOPks, 1);
+							selfOPKsBuffer.writeUInt8(curveId, 2);
+
+							if (rows == undefined || rows.length == 0) { // no Id founds
+								selfOPKsBuffer.writeUInt16BE(0, 3); // peers bundle count on 2 bytes in Big Endian
+							} else {
+								selfOPKsBuffer.writeUInt16BE(rows.length, 3); // peers bundle count on 2 bytes in Big Endian
+
+								for (let i=0; i<rows.length; i++) {
+									let OPk_idBuffer = Buffer.allocUnsafe(4);
+									OPk_idBuffer.writeUInt32BE(rows[i]['OPk_id'], 0); // OPk id on 4 bytes in Big Endian
+									selfOPKsBuffer = Buffer.concat([selfOPKsBuffer, OPk_idBuffer]);
+								}
+							}
+							returnOk(selfOPKsBuffer);
+						});
 					}
-					returnOk(selfOPKsBuffer);
 				});
 			break;
 

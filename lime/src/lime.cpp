@@ -148,7 +148,9 @@ namespace lime {
 	template <typename Curve>
 	void Lime<Curve>::update_OPk(const limeCallback &callback, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize) {
 		// Request Server for the count of our OPk it still holds
-		auto userData = make_shared<callbackUserData<Curve>>(this->shared_from_this(), callback, OPkServerLowLimit, OPkBatchSize);
+		// OPk server low limit cannot be zero, it must be at least one as we test the userData on this to check the server request was a getSelfOPks
+		// and republish the user if not found
+		auto userData = make_shared<callbackUserData<Curve>>(this->shared_from_this(), callback, std::max(OPkServerLowLimit,static_cast<uint16_t>(1)), OPkBatchSize);
 		std::vector<uint8_t> X3DHmessage{};
 		x3dh_protocol::buildMessage_getSelfOPks<Curve>(X3DHmessage);
 		postToX3DHServer(userData, X3DHmessage); // in the response from server, if more OPks are needed, it will generate and post them before calling the callback
