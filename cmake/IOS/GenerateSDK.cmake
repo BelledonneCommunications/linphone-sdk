@@ -26,15 +26,34 @@ include(LinphoneSdkUtils)
 
 
 # Create the zip file of the SDK
+# Sorry this needs multiple execute_process calls to be run correctly with make -j
+# https://cmake.org/cmake/help/v3.12/command/execute_process.html
+# "If a sequential execution of multiple commands is required, use multiple execute_process() 
+# calls with a single COMMAND argument."
+#
+
 execute_process(
 	COMMAND "${CMAKE_COMMAND}" "-E" "remove_directory" "linphone-sdk/apple-darwin/Tools"
-	COMMAND "${CMAKE_COMMAND}" "-E" "make_directory" "linphone-sdk/apple-darwin/Tools"
-	COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${LINPHONESDK_DIR}/cmake/IOS/Tools/deploy.sh" "linphone-sdk/apple-darwin/Tools"
-	COMMAND "${CMAKE_COMMAND}" "-E" "remove" "-f" "linphone-sdk-ios-${LINPHONESDK_VERSION}.zip"
-	COMMAND "zip" "-r" "linphone-sdk-ios-${LINPHONESDK_VERSION}.zip" "linphone-sdk/apple-darwin"
 	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 )
 
+execute_process(
+	COMMAND "${CMAKE_COMMAND}" "-E" "make_directory" "linphone-sdk/apple-darwin/Tools"
+	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
+)
+execute_process(
+	COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${LINPHONESDK_DIR}/cmake/IOS/Tools/deploy.sh" "linphone-sdk/apple-darwin/Tools"
+	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
+)
+
+execute_process(
+	COMMAND "${CMAKE_COMMAND}" "-E" "remove" "-f" "linphone-sdk-ios-${LINPHONESDK_VERSION}.zip"
+	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
+)
+execute_process(
+	COMMAND "zip" "-r" "linphone-sdk-ios-${LINPHONESDK_VERSION}.zip" "linphone-sdk/apple-darwin"
+	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
+)
 
 # Generate podspec file
 file(READ "${LINPHONESDK_DIR}/COPYING" LINPHONESDK_LICENSE)
