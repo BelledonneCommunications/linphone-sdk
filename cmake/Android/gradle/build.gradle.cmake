@@ -111,12 +111,9 @@ android {
             resValue "string", "linphone_sdk_version", gitVersion.toString().trim()
             resValue "string", "linphone_sdk_branch", gitBranch.toString().trim()
         }
-        packaged {
-            initWith release
-            signingConfig null
-            //matchingFallbacks = ['debug', 'release']
-        }
         debug {
+            minifyEnabled false
+            useProguard false
             debuggable true
             resValue "string", "linphone_sdk_version", gitVersion.toString().trim() + "-debug"
             resValue "string", "linphone_sdk_branch", gitBranch.toString().trim()
@@ -138,12 +135,12 @@ android {
             assets.srcDirs = ["${buildDir}/sdk-assets/assets/"]
             renderscript.srcDirs = srcDir
             jniLibs.srcDirs = ["@LINPHONESDK_BUILD_DIR@/libs"]
-            //resources.srcDir("res")
 
             java.excludes = ['**/mediastream/MediastreamerActivity.java']
 
-            // Exclude some useless files
+            // Exclude some useless files and don't strip libraries
             packagingOptions {
+                doNotStrip '**/*.so'
                 excludes = excludePackage
             }
         }
@@ -207,7 +204,6 @@ task copyAssets(type: Sync) {
     }
     // do not copy those
     includeEmptyDirs = false
-
 }
 
 project.tasks['preBuild'].dependsOn 'copyAssets'
@@ -221,7 +217,7 @@ uploadArchives {
             pom.project {
                 groupId 'org.linphone'
                 artifactId 'linphone-sdk-android'
-                version gitVersion.toString().trim()
+                version project.hasProperty("debug") ? gitVersion.toString().trim() + "-debug" : gitVersion.toString().trim()
             }
         }
     }
