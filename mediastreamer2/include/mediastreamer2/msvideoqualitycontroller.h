@@ -32,6 +32,7 @@ struct _VideoStream;
 struct _MSVideoQualityController {
 	struct _VideoStream *stream;
 	int last_tmmbr;
+	MSVideoSize last_vsize;
 	
 	time_t increase_timer_start;
 	ms_thread_t increase_timer_thread;

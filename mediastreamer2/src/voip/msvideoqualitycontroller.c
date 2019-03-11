@@ -58,7 +58,7 @@ static void update_video_quality_from_bitrate(MSVideoQualityController *obj, int
 			/* tmmbr >= required_bitrate * [Threshold] is the same as tmmbr / [Threshold] >= required_bitrate */
 			best_vconf = ms_video_find_best_configuration_for_bitrate(vconf_list, bitrate / bitrate_threshold, ms_factory_get_cpu_count(obj->stream->ms.factory));
 
-			if (best_vconf.vsize.width * best_vconf.vsize.height != current_vconf.vsize.width * current_vconf.vsize.height) {
+			if (!ms_video_size_equal(obj->last_vsize, best_vconf.vsize) && best_vconf.vsize.width * best_vconf.vsize.height != current_vconf.vsize.width * current_vconf.vsize.height) {
 				ms_message("MSVideoQualityController [%p]: Changing video definition to %dx%d at %f fps", obj->stream, best_vconf.vsize.width, best_vconf.vsize.height, best_vconf.fps);
 
 				obj->stream->sent_vsize = best_vconf.vsize;
@@ -66,6 +66,7 @@ static void update_video_quality_from_bitrate(MSVideoQualityController *obj, int
 				obj->stream->forced_fps = best_vconf.fps;
 				video_stream_change_camera_skip_bitrate(obj->stream, obj->stream->cam);
 
+				obj->last_vsize = best_vconf.vsize;
 				return;
 			}
 		}
