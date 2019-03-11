@@ -556,10 +556,7 @@ static void configure_video_source(VideoStream *stream, bool_t skip_bitrate){
 	}
 
 	if (!skip_bitrate && stream->ms.target_bitrate > 0) {
-		/* We need to set the configuration now since update_bitrate_limit_from_tmmbr will retrieve it */
-		ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_SET_CONFIGURATION, &vconf);
-		update_bitrate_limit_from_tmmbr(&stream->ms, stream->ms.target_bitrate);
-		ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION, &vconf);
+		vconf.required_bitrate =  stream->ms.target_bitrate;
 	}
 
 	if (is_player){

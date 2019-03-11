@@ -652,7 +652,6 @@ MSWebCamDesc *ms_mire_webcam_desc_get(void){
 
 
 void update_bitrate_limit_from_tmmbr(MediaStream *obj, int br_limit){
-	MSVideoConfiguration vconf;
 	int previous_br_limit = rtp_session_get_target_upload_bandwidth(obj->sessions.rtp_session);
 	if (!obj->encoder){
 		ms_warning("TMMBR not applicable because no encoder for this stream.");
@@ -674,16 +673,6 @@ void update_bitrate_limit_from_tmmbr(MediaStream *obj, int br_limit){
 			ms_warning("Failed to apply bitrate constraint to %s", obj->encoder->desc->name);
 		}
 	}
-#ifdef VIDEO_ENABLED
-	else {
-		ms_filter_call_method(obj->encoder,MS_VIDEO_ENCODER_GET_CONFIGURATION,&vconf);
-		vconf.required_bitrate = br_limit;
-
-		if (ms_filter_call_method(obj->encoder,MS_VIDEO_ENCODER_SET_CONFIGURATION, &vconf) != 0){
-			ms_warning("Failed to apply bitrate constraint to %s", obj->encoder->desc->name);
-		}
-	}
-#endif
 
 	media_stream_set_target_network_bitrate(obj, br_limit);
 	rtp_session_set_target_upload_bandwidth(obj->sessions.rtp_session, br_limit);
