@@ -20,14 +20,24 @@
 #
 ############################################################################
 
-
-execute_process(
-	COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "assembleDebug"
-	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
-	RESULT_VARIABLE _gradle_assembledebug_result
-)
-if(_gradle_assembledebug_result)
-	message(FATAL_ERROR "Gradle assembleDebug failed")
+if(CMAKE_BUILD_TYPE STREQUAL "RELEASE")
+	execute_process(
+		COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "assembleRelease"
+		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
+		RESULT_VARIABLE _gradle_assemblerelease_result
+	)
+	if(_gradle_assemblerelease_result)
+		message(FATAL_ERROR "Gradle assembleRelease failed")
+	endif()
+else()
+	execute_process(
+		COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "assembleDebug"
+		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
+		RESULT_VARIABLE _gradle_assembledebug_result
+	)
+	if(_gradle_assembledebug_result)
+		message(FATAL_ERROR "Gradle assembleDebug failed")
+	endif()
 endif()
 
 execute_process(
