@@ -71,10 +71,8 @@ foreach(_arch ${_archs})
 		)
 	endforeach()
 
-	if(CMAKE_BUILD_TYPE STREQUAL "RELEASE")
-		execute_process(
-			COMMAND "sh" "WORK/android-${_arch}/strip.sh" "libs/${_libarch}/*.so"
-			WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
-		)
-	endif()
+	execute_process(
+		COMMAND "sh" "WORK/android-${_arch}/strip.sh" "libs/${_libarch}/*.so"
+		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
+	)
 endforeach()

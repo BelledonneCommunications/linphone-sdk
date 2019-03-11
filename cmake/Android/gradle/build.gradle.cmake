@@ -134,18 +134,22 @@ android {
             aidl.srcDirs = srcDir
             assets.srcDirs = ["${buildDir}/sdk-assets/assets/"]
             renderscript.srcDirs = srcDir
-            jniLibs.srcDirs = ["@LINPHONESDK_BUILD_DIR@/libs"]
-
             java.excludes = ['**/mediastream/MediastreamerActivity.java']
 
-            // Exclude some useless files and don't strip libraries
+            // Exclude some useless files and don't strip libraries, stripping will be taken care of by CopyLibs.cmake
             packagingOptions {
-                doNotStrip '**/*.so'
                 excludes = excludePackage
+                doNotStrip '**/*.so'
             }
         }
-        debug.setRoot('build-types/debug')
-        release.setRoot('build-types/release')
+        debug {
+            root = 'build-types/debug'
+            jniLibs.srcDirs = ["@LINPHONESDK_BUILD_DIR@/libs-debug"]
+        }
+        release {
+            root = 'build-types/release'
+            jniLibs.srcDirs = ["@LINPHONESDK_BUILD_DIR@/libs"]
+        }
     }
 }
 
@@ -215,7 +219,7 @@ uploadArchives {
             configuration = configurations.deployerJars
             repository(url: 'git:' + gitBranch.toString().trim() + '://git@gitlab.linphone.org:BC/public/maven_repository.git')
             pom.project {
-                groupId 'org.linphone'
+                groupId project.hasProperty("no-video") ? 'org.linphone.no-video' : 'org.linphone'
                 artifactId 'linphone-sdk-android'
                 version project.hasProperty("debug") ? gitVersion.toString().trim() + "-debug" : gitVersion.toString().trim()
             }
@@ -224,3 +228,7 @@ uploadArchives {
 }
 
 project.tasks['uploadArchives'].dependsOn 'getGitVersion'
+
+if (project.hasProperty("no-video")) {
+    println("Project has no-video property !")
+}
