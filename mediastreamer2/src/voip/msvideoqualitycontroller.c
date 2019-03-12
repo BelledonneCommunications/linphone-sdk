@@ -23,7 +23,7 @@
 #include "mediastreamer2/msvideoqualitycontroller.h"
 
 #define INCREASE_TIMER_DELAY 10
-#define INCREASE_BITRATE_THRESHOLD 1.3
+#define INCREASE_BITRATE_THRESHOLD 1.3f
 
 MSVideoQualityController *ms_video_quality_controller_new(struct _VideoStream *stream) {
 	MSVideoQualityController *obj = ms_new0(MSVideoQualityController, 1);
@@ -56,7 +56,7 @@ static void update_video_quality_from_bitrate(MSVideoQualityController *obj, int
 
 		if (!update_only_fps) {
 			/* tmmbr >= required_bitrate * [Threshold] is the same as tmmbr / [Threshold] >= required_bitrate */
-			best_vconf = ms_video_find_best_configuration_for_bitrate(vconf_list, bitrate / bitrate_threshold, ms_factory_get_cpu_count(obj->stream->ms.factory));
+			best_vconf = ms_video_find_best_configuration_for_bitrate(vconf_list, (int) (bitrate / bitrate_threshold), ms_factory_get_cpu_count(obj->stream->ms.factory));
 
 			if (!ms_video_size_equal(obj->last_vsize, best_vconf.vsize) && best_vconf.vsize.width * best_vconf.vsize.height != current_vconf.vsize.width * current_vconf.vsize.height) {
 				ms_message("MSVideoQualityController [%p]: Changing video definition to %dx%d at %f fps", obj->stream, best_vconf.vsize.width, best_vconf.vsize.height, best_vconf.fps);
@@ -119,7 +119,7 @@ void ms_video_quality_controller_update_from_tmmbr(MSVideoQualityController *obj
 			ms_thread_create(&obj->increase_timer_thread, NULL, increase_timer_run, obj);
 		}
 
-		update_video_quality_from_bitrate(obj, tmmbr, 1.0, TRUE);
+		update_video_quality_from_bitrate(obj, tmmbr, 1.0f, TRUE);
 	} else if (tmmbr < obj->last_tmmbr) {
 		if (obj->increase_timer_running) {
 			obj->increase_timer_running = FALSE;
@@ -127,7 +127,7 @@ void ms_video_quality_controller_update_from_tmmbr(MSVideoQualityController *obj
 		}
 
 		ms_message("MSVideoQualityController [%p]: Congestion detected (%f kbit/s), reducing video quality...", obj->stream, tmmbr*1e-3);
-		update_video_quality_from_bitrate(obj, tmmbr, 1.0, FALSE);
+		update_video_quality_from_bitrate(obj, tmmbr, 1.0f, FALSE);
 	}
 
 	obj->last_tmmbr = tmmbr;
