@@ -19,7 +19,6 @@ allprojects {
     repositories {
         google()
         jcenter()
-        maven { url "https://raw.github.com/synergian/wagon-git/releases"}
     }
 }
 
@@ -29,7 +28,7 @@ configurations {
 }
 
 apply plugin: 'com.android.library'
-apply plugin: 'maven'
+apply plugin: 'maven-publish'
 
 dependencies {
     implementation 'org.apache.commons:commons-compress:1.16.1'
@@ -205,22 +204,39 @@ task copyAssets(type: Sync) {
 project.tasks['preBuild'].dependsOn 'copyAssets'
 project.tasks['preBuild'].dependsOn 'copyProguard'
 
-uploadArchives {
+def debugAARFile = file('./linphone-sdk/bin/outputs/aar/linphone-sdk-android-debug.aar')
+def releaseAARFile = file('./linphone-sdk/bin/outputs/aar/linphone-sdk-android-release.aar')
+artifacts {
+    archives (debugAARFile) {
+        name 'linphone-sdk-android-' + gitVersion.toString().trim() + '-debug'
+        type 'aar'
+    }
+    archives (releaseAARFile) {
+        name 'linphone-sdk-android-' + gitVersion.toString().trim()
+        type 'aar'
+    }
+}
+
+publishing {
+    publications {
+        debug(MavenPublication) {
+            groupId project.hasProperty("no-video") ? 'org.linphone.no-video' : 'org.linphone'
+            artifactId 'linphone-sdk-android'
+            version gitVersion.toString().trim() + '-debug'
+            artifact("$buildDir/outputs/aar/linphone-sdk-android-debug.aar")
+        }
+        release(MavenPublication) {
+            groupId project.hasProperty("no-video") ? 'org.linphone.no-video' : 'org.linphone'
+            artifactId 'linphone-sdk-android'
+            version gitVersion.toString().trim()
+            artifact("$buildDir/outputs/aar/linphone-sdk-android-release.aar")
+        }
+    }
     repositories {
-        mavenDeployer {
-            configuration = configurations.deployerJars
-            repository(url: 'git:' + gitBranch.toString().trim() + '://git@gitlab.linphone.org:BC/public/maven_repository.git')
-            pom.project {
-                groupId project.hasProperty("no-video") ? 'org.linphone.no-video' : 'org.linphone'
-                artifactId 'linphone-sdk-android'
-                version project.hasProperty("debug") ? gitVersion.toString().trim() + '-DEBUG' : gitVersion.toString().trim()
-            }
+        maven {
+            url "./repo/"
         }
     }
 }
 
-project.tasks['uploadArchives'].dependsOn 'getGitVersion'
-
-if (project.hasProperty("no-video")) {
-    println("SDK built without video !")
-}
+project.tasks['publish'].dependsOn 'getGitVersion'
