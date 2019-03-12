@@ -244,6 +244,10 @@ static void video_stream_track_fps_changes(VideoStream *stream){
 void video_stream_iterate(VideoStream *stream){
 	media_stream_iterate(&stream->ms);
 	video_stream_track_fps_changes(stream);
+
+	if (stream->ms.video_quality_controller) {
+		ms_video_quality_controller_process_timer(stream->ms.video_quality_controller);
+	}
 }
 
 const char *video_stream_get_default_video_renderer(void){

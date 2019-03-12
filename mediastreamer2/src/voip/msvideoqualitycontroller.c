@@ -36,11 +36,6 @@ MSVideoQualityController *ms_video_quality_controller_new(struct _VideoStream *s
 }
 
 void ms_video_quality_controller_destroy(MSVideoQualityController *obj) {
-	if (obj->increase_timer_running) {
-		obj->increase_timer_running = FALSE;
-		ms_thread_join(obj->increase_timer_thread, NULL);
-	}
-
 	ms_free(obj);
 }
 
@@ -84,16 +79,14 @@ static void update_video_quality_from_bitrate(MSVideoQualityController *obj, int
 		ms_message("MSVideoQualityController [%p]: Changing video encoder's output bitrate to %i", obj, new_bitrate_limit);
 		current_vconf.required_bitrate = new_bitrate_limit;
 
-		if (ms_filter_call_method(obj->stream->ms.encoder,MS_VIDEO_ENCODER_SET_CONFIGURATION, &current_vconf) != 0){
+		if (ms_filter_call_method(obj->stream->ms.encoder,MS_VIDEO_ENCODER_SET_CONFIGURATION, &current_vconf) != 0) {
 			ms_warning("MSVideoQualityController [%p]: Failed to apply fps and bitrate constraint to %s", obj, obj->stream->ms.encoder->desc->name);
 		}
 	}
 }
 
-void *increase_timer_run(void* user_data) {
-	MSVideoQualityController *obj = (MSVideoQualityController *) user_data;
-
-	while(obj->increase_timer_running) {
+void ms_video_quality_controller_process_timer(MSVideoQualityController *obj) {
+	if (obj->increase_timer_running) {
 		time_t current_time = ms_time(NULL);
 		if (current_time - obj->increase_timer_start >= INCREASE_TIMER_DELAY) {
 			ms_message("MSVideoQualityController [%p]: No further TMMBR (%f kbit/s) received after %d seconds, increasing video quality...", obj->stream, obj->last_tmmbr*1e-3, INCREASE_TIMER_DELAY);
@@ -101,30 +94,18 @@ void *increase_timer_run(void* user_data) {
 			update_video_quality_from_bitrate(obj, obj->last_tmmbr, INCREASE_BITRATE_THRESHOLD, FALSE);
 			
 			obj->increase_timer_running = FALSE;
-			break;
 		}
-
-		ms_usleep(500 * 1000);
 	}
-
-	return NULL;
 }
 
 void ms_video_quality_controller_update_from_tmmbr(MSVideoQualityController *obj, int tmmbr) {
 	if (tmmbr > obj->last_tmmbr) {
 		obj->increase_timer_start = ms_time(NULL);
-
-		if (!obj->increase_timer_running) {
-			obj->increase_timer_running = TRUE;
-			ms_thread_create(&obj->increase_timer_thread, NULL, increase_timer_run, obj);
-		}
+		if (!obj->increase_timer_running) obj->increase_timer_running = TRUE;
 
 		update_video_quality_from_bitrate(obj, tmmbr, 1.0f, TRUE);
 	} else if (tmmbr < obj->last_tmmbr) {
-		if (obj->increase_timer_running) {
-			obj->increase_timer_running = FALSE;
-			ms_thread_join(obj->increase_timer_thread, NULL);
-		}
+		if (obj->increase_timer_running) obj->increase_timer_running = FALSE;
 
 		ms_message("MSVideoQualityController [%p]: Congestion detected (%f kbit/s), reducing video quality...", obj->stream, tmmbr*1e-3);
 		update_video_quality_from_bitrate(obj, tmmbr, 1.0f, FALSE);
