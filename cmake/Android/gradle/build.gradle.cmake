@@ -3,13 +3,15 @@ buildDir = 'linphone-sdk/bin'
 
 buildscript {
     repositories {
+        google()
         jcenter()
         mavenCentral()
-        mavenLocal()
-        google()
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.1.0'
+        classpath 'com.android.tools.build:gradle:3.3.2'
     }
 }
 
@@ -17,8 +19,6 @@ allprojects {
     repositories {
         google()
         jcenter()
-        mavenCentral()
-        mavenLocal()
         maven { url "https://raw.github.com/synergian/wagon-git/releases"}
     }
 }
@@ -43,7 +43,6 @@ srcDir += [rootSdk + '/share/linphonej/java/org/linphone/core/']
 srcDir += ['@LINPHONESDK_DIR@/linphone/wrappers/java/classes/']
 
 def excludePackage = []
-
 excludePackage.add('**/gdb.*')
 excludePackage.add('**/libopenh264**')
 excludePackage.add('**/LICENSE.txt')
@@ -75,21 +74,16 @@ task getGitVersion {
 project.tasks['preBuild'].dependsOn 'getGitVersion'
 
 android {
-    publishNonDefault true
-
     defaultConfig {
         compileSdkVersion 28
-        buildToolsVersion "28.0.0"
         minSdkVersion 16
         targetSdkVersion 28
         versionCode 4100
         versionName "4.1"
-        multiDexEnabled true
         setProperty("archivesBaseName", "linphone-sdk-android")
         consumerProguardFiles "${buildDir}/proguard.txt"
     }
 
-    // Signing
     signingConfigs {
         release {
             storeFile file(RELEASE_STORE_FILE)
@@ -98,6 +92,7 @@ android {
             keyPassword RELEASE_KEY_PASSWORD
         }
     }
+
     buildTypes {
         release {
             signingConfig signingConfigs.release
@@ -111,6 +106,7 @@ android {
             minifyEnabled false
             useProguard false
             debuggable true
+            jniDebuggable true
             resValue "string", "linphone_sdk_version", gitVersion.toString().trim() + "-debug"
             resValue "string", "linphone_sdk_branch", gitBranch.toString().trim()
         }
@@ -217,7 +213,7 @@ uploadArchives {
             pom.project {
                 groupId project.hasProperty("no-video") ? 'org.linphone.no-video' : 'org.linphone'
                 artifactId 'linphone-sdk-android'
-                version project.hasProperty("debug") ? gitVersion.toString().trim() + "-debug" : gitVersion.toString().trim()
+                version project.hasProperty("debug") ? gitVersion.toString().trim() + '-DEBUG' : gitVersion.toString().trim()
             }
         }
     }
