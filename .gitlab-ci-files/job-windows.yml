@@ -31,6 +31,7 @@ job-windows-vs2015-novideo:
     - schedules
   except:
     variables:
+      - $DEPLOY_RUN_ANDROID
       - $FAST_LINUX_TESTS
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO

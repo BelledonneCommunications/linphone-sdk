@@ -9,6 +9,7 @@ job-archlinux-latest-makefile-gcc:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:latest
   except:
     variables:
+      - $DEPLOY_RUN_ANDROID
       - $FAST_LINUX_TESTS
   variables:
     CMAKE_GENERATOR: Unix Makefiles
@@ -23,6 +24,7 @@ job-archlinux-latest-makefile-clang:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:latest
   except:
     variables:
+      - $DEPLOY_RUN_ANDROID
       - $FAST_LINUX_TESTS
   variables:
     CMAKE_GENERATOR: Unix Makefiles
@@ -42,6 +44,7 @@ job-archlinux-latest-ninja-gcc:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:latest
   except:
     variables:
+      - $DEPLOY_RUN_ANDROID
       - $FAST_LINUX_TESTS
   variables:
     CMAKE_GENERATOR: Ninja
@@ -55,6 +58,7 @@ job-archlinux-latest-ninja-gcc-novideo:
   tags: [ "docker-archlinux-latest" ]
   except:
     variables:
+      - $DEPLOY_RUN_ANDROID
       - $FAST_LINUX_TESTS
 
   variables:
@@ -65,6 +69,9 @@ job-archlinux-latest-ninja-gcc-novideo:
 job-archlinux-latest-ninja-clang:
 
   tags: [ "docker-archlinux-latest" ]
+  except:
+    variables:
+      - $DEPLOY_RUN_ANDROID
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:latest
   variables:
     CMAKE_GENERATOR: Ninja
@@ -77,6 +84,7 @@ job-archlinux-latest-ninja-clang-novideo:
 
   except:
     variables:
+      - $DEPLOY_RUN_ANDROID
       - $FAST_LINUX_TESTS
   only:
     - schedules
