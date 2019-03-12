@@ -75,7 +75,7 @@ job-android-upload:
     - ../cmake/Android/gradlew uploadArchives -i
     - cmake .. -DENABLE_VIDEO=NO
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
-    - ../cmake/Android/gradlew uploadArchives -i    
+    - ../cmake/Android/gradlew uploadArchives -Pno-video -i    
 
   after_script:
     - rm -rf ~/.ssh || true

@@ -20,26 +20,21 @@
 #
 ############################################################################
 
-set(GRADLE_PROPERTIES )
-if (NOT ENABLE_VIDEO)
-	set(GRADLE_PROPERTIES "-Pno-video")
-endif()
-
 if(CMAKE_BUILD_TYPE STREQUAL "RELEASE")
 	execute_process(
-		COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "assembleRelease" ${GRADLE_PROPERTIES}
+		COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "assembleRelease"
 		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 		RESULT_VARIABLE _gradle_assemble_result
 	)
 elseif(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
 	execute_process(
-		COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "assembleDebug" ${GRADLE_PROPERTIES}
+		COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "assembleDebug"
 		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 		RESULT_VARIABLE _gradle_assemble_result
 	)
 else()
 	execute_process(
-		COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "assemble" ${GRADLE_PROPERTIES}
+		COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "assemble"
 		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 		RESULT_VARIABLE _gradle_assemble_result
 	)

@@ -75,11 +75,7 @@ task getGitVersion {
 project.tasks['preBuild'].dependsOn 'getGitVersion'
 
 android {
-
-    buildTypes {
-        release {}
-        debug {}
-    }
+    publishNonDefault true
 
     defaultConfig {
         compileSdkVersion 28
