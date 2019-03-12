@@ -24,7 +24,6 @@ allprojects {
 
 configurations {
     javadocDeps
-    deployerJars
 }
 
 apply plugin: 'com.android.library'
@@ -33,7 +32,6 @@ apply plugin: 'maven-publish'
 dependencies {
     implementation 'org.apache.commons:commons-compress:1.16.1'
     javadocDeps 'org.apache.commons:commons-compress:1.16.1'
-    deployerJars "ar.com.synergian:wagon-git:0.2.5"
 }
 
 def rootSdk = '@LINPHONESDK_BUILD_DIR@/linphone-sdk/android-@LINPHONESDK_FIRST_ARCH@'
@@ -204,19 +202,6 @@ task copyAssets(type: Sync) {
 project.tasks['preBuild'].dependsOn 'copyAssets'
 project.tasks['preBuild'].dependsOn 'copyProguard'
 
-def debugAARFile = file('./linphone-sdk/bin/outputs/aar/linphone-sdk-android-debug.aar')
-def releaseAARFile = file('./linphone-sdk/bin/outputs/aar/linphone-sdk-android-release.aar')
-artifacts {
-    archives (debugAARFile) {
-        name 'linphone-sdk-android-' + gitVersion.toString().trim() + '-debug'
-        type 'aar'
-    }
-    archives (releaseAARFile) {
-        name 'linphone-sdk-android-' + gitVersion.toString().trim()
-        type 'aar'
-    }
-}
-
 publishing {
     publications {
         debug(MavenPublication) {
@@ -239,4 +224,5 @@ publishing {
     }
 }
 
-project.tasks['publish'].dependsOn 'getGitVersion'
+project.tasks['assemble'].dependsOn 'getGitVersion'
+project.tasks['publish'].dependsOn 'assemble'
