@@ -42,7 +42,6 @@ job-android-makefile-r16b:
       - $DEPLOY_RUN_ANDROID
       - $DEPLOY_RUN_IOS
       - $FAST_LINUX_TESTS
-
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
@@ -57,7 +56,6 @@ job-android-makefile-r17c:
       - $DEPLOY_RUN_ANDROID
       - $DEPLOY_RUN_IOS
       - $FAST_LINUX_TESTS
-
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
@@ -73,7 +71,6 @@ job-android-makefile-r18b:
       - $DEPLOY_RUN_ANDROID
       - $DEPLOY_RUN_IOS
       - $FAST_LINUX_TESTS
-
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
@@ -85,11 +82,9 @@ job-android-makefile-r19:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r19
   except:
     variables:
-
       - $DEPLOY_RUN_ANDROID
       - $DEPLOY_RUN_IOS
       - $FAST_LINUX_TESTS
-
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
@@ -109,7 +104,6 @@ job-android-ninja-r16b:
       - $DEPLOY_RUN_ANDROID
       - $DEPLOY_RUN_IOS
       - $FAST_LINUX_TESTS
-
   variables:
     CMAKE_GENERATOR: Ninja
   extends: .scheduled-job-android
@@ -120,6 +114,8 @@ job-android-ninja-r16b-novideo:
     - schedules
   except:
     variables:
+      - $DEPLOY_RUN_ANDROID
+      - $DEPLOY_RUN_IOS
       - $FAST_LINUX_TESTS
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
@@ -131,9 +127,9 @@ job-android-ninja-r17c:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
   except:
     variables:
+      - $DEPLOY_RUN_ANDROID
       - $DEPLOY_RUN_IOS
       - $FAST_LINUX_TESTS
-
   variables:
     CMAKE_GENERATOR: Ninja
     CMAKE_OPTIONS: -DENABLE_AAUDIO=ON
@@ -143,6 +139,8 @@ job-android-ninja-r17c:
 job-android-ninja-r17c-novideo:
   except:
     variables:
+      - $DEPLOY_RUN_ANDROID
+      - $DEPLOY_RUN_IOS
       - $FAST_LINUX_TESTS
   only:
     - schedules
@@ -163,7 +161,6 @@ job-android-ninja-r18b:
       - $DEPLOY_RUN_ANDROID
       - $DEPLOY_RUN_IOS
       - $FAST_LINUX_TESTS
-
   variables:
     CMAKE_GENERATOR: Ninja
     CMAKE_OPTIONS: -DENABLE_AAUDIO=ON
@@ -178,7 +175,6 @@ job-android-ninja-r19:
       - $DEPLOY_RUN_ANDROID
       - $DEPLOY_RUN_IOS
       - $FAST_LINUX_TESTS
-
   variables:
     CMAKE_GENERATOR: Ninja
     CMAKE_OPTIONS: -DENABLE_AAUDIO=ON

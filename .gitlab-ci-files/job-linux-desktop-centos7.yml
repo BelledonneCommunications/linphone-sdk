@@ -9,6 +9,7 @@ job-centos7-makefile-gcc:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
   except:
     variables:
+      - $DEPLOY_RUN_ANDROID
       - $FAST_LINUX_TESTS
   variables:
     CMAKE_GENERATOR: Unix Makefiles
@@ -23,6 +24,7 @@ job-centos7-makefile-clang:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
   except:
     variables:
+      - $DEPLOY_RUN_ANDROID
       - $FAST_LINUX_TESTS
   variables:
     CMAKE_GENERATOR: Unix Makefiles
@@ -42,6 +44,7 @@ job-centos7-ninja-gcc:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
   except:
     variables:
+      - $DEPLOY_RUN_ANDROID
       - $FAST_LINUX_TESTS
   variables:
     CMAKE_GENERATOR: Ninja
@@ -55,6 +58,7 @@ job-centos7-ninja-gcc-novideo:
   tags: [ "docker-centos7" ]
   except:
     variables:
+      - $DEPLOY_RUN_ANDROID
       - $FAST_LINUX_TESTS
   only:
     - schedules
@@ -66,6 +70,9 @@ job-centos7-ninja-gcc-novideo:
 job-centos7-ninja-clang:
 
   tags: [ "docker-centos7" ]
+  except:
+    variables:
+      - $DEPLOY_RUN_ANDROID
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
   variables:
     CMAKE_GENERATOR: Ninja
@@ -79,6 +86,7 @@ job-centos7-ninja-clang-novideo:
 
   except:
     variables:
+      - $DEPLOY_RUN_ANDROID
       - $FAST_LINUX_TESTS
   only:
     - schedules
