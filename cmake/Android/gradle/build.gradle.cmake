@@ -230,5 +230,5 @@ uploadArchives {
 project.tasks['uploadArchives'].dependsOn 'getGitVersion'
 
 if (project.hasProperty("no-video")) {
-    println("Project has no-video property !")
+    println("SDK built without video !")
 }
