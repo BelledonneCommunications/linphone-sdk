@@ -991,6 +991,11 @@ uint8_t bctbx_dtls_srtp_supported(void) {
 	return 1;
 }
 
+void bctbx_ssl_set_mtu(bctbx_ssl_context_t *ssl_ctx, uint16_t mtu) {
+	// remove the record expansion to the given MTU
+	mbedtls_ssl_set_mtu(&(ssl_ctx->ssl_ctx), mtu - mbedtls_ssl_get_record_expansion(&(ssl_ctx->ssl_ctx)));
+}
+
 static bctbx_dtls_srtp_profile_t bctbx_srtp_profile_mbedtls2bctoolbox(mbedtls_ssl_srtp_profile mbedtls_profile) {
 	switch (mbedtls_profile) {
 		case MBEDTLS_SRTP_AES128_CM_HMAC_SHA1_80:
@@ -1050,6 +1055,8 @@ int32_t bctbx_ssl_get_dtls_srtp_key_material(bctbx_ssl_context_t *ssl_ctx, char 
 uint8_t bctbx_dtls_srtp_supported(void) {
 	return 0;
 }
+
+void bctbx_ssl_set_mtu(bctbx_ssl_context_t *ssl_ctx, uint16_t mtu) { }
 
 bctbx_dtls_srtp_profile_t bctbx_ssl_get_dtls_srtp_protection_profile(bctbx_ssl_context_t *ssl_ctx) {
 	return BCTBX_SRTP_UNDEFINED;

@@ -520,6 +520,8 @@ BCTBX_PUBLIC bctbx_dtls_srtp_profile_t bctbx_ssl_get_dtls_srtp_protection_profil
 BCTBX_PUBLIC int32_t bctbx_ssl_config_set_dtls_srtp_protection_profiles(bctbx_ssl_config_t *ssl_config, const bctbx_dtls_srtp_profile_t *profiles, size_t profiles_number);
 BCTBX_PUBLIC int32_t bctbx_ssl_get_dtls_srtp_key_material(bctbx_ssl_context_t *ssl_ctx, char *output, size_t *output_length);
 BCTBX_PUBLIC uint8_t bctbx_dtls_srtp_supported(void);
+BCTBX_PUBLIC void bctbx_ssl_set_mtu(bctbx_ssl_context_t *ssl_ctx, uint16_t mtu);
+
 
 /*****************************************************************************/
 /***** Key exchanges defined algorithms                                  *****/
