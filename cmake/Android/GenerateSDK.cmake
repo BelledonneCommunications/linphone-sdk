@@ -20,57 +20,32 @@
 #
 ############################################################################
 
+set(GRADLE_PROPERTIES )
+if (NOT ENABLE_VIDEO)
+	set(GRADLE_PROPERTIES "-Pno-video")
+endif()
+
 if(CMAKE_BUILD_TYPE STREQUAL "RELEASE")
-	if(ENABLE_VIDEO)
-		execute_process(
-			COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "assembleRelease"
-			WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
-			RESULT_VARIABLE _gradle_assemblerelease_result
-		)
-	else()
-		execute_process(
-			COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "assembleRelease" "-P" "no-video"
-			WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
-			RESULT_VARIABLE _gradle_assemblerelease_result
-		)
-	endif()
-	if(_gradle_assemblerelease_result)
-		message(FATAL_ERROR "Gradle assembleRelease failed")
-	endif()
+	execute_process(
+		COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "assembleRelease" ${GRADLE_PROPERTIES}
+		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
+		RESULT_VARIABLE _gradle_assemble_result
+	)
 elseif(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
-	if(ENABLE_VIDEO )
-		execute_process(
-			COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "assembleDebug"
-			WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
-			RESULT_VARIABLE _gradle_assembledebug_result
-		)
-	else()
-		execute_process(
-			COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "assembleDebug" "-P" "no-video"
-			WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
-			RESULT_VARIABLE _gradle_assembledebug_result
-		)
-	endif()
-	if(_gradle_assembledebug_result)
-		message(FATAL_ERROR "Gradle assembleDebug failed")
-	endif()
+	execute_process(
+		COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "assembleDebug" ${GRADLE_PROPERTIES}
+		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
+		RESULT_VARIABLE _gradle_assemble_result
+	)
 else()
-	if(ENABLE_VIDEO )
-		execute_process(
-			COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "assemble"
-			WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
-			RESULT_VARIABLE _gradle_assemble_result
-		)
-	else()
-		execute_process(
-			COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "assemble" "-P" "no-video"
-			WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
-			RESULT_VARIABLE _gradle_assemble_result
-		)
-	endif()
-	if(_gradle_assemble_result)
-		message(FATAL_ERROR "Gradle assemble failed")
-	endif()
+	execute_process(
+		COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "assemble" ${GRADLE_PROPERTIES}
+		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
+		RESULT_VARIABLE _gradle_assemble_result
+	)
+endif()
+if(_gradle_assemble_result)
+	message(FATAL_ERROR "Gradle assemble failed")
 endif()
 
 execute_process(
