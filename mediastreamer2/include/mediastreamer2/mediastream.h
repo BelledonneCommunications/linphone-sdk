@@ -30,6 +30,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <mediastreamer2/mssndcard.h>
 #include <mediastreamer2/mswebcam.h>
 #include <mediastreamer2/msvideo.h>
+#include <mediastreamer2/msvideoqualitycontroller.h>
 #include <mediastreamer2/bitratecontrol.h>
 #include <mediastreamer2/qualityindicator.h>
 #include <mediastreamer2/ice.h>
@@ -142,6 +143,7 @@ struct _MediaStream {
 	OrtpEvDispatcher *evd;
 	MSFactory *factory;
 	MSBandwidthController *bandwidth_controller;
+	MSVideoQualityController *video_quality_controller;
 };
 
 MS2_PUBLIC void media_stream_init(MediaStream *stream, MSFactory *factory, const MSMediaStreamSessions *sessions);
@@ -930,6 +932,8 @@ MS2_PUBLIC MSFilter* video_stream_get_source_filter(const VideoStream* stream);
 
 MS2_PUBLIC void video_stream_change_camera(VideoStream *stream, MSWebCam *cam);
 
+MS2_PUBLIC void video_stream_change_camera_skip_bitrate(VideoStream *stream, MSWebCam *cam);
+
 /**
  * @brief This functions changes the source filter for the passed video stream.
  * @details This is quite the same function as \ref video_stream_change_camera, but this one
@@ -1163,6 +1167,12 @@ MS2_PUBLIC void audio_stream_unlink_video(AudioStream *stream, VideoStream *vide
  * @param[in] preset The name of the video preset to be used.
  */
 MS2_PUBLIC void video_stream_use_video_preset(VideoStream *stream, const char *preset);
+
+/**
+ * Returns the name of the video preset used for the video stream.
+ * @param[in] stream VideoStream object
+ */
+MS2_PUBLIC const char* video_stream_get_video_preset(VideoStream *stream);
 
 
 /**

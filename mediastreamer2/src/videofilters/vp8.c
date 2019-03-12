@@ -42,24 +42,24 @@
 
 static const MSVideoConfiguration vp8_conf_list[] = {
 #if defined(__ANDROID__) || (TARGET_OS_IPHONE == 1) || defined(__arm__) || defined(_M_ARM)
-	MS_VP8_CONF(2048000, 2560000,       UXGA, 12, 2),
-	MS_VP8_CONF(1024000, 1536000, SXGA_MINUS, 12, 2),
-	MS_VP8_CONF( 750000, 1024000,        XGA, 12, 2),
-	MS_VP8_CONF( 500000,  750000,       SVGA, 12, 2),
-	MS_VP8_CONF( 800000, 3000000,        VGA, 30, 8),
-	MS_VP8_CONF( 800000, 3000000,        VGA, 25, 4),
+	MS_VP8_CONF(1536000, 2560000, SXGA_MINUS, 25, 8),
+	MS_VP8_CONF(1024000, 1536000,        XGA, 25, 8),
+	MS_VP8_CONF( 850000, 1024000,       SVGA, 25, 8),
+	MS_VP8_CONF( 700000, 3000000,        VGA, 30, 8),
+	MS_VP8_CONF( 600000, 3000000,        VGA, 25, 4),
 	MS_VP8_CONF( 400000,  800000,        VGA, 12, 2),
 	MS_VP8_CONF( 100000,  300000,       QVGA, 18, 2),
 	MS_VP8_CONF(  64000,  100000,       QCIF, 12, 2),
 	MS_VP8_CONF( 400000,  800000,        VGA, 12, 1),
 	MS_VP8_CONF( 100000,  300000,       QVGA, 10, 1),
 	MS_VP8_CONF(  64000,  100000,       QCIF, 10, 1),
-	MS_VP8_CONF(      0,   64000,       QCIF,  5, 1)
+	MS_VP8_CONF(      0,   64000,       QCIF,  5, 1),
 #else
+	MS_VP8_CONF(2048000,  5000000,       UXGA, 25, 4),
 	MS_VP8_CONF(1536000,  2560000, SXGA_MINUS, 25, 4),
-	MS_VP8_CONF( 800000,  2000000,       720P, 25, 4),
+	MS_VP8_CONF(1024000,  2000000,       720P, 25, 4),
 	MS_VP8_CONF( 800000,  1536000,        XGA, 25, 4),
-	MS_VP8_CONF( 600000,  1024000,       SVGA, 25, 2),
+	MS_VP8_CONF( 750000,  1024000,       SVGA, 25, 2),
 	MS_VP8_CONF( 600000,  3000000,        VGA, 30, 2),
 	MS_VP8_CONF( 350000,   600000,        VGA, 25, 2),
 	MS_VP8_CONF( 350000,   600000,        VGA, 15, 1),
@@ -67,7 +67,7 @@ static const MSVideoConfiguration vp8_conf_list[] = {
 	MS_VP8_CONF( 150000,   200000,       QVGA, 15, 1),
 	MS_VP8_CONF( 100000,   150000,       QVGA, 10, 1),
 	MS_VP8_CONF(  64000,   100000,       QCIF, 12, 1),
-	MS_VP8_CONF(      0,    64000,       QCIF,  5 ,1)
+	MS_VP8_CONF(      0,    64000,       QCIF,  5 ,1),
 #endif
 };
 

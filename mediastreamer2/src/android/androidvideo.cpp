@@ -169,10 +169,17 @@ static int video_capture_set_vsize(MSFilter *f, void* data){
 		d->usedSize.width = (int) (d->hwCapableSize.width * downscale);
 		d->usedSize.height = (int) (d->hwCapableSize.height * downscale);
 	} else if ((hwSize * downscale * downscale) > rqSize) {
-		ms_message("Camera cannot produce requested resolution %dx%d, will capture a bigger one (%dx%d) and crop it to match encoder requested resolution\n",
-			d->requestedSize.width, d->requestedSize.height, (int)(res[0] * downscale), (int)(res[1] * downscale));
-		d->usedSize.width = d->requestedSize.width;
-		d->usedSize.height = d->requestedSize.height;
+		if (d->requestedSize.width > d->hwCapableSize.width || d->requestedSize.height > d->hwCapableSize.height) {
+			ms_message("Camera cannot produce requested resolution %dx%d, will capture a bigger one (%dx%d)\n",
+				d->requestedSize.width, d->requestedSize.height, (int)(res[0] * downscale), (int)(res[1] * downscale));
+			d->usedSize.width = d->requestedSize.width = d->hwCapableSize.width;
+			d->usedSize.height = d->requestedSize.height = d->hwCapableSize.height;
+		} else {
+			ms_message("Camera cannot produce requested resolution %dx%d, will capture a bigger one (%dx%d) and crop it to match encoder requested resolution\n",
+				d->requestedSize.width, d->requestedSize.height, (int)(res[0] * downscale), (int)(res[1] * downscale));
+			d->usedSize.width = d->requestedSize.width;
+			d->usedSize.height = d->requestedSize.height;
+		}
 	} else {
 		d->usedSize.width = d->requestedSize.width;
 		d->usedSize.height = d->requestedSize.height;
