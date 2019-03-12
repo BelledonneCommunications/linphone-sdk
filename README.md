@@ -15,7 +15,9 @@ The steps to build the SDK are:
  2. Execute CMake to configure the project:
  `cmake ..`
  3. Build the SDK:
- `cmake --build . --target sdk`
+ `cmake --build . ` 
+ or 
+ `cmake --build . --parallel <number of jobs>` (which is faster).
 
 You can pass some options to CMake at the second step to configure the SDK as you want.
 For instance, to build an iOS SDK (the default being Desktop):
