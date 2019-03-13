@@ -584,6 +584,9 @@ static void ffi_basic_test(const enum lime_ffi_CurveId curve, const char *dbBase
 	lime_ffi_manager_init(&bobManager1, dbFilenameBob1, X3DHServerPost, NULL);
 	lime_ffi_manager_init(&bobManager2, dbFilenameBob2, X3DHServerPost, NULL);
 
+	/*** Check if Alice exists in the database ***/
+	BC_ASSERT_TRUE(lime_ffi_is_user(aliceManager, aliceDeviceId) == LIME_FFI_USER_NOT_FOUND);
+
 	/*** create users ***/
 	lime_ffi_create_user(aliceManager, aliceDeviceId, x3dh_server_url, curve, ffi_defaultInitialOPkBatchSize, statusCallback, NULL);
 	lime_ffi_create_user(bobManager1, bobDeviceId1, x3dh_server_url, curve, ffi_defaultInitialOPkBatchSize, statusCallback, NULL);
@@ -598,6 +601,11 @@ static void ffi_basic_test(const enum lime_ffi_CurveId curve, const char *dbBase
 		managerClean(&bobManager1, dbFilenameBob1);
 		managerClean(&bobManager2, dbFilenameBob2);
 	}
+
+	/*** Check the device we created exists in DB ***/
+	BC_ASSERT_TRUE(lime_ffi_is_user(aliceManager, aliceDeviceId) == LIME_FFI_SUCCESS);
+	BC_ASSERT_TRUE(lime_ffi_is_user(bobManager1, bobDeviceId1) == LIME_FFI_SUCCESS);
+	BC_ASSERT_TRUE(lime_ffi_is_user(bobManager2, bobDeviceId2) == LIME_FFI_SUCCESS);
 
 	/*** Set/Get X3DH server URL functionality checks ***/
 	/* Get alice x3dh server url */

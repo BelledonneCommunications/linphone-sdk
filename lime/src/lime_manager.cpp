@@ -23,6 +23,7 @@
 #include "lime_lime.hpp"
 #include "lime_localStorage.hpp"
 #include "lime_settings.hpp"
+#include "bctoolbox/exception.hh"
 
 using namespace::std;
 
@@ -80,6 +81,20 @@ namespace lime {
 		LimeManager::load_user(user, localDeviceId, true); // load user even if inactive as we are deleting it anyway
 
 		user->delete_user(managerDeleteCallback);
+	}
+
+	bool LimeManager::is_user(const std::string &localDeviceId) {
+		try {
+			// Load user object
+			std::shared_ptr<LimeGeneric> user;
+			LimeManager::load_user(user, localDeviceId);
+
+			return true; // If we are able to load the user, it means it exists
+		} catch (BctbxException const &e) { // we get an exception if the user is not found
+			// swallow it and return false
+			return false;
+		}
+
 	}
 
 	void LimeManager::encrypt(const std::string &localDeviceId, std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback, const lime::EncryptionPolicy encryptionPolicy) {

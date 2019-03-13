@@ -219,6 +219,19 @@ int lime_ffi_delete_user(lime_manager_t manager, const char *localDeviceId, cons
 	return LIME_FFI_SUCCESS;
 }
 
+int lime_ffi_is_user(lime_manager_t manager, const char *localDeviceId) {
+	try {
+		if (manager->context->is_user(std::string(localDeviceId))) {
+			return LIME_FFI_SUCCESS;
+		} else {
+			return LIME_FFI_USER_NOT_FOUND;
+		}
+	} catch (exception const &e) { // catch anything (BctbxException are already taken care of by is_user, but other kind may arise)
+		LIME_LOGE<<"FFI failed to delete user: "<<e.what();
+		return LIME_FFI_INTERNAL_ERROR;
+	}
+}
+
 int lime_ffi_encryptOutBuffersMaximumSize(const size_t plainMessageSize, const enum lime_ffi_CurveId curve, size_t *DRmessageSize, size_t *cipherMessageSize) {
 	/* cipherMessage maximum size is plain message size + auth tag size */
 	*cipherMessageSize = plainMessageSize + lime::settings::DRMessageAuthTagSize;

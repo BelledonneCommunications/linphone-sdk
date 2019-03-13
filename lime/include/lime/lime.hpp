@@ -166,6 +166,15 @@ namespace lime {
 			void delete_user(const std::string &localDeviceId, const limeCallback &callback);
 
 			/**
+			 * @brief Check if a user is present and active in local storage
+			 *
+			 * @param[in]	localDeviceId	used to identify which local account looking up, shall be the GRUU
+			 *
+			 * @return true if the user is active in the local storage, false otherwise
+			 */
+			bool is_user(const std::string &localDeviceId);
+
+			/**
 			 * @brief Encrypt a buffer (text or file) for a given list of recipient devices
 			 *
 			 * if specified localDeviceId is not found in local Storage, throw an exception

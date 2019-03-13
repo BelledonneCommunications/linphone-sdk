@@ -52,7 +52,8 @@ enum LIME_FFI_ERROR {
 	LIME_FFI_SUCCESS = 0,
 	LIME_FFI_INVALID_CURVE_ARGUMENT = -1,
 	LIME_FFI_INTERNAL_ERROR = -2,
-	LIME_FFI_OUTPUT_BUFFER_TOO_SMALL = -3
+	LIME_FFI_OUTPUT_BUFFER_TOO_SMALL = -3,
+	LIME_FFI_USER_NOT_FOUND = -4
 };
 
 /** Identifies the elliptic curve used in lime, the values assigned are used in localStorage and X3DH server
@@ -203,6 +204,14 @@ int lime_ffi_create_user(lime_manager_t manager, const char *localDeviceId,
  */
 int lime_ffi_delete_user(lime_manager_t manager, const char *localDeviceId, const lime_ffi_Callback callback, void *callbackUserData);
 
+/**
+ * @brief Check if a user is present and active in local storage
+ *
+ * @param[in]	localDeviceId	used to identify which local account looking up, shall be the GRUU (Null terminated string)
+ *
+ * @return LIME_FFI_SUCCESS if the user is active in the local storage, LIME_FFI_USER_NOT_FOUND otherwise
+ */
+int lime_ffi_is_user(lime_manager_t manager, const char *localDeviceId);
 
 /**
  * @brief Compute the maximum buffer sizes for the encryption outputs: DRmessage and cipherMessage

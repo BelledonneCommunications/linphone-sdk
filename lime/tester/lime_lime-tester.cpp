@@ -3201,10 +3201,16 @@ static void user_management_test(const lime::CurveId curve, const std::string &d
 	auto aliceDeviceName = lime_tester::makeRandomDeviceName("alice.");
 
 	try {
+		/*Check if Alice exists in the database */
+		BC_ASSERT_FALSE(Manager->is_user(*aliceDeviceName));
+
 		/* create a user in a fresh database */
 		Manager->create_user(*aliceDeviceName, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 		if (counters.operation_failed == 1) return; // skip the end of the test if we can't do this
+
+		/*Check if Alice exists in the database */
+		BC_ASSERT_TRUE(Manager->is_user(*aliceDeviceName));
 
 		/* load alice from from DB */
 		auto alice = load_LimeUser(dbFilenameAlice, *aliceDeviceName, X3DHServerPost);
@@ -3219,6 +3225,7 @@ static void user_management_test(const lime::CurveId curve, const std::string &d
 		// Force a reload of data from local storage just to be sure the modification was perform correctly
 		Manager = nullptr;
 		Manager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
+		BC_ASSERT_TRUE(Manager->is_user(*aliceDeviceName)); // Check again just after LimeManager reload that Alice is in local storage
 		BC_ASSERT_TRUE(Manager->get_x3dhServerUrl(*aliceDeviceName) == "https://testing.testing:12345");
 		// Set it back to the regular one to be able to complete the test
 		Manager->set_x3dhServerUrl(*aliceDeviceName, x3dh_server_url);

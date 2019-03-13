@@ -61,9 +61,15 @@ public class LimeLimeTester {
 		String AliceDeviceId = "alice."+UUID.randomUUID().toString();
 
 		try {
+			// Check alice is not already there
+			assert(aliceManager.is_user(AliceDeviceId) == false);
+
 			aliceManager.create_user(AliceDeviceId, x3dhServerUrl, curveId, 10, statusCallback);
 			expected_success+= 1;
 			assert (statusCallback.wait_for_success(expected_success));
+
+			// Check alice is there
+			assert(aliceManager.is_user(AliceDeviceId) == true);
 
 			// Get alice x3dh server url
 			assert(aliceManager.get_x3dhServerUrl(AliceDeviceId).equals(x3dhServerUrl));
@@ -75,6 +81,7 @@ public class LimeLimeTester {
 			aliceManager.nativeDestructor();
 			aliceManager = null;
 			aliceManager = new LimeManager(aliceDbFilename, postObj);
+			assert(aliceManager.is_user(AliceDeviceId) == true); // Check again after LimeManager reload that Alice is in local storage
 			assert(aliceManager.get_x3dhServerUrl(AliceDeviceId).equals("https://testing.testing:12345"));
 			// Set it back to the regular one to be able to complete the test
 			aliceManager.set_x3dhServerUrl(AliceDeviceId, x3dhServerUrl);

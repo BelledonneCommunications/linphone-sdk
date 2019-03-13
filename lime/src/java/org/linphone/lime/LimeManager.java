@@ -100,6 +100,15 @@ public class LimeManager {
 	public native void delete_user(String localDeviceId, LimeStatusCallback statusObj) throws LimeException;
 
 	/**
+	 * @brief Check if a user is present and active in local storage
+	 *
+	 * @param[in]	localDeviceId	Identify the local user acount to use, it must be unique and is also be used as Id on the X3DH key server, it shall be the GRUU
+	 *
+	 * @return true if the user is active in the local storage, false otherwise
+	 */
+	public native boolean is_user(String localDeviceId) throws LimeException;
+
+	/**
 	 * @brief Encrypt a buffer (text or file) for a given list of recipient devices
 	 *
 	 * if specified localDeviceId is not found in local Storage, throw an exception

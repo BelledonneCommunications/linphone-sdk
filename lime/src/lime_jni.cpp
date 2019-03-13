@@ -275,6 +275,19 @@ struct jLimeManager {
 		}
 	}
 
+	jni::jboolean is_user(jni::JNIEnv &env, const jni::String &localDeviceId ) {
+		try {
+			if (m_manager->is_user(jni::Make<std::string>(env, localDeviceId))) {
+				return JNI_TRUE;
+			} else {
+				return JNI_FALSE;
+			}
+		} catch (std::exception const &e) { // catch anything, BctbxException are managed in is_user, so there is a real problem if we get there.
+			ThrowJavaLimeException(env, e.what());
+			return JNI_FALSE;
+		}
+	}
+
 	void encrypt(jni::JNIEnv &env,  const jni::String &jlocalDeviceId,  const jni::String &jrecipientUserId, jni::Array<jni::Object<jRecipientData>> &jrecipients,
 			jni::Array<jni::jbyte> &jplainMessage,
 			jni::Object<jLimeOutputBuffer> &jcipherMessage,
@@ -488,6 +501,7 @@ jni::RegisterNativePeer<jLimeManager>(env, jni::Class<jLimeManager>::Find(env), 
 	"nativeDestructor",
 	METHOD(&jLimeManager::create_user, "n_create_user"),
 	METHOD(&jLimeManager::delete_user, "delete_user"),
+	METHOD(&jLimeManager::is_user, "is_user"),
 	METHOD(&jLimeManager::encrypt, "n_encrypt"),
 	METHOD(&jLimeManager::decrypt, "n_decrypt"),
 	METHOD(&jLimeManager::update, "n_update"),
