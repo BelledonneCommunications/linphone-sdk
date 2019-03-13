@@ -2899,6 +2899,7 @@ static void x3dh_user_not_found_test(const lime::CurveId curve, const std::strin
 
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
+	int expected_fail=0;
 
 	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
@@ -2939,8 +2940,8 @@ static void x3dh_user_not_found_test(const lime::CurveId curve, const std::strin
 		auto cipherMessage = make_shared<std::vector<uint8_t>>();
 
 		aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
-		// The encryption shall run without error
-		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+		// The encryption shall return an error: no recipient device could get a key
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_failed,++expected_fail,lime_tester::wait_for_timeout));
 		// but the status of the recipient disclose the failure on that one
 		BC_ASSERT_TRUE((*recipients)[0].peerStatus == lime::PeerDeviceStatus::fail);
 

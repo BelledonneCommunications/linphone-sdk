@@ -214,14 +214,18 @@ namespace lime {
 			// move DR messages to the input/output structure, ignoring again the input with peerStatus set to fail
 			// so the index on the internal_recipients still matches the way we created it from recipients
 			size_t i=0;
+			auto callbackStatus = lime::CallbackReturn::fail;
+			std::string callbackMessage{"All recipients failed to provide a key bundle"};
 			for (auto &recipient : *recipients) {
 				if (recipient.peerStatus != lime::PeerDeviceStatus::fail) {
 					recipient.DRmessage = std::move(internal_recipients[i].DRmessage);
 					recipient.peerStatus = internal_recipients[i].peerStatus;
 					i++;
+					callbackStatus = lime::CallbackReturn::success; // we must have at least one recipient with a successful encryption to return success
+					callbackMessage.clear();
 				}
 			}
-			if (callback) callback(lime::CallbackReturn::success, "");
+			if (callback) callback(callbackStatus, callbackMessage);
 			// is there no one in an asynchronous encryption process and do we have something in encryption queue to process
 			if (m_ongoing_encryption == nullptr && !m_encryption_queue.empty()) { // may happend when an encryption was queued but session was created by a previously queued encryption request
 				auto userData = m_encryption_queue.front();

@@ -129,7 +129,7 @@ public class LimeManager {
 	 * 	In all cases, the identified source of the message will be the localDeviceId
 	 *
 	 * 	If the X3DH server can't provide keys for a peer device, its status is set to fail and its DRmessage is empty. Other devices get their encrypted message
-	 * 	If no peer device could get encrypted for all of them are missing keys on the X3DH server, the callback will still be called with success exit status
+	 * 	If no peer device could get encrypted for all of them are missing keys on the X3DH server, the callback will be called with fail exit status
 	 *
 	 * @note nearly all parameters are shared pointers as the process being asynchronous, the ownership will be taken internally exempting caller to manage the buffers.
 	 *

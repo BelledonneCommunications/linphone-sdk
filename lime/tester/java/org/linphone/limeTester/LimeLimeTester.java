@@ -404,8 +404,7 @@ public class LimeLimeTester {
 
 			LimeOutputBuffer cipherMessage = new LimeOutputBuffer();
 			aliceManager.encrypt(AliceDeviceId, "bob", recipients, LimeTesterUtils.patterns[0].getBytes(), cipherMessage, statusCallback);
-			expected_success+= 1;
-			assert (statusCallback.wait_for_success(expected_success));
+			assert (statusCallback.wait_for_fail(++expected_fail)); // no recipients got a message, callback will return a fail
 			assert (recipients[0].getPeerStatus() == LimePeerDeviceStatus.FAIL); // the device is unknown, so it shall fail
 
 			// Alice sends a message to bob 3 devices, one is non existent

@@ -246,7 +246,7 @@ int lime_ffi_encryptOutBuffersMaximumSize(const size_t plainMessageSize,  const 
  * 	In all cases, the identified source of the message will be the localDeviceId
  *
  * 	If the X3DH server can't provide keys for a peer device, its status is set to fail and its DRmessageSize is 0. Other devices get their encrypted message
- * 	If no peer device could get encrypted for all of them are missing keys on the X3DH server, the callback will still be called with success exit status
+ * 	If no peer device could get encrypted for all of them are missing keys on the X3DH server, the callback will be called with fail exit status
  *
  * @note all buffers are allocated by caller. If a buffer is too small to get the data, the function will return an error.
  *
