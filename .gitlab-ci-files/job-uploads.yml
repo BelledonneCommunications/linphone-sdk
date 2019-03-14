@@ -63,6 +63,7 @@ job-android-upload:
     - echo "$DEPLOY_USER_KEY" | tr -d '\r' | ssh-add - > /dev/null
     - mkdir -p ~/.ssh && chmod 700 ~/.ssh
     - echo -e "Host gitlab.linphone.org\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
+    - echo -e "Host linphone.org\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
 
 # Currently we can't use artifact to upload this so we rebuild all android project
   script:
