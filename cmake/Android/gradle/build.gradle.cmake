@@ -215,11 +215,14 @@ publishing {
             artifactId 'linphone-sdk-android'
             version gitVersion.toString().trim()
             artifact("$buildDir/outputs/aar/linphone-sdk-android-release.aar")
+
+            // Also upload the javadoc
+            artifact androidJavadocsJar
         }
     }
     repositories {
         maven {
-            url "./repo/"
+            url "./maven_repository/"
         }
     }
 }
