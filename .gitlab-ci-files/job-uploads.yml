@@ -72,10 +72,12 @@ job-android-upload:
     - cd build-android
     - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS="arm64, armv7, x86_64, x86" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
+    - rsync -ave ssh --exclude "*.aar" --exclude "*.jar" $ANDROID_MAVEN_URL maven_repository
     - ../cmake/Android/gradlew publish -i
     - cmake .. -DENABLE_VIDEO=NO
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     - ../cmake/Android/gradlew publish -Pno-video -i
+    - rsync -ave ssh ./maven_repository/* $ANDROID_MAVEN_URL
 
   after_script:
     - rm -rf ~/.ssh || true
