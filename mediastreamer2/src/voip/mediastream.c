@@ -231,7 +231,9 @@ void media_stream_free(MediaStream *stream) {
 	if (stream->decoder != NULL) ms_filter_destroy(stream->decoder);
 	if (stream->voidsink != NULL) ms_filter_destroy(stream->voidsink);
 	if (stream->qi) ms_quality_indicator_destroy(stream->qi);
+#ifdef VIDEO_ENABLED
 	if (stream->video_quality_controller) ms_video_quality_controller_destroy(stream->video_quality_controller);
+#endif
 }
 
 bool_t media_stream_started(MediaStream *stream) {
