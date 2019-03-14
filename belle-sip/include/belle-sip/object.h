@@ -114,8 +114,8 @@ static BELLE_SIP_OBJECT_VPTR_TYPE(object_type) BELLE_SIP_OBJECT_VPTR_NAME(object
  * It contains a generic data store that allows users to store named data in it and retrieve them afterwards.
  *
  * About object lifecycle<br>
- * In belle-sip, objects can be, depending on their types, initially owned, that there are created with a ref count of 1, or
- * initially unowned, that is with reference count of 0. Such objets are also referred as "floating object". They are automatically destroyed
+ * In belle-sip, objects can be, depending on their types, initially owned, meaning that they are created with a ref count of 1, or
+ * initially unowned, meaning that they are created with reference count of 0. Such objets are also referred as "floating object". They are automatically destroyed
  * by the main loop iteration, so a floating object can be seen as a temporary object, until someones calls belle_sip_object_ref() on it.
  *
  * In order to know whether a kind of object is initially owned or initially unowned, you can use the test program tester/belle_sip_object_describe.
@@ -144,9 +144,10 @@ static BELLE_SIP_OBJECT_VPTR_TYPE(object_type) BELLE_SIP_OBJECT_VPTR_NAME(object
  * Internally, belle-sip objects containing pointers to other objects must take a reference count on the other objects they hold; and leave this reference
  * when they no longer need it. This rule must be strictly followed by developers doing things inside belle-sip.
 **/
-typedef struct _belle_sip_object belle_sip_object_t;
-typedef struct _belle_sip_cpp_object belle_sip_cpp_object_t;
 
+typedef struct _belle_sip_object belle_sip_object_t;
+//cpp object differ only in vptr, just typedef to belle_sip_object_t for simplicity
+typedef struct _belle_sip_object belle_sip_cpp_object_t;
 
 typedef void (*belle_sip_object_destroy_t)(belle_sip_object_t*);
 typedef void (*belle_sip_object_clone_t)(belle_sip_object_t* obj, const belle_sip_object_t *orig);
@@ -183,7 +184,6 @@ struct _belle_sip_object{
 	belle_sip_list_t *pool_iterator;
 	belle_sip_list_t *data_store;
 };
-
 
 BELLE_SIP_BEGIN_DECLS
 

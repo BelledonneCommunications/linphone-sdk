@@ -106,7 +106,7 @@ belle_sip_object_t * _belle_sip_object_init(belle_sip_object_t *obj, belle_sip_o
 
 belle_sip_object_t * _belle_sip_object_new(size_t objsize, belle_sip_object_vptr_t *vptr){
 	belle_sip_object_t *obj=(belle_sip_object_t *)belle_sip_malloc0(vptr->size);
-	return _belle_sip_object_init(obj, vptr);	
+	return _belle_sip_object_init(obj, vptr);
 }
 
 
@@ -133,6 +133,7 @@ void belle_sip_object_unref(void *ptr) {
 
 int belle_sip_object_unref_2(void *ptr) {
 	belle_sip_object_t *obj=BELLE_SIP_OBJECT(ptr);
+
 	if (obj->ref <= -1) {
 		belle_sip_error("Object [%p] freed twice or corrupted !",obj);
 		if (obj->vptr && obj->vptr->type_name) belle_sip_error("Object type might be [%s]",obj->vptr->type_name);

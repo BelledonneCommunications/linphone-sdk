@@ -40,6 +40,7 @@ set(HEADER_FILES
 	mdns_register.h
 	message.h
 	object.h
+	object++.hh
 	parameters.h
 	provider.h
 	refresher.h

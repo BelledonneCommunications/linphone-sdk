@@ -33,7 +33,7 @@ static void on_object_destroyed(void *userpointer, belle_sip_object_t *obj_being
 static void basic_test(void){
 	int object_destroyed = FALSE;
 	Object *obj = new Object();
-	
+
 	belle_sip_object_t *c_obj = obj->getCObject();
 	BC_ASSERT_PTR_NOT_NULL(c_obj);
 	if (c_obj){
@@ -49,15 +49,16 @@ static void basic_test(void){
 	BC_ASSERT_TRUE(object_destroyed);
 	object_destroyed = false;
 
-
 	c_obj = clone->getCObject();
 	BC_ASSERT_PTR_NOT_NULL(c_obj);
 	if (c_obj){
 		belle_sip_object_weak_ref(c_obj, on_object_destroyed, &object_destroyed);
 	}
 	clone->unref();
-	BC_ASSERT_TRUE(object_destroyed);	
+	BC_ASSERT_TRUE(object_destroyed);
 };
+
+
 
 typedef struct _LinphoneEvent LinphoneEvent;
 
@@ -68,9 +69,10 @@ typedef enum _LinphoneEventState{
 
 namespace Linphone{
 
-class Event : public HybridObject<LinphoneEvent, Event>, public std::enable_shared_from_this<Event>{
+class Event : public HybridObject<LinphoneEvent, Event> {
 	public:
-		enum State{
+
+		enum State {
 			Idle,
 			Subscribed
 		};
@@ -147,7 +149,7 @@ static void dual_object_shared_ptr(void){
 		belle_sip_object_weak_ref(c_obj, on_object_destroyed, &object_destroyed);
 	}
 	ev.reset();
-	BC_ASSERT_TRUE(object_destroyed);
+ 	BC_ASSERT_TRUE(object_destroyed);
 }
 
 static void dual_object_shared_from_this(void){
@@ -159,7 +161,7 @@ static void dual_object_shared_from_this(void){
 	if (c_obj){
 		belle_sip_object_weak_ref(c_obj, on_object_destroyed, &object_destroyed);
 	}
-	otherptr = ev->shared_from_this();
+	otherptr = ev->getSharedFromThis();
 	ev.reset();
 	BC_ASSERT_FALSE(object_destroyed);
 	otherptr.reset();
@@ -169,22 +171,20 @@ static void dual_object_shared_from_this(void){
 static void main_loop_cpp_do_later(void){
 	int test = 0;
 	belle_sip_main_loop_t *ml = belle_sip_main_loop_new();
-	
+
 	belle_sip_main_loop_cpp_do_later(ml, [&test](){ test = 44; });
 	BC_ASSERT_TRUE(test == 0);
 	belle_sip_main_loop_sleep(ml, 10);
 	BC_ASSERT_TRUE(test == 44);
 	belle_sip_object_unref(ml);
-	
 }
-
 
 static test_t object_tests[] = {
         TEST_NO_TAG("Basic test", basic_test),
 	TEST_NO_TAG("Hybrid C/C++ object", dual_object),
 	TEST_NO_TAG("Hybrid C/C++ object with shared_ptr", dual_object_shared_ptr),
 	TEST_NO_TAG("Hybrid C/C++ object with shared_from_this", dual_object_shared_from_this),
-	TEST_NO_TAG("Mainloop's do_later in c++", main_loop_cpp_do_later) 
+	TEST_NO_TAG("Mainloop's do_later in c++", main_loop_cpp_do_later)
 };
 
 test_suite_t object_test_suite = {"Object", NULL, NULL, belle_sip_tester_before_each, belle_sip_tester_after_each,
