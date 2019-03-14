@@ -6,6 +6,12 @@ android-r16b:
 android-r17c:
 	docker build -f bc-dev-android-r17c -t $(BASE_NAME)/bc-dev-android:r17c --rm .
 
+android-r18b:
+        docker build -f bc-dev-android-r18b -t $(BASE_NAME)/bc-dev-android:r18b --rm .
+
+android-r19:
+        docker build -f bc-dev-android-r19 -t $(BASE_NAME)/bc-dev-android:r19 --rm .
+
 archlinux-latest:
 	docker build -f bc-dev-archlinux-latest -t $(BASE_NAME)/bc-dev-archlinux:latest --rm .
 
