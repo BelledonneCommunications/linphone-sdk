@@ -5,6 +5,7 @@
   tags: [ "macosx" ]
   except:
     variables:
+      - $DEPLOY_RUN_ANDROID
       - $FAST_LINUX_TESTS
 
   except:
@@ -30,6 +31,7 @@ job-macosx-makefile:
 
   except:
     variables:
+      - $DEPLOY_RUN_ANDROID
       - $FAST_LINUX_TESTS
   only:
     - schedules
@@ -48,6 +50,7 @@ job-macosx-ninja:
 
   except:
     variables:
+      - $DEPLOY_RUN_ANDROID
       - $FAST_LINUX_TESTS
   variables:
     CMAKE_GENERATOR: Ninja
@@ -58,6 +61,7 @@ job-macosx-ninja-novideo:
 
   except:
     variables:
+      - $DEPLOY_RUN_ANDROID
       - $FAST_LINUX_TESTS
   only:
     - schedules

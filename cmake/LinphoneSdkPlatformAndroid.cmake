@@ -82,8 +82,8 @@ add_custom_target(copy-libs ALL
 	DEPENDS ${_android_build_targets}
 )
 
-add_custom_target(sdk ALL
-	"${CMAKE_COMMAND}" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_BUILD_DIR=${CMAKE_BINARY_DIR}" "-P" "${LINPHONESDK_DIR}/cmake/Android/GenerateSDK.cmake"
+add_custom_target(sdk
+	"${CMAKE_COMMAND}" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}" "-DLINPHONESDK_BUILD_DIR=${CMAKE_BINARY_DIR}" "-DENABLE_VIDEO=${ENABLE_VIDEO}" "-P" "${LINPHONESDK_DIR}/cmake/Android/GenerateSDK.cmake"
 	COMMENT "Generating the SDK (zip file and aar)"
 	DEPENDS copy-libs
 )

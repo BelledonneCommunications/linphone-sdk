@@ -9,6 +9,7 @@ job-ubuntu-rolling-makefile-gcc:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rolling
   except:
     variables:
+      - $DEPLOY_RUN_ANDROID
       - $FAST_LINUX_TESTS
   variables:
     CMAKE_GENERATOR: Unix Makefiles
@@ -24,6 +25,7 @@ job-ubuntu-rolling-makefile-clang:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rolling
   except:
     variables:
+      - $DEPLOY_RUN_ANDROID
       - $FAST_LINUX_TESTS
   variables:
     CMAKE_GENERATOR: Unix Makefiles
@@ -44,6 +46,7 @@ job-ubuntu-rolling-ninja-gcc:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rolling
   except:
     variables:
+      - $DEPLOY_RUN_ANDROID
       - $FAST_LINUX_TESTS
   variables:
     CMAKE_GENERATOR: Ninja
@@ -55,6 +58,7 @@ job-ubuntu-rolling-ninja-gcc:
 job-ubuntu-rolling-ninja-gcc-novideo:
   except:
     variables:
+      - $DEPLOY_RUN_ANDROID
       - $FAST_LINUX_TESTS
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
@@ -62,8 +66,10 @@ job-ubuntu-rolling-ninja-gcc-novideo:
 
 
 job-ubuntu-rolling-ninja-clang:
-
   tags: [ "docker-ubuntu-rolling" ]
+  except:
+    variables:
+      - $DEPLOY_RUN_ANDROID
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rolling
   variables:
     CMAKE_GENERATOR: Ninja
@@ -76,6 +82,7 @@ job-ubuntu-rolling-ninja-clang-novideo:
 
   except:
     variables:
+      - $DEPLOY_RUN_ANDROID
       - $FAST_LINUX_TESTS
   only:
     - schedules

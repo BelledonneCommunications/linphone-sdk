@@ -3,13 +3,15 @@ buildDir = 'linphone-sdk/bin'
 
 buildscript {
     repositories {
+        google()
         jcenter()
         mavenCentral()
-        mavenLocal()
-        google()
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.1.0'
+        classpath 'com.android.tools.build:gradle:3.3.2'
     }
 }
 
@@ -17,24 +19,19 @@ allprojects {
     repositories {
         google()
         jcenter()
-        mavenCentral()
-        mavenLocal()
-        maven { url "https://raw.github.com/synergian/wagon-git/releases"}
     }
 }
 
 configurations {
     javadocDeps
-    deployerJars
 }
 
 apply plugin: 'com.android.library'
-apply plugin: 'maven'
+apply plugin: 'maven-publish'
 
 dependencies {
     implementation 'org.apache.commons:commons-compress:1.16.1'
     javadocDeps 'org.apache.commons:commons-compress:1.16.1'
-    deployerJars "ar.com.synergian:wagon-git:0.2.5"
 }
 
 def rootSdk = '@LINPHONESDK_BUILD_DIR@/linphone-sdk/android-@LINPHONESDK_FIRST_ARCH@'
@@ -43,7 +40,6 @@ srcDir += [rootSdk + '/share/linphonej/java/org/linphone/core/']
 srcDir += ['@LINPHONESDK_DIR@/linphone/wrappers/java/classes/']
 
 def excludePackage = []
-
 excludePackage.add('**/gdb.*')
 excludePackage.add('**/libopenh264**')
 excludePackage.add('**/LICENSE.txt')
@@ -75,25 +71,16 @@ task getGitVersion {
 project.tasks['preBuild'].dependsOn 'getGitVersion'
 
 android {
-
-    buildTypes {
-        release {}
-        debug {}
-    }
-
     defaultConfig {
         compileSdkVersion 28
-        buildToolsVersion "28.0.0"
         minSdkVersion 16
         targetSdkVersion 28
         versionCode 4100
         versionName "4.1"
-        multiDexEnabled true
         setProperty("archivesBaseName", "linphone-sdk-android")
         consumerProguardFiles "${buildDir}/proguard.txt"
     }
 
-    // Signing
     signingConfigs {
         release {
             storeFile file(RELEASE_STORE_FILE)
@@ -102,6 +89,7 @@ android {
             keyPassword RELEASE_KEY_PASSWORD
         }
     }
+
     buildTypes {
         release {
             signingConfig signingConfigs.release
@@ -111,13 +99,11 @@ android {
             resValue "string", "linphone_sdk_version", gitVersion.toString().trim()
             resValue "string", "linphone_sdk_branch", gitBranch.toString().trim()
         }
-        packaged {
-            initWith release
-            signingConfig null
-            //matchingFallbacks = ['debug', 'release']
-        }
         debug {
+            minifyEnabled false
+            useProguard false
             debuggable true
+            jniDebuggable true
             resValue "string", "linphone_sdk_version", gitVersion.toString().trim() + "-debug"
             resValue "string", "linphone_sdk_branch", gitBranch.toString().trim()
         }
@@ -137,18 +123,22 @@ android {
             aidl.srcDirs = srcDir
             assets.srcDirs = ["${buildDir}/sdk-assets/assets/"]
             renderscript.srcDirs = srcDir
-            jniLibs.srcDirs = ["@LINPHONESDK_BUILD_DIR@/libs"]
-            //resources.srcDir("res")
-
             java.excludes = ['**/mediastream/MediastreamerActivity.java']
 
-            // Exclude some useless files
+            // Exclude some useless files and don't strip libraries, stripping will be taken care of by CopyLibs.cmake
             packagingOptions {
                 excludes = excludePackage
+                doNotStrip '**/*.so'
             }
         }
-        debug.setRoot('build-types/debug')
-        release.setRoot('build-types/release')
+        debug {
+            root = 'build-types/debug'
+            jniLibs.srcDirs = ["@LINPHONESDK_BUILD_DIR@/libs-debug"]
+        }
+        release {
+            root = 'build-types/release'
+            jniLibs.srcDirs = ["@LINPHONESDK_BUILD_DIR@/libs"]
+        }
     }
 }
 
@@ -207,24 +197,35 @@ task copyAssets(type: Sync) {
     }
     // do not copy those
     includeEmptyDirs = false
-
 }
 
 project.tasks['preBuild'].dependsOn 'copyAssets'
 project.tasks['preBuild'].dependsOn 'copyProguard'
 
-uploadArchives {
+publishing {
+    publications {
+        debug(MavenPublication) {
+            groupId project.hasProperty("no-video") ? 'org.linphone.no-video' : 'org.linphone'
+            artifactId 'linphone-sdk-android' + '-debug'
+            version gitVersion.toString().trim()
+            artifact("$buildDir/outputs/aar/linphone-sdk-android-debug.aar")
+        }
+        release(MavenPublication) {
+            groupId project.hasProperty("no-video") ? 'org.linphone.no-video' : 'org.linphone'
+            artifactId 'linphone-sdk-android'
+            version gitVersion.toString().trim()
+            artifact("$buildDir/outputs/aar/linphone-sdk-android-release.aar")
+
+            // Also upload the javadoc
+            artifact androidJavadocsJar
+        }
+    }
     repositories {
-        mavenDeployer {
-            configuration = configurations.deployerJars
-            repository(url: 'git:' + gitBranch.toString().trim() + '://git@gitlab.linphone.org:BC/public/maven_repository.git')
-            pom.project {
-                groupId 'org.linphone'
-                artifactId 'linphone-sdk-android'
-                version gitVersion.toString().trim()
-            }
+        maven {
+            url "./maven_repository/"
         }
     }
 }
 
-project.tasks['uploadArchives'].dependsOn 'getGitVersion'
+project.tasks['assemble'].dependsOn 'getGitVersion'
+project.tasks['publish'].dependsOn 'assemble'

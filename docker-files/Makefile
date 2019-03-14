@@ -6,6 +6,12 @@ android-r16b:
 android-r17c:
 	docker build -f bc-dev-android-r17c -t $(BASE_NAME)/bc-dev-android:r17c --rm .
 
+android-r18b:
+	docker build -f bc-dev-android-r18b -t $(BASE_NAME)/bc-dev-android:r18b --rm .
+
+android-r19:
+	docker build -f bc-dev-android-r19 -t $(BASE_NAME)/bc-dev-android:r19 --rm .
+
 archlinux-latest:
 	docker build -f bc-dev-archlinux-latest -t $(BASE_NAME)/bc-dev-archlinux:latest --rm .
 
@@ -30,4 +36,4 @@ debian9:
 ubuntu-rolling:
 	docker build -f bc-dev-ubuntu-rolling -t $(BASE_NAME)/bc-dev-ubuntu:rolling --rm .
 
-.PHONY: android-r16b android-r17c archlinux-latest centos7 centos7-mediastreamer centos7-lime centos7-liblinphone debian8 debian9 ubuntu-rolling
+.PHONY: android-r16b android-r17c android-r18b android-r19 archlinux-latest centos7 centos7-mediastreamer centos7-lime centos7-liblinphone debian8 debian9 ubuntu-rolling
