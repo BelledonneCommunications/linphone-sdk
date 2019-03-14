@@ -206,8 +206,8 @@ publishing {
     publications {
         debug(MavenPublication) {
             groupId project.hasProperty("no-video") ? 'org.linphone.no-video' : 'org.linphone'
-            artifactId 'linphone-sdk-android'
-            version gitVersion.toString().trim() + '-debug'
+            artifactId 'linphone-sdk-android' + '-debug'
+            version gitVersion.toString().trim()
             artifact("$buildDir/outputs/aar/linphone-sdk-android-debug.aar")
         }
         release(MavenPublication) {
