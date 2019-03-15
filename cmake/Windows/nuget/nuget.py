@@ -76,6 +76,7 @@ def main(argv=None):
     # Copy SDK content to nuget package structure
     sdk_dir = os.path.abspath(args.sdk_dir)
     platform_dir = 'linphone-sdk\desktop'
+    grammars = glob.glob(os.path.join(sdk_dir, platform_dir, 'share', 'Belr', 'grammars', '*_grammar' ))
     dlls = glob.glob(os.path.join(sdk_dir, platform_dir, 'bin', '*.dll'))
     dlls += glob.glob(os.path.join(sdk_dir, platform_dir, 'lib', '*.dll'))
     dlls += glob.glob(os.path.join(sdk_dir, platform_dir, 'lib', 'mediastreamer', 'plugins', '*.dll'))
@@ -84,13 +85,18 @@ def main(argv=None):
     pdbs += glob.glob(os.path.join(sdk_dir, platform_dir, 'lib', 'mediastreamer', 'plugins', '*.pdb'))
     wrappers = []
     if target_id == "LinphoneSDK":
-        wrappers += glob.glob(os.path.join(args.cswrapper_dir, 'bin', 'x86', 'Release', 'CsWrapper.dll'))
-        wrappers += glob.glob(os.path.join(args.cswrapper_dir, 'bin', 'x86', 'Release', 'CsWrapper.pdb'))
-        wrappers += glob.glob(os.path.join(args.cswrapper_dir, 'bin', 'x86', 'Release', 'CsWrapper.XML'))
+        wrappers += glob.glob(os.path.join(args.cswrapper_dir, 'bin', 'x86', '*', 'CsWrapper.dll'))
+        wrappers += glob.glob(os.path.join(args.cswrapper_dir, 'bin', 'x86', '*', 'CsWrapper.pdb'))
+        wrappers += glob.glob(os.path.join(args.cswrapper_dir, 'bin', 'x86', '*', 'CsWrapper.XML'))
 
     if not os.path.exists(os.path.join(work_dir, 'lib', 'uap10.0')):
             os.makedirs(os.path.join(work_dir, 'lib', 'uap10.0'))
 
+    if not os.path.exists(os.path.join(work_dir, 'contentFiles', 'Asset', 'belr', 'grammars')):
+            os.makedirs(os.path.join(work_dir, 'contentFiles', 'Asset', 'belr', 'grammars'))
+
+    for grammar in grammars:
+        shutil.copy(grammar, os.path.join(work_dir, 'contentFiles', 'Asset', 'belr', 'grammars'))
     for dll in dlls:
         shutil.copy(dll, os.path.join(work_dir, 'lib', 'uap10.0'))
     for pdb in pdbs:
@@ -131,9 +137,14 @@ def main(argv=None):
     <releaseNotes>Nothing new</releaseNotes>
     <copyright>Copyright 2017-2019 Belledonne Communications</copyright>
     <tags>SIP</tags>
-    <dependencies>
-    </dependencies>
+    <contentFiles>
+      <files include="contentFiles\**" buildAction="EmbeddedResource" />
+    </contentFiles>
   </metadata>
+  <files>
+    <file src="contentFiles\**" target="contentFiles\" />
+    <file src="lib\**" target="lib\" />
+  </files>
 </package>""".format(version=args.version, target_id=target_id, target_desc=target_desc)
     f = open(os.path.join(work_dir, target_id + '.nuspec'), 'w')
     f.write(nuspec)
