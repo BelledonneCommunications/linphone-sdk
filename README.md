@@ -4,6 +4,11 @@ Meta repository holding all the dependencies to build a full Linphone SDK.
 
 The currently supported platforms are Android, iOS, Desktop (Linux, Windows, Mac OS X) and UWP (Universal Windows Platform).
 
+## Dependencies
+### Windows
+SDK is working with Visual Studio 14 2015 and Visual Studio 15 2017.
+Also you need to have MinGW with GCC and G++ module.
+
 ## Building and customizing the SDK
 
 The build system is based on CMake, so you need to install it first if you don't have it on your machine.
