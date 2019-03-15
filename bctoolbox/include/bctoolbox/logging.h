@@ -276,21 +276,21 @@ namespace bctoolbox {
 
 class pumpstream : public std::ostringstream {
 public:
-	pumpstream(const char *domain, BctbxLogLevel level) : mDomain(domain ? domain : ""), mLevel(level) {}
+	/*contructor used to disable logging*/
+	pumpstream():mDomain(""),mLevel(BCTBX_LOG_DEBUG),mTraceEnabled(false){}
+	pumpstream(const char *domain, BctbxLogLevel level) : mDomain(domain ? domain : ""), mLevel(level),mTraceEnabled(true) {}
 	~pumpstream() {
 		const char *domain = mDomain.empty() ? NULL : mDomain.c_str();
-#ifndef BCTBX_DEBUG_MODE
-		if (mLevel == BCTBX_LOG_DEBUG)
-			return; //silently discard debug to be inlined with bctbx_debug
-#endif
-		if (bctbx_log_level_enabled(domain, mLevel))
+		if (bctbx_log_level_enabled(domain, mLevel) && mTraceEnabled)
 			bctbx_log(domain, mLevel, "%s", str().c_str());
 	}
 
 private:
 	const std::string mDomain;
 	const BctbxLogLevel mLevel;
+	const bool mTraceEnabled;
 };
+
 
 #if (__GNUC__ == 4 && __GNUC_MINOR__ < 5 && __cplusplus > 199711L)
 template <typename _Tp> inline pumpstream &operator<<(pumpstream &&__os, const _Tp &__x) {
@@ -301,7 +301,12 @@ template <typename _Tp> inline pumpstream &operator<<(pumpstream &&__os, const _
 
 #define BCTBX_SLOG(domain, thelevel) pumpstream(domain, thelevel)
 
+#ifndef BCTBX_DEBUG_MODE
 #define BCTBX_SLOGD BCTBX_SLOG(BCTBX_LOG_DOMAIN, BCTBX_LOG_DEBUG)
+#else
+#define BCTBX_SLOGD pumpstream()
+#endif
+
 #define BCTBX_SLOGI BCTBX_SLOG(BCTBX_LOG_DOMAIN, BCTBX_LOG_MESSAGE)
 #define BCTBX_SLOGW BCTBX_SLOG(BCTBX_LOG_DOMAIN, BCTBX_LOG_WARNING)
 #define BCTBX_SLOGE BCTBX_SLOG(BCTBX_LOG_DOMAIN, BCTBX_LOG_ERROR)
