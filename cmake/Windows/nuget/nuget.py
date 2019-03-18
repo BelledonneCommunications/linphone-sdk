@@ -92,11 +92,11 @@ def main(argv=None):
     if not os.path.exists(os.path.join(work_dir, 'lib', 'uap10.0')):
             os.makedirs(os.path.join(work_dir, 'lib', 'uap10.0'))
 
-    if not os.path.exists(os.path.join(work_dir, 'contentFiles', 'Asset', 'belr', 'grammars')):
-            os.makedirs(os.path.join(work_dir, 'contentFiles', 'Asset', 'belr', 'grammars'))
+    if not os.path.exists(os.path.join(work_dir, 'contentFiles', 'share', 'belr', 'grammars')):
+            os.makedirs(os.path.join(work_dir, 'contentFiles', 'share', 'belr', 'grammars'))
 
     for grammar in grammars:
-        shutil.copy(grammar, os.path.join(work_dir, 'contentFiles', 'Asset', 'belr', 'grammars'))
+        shutil.copy(grammar, os.path.join(work_dir, 'contentFiles', 'share', 'belr', 'grammars'))
     for dll in dlls:
         shutil.copy(dll, os.path.join(work_dir, 'lib', 'uap10.0'))
     for pdb in pdbs:
@@ -138,11 +138,14 @@ def main(argv=None):
     <copyright>Copyright 2017-2019 Belledonne Communications</copyright>
     <tags>SIP</tags>
     <contentFiles>
-      <files include="contentFiles\**" buildAction="EmbeddedResource" />
+      <files include="**/*grammar" buildAction="Content" />
+      <files include="**/*grammar" buildAction="None" flatten="false" copyToOutput="true" />
+      <files include="**/*grammar" buildAction="EmbeddedResource" />
     </contentFiles>
   </metadata>
   <files>
-    <file src="contentFiles\**" target="contentFiles\" />
+    <file src="contentFiles\**\*grammar" target="contentFiles\" />
+    <file src="contentFiles\**\*grammar" target="content\" />
     <file src="lib\**" target="lib\" />
   </files>
 </package>""".format(version=args.version, target_id=target_id, target_desc=target_desc)
