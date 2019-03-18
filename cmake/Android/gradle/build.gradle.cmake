@@ -202,16 +202,25 @@ task copyAssets(type: Sync) {
 project.tasks['preBuild'].dependsOn 'copyAssets'
 project.tasks['preBuild'].dependsOn 'copyProguard'
 
+def artefactGroupId = 'org.linphone'
+if (project.hasProperty("tunnel")) {
+    artefactGroupId = artefactGroupId + '.tunnel'
+}
+if (project.hasProperty("no-video")) {
+    artefactGroupId = artefactGroupId + '.no-video'
+}
+println("AAR artefact group id will be: " + artefactGroupId)
+
 publishing {
     publications {
         debug(MavenPublication) {
-            groupId project.hasProperty("no-video") ? 'org.linphone.no-video' : 'org.linphone'
+            groupId artefactGroupId
             artifactId 'linphone-sdk-android' + '-debug'
             version gitVersion.toString().trim()
             artifact("$buildDir/outputs/aar/linphone-sdk-android-debug.aar")
         }
         release(MavenPublication) {
-            groupId project.hasProperty("no-video") ? 'org.linphone.no-video' : 'org.linphone'
+            groupId artefactGroupId
             artifactId 'linphone-sdk-android'
             version gitVersion.toString().trim()
             artifact("$buildDir/outputs/aar/linphone-sdk-android-release.aar")
