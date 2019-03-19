@@ -59,7 +59,6 @@ job-android-makefile-r17c:
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-    CMAKE_OPTIONS: -DENABLE_AAUDIO=ON
   extends: .scheduled-job-android
 
 
@@ -132,7 +131,6 @@ job-android-ninja-r17c:
       - $FAST_LINUX_TESTS
   variables:
     CMAKE_GENERATOR: Ninja
-    CMAKE_OPTIONS: -DENABLE_AAUDIO=ON
   extends: .job-android
 
 
@@ -149,7 +147,7 @@ job-android-ninja-r17c-novideo:
       - $DEPLOY_RUN_ANDROID
       - $DEPLOY_RUN_IOS
   variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_AAUDIO=ON
+    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-android-ninja-r17c
 
 
@@ -163,7 +161,6 @@ job-android-ninja-r18b:
       - $FAST_LINUX_TESTS
   variables:
     CMAKE_GENERATOR: Ninja
-    CMAKE_OPTIONS: -DENABLE_AAUDIO=ON
   extends: .scheduled-job-android
 
 
@@ -177,5 +174,4 @@ job-android-ninja-r19:
       - $FAST_LINUX_TESTS
   variables:
     CMAKE_GENERATOR: Ninja
-    CMAKE_OPTIONS: -DENABLE_AAUDIO=ON
   extends: .scheduled-job-android
