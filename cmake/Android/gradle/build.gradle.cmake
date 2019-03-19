@@ -203,6 +203,9 @@ project.tasks['preBuild'].dependsOn 'copyAssets'
 project.tasks['preBuild'].dependsOn 'copyProguard'
 
 def artefactGroupId = 'org.linphone'
+if (project.hasProperty("legacy-wrapper")) {
+    artefactGroupId = artefactGroupId + '.legacy'
+}
 if (project.hasProperty("tunnel")) {
     artefactGroupId = artefactGroupId + '.tunnel'
 }
