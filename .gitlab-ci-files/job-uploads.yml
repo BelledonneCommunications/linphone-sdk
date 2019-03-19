@@ -95,16 +95,15 @@ job-macosx-upload:
 
   stage: deploy
   tags: [ "deploy" ]
-  except:
-    variables:
-      - $FAST_LINUX_TESTS
-
+  
   except:
     variables:
       - $DEPLOY_RUN_ANDROID
-
+      - $DEPLOY_RUN_IOS
+    
   only:
     - schedules
+    
   dependencies:
     - job-macosx-xcode
 
@@ -115,3 +114,31 @@ job-macosx-upload:
     - pod repo push linphone-sdk-macosx build-desktop/linphone-sdk.podspec --skip-import-validation --local-only --verbose
     - cd ~/.cocoapods/repos/linphone-sdk-macosx && git push origin $CI_COMMIT_REF_NAME && cd -
     - pod repo remove linphone-sdk-macosx
+
+    
+job-debian-doc-upload:
+  stage: deploy
+  tags: [ "deploy" ]
+
+  except:
+    variables:
+      - $DEPLOY_RUN_ANDROID
+      - $DEPLOY_RUN_IOS
+      
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+
+    
+  dependencies:
+    - job-debian9-ninja-clang
+
+  script:
+    - pwd && ls
+    - cd build-desktop && ls
+    - cd dekstop && ls
+    - cd share && ls
+    - cd doc && ls
+    - cd linphone && ls
+    - cd 3.12.0 && ls 
+    - rsync -r build-desktop/linphone-sdk/desktop/share/doc/linphone/3.12.0/* $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/docs/liblinphone/multilang
