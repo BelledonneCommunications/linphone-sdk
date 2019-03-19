@@ -78,6 +78,9 @@ job-android-upload:
     - cmake .. -DENABLE_VIDEO=NO
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     - ../cmake/Android/gradlew publish -Pno-video -i
+    - cmake .. -DENABLE_VIDEO=ON -DENABLE_JAVA_WRAPPER=NO
+    - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
+    - ../cmake/Android/gradlew publish -Plegacy-wrapper -i
     - rsync -ave ssh ./maven_repository/* $ANDROID_MAVEN_URL
 
   after_script:
