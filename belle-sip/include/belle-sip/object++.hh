@@ -27,6 +27,12 @@
 #include <list>
 #include <functional>
 
+#ifdef _WIN32
+    // Disable C4251 triggered by the std::enabled_shared_from_this inheritance
+    #pragma warning(push)
+    #pragma warning(disable: 4251)
+#endif // ifdef _WIN32
+
 namespace bellesip {
 
 class ObjectCAccessors;
@@ -86,7 +92,7 @@ class BELLESIP_EXPORT Object {
  * An usage example is shown in tester/object_tester.cc .
 **/
 template <typename _CType, typename _CppType>
-class BELLESIP_EXPORT HybridObject : public Object, public std::enable_shared_from_this<HybridObject<_CType, _CppType> > {
+class HybridObject : public Object, public std::enable_shared_from_this<HybridObject<_CType, _CppType> > {
 	public:
 		//Ref is managed by shared_ptr, unref will be called on last ref.
 		template <typename... _Args>
@@ -154,25 +160,29 @@ class BELLESIP_EXPORT HybridObject : public Object, public std::enable_shared_fr
 		}
 
 	protected:
-		virtual ~HybridObject() = default;
-		HybridObject() {
-		}
-		HybridObject(const HybridObject<_CType, _CppType> &other) : Object(other){
-		}
+		virtual ~HybridObject() {}
+		HybridObject() {}
+		HybridObject(const HybridObject<_CType, _CppType> &other) : Object(other) {}
 };
+
 
 /**
  * Convenience function to create a std::shared_ptr that calls Object::unref() instead of delete expression.
  */
 template <typename _T, typename... _Args>
-BELLESIP_EXPORT std::shared_ptr<_T> make_shared(_Args&&... __args){
+inline std::shared_ptr<_T> make_shared(_Args&&... __args) {
 	return std::shared_ptr<_T>(new _T(std::forward<_Args>(__args)...), std::mem_fun(&Object::unref));
 }
+
 
 }//end of namespace
 
 extern "C" {
 	BELLE_SIP_DECLARE_VPTR(belle_sip_cpp_object_t);
 }
+
+#ifdef _WIN32
+    #pragma warning(pop)
+#endif // ifdef _WIN32
 
 #endif //belle_sip_object_plusplus_h
