@@ -95,7 +95,15 @@ job-debian-doc-upload:
       - feature/nightly_doc_upload
     
   dependencies:
-    - job-debian9-ninja-clang
+    - job-debian9-ninja-gcc
 
   script:
+    - pwd
+    - cd build-desktop
+    - cd linphone-sdk
+    - cd desktop
+    - cd share
+    - cd doc
+    - cd linphone
+    - cd 3.12.0
     - rsync -r build-desktop/linphone-sdk/desktop/share/doc/linphone/3.12.0/* $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/docs/liblinphone/multilang

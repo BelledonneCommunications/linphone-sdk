@@ -6,6 +6,8 @@
 
   stage: build
   extends: .linux-prepare
+  variables:
+    CMAKE_OPTIONS: -DENABLE_DOC=ON
 
   except:
     variables:
