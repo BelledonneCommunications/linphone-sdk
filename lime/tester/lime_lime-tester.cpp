@@ -3390,7 +3390,7 @@ static void user_registration_failure_test(const lime::CurveId curve, const std:
 		std::string x3dh_server_url;
 
 		localStorage->load_LimeUser(*aliceDeviceId, Uid, curve, x3dh_server_url); // this one will throw an exception if user is not found, just let it rise
-	} catch (BctbxException &e) {
+	} catch (BctbxException &) {
 		gotExpectedException = true;
 	}
 	BC_ASSERT(Uid == -1); // when user is not active, the db::load_LimeUser set the Uid to -1 before generating the exception
