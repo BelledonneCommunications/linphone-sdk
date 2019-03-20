@@ -25,6 +25,8 @@
       - build-desktop/linphone-sdk/desktop/lib/*
       - build-desktop/linphone-sdk/desktop/include/*
       - build-desktop/linphone-sdk/desktop/share/*
+      - build-desktop/WORK/desktop/Build/bctoolbox/tester/*
+      - build-desktop/WORK/desktop/Build/bzrtp/test/*
       #Lime data folder isn't installed at  the right place !
       #We have to find it and add it manually...
       - lime/tester/*
@@ -52,6 +54,11 @@
       - fix/reducing_the_amount_of_artifacts
   
   script:
+    - ls build-desktop/linphone-sdk/desktop/bin/*
+    - ls build-desktop/linphone-sdk/desktop/lib/*
+    - ls build-desktop/linphone-sdk/desktop/include/*
+    - ls build-desktop/linphone-sdk/desktop/share/*
+    - ls build-desktop/WORK/desktop/Build/bctoolbox/tester/*
     - cd $PATH_TO_TESTER
     
     #pulseaudio launch for mediastreamer
