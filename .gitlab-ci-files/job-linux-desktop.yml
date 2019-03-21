@@ -51,7 +51,6 @@
   only:
     variables:
       - $NIGHTLY_MASTER
-
   
   script:
     - cd $PATH_TO_TESTER
