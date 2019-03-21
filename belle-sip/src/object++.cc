@@ -69,11 +69,25 @@ void Object::unref(){
 	belle_sip_object_unref(&mObject);
 }
 
-belle_sip_error_code Object::marshal(char* buff, size_t buff_size, size_t *offset){
-	return mObject.vptr->get_parent()->marshal(&mObject, buff, buff_size, offset); /*default to belle_sip_object_t's implementation*/
+std::string Object::toString() const {
+	std::ostringstream ss;
+	ss << "bellesip::Object. cObject(";
+	ss << static_cast<const void *>(&mObject);
+	ss << ")";
+	return ss.str();
 }
 
-Object *Object::clone()const{
+belle_sip_error_code Object::marshal(char* buff, size_t buff_size, size_t *offset){
+	std::string tmp = toString();
+	if (tmp.size() >= buff_size) {
+		return BELLE_SIP_BUFFER_OVERFLOW;
+	}
+	strncpy(buff, tmp.c_str(), buff_size);
+	*offset += tmp.size();
+	return BELLE_SIP_OK;
+}
+
+Object *Object::clone() const {
 	return new Object(*this);
 }
 
