@@ -48,9 +48,6 @@
 .test:
   stage: test
   allow_failure: true
-  only:
-    variables:
-      - $NIGHTLY_MASTER
   
   script:
     - cd $PATH_TO_TESTER
@@ -72,8 +69,7 @@
     - echo add-auto-load-safe-path $PATH_TO_TESTER/.gdbinit | sudo tee -a /home/bc/.gdbinit
     # searching for core files and if there are some, launch gdb on all of it
     # "true ||" is used here to continue the script even if the find fails
-    - true || if [[ -n $(find . -type f -name "core*") ]]; then find . -type f -name "core*" | xargs -L1 gdb $TESTER_BIN; fi
-    - cd / && true || find . -type f -name "core*"
+    - if [[ -n $(find . -type f -name "core*") ]]; then find . -type f -name "core*" | xargs -L1 gdb $TESTER_BIN; fi || true
     - sudo mkdir /builds/BC/public/linphone-sdk/results
     - sudo chmod 777 /builds/BC/public/linphone-sdk/results
     - cp -r BCUnitAutomated* /builds/BC/public/linphone-sdk/results
