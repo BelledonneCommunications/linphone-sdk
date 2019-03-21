@@ -23,6 +23,7 @@
     paths:
       - build-desktop/linphone-sdk/desktop/bin/*
       - build-desktop/linphone-sdk/desktop/lib/*
+      - build-desktop/linphone-sdk/desktop/lib64/*
       - build-desktop/linphone-sdk/desktop/include/*
       - build-desktop/linphone-sdk/desktop/share/*
       - build-desktop/WORK/desktop/Build/bctoolbox/tester/*
