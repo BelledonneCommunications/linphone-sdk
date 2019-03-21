@@ -157,7 +157,7 @@ static void sendMessageTo(const char *recipient, const uint8_t *DRmessage, const
 		return;
 	}
 
-	BC_FAIL();
+	BC_FAIL("recipient isn't the expected bob ???");
 }
 
 static void getMessageFor(const char *recipient, uint8_t *DRmessage, size_t *DRmessageSize, uint8_t *cipherMessage, size_t *cipherMessageSize) {
@@ -171,7 +171,7 @@ static void getMessageFor(const char *recipient, uint8_t *DRmessage, size_t *DRm
 		return;
 	}
 
-	BC_FAIL();
+	BC_FAIL("recipient isn't expected bob ???");
 }
 
 /** @brief holds the data buffers where encryption output would be written
@@ -199,12 +199,13 @@ typedef struct {
  * Note: we do not use userData here as we access directly the http provider from a global variable but otherwise we should retrieve it using that pointer
  */
 static void X3DHServerPost(void *userData, lime_ffi_data_t limeData, const char *url, const char *from, const uint8_t *message, const size_t message_size) {
-	belle_http_request_listener_callbacks_t cbs={};
+	belle_http_request_listener_callbacks_t cbs;
 	belle_http_request_listener_t *l;
 	belle_generic_uri_t *uri;
 	belle_http_request_t *req;
 	belle_sip_memory_body_handler_t *bh;
 
+  memset(&cbs,0,sizeof(belle_http_request_listener_callbacks_t));
 	bh = belle_sip_memory_body_handler_new_copy_from_buffer(message, message_size, NULL, NULL);
 
 	uri=belle_generic_uri_parse(url);
@@ -444,7 +445,7 @@ static void ffi_helloworld_test(const enum lime_ffi_CurveId curve, const char *d
 
 		free(decryptedMessage);
 	} else { /* we didn't got any message for Bob */
-		BC_FAIL();
+		BC_FAIL("we didn't got any message for Bob");
 	}
 	/******* end of RECIPIENT SIDE CODE **************************/
 
