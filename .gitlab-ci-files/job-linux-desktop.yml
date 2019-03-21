@@ -45,6 +45,8 @@
   only:
     variables:
       - $NIGHTLY_MASTER
+    refs:
+      - feature/nightly_doc_upload
   
   script:
     - cd $PATH_TO_TESTER
