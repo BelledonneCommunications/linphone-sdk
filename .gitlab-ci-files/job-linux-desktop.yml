@@ -67,6 +67,7 @@
     # searching for core files and if there are some, launch gdb on all of it
     # "true ||" is used here to continue the script even if the find fails
     - true || if [[ -n $(find . -type f -name "core*") ]]; then find . -type f -name "core*" | xargs -L1 gdb $TESTER_BIN; fi
+    - cd / && true || find . -type f -name "core*"
     - sudo mkdir /builds/BC/public/linphone-sdk/results
     - sudo chmod 777 /builds/BC/public/linphone-sdk/results
     - cp -r BCUnitAutomated* /builds/BC/public/linphone-sdk/results
