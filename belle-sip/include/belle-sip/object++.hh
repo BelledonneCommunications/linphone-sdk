@@ -158,7 +158,7 @@ class HybridObject : public Object, public std::enable_shared_from_this<HybridOb
 	protected:
 		virtual ~HybridObject() {}
 		HybridObject() {}
-		HybridObject(const HybridObject<_CType, _CppType> &other) : Object(other) {}
+		HybridObject(const HybridObject<_CType, _CppType> &other) : Object(other), std::enable_shared_from_this<HybridObject<_CType, _CppType>> (other) {}
 };
 
 
