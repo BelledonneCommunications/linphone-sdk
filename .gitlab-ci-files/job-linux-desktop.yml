@@ -51,15 +51,8 @@
   only:
     variables:
       - $NIGHTLY_MASTER
-    refs:
-      - fix/reducing_the_amount_of_artifacts
   
   script:
-    - ls build-desktop/linphone-sdk/desktop/bin/*
-    - ls build-desktop/linphone-sdk/desktop/lib/*
-    - ls build-desktop/linphone-sdk/desktop/include/*
-    - ls build-desktop/linphone-sdk/desktop/share/*
-    - ls build-desktop/WORK/desktop/Build/bctoolbox/tester/*
     - cd $PATH_TO_TESTER
     
     #pulseaudio launch for mediastreamer
