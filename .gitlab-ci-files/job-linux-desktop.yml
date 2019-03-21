@@ -42,9 +42,6 @@
 .test:
   stage: test
   allow_failure: true
-  only:
-    variables:
-      - $NIGHTLY_MASTER
   
   script:
     - cd $PATH_TO_TESTER
@@ -68,6 +65,8 @@
     # "true ||" is used here to continue the script even if the find fails
     - true || if [[ -n $(find . -type f -name "core*") ]]; then find . -type f -name "core*" | xargs -L1 gdb $TESTER_BIN; fi
     - cd / && true || find . -type f -name "core*"
+    - cd coredumps & ls
+    - cd $PATH_TO_TESTER
     - sudo mkdir /builds/BC/public/linphone-sdk/results
     - sudo chmod 777 /builds/BC/public/linphone-sdk/results
     - cp -r BCUnitAutomated* /builds/BC/public/linphone-sdk/results
