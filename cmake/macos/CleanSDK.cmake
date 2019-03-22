@@ -27,5 +27,5 @@ include(LinphoneSdkUtils)
 
 # Create the zip file of the SDK
 execute_process(
-	COMMAND "${CMAKE_COMMAND}" "-E" "remove" "-f" "linphone-sdk-macosx-${LINPHONESDK_VERSION}.zip"
+	COMMAND "${CMAKE_COMMAND}" "-E" "remove" "-f" "linphone-sdk-${LINPHONESDK_VERSION}.zip"
 )
