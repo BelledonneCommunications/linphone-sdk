@@ -1,2 +1,10 @@
 tunnel
 **/.vscode
+**/.vs
+**/*.nupkg
+cmake/Windows/**/obj
+cmake/Windows/**/bin
+cmake/Windows/wrapper/LinphoneWrapper.cs
+cmake/Windows/nuget/Win32
+cmake/Windows/nuget/NuGetLinphoneSDK
+**/*.temp
