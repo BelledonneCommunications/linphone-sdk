@@ -102,7 +102,7 @@ job-macosx-xcode:
   script:
     - mkdir -p build-desktop
     - cd build-desktop
-    - cmake .. -G Xcode -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9 DLINPHONESDK_MACOS_BASE_URL=$MACOS_SNAPSHOTS_URL $CMAKE_OPTIONS
+    - cmake .. -G Xcode -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9 -DLINPHONESDK_MACOS_BASE_URL=$MACOS_SNAPSHOTS_URL $CMAKE_OPTIONS
     - cmake --build . --target sdk -- -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=`sysctl -n hw.ncpu`
 
   artifacts:
