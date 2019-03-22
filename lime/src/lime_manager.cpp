@@ -90,7 +90,7 @@ namespace lime {
 			LimeManager::load_user(user, localDeviceId);
 
 			return true; // If we are able to load the user, it means it exists
-		} catch (BctbxException const &e) { // we get an exception if the user is not found
+		} catch (BctbxException const &) { // we get an exception if the user is not found
 			// swallow it and return false
 			return false;
 		}

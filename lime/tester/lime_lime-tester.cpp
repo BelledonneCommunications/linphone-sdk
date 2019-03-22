@@ -110,11 +110,13 @@ static void process_response(void *data, const belle_http_response_event_t *even
  * @param[in] responseProcess	The function to be called when response from server arrives. Function prototype is defined in lime.hpp: (void)(int responseCode, std::vector<uint8_t>response)
  */
 static limeX3DHServerPostData X3DHServerPost([](const std::string &url, const std::string &from, const std::vector<uint8_t> &message, const limeX3DHServerResponseProcess &responseProcess){
-	belle_http_request_listener_callbacks_t cbs={};
+	belle_http_request_listener_callbacks_t cbs;
 	belle_http_request_listener_t *l;
 	belle_generic_uri_t *uri;
 	belle_http_request_t *req;
 	belle_sip_memory_body_handler_t *bh;
+
+	memset(&cbs,0,sizeof(belle_http_request_listener_callbacks_t));
 
 	bh = belle_sip_memory_body_handler_new_copy_from_buffer(message.data(), message.size(), NULL, NULL);
 
@@ -3390,7 +3392,7 @@ static void user_registration_failure_test(const lime::CurveId curve, const std:
 		std::string x3dh_server_url;
 
 		localStorage->load_LimeUser(*aliceDeviceId, Uid, curve, x3dh_server_url); // this one will throw an exception if user is not found, just let it rise
-	} catch (BctbxException &e) {
+	} catch (BctbxException &) {
 		gotExpectedException = true;
 	}
 	BC_ASSERT(Uid == -1); // when user is not active, the db::load_LimeUser set the Uid to -1 before generating the exception

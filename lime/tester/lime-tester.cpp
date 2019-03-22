@@ -26,7 +26,9 @@ static FILE * log_file = NULL;
 static const char *log_domain = "lime";
 bool cleanDatabase = true;
 #ifdef FFI_ENABLED
+extern "C" {
 uint8_t ffi_cleanDatabase = 1;
+}
 #endif
 bool bench = false;
 

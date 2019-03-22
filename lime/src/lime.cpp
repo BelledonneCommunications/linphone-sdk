@@ -280,7 +280,7 @@ namespace lime {
 			std::shared_ptr<DR<Curve>> DRSession{X3DH_init_receiver_session(X3DH_initMessage, senderDeviceId)}; // would just throw an exception in case of failure
 			DRSessions.clear();
 			DRSessions.push_back(DRSession);
-		} catch (BctbxException &e) {
+		} catch (BctbxException const &e) {
 			LIME_LOGE<<"Fail to create the DR session from the X3DH init message : "<<e;
 			return lime::PeerDeviceStatus::fail;
 		}
@@ -302,6 +302,7 @@ namespace lime {
 #ifdef EC25519_ENABLED
 	/* These extern templates are defined in lime_localStorage.cpp */
 	extern template bool Lime<C255>::create_user();
+	extern template bool Lime<C255>::activate_user();
 	extern template void Lime<C255>::get_SelfIdentityKey();
 	extern template void Lime<C255>::X3DH_generate_SPk(X<C255, lime::Xtype::publicKey> &publicSPk, DSA<C255, DSAtype::signature> &SPk_sig, uint32_t &SPk_id, const bool load);
 	extern template void Lime<C255>::X3DH_generate_OPks(std::vector<X<C255, lime::Xtype::publicKey>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number, const bool load);
@@ -326,6 +327,7 @@ namespace lime {
 #ifdef EC448_ENABLED
 	/* These extern templates are defined in lime_localStorage.cpp */
 	extern template bool Lime<C448>::create_user();
+	extern template bool Lime<C448>::activate_user();
 	extern template void Lime<C448>::get_SelfIdentityKey();
 	extern template void Lime<C448>::X3DH_generate_SPk(X<C448, lime::Xtype::publicKey> &publicSPk, DSA<C448, DSAtype::signature> &SPk_sig, uint32_t &SPk_id, const bool load);
 	extern template void Lime<C448>::X3DH_generate_OPks(std::vector<X<C448, lime::Xtype::publicKey>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number, const bool load);
