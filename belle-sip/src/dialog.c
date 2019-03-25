@@ -722,6 +722,7 @@ belle_sip_dialog_t *belle_sip_dialog_new(belle_sip_transaction_t *t){
 	belle_sip_header_to_t *to;
 	const char *to_tag=NULL;
 	belle_sip_header_call_id_t *call_id=belle_sip_message_get_header_by_type(t->request,belle_sip_header_call_id_t);
+	belle_sip_dialog_type_t type;
 
 	from=belle_sip_message_get_header_by_type(t->request,belle_sip_header_from_t);
 	if (from==NULL){
@@ -758,19 +759,29 @@ belle_sip_dialog_t *belle_sip_dialog_new(belle_sip_transaction_t *t){
 		}
 		to_tag = belle_sip_header_to_get_tag(to);
 	}
+	
+	if (strcmp(belle_sip_request_get_method(t->request),"INVITE") == 0){
+		type = BELLE_SIP_DIALOG_INVITE;
+	}else if (strcmp(belle_sip_request_get_method(t->request),"SUBSCRIBE") == 0){
+		type = BELLE_SIP_DIALOG_SUBSCRIBE_NOTIFY;
+	}else{
+		belle_sip_error("belle_sip_dialog_new(): unsupported request [%s] for creating a dialog.", belle_sip_request_get_method(t->request));
+		return NULL;
+	}
+	
+	if (type == BELLE_SIP_DIALOG_SUBSCRIBE_NOTIFY) {
+		belle_sip_header_expires_t *expires = belle_sip_message_get_header_by_type(t->request,belle_sip_header_expires_t);
+		if (expires && belle_sip_header_expires_get_expires(expires) < 1) {
+			belle_sip_error("belle_sip_dialog_new(): cannot create SUBSCRIBE/NOTIFY dialog with expiration <1 for transaction [%p]",t);
+			return NULL;
+		}
+	}
 	obj=belle_sip_object_new(belle_sip_dialog_t);
 	obj->terminate_on_bye=1;
 	obj->provider=t->provider;
 	obj->pending_trans_checking_enabled=1;
 	obj->call_id=(belle_sip_header_call_id_t*)belle_sip_object_ref(call_id);
-
-	if (strcmp(belle_sip_request_get_method(t->request),"INVITE") == 0){
-		obj->type = BELLE_SIP_DIALOG_INVITE;
-	}else if (strcmp(belle_sip_request_get_method(t->request),"SUBSCRIBE") == 0){
-		obj->type = BELLE_SIP_DIALOG_SUBSCRIBE_NOTIFY;
-	}else{
-		belle_sip_error("belle_sip_dialog_new(): unsupported request [%s] for creating a dialog.", belle_sip_request_get_method(t->request));
-	}
+	obj->type=type;
 
 	belle_sip_object_ref(t);
 	obj->last_transaction=t;
