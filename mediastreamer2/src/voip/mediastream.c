@@ -694,7 +694,30 @@ static void tmmbr_received(const OrtpEventData *evd, void *user_pointer) {
 #ifdef VIDEO_ENABLED
 			if (ms->type == MSVideo) {
 				const char* preset = video_stream_get_video_preset((VideoStream*) ms);
-				if (preset && strcmp(preset, "custom") == 0) break;
+
+				if (preset && strcmp(preset, "custom") == 0) {
+					MSVideoConfiguration *vconf_list = NULL;
+					MSVideoConfiguration current_vconf, vconf;
+					int new_bitrate_limit;
+
+					ms_filter_call_method(ms->encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, &vconf_list);
+
+					if (vconf_list != NULL) {
+						ms_filter_call_method(ms->encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION, &current_vconf);
+
+						vconf = ms_video_find_best_configuration_for_size_and_bitrate(vconf_list, current_vconf.vsize, ms_factory_get_cpu_count(ms->factory), tmmbr_mxtbr);
+
+						new_bitrate_limit = tmmbr_mxtbr < vconf.bitrate_limit ? tmmbr_mxtbr : vconf.bitrate_limit;
+						ms_message("Changing video encoder's output bitrate to %i", new_bitrate_limit);
+						current_vconf.required_bitrate = new_bitrate_limit;
+
+						if (ms_filter_call_method(ms->encoder,MS_VIDEO_ENCODER_SET_CONFIGURATION, &current_vconf) != 0) {
+							ms_warning("Failed to apply fps and bitrate constraint to %s", ms->encoder->desc->name);
+						}
+					}
+
+					break;
+				}
 
 				if (!ms->video_quality_controller) {
 					ms->video_quality_controller = ms_video_quality_controller_new((VideoStream*) ms);

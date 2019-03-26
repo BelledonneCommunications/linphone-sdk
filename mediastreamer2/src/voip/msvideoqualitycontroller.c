@@ -54,7 +54,7 @@ static void update_video_quality_from_bitrate(MSVideoQualityController *obj, int
 			best_vconf = ms_video_find_best_configuration_for_bitrate(vconf_list, (int) (bitrate / bitrate_threshold), ms_factory_get_cpu_count(obj->stream->ms.factory));
 
 			if (!ms_video_size_equal(obj->last_vsize, best_vconf.vsize) && best_vconf.vsize.width * best_vconf.vsize.height != current_vconf.vsize.width * current_vconf.vsize.height) {
-				ms_message("MSVideoQualityController [%p]: Changing video definition to %dx%d at %f fps", obj->stream, best_vconf.vsize.width, best_vconf.vsize.height, best_vconf.fps);
+				ms_message("MSVideoQualityController [%p]: Changing video definition to %dx%d at %f fps", obj, best_vconf.vsize.width, best_vconf.vsize.height, best_vconf.fps);
 
 				obj->stream->sent_vsize = best_vconf.vsize;
 				obj->stream->preview_vsize = best_vconf.vsize;
@@ -99,6 +99,20 @@ void ms_video_quality_controller_process_timer(MSVideoQualityController *obj) {
 }
 
 void ms_video_quality_controller_update_from_tmmbr(MSVideoQualityController *obj, int tmmbr) {
+	if (obj->last_tmmbr == -1) {
+		MSVideoConfiguration current_vconf;
+
+		ms_filter_call_method(obj->stream->ms.encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION, &current_vconf);
+
+		if (tmmbr < current_vconf.required_bitrate) {
+			ms_message("MSVideoQualityController [%p]: First TMMBR (%f kbit/s) inferior to preferred video size required bitrate, reducing video quality...", obj, tmmbr*1e-3);
+
+			update_video_quality_from_bitrate(obj, tmmbr, 1.0f, FALSE);
+			obj->last_tmmbr = tmmbr;
+			return;
+		}
+	}
+
 	if (tmmbr > obj->last_tmmbr) {
 		obj->increase_timer_start = ms_time(NULL);
 		if (!obj->increase_timer_running) obj->increase_timer_running = TRUE;
@@ -107,7 +121,7 @@ void ms_video_quality_controller_update_from_tmmbr(MSVideoQualityController *obj
 	} else if (tmmbr < obj->last_tmmbr) {
 		if (obj->increase_timer_running) obj->increase_timer_running = FALSE;
 
-		ms_message("MSVideoQualityController [%p]: Congestion detected (%f kbit/s), reducing video quality...", obj->stream, tmmbr*1e-3);
+		ms_message("MSVideoQualityController [%p]: Congestion detected (%f kbit/s), reducing video quality...", obj, tmmbr*1e-3);
 		update_video_quality_from_bitrate(obj, tmmbr, 1.0f, FALSE);
 	}
 
