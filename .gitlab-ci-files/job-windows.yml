@@ -44,10 +44,11 @@ job-windows-vs2017:
     - mkdir build-desktop
     - cd build-desktop
     - C:\PROGRA~1\Python37\Scripts\cl -s
- #   - start /b clcache-server
+    - start /b clcache-server
     - cmake .. -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_BUILD_TYPE=Release %DEFAULT_CMAKE_OPTIONS% %CMAKE_OPTIONS%
     - cmake --build . --target sdk --config Release -- /maxcpucount /nodeReuse:true /p:TrackFileAccess=false
     - C:\PROGRA~1\Python37\Scripts\cl -s
+    
 #job-windows-vs2015-novideo:
 #
 #  only:
@@ -62,8 +63,8 @@ job-windows-vs2017:
   
 job-windows-vs2017-novideo:
 
-#  only:
-#    - schedules
+  only:
+    - schedules
   except:
     variables:
       - $DEPLOY_RUN_ANDROID
