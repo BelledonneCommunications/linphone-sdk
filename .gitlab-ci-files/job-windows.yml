@@ -68,4 +68,5 @@ job-windows-vs2017-novideo:
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-windows-vs2017
-  before_script: set "CLCACHE_DISABLE=1"
+  before_script: 
+    - set "CLCACHE_DISABLE=1"
