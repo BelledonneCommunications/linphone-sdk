@@ -55,8 +55,8 @@ job-windows-vs2015:
 
 job-windows-vs2015-novideo:
 
-  only:
-    - schedules
+#  only:
+#    - schedules
   except:
     variables:
       - $FAST_LINUX_TESTS
