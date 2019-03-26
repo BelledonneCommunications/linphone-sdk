@@ -62,8 +62,8 @@ job-windows-vs2017:
   
 job-windows-vs2017-novideo:
 
-  only:
-    - schedules
+#  only:
+#    - schedules
   except:
     variables:
       - $DEPLOY_RUN_ANDROID
