@@ -24,6 +24,28 @@ include(LinphoneSdkPlatformCommon)
 include(LinphoneSdkCheckBuildToolsDesktop)
 
 
+if(APPLE)
+	include(LinphoneSdkCheckBuildToolsIOS)
+
+	set(_dummy_libraries)
+	if(NOT ENABLE_UNIT_TESTS)
+		list(APPEND _dummy_libraries "linphonetester")
+		endif()
+	if(NOT ENABLE_AMRNB AND NOT ENABLE_AMRWB)
+		list(APPEND _dummy_libraries "msamr")
+	endif()
+	if(NOT ENABLE_CODEC2)
+		list(APPEND _dummy_libraries "mscodec2")
+	endif()
+	if(NOT ENABLE_OPENH264)
+		list(APPEND _dummy_libraries "msopenh264")
+	endif()
+	if(NOT ENABLE_ILBC AND NOT ENABLE_ISAC AND NOT ENABLE_WEBRTC_AEC AND NOT ENABLE_WEBRTC_AECM AND NOT ENABLE_WEBRTC_VAD)
+		list(APPEND _dummy_libraries "mswebrtc")
+	endif()
+endif()
+
+
 set(_cmake_args
 	"-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/linphone-sdk/desktop"
 	"-DCMAKE_PREFIX_PATH=${CMAKE_BINARY_DIR}/linphone-sdk/desktop"
@@ -32,6 +54,11 @@ set(_cmake_args
 	"-DLINPHONE_BUILDER_EXTERNAL_SOURCE_PATH=${CMAKE_SOURCE_DIR}"
 	"-DLINPHONE_BUILDER_CONFIG_FILE=configs/config-desktop.cmake"
 )
+
+if(_dummy_libraries)
+	string(REPLACE ";" " " _dummy_libraries "${_dummy_libraries}")
+	list(APPEND _cmake_args "-DLINPHONE_BUILDER_DUMMY_LIBRARIES=${_dummy_libraries}")
+endif()
 
 linphone_sdk_get_inherited_cmake_args()
 linphone_sdk_get_enable_cmake_args()
@@ -56,9 +83,27 @@ ExternalProject_Add(sdk
 	CMAKE_CACHE_ARGS ${_inherited_cmake_args}
 	INSTALL_COMMAND ${_install_command}
 )
+
+if(APPLE)
+	add_custom_command(TARGET sdk
+		COMMENT "Clean the SDK zip file"
+		COMMAND "${CMAKE_COMMAND}" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}"
+		"-P" "${LINPHONESDK_DIR}/cmake/macos/CleanSDK.cmake"
+	)
+endif()
+
 ExternalProject_Add_Step(sdk force_build
 	COMMENT "Forcing build for 'desktop'"
 	DEPENDEES configure
 	DEPENDERS build
 	ALWAYS 1
 )
+
+if(APPLE)
+	set(LINPHONESDK_MACOS_BASE_URL "https://www.linphone.org/releases/macosx/" CACHE STRING "URL of the repository where the macos SDK zip files are located")
+	add_custom_command(TARGET sdk
+		COMMENT "Generating the SDK (zip file and podspec)"
+		COMMAND "${CMAKE_COMMAND}" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_BUILD_DIR=${CMAKE_BINARY_DIR}" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}" "-DLINPHONESDK_MACOS_BASE_URL=${LINPHONESDK_MACOS_BASE_URL}" "-DLINPHONESDK_ENABLED_FEATURES_FILENAME=${CMAKE_BINARY_DIR}/enabled_features.txt"
+		"-P" "${LINPHONESDK_DIR}/cmake/macos/GenerateSDK.cmake"
+	)
+endif()
