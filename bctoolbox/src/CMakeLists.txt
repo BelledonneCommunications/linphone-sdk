@@ -103,8 +103,7 @@ endif()
 if(ENABLE_SHARED)
 	add_library(bctoolbox SHARED ${BCTOOLBOX_SOURCE_FILES} ${BCTOOLBOX_HEADER_FILES})
 	target_link_libraries(bctoolbox PRIVATE ${CMAKE_THREAD_LIBS_INIT})
-	#TODO: replace by if(APPLE) when we want to make apple framework on linphone-desktop too
-	if(IOS)
+	if(APPLE)
 		if(IOS)
 			set(MIN_OS ${LINPHONE_IOS_DEPLOYMENT_TARGET})
 		else()
@@ -214,7 +213,7 @@ if(ENABLE_TESTS_COMPONENT)
 	if(ENABLE_SHARED)
 		target_include_directories(bctoolbox-tester PUBLIC ${BCUNIT_INCLUDE_DIRS})
 		target_link_libraries(bctoolbox-tester PRIVATE bctoolbox ${BCUNIT_LIBRARIES})
-		if(IOS)
+		if(APPLE)
 			set_target_properties(bctoolbox-tester PROPERTIES
 				FRAMEWORK TRUE
 				MACOSX_FRAMEWORK_IDENTIFIER com.belledonne-communications.bctoolbox-tester
