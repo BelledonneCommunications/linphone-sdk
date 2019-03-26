@@ -648,6 +648,8 @@ static void alsa_card_uninit(MSSndCard *obj){
 static void alsa_card_detect(MSSndCardManager *m){
 	int card_index = -1;
 	MSSndCard *card=NULL;
+	const char *env;
+	int use_hw = 1;
 	
 	/*
 	 * add the default alsa pcm device first
@@ -655,19 +657,25 @@ static void alsa_card_detect(MSSndCardManager *m){
 	card=alsa_card_new("default", -1, "default");
 	if (card) ms_snd_card_manager_add_card(m,card);
 	
-	while (snd_card_next(&card_index) == 0 && card_index != -1){
-		char *name = NULL;
-		char *longname = NULL;
-		if (snd_card_get_name(card_index, &name) == 0){
-			if (snd_card_get_longname(card_index, &longname) == 0){
-				ms_message("ALSA: found card with name [%s], long name [%s].", name, longname);
-				card = alsa_card_new("sysdefault", card_index, name);
-				if (card) ms_snd_card_manager_add_card(m,card);
-				free(longname);
+	env = getenv("MS_ALSA_USE_HW");
+	if (env && atoi(env)==0) use_hw = 0;
+	
+	if (use_hw){
+		while (snd_card_next(&card_index) == 0 && card_index != -1){
+			char *name = NULL;
+			char *longname = NULL;
+			if (snd_card_get_name(card_index, &name) == 0){
+				if (snd_card_get_longname(card_index, &longname) == 0){
+					ms_message("ALSA: found card with name [%s], long name [%s].", name, longname);
+					card = alsa_card_new("sysdefault", card_index, name);
+					if (card) ms_snd_card_manager_add_card(m,card);
+					free(longname);
+				}
+				free(name);
 			}
-			free(name);
 		}
 	}
+	
 	/*This is to avoid thousands of memory leaks left by the alsa library, painful for debugging with valgrind.*/
 	atexit((void(*)(void))snd_config_update_free_global);
 }
