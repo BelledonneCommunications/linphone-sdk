@@ -45,6 +45,10 @@
     variables:
       - $NIGHTLY_MASTER
 
+<<<<<<< HEAD
+=======
+  
+>>>>>>> f965012... Fix/coredump generation
   script:
     - cd $PATH_TO_TESTER
     
