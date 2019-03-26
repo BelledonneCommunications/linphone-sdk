@@ -41,23 +41,16 @@ static int debugLevel = 1;
 #endif
 
 static const MSVideoConfiguration openh264_conf_list[] = {
-	MS_OPENH264_CONF(2048000, 	1000000,            UXGA, 25,  4, 12, 2), /*1200p*/
-
-	MS_OPENH264_CONF(1024000, 	5000000, 	  SXGA_MINUS, 25,  4, 12, 2),
-
-	MS_OPENH264_CONF(1024000,  	5000000,   			720P, 25,  4, 12, 2),
-
-	MS_OPENH264_CONF( 750000, 	2048000,             XGA, 20,  4, 12, 2),
-
-	MS_OPENH264_CONF( 500000,  	1024000,            SVGA, 20,  2, 12, 2),
-
-	MS_OPENH264_CONF( 256000,  	 800000,             VGA, 15,  2, 12, 2), /*480p*/
-
+	MS_OPENH264_CONF(2048000, 	5000000,            UXGA, 25,  4, 12, 2), /*1200p*/
+	MS_OPENH264_CONF(1536000, 	3000000, 	  SXGA_MINUS, 25,  4, 12, 2),
+	MS_OPENH264_CONF(1024000,  	2048000,   			720P, 25,  4, 12, 2),
+	MS_OPENH264_CONF( 850000, 	2048000,             XGA, 20,  4, 12, 2),
+	MS_OPENH264_CONF( 750000,  	1024000,            SVGA, 20,  2, 12, 2),
+	MS_OPENH264_CONF( 600000,  	3000000,             VGA, 30,  2, 12, 2),
+	MS_OPENH264_CONF( 400000,  	 800000,             VGA, 15,  2, 12, 2), /*480p*/
 	MS_OPENH264_CONF( 128000,  	 512000,             CIF, 15,  1, 12, 2),
-
 	MS_OPENH264_CONF( 100000,  	 380000,            QVGA, 15,  1, 15, 2), /*240p*/
 	MS_OPENH264_CONF( 100000,  	 380000,            QVGA, 15,  1, 12, 1),
-
 	MS_OPENH264_CONF( 128000,    170000,            QCIF, 10,  1, 10, 1),
 	MS_OPENH264_CONF(  64000,    128000,            QCIF, 10,  1, 7, 1),
 	MS_OPENH264_CONF(      0,     64000,            QCIF, 10,  1, 5, 1)
