@@ -24,8 +24,7 @@
 #    - cmake .. -G "Visual Studio 14 2015" -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_BUILD_TYPE=Release %DEFAULT_CMAKE_OPTIONS% %CMAKE_OPTIONS%
  #   - cmake --build . --target sdk --config Release -- /maxcpucount
 
-job-windows-vs2017:
-
+.job-windows-vs2017:
   extends: .job-prepare
   stage: build
   tags: [ "windows" ]
@@ -43,7 +42,25 @@ job-windows-vs2017:
     - cmake .. -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_BUILD_TYPE=Release %DEFAULT_CMAKE_OPTIONS% %CMAKE_OPTIONS%
     - cmake --build . --target sdk --config Release -- /maxcpucount /nodeReuse:true /p:TrackFileAccess=false
     - C:\PROGRA~1\Python37\Scripts\cl -s
+            
+.job-windows-vs2017-scheduled:
+  extends: .job-windows-vs2017
+  only:
+    refs:
+      - schedules
+  before_script: 
+    - set "CLCACHE_DISABLE=1"
     
+    
+job-windows-vs2017:
+  extends: .job-windows-vs2017
+  except:
+    refs:
+      - schedules
+      
+job-windows-vs2017-scheduled:
+  extends: .job-windows-vs2017-scheduled
+  
 #job-windows-vs2015-novideo:
 #
 #  only:
@@ -57,15 +74,6 @@ job-windows-vs2017:
 #  extends: job-windows-vs2015
   
 job-windows-vs2017-novideo:
-
-  only:
-    - schedules
-  except:
-    variables:
-      - $DEPLOY_RUN_ANDROID
-      - $FAST_LINUX_TESTS
+  extends: .job-windows-vs2017-scheduled
   variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
-  extends: job-windows-vs2017
-  before_script: 
-    - set "CLCACHE_DISABLE=1"
+    CMAKE_OPTIONS: -DENABLE_LIME_X3DH=NO -DENABLE_VIDEO=NO
