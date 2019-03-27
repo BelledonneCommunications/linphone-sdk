@@ -33,8 +33,7 @@
 .scheduled-job-linux-desktop:
   extends: .job-linux-desktop
   only:
-    refs:
-      - master
+    - schedules
     
 #################################################
 # TESTS
