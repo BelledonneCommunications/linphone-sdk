@@ -43,6 +43,11 @@ def excludePackage = []
 excludePackage.add('**/gdb.*')
 excludePackage.add('**/libopenh264**')
 excludePackage.add('**/LICENSE.txt')
+if (project.hasProperty("legacy-wrapper")) {
+    // We have to remove some classes that requires the new java wrapper
+    excludePackage.add("**/Utils.java")
+    excludePackage.add("**/H264Helper.java")
+}
 
 def gitVersion = new ByteArrayOutputStream()
 def gitBranch = new ByteArrayOutputStream()
