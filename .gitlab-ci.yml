@@ -29,7 +29,7 @@ include:
   - '.gitlab-ci-files/job-linux-desktop-ubuntu-rolling.yml'
   - '.gitlab-ci-files/job-macosx.yml'
   - '.gitlab-ci-files/job-windows.yml'
-#  - '.gitlab-ci-files/job-uploads.yml'
+  - '.gitlab-ci-files/job-uploads.yml'
 
 stages:
  - build
