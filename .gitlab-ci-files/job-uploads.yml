@@ -3,31 +3,28 @@
 #################################################
 
 
-#job-ios-upload:
-#
-#  stage: deploy
-#  tags: [ "deploy" ]
-#  except:
-#    variables:
-#      - $FAST_LINUX_TESTS
-#
-#  except:
-#    variables:
-#      - $DEPLOY_RUN_ANDROID
-#
-#  only:
-#    - schedules
-#  dependencies:
-#    - job-ios-xcode
-#
-#  script:
-#    - scp build-ios/linphone-sdk-*.zip $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/ios/
-#    - pod repo remove linphone-sdk || true
-#    - pod repo add linphone-sdk git@gitlab.linphone.org:BC/public/podspec.git $CI_COMMIT_REF_NAME
-#    - pod repo push linphone-sdk build-ios/linphone-sdk.podspec --skip-import-validation --local-only --verbose
-#    - cd ~/.cocoapods/repos/linphone-sdk && git push origin $CI_COMMIT_REF_NAME && cd -
-#    - pod repo remove linphone-sdk
-#
+job-ios-upload:
+
+  stage: deploy
+  tags: [ "deploy" ]
+
+  except:
+    variables:
+      - $DEPLOY_RUN_ANDROID
+
+  only:
+    - schedules
+  dependencies:
+    - job-ios-xcode
+
+  script:
+    - scp build-ios/linphone-sdk-*.zip $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/ios/
+    - pod repo remove linphone-sdk || true
+    - pod repo add linphone-sdk git@gitlab.linphone.org:BC/public/podspec.git $CI_COMMIT_REF_NAME
+    - pod repo push linphone-sdk build-ios/linphone-sdk.podspec --skip-import-validation --local-only --verbose
+    - cd ~/.cocoapods/repos/linphone-sdk && git push origin $CI_COMMIT_REF_NAME && cd -
+    - pod repo remove linphone-sdk
+
 
 #################################################
 # Android
@@ -64,8 +61,9 @@ job-android-upload:
     - mkdir -p ~/.ssh && chmod 700 ~/.ssh
     - echo -e "Host gitlab.linphone.org\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
     - echo -e "Host linphone.org\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
-
+    
 # Currently we can't use artifact to upload this so we rebuild all android project
+
   script:
     - git config --global user.email "gitlab@belledonne-communications.com"
     - git config --global user.name "Gitlab"
@@ -96,7 +94,7 @@ job-android-upload-legacy:
   variables:
     CMAKE_OPTIONS: -DENABLE_JAVA_WRAPPER=NO
     GRADLE_OPTIONS: -Plegacy-wrapper -i
-
+    
 #################################################
 # Macosx
 #################################################
@@ -125,7 +123,6 @@ job-macosx-upload:
     - pod repo push linphone-sdk-macosx build-desktop/linphone-sdk.podspec --skip-import-validation --local-only --verbose
     - cd ~/.cocoapods/repos/linphone-sdk-macosx && git push origin $CI_COMMIT_REF_NAME && cd -
     - pod repo remove linphone-sdk-macosx
-
     
 job-debian-doc-upload:
   stage: deploy
@@ -139,10 +136,9 @@ job-debian-doc-upload:
   only:
     variables:
       - $NIGHTLY_MASTER
-
     
   dependencies:
-    - job-debian9-ninja-gcc
+    - job-debian9-ninja-clang
 
   script:
     - cd linphone

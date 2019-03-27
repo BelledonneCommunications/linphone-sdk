@@ -39,8 +39,7 @@
 .scheduled-job-linux-desktop:
   extends: .job-linux-desktop
   only:
-    refs:
-      - master
+    - schedules
     
 #################################################
 # TESTS
@@ -52,7 +51,7 @@
   only:
     variables:
       - $NIGHTLY_MASTER
-  
+
   script:
     - cd $PATH_TO_TESTER
     
