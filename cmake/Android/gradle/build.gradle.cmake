@@ -34,6 +34,11 @@ dependencies {
     javadocDeps 'org.apache.commons:commons-compress:1.16.1'
 }
 
+static def isGeneratedJavaWrapperAvailable() {
+    File coreWrapper = new File('@LINPHONESDK_BUILD_DIR@/linphone-sdk/android-@LINPHONESDK_FIRST_ARCH@/share/linphonej/java/org/linphone/core/Core.java')
+    return coreWrapper.exists()
+}
+
 def rootSdk = '@LINPHONESDK_BUILD_DIR@/linphone-sdk/android-@LINPHONESDK_FIRST_ARCH@'
 def srcDir = ['@LINPHONESDK_DIR@/mediastreamer2/java/src']
 srcDir += [rootSdk + '/share/linphonej/java/org/linphone/core/']
@@ -43,6 +48,15 @@ def excludePackage = []
 excludePackage.add('**/gdb.*')
 excludePackage.add('**/libopenh264**')
 excludePackage.add('**/LICENSE.txt')
+
+def javaExcludes = []
+javaExcludes.add('**/mediastream/MediastreamerActivity.java')
+if (!isGeneratedJavaWrapperAvailable()) {
+    // We have to remove some classes that requires the new java wrapper
+    println("Old java wrapper detected, removing Utils and H264Helper classes from AAR")
+    javaExcludes.add("**/Utils.java")
+    javaExcludes.add("**/H264Helper.java")
+}
 
 def gitVersion = new ByteArrayOutputStream()
 def gitBranch = new ByteArrayOutputStream()
@@ -123,7 +137,7 @@ android {
             aidl.srcDirs = srcDir
             assets.srcDirs = ["${buildDir}/sdk-assets/assets/"]
             renderscript.srcDirs = srcDir
-            java.excludes = ['**/mediastream/MediastreamerActivity.java']
+            java.excludes = javaExcludes
 
             // Exclude some useless files and don't strip libraries, stripping will be taken care of by CopyLibs.cmake
             packagingOptions {
@@ -146,9 +160,7 @@ android {
 
 task(releaseJavadoc, type: Javadoc, dependsOn: "assembleRelease") {
     source = srcDir
-    excludes = ['**/mediastream/MediastreamerActivity.java',
-                '**/**.html',
-                '**/**.aidl']
+    excludes = javaExcludes.plus(['**/**.html', '**/**.aidl'])
     classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
     classpath += files(android.libraryVariants.release.javaCompile.classpath.files)
     classpath += configurations.javadocDeps
