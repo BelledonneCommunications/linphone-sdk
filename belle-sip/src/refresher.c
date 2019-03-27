@@ -213,7 +213,10 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 	int response_code = belle_sip_response_get_status_code(response);
 	belle_sip_refresher_t* refresher=(belle_sip_refresher_t*)user_ctx;
 	belle_sip_header_contact_t *contact;
+	belle_sip_header_retry_after_t *retry_after_header;
 	int will_retry = TRUE; /*most error codes are retryable*/
+	retry_after_header = belle_sip_message_get_header_by_type(response,belle_sip_header_retry_after_t);
+	int retry_after_time = retry_after_header ? belle_sip_header_retry_after_get_retry_after(retry_after_header):0;
 
 
 	if (refresher && (client_transaction !=refresher->transaction))
@@ -337,6 +340,15 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 			if (refresher->target_expires>0) {
 				int delay = belle_sip_random() % 10000; /*schedule a retry between 0 and 10 seconds*/
 				schedule_timer_at(refresher, delay, RETRY);
+				return; /*do not notify this kind of error*/
+			}
+		}
+		BCTBX_NO_BREAK; /*intentionally no break*/
+		case 404:
+		case 480:
+		case 500: {
+			if (refresher->target_expires>0) {
+				schedule_timer_at(refresher, retry_after_time * 1000, RETRY);
 				return; /*do not notify this kind of error*/
 			}
 		}

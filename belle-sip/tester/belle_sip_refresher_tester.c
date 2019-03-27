@@ -88,6 +88,7 @@ typedef struct endpoint {
 	bool_t bad_next_nonce;
 	const char *algo;
 	const char *ha1;
+	int retry_after;
 } endpoint_t;
 
 
@@ -174,6 +175,7 @@ static void server_process_request_event(void *obj, const belle_sip_request_even
 
 	belle_sip_header_www_authenticate_t *www_authenticate = NULL;
 	belle_sip_header_www_authenticate_t *two_www_authenticate = NULL;
+	belle_sip_header_retry_after_t *retry_after_header = NULL;
 	const char *auth_uri;
 	const char *qop;
 	unsigned char auth_ok = 0;
@@ -182,33 +184,51 @@ static void server_process_request_event(void *obj, const belle_sip_request_even
 	const char *algo_ref = "SHA-256";
 
 	belle_sip_message("caller_process_request_event received [%s] message", belle_sip_request_get_method(belle_sip_request_event_get_request(event)));
-
-	switch (endpoint->auth) {
-		case none: {
-			auth_ok = 1;
-			break;
+	
+	if (endpoint->retry_after) {
+		unsigned int response_code;
+		response_code = 404;
+		resp = belle_sip_response_create_from_request(belle_sip_request_event_get_request(event), response_code);
+		if (www_authenticate) {
+			if ((endpoint->algo != NULL) && (!strcmp(endpoint->algo, "MD_SHA"))) {
+				two_www_authenticate = BELLE_SIP_HEADER_WWW_AUTHENTICATE(belle_sip_object_clone(BELLE_SIP_OBJECT(www_authenticate)));
+				belle_sip_header_www_authenticate_set_algorithm(two_www_authenticate, algo_ref);
+				belle_sip_message_add_header(BELLE_SIP_MESSAGE(resp), BELLE_SIP_HEADER(two_www_authenticate));
+			}
+			belle_sip_message_add_header(BELLE_SIP_MESSAGE(resp), BELLE_SIP_HEADER(www_authenticate));
 		}
-		case digest_auth:
-		case digest_with_next_nonce:
-		case digest_auth_with_next_nonce:
-		case digest: {
-			if ((authorization = belle_sip_message_get_header_by_type(req, belle_sip_header_authorization_t)) != NULL
-			        || (authorization = BELLE_SIP_HEADER_AUTHORIZATION(belle_sip_message_get_header_by_type(req, belle_sip_header_proxy_authorization_t))) != NULL) {
-				qop = belle_sip_header_authorization_get_qop(authorization);
-				if (strcasecmp("REGISTER", belle_sip_request_get_method(req)) == 0) {
-					BC_ASSERT_FALSE(BELLE_SIP_OBJECT_IS_INSTANCE_OF(authorization, belle_sip_header_proxy_authorization_t));
-				} else {
-					BC_ASSERT_TRUE(BELLE_SIP_OBJECT_IS_INSTANCE_OF(authorization, belle_sip_header_proxy_authorization_t));
-				}
-				algo = belle_sip_header_authorization_get_algorithm(authorization);
-				size = belle_sip_auth_define_size(algo);
-				if (!size) {
-					belle_sip_error("Algorithm [%s] is not correct ", algo);
-					return;
-				}
-				char local_resp[MAX_RESPONSE_SIZE];
-				if (qop && strcmp(qop, "auth") == 0) {
-					compute_response_auth_qop(belle_sip_header_authorization_get_username(authorization)
+		retry_after_header = BELLE_SIP_HEADER_RETRY_AFTER(belle_sip_header_retry_after_create(endpoint->retry_after));
+		
+		belle_sip_message_add_header(BELLE_SIP_MESSAGE(resp), BELLE_SIP_HEADER(retry_after_header));
+
+		endpoint->retry_after = 0;
+	} else {
+		switch (endpoint->auth) {
+			case none: {
+				auth_ok = 1;
+				break;
+			}
+			case digest_auth:
+			case digest_with_next_nonce:
+			case digest_auth_with_next_nonce:
+			case digest: {
+				if ((authorization = belle_sip_message_get_header_by_type(req, 	belle_sip_header_authorization_t)) != NULL
+			        	|| (authorization = BELLE_SIP_HEADER_AUTHORIZATION(belle_sip_message_get_header_by_type(req, belle_sip_header_proxy_authorization_t))) != NULL) {
+					qop = belle_sip_header_authorization_get_qop(authorization);
+					if (strcasecmp("REGISTER", belle_sip_request_get_method(req)) == 0) {
+						BC_ASSERT_FALSE(BELLE_SIP_OBJECT_IS_INSTANCE_OF(authorization, belle_sip_header_proxy_authorization_t));
+					} else {
+						BC_ASSERT_TRUE(BELLE_SIP_OBJECT_IS_INSTANCE_OF(authorization, belle_sip_header_proxy_authorization_t));
+					}
+					algo = belle_sip_header_authorization_get_algorithm(authorization);
+					size = belle_sip_auth_define_size(algo);
+					if (!size) {
+						belle_sip_error("Algorithm [%s] is not correct ", algo);
+						return;
+					}
+					char local_resp[MAX_RESPONSE_SIZE];
+					if (qop && strcmp(qop, "auth") == 0) {
+						compute_response_auth_qop(belle_sip_header_authorization_get_username(authorization)
 					                          , belle_sip_header_authorization_get_realm(authorization)
 					                          , PASSWD
 					                          , endpoint->nonce
@@ -220,9 +240,9 @@ static void server_process_request_event(void *obj, const belle_sip_request_even
 					                          , local_resp
 					                          , size
 					                          , algo);
-				} else {
-					/*digest*/
-					compute_response(belle_sip_header_authorization_get_username(authorization)
+					} else {
+						/*digest*/
+						compute_response(belle_sip_header_authorization_get_username(authorization)
 					                 , belle_sip_header_authorization_get_realm(authorization)
 					                 , PASSWD
 					                 , endpoint->nonce
@@ -232,102 +252,104 @@ static void server_process_request_event(void *obj, const belle_sip_request_even
 					                 , size
 					                 , algo);
 
-				}
-				belle_sip_free((void *)auth_uri);
-				auth_ok = strcmp(belle_sip_header_authorization_get_response(authorization), local_resp) == 0;
-			}
-			if (auth_ok && endpoint->nonce_count < endpoint->max_nc_count) { /*revoke nonce after MAX_NC_COUNT uses*/
-				if (endpoint->auth == digest || endpoint->auth == digest_with_next_nonce || endpoint->auth == digest_auth_with_next_nonce) {
-					sprintf(endpoint->nonce, "%p", authorization); //*change the nonce for next auth*/
-				} else {
-					endpoint->nonce_count++;
-				}
-			} else {
-				auth_ok = 0;
-				if (strcasecmp("REGISTER", belle_sip_request_get_method(req)) == 0) {
-					www_authenticate = belle_sip_header_www_authenticate_parse(raw_authenticate_digest);
-				} else {
-					www_authenticate = BELLE_SIP_HEADER_WWW_AUTHENTICATE(belle_sip_header_proxy_authenticate_parse(raw_proxy_authenticate_digest));
-				}
-				sprintf(endpoint->nonce, "%p", www_authenticate); //*change the nonce for next auth*/
-				belle_sip_header_www_authenticate_set_nonce(www_authenticate, endpoint->nonce);
-				if (endpoint->auth == digest_auth || endpoint->auth == digest_auth_with_next_nonce) {
-					belle_sip_header_www_authenticate_add_qop(www_authenticate, "auth");
-					if (endpoint->nonce_count >= MAX_NC_COUNT) {
-						belle_sip_header_www_authenticate_set_stale(www_authenticate, 1);
 					}
-					endpoint->nonce_count = 1;
+					belle_sip_free((void *)auth_uri);
+					auth_ok = strcmp(belle_sip_header_authorization_get_response(authorization), local_resp) == 0;
+				}
+				if (auth_ok && endpoint->nonce_count < endpoint->max_nc_count) { /*revoke nonce after MAX_NC_COUNT uses*/
+					if (endpoint->auth == digest || endpoint->auth == digest_with_next_nonce || endpoint->auth == digest_auth_with_next_nonce) {
+						sprintf(endpoint->nonce, "%p", authorization); //*change the nonce for next auth*/
+					} else {
+						endpoint->nonce_count++;
+					}
+				} else {
+					auth_ok = 0;
+					if (strcasecmp("REGISTER", belle_sip_request_get_method(req)) == 0) {
+						www_authenticate = belle_sip_header_www_authenticate_parse(raw_authenticate_digest);
+					} else {
+						www_authenticate = BELLE_SIP_HEADER_WWW_AUTHENTICATE(belle_sip_header_proxy_authenticate_parse(raw_proxy_authenticate_digest));
+					}
+					sprintf(endpoint->nonce, "%p", www_authenticate); //*change the nonce for next auth*/
+					belle_sip_header_www_authenticate_set_nonce(www_authenticate, endpoint->nonce);
+					if (endpoint->auth == digest_auth || endpoint->auth == digest_auth_with_next_nonce) {
+						belle_sip_header_www_authenticate_add_qop(www_authenticate, "auth");
+						if (endpoint->nonce_count >= MAX_NC_COUNT) {
+							belle_sip_header_www_authenticate_set_stale(www_authenticate, 1);
+						}
+						endpoint->nonce_count = 1;
+					}
 				}
 			}
-		}
-		break;
-		default:
 			break;
-	}
-	if (auth_ok) {
-		resp = belle_sip_response_create_from_request(belle_sip_request_event_get_request(event), 200);
-		if (!endpoint->expire_in_contact) {
-			belle_sip_message_add_header(BELLE_SIP_MESSAGE(resp), BELLE_SIP_HEADER(expires = belle_sip_message_get_header_by_type(req, belle_sip_header_expires_t)));
+			default:
+				break;
 		}
-		if (strcmp(belle_sip_request_get_method(req), "REGISTER") == 0) {
-			contact = belle_sip_message_get_header_by_type(req, belle_sip_header_contact_t);
-		} else {
-			contact = belle_sip_header_contact_new();
-		}
-		if (endpoint->unreconizable_contact) {
-			/*put an unexpected address*/
-			belle_sip_uri_set_host(belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(contact)), "nimportequoi.com");
-		}
-		if (endpoint->auth == digest_with_next_nonce || endpoint->auth == digest_auth_with_next_nonce) {
-			belle_sip_header_t *authentication_info;
-			if (!endpoint->bad_next_nonce) {
-				authentication_info = BELLE_SIP_HEADER(belle_sip_header_authentication_info_new());
-				belle_sip_header_authentication_info_set_next_nonce(BELLE_SIP_HEADER_AUTHENTICATION_INFO(authentication_info), endpoint->nonce);
+		if (auth_ok) {
+			resp = belle_sip_response_create_from_request(belle_sip_request_event_get_request(event), 200);
+			if (!endpoint->expire_in_contact) {
+				belle_sip_message_add_header(BELLE_SIP_MESSAGE(resp), BELLE_SIP_HEADER(expires = belle_sip_message_get_header_by_type(req, belle_sip_header_expires_t)));
+			}
+			if (strcmp(belle_sip_request_get_method(req), "REGISTER") == 0) {
+				contact = belle_sip_message_get_header_by_type(req, belle_sip_header_contact_t);
 			} else {
-				authentication_info = BELLE_SIP_HEADER(belle_sip_header_extension_create(BELLE_SIP_AUTHENTICATION_INFO, "nonce=\"nimporte quoi\" nc="));
+				contact = belle_sip_header_contact_new();
 			}
+			if (endpoint->unreconizable_contact) {
+				/*put an unexpected address*/
+				belle_sip_uri_set_host(belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(contact)), "nimportequoi.com");
+			}
+			if (endpoint->auth == digest_with_next_nonce || endpoint->auth == digest_auth_with_next_nonce) {
+				belle_sip_header_t *authentication_info;
+				if (!endpoint->bad_next_nonce) {
+					authentication_info = BELLE_SIP_HEADER(belle_sip_header_authentication_info_new());
+					belle_sip_header_authentication_info_set_next_nonce(BELLE_SIP_HEADER_AUTHENTICATION_INFO(authentication_info), endpoint->nonce);
+				} else {
+					authentication_info = BELLE_SIP_HEADER(belle_sip_header_extension_create(BELLE_SIP_AUTHENTICATION_INFO, "nonce=\"nimporte quoi\" nc="));
+				}
 
-			belle_sip_message_add_header(BELLE_SIP_MESSAGE(resp), BELLE_SIP_HEADER(authentication_info));
-		}
-		belle_sip_message_add_header(BELLE_SIP_MESSAGE(resp), BELLE_SIP_HEADER(contact));
-		if (strcmp(belle_sip_request_get_method(req), "PUBLISH") == 0) {
+				belle_sip_message_add_header(BELLE_SIP_MESSAGE(resp), BELLE_SIP_HEADER(authentication_info));
+			}
+			belle_sip_message_add_header(BELLE_SIP_MESSAGE(resp), BELLE_SIP_HEADER(contact));
+			if (strcmp(belle_sip_request_get_method(req), "PUBLISH") == 0) {
 
-			belle_sip_header_t *sip_if_match = belle_sip_message_get_header(BELLE_SIP_MESSAGE(resp), "SIP-If-Match");
-			if (sip_if_match) {
-				BC_ASSERT_STRING_EQUAL(belle_sip_header_extension_get_value(BELLE_SIP_HEADER_EXTENSION(sip_if_match)), "blablietag");
+				belle_sip_header_t *sip_if_match = belle_sip_message_get_header(BELLE_SIP_MESSAGE(resp), "SIP-If-Match");
+				if (sip_if_match) {
+					BC_ASSERT_STRING_EQUAL(belle_sip_header_extension_get_value(BELLE_SIP_HEADER_EXTENSION(sip_if_match)), "blablietag");
+				}
+				/*check for body*/
+				BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_body(BELLE_SIP_MESSAGE(req)));
+				if (belle_sip_message_get_body(BELLE_SIP_MESSAGE(req))) {
+					BC_ASSERT_STRING_EQUAL(belle_sip_message_get_body(BELLE_SIP_MESSAGE(req)), publish_body);
+				}
+				BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header_by_type(req, belle_sip_header_content_type_t));
+				BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header_by_type(req, belle_sip_header_content_length_t));
+				belle_sip_message_add_header(BELLE_SIP_MESSAGE(resp), belle_sip_header_create("SIP-ETag", "blablietag"));
 			}
-			/*check for body*/
-			BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_body(BELLE_SIP_MESSAGE(req)));
-			if (belle_sip_message_get_body(BELLE_SIP_MESSAGE(req))) {
-				BC_ASSERT_STRING_EQUAL(belle_sip_message_get_body(BELLE_SIP_MESSAGE(req)), publish_body);
+			if (strcmp(belle_sip_request_get_method(req), "SUBSCRIBE") == 0) {
+				if (belle_sip_request_event_get_dialog(event) == NULL) {
+					belle_sip_message("creating dialog for incoming SUBSCRIBE");
+					belle_sip_provider_create_dialog(endpoint->provider, BELLE_SIP_TRANSACTION(server_transaction));
+				}
 			}
-			BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header_by_type(req, belle_sip_header_content_type_t));
-			BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header_by_type(req, belle_sip_header_content_length_t));
-			belle_sip_message_add_header(BELLE_SIP_MESSAGE(resp), belle_sip_header_create("SIP-ETag", "blablietag"));
-		}
-		if (strcmp(belle_sip_request_get_method(req), "SUBSCRIBE") == 0) {
-			if (belle_sip_request_event_get_dialog(event) == NULL) {
-				belle_sip_message("creating dialog for incoming SUBSCRIBE");
-				belle_sip_provider_create_dialog(endpoint->provider, BELLE_SIP_TRANSACTION(server_transaction));
-			}
-		}
-	} else {
-		unsigned int response_code;
-		if (strcasecmp("REGISTER", belle_sip_request_get_method(req)) == 0) {
-			response_code = 401;
 		} else {
-			response_code = 407;
-		}
-		resp = belle_sip_response_create_from_request(belle_sip_request_event_get_request(event), response_code);
-		if (www_authenticate) {
-			if ((endpoint->algo != NULL) && (!strcmp(endpoint->algo, "MD_SHA"))) {
-				two_www_authenticate = BELLE_SIP_HEADER_WWW_AUTHENTICATE(belle_sip_object_clone(BELLE_SIP_OBJECT(www_authenticate)));
-				belle_sip_header_www_authenticate_set_algorithm(two_www_authenticate, algo_ref);
-				belle_sip_message_add_header(BELLE_SIP_MESSAGE(resp), BELLE_SIP_HEADER(two_www_authenticate));
+			unsigned int response_code;
+			if (strcasecmp("REGISTER", belle_sip_request_get_method(req)) == 0) {
+				response_code = 401;
+			} else {
+				response_code = 407;
 			}
-			belle_sip_message_add_header(BELLE_SIP_MESSAGE(resp), BELLE_SIP_HEADER(www_authenticate));
+			resp = belle_sip_response_create_from_request(belle_sip_request_event_get_request(event), response_code);
+			if (www_authenticate) {
+				if ((endpoint->algo != NULL) && (!strcmp(endpoint->algo, "MD_SHA"))) {
+					two_www_authenticate = BELLE_SIP_HEADER_WWW_AUTHENTICATE(belle_sip_object_clone(BELLE_SIP_OBJECT(www_authenticate)));
+					belle_sip_header_www_authenticate_set_algorithm(two_www_authenticate, algo_ref);
+					belle_sip_message_add_header(BELLE_SIP_MESSAGE(resp), BELLE_SIP_HEADER(two_www_authenticate));
+				}
+				belle_sip_message_add_header(BELLE_SIP_MESSAGE(resp), BELLE_SIP_HEADER(www_authenticate));
+			}
 		}
 	}
+	
 	if (endpoint->received) {
 		via = belle_sip_message_get_header_by_type(req, belle_sip_header_via_t);
 		belle_sip_header_via_set_received(via, endpoint->received);
@@ -442,6 +464,7 @@ static endpoint_t* create_endpoint(const char *ip, int port,const char* transpor
 	sprintf(endpoint->nonce,"%p",endpoint); /*initial nonce*/
 	endpoint->nonce_count=1;
 	endpoint->register_count=3;
+	endpoint->retry_after=0;
 	return endpoint;
 }
 
@@ -542,12 +565,13 @@ static belle_sip_refresher_t*  refresher_base_with_body2( endpoint_t* client
 	if (BC_ASSERT_PTR_NOT_NULL(refresher)) {
 		belle_sip_object_unref(trans);
 		belle_sip_refresher_set_listener(refresher,belle_sip_refresher_listener,client);
-
+		int timeout = client->retry_after + client->register_count;
+		
 		begin = belle_sip_time_ms();
-		BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.refreshOk,client->register_count+(client->early_refresher?1:0),client->register_count*1000 + 1000));
+		BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.refreshOk,client->register_count+(client->early_refresher?1:0), timeout*1000 + 1000));
 		end = belle_sip_time_ms();
 		BC_ASSERT_GREATER((long double)(end-begin),(client->register_count/number_active_refresher)*1000*.9,long double,"%Lf"); /*because refresh is at 90% of expire*/
-		BC_ASSERT_LOWER_STRICT(end-begin,(client->register_count*1000 + 2000),unsigned long long,"%llu");
+		BC_ASSERT_LOWER_STRICT(end-begin,(timeout*1000 + 2000),unsigned long long,"%llu");
 	}
 	return refresher;
 }
@@ -886,6 +910,27 @@ static void register_early_refresher(void) {
 	destroy_endpoint(server);
 }
 
+static void register_retry_after(void) {
+	belle_sip_listener_callbacks_t client_callbacks;
+	belle_sip_listener_callbacks_t server_callbacks;
+	endpoint_t* client,*server;
+	memset(&client_callbacks,0,sizeof(belle_sip_listener_callbacks_t));
+	memset(&server_callbacks,0,sizeof(belle_sip_listener_callbacks_t));
+	client_callbacks.process_response_event=client_process_response_event;
+	client_callbacks.process_auth_requested=client_process_auth_requested;
+	server_callbacks.process_request_event=server_process_request_event;
+	client = create_udp_endpoint(3452,&client_callbacks);
+	server = create_udp_endpoint(6788,&server_callbacks);
+	server->expire_in_contact=1;
+	server->auth=digest;
+	client->early_refresher=1;
+	server->retry_after = 2;
+	client->retry_after = 2;
+	register_base(client,server);
+	destroy_endpoint(client);
+	destroy_endpoint(server);
+}
+
 static int register_test_with_interfaces(const char *transport, const char *client_ip, const char *server_ip, int connection_family) {
 	int ret=0;
 	belle_sip_listener_callbacks_t client_callbacks;
@@ -1124,6 +1169,7 @@ test_t refresher_tests[] = {
 	TEST_NO_TAG("REGISTER Expires in Contact digest auth MD_SHA-256 ha1", register_expires_in_contact_header_digest_md_sha256_ha1),
 	TEST_NO_TAG("REGISTER with failure", register_with_failure),
 	TEST_NO_TAG("REGISTER with early refresher", register_early_refresher),
+	TEST_NO_TAG("REGISTER with retry after", register_retry_after),
 	TEST_NO_TAG("SUBSCRIBE", subscribe_test),
 	TEST_NO_TAG("SUBSCRIBE of list" , subscribe_list_test),
 	TEST_NO_TAG("PUBLISH", simple_publish),
