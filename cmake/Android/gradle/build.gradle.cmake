@@ -34,6 +34,11 @@ dependencies {
     javadocDeps 'org.apache.commons:commons-compress:1.16.1'
 }
 
+static def isGeneratedJavaWrapperAvailable() {
+    File coreWrapper = new File('@LINPHONESDK_BUILD_DIR@/linphone-sdk/android-@LINPHONESDK_FIRST_ARCH@/share/linphonej/java/org/linphone/core/Core.java')
+    return coreWrapper.exists()
+}
+
 def rootSdk = '@LINPHONESDK_BUILD_DIR@/linphone-sdk/android-@LINPHONESDK_FIRST_ARCH@'
 def srcDir = ['@LINPHONESDK_DIR@/mediastreamer2/java/src']
 srcDir += [rootSdk + '/share/linphonej/java/org/linphone/core/']
@@ -43,6 +48,13 @@ def excludePackage = []
 excludePackage.add('**/gdb.*')
 excludePackage.add('**/libopenh264**')
 excludePackage.add('**/LICENSE.txt')
+
+if (!isGeneratedJavaWrapperAvailable()) {
+    // We have to remove some classes that requires the new java wrapper
+    println("Old java wrapper detected, removing Utils and H264Helper classes from AAR")
+    excludePackage.add("**/Utils.java")
+    excludePackage.add("**/H264Helper.java")
+}
 
 def gitVersion = new ByteArrayOutputStream()
 def gitBranch = new ByteArrayOutputStream()

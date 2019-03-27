@@ -33,7 +33,6 @@ job-ios-upload:
 # Android
 #################################################
 
-
 job-android-upload:
 
   stage: deploy
@@ -52,6 +51,7 @@ job-android-upload:
     CMAKE_GENERATOR: Ninja
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
     GIT_STRATEGY: clone
+    GRADLE_OPTIONS: -i
 
   extends: .scheduled-job-android
 
@@ -74,17 +74,29 @@ job-android-upload:
     - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS="arm64, armv7, x86_64, x86" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     - rsync -ave ssh --exclude "*.aar" --exclude "*.jar" $ANDROID_MAVEN_URL maven_repository
-    - ../cmake/Android/gradlew publish -i
-    - cmake .. -DENABLE_VIDEO=NO
-    - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
-    - ../cmake/Android/gradlew publish -Pno-video -i
-    - cmake .. -DENABLE_VIDEO=ON -DENABLE_JAVA_WRAPPER=NO
-    - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
-    - ../cmake/Android/gradlew publish -Plegacy-wrapper -i
+    - ../cmake/Android/gradlew publish $GRADLE_OPTIONS
     - rsync -ave ssh ./maven_repository/* $ANDROID_MAVEN_URL
 
   after_script:
     - rm -rf ~/.ssh || true
+
+
+job-android-upload-no-video:
+
+  extends: job-android-upload
+
+  variables:
+    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+    GRADLE_OPTIONS: -Pno-video -i
+
+
+job-android-upload-legacy:
+
+  extends: job-android-upload
+  
+  variables:
+    CMAKE_OPTIONS: -DENABLE_JAVA_WRAPPER=NO
+    GRADLE_OPTIONS: -Plegacy-wrapper -i
 
 #################################################
 # Macosx
