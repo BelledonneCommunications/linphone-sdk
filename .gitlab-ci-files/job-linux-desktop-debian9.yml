@@ -49,7 +49,6 @@ job-debian9-ninja-gcc:
       - $DEPLOY_RUN_ANDROID
       - $FAST_LINUX_TESTS
   variables:
-    CMAKE_OPTIONS: -DENABLE_DOC=ON
     CMAKE_GENERATOR: Ninja
     CC: gcc
     CXX: g++
@@ -77,6 +76,7 @@ job-debian9-ninja-clang:
       - $DEPLOY_RUN_ANDROID
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
   variables:
+    CMAKE_OPTIONS: -DENABLE_DOC=ON
     CMAKE_GENERATOR: Ninja
     CC: clang
     CXX: clang++
