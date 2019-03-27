@@ -145,5 +145,9 @@ job-debian-doc-upload:
     - job-debian9-ninja-gcc
 
   script:
-    - rsync -r build-desktop/linphone-sdk/desktop/share/doc/linphone/3.12.0/* $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/docs/liblinphone/multilang
-
+    - cd linphone
+    #getting the version number to push the right version of the doc
+    - LINPHONE_VERSION=$(git describe | sed -e 's/-.*//g')
+    - cd ..
+    - echo "Linphone verison =" $LINPHONE_VERSION
+    - rsync -r build-desktop/linphone-sdk/desktop/share/doc/linphone/$LINPHONE_VERSION/* $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/docs/liblinphone/multilang
