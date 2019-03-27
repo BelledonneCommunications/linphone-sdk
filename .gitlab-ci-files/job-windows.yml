@@ -2,15 +2,32 @@
 # VS2015
 #################################################
 
-job-windows-vs2015:
+#job-windows-vs2015:
+#
+#  extends: .job-prepare
+#  stage: build
+#  tags: [ "windows" ]
+#  except:
+#    refs:
+#      - feature/peioMergeCi
+#
+#  except:
+#    variables:
+#      - $DEPLOY_RUN_ANDROID
+#      - $DEPLOY_RUN_IOS
+#  variables:
+#    CMAKE_OPTIONS: -DENABLE_LIME_X3DH=NO
+#
+#  script:
+#    - mkdir build-desktop
+#    - cd build-desktop
+#    - cmake .. -G "Visual Studio 14 2015" -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_BUILD_TYPE=Release %DEFAULT_CMAKE_OPTIONS% %CMAKE_OPTIONS%
+ #   - cmake --build . --target sdk --config Release -- /maxcpucount
 
+.job-windows-vs2017:
   extends: .job-prepare
   stage: build
   tags: [ "windows" ]
-  except:
-    refs:
-      - feature/peioMergeCi
-
   except:
     variables:
       - $DEPLOY_RUN_ANDROID
@@ -21,18 +38,42 @@ job-windows-vs2015:
   script:
     - mkdir build-desktop
     - cd build-desktop
-    - cmake .. -G "Visual Studio 14 2015" -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_BUILD_TYPE=Release %DEFAULT_CMAKE_OPTIONS% %CMAKE_OPTIONS%
-    - cmake --build . --target sdk --config Release -- /maxcpucount
-
-
-job-windows-vs2015-novideo:
-
+    - C:\PROGRA~1\Python37\Scripts\cl -s
+    - cmake .. -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_BUILD_TYPE=Release %DEFAULT_CMAKE_OPTIONS% %CMAKE_OPTIONS%
+    - cmake --build . --target sdk --config Release -- /maxcpucount /nodeReuse:true /p:TrackFileAccess=false
+    - C:\PROGRA~1\Python37\Scripts\cl -s
+            
+.job-windows-vs2017-scheduled:
+  extends: .job-windows-vs2017
   only:
-    - schedules
+    refs:
+      - schedules
+  before_script: 
+    - set "CLCACHE_DISABLE=1"
+    
+    
+job-windows-vs2017:
+  extends: .job-windows-vs2017
   except:
-    variables:
-      - $DEPLOY_RUN_ANDROID
-      - $FAST_LINUX_TESTS
+    refs:
+      - schedules
+      
+job-windows-vs2017-scheduled:
+  extends: .job-windows-vs2017-scheduled
+  
+#job-windows-vs2015-novideo:
+#
+#  only:
+#    - schedules
+#  except:
+#    variables:
+#      - $DEPLOY_RUN_ANDROID
+#      - $FAST_LINUX_TESTS
+#  variables:
+#    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+#  extends: job-windows-vs2015
+  
+job-windows-vs2017-novideo:
+  extends: .job-windows-vs2017-scheduled
   variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
-  extends: job-windows-vs2015
+    CMAKE_OPTIONS: -DENABLE_LIME_X3DH=NO -DENABLE_VIDEO=NO
