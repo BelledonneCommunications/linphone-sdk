@@ -72,6 +72,7 @@ def main(argv=None):
     if os.path.exists(work_dir):
         shutil.rmtree(work_dir, ignore_errors=False, onerror=handle_remove_read_only)
     os.makedirs(os.path.join(work_dir, 'lib', 'uap10.0'))
+    os.makedirs(os.path.join(work_dir, 'build', 'uap10.0', 'x86'))
 
     # Copy SDK content to nuget package structure
     sdk_dir = os.path.abspath(args.sdk_dir)
@@ -85,12 +86,9 @@ def main(argv=None):
     pdbs += glob.glob(os.path.join(sdk_dir, platform_dir, 'lib', 'mediastreamer', 'plugins', '*.pdb'))
     wrappers = []
     if target_id == "LinphoneSDK":
-        wrappers += glob.glob(os.path.join(args.cswrapper_dir, 'bin', 'x86', '*', 'CsWrapper.dll'))
-        wrappers += glob.glob(os.path.join(args.cswrapper_dir, 'bin', 'x86', '*', 'CsWrapper.pdb'))
-        wrappers += glob.glob(os.path.join(args.cswrapper_dir, 'bin', 'x86', '*', 'CsWrapper.XML'))
-
-    if not os.path.exists(os.path.join(work_dir, 'lib', 'uap10.0')):
-            os.makedirs(os.path.join(work_dir, 'lib', 'uap10.0'))
+        wrappers += glob.glob(os.path.join(args.cswrapper_dir, 'bin', 'x86', '*', '*.dll'))
+        wrappers += glob.glob(os.path.join(args.cswrapper_dir, 'bin', 'x86', '*', '*.pdb'))
+        wrappers += glob.glob(os.path.join(args.cswrapper_dir, 'bin', 'x86', '*', '*.XML'))
 
     if not os.path.exists(os.path.join(work_dir, 'contentFiles', 'share', 'belr', 'grammars')):
             os.makedirs(os.path.join(work_dir, 'contentFiles', 'share', 'belr', 'grammars'))
@@ -98,9 +96,9 @@ def main(argv=None):
     for grammar in grammars:
         shutil.copy(grammar, os.path.join(work_dir, 'contentFiles', 'share', 'belr', 'grammars'))
     for dll in dlls:
-        shutil.copy(dll, os.path.join(work_dir, 'lib', 'uap10.0'))
+        shutil.copy(dll, os.path.join(work_dir, 'build', 'uap10.0', 'x86'))
     for pdb in pdbs:
-        shutil.copy(pdb, os.path.join(work_dir, 'lib', 'uap10.0'))
+        shutil.copy(pdb, os.path.join(work_dir, 'build', 'uap10.0', 'x86'))
     for wrap in wrappers:
         shutil.copy(wrap, os.path.join(work_dir, 'lib', 'uap10.0'))
 
@@ -117,7 +115,7 @@ def main(argv=None):
     </ItemGroup>
   </Target>
 </Project>"""
-    f = open(os.path.join(work_dir, 'lib', 'uap10.0', target_id + '.targets'), 'w')
+    f = open(os.path.join(work_dir, 'build', 'uap10.0', target_id + '.targets'), 'w')
     f.write(targets)
     f.close()
 
@@ -147,6 +145,7 @@ def main(argv=None):
     <file src="contentFiles\**\*grammar" target="contentFiles\" />
     <file src="contentFiles\**\*grammar" target="content\" />
     <file src="lib\**" target="lib\" />
+    <file src="build\**" target="build\" />
   </files>
 </package>""".format(version=args.version, target_id=target_id, target_desc=target_desc)
     f = open(os.path.join(work_dir, target_id + '.nuspec'), 'w')
