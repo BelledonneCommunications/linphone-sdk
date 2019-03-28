@@ -90,11 +90,11 @@ def main(argv=None):
         wrappers += glob.glob(os.path.join(args.cswrapper_dir, 'bin', 'x86', '*', '*.pdb'))
         wrappers += glob.glob(os.path.join(args.cswrapper_dir, 'bin', 'x86', '*', '*.XML'))
 
-    if not os.path.exists(os.path.join(work_dir, 'contentFiles', 'share', 'belr', 'grammars')):
-            os.makedirs(os.path.join(work_dir, 'contentFiles', 'share', 'belr', 'grammars'))
+    if not os.path.exists(os.path.join(work_dir, 'contentFiles', 'uap10.0', 'belr', 'grammars')):
+            os.makedirs(os.path.join(work_dir, 'contentFiles', 'uap10.0', 'belr', 'grammars'))
 
     for grammar in grammars:
-        shutil.copy(grammar, os.path.join(work_dir, 'contentFiles', 'share', 'belr', 'grammars'))
+        shutil.copy(grammar, os.path.join(work_dir, 'contentFiles', 'uap10.0', 'belr', 'grammars'))
     for dll in dlls:
         shutil.copy(dll, os.path.join(work_dir, 'build', 'uap10.0', 'x86'))
     for pdb in pdbs:
@@ -121,7 +121,7 @@ def main(argv=None):
 
     # Write nuspec file
     nuspec = """<?xml version="1.0"?>
-<package >
+<package>
   <metadata>
     <id>{target_id}</id>
     <version>{version}</version>
@@ -136,13 +136,10 @@ def main(argv=None):
     <copyright>Copyright 2017-2019 Belledonne Communications</copyright>
     <tags>SIP</tags>
     <contentFiles>
-      <files include="**/*grammar" buildAction="Content" />
-      <files include="**/*grammar" buildAction="None" flatten="false" copyToOutput="true" />
       <files include="**/*grammar" buildAction="EmbeddedResource" />
     </contentFiles>
   </metadata>
   <files>
-    <file src="contentFiles\**\*grammar" target="contentFiles\" />
     <file src="contentFiles\**\*grammar" target="content\" />
     <file src="lib\**" target="lib\" />
     <file src="build\**" target="build\" />
