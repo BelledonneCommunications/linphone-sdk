@@ -56,6 +56,11 @@ if (!isGeneratedJavaWrapperAvailable()) {
     println("Old java wrapper detected, removing Utils and H264Helper classes from AAR")
     javaExcludes.add("**/Utils.java")
     javaExcludes.add("**/H264Helper.java")
+
+    // Add the previous wrapper to sources
+    srcDir += ['@LINPHONESDK_DIR@/linphone/java/common/']
+    srcDir += ['@LINPHONESDK_DIR@/linphone/java/impl/']
+    srcDir += ['@LINPHONESDK_DIR@/linphone/java/j2se/']
 }
 
 def gitVersion = new ByteArrayOutputStream()
