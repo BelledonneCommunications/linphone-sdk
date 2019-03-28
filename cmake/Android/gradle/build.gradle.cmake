@@ -53,9 +53,16 @@ def javaExcludes = []
 javaExcludes.add('**/mediastream/MediastreamerActivity.java')
 if (!isGeneratedJavaWrapperAvailable()) {
     // We have to remove some classes that requires the new java wrapper
-    println("Old java wrapper detected, removing Utils and H264Helper classes from AAR")
-    javaExcludes.add("**/Utils.java")
-    javaExcludes.add("**/H264Helper.java")
+    println("Old java wrapper detected, adding it to sources and removing some incompatible classes")
+
+    // This classes uses the new DialPlan wrapped object
+    javaExcludes.add('**/Utils.java')
+    javaExcludes.add('**/H264Helper.java')
+
+    // Add the previous wrapper to sources
+    srcDir += ['@LINPHONESDK_DIR@/linphone/java/common/']
+    srcDir += ['@LINPHONESDK_DIR@/linphone/java/impl/']
+    srcDir += ['@LINPHONESDK_DIR@/linphone/java/j2se/']
 }
 
 def gitVersion = new ByteArrayOutputStream()
@@ -108,7 +115,7 @@ android {
         release {
             signingConfig signingConfigs.release
             minifyEnabled true
-            useProguard true
+            useProguard isGeneratedJavaWrapperAvailable()
             proguardFiles "${buildDir}/proguard.txt"
             resValue "string", "linphone_sdk_version", gitVersion.toString().trim()
             resValue "string", "linphone_sdk_branch", gitBranch.toString().trim()
