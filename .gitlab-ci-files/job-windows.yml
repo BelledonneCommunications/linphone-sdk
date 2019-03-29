@@ -58,6 +58,11 @@ job-windows-vs2017:
   except:
     refs:
       - schedules
+  artifacts:
+    paths:
+      - build-desktop\linphone-sdk\desktop
+    when: always
+    expire_in: 1 week
       
 job-windows-vs2017-scheduled:
   extends: .job-windows-vs2017-scheduled
