@@ -383,6 +383,14 @@ void merge_and_print_results_files(void) {
 			remove(file_name);
 		} else {
 			bc_tester_printf(bc_printf_verbosity_error, "Failed to open suite results file '%s'", file_name);
+			//Assume suite crash and report it.
+			if (results == NULL) {
+				results = bctbx_concat("Suite '", test_suite[i]->name, "' results: CRASH\n", NULL);
+			} else {
+				tmp = bctbx_concat(results, "\nSuite '", test_suite[i]->name, "' results: CRASH\n", NULL);
+				bctbx_free(results);
+				results = tmp;
+			}
 		}
 		bctbx_free(suite_name_wo_spaces);
 		bctbx_free(file_name);
