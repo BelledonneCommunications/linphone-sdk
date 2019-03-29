@@ -34,4 +34,5 @@ include:
 stages:
  - build
  - test
+ - package
  - deploy

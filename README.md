@@ -4,6 +4,11 @@ Meta repository holding all the dependencies to build a full Linphone SDK.
 
 The currently supported platforms are Android, iOS, Desktop (Linux, Windows, Mac OS X) and UWP (Universal Windows Platform).
 
+## Dependencies
+### Windows
+SDK is working with Visual Studio 15 2017.
+Also you need to have MinGW with GCC and G++ module.
+
 ## Building and customizing the SDK
 
 The build system is based on CMake, so you need to install it first if you don't have it on your machine.
@@ -59,3 +64,8 @@ To generate the a SDK without GPL third parties, use the `-DENABLE_GPL_THIRD_PAR
 The Linphone SDK is compiled with third parties code that are subject to patent license, especially: AMR, SILK, G729 and H264 codecs.
 To build a SDK with any of these features you need to enable the `ENABLE_NON_FREE_CODECS` option.
 Before embedding these features in your final application, **make sure to have the right to do so**.
+
+### Windows UWP
+You can use linphone-sdk Win32 in your Windows UWP app.
+To do this follow instructions from microsoft.
+https://docs.microsoft.com/en-us/windows/uwp/porting/desktop-to-uwp-root
