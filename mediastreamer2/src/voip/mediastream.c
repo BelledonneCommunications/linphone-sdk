@@ -236,6 +236,10 @@ void media_stream_free(MediaStream *stream) {
 #endif
 }
 
+MSFactory* media_stream_get_factory(MediaStream *stream) {
+	return (stream) ? stream->factory : NULL;
+}
+
 bool_t media_stream_started(MediaStream *stream) {
 	return stream->start_time != 0;
 }
@@ -642,7 +646,7 @@ void video_stream_close_player(VideoStream *stream){
 
 void video_stream_enable_recording(VideoStream *stream, bool_t enabled) {}
 
-const char *video_stream_get_default_video_renderer(void){
+const char *video_stream_get_default_video_renderer(VideoStream *stream){
 	return NULL;
 }
 

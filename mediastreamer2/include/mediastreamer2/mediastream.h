@@ -148,6 +148,7 @@ struct _MediaStream {
 
 MS2_PUBLIC void media_stream_init(MediaStream *stream, MSFactory *factory, const MSMediaStreamSessions *sessions);
 
+MS2_PUBLIC MSFactory* media_stream_get_factory(MediaStream *stream);
 
 /**
  * @addtogroup audio_stream_api
@@ -1052,8 +1053,9 @@ MS2_PUBLIC float video_stream_get_received_framerate(const VideoStream *stream);
 
 /**
  * Returns the name of the video display filter on the current platform.
+ * @param[in] stream The videostream.
 **/
-MS2_PUBLIC const char *video_stream_get_default_video_renderer(void);
+MS2_PUBLIC const char *video_stream_get_default_video_renderer(VideoStream *stream);
 
 MS2_PUBLIC void video_stream_enable_self_view(VideoStream *stream, bool_t val);
 MS2_PUBLIC void * video_stream_get_native_window_id(VideoStream *stream);

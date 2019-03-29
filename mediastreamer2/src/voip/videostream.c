@@ -250,13 +250,16 @@ void video_stream_iterate(VideoStream *stream){
 	}
 }
 
-const char *video_stream_get_default_video_renderer(void){
-#if defined(MS2_WINDOWS_UNIVERSAL)
-	return "MSWinRTBackgroundDis";
-#elif defined(MS2_WINDOWS_PHONE)
+const char *video_stream_get_default_video_renderer(VideoStream *stream){
+#if defined(MS2_WINDOWS_PHONE)
 	return "MSWP8Dis";
 #elif defined(MS2_WINDOWS_DESKTOP)
-	return "MSDrawDibDisplay";
+	// Check if UWP filter can be created
+	if (stream && ms_factory_lookup_filter_by_name(media_stream_get_factory(&(stream->ms)) , "MSWinRTBackgroundDis")) {
+		return "MSWinRTBackgroundDis";
+	} else {
+		return "MSDrawDibDisplay";
+	}
 #elif defined(__ANDROID__)
 	return "MSAndroidTextureDisplay";
 #elif __APPLE__ && !TARGET_OS_IPHONE
@@ -281,9 +284,9 @@ static void choose_display_name(VideoStream *stream){
 	if (description->flags & DEVICE_HAS_CRAPPY_OPENGL)
 		stream->display_name = ms_strdup("MSAndroidDisplay");
 	else
-		stream->display_name = ms_strdup(video_stream_get_default_video_renderer());
+		stream->display_name = ms_strdup(video_stream_get_default_video_renderer(stream));
 #else
-	stream->display_name = ms_strdup(video_stream_get_default_video_renderer());
+	stream->display_name = ms_strdup(video_stream_get_default_video_renderer(stream));
 #endif
 }
 

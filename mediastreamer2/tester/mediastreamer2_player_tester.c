@@ -75,7 +75,7 @@ static void play_file(const char *filepath, PlayerTestFlags flags) {
 	Eof eof;
 	MSMediaPlayer *file_player = NULL;
 	MSSndCard *snd_card = ms_snd_card_manager_get_default_playback_card(ms_factory_get_snd_card_manager(_factory));
-	const char *display_name = video_stream_get_default_video_renderer();
+	const char *display_name = video_stream_get_default_video_renderer(NULL);
 	int duration, timeout;
 	const int seek_time = 6100;
 	const double timeout_prec = 0.05;
