@@ -7,9 +7,6 @@ job-ios-upload:
 
   stage: deploy
   tags: [ "deploy" ]
-  except:
-    variables:
-      - $FAST_LINUX_TESTS
 
   except:
     variables:
@@ -38,9 +35,6 @@ job-android-upload:
   stage: deploy
   tags: [ "docker-android" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
-  except:
-    variables:
-      - $FAST_LINUX_TESTS
 
   except:
     variables:
@@ -64,8 +58,9 @@ job-android-upload:
     - mkdir -p ~/.ssh && chmod 700 ~/.ssh
     - echo -e "Host gitlab.linphone.org\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
     - echo -e "Host linphone.org\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
-
+    
 # Currently we can't use artifact to upload this so we rebuild all android project
+
   script:
     - git config --global user.email "gitlab@belledonne-communications.com"
     - git config --global user.name "Gitlab"
@@ -79,7 +74,6 @@ job-android-upload:
 
   after_script:
     - rm -rf ~/.ssh || true
-
 
 job-android-upload-no-video:
 
@@ -97,7 +91,7 @@ job-android-upload-legacy:
   variables:
     CMAKE_OPTIONS: -DENABLE_JAVA_WRAPPER=NO
     GRADLE_OPTIONS: -Plegacy-wrapper -i
-
+    
 #################################################
 # Macosx
 #################################################
@@ -107,16 +101,15 @@ job-macosx-upload:
 
   stage: deploy
   tags: [ "deploy" ]
-  except:
-    variables:
-      - $FAST_LINUX_TESTS
-
+  
   except:
     variables:
       - $DEPLOY_RUN_ANDROID
-
+      - $DEPLOY_RUN_IOS
+    
   only:
     - schedules
+    
   dependencies:
     - job-macosx-xcode
 
@@ -127,3 +120,26 @@ job-macosx-upload:
     - pod repo push linphone-sdk-macosx build-desktop/linphone-sdk.podspec --skip-import-validation --local-only --verbose
     - cd ~/.cocoapods/repos/linphone-sdk-macosx && git push origin $CI_COMMIT_REF_NAME && cd -
     - pod repo remove linphone-sdk-macosx
+    
+job-debian-doc-upload:
+  stage: deploy
+  tags: [ "deploy" ]
+
+  except:
+    variables:
+      - $DEPLOY_RUN_ANDROID
+      - $DEPLOY_RUN_IOS
+      
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+    
+  dependencies:
+    - job-debian9-ninja-clang
+
+  script:
+    - cd linphone
+    #getting the version number to push the right version of the doc
+    - LINPHONE_VERSION=$(git describe | sed -e 's/-.*//g')
+    - echo "Linphone verison =" $LINPHONE_VERSION
+    - rsync -rlv ../build-desktop/linphone-sdk/desktop/share/doc/linphone/$LINPHONE_VERSION/* $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/docs/liblinphone/multilang
