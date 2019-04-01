@@ -647,18 +647,9 @@ static MSScalerDesc *scaler_impl=NULL;
 
 MSScalerContext *ms_scaler_create_context(int src_w, int src_h, MSPixFmt src_fmt,
                                           int dst_w, int dst_h, MSPixFmt dst_fmt, int flags){
-	if (!scaler_impl){
-#if defined(__ANDROID__) && defined(MS_HAS_ARM) && !defined(__aarch64__)
-		if (android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM && (android_getCpuFeatures() & ANDROID_CPU_ARM_FEATURE_NEON) != 0){
-			scaler_impl = &ms_android_scaler;
-		}
-#elif !defined(NO_FFMPEG)
-		scaler_impl=&ffmpeg_scaler;
-#endif
-	}
-	
-	if (scaler_impl)
-		return scaler_impl->create_context(src_w,src_h,src_fmt,dst_w,dst_h,dst_fmt, flags);
+	MSScalerDesc *impl = ms_video_get_scaler_impl();
+	if (impl)
+		return impl->create_context(src_w,src_h,src_fmt,dst_w,dst_h,dst_fmt, flags);
 	ms_fatal("No scaler implementation built-in, please supply one with ms_video_set_scaler_impl ()");
 	return NULL;
 }
@@ -673,6 +664,18 @@ void ms_scaler_context_free(MSScalerContext *ctx){
 
 void ms_video_set_scaler_impl(MSScalerDesc *desc){
 	scaler_impl=desc;
+}
+
+MSScalerDesc * ms_video_get_scaler_impl(void){
+	if (scaler_impl) return scaler_impl;
+#if defined(__ANDROID__) && defined(MS_HAS_ARM) && !defined(__aarch64__)
+	if (android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM && (android_getCpuFeatures() & ANDROID_CPU_ARM_FEATURE_NEON) != 0){
+		scaler_impl = &ms_android_scaler;
+	}
+#elif !defined(NO_FFMPEG)
+	scaler_impl=&ffmpeg_scaler;
+#endif
+	return scaler_impl;
 }
 
 /* Can rotate Y, U or V plane; use step=2 for interleaved UV planes otherwise step=1*/

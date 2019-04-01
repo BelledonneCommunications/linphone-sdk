@@ -369,6 +369,8 @@ MS2_PUBLIC void ms_scaler_context_free(MSScalerContext *ctx);
 
 MS2_PUBLIC void ms_video_set_scaler_impl(MSScalerDesc *desc);
 
+MS2_PUBLIC MSScalerDesc * ms_video_get_scaler_impl(void);
+
 MS2_PUBLIC mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation(MSYuvBufAllocator *allocator, const uint8_t* y, const uint8_t* cbcr, int rotation, int w, int h, int y_byte_per_row,int cbcr_byte_per_row, bool_t uFirstvSecond);
 
 MS2_PUBLIC mblk_t *copy_yuv_with_rotation(MSYuvBufAllocator *allocator, const uint8_t* y, const uint8_t* u, const uint8_t* v, int rotation, int w, int h, int y_byte_per_row, int u_byte_per_row, int v_byte_per_row);
