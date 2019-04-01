@@ -42,7 +42,7 @@
 
 static const MSVideoConfiguration vp8_conf_list[] = {
 #if defined(__ANDROID__) || (TARGET_OS_IPHONE == 1) || defined(__arm__) || defined(_M_ARM)
-	MS_VP8_CONF(1536000, 2560000, SXGA_MINUS, 25, 8),
+	MS_VP8_CONF(1536000, 3000000,       720P, 25, 8),
 	MS_VP8_CONF(1024000, 1536000,        XGA, 25, 8),
 	MS_VP8_CONF( 850000, 1024000,       SVGA, 25, 8),
 	MS_VP8_CONF( 700000, 3000000,        VGA, 30, 8),
@@ -199,7 +199,7 @@ static void enc_preprocess(MSFilter *f) {
 		else cpuused = 1;
 
 	}
-	if( s->cfg.g_threads == 1 ){
+	if (s->cfg.g_threads == 1 || ms_video_size_area_greater_than(MS_VIDEO_SIZE_720P, s->vconf.vsize)){
 		/* on mono-core iOS devices, we reduce the quality a bit more due to VP8 being slower with new Clang compilers */
 		cpuused = 16;
 	}
