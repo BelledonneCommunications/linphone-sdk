@@ -35,9 +35,6 @@ job-android-upload:
   stage: deploy
   tags: [ "docker-android" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
-  except:
-    variables:
-      - $FAST_LINUX_TESTS
 
   except:
     variables:
@@ -144,6 +141,5 @@ job-debian-doc-upload:
     - cd linphone
     #getting the version number to push the right version of the doc
     - LINPHONE_VERSION=$(git describe | sed -e 's/-.*//g')
-    - cd ..
     - echo "Linphone verison =" $LINPHONE_VERSION
-    - rsync -r build-desktop/linphone-sdk/desktop/share/doc/linphone/$LINPHONE_VERSION/* $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/docs/liblinphone/multilang
+    - rsync -rlv ../build-desktop/linphone-sdk/desktop/share/doc/linphone/$LINPHONE_VERSION/* $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/docs/liblinphone/multilang
