@@ -101,15 +101,12 @@ job-macosx-upload:
 
   stage: deploy
   tags: [ "deploy" ]
-  
-  except:
-    variables:
-      - $DEPLOY_RUN_ANDROID
-      - $DEPLOY_RUN_IOS
-    
+
   only:
     - schedules
-    
+    variables:
+      - $DEPLOY_RUN_MACOSX
+
   dependencies:
     - job-macosx-xcode
 
