@@ -27,7 +27,7 @@ include(LinphoneSdkUtils)
 
 # Create the zip file of the SDK
 execute_process(
-	COMMAND "zip" "-r" "linphone-sdk-${LINPHONESDK_VERSION}.zip" "linphone-sdk/desktop"
+	COMMAND "zip" "-r" "--symlinks" "linphone-sdk-${LINPHONESDK_VERSION}.zip" "linphone-sdk/desktop"
 	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 )
 
