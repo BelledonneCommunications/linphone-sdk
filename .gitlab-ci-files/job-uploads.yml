@@ -103,9 +103,11 @@ job-macosx-upload:
   tags: [ "deploy" ]
 
   only:
-    - schedules
     variables:
       - $DEPLOY_RUN_MACOSX
+
+  only:
+    - schedules
 
   dependencies:
     - job-macosx-xcode
