@@ -8,12 +8,10 @@ job-ios-upload:
   stage: deploy
   tags: [ "deploy" ]
 
-  except:
-    variables:
-      - $DEPLOY_RUN_ANDROID
-
   only:
-    - schedules
+    variables:
+      - $DEPLOY_RUN_IOS
+
   dependencies:
     - job-ios-xcode
 
@@ -36,9 +34,9 @@ job-android-upload:
   tags: [ "docker-android" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
 
-  except:
+  only:
     variables:
-      - $DEPLOY_RUN_IOS
+      - $DEPLOY_RUN_ANDROID
 
   variables:
     CCACHE_SIZE: 4G
@@ -101,15 +99,11 @@ job-macosx-upload:
 
   stage: deploy
   tags: [ "deploy" ]
-  
-  except:
-    variables:
-      - $DEPLOY_RUN_ANDROID
-      - $DEPLOY_RUN_IOS
-    
+
   only:
-    - schedules
-    
+    variables:
+      - $DEPLOY_RUN_MACOSX
+
   dependencies:
     - job-macosx-xcode
 
@@ -125,11 +119,6 @@ job-debian-doc-upload:
   stage: deploy
   tags: [ "deploy" ]
 
-  except:
-    variables:
-      - $DEPLOY_RUN_ANDROID
-      - $DEPLOY_RUN_IOS
-      
   only:
     variables:
       - $NIGHTLY_MASTER
