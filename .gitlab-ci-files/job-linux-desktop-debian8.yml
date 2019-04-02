@@ -7,32 +7,30 @@ job-debian8-makefile-gcc:
 
   tags: [ "docker-debian8" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
-  except:
+  only:
     variables:
-      - $DEPLOY_RUN_ANDROID
-      - $FAST_LINUX_TESTS
+      - $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: gcc
     CXX: g++
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-  extends: .scheduled-job-linux-desktop
+  extends: .job-linux-desktop
 
 
 job-debian8-makefile-clang:
 
   tags: [ "docker-debian8" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
-  except:
+  only:
     variables:
-      - $DEPLOY_RUN_ANDROID
-      - $FAST_LINUX_TESTS
+      - $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: clang
     CXX: clang++
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-  extends: .scheduled-job-linux-desktop
+  extends: .job-linux-desktop
 
 
 #################################################
@@ -44,22 +42,20 @@ job-debian8-ninja-gcc:
 
   tags: [ "docker-debian8" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
-  except:
+  only:
     variables:
-      - $DEPLOY_RUN_ANDROID
-      - $FAST_LINUX_TESTS
+      - $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Ninja
     CC: gcc
     CXX: g++
-  extends: .scheduled-job-linux-desktop
+  extends: .job-linux-desktop
 
 
 job-debian8-ninja-gcc-novideo:
-  except:
+  only:
     variables:
-      - $DEPLOY_RUN_ANDROID
-      - $FAST_LINUX_TESTS
+      - $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-debian8-ninja-gcc
@@ -68,9 +64,6 @@ job-debian8-ninja-gcc-novideo:
 job-debian8-ninja-clang:
 
   tags: [ "docker-debian8" ]
-  except:
-    variables:
-      - $DEPLOY_RUN_ANDROID
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
   variables:
     CMAKE_GENERATOR: Ninja
@@ -81,12 +74,9 @@ job-debian8-ninja-clang:
 
 job-debian8-ninja-clang-novideo:
 
-  except:
-    variables:
-      - $DEPLOY_RUN_ANDROID
-      - $FAST_LINUX_TESTS
   only:
-    - schedules
+    variables:
+      - $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-debian8-ninja-clang

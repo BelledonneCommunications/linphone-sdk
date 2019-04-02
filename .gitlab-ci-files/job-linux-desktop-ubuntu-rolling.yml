@@ -7,32 +7,30 @@ job-ubuntu-rolling-makefile-gcc:
 
   tags: [ "docker-ubuntu-rolling" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rolling
-  except:
+  only:
     variables:
-      - $DEPLOY_RUN_ANDROID
-      - $FAST_LINUX_TESTS
+      - $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: gcc
     CXX: g++
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-  extends: .scheduled-job-linux-desktop
+  extends: .job-linux-desktop
 
 
 job-ubuntu-rolling-makefile-clang:
 
   tags: [ "docker-ubuntu-rolling" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rolling
-  except:
+  only:
     variables:
-      - $DEPLOY_RUN_ANDROID
-      - $FAST_LINUX_TESTS
+      - $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: clang
     CXX: clang++
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-  extends: .scheduled-job-linux-desktop
+  extends: .job-linux-desktop
 
 
 #################################################
@@ -44,22 +42,20 @@ job-ubuntu-rolling-ninja-gcc:
 
   tags: [ "docker-ubuntu-rolling" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rolling
-  except:
+  only:
     variables:
-      - $DEPLOY_RUN_ANDROID
-      - $FAST_LINUX_TESTS
+      - $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Ninja
     CC: gcc
     CXX: g++
-  extends: .scheduled-job-linux-desktop
+  extends: .job-linux-desktop
 
 
 job-ubuntu-rolling-ninja-gcc-novideo:
-  except:
+  only:
     variables:
-      - $DEPLOY_RUN_ANDROID
-      - $FAST_LINUX_TESTS
+      - $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-ubuntu-rolling-ninja-gcc
@@ -67,9 +63,6 @@ job-ubuntu-rolling-ninja-gcc-novideo:
 
 job-ubuntu-rolling-ninja-clang:
   tags: [ "docker-ubuntu-rolling" ]
-  except:
-    variables:
-      - $DEPLOY_RUN_ANDROID
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rolling
   variables:
     CMAKE_GENERATOR: Ninja
@@ -80,12 +73,9 @@ job-ubuntu-rolling-ninja-clang:
 
 job-ubuntu-rolling-ninja-clang-novideo:
 
-  except:
-    variables:
-      - $DEPLOY_RUN_ANDROID
-      - $FAST_LINUX_TESTS
   only:
-    - schedules
+    variables:
+      - $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-ubuntu-rolling-ninja-clang

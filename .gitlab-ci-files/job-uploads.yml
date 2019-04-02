@@ -11,6 +11,7 @@ job-ios-upload:
   only:
     variables:
       - $DEPLOY_RUN_IOS
+      - $NIGHTLY_MASTER
 
   dependencies:
     - job-ios-xcode
@@ -37,6 +38,7 @@ job-android-upload:
   only:
     variables:
       - $DEPLOY_RUN_ANDROID
+      - $NIGHTLY_MASTER
 
   variables:
     CCACHE_SIZE: 4G
@@ -44,8 +46,6 @@ job-android-upload:
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
     GIT_STRATEGY: clone
     GRADLE_OPTIONS: -i
-
-  extends: .scheduled-job-android
 
   dependencies:
     - job-android-ninja-r17c
@@ -103,6 +103,7 @@ job-macosx-upload:
   only:
     variables:
       - $DEPLOY_RUN_MACOSX
+      - $NIGHTLY_MASTER
 
   dependencies:
     - job-macosx-xcode
