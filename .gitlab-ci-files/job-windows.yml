@@ -28,10 +28,7 @@
   extends: .job-prepare
   stage: build
   tags: [ "windows" ]
-  except:
-    variables:
-      - $DEPLOY_RUN_ANDROID
-      - $DEPLOY_RUN_IOS
+  
   variables:
     CMAKE_OPTIONS: -DENABLE_LIME_X3DH=NO
 
@@ -52,8 +49,8 @@
   extends: .job-windows-vs2017
 
   only:
-    refs:
-      - schedules
+    variables:
+      - $NIGHTLY_MASTER
   before_script: 
     - set "CLCACHE_DISABLE=1"
     
@@ -91,7 +88,8 @@ job-windows-vs2017-package:
   dependencies:
     - job-windows-vs2017-scheduled
   only:
-    - $NIGHTLY_MASTER
+    variables:
+      - $NIGHTLY_MASTER
   script:
     - call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat"
     - cd build-desktop
