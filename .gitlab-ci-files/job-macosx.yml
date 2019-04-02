@@ -3,15 +3,6 @@
   extends: .job-prepare
   stage: build
   tags: [ "macosx" ]
-  except:
-    variables:
-      - $DEPLOY_RUN_ANDROID
-      - $FAST_LINUX_TESTS
-
-  except:
-    variables:
-      - $DEPLOY_RUN_ANDROID
-      - $DEPLOY_RUN_IOS
 
   script:
     - ccache -s
@@ -28,10 +19,6 @@
     when: always
     expire_in: 1 week
 
-.scheduled-job-macosx-desktop:
-  extends: .job-macosx-desktop
-  only:
-    - schedules
 
 #################################################
 # Makefile
@@ -40,12 +27,9 @@
 
 job-macosx-makefile:
 
-  except:
-    variables:
-      - $DEPLOY_RUN_ANDROID
-      - $FAST_LINUX_TESTS
   only:
-    - schedules
+    variables:
+      - $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
@@ -59,10 +43,6 @@ job-macosx-makefile:
 
 job-macosx-ninja:
 
-  except:
-    variables:
-      - $DEPLOY_RUN_ANDROID
-      - $FAST_LINUX_TESTS
   variables:
     CMAKE_GENERATOR: Ninja
   extends: .job-macosx-desktop
@@ -70,12 +50,9 @@ job-macosx-ninja:
 
 job-macosx-ninja-novideo:
 
-  except:
-    variables:
-      - $DEPLOY_RUN_ANDROID
-      - $FAST_LINUX_TESTS
   only:
-    - schedules
+    variables:
+      - $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-macosx-ninja
@@ -91,14 +68,11 @@ job-macosx-xcode:
   stage: build
   tags: [ "macosx" ]
 
-  except:
-    variables:
-      - $DEPLOY_RUN_ANDROID
-      - $DEPLOY_RUN_IOS
-      - $FAST_LINUX_TESTS
-
   only:
-    - schedules
+    variables:
+      - $NIGHTLY_MASTER
+      - $DEPLOY_RUN_MACOSX
+      
   script:
     - mkdir -p build-desktop
     - cd build-desktop
