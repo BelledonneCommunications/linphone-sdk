@@ -89,7 +89,9 @@ job-windows-vs2017-package:
   stage: package
   tags: [ "windows" ]
   dependencies:
-    - job-windows-vs2017
+    - job-windows-vs2017-scheduled
+  only:
+    - $NIGHTLY_MASTER
   script:
     - call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat"
     - cd build-desktop
