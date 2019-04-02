@@ -51,6 +51,7 @@
   only:
     variables:
       - $NIGHTLY_MASTER
+      - $PACKAGE_RUN_WINDOWS
   before_script: 
     - set "CLCACHE_DISABLE=1"
     
@@ -90,6 +91,7 @@ job-windows-vs2017-package:
   only:
     variables:
       - $NIGHTLY_MASTER
+      - $PACKAGE_RUN_WINDOWS
   script:
     - call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat"
     - cd build-desktop
