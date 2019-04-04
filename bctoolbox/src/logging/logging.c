@@ -124,10 +124,10 @@ static void wrapper(void* info,const char *domain, BctbxLogLevel lev, const char
 	if (func) func(domain, lev, fmt,  args);
 }
 
-static bctbx_logger_t * bctbx_get_logger(void){
-	static bctbx_logger_t main_logger = {0};
-	static bctbx_log_handler_t static_handler = {0};
+static bctbx_logger_t main_logger = {0};
+static bctbx_log_handler_t static_handler = {0};
 
+static bctbx_logger_t * bctbx_get_logger(void){
 	if (main_logger.default_log_domain == NULL){
 		main_logger.default_log_domain = bctbx_log_domain_new(NULL, BCTBX_LOG_WARNING | BCTBX_LOG_ERROR | BCTBX_LOG_FATAL);
 		bctbx_mutex_init(&main_logger.domains_mutex, NULL);
@@ -246,7 +246,7 @@ void bctbx_set_log_handler(BctbxLogFunc func){
 void bctbx_set_log_handler_for_domain(BctbxLogFunc func, const char* domain){
 	bctbx_log_handler_t *h = bctbx_get_logger()->default_handler;
 	h->user_info=(void*)func;
-	bctbx_log_handler_set_domain(h->user_info, domain);
+	bctbx_log_handler_set_domain(h, domain);
 }
 
 void bctbx_set_log_file(FILE* f){
