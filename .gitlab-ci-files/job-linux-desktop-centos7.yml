@@ -133,9 +133,6 @@ test-mediastreamer:
 test-liblinphone:
   tags: [ "docker-test-centos7-liblinphone" ]
   extends: .test
-  only:
-    variables:
-      - $LIBLINPHONE_UNIT_TEST
   dependencies:
     - job-centos7-ninja-gcc
   variables:
@@ -145,7 +142,12 @@ test-liblinphone:
     LOG_PATTERN: "logLiblinphoneAllParThIpv6"
     PATH_TO_TESTER: "/builds/BC/public/linphone-sdk/build-desktop/linphone-sdk/desktop/bin"
     ADDITIONNAL_OPTIONS: "--dns-hosts /builds/BC/public/linphone-sdk/linphone/tester/tester_hosts --show-account-manager-logs"
-    
+
+test-liblinphone-mr:
+  only:
+   - merge_requests
+  extends: test-liblinphone
+
 #apparently there is no more standalone lime tester
 #test-lime:
 #  tags: [ "docker-test-centos7-lime" ]
