@@ -329,6 +329,7 @@ static void video_capture_process(MSFilter *f){
 	}
 
 	ms_video_update_average_fps(&d->averageFps, f->ticker->time);
+	mblk_set_timestamp_info(d->frame, f->ticker->time * 90);
 
 	ms_queue_put(f->outputs[0],d->frame);
 	d->frame = 0;

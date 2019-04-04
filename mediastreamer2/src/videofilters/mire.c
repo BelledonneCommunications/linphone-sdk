@@ -84,8 +84,11 @@ static void mire_process(MSFilter *f){
 	MireData *d=(MireData*)f->data;
 	float elapsed=(float)(f->ticker->time-d->starttime);
 	if ((elapsed*d->fps/1000.0)>d->index){
+		mblk_t *om;
 		mire_draw(d);
-		ms_queue_put(f->outputs[0],dupb(d->pic));
+		om = dupb(d->pic);
+		mblk_set_timestamp_info(om, (uint32_t)(f->ticker->time * 90));
+		ms_queue_put(f->outputs[0], om);
 		d->index++;
 	}
 }

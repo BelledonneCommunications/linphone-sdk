@@ -239,6 +239,7 @@ void static_image_process(MSFilter *f) {
 			mblk_t *o = dupmsg(d->pic);
 			/*prevent mirroring at the output*/
 			mblk_set_precious_flag(o,1);
+			mblk_set_timestamp_info(o, (uint32_t)(f->ticker->time * 90));
 			ms_queue_put(f->outputs[0],o);
 		}
 		ms_filter_unlock(f);

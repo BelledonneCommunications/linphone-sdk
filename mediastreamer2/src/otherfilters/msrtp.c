@@ -29,10 +29,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "ortp/b64.h"
 #include "mediastreamer2/stun.h"
 
+#include "box-plot.h"
+
 static const int default_dtmf_duration_ms=100; /*in milliseconds*/
 
 struct SenderData {
 	RtpSession *session;
+	MSBoxPlot processing_delay_stats;
 	uint32_t tsoff;
 	uint32_t last_ts;
 	int64_t last_sent_time;
@@ -414,6 +417,24 @@ static void process_cn(MSFilter *f, SenderData *d, uint32_t timestamp, mblk_t *i
 	}
 }
 
+static void compute_processing_delay_stats(MSFilter *f, mblk_t *im) {
+	SenderData *d = (SenderData *)f->data;
+	uint64_t source_ts = (mblk_get_timestamp_info(im) * 1000ULL) / (uint64_t)d->rate;
+	int delay = (int)(f->ticker->time - source_ts);
+	ms_box_plot_add_value(&d->processing_delay_stats, delay);
+}
+
+static void print_processing_delay_stats(SenderData *d) {
+	int payloadId = d->session->snd.pt;
+	int payloadType = d->session->snd.profile->payload[payloadId]->type;
+	if (payloadType == PAYLOAD_VIDEO) {
+		char *box_plot_str = ms_box_plot_to_string(&d->processing_delay_stats, "ms");
+		ms_message("video processing delay = %s (RtpSession=%p)", box_plot_str, d->session);
+		ms_box_plot_reset(&d->processing_delay_stats);
+		bctbx_free(box_plot_str);
+	}
+}
+
 static void _sender_process(MSFilter * f)
 {
 	SenderData *d = (SenderData *) f->data;
@@ -450,6 +471,7 @@ static void _sender_process(MSFilter * f)
 			}
 		}
 		if (im){
+			compute_processing_delay_stats(f, im);
 			if (d->skip == FALSE && d->mute==FALSE){
 				header = rtp_session_create_packet(s, 12, NULL, 0);
 				rtp_set_markbit(header, mblk_get_marker_info(im));
@@ -476,6 +498,11 @@ static void _sender_process(MSFilter * f)
 
 	/*every second, compute output bandwidth*/
 	if (f->ticker->time % 1000 == 0) rtp_session_compute_send_bandwidth(d->session);
+
+	if (f->ticker->time % 5000 == 0) {
+		print_processing_delay_stats(d);
+		ms_box_plot_reset(&d->processing_delay_stats);
+	}
 	ms_filter_unlock(f);
 }
 

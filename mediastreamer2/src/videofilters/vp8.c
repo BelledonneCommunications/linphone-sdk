@@ -446,8 +446,6 @@ static bool_t is_frame_independent(unsigned int flags){
 static void enc_process_frame_task(void *obj) {
 	mblk_t *im;
 	MSFilter *f = (MSFilter*)obj;
-	uint64_t timems = f->ticker->time;
-	uint32_t timestamp = (uint32_t)(timems*90);
 	EncState *s = (EncState *)f->data;
 	unsigned int flags = 0;
 	vpx_codec_err_t err;
@@ -481,7 +479,6 @@ static void enc_process_frame_task(void *obj) {
 
 	flags = 0;
 	ms_yuv_buf_init_from_mblk(&yuv, im);
-	freemsg(im);
 	vpx_img_wrap(&img, VPX_IMG_FMT_I420, s->vconf.vsize.width, s->vconf.vsize.height, 1, yuv.planes[0]);
 
 	if ((s->avpf_enabled != TRUE) && ms_video_starter_need_i_frame(&s->starter, f->ticker->time)) {
@@ -543,7 +540,7 @@ static void enc_process_frame_task(void *obj) {
 				packet->m = allocb(pkt->data.frame.sz, 0);
 				memcpy(packet->m->b_wptr, pkt->data.frame.buf, pkt->data.frame.sz);
 				packet->m->b_wptr += pkt->data.frame.sz;
-				mblk_set_timestamp_info(packet->m, timestamp);
+				mblk_set_timestamp_info(packet->m, mblk_get_timestamp_info(im));
 				packet->pd = ms_new0(Vp8RtpFmtPayloadDescriptor, 1);
 				packet->pd->non_reference_frame = s->avpf_enabled && !is_ref_frame;
 				if (s->avpf_enabled == TRUE) {
@@ -607,6 +604,8 @@ static void enc_process_frame_task(void *obj) {
 			s->picture_id = 0;
 #endif
 	}
+
+	freemsg(im);
 }
 
 static void enc_process(MSFilter *f) {
