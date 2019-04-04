@@ -136,6 +136,8 @@ test-liblinphone:
   only:
     variables:
       - $LIBLINPHONE_UNIT_TEST
+    refs:
+      - merge_requests
   dependencies:
     - job-centos7-ninja-gcc
   variables:
