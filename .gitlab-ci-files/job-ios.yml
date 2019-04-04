@@ -69,14 +69,11 @@ job-ios-xcode:
 
   stage: build
   tags: [ "macosx" ]
-
+  
   only:
     variables:
       - $NIGHTLY_MASTER
       - $DEPLOY_RUN_IOS
-
-  variables:
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES
 
   script:
     - mkdir -p build-ios
