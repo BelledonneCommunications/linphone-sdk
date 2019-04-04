@@ -52,6 +52,8 @@
     - $EXPORT_DISPLAY
     
     - ls -la
+    - setcap cap_sys_nice+ep ./$TESTER_BIN || true
+    - getcap ./$TESTER_BIN || true
     - ./$TESTER_BIN --verbose --parallel $RESOURCE_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt
   
   after_script:
