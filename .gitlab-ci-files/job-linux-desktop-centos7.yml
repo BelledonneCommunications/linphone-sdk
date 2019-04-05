@@ -156,6 +156,8 @@ test-liblinphone-mr:
         - tags 
      variables:
         - $DUMMY_TRUE
+  except: 
+   - schedules
 
 #apparently there is no more standalone lime tester
 #test-lime:
