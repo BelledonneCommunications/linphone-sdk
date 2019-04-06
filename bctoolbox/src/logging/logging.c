@@ -653,14 +653,16 @@ static void _rotate_log_collection_files(bctbx_file_log_handler_t *filehandler) 
 	while(access(log_filename, F_OK) != -1) {
 		// file exists
 		n++;
+		bctbx_free(log_filename);
 		log_filename = bctbx_strdup_printf("%s/%s_%d%s",
 		filehandler->path,
 		file_no_extension,
 		n,
 		extension2);
 	}
-
+	
 	while(n > 1) {
+		bctbx_free(log_filename);
 		log_filename = bctbx_strdup_printf("%s/%s_%d%s",
 		filehandler->path,
 		file_no_extension,
@@ -674,8 +676,9 @@ static void _rotate_log_collection_files(bctbx_file_log_handler_t *filehandler) 
 
 		n--;
 		rename(log_filename, log_filename2);
+		bctbx_free(log_filename2);
 	}
-
+	bctbx_free(log_filename);
 	log_filename = bctbx_strdup_printf("%s/%s",
 	filehandler->path,
 	filehandler->name);
