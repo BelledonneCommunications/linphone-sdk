@@ -800,6 +800,11 @@ int bc_tester_run_parallel(void) {
 	}
 	bc_tester_printf(bc_printf_verbosity_info, "All suites ended.");
 	all_complete_message_handler(NULL);
+	{
+		int seconds = (int)(elapsed - time_start)/1000;
+		
+		bc_tester_printf(bc_printf_verbosity_info, "Full parallel run completed in %2i mn %2i s.\n", seconds/60, seconds % 60);
+	}
 	return ret;
 }
 
