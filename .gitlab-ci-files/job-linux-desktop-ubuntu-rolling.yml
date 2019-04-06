@@ -7,24 +7,30 @@ job-ubuntu-rolling-makefile-gcc:
 
   tags: [ "docker-ubuntu-rolling" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rolling
+  only:
+    variables:
+      - $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: gcc
     CXX: g++
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-  extends: .scheduled-job-linux-desktop
+  extends: .job-linux-desktop
 
 
 job-ubuntu-rolling-makefile-clang:
 
   tags: [ "docker-ubuntu-rolling" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rolling
+  only:
+    variables:
+      - $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: clang
     CXX: clang++
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-  extends: .scheduled-job-linux-desktop
+  extends: .job-linux-desktop
 
 
 #################################################
@@ -36,22 +42,26 @@ job-ubuntu-rolling-ninja-gcc:
 
   tags: [ "docker-ubuntu-rolling" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rolling
+  only:
+    variables:
+      - $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Ninja
     CC: gcc
     CXX: g++
-  extends: .scheduled-job-linux-desktop
+  extends: .job-linux-desktop
 
 
 job-ubuntu-rolling-ninja-gcc-novideo:
-
+  only:
+    variables:
+      - $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-ubuntu-rolling-ninja-gcc
 
 
 job-ubuntu-rolling-ninja-clang:
-
   tags: [ "docker-ubuntu-rolling" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rolling
   variables:
@@ -64,7 +74,44 @@ job-ubuntu-rolling-ninja-clang:
 job-ubuntu-rolling-ninja-clang-novideo:
 
   only:
-    - schedules
+    variables:
+      - $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-ubuntu-rolling-ninja-clang
+  
+  
+#################################################
+# TESTS
+#################################################
+
+
+test-bctoolbox-ubuntu:
+  extends: .test-bctoolbox
+  dependencies:
+    - job-ubuntu-rolling-ninja-clang
+  tags: [ "docker-ubuntu-rolling" ]
+  
+test-bellesip-ubuntu:
+  extends: .test-bellesip
+  dependencies:
+    - job-ubuntu-rolling-ninja-clang
+  tags: [ "docker-ubuntu-rolling" ]
+  
+test-belr-ubuntu:
+  extends: .test-belr
+  dependencies:
+    - job-ubuntu-rolling-ninja-clang
+  tags: [ "docker-ubuntu-rolling" ]
+  
+test-belcard-ubuntu:
+  extends: .test-belcard
+  dependencies:
+    - job-ubuntu-rolling-ninja-clang
+  tags: [ "docker-ubuntu-rolling" ]
+  
+test-bzrtp-ubuntu:
+  extends: .test-bzrtp
+  dependencies:
+    - job-ubuntu-rolling-ninja-clang
+  tags: [ "docker-ubuntu-rolling" ]

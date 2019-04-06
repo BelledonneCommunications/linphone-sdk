@@ -3,13 +3,15 @@ buildDir = 'linphone-sdk/bin'
 
 buildscript {
     repositories {
+        google()
         jcenter()
         mavenCentral()
-        mavenLocal()
-        google()
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.1.0'
+        classpath 'com.android.tools.build:gradle:3.3.2'
     }
 }
 
@@ -17,24 +19,24 @@ allprojects {
     repositories {
         google()
         jcenter()
-        mavenCentral()
-        mavenLocal()
-        maven { url "https://raw.github.com/synergian/wagon-git/releases"}
     }
 }
 
 configurations {
     javadocDeps
-    deployerJars
 }
 
 apply plugin: 'com.android.library'
-apply plugin: 'maven'
+apply plugin: 'maven-publish'
 
 dependencies {
     implementation 'org.apache.commons:commons-compress:1.16.1'
     javadocDeps 'org.apache.commons:commons-compress:1.16.1'
-    deployerJars "ar.com.synergian:wagon-git:0.2.5"
+}
+
+static def isGeneratedJavaWrapperAvailable() {
+    File coreWrapper = new File('@LINPHONESDK_BUILD_DIR@/linphone-sdk/android-@LINPHONESDK_FIRST_ARCH@/share/linphonej/java/org/linphone/core/Core.java')
+    return coreWrapper.exists()
 }
 
 def rootSdk = '@LINPHONESDK_BUILD_DIR@/linphone-sdk/android-@LINPHONESDK_FIRST_ARCH@'
@@ -43,10 +45,25 @@ srcDir += [rootSdk + '/share/linphonej/java/org/linphone/core/']
 srcDir += ['@LINPHONESDK_DIR@/linphone/wrappers/java/classes/']
 
 def excludePackage = []
-
 excludePackage.add('**/gdb.*')
 excludePackage.add('**/libopenh264**')
 excludePackage.add('**/LICENSE.txt')
+
+def javaExcludes = []
+javaExcludes.add('**/mediastream/MediastreamerActivity.java')
+if (!isGeneratedJavaWrapperAvailable()) {
+    // We have to remove some classes that requires the new java wrapper
+    println("Old java wrapper detected, adding it to sources and removing some incompatible classes")
+
+    // This classes uses the new DialPlan wrapped object
+    javaExcludes.add('**/Utils.java')
+    javaExcludes.add('**/H264Helper.java')
+
+    // Add the previous wrapper to sources
+    srcDir += ['@LINPHONESDK_DIR@/linphone/java/common/']
+    srcDir += ['@LINPHONESDK_DIR@/linphone/java/impl/']
+    srcDir += ['@LINPHONESDK_DIR@/linphone/java/j2se/']
+}
 
 def gitVersion = new ByteArrayOutputStream()
 def gitBranch = new ByteArrayOutputStream()
@@ -75,25 +92,16 @@ task getGitVersion {
 project.tasks['preBuild'].dependsOn 'getGitVersion'
 
 android {
-
-    buildTypes {
-        release {}
-        debug {}
-    }
-
     defaultConfig {
         compileSdkVersion 28
-        buildToolsVersion "28.0.0"
         minSdkVersion 16
         targetSdkVersion 28
         versionCode 4100
         versionName "4.1"
-        multiDexEnabled true
         setProperty("archivesBaseName", "linphone-sdk-android")
         consumerProguardFiles "${buildDir}/proguard.txt"
     }
 
-    // Signing
     signingConfigs {
         release {
             storeFile file(RELEASE_STORE_FILE)
@@ -102,22 +110,20 @@ android {
             keyPassword RELEASE_KEY_PASSWORD
         }
     }
+
     buildTypes {
         release {
             signingConfig signingConfigs.release
-            minifyEnabled true
-            useProguard true
-            proguardFiles "${buildDir}/proguard.txt"
+            minifyEnabled false
+            useProguard false
             resValue "string", "linphone_sdk_version", gitVersion.toString().trim()
             resValue "string", "linphone_sdk_branch", gitBranch.toString().trim()
         }
-        packaged {
-            initWith release
-            signingConfig null
-            //matchingFallbacks = ['debug', 'release']
-        }
         debug {
+            minifyEnabled false
+            useProguard false
             debuggable true
+            jniDebuggable true
             resValue "string", "linphone_sdk_version", gitVersion.toString().trim() + "-debug"
             resValue "string", "linphone_sdk_branch", gitBranch.toString().trim()
         }
@@ -137,18 +143,22 @@ android {
             aidl.srcDirs = srcDir
             assets.srcDirs = ["${buildDir}/sdk-assets/assets/"]
             renderscript.srcDirs = srcDir
-            jniLibs.srcDirs = ["@LINPHONESDK_BUILD_DIR@/libs"]
-            //resources.srcDir("res")
+            java.excludes = javaExcludes
 
-            java.excludes = ['**/mediastream/MediastreamerActivity.java']
-
-            // Exclude some useless files
+            // Exclude some useless files and don't strip libraries, stripping will be taken care of by CopyLibs.cmake
             packagingOptions {
                 excludes = excludePackage
+                doNotStrip '**/*.so'
             }
         }
-        debug.setRoot('build-types/debug')
-        release.setRoot('build-types/release')
+        debug {
+            root = 'build-types/debug'
+            jniLibs.srcDirs = ["@LINPHONESDK_BUILD_DIR@/libs-debug"]
+        }
+        release {
+            root = 'build-types/release'
+            jniLibs.srcDirs = ["@LINPHONESDK_BUILD_DIR@/libs"]
+        }
     }
 }
 
@@ -156,9 +166,7 @@ android {
 
 task(releaseJavadoc, type: Javadoc, dependsOn: "assembleRelease") {
     source = srcDir
-    excludes = ['**/mediastream/MediastreamerActivity.java',
-                '**/**.html',
-                '**/**.aidl']
+    excludes = javaExcludes.plus(['**/**.html', '**/**.aidl'])
     classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
     classpath += files(android.libraryVariants.release.javaCompile.classpath.files)
     classpath += configurations.javadocDeps
@@ -207,24 +215,47 @@ task copyAssets(type: Sync) {
     }
     // do not copy those
     includeEmptyDirs = false
-
 }
 
 project.tasks['preBuild'].dependsOn 'copyAssets'
 project.tasks['preBuild'].dependsOn 'copyProguard'
 
-uploadArchives {
+def artefactGroupId = 'org.linphone'
+if (project.hasProperty("legacy-wrapper")) {
+    artefactGroupId = artefactGroupId + '.legacy'
+}
+if (project.hasProperty("tunnel")) {
+    artefactGroupId = artefactGroupId + '.tunnel'
+}
+if (project.hasProperty("no-video")) {
+    artefactGroupId = artefactGroupId + '.no-video'
+}
+println("AAR artefact group id will be: " + artefactGroupId)
+
+publishing {
+    publications {
+        debug(MavenPublication) {
+            groupId artefactGroupId
+            artifactId 'linphone-sdk-android' + '-debug'
+            version gitVersion.toString().trim()
+            artifact("$buildDir/outputs/aar/linphone-sdk-android-debug.aar")
+        }
+        release(MavenPublication) {
+            groupId artefactGroupId
+            artifactId 'linphone-sdk-android'
+            version gitVersion.toString().trim()
+            artifact("$buildDir/outputs/aar/linphone-sdk-android-release.aar")
+
+            // Also upload the javadoc
+            artifact androidJavadocsJar
+        }
+    }
     repositories {
-        mavenDeployer {
-            configuration = configurations.deployerJars
-            repository(url: 'git:' + gitBranch.toString().trim() + '://git@gitlab.linphone.org:BC/public/maven_repository.git')
-            pom.project {
-                groupId 'org.linphone'
-                artifactId 'linphone-sdk-android'
-                version gitVersion.toString().trim()
-            }
+        maven {
+            url "./maven_repository/"
         }
     }
 }
 
-project.tasks['uploadArchives'].dependsOn 'getGitVersion'
+project.tasks['assemble'].dependsOn 'getGitVersion'
+project.tasks['publish'].dependsOn 'assemble'

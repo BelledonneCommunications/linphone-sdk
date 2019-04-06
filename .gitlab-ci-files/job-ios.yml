@@ -20,12 +20,6 @@
     expire_in: 1 week
 
 
-.scheduled-job-ios:
-  extends: .job-ios
-  only:
-    - schedules
-
-
 #################################################
 # Makefile
 #################################################
@@ -33,15 +27,14 @@
 
 job-ios-makefile:
 
-  except:
+  only:
     variables:
-      - $DEPLOY_RUN_ANDROID
-      - $DEPLOY_RUN_IOS
+      - $NIGHTLY_MASTER
 
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-  extends: .scheduled-job-ios
+  extends: .job-ios
 
 
 #################################################
@@ -51,11 +44,6 @@ job-ios-makefile:
 
 job-ios-ninja:
 
-  except:
-    variables:
-      - $DEPLOY_RUN_ANDROID
-      - $DEPLOY_RUN_IOS
-
   variables:
     CMAKE_GENERATOR: Ninja
   extends: .job-ios
@@ -63,13 +51,10 @@ job-ios-ninja:
 
 job-ios-ninja-novideo:
 
-  except:
-    variables:
-      - $DEPLOY_RUN_ANDROID
-      - $DEPLOY_RUN_IOS
-
   only:
-    - schedules
+    variables:
+      - $NIGHTLY_MASTER
+      
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-ios-ninja
@@ -84,13 +69,12 @@ job-ios-xcode:
 
   stage: build
   tags: [ "macosx" ]
-
-  except:
-    variables:
-      - $DEPLOY_RUN_ANDROID
-
+  
   only:
-    - schedules
+    variables:
+      - $NIGHTLY_MASTER
+      - $DEPLOY_RUN_IOS
+
   script:
     - mkdir -p build-ios
     - cd build-ios

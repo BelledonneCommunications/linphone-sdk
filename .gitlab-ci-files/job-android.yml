@@ -23,12 +23,6 @@
     expire_in: 1 week
 
 
-.scheduled-job-android:
-  extends: .job-android
-  only:
-    - schedules
-
-
 #################################################
 # Makefile
 #################################################
@@ -37,54 +31,49 @@
 job-android-makefile-r16b:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r16b
-  except:
+  only:
     variables:
-      - $DEPLOY_RUN_ANDROID
-      - $DEPLOY_RUN_IOS
+      - $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-  extends: .scheduled-job-android
+  extends: .job-android
 
 
 job-android-makefile-r17c:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
-  except:
+  only:
     variables:
-      - $DEPLOY_RUN_ANDROID
-      - $DEPLOY_RUN_IOS
+      - $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-    CMAKE_OPTIONS: -DENABLE_AAUDIO=ON
-  extends: .scheduled-job-android
+  extends: .job-android
 
 
 job-android-makefile-r18b:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r18b
-  except:
+  only:
     variables:
-      - $DEPLOY_RUN_ANDROID
-      - $DEPLOY_RUN_IOS
+      - $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-  extends: .scheduled-job-android
+  extends: .job-android
 
 
 job-android-makefile-r19:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r19
-  except:
+  only:
     variables:
-      - $DEPLOY_RUN_ANDROID
-      - $DEPLOY_RUN_IOS
+      - $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-  extends: .scheduled-job-android
+  extends: .job-android
 
 
 #################################################
@@ -95,19 +84,18 @@ job-android-makefile-r19:
 job-android-ninja-r16b:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r16b
-  except:
+  only:
     variables:
-      - $DEPLOY_RUN_ANDROID
-      - $DEPLOY_RUN_IOS
+      - $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Ninja
-  extends: .scheduled-job-android
+  extends: .job-android
 
 
 job-android-ninja-r16b-novideo:
-
   only:
-    - schedules
+    variables:
+      - $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-android-ninja-r16b
@@ -116,49 +104,37 @@ job-android-ninja-r16b-novideo:
 job-android-ninja-r17c:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
-  except:
-    variables:
-      - $DEPLOY_RUN_IOS
   variables:
     CMAKE_GENERATOR: Ninja
-    CMAKE_OPTIONS: -DENABLE_AAUDIO=ON
   extends: .job-android
 
 
 job-android-ninja-r17c-novideo:
-
   only:
-    - schedules
-  except:
     variables:
-      - $DEPLOY_RUN_ANDROID
-      - $DEPLOY_RUN_IOS
+      - $NIGHTLY_MASTER
   variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_AAUDIO=ON
+    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-android-ninja-r17c
 
 
 job-android-ninja-r18b:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r18b
-  except:
+  only:
     variables:
-      - $DEPLOY_RUN_ANDROID
-      - $DEPLOY_RUN_IOS
+      - $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Ninja
-    CMAKE_OPTIONS: -DENABLE_AAUDIO=ON
-  extends: .scheduled-job-android
+  extends: .job-android
 
 
 job-android-ninja-r19:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r19
-  except:
+  only:
     variables:
-      - $DEPLOY_RUN_ANDROID
-      - $DEPLOY_RUN_IOS
+      - $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Ninja
-    CMAKE_OPTIONS: -DENABLE_AAUDIO=ON
-  extends: .scheduled-job-android
+  extends: .job-android

@@ -9,7 +9,7 @@ Pod::Spec.new do |s|
   s.license      = { :type => "GNU GPL 2", :text => <<-LICENSE
 @LINPHONESDK_LICENSE@LICENSE
     }
-  s.author       = "employees@belledonne-communications.com" 
+  s.author       = { 'Belledonne Communications SARL' => 'linphone-iphone@belledonne-communications.com' }
   s.platform     = :ios, "9.0"
   s.source       = { :http => "@LINPHONESDK_IOS_BASE_URL@/linphone-sdk-ios-@LINPHONESDK_VERSION@.zip" }
   s.vendored_frameworks = "linphone-sdk/apple-darwin/Frameworks/**"

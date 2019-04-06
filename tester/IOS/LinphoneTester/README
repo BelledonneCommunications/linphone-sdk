@@ -1,0 +1,13 @@
+To run all the tests:
+
+1. Build iOS sdk
+
+2. Pod install
+
+3. To run the tests:
+   xcodebuild -workspace LinphoneTester.xcworkspace -scheme LinphoneTester -sdk iphonesimulator -destination name='iPhone 7 Plus' -derivedDataPath $WORKSPACE build test 2>&1 | tee liblinphone-tests.log
+
+
+4. Zip logs:
+   cat liblinphone-tests.log | ocunit2junit
+   gzip liblinphone-tests.log
