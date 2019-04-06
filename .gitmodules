@@ -121,3 +121,6 @@
 [submodule "msaaudio"]
 	path = msaaudio
 	url = https://gitlab.linphone.org/BC/public/msaaudio.git
+[submodule "mswinrtvid"]
+	path = mswinrtvid
+	url = https://gitlab.linphone.org/BC/public/mswinrtvid.git

@@ -1,12 +1,11 @@
+#################################################
+# BUILD
+#################################################
+
 .job-linux-desktop:
 
   stage: build
   extends: .linux-prepare
-
-  except:
-    variables:
-      - $DEPLOY_RUN_ANDROID
-      - $DEPLOY_RUN_IOS
 
   script:
     - export CC=$CC
@@ -15,9 +14,117 @@
     - cd build-desktop
     - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
+  artifacts:
+    paths:
+      - build-desktop/linphone-sdk/desktop/bin/*
+      - build-desktop/linphone-sdk/desktop/lib/*
+      - build-desktop/linphone-sdk/desktop/lib64/*
+      - build-desktop/linphone-sdk/desktop/include/*
+      - build-desktop/linphone-sdk/desktop/share/*
+      - build-desktop/WORK/desktop/Build/bctoolbox/tester/*
+      - build-desktop/WORK/desktop/Build/bzrtp/test/*
+      #Lime data folder isn't installed at  the right place !
+      #We have to find it and add it manually...
+      - lime/tester/*
+      - linphone/tester/*
+    expire_in: 1 week
 
+    
+#################################################
+# TESTS
+#################################################
 
-.scheduled-job-linux-desktop:
-  extends: .job-linux-desktop
+.test:
+  stage: test
+  allow_failure: true
   only:
-    - schedules
+    variables:
+      - $NIGHTLY_MASTER
+
+  script:
+    - cd $PATH_TO_TESTER
+    
+    #pulseaudio launch for mediastreamer
+    - $PULSEAUDIO
+    
+    #X emulation for linphone
+    - $XVFB &
+    - $EXPORT_DISPLAY
+    
+    - ls -la
+    - sudo setcap cap_sys_nice+ep ./$TESTER_BIN || true
+    - getcap ./$TESTER_BIN || true
+    - ./$TESTER_BIN --verbose --parallel $RESOURCE_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt
+  
+  after_script:
+    - pwd
+    - cd $PATH_TO_TESTER
+    - echo "thread apply all bt" | sudo tee .gdbinit
+    - echo add-auto-load-safe-path $PATH_TO_TESTER/.gdbinit | sudo tee -a /home/bc/.gdbinit
+    # searching for core files and if there are some, launch gdb on all of it
+    # "true ||" is used here to continue the script even if the find fails
+    - if [[ -n $(find . -type f -name "core*") ]]; then find . -type f -name "core*" | xargs -L1 gdb $TESTER_BIN; fi || true
+    - sudo mkdir /builds/BC/public/linphone-sdk/results
+    - sudo chmod 777 /builds/BC/public/linphone-sdk/results
+    - cp -r BCUnitAutomated* /builds/BC/public/linphone-sdk/results
+    - cp -r $LOG_PATTERN* /builds/BC/public/linphone-sdk/results
+    
+  artifacts:
+    paths:
+      - results/*
+    when: always
+    reports:
+      junit:
+        - $PATH_TO_TESTER/BCUnitAutomated-Results.xml
+    expire_in: 4 week
+
+.test-bctoolbox:
+  extends: .test
+  dependencies:
+    - .build-sdk
+  variables:
+    TESTER_BIN: "bctoolbox_tester"
+    LOG_PATTERN: "logBctoolboxAllPar"
+    PATH_TO_TESTER: "/builds/BC/public/linphone-sdk/build-desktop/WORK/desktop/Build/bctoolbox/tester"
+    
+.test-bellesip:
+  extends: .test
+  dependencies:
+    - .build-sdk
+  variables:
+    TESTER_BIN: "belle_sip_tester"
+    LOG_PATTERN: "logBellesipAllPar"
+    PATH_TO_TESTER: "/builds/BC/public/linphone-sdk/build-desktop/linphone-sdk/desktop/bin"
+    RESOURCES_DIR: "--resource-dir ../share/"
+
+
+.test-belr:
+  extends: .test
+  dependencies:
+    - .build-sdk
+  variables:
+    TESTER_BIN: "belr_tester"
+    LOG_PATTERN: "logBelrAllPar"
+    PATH_TO_TESTER: "/builds/BC/public/linphone-sdk/build-desktop/linphone-sdk/desktop/bin"
+    RESOURCES_DIR: "--resource-dir ../share/belr-tester"
+
+.test-belcard:
+  extends: .test
+  dependencies:
+    - .build-sdk
+  variables:
+    TESTER_BIN: "belcard_tester"
+    LOG_PATTERN: "logBelcardAllPar"
+    PATH_TO_TESTER: "/builds/BC/public/linphone-sdk/build-desktop/linphone-sdk/desktop/bin"
+    
+.test-bzrtp:
+  extends: .test
+  dependencies:
+    - .build-sdk
+  variables:
+    TESTER_BIN: "bzrtpTest"
+    LOG_PATTERN: "logBzrtpAllPar"
+    PATH_TO_TESTER: "/builds/BC/public/linphone-sdk/build-desktop/WORK/desktop/Build/bzrtp/test"
+    #We must tell it that the ressources it wants are in its own folder
+    #different behaviour from other testers
+    RESOURCES_DIR: "--resource-dir ."

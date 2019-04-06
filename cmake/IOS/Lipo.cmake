@@ -30,6 +30,10 @@ linphone_sdk_convert_comma_separated_list_to_cmake_list("${LINPHONESDK_IOS_ARCHS
 # Create the apple-darwin directory that will contain the merged content of all architectures
 execute_process(
 	COMMAND "${CMAKE_COMMAND}" "-E" "remove_directory" "linphone-sdk/apple-darwin"
+	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
+)
+
+execute_process(
 	COMMAND "${CMAKE_COMMAND}" "-E" "make_directory" "linphone-sdk/apple-darwin"
 	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 )
@@ -37,11 +41,16 @@ execute_process(
 
 # Copy and merge content of all architectures in the apple-darwin directory
 list(GET _archs 0 _first_arch)
+
 execute_process(
 	COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "linphone-sdk/${_first_arch}-apple-darwin.ios/Frameworks" "linphone-sdk/apple-darwin/Frameworks"
+	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
+)
+execute_process(
 	COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "linphone-sdk/${_first_arch}-apple-darwin.ios/share/liblinphone_tester" "linphone-sdk/apple-darwin/Resources/liblinphone_tester"
 	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 )
+
 file(GLOB _frameworks "linphone-sdk/${_first_arch}-apple-darwin.ios/Frameworks/*.framework")
 foreach(_framework ${_frameworks})
 	get_filename_component(_framework_name "${_framework}" NAME_WE)
