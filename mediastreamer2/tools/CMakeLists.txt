@@ -22,6 +22,7 @@
 
 string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
 
+
 set(USE_BUNDLE )
 if (IOS)
 	set(USE_BUNDLE MACOSX_BUNDLE)

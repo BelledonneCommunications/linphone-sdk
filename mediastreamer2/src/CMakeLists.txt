@@ -65,7 +65,6 @@ add_definitions(
 	-DMS2_EXPORTS
 	-DMS2_INTERNAL
 	-DMS2_FILTERS
-	-DBCTBX_LOG_DOMAIN="mediastreamer"
 )
 
 set(VOIP_SOURCE_FILES_C

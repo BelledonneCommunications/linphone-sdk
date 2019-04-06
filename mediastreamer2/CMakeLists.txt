@@ -617,6 +617,10 @@ else()
 	set(EXPORT_TARGETS_NAME "Mediastreamer2")
 endif()
 
+# Set log domain for the entire project.
+add_definitions(
+	-DBCTBX_LOG_DOMAIN="mediastreamer"
+)
 
 if(ENABLE_DOC)
 	add_subdirectory(help)
