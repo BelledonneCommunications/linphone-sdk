@@ -36,6 +36,7 @@
 
 .test:
   stage: test
+  extends: .job-prepare
   allow_failure: true
   only:
     variables:
@@ -64,10 +65,10 @@
     # searching for core files and if there are some, launch gdb on all of it
     # "true ||" is used here to continue the script even if the find fails
     - if [[ -n $(find . -type f -name "core*") ]]; then find . -type f -name "core*" | xargs -L1 gdb $TESTER_BIN; fi || true
-    - sudo mkdir /builds/BC/public/linphone-sdk/results
-    - sudo chmod 777 /builds/BC/public/linphone-sdk/results
-    - cp -r BCUnitAutomated* /builds/BC/public/linphone-sdk/results
-    - cp -r $LOG_PATTERN* /builds/BC/public/linphone-sdk/results
+    - sudo mkdir ${CI_PROJECT_DIR}/results
+    - sudo chmod 777 ${CI_PROJECT_DIR}/results
+    - cp -r BCUnitAutomated* ${CI_PROJECT_DIR}/results
+    - cp -r $LOG_PATTERN* ${CI_PROJECT_DIR}/results
     
   artifacts:
     paths:
@@ -85,7 +86,7 @@
   variables:
     TESTER_BIN: "bctoolbox_tester"
     LOG_PATTERN: "logBctoolboxAllPar"
-    PATH_TO_TESTER: "/builds/BC/public/linphone-sdk/build-desktop/WORK/desktop/Build/bctoolbox/tester"
+    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/WORK/desktop/Build/bctoolbox/tester"
     
 .test-bellesip:
   extends: .test
@@ -94,7 +95,7 @@
   variables:
     TESTER_BIN: "belle_sip_tester"
     LOG_PATTERN: "logBellesipAllPar"
-    PATH_TO_TESTER: "/builds/BC/public/linphone-sdk/build-desktop/linphone-sdk/desktop/bin"
+    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
     RESOURCES_DIR: "--resource-dir ../share/"
 
 
@@ -105,7 +106,7 @@
   variables:
     TESTER_BIN: "belr_tester"
     LOG_PATTERN: "logBelrAllPar"
-    PATH_TO_TESTER: "/builds/BC/public/linphone-sdk/build-desktop/linphone-sdk/desktop/bin"
+    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
     RESOURCES_DIR: "--resource-dir ../share/belr-tester"
 
 .test-belcard:
@@ -115,7 +116,7 @@
   variables:
     TESTER_BIN: "belcard_tester"
     LOG_PATTERN: "logBelcardAllPar"
-    PATH_TO_TESTER: "/builds/BC/public/linphone-sdk/build-desktop/linphone-sdk/desktop/bin"
+    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
     
 .test-bzrtp:
   extends: .test
@@ -124,7 +125,7 @@
   variables:
     TESTER_BIN: "bzrtpTest"
     LOG_PATTERN: "logBzrtpAllPar"
-    PATH_TO_TESTER: "/builds/BC/public/linphone-sdk/build-desktop/WORK/desktop/Build/bzrtp/test"
+    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/WORK/desktop/Build/bzrtp/test"
     #We must tell it that the ressources it wants are in its own folder
     #different behaviour from other testers
     RESOURCES_DIR: "--resource-dir ."
