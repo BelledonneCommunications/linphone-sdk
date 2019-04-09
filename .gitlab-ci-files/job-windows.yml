@@ -33,6 +33,8 @@
     CMAKE_OPTIONS: -DENABLE_LIME_X3DH=NO
 
   script:
+    #handling the case of previous job cancellation
+    - IF EXIST build-desktop RMDIR /S /Q build-desktop
     - mkdir build-desktop
     - cd build-desktop
     - C:\PROGRA~1\Python37\Scripts\cl -s
