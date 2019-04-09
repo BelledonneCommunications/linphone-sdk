@@ -300,6 +300,7 @@ libmediastreamer_voip_la_SOURCES+=	voip/rfc2429.h \
 					videofilters/pixconv.c  \
 					videofilters/sizeconv.c \
 					voip/msvideo.c \
+					voip/msvideoqualitycontroller.c \
 					voip/msvideo_neon.c \
 					voip/msvideo_neon.h \
 					voip/rfc3984.c \

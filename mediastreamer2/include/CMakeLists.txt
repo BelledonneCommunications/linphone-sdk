@@ -67,6 +67,7 @@ set(HEADER_FILES
 	msvideo.h
 	msvideoout.h
 	msvideopresets.h
+	msvideoqualitycontroller.h
 	msvolume.h
 	mswebcam.h
 	qualityindicator.h

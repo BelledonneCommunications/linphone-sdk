@@ -169,10 +169,17 @@ static int video_capture_set_vsize(MSFilter *f, void* data){
 		d->usedSize.width = (int) (d->hwCapableSize.width * downscale);
 		d->usedSize.height = (int) (d->hwCapableSize.height * downscale);
 	} else if ((hwSize * downscale * downscale) > rqSize) {
-		ms_message("Camera cannot produce requested resolution %dx%d, will capture a bigger one (%dx%d) and crop it to match encoder requested resolution\n",
-			d->requestedSize.width, d->requestedSize.height, (int)(res[0] * downscale), (int)(res[1] * downscale));
-		d->usedSize.width = d->requestedSize.width;
-		d->usedSize.height = d->requestedSize.height;
+		if (d->requestedSize.width > d->hwCapableSize.width || d->requestedSize.height > d->hwCapableSize.height) {
+			ms_message("Camera cannot produce requested resolution %dx%d, will capture a bigger one (%dx%d)\n",
+				d->requestedSize.width, d->requestedSize.height, (int)(res[0] * downscale), (int)(res[1] * downscale));
+			d->usedSize.width = d->requestedSize.width = d->hwCapableSize.width;
+			d->usedSize.height = d->requestedSize.height = d->hwCapableSize.height;
+		} else {
+			ms_message("Camera cannot produce requested resolution %dx%d, will capture a bigger one (%dx%d) and crop it to match encoder requested resolution\n",
+				d->requestedSize.width, d->requestedSize.height, (int)(res[0] * downscale), (int)(res[1] * downscale));
+			d->usedSize.width = d->requestedSize.width;
+			d->usedSize.height = d->requestedSize.height;
+		}
 	} else {
 		d->usedSize.width = d->requestedSize.width;
 		d->usedSize.height = d->requestedSize.height;
@@ -322,6 +329,7 @@ static void video_capture_process(MSFilter *f){
 	}
 
 	ms_video_update_average_fps(&d->averageFps, f->ticker->time);
+	mblk_set_timestamp_info(d->frame, f->ticker->time * 90);
 
 	ms_queue_put(f->outputs[0],d->frame);
 	d->frame = 0;
@@ -491,6 +499,13 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_capture_AndroidVideoA
 
 	int image_rotation_correction = compute_image_rotation_correction(d, d->rotationSavedDuringVSize);
 
+	MSVideoSize used_size = d->usedSize;
+	MSVideoSize capable_size = d->hwCapableSize;
+	MSVideoSize requested_size = d->requestedSize;
+	int use_downscale = d->useDownscaling;
+
+	ms_mutex_unlock(&d->mutex);
+
 	jboolean isCopied;
 	jbyte* jinternal_buff = env->GetByteArrayElements(frame, &isCopied);
 	if (isCopied) {
@@ -499,13 +514,13 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_capture_AndroidVideoA
 
 	int y_cropping_offset=0, cbcr_cropping_offset=0;
 	MSVideoSize targetSize;
-	d->useDownscaling?targetSize.width=d->requestedSize.width*2:targetSize.width=d->requestedSize.width;
-	d->useDownscaling?targetSize.height=d->requestedSize.height*2:targetSize.height=d->requestedSize.height;
+	use_downscale?targetSize.width=requested_size.width*2:targetSize.width=requested_size.width;
+	use_downscale?targetSize.height=requested_size.height*2:targetSize.height=requested_size.height;
 
-	compute_cropping_offsets(d->hwCapableSize, targetSize, &y_cropping_offset, &cbcr_cropping_offset);
+	compute_cropping_offsets(capable_size, targetSize, &y_cropping_offset, &cbcr_cropping_offset);
 
-	int width = d->hwCapableSize.width;
-	int height = d->hwCapableSize.height;
+	int width = capable_size.width;
+	int height = capable_size.height;
 
 	uint8_t* y_src = (uint8_t*)(jinternal_buff + y_cropping_offset);
 	uint8_t* cbcr_src = (uint8_t*) (jinternal_buff + width * height + cbcr_cropping_offset);
@@ -519,17 +534,21 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_capture_AndroidVideoA
  	mblk_t* yuv_block = copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(d->allocator, y_src
 														, cbcr_src
 														, image_rotation_correction
-														, d->usedSize.width
-														, d->usedSize.height
-														, d->hwCapableSize.width
-														, d->hwCapableSize.width
+														, used_size.width
+														, used_size.height
+														, capable_size.width
+														, capable_size.width
 														, false
-														, d->useDownscaling);
+														, use_downscale);
+
+	ms_mutex_lock(&d->mutex);
+
 	if (yuv_block) {
 		if (d->frame)
 			freemsg(d->frame);
 		d->frame = yuv_block;
 	}
+
 	ms_mutex_unlock(&d->mutex);
 
 	// JNI_ABORT free the buffer without copying back the possible changes

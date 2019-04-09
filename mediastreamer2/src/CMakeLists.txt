@@ -65,7 +65,6 @@ add_definitions(
 	-DMS2_EXPORTS
 	-DMS2_INTERNAL
 	-DMS2_FILTERS
-	-DBCTBX_LOG_DOMAIN="mediastreamer"
 )
 
 set(VOIP_SOURCE_FILES_C
@@ -98,6 +97,8 @@ set(VOIP_SOURCE_FILES_C
 	otherfilters/msrtp.c
 	utils/_kiss_fft_guts.h
 	utils/audiodiff.c
+	utils/box-plot.c
+	utils/box-plot.h
 	utils/dsptools.c
 	utils/g722.h
 	utils/g722_decode.c
@@ -225,6 +226,7 @@ if(ENABLE_VIDEO)
 		voip/msvideo_neon.c
 		voip/msvideo_neon.h
 		voip/msvideo.c
+		voip/msvideoqualitycontroller.c
 		voip/nowebcam.h
 		voip/rfc2429.h
 		voip/video_preset_high_fps.c
@@ -621,8 +623,7 @@ if(ENABLE_SHARED)
 		set_target_properties(mediastreamer PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
 	add_dependencies(mediastreamer ${MS2_DEPENDENCIES})
-	#TODO: replace by if(APPLE) when we want to make apple framework on linphone-desktop too
-	if(IOS)
+	if(APPLE)
 		if(IOS)
 			set(MIN_OS ${LINPHONE_IOS_DEPLOYMENT_TARGET})
 		else()

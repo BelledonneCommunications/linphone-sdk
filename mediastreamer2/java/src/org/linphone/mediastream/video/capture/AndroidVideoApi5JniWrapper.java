@@ -176,10 +176,11 @@ public class AndroidVideoApi5JniWrapper {
 
 		try {
 			// look for nearest size
-			AndroidCamera.Size result = supportedSizes.get(0); /*by default return first value*/
+			AndroidCamera.Size result = null;
 			int req = rW * rH;
 			int minDist = Integer.MAX_VALUE;
 			int useDownscale = 0;
+
 			for(AndroidCamera.Size s: supportedSizes) {
 				int dist = /*Math.abs*/-1*(req - s.width * s.height);
 				if ( ((s.width >= rW && s.height >= rH) || (s.width >= rH && s.height >= rW)) && dist < minDist) {
@@ -206,6 +207,24 @@ public class AndroidVideoApi5JniWrapper {
 					break;
 				}
 			}
+
+			if (result == null) {
+				/* If we don't have any result then choose the first one that has more pixels */
+				minDist = Integer.MAX_VALUE;
+				for (AndroidCamera.Size s : supportedSizes) {
+					int dist = /*Math.abs*/-1*(req - s.width * s.height);
+					if (s.width * s.height > req && dist < minDist) {
+						minDist = dist;
+						result = s;
+					}
+				}
+			}
+
+			if (result == null) {
+				/* If we have still no result then choose the first one */
+				result = supportedSizes.get(0);
+			}
+
 			r = new int[] {result.width, result.height, useDownscale};
 			Log.i("mediastreamer", "resolution selection done (" + r[0] + ", " + r[1] + ", " + r[2] + ")");
 			return r;

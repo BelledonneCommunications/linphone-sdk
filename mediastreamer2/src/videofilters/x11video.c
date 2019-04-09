@@ -72,7 +72,7 @@ typedef struct X11Video
 	bool_t show;
 } X11Video;
 
-
+static void setCorner(X11Video *s, int corner);
 
 static Display *init_display(void){
 	const char *display;
@@ -92,7 +92,6 @@ static void x11video_init(MSFilter  *f){
 	def_size.width=MS_VIDEO_SIZE_CIF_W;
 	def_size.height=MS_VIDEO_SIZE_CIF_H;
 	obj->local_msg=NULL;
-	obj->corner=0;
 	obj->scale_factor=SCALE_FACTOR;
 	obj->background_color[0]=obj->background_color[1]=obj->background_color[2]=0;
 	obj->sws2=NULL;
@@ -108,7 +107,7 @@ static void x11video_init(MSFilter  *f){
 	obj->show=TRUE;
 	obj->port=-1;
 	f->data=obj;
-
+	setCorner(obj, 0);
 	XSetErrorHandler(x11error_handler);
 }
 
@@ -127,6 +126,13 @@ static void x11video_uninit(MSFilter *f){
 	ms_free(obj);
 }
 
+static void setCorner(X11Video *s, int corner){
+	if (ms_video_get_scaler_impl() == NULL){
+		ms_warning("No scaler implementation, local preview cannot be rendered.");
+		corner = -1;
+	}
+	s->corner = corner;
+}
 
 
 static Window createX11Window(X11Video *s){
@@ -516,7 +522,7 @@ static int x11video_show_video(MSFilter *f, void *arg){
 static int x11video_set_corner(MSFilter *f,void *arg){
 	X11Video *s=(X11Video*)f->data;
 	ms_filter_lock(f);
-	s->corner= *(int*)arg;
+	setCorner(s, *(int*)arg);
 	ms_filter_unlock(f);
 	return 0;
 }

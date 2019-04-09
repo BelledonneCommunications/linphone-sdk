@@ -598,6 +598,7 @@ static void ioscapture_process(MSFilter * obj) {
 	if(thiz != NULL) {
 		ms_mutex_lock(&thiz->mutex);
 		if (thiz->msframe) {
+			mblk_set_timestamp_info(thiz->msframe, obj->ticker->time * 90);
 			// keep only the latest image
 			ms_queue_flush(obj->outputs[0]);
 			ms_queue_put(obj->outputs[0],thiz->msframe);

@@ -42,32 +42,32 @@
 
 static const MSVideoConfiguration vp8_conf_list[] = {
 #if defined(__ANDROID__) || (TARGET_OS_IPHONE == 1) || defined(__arm__) || defined(_M_ARM)
-	MS_VP8_CONF(2048000, 2560000,       UXGA, 12, 2),
-	MS_VP8_CONF(1024000, 1536000, SXGA_MINUS, 12, 2),
-	MS_VP8_CONF( 750000, 1024000,        XGA, 12, 2),
-	MS_VP8_CONF( 500000,  750000,       SVGA, 12, 2),
-	MS_VP8_CONF( 800000, 3000000,        VGA, 30, 8),
-	MS_VP8_CONF( 800000, 3000000,        VGA, 25, 4),
+	MS_VP8_CONF(1536000, 3000000,       720P, 25, 8),
+	MS_VP8_CONF(1024000, 1536000,        XGA, 25, 8),
+	MS_VP8_CONF( 850000, 1024000,       SVGA, 25, 8),
+	MS_VP8_CONF( 700000, 3000000,        VGA, 30, 8),
+	MS_VP8_CONF( 600000, 3000000,        VGA, 25, 4),
 	MS_VP8_CONF( 400000,  800000,        VGA, 12, 2),
 	MS_VP8_CONF( 100000,  300000,       QVGA, 18, 2),
 	MS_VP8_CONF(  64000,  100000,       QCIF, 12, 2),
 	MS_VP8_CONF( 400000,  800000,        VGA, 12, 1),
 	MS_VP8_CONF( 100000,  300000,       QVGA, 10, 1),
 	MS_VP8_CONF(  64000,  100000,       QCIF, 10, 1),
-	MS_VP8_CONF(      0,   64000,       QCIF,  5, 1)
+	MS_VP8_CONF(      0,   64000,       QCIF,  5, 1),
 #else
+	MS_VP8_CONF(2048000,  5000000,       UXGA, 25, 4),
 	MS_VP8_CONF(1536000,  2560000, SXGA_MINUS, 25, 4),
-	MS_VP8_CONF( 800000,  2000000,       720P, 25, 4),
+	MS_VP8_CONF(1024000,  2000000,       720P, 25, 4),
 	MS_VP8_CONF( 800000,  1536000,        XGA, 25, 4),
-	MS_VP8_CONF( 600000,  1024000,       SVGA, 25, 2),
+	MS_VP8_CONF( 750000,  1024000,       SVGA, 25, 2),
 	MS_VP8_CONF( 600000,  3000000,        VGA, 30, 2),
-	MS_VP8_CONF( 350000,   600000,        VGA, 25, 2),
+	MS_VP8_CONF( 450000,   600000,        VGA, 25, 2),
 	MS_VP8_CONF( 350000,   600000,        VGA, 15, 1),
 	MS_VP8_CONF( 200000,   350000,        CIF, 18, 1),
 	MS_VP8_CONF( 150000,   200000,       QVGA, 15, 1),
 	MS_VP8_CONF( 100000,   150000,       QVGA, 10, 1),
 	MS_VP8_CONF(  64000,   100000,       QCIF, 12, 1),
-	MS_VP8_CONF(      0,    64000,       QCIF,  5 ,1)
+	MS_VP8_CONF(      0,    64000,       QCIF,  5 ,1),
 #endif
 };
 
@@ -199,7 +199,7 @@ static void enc_preprocess(MSFilter *f) {
 		else cpuused = 1;
 
 	}
-	if( s->cfg.g_threads == 1 ){
+	if (s->cfg.g_threads == 1 || ms_video_size_area_greater_than(MS_VIDEO_SIZE_720P, s->vconf.vsize)){
 		/* on mono-core iOS devices, we reduce the quality a bit more due to VP8 being slower with new Clang compilers */
 		cpuused = 16;
 	}
@@ -446,8 +446,6 @@ static bool_t is_frame_independent(unsigned int flags){
 static void enc_process_frame_task(void *obj) {
 	mblk_t *im;
 	MSFilter *f = (MSFilter*)obj;
-	uint64_t timems = f->ticker->time;
-	uint32_t timestamp = (uint32_t)(timems*90);
 	EncState *s = (EncState *)f->data;
 	unsigned int flags = 0;
 	vpx_codec_err_t err;
@@ -481,7 +479,6 @@ static void enc_process_frame_task(void *obj) {
 
 	flags = 0;
 	ms_yuv_buf_init_from_mblk(&yuv, im);
-	freemsg(im);
 	vpx_img_wrap(&img, VPX_IMG_FMT_I420, s->vconf.vsize.width, s->vconf.vsize.height, 1, yuv.planes[0]);
 
 	if ((s->avpf_enabled != TRUE) && ms_video_starter_need_i_frame(&s->starter, f->ticker->time)) {
@@ -543,7 +540,7 @@ static void enc_process_frame_task(void *obj) {
 				packet->m = allocb(pkt->data.frame.sz, 0);
 				memcpy(packet->m->b_wptr, pkt->data.frame.buf, pkt->data.frame.sz);
 				packet->m->b_wptr += pkt->data.frame.sz;
-				mblk_set_timestamp_info(packet->m, timestamp);
+				mblk_set_timestamp_info(packet->m, mblk_get_timestamp_info(im));
 				packet->pd = ms_new0(Vp8RtpFmtPayloadDescriptor, 1);
 				packet->pd->non_reference_frame = s->avpf_enabled && !is_ref_frame;
 				if (s->avpf_enabled == TRUE) {
@@ -607,6 +604,8 @@ static void enc_process_frame_task(void *obj) {
 			s->picture_id = 0;
 #endif
 	}
+
+	freemsg(im);
 }
 
 static void enc_process(MSFilter *f) {
