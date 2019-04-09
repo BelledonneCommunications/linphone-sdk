@@ -127,7 +127,7 @@ test-mediastreamer:
     TESTER_BIN: "mediastreamer2_tester"
     PULSEAUDIO: "pulseaudio -D -L module-virtual-source --exit-idle-time=-1"
     LOG_PATTERN: "logMediastreamerAllPar"
-    PATH_TO_TESTER: "/builds/BC/public/linphone-sdk/build-desktop/linphone-sdk/desktop/bin"
+    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
     
     
 .test-liblinphone-centos7:
@@ -140,22 +140,20 @@ test-mediastreamer:
     XVFB: "Xvfb :99"
     EXPORT_DISPLAY: "export DISPLAY=:99"
     LOG_PATTERN: "logLiblinphoneAllParThIpv6"
-    PATH_TO_TESTER: "/builds/BC/public/linphone-sdk/build-desktop/linphone-sdk/desktop/bin"
-    ADDITIONNAL_OPTIONS: "--dns-hosts /builds/BC/public/linphone-sdk/linphone/tester/tester_hosts --show-account-manager-logs"
+    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
+    ADDITIONNAL_OPTIONS: "--dns-hosts ${CI_PROJECT_DIR}/linphone/tester/tester_hosts --show-account-manager-logs"
 
 test-liblinphone:
   extends: .test-liblinphone-centos7
 
 test-liblinphone-mr:
-  variables:
-    DUMMY_TRUE: "true"
   extends: .test-liblinphone-centos7
   only:
      refs: 
         - branches
         - tags 
      variables:
-        - $DUMMY_TRUE
+        - $ENABLE_TESTS_IN_MR
   except: 
    - schedules
 
@@ -169,11 +167,11 @@ test-liblinphone-mr:
 #    - ls -la .
 #    - pwd
 #    - ls -la ./lime
-#    - cd /builds/BC/public/linphone-sdk/lime/tester/server/nodejs
+#    - cd ${CI_PROJECT_DIR}/lime/tester/server/nodejs
 #    #installing here since the tester cannot find globally installed packages
 #    - npm install yargs sqlite3 rwlock
 #    - ./localServerStart.sh & #How do we stop it properly ????
-#    - cd /builds/BC/public/linphone-sdk
+#    - cd ${CI_PROJECT_DIR}
 #    - cd build-desktop/WORK/desktop/Build/
 #    - ls -la
 #    - cd lime
@@ -181,7 +179,7 @@ test-liblinphone-mr:
 #    - cd tester
 #    - ls -la
 #
-#    #path to source dir /builds/BC/public/linphone-sdk/lime
+#    #path to source dir ${CI_PROJECT_DIR}/lime
 #    - ./lime_tester --verbose --xml-file limetest --resource-dir ../../../../../../lime/tester
 #  #uploading the artifacts
 #  artifacts:
