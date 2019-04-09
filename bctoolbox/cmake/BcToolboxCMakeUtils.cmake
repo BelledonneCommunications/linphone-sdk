@@ -44,7 +44,7 @@ macro(bc_init_compilation_flags CPP_FLAGS C_FLAGS CXX_FLAGS STRICT_COMPILATION)
 		if(ENABLE_STRICT)
 			list(APPEND ${CPP_FLAGS} "-Werror" "-Wextra" "-Wno-unused-parameter" "-Wno-error=unknown-pragmas" "-Wuninitialized" "-Wno-missing-field-initializers"
 				"-fno-strict-aliasing" "-Wno-error=deprecated" "-Wno-error=deprecated-declarations")
-			list(APPEND ${C_FLAGS} "-Werror" "-Wdeclaration-after-statement" "-Wstrict-prototypes")
+			list(APPEND ${C_FLAGS} "-Werror" "-Wstrict-prototypes")
 		endif()
 	endif()
 endmacro()
@@ -73,7 +73,7 @@ macro(bc_git_version PROJECT_NAME PROJECT_VERSION)
 endmacro()
 
 
-macro(bc_project_build_version PROJECT_VERSION PROJECT_BUILD_VERSION) 
+macro(bc_project_build_version PROJECT_VERSION PROJECT_BUILD_VERSION)
 	find_program (WC wc)
 
 	if(WC)
@@ -102,7 +102,7 @@ macro(bc_project_build_version PROJECT_VERSION PROJECT_BUILD_VERSION)
 			WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 		)
 	endif()
-	if (NOT PROJECT_VERSION_BUILD) 
+	if (NOT PROJECT_VERSION_BUILD)
 		set(PROJECT_VERSION_BUILD 0)
 	endif()
 endmacro()
@@ -128,4 +128,3 @@ macro(bc_generate_rpm_specfile SOURCE DEST)
 		unset(_variableNames)
 	endif()
 endmacro()
-

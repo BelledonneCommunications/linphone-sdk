@@ -107,8 +107,14 @@ BCTBX_PUBLIC void *bctbx_log_handler_get_user_data(const bctbx_log_handler_t* lo
 BCTBX_PUBLIC void bctbx_add_log_handler(bctbx_log_handler_t* handler);
 BCTBX_PUBLIC void bctbx_remove_log_handler(bctbx_log_handler_t* handler);
 
+/*
+ * Set a callback function to render logs for the default handler.
+ */
 BCTBX_PUBLIC void bctbx_set_log_handler(BctbxLogFunc func);
-/*same as bctbx_set_log_handler but only for a domain. NULL for all*/
+/*
+ * Same as bctbx_set_log_handler but only for a domain. NULL for all.
+ * Be careful that if domain is specified, the default log handler will no longer output logs for other domains.
+ */
 BCTBX_PUBLIC void bctbx_set_log_handler_for_domain(BctbxLogFunc func, const char* domain);
 /*Convenient function that creates a static log handler logging into supplied FILE argument.
  Despite it is not recommended to use it in libraries, it can be useful for simple test programs.*/
@@ -118,7 +124,11 @@ BCTBX_PUBLIC bctbx_list_t* bctbx_get_log_handlers(void);
 BCTBX_PUBLIC void bctbx_logv_out(const char *domain, BctbxLogLevel level, const char *fmt, va_list args);
 BCTBX_PUBLIC void bctbx_logv_file(void* user_info, const char *domain, BctbxLogLevel level, const char *fmt, va_list args);
 
-#define bctbx_log_level_enabled(domain, level)	(bctbx_get_log_level_mask(domain) & (level))
+/*
+ * Returns 1 if the log level 'level' is enabled for the calling thread, otherwise 0.
+ * This gives the condition to decide to output a log.
+ */
+BCTBX_PUBLIC int bctbx_log_level_enabled(const char *domain, BctbxLogLevel level);
 
 BCTBX_PUBLIC void bctbx_logv(const char *domain, BctbxLogLevel level, const char *fmt, va_list args);
 
@@ -135,6 +145,19 @@ BCTBX_PUBLIC void bctbx_set_log_level(const char *domain, BctbxLogLevel level);
 
 BCTBX_PUBLIC void bctbx_set_log_level_mask(const char *domain, int levelmask);
 BCTBX_PUBLIC unsigned int bctbx_get_log_level_mask(const char *domain);
+
+/**
+ * Set a specific log level for the calling thread for domain.
+ * When domain is NULL, the log level applies to all domains.
+ */
+BCTBX_PUBLIC void bctbx_set_thread_log_level(const char *domain, BctbxLogLevel level);
+
+/**
+ * Clears the specific log level set for the calling thread by bctbx_set_thread_log_level().
+ * After calling this function, the global (not per thread) log level will apply to 
+ * logs printed by this thread.
+ */
+BCTBX_PUBLIC void bctbx_clear_thread_log_level(const char *domain);
 
 /**
  * Tell oRTP the id of the thread used to output the logs.
@@ -276,17 +299,21 @@ namespace bctoolbox {
 
 class pumpstream : public std::ostringstream {
 public:
-	pumpstream(const char *domain, BctbxLogLevel level) : mDomain(domain ? domain : ""), mLevel(level) {}
+	/*contructor used to disable logging*/
+	pumpstream():mDomain(""),mLevel(BCTBX_LOG_DEBUG),mTraceEnabled(false){}
+	pumpstream(const char *domain, BctbxLogLevel level) : mDomain(domain ? domain : ""), mLevel(level),mTraceEnabled(true) {}
 	~pumpstream() {
 		const char *domain = mDomain.empty() ? NULL : mDomain.c_str();
-		if (bctbx_log_level_enabled(domain, mLevel))
+		if (mTraceEnabled && bctbx_log_level_enabled(domain, mLevel))
 			bctbx_log(domain, mLevel, "%s", str().c_str());
 	}
 
 private:
 	const std::string mDomain;
 	const BctbxLogLevel mLevel;
+	const bool mTraceEnabled;
 };
+
 
 #if (__GNUC__ == 4 && __GNUC_MINOR__ < 5 && __cplusplus > 199711L)
 template <typename _Tp> inline pumpstream &operator<<(pumpstream &&__os, const _Tp &__x) {
@@ -297,7 +324,12 @@ template <typename _Tp> inline pumpstream &operator<<(pumpstream &&__os, const _
 
 #define BCTBX_SLOG(domain, thelevel) pumpstream(domain, thelevel)
 
+#ifndef BCTBX_DEBUG_MODE
 #define BCTBX_SLOGD BCTBX_SLOG(BCTBX_LOG_DOMAIN, BCTBX_LOG_DEBUG)
+#else
+#define BCTBX_SLOGD pumpstream()
+#endif
+
 #define BCTBX_SLOGI BCTBX_SLOG(BCTBX_LOG_DOMAIN, BCTBX_LOG_MESSAGE)
 #define BCTBX_SLOGW BCTBX_SLOG(BCTBX_LOG_DOMAIN, BCTBX_LOG_WARNING)
 #define BCTBX_SLOGE BCTBX_SLOG(BCTBX_LOG_DOMAIN, BCTBX_LOG_ERROR)

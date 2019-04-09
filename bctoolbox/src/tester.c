@@ -105,6 +105,7 @@ static size_t max_vm_kb = 0;
 static int run_skipped_tests = 0;
 //0 if deactivated, or > 0, representing the maximum number of subprocesses to launch
 static int parallel_suites = 0;
+static uint64_t globalTimeout = 0;
 
 //To keep record of the process name who started and args
 static char **origin_argv = NULL;
@@ -221,7 +222,7 @@ int bc_tester_suite_index(const char *suite_name) {
 	int i;
 
 	for (i = 0; i < nb_test_suites; i++) {
-		if (strcmp(suite_name, test_suite[i]->name) == 0) {
+		if (strcasecmp(suite_name, test_suite[i]->name) == 0) {
 			return i;
 		}
 	}
@@ -234,7 +235,7 @@ int bc_tester_test_index(test_suite_t *suite, const char *test_name) {
 	int i;
 
 	for (i = 0; i < suite->nb_tests; i++) {
-		if (strcmp(test_name, suite->tests[i].name) == 0) {
+		if (strcasecmp(test_name, suite->tests[i].name) == 0) {
 			return i;
 		}
 	}
@@ -382,6 +383,14 @@ void merge_and_print_results_files(void) {
 			remove(file_name);
 		} else {
 			bc_tester_printf(bc_printf_verbosity_error, "Failed to open suite results file '%s'", file_name);
+			//Assume suite crash and report it.
+			if (results == NULL) {
+				results = bctbx_concat("Suite '", test_suite[i]->name, "' results: CRASH\n", NULL);
+			} else {
+				tmp = bctbx_concat(results, "\nSuite '", test_suite[i]->name, "' results: CRASH\n", NULL);
+				bctbx_free(results);
+				results = tmp;
+			}
 		}
 		bctbx_free(suite_name_wo_spaces);
 		bctbx_free(file_name);
@@ -663,8 +672,8 @@ int start_sub_process(const char *suite_name) {
 			argv[argc++] = origin_argv[i++];
 			argv[argc++] = get_logfile_name(log_file_name, suite_name);
 		} else if (strcmp(origin_argv[i], "--xml-file") == 0) {
+			argv[argc++] = origin_argv[i++];
 			argv[argc++] = origin_argv[i];
-			argv[argc++] = origin_argv[i + 1];
 		} else if (strcmp(origin_argv[i], "--parallel") == 0) {
 			argv[argc++] = origin_argv[i];
 		} else {
@@ -720,7 +729,15 @@ int bc_tester_run_parallel(void) {
 int bc_tester_run_parallel(void) {
 	int suitesPids[nb_test_suites];
 	uint64_t time_start = bctbx_get_cur_time_ms(), elapsed = time_start, print_timer = time_start;
-	uint64_t timeout = time_start + (40 * 60 * 1000); //Assume there is a problem if a child is still running after 40mn. TODO make timeout	a cli parameter ?
+
+	//Assume there is a problem if a suite is still running 60mn after the start of the tester. TODO make timeout	a cli parameter ?
+	uint64_t timeout = 0;
+	if (globalTimeout <= 0) {
+			globalTimeout = 60;
+	}
+	timeout = time_start + (globalTimeout * 60 * 1000);
+
+
 	int maxProcess = bc_tester_get_max_parallel_processes();
 	int nextSuite = 0; //Next suite id to be exec'd
 	int runningSuites = 0; //Number of currently running suites
@@ -783,6 +800,11 @@ int bc_tester_run_parallel(void) {
 	}
 	bc_tester_printf(bc_printf_verbosity_info, "All suites ended.");
 	all_complete_message_handler(NULL);
+	{
+		int seconds = (int)(elapsed - time_start)/1000;
+		
+		bc_tester_printf(bc_printf_verbosity_info, "Full parallel run completed in %2i mn %2i s.\n", seconds/60, seconds % 60);
+	}
 	return ret;
 }
 
@@ -1093,6 +1115,7 @@ void bc_tester_helper(const char *name, const char* additionnal_helper) {
 			 "\t\t\t--max-alloc <size in ko> (maximum amount of memory obtained via malloc allocator)\n"
 			 "\t\t\t--max-alloc <size in ko> (maximum amount of memory obtained via malloc allocator)\n"
 			 "\t\t\t--parallel (Execute tests concurrently and with JUnit report)\n"
+			 "\t\t\t--timeout <timeout in minutes> (sets the global timeout when used alongside to the parallel option, the default value is 60)\n"
 			 "And additionally:\n"
 			 "%s",
 			 name,
@@ -1151,6 +1174,9 @@ int bc_tester_parse_args(int argc, char **argv, int argid)
 		//Defaults to JUnit report if parallel is enabled
 		xml_enabled = 1;
 		parallel_suites = 1;
+	} else if (strcmp(argv[i], "--timeout") == 0) {
+		CHECK_ARG("--timeout", ++i, argc);
+		globalTimeout = atoi(argv[i]);
 	} else if (strcmp(argv[i], "--max-alloc") == 0) {
 		CHECK_ARG("--max-alloc", ++i, argc);
 		max_vm_kb = atol(argv[i]);
