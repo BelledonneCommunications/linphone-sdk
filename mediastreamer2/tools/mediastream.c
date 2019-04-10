@@ -1313,7 +1313,7 @@ static bool_t parse_ice_addr(char *addr, char *type, size_t type_len, char *ip, 
 	semicolon=strrchr(addr,':');
 	if (semicolon==NULL) return FALSE;
 	slen=MIN(strlen(semicolon+1),type_len);
-	strncpy(type,semicolon+1,slen);
+	strncpy(type,semicolon+1,type_len);
 	type[slen]='\0';
 	*semicolon='\0';
 	return parse_addr(addr,ip,ip_len,port);
