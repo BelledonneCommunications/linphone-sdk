@@ -60,6 +60,7 @@ job-android-makefile-r18b:
       - $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
   extends: .job-android
 
@@ -138,3 +139,50 @@ job-android-ninja-r19:
   variables:
     CMAKE_GENERATOR: Ninja
   extends: .job-android
+  
+  
+test-android-r17c:
+  tags: [ "docker-android-test-r17c" ]
+  stage: test
+  allow_failure: true
+  dependencies:
+    - job-android-ninja-r17c
+  only:
+    refs:
+      - feature/android_tester_ci
+  script:
+    - cd ${CI_PROJECT_DIR}/tester/Android
+    # uninstalling tester app on device to prevent conflicts
+    - adb uninstall org.linphone.tester.test
+    - adb uninstall org.linphone.tester
+    
+    # build of the testers
+    - ./gradlew assembleDebug
+    - ./gradlew assembleDebugAndroidTest
+    
+    #Test launching (currently only Message)
+    - java -jar ./spoon.jar \
+      --output spoon \
+      --apk app/build/outputs/apk/debug/app-debug.apk \
+      --test-apk app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk \
+      --class-name 'org.linphone.tester.MessageTests' \
+      --fail-on-failure --fail-if-no-device-connected --grant-all || ( if [ $? -ne 0 ] \
+      then \
+        echo "Some tests are failed" \
+        for x in `adb devices | sed -n '1!p' | sed '/^$/d' | awk '{print $1;}'`; do \
+          cat $x.txt | ndk-stack -sym ../../build/libs-debug/`adb -s $x shell getprop ro.product.cpu.abi | tr -d '\r'` > $x-ndk-#stack.txt \
+        done \
+      fi) 
+    - tar zcvf logs-tests-android.tar.gz spoon/ *.txt
+    
+  after_script:
+    - sudo mkdir ${CI_PROJECT_DIR}/results
+    - sudo chmod 777 ${CI_PROJECT_DIR}/results
+    - mv logs-tests-android.tar.gz ${CI_PROJECT_DIR}/results
+    
+  artifacts:
+    paths:
+      - results/*
+      
+    when: always
+    expire_in: 4 week
