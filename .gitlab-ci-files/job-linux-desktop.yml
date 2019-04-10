@@ -43,7 +43,7 @@ variables:
   allow_failure: true
   only:
     refs:
-      - fix/tester_capabilities
+      - fix/testers_capabilities
 
   script:
     - cd $PATH_TO_TESTER
