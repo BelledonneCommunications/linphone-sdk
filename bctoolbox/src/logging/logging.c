@@ -73,7 +73,7 @@ static BctoolboxLogDomain * bctbx_log_domain_new(const char *domain, unsigned in
 	return ld;
 }
 
-static void bctbx_log_domain_destroy(BctoolboxLogDomain *obj){
+void bctbx_log_domain_destroy(BctoolboxLogDomain *obj){
 #if THREAD_LOG_LEVEL_ENABLED
 	pthread_key_delete(obj->thread_level_key);
 #endif	
@@ -155,6 +155,9 @@ void bctbx_log_handlers_free(void) {
 }
 
 void bctbx_uninit_logger(void){
+	/* Calling bctbx_uninit_logger() from a component is dangerous as it will reset the default logger.
+	 * it is safer that this function does nothing.*/
+#if 0
 	bctbx_logger_t * logger = bctbx_get_logger();
 	bctbx_logv_flush();
 	bctbx_mutex_destroy(&logger->domains_mutex);
@@ -164,6 +167,7 @@ void bctbx_uninit_logger(void){
 	logger->log_domains = bctbx_list_free_with_data(logger->log_domains, (void (*)(void*))bctbx_log_domain_destroy);
 	bctbx_log_domain_destroy(logger->default_log_domain);
 	logger->default_log_domain = NULL;
+#endif
 }
 
 bctbx_log_handler_t* bctbx_create_log_handler(BctbxLogHandlerFunc func, BctbxLogHandlerDestroyFunc destroy, void* user_info) {
