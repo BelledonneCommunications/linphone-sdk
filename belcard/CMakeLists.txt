@@ -32,7 +32,6 @@ option(ENABLE_STRICT "Build with strict compile options." YES)
 option(ENABLE_TOOLS "Enable compilation of tools." YES)
 option(ENABLE_UNIT_TESTS "Enable compilation of unit tests." YES)
 
-
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 if(NOT CPACK_GENERATOR AND NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
@@ -43,6 +42,10 @@ endif()
 include(GNUInstallDirs)
 include(CheckSymbolExists)
 include(CMakePushCheckState)
+
+if(MSVC)
+    add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+endif()
 
 # find_package should be invoked here to check for libraries - however do NOT
 # call include_directories here (see below)
