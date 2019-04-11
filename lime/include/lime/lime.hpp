@@ -24,6 +24,7 @@
 #include <vector>
 #include <functional>
 #include <string>
+#include <mutex>
 
 namespace lime {
 
@@ -125,7 +126,9 @@ namespace lime {
 	class LimeManager {
 		private :
 			std::unordered_map<std::string, std::shared_ptr<LimeGeneric>> m_users_cache; // cache of already opened Lime Session, identified by user Id (GRUU)
+			std::mutex m_users_mutex; // m_users_cache mutex
 			std::string m_db_access; // DB access information forwarded to SOCI to correctly access database
+			std::shared_ptr<std::recursive_mutex> m_db_mutex; // database access mutex
 			limeX3DHServerPostData m_X3DH_post_data; // send data to the X3DH key server
 			void load_user(std::shared_ptr<LimeGeneric> &user, const std::string &localDeviceId, const bool allStatus=false); // helper function, get from m_users_cache of local Storage the requested Lime object
 
@@ -367,9 +370,13 @@ namespace lime {
 			 *
 			 * @param[in]	db_access	string used to access DB: can be filename for sqlite3 or access params for mysql, directly forwarded to SOCI session opening
 			 * @param[in]	X3DH_post_data	A function to send data to the X3DH server, parameters includes a callback to transfer back the server response
+			 * @param[in]	db_mutex	a mutex used to lock database access. Is optionnal: if not given, the manager will produce one internally
 			 */
-			LimeManager(const std::string &db_access, const limeX3DHServerPostData &X3DH_post_data)
-				: m_users_cache{}, m_db_access{db_access}, m_X3DH_post_data{X3DH_post_data} {};
+			LimeManager(const std::string &db_access, const limeX3DHServerPostData &X3DH_post_data, std::shared_ptr<std::recursive_mutex> db_mutex);
+			/**
+			 * @overload LimeManager(const std::string &db_access, const limeX3DHServerPostData &X3DH_post_data)
+			 */
+			LimeManager(const std::string &db_access, const limeX3DHServerPostData &X3DH_post_data);
 
 			~LimeManager() = default;
 	};

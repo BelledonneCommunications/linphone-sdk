@@ -23,21 +23,30 @@
 #include "lime_lime.hpp"
 #include "lime_localStorage.hpp"
 #include "lime_settings.hpp"
+#include <mutex>
 #include "bctoolbox/exception.hh"
 
 using namespace::std;
 
 namespace lime {
+	LimeManager::LimeManager(const std::string &db_access, const limeX3DHServerPostData &X3DH_post_data, std::shared_ptr<std::recursive_mutex> db_mutex)
+		: m_users_cache{}, m_db_access{db_access}, m_db_mutex{db_mutex}, m_X3DH_post_data{X3DH_post_data} { }
+
+	// When no mutex is provided for database access, create one
+	LimeManager::LimeManager(const std::string &db_access, const limeX3DHServerPostData &X3DH_post_data)
+		: m_users_cache{}, m_db_access{db_access}, m_db_mutex{std::make_shared<std::recursive_mutex>()}, m_X3DH_post_data{X3DH_post_data} { }
+
 	void LimeManager::load_user(std::shared_ptr<LimeGeneric> &user, const std::string &localDeviceId, const bool allStatus) {
+		// get the Lime manager lock
+		std::lock_guard<std::mutex> lock(m_users_mutex);
 		// Load user object
 		auto userElem = m_users_cache.find(localDeviceId);
 		if (userElem == m_users_cache.end()) { // not in cache, load it from DB
-			user = load_LimeUser(m_db_access, localDeviceId, m_X3DH_post_data, allStatus);
+			user = load_LimeUser(m_db_access, localDeviceId, m_X3DH_post_data, m_db_mutex, allStatus);
 			m_users_cache[localDeviceId]=user;
 		} else {
 			user = userElem->second;
 		}
-
 	}
 
 	/****************************************************************************/
@@ -56,13 +65,19 @@ namespace lime {
 
 			// then check if it went well, if not delete the user from localDB
 			if (returnCode != lime::CallbackReturn::success) {
-				auto localStorage = std::unique_ptr<lime::Db>(new lime::Db(thiz->m_db_access));
+				auto localStorage = std::unique_ptr<lime::Db>(new lime::Db(thiz->m_db_access, thiz->m_db_mutex));
+
 				localStorage->delete_LimeUser(localDeviceId);
+
+				// Failure can occur only on X3DH server response(local failure generate an exception so we would never
+				// arrive in this callback)), so the lock acquired by create_user has already expired when we arrive here
+				std::lock_guard<std::mutex> lock(thiz->m_users_mutex);
 				thiz->m_users_cache.erase(localDeviceId);
 			}
 		});
 
-		m_users_cache.insert({localDeviceId, insert_LimeUser(m_db_access, localDeviceId, x3dhServerUrl, curve, OPkInitialBatchSize, m_X3DH_post_data, managerCreateCallback)});
+		std::lock_guard<std::mutex> lock(m_users_mutex);
+		m_users_cache.insert({localDeviceId, insert_LimeUser(m_db_access, localDeviceId, x3dhServerUrl, curve, OPkInitialBatchSize, m_X3DH_post_data, managerCreateCallback, m_db_mutex)});
 	}
 
 	void LimeManager::delete_user(const std::string &localDeviceId, const limeCallback &callback) {
@@ -135,7 +150,7 @@ namespace lime {
 	}
 	void LimeManager::update(const limeCallback &callback, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize) {
 		// open local DB
-		auto localStorage = std::unique_ptr<lime::Db>(new lime::Db(m_db_access));
+		auto localStorage = std::unique_ptr<lime::Db>(new lime::Db(m_db_access, m_db_mutex));
 
 		/* DR sessions and old stale SPk cleaning */
 		localStorage->clean_DRSessions();
@@ -187,33 +202,34 @@ namespace lime {
 
 	void LimeManager::set_peerDeviceStatus(const std::string &peerDeviceId, const std::vector<uint8_t> &Ik, lime::PeerDeviceStatus status) {
 		// open local DB
-		auto localStorage = std::unique_ptr<lime::Db>(new lime::Db(m_db_access));
+		auto localStorage = std::unique_ptr<lime::Db>(new lime::Db(m_db_access, m_db_mutex));
 
 		localStorage->set_peerDeviceStatus(peerDeviceId, Ik, status);
 	}
 
 	void LimeManager::set_peerDeviceStatus(const std::string &peerDeviceId, lime::PeerDeviceStatus status) {
 		// open local DB
-		auto localStorage = std::unique_ptr<lime::Db>(new lime::Db(m_db_access));
+		auto localStorage = std::unique_ptr<lime::Db>(new lime::Db(m_db_access, m_db_mutex));
 
 		localStorage->set_peerDeviceStatus(peerDeviceId, status);
 	}
 
 	lime::PeerDeviceStatus LimeManager::get_peerDeviceStatus(const std::string &peerDeviceId) {
 		// open local DB
-		auto localStorage = std::unique_ptr<lime::Db>(new lime::Db(m_db_access));
+		auto localStorage = std::unique_ptr<lime::Db>(new lime::Db(m_db_access, m_db_mutex));
 
 		return localStorage->get_peerDeviceStatus(peerDeviceId);
 	}
 
 	void LimeManager::delete_peerDevice(const std::string &peerDeviceId) {
+		std::lock_guard<std::mutex> lock(m_users_mutex);
 		// loop on all local users in cache to destroy any cached session linked to that user
 		for (auto userElem : m_users_cache) {
 			userElem.second->delete_peerDevice(peerDeviceId);
 		}
 
 		// open local DB
-		auto localStorage = std::unique_ptr<lime::Db>(new lime::Db(m_db_access));
+		auto localStorage = std::unique_ptr<lime::Db>(new lime::Db(m_db_access, m_db_mutex));
 
 		localStorage->delete_peerDevice(peerDeviceId);
 	}

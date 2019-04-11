@@ -20,6 +20,7 @@
 #include <bctoolbox/exception.hh>
 #include <soci/soci.h>
 #include <set>
+#include <mutex>
 
 #include "lime_log.hpp"
 #include "lime/lime.hpp"
@@ -38,12 +39,8 @@ namespace lime {
 /* Db public API                                                              */
 /*                                                                            */
 /******************************************************************************/
-/**
- * @brief Constructor, open and check DB validity, create or update db schema is needed
- *
- * @param[in]	filename	The path to DB file
- */
-Db::Db(std::string filename) : sql{"sqlite3", filename}{
+Db::Db(const std::string &filename, std::shared_ptr<std::recursive_mutex> db_mutex) : sql{"sqlite3", filename}, m_db_mutex{db_mutex} {
+	std::lock_guard<std::recursive_mutex> lock(*m_db_mutex);
 	constexpr int db_module_table_not_holding_lime_row = -1;
 
 	int userVersion=db_module_table_not_holding_lime_row;
@@ -226,6 +223,7 @@ Db::Db(std::string filename) : sql{"sqlite3", filename}{
  */
 void Db::load_LimeUser(const std::string &deviceId, long int &Uid, lime::CurveId &curveId, std::string &url, const bool allStatus)
 {
+	std::lock_guard<std::recursive_mutex> lock(*m_db_mutex);
 	int curve=0;
 	sql<<"SELECT Uid,curveId,server FROM lime_LocalUsers WHERE UserId = :userId LIMIT 1;", into(Uid), into(curve), into(url), use(deviceId);
 
@@ -270,6 +268,7 @@ void Db::load_LimeUser(const std::string &deviceId, long int &Uid, lime::CurveId
  * 	Once we moved to next chain(as soon as peer got an answer from us and replies), the count won't be reset anymore
  */
 void Db::clean_DRSessions() {
+	std::lock_guard<std::recursive_mutex> lock(*m_db_mutex);
 	// WARNING: not sure this code is portable it may work with sqlite3 only
 	// delete stale sessions considered to old
 	sql<<"DELETE FROM DR_sessions WHERE Status=0 AND timeStamp < date('now', '-"<<lime::settings::DRSession_limboTime_days<<" day');";
@@ -284,6 +283,7 @@ void Db::clean_DRSessions() {
  * SPk in stale status for more than SPK_limboTime_days are deleted
  */
 void Db::clean_SPk() {
+	std::lock_guard<std::recursive_mutex> lock(*m_db_mutex);
 	// WARNING: not sure this code is portable it may work with sqlite3 only
 	// delete stale sessions considered to old
 	sql<<"DELETE FROM X3DH_SPK WHERE Status=0 AND timeStamp < date('now', '-"<<lime::settings::SPK_limboTime_days<<" day');";
@@ -295,6 +295,7 @@ void Db::clean_SPk() {
  * @param[out]	deviceIds	the list of all local users (their device Id)
  */
 void Db::get_allLocalDevices(std::vector<std::string> &deviceIds) {
+	std::lock_guard<std::recursive_mutex> lock(*m_db_mutex);
 	deviceIds.clear();
 	rowset<row> rs = (sql.prepare << "SELECT UserId FROM lime_LocalUsers;");
 	for (const auto &r : rs) {
@@ -336,6 +337,7 @@ void Db::get_allLocalDevices(std::vector<std::string> &deviceIds) {
  *       - insert/update the status. If inserted, insert an invalid Ik
  */
 void Db::set_peerDeviceStatus(const std::string &peerDeviceId, const std::vector<uint8_t> &Ik, lime::PeerDeviceStatus status) {
+	std::lock_guard<std::recursive_mutex> lock(*m_db_mutex);
 	// if status is unsafe or untrusted, call the variant without Ik
 	if (status == lime::PeerDeviceStatus::unsafe || status == lime::PeerDeviceStatus::untrusted) {
 		this->set_peerDeviceStatus(peerDeviceId, status);
@@ -380,6 +382,7 @@ void Db::set_peerDeviceStatus(const std::string &peerDeviceId, const std::vector
  * Calls with status unsafe or untrusted are executed by this function as they do not need Ik.
  */
 void Db::set_peerDeviceStatus(const std::string &peerDeviceId, lime::PeerDeviceStatus status) {
+	std::lock_guard<std::recursive_mutex> lock(*m_db_mutex);
 	// Check the status flag value, accepted values are: untrusted, unsafe
 	if (status != lime::PeerDeviceStatus::unsafe
 	&& status != lime::PeerDeviceStatus::untrusted) {
@@ -430,6 +433,7 @@ void Db::set_peerDeviceStatus(const std::string &peerDeviceId, lime::PeerDeviceS
  * @return unknown if the device is not in localStorage, untrusted, trusted or unsafe according to the stored value of peer device status flag otherwise
  */
 lime::PeerDeviceStatus Db::get_peerDeviceStatus(const std::string &peerDeviceId) {
+	std::lock_guard<std::recursive_mutex> lock(*m_db_mutex);
 	int status;
 	sql<<"SELECT Status FROM Lime_PeerDevices WHERE DeviceId = :peerDeviceId LIMIT 1;", into(status), use(peerDeviceId);
 	if (sql.got_data()) { // Found it
@@ -457,6 +461,7 @@ lime::PeerDeviceStatus Db::get_peerDeviceStatus(const std::string &peerDeviceId)
  * Call is silently ignored if the device is not found in local storage
  */
 void Db::delete_peerDevice(const std::string &peerDeviceId) {
+	std::lock_guard<std::recursive_mutex> lock(*m_db_mutex);
 	sql<<"DELETE FROM lime_peerDevices WHERE DeviceId = :peerDeviceId;", use(peerDeviceId);
 }
 
@@ -472,6 +477,7 @@ void Db::delete_peerDevice(const std::string &peerDeviceId) {
  */
 template <typename Curve>
 long int Db::check_peerDevice(const std::string &peerDeviceId, const DSA<Curve, lime::DSAtype::publicKey> &peerIk) {
+	std::lock_guard<std::recursive_mutex> lock(*m_db_mutex);
 	try {
 		blob Ik_blob(sql);
 		long int Did=0;
@@ -512,6 +518,7 @@ long int Db::check_peerDevice(const std::string &peerDeviceId, const DSA<Curve, 
  */
 template <typename Curve>
 long int Db::store_peerDevice(const std::string &peerDeviceId, const DSA<Curve, lime::DSAtype::publicKey> &peerIk) {
+	std::lock_guard<std::recursive_mutex> lock(*m_db_mutex);
 
 	try {
 		blob Ik_blob(sql);
@@ -541,6 +548,7 @@ long int Db::store_peerDevice(const std::string &peerDeviceId, const DSA<Curve, 
  */
 void Db::delete_LimeUser(const std::string &deviceId)
 {
+	std::lock_guard<std::recursive_mutex> lock(*m_db_mutex);
 	sql<<"DELETE FROM lime_LocalUsers WHERE UserId = :userId;", use(deviceId);
 }
 
@@ -562,6 +570,7 @@ void Db::delete_LimeUser(const std::string &deviceId)
 /******************************************************************************/
 template <typename DHKey>
 bool DR<DHKey>::session_save() {
+	std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
 
 	// open transaction
 	transaction tr(m_localStorage->sql);
@@ -716,6 +725,7 @@ bool DR<DHKey>::session_save() {
 
 template <typename DHKey>
 bool DR<DHKey>::session_load() {
+	std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
 
 	// blobs to store DR session data
 	blob DHr(m_localStorage->sql);
@@ -756,6 +766,7 @@ bool DR<DHKey>::session_load() {
 
 template <typename Curve>
 bool DR<Curve>::trySkippedMessageKeys(const uint16_t Nr, const X<Curve, lime::Xtype::publicKey> &DHr, DRMKey &MK) {
+	std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
 	blob MK_blob(m_localStorage->sql);
 	blob DHr_blob(m_localStorage->sql);
 	DHr_blob.write(0, (char *)(DHr.data()), DHr.size());
@@ -805,6 +816,7 @@ bool DR<Curve>::trySkippedMessageKeys(const uint16_t Nr, const X<Curve, lime::Xt
 template <typename Curve>
 bool Lime<Curve>::create_user()
 {
+	std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
 	int Uid;
 	int curve;
 
@@ -875,6 +887,7 @@ bool Lime<Curve>::create_user()
  */
 template <typename Curve>
 bool Lime<Curve>::activate_user() {
+	std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
 	// check if the user is the DB
 	int Uid = 0;
 	int curveId = 0;
@@ -905,6 +918,7 @@ bool Lime<Curve>::activate_user() {
 template <typename Curve>
 void Lime<Curve>::get_SelfIdentityKey() {
 	if (m_Ik_loaded == false) {
+		std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
 		blob Ik_blob(m_localStorage->sql);
 		m_localStorage->sql<<"SELECT Ik FROM Lime_LocalUsers WHERE Uid = :UserId LIMIT 1;", into(Ik_blob), use(m_db_Uid);
 		if (m_localStorage->sql.got_data()) { // Found it, it is stored in one buffer Public || Private
@@ -929,6 +943,9 @@ template <typename Curve>
 void Lime<Curve>::X3DH_generate_SPk(X<Curve, lime::Xtype::publicKey> &publicSPk, DSA<Curve, lime::DSAtype::signature> &SPk_sig, uint32_t &SPk_id, const bool load) {
 	// check Identity key is loaded in Lime object context
 	get_SelfIdentityKey();
+
+	// lock after the get_SelfIdentityKey as it also acquires this lock
+	std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
 
 	// if the load flag is on, try to load a existing active key instead of generating it
 	if (load) {
@@ -1001,6 +1018,8 @@ void Lime<Curve>::X3DH_generate_SPk(X<Curve, lime::Xtype::publicKey> &publicSPk,
  */
 template <typename Curve>
 void Lime<Curve>::X3DH_generate_OPks(std::vector<X<Curve, lime::Xtype::publicKey>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number, const bool load) {
+
+	std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
 
 	// make room for OPk and OPk ids
 	OPk_ids.clear();
@@ -1088,6 +1107,7 @@ void Lime<Curve>::X3DH_generate_OPks(std::vector<X<Curve, lime::Xtype::publicKey
 
 template <typename Curve>
 void Lime<Curve>::cache_DR_sessions(std::vector<RecipientInfos<Curve>> &internal_recipients, std::vector<std::string> &missing_devices) {
+	std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
 	// build a user list of missing ones : produce a list ready to be sent to SQL query: 'user','user','user',... also build a map to store shared_ptr to sessions
 	// build also a list of all peer devices used to fetch from DB their status: unknown, untrusted or trusted
 	std::string sqlString_requestedDevices{""};
@@ -1171,6 +1191,7 @@ void Lime<Curve>::cache_DR_sessions(std::vector<RecipientInfos<Curve>> &internal
 // load from local storage in DRSessions all DR session matching the peerDeviceId, ignore the one picked by id in 2nd arg
 template <typename Curve>
 void Lime<Curve>::get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDRSessionId, std::vector<std::shared_ptr<DR<Curve>>> &DRSessions) {
+	std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
 	rowset<int> rs = (m_localStorage->sql.prepare << "SELECT s.sessionId FROM DR_sessions as s INNER JOIN lime_PeerDevices as d ON s.Did=d.Did WHERE d.DeviceId = :senderDeviceId AND s.Uid = :Uid AND s.sessionId <> :ignoreThisDRSessionId ORDER BY s.Status DESC, timeStamp ASC;", use(senderDeviceId), use (m_db_Uid), use(ignoreThisDRSessionId));
 
 	for (const auto &sessionId : rs) {
@@ -1187,6 +1208,7 @@ void Lime<Curve>::get_DRSessions(const std::string &senderDeviceId, const long i
  */
 template <typename Curve>
 void Lime<Curve>::X3DH_get_SPk(uint32_t SPk_id, Xpair<Curve> &SPk) {
+	std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
 	blob SPk_blob(m_localStorage->sql);
 	m_localStorage->sql<<"SELECT SPk FROM X3DH_SPk WHERE Uid = :Uid AND SPKid = :SPk_id LIMIT 1;", into(SPk_blob), use(m_db_Uid), use(SPk_id);
 	if (m_localStorage->sql.got_data()) { // Found it, it is stored in one buffer Public || Private
@@ -1202,6 +1224,7 @@ void Lime<Curve>::X3DH_get_SPk(uint32_t SPk_id, Xpair<Curve> &SPk) {
  */
 template <typename Curve>
 bool Lime<Curve>::is_currentSPk_valid(void) {
+	std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
 	// Do we have an active SPk for this user which is younger than SPK_lifeTime_days
 	int dummy;
 	m_localStorage->sql<<"SELECT SPKid FROM X3DH_SPk WHERE Uid = :Uid AND Status = 1 AND timeStamp > date('now', '-"<<lime::settings::SPK_lifeTime_days<<" day') LIMIT 1;", into(dummy), use(m_db_Uid);
@@ -1221,6 +1244,7 @@ bool Lime<Curve>::is_currentSPk_valid(void) {
  */
 template <typename Curve>
 void Lime<Curve>::X3DH_get_OPk(uint32_t OPk_id, Xpair<Curve> &OPk) {
+	std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
 	blob OPk_blob(m_localStorage->sql);
 	m_localStorage->sql<<"SELECT OPk FROM X3DH_OPK WHERE Uid = :Uid AND OPKid = :OPk_id LIMIT 1;", into(OPk_blob), use(m_db_Uid), use(OPk_id);
 	if (m_localStorage->sql.got_data()) { // Found it, it is stored in one buffer Public || Private
@@ -1240,6 +1264,7 @@ void Lime<Curve>::X3DH_get_OPk(uint32_t OPk_id, Xpair<Curve> &OPk) {
  */
 template <typename Curve>
 void Lime<Curve>::X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds) {
+	std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
 	if (OPkIds.size()>0) { /* we have keys on server */
 		// build a comma-separated list of OPk id on server
 		std::string sqlString_OPkIds{""};
@@ -1261,6 +1286,7 @@ void Lime<Curve>::X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds) {
 
 template <typename Curve>
 void Lime<Curve>::set_x3dhServerUrl(const std::string &x3dhServerUrl) {
+	std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
 	transaction tr(m_localStorage->sql);
 
 	// update in DB, do not check presence as we're called after a load_user who already ensure that

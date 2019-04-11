@@ -22,6 +22,7 @@
 
 #include "soci/soci.h"
 #include "lime_crypto_primitives.hpp"
+#include <mutex>
 
 namespace lime {
 
@@ -34,6 +35,8 @@ namespace lime {
 	public:
 		/// soci connexion to DB
 		soci::session	sql;
+		/// mutex on database access
+		std::shared_ptr<std::recursive_mutex> m_db_mutex;
 
 		Db()=delete; // we can't create a new DB holder without DB filename
 
@@ -41,8 +44,9 @@ namespace lime {
 		 * @brief Open and check DB validity, create or update db schema is needed
 		 *
 		 * @param[in]	filename	The path to DB file
+		 * @param[in]	db_mutex	database access mutex
 		 */
-		Db(std::string filename);
+		Db(const std::string &filename, std::shared_ptr<std::recursive_mutex> db_mutex);
 		~Db(){sql.close();};
 
 		void load_LimeUser(const std::string &deviceId, long int &Uid, lime::CurveId &curveId, std::string &url, const bool allStatus=false);

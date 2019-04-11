@@ -23,6 +23,7 @@
 #include "bctoolbox/exception.hh"
 #include "lime_double_ratchet.hpp"
 #include "lime_double_ratchet_protocol.hpp"
+#include <mutex>
 
 using namespace::std;
 
@@ -93,11 +94,12 @@ namespace lime {
 	void Lime<Curve>::publish_user(const limeCallback &callback, const uint16_t OPkInitialBatchSize) {
 		auto userData = make_shared<callbackUserData<Curve>>(this->shared_from_this(), callback, OPkInitialBatchSize);
 		get_SelfIdentityKey(); // make sure our Ik is loaded in object
-		/* Generate (or load if they already are in base when publishing an inactive user) the SPk */
+		// Generate (or load if they already are in base when publishing an inactive user) the SPk
 		X<Curve, lime::Xtype::publicKey> SPk{};
 		DSA<Curve, lime::DSAtype::signature> SPk_sig{};
 		uint32_t SPk_id=0;
 		X3DH_generate_SPk(SPk, SPk_sig, SPk_id, true);
+
 		// Generate (or load if they already are in base when publishing an inactive user) the OPks
 		std::vector<X<Curve, lime::Xtype::publicKey>> OPks{};
 		std::vector<uint32_t> OPk_ids{};
@@ -167,12 +169,13 @@ namespace lime {
 	void Lime<Curve>::encrypt(std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback) {
 		LIME_LOGI<<"encrypt from "<<m_selfDeviceId<<" to "<<recipients->size()<<" recipients";
 		/* Check if we have all the Double Ratchet sessions ready or shall we go for an X3DH */
-		std::vector<std::string> missingPeers; /* vector of deviceId(GRUU) which are requested to perform X3DH before the encryption can occurs */
 
 		/* Create the appropriate recipient infos and fill it with sessions found in cache */
 		// internal_recipients is a vector duplicating the recipients one in the same order (ignoring the one with peerStatus set to fail)
 		// This allows fast copying of relevant information back to recipients when encryption is completed
 		std::vector<RecipientInfos<Curve>> internal_recipients{};
+
+		std::unique_lock<std::mutex> lock(m_mutex);
 		for (const auto &recipient : *recipients) {
 			// if the input recipient peerStatus is fail we must ignore it
 			// most likely: we're in a call after a key bundle fetch and this peer device does not have keys on the X3DH server
@@ -208,35 +211,45 @@ namespace lime {
 			// retrieve bundles from X3DH server, when they arrive, it will run the X3DH initiation and create the DR sessions
 			std::vector<uint8_t> X3DHmessage{};
 			x3dh_protocol::buildMessage_getPeerBundles<Curve>(X3DHmessage, missing_devices);
+			lock.unlock(); // unlock before calling external callbacks
 			postToX3DHServer(userData, X3DHmessage);
-		} else { // got everyone, encrypt
-			encryptMessage(internal_recipients, *plainMessage, *recipientUserId, m_selfDeviceId, *cipherMessage, encryptionPolicy);
-			// move DR messages to the input/output structure, ignoring again the input with peerStatus set to fail
-			// so the index on the internal_recipients still matches the way we created it from recipients
-			size_t i=0;
-			auto callbackStatus = lime::CallbackReturn::fail;
-			std::string callbackMessage{"All recipients failed to provide a key bundle"};
-			for (auto &recipient : *recipients) {
-				if (recipient.peerStatus != lime::PeerDeviceStatus::fail) {
-					recipient.DRmessage = std::move(internal_recipients[i].DRmessage);
-					recipient.peerStatus = internal_recipients[i].peerStatus;
-					i++;
-					callbackStatus = lime::CallbackReturn::success; // we must have at least one recipient with a successful encryption to return success
-					callbackMessage.clear();
-				}
+			return;
+		}
+
+		// We have everyone: encrypt
+		encryptMessage(internal_recipients, *plainMessage, *recipientUserId, m_selfDeviceId, *cipherMessage, encryptionPolicy);
+
+		// move DR messages to the input/output structure, ignoring again the input with peerStatus set to fail
+		// so the index on the internal_recipients still matches the way we created it from recipients
+		size_t i=0;
+		auto callbackStatus = lime::CallbackReturn::fail;
+		std::string callbackMessage{"All recipients failed to provide a key bundle"};
+		for (auto &recipient : *recipients) {
+			if (recipient.peerStatus != lime::PeerDeviceStatus::fail) {
+				recipient.DRmessage = std::move(internal_recipients[i].DRmessage);
+				recipient.peerStatus = internal_recipients[i].peerStatus;
+				i++;
+				callbackStatus = lime::CallbackReturn::success; // we must have at least one recipient with a successful encryption to return success
+				callbackMessage.clear();
 			}
-			if (callback) callback(callbackStatus, callbackMessage);
-			// is there no one in an asynchronous encryption process and do we have something in encryption queue to process
-			if (m_ongoing_encryption == nullptr && !m_encryption_queue.empty()) { // may happend when an encryption was queued but session was created by a previously queued encryption request
-				auto userData = m_encryption_queue.front();
-				m_encryption_queue.pop(); // remove it from queue and do it
-				encrypt(userData->recipientUserId, userData->recipients, userData->plainMessage, userData->encryptionPolicy, userData->cipherMessage, userData->callback);
-			}
+		}
+
+		lock.unlock(); // unlock before calling external callbacks
+		if (callback) callback(callbackStatus, callbackMessage);
+		lock.lock();
+
+		// is there no one in an asynchronous encryption process and do we have something in encryption queue to process
+		if (m_ongoing_encryption == nullptr && !m_encryption_queue.empty()) { // may happend when an encryption was queued but session was created by a previously queued encryption request
+			auto userData = m_encryption_queue.front();
+			m_encryption_queue.pop(); // remove it from queue and do it
+			lock.unlock(); // unlock before recursive call
+			encrypt(userData->recipientUserId, userData->recipients, userData->plainMessage, userData->encryptionPolicy, userData->cipherMessage, userData->callback);
 		}
 	}
 
 	template <typename Curve>
 	lime::PeerDeviceStatus Lime<Curve>::decrypt(const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) {
+		std::lock_guard<std::mutex> lock(m_mutex);
 		// before trying to decrypt, we must check if the sender device is known in the local Storage and if we trust it
 		// a successful decryption will insert it in local storage so we must check first if it is there in order to detect new devices
 		// Note: a device could already be trusted in DB even before the first message (if we established trust before sending the first message)
@@ -249,8 +262,8 @@ namespace lime {
 		auto db_sessionIdInCache = 0; // this would be the db_sessionId of the session stored in cache if there is one, no session has the Id 0
 		if (sessionElem != m_DR_sessions_cache.end()) { // session is in cache, it is the active one, just give it a try
 			db_sessionIdInCache = sessionElem->second->dbSessionId();
-			std::vector<std::shared_ptr<DR<Curve>>> DRSessions{1, sessionElem->second}; // copy the session pointer into a vector as the decrypt function ask for it
-			if (decryptMessage<Curve>(senderDeviceId, m_selfDeviceId, recipientUserId, DRSessions, DRmessage, cipherMessage, plainMessage) != nullptr) {
+			std::vector<std::shared_ptr<DR<Curve>>> cached_DRSessions{1, sessionElem->second}; // copy the session pointer into a vector as the decrypt function ask for it
+			if (decryptMessage<Curve>(senderDeviceId, m_selfDeviceId, recipientUserId, cached_DRSessions, DRmessage, cipherMessage, plainMessage) != nullptr) {
 				// we manage to decrypt the message with the current active session loaded in cache
 				return senderDeviceStatus;
 			} else { // remove session from cache
@@ -366,11 +379,12 @@ namespace lime {
 	 * @param[in]	OPkInitialBatchSize		Number of OPks in the first batch uploaded to X3DH server
 	 * @param[in]	X3DH_post_data			A function used to communicate with the X3DH server
 	 * @param[in]	callback			To provide caller the operation result
+	 * @param[in]	db_mutex			a mutex to protect db access
 	 *
 	 * @return a pointer to the LimeGeneric class allowing access to API declared in lime_lime.hpp
 	 */
 	std::shared_ptr<LimeGeneric> insert_LimeUser(const std::string &dbFilename, const std::string &deviceId, const std::string &url, const lime::CurveId curve, const uint16_t OPkInitialBatchSize,
-			const limeX3DHServerPostData &X3DH_post_data, const limeCallback &callback) {
+			const limeX3DHServerPostData &X3DH_post_data, const limeCallback &callback, std::shared_ptr<std::recursive_mutex> db_mutex) {
 		LIME_LOGI<<"Create Lime user "<<deviceId;
 		/* first check the requested curve is instanciable and return an exception if not */
 #ifndef EC25519_ENABLED
@@ -385,7 +399,7 @@ namespace lime {
 #endif
 
 		/* open DB */
-		auto localStorage = std::unique_ptr<lime::Db>(new lime::Db(dbFilename)); // create as unique ptr, ownership is then passed to the Lime structure when instanciated
+		auto localStorage = std::unique_ptr<lime::Db>(new lime::Db(dbFilename, db_mutex)); // create as unique ptr, ownership is then passed to the Lime structure when instanciated
 
 		try {
 			//instanciate the correct Lime object
@@ -428,17 +442,18 @@ namespace lime {
 	 *	Fail to find the user will raise an exception
 	 *	If allStatus flag is set to false (default value), raise an exception on inactive users otherwise load inactive user.
 	 *
-	 * @param[in]	dbFilename			Path to filename to use
-	 * @param[in]	deviceId			User to lookup in DB, deviceId shall be the GRUU
-	 * @param[in]	X3DH_post_data			A function used to communicate with the X3DH server
-	 * @param[in]	allStatus			allow loading of inactive user if set to true
+	 * @param[in]	dbFilename		Path to filename to use
+	 * @param[in]	deviceId		User to lookup in DB, deviceId shall be the GRUU
+	 * @param[in]	X3DH_post_data		A function used to communicate with the X3DH server
+	 * @param[in]	db_mutex		a mutex to protect db access
+	 * @param[in]	allStatus		allow loading of inactive user if set to true
 	 *
 	 * @return a pointer to the LimeGeneric class allowing access to API declared in lime_lime.hpp
 	 */
-	std::shared_ptr<LimeGeneric> load_LimeUser(const std::string &dbFilename, const std::string &deviceId, const limeX3DHServerPostData &X3DH_post_data, const bool allStatus) {
+	std::shared_ptr<LimeGeneric> load_LimeUser(const std::string &dbFilename, const std::string &deviceId, const limeX3DHServerPostData &X3DH_post_data, std::shared_ptr<std::recursive_mutex> db_mutex, const bool allStatus) {
 
 		/* open DB and load user */
-		auto localStorage = std::unique_ptr<lime::Db>(new lime::Db(dbFilename)); // create as unique ptr, ownership is then passed to the Lime structure when instanciated
+		auto localStorage = std::unique_ptr<lime::Db>(new lime::Db(dbFilename, db_mutex)); // create as unique ptr, ownership is then passed to the Lime structure when instanciated
 		auto curve = CurveId::unset;
 		long int Uid=0;
 		std::string x3dh_server_url;

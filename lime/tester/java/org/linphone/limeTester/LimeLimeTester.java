@@ -207,13 +207,9 @@ public class LimeLimeTester {
 			String BobDeviceId2 = "bob.d2."+UUID.randomUUID().toString();
 
 			aliceManager.create_user(AliceDeviceId, x3dhServerUrl, curveId, 10, statusCallback);
-			expected_success+= 1;
-			assert (statusCallback.wait_for_success(expected_success));
 			bobManager.create_user(BobDeviceId1, x3dhServerUrl, curveId, 10, statusCallback);
-			expected_success+= 1;
-			assert (statusCallback.wait_for_success(expected_success)); // We cannot create both bob's device at the same time as they use the same database
 			bobManager.create_user(BobDeviceId2, x3dhServerUrl, curveId, 10, statusCallback);
-			expected_success+= 1;
+			expected_success+= 3;
 			assert (statusCallback.wait_for_success(expected_success));
 			assert (statusCallback.fail == expected_fail);
 
@@ -388,13 +384,9 @@ public class LimeLimeTester {
 			String BobDeviceId3 = "bob.d3."+UUID.randomUUID().toString(); // we just get a random device name but we will not create it
 
 			aliceManager.create_user(AliceDeviceId, x3dhServerUrl, curveId, 10, statusCallback);
-			expected_success+= 1;
-			assert (statusCallback.wait_for_success(expected_success));
 			bobManager.create_user(BobDeviceId1, x3dhServerUrl, curveId, 10, statusCallback);
-			expected_success+= 1;
-			assert (statusCallback.wait_for_success(expected_success)); // We cannot create both bob's device at the same time as they use the same database
 			bobManager.create_user(BobDeviceId2, x3dhServerUrl, curveId, 10, statusCallback);
-			expected_success+= 1;
+			expected_success+= 3;
 			assert (statusCallback.wait_for_success(expected_success));
 			assert (statusCallback.fail == expected_fail);
 
@@ -509,19 +501,11 @@ public class LimeLimeTester {
 			String BobDeviceId4 = "bob.d4."+UUID.randomUUID().toString();
 
 			aliceManager.create_user(AliceDeviceId, x3dhServerUrl, curveId, 10, statusCallback);
-			expected_success+= 1;
-			assert (statusCallback.wait_for_success(expected_success));
 			bobManager.create_user(BobDeviceId1, x3dhServerUrl, curveId, 10, statusCallback);
-			expected_success+= 1;
-			assert (statusCallback.wait_for_success(expected_success));
 			bobManager.create_user(BobDeviceId2, x3dhServerUrl, curveId, 10, statusCallback);
-			expected_success+= 1;
-			assert (statusCallback.wait_for_success(expected_success));
 			bobManager.create_user(BobDeviceId3, x3dhServerUrl, curveId, 10, statusCallback);
-			expected_success+= 1;
-			assert (statusCallback.wait_for_success(expected_success));
 			bobManager.create_user(BobDeviceId4, x3dhServerUrl, curveId, 10, statusCallback);
-			expected_success+= 1;
+			expected_success+= 5;
 			assert (statusCallback.wait_for_success(expected_success));
 			assert (statusCallback.fail == expected_fail);
 
@@ -1012,13 +996,11 @@ public class LimeLimeTester {
 			// create Manager and devices
 			LimeManager aliceManager = new LimeManager(aliceDbFilename, postObj);
 			aliceManager.create_user(aliceDevice1Id, x3dhServerUrl, curveId, 10, statusCallback);
-			assert (statusCallback.wait_for_success(++expected_success));
 			aliceManager.create_user(aliceDevice2Id, x3dhServerUrl, curveId, 10, statusCallback);
-			assert (statusCallback.wait_for_success(++expected_success));
-
 			LimeManager bobManager = new LimeManager(bobDbFilename, postObj);
 			bobManager.create_user(bobDeviceId, x3dhServerUrl, curveId, 10, statusCallback);
-			assert (statusCallback.wait_for_success(++expected_success));
+			expected_success+=3;
+			assert (statusCallback.wait_for_success(expected_success));
 
 			// Bob encrypts to alice and we check result
 			// Short messages
@@ -1230,9 +1212,9 @@ public class LimeLimeTester {
 		try {
 			// create devices
 			aliceManager.create_user(aliceDeviceId, x3dhServerUrl, curveId, 10, statusCallback);
-			assert (statusCallback.wait_for_success(++expected_success));
 			bobManager.create_user(bobDeviceId, x3dhServerUrl, curveId, 10, statusCallback);
-			assert (statusCallback.wait_for_success(++expected_success));
+			expected_success+=2;
+			assert (statusCallback.wait_for_success(expected_success));
 
 
 			// retrieve their respective Ik

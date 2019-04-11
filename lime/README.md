@@ -1,7 +1,7 @@
 Lime
 =======
 
-Lime is a C++ library implementing Open Whisper System Signal protocol :
+Lime is a thread safe C++ library implementing Open Whisper System Signal protocol :
 Sesame, double ratchet and X3DH. https://signal.org/docs/
 
 Lime can run the Signal Protocol using elliptic curve 25519 or curve 448-goldilocks.
@@ -99,5 +99,5 @@ Options
 
 ------------------
 
-- [1] linphone-desktop: git://git.linphone.org/linphone-desktop.git
-- [2] bctoolbox: git://git.linphone.org/bctoolbox.git or <http://www.linphone.org/releases/sources/bctoolbox>
+- [1] linphone-desktop: https://gitlab.linphone.org/BC/public/linphone-desktop.git
+- [2] bctoolbox: https://gitlab.linphone.org/BC/public/bctoolbox.git or <http://www.linphone.org/releases/sources/bctoolbox>

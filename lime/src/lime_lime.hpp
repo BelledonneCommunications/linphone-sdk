@@ -23,6 +23,7 @@
 #include <memory> // unique_ptr
 #include <unordered_map>
 #include <vector>
+#include <mutex>
 
 namespace lime {
 
@@ -162,9 +163,9 @@ namespace lime {
 	/* Lime Factory functions : return a pointer to the implementation using the specified elliptic curve. Two functions: one for creation, one for loading from local storage */
 
 	std::shared_ptr<LimeGeneric> insert_LimeUser(const std::string &dbFilename, const std::string &deviceId, const std::string &url, const lime::CurveId curve, const uint16_t OPkInitialBatchSize,
-			const limeX3DHServerPostData &X3DH_post_data, const limeCallback &callback);
+			const limeX3DHServerPostData &X3DH_post_data, const limeCallback &callback, std::shared_ptr<std::recursive_mutex> mutex);
 
-	std::shared_ptr<LimeGeneric> load_LimeUser(const std::string &dbFilename, const std::string &deviceId, const limeX3DHServerPostData &X3DH_post_data, const bool allStatus=false);
+	std::shared_ptr<LimeGeneric> load_LimeUser(const std::string &dbFilename, const std::string &deviceId, const limeX3DHServerPostData &X3DH_post_data, std::shared_ptr<std::recursive_mutex> mutex, const bool allStatus=false);
 
 }
 #endif // lime_lime_hpp

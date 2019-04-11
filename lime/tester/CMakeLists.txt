@@ -49,10 +49,13 @@ set(SOURCE_FILES_C
 bc_apply_compile_flags(SOURCE_FILES_C STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
 bc_apply_compile_flags(SOURCE_FILES_CXX STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
 
+set (THREADS_PREFER_PTHREAD_FLAG ON)
+find_package (Threads REQUIRED)
+
 if(ANDROID OR IOS)
 	add_library(limetester SHARED ${HEADER_FILES_CXX} ${SOURCE_FILES_CXX} ${SOURCE_FILES_C} )
 	target_include_directories(limetester PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIRS} ${BELLESIP_INCLUDE_DIRS})
-	target_link_libraries(limetester ${LIME_LIBRARIES_FOR_TESTER} ${BCTOOLBOX_LIBRARIES} ${BCTOOLBOX_TESTER_LIBRARIES} ${BELLESIP_LIBRARIES} ${SOCI_LIBRARIES} ${SOCI_sqlite3_PLUGIN})
+	target_link_libraries(limetester ${LIME_LIBRARIES_FOR_TESTER} ${BCTOOLBOX_LIBRARIES} ${BCTOOLBOX_TESTER_LIBRARIES} ${BELLESIP_LIBRARIES} ${SOCI_LIBRARIES} ${SOCI_sqlite3_PLUGIN} ${CMAKE_THREAD_LIBS_INIT})
 	if(IOS)
 		target_link_libraries(limetester sqlite3)
 		set(MIN_OS ${LINPHONE_IOS_DEPLOYMENT_TARGET})
@@ -78,7 +81,7 @@ else()
 	add_executable(lime_tester ${SOURCE_FILES_CXX} ${HEADER_FILES_CXX} ${SOURCE_FILES_C} )
 	set_target_properties(lime_tester PROPERTIES LINKER_LANGUAGE CXX)
 	target_include_directories(lime_tester PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIRS} ${BELLESIP_INCLUDE_DIRS})
-	target_link_libraries(lime_tester ${LIME_LIBRARIES_FOR_TESTER} ${BCTOOLBOX_LIBRARIES} ${BCTOOLBOX_TESTER_LIBRARIES} ${BELLESIP_LIBRARIES} ${SOCI_LIBRARIES} ${SOCI_sqlite3_PLUGIN})
+	target_link_libraries(lime_tester ${LIME_LIBRARIES_FOR_TESTER} ${BCTOOLBOX_LIBRARIES} ${BCTOOLBOX_TESTER_LIBRARIES} ${BELLESIP_LIBRARIES} ${SOCI_LIBRARIES} ${SOCI_sqlite3_PLUGIN} ${CMAKE_THREAD_LIBS_INIT})
 
 	# Some tests suite need a local X3DH server running in default config, so run them suite by suite to at least be able to pass some if no server can be found
 	add_test(NAME crypto COMMAND lime_tester --verbose --resource-dir ${CMAKE_CURRENT_SOURCE_DIR} --suite "Crypto")

@@ -68,7 +68,9 @@ static void dr_skippedMessages_basic_test(const uint8_t period=1, const uint8_t 
 	remove(bobFilename.data());
 
 	// create sessions
-	lime_tester::dr_sessionsInit(alice, bob, aliceLocalStorage, bobLocalStorage, aliceFilename, bobFilename, true, RNG_context);
+	auto alice_db_mutex = make_shared<std::recursive_mutex>();
+	auto bob_db_mutex = make_shared<std::recursive_mutex>();
+	lime_tester::dr_sessionsInit(alice, bob, aliceLocalStorage, bobLocalStorage, aliceFilename, alice_db_mutex, bobFilename, bob_db_mutex, true, RNG_context);
 	std::vector<std::vector<uint8_t>> cipher;
 	std::vector<std::vector<RecipientInfos<Curve>>> recipients;
 	std::vector<uint8_t> messageSender; // hold status of message: 0 not sent, 1 sent by Alice, 2 sent by Bob, 3 received
@@ -225,7 +227,9 @@ static void dr_long_exchange_test(uint8_t period=1, std::string db_filename="dr_
 	aliceFilename.append(".alice.sqlite3");
 	bobFilename.append(".bob.sqlite3");
 	// create sessions
-	lime_tester::dr_sessionsInit(alice, bob, aliceLocalStorage, bobLocalStorage, aliceFilename, bobFilename, true, RNG_context);
+	auto alice_db_mutex = make_shared<std::recursive_mutex>();
+	auto bob_db_mutex = make_shared<std::recursive_mutex>();
+	lime_tester::dr_sessionsInit(alice, bob, aliceLocalStorage, bobLocalStorage, aliceFilename, alice_db_mutex, bobFilename, bob_db_mutex, true, RNG_context);
 	std::vector<uint8_t> aliceCipher, bobCipher;
 
 	bool aliceSender=true;
@@ -332,7 +336,9 @@ static void dr_simple_exchange(std::shared_ptr<DR<Curve>> &DRsessionAlice, std::
 			lime::EncryptionPolicy getEncryptionPolicyAlice, lime::EncryptionPolicy getEncryptionPolicyBob,
 			lime::EncryptionPolicy setEncryptionPolicyAlice, lime::EncryptionPolicy setEncryptionPolicyBob) {
 	// create sessions: alice sender, bob receiver
-	lime_tester::dr_sessionsInit(DRsessionAlice, DRsessionBob, localStorageAlice, localStorageBob, filenameAlice, filenameBob, true, RNG_context);
+	auto alice_db_mutex = make_shared<std::recursive_mutex>();
+	auto bob_db_mutex = make_shared<std::recursive_mutex>();
+	lime_tester::dr_sessionsInit(DRsessionAlice, DRsessionBob, localStorageAlice, localStorageBob, filenameAlice, alice_db_mutex, filenameBob, bob_db_mutex, true, RNG_context);
 	std::vector<uint8_t> aliceCipher, bobCipher;
 
 	// alice encrypt a message
@@ -788,7 +794,9 @@ static void dr_encryptionPolicy_error_test(std::string db_filename, lime::Encryp
 	bobFilename.append(".bob.sqlite3");
 
 	// create sessions: alice sender, bob receiver
-	lime_tester::dr_sessionsInit(DRsessionAlice, DRsessionBob, localStorageAlice, localStorageBob, aliceFilename, bobFilename, true, RNG_context);
+	auto alice_db_mutex = make_shared<std::recursive_mutex>();
+	auto bob_db_mutex = make_shared<std::recursive_mutex>();
+	lime_tester::dr_sessionsInit(DRsessionAlice, DRsessionBob, localStorageAlice, localStorageBob, aliceFilename, alice_db_mutex, bobFilename, bob_db_mutex, true, RNG_context);
 	std::vector<uint8_t> aliceCipher, bobCipher;
 
 	// alice encrypt a message

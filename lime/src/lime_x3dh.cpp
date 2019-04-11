@@ -50,7 +50,7 @@ namespace lime {
 
 			// before going on, check if peer informations are ok, if the returned Id is 0, it means this peer was not in storage yet
 			// throw an exception in case of failure, just let it flow up
-			long int peerDid = m_localStorage->check_peerDevice(peerBundle.deviceId, peerBundle.Ik);
+			auto peerDid = m_localStorage->check_peerDevice(peerBundle.deviceId, peerBundle.Ik);
 
 			// Initiate HKDF input : We will compute HKDF with a concat of F and all DH computed, see X3DH spec section 2.2 for what is F
 			// use sBuffer of size able to hold also DH$ even if we may not use it
@@ -211,7 +211,6 @@ namespace lime {
 
 		// check the new peer device Id in Storage, if it is not found, the DR session will add it when it saves itself after successful decryption
 		auto peerDid = m_localStorage->check_peerDevice(senderDeviceId, peerIk);
-
 		auto DRSession = make_shared<DR<Curve>>(m_localStorage.get(), SK, AD, SPk, peerDid, senderDeviceId, peerIk, m_db_Uid, m_RNG);
 
 		return DRSession;

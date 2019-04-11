@@ -23,6 +23,7 @@
 #include <vector>
 #include <unordered_map>
 #include <queue>
+#include <mutex>
 
 #include "lime/lime.hpp"
 #include "lime_lime.hpp"
@@ -48,6 +49,7 @@ namespace lime {
 			/* general purpose */
 			std::shared_ptr<RNG> m_RNG; // Random Number Generator context
 			std::string m_selfDeviceId; // self device Id, shall be the GRUU
+			std::mutex m_mutex; // a mutex to lock own thread sensitive ressources (m_DR_sessions_cache, encryption_queue)
 
 			/* X3DH keys */
 			DSApair<Curve> m_Ik; // our identity key pair, is loaded from DB only if requested(to sign a SPK or to perform X3DH init)

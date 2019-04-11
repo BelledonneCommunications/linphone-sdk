@@ -27,6 +27,7 @@
 
 #include <iostream> // ostreamstring to generate incoming/outgoing messages debug trace
 #include <iomanip>
+#include <mutex>
 
 
 using namespace::std;
@@ -814,6 +815,11 @@ namespace lime {
 						if (callback) callback(lime::CallbackReturn::fail, std::string{"Cannot activate user : "}.append(e.str()));
 						cleanUserData(userData);
 						return;
+					} catch (exception const &e) { // catch all and let flow it up
+						LIME_LOGE<<"Cannot activate user "<< m_selfDeviceId << ". Backend says: "<< e.what();
+						if (callback) callback(lime::CallbackReturn::fail, std::string{"Cannot activate user : "}.append(e.what()));
+						cleanUserData(userData);
+						return;
 					}
 				}
 				break;
@@ -840,9 +846,14 @@ namespace lime {
 						//Note: if while we were waiting for the peer bundle we did get an init message from him and created a session
 						// just do nothing : create a second session with the peer bundle we retrieved and at some point one session will stale
 						// when message stop crossing themselves on the network
+						std::lock_guard<std::mutex> lock(m_mutex);
 						X3DH_init_sender_session(peersBundle);
 					} catch (BctbxException &e) { // something went wrong, go for callback as this function may be called by code not supporting exceptions
 						if (callback) callback(lime::CallbackReturn::fail, std::string{"Error during the peer Bundle processing : "}.append(e.str()));
+						cleanUserData(userData);
+						return;
+					} catch (exception const &e) { // catch all and let flow it up
+						if (callback) callback(lime::CallbackReturn::fail, std::string{"Error during the peer Bundle processing : "}.append(e.what()));
 						cleanUserData(userData);
 						return;
 					}
