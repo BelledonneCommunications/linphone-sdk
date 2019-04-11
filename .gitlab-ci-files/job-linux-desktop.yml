@@ -53,7 +53,14 @@
     - $EXPORT_DISPLAY
     
     - ls -la
-    - sudo setcap cap_sys_nice+ep ./$TESTER_BIN || true
+    
+    #enabling SYS_NICE cap for ms2 and liblinphone testers
+    - echo $SET_CAP_SYS_NICE_LIN_MS
+    - echo $TESTER_BIN
+    - echo ${TESTER_BIN}
+    - $SET_CAP_SYS_NICE_LIN_MS || true
+
+    #checking if the tester has SYS_NICE cap
     - getcap ./$TESTER_BIN || true
     - ./$TESTER_BIN --verbose --parallel $RESOURCE_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt
   
