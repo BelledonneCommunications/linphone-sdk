@@ -39,10 +39,9 @@
   extends: .job-prepare
   allow_failure: true
   only:
-    refs:
-      - fix/testers_capabilities
-  before_script:
-    - export SET_CAP_SYS_IF_NEEDED=${!SET_CAP_SYS_NICE_LIN_MS}
+    variables:
+      - $NIGHTLY_MASTER
+
   script:
     - cd $PATH_TO_TESTER
     
