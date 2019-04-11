@@ -160,7 +160,15 @@ test-android-r17c:
     - ./gradlew assembleDebug
     - ./gradlew assembleDebugAndroidTest
     
-    #Test launching (currently only Message)
+    # gathering full trace of logcat in case of a coredump
+    - |
+        for x in `adb devices | sed -n '1!p' | sed '/^$/d' | awk '{print $1;}'`; do 
+        adb -s $x logcat -c
+        adb -s $x logcat -v time > $x.txt &
+        echo $! > $x.pid
+        done
+    
+    # Test launching (currently only Message)
     - | 
         java -jar ~/spoon.jar --output spoon --apk app/build/outputs/apk/debug/app-debug.apk \
         --test-apk app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk \
@@ -172,6 +180,11 @@ test-android-r17c:
         cat $x.txt | ndk-stack -sym ../../build/libs-debug/`adb -s $x shell getprop ro.product.cpu.abi | tr -d '\r'` > $x-ndk-stack.txt
         done
         fi)
+        
+    - |
+        for x in `ls *.pid`; do 
+        kill $(cat $x)
+        done
 
     - tar zcvf logs-tests-android.tar.gz spoon/ *.txt
     
