@@ -991,7 +991,12 @@ uint8_t bctbx_dtls_srtp_supported(void) {
 	return 1;
 }
 
-static bctbx_dtls_srtp_profile_t bctbx_srtp_profile_mbedtls2bctoolbox(enum mbedtls_DTLS_SRTP_protection_profiles mbedtls_profile) {
+void bctbx_ssl_set_mtu(bctbx_ssl_context_t *ssl_ctx, uint16_t mtu) {
+	// remove the record expansion to the given MTU
+	mbedtls_ssl_set_mtu(&(ssl_ctx->ssl_ctx), mtu - mbedtls_ssl_get_record_expansion(&(ssl_ctx->ssl_ctx)));
+}
+
+static bctbx_dtls_srtp_profile_t bctbx_srtp_profile_mbedtls2bctoolbox(mbedtls_ssl_srtp_profile mbedtls_profile) {
 	switch (mbedtls_profile) {
 		case MBEDTLS_SRTP_AES128_CM_HMAC_SHA1_80:
 			return BCTBX_SRTP_AES128_CM_HMAC_SHA1_80;
@@ -1006,7 +1011,7 @@ static bctbx_dtls_srtp_profile_t bctbx_srtp_profile_mbedtls2bctoolbox(enum mbedt
 	}
 }
 
-static enum mbedtls_DTLS_SRTP_protection_profiles bctbx_srtp_profile_bctoolbox2mbedtls(bctbx_dtls_srtp_profile_t bctbx_profile) {
+static mbedtls_ssl_srtp_profile bctbx_srtp_profile_bctoolbox2mbedtls(bctbx_dtls_srtp_profile_t bctbx_profile) {
 	switch (bctbx_profile) {
 		case BCTBX_SRTP_AES128_CM_HMAC_SHA1_80:
 			return MBEDTLS_SRTP_AES128_CM_HMAC_SHA1_80;
@@ -1050,6 +1055,8 @@ int32_t bctbx_ssl_get_dtls_srtp_key_material(bctbx_ssl_context_t *ssl_ctx, char 
 uint8_t bctbx_dtls_srtp_supported(void) {
 	return 0;
 }
+
+void bctbx_ssl_set_mtu(bctbx_ssl_context_t *ssl_ctx, uint16_t mtu) { }
 
 bctbx_dtls_srtp_profile_t bctbx_ssl_get_dtls_srtp_protection_profile(bctbx_ssl_context_t *ssl_ctx) {
 	return BCTBX_SRTP_UNDEFINED;
@@ -1308,7 +1315,7 @@ int32_t bctbx_ssl_config_set_own_cert(bctbx_ssl_config_t *ssl_config, bctbx_x509
 #ifdef HAVE_DTLS_SRTP
 int32_t bctbx_ssl_config_set_dtls_srtp_protection_profiles(bctbx_ssl_config_t *ssl_config, const bctbx_dtls_srtp_profile_t *profiles, size_t profiles_number) {
 	size_t i;
-	enum mbedtls_DTLS_SRTP_protection_profiles dtls_srtp_mbedtls_profiles[4];
+	mbedtls_ssl_srtp_profile dtls_srtp_mbedtls_profiles[4];
 
 	if (ssl_config == NULL) {
 		return BCTBX_ERROR_INVALID_SSL_CONFIG;

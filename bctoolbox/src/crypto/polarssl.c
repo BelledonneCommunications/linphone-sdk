@@ -833,6 +833,9 @@ int32_t bctbx_ssl_set_hostname(bctbx_ssl_context_t *ssl_ctx, const char *hostnam
 }
 
 /** DTLS SRTP functions **/
+/* used for DTLS SRTP but not implemented on polarssl, available on mbedtls only */
+void bctbx_ssl_set_mtu(bctbx_ssl_context_t *ssl_ctx, uint16_t mtu) { };
+
 #ifdef HAVE_DTLS_SRTP
 uint8_t bctbx_dtls_srtp_supported(void) {
 	return 1;
