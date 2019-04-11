@@ -3,7 +3,7 @@
 #################################################
 
 variables:
-  SET_CAP_SYS_NICE: "sudo setcap cap_sys_nice+ep ./%{TESTER_BIN} || true"
+  SET_CAP_SYS_NICE: "sudo setcap cap_sys_nice+ep ./$$TESTER_BIN || true"
 
 .job-linux-desktop:
 
