@@ -4,19 +4,43 @@ Meta repository holding all the dependencies to build a full Linphone SDK.
 
 The currently supported platforms are Android, iOS, Desktop (Linux, Windows, Mac OS X) and UWP (Universal Windows Platform).
 
-## Dependencies
+## Build dependencies
+
+### Common to all target platforms
+
+The following tools must be installed on the build machine:
+ - cmake >= 3.6
+ - python = 2.7 (python 3.7 if C# wrapper generation is disabled)
+ - pip
+ - yasm
+ - nasm
+ - doxygen
+ - Pystache (use `pip install pystache`)
+ - six (use `pip install six`)
+
 ### Windows
-SDK is working with Visual Studio 15 2017.
-Also you need to have MinGW with GCC and G++ module.
+
+SDK compilation is supported on Visual Studio 15 2017.
+Setting the build environment on Windows is a bit tricky.
+In addition to the common components listed above, these components must be installed:
+ - MinGW (select all installer options except Ada and Fortran)
+ - Yasm:
+	- download yasm-1.3.0-win32.exe
+	- copy it to a `bin` directory of your user directory,
+	- rename yasm-1.3.0-win32.exe as yasm.exe
+
+Visual Studio must also be properly configured with addons. Under "Tools"->"Obtain tools and features", make sure that the following components are installed:
+ - Tasks: Select Windows Universal Platform development, Desktop C++ Development, .NET Development
+ - Individual component: Windows 8.1 SDK
+	
+Finally add your user `bin` directory and `C:\Mingw\bin` to the PATH environement variable from windows advanced settings. 
 
 ## Building and customizing the SDK
-
-The build system is based on CMake, so you need to install it first if you don't have it on your machine.
 
 The steps to build the SDK are:
 
  1. Create and go inside a directory where the SDK will be built:
- `mkdir build-desktop && cd build-desktop`
+ `mkdir build && cd build
  2. Execute CMake to configure the project:
  `cmake ..`
  3. Build the SDK:
@@ -27,6 +51,13 @@ The steps to build the SDK are:
 You can pass some options to CMake at the second step to configure the SDK as you want.
 For instance, to build an iOS SDK (the default being Desktop):
  `cmake .. -DLINPHONESDK_PLATFORM=IOS`
+
+### Windows
+ `cmake --build .` works on Windows as for all platforms.
+ However it may be convenient to build from Visual Studio, which you can do:
+ - open `linphone-sdk.sln` with Visual Studio
+ - make sure that RelWithDebInfo mode is selected unless you specified -DCMAKE_BUILD_TYPE=Debug to cmake (see customization options below).
+ - use `Build solution` to build.
 
 ## Upgrading your SDK
 
@@ -55,7 +86,7 @@ This SDK can be generated in 2 flavors:
 
 * GPL third parties enabled means that the Linphone SDK includes GPL third parties like FFmpeg. If you choose this flavor, your final application **must comply with GPL in any case**. This is the default mode.
 
-* NO GPL third parties means that the Linphone SDK will only use non GPL code except for the code from Belledonne Communications. If you choose this flavor, your final application is **still subject to GPL except if you have a [commercial license from Belledonne Communications](http://www.belledonne-communications.com/products.html)**.
+* NO GPL third parties means that the Linphone SDK will only use non GPL code except for the code from Belledonne Communications. If you choose this flavor, your final application is **still subject to the GPL except if you have a [commercial license from Belledonne Communications](http://www.belledonne-communications.com/products.html)**.
 
 To generate the a SDK without GPL third parties, use the `-DENABLE_GPL_THIRD_PARTIES=NO` option when configuring the project.
 
