@@ -42,8 +42,8 @@ int main(int argc, char *argv[]) {
 
 	if (strstr(argv[0], ".libs")) {
 		int prefix_length = (int)(strstr(argv[0], ".libs") - argv[0]) + 1;
-		char prefix[200];
-		sprintf(prefix, "%s%.*s", argv[0][0] == '/' ? "" : "./", prefix_length, argv[0]);
+		char prefix[200] = { 0 };
+		snprintf(prefix, sizeof(prefix)-1, "%s%.*s", argv[0][0] == '/' ? "" : "./", prefix_length, argv[0]);
 		bc_tester_set_resource_dir_prefix(prefix);
 		bc_tester_set_writable_dir_prefix(prefix);
 	}

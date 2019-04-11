@@ -41,7 +41,7 @@ static bool parseMessage(shared_ptr<Grammar> grammar,  const string &message) {
 	shared_ptr<DebugElement> elem = parser->parseInput("sip-message", message, &pos);
 	BC_ASSERT_TRUE(elem != nullptr);
 	if (!elem) return FALSE;
-	BC_ASSERT_EQUAL(pos, message.size(), int, "%i");
+	BC_ASSERT_EQUAL((int)pos, (int)message.size(), int, "%i");
 	BC_ASSERT_TRUE(message == elem->getValue());
 	
 	return message.size() == pos && message == elem->getValue();

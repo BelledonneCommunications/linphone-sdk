@@ -43,6 +43,11 @@ include(CheckSymbolExists)
 include(CMakePushCheckState)
 include(CheckCXXCompilerFlag)
 
+
+if(MSVC)
+    add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+endif()
+
 # find_package should be invoked here to check for libraries - however do NOT
 # call include_directories here (see below)
 
