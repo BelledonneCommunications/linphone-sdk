@@ -56,6 +56,9 @@
     - ls -la
     
     #enabling SYS_NICE cap for ms2 and liblinphone testers
+    - echo $SET_CAP_SYS_NICE_LIN_MS
+    - echo $TESTER_BIN
+    - echo ${TESTER_BIN}
     - $SET_CAP_SYS_NICE_LIN_MS
 
     #checking if the tester has SYS_NICE cap
