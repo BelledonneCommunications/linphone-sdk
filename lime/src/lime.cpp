@@ -253,7 +253,8 @@ namespace lime {
 		// before trying to decrypt, we must check if the sender device is known in the local Storage and if we trust it
 		// a successful decryption will insert it in local storage so we must check first if it is there in order to detect new devices
 		// Note: a device could already be trusted in DB even before the first message (if we established trust before sending the first message)
-		// senderDeviceStatus can only be unknown, untrusted or trusted, if decryption succeed, we will return this status.
+		// senderDeviceStatus can only be unknown, untrusted, trusted or unsafe.
+		// If decryption succeed, we will return this status but it has no effect on the decryption process
 		auto senderDeviceStatus = m_localStorage->get_peerDeviceStatus(senderDeviceId);
 
 		LIME_LOGI<<"decrypt from "<<senderDeviceId<<" to "<<recipientUserId;

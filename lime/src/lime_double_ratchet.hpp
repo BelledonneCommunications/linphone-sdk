@@ -31,7 +31,7 @@
 
 namespace lime {
 
-	class Db; // forward declaration of class Db used by DR<DHKey>, declared in lime_localStorage.hpp
+	class Db; // forward declaration of class Db used by DR<Curve>, declared in lime_localStorage.hpp
 
 	/**
 	 * @brief the possible status of session regarding the Local Storage

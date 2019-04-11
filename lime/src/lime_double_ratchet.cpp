@@ -88,7 +88,7 @@ namespace lime {
 	 * @brief Decrypt as described is spec section 3.1
 	 *
 	 * @param[in]	MK		A buffer holding key<32 bytes> || IV<16 bytes>
-	 * @param[in]	ciphertext	buffer holding: header<size depends on DHKey type> || ciphertext || auth tag<16 bytes>
+	 * @param[in]	ciphertext	buffer holding: header<size depends on Curve type> || ciphertext || auth tag<16 bytes>
 	 * @param[in]	headerSize	Size of the header included in ciphertext
 	 * @param[in]	AD		Associated data
 	 * @param[out]	plaintext	the output message : a vector resized to hold the plaintext.
@@ -401,10 +401,10 @@ namespace lime {
 						m_usedNr=0;
 						m_X3DH_initMessage.clear(); // just in case we had a valid X3DH init in session, erase it as it's not needed after the first message received from peer
 					}
+					return true;
 				} else {
 					return false;
-				};
-				return true;
+				}
 			}
 			// if header DH public key != current stored peer public DH key: we must perform a DH ratchet
 			if (m_DHr!=header.DHs()) {
@@ -435,7 +435,7 @@ namespace lime {
 		}
 	}
 
-	/* template instanciations for DHKeyX25519 and DHKeyX448 */
+	/* template instanciations for Curve25519 and Curve448 */
 #ifdef EC25519_ENABLED
 	extern template bool DR<C255>::session_load();
 	extern template bool DR<C255>::session_save();

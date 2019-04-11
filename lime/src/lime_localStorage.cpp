@@ -196,7 +196,7 @@ Db::Db(const std::string &filename, std::shared_ptr<std::recursive_mutex> db_mut
 	* - OPKid : the primary key must be a random number as it is public, so avoid leaking information on number of key used
 	* - OPK : Public key||Private Key (ECDH keys)
 	* - Uid : User Id from lime_LocalUsers table: who's key is this
-	* - Status : a boolean: can be published on X3DH Server(1) or not anymore on X3DH server(0), by default any newly inserted key is set to published
+	* - Status : a boolean: is likely to be present on X3DH Server(1), not anymore on X3DH server(0), by default any newly inserted key is set to 1
 	* - timeStamp : timeStamp is set during update if we found out a key is no more on server(and we didn't used it as usage delete key).
 	*   		So after a limbo period, key is considered missing in action and removed from storage.
 	*/
@@ -568,8 +568,8 @@ void Db::delete_LimeUser(const std::string &deviceId)
 /* Double ratchet member functions                                            */
 /*                                                                            */
 /******************************************************************************/
-template <typename DHKey>
-bool DR<DHKey>::session_save() {
+template <typename Curve>
+bool DR<Curve>::session_save() {
 	std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
 
 	// open transaction
@@ -723,8 +723,8 @@ bool DR<DHKey>::session_save() {
 	return true;
 };
 
-template <typename DHKey>
-bool DR<DHKey>::session_load() {
+template <typename Curve>
+bool DR<Curve>::session_load() {
 	std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
 
 	// blobs to store DR session data
