@@ -2,9 +2,6 @@
 # BUILD
 #################################################
 
-variables:
-  SET_CAP_SYS_NICE: "sudo setcap cap_sys_nice+ep ./$TESTER_BIN || true"
-
 .job-linux-desktop:
 
   stage: build
@@ -59,11 +56,8 @@ variables:
     - ls -la
     
     #enabling SYS_NICE cap for ms2 and liblinphone testers
-    - 
-    - $SET_CAP_SYS_IF_NEEDED
-    - echo $SET_CAP_SYS_NICE
-    - echo $SET_CAP_SYS_NICE_LIN_MS
-    - echo $SET_CAP_SYS_IF_NEEDED
+    - $SET_CAP_SYS_NICE_LIN_MS
+
     #checking if the tester has SYS_NICE cap
     - getcap ./$TESTER_BIN || true
     - ./$TESTER_BIN --verbose --parallel $RESOURCE_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt
