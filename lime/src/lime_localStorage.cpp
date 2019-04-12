@@ -616,6 +616,12 @@ bool DR<Curve>::session_save() {
 		/*if (!(sql.get_last_insert_id("DR_sessions", m_dbSessionId))) {
 			throw;
 		} */
+
+		// At session creation, we may have to delete an OPk from storage
+		if (m_usedOPkId != 0) {
+			m_localStorage->sql<<"DELETE FROM X3DH_OPK WHERE Uid = :Uid AND OPKid = :OPk_id;", use(m_db_Uid), use(m_usedOPkId);
+			m_usedOPkId = 0;
+		}
 	} else { // we have an id, it shall already be in the db
 		// Try to update an existing row
 		try{ //TODO: make sure the update was a success, or we shall signal it
@@ -1250,7 +1256,6 @@ void Lime<Curve>::X3DH_get_OPk(uint32_t OPk_id, Xpair<Curve> &OPk) {
 	if (m_localStorage->sql.got_data()) { // Found it, it is stored in one buffer Public || Private
 		OPk_blob.read(0, (char *)(OPk.publicKey().data()), OPk.publicKey().size()); // Read the public key
 		OPk_blob.read(OPk.publicKey().size(), (char *)(OPk.privateKey().data()), OPk.privateKey().size()); // Read the private key
-		m_localStorage->sql<<"DELETE FROM X3DH_OPK WHERE Uid = :Uid AND OPKid = :OPk_id;", use(m_db_Uid), use(OPk_id); // And remove it from local Storage
 	} else {
 		throw BCTBX_EXCEPTION << "X3DH "<<m_selfDeviceId<<"look up for OPk id "<<OPk_id<<" failed";
 	}

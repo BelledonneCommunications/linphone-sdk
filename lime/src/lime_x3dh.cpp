@@ -211,7 +211,7 @@ namespace lime {
 
 		// check the new peer device Id in Storage, if it is not found, the DR session will add it when it saves itself after successful decryption
 		auto peerDid = m_localStorage->check_peerDevice(senderDeviceId, peerIk);
-		auto DRSession = make_shared<DR<Curve>>(m_localStorage, SK, AD, SPk, peerDid, senderDeviceId, peerIk, m_db_Uid, m_RNG);
+		auto DRSession = make_shared<DR<Curve>>(m_localStorage, SK, AD, SPk, peerDid, senderDeviceId, OPk_flag?OPk_id:0, peerIk, m_db_Uid, m_RNG);
 
 		return DRSession;
 	}

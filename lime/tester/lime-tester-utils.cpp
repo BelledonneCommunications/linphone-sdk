@@ -215,7 +215,7 @@ void dr_sessionsInit(std::shared_ptr<DR<Curve>> &alice, std::shared_ptr<DR<Curve
 	std::vector<uint8_t> X3DH_initMessage{};
 	DSA<Curve, lime::DSAtype::publicKey> dummyPeerIk{}; // DR session creation gets the peerDeviceId and peerIk but uses it only if peerDid is 0, give dummy, we're focusing on DR here
 	alice = std::make_shared<DR<Curve>>(localStorageAlice, SK, AD, bobKeyPair.publicKey(), aliceDid, "dummyPeerDevice", dummyPeerIk, aliceUid, X3DH_initMessage, RNG_context);
-	bob = std::make_shared<DR<Curve>>(localStorageBob, SK, AD, bobKeyPair, bobDid, "dummyPeerDevice", dummyPeerIk, bobUid, RNG_context);
+	bob = std::make_shared<DR<Curve>>(localStorageBob, SK, AD, bobKeyPair, bobDid, "dummyPeerDevice", 0, dummyPeerIk, bobUid, RNG_context);
 }
 
 
