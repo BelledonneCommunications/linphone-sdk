@@ -3558,7 +3558,7 @@ struct manager_thread_arg {
 	manager_thread_arg(std::shared_ptr<LimeManager> manager, const uint8_t userIndex, const std::array<std::string, 4> &userlist, const std::string &x3dh_server_url, const lime::CurveId curve, std::shared_ptr<std::recursive_mutex> belle_sip_mutex, std::shared_ptr<std::map<std::string, std::shared_ptr<mth_mailbox>>> mailbox)
 		: manager{manager}, userIndex{userIndex}, userlist{userlist},
 		x3dh_server_url{x3dh_server_url}, curve{curve}, belle_sip_mutex{belle_sip_mutex},
-		mailbox{mailbox}	{};
+		mailbox(mailbox)	{};
 };
 
 static constexpr size_t test_multithread_message_number = 10;
@@ -3821,11 +3821,11 @@ static void lime_multithread_test(const lime::CurveId curve, const std::string &
 		auto bobManager = std::make_shared<LimeManager>(dbFilenameBob, X3DHServerPost_mutex);
 
 		// Create arguments to thread, as local variable, they are copy passed to threads
-		std::array<manager_thread_arg, 4> devArg {
+		std::array<manager_thread_arg, 4> devArg = {
 			manager_thread_arg(aliceManager, 0, deviceList, x3dh_server_url, curve, belle_sip_mutex, mailbox),
 			manager_thread_arg(aliceManager, 1, deviceList, x3dh_server_url, curve, belle_sip_mutex, mailbox),
 			manager_thread_arg(bobManager, 2, deviceList, x3dh_server_url, curve, belle_sip_mutex, mailbox),
-			manager_thread_arg(bobManager, 3, deviceList, x3dh_server_url, curve, belle_sip_mutex, mailbox)};
+			manager_thread_arg(bobManager, 3, deviceList, x3dh_server_url, curve, belle_sip_mutex, mailbox) };
 
 		// create device
 		for (const auto &arg : devArg) {
@@ -3858,7 +3858,6 @@ static void lime_multithread_test(const lime::CurveId curve, const std::string &
 				activeThreads.emplace_back(lime_multithread_update_thread, arg);
 			}
 		}
-
 		// wait for the threads to complete
 		for (auto &t : activeThreads) {
 			t.join();
