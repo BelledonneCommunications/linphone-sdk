@@ -49,7 +49,6 @@ job-android-makefile-r17c:
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
   extends: .job-android
 
 
@@ -108,6 +107,7 @@ job-android-ninja-r17c:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
   variables:
     CMAKE_GENERATOR: Ninja
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
   extends: .job-android
 
 
