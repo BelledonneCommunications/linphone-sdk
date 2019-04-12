@@ -49,6 +49,7 @@ job-android-makefile-r17c:
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
   extends: .job-android
 
 
