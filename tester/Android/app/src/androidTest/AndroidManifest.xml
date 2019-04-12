@@ -1,6 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="org.linphone.tester"
-    android:sharedUserId="org.linphone.tester">
+    package="org.linphone.tester">
 
     <instrumentation
         android:name="androidx.test.runner.AndroidJUnitRunner"
