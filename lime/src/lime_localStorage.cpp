@@ -1170,7 +1170,7 @@ void Lime<Curve>::cache_DR_sessions(std::vector<RecipientInfos<Curve>> &internal
 		auto sessionId = r.get<int>(0);
 		auto peerDeviceId = r.get<std::string>(1);
 
-		auto DRsession = std::make_shared<DR<Curve>>(m_localStorage.get(), sessionId, m_RNG); // load session from local storage
+		auto DRsession = std::make_shared<DR<Curve>>(m_localStorage, sessionId, m_RNG); // load session from local storage
 		requestedDevices[peerDeviceId] = DRsession; // store found session in a our temp container
 		m_DR_sessions_cache[peerDeviceId] = DRsession; // session is also stored in cache
 	}
@@ -1196,7 +1196,7 @@ void Lime<Curve>::get_DRSessions(const std::string &senderDeviceId, const long i
 
 	for (const auto &sessionId : rs) {
 		/* load session in cache DRSessions */
-		DRSessions.push_back(make_shared<DR<Curve>>(m_localStorage.get(), sessionId, m_RNG)); // load session from cache
+		DRSessions.push_back(make_shared<DR<Curve>>(m_localStorage, sessionId, m_RNG)); // load session from cache
 	}
 };
 

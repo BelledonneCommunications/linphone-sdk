@@ -257,7 +257,7 @@ static void dr_long_exchange_test(uint8_t period=1, std::string db_filename="dr_
 				/* destroy and reload bob sessions */
 				auto bobSessionId=bob->dbSessionId();
 				bob = nullptr; // release and destroy bob DR context
-				bob = make_shared<DR<Curve>>(bobLocalStorage.get(), bobSessionId, RNG_context);
+				bob = make_shared<DR<Curve>>(bobLocalStorage, bobSessionId, RNG_context);
 			}
 		} else {
 			// bob replies
@@ -281,7 +281,7 @@ static void dr_long_exchange_test(uint8_t period=1, std::string db_filename="dr_
 				/* destroy and reload alice sessions */
 				auto aliceSessionId=alice->dbSessionId();
 				alice = nullptr; // release and destroy alice DR context
-				alice = make_shared<DR<Curve>>(aliceLocalStorage.get(), aliceSessionId, RNG_context);
+				alice = make_shared<DR<Curve>>(aliceLocalStorage, aliceSessionId, RNG_context);
 			}
 		}
 	}

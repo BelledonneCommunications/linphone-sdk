@@ -98,7 +98,7 @@ namespace lime {
 			long int m_dbSessionId; // used to store row id from Database Storage
 			uint16_t m_usedNr; // store the index of message key used for decryption if it came from mkskipped db
 			long m_usedDHid; // store the index of DHr message key used for decryption if it came from mkskipped db(not zero only if used)
-			lime::Db *m_localStorage; // enable access to the database holding sessions and skipped message keys, no need to use smart pointers here, Db is not owned by DRsession, it must persist even if no session exists
+			std::shared_ptr<lime::Db> m_localStorage; // enable access to the database holding sessions and skipped message keys
 			DRSessionDbStatus m_dirty; // status of the object regarding its instance in local storage, could be: clean, dirty_encrypt, dirty_decrypt or dirty
 			long int m_peerDid; // used during session creation only to hold the peer device id in DB as we need it to insert the session in local Storage
 			std::string m_peerDeviceId; // used during session creation only, if the deviceId is not yet in local storage, to hold the peer device Id so we can insert it in DB when session is saved for the first time
@@ -117,9 +117,9 @@ namespace lime {
 
 		public:
 			DR() = delete; // make sure the Double Ratchet is not initialised without parameters
-			DR(lime::Db *localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const X<Curve, lime::Xtype::publicKey> &peerPublicKey, const long int peerDid, const std::string &peerDeviceId, const DSA<Curve, lime::DSAtype::publicKey> &peerIk, long int selfDeviceId, const std::vector<uint8_t> &X3DH_initMessage, std::shared_ptr<RNG> RNG_context); // call to initialise a session for sender: we have Shared Key and peer Public key
-			DR(lime::Db *localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const Xpair<Curve> &selfKeyPair, long int peerDid, const std::string &peerDeviceId, const DSA<Curve, lime::DSAtype::publicKey> &peerIk, long int selfDeviceId, std::shared_ptr<RNG> RNG_context); // call at initialisation of a session for receiver: we have Share Key and self key pair
-			DR(lime::Db *localStorage, long sessionId, std::shared_ptr<RNG> RNG_context); // load session from DB
+			DR(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const X<Curve, lime::Xtype::publicKey> &peerPublicKey, const long int peerDid, const std::string &peerDeviceId, const DSA<Curve, lime::DSAtype::publicKey> &peerIk, long int selfDeviceId, const std::vector<uint8_t> &X3DH_initMessage, std::shared_ptr<RNG> RNG_context); // call to initialise a session for sender: we have Shared Key and peer Public key
+			DR(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const Xpair<Curve> &selfKeyPair, long int peerDid, const std::string &peerDeviceId, const DSA<Curve, lime::DSAtype::publicKey> &peerIk, long int selfDeviceId, std::shared_ptr<RNG> RNG_context); // call at initialisation of a session for receiver: we have Share Key and self key pair
+			DR(std::shared_ptr<lime::Db> localStorage, long sessionId, std::shared_ptr<RNG> RNG_context); // load session from DB
 			DR(DR<Curve> &a) = delete; // can't copy a session, force usage of shared pointers
 			DR<Curve> &operator=(DR<Curve> &a) = delete; // can't copy a session
 			~DR();

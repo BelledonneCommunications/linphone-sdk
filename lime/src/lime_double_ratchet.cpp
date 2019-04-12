@@ -146,7 +146,7 @@ namespace lime {
 	 * @param[in]	RNG_context		A Random Number Generator context used for any rndom generation needed by this session
 	 */
 	template <typename Curve>
-	DR<Curve>::DR(lime::Db *localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const X<Curve, lime::Xtype::publicKey> &peerPublicKey, long int peerDid, const std::string &peerDeviceId, const DSA<Curve, lime::DSAtype::publicKey> &peerIk, long int selfDid, const std::vector<uint8_t> &X3DH_initMessage, std::shared_ptr<RNG> RNG_context)
+	DR<Curve>::DR(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const X<Curve, lime::Xtype::publicKey> &peerPublicKey, long int peerDid, const std::string &peerDeviceId, const DSA<Curve, lime::DSAtype::publicKey> &peerIk, long int selfDid, const std::vector<uint8_t> &X3DH_initMessage, std::shared_ptr<RNG> RNG_context)
 	:m_DHr{peerPublicKey},m_DHr_valid{true}, m_DHs{},m_RK(SK),m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD(AD),m_mkskipped{},
 	m_RNG{RNG_context},m_dbSessionId{0},m_usedNr{0},m_usedDHid{0},m_localStorage{localStorage},m_dirty{DRSessionDbStatus::dirty},m_peerDid{peerDid},m_peerDeviceId{},m_peerIk{},m_db_Uid{selfDid},
 	m_active_status{true}, m_X3DH_initMessage{X3DH_initMessage}
@@ -189,7 +189,7 @@ namespace lime {
 	 * @param[in]	RNG_context	A Random Number Generator context used for any rndom generation needed by this session
 	 */
 	template <typename Curve>
-	DR<Curve>::DR(lime::Db *localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const Xpair<Curve> &selfKeyPair, long int peerDid, const std::string &peerDeviceId, const DSA<Curve, lime::DSAtype::publicKey> &peerIk, long int selfDid, std::shared_ptr<RNG> RNG_context)
+	DR<Curve>::DR(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const Xpair<Curve> &selfKeyPair, long int peerDid, const std::string &peerDeviceId, const DSA<Curve, lime::DSAtype::publicKey> &peerIk, long int selfDid, std::shared_ptr<RNG> RNG_context)
 	:m_DHr{},m_DHr_valid{false},m_DHs{selfKeyPair},m_RK(SK),m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD(AD),m_mkskipped{},
 	m_RNG{RNG_context},m_dbSessionId{0},m_usedNr{0},m_usedDHid{0},m_localStorage{localStorage},m_dirty{DRSessionDbStatus::dirty},m_peerDid{peerDid},m_peerDeviceId{},m_peerIk{},m_db_Uid{selfDid},
 	m_active_status{true}, m_X3DH_initMessage{}
@@ -212,7 +212,7 @@ namespace lime {
 	 * @param[in]	RNG_context	A Random Number Generator context used for any rndom generation needed by this session
 	 */
 	template <typename Curve>
-	DR<Curve>::DR(lime::Db *localStorage, long sessionId, std::shared_ptr<RNG> RNG_context)
+	DR<Curve>::DR(std::shared_ptr<lime::Db> localStorage, long sessionId, std::shared_ptr<RNG> RNG_context)
 	:m_DHr{},m_DHr_valid{true},m_DHs{},m_RK{},m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD{},m_mkskipped{},
 	m_RNG{RNG_context},m_dbSessionId{sessionId},m_usedNr{0},m_usedDHid{0},m_localStorage{localStorage},m_dirty{DRSessionDbStatus::clean},m_peerDid{0},m_peerDeviceId{},m_peerIk{},m_db_Uid{0},
 	m_active_status{false}, m_X3DH_initMessage{}
