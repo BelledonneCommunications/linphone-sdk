@@ -185,13 +185,17 @@ test-android-r17c:
         for x in `ls *.pid`; do 
         kill $(cat $x)
         done
+        
+    #debugging output to see why the tests are failing in runner
+    - cat $x.txt
+    - 
 
     - tar zcvf logs-tests-android.tar.gz spoon/ *.txt
     
   after_script:
     - sudo mkdir ${CI_PROJECT_DIR}/results
     - sudo chmod 777 ${CI_PROJECT_DIR}/results
-    - mv logs-tests-android.tar.gz ${CI_PROJECT_DIR}/results
+    - mv tester/Android/logs-tests-android.tar.gz ${CI_PROJECT_DIR}/results
     
   artifacts:
     paths:
