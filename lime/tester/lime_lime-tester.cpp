@@ -3556,7 +3556,7 @@ struct manager_thread_arg {
 	std::shared_ptr<std::map<std::string, std::shared_ptr<mth_mailbox>>> mailbox; // mailbox system to post and fetch messages
 
 	manager_thread_arg(std::shared_ptr<LimeManager> manager, const uint8_t userIndex, const std::array<std::string, 4> &userlist, const std::string &x3dh_server_url, const lime::CurveId curve, std::shared_ptr<std::recursive_mutex> belle_sip_mutex, std::shared_ptr<std::map<std::string, std::shared_ptr<mth_mailbox>>> mailbox)
-		: manager{manager}, userIndex{userIndex}, userlist{userlist},
+		: manager{manager}, userIndex{userIndex}, userlist(userlist),
 		x3dh_server_url{x3dh_server_url}, curve{curve}, belle_sip_mutex{belle_sip_mutex},
 		mailbox(mailbox)	{};
 };
