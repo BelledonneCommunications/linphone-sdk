@@ -37,6 +37,7 @@
 #include <thread>
 #include <deque>
 #include <mutex>
+#include <list>
 
 using namespace::std;
 using namespace::lime;
@@ -3821,12 +3822,12 @@ static void lime_multithread_test(const lime::CurveId curve, const std::string &
 		auto bobManager = std::make_shared<LimeManager>(dbFilenameBob, X3DHServerPost_mutex);
 
 		// Create arguments to thread, as local variable, they are copy passed to threads
-		std::array<manager_thread_arg, 4> devArg = {
-			manager_thread_arg(aliceManager, 0, deviceList, x3dh_server_url, curve, belle_sip_mutex, mailbox),
-			manager_thread_arg(aliceManager, 1, deviceList, x3dh_server_url, curve, belle_sip_mutex, mailbox),
-			manager_thread_arg(bobManager, 2, deviceList, x3dh_server_url, curve, belle_sip_mutex, mailbox),
-			manager_thread_arg(bobManager, 3, deviceList, x3dh_server_url, curve, belle_sip_mutex, mailbox) };
-
+		std::list<manager_thread_arg> devArg;
+		devArg.emplace_back(aliceManager, 0, deviceList, x3dh_server_url, curve, belle_sip_mutex, mailbox);
+		devArg.emplace_back(aliceManager, 1, deviceList, x3dh_server_url, curve, belle_sip_mutex, mailbox);
+		devArg.emplace_back(bobManager, 2, deviceList, x3dh_server_url, curve, belle_sip_mutex, mailbox);
+		devArg.emplace_back(bobManager, 3, deviceList, x3dh_server_url, curve, belle_sip_mutex, mailbox);
+		
 		// create device
 		for (const auto &arg : devArg) {
 			activeThreads.emplace_back(lime_multithread_create_thread, arg);
