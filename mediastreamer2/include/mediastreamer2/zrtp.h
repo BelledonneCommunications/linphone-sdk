@@ -103,6 +103,7 @@ typedef struct MSZrtpParams {
 	const char *selfUri; /* our sip URI, needed for zrtp Cache */
 	const char *peerUri; /* the sip URI of correspondant, needed for zrtp Cache */
 	uint32_t limeKeyTimeSpan; /**< amount in seconds of the lime key life span, set to 0 for infinite life span **/
+	bool_t autoStart; /*allow zrtp to start on first hello packet received*/
 
 	/* activated crypto types */
 	MSZrtpHash             hashes[MS_MAX_ZRTP_CRYPTO_TYPES];

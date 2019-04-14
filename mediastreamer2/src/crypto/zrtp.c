@@ -40,6 +40,7 @@ struct _MSZrtpContext{
 	uint32_t limeKeyTimeSpan; /**< amount in seconds of the lime key life span */
 	void *cacheDB; /**< pointer to an already open sqlite db holding the zid cache */
 	bctbx_mutex_t *cacheDBMutex; /**< pointer to a mutex used to lock cache access */
+	bool_t autoStart; /*allow zrtp to start on first hello packet received*/
 };
 
 /***********************************************/
@@ -423,7 +424,7 @@ static int ms_zrtp_rtp_process_on_receive(RtpTransportModifier *t, mblk_t *msg){
 	ms_message("ZRTP Receive packet type %.8s on rtp session [%p]", rtp+16, t->session);
 
 	// check if the ZRTP channel is started, if not(ZRTP not set on our side but incoming zrtp packets), start it
-	if (bzrtp_getChannelStatus(zrtpContext, userData->self_ssrc) == BZRTP_CHANNEL_INITIALISED) {
+	if (userData->autoStart && bzrtp_getChannelStatus(zrtpContext, userData->self_ssrc) == BZRTP_CHANNEL_INITIALISED) {
 		bzrtp_startChannelEngine(zrtpContext, userData->self_ssrc);
 	}
 
@@ -629,7 +630,8 @@ MSZrtpContext* ms_zrtp_context_new(MSMediaStreamSessions *sessions, MSZrtpParams
 	userData->limeKeyTimeSpan = params->limeKeyTimeSpan;
 	userData->cacheDB = params->zidCacheDB; /* add a link to the ZidCache and mutex to be able to access it from callbacks */
 	userData->cacheDBMutex = params->zidCacheDBMutex;
-
+	userData->autoStart = params->autoStart;
+	
 	bzrtp_setClientData(context, sessions->rtp_session->snd.ssrc, (void *)userData);
 
 	return ms_zrtp_configure_context(userData, sessions->rtp_session);
