@@ -18,6 +18,7 @@
     - echo $CMAKE_OPTIONS
     - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS="$ANDROID_ARCHS" $DEFAULT_LINUX_CMAKE_OPTIONS -DENABLE_UNIT_TESTS=ON
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
+    - unzip linphone-sdk/bin/outputs/aar/linphone-sdk-android-debug.aar
 
   artifacts:
     paths:
