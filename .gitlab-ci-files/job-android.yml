@@ -23,6 +23,7 @@
     paths:
       - build-android/linphone-sdk/bin/outputs/aar/*.aar
       - build-android/linphone-sdk/bin/distributions/linphone-sdk-*.zip
+      - linphone/tester/*
     when: always
     expire_in: 1 week
 
