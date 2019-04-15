@@ -195,6 +195,7 @@ test-android-r17c:
     - cat $x.txt
 
     - tar zcvf logs-tests-android.tar.gz spoon/ *.txt
+    - find -name \*.so
     
   after_script:
     - sudo mkdir ${CI_PROJECT_DIR}/results
