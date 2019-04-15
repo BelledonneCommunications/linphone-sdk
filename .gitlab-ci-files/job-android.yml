@@ -200,6 +200,7 @@ test-android-r17c:
     - sudo mkdir ${CI_PROJECT_DIR}/results
     - sudo chmod 777 ${CI_PROJECT_DIR}/results
     - mv tester/Android/logs-tests-android.tar.gz ${CI_PROJECT_DIR}/results
+    - unzip build-android/linphone-sdk/bin/outputs/aar/*.aar
     
   artifacts:
     paths:
