@@ -10,8 +10,8 @@
 
   script:
     - sdkmanager
-    - mkdir -p build-android
-    - cd build-android
+    - mkdir -p build
+    - cd build
     - echo $CMAKE_GENERATOR
     - echo $ANDROID_ARCHS
     - echo $DEFAULT_LINUX_CMAKE_OPTIONS
@@ -31,8 +31,8 @@
 
   artifacts:
     paths:
-      - build-android/linphone-sdk/bin/outputs/aar/*.aar
-      - build-android/linphone-sdk/bin/distributions/linphone-sdk-*.zip
+      - build/linphone-sdk/bin/outputs/aar/*.aar
+      - build/linphone-sdk/bin/distributions/linphone-sdk-*.zip
       - linphone/tester/*
     when: always
     expire_in: 1 week
@@ -212,7 +212,7 @@ test-android-r17c:
     - sudo mkdir ${CI_PROJECT_DIR}/results
     - sudo chmod 777 ${CI_PROJECT_DIR}/results
     - mv tester/Android/logs-tests-android.tar.gz ${CI_PROJECT_DIR}/results
-    - unzip build-android/linphone-sdk/bin/outputs/aar/linphone-sdk-android-debug.aar
+    - unzip build/linphone-sdk/bin/outputs/aar/linphone-sdk-android-debug.aar
     
   artifacts:
     paths:
