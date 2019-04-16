@@ -16,13 +16,15 @@
     - echo $ANDROID_ARCHS
     - echo $DEFAULT_LINUX_CMAKE_OPTIONS
     - echo $CMAKE_OPTIONS
-    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS="$ANDROID_ARCHS" $DEFAULT_LINUX_CMAKE_OPTIONS -DENABLE_UNIT_TESTS=ON
+    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS="$ANDROID_ARCHS" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
 
   artifacts:
     paths:
       - build/linphone-sdk/bin/outputs/aar/*.aar
       - build/linphone-sdk/bin/distributions/linphone-sdk-*.zip
+      
+      #Needed for tester
       - build/libs-debug/*
       - linphone/tester/*
     when: always
@@ -66,7 +68,6 @@ job-android-makefile-r18b:
       - $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
   extends: .job-android
 
@@ -185,18 +186,17 @@ test-android-r17c:
         echo "Some tests are failed" && false       
         fi)
     
-  after_script:
-    #- |
-    #    for y in `ls tester/Android/*.pid`; do 
-    #    kill $(cat $y)
-    #    done
-    #debugging output to see why the tests are failing in runner
+  after_script:    
+    #putting all the trace in the ndk stack txt file
     - |
         for x in `adb devices | sed -n '1!p' | sed '/^$/d' | awk '{print $1;}'`; do 
         cat tester/Android/$x.txt | ndk-stack -sym build/libs-debug/`adb -s $x shell getprop ro.product.cpu.abi | tr -d '\r'` > tester/Android/$x-ndk-stack.txt
         done
+    #debugging output to see why the tests are failing in runner
     - cat tester/Android/$x.txt
     - tar zcvf tester/Android/logs-tests-android.tar.gz tester/Android/spoon/ tester/Android/*.txt
+    
+    #Gathering artifacts in one folder to ease their use
     - sudo mkdir ${CI_PROJECT_DIR}/results
     - sudo chmod 777 ${CI_PROJECT_DIR}/results
     - mv tester/Android/logs-tests-android.tar.gz ${CI_PROJECT_DIR}/results
