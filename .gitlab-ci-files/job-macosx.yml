@@ -45,6 +45,7 @@ job-macosx-ninja:
 
   variables:
     CMAKE_GENERATOR: Ninja
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS
   extends: .job-macosx-desktop
 
 
@@ -85,3 +86,73 @@ job-macosx-xcode:
       - build-desktop/linphone-sdk.podspec
     when: always
     expire_in: 1 week
+
+
+.test-linphone-macosx:
+  stage: test
+  extends: .job-prepare
+  allow_failure: true
+  only:
+    refs:
+      feature/android_tester_ci
+
+  script:
+    - cd ${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin
+    - ls -la  
+    - ./liblinphone_tester --verbose --parallel --dns-hosts ${CI_PROJECT_DIR}/linphone/tester/tester_hosts --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt
+  
+  after_script:
+    - pwd
+    - cd ${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin
+    # searching for core files and if there are some, launch gdb on all of it
+    # "true ||" is used here to continue the script even if the find fails
+    - if [[ -n $(find . -type f -name "core*") ]]; then find . -type f -name "core*" | xargs -L1 lldb --batch -o 'thread backtrace all' -o 'quit' -c ; fi || true
+    - sudo mkdir ${CI_PROJECT_DIR}/results
+    - sudo chmod 777 ${CI_PROJECT_DIR}/results
+    - cp -r BCUnitAutomated* ${CI_PROJECT_DIR}/results
+    - cp -r $LOG_PATTERN* ${CI_PROJECT_DIR}/results
+    
+  artifacts:
+    paths:
+      - results/*
+    when: always
+    reports:
+      junit:
+        - $PATH_TO_TESTER/BCUnitAutomated-Results.xml
+    expire_in: 4 week
+    
+test-linphone-macosx:
+  stage: test
+  extends: .job-prepare
+  tags: [ "macosx-tests" ]
+  allow_failure: true
+  dependencies:
+    - job-macosx-ninja
+  only:
+    refs:
+      - feature/tests_ci_macosx
+
+  script:
+    - cd ${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin
+    - ls -la  
+    - ./liblinphone_tester --verbose --parallel --dns-hosts ${CI_PROJECT_DIR}/linphone/tester/tester_hosts --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt
+  
+  after_script:
+    - pwd
+    - cd ${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin
+    # searching for core files and if there are some, launch gdb on all of it
+    # "true ||" is used here to continue the script even if the find fails
+    - if [[ -n $(find . -type f -name "core*") ]]; then find . -type f -name "core*" | xargs -L1 lldb --batch -o 'thread backtrace all' -o 'quit' -c ; fi || true
+    - sudo mkdir ${CI_PROJECT_DIR}/results
+    - sudo chmod 777 ${CI_PROJECT_DIR}/results
+    - cp -r BCUnitAutomated* ${CI_PROJECT_DIR}/results
+    - cp -r $LOG_PATTERN* ${CI_PROJECT_DIR}/results
+    
+  artifacts:
+    paths:
+      - results/*
+    when: always
+    reports:
+      junit:
+        - $PATH_TO_TESTER/BCUnitAutomated-Results.xml
+    expire_in: 4 week
