@@ -156,8 +156,8 @@ test-android-r17c:
   dependencies:
     - job-android-ninja-r17c
   only:
-    refs:
-      - feature/android_tester_ci
+    variables:
+      - $NIGHTLY_MASTER
   script:
     - cd ${CI_PROJECT_DIR}/tester/Android
     # uninstalling tester apps on device to prevent conflicts, but running anyway if there isn't some found.
