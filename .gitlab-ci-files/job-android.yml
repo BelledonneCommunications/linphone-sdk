@@ -168,9 +168,9 @@ test-android-r17c:
       - feature/android_tester_ci
   script:
     - cd ${CI_PROJECT_DIR}/tester/Android
-    # uninstalling tester app on device to prevent conflicts
-    - adb uninstall org.linphone.tester.test
-    - adb uninstall org.linphone.tester
+    # uninstalling tester apps on device to prevent conflicts, but running anyway if there isn't some found.
+    - adb uninstall org.linphone.tester.test || true
+    - adb uninstall org.linphone.tester || true
     
     # build of the testers
     - ./gradlew assembleDebug
