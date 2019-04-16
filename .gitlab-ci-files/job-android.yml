@@ -18,16 +18,6 @@
     - echo $CMAKE_OPTIONS
     - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS="$ANDROID_ARCHS" $DEFAULT_LINUX_CMAKE_OPTIONS -DENABLE_UNIT_TESTS=ON
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
-    - pwd
-    - cd linphone-sdk/
-    - pwd && ls
-    - cd bin/
-    - pwd && ls
-    - cd outputs/
-    - pwd && ls
-    - cd aar
-    - pwd && ls
-    - unzip linphone-sdk-android-debug.aar
 
   artifacts:
     paths:
@@ -184,11 +174,11 @@ test-android-r17c:
         echo $! > $x.pid
         done
     
-    # Test launching (currently only Message)
+    # Test launching
     - | 
         java -jar ~/spoon.jar --output spoon --apk app/build/outputs/apk/debug/app-debug.apk \
         --test-apk app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk \
-        --class-name 'org.linphone.tester.MessageTests' \
+        --class-name 'org.linphone.tester.AllTests' \
         --fail-on-failure --fail-if-no-device-connected --grant-all || ( if [ $? -ne 0 ]
         then
         echo "Some tests are failed"
@@ -206,7 +196,6 @@ test-android-r17c:
     - cat $x.txt
 
     - tar zcvf logs-tests-android.tar.gz spoon/ *.txt
-    - find -name \*.so
     
   after_script:
     - sudo mkdir ${CI_PROJECT_DIR}/results
