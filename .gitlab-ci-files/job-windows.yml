@@ -30,7 +30,7 @@
   tags: [ "windows" ]
   
   variables:
-    CMAKE_OPTIONS: -DENABLE_LIME_X3DH=NO
+    CMAKE_OPTIONS: -DENABLE_LIME_X3DH=NO -DENABLE_UNIT_TESTS=ON
 
   script:
     #handling the case of previous job cancellation
@@ -85,3 +85,37 @@ job-windows-vs2017-novideo:
   variables:
     CMAKE_OPTIONS: -DENABLE_LIME_X3DH=NO -DENABLE_VIDEO=NO
 
+test-linphone-windows:
+  stage: test
+  extends: .job-prepare
+  tags: [ "windows" ]
+  allow_failure: true
+  dependencies:
+    - job-windows-vs2017
+  only:
+    refs:
+      - feature/tests_ci_windows
+
+  script:
+    - cd $CI_PROJECT_DIR/build-desktop/linphone-sdk/desktop/bin
+    - ls -la  
+    - ./liblinphone_tester --verbose --dns-hosts %CI_PROJECT_DIR%/linphone/tester/tester_hosts --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt --xml-file BCUnitAutomated-Results.xml
+  
+  after_script:
+    - cd %CI_PROJECT_DIR%/build-desktop/linphone-sdk/desktop/bin
+    # searching for core files and if there are some, launch gdb on all of it
+    # "true ||" is used here to continue the script even if the find fails
+    #- if [[ -n $(find . -type f -name "core*") ]]; then find . -type f -name "core*" | xargs -L1 lldb --batch -o 'thread backtrace all' -o 'quit' -c ; fi || true
+    - sudo mkdir %CI_PROJECT_DIR%/results
+    - sudo chmod 777 %CI_PROJECT_DIR%/results
+    - cp -r BCUnitAutomated* %CI_PROJECT_DIR%/results
+    - cp -r $LOG_PATTERN* %CI_PROJECT_DIR%/results
+    
+  artifacts:
+    paths:
+      - results/*
+    when: always
+    reports:
+      junit:
+        - %PATH_TO_TESTER%/BCUnitAutomated-Results.xml
+    expire_in: 4 week
