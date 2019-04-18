@@ -103,18 +103,19 @@ test-linphone-windows:
     
     #windows doesn't understand the meaning of the slash to launch an executable in basic command prompt
     - echo %CI_PROJECT_DIR%
-    - .\liblinphone_tester --verbose --dns-hosts ../../../../../linphone/tester/tester_hosts --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt --xml-file BCUnitAutomated-Results.xml
+    - .\liblinphone_tester --verbose --dns-hosts %CI_PROJECT_DIR%\linphone\tester\tester_hosts --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt --xml-file BCUnitAutomated-Results.xml
   
   after_script:
     - cd %CI_PROJECT_DIR%/build-desktop/linphone-sdk/desktop/bin
     # searching for core files and if there are some, launch gdb on all of it
     # "true ||" is used here to continue the script even if the find fails
     #- if [[ -n $(find . -type f -name "core*") ]]; then find . -type f -name "core*" | xargs -L1 lldb --batch -o 'thread backtrace all' -o 'quit' -c ; fi || true
+    
+    # need to retest mkdir with windows paths
     - echo %CI_PROJECT_DIR%
-    - cd %CI_PROJECT_DIR%
-    - mkdir %CI_PROJECT_DIR%/results
-    - cp -r BCUnitAutomated* %CI_PROJECT_DIR%/results
-    - cp -r $LOG_PATTERN* %CI_PROJECT_DIR%/results
+    - mkdir "%CI_PROJECT_DIR%/results"
+    - copy \B BCUnitAutomated* %CI_PROJECT_DIR%\results
+    - copy \B $LOG_PATTERN* %CI_PROJECT_DIR%\results
     
   artifacts:
     paths:
