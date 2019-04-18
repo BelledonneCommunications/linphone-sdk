@@ -143,28 +143,28 @@ test-linphone-macosx:
     refs:
       - feature/tests_ci_macosx
   variables:
-    GIT_SUBMODULE_STRATEGY: none
+    GIT_STRATEGY: none
     LOG_PATTERN: "logLiblinphoneAllParThIpv6"
+    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
+    ADDITIONNAL_OPTIONS: "--dns-hosts ${CI_PROJECT_DIR}/linphone/tester/tester_hosts --show-account-manager-logs"
 
   script:
-    - cd ${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin
+    - cd $PATH_TO_TESTER
     - ls -la
     - echo ${CI_PROJECT_DIR}
     - echo ${CI_PROJECT_DIR}/linphone/tester/tester_hosts
     # Force core dump generation
     - ulimit -c unlimited
-    - ./liblinphone_tester --verbose --parallel --dns-hosts ${CI_PROJECT_DIR}/linphone/tester/tester_hosts --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt
+    - ./liblinphone_tester --verbose --parallel $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt
   
   after_script:
     - pwd
-    - cd ${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin
-    # searching for core files and if there are some, launch gdb on all of it
+    - cd $PATH_TO_TESTER
+    # searching for core files and if there are some, launch lldb on all of it
     # "true ||" is used here to continue the script even if the find fails
     - if [[ -n $(find . -type f -name "core*") ]]; then find . -type f -name "core*" | xargs -L1 lldb --batch -o 'thread backtrace all' -o 'quit' -c ; fi || true
-    # searching for coredumps
     - ls -la
     - mkdir ${CI_PROJECT_DIR}/results
-    #- sudo chmod 777 ${CI_PROJECT_DIR}/results
     - cp -r BCUnitAutomated* ${CI_PROJECT_DIR}/results
     - cp -r $LOG_PATTERN* ${CI_PROJECT_DIR}/results
     
