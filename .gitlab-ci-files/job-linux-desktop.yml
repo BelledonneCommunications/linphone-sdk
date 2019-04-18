@@ -42,10 +42,8 @@
   variables:
     GIT_STRATEGY: none
   only:
-    refs:
-      - fix/useless_fetch_for_tests
-#    variables:
-#      - $NIGHTLY_MASTER
+    variables:
+      - $NIGHTLY_MASTER
 
   script:
     - cd $PATH_TO_TESTER

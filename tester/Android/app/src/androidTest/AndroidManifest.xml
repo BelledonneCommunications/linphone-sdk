@@ -1,9 +1,0 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="org.linphone.tester">
-    <uses-permission android:name="android.permission.INSTALL_GRANT_RUNTIME_PERMISSIONS" />
-    <instrumentation
-        android:name="androidx.test.runner.AndroidJUnitRunner"
-        android:targetPackage="org.linphone.tester">
-    </instrumentation>
-
-</manifest>
