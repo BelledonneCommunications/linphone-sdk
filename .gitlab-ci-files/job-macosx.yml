@@ -142,6 +142,8 @@ test-linphone-macosx:
   only:
     refs:
       - feature/tests_ci_macosx
+  variables:
+    GIT_SUBMODULE_STRATEGY: none
 
   script:
     - cd ${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin
