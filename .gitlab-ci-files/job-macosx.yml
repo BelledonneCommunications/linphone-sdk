@@ -24,6 +24,8 @@
       - build-desktop/linphone-sdk/desktop/lib64/*
       - build-desktop/linphone-sdk/desktop/include/*
       - build-desktop/linphone-sdk/desktop/share/*
+      
+      #éventuellement mettre tout ce qu'il y a dans desktop pour moins galérer
       - linphone/tester/*
     when: always
     expire_in: 1 week
@@ -143,7 +145,9 @@ test-linphone-macosx:
 
   script:
     - cd ${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin
-    - ls -la  
+    - ls -la
+    - echo ${CI_PROJECT_DIR}
+    - echo ${CI_PROJECT_DIR}/linphone/tester/tester_hosts
     - ./liblinphone_tester --verbose --parallel --dns-hosts ${CI_PROJECT_DIR}/linphone/tester/tester_hosts --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt
   
   after_script:
@@ -152,6 +156,8 @@ test-linphone-macosx:
     # searching for core files and if there are some, launch gdb on all of it
     # "true ||" is used here to continue the script even if the find fails
     - if [[ -n $(find . -type f -name "core*") ]]; then find . -type f -name "core*" | xargs -L1 lldb --batch -o 'thread backtrace all' -o 'quit' -c ; fi || true
+    # searching for coredumps
+    - ls -la
     - sudo mkdir ${CI_PROJECT_DIR}/results
     - sudo chmod 777 ${CI_PROJECT_DIR}/results
     - cp -r BCUnitAutomated* ${CI_PROJECT_DIR}/results
