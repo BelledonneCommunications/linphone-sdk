@@ -150,6 +150,8 @@ test-linphone-macosx:
     - ls -la
     - echo ${CI_PROJECT_DIR}
     - echo ${CI_PROJECT_DIR}/linphone/tester/tester_hosts
+    # Force core dump generation
+    - ulimit -c unlimited
     - ./liblinphone_tester --verbose --parallel --dns-hosts ${CI_PROJECT_DIR}/linphone/tester/tester_hosts --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt
   
   after_script:
