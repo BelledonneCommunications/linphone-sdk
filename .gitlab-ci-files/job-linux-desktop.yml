@@ -40,7 +40,7 @@
   allow_failure: true
   # Prevent tests from fetching repo. They have all needed files in upcoming artifacts
   variables:
-    GIT_SUBMODULE_STRATEGY: none
+    GIT_STRATEGY: none
   only:
     refs:
       - fix/useless_fetch_for_tests
