@@ -144,6 +144,7 @@ test-linphone-macosx:
       - feature/tests_ci_macosx
   variables:
     GIT_SUBMODULE_STRATEGY: none
+    LOG_PATTERN: "logLiblinphoneAllParThIpv6"
 
   script:
     - cd ${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin
@@ -171,7 +172,4 @@ test-linphone-macosx:
     paths:
       - results/*
     when: always
-    reports:
-      junit:
-        - $PATH_TO_TESTER/BCUnitAutomated-Results.xml
     expire_in: 4 week
