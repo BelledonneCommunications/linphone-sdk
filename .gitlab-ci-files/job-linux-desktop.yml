@@ -38,6 +38,9 @@
   stage: test
   extends: .job-prepare
   allow_failure: true
+  # Prevent tests from fetching repo. They have all needed files in upcoming artifacts
+  variables:
+    GIT_STRATEGY: none
   only:
     variables:
       - $NIGHTLY_MASTER
