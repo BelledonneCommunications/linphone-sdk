@@ -150,6 +150,16 @@ else()
 		set_target_properties(belle_sip_parse PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
 	target_link_libraries(belle_sip_parse ${BCTOOLBOX_CORE_LIBRARIES} ${PROJECT_LIBS})
+	
+	set(GET_SOURCES get.c)
+
+	bc_apply_compile_flags(GET_SOURCES STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
+	add_executable(belle_sip_http_get ${USE_BUNDLE} ${GET_SOURCES})
+	set_target_properties(belle_sip_http_get PROPERTIES LINKER_LANGUAGE CXX)
+	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
+		set_target_properties(belle_sip_http_get PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
+	endif()
+	target_link_libraries(belle_sip_http_get ${BCTOOLBOX_CORE_LIBRARIES} ${PROJECT_LIBS})
 
 endif()
 

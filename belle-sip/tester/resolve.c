@@ -44,20 +44,28 @@ int main(int argc, char *argv[]){
 	int i;
 	const char *domain=NULL;
 	const char *transport="udp";
+	int use_srv = 1;
 	
 	if (argc<2){
-		fprintf(stderr,"Usage:\n%s <domain name> [transport] [--debug]\n",argv[0]);
+		fprintf(stderr,"Usage:\n%s <domain name> [transport] [--no-srv] [--debug]\n",argv[0]);
 		return -1;
 	}
 	domain=argv[1];
 	for (i=2;i<argc;i++){
 		if (strcmp(argv[i],"--debug")==0){
 			belle_sip_set_log_level(BELLE_SIP_LOG_DEBUG);
+		}else if (strcmp(argv[i],"--no-srv")==0){
+			use_srv = 0;
 		}else if (strstr(argv[i],"--")!=argv[i]) transport=argv[i];
 	}
 	stack=belle_sip_stack_new(NULL);
-	printf("Trying to resolve domain '%s', with transport hint '%s'\n",domain,transport);
-	belle_sip_stack_resolve(stack,"sip", transport,domain,5060,AF_INET6,resolver_callback,NULL);
+	if (use_srv){
+		printf("Trying to resolve domain '%s', with transport hint '%s'\n",domain,transport);
+		belle_sip_stack_resolve(stack,"sip", transport,domain,5060,AF_INET6,resolver_callback,NULL);
+	}else{
+		printf("Trying to resolve domain '%s' without SRV...\n",domain);
+		belle_sip_stack_resolve_a(stack, domain, 5060, AF_INET6, resolver_callback, NULL);
+	}
 	belle_sip_stack_main(stack);
 	belle_sip_object_unref(stack);
 	return 0;
