@@ -131,5 +131,130 @@ job-debian-doc-upload:
     - cd linphone
     #getting the version number to push the right version of the doc
     - LINPHONE_VERSION=$(git describe | sed -e 's/-.*//g')
-    - echo "Linphone verison =" $LINPHONE_VERSION
+    - echo "Linphone version =" $LINPHONE_VERSION
     - rsync -rlv ../build-desktop/linphone-sdk/desktop/share/doc/linphone/$LINPHONE_VERSION/* $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/docs/liblinphone/multilang
+
+
+job-test-report-upload:
+  stage: deploy
+  tags: [ "deploy" ]
+
+  #only:
+  #  refs:
+  #    - feature/tests_reporting_tool
+    
+  dependencies:
+    - test-liblinphone-mr
+
+  script:
+    #getting the version number for each submodule and writing it in environment.properties file
+    #this file will be parsed by allure and will help to display additionnal information in the web view
+    #git -C allows to run a git command in the given folder without moving"
+    - BCTOOLBOX_VERSION=$(git -C bctoolbox describe)
+    - ORTP_VERSION=$(git -C ortp describe)
+    - BCG729_VERSION=$(git -C bcg729 describe)
+    - BELCARD_VERSION=$(git -C belcard describe)
+    - BELR_VERSION=$(git -C belr describe)
+    - BZRTP_VERSION=$(git -C bzrtp describe)
+    - CMAKE_BUILDER_VERSION=$(git -C cmake-builder describe)
+    - BCUNIT_VERSION=$(git -C bcunit describe)
+    - BELLESIP_VERSION=$(git -C belle-sip describe)
+    - LIME_VERSION=$(git -C lime describe)
+    - LINPHONE_VERSION=$(git -C linphone describe)
+    - MS2_VERSION=$(git -C mediastreamer2 describe)
+    - SDK_VERSION=$(git describe)
+    - BRANCH=$CI_COMMIT_REF_NAME
+    - ESCAPED_BRANCH=$(echo $BRANCH | tr / _)
+    - cd results
+    - echo BRANCH=$BRANCH | tee -a environment.properties
+    - echo SDK_VERSION=$SDK_VERSION | tee -a environment.properties
+    - echo BCTOOLBOX_VERSION=$BCTOOLBOX_VERSION | tee -a environment.properties
+    - echo ORTP_VERSION=$ORTP_VERSION | tee -a environment.properties
+    - echo BCG729_VERSION=$BCG729_VERSION | tee -a environment.properties
+    - echo BELCARD_VERSION=$BELCARD_VERSION | tee -a environment.properties
+    - echo BELR_VERSION=$BELR_VERSION | tee -a environment.properties
+    - echo BZRTP_VERSION=$BZRTP_VERSION | tee -a environment.properties
+    - echo CMAKE_BUILDER_VERSION=$CMAKE_BUILDER_VERSION | tee -a environment.properties
+    - echo BCUNIT_VERSION=$BCUNIT_VERSION | tee -a environment.properties
+    - echo BELLESIP_VERSION=$BELLESIP_VERSION | tee -a environment.properties
+    - echo LIME_VERSION=$LIME_VERSION | tee -a environment.properties
+    - echo LINPHONE_VERSION=$LINPHONE_VERSION | tee -a environment.properties
+    - echo MS2_VERSION=$MS2_VERSION | tee -a environment.properties
+    
+    
+    #TODO errors management
+    
+    
+    #Script generation
+    #This script will be run on the remote server to organize files and generate test reports
+    - echo "#\!/bin/bash" | tee -a allure_launch_script
+    
+    #we use as a folder the name of the branch with the slashes replaced by underscores (ex feature/random -> feature_random)
+    #navigation to the branch folder and creation if it doesn't exists
+    - echo "if [[ -n \$(ls | grep $ESCAPED_BRANCH) ]];" | tee -a allure_launch_script
+    - echo "  then cd $ESCAPED_BRANCH; else mkdir $ESCAPED_BRANCH && cd $ESCAPED_BRANCH;" | tee -a allure_launch_script
+    - echo "fi || true" | tee -a allure_launch_script
+    
+    #as a subfoldder name, we use the git describe of the sdk (version + commit hash)
+    #no need to search for an history in the case of a retry (if the directory related to the commit already exists)
+    - echo "if [[ -n \$(ls | grep $SDK_VERSION) ]];" | tee -a allure_launch_script
+    - echo "  then cd $SDK_VERSION;" | tee -a allure_launch_script
+    
+    #The LAST_MODIFIED_FOLDER variable will help us to save the lastest tests history before deletion and move it
+    #in the new folder, to be used by the new allure report generation
+    - echo "else" | tee -a allure_launch_script
+    - echo "  LAST_MODIFIED_FOLDER=\$(ls -ct | head -n1)" | tee -a allure_launch_script
+    - echo "  mkdir $SDK_VERSION" >> allure_launch_script
+    
+    #no need to save the history if there is no previous test reports
+    - echo "  if [[ -n \$LAST_MODIFIED_FOLDER ]];" | tee -a allure_launch_script
+    - echo "    then cp -r \$LAST_MODIFIED_FOLDER/allure-report/history $SDK_VERSION/history;" | tee -a allure_launch_script
+    - echo "  fi;" | tee -a allure_launch_script
+    
+    #categories.json is usefull to define the pattern of the tests states.
+    #ex
+    #[
+    #  {
+    #    "name": "Ignored tests", 
+    #    "matchedStatuses": ["skipped"] 
+    #  },
+    #  {
+    #    "name": "Infrastructure problems",
+    #    "matchedStatuses": ["broken", "failed"],
+    #    "messageRegex": ".*bye-bye.*" 
+    #  },
+    #  {
+    #    "name": "Outdated tests",
+    #    "matchedStatuses": ["broken"],
+    #    "traceRegex": ".*FileNotFoundException.*"
+    #  },
+    #  {
+    #    "name": "Product defects",
+    #    "matchedStatuses": ["failed"]
+    #  },
+    #  {
+    #     "name": "Test defects",
+    #     "matchedStatuses": ["broken"]
+    #  }
+    #]
+    #we move the BCUnit report, categories.json and evironment.properties to the desired folder to prepare allure report generation
+    
+    - echo "  cd $SDK_VERSION && cp ../../categories.json categories.json;" | tee -a allure_launch_script
+    - echo "fi || true" | tee -a allure_launch_script
+    - echo "mv ../../environment.properties . && mv ../../BCUnit* ." | tee -a allure_launch_script
+    
+    #we use the uploaded version of allure on parent directory because the allure version in repos is too old (TO DO auto install new version properly)
+    - echo "$DEPLOY_TESTS_DIRECTORY/../allure-2.10.0/bin/allure generate --clean ." | tee -a allure_launch_script
+    - cat allure_launch_script
+    - chmod u+x allure_launch_script
+    
+    #upload of the files
+    - rsync -rlv ./* $DEPLOY_SERVER:$DEPLOY_TESTS_DIRECTORY
+    
+    #remote launch of allure_launch_script declared above
+    #TODO ADD SERVER KEY
+    #DEPLOY_TESTS_DIRECTORY = allure_tests_reports
+    - ssh $DEPLOY_SERVER 'cd $DEPLOY_TESTS_DIRECTORY && ./allure_launch_script'
+    
+    #Need to determine how the allure server will be launched. (ie one per folder or one for all folders)
+    #TODO think about deletion of oldest reports, or compression
