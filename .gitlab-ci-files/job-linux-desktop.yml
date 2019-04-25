@@ -42,8 +42,10 @@
   variables:
     GIT_STRATEGY: none
   only:
-    variables:
-      - $NIGHTLY_MASTER
+    refs:
+      - feature/tests_reporting_tool
+  #  variables:
+  #    - $NIGHTLY_MASTER
 
   script:
     - cd $PATH_TO_TESTER
