@@ -132,4 +132,5 @@ job-debian-doc-upload:
     #getting the version number to push the right version of the doc
     - LINPHONE_VERSION=$(git describe | sed -e 's/-.*//g')
     - echo "Linphone verison =" $LINPHONE_VERSION
+    #using rsync with following options : verbose, keeping symbolic links, and copy recursively
     - rsync -rlv ../build-desktop/linphone-sdk/desktop/share/doc/linphone/$LINPHONE_VERSION/* $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/docs/liblinphone/multilang
