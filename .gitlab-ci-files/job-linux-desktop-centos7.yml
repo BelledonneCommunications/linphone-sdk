@@ -160,6 +160,7 @@ test-liblinphone-mr:
    - schedules
 
 #apparently there is no more standalone lime tester
+#this one caused problems during npm install (timeout)
 #test-lime:
 #  tags: [ "docker-test-centos7-lime" ]
 #  extends: .test
