@@ -100,9 +100,10 @@ test-linphone-windows:
   dependencies:
     - job-windows-vs2017
   only:
-    refs:
-      - feature/tests_ci_windows
+    variables:
+      - $NIGHTLY_MASTER
   variables:
+    #no need to fetch repo, all the needed files are in input arttifacts
     GIT_SUBMODULE_STRATEGY: none
     LOG_PATTERN: "logLiblinphoneAllParThIpv6"
 
@@ -114,10 +115,9 @@ test-linphone-windows:
     
     #When the dns host is set in command line, (--dns-hosts %CI_PROJECT_DIR%/linphone/tester/tester_hosts) 
     #we have a weird bellesip error message
-    #belle-sip-error-hosts dns_hosts_loadfile(".\../share/liblinphone_tester/C:/GitLab-Runner/builds/651dcee5/1/BC/public/linphone-sdk/linphone/tester/tester_hosts"): Unknown error
+    #2019-04-30 11:28:17:372 belle-sip-error-hosts dns_hosts_loadfile(".../share/liblinphone_tester/C:/Users/Jenkins/linphone-sdk/linphone/tester/tester_hosts"): Unknown error
 
     - .\liblinphone_tester --verbose --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt --xml-file BCUnitAutomated-Results.xml
-    - dir
   
   after_script:
     - cd %CI_PROJECT_DIR%/build-desktop/linphone-sdk/desktop/bin
