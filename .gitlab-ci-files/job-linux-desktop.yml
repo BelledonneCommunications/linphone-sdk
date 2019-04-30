@@ -79,6 +79,28 @@
     # xargs -L1 means that the command in argument will be executed for each line (core dump) found in find output
     # "true ||" is used here to continue the script even if the find fails
     - if [[ -n $(find . -type f -name "core*") ]]; then find . -type f -name "core*" | xargs -L1 gdb $TESTER_BIN; fi || true
+    
+    #generation of html file to redirect on test results page
+    
+    - BRANCH=$CI_COMMIT_REF_NAME
+    - echo $BRANCH
+    - ESCAPED_BRANCH=$(echo $BRANCH | tr / _)
+    - echo $ESCAPED_BRANCH
+    
+    - URL=http://linphone.org/snapshots/allure-tests-reports/$ESCAPED_BRANCH/$(git describe)
+    
+    - echo "<\!DOCTYPE HTML>" >> index.html
+    - echo "<meta charset=\"UTF-8\">" >> index.html
+    - echo "<meta http-equiv=\"refresh\" content=\"1; url=$URL\">" >> index.html
+    - echo "<script>" >> index.html
+    - echo "  window.location.href = \"$URL\"" >> index.html
+    - echo "</script>" >> index.html
+    - echo "<title>Page Redirection</title>" >> index.html
+    - echo "<\!-- Don't tell people to \`click\` the link, just tell them that it is a link. -->" >> index.html
+    - echo "If you are not redirected automatically, follow the <a href='$URL'>link to see the test report</a>" >> index.html
+    - cat index.html
+    
+    # simplifing artifacts browsing
     # Moving artifacts to ease browsing from web view
     # initially, all the paths needed to be browsed entirely to see artifacts
     # now there is only the folder "results" to check
@@ -86,6 +108,7 @@
     - sudo chmod 777 ${CI_PROJECT_DIR}/results
     - cp -r BCUnitAutomated* ${CI_PROJECT_DIR}/results
     - cp -r $LOG_PATTERN* ${CI_PROJECT_DIR}/results
+    - cp index.html ${CI_PROJECT_DIR}/results
     
   artifacts:
     paths:
