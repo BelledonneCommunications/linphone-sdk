@@ -152,11 +152,10 @@ test-liblinphone-mr:
   extends: .test-liblinphone-centos7
   only:
     refs:
-    - feature/tests_reporting_tool
-     #   - branches
-     #   - tags 
-     #variables:
-     #   - $ENABLE_TESTS_IN_MR
+      - branches
+      - tags 
+    variables:
+      - $ENABLE_TESTS_IN_MR
   except: 
    - schedules
 
