@@ -138,10 +138,6 @@ job-debian-doc-upload:
 job-test-report-upload:
   stage: deploy
   tags: [ "deploy" ]
-
-  #only:
-  #  refs:
-  #    - feature/tests_reporting_tool
     
   dependencies:
     - test-liblinphone-mr
