@@ -6,7 +6,7 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
   MAKEFILE_JOBS: 5
   CCACHE_SIZE: 2G
-  CMAKE_OPTIONS: -DENABLE_LIME_X3DH=YES
+  CMAKE_OPTIONS: -DENABLE_LIME_X3DH=YES -DENABLE_TUNNEL=YES
 
 
 #################################################
@@ -14,8 +14,12 @@ variables:
 #################################################
 
 .job-prepare:
-  variables:
-    ALL_JOB_VARIABLE: ""
+  only:
+    - schedules
+
+  except:
+    variables:
+      - $FAST_LINUX_TESTS
 
 include:
   - '.gitlab-ci-files/job-linux-prepare.yml'
@@ -29,11 +33,7 @@ include:
   - '.gitlab-ci-files/job-linux-desktop-ubuntu-rolling.yml'
   - '.gitlab-ci-files/job-macosx.yml'
   - '.gitlab-ci-files/job-windows.yml'
-  - '.gitlab-ci-files/job-packages.yml'
-  - '.gitlab-ci-files/job-uploads.yml'
 
 stages:
  - build
  - test
- - package
- - deploy
