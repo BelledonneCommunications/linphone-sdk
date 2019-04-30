@@ -122,7 +122,7 @@ typedef struct au_card {
 	bool_t audio_session_configured;
 	bool_t read_started;
 	bool_t write_started;
-	bool_t is_used;
+	bool_t will_be_used;
 } au_card_t;
 
 typedef struct au_filter_base {
@@ -203,7 +203,7 @@ static void create_audio_unit(au_card_t *card) {
 
 	if (card->audio_unit != NULL) return;
 	
-	bool_t noVoiceProc = (strcasecmp(sndcard->name, AU_CARD_NOVOICEPROC) == 0);
+	bool_t noVoiceProc = (strcasecmp(sndcard->name, AU_CARD_NOVOICEPROC) == 0) || card->ms_snd_card->streamType == MS_SND_CARD_STREAM_MEDIA;
 	OSType subtype = noVoiceProc ? kAudioUnitSubType_RemoteIO : kAudioUnitSubType_VoiceProcessingIO;
 
 	au_description.componentType          = kAudioUnitType_Output;
@@ -436,7 +436,7 @@ static void au_init(MSSndCard *card){
 	d->rate=AVAudioSession.sharedInstance.sampleRate; /*not set*/
 	d->nchannels=1;
 	d->ms_snd_card=card;
-	d->is_used = TRUE;
+	d->will_be_used = FALSE;
 	card->preferred_sample_rate=44100;
 	card->capabilities|=MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER|MS_SND_CARD_CAP_IS_SLOW;
 	ms_mutex_init(&d->mutex,NULL);
@@ -456,7 +456,7 @@ static void check_unused(au_card_t *card){
 	if (card->read_filter_data || card->write_filter_data)
 		return;
 
-	if (card->is_tester || !card->is_used){
+	if (card->is_tester || !card->will_be_used){
 		stop_audio_unit(card);
 		destroy_audio_unit(card);
 	}
@@ -467,7 +467,7 @@ static void au_usage_hint(MSSndCard *card, bool_t used){
 	if (!d)
 		return;
 
-	d->is_used = used;
+	d->will_be_used = used;
 	check_unused(d);
 }
 
@@ -607,7 +607,6 @@ static void configure_audio_session(au_card_t* d) {
 	NSError *err = nil;;
 	//UInt32 audioCategorySize=sizeof(audioCategory);
 	AVAudioSession *audioSession = [AVAudioSession sharedInstance];
-	bool_t changed;
 
 	if (d->audio_unit_state == MSAudioUnitStarted){
 		ms_message("configure_audio_session(): AudioUnit is already started, skipping this process.");
@@ -615,22 +614,27 @@ static void configure_audio_session(au_card_t* d) {
 	}
 	
 	if (!d->is_fast){
-
-		if (d->audio_session_configured){
-			/*check that category wasn't changed*/
-			NSString *audioCategory = audioSession.category;
-
-			changed=(audioCategory!=AVAudioSessionCategoryAmbient && d->is_ringer)
-			||(audioCategory!=AVAudioSessionCategoryPlayAndRecord && !d->is_ringer);
+		/*check that category wasn't changed*/
+		NSString *currentCategory = audioSession.category;
+		NSString *newCategory = AVAudioSessionCategoryPlayAndRecord;
+		
+		if (d->ms_snd_card->streamType == MS_SND_CARD_STREAM_MEDIA){
+			newCategory = AVAudioSessionCategoryPlayback;
+		}else if (d->is_ringer){
+			newCategory = AVAudioSessionCategoryAmbient;
 		}
 
-		if (!d->audio_session_configured || changed) {
+		if (currentCategory != newCategory){
+			d->audio_session_configured = FALSE;
+		}
+
+		if (!d->audio_session_configured) {
 			uint64_t time_start, time_end;
 			
 			time_start = ortp_get_cur_time_ms();
-			if (d->is_ringer && kCFCoreFoundationVersionNumber > kCFCoreFoundationVersionNumber10_6 /*I.E is >=OS4*/) {
+			if (newCategory != AVAudioSessionCategoryPlayAndRecord) {
 				ms_message("Configuring audio session for playback");
-				[audioSession setCategory:AVAudioSessionCategoryAmbient
+				[audioSession setCategory:newCategory
 									error:&err];
 				if (err){
 					ms_error("Unable to change audio session category because : %s", [err localizedDescription].UTF8String);
