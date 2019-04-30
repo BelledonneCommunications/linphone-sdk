@@ -84,6 +84,8 @@ job-windows-vs2017-novideo:
   extends: .job-windows-vs2017-scheduled
   variables:
     CMAKE_OPTIONS: -DENABLE_LIME_X3DH=NO -DENABLE_VIDEO=NO
+    
+#TODO : FACTORIZE TESTERS CODE
 
 test-linphone-windows:
   stage: test
@@ -96,9 +98,8 @@ test-linphone-windows:
     variables:
       - $NIGHTLY_MASTER
   variables:
-    #no need to fetch repo, all the needed files are in input arttifacts
+    #no need to fetch repo, all the needed files are in input artifacts
     GIT_SUBMODULE_STRATEGY: none
-    LOG_PATTERN: "logLiblinphoneAllParThIpv6"
 
   script:
     - cd %CI_PROJECT_DIR%/build-desktop/linphone-sdk/desktop/bin
@@ -110,15 +111,11 @@ test-linphone-windows:
     #we have a weird bellesip error message
     #2019-04-30 11:28:17:372 belle-sip-error-hosts dns_hosts_loadfile(".../share/liblinphone_tester/C:/Users/Jenkins/linphone-sdk/linphone/tester/tester_hosts"): Unknown error
 
-    - .\liblinphone_tester --verbose --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt --xml-file BCUnitAutomated-Results.xml
+    - .\liblinphone_tester --verbose --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt --xml-file BCUnitAutomated.xml
   
   after_script:
     - cd %CI_PROJECT_DIR%/build-desktop/linphone-sdk/desktop/bin
-    # searching for core files and if there are some, launch gdb on all of it
-    # "true ||" is used here to continue the script even if the find fails
-    #- if [[ -n $(find . -type f -name "core*") ]]; then find . -type f -name "core*" | xargs -L1 lldb --batch -o 'thread backtrace all' -o 'quit' -c ; fi || true
-    
-    # need to retest mkdir with windows paths
+    #TODO COREDUMPS MANAGEMENT
     - echo %CI_PROJECT_DIR%
     - mkdir "%CI_PROJECT_DIR%/results"
     - dir
