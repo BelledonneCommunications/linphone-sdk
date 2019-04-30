@@ -116,3 +116,31 @@ test-bzrtp-arch:
   dependencies:
     - job-archlinux-latest-ninja-clang
   tags: [ "docker-archlinux-latest" ] 
+
+.test-liblinphone-arch:
+  tags: [ "docker-test-archlinux-liblinphone" ]
+  extends: .test
+  dependencies:
+    - job-archlinux-latest-ninja-clang
+  variables:
+    TESTER_BIN: "liblinphone_tester"
+    XVFB: "Xvfb :99"
+    EXPORT_DISPLAY: "export DISPLAY=:99"
+    LOG_PATTERN: "logLiblinphoneAllParThIpv6"
+    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
+    ADDITIONNAL_OPTIONS: "--dns-hosts ${CI_PROJECT_DIR}/linphone/tester/tester_hosts --show-account-manager-logs"
+    SET_CAP_SYS_NICE_LIN_MS: "sudo setcap cap_sys_nice+ep ./${TESTER_BIN}"
+
+test-liblinphone-a:
+  extends: .test-liblinphone-arch
+
+test-liblinphone-a-mr:
+  extends: .test-liblinphone-arch
+  only:
+     refs: 
+        - branches
+        - tags 
+     variables:
+        - $ENABLE_TESTS_IN_MR
+  except: 
+   - schedules

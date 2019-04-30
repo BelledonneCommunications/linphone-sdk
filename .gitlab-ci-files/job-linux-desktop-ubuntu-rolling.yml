@@ -115,3 +115,32 @@ test-bzrtp-ubuntu:
   dependencies:
     - job-ubuntu-rolling-ninja-clang
   tags: [ "docker-ubuntu-rolling" ]
+  
+  
+.test-liblinphone-ubuntu:
+  tags: [ "docker-test-ubuntu-rolling-liblinphone" ]
+  extends: .test
+  dependencies:
+    - job-ubuntu-rolling-ninja-clang
+  variables:
+    TESTER_BIN: "liblinphone_tester"
+    XVFB: "Xvfb :99"
+    EXPORT_DISPLAY: "export DISPLAY=:99"
+    LOG_PATTERN: "logLiblinphoneAllParThIpv6"
+    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
+    ADDITIONNAL_OPTIONS: "--dns-hosts ${CI_PROJECT_DIR}/linphone/tester/tester_hosts --show-account-manager-logs"
+    SET_CAP_SYS_NICE_LIN_MS: "sudo setcap cap_sys_nice+ep ./${TESTER_BIN}"
+
+test-liblinphone-u:
+  extends: .test-liblinphone-ubuntu
+
+test-liblinphone-u-mr:
+  extends: .test-liblinphone-ubuntu
+  only:
+     refs: 
+        - branches
+        - tags 
+     variables:
+        - $ENABLE_TESTS_IN_MR
+  except: 
+   - schedules

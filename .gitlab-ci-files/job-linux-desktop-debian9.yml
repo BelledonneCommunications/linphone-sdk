@@ -117,3 +117,32 @@ test-bzrtp-debian9:
   dependencies:
     - job-debian9-ninja-gcc
   tags: [ "docker-test-debian9" ]
+  
+  
+.test-liblinphone-debian9:
+  tags: [ "docker-test-debian9-liblinphone" ]
+  extends: .test
+  dependencies:
+    - job-debian9-ninja-gcc
+  variables:
+    TESTER_BIN: "liblinphone_tester"
+    XVFB: "Xvfb :99"
+    EXPORT_DISPLAY: "export DISPLAY=:99"
+    LOG_PATTERN: "logLiblinphoneAllParThIpv6"
+    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
+    ADDITIONNAL_OPTIONS: "--dns-hosts ${CI_PROJECT_DIR}/linphone/tester/tester_hosts --show-account-manager-logs"
+    SET_CAP_SYS_NICE_LIN_MS: "sudo setcap cap_sys_nice+ep ./${TESTER_BIN}"
+
+test-liblinphone-deb9:
+  extends: .test-liblinphone-debian9
+
+test-liblinphone-deb9-mr:
+  extends: .test-liblinphone-debian9
+  only:
+     refs: 
+        - branches
+        - tags 
+     variables:
+        - $ENABLE_TESTS_IN_MR
+  except: 
+   - schedules
