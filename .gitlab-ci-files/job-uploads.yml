@@ -237,7 +237,7 @@ job-test-report-upload:
     
     - echo "  cd $SDK_VERSION && cp ../../categories.json categories.json;" | tee -a allure_launch_script
     - echo "fi || true" | tee -a allure_launch_script
-    - echo "mv ../../environment.properties . && mv ../../BCUnit* . && mv ../../log* ." | tee -a allure_launch_script
+    - echo "mv ../../environment.properties . && mv ../../BCUnit* ." | tee -a allure_launch_script
     
     #we use the uploaded version of allure on parent directory because the allure version in repos is too old (TO DO auto install new version properly)
     - echo "~/allure-2.10.0/bin/allure generate --clean ." | tee -a allure_launch_script
@@ -245,7 +245,7 @@ job-test-report-upload:
     - chmod u+x allure_launch_script
     
     #upload of the files
-    - rsync -rlv ./* $DEPLOY_SERVER:$DEPLOY_TESTS_DIRECTORY
+    - rsync -rlv environment.properties BCUnit* $DEPLOY_SERVER:$DEPLOY_TESTS_DIRECTORY
     
     #remote launch of allure_launch_script declared above
     #DEPLOY_TESTS_DIRECTORY = allure_tests_reports
