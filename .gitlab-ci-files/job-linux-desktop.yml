@@ -40,7 +40,8 @@
   allow_failure: true
   # Prevent tests from fetching repo. They have all needed files in upcoming artifacts
   variables:
-    GIT_STRATEGY: none
+    GIT_STRATEGY: fetch
+    GIT_SUBMODULE_STRATEGY: normal
   only:
     variables:
       - $NIGHTLY_MASTER
@@ -70,6 +71,9 @@
   after_script:
     - pwd
     - cd $PATH_TO_TESTER
+    - echo $PATH_TO_TESTER && pwd
+    - git describe
+    
     #.gdbinit is used to store gdb init scripts
     #we use it to avoid the need to specify manually the commands for each potential coredump
     - echo "thread apply all bt" | sudo tee .gdbinit
@@ -79,15 +83,14 @@
     # xargs -L1 means that the command in argument will be executed for each line (core dump) found in find output
     # "true ||" is used here to continue the script even if the find fails
     - if [[ -n $(find . -type f -name "core*") ]]; then find . -type f -name "core*" | xargs -L1 gdb $TESTER_BIN; fi || true
-    
+    - COMMIT=$(git describe)
     #generation of html file to redirect on test results page
     
     - BRANCH=$CI_COMMIT_REF_NAME
     - echo $BRANCH
     - ESCAPED_BRANCH=$(echo $BRANCH | tr / _)
     - echo $ESCAPED_BRANCH
-    
-    - URL=http://linphone.org/snapshots/allure-tests-reports/$ESCAPED_BRANCH/$(git describe)
+    - URL=http://linphone.org/snapshots/allure-tests-reports/$ESCAPED_BRANCH/$COMMIT
     
     - echo "<\!DOCTYPE HTML>" >> index.html
     - echo "<meta charset=\"UTF-8\">" >> index.html
@@ -99,6 +102,7 @@
     - echo "<\!-- Don't tell people to \`click\` the link, just tell them that it is a link. -->" >> index.html
     - echo "If you are not redirected automatically, follow the <a href='$URL'>link to see the test report</a>" >> index.html
     - cat index.html
+    - echo "TEST REPORTS URL $URL"
     
     # simplifing artifacts browsing
     # Moving artifacts to ease browsing from web view
