@@ -40,7 +40,8 @@
   allow_failure: true
   # Prevent tests from fetching repo. They have all needed files in upcoming artifacts
   variables:
-    GIT_STRATEGY: none
+    GIT_STRATEGY: fetch
+    GIT_SUBMODULE_STRATEGY: normal
   only:
     variables:
       - $NIGHTLY_MASTER
@@ -70,20 +71,21 @@
   after_script:
     - pwd
     - cd $PATH_TO_TESTER
+    - echo $PATH_TO_TESTER && pwd
+    - git describe
     - echo "thread apply all bt" | sudo tee .gdbinit
     - echo add-auto-load-safe-path $PATH_TO_TESTER/.gdbinit | sudo tee -a /home/bc/.gdbinit
     # searching for core files and if there are some, launch gdb on all of it
     # "true ||" is used here to continue the script even if the find fails
     - if [[ -n $(find . -type f -name "core*") ]]; then find . -type f -name "core*" | xargs -L1 gdb $TESTER_BIN; fi || true
-    
+    - COMMIT=$(git describe)
     #generation of html file to redirect on test results page
     
     - BRANCH=$CI_COMMIT_REF_NAME
     - echo $BRANCH
     - ESCAPED_BRANCH=$(echo $BRANCH | tr / _)
     - echo $ESCAPED_BRANCH
-    
-    - URL=http://linphone.org/snapshots/allure-tests-reports/$ESCAPED_BRANCH/$(git describe)
+    - URL=http://linphone.org/snapshots/allure-tests-reports/$ESCAPED_BRANCH/$COMMIT
     
     - echo "<\!DOCTYPE HTML>" >> index.html
     - echo "<meta charset=\"UTF-8\">" >> index.html
