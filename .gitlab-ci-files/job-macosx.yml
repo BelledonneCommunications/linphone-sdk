@@ -95,10 +95,8 @@ test-linphone-macosx:
   dependencies:
     - job-macosx-ninja
   only:
-    refs:
-      - feature/tests_ci_macosx
- #   variables:
- #     - $NIGHTLY_MASTER
+    variables:
+      - $NIGHTLY_MASTER
   variables:
     # no need to fetch repo, all is needed in artifacts
     GIT_STRATEGY: none
