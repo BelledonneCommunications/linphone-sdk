@@ -74,7 +74,7 @@ task getGitVersion {
         standardOutput = gitVersion
     }
     exec {
-        commandLine 'git', 'name-rev', '--name-only', 'HEAD'
+        commandLine 'git', 'name-rev', '--exclude=*tags/*', '--name-only', 'HEAD'
         standardOutput = gitBranch
     }
     doLast {
