@@ -59,7 +59,6 @@ extern bcunit_trace_handler_t CU_trace_handler;
 #include <stdarg.h>
 #include <winsock2.h>
 
-
 void OutputDebugStringPrintf(FILE *file, const char *fmt, ...) {
 	va_list args;
 
@@ -123,6 +122,40 @@ void otherPrintf(FILE *file, const char *fmt, ...){
 
 #endif
 
+/*=================================================================
+ *  Time management, prevents to add a dependency towards bctoolbox
+ *=================================================================*/
+
+//  Windows
+#ifdef _WIN32
+  #include <Windows.h>
+  double CU_get_wall_time(void){
+      LARGE_INTEGER time,freq;
+      if (!QueryPerformanceFrequency(&freq)) {
+         //  Handle error
+         return 0;
+      }
+      else if (!QueryPerformanceCounter(&time)) {
+         //  Handle error
+         return 0;
+      }
+      else {
+        return (double)time.QuadPart / freq.QuadPart;
+      }
+  }
+#else
+  //#include <time.h>
+  #include <sys/time.h>
+  double CU_get_wall_time(void) {
+      struct timeval time;
+      if (gettimeofday(&time,NULL)) {
+          //  Handle error
+          return 0;
+      }
+      //tv_usec is divided by a million to get as a double [seconds].[milliseconds]
+      return (double)time.tv_sec + (double)time.tv_usec * .000001;
+  }
+#endif
 
 /*------------------------------------------------------------------------*/
 /**

@@ -83,7 +83,10 @@ static CU_BOOL	 bPartialSuiteJUnitReport = CU_FALSE;		/** Flag for toggling engl
 
 static char _gPackageName[50] = "";
 
-static time_t    f_testStartTime = 0;                       /**< Start time of current running test suite. */
+//static time_t    f_testStartTime = 0;                       /**< Start time of current running test suite. */
+
+double startTime = 0.0;
+double endTime = 0.0;
 
 /*=================================================================
  *  Static function forward declarations
@@ -268,7 +271,12 @@ static void automated_test_start_message_handler(const CU_pTest pTest, const CU_
 	char *szTempName = NULL;
 	size_t szTempName_len = 0;
 
-  f_testStartTime = time(NULL);
+  //Gathering information about current time for the suite start time
+  time_t suiteStartTime = time(NULL);
+  struct tm tm = *localtime(&suiteStartTime);
+
+  //Getting the start time of the test to compute test duration
+  startTime = CU_get_wall_time();
 
   if( test_start_handler ){
     (*test_start_handler)(pTest, pSuite);
@@ -301,11 +309,18 @@ static void automated_test_start_message_handler(const CU_pTest pTest, const CU_
 
     if (bJUnitXmlOutput == CU_TRUE) {
       fprintf(f_pTestResultFile,
-              "  <testsuite name=\"%s\" tests=\"%u\" time=\"0\" failures=\"%u\" errors=\"%u\" skipped=\"0\"> \n",
+              "  <testsuite name=\"%s\" tests=\"%u\" time=\"0\" failures=\"%u\" errors=\"%u\" skipped=\"0\" timestamp=\"%d-%02d-%02dT%02d:%02d:%02d\"> \n",
               (NULL != szTempName) ? szTempName : "", /* Name */
               pSuite->uiNumberOfTests, /* Tests */
               pSuite->uiNumberOfTestsFailed, /* Tests failure */
-              0); /* Errors */
+              0,
+              tm.tm_year + 1900,
+              tm.tm_mon + 1,
+              tm.tm_mday,
+              tm.tm_hour,
+              tm.tm_min,
+              tm.tm_sec
+              ); /* Errors */
     } else {
       fprintf(f_pTestResultFile,
               "    <BCUNIT_RUN_SUITE> \n"
@@ -339,6 +354,9 @@ static void automated_test_complete_message_handler(const CU_pTest pTest,
   CU_pFailureRecord pTempFailure = pFailure;
   const char *pPackageName = CU_automated_package_name_get();
 
+  //Getting the end time of the test to compute test duration
+  endTime = CU_get_wall_time();
+
   if( test_complete_handler ){
     (*test_complete_handler)(pTest, pSuite, pFailure);
   }
@@ -359,19 +377,30 @@ static void automated_test_complete_message_handler(const CU_pTest pTest,
         assert((NULL != pTempFailure->pTest) && (pTempFailure->pTest == pTest));
 
         if (NULL != pTempFailure->strCondition) {
-          szTemp = (char *)CU_MALLOC(CU_translated_strlen(pTempFailure->strCondition));
-          CU_translate_special_characters(pTempFailure->strCondition, szTemp, sizeof(szTemp));
+          szTemp_len = CU_translated_strlen(pTempFailure->strCondition) + 1;
+          szTemp = (char *)CU_MALLOC(szTemp_len);
+          size_t test = CU_translate_special_characters(pTempFailure->strCondition, szTemp, szTemp_len);
         }
         else {
+          //!!!!!!
           szTemp[0] = '\0';
         }
 
-        fprintf(f_pTestResultFile, "        <testcase classname=\"%s.%s\" name=\"%s\" time=\"%ld\">\n",
+        fprintf(f_pTestResultFile, "        <testcase classname=\"%s.%s\" name=\"%s\" time=\"%f\">\n",
                 pPackageName,
                 pSuite->pName,
                 (NULL != pTest->pName) ? pTest->pName : "",
-                (long)(time(NULL) - f_testStartTime));
-        fprintf(f_pTestResultFile, "            <failure message=\"%s\" type=\"Failure\">\n", szTemp);
+                endTime - startTime
+                );
+
+        if(NULL != pTempFailure->pNext) {
+          fprintf(f_pTestResultFile, "            <failure message=\"Multiple asserts failed ...\" type=\"Failure\">\n");
+        }
+        else {
+          fprintf(f_pTestResultFile, "            <failure message=\"%s\" type=\"Failure\">\n", szTemp);
+        }
+
+
       } /* if */
     }
 
@@ -432,11 +461,12 @@ static void automated_test_complete_message_handler(const CU_pTest pTest,
   }
   else {
     if (bJUnitXmlOutput == CU_TRUE) {
-      fprintf(f_pTestResultFile,  "        <testcase classname=\"%s.%s\" name=\"%s\" time=\"%ld\"/>\n",
+      fprintf(f_pTestResultFile,  "        <testcase classname=\"%s.%s\" name=\"%s\" time=\"%f\"/>\n",
               pPackageName,
               pSuite->pName,
               (NULL != pTest->pName) ? pTest->pName : "",
-              (long)(time(NULL) - f_testStartTime));
+              endTime - startTime
+              );
     } else {
       fprintf(f_pTestResultFile,
               "        <BCUNIT_RUN_TEST_RECORD> \n"

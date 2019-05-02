@@ -83,6 +83,16 @@ CU_EXPORT size_t CU_translate_special_characters(const char *szSrc, char *szDest
  *            szDest did not have enough room to hold converted string).
  */
 
+ /*=================================================================
+  *  Time management, prevents to add a dependency towards bctoolbox
+  *=================================================================*/
+
+CU_EXPORT double CU_get_wall_time(void);
+/**<
+ * Gets the actual time. It is used to compute tests elapsed time
+ * @returns The actual time as a double, in format seconds.milliseconds
+ */
+
 CU_EXPORT size_t CU_translated_strlen(const char *szSrc);
 /**<
  *  Calculates the length of a translated string.
