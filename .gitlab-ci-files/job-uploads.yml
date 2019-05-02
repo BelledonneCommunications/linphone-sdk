@@ -246,7 +246,7 @@ job-test-report-upload:
     - chmod u+x allure_launch_script
     
     #upload of the files
-    - rsync -rlv environment.properties BCUnit* $DEPLOY_SERVER:$DEPLOY_TESTS_DIRECTORY
+    - rsync -rlv environment.properties allure_launch_script BCUnit* $DEPLOY_SERVER:$DEPLOY_TESTS_DIRECTORY
     
     #remote launch of allure_launch_script declared above
     #DEPLOY_TESTS_DIRECTORY = allure_tests_reports
