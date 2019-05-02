@@ -45,6 +45,7 @@ job-macosx-ninja:
 
   variables:
     CMAKE_GENERATOR: Ninja
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
   extends: .job-macosx-desktop
 
 
@@ -85,3 +86,48 @@ job-macosx-xcode:
       - build-desktop/linphone-sdk.podspec
     when: always
     expire_in: 1 week
+    
+test-linphone-macosx:
+  stage: test
+  extends: .job-prepare
+  tags: [ "macosx" ]
+  allow_failure: true
+  dependencies:
+    - job-macosx-ninja
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+  variables:
+    # no need to fetch repo, all is needed in artifacts
+    GIT_STRATEGY: none
+    LOG_PATTERN: "logLiblinphoneAllParThIpv6"
+    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
+    ADDITIONNAL_OPTIONS: "--dns-hosts ${CI_PROJECT_DIR}/linphone/tester/tester_hosts --show-account-manager-logs"
+
+  script:
+    - unzip ${CI_PROJECT_DIR}/build-desktop/linphone-sdk-*.zip
+    - cd $PATH_TO_TESTER
+    - ls -la
+    - echo ${CI_PROJECT_DIR}
+    - echo ${CI_PROJECT_DIR}/linphone/tester/tester_hosts
+    # Force core dump generation
+    - ulimit -c unlimited
+    - ./liblinphone_tester --verbose --parallel $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt
+  
+  after_script:
+    - pwd
+    - cd $PATH_TO_TESTER
+    # searching for core files and if there are some, launch lldb on all of it
+    # "|| true" is used here to continue the script even if the find fails
+    # for all coredumps found in find output (xargs -L1), lldb will be launched, with the commands 'thread backtrace all' and 'quit'
+    - if [[ -n $(find . -type f -name "core*") ]]; then find . -type f -name "core*" | xargs -L1 lldb --batch -o 'thread backtrace all' -o 'quit' -c ; fi || true
+    - ls -la
+    - mkdir ${CI_PROJECT_DIR}/results
+    - cp -r BCUnitAutomated* ${CI_PROJECT_DIR}/results
+    - cp -r $LOG_PATTERN* ${CI_PROJECT_DIR}/results
+    
+  artifacts:
+    paths:
+      - results/*
+    when: always
+    expire_in: 4 week
