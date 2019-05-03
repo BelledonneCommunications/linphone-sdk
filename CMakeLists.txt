@@ -23,7 +23,7 @@
 cmake_minimum_required(VERSION 3.2)
 
 
-project(linphone-sdk VERSION 4.1 LANGUAGES NONE)
+project(linphone-sdk VERSION 4.2 LANGUAGES NONE)
 
 
 set(LINPHONESDK_DIR "${CMAKE_CURRENT_LIST_DIR}")
