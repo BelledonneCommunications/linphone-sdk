@@ -8,9 +8,11 @@ job-windows-vs2017-package:
   dependencies:
     - job-windows-vs2017-scheduled
   only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $PACKAGE_RUN_WINDOWS
+#    variables:
+ #     - $NIGHTLY_MASTER
+  #    - $PACKAGE_RUN_WINDOWS
+     refs:
+       - fix/tests_reporting_tool
   script:
     - call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat"
     - cd build-desktop
@@ -25,9 +27,13 @@ job-windows-vs2017-package:
     - git describe > describe.temp
     - set /p DESCRIBE=<describe.temp
     - msbuild NuGetLinphoneSDK.vcxproj /p:VersionNumber=%DESCRIBE% /p:OutputSdkBuild=%OUTPUT_SDK_BUILD% /p:OutputWrapperBuild=%OUTPUT_WRAPPER_BUILD%
+    
+  after_script:
+    - mkdir "${CI_PROJECT_DIR}/results/windows-nugget"
+    - copy /B "${CI_PROJECT_DIR}/cmake/Windows/nuget/*.nupkg" "${CI_PROJECT_DIR}/results/windows-nugget"
   artifacts:
     paths:
-      - cmake\Windows\nuget\*.nupkg
+      - results/*
     when: always
     expire_in: 1 week
  
