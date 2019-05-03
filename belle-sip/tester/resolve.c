@@ -45,9 +45,10 @@ int main(int argc, char *argv[]){
 	const char *domain=NULL;
 	const char *transport="udp";
 	int use_srv = 1;
+	const char *dns_server = NULL;
 	
 	if (argc<2){
-		fprintf(stderr,"Usage:\n%s <domain name> [transport] [--no-srv] [--debug]\n",argv[0]);
+		fprintf(stderr,"Usage:\n%s <domain name> [@dns-server-ip] [transport] [--no-srv] [--debug]\n",argv[0]);
 		return -1;
 	}
 	domain=argv[1];
@@ -56,9 +57,17 @@ int main(int argc, char *argv[]){
 			belle_sip_set_log_level(BELLE_SIP_LOG_DEBUG);
 		}else if (strcmp(argv[i],"--no-srv")==0){
 			use_srv = 0;
-		}else if (strstr(argv[i],"--")!=argv[i]) transport=argv[i];
+		}else if (*argv[i] == '@'){
+			dns_server = argv[i] + 1;
+		}else if (strstr(argv[i],"--") != argv[i]) transport=argv[i];
 	}
 	stack=belle_sip_stack_new(NULL);
+	if (dns_server){
+		printf("Using DNS server %s\n", dns_server);
+		bctbx_list_t *l = bctbx_list_append(NULL, (void*)dns_server);
+		belle_sip_stack_set_dns_servers(stack, l);
+		bctbx_list_free(l);
+	}
 	if (use_srv){
 		printf("Trying to resolve domain '%s', with transport hint '%s'\n",domain,transport);
 		belle_sip_stack_resolve(stack,"sip", transport,domain,5060,AF_INET6,resolver_callback,NULL);
