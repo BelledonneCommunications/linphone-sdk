@@ -31,7 +31,8 @@ job-windows-vs2017-package:
     
   after_script:
     - mkdir "${CI_PROJECT_DIR}/results/windows-nugget"
-    - copy /B "${CI_PROJECT_DIR}/cmake/Windows/nuget/*.nupkg" "${CI_PROJECT_DIR}/results/windows-nugget"
+    - cd ${CI_PROJECT_DIR}/cmake/Windows/nuget/
+    - copy /B *.nupkg "${CI_PROJECT_DIR}/results/windows-nugget"
   artifacts:
     paths:
       - results/*
