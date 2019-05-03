@@ -7,13 +7,11 @@ job-windows-vs2017-package:
   tags: [ "windows" ]
   dependencies:
     - job-windows-vs2017-scheduled
-    - job-windows-vs2017
   only:
-#    variables:
- #     - $NIGHTLY_MASTER
-  #    - $PACKAGE_RUN_WINDOWS
-     refs:
-       - fix/tests_reporting_tool
+    variables:
+      - $NIGHTLY_MASTER
+      - $PACKAGE_RUN_WINDOWS
+
   script:
     - call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat"
     - cd build-desktop
