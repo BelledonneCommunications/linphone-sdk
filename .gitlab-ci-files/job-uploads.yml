@@ -141,7 +141,7 @@ job-test-report-upload:
   tags: [ "deploy" ]
     
   dependencies:
-    - test-liblinphone-mr
+    - .test-liblinphone
 
   script:
     #getting the version number for each submodule and writing it in environment.properties file
