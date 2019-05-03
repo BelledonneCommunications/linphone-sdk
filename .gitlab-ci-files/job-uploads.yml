@@ -141,6 +141,7 @@ job-test-report-upload:
   tags: [ "deploy" ]
     
   dependencies:
+    - test-liblinphone
     - test-liblinphone-mr
 
   script:
