@@ -162,7 +162,7 @@ MS2_PUBLIC int media_stream_join_multicast_group(MediaStream *stream, const char
 MS2_PUBLIC bool_t media_stream_dtls_supported(void);
 
 /* enable DTLS on the media stream */
-MS2_PUBLIC void media_stream_enable_dtls(MediaStream *stream, MSDtlsSrtpParams *params);
+MS2_PUBLIC void media_stream_enable_dtls(MediaStream *stream, const MSDtlsSrtpParams *params);
 
 MS2_PUBLIC void media_stream_set_rtcp_information(MediaStream *stream, const char *cname, const char *tool);
 

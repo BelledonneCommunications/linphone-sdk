@@ -274,10 +274,12 @@ void media_stream_enable_adaptive_jittcomp(MediaStream *stream, bool_t enabled) 
 	rtp_session_enable_adaptive_jitter_compensation(stream->sessions.rtp_session, enabled);
 }
 
-void media_stream_enable_dtls(MediaStream *stream, MSDtlsSrtpParams *params){
-	if (stream->sessions.dtls_context==NULL) {
+void media_stream_enable_dtls(MediaStream *stream, const MSDtlsSrtpParams *params){
+	if (stream->sessions.dtls_context == NULL) {
+		MSDtlsSrtpParams params_copy = *params;
 		ms_message("Start DTLS media stream context in stream session [%p]", &(stream->sessions));
-		stream->sessions.dtls_context=ms_dtls_srtp_context_new(&(stream->sessions), params);
+		if (params_copy.mtu == 0) params_copy.mtu = ms_factory_get_mtu(stream->factory);
+		stream->sessions.dtls_context=ms_dtls_srtp_context_new(&(stream->sessions), &params_copy);
 	}
 }
 

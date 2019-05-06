@@ -41,6 +41,7 @@ typedef struct MSDtlsSrtpParams {
 	const char *pem_certificate; /**< Self certificate in pem format */
 	const char *pem_pkey; /**< Private key associated to self certificate */
 	MSDtlsSrtpRole role; /**< Unset(at caller init, role is then choosen by responder but we must still be able to receive packets) */
+	int mtu;
 } MSDtlsSrtpParams;
 
 /* an opaque structure containing all context data needed by DTLS-SRTP */

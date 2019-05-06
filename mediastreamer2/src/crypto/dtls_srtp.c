@@ -60,6 +60,7 @@ struct _MSDtlsSrtpContext{
 	MSMediaStreamSessions *stream_sessions;
 	MSDtlsSrtpRole role; /**< can be unset(at init on caller side), client or server */
 	char peer_fingerprint[256]; /**< used to store peer fingerprint passed through SDP */
+	int mtu;
 
 	RtpTransportModifier *rtp_modifier;
 	RtpTransportModifier *rtcp_modifier;
@@ -879,6 +880,7 @@ MSDtlsSrtpContext* ms_dtls_srtp_context_new(MSMediaStreamSessions *sessions, MSD
 	userData->rtp_dtls_context=rtp_dtls_context;
 	userData->rtcp_dtls_context=rtcp_dtls_context;
 	userData->role = params->role;
+	userData->mtu = params->mtu;
 	userData->rtp_time_reference = 0;
 	userData->rtcp_time_reference = 0;
 
@@ -913,7 +915,6 @@ MSDtlsSrtpContext* ms_dtls_srtp_context_new(MSMediaStreamSessions *sessions, MSD
 }
 
 void ms_dtls_srtp_start(MSDtlsSrtpContext* context) {
-	int mtu = 1500;  // TODO: get the actual value from settings via ms_factory_get_mtu
 
 	if (context == NULL ) {
 		ms_warning("DTLS start but no context\n");
@@ -927,7 +928,7 @@ void ms_dtls_srtp_start(MSDtlsSrtpContext* context) {
 		bctbx_ssl_config_set_endpoint(context->rtp_dtls_context->ssl_config, BCTBX_SSL_IS_CLIENT);
 		/* complete ssl setup*/
 		bctbx_ssl_context_setup(context->rtp_dtls_context->ssl, context->rtp_dtls_context->ssl_config);
-		bctbx_ssl_set_mtu(context->rtp_dtls_context->ssl, mtu);		
+		bctbx_ssl_set_mtu(context->rtp_dtls_context->ssl, context->mtu);		
 		/* and start the handshake */
 		bctbx_ssl_handshake(context->rtp_dtls_context->ssl);
 		context->rtp_time_reference = get_timeval_in_millis(); /* arm the timer for retransmission */
@@ -939,7 +940,7 @@ void ms_dtls_srtp_start(MSDtlsSrtpContext* context) {
 			bctbx_ssl_config_set_endpoint(context->rtcp_dtls_context->ssl_config, BCTBX_SSL_IS_CLIENT);
 			/* complete ssl setup*/
 			bctbx_ssl_context_setup(context->rtcp_dtls_context->ssl, context->rtcp_dtls_context->ssl_config);
-			bctbx_ssl_set_mtu(context->rtcp_dtls_context->ssl, mtu);		
+			bctbx_ssl_set_mtu(context->rtcp_dtls_context->ssl, context->mtu);		
 			/* and start the handshake */
 			bctbx_ssl_handshake(context->rtcp_dtls_context->ssl);
 			context->rtcp_time_reference = get_timeval_in_millis(); /* arm the timer for retransmission */
@@ -955,7 +956,7 @@ void ms_dtls_srtp_start(MSDtlsSrtpContext* context) {
 			bctbx_ssl_config_set_endpoint(context->rtp_dtls_context->ssl_config, BCTBX_SSL_IS_SERVER);
 			/* complete ssl setup*/
 			bctbx_ssl_context_setup(context->rtp_dtls_context->ssl, context->rtp_dtls_context->ssl_config);
-			bctbx_ssl_set_mtu(context->rtp_dtls_context->ssl, mtu);		
+			bctbx_ssl_set_mtu(context->rtp_dtls_context->ssl, context->mtu);		
 			context->rtp_channel_status = DTLS_STATUS_HANDSHAKE_ONGOING;
 			ms_mutex_unlock(&context->rtp_dtls_context->ssl_context_mutex);
 
@@ -965,7 +966,7 @@ void ms_dtls_srtp_start(MSDtlsSrtpContext* context) {
 				bctbx_ssl_config_set_endpoint(context->rtcp_dtls_context->ssl_config, BCTBX_SSL_IS_SERVER);
 				/* complete ssl setup*/
 				bctbx_ssl_context_setup(context->rtcp_dtls_context->ssl, context->rtcp_dtls_context->ssl_config);
-				bctbx_ssl_set_mtu(context->rtcp_dtls_context->ssl, mtu);		
+				bctbx_ssl_set_mtu(context->rtcp_dtls_context->ssl, context->mtu);		
 				context->rtcp_channel_status = DTLS_STATUS_HANDSHAKE_ONGOING;
 				ms_mutex_unlock(&context->rtcp_dtls_context->ssl_context_mutex);
 			}
