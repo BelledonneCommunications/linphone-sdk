@@ -551,13 +551,17 @@ static void configure_video_source(VideoStream *stream, bool_t skip_bitrate){
 				   cam_vsize.width,cam_vsize.height,vconf.vsize.width,vconf.vsize.height);
 		vconf.vsize=cam_vsize;
 #else
-		MSVideoSize resized=get_with_same_orientation_and_ratio(vconf.vsize,cam_vsize);
-		if (resized.width & 0x1 || resized.height & 0x1){
-			ms_warning("Resizing avoided because downsizing to an odd number of pixels (%ix%i)",resized.width,resized.height);
-			vconf.vsize=cam_vsize;
-		}else{
-			vconf.vsize=resized;
-			ms_warning("Camera video size greater than encoder one. A scaling filter will be used!");
+		if (ms_video_get_scaler_impl() == NULL) {
+			vconf.vsize = cam_vsize;
+		} else {
+			MSVideoSize resized=get_with_same_orientation_and_ratio(vconf.vsize,cam_vsize);
+			if (resized.width & 0x1 || resized.height & 0x1){
+				ms_warning("Resizing avoided because downsizing to an odd number of pixels (%ix%i)",resized.width,resized.height);
+				vconf.vsize=cam_vsize;
+			}else{
+				vconf.vsize=resized;
+				ms_warning("Camera video size greater than encoder one. A scaling filter will be used!");
+			}
 		}
 #endif
 	}
@@ -614,8 +618,10 @@ static void configure_video_source(VideoStream *stream, bool_t skip_bitrate){
 			ms_filter_call_method(stream->pixconv,MS_FILTER_SET_PIX_FMT,&format);
 			ms_filter_call_method(stream->pixconv,MS_FILTER_SET_VIDEO_SIZE,&cam_vsize);
 		}
-		stream->sizeconv=ms_factory_create_filter(stream->ms.factory, MS_SIZE_CONV_ID);
-		ms_filter_call_method(stream->sizeconv,MS_FILTER_SET_VIDEO_SIZE,&vconf.vsize);
+		if (ms_video_get_scaler_impl() != NULL) {
+			stream->sizeconv=ms_factory_create_filter(stream->ms.factory, MS_SIZE_CONV_ID);
+			ms_filter_call_method(stream->sizeconv,MS_FILTER_SET_VIDEO_SIZE,&vconf.vsize);
+		}
 	}
 	if (stream->ms.rc){
 		ms_bitrate_controller_destroy(stream->ms.rc);
@@ -1288,11 +1294,19 @@ static MSFilter* _video_stream_change_camera(VideoStream *stream, MSWebCam *cam,
 		} else {
 			ms_filter_unlink (stream->source, 0, stream->pixconv, 0);
 			ms_filter_unlink (stream->pixconv, 0, stream->tee, 0);
-			ms_filter_unlink (stream->tee, 0, stream->sizeconv, 0);
-			if (stream->source_performs_encoding == FALSE) {
-				ms_filter_unlink(stream->sizeconv, 0, stream->ms.encoder, 0);
+			if (stream->sizeconv) {
+				ms_filter_unlink (stream->tee, 0, stream->sizeconv, 0);
+				if (stream->source_performs_encoding == FALSE) {
+					ms_filter_unlink(stream->sizeconv, 0, stream->ms.encoder, 0);
+				} else {
+					ms_filter_unlink(stream->sizeconv, 0, stream->ms.rtpsend, 0);
+				}
 			} else {
-				ms_filter_unlink(stream->sizeconv, 0, stream->ms.rtpsend, 0);
+				if (stream->source_performs_encoding == FALSE) {
+					ms_filter_unlink(stream->tee, 0, stream->ms.encoder, 0);
+				} else {
+					ms_filter_unlink(stream->tee, 0, stream->ms.rtpsend, 0);
+				}
 			}
 		}
 		/*destroy the filters */
@@ -1306,7 +1320,7 @@ static MSFilter* _video_stream_change_camera(VideoStream *stream, MSWebCam *cam,
 
 		if (!encoder_has_builtin_converter && (stream->source_performs_encoding == FALSE)) {
 			ms_filter_destroy(stream->pixconv);
-			ms_filter_destroy(stream->sizeconv);
+			if (stream->sizeconv) ms_filter_destroy(stream->sizeconv);
 		}
 
 		/*re create new ones and configure them*/
@@ -1355,11 +1369,19 @@ static MSFilter* _video_stream_change_camera(VideoStream *stream, MSWebCam *cam,
 		else {
 			ms_filter_link (stream->source, 0, stream->pixconv, 0);
 			ms_filter_link (stream->pixconv, 0, stream->tee, 0);
-			ms_filter_link (stream->tee, 0, stream->sizeconv, 0);
-			if (stream->source_performs_encoding == FALSE) {
-				ms_filter_link(stream->sizeconv, 0, stream->ms.encoder, 0);
+			if (stream->sizeconv) {
+				ms_filter_link (stream->tee, 0, stream->sizeconv, 0);
+				if (stream->source_performs_encoding == FALSE) {
+					ms_filter_link(stream->sizeconv, 0, stream->ms.encoder, 0);
+				} else {
+					ms_filter_link(stream->sizeconv, 0, stream->ms.rtpsend, 0);
+				}
 			} else {
-				ms_filter_link(stream->sizeconv, 0, stream->ms.rtpsend, 0);
+				if (stream->source_performs_encoding == FALSE) {
+					ms_filter_link(stream->tee, 0, stream->ms.encoder, 0);
+				} else {
+					ms_filter_link(stream->tee, 0, stream->ms.rtpsend, 0);
+				}
 			}
 		}
 

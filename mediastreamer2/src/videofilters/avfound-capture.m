@@ -159,17 +159,15 @@ static void capture_queue_cleanup(void* p) {
 		[output setSampleBufferDelegate:self queue:queue];
 		dispatch_release(queue);
 		
-		
+		MSVideoSize vsize = [self getSize];
 		// At the time of macosx 10.11, it's mandatory to keep old settings, otherwise pixel buffer size is no preserved
 		NSDictionary *old_dic = [output videoSettings];
 		NSDictionary *dic = [NSDictionary dictionaryWithObjectsAndKeys:
-							 [NSNumber numberWithInteger:[[old_dic objectForKey:(id)kCVPixelBufferWidthKey] integerValue]], (id)kCVPixelBufferWidthKey,
-							 [NSNumber numberWithInteger:[[old_dic objectForKey:(id)kCVPixelBufferHeightKey] integerValue]],(id)kCVPixelBufferHeightKey,
+							 [NSNumber numberWithInteger:vsize.width], (id)kCVPixelBufferWidthKey,
+							 [NSNumber numberWithInteger:vsize.height], (id)kCVPixelBufferHeightKey,
 							 [NSNumber numberWithUnsignedInteger:kCVPixelFormatType_420YpCbCr8Planar], (id)kCVPixelBufferPixelFormatTypeKey,
 							 nil];
 		[output setVideoSettings:dic];
-		
-		
 		
 		[session startRunning];
 		ms_message("AVCapture: Engine started");
@@ -356,11 +354,21 @@ static void v4m_process(MSFilter * obj){
 		}
 
 		if (om != NULL) {
-			timestamp=obj->ticker->time*90;/* rtp uses a 90000 Hz clockrate for video*/
-			mblk_set_timestamp_info(om,timestamp);
-			mblk_set_marker_info(om,TRUE);	
-			ms_queue_put(obj->outputs[0],om);
-			ms_average_fps_update(&s->afps, obj->ticker->time);
+			YuvBuf frame_size;
+			MSVideoSize desired_size = [s->webcam getSize];
+
+			ms_yuv_buf_init_from_mblk(&frame_size, om);
+
+			if (frame_size.w * frame_size.h == desired_size.width * desired_size.height) { 
+				timestamp=obj->ticker->time*90;/* rtp uses a 90000 Hz clockrate for video*/
+				mblk_set_timestamp_info(om,timestamp);
+				mblk_set_marker_info(om,TRUE);
+				ms_queue_put(obj->outputs[0],om);
+				ms_average_fps_update(&s->afps, obj->ticker->time);
+			} else {
+				ms_warning("AVCapture frame (%dx%d) does not have desired size (%dx%d), discarding...", frame_size.w, frame_size.h, desired_size.width, desired_size.height);
+				freemsg(om);
+			}
 		}
 	}
 
