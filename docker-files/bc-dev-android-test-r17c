@@ -1,0 +1,7 @@
+FROM gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
+
+MAINTAINER Peio Rigaux <peio.rigaux@belledonne-communications.com>
+
+#installing usb tools (lsusb) and prompting authorization alert on device once and for all
+RUN sudo apt-get install usbutils -y
+RUN wget -O ~/spoon.jar "https://search.maven.org/remote_content?g=com.squareup.spoon&a=spoon-runner&v=LATEST&c=jar-with-dependencies"
