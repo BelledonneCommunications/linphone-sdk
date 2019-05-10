@@ -251,7 +251,7 @@ static void https_post_long_body(void){
 	http_counters_t counters={0};
 	belle_sip_user_body_handler_t *bh;
 	char *content_type;
-	const char *url="https://www.linphone.org:444/upload.php";
+	const char *url="https://www.linphone.org:444/lft.php";
 	if (url_supported(url)==-1) {
 		return;
 	}

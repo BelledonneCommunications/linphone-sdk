@@ -79,6 +79,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 	set_target_properties(belle_sip_tester_runtime PROPERTIES LIBRARY_OUTPUT_NAME "BelledonneCommunications.BelleSip.Tester")
 	set_target_properties(belle_sip_tester_runtime PROPERTIES LINK_FLAGS "/WINMDFILE:BelledonneCommunications.BelleSip.Tester.winmd")
 	set_target_properties(belle_sip_tester_runtime PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON)
+	set_target_properties(belle_sip_tester_runtime PROPERTIES C_STANDARD 99)
+
 
 	install(TARGETS belle_sip_tester_runtime
 		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
@@ -102,6 +104,7 @@ else()
 	add_executable(belle_sip_tester ${USE_BUNDLE} ${SOURCE_FILES_C} ${SOURCE_FILES_OBJC})
 	set_target_properties(belle_sip_tester PROPERTIES LINKER_LANGUAGE CXX)
 	set_target_properties(belle_sip_tester PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON)
+	set_target_properties(belle_sip_tester PROPERTIES C_STANDARD 99)
 
 	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 		set_target_properties(belle_sip_tester PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")

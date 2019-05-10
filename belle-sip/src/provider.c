@@ -44,6 +44,7 @@ GET_SET_STRING(authorization_context,opaque)
 GET_SET_STRING(authorization_context,user_id)
 GET_SET_STRING(authorization_context,algorithm)
 GET_SET_INT(authorization_context,nonce_count,int)
+
 static authorization_context_t* belle_sip_authorization_create(belle_sip_header_call_id_t* call_id) {
 	authorization_context_t* result = malloc(sizeof(authorization_context_t));
 	memset(result,0,sizeof(authorization_context_t));
@@ -51,6 +52,7 @@ static authorization_context_t* belle_sip_authorization_create(belle_sip_header_
 	belle_sip_object_ref(result->callid);
 	return result;
 }
+
 void belle_sip_authorization_destroy(authorization_context_t* object) {
 	DESTROY_STRING(object,scheme);
 	DESTROY_STRING(object,realm);
@@ -61,6 +63,10 @@ void belle_sip_authorization_destroy(authorization_context_t* object) {
 	DESTROY_STRING(object,algorithm);
 	belle_sip_object_unref(object->callid);
 	belle_sip_free(object);
+}
+
+const char *belle_sip_authorization_get_algorithm(const belle_sip_authorization_t* object) {
+	return authorization_context_get_algorithm(object);
 }
 
 static void finalize_transaction(belle_sip_transaction_t *tr){

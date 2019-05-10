@@ -116,7 +116,7 @@ static BELLESIP_INLINE int get_socket_error(void){
 	return WSAGetLastError();
 }
 
-const char *belle_sip_get_socket_error_string();
+BELLESIP_EXPORT const char *belle_sip_get_socket_error_string();
 const char *belle_sip_get_socket_error_string_from_code(int code);
 
 /*

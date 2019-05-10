@@ -1274,6 +1274,9 @@ static void _send_message(belle_sip_channel_t *obj){
 			obj->ewouldblock_offset+=sendret;
 			if (obj->ewouldblock_offset==obj->ewouldblock_size){
 				free_ewouldblock_buffer(obj);
+				if (obj->out_state==OUTPUT_STREAM_SENDING_HEADERS)
+					goto done; //to avoid message to be sent twice
+				/*else continue body sending*/
 			}
 			/* continue to expedite the ewouldblock error until we it is completed or get a new ewouldblock*/
 		}else if (belle_sip_error_code_is_would_block(-sendret)) {
@@ -1413,7 +1416,7 @@ static void channel_process_queue(belle_sip_channel_t *obj){
 		_send_message(obj);
 	}
 
-	while (obj->state==BELLE_SIP_CHANNEL_READY && obj->out_state==OUTPUT_STREAM_IDLE && ((msg = channel_pop_outgoing(obj)) != NULL)) {
+	while (obj->state == BELLE_SIP_CHANNEL_READY && obj->out_state == OUTPUT_STREAM_IDLE && (msg = channel_pop_outgoing(obj)) != NULL) {
 		send_message(obj, msg);
 		belle_sip_object_unref(msg);
 	}

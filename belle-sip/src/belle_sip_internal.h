@@ -600,7 +600,7 @@ BELLESIP_EXPORT belle_sip_server_transaction_t * belle_sip_provider_find_matchin
 void belle_sip_provider_remove_server_transaction(belle_sip_provider_t *prov, belle_sip_server_transaction_t *t);
 void belle_sip_provider_set_transaction_terminated(belle_sip_provider_t *p, belle_sip_transaction_t *t);
 void *belle_sip_transaction_get_application_data_internal(const belle_sip_transaction_t *t);
-belle_sip_channel_t * belle_sip_provider_get_channel(belle_sip_provider_t *p, const belle_sip_hop_t *hop);
+BELLESIP_EXPORT belle_sip_channel_t * belle_sip_provider_get_channel(belle_sip_provider_t *p, const belle_sip_hop_t *hop);
 void belle_sip_provider_add_dialog(belle_sip_provider_t *prov, belle_sip_dialog_t *dialog);
 void belle_sip_provider_remove_dialog(belle_sip_provider_t *prov, belle_sip_dialog_t *dialog);
 void belle_sip_provider_release_channel(belle_sip_provider_t *p, belle_sip_channel_t *chan);
@@ -1106,7 +1106,10 @@ void belle_sip_multipart_body_handler_progress_cb(belle_sip_body_handler_t *obj,
 belle_sip_list_t *belle_sip_parse_directory(const char *path, const char *file_type);
 
 typedef struct authorization_context authorization_context_t;
-BELLESIP_EXPORT void belle_sip_authorization_destroy(authorization_context_t* object);
+typedef authorization_context_t belle_sip_authorization_t;
+	
+BELLESIP_EXPORT void belle_sip_authorization_destroy(belle_sip_authorization_t* object);
+BELLESIP_EXPORT const char *belle_sip_authorization_get_algorithm(const belle_sip_authorization_t* object);
 
 /**
  * Generate a random unsigned int
