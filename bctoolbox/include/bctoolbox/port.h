@@ -373,16 +373,32 @@ BCTBX_PUBLIC char *bctbx_concat(const char *str, ...);
 BCTBX_PUBLIC char *bctbx_replace(char *str, char c, char n);
 
 /**
- * Portable version of the dirname function from libgen.h
- * @param[in] path The full path for which we want to find the dirname
- * @return NULL if no dirname is found, otherwise a copy of the dirname of path that needs to be freed with bctbx_free().
+ * @brief Return the directory part of a file path.
+ *
+ * Find the last delimiting character ('/' or '\') and return a
+ * copy of the substring before. If no delimiter has been found,
+ * then "." string is returned.
+ *
+ * @param[in] path A string containing a file path. The behaviour
+ * is undefined if the string contains a path to a directoy. MUST be non-NULL.
+ * @return An allocated string containing the directory name.
+ *
+ * @warning This funciton isn't equivalent to libgen.h dirname().
  */
 BCTBX_PUBLIC char *bctbx_dirname(const char *path);
 
 /**
- * Portable version of the basename function from libgen.h
- * @param[in] path The full path for which we want to find the basename
- * @return NULL if no basename is found, otherwise a copy of the basename of path that needs to be freed with bctbx_free().
+ * @brief Return the name of a file from its path.
+ *
+ * Find the last delimiting character ('/' or '\') and return a
+ * copy of the substring after. If no delimiter has been found,
+ * then a copy of 'path' is returned.
+ *
+ * @param[in] path A string containing a file path. The behaviour
+ * is undefined if the string contains a path to a directoy. MUST be non-NULL.
+ * @return An allocated string containing the file name.
+ *
+ * @warning This funciton isn't equivalent to libgen.h basename().
  */
 BCTBX_PUBLIC char *bctbx_basename(const char *path);
 

@@ -81,7 +81,6 @@ static char *bc_current_suite_name = NULL;
 static char *bc_current_test_name = NULL;
 
 static char *log_file_name = NULL;
-static FILE *log_file = NULL;
 
 static int bc_printf_verbosity_info;
 static int bc_printf_verbosity_error;
@@ -1041,25 +1040,20 @@ int bc_tester_silent_handler(const char *arg) {
 
 //Default function for the `--log-file`cli option
 int bc_tester_logfile_handler(const char *arg) {
-	bctbx_log_handler_t *filehandler;
-	char* dir;
-	char* base;
-
-	if (log_file) {
-		fclose(log_file);
+	int res = 0;
+	char *dir = bctbx_dirname(arg);
+	char *base = bctbx_basename(arg);
+	bctbx_log_handler_t *filehandler = bctbx_create_file_log_handler(0, dir, base);
+	if (filehandler == NULL) {
+		res = -1;
+		goto end;
 	}
-	log_file = fopen(arg, "w");
-	if (!log_file) {
-		bc_tester_printf(bc_printf_verbosity_error, "Cannot open file [%s] for writing logs because [%s]", arg, strerror(errno));
-		return -1;
-	}
-	dir = bctbx_dirname(arg);
-	base = bctbx_basename(arg);
-	filehandler = bctbx_create_file_log_handler(0, dir, base, log_file);
 	bctbx_add_log_handler(filehandler);
-	if (dir) bctbx_free(dir);
-	if (base) bctbx_free(base);
-	return 0;
+
+end:
+	bctbx_free(dir);
+	bctbx_free(base);
+	return res;
 }
 
 void bc_tester_init(void (*ftester_printf)(int level, const char *format, va_list args), int iverbosity_info, int iverbosity_error, const char* aexpected_res) {

@@ -21,7 +21,6 @@
 #include "bctoolbox/logging.h"
 #include "bctoolbox_tester.h"
 
-static FILE * log_file = NULL;
 static const char *log_domain = "bctoolbox-tester";
 
 static void log_handler(int lev, const char *fmt, va_list args) {
@@ -36,9 +35,8 @@ static void log_handler(int lev, const char *fmt, va_list args) {
 	fprintf(lev == BCTBX_LOG_ERROR ? stderr : stdout, "\n");
 	va_end(cap);
 #endif
-	if (log_file){
-		bctbx_logv(log_domain,lev, fmt, args);
-	}
+
+	bctbx_logv(log_domain,lev, fmt, args);
 }
 
 
@@ -60,25 +58,21 @@ void bctoolbox_tester_before_each() {
 }
 
 int bctoolbox_tester_set_log_file(const char *filename) {
-	bctbx_log_handler_t* filehandler;
-	char* dir;
-	char* base;
-	if (log_file) {
-		fclose(log_file);
-	}
-	log_file = fopen(filename, "a");
-	if (!log_file) {
-		bctbx_error("Cannot open file [%s] for writing logs because [%s]", filename, strerror(errno));
-		return -1;
-	}
-	dir = bctbx_dirname(filename);
-	base = bctbx_basename(filename);
+	int res = 0;
+	char* dir = bctbx_dirname(filename);
+	char* base = bctbx_basename(filename);
 	bctbx_message("Redirecting traces to file [%s]", filename);
-	filehandler = bctbx_create_file_log_handler(0, dir, base, log_file);
+	bctbx_log_handler_t *filehandler = bctbx_create_file_log_handler(0, dir, base);
+	if (filehandler == NULL) {
+		res = -1;
+		goto end;
+	}
 	bctbx_add_log_handler(filehandler);
-	if (dir) bctbx_free(dir);
-	if (base) bctbx_free(base);
-	return 0;
+
+end:
+	bctbx_free(dir);
+	bctbx_free(base);
+	return res;
 }
 
 

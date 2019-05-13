@@ -114,6 +114,7 @@ typedef struct _bctbx_file_log_handler_t {
 	uint64_t max_size;
 	uint64_t size;
 	FILE* file;
+	bool_t reopen_requested;
 } bctbx_file_log_handler_t;
 
 
@@ -194,16 +195,19 @@ void bctbx_log_handler_set_domain(bctbx_log_handler_t * log_handler, const char 
 	}
 	
 }
-bctbx_log_handler_t* bctbx_create_file_log_handler(uint64_t max_size, const char* path, const char* name, FILE* f) {
+bctbx_log_handler_t* bctbx_create_file_log_handler(uint64_t max_size, const char* path, const char* name) {
 	bctbx_log_handler_t *handler = NULL;
 	bctbx_file_log_handler_t *filehandler = NULL;
 	char *full_name = bctbx_strdup_printf("%s/%s", path, name);
-	int res;
 	struct stat buf = {0};
 
-	res = stat(full_name, &buf);
-	if (!f && res != 0) {
-		fprintf(stderr, "Error while creating file log handler. \n");
+	FILE *f = fopen(full_name, "a");
+	if (f == NULL) {
+		fprintf(stderr, "error while opening '%s': %s\n", full_name, strerror(errno));
+		goto end;
+	}
+	if (stat(full_name, &buf) != 0) {
+		fprintf(stderr, "error while gathering info about '%s': %s", full_name, strerror(errno));
 		goto end;
 	}
 
@@ -222,6 +226,14 @@ bctbx_log_handler_t* bctbx_create_file_log_handler(uint64_t max_size, const char
 end:
 	bctbx_free(full_name);
 	return handler;
+}
+
+void bctbx_file_log_handler_reopen(bctbx_log_handler_t *file_log_handler) {
+	bctbx_file_log_handler_t *filehandler = (bctbx_file_log_handler_t *)file_log_handler->user_info;
+	bctbx_logger_t *logger = bctbx_get_logger();
+	bctbx_mutex_lock(&logger->log_mutex);
+	filehandler->reopen_requested = TRUE;
+	bctbx_mutex_unlock(&logger->log_mutex);
 }
 
 /**
@@ -723,11 +735,10 @@ void bctbx_logv_file(void* user_info, const char *domain, BctbxLogLevel lev, con
 	time_t tt;
 	int ret = -1;
 	bctbx_file_log_handler_t *filehandler = (bctbx_file_log_handler_t *) user_info;
-	FILE *f;
 	bctbx_logger_t *logger = bctbx_get_logger();
 	
 	bctbx_mutex_lock(&logger->log_mutex);
-	f = filehandler ? filehandler->file : stdout;
+	FILE *f = filehandler ? filehandler->file : stdout;
 	bctbx_gettimeofday(&tp,NULL);
 	tt = (time_t)tp.tv_sec;
 
@@ -779,11 +790,20 @@ void bctbx_logv_file(void* user_info, const char *domain, BctbxLogLevel lev, con
 			,1900+lt->tm_year,1+lt->tm_mon,lt->tm_mday,lt->tm_hour,lt->tm_min,lt->tm_sec
 		,(int)(tp.tv_usec/1000), (domain?domain:"bctoolbox"), lname, msg);
 	fflush(f);
-	if (filehandler && filehandler->max_size > 0 && ret > 0) {
-		filehandler->size += ret;
-		if (filehandler->size > filehandler->max_size) {
+
+	/* reopen the log file when either the size limit has been exceeded, or reopen has been required
+	   by the user. Reopening a log file that has reached the size limit automatically trigger log rotation
+	   while opening. */
+	if (filehandler) {
+		bool_t reopen_requested = filehandler->reopen_requested;
+		if (filehandler->max_size > 0 && ret > 0) {
+			filehandler->size += ret;
+			reopen_requested = reopen_requested || filehandler->size > filehandler->max_size;
+		}
+		if (reopen_requested) {
 			_close_log_collection_file(filehandler);
 			_open_log_collection_file(filehandler);
+			filehandler->reopen_requested = FALSE;
 		}
 	}
 

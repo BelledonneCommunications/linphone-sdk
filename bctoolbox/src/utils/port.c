@@ -108,33 +108,15 @@ char * bctbx_strdup(const char *tmp){
 }
 
 char * bctbx_dirname(const char *path) {
-	char *ptr;
-	char *dname = bctbx_strdup(path);
-	bool_t found = FALSE;
-
-	ptr = strrchr(path, '/');
-	if (ptr != NULL) {
-		dname[ptr - path] = '\0';
-		found = TRUE;
-	} else {
-		ptr = strrchr(path, '\\');
-		if (ptr != NULL) {
-			dname[ptr - path] = '\0';
-			found = TRUE;
-		}
-	}
-
-	if (found == FALSE) {
-		bctbx_free(dname);
-		return NULL;
-	}
-	return dname;
+	char *ptr = strrchr(path, '/');
+	if (ptr == NULL) ptr = strrchr(path, '\\');
+	return ptr ? bctbx_strndup(path, ptr-path) : bctbx_strdup(".");
 }
 
 char * bctbx_basename(const char *path) {
 	char *ptr = strrchr(path, '/');
 	if (ptr == NULL) ptr = strrchr(path, '\\');
-	if (ptr == NULL) return NULL;
+	if (ptr == NULL) return bctbx_strdup(path);
 	return bctbx_strdup(ptr + 1);
 }
 

@@ -98,7 +98,15 @@ BCTBX_PUBLIC bctbx_log_handler_t* bctbx_create_log_handler(BctbxLogHandlerFunc f
  @param[in] FILE* f : the file where to write the logs
  @return a new bctbx_log_handler_t
 */
-BCTBX_PUBLIC bctbx_log_handler_t* bctbx_create_file_log_handler(uint64_t max_size, const char* path, const char* name, FILE* f);
+BCTBX_PUBLIC bctbx_log_handler_t* bctbx_create_file_log_handler(uint64_t max_size, const char* path, const char* name);
+
+/**
+ * @brief Request reopening of the log file.
+ * @param[in] file_log_handler The log handler whose file will be reopened.
+ * @note This function is thread-safe and reopening is done asynchronously.
+ */
+BCTBX_PUBLIC void bctbx_file_log_handler_reopen(bctbx_log_handler_t *file_log_handler);
+
 /* set domain the handler is limited to. NULL for ALL*/
 BCTBX_PUBLIC void bctbx_log_handler_set_domain(bctbx_log_handler_t * log_handler,const char *domain);
 BCTBX_PUBLIC void bctbx_log_handler_set_user_data(bctbx_log_handler_t*, void* user_data);
