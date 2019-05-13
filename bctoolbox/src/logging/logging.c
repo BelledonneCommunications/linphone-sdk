@@ -714,7 +714,7 @@ static void _close_log_collection_file(bctbx_file_log_handler_t *filehandler) {
 
 void bctbx_logv_file(void* user_info, const char *domain, BctbxLogLevel lev, const char *fmt, va_list args){
 	const char *lname="undef";
-	char *msg;
+	char *msg = NULL;
 	struct timeval tp;
 	struct tm *lt;
 #ifndef _WIN32
@@ -727,9 +727,7 @@ void bctbx_logv_file(void* user_info, const char *domain, BctbxLogLevel lev, con
 	bctbx_logger_t *logger = bctbx_get_logger();
 	
 	bctbx_mutex_lock(&logger->log_mutex);
-	if (filehandler != NULL){
-		f = filehandler->file;
-	}else f = stdout;
+	f = filehandler ? filehandler->file : stdout;
 	bctbx_gettimeofday(&tp,NULL);
 	tt = (time_t)tp.tv_sec;
 
@@ -739,9 +737,8 @@ void bctbx_logv_file(void* user_info, const char *domain, BctbxLogLevel lev, con
 	lt = localtime_r(&tt,&tmbuf);
 #endif
 
-	if(!f) {
-		return;
-	}
+	if(!f) goto end;
+
 	switch(lev){
 		case BCTBX_LOG_DEBUG:
 			lname = "debug";
@@ -789,9 +786,10 @@ void bctbx_logv_file(void* user_info, const char *domain, BctbxLogLevel lev, con
 			_open_log_collection_file(filehandler);
 		}
 	}
-	bctbx_mutex_unlock(&logger->log_mutex);
 
-	bctbx_free(msg);
+end:
+	bctbx_mutex_unlock(&logger->log_mutex);
+	if (msg) bctbx_free(msg);
 }
 
 void bctbx_logv_file_destroy(bctbx_log_handler_t* handler) {
