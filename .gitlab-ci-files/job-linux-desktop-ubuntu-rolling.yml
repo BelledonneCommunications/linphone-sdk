@@ -90,28 +90,28 @@ test-bctoolbox-ubuntu:
   extends: .test-bctoolbox
   dependencies:
     - job-ubuntu-rolling-ninja-clang
-  tags: [ "docker-ubuntu-rolling" ]
+  tags: [ "docker-test-ubuntu-rolling" ]
   
 test-bellesip-ubuntu:
   extends: .test-bellesip
   dependencies:
     - job-ubuntu-rolling-ninja-clang
-  tags: [ "docker-ubuntu-rolling" ]
+  tags: [ "docker-test-ubuntu-rolling" ]
   
 test-belr-ubuntu:
   extends: .test-belr
   dependencies:
     - job-ubuntu-rolling-ninja-clang
-  tags: [ "docker-ubuntu-rolling" ]
+  tags: [ "docker-test-ubuntu-rolling" ]
   
 test-belcard-ubuntu:
   extends: .test-belcard
   dependencies:
     - job-ubuntu-rolling-ninja-clang
-  tags: [ "docker-ubuntu-rolling" ]
+  tags: [ "docker-test-ubuntu-rolling" ]
   
 test-bzrtp-ubuntu:
   extends: .test-bzrtp
   dependencies:
     - job-ubuntu-rolling-ninja-clang
-  tags: [ "docker-ubuntu-rolling" ]
+  tags: [ "docker-test-ubuntu-rolling" ]
