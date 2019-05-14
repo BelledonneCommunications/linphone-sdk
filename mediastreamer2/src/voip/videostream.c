@@ -519,11 +519,13 @@ static void configure_video_source(VideoStream *stream, bool_t skip_bitrate){
 		}
 	}
 
-	vconf.vsize=stream->sent_vsize;// get_compatible_size(vconf.vsize,stream->sent_vsize);
-	if (stream->preview_vsize.width!=0){
-		preview_vsize=stream->preview_vsize;
-	}else{
-		preview_vsize=vconf.vsize;
+	if (!ms_filter_implements_interface(stream->source, MSFilterVideoEncoderInterface)) {
+		vconf.vsize=stream->sent_vsize;// get_compatible_size(vconf.vsize,stream->sent_vsize);
+		if (stream->preview_vsize.width!=0){
+			preview_vsize=stream->preview_vsize;
+		} else {
+			preview_vsize=vconf.vsize;
+		}
 	}
 
 	if (is_player){
@@ -535,10 +537,16 @@ static void configure_video_source(VideoStream *stream, bool_t skip_bitrate){
 			pf.fmt=ms_factory_get_video_format(stream->ms.factory,"VP8",vsize,0,NULL);
 		}
 		cam_vsize=pf.fmt->vsize;
-	}else{
-		ms_filter_call_method(stream->source,MS_FILTER_SET_VIDEO_SIZE,&preview_vsize);
-		/*the camera may not support the target size and suggest a one close to the target */
-		ms_filter_call_method(stream->source,MS_FILTER_GET_VIDEO_SIZE,&cam_vsize);
+	} else {
+		if (ms_filter_implements_interface(stream->source, MSFilterVideoEncoderInterface)) {
+			//MS_FILTER_GET_VIDEO_SIZE and MS_FILTER_SET_VIDEO_SIZE are deprecated for MSFilterVideoEncoderInterface types
+			//Use the size returned by the above call to MS_VIDEO_ENCODER_GET_CONFIGURATION directly
+			cam_vsize = vconf.vsize;
+		} else {
+			ms_filter_call_method(stream->source,MS_FILTER_SET_VIDEO_SIZE,&preview_vsize);
+			/*the camera may not support the target size and suggest a one close to the target */
+			ms_filter_call_method(stream->source,MS_FILTER_GET_VIDEO_SIZE,&cam_vsize);
+		}
 	}
 
 	if (cam_vsize.width*cam_vsize.height<=vconf.vsize.width*vconf.vsize.height){
@@ -1144,8 +1152,10 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 			/*configure the display window */
 			if(stream->output != NULL) {
 				int autofit = 1;
+				//Use default size. If output supports it, it should resize automatically after first received frame
 				disp_size.width=MS_VIDEO_SIZE_CIF_W;
 				disp_size.height=MS_VIDEO_SIZE_CIF_H;
+
 				ms_filter_call_method(stream->output,MS_FILTER_SET_VIDEO_SIZE,&disp_size);
 
 				/* if pixconv is used, force yuv420 */
@@ -1188,9 +1198,13 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 		}
 		if (stream->output!=NULL)
 			ms_connection_helper_link (&ch,stream->output,0,-1);
-		/* the video source must be send for preview , if it exists*/
-		if (stream->tee!=NULL && stream->output!=NULL && stream->output2==NULL)
-			ms_filter_link(stream->tee,1,stream->output,1);
+		/* the video source must be send for preview , if it exists. */
+		if (stream->tee!=NULL && stream->output!=NULL && stream->output2==NULL) {
+			//Don't add the preview output if the source is encoded. We could also add a decoding step here
+			if (stream->source_performs_encoding == FALSE) {
+				ms_filter_link(stream->tee,1,stream->output,1);
+			}
+		}
 	}
 	if (stream->dir == MediaStreamSendOnly) {
 		stream->ms.rtprecv = ms_factory_create_filter(stream->ms.factory, MS_RTP_RECV_ID);
@@ -1520,8 +1534,11 @@ static MSFilter* _video_stream_stop(VideoStream * stream, bool_t keep_source)
 				}
 				if(stream->output)
 					ms_connection_helper_unlink (&h,stream->output,0,-1);
-				if (stream->tee && stream->output && stream->output2==NULL)
-					ms_filter_unlink(stream->tee,1,stream->output,1);
+				if (stream->tee && stream->output && stream->output2==NULL) {
+					if (stream->source_performs_encoding == FALSE) {
+						ms_filter_unlink(stream->tee,1,stream->output,1);
+					}
+				}
 			}
 		}
 	}
@@ -1676,20 +1693,28 @@ static void configure_video_preview_source(VideoPreview *stream) {
 		ms_filter_call_method(stream->source, MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION, &stream->device_orientation);
 	}
 
-	ms_filter_call_method(stream->source, MS_FILTER_SET_VIDEO_SIZE, &vsize);
-	if (ms_filter_get_id(stream->source) != MS_STATIC_IMAGE_ID) {
-		ms_filter_call_method(stream->source, MS_FILTER_SET_FPS, &fps);
-	}
-	ms_filter_call_method(stream->source, MS_FILTER_GET_VIDEO_SIZE, &vsize);
 	ms_filter_call_method(stream->source, MS_FILTER_GET_PIX_FMT, &format);
+
+	if (!ms_filter_implements_interface(stream->source, MSFilterVideoEncoderInterface)) {
+		ms_filter_call_method(stream->source, MS_FILTER_SET_VIDEO_SIZE, &vsize);
+		if (ms_filter_get_id(stream->source) != MS_STATIC_IMAGE_ID) {
+			ms_filter_call_method(stream->source, MS_FILTER_SET_FPS, &fps);
+		}
+		ms_filter_call_method(stream->source, MS_FILTER_GET_VIDEO_SIZE, &vsize);
+	} else {
+		MSVideoConfiguration vconf;
+		ms_filter_call_method(stream->source, MS_VIDEO_ENCODER_GET_CONFIGURATION, &vconf);
+		vconf.vsize = vsize;
+		vconf.fps = fps;
+		ms_filter_call_method(stream->source, MS_VIDEO_ENCODER_SET_CONFIGURATION, &vconf);
+	}
 
 	if (format == MS_MJPEG) {
 		stream->pixconv = ms_factory_create_filter(stream->ms.factory, MS_MJPEG_DEC_ID);
 		if (stream->pixconv == NULL) {
 			ms_error("Could not create mjpeg decoder, check your build options.");
 		}
-	}
-	else {
+	} else if (!ms_filter_implements_interface(stream->source, MSFilterVideoEncoderInterface)) {
 		stream->pixconv = ms_factory_create_filter(stream->ms.factory, MS_PIX_CONV_ID);
 		ms_filter_call_method(stream->pixconv, MS_FILTER_SET_PIX_FMT, &format);
 		ms_filter_call_method(stream->pixconv, MS_FILTER_SET_VIDEO_SIZE, &vsize);
@@ -1733,6 +1758,17 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device) {
 
 	ms_connection_helper_start(&ch);
 	ms_connection_helper_link(&ch, stream->source, -1, 0);
+
+	if (ms_filter_implements_interface(stream->source, MSFilterVideoEncoderInterface)) {
+		/* Need to decode first */
+		stream->ms.decoder = ms_factory_create_decoder(stream->ms.factory, stream->source->desc->enc_fmt);
+		if (stream->ms.decoder == NULL) {
+			/* big problem: we don't have a registered decoderfor this payload...*/
+			ms_error("video_preview_start: No decoder available for payload %s.", stream->source->desc->enc_fmt);
+			return;
+		}
+		ms_connection_helper_link(&ch,stream->ms.decoder,0,0);
+	}
 
 	if (stream->output2) {
 		if (stream->preview_window_id != 0) {
@@ -1796,6 +1832,9 @@ static MSFilter* _video_preview_stop( VideoPreview* stream, bool_t keep_source) 
 
 	ms_connection_helper_start(&ch);
 	ms_connection_helper_unlink(&ch, stream->source, -1, 0);
+	if (stream->ms.decoder) {
+		ms_connection_helper_unlink(&ch, stream->ms.decoder, 0, 0);
+	}
 	if (stream->pixconv) {
 		ms_connection_helper_unlink(&ch, stream->pixconv, 0, 0);
 	}

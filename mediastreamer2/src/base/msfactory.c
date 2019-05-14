@@ -273,16 +273,28 @@ void ms_factory_register_filter(MSFactory* factory, MSFilterDesc* desc ) {
 	factory->desc_list=bctbx_list_prepend(factory->desc_list,desc);
 }
 
-bool_t ms_factory_codec_supported(MSFactory* factory, const char *mime){
+bool_t ms_factory_codec_supported(MSFactory* factory, const char *mime) {
+	return ms_factory_has_encoder(factory, mime) &&	ms_factory_has_decoder(factory, mime);
+}
+
+bool_t ms_factory_has_encoder(MSFactory* factory, const char *mime) {
 	MSFilterDesc *enc = ms_factory_get_encoding_capturer(factory, mime);
-	MSFilterDesc *dec = ms_factory_get_decoding_renderer(factory, mime);
 
 	if (enc == NULL) enc = ms_factory_get_encoder(factory, mime);
-	if (dec == NULL) dec = ms_factory_get_decoder(factory, mime);
 
-	if(enc!=NULL && dec!=NULL) return TRUE;
+	if(enc!=NULL) return TRUE;
 
 	if(enc==NULL) ms_message("Could not find encoder for %s", mime);
+	return FALSE;
+}
+
+bool_t ms_factory_has_decoder(MSFactory* factory, const char *mime) {
+	MSFilterDesc *dec = ms_factory_get_decoding_renderer(factory, mime);
+
+	if (dec == NULL) dec = ms_factory_get_decoder(factory, mime);
+
+	if(dec!=NULL) return TRUE;
+
 	if(dec==NULL) ms_message("Could not find decoder for %s", mime);
 	return FALSE;
 }

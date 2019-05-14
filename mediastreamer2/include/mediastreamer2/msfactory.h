@@ -207,6 +207,25 @@ MS2_PUBLIC MSFilter * ms_factory_create_decoder(MSFactory *factory, const char *
 MS2_PUBLIC bool_t ms_factory_codec_supported(MSFactory *factory, const char *mime);
 
 /**
+ * Check if an encoder filter exists for a codec name.
+ *
+ * @param mime    A string indicating the codec.
+ *
+ * @return TRUE if successfull, FALSE otherwise.
+ */
+MS2_PUBLIC bool_t ms_factory_has_encoder(MSFactory *factory, const char *mime);
+
+/**
+ * Check if a decoder filter exists for a codec name.
+ *
+ * @param mime    A string indicating the codec.
+ *
+ * @return TRUE if successfull, FALSE otherwise.
+ */
+MS2_PUBLIC bool_t ms_factory_has_decoder(MSFactory *factory, const char *mime);
+
+
+/**
  * Create decoder filter according to a filter's MSFilterId.
  *
  * @param id     A MSFilterId identifier for the filter.
