@@ -1871,7 +1871,7 @@ MSFilter* video_preview_stop_reuse_source(VideoPreview *stream){
 }
 
 static MSFilter* _video_preview_change_camera(VideoPreview *stream, MSWebCam *cam, MSFilter* new_source, bool_t keep_old_source) {
-	MSFilter *cur_filter;
+	MSConnectionHelper ch;
 	MSFilter* old_source = NULL;
 	bool_t new_src_different = (new_source && new_source != stream->source);
 	bool_t change_source = (cam != stream->cam || new_src_different);
@@ -1880,17 +1880,16 @@ static MSFilter* _video_preview_change_camera(VideoPreview *stream, MSWebCam *ca
 	if (stream->ms.sessions.ticker && stream->source) {
 		ms_ticker_detach(stream->ms.sessions.ticker, stream->source);
 		/*unlink source filters and subsequent post processing filters */
+   		ms_connection_helper_start(&ch);
+		ms_connection_helper_unlink(&ch, stream->source, -1, 0);
 		if (stream->pixconv) {
-			ms_filter_unlink(stream->source, 0, stream->pixconv, 0);
-			cur_filter = stream->pixconv;
-		} else {
-			cur_filter = stream->source;
+			ms_connection_helper_unlink(&ch, stream->pixconv, 0, 0);
 		}
 		if (stream->qrcode) {
-			ms_filter_unlink(cur_filter, 0, stream->qrcode, 0);
+			ms_connection_helper_unlink(&ch, stream->qrcode, 0, 0);
 		}
 		if (stream->tee) {
-			ms_filter_unlink(cur_filter, 0, stream->tee, 0);
+			ms_connection_helper_unlink(&ch, stream->tee, 0, 0);
 			if (stream->output2) {
 				ms_filter_unlink(stream->tee, 1, stream->output2, 0);
 			}
@@ -1898,7 +1897,7 @@ static MSFilter* _video_preview_change_camera(VideoPreview *stream, MSWebCam *ca
 				ms_filter_unlink(stream->tee, 2, stream->local_jpegwriter, 0);
 			}
 		} else {
-			ms_filter_unlink(cur_filter, 0, stream->output2, 0);
+			ms_connection_helper_unlink(&ch, stream->output2, 0, 0);
 		}
 
 		/*destroy the filters */
@@ -1924,17 +1923,16 @@ static MSFilter* _video_preview_change_camera(VideoPreview *stream, MSWebCam *ca
 		configure_video_preview_source(stream);
 		ms_filter_call_method(stream->output2, MS_FILTER_SET_VIDEO_SIZE, &disp_size);
 
+		ms_connection_helper_start(&ch);
+		ms_connection_helper_link(&ch, stream->source, -1, 0);
 		if (stream->pixconv) {
-			ms_filter_link(stream->source, 0, stream->pixconv, 0);
-			cur_filter = stream->pixconv;
-		} else {
-			cur_filter = stream->source;
+			ms_connection_helper_link(&ch, stream->pixconv, 0, 0);
 		}
 		if (stream->qrcode) {
-			ms_filter_link(cur_filter, 0, stream->qrcode, 0);
+			ms_connection_helper_link(&ch, stream->qrcode, 0, 0);
 		}
 		if (stream->tee) {
-			ms_filter_link(cur_filter, 0, stream->tee, 0);
+			ms_connection_helper_link(&ch, stream->tee, 0, 0);
 			if (stream->output2) {
 				ms_filter_link(stream->tee, 1, stream->output2, 0);
 			}
@@ -1943,7 +1941,7 @@ static MSFilter* _video_preview_change_camera(VideoPreview *stream, MSWebCam *ca
 			}
 		}
 		else {
-			ms_filter_link(cur_filter, 0, stream->output2, 0);
+			ms_filter_link(stream->pixconv, 0, stream->output2, 0);
 		}
 
 		ms_ticker_attach(stream->ms.sessions.ticker, stream->source);
