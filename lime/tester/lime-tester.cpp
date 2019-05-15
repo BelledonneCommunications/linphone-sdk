@@ -16,13 +16,13 @@
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+
 #include "lime_log.hpp"
 #include "belle-sip/belle-sip.h"
 
 #include "lime-tester.hpp"
 #include "lime-tester-utils.hpp"
 
-static FILE * log_file = NULL;
 static const char *log_domain = "lime";
 bool cleanDatabase = true;
 #ifdef FFI_ENABLED
@@ -44,9 +44,8 @@ static void log_handler(int lev, const char *fmt, va_list args) {
 	fprintf(lev == BCTBX_LOG_ERROR ? stderr : stdout, "\n");
 	va_end(cap);
 #endif
-	if (log_file){
-		bctbx_logv(log_domain, (BctbxLogLevel)lev, fmt, args);
-	}
+
+	bctbx_logv(log_domain, (BctbxLogLevel)lev, fmt, args);
 }
 
 void lime_tester_init(void(*ftester_printf)(int level, const char *fmt, va_list args)) {
@@ -71,25 +70,19 @@ void lime_tester_before_each() {
 }
 
 int lime_tester_set_log_file(const char *filename) {
-	bctbx_log_handler_t* filehandler;
-	char* dir;
-	char* base;
-	if (log_file) {
-		fclose(log_file);
-	}
-	log_file = fopen(filename, "w");
-	if (!log_file) {
-		LIME_LOGE<<"Cannot open file ["<<std::string{filename}<<"] for writing logs because ["<<std::string{strerror(errno)}<<"]";
-		return -1;
-	}
-	dir = bctbx_dirname(filename);
-	base = bctbx_basename(filename);
-	LIME_LOGI<<"Redirecting traces to file ["<<std::string{filename}<<"]";
-	filehandler = bctbx_create_file_log_handler(0, dir, base, log_file);
+	int res = -1;
+	char *dir = bctbx_dirname(filename);
+	char *base = bctbx_basename(filename);
+	LIME_LOGI << "Redirecting traces to file [" << std::string{filename} << "]";
+	bctbx_log_handler_t *filehandler = bctbx_create_file_log_handler(0, dir, base);
+	if (filehandler == NULL) goto end;
 	bctbx_add_log_handler(filehandler);
+	res = 0;
+
+end:
 	if (dir) bctbx_free(dir);
 	if (base) bctbx_free(base);
-	return 0;
+	return res;
 }
 
 #if !defined(__ANDROID__) && !(defined(BCTBX_WINDOWS_PHONE) || defined(BCTBX_WINDOWS_UNIVERSAL))
