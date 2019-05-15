@@ -65,6 +65,7 @@
     - echo $TESTER_BIN
     - echo ${TESTER_BIN}
     - $SET_CAP_SYS_NICE_LIN_MS || true
+    - FORCE_SET_CAP_NET_ADMIN_MS || true
 
     #checking if the tester has SYS_NICE cap
     - getcap ./$TESTER_BIN || true
