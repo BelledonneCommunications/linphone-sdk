@@ -125,7 +125,6 @@ test-mediastreamer:
     - job-centos7-ninja-gcc
   variables:
     TESTER_BIN: "mediastreamer2_tester"
-    PULSEAUDIO: "pulseaudio -D -L module-virtual-source --exit-idle-time=-1"
     LOG_PATTERN: "logMediastreamerAllPar"
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
     SET_CAP_SYS_NICE_LIN_MS: "sudo setcap cap_sys_nice+ep ./${TESTER_BIN}"
