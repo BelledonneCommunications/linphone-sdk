@@ -930,25 +930,30 @@ video_stream_tester_t* video_stream_tester_elph264_cam_new(void) {
 	return  vst;
 }
 
-static void video_stream_elph264_camera() {
+static void video_stream_elph264_camera(void) {
+	MSVideoConfiguration asked;
+	MSVideoConfiguration expected;
+	video_stream_tester_t* marielle = NULL;
+	video_stream_tester_t* margaux = NULL;
+	PayloadType* pt = NULL;
+	bool_t supported = FALSE;
+
 	if (bctbx_file_exist("/dev/elp-h264") != 0) {
 		ms_error("Ignoring video_stream_elph264_camera test because required device is not present.");
 		return;
 	} else {
 		ms_factory_enable_filter_from_name(_factory, "h264camera", TRUE);
 	}
-	MSVideoConfiguration asked;
-	MSVideoConfiguration expected;
 	asked.bitrate_limit=expected.bitrate_limit=1024000;
 	asked.required_bitrate=expected.required_bitrate=1024000;
 	asked.fps=expected.fps=30;
 	asked.vsize.width=expected.vsize.width=MS_VIDEO_SIZE_720P_W;
 	asked.vsize.height=expected.vsize.height=MS_VIDEO_SIZE_720P_H;
 
-	video_stream_tester_t* marielle=video_stream_tester_elph264_cam_new();
-	video_stream_tester_t* margaux=video_stream_tester_elph264_cam_new();
-	PayloadType* pt = rtp_profile_get_payload(&rtp_profile, H264_PAYLOAD_TYPE);
-	bool_t supported = pt ? ms_factory_codec_supported(_factory, pt->mime_type) : FALSE;
+	marielle=video_stream_tester_elph264_cam_new();
+	margaux=video_stream_tester_elph264_cam_new();
+	pt = rtp_profile_get_payload(&rtp_profile, H264_PAYLOAD_TYPE);
+	supported = pt ? ms_factory_codec_supported(_factory, pt->mime_type) : FALSE;
 
 	if (supported) {
 		margaux->vconf = ms_new0(MSVideoConfiguration, 1);
