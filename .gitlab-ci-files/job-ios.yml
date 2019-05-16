@@ -8,7 +8,12 @@
     - ccache -s
     - mkdir -p build-ios
     - cd build-ios
+    - echo $CMAKE_GENERATOR
+    - echo $IOS_ARCHS
+    - echo $CMAKE_OPTIONS
     - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="$IOS_ARCHS" $CMAKE_OPTIONS
+    
+    - echo $ADDITIONAL_BUILD_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     - ccache -s
 
@@ -78,6 +83,7 @@ job-ios-xcode:
   script:
     - mkdir -p build-ios
     - cd build-ios
+    - echo $CMAKE_OPTIONS
     - cmake .. -G Xcode -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="arm64, armv7, x86_64" -DLINPHONESDK_IOS_BASE_URL=$IOS_SNAPSHOTS_URL $CMAKE_OPTIONS
     - cmake --build . --target sdk -- -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=`sysctl -n hw.ncpu`
 

@@ -13,7 +13,11 @@
     - mkdir -p build-desktop
     - cd build-desktop
     - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS
+    - echo $CMAKE_GENERATOR
+    - echo $DEFAULT_LINUX_CMAKE_OPTIONS 
+    - echo $CMAKE_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
+    - echo $ADDITIONAL_BUILD_OPTIONS
   artifacts:
     paths:
       - build-desktop/linphone-sdk/desktop/bin/*
@@ -50,26 +54,38 @@
 
   script:
     - cd $PATH_TO_TESTER
+    - echo $PATH_TO_TESTER
     
     #pulseaudio launch for mediastreamer
     - $PULSEAUDIO
+    - echo $PULSEAUDIO
     
     #X emulation for linphone
     - $XVFB &
+    - echo $XVFB
     - $EXPORT_DISPLAY
+    - echo $EXPORT_DISPLAY
     
     - ls -la
     
     #enabling SYS_NICE cap for ms2 and liblinphone testers
-    - echo $SET_CAP_SYS_NICE_LIN_MS
+
     - echo $TESTER_BIN
     - echo ${TESTER_BIN}
+    
+    - echo $SET_CAP_SYS_NICE_LIN_MS
     - $SET_CAP_SYS_NICE_LIN_MS || true
+    
+    - echo $FORCE_SET_CAP_NET_ADMIN_MS
     - $FORCE_SET_CAP_NET_ADMIN_MS || true
-
+    
     #checking if the tester has SYS_NICE cap
     - getcap ./$TESTER_BIN || true
+    - echo $RESOURCE_DIR 
+    - echo $ADDITIONNAL_OPTIONS
+    - echo $LOG_PATTERN.txt
     - ./$TESTER_BIN --verbose --parallel $RESOURCE_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt
+    
   
   after_script:
     - pwd
