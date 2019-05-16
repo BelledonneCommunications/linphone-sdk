@@ -91,7 +91,7 @@ int belle_sip_tester_set_log_file(const char *filename) {
 	char *base = bctbx_basename(filename);
 	belle_sip_message("Redirecting traces to file [%s]", filename);
 	bctbx_log_handler_t *filehandler = bctbx_create_file_log_handler(0, dir, base);
-	if (filehandler) {
+	if (filehandler == NULL) {
 		res = -1;
 		goto end;
 	}
