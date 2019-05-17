@@ -138,7 +138,6 @@ test-mediastreamer:
     - job-centos7-ninja-gcc
   variables:
     TESTER_BIN: "liblinphone_tester"
-    PULSEAUDIO: "pulseaudio -D -L module-virtual-source --exit-idle-time=-1"
     XVFB: "Xvfb :99"
     EXPORT_DISPLAY: "export DISPLAY=:99"
     LOG_PATTERN: "logLiblinphoneAllParThIpv6"
