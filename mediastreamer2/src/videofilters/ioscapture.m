@@ -613,7 +613,7 @@ static void ioscapture_preprocess(MSFilter *f) {
 	IOSCapture *thiz = (IOSCapture*)f->data;
 	if (thiz != NULL) {
 		NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
-		[thiz performSelectorInBackground:@selector(start) withObject:nil];
+		[thiz start];
 		[myPool drain];
 
 		ms_mutex_lock(&thiz->mutex);
