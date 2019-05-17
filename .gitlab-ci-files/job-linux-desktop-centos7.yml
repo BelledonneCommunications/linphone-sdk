@@ -92,34 +92,34 @@ test-bctoolbox-centos7:
   extends: .test-bctoolbox
   dependencies:
     - job-centos7-ninja-gcc
-  tags: [ "docker-test-centos7" ]
+  tags: [ "docker-test-centos7-nuc" ]
   
 test-bellesip-centos7:
   extends: .test-bellesip
   dependencies:
     - job-centos7-ninja-gcc
-  tags: [ "docker-test-centos7" ]
+  tags: [ "docker-test-centos7-nuc" ]
   
 test-belr-centos7:
   extends: .test-belr
   dependencies:
     - job-centos7-ninja-gcc
-  tags: [ "docker-test-centos7" ]
+  tags: [ "docker-test-centos7-nuc" ]
   
 test-belcard-centos7:
   extends: .test-belcard
   dependencies:
     - job-centos7-ninja-gcc
-  tags: [ "docker-test-centos7" ]
+  tags: [ "docker-test-centos7-nuc" ]
   
 test-bzrtp-centos7:
   extends: .test-bzrtp
   dependencies:
     - job-centos7-ninja-gcc
-  tags: [ "docker-test-centos7" ]
+  tags: [ "docker-test-centos7-nuc" ]
   
 test-mediastreamer:
-  tags: [ "docker-test-centos7-liblinphone" ]
+  tags: [ "docker-test-centos7-liblinphone-nuc" ]
   extends: .test
   dependencies:
     - job-centos7-ninja-gcc
@@ -132,7 +132,7 @@ test-mediastreamer:
     
     
 .test-liblinphone-centos7:
-  tags: [ "docker-test-centos7-liblinphone" ]
+  tags: [ "docker-test-centos7-liblinphone-nuc" ]
   extends: .test
   dependencies:
     - job-centos7-ninja-gcc
