@@ -128,8 +128,7 @@ test-mediastreamer:
     PULSEAUDIO: "pulseaudio -D -L module-virtual-source --exit-idle-time=-1"
     LOG_PATTERN: "logMediastreamerAllPar"
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
-    SET_CAP_SYS_NICE_LIN_MS: "sudo setcap cap_sys_nice+ep ./${TESTER_BIN}"
-    FORCE_SET_CAP_NET_ADMIN_MS: "sudo setcap cap_net_admin+iep ./${TESTER_BIN}"
+    SET_CAP_SYS_NICE_NET_ADMIN_MS: "sudo setcap cap_net_admin+iep cap_sys_nice+ep ./${TESTER_BIN}"
     
     
 .test-liblinphone-centos7:
@@ -145,7 +144,7 @@ test-mediastreamer:
     LOG_PATTERN: "logLiblinphoneAllParThIpv6"
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
     ADDITIONNAL_OPTIONS: "--dns-hosts ${CI_PROJECT_DIR}/linphone/tester/tester_hosts --show-account-manager-logs"
-    SET_CAP_SYS_NICE_LIN_MS: "sudo setcap cap_sys_nice+ep ./${TESTER_BIN}"
+    SET_CAP_SYS_NICE_LIN: "sudo setcap cap_sys_nice+ep ./${TESTER_BIN}"
 
 test-liblinphone:
   extends: .test-liblinphone-centos7
