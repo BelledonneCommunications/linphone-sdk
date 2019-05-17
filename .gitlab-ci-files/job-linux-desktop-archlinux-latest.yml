@@ -91,28 +91,28 @@ test-bctoolbox-arch:
   extends: .test-bctoolbox
   dependencies:
     - job-archlinux-latest-ninja-clang
-  tags: [ "docker-test-archlinux-latest" ] 
+  tags: [ "docker-test-archlinux-latest-nuc" ] 
   
 test-bellesip-arch:
   extends: .test-bellesip
   dependencies:
     - job-archlinux-latest-ninja-clang
-  tags: [ "docker-test-archlinux-latest" ]
+  tags: [ "docker-test-archlinux-latest-nuc" ]
   
 test-belr-arch:
   extends: .test-belr
   dependencies:
     - job-archlinux-latest-ninja-clang
-  tags: [ "docker-test-archlinux-latest" ] 
+  tags: [ "docker-test-archlinux-latest-nuc" ] 
   
 test-belcard-arch:
   extends: .test-belcard
   dependencies:
     - job-archlinux-latest-ninja-clang
-  tags: [ "docker-test-archlinux-latest" ] 
+  tags: [ "docker-test-archlinux-latest-nuc" ] 
   
 test-bzrtp-arch:
   extends: .test-bzrtp
   dependencies:
     - job-archlinux-latest-ninja-clang
-  tags: [ "docker-test-archlinux-latest" ] 
+  tags: [ "docker-test-archlinux-latest-nuc" ] 
