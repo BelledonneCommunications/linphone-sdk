@@ -126,9 +126,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define MS_VIDEO_SIZE_UXGA_W 1600
 #define MS_VIDEO_SIZE_UXGA_H 1200
 
-
-
-
 typedef struct MSRect{
 	int x,y,w,h;
 } MSRect;

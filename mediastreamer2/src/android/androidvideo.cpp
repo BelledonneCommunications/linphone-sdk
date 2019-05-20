@@ -209,6 +209,8 @@ static int video_capture_set_vsize(MSFilter *f, void* data){
 		d->rotationSavedDuringVSize = d->rotation;
 	}
 
+	ms_filter_notify(f, MS_CAMERA_PREVIEW_SIZE_CHANGED, &d->usedSize);
+
 	ms_mutex_unlock(&d->mutex);
 	return 0;
 }
@@ -264,6 +266,7 @@ static int video_set_native_preview_window(MSFilter *f, void *arg) {
 		// if previewWindow AND camera are valid => set preview window
 		if (w && d->androidCamera)
 			env->CallStaticVoidMethod(d->helperClass, method, d->androidCamera, w);
+		ms_filter_notify(f, MS_CAMERA_PREVIEW_SIZE_CHANGED, &d->usedSize);
 	} else {
 		ms_message("Preview capture window set but camera not created yet; remembering it for later use\n");
 	}
