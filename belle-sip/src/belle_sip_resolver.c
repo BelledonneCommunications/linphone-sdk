@@ -1475,11 +1475,40 @@ static void dual_resolver_context_check_finished(belle_sip_dual_resolver_context
 	}
 }
 
+static int dual_resolver_aaaa_timeout(void *data, unsigned int event){
+	belle_sip_dual_resolver_context_t *ctx = BELLE_SIP_DUAL_RESOLVER_CONTEXT(data);
+	
+	/*
+	 * It is too late to receive the AAAA query, so give up, and notify the A result we have already.
+	 */
+	if (ctx->aaaa_ctx){
+		belle_sip_resolver_context_cancel(ctx->aaaa_ctx);
+		belle_sip_object_unref(ctx->aaaa_ctx);
+		ctx->aaaa_ctx = NULL;
+	}
+	ctx->aaaa_notified = TRUE;
+	dual_resolver_context_check_finished(ctx);
+	return BELLE_SIP_STOP;
+}
+
 static void on_ipv4_results(void *data, belle_sip_resolver_results_t *results) {
 	belle_sip_dual_resolver_context_t *ctx = BELLE_SIP_DUAL_RESOLVER_CONTEXT(data);
+	int aaaa_timeout = 3000;
+	
 	ctx->a_results = results->ai_list;
 	results->ai_list = NULL;
 	ctx->a_notified = TRUE;
+	
+	if (!ctx->aaaa_notified && ctx->a_results && aaaa_timeout > 0){
+		/* 
+		 * Start a global timer in order to workaround buggy home routers that don't respond to AAAA requests when there is no 
+		 * corresponding AAAA record for the queried domain. It is only started if we have a A result.
+		 */
+		belle_sip_message("resolver[%p]: starting aaaa timeout since A response is received.", ctx);
+		belle_sip_socket_source_init((belle_sip_source_t*)ctx, (belle_sip_source_func_t)dual_resolver_aaaa_timeout, ctx, -1 , BELLE_SIP_EVENT_TIMEOUT, 
+				aaaa_timeout);
+		belle_sip_main_loop_add_source(ctx->base.stack->ml, (belle_sip_source_t*)ctx);
+	}
 	dual_resolver_context_check_finished(ctx);
 }
 
@@ -1488,6 +1517,11 @@ static void on_ipv6_results(void *data, belle_sip_resolver_results_t *results) {
 	ctx->aaaa_results = results->ai_list;
 	results->ai_list = NULL;
 	ctx->aaaa_notified = TRUE;
+	
+	if (ctx->a_notified){
+		/* Cancel the aaaa timeout.*/
+		belle_sip_source_cancel((belle_sip_source_t*)ctx);
+	}
 	dual_resolver_context_check_finished(ctx);
 }
 
