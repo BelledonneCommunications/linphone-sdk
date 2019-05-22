@@ -31,42 +31,57 @@
 
 namespace belr {
 
+
 template<typename _parserElementT>
-class AbstractCollector{
-public:
-	virtual ~AbstractCollector() = default;
-
+class CollectorBase{
+	public:
+	virtual ~CollectorBase() = default;
 	virtual void invokeWithChild(_parserElementT obj, _parserElementT child)=0;
+	virtual void invokeWithValue(_parserElementT obj, const std::string &value) = 0;
 };
 
-template<typename _parserElementT, typename _valueT>
-class CollectorBase : public AbstractCollector<_parserElementT>{
+template <class T, class U>
+inline T universal_pointer_cast(const std::shared_ptr<U>& sp){
+	return std::static_pointer_cast<typename T::element_type>(sp);
+}
+
+template <class T, class U>
+inline T universal_pointer_cast(U * p){
+	return static_cast<T>(p);
+}
+
+template <typename _functorT, typename _parserElementT>
+class ParserCollector : public CollectorBase<_parserElementT>{
 public:
-	virtual void invoke(_parserElementT obj, _valueT value)=0;
-};
-
-template <typename _derivedParserElementT, typename _parserElementT, typename _valueT>
-class ParserCollector : public CollectorBase<_parserElementT,_valueT>{
-public:
-	ParserCollector(const std::function<void (_derivedParserElementT , _valueT)> &fn) : mFunc(fn) {}
-
-	void invoke(_parserElementT obj, _valueT value) override;
-	void invokeWithChild(_parserElementT obj, _parserElementT child) override;
-
+	ParserCollector(_functorT func) : mFunc(func){
+	}
 private:
-	std::function<void (_derivedParserElementT, _valueT)> mFunc;
-};
-
-template <typename _derivedParserElementT, typename _parserElementT, typename _valueT>
-class ParserChildCollector : public CollectorBase<_parserElementT,_valueT>{
-public:
-	ParserChildCollector(const std::function<void (_derivedParserElementT , _valueT)> &fn) : mFunc(fn){}
-
-	void invoke(_parserElementT obj, _valueT value) override;
-	void invokeWithChild(_parserElementT obj, _parserElementT child) override;
-
-private:
-	std::function<void (_derivedParserElementT, _valueT)> mFunc;
+	virtual void invokeWithChild(_parserElementT obj, _parserElementT child) override;
+	virtual void invokeWithValue(_parserElementT obj, const std::string &value) override;
+	template <typename _valueT>
+	inline void _invokeWithValue(_parserElementT obj, typename std::enable_if<std::is_convertible<_valueT, std::string>::value, const std::string&>::type value){
+		mFunc(universal_pointer_cast<typename _functorT::first_argument_type>(obj), value);
+	}
+	template <typename _valueT>
+	inline void _invokeWithValue(_parserElementT obj, typename std::enable_if<std::is_convertible<_valueT, _parserElementT>::value, const std::string&>::type value){
+		// no op.
+	}
+	template <typename _valueT>
+	inline void _invokeWithValue(_parserElementT obj, typename std::enable_if<std::is_convertible<_valueT, int>::value, const std::string&>::type value){
+		mFunc(universal_pointer_cast<typename _functorT::first_argument_type>(obj), std::atoi(value.c_str()));
+	}
+	template <typename _valueT>
+	inline void _invokeWithChild(_parserElementT obj, typename std::enable_if<std::is_convertible<_valueT, std::string>::value, _parserElementT>::type child){
+	}
+	template <typename _valueT>
+	inline void _invokeWithChild(_parserElementT obj, typename std::enable_if<std::is_convertible<_valueT, int>::value, _parserElementT>::type child){
+	}
+	template <typename _valueT>
+	inline void _invokeWithChild(_parserElementT obj, typename std::enable_if<std::is_convertible<_valueT, _parserElementT>::value, _parserElementT>::type child){
+		mFunc(universal_pointer_cast<typename std::remove_reference<typename _functorT::first_argument_type>::type>(obj), 
+			universal_pointer_cast<typename std::remove_reference<typename _functorT::second_argument_type>::type>(child));
+	}
+	_functorT mFunc;
 };
 
 template <typename _parserElementT>
@@ -86,18 +101,18 @@ public:
 	virtual _parserElementT invoke(const std::string &input, size_t begin, size_t count)=0;
 
 	std::shared_ptr<HandlerContext<_parserElementT>> createContext();
-	const std::string &getRulename() const {
+	inline const std::string &getRulename() const {
 		return mRulename;
 	}
 
 protected:
 	void releaseContext(const std::shared_ptr<HandlerContext<_parserElementT>> &ctx);
 	ParserHandlerBase(const Parser<_parserElementT> &parser, const std::string &name);
-	void installCollector(const std::string &rulename, const std::shared_ptr<AbstractCollector<_parserElementT>> &collector);
-	const std::shared_ptr<AbstractCollector<_parserElementT>> &getCollector(unsigned int rule_id)const;
+	void installCollector(const std::string &rulename, const std::shared_ptr<CollectorBase<_parserElementT>> &collector);
+	const std::shared_ptr<CollectorBase<_parserElementT>> &getCollector(unsigned int rule_id)const;
 
 private:
-	std::map<unsigned int, std::shared_ptr<AbstractCollector<_parserElementT>> > mCollectors;
+	std::map<unsigned int, std::shared_ptr<CollectorBase<_parserElementT>> > mCollectors;
 	const Parser<_parserElementT> &mParser;
 	std::string mRulename;
 	std::shared_ptr<HandlerContext<_parserElementT>> mCachedContext;
@@ -114,22 +129,11 @@ public:
 
 	_parserElementT invoke(const std::string &input, size_t begin, size_t count) override;
 
-	template <typename _derivedParserElementTChild>
-	std::shared_ptr<ParserHandler<_derivedParserElementT,_parserElementT>> setCollector(const std::string &child_rule_name, std::function<void (_derivedParserElementTChild , const std::string & )> fn){
-		this->installCollector(child_rule_name, std::make_shared<ParserCollector<_derivedParserElementT,_parserElementT,const std::string&>>(fn));
+	template <typename _functorT>
+	inline std::shared_ptr<ParserHandler<_derivedParserElementT,_parserElementT>> setCollector(const std::string &child_rule_name, _functorT fn){
+		this->installCollector(child_rule_name, std::make_shared<ParserCollector<_functorT, _parserElementT>>(fn) );
 		return std::static_pointer_cast<ParserHandler<_derivedParserElementT,_parserElementT>>(this->shared_from_this());
 	}
-	template <typename _derivedParserElementTChild>
-	std::shared_ptr<ParserHandler<_derivedParserElementT,_parserElementT>> setCollector(const std::string &child_rule_name, std::function<void (_derivedParserElementTChild , int )> fn){
-		this->installCollector(child_rule_name, std::make_shared<ParserCollector<_derivedParserElementT,_parserElementT,int>>(fn));
-		return std::static_pointer_cast<ParserHandler<_derivedParserElementT,_parserElementT>>(this->shared_from_this());
-	}
-	template <typename _derivedParserElementTChild, typename _valueT>
-	std::shared_ptr<ParserHandler<_derivedParserElementT,_parserElementT>> setCollector(const std::string &child_rule_name, std::function<void (_derivedParserElementTChild , _valueT)> fn){
-		this->installCollector(child_rule_name, std::make_shared<ParserChildCollector<_derivedParserElementT,_parserElementT,_valueT>>(fn));
-		return std::static_pointer_cast<ParserHandler<_derivedParserElementT,_parserElementT>>(this->shared_from_this());
-	}
-
 private:
 	std::function<_derivedParserElementT ()> mHandlerCreateFunc;
 	std::function<_derivedParserElementT (const std::string &, const std::string &)> mHandlerCreateDebugFunc;
@@ -138,13 +142,13 @@ private:
 template <typename _parserElementT>
 class Assignment{
 public:
-	Assignment(const std::shared_ptr<AbstractCollector<_parserElementT>> &c, size_t begin, size_t count, const std::shared_ptr<HandlerContext<_parserElementT>> &child)
+	Assignment(const std::shared_ptr<CollectorBase<_parserElementT>> &c, size_t begin, size_t count, const std::shared_ptr<HandlerContext<_parserElementT>> &child)
 	: mCollector(c.get()), mBegin(begin), mCount(count), mChild(child) {}
 
 	void invoke(_parserElementT parent, const std::string &input);
 
 private:
-	AbstractCollector<_parserElementT> * mCollector;//not a shared_ptr for optimization, the collector cannot disapear
+	CollectorBase<_parserElementT> * mCollector;//not a shared_ptr for optimization, the collector cannot disapear
 	size_t mBegin;
 	size_t mCount;
 	std::shared_ptr<HandlerContext<_parserElementT>> mChild;
@@ -258,7 +262,7 @@ private:
 	std::shared_ptr<Grammar> mGrammar;
 	std::map<unsigned int, std::shared_ptr<ParserHandlerBase<_parserElementT>>> mHandlers;
 	std::shared_ptr<ParserHandlerBase<_parserElementT>> mNullHandler;
-	std::shared_ptr<AbstractCollector<_parserElementT>> mNullCollector;
+	std::shared_ptr<CollectorBase<_parserElementT>> mNullCollector;
 };
 
 class DebugElement{
@@ -285,27 +289,27 @@ public:
 
 //Utility functions for handlers/collectors objects instantiation and properties accessors
 template <typename _retT>
-std::function< std::shared_ptr<_retT> ()> make_fn() {
+inline std::function< std::shared_ptr<_retT> ()> make_fn() {
 	return std::bind(&std::make_shared<_retT>);
 }
 
 template <typename _retT>
-std::function< _retT ()> make_fn(_retT (*arg)()){
+inline std::function< _retT ()> make_fn(_retT (*arg)()){
 	return std::function<_retT ()>(arg);
 }
 
 template <typename _retT, typename _arg1T, typename _arg2T>
-std::function< _retT (_arg1T,_arg2T)> make_fn(_retT (*arg)(_arg1T,_arg2T)){
+inline std::function< _retT (_arg1T,_arg2T)> make_fn(_retT (*arg)(_arg1T,_arg2T)){
 	return std::function< _retT (_arg1T,_arg2T)>(arg);
 }
 
 template <typename _klassT, typename _argT>
-std::function< void (_klassT*,_argT)> make_fn(void (_klassT::*arg)(_argT)){
+inline std::function< void (_klassT*,_argT)> make_fn(void (_klassT::*arg)(_argT)){
 	return std::function< void (_klassT*,_argT)>(std::mem_fn(arg));
 }
 
 template <typename _klassT, typename _argT>
-std::function< void (std::shared_ptr<_klassT>,_argT)> make_sfn(void (_klassT::*arg)(_argT)){
+inline std::function< void (std::shared_ptr<_klassT>,_argT)> make_sfn(void (_klassT::*arg)(_argT)){
 	return std::function< void (std::shared_ptr<_klassT>,_argT)>(std::mem_fn(arg));
 }
 
@@ -313,59 +317,25 @@ std::function< void (std::shared_ptr<_klassT>,_argT)> make_sfn(void (_klassT::*a
 // Parser impl.
 // =============================================================================
 
-template <class T, class U>
-T universal_pointer_cast(const std::shared_ptr<U>& sp){
-	return std::static_pointer_cast<typename T::element_type>(sp);
-}
-
-template <class T, class U>
-T universal_pointer_cast(U * p){
-	return static_cast<T>(p);
-}
-
 BELR_PUBLIC void fatal(const char *message);
 
-template <typename _derivedParserElementT, typename _parserElementT, typename _valueT>
-void ParserCollector<_derivedParserElementT,_parserElementT, _valueT>::invoke(_parserElementT obj, _valueT value){
-	mFunc(universal_pointer_cast<_derivedParserElementT>(obj),value);
+template <typename _functorT, typename _parserElementT>
+void ParserCollector<_functorT, _parserElementT>::invokeWithChild(_parserElementT obj, _parserElementT child){
+	_invokeWithChild<typename _functorT::second_argument_type>(obj, child);
 }
 
-template <typename _derivedParserElementT, typename _parserElementT, typename _valueT>
-void ParserCollector<_derivedParserElementT,_parserElementT, _valueT>::invokeWithChild(_parserElementT obj, _parserElementT child){
-	fatal("We should never be called in ParserCollector<_derivedParserElementT,_parserElementT, _valueT>::invokeWithChild(_parserElementT obj, _parserElementT child)");
+template <typename _functorT, typename _parserElementT>
+void ParserCollector<_functorT, _parserElementT>::invokeWithValue(_parserElementT obj, const std::string &value){
+	_invokeWithValue<typename _functorT::second_argument_type>(obj, value);
 }
 
-template <typename _derivedParserElementT, typename _parserElementT, typename _valueT>
-void ParserChildCollector<_derivedParserElementT,_parserElementT, _valueT>::invokeWithChild(_parserElementT obj, _parserElementT value){
-	mFunc(universal_pointer_cast<_derivedParserElementT>(obj),universal_pointer_cast<typename std::decay<_valueT>::type>(value));
-}
-
-template <typename _derivedParserElementT, typename _parserElementT, typename _valueT>
-void ParserChildCollector<_derivedParserElementT,_parserElementT, _valueT>::invoke(_parserElementT obj, _valueT value){
-	fatal("We should never be called in ParserChildCollector<_derivedParserElementT,_parserElementT, _valueT>::invoke(_parserElementT obj, _valueT value)");
-}
 
 template <typename _parserElementT>
 void Assignment<_parserElementT>::invoke(_parserElementT parent, const std::string &input){
 	if (mChild){
 		mCollector->invokeWithChild(parent, mChild->realize(input,mBegin,mCount));
 	}else{
-		std::string value=input.substr(mBegin, mCount);
-		CollectorBase<_parserElementT,const std::string&>* cc1=dynamic_cast<CollectorBase<_parserElementT,const std::string&>*>(mCollector);
-		if (cc1){
-			cc1->invoke(parent, value);
-			return;
-		}
-		CollectorBase<_parserElementT,const char*>* cc2=dynamic_cast<CollectorBase<_parserElementT,const char*>*>(mCollector);
-		if (cc2){
-			cc2->invoke(parent, value.c_str());
-			return;
-		}
-		CollectorBase<_parserElementT,int> *cc3=dynamic_cast<CollectorBase<_parserElementT,int>*>(mCollector);
-		if (cc3){
-			cc3->invoke(parent, atoi(value.c_str()));
-			return;
-		}
+		mCollector->invokeWithValue(parent, input.substr(mBegin, mCount));
 	}
 }
 
@@ -433,7 +403,7 @@ ParserHandlerBase<_parserElementT>::ParserHandlerBase(const Parser<_parserElemen
 }
 
 template <typename _parserElementT>
-void ParserHandlerBase<_parserElementT>::installCollector(const std::string &rulename, const std::shared_ptr<AbstractCollector<_parserElementT>> &collector){
+void ParserHandlerBase<_parserElementT>::installCollector(const std::string &rulename, const std::shared_ptr<CollectorBase<_parserElementT>> &collector){
 	std::shared_ptr<Recognizer> rec=mParser.mGrammar->findRule(rulename);
 	if (!rec){
 		std::ostringstream ostr;
@@ -445,7 +415,7 @@ void ParserHandlerBase<_parserElementT>::installCollector(const std::string &rul
 }
 
 template <typename _parserElementT>
-const std::shared_ptr<AbstractCollector<_parserElementT>> & ParserHandlerBase<_parserElementT>::getCollector(unsigned int rule_id)const{
+const std::shared_ptr<CollectorBase<_parserElementT>> & ParserHandlerBase<_parserElementT>::getCollector(unsigned int rule_id)const{
 	auto it=mCollectors.find(rule_id);
 	if (it!=mCollectors.end()) return (*it).second;
 	return mParser.mNullCollector;
@@ -489,7 +459,7 @@ ParserContext<_parserElementT>::ParserContext(Parser<_parserElementT> &parser) :
 }
 
 template <typename _parserElementT>
-void ParserContext<_parserElementT>::_beginParse(ParserLocalContext & lctx, const std::shared_ptr<Recognizer> &rec){
+inline void ParserContext<_parserElementT>::_beginParse(ParserLocalContext & lctx, const std::shared_ptr<Recognizer> &rec){
 	std::shared_ptr<HandlerContextBase> ctx;
 
 	auto h=mParser.getHandler(rec->getId());
@@ -504,7 +474,7 @@ void ParserContext<_parserElementT>::_beginParse(ParserLocalContext & lctx, cons
 }
 
 template <typename _parserElementT>
-void ParserContext<_parserElementT>::_endParse(const ParserLocalContext &localctx, const std::string &input, size_t begin, size_t count){
+inline  void ParserContext<_parserElementT>::_endParse(const ParserLocalContext &localctx, const std::string &input, size_t begin, size_t count){
 	if (localctx.mHandlerContext){
 		mHandlerStack.pop_back();
 		if (count!=std::string::npos && count>0){
@@ -538,7 +508,7 @@ _parserElementT ParserContext<_parserElementT>::createRootObject(const std::stri
 }
 
 template <typename _parserElementT>
-std::shared_ptr<HandlerContext<_parserElementT>> ParserContext<_parserElementT>::_branch(){
+inline std::shared_ptr<HandlerContext<_parserElementT>> ParserContext<_parserElementT>::_branch(){
 	if (mHandlerStack.empty()){
 		fatal("Cannot branch while stack is empty");
 	}
@@ -548,7 +518,7 @@ std::shared_ptr<HandlerContext<_parserElementT>> ParserContext<_parserElementT>:
 }
 
 template <typename _parserElementT>
-void ParserContext<_parserElementT>::_merge(const std::shared_ptr<HandlerContext<_parserElementT>> &other){
+inline void ParserContext<_parserElementT>::_merge(const std::shared_ptr<HandlerContext<_parserElementT>> &other){
 	if (mHandlerStack.back()!=other){
 		fatal("The branch being merged is not the last one of the stack !");
 	}
@@ -558,7 +528,7 @@ void ParserContext<_parserElementT>::_merge(const std::shared_ptr<HandlerContext
 }
 
 template <typename _parserElementT>
-void ParserContext<_parserElementT>::_removeBranch(const std::shared_ptr<HandlerContext<_parserElementT>> &other){
+inline void ParserContext<_parserElementT>::_removeBranch(const std::shared_ptr<HandlerContext<_parserElementT>> &other){
 	auto it=find(mHandlerStack.rbegin(), mHandlerStack.rend(),other);
 	if (it==mHandlerStack.rend()){
 		fatal("A branch could not be found in the stack while removing it !");

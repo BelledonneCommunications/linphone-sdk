@@ -23,7 +23,7 @@
 
 using namespace std;
 
-namespace belr{;
+namespace belr{
 
 void fatal(const char *message){
 	bctbx_fatal("%s", message);
