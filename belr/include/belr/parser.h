@@ -93,11 +93,11 @@ class Parser;
 class HandlerContextBase;
 
 template <typename _parserElementT>
-class ParserHandlerBase : public std::enable_shared_from_this<ParserHandlerBase<_parserElementT>>{
+class ParserHandlerBase{
 	friend class HandlerContext<_parserElementT>;
 
 public:
-	virtual ~ParserHandlerBase()=default;
+	virtual ~ParserHandlerBase() = default;
 	virtual _parserElementT invoke(const std::string &input, size_t begin, size_t count)=0;
 
 	std::shared_ptr<HandlerContext<_parserElementT>> createContext();
@@ -108,11 +108,11 @@ public:
 protected:
 	void releaseContext(const std::shared_ptr<HandlerContext<_parserElementT>> &ctx);
 	ParserHandlerBase(const Parser<_parserElementT> &parser, const std::string &name);
-	void installCollector(const std::string &rulename, const std::shared_ptr<CollectorBase<_parserElementT>> &collector);
-	const std::shared_ptr<CollectorBase<_parserElementT>> &getCollector(unsigned int rule_id)const;
+	void installCollector(const std::string &rulename, CollectorBase<_parserElementT>* collector);
+	CollectorBase<_parserElementT>* getCollector(unsigned int rule_id)const;
 
 private:
-	std::map<unsigned int, std::shared_ptr<CollectorBase<_parserElementT>> > mCollectors;
+	std::map<unsigned int, std::unique_ptr<CollectorBase<_parserElementT>> > mCollectors;
 	const Parser<_parserElementT> &mParser;
 	std::string mRulename;
 	std::shared_ptr<HandlerContext<_parserElementT>> mCachedContext;
@@ -127,9 +127,9 @@ public:
 	_parserElementT invoke(const std::string &input, size_t begin, size_t count) override;
 
 	template <typename _functorT>
-	std::shared_ptr<ParserHandler<_createElementFn, _parserElementT>> setCollector(const std::string &child_rule_name, _functorT fn){
-		this->installCollector(child_rule_name, std::make_shared<ParserCollector<_functorT, _parserElementT>>(fn) );
-		return std::static_pointer_cast<ParserHandler<_createElementFn, _parserElementT>>(this->shared_from_this());
+	ParserHandler<_createElementFn, _parserElementT> *setCollector(const std::string &child_rule_name, _functorT fn){
+		this->installCollector(child_rule_name, new ParserCollector<_functorT, _parserElementT>(fn) );
+		return this;
 	}
 private:
 	template <typename _funcT>
@@ -148,8 +148,8 @@ private:
 template <typename _parserElementT>
 class Assignment{
 public:
-	Assignment(const std::shared_ptr<CollectorBase<_parserElementT>> &c, size_t begin, size_t count, const std::shared_ptr<HandlerContext<_parserElementT>> &child)
-	: mCollector(c.get()), mBegin(begin), mCount(count), mChild(child) {}
+	Assignment(CollectorBase<_parserElementT> *c, size_t begin, size_t count, const std::shared_ptr<HandlerContext<_parserElementT>> &child)
+	: mCollector(c), mBegin(begin), mCount(count), mChild(child) {}
 
 	void invoke(_parserElementT parent, const std::string &input);
 
@@ -168,7 +168,7 @@ public:
 template <typename _parserElementT>
 class HandlerContext : public HandlerContextBase{
 public:
-	HandlerContext(const std::shared_ptr<ParserHandlerBase<_parserElementT>> &handler);
+	HandlerContext(ParserHandlerBase<_parserElementT> *handler);
 
 	void setChild(unsigned int subrule_id, size_t begin, size_t count, const std::shared_ptr<HandlerContext> &child);
 	_parserElementT realize(const std::string &input, size_t begin, size_t count);
@@ -246,8 +246,8 @@ public:
 	Parser(const std::shared_ptr<Grammar> &grammar);
 
 	template <typename _createElementFn>
-	std::shared_ptr<ParserHandler<_createElementFn,_parserElementT>> setHandler(const std::string &rulename, _createElementFn handler){
-		auto ret=std::make_shared<ParserHandler<_createElementFn,_parserElementT>>(*this, rulename, handler);
+	ParserHandler<_createElementFn,_parserElementT> * setHandler(const std::string &rulename, _createElementFn handler){
+		auto ret = new ParserHandler<_createElementFn,_parserElementT>(*this, rulename, handler);
 		installHandler(ret);
 		return ret;
 
@@ -255,12 +255,12 @@ public:
 	_parserElementT parseInput(const std::string &rulename, const std::string &input, size_t *parsed_size);
 
 private:
-	std::shared_ptr<ParserHandlerBase<_parserElementT>> &getHandler(unsigned int);
-	void installHandler(const std::shared_ptr<ParserHandlerBase<_parserElementT>> &handler);
+	ParserHandlerBase<_parserElementT> *getHandler(unsigned int);
+	void installHandler(ParserHandlerBase<_parserElementT> * handler);
 	std::shared_ptr<Grammar> mGrammar;
-	std::map<unsigned int, std::shared_ptr<ParserHandlerBase<_parserElementT>>> mHandlers;
-	std::shared_ptr<ParserHandlerBase<_parserElementT>> mNullHandler;
-	std::shared_ptr<CollectorBase<_parserElementT>> mNullCollector;
+	std::map<unsigned int, std::unique_ptr<ParserHandlerBase<_parserElementT>>> mHandlers;
+	std::unique_ptr<ParserHandlerBase<_parserElementT>> mNullHandler;
+	std::unique_ptr<CollectorBase<_parserElementT>> mNullCollector;
 };
 
 class DebugElement{
@@ -343,8 +343,8 @@ void Assignment<_parserElementT>::invoke(_parserElementT parent, const std::stri
 //
 
 template <typename _parserElementT>
-HandlerContext<_parserElementT>::HandlerContext(const std::shared_ptr<ParserHandlerBase<_parserElementT>> &handler) :
-	mHandler(*handler.get()){
+HandlerContext<_parserElementT>::HandlerContext(ParserHandlerBase<_parserElementT> *handler) :
+	mHandler(*handler){
 }
 
 template <typename _parserElementT>
@@ -401,7 +401,7 @@ ParserHandlerBase<_parserElementT>::ParserHandlerBase(const Parser<_parserElemen
 }
 
 template <typename _parserElementT>
-void ParserHandlerBase<_parserElementT>::installCollector(const std::string &rulename, const std::shared_ptr<CollectorBase<_parserElementT>> &collector){
+void ParserHandlerBase<_parserElementT>::installCollector(const std::string &rulename, CollectorBase<_parserElementT> *collector){
 	std::shared_ptr<Recognizer> rec=mParser.mGrammar->findRule(rulename);
 	if (!rec){
 		std::ostringstream ostr;
@@ -409,14 +409,14 @@ void ParserHandlerBase<_parserElementT>::installCollector(const std::string &rul
 		fatal(ostr.str().c_str());
 		return;
 	}
-	mCollectors[rec->getId()]=collector;
+	mCollectors[rec->getId()].reset(collector);
 }
 
 template <typename _parserElementT>
-const std::shared_ptr<CollectorBase<_parserElementT>> & ParserHandlerBase<_parserElementT>::getCollector(unsigned int rule_id)const{
+CollectorBase<_parserElementT> * ParserHandlerBase<_parserElementT>::getCollector(unsigned int rule_id)const{
 	auto it=mCollectors.find(rule_id);
-	if (it!=mCollectors.end()) return (*it).second;
-	return mParser.mNullCollector;
+	if (it!=mCollectors.end()) return (*it).second.get();
+	return mParser.mNullCollector.get();
 }
 
 template <typename _parserElementT>
@@ -431,7 +431,7 @@ std::shared_ptr<HandlerContext<_parserElementT>> ParserHandlerBase<_parserElemen
 		mCachedContext.reset();
 		return ret;
 	}
-	return std::make_shared<HandlerContext<_parserElementT>>(this->shared_from_this());
+	return std::make_shared<HandlerContext<_parserElementT>>(this);
 }
 
 //
@@ -571,21 +571,21 @@ Parser<_parserElementT>::Parser(const std::shared_ptr<Grammar> &grammar) : mGram
 }
 
 template <typename _parserElementT>
-std::shared_ptr<ParserHandlerBase<_parserElementT>> &Parser<_parserElementT>::getHandler(unsigned int rule_id){
+ParserHandlerBase<_parserElementT> *Parser<_parserElementT>::getHandler(unsigned int rule_id){
 	auto it=mHandlers.find(rule_id);
-	if (it==mHandlers.end()) return mNullHandler;
-	return (*it).second;
+	if (it==mHandlers.end()) return mNullHandler.get();
+	return (*it).second.get();
 }
 
 template <typename _parserElementT>
-void Parser<_parserElementT>::installHandler(const std::shared_ptr<ParserHandlerBase<_parserElementT>> &handler){
+void Parser<_parserElementT>::installHandler(ParserHandlerBase<_parserElementT> *handler){
 	std::shared_ptr<Recognizer> rec=mGrammar->findRule(handler->getRulename());
 	if (!rec){
 		std::ostringstream str;
 		str<<"There is no rule '"<<handler->getRulename()<<"' in the grammar.";
 		fatal(str.str().c_str());
 	}
-	mHandlers[rec->getId()]=handler;
+	mHandlers[rec->getId()].reset(handler);
 }
 
 template <typename _parserElementT>
