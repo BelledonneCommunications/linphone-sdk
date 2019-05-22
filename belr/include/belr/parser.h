@@ -118,25 +118,31 @@ private:
 	std::shared_ptr<HandlerContext<_parserElementT>> mCachedContext;
 };
 
-template <typename _derivedParserElementT, typename _parserElementT>
+template <typename _createElementFn, typename _parserElementT>
 class ParserHandler :  public ParserHandlerBase<_parserElementT>{
 public:
-
-	ParserHandler(const Parser<_parserElementT> &parser, const std::string &rulename, const std::function<_derivedParserElementT ()> &create)
+	typedef typename _createElementFn::result_type _derivedParserElementT;
+	ParserHandler(const Parser<_parserElementT> &parser, const std::string &rulename, _createElementFn create)
 		: ParserHandlerBase<_parserElementT>(parser, rulename), mHandlerCreateFunc(create){}
-	ParserHandler(const Parser<_parserElementT> &parser, const std::string &rulename, const std::function<_derivedParserElementT (const std::string &, const std::string &)> &create)
-		: ParserHandlerBase<_parserElementT>(parser, rulename), mHandlerCreateDebugFunc(create){}
-
 	_parserElementT invoke(const std::string &input, size_t begin, size_t count) override;
 
 	template <typename _functorT>
-	inline std::shared_ptr<ParserHandler<_derivedParserElementT,_parserElementT>> setCollector(const std::string &child_rule_name, _functorT fn){
+	std::shared_ptr<ParserHandler<_createElementFn, _parserElementT>> setCollector(const std::string &child_rule_name, _functorT fn){
 		this->installCollector(child_rule_name, std::make_shared<ParserCollector<_functorT, _parserElementT>>(fn) );
-		return std::static_pointer_cast<ParserHandler<_derivedParserElementT,_parserElementT>>(this->shared_from_this());
+		return std::static_pointer_cast<ParserHandler<_createElementFn, _parserElementT>>(this->shared_from_this());
 	}
 private:
-	std::function<_derivedParserElementT ()> mHandlerCreateFunc;
-	std::function<_derivedParserElementT (const std::string &, const std::string &)> mHandlerCreateDebugFunc;
+	template <typename _funcT>
+	typename std::enable_if<std::is_convertible<typename _funcT::first_argument_type,std::string>::value, _derivedParserElementT>::type _invoke(const std::string &value, size_t begin, size_t count){
+		// Case where the create func accepts two strings for rulename and matched characters.
+		return mHandlerCreateFunc(this->getRulename(), value.substr(begin, count));
+	}
+	template <typename _funcT>
+	typename std::enable_if<std::is_convertible<_funcT, std::function<_derivedParserElementT()>>::value, _derivedParserElementT>::type _invoke(const std::string &value, size_t begin, size_t count){
+		// Case where the create func accepts two strings for rulename and matched characters.
+		return mHandlerCreateFunc();
+	}
+	_createElementFn mHandlerCreateFunc;
 };
 
 template <typename _parserElementT>
@@ -239,17 +245,9 @@ friend class ParserHandlerBase<_parserElementT>;
 public:
 	Parser(const std::shared_ptr<Grammar> &grammar);
 
-	template <typename _derivedParserElementT>
-	std::shared_ptr<ParserHandler<_derivedParserElementT,_parserElementT>> setHandler(const std::string &rulename,const std::function<_derivedParserElementT ()> & handler){
-		auto ret=std::make_shared<ParserHandler<_derivedParserElementT,_parserElementT>>(*this, rulename,handler);
-		installHandler(ret);
-		return ret;
-
-	}
-	template <typename _derivedParserElementT>
-	std::shared_ptr<ParserHandler<_derivedParserElementT,_parserElementT>> setHandler(const std::string &rulename,
-					const std::function<_derivedParserElementT (const std::string &, const std::string &)> & handler){
-		auto ret=std::make_shared<ParserHandler<_derivedParserElementT,_parserElementT>>(*this, rulename,handler);
+	template <typename _createElementFn>
+	std::shared_ptr<ParserHandler<_createElementFn,_parserElementT>> setHandler(const std::string &rulename, _createElementFn handler){
+		auto ret=std::make_shared<ParserHandler<_createElementFn,_parserElementT>>(*this, rulename, handler);
 		installHandler(ret);
 		return ret;
 
@@ -440,13 +438,9 @@ std::shared_ptr<HandlerContext<_parserElementT>> ParserHandlerBase<_parserElemen
 // ParserHandler template implementation
 //
 
-template <typename _derivedParserElementT, typename _parserElementT>
-_parserElementT ParserHandler<_derivedParserElementT,_parserElementT>::invoke(const std::string &input, size_t begin, size_t count){
-	if (mHandlerCreateFunc)
-		return universal_pointer_cast<_parserElementT>(mHandlerCreateFunc());
-	if (mHandlerCreateDebugFunc)
-		return universal_pointer_cast<_parserElementT>(mHandlerCreateDebugFunc(this->getRulename(), input.substr(begin, count)));
-	return nullptr;
+template <typename _createElementFn, typename _parserElementT>
+_parserElementT ParserHandler<_createElementFn,_parserElementT>::invoke(const std::string &input, size_t begin, size_t count){
+	return universal_pointer_cast<_parserElementT>(_invoke<_createElementFn>(input, begin, count));
 }
 
 
