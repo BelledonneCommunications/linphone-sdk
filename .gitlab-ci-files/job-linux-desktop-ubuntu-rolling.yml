@@ -115,3 +115,9 @@ test-bzrtp-ubuntu:
   dependencies:
     - job-ubuntu-rolling-ninja-clang
   tags: [ "docker-test-ubuntu-rolling-nuc" ]
+  
+test-liblinphone-ubuntu:
+  tags: [ "docker-test-ubuntu-rolling-liblinphone-nuc" ]
+  extends: .test-liblinphone
+  dependencies:
+    - job-ubuntu-rolling-ninja-clang
