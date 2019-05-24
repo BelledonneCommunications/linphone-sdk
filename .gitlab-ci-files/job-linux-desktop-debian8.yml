@@ -116,3 +116,9 @@ test-bzrtp-debian8:
   dependencies:
     - job-debian8-ninja-clang
   tags: [ "docker-test-debian8-nuc" ]
+  
+test-liblinphone-debian8:
+  tags: [ "docker-test-debian8-liblinphone-nuc" ]
+  extends: .test-liblinphone
+  dependencies:
+    - job-debian8-ninja-clang

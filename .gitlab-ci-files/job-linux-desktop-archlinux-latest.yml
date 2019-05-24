@@ -115,4 +115,10 @@ test-bzrtp-arch:
   extends: .test-bzrtp
   dependencies:
     - job-archlinux-latest-ninja-clang
-  tags: [ "docker-test-archlinux-latest-nuc" ] 
+  tags: [ "docker-test-archlinux-latest-nuc" ]
+  
+test-liblinphone-arch:
+  tags: [ "docker-test-archlinux-liblinphone-nuc" ]
+  extends: .test-liblinphone
+  dependencies:
+    - job-archlinux-latest-ninja-clang
