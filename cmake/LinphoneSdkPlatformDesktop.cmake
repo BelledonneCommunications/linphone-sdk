@@ -23,7 +23,6 @@
 include(LinphoneSdkPlatformCommon)
 include(LinphoneSdkCheckBuildToolsDesktop)
 
-
 if(APPLE)
 	include(LinphoneSdkCheckBuildToolsIOS)
 
@@ -44,7 +43,6 @@ if(APPLE)
 		list(APPEND _dummy_libraries "mswebrtc")
 	endif()
 endif()
-
 
 set(_cmake_args
 	"-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/linphone-sdk/desktop"
@@ -73,6 +71,9 @@ if(WIN32)
 else()
 	set(_install_command "${CMAKE_SOURCE_DIR}/cmake/dummy.sh")
 endif()
+
+#Provide an empty global install target
+install(CODE "MESSAGE(\"Dummy install target.\")")
 
 ExternalProject_Add(sdk
 	${_ep_depends}
