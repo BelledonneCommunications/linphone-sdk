@@ -49,10 +49,8 @@ if(ENABLE_OPENH264)
 		endif()
 	endif()
 endif()
-
-if(ENABLE_VPX AND "${CMAKE_SYSTEM_PROCESSOR}" MATCHES "^(x86|x86_64|x64)$")
-#Don't check form yasm if cross-compiling
-  linphone_sdk_check_is_installed(yasm)
+if(ENABLE_VPX)
+	linphone_sdk_check_is_installed(yasm)
 endif()
 
 
