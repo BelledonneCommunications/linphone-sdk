@@ -145,10 +145,10 @@ test-mediastreamer:
     ADDITIONNAL_OPTIONS: "--dns-hosts ${CI_PROJECT_DIR}/linphone/tester/tester_hosts --show-account-manager-logs"
     SET_CAP_SYS_NICE_LIN_MS: "sudo setcap cap_sys_nice+ep ./${TESTER_BIN}"
 
-test-liblinphone:
+test-liblinphone-centos7-schedule:
   extends: .test-liblinphone-centos7
 
-test-liblinphone-mr:
+test-liblinphone-centos7-mr:
   extends: .test-liblinphone-centos7
   only:
     refs:

@@ -141,8 +141,14 @@ job-test-report-upload:
   tags: [ "deploy" ]
     
   dependencies:
-    - test-liblinphone
-    - test-liblinphone-mr
+    - test-liblinphone-centos7-schedule
+    - test-liblinphone-centos7-mr
+    
+  except:
+    - $DEPLOY_RUN_MACOSX
+    - $DEPLOY_RUN_ANDROID
+    - $DEPLOY_RUN_IOS
+    - $PACKAGE_RUN_WINDOWS
 
   script:
     #getting the version number for each submodule and writing it in environment.properties file
