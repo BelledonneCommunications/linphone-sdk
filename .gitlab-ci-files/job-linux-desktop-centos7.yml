@@ -118,7 +118,7 @@ test-bzrtp-centos7:
     - job-centos7-ninja-gcc
   tags: [ "docker-test-centos7-nuc" ]
   
-test-mediastreamer:
+test-mediastreamer-centos7:
   tags: [ "docker-test-centos7-liblinphone-nuc" ]
   extends: .test
   dependencies:
