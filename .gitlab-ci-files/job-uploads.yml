@@ -146,8 +146,8 @@ job-test-report-upload:
   tags: [ "deploy" ]
     
   dependencies:
-    - test-liblinphone
-    - test-liblinphone-mr
+    - test-liblinphone-centos7-schedule
+    - test-liblinphone-centos7-mr
 
   script:
     #getting the version number for each submodule and writing it in environment.properties file

@@ -137,10 +137,10 @@ test-mediastreamer:
   dependencies:
     - job-centos7-ninja-gcc
 
-test-liblinphone-schedule:
+test-liblinphone-centos7-schedule:
   extends: .test-liblinphone-centos7
 
-test-liblinphone-mr:
+test-liblinphone-centos7-mr:
   extends: .test-liblinphone-centos7
   only:
     refs:
