@@ -143,6 +143,12 @@ job-test-report-upload:
   dependencies:
     - test-liblinphone
     - test-liblinphone-mr
+    
+  except:
+    variables:
+      - $DEPLOY_RUN_ANDROID
+      - $DEPLOY_RUN_MACOSX
+      - $DEPLOY_RUN_IOS
 
   script:
     #getting the version number for each submodule and writing it in environment.properties file
