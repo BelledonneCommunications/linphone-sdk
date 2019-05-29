@@ -1,0 +1,19 @@
+FROM gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos-test-liblinphone:7
+
+ARG branch=master
+ARG build_type=Debug
+ARG njobs=1
+
+RUN sudo yum -y remove pulseaudio-libs
+RUN git clone https://gitlab.linphone.org/BC/public/linphone-sdk.git -b ${branch} --recursive
+RUN mkdir linphone-sdk-build
+
+WORKDIR linphone-sdk-build
+RUN cmake ../linphone-sdk -DCMAKE_INSTALL_PREFIX=/opt/belledonne-communications -DCMAKE_BUILD_TYPE=${build_type} -DENABLE_LIME_X3DH=YES
+RUN cmake --build . -j ${njobs}
+RUN rm -rf ../linphone-sdk
+RUN find . -maxdepth 1 ! -name linphone-sdk -exec rm -rf {} \;
+
+WORKDIR linphone-sdk/desktop/work
+ENTRYPOINT ["../bin/liblinphone_tester"]
+CMD []
