@@ -17,6 +17,8 @@
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
+#include "mediastreamer2/devices.h"
+
 #include "filter-wrapper/encoding-filter-wrapper.h"
 #include "h26x/h26x-encoder-filter.h"
 #include "media-codec-encoder.h"
@@ -57,7 +59,11 @@ private:
 
 class MediaCodecH264EncoderFilterImpl: public H26xEncoderFilter {
 public:
-	MediaCodecH264EncoderFilterImpl(MSFilter *f): H26xEncoderFilter(f, new MediaCodecH264Encoder(), _media_codec_h264_conf_list) {}
+	MediaCodecH264EncoderFilterImpl(MSFilter *f): H26xEncoderFilter(f, new MediaCodecH264Encoder(), _media_codec_h264_conf_list) {
+		SoundDeviceDescription *info = ms_devices_info_get_sound_device_description(f->factory->devices_info);
+		auto &encoder = static_cast<MediaCodecEncoder &>(*_encoder);
+		encoder.enablePixelFormatConversion((info->flags & DEVICE_MCH264ENC_NO_PIX_FMT_CONV) == 0);
+	}
 };
 
 } // mamespace mediastreamer

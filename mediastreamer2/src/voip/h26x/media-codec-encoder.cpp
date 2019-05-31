@@ -103,14 +103,13 @@ void MediaCodecEncoder::stop() {
 }
 
 void MediaCodecEncoder::feed(mblk_t *rawData, uint64_t time, bool requestIFrame) {
-	if (_impl == nullptr) {
-		freemsg(rawData);
-		return;
-	}
+	// ensure that rawData is destroyed on function return
+	unique_ptr<mblk_t, void(*)(mblk_t *)> rawDataPtr(rawData, freemsg);
+
+	if (_impl == nullptr) return;
 
 	if (!_isRunning) {
 		ms_error("MediaCodecEncoder: encoder not running. Dropping buffer.");
-		freemsg(rawData);
 		return;
 	}
 
@@ -150,18 +149,29 @@ void MediaCodecEncoder::feed(mblk_t *rawData, uint64_t time, bool requestIFrame)
 		return;
 	}
 
-	size_t bufsize = 0;
-	AMediaImage image;
-	if (AMediaCodec_getInputImage(_impl, ibufidx, &image)) {
-		if (image.format == 35 /* YUV_420_888 */) {
-			MSRect src_roi = {0, 0, pic.w, pic.h};
-			int src_pix_strides[4] = {1, 1, 1, 1};
-			ms_yuv_buf_copy_with_pix_strides(pic.planes, pic.strides, src_pix_strides, src_roi, image.buffers, image.row_strides, image.pixel_strides, image.crop_rect);
-			bufsize = image.row_strides[0] * image.height * 3 / 2;
-		} else {
-			ms_error("MediaCodecEncoder: encoder requires non YUV420 format");
+	size_t bufsize;
+	uint8_t *inputBuffer = AMediaCodec_getInputBuffer(_impl, ibufidx, &bufsize);
+
+	if (_pixelFormatConvertionEnabled) {
+		AMediaImage image;
+		if (AMediaCodec_getInputImage(_impl, ibufidx, &image)) {
+			if (image.format == 35 /* YUV_420_888 */) {
+				MSRect src_roi = {0, 0, pic.w, pic.h};
+				int src_pix_strides[4] = {1, 1, 1, 1};
+				ms_yuv_buf_copy_with_pix_strides(pic.planes, pic.strides, src_pix_strides, src_roi, image.buffers, image.row_strides, image.pixel_strides, image.crop_rect);
+			} else {
+				ms_error("MediaCodecEncoder: encoder requires non YUV420 format");
+			}
+			AMediaImage_close(&image);
 		}
-		AMediaImage_close(&image);
+	} else {
+		size_t dataSize = rawData->b_wptr-rawData->b_rptr;
+		if (dataSize <= bufsize) {
+			memcpy(inputBuffer, rawData->b_rptr, dataSize);
+		} else {
+			ms_error("MediaCodecEncoder: not enough space in the input buffer (required=%zu, availabel=%zu)", dataSize, bufsize);
+			bufsize = 0;
+		}
 	}
 
 	if (AMediaCodec_queueInputBuffer(_impl, ibufidx, 0, bufsize, time * 1000, 0) == AMEDIA_ERROR_BASE) {
@@ -170,7 +180,6 @@ void MediaCodecEncoder::feed(mblk_t *rawData, uint64_t time, bool requestIFrame)
 	}
 
 	_pendingFrames++;
-	freemsg(rawData);
 }
 
 bool MediaCodecEncoder::fetch(MSQueue *encodedData) {

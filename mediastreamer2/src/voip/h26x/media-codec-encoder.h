@@ -43,6 +43,9 @@ public:
 	int getBitrate() const override {return _bitrate;}
 	void setBitrate(int bitrate) override;
 
+	bool pixelFormatConversionEnabled() const {return _pixelFormatConvertionEnabled;}
+	void enablePixelFormatConversion(bool enable) {_pixelFormatConvertionEnabled = enable;}
+
 	bool isRunning() override {return _isRunning;}
 	void start() override;
 	void stop() override;
@@ -64,6 +67,7 @@ protected:
 	int _pendingFrames = 0;
 	bool _isRunning = false;
 	bool _recoveryMode = false;
+	bool _pixelFormatConvertionEnabled = true;
 
 	static const int _timeoutUs = 0;
 	static const int32_t _colorFormat = 0x7f420888; // COLOR_FormatYUV420Flexible
