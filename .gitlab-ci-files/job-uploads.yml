@@ -64,9 +64,14 @@ job-android-upload:
     - git config --global user.name "Gitlab"
     - mkdir -p build
     - cd build
+    - echo $CMAKE_GENERATOR
+    - echo $DEFAULT_LINUX_CMAKE_OPTION
+    - echo $CMAKE_OPTIONS
     - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS="arm64, armv7, x86_64, x86" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS
+    - echo $ADDITIONAL_BUILD_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     - rsync -ave ssh --exclude "*.aar" --exclude "*.jar" $ANDROID_MAVEN_URL maven_repository
+    - echo $GRADLE_OPTIONS
     - ../cmake/Android/gradlew publish $GRADLE_OPTIONS
     - rsync -ave ssh ./maven_repository/* $ANDROID_MAVEN_URL
 
@@ -141,8 +146,8 @@ job-test-report-upload:
   tags: [ "deploy" ]
     
   dependencies:
-    - test-liblinphone
-    - test-liblinphone-mr
+    - test-liblinphone-centos7-schedule
+    - test-liblinphone-centos7-mr
 
   script:
     #getting the version number for each submodule and writing it in environment.properties file
@@ -178,6 +183,8 @@ job-test-report-upload:
     - echo LIME_VERSION=$LIME_VERSION | tee -a environment.properties
     - echo LINPHONE_VERSION=$LINPHONE_VERSION | tee -a environment.properties
     - echo MS2_VERSION=$MS2_VERSION | tee -a environment.properties
+    
+    - cat environment.properties
     
     
     #TODO errors management

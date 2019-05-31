@@ -98,22 +98,28 @@ test-bellesip-debian9:
   extends: .test-bellesip
   dependencies:
     - job-debian9-ninja-gcc
-  tags: [ "docker-test-debian9" ]
+  tags: [ "docker-test-debian9-nuc" ]
   
 test-belr-debian9:
   extends: .test-belr
   dependencies:
     - job-debian9-ninja-gcc
-  tags: [ "docker-test-debian9" ]
+  tags: [ "docker-test-debian9-nuc" ]
   
 test-belcard-debian9:
   extends: .test-belcard
   dependencies:
     - job-debian9-ninja-gcc
-  tags: [ "docker-test-debian9" ]
+  tags: [ "docker-test-debian9-nuc" ]
   
 test-bzrtp-debian9:
   extends: .test-bzrtp
   dependencies:
     - job-debian9-ninja-gcc
-  tags: [ "docker-test-debian9" ]
+  tags: [ "docker-test-debian9-nuc" ]
+  
+test-liblinphone-debian9:
+  tags: [ "docker-test-debian9-liblinphone-nuc" ]
+  extends: .test-liblinphone
+  dependencies:
+    - job-debian9-ninja-gcc
