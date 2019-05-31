@@ -21,6 +21,8 @@
     ##
     - mkdir -p ccache
     - echo "max_size = $CCACHE_SIZE" > ccache/ccache.conf
+    - echo $CCACHE_SIZE
+    - echo ${PWD}/ccache
     - export CCACHE_BASEDIR=${PWD}
     - export CCACHE_DIR=${PWD}/ccache
     - ccache -s
