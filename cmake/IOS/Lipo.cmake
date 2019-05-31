@@ -58,6 +58,14 @@ foreach(_framework ${_frameworks})
 	foreach(_arch ${_archs})
 		list(APPEND _all_arch_frameworks "linphone-sdk/${_arch}-apple-darwin.ios/Frameworks/${_framework_name}.framework/${_framework_name}")
 	endforeach()
+	if(_framework_name STREQUAL "linphonesw")
+		foreach(_arch ${_archs})
+			execute_process(
+				COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "linphone-sdk/${_arch}-apple-darwin.ios/Frameworks/linphonesw.framework/Modules/linphonesw.swiftmodule" "linphone-sdk/apple-darwin/Frameworks/linphonesw.framework/Modules/linphonesw.swiftmodule"
+				WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
+			)
+		endforeach()
+	endif()
 	string(REPLACE ";" " " _arch_string "${_archs}")
 	execute_process(
 		COMMAND "${CMAKE_COMMAND}" "-E" "echo" "Mixing ${_framework_name} for archs [${_arch_string}]"
