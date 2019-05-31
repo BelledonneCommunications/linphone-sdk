@@ -8,6 +8,9 @@
     - ccache -s
     - mkdir -p build-desktop
     - cd build-desktop
+    - echo $CMAKE_GENERATOR
+    - echo $DEFAULT_CMAKE_OPTIONS
+    - echo $CMAKE_OPTIONS
     - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9 $DEFAULT_CMAKE_OPTIONS $CMAKE_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     - ccache -s
