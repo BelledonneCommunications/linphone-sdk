@@ -780,14 +780,6 @@ MS2_PUBLIC void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, int 
  */
 MS2_PUBLIC int ice_session_nb_losing_pairs(const IceSession *session);
 
-/**
- * Unselect the previously selected valid pairs.
- *
- * @param cl A pointer to a check list
- *
- * This function is to be used to use the pairs given by the remote controlling agent instead of the pairs we found ourselves.
- */
-MS2_PUBLIC void ice_check_list_unselect_valid_pairs(IceCheckList *cl);
 
 /**
  * Set the base for the local server reflexive candidates of an ICE session.

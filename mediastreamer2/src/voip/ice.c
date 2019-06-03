@@ -1213,6 +1213,21 @@ static void ice_check_list_select_candidates(IceCheckList *cl)
 	}
 }
 
+/*
+ * This function sets the supplied valid_pair as selected, but insuring that the previously selected valid pair for that componentID is unselected.
+ */
+static void ice_check_list_set_selected_valid_pair(IceCheckList *cl, IceValidCandidatePair *valid_pair){
+	const MSList *elem;
+	for (elem = cl->valid_list; elem != NULL; elem = elem->next){
+		IceValidCandidatePair *valid_pair_it = (IceValidCandidatePair *)elem->data;
+		if (valid_pair_it->selected && valid_pair_it != valid_pair && 
+			valid_pair_it->valid->local->componentID == valid_pair->valid->local->componentID){
+			valid_pair_it->selected = FALSE;
+		}
+	}
+	valid_pair->selected = TRUE;
+}
+
 void ice_session_select_candidates(IceSession *session)
 {
 	int i;
@@ -2295,7 +2310,7 @@ static IceCandidatePair * ice_construct_valid_pair(IceCheckList *cl, RtpSession 
 		if (elem != NULL) {
 			cl->losing_pairs = bctbx_list_erase_link(cl->losing_pairs, elem);
 			/* Select the losing pair that has just become a valid pair. */
-			valid_pair->selected = TRUE;
+			ice_check_list_set_selected_valid_pair(cl, valid_pair);
 			if (ice_session_nb_losing_pairs(cl->session) == 0) {
 				/* Notify the application that the checks for losing pairs have completed. The answer can now be sent. */
 				ice_check_list_set_state(cl, ICL_Completed);
@@ -3013,9 +3028,14 @@ void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, int local_famil
 
 	memset(taddr_str, 0, sizeof(taddr_str));
 	snprintf(taddr.ip, sizeof(taddr.ip), "%s", local_addr);
+	
+	/* Search for the local candidates that matches componentId, local_addr, and local_port as they are provided in the received remote-candidate attribute. */
+	
 	taddr.port = local_port;
 	taddr.family = local_family;
-	elem = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_find_candidate_from_transport_address, &taddr);
+	taci.componentID = componentID;
+	taci.ta = &taddr;
+	elem = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_find_candidate_from_transport_address_and_componentID, &taci);
 	if (elem == NULL) {
 		// Workaround to detect if the local candidate that has not been found has been added by the proxy server.
 		// If that is the case, add it to the local candidates now.
@@ -3041,7 +3061,7 @@ void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, int local_famil
 	snprintf(taddr.ip, sizeof(taddr.ip), "%s", remote_addr);
 	taddr.port = remote_port;
 	taddr.family = remote_family;
-	taci.componentID = lr.local->componentID;
+	taci.componentID = componentID;
 	taci.ta = &taddr;
 	elem = bctbx_list_find_custom(cl->remote_candidates, (bctbx_compare_func)ice_find_candidate_from_transport_address_and_componentID, &taci);
 	if (elem == NULL) {
@@ -3091,7 +3111,7 @@ void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, int local_famil
 		}
 	} else {
 		valid_pair = (IceValidCandidatePair *)elem->data;
-		valid_pair->selected = TRUE;
+		ice_check_list_set_selected_valid_pair(cl, valid_pair);
 		ms_message("ice: Select losing valid pair: cl=%p, componentID=%u, local_addr=%s, local_port=%d, remote_addr=%s, remote_port=%d",
 			cl, componentID, local_addr, local_port, remote_addr, remote_port);
 	}
@@ -3113,10 +3133,6 @@ int ice_session_nb_losing_pairs(const IceSession *session)
 	return nb_losing_pairs;
 }
 
-void ice_check_list_unselect_valid_pairs(IceCheckList *cl)
-{
-	bctbx_list_for_each(cl->valid_list, (void (*)(void *))ice_unselect_valid_pair);
-}
 
 
 /******************************************************************************
