@@ -32,6 +32,12 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
 		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 		RESULT_VARIABLE _gradle_assemble_result
 	)
+elseif(CMAKE_BUILD_TYPE STREQUAL "ASAN")
+	execute_process(
+		COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "assembleDebug"
+		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
+		RESULT_VARIABLE _gradle_assemble_result
+	)
 else()
 	execute_process(
 		COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "assemble"
