@@ -1,0 +1,5 @@
+#!/system/bin/sh
+HERE="$(cd "$(dirname "$0")" && pwd)"
+export ASAN_OPTIONS=log_to_syslog=true,allow_user_segv_handler=1,verbosity=9,detect_leaks=true,leak_check_at_exit=true
+export LD_PRELOAD=$HERE/libclang_rt.asan-${_asan_libarch}-android.so
+exec "$@"
