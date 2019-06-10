@@ -36,14 +36,19 @@ execute_process(
 foreach(_arch ${_archs})
 	if(_arch STREQUAL "arm")
 		set(_libarch "armeabi")
+		set(_asan_libarch "arm")
 	elseif(_arch STREQUAL "armv7")
 		set(_libarch "armeabi-v7a")
+		set(_asan_libarch "arm")
 	elseif(_arch STREQUAL "arm64")
 		set(_libarch "arm64-v8a")
+		set(_asan_libarch "aarch64")
 	elseif(_arch STREQUAL "x86")
 		set(_libarch "x86")
+		set(_asan_libarch "i686")
 	elseif(_arch STREQUAL "x86_64")
 		set(_libarch "x86_64")
+		set(_asan_libarch "x86_64")
 	else()
 		message(FATAL_ERROR "Unknown architecture ${_arch}")
 	endif()
@@ -70,6 +75,20 @@ foreach(_arch ${_archs})
 			WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 		)
 	endforeach()
+
+	if(CMAKE_BUILD_TYPE STREQUAL "ASAN")
+		file(GLOB _asan_libs "${CMAKE_ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64/lib64/clang/*/lib/linux/libclang_rt.asan-${_asan_libarch}-android.so")
+		foreach(_asan_lib ${_asan_libs})
+			configure_file(${LINPHONESDK_DIR}/cmake/Android/wrap.sh.in ${LINPHONESDK_BUILD_DIR}/libs/${_libarch}/wrap.sh)
+			execute_process(
+				COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${_asan_lib}" "libs/${_libarch}/"
+				COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${_asan_lib}" "libs-debug/${_libarch}/"
+				WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
+			)
+
+			
+		endforeach()
+	endif()
 
 	execute_process(
 		COMMAND "sh" "WORK/android-${_arch}/strip.sh" "libs/${_libarch}/*.so"
