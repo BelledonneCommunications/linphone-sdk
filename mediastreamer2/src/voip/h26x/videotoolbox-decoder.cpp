@@ -40,8 +40,16 @@ VideoToolboxDecoder::VideoToolboxDecoder(const string &mime): H26xDecoder(mime) 
 }
 
 VideoToolboxDecoder::~VideoToolboxDecoder() {
-	ms_yuv_buf_allocator_free(_pixbufAllocator);
+	// Notify the output callback that the decoder
+	// is in an instable state from now. This is necessary
+	// as the output callback may be called until the
+	// decoding session is completely destroyed.
+	ms_mutex_lock(&_mutex);
+	_destroying = true;
+	ms_mutex_unlock(&_mutex);
+
 	if (_session) destroyDecoder();
+	ms_yuv_buf_allocator_free(_pixbufAllocator);
 }
 
 bool VideoToolboxDecoder::feed(MSQueue *encodedFrame, uint64_t timestamp) {
@@ -201,6 +209,11 @@ void VideoToolboxDecoder::outputCb(void *decompressionOutputRefCon, void *source
 	auto ctx = static_cast<VideoToolboxDecoder *>(decompressionOutputRefCon);
 
 	ms_mutex_lock(&ctx->_mutex);
+
+	if (ctx->_destroying) {
+		ms_mutex_unlock(&ctx->_mutex);
+		return;
+	}
 
 	if(status != noErr || imageBuffer == nullptr) {
 		vt_dec_error("fail to decode one frame: %s", toString(status).c_str());

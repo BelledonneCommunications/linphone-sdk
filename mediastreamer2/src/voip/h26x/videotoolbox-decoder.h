@@ -72,6 +72,7 @@ private:
 	std::unique_ptr<H26xParameterSetsStore> _psStore;
 	std::unique_ptr<H26xNaluHeader> _naluHeader;
 	bool _freeze = true;
+	bool _destroying = false;
 	static const size_t _naluSizeLength = 4;
 };
 
