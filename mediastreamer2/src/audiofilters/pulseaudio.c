@@ -257,7 +257,7 @@ static void pulse_card_detect(MSSndCardManager *m){
 	/* connect to pulse server */
 	init_pulse_context();
 	if(!wait_for_context_state(PA_CONTEXT_READY, PA_CONTEXT_FAILED)) {
-		ms_error("Connection to the pulseaudio server failed");
+		ms_message("Connection to the pulseaudio server failed");
 		return;
 	}
 
