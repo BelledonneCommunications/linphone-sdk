@@ -4,6 +4,7 @@ ARG branch=master
 ARG build_type=Debug
 ARG njobs=1
 
+RUN sudo yum -y remove pulseaudio-libs
 RUN git clone https://gitlab.linphone.org/BC/public/linphone-sdk.git -b ${branch} --recursive
 RUN mkdir linphone-sdk-build
 
