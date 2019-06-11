@@ -247,7 +247,7 @@ typedef enum _MSRecorderState MSRecorderState;
 #define MS_VIDEO_CAPTURE_GET_CAMERA_SENSOR_ROTATION \
 	MS_FILTER_METHOD(MSFilterVideoCaptureInterface, 1, int)
 #define MS_CAMERA_PREVIEW_SIZE_CHANGED \
-	MS_FILTER_EVENT(MS_ANDROID_VIDEO_READ_ID, 0, const char*)
+	MS_FILTER_EVENT(MS_ANDROID_VIDEO_READ_ID, 0, MSVideoSize)
 
 /** Interface definitions for audio decoder */
 
