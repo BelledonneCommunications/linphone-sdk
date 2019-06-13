@@ -39,6 +39,23 @@ static void text_stream_free(TextStream *stream) {
 static void text_stream_process_rtcp(MediaStream *media_stream, mblk_t *m) {
 }
 
+static void text_stream_payload_type_changed(RtpSession *session, void *data){
+	TextStream *stream = (TextStream *)data;
+	RtpProfile *prof = rtp_session_get_profile(session);
+	int payload_type = rtp_session_get_recv_payload_type(session);
+	int redpt = rtp_profile_get_payload_number_from_mime_and_flag(prof, "red", PAYLOAD_TYPE_FLAG_CAN_RECV);
+
+	if (redpt > 0 && payload_type == redpt){
+		ms_warning("Received text changed to RED with pt=%d", payload_type);
+		ms_filter_call_method(stream->rttsink, MS_RTT_4103_SINK_SET_RED_PAYLOAD_TYPE_NUMBER, &stream->pt_red);
+	}else{
+		ms_warning("Received text changed to T140 with pt=%d", payload_type);
+		redpt = 0;
+		ms_filter_call_method(stream->rttsink, MS_RTT_4103_SINK_SET_RED_PAYLOAD_TYPE_NUMBER, &redpt);
+	}
+}
+
+
 TextStream *text_stream_new_with_sessions(MSFactory *factory, const MSMediaStreamSessions *sessions) {
 	TextStream *stream = (TextStream *)ms_new0(TextStream, 1);
 	stream->pt_red = 0;
@@ -77,6 +94,9 @@ TextStream *text_stream_new2(MSFactory *factory, const char* ip, int loc_rtp_por
 TextStream* text_stream_start(TextStream *stream, RtpProfile *profile, const char *rem_rtp_addr, int rem_rtp_port, const char *rem_rtcp_addr, int rem_rtcp_port, int payload_type /* ignored */) {
 	RtpSession *rtps = stream->ms.sessions.rtp_session;
 	MSConnectionHelper h;
+#if 0
+	static int vilain_hack = 0;
+#endif
 	
 	rtp_session_set_profile(rtps, profile);
 	if (rem_rtp_port > 0) rtp_session_set_remote_addr_full(rtps, rem_rtp_addr, rem_rtp_port, rem_rtcp_addr, rem_rtcp_port);
@@ -88,6 +108,18 @@ TextStream* text_stream_start(TextStream *stream, RtpProfile *profile, const cha
 
 	stream->pt_t140 = rtp_profile_get_payload_number_from_mime_and_flag(profile, "t140", PAYLOAD_TYPE_FLAG_CAN_SEND);
 	stream->pt_red = rtp_profile_get_payload_number_from_mime_and_flag(profile, "red", PAYLOAD_TYPE_FLAG_CAN_SEND);
+	
+#if 0
+	if (vilain_hack % 2 == 0){
+		ms_error("Forcing red for sending.");
+		payload_type = stream->pt_red;
+	}else{
+		ms_error("Forcing t140 for sending.");
+		payload_type = stream->pt_t140;
+	}
+	vilain_hack++;
+#endif
+	
 	if (payload_type == stream->pt_t140) {
 		ms_debug("Text payload type is T140");
 	} else if (payload_type == stream->pt_red) {
@@ -114,6 +146,7 @@ TextStream* text_stream_start(TextStream *stream, RtpProfile *profile, const cha
 		ms_filter_call_method(stream->rttsource, MS_RTT_4103_SOURCE_SET_RED_PAYLOAD_TYPE_NUMBER, &stream->pt_red);
 		ms_filter_call_method(stream->rttsink, MS_RTT_4103_SINK_SET_RED_PAYLOAD_TYPE_NUMBER, &stream->pt_red);
 	}
+	rtp_session_signal_connect(rtps,"payload_type_changed",(RtpCallback)text_stream_payload_type_changed, stream);
 	
 	ms_connection_helper_start(&h);
 	ms_connection_helper_link(&h, stream->rttsource, -1, 0);
@@ -156,6 +189,9 @@ void text_stream_stop(TextStream *stream) {
 			ms_connection_helper_unlink(&h, stream->rttsink, 0, -1);
 		}
 	}
+	rtp_session_signal_disconnect_by_callback(stream->ms.sessions.rtp_session,
+                                              "payload_type_changed",
+                                              (RtpCallback)text_stream_payload_type_changed);
 	ms_factory_log_statistics(stream->ms.factory);
 	text_stream_free(stream);
 	
