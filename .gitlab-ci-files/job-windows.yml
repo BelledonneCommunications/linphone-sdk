@@ -43,7 +43,7 @@
   tags: [ "windows" ]
   
   variables:
-    CMAKE_OPTIONS: -DENABLE_LIME_X3DH=NO -DENABLE_UNIT_TESTS=ON
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
 
   script:
     #handling the case of previous job cancellation
