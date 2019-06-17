@@ -43,7 +43,7 @@
   tags: [ "windows" ]
   
   variables:
-    CMAKE_OPTIONS: -DENABLE_LIME_X3DH=NO -DENABLE_UNIT_TESTS=ON
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
 
   script:
     #handling the case of previous job cancellation
@@ -94,44 +94,44 @@ job-windows-vs2017-novideo:
     
 #TODO : FACTORIZE TESTERS CODE
 
-test-linphone-windows:
-  stage: test
-  extends: .job-prepare
-  tags: [ "windows" ]
-  allow_failure: true
-  dependencies:
-    - job-windows-vs2017
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-  variables:
-    #no need to fetch repo, all the needed files are in input artifacts
-    GIT_SUBMODULE_STRATEGY: none
-
-  script:
-    - cd %CI_PROJECT_DIR%/build-desktop/linphone-sdk/desktop/bin
-    
+#test-linphone-windows:
+#  stage: test
+#  extends: .job-prepare
+#  tags: [ "windows" ]
+#  allow_failure: true
+#  dependencies:
+#    - job-windows-vs2017
+#  only:
+#    variables:
+#      - $NIGHTLY_MASTER
+#  variables:
+#    #no need to fetch repo, all the needed files are in input artifacts
+#    GIT_SUBMODULE_STRATEGY: none
+#
+#  script:
+#    - cd %CI_PROJECT_DIR%/build-desktop/linphone-sdk/desktop/bin
+#    
     #windows doesn't understand the meaning of the slash to launch an executable in basic command prompt
-    - echo %CI_PROJECT_DIR%
+#    - echo %CI_PROJECT_DIR%
     
     #When the dns host is set in command line, (--dns-hosts %CI_PROJECT_DIR%/linphone/tester/tester_hosts) 
     #we have a weird bellesip error message
     #2019-04-30 11:28:17:372 belle-sip-error-hosts dns_hosts_loadfile(".../share/liblinphone_tester/C:/Users/Jenkins/linphone-sdk/linphone/tester/tester_hosts"): Unknown error
 
-    - .\liblinphone_tester --verbose --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt --xml-file BCUnitAutomated.xml
+#    - .\liblinphone_tester --verbose --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt --xml-file BCUnitAutomated.xml
   
-  after_script:
-    - cd %CI_PROJECT_DIR%/build-desktop/linphone-sdk/desktop/bin
+#  after_script:
+#    - cd %CI_PROJECT_DIR%/build-desktop/linphone-sdk/desktop/bin
     #TODO COREDUMPS MANAGEMENT
-    - echo %CI_PROJECT_DIR%
-    - mkdir "%CI_PROJECT_DIR%/results"
-    - dir
-    - echo %cd%
-    - copy /B BCUnitAutomated* "%CI_PROJECT_DIR%/results"
-    - copy /B %LOG_PATTERN%* "%CI_PROJECT_DIR%/results"
-    
-  artifacts:
-    paths:
-      - results/*
-    when: always
-    expire_in: 4 week
+#    - echo %CI_PROJECT_DIR%
+#    - mkdir "%CI_PROJECT_DIR%/results"
+#    - dir
+#    - echo %cd%
+#    - copy /B BCUnitAutomated* "%CI_PROJECT_DIR%/results"
+ #   - copy /B %LOG_PATTERN%* "%CI_PROJECT_DIR%/results"
+#    
+#  artifacts:
+#    paths:
+#      - results/*
+#    when: always
+#    expire_in: 4 week
