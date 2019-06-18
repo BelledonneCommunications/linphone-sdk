@@ -61,11 +61,11 @@ public class AndroidCameraConfiguration {
 			if (Version.sdk() < 9) {
 				camerasCache = AndroidCameraConfiguration.probeCamerasSDK5();
 			} else {
-				if (Version.sdk() >= 21) {
+				/*if (Version.sdk() >= 21) {
 					camerasCache = AndroidCameraConfiguration.probeCamerasSDK21();
-				} else {
+				} else {*/
 					camerasCache = AndroidCameraConfiguration.probeCamerasSDK9();
-				}
+				//}
 			}
 		} catch (Exception exc) {
 			Log.e("Error: cannot retrieve cameras information (busy ?)", exc);
