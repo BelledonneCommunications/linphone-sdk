@@ -10,7 +10,7 @@ RUN mkdir linphone-sdk-build
 
 WORKDIR linphone-sdk-build
 RUN cmake ../linphone-sdk -DCMAKE_INSTALL_PREFIX=/opt/belledonne-communications -DCMAKE_BUILD_TYPE=${build_type} -DENABLE_LIME_X3DH=YES
-RUN make -j ${njobs}
+RUN cmake --build . -j ${njobs}
 RUN rm -rf ../linphone-sdk
 RUN find . -maxdepth 1 ! -name linphone-sdk -exec rm -rf {} \;
 
