@@ -45,7 +45,6 @@ if(APPLE)
 endif()
 
 set(_cmake_args
-	"-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/linphone-sdk/desktop"
 	"-DCMAKE_PREFIX_PATH=${CMAKE_BINARY_DIR}/linphone-sdk/desktop"
 	"-DCMAKE_NO_SYSTEM_FROM_IMPORTED=ON"
 	"-DLINPHONE_BUILDER_WORK_DIR=${CMAKE_BINARY_DIR}/WORK/desktop"

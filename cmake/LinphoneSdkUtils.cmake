@@ -45,6 +45,7 @@ function(linphone_sdk_get_inherited_cmake_args)
 		CMAKE_SHARED_LINKER_FLAGS:STRING
 		CMAKE_MODULE_LINKER_FLAGS:STRING
 		CMAKE_INSTALL_PREFIX:PATH
+		CMAKE_PREFIX_PATH:PATH
 	)
 
 	set(_inherited_cmake_args)
@@ -52,7 +53,9 @@ function(linphone_sdk_get_inherited_cmake_args)
 		string(REPLACE ":" ";" _varname_and_vartype ${_var})
 		list(GET _varname_and_vartype 0 _varname)
 		list(GET _varname_and_vartype 1 _vartype)
-		list(APPEND _inherited_cmake_args "-D${_varname}:${_vartype}=${${_varname}}")
+		if (DEFINED ${_varname})
+			list(APPEND _inherited_cmake_args "-D${_varname}:${_vartype}=${${_varname}}")
+		endif()
 	endforeach()
 
 	set(_inherited_cmake_args ${_inherited_cmake_args} PARENT_SCOPE)
