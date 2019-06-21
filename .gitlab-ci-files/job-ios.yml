@@ -49,7 +49,9 @@ job-ios-makefile:
 
 
 job-ios-ninja:
-
+  only:
+    variables:
+      - $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Ninja
   extends: .job-ios
@@ -73,11 +75,11 @@ job-ios-ninja-novideo:
 
 job-ios-xcode:
 
-    
+
     variables:
       CMAKE_GENERATOR: Xcode
-      IOS_ARCHS: "x86_64"
       CMAKE_OPTIONS: -DLINPHONESDK_IOS_BASE_URL=$IOS_SNAPSHOTS_URL -DENABLE_SWIFT_WRAPPER=YES -DENABLE_UNIT_TESTS=YES -DENABLE_LIME_X3DH=YES
+      ADDITIONAL_BUILD_OPTIONS: -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=`sysctl -n hw.ncpu`
     extends: .job-ios
 
 
