@@ -74,11 +74,7 @@ job-ios-xcode:
 
   stage: build
   tags: [ "macosx" ]
-  
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $DEPLOY_RUN_IOS
+
 
   script:
     - mkdir -p build-ios
@@ -93,3 +89,40 @@ job-ios-xcode:
       - build-ios/linphone-sdk.podspec
     when: always
     expire_in: 1 week
+
+
+test-ios:
+  tags: [ "macosx" ]
+  stage: test
+  allow_failure: true
+  dependencies:
+    - job-ios-xcode
+
+
+  script:
+    - unzip build-ios/linphone-sdk-*.zip -d build-ios/
+    - cd tester/IOS/LinphoneTester
+    - pod install
+
+    # Test launching
+    - |
+        xcodebuild -workspace tester/IOS/LinphoneTester/LinphoneTester.xcworkspace
+        -scheme LinphoneTester -sdk iphonesimulator
+        -destination name='iPhone 7 Plus'
+        -derivedDataPath $WORKSPACE build test 2>&1 | tee liblinphone-tests.log
+
+  after_script:
+    - cat tester/IOS/LinphoneTester/liblinphone-tests.log | ocunit2junit
+    - gzip tester/IOS/LinphoneTester/liblinphone-tests.log
+
+    #Gathering artifacts in one folder to ease their use
+    - sudo mkdir ${CI_PROJECT_DIR}/results
+    - sudo chmod 777 ${CI_PROJECT_DIR}/results
+    - mv tester/IOS/LinphoneTester/liblinphone-tests.log.gz ${CI_PROJECT_DIR}/results
+
+  artifacts:
+    paths:
+      - results/*
+
+    when: always
+    expire_in: 4 week
