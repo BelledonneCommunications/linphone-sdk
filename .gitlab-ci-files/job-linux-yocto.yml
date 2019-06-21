@@ -1,8 +1,6 @@
-#################################################
-# Makefile
-#################################################
 
 job-debian9-yocto-sumo:
+  stage: build
   tags: [ "docker-debian9" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-yocto:latest
 #  only:
