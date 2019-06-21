@@ -97,9 +97,9 @@ test-ios:
 
     # Test launching
     - |
-        xcodebuild -workspace tester/IOS/LinphoneTester/LinphoneTester.xcworkspace
-        -scheme LinphoneTester -sdk iphonesimulator
-        -destination name='iPhone 7 Plus'
+        xcodebuild -workspace tester/IOS/LinphoneTester/LinphoneTester.xcworkspace \
+        -scheme LinphoneTester -sdk iphonesimulator \
+        -destination name='iPhone 7 Plus' \
         -derivedDataPath $WORKSPACE build test 2>&1 | tee liblinphone-tests.log
 
   after_script:
