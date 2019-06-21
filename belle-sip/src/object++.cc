@@ -57,7 +57,7 @@ Object::~Object(){
 		belle_sip_fatal("bellesip::Object [%p] has been destroyed directly with delete operator. This is prohibited, use unref() instead.", this);
 	}
 	belle_sip_object_uninit(&mObject);
-	belle_sip_message("Object destroyed [%p]", &mObject);
+	belle_sip_debug("Object destroyed [%p]", &mObject);
 }
 
 Object *Object::ref(){
