@@ -62,9 +62,7 @@ job-debian9-ninja-gcc-novideo:
 job-debian9-ninja-clang:
 
   tags: [ "docker-debian9" ]
-  only:
-    variables:
-      - $NIGHTLY_MASTER
+  
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
   variables:
     CMAKE_OPTIONS: -DENABLE_DOC=ON
