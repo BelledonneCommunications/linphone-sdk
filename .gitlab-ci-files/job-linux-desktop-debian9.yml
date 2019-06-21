@@ -22,9 +22,7 @@ job-debian9-makefile-clang:
 
   tags: [ "docker-debian9" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
-  only:
-    variables:
-      - $NIGHTLY_MASTER
+
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: clang
