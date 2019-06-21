@@ -73,9 +73,7 @@ job-ios-ninja-novideo:
 
 job-ios-xcode:
 
-    only:
-      variables:
-        - $NIGHTLY_MASTER
+    
     variables:
       CMAKE_GENERATOR: Xcode
       IOS_ARCHS: "x86_64"
