@@ -1,0 +1,21 @@
+#################################################
+# Makefile
+#################################################
+
+job-debian9-yocto-sumo:
+  tags: [ "docker-debian9" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-yocto:latest
+#  only:
+#    variables:
+#      - $NIGHTLY_MASTER
+  extends: .job-linux-desktop
+  script:
+    - pwd
+    - cd /home/build/poky
+    - source oe-init-build-env
+    - pwd
+    - bitbake linphone-sdk 2>&1 > bitbake_build.log
+  artifacts:
+    paths:
+      - /home/build/poky/build/bitbake_build.log
+      - /home/build/poky/build/tmp/deploy/ipk/**/linphone-sdk*.ipk
