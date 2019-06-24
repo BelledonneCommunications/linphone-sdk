@@ -50,7 +50,11 @@ The steps to build the SDK are:
 
 You can pass some options to CMake at the second step to configure the SDK as you want.
 For instance, to build an iOS SDK (the default being Desktop):
- `cmake .. -DLINPHONESDK_PLATFORM=IOS`
+ `cmake .. -G Xcode -DLINPHONESDK_PLATFORM=IOS`
+
+### iOS
+ As an iOS SDK is built with generator Xcode, to change the build mode (the default is Debug):
+ `cmake --build . --config <build mode>`
 
 ### Windows
  `cmake --build .` works on Windows as for all platforms.
