@@ -75,12 +75,18 @@ job-ios-ninja-novideo:
 
 job-ios-xcode:
 
+  stage: build
+  tags: [ "macosx" ]
 
-    variables:
-      CMAKE_GENERATOR: Xcode
-      IOS_ARCHS: x86_64
-      CMAKE_OPTIONS: -DLINPHONESDK_IOS_BASE_URL=$IOS_SNAPSHOTS_URL -DENABLE_SWIFT_WRAPPER=YES -DENABLE_UNIT_TESTS=YES -DENABLE_LIME_X3DH=YES
-    extends: .job-ios
+
+
+  script:
+    - mkdir -p build-ios
+    - cd build-ios
+    - echo $CMAKE_OPTIONS
+    - cmake .. -G Xcode -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="arm64, armv7, x86_64" -DLINPHONESDK_IOS_BASE_URL=$IOS_SNAPSHOTS_URL -DENABLE_SWIFT_WRAPPER=YES -DENABLE_UNIT_TESTS=YES $CMAKE_OPTIONS
+    - cmake --build . --target sdk -- -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=`sysctl -n hw.ncpu`
+
 
 
 test-ios:
