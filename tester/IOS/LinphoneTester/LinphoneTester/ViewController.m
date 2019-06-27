@@ -21,8 +21,6 @@
     [super viewDidLoad];
     // Do any additional setup after loading the view, typically from a nib.
     
-    liblinphone_tester_init(NULL);
-    [Log enableLogs:ORTP_DEBUG];
     liblinphone_tester_keep_accounts(TRUE);
     
     NSString *bundlePath = [NSString stringWithFormat:@"%@/liblinphone_tester/", [[NSBundle mainBundle] bundlePath]] ;
