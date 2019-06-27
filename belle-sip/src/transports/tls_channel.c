@@ -653,10 +653,11 @@ static int tls_process_data(belle_sip_channel_t *obj,unsigned int revents){
 				belle_sip_warning("channel [%p]: unexpected event [%i] during TLS handshake.",obj,revents);
 			}
 		}
-	} else if ( obj->state == BELLE_SIP_CHANNEL_READY) {
+	} else if (obj->state == BELLE_SIP_CHANNEL_READY || obj->state == BELLE_SIP_CHANNEL_RES_IN_PROGRESS) {
+		/* Because of DNS TTL timeout, the channel may enter the RES_IN_PROGRESS state temporarily while being connected.*/
 		return belle_sip_channel_process_data(obj,revents);
 	} else {
-		belle_sip_error("Unexpected event [%i], for channel [%p]",revents,channel);
+		belle_sip_error("Unexpected event [%i], for channel [%p] in state [%s]", revents, channel, belle_sip_channel_state_to_string(obj->state));
 		channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
 		return BELLE_SIP_STOP;
 	}
