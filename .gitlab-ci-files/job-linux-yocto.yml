@@ -27,7 +27,7 @@ job-debian9-yocto-sumo:
     - cd /home/build/poky
     - source oe-init-build-env
     - pwd
-    - bitbake -f linphone-sdk 2>&1 > bitbake_build.log
+    - bitbake -f linphone-sdk 2>&1 | tee bitbake_build.log
   artifacts:
     paths:
       - /home/build/poky/build/bitbake_build.log
