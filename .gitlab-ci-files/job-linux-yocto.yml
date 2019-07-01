@@ -17,7 +17,10 @@ job-debian9-yocto-sumo:
       - yocto_build/downloads/
   before_script:
     - ln -sf ./yocto_build /home/build/poky/build
+    - ls -la
   script:
+    - pwd
+    - ls -la
     - export WORKSPACE_PATH="$(pwd)"
     - cd /home/build/poky
     - source oe-init-build-env
@@ -25,6 +28,7 @@ job-debian9-yocto-sumo:
     - cd $WORKSPACE_PATH
     - pwd
     - ln -sf /home/build/poky/build ./yocto_build
+    - ls -la
 #Gitlab doesn't handle cache and artifacts paths outside of project workspace (/builds/$WORKSPACE/$PROJECT_NAME)
   artifacts:
     paths:
