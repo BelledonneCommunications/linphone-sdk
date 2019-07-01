@@ -1,3 +1,5 @@
+[![pipeline status](https://gitlab.linphone.org/BC/public/linphone-sdk/badges/master/pipeline.svg)](https://gitlab.linphone.org/BC/public/linphone-sdk/commits/master)
+
 # linphone-sdk
 
 Meta repository holding all the dependencies to build a full Linphone SDK.
