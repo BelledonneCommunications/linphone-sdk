@@ -27,15 +27,27 @@
 
 job-ios-makefile:
 
+  stage: build
+  tags: [ "macosx" ]
+
   only:
     variables:
       - $NIGHTLY_MASTER
+      - $DEPLOY_RUN_IOS
 
-  variables:
-    CMAKE_GENERATOR: Unix Makefiles
-    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-  extends: .job-ios
+  script:
+    - mkdir -p build-ios
+    - cd build-ios
+    - echo $CMAKE_OPTIONS
+    - cmake .. -G "Unix Makefiles" -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="arm64, armv7, x86_64" -DLINPHONESDK_IOS_BASE_URL=$IOS_SNAPSHOTS_URL -DENABLE_UNIT_TESTS=YES $CMAKE_OPTIONS
+    - cmake --build . --target sdk -- -j$MAKEFILE_JOBS
 
+  artifacts:
+    paths:
+      - build-ios/linphone-sdk-*.zip
+      - build-ios/linphone-sdk.podspec
+    when: always
+    expire_in: 1 week
 
 #################################################
 # Ninja
