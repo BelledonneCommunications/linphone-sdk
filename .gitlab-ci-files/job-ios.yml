@@ -115,8 +115,7 @@ test-ios:
     - gzip tester/IOS/LinphoneTester/liblinphone-tests.log
 
     #Gathering artifacts in one folder to ease their use
-    - sudo mkdir ${CI_PROJECT_DIR}/results
-    - sudo chmod 777 ${CI_PROJECT_DIR}/results
+    - mkdir ${CI_PROJECT_DIR}/results
     - mv tester/IOS/LinphoneTester/liblinphone-tests.log.gz ${CI_PROJECT_DIR}/results
 
   artifacts:
