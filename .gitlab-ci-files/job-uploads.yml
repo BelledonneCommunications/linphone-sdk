@@ -14,7 +14,7 @@ job-ios-upload:
       - $NIGHTLY_MASTER
 
   dependencies:
-    - job-ios-xcode
+    - job-ios-makefile
 
   script:
     - scp build-ios/linphone-sdk-*.zip $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/ios/
