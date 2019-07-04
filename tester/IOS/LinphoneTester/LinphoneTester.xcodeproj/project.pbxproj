@@ -266,8 +266,8 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
-				"${SRCROOT}/Pods/Target Support Files/Pods-LinphoneTester/Pods-LinphoneTester-resources.sh",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Resources/liblinphone_tester",
+				"${PODS_ROOT}/Target Support Files/Pods-LinphoneTester/Pods-LinphoneTester-resources.sh",
+				"${PODS_ROOT}/../../../../build-bitcode/linphone-sdk/apple-darwin/Resources/liblinphone_tester",
 			);
 			name = "[CP] Copy Pods Resources";
 			outputFileListPaths = (
@@ -277,7 +277,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-LinphoneTester/Pods-LinphoneTester-resources.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-LinphoneTester/Pods-LinphoneTester-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		33E2E8246F0C6E7060D44B36 /* [CP] Embed Pods Frameworks */ = {
@@ -288,23 +288,24 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
-				"${SRCROOT}/Pods/Target Support Files/Pods-LinphoneTester/Pods-LinphoneTester-frameworks.sh",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/bctoolbox-tester.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/bctoolbox.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/belcard.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/belr.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/lime.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/limetester.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/linphone.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/linphonetester.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/mediastreamer2.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/msamr.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/mscodec2.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/msopenh264.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/mssilk.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/mswebrtc.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/msx264.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/ortp.framework",
+				"${PODS_ROOT}/Target Support Files/Pods-LinphoneTester/Pods-LinphoneTester-frameworks.sh",
+				"${PODS_ROOT}/../../../../build-bitcode/linphone-sdk/apple-darwin/Frameworks/bctoolbox-tester.framework",
+				"${PODS_ROOT}/../../../../build-bitcode/linphone-sdk/apple-darwin/Frameworks/bctoolbox.framework",
+				"${PODS_ROOT}/../../../../build-bitcode/linphone-sdk/apple-darwin/Frameworks/belcard.framework",
+				"${PODS_ROOT}/../../../../build-bitcode/linphone-sdk/apple-darwin/Frameworks/belle-sip.framework",
+				"${PODS_ROOT}/../../../../build-bitcode/linphone-sdk/apple-darwin/Frameworks/belr.framework",
+				"${PODS_ROOT}/../../../../build-bitcode/linphone-sdk/apple-darwin/Frameworks/lime.framework",
+				"${PODS_ROOT}/../../../../build-bitcode/linphone-sdk/apple-darwin/Frameworks/limetester.framework",
+				"${PODS_ROOT}/../../../../build-bitcode/linphone-sdk/apple-darwin/Frameworks/linphone.framework",
+				"${PODS_ROOT}/../../../../build-bitcode/linphone-sdk/apple-darwin/Frameworks/linphonetester.framework",
+				"${PODS_ROOT}/../../../../build-bitcode/linphone-sdk/apple-darwin/Frameworks/mediastreamer2.framework",
+				"${PODS_ROOT}/../../../../build-bitcode/linphone-sdk/apple-darwin/Frameworks/msamr.framework",
+				"${PODS_ROOT}/../../../../build-bitcode/linphone-sdk/apple-darwin/Frameworks/mscodec2.framework",
+				"${PODS_ROOT}/../../../../build-bitcode/linphone-sdk/apple-darwin/Frameworks/msopenh264.framework",
+				"${PODS_ROOT}/../../../../build-bitcode/linphone-sdk/apple-darwin/Frameworks/mssilk.framework",
+				"${PODS_ROOT}/../../../../build-bitcode/linphone-sdk/apple-darwin/Frameworks/mswebrtc.framework",
+				"${PODS_ROOT}/../../../../build-bitcode/linphone-sdk/apple-darwin/Frameworks/msx264.framework",
+				"${PODS_ROOT}/../../../../build-bitcode/linphone-sdk/apple-darwin/Frameworks/ortp.framework",
 			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
@@ -313,6 +314,7 @@
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/bctoolbox-tester.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/bctoolbox.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/belcard.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/belle-sip.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/belr.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/lime.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/limetester.framework",
@@ -329,7 +331,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-LinphoneTester/Pods-LinphoneTester-frameworks.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-LinphoneTester/Pods-LinphoneTester-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		4926824997E3F9D31CE75C49 /* [CP] Check Pods Manifest.lock */ = {

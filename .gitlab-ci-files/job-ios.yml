@@ -12,7 +12,7 @@
     - echo $IOS_ARCHS
     - echo $CMAKE_OPTIONS
     - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="$IOS_ARCHS" $CMAKE_OPTIONS
-    
+
     - echo $ADDITIONAL_BUILD_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     - ccache -s
@@ -60,7 +60,7 @@ job-ios-ninja-novideo:
   only:
     variables:
       - $NIGHTLY_MASTER
-      
+
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-ios-ninja
@@ -75,11 +75,6 @@ job-ios-xcode:
 
   stage: build
   tags: [ "macosx" ]
-  
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $DEPLOY_RUN_IOS
 
   script:
     - mkdir -p build-ios
@@ -120,15 +115,32 @@ test-ios:
 
   after_script:
     - cat tester/IOS/LinphoneTester/liblinphone-tests.log | ocunit2junit
-    - gzip tester/IOS/LinphoneTester/liblinphone-tests.log
+
+    - BRANCH=$CI_COMMIT_REF_NAME
+    - echo $BRANCH
+    - ESCAPED_BRANCH=$(echo $BRANCH | tr / _)
+    - echo $ESCAPED_BRANCH
+    - URL=http://linphone.org/snapshots/allure-tests-reports/$ESCAPED_BRANCH/$COMMIT/allure-report
+
+    - echo "<\!DOCTYPE HTML>" >> index.html
+    - echo "<meta charset=\"UTF-8\">" >> index.html
+    - echo "<meta http-equiv=\"refresh\" content=\"1; url=$URL\">" >> index.html
+    - echo "<script>" >> index.html
+    - echo "  window.location.href = \"$URL\"" >> index.html
+    - echo "</script>" >> index.html
+    - echo "<title>Page Redirection</title>" >> index.html
+    - echo "<\!-- Don't tell people to \`click\` the link, just tell them that it is a link. -->" >> index.html
+    - echo "If you are not redirected automatically, follow the <a href='$URL'>link to see the test report</a>" >> index.html
+    - cat index.html
 
     #Gathering artifacts in one folder to ease their use
     - mkdir ${CI_PROJECT_DIR}/results
-    - mv tester/IOS/LinphoneTester/liblinphone-tests.log.gz ${CI_PROJECT_DIR}/results
+    - cp -r tester/IOS/LinphoneTester/liblinphone-tests.log ${CI_PROJECT_DIR}/results
+    - cp -r tester/IOS/LinphoneTester/test-reports/* ${CI_PROJECT_DIR}/results
+    - cp index.html ${CI_PROJECT_DIR}/results
 
   artifacts:
     paths:
       - results/*
-
     when: always
     expire_in: 4 week
