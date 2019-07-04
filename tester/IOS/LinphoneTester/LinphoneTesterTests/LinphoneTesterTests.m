@@ -87,7 +87,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 }
 @end
 
-@interface OfferAnswerTests : LinphoneTesterBase
+/*@interface OfferAnswerTests : LinphoneTesterBase
 @end
 
 @implementation OfferAnswerTests
@@ -148,7 +148,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 + (void)initialize {
     [self testForSuite:@"DTMF"];
 }
-@end
+@end*/
 
 /*@interface CpimTests : LinphoneTesterBase
  @end
@@ -159,7 +159,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
  }
  @end*/
 
-@interface MultipartTests : LinphoneTesterBase
+/*@interface MultipartTests : LinphoneTesterBase
 @end
 
 @implementation MultipartTests
@@ -373,5 +373,5 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 + (void)initialize {
     [self testForSuite:@"Call with ICE"];
 }
-@end
+@end*/
 
