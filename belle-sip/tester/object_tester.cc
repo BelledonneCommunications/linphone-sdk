@@ -87,7 +87,13 @@ class Event : public HybridObject<LinphoneEvent, Event> {
 		void doSomething(){
 			throw BctbxException("Unimplemented");
 		}
+		Event *clone()const{
+			return new Event(*this);
+		}
 	protected:
+		Event(const Event& orig) : HybridObject<LinphoneEvent, Event>(orig){
+			mState = orig.mState;
+		}
 		//~Event() = default; //we shouls have the destructor private but in order to test the delete exception
 		//we'll make it public.
 	private:
@@ -140,21 +146,44 @@ static void dual_object(void){
 	BC_ASSERT_TRUE(object_destroyed);
 }
 
-static void dual_object_shared_ptr(void){
+static void dual_object_clone(void){
 	int object_destroyed = 0;
-	std::shared_ptr<Event> ev = bellesip::make_shared<Event>();
-	belle_sip_object_t *c_obj = ev->getCObject();
+	std::shared_ptr<Event> ev = Event::create();
+	std::shared_ptr<Event> cloned_ev = ev->clone()->toSharedPtr();
+	
+	belle_sip_object_t *c_obj = cloned_ev->getCObject();
 	BC_ASSERT_PTR_NOT_NULL(c_obj);
 	if (c_obj){
 		belle_sip_object_weak_ref(c_obj, on_object_destroyed, &object_destroyed);
 	}
 	ev.reset();
- 	BC_ASSERT_TRUE(object_destroyed);
+	BC_ASSERT_FALSE(object_destroyed); // the reset() shall not cause the cloned object to be destroyed of course.
+	cloned_ev.reset();
+ 	BC_ASSERT_TRUE(object_destroyed); // Now the object should be destroyed.
+}
+
+static void dual_object_shared_ptr(void){
+	int object_destroyed = 0;
+	std::shared_ptr<Event> ev = Event::create();
+	belle_sip_object_t *c_obj = ev->getCObject();
+	BC_ASSERT_PTR_NOT_NULL(c_obj);
+	if (c_obj){
+		belle_sip_object_weak_ref(c_obj, on_object_destroyed, &object_destroyed);
+	}
+	//Here we mix manual reference from C and shared_ptr.
+	belle_sip_object_ref(c_obj);
+	ev.reset();
+	BC_ASSERT_FALSE(object_destroyed); // the reset() shall not cause the object to be destroyed.
+	ev = Event::toCpp((LinphoneEvent*)c_obj)->getSharedFromThis(); // we get again a shared_ptr.
+	belle_sip_object_unref(c_obj);
+	BC_ASSERT_FALSE(object_destroyed); // the unref() shall not cause the object to be destroyed, since the shared_ptr has a reference to it.
+	ev.reset();
+ 	BC_ASSERT_TRUE(object_destroyed); // Now the object should be destroyed.
 }
 
 static void dual_object_shared_from_this(void){
 	int object_destroyed = 0;
-	std::shared_ptr<Event> ev = bellesip::make_shared<Event>();
+	std::shared_ptr<Event> ev = Event::create();
 	std::shared_ptr<Event> otherptr;
 	belle_sip_object_t *c_obj = ev->getCObject();
 	BC_ASSERT_PTR_NOT_NULL(c_obj);
@@ -165,6 +194,21 @@ static void dual_object_shared_from_this(void){
 	ev.reset();
 	BC_ASSERT_FALSE(object_destroyed);
 	otherptr.reset();
+	BC_ASSERT_TRUE(object_destroyed);
+}
+
+static void dual_object_shared_from_this_from_c(void){
+	int object_destroyed = 0;
+	LinphoneEvent *event = Event::createCObject();
+	std::shared_ptr<Event> otherptr;
+	BC_ASSERT_PTR_NOT_NULL(event);
+	if (event){
+		belle_sip_object_weak_ref(event, on_object_destroyed, &object_destroyed);
+	}
+	otherptr = Event::getSharedFromThis(event);
+	otherptr.reset(); // the reset() of the shared_ptr shall not cause the object to be destroyed, because we still have the C ref obtained from createCObject(). 
+	BC_ASSERT_FALSE(object_destroyed);
+	belle_sip_object_unref(event);
 	BC_ASSERT_TRUE(object_destroyed);
 }
 
@@ -182,8 +226,10 @@ static void main_loop_cpp_do_later(void){
 static test_t object_tests[] = {
         TEST_NO_TAG("Basic test", basic_test),
 	TEST_NO_TAG("Hybrid C/C++ object", dual_object),
+	TEST_NO_TAG("Hybrid C/C++ object clone", dual_object_clone),
 	TEST_NO_TAG("Hybrid C/C++ object with shared_ptr", dual_object_shared_ptr),
-	TEST_NO_TAG("Hybrid C/C++ object with shared_from_this", dual_object_shared_from_this),
+	TEST_NO_TAG("Hybrid C/C++ object with sharedFromThis()", dual_object_shared_from_this),
+	TEST_NO_TAG("Hybrid C/C++ object with sharedFromThis() from C object", dual_object_shared_from_this_from_c),
 	TEST_NO_TAG("Mainloop's do_later in c++", main_loop_cpp_do_later)
 };
 

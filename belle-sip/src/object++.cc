@@ -65,7 +65,16 @@ Object *Object::ref(){
 	return this;
 }
 
+const Object *Object::ref() const{
+	belle_sip_object_ref(&mObject);
+	return this;
+}
+
 void Object::unref(){
+	belle_sip_object_unref(&mObject);
+}
+
+void Object::constUnref()const{
 	belle_sip_object_unref(&mObject);
 }
 
