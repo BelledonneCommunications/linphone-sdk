@@ -27,12 +27,6 @@
 #include <list>
 #include <functional>
 
-#ifdef _WIN32
-    // Disable C4251 triggered by the std::enabled_shared_from_this inheritance
-    #pragma warning(push)
-    #pragma warning(disable: 4251)
-#endif // ifdef _WIN32
-
 namespace bellesip {
 
 class ObjectCAccessors;
@@ -135,7 +129,7 @@ class HybridObject : public Object {
 		//Obtain a shared_ptr from the C++ object in the const case.
 		std::shared_ptr<const _CppType> getSharedFromThis () const {
 			this->ref();
-			return std::shared_ptr<const _CppType>(static_cast<const _CppType *>(this), std::mem_fun(&Object::constUnref));
+			return std::shared_ptr<const _CppType>(static_cast<const _CppType *>(this), std::mem_fun(&HybridObject<_CType,_CppType>::constUnref));
 		}
 		//Convenience method for easy CType -> shared_ptr<CppType> conversion
 		static std::shared_ptr<_CppType> getSharedFromThis(_CType *ptr) {
