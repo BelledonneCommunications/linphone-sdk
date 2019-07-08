@@ -169,12 +169,15 @@ typedef struct _video_stream_tester_stats_t {
 	int number_of_sent_PLI;
 	int number_of_sent_SLI;
 	int number_of_sent_RPSI;
+	int number_of_sent_NACK;
 
 	int number_of_decoder_decoding_error;
 	int number_of_decoder_first_image_decoded;
 	int number_of_decoder_send_request_pli;
 	int number_of_decoder_send_request_sli;
 	int number_of_decoder_send_request_rpsi;
+
+	int number_of_jitter_update_nack;
 } video_stream_tester_stats_t;
 
 typedef struct _video_stream_tester_t {
@@ -280,22 +283,33 @@ static void event_queue_cb(MediaStream *ms, void *user_pointer) {
 						switch (rtcp_PSFB_get_type(d->packet)) {
 							case RTCP_PSFB_PLI:
 								st->number_of_sent_PLI++;
-                                ms_message("event_queue_cb: [%p] sending PLI %d",st,  st->number_of_sent_PLI);
+								ms_message("event_queue_cb: [%p] sending PLI %d", st, st->number_of_sent_PLI);
 								break;
 							case RTCP_PSFB_SLI:
-                                st->number_of_sent_SLI++;
-                                ms_message("event_queue_cb: [%p] sending SLI %d",st,  st->number_of_sent_SLI);
-
+								st->number_of_sent_SLI++;
+								ms_message("event_queue_cb: [%p] sending SLI %d", st, st->number_of_sent_SLI);
 								break;
 							case RTCP_PSFB_RPSI:
 								st->number_of_sent_RPSI++;
-                                 ms_message("event_queue_cb: [%p] sending RPSI %d",st,  st->number_of_sent_RPSI);
+								ms_message("event_queue_cb: [%p] sending RPSI %d", st, st->number_of_sent_RPSI);
+								break;
+							default:
+								break;
+						}
+					} else if (rtcp_is_RTPFB(d->packet)) {
+						switch (rtcp_RTPFB_get_type(d->packet)) {
+							case RTCP_RTPFB_NACK:
+								st->number_of_sent_NACK++;
+								ms_message("event_queue_cb: [%p] sending NACK %d", st, st->number_of_sent_NACK);
 								break;
 							default:
 								break;
 						}
 					}
 				} while (rtcp_next_packet(d->packet));
+			} else if (evt == ORTP_EVENT_JITTER_UPDATE_FOR_NACK) {
+				st->number_of_jitter_update_nack++;
+				ms_message("event_queue_cb: [%p] jitter update NACK %d", st, st->number_of_jitter_update_nack);
 			}
 			ortp_event_destroy(ev);
 		}
@@ -328,7 +342,7 @@ static void destroy_video_stream(video_stream_tester_t *vst) {
 	ortp_ev_queue_destroy(vst->stats.q);
 }
 
-static void init_video_streams(video_stream_tester_t *vst1, video_stream_tester_t *vst2, bool_t avpf, bool_t one_way, OrtpNetworkSimulatorParams *params, int payload_type) {
+static void init_video_streams(video_stream_tester_t *vst1, video_stream_tester_t *vst2, bool_t avpf, bool_t one_way, OrtpNetworkSimulatorParams *params, int payload_type, bool_t nack) {
 	PayloadType *pt;
 
 	create_video_stream(vst1, payload_type);
@@ -352,6 +366,13 @@ static void init_video_streams(video_stream_tester_t *vst1, video_stream_tester_
 
 	if (one_way == TRUE) {
 		video_stream_set_direction(vst1->vs, MediaStreamRecvOnly);
+	}
+
+	if (nack == TRUE) {
+		rtp_session_enable_avpf_feature(video_stream_get_rtp_session(vst2->vs), ORTP_AVPF_FEATURE_GENERIC_NACK, TRUE);
+		rtp_session_enable_avpf_feature(video_stream_get_rtp_session(vst2->vs), ORTP_AVPF_FEATURE_IMMEDIATE_NACK, TRUE);
+		video_stream_enable_nack_context(vst1->vs);
+		video_stream_enable_nack_context(vst2->vs);
 	}
 
 	BC_ASSERT_EQUAL(video_stream_start(vst1->vs, &rtp_profile, vst2->local_ip, vst2->local_rtp, vst2->local_ip, vst2->local_rtcp, payload_type, 50, vst1->cam), 0,int,"%d");
@@ -394,7 +415,7 @@ static void basic_video_stream_base(int payload_type) {
 	video_stream_tester_t* marielle=video_stream_tester_new();
 	video_stream_tester_t* margaux=video_stream_tester_new();
 
-	init_video_streams(marielle, margaux, FALSE, FALSE, NULL, payload_type);
+	init_video_streams(marielle, margaux, FALSE, FALSE, NULL, payload_type, FALSE);
 
 	BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms,
 													&margaux->vs->ms,
@@ -438,7 +459,7 @@ static void basic_one_way_video_stream(void) {
 	bool_t supported = ms_factory_codec_supported(_factory, "vp8");
 
 	if (supported) {
-		init_video_streams(marielle, margaux, FALSE, TRUE, NULL,VP8_PAYLOAD_TYPE);
+		init_video_streams(marielle, margaux, FALSE, TRUE, NULL,VP8_PAYLOAD_TYPE, FALSE);
 
 		BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_RR, 2, 15000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
 		video_stream_get_local_rtp_stats(marielle->vs, &marielle->stats.rtp);
@@ -459,7 +480,7 @@ static void codec_change_for_video_stream(void) {
 	bool_t mp4v_supported = ms_factory_codec_supported(_factory, "mp4v-es");
 
 	if (vp8_supported) {
-		init_video_streams(marielle, margaux, FALSE, FALSE, NULL, VP8_PAYLOAD_TYPE);
+		init_video_streams(marielle, margaux, FALSE, FALSE, NULL, VP8_PAYLOAD_TYPE, FALSE);
 		BC_ASSERT_TRUE(wait_for_until(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_decoder_first_image_decoded, 1, 2000));
 		BC_ASSERT_TRUE(wait_for_until(&marielle->vs->ms, &margaux->vs->ms, &margaux->stats.number_of_decoder_first_image_decoded, 1, 2000));
 		BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_SR, 2, 15000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
@@ -496,7 +517,7 @@ static void multicast_video_stream(void) {
 
 	if (supported) {
 		int dummy=0;
-		init_video_streams(marielle, margaux, FALSE, TRUE, NULL,VP8_PAYLOAD_TYPE);
+		init_video_streams(marielle, margaux, FALSE, TRUE, NULL,VP8_PAYLOAD_TYPE, FALSE);
 
 		BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &margaux->stats.number_of_SR, 2, 15000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
 
@@ -539,7 +560,7 @@ static void avpf_video_stream_base(int payload_type) {
 		params.enabled = TRUE;
 		params.loss_rate = 5.;
 		params.rtp_only = TRUE;
-		init_video_streams(marielle, margaux, TRUE, FALSE, &params,payload_type);
+		init_video_streams(marielle, margaux, TRUE, FALSE, &params,payload_type, FALSE);
 
         BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_SR, 2, 15000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
 
@@ -621,7 +642,7 @@ static void avpf_rpsi_count(void) {
 	margaux->cam = mediastreamer2_tester_get_mire_webcam(ms_factory_get_web_cam_manager(_factory));
 
 	if (supported) {
-		init_video_streams(marielle, margaux, TRUE, FALSE, &params,VP8_PAYLOAD_TYPE);
+		init_video_streams(marielle, margaux, TRUE, FALSE, &params,VP8_PAYLOAD_TYPE, FALSE);
 		BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms,  &marielle->stats.number_of_decoder_first_image_decoded, 1, 10000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
 		BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms,  &margaux->stats.number_of_decoder_first_image_decoded, 1, 10000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
 
@@ -662,7 +683,7 @@ static void video_stream_first_iframe_lost_base(int payload_type) {
 		/* Make sure first Iframe is lost. */
 		params.enabled = TRUE;
 		params.loss_rate = 100.;
-		init_video_streams(marielle, margaux, FALSE, FALSE, &params, payload_type);
+		init_video_streams(marielle, margaux, FALSE, FALSE, &params, payload_type, FALSE);
 		wait_for_until(&marielle->vs->ms, &margaux->vs->ms,&dummy,1,1000);
 
 		/* Use 10% packet lost to be sure to have decoding errors. */
@@ -732,7 +753,7 @@ static void avpf_video_stream_first_iframe_lost_base(int payload_type) {
 		/* Make sure first Iframe is lost. */
 		params.enabled = TRUE;
 		params.loss_rate = 100.;
-		init_video_streams(marielle, margaux, TRUE, FALSE, &params, payload_type);
+		init_video_streams(marielle, margaux, TRUE, FALSE, &params, payload_type, FALSE);
 		wait_for_until(&marielle->vs->ms, &margaux->vs->ms,&dummy,1,1000);
 
 		/* Remove the lost to be sure that a PLI will be sent and not a SLI. */
@@ -791,7 +812,7 @@ static void avpf_high_loss_video_stream_base(float rate, int payload_type) {
 	if (supported) {
 		params.enabled = TRUE;
 		params.loss_rate = rate;
-		init_video_streams(marielle, margaux, TRUE, FALSE, &params, payload_type);
+		init_video_streams(marielle, margaux, TRUE, FALSE, &params, payload_type, FALSE);
 		BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms,
 			&marielle->stats.number_of_SR, 10, 15000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
 		switch (payload_type) {
@@ -847,7 +868,7 @@ static void video_configuration_stream_base(MSVideoConfiguration* asked, MSVideo
 		margaux->vconf->vsize=asked->vsize;
 		margaux->vconf->fps=asked->fps;
 
-		init_video_streams(marielle, margaux, FALSE, TRUE, NULL,payload_type);
+		init_video_streams(marielle, margaux, FALSE, TRUE, NULL,payload_type, FALSE);
 
 		BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_RR, 4, 30000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
 
@@ -962,7 +983,7 @@ static void video_stream_elph264_camera(void) {
 		margaux->vconf->vsize = asked.vsize;
 		margaux->vconf->fps = asked.fps;
 
-		init_video_streams(marielle, margaux, FALSE, TRUE, NULL, H264_PAYLOAD_TYPE);
+		init_video_streams(marielle, margaux, FALSE, TRUE, NULL, H264_PAYLOAD_TYPE, FALSE);
 
 		BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_RR, 4, 30000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
 
@@ -984,25 +1005,71 @@ static void video_configuration_stream_all_h264_codec_combinations(void) {
 	codecs_manager_test_all_combinations(_h264_codecs_manager, video_configuration_stream_h264);
 }
 
+static void video_stream_normal_loss_with_nack_context(void) {
+	video_stream_tester_t* marielle=video_stream_tester_new();
+	video_stream_tester_t* margaux=video_stream_tester_new();
+	OrtpNetworkSimulatorParams params = { 0 };
+	bool_t supported = ms_factory_codec_supported(_factory, "vp8");
+
+	if (supported) {
+		JBParameters initial_jitter_params, current_jitter_params;
+		int dummy = 0;
+		params.enabled = TRUE;
+		params.loss_rate = 3.;
+
+		init_video_streams(marielle, margaux, TRUE, FALSE, &params, VP8_PAYLOAD_TYPE, TRUE);
+
+		rtp_session_get_jitter_buffer_params(margaux->vs->ms.sessions.rtp_session, &initial_jitter_params);
+
+		wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms,
+			&dummy, 1, 10000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats);
+
+		BC_ASSERT_LOWER(margaux->stats.number_of_sent_SLI, 5, int, "%d");
+
+		/* Since there is some loss_rate the nack context should increase the min_size */
+		rtp_session_get_jitter_buffer_params(margaux->vs->ms.sessions.rtp_session, &current_jitter_params);
+		BC_ASSERT_GREATER(current_jitter_params.min_size, initial_jitter_params.min_size, int, "%d");
+
+		params.loss_rate = 0.;
+		rtp_session_enable_network_simulation(marielle->vs->ms.sessions.rtp_session, &params);
+		rtp_session_enable_network_simulation(margaux->vs->ms.sessions.rtp_session, &params);
+
+		wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms,
+			&dummy, 1, 6000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats);
+
+		/* Since no NACK is sent in the last 5 seconds, the jitter min size is set back to default */
+		rtp_session_get_jitter_buffer_params(margaux->vs->ms.sessions.rtp_session, &current_jitter_params);
+		BC_ASSERT_EQUAL(current_jitter_params.min_size, initial_jitter_params.min_size, int, "%d");
+
+		uninit_video_streams(marielle, margaux);
+	} else {
+		ms_error("Codec is not supported!");
+	}
+
+	video_stream_tester_destroy(marielle);
+	video_stream_tester_destroy(margaux);
+}
+
 static test_t tests[] = {
-	TEST_NO_TAG("Basic video stream VP8"                   , basic_video_stream_vp8),
-	TEST_NO_TAG("Basic video stream H264"                  , basic_video_stream_all_h264_codec_combinations),
-	TEST_NO_TAG("Multicast video stream"                   , multicast_video_stream),
-	TEST_NO_TAG("Basic one-way video stream"               , basic_one_way_video_stream),
-	TEST_NO_TAG("Codec change for video stream"            , codec_change_for_video_stream),
-	TEST_NO_TAG("AVPF video stream VP8"                    , avpf_video_stream_vp8),
-	TEST_NO_TAG("AVPF video stream H264"                   , avpf_video_stream_all_h264_codec_combinations),
-	TEST_NO_TAG("AVPF high-loss video stream VP8"          , avpf_high_loss_video_stream_vp8),
-	TEST_NO_TAG("AVPF high-loss video stream H264"         , avpf_high_loss_video_stream_all_h264_codec_conbinations),
-	TEST_NO_TAG("AVPF very high-loss video stream VP8"     , avpf_very_high_loss_video_stream_vp8),
-	TEST_NO_TAG("AVPF video stream first iframe lost VP8"  , avpf_video_stream_first_iframe_lost_vp8),
-	TEST_NO_TAG("AVPF video stream first iframe lost H264" , avpf_video_stream_first_iframe_lost_all_h264_codec_combinations),
-	TEST_NO_TAG("AVP video stream first iframe lost VP8"   , video_stream_first_iframe_lost_vp8),
-	TEST_NO_TAG("AVP video stream first iframe lost H264"  , video_stream_first_iframe_lost_all_h264_codec_combinations),
-	TEST_NO_TAG("Video configuration VP8"                  , video_configuration_stream_vp8),
-	TEST_NO_TAG("Video configuration H264"                 , video_configuration_stream_all_h264_codec_combinations),
-	TEST_NO_TAG("Video steam camera ELPH264"	       , video_stream_elph264_camera),
-	TEST_NO_TAG("AVPF RPSI count"                          , avpf_rpsi_count)
+	TEST_NO_TAG("Basic video stream VP8"                     , basic_video_stream_vp8),
+	TEST_NO_TAG("Basic video stream H264"                    , basic_video_stream_all_h264_codec_combinations),
+	TEST_NO_TAG("Multicast video stream"                     , multicast_video_stream),
+	TEST_NO_TAG("Basic one-way video stream"                 , basic_one_way_video_stream),
+	TEST_NO_TAG("Codec change for video stream"              , codec_change_for_video_stream),
+	TEST_NO_TAG("AVPF video stream VP8"                      , avpf_video_stream_vp8),
+	TEST_NO_TAG("AVPF video stream H264"                     , avpf_video_stream_all_h264_codec_combinations),
+	TEST_NO_TAG("AVPF high-loss video stream VP8"            , avpf_high_loss_video_stream_vp8),
+	TEST_NO_TAG("AVPF high-loss video stream H264"           , avpf_high_loss_video_stream_all_h264_codec_conbinations),
+	TEST_NO_TAG("AVPF very high-loss video stream VP8"       , avpf_very_high_loss_video_stream_vp8),
+	TEST_NO_TAG("AVPF video stream first iframe lost VP8"    , avpf_video_stream_first_iframe_lost_vp8),
+	TEST_NO_TAG("AVPF video stream first iframe lost H264"   , avpf_video_stream_first_iframe_lost_all_h264_codec_combinations),
+	TEST_NO_TAG("AVP video stream first iframe lost VP8"     , video_stream_first_iframe_lost_vp8),
+	TEST_NO_TAG("AVP video stream first iframe lost H264"    , video_stream_first_iframe_lost_all_h264_codec_combinations),
+	TEST_NO_TAG("Video configuration VP8"                    , video_configuration_stream_vp8),
+	TEST_NO_TAG("Video configuration H264"                   , video_configuration_stream_all_h264_codec_combinations),
+	TEST_NO_TAG("Video steam camera ELPH264"                 , video_stream_elph264_camera),
+	TEST_NO_TAG("AVPF RPSI count"                            , avpf_rpsi_count),
+	TEST_NO_TAG("Video stream normal loss with NACK context" , video_stream_normal_loss_with_nack_context)
 };
 
 test_suite_t video_stream_test_suite = {

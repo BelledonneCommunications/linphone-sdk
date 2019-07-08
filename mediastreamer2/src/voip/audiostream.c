@@ -1938,6 +1938,7 @@ static void configure_av_recorder(AudioStream *stream){
 
 void audio_stream_link_video(AudioStream *stream, VideoStream *video){
 	stream->videostream=video;
+	video->audiostream=stream;
 	if (stream->av_recorder.video_input && video->recorder_output){
 		ms_message("audio_stream_link_video() connecting itc filters");
 		ms_filter_call_method(video->recorder_output,MS_ITC_SINK_CONNECT,stream->av_recorder.video_input);
@@ -1947,6 +1948,7 @@ void audio_stream_link_video(AudioStream *stream, VideoStream *video){
 
 void audio_stream_unlink_video(AudioStream *stream, VideoStream *video){
 	stream->videostream=NULL;
+	video->audiostream=NULL;
 	if (stream->av_recorder.video_input && video->recorder_output){
 		ms_filter_call_method(video->recorder_output,MS_ITC_SINK_CONNECT,NULL);
 		video_stream_enable_recording(video, FALSE);

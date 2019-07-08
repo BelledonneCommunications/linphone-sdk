@@ -157,6 +157,8 @@ int main (int argc, char *argv[]) {
 		return ret;
 	}
 
+	bctbx_set_log_level(NULL, BCTBX_LOG_DEBUG);
+
 	ret = bc_tester_start(argv[0]);
 	mediastreamer2_tester_uninit();
 	return ret;

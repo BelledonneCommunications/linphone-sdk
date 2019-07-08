@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include <ortp/ortp.h>
 #include <ortp/event.h>
+#include <ortp/nack.h>
 
 #include <mediastreamer2/msfactory.h>
 #include <mediastreamer2/msfilter.h>
@@ -849,6 +850,8 @@ struct _VideoStream
 	RtpSession *rtp_io_session; /**< The RTP session used for RTP input/output. */
 	char *preset;
 	MSVideoConfiguration *vconf_list;
+	struct _AudioStream *audiostream;/*the audio stream with which this videostream is paired*/
+	OrtpNackContext *nack_context;
 	int device_orientation; /* warning: meaning of this variable depends on the platform (Android, iOS, ...) */
 	uint64_t last_reported_decoding_error_time;
 	uint64_t last_fps_check;
@@ -1192,6 +1195,10 @@ MS2_PUBLIC void video_stream_close_remote_play(VideoStream *stream);
 MS2_PUBLIC MSFilter * video_stream_open_remote_record(VideoStream *stream, const char *filename);
 
 MS2_PUBLIC void video_stream_close_remote_record(VideoStream *stream);
+
+MS2_PUBLIC void video_stream_enable_nack_context(VideoStream *stream);
+MS2_PUBLIC void video_stream_set_nack_context_max_packet(VideoStream *stream, unsigned int max);
+MS2_PUBLIC void video_stream_disable_nack_context(VideoStream *stream);
 
 /**
  * Small API to display a local preview window.

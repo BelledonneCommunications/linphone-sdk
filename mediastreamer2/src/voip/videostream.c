@@ -42,9 +42,26 @@ static void configure_recorder_output(VideoStream *stream);
 static int video_stream_start_with_source_and_output(VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
 	const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, MSWebCam *cam, MSFilter *source, MSFilter *output);
 
+static void video_stream_update_jitter_for_nack(const OrtpEventData *evd, VideoStream *stream) {
+	if (stream->audiostream != NULL) {
+		JBParameters jitter_params;
+		RtpSession *session = audio_stream_get_rtp_session(stream->audiostream);
+
+		rtp_session_get_jitter_buffer_params(session, &jitter_params);
+		jitter_params.min_size = evd->info.jitter_min_size_for_nack;
+
+		rtp_session_get_jitter_buffer_params(session, &jitter_params);
+	}
+}
+
 void video_stream_free(VideoStream *stream) {
 	bool_t rtp_source = FALSE;
 	bool_t rtp_output = FALSE;
+
+	ortp_ev_dispatcher_disconnect(stream->ms.evd
+									, ORTP_EVENT_JITTER_UPDATE_FOR_NACK
+									, 0
+									, (OrtpEvDispatcherCb)video_stream_update_jitter_for_nack);
 
 	if ((stream->source != NULL) && (ms_filter_get_id(stream->source) == MS_RTP_RECV_ID))
 		rtp_source = TRUE;
@@ -58,6 +75,9 @@ void video_stream_free(VideoStream *stream) {
 	if ((stream->output_performs_decoding == TRUE) || (rtp_output == TRUE)) {
 		stream->ms.decoder = NULL;
 	}
+
+	if (stream->nack_context)
+		video_stream_disable_nack_context(stream);
 
 	media_stream_free(&stream->ms);
 
@@ -248,6 +268,9 @@ void video_stream_iterate(VideoStream *stream){
 	if (stream->ms.video_quality_controller) {
 		ms_video_quality_controller_process_timer(stream->ms.video_quality_controller);
 	}
+	if (stream->nack_context) {
+		ortp_nack_context_process_timer(stream->nack_context);
+	}
 }
 
 const char *video_stream_get_default_video_renderer(VideoStream *stream){
@@ -363,6 +386,12 @@ VideoStream *video_stream_new_with_sessions(MSFactory* factory, const MSMediaStr
 	stream->staticimage_webcam_fps_optimization = TRUE;
 	stream->vconf_list = NULL;
 
+	ortp_ev_dispatcher_connect(stream->ms.evd
+								, ORTP_EVENT_JITTER_UPDATE_FOR_NACK
+								, 0
+								, (OrtpEvDispatcherCb)video_stream_update_jitter_for_nack
+								, stream);
+
 	return stream;
 }
 
@@ -420,6 +449,18 @@ float video_stream_get_received_framerate(const VideoStream *stream){
 
 void video_stream_set_relay_session_id(VideoStream *stream, const char *id){
 	ms_filter_call_method(stream->ms.rtpsend, MS_RTP_SEND_SET_RELAY_SESSION_ID,(void*)id);
+}
+
+void video_stream_enable_nack_context(VideoStream *stream) {
+	stream->nack_context = ortp_nack_context_new(stream->ms.evd);
+}
+
+void video_stream_nack_context_set_max_packet(VideoStream *stream, unsigned int max) {
+	ortp_nack_context_set_max_packet(stream->nack_context, max);
+}
+
+void video_stream_disable_nack_context(VideoStream *stream) {
+	ortp_nack_context_destroy(stream->nack_context);
 }
 
 void video_stream_enable_self_view(VideoStream *stream, bool_t val){
