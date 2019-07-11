@@ -32,6 +32,7 @@ apply plugin: 'maven-publish'
 dependencies {
     implementation 'org.apache.commons:commons-compress:1.16.1'
     javadocDeps 'org.apache.commons:commons-compress:1.16.1'
+    compileOnly 'com.google.firebase:firebase-messaging:17.5.0'
 }
 
 static def isGeneratedJavaWrapperAvailable() {
