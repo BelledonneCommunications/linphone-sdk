@@ -244,12 +244,16 @@ bool_t wait_for_list_with_parse_events(bctbx_list_t *mss, int *counter, int valu
 		for (msi = mss, cbi = cbs, ptri = ptrs; msi != NULL; msi = msi->next) {
 			MediaStream *stream = (MediaStream *)msi->data;
 			ms_tester_iterate_cb cb = NULL;
+#if VIDEO_ENABLED
 			if (stream->type == MSVideo) {
 				/* video_stream_iterate does more than just calling media_stream_iterate */
 				video_stream_iterate((VideoStream *)stream);
 			} else {
+#endif
 				media_stream_iterate(stream);
+#if VIDEO_ENABLED
 			}
+#endif
 			if ((retry % 10) == 0) {
 				ms_message("stream [%p] bandwidth usage: rtp [d=%.1f,u=%.1f] kbit/sec",
 													stream,
