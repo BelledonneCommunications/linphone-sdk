@@ -31,7 +31,7 @@ In addition to the common components listed above, these components must be inst
 
 Visual Studio must also be properly configured with addons. Under "Tools"->"Obtain tools and features", make sure that the following components are installed:
  - Tasks: Select Windows Universal Platform development, Desktop C++ Development, .NET Development
- - Individual component: Windows 8.1 SDK
+ - Individual components to absolutely toggle ON: Windows 8.1 SDK, Windows 8.1 SDK and uCRT SDK, Windows 10 SDK for Desktop
 	
 Finally add your user `bin` directory and `C:\Mingw\bin` to the PATH environement variable from windows advanced settings. 
 
