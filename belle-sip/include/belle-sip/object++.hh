@@ -189,8 +189,6 @@ extern "C" {
 	BELLE_SIP_DECLARE_VPTR(belle_sip_cpp_object_t);
 }
 
-#ifdef _WIN32
-    #pragma warning(pop)
-#endif // ifdef _WIN32
+
 
 #endif //belle_sip_object_plusplus_h
