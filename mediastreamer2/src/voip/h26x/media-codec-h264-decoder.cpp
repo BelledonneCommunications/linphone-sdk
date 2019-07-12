@@ -17,6 +17,7 @@
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
+#include <algorithm>
 #include <cstring>
 
 #include <sys/system_properties.h>
@@ -38,7 +39,7 @@ namespace mediastreamer {
 MediaCodecH264Decoder::MediaCodecH264Decoder(): MediaCodecDecoder("video/avc") {
 	DeviceInfo info = getDeviceInfo();
 	ms_message("MediaCodecH264Decoder: got device info: %s", info.toString().c_str());
-	if (info == DeviceInfo({"rockchip", "X9-LX", "rk3288"})) {
+	if (find(_tvDevices.cbegin(), _tvDevices.cend(), info) != _tvDevices.cend()) {
 		ms_message("MediaCodecH264Decoder: enabling reset on new SPS/PPS mode");
 		_resetOnPsReceiving = true;
 	}
@@ -75,7 +76,7 @@ bool MediaCodecH264Decoder::setParameterSets(MSQueue *parameterSet, uint64_t tim
 	return MediaCodecDecoder::setParameterSets(parameterSet, timestamp);
 }
 
-bool MediaCodecH264Decoder::DeviceInfo::operator==(const DeviceInfo &info) {
+bool MediaCodecH264Decoder::DeviceInfo::operator==(const DeviceInfo &info) const {
 	return this->manufacturer == info.manufacturer
 		&& this->model == info.model
 		&& this->platform == info.platform;
@@ -197,6 +198,11 @@ private:
 
 	mblk_t *_sps = nullptr;
 	mblk_t *_pps = nullptr;
+};
+
+const std::vector<const MediaCodecH264Decoder::DeviceInfo> MediaCodecH264Decoder::_tvDevices = {
+	{"Amlogic", "Quad-Core Enjoy TV Box", "gxl"},
+	{"rockchip", "X9-LX", "rk3288"}
 };
 
 }

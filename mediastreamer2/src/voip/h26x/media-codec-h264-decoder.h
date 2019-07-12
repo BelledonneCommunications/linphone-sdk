@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <vector>
+
 #include "media-codec-decoder.h"
 
 namespace mediastreamer {
@@ -35,7 +37,7 @@ private:
 		std::string model;
 		std::string platform;
 
-		bool operator==(const DeviceInfo &info);
+		bool operator==(const DeviceInfo &info) const;
 		std::string toString() const;
 	};
 
@@ -44,6 +46,7 @@ private:
 
 	mblk_t *_lastSps = nullptr;
 	bool _resetOnPsReceiving = false;
+	static const std::vector<const DeviceInfo> _tvDevices; // List of devices whose H264 hardware decoder needs to be initialized with the right definition
 };
 
 }
