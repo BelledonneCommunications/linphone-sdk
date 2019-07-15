@@ -257,6 +257,7 @@ int MSWASAPIReader::feed(MSFilter *f)
 
 	UINT32 numFramesAvailable;
 	UINT32 numFramesInNextPacket = 0;
+	UINT64 devicePosition;
 	mblk_t *m;
 	int bytesPerFrame = (16 * mNChannels / 8);
 
@@ -265,7 +266,7 @@ int MSWASAPIReader::feed(MSFilter *f)
 		while (numFramesInNextPacket != 0) {
 			REPORT_ERROR("Could not get next packet size for the MSWASAPI audio input interface [%x]", result);
 
-			result = mAudioCaptureClient->GetBuffer(&pData, &numFramesAvailable, &flags, NULL, NULL);
+			result = mAudioCaptureClient->GetBuffer(&pData, &numFramesAvailable, &flags, &devicePosition, NULL);
 			REPORT_ERROR("Could not get buffer from the MSWASAPI audio input interface [%x]", result);
 			if (numFramesAvailable > 0) {
 				m = allocb(numFramesAvailable * bytesPerFrame, 0);
@@ -276,16 +277,14 @@ int MSWASAPIReader::feed(MSFilter *f)
 				
 				if (flags & AUDCLNT_BUFFERFLAGS_SILENT) {
 					memset(m->b_wptr, 0, numFramesAvailable * bytesPerFrame);
-				}
-				else {
+				} else {
 					memcpy(m->b_wptr, pData, numFramesAvailable * bytesPerFrame);
 				}
 				result = mAudioCaptureClient->ReleaseBuffer(numFramesAvailable);
 				REPORT_ERROR("Could not release buffer of the MSWASAPI audio input interface [%x]", result);
 
 				m->b_wptr += numFramesAvailable * bytesPerFrame;
-				mReadFrames += numFramesAvailable;
-				ms_ticker_synchronizer_update(mTickerSynchronizer, mReadFrames, (unsigned int)mRate);
+				ms_ticker_synchronizer_update(mTickerSynchronizer, devicePosition, (unsigned int)mRate);
 
 				ms_queue_put(f->outputs[0], m);
 				result = mAudioCaptureClient->GetNextPacketSize(&numFramesInNextPacket);

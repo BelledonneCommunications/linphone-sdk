@@ -83,7 +83,6 @@ private:
 	int mNChannels;
 	MSFilter *mFilter;
 	MSTickerSynchronizer *mTickerSynchronizer;
-	uint64_t mReadFrames;
 };
 
 
