@@ -20,6 +20,8 @@
 #
 ############################################################################
 
+add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+
 if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
 	include("${EP_bellesip_CONFIG_DIR}/BelleSIPConfig.cmake")
 else()
