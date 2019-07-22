@@ -229,7 +229,7 @@ static bool_t text_stream_ischar(RealTimeTextSinkData *stream) {
 	return FALSE;
 }
 
-static char text_stream_getchar(RealTimeTextSinkData *stream) {
+static uint8_t text_stream_getchar(RealTimeTextSinkData *stream) {
 	uint8_t *p = stream->inbufpos;
 	uint8_t *end = &stream->inbuf[stream->inbufsize];
 	while (end > p) {

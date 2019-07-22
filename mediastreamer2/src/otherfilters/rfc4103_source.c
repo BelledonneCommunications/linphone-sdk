@@ -122,7 +122,7 @@ static void ms_rtt_4103_source_putchar32(RealTimeTextSourceData *stream, uint32_
 			c[0] = 0xC0 + ((ic >> 6) & 0x1F);
 			stream->bufsize[i] += 2;
 		}
-	} else if (ic < 0x100000) {
+	} else if (ic < 0x10000) {
 		if (stream->bufsize[i] + 2 < TS_OUTBUF_SIZE) {
 			c[2] = 0x80 + (ic & 0x3F);
 			c[1] = 0x80 + ((ic >> 6) & 0x3F);
