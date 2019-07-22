@@ -44,11 +44,15 @@ if(APPLE)
 	endif()
 endif()
 
+if (NOT DEFINED	LINPHONE_BUILDER_EXTERNAL_SOURCE_PATH)
+	set(LINPHONE_BUILDER_EXTERNAL_SOURCE_PATH "${CMAKE_SOURCE_DIR}" CACHE PATH "")
+endif()
+
 set(_cmake_args
 	"-DCMAKE_PREFIX_PATH=${CMAKE_BINARY_DIR}/linphone-sdk/desktop"
 	"-DCMAKE_NO_SYSTEM_FROM_IMPORTED=ON"
 	"-DLINPHONE_BUILDER_WORK_DIR=${CMAKE_BINARY_DIR}/WORK/desktop"
-	"-DLINPHONE_BUILDER_EXTERNAL_SOURCE_PATH=${CMAKE_SOURCE_DIR}"
+	"-DLINPHONE_BUILDER_EXTERNAL_SOURCE_PATH=${LINPHONE_BUILDER_EXTERNAL_SOURCE_PATH}"
 	"-DLINPHONE_BUILDER_CONFIG_FILE=configs/config-desktop.cmake"
 )
 
@@ -66,9 +70,9 @@ if(LINPHONESDK_PREBUILD_DEPENDENCIES)
 endif()
 
 if(WIN32)
-	set(_install_command "${CMAKE_SOURCE_DIR}/cmake/dummy.bat")
+	set(_install_command "${CMAKE_CURRENT_LIST_DIR}/dummy.bat")
 else()
-	set(_install_command "${CMAKE_SOURCE_DIR}/cmake/dummy.sh")
+	set(_install_command "${CMAKE_CURRENT_LIST_DIR}/dummy.sh")
 endif()
 
 #Provide an empty global install target
@@ -76,7 +80,7 @@ install(CODE "MESSAGE(\"Dummy install target.\")")
 
 ExternalProject_Add(sdk
 	${_ep_depends}
-	SOURCE_DIR "${CMAKE_SOURCE_DIR}/cmake-builder"
+	SOURCE_DIR "${LINPHONESDK_DIR}/cmake-builder"
 	BINARY_DIR "${CMAKE_BINARY_DIR}/desktop"
 	CMAKE_GENERATOR "${CMAKE_GENERATOR}"
 	CMAKE_ARGS ${_cmake_args}

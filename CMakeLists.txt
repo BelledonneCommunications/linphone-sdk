@@ -25,17 +25,17 @@ cmake_minimum_required(VERSION 3.2)
 
 project(linphone-sdk VERSION 4.2 LANGUAGES NONE)
 
+#Default location where	sub project directories will be found
+set(LINPHONE_BUILDER_EXTERNAL_SOURCE_PATH "${CMAKE_CURRENT_LIST_DIR}" CACHE PATH "" FORCE)
 
 set(LINPHONESDK_DIR "${CMAKE_CURRENT_LIST_DIR}")
 list(APPEND CMAKE_MODULE_PATH "${LINPHONESDK_DIR}/cmake")
 include(LinphoneSdkUtils)
 
-
 linphone_sdk_git_submodule_update()
-linphone_sdk_compute_full_version(LINPHONESDK_VERSION)
-
 
 set(LINPHONESDK_PREBUILD_DEPENDENCIES)
+
 if(ENABLE_TUNNEL)
 	add_custom_target(tunnel-clone
 		"${CMAKE_COMMAND}" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-P" "${LINPHONESDK_DIR}/cmake/LinphoneSdkTunnelClone.cmake"
@@ -43,21 +43,19 @@ if(ENABLE_TUNNEL)
 	list(APPEND LINPHONESDK_PREBUILD_DEPENDENCIES tunnel-clone)
 endif()
 
-
 set(LINPHONESDK_PLATFORM "Desktop" CACHE STRING "Platform to build")
 set_property(CACHE LINPHONESDK_PLATFORM PROPERTY STRINGS "Android" "Desktop" "IOS" "UWP")
 
-
 # TODO: This will be deletable once we get rid of cmake-builder
 string(TOLOWER "${LINPHONESDK_PLATFORM}" _lowercase_platform)
-include(cmake-builder/cmake/LinphoneOptions.cmake)
-include(cmake-builder/configs/options-${_lowercase_platform}.cmake)
-include(cmake-builder/options/common.cmake)
-include(cmake-builder/options/bctoolbox.cmake)
-include(cmake-builder/options/bellesip.cmake)
-include(cmake-builder/options/ms2.cmake)
-include(cmake-builder/options/linphone.cmake)
 
+include(${LINPHONESDK_DIR}/cmake-builder/cmake/LinphoneOptions.cmake)
+include(${LINPHONESDK_DIR}/cmake-builder/configs/options-${_lowercase_platform}.cmake)
+include(${LINPHONESDK_DIR}/cmake-builder/options/common.cmake)
+include(${LINPHONESDK_DIR}/cmake-builder/options/bctoolbox.cmake)
+include(${LINPHONESDK_DIR}/cmake-builder/options/bellesip.cmake)
+include(${LINPHONESDK_DIR}/cmake-builder/options/ms2.cmake)
+include(${LINPHONESDK_DIR}/cmake-builder/options/linphone.cmake)
 
 # Give a feature summary
 include(FeatureSummary)
@@ -66,9 +64,7 @@ feature_summary(WHAT ENABLED_FEATURES DESCRIPTION "Enabled features:")
 feature_summary(FILENAME "${CMAKE_BINARY_DIR}/disabled_features.txt" WHAT ENABLED_FEATURES DESCRIPTION "Enabled features:")
 feature_summary(WHAT DISABLED_FEATURES DESCRIPTION "Disabled features:")
 
-
 include(LinphoneSdkPlatform${LINPHONESDK_PLATFORM})
-
 
 if(ENABLE_GPL_THIRD_PARTIES)
 	message(WARNING "
