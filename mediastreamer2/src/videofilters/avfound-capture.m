@@ -31,10 +31,12 @@ struct v4mState;
 
 @interface NsMsWebCam : NSObject<AVCaptureVideoDataOutputSampleBufferDelegate>
 {
+	AVCaptureDevice *device;
 	AVCaptureDeviceInput *input;
 	AVCaptureVideoDataOutput * output;
 	AVCaptureSession *session;
 	MSYuvBufAllocator *allocator;
+	MSVideoSize usedSize;
 	ms_mutex_t mutex;
 	queue_t rq;
 	BOOL isStretchingCamera;
@@ -46,7 +48,7 @@ struct v4mState;
 - (int)stop;
 - (void)setSize:(MSVideoSize) size;
 - (MSVideoSize)getSize;
-- (AVCaptureDevice*)initDevice:(NSString*)deviceId;
+- (void)initDevice:(NSString*)deviceId;
 - (void)openDevice:(NSString*) deviceId;
 - (int)getPixFmt;
 
@@ -159,12 +161,10 @@ static void capture_queue_cleanup(void* p) {
 		[output setSampleBufferDelegate:self queue:queue];
 		dispatch_release(queue);
 		
-		MSVideoSize vsize = [self getSize];
 		// At the time of macosx 10.11, it's mandatory to keep old settings, otherwise pixel buffer size is no preserved
-		NSDictionary *old_dic = [output videoSettings];
 		NSDictionary *dic = [NSDictionary dictionaryWithObjectsAndKeys:
-							 [NSNumber numberWithInteger:vsize.width], (id)kCVPixelBufferWidthKey,
-							 [NSNumber numberWithInteger:vsize.height], (id)kCVPixelBufferHeightKey,
+							 [NSNumber numberWithInteger:usedSize.width], (id)kCVPixelBufferWidthKey,
+							 [NSNumber numberWithInteger:usedSize.height], (id)kCVPixelBufferHeightKey,
 							 [NSNumber numberWithUnsignedInteger:kCVPixelFormatType_420YpCbCr8Planar], (id)kCVPixelBufferPixelFormatTypeKey,
 							 nil];
 		[output setVideoSettings:dic];
@@ -177,7 +177,6 @@ static void capture_queue_cleanup(void* p) {
 
 - (int)stop {
        if (session.running) {
-
            [session stopRunning];
     
            [output setSampleBufferDelegate:nil queue:nil];
@@ -190,9 +189,9 @@ static void capture_queue_cleanup(void* p) {
   	return MS_YUV420P;
 }
 
-- (AVCaptureDevice*)initDevice:(NSString*)deviceId {
+- (void)initDevice:(NSString*)deviceId {
 	unsigned int i = 0;
-	AVCaptureDevice * device = NULL;
+	device = NULL;
 
     NSArray * array = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
 
@@ -208,25 +207,23 @@ static void capture_queue_cleanup(void* p) {
         device = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
 
 	}
-	return device;
 }
 
 - (void)openDevice:(NSString*)deviceId {
 	NSError *error = nil;
-	AVCaptureDevice * device = [self initDevice:deviceId];
+	[self initDevice:deviceId];
     input = [AVCaptureDeviceInput deviceInputWithDevice:device error:&error];
-        if (error )
-        {
+        if (error) {
             ms_error("%s", [[error localizedDescription] UTF8String]);
             return;
         }
-    if ( input && [session canAddInput:input] ){
+    if (input && [session canAddInput:input]) {
         [input retain]; // keep reference on an externally allocated object
         [session addInput:input];
     } else {
         ms_error("Error: input nil or cannot be added: %p", input);
     }
-    if( output && [session canAddOutput:output] ){
+    if (output && [session canAddOutput:output]) {
         [session addOutput:output];
     } else {
         ms_error("Error: output nil or cannot be added: %p", output);
@@ -268,6 +265,28 @@ static void capture_queue_cleanup(void* p) {
 
 - (void)setSize:(MSVideoSize)size {
 	session.sessionPreset = [self videoSizeToPreset:size];
+
+	MSVideoSize desiredSize = [self getSize];
+	NSArray *supportedFormats = [device formats];
+	CMVideoDimensions max = {(int32_t)0, (int32_t)0};
+	unsigned int i = 0;
+
+	// Check into the supported format for the highest under the desiredSize
+	ms_message("AVCapture supported resolutions:");
+	for (i = 0; i < [supportedFormats count]; i++) {
+		AVCaptureDeviceFormat *format = [supportedFormats objectAtIndex:i];
+		CMVideoDimensions dimensions = CMVideoFormatDescriptionGetDimensions((CMVideoFormatDescriptionRef)[format formatDescription]);
+
+		ms_message("\t- %dx%d", dimensions.width, dimensions.height);
+		if (dimensions.width <= desiredSize.width && dimensions.height <= desiredSize.height) {
+			if (dimensions.width > max.width && dimensions.height > max.height) {
+				max = dimensions;
+			}
+		}
+	}
+
+	usedSize.width = max.width;
+	usedSize.height = max.height;
 }
 - (MSVideoSize)getSize {
 	return [self presetTovideoSize:session.sessionPreset];
