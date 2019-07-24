@@ -51,13 +51,7 @@ execute_process(
 	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 )
 
-if(ENABLE_SWIFT_WRAPPER AND ENABLE_JAZZY_DOC)
-	message("generating jazzy doc for swift module ......")
-	execute_process(
-		COMMAND "jazzy" "--readme" "${LINPHONESDK_DIR}/linphone/wrappers/swift/README"
-		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}/WORK/ios-${_first_arch}/Build/linphone/"
-	)
-endif()
+
 
 file(GLOB _frameworks "linphone-sdk/${_first_arch}-apple-darwin.ios/Frameworks/*.framework")
 foreach(_framework ${_frameworks})
@@ -81,3 +75,15 @@ foreach(_framework ${_frameworks})
 		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 	)
 endforeach()
+
+if(ENABLE_SWIFT_WRAPPER AND ENABLE_JAZZY_DOC)
+	message("generating jazzy doc for swift module ......")
+	execute_process(
+		COMMAND "jazzy" "--readme" "${LINPHONESDK_DIR}/linphone/wrappers/swift/README"
+		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}/WORK/ios-${_first_arch}/Build/linphone/"
+	)
+	execute_process(
+		COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "WORK/ios-${_first_arch}/Build/linphone/docs" "linphone-sdk/apple-darwin/docs"
+		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
+	)
+endif()

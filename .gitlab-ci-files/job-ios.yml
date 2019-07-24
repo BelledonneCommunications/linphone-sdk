@@ -1,70 +1,3 @@
-.job-ios:
-
-  extends: .job-prepare
-  stage: build
-  tags: [ "macosx" ]
-
-  script:
-    - ccache -s
-    - mkdir -p build-ios
-    - cd build-ios
-    - echo $CMAKE_GENERATOR
-    - echo $IOS_ARCHS
-    - echo $CMAKE_OPTIONS
-    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="$IOS_ARCHS" $CMAKE_OPTIONS
-    
-    - echo $ADDITIONAL_BUILD_OPTIONS
-    - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
-    - ccache -s
-
-  artifacts:
-    paths:
-      - build-ios/linphone-sdk-*.zip
-      - build-ios/linphone-sdk.podspec
-    when: always
-    expire_in: 1 week
-
-
-#################################################
-# Makefile
-#################################################
-
-
-job-ios-makefile:
-
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-
-  variables:
-    CMAKE_GENERATOR: Unix Makefiles
-    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-  extends: .job-ios
-
-
-#################################################
-# Ninja
-#################################################
-
-
-job-ios-ninja:
-
-  variables:
-    CMAKE_GENERATOR: Ninja
-  extends: .job-ios
-
-
-job-ios-ninja-novideo:
-
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      
-  variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
-  extends: job-ios-ninja
-
-
 #################################################
 # XCode
 #################################################
@@ -74,22 +7,23 @@ job-ios-xcode:
 
   stage: build
   tags: [ "macosx" ]
-  
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $DEPLOY_RUN_IOS
+
+  #only:
+  #  variables:
+  #    - $NIGHTLY_MASTER
+  #    - $DEPLOY_RUN_IOS
 
   script:
     - mkdir -p build-ios
     - cd build-ios
     - echo $CMAKE_OPTIONS
-    - cmake .. -G Xcode -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="arm64, armv7, x86_64" -DLINPHONESDK_IOS_BASE_URL=$IOS_SNAPSHOTS_URL -DENABLE_SWIFT_WRAPPER=YES -DENABLE_UNIT_TESTS=YES $CMAKE_OPTIONS
+    - cmake .. -G Xcode -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="arm64, armv7, x86_64" -DLINPHONESDK_IOS_BASE_URL=$IOS_SNAPSHOTS_URL -DENABLE_SWIFT_WRAPPER=YES -DENABLE_JAZZY_DOC=YES -DENABLE_UNIT_TESTS=YES $CMAKE_OPTIONS
     - cmake --build . --target sdk -- -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=`sysctl -n hw.ncpu`
 
   artifacts:
     paths:
       - build-ios/linphone-sdk-*.zip
       - build-ios/linphone-sdk.podspec
+      - build-ios/linphone-sdk/apple-darwin/docs/*
     when: always
     expire_in: 1 week
