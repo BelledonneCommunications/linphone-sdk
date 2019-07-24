@@ -27,12 +27,6 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 	set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "RelWithDebInfo")
 endif()
 
-if(CMAKE_CONFIGURATION_TYPES AND (CMAKE_CONFIGURATION_TYPES STREQUAL "Debug;Release;MinSizeRel;RelWithDebInfo"))
-	message(STATUS "Setting build type to 'RelWithDebInfo' as none was specified")
-	set(CMAKE_CONFIGURATION_TYPES "RelWithDebInfo" CACHE STRING "Choose the type of build, options are: comma-separated list of values in [Debug;Release;MinSizeRel;RelWithDebInfo]" FORCE)
-	set(CMAKE_BUILD_TYPE ${CMAKE_CONFIGURATION_TYPES})
-endif()
-
 if(NOT DEFINED CMAKE_INSTALL_MESSAGE)
 	set(CMAKE_INSTALL_MESSAGE LAZY CACHE STRING "Specify verbosity of installation script code" FORCE)
 	set_property(CACHE CMAKE_INSTALL_MESSAGE PROPERTY STRINGS "ALWAYS" "LAZY" "NEVER")

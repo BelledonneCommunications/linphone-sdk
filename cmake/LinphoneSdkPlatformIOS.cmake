@@ -23,6 +23,11 @@
 include(LinphoneSdkPlatformCommon)
 include(LinphoneSdkCheckBuildToolsIOS)
 
+if(CMAKE_CONFIGURATION_TYPES AND (CMAKE_CONFIGURATION_TYPES STREQUAL "Debug;Release;MinSizeRel;RelWithDebInfo"))
+	message(STATUS "Setting build type to 'RelWithDebInfo' as none was specified")
+	set(CMAKE_CONFIGURATION_TYPES "RelWithDebInfo" CACHE STRING "Choose the type of build, options are: comma-separated list of values in [Debug;Release;MinSizeRel;RelWithDebInfo]" FORCE)
+	set(CMAKE_BUILD_TYPE ${CMAKE_CONFIGURATION_TYPES})
+endif()
 
 set(LINPHONESDK_IOS_ARCHS "arm64, armv7, x86_64" CACHE STRING "Android architectures to build for: comma-separated list of values in [arm64, armv7, x86_64]")
 set(LINPHONESDK_IOS_BASE_URL "https://www.linphone.org/releases/ios/" CACHE STRING "URL of the repository where the iOS SDK zip files are located")
