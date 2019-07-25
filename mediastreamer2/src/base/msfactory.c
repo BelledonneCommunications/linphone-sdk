@@ -472,38 +472,41 @@ void ms_factory_reset_statistics(MSFactory *obj){
 
 	for(elem=obj->stats_list;elem!=NULL;elem=elem->next){
 		MSFilterStats *stats=(MSFilterStats *)elem->data;
-		stats->elapsed=0;
-		stats->count=0;
+		ms_u_box_plot_reset(&stats->bp_elapsed);
 	}
 }
 
 static int usage_compare(const MSFilterStats *s1, const MSFilterStats *s2){
-	if (s1->elapsed==s2->elapsed) return 0;
-	if (s1->elapsed<s2->elapsed) return 1;
+	if (s1->bp_elapsed.mean ==s2->bp_elapsed.mean) return 0;
+	if (s1->bp_elapsed.mean < s2->bp_elapsed.mean) return 1;
 	return -1;
 }
 
 
-void ms_factory_log_statistics(MSFactory *obj){
-	bctbx_list_t *sorted=NULL;
+void ms_factory_log_statistics(MSFactory *obj) {
+	bctbx_list_t *sorted = NULL;
 	bctbx_list_t *elem;
-	uint64_t total=1;
-	for(elem=obj->stats_list;elem!=NULL;elem=elem->next){
-		MSFilterStats *stats=(MSFilterStats *)elem->data;
-		sorted=bctbx_list_insert_sorted(sorted,stats,(bctbx_compare_func)usage_compare);
-		total+=stats->elapsed;
+	double total = 0.0;
+	for (elem = obj->stats_list; elem != NULL; elem = elem->next) {
+		MSFilterStats *stats = (MSFilterStats *)elem->data;
+		sorted = bctbx_list_insert_sorted(sorted, stats, (bctbx_compare_func)usage_compare);
+		total += stats->bp_elapsed.mean;
 	}
-	ms_message("===========================================================");
-	ms_message("                  FILTER USAGE STATISTICS                  ");
-	ms_message("Name                Count     Time/tick (ms)      CPU Usage");
-	ms_message("-----------------------------------------------------------");
-	for(elem=sorted;elem!=NULL;elem=elem->next){
-		MSFilterStats *stats=(MSFilterStats *)elem->data;
-		double percentage=100.0*((double)stats->elapsed)/(double)total;
-		double tpt=((double)stats->elapsed*1e-6)/((double)stats->count+1.0);
-		ms_message("%-19s %-9i %-19g %-10g",stats->name,stats->count,tpt,percentage);
+	ms_message("=================================================================================");
+	ms_message("                         FILTER USAGE STATISTICS                                 ");
+	ms_message("Name                          Count           Time/tick (ms)            CPU Usage");
+	ms_message("                                        min     mean    max     sd               ");
+	ms_message("---------------------------------------------------------------------------------");
+	for (elem = sorted; elem != NULL; elem = elem->next) {
+		MSFilterStats *stats = (MSFilterStats *)elem->data;
+		double min = stats->bp_elapsed.min * 1e-6;
+		double mean = stats->bp_elapsed.mean * 1e-6;
+		double max = stats->bp_elapsed.max * 1e-6;
+		double sd = ms_u_box_plot_get_standard_deviation(&stats->bp_elapsed) * 1e-6;
+		double percentage = total == 0.0 ? 0.0 : 100.0 * stats->bp_elapsed.mean / total;
+		ms_message("%-29s %-9llu %-7.2f %-7.2f %-7.2f %-7.2f %9.1f", stats->name, (long long unsigned)stats->bp_elapsed.count, min, mean, max, sd, percentage);
 	}
-	ms_message("===========================================================");
+	ms_message("=================================================================================");
 	bctbx_list_free(sorted);
 }
 

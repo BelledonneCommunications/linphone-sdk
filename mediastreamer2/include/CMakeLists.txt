@@ -25,6 +25,7 @@ set(HEADER_FILES
 	android_utils.h
 	bitratecontrol.h
 	bits_rw.h
+	box-plot.h
 	devices.h
 	dsptools.h
 	dtls_srtp.h

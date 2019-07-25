@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mediastreamer2/msqueue.h"
 #include "mediastreamer2/allfilters.h"
 #include "mediastreamer2/formats.h"
+#include "mediastreamer2/box-plot.h"
 
 /**
  * @file msfilter.h
@@ -148,8 +149,7 @@ typedef enum _MSFilterFlags MSFilterFlags;
 
 struct _MSFilterStats{
 	const char *name; /*<filter name*/
-	uint64_t elapsed; /*<cumulative number of nanoseconds elapsed */
-	unsigned int count; /*<number of time the filter is called for processing*/
+	MSUBoxPlot bp_elapsed; /* box plot for elapsed time in filter process in nanoseconds */
 };
 
 typedef struct _MSFilterStats MSFilterStats;

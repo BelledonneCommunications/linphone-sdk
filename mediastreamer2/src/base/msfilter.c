@@ -199,6 +199,8 @@ void ms_filter_destroy(MSFilter *f){
 
 void ms_filter_process(MSFilter *f){
 	MSTimeSpec start,stop;
+	uint64_t elapsed_time;
+
 	ms_debug("Executing process of filter %s:%p",f->desc->name,f);
 
 	if (f->stats)
@@ -207,8 +209,8 @@ void ms_filter_process(MSFilter *f){
 	f->desc->process(f);
 	if (f->stats){
 		ms_get_cur_time(&stop);
-		f->stats->count++;
-		f->stats->elapsed+=(stop.tv_sec-start.tv_sec)*1000000000LL + (stop.tv_nsec-start.tv_nsec);
+		elapsed_time = (stop.tv_sec-start.tv_sec)*1000000000LL + (stop.tv_nsec-start.tv_nsec);
+		ms_u_box_plot_add_value(&f->stats->bp_elapsed, elapsed_time);
 	}
 
 }
@@ -223,9 +225,10 @@ void ms_filter_task_process(MSFilterTask *task){
 
 	task->taskfunc(f);
 	if (f->stats){
+		uint64_t elapsed_time;
 		ms_get_cur_time(&stop);
-		f->stats->count++;
-		f->stats->elapsed+=(stop.tv_sec-start.tv_sec)*1000000000LL + (stop.tv_nsec-start.tv_nsec);
+		elapsed_time = (stop.tv_sec-start.tv_sec)*1000000000LL + (stop.tv_nsec-start.tv_nsec);
+		ms_u_box_plot_add_value(&f->stats->bp_elapsed, elapsed_time);
 	}
 	f->postponed_task--;
 }

@@ -21,6 +21,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mediastreamer2/msfactory.h"
 #include "mediastreamer2/msrtp.h"
 #include "mediastreamer2/msticker.h"
+#include "mediastreamer2/box-plot.h"
 
 #include "ortp/telephonyevents.h"
 #if defined(__cplusplus)
@@ -28,8 +29,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #endif
 #include "ortp/b64.h"
 #include "mediastreamer2/stun.h"
-
-#include "box-plot.h"
 
 static const int default_dtmf_duration_ms=100; /*in milliseconds*/
 

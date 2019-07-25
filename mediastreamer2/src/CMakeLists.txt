@@ -98,7 +98,6 @@ set(VOIP_SOURCE_FILES_C
 	utils/_kiss_fft_guts.h
 	utils/audiodiff.c
 	utils/box-plot.c
-	utils/box-plot.h
 	utils/dsptools.c
 	utils/g722.h
 	utils/g722_decode.c
