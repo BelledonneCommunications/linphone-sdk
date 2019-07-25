@@ -97,9 +97,9 @@ test-linphone-macosx:
   allow_failure: true
   dependencies:
     - job-macosx-ninja
-  only:
-    variables:
-      - $NIGHTLY_MASTER
+ # only:
+ #   variables:
+ #     - $NIGHTLY_MASTER
   variables:
     # no need to fetch repo, all is needed in artifacts
     GIT_STRATEGY: none
@@ -125,7 +125,11 @@ test-linphone-macosx:
     # for all coredumps found in find output (xargs -L1), lldb will be launched, with the commands 'thread backtrace all' and 'quit'
     - if [[ -n $(find . -type f -name "core*") ]]; then find . -type f -name "core*" | xargs -L1 lldb --batch -o 'thread backtrace all' -o 'quit' -c ; fi || true
     - ls -la
-    - mkdir ${CI_PROJECT_DIR}/results
+    - pwd
+    - |
+        if [[ -n (ls | grep ${CI_PROJECT_DIR}/results) ]];
+        then cd ${CI_PROJECT_DIR}/results; else mkdir ${CI_PROJECT_DIR}/results
+        fi || true;
     - cp -r BCUnitAutomated* ${CI_PROJECT_DIR}/results
     - cp -r $LOG_PATTERN* ${CI_PROJECT_DIR}/results
     
