@@ -24,4 +24,4 @@ job-ios-upload:
     - cd ~/.cocoapods/repos/linphone-sdk && git push origin $CI_COMMIT_REF_NAME && cd -
     - pod repo remove linphone-sdk
     #using rsync with following options : verbose, keeping symbolic links, and copy recursively
-    - rsync -rlv ../build-ios/linphone-sdk/apple-darwin/docs/* $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/docs/liblinphone/swift
+    - rsync -rlv build-ios/linphone-sdk/apple-darwin/docs/* $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/docs/liblinphone/swift
