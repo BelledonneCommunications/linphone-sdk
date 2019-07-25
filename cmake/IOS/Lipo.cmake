@@ -83,7 +83,7 @@ if(ENABLE_SWIFT_WRAPPER AND ENABLE_JAZZY_DOC)
 		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}/WORK/ios-${_first_arch}/Build/linphone/"
 	)
 	execute_process(
-		COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "WORK/ios-${_first_arch}/Build/linphone/docs" "linphone-sdk/apple-darwin/docs"
+		COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "WORK/ios-${_first_arch}/Build/linphone/docs" "docs"
 		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 	)
 endif()

@@ -24,6 +24,6 @@ job-ios-xcode:
     paths:
       - build-ios/linphone-sdk-*.zip
       - build-ios/linphone-sdk.podspec
-      - build-ios/linphone-sdk/apple-darwin/docs/*
+      - build-ios/docs/*
     when: always
     expire_in: 1 week
