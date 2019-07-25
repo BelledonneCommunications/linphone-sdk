@@ -17,11 +17,12 @@ job-ios-upload:
     - job-ios-xcode
 
   script:
+    #using rsync with following options : verbose, keeping symbolic links, and copy recursively
+    - rsync -rlv build-ios/linphone-sdk/apple-darwin/docs/* $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/docs/liblinphone/swift
+    
     - scp build-ios/linphone-sdk-*.zip $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/ios/
     - pod repo remove linphone-sdk || true
     - pod repo add linphone-sdk git@gitlab.linphone.org:BC/public/podspec.git $CI_COMMIT_REF_NAME
     - pod repo push linphone-sdk build-ios/linphone-sdk.podspec --skip-import-validation --local-only --verbose
     - cd ~/.cocoapods/repos/linphone-sdk && git push origin $CI_COMMIT_REF_NAME && cd -
     - pod repo remove linphone-sdk
-    #using rsync with following options : verbose, keeping symbolic links, and copy recursively
-    - rsync -rlv build-ios/linphone-sdk/apple-darwin/docs/* $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/docs/liblinphone/swift
