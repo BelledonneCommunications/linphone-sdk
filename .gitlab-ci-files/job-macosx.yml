@@ -108,7 +108,8 @@ test-linphone-macosx:
     ADDITIONNAL_OPTIONS: "--dns-hosts ${CI_PROJECT_DIR}/linphone/tester/tester_hosts --show-account-manager-logs"
 
   script:
-    - unzip ${CI_PROJECT_DIR}/build-desktop/linphone-sdk-*.zip
+    #using -o for overwrite
+    - unzip -o ${CI_PROJECT_DIR}/build-desktop/linphone-sdk-*.zip
     - cd $PATH_TO_TESTER
     - ls -la
     - echo ${CI_PROJECT_DIR}
