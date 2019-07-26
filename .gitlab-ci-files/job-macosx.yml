@@ -127,10 +127,7 @@ test-linphone-macosx:
     - if [[ -n $(find . -type f -name "core*") ]]; then find . -type f -name "core*" | xargs -L1 lldb --batch -o 'thread backtrace all' -o 'quit' -c ; fi || true
     - ls -la
     - pwd
-    - |
-        if [[ -n $(ls | grep ${CI_PROJECT_DIR}/results) ]];
-        then cd ${CI_PROJECT_DIR}/results; else mkdir ${CI_PROJECT_DIR}/results
-        fi || true;
+    - if [[ -n $(ls ${CI_PROJECT_DIR} | grep results) ]]; then rm -df ${CI_PROJECT_DIR}/results; else mkdir ${CI_PROJECT_DIR}/results ; fi || true;
     - cp -r BCUnitAutomated* ${CI_PROJECT_DIR}/results
     - cp -r $LOG_PATTERN* ${CI_PROJECT_DIR}/results
     
