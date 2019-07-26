@@ -128,8 +128,8 @@ test-linphone-macosx:
     - ls -la
     - pwd
     - if [[ -n $(ls ${CI_PROJECT_DIR} | grep results) ]]; then rm -rf ${CI_PROJECT_DIR}/results; else mkdir ${CI_PROJECT_DIR}/results ; fi || true;
-    - cp -r BCUnitAutomated* ${CI_PROJECT_DIR}/results
-    - cp -r $LOG_PATTERN* ${CI_PROJECT_DIR}/results
+    - cp BCUnitAutomated* ${CI_PROJECT_DIR}/results
+    - cp $LOG_PATTERN* ${CI_PROJECT_DIR}/results
     
   artifacts:
     paths:
