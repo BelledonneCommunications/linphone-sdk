@@ -127,7 +127,7 @@ test-linphone-macosx:
     - ls -la
     - pwd
     - |
-        if [[ -n (ls | grep ${CI_PROJECT_DIR}/results) ]];
+        if [[ -n $(ls | grep ${CI_PROJECT_DIR}/results) ]];
         then cd ${CI_PROJECT_DIR}/results; else mkdir ${CI_PROJECT_DIR}/results
         fi || true;
     - cp -r BCUnitAutomated* ${CI_PROJECT_DIR}/results
