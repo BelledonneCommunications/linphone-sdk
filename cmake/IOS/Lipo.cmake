@@ -79,7 +79,7 @@ endforeach()
 if(ENABLE_SWIFT_WRAPPER AND ENABLE_JAZZY_DOC)
 	message("generating jazzy doc for swift module ......")
 	execute_process(
-		COMMAND "jazzy" "--readme" "${LINPHONESDK_DIR}/linphone/wrappers/swift/README"
+		COMMAND "jazzy" "-x" "-scheme,linphonesw" "--readme" "${LINPHONESDK_DIR}/linphone/wrappers/swift/README"
 		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}/WORK/ios-${_first_arch}/Build/linphone/"
 	)
 	execute_process(
