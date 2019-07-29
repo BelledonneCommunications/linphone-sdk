@@ -131,11 +131,12 @@ test-linphone-macosx:
     - pwd
     - if [[ -n $(ls ${CI_PROJECT_DIR} | grep results) ]]; then rm -rf ${CI_PROJECT_DIR}/results; else mkdir ${CI_PROJECT_DIR}/results ; fi || true;
     - echo $LOG_PATTERN
-    - echo {CI_PROJECT_DIR}/results
+    - echo ${CI_PROJECT_DIR}/results
     - ls $LOG_PATTERN*
     - cp BCUnitAutomated* ${CI_PROJECT_DIR}/results
     - cp $LOG_PATTERN* ${CI_PROJECT_DIR}/results
-    
+    # cleaning the extracted files 
+    - rm -rf ${CI_PROJECT_DIR}/build-desktop/
   artifacts:
     paths:
       - results/*
