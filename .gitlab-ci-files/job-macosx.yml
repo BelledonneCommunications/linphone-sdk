@@ -135,7 +135,8 @@ test-linphone-macosx:
     - ls $LOG_PATTERN*
     - cp BCUnitAutomated* ${CI_PROJECT_DIR}/results
     - cp $LOG_PATTERN* ${CI_PROJECT_DIR}/results
-    
+    # cleaning the extracted files 
+    - rm -rf ${CI_PROJECT_DIR}/build-desktop/linphone-sdk
   artifacts:
     paths:
       - results/*
