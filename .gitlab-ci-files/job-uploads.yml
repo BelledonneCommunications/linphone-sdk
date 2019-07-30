@@ -24,6 +24,8 @@ job-ios-upload:
     - cd ~/.cocoapods/repos/linphone-sdk && git push origin $CI_COMMIT_REF_NAME && cd -
     - pod repo remove linphone-sdk
 
+    #using rsync with following options : verbose, keeping symbolic links, and copy recursively
+    - rsync -rlv build-ios/docs/* $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/docs/liblinphone/swift
 
 #################################################
 # Android
@@ -56,7 +58,7 @@ job-android-upload:
     - mkdir -p ~/.ssh && chmod 700 ~/.ssh
     - echo -e "Host gitlab.linphone.org\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
     - echo -e "Host linphone.org\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
-    
+
 # Currently we can't use artifact to upload this so we rebuild all android project
 
   script:
@@ -90,11 +92,11 @@ job-android-upload-no-video:
 job-android-upload-legacy:
 
   extends: job-android-upload
-  
+
   variables:
     CMAKE_OPTIONS: -DENABLE_JAVA_WRAPPER=NO
     GRADLE_OPTIONS: -Plegacy-wrapper -i
-    
+
 #################################################
 # Macosx
 #################################################
@@ -120,7 +122,7 @@ job-macosx-upload:
     - pod repo push linphone-sdk-macosx build-desktop/linphone-sdk.podspec --skip-import-validation --local-only --verbose
     - cd ~/.cocoapods/repos/linphone-sdk-macosx && git push origin $CI_COMMIT_REF_NAME && cd -
     - pod repo remove linphone-sdk-macosx
-    
+
 job-debian-doc-upload:
   stage: deploy
   tags: [ "deploy" ]
@@ -128,7 +130,7 @@ job-debian-doc-upload:
   only:
     variables:
       - $NIGHTLY_MASTER
-    
+
   dependencies:
     - job-debian9-ninja-clang
 
@@ -144,11 +146,11 @@ job-debian-doc-upload:
 job-test-report-upload:
   stage: deploy
   tags: [ "deploy" ]
-    
+
   dependencies:
     - test-liblinphone-centos7-schedule
     - test-liblinphone-centos7-mr
-  
+
   except:
     - $DEPLOY_RUN_MACOSX
     - $DEPLOY_RUN_ANDROID
@@ -174,7 +176,7 @@ job-test-report-upload:
     - MS2_VERSION=$(git -C mediastreamer2 describe)
     - SDK_VERSION=$(git describe)
     - BRANCH=$CI_COMMIT_REF_NAME
-    - ESCAPED_BRANCH=$(echo $BRANCH | tr / _)    
+    - ESCAPED_BRANCH=$(echo $BRANCH | tr / _)
     - PARENT_BRANCH=$(echo $(git log --pretty=oneline  --pretty=format:%D -n 1 HEAD~1 | awk -F ", " '{print $1}' | awk -F "origin/" '{print $2}'))
     - cd results
     - echo BRANCH=$BRANCH | tee -a environment.properties
@@ -191,34 +193,34 @@ job-test-report-upload:
     - echo LIME_VERSION=$LIME_VERSION | tee -a environment.properties
     - echo LINPHONE_VERSION=$LINPHONE_VERSION | tee -a environment.properties
     - echo MS2_VERSION=$MS2_VERSION | tee -a environment.properties
-    
+
     - cat environment.properties
-    
-    
+
+
     #TODO errors management
-    
-    
+
+
     #Script generation
     #This script will be run on the remote server to organize files and generate test reports
     - echo "#\!/bin/bash" | tee -a allure_launch_script
-    
+
     #we use as a folder the name of the branch with the slashes replaced by underscores (ex feature/random -> feature_random)
     #navigation to the branch folder and creation if it doesn't exists
     - echo "if [[ -n \$(ls | grep $ESCAPED_BRANCH) ]];" | tee -a allure_launch_script
     - echo "  then cd $ESCAPED_BRANCH; else mkdir $ESCAPED_BRANCH && cd $ESCAPED_BRANCH;" | tee -a allure_launch_script
     - echo "fi || true" | tee -a allure_launch_script
-    
+
     #as a subfoldder name, we use the git describe of the sdk (version + commit hash)
     #no need to search for an history in the case of a retry (if the directory related to the commit already exists)
     - echo "if [[ -n \$(ls | grep $SDK_VERSION) ]];" | tee -a allure_launch_script
     - echo "  then cd $SDK_VERSION;" | tee -a allure_launch_script
-    
+
     #The LAST_MODIFIED_FOLDER variable will help us to save the lastest tests history before deletion and move it
     #in the new folder, to be used by the new allure report generation
     - echo "else" | tee -a allure_launch_script
     - echo "  LAST_MODIFIED_FOLDER=\$(ls -ct | head -n1)" | tee -a allure_launch_script
     - echo "  mkdir $SDK_VERSION" >> allure_launch_script
-    
+
     #no need to save the history if there is no previous test reports
     - echo "  if [[ -z \$LAST_MODIFIED_FOLDER ]];" | tee -a allure_launch_script
     - echo "    then" | tee -a allure_launch_script
@@ -229,18 +231,18 @@ job-test-report-upload:
     - echo "  else" | tee -a allure_launch_script
     - echo "    cp -r \$LAST_MODIFIED_FOLDER/allure-report/history $SDK_VERSION/history;" | tee -a allure_launch_script
     - echo "  fi;" | tee -a allure_launch_script
-    
+
     #categories.json is usefull to define the pattern of the tests states.
     #ex
     #[
     #  {
-    #    "name": "Ignored tests", 
-    #    "matchedStatuses": ["skipped"] 
+    #    "name": "Ignored tests",
+    #    "matchedStatuses": ["skipped"]
     #  },
     #  {
     #    "name": "Infrastructure problems",
     #    "matchedStatuses": ["broken", "failed"],
-    #    "messageRegex": ".*bye-bye.*" 
+    #    "messageRegex": ".*bye-bye.*"
     #  },
     #  {
     #    "name": "Outdated tests",
@@ -257,23 +259,23 @@ job-test-report-upload:
     #  }
     #]
     #we move the BCUnit report, categories.json and evironment.properties to the desired folder to prepare allure report generation
-    
+
     - echo "  cd $SDK_VERSION && cp ../../categories.json categories.json;" | tee -a allure_launch_script
     - echo "fi || true" | tee -a allure_launch_script
     - echo "mv ../../environment.properties . && mv ../../BCUnit* ." | tee -a allure_launch_script
-    
+
     #we use the uploaded version of allure on parent directory because the allure version in repos is too old (TO DO auto install new version properly)
     - echo "~/allure-2.10.0/bin/allure generate --clean ." | tee -a allure_launch_script
     - cat allure_launch_script
     - chmod u+x allure_launch_script
-    
+
     #upload of the files
     - rsync -rlv environment.properties allure_launch_script BCUnit* $DEPLOY_SERVER:$DEPLOY_TESTS_DIRECTORY
-    
+
     #remote launch of allure_launch_script declared above
     #DEPLOY_TESTS_DIRECTORY = allure_tests_reports
     #Double quotes are needed because simple quotes doesn't eveluate the env var before sending the command to the server
     - ssh $DEPLOY_SERVER "cd $DEPLOY_TESTS_DIRECTORY && ./allure_launch_script"
-    
+
     #Need to determine how the allure server will be launched. (ie one per folder or one for all folders)
     #TODO think about deletion of oldest reports, or compression
