@@ -100,9 +100,9 @@ test-linphone-macosx:
   allow_failure: true
   dependencies:
     - job-macosx-ninja
- # only:
- #   variables:
- #     - $NIGHTLY_MASTER
+  only:
+    variables:
+      - $NIGHTLY_MASTER
   variables:
     # no need to fetch repo, all is needed in artifacts
     GIT_STRATEGY: none
@@ -115,7 +115,6 @@ test-linphone-macosx:
     - pwd
     #using -o for overwrite
     - GIT_DESCRIBE=$(cat ${CI_PROJECT_DIR}/build-desktop/gitdescribe.txt)
-    - echo GIT_DESCRIBE
     - echo ${CI_PROJECT_DIR}/build-desktop/linphone-sdk-$GIT_DESCRIBE.zip
     - unzip -o ${CI_PROJECT_DIR}/build-desktop/linphone-sdk-$GIT_DESCRIBE.zip -d ${CI_PROJECT_DIR}/build-desktop
     - cd $PATH_TO_TESTER
