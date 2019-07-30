@@ -69,20 +69,20 @@
 .job-windows-vs2017-scheduled:
   extends: .job-windows-vs2017
 
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $PACKAGE_RUN_WINDOWS
+  #only:
+  #  variables:
+  #    - $NIGHTLY_MASTER
+  #    - $PACKAGE_RUN_WINDOWS
   before_script: 
     #cache disabled on scheduled builds since we dot not need the fastest build
     - set "CLCACHE_DISABLE=1"
     
     
-job-windows-vs2017:
-  extends: .job-windows-vs2017
-  except:
-    refs:
-      - schedules
+#job-windows-vs2017:
+#  extends: .job-windows-vs2017
+#  except:
+#    refs:
+#      - schedules
       
 job-windows-vs2017-scheduled:
   extends: .job-windows-vs2017-scheduled
@@ -100,10 +100,11 @@ test-linphone-windows:
   tags: [ "windows" ]
   allow_failure: true
   dependencies:
-    - job-windows-vs2017
-  only:
-    variables:
-      - $NIGHTLY_MASTER
+   # - job-windows-vs2017
+    - job-windows-vs2017-scheduled
+  #only:
+  #  variables:
+  #    - $NIGHTLY_MASTER
   variables:
     #no need to fetch repo, all the needed files are in input artifacts
     GIT_SUBMODULE_STRATEGY: none
