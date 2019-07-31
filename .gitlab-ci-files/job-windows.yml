@@ -101,6 +101,7 @@ test-linphone-windows:
   allow_failure: true
   dependencies:
     - job-windows-vs2017
+    - job-windows-vs2017-scheduled
   only:
     variables:
       - $NIGHTLY_MASTER
@@ -128,7 +129,7 @@ test-linphone-windows:
     - dir
     - echo %cd%
     - copy /B BCUnitAutomated* "%CI_PROJECT_DIR%/results"
-    - copy /B %LOG_PATTERN%* "%CI_PROJECT_DIR%/results"
+    - copy /B logLiblinphoneAllParThIpv6* "%CI_PROJECT_DIR%/results"
     
   artifacts:
     paths:
