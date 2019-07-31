@@ -152,10 +152,11 @@ job-test-report-upload:
     - test-liblinphone-centos7-mr
 
   except:
-    - $DEPLOY_RUN_MACOSX
-    - $DEPLOY_RUN_ANDROID
-    - $DEPLOY_RUN_IOS
-    - $PACKAGE_RUN_WINDOWS
+    variables:
+      - $DEPLOY_RUN_MACOSX
+      - $DEPLOY_RUN_ANDROID
+      - $DEPLOY_RUN_IOS
+      - $PACKAGE_RUN_WINDOWS
 
 
   script:
