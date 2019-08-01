@@ -211,23 +211,24 @@ job-test-report-upload:
     #as a subfoldder name, we use the git describe of the sdk (version + commit hash)
     #no need to search for an history in the case of a retry (if the directory related to the commit already exists)
     - echo "if [[ -n \$(ls | grep $SDK_VERSION) ]];" | tee -a allure_launch_script
-    - echo "  then cd $SDK_VERSION;" | tee -a allure_launch_script
+    - echo "  then cd $SDK_VERSION/linux-centos7/liblinphone;" | tee -a allure_launch_script
     
-    #The LAST_MODIFIED_FOLDER variable will help us to save the lastest tests history before deletion and move it
+    #The LAST_MODIFIED_FOLDER variable will help us to save the latest tests history before deletion and move it
     #in the new folder, to be used by the new allure report generation
     - echo "else" | tee -a allure_launch_script
     - echo "  LAST_MODIFIED_FOLDER=\$(ls -ct | head -n1)" | tee -a allure_launch_script
-    - echo "  mkdir $SDK_VERSION" >> allure_launch_script
+    - echo "  mkdir -p $SDK_VERSION/linux-centos7/liblinphone" >> allure_launch_script
     
-    #no need to save the history if there is no previous test reports
+    #need to copy the history from parent branch if there is no previous test reports in current branch (if there is no LAST_MODIFIED_FOLDER)
+    #current branch = ESCAPED_BRANCH
     - echo "  if [[ -z \$LAST_MODIFIED_FOLDER ]];" | tee -a allure_launch_script
     - echo "    then" | tee -a allure_launch_script
     - echo "    cd ../$PARENT_BRANCH" | tee -a allure_launch_script
     - echo "    LAST_MODIFIED_FOLDER=\$(ls -ct | head -n1)" | tee -a allure_launch_script
-    - echo "    cd ../$ESCAPED_BRANCH/$SDK_VERSION" | tee -a allure_launch_script
-    - echo "    cp -r ../../$PARENT_BRANCH/\$LAST_MODIFIED_FOLDER/allure-report/history ./history;" | tee -a allure_launch_script
+    - echo "    cd ../$ESCAPED_BRANCH/" | tee -a allure_launch_script
+    - echo "    cp -r ../$PARENT_BRANCH/\$LAST_MODIFIED_FOLDER/linux-centos7/liblinphone/allure-report/history $SDK_VERSION/linux-centos7/liblinphone/history;" | tee -a allure_launch_script
     - echo "  else" | tee -a allure_launch_script
-    - echo "    cp -r \$LAST_MODIFIED_FOLDER/allure-report/history $SDK_VERSION/history;" | tee -a allure_launch_script
+    - echo "    cp -r \$LAST_MODIFIED_FOLDER/linux-centos7/liblinphone/allure-report/history $SDK_VERSION/linux-centos7/liblinphone/history;" | tee -a allure_launch_script
     - echo "  fi;" | tee -a allure_launch_script
     
     #categories.json is usefull to define the pattern of the tests states.
@@ -258,9 +259,9 @@ job-test-report-upload:
     #]
     #we move the BCUnit report, categories.json and evironment.properties to the desired folder to prepare allure report generation
     
-    - echo "  cd $SDK_VERSION && cp ../../categories.json categories.json;" | tee -a allure_launch_script
+    - echo "  cd $SDK_VERSION/linux-centos7/liblinphone && cp ../../../../categories.json categories.json;" | tee -a allure_launch_script
     - echo "fi || true" | tee -a allure_launch_script
-    - echo "mv ../../environment.properties . && mv ../../BCUnit* ." | tee -a allure_launch_script
+    - echo "mv ../../../../environment.properties . && mv ../../../../BCUnit* ." | tee -a allure_launch_script
     
     #we use the uploaded version of allure on parent directory because the allure version in repos is too old (TO DO auto install new version properly)
     - echo "~/allure-2.10.0/bin/allure generate --clean ." | tee -a allure_launch_script
@@ -275,5 +276,4 @@ job-test-report-upload:
     #Double quotes are needed because simple quotes doesn't eveluate the env var before sending the command to the server
     - ssh $DEPLOY_SERVER "cd $DEPLOY_TESTS_DIRECTORY && ./allure_launch_script"
     
-    #Need to determine how the allure server will be launched. (ie one per folder or one for all folders)
     #TODO think about deletion of oldest reports, or compression
