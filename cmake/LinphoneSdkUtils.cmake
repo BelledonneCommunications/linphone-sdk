@@ -80,7 +80,7 @@ macro(linphone_sdk_convert_comma_separated_list_to_cmake_list INPUT OUTPUT)
 endmacro()
 
 macro(linphone_sdk_check_git)
-	find_program(GIT Git CMAKE_FIND_ROOT_PATH_BOTH)
+	find_program(GIT_EXECUTABLE Git CMAKE_FIND_ROOT_PATH_BOTH)
 endmacro()
 
 function(linphone_sdk_git_submodule_update)
@@ -125,6 +125,8 @@ macro(linphone_sdk_compute_full_version OUTPUT_VERSION)
 			)
 			set(${OUTPUT_VERSION} "${PROJECT_VERSION}-g${PROJECT_GIT_REVISION}")
 		endif()
+		else()
+		  message(FATAL_ERROR "GIT executable not found")
 	endif()
 endmacro()
 
