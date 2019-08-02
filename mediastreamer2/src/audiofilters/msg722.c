@@ -40,7 +40,8 @@
 struct EncState {
 	g722_encode_state_t *state;
 	uint32_t ts;
-	int   ptime;
+	int ptime;
+	int maxptime;
 	MSBufferizer *bufferizer;
 };
 
@@ -51,6 +52,7 @@ static void enc_init(MSFilter *f)
 	s->ts=0;
 	s->bufferizer=ms_bufferizer_new();
 	s->ptime = 20;
+	s->maxptime = MS_DEFAULT_MAX_PTIME;
 	f->data=s;
 };
 
@@ -124,9 +126,10 @@ static void enc_process(MSFilter *f)
 };
 
 static void set_ptime(struct EncState *s, int value){
-	if (value>0 && value<=100){
-		s->ptime=value;
-	}
+	ms_message("MSG722Enc want ptime=%i",value);
+	s->ptime=MIN(value,s->maxptime) ;
+	if (s->ptime == s->maxptime)
+		ms_message("MSG722Enc ptime set to maxptime=%i", s->maxptime);
 }
 
 static int enc_add_attr(MSFilter *f, void *arg)
@@ -143,6 +146,9 @@ static int enc_add_fmtp(MSFilter *f, void *arg){
 	const char *fmtp=(const char*)arg;
 	struct EncState *s=(struct EncState*)f->data;
 	char tmp[16]={0};
+	if (fmtp_get_value(fmtp,"maxptime",tmp,sizeof(tmp))){
+		s->maxptime=atoi(tmp);
+	}
 	if (fmtp_get_value(fmtp,"ptime",tmp,sizeof(tmp))){
 		set_ptime(s,atoi(tmp));
 	}
@@ -154,10 +160,17 @@ static int get_sr(MSFilter *f, void *arg){
 	return 0;
 }
 
+static int get_ptime(MSFilter *f, void * arg){
+	struct EncState *s=(struct EncState*)f->data;
+	*((int *)arg) = s->ptime;
+	return 0;
+}
+
 static MSFilterMethod enc_methods[]={
-	{	MS_FILTER_ADD_ATTR		,	enc_add_attr},
-	{	MS_FILTER_ADD_FMTP		,	enc_add_fmtp},
-	{	MS_FILTER_GET_SAMPLE_RATE,	get_sr	},
+	{	MS_FILTER_ADD_ATTR			,	enc_add_attr},
+	{	MS_FILTER_ADD_FMTP			,	enc_add_fmtp},
+	{	MS_FILTER_GET_SAMPLE_RATE	,	get_sr	},
+	{	MS_AUDIO_ENCODER_GET_PTIME	,	get_ptime},
 	{	0				,	NULL		}
 };
 

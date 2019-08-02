@@ -29,21 +29,27 @@ typedef struct EncState{
 	gsm state;
 	uint32_t ts;
 	int ptime;
+	int maxptime;
 	MSBufferizer *bufferizer;
 } EncState;
 
 static int set_ptime(MSFilter *f, int ptime){
 	EncState *s=(EncState*)f->data;
-	if (ptime<20 || ptime>140) return -1;
-	s->ptime=(ptime/20)*20;
-	ms_message("MSGsmEnc: got ptime=%i using [%i]",ptime,s->ptime);
+	ms_message("%s want ptime=%i",f->desc->name, ptime);
+	ptime = (ptime/20)*20;
+	s->ptime=MIN(ptime,s->maxptime) ;
+	if (s->ptime == s->maxptime)
+		ms_message("%s ptime set to maxptime=%i", f->desc->name, s->maxptime);
 	return 0;
 }
 
 static int enc_add_fmtp(MSFilter *f, void *arg){
 	const char *fmtp=(const char *)arg;
+	EncState *s=(EncState*)f->data;
 	char tmp[30];
-	
+	if ( fmtp_get_value ( fmtp,"maxptime",tmp,sizeof ( tmp ) ) ) {
+		s->maxptime=MIN(atoi(tmp),MS_DEFAULT_MAX_PTIME);
+	}
 	if (fmtp_get_value(fmtp,"ptime",tmp,sizeof(tmp))){
 		return set_ptime(f,atoi(tmp));
 	}
@@ -70,6 +76,7 @@ static void enc_init(MSFilter *f){
 	s->state=gsm_create();
 	s->ts=0;
 	s->ptime=20;
+	s->maxptime=MS_DEFAULT_MAX_PTIME;
 	s->bufferizer=ms_bufferizer_new();
 	f->data=s;
 }
@@ -110,10 +117,17 @@ static void enc_process(MSFilter *f){
 	}
 }
 
+static int get_ptime(MSFilter *f, void * arg){
+	struct EncState *s=(struct EncState*)f->data;
+	*((int *)arg) = s->ptime;
+	return 0;
+}
+
 static MSFilterMethod enc_methods[]={
-	{	MS_FILTER_ADD_FMTP		,	enc_add_fmtp},
-	{    MS_FILTER_ADD_ATTR        ,    enc_add_attr},
-	{ MS_FILTER_GET_SAMPLE_RATE, enc_get_sample_rate },
+	{	MS_FILTER_ADD_FMTP			,	enc_add_fmtp},
+	{   MS_FILTER_ADD_ATTR        	,    enc_add_attr},
+	{ 	MS_FILTER_GET_SAMPLE_RATE	, enc_get_sample_rate},
+	{	MS_AUDIO_ENCODER_GET_PTIME	,	get_ptime},
 	{	0				,	NULL		}
 };
 

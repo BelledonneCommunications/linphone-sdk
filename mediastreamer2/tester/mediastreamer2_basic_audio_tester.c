@@ -634,6 +634,45 @@ static void two_mono_into_one_stereo(void) {
 	if (played_file1) ms_free(played_file1);
 	if (played_file2) ms_free(played_file2);
 }
+static void max_ptime(void) {
+	const bctbx_list_t * filters = ms_factory_get_filter_decs(msFactory);
+	bctbx_list_t * it = bctbx_list_copy(filters);
+	for (;it !=NULL;it = bctbx_list_next(it)) {
+		MSFilterDesc *desc = bctbx_list_get_data(it);
+		if (desc->category!=MS_FILTER_ENCODER || ms_filter_desc_implements_interface(desc, MSFilterVideoEncoderInterface))
+			continue;
+		
+		MSFilter *filter = ms_factory_create_filter_from_desc(msFactory,desc);
+		if(!ms_filter_has_method(filter,MS_AUDIO_ENCODER_GET_PTIME)){
+			ms_message("Skiping max ptime for [%s , %s] as no method MS_AUDIO_ENCODER_GET_PTIME implemented",desc->name,desc->text);
+		} else {
+			ms_message("Testing max ptime for [%s , %s",desc->name,desc->text);
+			BC_ASSERT_EQUAL(ms_filter_call_method(filter,MS_FILTER_ADD_FMTP, (void*)"maxptime=60"), 0, int, "%i");
+
+			int ptime = 40;
+			int read_ptime;
+			if (ms_filter_has_method(filter,MS_AUDIO_ENCODER_SET_PTIME))
+				ms_filter_call_method(filter,MS_AUDIO_ENCODER_SET_PTIME,&ptime);
+			else
+				BC_ASSERT_EQUAL(ms_filter_call_method(filter,MS_FILTER_ADD_FMTP, (void*)"ptime=40"), 0, int, "%i");
+			
+			ms_filter_call_method(filter,MS_AUDIO_ENCODER_GET_PTIME,&read_ptime);
+			BC_ASSERT_EQUAL(read_ptime, ptime, int, "%i");
+
+			ptime = 80;
+			if (ms_filter_has_method(filter,MS_AUDIO_ENCODER_SET_PTIME))
+				ms_filter_call_method(filter,MS_AUDIO_ENCODER_SET_PTIME,&ptime);
+			else
+				BC_ASSERT_EQUAL(ms_filter_call_method(filter,MS_FILTER_ADD_FMTP, (void*)"ptime=80"), 0, int, "%i");
+			ms_filter_call_method(filter,MS_AUDIO_ENCODER_GET_PTIME,&read_ptime);
+			BC_ASSERT_EQUAL(read_ptime, 60, int, "%i");
+		}
+		ms_filter_destroy(filter);
+	}
+	bctbx_list_free(it);
+	
+	
+}
 
 test_t basic_audio_tests[] = {
 	TEST_ONE_TAG("silence detection 48000", silence_detection_48000, "VAD"),
@@ -650,7 +689,8 @@ test_t basic_audio_tests[] = {
 #endif
 	TEST_NO_TAG("dtmfgen-enc-rtp-dec-tonedet", dtmfgen_enc_rtp_dec_tonedet),
 	TEST_NO_TAG("dtmfgen-filerec-fileplay-tonedet", dtmfgen_filerec_fileplay_tonedet),
-	TEST_NO_TAG("Mixe two mono file into one stereo file", two_mono_into_one_stereo)
+	TEST_NO_TAG("Mixe two mono file into one stereo file", two_mono_into_one_stereo),
+	TEST_NO_TAG("Max ptime", max_ptime)
 };
 
 test_suite_t basic_audio_test_suite = {

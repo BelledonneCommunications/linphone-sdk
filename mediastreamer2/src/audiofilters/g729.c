@@ -233,7 +233,7 @@ static int msbcg729_encoder_add_fmtp(MSFilter *f, void *arg){
 	const char *fmtp=(const char *)arg;
 	buf[0] ='\0';
 	
-	if (fmtp_get_value(fmtp,"maxptime:",buf,sizeof(buf))){
+	if (fmtp_get_value(fmtp,"maxptime",buf,sizeof(buf))){
 		obj->max_ptime=atoi(buf);
 		if (obj->max_ptime <10 || obj->max_ptime >100 ) {
 			ms_warning("MSBCG729Enc: unknown value [%i] for maxptime, use default value (100) instead",obj->max_ptime);
@@ -265,8 +265,15 @@ static int msbcg729_encoder_add_fmtp(MSFilter *f, void *arg){
 	return 0;
 }
 
+static int get_ptime(MSFilter *f, void * arg){
+	struct bcg729Encoder_struct* obj= (struct bcg729Encoder_struct*) f->data;
+	*((int *)arg) = obj->ptime;
+	return 0;
+}
+
 static MSFilterMethod msbcg729_encoder_methods[]={
-	{	MS_FILTER_ADD_FMTP		,	msbcg729_encoder_add_fmtp },
+	{	MS_FILTER_ADD_FMTP				,	msbcg729_encoder_add_fmtp },
+	{	MS_AUDIO_ENCODER_GET_PTIME		,	get_ptime	},
 	{	0, NULL}
 };
 

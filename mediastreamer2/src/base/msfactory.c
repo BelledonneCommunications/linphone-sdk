@@ -1145,4 +1145,7 @@ MSFactory *ms_factory_get_fallback(void){
 	return fallback_factory;
 }
 
+const MSList *ms_factory_get_filter_decs(const MSFactory *factory) {
+	return factory->desc_list;
+}
 

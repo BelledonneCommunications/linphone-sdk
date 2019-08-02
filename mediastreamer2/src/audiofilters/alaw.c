@@ -23,6 +23,7 @@
 typedef struct _AlawEncData{
 	MSBufferizer *bz;
 	int ptime;
+	int maxptime;
 	uint32_t ts;
 } AlawEncData;
 
@@ -30,6 +31,7 @@ static AlawEncData * alaw_enc_data_new(void){
 	AlawEncData *obj=(AlawEncData *)ms_new0(AlawEncData,1);
 	obj->bz=ms_bufferizer_new();
 	obj->ptime=0;
+	obj->maxptime=MIN(MS_DEFAULT_MAX_PTIME,140);
 	obj->ts=0;
 	return obj;
 }
@@ -89,9 +91,14 @@ static int enc_add_fmtp(MSFilter *f, void *arg){
 	const char *fmtp=(const char *)arg;
 	AlawEncData *s=(AlawEncData*)f->data;
 	char tmp[30];
+	if ( fmtp_get_value ( fmtp,"maxptime",tmp,sizeof ( tmp ) ) ) {
+		s->maxptime=MIN(atoi(tmp),MS_DEFAULT_MAX_PTIME);
+	}
 	if (fmtp_get_value(fmtp,"ptime",tmp,sizeof(tmp))){
-		s->ptime=atoi(tmp);
-		ms_message("MSAlawEnc: got ptime=%i",s->ptime);
+		ms_message("%s want ptime=%s",f->desc->name, tmp);
+		s->ptime=MIN(atoi(tmp),s->maxptime) ;
+		if (s->ptime == s->maxptime)
+			ms_message("%s ptime set to maxptime=%i", f->desc->name, s->maxptime);
 	}
 	return 0;
 }
@@ -146,11 +153,18 @@ static int get_channels(MSFilter *f, void *arg) {
 	return 0;
 }
 
+static int get_ptime(MSFilter *f, void * arg){
+	AlawEncData *s=(AlawEncData*)f->data;
+	*((int *)arg) = s->ptime;
+	return 0;
+}
+
 static MSFilterMethod enc_methods[]={
 	{	MS_FILTER_ADD_ATTR			,	enc_add_attr},
 	{	MS_FILTER_ADD_FMTP			,	enc_add_fmtp},
 	{	MS_FILTER_GET_NCHANNELS		,	get_channels},
 	{	MS_FILTER_GET_SAMPLE_RATE	,	get_sample_rate},
+	{	MS_AUDIO_ENCODER_GET_PTIME	,	get_ptime},
 	{	0							,	NULL		}
 };
 

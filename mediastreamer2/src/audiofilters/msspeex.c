@@ -36,6 +36,7 @@ typedef struct SpeexEncState{
 	int maxbitrate; /*ip bitrate*/
 	int ip_bitrate; /*effective ip bitrate */
 	int ptime;
+	int maxptime;
 	int vbr;
 	int cng;
 	int mode;
@@ -55,6 +56,7 @@ static void enc_init(MSFilter *f){
 	s->maxbitrate=-1;
 	s->ip_bitrate=-1;
 	s->ptime=20;
+	s->maxptime=MS_DEFAULT_MAX_PTIME;
 	s->mode=-1;
 	s->vbr=0;
 	s->cng=0;
@@ -319,6 +321,7 @@ static int enc_set_ptime(MSFilter *f, void *arg){
 	/*if the ptime is not a mulptiple of 20, go to the next multiple*/
 	if (s->ptime%20)
 		s->ptime = s->ptime - s->ptime%20 + 20;
+	s->ptime = MIN(s->ptime,s->maxptime);
 	ms_message("MSSpeexEnc: got ptime=%i",s->ptime);
 	return 0;
 }
@@ -376,6 +379,12 @@ static int enc_add_fmtp(MSFilter *f, void *arg){
 		s->mode = -1; /* default mode */
 	}
 	memset(buf, '\0', sizeof(buf));
+	
+	if (fmtp_get_value(fmtp,"maxptime",buf,sizeof(buf))){
+		s->maxptime=atoi(buf);
+		ms_message("MSSpeexEnc: got maxptime=%i",s->maxptime);
+	}
+	
 	if (fmtp_get_value(fmtp,"ptime",buf,sizeof(buf))){
 		int val=atoi(buf);
 		enc_set_ptime(f,&val);

@@ -180,6 +180,12 @@ MS2_PUBLIC MSFilterDesc* ms_factory_lookup_filter_by_id( MSFactory* factory, MSF
 MS2_PUBLIC MSList *ms_factory_lookup_filter_by_interface(MSFactory *factory, MSFilterInterfaceId id);
 
 /**
+ * Returns a list of all filter descriptions.
+ * @return a newly allocated MSList of #MSFilterDesc.
+ **/
+MS2_PUBLIC const MSList *ms_factory_get_filter_decs(const MSFactory *factory);
+
+/**
  * Create encoder filter according to codec name.
  *
  * @param mime    A string indicating the codec.

@@ -575,6 +575,14 @@ MS2_PUBLIC char *ms_load_path_content(const char *path, size_t *nbytes);
 #    define _(String) (String)
 #  endif // ENABLE_NLS
 #define N_(String) (String)
+
+/*
+ * Used by audio encoders in case no default standardized maxptime defined.
+ */
+#ifndef MS_DEFAULT_MAX_PTIME
+	#define MS_DEFAULT_MAX_PTIME 140
+#endif
+
 #endif // MS2_INTERNAL
 
 #ifdef __ANDROID__

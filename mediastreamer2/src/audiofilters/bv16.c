@@ -76,7 +76,7 @@ static int enc_add_fmtp(MSFilter *f, void *arg){
 	const char *fmtp=(const char *)arg;
 	char tmp[64];
 	tmp[0] = '\0';
-	if (fmtp_get_value(fmtp,"maxptime:",tmp,sizeof(tmp))){
+	if (fmtp_get_value(fmtp,"maxptime",tmp,sizeof(tmp))){
 		s->max_ptime=atoi(tmp);
 		if (s->max_ptime < 10 || s->max_ptime > 100 ) {
 			ms_warning("MSBV16Enc: unknown value [%i] for maxptime, use default value (100) instead",s->max_ptime);
@@ -179,7 +179,7 @@ static MSFilterMethod enc_methods[]={
 	{MS_FILTER_GET_SAMPLE_RATE	,enc_get_sample_rate },
 	{MS_FILTER_GET_NCHANNELS		,get_channels},
 	{MS_AUDIO_ENCODER_SET_PTIME, enc_set_ptime},
-	{	MS_AUDIO_ENCODER_GET_PTIME,	enc_get_ptime		},
+	{MS_AUDIO_ENCODER_GET_PTIME,	enc_get_ptime},
 	{	0				,	NULL		}
 };
 

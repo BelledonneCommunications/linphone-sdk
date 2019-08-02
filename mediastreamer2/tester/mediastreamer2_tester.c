@@ -72,12 +72,14 @@ int mediastreamer2_tester_set_log_file(const char *filename) {
 }
 
 int silent_arg_func(const char *arg) {
-	ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_FATAL);
+	bctbx_set_log_level("ortp",BCTBX_LOG_ERROR);
+	bctbx_set_log_level(BCTBX_LOG_DOMAIN,BCTBX_LOG_ERROR);
 	return 0;
 }
 
 int verbose_arg_func(const char *arg) {
-	ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
+	bctbx_set_log_level("ortp",BCTBX_LOG_DEBUG);
+	bctbx_set_log_level(BCTBX_LOG_DOMAIN,BCTBX_LOG_DEBUG);
 	return 0;
 }
 
@@ -134,7 +136,8 @@ int main (int argc, char *argv[]) {
 #endif
 	int i;
 	int ret;
-
+	
+	silent_arg_func(NULL);
 	mediastreamer2_tester_init(NULL);
 
 	// this allows to launch tester from outside of tester directory
