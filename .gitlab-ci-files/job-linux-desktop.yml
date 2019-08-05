@@ -86,6 +86,7 @@
     
   
   after_script:
+    - $PULSEAUDIO_KILL
     - pwd
     - cd $PATH_TO_TESTER
     - echo $PATH_TO_TESTER && pwd
