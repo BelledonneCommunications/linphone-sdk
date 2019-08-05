@@ -125,6 +125,8 @@ test-linphone-windows:
     #coredumps management
     #they are not generated in the right folder, so we use whoami to know with which user the tests are run
     - whoami
+    - reg query "HKLM\SOFTWARE\Microsoft\Windows\Windows Error Reporting"
+    - reg query "HKLM\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps"
     - cd %LOCALAPPDATA%
     - dir
     - cd CrashDumps
