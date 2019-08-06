@@ -83,10 +83,10 @@
     - echo $ADDITIONNAL_OPTIONS
     - echo $LOG_PATTERN.txt
     - ./$TESTER_BIN --verbose --parallel $RESOURCE_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt
+    - $PULSEAUDIO_KILL
     
   
   after_script:
-    - $PULSEAUDIO_KILL
     - pwd
     - cd $PATH_TO_TESTER
     - echo $PATH_TO_TESTER && pwd
