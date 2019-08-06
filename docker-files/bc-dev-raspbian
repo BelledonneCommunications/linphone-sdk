@@ -1,0 +1,13 @@
+FROM gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
+USER root
+RUN git clone --progress --verbose https://github.com/raspberrypi/tools.git --depth=1 /opt/raspberry-tools
+RUN mkdir -p /opt
+# with raspbian-rootfs a directory built from a runtime image of a raspbian. It can be extracted using rsync -r pi@my-raspberry-pi:/XXX raspbian-rootfs
+COPY raspbian-rootfs /opt/raspbian-rootfs
+USER bc
+ENV RASPBIAN_ROOTFS=/opt/raspbian-rootfs
+ENV PATH=/opt//raspberry-tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin:${PATH}
+ENV RASPBERRY_VERSION=2
+
+
+
