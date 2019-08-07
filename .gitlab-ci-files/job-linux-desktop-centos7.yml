@@ -123,6 +123,14 @@ test-mediastreamer-centos7:
   extends: .test
   dependencies:
     - job-centos7-ninja-gcc
+   except:                                                                                                     
+     - schedules
+   only:                                                                                                       
+     refs:                                                                                                     
+       - branches                                                                                              
+       - tags                                                                                                  
+     variables:                                                                                                
+       - $ENABLE_TESTS_IN_MR                                                                                   
   variables:
     TESTER_BIN: "mediastreamer2_tester"
     PULSEAUDIO: "pulseaudio -D -L module-virtual-source --exit-idle-time=-1"
