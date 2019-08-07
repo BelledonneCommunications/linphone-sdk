@@ -82,7 +82,9 @@
     - echo $RESOURCE_DIR 
     - echo $ADDITIONNAL_OPTIONS
     - echo $LOG_PATTERN.txt
-    - ./$TESTER_BIN --verbose --parallel $RESOURCE_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt || $PULSEAUDIO_KILL
+    - ./$TESTER_BIN --verbose --parallel $RESOURCE_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt || EXIT=$?
+    - $PULSEAUDIO_KILL
+    - exit $EXIT
     
   
   after_script:
