@@ -119,27 +119,18 @@ test-linphone-windows:
     #we have a weird bellesip error message
     #2019-04-30 11:28:17:372 belle-sip-error-hosts dns_hosts_loadfile(".../share/liblinphone_tester/C:/Users/Jenkins/linphone-sdk/linphone/tester/tester_hosts"): Unknown error
 
-    - .\liblinphone_tester --verbose --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt --xml-file BCUnitAutomated.xml
+    - procdump -ma -e -x . liblinphone_tester.exe --verbose --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt --xml-file BCUnitAutomated.xml --resource-dir C:\Users\Jenkins\linphone-sdk2\linphone\tester
   
   after_script:
     #coredumps management
     #they are not generated in the right folder, so we use whoami to know with which user the tests are run
     - whoami
-    - reg query "HKLM\SOFTWARE\Microsoft\Windows\Windows Error Reporting"
-    - reg query "HKLM\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps"
-    - cd %LOCALAPPDATA%
-    #writing permissions check
-    - echo randombouya > test.txt
-    - type test.txt
-    - del test.txt
     - dir
-    - cd CrashDumps
+    - cd %CI_PROJECT_DIR%/build-desktop/linphone-sdk/desktop/bin
     - dir
-    - for %v in (liblinphone_tester.exe.*) do cdb -z %v -c "!analyse -v; q"
+    - for %v in (liblinphone_tester.exe*.dmp) do cdb -z %v -c "!analyse -v; q"
     - del %CD%\*.dmp
     - dir
-
-    - cd %CI_PROJECT_DIR%/build-desktop/linphone-sdk/desktop/bin
     - echo %CI_PROJECT_DIR%
     - mkdir "%CI_PROJECT_DIR%/results"
     - dir
