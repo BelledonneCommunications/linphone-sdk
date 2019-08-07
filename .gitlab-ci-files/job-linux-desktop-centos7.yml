@@ -77,52 +77,60 @@ job-centos7-ninja-clang-novideo:
 
   only:
     variables:
-      - $NIGHTLY_MASTER   
+      - $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-centos7-ninja-clang
-  
-  
+
+
 #################################################
 # TESTS
 #################################################
-  
-  
+
+
 test-bctoolbox-centos7:
   extends: .test-bctoolbox
   dependencies:
     - job-centos7-ninja-gcc
   tags: [ "docker-test-centos7-nuc" ]
-  
+
 test-bellesip-centos7:
   extends: .test-bellesip
   dependencies:
     - job-centos7-ninja-gcc
   tags: [ "docker-test-centos7-nuc" ]
-  
+
 test-belr-centos7:
   extends: .test-belr
   dependencies:
     - job-centos7-ninja-gcc
   tags: [ "docker-test-centos7-nuc" ]
-  
+
 test-belcard-centos7:
   extends: .test-belcard
   dependencies:
     - job-centos7-ninja-gcc
   tags: [ "docker-test-centos7-nuc" ]
-  
+
 test-bzrtp-centos7:
   extends: .test-bzrtp
   dependencies:
     - job-centos7-ninja-gcc
   tags: [ "docker-test-centos7-nuc" ]
-  
+
 test-mediastreamer-centos7:
   tags: [ "docker-test-centos7-liblinphone-nuc" ]
   extends: .test
   dependencies:
     - job-centos7-ninja-gcc
+  only:
+    refs:
+      - branches
+      - tags
+    variables:
+      - $ENABLE_TESTS_IN_MR
+  except:
+   - schedules
   variables:
     TESTER_BIN: "mediastreamer2_tester"
     PULSEAUDIO: "pulseaudio -D -L module-virtual-source --exit-idle-time=-1"
@@ -130,8 +138,8 @@ test-mediastreamer-centos7:
     LOG_PATTERN: "logMediastreamerAllPar"
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
     SET_CAP_SYS_NICE_NET_ADMIN_MS: "sudo setcap cap_net_admin,cap_sys_nice+ep ./${TESTER_BIN}"
-    
-    
+
+
 .test-liblinphone-centos7:
   tags: [ "docker-test-centos7-liblinphone-nuc" ]
   extends: .test-liblinphone
@@ -146,10 +154,10 @@ test-liblinphone-centos7-mr:
   only:
     refs:
       - branches
-      - tags 
+      - tags
     variables:
       - $ENABLE_TESTS_IN_MR
-  except: 
+  except:
    - schedules
 
 #apparently there is no more standalone lime tester
