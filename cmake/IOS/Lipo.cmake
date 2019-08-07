@@ -67,8 +67,8 @@ foreach(_framework ${_frameworks})
 		endforeach()
 	endif()
 	string(REPLACE ";" " " _arch_string "${_archs}")
+	message (STATUS "Mixing ${_framework_name} for archs [${_arch_string}]")
 	execute_process(
-		COMMAND "${CMAKE_COMMAND}" "-E" "echo" "Mixing ${_framework_name} for archs [${_arch_string}]"
 		COMMAND "lipo" "-create" "-output" "linphone-sdk/apple-darwin/Frameworks/${_framework_name}.framework/${_framework_name}" ${_all_arch_frameworks}
 		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 	)
