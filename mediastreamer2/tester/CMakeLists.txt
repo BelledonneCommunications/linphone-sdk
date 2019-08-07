@@ -29,6 +29,10 @@ else()
 	endif()
 endif()
 
+if(SPEEXDSP_FOUND)
+	#required for neon resampler tester
+	list(APPEND MS2_LIBS_FOR_TESTER ${SPEEXDSP_LIBRARIES})
+endif()
 
 set(SOUND_FILES
 	sounds/arpeggio_8000_mono.wav
@@ -108,6 +112,11 @@ set(SOURCE_FILES_C
 	mediastreamer2_text_stream_tester.c
 	mediastreamer2_jitterbuffer_tester.c
 )
+
+if(SPEEXDSP_FOUND)
+	list(APPEND mediastreamer2_neon_tester.c)
+endif()
+
 set(SOURCE_FILES_CXX )
 set(SOURCE_FILES_OBJC )
 
