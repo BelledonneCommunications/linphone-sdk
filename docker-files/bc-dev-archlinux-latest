@@ -1,4 +1,4 @@
-FROM base/archlinux:latest
+FROM archlinux/base:latest
 
 MAINTAINER Ghislain MARY <ghislain.mary@belledonne-communications.com>
 
