@@ -128,7 +128,7 @@ test-linphone-windows:
     - dir
     - cd %CI_PROJECT_DIR%/build-desktop/linphone-sdk/desktop/bin
     - dir
-    - for %v in (liblinphone_tester.exe*.dmp) do cdb -z %v -c "!analyse -v; q"
+    - for %%v in (liblinphone_tester.exe*.dmp) do cdb -z %%v -c "^!analyse -v; q"
     - del %CD%\*.dmp
     - dir
     - echo %CI_PROJECT_DIR%
