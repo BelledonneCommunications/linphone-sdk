@@ -601,23 +601,25 @@ static void pulse_read_process(MSFilter *f){
 	if (pa_stream_is_corked(s->stream)) pa_stream_cork(s->stream, 0, NULL, NULL);
 
 	while(pa_stream_readable_size(s->stream) > 0) {
-		if(pa_stream_peek(s->stream, &buffer, &nbytes) >= 0) {
-			if(buffer != NULL) {
-				mblk_t *om = allocb(nbytes, 0);
-				memcpy(om->b_wptr, buffer, nbytes);
-				om->b_wptr += nbytes;
-				s->read_samples += ((nbytes / 2) / s->sampleSpec.channels);
-				ms_ticker_synchronizer_update(s->ticker_synchronizer, s->read_samples, (unsigned int)s->sampleSpec.rate);
-				ms_queue_put(f->outputs[0], om);
-			}
-			if(nbytes > 0) {
-				pa_stream_drop(s->stream);
-			}
-		} else {
+		if(pa_stream_peek(s->stream, &buffer, &nbytes) < 0) {
 			ms_error("pa_stream_peek() failed");
 			break;
 		}
+		if(buffer != NULL) {
+			mblk_t *om = allocb(nbytes, 0);
+			memcpy(om->b_wptr, buffer, nbytes);
+			om->b_wptr += nbytes;
+			ms_queue_put(f->outputs[0], om);
+		}
+		if(nbytes > 0) {
+			if (buffer == NULL) ms_message("%s: hole detected while reading samples. %zu bytes of data have been lost", f->desc->name, nbytes);
+			// ticker synchronization must be done here to ensure that lost samples are taken into account while computing total read samples count.
+			s->read_samples += ((nbytes / 2) / s->sampleSpec.channels);
+			ms_ticker_synchronizer_update(s->ticker_synchronizer, s->read_samples, (unsigned int)s->sampleSpec.rate);
+			pa_stream_drop(s->stream);
+		}
 	}
+
 	pa_threaded_mainloop_unlock(the_pa_loop);
 }
 
