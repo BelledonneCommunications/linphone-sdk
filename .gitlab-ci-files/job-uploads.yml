@@ -156,6 +156,7 @@ job-debian-doc-upload:
       - $DEPLOY_RUN_ANDROID
       - $DEPLOY_RUN_IOS
       - $PACKAGE_RUN_WINDOWS
+      - $DOCKER_UPDATE
 
 
   script:
