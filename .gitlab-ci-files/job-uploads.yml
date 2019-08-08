@@ -146,6 +146,10 @@ job-debian-doc-upload:
 job-test-report-upload:
   stage: deploy
   tags: [ "deploy" ]
+  
+  except:
+    variables:
+      - $DOCKER_UPDATE
 
   dependencies:
     - test-liblinphone-centos7-schedule
