@@ -12,8 +12,7 @@ job-debian8-makefile-gcc:
     CC: gcc
     CXX: g++
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-  extends: .job-linux-desktop
-  
+  extends: .job-linux-desktop  
   
 #################################################
 # TESTS
