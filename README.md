@@ -55,11 +55,10 @@ For instance, to build an iOS SDK (the default being Desktop):
  `cmake .. -DLINPHONESDK_PLATFORM=IOS`
 
 ### iOS
-- It may be convenient to build from Xcode:
+- You must build the SDK from Xcode, so configure the project:
 `cmake .. -G Xcode -DLINPHONESDK_PLATFORM=IOS `
-- If you launch the build through Xcode, you can specified the configuration type:
-`cmake --build . --config <cfg>`
-If nothing is specified, make sure that Debug mode is selected.
+- You can specified the build type (configurations):
+`cmake --build . --config <cfg>`, `<cfg>`will be available such as Debug, Release, RelWithDebInfo and MinSizeRel. If nothing is specified, the SDK will be built in Debug mode.
 
 ### Windows
  `cmake --build .` works on Windows as for all platforms.
