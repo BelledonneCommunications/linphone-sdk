@@ -54,6 +54,13 @@ You can pass some options to CMake at the second step to configure the SDK as yo
 For instance, to build an iOS SDK (the default being Desktop):
  `cmake .. -DLINPHONESDK_PLATFORM=IOS`
 
+### iOS
+- It may be convenient to build from Xcode:
+`cmake .. -G Xcode -DLINPHONESDK_PLATFORM=IOS `
+- If you launch the build through Xcode, you can specified the configuration type:
+`cmake --build . --config <cfg>`
+If nothing is specified, make sure that Debug mode is selected.
+
 ### Windows
  `cmake --build .` works on Windows as for all platforms.
  However it may be convenient to build from Visual Studio, which you can do:
