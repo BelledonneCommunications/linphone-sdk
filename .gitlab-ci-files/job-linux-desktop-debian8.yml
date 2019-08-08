@@ -65,6 +65,9 @@ job-debian8-ninja-clang:
 
   tags: [ "docker-debian8" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
+  except:
+    variables:
+      - $DOCKER_UPDATE
   variables:
     CMAKE_GENERATOR: Ninja
     CC: clang

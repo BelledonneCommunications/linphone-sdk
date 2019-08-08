@@ -42,6 +42,10 @@
   stage: build
   tags: [ "windows" ]
   
+  except:
+  variables:
+    - $DOCKER_UPDATE
+  
   variables:
     CMAKE_OPTIONS: -DENABLE_LIME_X3DH=NO -DENABLE_UNIT_TESTS=ON
 

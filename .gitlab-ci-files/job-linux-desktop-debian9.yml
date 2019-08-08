@@ -42,6 +42,9 @@ job-debian9-ninja-gcc:
 
   tags: [ "docker-debian9" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
+  except:
+    variables:
+      - $DOCKER_UPDATE
   variables:
     CMAKE_GENERATOR: Ninja
     CC: gcc
