@@ -16,6 +16,9 @@ variables:
 .job-prepare:
   variables:
     ALL_JOB_VARIABLE: ""
+  except:
+    variables:
+      - $DOCKER_UPDATE
 
 include:
   - '.gitlab-ci-files/job-linux-prepare.yml'
@@ -31,6 +34,7 @@ include:
   - '.gitlab-ci-files/job-windows.yml'
   - '.gitlab-ci-files/job-packages.yml'
   - '.gitlab-ci-files/job-uploads.yml'
+  - '.gitlab-ci-files/docker-image-update/update-ubuntu-rolling.yml'
 
 stages:
  - build
