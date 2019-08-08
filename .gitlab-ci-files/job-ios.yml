@@ -3,6 +3,9 @@
   extends: .job-prepare
   stage: build
   tags: [ "macosx" ]
+  except:
+  variables:
+    - $DOCKER_UPDATE
 
   script:
     - ccache -s
