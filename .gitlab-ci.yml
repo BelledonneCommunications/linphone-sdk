@@ -31,9 +31,13 @@ include:
   - '.gitlab-ci-files/job-windows.yml'
   - '.gitlab-ci-files/job-packages.yml'
   - '.gitlab-ci-files/job-uploads.yml'
+  - '.gitlab-ci-files/docker-image-update/update-ubuntu-rolling.yml'
 
 stages:
+ - docker-update-build
  - build
+ - docker-update-build-ms
+ - docker-update-build-liblinphone
  - test
  - package
  - deploy
