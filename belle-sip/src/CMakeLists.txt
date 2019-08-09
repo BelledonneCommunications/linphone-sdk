@@ -176,26 +176,19 @@ if(BELLE_SIP_SOURCE_FILES_CXX)
 	bc_apply_compile_flags(BELLE_SIP_SOURCE_FILES_CXX STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
 endif()
 if(MSVC)
-	get_source_file_property(DNS_C_COMPILE_FLAGS dns.c COMPILE_FLAGS)
-	set(DNS_C_COMPILE_FLAGS "${DNS_C_COMPILE_FLAGS} /wd4267") # Disable "possible loss of data" warnings
-	set(DNS_C_COMPILE_FLAGS "${DNS_C_COMPILE_FLAGS} /wd4804") # Disable "unsafe use of type 'bool' in operation" warnings
-	set(DNS_C_COMPILE_FLAGS "${DNS_C_COMPILE_FLAGS} /wd4244") # Disable "conversion from 'intmax_t' to 'int', possible loss of data" warnings
-	set(DNS_C_COMPILE_FLAGS "${DNS_C_COMPILE_FLAGS} /wd4305") # Disable "'initializing': truncation from 'unsigned int' to 'UCHAR'" warnings
-	set(DNS_C_COMPILE_FLAGS "${DNS_C_COMPILE_FLAGS} /wd4018") # Disable "signed/unsigned mismatch" warnings
-	set_source_files_properties(dns.c PROPERTIES COMPILE_FLAGS "${DNS_C_COMPILE_FLAGS}")
-	get_source_file_property(SDP_PARSER_COMPILE_FLAGS grammars/belle_sdpParser.c COMPILE_FLAGS)
-	set(SDP_PARSER_COMPILE_FLAGS "${SDP_PARSER_COMPILE_FLAGS} /wd4267") # Disable "possible loss of data" warnings
-	set_source_files_properties(grammars/belle_sdpParser.c PROPERTIES COMPILE_FLAGS "${SDP_PARSER_COMPILE_FLAGS}")
-	get_source_file_property(SIP_MESSAGE_PARSER_COMPILE_FLAGS grammars/belle_sip_messageParser.c COMPILE_FLAGS)
-	set(SIP_MESSAGE_PARSER_COMPILE_FLAGS "${SIP_MESSAGE_PARSER_COMPILE_FLAGS} /wd4267") # Disable "possible loss of data" warnings
-	set_source_files_properties(grammars/belle_sip_messageParser.c PROPERTIES COMPILE_FLAGS "${SIP_MESSAGE_PARSER_COMPILE_FLAGS}")
+	string(CONCAT DNS_C_COMPILE_FLAGS
+		" /wd4267" # Disable "possible loss of data" warnings
+		" /wd4804" # Disable "unsafe use of type 'bool' in operation" warnings
+		" /wd4244" # Disable "conversion from 'intmax_t' to 'int', possible loss of data" warnings
+		" /wd4305" # Disable "'initializing': truncation from 'unsigned int' to 'UCHAR'" warnings
+		" /wd4018" # Disable "signed/unsigned mismatch" warnings
+	)
+	set_property(SOURCE dns.c APPEND_STRING PROPERTY COMPILE_FLAGS ${DNS_C_COMPILE_FLAGS})
+	set_property(SOURCE grammars/belle_sdpParser.c APPEND_STRING PROPERTY COMPILE_FLAGS " /wd4267") # Disable "possible loss of data" warnings
+	set_property(SOURCE grammars/belle_sip_messageParser.c APPEND_STRING PROPERTY COMPILE_FLAGS " /wd4267") # Disable "possible loss of data" warnings
 else()
-	get_source_file_property(DNS_C_COMPILE_FLAGS dns.c COMPILE_FLAGS)
-	set(DNS_C_COMPILE_FLAGS "${DNS_C_COMPILE_FLAGS} -Wno-error")
-	set_source_files_properties(dns.c PROPERTIES COMPILE_FLAGS "${DNS_C_COMPILE_FLAGS}")
-	get_source_file_property(SIP_MESSAGE_PARSER_COMPILE_FLAGS grammars/belle_sip_messageParser.c COMPILE_FLAGS)
-	set(SIP_MESSAGE_PARSER_COMPILE_FLAGS "${SIP_MESSAGE_PARSER_COMPILE_FLAGS} -Wno-sign-compare")
-	set_source_files_properties(grammars/belle_sip_messageParser.c PROPERTIES COMPILE_FLAGS "${SIP_MESSAGE_PARSER_COMPILE_FLAGS}")
+	set_property(SOURCE dns.c APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-override-init -Wno-implicit-fallthrough -Wno-array-bounds")
+	set_property(SOURCE grammars/belle_sip_messageParser.c APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-sign-compare")
 endif()
 
 string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
