@@ -14,7 +14,8 @@
     - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="$IOS_ARCHS_TEST" $CMAKE_OPTIONS
 
     - echo $ADDITIONAL_BUILD_OPTIONS
-    - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
+    - echo $ADDITIONAL_BUILD_CONFIGURATIONS
+    - cmake --build . $ADDITIONAL_BUILD_CONFIGURATIONS --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     - ccache -s
 
   artifacts:
@@ -48,5 +49,6 @@ job-ios-xcode:
     CMAKE_GENERATOR: Xcode
     CMAKE_OPTIONS: -DLINPHONESDK_IOS_BASE_URL=$IOS_SNAPSHOTS_URL -DENABLE_SWIFT_WRAPPER=YES -DENABLE_JAZZY_DOC=YES
     IOS_ARCHS_TEST: "arm64, armv7, x86_64"
-    ADDITIONAL_BUILD_OPTIONS: -IDEBuildOperationMaxNumberOfConcurrentCompileTasks="`sysctl -n hw.ncpu`" -configuration RelDebWithIinfo
+    ADDITIONAL_BUILD_CONFIGURATIONS: --config RelDebWithIinfo
+    ADDITIONAL_BUILD_OPTIONS: -IDEBuildOperationMaxNumberOfConcurrentCompileTasks="`sysctl -n hw.ncpu`"
   extends: .job-ios
