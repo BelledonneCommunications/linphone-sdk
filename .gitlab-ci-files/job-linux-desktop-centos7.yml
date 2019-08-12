@@ -118,7 +118,7 @@ test-bzrtp-centos7:
     - job-centos7-ninja-gcc
   tags: [ "docker-test-centos7-nuc" ]
   
-test-mediastreamer:
+test-mediastreamer-centos7:
   tags: [ "docker-test-centos7-liblinphone-nuc" ]
   extends: .test
   dependencies:
@@ -128,27 +128,19 @@ test-mediastreamer:
     PULSEAUDIO: "pulseaudio -D -L module-virtual-source --exit-idle-time=-1"
     LOG_PATTERN: "logMediastreamerAllPar"
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
-    SET_CAP_SYS_NICE_LIN_MS: "sudo setcap cap_sys_nice+ep ./${TESTER_BIN}"
+    SET_CAP_SYS_NICE_NET_ADMIN_MS: "sudo setcap cap_net_admin,cap_sys_nice+ep ./${TESTER_BIN}"
     
     
 .test-liblinphone-centos7:
   tags: [ "docker-test-centos7-liblinphone-nuc" ]
-  extends: .test
+  extends: .test-liblinphone
   dependencies:
     - job-centos7-ninja-gcc
-  variables:
-    TESTER_BIN: "liblinphone_tester"
-    XVFB: "Xvfb :99"
-    EXPORT_DISPLAY: "export DISPLAY=:99"
-    LOG_PATTERN: "logLiblinphoneAllParThIpv6"
-    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
-    ADDITIONNAL_OPTIONS: "--dns-hosts ${CI_PROJECT_DIR}/linphone/tester/tester_hosts --show-account-manager-logs"
-    SET_CAP_SYS_NICE_LIN_MS: "sudo setcap cap_sys_nice+ep ./${TESTER_BIN}"
 
-test-liblinphone:
+test-liblinphone-centos7-schedule:
   extends: .test-liblinphone-centos7
 
-test-liblinphone-mr:
+test-liblinphone-centos7-mr:
   extends: .test-liblinphone-centos7
   only:
      refs: 

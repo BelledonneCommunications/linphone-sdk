@@ -117,3 +117,9 @@ test-bzrtp-debian9:
   dependencies:
     - job-debian9-ninja-gcc
   tags: [ "docker-test-debian9-nuc" ]
+  
+test-liblinphone-debian9:
+  tags: [ "docker-test-debian9-liblinphone-nuc" ]
+  extends: .test-liblinphone
+  dependencies:
+    - job-debian9-ninja-gcc
