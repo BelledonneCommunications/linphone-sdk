@@ -1,20 +1,28 @@
 Lime
 =======
 
-Lime is a thread safe C++ library implementing Open Whisper System Signal protocol :
-Sesame, double ratchet and X3DH. https://signal.org/docs/
+LIME is an end-to-end encryption library for one-to-one and group instant messaging, allowing users to exchange messages privately and asynchronously. It uses modern ciphering curve X448 and double ratchet algorithm for perfect forward secrecy.
 
-Lime can run the Signal Protocol using elliptic curve 25519 or curve 448-goldilocks.
+LIME is composed of a portable client library coupled with a public key server developed by Belledonne Communications to allow end-to-end encryption for messaging, without having to exchange cryptographic keys simultaneously.
 
-It is designed to work jointly with *Linphone*[1] in a multiple devices per user and multiple users per device environment.
+The library exposes a C, C++, Python and Java API for easy integration in mobile and desktop environments.
 
+LIME supports multiple devices per user and multiple users per device.
+
+For additional information, please [visit LIME's page on **linphone.org**](http://www.linphone.org/technical-corner/lime)
 
 License
 --------
-Copyright (c) 2019 Belledonne Communications SARL under GNU GPLv3 (see *LICENSE.txt*)
 
-The above license excludes the content of *src/jni* directory Copyright (c) 2016 Mapbox covered by its respective license,
+LIME library is dual-licensed and can be distributed either under a GNU GPLv3 license (open source, see *LICENSE.txt*) or under a proprietary
+license (closed source).
+
+Copyright © Belledonne Communications SARL
+
+The content of *src/jni* directory Copyright (c) 2016 Mapbox are covered by its respective license,
 see *src/jni/LICENSE.txt*
+
+The public key server (LIME server) is not part of this software package, and is only available under a proprietary license.
 
 Dependencies
 ------------
@@ -22,7 +30,7 @@ Dependencies
 - *soci-sqlite3* : Db access
 
 
-Build instrucitons
+Build instructions
 ------------------
 ```
  cmake -DCMAKE_INSTALL_PREFIX=<install_prefix> -DCMAKE_PREFIX_PATH=<search_prefix> <path_to_source>
@@ -31,10 +39,13 @@ Build instrucitons
  make install
 ```
 
+Alternatively, LIME library is integrated in *linphone-sdk* meta project, which provides a convenient way
+to build it for various targets.
+
 Documentation
 -------------
 
-To generate the Doxygen documentation files(having ran the cmake command):
+To generate the Doxygen documentation files (having ran the cmake command):
 
 ```
  make doc
@@ -100,4 +111,5 @@ Options
 ------------------
 
 - [1] linphone-desktop: https://gitlab.linphone.org/BC/public/linphone-desktop.git
-- [2] bctoolbox: https://gitlab.linphone.org/BC/public/bctoolbox.git or <http://www.linphone.org/releases/sources/bctoolbox>
+- [2] bctoolbox: https://gitlab.linphone.org/BC/public/bctoolbox.git
+- [3] linphone-sdk: https://gitlab.linphone.org/BC/public/linphone-sdk.git
