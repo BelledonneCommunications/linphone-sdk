@@ -1,32 +1,39 @@
 [![pipeline status](https://gitlab.linphone.org/BC/public/mediastreamer2/badges/master/pipeline.svg)](https://gitlab.linphone.org/BC/public/mediastreamer2/commits/master)
 
-Mediastreamer
-=============
+Mediastreamer2
+==============
 
-* Project    : mediastreamer2 - a modular sound and video processing and streaming
-* Email      : <simon.morlat@linphone.org>
-* License    : GPLv2(or later) or Commercial licensing
-* Home Page  : <http://www.mediastreamer2.com>
+Mediastreamer2 is a powerful and lightweight streaming engine for voice/video telephony applications.
+This media processing and streaming toolkit is responsible for receiving and sending all multimedia streams in Linphone, including voice/video capture, encoding and decoding, and rendering.
 
-Commercial support and licensing is provided by Belledonne Communications
-<http://www.belledonne-communications.com>
+For additional information, please [visit mediastreamer2's homepage on **linphone.org**](http://www.linphone.org/technical-corner/mediastreamer2)
 
-Mediastreamer2 is a library to make audio and
-video real-time streaming and processing. Written in pure C,
-it is based upon the ortp library.
+License
+-------
 
-Design
-------
+<Copyright © Belledonne Communications SARL>
 
-Using mediastreamer2 will allow you to chain filters in a graph. Each
-filter will be responsible for doing some kind of processing and will
-deliver data to the next filter. As an example, you could get some
+Mediastreamer2 is dual licensed, available either either:
+- under the GNU GPLv3 license for free (see LICENSE.txt file for details)
+- under a proprietary license, for closed source projects. Contact sales@belledonne-communications.com for costs and other service information.
+
+
+Documentation
+-------------
+
+Please browse supported features and RFCs from [<https://www.linphone.org/technical-corner/mediastreamer2/features>].
+
+Mediastreamer2 has a concept of filters, that can be connected to form a graph. Each
+filter is responsible for doing some kind of processing and 
+delivers data to the next filter. As an example, you could get some
 data from network and unpack it in an RTP filter. This RTP filter will
 deliver the data to a decoder (speex, G711...) which will deliver it
-to a filter that is able to play the PCM data or record it into a .wav
+to a filter that is able to play the PCM data or another to record it into a .wav
 file.
+A more high level API is available in mediastreamer2/mediastream.h header file, exposing
+primitives to create audio and video streams suitable for a VoIP application.
 
-There is a doxygen documentation for more information.
+
 
 Compilation and installation
 ----------------------------
@@ -35,8 +42,6 @@ Compilation and installation
 
 - **bctoolbox[1]**: portability layer
 - **oRTP[2]**: RTP stack
-- **libspeexdsp**: echo cancelation feature (disablable)
-- **ffmpeg** or libav: H263 codec, MPEG4 decodec and RAW picture rescaling (disablable)
 
 ### Optional dependencies
 
@@ -46,6 +51,7 @@ Compilation and installation
 - **libbv16**: BV16 codec support
 - **libopus** for Opus encoding and decoding
 - **libspeex**: SPEEX codec support
+- **libspeex-dsp: resampler and AEC
 - **libalsa**: ALSA support (GNU/Linux only)
 - **libpulse**: PulseAudio support (GNU/Linux only)
 - **libv4l2**: video capture (GNU/Linux only;disablable)
@@ -54,6 +60,7 @@ Compilation and installation
 - **libvpx** for VP8 encoding and decoding
 - **libmastroska-c** for recording/playing of audio/video streams
 - **libturbojpeg**: video screenshot feature
+- **ffmpeg**, h264 decoder, mpeg4 and mjpeg encoder/decoders, rescaling and pixel conversion.
 
 ### Build instructions:
 
@@ -63,8 +70,11 @@ The Autotools way is deprecated. Use [CMake](https://cmake.org) to configure the
 	
 	make
 	make install
+	
+Alternatively, mediastreamer2 library is integrated in *linphone-sdk[4]* meta project, which provides a convenient way
+to build it for various targets.
 
-#### Supported opitions:
+#### Supported options:
 
 - `CMAKE_INSTALL_PREFIX=<string>` : install prefix
 - `CMAKE_PREFIX_PATH=<string>`    : column-separated list of prefixes where to search for dependencies
@@ -137,3 +147,4 @@ Subscribe here:
 - [1] git://git.linphone.org/bctoolbox.git *or* <http://www.linphone.org/releases/sources/bctoolbox>
 - [2] git://git.linphone.org/ortp.git *or* <http://www.linphone.org/releases/sources/ortp>
 - [3] git://git.linphone.org/bzrtp.git *or* <http://www.linphone.org/releases/sources/bzrtp>
+- [4] linphone-sdk: https://gitlab.linphone.org/BC/public/linphone-sdk.git
