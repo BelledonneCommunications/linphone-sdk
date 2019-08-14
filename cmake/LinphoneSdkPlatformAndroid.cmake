@@ -43,6 +43,8 @@ endif()
 set(_android_build_targets)
 
 foreach(_arch IN LISTS _archs)
+	file(REMOVE_RECURSE "${CMAKE_BINARY_DIR}/linphone-sdk/android-${_arch}")
+
 	set(_cmake_args
 		"-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/linphone-sdk/android-${_arch}"
 		"-DCMAKE_PREFIX_PATH=${CMAKE_BINARY_DIR}/linphone-sdk/android-${_arch}"
