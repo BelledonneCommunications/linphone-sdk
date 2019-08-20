@@ -224,15 +224,19 @@ job-test-report-upload:
     
     #need to copy the history from parent branch if there is no previous test reports in current branch (if there is no LAST_MODIFIED_FOLDER)
     #current branch = ESCAPED_BRANCH
-    - echo "  if [[ -z \$LAST_MODIFIED_FOLDER ]];" | tee -a allure_launch_script
-    - echo "    then" | tee -a allure_launch_script
-    - echo "    cd ../$PARENT_BRANCH" | tee -a allure_launch_script
-    - echo "    LAST_MODIFIED_FOLDER=\$(ls -ct | head -n1)" | tee -a allure_launch_script
-    - echo "    cd ../$ESCAPED_BRANCH/" | tee -a allure_launch_script
-    - echo "    cp -r ../$PARENT_BRANCH/\$LAST_MODIFIED_FOLDER/linux-centos7/liblinphone/allure-report/history $SDK_VERSION/linux-centos7/liblinphone/history;" | tee -a allure_launch_script
-    - echo "  else" | tee -a allure_launch_script
-    - echo "    cp -r \$LAST_MODIFIED_FOLDER/linux-centos7/liblinphone/allure-report/history $SDK_VERSION/linux-centos7/liblinphone/history;" | tee -a allure_launch_script
-    - echo "  fi;" | tee -a allure_launch_script
+    - |
+        if [[ -z $PARENT_BRANCH ]]
+          then
+          echo "  if [[ -z \$LAST_MODIFIED_FOLDER ]];" | tee -a allure_launch_script
+          echo "    then" | tee -a allure_launch_script
+          echo "    cd ../$PARENT_BRANCH" | tee -a allure_launch_script
+          echo "    LAST_MODIFIED_FOLDER=\$(ls -ct | head -n1)" | tee -a allure_launch_script
+          echo "    cd ../$ESCAPED_BRANCH/" | tee -a allure_launch_script
+          echo "    cp -r ../$PARENT_BRANCH/\$LAST_MODIFIED_FOLDER/linux-centos7/liblinphone/allure-report/history $SDK_VERSION/linux-centos7/liblinphone/history;" | tee -a allure_launch_script
+          echo "  else" | tee -a allure_launch_script
+          echo "    cp -r \$LAST_MODIFIED_FOLDER/linux-centos7/liblinphone/allure-report/history $SDK_VERSION/linux-centos7/liblinphone/history;" | tee -a allure_launch_script
+          echo "  fi;" | tee -a allure_launch_script
+          fi;
 
     #categories.json is usefull to define the pattern of the tests states.
     #ex
