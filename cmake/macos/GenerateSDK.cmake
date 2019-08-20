@@ -32,6 +32,6 @@ execute_process(
 )
 
 # Generate podspec file
-file(READ "${LINPHONESDK_DIR}/COPYING" LINPHONESDK_LICENSE)
+file(READ "${LINPHONESDK_DIR}/LICENSE.txt" LINPHONESDK_LICENSE)
 file(READ "${LINPHONESDK_ENABLED_FEATURES_FILENAME}" LINPHONESDK_ENABLED_FEATURES)
 configure_file("${LINPHONESDK_DIR}/cmake/macos/linphone-sdk.podspec.cmake" "${LINPHONESDK_BUILD_DIR}/linphone-sdk.podspec" @ONLY)

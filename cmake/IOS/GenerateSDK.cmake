@@ -56,7 +56,7 @@ execute_process(
 )
 
 # Generate podspec file
-file(READ "${LINPHONESDK_DIR}/COPYING" LINPHONESDK_LICENSE)
+file(READ "${LINPHONESDK_DIR}/LICENSE.txt" LINPHONESDK_LICENSE)
 linphone_sdk_convert_comma_separated_list_to_cmake_list("${LINPHONESDK_IOS_ARCHS}" VALID_ARCHS)
 string(REPLACE ";" " " VALID_ARCHS "${VALID_ARCHS}")
 file(READ "${LINPHONESDK_ENABLED_FEATURES_FILENAME}" LINPHONESDK_ENABLED_FEATURES)
