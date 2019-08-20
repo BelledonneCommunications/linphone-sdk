@@ -2,9 +2,21 @@
 
 # linphone-sdk
 
-Meta repository holding all the dependencies to build a full Linphone SDK.
-
+Linphone-sdk is a project that bundles liblinphone and its dependencies as git submodules, in the purpose of simplifying
+the compilation and packaging of the whole liblinphone suite, comprising mediastreamer2, belle-sip, ortp and many others.
+The submodules that are not developped or maintained by the Linphone team are grouped in the external/ directory.
 The currently supported platforms are Android, iOS, Desktop (Linux, Windows, Mac OS X) and UWP (Universal Windows Platform).
+
+## License
+
+<Copyright © Belledonne Communications>
+
+The products developped in the context of the Linphone project are dual licensed:
+- under a GNU GPLv3 license for free (see LICENSE.txt file for details)
+- under a proprietary license, for closed source projects. Contact sales@belledonne-communications.com for costs and other service information.
+
+Please refer to the README.md files in the submodules (linphone (ie liblinphone), mediastreamer2, ortp, belle-sip, belr) for more information.
+The projects assembled in the `external` directory have their own open-source license.
 
 ## Build dependencies
 
