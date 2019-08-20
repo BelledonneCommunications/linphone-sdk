@@ -6,6 +6,7 @@
 
   script:
     - ccache -s
+    - if [ -d "build-ios" ]; then rm -rf build-ios; fi;
     - mkdir -p build-ios
     - cd build-ios
     - echo $CMAKE_GENERATOR
@@ -81,6 +82,7 @@ job-ios-xcode:
       - $DEPLOY_RUN_IOS
 
   script:
+    - if [ -d "build-ios" ]; then rm -rf build-ios; fi;
     - mkdir -p build-ios
     - cd build-ios
     - echo $CMAKE_OPTIONS
