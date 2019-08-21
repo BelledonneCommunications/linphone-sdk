@@ -41,7 +41,7 @@ job-ios-makefile:
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-    ARCHS_OPTIONS: -DLINPHONESDK_IOS_ARCHS="$IOS_ARCHS"
+    ARCHS_OPTIONS: -DLINPHONESDK_IOS_ARCHS=$IOS_ARCHS
   extends: .job-ios
 
 
@@ -54,7 +54,7 @@ job-ios-ninja:
 
   variables:
     CMAKE_GENERATOR: Ninja
-    ARCHS_OPTIONS: -DLINPHONESDK_IOS_ARCHS="$IOS_ARCHS"
+    ARCHS_OPTIONS: -DLINPHONESDK_IOS_ARCHS=$IOS_ARCHS
   extends: .job-ios
 
 
