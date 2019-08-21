@@ -101,6 +101,7 @@ job-android-ninja-r16b:
 
 
 job-android-ninja-r16b-novideo:
+
   only:
     variables:
       - $NIGHTLY_MASTER
@@ -119,6 +120,7 @@ job-android-ninja-r17c:
 
 
 job-android-ninja-r17c-novideo:
+
   only:
     variables:
       - $NIGHTLY_MASTER
@@ -147,8 +149,18 @@ job-android-ninja-r19:
   variables:
     CMAKE_GENERATOR: Ninja
   extends: .job-android
-  
-  
+
+
+job-android-ninja-r19-smallsdk:
+
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+  variables:
+    CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_ADVANCED_IM=NO -DENABLE_DB_STORAGE=NO
+  extends: job-android-ninja-r19
+
+
 test-android-r17c:
   tags: [ "docker-android-test-r17c" ]
   stage: test
