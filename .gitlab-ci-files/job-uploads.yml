@@ -225,7 +225,7 @@ job-test-report-upload:
     #need to copy the history from parent branch if there is no previous test reports in current branch (if there is no LAST_MODIFIED_FOLDER)
     #current branch = ESCAPED_BRANCH
     - |
-        if [[ -z $PARENT_BRANCH ]]
+        if [[ -z ${PARENT_BRANCH} ]]
           then
           echo "  if [[ -z \$LAST_MODIFIED_FOLDER ]];" | tee -a allure_launch_script
           echo "    then" | tee -a allure_launch_script
