@@ -39,7 +39,7 @@ Finally add your user `bin` directory and `C:\Mingw\bin` to the PATH environemen
 
 ## Building and customizing the SDK
 
-The steps to build the SDK are:
+The generic steps to build the SDK are:
 
  1. Create and go inside a directory where the SDK will be built:
  `mkdir build && cd build
@@ -54,11 +54,21 @@ You can pass some options to CMake at the second step to configure the SDK as yo
 For instance, to build an iOS SDK (the default being Desktop):
  `cmake .. -DLINPHONESDK_PLATFORM=IOS`
 
+These generic steps work for all platforms, but a few specifics behaviors are good to know and are described
+in the next subsections.
+
 ### iOS
-- You must build the SDK with Xcode, so configure the project with:
-`cmake .. -G Xcode -DLINPHONESDK_PLATFORM=IOS `
-- You can specify the build type (configurations):
-`cmake --build . --config <cfg>`, where `<cfg>` is one of `Debug`, `Release`, `RelWithDebInfo` or `MinSizeRel`. If nothing is specified, the SDK will be built in Debug mode.
+
+Cmake has limited swift support: only Ninja and Xcode generators can handle swift.
+Until cmake has full swift support, you need to specify configuration step by specifying one of the two backends:
+
+`cmake .. -G Xcode -DLINPHONESDK_PLATFORM=IOS` or `cmake .. -G Ninja -DLINPHONESDK_PLATFORM=IOS`
+
+If using the Xcode generator, the build type must be specified for compilation step with `--config`:
+`cmake --build . --config <cfg>`, where `<cfg>` is one of `Debug`, `Release`, `RelWithDebInfo` or `MinSizeRel`.
+If nothing is specified, the SDK will be built in Debug mode.
+
+Please note that the Xcode backend is very slow: about one hour of build time, compared to approximately 15 mn for Ninja.
 
 ### Windows
  `cmake --build .` works on Windows as for all platforms.
