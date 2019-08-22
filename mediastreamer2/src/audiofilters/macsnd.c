@@ -114,7 +114,7 @@ typedef struct AURead{
 	AUCommon common;
 	queue_t rq;
 	MSTickerSynchronizer *ticker_synchronizer;
-	uint64_t read_frames;
+	uint64_t timestamp;
 	bool_t first_process;
 }AURead;
 
@@ -408,6 +408,10 @@ static OSStatus readRenderProc(void *inRefCon,
 	rm->b_wptr+=lreadAudioBufferList.mBuffers[0].mDataByteSize;
 	
 	ms_mutex_lock(&d->common.mutex);
+	if (inTimeStamp->mFlags & kAudioTimeStampSampleTimeValid) {
+		d->timestamp = inTimeStamp->mSampleTime;
+	}
+
 	putq(&d->rq,rm);
 	ms_mutex_unlock(&d->common.mutex);
 
@@ -646,9 +650,8 @@ static void au_read_process(MSFilter *f){
 		flushq(&d->rq, 0);
 	} else {
 		while((m=getq(&d->rq))!=NULL){
-			d->read_frames += (msgdsize(m) / 2) / d->common.nchannels;
 			ms_queue_put(f->outputs[0],m);
-			ms_ticker_synchronizer_update(d->ticker_synchronizer, d->read_frames, d->common.rate);
+			ms_ticker_synchronizer_update(d->ticker_synchronizer, d->timestamp, d->common.rate);
 		}
 	}
 	ms_mutex_unlock(&d->common.mutex);
