@@ -34,9 +34,9 @@
 
 job-ios-makefile:
 
-#  only:
-#    variables:
-#      - $NIGHTLY_MASTER
+  only:
+    variables:
+      - $NIGHTLY_MASTER
 
   variables:
     CMAKE_GENERATOR: Unix Makefiles
