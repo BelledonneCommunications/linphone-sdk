@@ -34,12 +34,13 @@
 
 job-ios-makefile:
 
-  only:
-    variables:
-      - $NIGHTLY_MASTER
+#  only:
+#    variables:
+#      - $NIGHTLY_MASTER
 
   variables:
     CMAKE_GENERATOR: Unix Makefiles
+    CMAKE_OPTIONS: -DENABLE_SWIFT_WRAPPER=NO
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
     ARCHS_OPTIONS: -DLINPHONESDK_IOS_ARCHS=$IOS_ARCHS
   extends: .job-ios
