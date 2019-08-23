@@ -61,6 +61,11 @@ static void android_texture_display_destroy_opengl(MSFilter *f) {
 
 	EGLBoolean result;
 	if (ad->gl_display) {
+
+		if (eglMakeCurrent(ad->gl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT) == EGL_FALSE) {         
+			ms_error("[TextureView Display] Unable to eglMakeCurrent in destructor");
+		}
+
 		if (ad->gl_context) {
 			result = eglDestroyContext(ad->gl_display, ad->gl_context);
 			if (result != EGL_TRUE) {
@@ -68,6 +73,7 @@ static void android_texture_display_destroy_opengl(MSFilter *f) {
 			}
 			ad->gl_context = NULL;
 		}
+
 		if (ad->gl_surface) {
 			result = eglDestroySurface(ad->gl_display, ad->gl_surface);
 			if (result != EGL_TRUE) {
@@ -75,10 +81,12 @@ static void android_texture_display_destroy_opengl(MSFilter *f) {
 			}
 			ad->gl_surface = NULL;
 		}
+
 		result = eglTerminate(ad->gl_display);
 		if (result != EGL_TRUE) {
 			ms_error("[TextureView Display] eglTerminate failure: %u", result);
 		}
+
 		ad->gl_display = NULL;
 		ms_message("[TextureView Display] EGL display destroyed");
 	}
