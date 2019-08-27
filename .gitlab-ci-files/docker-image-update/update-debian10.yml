@@ -1,0 +1,106 @@
+job-docker-rebuild-debian10-image:
+  stage: docker-update-build
+  tags: [ "linux-deploy" ]
+  only:
+    variables:
+      - $DOCKER_UPDATE
+  # Prevent tests from fetching repo. They have all needed files in upcoming artifacts
+  variables:
+    GIT_STRATEGY: fetch
+    GIT_SUBMODULE_STRATEGY: none
+  script:
+    - docker pull debian:buster
+    - cd docker-files
+    - docker build -f ./bc-dev-debian10 -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:10 --rm --no-cache .
+    - docker login gitlab.linphone.org:4567
+    - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:10
+
+job-docker-rebuild-debian10-ms-test-image:
+  stage: docker-update-build-ms
+  tags: [ "linux-deploy" ]
+  only:
+    variables:
+      - $DOCKER_UPDATE
+  # Prevent tests from fetching repo. They have all needed files in upcoming artifacts
+  variables:
+    GIT_STRATEGY: fetch
+    GIT_SUBMODULE_STRATEGY: none
+  dependencies:
+    - job-docker-rebuild-debian10-image
+  script:
+    - docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:10
+    - cd docker-files
+    - docker build -f ./bc-dev-debian10-test-mediastreamer -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10-test-mediastreamer:latestupdated --rm --no-cache .
+    - docker login gitlab.linphone.org:4567
+    - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10-test-mediastreamer:latestupdated
+
+job-docker-rebuild-debian10-liblinphone-test-image:
+  stage: docker-update-build-liblinphone
+  tags: [ "linux-deploy" ]
+  only:
+    variables:
+      - $DOCKER_UPDATE
+  # Prevent tests from fetching repo. They have all needed files in upcoming artifacts
+  variables:
+    GIT_STRATEGY: fetch
+    GIT_SUBMODULE_STRATEGY: none
+  dependencies:
+    - job-docker-rebuild-debian10-ms-test-image
+  script:
+    - docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10-test-mediastreamer:latestupdated
+    - cd docker-files
+    - docker build -f ./bc-dev-debian10-test-liblinphone -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10-test-liblinphone:latestupdated --rm --no-cache .
+    - docker login gitlab.linphone.org:4567
+    - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10-test-liblinphone:latestupdated
+
+job-rebuild-debian10-newdocker-makefile-gcc:
+  extends: job-debian9-makefile-gcc
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:10
+  only:
+    variables:
+      - $DOCKER_UPDATE
+
+
+job-rebuild-debian10-newdocker-ninja-gcc:
+  extends: job-debian9-ninja-gcc
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:10
+  only:
+    variables:
+      - $DOCKER_UPDATE
+
+job-rebuild-debian10-newdocker-ninja-gcc-novideo:
+  extends: job-debian9-ninja-gcc-novideo
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:10
+  only:
+    variables:
+      - $DOCKER_UPDATE
+
+job-rebuild-debian10-newdocker-makefile-clang:
+  extends: job-debian9-makefile-clang
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:10
+  only:
+    variables:
+      - $DOCKER_UPDATE
+
+job-rebuild-debian10-newdocker-ninja-clang:
+  extends: job-debian9-ninja-clang
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:10
+  only:
+    variables:
+      - $DOCKER_UPDATE
+
+job-rebuild-debian10-newdocker-ninja-clang-novideo:
+  extends: job-debian9-ninja-clang-novideo
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:10
+  only:
+    variables:
+      - $DOCKER_UPDATE
+
+test-liblinphone-debian10-newdocker:
+  extends: test-liblinphone-debian9
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10-test-liblinphone:latestupdated
+  only:
+    variables:
+      - $DOCKER_UPDATE
+  dependencies:
+    - job-rebuild-debian10-newdocker-makefile-gcc
