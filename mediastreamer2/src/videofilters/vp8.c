@@ -55,8 +55,8 @@ static const MSVideoConfiguration vp8_conf_list[] = {
 	MS_VP8_CONF(  64000,  100000,       QCIF, 10, 1),
 	MS_VP8_CONF(      0,   64000,       QCIF,  5, 1),
 #else
-	MS_VP8_CONF(2048000,  5000000,       UXGA, 25, 4),
-	MS_VP8_CONF(1536000,  2560000, SXGA_MINUS, 25, 4),
+//	MS_VP8_CONF(2048000,  5000000,       UXGA, 25, 4),
+//	MS_VP8_CONF(1536000,  2560000, SXGA_MINUS, 25, 4),
 	MS_VP8_CONF(1024000,  2000000,       720P, 25, 4),
 	MS_VP8_CONF( 800000,  1536000,        XGA, 25, 4),
 	MS_VP8_CONF( 750000,  1024000,       SVGA, 25, 2),
@@ -453,29 +453,19 @@ static void enc_process_frame_task(void *obj) {
 	bool_t is_ref_frame=FALSE;
 	vpx_image_t img;
 
-#if defined(__ANDROID__) || (TARGET_OS_IPHONE == 1) || defined(__arm__) || defined(_M_ARM)
-
 	ms_filter_lock(f);
 	if ((im = getq(&s->entry_q)) == NULL) {
-		ms_warning("VP8 async process: No frame in entry queue");
+		ms_warning("VP8 async encoding process: No frame in entry queue");
 		ms_filter_unlock(f);
 		return;
 	}
-#else
-	if ((im = getq(&s->entry_q)) == NULL) {
-		ms_warning("VP8 process: No frame in entry queue");
-		return;
-	}
-#endif
 
-#if defined(__ANDROID__) || (TARGET_OS_IPHONE == 1) || defined(__arm__) || defined(_M_ARM)
 	if (s->entry_q.q_mcount >= 3){
 		/*don't let too much buffers to be queued here, it makes no sense for a real time processing and would consume too much memory*/
-		ms_warning("VP8 async process: dropping %i frames", s->entry_q.q_mcount);
+		ms_warning("VP8 async encoding process: dropping %i frames", s->entry_q.q_mcount);
 		flushq(&s->entry_q, 0);
 	}
 	ms_filter_unlock(f);
-#endif
 
 	flags = 0;
 	ms_yuv_buf_init_from_mblk(&yuv, im);
@@ -580,13 +570,9 @@ static void enc_process_frame_task(void *obj) {
 			(flags & VP8_EFLAG_NO_REF_LAST) ? "NOREFLAST" : "         ");
 #endif
 
-#if defined(__ANDROID__) || (TARGET_OS_IPHONE == 1) || defined(__arm__) || defined(_M_ARM)
 		ms_filter_lock(f);
 		vp8rtpfmt_packer_process(&s->packer, list, s->exit_q, f->factory);
 		ms_filter_unlock(f);
-#else
-		vp8rtpfmt_packer_process(&s->packer, list, f->outputs[0], f->factory);
-#endif
 
 		/* Handle video starter if AVPF is not enabled. */
 		s->frame_count++;
@@ -611,9 +597,7 @@ static void enc_process_frame_task(void *obj) {
 static void enc_process(MSFilter *f) {
 	EncState *s = (EncState *)f->data;
 	mblk_t *entry_f;
-#if defined(__ANDROID__) || (TARGET_OS_IPHONE == 1) || defined(__arm__) || defined(_M_ARM)
 	mblk_t *exit_f;
-#endif
 
 	ms_filter_lock(f);
 
@@ -631,19 +615,13 @@ static void enc_process(MSFilter *f) {
 	if ((entry_f = ms_queue_peek_last(f->inputs[0])) != NULL) {
 		ms_queue_remove(f->inputs[0], entry_f);
 		putq(&s->entry_q, entry_f);
-#if defined(__ANDROID__) || (TARGET_OS_IPHONE == 1) || defined(__arm__) || defined(_M_ARM)
 		ms_worker_thread_add_task(s->process_thread, enc_process_frame_task, (void*)f);
-#else
-		enc_process_frame_task((void*)f);
-#endif
 	}
 
-#if defined(__ANDROID__) || (TARGET_OS_IPHONE == 1) || defined(__arm__) || defined(_M_ARM)
 	/* Put each frame we have in exit_q in f->output[0] */
 	while ((exit_f = ms_queue_get(s->exit_q)) != NULL) {
 		ms_queue_put(f->outputs[0], exit_f);
 	}
-#endif
 
 	ms_filter_unlock(f);
 	ms_queue_flush(f->inputs[0]);
@@ -900,6 +878,9 @@ typedef struct DecState {
 	bool_t avpf_enabled;
 	bool_t freeze_on_error;
 	bool_t ready;
+	MSWorkerThread *process_thread;
+	MSQueue entry_q;
+	MSQueue exit_q;
 } DecState;
 
 
@@ -960,6 +941,9 @@ static void dec_preprocess(MSFilter* f) {
 		s->ready=TRUE;
 	}
 
+	s->process_thread = ms_worker_thread_new();
+	ms_queue_init(&s->entry_q);
+	ms_queue_init(&s->exit_q);
 }
 
 static void dec_uninit(MSFilter *f) {
@@ -971,7 +955,8 @@ static void dec_uninit(MSFilter *f) {
 	ms_free(s);
 }
 
-static void dec_process(MSFilter *f) {
+static void dec_process_frame_task(void *obj) {
+	MSFilter *f = (MSFilter*)obj;
 	DecState *s = (DecState *)f->data;
 	mblk_t *im;
 	vpx_codec_err_t err;
@@ -981,18 +966,20 @@ static void dec_process(MSFilter *f) {
 	MSQueue mtofree_queue;
 	Vp8RtpFmtFrameInfo frame_info;
 
-	if (!s->ready){
-		ms_queue_flush(f->inputs[0]);
-		return;
-	}
-
-	ms_filter_lock(f);
-
 	ms_queue_init(&frame);
 	ms_queue_init(&mtofree_queue);
 
+	ms_filter_lock(f);
+	if (ms_queue_empty(&s->entry_q)) {
+		ms_warning("VP8 async decoding process: No frame in entry queue");
+		ms_filter_unlock(f);
+		return;
+	}
+
 	/* Unpack RTP payload format for VP8. */
-	vp8rtpfmt_unpacker_feed(&s->unpacker, f->inputs[0]);
+	vp8rtpfmt_unpacker_feed(&s->unpacker, &s->entry_q);
+
+	ms_filter_unlock(f);
 
 	/* Decode unpacked VP8 frames. */
 	while (vp8rtpfmt_unpacker_get_frame(&s->unpacker, &frame, &frame_info) == 0) {
@@ -1039,7 +1026,10 @@ static void dec_process(MSFilter *f) {
 					src += img->stride[i];
 				}
 			}
-			ms_queue_put(f->outputs[0], dupmsg(s->yuv_msg));
+
+			ms_filter_lock(f);
+			ms_queue_put(&s->exit_q, dupmsg(s->yuv_msg));
+			ms_filter_unlock(f);
 
 			ms_average_fps_update(&s->fps, (uint32_t)f->ticker->time);
 			if (!s->first_image_decoded) {
@@ -1052,11 +1042,42 @@ static void dec_process(MSFilter *f) {
 			freemsg(im);
 		}
 	}
+}
+
+static void dec_process(MSFilter *f) {
+	DecState *s = (DecState *)f->data;
+	mblk_t *entry_f;
+	mblk_t *exit_f;
+
+	ms_filter_lock(f);
+
+#ifdef AVPF_DEBUG
+	ms_message("VP8 dec_process:");
+#endif
+
+	if (!s->ready) {
+		ms_queue_flush(f->inputs[0]);
+		ms_filter_unlock(f);
+		return;
+	}
+
+	while ((entry_f = ms_queue_get(f->inputs[0])) != NULL) {
+		ms_queue_put(&s->entry_q, entry_f);
+	}
+	ms_worker_thread_add_task(s->process_thread, dec_process_frame_task, (void*)f);
+
+	/* Put each frame we have in exit_q in f->output[0] */
+	while ((exit_f = ms_queue_get(&s->exit_q)) != NULL) {
+		ms_queue_put(f->outputs[0], exit_f);
+	}
 
 	ms_filter_unlock(f);
+	ms_queue_flush(f->inputs[0]);
 }
 
 static void dec_postprocess(MSFilter *f) {
+	DecState *s = (DecState *)f->data;
+	ms_worker_thread_destroy(s->process_thread, FALSE);
 }
 
 static int dec_reset_first_image(MSFilter* f, void *data) {
