@@ -12,12 +12,9 @@
     - echo $CMAKE_GENERATOR
     - echo $ARCHS_OPTIONS
     - echo $CMAKE_OPTIONS
-<<<<<<< HEAD
     - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=IOS $ARCHS_OPTIONS $CMAKE_OPTIONS
-=======
-    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="$IOS_ARCHS" $CMAKE_OPTIONS
 
->>>>>>> fix test log
+
     - echo $ADDITIONAL_BUILD_OPTIONS
     - echo $ADDITIONAL_BUILD_CONFIGURATIONS
     - cmake --build . $ADDITIONAL_BUILD_CONFIGURATIONS --target sdk -- $ADDITIONAL_BUILD_OPTIONS
@@ -94,7 +91,7 @@ job-ios-ninja-smallsdk:
 
 
 job-ios-xcode:
-  
+
 
   variables:
     CMAKE_GENERATOR: Xcode
