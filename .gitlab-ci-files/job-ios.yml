@@ -145,7 +145,7 @@ test-ios:
     #Gathering artifacts in one folder to ease their use
     - mkdir ${CI_PROJECT_DIR}/results
     - cp -r tester/IOS/LinphoneTester/liblinphone-tests.log ${CI_PROJECT_DIR}/results
-    - cp -r tester/IOS/LinphoneTester/test-reports/* ${CI_PROJECT_DIR}/results
+    - cp -r test-reports/* ${CI_PROJECT_DIR}/results
     - cp index.html ${CI_PROJECT_DIR}/results
 
   artifacts:
