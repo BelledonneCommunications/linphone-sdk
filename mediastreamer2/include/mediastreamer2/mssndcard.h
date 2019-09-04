@@ -311,6 +311,8 @@ MS2_PUBLIC void ms_snd_card_manager_register_desc(MSSndCardManager *m, MSSndCard
 **/
 MS2_PUBLIC void ms_snd_card_manager_reload(MSSndCardManager *m);
 
+/* This function is available for testing only, this should not be used in a real application! */
+MS2_PUBLIC void ms_snd_card_manager_bypass_soundcard_detection(bool_t value);
 
 /** @} */
 

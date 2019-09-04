@@ -24,6 +24,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mediastreamer2/mssndcard.h"
 
 
+static bool_t bypass_sndcard_detection = FALSE;
+
+
 MSSndCardManager * ms_snd_card_manager_new(void){
 	MSSndCardManager *obj=(MSSndCardManager *)ms_new0(MSSndCardManager,1);
 	obj->factory = NULL;
@@ -33,7 +36,7 @@ MSSndCardManager * ms_snd_card_manager_new(void){
 }
 
 void ms_snd_card_manager_destroy(MSSndCardManager* scm){
-	if (scm!=NULL){
+	if (scm!=NULL && !bypass_sndcard_detection){
 		bctbx_list_t *elem;
 		for(elem=scm->descs;elem!=NULL;elem=elem->next){
 			MSSndCardDesc *desc = (MSSndCardDesc*)elem->data;
@@ -45,7 +48,6 @@ void ms_snd_card_manager_destroy(MSSndCardManager* scm){
 		bctbx_list_free(scm->descs);
 	}
 	ms_free(scm);
-	scm=NULL;
 }
 
 MSFactory * ms_snd_card_get_factory(MSSndCard * c){
@@ -140,7 +142,13 @@ void ms_snd_card_manager_prepend_cards(MSSndCardManager *m, bctbx_list_t *l) {
 	}
 }
 
+void ms_snd_card_manager_bypass_soundcard_detection(bool_t value) {
+	bypass_sndcard_detection = value;
+}
+
 static void card_detect(MSSndCardManager *m, MSSndCardDesc *desc){
+	if (bypass_sndcard_detection) return;
+
 	if (desc->detect!=NULL)
 		desc->detect(m);
 }
