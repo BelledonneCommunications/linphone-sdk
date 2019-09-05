@@ -55,34 +55,7 @@ job-ios-makefile:
 #################################################
 
 
-job-ios-ninja:
 
-  variables:
-    CMAKE_GENERATOR: Ninja
-    ARCHS_OPTIONS: -DLINPHONESDK_IOS_ARCHS=$IOS_ARCHS
-  extends: .job-ios
-
-
-job-ios-ninja-novideo:
-
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-
-  variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
-  extends: job-ios-ninja
-
-
-job-ios-ninja-smallsdk:
-
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-
-  variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_ADVANCED_IM=NO -DENABLE_DB_STORAGE=NO
-  extends: job-ios-ninja
 
 
 #################################################
@@ -98,6 +71,7 @@ job-ios-xcode:
     CMAKE_OPTIONS: -DLINPHONESDK_IOS_BASE_URL=$IOS_SNAPSHOTS_URL -DENABLE_SWIFT_WRAPPER=YES -DENABLE_JAZZY_DOC=YES -DENABLE_UNIT_TESTS=YES
     ADDITIONAL_BUILD_CONFIGURATIONS: --config RelWithDebInfo
     ADDITIONAL_BUILD_OPTIONS: -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=$MAX_NUMBER_TASK
+    ARCHS_OPTIONS: -DLINPHONESDK_IOS_ARCHS=x86_64
 
   extends: .job-ios
 
