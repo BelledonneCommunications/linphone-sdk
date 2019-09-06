@@ -202,6 +202,8 @@ static SoundDeviceDescription devices[]={
 
 	{	"Alcatel",				"4027D",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
 	{	"Alcatel",				"7045Y", 				"", 			DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"TCL",					"6070Y",			"msm8952",	DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0, 16000},
+	
 
 	{	"HUAWEI",				"HUAWEI P7-L10",		"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
 	{	"HUAWEI",				"HUAWEI P7-L11",		"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
@@ -214,6 +216,7 @@ static SoundDeviceDescription devices[]={
 	{	"HUAWEI",				"302HW",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
 	{	"HUAWEI",				"HUAWEI GRA-L09",		"hi3635",		DEVICE_MCH264ENC_NO_PIX_FMT_CONV, 0 },
 	{	"HUAWEI",				"HUAWEI VNS-L31",		"hi6250",		DEVICE_MCH264ENC_NO_PIX_FMT_CONV, 0 },
+	{	"Huawei",				"AOSP on angler",		"msm8994",		DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0, 16000},
 
 	{	"WIKO", 				"HIGHWAY 4G",			"tegra",		DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
 	{	"Symphony",				"HIGHWAY 4G",			"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },

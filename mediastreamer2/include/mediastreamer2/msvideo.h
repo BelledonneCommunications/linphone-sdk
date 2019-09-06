@@ -285,7 +285,28 @@ MS2_PUBLIC void deinterlace_and_rotate_180_neon(const uint8_t* ysrc, const uint8
 void deinterlace_down_scale_and_rotate_180_neon(const uint8_t* ysrc, const uint8_t* cbcrsrc, uint8_t* ydst, uint8_t* udst, uint8_t* vdst, int w, int h, int y_byte_per_row,int cbcr_byte_per_row,bool_t down_scale);
 void deinterlace_down_scale_neon(const uint8_t* ysrc, const uint8_t* cbcrsrc, uint8_t* ydst, uint8_t* u_dst, uint8_t* v_dst, int w, int h, int y_byte_per_row,int cbcr_byte_per_row,bool_t down_scale);
 #endif
-MS2_PUBLIC mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(MSYuvBufAllocator *allocator, const uint8_t* y, const uint8_t * cbcr, int rotation, int w, int h, int y_byte_per_row,int cbcr_byte_per_row, bool_t uFirstvSecond, bool_t down_scale);
+
+/**
+ * This functions copies a an YUV420 semi-planar (UV packed in a single plane) to normal YUV420 (three planes), by eventually performing a rotation and a downscale by a factor of two.
+ * @param allocator a MSYuvBufAllocator from which the returned mblk_t will be allocated.
+ * @param y pointer to the source Y plane pointer.
+ * @param cbcr pointer to the source UV (or cbcr) plane.
+ * @param rotation the rotation to apply to the source image, expressed in angles (0, 90, 180, 270).
+ * @param dest_w the width of the requested destination image
+ * @param dest_h the height of the requested destination image
+ * @param y_byte_per_row the stride for the source y plane, ie the number of bytes to move by one row.
+ * @param cbcr_byte_per_row the stride for the source uv plane, ie the number of bytes to move by one row.
+ * @param uFirstvSecond a boolean to be set to TRUE if the UV plan starts with U, followed by V. This function can be used to process YVU420 semi planar images.
+ * @param down_scale set to TRUE if you wish a downscale by two of the source image.
+ * @return a mblk_t containing the converted and transformed image according to the parameters give above.
+ * 
+ * @REVISIT This function suffers from several deficiencies that makes it difficult to use. It could be reworked in the following way:
+ * - first rename it to have correct prefix ms_video_*something*, and use "yuv" wording rather than cbcr, to make it consistent with other functions in mediastreamer.
+ * - it should take as input the width and height of the source buffer. To be more concise, the MSPicture structure could be use to represent the source image.
+ * - it should not take the destination width and height, as they can be easily guessed from the source size and the transformation requested.
+**/
+
+MS2_PUBLIC mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(MSYuvBufAllocator *allocator, const uint8_t* y, const uint8_t * cbcr, int rotation, int dest_w, int dest_h, int y_byte_per_row,int cbcr_byte_per_row, bool_t uFirstvSecond, bool_t down_scale);
 
 static MS2_INLINE MSVideoSize ms_video_size_make(int width, int height){
 	MSVideoSize vsize;
@@ -368,6 +389,10 @@ MS2_PUBLIC void ms_video_set_scaler_impl(MSScalerDesc *desc);
 
 MS2_PUBLIC MSScalerDesc * ms_video_get_scaler_impl(void);
 
+
+/**
+ * Wrapper function around copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2().
+ */
 MS2_PUBLIC mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation(MSYuvBufAllocator *allocator, const uint8_t* y, const uint8_t* cbcr, int rotation, int w, int h, int y_byte_per_row,int cbcr_byte_per_row, bool_t uFirstvSecond);
 
 MS2_PUBLIC mblk_t *copy_yuv_with_rotation(MSYuvBufAllocator *allocator, const uint8_t* y, const uint8_t* u, const uint8_t* v, int rotation, int w, int h, int y_byte_per_row, int u_byte_per_row, int v_byte_per_row);
