@@ -23,6 +23,8 @@
       - build-ios/linphone-sdk-*.zip
       - build-ios/linphone-sdk.podspec
       - build-ios/docs
+      - tester/IOS/LinphoneTester/Podfile
+
     when: always
     expire_in: 1 week
 
@@ -84,8 +86,6 @@ job-ios-ninja-smallsdk:
 #################################################
 # XCode
 #################################################
-
-
 job-ios-xcode:
 
   only:
@@ -95,8 +95,65 @@ job-ios-xcode:
 
   variables:
     CMAKE_GENERATOR: Xcode
-    CMAKE_OPTIONS: -DLINPHONESDK_IOS_BASE_URL=$IOS_SNAPSHOTS_URL -DENABLE_SWIFT_WRAPPER=YES -DENABLE_JAZZY_DOC=YES
+    CMAKE_OPTIONS: -DLINPHONESDK_IOS_BASE_URL=$IOS_SNAPSHOTS_URL -DENABLE_SWIFT_WRAPPER=YES -DENABLE_JAZZY_DOC=YES -DENABLE_UNIT_TESTS=YES
     ADDITIONAL_BUILD_CONFIGURATIONS: --config RelWithDebInfo
     ADDITIONAL_BUILD_OPTIONS: -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=$MAX_NUMBER_TASK
 
   extends: .job-ios
+
+test-liblinphone-ios:
+  tags: [ "macosx" ]
+  stage: test
+  allow_failure: true
+  dependencies:
+    - job-ios-xcode
+
+
+  script:
+    - unzip build-ios/linphone-sdk-*.zip -d build-ios/
+    - cd ${CI_PROJECT_DIR}/tester/IOS/LinphoneTester
+    - echo ${CI_PROJECT_DIR}/tester/IOS/LinphoneTester
+    - pod install
+
+    # Test launching
+    - |
+        xcodebuild -workspace LinphoneTester.xcworkspace \
+        -scheme LinphoneTester -sdk iphonesimulator \
+        -destination name='iPhone 7 Plus' \
+        -derivedDataPath $WORKSPACE build test 2>&1 | tee LOG_PATTERN.txt
+
+  after_script:
+    #ocunit2junit will produce .xml file by testsuite.
+    - cat tester/IOS/LinphoneTester/LOG_PATTERN.txt | ocunit2junit
+
+    - BRANCH=$CI_COMMIT_REF_NAME
+    - echo $BRANCH
+    - ESCAPED_BRANCH=$(echo $BRANCH | tr / _)
+    - echo $ESCAPED_BRANCH
+    - URL=http://linphone.org/snapshots/allure-tests-reports/$ESCAPED_BRANCH/$COMMIT/allure-report
+
+    - echo "<\!DOCTYPE HTML>" >> index.html
+    - echo "<meta charset=\"UTF-8\">" >> index.html
+    - echo "<meta http-equiv=\"refresh\" content=\"1; url=$URL\">" >> index.html
+    - echo "<script>" >> index.html
+    - echo "  window.location.href = \"$URL\"" >> index.html
+    - echo "</script>" >> index.html
+    - echo "<title>Page Redirection</title>" >> index.html
+    - echo "<\!-- Don't tell people to \`click\` the link, just tell them that it is a link. -->" >> index.html
+    - echo "If you are not redirected automatically, follow the <a href='$URL'>link to see the test report</a>" >> index.html
+    - cat index.html
+
+    #Gathering artifacts in one folder to ease their use
+    - mkdir ${CI_PROJECT_DIR}/results
+    - cp -r tester/IOS/LinphoneTester/liblinphone-tests.log ${CI_PROJECT_DIR}/results
+    - cp -r test-reports/* ${CI_PROJECT_DIR}/results
+    - cp index.html ${CI_PROJECT_DIR}/results
+
+  artifacts:
+    paths:
+      - results/*
+    when: always
+    reports:
+      junit:
+        - ${CI_PROJECT_DIR}/results/*.xml
+    expire_in: 4 week
