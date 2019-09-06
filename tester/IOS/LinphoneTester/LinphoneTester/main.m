@@ -24,13 +24,15 @@ void uncaughtExceptionHandler(NSException *exception) {
 #endif
 
 int main(int argc, char *argv[]) {
+	liblinphone_tester_init(NULL);
+	[Log enableLogs:0];
 #ifdef DEBUG
     NSSetUncaughtExceptionHandler(&uncaughtExceptionHandler);
 #endif
     int i;
     for(i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "--verbose") == 0) {
-            linphone_core_set_log_level(ORTP_MESSAGE);
+            [Log enableLogs:ORTP_MESSAGE];
         } else if (strcmp(argv[i],"--log-file")==0){
 #if TARGET_OS_SIMULATOR
             char *xmlFile = bc_tester_file("LibLinphoneIOS.xml");
