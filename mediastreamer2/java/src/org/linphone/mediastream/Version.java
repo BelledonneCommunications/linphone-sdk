@@ -58,6 +58,7 @@ public class Version {
 	public static final int API26_O_80 = 26;
 	public static final int API27_OREO_81 = 27;
 	public static final int API28_PIE_90 = 28;
+	public static final int API29_ANDROID_10 = 29;
 
 	private static native boolean nativeHasZrtp();
 	private static native boolean nativeHasNeon();
