@@ -20,8 +20,10 @@
 #
 ############################################################################
 
+
 cmake_minimum_required(VERSION 3.1)
-project(belle-sip VERSION 1.6.3 LANGUAGES C CXX)
+project(belle-sip VERSION 1.7.0 LANGUAGES C CXX)
+
 
 
 set(PACKAGE "${PROJECT_NAME}")

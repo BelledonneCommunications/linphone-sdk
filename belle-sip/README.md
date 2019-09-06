@@ -9,11 +9,16 @@ Overview
 Belle-sip is a modern library implementing SIP (RFC3261) transport, transaction and dialog layers.
 It is written in C, with an object oriented API.
 It also comprises a simple HTTP/HTTPS client implementation.
-Copyright 2012-now, Belledonne Communications SARL <sales@belledonne-communications.com>, all rights reserved.
 
-Belle-sip is distributed to everyone under the GNU GPLv2 (see COPYING file for details).
-Incorporating belle-sip within a closed source project is not possible under the GPL.
-Commercial licensing can be purchased for that purpose from [Belledonne Communications](http://www.belledonne-communications.com).
+
+License
+-------
+
+<Copyright 2012 © Belledonne Communications SARL>, all rights reserved.
+
+Belle-sip is dual licensed:
+- under a GNU GPLv3 license for free (see LICENSE.md file for details)
+- under a proprietary license, for closed source projects. Contact <sales@belledonne-communications.com> for costs and other service information.
 
 Dependencies
 ------------
@@ -29,26 +34,21 @@ These are required to generate a C sourcefile from SIP grammar using [antlr3](ht
 ### Runtime dependencies
 
 - *libantlr3c* version 3.2 or 3.4 - but its source is included in belle-sip, no need to install it.
-- *bctoolbox* (git://git.linphone.org/bctoolbox.git or <http://www.linphone.org/releases/sources/bctoolbox/>)
+- *bctoolbox* (git://git.linphone.org/bctoolbox.git or <https://gitlab.linphone.org/BC/public/bctoolbox>)
 
 
 ### Under Debian/Ubuntu
 
-		apt-get install antlr3
-
-
-### Under MacOS X using HomeBrew
-
-		brew install libantlr3.4c homebrew/versions/antlr3
+	apt-get install antlr3
 
 
 Building belle-sip with CMake
 -----------------------------
 
-		cmake . -DCMAKE_INSTALL_PREFIX=<prefix> -DCMAKE_PREFIX_PATH=<search_prefix>
+	cmake . -DCMAKE_INSTALL_PREFIX=<prefix> -DCMAKE_PREFIX_PATH=<search_prefix>
 	
-		make
-		make install
+	make
+	make install
 
 
 Build options
