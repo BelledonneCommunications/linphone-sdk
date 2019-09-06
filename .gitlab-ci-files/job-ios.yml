@@ -94,10 +94,10 @@ test-ios:
         xcodebuild -workspace LinphoneTester.xcworkspace \
         -scheme LinphoneTester -sdk iphonesimulator \
         -destination name='iPhone 7 Plus' \
-        -derivedDataPath $WORKSPACE build test 2>&1 | tee liblinphone-tests.log
+        -derivedDataPath $WORKSPACE build test 2>&1 | tee LOG_PATTERN.txt
 
   after_script:
-    - cat tester/IOS/LinphoneTester/liblinphone-tests.log | ocunit2junit
+    - cat tester/IOS/LinphoneTester/LOG_PATTERN.txt | ocunit2junit
 
     - BRANCH=$CI_COMMIT_REF_NAME
     - echo $BRANCH
@@ -126,4 +126,7 @@ test-ios:
     paths:
       - results/*
     when: always
+    reports:
+      junit:
+        - ${CI_PROJECT_DIR}/results/*.xml
     expire_in: 4 week
