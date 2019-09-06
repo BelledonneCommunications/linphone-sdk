@@ -1,20 +1,21 @@
 /*
-	belle-sip - SIP (RFC3261) library.
-    Copyright (C) 2010  Belledonne Communications SARL
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ * Copyright (c) 2012-2019 Belledonne Communications SARL.
+ *
+ * This file is part of belle-sip.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #include "belle-sip/belle-sip.h"
 #include "belle_sip_tester.h"
@@ -566,7 +567,7 @@ static void testMalformedFrom(void){
 
 	const char* raw_message = "INVITE sip:us2@172.1.1.1 SIP/2.0\r\n"
 			"Via: SIP/2.0/TCP " LISTENING_POINT_HOSTPORT ";branch=z9hG4bK-edx-U_1zoIkaq72GJPqpSmDpJQ-ouBelFuLODzf9oS5J9MeFUA;rport\r\n"
-			"From: c\x8e test <sip:00_12_34_56_78_90@us2>;tag=klsk+kwDc\r\n" /** 'cé test' should be enclosed in double quotes */
+			"From: c\x8e test <sip:00_12_34_56_78_90@us2>;tag=klsk+kwDc\r\n" /** 'c? test' should be enclosed in double quotes */
 			"To: <sip:us2@172.1.1.1;transport=tcp>\r\n"
 			"Contact: <sip:00_12_34_56_78_90@172.2.2.2>\r\n"
 			"Call-ID: 2b6fb0320-1384-179494-426025-23b6b0-2e3303331@172.16.42.1\r\n"

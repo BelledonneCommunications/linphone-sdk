@@ -6,64 +6,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.0.1] - 2017-10-22
+## [1.7.0] - 2019-09-06
+
 ### Added
-- Initial release.
+- RFC3262 (100 rel) support.
+- Use maddr for http uris.
 
 ### Changed
+- License is now GPLv3.
 
 ### Removed
+- Some useless files.
+
+## [1.6.0] - 2017-02-23
+
+
+## [1.5.0] - 2016-08-08
+
+### Added
+- support for zlib in body handling.
+
+### Changed
+- move general purpose and encryption related functions to bctoolbox, which becomes a mandatory dependency.
+- mbedTLS support through bctoolbox.
+- SUBSCRIBE/NOTIFY dialog improvements: can be created upon reception of NOTIFY (as requested by RFC),
+  automatic deletion when dialog expires.
+
+### Fixed
+- retransmit 200Ok of a reINVITE (was formely only done for initial INVITE)
 
 
 
-elle-sip (Unreleased): Jully  2018
-	* rfc3262 (100rel) support 
-	* add maddr support for http uri
+## [1.4.0] - 2015-03-11
 
-belle_sip-1.6.2 -- July 21th, 2017
-	* Build fix for Windows
+### Added
+- Accept, Content-Disposition and Supported headers.
+- Support of display names of type (token LWS)* instead of just token.
+- Support for absolute URIs.
 
-belle_sip-1.6.2 -- July 20th, 2017
-	* Bug fixes
+### Fixed
+- various things.
 
-belle_sip-1.6.1 -- March 2nd, 2017
-	* Fix bug around nsswitch.conf parsing on GNU/Linux
+## [1.3.0] - 2014-09-18
 
-belle-sip-1.6.0 -- February 23th, 2017
+### Added
+- First mature version of belle-sip.
 
-belle-sip-1.5.0 -- August 8th, 2016
-	* move general purpose and encryption related functions to bctoolbox, which becomes a mandatory dependency.
-	* mbedTLS support through bctoolbox
-	* SUBSCRIBE/NOTIFY dialog improvements: can be created upon reception of NOTIFY (as requested by RFC),
-	  automatic deletion when dialog expires.
-	* fix: retransmit 200Ok of a reINVITE (was formely only done for initial INVITE)
-	* add support for zlib in body handling
 
-belle-sip-1.4.2 -- November 2nd, 2015
-	* Support of Accept, Content-Disposition and Supported headers
-	* Bug fixes
-
-belle-sip-1.4.1 -- May 6th, 2015
-	* Bug fixes
-
-belle-sip-1.4.0 -- March 11th, 2015
-	* support of display names of type (token LWS)* instead of just token
-	* support for absolute URIs
 
 belle-sip-1.3.3 -- September 18th, 2014
-	* DNS SRV weight selection
-	* support of multipart messages
-	* support of Wake Locks on Android
-	* support of backslash escaped display name
+	
 
 belle-sip-1.3.0 -- February 20th, 2014 -- initial release of belle-sip
-	* RFC3261 compliant implementation of SIP parser, writer, transactions and dialog layers.
-	* http client api
-	* support of client TLS certificate
-	* fully asynchronous transport layer (UDP, TCP, TLS)
-	* fully asynchronous DNS resolution with SRV
-	* full dual-stack IPv6 support
-	* SIP transaction state machines with lastest corrections (RFC6026)
-	* automatic management of request refreshes with network disconnection resiliency thanks to the "refresher" object
-	* supported platforms: Linux, Mac OSX, windows XP+, iOS, Android, Blackberry 10.
+
 
