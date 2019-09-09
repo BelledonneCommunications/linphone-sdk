@@ -102,7 +102,7 @@ static void android_texture_display_destroy_opengl(MSFilter *f) {
 		JNIEnv *env = ms_get_jni_env();
 		(*env)->DeleteGlobalRef(env, ad->surface);
 		ad->surface = NULL;
-    	ms_message("[Camera2 Capture] Preview surface destroyed");
+		ms_message("[TextureView Display] Surface destroyed");
 	}
 
 	ms_message("[TextureView Display] Context destroyed");
