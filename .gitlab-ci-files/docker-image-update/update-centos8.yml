@@ -54,7 +54,7 @@ job-docker-rebuild-centos8-liblinphone-test-image:
     - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8-test-liblinphone:latestupdated
 
 job-rebuild-centos8-newdocker-makefile-gcc:
-  extends: job-centos7-latest-makefile-gcc
+  extends: job-centos7-makefile-gcc
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:8
   only:
     variables:
@@ -62,35 +62,35 @@ job-rebuild-centos8-newdocker-makefile-gcc:
 
 
 job-rebuild-centos8-newdocker-ninja-gcc:
-  extends: job-centos7-latest-ninja-gcc
+  extends: job-centos7-ninja-gcc
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:8
   only:
     variables:
       - $DOCKER_UPDATE
 
 job-rebuild-centos8-newdocker-ninja-gcc-novideo:
-  extends: job-centos7-latest-ninja-gcc-novideo
+  extends: job-centos7-ninja-gcc-novideo
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:8
   only:
     variables:
       - $DOCKER_UPDATE
 
 job-rebuild-centos8-newdocker-makefile-clang:
-  extends: job-centos7-latest-makefile-clang
+  extends: job-centos7-makefile-clang
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:latestupdated
   only:
     variables:
       - $DOCKER_UPDATE
 
 job-rebuild-centos8-newdocker-ninja-clang:
-  extends: job-centos7-latest-ninja-clang
+  extends: job-centos7-ninja-clang
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:latestupdated
   only:
     variables:
       - $DOCKER_UPDATE
 
 job-rebuild-centos8-newdocker-ninja-clang-novideo:
-  extends: job-centos7-latest-ninja-clang-novideo
+  extends: job-centos7-ninja-clang-novideo
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:latestupdated
   only:
     variables:
