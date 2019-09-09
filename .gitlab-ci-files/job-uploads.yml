@@ -143,7 +143,7 @@ job-debian-doc-upload:
     - rsync -rlv ../build-desktop/linphone-sdk/desktop/share/doc/linphone/$LINPHONE_VERSION/* $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/docs/liblinphone/multilang
 
 
-job-test-report-upload:
+.job-test-report-upload:
   stage: deploy
   tags: [ "deploy" ]
 
@@ -163,6 +163,7 @@ job-test-report-upload:
     #getting the version number for each submodule and writing it in environment.properties file
     #this file will be parsed by allure and will help to display additionnal information in the web view
     #git -C allows to run a git command in the given folder without moving"
+
     - BCTOOLBOX_VERSION=$(git -C bctoolbox describe)
     - ORTP_VERSION=$(git -C ortp describe)
     - BCG729_VERSION=$(git -C bcg729 describe)
@@ -214,13 +215,13 @@ job-test-report-upload:
     #as a subfoldder name, we use the git describe of the sdk (version + commit hash)
     #no need to search for an history in the case of a retry (if the directory related to the commit already exists)
     - echo "if [[ -n \$(ls | grep $SDK_VERSION) ]];" | tee -a allure_launch_script
-    - echo "  then cd $SDK_VERSION/linux-centos7/liblinphone;" | tee -a allure_launch_script
+    - echo "  then cd $SDK_VERSION/$PLATFORM/$TESTER;" | tee -a allure_launch_script
     
     #The LAST_MODIFIED_FOLDER variable will help us to save the latest tests history before deletion and move it
     #in the new folder, to be used by the new allure report generation
     - echo "else" | tee -a allure_launch_script
     - echo "  LAST_MODIFIED_FOLDER=\$(ls -ct | head -n1)" | tee -a allure_launch_script
-    - echo "  mkdir -p $SDK_VERSION/linux-centos7/liblinphone" >> allure_launch_script
+    - echo "  mkdir -p $SDK_VERSION/$PLATFORM/$TESTER" >> allure_launch_script
     
     #need to copy the history from parent branch if there is no previous test reports in current branch (if there is no LAST_MODIFIED_FOLDER)
     #current branch = ESCAPED_BRANCH
@@ -229,9 +230,9 @@ job-test-report-upload:
     - echo "    cd ../$PARENT_BRANCH" | tee -a allure_launch_script
     - echo "    LAST_MODIFIED_FOLDER=\$(ls -ct | head -n1)" | tee -a allure_launch_script
     - echo "    cd ../$ESCAPED_BRANCH/" | tee -a allure_launch_script
-    - echo "    cp -r ../$PARENT_BRANCH/\$LAST_MODIFIED_FOLDER/linux-centos7/liblinphone/allure-report/history $SDK_VERSION/linux-centos7/liblinphone/history;" | tee -a allure_launch_script
+    - echo "    cp -r ../$PARENT_BRANCH/\$LAST_MODIFIED_FOLDER/$PLATFORM/$TESTER/allure-report/history $SDK_VERSION/$PLATFORM/$TESTER/history;" | tee -a allure_launch_script
     - echo "  else" | tee -a allure_launch_script
-    - echo "    cp -r \$LAST_MODIFIED_FOLDER/linux-centos7/liblinphone/allure-report/history $SDK_VERSION/linux-centos7/liblinphone/history;" | tee -a allure_launch_script
+    - echo "    cp -r \$LAST_MODIFIED_FOLDER/$PLATFORM/$TESTER/allure-report/history $SDK_VERSION/$PLATFORM/$TESTER/history;" | tee -a allure_launch_script
     - echo "  fi;" | tee -a allure_launch_script
 
     #categories.json is usefull to define the pattern of the tests states.
@@ -280,3 +281,8 @@ job-test-report-upload:
     - ssh $DEPLOY_SERVER "cd $DEPLOY_TESTS_DIRECTORY && ./allure_launch_script"
     
     #TODO think about deletion of oldest reports, or compression
+job-test-upload-centos7-libl:
+  extends: .job-test-report-upload
+  variables:
+    PLATFORM: "linux-centos7"
+    TESTER: "liblinphone"
