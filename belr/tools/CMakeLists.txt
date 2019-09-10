@@ -23,7 +23,7 @@
 if(ENABLE_SHARED)
 	set(BELR_LIBRARIES_FOR_TOOLS belr)
 else()
-	set(BELR_LIBRARIES_FOR_TOOLS belr-static)
+	set(BELR_LIBRARIES_FOR_TOOLS belr)
 endif()
 
 foreach(EXECUTABLE belr-parse belr-demo belr-compiler)
@@ -31,7 +31,7 @@ foreach(EXECUTABLE belr-parse belr-demo belr-compiler)
 	bc_apply_compile_flags(SOURCE_FILES_CXX STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
 	add_executable(${EXECUTABLE} ${SOURCE_FILES_CXX})
 	set_target_properties(${EXECUTABLE} PROPERTIES LINKER_LANGUAGE CXX)
-	target_link_libraries(${EXECUTABLE} ${BELR_LIBRARIES_FOR_TOOLS} ${BCTOOLBOX_CORE_LIBRARIES})
+	target_link_libraries(${EXECUTABLE} ${BELR_LIBRARIES_FOR_TOOLS} bctoolbox)
 endforeach()
 
 if(NOT IOS)
