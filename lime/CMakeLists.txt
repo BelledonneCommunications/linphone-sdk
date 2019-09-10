@@ -25,7 +25,7 @@ include(CheckLibraryExists)
 include(CMakePushCheckState)
 include(CMakePackageConfigHelpers)
 
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.1)
 
 option(ENABLE_SHARED "Build shared library." YES)
 option(ENABLE_STATIC "Build static library." YES)
@@ -58,12 +58,7 @@ if(NOT CPACK_GENERATOR AND NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
 	message(STATUS "Setting install rpath to ${CMAKE_INSTALL_RPATH}")
 endif()
 
-if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
-	set(BcToolbox_FIND_COMPONENTS tester)
-	include("${EP_bctoolbox_CONFIG_DIR}/BcToolboxConfig.cmake")
-else()
-	find_package(BcToolbox 0.5.1 REQUIRED OPTIONAL_COMPONENTS tester)
-endif()
+find_package(bctoolbox 0.5.1 REQUIRED OPTIONAL_COMPONENTS tester)
 
 find_package(Soci REQUIRED)
 
@@ -75,10 +70,6 @@ include_directories(
 if(MSVC)
 	include_directories(${MSVC_INCLUDE_DIR})
 endif()
-
-set(LIME_INCLUDE_DIRS
-	${PROJECT_SOURCE_DIR}/include
-)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/config.h PROPERTIES GENERATED ON)
@@ -131,11 +122,7 @@ if(STRICT_OPTIONS_CPP)
 	list(REMOVE_DUPLICATES STRICT_OPTIONS_CPP)
 endif()
 
-if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
-	set(EXPORT_TARGETS_NAME "LinphoneBuilder")
-else()
-	set(EXPORT_TARGETS_NAME "lime")
-endif()
+set(EXPORT_TARGETS_NAME "lime")
 
 if (ENABLE_CURVE25519)
 	add_definitions("-DEC25519_ENABLED")
@@ -166,25 +153,29 @@ endif()
 
 add_subdirectory(include)
 add_subdirectory(src)
-if(ENABLE_UNIT_TESTS AND BCTOOLBOX_TESTER_FOUND)
+if(ENABLE_UNIT_TESTS)
         enable_testing()
 	add_subdirectory(tester)
 endif()
 
-export(EXPORT ${EXPORT_TARGETS_NAME}Targets
-	FILE "${CMAKE_CURRENT_BINARY_DIR}/LimeTargets.cmake"
-)
-configure_file(cmake/LimeConfig.cmake.in
-	"${CMAKE_CURRENT_BINARY_DIR}/LimeConfig.cmake"
-	@ONLY
-)
 set(ConfigPackageLocation "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/cmake")
+
+export(EXPORT ${EXPORT_TARGETS_NAME}Targets
+	FILE "${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}Targets.cmake"
+)
+
+configure_package_config_file(cmake/LimeConfig.cmake.in
+	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}Config.cmake"
+  	INSTALL_DESTINATION ${ConfigPackageLocation}
+	NO_SET_AND_CHECK_MACRO
+)
+
 install(EXPORT ${EXPORT_TARGETS_NAME}Targets
-	FILE LimeTargets.cmake
+	FILE ${EXPORT_TARGETS_NAME}Targets.cmake
 	DESTINATION ${ConfigPackageLocation}
 )
 install(FILES
-	"${CMAKE_CURRENT_BINARY_DIR}/LimeConfig.cmake"
+	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}Config.cmake"
 	DESTINATION ${ConfigPackageLocation}
 )
 
