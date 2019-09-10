@@ -22,6 +22,7 @@ job-debian9-yocto-sumo:
     - cd /home/build/poky
     - export LATEST_REVISIONS=1
     - source oe-init-build-env
+    - export LATEST_REVISIONS=1
     - bitbake -f linphone-sdk 2>&1 | tee bitbake_build.log
     - cd $WORKSPACE_PATH
     - ln -sf /home/build/poky/build ./yocto_build
