@@ -23,7 +23,6 @@
 cmake_minimum_required(VERSION 3.2) #since cmake 3.2 is available as a patch for yocto Fido
 set(CMAKE_MACOSX_RPATH ON) # Before cmake 3.0.0, MACOSX_RPATH was not set to ON by default - however this is no good reason to not enable it by default
 
-
 project(bctoolbox)
 
 set(BCTOOLBOX_VERSION_MAJOR 0)
@@ -74,8 +73,9 @@ if(ENABLE_MBEDTLS)
 		set(HAVE_MBEDTLS 1)
 	endif()
 endif()
+
 if(ENABLE_DECAF)
-	find_package(Decaf)
+	find_package(Decaf CONFIG)
 	if(DECAF_FOUND)
 		message(STATUS "Using Decaf")
 		set(HAVE_DECAF 1)
@@ -111,8 +111,8 @@ if(POLARSSL_FOUND)
 endif()
 
 if(ENABLE_TESTS_COMPONENT)
-	find_package(BcUnit REQUIRED)
-	cmake_push_check_state(RESET)
+  find_package(BcUnit CONFIG REQUIRED)
+  cmake_push_check_state(RESET)
 	list(APPEND CMAKE_REQUIRED_INCLUDES ${BCUNIT_INCLUDE_DIRS})
 	list(APPEND CMAKE_REQUIRED_LIBRARIES ${BCUNIT_LIBRARIES})
 	check_symbol_exists("CU_get_suite" "BCUnit/BCUnit.h" HAVE_CU_GET_SUITE)
@@ -149,11 +149,7 @@ if(CMAKE_VERSION VERSION_LESS 3.1 AND NOT APPLE AND NOT MSVC)
 	list(APPEND STRICT_OPTIONS_CXX "-std=c++11")
 endif()
 
-if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
-	set(EXPORT_TARGETS_NAME "LinphoneBuilder")
-else()
-	set(EXPORT_TARGETS_NAME "BcToolbox")
-endif()
+set(EXPORT_TARGETS_NAME "bctoolbox")
 
 check_library_exists("rt" "clock_gettime" "" HAVE_LIBRT)
 check_library_exists("dl" "dladdr" "" HAVE_LIBDL)
@@ -172,28 +168,32 @@ endif()
 add_subdirectory(build)
 
 include(CMakePackageConfigHelpers)
+set(CONFIG_PACKAGE_LOCATION "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/cmake")
+
 write_basic_package_version_file(
-	"${CMAKE_CURRENT_BINARY_DIR}/BcToolboxConfigVersion.cmake"
+	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}ConfigVersion.cmake"
 	VERSION ${PROJECT_VERSION}
 	COMPATIBILITY AnyNewerVersion
 )
-configure_file(cmake/BcToolboxConfig.cmake.in
-	"${CMAKE_CURRENT_BINARY_DIR}/BcToolboxConfig.cmake"
-	@ONLY
+configure_package_config_file(cmake/BcToolboxConfig.cmake.in
+	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}Config.cmake"
+	INSTALL_DESTINATION ${CONFIG_PACKAGE_LOCATION}
+	NO_SET_AND_CHECK_MACRO
 )
-configure_file(cmake/BcToolboxCMakeUtils.cmake "${CMAKE_CURRENT_BINARY_DIR}/BcToolboxCMakeUtils.cmake" COPYONLY)
+
+configure_file(cmake/BcToolboxCMakeUtils.cmake "${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}CMakeUtils.cmake" COPYONLY)
 configure_file(cmake/BcGitVersion.cmake "${CMAKE_CURRENT_BINARY_DIR}/BcGitVersion.cmake" COPYONLY)
 configure_file(cmake/gitversion.h.in "${CMAKE_CURRENT_BINARY_DIR}/gitversion.h.in" COPYONLY)
 
-set(CONFIG_PACKAGE_LOCATION "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/cmake")
 install(EXPORT ${EXPORT_TARGETS_NAME}Targets
-	FILE BcToolboxTargets.cmake
+	FILE "${EXPORT_TARGETS_NAME}Targets.cmake"
 	DESTINATION ${CONFIG_PACKAGE_LOCATION}
 )
+
 install(FILES
-	"${CMAKE_CURRENT_BINARY_DIR}/BcToolboxConfig.cmake"
-	"${CMAKE_CURRENT_BINARY_DIR}/BcToolboxConfigVersion.cmake"
-	"${CMAKE_CURRENT_BINARY_DIR}/BcToolboxCMakeUtils.cmake"
+	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}Config.cmake"
+	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}ConfigVersion.cmake"
+	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}CMakeUtils.cmake"
 	"${CMAKE_CURRENT_BINARY_DIR}/BcGitVersion.cmake"
 	"${CMAKE_CURRENT_BINARY_DIR}/gitversion.h.in"
 	DESTINATION ${CONFIG_PACKAGE_LOCATION}
