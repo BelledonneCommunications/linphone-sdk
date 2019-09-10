@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.1)
 project(belle-sip VERSION 1.6.3 LANGUAGES C CXX)
 
 
@@ -85,12 +85,7 @@ if(ENABLE_RTP_MAP_ALWAYS_IN_SDP)
 	set(BELLE_SDP_FORCE_RTP_MAP 1)
 endif()
 
-if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
-	set(BcToolbox_FIND_COMPONENTS tester)
-	include("${EP_bctoolbox_CONFIG_DIR}/BcToolboxConfig.cmake")
-else()
-	find_package(BcToolbox 0.5.0 REQUIRED OPTIONAL_COMPONENTS tester)
-endif()
+find_package(bctoolbox 0.5.0 REQUIRED OPTIONAL_COMPONENTS tester)
 
 if(ENABLE_TUNNEL)
 	if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
@@ -124,27 +119,15 @@ set(prefix ${CMAKE_INSTALL_PREFIX})
 set(exec_prefix ${prefix}/bin)
 set(libdir ${prefix}/lib)
 set(includedir ${prefix}/include)
-get_filename_component(bctoolbox_library_path "${BCTOOLBOX_CORE_LIBRARIES}" PATH)
-set(LIBS_PRIVATE "${LIBS_PRIVATE} -L${bctoolbox_library_path} -lbctoolbox")
-if(ZLIB_FOUND)
-	set(REQUIRES_PRIVATE "${REQUIRES_PRIVATE} z")
-endif()
-if(HAVE_LIBDL)
-	set(LIBS_PRIVATE "${LIBS_PRIVATE} -ldl")
-endif()
-if(HAVE_LIBRT)
-	set(LIBS_PRIVATE "${LIBS_PRIVATE} -lrt")
-endif()
+
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/belle-sip.pc.in ${CMAKE_CURRENT_BINARY_DIR}/belle-sip.pc)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/belle-sip.pc DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
-
 
 include_directories(
 	include
 	src
 	${CMAKE_CURRENT_BINARY_DIR}
 	${CMAKE_CURRENT_BINARY_DIR}/src
-	${BCTOOLBOX_CORE_INCLUDE_DIRS}
 )
 if(TUNNEL_FOUND)
 	include_directories(${TUNNEL_INCLUDE_DIRS})
@@ -233,13 +216,15 @@ add_subdirectory(include)
 add_subdirectory(src)
 
 
-if(ENABLE_TESTS AND BCTOOLBOX_TESTER_FOUND)
+if(ENABLE_TESTS)
 	enable_testing()
 	add_subdirectory(tester)
 endif()
 
 
 include(CMakePackageConfigHelpers)
+set(CONFIG_PACKAGE_LOCATION "${CMAKE_INSTALL_DATADIR}/BelleSIP/cmake")
+
 write_basic_package_version_file(
 	"${CMAKE_CURRENT_BINARY_DIR}/BelleSIPConfigVersion.cmake"
 	VERSION ${PACKAGE_VERSION}
@@ -248,12 +233,12 @@ write_basic_package_version_file(
 export(EXPORT ${EXPORT_TARGETS_NAME}Targets
 	FILE "${CMAKE_CURRENT_BINARY_DIR}/BelleSIPTargets.cmake"
 )
-configure_file(cmake/BelleSIPConfig.cmake.in
+configure_package_config_file(cmake/BelleSIPConfig.cmake.in
 	"${CMAKE_CURRENT_BINARY_DIR}/BelleSIPConfig.cmake"
-	@ONLY
+  	INSTALL_DESTINATION ${CONFIG_PACKAGE_LOCATION}
+  	NO_SET_AND_CHECK_MACRO
 )
 
-set(CONFIG_PACKAGE_LOCATION "${CMAKE_INSTALL_DATADIR}/BelleSIP/cmake")
 install(EXPORT ${EXPORT_TARGETS_NAME}Targets
 	FILE BelleSIPTargets.cmake
 	DESTINATION ${CONFIG_PACKAGE_LOCATION}

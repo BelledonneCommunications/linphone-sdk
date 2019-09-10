@@ -36,15 +36,15 @@ function(require_c99 target)
 endfunction()
 
 set(PUBLIC_INCLUDE_DIRS
-	${BCTOOLBOX_CORE_INCLUDE_DIR}
 	$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
 	$<INSTALL_INTERFACE:include>
+	$<INSTALL_INTERFACE:include/belle-sip>
 )
 set(PRIVATE_INCLUDE_DIRS
 	${CMAKE_CURRENT_SOURCE_DIR}/antlr3c/include
 	${CMAKE_CURRENT_BINARY_DIR}/antlr3c
 )
-set(LIBS ${BCTOOLBOX_CORE_LIBRARIES})
+set(LIBS bctoolbox)
 
 if(Threads_FOUND)
 	if(CMAKE_USE_PTHREADS_INIT AND NOT CMAKE_SYSTEM_NAME MATCHES "QNX" AND NOT ANDROID)
@@ -196,8 +196,8 @@ if(ENABLE_STATIC)
 	add_library(bellesip-static STATIC ${BELLE_SIP_HEADER_FILES} ${BELLE_SIP_SOURCE_FILES_C} ${BELLE_SIP_SOURCE_FILES_CXX} ${BELLE_SIP_SOURCE_FILES_OBJC} ${ANTLR3C_SOURCE_FILES})
 	set_target_properties(bellesip-static PROPERTIES OUTPUT_NAME bellesip)
 	set_target_properties(bellesip-static PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON)
-	target_include_directories(bellesip-static PUBLIC ${PUBLIC_INCLUDE_DIRS} PRIVATE ${PRIVATE_INCLUDE_DIRS})
-	target_link_libraries(bellesip-static INTERFACE ${LIBS})
+	target_include_directories(bellesip-static INTERFACE ${PUBLIC_INCLUDE_DIRS} PRIVATE ${PRIVATE_INCLUDE_DIRS})
+	target_link_libraries(bellesip-static PRIVATE ${LIBS})
 	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 		set_target_properties(bellesip-static PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
@@ -212,7 +212,7 @@ if(ENABLE_SHARED)
 	set_target_properties(bellesip PROPERTIES SOVERSION 0)
 	set_target_properties(bellesip PROPERTIES LINKER_LANGUAGE CXX)
 	set_target_properties(bellesip PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON)
-	target_include_directories(bellesip PUBLIC ${PUBLIC_INCLUDE_DIRS} PRIVATE ${PRIVATE_INCLUDE_DIRS})
+	target_include_directories(bellesip INTERFACE ${PUBLIC_INCLUDE_DIRS} PRIVATE ${PRIVATE_INCLUDE_DIRS})
 	target_link_libraries(bellesip PRIVATE ${LIBS})
 	if(APPLE)
 		if(IOS)
