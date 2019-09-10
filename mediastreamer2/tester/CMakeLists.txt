@@ -104,7 +104,6 @@ set(SOURCE_FILES_C
 	mediastreamer2_audio_stream_tester.c
 	mediastreamer2_basic_audio_tester.c
 	mediastreamer2_framework_tester.c
-	mediastreamer2_neon_tester.c
 	mediastreamer2_player_tester.c
 	mediastreamer2_sound_card_tester.c
 	mediastreamer2_tester.c
@@ -114,7 +113,7 @@ set(SOURCE_FILES_C
 )
 
 if(SPEEXDSP_FOUND)
-	list(APPEND mediastreamer2_neon_tester.c)
+	list(APPEND SOURCE_FILES_C mediastreamer2_neon_tester.c)
 endif()
 
 set(SOURCE_FILES_CXX )
@@ -150,7 +149,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 
 	add_library(mediastreamer2_tester_static STATIC ${SOURCE_FILES_C} ${SOURCE_FILES_CXX})
 	target_include_directories(mediastreamer2_tester_static PUBLIC ${BCTOOLBOX_INCLUDE_DIRS} ${ORTP_INCLUDE_DIRS})
-	target_link_libraries(mediastreamer2_tester_static ${MS2_LIBS_FOR_TESTER} ${BCTOOLBOX_LIBRARIES} ${ORTP_LIBRARIES})
+	target_link_libraries(mediastreamer2_tester_static ${MS2_LIBS_FOR_TESTER} bctoolbox bctoolbox-tester ortp)
 
 	set(RUNTIME_COMPONENT_SOURCES
 		mediastreamer2_tester_windows.cpp
@@ -184,8 +183,8 @@ else()
 	else()
 		add_executable(mediastreamer2_tester ${SOURCE_FILES_C} ${SOURCE_FILES_CXX} ${SOURCE_FILES_OBJC})
 	endif()
-	target_include_directories(mediastreamer2_tester PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIRS})
-	target_link_libraries(mediastreamer2_tester ${MS2_LIBS_FOR_TESTER} ${BCTOOLBOX_TESTER_LIBRARIES} ${BCTOOLBOX_LIBRARIES} ${ORTP_LIBRARIES})
+	target_include_directories(mediastreamer2_tester PRIVATE ${BCTOOLBOX_TESTER_INCLUDE_DIRS})
+	target_link_libraries(mediastreamer2_tester ${MS2_LIBS_FOR_TESTER} bctoolbox bctoolbox-tester ortp)
 	string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
 	if(LINK_FLAGS_STR)
 		set_target_properties(mediastreamer2_tester PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
