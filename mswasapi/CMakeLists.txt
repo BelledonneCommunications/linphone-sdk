@@ -51,16 +51,9 @@ macro(apply_compile_flags SOURCE_FILES)
 endmacro()
 
 
-if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
-	include("${EP_ms2_CONFIG_DIR}/Mediastreamer2Config.cmake")
-	include("${EP_ortp_CONFIG_DIR}/ORTPConfig.cmake")
-	include("${EP_bctoolbox_CONFIG_DIR}/BcToolboxConfig.cmake")
-else()
-	find_package(Mediastreamer2 REQUIRED)
-	find_package(ORTP REQUIRED)
-	find_package(BcToolbox REQUIRED COMPONENTS core)
-endif()
-
+find_package(Mediastreamer2 CONFIG REQUIRED)
+find_package(ortp CONFIG REQUIRED)
+find_package(bctoolbox CONFIG REQUIRED COMPONENTS core)
 
 include_directories(
 	${MEDIASTREAMER2_INCLUDE_DIRS}
