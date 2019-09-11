@@ -21,7 +21,7 @@
 #
 ############################################################################
 
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.1)
 project(BELCARD VERSION 1.0.2 LANGUAGES C CXX)
 
 set(BELCARD_SO_VERSION "1")
@@ -47,21 +47,9 @@ if(MSVC)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 endif()
 
-# find_package should be invoked here to check for libraries - however do NOT
-# call include_directories here (see below)
+find_package(belr REQUIRED CONFIG)
 
-if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
-	include("${EP_belr_CONFIG_DIR}/BelrConfig.cmake")
-else()
-	find_package(Belr REQUIRED)
-endif()
-
-if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
-	set(BcToolbox_FIND_COMPONENTS tester)
-	include("${EP_bctoolbox_CONFIG_DIR}/BcToolboxConfig.cmake")
-else()
-	find_package(BcToolbox 0.0.3 REQUIRED OPTIONAL_COMPONENTS tester)
-endif()
+find_package(bctoolbox 0.0.3 REQUIRED OPTIONAL_COMPONENTS tester)
 
 if(UNIX AND NOT APPLE)
 	include(CheckIncludeFiles)
@@ -120,38 +108,40 @@ if(STRICT_OPTIONS_C)
 	list(REMOVE_DUPLICATES STRICT_OPTIONS_C)
 endif()
 
-if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
-	set(EXPORT_TARGETS_NAME "LinphoneBuilder")
-else()
-	set(EXPORT_TARGETS_NAME "belcard")
-endif()
+set(EXPORT_TARGETS_NAME "belcard")
 
 add_subdirectory(include)
 add_subdirectory(src)
-if(ENABLE_UNIT_TESTS AND BCTOOLBOX_TESTER_FOUND)
+
+if(ENABLE_UNIT_TESTS)
 	add_subdirectory(tester)
 endif()
+
 if(ENABLE_TOOLS)
 	add_subdirectory(tools)
 endif()
 
 include(CMakePackageConfigHelpers)
+set(CONFIG_PACKAGE_LOCATION "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/cmake")
+set(INCLUDE_INSTALL_DIR "include")
+
 export(EXPORT ${EXPORT_TARGETS_NAME}Targets
-	FILE "${CMAKE_CURRENT_BINARY_DIR}/BelcardTargets.cmake"
+	FILE "${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}Targets.cmake"
 )
-configure_file(cmake/BelcardConfig.cmake.in
-	"${CMAKE_CURRENT_BINARY_DIR}/BelcardConfig.cmake"
-	@ONLY
+
+configure_package_config_file(cmake/BelcardConfig.cmake.in
+	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}Config.cmake"
+  	INSTALL_DESTINATION ${CONFIG_PACKAGE_LOCATION}
+	NO_SET_AND_CHECK_MACRO
 )
-set(ConfigPackageLocation share/Belcard/cmake)
+set(ConfigPackageLocation "share/${EXPORT_TARGETS_NAME}/cmake")
 install(EXPORT ${EXPORT_TARGETS_NAME}Targets
-	FILE BelcardTargets.cmake
+	FILE ${EXPORT_TARGETS_NAME}Targets.cmake
 	DESTINATION ${ConfigPackageLocation}
 )
 install(FILES
-	"${CMAKE_CURRENT_BINARY_DIR}/BelcardConfig.cmake"
+	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}Config.cmake"
 	DESTINATION ${ConfigPackageLocation}
 )
-
 
 add_subdirectory(build)
