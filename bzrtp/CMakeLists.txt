@@ -20,10 +20,9 @@
 #
 ############################################################################
 
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.1)
 
 project(bzrtp VERSION 1.0.6 LANGUAGES C CXX)
-
 
 option(ENABLE_SHARED "Build shared library." YES)
 option(ENABLE_STATIC "Build static library." YES)
@@ -49,12 +48,7 @@ include(GNUInstallDirs)
 include(CheckLibraryExists)
 check_library_exists("m" "sqrt" "" HAVE_SQRT)
 
-if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
-	set(BcToolbox_FIND_COMPONENTS tester)
-	include("${EP_bctoolbox_CONFIG_DIR}/BcToolboxConfig.cmake")
-else()
-	find_package(BcToolbox 0.0.3 REQUIRED OPTIONAL_COMPONENTS tester)
-endif()
+find_package(bctoolbox 0.0.3 REQUIRED OPTIONAL_COMPONENTS tester CONFIG)
 
 if(ENABLE_ZIDCACHE)
 	find_package(Sqlite3 REQUIRED)
@@ -110,45 +104,42 @@ if (ENABLE_EXPORTEDKEY_V1_0_RETROCOMPATIBILITY)
 	add_definitions("-DSUPPORT_EXPORTEDKEY_V010000")
 endif()
 
-if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
-	set(EXPORT_TARGETS_NAME "LinphoneBuilder")
-else()
-	set(EXPORT_TARGETS_NAME "BZRTP")
-endif()
-
+set(EXPORT_TARGETS_NAME "bzrtp")
 
 add_subdirectory(include)
 add_subdirectory(src)
-if(ENABLE_TESTS AND BCTOOLBOX_TESTER_FOUND)
+if(ENABLE_TESTS)
 	enable_testing()
 	add_subdirectory(test)
 endif()
 
 
 include(CMakePackageConfigHelpers)
+set(CONFIG_PACKAGE_LOCATION "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/cmake")
+
 write_basic_package_version_file(
-	"${CMAKE_CURRENT_BINARY_DIR}/BZRTPConfigVersion.cmake"
+	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}ConfigVersion.cmake"
 	VERSION ${PROJECT_VERSION}
 	COMPATIBILITY AnyNewerVersion
 )
 export(EXPORT ${EXPORT_TARGETS_NAME}Targets
-	FILE "${CMAKE_CURRENT_BINARY_DIR}/BZRTPTargets.cmake"
-)
-configure_file(cmake/BZRTPConfig.cmake.in
-	"${CMAKE_CURRENT_BINARY_DIR}/BZRTPConfig.cmake"
-	@ONLY
+	FILE "${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}Targets.cmake"
 )
 
-set(CONFIG_PACKAGE_LOCATION "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/cmake")
+configure_package_config_file(cmake/BZRTPConfig.cmake.in
+	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}Config.cmake"
+	INSTALL_DESTINATION ${CONFIG_PACKAGE_LOCATION}
+	NO_SET_AND_CHECK_MACRO
+)
+
 install(EXPORT ${EXPORT_TARGETS_NAME}Targets
-	FILE BZRTPTargets.cmake
+	FILE ${EXPORT_TARGETS_NAME}Targets.cmake
 	DESTINATION ${CONFIG_PACKAGE_LOCATION}
 )
 install(FILES
-	"${CMAKE_CURRENT_BINARY_DIR}/BZRTPConfig.cmake"
-	"${CMAKE_CURRENT_BINARY_DIR}/BZRTPConfigVersion.cmake"
+	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}Config.cmake"
+	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}ConfigVersion.cmake"
 	DESTINATION ${CONFIG_PACKAGE_LOCATION}
 )
-
 
 add_subdirectory(build)
