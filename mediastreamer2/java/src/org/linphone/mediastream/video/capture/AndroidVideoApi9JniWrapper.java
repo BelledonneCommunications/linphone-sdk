@@ -31,6 +31,7 @@ import android.os.Build;
 
 @TargetApi(Build.VERSION_CODES.GINGERBREAD)
 public class AndroidVideoApi9JniWrapper {
+	private static boolean compensateCameraTextureViewRotation = false;
 
 	static public int detectCamerasCount() {
 		return AndroidVideoApi5JniWrapper.detectCamerasCount();
@@ -124,6 +125,10 @@ public class AndroidVideoApi9JniWrapper {
 
 	public static void setPreviewDisplaySurface(Object cam, Object surf) {
 		AndroidVideoApi5JniWrapper.setPreviewDisplaySurface(cam, surf);
+		compensateCameraTextureViewRotation = false;
+		if (surf instanceof CaptureTextureView) {
+			compensateCameraTextureViewRotation = true;
+		}
         //start preview is delayed to workaround autofocus issues on Samsung devices
 		((Camera)cam).startPreview();
         Log.i("Camera ["+((Camera)cam) +"] preview started");
@@ -139,6 +144,10 @@ public class AndroidVideoApi9JniWrapper {
 			result = (360 - result) % 360; // compensate the mirror
 		} else { // back-facing
 			result = (info.orientation - rotationDegrees + 360) % 360;
+		}
+
+		if (compensateCameraTextureViewRotation) {
+			result = (result + rotationDegrees) % 360;
 		}
 
 		Log.w("Camera preview orientation: "+ result);

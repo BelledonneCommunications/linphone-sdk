@@ -110,21 +110,34 @@ static void android_texture_display_destroy_opengl(MSFilter *f) {
 }
 
 static void android_texture_display_create_surface_from_surface_texture(AndroidTextureDisplay *d) {
-	ms_message("[TextureView Display] Creating Surface from SurfaceTexture");
 	JNIEnv *env = ms_get_jni_env();
 	jobject surface;
-	jclass klass = (*env)->FindClass(env, "android/view/Surface");
-	if (!klass) {
-		ms_error("[TextureView Display] Could not find android.view.Surface class");
+	jclass surfaceTextureClass = (*env)->FindClass(env, "android/graphics/SurfaceTexture");
+	if (!surfaceTextureClass) {
+		ms_error("[TextureView Display] Could not find android.graphics.SurfaceTexture class");
 		return;
 	}
 
-	jmethodID ctor = (*env)->GetMethodID(env, klass, "<init>", "(Landroid/graphics/SurfaceTexture;)V");
-	surface = (*env)->NewObject(env, klass, ctor, d->surfaceTexture);
+	if (!(*env)->IsInstanceOf(env, d->surfaceTexture, surfaceTextureClass)) {
+		ms_message("[TextureView Display] NativePreviewWindowId %p isn't a SurfaceTexture, try to use it directly", d->surfaceTexture);
+		d->surface = (jobject)(*env)->NewGlobalRef(env, d->surfaceTexture);
+		return;
+	}
+
+	jclass surfaceClass = (*env)->FindClass(env, "android/view/Surface");
+	if (!surfaceClass) {
+		ms_error("[TextureView Display] Could not find android.view.Surface class");
+		return;
+	}
+	ms_message("[TextureView Display] Creating Surface from SurfaceTexture");
+	
+	jmethodID ctor = (*env)->GetMethodID(env, surfaceClass, "<init>", "(Landroid/graphics/SurfaceTexture;)V");
+	surface = (*env)->NewObject(env, surfaceClass, ctor, d->surfaceTexture);
 	if (!surface) {
 		ms_error("[TextureView Display] Could not instanciate android.view.Surface object");
 		return;
 	}
+
 	d->surface = (jobject)(*env)->NewGlobalRef(env, surface);
 	ms_message("[TextureView Display] Surface created: %p", d->surface);
 }
