@@ -41,23 +41,27 @@ endif()
 
 bc_apply_compile_flags(SOURCE_FILES STRICT_OPTIONS_CPP)
 
-set(INCLUDE_DIRS ${BCTOOLBOX_CORE_INCLUDE_DIRS})
-set(LIBS ${BCTOOLBOX_CORE_LIBRARIES})
+set(INCLUDE_DIRS )
+set(LIBS )
+
 if(SQLITE3_FOUND)
 	list(APPEND INCLUDE_DIRS ${SQLITE3_INCLUDE_DIRS})
-	list(APPEND LIBS ${SQLITE3_LIBRARIES})
+	list(APPEND LIBS $<BUILD_INTERFACE:${SQLITE3_LIBRARIES}> $<INSTALL_INTERFACE:${SQLITE3_LIBRARIES}>)
 endif()
+
 if(XML2_FOUND)
 	list(APPEND INCLUDE_DIRS ${XML2_INCLUDE_DIRS})
-	list(APPEND LIBS ${XML2_LIBRARIES})
+	list(APPEND LIBS $<BUILD_INTERFACE:${XML2_LIBRARIES}>  $<INSTALL_INTERFACE:${XML2_LIBRARIES}>)
 endif()
 
 if(ENABLE_STATIC)
-	add_library(bzrtp-static STATIC ${SOURCE_FILES})
-	set_target_properties(bzrtp-static PROPERTIES OUTPUT_NAME bzrtp)
-	target_include_directories(bzrtp-static PUBLIC ${INCLUDE_DIRS})
-	target_link_libraries(bzrtp-static INTERFACE ${LIBS})
-	install(TARGETS bzrtp-static EXPORT ${EXPORT_TARGETS_NAME}Targets
+	add_library(bzrtp STATIC ${SOURCE_FILES})
+	set_target_properties(bzrtp PROPERTIES OUTPUT_NAME bzrtp)
+	target_include_directories(bzrtp INTERFACE
+		$<INSTALL_INTERFACE:include>
+		PRIVATE ${INCLUDE_DIRS})
+	target_link_libraries(bzrtp PUBLIC bctoolbox ${LIBS})
+	install(TARGETS bzrtp EXPORT ${EXPORT_TARGETS_NAME}Targets
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 	)
@@ -66,8 +70,12 @@ if(ENABLE_SHARED)
 	add_library(bzrtp SHARED ${SOURCE_FILES})
 	target_compile_definitions(bzrtp PRIVATE "-DBZRTP_EXPORTS")
 	set_target_properties(bzrtp PROPERTIES VERSION 0)
-	target_include_directories(bzrtp PUBLIC ${INCLUDE_DIRS})
-	target_link_libraries(bzrtp PRIVATE ${LIBS})
+	target_include_directories(bzrtp INTERFACE
+		$<INSTALL_INTERFACE:include>
+		$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+		PRIVATE ${INCLUDE_DIRS}
+	)
+	target_link_libraries(bzrtp PUBLIC bctoolbox ${LIBS})
 	if(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
 			install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/bzrtp.pdb
