@@ -17,7 +17,8 @@ job-debian9-yocto-sumo:
   script:
     - export WORKSPACE_PATH="$(pwd)"
     - cd /home/build/poky
-    - export LATEST_REVISIONS=1
+    - export BB_ENV_EXTRAWHITE="LINPHONE_SDK_REV"
+    - export LINPHONE_SDK_REV="$CI_COMMIT_SHA"
     - source oe-init-build-env
     - bitbake -f linphone-sdk 2>&1 | tee bitbake_build.log
     - cd $WORKSPACE_PATH
