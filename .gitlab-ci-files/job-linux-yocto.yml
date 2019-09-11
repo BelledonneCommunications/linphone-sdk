@@ -3,17 +3,22 @@ job-debian9-yocto-sumo:
   stage: build
   tags: [ "docker-debian9" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-yocto:latest
-  cache:
-    key: yocto-cache-key
-    paths:
-      - tmp/
-      - deploy/
-      - work/
-      - work-shared/
-      - sstate-cache/
-      - downloads/
-  before_script:
-    - ln -sf ./yocto_build /home/build/poky/build
+  # only:
+  #   variables:
+  #     - $NIGHTLY_MASTER
+  variables:
+    GIT_STRATEGY: none
+  # cache:
+  #   key: yocto-cache-key
+  #   paths:
+  #     - tmp/
+  #     - deploy/
+  #     - work/
+  #     - work-shared/
+  #     - sstate-cache/
+  #     - downloads/
+  # before_script:
+  #   - ln -sf ./yocto_build /home/build/poky/build
   script:
     - export WORKSPACE_PATH="$(pwd)"
     - cd /home/build/poky
@@ -22,7 +27,7 @@ job-debian9-yocto-sumo:
     - source oe-init-build-env
     - bitbake -f linphone-sdk 2>&1 | tee bitbake_build.log
     - cd $WORKSPACE_PATH
-    - ln -sf /home/build/poky/build ./yocto_build
+#    - ln -sf /home/build/poky/build ./yocto_build
 #Gitlab doesn't handle cache and artifacts paths outside of project workspace (/builds/$WORKSPACE/$PROJECT_NAME)
   artifacts:
     paths:
