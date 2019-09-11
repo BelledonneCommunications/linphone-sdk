@@ -50,20 +50,13 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(CheckIncludeFileCXX)
 check_include_file_cxx("stdbool.h" HAVE_STDBOOL_H)
 
-if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
-	include("${EP_ortp_CONFIG_DIR}/OrtpConfig.cmake")
-	include("${EP_bctoolbox_CONFIG_DIR}/BcToolboxConfig.cmake")
-	include("${EP_ms2_CONFIG_DIR}/Mediastreamer2Config.cmake")
-else()
-	find_package(Mediastreamer2 REQUIRED)
-	find_package(ORTP REQUIRED)
-	find_package(BcToolbox REQUIRED)
-endif()
+find_package(Mediastreamer2 CONFIG REQUIRED)
+find_package(ortp CONFIG REQUIRED)
+find_package(bctoolbox CONFIG REQUIRED)
+
 find_package(OpenH264 REQUIRED)
 
-
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
-
 
 include_directories(
 	${MEDIASTREAMER2_INCLUDE_DIRS}
