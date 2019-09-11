@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.1)
 project(mswebrtc VERSION 1.1.1 LANGUAGES C CXX)
 
 
@@ -53,7 +53,6 @@ endif()
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_EXTENSIONS NO)
 
-
 include(GNUInstallDirs)
 
 if(NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
@@ -61,16 +60,9 @@ if(NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
 	message(STATUS "Setting install rpath to ${CMAKE_INSTALL_RPATH}")
 endif()
 
-if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
-	include("${EP_ms2_CONFIG_DIR}/Mediastreamer2Config.cmake")
-	include("${EP_ortp_CONFIG_DIR}/ORTPConfig.cmake")
-	#set(BcToolbox_FIND_COMPONENTS tester)
-	include("${EP_bctoolbox_CONFIG_DIR}/BcToolboxConfig.cmake")
-else()
-	find_package(Mediastreamer2 REQUIRED)
-	find_package(ORTP REQUIRED)
-	find_package(BcToolbox REQUIRED)
-endif()
+find_package(Mediastreamer2 REQUIRED CONFIG)
+find_package(ortp REQUIRED CONFIG)
+find_package(bctoolbox REQUIRED CONFIG)
 
 find_library(LIBM NAMES m)
 
@@ -94,7 +86,6 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY
 set(WEBRTC_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/webrtc")
 set(WEBRTC_SRC_DIR "${WEBRTC_ROOT_DIR}/webrtc")
 include_directories(
-	${MEDIASTREAMER2_INCLUDE_DIRS}
 	${CMAKE_CURRENT_BINARY_DIR}
 	${WEBRTC_ROOT_DIR}
 	${WEBRTC_SRC_DIR}/common_audio/signal_processing/include
@@ -411,7 +402,7 @@ if(ENABLE_VAD)
 	list(APPEND SOURCE_FILES ${VAD_SRCS})
 endif()
 
-set(LIBS ${MEDIASTREAMER2_LIBRARIES} ${ORTP_LIBRARIES} ${BCTOOLBOX_CORE_LIBRARIES})
+set(LIBS )
 
 if(LIBM)
 	list(APPEND LIBS ${LIBM})
@@ -433,7 +424,7 @@ if(ENABLE_SHARED)
 	else()
 		add_library(mswebrtc SHARED ${SOURCE_FILES})
 	endif()
-	target_link_libraries(mswebrtc ${LIBS})
+	target_link_libraries(mswebrtc PRIVATE mediastreamer ortp bctoolbox ${LIBS})
 	set_target_properties(mswebrtc PROPERTIES LINKER_LANGUAGE CXX)
 	if(APPLE)
 		if(IOS)
