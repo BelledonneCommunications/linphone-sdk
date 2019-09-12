@@ -9,6 +9,8 @@ job-debian9-yocto-sumo:
     - ls -la
     - export BB_ENV_EXTRAWHITE="LINPHONE_SDK_REV"
     - export LINPHONE_SDK_REV="$CI_COMMIT_SHA"
+    - ls -Rla build
+    - id
     - echo "\nINHERIT += \"EXTERNALSRC\"" >> build/conf/local.conf
     - echo "EXTERNALSRC_pn-linphone-sdk" >> build/conf/local.conf
     - cat build/conf/local.conf
