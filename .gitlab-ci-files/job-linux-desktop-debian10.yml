@@ -103,7 +103,7 @@ test-bctoolbox-debian10:
   extends: .test-bctoolbox
   dependencies:
     - job-debian10-ninja-clang
-  tags: [ "docker-test-debian10" ]
+  tags: [ "docker-test-debian10-nuc" ]
 
 test-bellesip-debian10:
   extends: .test-bellesip
