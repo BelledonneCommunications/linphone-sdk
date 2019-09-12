@@ -108,6 +108,11 @@ void ms_audio_flow_control_event_handler(void *user_data, MSFilter *f, unsigned 
 
 void video_stream_enable_recording(VideoStream *stream, bool_t enabled);
 
+/*
+ * Currently common to every h264 implementations including plugins
+ */
+extern MSOfferAnswerProvider h264_offer_answer_provider;
+	
 #ifdef __cplusplus
 }
 #endif

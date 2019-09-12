@@ -125,6 +125,8 @@ set(VOIP_SOURCE_FILES_C
 	voip/rfc4103_textstream.c
 	voip/ringstream.c
 	voip/stun.c
+	voip/offeranswer.c
+	voip/private.h
 )
 set(VOIP_SOURCE_FILES_CXX
 	utils/filter-wrapper/decoding-filter-wrapper.cpp

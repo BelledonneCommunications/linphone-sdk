@@ -52,7 +52,7 @@ extern MSFilter *ms_tester_soundread;
 extern MSFilter *ms_tester_videocapture;
 extern char *ms_tester_codec_mime;
 
-enum {
+enum filter_mask_enum {
 	FILTER_MASK_FILEPLAY = (1 << 0),
 	FILTER_MASK_FILEREC = (1 << 1),
 	FILTER_MASK_DTMFGEN = (1 << 2),
@@ -67,7 +67,7 @@ enum {
 	FILTER_MASK_SOUNDWRITE = (1 << 11),
 	FILTER_MASK_SOUNDREAD = (1 << 12),
 	FILTER_MASK_VIDEOCAPTURE = (1 << 13)
-} filter_mask_enum;
+};
 
 
 extern unsigned char ms_tester_tone_detected;

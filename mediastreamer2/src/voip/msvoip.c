@@ -315,6 +315,8 @@ void ms_factory_init_voip(MSFactory *obj){
 		MSVideoPresetsManager *vpm = ms_video_presets_manager_new(obj);
 		register_video_preset_high_fps(vpm);
 	}
+	//register all ms2 implemented offer/answer
+	ms_factory_register_offer_answer_provider(obj,&h264_offer_answer_provider);
 #endif
 
 #if defined(__ANDROID__) && defined (VIDEO_ENABLED)
