@@ -7,8 +7,8 @@ job-debian9-yocto-sumo:
     - export WORKSPACE_PATH="$(pwd)"
     - cd /home/build/poky
     - ls -la
-#    - export BB_ENV_EXTRAWHITE="LINPHONE_SDK_REV"
-#    - export LINPHONE_SDK_REV="$CI_COMMIT_SHA"
+    - export BB_ENV_EXTRAWHITE="LINPHONE_SDK_REV"
+    - export LINPHONE_SDK_REV="$CI_COMMIT_SHA"
     - echo "INHERIT += \"externalsrc\"" >> build/conf/local.conf
     - echo "EXTERNALSRC_pn-linphone-sdk = \"$WORKSPACE_PATH\"" >> build/conf/local.conf
     - echo "SRCREV_pn-linphone-sdk = \"$CI_COMMIT_SHA\"" >> build/conf/local.conf
