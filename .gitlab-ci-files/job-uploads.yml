@@ -147,10 +147,6 @@ job-debian-doc-upload:
   stage: deploy
   tags: [ "deploy" ]
 
-  dependencies:
-    - test-liblinphone-centos7-schedule
-    - test-liblinphone-centos7-mr
-
   except:
     variables:
       - $DEPLOY_RUN_MACOSX
@@ -283,6 +279,64 @@ job-debian-doc-upload:
     #TODO think about deletion of oldest reports, or compression
 job-test-upload-centos7-libl:
   extends: .job-test-report-upload
+  dependencies:
+    - test-liblinphone-centos7-schedule
+    - test-liblinphone-centos7-mr
   variables:
     PLATFORM: "linux-centos7"
+    TESTER: "liblinphone"
+
+job-test-upload-debian8-libl:
+  extends: .job-test-report-upload
+  dependencies:
+    - test-liblinphone-debian8
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+  variables:
+    PLATFORM: "linux-debian8"
+    TESTER: "liblinphone"
+
+job-test-upload-debian9-libl:
+  extends: .job-test-report-upload
+  dependencies:
+    - test-liblinphone-debian9
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+  variables:
+    PLATFORM: "linux-debian9"
+    TESTER: "liblinphone"
+
+job-test-upload-debian10-libl:
+  extends: .job-test-report-upload
+  dependencies:
+    - test-liblinphone-debian10
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+  variables:
+    PLATFORM: "linux-debian10"
+    TESTER: "liblinphone"
+
+job-test-upload-ubuntu-libl:
+  extends: .job-test-report-upload
+  dependencies:
+    - test-liblinphone-ubuntu
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+  variables:
+    PLATFORM: "linux-ubuntu-rolling"
+    TESTER: "liblinphone"
+
+job-test-upload-arch-libl:
+  extends: .job-test-report-upload
+  dependencies:
+    - test-liblinphone-arch
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+  variables:
+    PLATFORM: "linux-arch"
     TESTER: "liblinphone"
