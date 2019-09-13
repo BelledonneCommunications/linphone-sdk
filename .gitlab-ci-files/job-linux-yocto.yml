@@ -13,7 +13,7 @@ job-debian9-yocto-sumo:
     # - echo "EXTERNALSRC_pn-linphone-sdk = \"$WORKSPACE_PATH\"" >> build/conf/local.conf
     # - echo "EXTERNALSRC_BUILD_pn-linphone-sdk = \"$WORKSPACE_PATH\"" >> build/conf/local.conf 
     # - echo "SRCREV_pn-linphone-sdk = \"$CI_COMMIT_SHA\"" >> build/conf/local.conf
-    - echo "SRC_URI_pn-linphone-sdk = \"git://$WORKSPACE_PATH;protocol=file;\"" >> build/conf/local.conf
+    - echo "SRC_URI_pn-linphone-sdk = \"file://$WORKSPACE_PATH;\"" >> build/conf/local.conf
     - source oe-init-build-env
 #    - devtool modify -n linphone-sdk "$WORKSPACE_PATH"
     - bitbake -c cleanall linphone-sdk 2>&1 | tee bitbake_build.log
