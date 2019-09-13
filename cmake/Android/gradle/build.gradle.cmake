@@ -94,9 +94,9 @@ project.tasks['preBuild'].dependsOn 'getGitVersion'
 
 android {
     defaultConfig {
-        compileSdkVersion 28
+        compileSdkVersion 29
         minSdkVersion 16
-        targetSdkVersion 28
+        targetSdkVersion 29
         versionCode 4100
         versionName "4.1"
         setProperty("archivesBaseName", "linphone-sdk-android")
