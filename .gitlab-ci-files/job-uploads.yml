@@ -308,16 +308,16 @@ job-test-upload-debian9-libl:
     PLATFORM: "linux-debian9"
     TESTER: "liblinphone"
 
-job-test-upload-debian10-libl:
-  extends: .job-test-report-upload
-  dependencies:
-    - test-liblinphone-debian10
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-  variables:
-    PLATFORM: "linux-debian10"
-    TESTER: "liblinphone"
+#job-test-upload-debian10-libl:
+#  extends: .job-test-report-upload
+#  dependencies:
+#    - test-liblinphone-debian10
+#  only:
+#    variables:
+#      - $NIGHTLY_MASTER
+#  variables:
+#    PLATFORM: "linux-debian10"
+#    TESTER: "liblinphone"
 
 job-test-upload-ubuntu-libl:
   extends: .job-test-report-upload
