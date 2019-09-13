@@ -9,11 +9,12 @@ job-debian9-yocto-sumo:
     - ls -la
     - export BB_ENV_EXTRAWHITE="LINPHONE_SDK_REV"
     - export LINPHONE_SDK_REV="$CI_COMMIT_SHA"
-    - echo "INHERIT += \"externalsrc\"" >> build/conf/local.conf
-    - echo "EXTERNALSRC_pn-linphone-sdk = \"$WORKSPACE_PATH\"" >> build/conf/local.conf
-    - echo "EXTERNALSRC_BUILD_pn-linphone-sdk = \"$WORKSPACE_PATH\"" >> build/conf/local.conf
-    - echo "SRCREV_pn-linphone-sdk = \"$CI_COMMIT_SHA\"" >> build/conf/local.conf
+    # - echo "INHERIT += \"externalsrc\"" >> build/conf/local.conf
+    # - echo "EXTERNALSRC_pn-linphone-sdk = \"$WORKSPACE_PATH\"" >> build/conf/local.conf
+    # - echo "EXTERNALSRC_BUILD_pn-linphone-sdk = \"$WORKSPACE_PATH\"" >> build/conf/local.conf
+    # - echo "SRCREV_pn-linphone-sdk = \"$CI_COMMIT_SHA\"" >> build/conf/local.conf
     - source oe-init-build-env
+    - devtool modify -n linphone-sdk "$WORKSPACE_PATH"
     - bitbake -c cleanall linphone-sdk 2>&1 | tee bitbake_build.log
     - bitbake -f linphone-sdk 2>&1 | tee bitbake_build.log
   artifacts:
