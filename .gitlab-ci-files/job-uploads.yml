@@ -8,7 +8,7 @@
 #  stage: deploy
 #  tags: [ "deploy" ]
 
-"  only:
+#  only:
 #    variables:
 #      - $DEPLOY_RUN_IOS
 #      - $NIGHTLY_MASTER
