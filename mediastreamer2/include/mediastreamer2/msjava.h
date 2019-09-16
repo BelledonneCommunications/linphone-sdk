@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 /* Helper routines for filters that use a jvm with upcalls to perform some processing */
 
 #include <jni.h>
+#include <bctoolbox/list.h>
 
 #ifdef __cplusplus
 extern "C"{
@@ -36,6 +37,7 @@ JNIEnv *ms_get_jni_env(void);
 
 #ifdef __ANDROID__
 int ms_get_android_sdk_version(void);
+bctbx_list_t *ms_get_android_plugins_list(void);
 #endif
 
 #ifdef __cplusplus

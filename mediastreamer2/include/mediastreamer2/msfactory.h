@@ -302,6 +302,14 @@ MS2_PUBLIC void ms_factory_init_plugins(MSFactory *obj);
 **/
 MS2_PUBLIC void ms_factory_set_plugins_dir(MSFactory *obj, const char *path);
 
+/**
+ * Allows to load plugins from a list that contains their names instead of listing files from a directory.
+ **/ 
+MS2_PUBLIC int ms_factory_load_plugins_from_list(MSFactory *factory, const bctbx_list_t *plugins_list);
+
+/**
+ * Loads files in parameter directory matching template libms<name>.PLUGIN_EXT.
+ **/
 MS2_PUBLIC int ms_factory_load_plugins(MSFactory *factory, const char *dir);
 
 MS2_PUBLIC void ms_factory_uninit_plugins(MSFactory *obj);

@@ -515,6 +515,93 @@ void ms_factory_log_statistics(MSFactory *obj) {
 #endif
 typedef void (*init_func_t)(MSFactory *);
 
+static bool_t ms_factory_dlopen_plugin(MSFactory *factory, const char *plugin_path, const char *plugin_name) {
+	bool_t plugin_loaded = FALSE;
+#if defined(HAVE_DLOPEN)
+	void *handle = NULL;
+	void *initroutine = NULL;
+	char *initroutine_name = ms_malloc0(strlen(plugin_name) + 10);
+	char *fullpath = NULL;
+
+	if (plugin_path != NULL) {
+		fullpath = ms_strdup_printf("%s/%s", plugin_path, plugin_name);
+	} else {
+		fullpath = ms_strdup(plugin_name);
+	}
+	ms_message("Loading plugin %s...", fullpath);
+
+	if ((handle = dlopen(fullpath, RTLD_NOW)) == NULL) {
+		ms_warning("Fail to load plugin %s : %s", fullpath, dlerror());
+	} else {
+		char *p = NULL;
+		strcpy(initroutine_name, plugin_name);
+		p = strstr(initroutine_name, PLUGINS_EXT);
+		if (p != NULL) {
+			strcpy(p, "_init");
+		}
+		initroutine = dlsym(handle, initroutine_name);
+	}
+
+#ifdef __APPLE__
+	if (initroutine ==  NULL){
+		char *p = NULL;
+		/* on macosx: library name are libxxxx.1.2.3.dylib */
+		/* -> MUST remove the .1.2.3 */
+		p = strstr(initroutine_name, ".");
+		if (p != NULL) {
+			strcpy(p, "_init");
+			initroutine = dlsym(handle, initroutine_name);
+		}
+	}
+#endif
+
+	if (initroutine != NULL) {
+		init_func_t func = (init_func_t)initroutine;
+		func(factory);
+		ms_message("Plugin loaded (%s)", plugin_name);
+		plugin_loaded = TRUE;
+	} else {
+		ms_warning("Could not locate init routine %s of plugin %s", initroutine_name, plugin_name);
+	}
+
+	ms_free(initroutine_name);
+	if (fullpath != NULL) {
+		ms_free(fullpath);
+	}
+#endif
+	return plugin_loaded;
+}
+
+int ms_factory_load_plugins_from_list(MSFactory *factory, const bctbx_list_t *plugins_list) {
+	int num = 0;
+	int plugins_list_size = 0;
+	const bctbx_list_t *it = NULL;
+
+	if (plugins_list == NULL || bctbx_list_size(plugins_list) == 0) {
+		ms_error("Couldn't load plugins from empty list");
+		return -1;
+	}
+
+	plugins_list_size = bctbx_list_size(plugins_list);
+
+	for (it = plugins_list; it != NULL; it = bctbx_list_next(it)) {
+		const char *plugin_name = bctbx_list_get_data(it);
+#if defined(HAVE_DLOPEN)
+		if (ms_factory_dlopen_plugin(factory, NULL, plugin_name)) {
+			num++;
+		}
+#endif
+	}
+
+	if (num != plugins_list_size) {
+		ms_warning("Couldn't load all plugins in list");
+	} else {
+		ms_message("All plugins in list correctly loaded");
+	}
+
+	return num;
+}
+
 int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 	int num=0;
 #if defined(_WIN32) && !defined(_WIN32_WCE)
@@ -636,7 +723,6 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 	bctbx_list_t *loaded_plugins = NULL;
 	struct dirent *de;
 	char *ext;
-	char *fullpath;
 	ds=opendir(dir);
 	if (ds==NULL){
 		ms_message("Cannot open directory %s: %s",dir,strerror(errno));
@@ -648,50 +734,12 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 			(de->d_type==DT_REG || de->d_type==DT_UNKNOWN || de->d_type==DT_LNK) &&
 #endif
 			(strstr(de->d_name, "libms") == de->d_name) && ((ext=strstr(de->d_name,PLUGINS_EXT))!=NULL)) {
-			void *handle;
 			snprintf(plugin_name, MIN(sizeof(plugin_name), (size_t)(ext - de->d_name + 1)), "%s", de->d_name);
 			if (bctbx_list_find_custom(loaded_plugins, (bctbx_compare_func)strcmp, plugin_name) != NULL) continue;
 			loaded_plugins = bctbx_list_append(loaded_plugins, ms_strdup(plugin_name));
-			fullpath=ms_strdup_printf("%s/%s",dir,de->d_name);
-			ms_message("Loading plugin %s...",fullpath);
-
-			if ( (handle=dlopen(fullpath,RTLD_NOW))==NULL){
-				ms_warning("Fail to load plugin %s : %s",fullpath,dlerror());
-			}else {
-				char *initroutine_name=ms_malloc0(strlen(de->d_name)+10);
-				char *p;
-				void *initroutine=NULL;
-				strcpy(initroutine_name,de->d_name);
-				p=strstr(initroutine_name,PLUGINS_EXT);
-				if (p!=NULL){
-					strcpy(p,"_init");
-					initroutine=dlsym(handle,initroutine_name);
-				}
-
-#ifdef __APPLE__
-				if (initroutine==NULL){
-					/* on macosx: library name are libxxxx.1.2.3.dylib */
-					/* -> MUST remove the .1.2.3 */
-					p=strstr(initroutine_name,".");
-					if (p!=NULL)
-					{
-						strcpy(p,"_init");
-						initroutine=dlsym(handle,initroutine_name);
-					}
-				}
-#endif
-
-				if (initroutine!=NULL){
-					init_func_t func=(init_func_t)initroutine;
-					func(factory);
-					ms_message("Plugin loaded (%s)", fullpath);
-					num++;
-				}else{
-					ms_warning("Could not locate init routine of plugin %s",de->d_name);
-				}
-				ms_free(initroutine_name);
+			if (ms_factory_dlopen_plugin(factory, dir, de->d_name)) {
+				num++;
 			}
-			ms_free(fullpath);
 		}
 	}
 	bctbx_list_for_each(loaded_plugins, ms_free);
@@ -728,10 +776,22 @@ void ms_factory_init_plugins(MSFactory *obj) {
 		obj->plugins_dir = ms_strdup("");
 #endif
 	}
-	if (strlen(obj->plugins_dir) > 0) {
-		ms_message("Loading ms plugins from [%s]",obj->plugins_dir);
-		ms_factory_load_plugins(obj,obj->plugins_dir);
+#if defined(__ANDROID__)
+	bctbx_list_t *plugins_list = ms_get_android_plugins_list();
+	if (plugins_list != NULL && ms_get_android_sdk_version() >= 23) {
+		ms_message("Loading ms plugins from list");
+		ms_factory_load_plugins_from_list(obj, plugins_list);
+		ms_list_free_with_data(plugins_list, ms_free);
+	} else if (strlen(obj->plugins_dir) > 0) {
+		ms_message("Loading ms plugins from directory [%s]", obj->plugins_dir);
+		ms_factory_load_plugins(obj, obj->plugins_dir);
 	}
+#else
+	if (strlen(obj->plugins_dir) > 0) {
+		ms_message("Loading ms plugins from [%s]", obj->plugins_dir);
+		ms_factory_load_plugins(obj, obj->plugins_dir);
+	}
+#endif
 }
 
 void ms_factory_set_plugins_dir(MSFactory *obj, const char *path) {

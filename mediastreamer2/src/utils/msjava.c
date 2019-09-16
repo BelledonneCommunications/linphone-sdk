@@ -83,6 +83,14 @@ JNIEnv *ms_get_jni_env(void){
 
 #ifdef __ANDROID__
 
+static void handle_jni_exception(JNIEnv *env) {
+	if ((*env)->ExceptionCheck(env)) {
+		(*env)->ExceptionDescribe(env);
+		(*env)->ExceptionClear(env);
+		ms_error("JNI exception happened");
+	}
+}
+
 int ms_get_android_sdk_version(void) {
 	static int sdk_version = 0;
 	if (sdk_version==0){
@@ -95,6 +103,49 @@ int ms_get_android_sdk_version(void) {
 		(*env)->DeleteLocalRef(env, version_class);
 	}
 	return sdk_version;
+}
+
+static const char* GetStringUTFChars(JNIEnv* env, jstring string) {
+	const char *cstring = string ? (*env)->GetStringUTFChars(env, string, NULL) : NULL;
+	return cstring;
+}
+
+static void ReleaseStringUTFChars(JNIEnv* env, jstring string, const char *cstring) {
+	if (string) (*env)->ReleaseStringUTFChars(env, string, cstring);
+}
+
+bctbx_list_t *ms_get_android_plugins_list(void) {
+	bctbx_list_t *plugins = NULL;
+	JNIEnv *env = ms_get_jni_env();
+
+	jclass buildConfig = (*env)->FindClass(env, "org/linphone/core/BuildConfig");
+	handle_jni_exception(env);
+
+	if (buildConfig != NULL) {
+		jfieldID pluginsField = (*env)->GetStaticFieldID(env, buildConfig, "PLUGINS_ARRAY", "[Ljava/lang/String;");
+		handle_jni_exception(env);
+
+		if (pluginsField != NULL) {
+			jobjectArray pluginsArray = (*env)->GetStaticObjectField(env, buildConfig, pluginsField);
+			int pluginsArrayCount = (*env)->GetArrayLength(env, pluginsArray);
+			for (int i = 0; i < pluginsArrayCount; i++) {
+				jobject pluginString = (*env)->GetObjectArrayElement(env, pluginsArray, i);
+				const char *plugin = GetStringUTFChars(env, pluginString);
+				if (plugin) {
+					ms_message("Found Android plugin %s", plugin);
+					plugins = bctbx_list_append(plugins, ms_strdup(plugin));
+					ReleaseStringUTFChars(env, pluginString, plugin);
+				}
+			}
+		} else {
+			ms_error("Couldn't find field PLUGINS_ARRAY in org.linphone.core.BuildConfig");
+		}
+		(*env)->DeleteLocalRef(env, buildConfig);
+	} else {
+		ms_error("Couldn't find class org.linphone.core.BuildConfig");
+	}
+
+	return plugins;
 }
 
 JNIEXPORT void JNICALL Java_org_linphone_mediastream_Log_d(JNIEnv* env, jobject thiz, jstring jmsg) {
