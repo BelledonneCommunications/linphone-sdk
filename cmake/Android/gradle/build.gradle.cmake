@@ -41,6 +41,7 @@ static def isGeneratedJavaWrapperAvailable() {
 
 def rootSdk = '@LINPHONESDK_BUILD_DIR@/linphone-sdk/android-@LINPHONESDK_FIRST_ARCH@'
 def srcDir = ['@LINPHONESDK_DIR@/mediastreamer2/java/src']
+def pluginsDir = rootSdk + '/lib/mediastreamer/plugins/'
 srcDir += [rootSdk + '/share/linphonej/java/org/linphone/core/']
 srcDir += ['@LINPHONESDK_DIR@/linphone/wrappers/java/classes/']
 
@@ -90,7 +91,17 @@ task getGitVersion {
     }
 }
 
+def pluginsList = ""
+
+task listPlugins() {
+    fileTree(pluginsDir).visit { FileVisitDetails details -> 
+        println("Found plugin: " + details.file.name)
+        pluginsList = pluginsList + "\"" + details.file.name  + "\""
+    }
+}
+
 project.tasks['preBuild'].dependsOn 'getGitVersion'
+project.tasks['preBuild'].dependsOn 'listPlugins'
 
 android {
     defaultConfig {
@@ -119,6 +130,7 @@ android {
             useProguard false
             resValue "string", "linphone_sdk_version", gitVersion.toString().trim()
             resValue "string", "linphone_sdk_branch", gitBranch.toString().trim()
+            buildConfigField "String[]", "PLUGINS_ARRAY", "{" + pluginsList +  "}"
         }
         debug {
             minifyEnabled false
@@ -127,6 +139,7 @@ android {
             jniDebuggable true
             resValue "string", "linphone_sdk_version", gitVersion.toString().trim() + "-debug"
             resValue "string", "linphone_sdk_branch", gitBranch.toString().trim()
+            buildConfigField "String[]", "PLUGINS_ARRAY", "{" + pluginsList +  "}"
         }
     }
 
