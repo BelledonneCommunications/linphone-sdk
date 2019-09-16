@@ -95,11 +95,11 @@ job-debian9-ninja-clang-novideo:
 
 
 #Commented until fix for ipv6 for debian 8/9
-#test-bctoolbox-debian9:
-#  extends: .test-bctoolbox
-#  dependencies:
-#    - job-debian9-ninja-clang
-#  tags: [ "docker-test-debian9" ]
+test-bctoolbox-debian9:
+  extends: .test-bctoolbox
+  dependencies:
+    - job-debian9-ninja-clang
+  tags: [ "docker-test-debian9" ]
 
 test-bellesip-debian9:
   extends: .test-bellesip
