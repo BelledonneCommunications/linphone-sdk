@@ -374,13 +374,13 @@ job-test-upload-debian9-bct:
     PLATFORM: "linux-debian9"
     TESTER: "bctoolbox"
 
-job-test-upload-debian10-bct:
-  extends: .job-test-report-upload
-  dependencies:
-    - test-bctoolbox-debian10
-  variables:
-    PLATFORM: "linux-debian10"
-    TESTER: "bctoolbox"
+#job-test-upload-debian10-bct:
+#  extends: .job-test-report-upload
+#  dependencies:
+#    - test-bctoolbox-debian10
+#  variables:
+#    PLATFORM: "linux-debian10"
+#    TESTER: "bctoolbox"
 
 job-test-upload-ubuntu-bct:
   extends: .job-test-report-upload
@@ -422,13 +422,13 @@ job-test-upload-debian9-bsip:
     PLATFORM: "linux-debian9"
     TESTER: "bellesip"
 
-job-test-upload-debian10-bsip:
-  extends: .job-test-report-upload
-  dependencies:
-    - test-bellesip-debian10
-  variables:
-    PLATFORM: "linux-debian10"
-    TESTER: "bellesip"
+#job-test-upload-debian10-bsip:
+#  extends: .job-test-report-upload
+#  dependencies:
+#    - test-bellesip-debian10
+#  variables:
+#    PLATFORM: "linux-debian10"
+#    TESTER: "bellesip"
 
 job-test-upload-ubuntu-bsip:
   extends: .job-test-report-upload
@@ -521,13 +521,13 @@ job-test-upload-belr-debian9:
     PLATFORM: "linux-debian9"
     TESTER: "belr"
 
-job-test-upload-belr-debian10:
-  extends: .job-test-report-upload
-  dependencies:
-    - test-belr-debian10
-  variables:
-    PLATFORM: "linux-debian10"
-    TESTER: "belr"
+#job-test-upload-belr-debian10:
+#  extends: .job-test-report-upload
+#  dependencies:
+#    - test-belr-debian10
+#  variables:
+#    PLATFORM: "linux-debian10"
+#    TESTER: "belr"
 
 job-test-upload-belr-ubuntu:
   extends: .job-test-report-upload
@@ -569,13 +569,13 @@ job-test-upload-belcard-debian9:
     PLATFORM: "linux-debian9"
     TESTER: "belcard"
 
-job-test-upload-belcard-debian10:
-  extends: .job-test-report-upload
-  dependencies:
-    - test-belcard-debian10
-  variables:
-    PLATFORM: "linux-debian10"
-    TESTER: "belcard"
+#job-test-upload-belcard-debian10:
+#  extends: .job-test-report-upload
+#  dependencies:
+#    - test-belcard-debian10
+#  variables:
+#    PLATFORM: "linux-debian10"
+#    TESTER: "belcard"
 
 job-test-upload-belcard-ubuntu:
   extends: .job-test-report-upload
@@ -617,13 +617,13 @@ job-test-upload-bzrtp-debian9:
     PLATFORM: "linux-debian9"
     TESTER: "bzrtp"
 
-job-test-upload-bzrtp-debian10:
-  extends: .job-test-report-upload
-  dependencies:
-    - test-bzrtp-debian10
-  variables:
-    PLATFORM: "linux-debian10"
-    TESTER: "bzrtp"
+#job-test-upload-bzrtp-debian10:
+#  extends: .job-test-report-upload
+#  dependencies:
+#    - test-bzrtp-debian10
+#  variables:
+#    PLATFORM: "linux-debian10"
+#    TESTER: "bzrtp"
 
 job-test-upload-bzrtp-ubuntu:
   extends: .job-test-report-upload
