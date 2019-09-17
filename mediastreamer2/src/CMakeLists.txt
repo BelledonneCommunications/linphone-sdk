@@ -480,7 +480,7 @@ if(ENABLE_STATIC)
 	endif()
 	add_dependencies(mediastreamer-static ${MS2_DEPENDENCIES})
 	target_include_directories(mediastreamer-static PRIVATE ${MEDIASTREAMER2_INCLUDE_DIRS})
-	target_link_libraries(mediastreamer-static INTERFACE ${INTERFACE_LIBS} PRIVATE ${LINK_LIBS})
+	target_link_libraries(mediastreamer-static PRIVATE ${LINK_LIBS})
 
 	install(TARGETS mediastreamer-static EXPORT ${EXPORT_TARGETS_NAME}Targets
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
