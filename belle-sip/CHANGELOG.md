@@ -53,10 +53,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - First mature version of belle-sip.
 
 
-
-belle-sip-1.3.3 -- September 18th, 2014
-	
-
-belle-sip-1.3.0 -- February 20th, 2014 -- initial release of belle-sip
-
-
