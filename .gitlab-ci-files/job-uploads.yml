@@ -212,11 +212,11 @@ job-debian-doc-upload:
     #no need to search for an history in the case of a retry (if the directory related to the commit already exists)
     - echo "if [[ -n \$(ls | grep $SDK_VERSION) ]];" | tee -a allure_launch_script
     - echo "  then cd $SDK_VERSION;" | tee -a allure_launch_script
-    - echo " \$CREATED_COMMIT_REF_FOLDER=\"NO\"" | tee -a allure_launch_script
+    - echo " CREATED_COMMIT_REF_FOLDER=\"NO\"" | tee -a allure_launch_script
     - echo "else" | tee -a allure_launch_script
     - echo " mkdir $SDK_VERSION;" | tee -a allure_launch_script
+    - echo " CREATED_COMMIT_REF_FOLDER=\"YES\"" | tee -a allure_launch_script
     - echo "fi" | tee -a allure_launch_script
-    - echo " \$CREATED_COMMIT_REF_FOLDER=\"YES\"" | tee -a allure_launch_script
     - echo "if [[ -n \$(ls | grep $PLATFORM) ]];" | tee -a allure_launch_script
     - echo "  then cd $PLATFORM" | tee -a allure_launch_script
     - echo "else" | tee -a allure_launch_script
@@ -294,7 +294,7 @@ job-debian-doc-upload:
     #     "matchedStatuses": ["broken"]
     #  }
     #]
-job-test-upload-centos7-libl:
+job-test-upload-libl-centos7:
   extends: .job-test-report-upload
   dependencies:
     - test-liblinphone-centos7-schedule
@@ -303,7 +303,7 @@ job-test-upload-centos7-libl:
     PLATFORM: "linux-centos7"
     TESTER: "liblinphone"
 
-job-test-upload-debian8-libl:
+job-test-upload-libl-debian8:
   extends: .job-test-report-upload
   dependencies:
     - test-liblinphone-debian8
@@ -314,7 +314,7 @@ job-test-upload-debian8-libl:
     PLATFORM: "linux-debian8"
     TESTER: "liblinphone"
 
-job-test-upload-debian9-libl:
+job-test-upload-libl-debian9:
   extends: .job-test-report-upload
   dependencies:
     - test-liblinphone-debian9
@@ -325,7 +325,7 @@ job-test-upload-debian9-libl:
     PLATFORM: "linux-debian9"
     TESTER: "liblinphone"
 
-#job-test-upload-debian10-libl:
+#job-test-upload-libl-debian10:
 #  extends: .job-test-report-upload
 #  dependencies:
 #    - test-liblinphone-debian10
@@ -336,7 +336,7 @@ job-test-upload-debian9-libl:
 #    PLATFORM: "linux-debian10"
 #    TESTER: "liblinphone"
 
-job-test-upload-ubuntu-libl:
+job-test-upload-libl-ubuntu:
   extends: .job-test-report-upload
   dependencies:
     - test-liblinphone-ubuntu
@@ -347,7 +347,7 @@ job-test-upload-ubuntu-libl:
     PLATFORM: "linux-ubuntu-rolling"
     TESTER: "liblinphone"
 
-job-test-upload-arch-libl:
+job-test-upload-libl-arch:
   extends: .job-test-report-upload
   dependencies:
     - test-liblinphone-arch
@@ -358,7 +358,7 @@ job-test-upload-arch-libl:
     PLATFORM: "linux-arch"
     TESTER: "liblinphone"
 
-job-test-upload-centos7-bct:
+job-test-upload-bct-centos7:
   extends: .job-test-report-upload
   dependencies:
     - test-bctoolbox-centos7
@@ -366,7 +366,7 @@ job-test-upload-centos7-bct:
     PLATFORM: "linux-centos7"
     TESTER: "bctoolbox"
 
-job-test-upload-debian9-bct:
+job-test-upload-bct-debian9:
   extends: .job-test-report-upload
   dependencies:
     - test-bctoolbox-debian9
@@ -374,7 +374,7 @@ job-test-upload-debian9-bct:
     PLATFORM: "linux-debian9"
     TESTER: "bctoolbox"
 
-#job-test-upload-debian10-bct:
+#job-test-upload-bct-debian10:
 #  extends: .job-test-report-upload
 #  dependencies:
 #    - test-bctoolbox-debian10
@@ -382,7 +382,7 @@ job-test-upload-debian9-bct:
 #    PLATFORM: "linux-debian10"
 #    TESTER: "bctoolbox"
 
-job-test-upload-ubuntu-bct:
+job-test-upload-bct-ubuntu:
   extends: .job-test-report-upload
   dependencies:
     - test-bctoolbox-ubuntu
@@ -390,7 +390,7 @@ job-test-upload-ubuntu-bct:
     PLATFORM: "linux-ubuntu-rolling"
     TESTER: "bctoolbox"
 
-job-test-upload-arch-bct:
+job-test-upload-bct-arch:
   extends: .job-test-report-upload
   dependencies:
     - test-bctoolbox-arch
@@ -398,7 +398,7 @@ job-test-upload-arch-bct:
     PLATFORM: "linux-arch"
     TESTER: "bctoolbox"
 
-job-test-upload-centos7-bsip:
+job-test-upload-bsip-centos7:
   extends: .job-test-report-upload
   dependencies:
     - test-bellesip-centos7
@@ -406,7 +406,7 @@ job-test-upload-centos7-bsip:
     PLATFORM: "linux-centos7"
     TESTER: "bellesip"
 
-job-test-upload-debian8-bsip:
+job-test-upload-bsip-debian8:
   extends: .job-test-report-upload
   dependencies:
     - test-bellesip-debian8
@@ -414,7 +414,7 @@ job-test-upload-debian8-bsip:
     PLATFORM: "linux-debian8"
     TESTER: "bellesip"
 
-job-test-upload-debian9-bsip:
+job-test-upload-bsip-debian9:
   extends: .job-test-report-upload
   dependencies:
     - test-bellesip-debian9
@@ -422,7 +422,7 @@ job-test-upload-debian9-bsip:
     PLATFORM: "linux-debian9"
     TESTER: "bellesip"
 
-#job-test-upload-debian10-bsip:
+#job-test-upload-bsip-debian10:
 #  extends: .job-test-report-upload
 #  dependencies:
 #    - test-bellesip-debian10
@@ -430,7 +430,7 @@ job-test-upload-debian9-bsip:
 #    PLATFORM: "linux-debian10"
 #    TESTER: "bellesip"
 
-job-test-upload-ubuntu-bsip:
+job-test-upload-bsip-ubuntu:
   extends: .job-test-report-upload
   dependencies:
     - test-bellesip-ubuntu
@@ -438,7 +438,7 @@ job-test-upload-ubuntu-bsip:
     PLATFORM: "linux-ubuntu"
     TESTER: "bellesip"
 
-job-test-upload-arch-bsip:
+job-test-upload-bsip-arch:
   extends: .job-test-report-upload
   dependencies:
     - test-bellesip-arch
@@ -513,7 +513,7 @@ job-test-upload-belr-debian8:
     PLATFORM: "linux-debian8"
     TESTER: "belr"
 
-job-test-upload-belr-debian9:
+job-test-upload-blr-debian9:
   extends: .job-test-report-upload
   dependencies:
     - test-belr-debian9
