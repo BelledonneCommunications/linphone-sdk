@@ -220,12 +220,12 @@ job-debian-doc-upload:
     - echo "if [[ -n \$(ls | grep $PLATFORM) ]];" | tee -a allure_launch_script
     - echo "  then cd $PLATFORM" | tee -a allure_launch_script
     - echo "else" | tee -a allure_launch_script
-    - echo "  then mkdir $PLATFORM" | tee -a allure_launch_script
+    - echo "  mkdir $PLATFORM" | tee -a allure_launch_script
     - echo "fi" | tee -a allure_launch_script
     - echo "if [[ -n \$(ls | grep $TESTER) ]];" | tee -a allure_launch_script
     - echo "  then cd $TESTER" | tee -a allure_launch_script
     - echo "else" | tee -a allure_launch_script
-    - echo "  then mkdir $TESTER"| tee -a allure_launch_script
+    - echo "  mkdir $TESTER"| tee -a allure_launch_script
     - echo "fi" | tee -a allure_launch_script
     - echo "cp ../../../../categories.json categories.json;" | tee -a allure_launch_script
 
