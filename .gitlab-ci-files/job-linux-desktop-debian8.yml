@@ -28,33 +28,45 @@ job-debian8-makefile-gcc:
 #  dependencies:
 #    - job-debian8-ninja-clang
 #  tags: [ "docker-test-debian8" ]
+#  variables:
+#    PLATFORM: linux-debian8
 
 test-bellesip-debian8:
   extends: .test-bellesip
   dependencies:
     - job-debian8-makefile-gcc
   tags: [ "docker-test-debian8-nuc" ]
+  variables:
+    PLATFORM: linux-debian8
   
 test-belr-debian8:
   extends: .test-belr
   dependencies:
     - job-debian8-makefile-gcc
   tags: [ "docker-test-debian8-nuc" ]
+  variables:
+    PLATFORM: linux-debian8
   
 test-belcard-debian8:
   extends: .test-belcard
   dependencies:
     - job-debian8-makefile-gcc
   tags: [ "docker-test-debian8-nuc" ]
+  variables:
+    PLATFORM: linux-debian8
   
 test-bzrtp-debian8:
   extends: .test-bzrtp
   dependencies:
     - job-debian8-makefile-gcc
   tags: [ "docker-test-debian8-nuc" ]
+  variables:
+    PLATFORM: linux-debian8
   
 test-liblinphone-debian8:
   tags: [ "docker-test-debian8-liblinphone-nuc" ]
   extends: .test-liblinphone
   dependencies:
     - job-debian8-makefile-gcc
+  variables:
+    PLATFORM: linux-debian8

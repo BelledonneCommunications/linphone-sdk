@@ -91,33 +91,45 @@ test-bctoolbox-ubuntu:
   dependencies:
     - job-ubuntu-rolling-ninja-clang
   tags: [ "docker-test-ubuntu-rolling-nuc" ]
+  variables:
+    PLATFORM: linux-ubuntu-rolling
   
 test-bellesip-ubuntu:
   extends: .test-bellesip
   dependencies:
     - job-ubuntu-rolling-ninja-clang
   tags: [ "docker-test-ubuntu-rolling-nuc" ]
+  variables:
+    PLATFORM: linux-ubuntu-rolling
   
 test-belr-ubuntu:
   extends: .test-belr
   dependencies:
     - job-ubuntu-rolling-ninja-clang
   tags: [ "docker-test-ubuntu-rolling-nuc" ]
+  variables:
+    PLATFORM: linux-ubuntu-rolling
   
 test-belcard-ubuntu:
   extends: .test-belcard
   dependencies:
     - job-ubuntu-rolling-ninja-clang
   tags: [ "docker-test-ubuntu-rolling-nuc" ]
+  variables:
+    PLATFORM: linux-ubuntu-rolling
   
 test-bzrtp-ubuntu:
   extends: .test-bzrtp
   dependencies:
     - job-ubuntu-rolling-ninja-clang
   tags: [ "docker-test-ubuntu-rolling-nuc" ]
+  variables:
+    PLATFORM: linux-ubuntu-rolling
   
 test-liblinphone-ubuntu:
   tags: [ "docker-test-ubuntu-rolling-liblinphone-nuc" ]
   extends: .test-liblinphone
   dependencies:
     - job-ubuntu-rolling-ninja-clang
+  variables:
+    PLATFORM: linux-ubuntu-rolling
