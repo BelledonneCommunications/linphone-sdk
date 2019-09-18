@@ -20,6 +20,7 @@
 #include "belle_sip_tester.h"
 
 #include "register_tester.h"
+int call_endeed;
 
 
 static const char* sdp = 		"v=0\r\n"\

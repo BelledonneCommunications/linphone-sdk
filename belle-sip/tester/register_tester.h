@@ -20,7 +20,6 @@
 extern belle_sip_stack_t * stack;
 extern belle_sip_provider_t *prov;
 extern const char *test_domain;
-int call_endeed;
 extern int register_before_all(void);
 extern int register_after_all(void);
 extern belle_sip_request_t* register_user(belle_sip_stack_t * stack
