@@ -1,29 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Ce fichier contient des directives runtime, des spécifications relatives aux types auxquels votre application a accès
-    via la réflexion et d'autres modèles de code dynamique. Les directives runtime permettent de contrôler
-    l'optimiseur .NET Native et de vérifier qu'il ne supprime pas le code accessible à votre bibliothèque. Si votre
-    bibliothèque ne fait pas de réflexion, vous n'avez pas à modifier ce fichier en principe. Cependant,
-    si votre bibliothèque effectue une réflexion des types, en particulier les types qui lui sont passés ou qui dérivent de ses types,
-    vous devez écrire des directives runtime.
-
-    En règle générale, l'usage de la réflexion dans les bibliothèques permet de découvrir les informations relatives aux types passés
-    à la bibliothèque. Les directives runtime ont trois façons d'exprimer les exigences des types passés à
-    votre bibliothèque.
-
-    1.  Parameter, GenericParameter, TypeParameter, TypeEnumerableParameter
-        Utilisez ces directives pour refléter les types passés en tant que paramètres.
-
-    2.  SubTypes
-        Utilisez une directive SubTypes pour refléter les types dérivés d'un autre type.
-
-    3.  AttributeImplies
-        Utilisez une directive AttributeImplies pour indiquer que votre bibliothèque doit refléter
-        les types ou les méthodes décorés avec un attribut.
-
-    Pour plus d'informations sur l'écriture de directives runtime pour les bibliothèques, visitez
-    https://go.microsoft.com/fwlink/?LinkID=391919
--->
+-- Copyright (c) 2012-2019 Belledonne Communications SARL.
+--
+-- This file is part of linphone-sdk.
+--
+-- This program is free software: you can redistribute it and/or modify
+-- it under the terms of the GNU General Public License as published by
+-- the Free Software Foundation, either version 3 of the License, or
+-- (at your option) any later version.
+--
+-- This program is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-- GNU General Public License for more details.
+--
+-- You should have received a copy of the GNU General Public License
+-- along with this program. If not, see <http://www.gnu.org/licenses/>.
+  -->
 <Directives xmlns="http://schemas.microsoft.com/netfx/2013/01/metadata">
   <Library Name="CsWrapper">
 
