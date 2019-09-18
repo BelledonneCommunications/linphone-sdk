@@ -25,7 +25,7 @@
 #define IPV4_SIP_DOMAIN		"sip.linphone.org"
 #define IPV4_SIP_IP		"91.121.209.194"
 #define IPV4_CNAME		"stun.linphone.org"
-#define IPV4_CNAME_IP		"37.59.51.72"
+#define IPV4_CNAME_IP		"54.37.202.229"
 #define IPV4_SIP_BAD_DOMAIN	"dummy.linphone.org"
 #define IPV4_MULTIRES_DOMAIN	"yahoo.fr"
 
@@ -90,7 +90,7 @@ static void destroy_endpoint(endpoint_t *endpoint) {
 
 static void a_resolve_done(void *data, belle_sip_resolver_results_t *results) {
 	endpoint_t *client = (endpoint_t *)data;
-	
+
 	client->resolve_done = 1;
 	belle_sip_object_ref(results);
 	client->results = results;
