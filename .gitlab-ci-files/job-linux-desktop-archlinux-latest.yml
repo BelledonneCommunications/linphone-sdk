@@ -91,34 +91,46 @@ test-bctoolbox-arch:
   extends: .test-bctoolbox
   dependencies:
     - job-archlinux-latest-ninja-clang
-  tags: [ "docker-test-archlinux-latest-nuc" ] 
+  tags: [ "docker-test-archlinux-latest-nuc" ]
+  variables:
+    PLATFORM: linux-arch
   
 test-bellesip-arch:
   extends: .test-bellesip
   dependencies:
     - job-archlinux-latest-ninja-clang
   tags: [ "docker-test-archlinux-latest-nuc" ]
+  variables:
+    PLATFORM: linux-arch
   
 test-belr-arch:
   extends: .test-belr
   dependencies:
     - job-archlinux-latest-ninja-clang
   tags: [ "docker-test-archlinux-latest-nuc" ] 
+  variables:
+    PLATFORM: linux-arch
   
 test-belcard-arch:
   extends: .test-belcard
   dependencies:
     - job-archlinux-latest-ninja-clang
   tags: [ "docker-test-archlinux-latest-nuc" ] 
+  variables:
+    PLATFORM: linux-arch
   
 test-bzrtp-arch:
   extends: .test-bzrtp
   dependencies:
     - job-archlinux-latest-ninja-clang
   tags: [ "docker-test-archlinux-latest-nuc" ]
+  variables:
+    PLATFORM: linux-arch
   
 test-liblinphone-arch:
   tags: [ "docker-test-archlinux-liblinphone-nuc" ]
   extends: .test-liblinphone
   dependencies:
     - job-archlinux-latest-ninja-clang
+  variables:
+    PLATFORM: linux-arch
