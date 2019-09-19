@@ -45,6 +45,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define THREAD_LOG_LEVEL_ENABLED 1
 #endif
 
+#ifdef __ANDROID__
+#include <android/log.h>
+#endif /* __ANDROID__ */
 
 typedef struct{
 	char *domain;
@@ -556,7 +559,12 @@ void bctbx_logv(const char *domain, BctbxLogLevel level, const char *fmt, va_lis
 #if !defined(_WIN32_WCE)
 	if (level == BCTBX_LOG_FATAL) {
 		bctbx_logv_flush();
+#ifdef __ANDROID__
+        //Act as a flush + abort
+		__android_log_assert(NULL, NULL, "%s", "Aborting");
+#else
 		abort();
+#endif
 	}
 #endif
 }
