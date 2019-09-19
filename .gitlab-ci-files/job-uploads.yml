@@ -3,125 +3,125 @@
 #################################################
 
 
-#job-ios-upload:
+job-ios-upload:
 
-#  stage: deploy
-#  tags: [ "deploy" ]
+  stage: deploy
+  tags: [ "deploy" ]
 
-#  only:
-#    variables:
-#      - $DEPLOY_RUN_IOS
-#      - $NIGHTLY_MASTER
+  only:
+    variables:
+      - $DEPLOY_RUN_IOS
+      - $NIGHTLY_MASTER
 
-#  dependencies:
-#    - job-ios-xcode
+  dependencies:
+    - job-ios-xcode
 
-#  script:
-#    #using rsync with following options : verbose, keeping symbolic links, and copy recursively
-#    - rsync -rlv build-ios/docs/* $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/docs/liblinphone/swift
+  script:    
+#using rsync with following options : verbose, keeping symbolic links, and copy recursively
+    - rsync -rlv build-ios/docs/* $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/docs/liblinphone/swift
 
-#    - scp build-ios/linphone-sdk-*.zip $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/ios/
-#    - pod repo remove linphone-sdk || true
-#    - pod repo add linphone-sdk git@gitlab.linphone.org:BC/public/podspec.git $CI_COMMIT_REF_NAME
-#    - pod repo push linphone-sdk build-ios/linphone-sdk.podspec --skip-import-validation --local-only --verbose
-#    - cd ~/.cocoapods/repos/linphone-sdk && git push origin $CI_COMMIT_REF_NAME && cd -
-#    - pod repo remove linphone-sdk
+    - scp build-ios/linphone-sdk-*.zip $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/ios/
+    - pod repo remove linphone-sdk || true
+    - pod repo add linphone-sdk git@gitlab.linphone.org:BC/public/podspec.git $CI_COMMIT_REF_NAME
+    - pod repo push linphone-sdk build-ios/linphone-sdk.podspec --skip-import-validation --local-only --verbose
+    - cd ~/.cocoapods/repos/linphone-sdk && git push origin $CI_COMMIT_REF_NAME && cd -
+    - pod repo remove linphone-sdk
 
 #################################################
 # Android
 #################################################
 
-#job-android-upload:
+job-android-upload:
 
-#  stage: deploy
-#  tags: [ "docker-android" ]
-#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
+  stage: deploy
+  tags: [ "docker-android" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
 
-#  only:
-#    variables:
-#      - $DEPLOY_RUN_ANDROID
-#      - $NIGHTLY_MASTER
+  only:
+    variables:
+      - $DEPLOY_RUN_ANDROID
+      - $NIGHTLY_MASTER
 
-#  variables:
-#    CCACHE_SIZE: 4G
-#    CMAKE_GENERATOR: Ninja
-#    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-#    GIT_STRATEGY: clone
-#    GRADLE_OPTIONS: -i
+  variables:
+    CCACHE_SIZE: 4G
+    CMAKE_GENERATOR: Ninja
+    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
+    GIT_STRATEGY: clone
+    GRADLE_OPTIONS: -i
 
-#  dependencies:
-#    - job-android-ninja-r17c
+  dependencies:
+    - job-android-ninja-r17c
 
-#  before_script:
-#    - eval $(ssh-agent -s)
-#    - echo "$DEPLOY_USER_KEY" | tr -d '\r' | ssh-add - > /dev/null
-#    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
-#    - echo -e "Host gitlab.linphone.org\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
-#    - echo -e "Host linphone.org\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
+  before_script:
+    - eval $(ssh-agent -s)
+    - echo "$DEPLOY_USER_KEY" | tr -d '\r' | ssh-add - > /dev/null
+    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+    - echo -e "Host gitlab.linphone.org\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
+    - echo -e "Host linphone.org\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
 
 # Currently we can't use artifact to upload this so we rebuild all android project
 
-#  script:
-#    - git config --global user.email "gitlab@belledonne-communications.com"
-#    - git config --global user.name "Gitlab"
-#    - mkdir -p build
-#    - cd build
-#    - echo $CMAKE_GENERATOR
-#    - echo $DEFAULT_LINUX_CMAKE_OPTION
-#    - echo $CMAKE_OPTIONS
-#    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS="arm64, armv7, x86_64, x86" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS
-#    - echo $ADDITIONAL_BUILD_OPTIONS
-#    - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
-#    - rsync -ave ssh --exclude "*.aar" --exclude "*.jar" $ANDROID_MAVEN_URL maven_repository
-#    - echo $GRADLE_OPTIONS
-#    - ../cmake/Android/gradlew publish $GRADLE_OPTIONS
-#    - rsync -ave ssh ./maven_repository/* $ANDROID_MAVEN_URL
+  script:
+    - git config --global user.email "gitlab@belledonne-communications.com"
+    - git config --global user.name "Gitlab"
+    - mkdir -p build
+    - cd build
+    - echo $CMAKE_GENERATOR
+    - echo $DEFAULT_LINUX_CMAKE_OPTION
+    - echo $CMAKE_OPTIONS
+    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS="arm64, armv7, x86_64, x86" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS
+    - echo $ADDITIONAL_BUILD_OPTIONS
+    - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
+    - rsync -ave ssh --exclude "*.aar" --exclude "*.jar" $ANDROID_MAVEN_URL maven_repository
+    - echo $GRADLE_OPTIONS
+    - ../cmake/Android/gradlew publish $GRADLE_OPTIONS
+    - rsync -ave ssh ./maven_repository/* $ANDROID_MAVEN_URL
 
-#  after_script:
-#    - rm -rf ~/.ssh || true
+  after_script:
+    - rm -rf ~/.ssh || true
 
-#job-android-upload-no-video:
+job-android-upload-no-video:
 
-#  extends: job-android-upload
+  extends: job-android-upload
 
-#  variables:
-#    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
-#    GRADLE_OPTIONS: -Pno-video -i
+  variables:
+   CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+    GRADLE_OPTIONS: -Pno-video -i
 
 
-#job-android-upload-legacy:
+job-android-upload-legacy:
 
-#  extends: job-android-upload
+  extends: job-android-upload
 
-#  variables:
-#    CMAKE_OPTIONS: -DENABLE_JAVA_WRAPPER=NO
-#    GRADLE_OPTIONS: -Plegacy-wrapper -i
+  variables:
+    CMAKE_OPTIONS: -DENABLE_JAVA_WRAPPER=NO
+    GRADLE_OPTIONS: -Plegacy-wrapper -i
 
 #################################################
 # Macosx
 #################################################
 
 
-#job-macosx-upload:
+job-macosx-upload:
 
-#  stage: deploy
-#  tags: [ "deploy" ]
+  stage: deploy
+  tags: [ "deploy" ]
 
-#  only:
-#    variables:
-#      - $DEPLOY_RUN_MACOSX
-#      - $NIGHTLY_MASTER
+  only:
+    variables:
+      - $DEPLOY_RUN_MACOSX
+      - $NIGHTLY_MASTER
 
-#  dependencies:
-#    - job-macosx-xcode
+  dependencies:
+    - job-macosx-xcode
 
-#  script:
-#    - scp build-desktop/linphone-sdk-*.zip $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/macosx/
-#    - pod repo remove linphone-sdk-macosx || true
-#    - pod repo add linphone-sdk-macosx git@gitlab.linphone.org:BC/public/podspec-macos.git $CI_COMMIT_REF_NAME
-#    - pod repo push linphone-sdk-macosx build-desktop/linphone-sdk.podspec --skip-import-validation --local-only --verbose
-#    - cd ~/.cocoapods/repos/linphone-sdk-macosx && git push origin $CI_COMMIT_REF_NAME && cd -
-#    - pod repo remove linphone-sdk-macosx
+  script:
+    - scp build-desktop/linphone-sdk-*.zip $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/macosx/
+    - pod repo remove linphone-sdk-macosx || true
+    - pod repo add linphone-sdk-macosx git@gitlab.linphone.org:BC/public/podspec-macos.git $CI_COMMIT_REF_NAME
+    - pod repo push linphone-sdk-macosx build-desktop/linphone-sdk.podspec --skip-import-validation --local-only --verbose
+    - cd ~/.cocoapods/repos/linphone-sdk-macosx && git push origin $CI_COMMIT_REF_NAME && cd -
+    - pod repo remove linphone-sdk-macosx
 
 job-debian-doc-upload:
   stage: deploy
