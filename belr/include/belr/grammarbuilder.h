@@ -1,6 +1,7 @@
 /*
- * grammarbuilder.h
- * Copyright (C) 2017  Belledonne Communications SARL
+ * Copyright (c) 2016-2019 Belledonne Communications SARL.
+ *
+ * This file is part of belr - a language recognition library for ABNF-defined grammars.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,7 +14,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifndef _GRAMMARBUILDER_H_

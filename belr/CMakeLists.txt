@@ -21,7 +21,7 @@
 ############################################################################
 
 cmake_minimum_required(VERSION 3.1)
-project(BELR VERSION 0.1.3 LANGUAGES C CXX)
+project(BELR VERSION 1.0.0 LANGUAGES C CXX)
 
 set(BELR_SO_VERSION "1")
 
