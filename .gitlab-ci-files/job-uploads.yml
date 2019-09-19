@@ -18,7 +18,7 @@ job-ios-upload:
 
   script:
 
-    #using rsync with following options : verbose, keeping symbolic links, and copy recursively
+    #using rsync with following options(verbose, keeping symbolic links, and copy recursively)
     - rsync -rlv build-ios/docs/* $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/docs/liblinphone/swift
 
     - scp build-ios/linphone-sdk-*.zip $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/ios/
@@ -86,7 +86,7 @@ job-android-upload-no-video:
   extends: job-android-upload
 
   variables:
-   CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
     GRADLE_OPTIONS: -Pno-video -i
 
 
@@ -139,7 +139,7 @@ job-debian-doc-upload:
     - cd linphone
     #getting the version number to push the right version of the doc
     - LINPHONE_VERSION=$(git describe | sed -e 's/-.*//g')
-    #using rsync with following options : verbose, keeping symbolic links, and copy recursively
+    #using rsync with following options (verbose, keeping symbolic links, and copy recursively)
     - echo "Linphone version =" $LINPHONE_VERSION
     - rsync -rlv ../build-desktop/linphone-sdk/desktop/share/doc/linphone/$LINPHONE_VERSION/* $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/docs/liblinphone/multilang
 
