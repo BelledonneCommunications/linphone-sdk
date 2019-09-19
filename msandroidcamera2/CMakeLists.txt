@@ -37,15 +37,9 @@ message(STATUS "NDK API IS ${ANDROID_NATIVE_API_LEVEL}")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 
-if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
-	include("${EP_ms2_CONFIG_DIR}/Mediastreamer2Config.cmake")
-	include("${EP_bctoolbox_CONFIG_DIR}/BcToolboxConfig.cmake")
-	include("${EP_ortp_CONFIG_DIR}/OrtpConfig.cmake")
-else()
-	find_package(Mediastreamer2 REQUIRED)
-	find_package(BcToolbox REQUIRED)
-	find_package(ORTP REQUIRED)
-endif()
+find_package(Mediastreamer2 CONFIG REQUIRED)
+find_package(bctoolbox CONFIG REQUIRED)
+find_package(ortp CONFIG REQUIRED)
 
 include_directories(
         ${CMAKE_CURRENT_BINARY_DIR}
