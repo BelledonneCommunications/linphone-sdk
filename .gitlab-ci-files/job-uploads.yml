@@ -230,7 +230,7 @@ job-debian-doc-upload:
     - echo "fi" | tee -a allure_launch_script
     - echo "cp ../../../../categories.json categories.json;" | tee -a allure_launch_script
 
-    - echo "if [[ \$CREATED_COMMIT_REF_FOLDER=\"YES\" && -n \$PARENT_BRANCH]];" | tee -a allure_launch_script
+    - echo "if [[ \$CREATED_COMMIT_REF_FOLDER = \"YES\" && -n \$PARENT_BRANCH ]];" | tee -a allure_launch_script
     - echo "  then" | tee -a allure_launch_script
     
     #The LAST_MODIFIED_FOLDER variable will help us to save the latest tests history before deletion and move it
@@ -243,9 +243,9 @@ job-debian-doc-upload:
     - echo "    cd ../../../../$PARENT_BRANCH" | tee -a allure_launch_script
     - echo "    LAST_MODIFIED_FOLDER=\$(ls -ct | head -n1)" | tee -a allure_launch_script
     - echo "    cd ../$ESCAPED_BRANCH/$SDK_VERSION/$PLATFORM/$TESTER" | tee -a allure_launch_script
-    - echo "    cp -r ../../../../$PARENT_BRANCH/\$LAST_MODIFIED_FOLDER/$PLATFORM/$TESTER/allure-report/history history;" | tee -a allure_launch_script
+    - echo "    cp -r ../../../../$PARENT_BRANCH/\"\$LAST_MODIFIED_FOLDER\"/$PLATFORM/$TESTER/allure-report/history history;" | tee -a allure_launch_script
     - echo "  else" | tee -a allure_launch_script
-    - echo "    cp -r ../../..\$LAST_MODIFIED_FOLDER/$PLATFORM/$TESTER/allure-report/history history;" | tee -a allure_launch_script
+    - echo "    cp -r ../../..\"\$LAST_MODIFIED_FOLDER\"/$PLATFORM/$TESTER/allure-report/history history;" | tee -a allure_launch_script
     - echo "  fi;" | tee -a allure_launch_script
 
 
