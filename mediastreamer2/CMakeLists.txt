@@ -642,12 +642,7 @@ if(STRICT_OPTIONS_OBJC)
 	list(REMOVE_DUPLICATES STRICT_OPTIONS_OBJC)
 endif()
 
-
-if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
-	set(EXPORT_TARGETS_NAME "LinphoneBuilder")
-else()
-	set(EXPORT_TARGETS_NAME "Mediastreamer2")
-endif()
+set(EXPORT_TARGETS_NAME "Mediastreamer2")
 
 # Set log domain for the entire project.
 add_definitions(

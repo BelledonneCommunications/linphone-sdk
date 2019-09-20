@@ -135,6 +135,10 @@ set(VOIP_SOURCE_FILES_CXX
 set(VOIP_SOURCE_FILES_OBJC )
 set(VOIP_SOURCE_FILES_ASM )
 
+if (APPLE)
+        list(APPEND VOIP_SOURCE_FILES_OBJC utils/apple_utils.h utils/apple_utils.m)
+endif()
+
 if(ENABLE_ALSA)
 	list(APPEND VOIP_SOURCE_FILES_C audiofilters/alsa.c)
 endif()
@@ -509,6 +513,7 @@ if(ENABLE_SHARED)
 		set_target_properties(mediastreamer PROPERTIES OUTPUT_NAME mediastreamer2)
 		set_target_properties(mediastreamer PROPERTIES
 			FRAMEWORK TRUE
+			FRAMEWORK_VERSION A
 			MACOSX_FRAMEWORK_IDENTIFIER org.linphone.mediastreamer2
   			MACOSX_FRAMEWORK_INFO_PLIST Info.plist.in
 			PUBLIC_HEADER "${MEDIASTREAMER2_HEADER_FILES}"
@@ -548,6 +553,19 @@ if(ENABLE_SHARED)
 	)
 endif()
 
+#Setup framework structure and variables for ms2 plugins
+if(APPLE AND NOT IOS)
+	get_target_property(MS2_FRAMEWORK_VERSION mediastreamer FRAMEWORK_VERSION)
+
+	set(MS2_PLUGINS_LOCATION "Frameworks/mediastreamer2.framework/Versions/${MS2_FRAMEWORK_VERSION}/Libraries" PARENT_SCOPE)
+	set_target_properties(mediastreamer PROPERTIES MEDIASTREAMER2_PLUGINS_LOCATION "Frameworks/mediastreamer2.framework/Versions/${MS2_FRAMEWORK_VERSION}/Libraries")
+
+	install(DIRECTORY DESTINATION "${CMAKE_INSTALL_PREFIX}/${MS2_PLUGINS_LOCATION}")
+
+	if (NOT EXISTS "${CMAKE_INSTALL_PREFIX}/Frameworks/mediastreamer2.framework/Libraries")
+	     install(CODE "execute_process(COMMAND sh -c \"ln -sf Versions/Current/Libraries ${CMAKE_INSTALL_PREFIX}/Frameworks/mediastreamer2.framework/Libraries\")")
+	endif()
+endif()
 
 if(FFMPEG_FOUND AND NOT WIN32)
 	set(NO_DEPRECATED_DECLARATIONS_SOURCE_FILES

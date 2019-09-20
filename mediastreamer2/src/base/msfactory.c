@@ -65,6 +65,7 @@
 
 #ifdef __APPLE__
    #include "TargetConditionals.h"
+   #include "apple_utils.h"
 #endif
 
 #ifdef __QNX__
@@ -770,10 +771,18 @@ void ms_factory_uninit_plugins(MSFactory *factory){
 
 void ms_factory_init_plugins(MSFactory *obj) {
 	if (obj->plugins_dir == NULL) {
-#ifdef PACKAGE_PLUGINS_DIR
-		obj->plugins_dir = ms_strdup(PACKAGE_PLUGINS_DIR);
+#ifdef __APPLE__
+	char *dir = getPluginsDir();
+	if (dir != NULL) {
+	    //getPluginsDir returns an allocated str. No need to strdup
+	    obj->plugins_dir = dir;
+	}
 #else
-		obj->plugins_dir = ms_strdup("");
+#ifdef PACKAGE_PLUGINS_DIR
+	obj->plugins_dir = ms_strdup(PACKAGE_PLUGINS_DIR);
+#else
+	obj->plugins_dir = ms_strdup("");
+#endif
 #endif
 	}
 #if defined(__ANDROID__)
