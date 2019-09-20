@@ -558,13 +558,14 @@ if(APPLE AND NOT IOS)
 	get_target_property(MS2_FRAMEWORK_VERSION mediastreamer FRAMEWORK_VERSION)
 
 	set(MS2_PLUGINS_LOCATION "Frameworks/mediastreamer2.framework/Versions/${MS2_FRAMEWORK_VERSION}/Libraries" PARENT_SCOPE)
-	set_target_properties(mediastreamer PROPERTIES MEDIASTREAMER2_PLUGINS_LOCATION "Frameworks/mediastreamer2.framework/Versions/${MS2_FRAMEWORK_VERSION}/Libraries")
 
 	install(DIRECTORY DESTINATION "${CMAKE_INSTALL_PREFIX}/${MS2_PLUGINS_LOCATION}")
 
 	if (NOT EXISTS "${CMAKE_INSTALL_PREFIX}/Frameworks/mediastreamer2.framework/Libraries")
 	     install(CODE "execute_process(COMMAND sh -c \"ln -sf Versions/Current/Libraries ${CMAKE_INSTALL_PREFIX}/Frameworks/mediastreamer2.framework/Libraries\")")
 	endif()
+else()
+	set(MS2_PLUGINS_LOCATION "${CMAKE_INSTALL_LIBDIR}/mediastreamer/plugins" PARENT_SCOPE)
 endif()
 
 if(FFMPEG_FOUND AND NOT WIN32)
