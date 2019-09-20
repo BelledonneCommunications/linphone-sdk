@@ -20,6 +20,10 @@ allprojects {
         google()
         jcenter()
     }
+
+    tasks.withType(Test) {
+        maxParallelForks = Runtime.runtime.availableProcessors()
+    }
 }
 
 task clean(type: Delete) {
