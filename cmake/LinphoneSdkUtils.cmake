@@ -20,6 +20,7 @@
 #
 ############################################################################
 
+#TODO remove. All CMAKE_* variables should be inherited and passed to external projects
 function(linphone_sdk_get_inherited_cmake_args)
 	set(_inherited_vars
 		CMAKE_BUILD_TYPE:STRING
