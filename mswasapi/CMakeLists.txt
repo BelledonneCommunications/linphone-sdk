@@ -80,12 +80,14 @@ if("${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsPhone")
 	list(APPEND LIBS phoneaudioses)
 endif()
 
+set(MS2_PLUGINS_DIR "${MEDIASTREAMER2_PLUGINS_LOCATION}")
+
 if(ENABLE_STATIC)
 	add_library(mswasapi-static STATIC ${SOURCE_FILES})
 	set_target_properties(mswasapi-static PROPERTIES OUTPUT_NAME mswasapi)
 	target_link_libraries(mswasapi-static ${LIBS})
 	install(TARGETS mswasapi-static
-		ARCHIVE DESTINATION lib/mediastreamer/plugins
+		ARCHIVE DESTINATION "${MS2_PLUGINS_DIR}"
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 	)
 endif()
@@ -103,9 +105,9 @@ if(ENABLE_SHARED)
 		)
 	endif()
 	install(TARGETS mswasapi
-		RUNTIME DESTINATION lib/mediastreamer/plugins
-		LIBRARY DESTINATION lib/mediastreamer/plugins
-		ARCHIVE DESTINATION lib/mediastreamer/plugins
+		RUNTIME DESTINATION "${MS2_PLUGINS_DIR}"
+		LIBRARY DESTINATION "${MS2_PLUGINS_DIR}"
+		ARCHIVE DESTINATION "${MS2_PLUGINS_DIR}"
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 	)
 endif()
