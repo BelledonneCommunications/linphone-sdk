@@ -109,6 +109,45 @@ macro(linphone_sdk_compute_full_version OUTPUT_VERSION)
 	endif()
 endmacro()
 
+macro(linphone_sdk_compute_git_branch OUTPUT_GIT_BRANCH)
+	linphone_sdk_check_git()
+	if(GIT_EXECUTABLE)
+		execute_process(
+			COMMAND "${GIT_EXECUTABLE}" "name-rev" "--name-only" "HEAD"
+			OUTPUT_VARIABLE ${OUTPUT_GIT_BRANCH}
+			OUTPUT_STRIP_TRAILING_WHITESPACE
+			ERROR_QUIET
+			WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+		)
+	endif()
+endmacro()
+
+macro(linphone_sdk_get_latest_tag OUTPUT_TAG)
+	linphone_sdk_check_git()
+	if(GIT_EXECUTABLE)
+		execute_process(
+			COMMAND "${GIT_EXECUTABLE}" "describe" "--abbrev=0"
+			OUTPUT_VARIABLE ${OUTPUT_TAG}
+			OUTPUT_STRIP_TRAILING_WHITESPACE
+			ERROR_QUIET
+			WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+		)
+	endif()
+endmacro()
+
+macro(linphone_sdk_compute_commits_count_since_latest_tag LATEST_TAG OUTPUT_COMMITS_COUNT)
+	linphone_sdk_check_git()
+	if(GIT_EXECUTABLE)
+		execute_process(
+			COMMAND "${GIT_EXECUTABLE}" "rev-list" "${LATEST_TAG}..HEAD" "--count"
+			OUTPUT_VARIABLE ${OUTPUT_COMMITS_COUNT}
+			OUTPUT_STRIP_TRAILING_WHITESPACE
+			ERROR_QUIET
+			WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+		)
+	endif()
+endmacro()
+
 macro(linphone_sdk_check_is_installed EXECUTABLE_NAME)
 	string(TOUPPER "${EXECUTABLE_NAME}" _upper_executable_name)
 	find_program(LINPHONESDK_${_upper_executable_name}_PROGRAM ${EXECUTABLE_NAME})
