@@ -79,10 +79,10 @@
     
     #checking if the tester has SYS_NICE cap
     - getcap ./$TESTER_BIN || true
-    - echo $RESOURCE_DIR 
+    - echo $RESOURCES_DIR 
     - echo $ADDITIONNAL_OPTIONS
     - echo $LOG_PATTERN.txt
-    - ./$TESTER_BIN --verbose --parallel $RESOURCE_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt || EXIT=$?
+    - ./$TESTER_BIN --verbose --parallel $RESOURCES_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt || EXIT=$?
     - $PULSEAUDIO_KILL
     - exit $EXIT
     
