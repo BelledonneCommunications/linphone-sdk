@@ -66,31 +66,6 @@ if (!isGeneratedJavaWrapperAvailable()) {
     srcDir += ['@LINPHONESDK_DIR@/linphone/java/j2se/']
 }
 
-def gitVersion = new ByteArrayOutputStream()
-def gitBranch = new ByteArrayOutputStream()
-
-task getGitVersion {
-    exec {
-        commandLine 'git', 'describe', '--always'
-        standardOutput = gitVersion
-    }
-    exec {
-        //commandLine 'git', 'name-rev', '--exclude=*tags/*', '--name-only', 'HEAD'
-        commandLine 'git', 'name-rev', '--name-only', 'HEAD'
-        standardOutput = gitBranch
-    }
-    doLast {
-        def branchSplit = gitBranch.toString().trim().split('/')
-        def splitLen = branchSplit.length
-        if (splitLen == 4) {
-            gitBranch = branchSplit[2] + '/' + branchSplit[3]
-            println("Local repository seems to be in detached head state, using last 2 segments of Git branch: " + gitBranch.toString().trim())
-        } else {
-            println("Git branch: " + gitBranch.toString().trim())
-        }
-    }
-}
-
 def pluginsList = ""
 
 task listPlugins() {
@@ -100,7 +75,6 @@ task listPlugins() {
     }
 }
 
-project.tasks['preBuild'].dependsOn 'getGitVersion'
 project.tasks['preBuild'].dependsOn 'listPlugins'
 
 android {
@@ -108,8 +82,8 @@ android {
         compileSdkVersion 28
         minSdkVersion 16
         targetSdkVersion 28
-        versionCode 4100
-        versionName "4.1"
+        versionCode 4200
+        versionName "@LINPHONESDK_VERSION@"
         setProperty("archivesBaseName", "linphone-sdk-android")
         consumerProguardFiles "${buildDir}/proguard.txt"
     }
@@ -128,8 +102,8 @@ android {
             signingConfig signingConfigs.release
             minifyEnabled false
             useProguard false
-            resValue "string", "linphone_sdk_version", gitVersion.toString().trim()
-            resValue "string", "linphone_sdk_branch", gitBranch.toString().trim()
+            resValue "string", "linphone_sdk_version", "@LINPHONESDK_VERSION@"
+            resValue "string", "linphone_sdk_branch", "@LINPHONESDK_BRANCH@"
             buildConfigField "String[]", "PLUGINS_ARRAY", "{" + pluginsList +  "}"
         }
         debug {
@@ -137,8 +111,8 @@ android {
             useProguard false
             debuggable true
             jniDebuggable true
-            resValue "string", "linphone_sdk_version", gitVersion.toString().trim() + "-debug"
-            resValue "string", "linphone_sdk_branch", gitBranch.toString().trim()
+            resValue "string", "linphone_sdk_version", "@LINPHONESDK_VERSION@-debug"
+            resValue "string", "linphone_sdk_branch", "@LINPHONESDK_BRANCH@"
             buildConfigField "String[]", "PLUGINS_ARRAY", "{" + pluginsList +  "}"
         }
     }
@@ -251,13 +225,13 @@ publishing {
         debug(MavenPublication) {
             groupId artefactGroupId
             artifactId 'linphone-sdk-android' + '-debug'
-            version gitVersion.toString().trim()
+            version "@LINPHONESDK_VERSION@"
             artifact("$buildDir/outputs/aar/linphone-sdk-android-debug.aar")
         }
         release(MavenPublication) {
             groupId artefactGroupId
             artifactId 'linphone-sdk-android'
-            version gitVersion.toString().trim()
+            version "@LINPHONESDK_VERSION@"
             artifact("$buildDir/outputs/aar/linphone-sdk-android-release.aar")
 
             // Also upload the javadoc
@@ -271,5 +245,4 @@ publishing {
     }
 }
 
-project.tasks['assemble'].dependsOn 'getGitVersion'
 project.tasks['publish'].dependsOn 'assemble'
