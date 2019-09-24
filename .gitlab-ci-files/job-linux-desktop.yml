@@ -109,7 +109,7 @@
     - echo $BRANCH
     - ESCAPED_BRANCH=$(echo $BRANCH | tr / _)
     - echo $ESCAPED_BRANCH
-    - URL=http://linphone.org/snapshots/allure-tests-reports/$ESCAPED_BRANCH/$COMMIT/linux-centos7/liblinphone/allure-report
+    - URL=http://linphone.org/snapshots/allure-tests-reports/$ESCAPED_BRANCH/$COMMIT/$PLATFORM/$TESTER/allure-report
     
     - echo "<\!DOCTYPE HTML>" >> index.html
     - echo "<meta charset=\"UTF-8\">" >> index.html
@@ -150,6 +150,7 @@
     TESTER_BIN: "bctoolbox_tester"
     LOG_PATTERN: "logBctoolboxAllPar"
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/WORK/desktop/Build/bctoolbox/tester"
+    TESTER: "bctoolbox"
     
 .test-bellesip:
   extends: .test
@@ -160,6 +161,7 @@
     LOG_PATTERN: "logBellesipAllPar"
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
     RESOURCES_DIR: "--resource-dir ../share/"
+    TESTER: "bellesip"
 
 
 .test-belr:
@@ -171,6 +173,7 @@
     LOG_PATTERN: "logBelrAllPar"
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
     RESOURCES_DIR: "--resource-dir ../share/belr-tester"
+    TESTER: "belr"
 
 .test-belcard:
   extends: .test
@@ -180,6 +183,7 @@
     TESTER_BIN: "belcard_tester"
     LOG_PATTERN: "logBelcardAllPar"
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
+    TESTER: "belcard"
     
 .test-bzrtp:
   extends: .test
@@ -192,6 +196,7 @@
     #We must tell it that the ressources it wants are in its own folder
     #different behaviour from other testers
     RESOURCES_DIR: "--resource-dir ."
+    TESTER: "bzrtp"
     
 .test-liblinphone:
   extends: .test
@@ -206,3 +211,4 @@
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
     ADDITIONNAL_OPTIONS: "--dns-hosts ${CI_PROJECT_DIR}/linphone/tester/tester_hosts --show-account-manager-logs"
     SET_CAP_SYS_NICE_LIN: "sudo setcap cap_sys_nice+ep ./${TESTER_BIN}"
+    TESTER: "liblinphone"
