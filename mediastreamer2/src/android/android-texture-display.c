@@ -241,6 +241,7 @@ static void android_texture_display_swap_buffers(MSFilter *f) {
 
 	ogl_display_set_yuv_to_display(ad->ogl, m);
 	ogl_display_render(ad->ogl, 0);
+	freemsg(m);
 
 	EGLBoolean result = eglSwapBuffers(ad->gl_display, ad->gl_surface);
 	if (result != EGL_TRUE) {
