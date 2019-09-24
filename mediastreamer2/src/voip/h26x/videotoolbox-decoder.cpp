@@ -40,14 +40,6 @@ VideoToolboxDecoder::VideoToolboxDecoder(const string &mime): H26xDecoder(mime) 
 }
 
 VideoToolboxDecoder::~VideoToolboxDecoder() {
-	// Notify the output callback that the decoder
-	// is in an instable state from now. This is necessary
-	// as the output callback may be called until the
-	// decoding session is completely destroyed.
-	ms_mutex_lock(&_mutex);
-	_destroying = true;
-	ms_mutex_unlock(&_mutex);
-
 	if (_session) destroyDecoder();
 	ms_yuv_buf_allocator_free(_pixbufAllocator);
 }
@@ -140,6 +132,15 @@ void VideoToolboxDecoder::createDecoder() {
 
 void VideoToolboxDecoder::destroyDecoder() {
 	vt_dec_message("destroying decoder");
+
+	// Notify the output callback that the decoder
+	// is in an instable state from now. This is necessary
+	// as the output callback may be called until the
+	// decoding session is completely destroyed.
+	ms_mutex_lock(&_mutex);
+	_destroying = true;
+	ms_mutex_unlock(&_mutex);
+
 	VTDecompressionSessionWaitForAsynchronousFrames(_session);
 	VTDecompressionSessionInvalidate(_session);
 	CFRelease(_session);
