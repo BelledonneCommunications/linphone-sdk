@@ -151,3 +151,13 @@ function(linphone_sdk_check_python_module_is_installed MODULE_NAME)
 		message(FATAL_ERROR "'${MODULE_NAME}' python module not found")
 	endif()
 endfunction()
+
+function(ExcludeFromList resultVar excludePattern)
+	set(result)
+	foreach(ITR ${ARGN})  # ARGN holds all arguments to function after last named one
+	    if(NOT ITR MATCHES "(.*)${excludePattern}(.*)")
+	        list(APPEND result ${ITR})
+	    endif()
+        endforeach()
+	set(${resultVar} ${result} PARENT_SCOPE)
+endfunction()

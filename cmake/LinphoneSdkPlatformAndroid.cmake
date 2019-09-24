@@ -46,8 +46,8 @@ foreach(_arch IN LISTS _archs)
 	file(REMOVE_RECURSE "${CMAKE_BINARY_DIR}/linphone-sdk/android-${_arch}")
 
 	set(_cmake_args
-		"-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/linphone-sdk/android-${_arch}"
-		"-DCMAKE_PREFIX_PATH=${CMAKE_BINARY_DIR}/linphone-sdk/android-${_arch}"
+		"-DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}/android-${_arch}"
+		"-DCMAKE_PREFIX_PATH=${CMAKE_INSTALL_PREFIX}/android-${_arch}"
 		"-DCMAKE_NO_SYSTEM_FROM_IMPORTED=ON"
 		"-DLINPHONE_BUILDER_WORK_DIR=${CMAKE_BINARY_DIR}/WORK/android-${_arch}"
 		"-DLINPHONE_BUILDER_EXTERNAL_SOURCE_PATH=${CMAKE_SOURCE_DIR}"
@@ -59,13 +59,17 @@ foreach(_arch IN LISTS _archs)
 	linphone_sdk_get_enable_cmake_args()
 	list(APPEND _cmake_args ${_enable_cmake_args})
 
+	#We have to remove the defined CMAKE_INSTALL_PREFIX from inherited variables.
+	#Because cache variables take precedence and we redefine it here for multi-arch
+	ExcludeFromList(_cmake_cache_args CMAKE_INSTALL_PREFIX ${_inherited_cmake_args})
+
 	ExternalProject_Add(android-${_arch}
 		${_ep_depends}
 		SOURCE_DIR "${CMAKE_SOURCE_DIR}/cmake-builder"
 		BINARY_DIR "${CMAKE_BINARY_DIR}/android-${_arch}"
 		CMAKE_GENERATOR "${CMAKE_GENERATOR}"
 		CMAKE_ARGS ${_cmake_args}
-		CMAKE_CACHE_ARGS ${_inherited_cmake_args}
+		CMAKE_CACHE_ARGS ${_cmake_cache_args}
 		INSTALL_COMMAND "${CMAKE_SOURCE_DIR}/cmake/dummy.sh"
 	)
 	ExternalProject_Add_Step(android-${_arch} force_build
