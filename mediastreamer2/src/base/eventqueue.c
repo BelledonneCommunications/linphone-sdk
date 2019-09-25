@@ -22,7 +22,7 @@
 #include "mediastreamer2/msfilter.h"
 
 #ifndef MS_EVENT_BUF_SIZE
-#define MS_EVENT_BUF_SIZE 8192
+#define MS_EVENT_BUF_SIZE 64 * 1024
 #endif
 
 typedef enum {
@@ -48,8 +48,8 @@ struct _MSEventQueue{
 	uint8_t *endptr;
 	uint8_t *lim;
 	MSFilter *current_notifier;
-	uint8_t buffer[MS_EVENT_BUF_SIZE]; /* WARNING: ensure that the buffer is aligend on 0, 4 or 8 if you modify the structure */
-	bool_t full;
+	uint8_t buffer[MS_EVENT_BUF_SIZE]; /* WARNING: please ensure that the buffer is aligned on 0, 4 or 8 if you modify the structure */
+	bool_t full; /* allow to know whether the buffer is full or empty when rptr == wptr */
 };
 
 typedef struct {
