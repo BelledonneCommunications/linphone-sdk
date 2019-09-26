@@ -58,6 +58,8 @@ foreach(_arch ${_archs})
 		COMMAND "${CMAKE_COMMAND}" "-E" "make_directory" "libs-debug/${_libarch}"
 		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 	)
+	
+	file(COPY "${CMAKE_ANDROID_NDK}/sources/cxx-stl/llvm-libc++/libs/${_libarch}/libc++_shared.so" DESTINATION "linphone-sdk/android-${_arch}/lib/")
 
 	file(GLOB _libs "linphone-sdk/android-${_arch}/lib/lib*.so")
 	file(GLOB _plugins "linphone-sdk/android-${_arch}/lib/mediastreamer/plugins/*.so")
