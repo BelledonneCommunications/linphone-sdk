@@ -428,7 +428,7 @@ job-test-upload-bsip-ubuntu:
   dependencies:
     - test-bellesip-ubuntu
   variables:
-    PLATFORM: "linux-ubuntu"
+    PLATFORM: "linux-ubuntu-rolling"
     TESTER: "bellesip"
 
 job-test-upload-bsip-arch:
@@ -478,7 +478,7 @@ job-test-upload-ms2-centos7:
 #  dependencies:
 #   - test-mediastreamer-ubuntu
 #  variables:
-#    PLATFORM: "linux-ubuntu"
+#    PLATFORM: "linux-ubuntu-rolling"
 #    TESTER: "mediastreamer"
 
 #job-test-upload-ms2-arch:
@@ -575,7 +575,7 @@ job-test-upload-belcard-ubuntu:
   dependencies:
     - test-belcard-ubuntu
   variables:
-    PLATFORM: "linux-ubuntu"
+    PLATFORM: "linux-ubuntu-rolling"
     TESTER: "belcard"
 
 job-test-upload-belcard-arch:
@@ -623,7 +623,7 @@ job-test-upload-bzrtp-ubuntu:
   dependencies:
     - test-bzrtp-ubuntu
   variables:
-    PLATFORM: "linux-ubuntu"
+    PLATFORM: "linux-ubuntu-rolling"
     TESTER: "bzrtp"
 
 job-test-upload-bzrtp-arch:
