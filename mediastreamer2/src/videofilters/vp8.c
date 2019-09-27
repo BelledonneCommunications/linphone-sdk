@@ -867,7 +867,7 @@ typedef struct DecState {
 	long last_cseq; /*last receive sequence number, used to locate missing partition fragment*/
 	int current_partition_id; /*current partition id*/
 	uint64_t last_error_reported_time;
-	mblk_t *yuv_msg;
+	MSYuvBufAllocator *allocator;
 	MSPicture outbuf;
 	unsigned int yuv_width, yuv_height;
 	MSQueue q;
@@ -891,7 +891,7 @@ static void dec_init(MSFilter *f) {
 	s->last_error_reported_time = 0;
 	s->yuv_width = 0;
 	s->yuv_height = 0;
-	s->yuv_msg = 0;
+	s->allocator = ms_yuv_buf_allocator_new();
 	ms_queue_init(&s->q);
 	s->first_image_decoded = FALSE;
 	s->avpf_enabled = FALSE;
@@ -948,7 +948,7 @@ static void dec_uninit(MSFilter *f) {
 	DecState *s = (DecState *)f->data;
 	vp8rtpfmt_unpacker_uninit(&s->unpacker);
 	vpx_codec_destroy(&s->codec);
-	if (s->yuv_msg) freemsg(s->yuv_msg);
+	ms_yuv_buf_allocator_free(s->allocator);
 	ms_queue_flush(&s->q);
 	ms_free(s);
 }
@@ -996,6 +996,7 @@ static void dec_process_frame_task(void *obj) {
 		if ((img = vpx_codec_get_frame(&s->codec, &iter))) {
 			int i, j;
 			int reference_updates = 0;
+			mblk_t *yuv_msg;
 
 			if (vpx_codec_control(&s->codec, VP8D_GET_LAST_REF_UPDATES, &reference_updates) == 0) {
 				if (frame_info.pictureid_present && ((reference_updates & VP8_GOLD_FRAME) || (reference_updates & VP8_ALTR_FRAME))) {
@@ -1004,13 +1005,13 @@ static void dec_process_frame_task(void *obj) {
 			}
 
 			if (s->yuv_width != img->d_w || s->yuv_height != img->d_h) {
-				if (s->yuv_msg) freemsg(s->yuv_msg);
-				s->yuv_msg = ms_yuv_buf_alloc(&s->outbuf, img->d_w, img->d_h);
 				ms_message("MSVp8Dec: video is %ix%i", img->d_w, img->d_h);
 				s->yuv_width = img->d_w;
 				s->yuv_height = img->d_h;
 				ms_filter_notify_no_arg(f, MS_FILTER_OUTPUT_FMT_CHANGED);
 			}
+
+			yuv_msg = ms_yuv_buf_allocator_get(s->allocator, &s->outbuf, img->d_w, img->d_h);
 
 			/* scale/copy frame to destination mblk_t */
 			for (i = 0; i < 3; i++) {
@@ -1026,7 +1027,7 @@ static void dec_process_frame_task(void *obj) {
 			}
 
 			ms_filter_lock(f);
-			ms_queue_put(&s->exit_q, dupmsg(s->yuv_msg));
+			ms_queue_put(&s->exit_q, yuv_msg);
 			ms_filter_unlock(f);
 
 			ms_average_fps_update(&s->fps, (uint32_t)f->ticker->time);
