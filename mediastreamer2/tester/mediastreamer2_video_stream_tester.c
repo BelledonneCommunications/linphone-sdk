@@ -371,8 +371,8 @@ static void init_video_streams(video_stream_tester_t *vst1, video_stream_tester_
 	if (nack == TRUE) {
 		rtp_session_enable_avpf_feature(video_stream_get_rtp_session(vst2->vs), ORTP_AVPF_FEATURE_GENERIC_NACK, TRUE);
 		rtp_session_enable_avpf_feature(video_stream_get_rtp_session(vst2->vs), ORTP_AVPF_FEATURE_IMMEDIATE_NACK, TRUE);
-		video_stream_enable_nack_context(vst1->vs);
-		video_stream_enable_nack_context(vst2->vs);
+		video_stream_enable_retransmission_on_nack(vst1->vs, TRUE);
+		video_stream_enable_retransmission_on_nack(vst2->vs, TRUE);
 	}
 
 	BC_ASSERT_EQUAL(video_stream_start(vst1->vs, &rtp_profile, vst2->local_ip, vst2->local_rtp, vst2->local_ip, vst2->local_rtcp, payload_type, 50, vst1->cam), 0,int,"%d");
@@ -1005,7 +1005,7 @@ static void video_configuration_stream_all_h264_codec_combinations(void) {
 	codecs_manager_test_all_combinations(_h264_codecs_manager, video_configuration_stream_h264);
 }
 
-static void video_stream_normal_loss_with_nack_context(void) {
+static void video_stream_normal_loss_with_retransmission_on_nack(void) {
 	video_stream_tester_t* marielle=video_stream_tester_new();
 	video_stream_tester_t* margaux=video_stream_tester_new();
 	OrtpNetworkSimulatorParams params = { 0 };
@@ -1069,7 +1069,7 @@ static test_t tests[] = {
 	TEST_NO_TAG("Video configuration H264"                   , video_configuration_stream_all_h264_codec_combinations),
 	TEST_NO_TAG("Video steam camera ELPH264"                 , video_stream_elph264_camera),
 	TEST_NO_TAG("AVPF RPSI count"                            , avpf_rpsi_count),
-	TEST_NO_TAG("Video stream normal loss with NACK context" , video_stream_normal_loss_with_nack_context)
+	TEST_NO_TAG("Video stream normal loss with retransmission on NACK" , video_stream_normal_loss_with_retransmission_on_nack),
 };
 
 test_suite_t video_stream_test_suite = {

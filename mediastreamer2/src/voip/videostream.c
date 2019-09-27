@@ -77,7 +77,7 @@ void video_stream_free(VideoStream *stream) {
 	}
 
 	if (stream->nack_context)
-		video_stream_disable_nack_context(stream);
+		video_stream_enable_retransmission_on_nack(stream, FALSE);
 
 	media_stream_free(&stream->ms);
 
@@ -468,16 +468,18 @@ void video_stream_set_relay_session_id(VideoStream *stream, const char *id){
 	ms_filter_call_method(stream->ms.rtpsend, MS_RTP_SEND_SET_RELAY_SESSION_ID,(void*)id);
 }
 
-void video_stream_enable_nack_context(VideoStream *stream) {
-	stream->nack_context = ortp_nack_context_new(stream->ms.evd);
+void video_stream_enable_retransmission_on_nack(VideoStream *stream, bool_t enable) {
+	if (enable) {
+		if (stream->nack_context) return;
+		stream->nack_context = ortp_nack_context_new(stream->ms.evd);
+	} else {
+		if (stream->nack_context) ortp_nack_context_destroy(stream->nack_context);
+		stream->nack_context = NULL;
+	}
 }
 
-void video_stream_nack_context_set_max_packet(VideoStream *stream, unsigned int max) {
+void video_stream_retransmission_on_nack_set_max_packet(VideoStream *stream, unsigned int max) {
 	ortp_nack_context_set_max_packet(stream->nack_context, max);
-}
-
-void video_stream_disable_nack_context(VideoStream *stream) {
-	ortp_nack_context_destroy(stream->nack_context);
 }
 
 void video_stream_enable_self_view(VideoStream *stream, bool_t val){

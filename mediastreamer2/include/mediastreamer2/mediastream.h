@@ -1196,9 +1196,8 @@ MS2_PUBLIC MSFilter * video_stream_open_remote_record(VideoStream *stream, const
 
 MS2_PUBLIC void video_stream_close_remote_record(VideoStream *stream);
 
-MS2_PUBLIC void video_stream_enable_nack_context(VideoStream *stream);
-MS2_PUBLIC void video_stream_set_nack_context_max_packet(VideoStream *stream, unsigned int max);
-MS2_PUBLIC void video_stream_disable_nack_context(VideoStream *stream);
+MS2_PUBLIC void video_stream_enable_retransmission_on_nack(VideoStream *stream, bool_t enable);
+MS2_PUBLIC void video_stream_set_retransmission_on_nack_max_packet(VideoStream *stream, unsigned int max);
 
 /**
  * Small API to display a local preview window.
