@@ -81,7 +81,7 @@ macro(linphone_sdk_convert_comma_separated_list_to_cmake_list INPUT OUTPUT)
 endmacro()
 
 macro(linphone_sdk_check_git)
-	find_program(GIT Git CMAKE_FIND_ROOT_PATH_BOTH)
+	find_program(GIT_EXECUTABLE git NAMES Git CMAKE_FIND_ROOT_PATH_BOTH)
 endmacro()
 
 function(linphone_sdk_git_submodule_update)
