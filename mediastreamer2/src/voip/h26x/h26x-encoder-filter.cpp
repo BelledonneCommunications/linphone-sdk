@@ -75,16 +75,22 @@ void H26xEncoderFilter::postprocess() {
 }
 
 void H26xEncoderFilter::setVideoConfiguration(MSVideoConfiguration vconf) {
-	if (_encoder->isRunning()) {
-		ms_warning("H26xEncoderFilter: ignoring video size change because the encoder is started");
-		vconf.vsize = _encoder->getVideoSize();
-	} else {
-		_encoder->setVideoSize(vconf.vsize);
+	char videoSettingsStr[255];
+	snprintf(videoSettingsStr, sizeof(videoSettingsStr), "bitrate=%db/s, fps=%f, vsize=%dx%d", _vconf.required_bitrate, _vconf.fps, _vconf.vsize.width, _vconf.vsize.height);
+	try {
+		if (_encoder->isRunning()) {
+			ms_warning("H26xEncoderFilter: ignoring video size change because the encoder is started");
+			vconf.vsize = _encoder->getVideoSize();
+		} else {
+			_encoder->setVideoSize(vconf.vsize);
+		}
+		_encoder->setFps(vconf.fps);
+		_encoder->setBitrate(vconf.required_bitrate);
+		_vconf = vconf;
+		ms_message("H26xEncoder: video configuration set (%s)", videoSettingsStr);
+	} catch (const runtime_error &e) {
+		ms_error("H26xEncoder: video configuration failed (%s): %s", videoSettingsStr, e.what());
 	}
-	_encoder->setFps(vconf.fps);
-	_encoder->setBitrate(vconf.required_bitrate);
-	_vconf = vconf;
-	ms_message("H26xEncoder: video configuration set: bitrate=%d bits/s, fps=%f, vsize=%dx%d", _vconf.required_bitrate, _vconf.fps, _vconf.vsize.width, _vconf.vsize.height);
 }
 
 void H26xEncoderFilter::enableAvpf(bool enable) {
