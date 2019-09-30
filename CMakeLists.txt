@@ -33,7 +33,7 @@ include(LinphoneSdkUtils)
 
 linphone_sdk_git_submodule_update()
 linphone_sdk_compute_full_version(LINPHONESDK_VERSION)
-
+linphone_sdk_compute_git_branch(LINPHONESDK_BRANCH)
 
 set(LINPHONESDK_PREBUILD_DEPENDENCIES)
 if(ENABLE_TUNNEL)
