@@ -507,18 +507,20 @@ MSWebCamDesc ms_v4m_cam_desc = {
 static void ms_v4m_detect(MSWebCamManager *obj) {
 	unsigned int i = 0;
 	NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
-	
-    NSArray * array = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
-	
+
+	NSArray * array = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
+
 	for(i = 0 ; i < [array count]; i++) {
 		AVCaptureDevice * device = [array objectAtIndex:i];
 		MSWebCam *cam = ms_web_cam_new(&ms_v4m_cam_desc);
-		cam->name = ms_strdup([[device localizedName] UTF8String]);
+		char *name = [[device localizedName] UTF8String];
+		char *uid = [[device uniqueID] UTF8String];
+		cam->name = bctbx_strdup_printf("%s--%s", name, uid);
 		//cam->name = ms_strdup([[device modelID] UTF8String]);
-		cam->data = ms_strdup([[device uniqueID] UTF8String]);
+		cam->data = ms_strdup(uid);
 		ms_web_cam_manager_add_cam(obj,cam);
 	}
 	[myPool drain];
 }
-        
-#endif        
+
+#endif
