@@ -955,9 +955,7 @@ static int bctbx_wincrypto_random(unsigned int *rand_number){
 #endif
 
 unsigned int bctbx_random(void){
-#ifdef HAVE_ARC4RANDOM
-	return arc4random();
-#elif  defined(__linux) || defined(__APPLE__)
+#if defined(__linux) || defined(__APPLE__)
 	static int fd=-1;
 	if (fd==-1) fd=open("/dev/urandom",O_RDONLY);
 	if (fd!=-1){
@@ -966,6 +964,11 @@ unsigned int bctbx_random(void){
 			bctbx_error("Reading /dev/urandom failed.");
 		}else return tmp;
 	}else bctbx_error("Could not open /dev/urandom");
+#	ifdef HAVE_ARC4RANDOM
+	return arc4random(); // fallback to arc4random().
+#	endif
+#elif defined(HAVE_ARC4RANDOM)
+	return arc4random();
 #elif defined(_WIN32)
 	static int initd=0;
 	unsigned int ret;
@@ -995,6 +998,7 @@ unsigned int bctbx_random(void){
 	return (unsigned int) random();
 #endif
 }
+
 bool_t bctbx_is_multicast_addr(const struct sockaddr *addr) {
 	
 	switch (addr->sa_family) {
