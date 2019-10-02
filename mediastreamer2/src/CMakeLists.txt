@@ -513,7 +513,7 @@ if(ENABLE_SHARED)
 		set_target_properties(mediastreamer PROPERTIES OUTPUT_NAME mediastreamer2)
 		set_target_properties(mediastreamer PROPERTIES
 			FRAMEWORK TRUE
-			FRAMEWORK_VERSION A
+			FRAMEWORK_VERSION ${MS2_FRAMEWORK_VERSION}
 			MACOSX_FRAMEWORK_IDENTIFIER org.linphone.mediastreamer2
   			MACOSX_FRAMEWORK_INFO_PLIST Info.plist.in
 			PUBLIC_HEADER "${MEDIASTREAMER2_HEADER_FILES}"
@@ -551,21 +551,6 @@ if(ENABLE_SHARED)
 		FRAMEWORK DESTINATION Frameworks
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 	)
-endif()
-
-#Setup framework structure and variables for ms2 plugins
-if(APPLE AND NOT IOS)
-	get_target_property(MS2_FRAMEWORK_VERSION mediastreamer FRAMEWORK_VERSION)
-
-	set(MS2_PLUGINS_LOCATION "Frameworks/mediastreamer2.framework/Versions/${MS2_FRAMEWORK_VERSION}/Libraries" PARENT_SCOPE)
-
-	install(DIRECTORY DESTINATION "${CMAKE_INSTALL_PREFIX}/${MS2_PLUGINS_LOCATION}")
-
-	if (NOT EXISTS "${CMAKE_INSTALL_PREFIX}/Frameworks/mediastreamer2.framework/Libraries")
-	     install(CODE "execute_process(COMMAND sh -c \"ln -sf Versions/Current/Libraries ${CMAKE_INSTALL_PREFIX}/Frameworks/mediastreamer2.framework/Libraries\")")
-	endif()
-else()
-	set(MS2_PLUGINS_LOCATION "${CMAKE_INSTALL_LIBDIR}/mediastreamer/plugins" PARENT_SCOPE)
 endif()
 
 if(FFMPEG_FOUND AND NOT WIN32)

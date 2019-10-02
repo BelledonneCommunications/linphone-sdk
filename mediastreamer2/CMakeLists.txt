@@ -575,9 +575,6 @@ if(APPLE)
 	endif()
 endif()
 string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/mediastreamer-config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/mediastreamer-config.h)
-set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/mediastreamer-config.h PROPERTIES GENERATED ON)
-add_definitions("-DHAVE_CONFIG_H")
 
 set(MEDIASTREAMER2_CPPFLAGS ${ORTP_CPPFLAGS} ${BZRTP_CPPFLAGS} ${BCTOOLBOX_CPPFLAGS} ${BCG729_CPPFLAGS})
 if(ENABLE_STATIC)
@@ -636,6 +633,25 @@ set(EXPORT_TARGETS_NAME "Mediastreamer2")
 add_definitions(
 	-DBCTBX_LOG_DOMAIN="mediastreamer"
 )
+
+#Setup framework structure and variables for ms2 plugins
+set(MS2_FRAMEWORK_VERSION "A")
+
+if(APPLE AND NOT IOS)
+	set(MS2_PLUGINS_LOCATION "Frameworks/mediastreamer2.framework/Versions/${MS2_FRAMEWORK_VERSION}/Libraries")
+
+	install(DIRECTORY DESTINATION "${CMAKE_INSTALL_PREFIX}/${MS2_PLUGINS_LOCATION}")
+
+	if (NOT EXISTS "${CMAKE_INSTALL_PREFIX}/Frameworks/mediastreamer2.framework/Libraries")
+	     install(CODE "execute_process(COMMAND sh -c \"ln -sf Versions/Current/Libraries ${CMAKE_INSTALL_PREFIX}/Frameworks/mediastreamer2.framework/Libraries\")")
+	endif()
+else()
+	set(MS2_PLUGINS_LOCATION "${CMAKE_INSTALL_LIBDIR}/mediastreamer/plugins")
+endif()
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/mediastreamer-config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/mediastreamer-config.h)
+set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/mediastreamer-config.h PROPERTIES GENERATED ON)
+add_definitions("-DHAVE_CONFIG_H")
 
 if(ENABLE_DOC)
 	add_subdirectory(help)
