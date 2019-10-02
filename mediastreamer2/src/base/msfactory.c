@@ -988,6 +988,34 @@ int ms_factory_get_expected_bandwidth(MSFactory *f) {
 	return f->expected_video_bandwidth;
 }
 
+const char * ms_factory_get_default_video_renderer(MSFactory *f) {
+#if defined(MS2_WINDOWS_PHONE)
+	return "MSWP8Dis";
+#elif defined(MS2_WINDOWS_DESKTOP)
+	// Check if UWP filter is created
+	if (ms_factory_lookup_filter_by_name(f, "MSWinRTBackgroundDis")) {
+		return "MSWinRTBackgroundDis";
+	} else {
+		return "MSDrawDibDisplay";
+	}
+#elif defined(__ANDROID__)
+	return "MSAndroidTextureDisplay";
+#elif __APPLE__ && !TARGET_OS_IPHONE
+	return "MSOSXGLDisplay";
+#elif defined (HAVE_XV)
+	return "MSX11Video";
+#elif defined(HAVE_GLX)
+	return "MSGLXVideo";
+#elif TARGET_OS_IPHONE
+	return "IOSDisplay";
+#elif defined(__QNX__)
+	return "MSBB10Display";
+#else
+	return "MSVideoOut";
+#endif
+}
+
+
 #ifdef __ANDROID__
 #include "sys/system_properties.h"
 #include <jni.h>

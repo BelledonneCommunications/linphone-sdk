@@ -290,33 +290,6 @@ void video_stream_iterate(VideoStream *stream){
 	}
 }
 
-const char *video_stream_get_default_video_renderer(VideoStream *stream){
-#if defined(MS2_WINDOWS_PHONE)
-	return "MSWP8Dis";
-#elif defined(MS2_WINDOWS_DESKTOP)
-	// Check if UWP filter can be created
-	if (stream && ms_factory_lookup_filter_by_name(media_stream_get_factory(&(stream->ms)) , "MSWinRTBackgroundDis")) {
-		return "MSWinRTBackgroundDis";
-	} else {
-		return "MSDrawDibDisplay";
-	}
-#elif defined(__ANDROID__)
-	return "MSAndroidTextureDisplay";
-#elif __APPLE__ && !TARGET_OS_IPHONE
-	return "MSOSXGLDisplay";
-#elif defined (HAVE_XV)
-	return "MSX11Video";
-#elif defined(HAVE_GLX)
-	return "MSGLXVideo";
-#elif TARGET_OS_IPHONE
-	return "IOSDisplay";
-#elif defined(__QNX__)
-	return "MSBB10Display";
-#else
-	return "MSVideoOut";
-#endif
-}
-
 static void choose_display_name(VideoStream *stream){
 #if defined(__ANDROID__)
 	MSDevicesInfo *devices = ms_factory_get_devices_info(stream->ms.factory);
@@ -324,9 +297,9 @@ static void choose_display_name(VideoStream *stream){
 	if (description->flags & DEVICE_HAS_CRAPPY_OPENGL)
 		stream->display_name = ms_strdup("MSAndroidDisplay");
 	else
-		stream->display_name = ms_strdup(video_stream_get_default_video_renderer(stream));
+		stream->display_name = ms_strdup(ms_factory_get_default_video_renderer(stream->ms.factory));
 #else
-	stream->display_name = ms_strdup(video_stream_get_default_video_renderer(stream));
+	stream->display_name = ms_strdup(ms_factory_get_default_video_renderer(stream->ms.factory));
 #endif
 }
 

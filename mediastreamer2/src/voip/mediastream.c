@@ -638,10 +638,6 @@ void video_stream_close_player(VideoStream *stream){
 
 void video_stream_enable_recording(VideoStream *stream, bool_t enabled) {}
 
-const char *video_stream_get_default_video_renderer(VideoStream *stream){
-	return NULL;
-}
-
 MSWebCamDesc *ms_mire_webcam_desc_get(void){
 	return NULL;
 }

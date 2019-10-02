@@ -444,6 +444,13 @@ MS2_PUBLIC void ms_factory_set_expected_bandwidth(MSFactory *f, int bitrate);
 
 MS2_PUBLIC int ms_factory_get_expected_bandwidth(MSFactory *f);
 
+/**
+ * Get the name of the default video renderer for the current platform.
+ * @param[in] f MSFactory object
+ * @return The name of the video filter choosen as default renderer
+ */
+MS2_PUBLIC const char *ms_factory_get_default_video_renderer(MSFactory *f);
+
 #ifdef __cplusplus
 }
 #endif
