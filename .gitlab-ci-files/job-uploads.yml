@@ -327,13 +327,13 @@ job-test-upload-libl-debian9:
     PLATFORM: "linux-debian9"
     TESTER: "liblinphone"
 
-#job-test-upload-libl-debian10:
-#  extends: .job-test-report-upload-scheduled
-#  dependencies:
-#    - test-liblinphone-debian10
-#  variables:
-#    PLATFORM: "linux-debian10"
-#    TESTER: "liblinphone"
+job-test-upload-libl-debian10:
+  extends: .job-test-report-upload-scheduled
+  dependencies:
+    - test-liblinphone-debian10
+  variables:
+    PLATFORM: "linux-debian10"
+    TESTER: "liblinphone"
 
 job-test-upload-libl-ubuntu:
   extends: .job-test-report-upload-scheduled
@@ -367,13 +367,13 @@ job-test-upload-bct-debian9:
     PLATFORM: "linux-debian9"
     TESTER: "bctoolbox"
 
-#job-test-upload-bct-debian10:
-#  extends: .job-test-report-upload-scheduled
-#  dependencies:
-#    - test-bctoolbox-debian10
-#  variables:
-#    PLATFORM: "linux-debian10"
-#    TESTER: "bctoolbox"
+job-test-upload-bct-debian10:
+  extends: .job-test-report-upload-scheduled
+  dependencies:
+    - test-bctoolbox-debian10
+  variables:
+    PLATFORM: "linux-debian10"
+    TESTER: "bctoolbox"
 
 job-test-upload-bct-ubuntu:
   extends: .job-test-report-upload-scheduled
@@ -415,13 +415,13 @@ job-test-upload-bsip-debian9:
     PLATFORM: "linux-debian9"
     TESTER: "bellesip"
 
-#job-test-upload-bsip-debian10:
-#  extends: .job-test-report-upload-scheduled
-#  dependencies:
-#    - test-bellesip-debian10
-#  variables:
-#    PLATFORM: "linux-debian10"
-#    TESTER: "bellesip"
+job-test-upload-bsip-debian10:
+  extends: .job-test-report-upload-scheduled
+  dependencies:
+    - test-bellesip-debian10
+  variables:
+    PLATFORM: "linux-debian10"
+    TESTER: "bellesip"
 
 job-test-upload-bsip-ubuntu:
   extends: .job-test-report-upload-scheduled
@@ -514,13 +514,13 @@ job-test-upload-blr-debian9:
     PLATFORM: "linux-debian9"
     TESTER: "belr"
 
-#job-test-upload-belr-debian10:
-#  extends: .job-test-report-upload-scheduled
-#  dependencies:
-#    - test-belr-debian10
-#  variables:
-#    PLATFORM: "linux-debian10"
-#    TESTER: "belr"
+job-test-upload-belr-debian10:
+  extends: .job-test-report-upload-scheduled
+  dependencies:
+    - test-belr-debian10
+  variables:
+    PLATFORM: "linux-debian10"
+    TESTER: "belr"
 
 job-test-upload-belr-ubuntu:
   extends: .job-test-report-upload-scheduled
@@ -562,13 +562,13 @@ job-test-upload-belcard-debian9:
     PLATFORM: "linux-debian9"
     TESTER: "belcard"
 
-#job-test-upload-belcard-debian10:
-#  extends: .job-test-report-upload-scheduled
-#  dependencies:
-#    - test-belcard-debian10
-#  variables:
-#    PLATFORM: "linux-debian10"
-#    TESTER: "belcard"
+job-test-upload-belcard-debian10:
+  extends: .job-test-report-upload-scheduled
+  dependencies:
+    - test-belcard-debian10
+  variables:
+    PLATFORM: "linux-debian10"
+    TESTER: "belcard"
 
 job-test-upload-belcard-ubuntu:
   extends: .job-test-report-upload-scheduled
@@ -610,13 +610,13 @@ job-test-upload-bzrtp-debian9:
     PLATFORM: "linux-debian9"
     TESTER: "bzrtp"
 
-#job-test-upload-bzrtp-debian10:
-#  extends: .job-test-report-upload-scheduled
-#  dependencies:
-#    - test-bzrtp-debian10
-#  variables:
-#    PLATFORM: "linux-debian10"
-#    TESTER: "bzrtp"
+job-test-upload-bzrtp-debian10:
+  extends: .job-test-report-upload-scheduled
+  dependencies:
+    - test-bzrtp-debian10
+  variables:
+    PLATFORM: "linux-debian10"
+    TESTER: "bzrtp"
 
 job-test-upload-bzrtp-ubuntu:
   extends: .job-test-report-upload-scheduled

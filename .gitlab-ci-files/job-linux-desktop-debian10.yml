@@ -104,33 +104,45 @@ test-bctoolbox-debian10:
   dependencies:
     - job-debian10-ninja-clang
   tags: [ "docker-test-debian10-nuc" ]
+  variables:
+    PLATFORM: linux-debian10
 
 test-bellesip-debian10:
   extends: .test-bellesip
   dependencies:
     - job-debian10-ninja-gcc
   tags: [ "docker-test-debian10-nuc" ]
+  variables:
+    PLATFORM: linux-debian10
   
 test-belr-debian10:
   extends: .test-belr
   dependencies:
     - job-debian10-ninja-gcc
   tags: [ "docker-test-debian10-nuc" ]
+  variables:
+    PLATFORM: linux-debian10
   
 test-belcard-debian10:
   extends: .test-belcard
   dependencies:
     - job-debian10-ninja-gcc
   tags: [ "docker-test-debian10-nuc" ]
+  variables:
+    PLATFORM: linux-debian10
   
 test-bzrtp-debian10:
   extends: .test-bzrtp
   dependencies:
     - job-debian10-ninja-gcc
   tags: [ "docker-test-debian10-nuc" ]
+  variables:
+    PLATFORM: linux-debian10
   
 test-liblinphone-debian10:
   tags: [ "docker-test-debian10-liblinphone-nuc" ]
   extends: .test-liblinphone
   dependencies:
     - job-debian10-ninja-gcc
+  variables:
+    PLATFORM: linux-debian10
