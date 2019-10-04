@@ -800,6 +800,24 @@ void android_camera2_capture_detect(MSWebCamManager *obj) {
 			int32_t angle = orientation.data.i32[0];
 			device->orientation = angle;
 
+			ACameraMetadata_const_entry hardwareLevel;
+			ACameraMetadata_getConstEntry(cameraMetadata, ACAMERA_INFO_SUPPORTED_HARDWARE_LEVEL, &hardwareLevel);
+			std::string supportedHardwareLevel = "unknown";
+			switch (hardwareLevel.data.u8[0]) {
+				case ACAMERA_INFO_SUPPORTED_HARDWARE_LEVEL_LIMITED:
+					supportedHardwareLevel = "limited";
+					break;
+				case ACAMERA_INFO_SUPPORTED_HARDWARE_LEVEL_FULL:
+					supportedHardwareLevel = "full";
+					break;
+				case ACAMERA_INFO_SUPPORTED_HARDWARE_LEVEL_LEGACY:
+					supportedHardwareLevel = "legacy";
+					break;
+				case ACAMERA_INFO_SUPPORTED_HARDWARE_LEVEL_3:
+					supportedHardwareLevel = "3";
+					break;
+			}
+
   			ACameraMetadata_const_entry face;
 			ACameraMetadata_getConstEntry(cameraMetadata, ACAMERA_LENS_FACING, &face);
 			bool back_facing = face.data.u8[0] == ACAMERA_LENS_FACING_BACK;
@@ -807,7 +825,7 @@ void android_camera2_capture_detect(MSWebCamManager *obj) {
 			if (!back_facing) {
 				facing = "front";
 			}
-			ms_message("[Camera2 Capture] Camera %s is facing %s with angle %d", camId, facing, angle);
+			ms_message("[Camera2 Capture] Camera %s is facing %s with angle %d, hardware level is %s", camId, facing, angle, supportedHardwareLevel.c_str());
 			device->back_facing = back_facing;
 
 			MSWebCam *cam = ms_web_cam_new(&ms_android_camera2_capture_webcam_desc);
