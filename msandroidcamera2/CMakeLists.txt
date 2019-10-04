@@ -50,14 +50,17 @@ set(LIBS ${MEDIASTREAMER2_LIBRARIES} android camera2ndk mediandk ${ORTP_LIBRARIE
 
 set(SOURCE_FILES android-camera2-capture.cpp)
 
+#Inherited from ms2 cmake config file
+set(MS2_PLUGINS_DIR "${MEDIASTREAMER2_PLUGINS_LOCATION}")
+
 if(ENABLE_STATIC)
 	add_library(msandroidcamera2-static STATIC ${SOURCE_FILES})
 	set_target_properties(msandroidcamera2-static PROPERTIES OUTPUT_NAME msandroidcamera2)
 	target_link_libraries(msandroidcamera2-static ${LIBS})
 	install(TARGETS msandroidcamera2-static
-		RUNTIME DESTINATION lib/mediastreamer/plugins
-		LIBRARY DESTINATION lib/mediastreamer/plugins
-		ARCHIVE DESTINATION lib/mediastreamer/plugins
+		RUNTIME DESTINATION ${MS2_PLUGINS_DIR}
+		LIBRARY DESTINATION ${MS2_PLUGINS_DIR}
+		ARCHIVE DESTINATION ${MS2_PLUGINS_DIR}
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 	)
 endif()
@@ -65,9 +68,9 @@ if(ENABLE_SHARED)
 	add_library(msandroidcamera2 MODULE ${SOURCE_FILES})
 	target_link_libraries(msandroidcamera2 ${LIBS})
 	install(TARGETS msandroidcamera2
-		RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR}/mediastreamer/plugins
-		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/mediastreamer/plugins
-		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}/mediastreamer/plugins
+		RUNTIME DESTINATION ${MS2_PLUGINS_DIR}
+		LIBRARY DESTINATION ${MS2_PLUGINS_DIR}
+		ARCHIVE DESTINATION ${MS2_PLUGINS_DIR}
 		FRAMEWORK DESTINATION Frameworks
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 	)
