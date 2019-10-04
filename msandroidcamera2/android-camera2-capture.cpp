@@ -25,6 +25,7 @@
 #include <mediastreamer2/mswebcam.h>
 #include <mediastreamer2/android_utils.h>
 
+#include <android/native_window_jni.h>
 #include <camera/NdkCameraCaptureSession.h>
 #include <camera/NdkCameraDevice.h>
 #include <camera/NdkCameraError.h>
@@ -36,12 +37,6 @@
 
 #include <jni.h>
 #include <math.h>
-#include <android/hardware_buffer.h>
-#include <android/native_activity.h>
-#include <android/native_window.h>
-#include <android/native_window_jni.h>
-#include <android/rect.h>
-#include <android/window.h>
 
 struct AndroidCamera2Device {
 	AndroidCamera2Device(char *id) : camId(id), orientation(0), back_facing(false) {

@@ -46,7 +46,7 @@ include_directories(
 	${MEDIASTREAMER2_INCLUDE_DIRS}
 )
 
-set(LIBS ${MEDIASTREAMER2_LIBRARIES} android camera2ndk mediandk nativewindow ${ORTP_LIBRARIES} ${BCTOOLBOX_CORE_LIBRARIES})
+set(LIBS ${MEDIASTREAMER2_LIBRARIES} android camera2ndk mediandk ${ORTP_LIBRARIES} ${BCTOOLBOX_CORE_LIBRARIES})
 
 set(SOURCE_FILES android-camera2-capture.cpp)
 
