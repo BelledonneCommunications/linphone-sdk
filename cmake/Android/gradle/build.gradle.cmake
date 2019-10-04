@@ -71,7 +71,7 @@ def pluginsList = ""
 task listPlugins() {
     fileTree(pluginsDir).visit { FileVisitDetails details -> 
         println("Found plugin: " + details.file.name)
-        pluginsList = pluginsList + "\"" + details.file.name  + "\""
+        pluginsList = pluginsList + "\"" + details.file.name  + "\","
     }
 }
 
