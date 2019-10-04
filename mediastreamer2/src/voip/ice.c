@@ -2371,11 +2371,6 @@ static void ice_update_nominated_flag_on_binding_response(const IceCheckList *cl
 	}
 }
 
-static int ice_find_not_failed_or_succeeded_pair(const IceCandidatePair *pair, const void *dummy)
-{
-	return !((pair->state != ICP_Failed) && (pair->state != ICP_Succeeded));
-}
-
 static int ice_compare_transactionIDs(const IceStunServerRequestTransaction *transaction, const UInt96 *tr_id2)
 {
 	const UInt96 *tr_id1 = &transaction->transactionID;
@@ -3713,6 +3708,12 @@ static void ice_find_selected_valid_pair_for_componentID(const uint16_t *compone
 	}
 }
 
+#if 0
+static int ice_find_not_failed_or_succeeded_pair(const IceCandidatePair *pair, const void *dummy)
+{
+	return !((pair->state != ICP_Failed) && (pair->state != ICP_Succeeded));
+}
+
 static void ice_check_all_pairs_in_failed_or_succeeded_state(const IceCandidatePair *pair, CheckList_Bool *cb)
 {
 	bctbx_list_t *elem = bctbx_list_find_custom(cb->cl->check_list, (bctbx_compare_func)ice_find_not_failed_or_succeeded_pair, NULL);
@@ -3720,6 +3721,7 @@ static void ice_check_all_pairs_in_failed_or_succeeded_state(const IceCandidateP
 		cb->result = FALSE;
 	}
 }
+#endif
 
 static IceCheckList * ice_session_find_running_check_list(const IceSession *session)
 {
@@ -3864,23 +3866,6 @@ static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session, b
 				ortp_event_get_data(ev)->info.ice_processing_successful = TRUE;
 				rtp_session_dispatch_event(rtp_session, ev);
 				ice_notify_session_processing_finished(cl, rtp_session);
-			}
-		} else {
-			cb.cl = cl;
-			cb.result = TRUE;
-			bctbx_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_check_all_pairs_in_failed_or_succeeded_state, &cb);
-			if (cb.result == TRUE) {
-				if (cl->state != ICL_Failed) {
-					cl->state = ICL_Failed;
-					ms_message("ice: Failed ICE check list processing!");
-					cl->connectivity_checks_running = FALSE;
-					ice_dump_valid_list(cl);
-					/* Notify the application of the failed processing. */
-					ev = ortp_event_new(ORTP_EVENT_ICE_CHECK_LIST_PROCESSING_FINISHED);
-					ortp_event_get_data(ev)->info.ice_processing_successful = FALSE;
-					rtp_session_dispatch_event(rtp_session, ev);
-					ice_notify_session_processing_finished(cl, rtp_session);
-				}
 			}
 		}
 	}
