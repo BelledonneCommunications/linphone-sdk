@@ -98,8 +98,8 @@ rm -rf $RPM_BUILD_ROOT
 %if @ENABLE_SHARED@
 %{_libdir}/libbelr.so
 %endif
-%{_datadir}/Belr/cmake/BelrConfig*.cmake
-%{_datadir}/Belr/cmake/BelrTargets*.cmake
+%{_datadir}/belr/cmake/belrConfig*.cmake
+%{_datadir}/belr/cmake/belrTargets*.cmake
 %if @ENABLE_TESTS@ || @ENABLE_TOOLS@
 %{_bindir}/*
 %endif
