@@ -21,7 +21,7 @@ Summary:        Linphone's sip stack
 Group:          Applications/Communications
 License:        GPL
 URL:            http://www.belle-sip.org
-Source0:        %{name}-%{version}-%{build_number}.tar.gz
+Source0:        %{name}-%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 
 Requires:	%{pkg_prefix}bctoolbox
@@ -51,7 +51,7 @@ Libraries and headers required to develop software with belle-sip
 %custom_debug_package
 
 %prep
-%setup -n %{name}-%{version}-%build_number
+%setup -n %{name}-%{version}
 
 %build
 %{expand:%%%cmake_name} . -DCMAKE_BUILD_TYPE=@CMAKE_BUILD_TYPE@ -DCMAKE_PREFIX_PATH:PATH=%{_prefix} @RPM_ALL_CMAKE_OPTIONS@
@@ -78,7 +78,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root)
-%doc AUTHORS.md CHANGELOG.md LICENSE.md README.md
+%doc AUTHORS.md CHANGELOG.md LICENSE.txt README.md
 %{_libdir}/*.so.*
 
 %files devel
@@ -91,8 +91,8 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/libbellesip.so
 %endif
 %{_libdir}/pkgconfig/belle-sip.pc
-%{_datadir}/BelleSIP/cmake/BelleSIPConfig*.cmake
-%{_datadir}/BelleSIP/cmake/BelleSIPTargets*.cmake
+%{_libdir}/cmake/BelleSIP/BelleSIPConfig*.cmake
+%{_libdir}/cmake/BelleSIP/BelleSIPTargets*.cmake
 
 %changelog
 

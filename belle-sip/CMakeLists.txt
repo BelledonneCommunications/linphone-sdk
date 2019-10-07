@@ -225,16 +225,19 @@ endif()
 
 
 include(CMakePackageConfigHelpers)
-set(CONFIG_PACKAGE_LOCATION "${CMAKE_INSTALL_DATADIR}/BelleSIP/cmake")
+set(CONFIG_PACKAGE_LOCATION "${CMAKE_INSTALL_LIBDIR}/cmake/BelleSIP")
+
 
 write_basic_package_version_file(
 	"${CMAKE_CURRENT_BINARY_DIR}/BelleSIPConfigVersion.cmake"
 	VERSION ${PACKAGE_VERSION}
 	COMPATIBILITY AnyNewerVersion
 )
+
 export(EXPORT ${EXPORT_TARGETS_NAME}Targets
 	FILE "${CMAKE_CURRENT_BINARY_DIR}/BelleSIPTargets.cmake"
 )
+
 configure_package_config_file(cmake/BelleSIPConfig.cmake.in
 	"${CMAKE_CURRENT_BINARY_DIR}/BelleSIPConfig.cmake"
   	INSTALL_DESTINATION ${CONFIG_PACKAGE_LOCATION}
@@ -245,6 +248,8 @@ install(EXPORT ${EXPORT_TARGETS_NAME}Targets
 	FILE BelleSIPTargets.cmake
 	DESTINATION ${CONFIG_PACKAGE_LOCATION}
 )
+
+#Yes, an install directive is necessary. The INSTALL_DESTINATION parameter of configure_package_config_file() above does NOTHING.
 install(FILES
 	"${CMAKE_CURRENT_BINARY_DIR}/BelleSIPConfig.cmake"
 	"${CMAKE_CURRENT_BINARY_DIR}/BelleSIPConfigVersion.cmake"
