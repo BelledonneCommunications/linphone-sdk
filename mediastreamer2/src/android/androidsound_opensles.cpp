@@ -1034,7 +1034,7 @@ static MSSndCard* android_snd_card_new(MSSndCardManager *m) {
 	if (d->flags & DEVICE_HAS_BUILTIN_OPENSLES_AEC) {
 		card->capabilities |= MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER;
 		context->builtin_aec = true;
-	} else if (d->flags & DEVICE_HAS_BUILTIN_AEC) {
+	} else if (d->flags & DEVICE_HAS_BUILTIN_AEC && !(d->flags & DEVICE_HAS_BUILTIN_AEC_CRAPPY)) {
 		ms_warning("[OpenSLES] Removing MS_SND_CARD_CAP_CAPTURE flag from soundcard to use HAEC Java capture soundcard");
 		card->capabilities = MS_SND_CARD_CAP_PLAYBACK;
 	}
