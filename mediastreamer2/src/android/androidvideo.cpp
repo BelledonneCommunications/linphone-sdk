@@ -427,6 +427,12 @@ MSWebCamDesc ms_android_video_capture_desc={
 static void video_capture_detect(MSWebCamManager *obj){
 	ms_message("Detecting Android VIDEO cards");
 	JNIEnv *env = ms_get_jni_env();
+
+	if (ms_get_android_sdk_version() >= 26) {
+		ms_warning("Android >= 8.0 detected, disabling legacy capture filter");
+		return;
+	}
+
 	jclass helperClass = getHelperClassGlobalRef(env);
 
 	if (helperClass == NULL) return;
