@@ -128,7 +128,7 @@ endif()
 
 include(CMakePackageConfigHelpers)
 set(EXPORT_TARGET_NAME belr)
-set(ConfigPackageLocation share/${EXPORT_TARGET_NAME}/cmake)
+set(ConfigPackageLocation "${CMAKE_INSTALL_LIBDIR}/cmake/${EXPORT_TARGET_NAME}")
 
 export(EXPORT ${EXPORT_TARGET_NAME}Targets
 	FILE "${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGET_NAME}Targets.cmake"
@@ -144,6 +144,8 @@ install(EXPORT ${EXPORT_TARGET_NAME}Targets
 	FILE ${EXPORT_TARGET_NAME}Targets.cmake
 	DESTINATION ${ConfigPackageLocation}
 )
+
+#Yes, an install directive is necessary. The INSTALL_DESTINATION parameter of configure_package_config_file() above does NOTHING.
 install(FILES
 	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGET_NAME}Config.cmake"
 	DESTINATION ${ConfigPackageLocation}
