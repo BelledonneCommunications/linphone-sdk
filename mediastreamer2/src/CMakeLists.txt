@@ -317,7 +317,6 @@ if(ENABLE_VIDEO)
 		list(APPEND VOIP_SOURCE_FILES_C
 			utils/ffmpeg-priv.c
 			utils/ffmpeg-priv.h
-			utils/swscale.h
 			videofilters/videodec.c
 			videofilters/videoenc.c
 		)
