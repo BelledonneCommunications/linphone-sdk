@@ -88,9 +88,9 @@ static void retry_later(belle_sip_refresher_t* refresher) {
 }
 
 static void retry_later_on_io_error(belle_sip_refresher_t* refresher) {
-	/*if first retry, sent it in 500 ms*/
+	/*if first retry, sent it immediately. */
 	if (refresher->number_of_retry < 1) {
-		schedule_timer_at(refresher,DEFAULT_INITIAL_RETRY_AFTER_ON_IO_ERROR,RETRY);
+		schedule_timer_at(refresher,0,RETRY);
 		refresher->number_of_retry++;
 	} else {
 		retry_later(refresher);
