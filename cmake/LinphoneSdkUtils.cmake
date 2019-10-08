@@ -98,13 +98,41 @@ macro(linphone_sdk_compute_full_version OUTPUT_VERSION)
 	linphone_sdk_check_git()
 	if(GIT_EXECUTABLE)
 		execute_process(
-			COMMAND "${GIT_EXECUTABLE}" "describe"
-			OUTPUT_VARIABLE ${OUTPUT_VERSION}
+			COMMAND "${GIT_EXECUTABLE}" "describe" "--abbrev=0"
+			OUTPUT_VARIABLE GIT_OUTPUT_VERSION
 			OUTPUT_STRIP_TRAILING_WHITESPACE
 			ERROR_QUIET
 			WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 		)
-		if(${OUTPUT_VERSION})
+		if (DEFINED GIT_OUTPUT_VERSION)
+
+			# In case we need to decompose the version
+			# if (NOT GIT_OUTPUT_VERSION MATCHES "^(0|[1-9][0-9]*)[.](0|[1-9][0-9]*)[.](0|[1-9][0-9]*)(-[.0-9A-Za-z-]+)?([+][.0-9A-Za-z-]+)?$")
+			#     set( version_major "${CMAKE_MATCH_1}" )
+			#     set( version_minor "${CMAKE_MATCH_2}" )
+			#     set( version_patch "${CMAKE_MATCH_3}" )
+			#     set( identifiers   "${CMAKE_MATCH_4}" )
+			#     set( metadata      "${CMAKE_MATCH_5}" )
+			# endif()
+
+			SET(${OUTPUT_VERSION} "${GIT_OUTPUT_VERSION}")
+
+			linphone_sdk_compute_commits_count_since_latest_tag(${GIT_OUTPUT_VERSION} COMMIT_COUNT)
+			if (NOT ${COMMIT_COUNT} STREQUAL "0")
+			   	execute_process(
+					COMMAND "${GIT_EXECUTABLE}" "rev-parse" "--short" "HEAD"
+					OUTPUT_VARIABLE COMMIT_HASH
+					OUTPUT_STRIP_TRAILING_WHITESPACE
+					ERROR_QUIET
+					WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+				)
+				set(${OUTPUT_VERSION} "${${OUTPUT_VERSION}}.${COMMIT_COUNT}+${COMMIT_HASH}")
+			else()
+				#If commit count diff is 0, it means we are on the tag. Keep the version untouched
+			endif()
+		endif()
+
+		if (DEFINED ${OUTPUT_VERSION})
 			execute_process(
 				COMMAND "${GIT_EXECUTABLE}" "describe" "--abbrev=0"
 				OUTPUT_VARIABLE PROJECT_GIT_TAG
@@ -112,21 +140,13 @@ macro(linphone_sdk_compute_full_version OUTPUT_VERSION)
 				ERROR_QUIET
 				WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 			)
-			if(NOT PROJECT_GIT_TAG VERSION_EQUAL PROJECT_VERSION)
+			if(NOT PROJECT_GIT_TAG VERSION_GREATER_EQUAL PROJECT_VERSION)
 				message(FATAL_ERROR "Project version (${PROJECT_VERSION}) and git tag (${PROJECT_GIT_TAG}) differ! Please synchronize them.")
 			endif()
 			unset(PROJECT_GIT_TAG)
-		else()
-			execute_process(
-				COMMAND "${GIT_EXECUTABLE}" "rev-parse" "HEAD"
-				OUTPUT_VARIABLE PROJECT_GIT_REVISION
-				OUTPUT_STRIP_TRAILING_WHITESPACE
-				ERROR_QUIET
-				WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-			)
-			set(${OUTPUT_VERSION} "${PROJECT_VERSION}-g${PROJECT_GIT_REVISION}")
 		endif()
 	endif()
+	message(STATUS "Building LinphoneSDK Version : [${${OUTPUT_VERSION}}]")
 endmacro()
 
 macro(linphone_sdk_compute_git_branch OUTPUT_GIT_BRANCH)
