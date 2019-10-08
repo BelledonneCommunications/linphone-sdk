@@ -218,7 +218,7 @@ if (project.hasProperty("tunnel")) {
 if (project.hasProperty("no-video")) {
     artefactGroupId = artefactGroupId + '.no-video'
 }
-println("AAR artefact group id will be: " + artefactGroupId)
+println("AAR artefact group is: " + artefactGroupId + ", SDK version @LINPHONESDK_VERSION@")
 
 publishing {
     publications {
