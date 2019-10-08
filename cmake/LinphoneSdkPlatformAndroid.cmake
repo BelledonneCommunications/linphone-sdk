@@ -21,7 +21,6 @@
 ############################################################################
 
 include(LinphoneSdkPlatformCommon)
-include(LinphoneSdkCheckBuildToolsAndroid)
 
 
 set(LINPHONESDK_ANDROID_ARCHS "arm64, armv7" CACHE STRING "Android architectures to build for: comma-separated list of values in [arm64, armv7, arm, x86, x86_64]")

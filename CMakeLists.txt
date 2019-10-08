@@ -47,6 +47,9 @@ endif()
 set(LINPHONESDK_PLATFORM "Desktop" CACHE STRING "Platform to build")
 set_property(CACHE LINPHONESDK_PLATFORM PROPERTY STRINGS "Android" "Desktop" "IOS" "UWP")
 
+if (LINPHONESDK_PLATFORM STREQUAL "Android")
+  include(LinphoneSdkCheckBuildToolsAndroid)
+endif()
 
 # TODO: This will be deletable once we get rid of cmake-builder
 string(TOLOWER "${LINPHONESDK_PLATFORM}" _lowercase_platform)
@@ -57,7 +60,6 @@ include(cmake-builder/options/bctoolbox.cmake)
 include(cmake-builder/options/bellesip.cmake)
 include(cmake-builder/options/ms2.cmake)
 include(cmake-builder/options/linphone.cmake)
-
 
 # Give a feature summary
 include(FeatureSummary)
