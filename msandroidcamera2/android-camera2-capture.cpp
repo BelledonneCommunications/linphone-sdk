@@ -26,13 +26,13 @@
 #include <mediastreamer2/android_utils.h>
 
 #include <android/native_window_jni.h>
+#include <camera/NdkCaptureRequest.h>
 #include <camera/NdkCameraCaptureSession.h>
 #include <camera/NdkCameraDevice.h>
 #include <camera/NdkCameraError.h>
 #include <camera/NdkCameraManager.h>
 #include <camera/NdkCameraMetadata.h>
 #include <camera/NdkCameraMetadataTags.h>
-#include <camera/NdkCaptureRequest.h>
 #include <media/NdkImageReader.h>
 
 #include <jni.h>
