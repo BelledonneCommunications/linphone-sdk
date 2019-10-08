@@ -255,7 +255,7 @@ job-debian-doc-upload:
     - echo "    cd ../$ESCAPED_BRANCH/$SDK_VERSION/$PLATFORM/$TESTER || exit 1" | tee -a allure_launch_script
     - echo "    cp -r ../../../../$PARENT_BRANCH/\$LAST_MODIFIED_PATH history;" | tee -a allure_launch_script
     - echo "  else" | tee -a allure_launch_script
-    - echo "    cp -r $(find -O3 ../../../ -path "*/$PLATFORM/$TESTER/allure-report/history" | tac | head -n 1) history;" | tee -a allure_launch_script
+    - echo "    cp -r \$(find -O3 ../../../ -path "*/$PLATFORM/$TESTER/allure-report/history" | tac | head -n 1) history;" | tee -a allure_launch_script
     - echo "  fi;" | tee -a allure_launch_script
 
 
