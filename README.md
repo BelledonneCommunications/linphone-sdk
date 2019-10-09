@@ -4,6 +4,7 @@
 
 Linphone-sdk is a project that bundles liblinphone and its dependencies as git submodules, in the purpose of simplifying
 the compilation and packaging of the whole liblinphone suite, comprising mediastreamer2, belle-sip, ortp and many others.
+Its compilation produces a SDK suitable to create applications running on top of these components.
 The submodules that are not developped or maintained by the Linphone team are grouped in the external/ directory.
 The currently supported platforms are Android, iOS, Desktop (Linux, Windows, Mac OS X) and UWP (Universal Windows Platform).
 
