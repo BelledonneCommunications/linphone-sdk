@@ -456,9 +456,14 @@ static void video_capture_detect(MSWebCamManager *obj){
 		env->GetIntArrayRegion(orientation, i, 1, &c->orientation);
 		cam->data = c;
 		cam->name = ms_strdup("Android video name");
-		char* idstring = (char*) ms_malloc(15);
-		snprintf(idstring, 15, "Android%d", c->id);
-		cam->id = idstring;
+
+		const char *facing = "Back";
+		if (c->frontFacing) {
+			facing = "Front";
+		}
+		char *idstring = bctbx_strdup_printf("%sFacingCamera%d", facing, c->id);
+		cam->id = ms_strdup(idstring);
+		bctbx_free(idstring);
 		ms_web_cam_manager_add_cam(obj,cam);
 		ms_message("camera created: id=%d frontFacing=%d orientation=%d [msid:%s]\n", c->id, c->frontFacing, c->orientation, idstring);
 	}
