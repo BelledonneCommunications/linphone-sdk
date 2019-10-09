@@ -279,7 +279,7 @@ static MSFilterMethod ms_wasapi_write_methods[] = {
 #define MS_WASAPI_WRITE_ENC_FMT			NULL
 #define MS_WASAPI_WRITE_NINPUTS			1
 #define MS_WASAPI_WRITE_NOUTPUTS		0
-#define MS_WASAPI_WRITE_FLAGS			0
+#define MS_WASAPI_WRITE_FLAGS			MS_FILTER_IS_PUMP
 
 #ifndef _MSC_VER
 

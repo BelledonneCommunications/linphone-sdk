@@ -60,16 +60,10 @@ public:
 #endif
 
 private:
-	static void * feedThread(void *p);
-	void * feedThread();
-	void createBufferizer(MSFilter *f);
 	void drop(MSFilter *f);
 	HRESULT configureAudioClient();
 
 	static bool smInstantiated;
-	HANDLE mSamplesRequestedEvent;
-	ms_thread_t mThread;
-	ms_mutex_t mThreadMutex;
 #ifdef MS2_WINDOWS_UNIVERSAL
 	Platform::String^ mRenderId;
 	HANDLE mActivationEvent;
@@ -83,12 +77,11 @@ private:
 #endif
 	IAudioRenderClient *mAudioRenderClient;
 	ISimpleAudioVolume *mVolumeControler;
-	MSFlowControlledBufferizer *mBufferizer;
-	UINT32 mBufferFrameCount;
+	UINT32 mBufferFrameCount; /* The buffer size we have requested, or obtained from the wasapi.*/
+	int mMinFrameCount; /* The minimum samples queued into the wasapi during a 5 second period*/
 	bool mIsInitialized;
 	bool mIsActivated;
 	bool mIsStarted;
-	bool mIsReadyToWrite;
 	int mRate;
 	int mNChannels;
 };
