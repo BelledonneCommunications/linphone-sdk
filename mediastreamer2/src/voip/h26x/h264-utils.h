@@ -29,6 +29,9 @@
 
 typedef int MSH264NaluType;
 
+const MSH264NaluType MSH264NaluTypeDataPartA = 2;
+const MSH264NaluType MSH264NaluTypeDataPartB = 3;
+const MSH264NaluType MSH264NaluTypeDataPartC = 4;
 const MSH264NaluType MSH264NaluTypeIDR = 5;
 const MSH264NaluType MSH264NaluTypeSEI = 6;
 const MSH264NaluType MSH264NaluTypeSPS = 7;
@@ -111,8 +114,11 @@ public:
 
 	bool isVcl() const override {return _value < 6;}
 	bool isParameterSet() const override {return *this == Sps || *this == Pps;}
-	bool isKeyFramePart() const override {return *this == Idr;}
+	bool isKeyFramePart() const override {return *this == Idr || *this == DataPartA;}
 
+	static const H264NaluType DataPartA;
+	static const H264NaluType DataPartB;
+	static const H264NaluType DataPartC;
 	static const H264NaluType Idr;
 	static const H264NaluType Sei;
 	static const H264NaluType Sps;

@@ -181,6 +181,9 @@ H264NaluType::H264NaluType(uint8_t value) {
 	_value = value;
 }
 
+const H264NaluType H264NaluType::DataPartA = 2;
+const H264NaluType H264NaluType::DataPartB = 3;
+const H264NaluType H264NaluType::DataPartC = 4;
 const H264NaluType H264NaluType::Idr = 5;
 const H264NaluType H264NaluType::Sei = 6;
 const H264NaluType H264NaluType::Sps = 7;
@@ -295,7 +298,7 @@ void H264ParameterSetsInserter::process(MSQueue *in, MSQueue *out) {
 			replaceParameterSet(_pps, m);
 		} else {
 			if (_sps && _pps) {
-				if (type == MSH264NaluTypeIDR && !psBeforeIdr) {
+				if ((type == MSH264NaluTypeIDR || type == MSH264NaluTypeDataPartA) && !psBeforeIdr) {
 					ms_queue_put(out, dupmsg(_sps));
 					ms_queue_put(out, dupmsg(_pps));
 				}
