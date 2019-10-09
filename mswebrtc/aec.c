@@ -275,7 +275,19 @@ static void webrtc_aec_process(MSFilter *f) {
 			memset(refm->b_wptr, 0, nbytes);
 			refm->b_wptr += nbytes;
 			ms_bufferizer_put(&s->delayed_ref, refm);
-			ms_queue_put(f->outputs[0], dupmsg(refm));
+			/*
+			 * However, we don't inject this silence buffer to the sound card, in order to break the following bad loop:
+			 * - the sound playback filter detects it has too many pending samples, then triggers an event to request samples to be dropped upstream.
+			 * - the upstream MSFlowControl filter is requested to drop samples, which it starts to do.
+			 * - necessarily shortly after the AEC goes into a situation where it has not enough reference samples while processing an audio buffer from mic.
+			 * - if the AEC injects a silence buffer as output, then it will RECREATE a situation where the sound playback filter has too many pending samples.
+			 * That's why we should not do this.
+			 * By not doing this, we will create a discrepancy between what we really injected to the soundcard, and what we told to the 
+			 * echo canceller about the samples we injected. This shifts the echo. The echo canceller will re-converge quickly to take into
+			 * account the situation.
+			 * 
+			*/
+			//ms_queue_put(f->outputs[0], dupmsg(refm));
 			if (!s->using_zeroes) {
 				ms_warning("Not enough ref samples, using zeroes");
 				s->using_zeroes = TRUE;
