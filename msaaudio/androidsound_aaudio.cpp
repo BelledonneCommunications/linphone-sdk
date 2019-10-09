@@ -279,6 +279,13 @@ static void aaudio_recorder_init(AAudioInputContext *ictx) {
 	result = AAudioStream_requestStart(ictx->stream);
 	if (result != AAUDIO_OK) {
 		ms_error("[AAudio] Start stream for recorder failed: %i / %s", result, AAudio_convertResultToText(result));
+		result = AAudioStream_close(ictx->stream);
+		if (result != AAUDIO_OK) {
+			ms_error("[AAudio] Recorder stream close failed: %i / %s", result, AAudio_convertResultToText(result));
+		} else {
+			ms_message("[AAudio] Recorder stream closed");
+		}
+		ictx->stream = NULL;
 	} else {
 		ms_message("[AAudio] Recorder stream started");
 	}
@@ -315,18 +322,6 @@ static void aaudio_recorder_close(AAudioInputContext *ictx) {
 static void aaudio_recorder_callback_error(AAudioStream *stream, void *userData, aaudio_result_t result) {
 	AAudioInputContext *ictx = (AAudioInputContext *)userData;
 	ms_error("[AAudio] aaudio_recorder_callback_error has result: %i / %s", result, AAudio_convertResultToText(result));
-
-	aaudio_stream_state_t streamState = AAudioStream_getState(stream);
-	if (streamState == AAUDIO_STREAM_STATE_DISCONNECTED) {
-		ms_warning("[AAudio] Recorder stream has disconnected");
-
-		ms_mutex_lock(&ictx->stream_mutex);
-		if (ictx->stream) {
-			AAudioStream_close(stream);
-			ictx->stream = NULL;
-		}
-		ms_mutex_unlock(&ictx->stream_mutex);
-	}
 }
 
 static void android_snd_read_preprocess(MSFilter *obj) {
@@ -351,6 +346,16 @@ static void android_snd_read_process(MSFilter *obj) {
 	mblk_t *m;
 
 	ms_mutex_lock(&ictx->stream_mutex);
+
+	aaudio_stream_state_t streamState = AAudioStream_getState(ictx->stream);
+	if (streamState == AAUDIO_STREAM_STATE_DISCONNECTED) {
+		ms_warning("[AAudio] Recorder stream has disconnected");
+		if (ictx->stream) {
+			AAudioStream_close(ictx->stream);
+			ictx->stream = NULL;
+		}
+	}
+
 	if (!ictx->stream) {
 		aaudio_recorder_init(ictx);
 	}
@@ -563,6 +568,12 @@ static void aaudio_player_init(AAudioOutputContext *octx) {
 	result = AAudioStream_requestStart(octx->stream);
 	if (result != AAUDIO_OK) {
 		ms_error("[AAudio] Start stream for player failed: %i / %s", result, AAudio_convertResultToText(result));
+		if (result != AAUDIO_OK) {
+			ms_error("[AAudio] Player stream close failed: %i / %s", result, AAudio_convertResultToText(result));
+		} else {
+			ms_message("[AAudio] Player stream closed");
+		}
+		octx->stream = NULL;
 	} else {
 		ms_message("[AAudio] Player stream started");
 	}
@@ -594,18 +605,6 @@ static void aaudio_player_close(AAudioOutputContext *octx) {
 static void aaudio_player_callback_error(AAudioStream *stream, void *userData, aaudio_result_t result) {
 	AAudioOutputContext *octx = (AAudioOutputContext *)userData;
 	ms_error("[AAudio] aaudio_player_callback_error has result: %i / %s", result, AAudio_convertResultToText(result));
-
-	aaudio_stream_state_t streamState = AAudioStream_getState(stream);
-	if (streamState == AAUDIO_STREAM_STATE_DISCONNECTED) {
-		ms_warning("[AAudio] Player stream has disconnected");
-
-		ms_mutex_lock(&octx->stream_mutex);
-		if (octx->stream) {
-			AAudioStream_close(stream);
-			octx->stream = NULL;
-		}
-		ms_mutex_unlock(&octx->stream_mutex);
-	}
 }
 
 static void android_snd_write_preprocess(MSFilter *obj) {
@@ -617,6 +616,16 @@ static void android_snd_write_process(MSFilter *obj) {
 	AAudioOutputContext *octx = (AAudioOutputContext*)obj->data;
 
 	ms_mutex_lock(&octx->stream_mutex);
+
+	aaudio_stream_state_t streamState = AAudioStream_getState(octx->stream);
+	if (streamState == AAUDIO_STREAM_STATE_DISCONNECTED) {
+		ms_warning("[AAudio] Player stream has disconnected");
+		if (octx->stream) {
+			AAudioStream_close(octx->stream);
+			octx->stream = NULL;
+		}
+	}
+
 	if (!octx->stream) {
 		aaudio_player_init(octx);
 	}
