@@ -98,6 +98,7 @@ job-ios-xcode:
     CMAKE_OPTIONS: -DLINPHONESDK_IOS_BASE_URL=$IOS_SNAPSHOTS_URL -DENABLE_SWIFT_WRAPPER=YES -DENABLE_JAZZY_DOC=YES -DENABLE_UNIT_TESTS=YES
     ADDITIONAL_BUILD_CONFIGURATIONS: --config RelWithDebInfo
     ADDITIONAL_BUILD_OPTIONS: -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=$MAX_NUMBER_TASK
+    LOG_PATTERN: "logLiblinphoneIos"
 
   extends: .job-ios
 
@@ -108,6 +109,9 @@ test-liblinphone-ios:
   dependencies:
     - job-ios-xcode
 
+  only:
+    variables:
+      - $NIGHTLY_MASTER
 
   script:
     - unzip build-ios/linphone-sdk-*.zip -d build-ios/
@@ -120,11 +124,11 @@ test-liblinphone-ios:
         xcodebuild -workspace LinphoneTester.xcworkspace \
         -scheme LinphoneTester -sdk iphonesimulator \
         -destination name='iPhone 7 Plus' \
-        -derivedDataPath $WORKSPACE build test 2>&1 | tee LOG_PATTERN.txt
+        -derivedDataPath $WORKSPACE build test 2>&1 | tee $LOG_PATTERN.txt
 
   after_script:
     #ocunit2junit will produce .xml file by testsuite.
-    - cat tester/IOS/LinphoneTester/LOG_PATTERN.txt | ocunit2junit
+    - cat tester/IOS/LinphoneTester/$LOG_PATTERN.txt | ocunit2junit
 
     - BRANCH=$CI_COMMIT_REF_NAME
     - echo $BRANCH
