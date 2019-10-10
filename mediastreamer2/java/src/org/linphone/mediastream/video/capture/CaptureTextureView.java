@@ -23,14 +23,15 @@ import org.linphone.mediastream.Log;
 
 import android.content.Context;
 import android.graphics.Matrix;
+import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.view.TextureView;
 import android.view.WindowManager;
 
 public class CaptureTextureView extends TextureView {
     private Context mContext;
-    private int mRatioWidth = 0;
-    private int mRatioHeight = 0;
+    private double mCapturedVideoWidth = 0;
+    private double mCapturedVideoHeight = 0;
 
     public CaptureTextureView(Context context) {
         this(context, null);
@@ -50,12 +51,12 @@ public class CaptureTextureView extends TextureView {
     public void rotateToMatchDisplayOrientation() {
         WindowManager windowManager = (WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE);
         int rotation = windowManager.getDefaultDisplay().getRotation() * 90;
-        Log.i("[CaptureTextureView] Rotating preview texture by " + rotation);
 
         Matrix matrix = new Matrix();
         int width = getWidth();
         int height = getHeight();
 
+        Log.d("[CaptureTextureView] Rotating preview texture by " + rotation);
         if (rotation % 180 == 90) {
             float[] src = new float[] { 0.f, 0.f, width, 0.f, 0.f, height, width, height, };
             float[] dst = new float[] { 0.f, height, 0.f, 0.f, width, height, width, 0.f, };
@@ -67,6 +68,25 @@ public class CaptureTextureView extends TextureView {
             matrix.postRotate(180, width / 2, height / 2);
         }
 
+        if (mCapturedVideoWidth != 0 && mCapturedVideoHeight != 0) {
+            float ratioX = 1.f;
+            float ratioY = 1.f;
+            float widthTranslation = 0;
+            float heightTranslation = 0;
+
+            if (mCapturedVideoWidth > mCapturedVideoHeight) {
+                ratioY = (float) (mCapturedVideoHeight / mCapturedVideoWidth);
+                heightTranslation = height - (height * ratioY);
+            } else if (mCapturedVideoHeight > mCapturedVideoWidth) {
+                ratioX = (float) (mCapturedVideoWidth / mCapturedVideoHeight);
+                widthTranslation = width - (width * ratioX);
+            }
+
+            Log.d("[CaptureTextureView] Video preview size is " + mCapturedVideoWidth + "x" + mCapturedVideoHeight + ", applying ratio " + ratioX + "x" + ratioY);
+            matrix.postScale(ratioX, ratioY);
+            matrix.postTranslate(widthTranslation, heightTranslation);
+        }
+
         setTransform(matrix);
     }
 
@@ -74,26 +94,11 @@ public class CaptureTextureView extends TextureView {
         if (width < 0 || height < 0) {
             throw new IllegalArgumentException("Size cannot be negative.");
         }
-        mRatioWidth = width;
-        mRatioHeight = height;
-        Log.i("[CaptureTextureView] Changing preview texture ratio to match " + mRatioWidth + "x" + mRatioHeight);
-        requestLayout();
-    }
+        
+        Log.i("[CaptureTextureView] Changing preview texture ratio to match " + width + "x" + height);
+        mCapturedVideoWidth = width;
+        mCapturedVideoHeight = height;
 
-    @Override
-    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-        int width = MeasureSpec.getSize(widthMeasureSpec);
-        int height = MeasureSpec.getSize(heightMeasureSpec);
-        if (0 == mRatioWidth || 0 == mRatioHeight) {
-            setMeasuredDimension(width, height);
-        } else {
-            if (width < height * mRatioWidth / mRatioHeight) {
-                setMeasuredDimension(width, width * mRatioHeight / mRatioWidth);
-            } else {
-                setMeasuredDimension(height * mRatioWidth / mRatioHeight, height);
-            }
-        }
+        rotateToMatchDisplayOrientation();
     }
-
 }

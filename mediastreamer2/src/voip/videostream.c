@@ -152,6 +152,9 @@ static void internal_event_cb(void *ud, MSFilter *f, unsigned int event, void *e
 		case MS_FILTER_OUTPUT_FMT_CHANGED:
 			if (stream->recorder_output) configure_recorder_output(stream);
 			break;
+		case MS_CAMERA_PREVIEW_SIZE_CHANGED:
+			ms_message("Camera video preview size changed on videostream [%p]", stream);
+			break;
 	}
 }
 
@@ -527,6 +530,10 @@ static void configure_video_source(VideoStream *stream, bool_t skip_bitrate){
 	MSVideoSize preview_vsize;
 	MSPinFormat pf={0};
 	bool_t is_player=ms_filter_get_id(stream->source)==MS_ITC_SOURCE_ID || ms_filter_get_id(stream->source)==MS_MKV_PLAYER_ID;
+
+	ms_filter_add_notify_callback(stream->source, event_cb, stream, FALSE);
+	/* It is important that the internal_event_cb is called synchronously! */
+	ms_filter_add_notify_callback(stream->source, internal_event_cb, stream, TRUE);
 
 	/* transmit orientation to source filter */
 	if (ms_filter_has_method(stream->source, MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION))
