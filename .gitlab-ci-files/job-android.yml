@@ -164,6 +164,9 @@ job-android-ninja-r19-smallsdk:
 job-android-ninja-r20:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r20
+  only:
+    variables:
+      - $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Ninja
   extends: .job-android
