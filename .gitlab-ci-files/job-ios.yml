@@ -98,7 +98,6 @@ job-ios-xcode:
     CMAKE_OPTIONS: -DLINPHONESDK_IOS_BASE_URL=$IOS_SNAPSHOTS_URL -DENABLE_SWIFT_WRAPPER=YES -DENABLE_JAZZY_DOC=YES -DENABLE_UNIT_TESTS=YES
     ADDITIONAL_BUILD_CONFIGURATIONS: --config RelWithDebInfo
     ADDITIONAL_BUILD_OPTIONS: -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=$MAX_NUMBER_TASK
-    LOG_PATTERN: "logLiblinphoneIos"
 
   extends: .job-ios
 
@@ -112,6 +111,9 @@ test-liblinphone-ios:
   only:
     variables:
       - $NIGHTLY_MASTER
+
+  variables:
+    LOG_PATTERN: "logLiblinphoneIos"
 
   script:
     - unzip build-ios/linphone-sdk-*.zip -d build-ios/
