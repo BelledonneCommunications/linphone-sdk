@@ -2,7 +2,7 @@ Pod::Spec.new do |s|
 
   s.name         = "linphone-sdk"
   s.version      = "@LINPHONESDK_VERSION@"
-  s.summary      = "Liblinphone is a high-level SIP library integrating all calling and instant messaging features into a single easy-to-use API."
+  s.summary      = "Liblinphone is a library to create VoIP and IM apps, based on SIP protocol."
   s.description  = <<-PODSPEC_DESC
 @LINPHONESDK_ENABLED_FEATURES@PODSPEC_DESC
   s.homepage     = "https://github.com/BelledonneCommunications/linphone-iphone"
