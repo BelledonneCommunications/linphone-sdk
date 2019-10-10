@@ -71,6 +71,7 @@ static AVCaptureVideoOrientation Angle2AVCaptureVideoOrientation(int deviceOrien
 	MSFilter *filter;
 	MSFrameRateController framerate_controller;
 	bool_t filterIsRunning;
+	NSTimer *startSessionTimer;
 };
 
 - (void)initIOSCapture;
@@ -82,6 +83,7 @@ static AVCaptureVideoOrientation Angle2AVCaptureVideoOrientation(int deviceOrien
 - (MSVideoSize*)getSize;
 - (void)openDevice:(const char*) deviceId;
 - (void)setFps:(float) value;
+- (void)startSessionTimerFired:(NSTimer*) timer;
 + (Class)layerClass;
 
 @property (nonatomic, retain) UIView* parentView;
@@ -146,6 +148,7 @@ static void capture_queue_cleanup(void* p) {
 	start_time=0;
 	frame_count=-1;
 	fps=0;
+	startSessionTimer=nil;
 }
 
 - (void)computeCroppingOffsets:(int *) y_offset
@@ -388,6 +391,20 @@ static void capture_queue_cleanup(void* p) {
 	return 0;
 }
 
+- (void)startSessionTimerFired:(NSTimer*) timer {
+	[self start];
+
+	AVCaptureSession *session = [(AVCaptureVideoPreviewLayer *)self.layer session];
+	if (session.running) {
+		ms_mutex_lock(&mutex);
+		filterIsRunning = 1;
+
+		[startSessionTimer invalidate];
+		startSessionTimer = nil;
+		ms_mutex_unlock(&mutex);
+	}
+}
+
 static AVCaptureVideoOrientation Angle2AVCaptureVideoOrientation(int deviceOrientation) {
 	switch (deviceOrientation) {
 		case 0: return AVCaptureVideoOrientationPortrait;
@@ -616,9 +633,18 @@ static void ioscapture_preprocess(MSFilter *f) {
 		[thiz start];
 		[myPool drain];
 
-		ms_mutex_lock(&thiz->mutex);
-		thiz->filterIsRunning = 1;
-		ms_mutex_unlock(&thiz->mutex);
+		AVCaptureSession *session = [(AVCaptureVideoPreviewLayer *)thiz.layer session];
+		if (!session.running) {
+			thiz->startSessionTimer = [NSTimer scheduledTimerWithTimeInterval:100 / 1000.0
+																	   target:thiz
+																	 selector:@selector(startSessionTimerFired:)
+																	 userInfo:nil
+																	  repeats:YES];
+		} else {
+			ms_mutex_lock(&thiz->mutex);
+			thiz->filterIsRunning = 1;
+			ms_mutex_unlock(&thiz->mutex);
+		}
 	}
 }
 
@@ -627,6 +653,11 @@ static void ioscapture_postprocess(MSFilter *f) {
 	if (thiz != NULL) {
 		ms_mutex_lock(&thiz->mutex);
 		thiz->filterIsRunning = 0;
+
+		if (thiz->startSessionTimer) {
+			[thiz->startSessionTimer invalidate];
+			thiz->startSessionTimer = nil;
+		}
 		ms_mutex_unlock(&thiz->mutex);
 	}
 }
