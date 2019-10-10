@@ -321,6 +321,15 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 }
 @end
 
+@interface SecureGroupChatTests : LinphoneTesterBase
+@end
+
+@implementation SecureGroupChatTests
++ (void)initialize {
+	[self testForSuite:@"Secure group chat"];
+}
+@end
+
 @interface FlexisipTests : LinphoneTesterBase
 @end
 
@@ -339,12 +348,30 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 }
 @end
 
+@interface SecureCallTests : LinphoneTesterBase
+@end
+
+@implementation SecureCallTests
++ (void)initialize {
+	[self testForSuite:@"Secure Call"];
+}
+@end
+
 @interface SingleCallTests : LinphoneTesterBase
 @end
 
 @implementation SingleCallTests
 + (void)initialize {
     [self testForSuite:@"Single Call"];
+}
+@end
+
+@interface VideoCallQualityTests : LinphoneTesterBase
+@end
+
+@implementation VideoCallQualityTests
++ (void)initialize {
+	[self testForSuite:@"Video Call quality"];
 }
 @end
 
@@ -372,6 +399,15 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 @implementation CallWithICETests
 + (void)initialize {
     [self testForSuite:@"Call with ICE"];
+}
+@end
+
+@interface UtilsTests : LinphoneTesterBase
+@end
+
+@implementation UtilsTests
++ (void)initialize {
+	[self testForSuite:@"Utils"];
 }
 @end
 
