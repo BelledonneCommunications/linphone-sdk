@@ -707,6 +707,10 @@ static int android_camera2_capture_set_surface_texture(MSFilter *f, void *arg) {
 		d->nativeWindowId = nativeWindowId;
 		android_camera2_capture_create_surface_from_surface_texture(d);
 		android_camera2_capture_start(d);
+
+		if (d->previewSize.width != 0 && d->previewSize.height != 0) {
+			ms_filter_notify(f, MS_CAMERA_PREVIEW_SIZE_CHANGED, &d->previewSize);
+		}
 	}
 	
 	ms_filter_unlock(f);
@@ -739,7 +743,10 @@ static int android_camera2_capture_set_vsize(MSFilter *f, void* arg) {
 		d->previewSize.width = d->captureSize.height;
 		d->previewSize.height = d->captureSize.width;
 	}
-	ms_filter_notify(f, MS_CAMERA_PREVIEW_SIZE_CHANGED, &d->previewSize);
+
+	if (d->previewSize.width != 0 && d->previewSize.height != 0) {
+		ms_filter_notify(f, MS_CAMERA_PREVIEW_SIZE_CHANGED, &d->previewSize);
+	}
 
 	ms_message("[Camera2 Capture] Previous preview size was %i/%i, new size is %i/%i", 
 		oldSize.width, oldSize.height, d->previewSize.width, d->previewSize.height);
@@ -767,7 +774,6 @@ static int android_camera2_capture_get_vsize(MSFilter *f, void* arg) {
 		d->previewSize.width = d->captureSize.height;
 		d->previewSize.height = d->captureSize.width;
 	}
-	ms_filter_notify(f, MS_CAMERA_PREVIEW_SIZE_CHANGED, &d->previewSize);
 
 	*(MSVideoSize*)arg = d->previewSize;
 	ms_message("[Camera2 Capture] Getting preview size: %ix%i", d->previewSize.width, d->previewSize.height);
