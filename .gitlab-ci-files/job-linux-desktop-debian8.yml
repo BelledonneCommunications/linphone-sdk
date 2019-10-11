@@ -7,9 +7,6 @@ job-debian8-makefile-gcc:
 
   tags: [ "docker-debian8" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
-  only:
-    variables:
-      - $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: gcc
