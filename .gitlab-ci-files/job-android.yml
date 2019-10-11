@@ -120,9 +120,9 @@ job-android-ninja-r17c:
 
 job-android-ninja-r17c-macos:
   tags: [ "macosx" ]
-#  only:
-#    variables:
-#      - $NIGHTLY_MASTER
+  only:
+    variables:
+      - $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Ninja
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
