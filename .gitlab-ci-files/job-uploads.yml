@@ -8,10 +8,10 @@ job-ios-upload:
   stage: deploy
   tags: [ "deploy" ]
 
-  #only:
-  #  variables:
-  #    - $DEPLOY_RUN_IOS
-  #    - $NIGHTLY_MASTER
+  only:
+    variables:
+      - $DEPLOY_RUN_IOS
+      - $NIGHTLY_MASTER
 
   dependencies:
     - job-ios-xcode
