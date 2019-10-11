@@ -78,10 +78,10 @@ job-macosx-xcode:
     CMAKE_GENERATOR: Xcode
     ADDITIONAL_BUILD_OPTIONS: -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=$MAX_NUMBER_TASK
 
-#  only:
-#    variables:
-#      - $NIGHTLY_MASTER
-#      - $DEPLOY_RUN_MACOSX
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+      - $DEPLOY_RUN_MACOSX
       
 test-linphone-macosx:
   stage: test
