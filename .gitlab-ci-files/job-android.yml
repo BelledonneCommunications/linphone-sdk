@@ -118,6 +118,16 @@ job-android-ninja-r17c:
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
   extends: .job-android
 
+job-android-ninja-r17c-macos:
+  tags: [ "macosx" ]
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+  variables:
+    CMAKE_GENERATOR: Ninja
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
+  extends: .job-android
+
 
 job-android-ninja-r17c-novideo:
 
