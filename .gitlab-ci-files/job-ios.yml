@@ -109,9 +109,9 @@ test-liblinphone-ios:
   dependencies:
     - job-ios-xcode
 
-  only:
-    variables:
-      - $NIGHTLY_MASTER
+#  only:
+#    variables:
+#      - $NIGHTLY_MASTER
 
   variables:
     LOG_PATTERN: "logLiblinphoneIos"
