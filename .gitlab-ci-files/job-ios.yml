@@ -136,6 +136,8 @@ test-liblinphone-ios:
     - echo $BRANCH
     - ESCAPED_BRANCH=$(echo $BRANCH | tr / _)
     - echo $ESCAPED_BRANCH
+    - COMMIT=$(git describe)
+    - echo $COMMIT
     - URL=http://linphone.org/snapshots/allure-tests-reports/$ESCAPED_BRANCH/$COMMIT/ios/liblinphone/allure-report
 
     - echo "<\!DOCTYPE HTML>" >> index.html
