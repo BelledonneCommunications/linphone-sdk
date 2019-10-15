@@ -136,7 +136,9 @@ test-liblinphone-ios:
     - echo $BRANCH
     - ESCAPED_BRANCH=$(echo $BRANCH | tr / _)
     - echo $ESCAPED_BRANCH
-    - URL=http://linphone.org/snapshots/allure-tests-reports/$ESCAPED_BRANCH/$COMMIT/allure-report
+    - COMMIT=$(git describe)
+    - echo $COMMIT
+    - URL=http://linphone.org/snapshots/allure-tests-reports/$ESCAPED_BRANCH/$COMMIT/ios/liblinphone/allure-report
 
     - echo "<\!DOCTYPE HTML>" >> index.html
     - echo "<meta charset=\"UTF-8\">" >> index.html
@@ -148,6 +150,8 @@ test-liblinphone-ios:
     - echo "<\!-- Don't tell people to \`click\` the link, just tell them that it is a link. -->" >> index.html
     - echo "If you are not redirected automatically, follow the <a href='$URL'>link to see the test report</a>" >> index.html
     - cat index.html
+
+    - echo "TEST REPORTS URL $URL"
 
     #Gathering artifacts in one folder to ease their use
     - mkdir ${CI_PROJECT_DIR}/results

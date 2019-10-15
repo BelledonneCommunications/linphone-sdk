@@ -146,6 +146,8 @@ job-debian-doc-upload:
 .job-test-report-upload:
   stage: deploy
   tags: [ "deploy" ]
+  variables:
+    XML_FILENAME_START_PATTERN: "BCUnit"
 
   except:
     variables:
@@ -256,7 +258,7 @@ job-debian-doc-upload:
 
 
     #we move the BCUnit report and environment.properties to the desired folder to prepare allure report generation
-    - echo "mv ../../../../environment.properties . && mv ../../../../BCUnit* ." | tee -a allure_launch_script
+    - echo "mv ../../../../environment.properties . && mv ../../../../$XML_FILENAME_START_PATTERN* ." | tee -a allure_launch_script
     
     #we use the uploaded version of allure on parent directory because the allure version in repos is too old (TO DO auto install new version properly)
     - echo "~/allure-2.10.0/bin/allure generate --clean ." | tee -a allure_launch_script
@@ -264,7 +266,7 @@ job-debian-doc-upload:
     - chmod u+x allure_launch_script
 
     #upload of the files
-    - rsync -rlv environment.properties allure_launch_script BCUnit* $DEPLOY_SERVER:$DEPLOY_TESTS_DIRECTORY
+    - rsync -rlv environment.properties allure_launch_script $XML_FILENAME_START_PATTERN* $DEPLOY_SERVER:$DEPLOY_TESTS_DIRECTORY
 
     #remote launch of allure_launch_script declared above
     #DEPLOY_TESTS_DIRECTORY = allure_tests_reports
@@ -354,6 +356,16 @@ job-test-upload-libl-arch:
   variables:
     PLATFORM: "linux-arch"
     TESTER: "liblinphone"
+
+job-test-upload-libl-ios:
+  extends: .job-test-report-upload-scheduled
+  dependencies:
+    - test-liblinphone-ios
+  variables:
+    PLATFORM: "ios"
+    TESTER: "liblinphone"
+    XML_FILENAME_START_PATTERN: "TEST"
+    
 
 job-test-upload-bct-centos7:
   extends: .job-test-report-upload-scheduled
