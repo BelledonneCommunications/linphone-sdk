@@ -290,7 +290,7 @@ static void aaudio_recorder_init(AAudioInputContext *ictx) {
 		ms_message("[AAudio] Recorder stream started");
 	}
 
-	if (ictx->soundCard->capabilities & MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER) {
+	if (ictx->stream && ictx->soundCard->capabilities & MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER) {
 		ictx->session_id = AAudioStream_getSessionId(ictx->stream);
 		ms_message("[AAudio] Session ID is %i, hardware echo canceller can be enabled", ictx->session_id);
 	}
@@ -568,6 +568,7 @@ static void aaudio_player_init(AAudioOutputContext *octx) {
 	result = AAudioStream_requestStart(octx->stream);
 	if (result != AAUDIO_OK) {
 		ms_error("[AAudio] Start stream for player failed: %i / %s", result, AAudio_convertResultToText(result));
+		result = AAudioStream_close(octx->stream);
 		if (result != AAUDIO_OK) {
 			ms_error("[AAudio] Player stream close failed: %i / %s", result, AAudio_convertResultToText(result));
 		} else {
