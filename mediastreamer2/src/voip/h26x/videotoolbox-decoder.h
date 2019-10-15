@@ -28,6 +28,7 @@
 #include "mediastreamer2/msvideo.h"
 
 #include "h26x-utils.h"
+#include "videotoolbox-utils.h"
 
 #include "h26x-decoder.h"
 
@@ -44,6 +45,11 @@ public:
 	void waitForKeyFrame() override {_freeze = true;}
 
 private:
+	class InvalidSessionError : public std::runtime_error {
+	public:
+		InvalidSessionError() : std::runtime_error(toString(kVTInvalidSessionErr)) {}
+	};
+
 	class Frame {
 	public:
 		Frame(mblk_t *data = nullptr): _data(data) {}
@@ -57,7 +63,7 @@ private:
 
 	void createDecoder();
 	void destroyDecoder();
-	bool decodeFrame(MSQueue *encodedFrame, uint64_t timestamp);
+	void decodeFrame(MSQueue *encodedFrame, uint64_t timestamp);
 	void formatDescFromSpsPps();
 
 	static void outputCb(void *decompressionOutputRefCon, void *sourceFrameRefCon, OSStatus status,

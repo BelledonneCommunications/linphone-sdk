@@ -61,11 +61,16 @@ bool VideoToolboxDecoder::feed(MSQueue *encodedFrame, uint64_t timestamp) {
 				break;
 			}
 		}
-		if (_freeze) return true;
-		return decodeFrame(encodedFrame, timestamp);
+		if (!_freeze) {
+			decodeFrame(encodedFrame, timestamp);
+		}
+		return true;
 	} catch (const runtime_error &e) {
 		ms_error("VideoToolboxDecoder: %s", e.what());
 		ms_error("VideoToolboxDecoder: feeding failed");
+		if (typeid(e) == typeid(InvalidSessionError)) {
+			destroyDecoder();
+		}
 		return false;
 	}
 }
@@ -147,14 +152,14 @@ void VideoToolboxDecoder::destroyDecoder() {
 	CFRelease(_formatDesc);
 	_session = nullptr;
 	_formatDesc = nullptr;
+	_destroying = false;
 }
 
-bool VideoToolboxDecoder::decodeFrame(MSQueue *encodedFrame, uint64_t timestamp) {
+void VideoToolboxDecoder::decodeFrame(MSQueue *encodedFrame, uint64_t timestamp) {
 	CMBlockBufferRef stream = nullptr;
 	OSStatus status = CMBlockBufferCreateEmpty(kCFAllocatorDefault, 0, kCMBlockBufferAssureMemoryNowFlag, &stream);
 	if (status != kCMBlockBufferNoErr) {
-		vt_dec_error("failure while creating input buffer for decoder");
-		return false;
+		throw runtime_error("failure while creating input buffer for decoder");
 	}
 	while(mblk_t *nalu = ms_queue_get(encodedFrame)) {
 		CMBlockBufferRef nalu_block;
@@ -178,17 +183,18 @@ bool VideoToolboxDecoder::decodeFrame(MSQueue *encodedFrame, uint64_t timestamp)
 					kCFAllocatorDefault, stream, TRUE, NULL, NULL,
 					_formatDesc, 1, 1, &timing_info,
 					0, NULL, &sample);
-
 		status = VTDecompressionSessionDecodeFrame(_session, sample, kVTDecodeFrame_EnableAsynchronousDecompression | kVTDecodeFrame_1xRealTimePlayback, NULL, NULL);
 		CFRelease(sample);
 		if(status != noErr) {
-			vt_dec_error("error while passing encoded frames to the decoder: %s", toString(status).c_str());
 			CFRelease(stream);
-			return false;
+			if (status == kVTInvalidSessionErr) {
+				throw InvalidSessionError();
+			} else {
+				throw runtime_error("error while passing encoded frames to the decoder: " + toString(status));
+			}
 		}
 	}
 	CFRelease(stream);
-	return true;
 }
 
 void VideoToolboxDecoder::formatDescFromSpsPps() {
