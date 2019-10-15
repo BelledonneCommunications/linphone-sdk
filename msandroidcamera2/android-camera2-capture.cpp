@@ -378,7 +378,7 @@ static void android_camera2_capture_start(AndroidCamera2Context *d) {
 		return;
 	}
 
-	camera_status = ACameraDevice_createCaptureRequest(d->cameraDevice, TEMPLATE_RECORD, &d->captureRequest); // TEMPLATE_RECORD > TEMPLATE_PREVIEW > TEMPLATE_STILL_CAPTURE in fps ?
+	camera_status = ACameraDevice_createCaptureRequest(d->cameraDevice, TEMPLATE_PREVIEW, &d->captureRequest); // TEMPLATE_RECORD > TEMPLATE_PREVIEW > TEMPLATE_STILL_CAPTURE in fps ?
 	if (camera_status != ACAMERA_OK) {
 		ms_error("[Camera2 Capture] Failed to create capture request, error is %i", camera_status);
 	}
@@ -751,8 +751,8 @@ static int android_camera2_capture_set_vsize(MSFilter *f, void* arg) {
 	ms_message("[Camera2 Capture] Previous preview size was %i/%i, new size is %i/%i", 
 		oldSize.width, oldSize.height, d->previewSize.width, d->previewSize.height);
 
-	if (d->surface == nullptr) {
-		ms_warning("[Camera2 Capture] Vsize has changed after video window id has been set, has to recreate Surface object...");
+	if (d->surface == nullptr && d->nativeWindowId != 0) {
+		ms_warning("[Camera2 Capture] Video size has changed after video window id has been set, have to recreate Surface object...");
 		android_camera2_capture_create_surface_from_surface_texture(d);
 	}
 
