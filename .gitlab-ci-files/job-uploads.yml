@@ -358,7 +358,7 @@ job-test-upload-libl-arch:
     TESTER: "liblinphone"
 
 job-test-upload-libl-ios:
-  extends: .job-test-report-upload
+  extends: .job-test-report-upload-scheduled
   dependencies:
     - test-liblinphone-ios
   variables:

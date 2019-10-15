@@ -88,10 +88,10 @@ job-ios-ninja-smallsdk:
 #################################################
 job-ios-xcode:
 
-#  only:
-#    variables:
-#      - $NIGHTLY_MASTER
-#      - $DEPLOY_RUN_IOS
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+      - $DEPLOY_RUN_IOS
 
   variables:
     CMAKE_GENERATOR: Xcode
@@ -150,6 +150,8 @@ test-liblinphone-ios:
     - echo "<\!-- Don't tell people to \`click\` the link, just tell them that it is a link. -->" >> index.html
     - echo "If you are not redirected automatically, follow the <a href='$URL'>link to see the test report</a>" >> index.html
     - cat index.html
+
+    - echo "TEST REPORTS URL $URL"
 
     #Gathering artifacts in one folder to ease their use
     - mkdir ${CI_PROJECT_DIR}/results
