@@ -266,7 +266,6 @@ static void android_texture_display_process(MSFilter *f) {
 
 	ms_filter_lock(f);
 	if (ad->nativeWindowId != NULL) {
-
 		if (!ad->ogl) {
 			ms_warning("[TextureView Display] Window set but no OGL context, let's init it");
 			ms_worker_thread_add_task(ad->process_thread, (MSTaskFunc)android_texture_display_init_opengl, (void*)f);
