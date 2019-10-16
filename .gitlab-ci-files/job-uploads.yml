@@ -127,9 +127,9 @@ job-debian-doc-upload:
   stage: deploy
   tags: [ "deploy" ]
 
-#  only:
-#    variables:
-#      - $NIGHTLY_MASTER
+  only:
+    variables:
+      - $NIGHTLY_MASTER
 
   dependencies:
     - job-debian9-ninja-clang
