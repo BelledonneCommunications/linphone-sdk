@@ -293,6 +293,13 @@ static void aaudio_recorder_init(AAudioInputContext *ictx) {
 	if (ictx->stream && ictx->soundCard->capabilities & MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER) {
 		ictx->session_id = AAudioStream_getSessionId(ictx->stream);
 		ms_message("[AAudio] Session ID is %i, hardware echo canceller can be enabled", ictx->session_id);
+		if (ictx->session_id != AAUDIO_SESSION_ID_NONE) {
+			JNIEnv *env = ms_get_jni_env();
+			ictx->aec = ms_android_enable_hardware_echo_canceller(env, ictx->session_id);
+			ms_message("[AAudio] Hardware echo canceller enabled");
+		} else {
+			ms_warning("[AAudio] Session ID is AAUDIO_SESSION_ID_NONE, can't enable hardware echo canceller");
+		}
 	}
 
 	AAudioStreamBuilder_delete(builder);
@@ -329,16 +336,6 @@ static void android_snd_read_preprocess(MSFilter *obj) {
 	ictx->mFilter = obj;
 	ictx->read_samples = 0;
 	aaudio_recorder_init(ictx);
-
-	if (ictx->soundCard->capabilities & MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER) {
-		if (ictx->session_id != AAUDIO_SESSION_ID_NONE) {
-			JNIEnv *env = ms_get_jni_env();
-			ictx->aec = ms_android_enable_hardware_echo_canceller(env, ictx->session_id);
-			ms_message("[AAudio] Hardware echo canceller enabled");
-		} else {
-			ms_warning("[AAudio] Session ID is AAUDIO_SESSION_ID_NONE, can't enable hardware echo canceller");
-		}
-	}
 }
 
 static void android_snd_read_process(MSFilter *obj) {
@@ -346,18 +343,17 @@ static void android_snd_read_process(MSFilter *obj) {
 	mblk_t *m;
 
 	ms_mutex_lock(&ictx->stream_mutex);
-
-	aaudio_stream_state_t streamState = AAudioStream_getState(ictx->stream);
-	if (streamState == AAUDIO_STREAM_STATE_DISCONNECTED) {
-		ms_warning("[AAudio] Recorder stream has disconnected");
-		if (ictx->stream) {
-			AAudioStream_close(ictx->stream);
-			ictx->stream = NULL;
-		}
-	}
-
 	if (!ictx->stream) {
 		aaudio_recorder_init(ictx);
+	} else {
+		aaudio_stream_state_t streamState = AAudioStream_getState(ictx->stream);
+		if (streamState == AAUDIO_STREAM_STATE_DISCONNECTED) {
+			ms_warning("[AAudio] Recorder stream has disconnected");
+			if (ictx->stream) {
+				AAudioStream_close(ictx->stream);
+				ictx->stream = NULL;
+			}
+		}
 	}
 	ms_mutex_unlock(&ictx->stream_mutex);
 
@@ -617,18 +613,17 @@ static void android_snd_write_process(MSFilter *obj) {
 	AAudioOutputContext *octx = (AAudioOutputContext*)obj->data;
 
 	ms_mutex_lock(&octx->stream_mutex);
-
-	aaudio_stream_state_t streamState = AAudioStream_getState(octx->stream);
-	if (streamState == AAUDIO_STREAM_STATE_DISCONNECTED) {
-		ms_warning("[AAudio] Player stream has disconnected");
-		if (octx->stream) {
-			AAudioStream_close(octx->stream);
-			octx->stream = NULL;
-		}
-	}
-
 	if (!octx->stream) {
 		aaudio_player_init(octx);
+	} else {
+		aaudio_stream_state_t streamState = AAudioStream_getState(octx->stream);
+		if (streamState == AAUDIO_STREAM_STATE_DISCONNECTED) {
+			ms_warning("[AAudio] Player stream has disconnected");
+			if (octx->stream) {
+				AAudioStream_close(octx->stream);
+				octx->stream = NULL;
+			}
+		}
 	}
 	ms_mutex_unlock(&octx->stream_mutex);
 
