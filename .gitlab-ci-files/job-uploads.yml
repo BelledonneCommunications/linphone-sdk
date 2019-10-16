@@ -127,9 +127,9 @@ job-debian-doc-upload:
   stage: deploy
   tags: [ "deploy" ]
 
-  only:
-    variables:
-      - $NIGHTLY_MASTER
+#  only:
+#    variables:
+#      - $NIGHTLY_MASTER
 
   dependencies:
     - job-debian9-ninja-clang
@@ -137,10 +137,11 @@ job-debian-doc-upload:
   script:
     - cd linphone
     #getting the version number to push the right version of the doc
-    - LINPHONE_VERSION=$(git describe | sed -e 's/-.*//g')
+    #SINCE git tag MAY differ from project version, we now get the first directory available
+    #- LINPHONE_VERSION=$(git describe | sed -e 's/-.*//g')
     #using rsync with following options (verbose, keeping symbolic links, and copy recursively)
-    - echo "Linphone version =" $LINPHONE_VERSION
-    - rsync -rlv ../build-desktop/linphone-sdk/desktop/share/doc/linphone/$LINPHONE_VERSION/* $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/docs/liblinphone/multilang
+    #- echo "Linphone version =" $LINPHONE_VERSION
+    - rsync -rlv ../build-desktop/linphone-sdk/desktop/share/doc/linphone/*/* $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/docs/liblinphone/multilang
 
 
 .job-test-report-upload:
