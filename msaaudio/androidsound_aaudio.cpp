@@ -273,7 +273,7 @@ static void aaudio_recorder_init(AAudioInputContext *ictx) {
 
 	int32_t framesPerBust = AAudioStream_getFramesPerBurst(ictx->stream);
 	// Set the buffer size to the burst size - this will give us the minimum possible latency
-	AAudioStream_setBufferSizeInFrames(ictx->stream, framesPerBust);
+	AAudioStream_setBufferSizeInFrames(ictx->stream, framesPerBust * ictx->aaudio_context->nchannels);
 	ictx->samplesPerFrame = AAudioStream_getSamplesPerFrame(ictx->stream);
 
 	result = AAudioStream_requestStart(ictx->stream);
@@ -516,8 +516,7 @@ static aaudio_data_callback_result_t aaudio_player_callback(AAudioStream *stream
 	
 	if (bytes > 0) {
 		ms_flow_controlled_bufferizer_read(&octx->buffer, (uint8_t *)audioData, bytes);
-	}
-	if (avail < ask) {
+	} else if (avail < ask) {
 		memset(static_cast<int16_t *>(audioData) + avail, 0, ask - avail);
 	}
 	ms_mutex_unlock(&octx->mutex);
@@ -558,7 +557,7 @@ static void aaudio_player_init(AAudioOutputContext *octx) {
 	}
 	int32_t framesPerBust = AAudioStream_getFramesPerBurst(octx->stream);
 	// Set the buffer size to the burst size - this will give us the minimum possible latency
-	AAudioStream_setBufferSizeInFrames(octx->stream, framesPerBust);
+	AAudioStream_setBufferSizeInFrames(octx->stream, framesPerBust * octx->aaudio_context->nchannels);
 	octx->samplesPerFrame = AAudioStream_getSamplesPerFrame(octx->stream);
 
 	result = AAudioStream_requestStart(octx->stream);
@@ -574,7 +573,7 @@ static void aaudio_player_init(AAudioOutputContext *octx) {
 	} else {
 		ms_message("[AAudio] Player stream started");
 	}
-	
+
 	AAudioStreamBuilder_delete(builder);
 }
 
