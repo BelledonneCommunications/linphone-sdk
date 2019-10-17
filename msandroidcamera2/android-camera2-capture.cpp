@@ -59,7 +59,7 @@ struct AndroidCamera2Context {
 			captureFormat(AIMAGE_FORMAT_YUV_420_888),
 			frame(nullptr), bufAllocator(ms_yuv_buf_allocator_new()), fps(5), 
 			cameraDevice(nullptr), captureSession(nullptr), captureSessionOutputContainer(nullptr), 
-			nativeWindow(nullptr), captureWindow(nullptr), captureRequest(nullptr), capturePreviewRequest(nullptr), 
+			nativeWindow(nullptr), captureWindow(nullptr), capturePreviewRequest(nullptr), 
 			cameraCaptureOutputTarget(nullptr), cameraPreviewOutputTarget(nullptr),
 			sessionCaptureOutput(nullptr), sessionPreviewOutput(nullptr), imageReader(nullptr) 
 	{
@@ -102,7 +102,6 @@ struct AndroidCamera2Context {
 
 	ANativeWindow *nativeWindow;
 	ANativeWindow *captureWindow;
-	ACaptureRequest *captureRequest;
 	ACaptureRequest *capturePreviewRequest;
 	ACameraOutputTarget *cameraCaptureOutputTarget;
 	ACameraOutputTarget *cameraPreviewOutputTarget;
@@ -195,7 +194,7 @@ static void android_camera2_capture_on_image_available(void *context, AImageRead
   	media_status_t status = AImageReader_getFormat(reader, &format);
 	if (format == d->captureFormat) {
 		AImage *image = nullptr;
-		status = AImageReader_acquireNextImage(reader, &image);
+		status = AImageReader_acquireLatestImage(reader, &image);
 		if (status == AMEDIA_OK) {
 			if (d->capturing) {
 				ms_filter_lock(d->filter);
@@ -323,8 +322,7 @@ static void android_camera2_capture_start(AndroidCamera2Context *d) {
 	d->captureSessionStateCallbacks.onActive = android_camera2_capture_session_on_active;
 	d->captureSessionStateCallbacks.onClosed = android_camera2_capture_session_on_closed;
 
-	/* Start preview */
-	camera_status = ACameraDevice_createCaptureRequest(d->cameraDevice, TEMPLATE_PREVIEW, &d->capturePreviewRequest);
+	camera_status = ACameraDevice_createCaptureRequest(d->cameraDevice, TEMPLATE_RECORD, &d->capturePreviewRequest);
 	if (camera_status != ACAMERA_OK) {
 		ms_error("[Camera2 Capture] Failed to create capture preview request, error is %i", camera_status);
 	}
@@ -333,6 +331,7 @@ static void android_camera2_capture_start(AndroidCamera2Context *d) {
 	if (camera_status != ACAMERA_OK) {
 		ms_error("[Camera2 Capture] Failed to create output target, error is %i", camera_status);
 	}
+
 	camera_status = ACaptureRequest_addTarget(d->capturePreviewRequest, d->cameraPreviewOutputTarget);
 	if (camera_status != ACAMERA_OK) {
 		ms_error("[Camera2 Capture] Failed to add output target to capture request, error is %i", camera_status);
@@ -342,13 +341,12 @@ static void android_camera2_capture_start(AndroidCamera2Context *d) {
 	if (camera_status != ACAMERA_OK) {
 		ms_error("[Camera2 Capture] Failed to create capture session output, error is %i", camera_status);
 	}
+
 	camera_status = ACaptureSessionOutputContainer_add(d->captureSessionOutputContainer, d->sessionPreviewOutput);
 	if (camera_status != ACAMERA_OK) {
 		ms_error("[Camera2 Capture] Failed to add capture session output to container, error is %i", camera_status);
 	}
-	/* End of preview */
 
-	/* Start capture */
 	media_status_t status = AImageReader_new(d->captureSize.width, d->captureSize.height, d->captureFormat, 1, &d->imageReader);
 	if (status != AMEDIA_OK) {
 		ms_error("[Camera2 Capture] Failed to create image reader, error is %i", status);
@@ -378,12 +376,7 @@ static void android_camera2_capture_start(AndroidCamera2Context *d) {
 		return;
 	}
 
-	camera_status = ACameraDevice_createCaptureRequest(d->cameraDevice, TEMPLATE_PREVIEW, &d->captureRequest); // TEMPLATE_RECORD > TEMPLATE_PREVIEW > TEMPLATE_STILL_CAPTURE in fps ?
-	if (camera_status != ACAMERA_OK) {
-		ms_error("[Camera2 Capture] Failed to create capture request, error is %i", camera_status);
-	}
-
-	camera_status = ACaptureRequest_addTarget(d->captureRequest, d->cameraCaptureOutputTarget);
+	camera_status = ACaptureRequest_addTarget(d->capturePreviewRequest, d->cameraCaptureOutputTarget);
 	if (camera_status != ACAMERA_OK) {
 		ms_error("[Camera2 Capture] Couldn't add output target to capture request, error is %i", camera_status);
 		return;
@@ -400,13 +393,6 @@ static void android_camera2_capture_start(AndroidCamera2Context *d) {
 		ms_error("[Camera2 Capture] Couldn't add capture session output to container, error is %i", camera_status);
 		return;
 	}
-	/* End of capture */
-
-	/*camera_status = ACameraDevice_isSessionConfigurationSupported(d->cameraDevice, d->captureSessionOutputContainer);
-	if (camera_status != ACAMERA_OK) {
-		ms_error("[Camera2 Capture] Capture session output container configuration isn't supported, error is %i", camera_status);
-		return;
-	}*/
 
 	camera_status = ACameraDevice_createCaptureSession(d->cameraDevice, d->captureSessionOutputContainer, &d->captureSessionStateCallbacks, &d->captureSession);
 	if (camera_status != ACAMERA_OK) {
@@ -414,10 +400,7 @@ static void android_camera2_capture_start(AndroidCamera2Context *d) {
 		return;
 	}
 
-	ACaptureRequest *requests[2];
-	requests[0] = d->capturePreviewRequest;
-	requests[1] = d->captureRequest;
-	camera_status = ACameraCaptureSession_setRepeatingRequest(d->captureSession, NULL, 2, requests, NULL);
+	camera_status = ACameraCaptureSession_setRepeatingRequest(d->captureSession, NULL, 1, &d->capturePreviewRequest, NULL);
 	if (camera_status != ACAMERA_OK) {
 		ms_error("[Camera2 Capture] Couldn't set capture session repeating request");
 		return;
@@ -449,11 +432,6 @@ static void android_camera2_capture_stop(AndroidCamera2Context *d) {
 	if (d->cameraPreviewOutputTarget) {
 		ACameraOutputTarget_free(d->cameraPreviewOutputTarget);
 		d->cameraPreviewOutputTarget = nullptr;
-    }
-
-	if (d->captureRequest) {
-		ACaptureRequest_free(d->captureRequest);
-		d->captureRequest = nullptr;
     }
 
 	if (d->capturePreviewRequest) {
@@ -581,6 +559,14 @@ static void android_camera2_capture_choose_best_configurations(AndroidCamera2Con
 		return;
 	}
 
+	ACameraMetadata_const_entry supportedFpsRanges;
+	ACameraMetadata_getConstEntry(cameraMetadata, ACAMERA_CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES, &supportedFpsRanges);
+	for (int i = 0; i < supportedFpsRanges.count; i += 2) {
+		int32_t min = supportedFpsRanges.data.i32[i];
+		int32_t max = supportedFpsRanges.data.i32[i + 1];
+		ms_message("[Camera2 Capture] Supported FPS range: [%d-%d]", min, max);
+	}
+	
 	ACameraMetadata_const_entry scaler;
 	ACameraMetadata_getConstEntry(cameraMetadata, ACAMERA_SCALER_AVAILABLE_STREAM_CONFIGURATIONS, &scaler);
 	
