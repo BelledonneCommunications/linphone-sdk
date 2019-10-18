@@ -506,18 +506,24 @@ static void add_or_update_card(MSSndCardManager *m, bctbx_list_t **l, LPWSTR id,
 	MSSndCard *card;
 	const bctbx_list_t *elem = *l;
 	uint8_t capabilities = 0;
-	char *name;
+	char *idStr = NULL;
+	char *nameStr = NULL;
 	size_t inputlen;
 	size_t returnlen;
-	int err;
 
-	inputlen = wcslen(wname);
-	returnlen = inputlen * 2;
-	name = (char *)ms_malloc(returnlen);
-	if ((err = WideCharToMultiByte(CP_ACP, 0, wname, -1, name, (int)returnlen, NULL, NULL)) == 0) {
+	inputlen = wcslen(wname) + 1;
+	nameStr = (char *)ms_malloc(inputlen);
+	if (!nameStr || wcstombs_s(&returnlen, nameStr, inputlen, wname, inputlen) != 0) {
 		ms_error("mswasapi: Cannot convert card name to multi-byte string.");
-		return;
+		goto error;
 	}
+	inputlen = wcslen(id) + 1;
+	idStr = (char *)ms_malloc(inputlen);
+	if (!idStr || wcstombs_s(&returnlen, idStr, inputlen, id, inputlen) != 0) {
+		ms_error("mswasapi: Cannot convert card id to multi-byte string.");
+		goto error;
+	}
+	char *name = bctbx_strdup_printf("%s--%s", nameStr, idStr);	
 	switch (data_flow) {
 	case eRender:
 		capabilities = MS_SND_CARD_CAP_PLAYBACK;
@@ -537,14 +543,25 @@ static void add_or_update_card(MSSndCardManager *m, bctbx_list_t **l, LPWSTR id,
 			/* Update an existing card. */
 			WasapiSndCard *d = static_cast<WasapiSndCard *>(card->data);
 			card->capabilities |= capabilities;
-			ms_free(name);
+			if (nameStr) {
+				ms_free(nameStr);
+			}
+			if (idStr) {
+				ms_free(idStr);
+			}
 			return;
 		}
 	}
 
 	/* Add a new card. */
 	*l = bctbx_list_append(*l, ms_wasapi_snd_card_new(id, name, capabilities));
-	ms_free(name);
+	error:
+	if (nameStr) {
+		ms_free(nameStr);
+	}
+	if (idStr) {
+		ms_free(idStr);
+	}
 }
 
 static void add_endpoint(MSSndCardManager *m, EDataFlow data_flow, bctbx_list_t **l, IMMDevice *pEndpoint) {
