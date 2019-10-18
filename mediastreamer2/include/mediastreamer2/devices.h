@@ -34,6 +34,7 @@
 #define DEVICE_HAS_CRAPPY_OPENSLES           (1<<8)  /* set when the opensles latency is crappy*/
 #define DEVICE_USE_ANDROID_CAMCORDER         (1<<9)  /* set when the device needs to capture using CAMCORDER instead of Voice communication (I.E kindle fire) */
 #define DEVICE_MCH264ENC_NO_PIX_FMT_CONV     (1<<10) /* set in order to avoid pixel format convervion before MediaCodec H264 encoder input */
+#define DEVICE_MCH265_LIMIT_DEQUEUE_OF_OUTPUT_BUFFERS     (1<<11) /* set in order to avoid calling dequeueOutputBuffers() too often. */
 
 struct SoundDeviceAudioHacks {
 	const char *mic_equalizer;

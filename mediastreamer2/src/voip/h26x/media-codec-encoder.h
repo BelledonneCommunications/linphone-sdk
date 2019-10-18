@@ -46,6 +46,16 @@ public:
 	bool pixelFormatConversionEnabled() const {return _pixelFormatConvertionEnabled;}
 	void enablePixelFormatConversion(bool enable) {_pixelFormatConvertionEnabled = enable;}
 
+	/**
+	 * Controls whether we should avoid perform continous polling with dequeueOutputBuffer().
+	 * Some drivers don't want this - for no good reason - and stop working.
+	 * When _hasOutbufferDequeueLimit is set to true, we'll insure that there is no more
+	 * dequeueOutputBuffer() than queueInputBuffer().
+	 * This is generally not a good idea and is activated as workaround for these annoying drivers.
+	 * Indeed, an encoder may generate more output buffers than the number of input frames they are processing.
+	 **/
+	void enableOutbufferDequeueLimit(bool enable);
+	
 	bool isRunning() override {return _isRunning;}
 	void start() override;
 	void stop() override;
@@ -68,6 +78,8 @@ protected:
 	bool _isRunning = false;
 	bool _recoveryMode = false;
 	bool _pixelFormatConvertionEnabled = true;
+	bool _firstImageQueued = false;
+	bool _hasOutbufferDequeueLimit = false;
 
 	static const int _timeoutUs = 0;
 	static const int32_t _colorFormat = 0x7f420888; // COLOR_FormatYUV420Flexible

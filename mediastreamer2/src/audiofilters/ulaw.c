@@ -93,10 +93,10 @@ static int enc_add_fmtp(MSFilter *f, void *arg){
 	char val[30];
 	if (fmtp_get_value(fmtp,"maxptime",val,sizeof(val))){
 		s->maxptime=atoi(val);
-		ms_message("MSUlawEnc: got ptime=%i",s->maxptime);
+		ms_message("MSUlawEnc: got maxptime=%i",s->maxptime);
 	}
 	if (fmtp_get_value(fmtp,"ptime",val,sizeof(val))){
-		ms_message("%s want ptime=%s",f->desc->name, val);
+		ms_message("%s configured with ptime=%s",f->desc->name, val);
 		s->ptime=MIN(atoi(val),s->maxptime) ;
 		if (s->ptime == s->maxptime)
 			ms_message("%s ptime set to maxptime=%i", f->desc->name, s->maxptime);

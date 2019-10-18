@@ -30,7 +30,15 @@ using namespace std;
 namespace mediastreamer {
 
 const MSVideoConfiguration vth264enc_video_confs[] = {
+	/*
+	 * Formats above 720P are disabled. Indeed, there are not supported in baseline profile of H264, and it was observed
+	 * that when we ask a MediaCodec to output a 1080P stream with baseline profile, we get interoperability issues:
+	 * the remote decoder decodes it improperly, even on iOS.
+	 * TODO: enable use of higher profiles to use formats above 720P.
+	 */
+#if 0
 	MS_VIDEO_CONF(1536000,  3000000, SXGA_MINUS, 25, 2),
+#endif
 	MS_VIDEO_CONF(1024000,  2048000,       720P, 25, 2),
 	MS_VIDEO_CONF( 850000,  2048000,        XGA, 25, 2),
 	MS_VIDEO_CONF( 750000,  1500000,       SVGA, 25, 2),

@@ -42,6 +42,13 @@ MediaCodecEncoder::~MediaCodecEncoder() {
 	if (_impl) AMediaCodec_delete(_impl);
 }
 
+void MediaCodecEncoder::enableOutbufferDequeueLimit(bool enable){
+	if (enable){
+		ms_warning("Enabling the DEVICE_MCH265_LIMIT_DEQUEUE_OF_OUTPUT_BUFFERS hack on this device.");
+	}
+	_hasOutbufferDequeueLimit = enable;
+}
+
 void MediaCodecEncoder::setFps(float fps) {
 	_fps = fps;
 	if (isRunning() && _impl) {
@@ -100,19 +107,14 @@ void MediaCodecEncoder::stop() {
 	_psInserter->flush();
 	_isRunning = false;
 	_pendingFrames = 0;
+	_firstImageQueued = false;
 }
 
 void MediaCodecEncoder::feed(mblk_t *rawData, uint64_t time, bool requestIFrame) {
 	// ensure that rawData is destroyed on function return
 	unique_ptr<mblk_t, void(*)(mblk_t *)> rawDataPtr(rawData, freemsg);
 
-	if (_impl == nullptr) return;
-
-	if (!_isRunning) {
-		ms_error("MediaCodecEncoder: encoder not running. Dropping buffer.");
-		return;
-	}
-
+	
 	if (_recoveryMode && time % 5000 == 0) {
 		try {
 			if (_impl == nullptr) createImpl();
@@ -122,7 +124,15 @@ void MediaCodecEncoder::feed(mblk_t *rawData, uint64_t time, bool requestIFrame)
 			ms_error("MediaCodecEncoder: %s", e.what());
 			ms_error("MediaCodecEncoder: AMediaCodec_reset() was not sufficient, will recreate the encoder in a moment...");
 			AMediaCodec_delete(_impl);
+			_impl = nullptr;
 		}
+	}
+	
+	if (_impl == nullptr) return;
+
+	if (!_isRunning) {
+		ms_error("MediaCodecEncoder: encoder not running. Dropping buffer.");
+		return;
 	}
 
 	MSPicture pic;
@@ -149,8 +159,7 @@ void MediaCodecEncoder::feed(mblk_t *rawData, uint64_t time, bool requestIFrame)
 		return;
 	}
 
-	size_t bufsize;
-	uint8_t *inputBuffer = AMediaCodec_getInputBuffer(_impl, ibufidx, &bufsize);
+	size_t bufsize = 0;
 
 	if (_pixelFormatConvertionEnabled) {
 		AMediaImage image;
@@ -159,12 +168,14 @@ void MediaCodecEncoder::feed(mblk_t *rawData, uint64_t time, bool requestIFrame)
 				MSRect src_roi = {0, 0, pic.w, pic.h};
 				int src_pix_strides[4] = {1, 1, 1, 1};
 				ms_yuv_buf_copy_with_pix_strides(pic.planes, pic.strides, src_pix_strides, src_roi, image.buffers, image.row_strides, image.pixel_strides, image.crop_rect);
+				bufsize = image.row_strides[0] * image.height * 3 / 2;
 			} else {
 				ms_error("MediaCodecEncoder: encoder requires non YUV420 format");
 			}
 			AMediaImage_close(&image);
 		}
 	} else {
+		uint8_t *inputBuffer = AMediaCodec_getInputBuffer(_impl, ibufidx, &bufsize);
 		size_t dataSize = rawData->b_wptr-rawData->b_rptr;
 		if (dataSize <= bufsize) {
 			memcpy(inputBuffer, rawData->b_rptr, dataSize);
@@ -178,7 +189,7 @@ void MediaCodecEncoder::feed(mblk_t *rawData, uint64_t time, bool requestIFrame)
 		ms_error("MediaCodecEncoder: error while queuing input buffer");
 		return;
 	}
-
+	if (!_firstImageQueued) _firstImageQueued = true;
 	_pendingFrames++;
 }
 
@@ -188,7 +199,9 @@ bool MediaCodecEncoder::fetch(MSQueue *encodedData) {
 	uint8_t *buf;
 	size_t bufsize;
 
-	if (_impl == nullptr || !_isRunning || _recoveryMode || _pendingFrames <= 0) return false;
+	if (_impl == nullptr || !_isRunning || _recoveryMode || !_firstImageQueued) return false;
+	
+	if (_hasOutbufferDequeueLimit && _pendingFrames <= 0) return false;
 
 	ms_queue_init(&outq);
 

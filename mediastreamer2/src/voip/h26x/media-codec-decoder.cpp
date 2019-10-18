@@ -133,7 +133,9 @@ MediaCodecDecoder::Status MediaCodecDecoder::fetch(mblk_t *&frame) {
 		ms_message("MediaCodecDecoder: %s", codecInfoToString(oBufidx).c_str());
 		if (oBufidx == AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED) {
 			AMediaFormat *format = AMediaCodec_getOutputFormat(_impl);
-			ms_message("MediaCodecDecoder: new format:\n%s", AMediaFormat_toString(format));
+			AMediaFormat_getInt32(format, "width", &_curWidth);
+			AMediaFormat_getInt32(format, "height", &_curHeight);
+			ms_message("MediaCodecDecoder: new format %ix%i :\n%s", _curWidth, _curHeight, AMediaFormat_toString(format));
 			AMediaFormat_delete(format);
 		}
 		oBufidx = AMediaCodec_dequeueOutputBuffer(_impl, &info, _timeoutUs);
@@ -164,9 +166,25 @@ MediaCodecDecoder::Status MediaCodecDecoder::fetch(mblk_t *&frame) {
 		status = decodingFailure;
 		goto end;
 	}
+	
+	if (_curWidth && _curHeight && (_curWidth != image.crop_rect.w || _curHeight != image.crop_rect.h)){
+		/*
+		 * Sometimes (not all devices), we observe an insconsistency between the width/height announced by the MediaCodec.getOutputFormat()
+		 * and the width/height announced by the getOutputImage().
+		 * In some cases this also results in an garbled decoded image, but sometimes not.
+		 * We print out the information, but no further action can be done here.
+		 */
+		ms_error("Mismatch between decoder new format and output image detected: %ix%i vs %ix%i",
+			 _curWidth, _curHeight, image.crop_rect.w, image.crop_rect.h);
+		_curWidth = image.crop_rect.w;
+		_curHeight = image.crop_rect.h;
+	}
 
 	MSPicture pic;
 	frame = ms_yuv_buf_allocator_get(_bufAllocator, &pic, image.crop_rect.w, image.crop_rect.h);
+	//ms_message("image.crop_rect.w=%i, image.crop_rect.h=%i, image.row_strides=%i,%i,%i image.pixel_strides=%i,%i,%i",
+	//	   image.crop_rect.w, image.crop_rect.h, image.row_strides[0], image.row_strides[1], image.row_strides[2],
+	//		image.pixel_strides[0], image.pixel_strides[1], image.pixel_strides[2]);
 	ms_yuv_buf_copy_with_pix_strides(image.buffers, image.row_strides, image.pixel_strides, image.crop_rect,
 										pic.planes, pic.strides, dst_pix_strides, dst_roi);
 	AMediaImage_close(&image);

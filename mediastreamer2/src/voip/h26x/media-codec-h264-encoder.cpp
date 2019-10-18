@@ -27,8 +27,16 @@
 { required_bitrate, bitrate_limit, { MS_VIDEO_SIZE_ ## resolution ## _W, MS_VIDEO_SIZE_ ## resolution ## _H }, fps, ncpus, nullptr }
 
 static const MSVideoConfiguration _media_codec_h264_conf_list[] = {
+	/*
+	 * Formats above 720P are disabled. Indeed, there are not supported in baseline profile of H264, and it was observed
+	 * that when we ask a MediaCodec to output a 1080P stream with baseline profile, we get interoperability issues:
+	 * the remote decoder decodes it improperly, even on iOS.
+	 * TODO: enable use of higher profiles to use formats above 720P.
+	 */
+#if 0
 	MS_MEDIACODECH265_CONF(2048000, 5000000,       UXGA, 25,  2),
 	MS_MEDIACODECH265_CONF(1500000, 3000000, SXGA_MINUS, 25,  2),
+#endif
 	MS_MEDIACODECH265_CONF(1024000, 2048000,       720P, 30,  2),
 	MS_MEDIACODECH265_CONF( 850000, 2048000,        XGA, 25,  2),
 	MS_MEDIACODECH265_CONF( 750000, 1500000,       SVGA, 30,  2),

@@ -95,7 +95,7 @@ static int enc_add_fmtp(MSFilter *f, void *arg){
 		s->maxptime=MIN(atoi(tmp),MS_DEFAULT_MAX_PTIME);
 	}
 	if (fmtp_get_value(fmtp,"ptime",tmp,sizeof(tmp))){
-		ms_message("%s want ptime=%s",f->desc->name, tmp);
+		ms_message("%s configured with ptime=%s",f->desc->name, tmp);
 		s->ptime=MIN(atoi(tmp),s->maxptime) ;
 		if (s->ptime == s->maxptime)
 			ms_message("%s ptime set to maxptime=%i", f->desc->name, s->maxptime);

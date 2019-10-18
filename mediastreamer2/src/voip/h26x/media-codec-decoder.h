@@ -65,6 +65,7 @@ protected:
 	std::unique_ptr<H26xNaluHeader> _naluHeader;
 	std::unique_ptr<H26xParameterSetsStore> _psStore;
 	int _pendingFrames = 0;
+	int32_t _curWidth = 0, _curHeight = 0;
 	bool _needKeyFrame = true;
 	bool _needParameters = true;
 
