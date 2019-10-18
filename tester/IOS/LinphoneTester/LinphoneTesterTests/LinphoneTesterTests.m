@@ -123,14 +123,15 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 }
 @end
 
-@interface LogCollectionTests : LinphoneTesterBase
+// TODO enable LogCollection in IOS
+/*@interface LogCollectionTests : LinphoneTesterBase
 @end
 
 @implementation LogCollectionTests
 + (void)initialize {
     [self testForSuite:@"LogCollection"];
 }
-@end
+@end*/
 
 @interface PlayerTests : LinphoneTesterBase
 @end
