@@ -114,6 +114,26 @@ static void ReleaseStringUTFChars(JNIEnv* env, jstring string, const char *cstri
 	if (string) (*env)->ReleaseStringUTFChars(env, string, cstring);
 }
 
+char * ms_get_android_libraries_path(void) {
+	JNIEnv *env = ms_get_jni_env();
+	char *libs_directory = NULL;
+	jclass mediastreamerAndroidContextClass = (*env)->FindClass(env, "org/linphone/mediastream/MediastreamerAndroidContext");
+
+	if (mediastreamerAndroidContextClass != NULL) {
+		jmethodID getNativeLibDir = (*env)->GetStaticMethodID(env, mediastreamerAndroidContextClass, "getNativeLibrariesDirectory", "()Ljava/lang/String;");
+		if (getNativeLibDir != NULL) {
+			jobject nativeLibDir = (*env)->CallStaticObjectMethod(env, mediastreamerAndroidContextClass, getNativeLibDir);
+			const char *libDir = GetStringUTFChars(env, nativeLibDir);
+			libs_directory = ms_strdup(libDir);
+			ms_message("Found native libraries path [%s]", libs_directory);
+			ReleaseStringUTFChars(env, nativeLibDir, libDir);
+		}
+		(*env)->DeleteLocalRef(env, mediastreamerAndroidContextClass);
+	}
+
+	return libs_directory;
+}
+
 bctbx_list_t *ms_get_android_plugins_list(void) {
 	bctbx_list_t *plugins = NULL;
 	JNIEnv *env = ms_get_jni_env();

@@ -21,6 +21,7 @@ package org.linphone.mediastream;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import java.io.File;
 import android.media.AudioManager;
 import android.os.Build;
 
@@ -47,7 +48,7 @@ public class MediastreamerAndroidContext {
 		return instance;
 	}
 
-	public static Context getContext(){
+	public static Context getContext() {
 		return mContext;
 	}
 
@@ -57,6 +58,23 @@ public class MediastreamerAndroidContext {
 
 	public static int getDeviceFavoriteBufferSize() {
 		return mDeviceFavoriteBufferSize;
+	}
+
+	public static String getNativeLibrariesDirectory() {
+		String nativeLibDir = getContext().getApplicationInfo().nativeLibraryDir;
+
+		File directory = new File(nativeLibDir);
+		File[] nativeLibs = directory.listFiles();
+
+		if (nativeLibs == null || nativeLibs.length == 0) {
+			// This scenario is for app bundle mode packaging, expected path to be like
+			// /data/app/org.linphone.debug-2/split_config.armeabi_v7a.apk!/lib/armeabi-v7a
+			Log.w("Native library directory is empty, using path to native libs for app bundle mode");
+			nativeLibDir = nativeLibDir.substring(0, nativeLibDir.indexOf("/lib"));
+			nativeLibDir += "/split_config." + Build.SUPPORTED_ABIS[0].replace("-", "_") + ".apk!/lib/" + Build.SUPPORTED_ABIS[0];
+		}
+
+		return nativeLibDir;
 	}
 
 	@TargetApi(Build.VERSION_CODES.KITKAT)

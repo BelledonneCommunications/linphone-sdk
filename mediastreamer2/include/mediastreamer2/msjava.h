@@ -38,6 +38,7 @@ JNIEnv *ms_get_jni_env(void);
 #ifdef __ANDROID__
 int ms_get_android_sdk_version(void);
 bctbx_list_t *ms_get_android_plugins_list(void);
+char * ms_get_android_libraries_path(void);
 #endif
 
 #ifdef __cplusplus
