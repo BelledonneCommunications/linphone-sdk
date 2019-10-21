@@ -20,15 +20,17 @@ package org.linphone.mediastream.video.capture.hwconf;
 
 import android.annotation.TargetApi;
 import android.content.Context;
-import android.hardware.Camera;
+import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraManager;
+import android.hardware.camera2.params.StreamConfigurationMap;
 import android.os.Build;
 
-import org.linphone.mediastream.Log;
 import org.linphone.mediastream.MediastreamerAndroidContext;
 import org.linphone.mediastream.video.capture.hwconf.AndroidCameraConfiguration.AndroidCamera;
+
+import org.linphone.mediastream.Log;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -48,7 +50,8 @@ public class AndroidCameraConfigurationReader21 {
 			try {
 				cameraList = manager.getCameraIdList();
 				final List<AndroidCamera> cam = new ArrayList<AndroidCamera>(cameraList.length);
-				for (int i = 0; i < cameraList.length; i++) {
+				int maxCamera = cameraList.length > 2 ? 2 : cameraList.length;
+				for (int i = 0; i < maxCamera; i++) {
 					String cameraId = cameraList[i];
 					CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
 					int camFacing = characteristics.get(CameraCharacteristics.LENS_FACING);
@@ -57,16 +60,16 @@ public class AndroidCameraConfigurationReader21 {
 						frontFacing = true;
 					}
 					int camOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
+					StreamConfigurationMap configs = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+					android.util.Size[] supportedSizes = configs.getOutputSizes(SurfaceTexture.class);
+					List<AndroidCamera.Size> supportedPreviewSizes = new ArrayList<AndroidCamera.Size>(supportedSizes.length);
+					for (int j = 0; j < supportedSizes.length; j++) {
+						android.util.Size size = supportedSizes[j];
+						supportedPreviewSizes.add(new AndroidCamera.Size(size.getWidth(), size.getHeight()));
+					}
 
-					try {
-						Camera c = Camera.open(Integer.valueOf(cameraId));
-						cam.add(new AndroidCamera(i, frontFacing, camOrientation, c.getParameters().getSupportedPreviewSizes()));
-						c.release();
-
-						numOfAvailableCameras++;
-					} catch (RuntimeException e) {
-					    Log.e("Cannot open camera " + cameraId + ": " + e.getMessage());
-                    }
+					cam.add(new AndroidCamera(i, frontFacing, supportedPreviewSizes, camOrientation));
+					numOfAvailableCameras++;
 				}
 
 				AndroidCamera[] result = new AndroidCamera[numOfAvailableCameras];

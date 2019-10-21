@@ -102,6 +102,12 @@ public class AndroidCameraConfiguration {
 			}
 		}
 
+		public AndroidCamera(int i, boolean f, List<Size> r, int o) {
+			this.id = i;
+			this.frontFacing = f;
+			this.orientation = o;
+			this.resolutions = r;
+		}
 		public AndroidCamera(int i, boolean f, int o, List<android.hardware.Camera.Size> origin) {
 			this.resolutions = new ArrayList<Size>(origin.size());
 			for (android.hardware.Camera.Size s : origin) {
@@ -111,10 +117,10 @@ public class AndroidCameraConfiguration {
 			this.frontFacing = f;
 			this.orientation = o;
 		}
-
 		public int id;
 		public boolean frontFacing; // false => rear facing
 		public int orientation;
 		public List<Size> resolutions;
+
 	}
 }
