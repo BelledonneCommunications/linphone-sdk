@@ -30,3 +30,4 @@ config.h
 *.orig
 lime.kdev4
 ?build*
+lime.spec
