@@ -169,28 +169,35 @@ static int send_keep_alive(belle_sip_channel_t* obj) {
 		return 0;
 	}
 }
-static int keep_alive_timer_func(void *user_data, unsigned int events) {
-	belle_sip_listening_point_t* lp=(belle_sip_listening_point_t*)user_data;
-	belle_sip_list_t* iterator;
-	belle_sip_channel_t* channel;
-	belle_sip_list_t *to_be_closed=NULL;
 
-	for (iterator=lp->channels;iterator!=NULL;iterator=iterator->next) {
-		channel=(belle_sip_channel_t*)iterator->data;
-		if (channel->state == BELLE_SIP_CHANNEL_READY && send_keep_alive(channel)==-1) { /*only send keep alive if ready*/
-			to_be_closed=belle_sip_list_append(to_be_closed,channel);
+void belle_sip_listening_point_send_keep_alive(belle_sip_listening_point_t *lp) {
+	belle_sip_list_t *iterator;
+	belle_sip_channel_t *channel;
+	belle_sip_list_t *to_be_closed = NULL;
+
+	for (iterator = lp->channels; iterator != NULL; iterator = iterator->next) {
+		channel = (belle_sip_channel_t*)iterator->data;
+		if (channel->state == BELLE_SIP_CHANNEL_READY && channel->out_state == OUTPUT_STREAM_IDLE && send_keep_alive(channel) == -1) { /*only send keep alive if ready*/
+			to_be_closed = belle_sip_list_append(to_be_closed, channel);
 		}
 	}
-	for (iterator=to_be_closed;iterator!=NULL;iterator=iterator->next){
-		channel=(belle_sip_channel_t*)iterator->data;
-		channel_set_state(channel,BELLE_SIP_CHANNEL_ERROR);
+
+	for (iterator = to_be_closed; iterator != NULL; iterator = iterator->next) {
+		channel = (belle_sip_channel_t*)iterator->data;
+		channel_set_state(channel, BELLE_SIP_CHANNEL_ERROR);
 		belle_sip_channel_close(channel);
 	}
+
 	belle_sip_list_free(to_be_closed);
+}
+
+static int keep_alive_timer_func(void *user_data, unsigned int events) {
+	belle_sip_listening_point_t* lp=(belle_sip_listening_point_t*)user_data;
+	belle_sip_listening_point_send_keep_alive(lp);
 	return BELLE_SIP_CONTINUE_WITHOUT_CATCHUP;
 }
 
-void belle_sip_listening_point_set_keep_alive(belle_sip_listening_point_t *lp,int ms) {
+void belle_sip_listening_point_set_keep_alive(belle_sip_listening_point_t *lp, int ms) {
 	if (ms <=0) {
 		if (lp->keep_alive_timer) {
 			belle_sip_main_loop_remove_source(lp->stack->ml,lp->keep_alive_timer);

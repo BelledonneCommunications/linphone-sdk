@@ -36,7 +36,12 @@ BELLESIP_EXPORT const char *belle_sip_listening_point_get_ip_address(const  bell
  * @param lp object
  * @param ms keep alive period in ms. Values <=0 disable keep alive
  * */
-BELLESIP_EXPORT void belle_sip_listening_point_set_keep_alive(belle_sip_listening_point_t *lp,int ms);
+BELLESIP_EXPORT void belle_sip_listening_point_set_keep_alive(belle_sip_listening_point_t *lp, int ms);
+/*
+ * sends a keep alive right away
+ * @param lp object
+ * */
+BELLESIP_EXPORT void belle_sip_listening_point_send_keep_alive(belle_sip_listening_point_t *lp);
 
 /*
  * get keep alive frequency in ms
