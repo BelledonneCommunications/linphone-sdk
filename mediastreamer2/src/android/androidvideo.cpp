@@ -315,6 +315,11 @@ void video_capture_preprocess(MSFilter *f){
 		env->CallStaticVoidMethod(d->helperClass, method, d->androidCamera, d->previewWindow);
 	}
 	ms_message("Preprocessing of Android VIDEO capture filter done");
+	
+	if (d->frame) {
+		freemsg(d->frame);
+		d->frame = NULL;
+	}
 	ms_mutex_unlock(&d->mutex);
 }
 
@@ -352,9 +357,9 @@ static void video_capture_postprocess(MSFilter *f){
 	}
 	d->androidCamera = 0;
 	d->previewWindow = 0;
-	if (d->frame){
+	if (d->frame) {
 		freemsg(d->frame);
-		d->frame=NULL;
+		d->frame = NULL;
 	}
 	ms_mutex_unlock(&d->mutex);
 }
