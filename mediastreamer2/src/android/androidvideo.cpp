@@ -45,7 +45,7 @@ struct AndroidWebcamConfig {
 
 struct AndroidReaderContext {
 	AndroidReaderContext(MSFilter *f, MSWebCam *cam):filter(f), webcam(cam),frame(0),fps(5){
-		ms_message("Creating AndroidReaderContext for Android VIDEO capture filter");
+		ms_message("[Legacy Capture] Creating AndroidReaderContext for Android VIDEO capture filter");
 		ms_mutex_init(&mutex,NULL);
 		androidCamera = 0;
 		previewWindow = 0;
@@ -136,7 +136,7 @@ static int video_capture_set_vsize(MSFilter *f, void* data){
 
 	if (!resArray) {
 		ms_mutex_unlock(&d->mutex);
-		ms_error("Failed to retrieve camera '%d' supported resolutions\n", ((AndroidWebcamConfig*)d->webcam->data)->id);
+		ms_error("[Legacy Capture] Failed to retrieve camera '%d' supported resolutions\n", ((AndroidWebcamConfig*)d->webcam->data)->id);
 		return -1;
 	}
 
@@ -146,7 +146,7 @@ static int video_capture_set_vsize(MSFilter *f, void* data){
 	//   - 2 : useDownscaling
 	jint res[3];
 	env->GetIntArrayRegion((jintArray)resArray, 0, 3, res);
-	ms_message("Camera selected resolution is: %dx%d (requested: %dx%d) with downscaling?%d\n", res[0], res[1], d->requestedSize.width, d->requestedSize.height, res[2]);
+	ms_message("[Legacy Capture] Camera selected resolution is: %dx%d (requested: %dx%d) with downscaling?%d\n", res[0], res[1], d->requestedSize.width, d->requestedSize.height, res[2]);
 	d->hwCapableSize.width =  res[0];
 	d->hwCapableSize.height = res[1];
 	d->useDownscaling = res[2];
@@ -157,18 +157,18 @@ static int video_capture_set_vsize(MSFilter *f, void* data){
 
 	// if hw supplies a smaller resolution, modify requested size accordingly
 	if ((hwSize * downscale * downscale) < rqSize) {
-		ms_message("Camera cannot produce requested resolution %dx%d, will supply smaller one: %dx%d\n",
+		ms_message("[Legacy Capture] Camera cannot produce requested resolution %dx%d, will supply smaller one: %dx%d\n",
 			d->requestedSize.width, d->requestedSize.height, (int) (res[0] * downscale), (int) (res[1]*downscale));
 		d->usedSize.width = (int) (d->hwCapableSize.width * downscale);
 		d->usedSize.height = (int) (d->hwCapableSize.height * downscale);
 	} else if ((hwSize * downscale * downscale) > rqSize) {
 		if (d->requestedSize.width > d->hwCapableSize.width || d->requestedSize.height > d->hwCapableSize.height) {
-			ms_message("Camera cannot produce requested resolution %dx%d, will capture a bigger one (%dx%d)\n",
+			ms_message("[Legacy Capture] Camera cannot produce requested resolution %dx%d, will capture a bigger one (%dx%d)\n",
 				d->requestedSize.width, d->requestedSize.height, (int)(res[0] * downscale), (int)(res[1] * downscale));
 			d->usedSize.width = d->requestedSize.width = d->hwCapableSize.width;
 			d->usedSize.height = d->requestedSize.height = d->hwCapableSize.height;
 		} else {
-			ms_message("Camera cannot produce requested resolution %dx%d, will capture a bigger one (%dx%d) and crop it to match encoder requested resolution\n",
+			ms_message("[Legacy Capture] Camera cannot produce requested resolution %dx%d, will capture a bigger one (%dx%d) and crop it to match encoder requested resolution\n",
 				d->requestedSize.width, d->requestedSize.height, (int)(res[0] * downscale), (int)(res[1] * downscale));
 			d->usedSize.width = d->requestedSize.width;
 			d->usedSize.height = d->requestedSize.height;
@@ -181,8 +181,8 @@ static int video_capture_set_vsize(MSFilter *f, void* data){
 	// is phone held |_ to cam orientation ?
 	if (d->rotation == UNDEFINED_ROTATION || compute_image_rotation_correction(d, d->rotation) % 180 != 0) {
 		if (d->rotation == UNDEFINED_ROTATION) {
-			ms_error("To produce a correct image, Mediastreamer MUST be aware of device's orientation BEFORE calling 'configure_video_source'\n");
-			ms_warning("Capture filter do not know yet about device's orientation.\n"
+			ms_error("[Legacy Capture] To produce a correct image, Mediastreamer MUST be aware of device's orientation BEFORE calling 'configure_video_source'\n");
+			ms_warning("[Legacy Capture] Capture filter do not know yet about device's orientation.\n"
 				"Current assumption: device is held perpendicular to its webcam (ie: portrait mode for a phone)\n");
 			d->rotationSavedDuringVSize = 0;
 		} else {
@@ -196,7 +196,7 @@ static int video_capture_set_vsize(MSFilter *f, void* data){
 			int t = d->usedSize.width;
 			d->usedSize.width = d->usedSize.height;
 			d->usedSize.height = t;
-			ms_message("Swapped resolution width and height to : %dx%d\n", d->usedSize.width, d->usedSize.height);
+			ms_message("[Legacy Capture] Swapped resolution width and height to : %dx%d\n", d->usedSize.width, d->usedSize.height);
 		}
 	} else {
 		d->rotationSavedDuringVSize = d->rotation;
@@ -240,9 +240,9 @@ static int video_set_native_preview_window(MSFilter *f, void *arg) {
 
 	if (d->androidCamera) {
 		if (d->previewWindow == 0) {
-			ms_message("Preview capture window set for the 1st time (win: %p rotation:%d)\n", w, d->rotation);
+			ms_message("[Legacy Capture] Preview capture window set for the 1st time (win: %p rotation:%d)\n", w, d->rotation);
 		} else {
-			ms_message("Preview capture window changed (oldwin: %p newwin: %p rotation:%d)\n", d->previewWindow, w, d->rotation);
+			ms_message("[Legacy Capture] Preview capture window changed (oldwin: %p newwin: %p rotation:%d)\n", d->previewWindow, w, d->rotation);
 
 			env->CallStaticVoidMethod(d->helperClass,
 						env->GetStaticMethodID(d->helperClass,"stopRecording", "(Ljava/lang/Object;)V"),
@@ -266,7 +266,7 @@ static int video_set_native_preview_window(MSFilter *f, void *arg) {
 			ms_filter_notify(f, MS_CAMERA_PREVIEW_SIZE_CHANGED, &d->usedSize);
 		}
 	} else {
-		ms_message("Preview capture window set but camera not created yet; remembering it for later use\n");
+		ms_message("[Legacy Capture] Preview capture window set but camera not created yet; remembering it for later use\n");
 	}
 	d->previewWindow = w;
 
@@ -288,7 +288,7 @@ static int video_set_device_rotation(MSFilter* f, void* arg) {
 }
 
 void video_capture_preprocess(MSFilter *f){
-	ms_message("Preprocessing of Android VIDEO capture filter");
+	ms_message("[Legacy Capture] Preprocessing of Android VIDEO capture filter");
 
 	AndroidReaderContext *d = getContext(f);
 	ms_mutex_lock(&d->mutex);
@@ -300,7 +300,7 @@ void video_capture_preprocess(MSFilter *f){
 
 	jmethodID method = env->GetStaticMethodID(d->helperClass,"startRecording", "(IIIIIJ)Ljava/lang/Object;");
 
-	ms_message("Starting Android camera '%d' (rotation:%d)", ((AndroidWebcamConfig*)d->webcam->data)->id, d->rotation);
+	ms_message("[Legacy Capture] Starting Android camera '%d' (rotation:%d)", ((AndroidWebcamConfig*)d->webcam->data)->id, d->rotation);
 	jobject cam = env->CallStaticObjectMethod(d->helperClass, method,
 			((AndroidWebcamConfig*)d->webcam->data)->id,
 			d->hwCapableSize.width,
@@ -314,8 +314,8 @@ void video_capture_preprocess(MSFilter *f){
 		method = env->GetStaticMethodID(d->helperClass,"setPreviewDisplaySurface", "(Ljava/lang/Object;Ljava/lang/Object;)V");
 		env->CallStaticVoidMethod(d->helperClass, method, d->androidCamera, d->previewWindow);
 	}
-	ms_message("Preprocessing of Android VIDEO capture filter done");
-	
+	ms_message("[Legacy Capture] Preprocessing of Android VIDEO capture filter done");
+
 	if (d->frame) {
 		freemsg(d->frame);
 		d->frame = NULL;
@@ -343,7 +343,7 @@ static void video_capture_process(MSFilter *f){
 }
 
 static void video_capture_postprocess(MSFilter *f){
-	ms_message("Postprocessing of Android VIDEO capture filter");
+	ms_message("[Legacy Capture] Postprocessing of Android VIDEO capture filter");
 	AndroidReaderContext* d = getContext(f);
 	JNIEnv *env = ms_get_jni_env();
 
@@ -366,14 +366,14 @@ static void video_capture_postprocess(MSFilter *f){
 
 static void video_capture_init(MSFilter *f) {
 	AndroidReaderContext* d = new AndroidReaderContext(f, 0);
-	ms_message("Init of Android VIDEO capture filter (%p)", d);
+	ms_message("[Legacy Capture] Init of Android VIDEO capture filter (%p)", d);
 	JNIEnv *env = ms_get_jni_env();
 	d->helperClass = getHelperClassGlobalRef(env);
 	f->data = d;
 }
 
 static void video_capture_uninit(MSFilter *f) {
-	ms_message("Uninit of Android VIDEO capture filter");
+	ms_message("[Legacy Capture] Uninit of Android VIDEO capture filter");
 	AndroidReaderContext* d = getContext(f);
 	JNIEnv *env = ms_get_jni_env();
 	env->DeleteGlobalRef(d->helperClass);
@@ -414,11 +414,11 @@ MS_FILTER_DESC_EXPORT(ms_video_capture_desc)
 /* Webcam methods */
 static void video_capture_detect(MSWebCamManager *obj);
 static void video_capture_cam_init(MSWebCam *cam){
-	ms_message("Android VIDEO capture filter cam init");
+	ms_message("[Legacy Capture] Android VIDEO capture filter cam init");
 }
 
 static MSFilter *video_capture_create_reader(MSWebCam *obj){
-	ms_message("Instanciating Android VIDEO capture MS filter");
+	ms_message("[Legacy Capture] Instanciating Android VIDEO capture MS filter");
 
 	MSFilter* lFilter = ms_factory_create_filter_from_desc(ms_web_cam_get_factory(obj), &ms_video_capture_desc);
 	getContext(lFilter)->webcam = obj;
@@ -434,21 +434,17 @@ MSWebCamDesc ms_android_video_capture_desc={
 		NULL
 };
 
-static void video_capture_detect(MSWebCamManager *obj){
-	ms_message("Detecting Android VIDEO cards");
+void android_video_capture_detect_cameras_legacy(MSWebCamManager *obj) {
+	ms_message("[Legacy Capture] Detecting Android VIDEO cards");
+
 	JNIEnv *env = ms_get_jni_env();
-
-	if (ms_get_android_sdk_version() >= 26) {
-		ms_warning("Android >= 8.0 detected, disabling legacy capture filter");
-		return;
-	}
-
 	jclass helperClass = getHelperClassGlobalRef(env);
 
 	if (helperClass == NULL) return;
 
 	jmethodID countMethod = env->GetStaticMethodID(helperClass,"detectCamerasCount", "()I");
 	int count = env->CallStaticIntMethod(helperClass, countMethod);
+	ms_message("[Legacy Capture] %d cards detected", count);
 
 	jintArray indexes = (jintArray)env->NewIntArray(count);
 	jintArray frontFacing = (jintArray)env->NewIntArray(count);
@@ -457,8 +453,14 @@ static void video_capture_detect(MSWebCamManager *obj){
 	jmethodID method = env->GetStaticMethodID(helperClass,"detectCameras", "([I[I[I)I");
 	env->CallStaticIntMethod(helperClass, method, indexes, frontFacing, orientation);
 
-	ms_message("%d cards detected", count);
-	for(int i=0; i<count; i++) {
+	bool frontFacingFound = false;
+	bool backFacingFound = false;
+	for (int i = 0; i < count; i++) {
+		if (frontFacingFound && backFacingFound) {
+			ms_message("[Legacy Capture] Found one front facing camera and one back facing camera, no need for more.");
+			break;
+		}
+
 		MSWebCam *cam = ms_web_cam_new(&ms_android_video_capture_desc);
 		AndroidWebcamConfig* c = new AndroidWebcamConfig();
 		env->GetIntArrayRegion(indexes, i, 1, &c->id);
@@ -470,22 +472,39 @@ static void video_capture_detect(MSWebCamManager *obj){
 		const char *facing = "Back";
 		if (c->frontFacing) {
 			facing = "Front";
+			frontFacingFound = true;
+		} else {
+			backFacingFound = true;
 		}
+
 		char *idstring = bctbx_strdup_printf("%sFacingCamera%d", facing, c->id);
 		cam->id = ms_strdup(idstring);
 		bctbx_free(idstring);
-		ms_web_cam_manager_add_cam(obj,cam);
-		ms_message("camera created: id=%d frontFacing=%d orientation=%d [msid:%s]\n", c->id, c->frontFacing, c->orientation, idstring);
+
+		if (ms_get_android_sdk_version() >= 26) {
+			ms_warning("[Legacy Capture] Compatibility mode detected, prepending camera to prevent NoWebcam to be the first one");
+			ms_web_cam_manager_prepend_cam(obj, cam); // Otherwise NoWebcam will be the first one...
+		} else {
+			ms_web_cam_manager_add_cam(obj, cam);
+		}
+		ms_message("[Legacy Capture] camera created: id=%d frontFacing=%d orientation=%d [msid:%s]\n", c->id, c->frontFacing, c->orientation, idstring);
 	}
 	env->DeleteLocalRef(indexes);
 	env->DeleteLocalRef(frontFacing);
 	env->DeleteLocalRef(orientation);
 
 	env->DeleteGlobalRef(helperClass);
-	ms_message("Detection of Android VIDEO cards done");
+	ms_message("[Legacy Capture] Detection of Android VIDEO cards done");
 }
 
+static void video_capture_detect(MSWebCamManager *obj) {
+	if (ms_get_android_sdk_version() >= 26) {
+		ms_warning("[Legacy Capture] Android >= 8.0 detected, disabling legacy capture filter");
+		return;
+	}
 
+	android_video_capture_detect_cameras_legacy(obj);
+}
 
 /************************ JNI methods                  ************************/
 #ifdef __cplusplus
@@ -509,7 +528,7 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_capture_AndroidVideoA
 	}
 
 	if (d->rotation != UNDEFINED_ROTATION && d->rotationSavedDuringVSize != d->rotation) {
-		ms_warning("Rotation has changed (new value: %d) since vsize was run (old value: %d)."
+		ms_warning("[Legacy Capture] Rotation has changed (new value: %d) since vsize was run (old value: %d)."
 					"Will produce inverted images. Use set_device_orientation() then update call.\n",
 			d->rotation, d->rotationSavedDuringVSize);
 	}
@@ -526,7 +545,7 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_capture_AndroidVideoA
 	jboolean isCopied;
 	jbyte* jinternal_buff = env->GetByteArrayElements(frame, &isCopied);
 	if (isCopied) {
-		ms_warning("The video frame received from Java has been copied");
+		ms_warning("[Legacy Capture] The video frame received from Java has been copied");
 	}
 
 	int y_cropping_offset=0, cbcr_cropping_offset=0;
@@ -581,10 +600,10 @@ static int compute_image_rotation_correction(AndroidReaderContext* d, int rotati
 
 	int result;
 	if (conf->frontFacing) {
-		ms_debug("%s: %d + %d\n", __FUNCTION__, ((AndroidWebcamConfig*)d->webcam->data)->orientation, rotation);
+		ms_debug("[Legacy Capture] %s: %d + %d\n", __FUNCTION__, ((AndroidWebcamConfig*)d->webcam->data)->orientation, rotation);
 	 	result = ((AndroidWebcamConfig*)d->webcam->data)->orientation + rotation;
 	} else {
-		ms_debug("%s: %d - %d\n", __FUNCTION__, ((AndroidWebcamConfig*)d->webcam->data)->orientation, rotation);
+		ms_debug("[Legacy Capture] %s: %d - %d\n", __FUNCTION__, ((AndroidWebcamConfig*)d->webcam->data)->orientation, rotation);
 	 	result = ((AndroidWebcamConfig*)d->webcam->data)->orientation - rotation;
 	}
 	while(result < 0)
@@ -610,7 +629,7 @@ static void compute_cropping_offsets(MSVideoSize hwSize, MSVideoSize outputSize,
 
 
 static jclass getHelperClassGlobalRef(JNIEnv *env) {
-	ms_message("getHelperClassGlobalRef (env: %p)", env);
+	ms_message("[Legacy Capture] getHelperClassGlobalRef (env: %p)", env);
 	const char* className;
 	// FindClass only returns local references.
 
@@ -618,7 +637,7 @@ static jclass getHelperClassGlobalRef(JNIEnv *env) {
 	jclass version = env->FindClass(VersionPath);
 	jmethodID method = env->GetStaticMethodID(version,"sdk", "()I");
 	android_sdk_version = env->CallStaticIntMethod(version, method);
-	ms_message("Android SDK version found is %i", android_sdk_version);
+	ms_message("[Legacy Capture] Android SDK version found is %i", android_sdk_version);
 	env->DeleteLocalRef(version);
 
 	if (android_sdk_version >= 9) {
@@ -630,7 +649,7 @@ static jclass getHelperClassGlobalRef(JNIEnv *env) {
 	}
 	jclass c = env->FindClass(className);
 	if (c == 0) {
-		ms_error("Could not load class '%s' (%d)", className, android_sdk_version);
+		ms_error("[Legacy Capture] Could not load class '%s' (%d)", className, android_sdk_version);
 		return NULL;
 	} else {
 		jclass globalRef = reinterpret_cast<jclass>(env->NewGlobalRef(c));
