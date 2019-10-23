@@ -492,6 +492,11 @@ static void android_camera2_capture_preprocess(MSFilter *f) {
 	ms_video_init_framerate_controller(&d->fpsControl, d->fps);
 	ms_video_init_average_fps(&d->averageFps, d->fps_context);
 
+	if (d->frame) {
+		freemsg(d->frame);
+		d->frame = NULL;
+	}
+
 	ms_filter_unlock(f);
 }
 
@@ -517,6 +522,11 @@ static void android_camera2_capture_postprocess(MSFilter *f) {
 	ms_filter_lock(f);
 	if (d->capturing) {
 		android_camera2_capture_stop(d);
+	}
+
+	if (d->frame) {
+		freemsg(d->frame);
+		d->frame = NULL;
 	}
 	ms_filter_unlock(f);
 }
