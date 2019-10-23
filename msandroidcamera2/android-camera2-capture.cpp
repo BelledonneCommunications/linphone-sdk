@@ -843,25 +843,29 @@ MSWebCamDesc ms_android_camera2_capture_webcam_desc = {
 		NULL
 };
 
+extern void android_video_capture_detect_cameras_legacy(MSWebCamManager *obj);
+
 void android_camera2_capture_detect(MSWebCamManager *obj) {
 	ms_message("[Camera2 Capture] Detecting cameras");
 
 	ACameraIdList *cameraIdList = nullptr;
-    ACameraMetadata *cameraMetadata = nullptr;
+	ACameraMetadata *cameraMetadata = nullptr;
 
 	camera_status_t camera_status = ACAMERA_OK;
-    ACameraManager *cameraManager = ACameraManager_create();
+	ACameraManager *cameraManager = ACameraManager_create();
 
-    camera_status = ACameraManager_getCameraIdList(cameraManager, &cameraIdList);
-    if (camera_status != ACAMERA_OK) {
-        ms_error("[Camera2 Capture] Failed to get camera(s) list : %d", camera_status);
-        return;
-    }
+	camera_status = ACameraManager_getCameraIdList(cameraManager, &cameraIdList);
+	if (camera_status != ACAMERA_OK) {
+		ms_error("[Camera2 Capture] Failed to get camera(s) list : %d", camera_status);
+		android_video_capture_detect_cameras_legacy(obj);
+		return;
+	}
 
 	if (cameraIdList->numCameras < 1) {
-        ms_warning("[Camera2 Capture] No camera detected, check you have granted CAMERA permission !");
-        return;
-    }
+		ms_warning("[Camera2 Capture] No camera detected !");
+		android_video_capture_detect_cameras_legacy(obj);
+		return;
+	}
 
 	bool front_facing_found = false;
 	bool back_facing_found = false;
@@ -875,7 +879,7 @@ void android_camera2_capture_detect(MSWebCamManager *obj) {
 			ms_error("[Camera2 Capture] Failed to get camera %s characteristics", camId);
 		} else {
 			AndroidCamera2Device *device = new AndroidCamera2Device(ms_strdup(camId));
-			
+
   			ACameraMetadata_const_entry orientation;
 			ACameraMetadata_getConstEntry(cameraMetadata, ACAMERA_SENSOR_ORIENTATION, &orientation);
 			int32_t angle = orientation.data.i32[0];
@@ -928,7 +932,7 @@ void android_camera2_capture_detect(MSWebCamManager *obj) {
 	}
 
 	ACameraManager_deleteCameraIdList(cameraIdList);
-    ACameraManager_delete(cameraManager);
+	ACameraManager_delete(cameraManager);
 }
 
 #ifdef _MSC_VER
