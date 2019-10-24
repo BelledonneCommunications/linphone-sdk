@@ -50,22 +50,22 @@ Visual Studio must also be properly configured with addons. Under "Tools"->"Obta
 	
 Finally add your user `bin` directory and `C:\Mingw\bin` to the PATH environement variable from windows advanced settings. 
 
-## Building and customizing the SDK
+## Build
 
 The generic steps to build the SDK are:
 
  1. Create and go inside a directory where the SDK will be built:
- `mkdir build && cd build
+ `mkdir build && cd build`
  2. Execute CMake to configure the project:
- `cmake ..`
+ `cmake <SOME OPTIONS> ..`
  3. Build the SDK:
  `cmake --build . ` 
  or 
  `cmake --build . --parallel <number of jobs>` (which is faster).
 
-You can pass some options to CMake at the second step to configure the SDK as you want.
-For instance, to build an iOS SDK (the default being Desktop):
- `cmake .. -DLINPHONESDK_PLATFORM=IOS`
+The options below define the target of the compilation, and hence are required most of the time:
+- `LINPHONESDK_PLATFORM`: The platform for which you want to build the Linphone SDK. It must be one of: `Android`, `IOS`, Raspberry or Desktop (default value).
+- `CMAKE_BUILD_TYPE`: By default it is set to `RelWithDebInfo` to build in release mode keeping the debug information. You might want to set it to `Debug` to ease the debugging. On Android, use `ASAN` to make a build linking with the Android Adress Sanitizer (https://github.com/google/sanitizers/wiki/AddressSanitizerOnAndroid).
 
 These generic steps work for all platforms, but a few specifics behaviors are good to know and are described
 in the next subsections.
@@ -94,22 +94,25 @@ Please note that the Xcode backend is very slow: about one hour of build time, c
 
 Simply re-invoking `cmake --build .` in your build directory should update your SDK. If compilation fails, you may need to rebuilding everything by erasing your build directory and restarting your build as explained above.
 
-## Customizing features
+## Customizing the build
 
-The SDK can be customized by passing `-D` options to CMake when configuring the project. If you know the options you want to use, just pass them to CMake.
+The SDK compilation can be customized by passing `-D` options to CMake when configuring the project. If you know the options you want to use, just pass them to CMake.
 
 Otherwise, you can use the `cmake-gui` or `ccmake` commands to configure all the available options interactively.
 
-### Important customization options
+The following options control the cpu architectures built for a target platform:
+- `LINPHONESDK_ANDROID_ARCHS`: A comma-separated list of the architectures for which you want to build the Android Linphone SDK for.
+- `LINPHONESDK_IOS_ARCHS`: Same as `LINPHONESDK_ANDROID_ARCHS` but for an iOS build.
+- `LINPHONESDK_IOS_BASE_URL`: The base of the URL that will be used to download the zip file of the SDK.
+- `LINPHONESDK_UWP_ARCHS`: Same as `LINPHONESDK_ANDROID_ARCHS` but for an UWP build.
 
-Some customization are particularly important:
-
- 1. `CMAKE_BUILD_TYPE`: By default it is set to `RelWithDebInfo` to build in release mode keeping the debug information. You might want to set it to `Debug` to ease the debugging. On Android, use `ASAN` to make a build linking with the Android Adress Sanitizer (https://github.com/google/sanitizers/wiki/AddressSanitizerOnAndroid).
- 2. `LINPHONESDK_PLATFORM`: The platform for which you want to build the Linphone SDK. It must be one of: `Android`, `IOS`, Raspberry or Desktop (default value).
- 3. `LINPHONESDK_ANDROID_ARCHS`: A comma-separated list of the architectures for which you want to build the Android Linphone SDK for.
- 4. `LINPHONESDK_IOS_ARCHS`: Same as `LINPHONESDK_ANDROID_ARCHS` but for an iOS build.
- 5. `LINPHONESDK_IOS_BASE_URL`: The base of the URL that will be used to download the zip file of the SDK.
- 6. `LINPHONESDK_UWP_ARCHS`: Same as `LINPHONESDK_ANDROID_ARCHS` but for an UWP build.
+These ON/OFF options control the enablement of important features of the SDK, which have an effect on the size of produced size object code:
+- `ENABLE_VIDEO`: enablement of video call features.
+- `ENABLE_ADVANCED_IM`: enablement of group chat and secure IM features
+- `ENABLE_ZRTP`: enablement of ZRTP ciphering
+- `ENABLE_DB_STORAGE`: enablement of database storage for IM.
+- `ENABLE_VCARD`: enablement of Vcard features.
+- `ENABLE_MKV`: enablement of Matroska video file reader/writer.
 
 ## Licensing: GPL third parties versus non GPL third parties
 
