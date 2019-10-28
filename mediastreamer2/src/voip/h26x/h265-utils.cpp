@@ -125,6 +125,7 @@ void H265ParameterSetsInserter::process(MSQueue *in, MSQueue *out) {
 			replaceParameterSet(_pps, m);
 		} else {
 			if (header.getType().isKeyFramePart()) {
+				ms_message("H265ParameterSetsInserter: I-frame detected");
 				isKeyFrame = true;
 			}
 			ms_queue_put(out, m);
@@ -135,6 +136,7 @@ void H265ParameterSetsInserter::process(MSQueue *in, MSQueue *out) {
 		ms_queue_insert(out, insPoint, dupmsg(_vps));
 		ms_queue_insert(out, insPoint, dupmsg(_sps));
 		ms_queue_insert(out, insPoint, dupmsg(_pps));
+		ms_message("H265ParameterSetsInserter: parameter sets inserted");
 	}
 }
 

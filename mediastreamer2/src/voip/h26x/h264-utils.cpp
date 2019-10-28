@@ -287,27 +287,27 @@ H264ParameterSetsInserter::~H264ParameterSetsInserter() {
 }
 
 void H264ParameterSetsInserter::process(MSQueue *in, MSQueue *out) {
-	bool psBeforeIdr = false;
+	H264NaluHeader header;
+	bool isKeyFrame = false;
 	while (mblk_t *m = ms_queue_get(in)) {
-		MSH264NaluType type = ms_h264_nalu_get_type(m);
-		if (type == MSH264NaluTypeSPS) {
-			psBeforeIdr = true;
+		header.parse(m->b_rptr);
+		if (header.getType() == H264NaluType::Sps) {
 			replaceParameterSet(_sps, m);
-		} else if (type == MSH264NaluTypePPS) {
-			psBeforeIdr = true;
+		} else if (header.getType() == H264NaluType::Pps) {
 			replaceParameterSet(_pps, m);
 		} else {
-			if (_sps && _pps) {
-				if ((type == MSH264NaluTypeIDR || type == MSH264NaluTypeDataPartA) && !psBeforeIdr) {
-					ms_queue_put(out, dupmsg(_sps));
-					ms_queue_put(out, dupmsg(_pps));
-				}
-				ms_queue_put(out, m);
-			} else {
-				freemsg(m);
+			if (header.getType().isKeyFramePart()) {
+				ms_message("H264ParameterSetsInserter: I-frame detected");
+				isKeyFrame = true;
 			}
-			psBeforeIdr = false;
+			ms_queue_put(out, m);
 		}
+	}
+	if (isKeyFrame) {
+		mblk_t *insPoint = ms_queue_peek_first(out);
+		ms_queue_insert(out, insPoint, dupmsg(_sps));
+		ms_queue_insert(out, insPoint, dupmsg(_pps));
+		ms_message("H264ParameterSetsInserter: parameter sets inserted");
 	}
 }
 
