@@ -233,6 +233,7 @@ test-android-r17c:
     - sudo mkdir ${CI_PROJECT_DIR}/results
     - sudo chmod 777 ${CI_PROJECT_DIR}/results
     - mv tester/Android/logs-tests-android.tar.gz ${CI_PROJECT_DIR}/results
+    - mv tester/Android/spoon/junit-reports/*.xml ${CI_PROJECT_DIR}/results
     
   artifacts:
     paths:
