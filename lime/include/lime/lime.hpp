@@ -332,6 +332,15 @@ namespace lime {
 			lime::PeerDeviceStatus get_peerDeviceStatus(const std::string &peerDeviceId);
 
 			/**
+			 * @brief checks if a device iD exists in the local users
+			 *
+			 * @param[in]	deviceId	The device Id to check
+			 *
+			 * @return true if the device Id exists in the local users table, false otherwise
+			 */
+			bool is_localUser(const std::string &deviceId);
+
+			/**
 			 * @brief delete a peerDevice from local storage
 			 *
 			 * @param[in]	peerDeviceId	The device Id to be removed from local storage, shall be its GRUU

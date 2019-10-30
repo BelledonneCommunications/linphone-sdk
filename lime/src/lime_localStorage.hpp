@@ -57,6 +57,7 @@ namespace lime {
 		void set_peerDeviceStatus(const std::string &peerDeviceId, const std::vector<uint8_t> &Ik, lime::PeerDeviceStatus status);
 		void set_peerDeviceStatus(const std::string &peerDeviceId, lime::PeerDeviceStatus status);
 		lime::PeerDeviceStatus get_peerDeviceStatus(const std::string &peerDeviceId);
+		bool is_localUser(const std::string &deviceId);
 		void delete_peerDevice(const std::string &peerDeviceId);
 		template <typename Curve>
 		long int check_peerDevice(const std::string &peerDeviceId, const DSA<Curve, lime::DSAtype::publicKey> &peerIk);

@@ -221,6 +221,13 @@ namespace lime {
 		return localStorage->get_peerDeviceStatus(peerDeviceId);
 	}
 
+	bool LimeManager::is_localUser(const std::string &deviceId) {
+		// open local DB
+		auto localStorage = std::unique_ptr<lime::Db>(new lime::Db(m_db_access, m_db_mutex));
+
+		return localStorage->is_localUser(deviceId);
+	}
+
 	void LimeManager::delete_peerDevice(const std::string &peerDeviceId) {
 		std::lock_guard<std::mutex> lock(m_users_mutex);
 		// loop on all local users in cache to destroy any cached session linked to that user
