@@ -67,5 +67,30 @@ void belle_sip_main_loop_cpp_do_later(belle_sip_main_loop_t *ml, const std::func
 	belle_sip_main_loop_do_later(ml, do_later, new std::function<void (void)>(func));
 }
 
+static void cpp_timer_delete(belle_sip_source_t* source){
+	std::function<bool (void)> *func = static_cast< std::function<bool (void)> *>(belle_sip_source_get_user_data(source));
+	delete func;
+	belle_sip_source_set_user_data(source,NULL);
+}
+
+static int cpp_timer_func(void *ud, unsigned int events){
+	std::function<bool (void)> *func = static_cast< std::function<bool (void)> *>(ud);
+	bool ret = (*func)();
+	return ret ? BELLE_SIP_CONTINUE : BELLE_SIP_STOP;
+}
+
+belle_sip_source_t * belle_sip_main_loop_create_cpp_timeout_2(belle_sip_main_loop_t *ml,
+							const std::function<bool ()> &func,
+							unsigned int timeout_value_ms,
+							const std::string &timer_name){
+	belle_sip_source_t* source = belle_sip_main_loop_create_timeout(  ml
+								, (belle_sip_source_func_t)cpp_timer_func
+								, new std::function<bool (void)>(func)
+								, timeout_value_ms
+								, timer_name.c_str());
+	belle_sip_source_set_remove_cb(source, cpp_timer_delete);
+	return source;	
+}
+
 
 #endif

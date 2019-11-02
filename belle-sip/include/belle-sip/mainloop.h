@@ -197,7 +197,19 @@ BELLESIP_EXPORT belle_sip_source_t * belle_sip_main_loop_create_cpp_timeout(bell
 								, unsigned int timeout_value_ms
 								, const char* timer_name);
 
+/*
+ * This variant does the same except that:
+ * - it does not require to pass the std::function as a pointer allocated with new()
+ * - the std::function shall return true/false instead of BELLE_SIP_CONTINUE/BELLE_SIP_STOP.
+ */
+BELLESIP_EXPORT belle_sip_source_t * belle_sip_main_loop_create_cpp_timeout_2(belle_sip_main_loop_t *ml,
+							const std::function<bool ()> &func,
+							unsigned int timeout_value_ms,
+							const std::string &timer_name);
+		
+
 BELLESIP_EXPORT void belle_sip_main_loop_cpp_do_later(belle_sip_main_loop_t *ml, const std::function<void (void)> &func);
+
 
 
 #endif
