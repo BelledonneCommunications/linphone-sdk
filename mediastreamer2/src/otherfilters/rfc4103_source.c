@@ -29,6 +29,7 @@ typedef struct _RealTimeTextSourceData {
 	uint32_t timestamp[TS_NUMBER_OF_OUTBUF];
 	int pt_t140;
 	int pt_red;
+	unsigned int keepalive_interval;
 } RealTimeTextSourceData;
 
 static uint32_t get_prev_time(const RealTimeTextSourceData *stream) {
@@ -167,7 +168,7 @@ static mblk_t* send_data(RealTimeTextSourceData *stream, uint32_t timestamp) {
 			use_next_buf(stream);
 		}
 	} else {
-		if (timestamp < prevtime || (timestamp - prevtime) > TS_KEEP_ALIVE_INTERVAL) {
+		if (timestamp < prevtime || (timestamp - prevtime) > stream->keepalive_interval) {
 			ms_rtt_4103_source_putchar32(stream, 0xFEFF); /* BOM */
 			ms_debug("Sending BOM");
 			return send_data(stream, timestamp);
@@ -243,10 +244,22 @@ static int ms_rtt_4103_source_put_char32(MSFilter *f, void *character) {
 	return 0;
 }
 
+static int ms_rtt_4103_source_set_keep_alive_interval(MSFilter *f, void *interval) {
+	RealTimeTextSourceData *s = (RealTimeTextSourceData *)f->data;
+	
+	ms_filter_lock(f);
+	s->keepalive_interval = *(unsigned int *)interval;
+	ms_debug("Keep alive interval is %i", s->keepalive_interval);
+	ms_filter_unlock(f);
+	
+	return 0;
+}
+
 static MSFilterMethod ms_rtt_4103_source_methods[] = {
 	{ MS_RTT_4103_SOURCE_SET_T140_PAYLOAD_TYPE_NUMBER,	ms_rtt_4103_source_set_t140_payload	},
 	{ MS_RTT_4103_SOURCE_SET_RED_PAYLOAD_TYPE_NUMBER,	ms_rtt_4103_source_set_red_payload	},
 	{ MS_RTT_4103_SOURCE_PUT_CHAR32, 					ms_rtt_4103_source_put_char32		},
+	{ MS_RTT_4103_SOURCE_SET_KEEP_ALIVE_INTERVAL, ms_rtt_4103_source_set_keep_alive_interval},
 	{ 0,												NULL								}
 };
 
