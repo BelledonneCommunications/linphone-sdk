@@ -53,7 +53,8 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 	const char *username=NULL;
 	const char *passwd=NULL;
 	const char *ha1=NULL;
-	char computed_ha1[33];
+	const char *algorithm=NULL;
+	char computed_ha1[65];
 	belle_sip_header_www_authenticate_t* authenticate;
 	int ret=0;
 
@@ -103,9 +104,10 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 		username=ev->username;
 		passwd=ev->passwd;
 		ha1=ev->ha1;
+		algorithm=ev->algorithm;
 	}
 	if (!ha1 && username  && passwd) {
-		belle_sip_auth_helper_compute_ha1(username,realm,passwd, computed_ha1);
+		belle_sip_auth_helper_compute_ha1_for_algorithm(username,realm,passwd, computed_ha1, belle_sip_auth_define_size(algorithm), algorithm);
 		ha1=computed_ha1;
 	} else if (!ha1){
 		belle_sip_error("No auth info found for request [%p], cannot authenticate",req);
@@ -122,6 +124,7 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 		belle_sip_header_authorization_set_nonce_count(BELLE_SIP_HEADER_AUTHORIZATION(authorization),1); /*we don't store nonce count for now*/
 		belle_sip_header_authorization_set_username(BELLE_SIP_HEADER_AUTHORIZATION(authorization),username);
 		belle_http_header_authorization_set_uri(authorization,belle_http_request_get_uri(req));
+		belle_sip_header_authorization_set_algorithm(BELLE_SIP_HEADER_AUTHORIZATION(authorization), algorithm);
 		if (belle_sip_auth_helper_fill_authorization(BELLE_SIP_HEADER_AUTHORIZATION(authorization),belle_http_request_get_method(req),ha1)) {
 			belle_sip_error("Cannot fill auth header for request [%p]",req);
 			if (authorization) belle_sip_object_unref(authorization);
