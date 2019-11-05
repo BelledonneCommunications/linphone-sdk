@@ -13,12 +13,13 @@ It also comprises a simple HTTP/HTTPS client implementation.
 License
 -------
 
-<Copyright 2012 © Belledonne Communications SARL>, all rights reserved.
+Copyright © Belledonne Communications
 
-Belle-sip is dual licensed:
-- under a GNU GPLv3 license for free (see LICENSE.md file for details)
-- under a proprietary license, for closed source projects. Contact <sales@belledonne-communications.com> for costs and other service information.
+Belle-sip is dual licensed, and is available either :
 
+ - under a [GNU/GPLv3 license](https://www.gnu.org/licenses/gpl-3.0.en.html), for free (open source). Please make sure that you understand and agree with the terms of this license before using it (see LICENSE.txt file for details).
+
+ - under a proprietary license, for a fee, to be used in closed source applications. Contact [Belledonne Communications](https://www.linphone.org/contact) for any question about costs and services.
 
 Features
 --------
