@@ -239,6 +239,13 @@ static void android_texture_display_swap_buffers(MSFilter *f) {
 		return;
 	}
 
+	if (!ad->ogl) {
+		ms_warning("[TextureView Display] No OGL display, abort");
+		freemsg(m);
+		ms_filter_unlock(f);
+		return;
+	}
+
 	ogl_display_set_yuv_to_display(ad->ogl, m);
 	ogl_display_render(ad->ogl, 0);
 	freemsg(m);
@@ -265,20 +272,11 @@ static void android_texture_display_process(MSFilter *f) {
 	mblk_t *m;
 
 	ms_filter_lock(f);
-	if (ad->nativeWindowId != NULL) {
-		if (!ad->ogl) {
-			ms_warning("[TextureView Display] Window set but no OGL context, let's init it");
-			ms_worker_thread_add_task(ad->process_thread, (MSTaskFunc)android_texture_display_init_opengl, (void*)f);
-		}
-
+	if (ad->nativeWindowId != NULL && ad->ogl) {
 		if ((m = ms_queue_peek_last(f->inputs[0])) != NULL) {
-			if (ad->ogl) {
-				ms_queue_remove(f->inputs[0], m);
-				putq(&ad->entry_q, m);
-				ms_worker_thread_add_task(ad->process_thread, (MSTaskFunc)android_texture_display_swap_buffers, (void*)f);
-			} else {
-				ms_error("[TextureView Display] Processing without an OGL context !");
-			}
+			ms_queue_remove(f->inputs[0], m);
+			putq(&ad->entry_q, m);
+			ms_worker_thread_add_task(ad->process_thread, (MSTaskFunc)android_texture_display_swap_buffers, (void*)f);
 		}
 	}
 	ms_filter_unlock(f);
@@ -303,21 +301,27 @@ static void android_texture_display_uninit(MSFilter *f) {
 
 static int android_texture_display_set_window(MSFilter *f, void *arg) {
 	AndroidTextureDisplay *ad = (AndroidTextureDisplay*)f->data;
-
 	unsigned long id = *(unsigned long *)arg;
 	jobject windowId = (jobject)id;
-	ms_message("[TextureView Display] New window jobject ptr is %p, current one is %p", windowId, ad->nativeWindowId);
+   	JNIEnv *env = ms_get_jni_env();
 
 	ms_filter_lock(f);
 
+	ms_message("[TextureView Display] New window jobject ptr is %p, current one is %p", windowId, ad->nativeWindowId);
 	if (id == 0) {
-		ad->nativeWindowId = NULL;
-		ms_worker_thread_add_task(ad->process_thread, (MSTaskFunc)android_texture_display_destroy_opengl, (void*)f);
-	} else if (windowId != ad->nativeWindowId) {
 		if (ad->nativeWindowId) {
+			(*env)->DeleteGlobalRef(env, ad->nativeWindowId);
+			ad->nativeWindowId = NULL;
 			ms_worker_thread_add_task(ad->process_thread, (MSTaskFunc)android_texture_display_destroy_opengl, (void*)f);
 		}
-		ad->nativeWindowId = windowId;
+	} else if (windowId != ad->nativeWindowId) {
+		if (ad->nativeWindowId) {
+			(*env)->DeleteGlobalRef(env, ad->nativeWindowId);
+			ad->nativeWindowId = NULL;
+			ms_worker_thread_add_task(ad->process_thread, (MSTaskFunc)android_texture_display_destroy_opengl, (void*)f);
+		}
+
+		ad->nativeWindowId = (*env)->NewGlobalRef(env, windowId);
 		ms_worker_thread_add_task(ad->process_thread, (MSTaskFunc)android_texture_display_init_opengl, (void*)f);
 	}
 	
