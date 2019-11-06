@@ -91,7 +91,14 @@ void VideoToolboxDecoder::createDecoder() {
 	VTDecompressionOutputCallbackRecord dec_cb = {outputCb, this};
 
 	vt_dec_message("creating a decoding session");
-
+	
+	/*
+	 * Since the decoder might be destroyed and recreated during the lifetime of the filter (for example
+	 * when SPS/PPS change because of video size changed by remote encoder), we must reset the _destroying flag.
+	 */
+	ms_mutex_lock(&_mutex);
+	if (_destroying) _destroying = false;
+	ms_mutex_unlock(&_mutex);
 	formatDescFromSpsPps();
 
 	CFMutableDictionaryRef decoder_params = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, NULL, NULL);
