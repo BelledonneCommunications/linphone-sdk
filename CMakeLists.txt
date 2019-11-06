@@ -61,6 +61,11 @@ include(cmake-builder/options/bellesip.cmake)
 include(cmake-builder/options/ms2.cmake)
 include(cmake-builder/options/linphone.cmake)
 
+if (ENABLE_SANITIZER)
+  include(cmake-builder/configs/config-sanitizer.cmake)
+#  message(FATAL_ERROR "sanitizer c flags == ${CMAKE_C_FLAGS_DEBUG}")
+endif()
+
 # Give a feature summary
 include(FeatureSummary)
 feature_summary(FILENAME "${CMAKE_BINARY_DIR}/enabled_features.txt" WHAT ENABLED_FEATURES DESCRIPTION "Enabled features:")
