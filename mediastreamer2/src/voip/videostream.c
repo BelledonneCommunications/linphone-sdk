@@ -521,7 +521,7 @@ static MSVideoSize get_with_same_orientation_and_ratio(MSVideoSize size, MSVideo
 }
 #endif
 
-static void configure_video_source(VideoStream *stream, bool_t skip_bitrate){
+static void configure_video_source(VideoStream *stream, bool_t skip_bitrate, bool_t first_time){
 	MSVideoSize cam_vsize;
 	MSVideoConfiguration vconf;
 	MSPixFmt format=MS_PIX_FMT_UNKNOWN;
@@ -531,9 +531,11 @@ static void configure_video_source(VideoStream *stream, bool_t skip_bitrate){
 	MSPinFormat pf={0};
 	bool_t is_player=ms_filter_get_id(stream->source)==MS_ITC_SOURCE_ID || ms_filter_get_id(stream->source)==MS_MKV_PLAYER_ID;
 
-	ms_filter_add_notify_callback(stream->source, event_cb, stream, FALSE);
-	/* It is important that the internal_event_cb is called synchronously! */
-	ms_filter_add_notify_callback(stream->source, internal_event_cb, stream, TRUE);
+	if (first_time) {
+		ms_filter_add_notify_callback(stream->source, event_cb, stream, FALSE);
+		/* It is important that the internal_event_cb is called synchronously! */
+		ms_filter_add_notify_callback(stream->source, internal_event_cb, stream, TRUE);
+	}
 
 	/* transmit orientation to source filter */
 	if (ms_filter_has_method(stream->source, MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION))
@@ -1075,7 +1077,7 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 					stream->output2=ms_factory_create_filter_from_name(stream->ms.factory, stream->display_name);
 				}
 			}
-			configure_video_source(stream, FALSE);
+			configure_video_source(stream, FALSE, TRUE);
 		}
 
 		/* and then connect all */
@@ -1415,7 +1417,7 @@ static MSFilter* _video_stream_change_camera(VideoStream *stream, MSWebCam *cam,
 			if (!skip_bitrate) apply_bitrate_limit(stream ,pt);
 		}
 
-		configure_video_source(stream, skip_bitrate);
+		configure_video_source(stream, skip_bitrate, FALSE);
 
 		if (encoder_has_builtin_converter || (stream->source_performs_encoding == TRUE)) {
 			ms_filter_link (stream->source, 0, stream->tee, 0);
