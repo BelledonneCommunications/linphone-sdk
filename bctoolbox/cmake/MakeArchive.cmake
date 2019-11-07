@@ -1,6 +1,6 @@
 ############################################################################
-# CMakeLists.txt
-# Copyright (C) 2010-2019 Belledonne Communications, Grenoble France
+# MakeArchive.cmake
+# Copyright (C) 2010-2019  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,18 +20,16 @@
 #
 ############################################################################
 
-set(BCTOOLBOX_CMAKE_DIR "${PROJECT_SOURCE_DIR}/cmake")
-set(BCTOOLBOX_CMAKE_UTILS "${BCTOOLBOX_CMAKE_DIR}/BcToolboxCMakeUtils.cmake")
-include("${BCTOOLBOX_CMAKE_DIR}/BcToolboxCMakeUtils.cmake")
+include("${BCTOOLBOX_CMAKE_UTILS}")
+bc_compute_full_version(version)
+set(archive_name "${CPACK_PACKAGE_NAME}-${version}")
+set(archive_path "${PROJECT_BINARY_DIR}/${archive_name}.tar.gz")
 
-if(NOT CPACK_PACKAGE_NAME)
-	set(CPACK_PACKAGE_NAME "${PROJECT_NAME}")
-endif()
+find_program(TAR tar)
 
-set(CPACK_SOURCE_IGNORE_FILES
-	"^${CMAKE_BINARY_DIR}"
-	"^${PROJECT_SOURCE_DIR}/.git*"
-)
+set(EXCLUDE_ARGS )
+foreach (pattern ${EXCLUDE_PATTERNS})
+	list(APPEND EXCLUDE_ARGS "--exclude=${pattern}")
+endforeach()
 
-
-bc_make_package_source_target()
+execute_process(COMMAND ${TAR} -C "${PROJECT_SOURCE_DIR}" -cz -f "${archive_path}" "--transform" "s,^\\.,${archive_name}," ${EXCLUDE_ARGS} .)

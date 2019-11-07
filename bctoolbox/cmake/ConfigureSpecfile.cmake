@@ -1,6 +1,6 @@
 ############################################################################
-# CMakeLists.txt
-# Copyright (C) 2010-2019 Belledonne Communications, Grenoble France
+# ConfigureSpecfile.cmake
+# Copyright (C) 2010-2019  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,18 +20,25 @@
 #
 ############################################################################
 
-set(BCTOOLBOX_CMAKE_DIR "${PROJECT_SOURCE_DIR}/cmake")
-set(BCTOOLBOX_CMAKE_UTILS "${BCTOOLBOX_CMAKE_DIR}/BcToolboxCMakeUtils.cmake")
-include("${BCTOOLBOX_CMAKE_DIR}/BcToolboxCMakeUtils.cmake")
+include("${BCTOOLBOX_CMAKE_UTILS}")
 
-if(NOT CPACK_PACKAGE_NAME)
-	set(CPACK_PACKAGE_NAME "${PROJECT_NAME}")
+set(FULL_VERSION )
+bc_compute_full_version(FULL_VERSION)
+
+set(version_major )
+set(version_minor )
+set(version_patch )
+set(identifiers )
+set(metadata )
+
+bc_parse_full_version(FULL_VERSION version_major version_minor version_patch identifiers metadata)
+
+set(RPM_VERSION ${version_major}.${version_minor}.${version_patch})
+if (NOT identifiers)
+	set(RPM_RELEASE 1)
+else()
+	string(SUBSTRING "${identifiers}" 1 -1 identifiers)
+	set(RPM_RELEASE "0.${identifiers}${metadata}")
 endif()
 
-set(CPACK_SOURCE_IGNORE_FILES
-	"^${CMAKE_BINARY_DIR}"
-	"^${PROJECT_SOURCE_DIR}/.git*"
-)
-
-
-bc_make_package_source_target()
+configure_file("${SRC}" "${DEST}")
