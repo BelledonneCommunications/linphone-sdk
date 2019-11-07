@@ -65,11 +65,11 @@ BCTBX_PUBLIC bctbx_iterator_t *bctbx_map_ullong_end(const bctbx_map_t *map);
 BCTBX_PUBLIC bctbx_iterator_t *bctbx_map_cchar_end(const bctbx_map_t *map);
 /*return a new allocated iterator or null*/
 #define bctbx_map_find_custom bctbx_map_ullong_find_custom
-BCTBX_PUBLIC bctbx_iterator_t * bctbx_map_ullong_find_custom(bctbx_map_t *map, bctbx_compare_func compare_func, const void *user_data);
-BCTBX_PUBLIC bctbx_iterator_t * bctbx_map_cchar_find_custom(bctbx_map_t *map, bctbx_compare_func compare_func, const void *user_data);
+BCTBX_PUBLIC bctbx_iterator_t * bctbx_map_ullong_find_custom(const bctbx_map_t *map, bctbx_compare_func compare_func, const void *user_data);
+BCTBX_PUBLIC bctbx_iterator_t * bctbx_map_cchar_find_custom(const bctbx_map_t *map, bctbx_compare_func compare_func, const void *user_data);
 /*return the iterator associated to the key in the map or Null*/
-BCTBX_PUBLIC bctbx_iterator_t * bctbx_map_ullong_find_key(bctbx_map_t *map, unsigned long long key);
-	BCTBX_PUBLIC bctbx_iterator_t * bctbx_map_cchar_find_key(bctbx_map_t *map, const char * key);
+BCTBX_PUBLIC bctbx_iterator_t * bctbx_map_ullong_find_key(const bctbx_map_t *map, unsigned long long key);
+BCTBX_PUBLIC bctbx_iterator_t * bctbx_map_cchar_find_key(const bctbx_map_t *map, const char * key);
 /* return the size of the map*/
 #define bctbx_map_size bctbx_map_ullong_size
 BCTBX_PUBLIC size_t bctbx_map_ullong_size(const bctbx_map_t *map);
