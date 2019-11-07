@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2017  Belledonne Communications, Grenoble France
+# Copyright (C) 2010-2019  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -25,7 +25,7 @@ include(CheckLibraryExists)
 include(CMakePushCheckState)
 include(CMakePackageConfigHelpers)
 
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.11) # we need CMake 3.11 for defining 'package_source' target as custom target
 
 option(ENABLE_SHARED "Build shared library." YES)
 option(ENABLE_STATIC "Build static library." YES)
@@ -45,7 +45,7 @@ if (ENABLE_JNI)
 	set (LANGUAGES_LIST ${LANGUAGES_LIST} Java)
 endif()
 
-project(lime VERSION 0.0.1 LANGUAGES ${LANGUAGES_LIST})
+project(lime VERSION 4.3.0 LANGUAGES ${LANGUAGES_LIST})
 
 set(LIME_SO_VERSION "0")
 set(LIME_VERSION ${PROJECT_VERSION})
