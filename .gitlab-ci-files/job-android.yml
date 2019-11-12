@@ -182,11 +182,11 @@ job-android-ninja-r20:
   extends: .job-android
 
 job-android-ninja-r20-sanitizer:
-  only:
-    variables: ""
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r20
   variables:
+    CMAKE_GENERATOR: Ninja
     CMAKE_OPTIONS: '$CMAKE_OPTIONS -DENABLE_SANITIZER=YES'
-  extends: job-android-ninja-r20
+  extends: job-android
 
 
 test-android-r17c:

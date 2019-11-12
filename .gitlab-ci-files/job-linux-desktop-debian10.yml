@@ -84,11 +84,15 @@ job-debian10-ninja-clang:
   extends: .job-linux-desktop
   
 job-debian10-ninja-clang-sanitizer:
-  only:
-    variables: ""
+  tags: [ "docker-debian10" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:10
+  variables:
+    CMAKE_GENERATOR: Ninja
+    CC: clang
+    CXX: clang++
+  extends: .job-linux-desktop
   variables:
     CMAKE_OPTIONS: '$CMAKE_OPTIONS -DENABLE_SANITIZER=YES'
-  extends: job-debian10-ninja-clang
 
 job-debian10-ninja-clang-novideo:
   only:
