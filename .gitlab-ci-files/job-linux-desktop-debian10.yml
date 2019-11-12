@@ -83,9 +83,11 @@ job-debian10-ninja-clang:
     CXX: clang++
   extends: .job-linux-desktop
   
-job-debian10-ninja-clang-sanitizer:  
+job-debian10-ninja-clang-sanitizer:
+  only:
+    variables: {}
   variables:
-    CMAKE_OPTIONS: $CMAKE_OPTIONS -DENABLE_SANITIZER=YES
+    CMAKE_OPTIONS: '$CMAKE_OPTIONS -DENABLE_SANITIZER=YES'
   extends: job-debian10-ninja-clang
 
 job-debian10-ninja-clang-novideo:

@@ -125,8 +125,10 @@ job-android-ninja-r20-smallsdk:
   extends: job-android-ninja-r20
 
 job-android-ninja-r20-sanitizer:
+  only:
+    variables: {}
   variables:
-    CMAKE_OPTIONS: $CMAKE_OPTIONS -DENABLE_SANITIZER=YES
+    CMAKE_OPTIONS: '$CMAKE_OPTIONS -DENABLE_SANITIZER=YES'
   extends: job-android-ninja-r20
 
 
