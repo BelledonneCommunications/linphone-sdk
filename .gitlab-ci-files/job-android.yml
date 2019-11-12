@@ -129,7 +129,7 @@ job-android-ninja-r20-sanitizer:
   variables:
     CMAKE_GENERATOR: Ninja
     CMAKE_OPTIONS: '$CMAKE_OPTIONS -DENABLE_SANITIZER=YES'
-  extends: job-android
+  extends: .job-android
 
 
 test-android-r17c:
