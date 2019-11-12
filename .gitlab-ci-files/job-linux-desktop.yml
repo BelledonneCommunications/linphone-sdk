@@ -16,6 +16,7 @@
     - echo $CMAKE_GENERATOR
     - echo $DEFAULT_LINUX_CMAKE_OPTIONS 
     - echo $CMAKE_OPTIONS
+    - echo $CMAKE_SANITIZER_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     - echo $ADDITIONAL_BUILD_OPTIONS
   artifacts:
