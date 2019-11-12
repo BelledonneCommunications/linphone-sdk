@@ -85,7 +85,7 @@ job-debian10-ninja-clang:
   
 job-debian10-ninja-clang-sanitizer:  
   variables:
-    CMAKE_OPTIONS: "$CMAKE_OPTIONS -DENABLE_SANITIZER=YES"
+    CMAKE_OPTIONS: $CMAKE_OPTIONS -DENABLE_SANITIZER=YES
   extends: job-debian10-ninja-clang
 
 job-debian10-ninja-clang-novideo:
