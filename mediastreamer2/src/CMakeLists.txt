@@ -263,7 +263,7 @@ if(ENABLE_VIDEO)
 				voip/scaler.c
 			)
 			list(APPEND VOIP_SOURCE_FILES_OBJC
-				videofilters/iosdisplay.m
+				videofilters/iosdisplay.mm
 				videofilters/ioscapture.m
 				voip/ioshardware.m
 			)

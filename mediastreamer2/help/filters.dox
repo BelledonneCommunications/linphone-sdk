@@ -51,7 +51,7 @@
  *     - Android capture: src/android/androidvideo.cpp
  *     - Android display: src/android/android-display.c
  *     - AV Foundation capture (iOS): src/videofilters/ioscapture.m
- *     - AV Foundation display (iOS): src/videofilters/iosdisplay.m
+ *     - AV Foundation display (iOS): src/videofilters/iosdisplay.mm
  *     - DirectShow capture (Windows): src/videofilters/msdscap-mingw.cc
  *     - DrawDib display (Windows): src/videofilters/drawdib-display.c
  *     - External display - Send video to the upper layer: src/videofilters/extdisplay.c

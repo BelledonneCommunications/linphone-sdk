@@ -1,5 +1,5 @@
 /*
- iosdisplay.m
+ iosdisplay.mm
  Copyright (C) 2011 Belledonne Communications, Grenoble, France
 
  This program is free software; you can redistribute it and/or
@@ -29,6 +29,7 @@
 #include "nowebcam.h"
 #include "mediastreamer2/msfilter.h"
 #include "scaler.h"
+#include "bctoolbox/ios_utils.hh"
 
 #import <Foundation/Foundation.h>
 #import <AVFoundation/AVFoundation.h>
@@ -130,8 +131,9 @@
 }
 
 - (void)drawView {
-	/* no opengl es call made when in background */
-	if ([UIApplication sharedApplication].applicationState != UIApplicationStateActive)
+        /* no opengl es call made when in background */
+        auto &iOSUtils = bctoolbox::IOSUtils::getUtils();
+        if (!iOSUtils.isApplicationStateActive())
 		return;
 	if([lock tryLock]) {
 		if(context == nil) {
@@ -311,7 +313,7 @@ static int iosdisplay_set_zoom(MSFilter* f, void* arg) {
 	IOSDisplay* thiz = (IOSDisplay*)f->data;
 	if (!thiz)
 		return 0;
-	ogl_display_zoom(thiz->display_helper, arg);
+	ogl_display_zoom(thiz->display_helper, (float *) arg);
 	return 0;
 }
 

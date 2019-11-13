@@ -25,6 +25,10 @@
 
 #include "opengl_functions.h"
 
+#if defined __cplusplus
+extern "C" {
+#endif
+
 struct opengles_display;
 
 /**
@@ -80,6 +84,10 @@ void ogl_display_render (struct opengles_display *gldisp, int deviceAngleFromPor
  * @params contains the zoom parameters: [0] = zoom_factor, [1][2] = zoom center x/y (between [0,1], relative coords to the gl surface. 0.5/0.5 = center)
  */
 void ogl_display_zoom (struct opengles_display *gldisp, float *params);
+
+#if defined __cplusplus
+};
+#endif
 
 #ifdef __ANDROID__
 #include <jni.h>
