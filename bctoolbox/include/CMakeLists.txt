@@ -35,6 +35,10 @@ set(HEADER_FILES
 	vfs.h
 )
 
+if(APPLE)
+	list(APPEND HEADER_FILES ios_utils.hh)
+endif()
+
 if(MBEDTLS_FOUND OR POLARSSL_FOUND)
 	list(APPEND HEADER_FILES crypto.h)
 endif()

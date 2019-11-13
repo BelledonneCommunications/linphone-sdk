@@ -37,6 +37,9 @@ if(ENABLE_TESTS AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 	if(MBEDTLS_FOUND OR POLARSSL_FOUND)
 		list(APPEND TESTER_SOURCES crypto.c)
 	endif()
+	if(APPLE)
+		list(APPEND TESTER_SOURCES ios_utils.cc)
+	endif()
 
 	string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
 

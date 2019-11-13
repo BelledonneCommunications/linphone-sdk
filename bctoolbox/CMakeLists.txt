@@ -47,6 +47,8 @@ option(ENABLE_STRICT "Pass strict flags to the compiler" ON)
 option(ENABLE_TESTS_COMPONENT "Enable compilation of tests helper library" ON)
 option(ENABLE_TESTS "Enable compilation of tests" ON)
 
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_EXTENSIONS NO)
 
 include(CheckLibraryExists)
 include(CheckSymbolExists)
