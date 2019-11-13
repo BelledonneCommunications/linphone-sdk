@@ -165,7 +165,7 @@ set(BELLE_SIP_SOURCE_FILES_CXX
 )
 if(APPLE)
 	set(BELLE_SIP_SOURCE_FILES_OBJC
-		backgroundtask.m
+		backgroundtask.mm
 	)
 endif()
 
