@@ -26,7 +26,7 @@ include(LinphoneSdkCheckBuildToolsIOS)
 set(LINPHONESDK_IOS_ARCHS "arm64, armv7, x86_64" CACHE STRING "Android architectures to build for: comma-separated list of values in [arm64, armv7, x86_64]")
 set(LINPHONESDK_IOS_BASE_URL "https://www.linphone.org/releases/ios/" CACHE STRING "URL of the repository where the iOS SDK zip files are located")
 set(LINPHONE_SUBSPEC_NAME "basic-frameworks" CACHE STRING "The name of the subspec")
-set(LINPHONE_SUBSPEC_FRAMEWORKS "bctoolbox.framework,belcard.framework,belle-sip.framework,belr.framework,lime.framework,linphone.framework,mediastreamer2.framework,msamr.framework,mscodec2.framework,msopenh264.framework,mssilk.framework,mswebrtc.framework,msx264.framework,ortp.framework"
+set(LINPHONE_SUBSPEC_FRAMEWORKS "bctoolbox.framework,bctoolbox-ios.framework,belcard.framework,belle-sip.framework,belr.framework,lime.framework,linphone.framework,mediastreamer2.framework,msamr.framework,mscodec2.framework,msopenh264.framework,mssilk.framework,mswebrtc.framework,msx264.framework,ortp.framework"
                           CACHE STRING "Frameworks included in the subspec")
 
 set(_dummy_libraries)
