@@ -11,9 +11,9 @@ job-docker-rebuild-centos8-image:
   script:
     - docker pull centos:8
     - cd docker-files
-    - docker build -f ./bc-dev-centos8 -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:8 --rm --no-cache .
+    - docker build -f ./bc-dev-centos8 -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:latestupdated --rm --no-cache .
     - docker login gitlab.linphone.org:4567
-    - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:8
+    - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:latestupdated
 
 job-docker-rebuild-centos8-ms-test-image:
   stage: docker-update-build-ms
@@ -28,7 +28,7 @@ job-docker-rebuild-centos8-ms-test-image:
     GIT_STRATEGY: fetch
     GIT_SUBMODULE_STRATEGY: none
   script:
-    - docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:8
+    - docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:latestupdated
     - cd docker-files
     - docker build -f ./bc-dev-centos8-test-mediastreamer -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8-test-mediastreamer:latestupdated --rm --no-cache .
     - docker login gitlab.linphone.org:4567
@@ -55,7 +55,7 @@ job-docker-rebuild-centos8-liblinphone-test-image:
 
 job-rebuild-centos8-newdocker-makefile-gcc:
   extends: job-centos7-makefile-gcc
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:8
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:latestupdated
   only:
     variables:
       - $DOCKER_UPDATE
@@ -63,14 +63,14 @@ job-rebuild-centos8-newdocker-makefile-gcc:
 
 job-rebuild-centos8-newdocker-ninja-gcc:
   extends: job-centos7-ninja-gcc
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:8
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:latestupdated
   only:
     variables:
       - $DOCKER_UPDATE
 
 job-rebuild-centos8-newdocker-ninja-gcc-novideo:
   extends: job-centos7-ninja-gcc-novideo
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:8
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:latestupdated
   only:
     variables:
       - $DOCKER_UPDATE
