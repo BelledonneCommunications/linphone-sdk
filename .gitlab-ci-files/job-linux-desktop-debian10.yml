@@ -73,9 +73,9 @@ job-debian10-ninja-gcc-smallsdk:
 job-debian10-ninja-clang:
 
   tags: [ "docker-debian10" ]
-#  only:
-#    variables:
-#      - $NIGHTLY_MASTER
+  only:
+    variables:
+      - $NIGHTLY_MASTER
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:10
   variables:
     CMAKE_GENERATOR: Ninja
