@@ -32,7 +32,7 @@ RUN apt-get update && \
 ENV CMAKE3_HOME /opt/cmake3
 RUN mkdir $CMAKE3_HOME && \
     curl --fail --silent --show-error \
-         --location https://cmake.org/files/v3.10/cmake-3.10.0-Linux-x86_64.tar.gz | \
+         --location https://cmake.org/files/v3.11/cmake-3.11.4-Linux-x86_64.tar.gz | \
     tar --extract --gzip --no-same-owner --file - --strip-components=1 --directory $CMAKE3_HOME
 
 # Get the Android tools
