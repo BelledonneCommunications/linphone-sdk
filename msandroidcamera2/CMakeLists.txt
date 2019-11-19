@@ -21,6 +21,36 @@
 ############################################################################
 
 cmake_minimum_required(VERSION 3.0)
+
+#Builds camera2 with android sdk 24 while others projects are builds with another version
+#(defined in cmake builer toolchain android file)
+#This systems ensures a retrocompatible build, and the activation of new features ONLY
+#on devices supporting it
+set(ANDROID_PLATFORM "android-24" CACHE STRING "" FORCE)
+
+#Needed to take priority over cache to redefine android sdk version with ANDROID_PLATFORM
+#Otherwize, the sdk version is replaced by the cmake builder toolchain android default one
+set(CMAKE_C_FLAGS "")
+set(CMAKE_CXX_FLAGS "")
+set(CMAKE_EXE_LINKER_FLAGS "")
+set(CMAKE_SHARED_LINKER_FLAGS "")
+set(CMAKE_MODULE_LINKER_FLAGS "")
+
+if(ENABLE_SANITIZER)
+
+	message(WARNING "CODE DUPLICATION : duplication of sanitizer flags ! TODO use config-sanitizer instead for linphone-sdk 5.0 ! ")
+
+	set(sanitize_flags "-fsanitize=address,undefined -fno-omit-frame-pointer -fno-optimize-sibling-calls -Wl,-llog")
+	set(sanitize_linker_flags "-fsanitize=address,undefined")
+
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${sanitize_flags}")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${sanitize_flags}")
+
+	set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} ${sanitize_linker_flags})
+	set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${sanitize_linker_flags}")
+	set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${sanitize_linker_flags}")
+endif()
+
 project(MSAndroidCamera2 VERSION 0.1 LANGUAGES CXX)
 
 option(ENABLE_SHARED "Build shared library." YES)
