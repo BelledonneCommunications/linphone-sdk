@@ -50,29 +50,31 @@ find_library(MBEDCRYPTO_LIBRARY
 	NAMES mbedcrypto
 )
 
+cmake_push_check_state(RESET)
+set(CMAKE_REQUIRED_INCLUDES ${MBEDTLS_INCLUDE_DIRS} ${CMAKE_REQUIRED_INCLUDES_${BUILD_TYPE}})
+list(APPEND CMAKE_REQUIRED_LIBRARIES ${MBEDTLS_LIBRARY} ${MBEDX509_LIBRARY} ${MBEDCRYPTO_LIBRARY})
+
 # check we have a mbedTLS version 2 or above(all functions are prefixed mbedtls_)
 if(MBEDTLS_LIBRARY AND MBEDX509_LIBRARY AND MBEDCRYPTO_LIBRARY)
-	cmake_push_check_state(RESET)
-	set(CMAKE_REQUIRED_INCLUDES ${MBEDTLS_INCLUDE_DIRS})
-	set(CMAKE_REQUIRED_LIBRARIES ${MBEDTLS_LIBRARY} ${MBEDX509_LIBRARY} ${MBEDCRYPTO_LIBRARY})
 	check_symbol_exists(mbedtls_ssl_init "mbedtls/ssl.h" MBEDTLS_V2)
-	cmake_pop_check_state()
-endif()
+  if(MBEDTLS_V2)
+	  set (MBEDTLS_LIBRARIES
+		  ${MBEDTLS_LIBRARY}
+		  ${MBEDX509_LIBRARY}
+		  ${MBEDCRYPTO_LIBRARY}
+	  )
+  else()
+    message ("MESSAGE: NO MBEDTLS_V2")
+    message ("MESSAGE: MBEDTLS_LIBRARY=" ${MBEDTLS_LIBRARY})
+    message ("MESSAGE: MBEDX509_LIBRARY=" ${MBEDX509_LIBRARY})
+    message ("MESSAGE: MBEDCRYPTO_LIBRARY=" ${MBEDCRYPTO_LIBRARY})
+    
+  endif()
 
-if(MBEDTLS_V2)
-	set (MBEDTLS_LIBRARIES
-		${MBEDTLS_LIBRARY}
-		${MBEDX509_LIBRARY}
-		${MBEDCRYPTO_LIBRARY}
-	)
 endif()
 
 if(MBEDTLS_LIBRARIES)
-	cmake_push_check_state(RESET)
-	set(CMAKE_REQUIRED_INCLUDES ${MBEDTLS_INCLUDE_DIRS})
-	set(CMAKE_REQUIRED_LIBRARIES ${MBEDTLS_LIBRARIES})
 	check_symbol_exists(mbedtls_ssl_get_dtls_srtp_protection_profile "mbedtls/ssl.h" HAVE_SSL_GET_DTLS_SRTP_PROTECTION_PROFILE)
-	cmake_pop_check_state()
 endif()
 
 include(FindPackageHandleStandardArgs)
@@ -80,5 +82,9 @@ find_package_handle_standard_args(MbedTLS
 	DEFAULT_MSG
 	MBEDTLS_INCLUDE_DIRS MBEDTLS_LIBRARIES
 )
+
+cmake_pop_check_state()
+
+
 
 mark_as_advanced(MBEDTLS_INCLUDE_DIRS MBEDTLS_LIBRARIES HAVE_SSL_GET_DTLS_SRTP_PROTECTION_PROFILE)
