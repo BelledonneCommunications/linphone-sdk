@@ -468,9 +468,9 @@ static void video_capture_detect(MSWebCamManager *obj){
 		}
 		char *idstring = bctbx_strdup_printf("%sFacingCamera%d", facing, c->id);
 		cam->id = ms_strdup(idstring);
-		bctbx_free(idstring);
 		ms_web_cam_manager_add_cam(obj,cam);
 		ms_message("camera created: id=%d frontFacing=%d orientation=%d [msid:%s]\n", c->id, c->frontFacing, c->orientation, idstring);
+		bctbx_free(idstring);
 	}
 	env->DeleteLocalRef(indexes);
 	env->DeleteLocalRef(frontFacing);
