@@ -52,6 +52,9 @@ option(ENABLE_TEST "Compile BCUnit internal test program" OFF)
 option(ENABLE_MEMTRACE "Enable BCUnit internal memory tracking" OFF)
 option(ENABLE_DEPRECATED "Enable use of deprecated v1.1 names" OFF)
 
+set(CMAKE_REQUIRED_FLAGS "${CMAKE_C_FLAGS_${CMAKE_BUILD_TYPE}}")
+set(CMAKE_REQUIRED_LINK_OPTIONS "${CMAKE_EXE_LINKER_FLAGS_${CMAKE_BUILD_TYPE}}")
+
 include(GNUInstallDirs)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
