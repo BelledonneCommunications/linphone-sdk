@@ -85,36 +85,6 @@ BelCardImpp::BelCardImpp() : BelCardProperty() {
 	setName("IMPP");
 }
 
-void BelCardImpp::setValue(const string &value) {
-	bctbx_noescape_rules_t uri = {0};
-	bctbx_noescape_rules_add_alfanums(uri);
-	bctbx_noescape_rules_add_list(uri, ":@.-_~%!$&'()*+,;=");
-
-	// Escape characters if required
-	char * escaped_value = bctbx_escape(value.c_str(), uri);
-	_escaped_value = string(escaped_value);
-	bctbx_free(escaped_value);
-
-	// Unescape previously escaped characters
-	char * unescaped_value = bctbx_unescaped_string(value.c_str());
-	string new_value = string(unescaped_value);
-	bctbx_free(unescaped_value);
-
-	BelCardProperty::setValue(new_value);
-}
-
-void BelCardImpp::serialize(ostream& output) const {
-	if (getGroup().length() > 0) {
-		output << getGroup() << ".";
-	}
-
-	output << getName();
-	for (auto it = getParams().begin(); it != getParams().end(); ++it) {
-		output << ";" << (**it);
-	}
-	output << ":" << _escaped_value << "\r\n";
-}
-
 shared_ptr<BelCardLang> BelCardLang::parse(const string& input) {
 	return BelCardProperty::parseProperty<BelCardLang>("LANG", input);
 }
