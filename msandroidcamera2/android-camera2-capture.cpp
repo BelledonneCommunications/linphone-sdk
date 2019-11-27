@@ -201,7 +201,9 @@ static void android_camera2_capture_on_image_available(void *context, AImageRead
   	media_status_t status = AImageReader_getFormat(reader, &format);
 	if (format == d->captureFormat) {
 		AImage *image = nullptr;
-		status = AImageReader_acquireLatestImage(reader, &image);
+		// Using AImageReader_acquireLatestImage will lead to the following log if maxImages given to ImageReader is 1
+		// W/NdkImageReader: Unable to acquire a lockedBuffer, very likely client tries to lock more than maxImages buffers
+		status = AImageReader_acquireNextImage(reader, &image);
 		if (status == AMEDIA_OK) {
 			if (ms_video_capture_new_frame(&d->fpsControl, d->filter->ticker->time)) {
 				mblk_t *m = android_camera2_capture_image_to_mblkt(d, image);
