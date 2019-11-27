@@ -138,6 +138,49 @@ static void android_camera2_capture_session_on_closed(void *context, ACameraCapt
 
 /* ************************************************************************* */
 
+// https://developer.android.com/ndk/reference/group/camera.html
+static const char* android_camera2_status_to_string(camera_status_t status) {
+	if (status == ACAMERA_OK) {
+		return "ACAMERA_OK";
+	} else if (status == ACAMERA_ERROR_BASE) {
+		return "ACAMERA_ERROR_BASE";
+	} else if (status == ACAMERA_ERROR_UNKNOWN) {
+		return "ACAMERA_ERROR_UNKNOWN";
+	} else if (status == ACAMERA_ERROR_INVALID_PARAMETER) {
+		return "ACAMERA_ERROR_INVALID_PARAMETER";
+	} else if (status == ACAMERA_ERROR_CAMERA_DISCONNECTED) {
+		return "ACAMERA_ERROR_CAMERA_DISCONNECTED";
+	} else if (status == ACAMERA_ERROR_NOT_ENOUGH_MEMORY) {
+		return "ACAMERA_ERROR_NOT_ENOUGH_MEMORY";
+	} else if (status == ACAMERA_ERROR_METADATA_NOT_FOUND) {
+		return "ACAMERA_ERROR_METADATA_NOT_FOUND";
+	} else if (status == ACAMERA_ERROR_CAMERA_DEVICE) {
+		return "ACAMERA_ERROR_CAMERA_DEVICE";
+	} else if (status == ACAMERA_ERROR_CAMERA_SERVICE) {
+		return "ACAMERA_ERROR_CAMERA_SERVICE";
+	} else if (status == ACAMERA_ERROR_SESSION_CLOSED) {
+		return "ACAMERA_ERROR_SESSION_CLOSED";
+	} else if (status == ACAMERA_ERROR_INVALID_OPERATION) {
+		return "ACAMERA_ERROR_INVALID_OPERATION";
+	} else if (status == ACAMERA_ERROR_STREAM_CONFIGURE_FAIL) {
+		return "ACAMERA_ERROR_STREAM_CONFIGURE_FAIL";
+	} else if (status == ACAMERA_ERROR_CAMERA_IN_USE) {
+		return "ACAMERA_ERROR_CAMERA_IN_USE";
+	} else if (status == ACAMERA_ERROR_MAX_CAMERA_IN_USE) {
+		return "ACAMERA_ERROR_MAX_CAMERA_IN_USE";
+	} else if (status == ACAMERA_ERROR_CAMERA_DISABLED) {
+		return "ACAMERA_ERROR_CAMERA_DISABLED";
+	} else if (status == ACAMERA_ERROR_PERMISSION_DENIED) {
+		return "ACAMERA_ERROR_PERMISSION_DENIED";
+	} else if (status == -10014) { // Can't use ACAMERA_ERROR_UNSUPPORTED_OPERATION, not present in NDK 17c...
+		return "ACAMERA_ERROR_UNSUPPORTED_OPERATION";
+	}
+
+	return "UNKNOWN";
+}
+
+/* ************************************************************************* */
+
 static int32_t android_camera2_capture_get_orientation(AndroidCamera2Context *d) {
 	int32_t orientation = d->device->orientation;
 	if (d->device->back_facing) {
@@ -269,7 +312,7 @@ static void android_camera2_capture_open_camera(AndroidCamera2Context *d) {
     ACameraManager *cameraManager = ACameraManager_create();
 	camera_status_t camera_status = ACameraManager_openCamera(cameraManager, d->device->camId, &d->deviceStateCallbacks, &cameraDevice);
 	if (camera_status != ACAMERA_OK) {
-		ms_error("[Camera2 Capture] Failed to open camera %s, error is %i", d->device->camId, camera_status);
+		ms_error("[Camera2 Capture] Failed to open camera %s, error is %s", d->device->camId, android_camera2_status_to_string(camera_status));
 		return;
     }
 	
@@ -285,7 +328,7 @@ static void android_camera2_capture_close_camera(AndroidCamera2Context *d) {
     if (d->cameraDevice) {
         camera_status_t camera_status = ACameraDevice_close(d->cameraDevice);
         if (camera_status != ACAMERA_OK) {
-            ms_error("[Camera2 Capture] Failed to close camera %s, error is %i", d->device->camId, camera_status);
+            ms_error("[Camera2 Capture] Failed to close camera %s, error is %s", d->device->camId, android_camera2_status_to_string(camera_status));
         } else {
 			ms_message("[Camera2 Capture] Camera closed %s", d->device->camId);
 		}
@@ -313,9 +356,14 @@ static void android_camera2_capture_start(AndroidCamera2Context *d) {
 		android_camera2_capture_open_camera(d);
 	}
 
+	if (!d->cameraDevice) {
+		ms_error("[Camera2 Capture] Couldn't open camera %s, aborting capture",  d->device->camId);
+		return;
+	}
+
 	camera_status = ACaptureSessionOutputContainer_create(&d->captureSessionOutputContainer);
 	if (camera_status != ACAMERA_OK) {
-		ms_error("[Camera2 Capture] Failed to create capture session output container, error is %i", camera_status);
+		ms_error("[Camera2 Capture] Failed to create capture session output container, error is %s", android_camera2_status_to_string(camera_status));
 	}
 	d->captureSessionStateCallbacks.onReady = android_camera2_capture_session_on_ready;
 	d->captureSessionStateCallbacks.onActive = android_camera2_capture_session_on_active;
@@ -323,27 +371,27 @@ static void android_camera2_capture_start(AndroidCamera2Context *d) {
 
 	camera_status = ACameraDevice_createCaptureRequest(d->cameraDevice, TEMPLATE_RECORD, &d->capturePreviewRequest);
 	if (camera_status != ACAMERA_OK) {
-		ms_error("[Camera2 Capture] Failed to create capture preview request, error is %i", camera_status);
+		ms_error("[Camera2 Capture] Failed to create capture preview request, error is %s", android_camera2_status_to_string(camera_status));
 	}
 
 	camera_status = ACameraOutputTarget_create(d->nativeWindow, &d->cameraPreviewOutputTarget);
 	if (camera_status != ACAMERA_OK) {
-		ms_error("[Camera2 Capture] Failed to create output target, error is %i", camera_status);
+		ms_error("[Camera2 Capture] Failed to create output target, error is %s", android_camera2_status_to_string(camera_status));
 	}
 
 	camera_status = ACaptureRequest_addTarget(d->capturePreviewRequest, d->cameraPreviewOutputTarget);
 	if (camera_status != ACAMERA_OK) {
-		ms_error("[Camera2 Capture] Failed to add output target to capture request, error is %i", camera_status);
+		ms_error("[Camera2 Capture] Failed to add output target to capture request, error is %s", android_camera2_status_to_string(camera_status));
 	}
 
 	camera_status = ACaptureSessionOutput_create(d->nativeWindow, &d->sessionPreviewOutput);
 	if (camera_status != ACAMERA_OK) {
-		ms_error("[Camera2 Capture] Failed to create capture session output, error is %i", camera_status);
+		ms_error("[Camera2 Capture] Failed to create capture session output, error is %s", android_camera2_status_to_string(camera_status));
 	}
 
 	camera_status = ACaptureSessionOutputContainer_add(d->captureSessionOutputContainer, d->sessionPreviewOutput);
 	if (camera_status != ACAMERA_OK) {
-		ms_error("[Camera2 Capture] Failed to add capture session output to container, error is %i", camera_status);
+		ms_error("[Camera2 Capture] Failed to add capture session output to container, error is %s", android_camera2_status_to_string(camera_status));
 	}
 
 	media_status_t status = AImageReader_new(d->captureSize.width, d->captureSize.height, d->captureFormat, 1, &d->imageReader);
@@ -371,37 +419,37 @@ static void android_camera2_capture_start(AndroidCamera2Context *d) {
 
 	camera_status = ACameraOutputTarget_create(d->captureWindow, &d->cameraCaptureOutputTarget);
 	if (camera_status != ACAMERA_OK) {
-		ms_error("[Camera2 Capture] Couldn't create output target, error is %i", camera_status);
+		ms_error("[Camera2 Capture] Couldn't create output target, error is %s", android_camera2_status_to_string(camera_status));
 		return;
 	}
 
 	camera_status = ACaptureRequest_addTarget(d->capturePreviewRequest, d->cameraCaptureOutputTarget);
 	if (camera_status != ACAMERA_OK) {
-		ms_error("[Camera2 Capture] Couldn't add output target to capture request, error is %i", camera_status);
+		ms_error("[Camera2 Capture] Couldn't add output target to capture request, error is %s", android_camera2_status_to_string(camera_status));
 		return;
 	}
 
 	camera_status = ACaptureSessionOutput_create(d->captureWindow, &d->sessionCaptureOutput);
 	if (camera_status != ACAMERA_OK) {
-		ms_error("[Camera2 Capture] Couldn't create capture session output, error is %i", camera_status);
+		ms_error("[Camera2 Capture] Couldn't create capture session output, error is %s", android_camera2_status_to_string(camera_status));
 		return;
 	}
 
 	camera_status = ACaptureSessionOutputContainer_add(d->captureSessionOutputContainer, d->sessionCaptureOutput);
 	if (camera_status != ACAMERA_OK) {
-		ms_error("[Camera2 Capture] Couldn't add capture session output to container, error is %i", camera_status);
+		ms_error("[Camera2 Capture] Couldn't add capture session output to container, error is %s", android_camera2_status_to_string(camera_status));
 		return;
 	}
 
 	camera_status = ACameraDevice_createCaptureSession(d->cameraDevice, d->captureSessionOutputContainer, &d->captureSessionStateCallbacks, &d->captureSession);
 	if (camera_status != ACAMERA_OK) {
-		ms_error("[Camera2 Capture] Couldn't create capture session, error is %i", camera_status);
+		ms_error("[Camera2 Capture] Couldn't create capture session, error is %s", android_camera2_status_to_string(camera_status));
 		return;
 	}
 
 	camera_status = ACameraCaptureSession_setRepeatingRequest(d->captureSession, NULL, 1, &d->capturePreviewRequest, NULL);
 	if (camera_status != ACAMERA_OK) {
-		ms_error("[Camera2 Capture] Couldn't set capture session repeating request");
+		ms_error("[Camera2 Capture] Couldn't set capture session repeating request, error is %s", android_camera2_status_to_string(camera_status));
 		return;
 	}
 
@@ -421,12 +469,12 @@ static void android_camera2_capture_stop(AndroidCamera2Context *d) {
 	if (d->captureSession) {
 		camera_status_t camera_status = ACameraCaptureSession_abortCaptures(d->captureSession);
 		if (camera_status != ACAMERA_OK) {
-			ms_error("[Camera2 Capture] Couldn't abort captures on session");
+			ms_error("[Camera2 Capture] Couldn't abort captures on session, error is %s", android_camera2_status_to_string(camera_status));
 		}
 
 		camera_status = ACameraCaptureSession_stopRepeating(d->captureSession);
 		if (camera_status != ACAMERA_OK) {
-			ms_error("[Camera2 Capture] Couldn't stop repeating session");
+			ms_error("[Camera2 Capture] Couldn't stop repeating session, error is %s", android_camera2_status_to_string(camera_status));
 		}
 
 		ACameraCaptureSession_close(d->captureSession);
@@ -576,7 +624,7 @@ static void android_camera2_capture_choose_best_configurations(AndroidCamera2Con
     ACameraManager *cameraManager = ACameraManager_create();
 	camera_status_t camera_status = ACameraManager_getCameraCharacteristics(cameraManager, d->device->camId, &cameraMetadata);
 	if (camera_status != ACAMERA_OK) {
-		ms_error("[Camera2 Capture] Failed to get camera characteristics, error is %i", camera_status);
+		ms_error("[Camera2 Capture] Failed to get camera characteristics, error is %s", android_camera2_status_to_string(camera_status));
 		return;
 	}
 
