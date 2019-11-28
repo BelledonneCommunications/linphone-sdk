@@ -37,6 +37,6 @@ include:
 
 stages:
  - build
-# - test
+ - test
 # - package
 # - deploy
