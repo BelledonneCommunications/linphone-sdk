@@ -88,15 +88,16 @@ job-ios-ninja-smallsdk:
 #################################################
 job-ios-xcode:
 
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $DEPLOY_RUN_IOS
+#  only:
+#    variables:
+#      - $NIGHTLY_MASTER
+#      - $DEPLOY_RUN_IOS
 
   variables:
     CMAKE_GENERATOR: Xcode
     CMAKE_OPTIONS: -DLINPHONESDK_IOS_BASE_URL=$IOS_SNAPSHOTS_URL -DENABLE_SWIFT_WRAPPER=YES -DENABLE_JAZZY_DOC=YES -DENABLE_UNIT_TESTS=YES
     ADDITIONAL_BUILD_CONFIGURATIONS: --config RelWithDebInfo
+    ARCHS_OPTIONS: -DLINPHONESDK_IOS_ARCHS=arm64,armv7
     ADDITIONAL_BUILD_OPTIONS: -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=$MAX_NUMBER_TASK
 
   extends: .job-ios
