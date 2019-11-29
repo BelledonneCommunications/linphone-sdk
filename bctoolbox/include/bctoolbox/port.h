@@ -364,10 +364,16 @@ void bctbx_set_memory_functions(BctoolboxMemoryFunctions *functions);
 
 BCTBX_PUBLIC int bctbx_socket_set_non_blocking(bctbx_socket_t sock);
 
+#ifdef __GNUC__
+#	define BCTBX_PRINTF_LIKE(format_pos, args_pos) __attribute__ ((format (printf, format_pos, args_pos)))
+#else
+#	define BCTBX_PRINTF_LIKE(format_pos, args_pos)
+#endif
+
 BCTBX_PUBLIC char *bctbx_strndup(const char *str,int n);
-BCTBX_PUBLIC char *bctbx_strdup_printf(const char *fmt,...);
+BCTBX_PUBLIC char *bctbx_strdup_printf(const char *fmt,...) BCTBX_PRINTF_LIKE(1, 2);
 BCTBX_PUBLIC char *bctbx_strdup_vprintf(const char *fmt, va_list ap);
-BCTBX_PUBLIC char *bctbx_strcat_printf(char *dst, const char *fmt,...);
+BCTBX_PUBLIC char *bctbx_strcat_printf(char *dst, const char *fmt,...) BCTBX_PRINTF_LIKE(2, 3);
 BCTBX_PUBLIC char *bctbx_strcat_vprintf(char *dst, const char *fmt, va_list ap);
 BCTBX_PUBLIC char *bctbx_concat(const char *str, ...);
 BCTBX_PUBLIC char *bctbx_replace(char *str, char c, char n);
