@@ -1,0 +1,151 @@
+#################################################
+# Makefile
+#################################################
+
+
+job-centos8-makefile-gcc:
+
+  tags: [ "docker-centos8" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:8
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+  variables:
+    CMAKE_GENERATOR: Unix Makefiles
+    CC: gcc
+    CXX: g++
+  extends: .job-linux-desktop
+
+
+job-centos8-makefile-clang:
+
+  tags: [ "docker-centos8" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:8
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+  variables:
+    CMAKE_GENERATOR: Unix Makefiles
+    CC: clang
+    CXX: clang++
+  extends: .job-linux-desktop
+
+
+#################################################
+# Ninja
+#################################################
+
+
+job-centos8-ninja-gcc:
+
+  tags: [ "docker-centos8" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:8
+  variables:
+    CMAKE_GENERATOR: Ninja
+    CC: gcc
+    CXX: g++
+  extends: .job-linux-desktop
+
+
+job-centos8-ninja-gcc-novideo:
+
+  tags: [ "docker-centos8" ]
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+  variables:
+    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+  extends: job-centos8-ninja-gcc
+
+
+job-centos8-ninja-clang:
+
+  tags: [ "docker-centos8" ]
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:8
+  variables:
+    CMAKE_GENERATOR: Ninja
+    CC: clang
+    CXX: clang++
+    CMAKE_OPTIONS: -DENABLE_LIME=ON
+  extends: .job-linux-desktop
+
+
+job-centos8-ninja-clang-novideo:
+
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+  variables:
+    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+  extends: job-centos8-ninja-clang
+
+
+#################################################
+# TESTS
+#################################################
+
+
+test-bctoolbox-centos8:
+  extends: .test-bctoolbox
+  dependencies:
+    - job-centos8-ninja-gcc
+  tags: [ "docker-test-centos8-nuc" ]
+  variables:
+    PLATFORM: linux-centos8
+
+test-bellesip-centos8:
+  extends: .test-bellesip
+  dependencies:
+    - job-centos8-ninja-gcc
+  tags: [ "docker-test-centos8-nuc" ]
+  variables:
+    PLATFORM: linux-centos8
+
+test-belr-centos8:
+  extends: .test-belr
+  dependencies:
+    - job-centos8-ninja-gcc
+  tags: [ "docker-test-centos8-nuc" ]
+  variables:
+    PLATFORM: linux-centos8
+
+test-belcard-centos8:
+  extends: .test-belcard
+  dependencies:
+    - job-centos8-ninja-gcc
+  tags: [ "docker-test-centos8-nuc" ]
+  variables:
+    PLATFORM: linux-centos8
+
+test-bzrtp-centos8:
+  extends: .test-bzrtp
+  dependencies:
+    - job-centos8-ninja-gcc
+  tags: [ "docker-test-centos8-nuc" ]
+  variables:
+    PLATFORM: linux-centos8
+
+#test-mediastreamer-centos8:
+#  tags: [ "docker-test-centos8-liblinphone-nuc" ]
+#  extends: .test
+#  dependencies:
+#    - job-centos8-ninja-gcc
+#  variables:
+#    TESTER_BIN: "mediastreamer2_tester"
+#    PULSEAUDIO: "pulseaudio -D -L module-virtual-source --exit-idle-time=-1"
+#    PULSEAUDIO_KILL: "pulseaudio --kill"
+#    LOG_PATTERN: "logMediastreamerAllPar"
+#    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
+#    SET_CAP_SYS_NICE_NET_ADMIN_MS: "sudo setcap cap_net_admin,cap_sys_nice+ep ./${TESTER_BIN}"
+#    PLATFORM: linux-centos8
+
+test-liblinphone-centos8:
+  tags: [ "docker-test-centos8-liblinphone-nuc" ]
+  extends: .test-liblinphone
+  dependencies:
+    - job-centos8-ninja-gcc
+  variables:
+    PLATFORM: linux-centos8
