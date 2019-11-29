@@ -280,6 +280,10 @@ void media_stream_set_ice_check_list(MediaStream *stream, IceCheckList *cl) {
 		ice_check_list_set_rtp_session(stream->ice_check_list, stream->sessions.rtp_session);
 		stun_enabled = FALSE;
 	}
+	if (stream->sessions.rtp_session->bundle && !stream->sessions.rtp_session->is_primary){
+		ms_message("Disabling stun sending for rtp session %p", stream->sessions.rtp_session);
+		stun_enabled = FALSE;
+	}
 	if (stream->rtpsend != NULL) {
 		ms_filter_call_method(stream->rtpsend, MS_RTP_SEND_ENABLE_STUN, &stun_enabled);
 	}

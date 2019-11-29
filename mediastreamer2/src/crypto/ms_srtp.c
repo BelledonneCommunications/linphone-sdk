@@ -291,8 +291,8 @@ static int ms_set_srtp_crypto_policy(MSCryptoSuite suite, crypto_policy_t *polic
 			break;
 		case MS_AES_256_SHA1_80: // For backward compatibility
 		case MS_AES_CM_256_SHA1_80:
-		    crypto_policy_set_aes_cm_256_hmac_sha1_80(policy);
-            break;
+			crypto_policy_set_aes_cm_256_hmac_sha1_80(policy);
+			break;
 		case MS_AES_256_SHA1_32:
 			crypto_policy_set_aes_cm_256_hmac_sha1_32(policy);
 			break;
@@ -335,8 +335,10 @@ static int ms_add_srtp_stream(srtp_t srtp, MSCryptoSuite suite, uint32_t ssrc, c
 	if (is_send)
 		policy.allow_repeat_tx=1; /*necessary for telephone-events*/
 
-	ssrc_conf.type=is_send ? ssrc_specific:ssrc_any_inbound;
-	ssrc_conf.value=ssrc;
+	/* When RTP bundle mode is used, the srtp_t is used to encrypt or decrypt several RTP streams (SSRC) at the same time.
+	 * This is why we use the "template" mode of libsrtp, using ssrc_any_inbound and ssrc_any_outbound */
+	ssrc_conf.type=is_send ? ssrc_any_outbound : ssrc_any_inbound;
+	ssrc_conf.value=0;
 
 	policy.ssrc = ssrc_conf;
 	policy.key = (uint8_t *)key;

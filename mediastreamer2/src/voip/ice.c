@@ -606,16 +606,15 @@ bool_t ice_check_list_selected_valid_remote_candidate(const IceCheckList *cl, Ic
 	}
 	if (rtcp_candidate != NULL) {
 		if (rtp_session_rtcp_mux_enabled(cl->rtp_session)) {
-			componentID = 1;
+			*rtcp_candidate = NULL;
 		} else {
 			componentID = 2;
+			elem = bctbx_list_find_custom(cl->valid_list, (bctbx_compare_func)ice_find_selected_valid_pair_from_componentID, &componentID);
+			if (elem == NULL) return FALSE;
+			valid_pair = (IceValidCandidatePair *)elem->data;
+			*rtcp_candidate = valid_pair->valid->remote;
 		}
-		elem = bctbx_list_find_custom(cl->valid_list, (bctbx_compare_func)ice_find_selected_valid_pair_from_componentID, &componentID);
-		if (elem == NULL) return FALSE;
-		valid_pair = (IceValidCandidatePair *)elem->data;
-		*rtcp_candidate = valid_pair->valid->remote;
 	}
-
 	return TRUE;
 }
 
@@ -3835,7 +3834,9 @@ static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session, b
 				result = ice_check_list_selected_valid_remote_candidate(cl, &rtp_remote_candidate, &rtcp_remote_candidate);
 				if (result == TRUE) {
 					/*Switch the destination of the mediastream to the destination selected by ICE*/
-					rtp_session_set_remote_addr_full(rtp_session, rtp_remote_candidate->taddr.ip, rtp_remote_candidate->taddr.port, rtcp_remote_candidate->taddr.ip, rtcp_remote_candidate->taddr.port);
+					rtp_session_set_remote_addr_full(rtp_session, rtp_remote_candidate->taddr.ip, rtp_remote_candidate->taddr.port, 
+								rtcp_remote_candidate ? rtcp_remote_candidate->taddr.ip : rtp_remote_candidate->taddr.ip, 
+								rtcp_remote_candidate ? rtcp_remote_candidate->taddr.port : rtp_remote_candidate->taddr.port);
 
 					if (cl->session->turn_enabled) {
 						ice_check_list_selected_valid_local_candidate(cl, &rtp_local_candidate, &rtcp_local_candidate);
@@ -3850,7 +3851,7 @@ static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session, b
 						}
 						if (rtcp_local_candidate) {
 							ms_turn_context_set_force_rtp_sending_via_relay(ice_get_turn_context_from_check_list_componentID(cl, 2), rtcp_local_candidate->type == ICT_RelayedCandidate);
-							if (rtcp_local_candidate->type == ICT_RelayedCandidate) {
+							if (rtcp_local_candidate->type == ICT_RelayedCandidate && rtcp_remote_candidate) {
 								rtp_session_get_transports(cl->rtp_session, NULL, &rtptp);
 								ice_check_list_create_turn_channel(cl, rtptp, (struct sockaddr *)&cl->rtp_session->rtcp.gs.loc_addr, cl->rtp_session->rtcp.gs.loc_addrlen, &rtcp_remote_candidate->taddr, 2);
 							} else {

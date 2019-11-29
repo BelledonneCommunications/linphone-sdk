@@ -193,9 +193,9 @@ static void video_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
 			switch (rtcp_PSFB_get_type(m)) {
 				case RTCP_PSFB_PLI:
 
-                    stream->ms_video_stat.counter_rcvd_pli++;
+					stream->ms_video_stat.counter_rcvd_pli++;
 					ms_filter_call_method_noarg(stream->ms.encoder, MS_VIDEO_ENCODER_NOTIFY_PLI);
-                    ms_message("Got RTCP PLI on video stream [%p] SSRC [%x] count %d", 
+					ms_message("Got RTCP PLI on video stream [%p] SSRC [%x] count %d", 
 						stream, rtcp_PSFB_get_media_source_ssrc(m), stream->ms_video_stat.counter_rcvd_pli);
 					break;
 				case RTCP_PSFB_SLI:
@@ -208,8 +208,8 @@ static void video_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
 						sli.number = rtcp_fb_sli_fci_get_number(fci);
 						sli.picture_id = rtcp_fb_sli_fci_get_picture_id(fci);
 						ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_NOTIFY_SLI, &sli);
-                        stream->ms_video_stat.counter_rcvd_sli++;
-                        ms_message("video_stream_process_rtcp stream [%p] SLI count %d", stream,  stream->ms_video_stat.counter_rcvd_sli);
+						stream->ms_video_stat.counter_rcvd_sli++;
+						ms_message("video_stream_process_rtcp stream [%p] SLI count %d", stream,  stream->ms_video_stat.counter_rcvd_sli);
 
 					}
 					break;
@@ -220,8 +220,8 @@ static void video_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
 					rpsi.bit_string = rtcp_fb_rpsi_fci_get_bit_string(fci);
 					rpsi.bit_string_len = rtcp_PSFB_rpsi_get_fci_bit_string_len(m);
 					ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_NOTIFY_RPSI, &rpsi);
-                    stream->ms_video_stat.counter_rcvd_rpsi++;
-                    ms_message("video_stream_process_rtcp stream [%p] RPSI count %d", stream,  stream->ms_video_stat.counter_rcvd_rpsi);
+					stream->ms_video_stat.counter_rcvd_rpsi++;
+					ms_message("video_stream_process_rtcp stream [%p] RPSI count %d", stream,  stream->ms_video_stat.counter_rcvd_rpsi);
 				}
 					break;
 				default:
