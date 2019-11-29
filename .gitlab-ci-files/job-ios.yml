@@ -88,10 +88,10 @@ job-ios-ninja-smallsdk:
 #################################################
 job-ios-xcode:
 
-#  only:
-#    variables:
-#      - $NIGHTLY_MASTER
-#      - $DEPLOY_RUN_IOS
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+      - $DEPLOY_RUN_IOS
 
   variables:
     CMAKE_GENERATOR: Xcode
