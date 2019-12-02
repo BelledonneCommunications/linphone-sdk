@@ -14,13 +14,24 @@
     - echo $CMAKE_OPTIONS
     - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9 $DEFAULT_CMAKE_OPTIONS $XCODE_OPTIONS $CMAKE_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
-    - git describe > gitdescribe.txt  
+    #used to know the right zip to pick up in tests stage. we parse the git status command to stop at the number of commits
+    #and we then use a glob in test stage to get the right archive
+    #using only the git describe doesn't work because the commit hashes don't match
+    - GIT_DESCRIBE_WO_HASH=$(git describe | sed 's/-[a-zA-Z0-9]*$//')
+    - echo $GIT_DESCRIBE_WO_HASH
+    - GIT_COMMIT_NUMBER=$(echo $GIT_DESCRIBE_WO_HASH | sed 's/^.....-//' | sed 's/^[a-z]*-//')
+    - echo $GIT_COMMIT_NUMBER
+    - GIT_COMMIT_HASH=+$(git rev-parse --short HEAD)
+    - echo $GIT_COMMIT_HASH
+    - GIT_DESCRIBE_SHORT=$(git describe --abbrev=0)
+    - echo $GIT_DESCRIBE_SHORT.$GIT_COMMIT_NUMBER$GIT_COMMIT_HASH > gitdescribecommitnumber.txt
+    - cat gitdescribecommitnumber.txt
     - ccache -s
 
   artifacts:
     paths:
       - build-desktop/gitdescribe.txt
-      - build-desktop/linphone-sdk-*.zip      
+      - build-desktop/linphone-sdk-*.zip
       - build-desktop/linphone-sdk.podspec
       - linphone/tester/*
     when: always
@@ -82,7 +93,7 @@ job-macosx-xcode:
     variables:
       - $NIGHTLY_MASTER
       - $DEPLOY_RUN_MACOSX
-      
+
 test-linphone-macosx:
   stage: test
   extends: .job-prepare
@@ -90,9 +101,9 @@ test-linphone-macosx:
   allow_failure: true
   dependencies:
     - job-macosx-ninja
-  only:
-    variables:
-      - $NIGHTLY_MASTER
+#  only:
+#    variables:
+#      - $NIGHTLY_MASTER
   variables:
     # no need to fetch repo, all is needed in artifacts
     GIT_STRATEGY: none
@@ -104,9 +115,10 @@ test-linphone-macosx:
     #Where am I when the zip is extracted ?
     - pwd
     #using -o for overwrite
-    - GIT_DESCRIBE=$(cat ${CI_PROJECT_DIR}/build-desktop/gitdescribe.txt)
-    - echo ${CI_PROJECT_DIR}/build-desktop/linphone-sdk-$GIT_DESCRIBE.zip
-    - unzip -o ${CI_PROJECT_DIR}/build-desktop/linphone-sdk-$GIT_DESCRIBE.zip -d ${CI_PROJECT_DIR}/build-desktop
+    - GIT_DESCRIBECOMMIT=$(cat ${CI_PROJECT_DIR}/build-desktop/gitdescribecommitnumber.txt)
+    - echo ${CI_PROJECT_DIR}/build-desktop/linphone-sdk-$GIT_DESCRIBECOMMIT.zip
+    - ls -la ${CI_PROJECT_DIR}/build-desktop/
+    - unzip -o ${CI_PROJECT_DIR}/build-desktop/linphone-sdk-$GIT_DESCRIBECOMMIT.zip -d ${CI_PROJECT_DIR}/build-desktop
     - cd $PATH_TO_TESTER
     - ls -la
     - echo ${CI_PROJECT_DIR}
@@ -114,7 +126,7 @@ test-linphone-macosx:
     # Force core dump generation
     - ulimit -c unlimited
     - ./liblinphone_tester --verbose --parallel $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt
-  
+
   after_script:
     - pwd
     - cd $PATH_TO_TESTER
@@ -130,7 +142,7 @@ test-linphone-macosx:
     - ls $LOG_PATTERN*
     - cp BCUnitAutomated* ${CI_PROJECT_DIR}/results
     - cp $LOG_PATTERN* ${CI_PROJECT_DIR}/results
-    # cleaning the extracted files 
+    # cleaning the extracted files
     - rm -rf ${CI_PROJECT_DIR}/build-desktop/
   artifacts:
     paths:
