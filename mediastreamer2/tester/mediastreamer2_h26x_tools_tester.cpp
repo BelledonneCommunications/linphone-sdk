@@ -100,7 +100,7 @@ static void packing_unpacking_test(const std::vector<uint8_t> &byteStream, const
 	ms_queue_init(&rtp);
 
 	const H26xToolFactory &factory = H26xToolFactory::get(mime);
-	std::unique_ptr<NalPacker> packer(factory.createNalPacker(msFactory));
+	std::unique_ptr<NalPacker> packer(factory.createNalPacker(ms_factory_get_payload_max_size(msFactory)));
 	std::unique_ptr<NalUnpacker> unpacker(factory.createNalUnpacker());
 	packer->setPacketizationMode(NalPacker::NonInterleavedMode);
 	packer->enableAggregation(true);

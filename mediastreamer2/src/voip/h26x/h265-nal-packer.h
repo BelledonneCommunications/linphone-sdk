@@ -27,11 +27,12 @@ namespace mediastreamer {
 
 class H265NalPacker: public NalPacker {
 public:
-	H265NalPacker(const MSFactory *factory): NalPacker(new NaluAggregator(), new NaluSpliter(), factory) {}
+	H265NalPacker(size_t maxPayloadSize): NalPacker(new NaluAggregator(maxPayloadSize), new NaluSpliter(maxPayloadSize), maxPayloadSize) {}
 
 private:
 	class NaluAggregator: public NaluAggregatorInterface {
 	public:
+		using NaluAggregatorInterface::NaluAggregatorInterface;
 		~NaluAggregator();
 
 		mblk_t *feed(mblk_t *nalu) override;
@@ -50,6 +51,7 @@ private:
 
 	class NaluSpliter: public NaluSpliterInterface {
 	public:
+		using NaluSpliterInterface::NaluSpliterInterface;
 		void feed(mblk_t *nalu) override;
 
 	private:

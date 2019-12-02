@@ -23,30 +23,6 @@
 
 namespace mediastreamer {
 
-class H264NaluAggregator: public NalPacker::NaluAggregatorInterface {
-public:
-	H264NaluAggregator() {}
-	~H264NaluAggregator() {reset();}
-
-	mblk_t *feed(mblk_t *nalu) override;
-	bool isAggregating() const override {return _stap != nullptr;}
-	void reset() override;
-	mblk_t *completeAggregation() override;
-
-private:
-	static mblk_t *concatNalus(mblk_t *m1, mblk_t *m2);
-	static mblk_t *prependStapA(mblk_t *m);
-	static void putNalSize(mblk_t *m, size_t sz);
-
-	mblk_t *_stap = nullptr;
-	size_t _size = 0;
-};
-
-class H264NaluSpliter: public NalPacker::NaluSpliterInterface {
-public:
-	void feed(mblk_t *nalu) override;
-};
-
 class H264NalPacker: public NalPacker {
 public:
 	enum PacketizationMode {
@@ -54,8 +30,35 @@ public:
 		NonInterleavedMode
 	};
 
-	H264NalPacker(): NalPacker(new H264NaluAggregator(), new H264NaluSpliter()) {}
-	H264NalPacker(MSFactory *factory): NalPacker(new H264NaluAggregator(), new H264NaluSpliter(), factory) {}
+	H264NalPacker(size_t maxPayloadSize): NalPacker(new NaluAggregator(maxPayloadSize), new NaluSpliter(maxPayloadSize), maxPayloadSize) {}
+
+private:
+
+	class NaluAggregator: public NaluAggregatorInterface {
+	public:
+		using NaluAggregatorInterface::NaluAggregatorInterface;
+		~NaluAggregator() override {reset();}
+
+		mblk_t *feed(mblk_t *nalu) override;
+		bool isAggregating() const override {return _stap != nullptr;}
+		void reset() override;
+		mblk_t *completeAggregation() override;
+
+	private:
+		static mblk_t *concatNalus(mblk_t *m1, mblk_t *m2);
+		static mblk_t *prependStapA(mblk_t *m);
+		static void putNalSize(mblk_t *m, size_t sz);
+
+		mblk_t *_stap = nullptr;
+		size_t _size = 0;
+	};
+
+	class NaluSpliter: public NaluSpliterInterface {
+	public:
+		using NaluSpliterInterface::NaluSpliterInterface;
+		void feed(mblk_t *nalu) override;
+	};
+
 };
 
 } // namespace mediastreamer

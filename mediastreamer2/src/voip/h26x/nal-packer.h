@@ -23,7 +23,7 @@
 
 #include <ortp/str_utils.h>
 
-#include "mediastreamer2/msfactory.h"
+#include "mediastreamer2/msqueue.h"
 
 namespace mediastreamer {
 
@@ -36,6 +36,7 @@ public:
 
 	class NaluAggregatorInterface {
 	public:
+		NaluAggregatorInterface(size_t maxSize): _maxSize(maxSize) {}
 		virtual ~NaluAggregatorInterface() = default;
 
 		size_t getMaxSize() const {return _maxSize;}
@@ -47,12 +48,12 @@ public:
 		virtual mblk_t *completeAggregation() = 0;
 
 	protected:
-		size_t _maxSize = MS_DEFAULT_MAX_PAYLOAD_SIZE;
+		size_t _maxSize;
 	};
 
 	class NaluSpliterInterface {
 	public:
-		NaluSpliterInterface() {ms_queue_init(&_q);}
+		NaluSpliterInterface(size_t maxSize): _maxSize(maxSize) {ms_queue_init(&_q);}
 		virtual ~NaluSpliterInterface() {ms_queue_flush(&_q);}
 
 		size_t getMaxSize() const {return _maxSize;}
@@ -62,7 +63,7 @@ public:
 		MSQueue *getPackets() {return &_q;}
 
 	protected:
-		size_t _maxSize = MS_DEFAULT_MAX_PAYLOAD_SIZE;
+		size_t _maxSize;
 		MSQueue _q;
 	};
 
@@ -81,15 +82,14 @@ public:
 	void flush();
 
 protected:
-	NalPacker(NaluAggregatorInterface *naluAggregator, NaluSpliterInterface *naluSpliter): _naluSpliter(naluSpliter), _naluAggregator(naluAggregator) {}
-	NalPacker(NaluAggregatorInterface *naluAggregator, NaluSpliterInterface *naluSpliter, const MSFactory *factory);
+	NalPacker(NaluAggregatorInterface *naluAggregator, NaluSpliterInterface *naluSpliter, size_t maxPayloadSize);
 
 	void packInSingleNalUnitMode(MSQueue *naluq, MSQueue *rtpq, uint32_t ts);
 	void packInNonInterleavedMode(MSQueue *naluq, MSQueue *rtpq, uint32_t ts);
 	void fragNaluAndSend(MSQueue *rtpq, uint32_t ts, mblk_t *nalu, bool_t marker);
 	void sendPacket(MSQueue *rtpq, uint32_t ts, mblk_t *m, bool_t marker);
 
-	size_t _maxSize = MS_DEFAULT_MAX_PAYLOAD_SIZE;
+	size_t _maxSize;
 	uint16_t _refCSeq = 0;
 	PacketizationMode _packMode = SingleNalUnitMode;
 	bool _aggregationEnabled = false;

@@ -31,7 +31,7 @@ H26xEncoderFilter::H26xEncoderFilter(MSFilter *f, H26xEncoder *encoder, const MS
 	_vconf = ms_video_find_best_configuration_for_size(_vconfList, MS_VIDEO_SIZE_CIF, ms_factory_get_cpu_count(f->factory));
 	ms_video_starter_init(&_starter);
 
-	_packer.reset(H26xToolFactory::get(_encoder->getMime()).createNalPacker(f->factory));
+	_packer.reset(H26xToolFactory::get(_encoder->getMime()).createNalPacker(ms_factory_get_payload_max_size(f->factory)));
 	_packer->setPacketizationMode(NalPacker::NonInterleavedMode);
 	_packer->enableAggregation(false);
 }

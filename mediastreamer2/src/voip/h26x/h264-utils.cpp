@@ -320,8 +320,8 @@ H26xNaluHeader *H264ToolFactory::createNaluHeader() const {
 	return new H264NaluHeader();
 }
 
-NalPacker *H264ToolFactory::createNalPacker(MSFactory *factory) const {
-	return new H264NalPacker();
+NalPacker *H264ToolFactory::createNalPacker(size_t maxPayloadSize) const {
+	return new H264NalPacker(maxPayloadSize);
 }
 
 NalUnpacker *H264ToolFactory::createNalUnpacker() const {
