@@ -72,6 +72,7 @@
   only:
     variables:
       - $NIGHTLY_MASTER
+      - $NIGHTLY_RELEASE
       - $PACKAGE_RUN_WINDOWS
   before_script: 
     #cache disabled on scheduled builds since we dot not need the fastest build
