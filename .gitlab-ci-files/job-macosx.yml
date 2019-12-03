@@ -101,9 +101,9 @@ test-linphone-macosx:
   allow_failure: true
   dependencies:
     - job-macosx-ninja
-#  only:
-#    variables:
-#      - $NIGHTLY_MASTER
+  only:
+    variables:
+      - $NIGHTLY_MASTER
   variables:
     # no need to fetch repo, all is needed in artifacts
     GIT_STRATEGY: none
