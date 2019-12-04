@@ -313,8 +313,9 @@ static void android_camera2_capture_destroy_preview(AndroidCamera2Context *d) {
 
 static void android_camera2_capture_open_camera(AndroidCamera2Context *d) {
 	ms_message("[Camera2 Capture] Opening camera");
+	d->deviceStateCallbacks.context = d;
 	d->deviceStateCallbacks.onDisconnected = android_camera2_capture_device_on_disconnected;
-    d->deviceStateCallbacks.onError = android_camera2_capture_device_on_error;
+	d->deviceStateCallbacks.onError = android_camera2_capture_device_on_error;
 
 	if (!d->device) {
 		ms_error("[Camera2 Capture] Can't open camera, no device selected");
@@ -769,14 +770,14 @@ static int android_camera2_capture_set_surface_texture(MSFilter *f, void *arg) {
 
 	ms_filter_lock(f);
 
-	ms_message("[Camera2 Capture] New native window id ptr is %p, current one is %p", nativeWindowId, d->nativeWindowId);
+	ms_message("[Camera2 Capture] New native window ptr is %p, current one is %p", nativeWindowId, d->nativeWindowId);
 	if (id == 0) {
 		if (d->nativeWindowId) {
 			android_camera2_capture_stop(d);
 			env->DeleteGlobalRef(d->nativeWindowId);
 			d->nativeWindowId = nullptr;
 		}
-	} else if (nativeWindowId != d->nativeWindowId) {
+	} else if (!env->IsSameObject(d->nativeWindowId, nativeWindowId)) {
 		if (d->nativeWindowId) {
 			android_camera2_capture_stop(d);
 			env->DeleteGlobalRef(d->nativeWindowId);
@@ -790,6 +791,8 @@ static int android_camera2_capture_set_surface_texture(MSFilter *f, void *arg) {
 		if (d->previewSize.width != 0 && d->previewSize.height != 0) {
 			ms_filter_notify(f, MS_CAMERA_PREVIEW_SIZE_CHANGED, &d->previewSize);
 		}
+	} else {
+		ms_message("[Camera2 Capture] New native window is the same as the current one, skipping...");
 	}
 	
 	ms_filter_unlock(f);
