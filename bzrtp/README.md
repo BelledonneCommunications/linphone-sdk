@@ -12,6 +12,15 @@ The library written in C 89 is fully portable and can be executed  on many platf
 Licensing: The source code is licensed under GPLv2.
 
 
+License
+--------
+
+BZRTP library is dual-licensed and can be distributed either under a GNU GPLv3 license (open source, see *LICENSE.txt*) or under a proprietary
+license (closed source).
+
+Copyright © Belledonne Communications SARL
+Johan Pascal is the original author of BZRTP.
+
 Compatibility with RFC6189 - ZRTP: Media Path Key Agreement for Unicast Secure RTP
 ----------------------------------------------------------------------------------
 
