@@ -10,14 +10,13 @@ The currently supported platforms are Android, iOS, Desktop (Linux, Windows, Mac
 
 ## License
 
-<Copyright © Belledonne Communications>
+Copyright © Belledonne Communications
 
-The products developped in the context of the Linphone project are dual licensed:
-- under a GNU GPLv3 license for free (see LICENSE.txt file for details)
-- under a proprietary license, for closed source projects. Contact sales@belledonne-communications.com for costs and other service information.
+The software products developed in the context of the Linphone project are dual licensed, and are available either :
 
-Please refer to the README.md files in the submodules (linphone (ie liblinphone), mediastreamer2, ortp, belle-sip, belr) for more information.
-The projects assembled in the `external` directory have their own open-source license.
+ - under a [GNU/GPLv3 license](https://www.gnu.org/licenses/gpl-3.0.en.html), for free (open source). Please make sure that you understand and agree with the terms of this license before using it (see LICENSE.txt file for details).
+
+ - under a proprietary license, for a fee, to be used in closed source applications. Contact [Belledonne Communications](https://www.linphone.org/contact) for any question about costs and services.
 
 ## Build dependencies
 
