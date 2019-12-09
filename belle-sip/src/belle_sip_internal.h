@@ -1010,7 +1010,6 @@ belle_sip_refresher_t* belle_sip_refresher_new(belle_sip_client_transaction_t* t
  * returns a char, even if entry is escaped*/
 size_t belle_sip_get_char (const char*a,char*out);
 /*return an escaped string*/
-BELLESIP_EXPORT	char* belle_sip_uri_to_escaped_username(const char* buff) ;
 BELLESIP_EXPORT	char* belle_sip_uri_to_escaped_userpasswd(const char* buff) ;
 BELLESIP_EXPORT	char* belle_sip_uri_to_escaped_parameter(const char* buff) ;
 BELLESIP_EXPORT	char* belle_sip_uri_to_escaped_header(const char* buff) ;

@@ -217,7 +217,7 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 	belle_sip_header_retry_after_t *retry_after_header;
 	int will_retry = TRUE; /*most error codes are retryable*/
 	retry_after_header = belle_sip_message_get_header_by_type(response,belle_sip_header_retry_after_t);
-	int retry_after_time = retry_after_header ? belle_sip_header_retry_after_get_retry_after(retry_after_header):0;
+	int retry_after_time = retry_after_header ? belle_sip_header_retry_after_get_retry_after(retry_after_header) : DEFAULT_RETRY_AFTER;
 
 
 	if (refresher && (client_transaction !=refresher->transaction))

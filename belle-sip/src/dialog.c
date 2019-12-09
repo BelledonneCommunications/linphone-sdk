@@ -588,7 +588,7 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 				belle_sip_dialog_establish(obj,req,resp);
 				if (code<200){
 					set_state(obj,BELLE_SIP_DIALOG_EARLY);
-					if ((code == 180 || code == 183) && !as_uas) {
+					if (!as_uas) {
 						belle_sip_dialog_process_response_100rel(obj, resp);
 					}
 					break;
@@ -625,7 +625,7 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 				/*no response establishing the dialog, and transaction terminated (transport errors)*/
 				delete_dialog=TRUE;
 			}
-			if ((code == 180 || code == 183) && !as_uas) {
+			if ((code > 100 && code < 200) && !as_uas) {
 				belle_sip_dialog_process_response_100rel(obj, resp);
 			}
 			break;
