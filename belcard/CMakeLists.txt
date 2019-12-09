@@ -1,7 +1,7 @@
 
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2015  Belledonne Communications, Grenoble France
+# Copyright (C) 2010-2019 Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -21,8 +21,8 @@
 #
 ############################################################################
 
-cmake_minimum_required(VERSION 3.1)
-project(BELCARD VERSION 1.0.2 LANGUAGES C CXX)
+cmake_minimum_required(VERSION 3.11) # we need CMake 3.11 for defining 'package_source' target as custom target
+project(BELCARD VERSION 4.3.0 LANGUAGES C CXX)
 
 set(BELCARD_SO_VERSION "1")
 
