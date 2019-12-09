@@ -1,6 +1,6 @@
 ############################################################################
 # BcToolboxConfig.cmake
-# Copyright (C) 2015  Belledonne Communications, Grenoble France
+# Copyright (C) 2010-2019 Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -93,4 +93,6 @@ foreach(comp ${bctoolbox_FIND_COMPONENTS})
 	endif()
 endforeach()
 
-include("${CMAKE_CURRENT_LIST_DIR}/bctoolboxCMakeUtils.cmake")
+set(BCTOOLBOX_CMAKE_DIR "${CMAKE_CURRENT_LIST_DIR}")
+set(BCTOOLBOX_CMAKE_UTILS "${CMAKE_CURRENT_LIST_DIR}/bctoolboxCMakeUtils.cmake")
+include("${BCTOOLBOX_CMAKE_UTILS}")

@@ -1,6 +1,6 @@
 ############################################################################
 # BcToolboxCMakeUtils.cmake
-# Copyright (C) 2017  Belledonne Communications, Grenoble France
+# Copyright (C) 2010-2019 Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -21,6 +21,10 @@
 ############################################################################
 
 set(BCTOOLBOX_CMAKE_UTILS_DIR "${CMAKE_CURRENT_LIST_DIR}")
+
+macro(bc_check_git)
+	find_program(GIT_EXECUTABLE git NAMES Git CMAKE_FIND_ROOT_PATH_BOTH)
+endmacro()
 
 macro(bc_init_compilation_flags CPP_FLAGS C_FLAGS CXX_FLAGS STRICT_COMPILATION)
 	set(${CPP_FLAGS} )
@@ -73,6 +77,7 @@ macro(bc_git_version PROJECT_NAME PROJECT_VERSION)
 endmacro()
 
 
+# TODO remove this macro
 macro(bc_project_build_version PROJECT_VERSION PROJECT_BUILD_VERSION)
 	find_program (WC wc)
 
@@ -128,3 +133,109 @@ macro(bc_generate_rpm_specfile SOURCE DEST)
 		unset(_variableNames)
 	endif()
 endmacro()
+
+function(bc_parse_full_version version major minor patch)
+	if ("${version}" MATCHES "^(0|[1-9][0-9]*)[.](0|[1-9][0-9]*)[.](0|[1-9][0-9]*)(-[.0-9A-Za-z-]+)?([+][.0-9A-Za-z-]+)?$")
+	    set(${major}       "${CMAKE_MATCH_1}" PARENT_SCOPE)
+	    set(${minor}       "${CMAKE_MATCH_2}" PARENT_SCOPE)
+	    set(${patch}       "${CMAKE_MATCH_3}" PARENT_SCOPE)
+		if (ARGC GREATER 4)
+			set(${ARGV4} "${CMAKE_MATCH_4}" PARENT_SCOPE)
+		endif()
+		if (ARGC GREATER 5)
+			set(${ARGV5}    "${CMAKE_MATCH_5}" PARENT_SCOPE)
+		endif()
+	else()
+		message(FATAL_ERROR "invalid full version '${version}'")
+	endif()
+endfunction()
+
+function(bc_compute_full_version OUTPUT_VERSION)
+	bc_check_git()
+	if(GIT_EXECUTABLE)
+		execute_process(
+			COMMAND "${GIT_EXECUTABLE}" "describe" "--abbrev=0"
+			OUTPUT_VARIABLE GIT_OUTPUT_VERSION
+			OUTPUT_STRIP_TRAILING_WHITESPACE
+			ERROR_QUIET
+			WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+		)
+		if (DEFINED GIT_OUTPUT_VERSION)
+			set(output_version "${GIT_OUTPUT_VERSION}")
+			bc_compute_commits_count_since_latest_tag(${GIT_OUTPUT_VERSION} COMMIT_COUNT)
+			if (NOT ${COMMIT_COUNT} STREQUAL "0")
+				execute_process(
+					COMMAND "${GIT_EXECUTABLE}" "rev-parse" "--short" "HEAD"
+					OUTPUT_VARIABLE COMMIT_HASH
+					OUTPUT_STRIP_TRAILING_WHITESPACE
+					ERROR_QUIET
+					WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+				)
+				string(APPEND output_version ".${COMMIT_COUNT}+${COMMIT_HASH}")
+			else()
+				#If commit count diff is 0, it means we are on the tag. Keep the version untouched
+			endif()
+
+			set(version_major )
+			set(version_minor )
+			set(version_patch )
+			bc_parse_full_version("${output_version}" version_major version_minor version_patch)
+			set(short_version "${version_major}.${version_minor}.${version_patch}")
+			if (PROJECT_VERSION AND NOT (short_version VERSION_EQUAL PROJECT_VERSION))
+				message(FATAL_ERROR "project and git version mismatch (project: '${PROJECT_VERSION}', git: '${short_version}')")
+			endif()
+
+			set(${OUTPUT_VERSION} "${output_version}" PARENT_SCOPE)
+		endif()
+	endif()
+endfunction()
+
+macro(bc_compute_commits_count_since_latest_tag LATEST_TAG OUTPUT_COMMITS_COUNT)
+	bc_check_git()
+	if(GIT_EXECUTABLE)
+		execute_process(
+			COMMAND "${GIT_EXECUTABLE}" "rev-list" "${LATEST_TAG}..HEAD" "--count"
+			OUTPUT_VARIABLE ${OUTPUT_COMMITS_COUNT}
+			OUTPUT_STRIP_TRAILING_WHITESPACE
+			ERROR_QUIET
+			WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+		)
+	endif()
+endmacro()
+
+function(bc_make_package_source_target)
+	set(basename "")
+	string(TOLOWER "${CMAKE_PROJECT_NAME}" basename)
+	if (DEFINED BC_SPECFILE_NAME)
+		set(specfile_name "${BC_SPECFILE_NAME}")
+	else()
+		set(specfile_name "${basename}.spec")
+	endif()
+	set(specfile_target "${basename}-rpm-spec")
+
+	bc_generate_rpm_specfile("rpm/${specfile_name}.cmake" "rpm/${specfile_name}.cmake")
+
+	add_custom_target(${specfile_target}
+	    COMMAND ${CMAKE_COMMAND}
+	        "-DPROJECT_VERSION=${PROJECT_VERSION}"
+	        "-DBCTOOLBOX_CMAKE_UTILS=${BCTOOLBOX_CMAKE_UTILS}"
+	        "-DSRC=${CMAKE_CURRENT_BINARY_DIR}/rpm/${specfile_name}.cmake"
+	        "-DDEST=${PROJECT_SOURCE_DIR}/${specfile_name}"
+	        -P "${BCTOOLBOX_CMAKE_DIR}/ConfigureSpecfile.cmake"
+	    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+	    BYPRODUCTS "${PROJECT_SOURCE_DIR}/${specfile_name}"
+	)
+
+	add_custom_target(package_source
+	    COMMAND ${CMAKE_COMMAND}
+	        "-DBCTOOLBOX_CMAKE_UTILS=${BCTOOLBOX_CMAKE_UTILS}"
+	        "-DPROJECT_SOURCE_DIR=${PROJECT_SOURCE_DIR}"
+	        "-DPROJECT_BINARY_DIR=${PROJECT_BINARY_DIR}"
+	        "-DPROJECT_VERSION=${PROJECT_VERSION}"
+	        "-DCPACK_PACKAGE_NAME=${CPACK_PACKAGE_NAME}"
+	        "-DEXCLUDE_PATTERNS='${CPACK_SOURCE_IGNORE_FILES}'"
+	        -P "${BCTOOLBOX_CMAKE_DIR}/MakeArchive.cmake"
+	    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+	    DEPENDS ${specfile_target}
+	)
+endfunction()

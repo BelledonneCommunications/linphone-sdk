@@ -154,14 +154,14 @@ extern "C" bctbx_iterator_t *bctbx_map_cchar_end(const bctbx_map_t *map) {
 	return bctbx_map_end_type<mmap_cchar_t>(map);
 }
 
-template<typename T> bctbx_iterator_t * bctbx_map_find_key_type(bctbx_map_t *map, typename T::key_type key) {
+template<typename T> bctbx_iterator_t * bctbx_map_find_key_type(const bctbx_map_t *map, typename T::key_type key) {
 	bctbx_iterator_t * it = (bctbx_iterator_t*) new typename T::iterator(((T *)map)->find(key));
 	return it;
 }
-extern "C" bctbx_iterator_t * bctbx_map_ullong_find_key(bctbx_map_t *map, unsigned long long key) {
+extern "C" bctbx_iterator_t * bctbx_map_ullong_find_key(const bctbx_map_t *map, unsigned long long key) {
 	return bctbx_map_find_key_type<mmap_ullong_t>(map, (mmap_ullong_t::key_type)key);
 }
-extern "C" bctbx_iterator_t * bctbx_map_cchar_find_key(bctbx_map_t *map, const char * key) {
+extern "C" bctbx_iterator_t * bctbx_map_cchar_find_key(const bctbx_map_t *map, const char * key) {
 	return bctbx_map_find_key_type<mmap_cchar_t>(map, (mmap_cchar_t::key_type)key);
 }
 
@@ -175,7 +175,7 @@ extern "C" size_t bctbx_map_cchar_size(const bctbx_map_t *map) {
 	return bctbx_map_size_type<mmap_cchar_t>(map);
 }
 
-extern "C" bctbx_iterator_t * bctbx_map_ullong_find_custom(bctbx_map_t *map, bctbx_compare_func compare_func, const void *user_data) {
+extern "C" bctbx_iterator_t * bctbx_map_ullong_find_custom(const bctbx_map_t *map, bctbx_compare_func compare_func, const void *user_data) {
 	bctbx_iterator_t * end = bctbx_map_ullong_end(map);
 	
 	for(bctbx_iterator_t * it = bctbx_map_ullong_begin(map);!bctbx_iterator_ullong_equals(it,end);) {
@@ -190,7 +190,7 @@ extern "C" bctbx_iterator_t * bctbx_map_ullong_find_custom(bctbx_map_t *map, bct
 	bctbx_iterator_ullong_delete(end);
 	return NULL;
 }
-extern "C" bctbx_iterator_t * bctbx_map_cchar_find_custom(bctbx_map_t *map, bctbx_compare_func compare_func, const void *user_data) {
+extern "C" bctbx_iterator_t * bctbx_map_cchar_find_custom(const bctbx_map_t *map, bctbx_compare_func compare_func, const void *user_data) {
 	bctbx_iterator_t * end = bctbx_map_cchar_end(map);
 	
 	for(bctbx_iterator_t * it = bctbx_map_cchar_begin(map);!bctbx_iterator_cchar_equals(it,end);) {

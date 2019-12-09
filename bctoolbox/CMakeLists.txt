@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2016  Belledonne Communications, Grenoble France
+# Copyright (C) 2010-2019  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,22 +20,17 @@
 #
 ############################################################################
 
-cmake_minimum_required(VERSION 3.2) #since cmake 3.2 is available as a patch for yocto Fido
+cmake_minimum_required(VERSION 3.11) # we need CMake 3.11 for defining 'package_source' target as custom target
 set(CMAKE_MACOSX_RPATH ON) # Before cmake 3.0.0, MACOSX_RPATH was not set to ON by default - however this is no good reason to not enable it by default
 
-project(bctoolbox)
+project(bctoolbox VERSION 4.3.0)
 
-set(BCTOOLBOX_VERSION_MAJOR 0)
-set(BCTOOLBOX_VERSION_MINOR 6)
-set(BCTOOLBOX_VERSION_PATCH 0)
+set(BCTOOLBOX_VERSION "${PROJECT_VERSION}")
+set(BCTOOLBOX_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
+set(BCTOOLBOX_VERSION_MINOR ${PROJECT_VERSION_MINOR})
+set(BCTOOLBOX_VERSION_PATCH ${PROJECT_VERSION_PATCH})
 set(BCTOOLBOX_SO_VERSION 1)
 set(BCTOOLBOXTESTER_SO_VERSION 1)
-
-set(BCTOOLBOX_VERSION "${BCTOOLBOX_VERSION_MAJOR}.${BCTOOLBOX_VERSION_MINOR}.${BCTOOLBOX_VERSION_PATCH}")
-set(PROJECT_VERSION_MAJOR ${BCTOOLBOX_VERSION_MAJOR})
-set(PROJECT_VERSION_MINOR ${BCTOOLBOX_VERSION_MINOR})
-set(PROJECT_VERSION_PATCH ${BCTOOLBOX_VERSION_PATCH})
-set(PROJECT_VERSION "${BCTOOLBOX_VERSION}")
 
 
 option(ENABLE_SHARED "Build shared library." ON)
@@ -193,6 +188,8 @@ install(EXPORT ${EXPORT_TARGETS_NAME}Targets
 )
 
 install(FILES
+	"cmake/MakeArchive.cmake"
+	"cmake/ConfigureSpecfile.cmake"
 	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}Config.cmake"
 	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}ConfigVersion.cmake"
 	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}CMakeUtils.cmake"
