@@ -54,17 +54,20 @@ bool VideoToolboxDecoder::feed(MSQueue *encodedFrame, uint64_t timestamp) {
 		if (ms_queue_empty(encodedFrame)) return true;
 		if (!_psStore->psGatheringCompleted()) throw runtime_error("need more parameter sets");
 		if (_session == nullptr) createDecoder();
-		for (const mblk_t *nalu = ms_queue_peek_first(encodedFrame); !ms_queue_end(encodedFrame, nalu); nalu = ms_queue_next(encodedFrame, nalu)) {
-			_naluHeader->parse(nalu->b_rptr);
-			if (_naluHeader->getAbsType().isKeyFramePart()) {
-				_freeze = false;
-				break;
+		if (_freeze){
+			for (const mblk_t *nalu = ms_queue_peek_first(encodedFrame); !ms_queue_end(encodedFrame, nalu); nalu = ms_queue_next(encodedFrame, nalu)) {
+				_naluHeader->parse(nalu->b_rptr);
+				if (_naluHeader->getAbsType().isKeyFramePart()) {
+					_freeze = false;
+					break;
+				}
 			}
 		}
 		if (!_freeze) {
 			decodeFrame(encodedFrame, timestamp);
+			return true;
 		}
-		return true;
+		return false; /* We can't decode without a new key rame, returning false will trigger the sending of a PLI */
 	} catch (const runtime_error &e) {
 		ms_error("VideoToolboxDecoder: %s", e.what());
 		ms_error("VideoToolboxDecoder: feeding failed");

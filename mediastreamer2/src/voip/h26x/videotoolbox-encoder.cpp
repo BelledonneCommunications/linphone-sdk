@@ -285,7 +285,7 @@ void VideoToolboxEncoder::outputCb(void *outputCallbackRefCon, void *sourceFrame
 					vtUtils->getParameterSets(CMSampleBufferGetFormatDescription(sampleBuffer), &parameterSets);
 					encodedFrame.insert(&parameterSets);
 				} catch (const AppleOSError &e) {
-					ms_error("VideoToolboxEncoder: paramter sets generation failed: %s", e.what());
+					ms_error("VideoToolboxEncoder: parameter sets generation failed: %s", e.what());
 					ms_queue_flush(&parameterSets);
 				}
 			}
@@ -295,9 +295,9 @@ void VideoToolboxEncoder::outputCb(void *outputCallbackRefCon, void *sourceFrame
 			ms_mutex_unlock(&ctx->_mutex);
 		}
 	} catch (const runtime_error &e) {
-		ms_error("VideoToolboxEncoder: decoding error: %s", e.what());
+		ms_error("VideoToolboxEncoder: encoding error: %s", e.what());
 	} catch (const AppleOSError &e) {
-		ms_error("VideoToolboxEncoder: decoding error: %s", e.what());
+		ms_error("VideoToolboxEncoder: encoding error: %s", e.what());
 	}
 }
 
