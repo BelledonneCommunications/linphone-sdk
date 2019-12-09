@@ -76,6 +76,7 @@ namespace settings {
 	constexpr int DBuserVersion=0x000001;
 	constexpr uint16_t DBInactiveUserBit = 0x0100;
 	constexpr uint16_t DBCurveIdByte = 0x00FF;
+	constexpr uint8_t DBInvalidIk = 0x00;
 
 /******************************************************************************/
 /*                                                                            */

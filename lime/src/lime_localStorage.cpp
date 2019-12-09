@@ -350,7 +350,9 @@ void Db::set_peerDeviceStatus(const std::string &peerDeviceId, const std::vector
 		return;
 	}
 
-	uint8_t statusInteger = static_cast<uint8_t>(status);
+	LIME_LOGD << "Set status trusted for peer device "<<peerDeviceId;
+
+	const uint8_t statusInteger = static_cast<uint8_t>(lime::PeerDeviceStatus::trusted);
 
 	// Do we have this peerDevice in lime_PeerDevices
 	blob Ik_blob(sql);
@@ -362,17 +364,19 @@ void Db::set_peerDeviceStatus(const std::string &peerDeviceId, const std::vector
 		storedIk.resize(IkSize);
 		Ik_blob.read(0, (char *)(storedIk.data()), IkSize); // Read the public key
 		if (storedIk == Ik) {
-
 			sql<<"UPDATE Lime_PeerDevices SET Status = :Status WHERE Did = :id;", use(statusInteger), use(id);
+		} else if (IkSize == 1 && storedIk[0] == lime::settings::DBInvalidIk) { // If storedIk is the invalid_Ik, we got it from a setting to unsafe, just replace it with the given one
+			blob Ik_update_blob(sql);
+			Ik_update_blob.write(0, (char *)(Ik.data()), Ik.size());
+			sql<<"UPDATE Lime_PeerDevices SET Status = :Status, Ik = :Ik WHERE Did = :id;", use(statusInteger), use(Ik_update_blob), use(id);
+			LIME_LOGW << "Set status trusted for peer device "<<peerDeviceId<<" already present in base without Ik, updated the Ik with provided one";
 		} else { // Ik in local Storage differs than the one given... raise an exception
 			throw BCTBX_EXCEPTION << "Trying to insert an Identity key for peer device "<<peerDeviceId<<" which differs from one already in local storage";
 		}
-	} else { // peer is not in local Storage
-		if (status != lime::PeerDeviceStatus::untrusted) { // insert it only if status is trusted or unsafe just ignore the request
-			blob Ik_insert_blob(sql);
-			Ik_insert_blob.write(0, (char *)(Ik.data()), Ik.size());
-			sql<<"INSERT INTO Lime_PeerDevices(DeviceId, Ik, Status) VALUES(:peerDeviceId, :Ik, :Status);", use(peerDeviceId), use(Ik_insert_blob), use(statusInteger);
-		}
+	} else { // peer is not in local Storage, insert it
+		blob Ik_insert_blob(sql);
+		Ik_insert_blob.write(0, (char *)(Ik.data()), Ik.size());
+		sql<<"INSERT INTO Lime_PeerDevices(DeviceId, Ik, Status) VALUES(:peerDeviceId, :Ik, :Status);", use(peerDeviceId), use(Ik_insert_blob), use(statusInteger);
 	}
 }
 
@@ -389,13 +393,14 @@ void Db::set_peerDeviceStatus(const std::string &peerDeviceId, lime::PeerDeviceS
 		LIME_LOGE << "Trying to set a status for peer device "<<peerDeviceId<<" without providing a Ik which is not acceptable (differs from unsafe or untrusted)";
 		return;
 	}
+	LIME_LOGD << "Set status "<<((status==lime::PeerDeviceStatus::unsafe)?"unsafe":"untrusted")<<" for peer device "<<peerDeviceId;
 
 	uint8_t statusInteger = static_cast<uint8_t>(status);
 
 	// is this peerDevice already in local storage?
 	bool inLocalStorage = false;
 	long long id;
-	int currentStatus;
+	int currentStatus =  static_cast<uint8_t>(lime::PeerDeviceStatus::unsafe);
 	sql<<"SELECT Did, Status FROM Lime_PeerDevices WHERE DeviceId = :peerDeviceId;", into(id), into(currentStatus), use(peerDeviceId);
 	inLocalStorage = sql.got_data();
 
@@ -404,6 +409,11 @@ void Db::set_peerDeviceStatus(const std::string &peerDeviceId, lime::PeerDeviceS
 		// and we do not already have that device in local storage -> log it and ignore the call
 		if (!inLocalStorage) {
 			LIME_LOGW << "Trying to set a status untrusted for peer device "<<peerDeviceId<<" not present in local storage, ignore that call)";
+			return;
+		}
+		// and the current status in local storage is already untrusted, do nothing
+		if (currentStatus == static_cast<uint8_t>(lime::PeerDeviceStatus::untrusted)) {
+			LIME_LOGD << "Set a status untrusted for peer device "<<peerDeviceId<<" but its current status is already untrusted, ignore that call)";
 			return;
 		}
 		// and the current status in local storage is unsafe, keep unsafe
@@ -417,10 +427,9 @@ void Db::set_peerDeviceStatus(const std::string &peerDeviceId, lime::PeerDeviceS
 	if (inLocalStorage) {
 		sql<<"UPDATE Lime_PeerDevices SET Status = :Status WHERE Did = :id;", use(statusInteger), use(id);
 	} else {
-		// this constant is set into lime_peerDevices table, Ik field when it is not provided by set_peerDeviceStatus as this field can't be set to NULL in older version of the database
-		constexpr uint8_t invalid_Ik = 0x00;
+		// the lime::settings::DBInvalidIk constant is set into lime_peerDevices table, Ik field when it is not provided by set_peerDeviceStatus as this field can't be set to NULL in older version of the database
 		blob Ik_insert_blob(sql);
-		Ik_insert_blob.write(0, (char *)(&invalid_Ik), sizeof(invalid_Ik));
+		Ik_insert_blob.write(0, (char *)(&lime::settings::DBInvalidIk), sizeof(lime::settings::DBInvalidIk));
 		sql<<"INSERT INTO Lime_PeerDevices(DeviceId, Ik, Status) VALUES(:peerDeviceId, :Ik, :Status);", use(peerDeviceId), use(Ik_insert_blob), use(statusInteger);
 	}
 }
@@ -484,13 +493,14 @@ void Db::delete_peerDevice(const std::string &peerDeviceId) {
  *
  * @param[in] peerDeviceId	The device id to check
  * @param[in] peerIk		The public EDDSA identity key of this device
+ * @param[in] updateInvalid	When true, will update the Ik with the given one if the stored one is lime:settings::DBInvalidIk and returns its id.
  *
- * @throws	BCTBX_EXCEPTION	if the device is found in local storage but with a different Ik
+ * @throws	BCTBX_EXCEPTION	if the device is found in local storage but with a different Ik (if Ik is lime::settings::DBInvalidIk, just pretend we never found the device)
  *
- * @return the id internally used by db to store this row, 0 if this device is not in the local storage
+ * @return the id internally used by db to store this row. 0 if this device is not in the local storage or have Ik set to lime::settings::DBInvalidIk
  */
 template <typename Curve>
-long int Db::check_peerDevice(const std::string &peerDeviceId, const DSA<Curve, lime::DSAtype::publicKey> &peerIk) {
+long int Db::check_peerDevice(const std::string &peerDeviceId, const DSA<Curve, lime::DSAtype::publicKey> &peerIk, const bool updateInvalid) {
 	std::lock_guard<std::recursive_mutex> lock(*m_db_mutex);
 	try {
 		blob Ik_blob(sql);
@@ -499,11 +509,28 @@ long int Db::check_peerDevice(const std::string &peerDeviceId, const DSA<Curve, 
 		// make sure this device wasn't already here, if it was, check they have the same Ik
 		sql<<"SELECT Ik,Did FROM lime_PeerDevices WHERE DeviceId = :DeviceId LIMIT 1;", into(Ik_blob), into(Did), use(peerDeviceId);
 		if (sql.got_data()) { // Found one
-			DSA<Curve, lime::DSAtype::publicKey> stored_Ik;
-			if (Ik_blob.get_len() != stored_Ik.size()) { // can't match they are not the same size
+			const auto stored_Ik_size = Ik_blob.get_len();
+			if (stored_Ik_size == 1) { //Ik seems to be lime::settings::DBInvalidIk, check that
+				uint8_t stored_Invalid_Ik = ~lime::settings::DBInvalidIk; // make sure the initial value is not the one we test against
+				Ik_blob.read(0, (char *)(&stored_Invalid_Ik), 1); // Read it
+				if (stored_Invalid_Ik == lime::settings::DBInvalidIk) { // we stored the invalid Ik
+					if (updateInvalid == true) { // We shall update the value with the given Ik and return the Did
+						blob Ik_update_blob(sql);
+						Ik_update_blob.write(0, (char *)(peerIk.data()), peerIk.size());
+						sql<<"UPDATE Lime_PeerDevices SET Ik = :Ik WHERE Did = :id;", use(Ik_update_blob), use(Did);
+						LIME_LOGW << "Check peer device status updated empty/invalid Ik for peer device "<<peerDeviceId;
+						return Did;
+					} else { // just proceed as the key were not in base
+						return 0;
+					}
+				}
+			}
+
+			if (stored_Ik_size != peerIk.size()) { // can't match they are not the same size
 				LIME_LOGE<<"It appears that peer device "<<peerDeviceId<<" was known with an identity key but is trying to use another one now";
 				throw BCTBX_EXCEPTION << "Peer device "<<peerDeviceId<<" changed its Ik";
 			}
+			DSA<Curve, lime::DSAtype::publicKey> stored_Ik;
 			Ik_blob.read(0, (char *)(stored_Ik.data()), stored_Ik.size()); // Read it to compare it to the given one
 			if (stored_Ik == peerIk) { // they match, so we just return the Did
 				return Did;
@@ -539,7 +566,7 @@ long int Db::store_peerDevice(const std::string &peerDeviceId, const DSA<Curve, 
 		long int Did=0;
 
 		// make sure this device wasn't already here, if it was, check they have the same Ik
-		Did = check_peerDevice(peerDeviceId, peerIk); // perform checks on peer device and returns its Id if found in local storage already
+		Did = check_peerDevice(peerDeviceId, peerIk, true); // perform checks on peer device and returns its Id if found in local storage already
 		if (Did != 0) {
 			return Did;
 		} else { // not found in local Storage
@@ -568,12 +595,12 @@ void Db::delete_LimeUser(const std::string &deviceId)
 
 /* template instanciations for Curves 25519 and 448 */
 #ifdef EC25519_ENABLED
-	template long int Db::check_peerDevice<C255>(const std::string &peerDeviceId, const DSA<C255, lime::DSAtype::publicKey> &Ik);
+	template long int Db::check_peerDevice<C255>(const std::string &peerDeviceId, const DSA<C255, lime::DSAtype::publicKey> &Ik, const bool updateInvalid);
 	template long int Db::store_peerDevice<C255>(const std::string &peerDeviceId, const DSA<C255, lime::DSAtype::publicKey> &Ik);
 #endif
 
 #ifdef EC448_ENABLED
-	template long int Db::check_peerDevice<C448>(const std::string &peerDeviceId, const DSA<C448, lime::DSAtype::publicKey> &Ik);
+	template long int Db::check_peerDevice<C448>(const std::string &peerDeviceId, const DSA<C448, lime::DSAtype::publicKey> &Ik, const bool updateInvalid);
 	template long int Db::store_peerDevice<C448>(const std::string &peerDeviceId, const DSA<C448, lime::DSAtype::publicKey> &Ik);
 #endif
 
