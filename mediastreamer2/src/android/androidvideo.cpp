@@ -487,7 +487,7 @@ void android_video_capture_detect_cameras_legacy(MSWebCamManager *obj) {
 		} else {
 			ms_web_cam_manager_add_cam(obj, cam);
 		}
-		ms_message("[Legacy Capture] camera created: id=%d frontFacing=%d orientation=%d [msid:%s]\n", c->id, c->frontFacing, c->orientation, idstring);
+		ms_message("[Legacy Capture] camera created: id=%d frontFacing=%d orientation=%d [msid:%s]\n", c->id, c->frontFacing, c->orientation, cam->id);
 	}
 	env->DeleteLocalRef(indexes);
 	env->DeleteLocalRef(frontFacing);
