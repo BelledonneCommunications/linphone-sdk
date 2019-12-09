@@ -119,7 +119,7 @@ public:
 class H265ToolFactory: public H26xToolFactory {
 public:
 	H26xNaluHeader *createNaluHeader() const override;
-	NalPacker *createNalPacker(MSFactory *factory) const override;
+	NalPacker *createNalPacker(size_t maxPayloadType) const override;
 	NalUnpacker *createNalUnpacker() const override;
 	H26xParameterSetsInserter *createParameterSetsInserter() const override;
 	H26xParameterSetsStore *createParameterSetsStore() const override;

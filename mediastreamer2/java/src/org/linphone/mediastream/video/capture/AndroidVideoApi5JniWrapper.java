@@ -53,8 +53,8 @@ public class AndroidVideoApi5JniWrapper {
 
 		int nextIndex = 0;
 		for (AndroidCamera androidCamera : cameras) {
-			if (nextIndex == 2) {
-				Log.w("Returning only the 2 first cameras (increase buffer size to retrieve all)");
+			if (nextIndex >= indexes.length || nextIndex >= frontFacing.length || nextIndex >= orientation.length) {
+				Log.w("Returning only the " + nextIndex + " first cameras (increase buffer size to retrieve all)");
 				break;
 			}
 			// skip already added cameras

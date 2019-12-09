@@ -33,15 +33,10 @@ struct _Rfc3984Context {
 	mediastreamer::H264NalUnpacker unpacker;
 	mediastreamer::H264FrameAnalyser analyser;
 
-	_Rfc3984Context() = default;
-	_Rfc3984Context(MSFactory *factory): packer(factory), unpacker() {}
+	_Rfc3984Context(MSFactory *factory): packer(ms_factory_get_payload_max_size(factory)) {}
 };
 
 extern "C" {
-
-Rfc3984Context *rfc3984_new(void) {
-	return new _Rfc3984Context();
-}
 
 Rfc3984Context *rfc3984_new_with_factory(MSFactory *factory) {
 	return new _Rfc3984Context(factory);

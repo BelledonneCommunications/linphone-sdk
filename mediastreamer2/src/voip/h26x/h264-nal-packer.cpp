@@ -29,7 +29,7 @@ namespace mediastreamer {
 // H264NaluToStapAggregator
 // ========================
 
-mblk_t *H264NaluAggregator::feed(mblk_t *nalu) {
+mblk_t *H264NalPacker::NaluAggregator::feed(mblk_t *nalu) {
 	size_t size = msgdsize(nalu);
 	if (_stap == nullptr) {
 		_stap = nalu;
@@ -45,12 +45,12 @@ mblk_t *H264NaluAggregator::feed(mblk_t *nalu) {
 	return nullptr;
 }
 
-void H264NaluAggregator::reset() {
+void H264NalPacker::NaluAggregator::reset() {
 	if (_stap) freemsg(_stap);
 	_size = 0;
 }
 
-mblk_t *H264NaluAggregator::completeAggregation() {
+mblk_t *H264NalPacker::NaluAggregator::completeAggregation() {
 	mblk_t *res = _stap;
 	_stap = nullptr;
 	reset();
@@ -58,7 +58,7 @@ mblk_t *H264NaluAggregator::completeAggregation() {
 }
 
 
-mblk_t *H264NaluAggregator::concatNalus(mblk_t *m1, mblk_t *m2) {
+mblk_t *H264NalPacker::NaluAggregator::concatNalus(mblk_t *m1, mblk_t *m2) {
 	mblk_t *l = allocb(2, 0);
 	/*eventually append a STAP-A header to m1, if not already done*/
 	if (ms_h264_nalu_get_type(m1) != MSH264NaluTypeSTAPA) {
@@ -70,7 +70,7 @@ mblk_t *H264NaluAggregator::concatNalus(mblk_t *m1, mblk_t *m2) {
 	return m1;
 }
 
-mblk_t *H264NaluAggregator::prependStapA(mblk_t *m) {
+mblk_t *H264NalPacker::NaluAggregator::prependStapA(mblk_t *m) {
 	mblk_t *hm = allocb(3, 0);
 	H264Tools::nalHeaderInit(hm->b_wptr, ms_h264_nalu_get_nri(m), MSH264NaluTypeSTAPA);
 	hm->b_wptr += 1;
@@ -79,7 +79,7 @@ mblk_t *H264NaluAggregator::prependStapA(mblk_t *m) {
 	return hm;
 }
 
-void H264NaluAggregator::putNalSize(mblk_t *m, size_t sz) {
+void H264NalPacker::NaluAggregator::putNalSize(mblk_t *m, size_t sz) {
 	uint16_t size = htons((uint16_t)sz);
 	*(uint16_t *)m->b_wptr = size;
 	m->b_wptr += 2;
@@ -89,7 +89,7 @@ void H264NaluAggregator::putNalSize(mblk_t *m, size_t sz) {
 // H264NalToFuaSpliter class
 // =========================
 
-void H264NaluSpliter::feed(mblk_t *nalu) {
+void H264NalPacker::NaluSpliter::feed(mblk_t *nalu) {
 	mblk_t *m;
 	int payload_max_size = _maxSize - 2; /*minus FU-A header*/
 	uint8_t fu_indicator;

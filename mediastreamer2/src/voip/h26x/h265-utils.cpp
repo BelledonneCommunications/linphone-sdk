@@ -150,8 +150,8 @@ H26xNaluHeader *H265ToolFactory::createNaluHeader() const {
 	return new H265NaluHeader();
 }
 
-NalPacker *H265ToolFactory::createNalPacker(MSFactory *factory) const {
-	return new H265NalPacker(factory);
+NalPacker *H265ToolFactory::createNalPacker(size_t maxPayloadType) const {
+	return new H265NalPacker(maxPayloadType);
 }
 
 NalUnpacker *H265ToolFactory::createNalUnpacker() const {

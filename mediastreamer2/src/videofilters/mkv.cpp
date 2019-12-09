@@ -294,7 +294,7 @@ typedef struct {
 
 static void *h264_module_new(MSFactory *factory) {
 	H264Module *mod = bctbx_new0(H264Module, 1);
-	mod->packer = new H264NalPacker(factory);
+	mod->packer = new H264NalPacker(ms_factory_get_payload_max_size(factory));
 	mod->packer->setPacketizationMode(NalPacker::NonInterleavedMode);
 	mod->unpacker = new H264NalUnpacker();
 	return mod;

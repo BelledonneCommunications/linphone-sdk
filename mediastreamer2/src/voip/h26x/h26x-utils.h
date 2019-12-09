@@ -118,7 +118,7 @@ public:
 	MS2_PUBLIC static const H26xToolFactory &get(const std::string &mime);
 
 	virtual H26xNaluHeader *createNaluHeader() const = 0;
-	virtual NalPacker *createNalPacker(MSFactory *factory) const = 0;
+	virtual NalPacker *createNalPacker(size_t maxPayloadSize) const = 0;
 	virtual NalUnpacker *createNalUnpacker() const = 0;
 	virtual H26xParameterSetsInserter *createParameterSetsInserter() const = 0;
 	virtual H26xParameterSetsStore *createParameterSetsStore() const = 0;
