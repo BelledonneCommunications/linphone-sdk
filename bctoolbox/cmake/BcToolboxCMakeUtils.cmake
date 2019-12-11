@@ -22,10 +22,6 @@
 
 set(BCTOOLBOX_CMAKE_UTILS_DIR "${CMAKE_CURRENT_LIST_DIR}")
 
-macro(bc_check_git)
-	find_program(GIT_EXECUTABLE git NAMES Git CMAKE_FIND_ROOT_PATH_BOTH)
-endmacro()
-
 macro(bc_init_compilation_flags CPP_FLAGS C_FLAGS CXX_FLAGS STRICT_COMPILATION)
 	set(${CPP_FLAGS} )
 	set(${C_FLAGS} )
@@ -151,57 +147,61 @@ function(bc_parse_full_version version major minor patch)
 endfunction()
 
 function(bc_compute_full_version OUTPUT_VERSION)
-	bc_check_git()
+	find_program(GIT_EXECUTABLE git NAMES Git CMAKE_FIND_ROOT_PATH_BOTH)
 	if(GIT_EXECUTABLE)
 		execute_process(
-			COMMAND "${GIT_EXECUTABLE}" "describe" "--abbrev=0"
-			OUTPUT_VARIABLE GIT_OUTPUT_VERSION
+			COMMAND "${GIT_EXECUTABLE}" "describe"
+			OUTPUT_VARIABLE GIT_DESCRIBE_VERSION
 			OUTPUT_STRIP_TRAILING_WHITESPACE
 			ERROR_QUIET
 			WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 		)
-		if (DEFINED GIT_OUTPUT_VERSION)
-			set(output_version "${GIT_OUTPUT_VERSION}")
-			bc_compute_commits_count_since_latest_tag(${GIT_OUTPUT_VERSION} COMMIT_COUNT)
-			if (NOT ${COMMIT_COUNT} STREQUAL "0")
-				execute_process(
-					COMMAND "${GIT_EXECUTABLE}" "rev-parse" "--short" "HEAD"
-					OUTPUT_VARIABLE COMMIT_HASH
-					OUTPUT_STRIP_TRAILING_WHITESPACE
-					ERROR_QUIET
-					WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-				)
-				string(APPEND output_version ".${COMMIT_COUNT}+${COMMIT_HASH}")
-			else()
-				#If commit count diff is 0, it means we are on the tag. Keep the version untouched
-			endif()
 
-			set(version_major )
-			set(version_minor )
-			set(version_patch )
-			bc_parse_full_version("${output_version}" version_major version_minor version_patch)
-			set(short_version "${version_major}.${version_minor}.${version_patch}")
-			if (PROJECT_VERSION AND NOT (short_version VERSION_EQUAL PROJECT_VERSION))
-				message(FATAL_ERROR "project and git version mismatch (project: '${PROJECT_VERSION}', git: '${short_version}')")
-			endif()
-
-			set(${OUTPUT_VERSION} "${output_version}" PARENT_SCOPE)
+		# parse git describe version
+		if (NOT (GIT_DESCRIBE_VERSION MATCHES "^([0-9]+)[.]([0-9]+)[.]([0-9]+)(-alpha|-beta)?(-[0-9]+)?(-g[0-9a-f]+)?$"))
+			message(FATAL_ERROR "invalid git describe version: '${GIT_DESCRIBE_VERSION}'")
 		endif()
+		set(version_major ${CMAKE_MATCH_1})
+		set(version_minor ${CMAKE_MATCH_2})
+		set(version_patch ${CMAKE_MATCH_3})
+		if (CMAKE_MATCH_4)
+			string(SUBSTRING "${CMAKE_MATCH_4}" 1 -1 version_branch)
+		endif()
+		if (CMAKE_MATCH_5)
+			string(SUBSTRING "${CMAKE_MATCH_5}" 1 -1 version_commit)
+		endif()
+		if (CMAKE_MATCH_6)
+			string(SUBSTRING "${CMAKE_MATCH_6}" 2 -1 version_hash)
+		endif()
+
+		# interpret untagged hotfixes as pre-releases of the next "patch" release
+		if (NOT version_branch AND version_commit)
+			math(EXPR version_patch "${version_patch} + 1")
+			set(version_branch "alpha")
+		endif()
+
+		# format full version
+		set(full_version "${version_major}.${version_minor}.${version_patch}")
+		if (version_branch)
+			string(APPEND full_version "-${version_branch}")
+			if (version_commit)
+				string(APPEND full_version ".${version_commit}+${version_hash}")
+			endif()
+		endif()
+
+		# check that the major and minor versions declared by the `project()` command are equal to the ones
+		# that have been found out while parsing `git describe` result.
+		if (PROJECT_VERSION)
+			set(short_git_version "${version_major}.${version_minor}")
+			set(short_project_version "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}")
+			if(NOT (short_project_version VERSION_EQUAL short_git_version))
+				message(FATAL_ERROR "project and git version are not compatible (project: '${PROJECT_VERSION}', git: '${output_version}')")
+			endif()
+		endif()
+
+		set(${OUTPUT_VERSION} "${full_version}" PARENT_SCOPE)
 	endif()
 endfunction()
-
-macro(bc_compute_commits_count_since_latest_tag LATEST_TAG OUTPUT_COMMITS_COUNT)
-	bc_check_git()
-	if(GIT_EXECUTABLE)
-		execute_process(
-			COMMAND "${GIT_EXECUTABLE}" "rev-list" "${LATEST_TAG}..HEAD" "--count"
-			OUTPUT_VARIABLE ${OUTPUT_COMMITS_COUNT}
-			OUTPUT_STRIP_TRAILING_WHITESPACE
-			ERROR_QUIET
-			WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-		)
-	endif()
-endmacro()
 
 function(bc_make_package_source_target)
 	set(basename "")
@@ -218,6 +218,8 @@ function(bc_make_package_source_target)
 	add_custom_target(${specfile_target}
 	    COMMAND ${CMAKE_COMMAND}
 	        "-DPROJECT_VERSION=${PROJECT_VERSION}"
+	        "-DPROJECT_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}"
+	        "-DPROJECT_VERSION_MINOR=${PROJECT_VERSION_MINOR}"
 	        "-DBCTOOLBOX_CMAKE_UTILS=${BCTOOLBOX_CMAKE_UTILS}"
 	        "-DSRC=${CMAKE_CURRENT_BINARY_DIR}/rpm/${specfile_name}.cmake"
 	        "-DDEST=${PROJECT_SOURCE_DIR}/${specfile_name}"
@@ -232,6 +234,8 @@ function(bc_make_package_source_target)
 	        "-DPROJECT_SOURCE_DIR=${PROJECT_SOURCE_DIR}"
 	        "-DPROJECT_BINARY_DIR=${PROJECT_BINARY_DIR}"
 	        "-DPROJECT_VERSION=${PROJECT_VERSION}"
+	        "-DPROJECT_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}"
+	        "-DPROJECT_VERSION_MINOR=${PROJECT_VERSION_MINOR}"
 	        "-DCPACK_PACKAGE_NAME=${CPACK_PACKAGE_NAME}"
 	        "-DEXCLUDE_PATTERNS='${CPACK_SOURCE_IGNORE_FILES}'"
 	        -P "${BCTOOLBOX_CMAKE_DIR}/MakeArchive.cmake"

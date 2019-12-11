@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-cmake_minimum_required(VERSION 3.11) # we need CMake 3.11 for defining 'package_source' target as custom target
+cmake_minimum_required(VERSION 3.2)
 set(CMAKE_MACOSX_RPATH ON) # Before cmake 3.0.0, MACOSX_RPATH was not set to ON by default - however this is no good reason to not enable it by default
 
 project(bctoolbox VERSION 4.3.0)
@@ -41,6 +41,7 @@ option(ENABLE_DECAF "Enable Elliptic Curve Cryptography support" ON)
 option(ENABLE_STRICT "Pass strict flags to the compiler" ON)
 option(ENABLE_TESTS_COMPONENT "Enable compilation of tests helper library" ON)
 option(ENABLE_TESTS "Enable compilation of tests" ON)
+option(ENABLE_PACKAGE_SOURCE "Create 'package_source' target for source archive making (CMake >= 3.11)" OFF)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_EXTENSIONS NO)
@@ -161,8 +162,9 @@ add_subdirectory(src)
 if(ENABLE_TESTS AND ENABLE_TESTS_COMPONENT)
 	add_subdirectory(tester)
 endif()
-
-add_subdirectory(build)
+if(ENABLE_PACKAGE_SOURCE)
+	add_subdirectory(build)
+endif()
 
 include(CMakePackageConfigHelpers)
 set(CONFIG_PACKAGE_LOCATION "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/cmake")

@@ -20,6 +20,8 @@
 #
 ############################################################################
 
+cmake_minimum_required(VERSION 3.11) # we need CMake 3.11 for defining 'package_source' target as custom target
+
 set(BCTOOLBOX_CMAKE_DIR "${PROJECT_SOURCE_DIR}/cmake")
 set(BCTOOLBOX_CMAKE_UTILS "${BCTOOLBOX_CMAKE_DIR}/BcToolboxCMakeUtils.cmake")
 include("${BCTOOLBOX_CMAKE_DIR}/BcToolboxCMakeUtils.cmake")
