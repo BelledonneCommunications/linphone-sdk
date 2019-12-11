@@ -21,7 +21,7 @@
 #
 ############################################################################
 
-cmake_minimum_required(VERSION 3.11) # we need CMake 3.11 for defining 'package_source' target as custom target
+cmake_minimum_required(VERSION 3.1)
 project(BELCARD VERSION 4.3.0 LANGUAGES C CXX)
 
 set(BELCARD_SO_VERSION "1")
@@ -31,6 +31,7 @@ option(ENABLE_STATIC "Build static library." ON)
 option(ENABLE_STRICT "Build with strict compile options." YES)
 option(ENABLE_TOOLS "Enable compilation of tools." YES)
 option(ENABLE_UNIT_TESTS "Enable compilation of unit tests." YES)
+option(ENABLE_PACKAGE_SOURCE "Create 'package_source' target for source archive making (CMake >= 3.11)" OFF)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -144,4 +145,6 @@ install(FILES
 	DESTINATION ${ConfigPackageLocation}
 )
 
-add_subdirectory(build)
+if (ENABLE_PACKAGE_SOURCE)
+	add_subdirectory(build)
+endif()
