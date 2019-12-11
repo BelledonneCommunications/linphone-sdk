@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-cmake_minimum_required(VERSION 3.11) # we need CMake 3.11 for defining 'package_source' target as custom target
+cmake_minimum_required(VERSION 3.1)
 project(mediastreamer2 VERSION 4.3.0 LANGUAGES C CXX)
 
 # See: https://cmake.org/cmake/help/v3.12/policy/CMP0072.html
@@ -72,6 +72,7 @@ option(ENABLE_STRICT "Build with strict compile options." YES)
 option(ENABLE_RELATIVE_PREFIX "Find resources relatively to the installation directory." NO)
 option(ENABLE_TOOLS "Turn on or off compilation of tools." YES)
 option(ENABLE_UNIT_TESTS "Enable compilation of unit tests." YES)
+option(ENABLE_PACKAGE_SOURCE "Create 'package_source' target for source archive making (CMake >= 3.11)" OFF)
 
 option(ENABLE_SRTP "Build with the SRTP transport support." YES)
 cmake_dependent_option(ENABLE_ZRTP "Build with ZRTP support." YES "ENABLE_SRTP" NO)
@@ -708,4 +709,6 @@ install(FILES
 	DESTINATION ${CONFIG_PACKAGE_LOCATION}
 )
 
-add_subdirectory(build)
+if (ENABLE_PACKAGE_SOURCE)
+	add_subdirectory(build)
+endif()
