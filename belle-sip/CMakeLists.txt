@@ -21,7 +21,7 @@
 ############################################################################
 
 
-cmake_minimum_required(VERSION 3.11) # we need CMake 3.11 for defining 'package_source' target as custom target
+cmake_minimum_required(VERSION 3.1)
 project(belle-sip VERSION 4.3.0 LANGUAGES C CXX)
 
 
@@ -43,6 +43,7 @@ option(ENABLE_STRICT "Build with strict compile options." YES)
 option(ENABLE_TUNNEL "Enable tunnel support" OFF)
 option(ENABLE_TESTS "Enable compilation of tests" ON)
 option(ENABLE_MDNS "Enable multicast DNS" OFF)
+option(ENABLE_PACKAGE_SOURCE "Create 'package_source' target for source archive making (CMake >= 3.11)" OFF)
 
 
 include(CheckLibraryExists)
@@ -256,4 +257,6 @@ install(FILES
 	DESTINATION ${CONFIG_PACKAGE_LOCATION}
 )
 
-add_subdirectory(build)
+if (ENABLE_PACKAGE_SOURCE)
+	add_subdirectory(build)
+endif()
