@@ -25,7 +25,7 @@ include(CheckLibraryExists)
 include(CMakePushCheckState)
 include(CMakePackageConfigHelpers)
 
-cmake_minimum_required(VERSION 3.11) # we need CMake 3.11 for defining 'package_source' target as custom target
+cmake_minimum_required(VERSION 3.1)
 
 option(ENABLE_SHARED "Build shared library." YES)
 option(ENABLE_STATIC "Build static library." YES)
@@ -36,6 +36,7 @@ option(ENABLE_UNIT_TESTS "Enable compilation of unit tests." YES)
 option(ENABLE_PROFILING "Enable profiling, GCC only" NO)
 option(ENABLE_C_INTERFACE "Enable support of C89 foreign function interface" NO)
 option(ENABLE_JNI "Enable support of Java foreign function interface" NO)
+option(ENABLE_PACKAGE_SOURCE "Create 'package_source' target for source archive making (CMake >= 3.11)" OFF)
 
 set (LANGUAGES_LIST CXX)
 if (ENABLE_C_INTERFACE)
@@ -190,4 +191,6 @@ if (DOXYGEN_FOUND)
 )
 endif()
 
-add_subdirectory(build)
+if (ENABLE_PACKAGE_SOURCE)
+	add_subdirectory(build)
+endif()
