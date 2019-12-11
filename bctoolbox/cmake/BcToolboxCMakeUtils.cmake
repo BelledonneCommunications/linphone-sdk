@@ -195,7 +195,7 @@ function(bc_compute_full_version OUTPUT_VERSION)
 			set(short_git_version "${version_major}.${version_minor}")
 			set(short_project_version "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}")
 			if(NOT (short_project_version VERSION_EQUAL short_git_version))
-				message(FATAL_ERROR "project and git version are not compatible (project: '${PROJECT_VERSION}', git: '${output_version}')")
+				message(FATAL_ERROR "project and git version are not compatible (project: '${PROJECT_VERSION}', git: '${full_version}')")
 			endif()
 		endif()
 
