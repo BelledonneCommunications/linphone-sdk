@@ -31,7 +31,7 @@ set(version_patch )
 set(identifiers )
 set(metadata )
 
-bc_parse_full_version(${FULL_VERSION} version_major version_minor version_patch identifiers metadata)
+bc_parse_full_version("${FULL_VERSION}" version_major version_minor version_patch identifiers metadata)
 
 set(RPM_VERSION ${version_major}.${version_minor}.${version_patch})
 if (NOT identifiers)

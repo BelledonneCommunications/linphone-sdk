@@ -165,7 +165,7 @@ function(bc_compute_full_version OUTPUT_VERSION)
 		set(version_minor ${CMAKE_MATCH_2})
 		set(version_patch ${CMAKE_MATCH_3})
 		if (CMAKE_MATCH_4)
-			string(SUBSTRING "${CMAKE_MATCH_4}" 1 -1 version_branch)
+			string(SUBSTRING "${CMAKE_MATCH_4}" 1 -1 version_prerelease)
 		endif()
 		if (CMAKE_MATCH_5)
 			string(SUBSTRING "${CMAKE_MATCH_5}" 1 -1 version_commit)
@@ -175,15 +175,15 @@ function(bc_compute_full_version OUTPUT_VERSION)
 		endif()
 
 		# interpret untagged hotfixes as pre-releases of the next "patch" release
-		if (NOT version_branch AND version_commit)
+		if (NOT version_prerelease AND version_commit)
 			math(EXPR version_patch "${version_patch} + 1")
-			set(version_branch "alpha")
+			set(version_prerelease "pre")
 		endif()
 
 		# format full version
 		set(full_version "${version_major}.${version_minor}.${version_patch}")
-		if (version_branch)
-			string(APPEND full_version "-${version_branch}")
+		if (version_prerelease)
+			string(APPEND full_version "-${version_prerelease}")
 			if (version_commit)
 				string(APPEND full_version ".${version_commit}+${version_hash}")
 			endif()
@@ -195,7 +195,10 @@ function(bc_compute_full_version OUTPUT_VERSION)
 			set(short_git_version "${version_major}.${version_minor}")
 			set(short_project_version "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}")
 			if(NOT (short_project_version VERSION_EQUAL short_git_version))
-				message(FATAL_ERROR "project and git version are not compatible (project: '${PROJECT_VERSION}', git: '${full_version}')")
+				message(FATAL_ERROR
+					"project and git version are not compatible (project: '${PROJECT_VERSION}', git: '${full_version}'): "
+					"major and minor version are not equal !"
+				)
 			endif()
 		endif()
 
