@@ -42,6 +42,16 @@ execute_process(
 # Copy and merge content of all architectures in the apple-darwin directory
 list(GET _archs 0 _first_arch)
 
+# Starting from Xcode 10, when using the generator Xcode to build the SDK, it has too much processing on Info.plist :
+#	 builtin-infoPlistUtility ... -expandbuildsettings ...
+# This causes 32-bit applications installed from TestFlight to crash.
+# Try to delete it in the future. Today, please use the Info.plist of armv7 whenever possible.
+foreach(_arch ${_archs})
+	if(_arch STREQUAL "armv7")
+		set(_first_arch "armv7")
+	endif()
+endforeach()
+
 execute_process(
 	COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "linphone-sdk/${_first_arch}-apple-darwin.ios/Frameworks" "linphone-sdk/apple-darwin/Frameworks"
 	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
