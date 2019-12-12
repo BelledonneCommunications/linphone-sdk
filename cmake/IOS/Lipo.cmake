@@ -42,10 +42,15 @@ execute_process(
 # Copy and merge content of all architectures in the apple-darwin directory
 list(GET _archs 0 _first_arch)
 
-# Starting from Xcode 10, when using the generator Xcode to build the SDK, it has too much processing on Info.plist :
-#	 builtin-infoPlistUtility ... -expandbuildsettings ...
-# This causes 32-bit applications installed from TestFlight to crash.
-# Try to delete it in the future. Today, please use the Info.plist of armv7 whenever possible.
+# When using the generator Xcode (Xcode 10.3 and cmake 3.15) to build the SDK, it has too much processing on Info.plist :
+#	 (for armv7 and x86_64) builtin-infoPlistUtility ... -expandbuildsettings -format binary -platform iphoneos
+#  (for arm64) builtin-infoPlistUtility ... -expandbuildsettings -format binary -platform iphoneos -requiredArchitecture arm64
+#
+# This causes the Info.plist parameter UIRequiredDeviceCapabilities to be set to -requiredArchitecture for arm64.
+# Lipo target select the first Info.plist with is most of the time arm64.
+# Consequence is that even the multi arch framework will have Info.plist parameter UIRequiredDeviceCapabilities set to arm64.
+# Last consequence is that Apple store will remove framework masked as arm64 from amv7 binaries leading to a crash at startup.
+# Try to fix it in the future. Today, please use the Info.plist of armv7 whenever possible.
 foreach(_arch ${_archs})
 	if(_arch STREQUAL "armv7")
 		set(_first_arch "armv7")
