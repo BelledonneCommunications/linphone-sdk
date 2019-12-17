@@ -38,9 +38,10 @@
 
 // see http://theiphonewiki.com/wiki/Models , these come from our experience
 NSString* notHDCapableFamilies[] = {
-	@"iPod1", @"iPod2", @"iPod3", @"iPod4",
-	@"iPhone1", @"iPhone2", @"iPhone3", @"iPhone4",
-	@"iPad1", @"iPad2" };
+	@"iPod1,", @"iPod2,", @"iPod3,", @"iPod4,",
+	@"iPhone1,", @"iPhone2,", @"iPhone3,", @"iPhone4,",
+	@"iPad1,", @"iPad2," };
+
 
 + (BOOL) isHDVideoCapableDevice:(NSString*)device {
 	for (int i = 0; i<sizeof(notHDCapableFamilies)/sizeof(NSString*); i++) {
