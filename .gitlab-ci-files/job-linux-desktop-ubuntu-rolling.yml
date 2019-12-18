@@ -18,19 +18,19 @@ job-ubuntu-rolling-makefile-gcc:
   extends: .job-linux-desktop
 
 
-job-ubuntu-rolling-makefile-clang:
+#job-ubuntu-rolling-makefile-clang:
 
-  tags: [ "docker-ubuntu-rolling" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rolling
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-  variables:
-    CMAKE_GENERATOR: Unix Makefiles
-    CC: clang
-    CXX: clang++
-    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-  extends: .job-linux-desktop
+#  tags: [ "docker-ubuntu-rolling" ]
+#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rolling
+#  only:
+#    variables:
+#      - $NIGHTLY_MASTER
+#  variables:
+#    CMAKE_GENERATOR: Unix Makefiles
+#    CC: clang
+#    CXX: clang++
+#    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
+#  extends: .job-linux-desktop
 
 
 #################################################
@@ -38,27 +38,27 @@ job-ubuntu-rolling-makefile-clang:
 #################################################
 
 
-job-ubuntu-rolling-ninja-gcc:
+#job-ubuntu-rolling-ninja-gcc:
 
-  tags: [ "docker-ubuntu-rolling" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rolling
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-  variables:
-    CMAKE_GENERATOR: Ninja
-    CC: gcc
-    CXX: g++
-  extends: .job-linux-desktop
+#  tags: [ "docker-ubuntu-rolling" ]
+#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rolling
+#  only:
+#    variables:
+#      - $NIGHTLY_MASTER
+#  variables:
+#    CMAKE_GENERATOR: Ninja
+#    CC: gcc
+#    CXX: g++
+#  extends: .job-linux-desktop
 
 
-job-ubuntu-rolling-ninja-gcc-novideo:
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-  variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
-  extends: job-ubuntu-rolling-ninja-gcc
+#job-ubuntu-rolling-ninja-gcc-novideo:
+#  only:
+#    variables:
+#      - $NIGHTLY_MASTER
+#  variables:
+#    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+#  extends: job-ubuntu-rolling-ninja-gcc
 
 
 job-ubuntu-rolling-ninja-clang:
@@ -71,16 +71,16 @@ job-ubuntu-rolling-ninja-clang:
   extends: .job-linux-desktop
 
 
-job-ubuntu-rolling-ninja-clang-novideo:
+#job-ubuntu-rolling-ninja-clang-novideo:
 
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-  variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
-  extends: job-ubuntu-rolling-ninja-clang
-  
-  
+#  only:
+#    variables:
+#      - $NIGHTLY_MASTER
+#  variables:
+#    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+#  extends: job-ubuntu-rolling-ninja-clang
+
+
 #################################################
 # TESTS
 #################################################
@@ -89,47 +89,47 @@ job-ubuntu-rolling-ninja-clang-novideo:
 test-bctoolbox-ubuntu:
   extends: .test-bctoolbox
   dependencies:
-    - job-ubuntu-rolling-ninja-clang
+    - job-ubuntu-rolling-makefile-gcc
   tags: [ "docker-test-ubuntu-rolling-nuc" ]
   variables:
     PLATFORM: linux-ubuntu-rolling
-  
+
 test-bellesip-ubuntu:
   extends: .test-bellesip
   dependencies:
-    - job-ubuntu-rolling-ninja-clang
+    - job-ubuntu-rolling-makefile-gcc
   tags: [ "docker-test-ubuntu-rolling-nuc" ]
   variables:
     PLATFORM: linux-ubuntu-rolling
-  
+
 test-belr-ubuntu:
   extends: .test-belr
   dependencies:
-    - job-ubuntu-rolling-ninja-clang
+    - job-ubuntu-rolling-makefile-gcc
   tags: [ "docker-test-ubuntu-rolling-nuc" ]
   variables:
     PLATFORM: linux-ubuntu-rolling
-  
+
 test-belcard-ubuntu:
   extends: .test-belcard
   dependencies:
-    - job-ubuntu-rolling-ninja-clang
+    - job-ubuntu-rolling-makefile-gcc
   tags: [ "docker-test-ubuntu-rolling-nuc" ]
   variables:
     PLATFORM: linux-ubuntu-rolling
-  
+
 test-bzrtp-ubuntu:
   extends: .test-bzrtp
   dependencies:
-    - job-ubuntu-rolling-ninja-clang
+    - job-ubuntu-rolling-makefile-gcc
   tags: [ "docker-test-ubuntu-rolling-nuc" ]
   variables:
     PLATFORM: linux-ubuntu-rolling
-  
+
 test-liblinphone-ubuntu:
   tags: [ "docker-test-ubuntu-rolling-liblinphone-nuc" ]
   extends: .test-liblinphone
   dependencies:
-    - job-ubuntu-rolling-ninja-clang
+    - job-ubuntu-rolling-makefile-gcc
   variables:
     PLATFORM: linux-ubuntu-rolling
