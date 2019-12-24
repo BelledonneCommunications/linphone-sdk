@@ -431,21 +431,22 @@ static int msv4l2_configure(V4l2State *s){
 		fmt.fmt.pix.height = s->requested_vsize.height;
 		fmt.fmt.pix.field = V4L2_FIELD_ANY;
 		if(v4l2_ioctl(s->fd, VIDIOC_S_FMT, &fmt) != 0) {
-			ms_error("VIDIOC_S_FMT failed: %s", strerror(errno));
-			return -1;
+			ms_error("VIDIOC_S_FMT failed: %s. Read-only driver maybe ?", strerror(errno));
 		}
-		s->pix_fmt = v4l2_format_to_ms(fmt.fmt.pix.pixelformat);
+		
 	}
 
 	memset(&fmt,0,sizeof(fmt));
 	fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
 	if (v4l2_ioctl (s->fd, VIDIOC_G_FMT, &fmt)<0){
-		ms_error("VIDIOC_G_FMT failed: %s",strerror(errno));
+		ms_error("VIDIOC_G_FMT failed: %s. Irrecoverable error, video capture will not work.",strerror(errno));
+		return -1;
 	}else{
-		ms_message("Size of webcam delivered pictures is %ix%i. Format:0x%08x",fmt.fmt.pix.width,fmt.fmt.pix.height, s->pix_fmt);
 		s->requested_vsize.width=fmt.fmt.pix.width;
 		s->requested_vsize.height=fmt.fmt.pix.height;
+		s->pix_fmt = v4l2_format_to_ms(fmt.fmt.pix.pixelformat);
+		ms_message("Size of webcam delivered pictures is %ix%i. Format:0x%08x (%s)",fmt.fmt.pix.width,fmt.fmt.pix.height, s->pix_fmt, ms_pix_fmt_to_string(s->pix_fmt));
 	}
 	s->picture_size=get_picture_buffer_size(s->pix_fmt,s->requested_vsize.width,s->requested_vsize.height);
 
