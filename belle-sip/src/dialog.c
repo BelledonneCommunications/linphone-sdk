@@ -497,9 +497,13 @@ static void belle_sip_dialog_send_prack(belle_sip_dialog_t *dialog, belle_sip_re
 	belle_sip_provider_send_request(dialog->provider, request);
 }
 
-static void belle_sip_dialog_process_response_100rel(belle_sip_dialog_t *obj, belle_sip_response_t *resp){
+/*return 0 if message should be delivered to the next listener, otherwise, its a retransmision, just keep it*/
+static int belle_sip_dialog_process_response_100rel(belle_sip_dialog_t *obj, belle_sip_transaction_t* transaction){
+	belle_sip_response_t *resp = belle_sip_transaction_get_response(transaction);
 	belle_sip_message_t* msg = (belle_sip_message_t*)resp;
 	belle_sip_header_cseq_t *header_cseq_resp = belle_sip_message_get_header_by_type(msg, belle_sip_header_cseq_t);
+	int ret = 0;
+	
 	if (header_cseq_resp == NULL){
 		belle_sip_message("Message [%p] does not contain CSeq header!", msg);
 	}
@@ -523,14 +527,21 @@ static void belle_sip_dialog_process_response_100rel(belle_sip_dialog_t *obj, be
 				long rseq = strtol(header_rseq_value, NULL, 10);
 				unsigned int cseq_resp = belle_sip_header_cseq_get_seq_number(header_cseq_resp);
 				const char* method_resp = belle_sip_header_cseq_get_method(header_cseq_resp);
-				
-				/*send PRACK from callee */
-				belle_sip_request_t *prack = belle_sip_dialog_create_prack(obj, rseq, cseq_resp, method_resp);
-				if (prack){
-					belle_sip_dialog_send_prack(obj, prack);
-				}
-				else {
-					belle_sip_message("Failed to create PRACK message!");
+				/*"A response is a retransmission when
+				 its dialog ID, CSeq, and RSeq match the original response". Currently we only store last acknoledged Rseq. This data is used to detect retransmitions*/
+				belle_sip_ict_t * ict = BELLE_SIP_CAST(transaction,belle_sip_ict_t);
+				if (ict->r_cseq > 0 &&  ict->r_cseq <= (unsigned int)rseq) {
+					belle_sip_warning("provisionnal response with sequence number [%ld] already acknoledged, dropping",rseq);
+					ret = -1;
+				} else {
+					/*send PRACK from callee */
+					belle_sip_request_t *prack = belle_sip_dialog_create_prack(obj, rseq, cseq_resp, method_resp);
+					if (prack){
+						belle_sip_dialog_send_prack(obj, prack);
+						ict->r_cseq = rseq;
+					} else {
+						belle_sip_message("Failed to create PRACK message!");
+					}
 				}
 			}
 			else {
@@ -538,6 +549,7 @@ static void belle_sip_dialog_process_response_100rel(belle_sip_dialog_t *obj, be
 			}
 		}
 	}
+	return ret;
 }
 
 /*
@@ -589,7 +601,7 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 				if (code<200){
 					set_state(obj,BELLE_SIP_DIALOG_EARLY);
 					if (!as_uas) {
-						belle_sip_dialog_process_response_100rel(obj, resp);
+						belle_sip_dialog_process_response_100rel(obj, transaction);
 					}
 					break;
 				}/* no break  for code >200 because need to call belle_sip_dialog_establish_full*/
@@ -626,7 +638,11 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 				delete_dialog=TRUE;
 			}
 			if ((code > 100 && code < 200) && !as_uas) {
-				belle_sip_dialog_process_response_100rel(obj, resp);
+				if (belle_sip_dialog_process_response_100rel(obj, transaction)) {
+					/*retransmition detected, dropping*/
+					ret = -1;
+					goto end;
+				}
 			}
 			break;
 		case BELLE_SIP_DIALOG_CONFIRMED:

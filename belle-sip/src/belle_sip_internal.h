@@ -755,6 +755,8 @@ struct belle_sip_ict{
 	belle_sip_source_t *timer_D;
 	belle_sip_source_t *timer_M;
 	belle_sip_request_t *ack;
+	/*last acknoleged provisional response sequence number. Note that "The RSeq numbering space is within a single transaction."*/
+	unsigned int r_cseq;
 };
 
 typedef struct belle_sip_ict belle_sip_ict_t;
