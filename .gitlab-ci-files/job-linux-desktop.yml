@@ -12,9 +12,9 @@
     - export CXX=$CXX
     - mkdir -p build-desktop
     - cd build-desktop
-    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS
+    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS
     - echo $CMAKE_GENERATOR
-    - echo $DEFAULT_LINUX_CMAKE_OPTIONS 
+    - echo $DEFAULT_LINUX_CMAKE_OPTIONS
     - echo $CMAKE_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     - echo $ADDITIONAL_BUILD_OPTIONS
@@ -33,7 +33,7 @@
       - linphone/tester/*
     expire_in: 1 week
 
-    
+
 #################################################
 # TESTS
 #################################################
@@ -53,46 +53,46 @@
   script:
     - cd $PATH_TO_TESTER
     - echo $PATH_TO_TESTER
-    
+
     #pulseaudio launch for mediastreamer
     - $PULSEAUDIO
     - echo $PULSEAUDIO
-    
+
     #X emulation for linphone
     - $XVFB &
     - echo $XVFB
     - $EXPORT_DISPLAY
     - echo $EXPORT_DISPLAY
-    
+
     - ls -la
-    
+
     #enabling SYS_NICE cap for ms2 and liblinphone testers
 
     - echo $TESTER_BIN
     - echo ${TESTER_BIN}
-    
+
     - echo $SET_CAP_SYS_NICE_LIN
     - $SET_CAP_SYS_NICE_LIN || true
-    
+
     - echo $SET_CAP_SYS_NICE_NET_ADMIN_MS
     - $SET_CAP_SYS_NICE_NET_ADMIN_MS || true
-    
+
     #checking if the tester has SYS_NICE cap
     - getcap ./$TESTER_BIN || true
-    - echo $RESOURCES_DIR 
+    - echo $RESOURCES_DIR
     - echo $ADDITIONNAL_OPTIONS
     - echo $LOG_PATTERN.txt
     - ./$TESTER_BIN --verbose --parallel $RESOURCES_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt || EXIT=$?
     - $PULSEAUDIO_KILL
     - exit $EXIT
-    
-  
+
+
   after_script:
     - pwd
     - cd $PATH_TO_TESTER
     - echo $PATH_TO_TESTER && pwd
     - git describe
-    
+
     #.gdbinit is used to store gdb init scripts
     #we use it to avoid the need to specify manually the commands for each potential coredump
     - echo "thread apply all bt" | sudo tee .gdbinit
@@ -104,13 +104,13 @@
     - if [[ -n $(find . -type f -name "core*") ]]; then find . -type f -name "core*" | xargs -L1 gdb $TESTER_BIN; fi || true
     - COMMIT=$(git describe)
     #generation of html file to redirect on test results page
-    
+
     - BRANCH=$CI_COMMIT_REF_NAME
     - echo $BRANCH
     - ESCAPED_BRANCH=$(echo $BRANCH | tr / _)
     - echo $ESCAPED_BRANCH
     - URL=http://linphone.org/snapshots/allure-tests-reports/$ESCAPED_BRANCH/$COMMIT/$PLATFORM/$TESTER/allure-report
-    
+
     - echo "<\!DOCTYPE HTML>" >> index.html
     - echo "<meta charset=\"UTF-8\">" >> index.html
     - echo "<meta http-equiv=\"refresh\" content=\"1; url=$URL\">" >> index.html
@@ -122,7 +122,7 @@
     - echo "If you are not redirected automatically, follow the <a href='$URL'>link to see the test report</a>" >> index.html
     - cat index.html
     - echo "TEST REPORTS URL $URL"
-    
+
     # simplifing artifacts browsing
     # Moving artifacts to ease browsing from web view
     # initially, all the paths needed to be browsed entirely to see artifacts
@@ -132,7 +132,7 @@
     - cp -r BCUnitAutomated* ${CI_PROJECT_DIR}/results
     - cp -r $LOG_PATTERN* ${CI_PROJECT_DIR}/results
     - cp index.html ${CI_PROJECT_DIR}/results
-    
+
   artifacts:
     paths:
       - results/*
@@ -151,7 +151,7 @@
     LOG_PATTERN: "logBctoolboxAllPar"
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/WORK/desktop/Build/bctoolbox/tester"
     TESTER: "bctoolbox"
-    
+
 .test-bellesip:
   extends: .test
   dependencies:
@@ -184,7 +184,7 @@
     LOG_PATTERN: "logBelcardAllPar"
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
     TESTER: "belcard"
-    
+
 .test-bzrtp:
   extends: .test
   dependencies:
@@ -197,7 +197,7 @@
     #different behaviour from other testers
     RESOURCES_DIR: "--resource-dir ."
     TESTER: "bzrtp"
-    
+
 .test-liblinphone:
   extends: .test
   dependencies:

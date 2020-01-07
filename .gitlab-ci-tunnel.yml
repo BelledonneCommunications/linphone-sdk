@@ -6,7 +6,10 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
   MAKEFILE_JOBS: 5
   CCACHE_SIZE: 2G
-  CMAKE_OPTIONS: -DENABLE_LIME_X3DH=YES -DENABLE_TUNNEL=YES
+  CMAKE_OPTIONS: -DENABLE_TUNNEL=YES
+  #Lime X3DH activated by default, if there is a problem, see the default
+  #build options in CMakeBuilder
+  #CMAKE_OPTIONS: -DENABLE_LIME_X3DH=YES -DENABLE_TUNNEL=YES
 
 
 #################################################
