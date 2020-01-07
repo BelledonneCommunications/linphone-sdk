@@ -17,7 +17,7 @@ job-raspbian-makefile-gcc:
   script:
     - mkdir -p build-raspberry
     - cd build-raspberry
-    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Raspberry $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS
+    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Raspberry $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS
     - echo $CMAKE_GENERATOR
     - echo $DEFAULT_LINUX_CMAKE_OPTIONS
     - echo $CMAKE_OPTIONS
@@ -37,6 +37,3 @@ job-raspbian-makefile-gcc:
       - lime/tester/*
       - linphone/tester/*
     expire_in: 1 week
-
-
-
