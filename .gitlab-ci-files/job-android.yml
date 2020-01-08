@@ -52,7 +52,7 @@ job-android-makefile-r17c-no-java-wrapper:
       - $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_JAVA_WRAPPER=NO
-  extends: .job-android-makefile-r17c
+  extends: job-android-makefile-r17c
 
 
 #job-android-makefile-r19:
