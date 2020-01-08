@@ -3,34 +3,34 @@
 #################################################
 
 
-job-debian9-makefile-gcc:
+#job-debian9-makefile-gcc:
+#
+#  tags: [ "docker-debian9" ]
+#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
+#  only:
+#    variables:
+#      - $NIGHTLY_MASTER
+#  variables:
+#    CMAKE_GENERATOR: Unix Makefiles
+#    CC: gcc
+#    CXX: g++
+#    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
+#  extends: .job-linux-desktop
 
-  tags: [ "docker-debian9" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-  variables:
-    CMAKE_GENERATOR: Unix Makefiles
-    CC: gcc
-    CXX: g++
-    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-  extends: .job-linux-desktop
 
-
-job-debian9-makefile-clang:
-
-  tags: [ "docker-debian9" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-  variables:
-    CMAKE_GENERATOR: Unix Makefiles
-    CC: clang
-    CXX: clang++
-    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-  extends: .job-linux-desktop
+#job-debian9-makefile-clang:
+#
+#  tags: [ "docker-debian9" ]
+#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
+#  only:
+#    variables:
+#      - $NIGHTLY_MASTER
+#  variables:
+#    CMAKE_GENERATOR: Unix Makefiles
+#    CC: clang
+#    CXX: clang++
+#    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
+#  extends: .job-linux-desktop
 
 
 #################################################
@@ -43,20 +43,21 @@ job-debian9-ninja-gcc:
   tags: [ "docker-debian9" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
   variables:
+    CMAKE_OPTIONS: -DENABLE_DOC=ON
     CMAKE_GENERATOR: Ninja
     CC: gcc
     CXX: g++
   extends: .job-linux-desktop
 
 
-job-debian9-ninja-gcc-novideo:
-
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-  variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
-  extends: job-debian9-ninja-gcc
+#job-debian9-ninja-gcc-novideo:
+#
+#  only:
+#    variables:
+#      - $NIGHTLY_MASTER
+#  variables:
+#    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+#  extends: job-debian9-ninja-gcc
 
 
 job-debian9-ninja-gcc-smallsdk:
@@ -66,29 +67,29 @@ job-debian9-ninja-gcc-smallsdk:
   extends: job-debian9-ninja-gcc
 
 
-job-debian9-ninja-clang:
+#job-debian9-ninja-clang:
 
-  tags: [ "docker-debian9" ]
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
-  variables:
-    CMAKE_OPTIONS: -DENABLE_DOC=ON
-    CMAKE_GENERATOR: Ninja
-    CC: clang
-    CXX: clang++
-  extends: .job-linux-desktop
+#  tags: [ "docker-debian9" ]
+#  only:
+#    variables:
+#      - $NIGHTLY_MASTER
+#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
+#  variables:
+#    CMAKE_OPTIONS: -DENABLE_DOC=ON
+#    CMAKE_GENERATOR: Ninja
+#    CC: clang
+#    CXX: clang++
+#  extends: .job-linux-desktop
 
 
-job-debian9-ninja-clang-novideo:
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-  variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
-  extends: job-debian9-ninja-clang
-  
+#job-debian9-ninja-clang-novideo:
+#  only:
+#    variables:
+#      - $NIGHTLY_MASTER
+#  variables:
+#    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+#  extends: job-debian9-ninja-clang
+
 #################################################
 # TESTS
 #################################################
@@ -98,7 +99,7 @@ job-debian9-ninja-clang-novideo:
 test-bctoolbox-debian9:
   extends: .test-bctoolbox
   dependencies:
-    - job-debian9-ninja-clang
+    - job-debian9-ninja-gcc
   tags: [ "docker-test-debian9" ]
   variables:
     PLATFORM: linux-debian9
@@ -110,7 +111,7 @@ test-bellesip-debian9:
   tags: [ "docker-test-debian9-nuc" ]
   variables:
     PLATFORM: linux-debian9
-  
+
 test-belr-debian9:
   extends: .test-belr
   dependencies:
@@ -118,7 +119,7 @@ test-belr-debian9:
   tags: [ "docker-test-debian9-nuc" ]
   variables:
     PLATFORM: linux-debian9
-  
+
 test-belcard-debian9:
   extends: .test-belcard
   dependencies:
@@ -126,7 +127,7 @@ test-belcard-debian9:
   tags: [ "docker-test-debian9-nuc" ]
   variables:
     PLATFORM: linux-debian9
-  
+
 test-bzrtp-debian9:
   extends: .test-bzrtp
   dependencies:
@@ -134,7 +135,7 @@ test-bzrtp-debian9:
   tags: [ "docker-test-debian9-nuc" ]
   variables:
     PLATFORM: linux-debian9
-  
+
 test-liblinphone-debian9:
   tags: [ "docker-test-debian9-liblinphone-nuc" ]
   extends: .test-liblinphone
