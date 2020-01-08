@@ -44,9 +44,7 @@ job-android-upload:
 
   variables:
     CCACHE_SIZE: 4G
-    CMAKE_GENERATOR: Unix Makefiles
-    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-    GIT_STRATEGY: clone
+    GIT_STRATEGY: fetch
     GRADLE_OPTIONS: -i
 
   dependencies:
@@ -64,14 +62,7 @@ job-android-upload:
   script:
     - git config --global user.email "gitlab@belledonne-communications.com"
     - git config --global user.name "Gitlab"
-    - mkdir -p build
     - cd build
-    - echo $CMAKE_GENERATOR
-    - echo $DEFAULT_LINUX_CMAKE_OPTION
-    - echo $CMAKE_OPTIONS
-    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS="arm64, armv7, x86_64, x86" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS
-    - echo $ADDITIONAL_BUILD_OPTIONS
-    - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     - rsync -ave ssh --exclude "*.aar" --exclude "*.jar" $ANDROID_MAVEN_URL maven_repository
     - echo $GRADLE_OPTIONS
     - ../cmake/Android/gradlew publish $GRADLE_OPTIONS
@@ -83,6 +74,8 @@ job-android-upload:
 job-android-upload-no-video:
 
   extends: job-android-upload
+  dependencies:
+    - job-android-ninja-r17c-novideo
 
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
@@ -92,9 +85,9 @@ job-android-upload-no-video:
 job-android-upload-legacy:
 
   extends: job-android-upload
-
+  dependencies:
+    - job-android-makefile-r17c-no-java-wrapper
   variables:
-    CMAKE_OPTIONS: -DENABLE_JAVA_WRAPPER=NO
     GRADLE_OPTIONS: -Plegacy-wrapper -i
 
 #################################################
