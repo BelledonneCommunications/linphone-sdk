@@ -6,10 +6,10 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
   MAKEFILE_JOBS: 5
   CCACHE_SIZE: 2G
-  CMAKE_OPTIONS: -DENABLE_TUNNEL=YES
+  
   #Lime X3DH activated by default, if there is a problem, see the default
   #build options in CMakeBuilder
-  #CMAKE_OPTIONS: -DENABLE_LIME_X3DH=YES -DENABLE_TUNNEL=YES
+  #Do not set CMAKE_OPTIONS here as it may be overwritten by child jobs
 
 
 #################################################
@@ -29,11 +29,11 @@ include:
   - '.gitlab-ci-files/job-android.yml'
   - '.gitlab-ci-files/job-ios.yml'
   - '.gitlab-ci-files/job-linux-desktop.yml'
-  - '.gitlab-ci-files/job-linux-desktop-archlinux-latest.yml'
+#  - '.gitlab-ci-files/job-linux-desktop-archlinux-latest.yml'
   - '.gitlab-ci-files/job-linux-desktop-centos7.yml'
-  - '.gitlab-ci-files/job-linux-desktop-debian8.yml'
-  - '.gitlab-ci-files/job-linux-desktop-debian9.yml'
-  - '.gitlab-ci-files/job-linux-desktop-ubuntu-rolling.yml'
+#  - '.gitlab-ci-files/job-linux-desktop-debian8.yml'
+#  - '.gitlab-ci-files/job-linux-desktop-debian9.yml'
+#  - '.gitlab-ci-files/job-linux-desktop-ubuntu-rolling.yml'
   - '.gitlab-ci-files/job-macosx.yml'
   - '.gitlab-ci-files/job-windows.yml'
 
