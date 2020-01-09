@@ -135,11 +135,7 @@ job-debian-doc-upload:
     #- LINPHONE_VERSION=$(git describe | sed -e 's/-.*//g')
     #using rsync with following options (verbose, keeping symbolic links, and copy recursively)
     #- echo "Linphone version =" $LINPHONE_VERSION
-    - rsync -rlv ../build-desktop/linphon<<<<<<< HEAD
-    - echo $CMAKE_ARCHS
-    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Android $CMAKE_ARCHS $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS
-    - echo $ADDITIONAL_BUILD_OPTIONS
-    - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
+    - rsync -rlv ../build-desktop/linphone-sdk/desktop/share/doc/linphone/*/* $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/docs/liblinphone/multilang
 
 #################################################
 # Job test report upload
