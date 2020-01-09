@@ -7,9 +7,9 @@ variables:
   MAKEFILE_JOBS: 5
   CCACHE_SIZE: 2G
   
-  #activated by default, if there is a problem, see the default
+  #Lime X3DH activated by default, if there is a problem, see the default
   #build options in CMakeBuilder
-  #CMAKE_OPTIONS: -DENABLE_LIME_X3DH=YES
+  #Do not set CMAKE_OPTIONS here as it may be overwritten by child jobs
 
 
 #################################################
