@@ -48,6 +48,7 @@ job-android-upload:
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
     GIT_STRATEGY: clone
     GRADLE_OPTIONS: -i
+    CMAKE_ARCHS: -DLINPHONESDK_ANDROID_ARCHS="arm64, armv7, x86_64, x86"
 
   dependencies:
     - job-android-makefile-r17c
@@ -68,8 +69,8 @@ job-android-upload:
     - cd build
     - echo $CMAKE_GENERATOR
     - echo $DEFAULT_LINUX_CMAKE_OPTION
-    - echo $CMAKE_OPTIONS
-    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS="arm64, armv7, x86_64, x86" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS
+    - echo $CMAKE_ARCHS $CMAKE_OPTIONS
+    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Android $CMAKE_ARCHS $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS
     - echo $ADDITIONAL_BUILD_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     - rsync -ave ssh --exclude "*.aar" --exclude "*.jar" $ANDROID_MAVEN_URL maven_repository
@@ -88,6 +89,14 @@ job-android-upload-no-video:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
     GRADLE_OPTIONS: -Pno-video -i
 
+job-android-upload-minimal-size:
+
+  extends: job-android-upload
+
+  variables:
+    CMAKE_ARCHS: -DLINPHONESDK_ANDROID_ARCHS="armv7, arm64"
+    CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_ADVANCED_IM=NO -DENABLE_DB_STORAGE=NO -DENABLE_VCARD=NO -DENABLE_MKV=NO -DENABLE_CAMERA2=NO -DENABLE_ASSETS=NO -DENABLE_LIME_X3DH=NO -DENABLE_QRCODE=NO -DENABLE_JPEG=NO -DENABLE_ZLIB=NO
+    GRADLE_OPTIONS: -Pminimal-size -i
 
 job-android-upload-legacy:
 
