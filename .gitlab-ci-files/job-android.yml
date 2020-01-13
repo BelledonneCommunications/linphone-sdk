@@ -107,17 +107,17 @@ job-android-makefile-r17c-minimal-size:
 #  extends: job-android-ninja-r16b
 
 
-#job-android-ninja-r17c-no-video:
+job-android-ninja-r17c-no-video:
 
-#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
-#  only:
-#    variables:
-#      - $NIGHTLY_MASTER
-#  variables:
-#    CMAKE_GENERATOR: Ninja
-#    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
-#    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
-#  extends: .job-android
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+  variables:
+    CMAKE_GENERATOR: Ninja
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
+    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+  extends: .job-android
 
 #job-android-ninja-r17c-macos:
 #  tags: [ "macosx" ]
