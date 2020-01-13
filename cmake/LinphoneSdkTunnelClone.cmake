@@ -27,7 +27,7 @@ include(LinphoneSdkUtils)
 linphone_sdk_check_git()
 
 
-set(TUNNEL_REVISION "77c330266a409840d2ce73acc414627649790a71")
+set(TUNNEL_REVISION "6e413fa45739d99750edaa6ab9fc93ce8e756579")
 
 
 if(IS_DIRECTORY "${LINPHONESDK_DIR}/tunnel")
