@@ -18,9 +18,6 @@
     - echo $CMAKE_OPTIONS
     - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS="$ANDROID_ARCHS" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS $CMAKE_SANITIZER_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
-    - ls -la
-    - sudo apt-get install tree
-    - tree
 
   artifacts:
     paths:
@@ -69,43 +66,10 @@ job-android-makefile-r17c-minimal-size:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_ADVANCED_IM=NO -DENABLE_DB_STORAGE=NO -DENABLE_VCARD=NO -DENABLE_MKV=NO -DENABLE_CAMERA2=NO -DENABLE_ASSETS=NO -DENABLE_LIME_X3DH=NO -DENABLE_QRCODE=NO -DENABLE_JPEG=NO -DENABLE_ZLIB=NO
   extends: job-android-makefile-r17c
 
-#job-android-makefile-r19:
-#
-#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r19
-#  only:
-#    variables:
-#      - $NIGHTLY_MASTER
-#  variables:
-#    CMAKE_GENERATOR: Unix Makefiles
-#    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-#  extends: .job-android
-
 
 #################################################
 # Ninja
 #################################################
-
-
-#job-android-ninja-r16b:
-#
-#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r16b
-#  only:
-#    variables:
-#      - $NIGHTLY_MASTER
-#  variables:
-#    CMAKE_GENERATOR: Ninja
-#  extends: .job-android
-
-
-#job-android-ninja-r16b-novideo:
-#
-#  only:
-#    variables:
-#      - $NIGHTLY_MASTER
-#  variables:
-#    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
-#  extends: job-android-ninja-r16b
-
 
 job-android-ninja-r17c-no-video:
 
@@ -129,24 +93,24 @@ job-android-ninja-r17c-no-video:
 #    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
 #  extends: .job-android
 
-#job-android-ninja-r20:
+job-android-ninja-r20:
 
-#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r20
-#  only:
-#    variables:
-#      - $NIGHTLY_MASTER
-#  variables:
-#    CMAKE_GENERATOR: Ninja
-#  extends: .job-android
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r20
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+  variables:
+    CMAKE_GENERATOR: Ninja
+  extends: .job-android
 
-#job-android-ninja-r20-smallsdk:
+job-android-ninja-r20-smallsdk:
 
-#  only:
-#    variables:
-#      - $NIGHTLY_MASTER
-#  variables:
-#    CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_ADVANCED_IM=NO -DENABLE_DB_STORAGE=NO
-#  extends: job-android-ninja-r20
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+  variables:
+    CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_ADVANCED_IM=NO -DENABLE_DB_STORAGE=NO
+  extends: job-android-ninja-r20
 
 job-android-ninja-r20:
 
@@ -167,62 +131,62 @@ job-android-ninja-r20:
 # Tests Android
 #################################################
 
-#test-android-r17c:
-#  tags: [ "docker-android-test-r17c" ]
-#  stage: test
-#  allow_failure: true
-#  dependencies:
-#    - job-android-makefile-r17c
-#  only:
-#    variables:
-#      - $NIGHTLY_MASTER
-#  script:
-#    - cd ${CI_PROJECT_DIR}/tester/Android
+test-android-r17c:
+  tags: [ "docker-android-test-r17c" ]
+  stage: test
+  allow_failure: true
+  dependencies:
+    - job-android-makefile-r17c
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+  script:
+    - cd ${CI_PROJECT_DIR}/tester/Android
     # uninstalling tester apps on device to prevent conflicts, but running anyway if there isn't some found.
-#    - adb uninstall org.linphone.tester.test || true
-#    - adb uninstall org.linphone.tester || true
+    - adb uninstall org.linphone.tester.test || true
+    - adb uninstall org.linphone.tester || true
 
     # build of the testers
-#    - ./gradlew assembleDebug
-#    - ./gradlew assembleDebugAndroidTest
+    - ./gradlew assembleDebug
+    - ./gradlew assembleDebugAndroidTest
 
     # gathering full trace of logcat in case of a coredump
-#    - |
-#        for x in `adb devices | sed -n '1!p' | sed '/^$/d' | awk '{print $1;}'`; do
-#        adb -s $x logcat -c
-#        adb -s $x logcat -v time > $x.txt &
-#        echo $! > $x.pid
-#        done
+    - |
+        for x in `adb devices | sed -n '1!p' | sed '/^$/d' | awk '{print $1;}'`; do
+        adb -s $x logcat -c
+        adb -s $x logcat -v time > $x.txt &
+        echo $! > $x.pid
+        done
 
     # Test launching
-#    - |
-#        java -jar ~/spoon.jar --output spoon --apk app/build/outputs/apk/debug/app-debug.apk \
-#        --test-apk app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk \
-#        --class-name 'org.linphone.tester.AllTests' \
-#        --fail-on-failure --fail-if-no-device-connected --grant-all || ( if [ $? -ne 0 ]
-#        then
-#        echo "Some tests are failed" && false
-#        fi)
+    - |
+        java -jar ~/spoon.jar --output spoon --apk app/build/outputs/apk/debug/app-debug.apk \
+        --test-apk app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk \
+        --class-name 'org.linphone.tester.AllTests' \
+        --fail-on-failure --fail-if-no-device-connected --grant-all || ( if [ $? -ne 0 ]
+        then
+        echo "Some tests are failed" && false
+        fi)
 
-#  after_script:
+  after_script:
     #putting all the trace in the ndk stack txt file
-#    - |
-#        for x in `adb devices | sed -n '1!p' | sed '/^$/d' | awk '{print $1;}'`; do
-#        cat tester/Android/$x.txt | ndk-stack -sym build/libs-debug/`adb -s $x shell getprop ro.product.cpu.abi | tr -d '\r'` > tester/Android/$x-ndk-stack.txt
-#        done
+    - |
+        for x in `adb devices | sed -n '1!p' | sed '/^$/d' | awk '{print $1;}'`; do
+        cat tester/Android/$x.txt | ndk-stack -sym build/libs-debug/`adb -s $x shell getprop ro.product.cpu.abi | tr -d '\r'` > tester/Android/$x-ndk-stack.txt
+        done
     #debugging output to see why the tests are failing in runner
-#    - cat tester/Android/$x.txt
-#    - tar zcvf tester/Android/logs-tests-android.tar.gz tester/Android/spoon/ tester/Android/*.txt
+    - cat tester/Android/$x.txt
+    - tar zcvf tester/Android/logs-tests-android.tar.gz tester/Android/spoon/ tester/Android/*.txt
 
     #Gathering artifacts in one folder to ease their use
-#    - sudo mkdir ${CI_PROJECT_DIR}/results
-#    - sudo chmod 777 ${CI_PROJECT_DIR}/results
-#    - mv tester/Android/logs-tests-android.tar.gz ${CI_PROJECT_DIR}/results
-#    - mv tester/Android/spoon/junit-reports/*.xml ${CI_PROJECT_DIR}/results
+    - sudo mkdir ${CI_PROJECT_DIR}/results
+    - sudo chmod 777 ${CI_PROJECT_DIR}/results
+    - mv tester/Android/logs-tests-android.tar.gz ${CI_PROJECT_DIR}/results
+    - mv tester/Android/spoon/junit-reports/*.xml ${CI_PROJECT_DIR}/results
 
-#  artifacts:
-#    paths:
-#      - results/*
+  artifacts:
+    paths:
+      - results/*
 
-#    when: always
-#    expire_in: 4 week
+    when: always
+    expire_in: 4 week
