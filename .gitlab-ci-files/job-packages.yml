@@ -55,7 +55,7 @@ job-xamarin-package:
       - $UPLOAD_XAMARIN
   script:
     #removing previous results directory to avoid getting incorrect artifacts for current launch
-    - rm -r $CI_PROJECT_DIR/results
+    - if [ -d "$CI_PROJECT_DIR/results/xamarin" ]; then rm -rf $CI_PROJECT_DIR/results/xamarin; fi;
     - cd build/linphone-sdk/bin/distributions/
     - VERSION=$(ls linphone-sdk-android* | sed -e 's/linphone-sdk-android-//g')
     - unzip linphone-sdk-android-* -d linphone-sdk-android
