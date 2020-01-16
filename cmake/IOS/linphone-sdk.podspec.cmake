@@ -11,12 +11,31 @@ Pod::Spec.new do |s|
     }
   s.author       = { 'Belledonne Communications SARL' => 'linphone-iphone@belledonne-communications.com' }
   s.platform     = :ios, "9.0"
-  s.source       = { :http => "@LINPHONESDK_IOS_BASE_URL@/linphone-sdk-ios-@LINPHONESDK_VERSION@.zip" }
+  s.source       = { :http => "@LINPHONESDK_IOS_BASE_URL@linphone-sdk-ios-@LINPHONESDK_VERSION@.zip" }
   s.vendored_frameworks = "linphone-sdk/apple-darwin/Frameworks/**"
   s.pod_target_xcconfig = { 'VALID_ARCHS' => "@VALID_ARCHS@" }
   s.resource = "linphone-sdk/apple-darwin/Resources/**"
-  s.subspec '@LINPHONE_SUBSPEC_NAME@' do |basic|
-    basic.vendored_frameworks = "linphone-sdk/apple-darwin/Frameworks/{@LINPHONE_SUBSPEC_FRAMEWORKS@}"
+  s.module_name   = 'linphone_sdk'
+
+  s.subspec 'basic-frameworks' do |sp|
+    sp.dependency 'linphone-sdk/app-extension'
+    sp.vendored_frameworks = "linphone-sdk/apple-darwin/Frameworks/{@LINPHONE_OTHER_FRAMEWORKS@}"
+  end
+
+  s.subspec 'app-extension' do |sp|
+    sp.vendored_frameworks = "linphone-sdk/apple-darwin/Frameworks/{@LINPHONE_APP_EXT_FRAMEWORKS@}"
+  end
+
+  s.subspec 'app-extension-swift' do |sp|
+    sp.source_files = "linphone-sdk/apple-darwin/share/linphonesw/*.swift"
+    sp.dependency "linphone-sdk/app-extension"
+    sp.framework = 'linphone', 'belle-sip', 'bctoolbox'
+  end
+
+  s.subspec 'swift' do |sp|
+    sp.dependency "linphone-sdk/basic-frameworks"
+    sp.dependency "linphone-sdk/app-extension-swift"
+    sp.framework = 'bctoolbox-ios'
   end
 
 end
