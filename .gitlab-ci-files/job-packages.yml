@@ -63,7 +63,7 @@ job-xamarin-package:
     - zip -r $CI_PROJECT_DIR/linphone-sdk-xamarin-$VERSION linphone-sdk-android linphone-sdk-ios
 
   after_script:
-    - mkdir $CI_PROJECT_DIR/results/xamarin
+    - mkdir -p $CI_PROJECT_DIR/results/xamarin
     - cp $CI_PROJECT_DIR/linphone-sdk-xamarin*.zip $CI_PROJECT_DIR/results/xamarin
   artifacts:
     paths:
