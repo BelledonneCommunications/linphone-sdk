@@ -77,7 +77,7 @@ foreach(_framework ${_frameworks})
 	foreach(_arch ${_archs})
 		list(APPEND _all_arch_frameworks "linphone-sdk/${_arch}-apple-darwin.ios/Frameworks/${_framework_name}.framework/${_framework_name}")
 	endforeach()
-	if (ENABLE_SWIFT_WRAPPER_COMPILATION)
+	if (ENABLE_SWIFT_WRAPPER AND ENABLE_SWIFT_WRAPPER_COMPILATION)
 		if(_framework_name STREQUAL "linphonesw")
 			foreach(_arch ${_archs})
 				execute_process(
