@@ -351,8 +351,16 @@ static void android_camera2_capture_start(AndroidCamera2Context *d) {
 	ms_message("[Camera2 Capture] Starting capture");
 	camera_status_t camera_status = ACAMERA_OK;
 
-	if (d->captureSize.width == 0 || d->captureSize.height == 0 || d->surface == nullptr) {
-		ms_warning("[Camera2 Capture] Filter hasn't been fully configured yet, don't start");
+	if (d->nativeWindowId == 0) {
+		ms_error("[Camera2 Capture] TextureView wasn't set (was core.setNativePreviewWindowId() called?), can't start capture!");
+		return;
+	}
+	if (d->surface == nullptr) {
+		ms_error("[Camera2 Capture] Failed to get a valid object to display camera preview from native window id [%p]", d->nativeWindowId);
+		return;
+	}
+	if (d->captureSize.width == 0 || d->captureSize.height == 0) {
+		ms_error("[Camera2 Capture] Capture size hasn't been configured yet, don't start");
 		return;
 	}
 	if (d->capturing) {
