@@ -124,11 +124,18 @@ static int mire_get_vsize(MSFilter *f, void* data){
 	return 0;
 }
 
+static int mire_get_fps(MSFilter *f, void* data) {
+	MireData *d = (MireData*) f->data;
+	*(float*) data = d->fps;
+	return 0;
+}
+
 MSFilterMethod mire_methods[]={
 	{	MS_FILTER_SET_VIDEO_SIZE, mire_set_vsize },
 	{	MS_FILTER_SET_FPS		, mire_set_fps	},
 	{	MS_FILTER_GET_PIX_FMT	, mire_get_fmt	},
 	{	MS_FILTER_GET_VIDEO_SIZE, mire_get_vsize },
+	{	MS_FILTER_GET_FPS		, mire_get_fps	},
 	{	0,0 }
 };
 

@@ -804,6 +804,7 @@ static MS2_INLINE RtpSession * audio_stream_get_rtp_session(const AudioStream *s
 
 typedef void (*VideoStreamRenderCallback)(void *user_pointer, const MSPicture *local_view, const MSPicture *remote_view);
 typedef void (*VideoStreamEventCallback)(void *user_pointer, const MSFilter *f, const unsigned int event_id, const void *args);
+typedef void (*VideoStreamCameraNotWorkingCallback)(void *user_pointer, const MSWebCam *old_webcam);
 
 struct _MediastreamVideoStat
 {
@@ -855,6 +856,9 @@ struct _VideoStream
 	int device_orientation; /* warning: meaning of this variable depends on the platform (Android, iOS, ...) */
 	uint64_t last_reported_decoding_error_time;
 	uint64_t last_fps_check;
+	uint64_t last_camera_check;
+	VideoStreamCameraNotWorkingCallback cameracb;
+	void *camera_pointer;
 	MediaStreamVideoStat ms_video_stat;
 	bool_t use_preview_window;
 	bool_t enable_qrcode_decoder;
@@ -891,6 +895,7 @@ static MS2_INLINE void video_stream_enable_adaptive_jittcomp(VideoStream *stream
 }
 MS2_PUBLIC void video_stream_set_render_callback(VideoStream *s, VideoStreamRenderCallback cb, void *user_pointer);
 MS2_PUBLIC void video_stream_set_event_callback(VideoStream *s, VideoStreamEventCallback cb, void *user_pointer);
+MS2_PUBLIC void video_stream_set_camera_not_working_callback(VideoStream *s, VideoStreamCameraNotWorkingCallback cb, void *user_pointer);
 MS2_PUBLIC void video_stream_set_display_filter_name(VideoStream *s, const char *fname);
 MS2_PUBLIC int video_stream_start_with_source(VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
 		const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, MSWebCam* cam, MSFilter* source);

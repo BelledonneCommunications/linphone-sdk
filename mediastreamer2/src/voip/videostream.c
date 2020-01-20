@@ -281,9 +281,40 @@ static void video_stream_track_fps_changes(VideoStream *stream){
 	}
 }
 
+static void video_stream_check_camera(VideoStream *stream) {
+#if !defined(__ANDROID__) && !TARGET_OS_IPHONE
+	const MSWebCam *camera = video_stream_get_camera(stream);
+	if (!camera || strcmp("StaticImage", camera->desc->driver_type) == 0) {
+		return;
+	}
+
+	uint64_t curtime = ortp_get_cur_time_ms();
+	if (stream->last_camera_check == (uint64_t)-1){
+		stream->last_camera_check = curtime;
+		return;
+	}
+
+	if (curtime - stream->last_camera_check >= 5000) {
+		if (stream->source && ms_filter_has_method(stream->source,MS_FILTER_GET_FPS)) {
+			float fps;
+			if (ms_filter_call_method(stream->source, MS_FILTER_GET_FPS, &fps) == 0 && fps == 0) {
+				MSWebCam *nowebcam = ms_web_cam_manager_get_cam(camera->wbcmanager, "StaticImage: Static picture");
+				video_stream_change_camera(stream, nowebcam);
+
+				if (stream->cameracb != NULL) {
+					stream->cameracb(stream->camera_pointer, camera);
+				}
+			}
+		}
+		stream->last_camera_check = curtime;
+	}
+#endif
+}
+
 void video_stream_iterate(VideoStream *stream){
 	media_stream_iterate(&stream->ms);
 	video_stream_track_fps_changes(stream);
+	video_stream_check_camera(stream);
 
 	if (stream->ms.video_quality_controller) {
 		ms_video_quality_controller_process_timer(stream->ms.video_quality_controller);
@@ -474,6 +505,11 @@ void video_stream_set_render_callback (VideoStream *s, VideoStreamRenderCallback
 void video_stream_set_event_callback (VideoStream *s, VideoStreamEventCallback cb, void *user_pointer){
 	s->eventcb=cb;
 	s->event_pointer=user_pointer;
+}
+
+void video_stream_set_camera_not_working_callback(VideoStream *s, VideoStreamCameraNotWorkingCallback cb, void *user_pointer) {
+	s->cameracb = cb;
+	s->camera_pointer = user_pointer;
 }
 
 void video_stream_set_display_filter_name(VideoStream *s, const char *fname){
@@ -1269,6 +1305,7 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 
 	stream->ms.start_time=ms_time(NULL);
 	stream->last_fps_check=(uint64_t)-1;
+	stream->last_camera_check=(uint64_t)-1;
 	stream->ms.is_beginning=TRUE;
 
 	/* attach the graphs */
