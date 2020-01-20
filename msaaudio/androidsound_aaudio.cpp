@@ -128,6 +128,10 @@ struct AAudioOutputContext {
 			usage = AAUDIO_USAGE_MEDIA;
 			content_type = AAUDIO_CONTENT_TYPE_MUSIC;
 			ms_message("[AAudio] Using MEDIA mode");
+		} else if (type == MS_SND_CARD_STREAM_DTMF) {
+			usage = AAUDIO_USAGE_VOICE_COMMUNICATION_SIGNALLING;
+			content_type =  AAUDIO_CONTENT_TYPE_SONIFICATION ;
+			ms_message("[AAudio] Using DTMF mode");
 		} else {
 			usage = AAUDIO_USAGE_VOICE_COMMUNICATION;
 			content_type = AAUDIO_CONTENT_TYPE_SPEECH;
