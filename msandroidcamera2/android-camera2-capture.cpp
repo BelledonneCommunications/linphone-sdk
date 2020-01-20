@@ -127,14 +127,18 @@ static void android_camera2_capture_device_on_disconnected(void *context, ACamer
     ms_message("[Camera2 Capture] Camera %s is diconnected", ACameraDevice_getId(device));
 
 	AndroidCamera2Context *d = (AndroidCamera2Context *)context;
+	ms_filter_lock(d->filter);
 	android_camera2_capture_stop(d);
+	ms_filter_unlock(d->filter);
 }
 
 static void android_camera2_capture_device_on_error(void *context, ACameraDevice *device, int error) {
     ms_error("[Camera2 Capture] Error %d on camera %s", error, ACameraDevice_getId(device));
 
 	AndroidCamera2Context *d = (AndroidCamera2Context *)context;
+	ms_filter_lock(d->filter);
 	android_camera2_capture_stop(d);
+	ms_filter_unlock(d->filter);
 }
 
 static void android_camera2_capture_session_on_ready(void *context, ACameraCaptureSession *session) {
@@ -500,15 +504,11 @@ static void android_camera2_capture_stop(AndroidCamera2Context *d) {
 		d->captureSession = nullptr;
 	}
 
-	if (d->imageReader) {
-		AImageReader_delete(d->imageReader);
-		d->imageReader = nullptr;
-
-		if (d->imageReaderListener) {
-			delete d->imageReaderListener;
-			d->imageReaderListener = nullptr;
-		}
-	}
+	if (d->capturePreviewRequest) {
+		ACaptureRequest_removeTarget(d->capturePreviewRequest, d->cameraCaptureOutputTarget);
+		ACaptureRequest_free(d->capturePreviewRequest);
+		d->capturePreviewRequest = nullptr;
+    }
 
 	if (d->cameraCaptureOutputTarget) {
 		ACameraOutputTarget_free(d->cameraCaptureOutputTarget);
@@ -518,11 +518,6 @@ static void android_camera2_capture_stop(AndroidCamera2Context *d) {
 	if (d->cameraPreviewOutputTarget) {
 		ACameraOutputTarget_free(d->cameraPreviewOutputTarget);
 		d->cameraPreviewOutputTarget = nullptr;
-    }
-
-	if (d->capturePreviewRequest) {
-		ACaptureRequest_free(d->capturePreviewRequest);
-		d->capturePreviewRequest = nullptr;
     }
 
 	if (d->captureSessionOutputContainer) {
@@ -538,16 +533,27 @@ static void android_camera2_capture_stop(AndroidCamera2Context *d) {
 			d->sessionPreviewOutput = nullptr;
 		}
 
+		if (d->captureWindow) {
+			ANativeWindow_release(d->captureWindow);
+			d->captureWindow = nullptr;
+		}
+
 		ACaptureSessionOutputContainer_free(d->captureSessionOutputContainer);
 		d->captureSessionOutputContainer = nullptr;
 	}
 
-	if (d->captureWindow) {
-		ANativeWindow_release(d->captureWindow);
-		d->captureWindow = nullptr;
+	android_camera2_capture_close_camera(d);
+
+	if (d->imageReader) {
+		AImageReader_delete(d->imageReader);
+		d->imageReader = nullptr;
+
+		if (d->imageReaderListener) {
+			delete d->imageReaderListener;
+			d->imageReaderListener = nullptr;
+		}
 	}
 
-	android_camera2_capture_close_camera(d);
 	android_camera2_capture_destroy_preview(d);
 
 	ms_message("[Camera2 Capture] Capture stopped");
