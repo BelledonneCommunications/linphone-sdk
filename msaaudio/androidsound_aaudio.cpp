@@ -734,6 +734,12 @@ MS_PLUGIN_DECLARE(void) libmsaaudio_init(MSFactory* factory) {
 	if (initAAudio() == 0) {
 		devices = ms_factory_get_devices_info(factory);
 		d = ms_devices_info_get_sound_device_description(devices);
+
+		if (d->flags & DEVICE_HAS_CRAPPY_AAUDIO) {
+			ms_error("[AAudio] Device is blacklisted, do not create AAudio soundcard");
+			return;
+		}
+
 		MSSndCardManager *m = ms_factory_get_snd_card_manager(factory);
 		MSSndCard *card = android_snd_card_new(m);
 		ms_snd_card_manager_prepend_card(m, card);
