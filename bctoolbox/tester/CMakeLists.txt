@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2016  Belledonne Communications, Grenoble France
+# Copyright (C) 2020  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -57,7 +57,7 @@ if(ENABLE_TESTS AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 		target_link_libraries(bctoolbox_tester_exe PRIVATE ${POLARSSL_LIBRARIES})
 	endif()
 	if(DECAF_FOUND)
-		target_link_libraries(bctoolbox_tester_exe PRIVATE ${DECAF_LIBRARIES})
+		target_link_libraries(bctoolbox_tester_exe PRIVATE ${DECAF_TARGETNAME})
 	endif()
 	set_target_properties(bctoolbox_tester_exe PROPERTIES XCODE_ATTRIBUTE_WARNING_CFLAGS "")
 	add_test(NAME bctoolbox_tester COMMAND bctoolbox_tester --verbose)
