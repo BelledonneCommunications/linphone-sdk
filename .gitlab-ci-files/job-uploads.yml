@@ -4,7 +4,6 @@
 
 
 job-ios-upload:
-
   stage: deploy
   tags: [ "deploy" ]
 
@@ -32,7 +31,6 @@ job-ios-upload:
 #################################################
 
 job-android-upload:
-
   stage: deploy
   tags: [ "docker-android" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
@@ -44,11 +42,8 @@ job-android-upload:
 
   variables:
     CCACHE_SIZE: 4G
-    CMAKE_GENERATOR: Unix Makefiles
-    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-    GIT_STRATEGY: clone
+    GIT_STRATEGY: fetch
     GRADLE_OPTIONS: -i
-    CMAKE_ARCHS: -DLINPHONESDK_ANDROID_ARCHS="arm64, armv7, x86_64, x86"
 
   dependencies:
     - job-android-makefile-r17c
@@ -60,19 +55,10 @@ job-android-upload:
     - echo -e "Host gitlab.linphone.org\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
     - echo -e "Host linphone.org\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
 
-# Currently we can't use artifact to upload this so we rebuild all android project
-
   script:
     - git config --global user.email "gitlab@belledonne-communications.com"
     - git config --global user.name "Gitlab"
-    - mkdir -p build
     - cd build
-    - echo $CMAKE_GENERATOR
-    - echo $DEFAULT_LINUX_CMAKE_OPTION
-    - echo $CMAKE_ARCHS $CMAKE_OPTIONS
-    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Android $CMAKE_ARCHS $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS
-    - echo $ADDITIONAL_BUILD_OPTIONS
-    - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     - rsync -ave ssh --exclude "*.aar" --exclude "*.jar" $ANDROID_MAVEN_URL maven_repository
     - echo $GRADLE_OPTIONS
     - ../cmake/Android/gradlew publish $GRADLE_OPTIONS
@@ -82,28 +68,24 @@ job-android-upload:
     - rm -rf ~/.ssh || true
 
 job-android-upload-no-video:
-
   extends: job-android-upload
-
+  dependencies:
+    - job-android-ninja-r17c-no-video
   variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
     GRADLE_OPTIONS: -Pno-video -i
 
 job-android-upload-minimal-size:
-
   extends: job-android-upload
-
+  dependencies:
+    - job-android-makefile-r17c-minimal-size
   variables:
-    CMAKE_ARCHS: -DLINPHONESDK_ANDROID_ARCHS="armv7, arm64"
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_ADVANCED_IM=NO -DENABLE_DB_STORAGE=NO -DENABLE_VCARD=NO -DENABLE_MKV=NO -DENABLE_CAMERA2=NO -DENABLE_ASSETS=NO -DENABLE_LIME_X3DH=NO -DENABLE_QRCODE=NO -DENABLE_JPEG=NO -DENABLE_ZLIB=NO
     GRADLE_OPTIONS: -Pminimal-size -i
 
 job-android-upload-legacy:
-
   extends: job-android-upload
-
+  dependencies:
+    - job-android-makefile-r17c-no-java-wrapper
   variables:
-    CMAKE_OPTIONS: -DENABLE_JAVA_WRAPPER=NO
     GRADLE_OPTIONS: -Plegacy-wrapper -i
 
 #################################################
@@ -112,7 +94,6 @@ job-android-upload-legacy:
 
 
 job-macosx-upload:
-
   stage: deploy
   tags: [ "deploy" ]
 
@@ -131,6 +112,10 @@ job-macosx-upload:
     - pod repo push linphone-sdk-macosx build-desktop/linphone-sdk.podspec --skip-import-validation --local-only --verbose
     - cd ~/.cocoapods/repos/linphone-sdk-macosx && git push origin $CI_COMMIT_REF_NAME && cd -
     - pod repo remove linphone-sdk-macosx
+
+#################################################
+# Debian doc upload
+#################################################
 
 job-debian-doc-upload:
   stage: deploy
@@ -152,6 +137,9 @@ job-debian-doc-upload:
     #- echo "Linphone version =" $LINPHONE_VERSION
     - rsync -rlv ../build-desktop/linphone-sdk/desktop/share/doc/linphone/*/* $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/docs/liblinphone/multilang
 
+#################################################
+# Tests reports upload
+#################################################
 
 .job-test-report-upload:
   stage: deploy
