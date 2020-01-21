@@ -27,6 +27,11 @@
       #Needed for tester
       - build/libs-debug/*
       - linphone/tester/*
+
+      #Needed of uploads
+      - build/build.gradle
+      - build/gradle.properties
+      - build/LinphoneSdkManifest.xml
     when: always
     expire_in: 1 week
 
@@ -59,58 +64,29 @@ job-android-makefile-r17c:
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
   extends: .job-android
 
-
-job-android-makefile-r18b:
-
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r18b
+job-android-makefile-r17c-no-java-wrapper:
   only:
     variables:
       - $NIGHTLY_MASTER
   variables:
-    CMAKE_GENERATOR: Unix Makefiles
-    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-  extends: .job-android
+    CMAKE_OPTIONS: -DENABLE_JAVA_WRAPPER=NO
+  extends: job-android-makefile-r17c
 
-
-job-android-makefile-r19:
-
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r19
+job-android-makefile-r17c-minimal-size:
   only:
     variables:
       - $NIGHTLY_MASTER
   variables:
-    CMAKE_GENERATOR: Unix Makefiles
-    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-  extends: .job-android
+    ANDROID_ARCHS: $ANDROID_ARCHS_MINIMAL_SIZE
+    CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_ADVANCED_IM=NO -DENABLE_DB_STORAGE=NO -DENABLE_VCARD=NO -DENABLE_MKV=NO -DENABLE_CAMERA2=NO -DENABLE_ASSETS=NO -DENABLE_LIME_X3DH=NO -DENABLE_QRCODE=NO -DENABLE_JPEG=NO -DENABLE_ZLIB=NO
+  extends: job-android-makefile-r17c
 
 
 #################################################
 # Ninja
 #################################################
 
-
-job-android-ninja-r16b:
-
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r16b
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-  variables:
-    CMAKE_GENERATOR: Ninja
-  extends: .job-android
-
-
-job-android-ninja-r16b-novideo:
-
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-  variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
-  extends: job-android-ninja-r16b
-
-
-job-android-ninja-r17c:
+job-android-ninja-r17c-no-video:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
   variables:
@@ -171,16 +147,14 @@ job-android-ninja-r19-smallsdk:
   extends: job-android-ninja-r19
 
 
-job-android-ninja-r20:
+#job-android-ninja-r20-sanitizer:
+#  variables:
+#    CMAKE_SANITIZER_OPTIONS: -DENABLE_SANITIZER=YES
+#  extends: job-android-ninja-r20
 
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r20
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-  variables:
-    CMAKE_GENERATOR: Ninja
-  extends: .job-android
-
+#################################################
+# Tests Android
+#################################################
 
 test-android-r17c:
   tags: [ "docker-android-test-r17c" ]
