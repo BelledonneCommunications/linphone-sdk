@@ -132,9 +132,9 @@ job-debian-doc-upload:
     - cd linphone
     #getting the version number to push the right version of the doc
     #SINCE git tag MAY differ from project version, we now get the first directory available
-    - LINPHONE_VERSION=$(git describe | sed -e 's/-.*//g')
+    #- LINPHONE_VERSION=$(git describe | sed -e 's/-.*//g')
     #using rsync with following options (verbose, keeping symbolic links, and copy recursively)
-    - echo "Linphone version =" $LINPHONE_VERSION
+    #- echo "Linphone version =" $LINPHONE_VERSION
     - rsync -rlv ../build-desktop/linphone-sdk/desktop/share/doc/linphone/*/* $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/docs/liblinphone/multilang
 
 #################################################
