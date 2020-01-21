@@ -55,7 +55,7 @@ struct AndroidCamera2Device {
 };
 
 struct AndroidCamera2Context {
-	AndroidCamera2Context(MSFilter *f) : filter(f), capturing(false), device(nullptr), rotation(0), nativeWindowId(nullptr), surface(nullptr),
+	AndroidCamera2Context(MSFilter *f) : filter(f), configured(false), capturing(false), device(nullptr), rotation(0), nativeWindowId(nullptr), surface(nullptr),
 			captureFormat(AIMAGE_FORMAT_YUV_420_888),
 			frame(nullptr), bufAllocator(ms_yuv_buf_allocator_new()), fps(5), 
 			cameraDevice(nullptr), captureSession(nullptr), captureSessionOutputContainer(nullptr), 
@@ -81,6 +81,7 @@ struct AndroidCamera2Context {
 	};
 
 	MSFilter *filter;
+	bool configured;
 	bool capturing;
 	AndroidCamera2Device *device;
 	int rotation;
@@ -127,18 +128,14 @@ static void android_camera2_capture_device_on_disconnected(void *context, ACamer
     ms_message("[Camera2 Capture] Camera %s is diconnected", ACameraDevice_getId(device));
 
 	AndroidCamera2Context *d = (AndroidCamera2Context *)context;
-	ms_filter_lock(d->filter);
 	android_camera2_capture_stop(d);
-	ms_filter_unlock(d->filter);
 }
 
 static void android_camera2_capture_device_on_error(void *context, ACameraDevice *device, int error) {
     ms_error("[Camera2 Capture] Error %d on camera %s", error, ACameraDevice_getId(device));
 
 	AndroidCamera2Context *d = (AndroidCamera2Context *)context;
-	ms_filter_lock(d->filter);
 	android_camera2_capture_stop(d);
-	ms_filter_unlock(d->filter);
 }
 
 static void android_camera2_capture_session_on_ready(void *context, ACameraCaptureSession *session) {
@@ -251,11 +248,15 @@ static mblk_t* android_camera2_capture_image_to_mblkt(AndroidCamera2Context *d, 
 static void android_camera2_capture_on_image_available(void *context, AImageReader *reader) {
 	AndroidCamera2Context *d = static_cast<AndroidCamera2Context *>(context);
 
-	if (!d->capturing || !d->filter || !d->filter->ticker) {
+	ms_filter_lock(d->filter);
+	if (!d->filter || !d->filter->ticker || !d->configured) {
+		AImage *image = nullptr;
+		media_status_t status = AImageReader_acquireLatestImage(d->imageReader, &image);
+		if (status == AMEDIA_OK) AImage_delete(image);
+		ms_filter_unlock(d->filter);
 		return;
 	}
-	
-	ms_filter_lock(d->filter);
+	ms_filter_unlock(d->filter);
 
 	int32_t format;
   	media_status_t status = AImageReader_getFormat(reader, &format);
@@ -282,8 +283,6 @@ static void android_camera2_capture_on_image_available(void *context, AImageRead
 	} else {
 		ms_error("[Camera2 Capture] Aquired image is in wrong format %d, expected %d", format, d->captureFormat);
 	}
-
-	ms_filter_unlock(d->filter);
 }
 
 /* ************************************************************************* */
@@ -351,12 +350,9 @@ static void android_camera2_capture_close_camera(AndroidCamera2Context *d) {
     }
 }
 
-static void android_camera2_capture_start(AndroidCamera2Context *d) {
-	ms_message("[Camera2 Capture] Starting capture");
-	camera_status_t camera_status = ACAMERA_OK;
-
+static void android_camera2_check_configuration_ok(AndroidCamera2Context *d) {
 	if (d->nativeWindowId == 0) {
-		ms_error("[Camera2 Capture] TextureView wasn't set (was core.setNativePreviewWindowId() called?), can't start capture!");
+		ms_error("[Camera2 Capture] TextureView wasn't set (was core.setNativePreviewWindowId() called?)");
 		return;
 	}
 	if (d->surface == nullptr) {
@@ -364,11 +360,22 @@ static void android_camera2_capture_start(AndroidCamera2Context *d) {
 		return;
 	}
 	if (d->captureSize.width == 0 || d->captureSize.height == 0) {
-		ms_error("[Camera2 Capture] Capture size hasn't been configured yet, don't start");
+		ms_error("[Camera2 Capture] Capture size hasn't been configured yet");
 		return;
 	}
+	d->configured = true;
+}
+
+static void android_camera2_capture_start(AndroidCamera2Context *d) {
+	ms_message("[Camera2 Capture] Starting capture");
+	camera_status_t camera_status = ACAMERA_OK;
+
 	if (d->capturing) {
 		ms_warning("[Camera2 Capture] Capture was already started, ignoring...");
+		return;
+	}
+	if (!d->configured) {
+		ms_warning("[Camera2 Capture] Filter configuration not finished, ignoring...");
 		return;
 	}
 	
@@ -483,8 +490,13 @@ static void android_camera2_capture_start(AndroidCamera2Context *d) {
 static void android_camera2_capture_stop(AndroidCamera2Context *d) {
 	ms_message("[Camera2 Capture] Stopping capture");
 
+	ms_filter_lock(d->filter);
+	d->configured = false;
+	ms_filter_unlock(d->filter);
+
 	if (!d->capturing) {
 		ms_warning("[Camera2 Capture] Capture was already stopped, ignoring...");
+		ms_filter_unlock(d->filter);
 		return;
 	}
 	d->capturing = false;
@@ -572,23 +584,23 @@ static void android_camera2_capture_preprocess(MSFilter *f) {
 	AndroidCamera2Context *d = (AndroidCamera2Context *)f->data;
 
 	ms_filter_lock(f);
-
 	ms_video_init_framerate_controller(&d->fpsControl, d->fps);
 	ms_video_init_average_fps(&d->averageFps, d->fps_context);
+	ms_filter_unlock(f);
 
+	ms_mutex_lock(&d->mutex);
 	if (d->frame) {
 		freemsg(d->frame);
 		d->frame = NULL;
 	}
-
-	ms_filter_unlock(f);
+	ms_mutex_unlock(&d->mutex);
 }
 
 static void android_camera2_capture_process(MSFilter *f) {
 	AndroidCamera2Context *d = (AndroidCamera2Context *)f->data;
 	ms_filter_lock(f);
 
-	if (!d->capturing) {
+	if (!d->capturing && d->configured) {
 		android_camera2_capture_start(d);
 	}
 
@@ -607,16 +619,17 @@ static void android_camera2_capture_process(MSFilter *f) {
 static void android_camera2_capture_postprocess(MSFilter *f) {
 	ms_message("[Camera2 Capture] Filter postprocess");
 	AndroidCamera2Context *d = (AndroidCamera2Context *)f->data;
-	ms_filter_lock(f);
+
 	if (d->capturing) {
 		android_camera2_capture_stop(d);
 	}
 
+	ms_mutex_lock(&d->mutex);
 	if (d->frame) {
 		freemsg(d->frame);
 		d->frame = NULL;
 	}
-	ms_filter_unlock(f);
+	ms_mutex_unlock(&d->mutex);
 }
 
 static void android_camera2_capture_uninit(MSFilter *f) {
@@ -783,24 +796,28 @@ static int android_camera2_capture_set_surface_texture(MSFilter *f, void *arg) {
 	JNIEnv *env = ms_get_jni_env();
 
 	ms_filter_lock(f);
+	jobject currentWindowId = d->nativeWindowId;
+	ms_filter_unlock(f);
 
-	ms_message("[Camera2 Capture] New native window ptr is %p, current one is %p", nativeWindowId, d->nativeWindowId);
+	ms_message("[Camera2 Capture] New native window ptr is %p, current one is %p", nativeWindowId, currentWindowId);
 	if (id == 0) {
-		if (d->nativeWindowId) {
+		if (currentWindowId) {
 			android_camera2_capture_stop(d);
-			env->DeleteGlobalRef(d->nativeWindowId);
+			env->DeleteGlobalRef(currentWindowId);
 			d->nativeWindowId = nullptr;
 		}
-	} else if (!env->IsSameObject(d->nativeWindowId, nativeWindowId)) {
-		if (d->nativeWindowId) {
+	} else if (!env->IsSameObject(currentWindowId, nativeWindowId)) {
+		if (currentWindowId) {
 			android_camera2_capture_stop(d);
-			env->DeleteGlobalRef(d->nativeWindowId);
-			d->nativeWindowId = nullptr;
+			env->DeleteGlobalRef(currentWindowId);
 		}
-
+		
 		d->nativeWindowId = env->NewGlobalRef(nativeWindowId);
 		android_camera2_capture_create_surface_from_surface_texture(d);
-		android_camera2_capture_start(d);
+		
+		ms_filter_lock(f);
+		android_camera2_check_configuration_ok(d);
+		ms_filter_unlock(f);
 
 		if (d->previewSize.width != 0 && d->previewSize.height != 0) {
 			ms_filter_notify(f, MS_CAMERA_PREVIEW_SIZE_CHANGED, &d->previewSize);
@@ -808,19 +825,15 @@ static int android_camera2_capture_set_surface_texture(MSFilter *f, void *arg) {
 	} else {
 		ms_message("[Camera2 Capture] New native window is the same as the current one, skipping...");
 	}
-	
-	ms_filter_unlock(f);
 
 	return 0; 
 }
 
 static int android_camera2_capture_set_vsize(MSFilter *f, void* arg) {
 	AndroidCamera2Context *d = (AndroidCamera2Context *)f->data;
-	ms_filter_lock(f);
 
 	MSVideoSize requestedSize = *(MSVideoSize*)arg;
 	if (d->captureSize.width == requestedSize.width && d->captureSize.height == requestedSize.height) {
-		ms_filter_unlock(f);
 		return -1;
 	}
 	
@@ -853,16 +866,17 @@ static int android_camera2_capture_set_vsize(MSFilter *f, void* arg) {
 		android_camera2_capture_create_surface_from_surface_texture(d);
 	}
 
-	android_camera2_capture_start(d);
-
+	ms_filter_lock(f);
+	android_camera2_check_configuration_ok(d);
 	ms_filter_unlock(f);
+
 	return 0;
 }
 
 static int android_camera2_capture_get_vsize(MSFilter *f, void* arg) {
 	AndroidCamera2Context *d = (AndroidCamera2Context *)f->data;
-	ms_filter_lock(f);
 
+	ms_filter_lock(f);
 	int orientation = android_camera2_capture_get_orientation(d);
 	if (orientation % 180 == 0) {
 		d->previewSize.width = d->captureSize.width;
@@ -871,20 +885,22 @@ static int android_camera2_capture_get_vsize(MSFilter *f, void* arg) {
 		d->previewSize.width = d->captureSize.height;
 		d->previewSize.height = d->captureSize.width;
 	}
+	ms_filter_unlock(f);
 
 	*(MSVideoSize*)arg = d->previewSize;
 	ms_message("[Camera2 Capture] Getting preview size: %ix%i", d->previewSize.width, d->previewSize.height);
 
-	ms_filter_unlock(f);
 	return 0;
 }
 
 static int android_camera2_capture_set_device_rotation(MSFilter* f, void* arg) {
 	AndroidCamera2Context *d = (AndroidCamera2Context *)f->data;
 	ms_filter_lock(f);
-	d->rotation = *((int*)arg);
-	ms_message("[Camera2 Capture] Device rotation is %i", d->rotation);
+	int rotation = *((int*)arg);
+	d->rotation = rotation;
 	ms_filter_unlock(f);
+
+	ms_message("[Camera2 Capture] Device rotation is %i", rotation);
 	return 0;
 }
 
