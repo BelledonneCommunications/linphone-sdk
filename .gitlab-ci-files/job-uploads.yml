@@ -318,6 +318,7 @@ job-test-upload-libl-centos7:
   except:
     variables:
       - $UPLOAD_XAMARIN
+      - $DOCKER_UPDATE
 
 job-test-upload-libl-centos8:
   extends: .job-test-report-upload-scheduled
