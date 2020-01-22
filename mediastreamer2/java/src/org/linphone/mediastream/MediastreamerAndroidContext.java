@@ -27,11 +27,6 @@ import android.os.Build;
 
 public class MediastreamerAndroidContext {
 	private static final int DEVICE_CHOICE = 0; // The device has the API to tell us it as or not a builtin AEC and we can trust it
-	public static final int DEVICE_HAS_BUILTIN_AEC  = 1; // Says the device has a builtin AEC because the API that would tell us that isn't available
-	public static final int DEVICE_HAS_BUILTIN_AEC_CRAPPY = 2; // The device has the API to tell us it has a builtin AEC but we shouldn't trust it (so we'll use software AEC)
-	public static final int DEVICE_USE_ANDROID_MIC = 4;
-	public static final int DEVICE_HAS_BUILTIN_OPENSLES_AEC = 8; // The device has a builtin AEC and it is working with OpenSLES (which is uncommon)
-	public static final int DEVICE_USE_ANDROID_CAMCORDER = 512;
 
 	private static Context mContext;
 	private static int mDeviceFavoriteSampleRate = 44100;
@@ -110,7 +105,7 @@ public class MediastreamerAndroidContext {
 
 	public static boolean getSpeakerphoneAlwaysOn(org.linphone.mediastream.Factory factory) {
 		//For special devices, speakerphone always on
-		return ((factory.getDeviceFlags() & DEVICE_USE_ANDROID_CAMCORDER)!=0);
+		return ((factory.getDeviceFlags() & Factory.DEVICE_USE_ANDROID_CAMCORDER)!=0);
 	}
 
 	private static int parseInt(String value, int defaultValue) {

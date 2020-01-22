@@ -158,6 +158,7 @@ static SoundDeviceDescription devices[]={
 	{	"samsung",				"SM-G530H",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
 	{	"samsung",				"SM-J110H",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
 	{	"samsung",				"SM-N910C",				"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
+	{	"samsung",				"SM-G970F",				"",				DEVICE_HAS_CRAPPY_AAUDIO, 0 },
 	{	"samsung",				"SM-G973F",				"",				DEVICE_HAS_CRAPPY_AAUDIO, 0 },
 
 	{	"Sony Ericsson",		"ST15a",				"",				0, 	150 },

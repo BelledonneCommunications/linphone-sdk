@@ -19,6 +19,20 @@
 package org.linphone.mediastream;
 
 public class Factory{
+	public static final int DEVICE_HAS_BUILTIN_AEC  = 1; // Says the device has a builtin AEC because the API that would tell us that isn't available
+	public static final int DEVICE_HAS_BUILTIN_AEC_CRAPPY = 2; // The device has the API to tell us it has a builtin AEC but we shouldn't trust it (so we'll use software AEC)
+	public static final int DEVICE_USE_ANDROID_MIC = 4; // The device needs to capture using MIC instead of Voice communication (I.E kindle fire)
+	public static final int DEVICE_HAS_BUILTIN_OPENSLES_AEC = 8; // The device has a builtin AEC and it is working with OpenSLES (which is uncommon)
+	public static final int DEVICE_HAS_CRAPPY_ANDROID_FASTTRACK = 16; // AUDIO_OUTPUT_FLAG_FAST flag of android AudioTrack doesn't work
+	public static final int DEVICE_HAS_CRAPPY_ANDROID_FASTRECORD = 32; // AUDIO_INPUT_FLAG_FAST flag of android AudioRecord doesn't work
+	public static final int DEVICE_HAS_UNSTANDARD_LIBMEDIA = 64; // libmedia backend shall not be used because of proprietary modifications made into it by the manufacturer
+	public static final int DEVICE_HAS_CRAPPY_OPENGL = 128; // opengl is crappy and our opengl surfaceview will crash
+	public static final int DEVICE_HAS_CRAPPY_OPENSLES = 256; // opensles latency is crappy
+	public static final int DEVICE_USE_ANDROID_CAMCORDER = 512; // the device needs to capture using CAMCORDER instead of Voice communication (I.E kindle fire)
+	public static final int DEVICE_MCH264ENC_NO_PIX_FMT_CONV = 1024; // avoid pixel format convervion before MediaCodec H264 encoder input
+	public static final int DEVICE_MCH265_LIMIT_DEQUEUE_OF_OUTPUT_BUFFERS = 2048; // avoid calling dequeueOutputBuffers() too often.
+	public static final int DEVICE_HAS_CRAPPY_AAUDIO = 4096; // set to prevent aaudio plugin to create a soundcard
+
 	private long mNativePtr;
 	private Factory(long nativePtr){
 		mNativePtr = nativePtr;
