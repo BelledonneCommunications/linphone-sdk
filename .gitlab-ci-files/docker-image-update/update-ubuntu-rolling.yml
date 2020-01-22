@@ -60,26 +60,26 @@ job-rebuild-ubuntu-rolling-newdocker-makefile-gcc:
     variables:
       - $DOCKER_UPDATE
 
-job-rebuild-ubuntu-rolling-newdocker-ninja-gcc:
-  extends: job-ubuntu-rolling-ninja-gcc
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rollingupdated
-  only:
-    variables:
-      - $DOCKER_UPDATE
+#job-rebuild-ubuntu-rolling-newdocker-ninja-gcc:
+#  extends: job-ubuntu-rolling-ninja-gcc
+#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rollingupdated
+#  only:
+#    variables:
+#      - $DOCKER_UPDATE
 
-job-rebuild-ubuntu-rolling-newdocker-ninja-gcc-novideo:
-  extends: job-ubuntu-rolling-ninja-gcc-novideo
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rollingupdated
-  only:
-    variables:
-      - $DOCKER_UPDATE
+#job-rebuild-ubuntu-rolling-newdocker-ninja-gcc-novideo:
+#  extends: job-ubuntu-rolling-ninja-gcc-novideo
+#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rollingupdated
+#  only:
+#    variables:
+#      - $DOCKER_UPDATE
 
-job-rebuild-ubuntu-rolling-newdocker-makefile-clang:
-  extends: job-ubuntu-rolling-makefile-clang
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rollingupdated
-  only:
-    variables:
-      - $DOCKER_UPDATE
+#job-rebuild-ubuntu-rolling-newdocker-makefile-clang:
+#  extends: job-ubuntu-rolling-makefile-clang
+#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rollingupdated
+#  only:
+#    variables:
+#      - $DOCKER_UPDATE
 
 job-rebuild-ubuntu-rolling-newdocker-ninja-clang:
   extends: job-ubuntu-rolling-ninja-clang
@@ -88,12 +88,12 @@ job-rebuild-ubuntu-rolling-newdocker-ninja-clang:
     variables:
       - $DOCKER_UPDATE
 
-job-rebuild-ubuntu-rolling-newdocker-ninja-clang-novideo:
-  extends: job-ubuntu-rolling-ninja-clang-novideo
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rollingupdated
-  only:
-    variables:
-      - $DOCKER_UPDATE
+#job-rebuild-ubuntu-rolling-newdocker-ninja-clang-novideo:
+#  extends: job-ubuntu-rolling-ninja-clang-novideo
+#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rollingupdated
+#  only:
+#    variables:
+#      - $DOCKER_UPDATE
 
 test-liblinphone-ubuntu-rolling-newdocker:
   extends: test-liblinphone-ubuntu
