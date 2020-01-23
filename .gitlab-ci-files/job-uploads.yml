@@ -314,6 +314,9 @@ job-test-upload-libl-centos7:
   variables:
     PLATFORM: "linux-centos7"
     TESTER: "liblinphone"
+  except:
+    variables:
+      - $UPLOAD_XAMARIN
 
 job-test-upload-libl-debian8:
   extends: .job-test-report-upload-scheduled
