@@ -3,7 +3,7 @@ job-docker-rebuild-centos7-image:
   tags: [ "linux-deploy" ]
   only:
     variables:
-      - $DOCKER_UPDATE
+      - $DOCKER_UPDATE_CENTOS7
   # Prevent tests from fetching repo. They have all needed files in upcoming artifacts
   variables:
     GIT_STRATEGY: fetch
@@ -20,7 +20,7 @@ job-docker-rebuild-centos7-ms-test-image:
   tags: [ "linux-deploy" ]
   only:
     variables:
-      - $DOCKER_UPDATE
+      - $DOCKER_UPDATE_CENTOS7
   dependencies:
     - job-docker-rebuild-centos7-image
   # Prevent tests from fetching repo. They have all needed files in upcoming artifacts
@@ -39,7 +39,7 @@ job-docker-rebuild-centos7-liblinphone-test-image:
   tags: [ "linux-deploy" ]
   only:
     variables:
-      - $DOCKER_UPDATE
+      - $DOCKER_UPDATE_CENTOS7
   # Prevent tests from fetching repo. They have all needed files in upcoming artifacts
   variables:
     GIT_STRATEGY: fetch
@@ -58,7 +58,7 @@ job-rebuild-centos7-newdocker-makefile-gcc:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7:latestupdated
   only:
     variables:
-      - $DOCKER_UPDATE
+      - $DOCKER_UPDATE_CENTOS7
 
 
 job-rebuild-centos7-newdocker-ninja-gcc:
@@ -66,13 +66,13 @@ job-rebuild-centos7-newdocker-ninja-gcc:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7:latestupdated
   only:
     variables:
-      - $DOCKER_UPDATE
+      - $DOCKER_UPDATE_CENTOS7
 
 test-liblinphone-centos7-newdocker:
   extends: .test-liblinphone-centos7
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7-test-liblinphone:latestupdated
   only:
     variables:
-      - $DOCKER_UPDATE
+      - $DOCKER_UPDATE_CENTOS7
   dependencies:
     - job-rebuild-centos7-newdocker-makefile-gcc
