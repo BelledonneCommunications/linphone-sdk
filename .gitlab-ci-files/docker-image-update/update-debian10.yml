@@ -11,7 +11,7 @@ job-docker-rebuild-debian10-image:
   script:
     - docker pull debian:buster
     - cd docker-files
-    - docker build -f ./bc-dev-debian10 -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:10 --rm --no-cache .
+    - docker build -f ./bc-dev-debian10 -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10:latestupdated --rm --no-cache .
     - docker login gitlab.linphone.org:4567
     - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:10
 
@@ -28,7 +28,7 @@ job-docker-rebuild-debian10-ms-test-image:
   dependencies:
     - job-docker-rebuild-debian10-image
   script:
-    - docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:10
+    - docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10:latestupdated
     - cd docker-files
     - docker build -f ./bc-dev-debian10-test-mediastreamer -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10-test-mediastreamer:latestupdated --rm --no-cache .
     - docker login gitlab.linphone.org:4567
