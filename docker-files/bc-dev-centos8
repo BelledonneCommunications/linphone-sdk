@@ -1,0 +1,49 @@
+FROM centos:8
+
+MAINTAINER Peio Rigaux <peio.rigaux@belledonne-communications.com>
+
+#ENV RPM_BUILD_NCPUS=5
+ENV SHELL=/bin/bash
+
+# Configure additional repositories and install common general tools
+RUN dnf install -y epel-release http://rpmfind.net/linux/epel/7/x86_64/Packages/s/SDL2-2.0.10-1.el7.x86_64.rpm && dnf install -y --nogpgcheck https://download1.rpmfusion.org/free/el/rpmfusion-free-release-8.noarch.rpm && dnf install -y --nogpgcheck https://download1.rpmfusion.org/nonfree/el/rpmfusion-nonfree-release-8.noarch.rpm && rpm --import http://li.nux.ro/download/nux/RPM-GPG-KEY-nux.ro && rpm -Uvh http://li.nux.ro/download/nux/dextop/el7/x86_64/nux-dextop-release-0-5.el7.nux.noarch.rpm && \
+  dnf install -y nano sudo which
+
+
+# Install development tools
+RUN dnf install -y --enablerepo="*" at bison ccache clang cmake3 doxygen gcc-c++ gdb gettext-devel git graphviz libtool make nasm ninja-build patch python2-pip redhat-lsb-core rpm-build yasm && \
+#    dnf clean all && \
+    pip2 install sphinx javasphinx sphinx_csharp pystache six
+#    ln -s /usr/bin/ccmake3 /usr/bin/ccmake && \
+#    ln -s /usr/bin/cmake3 /usr/bin/cmake && \
+#    ln -s /usr/bin/cpack3 /usr/bin/cpack && \
+#    ln -s /usr/bin/ctest3 /usr/bin/ctest
+
+# Install linphone & flexisp dependencies development packages
+RUN dnf install --enablerepo="*" -y alsa-lib-devel ffmpeg-devel glew-devel gsm-devel jansson-devel libbsd-devel libsrtp-devel libv4l-devel libvpx-devel libXv-devel libxml2-devel mariadb-devel mbedtls-devel mesa-libEGL-devel net-snmp-devel openssh openssh-clients openssl-devel opus-devel postgresql-devel protobuf-devel pulseaudio-libs-devel speex-devel sqlite-devel xerces-c-devel xsd
+#    dnf clean all
+
+# Install linphone runtime dependencies
+RUN dnf install -y mesa-dri-drivers && \
+#   dnf clean all && \
+    dbus-uuidgen > /var/lib/dbus/machine-id
+
+# Build qt5.10
+#RUN git clone https://gitlab.linphone.org/BC/public/linphone-desktop.git && \
+#    ./linphone-desktop/tools/build_qt_rpm && \
+#    rpm -i ./linphone-desktop/rpm-linphone-qt-5.10/rpmbuild/RPMS/x86_64/*.rpm && \
+#    mv ./linphone-desktop/rpm-linphone-qt-5.10/rpmbuild/RPMS/x86_64/*.rpm / && \
+#    rm -rf ./linphone-desktop
+
+# Configure user bc
+RUN useradd -ms /bin/bash bc && \
+    echo 'bc:cotcot' | chpasswd && \
+    echo 'bc ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+ENV Qt5_DIR=/opt/com.belledonne-communications/linphone/lib/cmake
+ENV PATH=$PATH:/opt/com.belledonne-communications/linphone/bin
+
+USER bc
+WORKDIR /home/bc
+ENV PS1='\[\e[34m\]\u@bc-dev-centos7>\[\e[0m\] '
+CMD bash

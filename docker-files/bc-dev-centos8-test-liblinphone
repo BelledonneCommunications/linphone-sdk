@@ -1,0 +1,29 @@
+FROM gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8-test-mediastreamer:latestupdated
+
+MAINTAINER Peio Rigaux <peio.rigaux@belledonne-communications.com>
+
+#Getting dependencies to run tests headlessly
+RUN sudo yum install -y Xvfb
+#failing, need to find a workaround
+#RUN modprobe snd-dummy
+
+
+#installing debuginfo (centos7 legacy since centos8 packages are not available yet)
+ENV DEBUG_INFO_URL_EL7=http://debuginfo.centos.org/7/x86_64
+
+#sudo dnf debuginfo-install is not working for some reason... We download the packages by hand.
+
+#executing this command separately as it fails often
+RUN sudo rpm -iv $DEBUG_INFO_URL_EL7/libglvnd-debuginfo-1.0.1-0.8.git5baa1e5.el7.x86_64.rpm || true
+
+RUN sudo rpm -iv $DEBUG_INFO_URL_EL7/alsa-lib-debuginfo-1.1.6-2.el7.x86_64.rpm $DEBUG_INFO_URL_EL7/flac-debuginfo-1.3.0-5.el7_1.x86_64.rpm $DEBUG_INFO_URL_EL7/glew-debuginfo-1.10.0-5.el7.x86_64.rpm $DEBUG_INFO_URL_EL7/libXtst-debuginfo-1.2.3-1.el7.x86_64.rpm $DEBUG_INFO_URL_EL7/libXv-debuginfo-1.0.11-1.el7.x86_64.rpm $DEBUG_INFO_URL_EL7/libasyncns-debuginfo-0.8-7.el7.x86_64.rpm $DEBUG_INFO_URL_EL7/mesa-libGLU-debuginfo-9.0.0-4.el7.x86_64.rpm $DEBUG_INFO_URL_EL7/tcp_wrappers-debuginfo-7.6-77.el7.x86_64.rpm $DEBUG_INFO_URL_EL7/pulseaudio-debuginfo-10.0-5.el7.x86_64.rpm $DEBUG_INFO_URL_EL7/v4l-utils-debuginfo-0.9.5-4.el7.x86_64.rpm $DEBUG_INFO_URL_EL7/libvorbis-debuginfo-1.3.3-8.el7.1.x86_64.rpm $DEBUG_INFO_URL_EL7/libsndfile-debuginfo-1.0.25-10.el7.x86_64.rpm $DEBUG_INFO_URL_EL7/libjpeg-turbo-debuginfo-1.2.90-6.el7.x86_64.rpm $DEBUG_INFO_URL_EL7/libogg-debuginfo-1.3.0-7.el7.x86_64.rpm $DEBUG_INFO_URL_EL7/libsndfile-debuginfo-1.0.25-10.el7.x86_64.rpm
+
+ENV DEBUG_INFO_URL_EL8=http://debuginfo.centos.org/8/x86_64/Packages
+
+#sudo dnf debuginfo-install is not working for some reason... We download the packages by hand.
+RUN sudo rpm -iv $DEBUG_INFO_URL_EL8/bzip2-debuginfo-1.0.6-26.el8.x86_64.rpm $DEBUG_INFO_URL_EL8/dbus-debuginfo-1.12.8-7.el8.x86_64.rpm $DEBUG_INFO_URL_EL8/elfutils-debuginfo-0.174-6.el8.x86_64.rpm  $DEBUG_INFO_URL_EL8/glibc-debuginfo-common-2.28-42.el8_0.1.x86_64.rpm $DEBUG_INFO_URL_EL8/glibc-debuginfo-2.28-42.el8_0.1.x86_64.rpm  $DEBUG_INFO_URL_EL8/libICE-debuginfo-1.0.9-13.el8.x86_64.rpm $DEBUG_INFO_URL_EL8/libSM-debuginfo-1.2.3-1.el8.x86_64.rpm $DEBUG_INFO_URL_EL8/libX11-debuginfo-1.6.7-1.el8.x86_64.rpm $DEBUG_INFO_URL_EL8/libXau-debuginfo-1.0.8-13.el8.x86_64.rpm $DEBUG_INFO_URL_EL8/libXext-debuginfo-1.3.3-9.el8.x86_64.rpm $DEBUG_INFO_URL_EL8/libXi-debuginfo-1.7.9-7.el8.x86_64.rpm $DEBUG_INFO_URL_EL8/attr-debuginfo-2.4.48-3.el8.x86_64.rpm $DEBUG_INFO_URL_EL8/libattr-debuginfo-2.4.48-3.el8.x86_64.rpm $DEBUG_INFO_URL_EL8/libcap-debuginfo-2.25-9.el8.x86_64.rpm $DEBUG_INFO_URL_EL8/gcc-debuginfo-8.2.1-3.5.el8.x86_64.rpm $DEBUG_INFO_URL_EL8/libgcc-debuginfo-8.2.1-3.5.el8.x86_64.rpm $DEBUG_INFO_URL_EL8/libgcrypt-debuginfo-1.8.3-2.el8.x86_64.rpm  $DEBUG_INFO_URL_EL8/libgpg-error-debuginfo-1.31-1.el8.x86_64.rpm  $DEBUG_INFO_URL_EL8/libselinux-debuginfo-2.8-6.el8.x86_64.rpm  $DEBUG_INFO_URL_EL8/libstdc++-debuginfo-8.2.1-3.5.el8.x86_64.rpm $DEBUG_INFO_URL_EL8/util-linux-debuginfo-2.32.1-8.el8.x86_64.rpm $DEBUG_INFO_URL_EL8/libuuid-debuginfo-2.32.1-8.el8.x86_64.rpm  $DEBUG_INFO_URL_EL8/libxcb-debuginfo-1.13-5.el8.x86_64.rpm $DEBUG_INFO_URL_EL8/lz4-debuginfo-1.8.1.2-4.el8.x86_64.rpm  $DEBUG_INFO_URL_EL8/pcre-debuginfo-8.42-4.el8.x86_64.rpm  $DEBUG_INFO_URL_EL8/systemd-debuginfo-239-13.el8_0.5.x86_64.rpm $DEBUG_INFO_URL_EL8/xz-debuginfo-5.2.4-3.el8.x86_64.rpm  $DEBUG_INFO_URL_EL8/xz-libs-debuginfo-5.2.4-3.el8.x86_64.rpm $DEBUG_INFO_URL_EL8/zlib-debuginfo-1.2.11-10.el8.x86_64.rpm
+
+#Missing debug info to add if needed
+#alsa-lib-1.1.6-3.el8.x86_64 flac-libs-1.3.2-9.el8.x86_64 gsm-1.0.17-5.el8.x86_64 libGLEW-2.0.0-6.el8.x86_64 libXtst-1.2.3-7.el8.x86_64 libXv-1.0.11-7.el8.x86_64 libasyncns-0.8-14.el8.x86_64 libglvnd-1.0.1-0.9.git5baa1e5.el8.x86_64 libglvnd-glx-1.0.1-0.9.git5baa1e5.el8.x86_64 libogg-1.3.2-10.el8.x86_64 libsndfile-1.0.28-8.el8.x86_64 libvorbis-1.3.6-1.el8.x86_64 pulseaudio-libs-11.1-22.el8.x86_64 systemd-libs-239-13.el8.x86_64
+
+CMD bash

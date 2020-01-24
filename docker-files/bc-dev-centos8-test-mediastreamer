@@ -1,0 +1,2 @@
+FROM gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:latestupdated
+RUN sudo yum -y install alsa-utils pulseaudio 

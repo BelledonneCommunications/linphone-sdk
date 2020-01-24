@@ -1,0 +1,2 @@
+FROM gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:latestupdated
+RUN sudo pacman --noconfirm -Sy alsa-utils pulseaudio
