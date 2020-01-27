@@ -118,7 +118,7 @@ job-macosx-upload:
 #################################################
 
 
-job-windows-vs2017-upload:
+job-windows-vs2017-win32-upload:
   stage: deploy
   tags: [ "deploy" ]
 
@@ -128,7 +128,7 @@ job-windows-vs2017-upload:
       - $NIGHTLY_MASTER
 
   dependencies:
-    - job-windows-vs2017
+    - job-windows-vs2017-win32
 
   script:
     - scp build-desktop/linphone-sdk-*.zip $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/windows/
