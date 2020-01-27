@@ -122,7 +122,30 @@ job-macosx-upload:
     - pod repo push linphone-sdk-macosx build-desktop/linphone-sdk.podspec --skip-import-validation --local-only --verbose
     - cd ~/.cocoapods/repos/linphone-sdk-macosx && git push origin $CI_COMMIT_REF_NAME && cd -
     - pod repo remove linphone-sdk-macosx
+#################################################
+# Windows
+#################################################
 
+
+job-windows-vs2017-win32-upload:
+  stage: deploy
+  tags: [ "deploy" ]
+
+  only:
+    variables:
+      - $DEPLOY_RUN_WINDOWS
+      - $NIGHTLY_MASTER
+
+  dependencies:
+    - job-windows-vs2017-win32
+
+  script:
+    - scp build-desktop/linphone-sdk-*.zip $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/windows/
+    
+#################################################
+# Debian doc upload
+################################################# 
+ 
 job-debian-doc-upload:
   stage: deploy
   tags: [ "deploy" ]
