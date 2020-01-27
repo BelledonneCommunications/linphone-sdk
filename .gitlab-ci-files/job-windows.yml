@@ -110,7 +110,7 @@ test-linphone-windows-win32:
   allow_failure: true
   dependencies:
     - job-windows-vs2017-win32
-    - job-windows-vs2017-scheduled
+    - job-windows-vs2017-win32-scheduled
   only:
     variables:
       - $NIGHTLY_MASTER
