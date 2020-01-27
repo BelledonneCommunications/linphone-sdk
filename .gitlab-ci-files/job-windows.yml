@@ -70,7 +70,7 @@
 .job-windows-vs2017-win32-scheduled:
   extends: .job-windows-vs2017
     variables:
-      CMAKE_OPTIONS: $CMAKE_OPTIONS -A Win32
+      CMAKE_OPTIONS: -DENABLE_LIME_X3DH=NO -DENABLE_UNIT_TESTS=ON -A Win32
   only:
     variables:
       - $NIGHTLY_MASTER
@@ -84,7 +84,7 @@
 job-windows-vs2017-win32:
   extends: .job-windows-vs2017
     variables:
-      CMAKE_OPTIONS: $CMAKE_OPTIONS -A Win32
+      CMAKE_OPTIONS: -DENABLE_LIME_X3DH=NO -DENABLE_UNIT_TESTS=ON -A Win32
   except:
     refs:
       - schedules
