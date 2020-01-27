@@ -83,19 +83,23 @@
     - set "CLCACHE_DISABLE=1"
 
 
-job-windows-vs2017:
+job-windows-vs2017-win32:
   extends: .job-windows-vs2017
   except:
     refs:
       - schedules
+  variables:
+      SCHEDULE_CMAKE_OPTIONS: -A Win32
 
-job-windows-vs2017-scheduled:
-  extends: .job-windows-vs2017-scheduled
-
-job-windows-vs2017-novideo:
+job-windows-vs2017-win32-scheduled:
   extends: .job-windows-vs2017-scheduled
   variables:
-    CMAKE_OPTIONS: -DENABLE_LIME_X3DH=NO -DENABLE_VIDEO=NO
+      SCHEDULE_CMAKE_OPTIONS: -A Win32
+
+job-windows-vs2017-win32-novideo:
+  extends: .job-windows-vs2017-scheduled
+  variables:
+    CMAKE_OPTIONS: -DENABLE_LIME_X3DH=NO -DENABLE_VIDEO=NO -A Win32    
 
 #TODO : FACTORIZE TESTERS CODE
 

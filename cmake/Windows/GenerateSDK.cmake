@@ -24,10 +24,8 @@
 list(APPEND CMAKE_MODULE_PATH "${LINPHONESDK_DIR}/cmake")
 include(LinphoneSdkUtils)
 
-
-# Create the zip file of the SDK
 execute_process(
-	COMMAND "7z" "a" "-r" "linphone-sdk-${LINPHONESDK_VERSION}.zip" "linphone-sdk/desktop"
+	COMMAND "7z" "a" "-r" "linphone-sdk-${LINPHONESDK_PLATEFORM}-${LINPHONESDK_VERSION}.zip" "linphone-sdk/desktop"
 	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 )
 
