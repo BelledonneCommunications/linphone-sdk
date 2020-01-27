@@ -103,13 +103,13 @@ job-windows-vs2017-win32-novideo:
 
 #TODO : FACTORIZE TESTERS CODE
 
-test-linphone-windows:
+test-linphone-windows-win32:
   stage: test
   extends: .job-prepare
   tags: [ "windows" ]
   allow_failure: true
   dependencies:
-    - job-windows-vs2017
+    - job-windows-vs2017-win32
     - job-windows-vs2017-scheduled
   only:
     variables:
