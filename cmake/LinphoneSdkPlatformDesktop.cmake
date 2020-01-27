@@ -25,8 +25,6 @@ include(LinphoneSdkCheckBuildToolsDesktop)
 
 
 if(APPLE)
-	include(LinphoneSdkCheckBuildToolsIOS)
-
 	set(_dummy_libraries)
 	if(NOT ENABLE_UNIT_TESTS)
 		list(APPEND _dummy_libraries "linphonetester")
