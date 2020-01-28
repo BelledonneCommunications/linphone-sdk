@@ -100,11 +100,9 @@ job-windows-vs2017-win32-scheduled:
     CMAKE_ARCHITECTURE : -A Win32    
 
 job-windows-vs2017-win32-novideo:
-  extends: .job-windows-vs2017-scheduled
+  extends: job-windows-vs2017-win32-scheduled
   variables:
     CMAKE_OPTIONS: -DENABLE_LIME_X3DH=NO -DENABLE_VIDEO=NO
-    CMAKE_ARCHITECTURE : -A Win32
-
 
 #TODO : FACTORIZE TESTERS CODE
 
