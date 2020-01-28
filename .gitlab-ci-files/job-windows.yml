@@ -89,8 +89,7 @@
 ######################################################
 
 job-windows-vs2017-win32:
-  extends: 
-    - .job-windows-vs2017
+  extends: .job-windows-vs2017
   except:
     refs:
       - schedules
@@ -99,14 +98,12 @@ job-windows-vs2017-win32:
       
 ##      ON SCHEDULE     ##
 job-windows-vs2017-win32-scheduled:
-  extends: 
-    - .job-windows-vs2017-scheduled
+  extends: .job-windows-vs2017-scheduled
   variables:
     CMAKE_ARCHITECTURE : -A Win32    
 
 job-windows-vs2017-win32-novideo:
-  extends: 
-    - .job-windows-vs2017-scheduled
+  extends: .job-windows-vs2017-scheduled
   variables:
     CMAKE_OPTIONS: -DENABLE_LIME_X3DH=NO -DENABLE_VIDEO=NO
     CMAKE_ARCHITECTURE : -A Win32
