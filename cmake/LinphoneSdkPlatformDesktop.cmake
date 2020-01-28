@@ -108,7 +108,7 @@ if(APPLE)
 elseif(WIN32)
 	set(LINPHONESDK_WINDOWS_BASE_URL "https://www.linphone.org/releases/windows/" CACHE STRING "URL of the repository where the Windows SDK zip files are located")
 	add_custom_command(TARGET sdk
-		COMMENT "Generating the SDK (zip file and podspec)"
+		COMMENT "Generating the SDK (zip file)"
 		COMMAND "${CMAKE_COMMAND}" "-DLINPHONESDK_PLATEFORM=${CMAKE_GENERATOR_PLATFORM}" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_BUILD_DIR=${CMAKE_BINARY_DIR}" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}" "-DLINPHONESDK_WINDOWS_BASE_URL=${LINPHONESDK_WINDOWS_BASE_URL}" "-DLINPHONESDK_ENABLED_FEATURES_FILENAME=${CMAKE_BINARY_DIR}/enabled_features.txt"
 		"-P" "${LINPHONESDK_DIR}/cmake/Windows/GenerateSDK.cmake"
 	)
