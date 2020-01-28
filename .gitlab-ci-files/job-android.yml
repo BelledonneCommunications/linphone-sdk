@@ -132,7 +132,7 @@ test-android-r17c:
   stage: test
   allow_failure: true
   dependencies:
-    - job-android-ninja-r17c
+    - job-android-makefile-r17c
   only:
     variables:
       - $NIGHTLY_MASTER
