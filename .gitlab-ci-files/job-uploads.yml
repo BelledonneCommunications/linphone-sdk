@@ -153,7 +153,7 @@ job-xamarin-upload:
     - job-xamarin-package
 
   script:
-    - rsync -rlv results/xamarin/* $DEPLOY_SERVER:$DEPLOY_RELEASES_DIRECTORY/xamarin
+    - rsync -rlv results/xamarin/* $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/xamarin
 
 #################################################
 # Tests reports upload
