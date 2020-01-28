@@ -36,35 +36,30 @@
 #  variables:
 #    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
 #  extends: job-windows-vs2015
-
 .job-windows-vs2017:
   extends: .job-prepare
   stage: build
   tags: [ "windows" ]
-
   except:
     variables:
       - $DOCKER_UPDATE
-
   variables:
     CMAKE_OPTIONS: -DENABLE_LIME_X3DH=NO -DENABLE_UNIT_TESTS=ON
-
   script:
     #handling the case of previous job cancellation
     - IF EXIST build-desktop RMDIR /S /Q build-desktop
     - mkdir build-desktop
     - cd build-desktop
-
     #we launch the msvc-cl wrapper located in python scripts folder
     #this wrapper relays only needed calls to the real compiler
-
     #cache stats display
     - C:\PROGRA~1\Python37\Scripts\cl -s
-
     - cmake .. -G "Visual Studio 15 2017" -DLINPHONESDK_PLATFORM=Desktop -DENABLE_CSHARP_WRAPPER=YES -DCMAKE_BUILD_TYPE=Release %DEFAULT_CMAKE_OPTIONS% %CMAKE_OPTIONS% %SCHEDULE_CMAKE_OPTIONS%
     - cmake --build . --target sdk --config Release -- /maxcpucount /nodeReuse:true /p:TrackFileAccess=false
     - C:\PROGRA~1\Python37\Scripts\cl -s
+#Remove it later    
     - scp build-desktop/linphone-sdk-*.zip %DEPLOY_SERVER%:%DEPLOY_SNAPSHOTS_ROOT_DIRECTORY%/windows/
+################    
   artifacts:
     paths:
       - build-desktop\linphone-sdk\desktop
@@ -74,7 +69,6 @@
 
 .job-windows-vs2017-scheduled:
   extends: .job-windows-vs2017
-
   only:
     variables:
       - $NIGHTLY_MASTER
@@ -83,7 +77,10 @@
   before_script:
     #cache disabled on scheduled builds since we dot not need the fastest build
     - set "CLCACHE_DISABLE=1"
-
+    
+######################################################
+# JOBS
+######################################################
 
 job-windows-vs2017-win32:
   extends: .job-windows-vs2017
@@ -91,17 +88,18 @@ job-windows-vs2017-win32:
     refs:
       - schedules
   variables:
-      SCHEDULE_CMAKE_OPTIONS: -A Win32
+      CMAKE_OPTIONS: %CMAKE_OPTIONS% -A Win32
 
 job-windows-vs2017-win32-scheduled:
   extends: .job-windows-vs2017-scheduled
   variables:
-      SCHEDULE_CMAKE_OPTIONS: -A Win32
+      CMAKE_OPTIONS: %CMAKE_OPTIONS% -A Win32
 
 job-windows-vs2017-win32-novideo:
   extends: .job-windows-vs2017-scheduled
   variables:
     CMAKE_OPTIONS: -DENABLE_LIME_X3DH=NO -DENABLE_VIDEO=NO -A Win32    
+
 
 #TODO : FACTORIZE TESTERS CODE
 
