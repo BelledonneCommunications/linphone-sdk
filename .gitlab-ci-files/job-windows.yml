@@ -56,6 +56,7 @@
     - C:\PROGRA~1\Python37\Scripts\cl -s
     - echo %DEFAULT_CMAKE_OPTIONS%
     - echo %CMAKE_OPTIONS%
+    - echo %CMAKE_ARCHITECTURE%
     - cmake .. -G "Visual Studio 15 2017" -DLINPHONESDK_PLATFORM=Desktop -DENABLE_CSHARP_WRAPPER=YES -DCMAKE_BUILD_TYPE=Release %DEFAULT_CMAKE_OPTIONS% %CMAKE_OPTIONS% %CMAKE_ARCHITECTURE%
     - cmake --build . --target sdk --config Release -- /maxcpucount /nodeReuse:true /p:TrackFileAccess=false
     - C:\PROGRA~1\Python37\Scripts\cl -s
@@ -88,6 +89,7 @@
 .job-windows-win32
   variables:
     CMAKE_ARCHITECTURE : -A Win32 
+    
 .job-windows-x86
   variables:
     CMAKE_ARCHITECTURE : -A x86
