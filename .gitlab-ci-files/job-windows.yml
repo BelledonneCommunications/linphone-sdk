@@ -88,12 +88,12 @@ job-windows-vs2017-win32:
     refs:
       - schedules
   variables:
-      CMAKE_OPTIONS: %CMAKE_OPTIONS% -A Win32
+      CMAKE_OPTIONS: $CMAKE_OPTIONS -A Win32
 
 job-windows-vs2017-win32-scheduled:
   extends: .job-windows-vs2017-scheduled
   variables:
-      CMAKE_OPTIONS: %CMAKE_OPTIONS% -A Win32
+      CMAKE_OPTIONS: $CMAKE_OPTIONS -A Win32
 
 job-windows-vs2017-win32-novideo:
   extends: .job-windows-vs2017-scheduled
