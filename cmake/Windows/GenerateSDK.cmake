@@ -1,6 +1,6 @@
 ############################################################################
 # GenerateSDK.cmake
-# Copyright (C) 2010-2018 Belledonne Communications, Grenoble France
+# Copyright (C) 2010-2020 Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -28,8 +28,3 @@ execute_process(
 	COMMAND "7z" "a" "-r" "linphone-sdk-${LINPHONESDK_PLATEFORM}-${LINPHONESDK_VERSION}.zip" "linphone-sdk/desktop"
 	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 )
-
-# Generate podspec file
-file(READ "${LINPHONESDK_DIR}/LICENSE.txt" LINPHONESDK_LICENSE)
-file(READ "${LINPHONESDK_ENABLED_FEATURES_FILENAME}" LINPHONESDK_ENABLED_FEATURES)
-configure_file("${LINPHONESDK_DIR}/cmake/Windows/linphone-sdk.podspec.cmake" "${LINPHONESDK_BUILD_DIR}/linphone-sdk.podspec" @ONLY)
