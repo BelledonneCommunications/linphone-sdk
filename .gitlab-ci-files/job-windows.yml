@@ -83,17 +83,7 @@
     #cache disabled on scheduled builds since we dot not need the fastest build
     - set "CLCACHE_DISABLE=1"
 
-######################################################
-# Architecture
-######################################################    
-.job-windows-win32
-  variables:
-    CMAKE_ARCHITECTURE : -A Win32 
-    
-.job-windows-x86
-  variables:
-    CMAKE_ARCHITECTURE : -A x86
-    
+
 ######################################################
 # JOBS
 ######################################################
@@ -101,23 +91,25 @@
 job-windows-vs2017-win32:
   extends: 
     - .job-windows-vs2017
-    - .job-windows-win32
   except:
     refs:
       - schedules
+  variables:
+    CMAKE_ARCHITECTURE : -A Win32 
       
 ##      ON SCHEDULE     ##
 job-windows-vs2017-win32-scheduled:
   extends: 
     - .job-windows-vs2017-scheduled
-    - .job-windows-win32
+  variables:
+    CMAKE_ARCHITECTURE : -A Win32    
 
 job-windows-vs2017-win32-novideo:
   extends: 
     - .job-windows-vs2017-scheduled
-    - .job-windows-win32
   variables:
-    CMAKE_OPTIONS: -DENABLE_LIME_X3DH=NO -DENABLE_VIDEO=NO    
+    CMAKE_OPTIONS: -DENABLE_LIME_X3DH=NO -DENABLE_VIDEO=NO
+    CMAKE_ARCHITECTURE : -A Win32
 
 
 #TODO : FACTORIZE TESTERS CODE
