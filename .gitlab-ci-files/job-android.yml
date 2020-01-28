@@ -56,9 +56,6 @@ job-android-makefile-r16b:
 job-android-makefile-r17c:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
-  only:
-    variables:
-      - $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
@@ -68,6 +65,7 @@ job-android-makefile-r17c-no-java-wrapper:
   only:
     variables:
       - $NIGHTLY_MASTER
+      - $DEPLOY_RUN_ANDROID
   variables:
     CMAKE_OPTIONS: -DENABLE_JAVA_WRAPPER=NO
   extends: job-android-makefile-r17c
@@ -76,6 +74,7 @@ job-android-makefile-r17c-minimal-size:
   only:
     variables:
       - $NIGHTLY_MASTER
+      - $DEPLOY_RUN_ANDROID
   variables:
     ANDROID_ARCHS: $ANDROID_ARCHS_MINIMAL_SIZE
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_ADVANCED_IM=NO -DENABLE_DB_STORAGE=NO -DENABLE_VCARD=NO -DENABLE_MKV=NO -DENABLE_CAMERA2=NO -DENABLE_ASSETS=NO -DENABLE_LIME_X3DH=NO -DENABLE_QRCODE=NO -DENABLE_JPEG=NO -DENABLE_ZLIB=NO
@@ -85,6 +84,19 @@ job-android-makefile-r17c-minimal-size:
 #################################################
 # Ninja
 #################################################
+
+job-android-ninja-r17c-no-video:
+
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+      - $DEPLOY_RUN_ANDROID
+  variables:
+    CMAKE_GENERATOR: Ninja
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
+    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+  extends: .job-android
 
 job-android-ninja-r18b:
 
