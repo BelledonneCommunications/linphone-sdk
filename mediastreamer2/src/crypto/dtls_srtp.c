@@ -589,6 +589,7 @@ static int ms_dtls_srtp_rtp_process_on_receive(struct _RtpTransportModifier *t, 
 		
 		if ((ret==0) && (ctx->rtp_channel_status == DTLS_STATUS_HANDSHAKE_ONGOING)) { /* handshake is over, give the keys to srtp : 128 bits client write - 128 bits server write - 112 bits client salt - 112 server salt */
 			MSCryptoSuite agreed_srtp_protection_profile = MS_CRYPTO_SUITE_INVALID;
+			uint8_t old_status = ctx->rtp_channel_status;
 
 			ctx->rtp_channel_status = DTLS_STATUS_HANDSHAKE_OVER;
 
@@ -633,6 +634,12 @@ static int ms_dtls_srtp_rtp_process_on_receive(struct _RtpTransportModifier *t, 
 					ms_free(key);
 
 					ms_dtls_srtp_check_channels_status(ctx);
+				}
+				/* It is possible peer_fingerprint is not set yet, in such case stay in existing status waiting for it to be set */
+				else if (ctx->peer_fingerprint[0]=='\0') {
+					ms_warning("DTLS-SRTP: empty peer_fingerprint, staying in old state...");
+					ctx->rtp_channel_status=old_status;
+					return (int)msgLength;
 				}
 			}
 
