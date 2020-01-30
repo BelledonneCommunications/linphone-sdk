@@ -26,6 +26,7 @@
   artifacts:
     paths:
       - build/linphone-sdk/bin/outputs/aar/*.aar
+      - build/linphone-sdk/bin/libs/linphone-sdk-android-javadoc.jar
       - build/linphone-sdk/bin/distributions/linphone-sdk-*.zip
 
       #Needed for tester
@@ -33,7 +34,7 @@
       - linphone/tester/*
 
       #Needed of uploads
-      - build/build.gradle
+      - build/upload.gradle
       - build/gradle.properties
       - build/LinphoneSdkManifest.xml
     when: always
