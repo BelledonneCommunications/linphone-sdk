@@ -61,7 +61,7 @@ job-android-upload:
     - cd build
     - rsync -ave ssh --exclude "*.aar" --exclude "*.jar" $ANDROID_MAVEN_URL maven_repository
     - echo $GRADLE_OPTIONS
-    - ../cmake/Android/gradlew publish $GRADLE_OPTIONS
+    - ../cmake/Android/gradlew -b upload.gradle publish $GRADLE_OPTIONS
     - rsync -ave ssh ./maven_repository/* $ANDROID_MAVEN_URL
 
   after_script:
@@ -187,7 +187,7 @@ job-xamarin-upload:
       - $DEPLOY_RUN_IOS
       - $PACKAGE_RUN_WINDOWS
       - $DOCKER_UPDATE
-
+      - $UPLOAD_XAMARIN
 
   script:
     #getting the version number for each submodule and writing it in environment.properties file
@@ -348,10 +348,6 @@ job-test-upload-libl-centos7:
   variables:
     PLATFORM: "linux-centos7"
     TESTER: "liblinphone"
-  except:
-    variables:
-      - $UPLOAD_XAMARIN
-      - $DOCKER_UPDATE
 
 job-test-upload-libl-centos8:
   extends: .job-test-report-upload-scheduled

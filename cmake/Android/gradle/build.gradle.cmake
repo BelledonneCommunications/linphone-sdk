@@ -208,44 +208,4 @@ task copyAssets(type: Sync) {
 project.tasks['preBuild'].dependsOn 'copyAssets'
 project.tasks['preBuild'].dependsOn 'copyProguard'
 
-def artefactGroupId = 'org.linphone'
-if (project.hasProperty("legacy-wrapper")) {
-    artefactGroupId = artefactGroupId + '.legacy'
-}
-if (project.hasProperty("tunnel")) {
-    artefactGroupId = artefactGroupId + '.tunnel'
-}
-if (project.hasProperty("no-video")) {
-    artefactGroupId = artefactGroupId + '.no-video'
-}
-if (project.hasProperty("minimal-size")) {
-    artefactGroupId = artefactGroupId + '.minimal'
-}
-println("AAR artefact group is: " + artefactGroupId + ", SDK version @LINPHONESDK_VERSION@")
-
-publishing {
-    publications {
-        debug(MavenPublication) {
-            groupId artefactGroupId
-            artifactId 'linphone-sdk-android' + '-debug'
-            version "@LINPHONESDK_VERSION@"
-            artifact("$buildDir/outputs/aar/linphone-sdk-android-debug.aar")
-        }
-        release(MavenPublication) {
-            groupId artefactGroupId
-            artifactId 'linphone-sdk-android'
-            version "@LINPHONESDK_VERSION@"
-            artifact("$buildDir/outputs/aar/linphone-sdk-android-release.aar")
-
-            // Also upload the javadoc
-            artifact androidJavadocsJar
-        }
-    }
-    repositories {
-        maven {
-            url "./maven_repository/"
-        }
-    }
-}
-
-project.tasks['publish'].dependsOn 'assemble'
+project.tasks['assemble'].dependsOn 'androidJavadocsJar'
