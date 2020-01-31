@@ -118,7 +118,7 @@ job-macosx-upload:
 
 job-windows-vs2017-win32-upload:
   stage: deploy
-  tags: [ "deploy" "windows"]
+  tags: [ "windows"]
   only:
     variables:
       - $DEPLOY_RUN_WINDOWS
