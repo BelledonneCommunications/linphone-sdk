@@ -118,7 +118,7 @@ job-macosx-upload:
 
 job-windows-vs2017-win32-upload:
   stage: deploy
-  tags: [ "deploy" ]
+  tags: [ "windows"]
   only:
     variables:
       - $DEPLOY_RUN_WINDOWS
@@ -126,7 +126,7 @@ job-windows-vs2017-win32-upload:
   dependencies:
     - job-windows-vs2017-win32-scheduled
   script:
-    - scp build-desktop/linphone-sdk-*.zip %DEPLOY_SERVER%:%DEPLOY_SNAPSHOTS_ROOT_DIRECTORY%/windows/
+    - scp build-desktop/linphone-sdk-*.zip "%DEPLOY_SERVER%:%DEPLOY_SNAPSHOTS_ROOT_DIRECTORY%/windows/"
 
 #################################################
 # Debian doc upload
@@ -185,6 +185,7 @@ job-xamarin-upload:
       - $DEPLOY_RUN_MACOSX
       - $DEPLOY_RUN_ANDROID
       - $DEPLOY_RUN_IOS
+      - $DEPLOY_RUN_WINDOWS
       - $PACKAGE_RUN_WINDOWS
       - $DOCKER_UPDATE
       - $UPLOAD_XAMARIN
