@@ -185,6 +185,7 @@ job-xamarin-upload:
       - $DEPLOY_RUN_MACOSX
       - $DEPLOY_RUN_ANDROID
       - $DEPLOY_RUN_IOS
+      - $DEPLOY_RUN_WINDOWS
       - $PACKAGE_RUN_WINDOWS
       - $DOCKER_UPDATE
       - $UPLOAD_XAMARIN
