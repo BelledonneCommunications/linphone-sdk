@@ -210,7 +210,7 @@ template <typename _parserElementT>
 class ParserContext : public ParserContextBase{
 public:
 	ParserContext(Parser<_parserElementT> &parser);
-	_parserElementT createRootObject(const std::string &input);
+	_parserElementT createRootObject(const std::string &input, size_t count);
 
 protected:
 	void beginParse(ParserLocalContext &ctx, const std::shared_ptr<Recognizer> &rec) override;
@@ -498,8 +498,8 @@ inline  void ParserContext<_parserElementT>::_endParse(const ParserLocalContext 
 }
 
 template <typename _parserElementT>
-_parserElementT ParserContext<_parserElementT>::createRootObject(const std::string &input){
-	 return mRoot ? mRoot->realize(input,0,input.size()) : nullptr;
+_parserElementT ParserContext<_parserElementT>::createRootObject(const std::string &input, size_t count){
+	 return mRoot ? mRoot->realize(input, 0, count) : nullptr;
 }
 
 template <typename _parserElementT>
@@ -600,7 +600,7 @@ _parserElementT Parser<_parserElementT>::parseInput(const std::string &rulename,
 	//auto t_end = std::chrono::high_resolution_clock::now();
 	//cout<<"Recognition done in "<<std::chrono::duration<double, std::milli>(t_end-t_start).count()<<" milliseconds"<<std::endl;
 	if (parsed_size) *parsed_size=parsed;
-	auto ret= pctx->createRootObject(input);
+	auto ret= pctx->createRootObject(input, parsed);
 	return ret;
 }
 }
