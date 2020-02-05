@@ -1,0 +1,13 @@
+
+job-repair-windows:
+  extends: .job-prepare
+  stage: build
+  tags: [ "windows" ]
+  
+  variables:
+    
+  script:
+    - C:\PROGRA~1\Python37\Scripts\cl -s
+  after_script:
+    - repairCorruption.bat
+ 
