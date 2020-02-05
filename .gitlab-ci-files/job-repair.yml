@@ -9,5 +9,5 @@ job-repair-windows:
   script:
     - C:\PROGRA~1\Python37\Scripts\cl -s
   after_script:
-    - repairCorruption.bat
+    - IF %ERRORLEVEL% NEQ 0 repairCorruption.bat
  
