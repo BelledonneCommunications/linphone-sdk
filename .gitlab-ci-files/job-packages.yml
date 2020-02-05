@@ -65,6 +65,8 @@ job-xamarin-package:
   after_script:
     - mkdir -p $CI_PROJECT_DIR/results/xamarin
     - cp $CI_PROJECT_DIR/linphone-sdk-xamarin*.zip $CI_PROJECT_DIR/results/xamarin
+    #Cleaning also previous artifacts to avoid conflicts with future jobs
+    - rm -r $CI_PROJECT_DIR/build/linphone-sdk/bin/distributions/*
   artifacts:
     paths:
       - results/*
