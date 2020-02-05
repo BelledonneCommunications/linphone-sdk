@@ -4,9 +4,9 @@
 [submodule "cmake-builder"]
 	path = cmake-builder
 	url = ../../public/linphone-cmake-builder.git
-[submodule "linphone"]
+[submodule "liblinphone"]
 	path = liblinphone
-	url = ../../public/linphone.git
+	url = ../../public/liblinphone.git
 [submodule "bcg729"]
 	path = bcg729
 	url = ../../public/bcg729.git
