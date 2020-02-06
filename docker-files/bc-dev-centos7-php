@@ -1,0 +1,10 @@
+FROM gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
+USER root
+
+# Install dependencies
+RUN yum -y install centos-release-scl.noarch sysvinit-tools
+RUN yum -y install composer.noarch rh-php73 rh-php73-php-mbstring
+RUN mkdir -p /usr/local/bin
+RUN echo -e "#!/usr/bin/bash\nsource scl_source enable rh-php73\nexec \"\$@\"\n" >> /usr/local/bin/entry-point.sh
+RUN chmod a+x  /usr/local/bin/entry-point.sh
+ENTRYPOINT ["/usr/local/bin/entry-point.sh"]
