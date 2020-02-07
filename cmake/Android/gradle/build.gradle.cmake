@@ -43,7 +43,7 @@ def rootSdk = '@LINPHONESDK_BUILD_DIR@/linphone-sdk/android-@LINPHONESDK_FIRST_A
 def srcDir = ['@LINPHONESDK_DIR@/mediastreamer2/java/src']
 def pluginsDir = rootSdk + '/lib/mediastreamer/plugins/'
 srcDir += [rootSdk + '/share/linphonej/java/org/linphone/core/']
-srcDir += ['@LINPHONESDK_DIR@/linphone/wrappers/java/classes/']
+srcDir += ['@LINPHONESDK_DIR@/liblinphone/wrappers/java/classes/']
 
 def excludePackage = []
 excludePackage.add('**/gdb.*')
@@ -61,9 +61,9 @@ if (!isGeneratedJavaWrapperAvailable()) {
     javaExcludes.add('**/H264Helper.java')
 
     // Add the previous wrapper to sources
-    srcDir += ['@LINPHONESDK_DIR@/linphone/java/common/']
-    srcDir += ['@LINPHONESDK_DIR@/linphone/java/impl/']
-    srcDir += ['@LINPHONESDK_DIR@/linphone/java/j2se/']
+    srcDir += ['@LINPHONESDK_DIR@/liblinphone/java/common/']
+    srcDir += ['@LINPHONESDK_DIR@/liblinphone/java/impl/']
+    srcDir += ['@LINPHONESDK_DIR@/liblinphone/java/j2se/']
 }
 
 def pluginsList = ""
