@@ -31,6 +31,19 @@ typedef struct belle_sip_timer_config belle_sip_timer_config_t;
 
 BELLE_SIP_BEGIN_DECLS
 
+/**
+ * This only affects the resolution of SIP URI in absence of port number, and in absence of SRV record for the SIP domain. The well known ports (udp/tcp and tls/dtls) are static.
+ * @param well known port value
+**/
+BELLESIP_EXPORT void belle_sip_stack_set_well_known_port (int value);
+
+BELLESIP_EXPORT void belle_sip_stack_set_well_known_port_tls (int value);
+
+
+BELLESIP_EXPORT int belle_sip_stack_get_well_known_port (void);
+
+BELLESIP_EXPORT int belle_sip_stack_get_well_known_port_tls (void);
+
 BELLESIP_EXPORT belle_sip_stack_t * belle_sip_stack_new(const char *properties);
 
 BELLESIP_EXPORT belle_sip_listening_point_t *belle_sip_stack_create_listening_point(belle_sip_stack_t *s, const char *ipaddress, int port, const char *transport);

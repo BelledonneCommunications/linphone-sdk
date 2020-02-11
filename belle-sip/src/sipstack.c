@@ -20,6 +20,27 @@
 #include "belle_sip_internal.h"
 #include "listeningpoint_internal.h"
 
+static int belle_sip_well_known_port = 5060;
+static int belle_sip_well_known_port_tls = 5061;
+
+int belle_sip_stack_get_well_known_port(){
+	return belle_sip_well_known_port;
+}
+
+void belle_sip_stack_set_well_known_port(int value){
+	bctbx_message("belle_sip_stack_set_well_know_port() : set to [%i]", value);
+	belle_sip_well_known_port = value;
+}
+
+int belle_sip_stack_get_well_known_port_tls(){
+	return belle_sip_well_known_port_tls;
+}
+
+void belle_sip_stack_set_well_known_port_tls(int value){
+	bctbx_message("belle_sip_stack_set_well_know_port_tls() : set to [%i]", value);
+	belle_sip_well_known_port_tls = value;
+}
+
 belle_sip_hop_t* belle_sip_hop_new(const char* transport, const char *cname, const char* host,int port) {
 	belle_sip_hop_t* hop = belle_sip_object_new(belle_sip_hop_t);
 	if (transport) hop->transport=belle_sip_strdup(transport);
@@ -61,12 +82,12 @@ belle_sip_hop_t* belle_sip_hop_new_from_generic_uri(const belle_generic_uri_t *u
 	int well_known_port=0;
 	const char *cname=NULL;
 	host = belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(uri),"maddr");
-	
+
 	if (!host)
 		host = belle_generic_uri_get_host(uri);
 	else
 		cname=belle_generic_uri_get_host(uri);
-	
+
 	if (strcasecmp(scheme,"http")==0) {
 		transport="TCP";
 		well_known_port=80;
@@ -337,4 +358,3 @@ int belle_sip_stack_reconnect_to_primary_asap_enabled(const belle_sip_stack_t *s
 void belle_sip_stack_set_client_bind_port(belle_sip_stack_t *stack, int port){
 	stack->test_bind_port = port;
 }
-
