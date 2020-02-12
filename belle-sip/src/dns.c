@@ -4986,7 +4986,7 @@ int dns_resconf_loadandroid(struct dns_resolv_conf *resconf) {
 	char prop_name[PROP_NAME_MAX];
 	unsigned int sa_count = 0;
 	int error = 0;
-	int i;
+	unsigned int i;
 
 	for (i = 1; !error && (i <= lengthof(resconf->nameserver)); i++) {
 		snprintf(prop_name, sizeof(prop_name), "net.dns%d", i);
@@ -7723,7 +7723,8 @@ exec:
 
 		dgoto(R->sp, DNS_R_FOREACH_NS);
 	case DNS_R_FOREACH_A: {
-		struct sockaddr_storage saddr={0};
+		struct sockaddr_storage saddr;
+		memset(&saddr, 0, sizeof(saddr));
 		socklen_t saddr_len = sizeof(saddr);
 
 		/*

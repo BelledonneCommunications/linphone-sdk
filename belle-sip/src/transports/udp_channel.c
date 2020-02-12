@@ -72,7 +72,8 @@ static int udp_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen){
 
 int udp_channel_connect(belle_sip_channel_t *obj, const struct addrinfo *ai){
 	belle_sip_udp_channel_t *chan=(belle_sip_udp_channel_t *)obj;
-	struct sockaddr_storage laddr={0};
+	struct sockaddr_storage laddr;
+	memset(&laddr, 0, sizeof(laddr));
 	socklen_t lslen=sizeof(laddr);
 
 	if (obj->local_ip==NULL){
