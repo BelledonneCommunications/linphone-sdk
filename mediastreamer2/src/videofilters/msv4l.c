@@ -47,6 +47,10 @@
 #define VIDIOCQCSCOMPATIBLE _IOWR('v',QC_IOCTLBASE+10,int)
 
 #ifndef VIDIOSFPS
+// videodev.h is no longer supported since kernel 2.6.38, where BASE_VIDIOCPRIVATE was defined and becomes deprecated.
+#if !defined(BASE_VIDIOCPRIVATE) && defined(BASE_VIDIOC_PRIVATE)
+#define BASE_VIDIOCPRIVATE BASE_VIDIOC_PRIVATE
+#endif
 #define VIDIOSFPS _IOW('v',BASE_VIDIOCPRIVATE+20, int)
 #endif
 
