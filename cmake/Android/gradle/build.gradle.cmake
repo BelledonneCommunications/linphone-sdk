@@ -159,6 +159,7 @@ task(releaseJavadoc, type: Javadoc, dependsOn: "assembleRelease") {
     classpath += files(android.libraryVariants.release.javaCompile.classpath.files)
     classpath += configurations.javadocDeps
     options.encoding = 'UTF-8'
+    options.addStringOption('Xdoclint:none', '-quiet')
 }
 
 task sourcesJar(type: Jar) {
