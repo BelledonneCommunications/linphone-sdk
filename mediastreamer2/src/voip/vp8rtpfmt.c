@@ -643,11 +643,14 @@ static void generate_frames_list(Vp8RtpFmtUnpackerCtx *ctx, bctbx_list_t *packet
 	uint32_t ts;
 
 	/* If we have some packets from the previous iteration, put them in the frame_packets_list. */
-	for (it=ctx->non_processed_packets_list; it!=NULL; it=it->next) {
-		packet = (Vp8RtpFmtPacket*) it->data;
-		frame_packets_list = bctbx_list_append(frame_packets_list, packet);
+	//for (it=ctx->non_processed_packets_list; it!=NULL; it=it->next) {
+	//	packet = (Vp8RtpFmtPacket*) it->data;
+	//	frame_packets_list = bctbx_list_append(frame_packets_list, packet);
+	//}
+	if (ctx->non_processed_packets_list){
+		frame_packets_list = bctbx_list_concat(ctx->non_processed_packets_list, frame_packets_list);
 	}
-	bctbx_list_free(ctx->non_processed_packets_list);
+	//bctbx_list_free(ctx->non_processed_packets_list);
 	ctx->non_processed_packets_list = NULL;
 
 	/* Process newly received packets. */

@@ -975,7 +975,8 @@ static void dec_process_frame_task(void *obj) {
 
 	ms_filter_lock(f);
 	if (ms_queue_empty(&s->entry_q)) {
-		ms_error("VP8 async decoding process: no frame in entry queue, this shall not happen.");
+		/* This can happen: for example two packets could be queued consecutively, simultatenously with two decoding tasks.
+		 * If the worker thread is a bit late, the first task will get and process the two packets*/ 
 		ms_filter_unlock(f);
 		return;
 	}
