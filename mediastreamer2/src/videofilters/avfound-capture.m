@@ -121,6 +121,7 @@ static void capture_queue_cleanup(void* p) {
     [output alwaysDiscardsLateVideoFrames];
 	allocator = ms_yuv_buf_allocator_new();
 	isStretchingCamera = FALSE;
+	usedSize = MS_VIDEO_SIZE_VGA;
 	return self;
 }
 
@@ -160,6 +161,7 @@ static void capture_queue_cleanup(void* p) {
 		dispatch_set_finalizer_f(queue, capture_queue_cleanup);
 		[output setSampleBufferDelegate:self queue:queue];
 		dispatch_release(queue);
+		session.sessionPreset = [self videoSizeToPreset:usedSize];
 		
 		// At the time of macosx 10.11, it's mandatory to keep old settings, otherwise pixel buffer size is no preserved
 		NSDictionary *dic = [NSDictionary dictionaryWithObjectsAndKeys:
@@ -205,7 +207,6 @@ static void capture_queue_cleanup(void* p) {
 	if (device == NULL) {
 		ms_error("Error: camera %s not found, using default one", [deviceId UTF8String]);
         device = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
-
 	}
 }
 
@@ -244,8 +245,8 @@ static void capture_queue_cleanup(void* p) {
 	} else if (size.height*size.width >= MS_VIDEO_SIZE_QVGA_H*MS_VIDEO_SIZE_QVGA_H) {
 		preset = AVCaptureSessionPreset320x240;
 	} else {
-		// Default case
-		preset = AVCaptureSessionPreset352x288;
+		// Default case, VGA should be supported everywhere
+		preset = AVCaptureSessionPreset640x480;
 	}
 	return preset;
 }
@@ -264,11 +265,10 @@ static void capture_queue_cleanup(void* p) {
 
 
 - (void)setSize:(MSVideoSize)size {
-	session.sessionPreset = [self videoSizeToPreset:size];
-
-	MSVideoSize desiredSize = [self getSize];
+	MSVideoSize desiredSize = size;
 	NSArray *supportedFormats = [device formats];
 	CMVideoDimensions max = {(int32_t)0, (int32_t)0};
+	CMVideoDimensions min = {(int32_t)0, (int32_t)0};
 	unsigned int i = 0;
 
 	// Check into the supported format for the highest under the desiredSize
@@ -276,7 +276,12 @@ static void capture_queue_cleanup(void* p) {
 	for (i = 0; i < [supportedFormats count]; i++) {
 		AVCaptureDeviceFormat *format = [supportedFormats objectAtIndex:i];
 		CMVideoDimensions dimensions = CMVideoFormatDescriptionGetDimensions((CMVideoFormatDescriptionRef)[format formatDescription]);
-
+		if (min.width == 0){
+			min = dimensions;
+		}else if (min.width > dimensions.width && min.height > dimensions.height){
+			min = dimensions;
+		}
+		
 		ms_message("\t- %dx%d", dimensions.width, dimensions.height);
 		if (dimensions.width <= desiredSize.width && dimensions.height <= desiredSize.height) {
 			if (dimensions.width > max.width && dimensions.height > max.height) {
@@ -284,12 +289,19 @@ static void capture_queue_cleanup(void* p) {
 			}
 		}
 	}
-
-	usedSize.width = max.width;
-	usedSize.height = max.height;
+	if (max.width == 0){
+		// This happens when the desired size is below all available sizes.
+		usedSize.width = min.width;
+		usedSize.height = min.height;
+	}else{
+		usedSize.width = max.width;
+		usedSize.height = max.height;
+	}
+	ms_message("AVCapture: used size is %ix%i", usedSize.width, usedSize.height);
 }
+
 - (MSVideoSize)getSize {
-	return [self presetTovideoSize:session.sessionPreset];
+	return usedSize;
 }
 
 - (AVCaptureSession *)session {

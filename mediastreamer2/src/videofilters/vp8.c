@@ -967,11 +967,10 @@ static void dec_process_frame_task(void *obj) {
 	vpx_image_t *img;
 	vpx_codec_iter_t iter = NULL;
 	MSQueue frame;
-	MSQueue mtofree_queue;
 	Vp8RtpFmtFrameInfo frame_info;
+	int frames_processed = 0;
 
 	ms_queue_init(&frame);
-	ms_queue_init(&mtofree_queue);
 
 	ms_filter_lock(f);
 	if (ms_queue_empty(&s->entry_q)) {
@@ -988,6 +987,7 @@ static void dec_process_frame_task(void *obj) {
 
 	/* Decode unpacked VP8 frames. */
 	while (vp8rtpfmt_unpacker_get_frame(&s->unpacker, &frame, &frame_info) == 0) {
+		frames_processed++;
 		while ((im = ms_queue_get(&frame)) != NULL) {
 			err = vpx_codec_decode(&s->codec, im->b_rptr, (unsigned int)(im->b_wptr - im->b_rptr), NULL, 0);
 			if ((s->flags & VPX_CODEC_USE_INPUT_FRAGMENTS) && mblk_get_marker_info(im)) {
@@ -996,7 +996,7 @@ static void dec_process_frame_task(void *obj) {
 			if (err) {
 				ms_warning("vp8 decode failed : %d %s (%s)\n", err, vpx_codec_err_to_string(err), vpx_codec_error_detail(&s->codec)?vpx_codec_error_detail(&s->codec):"no details");
 			}
-			ms_queue_put(&mtofree_queue, im);
+			freemsg(im);
 		}
 
 		/* Get decoded frame */
@@ -1043,11 +1043,8 @@ static void dec_process_frame_task(void *obj) {
 				ms_filter_notify_no_arg(f, MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
 			}
 		}
-
-		while ((im = ms_queue_get(&mtofree_queue)) != NULL) {
-			freemsg(im);
-		}
 	}
+	if (frames_processed > 1) ms_warning("VP8 async: %i frames processed in a row.", frames_processed);
 }
 
 static void dec_process(MSFilter *f) {
@@ -1067,7 +1064,10 @@ static void dec_process(MSFilter *f) {
 		ms_filter_unlock(f);
 		return;
 	}
-
+	
+	if (f->ticker->time % 1000 == 0){
+		ms_message("VP8 dec: entry queue size: %i packets.", (int)s->entry_q.q.q_mcount);
+	}
 	while ((entry_f = ms_queue_get(f->inputs[0])) != NULL) {
 		ms_queue_put(&s->entry_q, entry_f);
 		queued_something = TRUE;
