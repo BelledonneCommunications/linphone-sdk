@@ -34,8 +34,8 @@
 #include <bctoolbox/port.h>
 
 
-#define ICE_MAX_NB_CANDIDATES		16
-#define ICE_MAX_NB_CANDIDATE_PAIRS	100
+#define ICE_MAX_NB_CANDIDATES		32
+#define ICE_MAX_NB_CANDIDATE_PAIRS	128
 
 #define ICE_RTP_COMPONENT_ID	1
 #define ICE_RTCP_COMPONENT_ID	2

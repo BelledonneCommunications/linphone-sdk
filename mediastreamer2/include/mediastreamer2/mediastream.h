@@ -857,6 +857,7 @@ struct _VideoStream
 	uint64_t last_reported_decoding_error_time;
 	uint64_t last_fps_check;
 	uint64_t last_camera_check;
+	int dead_camera_check_count;
 	VideoStreamCameraNotWorkingCallback cameracb;
 	void *camera_pointer;
 	MediaStreamVideoStat ms_video_stat;
@@ -864,8 +865,8 @@ struct _VideoStream
 	bool_t enable_qrcode_decoder;
 	bool_t freeze_on_error;
 	bool_t display_filter_auto_rotate_enabled;
+	
 	bool_t source_performs_encoding;
-
 	bool_t output_performs_decoding;
 	bool_t player_active;
 	bool_t staticimage_webcam_fps_optimization; /* if TRUE, the StaticImage webcam will ignore the fps target in order to save CPU time. Default is TRUE */
