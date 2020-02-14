@@ -649,21 +649,21 @@ MSWebCamDesc *ms_mire_webcam_desc_get(void){
 #endif
 
 
-void update_bitrate_limit_from_tmmbr(MediaStream *obj, int br_limit){
+static int update_bitrate_limit_from_tmmbr(MediaStream *obj, int br_limit){
 	int previous_br_limit = rtp_session_get_target_upload_bandwidth(obj->sessions.rtp_session);
 	if (!obj->encoder){
 		ms_warning("TMMBR not applicable because no encoder for this stream.");
-		return;
+		return -1;
 	}
 
 	if (obj->max_target_bitrate > 0 && br_limit > obj->max_target_bitrate){
+		ms_message("TMMBR is greater than maximum target bitrate set (%i > %i), capping to %i bits/s", br_limit, obj->max_target_bitrate, obj->max_target_bitrate);
 		br_limit = obj->max_target_bitrate;
-		ms_message("TMMBR is greater than maximum target bitrate set (%i > %i)", br_limit, obj->max_target_bitrate);
 	}
 
 	if (previous_br_limit == br_limit) {
 		ms_message("Previous bitrate limit was already %i, skipping...", br_limit);
-		return;
+		return -1;
 	}
 
 	if (obj->type != MSVideo) {
@@ -674,6 +674,7 @@ void update_bitrate_limit_from_tmmbr(MediaStream *obj, int br_limit){
 
 	media_stream_set_target_network_bitrate(obj, br_limit);
 	rtp_session_set_target_upload_bandwidth(obj->sessions.rtp_session, br_limit);
+	return br_limit;
 }
 
 static void tmmbr_received(const OrtpEventData *evd, void *user_pointer) {
@@ -684,7 +685,8 @@ static void tmmbr_received(const OrtpEventData *evd, void *user_pointer) {
 
 			ms_message("MediaStream[%p]: received a TMMBR for bitrate %i kbits/s"
 						, ms, (int)(tmmbr_mxtbr/1000));
-			update_bitrate_limit_from_tmmbr(ms, tmmbr_mxtbr);
+			tmmbr_mxtbr = update_bitrate_limit_from_tmmbr(ms, tmmbr_mxtbr);
+			if (tmmbr_mxtbr < 0) return;
 
 
 #ifdef VIDEO_ENABLED

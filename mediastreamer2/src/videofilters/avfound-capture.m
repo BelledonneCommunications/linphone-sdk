@@ -1,21 +1,21 @@
 /*
-mediastreamer2 library - modular sound and video processing and streaming
-Copyright (C) 2016  Belledonne Communications SARL
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-*/
+ * Copyright (c) 2010-2019 Belledonne Communications SARL.
+ *
+ * This file is part of mediastreamer2.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #ifdef __APPLE__
 
@@ -513,8 +513,8 @@ static void ms_v4m_detect(MSWebCamManager *obj) {
 	for(i = 0 ; i < [array count]; i++) {
 		AVCaptureDevice * device = [array objectAtIndex:i];
 		MSWebCam *cam = ms_web_cam_new(&ms_v4m_cam_desc);
-		char *name = [[device localizedName] UTF8String];
-		char *uid = [[device uniqueID] UTF8String];
+		const char *name = [[device localizedName] UTF8String];
+		const char *uid = [[device uniqueID] UTF8String];
 		cam->name = bctbx_strdup_printf("%s--%s", name, uid);
 		//cam->name = ms_strdup([[device modelID] UTF8String]);
 		cam->data = ms_strdup(uid);

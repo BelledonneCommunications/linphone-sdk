@@ -1343,7 +1343,6 @@ MS2_PUBLIC void text_stream_unprepare_text(TextStream *stream);
  * @}
 **/
 
-MS2_PUBLIC void update_bitrate_limit_from_tmmbr(MediaStream *obj, int br_limit);
 
 #ifdef __cplusplus
 }

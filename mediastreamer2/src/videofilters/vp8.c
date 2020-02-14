@@ -197,7 +197,7 @@ static void enc_preprocess(MSFilter *f) {
 		else cpuused = 1;
 
 	}
-	if (s->cfg.g_threads == 1 || ms_video_size_area_greater_than(MS_VIDEO_SIZE_720P, s->vconf.vsize)){
+	if (s->cfg.g_threads == 1){
 		/* on mono-core iOS devices, we reduce the quality a bit more due to VP8 being slower with new Clang compilers */
 		cpuused = 16;
 	}
@@ -442,7 +442,7 @@ static bool_t is_frame_independent(unsigned int flags){
 }
 
 static void enc_process_frame_task(void *obj) {
-	mblk_t *im;
+	mblk_t *im, *prev_im = NULL;
 	MSFilter *f = (MSFilter*)obj;
 	EncState *s = (EncState *)f->data;
 	unsigned int flags = 0;
@@ -450,20 +450,26 @@ static void enc_process_frame_task(void *obj) {
 	MSPicture yuv;
 	bool_t is_ref_frame=FALSE;
 	vpx_image_t img;
+	int skipped_count = 0;
 
 	ms_filter_lock(f);
-	if ((im = getq(&s->entry_q)) == NULL) {
-		ms_warning("VP8 async encoding process: No frame in entry queue");
-		ms_filter_unlock(f);
-		return;
-	}
-
-	if (s->entry_q.q_mcount >= 3){
-		/*don't let too much buffers to be queued here, it makes no sense for a real time processing and would consume too much memory*/
-		ms_warning("VP8 async encoding process: dropping %i frames", s->entry_q.q_mcount);
-		flushq(&s->entry_q, 0);
+	while ((im = getq(&s->entry_q)) == NULL) {
+		if (prev_im) {
+			freemsg(prev_im);
+			skipped_count++;
+		}
+		prev_im = im;
 	}
 	ms_filter_unlock(f);
+
+	if (skipped_count > 0){
+		/*don't let too much buffers to be queued here, it makes no sense for a real time processing and would consume too much memory*/
+		ms_warning("VP8 async encoding process: %i frames skipped", skipped_count);
+	}
+	if (!im){
+		ms_error("VP8 async encoding process: no frame to encode, this shall not happen.");
+		return;
+	}
 
 	flags = 0;
 	ms_yuv_buf_init_from_mblk(&yuv, im);
@@ -969,7 +975,7 @@ static void dec_process_frame_task(void *obj) {
 
 	ms_filter_lock(f);
 	if (ms_queue_empty(&s->entry_q)) {
-		ms_warning("VP8 async decoding process: No frame in entry queue");
+		ms_error("VP8 async decoding process: no frame in entry queue, this shall not happen.");
 		ms_filter_unlock(f);
 		return;
 	}
@@ -1047,6 +1053,7 @@ static void dec_process(MSFilter *f) {
 	DecState *s = (DecState *)f->data;
 	mblk_t *entry_f;
 	mblk_t *exit_f;
+	bool_t queued_something = FALSE;
 
 	ms_filter_lock(f);
 
@@ -1062,8 +1069,9 @@ static void dec_process(MSFilter *f) {
 
 	while ((entry_f = ms_queue_get(f->inputs[0])) != NULL) {
 		ms_queue_put(&s->entry_q, entry_f);
+		queued_something = TRUE;
 	}
-	ms_worker_thread_add_task(s->process_thread, dec_process_frame_task, (void*)f);
+	if (queued_something) ms_worker_thread_add_task(s->process_thread, dec_process_frame_task, (void*)f);
 
 	/* Put each frame we have in exit_q in f->output[0] */
 	while ((exit_f = ms_queue_get(&s->exit_q)) != NULL) {
@@ -1071,7 +1079,6 @@ static void dec_process(MSFilter *f) {
 	}
 
 	ms_filter_unlock(f);
-	ms_queue_flush(f->inputs[0]);
 }
 
 static void dec_postprocess(MSFilter *f) {
@@ -1153,7 +1160,7 @@ static MSFilterMethod dec_methods[] = {
 #define MS_VP8_DEC_ENC_FMT     "VP8"
 #define MS_VP8_DEC_NINPUTS     1
 #define MS_VP8_DEC_NOUTPUTS    1
-#define MS_VP8_DEC_FLAGS       0
+#define MS_VP8_DEC_FLAGS       MS_FILTER_IS_PUMP
 
 #ifdef _MSC_VER
 

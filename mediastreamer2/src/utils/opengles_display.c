@@ -102,6 +102,9 @@ struct opengles_display {
 	float zoom_factor;
 	float zoom_cx;
 	float zoom_cy;
+	
+	/* whether mirroring (vertical flip) is requested*/
+	bool_t do_mirroring;
 
 	OpenGlFunctions *default_functions;
 	const OpenGlFunctions *functions;
@@ -337,6 +340,7 @@ static bool_t update_textures_with_yuv (struct opengles_display *gldisp, enum Im
 	GL_OPERATION(f, glTexSubImage2D(GL_TEXTURE_2D, 0,
 			0, 0, yuvbuf.w, yuvbuf.h,
 			GL_LUMINANCE, GL_UNSIGNED_BYTE, yuvbuf.planes[Y]))
+	
 	GL_OPERATION(f, glUniform1i(gldisp->uniforms[UNIFORM_TEXTURE_Y], 0))
 
 	/* upload U plane */
@@ -346,6 +350,7 @@ static bool_t update_textures_with_yuv (struct opengles_display *gldisp, enum Im
 	GL_OPERATION(f, glTexSubImage2D(GL_TEXTURE_2D, 0,
 			0, 0, yuvbuf.w >> 1, yuvbuf.h >> 1,
 			GL_LUMINANCE, GL_UNSIGNED_BYTE, yuvbuf.planes[U]))
+	
 	GL_OPERATION(f, glUniform1i(gldisp->uniforms[UNIFORM_TEXTURE_U], 1))
 
 	/* upload V plane */
@@ -355,6 +360,7 @@ static bool_t update_textures_with_yuv (struct opengles_display *gldisp, enum Im
 	GL_OPERATION(f, glTexSubImage2D(GL_TEXTURE_2D, 0,
 			0, 0, yuvbuf.w >> 1, yuvbuf.h >> 1,
 			GL_LUMINANCE, GL_UNSIGNED_BYTE, yuvbuf.planes[V]))
+	
 	GL_OPERATION(f, glUniform1i(gldisp->uniforms[UNIFORM_TEXTURE_V], 2))
 	gldisp->yuv_size[type].width = yuvbuf.w;
 	gldisp->yuv_size[type].height = yuvbuf.h;
@@ -689,6 +695,11 @@ void ogl_display_zoom (struct opengles_display *gldisp, float *params) {
 	gldisp->zoom_cx = params[1] - 0.5f;
 	gldisp->zoom_cy = params[2] - 0.5f;
 }
+
+void ogl_display_enable_mirroring(struct opengles_display *gldisp, bool_t enabled){
+	gldisp->do_mirroring = enabled;
+}
+
 
 // -----------------------------------------------------------------------------
 

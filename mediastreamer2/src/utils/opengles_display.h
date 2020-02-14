@@ -85,9 +85,16 @@ void ogl_display_render (struct opengles_display *gldisp, int deviceAngleFromPor
  */
 void ogl_display_zoom (struct opengles_display *gldisp, float *params);
 
+/**
+ * Request horizontal flip of the image.
+ * FIXME: not implemented yet.
+ */
+void ogl_display_enable_mirroring(struct opengles_display *gldisp, bool_t enabled);
+
 #if defined __cplusplus
 };
 #endif
+
 
 #ifdef __ANDROID__
 #include <jni.h>
