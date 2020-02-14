@@ -2,8 +2,8 @@
 
   extends: .job-prepare
   stage: build
-  tags: [ "macosx" ]
-  
+  tags: [ "macosx-xcode11" ]
+
   except:
     variables:
       - $DOCKER_UPDATE
@@ -101,7 +101,7 @@ job-macosx-xcode:
 test-linphone-macosx:
   stage: test
   extends: .job-prepare
-  tags: [ "macosx" ]
+  tags: [ "macosx-xcode11" ]
   allow_failure: true
   dependencies:
     - job-macosx-ninja

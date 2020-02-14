@@ -2,7 +2,7 @@
 
   extends: .job-prepare
   stage: build
-  tags: [ "macosx" ]
+  tags: [ "macosx-xcode11" ]
   except:
     variables:
       - $DOCKER_UPDATE
@@ -110,7 +110,7 @@ job-ios-xcode:
 #################################################
 
 test-liblinphone-ios:
-  tags: [ "macosx" ]
+  tags: [ "macosx-xcode11" ]
   stage: test
   allow_failure: true
   dependencies:
