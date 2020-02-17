@@ -208,5 +208,5 @@ task copyAssets(type: Sync) {
 
 project.tasks['preBuild'].dependsOn 'copyAssets'
 project.tasks['preBuild'].dependsOn 'copyProguard'
-
+project.tasks['assemble'].dependsOn 'sourcesJar'
 project.tasks['assemble'].dependsOn 'androidJavadocsJar'

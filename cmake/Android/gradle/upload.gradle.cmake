@@ -44,6 +44,11 @@ task androidJavadocsJar(type: Jar) {
     from "$buildDir/libs/linphone-sdk-android-javadoc.jar"
 }
 
+task androidSourcesJar(type: Jar) {
+    classifier = 'sources'
+    from "$buildDir/libs/linphone-sdk-android-sources.jar"
+}
+
 publishing {
     publications {
         debug(MavenPublication) {
@@ -51,7 +56,7 @@ publishing {
             artifactId 'linphone-sdk-android' + '-debug'
             version "@LINPHONESDK_VERSION@"
             artifact("$buildDir/outputs/aar/linphone-sdk-android-debug.aar")
-
+            artifact androidSourcesJar
             artifact androidJavadocsJar
 
             pom {
@@ -75,7 +80,7 @@ publishing {
             artifactId 'linphone-sdk-android'
             version "@LINPHONESDK_VERSION@"
             artifact("$buildDir/outputs/aar/linphone-sdk-android-release.aar")
-
+            artifact androidSourcesJar
             artifact androidJavadocsJar
 
             pom {
