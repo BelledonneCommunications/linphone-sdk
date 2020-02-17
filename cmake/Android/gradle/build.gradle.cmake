@@ -32,6 +32,7 @@ apply plugin: 'maven-publish'
 dependencies {
     implementation 'org.apache.commons:commons-compress:1.16.1'
     javadocDeps 'org.apache.commons:commons-compress:1.16.1'
+    compileOnly 'org.jetbrains:annotations:19.0.0'
 }
 
 static def isGeneratedJavaWrapperAvailable() {
@@ -160,6 +161,12 @@ task(releaseJavadoc, type: Javadoc, dependsOn: "assembleRelease") {
     classpath += configurations.javadocDeps
     options.encoding = 'UTF-8'
     options.addStringOption('Xdoclint:none', '-quiet')
+
+    afterEvaluate {
+        classpath += files(android.libraryVariants.collect { variant ->
+            variant.javaCompile.classpath.files
+        })
+    }
 }
 
 task sourcesJar(type: Jar) {
