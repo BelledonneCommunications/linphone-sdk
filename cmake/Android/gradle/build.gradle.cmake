@@ -164,7 +164,7 @@ task(releaseJavadoc, type: Javadoc, dependsOn: "assembleRelease") {
 
     afterEvaluate {
         classpath += files(android.libraryVariants.collect { variant ->
-            variant.javaCompile.classpath.files
+            variant.javaCompileProvider.get().classpath.files
         })
     }
 }
