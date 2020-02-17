@@ -32,7 +32,6 @@ include(LinphoneSdkUtils)
 
 include(bctoolbox/cmake/BcToolboxCMakeUtils.cmake)
 
-linphone_sdk_git_submodule_update()
 bc_compute_full_version(LINPHONESDK_VERSION)
 linphone_sdk_compute_git_branch(LINPHONESDK_BRANCH)
 

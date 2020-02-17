@@ -101,16 +101,6 @@ macro(linphone_sdk_check_git)
 	find_program(GIT_EXECUTABLE git NAMES Git CMAKE_FIND_ROOT_PATH_BOTH)
 endmacro()
 
-function(linphone_sdk_git_submodule_update)
-	if(NOT EXISTS "${LINPHONESDK_DIR}/linphone/CMakeLists.txt")
-		linphone_sdk_check_git()
-		execute_process(
-			COMMAND "${GIT_EXECUTABLE}" "submodule" "update" "--recursive" "--init"
-			WORKING_DIRECTORY "${LINPHONESDK_DIR}"
-		)
-	endif()
-endfunction()
-
 macro(linphone_sdk_compute_full_version OUTPUT_VERSION)
 	linphone_sdk_check_git()
 	if(GIT_EXECUTABLE)
