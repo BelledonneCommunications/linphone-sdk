@@ -146,6 +146,7 @@ void MSWASAPIWriter::init(LPCWSTR id, MSFilter *f) {
 	FREE_PTR(pWfx);
 	mIsInitialized = true;
 	smInstantiated = true;
+	activate();
 	return;
 
 error:

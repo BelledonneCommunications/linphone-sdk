@@ -51,24 +51,23 @@ static void ms_wasapi_read_init(MSFilter *f) {
 
 static void ms_wasapi_read_preprocess(MSFilter *f) {
 	MSWASAPIReaderType r = MSWASAPI_READER(f->data);
-	r->activate();
+	r->start();
 }
 
 static void ms_wasapi_read_process(MSFilter *f) {
 	MSWASAPIReaderType r = MSWASAPI_READER(f->data);
-	if (!r->isStarted()) {
-		r->start();
-	}
 	r->feed(f);
 }
 
 static void ms_wasapi_read_postprocess(MSFilter *f) {
 	MSWASAPIReaderType r = MSWASAPI_READER(f->data);
 	r->stop();
-	r->deactivate();
+	
 }
 
 static void ms_wasapi_read_uninit(MSFilter *f) {
+	MSWASAPIReaderType r = MSWASAPI_READER(f->data);
+	r->deactivate();
 	MSWASAPIReaderDelete(static_cast<MSWASAPIReaderPtr>(f->data));
 }
 
@@ -194,24 +193,22 @@ static void ms_wasapi_write_init(MSFilter *f) {
 
 static void ms_wasapi_write_preprocess(MSFilter *f) {
 	MSWASAPIWriterType w = MSWASAPI_WRITER(f->data);
-	w->activate();
+	w->start();
 }
 
 static void ms_wasapi_write_process(MSFilter *f) {
 	MSWASAPIWriterType w = MSWASAPI_WRITER(f->data);
-	if (!w->isStarted()) {
-		w->start();
-	}
 	w->feed(f);
 }
 
 static void ms_wasapi_write_postprocess(MSFilter *f) {
 	MSWASAPIWriterType w = MSWASAPI_WRITER(f->data);
 	w->stop();
-	w->deactivate();
 }
 
 static void ms_wasapi_write_uninit(MSFilter *f) {
+	MSWASAPIWriterType w = MSWASAPI_WRITER(f->data);
+	w->deactivate();
 	MSWASAPIWriterDelete(static_cast<MSWASAPIWriterPtr>(f->data));
 }
 

@@ -146,6 +146,7 @@ void MSWASAPIReader::init(LPCWSTR id)
 	FREE_PTR(pWfx);
 	mIsInitialized = true;
 	smInstantiated = true;
+	activate();
 	return;
 
 error:
@@ -165,8 +166,6 @@ int MSWASAPIReader::activate()
 	DWORD flags = 0;
 
 	if (!mIsInitialized) goto error;
-
-	ms_ticker_set_synchronizer(mFilter->ticker, mTickerSynchronizer);
 
 #ifdef MS2_WINDOWS_PHONE
 	flags = AUDCLNT_SESSIONFLAGS_EXPIREWHENUNOWNED | AUDCLNT_SESSIONFLAGS_DISPLAY_HIDE | AUDCLNT_SESSIONFLAGS_DISPLAY_HIDEWHENEXPIRED;
@@ -217,7 +216,7 @@ int MSWASAPIReader::deactivate()
 {
 	RELEASE_CLIENT(mAudioCaptureClient);
 	RELEASE_CLIENT(mVolumeControler);
-	ms_ticker_set_synchronizer(mFilter->ticker, nullptr);
+	
 	mIsActivated = false;
 	return 0;
 }
@@ -233,6 +232,7 @@ void MSWASAPIReader::start()
 			ms_error("Could not start playback on the MSWASAPI audio input interface [%x]", result);
 		}
 	}
+	ms_ticker_set_synchronizer(mFilter->ticker, mTickerSynchronizer);
 }
 
 void MSWASAPIReader::stop()
@@ -245,6 +245,7 @@ void MSWASAPIReader::stop()
 		if (result != S_OK) {
 			ms_error("Could not stop playback on the MSWASAPI audio input interface [%x]", result);
 		}
+		ms_ticker_set_synchronizer(mFilter->ticker, nullptr);
 	}
 }
 
