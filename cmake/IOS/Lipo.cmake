@@ -99,10 +99,10 @@ foreach(_framework ${_frameworks})
 	)
 endforeach()
 
-if(ENABLE_SWIFT_WRAPPER AND ENABLE_JAZZY_DOC)
+if(ENABLE_SWIFT_WRAPPER AND ENABLE_SWIFT_WRAPPER_COMPILATION AND ENABLE_JAZZY_DOC)
 	message("generating jazzy doc for swift module ......")
 	execute_process(
-		COMMAND "jazzy" "-x" "-scheme,linphonesw" "--readme" "${LINPHONESDK_DIR}/linphone/wrappers/swift/README"
+		COMMAND "jazzy" "-x" "-scheme,linphonesw" "--readme" "${LINPHONESDK_DIR}/liblinphone/README.md"
 		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}/WORK/ios-${_first_arch}/Build/linphone/"
 	)
 	execute_process(
