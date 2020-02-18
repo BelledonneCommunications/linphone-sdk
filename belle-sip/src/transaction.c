@@ -603,7 +603,7 @@ void belle_sip_client_transaction_notify_response(belle_sip_client_transaction_t
 				dialog=belle_sip_provider_find_dialog_from_message(t->base.provider,(belle_sip_message_t*)resp,FALSE);
 				if (!dialog && should_dialog_be_created(t, resp, TRUE)){
 					dialog=belle_sip_provider_create_dialog_internal(t->base.provider,BELLE_SIP_TRANSACTION(t),FALSE);/*belle_sip_dialog_new(base);*/
-					belle_sip_message("Handling response creating a new dialog !");
+					belle_sip_message("Handling response creating a new dialog!");
 				}
 			}
 		}

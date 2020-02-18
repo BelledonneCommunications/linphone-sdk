@@ -488,7 +488,7 @@ static void test_rseq_header(void) {
 	belle_sip_header_t* L_tmp;
 	belle_sip_header_t* L_rseq;
 	char* l_raw_header = NULL;
-	
+
 	L_rseq = belle_sip_header_parse("RSeq: 3344");
 	l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_rseq));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_rseq));
@@ -496,7 +496,7 @@ static void test_rseq_header(void) {
 	L_rseq = BELLE_SIP_HEADER(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
 	belle_sip_free(l_raw_header);
-	
+
 	BC_ASSERT_STRING_EQUAL(belle_sip_header_get_unparsed_value(L_rseq), "3344");
 	belle_sip_object_unref(L_rseq);
 }
@@ -627,7 +627,7 @@ static void test_rack_header(void ) {
 	belle_sip_header_t* L_tmp;
 	belle_sip_header_t* L_rseq;
 	char* l_raw_header = NULL;
-	
+
 	L_rseq = belle_sip_header_parse("RAck: 3344 101 INVITE");
 	l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_rseq));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_rseq));
@@ -635,7 +635,7 @@ static void test_rack_header(void ) {
 	L_rseq = BELLE_SIP_HEADER(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
 	belle_sip_free(l_raw_header);
-	
+
 	BC_ASSERT_STRING_EQUAL(belle_sip_header_get_unparsed_value(L_rseq), "3344 101 INVITE");
 	belle_sip_object_unref(L_rseq);
 }
@@ -867,7 +867,7 @@ static void test_address_header_with_params(void) {
 	belle_sip_uri_t* L_uri;
 	char* L_raw;
 	belle_sip_header_address_t* lclonedaddr;
-	
+
 	belle_sip_header_address_t* laddress = belle_sip_header_address_fast_parse("\"toto\" <sip:liblinphone_tester@81.56.11.2:5060> ; toto=\"titi\";tutu");
 	BC_ASSERT_PTR_NOT_NULL(laddress);
 	L_raw = belle_sip_object_to_string(BELLE_SIP_OBJECT(lclonedaddr=belle_sip_header_address_clone(laddress)));
@@ -876,10 +876,10 @@ static void test_address_header_with_params(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(lclonedaddr));
 	laddress = belle_sip_header_address_parse(L_raw);
 	belle_sip_free(L_raw);
-	
+
 	BC_ASSERT_STRING_EQUAL("toto",belle_sip_header_address_get_displayname(laddress));
 	L_uri = belle_sip_header_address_get_uri(laddress);
-	
+
 	BC_ASSERT_PTR_NOT_NULL(belle_sip_uri_get_user(L_uri));
 	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "81.56.11.2");
 	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_user(L_uri), "liblinphone_tester");
@@ -887,7 +887,7 @@ static void test_address_header_with_params(void) {
 	BC_ASSERT_STRING_EQUAL(belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(laddress), "toto"),"\"titi\"");
 	BC_ASSERT_TRUE(belle_sip_parameters_has_parameter(BELLE_SIP_PARAMETERS(laddress), "toto"));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(laddress));
-	
+
 }
 
 static void test_address_header_with_tel_uri(void) {
@@ -907,6 +907,34 @@ static void test_address_header_with_tel_uri(void) {
 	BC_ASSERT_PTR_NOT_NULL(belle_generic_uri_get_opaque_part(L_uri));
 	BC_ASSERT_STRING_EQUAL(belle_generic_uri_get_opaque_part(L_uri), "123456");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(laddress));
+}
+
+static void test_address_header_with_session_expires(void) {
+	char* L_raw;
+
+	belle_sip_header_session_expires_t* L_session_expires_tmp = belle_sip_header_session_expires_parse("Session-Expires: 4000;refresher=uac");
+	belle_sip_header_session_expires_t* L_session_expires = BELLE_SIP_HEADER_SESSION_EXPIRES(belle_sip_object_clone(BELLE_SIP_OBJECT(L_session_expires_tmp)));
+
+	BC_ASSERT_EQUAL(belle_sip_header_session_expires_get_delta(L_session_expires), 4000, int, "%d");
+	BC_ASSERT_EQUAL(belle_sip_header_session_expires_get_refresher_value(L_session_expires), BELLE_SIP_HEADER_SESSION_EXPIRES_UAC, int,"%d");
+
+	L_raw = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_session_expires));
+	BC_ASSERT_PTR_NOT_NULL(L_raw);
+
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_session_expires));
+	L_session_expires = belle_sip_header_session_expires_parse(L_raw);
+
+	BC_ASSERT_EQUAL(belle_sip_header_session_expires_get_delta(L_session_expires), 4000, int, "%d");
+	belle_sip_header_session_expires_set_delta(L_session_expires, 123);
+	BC_ASSERT_EQUAL(belle_sip_header_session_expires_get_delta(L_session_expires), 123, int, "%d");
+
+	BC_ASSERT_EQUAL(belle_sip_header_session_expires_get_refresher_value(L_session_expires), BELLE_SIP_HEADER_SESSION_EXPIRES_UAC, int,"%d");
+	belle_sip_header_session_expires_set_refresher_value(L_session_expires, BELLE_SIP_HEADER_SESSION_EXPIRES_UAS);
+	BC_ASSERT_EQUAL(belle_sip_header_session_expires_get_refresher_value(L_session_expires), BELLE_SIP_HEADER_SESSION_EXPIRES_UAS, int, "%d");
+
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_session_expires));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_session_expires_tmp));
+	belle_sip_free(L_raw);
 }
 
 static void test_address_header_with_urn(void) {
@@ -1323,16 +1351,16 @@ static void test_reason_header(void) {
 	belle_sip_header_reason_t *L_tmp, *l_next;
 	belle_sip_header_reason_t* L_reason = BELLE_SIP_HEADER_REASON(belle_sip_header_create("Reason", "Q.850 ;cause=16 ;text=\"Busy Everywhere\""));
 	char* l_raw_header;
-	
+
 	BC_ASSERT_STRING_EQUAL(belle_sip_header_reason_get_text(L_reason),"Busy Everywhere");
 	belle_sip_header_reason_set_text(L_reason, "Terminated");
 	l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_reason));
-	
+
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_reason));
 	L_tmp = belle_sip_header_reason_parse(l_raw_header);
 	L_reason = BELLE_SIP_HEADER_REASON(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
-	
+
 	BC_ASSERT_STRING_EQUAL(belle_sip_header_reason_get_text(L_reason),"Terminated");
 	BC_ASSERT_STRING_EQUAL(belle_sip_header_reason_get_protocol(L_reason),"Q.850");
 	BC_ASSERT_EQUAL(belle_sip_header_reason_get_cause(L_reason),16 , int,"%d");
@@ -1345,7 +1373,7 @@ static void test_reason_header(void) {
 	BC_ASSERT_EQUAL(belle_sip_header_reason_get_cause(l_next),580 , int,"%d");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_reason));
 
-	
+
 	BC_ASSERT_PTR_NULL(belle_sip_header_reason_parse("nimportequoi"));
 }
 static void test_authentication_info_header(void) {
@@ -1354,27 +1382,27 @@ static void test_authentication_info_header(void) {
 																													, "nextnonce=\"47364c23432d2e131a5fb210812c\""
 																														", qop=auth"));
 	char* l_raw_header;
-	
+
 	BC_ASSERT_STRING_EQUAL(belle_sip_header_authentication_info_get_next_nonce(L_authentication_info),"47364c23432d2e131a5fb210812c");
 	belle_sip_header_authentication_info_set_next_nonce(L_authentication_info, "31a5fb210812c47364c23432d2e1");
 	l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_authentication_info));
-	
+
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_authentication_info));
 	L_tmp = belle_sip_header_authentication_info_parse(l_raw_header);
 	L_authentication_info = BELLE_SIP_HEADER_AUTHENTICATION_INFO(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
-	
+
 	BC_ASSERT_STRING_EQUAL(belle_sip_header_authentication_info_get_next_nonce(L_authentication_info),"31a5fb210812c47364c23432d2e1");
 	BC_ASSERT_STRING_EQUAL(belle_sip_header_authentication_info_get_qop(L_authentication_info),"auth");
-	
+
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_authentication_info));
 	belle_sip_free(l_raw_header);
-	
-	
+
+
 	L_authentication_info = belle_sip_header_authentication_info_parse("Authentication-Info:nextnonce=\"WRSE5VkUg7kOjnP5sBZZzsxrsOQ8Eyp6ZNttXIA=\", qop=auth , rspauth=\"5e8518291c1320989df6966405e0b3d1\", cnonce=\"05bc00e63a7794182f9425da9266d00d\", nc=00000001");
 	BC_ASSERT_EQUAL(belle_sip_header_authentication_info_get_nonce_count(L_authentication_info),1, int, "%i");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_authentication_info));
-	
+
 	BC_ASSERT_PTR_NULL(belle_sip_header_authentication_info_parse("nimportequoi"));
 }
 
@@ -1387,6 +1415,7 @@ test_t headers_tests[] = {
 	TEST_NO_TAG("Address with error", test_address_with_error_header),
 	TEST_NO_TAG("Allow", test_allow_header),
 	TEST_NO_TAG("Authorization", test_authorization_header),
+	TEST_NO_TAG("Session-Expires", test_address_header_with_session_expires),
 	TEST_NO_TAG("Call-ID", test_call_id_header),
 	TEST_NO_TAG("Contact (Simple)", test_simple_contact_header),
 	TEST_NO_TAG("Contact (Complex)", test_complex_contact_header),

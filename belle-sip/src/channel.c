@@ -1008,7 +1008,7 @@ static void channel_set_current_peer(belle_sip_channel_t *obj, const struct addr
 		const belle_sip_dns_srv_t *srv = belle_sip_resolver_results_get_srv_from_addrinfo(obj->resolver_results, ai);
 		obj->current_peer_cname = srv ? belle_sip_dns_srv_get_target(srv) : NULL;
 		if (obj->current_peer_cname){
-			belle_sip_message("channel[%p]: current peer hostname is [%s].", obj, obj->current_peer_cname); 
+			belle_sip_message("channel[%p]: current peer hostname is [%s].", obj, obj->current_peer_cname);
 		}
 	}else{
 		obj->current_peer_cname = NULL;
@@ -1483,7 +1483,7 @@ static void channel_res_done(void *data, belle_sip_resolver_results_t *results){
 	const struct addrinfo *ai_list = NULL;
 	const char *name = NULL;
 	belle_sip_resolver_results_t *prev_dns_results = obj->resolver_results;
-	
+
 	if (obj->resolver_ctx){
 		belle_sip_object_unref(obj->resolver_ctx);
 		obj->resolver_ctx=NULL;
@@ -1495,7 +1495,7 @@ static void channel_res_done(void *data, belle_sip_resolver_results_t *results){
 		name = belle_sip_resolver_results_get_name(results);
 	}
 	obj->resolver_results = results;
-	
+
 	if (ai_list){
 		int ttl = belle_sip_resolver_results_get_ttl(results);
 		/* setup now our current_peer. It can be initialized for the first time, kept as before, or changed*/
@@ -1505,7 +1505,7 @@ static void channel_res_done(void *data, belle_sip_resolver_results_t *results){
 			channel_set_state(obj,BELLE_SIP_CHANNEL_RES_DONE);
 		} else {
 			const struct addrinfo *existing_peer;
-			
+
 			if (belle_sip_stack_reconnect_to_primary_asap_enabled(obj->stack)) {
 				existing_peer = addrinfo_is_first(obj->current_peer, ai_list);
 			} else {

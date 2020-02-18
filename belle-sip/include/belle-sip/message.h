@@ -39,7 +39,6 @@ BELLESIP_EXPORT belle_sip_message_t* belle_sip_message_parse(const char* raw);
 BELLESIP_EXPORT belle_sip_message_t* belle_sip_message_parse_raw (const char* buff, size_t buff_length,size_t* message_length );
 
 
-
 BELLESIP_EXPORT int belle_sip_message_is_request(belle_sip_message_t *msg);
 BELLESIP_EXPORT belle_sip_request_t* belle_sip_request_new(void);
 BELLESIP_EXPORT belle_sip_request_t* belle_sip_request_parse(const char* raw);
@@ -51,8 +50,6 @@ BELLESIP_EXPORT belle_sip_request_t* belle_sip_request_create(belle_sip_uri_t *r
                                          belle_sip_header_to_t *to,
                                          belle_sip_header_via_t *via,
                                          int max_forwards);
-
-
 
 
 BELLESIP_EXPORT belle_sip_uri_t* belle_sip_request_get_uri(const belle_sip_request_t* request);
@@ -82,13 +79,10 @@ BELLESIP_EXPORT belle_generic_uri_t* belle_sip_request_get_absolute_uri(const be
  */
 BELLESIP_EXPORT void belle_sip_request_set_absolute_uri(belle_sip_request_t* req, belle_generic_uri_t* uri);
 
-
-
-
-
 BELLESIP_EXPORT int belle_sip_message_is_response(const belle_sip_message_t *msg);
 
 BELLESIP_EXPORT belle_sip_header_t *belle_sip_message_get_header(const belle_sip_message_t *msg, const char *header_name);
+BELLESIP_EXPORT int belle_sip_header_supported_contains_tag(const belle_sip_header_supported_t* supported, const char* tag);
 
 BELLESIP_EXPORT belle_sip_object_t *_belle_sip_message_get_header_by_type_id(const belle_sip_message_t *message, belle_sip_type_id_t id);
 

@@ -49,7 +49,6 @@ These are required to generate a C sourcefile from SIP grammar using [antlr3](ht
 - *bctoolbox* (git://git.linphone.org/bctoolbox.git or <https://gitlab.linphone.org/BC/public/bctoolbox>)
 
 
-
 Building belle-sip with CMake
 -----------------------------
 
@@ -57,6 +56,12 @@ Building belle-sip with CMake
 	make
 	make install
 
+Generating the grammar sources
+------------------------------
+
+If you edit the `.g` files in the grammars directory you'll need to regenerate the sources.
+
+    ./src/antlr3c/generate_grammar_sources.py
 
 Build options
 -------------
@@ -83,4 +88,3 @@ cd WORK
 cmake3 ../
 make package_source
 rpmbuild -ta --clean --rmsource --rmspec belle-sip-<version>-<release>.tar.gz
-

@@ -20,6 +20,7 @@
 #
 
 import sys
+from glob import glob
 from subprocess import call
 
 def main():

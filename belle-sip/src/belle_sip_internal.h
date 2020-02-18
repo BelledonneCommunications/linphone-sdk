@@ -216,6 +216,7 @@ BELLE_SIP_DECLARE_VPTR(belle_sip_header_service_route_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_refer_to_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_referred_by_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_replaces_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_header_session_expires_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_date_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_hop_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_object_pool_t);
@@ -495,10 +496,7 @@ belle_sip_param_pair_t* belle_sip_param_pair_ref(belle_sip_param_pair_t* obj);
 
 void belle_sip_param_pair_unref(belle_sip_param_pair_t* obj);
 
-
-
-
-/*calss header*/
+/*class header*/
 struct _belle_sip_header {
 	belle_sip_object_t base;
 	belle_sip_header_t* next;
@@ -506,11 +504,11 @@ struct _belle_sip_header {
 	char *unparsed_value;
 };
 
-
 void belle_sip_response_fill_for_dialog(belle_sip_response_t *obj, belle_sip_request_t *req);
 void belle_sip_util_copy_headers(belle_sip_message_t *orig, belle_sip_message_t *dest, const char*header, int multiple);
 
 void belle_sip_header_init(belle_sip_header_t* obj);
+
 /*class parameters*/
 struct _belle_sip_parameters {
 	belle_sip_header_t base;
@@ -1109,7 +1107,7 @@ belle_sip_list_t *belle_sip_parse_directory(const char *path, const char *file_t
 
 typedef struct authorization_context authorization_context_t;
 typedef authorization_context_t belle_sip_authorization_t;
-	
+
 BELLESIP_EXPORT void belle_sip_authorization_destroy(belle_sip_authorization_t* object);
 BELLESIP_EXPORT const char *belle_sip_authorization_get_algorithm(const belle_sip_authorization_t* object);
 

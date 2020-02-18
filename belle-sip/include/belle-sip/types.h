@@ -78,6 +78,7 @@ BELLE_SIP_DECLARE_TYPES_BEGIN(belle_sip,1)
 	BELLE_SIP_TYPE_ID(belle_sip_header_call_id_t),
 	BELLE_SIP_TYPE_ID(belle_sip_header_cseq_t),
 	BELLE_SIP_TYPE_ID(belle_sip_header_content_type_t),
+	BELLE_SIP_TYPE_ID(belle_sip_header_session_expires_t),
 	BELLE_SIP_TYPE_ID(belle_sip_header_route_t),
 	BELLE_SIP_TYPE_ID(belle_sip_header_record_route_t),
 	BELLE_SIP_TYPE_ID(belle_sip_header_user_agent_t),

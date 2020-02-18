@@ -46,6 +46,7 @@ struct belle_sip_refresher {
 	belle_sip_dialog_t* dialog; /*Cannot rely on transaction to store dialog because of belle_sip_transaction_reset_dialog*/
 	char* realm;
 	int target_expires;
+	int session_expires;
 	int obtained_expires;
 	belle_sip_refresher_state_t state;
 	void* user_data;
@@ -816,9 +817,10 @@ belle_sip_refresher_t* belle_sip_refresher_new(belle_sip_client_transaction_t* t
 		belle_sip_message("Refresher [%p] takes ownership of transaction [%p]",refresher,transaction);
 		transaction->base.is_internal=1;
 		refresher->state=started;
-	}else{
+	} else {
 		belle_sip_refresher_start(refresher);
 	}
+
 	return refresher;
 }
 
