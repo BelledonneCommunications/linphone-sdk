@@ -39,16 +39,6 @@ if (project.hasProperty("minimal-size")) {
 }
 println("AAR artefact group is: " + artefactGroupId + ", SDK version @LINPHONESDK_VERSION@")
 
-task androidJavadocsJar(type: Jar) {
-    classifier = 'javadoc'
-    from "$buildDir/libs/linphone-sdk-android-javadoc.jar"
-}
-
-task androidSourcesJar(type: Jar) {
-    classifier = 'sources'
-    from "$buildDir/libs/linphone-sdk-android-sources.jar"
-}
-
 publishing {
     publications {
         debug(MavenPublication) {
@@ -56,8 +46,8 @@ publishing {
             artifactId 'linphone-sdk-android' + '-debug'
             version "@LINPHONESDK_VERSION@"
             artifact("$buildDir/outputs/aar/linphone-sdk-android-debug.aar")
-            artifact androidSourcesJar
-            artifact androidJavadocsJar
+            artifact source: "$buildDir/libs/linphone-sdk-android-sources.jar", classifier: 'source', extension: 'jar'
+            artifact source: "$buildDir/libs/linphone-sdk-android-javadoc.jar", classifier: 'javadoc', extension: 'jar'
 
             pom {
                 name = 'Linphone'
@@ -80,8 +70,8 @@ publishing {
             artifactId 'linphone-sdk-android'
             version "@LINPHONESDK_VERSION@"
             artifact("$buildDir/outputs/aar/linphone-sdk-android-release.aar")
-            artifact androidSourcesJar
-            artifact androidJavadocsJar
+            artifact source: "$buildDir/libs/linphone-sdk-android-sources.jar", classifier: 'source', extension: 'jar'
+            artifact source: "$buildDir/libs/linphone-sdk-android-javadoc.jar", classifier: 'javadoc', extension: 'jar'
 
             pom {
                 name = 'Linphone'

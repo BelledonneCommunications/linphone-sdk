@@ -27,6 +27,7 @@
     paths:
       - build/linphone-sdk/bin/outputs/aar/*.aar
       - build/linphone-sdk/bin/libs/linphone-sdk-android-javadoc.jar
+      - build/linphone-sdk/bin/libs/linphone-sdk-android-sources.jar
       - build/linphone-sdk/bin/distributions/linphone-sdk-*.zip
 
       #Needed for tester
