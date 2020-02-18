@@ -275,6 +275,16 @@ void ms_snd_card_set_usage_hint(MSSndCard *obj, bool_t is_going_to_be_used){
 		obj->desc->usage_hint(obj, is_going_to_be_used);
 }
 
+void ms_snd_card_notify_audio_session_activated(MSSndCard *obj, bool_t activated) {
+	if (obj->desc->audio_session_activated != NULL)
+		obj->desc->audio_session_activated(obj,activated);
+}
+
+void ms_snd_card_app_notifies_activation(MSSndCard *obj, bool_t yesno) {
+	if (obj->desc->callkit_enabled != NULL)
+		obj->desc->callkit_enabled(obj, yesno);
+}
+
 void ms_snd_card_destroy(MSSndCard *obj){
 	if (obj->desc->uninit!=NULL) obj->desc->uninit(obj);
 	if (obj->name!=NULL) ms_free(obj->name);

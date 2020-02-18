@@ -123,6 +123,8 @@ typedef struct au_card {
 	bool_t read_started;
 	bool_t write_started;
 	bool_t will_be_used;
+	bool_t audio_session_activated;
+	bool_t callkit_enabled;
 } au_card_t;
 
 typedef struct au_filter_base {
@@ -391,14 +393,18 @@ static bool_t start_audio_unit (au_card_t* card, uint64_t time) {
 	return card->audio_unit_state == MSAudioUnitStarted;
 }
 
-static void stop_audio_unit (au_card_t* d) {
+static void stop_audio_unit_with_param (au_card_t* d, bool_t isConfigured) {
 	if (d->audio_unit_state == MSAudioUnitStarted) {
 		check_audiounit_call( AudioOutputUnitStop(d->audio_unit) );
 		ms_message("AudioUnit stopped");
-		d->audio_session_configured=FALSE;
+		d->audio_session_configured=isConfigured;
 		check_audiounit_call( AudioUnitUninitialize(d->audio_unit) );
 		d->audio_unit_state = MSAudioUnitCreated;
 	}
+}
+
+static void stop_audio_unit (au_card_t* d) {
+	stop_audio_unit_with_param(d, FALSE);
 }
 
 static void destroy_audio_unit (au_card_t* d) {
@@ -474,6 +480,28 @@ static void au_usage_hint(MSSndCard *card, bool_t used){
 static void au_detect(MSSndCardManager *m);
 static MSSndCard *au_duplicate(MSSndCard *obj);
 
+static void au_audio_session_activated(MSSndCard *obj, bool_t actived) {
+	au_card_t *d = (au_card_t*)obj->data;
+	d->audio_session_activated = actived;
+	if (actived && d->audio_unit_state == MSAudioUnitConfigured){
+		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH,0), ^{
+				start_audio_unit(d, 0);});
+	}else if (!actived && d->audio_unit_state == MSAudioUnitStarted) {
+		stop_audio_unit_with_param(d, TRUE);
+		configure_audio_unit(d);
+	}
+}
+
+static void au_callkit_enabled(MSSndCard *obj, bool_t enabled) {
+	au_card_t *d = (au_card_t*)obj->data;
+	d->callkit_enabled = enabled;
+	if (!enabled || TARGET_IPHONE_SIMULATOR) {
+		// There is only callKit can notify audio session is activated or not.
+		// So set audio session always activated when callkit is disabled.
+		d->audio_session_activated = true;
+	}
+}
+
 MSSndCardDesc au_card_desc={
 .driver_type="AU",
 .detect=au_detect,
@@ -487,7 +515,9 @@ MSSndCardDesc au_card_desc={
 .create_writer=ms_au_write_new,
 .uninit=au_uninit,
 .duplicate=au_duplicate,
-.usage_hint=au_usage_hint
+.usage_hint=au_usage_hint,
+.audio_session_activated=au_audio_session_activated,
+.callkit_enabled=au_callkit_enabled
 };
 
 static MSSndCard *au_duplicate(MSSndCard *obj){
@@ -718,7 +748,7 @@ static void check_audio_unit_is_up(au_card_t *card){
 	if (card->audio_unit_state == MSAudioUnitCreated){
 		configure_audio_unit(card);
 	}
-	if (card->audio_unit_state == MSAudioUnitConfigured){
+	if (card->audio_session_activated && card->audio_unit_state == MSAudioUnitConfigured){
 		start_audio_unit(card, 0);
 	}
 	if (card->audio_unit_state == MSAudioUnitStarted){
@@ -745,12 +775,10 @@ static void au_read_process(MSFilter *f){
 	bool_t read_something = FALSE;
 	
 	/*
-	In some rare cases the audio unit fails to start in preprocess(), because of AudioSession being temporarily suspended.
-	So we have to start it now.
+	If audio unit is not started, it means audsion session is not yet activated. Do not ms_ticker_synchronizer_update.
 	*/
-	if (d->base.card->audio_unit_state != MSAudioUnitStarted) {
-		start_audio_unit(d->base.card,f->ticker->time);
-	}
+	if (d->base.card->audio_unit_state != MSAudioUnitStarted) return;
+
 	ms_mutex_lock(&d->mutex);
 	while((m = getq(&d->rq)) != NULL){
 		d->read_samples += (msgdsize(m) / 2) / d->base.card->nchannels;
@@ -790,12 +818,7 @@ static void au_write_process(MSFilter *f){
 	ms_debug("au_write_process");
 	au_filter_write_data_t *d=(au_filter_write_data_t*)f->data;
 
-	if (d->base.card->audio_unit_state != MSAudioUnitStarted) {
-		//make sure audio unit is started
-		start_audio_unit(d->base.card,f->ticker->time);
-	}
-
-	if (d->base.muted){
+	if (d->base.muted || d->base.card->audio_unit_state != MSAudioUnitStarted){
 		ms_queue_flush(f->inputs[0]);
 		return;
 	}

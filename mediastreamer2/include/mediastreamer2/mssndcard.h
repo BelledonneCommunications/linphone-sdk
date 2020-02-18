@@ -98,6 +98,8 @@ typedef struct _MSFilter * (*MSSndCardCreateWriterFunc)(struct _MSSndCard *obj);
 typedef struct _MSSndCard * (*MSSndCardDuplicateFunc)(struct _MSSndCard *obj);
 typedef void (*MSSndCardSetUsageHintFunc)(struct _MSSndCard *obj, bool_t is_going_to_be_used);
 typedef void (*MSSndCardUnloadFunc)(MSSndCardManager *obj);
+typedef void (*MSSndCardAudioSessionFunc)(struct _MSSndCard *obj, bool_t actived);
+typedef void (*MSSndCardCallKitFunc)(struct _MSSndCard *obj, bool_t enabled);
 
 
 struct _MSSndCardDesc{
@@ -115,6 +117,8 @@ struct _MSSndCardDesc{
 	MSSndCardDuplicateFunc duplicate;
 	MSSndCardUnloadFunc unload;
 	MSSndCardSetUsageHintFunc usage_hint;
+	MSSndCardAudioSessionFunc audio_session_activated;
+	MSSndCardCallKitFunc callkit_enabled;
 };
 
 /**
@@ -542,6 +546,26 @@ MS2_PUBLIC int ms_snd_card_set_preferred_sample_rate(MSSndCard *obj,int rate);
  * This is recommended for cards which are known to be slow (see flag MS_SND_CARD_CAP_IS_SLOW ).
 **/
 MS2_PUBLIC void ms_snd_card_set_usage_hint(MSSndCard *obj, bool_t is_going_to_be_used);
+
+/**
+ * Used by application to notify whether audio access is allowed for the process.
+ * On most platform this function is useless, but in an iOS application using Callkit, the system decides when audio (through the AVAudioSession singleton) is open or closed.
+ * Such application needs to explicitely notify mediastreamer2 with ms_snd_card_notify_audio_session_activated() about the state of the audio session.
+ *
+ * @param obj      A sound card object.
+ * @param actived    TRUE if audio session is activated, FALSE otherwise.
+ */
+MS2_PUBLIC void ms_snd_card_notify_audio_session_activated(MSSndCard *obj, bool_t activated);
+
+/**
+ * Used by application to tell the MSSndCard if rely on notifications of activation of audio session.
+ * When yesno is set to FALSE, the MSSndCard will not rely on notifications of activation of audio session, and will assume that audio is always usable.
+ * If set to TRUE, the mediastreamer2 will require explicit calls to ms_snd_card_notify_audio_session_activated().
+ *
+ * @param obj      A sound card object.
+ * @param yesno    TRUE if app notifies is activated, FALSE otherwise. The default value is FALSE.
+ */
+MS2_PUBLIC void ms_snd_card_app_notifies_activation(MSSndCard *obj, bool_t yesno);
 
 /**
  * Sets the stream type for this soundcard, default is VOICE
