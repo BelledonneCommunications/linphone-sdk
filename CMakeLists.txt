@@ -71,6 +71,9 @@ feature_summary(WHAT DISABLED_FEATURES DESCRIPTION "Disabled features:")
 if (ENABLE_SANITIZER)
    include("${CMAKE_CURRENT_SOURCE_DIR}/cmake-builder/configs/config-sanitizer.cmake")
 endif()
+if (ENABLE_HW_SANITIZER)
+   include("${CMAKE_CURRENT_SOURCE_DIR}/cmake-builder/configs/config-hwsanitizer.cmake")
+endif()
 
 include(LinphoneSdkPlatform${LINPHONESDK_PLATFORM})
 

@@ -46,7 +46,7 @@ publishing {
             artifactId 'linphone-sdk-android' + '-debug'
             version "@LINPHONESDK_VERSION@"
             artifact("$buildDir/outputs/aar/linphone-sdk-android-debug.aar")
-            artifact source: "$buildDir/libs/linphone-sdk-android-sources.jar", classifier: 'source', extension: 'jar'
+            artifact source: "$buildDir/libs/linphone-sdk-android-sources.jar", classifier: 'sources', extension: 'jar'
             artifact source: "$buildDir/libs/linphone-sdk-android-javadoc.jar", classifier: 'javadoc', extension: 'jar'
 
             pom {
@@ -70,7 +70,7 @@ publishing {
             artifactId 'linphone-sdk-android'
             version "@LINPHONESDK_VERSION@"
             artifact("$buildDir/outputs/aar/linphone-sdk-android-release.aar")
-            artifact source: "$buildDir/libs/linphone-sdk-android-sources.jar", classifier: 'source', extension: 'jar'
+            artifact source: "$buildDir/libs/linphone-sdk-android-sources.jar", classifier: 'sources', extension: 'jar'
             artifact source: "$buildDir/libs/linphone-sdk-android-javadoc.jar", classifier: 'javadoc', extension: 'jar'
 
             pom {
