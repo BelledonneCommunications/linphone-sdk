@@ -77,7 +77,7 @@ if(ENABLE_SWIFT_WRAPPER AND ENABLE_JAZZY_DOC)
 			WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 			)
 	else()
-		message(WARNING "We need x86_64 archs to generate jazzy doc!");
+		message(WARNING "We need x86_64 archs to generate jazzy doc!")
 	endif()
 
 	if(NOT ENABLE_SWIFT_WRAPPER_COMPILATION)
