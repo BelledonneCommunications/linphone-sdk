@@ -5,7 +5,7 @@
 
 job-debian10-makefile-gcc:
 
-  tags: [ "docker-debian10" ]
+  tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:10
   only:
     variables:
@@ -20,7 +20,7 @@ job-debian10-makefile-gcc:
 
 job-debian10-makefile-clang:
 
-  tags: [ "docker-debian10" ]
+  tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:10
   only:
     variables:
@@ -40,7 +40,7 @@ job-debian10-makefile-clang:
 
 job-debian10-ninja-gcc:
 
-  tags: [ "docker-debian10" ]
+  tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:10
   variables:
     CMAKE_GENERATOR: Ninja
@@ -72,7 +72,7 @@ job-debian10-ninja-gcc-smallsdk:
 
 job-debian10-ninja-clang:
 
-  tags: [ "docker-debian10" ]
+  tags: [ "docker" ]
   only:
     variables:
       - $NIGHTLY_MASTER
@@ -82,12 +82,12 @@ job-debian10-ninja-clang:
     CC: clang
     CXX: clang++
   extends: .job-linux-desktop
-  
+
 job-debian10-ninja-clang-sanitizer:
   variables:
     CMAKE_SANITIZER_OPTIONS: -DENABLE_SANITIZER=YES
   extends: job-debian10-ninja-clang
-    
+
 
 job-debian10-ninja-clang-novideo:
   only:
@@ -118,7 +118,7 @@ test-bellesip-debian10:
   tags: [ "docker-test-debian10-nuc" ]
   variables:
     PLATFORM: linux-debian10
-  
+
 test-belr-debian10:
   extends: .test-belr
   dependencies:
@@ -126,7 +126,7 @@ test-belr-debian10:
   tags: [ "docker-test-debian10-nuc" ]
   variables:
     PLATFORM: linux-debian10
-  
+
 test-belcard-debian10:
   extends: .test-belcard
   dependencies:
@@ -134,7 +134,7 @@ test-belcard-debian10:
   tags: [ "docker-test-debian10-nuc" ]
   variables:
     PLATFORM: linux-debian10
-  
+
 test-bzrtp-debian10:
   extends: .test-bzrtp
   dependencies:
@@ -142,7 +142,7 @@ test-bzrtp-debian10:
   tags: [ "docker-test-debian10-nuc" ]
   variables:
     PLATFORM: linux-debian10
-  
+
 test-liblinphone-debian10:
   tags: [ "docker-test-debian10-liblinphone-nuc" ]
   extends: .test-liblinphone
