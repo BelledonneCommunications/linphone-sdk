@@ -38,11 +38,23 @@ set(CMAKE_SHARED_LINKER_FLAGS "")
 set(CMAKE_MODULE_LINKER_FLAGS "")
 
 if(ENABLE_SANITIZER)
-
 	message(WARNING "CODE DUPLICATION : duplication of sanitizer flags ! TODO use config-sanitizer instead for linphone-sdk 5.0 ! ")
 
 	set(sanitize_flags "-fsanitize=address,undefined -fno-omit-frame-pointer -fno-optimize-sibling-calls -Wl,-llog")
 	set(sanitize_linker_flags "-fsanitize=address,undefined")
+
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${sanitize_flags}")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${sanitize_flags}")
+
+	set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} ${sanitize_linker_flags})
+	set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${sanitize_linker_flags}")
+	set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${sanitize_linker_flags}")
+endif()
+if(ENABLE_HW_SANITIZER)
+	message(WARNING "CODE DUPLICATION : duplication of sanitizer flags ! TODO use config-hwsanitizer instead for linphone-sdk 5.0 ! ")
+
+	set(sanitize_flags "-fsanitize=hwaddress -fno-omit-frame-pointer")
+	set(sanitize_linker_flags "-fsanitize=hwaddress")
 
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${sanitize_flags}")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${sanitize_flags}")
