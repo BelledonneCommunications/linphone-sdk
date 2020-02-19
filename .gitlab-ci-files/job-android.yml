@@ -1,7 +1,7 @@
 .job-android:
 
   stage: build
-  tags: [ "docker-android" ]
+  tags: [ "docker" ]
 
   variables:
     CCACHE_SIZE: 4G

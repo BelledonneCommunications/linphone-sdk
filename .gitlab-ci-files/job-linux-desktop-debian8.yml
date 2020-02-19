@@ -5,15 +5,15 @@
 
 job-debian8-makefile-gcc:
 
-  tags: [ "docker-debian8" ]
+  tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: gcc
     CXX: g++
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-  extends: .job-linux-desktop  
-  
+  extends: .job-linux-desktop
+
 #################################################
 # TESTS
 #################################################
@@ -34,7 +34,7 @@ test-bellesip-debian8:
   tags: [ "docker-test-debian8-nuc" ]
   variables:
     PLATFORM: linux-debian8
-  
+
 test-belr-debian8:
   extends: .test-belr
   dependencies:
@@ -42,7 +42,7 @@ test-belr-debian8:
   tags: [ "docker-test-debian8-nuc" ]
   variables:
     PLATFORM: linux-debian8
-  
+
 test-belcard-debian8:
   extends: .test-belcard
   dependencies:
@@ -50,7 +50,7 @@ test-belcard-debian8:
   tags: [ "docker-test-debian8-nuc" ]
   variables:
     PLATFORM: linux-debian8
-  
+
 test-bzrtp-debian8:
   extends: .test-bzrtp
   dependencies:
@@ -58,7 +58,7 @@ test-bzrtp-debian8:
   tags: [ "docker-test-debian8-nuc" ]
   variables:
     PLATFORM: linux-debian8
-  
+
 test-liblinphone-debian8:
   tags: [ "docker-test-debian8-liblinphone-nuc" ]
   extends: .test-liblinphone
