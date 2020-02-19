@@ -43,7 +43,7 @@ static def isGeneratedJavaWrapperAvailable() {
 def rootSdk = '@LINPHONESDK_BUILD_DIR@/linphone-sdk/android-@LINPHONESDK_FIRST_ARCH@'
 def srcDir = ['@LINPHONESDK_DIR@/mediastreamer2/java/src']
 def pluginsDir = rootSdk + '/lib/mediastreamer/plugins/'
-srcDir += [rootSdk + '/share/linphonej/java/org/linphone/core/']
+srcDir += [rootSdk + '/share/linphonej/java/']
 srcDir += ['@LINPHONESDK_DIR@/liblinphone/wrappers/java/classes/']
 
 def excludePackage = []
