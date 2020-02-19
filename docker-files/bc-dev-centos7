@@ -34,11 +34,14 @@ RUN yum install -y mesa-dri-drivers && \
     yum clean all && \
     dbus-uuidgen > /var/lib/dbus/machine-id
 
-# Build qt5.10
-RUN git clone https://gitlab.linphone.org/BC/public/linphone-desktop.git && \
+#QT Dependencies
+RUN yum install -y libxkbcommon* libxcb
+
+# Build qt5.12.5
+RUN git clone -b fix/qt5_build_issues_new_docker_images --single-branch https://gitlab.linphone.org/BC/public/linphone-desktop.git && \
     ./linphone-desktop/tools/build_qt_rpm && \
-    rpm -i ./linphone-desktop/rpm-linphone-qt-5.10/rpmbuild/RPMS/x86_64/*.rpm && \
-    mv ./linphone-desktop/rpm-linphone-qt-5.10/rpmbuild/RPMS/x86_64/*.rpm / && \
+    rpm -i ./linphone-desktop/rpm-linphone-qt-5.12.5/rpmbuild/RPMS/x86_64/*.rpm && \
+    mv ./linphone-desktop/rpm-linphone-qt-5.12.5/rpmbuild/RPMS/x86_64/*.rpm / && \
     rm -rf ./linphone-desktop
 
 # Configure user bc
