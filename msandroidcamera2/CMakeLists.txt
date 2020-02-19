@@ -50,6 +50,19 @@ if(ENABLE_SANITIZER)
 	set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${sanitize_linker_flags}")
 	set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${sanitize_linker_flags}")
 endif()
+if(ENABLE_HW_SANITIZER)
+	message(WARNING "CODE DUPLICATION : duplication of sanitizer flags ! TODO use config-hwsanitizer instead for linphone-sdk 5.0 ! ")
+
+	set(sanitize_flags "-fsanitize=hwaddress -fno-omit-frame-pointer")
+	set(sanitize_linker_flags "-fsanitize=hwaddress")
+
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${sanitize_flags}")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${sanitize_flags}")
+
+	set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} ${sanitize_linker_flags})
+	set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${sanitize_linker_flags}")
+	set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${sanitize_linker_flags}")
+endif()
 
 project(MSAndroidCamera2 VERSION 0.1 LANGUAGES CXX)
 
