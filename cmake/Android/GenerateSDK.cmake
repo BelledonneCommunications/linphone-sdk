@@ -50,6 +50,10 @@ if(_gradle_assemble_result)
 endif()
 
 execute_process(
+	COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "-b" "upload.gradle" "publish"
+	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
+)
+execute_process(
 	COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "-q" "sdkZip"
 	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 	RESULT_VARIABLE _gradle_sdkzip_result
