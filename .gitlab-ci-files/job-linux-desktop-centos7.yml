@@ -156,16 +156,16 @@ test-mediastreamer-centos7:
 test-liblinphone-centos7-schedule:
   extends: .test-liblinphone-centos7
 
-#test-liblinphone-centos7-mr:
-#  extends: .test-liblinphone-centos7
-#  only:
-#    refs:
-#      - branches
-#      - tags
-#    variables:
-#      - $ENABLE_TESTS_IN_MR
-#  except:
-#   - schedules
+test-liblinphone-centos7-mr:
+  extends: .test-liblinphone-centos7
+  only:
+    refs:
+      - branches
+      - tags
+    variables:
+      - $ENABLE_TESTS_IN_MR
+  except:
+   - schedules
 
 #apparently there is no more standalone lime tester
 #this one caused problems during npm install (timeout)
