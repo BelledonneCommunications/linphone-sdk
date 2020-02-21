@@ -136,10 +136,9 @@ job-debian-doc-upload:
   stage: deploy
   tags: [ "deploy" ]
 
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $TEST_DOC_UPLOAD
+#  only:
+#    variables:
+#      - $NIGHTLY_MASTER
 
   dependencies:
     - job-debian9-ninja-gcc
@@ -150,6 +149,7 @@ job-debian-doc-upload:
     #- LINPHONE_VERSION=$(git describe | sed -e 's/-.*//g')
     #using rsync with following options (verbose, keeping symbolic links, and copy recursively)
     #- echo "Linphone version =" $LINPHONE_VERSION
+    - tree build-desktop/linphone-sdk/desktop/share/doc/liblinphone
     - rsync -rlv build-desktop/linphone-sdk/desktop/share/doc/liblinphone/*/* $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/docs/liblinphone/multilang
 
 #################################################
@@ -341,14 +341,14 @@ job-xamarin-upload:
     variables:
       - $NIGHTLY_MASTER
 
-job-test-upload-libl-centos7:
-  extends: .job-test-report-upload
-  dependencies:
-    - test-liblinphone-centos7-schedule
-    - test-liblinphone-centos7-mr
-  variables:
-    PLATFORM: "linux-centos7"
-    TESTER: "liblinphone"
+#job-test-upload-libl-centos7:
+#  extends: .job-test-report-upload
+#  dependencies:
+#    - test-liblinphone-centos7-schedule
+#    - test-liblinphone-centos7-mr
+#  variables:
+#    PLATFORM: "linux-centos7"
+#    TESTER: "liblinphone"
 
 job-test-upload-libl-centos8:
   extends: .job-test-report-upload-scheduled
