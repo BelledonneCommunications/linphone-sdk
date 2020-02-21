@@ -150,7 +150,7 @@ job-debian-doc-upload:
     #using rsync with following options (verbose, keeping symbolic links, and copy recursively)
     #- echo "Linphone version =" $LINPHONE_VERSION
     - tree build-desktop/linphone-sdk/desktop/share
-    - rsync -rlv build-desktop/linphone-sdk/desktop/share/doc/liblinphone/*/* $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/docs/liblinphone/multilang
+    - rsync -rlv build-desktop/linphone-sdk/desktop/share/doc/linphone/*/* $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/docs/liblinphone/multilang
 
 #################################################
 # Xamarin upload
