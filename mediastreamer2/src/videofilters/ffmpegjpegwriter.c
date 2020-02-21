@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2019 Belledonne Communications SARL.
  *
  * This file is part of mediastreamer2.
@@ -127,6 +127,7 @@ static void jpg_process(MSFilter *f){
 	if (s->file!=NULL && s->codec!=NULL){
 		MSPicture yuvbuf, yuvjpeg;
 		mblk_t *m=ms_queue_peek_last(f->inputs[0]);
+		uint32_t frame_ts = mblk_get_timestamp_info(m);
 		if (ms_yuv_buf_init_from_mblk(&yuvbuf,m)==0){
 			int error,got_pict;
 			size_t comp_buf_sz=msgdsize(m);
@@ -176,6 +177,7 @@ static void jpg_process(MSFilter *f){
 			avpicture_fill((AVPicture*)s->pict,(uint8_t*)jpegm->b_rptr,avctx->pix_fmt,avctx->width,avctx->height);
 			packet.data=comp_buf;
 			packet.size=(int)comp_buf_sz;
+			packet.pts = frame_ts;
 			error=avcodec_encode_video2(avctx, &packet, s->pict, &got_pict);
 			if (error<0){
 				ms_error("Could not encode jpeg picture.");

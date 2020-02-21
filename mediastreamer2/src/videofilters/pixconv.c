@@ -65,6 +65,7 @@ static void pixconv_process(MSFilter *f){
 	PixConvState *s=(PixConvState*)f->data;
 
 	while((im=ms_queue_get(f->inputs[0]))!=NULL){
+		uint32_t frame_ts = mblk_get_timestamp_info(im);
 		if (s->in_fmt==s->out_fmt){
 			om=im;
 		}else{
@@ -86,7 +87,10 @@ static void pixconv_process(MSFilter *f){
 			}
 			freemsg(im);
 		}
-		if (om!=NULL) ms_queue_put(f->outputs[0],om);
+		if (om!=NULL){
+		    mblk_set_timestamp_info(om, frame_ts);
+		    ms_queue_put(f->outputs[0],om);
+		}
 	}
 }
 

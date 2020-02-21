@@ -661,6 +661,7 @@ static mblk_t *get_as_yuvmsg(MSFilter *f, DecState *s, AVFrame *orig){
 #endif
 		ms_error("%s: error in ms_sws_scale().",f->desc->name);
 	}
+	mblk_set_timestamp_info(yuv_msg, (uint32_t)orig->pkt_pts);
 	return yuv_msg;
 }
 /* Bitmasks to select bits of a byte from low side */
@@ -705,13 +706,14 @@ static void dec_process_frame(MSFilter *f, mblk_t *inm){
 			msgpullup(s->input,msgdsize(s->input)+8);
 			frame=s->input;
 			s->input=NULL;
+			uint32_t frame_ts = mblk_get_timestamp_info(frame);
 			while ( (remain=frame->b_wptr-frame->b_rptr)> 0) {
 				AVPacket pkt;
 				
 				av_init_packet(&pkt);
 				pkt.data = frame->b_rptr;
 				pkt.size = remain;
-
+				pkt.pts = frame_ts;
 				len=avcodec_decode_video2(&s->av_context, s->orig, &got_picture,&pkt);
 
 				if (len<=0) {
