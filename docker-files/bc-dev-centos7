@@ -50,7 +50,7 @@ RUN useradd -ms /bin/bash bc && \
     echo 'bc ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
 # Enable devtoolset-8 into bc's .bashrc
-RUN echo 'source /opt/rh/devtoolset-8/enable' >> /home/bc/.bashrc
+RUN ln -s /opt/rh/devtoolset-8/enable /etc/profile.d/devtoolset-8.sh
 
 ENV Qt5_DIR=/opt/com.belledonne-communications/linphone/lib/cmake
 ENV PATH=$PATH:/opt/com.belledonne-communications/linphone/bin
