@@ -49,8 +49,11 @@ RUN useradd -ms /bin/bash bc && \
     echo 'bc:cotcot' | chpasswd && \
     echo 'bc ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
-# Enable devtoolset-8 into bc's .bashrc
+# Load devtoolset-8 environment on starting
 RUN echo 'source /opt/rh/devtoolset-8/enable' >> /home/bc/.bashrc
+RUN echo 'source /opt/rh/devtoolset-8/enable' >> /home/bc/.shrc
+ENV ENV=~/.shrc # This tells /bin/sh to load '~/.shrc' on starting
+
 
 ENV Qt5_DIR=/opt/com.belledonne-communications/linphone/lib/cmake
 ENV PATH=$PATH:/opt/com.belledonne-communications/linphone/bin
