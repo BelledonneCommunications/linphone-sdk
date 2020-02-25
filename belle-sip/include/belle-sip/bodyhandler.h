@@ -77,7 +77,6 @@ BELLESIP_EXPORT belle_sip_user_body_handler_t *belle_sip_user_body_handler_new(
 	belle_sip_user_body_handler_stop_callback_t stop_cb,
 	void *data);
 
-
 /**
  * Body handler that gets/puts data from/to a file.
 **/
@@ -85,6 +84,15 @@ BELLESIP_EXPORT belle_sip_user_body_handler_t *belle_sip_user_body_handler_new(
 #define BELLE_SIP_FILE_BODY_HANDLER(obj)	BELLE_SIP_CAST(obj, belle_sip_file_body_handler_t)
 
 BELLESIP_EXPORT belle_sip_file_body_handler_t *belle_sip_file_body_handler_new(const char *filepath, belle_sip_body_handler_progress_callback_t progress_cb, void *data);
+
+/**
+ * @brief Buffering file body handler creation
+ * Buffering file bodyhandler will buffer the received chunks to deliver only modulo(buffer_size) chunks.
+ * The bufferized part, if any, is prepended to the next chunk,
+ * what remains in buffer when the end function is called is delivered through a last call to rcv_chunk
+ * The original purpose of this is to be able to deliver modulo(16) size chunks to the file transfer decryption function
+ */
+BELLESIP_EXPORT belle_sip_file_body_handler_t *belle_sip_buffering_file_body_handler_new(const char *filepath, const size_t buffer_size, belle_sip_body_handler_progress_callback_t progress_cb, void *data);
 BELLESIP_EXPORT size_t belle_sip_file_body_handler_get_file_size(belle_sip_file_body_handler_t *file_bh);
 BELLESIP_EXPORT void belle_sip_file_body_handler_set_user_body_handler(belle_sip_file_body_handler_t *file_bh, belle_sip_user_body_handler_t *user_bh);
 

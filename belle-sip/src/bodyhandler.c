@@ -522,6 +522,10 @@ struct belle_sip_file_body_handler{
 	char *filepath;
 	bctbx_vfs_file_t *file;
 	belle_sip_user_body_handler_t *user_bh;
+	size_t buffer_size; /**< the maximum buffer size + 1, if != 0, all received chunks are modified to have a size which is 0 mod (buffer_size) */
+	size_t buffer_index; /**< amount of data currently stored in buffer */
+	uint8_t *buffer; /**< data stored from previous chunk */
+	off_t next_offset; /**< store the next offset value */
 };
 
 static void belle_sip_file_body_handler_destroy(belle_sip_file_body_handler_t *obj) {
@@ -533,6 +537,10 @@ static void belle_sip_file_body_handler_destroy(belle_sip_file_body_handler_t *o
 			bctbx_error("Can't close file %s", obj->filepath);
 		}
 		obj->file = NULL;
+	}
+	if (obj->buffer) {
+		belle_sip_free(obj->buffer);
+		obj->buffer=NULL;
 	}
 	if (obj->user_bh) {
 		belle_sip_object_unref(obj->user_bh);
@@ -546,6 +554,17 @@ static void belle_sip_file_body_handler_clone(belle_sip_file_body_handler_t *obj
 	obj->user_bh = orig->user_bh;
 	if (obj->user_bh) {
 		belle_sip_object_ref(obj->user_bh);
+	} else {
+		obj->user_bh = NULL;
+	}
+	obj->buffer_size=orig->buffer_size;
+	obj->buffer_index=orig->buffer_index;
+	obj->next_offset=orig->next_offset;
+	if (orig->buffer) {
+		obj->buffer=(uint8_t *)belle_sip_malloc(orig->buffer_size);
+		memcpy(obj->buffer, orig->buffer, orig->buffer_size);
+	} else {
+		obj->buffer=NULL;
 	}
 }
 
@@ -579,8 +598,79 @@ static void belle_sip_file_body_handler_begin_send_transfer(belle_sip_body_handl
 	}
 }
 
+static void belle_sip_file_body_handler_recv_chunk(belle_sip_body_handler_t *base, belle_sip_message_t *msg, off_t offset, uint8_t *buf, size_t size) {
+	belle_sip_file_body_handler_t *obj = (belle_sip_file_body_handler_t *)base;
+	ssize_t ret=0;
+
+	if (obj->file == NULL) return;
+
+	uint8_t *input_data = buf;
+	size_t bufferized_size = 0;
+
+	if (obj->user_bh && obj->user_bh->recv_cb) {
+		/* Do we need to buffer stuff ? */
+		if (obj->buffer_size > 0) {
+			bufferized_size = obj->buffer_index;
+
+			offset = obj->next_offset; /* adjust the offset to be sure to write at the correct place in the file */
+			size_t total_size = obj->buffer_index+size;
+			if (total_size >= obj->buffer_size) { /* we have enough data to produce a chunk of at least buffer_size */
+				/* we must bufferize what is over for next time */
+				obj->buffer_index = total_size%obj->buffer_size; /* save the pointer to the part we shall bufferize as we cannot crash the buffer yet */
+				uint8_t *next_buffer_input = buf + size - obj->buffer_index;
+
+				size = total_size - obj->buffer_index; /* size must be 0 mod (buffer_index) */
+				obj->next_offset += size;
+				/* create this chunk */
+				if (bufferized_size > 0) { /* if we had some previously buffered data, prepend, otherwise, just use buf as input, the modified size will do the trick */
+					input_data = (uint8_t *)belle_sip_malloc(size);
+					memcpy(input_data, obj->buffer, bufferized_size);
+					memcpy(input_data+bufferized_size, buf, size-bufferized_size);
+				}
+				/* crash the buffer with content needed for next round */
+				memcpy(obj->buffer, next_buffer_input, obj->buffer_index);
+
+			} else if (size == 0 ) { /* this is the end, pass the content of the buffer */
+				size = obj->buffer_index;
+				obj->next_offset += size;
+				input_data = obj->buffer;
+				bufferized_size = 0; /* do not free the input data, it is the buffer, it will be done when destroying the handler */
+			} else { /* just add the current chunk into the buffer */
+				memcpy(obj->buffer+obj->buffer_index, input_data, size);
+				obj->buffer_index += size;
+				size = 0; /* be sure we won't do anything with current data */
+				input_data = NULL;
+			}
+		}
+
+		if (size>0) {
+
+			obj->user_bh->recv_cb((belle_sip_user_body_handler_t*)&(obj->user_bh->base), msg, obj->user_bh->base.user_data, offset, input_data, size);
+		}
+
+	}
+
+	if (size > 0 ) {
+		ret = bctbx_file_write(obj->file, input_data, size, offset);
+	}
+
+	if (bufferized_size > 0) { /* we did prepend data, free the buffer */
+		belle_sip_free(input_data);
+	}
+
+	if (ret == BCTBX_VFS_ERROR) {
+		bctbx_error("File body handler recv write error at offset %lu", (unsigned long)offset);
+	}
+}
+
 static void belle_sip_file_body_handler_end_transfer(belle_sip_body_handler_t *base) {
 	belle_sip_file_body_handler_t *obj = (belle_sip_file_body_handler_t *)base;
+
+	/* Are we bufferizing things ? */
+	if (obj->buffer_size > 0 && obj->buffer_index > 0) {
+		/* call the recv_chunk function with the buffer content */
+		belle_sip_file_body_handler_recv_chunk(base, NULL, obj->next_offset, NULL, 0);
+	}
 
 	if (obj->user_bh && obj->user_bh->stop_cb) {
 		obj->user_bh->stop_cb((belle_sip_user_body_handler_t*)&(obj->user_bh->base), obj->user_bh->base.user_data);
@@ -593,22 +683,6 @@ static void belle_sip_file_body_handler_end_transfer(belle_sip_body_handler_t *b
 			bctbx_error("Can't close file %s", obj->filepath);
 		}
 		obj->file = NULL;
-	}
-}
-
-static void belle_sip_file_body_handler_recv_chunk(belle_sip_body_handler_t *base, belle_sip_message_t *msg, off_t offset, uint8_t *buf, size_t size) {
-	belle_sip_file_body_handler_t *obj = (belle_sip_file_body_handler_t *)base;
-	ssize_t ret;
-
-	if (obj->file == NULL) return;
-
-	if (obj->user_bh && obj->user_bh->recv_cb) {
-		obj->user_bh->recv_cb((belle_sip_user_body_handler_t*)&(obj->user_bh->base), msg, obj->user_bh->base.user_data, offset, buf, size);
-	}
-
-	ret = bctbx_file_write(obj->file, buf, size, offset);
-	if (ret == BCTBX_VFS_ERROR) {
-		bctbx_error("File body handler recv write error at offset %lu", (unsigned long)offset);
 	}
 }
 
@@ -660,6 +734,19 @@ belle_sip_file_body_handler_t *belle_sip_file_body_handler_new(const char *filep
 	if (stat(obj->filepath, &statbuf) == 0) {
 		obj->base.expected_size = statbuf.st_size;
 	}
+	obj->buffer_size=0;
+	obj->buffer_index=0;
+	obj->buffer=NULL;
+	obj->next_offset=0;
+	return obj;
+}
+
+belle_sip_file_body_handler_t *belle_sip_buffering_file_body_handler_new(const char *filepath, const size_t buffer_size, belle_sip_body_handler_progress_callback_t progress_cb, void *data) {
+	belle_sip_file_body_handler_t *obj = belle_sip_file_body_handler_new(filepath, progress_cb, data);
+
+	obj->buffer_size=buffer_size;
+	obj->buffer=(uint8_t *)belle_sip_malloc(buffer_size);
+
 	return obj;
 }
 
