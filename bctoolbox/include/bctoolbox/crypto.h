@@ -1047,8 +1047,8 @@ BCTBX_PUBLIC int32_t bctbx_aes_gcm_process_chunk(bctbx_aes_gcm_context_t *contex
  * @Brief Conclude a AES-GCM encryption stream, generate tag if requested, free resources
  *
  * @param[in/out]	context			a context already initialized using bctbx_aes_gcm_context_new
- * @param[out]		tag				a buffer to hold the authentication tag. Can be NULL if tagLength is 0
- * @param[in]		tagLength		length of reqested authentication tag, max 16
+ * @param[out]		tag			a buffer to hold the authentication tag. Can be NULL if tagLength is 0
+ * @param[in]		tagLength		length of requested authentication tag, max 16
  *
  * @return 0 on success, crypto library error code otherwise
  */
@@ -1127,22 +1127,28 @@ BCTBX_PUBLIC void bctbx_aes256CfbDecrypt(const uint8_t *key,
 /**
  * @brief encrypt the file in input buffer for linphone encrypted file transfer
  *
- * @param[in/out]	cryptoContext	a context already initialized using bctbx_aes_gcm_context_new
+ * This function must be called with NULL in the plain text to conclude the encryption.
+ * At this last call, if a cipher buffer is provided with non 0 length, it will get an authentication tag of the requested size (max 16)
+ *
+ * @param[in/out]	cryptoContext	a context already initialized using bctbx_aes_gcm_context_new (created if NULL)
  * @param[in]		key		encryption key
  * @param[in]		length	buffer size
  * @param[in]		plain	buffer holding the input data
- * @param[out]		cipher	buffer to store the output data
+ * @param[out]		cipher	buffer to store the output data (cipher or authentication tag)
  */
 BCTBX_PUBLIC int bctbx_aes_gcm_encryptFile(void **cryptoContext, unsigned char *key, size_t length, char *plain, char *cipher);
 
 /**
  * @brief decrypt the file in input buffer for linphone encrypted file transfer
  *
+ * This function must be called with NULL in the cipher text to conclude the encryption.
+ * At this last call, if a plain buffer is provided with non 0 length, it will get the authentication tag of length bytes (max 16)
+ *
  * @param[in/out]	cryptoContext	a context already initialized using bctbx_aes_gcm_context_new
  * @param[in]		key		encryption key
- * @param[in]		length	buffer size
- * @param[out]		plain	buffer holding the output data
- * @param[int]		cipher	buffer to store the input data
+ * @param[in]		length	input buffer size
+ * @param[out]		plain	buffer holding the output data (plain text or tag)
+ * @param[in]		cipher	buffer to store the input data. WARNING: size must be a multiple of 16 bytes
  */
 BCTBX_PUBLIC int bctbx_aes_gcm_decryptFile(void **cryptoContext, unsigned char *key, size_t length, char *plain, char *cipher);
 
