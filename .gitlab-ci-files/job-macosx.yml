@@ -1,6 +1,6 @@
 .job-macosx-desktop:
 
-  extends: .job-prepare
+  extends: .ccache-prepare
   stage: build
   tags: [ "macosx-xcode11" ]
 
