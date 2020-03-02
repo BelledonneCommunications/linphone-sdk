@@ -12,7 +12,6 @@ buildscript {
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:3.3.2'
-        classpath 'com.google.gms:google-services:4.3.2'
     }
 }
 
@@ -27,11 +26,6 @@ configurations {
     javadocDeps
 }
 
-static def firebaseEnabled() {
-    File googleFile = new File('google-services.json')
-    return googleFile.exists()
-}
-
 apply plugin: 'com.android.library'
 apply plugin: 'maven-publish'
 
@@ -39,15 +33,9 @@ dependencies {
     implementation 'org.apache.commons:commons-compress:1.16.1'
     javadocDeps 'org.apache.commons:commons-compress:1.16.1'
     compileOnly 'org.jetbrains:annotations:19.0.0'
-
-    if (firebaseEnabled()) {
-        compileOnly 'com.google.firebase:firebase-messaging:19.0.1'
-    }
+    compileOnly 'com.google.firebase:firebase-messaging:19.0.1'
 }
 
-if (firebaseEnabled()) {
-    apply plugin: 'com.google.gms.google-services'
-}
 
 static def isGeneratedJavaWrapperAvailable() {
     File coreWrapper = new File('@LINPHONESDK_BUILD_DIR@/linphone-sdk/android-@LINPHONESDK_FIRST_ARCH@/share/linphonej/java/org/linphone/core/Core.java')
@@ -67,11 +55,6 @@ excludePackage.add('**/LICENSE.txt')
 
 def javaExcludes = []
 javaExcludes.add('**/mediastream/MediastreamerActivity.java')
-
-if (!firebaseEnabled()) {
-    javaExcludes.add('**/Firebase*')
-    println '[Push Notification] Firebase disabled'
-}
 
 if (!isGeneratedJavaWrapperAvailable()) {
     // We have to remove some classes that requires the new java wrapper
@@ -103,7 +86,7 @@ android {
         compileSdkVersion 28
         minSdkVersion 16
         targetSdkVersion 28
-        versionCode 4200
+        versionCode 4400
         versionName "@LINPHONESDK_VERSION@"
         setProperty("archivesBaseName", "linphone-sdk-android")
         consumerProguardFiles "${buildDir}/proguard.txt"
@@ -126,9 +109,7 @@ android {
             resValue "string", "linphone_sdk_version", "@LINPHONESDK_VERSION@"
             resValue "string", "linphone_sdk_branch", "@LINPHONESDK_BRANCH@"
             buildConfigField "String[]", "PLUGINS_ARRAY", "{" + pluginsList +  "}"
-            if (!firebaseEnabled()) {
-                resValue "string", "gcm_defaultSenderId", "none"
-            }
+            
         }
         debug {
             minifyEnabled false
@@ -138,9 +119,6 @@ android {
             resValue "string", "linphone_sdk_version", "@LINPHONESDK_VERSION@-debug"
             resValue "string", "linphone_sdk_branch", "@LINPHONESDK_BRANCH@"
             buildConfigField "String[]", "PLUGINS_ARRAY", "{" + pluginsList +  "}"
-            if (!firebaseEnabled()) {
-                resValue "string", "gcm_defaultSenderId", "none"
-            }
         }
     }
 
