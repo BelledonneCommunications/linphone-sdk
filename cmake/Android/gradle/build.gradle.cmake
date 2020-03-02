@@ -12,6 +12,7 @@ buildscript {
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:3.3.2'
+        classpath 'com.google.gms:google-services:4.3.2'
     }
 }
 
@@ -26,6 +27,11 @@ configurations {
     javadocDeps
 }
 
+static def firebaseEnabled() {
+    File googleFile = new File('google-services.json')
+    return googleFile.exists()
+}
+
 apply plugin: 'com.android.library'
 apply plugin: 'maven-publish'
 
@@ -33,6 +39,14 @@ dependencies {
     implementation 'org.apache.commons:commons-compress:1.16.1'
     javadocDeps 'org.apache.commons:commons-compress:1.16.1'
     compileOnly 'org.jetbrains:annotations:19.0.0'
+
+    if (firebaseEnabled()) {
+        compileOnly 'com.google.firebase:firebase-messaging:19.0.1'
+    }
+}
+
+if (firebaseEnabled()) {
+    apply plugin: 'com.google.gms.google-services'
 }
 
 static def isGeneratedJavaWrapperAvailable() {
@@ -60,6 +74,11 @@ if (!isGeneratedJavaWrapperAvailable()) {
     // This classes uses the new DialPlan wrapped object
     javaExcludes.add('**/Utils.java')
     javaExcludes.add('**/H264Helper.java')
+
+    if (!firebaseEnabled()) {
+        javaExcludes.add('**/Firebase*')
+        println '[Push Notification] Firebase disabled'
+    }
 
     // Add the previous wrapper to sources
     srcDir += ['@LINPHONESDK_DIR@/liblinphone/java/common/']
@@ -106,6 +125,9 @@ android {
             resValue "string", "linphone_sdk_version", "@LINPHONESDK_VERSION@"
             resValue "string", "linphone_sdk_branch", "@LINPHONESDK_BRANCH@"
             buildConfigField "String[]", "PLUGINS_ARRAY", "{" + pluginsList +  "}"
+            if (!firebaseEnabled()) {
+                resValue "string", "gcm_defaultSenderId", "none"
+            }
         }
         debug {
             minifyEnabled false
@@ -115,6 +137,9 @@ android {
             resValue "string", "linphone_sdk_version", "@LINPHONESDK_VERSION@-debug"
             resValue "string", "linphone_sdk_branch", "@LINPHONESDK_BRANCH@"
             buildConfigField "String[]", "PLUGINS_ARRAY", "{" + pluginsList +  "}"
+            if (!firebaseEnabled()) {
+                resValue "string", "gcm_defaultSenderId", "none"
+            }
         }
     }
 
