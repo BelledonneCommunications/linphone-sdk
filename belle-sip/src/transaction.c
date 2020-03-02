@@ -740,7 +740,8 @@ int belle_sip_client_transaction_is_notify_matching_pending_subscribe(
 
 
 	if (strcmp("NOTIFY",belle_sip_request_get_method(notify)) != 0) {
-		belle_sip_error("belle_sip_client_transaction_is_notify_matching_pending_subscribe for dialog [%p], requires a notify request",notify);
+		belle_sip_error("belle_sip_client_transaction_is_notify_matching_pending_subscribe for request [%p], requires a notify request",notify);
+		return 0;
 	}
 
 	subscription = belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(trans));

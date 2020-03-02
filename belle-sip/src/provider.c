@@ -189,7 +189,7 @@ static belle_sip_list_t*  belle_sip_provider_get_auth_context_by_realm_or_call_i
 
 static int belle_sip_auth_context_find_by_nonce(const void* elem, const void* nonce_value){
 	authorization_context_t * a = (authorization_context_t*)elem;
-
+	if (a->nonce == NULL) return -1;
 	return strcmp(a->nonce, (const char*)nonce_value);
 }
 
@@ -958,8 +958,17 @@ belle_sip_client_transaction_t * belle_sip_provider_find_matching_client_transac
 		belle_sip_warning("Response has no cseq.");
 		return NULL;
 	}
-	matcher.branchid=belle_sip_header_via_get_branch(via);
-	matcher.method=belle_sip_header_cseq_get_method(cseq);
+	matcher.branchid = belle_sip_header_via_get_branch(via);
+	matcher.method = belle_sip_header_cseq_get_method(cseq);
+	if (matcher.branchid == NULL) {
+		belle_sip_warning("Response has no branch in via.");
+		return NULL;
+	}
+	if (matcher.method == NULL){
+		/* Maybe a bit paranoid, the parser should reject this.*/
+		belle_sip_warning("Response has missing method in cseq.");
+		return NULL;
+	}
 	elem=belle_sip_list_find_custom(prov->client_transactions,client_transaction_match,&matcher);
 	if (elem){
 		ret=(belle_sip_client_transaction_t*)elem->data;
@@ -1007,7 +1016,7 @@ belle_sip_transaction_t * belle_sip_provider_find_matching_transaction(belle_sip
 	belle_sip_transaction_t *ret=NULL;
 	belle_sip_list_t *elem=NULL;
 	const char *branch;
-	char token[BELLE_SIP_BRANCH_ID_LENGTH];
+	char token[BELLE_SIP_BRANCH_ID_LENGTH] = {0};
 
 
 	matcher.method=belle_sip_request_get_method(req);
