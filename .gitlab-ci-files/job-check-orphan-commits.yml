@@ -2,16 +2,18 @@ job-check-orphan-commits:
 
   tags: [ "linux-deploy" ]
   stage: check-orphans
+  #prevents jobs from gathering all previous jobs artifacts
+  dependencies: []
   script :
     #This script checks if there is referenced orphans commits and errors out if there is any.
     #The main purpose if to keep a clean git tree and to prevent fetch errors by earlier versions of git (1.8.x)
     #For each submodule, we get the referenced commit, and we check if this commit is referenced by a branch.
     #Red color ANSI code : \033[0;31m
-    #No color ANSI code : \033[0m 
+    #No color ANSI code : \033[0m
     - |
       git submodule foreach --recursive 'COMMIT=$(git rev-parse HEAD) \
         && BRANCHES_LIST=$(git branch -r --verbose --contains $COMMIT) \
-        && if [[ $BRANCHES_LIST ]]; then \
+        && if [ -n "$BRANCHES_LIST" ]; then \
              echo "Branches found for commit $COMMIT" \
              $BRANCHES_LIST; \
              EXIT=0; \
