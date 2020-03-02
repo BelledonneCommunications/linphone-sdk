@@ -67,6 +67,12 @@ excludePackage.add('**/LICENSE.txt')
 
 def javaExcludes = []
 javaExcludes.add('**/mediastream/MediastreamerActivity.java')
+
+if (!firebaseEnabled()) {
+    javaExcludes.add('**/Firebase*')
+    println '[Push Notification] Firebase disabled'
+}
+
 if (!isGeneratedJavaWrapperAvailable()) {
     // We have to remove some classes that requires the new java wrapper
     println("Old java wrapper detected, adding it to sources and removing some incompatible classes")
@@ -74,11 +80,6 @@ if (!isGeneratedJavaWrapperAvailable()) {
     // This classes uses the new DialPlan wrapped object
     javaExcludes.add('**/Utils.java')
     javaExcludes.add('**/H264Helper.java')
-
-    if (!firebaseEnabled()) {
-        javaExcludes.add('**/Firebase*')
-        println '[Push Notification] Firebase disabled'
-    }
 
     // Add the previous wrapper to sources
     srcDir += ['@LINPHONESDK_DIR@/liblinphone/java/common/']
