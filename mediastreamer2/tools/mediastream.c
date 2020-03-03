@@ -980,6 +980,13 @@ void setup_media_streams(MediastreamDatas* args) {
 		args->session=args->video->ms.sessions.rtp_session;
 
 		ms_filter_call_method(args->video->output,MS_VIDEO_DISPLAY_ZOOM, zoom);
+
+		if (args->two_windows) {
+			bool_t mirroring=TRUE;
+			ms_filter_call_method(args->video->output2, MS_VIDEO_DISPLAY_ENABLE_MIRRORING, &mirroring);
+		}
+
+
 		if (args->enable_srtp) {
 			ms_message("SRTP enabled: %d",
 				video_stream_enable_strp(
