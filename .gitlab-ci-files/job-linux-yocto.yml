@@ -1,9 +1,9 @@
 job-debian9-yocto-sumo:
   stage: build
   tags: [ "docker-debian9-yocto" ]
-  only:
-    variables:
-      - $NIGHTLY_MASTER
+#  only:
+#    variables:
+#      - $NIGHTLY_MASTER
   script:
     - export WORKSPACE_PATH="$CI_PROJECT_DIR"
     - cd /home/build/poky
@@ -11,8 +11,10 @@ job-debian9-yocto-sumo:
     - export LINPHONE_SDK_REV="$CI_COMMIT_SHA"
     - source oe-init-build-env
     - bitbake -c cleanall linphone-sdk 2>&1 | tee bitbake_build.log
-    - bitbake -f linphone-sdk 2>&1 | tee bitbake_build.log
+    - bitbake -f linphone-sdk 2>&1 | tee bitbake_build_error.log
+    - tar cvzf bitbake_build_logs.tgz `bitbake -e linphone-sdk | grep ^T= |cut -d'"' -f 2`
   artifacts:
     paths:
       - bitbake_build.log
+      - bitbake_build_logs.tgz
       - tmp/deploy/ipk/**/linphone-sdk*.ipk
