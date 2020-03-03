@@ -982,6 +982,7 @@ void setup_media_streams(MediastreamDatas* args) {
 		ms_filter_call_method(args->video->output,MS_VIDEO_DISPLAY_ZOOM, zoom);
 
 		if (args->two_windows) {
+			// Amlways enable mirroring for output 2
 			bool_t mirroring=TRUE;
 			ms_filter_call_method(args->video->output2, MS_VIDEO_DISPLAY_ENABLE_MIRRORING, &mirroring);
 		}
