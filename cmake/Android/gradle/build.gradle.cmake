@@ -64,6 +64,14 @@ if (!isGeneratedJavaWrapperAvailable()) {
     javaExcludes.add('**/Utils.java')
     javaExcludes.add('**/H264Helper.java')
 
+    // This classes use some of the new Java objects like Core, Call, ProxyConfig, etc...
+    javaExcludes.add('**/ActivityMonitor.java')
+    javaExcludes.add('**/CoreManager.java')
+    javaExcludes.add('**/CoreService.java')
+    javaExcludes.add('**/FirebaseMessaging.java')
+    javaExcludes.add('**/FirebasePushHelper.java')
+    javaExcludes.add('**/PushNotificationUtils.java')
+
     // Add the previous wrapper to sources
     srcDir += ['@LINPHONESDK_DIR@/liblinphone/java/common/']
     srcDir += ['@LINPHONESDK_DIR@/liblinphone/java/impl/']
