@@ -32,6 +32,7 @@ apply plugin: 'maven-publish'
 dependencies {
     implementation 'org.apache.commons:commons-compress:1.16.1'
     javadocDeps 'org.apache.commons:commons-compress:1.16.1'
+    compileOnly 'androidx.appcompat:appcompat:1.1.0'
     compileOnly 'org.jetbrains:annotations:19.0.0'
     compileOnly 'com.google.firebase:firebase-messaging:19.0.1'
 }
@@ -63,6 +64,14 @@ if (!isGeneratedJavaWrapperAvailable()) {
     // This classes uses the new DialPlan wrapped object
     javaExcludes.add('**/Utils.java')
     javaExcludes.add('**/H264Helper.java')
+
+    // This classes use some of the new Java objects like Core, Call, ProxyConfig, etc...
+    javaExcludes.add('**/ActivityMonitor.java')
+    javaExcludes.add('**/CoreManager.java')
+    javaExcludes.add('**/CoreService.java')
+    javaExcludes.add('**/FirebaseMessaging.java')
+    javaExcludes.add('**/FirebasePushHelper.java')
+    javaExcludes.add('**/PushNotificationUtils.java')
 
     // Add the previous wrapper to sources
     srcDir += ['@LINPHONESDK_DIR@/liblinphone/java/common/']
