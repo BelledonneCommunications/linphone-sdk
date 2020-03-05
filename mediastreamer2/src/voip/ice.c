@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2019 Belledonne Communications SARL.
  *
  * This file is part of mediastreamer2.
@@ -1310,10 +1310,22 @@ static int ice_send_message_to_socket(RtpTransport * rtptp, char* buf, size_t le
 	int err;
 	struct addrinfo *v6ai = NULL;
 
-	memcpy(&m->net_addr, from, fromlen);
-	m->net_addrlen = fromlen;
-	if ((rtptp->session->rtp.gs.sockfamily == AF_INET6) && (to->sa_family == AF_INET)) {
+	memcpy(&m->net_addr, to, tolen);
+	m->net_addrlen = tolen;
 
+	if( from != NULL && from->sa_family == AF_INET){// From can be set to NULL if ICE doesn't want to set the source (like for relay or prflx IP) as this kind of IP cannot be used for sending packets from it
+		struct sockaddr_in * addr = (struct sockaddr_in *)(from);
+		m->recv_addr.port = addr->sin_port;
+		m->recv_addr.family = from->sa_family;
+		memcpy(&m->recv_addr.addr.ipi_addr,&addr->sin_addr, sizeof(struct in_addr));
+	}else if( from != NULL && from->sa_family == AF_INET6){
+		struct sockaddr_in6 * addr = (struct sockaddr_in6 *)(from);
+		m->recv_addr.port = addr->sin6_port;
+		m->recv_addr.family = from->sa_family;
+		memcpy(&m->recv_addr.addr.ipi6_addr,&addr->sin6_addr, sizeof(struct in6_addr));
+	}
+
+	if ((rtptp->session->rtp.gs.sockfamily == AF_INET6) && (to->sa_family == AF_INET)) {
 		char to_addr_str[64];
 		int to_port = 0;
 		memset(to_addr_str, 0, sizeof(to_addr_str));
@@ -1329,15 +1341,19 @@ static int ice_send_message_to_socket(RtpTransport * rtptp, char* buf, size_t le
 }
 
 static int ice_send_message_to_stun_addr(RtpTransport * rtpt, char* buff, size_t len, MSStunAddress *source, MSStunAddress *dest) {
-	struct sockaddr_storage source_addr;
 	struct sockaddr_storage dest_addr;
-	socklen_t source_addrlen = sizeof(source_addr);
-	socklen_t dest_addrlen = sizeof(dest_addr);
-	memset(&source_addr, 0, source_addrlen);
-	memset(&dest_addr, 0, dest_addrlen);
-	ms_stun_address_to_sockaddr(source, (struct sockaddr *)&source_addr, &source_addrlen);
+	socklen_t dest_addrlen = sizeof(dest_addr);	
+	memset(&dest_addr, 0, dest_addrlen);	
 	ms_stun_address_to_sockaddr(dest, (struct sockaddr *)&dest_addr, &dest_addrlen);
-	return ice_send_message_to_socket(rtpt, buff, len, (struct sockaddr*)&source_addr, source_addrlen, (struct sockaddr *)&dest_addr, dest_addrlen);
+	if( source != NULL)
+	{
+		struct sockaddr_storage source_addr;
+		socklen_t source_addrlen = sizeof(source_addr);
+		memset(&source_addr, 0, source_addrlen);
+		ms_stun_address_to_sockaddr(source, (struct sockaddr *)&source_addr, &source_addrlen);
+		return ice_send_message_to_socket(rtpt, buff, len, (struct sockaddr*)&source_addr, source_addrlen, (struct sockaddr *)&dest_addr, dest_addrlen);
+	}else
+		return ice_send_message_to_socket(rtpt, buff, len, NULL, 0, (struct sockaddr *)&dest_addr, dest_addrlen);
 }
 
 static IceStunServerRequestTransaction * ice_send_stun_request(RtpTransport *rtptp, const struct sockaddr *source, socklen_t sourcelen, const struct sockaddr *server, socklen_t addrlen, MSStunMessage *msg, const char *request_type)
@@ -1573,7 +1589,7 @@ static void ice_send_binding_request(IceCheckList *cl, IceCandidatePair *pair, c
 			ms_message("ice: Forced relay, did not send binding request for %s pair %p: %s:%s --> %s:%s [%s]", candidate_pair_state_values[pair->state], pair,
 				local_addr_str, candidate_type_values[pair->local->type], remote_addr_str, candidate_type_values[pair->remote->type], tr_id_str);
 		} else {
-			ice_send_message_to_stun_addr(rtptp, buf, len, &source, &dest);
+			ice_send_message_to_stun_addr(rtptp, buf, len, (pair->local->type==ICT_HostCandidate?&source:NULL), &dest);
 		}
 
 		if (pair->state != ICP_InProgress) {
@@ -1748,7 +1764,7 @@ static void ice_send_error_response(const RtpSession *rtp_session, const OrtpEve
 		ortp_recvaddr_to_sockaddr(&evt_data->packet->recv_addr, (struct sockaddr *)&source_addr, &source_addrlen);
 		bctbx_sockaddr_ipv6_to_ipv4((struct sockaddr *)&source_addr, (struct sockaddr *)&source_addr, &source_addrlen);
 		bctbx_sockaddr_to_printable_ip_address((struct sockaddr *)&source_addr, source_addrlen, source_addr_str, sizeof(source_addr_str));
-		ms_message("ice: Send error response: %s --> %s [%s]", source_addr_str, dest_addr_str, tr_id_str);
+		ms_message("ice: Send error response: %s --> %s [%s]", source_addr_str, dest_addr_str, tr_id_str);		
 		ice_send_message_to_socket(rtptp, buf, len, (struct sockaddr *)&source_addr, source_addrlen, (struct sockaddr *)&dest_addr, dest_addrlen);
 	}
 	if (buf != NULL) ms_free(buf);
@@ -1758,7 +1774,7 @@ static void ice_send_error_response(const RtpSession *rtp_session, const OrtpEve
 static void ice_send_indication(const IceCandidatePair *pair, const RtpSession *rtp_session)
 {
 	MSStunMessage *indication;
-	MSStunAddress source;
+	MSStunAddress source, * pSource = &source;
 	MSStunAddress dest;
 	char *buf = NULL;
 	size_t len;
@@ -1771,8 +1787,10 @@ static void ice_send_indication(const IceCandidatePair *pair, const RtpSession *
 	} else if (pair->local->componentID == 2) {
 		rtp_session_get_transports(rtp_session,NULL,&rtptp);
 	} else return;
-
-	source = ms_ip_address_to_stun_address(pair->local->taddr.family, SOCK_DGRAM, pair->local->taddr.ip, pair->local->taddr.port);
+	if(pair->local->type==ICT_HostCandidate )
+		source = ms_ip_address_to_stun_address(pair->local->taddr.family, SOCK_DGRAM, pair->local->taddr.ip, pair->local->taddr.port);
+	else
+		pSource = NULL;
 	dest = ms_ip_address_to_stun_address(pair->remote->taddr.family, SOCK_DGRAM, pair->remote->taddr.ip, pair->remote->taddr.port);
 	indication = ms_stun_binding_indication_create();
 	ms_stun_message_enable_fingerprint(indication, TRUE);
@@ -1787,7 +1805,7 @@ static void ice_send_indication(const IceCandidatePair *pair, const RtpSession *
 		ice_transport_address_to_printable_ip_address(&pair->remote->taddr, remote_addr_str, sizeof(remote_addr_str));
 		ms_message("ice: Send indication for pair %p: %s:%s --> %s:%s", pair,
 			local_addr_str, candidate_type_values[pair->local->type], remote_addr_str, candidate_type_values[pair->remote->type]);
-		ice_send_message_to_stun_addr(rtptp, buf, len, &source, &dest);
+		ice_send_message_to_stun_addr(rtptp, buf, len, pSource, &dest);
 	}
 	if (buf != NULL) ms_free(buf);
 	ms_free(indication);
@@ -3837,9 +3855,14 @@ static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session, b
 					rtp_session_set_remote_addr_full(rtp_session, rtp_remote_candidate->taddr.ip, rtp_remote_candidate->taddr.port, 
 								rtcp_remote_candidate ? rtcp_remote_candidate->taddr.ip : rtp_remote_candidate->taddr.ip, 
 								rtcp_remote_candidate ? rtcp_remote_candidate->taddr.port : rtp_remote_candidate->taddr.port);
-
+					ice_check_list_selected_valid_local_candidate(cl, &rtp_local_candidate, &rtcp_local_candidate);
+					if( (rtp_local_candidate && rtp_local_candidate->type==ICT_HostCandidate) || (rtcp_local_candidate && rtcp_local_candidate->type==ICT_HostCandidate) ){
+					/*Switch the source of the mediastream to the source selected by ICE. Sources will be only for a Host IP : packets cannot go from other types of IP */
+						const char * localRtpAddr = (rtp_local_candidate && rtp_local_candidate->type==ICT_HostCandidate ? rtp_local_candidate->taddr.ip : NULL);
+						rtp_session_use_local_addr(rtp_session, localRtpAddr,
+							rtcp_local_candidate && rtcp_local_candidate->type==ICT_HostCandidate ? rtcp_local_candidate->taddr.ip : localRtpAddr);
+					}
 					if (cl->session->turn_enabled) {
-						ice_check_list_selected_valid_local_candidate(cl, &rtp_local_candidate, &rtcp_local_candidate);
 						if (rtp_local_candidate) {
 							ms_turn_context_set_force_rtp_sending_via_relay(ice_get_turn_context_from_check_list_componentID(cl, 1), rtp_local_candidate->type == ICT_RelayedCandidate);
 							if (rtp_local_candidate->type == ICT_RelayedCandidate) {
@@ -3882,6 +3905,8 @@ static void ice_check_list_restart(IceCheckList *cl)
 	if (cl->remote_ufrag) ms_free(cl->remote_ufrag);
 	if (cl->remote_pwd) ms_free(cl->remote_pwd);
 	cl->remote_ufrag = cl->remote_pwd = NULL;
+
+	rtp_session_use_local_addr(cl->rtp_session, "0.0.0.0", "0.0.0.0");	// Reset the sources of rtp_session
 
 	bctbx_list_for_each(cl->stun_server_requests, (void (*)(void*))ice_stun_server_request_free);
 	bctbx_list_for_each(cl->transaction_list, (void (*)(void*))ice_free_transaction);
