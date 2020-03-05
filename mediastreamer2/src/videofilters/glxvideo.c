@@ -272,7 +272,10 @@ static void glxvideo_process(MSFilter *f){
 				ogl_display_enable_preview_mirroring(obj->glhelper, !precious);
 				ogl_display_set_preview_yuv_to_display(obj->glhelper, inm);
 			}
-		}else ogl_display_set_preview_yuv_to_display(obj->glhelper,NULL);
+		} else {
+			ogl_display_set_preview_yuv_to_display(obj->glhelper,NULL);
+			ogl_display_enable_preview_mirroring(obj->glhelper, FALSE);
+		}
 	}
 
 	const int orientation=0;
