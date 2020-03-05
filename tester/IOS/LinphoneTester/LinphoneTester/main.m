@@ -44,6 +44,8 @@ int main(int argc, char *argv[]) {
 #endif
         } else if (strcmp(argv[i],"--no-ipv6")==0){
             liblinphonetester_ipv6 = FALSE;
+        } else if (strcmp(argv[i],"--show-account-manager-logs")==0){
+			liblinphonetester_show_account_manager_logs=TRUE;
         }
     }
     @autoreleasepool {

@@ -18,6 +18,11 @@ Pod::Spec.new do |s|
   s.module_name   = 'linphonesw' # name of the swift package
   s.swift_version = '4.0'
 
+  s.subspec 'all-frameworks' do |sp|
+    sp.vendored_frameworks = "linphone-sdk/apple-darwin/Frameworks/**"
+    sp.resource = "linphone-sdk/apple-darwin/Resources/**"
+  end
+
   s.subspec 'basic-frameworks' do |sp|
     sp.dependency 'linphone-sdk/app-extension'
     sp.vendored_frameworks = "linphone-sdk/apple-darwin/Frameworks/{@LINPHONE_OTHER_FRAMEWORKS@}"
