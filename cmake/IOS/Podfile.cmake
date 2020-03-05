@@ -6,7 +6,7 @@ target 'LinphoneTester' do
   use_frameworks!
 
   # Pods for LinphoneTester
-  pod 'linphone-sdk', :path => "@LINPHONESDK_BUILD_DIR@/"
+  pod 'linphone-sdk/all-frameworks', :path => "@LINPHONESDK_BUILD_DIR@/"
 
   target 'LinphoneTesterTests' do
     inherit! :search_paths
