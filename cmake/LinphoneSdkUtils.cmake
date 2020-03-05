@@ -102,7 +102,7 @@ macro(linphone_sdk_check_git)
 endmacro()
 
 function(linphone_sdk_git_submodule_update)
-	if(NOT EXISTS "${LINPHONESDK_DIR}/linphone/CMakeLists.txt")
+	if(NOT EXISTS "${LINPHONESDK_DIR}/liblinphone/CMakeLists.txt")
 		linphone_sdk_check_git()
 		execute_process(
 			COMMAND "${GIT_EXECUTABLE}" "submodule" "update" "--recursive" "--init"
