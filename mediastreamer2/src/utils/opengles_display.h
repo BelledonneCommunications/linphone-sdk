@@ -87,9 +87,13 @@ void ogl_display_zoom (struct opengles_display *gldisp, float *params);
 
 /**
  * Request horizontal flip of the image.
- * FIXME: not implemented yet.
  */
-void ogl_display_enable_mirroring(struct opengles_display *gldisp, bool_t enabled);
+void ogl_display_enable_mirroring_to_display(struct opengles_display *gldisp, bool_t enabled);
+
+/**
+ * Request horizontal flip of the preview image.
+ */
+void ogl_display_enable_preview_mirroring(struct opengles_display *gldisp, bool_t enabled);
 
 #if defined __cplusplus
 };
