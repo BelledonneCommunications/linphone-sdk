@@ -103,13 +103,21 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 - (void)testForSuiteTestAsync:(NSString *)suite andTest:(NSString *)test {
     LOGI(@"[message] Launching test %@ from suite %@", test, suite);
 	XCTestExpectation *exp = [self expectationWithDescription:test];
-	dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(29 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+	
+//	dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(29 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+//		 XCTAssertFalse(bc_tester_run_tests(suite.UTF8String, test.UTF8String, NULL), @"Suite '%@' / Test '%@' failed",
+//						  suite, test);
+//		[exp fulfill];
+//	});
+
+	dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(29 * NSEC_PER_SEC)), dispatch_get_global_queue(QOS_CLASS_BACKGROUND, 0), ^{
 		 XCTAssertFalse(bc_tester_run_tests(suite.UTF8String, test.UTF8String, NULL), @"Suite '%@' / Test '%@' failed",
 						  suite, test);
 		[exp fulfill];
 	});
-
-	[self waitForExpectationsWithTimeout:120 handler:^(NSError *error) {
+	
+	
+	[self waitForExpectationsWithTimeout:1200 handler:^(NSError *error) { // TODO PAUL : mettre timeout a 120
 		// handle failure
 		NSLog( @"Suite '%@' / Test '%@' failed", suite, test);
 	}];
