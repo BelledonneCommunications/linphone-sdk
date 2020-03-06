@@ -140,7 +140,7 @@ test-bzrtp-debian9:
     PLATFORM: linux-debian9
 
 test-liblinphone-debian9:
-  tags: [ "docker-test-debian9-liblinphone-nuc" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian9-test-liblinphone
   extends: .test-liblinphone
   dependencies:
     - job-debian9-ninja-gcc
