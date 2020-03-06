@@ -269,12 +269,12 @@ static void glxvideo_process(MSFilter *f){
 			if (ms_yuv_buf_init_from_mblk(&src,inm)==0){
 				precious=mblk_get_precious_flag(inm);
 				// Mirroring is enabled only if the window is not precious
-				ogl_display_enable_preview_mirroring(obj->glhelper, !precious);
+				ogl_display_enable_mirroring_to_preview(obj->glhelper, !precious);
 				ogl_display_set_preview_yuv_to_display(obj->glhelper, inm);
 			}
 		} else {
 			ogl_display_set_preview_yuv_to_display(obj->glhelper,NULL);
-			ogl_display_enable_preview_mirroring(obj->glhelper, FALSE);
+			ogl_display_enable_mirroring_to_preview(obj->glhelper, FALSE);
 		}
 	}
 

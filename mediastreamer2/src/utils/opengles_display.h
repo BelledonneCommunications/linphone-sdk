@@ -93,7 +93,7 @@ void ogl_display_enable_mirroring_to_display(struct opengles_display *gldisp, bo
 /**
  * Request horizontal flip of the preview image.
  */
-void ogl_display_enable_preview_mirroring(struct opengles_display *gldisp, bool_t enabled);
+void ogl_display_enable_mirroring_to_preview(struct opengles_display *gldisp, bool_t enabled);
 
 #if defined __cplusplus
 };

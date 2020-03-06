@@ -739,7 +739,7 @@ void ogl_display_enable_mirroring_to_display(struct opengles_display *gldisp, bo
 	ogl_display_enable_mirroring(gldisp, enabled, REMOTE_IMAGE);
 }
 
-void ogl_display_enable_preview_mirroring(struct opengles_display *gldisp, bool_t enabled){
+void ogl_display_enable_mirroring_to_preview(struct opengles_display *gldisp, bool_t enabled){
 	ogl_display_enable_mirroring(gldisp, enabled, PREVIEW_IMAGE);
 }
 
