@@ -104,7 +104,7 @@ struct opengles_display {
 	float zoom_cy;
 	
 	/* whether mirroring (vertical flip) is requested*/
-	bool_t do_mirroring;
+	bool_t do_mirroring[MAX_IMAGE];
 
 	OpenGlFunctions *default_functions;
 	const OpenGlFunctions *functions;
@@ -142,6 +142,26 @@ static unsigned int align_on_power_of_2(unsigned int value) {
 	return 0;
 }
 
+static void apply_mirroring (float xCenter, float *mat) {
+	// If mirroring is enabled, then we must apply the reflection matrix
+	// -1 0 0 0
+	//  0 1 0 0
+	//  0 0 1 0
+	//  0 0 0 1
+	// Based on the above and exploiting the properties of the orthographic matrix, only mat[0] must be changed
+	mat[0] = - mat[0];
+
+	// Translation on the X axis to compensate OpenGl attribute ATTRIB_VERTEX
+	// Applying mirroring to the orthographic matrix means that the image is mirrored but also its position in the window 
+	// Multiply by 4 because:
+	// - xCenter assumes that dimension screens goes from -0.5 to 0.5
+	// - Windows must be moved on the other side of the window therefore it is twice the distance between the center of the window and the center of the image
+	mat[12] += (4.0f * xCenter);
+
+}
+
+// Remap left and bottom coordinate to -1
+// Remap right and top coordinate to 1
 static void load_orthographic_matrix (float left, float right, float bottom, float top, float _near, float _far, float *mat) {
 	float r_l = right - left;
 	float t_b = top - bottom;
@@ -165,6 +185,12 @@ static void load_orthographic_matrix (float left, float right, float bottom, flo
 	mat[13] = ty;
 	mat[14] = tz;
 	mat[15] = 1.0f;
+
+}
+
+static void load_projection_matrix (float left, float right, float bottom, float top, float _near, float _far, float xCenter, bool_t mirror, float *mat) {
+	load_orthographic_matrix( left, right, bottom, top, _near, _far, mat);
+	if (mirror) apply_mirroring(xCenter, mat);
 }
 
 // -----------------------------------------------------------------------------
@@ -453,6 +479,7 @@ static void ogl_display_render_type(
 	x = vpx * screenW;
 	y = vpy * screenH;
 
+	// X and Y coordinates of the rectangle where the image has to be displayed
 	squareVertices[0] = (x - w * 0.5f) / screenW;
 	squareVertices[1] = (y - h * 0.5f) / screenH;
 	squareVertices[2] = (x + w * 0.5f) / screenW;
@@ -462,6 +489,7 @@ static void ogl_display_render_type(
 	squareVertices[6] = (x + w * 0.5f) / screenW;
 	squareVertices[7] = (y + h * 0.5f) / screenH;
 
+	float pLeft, pRight, pTop, pBottom, pNear, pFar;
 	#define VP_SIZE 1.0f
 	if (type == REMOTE_IMAGE) {
 		float scale_factor = 1.0f / gldisp->zoom_factor;
@@ -480,16 +508,23 @@ static void ogl_display_render_type(
 		ENSURE_RANGE_A_INSIDE_RANGE_B(gldisp->zoom_cx, vpDim, squareVertices[0], squareVertices[2])
 		ENSURE_RANGE_A_INSIDE_RANGE_B(gldisp->zoom_cy, vpDim, squareVertices[1], squareVertices[7])
 
-		load_orthographic_matrix(
-			gldisp->zoom_cx - vpDim,
-			gldisp->zoom_cx + vpDim,
-			gldisp->zoom_cy - vpDim,
-			gldisp->zoom_cy + vpDim,
-			0, 0.5, mat
-		);
+		pLeft   = gldisp->zoom_cx - vpDim;
+		pRight  = gldisp->zoom_cx + vpDim;
+		pBottom = gldisp->zoom_cy - vpDim;
+		pTop    = gldisp->zoom_cy + vpDim;
+		pNear   = 0;
+		pFar    = 0.5;
 	} else {
-		load_orthographic_matrix(- VP_SIZE * 0.5, VP_SIZE * 0.5, - VP_SIZE * 0.5, VP_SIZE * 0.5, 0, 0.5, mat);
+		pLeft   = - VP_SIZE * 0.5;
+		pRight  =   VP_SIZE * 0.5;
+		pBottom = - VP_SIZE * 0.5;
+		pTop    =   VP_SIZE * 0.5;
+		pNear   = 0;
+		pFar    = 0.5;
 	}
+	const bool_t mirror  = gldisp->do_mirroring[type];
+
+	load_projection_matrix( pLeft, pRight, pBottom, pTop, pNear, pFar, vpx, mirror, mat);
 
 	GL_OPERATION(f, glUniformMatrix4fv(gldisp->uniforms[UNIFORM_PROJ_MATRIX], 1, GL_FALSE, mat))
 
@@ -593,6 +628,7 @@ void ogl_display_init (struct opengles_display *gldisp, const OpenGlFunctions *f
 	clean_GL_errors(f);
 
 	GL_OPERATION(f, glDisable(GL_DEPTH_TEST))
+	GL_OPERATION(f, glDisable(GL_SCISSOR_TEST))
 	GL_OPERATION(f, glClearColor(0, 0, 0, 0))
 
 	ogl_display_set_size(gldisp, width, height);
@@ -683,7 +719,6 @@ void ogl_display_render (struct opengles_display *gldisp, int orientation) {
 	GL_OPERATION(f, glUseProgram(gldisp->program))
 
 	ogl_display_render_type(gldisp, REMOTE_IMAGE, TRUE, 0, 0, 1, 1, orientation);
-
 	// preview image already have the correct orientation
 	ogl_display_render_type(gldisp, PREVIEW_IMAGE, FALSE, 0.4f, -0.4f, 0.2f, 0.2f, 0);
 
@@ -696,10 +731,17 @@ void ogl_display_zoom (struct opengles_display *gldisp, float *params) {
 	gldisp->zoom_cy = params[2] - 0.5f;
 }
 
-void ogl_display_enable_mirroring(struct opengles_display *gldisp, bool_t enabled){
-	gldisp->do_mirroring = enabled;
+static void ogl_display_enable_mirroring(struct opengles_display *gldisp, bool_t enabled, enum ImageType type){
+	gldisp->do_mirroring[type] = enabled;
 }
 
+void ogl_display_enable_mirroring_to_display(struct opengles_display *gldisp, bool_t enabled){
+	ogl_display_enable_mirroring(gldisp, enabled, REMOTE_IMAGE);
+}
+
+void ogl_display_enable_mirroring_to_preview(struct opengles_display *gldisp, bool_t enabled){
+	ogl_display_enable_mirroring(gldisp, enabled, PREVIEW_IMAGE);
+}
 
 // -----------------------------------------------------------------------------
 
