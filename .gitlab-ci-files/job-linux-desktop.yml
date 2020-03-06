@@ -200,6 +200,7 @@
     TESTER: "bzrtp"
 
 .test-liblinphone:
+  tags: [ "docker-test-liblinphone" ]
   extends: .test
   dependencies:
     - .build-sdk

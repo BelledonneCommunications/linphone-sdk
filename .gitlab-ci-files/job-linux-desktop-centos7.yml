@@ -146,7 +146,7 @@ test-mediastreamer-centos7:
 
 
 .test-liblinphone-centos7:
-  tags: [ "docker-test-centos7-liblinphone-nuc" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos-test-liblinphone:7
   extends: .test-liblinphone
   dependencies:
     - job-centos7-ninja-gcc

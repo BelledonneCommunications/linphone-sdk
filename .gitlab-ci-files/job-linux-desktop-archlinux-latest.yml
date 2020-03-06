@@ -131,7 +131,7 @@ test-bzrtp-arch:
     PLATFORM: linux-arch
 
 test-liblinphone-arch:
-  tags: [ "docker-test-archlinux-liblinphone-nuc" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux-test-liblinphone
   extends: .test-liblinphone
   dependencies:
     - job-archlinux-latest-ninja-clang

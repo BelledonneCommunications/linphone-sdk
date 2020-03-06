@@ -96,7 +96,7 @@ job-debian10-ninja-clang-novideo:
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-debian10-ninja-clang
-  
+
 #################################################
 # TESTS
 #################################################
@@ -144,7 +144,7 @@ test-bzrtp-debian10:
     PLATFORM: linux-debian10
 
 test-liblinphone-debian10:
-  tags: [ "docker-test-debian10-liblinphone-nuc" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10-test-liblinphone
   extends: .test-liblinphone
   dependencies:
     - job-debian10-ninja-gcc
