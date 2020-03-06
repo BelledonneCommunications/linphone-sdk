@@ -190,7 +190,6 @@ static void load_orthographic_matrix (float left, float right, float bottom, flo
 
 static void load_projection_matrix (float left, float right, float bottom, float top, float _near, float _far, float xCenter, bool_t mirror, float *mat) {
 	load_orthographic_matrix( left, right, bottom, top, _near, _far, mat);
-	ms_message(" mirroring %0d x center %f ",  mirror, xCenter);
 	if (mirror) apply_mirroring(xCenter, mat);
 }
 
