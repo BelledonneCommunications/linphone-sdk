@@ -133,7 +133,7 @@ test-liblinphone-ios:
     - |
         xcodebuild -workspace LinphoneTester.xcworkspace \
         -scheme LinphoneTester -sdk iphonesimulator \
-        -destination name='iPhone 7 Plus' \
+        -destination OS=12.2,name='iPhone 7 Plus' \
         -derivedDataPath $WORKSPACE build test 2>&1 | tee $LOG_PATTERN.txt
 
   after_script:
