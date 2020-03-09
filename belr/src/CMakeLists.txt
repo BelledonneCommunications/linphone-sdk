@@ -40,7 +40,7 @@ add_definitions(
 )
 
 if(WIN32 AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
-	list(APPEND LIBS ws2_32)
+	list(APPEND LIBS ws2_32 Iphlpapi)
 endif()
 
 if(ENABLE_STATIC)
