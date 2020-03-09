@@ -62,8 +62,7 @@ void MSOpenH264Decoder::initialize()
 		mUnpacker=rfc3984_new_with_factory(mFilter->factory);
 		if (mDecoder != 0) {
 			SDecodingParam params = { 0 };
-#if (OPENH264_MAJOR == 1) && (OPENH264_MINOR >=6)
-#else
+#if (OPENH264_MAJOR == 1) && (OPENH264_MINOR <6)
 			params.eOutputColorFormat = videoFormatI420;
 #endif
 			params.uiTargetDqLayer = (unsigned char) -1;
