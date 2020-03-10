@@ -37,9 +37,7 @@
 	bc_tester_run_tests(suite.UTF8String, test.UTF8String, NULL);
 }
 - (IBAction)onClick:(id)sender {
-	NSLog(@"Bonjour");
-		liblinphone_tester_init(NULL);
-	
-		[self testForSuiteTest:@"Shared Core" andTest:@"Executor Shared Core can't start because Main Shared Core runs"];
+	liblinphone_tester_init(NULL);
+	[self testForSuiteTest:@"Shared Core" andTest:@"Executor Shared Core get new chat room from invite"];
 }
 @end

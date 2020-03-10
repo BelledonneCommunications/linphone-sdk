@@ -104,12 +104,6 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
     LOGI(@"[message] Launching test %@ from suite %@", test, suite);
 	XCTestExpectation *exp = [self expectationWithDescription:test];
 	
-//	dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(29 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-//		 XCTAssertFalse(bc_tester_run_tests(suite.UTF8String, test.UTF8String, NULL), @"Suite '%@' / Test '%@' failed",
-//						  suite, test);
-//		[exp fulfill];
-//	});
-
 	dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(29 * NSEC_PER_SEC)), dispatch_get_global_queue(QOS_CLASS_BACKGROUND, 0), ^{
 		 XCTAssertFalse(bc_tester_run_tests(suite.UTF8String, test.UTF8String, NULL), @"Suite '%@' / Test '%@' failed",
 						  suite, test);
@@ -121,58 +115,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 		// handle failure
 		NSLog( @"Suite '%@' / Test '%@' failed", suite, test);
 	}];
-//    XCTAssertFalse(bc_tester_run_tests(suite.UTF8String, test.UTF8String, NULL), @"Suite '%@' / Test '%@' failed",
-//                   suite, test);
 }
-
-
-//+ (void)setUp {
-//	[self addInstanceMethodWithSelectorName:@"testExample"
-//	block:^(LinphoneTesterBase *myself) {
-////		[myself testForSuiteTest:sSuite andTest:sTest];
-//
-//		XCTestExpectation *exp = [myself expectationWithDescription:@"Login"];
-//		dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(29 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-//			[myself example];
-//			[exp fulfill];
-//		});
-//
-//		[myself waitForExpectationsWithTimeout:120 handler:^(NSError *error) {
-//			// handle failure
-//			NSLog(@"test failure");
-//		}];
-//	}];
-//}
-//
-//- (void)example {
-//    XCTFail(@"No implementation for \"%s\"", __PRETTY_FUNCTION__);
-//}
-
-//- (void)testDoStuffScenarioA
-//{
-//    XCTestExpectation *expectation =
-//        [self expectationWithDescription:@"ScenarioA"];
-//
-//    [sut doStuffOnSuccess:^{
-//
-//        // Assert things here
-//
-//        [expectation fulfill];
-//
-//    } onFailure:^(NSError *error) {
-//
-//        XCTAssertNotNil(error);
-//        XCTFail(@"%@", [error description]);
-//
-//       [expectation fulfill];
-//    }];
-//
-//    [self waitForExpectationWithTimeout:10 handler:^(NSError *error) {
-//        XCTAssertNil(error);  // Timeout or other error if non-nil
-//    }];
-//}
-
-
 
 @end
 
