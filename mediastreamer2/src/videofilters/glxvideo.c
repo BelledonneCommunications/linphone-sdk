@@ -257,19 +257,29 @@ static void glxvideo_process(MSFilter *f){
 				glxvideo_prepare(f);
 				if (!obj->ready) goto end;
 			}
-			if (obj->mirror && !precious) ms_yuv_buf_mirror(&src);
+
+			// Mirroring is enabled only if obj->mirror is true and the window is not precious
+			ogl_display_enable_mirroring_to_display(obj->glhelper, (obj->mirror && !precious));
 			ogl_display_set_yuv_to_display(obj->glhelper, inm);
 		}
 	}
+
 	if (f->inputs[1]!=NULL && (inm=ms_queue_peek_last(f->inputs[1]))!=0) {
 		if (obj->corner!=-1){
 			if (ms_yuv_buf_init_from_mblk(&src,inm)==0){
-				if (!mblk_get_precious_flag(inm)) ms_yuv_buf_mirror(&src);
+				precious=mblk_get_precious_flag(inm);
+				// Mirroring is enabled only if the window is not precious
+				ogl_display_enable_mirroring_to_preview(obj->glhelper, !precious);
 				ogl_display_set_preview_yuv_to_display(obj->glhelper, inm);
 			}
-		}else ogl_display_set_preview_yuv_to_display(obj->glhelper,NULL);
+		} else {
+			ogl_display_set_preview_yuv_to_display(obj->glhelper,NULL);
+			ogl_display_enable_mirroring_to_preview(obj->glhelper, FALSE);
+		}
 	}
-	ogl_display_render(obj->glhelper, 0);
+
+	const int orientation=0;
+	ogl_display_render(obj->glhelper, orientation);
 	glXSwapBuffers ( obj->display, obj->subwindow );
 
 	end:

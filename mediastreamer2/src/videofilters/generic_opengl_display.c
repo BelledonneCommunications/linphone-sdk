@@ -171,7 +171,7 @@ static int ogl_zoom (MSFilter *f, void *arg) {
 static int ogl_enable_mirroring (MSFilter *f, void *arg) {
 	FilterData *data = (FilterData *)f->data;
 	ms_filter_lock(f);
-	ogl_display_enable_mirroring(data->display, *(bool_t *)arg);
+	ogl_display_enable_mirroring_to_display(data->display, *(bool_t *)arg);
 	ms_filter_unlock(f);
 
 	return 0;
