@@ -82,14 +82,18 @@ find_package(Mediastreamer2 CONFIG REQUIRED)
 find_package(bctoolbox CONFIG REQUIRED)
 find_package(ortp CONFIG REQUIRED)
 
+set(AAUDIO_INCUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/include")
+
 include_directories(
         ${CMAKE_CURRENT_BINARY_DIR}
 	${MEDIASTREAMER2_INCLUDE_DIRS}
+	${AAUDIO_INCUDE_DIRS}
 )
+
 
 set(LIBS ${MEDIASTREAMER2_LIBRARIES} aaudio ${ORTP_LIBRARIES} ${BCTOOLBOX_CORE_LIBRARIES})
 
-set(SOURCE_FILES androidsound_aaudio.cpp)
+set(SOURCE_FILES msaaudio_top.cpp msaaudio_player.cpp msaaudio_recorder.cpp)
 
 set(MS2_PLUGINS_DIR "${MEDIASTREAMER2_PLUGINS_LOCATION}")
 
