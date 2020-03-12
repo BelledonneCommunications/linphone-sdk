@@ -24,7 +24,6 @@ include:
 
   - '.gitlab-ci-files/job-ios.yml'
 
-  - '.gitlab-ci-files/job-uploads.yml'
 
 
 stages:
