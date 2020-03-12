@@ -37,9 +37,11 @@ include:
   - '.gitlab-ci-files/job-windows.yml'
   - '.gitlab-ci-files/job-packages.yml'
   - '.gitlab-ci-files/job-uploads.yml'
+  - '.gitlab-ci-files/job-check-orphan-commits.yml'
 
 stages:
  - build
  - test
+ - check-orphans
  - package
  - deploy
