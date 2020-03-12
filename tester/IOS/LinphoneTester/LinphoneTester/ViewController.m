@@ -31,4 +31,13 @@
     bc_tester_set_writable_dir_prefix([writablePath UTF8String]);
 }
 
+- (void)testForSuiteTest:(NSString *)suite andTest:(NSString *)test {
+    LOGI(@"[message] Launching test %@ from suite %@", test, suite);
+	bc_tester_register_suite_by_name(suite.UTF8String);
+	bc_tester_run_tests(suite.UTF8String, test.UTF8String, NULL);
+}
+- (IBAction)onClick:(id)sender {
+	liblinphone_tester_init(NULL);
+	[self testForSuiteTest:@"Shared Core" andTest:@"Executor Shared Core get new chat room from invite"];
+}
 @end
