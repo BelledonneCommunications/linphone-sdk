@@ -17,6 +17,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <string.h>
+
+#include "mediastreamer2/msjava.h"
 #include <aaudio/AAudio.h>
 #include <msaaudio/msaaudio.h>
 
@@ -49,24 +52,97 @@ struct AAudioOutputContext {
 		ms_flow_controlled_bufferizer_set_flow_control_interval_ms(&buffer, flowControlIntervalMs);
 	}
 
+	void updateDeviceIdFromMsSndCard() {
+		MSSndCardStreamType type = ms_snd_card_get_stream_type(soundCard);
+
+		std::string streamTypeStr ("");
+
+		switch (type) {
+			case MS_SND_CARD_STREAM_RING:
+				streamTypeStr.assign("RING");
+				break;
+			case MS_SND_CARD_STREAM_MEDIA:
+				streamTypeStr.assign("MEDIA");
+				break;
+			case MS_SND_CARD_STREAM_DTMF:
+				streamTypeStr.assign("DTMF");
+				break;
+			case MS_SND_CARD_STREAM_VOICE:
+				streamTypeStr.assign("VOICE");
+				break;
+			default:
+				ms_error("[AAudio] Unknown stream type %0d", type);
+				break;
+		}
+
+		// If known conversion to stream type
+		if (!(streamTypeStr.empty())) {
+			// env is an object in C++
+			JNIEnv *env = ms_get_jni_env();
+
+			std::string mgrJVCName ("org/linphone/call/AndroidAudioManager");
+
+			jclass linphoneManagerClass = env->FindClass("org/linphone/LinphoneManager");
+			jobject jPlayerObj = NULL;
+
+			if (linphoneManagerClass != NULL) {
+				std::string jVSig;
+				jVSig = "()L" + mgrJVCName + ";";
+				// Get AndroidAudioManager instance in Linphone Manager
+				jmethodID getAudioManagerId = env->GetStaticMethodID(linphoneManagerClass, "getAudioManager", jVSig.c_str());
+				if (getAudioManagerId != NULL) {
+					jPlayerObj = env->CallStaticObjectMethod(linphoneManagerClass, getAudioManagerId);
+				}
+			}
+
+			jclass androidAudioManagerClass = env->FindClass(mgrJVCName.c_str());
+			if ((jPlayerObj != NULL) && (androidAudioManagerClass != NULL)) {
+				jmethodID getDeviceID = env->GetMethodID(androidAudioManagerClass, "getDeviceId", "(Ljava/lang/String;Ljava/lang/String;)I");
+				if (getDeviceID != NULL) {
+					const std::string direction ("output");
+
+					// Convert C++ strings to jstrign in order to pass them to the JAVA code
+					jstring jDirection = env->NewStringUTF(direction.c_str());
+					jstring jStreamType = env->NewStringUTF(streamTypeStr.c_str());
+					jint id = env->CallIntMethod(jPlayerObj, getDeviceID, jDirection, jStreamType);
+					// id is -1 if an error occurred or no device was found
+					// In such scenario, do not change the device ID
+					if (id != -1) deviceId = (int)id;
+				}
+				env->DeleteLocalRef(androidAudioManagerClass);
+				env->DeleteLocalRef(jPlayerObj);
+				env->DeleteLocalRef(linphoneManagerClass);
+			}
+
+		}
+	}
+
 	void updateStreamTypeFromMsSndCard() {
 		MSSndCardStreamType type = ms_snd_card_get_stream_type(soundCard);
-		if (type == MS_SND_CARD_STREAM_RING) {
-			usage = AAUDIO_USAGE_NOTIFICATION_RINGTONE;
-			content_type = AAUDIO_CONTENT_TYPE_SONIFICATION;
-			ms_message("[AAudio] Using RING mode");
-		} else if (type == MS_SND_CARD_STREAM_MEDIA) {
-			usage = AAUDIO_USAGE_MEDIA;
-			content_type = AAUDIO_CONTENT_TYPE_MUSIC;
-			ms_message("[AAudio] Using MEDIA mode");
-		} else if (type == MS_SND_CARD_STREAM_DTMF) {
-			usage = AAUDIO_USAGE_VOICE_COMMUNICATION_SIGNALLING;
-			content_type =  AAUDIO_CONTENT_TYPE_SONIFICATION ;
-			ms_message("[AAudio] Using DTMF mode");
-		} else {
-			usage = AAUDIO_USAGE_VOICE_COMMUNICATION;
-			content_type = AAUDIO_CONTENT_TYPE_SPEECH;
-			ms_message("[AAudio] Using COMMUNICATION mode");
+		switch (type) {
+			case MS_SND_CARD_STREAM_RING:
+				usage = AAUDIO_USAGE_NOTIFICATION_RINGTONE;
+				content_type = AAUDIO_CONTENT_TYPE_SONIFICATION;
+				ms_message("[AAudio] Using RING mode");
+				break;
+			case MS_SND_CARD_STREAM_MEDIA:
+				usage = AAUDIO_USAGE_MEDIA;
+				content_type = AAUDIO_CONTENT_TYPE_MUSIC;
+				ms_message("[AAudio] Using MEDIA mode");
+				break;
+			case MS_SND_CARD_STREAM_DTMF:
+				usage = AAUDIO_USAGE_VOICE_COMMUNICATION_SIGNALLING;
+				content_type =  AAUDIO_CONTENT_TYPE_SONIFICATION ;
+				ms_message("[AAudio] Using DTMF mode");
+				break;
+			case MS_SND_CARD_STREAM_VOICE:
+				usage = AAUDIO_USAGE_VOICE_COMMUNICATION;
+				content_type = AAUDIO_CONTENT_TYPE_SPEECH;
+				ms_message("[AAudio] Using COMMUNICATION mode");
+				break;
+			default:
+				ms_error("[AAudio] Unknown stream type %0d", type);
+				break;
 		}
 	}
 
@@ -152,6 +228,7 @@ static void aaudio_player_init(AAudioOutputContext *octx) {
 	}
 
 	octx->updateStreamTypeFromMsSndCard();
+	octx->updateDeviceIdFromMsSndCard();
 	AAudioStreamBuilder_setDeviceId(builder, octx->deviceId);
 	AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_OUTPUT);
 	AAudioStreamBuilder_setSampleRate(builder, octx->aaudio_context->samplerate);
