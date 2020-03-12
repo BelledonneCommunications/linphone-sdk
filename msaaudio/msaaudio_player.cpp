@@ -97,14 +97,14 @@ struct AAudioOutputContext {
 
 			jclass androidAudioManagerClass = env->FindClass(mgrJVCName.c_str());
 			if ((jPlayerObj != NULL) && (androidAudioManagerClass != NULL)) {
-				jmethodID getDeviceID = env->GetMethodID(androidAudioManagerClass, "getDeviceId", "(Ljava/lang/String;Ljava/lang/String;)I");
-				if (getDeviceID != NULL) {
+				jmethodID getDefaultDeviceID = env->GetMethodID(androidAudioManagerClass, "getDefaultDeviceId", "(Ljava/lang/String;Ljava/lang/String;)I");
+				if (getDefaultDeviceID != NULL) {
 					const std::string direction ("output");
 
 					// Convert C++ strings to jstrign in order to pass them to the JAVA code
 					jstring jDirection = env->NewStringUTF(direction.c_str());
 					jstring jStreamType = env->NewStringUTF(streamTypeStr.c_str());
-					jint id = env->CallIntMethod(jPlayerObj, getDeviceID, jDirection, jStreamType);
+					jint id = env->CallIntMethod(jPlayerObj, getDefaultDeviceID, jDirection, jStreamType);
 					// id is -1 if an error occurred or no device was found
 					// In such scenario, do not change the device ID
 					if (id != -1) deviceId = (int)id;
