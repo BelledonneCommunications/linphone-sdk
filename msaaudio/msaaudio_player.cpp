@@ -26,6 +26,8 @@
 static const int flowControlIntervalMs = 5000;
 static const int flowControlThresholdMs = 40;
 
+static void aaudio_player_callback_error(AAudioStream *stream, void *userData, aaudio_result_t error);
+
 struct AAudioOutputContext {
 	AAudioOutputContext(MSFilter *f) {
 		mFilter = f;
@@ -52,7 +54,46 @@ struct AAudioOutputContext {
 		ms_flow_controlled_bufferizer_set_flow_control_interval_ms(&buffer, flowControlIntervalMs);
 	}
 
-	void updateDeviceIdFromMsSndCard() {
+	jobject getJVAudioManager(JNIEnv *env, std::string mgrJVCName) {
+		jclass linphoneManagerClass = env->FindClass("org/linphone/LinphoneManager");
+		jobject jPlayerObj = NULL;
+
+		if (linphoneManagerClass != NULL) {
+			std::string jVSig;
+			jVSig = "()L" + mgrJVCName + ";";
+			// Get AndroidAudioManager instance in Linphone Manager
+			jmethodID getAudioManagerId = env->GetStaticMethodID(linphoneManagerClass, "getAudioManager", jVSig.c_str());
+			if (getAudioManagerId != NULL) {
+				jPlayerObj = env->CallStaticObjectMethod(linphoneManagerClass, getAudioManagerId);
+			}
+			env->DeleteLocalRef(linphoneManagerClass);
+		}
+		return jPlayerObj;
+	}
+
+	void setDefaultDeviceId(std::string streamTypeStr) {
+		// env is an object in C++
+		JNIEnv *env = ms_get_jni_env();
+
+		std::string mgrJVCName ("org/linphone/call/AndroidAudioManager");
+
+		jobject jPlayerObj = getJVAudioManager(env, mgrJVCName);
+
+		jclass androidAudioManagerClass = env->FindClass(mgrJVCName.c_str());
+		if ((jPlayerObj != NULL) && (androidAudioManagerClass != NULL)) {
+			jmethodID getDefaultDeviceID = env->GetMethodID(androidAudioManagerClass, "getDefaultPlayerDeviceId", "(Ljava/lang/String;)V");
+			if (getDefaultDeviceID != NULL) {
+				// Convert C++ strings to jstrign in order to pass them to the JAVA code
+				jstring jStreamType = env->NewStringUTF(streamTypeStr.c_str());
+				env->CallVoidMethod(jPlayerObj, getDefaultDeviceID, jStreamType);
+				setDeviceId();
+			}
+			env->DeleteLocalRef(androidAudioManagerClass);
+			env->DeleteLocalRef(jPlayerObj);
+		}
+	}
+
+	void setDefaultDeviceIdFromMsSndCard() {
 		MSSndCardStreamType type = ms_snd_card_get_stream_type(soundCard);
 
 		std::string streamTypeStr ("");
@@ -77,40 +118,25 @@ struct AAudioOutputContext {
 
 		// If known conversion to stream type
 		if (!(streamTypeStr.empty())) {
-			// env is an object in C++
-			JNIEnv *env = ms_get_jni_env();
+			setDefaultDeviceId(streamTypeStr);
+		}
+	}
 
-			std::string mgrJVCName ("org/linphone/call/AndroidAudioManager");
-
-			jclass linphoneManagerClass = env->FindClass("org/linphone/LinphoneManager");
-			jobject jPlayerObj = NULL;
-
-			if (linphoneManagerClass != NULL) {
-				std::string jVSig;
-				jVSig = "()L" + mgrJVCName + ";";
-				// Get AndroidAudioManager instance in Linphone Manager
-				jmethodID getAudioManagerId = env->GetStaticMethodID(linphoneManagerClass, "getAudioManager", jVSig.c_str());
-				if (getAudioManagerId != NULL) {
-					jPlayerObj = env->CallStaticObjectMethod(linphoneManagerClass, getAudioManagerId);
-				}
+	void setDeviceId() {
+		JNIEnv *env = ms_get_jni_env();
+		std::string mgrJVCName ("org/linphone/call/AndroidAudioManager");
+		jclass androidAudioManagerClass = env->FindClass(mgrJVCName.c_str());
+		jobject jPlayerObj = getJVAudioManager(env, mgrJVCName);
+		if ((jPlayerObj != NULL) && (androidAudioManagerClass != NULL)) {
+			jmethodID getDeviceIdID = env->GetMethodID(androidAudioManagerClass, "getDeviceId", "()I");
+			if (getDeviceIdID != NULL) {
+				jint id = env->CallIntMethod(jPlayerObj, getDeviceIdID);
+				// id is -1 if an error occurred or no device was found
+				// In such scenario, do not change the device ID
+				if (id != -1) deviceId = id;
 			}
-
-			jclass androidAudioManagerClass = env->FindClass(mgrJVCName.c_str());
-			if ((jPlayerObj != NULL) && (androidAudioManagerClass != NULL)) {
-				jmethodID getDefaultDeviceID = env->GetMethodID(androidAudioManagerClass, "getDefaultPlayerDeviceId", "(Ljava/lang/String;)I");
-				if (getDefaultDeviceID != NULL) {
-					// Convert C++ strings to jstrign in order to pass them to the JAVA code
-					jstring jStreamType = env->NewStringUTF(streamTypeStr.c_str());
-					jint id = env->CallIntMethod(jPlayerObj, getDefaultDeviceID, jStreamType);
-					// id is -1 if an error occurred or no device was found
-					// In such scenario, do not change the device ID
-					if (id != -1) deviceId = (int)id;
-				}
-				env->DeleteLocalRef(androidAudioManagerClass);
-				env->DeleteLocalRef(jPlayerObj);
-				env->DeleteLocalRef(linphoneManagerClass);
-			}
-
+			env->DeleteLocalRef(androidAudioManagerClass);
+			env->DeleteLocalRef(jPlayerObj);
 		}
 	}
 
@@ -215,8 +241,6 @@ static aaudio_data_callback_result_t aaudio_player_callback(AAudioStream *stream
 	return AAUDIO_CALLBACK_RESULT_CONTINUE;	
 }
 
-static void aaudio_player_callback_error(AAudioStream *stream, void *userData, aaudio_result_t error);
-
 static void aaudio_player_init(AAudioOutputContext *octx) {
 	AAudioStreamBuilder *builder;
 	aaudio_result_t result = AAudio_createStreamBuilder(&builder);
@@ -225,7 +249,12 @@ static void aaudio_player_init(AAudioOutputContext *octx) {
 	}
 
 	octx->updateStreamTypeFromMsSndCard();
-	octx->updateDeviceIdFromMsSndCard();
+
+	if (octx->deviceId == AAUDIO_UNSPECIFIED) {
+		octx->setDefaultDeviceIdFromMsSndCard();
+	}
+	// Update device ID in C++ class
+	octx->setDeviceId();
 	AAudioStreamBuilder_setDeviceId(builder, octx->deviceId);
 	AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_OUTPUT);
 	AAudioStreamBuilder_setSampleRate(builder, octx->aaudio_context->samplerate);
@@ -325,7 +354,7 @@ static void android_snd_write_process(MSFilter *obj) {
 
 static void android_snd_write_postprocess(MSFilter *obj) {
 	AAudioOutputContext *octx = (AAudioOutputContext*)obj->data;
-	aaudio_player_close(octx);	
+	aaudio_player_close(octx);
 }
 
 static MSFilterMethod android_snd_write_methods[] = {
