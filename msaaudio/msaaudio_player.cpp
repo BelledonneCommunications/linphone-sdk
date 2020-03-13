@@ -241,6 +241,15 @@ static aaudio_data_callback_result_t aaudio_player_callback(AAudioStream *stream
 	return AAUDIO_CALLBACK_RESULT_CONTINUE;	
 }
 
+void setDeviceIdInStreamBuilder(AAudioOutputContext *octx, AAudioStreamBuilder *builder) {
+	if (octx->deviceId == AAUDIO_UNSPECIFIED) {
+		octx->setDefaultDeviceIdFromMsSndCard();
+	}
+	// Update device ID in C++ class
+	octx->setDeviceId();
+	AAudioStreamBuilder_setDeviceId(builder, octx->deviceId);
+}
+
 static void aaudio_player_init(AAudioOutputContext *octx) {
 	AAudioStreamBuilder *builder;
 	aaudio_result_t result = AAudio_createStreamBuilder(&builder);
@@ -249,13 +258,7 @@ static void aaudio_player_init(AAudioOutputContext *octx) {
 	}
 
 	octx->updateStreamTypeFromMsSndCard();
-
-	if (octx->deviceId == AAUDIO_UNSPECIFIED) {
-		octx->setDefaultDeviceIdFromMsSndCard();
-	}
-	// Update device ID in C++ class
-	octx->setDeviceId();
-	AAudioStreamBuilder_setDeviceId(builder, octx->deviceId);
+	setDeviceIdInStreamBuilder(octx, builder);
 	AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_OUTPUT);
 	AAudioStreamBuilder_setSampleRate(builder, octx->aaudio_context->samplerate);
 	AAudioStreamBuilder_setDataCallback(builder, aaudio_player_callback, octx);
