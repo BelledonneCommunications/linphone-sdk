@@ -1525,7 +1525,7 @@ static bool_t ms_turn_rtp_endpoint_send_via_turn_server(MSTurnContext *context, 
 	} else if (relay_sa->sa_family == AF_INET6) {
 		struct sockaddr_in6 *relay_sa_in6 = (struct sockaddr_in6 *)relay_sa;
 		struct sockaddr_in6 *from_in6 = (struct sockaddr_in6 *)from;
-		return (relay_sa_in6->sin6_port == from_in6->sin6_port) && (memcmp(relay_sa_in6->sin6_addr.s6_addr, from_in6->sin6_addr.s6_addr, sizeof(struct in6_addr)) == 0);
+		return (relay_sa_in6->sin6_port == from_in6->sin6_port) && (memcmp(&relay_sa_in6->sin6_addr, &from_in6->sin6_addr, sizeof(from_in6->sin6_addr)) == 0);
 	} else return FALSE;
 }
 
@@ -1535,13 +1535,13 @@ static int ms_turn_rtp_endpoint_sendto(RtpTransport *rtptp, mblk_t *msg, int fla
 	bool_t rtp_packet = FALSE;
 	int ret = 0;
 	mblk_t *new_msg = NULL;
-	struct sockaddr sourceAddr;
+	struct sockaddr_storage sourceAddr;
 	socklen_t sourceAddrLen;
 
 	if ((context != NULL) && (context->rtp_session != NULL)) {
 		if ((msgdsize(msg) >= RTP_FIXED_HEADER_SIZE) && (rtp_get_version(msg) == 2)) rtp_packet = TRUE;
-		ortp_recvaddr_to_sockaddr(&msg->recv_addr, &sourceAddr, &sourceAddrLen);
-		if ((rtp_packet && context->force_rtp_sending_via_relay) || ms_turn_rtp_endpoint_send_via_turn_server(context, &sourceAddr, sourceAddrLen)) {
+		ortp_recvaddr_to_sockaddr(&msg->recv_addr, (struct sockaddr*) &sourceAddr, &sourceAddrLen);
+		if ((rtp_packet && context->force_rtp_sending_via_relay) || ms_turn_rtp_endpoint_send_via_turn_server(context,(struct sockaddr*) &sourceAddr, sourceAddrLen)) {
 			if (ms_turn_context_get_state(context) >= MS_TURN_CONTEXT_STATE_CHANNEL_BOUND) {
 				/* Use a TURN ChannelData message */
 				new_msg = allocb(4, 0);

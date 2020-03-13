@@ -594,6 +594,35 @@ bool_t ice_check_list_selected_valid_local_candidate(const IceCheckList *cl, Ice
 	return TRUE;
 }
 
+bool_t ice_check_list_selected_valid_local_base_candidate(const IceCheckList *cl, IceCandidate **rtp_candidate, IceCandidate **rtcp_candidate) {
+	IceValidCandidatePair *valid_pair = NULL;
+	uint16_t componentID;
+	bctbx_list_t *elem;
+
+	if (rtp_candidate != NULL) {
+		componentID = 1;
+		elem = bctbx_list_find_custom(cl->valid_list, (bctbx_compare_func)ice_find_selected_valid_pair_from_componentID, &componentID);
+		if (elem == NULL) return FALSE;
+		valid_pair = (IceValidCandidatePair *)elem->data;
+		*rtp_candidate = valid_pair->generated_from->local;
+		if( *rtp_candidate == NULL)
+			*rtp_candidate = valid_pair->valid->local;
+	}
+	if (rtcp_candidate != NULL) {
+		if (rtp_session_rtcp_mux_enabled(cl->rtp_session)) {
+			componentID = 1;
+		} else {
+			componentID = 2;
+		}
+		elem = bctbx_list_find_custom(cl->valid_list, (bctbx_compare_func)ice_find_selected_valid_pair_from_componentID, &componentID);
+		if (elem == NULL) return FALSE;
+		valid_pair = (IceValidCandidatePair *)elem->data;
+		*rtcp_candidate = valid_pair->generated_from->local;
+		if( *rtcp_candidate == NULL)
+			*rtcp_candidate = valid_pair->valid->local;
+	}
+	return TRUE;
+}
 bool_t ice_check_list_selected_valid_remote_candidate(const IceCheckList *cl, IceCandidate **rtp_candidate, IceCandidate **rtcp_candidate) {
 	IceValidCandidatePair *valid_pair = NULL;
 	uint16_t componentID;
@@ -1312,8 +1341,6 @@ static int ice_send_message_to_socket(RtpTransport * rtptp, char* buf, size_t le
 	int err;
 	struct addrinfo *v6ai = NULL;
 
-	memcpy(&m->net_addr, from, fromlen);
-	m->net_addrlen = fromlen;
 	if( from != NULL)
 		ortp_sockaddr_to_recvaddr(from, &m->recv_addr);
 	if ((rtptp->session->rtp.gs.sockfamily == AF_INET6) && (to->sa_family == AF_INET)) {
@@ -3838,15 +3865,15 @@ static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session, b
 					rtp_session_set_remote_addr_full(rtp_session, rtp_remote_candidate->taddr.ip, rtp_remote_candidate->taddr.port, 
 								rtcp_remote_candidate ? rtcp_remote_candidate->taddr.ip : rtp_remote_candidate->taddr.ip, 
 								rtcp_remote_candidate ? rtcp_remote_candidate->taddr.port : rtp_remote_candidate->taddr.port);
-					ice_check_list_selected_valid_local_candidate(cl, &rtp_local_candidate, &rtcp_local_candidate);
+					ice_check_list_selected_valid_local_base_candidate(cl, &rtp_local_candidate, &rtcp_local_candidate);
 					if( (rtp_local_candidate  || rtcp_local_candidate ) ){
-					/*Switch the source of the mediastream to the source selected by ICE. Sources will be only for a Host IP : packets cannot go from other types of IP */
-						const char * localRtpAddr = (rtp_local_candidate ? rtp_local_candidate->taddr.ip : "0.0.0.0");
-						const char * localRtcpAddr = (rtcp_local_candidate  ? rtcp_local_candidate->taddr.ip : "0.0.0.0");
-						//const char * localRtcpAddr = (rtcp_local_candidate  ? rtcp_local_candidate->taddr.ip : localRtpAddr);
-						rtp_session_use_local_addr(rtp_session, localRtpAddr,localRtcpAddr);
+						/*Switch the source of the mediastream to the source selected by ICE.*/
+						rtp_session_use_local_addr(rtp_session, (rtp_local_candidate ? rtp_local_candidate->taddr.ip : ""),(rtcp_local_candidate  ? rtcp_local_candidate->taddr.ip : ""));
 					}
 					if (cl->session->turn_enabled) {
+						rtp_local_candidate = NULL;
+						rtcp_local_candidate = NULL;
+						ice_check_list_selected_valid_local_candidate(cl, &rtp_local_candidate, &rtcp_local_candidate);
 						if (rtp_local_candidate) {
 							ms_turn_context_set_force_rtp_sending_via_relay(ice_get_turn_context_from_check_list_componentID(cl, 1), rtp_local_candidate->type == ICT_RelayedCandidate);
 							if (rtp_local_candidate->type == ICT_RelayedCandidate) {
@@ -3889,7 +3916,7 @@ static void ice_check_list_restart(IceCheckList *cl)
 	if (cl->remote_ufrag) ms_free(cl->remote_ufrag);
 	if (cl->remote_pwd) ms_free(cl->remote_pwd);
 	cl->remote_ufrag = cl->remote_pwd = NULL;
-	rtp_session_use_local_addr(cl->rtp_session, "0.0.0.0", "0.0.0.0");	// Reset the sources of rtp_session
+	rtp_session_use_local_addr(cl->rtp_session, "", ""); // Reset the sources of rtp_session
 	bctbx_list_for_each(cl->stun_server_requests, (void (*)(void*))ice_stun_server_request_free);
 	bctbx_list_for_each(cl->transaction_list, (void (*)(void*))ice_free_transaction);
 	bctbx_list_for_each(cl->foundations, (void (*)(void*))ice_free_pair_foundation);
