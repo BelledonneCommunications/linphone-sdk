@@ -1452,7 +1452,6 @@ static int ms_turn_rtp_endpoint_recvfrom(RtpTransport *rtptp, mblk_t *msg, int f
 		msgsize = rtp_session_recvfrom(context->rtp_session, context->type == MS_TURN_CONTEXT_TYPE_RTP, msg, flags, from, fromlen);
 		if ((msgsize >= RTP_FIXED_HEADER_SIZE) && (rtp_get_version(msg) != 2)) {
 			/* This is not a RTP packet, try to see if it is a TURN ChannelData message */
-//			ms_message("Channel : %d", *msg->b_rptr);
 			if ((ms_turn_context_get_state(context) >= MS_TURN_CONTEXT_STATE_BINDING_CHANNEL) && (*msg->b_rptr & 0x40)) {
 				uint16_t channel = ntohs(*((uint16_t *)msg->b_rptr));
 				uint16_t datasize = ntohs(*(((uint16_t *)msg->b_rptr) + 1));
@@ -1579,22 +1578,7 @@ static int ms_turn_rtp_endpoint_sendto(RtpTransport *rtptp, mblk_t *msg, int fla
 			to = (const struct sockaddr *)&context->turn_server_addr;
 			tolen = context->turn_server_addrlen;
 		}
-/*		char to_addr_str[64], net_addr_str[64]={0}, rec_addr_srtr[64]={0};
-		socklen_t tl;
-		struct sockaddr addr;
-		if( msg->recv_addr.family != AF_UNSPEC)
-		{
-			ortp_recvaddr_to_sockaddr(&msg->recv_addr, &addr, &tl);
-			bctbx_sockaddr_to_printable_ip_address(&addr, tl, rec_addr_srtr, sizeof(rec_addr_srtr));
-		}
-		bctbx_sockaddr_to_printable_ip_address((struct sockaddr *)to, tolen, to_addr_str, sizeof(to_addr_str));
-		bctbx_sockaddr_to_printable_ip_address((struct sockaddr *)&msg->net_addr,  msg->net_addrlen, net_addr_str, sizeof(net_addr_str));
-		ms_message("STUN : send to : %s, net=%s, recv=%s", to_addr_str, net_addr_str, rec_addr_srtr);
-*/
-//		int temp = msg->recv_addr.family ;
-//		msg->recv_addr.family = AF_UNSPEC;
 		ret = rtp_session_sendto(context->rtp_session, context->type == MS_TURN_CONTEXT_TYPE_RTP, msg, flags, to, tolen);
-//		msg->recv_addr.family = temp;
 	}
 	if (stun_msg != NULL) ms_stun_message_destroy(stun_msg);
 	if (new_msg != NULL) {
