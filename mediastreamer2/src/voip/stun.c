@@ -1525,7 +1525,7 @@ static bool_t ms_turn_rtp_endpoint_send_via_turn_server(MSTurnContext *context, 
 	} else if (relay_sa->sa_family == AF_INET6) {
 		struct sockaddr_in6 *relay_sa_in6 = (struct sockaddr_in6 *)relay_sa;
 		struct sockaddr_in6 *from_in6 = (struct sockaddr_in6 *)from;
-		return (relay_sa_in6->sin6_port == from_in6->sin6_port) && (memcmp(&relay_sa_in6->sin6_addr, &from_in6->sin6_addr, sizeof(struct in6_addr)) == 0);
+		return (relay_sa_in6->sin6_port == from_in6->sin6_port) && (memcmp(relay_sa_in6->sin6_addr.s6_addr, from_in6->sin6_addr.s6_addr, sizeof(struct in6_addr)) == 0);
 	} else return FALSE;
 }
 
