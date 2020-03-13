@@ -121,6 +121,16 @@ job-android-ninja-r20-smallsdk:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_ADVANCED_IM=NO -DENABLE_DB_STORAGE=NO
   extends: job-android-ninja-r20
 
+job-android-ninja-r20-allcodecs:
+
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+  variables:
+    CMAKE_OPTIONS: -DENABLE_NON_FREE_CODECS=YES -DENABLE_OPENH264=YES -DENABLE_G729=YES
+
+  extends: job-android-ninja-r20
+
 #job-android-ninja-r20-sanitizer:
 #  variables:
 #    CMAKE_SANITIZER_OPTIONS: -DENABLE_SANITIZER=YES

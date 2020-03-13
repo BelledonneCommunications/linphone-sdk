@@ -127,7 +127,7 @@ test-bzrtp-ubuntu:
     PLATFORM: linux-ubuntu-rolling
 
 test-liblinphone-ubuntu:
-  tags: [ "docker-test-ubuntu-rolling-liblinphone-nuc" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling-test-liblinphone
   extends: .test-liblinphone
   dependencies:
     - job-ubuntu-rolling-makefile-gcc

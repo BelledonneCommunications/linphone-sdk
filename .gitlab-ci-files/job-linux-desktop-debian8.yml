@@ -60,7 +60,7 @@ test-bzrtp-debian8:
     PLATFORM: linux-debian8
 
 test-liblinphone-debian8:
-  tags: [ "docker-test-debian8-liblinphone-nuc" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian8-test-liblinphone
   extends: .test-liblinphone
   dependencies:
     - job-debian8-makefile-gcc

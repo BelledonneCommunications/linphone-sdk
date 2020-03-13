@@ -142,7 +142,7 @@ test-bzrtp-centos8:
 #    PLATFORM: linux-centos8
 
 test-liblinphone-centos8:
-  tags: [ "docker-test-centos8-liblinphone-nuc" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos-test-liblinphone:8
   extends: .test-liblinphone
   dependencies:
     - job-centos8-ninja-gcc
