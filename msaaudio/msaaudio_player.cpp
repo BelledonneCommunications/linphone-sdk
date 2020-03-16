@@ -40,6 +40,7 @@ struct AAudioOutputContext {
 		soundCard = NULL;
 		usage = AAUDIO_USAGE_VOICE_COMMUNICATION;
 		content_type = AAUDIO_CONTENT_TYPE_SPEECH;
+		deviceChanged = false;
 	}
 
 	~AAudioOutputContext() {
@@ -143,6 +144,7 @@ struct AAudioOutputContext {
 	aaudio_usage_t usage;
 	aaudio_content_type_t content_type;
 	int32_t deviceId;
+	bool_t deviceChanged;
 };
 
 static void android_snd_write_init(MSFilter *obj){
@@ -326,17 +328,17 @@ static void android_snd_write_process(MSFilter *obj) {
 
 	ms_mutex_lock(&octx->stream_mutex);
 
-//	int32_t updatedDeviceId = getUpdatedDeviceId();
-
 	// If deviceId has changed, then destroy the stream
-/*	if (octx->deviceId != updatedDeviceId) {
-		octx->deviceId = updatedDeviceId;
+	if (octx->deviceChanged == true) {
+		octx->deviceId = getUpdatedDeviceId();
+		// Destroy stream if it exists as output device has changed
 		if (octx->stream) {
 			AAudioStream_close(octx->stream);
 			octx->stream = NULL;
 		}
+		octx->deviceChanged = false;
 	}
-*/
+
 	if (!octx->stream) {
 		aaudio_player_init(octx);
 	} else {
