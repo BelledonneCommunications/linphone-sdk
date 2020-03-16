@@ -77,7 +77,6 @@ test-liblinphone-ios:
     - cd ${CI_PROJECT_DIR}/tester/IOS/LinphoneTester
     - echo ${CI_PROJECT_DIR}/tester/IOS/LinphoneTester
     - pod install
-    - instruments -s devices
 
     # Test launching
     - |
@@ -88,7 +87,7 @@ test-liblinphone-ios:
         -derivedDataPath $WORKSPACE build test 2>&1 | tee $LOG_PATTERN.txt
 
   after_script:
-    - xcresult2junit.rb build/Logs/Test/Test-LinphoneTester-*.xcresult | tee $XML_PATTERN.xml
+    - xcresult2junit.rb build/Logs/Test/*.xcresult | tee $XML_PATTERN.xml
 
     - BRANCH=$CI_COMMIT_REF_NAME
     - echo $BRANCH
