@@ -70,18 +70,20 @@ test-liblinphone-ios:
   variables:
     LOG_PATTERN: "logLiblinphoneIos"
     XML_PATTERN: "xmlLibLinphoneIos"
+    TEST_DESTINATION: "platform=iOS Simulator,name=iPhone 8,OS=13.3"
 
   script:
     - unzip build-ios/linphone-sdk-*.zip -d build-ios/
     - cd ${CI_PROJECT_DIR}/tester/IOS/LinphoneTester
     - echo ${CI_PROJECT_DIR}/tester/IOS/LinphoneTester
     - pod install
+    - instruments -s devices
 
     # Test launching
     - |
         xcodebuild -workspace LinphoneTester.xcworkspace \
         -scheme LinphoneTester -sdk iphonesimulator \
-        -destination "platform=iOS Simulator,name=iPhone 8" \
+        -destination $TEST_DESTINATION \
         -parallel-testing-enabled YES -parallel-testing-worker-count 4 \
         -derivedDataPath $WORKSPACE build test 2>&1 | tee $LOG_PATTERN.txt
 
