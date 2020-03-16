@@ -28,6 +28,8 @@ static const int flowControlThresholdMs = 40;
 
 static void aaudio_player_callback_error(AAudioStream *stream, void *userData, aaudio_result_t error);
 
+static int32_t getUpdatedDeviceId();
+
 struct AAudioOutputContext {
 	AAudioOutputContext(MSFilter *f) {
 		mFilter = f;
@@ -54,45 +56,20 @@ struct AAudioOutputContext {
 		ms_flow_controlled_bufferizer_set_flow_control_interval_ms(&buffer, flowControlIntervalMs);
 	}
 
-	jobject getJVAudioManager(JNIEnv *env, std::string mgrJVCName) {
-ms_message("[AAudio] DEBUG look for LinphoneMananger class");
-		jclass linphoneManagerClass = env->FindClass("org/linphone/LinphoneManager");
-		jobject jPlayerObj = NULL;
-
-		if (linphoneManagerClass != NULL) {
-			std::string jVSig;
-			jVSig = "()L" + mgrJVCName + ";";
-ms_message("[AAudio] DEBUG get static method getAudioMananger -> signature %s", jVSig.c_str());
-			// Get AndroidAudioManager instance in Linphone Manager
-			jmethodID getAudioManagerId = env->GetStaticMethodID(linphoneManagerClass, "getAudioManager", jVSig.c_str());
-			if (getAudioManagerId != NULL) {
-ms_message("[AAudio] DEBUG call static method getAudioMananger");
-				jPlayerObj = env->CallStaticObjectMethod(linphoneManagerClass, getAudioManagerId);
-			}
-			env->DeleteLocalRef(linphoneManagerClass);
-		}
-		return jPlayerObj;
-	}
-
 	void setDefaultDeviceId(std::string streamTypeStr) {
 		// env is an object in C++
 		JNIEnv *env = ms_get_jni_env();
 
-		std::string mgrJVCName ("org/linphone/call/AndroidAudioManager");
-
-		jobject jPlayerObj = getJVAudioManager(env, mgrJVCName);
-
-		jclass androidAudioManagerClass = env->FindClass(mgrJVCName.c_str());
-		if ((jPlayerObj != NULL) && (androidAudioManagerClass != NULL)) {
-			jmethodID getDefaultDeviceID = env->GetMethodID(androidAudioManagerClass, "getDefaultPlayerDeviceId", "(Ljava/lang/String;)I");
+		jclass msAndroidContextClass = env->FindClass("org/linphone/mediastream/MediastreamerAndroidContext");
+		if (msAndroidContextClass != NULL) {
+			jmethodID getDefaultDeviceID = env->GetStaticMethodID(msAndroidContextClass, "getDefaultPlayerDeviceId", "(Ljava/lang/String;)I");
 			if (getDefaultDeviceID != NULL) {
 				// Convert C++ strings to jstrign in order to pass them to the JAVA code
 				jstring jStreamType = env->NewStringUTF(streamTypeStr.c_str());
-				jint id = env->CallIntMethod(jPlayerObj, getDefaultDeviceID, jStreamType);
+				jint id = env->CallStaticIntMethod(msAndroidContextClass, getDefaultDeviceID, jStreamType);
 				deviceId = (int32_t) id;
 			}
-			env->DeleteLocalRef(androidAudioManagerClass);
-			env->DeleteLocalRef(jPlayerObj);
+			env->DeleteLocalRef(msAndroidContextClass);
 		}
 	}
 
@@ -229,6 +206,7 @@ static aaudio_data_callback_result_t aaudio_player_callback(AAudioStream *stream
 void setDeviceIdInStreamBuilder(AAudioOutputContext *octx, AAudioStreamBuilder *builder) {
 	if (octx->deviceId == AAUDIO_UNSPECIFIED) {
 		octx->setDefaultDeviceIdFromMsSndCard();
+		int32_t updatedDeviceId = getUpdatedDeviceId();
 	}
 	AAudioStreamBuilder_setDeviceId(builder, octx->deviceId);
 }
@@ -315,13 +293,44 @@ static void android_snd_write_preprocess(MSFilter *obj) {
 	aaudio_player_init(octx);
 }
 
+static int32_t getUpdatedDeviceId() {
+	int32_t id = -1;
+
+	// env is an object in C++
+	JNIEnv *env = ms_get_jni_env();
+
+ms_message("[AAudio] DEBUG Look for msAndroidContextClassLocalRef");
+	jclass msAndroidContextClassLocalRef = env->FindClass("org/linphone/mediastream/MediastreamerAndroidContext");
+ms_message("[AAudio] DEBUG Found msAndroidContextClassLocalRef and Cast to GlobalRef");
+	jclass msAndroidContextClass = reinterpret_cast<jclass>(env->NewGlobalRef(msAndroidContextClassLocalRef));
+ms_message("[AAudio] DEBUG Success msAndroidContextClassLocalRef casted to GlobalRef");
+	if (msAndroidContextClass != NULL) {
+ms_message("[AAudio] DEBUG Get ID of method getOutputAudioDeviceId");
+		jmethodID getOutputDeviceID = env->GetStaticMethodID(msAndroidContextClass, "getOutputAudioDeviceId", "()I");
+ms_message("[AAudio] DEBUG Found ID of method getOutputAudioDeviceId");
+		if (getOutputDeviceID != NULL) {
+ms_message("[AAudio] DEBUG Call ID of method getOutputAudioDeviceId");
+			jint jid = env->CallStaticIntMethod(msAndroidContextClass, getOutputDeviceID);
+ms_message("[AAudio] DEBUG Done Call ID of method getOutputAudioDeviceId");
+			id = (int32_t) jid;
+		}
+		env->DeleteGlobalRef(msAndroidContextClass);
+		env->DeleteLocalRef(msAndroidContextClassLocalRef);
+	}
+
+	return id;
+}
+
 static void android_snd_write_process(MSFilter *obj) {
 	AAudioOutputContext *octx = (AAudioOutputContext*)obj->data;
 
 	ms_mutex_lock(&octx->stream_mutex);
 
+//	int32_t updatedDeviceId = getUpdatedDeviceId();
+
 	// If deviceId has changed, then destroy the stream
 /*	if (octx->deviceId != updatedDeviceId) {
+		octx->deviceId = updatedDeviceId;
 		if (octx->stream) {
 			AAudioStream_close(octx->stream);
 			octx->stream = NULL;
