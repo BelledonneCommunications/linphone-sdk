@@ -70,7 +70,7 @@ test-liblinphone-ios:
   variables:
     LOG_PATTERN: "logLiblinphoneIos"
     XML_PATTERN: "xmlLibLinphoneIos"
-    TEST_DESTINATION: "platform=iOS Simulator,name=iPhone 8,OS=13.3"
+    TEST_DESTINATION: "platform='iOS Simulator',name='iPhone 8',OS=13.3"
 
   script:
     - unzip build-ios/linphone-sdk-*.zip -d build-ios/
