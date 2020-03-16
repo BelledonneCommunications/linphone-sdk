@@ -57,6 +57,10 @@ struct AAudioOutputContext {
 		ms_flow_controlled_bufferizer_set_flow_control_interval_ms(&buffer, flowControlIntervalMs);
 	}
 
+	void setDeviceChanged(bool val) {
+		deviceChanged = val;
+	}
+
 	void setDefaultDeviceId(std::string streamTypeStr) {
 		// env is an object in C++
 		JNIEnv *env = ms_get_jni_env();
@@ -213,6 +217,16 @@ void setDeviceIdInStreamBuilder(AAudioOutputContext *octx, AAudioStreamBuilder *
 	AAudioStreamBuilder_setDeviceId(builder, octx->deviceId);
 }
 
+static void updateReceiverContextPtr(AAudioOutputContext *octx) {
+
+// Get ContextClass
+// Get mMediastreamReceiver
+
+// Get BroadcastClass
+// Set context pointer to mMediastreamReceiver
+
+}
+
 static void aaudio_player_init(AAudioOutputContext *octx) {
 	AAudioStreamBuilder *builder;
 	aaudio_result_t result = AAudio_createStreamBuilder(&builder);
@@ -260,6 +274,8 @@ static void aaudio_player_init(AAudioOutputContext *octx) {
 	} else {
 		ms_message("[AAudio] Player stream started");
 	}
+
+	updateReceiverContextPtr(octx);
 
 	AAudioStreamBuilder_delete(builder);
 }
@@ -404,3 +420,13 @@ MSFilter *android_snd_card_create_writer(MSSndCard *card) {
 	octx->setContext((AAudioContext*)card->data);
 	return f;
 }
+
+#ifdef __ANDROID__
+JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerAudioBroadcastReceiver_updateDeviceChangedFlag (JNIEnv * env, jobject obj, jlong ptr, jboolean deviceChanged) {
+	AAudioOutputContext *octx = (AAudioOutputContext*)ptr;
+	octx->setDeviceChanged(deviceChanged);
+}
+
+#endif
+
+
