@@ -37,53 +37,7 @@
 #################################################
 
 
-job-ios-makefile:
 
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-
-  variables:
-    CMAKE_GENERATOR: Unix Makefiles
-    CMAKE_OPTIONS: -DENABLE_SWIFT_WRAPPER=NO
-    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-    ARCHS_OPTIONS: $IOS_ARCHS
-  extends: .job-ios
-
-
-#################################################
-# Ninja
-#################################################
-
-
-job-ios-ninja:
-
-  variables:
-    CMAKE_GENERATOR: Ninja
-    ARCHS_OPTIONS: $IOS_ARCHS
-  extends: .job-ios
-
-
-job-ios-ninja-novideo:
-
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-
-  variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
-  extends: job-ios-ninja
-
-
-job-ios-ninja-smallsdk:
-
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-
-  variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_ADVANCED_IM=NO -DENABLE_DB_STORAGE=NO
-  extends: job-ios-ninja
 
 
 #################################################
@@ -91,10 +45,6 @@ job-ios-ninja-smallsdk:
 #################################################
 job-ios-xcode:
 
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $DEPLOY_RUN_IOS
 
   variables:
     CMAKE_GENERATOR: Xcode
@@ -116,9 +66,6 @@ test-liblinphone-ios:
   dependencies:
     - job-ios-xcode
 
-  only:
-    variables:
-      - $NIGHTLY_MASTER
 
   variables:
     LOG_PATTERN: "logLiblinphoneIos"
