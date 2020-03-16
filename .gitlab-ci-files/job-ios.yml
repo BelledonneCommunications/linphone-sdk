@@ -80,7 +80,7 @@ test-liblinphone-ios:
     # Test launching
     - |
         xcodebuild -workspace LinphoneTester.xcworkspace \
-        -scheme LinphoneTester -sdk iphonesimulator \
+        -scheme LinphoneTester -sdk iphonesimulator13.3 \
         -destination name='iPhone 8' \
         -parallel-testing-enabled YES -parallel-testing-worker-count 4 \
         -derivedDataPath $WORKSPACE build test 2>&1 | tee $LOG_PATTERN.txt
