@@ -122,6 +122,7 @@ test-liblinphone-ios:
 
   variables:
     LOG_PATTERN: "logLiblinphoneIos"
+    XML_PATTERN: "xmlLibLinphoneIos"
 
   script:
     - unzip build-ios/linphone-sdk-*.zip -d build-ios/
@@ -138,8 +139,7 @@ test-liblinphone-ios:
         -derivedDataPath $WORKSPACE build test 2>&1 | tee $LOG_PATTERN.txt
 
   after_script:
-    #ocunit2junit will produce .xml file by testsuite.
-    - cat tester/IOS/LinphoneTester/$LOG_PATTERN.txt | ocunit2junit
+    - xcresult2junit.rb build/Logs/Test/Test-LinphoneTester-*.xcresult | tee $XML_PATTERN.xml
 
     - BRANCH=$CI_COMMIT_REF_NAME
     - echo $BRANCH
@@ -164,8 +164,9 @@ test-liblinphone-ios:
 
     #Gathering artifacts in one folder to ease their use
     - mkdir ${CI_PROJECT_DIR}/results
+    - sudo chmod 777 ${CI_PROJECT_DIR}/results
+    - cp -r *.xml ${CI_PROJECT_DIR}/results
     - cp -r tester/IOS/LinphoneTester/$LOG_PATTERN.txt ${CI_PROJECT_DIR}/results
-    - cp -r test-reports/* ${CI_PROJECT_DIR}/results
     - cp index.html ${CI_PROJECT_DIR}/results
 
   artifacts:
