@@ -44,9 +44,6 @@
 # XCode
 #################################################
 job-ios-xcode:
-  only:
-    variables:
-      - $NIGHTLY_MASTER
 
 
   variables:
@@ -66,8 +63,8 @@ test-liblinphone-ios:
   tags: [ "macosx-xcode11" ]
   stage: test
   allow_failure: true
-  #dependencies:
-  #  - job-ios-xcode
+  dependencies:
+    - job-ios-xcode
 
 
   variables:
@@ -84,6 +81,7 @@ test-liblinphone-ios:
     - |
         xcodebuild -workspace LinphoneTester.xcworkspace \
         -scheme LinphoneTester -sdk iphonesimulator \
+        -destination "platform=iOS Simulator,name=iPhone 8" \
         -parallel-testing-enabled YES -parallel-testing-worker-count 4 \
         -derivedDataPath $WORKSPACE build test 2>&1 | tee $LOG_PATTERN.txt
 
