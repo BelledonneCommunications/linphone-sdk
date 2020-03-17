@@ -693,6 +693,15 @@ MS2_PUBLIC bool_t ice_check_list_default_local_candidate(const IceCheckList *cl,
 MS2_PUBLIC bool_t ice_check_list_selected_valid_local_candidate(const IceCheckList *cl, IceCandidate **rtp_candidate, IceCandidate **rtcp_candidate);
 
 /**
+ * Get the selected valid base candidate for an ICE check list.
+ *
+ * @param cl A pointer to a check list
+ * @param rtp_candidate A pointer to store the RTP valid local base candidate
+ * @param rtcp_candidate A pointer to store the RTCP valid local base candidate
+ * @return TRUE if the information have been successfully retrieved, FALSE otherwise
+ */
+MS2_PUBLIC bool_t ice_check_list_selected_valid_local_base_candidate(const IceCheckList *cl, IceCandidate **rtp_candidate, IceCandidate **rtcp_candidate);
+/**
  * Get the selected valid remote candidate for an ICE check list.
  *
  * @param cl A pointer to a check list

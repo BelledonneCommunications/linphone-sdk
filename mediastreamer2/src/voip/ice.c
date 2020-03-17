@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2019 Belledonne Communications SARL.
  *
  * This file is part of mediastreamer2.
@@ -157,6 +157,8 @@ static IceStunServerRequest * ice_check_list_get_stun_server_request(IceCheckLis
 static void ice_transport_address_to_printable_ip_address(const IceTransportAddress *taddr, char *printable_ip, size_t printable_ip_size);
 static void ice_stun_server_request_add_transaction(IceStunServerRequest *request, IceStunServerRequestTransaction *transaction);
 static void ice_check_list_perform_nominations(IceCheckList *cl, bool_t nomination_delay_expired);
+static void ice_dump_candidate(const IceCandidate *candidate, const char * const prefix);
+static void ice_dump_valid_pair(const IceValidCandidatePair *valid_pair, int *i);
 #if 0
 static int ice_session_connectivity_checks_duration(IceSession *session);
 #endif
@@ -592,6 +594,35 @@ bool_t ice_check_list_selected_valid_local_candidate(const IceCheckList *cl, Ice
 	return TRUE;
 }
 
+bool_t ice_check_list_selected_valid_local_base_candidate(const IceCheckList *cl, IceCandidate **rtp_candidate, IceCandidate **rtcp_candidate) {
+	IceValidCandidatePair *valid_pair = NULL;
+	uint16_t componentID;
+	bctbx_list_t *elem;
+
+	if (rtp_candidate != NULL) {
+		componentID = 1;
+		elem = bctbx_list_find_custom(cl->valid_list, (bctbx_compare_func)ice_find_selected_valid_pair_from_componentID, &componentID);
+		if (elem == NULL) return FALSE;
+		valid_pair = (IceValidCandidatePair *)elem->data;
+		*rtp_candidate = valid_pair->generated_from->local;
+		if( *rtp_candidate == NULL)
+			*rtp_candidate = valid_pair->valid->local;
+	}
+	if (rtcp_candidate != NULL) {
+		if (rtp_session_rtcp_mux_enabled(cl->rtp_session)) {
+			componentID = 1;
+		} else {
+			componentID = 2;
+		}
+		elem = bctbx_list_find_custom(cl->valid_list, (bctbx_compare_func)ice_find_selected_valid_pair_from_componentID, &componentID);
+		if (elem == NULL) return FALSE;
+		valid_pair = (IceValidCandidatePair *)elem->data;
+		*rtcp_candidate = valid_pair->generated_from->local;
+		if( *rtcp_candidate == NULL)
+			*rtcp_candidate = valid_pair->valid->local;
+	}
+	return TRUE;
+}
 bool_t ice_check_list_selected_valid_remote_candidate(const IceCheckList *cl, IceCandidate **rtp_candidate, IceCandidate **rtcp_candidate) {
 	IceValidCandidatePair *valid_pair = NULL;
 	uint16_t componentID;
@@ -1310,10 +1341,9 @@ static int ice_send_message_to_socket(RtpTransport * rtptp, char* buf, size_t le
 	int err;
 	struct addrinfo *v6ai = NULL;
 
-	memcpy(&m->net_addr, from, fromlen);
-	m->net_addrlen = fromlen;
+	if( from != NULL)
+		ortp_sockaddr_to_recvaddr(from, &m->recv_addr);
 	if ((rtptp->session->rtp.gs.sockfamily == AF_INET6) && (to->sa_family == AF_INET)) {
-
 		char to_addr_str[64];
 		int to_port = 0;
 		memset(to_addr_str, 0, sizeof(to_addr_str));
@@ -1771,7 +1801,6 @@ static void ice_send_indication(const IceCandidatePair *pair, const RtpSession *
 	} else if (pair->local->componentID == 2) {
 		rtp_session_get_transports(rtp_session,NULL,&rtptp);
 	} else return;
-
 	source = ms_ip_address_to_stun_address(pair->local->taddr.family, SOCK_DGRAM, pair->local->taddr.ip, pair->local->taddr.port);
 	dest = ms_ip_address_to_stun_address(pair->remote->taddr.family, SOCK_DGRAM, pair->remote->taddr.ip, pair->remote->taddr.port);
 	indication = ms_stun_binding_indication_create();
@@ -2611,7 +2640,7 @@ static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *r
 	tr = (IceTransaction*)elem->data;
 	if (tr->canceled){
 		/* We received an binding response concerning a canceled binding request transaction*/
-		ms_message("ice: Received a binding response for an cancelled transaction ID: %s", tr_id_str);
+		ms_message("ice: Received a binding response for a cancelled transaction ID: %s", tr_id_str);
 		/* It has to be processed anyway. According to 7.3.1.4 , cancellation just stop retransmission and do not
 		 * consider the lack of response as a failure.*/
 	}
@@ -2775,7 +2804,6 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, const Ort
 		ms_warning("ice: Received invalid STUN packet");
 		return;
 	}
-
 	memset(source_addr_str, 0, sizeof(source_addr_str));
 	memset(recv_addr_str, 0, sizeof(recv_addr_str));
 	tr_id = ms_stun_message_get_tr_id(msg);
@@ -3533,7 +3561,7 @@ void ice_session_start_connectivity_checks(IceSession *session)
 
 static int valid_pair_compare(IceValidCandidatePair* new_pair, IceValidCandidatePair * pair_in_list){
 	//ms_message("ice: priorities %lu  <>   %lu", (unsigned long)p1->generated_from->priority, (unsigned long)p2->generated_from->priority);
-	return pair_in_list->generated_from->priority > new_pair->generated_from->priority;
+	return pair_in_list->valid->priority > new_pair->valid->priority;
 }
 
 static bctbx_list_t * ice_get_valid_pairs_for_componentID(IceCheckList *cl, uint16_t componentID){
@@ -3837,8 +3865,14 @@ static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session, b
 					rtp_session_set_remote_addr_full(rtp_session, rtp_remote_candidate->taddr.ip, rtp_remote_candidate->taddr.port, 
 								rtcp_remote_candidate ? rtcp_remote_candidate->taddr.ip : rtp_remote_candidate->taddr.ip, 
 								rtcp_remote_candidate ? rtcp_remote_candidate->taddr.port : rtp_remote_candidate->taddr.port);
-
+					ice_check_list_selected_valid_local_base_candidate(cl, &rtp_local_candidate, &rtcp_local_candidate);
+					if( (rtp_local_candidate  || rtcp_local_candidate ) ){
+						/*Switch the source of the mediastream to the source selected by ICE.*/
+						rtp_session_use_local_addr(rtp_session, (rtp_local_candidate ? rtp_local_candidate->taddr.ip : ""),(rtcp_local_candidate  ? rtcp_local_candidate->taddr.ip : ""));
+					}
 					if (cl->session->turn_enabled) {
+						rtp_local_candidate = NULL;
+						rtcp_local_candidate = NULL;
 						ice_check_list_selected_valid_local_candidate(cl, &rtp_local_candidate, &rtcp_local_candidate);
 						if (rtp_local_candidate) {
 							ms_turn_context_set_force_rtp_sending_via_relay(ice_get_turn_context_from_check_list_componentID(cl, 1), rtp_local_candidate->type == ICT_RelayedCandidate);
@@ -3882,7 +3916,7 @@ static void ice_check_list_restart(IceCheckList *cl)
 	if (cl->remote_ufrag) ms_free(cl->remote_ufrag);
 	if (cl->remote_pwd) ms_free(cl->remote_pwd);
 	cl->remote_ufrag = cl->remote_pwd = NULL;
-
+	rtp_session_use_local_addr(cl->rtp_session, "", ""); // Reset the sources of rtp_session
 	bctbx_list_for_each(cl->stun_server_requests, (void (*)(void*))ice_stun_server_request_free);
 	bctbx_list_for_each(cl->transaction_list, (void (*)(void*))ice_free_transaction);
 	bctbx_list_for_each(cl->foundations, (void (*)(void*))ice_free_pair_foundation);
