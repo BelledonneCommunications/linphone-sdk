@@ -59,6 +59,12 @@ struct AAudioOutputContext {
 
 	void setDeviceChanged() {
 		requestedDeviceId = getUpdatedDeviceId();
+		// getUpdatedDeviceId returns -1 if device has not been found
+		// Get default
+		if (requestedDeviceId == -1) {
+			setDefaultDeviceIdFromMsSndCard();
+		}
+		ms_message("[AAudio] DEBUG new device ID %0d", requestedDeviceId);
 	}
 
 	void setDefaultDeviceId(std::string streamTypeStr) {
@@ -72,7 +78,6 @@ struct AAudioOutputContext {
 				// Convert C++ strings to jstrign in order to pass them to the JAVA code
 				jstring jStreamType = env->NewStringUTF(streamTypeStr.c_str());
 				jint id = env->CallStaticIntMethod(msAndroidContextClass, getDefaultDeviceID, jStreamType);
-				deviceId = (int32_t) id;
 				requestedDeviceId = (int32_t) id;
 			}
 			env->DeleteLocalRef(msAndroidContextClass);
@@ -211,9 +216,7 @@ static aaudio_data_callback_result_t aaudio_player_callback(AAudioStream *stream
 }
 
 void setDeviceIdInStreamBuilder(AAudioOutputContext *octx, AAudioStreamBuilder *builder) {
-	if (octx->deviceId == AAUDIO_UNSPECIFIED) {
-		octx->setDefaultDeviceIdFromMsSndCard();
-	}
+	octx->deviceId = octx->requestedDeviceId;
 	AAudioStreamBuilder_setDeviceId(builder, octx->deviceId);
 }
 
@@ -314,8 +317,6 @@ static void aaudio_player_init(AAudioOutputContext *octx) {
 		ms_message("[AAudio] Player stream started");
 	}
 
-	updateReceiverContextPtr(octx);
-
 	AAudioStreamBuilder_delete(builder);
 }
 
@@ -347,7 +348,12 @@ static void aaudio_player_callback_error(AAudioStream *stream, void *userData, a
 
 static void android_snd_write_preprocess(MSFilter *obj) {
 	AAudioOutputContext *octx = (AAudioOutputContext*)obj->data;
+	ms_message("[AAudio] DEBUG msaaudio preprocess");
+	// Set requestedDeviceId to the default value based on the available devices
+	octx->setDefaultDeviceIdFromMsSndCard();
 	aaudio_player_init(octx);
+	// Pass AAudio context pointer address to Java VM
+	updateReceiverContextPtr(octx);
 }
 
 static int32_t getUpdatedDeviceId() {
@@ -467,7 +473,7 @@ MSFilter *android_snd_card_create_writer(MSSndCard *card) {
 #ifdef __ANDROID__
 JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerAudioBroadcastReceiver_updateDeviceChangedFlag (JNIEnv * env, jobject obj, jlong ptr, jboolean deviceChanged) {
 	AAudioOutputContext *octx = (AAudioOutputContext*)ptr;
-	ms_message("[AAudio] Setting deviceChanged to %0d", deviceChanged);
+	ms_message("[AAudio] DEBUG Setting deviceChanged to %0d", deviceChanged);
 	if (octx != NULL) {
 		octx->setDeviceChanged();
 	} else {
