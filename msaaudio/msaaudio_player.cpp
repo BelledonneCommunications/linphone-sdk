@@ -57,7 +57,7 @@ struct AAudioOutputContext {
 		ms_flow_controlled_bufferizer_set_flow_control_interval_ms(&buffer, flowControlIntervalMs);
 	}
 
-	void setDeviceChanged() {
+	void updateDeviceId() {
 		requestedDeviceId = getUpdatedDeviceId();
 		// getUpdatedDeviceId returns -1 if device has not been found
 		// Get default
@@ -471,11 +471,10 @@ MSFilter *android_snd_card_create_writer(MSSndCard *card) {
 }
 
 #ifdef __ANDROID__
-JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerAudioBroadcastReceiver_updateDeviceChangedFlag (JNIEnv * env, jobject obj, jlong ptr, jboolean deviceChanged) {
+JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerAudioBroadcastReceiver_requestUpdateDeviceId(JNIEnv * env, jobject obj, jlong ptr) {
 	AAudioOutputContext *octx = (AAudioOutputContext*)ptr;
-	ms_message("[AAudio] DEBUG Setting deviceChanged to %0d", deviceChanged);
 	if (octx != NULL) {
-		octx->setDeviceChanged();
+		octx->updateDeviceId();
 	} else {
 		ms_message("[AAudio] AAudioOutputContext is NULL");
 	}

@@ -48,7 +48,7 @@ void register_aaudio_player(MSFactory* factory);
 extern "C"{
 #endif
 
-JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerAudioBroadcastReceiver_updateDeviceChangedFlag (JNIEnv * env, jobject obj, jlong ptr, jboolean deviceChanged);
+JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerAudioBroadcastReceiver_requestUpdateDeviceId(JNIEnv * env, jobject obj, jlong ptr);
 
 #ifdef __cplusplus
 }
