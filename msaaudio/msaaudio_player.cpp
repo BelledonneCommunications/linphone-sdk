@@ -64,6 +64,7 @@ struct AAudioOutputContext {
 		if (requestedDeviceId == -1) {
 			setDefaultDeviceIdFromMsSndCard();
 		}
+		ms_message("[AAudio] Requesting to create stream in device ID %0d", requestedDeviceId);
 	}
 
 	void setDefaultDeviceId(std::string streamTypeStr) {
@@ -377,10 +378,10 @@ static void android_snd_write_process(MSFilter *obj) {
 	int32_t oldDeviceId = octx->deviceId;
 	int32_t newDeviceId = octx->requestedDeviceId;
 
+	ms_warning("[AAudio] DEBUG Device ID old  %0d to new %0d", oldDeviceId, newDeviceId);
 	// If deviceId has changed, then destroy the stream
 	if (oldDeviceId != newDeviceId) {
 		ms_warning("[AAudio] Switching from device ID %0d to %0d", oldDeviceId, newDeviceId);
-		octx->deviceId = newDeviceId;
 		// Destroy stream if it exists as output device has changed
 		if (octx->stream) {
 			AAudioStream_close(octx->stream);
@@ -463,7 +464,4 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerAudioBroadcast
 		ms_message("[AAudio] AAudioOutputContext is NULL");
 	}
 }
-
 #endif
-
-
