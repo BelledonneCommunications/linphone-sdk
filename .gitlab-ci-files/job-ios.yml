@@ -122,6 +122,8 @@ test-liblinphone-ios:
 
   variables:
     LOG_PATTERN: "logLiblinphoneIos"
+    XML_PATTERN: "TEST"
+    NUMBER_DEVICES: 4
 
   script:
     - unzip build-ios/linphone-sdk-*.zip -d build-ios/
@@ -134,11 +136,12 @@ test-liblinphone-ios:
         xcodebuild -workspace LinphoneTester.xcworkspace \
         -scheme LinphoneTester -sdk iphonesimulator \
         -destination name='iPhone 8' \
+        -parallel-testing-enabled YES -parallel-testing-worker-count $NUMBER_DEVICES \
         -derivedDataPath $WORKSPACE build test 2>&1 | tee $LOG_PATTERN.txt
 
   after_script:
-    #ocunit2junit will produce .xml file by testsuite.
-    - cat tester/IOS/LinphoneTester/$LOG_PATTERN.txt | ocunit2junit
+    - xcresult2junit.rb ${CI_PROJECT_DIR}/tester/IOS/LinphoneTester/build/Logs/Test/*.xcresult | tee $XML_PATTERN.xml
+
 
     - BRANCH=$CI_COMMIT_REF_NAME
     - echo $BRANCH
@@ -163,8 +166,8 @@ test-liblinphone-ios:
 
     #Gathering artifacts in one folder to ease their use
     - mkdir ${CI_PROJECT_DIR}/results
+    - cp -r $XML_PATTERN.xml ${CI_PROJECT_DIR}/results
     - cp -r tester/IOS/LinphoneTester/$LOG_PATTERN.txt ${CI_PROJECT_DIR}/results
-    - cp -r test-reports/* ${CI_PROJECT_DIR}/results
     - cp index.html ${CI_PROJECT_DIR}/results
 
   artifacts:
