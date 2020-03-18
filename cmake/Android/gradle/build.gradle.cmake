@@ -80,9 +80,9 @@ project.tasks['preBuild'].dependsOn 'listPlugins'
 
 android {
     defaultConfig {
-        compileSdkVersion 28
+        compileSdkVersion 29
         minSdkVersion 16
-        targetSdkVersion 28
+        targetSdkVersion 29
         versionCode 4200
         versionName "@LINPHONESDK_VERSION@"
         setProperty("archivesBaseName", "linphone-sdk-android")
