@@ -12,7 +12,7 @@
     - echo $CMAKE_GENERATOR
     - echo $ARCHS_OPTIONS
     - echo $CMAKE_OPTIONS
-    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=IOS $ARCHS_OPTIONS $CMAKE_OPTIONS
+    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="$ARCHS_OPTIONS" $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS
     - echo $ADDITIONAL_BUILD_OPTIONS
     - echo $ADDITIONAL_BUILD_CONFIGURATIONS
     - cmake --build . $ADDITIONAL_BUILD_CONFIGURATIONS --target sdk -- $ADDITIONAL_BUILD_OPTIONS
@@ -44,7 +44,7 @@ job-ios-makefile:
     CMAKE_GENERATOR: Unix Makefiles
     CMAKE_OPTIONS: -DENABLE_SWIFT_WRAPPER=NO
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-    ARCHS_OPTIONS: -DLINPHONESDK_IOS_ARCHS=$IOS_ARCHS
+    ARCHS_OPTIONS: $IOS_ARCHS
   extends: .job-ios
 
 
@@ -57,7 +57,7 @@ job-ios-ninja:
 
   variables:
     CMAKE_GENERATOR: Ninja
-    ARCHS_OPTIONS: -DLINPHONESDK_IOS_ARCHS=$IOS_ARCHS
+    ARCHS_OPTIONS: $IOS_ARCHS
   extends: .job-ios
 
 
@@ -97,9 +97,14 @@ job-ios-xcode:
     CMAKE_GENERATOR: Xcode
     CMAKE_OPTIONS: -DLINPHONESDK_IOS_BASE_URL=$IOS_SNAPSHOTS_URL -DENABLE_SWIFT_WRAPPER=YES -DENABLE_JAZZY_DOC=YES -DENABLE_UNIT_TESTS=YES
     ADDITIONAL_BUILD_CONFIGURATIONS: --config RelWithDebInfo
+    ARCHS_OPTIONS: "arm64,armv7,x86_64"
     ADDITIONAL_BUILD_OPTIONS: -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=$MAX_NUMBER_TASK
 
   extends: .job-ios
+
+#################################################
+# Tests
+#################################################
 
 test-liblinphone-ios:
   tags: [ "macosx" ]

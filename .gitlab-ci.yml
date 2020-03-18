@@ -6,7 +6,10 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
   MAKEFILE_JOBS: 5
   CCACHE_SIZE: 2G
-  CMAKE_OPTIONS: -DENABLE_LIME_X3DH=YES
+
+  #Lime X3DH activated by default, if there is a problem, see the default
+  #build options in CMakeBuilder
+  #Do not set CMAKE_OPTIONS here as it may be overwritten by child jobs
 
 
 #################################################
@@ -34,9 +37,11 @@ include:
   - '.gitlab-ci-files/job-windows.yml'
   - '.gitlab-ci-files/job-packages.yml'
   - '.gitlab-ci-files/job-uploads.yml'
+  - '.gitlab-ci-files/job-check-orphan-commits.yml'
 
 stages:
  - build
  - test
+ - check-orphans
  - package
  - deploy

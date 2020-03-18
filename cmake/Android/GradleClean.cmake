@@ -21,6 +21,7 @@
 ############################################################################
 
 configure_file("${LINPHONESDK_DIR}/cmake/Android/gradle/build.gradle.cmake" "${LINPHONESDK_BUILD_DIR}/build.gradle" @ONLY)
+configure_file("${LINPHONESDK_DIR}/cmake/Android/gradle/upload.gradle.cmake" "${LINPHONESDK_BUILD_DIR}/upload.gradle" @ONLY)
 configure_file("${LINPHONESDK_DIR}/cmake/Android/gradle/gradle.properties.cmake" "${LINPHONESDK_BUILD_DIR}/gradle.properties" @ONLY)
 configure_file("${LINPHONESDK_DIR}/cmake/Android/gradle/LinphoneSdkManifest.xml.cmake" "${LINPHONESDK_BUILD_DIR}/LinphoneSdkManifest.xml" @ONLY)
 

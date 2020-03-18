@@ -42,12 +42,13 @@ In addition to the common components listed above, these components must be inst
 	- download yasm-1.3.0-win32.exe
 	- copy it to a `bin` directory of your user directory,
 	- rename yasm-1.3.0-win32.exe as yasm.exe
-
+ - Perl: You can use binaries from http://strawberryperl.com/
+ 
 Visual Studio must also be properly configured with addons. Under "Tools"->"Obtain tools and features", make sure that the following components are installed:
  - Tasks: Select Windows Universal Platform development, Desktop C++ Development, .NET Development
  - Individual component: Windows 8.1 SDK
 	
-Finally add your user `bin` directory and `C:\Mingw\bin` to the PATH environement variable from windows advanced settings. 
+Finally add your user `bin` directory, `C:\Mingw\bin` and `<perl_path>\bin` to the PATH environement variable from windows advanced settings. 
 
 ## Build
 
@@ -70,6 +71,8 @@ These generic steps work for all platforms, but a few specifics behaviors are go
 in the next subsections.
 
 ### iOS
+
+Requirement: Xcode 10 or earlier (Xcode 11 is not supported yet).
 
 Cmake has limited swift support: only Ninja and Xcode generators can handle swift.
 Until cmake has full swift support, you need to specify configuration step by specifying one of the two backends:
