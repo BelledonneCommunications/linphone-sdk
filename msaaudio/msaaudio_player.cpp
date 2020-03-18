@@ -378,7 +378,6 @@ static void android_snd_write_process(MSFilter *obj) {
 	int32_t oldDeviceId = octx->deviceId;
 	int32_t newDeviceId = octx->requestedDeviceId;
 
-	ms_warning("[AAudio] DEBUG Device ID old  %0d to new %0d", oldDeviceId, newDeviceId);
 	// If deviceId has changed, then destroy the stream
 	if (oldDeviceId != newDeviceId) {
 		ms_warning("[AAudio] Switching from device ID %0d to %0d", oldDeviceId, newDeviceId);
