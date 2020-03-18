@@ -131,10 +131,11 @@
 }
 
 - (void)drawView {
-        /* no opengl es call made when in background */
-        auto &iOSUtils = bctoolbox::IOSUtils::getUtils();
-        if (!iOSUtils.isApplicationStateActive())
-		return;
+	/* no opengl es call made when in background, except that it is now allowed for notification content service extension. */
+	//auto &iOSUtils = bctoolbox::IOSUtils::getUtils();
+	//if (!iOSUtils.isApplicationStateActive())
+	//	return;
+	
 	if([lock tryLock]) {
 		if(context == nil) {
 			[self initOpenGL];
