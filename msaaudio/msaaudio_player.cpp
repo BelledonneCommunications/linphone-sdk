@@ -37,7 +37,7 @@ struct AAudioOutputContext {
 		ms_mutex_init(&mutex, NULL);
 		ms_mutex_init(&stream_mutex, NULL);
 		deviceId = AAUDIO_UNSPECIFIED;
-		requestedDeviceId = AAUDIO_UNSPECIFIED;
+//		requestedDeviceId = AAUDIO_UNSPECIFIED;
 		soundCard = NULL;
 		usage = AAUDIO_USAGE_VOICE_COMMUNICATION;
 		content_type = AAUDIO_CONTENT_TYPE_SPEECH;
@@ -57,6 +57,7 @@ struct AAudioOutputContext {
 		ms_flow_controlled_bufferizer_set_flow_control_interval_ms(&buffer, flowControlIntervalMs);
 	}
 
+/*
 	void updateDeviceId() {
 		requestedDeviceId = getUpdatedDeviceId();
 		// getUpdatedDeviceId returns -1 if device has not been found
@@ -112,6 +113,7 @@ struct AAudioOutputContext {
 			setDefaultDeviceId(streamTypeStr);
 		}
 	}
+*/
 
 	void updateStreamTypeFromMsSndCard() {
 		MSSndCardStreamType type = ms_snd_card_get_stream_type(soundCard);
@@ -154,7 +156,7 @@ struct AAudioOutputContext {
 	aaudio_usage_t usage;
 	aaudio_content_type_t content_type;
 	int32_t deviceId;
-	int32_t requestedDeviceId;
+//	int32_t requestedDeviceId;
 };
 
 static void android_snd_write_init(MSFilter *obj){
@@ -216,10 +218,11 @@ static aaudio_data_callback_result_t aaudio_player_callback(AAudioStream *stream
 }
 
 void setDeviceIdInStreamBuilder(AAudioOutputContext *octx, AAudioStreamBuilder *builder) {
-	octx->deviceId = octx->requestedDeviceId;
+//	octx->deviceId = octx->requestedDeviceId;
 	AAudioStreamBuilder_setDeviceId(builder, octx->deviceId);
 }
 
+/*
 static void updateReceiverContextPtr(AAudioOutputContext *octx) {
 
 	JNIEnv *env = ms_get_jni_env();
@@ -262,6 +265,7 @@ static void updateReceiverContextPtr(AAudioOutputContext *octx) {
 	}
 
 }
+*/
 
 static void aaudio_player_init(AAudioOutputContext *octx) {
 	AAudioStreamBuilder *builder;
@@ -343,12 +347,13 @@ static void aaudio_player_callback_error(AAudioStream *stream, void *userData, a
 static void android_snd_write_preprocess(MSFilter *obj) {
 	AAudioOutputContext *octx = (AAudioOutputContext*)obj->data;
 	// Set requestedDeviceId to the default value based on the available devices
-	octx->setDefaultDeviceIdFromMsSndCard();
+//	octx->setDefaultDeviceIdFromMsSndCard();
 	aaudio_player_init(octx);
 	// Pass AAudio context pointer address to Java VM
-	updateReceiverContextPtr(octx);
+//	updateReceiverContextPtr(octx);
 }
 
+/*
 static int32_t getUpdatedDeviceId() {
 	int32_t id = -1;
 
@@ -369,12 +374,14 @@ static int32_t getUpdatedDeviceId() {
 
 	return id;
 }
+*/
 
 static void android_snd_write_process(MSFilter *obj) {
 	AAudioOutputContext *octx = (AAudioOutputContext*)obj->data;
 
 	ms_mutex_lock(&octx->stream_mutex);
 
+/*
 	int32_t oldDeviceId = octx->deviceId;
 	int32_t newDeviceId = octx->requestedDeviceId;
 
@@ -387,6 +394,7 @@ static void android_snd_write_process(MSFilter *obj) {
 			octx->stream = NULL;
 		}
 	}
+*/
 
 	if (!octx->stream) {
 		aaudio_player_init(octx);
@@ -454,7 +462,13 @@ MSFilter *android_snd_card_create_writer(MSSndCard *card) {
 	return f;
 }
 
+/*
 #ifdef __ANDROID__
+JNIEXPORT jint JNICALL  JNI_OnLoad(JavaVM *ajvm, void *reserved) {
+	ms_set_jvm(ajvm);
+	return JNI_VERSION_1_2;
+}
+
 JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerAudioBroadcastReceiver_requestUpdateDeviceId(JNIEnv * env, jobject obj, jlong ptr) {
 	AAudioOutputContext *octx = (AAudioOutputContext*)ptr;
 	if (octx != NULL) {
@@ -464,3 +478,4 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerAudioBroadcast
 	}
 }
 #endif
+*/
