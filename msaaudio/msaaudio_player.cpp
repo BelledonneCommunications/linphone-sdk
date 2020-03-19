@@ -37,7 +37,6 @@ struct AAudioOutputContext {
 		ms_mutex_init(&mutex, NULL);
 		ms_mutex_init(&stream_mutex, NULL);
 		deviceId = AAUDIO_UNSPECIFIED;
-//		requestedDeviceId = AAUDIO_UNSPECIFIED;
 		soundCard = NULL;
 		usage = AAUDIO_USAGE_VOICE_COMMUNICATION;
 		content_type = AAUDIO_CONTENT_TYPE_SPEECH;
@@ -56,64 +55,6 @@ struct AAudioOutputContext {
 		ms_flow_controlled_bufferizer_set_max_size_ms(&buffer, flowControlThresholdMs);
 		ms_flow_controlled_bufferizer_set_flow_control_interval_ms(&buffer, flowControlIntervalMs);
 	}
-
-/*
-	void updateDeviceId() {
-		requestedDeviceId = getUpdatedDeviceId();
-		// getUpdatedDeviceId returns -1 if device has not been found
-		// Get default
-		if (requestedDeviceId == -1) {
-			setDefaultDeviceIdFromMsSndCard();
-		}
-		ms_message("[AAudio] Requesting to create stream in device ID %0d", requestedDeviceId);
-	}
-
-	void setDefaultDeviceId(std::string streamTypeStr) {
-		// env is an object in C++
-		JNIEnv *env = ms_get_jni_env();
-
-		jclass msAndroidContextClass = env->FindClass("org/linphone/mediastream/MediastreamerAndroidContext");
-		if (msAndroidContextClass != NULL) {
-			jmethodID getDefaultDeviceID = env->GetStaticMethodID(msAndroidContextClass, "getDefaultPlayerDeviceId", "(Ljava/lang/String;)I");
-			if (getDefaultDeviceID != NULL) {
-				// Convert C++ strings to jstrign in order to pass them to the JAVA code
-				jstring jStreamType = env->NewStringUTF(streamTypeStr.c_str());
-				jint id = env->CallStaticIntMethod(msAndroidContextClass, getDefaultDeviceID, jStreamType);
-				requestedDeviceId = (int32_t) id;
-			}
-			env->DeleteLocalRef(msAndroidContextClass);
-		}
-	}
-
-	void setDefaultDeviceIdFromMsSndCard() {
-		MSSndCardStreamType type = ms_snd_card_get_stream_type(soundCard);
-
-		std::string streamTypeStr ("");
-
-		switch (type) {
-			case MS_SND_CARD_STREAM_RING:
-				streamTypeStr.assign("RING");
-				break;
-			case MS_SND_CARD_STREAM_MEDIA:
-				streamTypeStr.assign("MEDIA");
-				break;
-			case MS_SND_CARD_STREAM_DTMF:
-				streamTypeStr.assign("DTMF");
-				break;
-			case MS_SND_CARD_STREAM_VOICE:
-				streamTypeStr.assign("VOICE");
-				break;
-			default:
-				ms_error("[AAudio] Unknown stream type %0d", type);
-				break;
-		}
-
-		// If known conversion to stream type
-		if (!(streamTypeStr.empty())) {
-			setDefaultDeviceId(streamTypeStr);
-		}
-	}
-*/
 
 	void updateStreamTypeFromMsSndCard() {
 		MSSndCardStreamType type = ms_snd_card_get_stream_type(soundCard);
@@ -156,7 +97,6 @@ struct AAudioOutputContext {
 	aaudio_usage_t usage;
 	aaudio_content_type_t content_type;
 	int32_t deviceId;
-//	int32_t requestedDeviceId;
 };
 
 static void android_snd_write_init(MSFilter *obj){
@@ -218,54 +158,8 @@ static aaudio_data_callback_result_t aaudio_player_callback(AAudioStream *stream
 }
 
 void setDeviceIdInStreamBuilder(AAudioOutputContext *octx, AAudioStreamBuilder *builder) {
-//	octx->deviceId = octx->requestedDeviceId;
 	AAudioStreamBuilder_setDeviceId(builder, octx->deviceId);
 }
-
-/*
-static void updateReceiverContextPtr(AAudioOutputContext *octx) {
-
-	JNIEnv *env = ms_get_jni_env();
-
-	std::string msJVLoc("org/linphone/mediastream/");
-	std::string msAudioReceiver("MediastreamerAudioBroadcastReceiver");
-	std::string msAndroidContext("MediastreamerAndroidContext");
-
-	std::string androidContextClassPath(msJVLoc + msAndroidContext);
-	std::string audioReceiverClassPath(msJVLoc + msAudioReceiver);
-
-	jobject audioReceiver = NULL;
-
-	// Get ContextClass
-	jclass msAndroidContextClass = env->FindClass(androidContextClassPath.c_str());
-
-	// Get mMediastreamReceiver
-	if (msAndroidContextClass != NULL) {
-		std::string getAudioReceiverSig("()L" + audioReceiverClassPath + ";");
-		jmethodID getAudioReceiverID = env->GetStaticMethodID(msAndroidContextClass, "getAudioBroadcastReceiver", getAudioReceiverSig.c_str());
-		if (getAudioReceiverID != NULL) {
-			audioReceiver = env->CallStaticObjectMethod(msAndroidContextClass, getAudioReceiverID);
-		}
-	}
-
-	// Get BroadcastClass
-	jclass msAudioReceiverClass = env->FindClass(audioReceiverClassPath.c_str());
-
-	// Set context pointer to mMediastreamReceiver
-	if ((msAudioReceiverClass != NULL) && (audioReceiver != NULL)) {
-		jmethodID setContextPtrID = env->GetMethodID(msAudioReceiverClass, "setContextPtr", "(J)V");
-		if (setContextPtrID != NULL) {
-			env->CallVoidMethod(audioReceiver, setContextPtrID, (jlong)octx);
-		}
-		env->DeleteLocalRef(msAudioReceiverClass);
-	}
-
-	if (msAndroidContextClass != NULL) {
-		env->DeleteLocalRef(msAndroidContextClass);
-	}
-
-}
-*/
 
 static void aaudio_player_init(AAudioOutputContext *octx) {
 	AAudioStreamBuilder *builder;
@@ -346,55 +240,13 @@ static void aaudio_player_callback_error(AAudioStream *stream, void *userData, a
 
 static void android_snd_write_preprocess(MSFilter *obj) {
 	AAudioOutputContext *octx = (AAudioOutputContext*)obj->data;
-	// Set requestedDeviceId to the default value based on the available devices
-//	octx->setDefaultDeviceIdFromMsSndCard();
 	aaudio_player_init(octx);
-	// Pass AAudio context pointer address to Java VM
-//	updateReceiverContextPtr(octx);
 }
-
-/*
-static int32_t getUpdatedDeviceId() {
-	int32_t id = -1;
-
-	// env is an object in C++
-	JNIEnv *env = ms_get_jni_env();
-
-	jclass msAndroidContextClassLocalRef = env->FindClass("org/linphone/mediastream/MediastreamerAndroidContext");
-	jclass msAndroidContextClass = reinterpret_cast<jclass>(env->NewGlobalRef(msAndroidContextClassLocalRef));
-	if (msAndroidContextClass != NULL) {
-		jmethodID getOutputDeviceID = env->GetStaticMethodID(msAndroidContextClass, "getOutputAudioDeviceId", "()I");
-		if (getOutputDeviceID != NULL) {
-			jint jid = env->CallStaticIntMethod(msAndroidContextClass, getOutputDeviceID);
-			id = (int32_t) jid;
-		}
-		env->DeleteGlobalRef(msAndroidContextClass);
-		env->DeleteLocalRef(msAndroidContextClassLocalRef);
-	}
-
-	return id;
-}
-*/
 
 static void android_snd_write_process(MSFilter *obj) {
 	AAudioOutputContext *octx = (AAudioOutputContext*)obj->data;
 
 	ms_mutex_lock(&octx->stream_mutex);
-
-/*
-	int32_t oldDeviceId = octx->deviceId;
-	int32_t newDeviceId = octx->requestedDeviceId;
-
-	// If deviceId has changed, then destroy the stream
-	if (oldDeviceId != newDeviceId) {
-		ms_warning("[AAudio] Switching from device ID %0d to %0d", oldDeviceId, newDeviceId);
-		// Destroy stream if it exists as output device has changed
-		if (octx->stream) {
-			AAudioStream_close(octx->stream);
-			octx->stream = NULL;
-		}
-	}
-*/
 
 	if (!octx->stream) {
 		aaudio_player_init(octx);
@@ -461,21 +313,3 @@ MSFilter *android_snd_card_create_writer(MSSndCard *card) {
 	octx->setContext((AAudioContext*)card->data);
 	return f;
 }
-
-/*
-#ifdef __ANDROID__
-JNIEXPORT jint JNICALL  JNI_OnLoad(JavaVM *ajvm, void *reserved) {
-	ms_set_jvm(ajvm);
-	return JNI_VERSION_1_2;
-}
-
-JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerAudioBroadcastReceiver_requestUpdateDeviceId(JNIEnv * env, jobject obj, jlong ptr) {
-	AAudioOutputContext *octx = (AAudioOutputContext*)ptr;
-	if (octx != NULL) {
-		octx->updateDeviceId();
-	} else {
-		ms_message("[AAudio] AAudioOutputContext is NULL");
-	}
-}
-#endif
-*/

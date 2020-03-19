@@ -42,20 +42,4 @@ MSFilter *android_snd_card_create_writer(MSSndCard *card);
 void register_aaudio_recorder(MSFactory* factory);
 void register_aaudio_player(MSFactory* factory);
 
-/*
-#ifdef __ANDROID__
-#include <jni.h>
-#ifdef __cplusplus
-extern "C"{
-#endif
-JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerAudioBroadcastReceiver_requestUpdateDeviceId(JNIEnv * env, jobject obj, jlong ptr);
-
-#ifdef __cplusplus
-}
-#endif
-
-
-#endif
-*/
-
 #endif // ms_aaudio_h
