@@ -11,6 +11,7 @@ job-ios-upload:
     variables:
       - $DEPLOY_RUN_IOS
       - $NIGHTLY_MASTER
+      - $NIGHTLY_RELEASE
 
   dependencies:
     - job-ios-xcode
@@ -18,9 +19,9 @@ job-ios-upload:
   script:
 
     #using rsync with following options(verbose, keeping symbolic links, and copy recursively)
-    - rsync -rlv build-ios/docs/* $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/docs/liblinphone/swift
+    - rsync -rlv build-ios/docs/* $DEPLOY_SERVER:$DEPLOY_RELEASES_DIRECTORY/docs/liblinphone/swift
 
-    - scp build-ios/linphone-sdk-*.zip $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/ios/
+    - scp build-ios/linphone-sdk-*.zip $DEPLOY_SERVER:$DEPLOY_RELEASES_DIRECTORY/ios/
     - pod repo remove linphone-sdk || true
     - pod repo add linphone-sdk $DEPLOY_PODSPEC_REPO
     - pod repo push linphone-sdk build-ios/linphone-sdk.podspec --skip-import-validation --verbose
@@ -39,6 +40,7 @@ job-android-upload:
     variables:
       - $DEPLOY_RUN_ANDROID
       - $NIGHTLY_MASTER
+      - $NIGHTLY_RELEASE
 
   variables:
     CCACHE_SIZE: 4G
@@ -101,6 +103,7 @@ job-macosx-upload:
     variables:
       - $DEPLOY_RUN_MACOSX
       - $NIGHTLY_MASTER
+      - $NIGHTLY_RELEASE
 
   dependencies:
     - job-macosx-xcode
@@ -148,6 +151,7 @@ job-xamarin-upload:
   only:
     variables:
       - $UPLOAD_XAMARIN
+      - $NIGHTLY_RELEASE
 
   dependencies:
     - job-xamarin-package
