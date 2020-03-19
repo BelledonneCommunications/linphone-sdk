@@ -93,7 +93,7 @@ include_directories(
 
 set(LIBS ${MEDIASTREAMER2_LIBRARIES} aaudio ${ORTP_LIBRARIES} ${BCTOOLBOX_CORE_LIBRARIES})
 
-set(SOURCE_FILES msaaudio_top.cpp msaaudio_player.cpp msaaudio_recorder.cpp)
+set(SOURCE_FILES msaaudio.cpp msaaudio_player.cpp msaaudio_recorder.cpp)
 
 set(MS2_PLUGINS_DIR "${MEDIASTREAMER2_PLUGINS_LOCATION}")
 
