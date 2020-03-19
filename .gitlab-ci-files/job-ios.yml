@@ -39,6 +39,7 @@ job-ios-makefile:
   only:
     variables:
       - $NIGHTLY_MASTER
+      - $NIGHTLY_RELEASE
 
   variables:
     CMAKE_GENERATOR: Unix Makefiles
@@ -66,7 +67,8 @@ job-ios-ninja-novideo:
   only:
     variables:
       - $NIGHTLY_MASTER
-      
+      - $NIGHTLY_RELEASE
+
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-ios-ninja
@@ -77,6 +79,7 @@ job-ios-ninja-smallsdk:
   only:
     variables:
       - $NIGHTLY_MASTER
+      - $NIGHTLY_RELEASE
 
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_ADVANCED_IM=NO -DENABLE_DB_STORAGE=NO
@@ -92,6 +95,7 @@ job-ios-xcode:
     variables:
       - $NIGHTLY_MASTER
       - $DEPLOY_RUN_IOS
+      - $NIGHTLY_RELEASE
 
   variables:
     CMAKE_GENERATOR: Xcode
