@@ -40,7 +40,6 @@ struct AAudioOutputContext {
 		soundCard = NULL;
 		usage = AAUDIO_USAGE_VOICE_COMMUNICATION;
 		content_type = AAUDIO_CONTENT_TYPE_SPEECH;
-		input_preset = AAUDIO_INPUT_PRESET_VOICE_COMMUNICATION;
 		prevXRunCount = 0;
 		bufferCapacity = 0;
 		bufferSize = 0;
@@ -67,25 +66,21 @@ struct AAudioOutputContext {
 			case MS_SND_CARD_STREAM_RING:
 				usage = AAUDIO_USAGE_NOTIFICATION_RINGTONE;
 				content_type = AAUDIO_CONTENT_TYPE_SONIFICATION;
-				input_preset = AAUDIO_INPUT_PRESET_GENERIC;
 				ms_message("[AAudio] Using RING mode");
 				break;
 			case MS_SND_CARD_STREAM_MEDIA:
 				usage = AAUDIO_USAGE_MEDIA;
 				content_type = AAUDIO_CONTENT_TYPE_MUSIC;
-				input_preset = AAUDIO_INPUT_PRESET_GENERIC;
 				ms_message("[AAudio] Using MEDIA mode");
 				break;
 			case MS_SND_CARD_STREAM_DTMF:
 				usage = AAUDIO_USAGE_VOICE_COMMUNICATION_SIGNALLING;
 				content_type =  AAUDIO_CONTENT_TYPE_SONIFICATION ;
-				input_preset = AAUDIO_INPUT_PRESET_GENERIC;
 				ms_message("[AAudio] Using DTMF mode");
 				break;
 			case MS_SND_CARD_STREAM_VOICE:
 				usage = AAUDIO_USAGE_VOICE_COMMUNICATION;
 				content_type = AAUDIO_CONTENT_TYPE_SPEECH;
-				input_preset = AAUDIO_INPUT_PRESET_VOICE_COMMUNICATION;
 				ms_message("[AAudio] Using COMMUNICATION mode");
 				break;
 			default:
@@ -105,7 +100,6 @@ struct AAudioOutputContext {
 	ms_mutex_t mutex;
 	aaudio_usage_t usage;
 	aaudio_content_type_t content_type;
-	aaudio_input_preset_t input_preset;
 	int32_t deviceId;
 
 	int32_t bufferCapacity;
@@ -195,7 +189,6 @@ static void aaudio_player_init(AAudioOutputContext *octx) {
 	AAudioStreamBuilder_setErrorCallback(builder, aaudio_player_callback_error, octx);
 	AAudioStreamBuilder_setUsage(builder, octx->usage); // Requires NDK build target of 28 instead of 26 !
 	AAudioStreamBuilder_setContentType(builder, octx->content_type); // Requires NDK build target of 28 instead of 26 !
-	AAudioStreamBuilder_setInputPreset(builder, octx->input_preset); // Requires NDK build target of 28 instead of 26 !
 
 	ms_message("[AAudio] Player stream configured with samplerate %i and %i channels", octx->aaudio_context->samplerate, octx->aaudio_context->nchannels);
 	
@@ -207,6 +200,9 @@ static void aaudio_player_init(AAudioOutputContext *octx) {
 	} else {
 		ms_message("[AAudio] Player stream opened");
 	}
+
+	ms_message("[AAudio] DEBUG Input preset %0d", AAudioStream_getInputPreset(octx->stream)); // Requires NDK build target of 28 instead of 26 !
+
 	octx->framesPerBurst = AAudioStream_getFramesPerBurst(octx->stream);
 	// Set the buffer size to the burst size - this will give us the minimum possible latency
 	AAudioStream_setBufferSizeInFrames(octx->stream, octx->framesPerBurst * octx->aaudio_context->nchannels);
@@ -307,6 +303,8 @@ static void android_snd_write_process(MSFilter *obj) {
 			}
 		}
 	}
+
+	ms_message("[AAudio] Buffer size %0d (maximum capacity %0d frames)", octx->bufferSize, octx->bufferCapacity);
 
 	android_snd_adjust_buffer_size(octx);
 
