@@ -26,7 +26,7 @@
 #define alloca _alloca
 #endif
 
-#define MIXER_MAX_CHANNELS 20
+#define MIXER_MAX_CHANNELS 50
 #define ALWAYS_STREAMOUT 1
 #define BYPASS_MODE_TIMEOUT 1000
 
