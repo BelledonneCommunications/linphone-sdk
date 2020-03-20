@@ -41,6 +41,10 @@ struct AAudioOutputContext {
 		usage = AAUDIO_USAGE_VOICE_COMMUNICATION;
 		content_type = AAUDIO_CONTENT_TYPE_SPEECH;
 		input_preset = AAUDIO_INPUT_PRESET_VOICE_COMMUNICATION;
+		prevXRunCount = 0;
+		bufferCapacity = 0;
+		bufferSize = 0;
+		framesPerBurst = 0;
 	}
 
 	~AAudioOutputContext() {
@@ -103,6 +107,11 @@ struct AAudioOutputContext {
 	aaudio_content_type_t content_type;
 	aaudio_input_preset_t input_preset;
 	int32_t deviceId;
+
+	int32_t bufferCapacity;
+	int32_t prevXRunCount;
+	int32_t bufferSize;
+	int32_t framesPerBurst;
 };
 
 static void android_snd_write_init(MSFilter *obj){
@@ -198,10 +207,14 @@ static void aaudio_player_init(AAudioOutputContext *octx) {
 	} else {
 		ms_message("[AAudio] Player stream opened");
 	}
-	int32_t framesPerBust = AAudioStream_getFramesPerBurst(octx->stream);
+	octx->framesPerBurst = AAudioStream_getFramesPerBurst(octx->stream);
 	// Set the buffer size to the burst size - this will give us the minimum possible latency
-	AAudioStream_setBufferSizeInFrames(octx->stream, framesPerBust * octx->aaudio_context->nchannels);
+	AAudioStream_setBufferSizeInFrames(octx->stream, octx->framesPerBurst * octx->aaudio_context->nchannels);
 	octx->samplesPerFrame = AAudioStream_getSamplesPerFrame(octx->stream);
+
+	// Current settings
+	octx->bufferCapacity = AAudioStream_getBufferCapacityInFrames(octx->stream);
+	octx->bufferSize = AAudioStream_getBufferSizeInFrames(octx->stream);
 
 	result = AAudioStream_requestStart(octx->stream);
 	if (result != AAUDIO_OK) {
@@ -216,6 +229,8 @@ static void aaudio_player_init(AAudioOutputContext *octx) {
 	} else {
 		ms_message("[AAudio] Player stream started");
 	}
+
+	int32_t xRunCount = AAudioStream_getXRunCount(octx->stream);
 
 	AAudioStreamBuilder_delete(builder);
 }
@@ -251,6 +266,30 @@ static void android_snd_write_preprocess(MSFilter *obj) {
 	aaudio_player_init(octx);
 }
 
+static void android_snd_adjust_buffer_size(AAudioOutputContext *octx) {
+	int32_t xRunCount = AAudioStream_getXRunCount(octx->stream);
+
+	// If underrunning is gettting worse
+	if (xRunCount > octx->prevXRunCount) {
+
+		// New buffer size
+		int32_t newBufferSize = octx->bufferSize + octx->framesPerBurst;
+
+		// Buffer size cannot be bigger than the buffer capacity and it must be larger than 0
+		if (octx->bufferCapacity < newBufferSize) {
+			newBufferSize = octx->bufferCapacity;
+		} else if (newBufferSize <= 0) {
+			newBufferSize = 1;
+		}
+
+		ms_message("[AAudio] xRunCount %0d - Changing buffer size from %0d to %0d frames (maximum capacity %0d frames)", xRunCount, octx->bufferSize, newBufferSize, octx->bufferCapacity);
+		AAudioStream_setBufferSizeInFrames(octx->stream, newBufferSize);
+
+		octx->bufferSize = newBufferSize;
+		octx->prevXRunCount = xRunCount;
+	}
+}
+
 static void android_snd_write_process(MSFilter *obj) {
 	AAudioOutputContext *octx = (AAudioOutputContext*)obj->data;
 
@@ -268,6 +307,9 @@ static void android_snd_write_process(MSFilter *obj) {
 			}
 		}
 	}
+
+	android_snd_adjust_buffer_size(octx);
+
 	ms_mutex_unlock(&octx->stream_mutex);
 
 	ms_mutex_lock(&octx->mutex);
