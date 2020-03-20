@@ -201,8 +201,6 @@ static void aaudio_player_init(AAudioOutputContext *octx) {
 		ms_message("[AAudio] Player stream opened");
 	}
 
-	ms_message("[AAudio] DEBUG Input preset %0d", AAudioStream_getInputPreset(octx->stream)); // Requires NDK build target of 28 instead of 26 !
-
 	octx->framesPerBurst = AAudioStream_getFramesPerBurst(octx->stream);
 	// Set the buffer size to the burst size - this will give us the minimum possible latency
 	AAudioStream_setBufferSizeInFrames(octx->stream, octx->framesPerBurst * octx->aaudio_context->nchannels);
@@ -213,6 +211,7 @@ static void aaudio_player_init(AAudioOutputContext *octx) {
 	octx->bufferSize = AAudioStream_getBufferSizeInFrames(octx->stream);
 
 	result = AAudioStream_requestStart(octx->stream);
+
 	if (result != AAUDIO_OK) {
 		ms_error("[AAudio] Start stream for player failed: %i / %s", result, AAudio_convertResultToText(result));
 		result = AAudioStream_close(octx->stream);
@@ -303,8 +302,6 @@ static void android_snd_write_process(MSFilter *obj) {
 			}
 		}
 	}
-
-	ms_message("[AAudio] Buffer size %0d (maximum capacity %0d frames)", octx->bufferSize, octx->bufferCapacity);
 
 	android_snd_adjust_buffer_size(octx);
 
