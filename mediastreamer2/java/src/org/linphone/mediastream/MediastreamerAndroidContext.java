@@ -23,6 +23,7 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import java.io.File;
 import android.media.AudioManager;
+import android.media.AudioDeviceInfo;
 import android.os.Build;
 
 public class MediastreamerAndroidContext {
@@ -101,6 +102,28 @@ public class MediastreamerAndroidContext {
 		} else {
 			Log.i("Android < 4.4 detected, android context not used.");
 		}
+	}
+
+	public static AudioDeviceInfo[] getAudioDevices(final String device_dir) {
+		int flag = -1;
+		switch(device_dir) {
+			case "output":
+				flag = AudioManager.GET_DEVICES_OUTPUTS;
+				break;
+			case "input":
+				flag = AudioManager.GET_DEVICES_INPUTS;
+				break;
+			case "all":
+				flag = AudioManager.GET_DEVICES_ALL;
+				break;
+			default:
+				Log.e("Unknown device direction - Provided is " + device_dir + " Valid values are output input all");
+				break;
+		}
+
+		AudioManager audiomanager = (AudioManager)getContext().getSystemService(Context.AUDIO_SERVICE);
+		final AudioDeviceInfo[] devices = audiomanager.getDevices(flag);
+		return devices;
 	}
 
 	public static boolean getSpeakerphoneAlwaysOn(org.linphone.mediastream.Factory factory) {
