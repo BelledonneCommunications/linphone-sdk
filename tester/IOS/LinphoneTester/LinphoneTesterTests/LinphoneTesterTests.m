@@ -29,7 +29,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 + (void)initialize {
 }
 
-+ (void)testForSuite:(NSString *)sSuite {
++ (void)testForSuite:(NSString *)sSuite forAsync:(BOOL)async{
     LOGI(@"[message] Launching tests from suite %@", sSuite);
     const char *suite = sSuite.UTF8String;
     bc_tester_register_suite_by_name(suite);
@@ -53,18 +53,31 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
             }
             NSString *selectorName = [NSString stringWithFormat:@"test%@_%@__%@", safesIndex, safesSuite, safesTest];
             
-            [self addInstanceMethodWithSelectorName:selectorName
-                                              block:^(LinphoneTesterBase *myself) {
-                                                  [myself testForSuiteTest:sSuite andTest:sTest];
-                                              }];
+			[self addInstanceMethodWithSelectorName:selectorName
+			block:^(LinphoneTesterBase *myself) {
+				[myself testForSuiteTest:sSuite andTest:sTest forAsync:async];
+			}];
         }
     }
 }
 
-- (void)testForSuiteTest:(NSString *)suite andTest:(NSString *)test {
+- (void)testForSuiteTest:(NSString *)suite andTest:(NSString *)test forAsync:(BOOL)async {
     LOGI(@"[message] Launching test %@ from suite %@", test, suite);
-    XCTAssertFalse(bc_tester_run_tests(suite.UTF8String, test.UTF8String, NULL), @"Suite '%@' / Test '%@' failed",
-                   suite, test);
+	if (async) {
+		XCTestExpectation *exp = [self expectationWithDescription:test];
+		dispatch_async(dispatch_get_global_queue(QOS_CLASS_BACKGROUND, 0), ^{
+			XCTAssertFalse(bc_tester_run_tests(suite.UTF8String, test.UTF8String, NULL), @"Suite '%@' / Test '%@' failed", suite, test);
+			[exp fulfill];
+		});
+
+		[self waitForExpectationsWithTimeout:120 handler:^(NSError *error) {
+			// handle failure
+			LOGI(@"[message] Suite '%@' / Test '%@' failed", test, suite);
+		}];
+	} else {
+		XCTAssertFalse(bc_tester_run_tests(suite.UTF8String, test.UTF8String, NULL), @"Suite '%@' / Test '%@' failed",
+		suite, test);
+	}
 }
 
 @end
@@ -74,7 +87,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 
 @implementation SetupTests
 + (void)initialize {
-    [self testForSuite:@"Setup"];
+    [self testForSuite:@"Setup" forAsync:FALSE];
 }
 @end
 
@@ -83,7 +96,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 
 @implementation TunnelTests
 + (void)initialize {
-    [self testForSuite:@"Tunnel"];
+    [self testForSuite:@"Tunnel" forAsync:FALSE];
 }
 @end
 
@@ -92,7 +105,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 
 @implementation OfferAnswerTests
 + (void)initialize {
-    [self testForSuite:@"Offer-answer"];
+    [self testForSuite:@"Offer-answer" forAsync:FALSE];
 }
 @end
 
@@ -101,7 +114,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 
 @implementation PresenceTests
 + (void)initialize {
-    [self testForSuite:@"Presence"];
+    [self testForSuite:@"Presence" forAsync:FALSE];
 }
 @end
 
@@ -110,7 +123,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 
 @implementation AccountCreatorTests
 + (void)initialize {
-    [self testForSuite:@"Account creator"];
+    [self testForSuite:@"Account creator" forAsync:FALSE];
 }
 @end
 
@@ -119,7 +132,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 
 @implementation ConferenceEventTests
 + (void)initialize {
-    [self testForSuite:@"Conference event"];
+    [self testForSuite:@"Conference event" forAsync:FALSE];
 }
 @end
 
@@ -138,7 +151,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 
 @implementation PlayerTests
 + (void)initialize {
-    [self testForSuite:@"Player"];
+    [self testForSuite:@"Player" forAsync:FALSE];
 }
 @end
 
@@ -147,7 +160,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 
 @implementation DTMFTests
 + (void)initialize {
-    [self testForSuite:@"DTMF"];
+    [self testForSuite:@"DTMF" forAsync:FALSE];
 }
 @end
 
@@ -165,7 +178,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 
 @implementation MultipartTests
 + (void)initialize {
-    [self testForSuite:@"Multipart"];
+    [self testForSuite:@"Multipart" forAsync:FALSE];
 }
 @end
 
@@ -174,7 +187,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 
 @implementation ClonableObjectTests
 + (void)initialize {
-    [self testForSuite:@"ClonableObject"];
+    [self testForSuite:@"ClonableObject" forAsync:FALSE];
 }
 @end
 
@@ -183,7 +196,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 
 @implementation MainDbTests
 + (void)initialize {
-    [self testForSuite:@"MainDb"];
+    [self testForSuite:@"MainDb" forAsync:FALSE];
 }
 @end
 
@@ -192,7 +205,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 
 @implementation PropertyContainerTests
 + (void)initialize {
-    [self testForSuite:@"PropertyContainer"];
+    [self testForSuite:@"PropertyContainer" forAsync:FALSE];
 }
 @end
 
@@ -201,7 +214,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 
 @implementation ProxyConfigTests
 + (void)initialize {
-    [self testForSuite:@"Proxy config"];
+    [self testForSuite:@"Proxy config" forAsync:FALSE];
 }
 @end
 
@@ -210,7 +223,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 
 @implementation VCardTests
 + (void)initialize {
-    [self testForSuite:@"VCard"];
+    [self testForSuite:@"VCard" forAsync:FALSE];
 }
 @end
 
@@ -219,7 +232,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 
 @implementation VideoCallTests
 + (void)initialize {
-    [self testForSuite:@"Video Call"];
+    [self testForSuite:@"Video Call" forAsync:FALSE];
 }
 @end
 
@@ -228,7 +241,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 
 @implementation AudioBypassTests
 + (void)initialize {
-    [self testForSuite:@"Audio Bypass"];
+    [self testForSuite:@"Audio Bypass" forAsync:FALSE];
 }
 @end
 
@@ -237,7 +250,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 
 @implementation ContentsTests
 + (void)initialize {
-    [self testForSuite:@"Contents"];
+    [self testForSuite:@"Contents" forAsync:FALSE];
 }
 @end
 
@@ -246,7 +259,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 
 @implementation VideoTests
 + (void)initialize {
-    [self testForSuite:@"Video"];
+    [self testForSuite:@"Video" forAsync:FALSE];
 }
 @end
 
@@ -255,7 +268,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 
 @implementation MulticastCallTests
 + (void)initialize {
-    [self testForSuite:@"Multicast Call"];
+    [self testForSuite:@"Multicast Call" forAsync:FALSE];
 }
 @end
 
@@ -264,7 +277,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 
 @implementation StunTests
 + (void)initialize {
-    [self testForSuite:@"Stun"];
+    [self testForSuite:@"Stun" forAsync:FALSE];
 }
 @end
 
@@ -273,7 +286,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 
 @implementation EventTests
 + (void)initialize {
-    [self testForSuite:@"Event"];
+    [self testForSuite:@"Event" forAsync:FALSE];
 }
 @end
 
@@ -282,7 +295,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 
 @implementation MessageTests
 + (void)initialize {
-    [self testForSuite:@"Message"];
+    [self testForSuite:@"Message" forAsync:FALSE];
 }
 @end
 
@@ -291,7 +304,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 
 @implementation RemoteProvisioningTests
 + (void)initialize {
-    [self testForSuite:@"RemoteProvisioning"];
+    [self testForSuite:@"RemoteProvisioning" forAsync:FALSE];
 }
 @end
 
@@ -300,7 +313,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 
 @implementation QualityReportingTests
 + (void)initialize {
-    [self testForSuite:@"QualityReporting"];
+    [self testForSuite:@"QualityReporting" forAsync:FALSE];
 }
 @end
 
@@ -309,7 +322,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 
 @implementation RegisterTests
 + (void)initialize {
-    [self testForSuite:@"Register"];
+    [self testForSuite:@"Register"forAsync:TRUE];
 }
 @end
 
@@ -318,7 +331,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 
 @implementation GroupChatTests
 + (void)initialize {
-    [self testForSuite:@"Group Chat"];
+    [self testForSuite:@"Group Chat" forAsync:FALSE];
 }
 @end
 
@@ -327,7 +340,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 
 @implementation SecureGroupChatTests
 + (void)initialize {
-	[self testForSuite:@"Secure group chat"];
+	[self testForSuite:@"Secure group chat" forAsync:FALSE];
 }
 @end
 
@@ -336,7 +349,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 
 @implementation FlexisipTests
 + (void)initialize {
-    [self testForSuite:@"Flexisip"];
+    [self testForSuite:@"Flexisip" forAsync:FALSE];
 }
 @end
 
@@ -345,7 +358,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 
 @implementation MultiCallTests
 + (void)initialize {
-    [self testForSuite:@"Multi call"];
+    [self testForSuite:@"Multi call" forAsync:FALSE];
 }
 @end
 
@@ -354,7 +367,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 
 @implementation SecureCallTests
 + (void)initialize {
-	[self testForSuite:@"Secure Call"];
+	[self testForSuite:@"Secure Call" forAsync:FALSE];
 }
 @end
 
@@ -363,7 +376,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 
 @implementation SingleCallTests
 + (void)initialize {
-    [self testForSuite:@"Single Call"];
+    [self testForSuite:@"Single Call" forAsync:FALSE];
 }
 @end
 
@@ -372,7 +385,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 
 @implementation VideoCallQualityTests
 + (void)initialize {
-	[self testForSuite:@"Video Call quality"];
+	[self testForSuite:@"Video Call quality" forAsync:FALSE];
 }
 @end
 
@@ -381,7 +394,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 
 @implementation PresenceUsingServerTests
 + (void)initialize {
-    [self testForSuite:@"Presence using server"];
+    [self testForSuite:@"Presence using server" forAsync:FALSE];
 }
 @end
 
@@ -390,7 +403,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 
 @implementation CallRecoveryTests
 + (void)initialize {
-    [self testForSuite:@"Call recovery"];
+    [self testForSuite:@"Call recovery" forAsync:FALSE];
 }
 @end
 
@@ -399,7 +412,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 
 @implementation CallWithICETests
 + (void)initialize {
-    [self testForSuite:@"Call with ICE"];
+    [self testForSuite:@"Call with ICE" forAsync:FALSE];
 }
 @end
 
@@ -408,7 +421,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 
 @implementation UtilsTests
 + (void)initialize {
-	[self testForSuite:@"Utils"];
+	[self testForSuite:@"Utils" forAsync:FALSE];
 }
 @end
 
