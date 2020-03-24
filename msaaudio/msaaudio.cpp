@@ -104,8 +104,10 @@ static MSSndCard* android_snd_card_new(MSSndCardManager *m) {
 	d = ms_devices_info_get_sound_device_description(devices);
 
 	AAudioContext *context = aaudio_context_init();
-	if (d->flags & DEVICE_HAS_BUILTIN_AEC) card->capabilities |= MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER;
-	context->builtin_aec = true;
+	if (d->flags & DEVICE_HAS_BUILTIN_AEC) {
+		card->capabilities |= MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER;
+		context->builtin_aec = true;
+	}
 	card->latency = d->delay;
 	card->data = context;
 	if (d->recommended_rate){
