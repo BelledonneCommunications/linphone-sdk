@@ -5,7 +5,7 @@
 
 job-ios-upload:
   stage: deploy
-  tags: [ "deploy" ]
+  tags: [ "macosx-xcode11" ]
 
   only:
     variables:
@@ -94,7 +94,7 @@ job-android-upload-legacy:
 
 job-macosx-upload:
   stage: deploy
-  tags: [ "deploy" ]
+  tags: [ "macosx-xcode11" ]
 
   only:
     variables:
