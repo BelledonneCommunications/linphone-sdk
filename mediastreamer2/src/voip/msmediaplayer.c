@@ -106,7 +106,7 @@ static MSFileFormat four_cc_to_file_format(const FourCC four_cc) {
 MSMediaPlayer *ms_media_player_new(MSFactory* factory, MSSndCard *snd_card, const char *video_display_name, void *window_id) {
 	MSMediaPlayer *obj = (MSMediaPlayer *)ms_new0(MSMediaPlayer, 1);
 	ms_mutex_init(&obj->cb_access, NULL);
-	obj->snd_card = snd_card;
+	obj->snd_card = ms_snd_card_ref(snd_card);
 	if(video_display_name != NULL && strlen(video_display_name) > 0) {
 		obj->video_display = ms_strdup(video_display_name);
 		obj->window_id = window_id;
@@ -118,6 +118,7 @@ MSMediaPlayer *ms_media_player_new(MSFactory* factory, MSSndCard *snd_card, cons
 
 void ms_media_player_free(MSMediaPlayer *obj) {
 	ms_media_player_close(obj);
+	ms_snd_card_unref(obj->snd_card);
 	ms_free_if_not_null(obj->video_display);
 	ms_free(obj);
 }

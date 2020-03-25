@@ -145,6 +145,26 @@ enum _MSSndCardStreamType{
  */
 typedef enum _MSSndCardStreamType MSSndCardStreamType;
 
+enum _MSSndCardDeviceType {
+	MS_SND_CARD_DEVICE_TYPE_TELEPHONY,
+	MS_SND_CARD_DEVICE_TYPE_AUX_LINE,
+	MS_SND_CARD_DEVICE_TYPE_GENERIC_USB,
+	MS_SND_CARD_DEVICE_TYPE_HEADSET,
+	MS_SND_CARD_DEVICE_TYPE_MICROPHONE,
+	MS_SND_CARD_DEVICE_TYPE_EARPIECE,
+	MS_SND_CARD_DEVICE_TYPE_HEADPHONES,
+	MS_SND_CARD_DEVICE_TYPE_SPEAKER,
+	MS_SND_CARD_DEVICE_TYPE_BLUETOOTH,
+	MS_SND_CARD_DEVICE_TYPE_BLUETOOTH_A2DP,
+	MS_SND_CARD_DEVICE_TYPE_UNKNOWN
+};
+
+/**
+ * device type enum.
+ * @var DeviceType
+**/
+typedef enum _MSSndCardDeviceType MSSndCardDeviceType;
+
 #define MS_SND_CARD_CAP_DISABLED (0) /**<This soundcard is disabled.*/
 #define MS_SND_CARD_CAP_CAPTURE (1) /**<This sound card can capture sound */
 #define MS_SND_CARD_CAP_PLAYBACK (1<<1) /**<This sound card can playback sound */
@@ -156,11 +176,14 @@ struct _MSSndCard{
 	MSSndCardManager* sndcardmanager;
 	char *name;
 	char *id;
+	int  internal_id;
 	unsigned int capabilities;
+	MSSndCardDeviceType device_type;
 	void *data;
 	int preferred_sample_rate;
 	int latency;
 	MSSndCardStreamType streamType;
+	int ref_count;
 };
 
 #ifdef __cplusplus
@@ -202,10 +225,10 @@ MS2_PUBLIC MSSndCardManager * ms_snd_card_manager_new(void);
 MS2_PUBLIC void ms_snd_card_manager_destroy(MSSndCardManager* sndcardmanager);
 
 /**
- * Retreive a sound card object based on its name.
+ * Retreive a sound card object based on its id.
  *
  * @param m    A sound card manager containing sound cards.
- * @param id   A name for card to search.
+ * @param id   An id for card to search.
  *
  * Returns: MSSndCard if successfull, NULL otherwise.
  */
@@ -220,6 +243,16 @@ MS2_PUBLIC MSSndCard * ms_snd_card_manager_get_card(MSSndCardManager *m, const c
  * Returns: MSSndCard if successfull, NULL otherwise.
  */
 MS2_PUBLIC MSSndCard * ms_snd_card_manager_get_playback_card(MSSndCardManager *m, const char *id);
+
+/**
+ * Retreive all sound cards having the name provided as input.
+ *
+ * @param m      A sound card manager containing sound cards.
+ * @param name   A name for card to search.
+ *
+ * Returns: MSSndCard list of cards if successfull, NULL otherwise.
+ */
+MS2_PUBLIC bctbx_list_t * ms_snd_card_manager_get_all_cards_with_name(MSSndCardManager *m, const char *name);
 
 /**
  * Retreive a capture capable sound card object based on its name.
@@ -311,10 +344,47 @@ MS2_PUBLIC void ms_snd_card_manager_prepend_cards(MSSndCardManager *m, MSList *l
 MS2_PUBLIC void ms_snd_card_manager_register_desc(MSSndCardManager *m, MSSndCardDesc *desc);
 
 /**
+ * Unregister a sound card description in a sound card manager.
+ *
+ * @param m      A sound card manager containing sound cards.
+ * @param desc   A sound card description object.
+ *
+ */
+MS2_PUBLIC void ms_snd_card_manager_unregister_desc(MSSndCardManager *m, MSSndCardDesc *desc);
+
+/**
  * Ask all registered MSSndCardDesc to re-detect their soundcards.
  * @param m The sound card manager.
 **/
 MS2_PUBLIC void ms_snd_card_manager_reload(MSSndCardManager *m);
+
+/**
+ * Check if there is another card in the manager having same driver_type, name and device_type
+ * @param m    Card Manager
+ * @param card Card to compare properties against
+ * @param checkCapabilities flag to check capabilities
+ *
+ * Returns: true if a duplicate has been found, false otherwise
+**/
+MS2_PUBLIC bool_t ms_snd_card_is_card_duplicate(MSSndCardManager *m, MSSndCard * card, bool_t checkCapabilities);
+
+/**
+ * Prevent card type to be at the head fo the list
+ * @param m    Card Manager
+ * @param type Card type to remove from the head of list of cards
+ *
+**/
+MS2_PUBLIC void ms_snd_card_remove_type_from_list_head(MSSndCardManager *m, MSSndCardDeviceType type);
+
+/**
+ * Swap two position of 2 sound cards in the sound card manager.
+ * @param m       Card Manager
+ * @param card0   Card to be swapped
+ * @param card1   Card to be swapped
+ *
+ * Returns: true if card0 and card1 are not null and both are found among the list of sound cards in the card manager, false otherwise
+**/
+MS2_PUBLIC bool_t ms_snd_card_manager_swap_cards(MSSndCardManager *m, MSSndCard *card0, MSSndCard *card1);
 
 /* This function is available for testing only, this should not be used in a real application! */
 MS2_PUBLIC void ms_snd_card_manager_bypass_soundcard_detection(bool_t value);
@@ -368,6 +438,7 @@ MS2_PUBLIC MSSndCard * ms_snd_card_new_with_name(MSSndCardDesc *desc,const char*
  * Destroy sound card object.
  *
  * @param obj   A MSSndCard object.
+ * @deprecated, use ms_snd_card_unref instead
  */
 MS2_PUBLIC void ms_snd_card_destroy(MSSndCard *obj);
 
@@ -383,6 +454,16 @@ MS2_PUBLIC void ms_snd_card_destroy(MSSndCard *obj);
 MS2_PUBLIC MSSndCard * ms_snd_card_dup(MSSndCard *card);
 
 /**
+ * Retreive a sound card's device type.
+ *
+ * @param obj   A sound card object.
+ *
+ * Returns: an MSSndCardDeviceType enum type.
+ * Default value is MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_UNKNOWN.
+ */
+MS2_PUBLIC MSSndCardDeviceType ms_snd_card_get_device_type(const MSSndCard *obj);
+
+/**
  * Retreive a sound card's driver type string.
  *
  * Internal driver types are either: "OSS, ALSA, WINSND, PASND, CA"
@@ -392,6 +473,15 @@ MS2_PUBLIC MSSndCard * ms_snd_card_dup(MSSndCard *card);
  * Returns: a string if successfull, NULL otherwise.
  */
 MS2_PUBLIC const char *ms_snd_card_get_driver_type(const MSSndCard *obj);
+
+/**
+ * Retreive a sound card's device type string.
+ *
+ * @param type   A sound card type.
+ *
+ * Returns: a string if successfull, "bad type" otherwise.
+ */
+MS2_PUBLIC const char * ms_snd_card_device_type_to_string(const MSSndCardDeviceType type);
 
 /**
  * Retreive a sound card's name.
@@ -411,6 +501,14 @@ MS2_PUBLIC const char *ms_snd_card_get_name(const MSSndCard *obj);
  */
 MS2_PUBLIC const char *ms_snd_card_get_string_id(MSSndCard *obj);
 
+/**
+ * Retrieve sound card's internal ID.
+ *
+ * @param obj    A sound card object.
+ *
+ * Returns: An integer storing the internal ID value.
+ */
+MS2_PUBLIC int ms_snd_card_get_internal_id(MSSndCard *obj);
 
 /**
  * Retreive sound card's capabilities.
@@ -453,6 +551,15 @@ MS2_PUBLIC int ms_snd_card_get_minimal_latency(MSSndCard *obj);
  *
  */
 MS2_PUBLIC void ms_snd_card_set_level(MSSndCard *obj, MSSndCardMixerElem e, int percent);
+
+/**
+ * Set internal ID of the sound card.
+ *
+ * @param obj      A sound card object.
+ * @param id       A sound card internal ID.
+ *
+ */
+MS2_PUBLIC void ms_snd_card_set_internal_id(MSSndCard *obj, int id);
 
 /**
  * Get some mixer level value.
@@ -593,6 +700,21 @@ MS2_PUBLIC MSSndCard * ms_alsa_card_new_custom(const char *pcmdev, const char *m
  * Use -1 to revert to normal behavior.
 **/
 MS2_PUBLIC void ms_alsa_card_set_forced_sample_rate(int samplerate);
+
+/**
+ * Returns a string value of the given MSSndCardDeviceType enum
+ */
+MS2_PUBLIC const char* ms_snd_card_device_type_to_string(MSSndCardDeviceType type);
+
+/**
+ * Takes a ref on a MSSndCard
+ */
+MS2_PUBLIC MSSndCard* ms_snd_card_ref(MSSndCard *sndCard);
+
+/**
+ * Removes a ref from a MSSndCard
+ */
+MS2_PUBLIC void ms_snd_card_unref(MSSndCard *sndCard);
 
 /** @} */
 

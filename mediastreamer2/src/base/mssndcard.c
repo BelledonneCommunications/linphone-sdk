@@ -43,7 +43,7 @@ void ms_snd_card_manager_destroy(MSSndCardManager* scm){
 			if (desc->unload!=NULL)
 				desc->unload(scm);
 		}
-		bctbx_list_for_each(scm->cards,(void (*)(void*))ms_snd_card_destroy);
+		bctbx_list_for_each(scm->cards,(void (*)(void*))ms_snd_card_unref);
 		bctbx_list_free(scm->cards);
 		bctbx_list_free(scm->descs);
 	}
@@ -72,6 +72,18 @@ static MSSndCard *get_card_with_cap(MSSndCardManager *m, const char *id, unsigne
 		if ((id== NULL || strcmp(ms_snd_card_get_string_id(card),id)==0) && (card->capabilities & caps) == caps)	return card;
 	}
 	return NULL;
+}
+
+bctbx_list_t * ms_snd_card_manager_get_all_cards_with_name(MSSndCardManager *m, const char *name){
+	bctbx_list_t *cards = NULL;
+	bctbx_list_t *elem;
+	for (elem=m->cards;elem!=NULL;elem=elem->next){
+		MSSndCard *card=(MSSndCard*)elem->data;
+		if (strcmp(ms_snd_card_get_name(card),name)==0) {
+			cards=bctbx_list_append(cards, ms_snd_card_ref(card));
+		}
+	}
+	return cards;
 }
 
 MSSndCard * ms_snd_card_manager_get_playback_card(MSSndCardManager *m, const char *id){
@@ -121,13 +133,46 @@ static const char *cap_to_string(unsigned int cap){
 void ms_snd_card_manager_add_card(MSSndCardManager *m, MSSndCard *c){
 	ms_snd_card_set_manager(m,c);
 	ms_message("Card '%s' added with capabilities [%s]",ms_snd_card_get_string_id(c), cap_to_string(c->capabilities));
-	m->cards=bctbx_list_append(m->cards,c);
+	m->cards=bctbx_list_append(m->cards, ms_snd_card_ref(c));
 }
 
 void ms_snd_card_manager_prepend_card(MSSndCardManager *m, MSSndCard *c){
 	ms_snd_card_set_manager(m,c);
 	ms_message("Card '%s' prepended with capabilities [%s]",ms_snd_card_get_string_id(c), cap_to_string(c->capabilities));
-	m->cards=bctbx_list_prepend(m->cards,c);
+	m->cards=bctbx_list_prepend(m->cards, ms_snd_card_ref(c));
+}
+
+bool_t ms_snd_card_manager_swap_cards(MSSndCardManager *m, MSSndCard *card0, MSSndCard *card1){
+
+	if (!card0) return FALSE;
+	if (!card1) return FALSE;
+
+	bctbx_list_t *elem = NULL;
+	bctbx_list_t *ltmp = NULL;
+	bool_t card0_found = FALSE;
+	bool_t card1_found = FALSE;
+	for (elem = m->cards; elem != NULL; elem = elem->next) {
+		MSSndCard *card = (MSSndCard *)elem->data;
+		MSSndCard *c = NULL;
+		if (strcmp(ms_snd_card_get_string_id(card),ms_snd_card_get_string_id(card0))==0){
+			card0_found = TRUE;
+			c = card1;
+		} else if (strcmp(ms_snd_card_get_string_id(card),ms_snd_card_get_string_id(card1))==0){
+			card1_found = TRUE;
+			c = card0;
+		} else {
+			c = card;
+		}
+		ltmp=bctbx_list_append(ltmp, c);
+	}
+	if (card0_found && card1_found) {
+		m->cards=ltmp;
+		return TRUE;
+	} else {
+		ms_message("[Card Swap] Unable to swap position of card '%s' and card '%s' because %s has not been found",ms_snd_card_get_string_id(card0), ms_snd_card_get_string_id(card1), (card0_found ? "latter" : "former"));
+		return FALSE;
+	}
+
 }
 
 void ms_snd_card_manager_prepend_cards(MSSndCardManager *m, bctbx_list_t *l) {
@@ -154,22 +199,29 @@ static void card_detect(MSSndCardManager *m, MSSndCardDesc *desc){
 }
 
 void ms_snd_card_manager_register_desc(MSSndCardManager *m, MSSndCardDesc *desc){
-	if (bctbx_list_find(m->descs, desc) == NULL){
-		m->descs=bctbx_list_append(m->descs,desc);
-		card_detect(m,desc);
+	if (bctbx_list_find(m->descs, desc) == NULL) {
+		m->descs = bctbx_list_append(m->descs, desc);
+		card_detect(m, desc);
+	}
+}
+
+void ms_snd_card_manager_unregister_desc(MSSndCardManager *m, MSSndCardDesc *desc){
+	if (bctbx_list_find(m->descs, desc) != NULL) {
+		m->descs = bctbx_list_remove(m->descs, desc);
 	}
 }
 
 void ms_snd_card_manager_reload(MSSndCardManager *m){
 	bctbx_list_t *elem;
-	bctbx_list_for_each(m->cards,(void (*)(void*))ms_snd_card_destroy);
+	bctbx_list_for_each(m->cards, (void (*)(void*))ms_snd_card_unref);
 	bctbx_list_free(m->cards);
-	m->cards=NULL;
-	for(elem=m->descs;elem!=NULL;elem=elem->next)
-		card_detect(m,(MSSndCardDesc*)elem->data);
+	m->cards = NULL;
+	for (elem = m->descs; elem != NULL; elem = elem->next) {
+		card_detect(m, (MSSndCardDesc*)elem->data);
+	}
 }
 
-MSSndCard * ms_snd_card_dup(MSSndCard *card){
+MSSndCard* ms_snd_card_dup(MSSndCard *card){
 	MSSndCard *obj=NULL;
 	if (card->desc->duplicate!=NULL)
 		obj=card->desc->duplicate(card);
@@ -187,11 +239,48 @@ MSSndCard * ms_snd_card_new_with_name(MSSndCardDesc *desc,const char* name) {
 	obj->name=name?ms_strdup(name):NULL;
 	obj->data=NULL;
 	obj->id=NULL;
+	obj->internal_id=-1;
+	obj->device_type=MS_SND_CARD_DEVICE_TYPE_UNKNOWN;
 	obj->capabilities=MS_SND_CARD_CAP_CAPTURE|MS_SND_CARD_CAP_PLAYBACK;
 	obj->streamType=MS_SND_CARD_STREAM_VOICE;
 	if (desc->init!=NULL)
 		desc->init(obj);
 	return obj;
+}
+
+MSSndCardDeviceType ms_snd_card_get_device_type(const MSSndCard *obj){
+	return obj->device_type;
+}
+
+const char * ms_snd_card_device_type_to_string(const MSSndCardDeviceType type){
+	switch(type) {
+		case MS_SND_CARD_DEVICE_TYPE_TELEPHONY:
+			return "Telephony";
+		case MS_SND_CARD_DEVICE_TYPE_AUX_LINE:
+			return "Aux line";
+		case MS_SND_CARD_DEVICE_TYPE_GENERIC_USB:
+			return "USB device";
+		case MS_SND_CARD_DEVICE_TYPE_HEADSET:
+			return "Headset";
+		case MS_SND_CARD_DEVICE_TYPE_MICROPHONE:
+			return "Microphone";
+		case MS_SND_CARD_DEVICE_TYPE_EARPIECE:
+			return "Earpiece";
+		case MS_SND_CARD_DEVICE_TYPE_HEADPHONES:
+			return "Headphones";
+		case MS_SND_CARD_DEVICE_TYPE_SPEAKER:
+			return "Speaker";
+		case MS_SND_CARD_DEVICE_TYPE_BLUETOOTH:
+			return "Bluetooth";
+		case MS_SND_CARD_DEVICE_TYPE_BLUETOOTH_A2DP:
+			return "Bluetooth A2DP";
+		case MS_SND_CARD_DEVICE_TYPE_UNKNOWN:
+			return "Unknown";
+		default:
+			return "bad type";
+	}
+
+	return "bad type";
 }
 
 const char *ms_snd_card_get_driver_type(const MSSndCard *obj){
@@ -211,8 +300,23 @@ MS2_PUBLIC int ms_snd_card_get_minimal_latency(MSSndCard *obj){
 }
 
 const char *ms_snd_card_get_string_id(MSSndCard *obj){
-	if (obj->id==NULL)	obj->id=ms_strdup_printf("%s: %s",obj->desc->driver_type,obj->name);
+	if (obj->id==NULL) {
+		bool_t addExtraData = ((obj->device_type==MS_SND_CARD_DEVICE_TYPE_BLUETOOTH) && (strcmp(obj->desc->driver_type, "openSLES") != 0));
+		if (addExtraData == TRUE) {
+			obj->id=ms_strdup_printf("%s %s %s: %s",obj->desc->driver_type,ms_snd_card_device_type_to_string(obj->device_type),cap_to_string(obj->capabilities),obj->name);
+		} else {
+			obj->id=ms_strdup_printf("%s %s: %s",obj->desc->driver_type,ms_snd_card_device_type_to_string(obj->device_type),obj->name);
+		}
+	}
 	return obj->id;
+}
+
+void ms_snd_card_set_internal_id(MSSndCard *obj, int id){
+	obj->internal_id = id;
+}
+
+int ms_snd_card_get_internal_id(MSSndCard *obj){
+	return obj->internal_id;
 }
 
 void ms_snd_card_set_level(MSSndCard *obj, MSSndCardMixerElem e, int percent){
@@ -286,10 +390,7 @@ void ms_snd_card_app_notifies_activation(MSSndCard *obj, bool_t yesno) {
 }
 
 void ms_snd_card_destroy(MSSndCard *obj){
-	if (obj->desc->uninit!=NULL) obj->desc->uninit(obj);
-	if (obj->name!=NULL) ms_free(obj->name);
-	if (obj->id!=NULL)	ms_free(obj->id);
-	ms_free(obj);
+	ms_snd_card_unref(obj);
 }
 
 int ms_snd_card_get_preferred_sample_rate(const MSSndCard *obj) {
@@ -332,3 +433,65 @@ MSSndCardManager* ms_snd_card_manager_get(void) {
 	return ms_factory_get_snd_card_manager(ms_factory_get_fallback());
 }
 
+MSSndCard* ms_snd_card_ref(MSSndCard *sndCard) {
+	sndCard->ref_count++;
+	return sndCard;
+}
+
+void ms_snd_card_unref(MSSndCard *sndCard) {
+	sndCard->ref_count--;
+	if (sndCard->ref_count <= 0) {
+		if (sndCard->desc->uninit) sndCard->desc->uninit(sndCard);
+		if (sndCard->name != NULL) ms_free(sndCard->name);
+		if (sndCard->id != NULL) ms_free(sndCard->id);
+		ms_free(sndCard);
+	}
+}
+
+bool_t ms_snd_card_is_card_duplicate(MSSndCardManager *m, MSSndCard * card, bool_t checkCapabilities) {
+	bctbx_list_t * cards = ms_snd_card_manager_get_all_cards_with_name(m, card->name);
+
+	// Distinguish card by playback and capture.
+	// Ignore other capatibilirties such as built-in echo cancelling
+	unsigned int caps_mask = (MS_SND_CARD_CAP_PLAYBACK | MS_SND_CARD_CAP_CAPTURE);
+	unsigned int card_caps = ms_snd_card_get_capabilities(card) & caps_mask;
+
+	// In modern devices, some devices are duplicated to improve performance.
+	// Only one of them will be added to the card manager. In order to simplify the logic, the device added to the manager will depend on the order devices are in the list.
+	// For any given combination of <name>,<driver_type>,<device_type> only the first one inn the list will be added to the card manager
+	// If a card with same driver type and device_type has already been added to the sound card manager
+	bctbx_list_t * elem;
+	bool_t same_type_card_found = FALSE;
+	for (elem=cards;elem!=NULL;elem=elem->next){
+		MSSndCard *c=(MSSndCard*)elem->data;
+		unsigned int elem_caps = ms_snd_card_get_capabilities(c) & caps_mask;
+		if ((c->device_type == card->device_type) && (strcmp(c->desc->driver_type, card->desc->driver_type)==0) && ((checkCapabilities == FALSE) || (card_caps == elem_caps))) {
+			same_type_card_found = TRUE;
+		}
+	}
+
+	// Free memory and unref sound cards
+	bctbx_list_for_each(cards, (void (*)(void*))ms_snd_card_unref);
+	bctbx_list_free(cards);
+
+	return same_type_card_found;
+}
+
+void ms_snd_card_remove_type_from_list_head(MSSndCardManager *m, MSSndCardDeviceType type) {
+		MSSndCard * head = ms_snd_card_ref(ms_snd_card_manager_get_card(m, NULL));
+		// Loop until the type of the head of the list is not a bluetooh device
+		while(ms_snd_card_get_device_type(head) == type) {
+			bctbx_list_t * elem;
+			for (elem=m->cards;elem!=NULL;elem=elem->next){
+				MSSndCard *c=(MSSndCard*)elem->data;
+				if(ms_snd_card_get_device_type(c) != type) {
+					ms_snd_card_manager_swap_cards(m, head, c);
+					// Exit for loop once swap occurred
+					break;
+				}
+			}
+			ms_snd_card_unref(head);
+			head = ms_snd_card_ref(ms_snd_card_manager_get_card(m, NULL));
+		}
+		ms_snd_card_unref(head);
+}

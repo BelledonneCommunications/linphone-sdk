@@ -667,16 +667,6 @@ the method index (_cnt_) and the argument size */
 /**Filters can return their latency in milliseconds (if known) using this method:*/
 #define MS_FILTER_GET_LATENCY		MS_FILTER_BASE_METHOD(11,int)
 
-/**
- * Set device ID
- */
-#define MS_FILTER_SET_DEVICE_ID        MS_FILTER_BASE_METHOD(12,int)
-/**
- * Get device ID
- */
-#define MS_FILTER_GET_DEVICE_ID        MS_FILTER_BASE_METHOD(13,int)
-
-
 typedef struct _MSPinFormat{
 	uint16_t pin;
 	const MSFmtDescriptor *fmt;

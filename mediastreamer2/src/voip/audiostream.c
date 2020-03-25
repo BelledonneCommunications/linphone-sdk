@@ -91,6 +91,8 @@ static void audio_stream_free(AudioStream *stream) {
 	if (stream->outbound_mixer) ms_filter_destroy(stream->outbound_mixer);
 	if (stream->recorder_file) ms_free(stream->recorder_file);
 	if (stream->rtp_io_session) rtp_session_destroy(stream->rtp_io_session);
+	if (stream->captcard) ms_snd_card_unref(stream->captcard);
+	if (stream->playcard) ms_snd_card_unref(stream->playcard);
 
 	ms_free(stream);
 }
@@ -172,6 +174,32 @@ static bool_t audio_stream_payload_type_changed(RtpSession *session, void *data)
 }
 
 /*
+ * note: Only AAudio and OpenSLES leverage internal ID for input streams.
+ */
+static void audio_stream_configure_input_snd_card(AudioStream *stream) {
+	MSSndCard *card = stream->captcard;
+	if (stream->soundread) {
+		if(ms_filter_implements_interface(stream->soundread, MSFilterAudioCaptureInterface)) {
+			ms_filter_call_method(stream->soundread, MS_AUDIO_CAPTURE_SET_INTERNAL_ID, card);
+			ms_message("[AudioStream] set input sound card for %s:%p to %s", ms_filter_get_name(stream->soundread), stream->soundread, card->id);
+		}
+	}
+}
+
+/*
+ * note: Only AAudio and OpenSLES leverage internal ID for output streams.
+ */
+static void audio_stream_configure_output_snd_card(AudioStream *stream) {
+	MSSndCard *card = stream->playcard;
+	if (stream->soundwrite) {
+		if(ms_filter_implements_interface(stream->soundwrite, MSFilterAudioPlaybackInterface)) {
+			ms_filter_call_method(stream->soundwrite, MS_AUDIO_PLAYBACK_SET_INTERNAL_ID, card);
+			ms_message("[AudioStream] set output sound card for %s:%p to %s", ms_filter_get_name(stream->soundwrite), stream->soundwrite, card->id);
+		}
+	}
+}
+
+/*
  * note: since not all filters implement MS_FILTER_GET_SAMPLE_RATE and MS_FILTER_GET_NCHANNELS, the PayloadType passed here is used to guess this information.
  */
 static void audio_stream_configure_resampler(AudioStream *st, MSFilter *resampler,MSFilter *from, MSFilter *to) {
@@ -181,20 +209,25 @@ static void audio_stream_configure_resampler(AudioStream *st, MSFilter *resample
 	ms_filter_call_method(to,MS_FILTER_GET_SAMPLE_RATE,&to_rate);
 	ms_filter_call_method(from, MS_FILTER_GET_NCHANNELS, &from_channels);
 	ms_filter_call_method(to, MS_FILTER_GET_NCHANNELS, &to_channels);
+
+	// Access name member only if filter desc member is not null to aviod segfaults
+	const char * from_name = (from) ? ((from->desc) ? from->desc->name : "Unknown") : "Unknown";
+	const char * to_name = (to) ? ((to->desc) ? to->desc->name : "Unknown" ) : "Unknown";
+
 	if (from_channels == 0) {
 		from_channels = st->nchannels;
-		ms_error("Filter %s does not implement the MS_FILTER_GET_NCHANNELS method", from->desc->name);
+		ms_error("Filter %s does not implement the MS_FILTER_GET_NCHANNELS method", from_name);
 	}
 	if (to_channels == 0) {
 		to_channels = st->nchannels;
-		ms_error("Filter %s does not implement the MS_FILTER_GET_NCHANNELS method", to->desc->name);
+		ms_error("Filter %s does not implement the MS_FILTER_GET_NCHANNELS method", to_name);
 	}
 	if (from_rate == 0){
-		ms_error("Filter %s does not implement the MS_FILTER_GET_SAMPLE_RATE method", from->desc->name);
+		ms_error("Filter %s does not implement the MS_FILTER_GET_SAMPLE_RATE method", from_name);
 		from_rate = st->sample_rate;
 	}
 	if (to_rate == 0){
-		ms_error("Filter %s does not implement the MS_FILTER_GET_SAMPLE_RATE method", to->desc->name);
+		ms_error("Filter %s does not implement the MS_FILTER_GET_SAMPLE_RATE method", to_name);
 		to_rate = st->sample_rate;
 	}
 	ms_filter_call_method(resampler,MS_FILTER_SET_SAMPLE_RATE,&from_rate);
@@ -203,7 +236,7 @@ static void audio_stream_configure_resampler(AudioStream *st, MSFilter *resample
 	ms_filter_call_method(resampler, MS_FILTER_SET_OUTPUT_NCHANNELS, &to_channels);
 	ms_message(
 		"configuring %s:%p-->%s:%p from rate [%i] to rate [%i] and from channel [%i] to channel [%i]",
-		from->desc->name, from, to->desc->name, to, from_rate, to_rate, from_channels, to_channels
+		from_name, from, to_name, to, from_rate, to_rate, from_channels, to_channels
 	);
 }
 
@@ -783,6 +816,7 @@ static int get_usable_telephone_event(RtpProfile *profile, int clock_rate){
 
 int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
 	const char *rem_rtcp_ip, int rem_rtcp_port, int payload, const MSMediaStreamIO *io) {
+
 	RtpSession *rtps=stream->ms.sessions.rtp_session;
 	PayloadType *pt;
 	int tmp, tev_pt;
@@ -836,9 +870,11 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 
 	/* creates the local part */
 	if (io->input.type == MSResourceSoundcard){
+		MSSndCard * card = io->input.soundcard;
 		if (stream->soundread==NULL)
-			stream->soundread = ms_snd_card_create_reader(io->input.soundcard);
+			stream->soundread = ms_snd_card_create_reader(card);
 		has_builtin_ec=!!(ms_snd_card_get_capabilities(io->input.soundcard) & MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER);
+		stream->captcard = ms_snd_card_ref(card);
 	} else if (io->input.type == MSResourceRtp) {
 		stream->rtp_io_session = io->input.session;
 		pt = rtp_profile_get_payload(rtp_session_get_profile(stream->rtp_io_session),
@@ -852,8 +888,11 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		resampler_missing = stream->read_resampler == NULL;
 	}
 	if (io->output.type == MSResourceSoundcard) {
+		MSSndCard * card = io->output.soundcard;
 		if (stream->soundwrite==NULL)
-			stream->soundwrite=ms_snd_card_create_writer(io->output.soundcard);
+			stream->soundwrite=ms_snd_card_create_writer(card);
+
+		stream->playcard = ms_snd_card_ref(card);
 	} else if (io->output.type == MSResourceRtp) {
 		stream->rtp_io_session = io->output.session;
 		pt = rtp_profile_get_payload(rtp_session_get_profile(stream->rtp_io_session),
@@ -1296,14 +1335,14 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	MSSndCard *playcard, MSSndCard *captcard, bool_t use_ec){
 	MSMediaStreamIO io = MS_MEDIA_STREAM_IO_INITIALIZER;
 
-	if (playcard){
+	if (playcard) {
 		io.output.type = MSResourceSoundcard;
 		io.output.soundcard = playcard;
 	}else{
 		io.output.type = MSResourceFile;
 		io.output.file = outfile;
 	}
-	if (captcard){
+	if (captcard) {
 		io.input.type = MSResourceSoundcard;
 		io.input.soundcard = captcard;
 	}else{
@@ -1793,6 +1832,15 @@ void audio_stream_stop(AudioStream * stream){
 			}
 			/*dismantle the remote play part*/
 			close_av_player(stream);
+
+			if (stream->captcard) {
+				ms_snd_card_unref(stream->captcard);
+				stream->captcard = NULL;
+			}
+			if (stream->playcard) {
+				ms_snd_card_unref(stream->playcard);
+				stream->playcard = NULL;
+			}
 		}
 	}
 	rtp_session_set_rtcp_xr_media_callbacks(stream->ms.sessions.rtp_session, NULL);
@@ -1962,4 +2010,28 @@ void audio_stream_set_audio_route(AudioStream *stream, MSAudioRoute route) {
 			ms_filter_call_method(stream->soundwrite, MS_AUDIO_PLAYBACK_SET_ROUTE, &route);
 		}
 	}
+}
+
+void audio_stream_set_input_ms_snd_card(AudioStream *stream, MSSndCard * sndcard_capture) {
+	if (stream->captcard) {
+		ms_snd_card_unref(stream->captcard);
+	}
+	stream->captcard = ms_snd_card_ref(sndcard_capture);
+	audio_stream_configure_input_snd_card(stream);
+}
+
+void audio_stream_set_output_ms_snd_card(AudioStream *stream, MSSndCard * sndcard_playback) {
+	if (stream->playcard) {
+		ms_snd_card_unref(stream->playcard);
+	}
+	stream->playcard = ms_snd_card_ref(sndcard_playback);
+	audio_stream_configure_output_snd_card(stream);
+}
+
+MSSndCard * audio_stream_get_input_ms_snd_card(AudioStream *stream) {
+	return stream->captcard;
+}
+
+MSSndCard * audio_stream_get_output_ms_snd_card(AudioStream *stream) {
+	return stream->playcard;
 }

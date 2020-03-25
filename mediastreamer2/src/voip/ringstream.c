@@ -24,7 +24,6 @@
 #include "mediastreamer2/msfileplayer.h"
 #include "private.h"
 
-
 static void ring_player_event_handler(void *ud, MSFilter *f, unsigned int evid, void *arg){
 	RingStream *stream=(RingStream*)ud;
 
@@ -60,7 +59,7 @@ RingStream * ring_start_with_cb(MSFactory* factory, const char *file, int interv
 	MSPinFormat pinfmt={0};
 
 	stream=(RingStream *)ms_new0(RingStream,1);
-	stream->card = sndcard;
+	stream->card = ms_snd_card_ref(sndcard);
 	if (file) {
 		stream->source=_ms_create_av_player(file,factory);
 		if (stream->source == NULL){
@@ -154,10 +153,12 @@ void ring_play_dtmf(RingStream *stream, char dtmf, int duration_ms){
 }
 
 void ring_stop_dtmf(RingStream *stream){
+//	ms_message("DADA [RingStream] stop dtmf ringing card is %s", ((stream->card) ? stream->card->id : "No default"));
 	ms_filter_call_method_noarg(stream->gendtmf, MS_DTMF_GEN_STOP);
 }
 
 void ring_stop(RingStream *stream){
+//	ms_message("DADA [RingStream] stop ringing card in stream is %s", ((stream->card) ? stream->card->id : "No card"));
 	MSConnectionHelper h;
 
 	if (stream->ticker){
@@ -180,5 +181,36 @@ void ring_stop(RingStream *stream){
 	if (stream->decoder) ms_filter_destroy(stream->decoder);
 	if (stream->write_resampler)
 		ms_filter_destroy(stream->write_resampler);
+	if (stream->card) ms_snd_card_unref(stream->card);
 	ms_free(stream);
+
+}
+
+/*
+ * note: Only AAudio and OpenSLES leverage internal ID for output streams.
+ */
+static void ring_stream_configure_output_snd_card(RingStream *stream) {
+	MSSndCard *card = stream->card;
+	if (stream->sndwrite) {
+		if(ms_filter_implements_interface(stream->sndwrite, MSFilterAudioPlaybackInterface)) {
+			ms_filter_call_method(stream->sndwrite, MS_AUDIO_PLAYBACK_SET_INTERNAL_ID, card);
+			ms_message("[RingStream] set output sound card for %s:%p to %s", ms_filter_get_name(stream->sndwrite), stream->sndwrite, card->id);
+		}
+	}
+}
+
+void ring_stream_set_output_ms_snd_card(RingStream *stream, MSSndCard * sndcard_playback) {
+	if (stream->card) {
+		ms_snd_card_unref(stream->card);
+	}
+	stream->card = ms_snd_card_ref(sndcard_playback);
+	ring_stream_configure_output_snd_card(stream);
+}
+
+MSSndCard * ring_stream_get_output_ms_snd_card(RingStream *stream) {
+	// If stream is null, then do not try to access the card
+	if (stream)
+		return stream->card;
+
+	return NULL;
 }

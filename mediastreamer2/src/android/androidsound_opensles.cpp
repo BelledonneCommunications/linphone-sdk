@@ -22,6 +22,7 @@
 #include <mediastreamer2/msticker.h>
 #include <mediastreamer2/mssndcard.h>
 #include <mediastreamer2/devices.h>
+#include <mediastreamer2/android_utils.h>
 
 #include <sys/types.h>
 #include <string.h>
@@ -96,7 +97,8 @@ static int DeviceFavoriteBufferSize = 256;
 
 using namespace fake_opensles;
 
-static MSSndCard *android_snd_card_new(MSSndCardManager *m);
+static void android_snd_card_device_create(JNIEnv *env, jobject deviceInfo, MSSndCardManager *m);
+static void snd_card_device_create(int device_id, const char * name, MSSndCardDeviceType type, unsigned int capabilities, MSSndCardManager *m);
 static MSFilter *ms_android_snd_read_new(MSFactory *factory);
 static MSFilter *ms_android_snd_write_new(MSFactory* factory);
 
@@ -217,6 +219,7 @@ struct OpenSLESInputContext {
 	queue_t q;
 	ms_mutex_t mutex;
 	MSTickerSynchronizer *mTickerSynchronizer;
+	MSSndCard *soundCard;
 	MSFilter *mFilter;
 	int64_t read_samples;
 	jobject aec;
@@ -233,8 +236,7 @@ static SLuint32 convertSamplerate(int samplerate)
     case 8000:
         return SL_SAMPLINGRATE_8;
         break;
-    case 16000:
-        return SL_SAMPLINGRATE_16;
+    case 16000: return SL_SAMPLINGRATE_16;
         break;
     case 22050:
         return SL_SAMPLINGRATE_22_05;
@@ -253,6 +255,37 @@ static SLuint32 convertSamplerate(int samplerate)
     }
 }
 
+static void android_snd_card_add_devices(MSSndCardManager *m) {
+
+	JNIEnv *env = ms_get_jni_env();
+
+	int sdkVersion = get_sdk_version(env);
+
+	//GetDevices is only available from API23
+	if (sdkVersion >= 23) {
+		// Get all devices
+		jobject devices = get_all_devices(env, "all");
+
+		// extract required information from every device
+		jobjectArray deviceArray = reinterpret_cast<jobjectArray>(devices);
+		jsize deviceNumber = (int) env->GetArrayLength(deviceArray);
+
+		ms_message("[OpenSLES] Create soundcards for %0d devices", deviceNumber);
+
+		for (int idx=0; idx < deviceNumber; idx++) {
+			jobject deviceInfo = env->GetObjectArrayElement(deviceArray, idx);
+			android_snd_card_device_create(env, deviceInfo, m);
+		}
+	} else {
+
+		//For devices running API older than API23, only 3 devices are created: microphone, speaker and earpiece
+		snd_card_device_create(-1, "Microphone", MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_MICROPHONE, MS_SND_CARD_CAP_CAPTURE, m);
+		snd_card_device_create(-1, "Speaker", MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_SPEAKER, MS_SND_CARD_CAP_PLAYBACK, m);
+		snd_card_device_create(-1, "Earpiece", MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_EARPIECE, MS_SND_CARD_CAP_PLAYBACK, m);
+	}
+
+}
+
 static void android_snd_card_detect(MSSndCardManager *m) {
 	SoundDeviceDescription* d = NULL;
 	MSDevicesInfo *devices = NULL;
@@ -261,8 +294,10 @@ static void android_snd_card_detect(MSSndCardManager *m) {
 		devices = ms_factory_get_devices_info(m->factory);
 		d = ms_devices_info_get_sound_device_description(devices);
 		if (d->flags & DEVICE_HAS_CRAPPY_OPENSLES) return;
-		MSSndCard *card = android_snd_card_new(m);
-		ms_snd_card_manager_add_card(m, card);
+		DeviceFavoriteSampleRate = get_preferred_sample_rate();
+		DeviceFavoriteBufferSize = get_preferred_buffer_size();
+		android_snd_card_add_devices(m);
+		ms_snd_card_remove_type_from_list_head(m, MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH);
 	} else {
 		ms_warning("[OpenSLES] Failed to dlopen libOpenSLES, OpenSLES MS soundcard unavailable");
 	}
@@ -293,24 +328,24 @@ static SLresult opensles_engine_init(OpenSLESContext *ctx) {
 	return result;
 }
 
-static OpenSLESContext* opensles_context_init() {
-	OpenSLESContext* ctx = new OpenSLESContext();
-	opensles_engine_init(ctx);
-	return ctx;
-}
-
 static void android_native_snd_card_init(MSSndCard *card) {
-
+	OpenSLESContext* context = new OpenSLESContext();
+	opensles_engine_init(context);
+	card->data = context;
 }
 
 static void android_native_snd_card_uninit(MSSndCard *card) {
 	OpenSLESContext *ctx = (OpenSLESContext*)card->data;
-	ms_warning("[OpenSLES] Deletion of OpenSLES context [%p]", ctx);
+	ms_message("[OpenSLES] Deleting card [%p]: name [%s] device ID [%0d] type [%s]", card, card->name, card->internal_id, ms_snd_card_device_type_to_string(card->device_type));
+	
 	if (ctx->engineObject != NULL) {
-                (*ctx->engineObject)->Destroy(ctx->engineObject);
-                ctx->engineObject = NULL;
-                ctx->engineEngine = NULL;
-        }
+		(*ctx->engineObject)->Destroy(ctx->engineObject);
+		ctx->engineObject = NULL;
+		ctx->engineEngine = NULL;
+	}
+
+	ms_warning("[OpenSLES] Deletion of OpenSLES context [%p]", ctx);
+	delete ctx;
 }
 
 static SLresult opensles_recorder_init(OpenSLESInputContext *ictx) {
@@ -432,6 +467,7 @@ static void opensles_recorder_callback(SLAndroidSimpleBufferQueueItf bq, void *c
 	m->b_wptr += ictx->inBufSize;
 
 	ms_mutex_lock(&ictx->mutex);
+
 	ictx->mAvSkew = ms_ticker_synchronizer_update(ictx->mTickerSynchronizer, ictx->read_samples, (unsigned int)ictx->opensles_context->samplerate);
 	putq(&ictx->q, m);
 	ms_mutex_unlock(&ictx->mutex);
@@ -515,6 +551,7 @@ static void android_snd_read_preprocess(MSFilter *obj) {
 	if (ictx->opensles_context->builtin_aec) {
 		//android_snd_read_activate_hardware_aec(obj);
 	}
+
 }
 
 static void android_snd_read_process(MSFilter *obj) {
@@ -522,14 +559,14 @@ static void android_snd_read_process(MSFilter *obj) {
 	mblk_t *m;
 
 	if (obj->ticker->time % 1000 == 0) {
-	    if (ictx->recorderBufferQueue == NULL) {
-	        ms_message("[OpenSLES] Trying to init opensles recorder on process");
-	        if (SL_RESULT_SUCCESS != opensles_recorder_init(ictx)) {
-                ms_error("[OpenSLES] Problem when initialization of opensles recorder");
-            } else if (SL_RESULT_SUCCESS != opensles_recorder_callback_init(ictx)) {
-            	ms_error("[OpenSLES] Problem when initialization of opensles recorder callback");
-            }
-	    }
+		if (ictx->recorderBufferQueue == NULL) {
+			ms_message("[OpenSLES] Trying to init opensles recorder on process");
+			if (SL_RESULT_SUCCESS != opensles_recorder_init(ictx)) {
+				ms_error("[OpenSLES] Problem when initialization of opensles recorder");
+			} else if (SL_RESULT_SUCCESS != opensles_recorder_callback_init(ictx)) {
+				ms_error("[OpenSLES] Problem when initialization of opensles recorder callback");
+			}
+		}
 	}
 
 	ms_mutex_lock(&ictx->mutex);
@@ -538,7 +575,7 @@ static void android_snd_read_process(MSFilter *obj) {
 	}
 	ms_mutex_unlock(&ictx->mutex);
 	if (obj->ticker->time % 5000 == 0)
-			ms_message("[OpenSLES] sound/wall clock skew is average=%g ms", ictx->mAvSkew);
+		ms_message("[OpenSLES] sound/wall clock skew is average=%g ms", ictx->mAvSkew);
 
 }
 
@@ -571,6 +608,11 @@ static void android_snd_read_postprocess(MSFilter *obj) {
 		ictx->recorderObject = NULL;
 		ictx->recorderRecord = NULL;
 		ictx->recorderBufferQueue = NULL;
+	}
+
+	if (ictx->soundCard) {
+		ms_snd_card_unref(ictx->soundCard);
+		ictx->soundCard = NULL;
 	}
 
 	ms_ticker_set_synchronizer(obj->ticker, NULL);
@@ -620,6 +662,31 @@ static int android_snd_read_get_nchannels(MSFilter *obj, void *data) {
 	return 0;
 }
 
+static int android_snd_read_configure_soundcard(MSFilter *obj, void *data) {
+	MSSndCard *card = (MSSndCard*)data;
+	OpenSLESInputContext *ictx = (OpenSLESInputContext*)obj->data;
+	// Check if device_id is different and/or device_type is different
+	// For API < 23, all device ID are identical but the device type is different
+	if ((ictx->soundCard->internal_id != card->internal_id) || (ictx->soundCard->device_type != card->device_type)) {
+		ms_mutex_lock(&ictx->mutex);
+		if (ictx->soundCard) {
+			ms_snd_card_unref(ictx->soundCard);
+			ictx->soundCard = NULL;
+		}
+		ictx->soundCard = ms_snd_card_ref(card);
+		ictx->setContext((OpenSLESContext*)card->data);
+		ms_mutex_unlock(&ictx->mutex);
+	}
+	return 0;
+}
+
+static int android_snd_read_get_device_id(MSFilter *obj, void *data) {
+	int *n = (int*)data;
+	OpenSLESInputContext *ictx = (OpenSLESInputContext*)obj->data;
+	*n = ictx->soundCard->internal_id;
+	return 0;
+}
+
 static int android_snd_read_hack_speaker_state(MSFilter *f, void *arg) {
 	return 0;
 }
@@ -630,6 +697,8 @@ static MSFilterMethod android_snd_read_methods[] = {
 	{MS_FILTER_SET_NCHANNELS, android_snd_read_set_nchannels},
 	{MS_FILTER_GET_NCHANNELS, android_snd_read_get_nchannels},
 	{MS_AUDIO_CAPTURE_FORCE_SPEAKER_STATE, android_snd_read_hack_speaker_state},
+	{MS_AUDIO_CAPTURE_SET_INTERNAL_ID, android_snd_read_configure_soundcard},
+	{MS_AUDIO_CAPTURE_GET_INTERNAL_ID, android_snd_read_get_device_id},
 	{0,NULL}
 };
 
@@ -657,6 +726,7 @@ static MSFilter* ms_android_snd_read_new(MSFactory *factory) {
 static MSFilter *android_snd_card_create_reader(MSSndCard *card) {
 	MSFilter *f = ms_android_snd_read_new(ms_snd_card_get_factory(card));
 	OpenSLESInputContext *ictx = static_cast<OpenSLESInputContext*>(f->data);
+	ictx->soundCard = ms_snd_card_ref(card);
 	ictx->setContext((OpenSLESContext*)card->data);
 	return f;
 }
@@ -840,7 +910,7 @@ static SLresult opensles_player_callback_init(OpenSLESOutputContext *octx) {
 static MSFilter *android_snd_card_create_writer(MSSndCard *card) {
 	MSFilter *f = ms_android_snd_write_new(ms_snd_card_get_factory(card));
 	OpenSLESOutputContext *octx = static_cast<OpenSLESOutputContext*>(f->data);
-	octx->soundCard = card;
+	octx->soundCard = ms_snd_card_ref(card);
 	octx->setContext((OpenSLESContext*)card->data);
 	return f;
 }
@@ -891,6 +961,34 @@ static int android_snd_write_get_nchannels(MSFilter *obj, void *data) {
 	return 0;
 }
 
+static int android_snd_write_configure_soundcard(MSFilter *obj, void *data) {
+	MSSndCard *card = (MSSndCard*)data;
+	OpenSLESOutputContext *octx = (OpenSLESOutputContext*)obj->data;
+
+	// Check if device_id is different and/or device_type is different
+	// For API < 23, all device ID are identical but the device type is different
+	if ((octx->soundCard->internal_id != card->internal_id) || (octx->soundCard->device_type != card->device_type)) {
+		ms_mutex_lock(&octx->mutex);
+		if (octx->soundCard) {
+			ms_snd_card_unref(octx->soundCard);
+			octx->soundCard = NULL;
+		}
+		octx->soundCard = ms_snd_card_ref(card);
+		octx->setContext((OpenSLESContext*)card->data);
+		JNIEnv *env = ms_get_jni_env();
+		change_device(env, card->device_type);
+		ms_mutex_unlock(&octx->mutex);
+	}
+	return 0;
+}
+
+static int android_snd_write_get_device_id(MSFilter *obj, void *data) {
+	int *n = (int*)data;
+	OpenSLESOutputContext *octx = (OpenSLESOutputContext*)obj->data;
+	*n = octx->soundCard->internal_id;
+	return 0;
+}
+
 static void android_snd_write_preprocess(MSFilter *obj) {
 	OpenSLESOutputContext *octx = (OpenSLESOutputContext*)obj->data;
 	SLresult result;
@@ -916,11 +1014,16 @@ static void android_snd_write_preprocess(MSFilter *obj) {
 	}
 
 	octx->nbufs = 0;
+
+	// Ensure consistency between the soundcard the core is setting and the one actually used as an output
+	JNIEnv *env = ms_get_jni_env();
+	change_device(env, octx->soundCard->device_type);
 }
 
 static void android_snd_write_process(MSFilter *obj) {
 	OpenSLESOutputContext *octx = (OpenSLESOutputContext*)obj->data;
 	ms_mutex_lock(&octx->mutex);
+
 	ms_flow_controlled_bufferizer_put_from_queue(&octx->buffer, obj->inputs[0]);
 	ms_mutex_unlock(&octx->mutex);
 }
@@ -954,6 +1057,15 @@ static void android_snd_write_postprocess(MSFilter *obj) {
 		(*octx->outputMixObject)->Destroy(octx->outputMixObject);
 		octx->outputMixObject = NULL;
 	}
+
+	if (octx->soundCard) {
+		ms_snd_card_unref(octx->soundCard);
+		octx->soundCard = NULL;
+	}
+
+	// At the end of a call, postprocess is called therefore here the output device can be changed to earpiece in the audio manager
+	JNIEnv *env = ms_get_jni_env();
+	change_device(env, MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_EARPIECE);
 	free(octx->playBuffer[0]);
 	octx->playBuffer[0]=NULL;
 	free(octx->playBuffer[1]);
@@ -965,6 +1077,8 @@ static MSFilterMethod android_snd_write_methods[] = {
 	{MS_FILTER_GET_SAMPLE_RATE, android_snd_write_get_sample_rate},
 	{MS_FILTER_SET_NCHANNELS, android_snd_write_set_nchannels},
 	{MS_FILTER_GET_NCHANNELS, android_snd_write_get_nchannels},
+	{MS_AUDIO_PLAYBACK_SET_INTERNAL_ID, android_snd_write_configure_soundcard},
+	{MS_AUDIO_PLAYBACK_GET_INTERNAL_ID, android_snd_write_get_device_id},
 	{0,NULL}
 };
 
@@ -1003,48 +1117,68 @@ MSSndCardDesc android_native_snd_opensles_card_desc = {
 	android_native_snd_card_uninit
 };
 
-static MSSndCard* android_snd_card_new(MSSndCardManager *m) {
-	MSSndCard* card = NULL;
-	SoundDeviceDescription *d = NULL;
-	MSDevicesInfo *devices = NULL;
+static void snd_card_device_create_extra_fields(MSSndCardManager *m, MSSndCard *card) {
 
-	card = ms_snd_card_new(&android_native_snd_opensles_card_desc);
-	card->name = ms_strdup("android sound card");
+	OpenSLESContext *card_data = (OpenSLESContext*)card->data;
 
-	devices = ms_factory_get_devices_info(m->factory);
-	d = ms_devices_info_get_sound_device_description(devices);
-
-	JNIEnv *env = ms_get_jni_env();
-	jclass mediastreamerAndroidContextClass = env->FindClass("org/linphone/mediastream/MediastreamerAndroidContext");
-	if (mediastreamerAndroidContextClass != NULL) {
-		jmethodID getBufferSize = env->GetStaticMethodID(mediastreamerAndroidContextClass, "getDeviceFavoriteBufferSize", "()I");
-		if (getBufferSize != NULL) {
-				jint ret = env->CallStaticIntMethod(mediastreamerAndroidContextClass, getBufferSize);
-				DeviceFavoriteBufferSize = (int)ret;
-				ms_message("[OpenSLES] Using %i for buffer size value", DeviceFavoriteBufferSize);
-		}
-		jmethodID getSampleRate = env->GetStaticMethodID(mediastreamerAndroidContextClass, "getDeviceFavoriteSampleRate", "()I");
-		if (getSampleRate != NULL) {
-				jint ret = env->CallStaticIntMethod(mediastreamerAndroidContextClass, getSampleRate);
-				DeviceFavoriteSampleRate = (int)ret;
-				ms_message("[OpenSLES] Using %i for sample rate value", DeviceFavoriteSampleRate);
-		}
-		env->DeleteLocalRef(mediastreamerAndroidContextClass);
-	}
-
-	OpenSLESContext *context = opensles_context_init();
+	MSDevicesInfo *devices = ms_factory_get_devices_info(m->factory);
+	SoundDeviceDescription *d = ms_devices_info_get_sound_device_description(devices);
 	if (d->flags & DEVICE_HAS_BUILTIN_OPENSLES_AEC) {
 		card->capabilities |= MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER;
-		context->builtin_aec = true;
+		card_data->builtin_aec = true;
 	} else if (d->flags & DEVICE_HAS_BUILTIN_AEC && !(d->flags & DEVICE_HAS_BUILTIN_AEC_CRAPPY)) {
 		ms_warning("[OpenSLES] Removing MS_SND_CARD_CAP_CAPTURE flag from soundcard to use HAEC Java capture soundcard");
 		card->capabilities = MS_SND_CARD_CAP_PLAYBACK;
+		card_data->builtin_aec = false;
 	}
+
 	card->latency = d->delay;
-	card->data = context;
 	if (d->recommended_rate){
-		context->samplerate = d->recommended_rate;
+		card_data->samplerate = d->recommended_rate;
 	}
-	return card;
 }
 
+
+static void snd_card_device_create(int device_id, const char * name, MSSndCardDeviceType type, unsigned int capabilities, MSSndCardManager *m) {
+
+	MSSndCard *card = ms_snd_card_new(&android_native_snd_opensles_card_desc);
+
+	card->name = ms_strdup(name);
+	card->internal_id = device_id;
+	card->device_type = type;
+
+	// Card capabilities
+	card->capabilities = capabilities;
+
+	snd_card_device_create_extra_fields(m, card);
+
+	// Last argument is set to false because cards are added based on the type ignoring their caapbilities as we do upcalls to Java in order to set devices
+	// For example in the case of a Bluetooth device
+	if (!ms_snd_card_is_card_duplicate(m, card, FALSE)) {
+		card=ms_snd_card_ref(card);
+		ms_snd_card_manager_add_card(m, card);
+
+		ms_message("[OpenSLES] Added card [%p]: name [%s] device ID [%0d] type [%s]", card, card->name, card->internal_id, ms_snd_card_device_type_to_string(card->device_type));
+	} else {
+		free(card);
+	}
+}
+
+static void android_snd_card_device_create(JNIEnv *env, jobject deviceInfo, MSSndCardManager *m) {
+
+	MSSndCardDeviceType type = get_device_type(env, deviceInfo);
+	if (
+		(type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH) ||
+		(type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_EARPIECE) ||
+		(type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_SPEAKER) ||
+		(type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_MICROPHONE)
+	) {
+
+		const char * name = ms_strdup(get_device_product_name(env, deviceInfo));
+		int device_id = get_device_id(env, deviceInfo);
+		unsigned int capabilities = get_device_capabilities(env, deviceInfo);
+
+		snd_card_device_create(device_id, name, type, capabilities, m);
+
+	}
+}

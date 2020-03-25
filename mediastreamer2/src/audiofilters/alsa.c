@@ -769,7 +769,7 @@ static MSSndCard * alsa_card_new(const char *pcm_name, int card_index, const cha
 		ad->pcmdev=ms_strdup_printf("%s:%i",pcm_name, card_index);
 		obj->capabilities = get_card_capabilities(ad->pcmdev);
 		if (obj->capabilities == 0){
-			ms_snd_card_destroy(obj);
+			ms_snd_card_unref(obj);
 			return NULL;
 		}
 		ad->mixdev=ms_strdup_printf("hw:%i",card_index);

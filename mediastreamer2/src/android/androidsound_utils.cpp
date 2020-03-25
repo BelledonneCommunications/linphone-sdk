@@ -17,8 +17,29 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <mediastreamer2/mssndcard.h>
 #include <mediastreamer2/android_utils.h>
+
+int get_preferred_buffer_size() {
+	int DevicePreferredBufferSize = -1;
+	JNIEnv *env = ms_get_jni_env();
+	jclass mediastreamerAndroidContextClass = env->FindClass("org/linphone/mediastream/MediastreamerAndroidContext");
+	if (mediastreamerAndroidContextClass != NULL) {
+		jmethodID getBufferSize = env->GetStaticMethodID(mediastreamerAndroidContextClass, "getDeviceFavoriteBufferSize", "()I");
+		if (getBufferSize != NULL) {
+				jint ret = env->CallStaticIntMethod(mediastreamerAndroidContextClass, getBufferSize);
+				DevicePreferredBufferSize = (int)ret;
+				ms_message("[Android Audio Utils] Using %i for buffer size value", DevicePreferredBufferSize);
+		}
+		env->DeleteLocalRef(mediastreamerAndroidContextClass);
+	}
+
+	if (DevicePreferredBufferSize == -1) {
+		ms_error("[Android Audio Utils] Failed to retrive sample rate - keeping value %0d", DevicePreferredBufferSize);
+	}
+
+	return DevicePreferredBufferSize;
+}
+
 
 int get_preferred_sample_rate() {
 	int DevicePreferredSampleRate = -1;
@@ -41,23 +62,21 @@ int get_preferred_sample_rate() {
 	return DevicePreferredSampleRate;
 }
 
-jobject get_all_devices(JNIEnv *env, const char * dir) {
+jobjectArray get_all_devices(JNIEnv *env, const char * dir) {
 	jclass mediastreamerAndroidContextClass = env->FindClass("org/linphone/mediastream/MediastreamerAndroidContext");
 
-	jobject audioDevices = NULL;
+	jobjectArray audioDevices = NULL;
 
 	if (mediastreamerAndroidContextClass != NULL) {
 		jmethodID getAudioDevicesId = env->GetStaticMethodID(mediastreamerAndroidContextClass, "getAudioDevices", "(Ljava/lang/String;)[Landroid/media/AudioDeviceInfo;");
 		if (getAudioDevicesId != NULL) {
 			jstring device_dir = env->NewStringUTF(dir);
-			jobject deviceInfoObj = env->CallStaticObjectMethod(mediastreamerAndroidContextClass, getAudioDevicesId, device_dir);
+			audioDevices = reinterpret_cast<jobjectArray>(env->CallStaticObjectMethod(mediastreamerAndroidContextClass, getAudioDevicesId, device_dir));
 
-			audioDevices = env->NewGlobalRef(deviceInfoObj);
 			if (audioDevices == NULL) {
 				ms_error("[Android Audio Utils] Failed to convert local ref to audio devices to global ref");
 			}
 
-			env->DeleteLocalRef(deviceInfoObj);
 		}
 		env->DeleteLocalRef(mediastreamerAndroidContextClass);
 	}
@@ -97,7 +116,33 @@ int getJVIntField(JNIEnv *env, const char * className, const char * fieldName) {
 	return value;
 }
 
-DeviceType get_device_type(JNIEnv *env, jobject deviceInfo) {
+void change_device(JNIEnv *env, MSSndCardDeviceType type) {
+
+	std::string methodName;
+	if (type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_SPEAKER) {
+		methodName = "enableSpeaker";
+	} else if (type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH) {
+		methodName = "enableBluetooth";
+	} else if (type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_EARPIECE) {
+		methodName = "enableEarpiece";
+	}
+
+	if (methodName.empty()) {
+		ms_error("[Android Audio Utils] Unable to find method to enable device type %s", ms_snd_card_device_type_to_string(type));
+	} else {
+		jclass mediastreamerAndroidContextClass = env->FindClass("org/linphone/mediastream/MediastreamerAndroidContext");
+		if (mediastreamerAndroidContextClass != NULL) {
+			jmethodID changeDevice = env->GetStaticMethodID(mediastreamerAndroidContextClass, methodName.c_str(), "()V");
+			if (changeDevice != NULL) {
+					env->CallStaticVoidMethod(mediastreamerAndroidContextClass, changeDevice);
+					ms_message("[Android Audio Utils] changing device to %s ", ms_snd_card_device_type_to_string(type));
+			}
+			env->DeleteLocalRef(mediastreamerAndroidContextClass);
+		}
+	}
+}
+
+MSSndCardDeviceType get_device_type(JNIEnv *env, jobject deviceInfo) {
 
 	int typeID = -1;
 
@@ -112,27 +157,29 @@ DeviceType get_device_type(JNIEnv *env, jobject deviceInfo) {
 		env->DeleteLocalRef(audioDeviceInfoClass);
 	}
 
-	DeviceType deviceType = DeviceType::UNKNOWN;
-	if ((typeID == getJVIntField(env, audioDeviceInfoClassName, "TYPE_BLUETOOTH_SCO")) || (typeID == getJVIntField(env, audioDeviceInfoClassName, "TYPE_BLUETOOTH_A2DP"))) {
-		deviceType = DeviceType::BLUETOOTH;
+	MSSndCardDeviceType deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_UNKNOWN;
+	if (typeID == getJVIntField(env, audioDeviceInfoClassName, "TYPE_BLUETOOTH_SCO")) {
+		deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH;
+	} else if (typeID == getJVIntField(env, audioDeviceInfoClassName, "TYPE_BLUETOOTH_A2DP")) {
+		deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH_A2DP;
 	} else if (typeID == getJVIntField(env, audioDeviceInfoClassName, "TYPE_BUILTIN_EARPIECE")) {
-		deviceType = DeviceType::EARPIECE;
+		deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_EARPIECE;
 	} else if (typeID == getJVIntField(env, audioDeviceInfoClassName, "TYPE_BUILTIN_SPEAKER")) {
-		deviceType = DeviceType::SPEAKER;
+		deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_SPEAKER;
 	} else if (typeID == getJVIntField(env, audioDeviceInfoClassName, "TYPE_BUILTIN_MIC")) {
-		deviceType = DeviceType::MICROPHONE;
+		deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_MICROPHONE;
 	} else if ((typeID == getJVIntField(env, audioDeviceInfoClassName, "TYPE_USB_HEADSET")) || (typeID == getJVIntField(env, audioDeviceInfoClassName, "TYPE_WIRED_HEADSET"))) {
-		deviceType = DeviceType::HEADSET;
+		deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEADSET;
 	} else if (typeID == getJVIntField(env, audioDeviceInfoClassName, "TYPE_WIRED_HEADPHONES")) {
-		deviceType = DeviceType::HEADPHONES;
+		deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEADPHONES;
 	} else if (typeID == getJVIntField(env, audioDeviceInfoClassName, "TYPE_USB_DEVICE")) {
-		deviceType = DeviceType::GENERIC_USB;
+		deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_GENERIC_USB;
 	} else if (typeID == getJVIntField(env, audioDeviceInfoClassName, "TYPE_AUX_LINE")) {
-		deviceType = DeviceType::AUX_LINE;
+		deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_AUX_LINE;
 	} else if (typeID == getJVIntField(env, audioDeviceInfoClassName, "TYPE_TELEPHONY")) {
-		deviceType = DeviceType::TELEPHONY;
+		deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_TELEPHONY;
 	} else {
-		deviceType = DeviceType::UNKNOWN;
+		deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_UNKNOWN;
 		ms_error("[Android Audio Utils] Unknown device type for type ID %0d", typeID);
 	}
 
@@ -163,7 +210,6 @@ unsigned int get_device_capabilities(JNIEnv *env, jobject deviceInfo) {
 		}
 		env->DeleteLocalRef(audioDeviceInfoClass);
 	}
-
 	return cap;
 }
 
@@ -194,4 +240,21 @@ char * get_device_product_name(JNIEnv *env, jobject deviceInfo) {
 	}
 
 	return productName;
+}
+
+int get_sdk_version(JNIEnv *env) {
+
+	int sdkVersion = -1;
+
+	jclass versionClass = env->FindClass("android/os/Build$VERSION");
+	if (versionClass != NULL) {
+		jfieldID fid = env->GetStaticFieldID(versionClass, "SDK_INT", "I");
+		if (fid != NULL) {
+			sdkVersion=env->GetStaticIntField(versionClass, fid);
+			ms_message("SDK version [%i] detected",sdkVersion);
+		}
+		env->DeleteLocalRef(versionClass);
+	}
+
+	return sdkVersion;
 }

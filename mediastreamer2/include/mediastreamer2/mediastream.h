@@ -68,6 +68,19 @@ MS2_PUBLIC RingStream *ring_start_with_cb(MSFactory *factory, const char * file,
 MS2_PUBLIC void ring_stop (RingStream * stream);
 
 /**
+ * Asks the ring filter to route to the selected sound card (currently only used for AAudio and OpenSLES)
+ * @param[in] stream The RingStream object
+ * @param[in] sndcard_playback The wanted audio output soundcard
+ */
+MS2_PUBLIC void ring_stream_set_output_ms_snd_card(RingStream *stream, MSSndCard * sndcard_playback);
+
+/**
+ * Retrieve the current sound card from the audio playback filter (currently only used for AAudio and OpenSLES)
+ * @param[in] stream The AudioStream object
+ */
+MS2_PUBLIC MSSndCard * ring_stream_get_output_ms_snd_card(RingStream *stream);
+
+/**
  * @}
 **/
 /**
@@ -363,6 +376,8 @@ MS2_PUBLIC bool_t ms_media_stream_io_is_consistent(const MSMediaStreamIO *io);
 struct _AudioStream
 {
 	MediaStream ms;
+	MSSndCard *playcard;
+	MSSndCard *captcard;
 	MSFilter *soundread;
 	MSFilter *soundwrite;
 	MSFilter *dtmfgen;
@@ -1252,6 +1267,32 @@ MS2_PUBLIC RtpSession * ms_create_duplex_rtp_session(const char* local_ip, int l
  * @param[in] route The wanted audio output device (earpiece, speaker)
  */
 MS2_PUBLIC void audio_stream_set_audio_route(AudioStream *stream, MSAudioRoute route);
+
+/**
+ * Asks the audio capture filter to route to the selected sound card (currently only used for AAudio and OpenSLES)
+ * @param[in] stream The AudioStream object
+ * @param[in] sndcard_capture The wanted audio input soundcard
+ */
+MS2_PUBLIC void audio_stream_set_input_ms_snd_card(AudioStream *stream, MSSndCard * sndcard_capture);
+
+/**
+ * Asks the audio playback filter to route to the selected sound card (currently only used for AAudio and OpenSLES)
+ * @param[in] stream The AudioStream object
+ * @param[in] sndcard_playback The wanted audio output soundcard
+ */
+MS2_PUBLIC void audio_stream_set_output_ms_snd_card(AudioStream *stream, MSSndCard * sndcard_playback);
+
+/**
+ * Retrieve the current sound card from the audio capture filter (currently only used for AAudio and OpenSLES)
+ * @param[in] stream The AudioStream object
+ */
+MS2_PUBLIC MSSndCard * audio_stream_get_input_ms_snd_card(AudioStream *stream);
+
+/**
+ * Retrieve the current sound card from the audio playback filter (currently only used for AAudio and OpenSLES)
+ * @param[in] stream The AudioStream object
+ */
+MS2_PUBLIC MSSndCard * audio_stream_get_output_ms_snd_card(AudioStream *stream);
 
 /**
  * @}
