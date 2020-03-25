@@ -52,6 +52,8 @@ struct _PlayerData{
 	char *mime;
 	uint32_t ts;
 	int async_read_too_late;
+	uint64_t current_pos_bytes;
+	int duration;
 	bool_t swap;
 	bool_t is_raw;
 #ifdef HAVE_PCAP
@@ -81,6 +83,8 @@ static void player_init(MSFilter *f){
 	d->pause_time=0;
 	d->count=0;
 	d->ts=0;
+	d->current_pos_bytes = 0; /* excluding wav header */
+	d->duration = 0;
 	d->is_raw=TRUE;
 #ifdef HAVE_PCAP
 	d->pcap = NULL;
@@ -181,7 +185,8 @@ static int player_open(MSFilter *f, void *arg){
 	PlayerData *d=(PlayerData*)f->data;
 	int fd;
 	const char *file=(const char*)arg;
-
+	struct stat statbuf;
+	
 	if (d->fd!=-1){
 		player_close(f,NULL);
 	}
@@ -212,8 +217,15 @@ static int player_open(MSFilter *f, void *arg){
 		ms_warning("File %s has .wav extension but wav header could be found.",file);
 	}
 	d->reader = ms_async_reader_new(d->fd);
+	
+	if (fstat(fd, &statbuf) == 0){
+		d->duration = (int) (( 1000LL * ((uint64_t)statbuf.st_size - (uint64_t)d->hsize) / ((uint64_t)d->samplesize * (uint64_t)d->nchannels))  / (uint64_t)d->rate);
+	}else{
+		ms_error("MSFilePlayer[%p]: fstat() failed: %s", f, strerror(errno));
+	}
+	d->current_pos_bytes = 0;
 	ms_filter_notify_no_arg(f,MS_FILTER_OUTPUT_FMT_CHANGED);
-	ms_message("MSFilePlayer[%p]: %s opened: rate=%i,channel=%i",f,file,d->rate,d->nchannels);
+	ms_message("MSFilePlayer[%p]: %s opened: rate=%i,channel=%i, length=%i ms",f,file,d->rate,d->nchannels, d->duration);
 	return 0;
 }
 
@@ -229,7 +241,10 @@ static int player_stop(MSFilter *f, void *arg){
 	ms_filter_lock(f);
 	if (d->state!=MSPlayerClosed){
 		d->state=MSPlayerPaused;
-		if (d->reader) ms_async_reader_seek(d->reader, d->hsize);
+		if (d->reader) {
+			ms_async_reader_seek(d->reader, d->hsize);
+			d->current_pos_bytes = 0;
+		}
 	}
 	ms_filter_unlock(f);
 	return 0;
@@ -387,10 +402,12 @@ static void player_process(MSFilter *f){
 					om->b_wptr+=bytes;
 					mblk_set_timestamp_info(om,d->ts);
 					d->ts+=nsamples;
+					d->current_pos_bytes += bytes;
 					ms_queue_put(f->outputs[0],om);
 				}else freemsg(om);
 				if (err<bytes){
 					ms_async_reader_seek(d->reader, d->hsize);
+					d->current_pos_bytes = 0; 
 
 					/* special value for playing file only once */
 					if (d->loop_after<0){
@@ -470,6 +487,19 @@ static int player_set_fmtp(MSFilter *f, void *arg){
 	return 0;
 }
 
+static int player_get_duration(MSFilter *f, void *arg){
+	PlayerData *d=(PlayerData*)f->data;
+	*(int*)arg = d->duration;
+	return 0;
+}
+
+static int player_get_current_position(MSFilter *f, void *arg){
+	PlayerData *d=(PlayerData*)f->data;
+	int cur_pos_ms = (int)((1000LL * (d->current_pos_bytes / (d->samplesize * d->nchannels))) / (uint64_t) d->rate);
+	*(int*)arg = cur_pos_ms;
+	return 0;
+}
+
 static MSFilterMethod player_methods[]={
 	{	MS_FILE_PLAYER_OPEN,	player_open	},
 	{	MS_FILE_PLAYER_START,	player_start	},
@@ -480,6 +510,8 @@ static MSFilterMethod player_methods[]={
 	{	MS_FILTER_GET_NCHANNELS, player_get_nch	},
 	{	MS_FILE_PLAYER_LOOP,	player_loop	},
 	{	MS_FILE_PLAYER_DONE,	player_eof	},
+	{	MS_PLAYER_GET_DURATION, player_get_duration },
+	{	MS_PLAYER_GET_CURRENT_POSITION, player_get_current_position },
 	/* this wav file player implements the MSFilterPlayerInterface*/
 	{ MS_PLAYER_OPEN , player_open },
 	{ MS_PLAYER_START , player_start },
