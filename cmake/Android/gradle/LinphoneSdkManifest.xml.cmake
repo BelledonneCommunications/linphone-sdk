@@ -14,6 +14,10 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <!-- Needed to allow Linphone to install on tablets, since android.permission.CAMERA implies android.hardware.camera and android.hardware.camera.autofocus are required -->
     <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <!-- Needed for bluetooth -->
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <!-- Needed for bluetooth headset -->
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <!-- End of SDK required permissions -->
 	
 </manifest>
