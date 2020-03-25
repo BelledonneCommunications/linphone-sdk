@@ -94,7 +94,7 @@ project.tasks['preBuild'].dependsOn 'listPlugins'
 android {
     defaultConfig {
         compileSdkVersion 28
-        minSdkVersion 21
+        minSdkVersion 23
         targetSdkVersion 28
         versionCode 4400
         versionName "@LINPHONESDK_VERSION@"
