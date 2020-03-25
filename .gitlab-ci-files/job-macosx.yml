@@ -89,13 +89,14 @@ job-macosx-ninja-novideo:
 job-macosx-xcode:
   extends: .job-macosx-desktop
   variables:
-    XCODE_OPTIONS: -DLINPHONESDK_MACOS_BASE_URL=$MACOS_SNAPSHOTS_URL
+    XCODE_OPTIONS: -DLINPHONESDK_MACOS_BASE_URL=$MACOS_RELEASES_URL
     CMAKE_GENERATOR: Xcode
     ADDITIONAL_BUILD_OPTIONS: -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=$MAX_NUMBER_TASK
 
   only:
     variables:
       - $NIGHTLY_MASTER
+      - $NIGHTLY_RELEASE
       - $DEPLOY_RUN_MACOSX
 
 test-linphone-macosx:

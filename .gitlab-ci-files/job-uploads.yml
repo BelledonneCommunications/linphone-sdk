@@ -11,6 +11,7 @@ job-ios-upload:
     variables:
       - $DEPLOY_RUN_IOS
       - $NIGHTLY_MASTER
+      - $NIGHTLY_RELEASE
 
   dependencies:
     - job-ios-xcode
@@ -18,9 +19,9 @@ job-ios-upload:
   script:
 
     #using rsync with following options(verbose, keeping symbolic links, and copy recursively)
-    - rsync -rlv build-ios/docs/* $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/docs/liblinphone/swift
+    - rsync -rlv build-ios/docs/* $DEPLOY_SERVER:$DEPLOY_RELEASES_DIRECTORY/docs/liblinphone/swift
 
-    - scp build-ios/linphone-sdk-*.zip $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/ios/
+    - scp build-ios/linphone-sdk-*.zip $DEPLOY_SERVER:$DEPLOY_RELEASES_DIRECTORY/ios/
     - pod repo remove linphone-sdk || true
     - pod repo add linphone-sdk git@gitlab.linphone.org:BC/public/podspec.git
     - pod repo push linphone-sdk build-ios/linphone-sdk.podspec --skip-import-validation --verbose
@@ -39,6 +40,7 @@ job-android-upload:
     variables:
       - $DEPLOY_RUN_ANDROID
       - $NIGHTLY_MASTER
+      - $NIGHTLY_RELEASE
 
   variables:
     CCACHE_SIZE: 4G
@@ -100,16 +102,17 @@ job-macosx-upload:
     variables:
       - $DEPLOY_RUN_MACOSX
       - $NIGHTLY_MASTER
+      - $NIGHTLY_RELEASE
 
   dependencies:
     - job-macosx-xcode
 
   script:
-    - scp build-desktop/linphone-sdk-*.zip $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/macosx/
+    - scp build-desktop/linphone-sdk-*.zip $DEPLOY_SERVER:$DEPLOY_RELEASES_DIRECTORY/macosx/
     - pod repo remove linphone-sdk-macosx || true
-    - pod repo add linphone-sdk-macosx git@gitlab.linphone.org:BC/public/podspec-macos.git $CI_COMMIT_REF_NAME
+    - pod repo add linphone-sdk-macosx git@gitlab.linphone.org:BC/public/podspec-macos.git master
     - pod repo push linphone-sdk-macosx build-desktop/linphone-sdk.podspec --skip-import-validation --local-only --verbose
-    - cd ~/.cocoapods/repos/linphone-sdk-macosx && git push origin $CI_COMMIT_REF_NAME && cd -
+    - cd ~/.cocoapods/repos/linphone-sdk-macosx && git push origin master && cd -
     - pod repo remove linphone-sdk-macosx
 
 #################################################
@@ -162,6 +165,7 @@ job-xamarin-upload:
   only:
     variables:
       - $UPLOAD_XAMARIN
+      - $NIGHTLY_RELEASE
 
   dependencies:
     - job-xamarin-package
@@ -188,6 +192,7 @@ job-xamarin-upload:
       - $PACKAGE_RUN_WINDOWS
       - $DOCKER_UPDATE
       - $UPLOAD_XAMARIN
+      - $NIGHTLY_RELEASE
 
   script:
     #getting the version number for each submodule and writing it in environment.properties file
