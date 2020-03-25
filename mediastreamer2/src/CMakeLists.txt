@@ -147,6 +147,7 @@ if(ANDROID)
 endif()
 if(ENABLE_ANDROIDSND)
 	list(APPEND VOIP_SOURCE_FILES_CXX
+		android/androidsound_utils.cpp
 		android/androidsound.cpp
 		android/androidsound_depr.cpp
 		android/androidsound_opensles.cpp
