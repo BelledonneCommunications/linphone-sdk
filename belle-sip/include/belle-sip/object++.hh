@@ -175,6 +175,17 @@ class HybridObject : public Object {
 			}
 			return result;
 		}
+		//Convenience method for easy std::list<CppType*> -> bctbx_list(CType) conversion
+		static bctbx_list_t* getCListFromCppList(const std::list<_CppType*> &cppList) {
+			bctbx_list_t *result = nullptr;
+			for (auto it = cppList.begin(); it != cppList.end(); it++) {
+				_CppType *cppPtr = static_cast<_CppType*>(*it);
+				cppPtr->ref();
+				_CType *cptr = cppPtr->toC();
+				result = bctbx_list_append(result, cptr);
+			}
+			return result;
+		}
 
 	protected:
 		virtual ~HybridObject() {}
