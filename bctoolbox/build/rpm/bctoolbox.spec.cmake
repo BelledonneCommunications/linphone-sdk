@@ -75,7 +75,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root)
-%doc AUTHORS ChangeLog COPYING NEWS README.md
+%doc LICENSE.txt CHANGELOG.md README.md
 %{_libdir}/*.so.*
 
 %files devel

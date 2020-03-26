@@ -3,7 +3,7 @@
 BcToolbox
 =========
 
-Utilities library used by Belledonne Communications softwares like belle-sip, mediastreamer2 and linphone.
+Utilities library used by Belledonne Communications softwares like belle-sip, mediastreamer2 and liblinphone.
 
 
 Depends

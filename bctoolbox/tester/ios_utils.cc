@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2010-2019 Belledonne Communications SARL.
+ * Copyright (c) 2016-2020 Belledonne Communications SARL.
  *
- * This file is part of Liblinphone.
+ * This file is part of bctoolbox.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
