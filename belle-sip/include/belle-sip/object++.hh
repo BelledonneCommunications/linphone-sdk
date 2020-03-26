@@ -124,12 +124,12 @@ class HybridObject : public Object {
 		//Obtain a shared_ptr from the C++ object.
 		std::shared_ptr<_CppType> getSharedFromThis() {
 			this->ref();
-			return std::shared_ptr<_CppType>(static_cast<_CppType *>(this), std::mem_fun(&Object::unref));
+			return std::shared_ptr<_CppType>(static_cast<_CppType *>(this), std::mem_fn(&Object::unref));
 		}
 		//Obtain a shared_ptr from the C++ object in the const case.
 		std::shared_ptr<const _CppType> getSharedFromThis () const {
 			this->ref();
-			return std::shared_ptr<const _CppType>(static_cast<const _CppType *>(this), std::mem_fun(&HybridObject<_CType,_CppType>::constUnref));
+			return std::shared_ptr<const _CppType>(static_cast<const _CppType *>(this), std::mem_fn(&HybridObject<_CType,_CppType>::constUnref));
 		}
 		//Convenience method for easy CType -> shared_ptr<CppType> conversion
 		static std::shared_ptr<_CppType> getSharedFromThis(_CType *ptr) {
@@ -146,7 +146,7 @@ class HybridObject : public Object {
 		// by clone() method.
 		// There should be NO const variant of this method.
 		std::shared_ptr<_CppType> toSharedPtr(){
-			return std::shared_ptr<_CppType>(static_cast<_CppType *>(this), std::mem_fun(&Object::unref));
+			return std::shared_ptr<_CppType>(static_cast<_CppType *>(this), std::mem_fn(&Object::unref));
 		}
 		
 		//Convenience method for easy bctbx_list(_Ctype) -> std::list<_CppType> conversion
