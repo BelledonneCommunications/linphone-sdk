@@ -32,13 +32,13 @@
 	path = belr
 	url = ../../public/belr.git
 [submodule "bctoolbox"]
-	path = bctoolbox
+	path = subprojects/bctoolbox
 	url = ../../public/bctoolbox.git
 [submodule "bcunit"]
 	path = bcunit
 	url = ../../public/bcunit.git
 [submodule "ortp"]
-	path = ortp
+	path = subprojects/ortp
 	url = ../../public/ortp.git
 [submodule "mediastreamer2"]
 	path = mediastreamer2
