@@ -22,7 +22,7 @@
 
 
 cmake_minimum_required(VERSION 3.1)
-project(belle-sip VERSION 4.3.0 LANGUAGES C CXX)
+project(belle-sip VERSION 4.4.0 LANGUAGES C CXX)
 
 
 
