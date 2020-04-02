@@ -22,7 +22,7 @@
 
 cmake_minimum_required(VERSION 3.1)
 
-project(bzrtp VERSION 4.3.0 LANGUAGES C CXX)
+project(bzrtp VERSION 4.4.0 LANGUAGES C CXX)
 
 option(ENABLE_SHARED "Build shared library." YES)
 option(ENABLE_STATIC "Build static library." YES)
