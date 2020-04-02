@@ -23,7 +23,7 @@
 cmake_minimum_required(VERSION 3.2)
 set(CMAKE_MACOSX_RPATH ON) # Before cmake 3.0.0, MACOSX_RPATH was not set to ON by default - however this is no good reason to not enable it by default
 
-project(bctoolbox VERSION 4.3.0)
+project(bctoolbox VERSION 4.4.0)
 
 set(BCTOOLBOX_VERSION "${PROJECT_VERSION}")
 set(BCTOOLBOX_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
