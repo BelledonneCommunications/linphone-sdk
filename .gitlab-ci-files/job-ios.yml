@@ -141,6 +141,7 @@ test-liblinphone-ios:
 
   after_script:
     - xcrun simctl shutdown all
+    - xcrun simctl erase all
     - xcresult2junit.rb ${CI_PROJECT_DIR}/tester/IOS/LinphoneTester/build/Logs/Test/*.xcresult | tee $XML_PATTERN.xml
 
 
