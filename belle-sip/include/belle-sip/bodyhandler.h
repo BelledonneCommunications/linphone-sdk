@@ -78,6 +78,23 @@ BELLESIP_EXPORT belle_sip_user_body_handler_t *belle_sip_user_body_handler_new(
 	void *data);
 
 /**
+ * @brief Buffering user body handler creation
+ * Buffering file bodyhandler will buffer the received chunks to deliver only modulo(buffer_size) chunks.
+ * The bufferized part, if any, is prepended to the next chunk,
+ * what remains in buffer when the end function is called is delivered through a last call to rcv_chunk
+ * The original purpose of this is to be able to deliver modulo(16) size chunks to the file transfer decryption function
+ */
+BELLESIP_EXPORT belle_sip_user_body_handler_t *belle_sip_buffering_user_body_handler_new(
+	size_t total_size,
+	size_t buffer_size,
+	belle_sip_body_handler_progress_callback_t progress_cb,
+	belle_sip_user_body_handler_start_callback_t start_cb,
+	belle_sip_user_body_handler_recv_callback_t recv_cb,
+	belle_sip_user_body_handler_send_callback_t send_cb,
+	belle_sip_user_body_handler_stop_callback_t stop_cb,
+	void *data);
+
+/**
  * Body handler that gets/puts data from/to a file.
 **/
 
