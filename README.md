@@ -72,7 +72,7 @@ in the next subsections.
 
 ### iOS
 
-Requirement: Xcode 10 or earlier (Xcode 11 is not supported yet).
+Requirement: Xcode 11 or 10.
 
 Cmake has limited swift support: only Ninja and Xcode generators can handle swift.
 Until cmake has full swift support, you need to specify configuration step by specifying one of the two backends:
