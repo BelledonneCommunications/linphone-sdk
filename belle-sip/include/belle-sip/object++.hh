@@ -150,21 +150,23 @@ class HybridObject : public Object {
 		}
 		
 		//Convenience method for easy bctbx_list(_Ctype) -> std::list<_CppType> conversion
-		static std::list<_CppType> getCppListFromCList(const bctbx_list_t *cList) {
-			std::list<_CppType> result;
-			for (auto it = cList; it; it = bctbx_list_next(it))
-				result.push_back(toCpp(static_cast<_CType>(bctbx_list_get_data(it))));
+		//It does not take ownership of the hybrid object, but takes a ref.
+		static std::list<std::shared_ptr<_CppType>> getCppListFromCList(const bctbx_list_t *cList) {
+			std::list<std::shared_ptr<_CppType>> result;
+			for (auto it = cList; it != nullptr; it = bctbx_list_next(it))
+				result.push_back(toCpp(static_cast<_CType>(bctbx_list_get_data(it)))->getSharedFromThis() );
 			return result;
 		}
 		//Convenience method for easy bctbx_list(_Ctype) -> std::list<_CppType> conversion
 		//Applies 'func' to get _CppType from _CType. Used in case we do not want to call  `toCpp` on _Ctype
-		static std::list<_CppType> getCppListFromCList(const bctbx_list_t *cList, const std::function<_CppType (_CType)> &func) {
-			std::list<_CppType> result;
-			for (auto it = cList; it; it = bctbx_list_next(it))
-			 	result.push_back(func(static_cast<_CType>(bctbx_list_get_data(it))));
+		static std::list<std::shared_ptr<_CppType>> getCppListFromCList(const bctbx_list_t *cList, const std::function<std::shared_ptr<_CppType> (_CType *)> &func) {
+			std::list<std::shared_ptr<_CppType>> result;
+			for (auto it = cList; it != nullptr; it = bctbx_list_next(it))
+			 	result.push_back(func(static_cast<_CType*>(bctbx_list_get_data(it))));
 			return result;
 		}
 		//Convenience method for easy std::list<shared_ptr<CppType>> -> bctbx_list(CType) conversion
+		//It does not take ownership of the hybrid object, but takes a ref.
 		static bctbx_list_t* getCListFromCppList(const std::list<std::shared_ptr<_CppType> > &cppList) {
 			bctbx_list_t *result = nullptr;
 			for (auto it = cppList.begin(); it != cppList.end(); it++) {
@@ -176,6 +178,7 @@ class HybridObject : public Object {
 			return result;
 		}
 		//Convenience method for easy std::list<CppType*> -> bctbx_list(CType) conversion
+		//It does not take ownership of the hybrid object, but takes a ref.
 		static bctbx_list_t* getCListFromCppList(const std::list<_CppType*> &cppList) {
 			bctbx_list_t *result = nullptr;
 			for (auto it = cppList.begin(); it != cppList.end(); it++) {

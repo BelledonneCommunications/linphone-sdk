@@ -149,6 +149,7 @@ void belle_sip_object_pool_remove(belle_sip_object_pool_t *pool, belle_sip_objec
 
 belle_sip_object_t * _belle_sip_object_init(belle_sip_object_t *obj, belle_sip_object_vptr_t *vptr);
 void belle_sip_cpp_object_delete(belle_sip_object_t *obj);
+const char * belle_sip_cpp_object_get_type_name(const belle_sip_object_t *obj);
 void belle_sip_object_uninit(belle_sip_object_t *obj);
 #define belle_sip_object_init(obj)		/*nothing*/
 

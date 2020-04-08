@@ -20,6 +20,10 @@
 #include "belle-sip/object++.hh"
 #include "belle_sip_internal.h"
 
+#ifdef __GNUC__
+#include <cxxabi.h>
+#endif
+
 namespace bellesip {
 
 class ObjectCAccessors {
@@ -29,6 +33,23 @@ public:
 	}
 	static void doDelete(belle_sip_object_t* obj) {
 		delete Object::getCppObject(obj);
+	}
+	static const char* getTypeName(const belle_sip_object_t *obj){
+		static thread_local std::string readableTypeName;
+		const Object *cppObject = Object::getCppObject(obj);
+#ifdef __GNUC__
+		int status = 0;
+		char *tmp = abi::__cxa_demangle(typeid(*cppObject).name(), 0, 0, &status);
+		if (status != 0){
+#endif
+			readableTypeName = typeid(*cppObject).name();
+#ifdef __GNUC__
+		}else{
+			readableTypeName = tmp;
+			free(tmp);
+		}
+#endif
+		return readableTypeName.c_str();
 	}
 };
 
@@ -80,11 +101,7 @@ void Object::constUnref()const{
 }
 
 std::string Object::toString() const {
-	std::ostringstream ss;
-	ss << "bellesip::Object. cObject(";
-	ss << static_cast<const void *>(&mObject);
-	ss << ")";
-	return ss.str();
+	return std::string();
 }
 
 belle_sip_error_code Object::marshal(char* buff, size_t buff_size, size_t *offset){
@@ -123,6 +140,10 @@ const Object *Object::getCppObject(const void *ptr){
 
 void belle_sip_cpp_object_delete(belle_sip_object_t *obj){
 	bellesip::ObjectCAccessors::doDelete(obj);
+}
+
+const char * belle_sip_cpp_object_get_type_name(const belle_sip_object_t *obj){
+	return bellesip::ObjectCAccessors::getTypeName(obj);
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_cpp_object_t);
