@@ -222,6 +222,7 @@ if(ENABLE_VIDEO)
 		videofilters/nowebcam.c
 		videofilters/pixconv.c
 		videofilters/sizeconv.c
+		videofilters/videoswitcher.c
 		voip/layouts.c
 		voip/layouts.h
 		voip/msvideo_neon.c
@@ -233,6 +234,7 @@ if(ENABLE_VIDEO)
 		voip/video_preset_high_fps.c
 		voip/videostarter.c
 		voip/videostream.c
+		voip/videoconference.c
 	)
 	if(FFMPEG_FOUND AND NOT TURBOJPEG_FOUND)
 		list(APPEND VOIP_SOURCE_FILES_C
