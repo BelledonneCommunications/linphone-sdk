@@ -143,6 +143,7 @@ void MSWASAPIWriter::init(LPCWSTR id, MSFilter *f) {
 	REPORT_ERROR("Could not get the mix format of the MSWASAPI audio output interface [%x]", result);
 	mRate = pWfx->nSamplesPerSec;
 	mNChannels = pWfx->nChannels;
+	mWBitsPerSample = pWfx->wBitsPerSample;
 	FREE_PTR(pWfx);
 	mIsInitialized = true;
 	smInstantiated = true;
@@ -203,7 +204,7 @@ int MSWASAPIWriter::activate()
 	if ((result != S_OK) && (result != AUDCLNT_E_ALREADY_INITIALIZED)) {
 		REPORT_ERROR("Could not initialize the MSWASAPI audio output interface [%x]", result);
 	}
-	
+	mWBitsPerSample = pUsedWfx->wBitsPerSample;
 	result = mAudioClient->GetBufferSize(&mBufferFrameCount);
 	REPORT_ERROR("Could not get buffer size for the MSWASAPI audio output interface [%x]", result);
 	result = mAudioClient->GetService(IID_IAudioRenderClient, (void **)&mAudioRenderClient);
@@ -261,19 +262,15 @@ int MSWASAPIWriter::feed(MSFilter *f){
 	UINT32 numFramesPadding = 0;
 	UINT32 numFramesWritable;        
 	mblk_t *im;
-	WAVEFORMATEX *frameFormat;
-	UINT32 frameSize;
 
 	if (!isStarted()) goto error;
 
 	result = mAudioClient->GetCurrentPadding(&numFramesPadding);
 	REPORT_ERROR("Could not get current buffer padding for the MSWASAPI audio output interface [%x]", result);
 	numFramesWritable = mBufferFrameCount - numFramesPadding;
-	result = mAudioClient->GetMixFormat(&frameFormat);
 	REPORT_ERROR("Could not get the frame size for the MSWASAPI audio output interface [%x]", result);
-	frameSize = frameFormat->nBlockAlign;
 	while ((im = ms_queue_get(f->inputs[0])) != NULL) {
-		int inputFrames = msgdsize(im) / frameSize;
+		int inputFrames = msgdsize(im) / (mWBitsPerSample*mNChannels/8);
 		msgpullup(im, -1);
 		if (inputFrames > (int)numFramesWritable) {
 			/*This case should not happen because of upstream flow control, except in rare disaster cases.*/
@@ -290,7 +287,6 @@ int MSWASAPIWriter::feed(MSFilter *f){
 		}
 		freemsg(im);
 	}
-	FREE_PTR(frameFormat);
 	/* Compute the minimum number of queued samples during a 5 seconds period.*/
 	if (mMinFrameCount == -1) mMinFrameCount = numFramesPadding;
 	if ((int)numFramesPadding < mMinFrameCount) mMinFrameCount = (int)numFramesPadding;

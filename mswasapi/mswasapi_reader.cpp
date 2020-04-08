@@ -143,6 +143,7 @@ void MSWASAPIReader::init(LPCWSTR id)
 	REPORT_ERROR("Could not get the mix format of the MSWASAPI audio input interface [%x]", result);
 	mRate = pWfx->nSamplesPerSec;
 	mNChannels = pWfx->nChannels;
+	mWBitsPerSample = pWfx->wBitsPerSample;
 	FREE_PTR(pWfx);
 	mIsInitialized = true;
 	smInstantiated = true;
@@ -197,6 +198,7 @@ int MSWASAPIReader::activate()
 	if ((result != S_OK) && (result != AUDCLNT_E_ALREADY_INITIALIZED)) {
 		REPORT_ERROR("Could not initialize the MSWASAPI audio input interface [%x]", result);
 	}
+	mWBitsPerSample = pUsedWfx->wBitsPerSample;
 	result = mAudioClient->GetBufferSize(&mBufferFrameCount);
 	REPORT_ERROR("Could not get buffer size for the MSWASAPI audio input interface [%x]", result);
 	ms_message("MSWASAPI audio input interface buffer size: %i", mBufferFrameCount);
@@ -260,7 +262,7 @@ int MSWASAPIReader::feed(MSFilter *f)
 	UINT32 numFramesInNextPacket = 0;
 	UINT64 devicePosition;
 	mblk_t *m;
-	int bytesPerFrame = (16 * mNChannels / 8);
+	int bytesPerFrame = (mWBitsPerSample * mNChannels / 8);
 
 	if (isStarted()) {
 		result = mAudioCaptureClient->GetNextPacketSize(&numFramesInNextPacket);
