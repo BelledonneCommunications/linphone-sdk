@@ -259,17 +259,21 @@ void MSWASAPIWriter::stop()
 int MSWASAPIWriter::feed(MSFilter *f){
 	HRESULT result;
 	UINT32 numFramesPadding = 0;
-	UINT32 numFramesWritable;
+	UINT32 numFramesWritable;        
 	mblk_t *im;
+	WAVEFORMATEX *frameFormat;
+	UINT32 frameSize;
 
 	if (!isStarted()) goto error;
 
 	result = mAudioClient->GetCurrentPadding(&numFramesPadding);
 	REPORT_ERROR("Could not get current buffer padding for the MSWASAPI audio output interface [%x]", result);
 	numFramesWritable = mBufferFrameCount - numFramesPadding;
-	
+	result = mAudioClient->GetMixFormat(&frameFormat);
+	REPORT_ERROR("Could not get the frame size for the MSWASAPI audio output interface [%x]", result);
+	frameSize = frameFormat->nBlockAlign;
 	while ((im = ms_queue_get(f->inputs[0])) != NULL) {
-		int inputFrames = msgdsize(im) / (2 * mNChannels);
+		int inputFrames = msgdsize(im) / frameSize;
 		msgpullup(im, -1);
 		if (inputFrames > (int)numFramesWritable) {
 			/*This case should not happen because of upstream flow control, except in rare disaster cases.*/
@@ -286,6 +290,7 @@ int MSWASAPIWriter::feed(MSFilter *f){
 		}
 		freemsg(im);
 	}
+	FREE_PTR(frameFormat);
 	/* Compute the minimum number of queued samples during a 5 seconds period.*/
 	if (mMinFrameCount == -1) mMinFrameCount = numFramesPadding;
 	if ((int)numFramesPadding < mMinFrameCount) mMinFrameCount = (int)numFramesPadding;
