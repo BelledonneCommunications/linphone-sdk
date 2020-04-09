@@ -205,7 +205,7 @@ int MSWASAPIWriter::activate()
 	if ((result != S_OK) && (result != AUDCLNT_E_ALREADY_INITIALIZED)) {
 		REPORT_ERROR("Could not initialize the MSWASAPI audio output interface [%x]", result);
 	}
-	//mNBlockAlign = pUsedWfx->nBlockAlign;	// TODO : Get the selected bock size
+	mNBlockAlign = pUsedWfx->nBlockAlign;
 	result = mAudioClient->GetBufferSize(&mBufferFrameCount);
 	REPORT_ERROR("Could not get buffer size for the MSWASAPI audio output interface [%x]", result);
 	result = mAudioClient->GetService(IID_IAudioRenderClient, (void **)&mAudioRenderClient);
