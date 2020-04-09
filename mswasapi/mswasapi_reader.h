@@ -81,7 +81,7 @@ private:
 	bool mIsStarted;
 	int mRate;
 	int mNChannels;
-	int mWBitsPerSample;
+	int mNBlockAlign;
 	MSFilter *mFilter;
 	MSTickerSynchronizer *mTickerSynchronizer;
 };

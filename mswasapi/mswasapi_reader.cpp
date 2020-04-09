@@ -143,7 +143,7 @@ void MSWASAPIReader::init(LPCWSTR id)
 	REPORT_ERROR("Could not get the mix format of the MSWASAPI audio input interface [%x]", result);
 	mRate = pWfx->nSamplesPerSec;
 	mNChannels = pWfx->nChannels;
-	mWBitsPerSample = pWfx->wBitsPerSample;
+	mNBlockAlign = pWfx->nBlockAlign;
 	FREE_PTR(pWfx);
 	mIsInitialized = true;
 	smInstantiated = true;
@@ -154,6 +154,7 @@ error:
 	// Initialize the frame rate and the number of channels to be able to generate silence.
 	mRate = 8000;
 	mNChannels = 1;
+	mNBlockAlign = 16 * 1 / 8;
 	return;
 }
 
@@ -198,7 +199,7 @@ int MSWASAPIReader::activate()
 	if ((result != S_OK) && (result != AUDCLNT_E_ALREADY_INITIALIZED)) {
 		REPORT_ERROR("Could not initialize the MSWASAPI audio input interface [%x]", result);
 	}
-	mWBitsPerSample = pUsedWfx->wBitsPerSample;
+	//mNBlockAlign = pUsedWfx->nBlockAlign;	// TODO : get the selected block size
 	result = mAudioClient->GetBufferSize(&mBufferFrameCount);
 	REPORT_ERROR("Could not get buffer size for the MSWASAPI audio input interface [%x]", result);
 	ms_message("MSWASAPI audio input interface buffer size: %i", mBufferFrameCount);
@@ -207,6 +208,9 @@ int MSWASAPIReader::activate()
 	result = mAudioClient->GetService(IID_ISimpleAudioVolume, (void **)&mVolumeControler);
 	REPORT_ERROR("Could not get volume control service from the MSWASAPI audio input interface [%x]", result);
 	mIsActivated = true;
+	ms_message("Wasapi capture initialized at %i Hz, %i channels, with buffer size %i (%i ms), frames are on %i bits", (int)mRate, (int)mNChannels,
+		(int)mBufferFrameCount, (int)1000*mBufferFrameCount/(mNChannels*2* mRate), mNBlockAlign*8);
+	FREE_PTR(pSupportedWfx);
 	return 0;
 
 error:
@@ -231,7 +235,7 @@ void MSWASAPIReader::start()
 		mIsStarted = true;
 		result = mAudioClient->Start();
 		if (result != S_OK) {
-			ms_error("Could not start playback on the MSWASAPI audio input interface [%x]", result);
+			ms_error("Could not start capture on the MSWASAPI audio input interface [%x]", result);
 		}
 	}
 	ms_ticker_set_synchronizer(mFilter->ticker, mTickerSynchronizer);
@@ -245,7 +249,7 @@ void MSWASAPIReader::stop()
 		mIsStarted = false;
 		result = mAudioClient->Stop();
 		if (result != S_OK) {
-			ms_error("Could not stop playback on the MSWASAPI audio input interface [%x]", result);
+			ms_error("Could not stop capture on the MSWASAPI audio input interface [%x]", result);
 		}
 		ms_ticker_set_synchronizer(mFilter->ticker, nullptr);
 	}
@@ -262,7 +266,7 @@ int MSWASAPIReader::feed(MSFilter *f)
 	UINT32 numFramesInNextPacket = 0;
 	UINT64 devicePosition;
 	mblk_t *m;
-	int bytesPerFrame = (mWBitsPerSample * mNChannels / 8);
+	int bytesPerFrame = mNBlockAlign;
 
 	if (isStarted()) {
 		result = mAudioCaptureClient->GetNextPacketSize(&numFramesInNextPacket);

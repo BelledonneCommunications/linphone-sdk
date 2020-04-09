@@ -143,7 +143,7 @@ void MSWASAPIWriter::init(LPCWSTR id, MSFilter *f) {
 	REPORT_ERROR("Could not get the mix format of the MSWASAPI audio output interface [%x]", result);
 	mRate = pWfx->nSamplesPerSec;
 	mNChannels = pWfx->nChannels;
-	mWBitsPerSample = pWfx->wBitsPerSample;
+	mNBlockAlign = pWfx->nBlockAlign;	// Get the selected bock size
 	FREE_PTR(pWfx);
 	mIsInitialized = true;
 	smInstantiated = true;
@@ -154,6 +154,7 @@ error:
 	// Initialize the frame rate and the number of channels to prevent configure a resampler with crappy parameters.
 	mRate = 8000;
 	mNChannels = 1;
+	mNBlockAlign = 16 * 1 / 8;
 	return;
 }
 
@@ -204,7 +205,7 @@ int MSWASAPIWriter::activate()
 	if ((result != S_OK) && (result != AUDCLNT_E_ALREADY_INITIALIZED)) {
 		REPORT_ERROR("Could not initialize the MSWASAPI audio output interface [%x]", result);
 	}
-	mWBitsPerSample = pUsedWfx->wBitsPerSample;
+	//mNBlockAlign = pUsedWfx->nBlockAlign;	// TODO : Get the selected bock size
 	result = mAudioClient->GetBufferSize(&mBufferFrameCount);
 	REPORT_ERROR("Could not get buffer size for the MSWASAPI audio output interface [%x]", result);
 	result = mAudioClient->GetService(IID_IAudioRenderClient, (void **)&mAudioRenderClient);
@@ -213,8 +214,9 @@ int MSWASAPIWriter::activate()
 	REPORT_ERROR("Could not get volume control service from the MSWASAPI audio output interface [%x]", result);
 	mIsActivated = true;
 
-	ms_message("Wasapi playback initialized at %i Hz, %i channels, with buffer size %i (%i ms), device period is %i", (int)mRate, (int)mNChannels,
-		(int)mBufferFrameCount, (int)1000*mBufferFrameCount/(mNChannels*2* mRate), devicePeriodMs);
+	ms_message("Wasapi playback output initialized at %i Hz, %i channels, with buffer size %i (%i ms), device period is %i, frames are on %i bits", (int)mRate, (int)mNChannels,
+		(int)mBufferFrameCount, (int)1000*mBufferFrameCount/(mNChannels*2* mRate), devicePeriodMs, mNBlockAlign*8);
+	FREE_PTR(pSupportedWfx);
 	return 0;
 
 error:
@@ -269,8 +271,9 @@ int MSWASAPIWriter::feed(MSFilter *f){
 	REPORT_ERROR("Could not get current buffer padding for the MSWASAPI audio output interface [%x]", result);
 	numFramesWritable = mBufferFrameCount - numFramesPadding;
 	REPORT_ERROR("Could not get the frame size for the MSWASAPI audio output interface [%x]", result);
+
 	while ((im = ms_queue_get(f->inputs[0])) != NULL) {
-		int inputFrames = msgdsize(im) / (mWBitsPerSample*mNChannels/8);
+		int inputFrames = 1+msgdsize(im) / mNBlockAlign;// Get one more space to put unexpected memory
 		msgpullup(im, -1);
 		if (inputFrames > (int)numFramesWritable) {
 			/*This case should not happen because of upstream flow control, except in rare disaster cases.*/
@@ -280,7 +283,7 @@ int MSWASAPIWriter::feed(MSFilter *f){
 			result = mAudioRenderClient->GetBuffer(inputFrames, &buffer);
 			if (result == S_OK) {
 				memcpy(buffer, im->b_rptr, im->b_wptr - im->b_rptr);
-				result = mAudioRenderClient->ReleaseBuffer(inputFrames, 0);
+				result = mAudioRenderClient->ReleaseBuffer(inputFrames-1, 0);	//Use only the needed frame
 			}else {
 				ms_error("Could not get buffer from the MSWASAPI audio output interface [%x]", result);
 			}
