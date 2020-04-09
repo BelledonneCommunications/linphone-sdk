@@ -238,11 +238,15 @@ if(ENABLE_VIDEO)
 	)
 	if(FFMPEG_FOUND AND NOT TURBOJPEG_FOUND)
 		list(APPEND VOIP_SOURCE_FILES_C
-			videofilters/ffmpegnowebcam.c
+			utils/jpgloader-ffmpeg.c
 		)
 	elseif(TURBOJPEG_FOUND)
 		list(APPEND VOIP_SOURCE_FILES_C
-			videofilters/turbojpegnowebcam.c
+			utils/jpgloader-turbojpeg.c
+		)
+	else()
+		list(APPEND VOIP_SOURCE_FILES_C
+			utils/jpgloader-stub.c
 		)
 	endif()
 	if(WIN32 AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone" AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")

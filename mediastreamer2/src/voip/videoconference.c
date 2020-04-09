@@ -25,7 +25,7 @@ struct _MSVideoConference{
 	MSVideoConferenceParams params;
 	MSTicker *ticker;
 	MSFilter *mixer;
-	MSList *members;
+	bctbx_list_t *members;
 };
 
 struct _MSVideoEndpoint{
@@ -71,12 +71,12 @@ static void on_switcher_event(void *data, MSFilter *f, unsigned int event_id, vo
 }
 
 
-MSVideoConference * ms_video_conference_new(const MSVideoConferenceParams *params){
+MSVideoConference * ms_video_conference_new(MSFactory *f, const MSVideoConferenceParams *params){
 	MSVideoConference *obj=ms_new0(MSVideoConference,1);
 	obj->ticker=ms_ticker_new();
 	ms_ticker_set_name(obj->ticker,"Video conference MSTicker");
 	ms_ticker_set_priority(obj->ticker,__ms_get_default_prio(FALSE));
-	obj->mixer=ms_filter_new(MS_VIDEO_SWITCHER_ID);
+	obj->mixer=ms_factory_create_filter(f, MS_VIDEO_SWITCHER_ID);
 	ms_filter_add_notify_callback(obj->mixer,on_switcher_event,obj,TRUE);
 	obj->params=*params;
 	return obj;
@@ -170,7 +170,7 @@ void ms_video_conference_add_member(MSVideoConference *obj, MSVideoEndpoint *ep)
 	if (obj->members!=NULL) ms_ticker_detach(obj->ticker,obj->mixer);
 	plumb_to_conf(ep);
 	ms_ticker_attach(obj->ticker,obj->mixer);
-	obj->members=ms_list_append(obj->members,ep);
+	obj->members=bctbx_list_append(obj->members,ep);
 }
 
 static void unplumb_from_conf(MSVideoEndpoint *ep){
@@ -188,12 +188,12 @@ void ms_video_conference_remove_member(MSVideoConference *obj, MSVideoEndpoint *
 	ms_ticker_detach(obj->ticker,obj->mixer);
 	unplumb_from_conf(ep);
 	ep->conference=NULL;
-	obj->members=ms_list_remove(obj->members,ep);
+	obj->members=bctbx_list_remove(obj->members,ep);
 	if (obj->members!=NULL) ms_ticker_attach(obj->ticker,obj->mixer);
 }
 
 int ms_video_conference_get_size(MSVideoConference *obj){
-	return ms_list_size(obj->members);
+	return bctbx_list_size(obj->members);
 }
 
 
@@ -223,86 +223,3 @@ void ms_video_endpoint_release_from_stream(MSVideoEndpoint *obj){
 	redo_video_stream_graph(obj);
 	ms_video_endpoint_destroy(obj);
 }
-
-struct _MSAVConference{
-	MSAVConferenceParams params;
-	MSAudioConference *audioconf;
-	MSVideoConference *videoconf;
-};
-
-struct _MSAVEndpoint{
-	MSAudioEndpoint *audio_ep;
-	MSVideoEndpoint *video_ep;
-};
-
-MSAVConference * ms_av_conference_new(const MSAVConferenceParams *params){
-	MSAVConference *obj=ms_new0(MSAVConference,1);
-	obj->params=*params;
-	obj->audioconf=ms_audio_conference_new(factory, &params->audio_params);
-	obj->videoconf=ms_video_conference_new(factory, &params->video_params);
-	return obj;
-}
-
-const MSAVConferenceParams *ms_av_conference_get_params(MSAVConference *obj){
-	return &obj->params;
-}
-
-void ms_av_conference_add_member(MSAVConference *obj, MSAVEndpoint *ep){
-	if (ep->audio_ep) ms_audio_conference_add_member(obj->audioconf,ep->audio_ep);
-	if (ep->video_ep) ms_video_conference_add_member(obj->videoconf,ep->video_ep);
-}
-
-
-void ms_av_conference_remove_member(MSAVConference *obj, MSAVEndpoint *ep){
-	if (ep->audio_ep) ms_audio_conference_remove_member(obj->audioconf,ep->audio_ep);
-	if (ep->video_ep) ms_video_conference_remove_member(obj->videoconf,ep->video_ep);
-}
-
-MSAudioConference *ms_av_conference_get_audio_conference(MSAVConference *obj){
-	return obj->audioconf;
-}
-
-MSVideoConference *ms_av_conference_get_video_conference(MSAVConference *obj){
-	return obj->videoconf;
-}
-
-
-int ms_av_conference_get_size(MSAVConference *obj){
-	return MAX(obj->audioconf ? ms_audio_conference_get_size(obj->audioconf) : 0,
-		   obj->videoconf ? ms_video_conference_get_size(obj->videoconf) : 0);
-}
-
-
-void ms_av_conference_destroy(MSAVConference *obj){
-	if (obj->audioconf) ms_audio_conference_destroy(obj->audioconf);
-	if (obj->videoconf) ms_video_conference_destroy(obj->videoconf);
-}
-
-MSAVEndpoint *ms_av_endpoint_new(void){
-	MSAVEndpoint *ep=ms_new0(MSAVEndpoint,1);
-	return ep;
-}
-
-MSAVEndpoint * ms_av_endpoint_get_from_streams(AudioStream *as, VideoStream *vs, bool_t is_remote){
-	MSAVEndpoint *ep = ms_av_endpoint_new();
-	
-	if (as && media_stream_get_state(&as->ms) == MSStreamStarted){
-		ep->audio_ep = ms_audio_endpoint_get_from_stream(as, is_remote);
-	}
-	if (vs && media_stream_get_state(&vs->ms) == MSStreamStarted){
-		ep->video_ep = ms_video_endpoint_get_from_stream(vs, is_remote);
-	}
-	return ep;
-}
-
-void ms_av_endpoint_release_from_stream(MSAVEndpoint *obj){
-	if (obj->audio_ep) {
-		ms_audio_endpoint_release_from_stream(obj->audio_ep);
-		obj->audio_ep = NULL;
-	}
-	if (obj->video_ep) {
-		ms_video_endpoint_release_from_stream(obj->video_ep);
-		obj->video_ep = NULL;
-	}
-}
-
