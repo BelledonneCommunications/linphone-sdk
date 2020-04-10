@@ -985,6 +985,16 @@ static bool_t ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *
 				/* Define the RTP endpoint that will perform STUN encapsulation/decapsulation for TURN data */
 				meta_rtp_transport_set_endpoint(rtptp, ms_turn_context_create_endpoint(cl->rtp_turn_context));
 				ms_turn_context_set_server_addr(cl->rtp_turn_context, (struct sockaddr *)&cl->session->ss, cl->session->ss_len);
+
+				// Start turn tcp client now if needed
+				if (cl->rtp_turn_context->transport != MS_TURN_CONTEXT_TRANSPORT_UDP) {
+					if (!cl->rtp_turn_context->turn_tcp_client) {
+						cl->rtp_turn_context->turn_tcp_client = ms_turn_tcp_client_new(cl->rtp_turn_context,
+							cl->rtp_turn_context->transport == MS_TURN_CONTEXT_TRANSPORT_TLS,
+							cl->rtp_turn_context->root_certificate);
+					}
+					ms_turn_tcp_client_connect(cl->rtp_turn_context->turn_tcp_client);
+				}
 			}
 			memset(source_addr_str, 0, sizeof(source_addr_str));
 			bctbx_sockaddr_to_ip_address(sa, cl->rtp_session->rtp.gs.loc_addrlen, source_addr_str, sizeof(source_addr_str), &source_port);
@@ -1013,6 +1023,16 @@ static bool_t ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *
 				/* Define the RTP endpoint that will perform STUN encapsulation/decapsulation for TURN data */
 				meta_rtp_transport_set_endpoint(rtptp, ms_turn_context_create_endpoint(cl->rtcp_turn_context));
 				ms_turn_context_set_server_addr(cl->rtcp_turn_context, (struct sockaddr *)&cl->session->ss, cl->session->ss_len);
+
+				// Start turn tcp client now if needed
+				if (cl->rtcp_turn_context->transport != MS_TURN_CONTEXT_TRANSPORT_UDP) {
+					if (!cl->rtcp_turn_context->turn_tcp_client) {
+						cl->rtcp_turn_context->turn_tcp_client = ms_turn_tcp_client_new(cl->rtcp_turn_context,
+							cl->rtcp_turn_context->transport == MS_TURN_CONTEXT_TRANSPORT_TLS,
+							cl->rtcp_turn_context->root_certificate);
+					}
+					ms_turn_tcp_client_connect(cl->rtcp_turn_context->turn_tcp_client);
+				}
 			}
 			memset(source_addr_str, 0, sizeof(source_addr_str));
 			bctbx_sockaddr_to_ip_address(sa, cl->rtp_session->rtcp.gs.loc_addrlen, source_addr_str, sizeof(source_addr_str), &source_port);
@@ -1169,6 +1189,60 @@ void ice_session_enable_turn(IceSession *session, bool_t enable) {
 	for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
 		if (session->streams[i] != NULL)
 			ice_check_list_create_turn_contexts(session->streams[i]);
+	}
+}
+
+void ice_session_set_turn_transport(IceSession *session, const char *transport) {
+	int i;
+
+	if (!session->turn_enabled) return;
+
+	for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
+		if (session->streams[i] != NULL) {
+			if (session->streams[i]->rtp_turn_context) {
+				ms_turn_context_set_transport(session->streams[i]->rtp_turn_context, ms_turn_get_transport_from_string(transport));
+			}
+
+			if (session->streams[i]->rtcp_turn_context) {
+				ms_turn_context_set_transport(session->streams[i]->rtcp_turn_context, ms_turn_get_transport_from_string(transport));
+			}
+		}
+	}
+}
+
+void ice_session_set_turn_root_certificate(IceSession *session, const char *root_certificate) {
+	int i;
+
+	if (!session->turn_enabled) return;
+
+	for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
+		if (session->streams[i] != NULL) {
+			if (session->streams[i]->rtp_turn_context) {
+				ms_turn_context_set_root_certificate(session->streams[i]->rtp_turn_context, root_certificate);
+			}
+
+			if (session->streams[i]->rtcp_turn_context) {
+				ms_turn_context_set_root_certificate(session->streams[i]->rtcp_turn_context, root_certificate);
+			}
+		}
+	}
+}
+
+void ice_session_set_turn_cn(IceSession *session, const char *cn) {
+	int i;
+
+	if (!session->turn_enabled) return;
+
+	for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
+		if (session->streams[i] != NULL) {
+			if (session->streams[i]->rtp_turn_context) {
+				ms_turn_context_set_cn(session->streams[i]->rtp_turn_context, cn);
+			}
+
+			if (session->streams[i]->rtcp_turn_context) {
+				ms_turn_context_set_cn(session->streams[i]->rtcp_turn_context, cn);
+			}
+		}
 	}
 }
 

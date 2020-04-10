@@ -187,6 +187,12 @@ typedef enum {
 	MS_TURN_CONTEXT_TYPE_RTCP
 } MSTurnContextType;
 
+typedef enum {
+	MS_TURN_CONTEXT_TRANSPORT_UDP,
+	MS_TURN_CONTEXT_TRANSPORT_TCP,
+	MS_TURN_CONTEXT_TRANSPORT_TLS
+} MSTurnContextTransport;
+
 typedef struct {
 	uint32_t nb_send_indication;
 	uint32_t nb_data_indication;
@@ -207,15 +213,19 @@ typedef struct {
 	char *username;
 	char *password;
 	char *ha1;
+	char *root_certificate;
 	uint32_t lifetime;
 	uint16_t channel_number;
 	MSTurnContextState state;
 	MSTurnContextType type;
+	MSTurnContextTransport transport;
 	MSStunAddress relay_addr;
 	struct sockaddr_storage turn_server_addr;
 	socklen_t turn_server_addrlen;
 	bool_t force_rtp_sending_via_relay;
 	MSTurnContextStatistics stats;
+	struct _MSTurnTCPClient *turn_tcp_client;
+	char *cn;
 } MSTurnContext;
 
 
@@ -327,6 +337,9 @@ MS2_PUBLIC void ms_turn_context_destroy(MSTurnContext *context);
 MS2_PUBLIC void ms_turn_context_set_server_addr(MSTurnContext *context, struct sockaddr *addr, socklen_t addrlen);
 MS2_PUBLIC MSTurnContextState ms_turn_context_get_state(const MSTurnContext *context);
 MS2_PUBLIC void ms_turn_context_set_state(MSTurnContext *context, MSTurnContextState state);
+MS2_PUBLIC MSTurnContextTransport ms_turn_get_transport_from_string(const char *transport);
+MS2_PUBLIC MSTurnContextTransport ms_turn_context_get_transport(const MSTurnContext *context);
+MS2_PUBLIC void ms_turn_context_set_transport(MSTurnContext *context, MSTurnContextTransport transport);
 MS2_PUBLIC const char * ms_turn_context_get_realm(const MSTurnContext *context);
 MS2_PUBLIC void ms_turn_context_set_realm(MSTurnContext *context, const char *realm);
 MS2_PUBLIC const char * ms_turn_context_get_nonce(const MSTurnContext *context);
@@ -343,9 +356,21 @@ MS2_PUBLIC uint16_t ms_turn_context_get_channel_number(const MSTurnContext *cont
 MS2_PUBLIC void ms_turn_context_set_channel_number(MSTurnContext *context, uint16_t channel_number);
 MS2_PUBLIC void ms_turn_context_set_allocated_relay_addr(MSTurnContext *context, MSStunAddress relay_addr);
 MS2_PUBLIC void ms_turn_context_set_force_rtp_sending_via_relay(MSTurnContext *context, bool_t force);
+MS2_PUBLIC void ms_turn_context_set_root_certificate(MSTurnContext *context, const char *root_certificate);
+MS2_PUBLIC void ms_turn_context_set_cn(MSTurnContext *context, const char *cn);
 MS2_PUBLIC bool_t ms_turn_context_peer_address_allowed(const MSTurnContext *context, const MSStunAddress *peer_address);
 MS2_PUBLIC void ms_turn_context_allow_peer_address(MSTurnContext *context, const MSStunAddress *peer_address);
 MS2_PUBLIC RtpTransport * ms_turn_context_create_endpoint(MSTurnContext *context);
+
+typedef struct _MSTurnTCPClient MSTurnTCPClient;
+
+MS2_PUBLIC MSTurnTCPClient* ms_turn_tcp_client_new(MSTurnContext *context, bool_t use_ssl, const char* root_certificate_path);
+MS2_PUBLIC void ms_turn_tcp_client_destroy(MSTurnTCPClient *turn_tcp_client);
+
+MS2_PUBLIC void ms_turn_tcp_client_connect(MSTurnTCPClient *turn_tcp_client);
+
+MS2_PUBLIC int ms_turn_tcp_client_recvfrom(MSTurnTCPClient *turn_tcp_client, mblk_t *msg, int flags, struct sockaddr *from, socklen_t *fromlen);
+MS2_PUBLIC int ms_turn_tcp_client_sendto(MSTurnTCPClient *turn_tcp_client, mblk_t *msg, int flags, const struct sockaddr *to, socklen_t tolen);
 
 #ifdef __cplusplus
 }
