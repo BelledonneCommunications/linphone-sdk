@@ -581,7 +581,7 @@ static MSVideoSize get_with_same_orientation_and_ratio(MSVideoSize size, MSVideo
 #endif
 
 static void configure_video_source(VideoStream *stream, bool_t skip_bitrate, bool_t first_time){
-	MSVideoSize cam_vsize;
+	MSVideoSize cam_vsize = {320, 240};
 	MSVideoConfiguration vconf;
 	MSPixFmt format=MS_PIX_FMT_UNKNOWN;
 	MSVideoEncoderPixFmt encoder_supports_source_format;

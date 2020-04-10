@@ -96,9 +96,10 @@ MSFilterMethod void_source_methods[] = {
 };
 
 static void void_sink_process(MSFilter *f){
-	mblk_t *im;
-	while((im=ms_queue_get(f->inputs[0]))!=NULL){
-		freemsg(im);
+	int i;
+	
+	for( i = 0; i < f->desc->ninputs; ++i){
+		if (f->inputs[i]) ms_queue_flush(f->inputs[i]);
 	}
 }
 
@@ -127,7 +128,7 @@ MSFilterDesc ms_void_sink_desc={
 	N_("A filter that trashes its input (useful for terminating some graphs)."),
 	MS_FILTER_OTHER,
 	NULL,
-	1,
+	10,
 	0,
 	NULL,
 	NULL,
@@ -157,7 +158,7 @@ MSFilterDesc ms_void_sink_desc={
 	.name="MSVoidSink",
 	.text=N_("A filter that trashes its input (useful for terminating some graphs)."),
 	.category=MS_FILTER_OTHER,
-	.ninputs=1,
+	.ninputs=10,
 	.noutputs=0,
 	.process=void_sink_process,
 };

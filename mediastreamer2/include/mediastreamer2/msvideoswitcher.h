@@ -28,6 +28,12 @@
 /**requests the video switcher to broadcast the video from given input pin.*/
 #define MS_VIDEO_SWITCHER_SET_FOCUS MS_FILTER_METHOD(MS_VIDEO_SWITCHER_ID,0,int)
 
+typedef struct _MSVideoSwitcherPinControl{
+	int pin;
+	int enabled;
+}MSVideoSwitcherPinControl;
+#define MS_VIDEO_SWITCHER_SET_AS_LOCAL_MEMBER MS_FILTER_METHOD(MS_VIDEO_SWITCHER_ID,1,MSVideoSwitcherPinControl)
+
 
 
 /**Event raised by the switcher when it needs to receive a key frame in order to complete the switch to new input source*/

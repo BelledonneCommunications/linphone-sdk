@@ -907,6 +907,60 @@ static Vp8RtpFmtErrorCode parse_payload_descriptor(Vp8RtpFmtPacket *packet) {
 	return Vp8RtpFmtOk;
 }
 
+uint8_t * vp8rtpfmt_skip_payload_descriptor(mblk_t *m){
+	uint8_t *h = m->b_rptr;
+	unsigned int packet_size = (unsigned int)(m->b_wptr - m->b_rptr);
+	uint8_t offset = 0;
+	bool_t extended_control_bits_present = FALSE;
+	bool_t pictureid_present = FALSE;
+	bool_t tid_present = FALSE;
+	bool_t keyidx_present = FALSE;
+	bool_t tl0picidx_present = FALSE;
+
+	if (packet_size == 0) return NULL;
+
+	/* Parse mandatory first octet of payload descriptor. */
+	if (h[offset] & (1 << 7)) extended_control_bits_present = TRUE;
+	
+	offset++;
+	if (offset >= packet_size) return NULL;
+	/* Parse the first extension octet if needed. */
+	if (extended_control_bits_present == TRUE) {
+		if (h[offset] & (1 << 7)) pictureid_present = TRUE;
+		if (h[offset] & (1 << 6)) tl0picidx_present = TRUE;
+		if (h[offset] & (1 << 5)) tid_present = TRUE;
+		if (h[offset] & (1 << 4)) keyidx_present = TRUE;
+		if ((tl0picidx_present == TRUE) && (tid_present != TRUE)) {
+			/* Invalid payload descriptor. */
+			return NULL;
+		}
+		offset++;
+		if (offset >= packet_size) return NULL;
+	}
+	/* Parse the pictureID if needed. */
+	if (pictureid_present == TRUE) {
+		if (h[offset] & (1 << 7)) {
+			/* The pictureID is 16 bits long. */
+			if ((unsigned int)(offset + 1) >= packet_size) return NULL;
+			offset += 2;
+		} else {
+			/* The pictureId is 8 bits long. */
+			offset++;
+		}
+		if (offset >= packet_size) return NULL;
+	}
+	/* Parse the tl0picidx if needed. */
+	if (tl0picidx_present == TRUE) {
+		offset++;
+		if (offset >= packet_size) return NULL;
+	}
+	if ((tid_present == TRUE) || (keyidx_present == TRUE)) {
+		offset++;
+		if (offset >= packet_size) return NULL;
+	}
+	return &h[offset];
+}
+
 
 void vp8rtpfmt_unpacker_init(Vp8RtpFmtUnpackerCtx *ctx, MSFilter *f, bool_t avpf_enabled, bool_t freeze_on_error, bool_t output_partitions) {
 	ctx->filter = f;

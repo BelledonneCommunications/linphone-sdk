@@ -73,7 +73,7 @@ static void on_switcher_event(void *data, MSFilter *f, unsigned int event_id, vo
 
 MSVideoConference * ms_video_conference_new(MSFactory *f, const MSVideoConferenceParams *params){
 	MSVideoConference *obj=ms_new0(MSVideoConference,1);
-	MSFmtDescriptor *fmt;
+	const MSFmtDescriptor *fmt;
 	MSVideoSize vsize = {0};
 	
 	obj->ticker=ms_ticker_new();
@@ -81,7 +81,7 @@ MSVideoConference * ms_video_conference_new(MSFactory *f, const MSVideoConferenc
 	ms_ticker_set_priority(obj->ticker,__ms_get_default_prio(FALSE));
 	obj->mixer = ms_factory_create_filter(f, MS_VIDEO_SWITCHER_ID);
 	fmt = ms_factory_get_video_format(f, params->codec_mime_type ? params->codec_mime_type : "VP8" ,vsize,0,NULL);
-	ms_filter_call_method(obj->mixer, MS_FILTER_SET_INPUT_FMT, &fmt);
+	ms_filter_call_method(obj->mixer, MS_FILTER_SET_INPUT_FMT, (void*)fmt);
 	ms_filter_add_notify_callback(obj->mixer,on_switcher_event,obj,TRUE);
 	obj->params=*params;
 	return obj;
@@ -141,7 +141,7 @@ static void cut_video_stream_graph(MSVideoEndpoint *ep, bool_t is_remote){
 static void redo_video_stream_graph(MSVideoEndpoint *ep){
 	VideoStream *st=ep->st;
 	ms_filter_link(ep->in_cut_point_prev.filter,ep->in_cut_point_prev.pin,ep->in_cut_point.filter,ep->in_cut_point.pin);
-	ms_filter_link(ep->out_cut_point.filter,ep->out_cut_point.pin,st->ms.encoder,0);
+	ms_filter_link(ep->out_cut_point_prev.filter,ep->out_cut_point_prev.pin,ep->out_cut_point.filter,ep->out_cut_point.pin);
 	ms_ticker_attach(st->ms.sessions.ticker,st->source);
 }
 
@@ -158,6 +158,7 @@ static int find_free_pin(MSFilter *mixer){
 
 static void plumb_to_conf(MSVideoEndpoint *ep){
 	MSVideoConference *conf=ep->conference;
+	MSVideoSwitcherPinControl pc;
 	
 	ep->pin=find_free_pin(conf->mixer);
 	
@@ -167,6 +168,9 @@ static void plumb_to_conf(MSVideoEndpoint *ep){
 	if (ep->mixer_out.filter){
 		ms_filter_link(conf->mixer,ep->pin,ep->mixer_out.filter,ep->mixer_out.pin);
 	}
+	pc.pin = ep->pin;
+	pc.enabled = !ep->is_remote;
+	ms_filter_call_method(conf->mixer, MS_VIDEO_SWITCHER_SET_AS_LOCAL_MEMBER, &pc);
 }
 
 void ms_video_conference_add_member(MSVideoConference *obj, MSVideoEndpoint *ep){
