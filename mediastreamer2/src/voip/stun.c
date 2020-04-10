@@ -1337,6 +1337,7 @@ void ms_turn_context_destroy(MSTurnContext *context) {
 	if (context->endpoint != NULL) context->endpoint->data = NULL;
 	bctbx_list_for_each(context->allowed_peer_addresses, (MSIterateFunc)ms_free);
 	bctbx_list_free(context->allowed_peer_addresses);
+	if (context->turn_tcp_client) ms_turn_tcp_client_destroy(context->turn_tcp_client);
 	ms_free(context);
 }
 
@@ -1359,6 +1360,26 @@ void ms_turn_context_set_state(MSTurnContext *context, MSTurnContextState state)
 	context->state = state;
 	if (state == MS_TURN_CONTEXT_STATE_ALLOCATION_CREATED) context->stats.nb_successful_allocate++;
 	else if (state == MS_TURN_CONTEXT_STATE_CHANNEL_BOUND) context->stats.nb_successful_channel_bind++;
+}
+
+MSTurnContextTransport ms_turn_get_transport_from_string(const char *transport) {
+	if (transport == NULL) return MS_TURN_CONTEXT_TRANSPORT_UDP;
+
+	if (strcmp(transport, "tcp") == 0) {
+		return MS_TURN_CONTEXT_TRANSPORT_TCP;
+	} else if (strcmp(transport, "tls") == 0) {
+		return MS_TURN_CONTEXT_TRANSPORT_TLS;
+	} else {
+		return MS_TURN_CONTEXT_TRANSPORT_UDP;
+	}
+}
+
+MSTurnContextTransport ms_turn_context_get_transport(const MSTurnContext *context) {
+	return context->transport;
+}
+
+void ms_turn_context_set_transport(MSTurnContext *context, MSTurnContextTransport transport) {
+	context->transport = transport;
 }
 
 const char * ms_turn_context_get_realm(const MSTurnContext *context) {
@@ -1425,6 +1446,14 @@ void ms_turn_context_set_force_rtp_sending_via_relay(MSTurnContext *context, boo
 	context->force_rtp_sending_via_relay = force;
 }
 
+void ms_turn_context_set_root_certificate(MSTurnContext *context, const char *root_certificate) {
+	STUN_STR_SETTER(context->root_certificate, root_certificate);
+}
+
+void ms_turn_context_set_cn(MSTurnContext *context, const char *cn) {
+	STUN_STR_SETTER(context->cn, cn);
+}
+
 bool_t ms_turn_context_peer_address_allowed(const MSTurnContext *context, const MSStunAddress *peer_address) {
 	bctbx_list_t *elem = context->allowed_peer_addresses;
 	while (elem != NULL) {
@@ -1449,7 +1478,16 @@ static int ms_turn_rtp_endpoint_recvfrom(RtpTransport *rtptp, mblk_t *msg, int f
 	int msgsize = 0;
 
 	if ((context != NULL) && (context->rtp_session != NULL)) {
-		msgsize = rtp_session_recvfrom(context->rtp_session, context->type == MS_TURN_CONTEXT_TYPE_RTP, msg, flags, from, fromlen);
+		// Check first if we received a message from turn tcp
+		if (context->transport != MS_TURN_CONTEXT_TRANSPORT_UDP) {
+			msgsize = ms_turn_tcp_client_recvfrom(context->turn_tcp_client, msg, flags, from, fromlen);
+		}
+
+		// If not use the common way
+		if (msgsize == 0) {
+			msgsize = rtp_session_recvfrom(context->rtp_session, context->type == MS_TURN_CONTEXT_TYPE_RTP, msg, flags, from, fromlen);
+		}
+
 		if ((msgsize >= RTP_FIXED_HEADER_SIZE) && (rtp_get_version(msg) != 2)) {
 			/* This is not a RTP packet, try to see if it is a TURN ChannelData message */
 			if ((ms_turn_context_get_state(context) >= MS_TURN_CONTEXT_STATE_BINDING_CHANNEL) && (*msg->b_rptr & 0x40)) {
@@ -1509,7 +1547,7 @@ static int ms_turn_rtp_endpoint_recvfrom(RtpTransport *rtptp, mblk_t *msg, int f
 	return msgsize;
 }
 
-static bool_t ms_turn_rtp_endpoint_send_via_turn_server(MSTurnContext *context, const struct sockaddr *from, socklen_t fromlen) {
+static bool_t ms_turn_rtp_endpoint_send_via_turn_relay(MSTurnContext *context, const struct sockaddr *from, socklen_t fromlen) {
 	struct sockaddr_storage relay_ss;
 	struct sockaddr *relay_sa = (struct sockaddr *)&relay_ss;
 	socklen_t relay_sa_len = sizeof(relay_ss);
@@ -1528,10 +1566,26 @@ static bool_t ms_turn_rtp_endpoint_send_via_turn_server(MSTurnContext *context, 
 	} else return FALSE;
 }
 
+static bool_t ms_turn_rtp_endpoint_send_via_turn_server(MSTurnContext *context, const struct sockaddr *from, socklen_t fromlen) {
+	struct sockaddr *turn_server_sa = (struct sockaddr *)&context->turn_server_addr;
+
+	if (turn_server_sa->sa_family != from->sa_family) return FALSE;
+	if (turn_server_sa->sa_family == AF_INET) {
+		struct sockaddr_in *turn_server_sa_in = (struct sockaddr_in *)turn_server_sa;
+		struct sockaddr_in *from_in = (struct sockaddr_in *)from;
+		return (turn_server_sa_in->sin_port == from_in->sin_port) && (turn_server_sa_in->sin_addr.s_addr == from_in->sin_addr.s_addr);
+	} else if (turn_server_sa->sa_family == AF_INET6) {
+		struct sockaddr_in6 *turn_server_sa_in6 = (struct sockaddr_in6 *)turn_server_sa;
+		struct sockaddr_in6 *from_in6 = (struct sockaddr_in6 *)from;
+		return (turn_server_sa_in6->sin6_port == from_in6->sin6_port) && (memcmp(&turn_server_sa_in6->sin6_addr, &from_in6->sin6_addr, sizeof(from_in6->sin6_addr)) == 0);
+	} else return FALSE;
+}
+
 static int ms_turn_rtp_endpoint_sendto(RtpTransport *rtptp, mblk_t *msg, int flags, const struct sockaddr *to, socklen_t tolen) {
 	MSTurnContext *context = (MSTurnContext *)rtptp->data;
 	MSStunMessage *stun_msg = NULL;
 	bool_t rtp_packet = FALSE;
+	bool_t send_via_turn_tcp = FALSE;
 	int ret = 0;
 	mblk_t *new_msg = NULL;
 	struct sockaddr_storage sourceAddr;
@@ -1540,7 +1594,7 @@ static int ms_turn_rtp_endpoint_sendto(RtpTransport *rtptp, mblk_t *msg, int fla
 	if ((context != NULL) && (context->rtp_session != NULL)) {
 		if ((msgdsize(msg) >= RTP_FIXED_HEADER_SIZE) && (rtp_get_version(msg) == 2)) rtp_packet = TRUE;
 		ortp_recvaddr_to_sockaddr(&msg->recv_addr, (struct sockaddr*) &sourceAddr, &sourceAddrLen);
-		if ((rtp_packet && context->force_rtp_sending_via_relay) || ms_turn_rtp_endpoint_send_via_turn_server(context,(struct sockaddr*) &sourceAddr, sourceAddrLen)) {
+		if ((rtp_packet && context->force_rtp_sending_via_relay) || ms_turn_rtp_endpoint_send_via_turn_relay(context, (struct sockaddr*) &sourceAddr, sourceAddrLen)) {
 			if (ms_turn_context_get_state(context) >= MS_TURN_CONTEXT_STATE_CHANNEL_BOUND) {
 				/* Use a TURN ChannelData message */
 				new_msg = allocb(4, 0);
@@ -1577,8 +1631,24 @@ static int ms_turn_rtp_endpoint_sendto(RtpTransport *rtptp, mblk_t *msg, int fla
 			}
 			to = (const struct sockaddr *)&context->turn_server_addr;
 			tolen = context->turn_server_addrlen;
+
+			if (context->transport != MS_TURN_CONTEXT_TRANSPORT_UDP) {
+				send_via_turn_tcp = TRUE;
+			}
+		} else if (ms_turn_rtp_endpoint_send_via_turn_server(context, to, tolen)) {
+			// This is not a RTP packet and it is in destination of the turn server
+			// then it's a STUN packet and it still should go through the turn TCP client
+			// if the transport is not set to UDP
+			if (context->transport != MS_TURN_CONTEXT_TRANSPORT_UDP) {
+				send_via_turn_tcp = TRUE;
+			}
 		}
-		ret = rtp_session_sendto(context->rtp_session, context->type == MS_TURN_CONTEXT_TYPE_RTP, msg, flags, to, tolen);
+
+		if (send_via_turn_tcp) {
+			ret = ms_turn_tcp_client_sendto(context->turn_tcp_client, msg, flags, to, tolen);
+		} else {
+			ret = rtp_session_sendto(context->rtp_session, context->type == MS_TURN_CONTEXT_TYPE_RTP, msg, flags, to, tolen);
+		}
 	}
 	if (stun_msg != NULL) ms_stun_message_destroy(stun_msg);
 	if (new_msg != NULL) {

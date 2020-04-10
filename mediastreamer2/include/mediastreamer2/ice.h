@@ -539,11 +539,32 @@ MS2_PUBLIC void ice_session_enable_forced_relay(IceSession *session, bool_t enab
 MS2_PUBLIC void ice_session_enable_short_turn_refresh(IceSession *session, bool_t enable);
 
 /**
- * Enable TURN protol.
+ * Enable TURN protocol.
  * @param session A pointer to a session
  * @param enable A boolean value telling whether to enable TURN protocol or not.
  */
 MS2_PUBLIC void ice_session_enable_turn(IceSession *session, bool_t enable);
+
+/**
+ * Set TURN transport.
+ * @param session A pointer to a session
+ * @param transport The transport that TURN should use (should be UDP, TCP or TLS).
+ */
+MS2_PUBLIC void ice_session_set_turn_transport(IceSession *session, const char *transport);
+
+/**
+ * Set TURN root certificate path when using TLS.
+ * @param session A pointer to a session
+ * @param root_certificate The path of the root certificate.
+ */
+MS2_PUBLIC void ice_session_set_turn_root_certificate(IceSession *session, const char *root_certificate);
+
+/**
+ * Set TURN CN when using TLS.
+ * @param session A pointer to a session
+ * @param cn The CN.
+ */
+MS2_PUBLIC void ice_session_set_turn_cn(IceSession *session, const char *cn);
 
 MS2_PUBLIC void ice_session_set_stun_auth_requested_cb(IceSession *session, MSStunAuthRequestedCb cb, void *userdata);
 

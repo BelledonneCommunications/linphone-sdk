@@ -114,7 +114,7 @@ cmake_dependent_option(ENABLE_QNX "Build medistreamer2 with BB10 filters." NO "E
 option(ENABLE_JPEG "Enable JPEG support" YES)
 cmake_dependent_option(ENABLE_QRCODE "Enable QRCode support" YES "ENABLE_VIDEO" NO)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_EXTENSIONS NO)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
