@@ -275,7 +275,7 @@ int MSWASAPIWriter::feed(MSFilter *f){
 	while ((im = ms_queue_get(f->inputs[0])) != NULL) {
 		int inputFrames = msgdsize(im) / mNBlockAlign;
 		int writtenFrames = inputFrames;
-		if( msgdsize(im)%8 != 0 )// Get one more space to put unexpected data
+		if( msgdsize(im)%8 != 0 )// Get one more space to put unexpected data. This is a workaround to a bug from special audio driver that could write/use outside the requested buffer and where it is not on fully 8 octets
 			++inputFrames;
 		msgpullup(im, -1);
 		if (inputFrames > (int)numFramesWritable) {
