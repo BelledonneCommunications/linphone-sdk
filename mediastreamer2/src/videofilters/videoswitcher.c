@@ -25,8 +25,7 @@
 #define SWITCHER_MAX_CHANNELS 20
 
 static bool_t is_vp8_key_frame(mblk_t *m){
-	/*TODO*/
-	return FALSE;
+	return !(m->b_rptr[0] & 1);
 }
 
 static bool_t is_h264_key_frame(mblk_t *m){
@@ -182,6 +181,9 @@ static int switcher_set_fmt(MSFilter *f, void *data){
 			s->is_key_frame=is_vp8_key_frame;
 		}else if (strcasecmp(fmt->encoding,"H264")==0){
 			s->is_key_frame=is_h264_key_frame;
+		}else{
+			ms_error("%s: unsupported format %s", f->desc->name, fmt->encoding);
+			return -1;
 		}
 	}
 	return 0;

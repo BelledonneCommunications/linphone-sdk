@@ -901,6 +901,9 @@ int video_stream_start_from_io(VideoStream *stream, RtpProfile *profile, const c
 						ms_filter_call_method_noarg(source, MS_PLAYER_START);
 				}
 			break;
+			case MSResourceVoid:
+				stream->source = ms_factory_create_filter(stream->ms.factory, MS_VOID_SOURCE_ID);
+			break;
 			default:
 				ms_error("Unhandled input resource type %s", ms_resource_type_to_string(io->input.type));
 			break;
@@ -925,6 +928,9 @@ int video_stream_start_from_io(VideoStream *stream, RtpProfile *profile, const c
 				stream->recorder_output = recorder;
 				ms_filter_add_notify_callback(recorder, video_recorder_handle_event, stream, TRUE);
 				if (io->output.file) video_stream_open_remote_record(stream, io->output.file);
+			break;
+			case MSResourceVoid:
+				output = ms_factory_create_filter(stream->ms.factory, MS_VOID_SINK_ID);
 			break;
 			default:
 				/*will just display in all other cases*/

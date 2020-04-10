@@ -331,7 +331,8 @@ typedef enum MSResourceType{
 	MSResourceFile,
 	MSResourceRtp,
 	MSResourceCamera,
-	MSResourceSoundcard
+	MSResourceSoundcard,
+	MSResourceVoid
 }MSResourceType;
 
 MS2_PUBLIC const char *ms_resource_type_to_string(MSResourceType type);

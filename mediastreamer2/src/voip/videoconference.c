@@ -73,10 +73,15 @@ static void on_switcher_event(void *data, MSFilter *f, unsigned int event_id, vo
 
 MSVideoConference * ms_video_conference_new(MSFactory *f, const MSVideoConferenceParams *params){
 	MSVideoConference *obj=ms_new0(MSVideoConference,1);
+	MSFmtDescriptor *fmt;
+	MSVideoSize vsize = {0};
+	
 	obj->ticker=ms_ticker_new();
 	ms_ticker_set_name(obj->ticker,"Video conference MSTicker");
 	ms_ticker_set_priority(obj->ticker,__ms_get_default_prio(FALSE));
-	obj->mixer=ms_factory_create_filter(f, MS_VIDEO_SWITCHER_ID);
+	obj->mixer = ms_factory_create_filter(f, MS_VIDEO_SWITCHER_ID);
+	fmt = ms_factory_get_video_format(f, params->codec_mime_type ? params->codec_mime_type : "VP8" ,vsize,0,NULL);
+	ms_filter_call_method(obj->mixer, MS_FILTER_SET_INPUT_FMT, &fmt);
 	ms_filter_add_notify_callback(obj->mixer,on_switcher_event,obj,TRUE);
 	obj->params=*params;
 	return obj;

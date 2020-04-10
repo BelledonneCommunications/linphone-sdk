@@ -610,6 +610,8 @@ const char *ms_resource_type_to_string(MSResourceType type){
 			return "MSResourceRtp";
 		case MSResourceSoundcard:
 			return "MSResourceSoundcard";
+		case MSResourceVoid:
+			return "MSResourceVoid";
 	}
 	return "INVALID";
 }
@@ -632,6 +634,8 @@ bool_t ms_media_resource_is_consistent(const MSMediaResource *r){
 		case MSResourceInvalid:
 			ms_error("Invalid resource type specified");
 			return FALSE;
+		case MSResourceVoid:
+			return TRUE;
 	}
 	ms_error("Unsupported media resource type [%i]", (int)r->type);
 	return FALSE;

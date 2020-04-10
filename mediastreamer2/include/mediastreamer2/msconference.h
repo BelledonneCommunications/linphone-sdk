@@ -219,7 +219,8 @@ MS2_PUBLIC void ms_audio_endpoint_destroy(MSAudioEndpoint *ep);
  * Structure that holds audio conference parameters
 **/
 struct _MSVideoConferenceParams{
-	int unused;
+	int min_switch_interval;
+	const char *codec_mime_type;
 };
 
 /**
@@ -246,30 +247,6 @@ typedef struct _MSVideoConference MSVideoConference;
 **/
 typedef struct _MSVideoEndpoint MSVideoEndpoint;
 
-/**
- * The MSAVConference is the object representing an audio/video conference.
- *
- * First, the conference has to be created with ms_av_conference_new(), with parameters supplied.
- * Then, participants to the conference can be added with ms_av_conference_add_member().
- * Participants can be removed from the conference with ms_av_conference_remove_member().
- * When all participants are removed, the MSVideoConference object can then be safely destroyed with ms_av_conference_destroy().
-**/
-typedef struct _MSAVConference MSAVConference;
-
-struct _MSAVConferenceParams{
-	MSAudioConferenceParams audio_params;
-	MSVideoConferenceParams video_params;
-	int min_switch_interval;
-};
-
-typedef struct _MSAVConferenceParams MSAVConferenceParams;
-
-/**
- * The MSAVEndpoint represents a participant in the audio/video conference.
- * It can be constructed from an existing AudioStream and VideoStream object with
- * ms_av_endpoint_get_from_streams().
-**/
-typedef struct _MSAVEndpoint MSAVEndpoint;
 
 
 
