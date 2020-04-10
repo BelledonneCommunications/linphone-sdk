@@ -297,6 +297,19 @@ static void test_via_header(void) {
 	BC_ASSERT_STRING_EQUAL(belle_sip_header_via_get_branch(L_via),"z9hG4bK368560724");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_via));
 
+	// Test IPv6 with delimiter received in via. See: https://tools.ietf.org/html/rfc5118#section-4.5
+	L_via = belle_sip_header_via_parse("v: SIP/2.0/UDP [::1]:5062;rport;received=[::1];branch=z9hG4bK368560724");
+
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_via_get_protocol(L_via), "SIP/2.0");
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_via_get_transport(L_via), "UDP");
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_via_get_host(L_via), "::1");
+	BC_ASSERT_EQUAL(belle_sip_header_via_get_port(L_via),5062,int,"%d");
+
+	BC_ASSERT_TRUE(belle_sip_parameters_has_parameter(BELLE_SIP_PARAMETERS(L_via),"rport"));
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_via_get_received(L_via),"::1");
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_via_get_branch(L_via),"z9hG4bK368560724");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_via));
+
 	L_via = belle_sip_header_via_parse("Via: SIP/2.0/UDP 192.168.0.19:5062;received=192.169.0.4;rport=1234;branch=z9hG4bK368560724, SIP/2.0/UDP 192.168.0.19:5062");
 
 	l_next = belle_sip_header_get_next(BELLE_SIP_HEADER(L_via));

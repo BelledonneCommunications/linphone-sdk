@@ -1407,9 +1407,12 @@ via_params
 via_maddr
   :   'maddr' EQUAL host;*/
 via_received [belle_sip_header_via_t* object]
-  : {IS_TOKEN(received)}? token EQUAL via_address {belle_sip_header_via_set_received(object,(const char*)$via_address.text->chars);};
+  : {IS_TOKEN(received)}? token EQUAL via_address {belle_sip_header_via_set_received(object,(const char*)$via_address.ret);};
 
-via_address: ipv4address | ipv6address;
+via_address returns [const char* ret=NULL]
+  :   ipv4address {$ret=(const char*)$ipv4address.text->chars;}
+      | ipv6address {$ret=(const char *)$ipv6address.text->chars;}
+      | ipv6reference {$ret=(const char*)$ipv6reference.ret;} ;
 /*
 via_branch
   :   'branch' EQUAL token;
