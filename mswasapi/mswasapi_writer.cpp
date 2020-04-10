@@ -273,7 +273,10 @@ int MSWASAPIWriter::feed(MSFilter *f){
 	REPORT_ERROR("Could not get the frame size for the MSWASAPI audio output interface [%x]", result);
 
 	while ((im = ms_queue_get(f->inputs[0])) != NULL) {
-		int inputFrames = 1+msgdsize(im) / mNBlockAlign;// Get one more space to put unexpected memory
+		int inputFrames = msgdsize(im) / mNBlockAlign;
+		int writtenFrames = inputFrames;
+		if( msgdsize(im)%8 != 0 )// Get one more space to put unexpected data
+			++inputFrames;
 		msgpullup(im, -1);
 		if (inputFrames > (int)numFramesWritable) {
 			/*This case should not happen because of upstream flow control, except in rare disaster cases.*/
@@ -283,7 +286,7 @@ int MSWASAPIWriter::feed(MSFilter *f){
 			result = mAudioRenderClient->GetBuffer(inputFrames, &buffer);
 			if (result == S_OK) {
 				memcpy(buffer, im->b_rptr, im->b_wptr - im->b_rptr);
-				result = mAudioRenderClient->ReleaseBuffer(inputFrames-1, 0);	//Use only the needed frame
+				result = mAudioRenderClient->ReleaseBuffer(writtenFrames, 0);	//Use only the needed frame
 			}else {
 				ms_error("Could not get buffer from the MSWASAPI audio output interface [%x]", result);
 			}
