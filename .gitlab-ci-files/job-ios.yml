@@ -126,6 +126,8 @@ test-liblinphone-ios:
     NUMBER_DEVICES: 4
 
   script:
+    - timeout --signal=SIGINT 1 xcrun simctl list
+    - if [ $? != 0 ]; then  killall -9 com.apple.CoreSimulator.CoreSimulatorService;  fi
     - unzip build-ios/linphone-sdk-*.zip -d build-ios/
     - cd ${CI_PROJECT_DIR}/tester/IOS/LinphoneTester
     - echo ${CI_PROJECT_DIR}/tester/IOS/LinphoneTester
