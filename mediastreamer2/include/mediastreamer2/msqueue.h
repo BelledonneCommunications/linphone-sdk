@@ -117,7 +117,7 @@ MS2_PUBLIC void ms_queue_destroy(MSQueue *q);
 #define mblk_set_user_flag(m,bit)    __mblk_set_flag(m,7,bit)  /* to be used by extensions to mediastreamer2*/
 #define mblk_get_user_flag(m)    (((m)->reserved2)>>7 & 0x1) /*bit 8*/
 
-#define mblk_set_cseq(m,value) (m)->reserved2=(m)->reserved2| ((value&0xFFFF)<<16);	
+#define mblk_set_cseq(m,value) (m)->reserved2 = ((m)->reserved2 & 0x0000FFFF) | ((value&0xFFFF)<<16);	
 #define mblk_get_cseq(m) ((m)->reserved2>>16)
 
 #define HAVE_ms_bufferizer_fill_current_metas

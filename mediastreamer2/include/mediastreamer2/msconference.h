@@ -31,11 +31,18 @@
  * @{
  */
 
+struct _MSAudioConference;
+struct _MSAudioEndpoint;
+
+typedef void (*MSAudioConferenceNotifyActiveTalker)(struct _MSAudioConference *, struct _MSAudioEndpoint *ep);
+
 /**
  * Structure that holds audio conference parameters
 **/
 struct _MSAudioConferenceParams{
 	int samplerate; /**< Conference audio sampling rate in Hz: 8000, 16000 ...*/
+	MSAudioConferenceNotifyActiveTalker active_talker_callback;
+	void *user_data;
 };
 
 /**
@@ -100,6 +107,14 @@ MS2_PUBLIC void ms_audio_conference_add_member(MSAudioConference *obj, MSAudioEn
 **/
 MS2_PUBLIC void ms_audio_conference_remove_member(MSAudioConference *obj, MSAudioEndpoint *ep);
 
+
+/**
+ * Process events of the audio conference.
+ * Calling this method periodically (for example every 50 ms), is necessary
+ * to receive the active talker notifications to the callback set in the MSAudioConferenceParams.
+ * @param obj the conference
+**/
+MS2_PUBLIC void ms_audio_conference_process_events(MSAudioConference *obj);
 /**
  * Mutes or unmutes a participant.
  * 
@@ -166,6 +181,21 @@ MS2_PUBLIC void ms_audio_conference_destroy(MSAudioConference *obj);
  * </PRE>
 **/
 MS2_PUBLIC MSAudioEndpoint * ms_audio_endpoint_get_from_stream(AudioStream *st, bool_t is_remote);
+
+/**
+ * Associate a user pointer to the endpoint.
+ * @param ep the endpoint
+ * @param user_data the user data
+ */
+MS2_PUBLIC void ms_audio_endpoint_set_user_data(MSAudioEndpoint *ep, void *user_data);
+
+/**
+ * Get the user pointer associated to the endpoint.
+ * @param ep the endpoint
+ * @return the user data
+ */
+MS2_PUBLIC void * ms_audio_endpoint_get_user_data(const MSAudioEndpoint *ep);
+
 
 /**
  * Destroys a MSAudioEndpoint that was created from an AudioStream with ms_audio_endpoint_get_from_stream().
@@ -284,6 +314,28 @@ MS2_PUBLIC void ms_video_conference_remove_member(MSVideoConference *obj, MSVide
 
 
 /**
+ * Switch the focus of the video conf on a given member.
+ * @param obj the conference
+ * @param ep the participant, represented as a MSVideoEndpoint object
+ */
+MS2_PUBLIC void ms_video_conference_set_focus(MSVideoConference *obj, MSVideoEndpoint *ep);
+
+/**
+ * Get the list of members, as MSVideoEndpoints.
+ * @param obj the conference
+ * @return a list of MSVideoEndpoint objects.
+ */
+MS2_PUBLIC const bctbx_list_t* ms_video_conference_get_members(const MSVideoConference *obj);
+
+/**
+ * Put an audio conference and a video conference in relationship.
+ * The audio conference will monitor the active speaker, and notify the video conference.
+ * @param obj the video conference
+ * @param obj the audio conference
+ */
+MS2_PUBLIC void ms_video_conference_set_audio_conference(MSVideoConference *obj, MSAudioConference *audioconf);
+
+/**
  * Returns the size (ie the number of participants) of a conference.
  * @param obj the conference
 **/
@@ -332,6 +384,22 @@ MS2_PUBLIC void ms_video_conference_destroy(MSVideoConference *obj);
  * </PRE>
 **/
 MS2_PUBLIC MSVideoEndpoint * ms_video_endpoint_get_from_stream(VideoStream *st, bool_t is_remote);
+
+
+/**
+ * Associate a user pointer to the endpoint.
+ * @param ep the endpoint
+ * @param user_data the user data
+ */
+MS2_PUBLIC void ms_video_endpoint_set_user_data(MSVideoEndpoint *ep, void *user_data);
+
+/**
+ * Get the user pointer associated to the endpoint.
+ * @param ep the endpoint
+ * @return the user data
+ */
+MS2_PUBLIC void * ms_video_endpoint_get_user_data(const MSVideoEndpoint *ep);
+
 
 /**
  * Destroys a MSVideoEndpoint that was created from a VideoStream with ms_video_endpoint_get_from_stream().

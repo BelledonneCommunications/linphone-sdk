@@ -25,8 +25,11 @@
 #include "mediastreamer2/msvideopresets.h"
 
 
+
 #define MAX_RTP_SIZE	UDP_MAX_SIZE
 
+struct _MSAudioConference;
+struct _MSVideoConference;
 
 #ifdef __cplusplus
 extern "C"
@@ -107,6 +110,8 @@ void video_recorder_handle_event(void *userdata, MSFilter *recorder, unsigned in
 void ms_audio_flow_control_event_handler(void *user_data, MSFilter *f, unsigned int event, void *eventdata);
 
 void video_stream_enable_recording(VideoStream *stream, bool_t enabled);
+
+void ms_audio_conference_set_video_conference(struct _MSAudioConference *audioconf, struct _MSVideoConference *videoconf);
 
 /*
  * Currently common to every h264 implementations including plugins

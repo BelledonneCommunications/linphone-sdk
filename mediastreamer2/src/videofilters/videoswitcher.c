@@ -54,72 +54,40 @@ static bool_t is_key_frame_dummy(mblk_t *frame){
 typedef bool_t (*is_key_frame_func_t)(mblk_t *frame);
 
 
-enum _ChannelState{
-	WAITING_KEYFRAME,
-	STARTING_WITH_KEYFRAME,
+enum _IOState{
+	STOPPED,
 	RUNNING
 };
-typedef enum _ChannelState ChannelState;
 
-typedef struct Channel{
-	int current_source;
-	uint8_t cur_marker_set;
+
+typedef enum _IOState IOState;
+
+typedef struct _InputContext{
+	IOState state;
 	uint8_t ignore_cseq;
 	uint16_t cur_seq; /* to detect discontinuties*/
 	uint32_t cur_ts; /* current timestamp, to detect beginning of frames */
 	int seq_set;
-	int has_focus_pending;
+	int key_frame_requested;
 	mblk_t *key_frame_start;
-	ChannelState state;
-} Channel;
+}InputContext;
 
+typedef struct _OutputContext{
+	IOState state;
+	uint32_t out_ts;
+	uint32_t adjusted_out_ts;
+	uint16_t out_seq;
+	int current_source;
+	int next_source;
+}OutputContext;
 
 typedef struct SwitcherState{
-	Channel channels[SWITCHER_MAX_CHANNELS];
+	InputContext input_contexts[SWITCHER_MAX_CHANNELS];
+	OutputContext output_contexts[SWITCHER_MAX_CHANNELS];
 	int focus_pin;
 	is_key_frame_func_t is_key_frame;
 } SwitcherState;
 
-int switcher_channel_get_pin(SwitcherState *s, Channel *chan){
-	return chan - &s->channels[0];
-}
-
-static void switcher_channel_update(SwitcherState *s, Channel *chan, MSQueue *q){
-	mblk_t *m;
-	int pin = switcher_channel_get_pin(s, chan);
-	
-	if (chan->state == STARTING_WITH_KEYFRAME){
-		chan->state = RUNNING;
-	}
-	chan->key_frame_start = NULL;
-	
-	for(m = ms_queue_peek_first(q); !ms_queue_end(q, m); m = ms_queue_peek_next(q,m)){
-		uint32_t new_ts = mblk_get_timestamp_info(m);
-		uint16_t new_seq = mblk_get_cseq(m);
-		//uint8_t marker = mblk_get_marker_info(m);
-		
-		if (!chan->seq_set){
-			chan->state = WAITING_KEYFRAME;
-		}else if (!chan->ignore_cseq && (new_seq != chan->cur_seq + 1)){
-			ms_warning("MSVideoSwitcher: Sequence discontinuity detected on pin %i", pin);
-			chan->state = WAITING_KEYFRAME;
-		}
-		if (chan->state == WAITING_KEYFRAME || chan->has_focus_pending){
-			if (!chan->seq_set || chan->cur_ts != new_ts){
-				/* Possibly a beginning of frame ! */
-				if (s->is_key_frame(m)){
-					ms_message("MSVideoSwitcher: key frame detected on pin %i", pin);
-					chan->state = STARTING_WITH_KEYFRAME;
-					chan->key_frame_start = m;
-					if (chan->has_focus_pending) chan->has_focus_pending = FALSE;
-				}
-			}
-		}
-		chan->cur_ts = new_ts;
-		chan->cur_seq = new_seq;
-		chan->seq_set = 1;
-	}
-}
 
 
 static void switcher_init(MSFilter *f){
@@ -144,16 +112,28 @@ static int next_input_pin(MSFilter *f, int i){
 	return 0;
 }
 
+static void _switcher_set_focus(MSFilter *f, SwitcherState *s , int pin){
+	int i;
+	for (i = 0 ; i < f->desc->noutputs ; ++i){
+		if (i != pin){
+			s->output_contexts[i].next_source = pin;
+		}
+	}
+	s->focus_pin=pin;
+}
+
 static void switcher_preprocess(MSFilter *f){
 	SwitcherState *s=(SwitcherState *)f->data;
 	int i;
-	/*define routing tables according to the connected inputs*/
-	for(i=0;i<f->desc->noutputs;++i){
-		MSQueue *q=f->outputs[i];
-		Channel *chan=&s->channels[i];
-		if (q){
-			if (s->focus_pin == -1) s->focus_pin = i;
-			chan->current_source=next_input_pin(f,i);
+	
+	if (s->focus_pin == -1){
+		for(i=0;i<f->desc->noutputs;++i){
+			MSQueue *q = f->outputs[i];
+			//Channel *chan=&s->channels[i];
+			if (q){
+				_switcher_set_focus(f, s, i);
+				break;
+			}
 		}
 	}
 }
@@ -161,57 +141,123 @@ static void switcher_preprocess(MSFilter *f){
 static void switcher_postprocess(MSFilter *f){
 }
 
-static void switcher_transfer(MSQueue *input, MSQueue *output, mblk_t *start){
+static void switcher_channel_update_input(SwitcherState *s, int pin, MSQueue *q){
+	InputContext *input_context = &s->input_contexts[pin];
+	mblk_t *m;
+	
+	input_context->key_frame_start = NULL;
+	
+	for(m = ms_queue_peek_first(q); !ms_queue_end(q, m); m = ms_queue_peek_next(q,m)){
+		uint32_t new_ts = mblk_get_timestamp_info(m);
+		uint16_t new_seq = mblk_get_cseq(m);
+		//uint8_t marker = mblk_get_marker_info(m);
+		
+		if (!input_context->seq_set){
+			input_context->state = STOPPED;
+			input_context->key_frame_requested = TRUE;
+		}else if (!input_context->ignore_cseq && (new_seq != input_context->cur_seq + 1)){
+			ms_warning("MSVideoSwitcher: Sequence discontinuity detected on pin %i", pin);
+			input_context->state = STOPPED;
+			input_context->key_frame_requested = TRUE;
+		}
+		if (input_context->key_frame_requested){
+			if (!input_context->seq_set || input_context->cur_ts != new_ts){
+				/* Possibly a beginning of frame ! */
+				if (s->is_key_frame(m)){
+					ms_message("MSVideoSwitcher: key frame detected on pin %i", pin);
+					input_context->state = RUNNING;
+					input_context->key_frame_start = m;
+					input_context->key_frame_requested = FALSE;
+				}
+			}
+		}
+		input_context->cur_ts = new_ts;
+		input_context->cur_seq = new_seq;
+		input_context->seq_set = 1;
+	}
+}
+
+static void switcher_transfer(MSFilter *f, MSQueue *input,  MSQueue *output, OutputContext *output_context, mblk_t *start){
 	mblk_t *m;
 	if (ms_queue_empty(input)) return;
+	
 	for(m = ms_queue_peek_first(input); !ms_queue_end(input, m) ;m = ms_queue_peek_next(input,m)){
 		if (start != NULL && m != start) continue; /* Skip packets until the key-frame start packet is found */
+		mblk_t *o = dupmsg(m);
 		
-		ms_queue_put(output,dupmsg(m));
+		if (mblk_get_timestamp_info(m) != output_context->out_ts){
+			/* Each time we observe a new input timestamp, we must select a new output timestamp */
+			output_context->out_ts = mblk_get_timestamp_info(m);
+			output_context->adjusted_out_ts = f->ticker->time * 90LL;
+		}
+		
+		/* We need to set sequence number for what we send out, otherwise the VP8 decoder won't be able
+		 * to verify the integrity of the stream*/
+		
+		mblk_set_timestamp_info(o, output_context->adjusted_out_ts);
+		mblk_set_cseq(o, output_context->out_seq++);
+		mblk_set_marker_info(o, mblk_get_marker_info(m));
+		
+		ms_queue_put(output, o);
 	}
 }
 
 static void switcher_process(MSFilter *f){
 	SwitcherState *s=(SwitcherState *)f->data;
 	int i;
-	MSQueue *focus_q=f->inputs[s->focus_pin];
-	Channel *focus_chan = &s->channels[s->focus_pin];
 	
 	ms_filter_lock(f);
 	
 	/* First update channel states according to their received packets */
 	for(i=0;i<f->desc->ninputs;++i){
 		MSQueue *q=f->inputs[i];
-		Channel *chan=&s->channels[i];
-		if (q && !ms_queue_empty(q)) {
-			switcher_channel_update(s, chan, q);
-			if (chan->state == WAITING_KEYFRAME || chan->has_focus_pending){
+		InputContext *input_context=&s->input_contexts[i];
+		if (q) {
+			switcher_channel_update_input(s, i, q);
+			if (!ms_queue_empty(q) && input_context->key_frame_requested){
 				ms_message("%s: need key-frame for pin %i", f->desc->name, i);
 				ms_filter_notify(f,MS_VIDEO_SWITCHER_NEEDS_KEYFRAME, &i);
 			}
 		}
 	}
 	
-	if (focus_chan->state == STARTING_WITH_KEYFRAME){
-		ms_message("%s: got key-frame, focus definitely switched to pin %i", f->desc->name, s->focus_pin);
-	}
-	
 	/*fill outputs from inputs according to rules below*/
 	for(i=0;i<f->desc->noutputs;++i){
 		MSQueue * q = f->outputs[i];
-		Channel *chan = &s->channels[i];
+		OutputContext *output_context = &s->output_contexts[i];
+		InputContext *input_context;
+		
 		if (q){
-			if (i != s->focus_pin && !focus_chan->has_focus_pending && focus_chan->state != WAITING_KEYFRAME){
-				switcher_transfer(focus_q, q, focus_chan->key_frame_start);
-				chan->current_source = s->focus_pin;
-				ms_message("%s: transfered packets from focus pin %i to pin %i", f->desc->name, s->focus_pin, i);
-			}else{
-				/*selfviewing is not allowed, sending something that doesn't start with a keyframe also*/
-				MSQueue *source_queue = f->inputs[chan->current_source]; /* Get source for output channel i*/
-				Channel *source_chan =  &s->channels[chan->current_source]; /* Source channel */
-				if (source_queue && !ms_queue_empty(source_queue) && source_chan->state != WAITING_KEYFRAME) {
-					ms_message("%s: transfered packets from pin %i to pin %i", f->desc->name, chan->current_source, i);
-					switcher_transfer(source_queue, q, chan->key_frame_start);
+			mblk_t *key_frame_start = NULL;
+			
+			if (f->inputs[output_context->next_source] == NULL){
+				ms_warning("%s: next source %i disapeared, choosing another one.", f->desc->name, output_context->next_source);
+				output_context->next_source = next_input_pin(f, output_context->next_source);
+			}
+			if (f->inputs[output_context->current_source] == NULL && output_context->current_source == output_context->next_source){
+				ms_warning("%s: current source %i disapeared, choosing another one to switch to.", f->desc->name, output_context->current_source);
+				output_context->next_source = next_input_pin(f, output_context->current_source);
+				output_context->current_source = -1; /* Invalidate the current source until the switch.*/
+			}
+			
+			if (output_context->current_source != output_context->next_source){
+				/* This output is waiting a key-frame to start */
+				input_context = &s->input_contexts[output_context->next_source];
+				if (input_context->key_frame_start != NULL){
+					/* The input just got a key frame, we can switch ! */
+					output_context->current_source = output_context->next_source;
+					key_frame_start = input_context->key_frame_start;
+				}else{
+					/* else request a key frame */
+					input_context->key_frame_requested = TRUE;
+				}
+			}
+			
+			if (output_context->current_source != -1){
+				input_context = &s->input_contexts[output_context->current_source];
+				if (input_context->state == RUNNING){
+					switcher_transfer(f, f->inputs[output_context->current_source], q, output_context, key_frame_start);
+					ms_message("%s: transfered packets from pin %i to pin %i", f->desc->name, output_context->current_source, i);
 				}
 			}
 		}
@@ -224,8 +270,6 @@ static void switcher_process(MSFilter *f){
 	ms_filter_unlock(f);
 }
 
-
-
 static int switcher_set_focus(MSFilter *f, void *data){
 	SwitcherState *s=(SwitcherState *)f->data;
 	int pin=*(int*)data;
@@ -235,9 +279,9 @@ static int switcher_set_focus(MSFilter *f, void *data){
 	}
 	if (s->focus_pin!=pin){
 		ms_filter_lock(f);
-		s->focus_pin=pin;
-		s->channels[s->focus_pin].has_focus_pending = TRUE;
+		_switcher_set_focus(f, s, pin);
 		ms_filter_unlock(f);
+		ms_message("%s: focus requested on pin %i", f->desc->name, pin);
 	}
 	return 0;
 }
@@ -262,7 +306,7 @@ static int switcher_set_local_member_pin(MSFilter *f, void *data){
 	SwitcherState *s=(SwitcherState *)f->data;
 	MSVideoSwitcherPinControl *pc = (MSVideoSwitcherPinControl*)data;
 	if (pc->pin >= 0 && pc->pin < f->desc->ninputs){
-		s->channels[pc->pin].ignore_cseq = (unsigned char)pc->enabled;
+		s->input_contexts[pc->pin].ignore_cseq = (unsigned char)pc->enabled;
 		ms_message("MSVideoSwitcher: Pin #%i local member attribute: %i", pc->pin, pc->enabled);
 		return 0;
 	}

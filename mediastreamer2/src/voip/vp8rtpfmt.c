@@ -1006,7 +1006,7 @@ void vp8rtpfmt_unpacker_feed(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *in) {
 			ctx->ref_cseq++;
 			if (ctx->ref_cseq!=cseq){
 				packet->cseq_inconsistency=TRUE;
-				ms_message("sequence inconsistency detected (diff=%i)",(int)(cseq-ctx->ref_cseq));
+				ms_message("Vp8RtpFmtUnpackerCtx filter=%p: sequence inconsistency detected (cseq=%u, diff=%i) m=%p", ctx->filter, (unsigned int) cseq, (int)(cseq-ctx->ref_cseq), m);
 				ctx->ref_cseq=cseq;
 			}
 		}

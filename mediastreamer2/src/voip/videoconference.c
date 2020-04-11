@@ -23,6 +23,7 @@
 
 struct _MSVideoConference{
 	MSVideoConferenceParams params;
+	MSAudioConference *audioconf;
 	MSTicker *ticker;
 	MSFilter *mixer;
 	bctbx_list_t *members;
@@ -30,6 +31,7 @@ struct _MSVideoConference{
 
 struct _MSVideoEndpoint{
 	VideoStream *st;
+	void *user_data;
 	MSCPoint out_cut_point;
 	MSCPoint out_cut_point_prev;
 	MSCPoint in_cut_point;
@@ -201,8 +203,24 @@ void ms_video_conference_remove_member(MSVideoConference *obj, MSVideoEndpoint *
 	if (obj->members!=NULL) ms_ticker_attach(obj->ticker,obj->mixer);
 }
 
+void ms_video_conference_set_focus(MSVideoConference *obj, MSVideoEndpoint *ep){
+	ms_filter_call_method(obj->mixer, MS_VIDEO_SWITCHER_SET_FOCUS, &ep->pin);
+}
+
+void ms_video_conference_set_audio_conference(MSVideoConference *obj, MSAudioConference *audioconf){
+	if (obj->audioconf){
+		ms_audio_conference_set_video_conference(obj->audioconf, NULL);
+	}
+	obj->audioconf = audioconf;
+	if (audioconf) ms_audio_conference_set_video_conference(audioconf, obj);
+}
+
 int ms_video_conference_get_size(MSVideoConference *obj){
 	return bctbx_list_size(obj->members);
+}
+
+const bctbx_list_t* ms_video_conference_get_members(const MSVideoConference *obj){
+	return obj->members;
 }
 
 
@@ -216,6 +234,16 @@ MSVideoEndpoint *ms_video_endpoint_new(void){
 	MSVideoEndpoint *ep=ms_new0(MSVideoEndpoint,1);
 	return ep;
 }
+
+void ms_video_endpoint_set_user_data(MSVideoEndpoint *ep, void *user_data){
+	ep->user_data = user_data;
+}
+
+
+void * ms_video_endpoint_get_user_data(const MSVideoEndpoint *ep){
+	return ep->user_data;
+}
+
 
 MSVideoEndpoint * ms_video_endpoint_get_from_stream(VideoStream *st, bool_t is_remote){
 	MSVideoEndpoint *ep=ms_video_endpoint_new();
