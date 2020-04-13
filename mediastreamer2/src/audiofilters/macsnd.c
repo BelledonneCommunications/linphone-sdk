@@ -649,10 +649,12 @@ static void au_read_process(MSFilter *f){
 		d->first_process = FALSE;
 		flushq(&d->rq, 0);
 	} else {
+		bool_t got_something = FALSE;
 		while((m=getq(&d->rq))!=NULL){
 			ms_queue_put(f->outputs[0],m);
-			ms_ticker_synchronizer_update(d->ticker_synchronizer, d->timestamp, d->common.rate);
+			got_something = TRUE;
 		}
+		if (got_something) ms_ticker_synchronizer_update(d->ticker_synchronizer, d->timestamp, d->common.rate);
 	}
 	ms_mutex_unlock(&d->common.mutex);
 }

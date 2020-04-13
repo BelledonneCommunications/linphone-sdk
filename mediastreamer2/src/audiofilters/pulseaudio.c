@@ -615,12 +615,11 @@ static void pulse_read_process(MSFilter *f){
 			if (buffer == NULL) ms_message("%s: hole detected while reading samples. %zu bytes of data have been lost", f->desc->name, nbytes);
 			// ticker synchronization must be done here to ensure that lost samples are taken into account while computing total read samples count.
 			s->read_samples += ((nbytes / 2) / s->sampleSpec.channels);
-			ms_ticker_synchronizer_update(s->ticker_synchronizer, s->read_samples, (unsigned int)s->sampleSpec.rate);
 			pa_stream_drop(s->stream);
 		}
 	}
-
 	pa_threaded_mainloop_unlock(the_pa_loop);
+	ms_ticker_synchronizer_update(s->ticker_synchronizer, s->read_samples, (unsigned int)s->sampleSpec.rate);
 }
 
 static void pulse_read_postprocess(MSFilter *f) {

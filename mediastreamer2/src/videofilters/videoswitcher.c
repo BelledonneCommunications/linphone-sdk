@@ -155,7 +155,7 @@ static void switcher_channel_update_input(SwitcherState *s, int pin, MSQueue *q)
 			input_context->state = STOPPED;
 			input_context->key_frame_requested = TRUE;
 		}else if (!input_context->ignore_cseq && (new_seq != input_context->cur_seq + 1)){
-			ms_warning("MSVideoSwitcher: Sequence discontinuity detected on pin %i", pin);
+			ms_warning("MSVideoSwitcher: Sequence discontinuity detected on pin %i, key-frame requested", pin);
 			input_context->state = STOPPED;
 			input_context->key_frame_requested = TRUE;
 		}
@@ -215,7 +215,6 @@ static void switcher_process(MSFilter *f){
 		if (q) {
 			switcher_channel_update_input(s, i, q);
 			if (!ms_queue_empty(q) && input_context->key_frame_requested){
-				ms_message("%s: need key-frame for pin %i", f->desc->name, i);
 				ms_filter_notify(f,MS_VIDEO_SWITCHER_NEEDS_KEYFRAME, &i);
 			}
 		}
@@ -249,7 +248,10 @@ static void switcher_process(MSFilter *f){
 					key_frame_start = input_context->key_frame_start;
 				}else{
 					/* else request a key frame */
-					input_context->key_frame_requested = TRUE;
+					if (input_context->key_frame_requested == FALSE){
+						ms_message("%s: need key-frame for pin %i", f->desc->name, output_context->next_source);
+						input_context->key_frame_requested = TRUE;
+					}
 				}
 			}
 			
